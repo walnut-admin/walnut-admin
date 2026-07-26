@@ -44,3 +44,7 @@ apps/server/dist/
 
 # AI agent workspace (ZCode plans, scratch)
 .zcode/
+
+# VitePress (docs) — .vitepress/dist already covered by dist/ above
+**/.vitepress/cache
+apps/docs/nginx/*

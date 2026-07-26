@@ -1,5 +1,14 @@
 # AGENTS.md - Walnut Admin Client
 
+> ⚠️ **本文档已过时**（描述的是合并前的单包 `walnut-admin-client@1.17.0`）。
+> 当前仓库是 **monorepo**（`apps/admin` + `apps/server` + `apps/docs` + `packages/*`）。
+>
+> AI coding agents 请优先阅读：
+> - [`CLAUDE.md`](./CLAUDE.md) — 当前最准确的仓库概览（monorepo 结构、命令、版本）
+> - [`docs/architecture/`](./docs/architecture/README.md) — 权威架构文档（8 个文件，含问题清单与改造方案）
+>
+> 本文件计划在未来重写（见 `docs/architecture/07-known-issues.md` 问题 #11）。在此之前，下文中的版本号、命令、项目结构均与现状不符。
+
 This document provides essential information for AI coding agents working on the Walnut Admin Client project.
 
 ## Project Overview

@@ -279,43 +279,46 @@
 
 ---
 
-## 问题 #13 🟢 `apps/admin/deploy.config.cjs` 含明文密码
+## 问题 #13 ✅ `apps/admin/deploy.config.cjs` 含明文密码（已核实：未泄露）
 
-**描述**：部署配置文件含明文 SSH 密码，虽然根 `.gitignore` 忽略 `deploy.config.*`，但此文件可能被 tracked。
+**描述**：部署配置文件含明文 SSH 密码，根 `.gitignore` 忽略 `deploy.config.*`。
 
 **证据**：
 - 根 `.gitignore`：`deploy.config.*`（忽略）
-- `apps/admin/deploy.config.cjs` 存在
-- 需 `git ls-files | grep deploy.config` 确认是否被 tracked（建议执行时核查）
+- `apps/admin/deploy.config.cjs` 存在于磁盘
+- `git ls-files | grep deploy.config` → **exit 1（零命中）**——文件**未被 tracked**，无泄露
 
-**影响**：潜在的凭据泄露风险。
+**结论**：误报。文件被 .gitignore 正确忽略，未入库。**无需处理**。（原文档措辞"可能被 tracked"是基于未核查的推测，已于 2026-07-26 核实修正。）
 
-**严重级别**：🟢 轻微（若已 gitignore 则无实际泄露，但需核查）
+**严重级别**：✅ 不再是问题
 
-**对应 Phase**：不在本次 5 个 Phase 内（安全核查，独立处理）
+**对应 Phase**：无（已核实安全）
 
 ---
 
 ## 汇总表
 
-| # | 严重 | 问题 | Phase |
-|---|------|------|-------|
-| 1 | 🔴 | `@walnut` 命名空间双重定义 | Phase 1 |
-| 2 | 🔴 | 前后端零契约共享 | Phase 4 |
-| 3 | 🔴 | CI/CD 坏掉 | Phase 5 |
-| 4 | 🟡 | ui/ai 空壳 | Phase 3 |
-| 5 | 🟡 | tsconfig.base.node 孤儿 | Phase 2 |
-| 6 | 🟡 | baseUrl/paths 错配 | Phase 2 |
-| 7 | 🟡 | 跨包 .d.ts reach | Phase 2 |
-| 8 | 🟡 | 根 dev 脚本启动三 app | Phase 5 |
-| 9 | 🟡 | 后端/docs standalone 残留 | 未来 |
-| 10 | 🟡 | 无 commitlint | 未来 |
-| 11 | 🟢 | AGENTS.md 过时 | 未来 |
-| 12 | 🟢 | catalog 不在 turbo globalDeps | Phase 5 |
-| 13 | 🟢 | deploy.config 明文密码 | 独立 |
+> 更新于 2026-07-26。✅ 表示已处理。
 
-**本次 5 个 Phase 覆盖**：#1-8、#12（9 个问题）
-**留给未来**：#9-11、#13（4 个问题，非阻塞）
+| # | 严重 | 问题 | Phase | 状态 |
+|---|------|------|-------|------|
+| 1 | 🔴 | `@walnut` 命名空间双重定义 | Phase 1 | 待办 |
+| 2 | 🔴 | 前后端零契约共享 | Phase 4 | 待办 |
+| 3 | 🔴 | CI/CD 坏掉 | Phase 5 | 部分（已加 test task，CI workflow 待加）|
+| 4 | 🟡 | ui/ai 空壳 | Phase 3 | ✅ 已删除 |
+| 5 | 🟡 | tsconfig.base.node 孤儿 | Phase 2 | ✅ 已删除 |
+| 6 | 🟡 | baseUrl/paths 错配 | Phase 2 | 待办 |
+| 7 | 🟡 | 跨包 .d.ts reach | Phase 2 | 待办 |
+| 8 | 🟡 | 根 dev 脚本启动三 app | Phase 5 | 待办 |
+| 9 | 🟡 | 后端/docs standalone 残留 | 未来 | 部分（docs .gitignore 已合并到根）|
+| 10 | 🟡 | 无 commitlint | 未来 | 待办 |
+| 11 | 🟢 | AGENTS.md 过时 | 未来 | 部分（已加 deprecation 头部）|
+| 12 | 🟢 | catalog 不在 turbo globalDeps | Phase 5 | ✅ 已加 |
+| 13 | ✅ | deploy.config 明文密码 | — | ✅ 已核实未泄露（误报）|
+
+**已处理**：#4、#5、#12、#13（4 个）
+**部分处理**：#3、#9、#11（3 个）
+**待办**：#1、#2、#6、#7、#8、#10（6 个，其中 #1/#2 是大工程）
 
 ---
 
