@@ -25,12 +25,10 @@ walnut-admin/
 │   ├── admin/    @walnut/admin   — Vue3 SPA (管理后台)
 │   ├── server/   @walnut/server  — NestJS API (后端服务)
 │   └── docs/     @walnut/docs    — Vitepress (文档站)
-├── packages/                     — Frontend shared libraries
-│   ├── shared/   @walnut/shared
-│   ├── axios/    @walnut/axios
-│   ├── core/     @walnut/core
-│   ├── ui/       @walnut/ui
-│   └── ai/       @walnut/ai
+├── packages/                     — Frontend shared libraries (consumed by apps/admin)
+│   ├── shared/   @walnut/shared   — zero-dependency base (crypto, storage, types)
+│   ├── axios/    @walnut/axios    — HTTP client framework (instance + adapters)
+│   └── core/     @walnut/core     — generic composables/hooks
 ├── turbo.json                    — Turborepo pipeline
 ├── pnpm-workspace.yaml           — pnpm workspace config
 └── migration-guide/              — Migration documentation
@@ -44,6 +42,7 @@ walnut-admin/
 pnpm install
 
 # Start individual apps
+pnpm dev           # = pnpm dev:admin (frontend only, the common case)
 pnpm dev:admin     # Frontend → http://localhost:3100
 pnpm dev:server    # Backend  → requires MongoDB + Redis
 pnpm dev:docs      # Docs     → http://localhost:8886
@@ -56,6 +55,7 @@ pnpm build:docs
 # Lint & type check
 pnpm lint
 pnpm types:check
+pnpm test          # Run tests (only @walnut/server has vitest configured)
 ```
 
 ## History
@@ -65,4 +65,4 @@ This monorepo was created by merging three previously separate repositories:
 - [walnut-admin-server](https://github.com/walnut-admin/walnut-admin-server) — NestJS backend (now `apps/server/`)
 - [walnut-admin-doc](https://github.com/walnut-admin/walnut-admin-doc) — Vitepress docs (now `apps/docs/`)
 
-See [migration-guide/](./migration-guide/) for the full migration plan and progress tracking.
+See [migration-guide/](./migration-guide/) for the historical migration record, and [docs/architecture/](./docs/architecture/README.md) for the current architecture documentation and refactor roadmap.
