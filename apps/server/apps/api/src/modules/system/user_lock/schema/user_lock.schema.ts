@@ -149,7 +149,7 @@ export class SysUserLockModel extends WalnutAdminCommonBasicModel {
 export const SysUserLockSchema = SchemaFactory.createForClass(SysUserLockModel)
 
 SysUserLockSchema.pre('save', async function () {
-  const userLock = this as ISysUserLockDocument
+  const userLock = this
   if (userLock.lockPwdHash && userLock.isModified('lockPwdHash')) {
     const salt = await genSalt()
     userLock.lockPwdHash = await hash(userLock.lockPwdHash, salt)

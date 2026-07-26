@@ -60,7 +60,7 @@ export class AppErrorService {
         query: JSON.stringify(this.maskService.maskFields(req.query ?? {})),
       },
       errorType: error.name,
-      userId: req?.user?.userId as string,
+      userId: req?.user?.userId,
       responseCode: resData.code!,
       responseMsg: resData.msg!,
       ip: req.realIp,

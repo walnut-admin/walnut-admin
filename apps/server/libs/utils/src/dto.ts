@@ -19,9 +19,7 @@ export function RealOmitType<
     i => !keys.includes(i as K),
   ) as (keyof InstanceType<C>)[]
 
-  return RealPickType(classRef, realKeys) as Type<
-    Omit<InstanceType<C>, K>
-  >
+  return RealPickType(classRef, realKeys)
 }
 
 export function RealPickType<

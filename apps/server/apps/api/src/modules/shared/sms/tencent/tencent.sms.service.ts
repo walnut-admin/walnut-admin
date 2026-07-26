@@ -54,7 +54,7 @@ export class TencentSmsService {
 
     const params: SendSmsRequest = {
       SmsSdkAppId: this.configService.get('vendor.tx.SMS.sdkAppId') as string,
-      SignName: this.configService.get('vendor.tx.SMS.signName') as string,
+      SignName: this.configService.get('vendor.tx.SMS.signName'),
       TemplateId: this.configService.get('vendor.tx.SMS.templateId') as string,
       TemplateParamSet: [`${verifyCode}`, `${Math.floor(expireSeconds / 60)}`],
       PhoneNumberSet: [phoneNumber],

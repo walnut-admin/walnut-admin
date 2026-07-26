@@ -52,7 +52,7 @@ export class WalnutAdminInterceptorResponseEncrypt implements NestInterceptor {
           fields.map(async (k) => {
             const encrypted = await this.securityRsaService.encryptResponseValueWithClientRsaPubKey(
               deviceId,
-              data[k] as string,
+              data[k],
             )
             this.logger.debug(`Encrypted field: ${String(k)}`)
             return [k, encrypted]
@@ -99,7 +99,7 @@ export class WalnutAdminInterceptorResponseEncrypt implements NestInterceptor {
     return next.handle().pipe(
       switchMap((data: Recordable) => {
         this.logger.debug(`Processing response data for encryption`)
-        return from(this.cryptoResponse(request, data, encryptFields)) as Observable<Recordable>
+        return from(this.cryptoResponse(request, data, encryptFields))
       }),
       tap(() => {
         this.logger.debug(`Response encryption completed`)

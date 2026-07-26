@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "include": [
+    "apps/**/*.ts",
+    "apps/**/*.tsx",
+    "apps/**/*.vue",
+    "packages/**/*.ts",
+    "packages/**/*.tsx"
+  ],
+  "exclude": ["node_modules", "dist", ".turbo", "**/dist/**"]
+}

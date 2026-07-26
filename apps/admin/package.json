@@ -29,7 +29,7 @@
     "build:stage": "vite build --mode staging",
     "preview": "vite preview --mode production",
     "preview:stage": "vite preview --mode staging",
-    "lint": "eslint .",
+    "lint": "eslint . --concurrency=auto",
     "lint:fix": "eslint . --fix --concurrency=auto",
     "types:check": "vue-tsc --noEmit",
     "types:check:log": "tsx build/types.ts",

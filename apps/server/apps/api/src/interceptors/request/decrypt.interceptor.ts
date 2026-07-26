@@ -46,7 +46,7 @@ export class WalnutAdminInterceptorRequestDecrypt implements NestInterceptor {
         const decryptedEntries = await Promise.all(
           fields.map(async (k) => {
             const decrypted = await this.securityRsaService.decryptRequestValueWIthServerRsaPrivKey(
-              data[k] as string,
+              data[k],
             )
             this.logger.debug(`Decrypted field: ${String(k)}`)
             return [k, decrypted]

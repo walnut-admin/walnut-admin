@@ -238,7 +238,7 @@ export class SharedAreaService {
         return
       for (const node of nodes) {
         // Remove `children` field (will be reprocessed during final tree building)
-        res.push(omit(node, 'children') as SharedAreaModel)
+        res.push(omit(node, 'children'))
         // Recursively process child nodes if they exist
         if (node.children && node.children.length)
           dfs(node.children)

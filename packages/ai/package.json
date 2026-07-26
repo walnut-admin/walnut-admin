@@ -7,14 +7,11 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
+    "lint": "eslint . --concurrency=auto",
+    "lint:fix": "eslint . --fix --concurrency=auto",
+    "types:check": "tsc --noEmit",
     "clean": "rimraf dist",
     "clean:all": "rimraf dist node_modules"
-  },
-  "dependencies": {
-    "@walnut/axios": "workspace:*",
-    "@walnut/core": "workspace:*",
-    "@walnut/ui": "workspace:*",
-    "@walnut/shared": "workspace:*"
   },
   "peerDependencies": {
     "@vueuse/core": "14.3.0",
@@ -23,6 +20,12 @@
     "naive-ui": "2.44.1",
     "vue": "3.5.34",
     "vue-i18n": "11.4.2"
+  },
+  "dependencies": {
+    "@walnut/axios": "workspace:*",
+    "@walnut/core": "workspace:*",
+    "@walnut/shared": "workspace:*",
+    "@walnut/ui": "workspace:*"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "6.0.6",
