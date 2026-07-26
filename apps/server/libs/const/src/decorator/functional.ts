@@ -1,0 +1,5 @@
+export const WalnutAdminConstDecoratorFunctionalMetadataKey = {
+  MAIN_KEY:
+    'WALNUT_ADMIN_CONST_DECORATOR_METADATAKEY_MAIN_KEY',
+  DETAIL_KEY: 'WALNUT_ADMIN_CONST_DECORATOR_METADATAKEY_DETAIL_KEY',
+} as const

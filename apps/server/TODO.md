@@ -1,0 +1,77 @@
+- [x] jwt
+- [ ] location dto
+- [ ] 文件表 && 图片上传策略 选择文件后直接传到oss临时路径，提交到后端再复制文件到指定路径，然后删除临时路径的文件
+- [x] ~~restful和全体系post的动态配置~~
+- [x] 移除enum 都用as const
+- [x] auth 拆分module
+- [x] oauth重做
+- [x] 重命名
+- [x] role/user/auth 逻辑需要优化
+- [x] 细化dto
+- [x] locale dto 特殊 需要单独看一下
+- [x] user password dto
+- [x] 删除表的列表 删除 批量删除 读
+- [x] https://docs.nestjs.com/techniques/mongodb#virtuals
+- [x] ~~https://docs.nestjs.com/recipes/serve-static~~
+- [x] groups理解错误，用法错误需要大改
+- [x] https://chat.deepseek.com/a/chat/s/71c3efa7-0319-485f-8eb7-5208d3561702
+- [x] 所有的认证接口/删除接口 上事务
+- [x] device的拦截，middleware改成guard DeviceFree
+- [x] ip 拦截 也做成guard IpFree
+- [x] ~~应用版本管理 控制前端版本的 版本升级可以做到清除指定的localStorage => 前端顶多是做一个清除，如果真要这么做需要单独表的模块支持~~
+- [ ] mongo/redis tls
+- [x] 错误表 还需各种场景测试 A: 个别错误进表，后续接入sentry
+- [x] 缓存移到emit里 - 详情看locale模块，增删改都有事务，但需要在事务使用时传递一个事件，好在service层监听并处理事务完成后的逻辑
+- [ ] https://github.com/andrechristikan/ack-nestjs-boilerplate
+- [x] 国内短信基本废了，现在都需要企业资质才能用 A: 没办法 除非使用接入非国内云厂商的第三方短信提供
+- [x] 日志还是winton + 写入文件，同时前端应该可以有个看日志文件的地方
+- [x] 想做visitor这个角色的话，需要再研究一下如何拆分页面权限和接口权限了，或者说页面权限都有，后台除了list权限都无
+- [ ] 数据权限，需要了解一下设计细节，以及mongo下如何实现
+- [x] 强制登出 三种策略实现 前端不同处理方式
+- [x] wip: 应用设置重新整理，不要太扁平化，要不不好管理
+- [x] rt 应该存到cookie中
+- [x] cookie加密解密？ - 多余 cookie secret足以
+- [x] https://github.com/AhmedAdelFahim/express-xss-sanitizer
+- [x] https://github.com/frux/csp
+- [ ] redis cluster with bitnami https://github.com/redis/node-redis/blob/master/docs/clustering.md https://github.com/bitnami/containers/tree/main/bitnami/redis-cluster
+- [x] 打包后邮件发送不出去 => 感觉是服务器网络问题 github的oauth也不好使 邮件发送没响应 国内的云服务器拦截的是不是太猛了 A: 邮件端口问题，开发时用的25，服务器上得用465（貌似比以前严格了）
+- [x] express-session => cookie-session A: session-cookie更现代化的session方式
+- [x] log 的顺序好像有问题 封装导致的 A: this.logger 不要传第二个参数 会覆盖原有的context 打印内容多就 this.logger.log({}) 对象形式打印
+- [x] https + 域名 oauth sse 不通 A: sse需要在api请求转发时把 gzip和缓存关掉 要不然sse会卡住
+- [x] signature guard，签名校验
+- [x] redis setup重做 暴露redis实例和keyv实例，同时支持sential（暂时不上sential了 不过redis原生方法确实暴露出去了）
+- [x] cert pem 前端做参数加密 https://www.kimi.com/share/d2dgclmqvl75e47v5q00
+- [ ] sm2/sm4国密字段？加密字段如何做查询？
+- [x] cap 移到security模块
+- [x] redis : 做文件夹分割
+- [x] 后端rsa的更新轮换，需要个表？
+- [ ] 一次性/短期token模块
+- [x] user-prefers 模块需要加急了，前端功能剥离需要这个模块
+- [x] area feedback ai 逻辑优化
+- [x] 日志 前端查询模块 => 目前看自己实现一下最简单 也要权限区分 用node直接读文件
+- [ ] 数据库同步问题 看了个mongoshake 但感觉是kpi项目 或者自己实现一个？
+- [x] auth session key 派发key后接入sign
+- [x] 重置修改密码得改造 因为用了opaque
+- [x] repo 应该好好梳理一下 - 宗旨是repo是global 简单的增删改查功能提供 不存在任何业务代码 涉及到业务的话就做到sharedservice中
+- [x] cache 风格统一 log添加
+- [ ] mongoose的static和method 应该好好利用一下
+- [x] throttler 好好统一一下 - 以后统一使用 WalnutAdminDecoratorThrottle 和implement IThrottleConfigProvider的service
+- [x] mfa相关代码整理 流程已跑通 整理好后再从头测试一遍
+- [x] 装饰器规则已经vibe完事 后续就是装饰器完善 还有swagger的补充
+- [x] cap 需要改动 应该也设计成根据错误码前端是弹出验证还是隐藏式验证
+- [x] oauth callback catch 需不需要接入日志和登录错误计数逻辑 需要测试
+- [x] opaque这种两步接口的 怎么记录第一步接口的错误 - 拆不开 自己再写一个catch在start的controller上吧 然后收集risk failedlogin 前端报错的话 暂时不管了
+- [ ] risk 测试 - 说实话很难 要写很多playwright的测试代码
+- [x] ip黑名单和原有融合
+- [ ] 设备IP变化测试
+- [ ] risk cache的update
+- [ ] socket留着吧 不过应该把目前的socket事件全都换成sse监听
+- [x] 日志优化，包括开发终端输出，还有json日志文件输出，格式标准化
+- [ ] risk 的配置入库 还有rate limit的融合
+- [ ] 端到端加密
+- [ ] sign 看看tiktok那个 应该还有提升空间
+- [ ] USER AUTH: 多设备策略 同端单点 同端多点 同端最多设备数量 密码策略 登录失败次数限制 登录失败锁定时间 登录态设置 像火山引擎那种
+- [x] ip/os/browser guard?
+- [x] mask module mask data/ mask header.
+- [x] aftercommit 第一个参数传dbsession吧 或者问问ai怎么设计 - 单独抽了一个函数 是在dbsession可选时使用 runAfter
+- [x] 百度的ip逆解析扔到ip service中

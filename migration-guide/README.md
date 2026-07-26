@@ -45,19 +45,34 @@ D:\walnut\walnut-admin\
 - **Server keeps its own internal monorepo.** The NestJS server already uses an internal monorepo structure under `apps/server/apps/api/`. This is preserved as-is — the server's own workspace is nested inside the root workspace.
 - **No code changes during migration.** This is purely a structural merge. All code changes (path aliases, config unification, dependency deduplication) happen in subsequent phases.
 
-## Migration Steps
+## Migration Progress
 
-| # | Step | Description | Guide |
-|---|------|-------------|-------|
-| 0 | **Prerequisites** | Verify environment, check versions, confirm clean state | [00-prerequisites.md](./00-prerequisites.md) |
-| 1 | **Copy Server** | Copy `walnut-admin-server` into `apps/server/` | [01-copy-server.md](./01-copy-server.md) |
-| 2 | **Copy Docs** | Copy `walnut-admin-doc` into `apps/docs/` | [02-copy-docs.md](./02-copy-docs.md) |
-| 3 | **Configure Root** | Set up root `package.json`, `pnpm-workspace.yaml`, `turbo.json` | (not yet written) |
-| 4 | **Install Dependencies** | Run `pnpm install` at root to install all workspace deps | (not yet written) |
-| 5 | **Validate Builds** | Build each app independently to confirm nothing is broken | (not yet written) |
-| 6 | **Verify Dev Mode** | Run each app in dev mode to confirm live reload works | (not yet written) |
+### ✅ Phase 1 — Structural Merge (COMPLETE)
 
-> **Note:** Detailed documentation for each step lives in its own markdown file linked above.
+| Step | Status | Notes |
+|------|--------|-------|
+| 0. Prerequisites | ✅ | Node 24.14, pnpm 11.13 |
+| 1a. Copy server → apps/server/ | ✅ | Internal NestJS monorepo preserved |
+| 1b. Copy docs → apps/docs/ | ✅ | Fixed: `src/` directory was missed in initial copy |
+| 2. Root config | ✅ | Node 24 + pnpm 11 + scripts + .gitignore |
+| 3. Server adaptation | ✅ | @walnut/server, cross-env, types:check |
+| 4. Docs adaptation | ✅ | @walnut/docs, engines |
+| 5. Turbo config | ✅ | Added .vitepress/dist/** outputs |
+| 6. pnpm install | ✅ | 3016 packages, 9 workspace projects, allowBuilds approved |
+| Fix: .vscode merge | ✅ | Merged client settings.json/extensions.json to root |
+| Fix: Admin predev | ✅ | Root .vscode/ required for settings-dev.schema.json generation |
+
+### ⏳ Verification
+
+| App | Dev | Build | Notes |
+|-----|-----|-------|-------|
+| @walnut/admin | ✅ | ⏳ | |
+| @walnut/server | ✅ | ⏳ | Requires MongoDB + Redis |
+| @walnut/docs | ✅ | ⏳ | |
+
+### 🔴 Phase 2 — Packages Redesign (PENDING)
+
+See [08-phase2-packages.md](./08-phase2-packages.md) for the full plan.
 
 ## Important Notes
 

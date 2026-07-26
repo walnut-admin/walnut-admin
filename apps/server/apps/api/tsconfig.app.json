@@ -1,0 +1,23 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "declaration": false
+    },
+    "include": [
+        "src/**/*",
+        "../../libs/config/src/**/*",
+        "../../libs/const/src/**/*",
+        "../../libs/db/src/**/*",
+        "../../libs/utils/src/**/*",
+        "../../libs/types/src/**/*",
+        "../../libs/decorators/src/**/*",
+        "../../libs/pipes/src/**/*",
+        "../../libs/exceptions/src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "test",
+        "**/*spec.ts"
+    ]
+}

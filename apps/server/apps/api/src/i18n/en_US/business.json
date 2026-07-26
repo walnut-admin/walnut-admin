@@ -1,0 +1,40 @@
+{
+    "system": {
+        "locale": {
+            "updateExist": "Locale Keys Exists."
+        },
+        "delete": {
+            "recoverFail": "Recover Delete Failed."
+        },
+        "user": {
+            "unLock": {
+                "pwdErr": "Unlock Password Error."
+            }
+        }
+    },
+    "auth": {
+        "opaque": {
+            "passwordError": "User Or Password Error.",
+            "serverStaticKeyMismatch": "Server Static Key Mismatch."
+        },
+        "sendVerifyCodeError": "Verify Code Sent Error",
+        "verifyCodeError": "Verify Code Error",
+        "identityAlreadyBound": "This identity is already bound to your account",
+        "identityAlreadyUsed": "This identity is already used by another user",
+        "useVerifyEndpoint": "Please use the verify endpoint for identity verification",
+        "noVerifyMethodAvailable": "No verification method available. Please bind a security phone or email first.",
+        "verifyMethodNotAllowed": "This verification method is not allowed",
+        "verificationFailed": "Verification failed",
+        "sensitiveVerificationRequired": "Sensitive operation requires additional verification",
+        "unbindAtLeastOneLoginMethodRequired": "Unbind failed: At least one verified login method must be retained (phone, email, or password).",
+        "mfa": {
+            "verifyFail": "MFA Verify Failed.",
+            "totp": {
+                "alreadyBound": "TOTP Device Already Bound."
+            },
+            "webauthn": {
+                "alreadyBound": "WebAuthn Device Already Bound."
+            }
+        }
+    }
+}

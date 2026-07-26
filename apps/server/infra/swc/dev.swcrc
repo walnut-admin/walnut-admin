@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json.schemastore.org/swcrc",
+  "sourceMaps": true,
+  "inlineSourcesContent": true,
+  "jsc": {
+    "parser": {
+      "syntax": "typescript",
+      "decorators": true,
+      "dynamicImport": true
+    },
+    "transform": {
+      "legacyDecorator": true,
+      "decoratorMetadata": true
+    },
+    "target": "es2022",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["apps/api/src/*"],
+      "@walnut/config": ["libs/config/src"],
+      "@walnut/config/*": ["libs/config/src/*"],
+      "@walnut/const": ["libs/const/src"],
+      "@walnut/const/*": ["libs/const/src/*"],
+      "@walnut/db": ["libs/db/src"],
+      "@walnut/db/*": ["libs/db/src/*"],
+      "@walnut/utils": ["libs/utils/src"],
+      "@walnut/utils/*": ["libs/utils/src/*"],
+      "@walnut/types": ["libs/types/src"],
+      "@walnut/types/*": ["libs/types/src/*"],
+      "@walnut/decorators": ["libs/decorators/src"],
+      "@walnut/decorators/*": ["libs/decorators/src/*"],
+      "@walnut/pipes": ["libs/pipes/src"],
+      "@walnut/pipes/*": ["libs/pipes/src/*"],
+      "@walnut/exceptions": ["libs/exceptions/src"],
+      "@walnut/exceptions/*": ["libs/exceptions/src/*"],
+      "@walnut/context": ["libs/context/src"],
+      "@walnut/context/*": ["libs/context/src/*"]
+    },
+    "keepClassNames": true
+  },
+  "module": {
+    "type": "commonjs"
+  },
+  "minify": false
+}

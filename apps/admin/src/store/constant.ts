@@ -1,0 +1,44 @@
+import { layoutConst } from '@/router/routes/builtin'
+import { mainoutRoutes } from '@/router/routes/mainout'
+
+export const StoreKeys = {
+  APP_ROUTE: 'APP_ROUTE',
+  APP_ADAPTER: 'APP_ADAPTER',
+  APP_DARK: 'APP_DARK',
+  APP_KEY: 'APP_KEY',
+  APP_LOCALE: 'APP_LOCALE',
+  APP_FINGERPRINT: 'APP_FINGERPRINT',
+  APP_GEO_IP: 'APP_GEO_IP',
+  APP_LOCK: 'APP_LOCK',
+  APP_MENU: 'APP_MENU',
+  APP_MSG: 'APP_MSG',
+  APP_SETTING_BACKEND: 'APP_SETTING_BACKEND',
+  APP_SETTING: 'APP_SETTING',
+  APP_SECURITY: 'APP_SECURITY',
+  APP_TAB: 'APP_TAB',
+  APP_CACHED_VIEWS: 'APP_CACHED_VIEWS',
+
+  COMP_CAPJS: 'COMP_CAPJS',
+  COMP_FORCE_QUIT: 'COMP_FORCE_QUIT',
+  COMP_RELOAD_PROMPT: 'COMP_RELOAD_PROMPT',
+  COMP_VERIFY_AUTH: 'COMP_VERIFY_AUTH',
+
+  SETTING_DEV: 'SETTING_DEV',
+  SETTING_SCOPE: 'SETTING_SCOPE',
+
+  USER_AUTH: 'USER_AUTH',
+  USER_PERMISSION: 'USER_PERMISSION',
+  USER_PREFERENCE: 'USER_PREFERENCE',
+  USER_PROFILE: 'USER_PROFILE',
+  USER_SCROLL: 'USER_SCROLL',
+} as const
+
+/**
+ * @description route name list that should not appear in tabs
+ */
+export const tabBlackListName: string[] = [
+  ...mainoutRoutes.map(item => item.name as string),
+  layoutConst.notFound.name,
+  layoutConst.serverError.name,
+  layoutConst.redirect.name,
+]

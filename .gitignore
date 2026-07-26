@@ -1,0 +1,43 @@
+node_modules
+.DS_Store
+*.local
+*.zip
+release-notes.md
+
+# Turborepo
+.turbo
+
+# Build outputs
+dist/
+dist-*/
+dev-dist/
+
+# TypeScript
+*.tsbuildinfo
+
+# Auto-generated
+types/auto-import.d.ts
+types/components.d.ts
+
+# Build generated
+build/_generated/*.ts
+build/_generated/*.json
+build/_generated/*.log
+
+# Environment
+env-local/
+
+# Deploy configs (may contain credentials)
+deploy.config.*
+
+# Reports (keep .md files)
+report/*
+!report/*.md
+
+# Legacy
+config/husky/*
+
+# Server
+apps/server/env-local/
+apps/server/logs/
+apps/server/dist/

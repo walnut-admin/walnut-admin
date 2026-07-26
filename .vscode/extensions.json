@@ -1,0 +1,34 @@
+{
+  "recommendations": [
+    /* cn */
+    "MS-CEINTL.vscode-language-pack-zh-hans",
+    /* html */
+    "formulahendry.auto-close-tag",
+    "formulahendry.auto-complete-tag",
+    "formulahendry.auto-rename-tag",
+    /* env */
+    "mikestead.dotenv",
+    /* i18n */
+    "lokalise.i18n-ally",
+    /* unocss */
+    "antfu.unocss",
+    /* vue3 tsc */
+    "Vue.volar",
+    "hollowtree.vue-snippets",
+    /* todo tree */
+    "Gruntfuggly.todo-tree",
+    /* icons */
+    "vscode-icons-team.vscode-icons",
+    /* functional */
+    "shd101wyy.markdown-preview-enhanced",
+    /* git */
+    "eamodio.gitlens",
+    "donjayamanne.githistory",
+    /* helper */
+    "usernamehw.errorlens",
+    "streetsidesoftware.code-spell-checker"
+  ],
+  "unwantedRecommendations": [
+    "octref.vetur"
+  ]
+}

@@ -1,0 +1,26 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+  - "build"
+
+# pnpm 11: hoisting (migrated from .npmrc shamefully-hoist=true)
+hoisting: true
+
+# pnpm 11: build allowlist (add entries as pnpm install reports them)
+allowBuilds:
+  '@alicloud/openapi-core': true
+  '@compodoc/compodoc': true
+  '@nestjs/core': true
+  '@parcel/watcher': true
+  '@scarf/scarf': true
+  '@sentry/cli': true
+  '@swc/core': true
+  core-js: true
+  esbuild: true
+  json-editor-vue: true
+  msgpackr-extract: true
+  rs-module-lexer: true
+  sharp: true
+  simple-git-hooks: true
+  unrs-resolver: true
+  vue-demi: true

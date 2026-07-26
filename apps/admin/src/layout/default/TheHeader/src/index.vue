@@ -1,0 +1,86 @@
+<script lang="ts" setup>
+import HeaderBreadCrumb from './breadcrumb.vue'
+import HeaderCollapse from './collapse.vue'
+import HeaderDropdown from './dropdown.vue'
+
+const appStoreAdapter = useAppStoreAdapter()
+const appStoreMenu = useAppStoreMenu()
+const appStoreBackendSettings = useAppStoreSettingBackend()
+const appStoreSettingDev = useAppStoreSettingDev()
+const userStorePreference = useAppStoreUserPreference()
+const appStoreLock = useAppStoreLock()
+
+const { title: AppTitle } = useAppEnvTitle()
+
+const { isFullscreen, toggle } = useFullscreen()
+
+function onShowAside() {
+  appStoreMenu.setShowAside(true)
+}
+</script>
+
+<template>
+  <WTransition appear :transition-name="appStoreSettingDev.getHeaderTransition">
+    <n-layout-header
+      v-if="appStoreSettingDev.getHeaderShow"
+      :id="appStoreSettingDev.getHeaderId"
+      bordered
+      :inverted="userStorePreference.getHeaderInverted"
+      :style="{
+        zIndex: 999,
+        height: `${appStoreSettingDev.getHeaderHeight}rem`,
+      }"
+    >
+      <div
+        class="h-full h-full hstack select-none items-center justify-between px-2"
+      >
+        <!-- left -->
+        <div class="hstack items-center justify-between space-x-2">
+          <img
+            v-if="appStoreAdapter.isMobile"
+            src="/logo.png"
+            :alt="`${AppTitle} Logo`"
+            class="h-9"
+            @click="onShowAside"
+          >
+
+          <template v-else>
+            <HeaderCollapse />
+
+            <HeaderBreadCrumb />
+          </template>
+        </div>
+
+        <!-- right -->
+        <div
+          class="h-full hstack justify-end children:(h-full flex cursor-pointer items-center px-0.5) space-x-2"
+          :class="[
+            { 'space-x-1': appStoreAdapter.isMobile },
+          ]"
+        >
+          <WAppFullScreen
+            v-if="appStoreBackendSettings.getFullScreenEnabled && !appStoreAdapter.isMobile"
+            id="walnut-admin-fullscreen"
+            :is-fullscreen="isFullscreen"
+            :click-event="toggle"
+          />
+
+          <WAppLock v-if="appStoreLock.getEnable" id="walnut-admin-lock" />
+
+          <WAppSearch
+            v-if="appStoreBackendSettings.getSearchEnabled"
+            id="walnut-admin-search"
+          />
+
+          <div id="walnut-admin-locale">
+            <WAppLocalePicker v-if="appStoreBackendSettings.getLocaleEnabled" />
+          </div>
+
+          <WAppDarkMode v-if="appStoreBackendSettings.getDarkEnabled" id="walnut-admin-dark" />
+
+          <HeaderDropdown />
+        </div>
+      </div>
+    </n-layout-header>
+  </WTransition>
+</template>
