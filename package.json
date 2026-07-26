@@ -17,7 +17,8 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "postinstall": "npx simple-git-hooks",
-    "dev": "turbo dev",
+    "dev": "turbo dev --filter=@walnut/admin",
+    "dev:all": "turbo dev",
     "dev:admin": "turbo dev --filter=@walnut/admin",
     "dev:server": "turbo dev --filter=@walnut/server",
     "dev:docs": "turbo dev --filter=@walnut/docs",
