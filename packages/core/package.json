@@ -3,7 +3,12 @@
   "type": "module",
   "version": "0.0.1",
   "private": true,
-  "description": "Core runtime - hooks, Pinia stores, router guards for Walnut Admin",
+  "description": "Generic composables and hooks for Walnut Admin",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.13.0",
+    "pnpm": ">=11.0.0"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./*": "./src/*.ts"

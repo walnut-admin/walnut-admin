@@ -9,21 +9,21 @@
     "url": "https://github.com/Zhaocl1997",
     "email": "zhaocl97@foxmail.com"
   },
-  "license": "ISC",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/walnut-admin/walnut-admin-doc.git"
   },
-  "main": "index.js",
   "engines": {
-    "node": ">=24.13.0"
+    "node": ">=24.13.0",
+    "pnpm": ">=11.0.0"
   },
   "scripts": {
     "dev": "vitepress",
     "build": "vitepress build",
     "preview": "vitepress preview",
     "lint": "eslint . --concurrency=auto",
-    "format": "eslint . --fix",
+    "lint:fix": "eslint . --fix --concurrency=auto",
     "types:check": "echo skipped",
     "taze": "npx taze -i -w"
   },
