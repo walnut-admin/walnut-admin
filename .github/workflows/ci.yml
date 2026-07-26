@@ -1,0 +1,52 @@
+name: CI
+
+# Quality gate: every PR and push to main must pass lint + type check + build.
+# This workflow does NOT run tests (server tests need MongoDB+Redis which
+# require service containers; that can be added later if needed).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel in-flight runs for the same ref when new commits are pushed.
+# Saves CI minutes and avoids stale results racing newer ones.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint & Type Check & Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NODE_VERSION: 24
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm types:check
+
+      - name: Build
+        run: pnpm build

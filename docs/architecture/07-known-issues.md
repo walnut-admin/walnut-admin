@@ -74,24 +74,28 @@
 
 ---
 
-## 问题 #3 🔴 CI/CD 对 monorepo 坏掉
+## 问题 #3 🟡 CI/CD 对 monorepo 坏掉（大部分已解决）
 
 **描述**：
 - `.github/workflows/deploy.yml` 用 SCP + 远程 `pnpm install --prod`，对 monorepo 根 lockfile 完全行不通（远程 install 会拉全仓库 workspace 包，且 `--prod` 模式与 workspace 冲突）
 - **没有** PR/push 的 lint/build/test CI
 - `turbo.json` 没有 `test` task
 
+**解决进度**（2026-07-26）：
+- ✅ **已加 PR CI**：`.github/workflows/ci.yml`——PR/push to main 触发，跑 `pnpm lint` + `pnpm types:check` + `pnpm build`，带 `concurrency` 取消旧 run、30 分钟 timeout、pnpm v11 + Node 24 缓存。本地全量验证通过（6 lint + 9 types:check task 全绿）。**不含 test**（server test 需 MongoDB+Redis，未来加 service containers）
+- ✅ **已加 turbo test task**：`turbo.json` 现有 `test` task（之前缺失）
+- ⬜ **deploy.yml 仍未修**：SCP + 远程 install 方案仍坏，文件内仍有 `TODO: monorepo 适配` 标注。推荐改用 `pnpm deploy --filter`（见 [08-refactor-plan.md](./08-refactor-plan.md) Phase 5 §5.4）
+
 **证据**：
-- `.github/workflows/deploy.yml` 第 N行（含多处 `TODO: monorepo 适配` 注释，明确标注 SCP 方案坏掉）
-- `.github/workflows/` 只有 `deploy.yml`（手动触发，仅部署 server）和 `release.yml`（tag 触发，仅创建 Release）
-- 无 `ci.yml` / `lint.yml` / `build.yml`
-- `turbo.json` tasks 块无 `test`（虽然 `apps/server/package.json` 有完整 vitest 配置）
+- `.github/workflows/deploy.yml` 含多处 `TODO: monorepo 适配` 注释
+- `.github/workflows/` 现有：`ci.yml`（新）、`deploy.yml`（待修）、`release.yml`（工作正常）
+- `turbo.json` 已含 `test` task
 
-**影响**：PR 不经过任何自动化检查就能合并；部署可能失败或部署错乱。
+**影响**：PR 现在有 lint+typecheck+build 自动检查（已解决主要问题）；部署仍可能失败（deploy.yml 未修，剩余风险）。
 
-**严重级别**：🔴 严重
+**严重级别**：🟡 中等（从 🔴 降级——PR 质量门已建立，仅 deploy 残留）
 
-**对应 Phase**：[Phase 5](./08-refactor-plan.md#phase-5)
+**对应 Phase**：[Phase 5](./08-refactor-plan.md#phase-5)（部分完成）
 
 ---
 
@@ -301,7 +305,7 @@
 |---|------|------|-------|------|
 | 1 | ✅ | `@walnut` 命名空间双重定义 | Phase 1 | ✅ 已改名 `@walnut-server/*` |
 | 2 | 🔴 | 前后端零契约共享 | Phase 4 | 待办 |
-| 3 | 🔴 | CI/CD 坏掉 | Phase 5 | 部分（已加 test task，CI workflow 待加）|
+| 3 | 🟡 | CI/CD 坏掉 | Phase 5 | 🟡 大部分解决（PR CI + test task 已加，deploy.yml 待修）|
 | 4 | 🟡 | ui/ai 空壳 | Phase 3 | ✅ 已删除 |
 | 5 | 🟡 | tsconfig.base.node 孤儿 | Phase 2 | ✅ 已删除 |
 | 6 | 🟡 | baseUrl/paths 错配 | Phase 2 | ✅ 已删 paths |
@@ -314,7 +318,8 @@
 | 13 | ✅ | deploy.config 明文密码 | — | ✅ 已核实未泄露（误报）|
 
 **已完全解决**：#1、#4、#5、#6、#8、#12、#13（7 个）
-**部分解决**：#3、#9、#11（3 个）
+**大部分解决**：#3（PR CI + test task 已加，仅 deploy.yml 待修）
+**部分解决**：#9、#11（2 个）
 **待办**：#2、#7、#10（3 个，其中 #2 是契约包大工程）
 
 ---
