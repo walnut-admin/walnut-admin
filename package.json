@@ -43,7 +43,7 @@
     "generate-pwa-assets": "pwa-assets-generator"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "8.2.0",
+    "@antfu/eslint-config": "catalog:",
     "eslint": "catalog:",
     "lint-staged": "17.0.2",
     "rimraf": "catalog:",

@@ -5,13 +5,13 @@
   "private": true,
   "description": "Shared utilities, constants, types, crypto and storage for Walnut Admin",
   "license": "MIT",
-  "engines": {
-    "node": ">=24.13.0",
-    "pnpm": ">=11.0.0"
-  },
   "exports": {
     ".": "./src/index.ts",
     "./*": "./src/*.ts"
+  },
+  "engines": {
+    "node": ">=24.13.0",
+    "pnpm": ">=11.0.0"
   },
   "scripts": {
     "build": "echo 'shared: pure source, no build needed'",

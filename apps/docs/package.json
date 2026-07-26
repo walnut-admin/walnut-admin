@@ -34,6 +34,7 @@
     "vue": "catalog:"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "catalog:",
     "@mermaid-js/mermaid-mindmap": "9.3.0",
     "@types/node": "catalog:",
     "eslint": "catalog:",

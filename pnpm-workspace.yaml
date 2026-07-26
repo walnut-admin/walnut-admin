@@ -9,6 +9,7 @@ overrides:
   lru-cache: 11.3.6
 
 catalog:
+  '@antfu/eslint-config': 8.2.0
   '@nestjs/common': 11.1.17
   '@nestjs/core': 11.1.17
   '@nestjs/platform-express': 11.1.17

@@ -126,6 +126,7 @@
     "winston-daily-rotate-file": "5.0.0"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "catalog:",
     "@compodoc/compodoc": "1.2.1",
     "@nestjs/cli": "11.0.17",
     "@nestjs/schematics": "11.0.10",
