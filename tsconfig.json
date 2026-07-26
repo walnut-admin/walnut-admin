@@ -1,16 +1,22 @@
 {
-  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "baseUrl": "."
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "strict": true,
+    "noEmit": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
   },
   "include": [
-    "apps/**/*.ts",
-    "apps/**/*.tsx",
-    "apps/**/*.vue",
-    "packages/**/*.ts",
-    "packages/**/*.tsx"
+    "*.mjs",
+    "*.ts",
+    "*.js"
   ],
   "exclude": ["node_modules", "dist", ".turbo", "**/dist/**"]
 }
