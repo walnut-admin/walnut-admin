@@ -1,4 +1,4 @@
-import type { BaseListParams, BaseListResponse, BasePageParams, BaseResponse, BaseSortParams } from '@walnut/axios/types'
+import type { BaseListParams } from '@walnut/axios/types'
 import type { IHooksUseProps } from '@walnut/core/hooks/core/useProps'
 import type { Recordable } from 'easy-fns-ts'
 import type { DropdownOption, TagProps } from 'naive-ui'

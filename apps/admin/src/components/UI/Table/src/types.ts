@@ -1,4 +1,4 @@
-import type { BaseListParams, BaseListResponse, BasePageParams, BaseResponse, BaseSortParams } from '@walnut/axios/types'
+import type { BaseListParams, BaseListResponse } from '@walnut/axios/types'
 
 import type { IHooksUseProps } from '@walnut/core/hooks/core/useProps'
 import type { NullableRecord, Recordable, StringOrNumber } from 'easy-fns-ts'

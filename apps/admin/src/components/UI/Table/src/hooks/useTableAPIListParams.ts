@@ -1,4 +1,4 @@
-import type { BaseListParams, BaseListResponse, BasePageParams, BaseResponse, BaseSortParams } from '@walnut/axios/types'
+import type { BaseListParams } from '@walnut/axios/types'
 import { useState } from '@walnut/core/hooks/core/useState'
 
 export function useTableAPIListParams<T>() {

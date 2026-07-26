@@ -1,5 +1,3 @@
-import type * as ECharts from 'echarts/core'
-
 declare global {
   type EChartsOption = import('echarts').EChartsOption
 

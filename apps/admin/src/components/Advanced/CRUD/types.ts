@@ -1,4 +1,4 @@
-import type { BaseListParams, BaseListResponse, BasePageParams, BaseResponse, BaseSortParams } from '@walnut/axios/types'
+import type { BaseListParams } from '@walnut/axios/types'
 import type { NullableRecord, StringOrNumber } from 'easy-fns-ts'
 import type { BaseAPIType } from '@/api/base'
 import type { IModels } from '@/api/models'
