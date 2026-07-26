@@ -13,24 +13,21 @@
 
 ---
 
-## 问题 #1 🔴 `@walnut` 命名空间双重定义
+## 问题 #1 ✅ `@walnut` 命名空间双重定义（已解决）
 
-**描述**：前端的 5 个 workspace 包（`@walnut/{shared,axios,core,ui,ai}`）和后端的 9 个 path 别名 lib（`@walnut/{config,const,context,db,decorators,exceptions,pipes,types,utils}`）共用 `@walnut` scope，靠"名字不重叠"侥幸不冲突。任何人加一个 `@walnut/utils` 前端包就会静默炸掉。
+**描述**：前端的 5 个 workspace 包（`@walnut/{shared,axios,core,ui,ai}`）和后端的 9 个 path 别名 lib（`@walnut/{config,const,context,db,decorators,exceptions,pipes,types,utils}`）共用 `@walnut` scope，靠"名字不重叠"侥幸不冲突。
 
-**证据**：
-- 前端包名：`packages/*/package.json` 的 `name` 字段
-- 后端别名：`apps/server/tsconfig.json` 第 21-79 行 `paths` 块（18 条映射）
-- 后端 SWC 配置：`apps/server/infra/swc/{dev,prod,stage}.swcrc` 的 `jsc.paths`
-- 前端零消费后端别名：`grep -r "@walnut/config" apps/admin/src` → 0 命中（已验证）
-- 后端零消费前端包：`apps/server/package.json` 无 `"workspace:*"`
+**解决**：2026-07-26 已将后端 9 个 lib 全部改名为 `@walnut-server/*`。改动 403 文件、940 处替换（4 配置 + 388 源文件 + 11 README）。`pnpm --filter @walnut/server types:check` + `lint` 通过。
 
-**影响**：未来命名碰撞时，pnpm 解析和 tsc paths 解析可能给出不同结果，开发态和构建态行为不一致，且无工具守护。
+**证据**（已验证）：
+- `apps/server/tsconfig.json` paths 块：18 条 `@walnut-server/*`
+- `apps/server/infra/swc/{dev,prod,stage}.swcrc` jsc.paths：同步更新
+- 源文件零残留（git grep 确认）
+- `"name": "@walnut/server"` 包名保留（这是 app 包名本身，非 lib alias）
 
-**严重级别**：🔴 严重
+**严重级别**：✅ 已解决
 
-**对应 Phase**：[Phase 1](./08-refactor-plan.md#phase-1)（后端改名 `@walnut-server/*`）
-
-**详细论证**：见 [03-package-boundaries.md](./03-package-boundaries.md) §2
+**对应 Phase**：[Phase 1](./08-refactor-plan.md#phase-1) ✅ 完成
 
 ---
 
@@ -302,23 +299,23 @@
 
 | # | 严重 | 问题 | Phase | 状态 |
 |---|------|------|-------|------|
-| 1 | 🔴 | `@walnut` 命名空间双重定义 | Phase 1 | 待办 |
+| 1 | ✅ | `@walnut` 命名空间双重定义 | Phase 1 | ✅ 已改名 `@walnut-server/*` |
 | 2 | 🔴 | 前后端零契约共享 | Phase 4 | 待办 |
 | 3 | 🔴 | CI/CD 坏掉 | Phase 5 | 部分（已加 test task，CI workflow 待加）|
 | 4 | 🟡 | ui/ai 空壳 | Phase 3 | ✅ 已删除 |
 | 5 | 🟡 | tsconfig.base.node 孤儿 | Phase 2 | ✅ 已删除 |
-| 6 | 🟡 | baseUrl/paths 错配 | Phase 2 | 待办 |
-| 7 | 🟡 | 跨包 .d.ts reach | Phase 2 | 待办 |
-| 8 | 🟡 | 根 dev 脚本启动三 app | Phase 5 | 待办 |
+| 6 | 🟡 | baseUrl/paths 错配 | Phase 2 | ✅ 已删 paths |
+| 7 | 🟡 | 跨包 .d.ts reach | Phase 2 | 待办（比预想复杂，含 declare global/模块扩充）|
+| 8 | 🟡 | 根 dev 脚本启动三 app | Phase 5 | ✅ 默认改为 dev:admin |
 | 9 | 🟡 | 后端/docs standalone 残留 | 未来 | 部分（docs .gitignore 已合并到根）|
 | 10 | 🟡 | 无 commitlint | 未来 | 待办 |
 | 11 | 🟢 | AGENTS.md 过时 | 未来 | 部分（已加 deprecation 头部）|
 | 12 | 🟢 | catalog 不在 turbo globalDeps | Phase 5 | ✅ 已加 |
 | 13 | ✅ | deploy.config 明文密码 | — | ✅ 已核实未泄露（误报）|
 
-**已处理**：#4、#5、#12、#13（4 个）
-**部分处理**：#3、#9、#11（3 个）
-**待办**：#1、#2、#6、#7、#8、#10（6 个，其中 #1/#2 是大工程）
+**已完全解决**：#1、#4、#5、#6、#8、#12、#13（7 个）
+**部分解决**：#3、#9、#11（3 个）
+**待办**：#2、#7、#10（3 个，其中 #2 是契约包大工程）
 
 ---
 

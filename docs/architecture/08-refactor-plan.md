@@ -11,20 +11,20 @@
 
 | Phase | 目标 | 改动量 | 风险 | 依赖 | 状态 |
 |-------|------|--------|------|------|------|
-| [Phase 1](#phase-1-命名空间隔离-walnut--walnut-server) | `@walnut/*` → `@walnut-server/*`（后端） | 4 配置 + 388 源文件 | 中（机械替换，需精确） | 无 | ⬜ 待办 |
+| [Phase 1](#phase-1-命名空间隔离-walnut--walnut-server) | `@walnut/*` → `@walnut-server/*`（后端） | 4 配置 + 388 源文件 | 中（机械替换，需精确） | 无 | ✅ 完成 |
 | [Phase 2](#phase-2-tsconfig-清理) | 删孤儿 base、修 paths、消除跨包 reach | ~8 tsconfig + 7 .d.ts | 低-中 | 无 | 🟡 部分（#5/#6 已做，#7 跨包 reach 待办） |
 | [Phase 3](#phase-3-空壳包处置) | 删除 ui/ai | 2 目录 + 1 package.json | 极低 | 无 | ✅ 完成 |
 | [Phase 4](#phase-4-契约包-walnutcontract) | 引入共享契约包 | 1 新包 + 多处 re-export | 中（跨前后端） | Phase 1（命名空间清晰后再加 contract） | ⬜ 待办 |
 | [Phase 5](#phase-5-cicd-修复) | PR CI + test task + 修 deploy | turbo.json + 2 workflow | 低 | 无 | 🟡 部分（test task + catalog globalDep 已做，PR workflow + deploy 修复待办） |
 
 **已完成的工作**（2026-07-26）：
+- ✅ Phase 1 全部：后端 9 个 lib 从 `@walnut/*` 改名为 `@walnut-server/*`（403 文件、940 处替换）
 - ✅ Phase 3 全部：删除 `packages/ui`、`packages/ai`，从 admin/package.json 和 tsconfig.base.json 移除引用
 - ✅ Phase 2 部分：删除孤儿 `tsconfig.base.node.json`（缺陷 #5）；从 `tsconfig.base.json` 移除失效的 `paths` 块（缺陷 #6，采用"删除 paths"方案）
 - ✅ Phase 5 部分：`turbo.json` 加 `test` task、`pnpm-workspace.yaml` 加入 `globalDependencies`
 - ✅ 额外：根 `dev` 脚本默认改为 `dev:admin`（问题 #8）；`AGENTS.md` 加 deprecation 头部（问题 #11 部分）
 
 **剩余工作**：
-- ⬜ Phase 1：后端命名空间改名（388 文件机械替换，详见下文）
 - ⬜ Phase 2 缺陷 #7：跨包 `.d.ts` reach——需把 `packages/shared/src/types/*.d.ts` 的 ambient 全局类型转显式模块，并改几十处消费点。**注意：这些 .d.ts 含 `declare global` 和模块扩充（`declare module`），不能简单加 export，需逐个甄别**
 - ⬜ Phase 4：契约包（跨前后端，最大红利）
 - ⬜ Phase 5 剩余：PR CI workflow、deploy.yml 改用 `pnpm deploy --filter`
