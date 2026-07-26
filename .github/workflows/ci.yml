@@ -1,13 +1,15 @@
 name: CI
 
-# Quality gate: every PR and push to main must pass lint + type check + build.
+# Quality gate: PRs must pass lint + type check + build before merge.
+# Intentionally does NOT trigger on push to main (direct main pushes are
+# done by the maintainer; tag-triggered deploys are handled separately by
+# deploy.yml). Re-enable push trigger when collaborative workflow needs it.
+#
 # This workflow does NOT run tests (server tests need MongoDB+Redis which
 # require service containers; that can be added later if needed).
 
 on:
   pull_request:
-    branches: [main]
-  push:
     branches: [main]
 
 # Cancel in-flight runs for the same ref when new commits are pushed.

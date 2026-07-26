@@ -23,6 +23,8 @@ Walnut Admin is a **full-stack monorepo** managed with **Turborepo + pnpm worksp
 pnpm install        # Install all workspace dependencies
 
 # Per-app dev servers
+pnpm dev            # = pnpm dev:admin (frontend only, the common case)
+pnpm dev:all        # Start ALL three apps simultaneously (server needs MongoDB+Redis)
 pnpm dev:admin      # Frontend → http://127.0.0.1:3100
 pnpm dev:server     # Backend  → requires MongoDB + Redis
 pnpm dev:docs       # Docs     → http://localhost:8886
@@ -37,6 +39,7 @@ pnpm build:docs     # Docs only
 pnpm lint           # Lint all packages
 pnpm lint:fix       # Lint with auto-fix
 pnpm types:check    # Type check all packages
+pnpm test           # Run tests (currently only @walnut/server has vitest configured)
 ```
 
 ## Monorepo Architecture
@@ -48,26 +51,24 @@ walnut-admin/
 │   ├── server/              — NestJS API (own internal monorepo)
 │   │   ├── apps/api/        — NestJS application entry
 │   │   ├── libs/            — 9 NestJS internal libraries
-│   │   │   ├── config/      @walnut/config      — env config + validation
-│   │   │   ├── const/       @walnut/const       — constants + error codes
-│   │   │   ├── context/     @walnut/context     — ALS context
-│   │   │   ├── db/          @walnut/db          — Mongoose + transactions
-│   │   │   ├── decorators/  @walnut/decorators  — custom decorator system
-│   │   │   ├── exceptions/  @walnut/exceptions  — exceptions + global filter
-│   │   │   ├── pipes/       @walnut/pipes       — param pipes
-│   │   │   ├── types/       @walnut/types       — type declarations
-│   │   │   └── utils/       @walnut/utils       — utilities
+│   │   │   ├── config/      @walnut-server/config      — env config + validation
+│   │   │   ├── const/       @walnut-server/const       — constants + error codes
+│   │   │   ├── context/     @walnut-server/context     — ALS context
+│   │   │   ├── db/          @walnut-server/db          — Mongoose + transactions
+│   │   │   ├── decorators/  @walnut-server/decorators  — custom decorator system
+│   │   │   ├── exceptions/  @walnut-server/exceptions  — exceptions + global filter
+│   │   │   ├── pipes/       @walnut-server/pipes       — param pipes
+│   │   │   ├── types/       @walnut-server/types       — type declarations
+│   │   │   └── utils/       @walnut-server/utils       — utilities
 │   │   ├── infra/nest/      — nest-cli build configs (dev/stage/prod)
 │   │   ├── infra/swc/       — SWC compiler configs
 │   │   ├── env/             — env templates (placeholders)
 │   │   └── env-local/       — local env (real values, gitignored)
 │   └── docs/                — Vitepress documentation site
-├── packages/                ← Shared libraries (consumed by apps)
-│   ├── shared/  @walnut/shared   — zero-dependency base layer
-│   ├── axios/   @walnut/axios    — HTTP client + interceptors
-│   ├── core/    @walnut/core     — stores, router, hooks, socket
-│   ├── ui/      @walnut/ui       — WTable/WForm/CRUD components
-│   └── ai/      @walnut/ai       — AI chat subsystem
+├── packages/                ← Shared libraries (consumed by apps/admin only)
+│   ├── shared/  @walnut/shared   — zero-dependency base layer (crypto, storage, types)
+│   ├── axios/   @walnut/axios    — HTTP client framework (instance + adapters)
+│   └── core/    @walnut/core     — generic composables/hooks (~16 files)
 ├── build/                    ← Shared Vite build config
 ├── migration-guide/          ← Migration documentation & tracking
 ├── turbo.json                ← Turborepo pipeline
@@ -82,33 +83,32 @@ walnut-admin/
 The server (`apps/server/`) has its own **NestJS CLI monorepo** structure — its `apps/api/` and `libs/` are NOT pnpm workspace packages. They are resolved via TypeScript path aliases in `apps/server/tsconfig.json` and compiled together by NestJS CLI + SWC.
 
 Key differences:
-- **Server libs** (`@walnut/config`, `@walnut/db`, etc.): CommonJS, tsconfig paths, SwC-compiled, NestJS-coupled
-- **Frontend packages** (`@walnut/shared`, `@walnut/ui`, etc.): ESM, pnpm workspace, Vite-compiled, framework-level
+- **Server libs** (`@walnut-server/config`, `@walnut-server/db`, etc.): CommonJS, tsconfig paths, SWC-compiled, NestJS-coupled. The `@walnut-server/*` scope is reserved for these internal libs.
+- **Frontend packages** (`@walnut/shared`, `@walnut/axios`, `@walnut/core`): ESM, pnpm workspace, Vite-compiled, framework-level. The `@walnut/*` scope (without `-server`) is reserved for these.
 
-There is NO name collision — the two `@walnut/*` scopes resolve via different mechanisms and have no overlapping package names.
+**Namespace strategy (post Phase 1):** the two scopes (`@walnut/*` vs `@walnut-server/*`) are physically separated to prevent silent misresolution. Adding a new frontend package like `@walnut/utils` will NOT collide with the backend's `@walnut-server/utils`. This was resolved in commit `609722b` — previously both groups shared the `@walnut/` scope and relied on name non-overlap.
 
-## Current State: Phase 1 Migration Complete
+## Current State
 
 This monorepo was created by merging three previously separate repositories:
 - `walnut-admin-client` → `apps/admin/` + root workspace config
 - `walnut-admin-server` → `apps/server/`
 - `walnut-admin-doc` → `apps/docs/`
 
-**What has been done:**
-- All three repos copied into the monorepo
-- Root config updated for Node 24 + pnpm 11
-- Server scripts adapted (cross-env, typecheck→types:check)
-- Docs adapted
-- Dependencies installed successfully (3016 packages, 9 workspace projects)
+**Architecture cleanup completed (2026-07-26):**
+- ✅ Backend lib aliases renamed `@walnut/*` → `@walnut-server/*` (eliminates namespace collision with frontend packages)
+- ✅ Empty stub packages `@walnut/ui` and `@walnut/ai` removed (zero consumers, never populated)
+- ✅ Orphan `tsconfig.base.node.json` removed (zero consumers)
+- ✅ Vestigial `paths` block removed from `tsconfig.base.json` (resolution was broken by baseUrl override; real resolution via pnpm symlinks + package `exports`)
+- ✅ `turbo.json` gained a `test` task and `pnpm-workspace.yaml` in `globalDependencies`
+- ✅ Root `dev` defaults to `dev:admin` (avoids starting server which needs MongoDB+Redis)
+- ✅ Dependencies unified via pnpm `catalog:` (47 entries, single source of truth — ESLint version drift resolved)
 
-**What still needs work (see migration-guide/):**
-- Packages redesign (Phase 2) — extract business logic from packages/, create proper reusable libraries
-- CI/CD merge — combine server and client GitHub Actions
-- SWC path verification — confirm paths work in NestJS build
-- ESLint version unification — server (10.1.0) and docs (9.30.1) differ from root (10.3.0)
-- Known issues tracked in `migration-guide/09-known-issues.md`
-
-See `migration-guide/README.md` for the full step-by-step plan.
+**For full architecture details and the remaining refactor roadmap:**
+- [`docs/architecture/`](./docs/architecture/README.md) — authoritative architecture docs (8 files)
+- [`docs/architecture/07-known-issues.md`](./docs/architecture/07-known-issues.md) — 13 issues tracked, 7 resolved
+- [`docs/architecture/08-refactor-plan.md`](./docs/architecture/08-refactor-plan.md) — 5-phase plan with file/line precision
+- `migration-guide/` — historical migration record (Phase 1 merge steps, now completed)
 
 ## Frontend Architecture (apps/admin/)
 
@@ -132,5 +132,5 @@ See `migration-guide/README.md` for the full step-by-step plan.
 - 18 guards (IP, Security, Device, Risk, CAP, JWT, MFA, Sign, Lock...), 16 middleware, custom interceptor/pipe/decorator system
 - Comprehensive auth: JWT + OAuth + OPAQUE + WebAuthn + MFA/TOTP
 - Custom `@WalnutDBTransaction()` decorator for MongoDB transactions
-- Environment: `env-local/` (dev) vs `env/` (prod/stage), loaded by `@walnut/config`
+- Environment: `env-local/` (dev) vs `env/` (prod/stage), loaded by `@walnut-server/config`
 - Server config module uses `process.cwd()` for projectRoot — must run from `apps/server/`
