@@ -1,0 +1,103 @@
+name: Deploy NestJS Build Artifacts to Server
+
+on:
+  # 仅手动触发，避免与 release.yml 的 tag 触发冲突
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy"
+        required: true
+        type: choice
+        options:
+          - stage
+          - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      NODE_VERSION: 24
+      STAGE_HOST: ${{ secrets.STAGE_SERVER_HOST }}
+      STAGE_USERNAME: ${{ secrets.STAGE_SERVER_USERNAME }}
+      STAGE_PASSWORD: ${{ secrets.STAGE_SERVER_PASSWORD }}
+      STAGE_APP_DIR: /root/nestjs
+      PROD_HOST: ${{ secrets.PROD_SERVER_HOST }}
+      PROD_USERNAME: ${{ secrets.PROD_SERVER_USERNAME }}
+      PROD_PASSWORD: ${{ secrets.PROD_SERVER_PASSWORD }}
+      PROD_APP_DIR: /home/apps-server/realworld-server-prod
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Determine environment
+        id: set_env
+        run: |
+          echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> $GITHUB_ENV
+
+      - name: Build server
+        run: |
+          if [ "${{ env.ENVIRONMENT }}" = "stage" ]; then
+            pnpm --filter @walnut/server build:stage
+          else
+            pnpm --filter @walnut/server build
+          fi
+
+      - name: Debug build output
+        run: ls apps/server/dist/
+
+      # TODO: monorepo 适配 — 以下 SCP + 远程部署需要重新设计
+      # 原方案 (独立仓库): SCP dist + package.json + lock → 远程 pnpm install -P
+      # monorepo 问题: lock 文件包含所有 workspace 包，不能直接用于单包部署
+      # 可选方案: (1) Docker 部署 (2) pnpm deploy prune (3) 打包 deploy artifact
+      - name: Upload build artifacts to remote server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.ENVIRONMENT == 'prod' && env.PROD_HOST || env.STAGE_HOST }}
+          username: ${{ env.ENVIRONMENT == 'prod' && env.PROD_USERNAME || env.STAGE_USERNAME }}
+          password: ${{ env.ENVIRONMENT == 'prod' && env.PROD_PASSWORD || env.STAGE_PASSWORD }}
+          source: "apps/server/dist,apps/server/package.json,pnpm-lock.yaml,pnpm-workspace.yaml"
+          target: ${{ env.ENVIRONMENT == 'prod' && env.PROD_APP_DIR || env.STAGE_APP_DIR }}
+
+      - name: Run deploy script on remote server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ env.ENVIRONMENT == 'prod' && env.PROD_HOST || env.STAGE_HOST }}
+          username: ${{ env.ENVIRONMENT == 'prod' && env.PROD_USERNAME || env.STAGE_USERNAME }}
+          password: ${{ env.ENVIRONMENT == 'prod' && env.PROD_PASSWORD || env.STAGE_PASSWORD }}
+          script: |
+            # TODO: monorepo 适配 — 远程部署脚本需要配合新的目录结构调整
+            APP_DIR="${{ env.ENVIRONMENT == 'prod' && env.PROD_APP_DIR || env.STAGE_APP_DIR }}"
+            cd $APP_DIR
+
+            if ! command -v pnpm &> /dev/null; then
+              npm install -g pnpm@11
+            fi
+
+            # TODO: 当前 lock file 为 monorepo 级别，pnpm install --prod 可能因 workspace:* 依赖失败
+            # 需要迁移到 pnpm deploy 或 Docker 方案
+            pnpm install -P --frozen-lockfile --filter @walnut/server
+
+            if pm2 list | grep "walnut-admin-nestjs-${{ env.ENVIRONMENT }}"; then
+              pm2 reload "walnut-admin-nestjs-${{ env.ENVIRONMENT }}" --update-env
+            else
+              cd apps/server && pnpm pm2:${{ env.ENVIRONMENT }}
+            fi
+
+      # Release 由 release.yml (tag 触发) 统一处理，这里不再重复创建
