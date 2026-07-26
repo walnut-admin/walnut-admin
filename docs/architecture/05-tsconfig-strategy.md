@@ -1,41 +1,42 @@
 # 05 · TypeScript 策略
 
-> 本文件详述 monorepo 的 TypeScript 配置架构、已发现的 3 个 tsconfig 缺陷、以及为何不采用 TS Project References。
+> 本文件详述 monorepo 的 TypeScript 配置架构、已发现的 tsconfig 缺陷及修复状态、以及为何不采用 TS Project References。
+> 更新于 2026-07-26。
 
 ---
 
 ## 1. 当前 tsconfig 拓扑
 
-仓库有 **3 个根级 tsconfig** + 各 workspace 自己的 tsconfig。关系靠 `extends` 维护，**没有 `references` / `composite`**。
+仓库有 **2 个根级 tsconfig** + 各 workspace 自己的 tsconfig。关系靠 `extends` 维护，**没有 `references` / `composite`**。
 
-### 1.1 三个根级 tsconfig
+### 1.1 两个根级 tsconfig
 
 ```
-tsconfig.json              ← 根工具配置（lint 根 .mjs/.ts/.js，不 extends 任何 base）
-tsconfig.base.json         ← 前端共享 base（admin + docs + 5 packages 都 extends 它）
-tsconfig.base.node.json    ← ⚠️ 后端共享 base（孤儿，零消费者，见 §3.1）
+tsconfig.json              ← 根工具配置（覆盖根 *.mjs/.ts/.js；extends base，仅覆盖 lib）
+tsconfig.base.json         ← 前端共享 base（admin + docs + 3 packages 都 extends 它）
 ```
+
+> 历史：曾有三个根级 tsconfig，`tsconfig.base.node.json`（后端共享 base）已于 2026-07-26 删除——它是零消费者的孤儿文件（详见 §3.1 历史）。
 
 ### 1.2 extends 链（实测图）
 
 ```
 [前端 ESM 世界]
 tsconfig.base.json
+  ├── tsconfig.json                   (根工具配置；extends base，覆盖 lib:[ESNext]，include 根 *.mjs/*.ts/*.js)
   ├── apps/admin/tsconfig.json        (extends base, 覆盖 baseUrl, 加 @/* ~/*)
   ├── apps/docs/tsconfig.json         (extends base, 加 types:[node])
   ├── packages/shared/tsconfig.json   (extends base, 加 baseUrl:.)
   ├── packages/axios/tsconfig.json    (extends base, 加 baseUrl:., include ../shared/types)
-  ├── packages/core/tsconfig.json     (extends base, 加 baseUrl:., include ../shared/types)
-  ├── packages/ui/tsconfig.json       (extends base, 加 baseUrl:.)
-  └── packages/ai/tsconfig.json       (extends base, 加 baseUrl:.)
+  └── packages/core/tsconfig.json     (extends base, 加 baseUrl:., include ../shared/types)
 
 [后端 CJS 世界 —— 完全独立]
 apps/server/tsconfig.json             (⚠️ 不 extends 任何根 base，自包含)
   └── apps/server/apps/api/tsconfig.app.json   (extends ../../tsconfig.json，即 server 自己的)
       + 9 个 apps/server/libs/*/tsconfig.lib.json   (各自 extends ../../tsconfig.json)
 
-[根工具]
-tsconfig.json                         (独立，只匹配根 *.mjs/*.ts/*.js，给 eslint 用)
+注意：apps/server/* 下的 extends "../../tsconfig.json" 解析到 apps/server/tsconfig.json
+（server 自己的），不是仓库根的 tsconfig.json。仓库根 tsconfig.json 没有任何 tsconfig extends 它。
 ```
 
 ### 1.3 各 tsconfig 的关键设置
@@ -102,9 +103,11 @@ import { encryptAesGcm } from '@walnut/shared/crypto/symmetric/aes-gcm'
 
 ---
 
-## 3. 已发现的 3 个 tsconfig 缺陷
+## 3. tsconfig 缺陷清单及修复状态
 
-### 3.1 缺陷 #1：`tsconfig.base.node.json` 是孤儿
+> 更新于 2026-07-26。原列 3 个缺陷，#1/#2 已修，#3 待办。
+
+### 3.1 ✅ 缺陷 #1：`tsconfig.base.node.json` 是孤儿（已删除）
 
 **现象**：`tsconfig.base.node.json` 定义了一份完整的后端 CJS + 装饰器 base 配置，但**没有任何 tsconfig extends 它**。
 
@@ -125,9 +128,11 @@ import { encryptAesGcm } from '@walnut/shared/crypto/symmetric/aes-gcm'
 - **方案 A**：删除 `tsconfig.base.node.json`（最简单）
 - **方案 B**：让 `apps/server/tsconfig.json` extends 它，移除重复的 CJS/装饰器设置（消除配置重复）
 
+**✅ 已解决**（2026-07-26，commit `7f58970`）：采用方案 A，直接删除。`apps/server/tsconfig.json` 保持自包含（与 base 有 `composite: false`、`declaration: false` 等差异，强行 extends 不划算）。
+
 ---
 
-### 3.2 缺陷 #2：`baseUrl` 覆盖导致 inherited `paths` 失效
+### 3.2 ✅ 缺陷 #2：`baseUrl` 覆盖导致 inherited `paths` 失效（已删除 paths）
 
 **现象**：`tsconfig.base.json` 定义了 `paths` 映射 `@walnut/*`，但子配置覆盖 `baseUrl` 后，这些 paths **实际解析到错误位置**。
 
@@ -175,9 +180,11 @@ import { encryptAesGcm } from '@walnut/shared/crypto/symmetric/aes-gcm'
 - **方案 B**：从 base 删除 `paths`，承认它没用，全靠 pnpm symlink + exports。
 - **方案 C**：把 paths 改成 `@walnut/shared/*` 形式（含 wildcard），让 subpath 也走 paths（但会和 exports 双重解析，不推荐）。
 
+**✅ 已解决**（2026-07-26，commit `f4936e8`）：采用方案 B，从 `tsconfig.base.json` 删除整个 `paths` 块。验证：`git grep` 确认零 bare import（所有消费走 subpath），删除后 admin/server/3 个 packages 的 types:check 全通过。paths 是摆设，删除后语义更清晰——未来 bare import 会显式 TS 报错（fail loud 优于静默错解析）。
+
 ---
 
-### 3.3 缺陷 #3：跨包 `.d.ts` 相对路径 reach
+### 3.3 ⚠️ 缺陷 #3：跨包 `.d.ts` 相对路径 reach（待办，比预想复杂）
 
 **现象**：4 个 tsconfig 通过相对路径 `include` 跨包的 ambient `.d.ts` 文件。
 
@@ -205,6 +212,27 @@ import { encryptAesGcm } from '@walnut/shared/crypto/symmetric/aes-gcm'
 - **方案 C**：维持现状，文档化为"已知 hack"。
 
 方案 A 工作量稍大（要改 7 个 .d.ts + 所有消费点），但最干净。
+
+**⚠️ 复杂度补充**（2026-07-26 重新评估）：这 7 个 `.d.ts` 不全是简单的 ambient 全局类型。实测：
+- `universal.d.ts`、`deep-ref.d.ts`、`object-key.d.ts`、`storage.d.ts` 是 `declare global { ... } export {}` 形式（可转显式模块，但要改大量消费点——admin 裸用 `Recordable` 31 文件、`Fn` 23 文件、`IDeepMaybeRef` 6 文件）
+- `vite.d.ts`、`vue.d.ts`、`vue-runtime.d.ts` 是**模块扩充**（`declare module '*.vue'`、`declare module '@vue/runtime-dom'`），不能简单加 `export`
+
+因此 #7 不能机械改造，需逐个甄别。当前 ambient 全局类型被 admin 大量裸用（60+ 文件），改成显式 import 是独立工程，留作未来。
+
+---
+
+### 3.4 ✅ 缺陷 #4：根 `tsconfig.json` 与 `tsconfig.base.json` 内容重复（已修）
+
+**现象**（2026-07-26 新发现）：根 `tsconfig.json`（给根级 `eslint.config.mjs` 等脚本用）曾**手抄**了 `tsconfig.base.json` 的 11 个 compilerOptions（target、module、moduleResolution、strict、noEmit、esModuleInterop、isolatedModules、skipLibCheck 等），没有 extends base。
+
+**影响**：维护负担——改 base 忘了改根，两者漂移。根 tsconfig 还缺 base 的 `ignoreDeprecations: "6.0"`，可能在根级检查时冒 deprecation 警告。
+
+**✅ 已解决**（2026-07-26，commit `140e94e`）：根 `tsconfig.json` 改为 `extends: "./tsconfig.base.json"`，只保留它独有的差异：
+- `lib: ["ESNext"]`（覆盖 base 的 `["DOM","ESNext","DOM.Iterable"]`——根脚本是 Node 环境，无 DOM）
+- `include: ["*.mjs", "*.ts", "*.js"]`（根 tsconfig 独有的文件范围）
+- `exclude` 保留
+
+**安全性核查**：确认仓库内**没有任何 tsconfig extends 根 `tsconfig.json`**（`apps/server/*` 的 `extends: "../../tsconfig.json"` 解析到 `apps/server/tsconfig.json` 即 server 自己的，不是仓库根）。所以重构零下游影响。验证：`tsc -p tsconfig.json --noEmit` 通过；全量 `pnpm types:check` 9/9 通过。
 
 ---
 
