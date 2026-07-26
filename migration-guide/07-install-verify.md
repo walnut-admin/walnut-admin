@@ -143,9 +143,9 @@ ERR_PNPM_NO_MATCHING_VERSION_SPEC  No matching version found for @walnut/serve
 
    ```yaml
    packages:
-     - "apps/*"
-     - "packages/*"
-     - "build"
+     - 'apps/*'
+     - 'packages/*'
+     - build
    ```
 
    If `apps/*` is present, `apps/server` is included.

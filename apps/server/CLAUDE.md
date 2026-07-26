@@ -178,10 +178,10 @@ Use decorators from `@/decorators/field` instead of raw class-validator:
 
 ```typescript
 import {
-  WalnutAdminDecoratorFieldString,
   WalnutAdminDecoratorFieldBoolean,
-  WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldMongoId,
+  WalnutAdminDecoratorFieldNumber,
+  WalnutAdminDecoratorFieldString,
 } from '@/decorators/field'
 
 export class UserRequestDTO {
@@ -207,8 +207,8 @@ export class UserRequestDTO {
 ```typescript
 // ❌ Wrong
 export class UserDTO {
-  value!: string           // Don't use !
-  isActive?: boolean       // Don't use ?
+  value!: string // Don't use !
+  isActive?: boolean // Don't use ?
 }
 
 // ✅ Correct - use decorator defaults
@@ -216,16 +216,16 @@ export class UserDTO {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: { description: 'value' },
   })
-  value: string           // No marker
+  value: string // No marker
 
   @WalnutAdminDecoratorFieldBoolean({
-    default: false,       // Set default in decorator
+    default: false, // Set default in decorator
     swaggerOptions: { description: 'is active' },
   })
-  isActive: boolean       // No marker, has default
+  isActive: boolean // No marker, has default
 
   @WalnutAdminDecoratorFieldString({
-    default: null,        // Optional field uses null default
+    default: null, // Optional field uses null default
     swaggerOptions: { description: 'optional code' },
   })
   code: string
@@ -265,15 +265,15 @@ import { getWalnutAdminDBSession, runAfterTransaction } from '@/context/transact
 
 async create(dto: UserCreateDTO) {
   const dbSession = getWalnutAdminDBSession()
-  
+
   const user = new this.userModel({ ...dto })
   await user.save({ session: dbSession })
-  
+
   // Post-transaction operations
   await runAfterTransaction(async () => {
     await this.cacheService.invalidateUserCache(user._id)
   })
-  
+
   return user
 }
 ```
@@ -301,9 +301,9 @@ Guards execute in this order (defined in `app.module.ts`):
 Always use `@/*` alias from `src/walnut/admin/com/app/`:
 
 ```typescript
+import { WalnutAdminDecoratorList } from '@/decorators/crud'
 // ✅ Correct
 import { Something } from '@/modules/some/module'
-import { WalnutAdminDecoratorList } from '@/decorators/crud'
 
 // ❌ Wrong - don't use relative paths for cross-module imports
 import { Something } from '../../../some/module'
@@ -314,11 +314,12 @@ import { Something } from '../../../some/module'
 Use top-level type imports, not inline type modifiers:
 
 ```typescript
-// ❌ Wrong - inline type modifier
-import { type IUserType, UserModel } from './schema'
-
 // ✅ Correct - top-level type import
 import type { IUserType } from './schema'
+
+import type { IUserType } from './schema'
+// ❌ Wrong - inline type modifier
+import { UserModel } from './schema'
 import { UserModel } from './schema'
 ```
 
@@ -390,9 +391,9 @@ throw new WalnutAdminExceptionBadRequest({
 Always use `AppInjectModel` from `@/database/database.decorator` with constants from `@/const`:
 
 ```typescript
-import { AppInjectModel } from '@/database/database.decorator'
-import { WalnutAdminConstDBModelName } from '@/const'
 import type { IUserModel } from './schema/user.schema'
+import { WalnutAdminConstDBModelName } from '@/const'
+import { AppInjectModel } from '@/database/database.decorator'
 
 @Injectable()
 export class UserBasicRepository extends WalnutAdminCommonBasicRepository<IUserDocument> {

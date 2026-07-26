@@ -41,16 +41,19 @@ Additionally, the sub-path `@walnut/config/utils/env` exports:
 ## Usage
 
 ```typescript
+// 2. Inject ConfigService anywhere (module is @Global)
+import type { ConfigService } from '@nestjs/config'
+
 // 1. Import in root AppModule
 import { WalnutConfigModule } from '@walnut/config'
+
+// 3. Use environment helpers (from sub-path)
+import { isDev, isProd } from '@walnut/config/utils/env'
 
 @Module({
   imports: [WalnutConfigModule],
 })
 export class AppModule {}
-
-// 2. Inject ConfigService anywhere (module is @Global)
-import { ConfigService } from '@nestjs/config'
 
 @Injectable()
 export class MyService {
@@ -60,9 +63,6 @@ export class MyService {
     return this.configService.get<string>('jwt.accessTokenSecret')
   }
 }
-
-// 3. Use environment helpers (from sub-path)
-import { isDev, isProd } from '@walnut/config/utils/env'
 
 if (isDev) {
   console.log('Running in development mode')

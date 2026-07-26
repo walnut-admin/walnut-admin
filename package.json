@@ -1,7 +1,8 @@
 {
   "name": "walnut-admin",
-  "private": true,
   "type": "module",
+  "private": true,
+  "packageManager": "pnpm@11.13.0",
   "description": "Walnut Admin Monorepo",
   "author": {
     "name": "Zhaocl1997",
@@ -27,6 +28,8 @@
     "build:stage": "NODE_OPTIONS=--max-old-space-size=8192 turbo build --filter=@walnut/admin -- -- --mode staging",
     "preview": "turbo preview",
     "lint": "turbo lint",
+    "lint:root": "eslint . --concurrency=auto",
+    "lint:root:fix": "eslint . --fix --concurrency=auto",
     "lint:fix": "turbo lint:fix",
     "types:check": "turbo types:check",
     "clean": "turbo clean",
@@ -55,6 +58,5 @@
   "lint-staged": {
     "*.{ts,vue,mjs,js}": "eslint --fix --concurrency=auto",
     "*.md": "eslint --fix"
-  },
-  "packageManager": "pnpm@11.13.0"
+  }
 }

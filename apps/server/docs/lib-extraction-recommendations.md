@@ -156,7 +156,7 @@ These 7 candidates have **1-2 hard imports to `@/` modules** that would need ref
 - **Files**: `ip.module.ts`, `ip.service.ts`
 - **Purpose**: IP normalization, Baidu geolocation lookup, permanent + temporary blacklist management.
 - **App Coupling**: Injects `AppSettingRepositoryService` (for permanent blacklist via app settings) and `AppTechRedisService` (for temporary blacklist via Redis).
-- **Dependencies to Resolve**: 
+- **Dependencies to Resolve**:
   - Abstract `AppSettingRepositoryService` behind an `IBlacklistRepository` interface
   - Resolve `AppTechRedisService` dependency (would resolve automatically if `@walnut/cache` is extracted first)
 - **Effort**: **High** (multiple injected service dependencies)

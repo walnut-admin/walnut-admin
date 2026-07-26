@@ -195,18 +195,18 @@ The `build/` directory no longer exists as a workspace package (see 3f below), s
 
 ```yaml
 packages:
-  - "apps/*"
-  - "packages/*"
-  - "build"
+  - 'apps/*'
+  - 'packages/*'
+  - build
 ```
 
 ### New content
 
 ```yaml
 packages:
-  - "apps/*"
-  - "packages/*"
-  - "build"
+  - 'apps/*'
+  - 'packages/*'
+  - build
 
 # pnpm 11: migrated from package.json#pnpm
 packageConfigs:
@@ -214,7 +214,7 @@ packageConfigs:
     allowAny:
       - vite
 
-# pnpm 11: migrated from .npmrc shamefully-hoist=true  
+# pnpm 11: migrated from .npmrc shamefully-hoist=true
 hoisting: true
 
 # pnpm 11: build allowlist (add entries as pnpm install reports them)

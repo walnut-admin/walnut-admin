@@ -524,7 +524,7 @@ Turborepo's `dev` command runs ALL persistent development tasks across all apps 
 // root package.json
 {
   "scripts": {
-    "dev": "turbo dev",        // starts ALL apps
+    "dev": "turbo dev", // starts ALL apps
     "dev:admin": "pnpm --filter @walnut/admin dev",
     "dev:server": "pnpm --filter @walnut/server dev",
     "dev:docs": "pnpm --filter @walnut/docs dev"

@@ -35,28 +35,28 @@ Shared utility functions used across the application. Provides DTO manipulation 
 ## Usage
 
 ```typescript
-// DTO helpers — used in every CRUD module
-import { RealPickType, RealPartialType } from '@walnut/utils/dto'
+// Dayjs
+import { AppDayjs } from '@walnut/utils/dayjs'
 
-export class SysUserCreateDTO extends RealPickType(SysUserDTO, ['username', 'email'] as const) {}
+// DTO helpers — used in every CRUD module
+import { RealPartialType, RealPickType } from '@walnut/utils/dto'
 
 // List aggregation — used in every basic repository
 import { buildListPipelineFromRequest } from '@walnut/utils/listAggregate'
 
-const pipeline = buildListPipelineFromRequest(params, lookupStages)
+// Data masking
+import { maskEmail, maskSensitiveFields } from '@walnut/utils/mask' // 'us***@example.com'
 
 // Response builders
 import { WalnutAdminResponseSuccess } from '@walnut/utils/response'
 
+export class SysUserCreateDTO extends RealPickType(SysUserDTO, ['username', 'email'] as const) {}
+
+const pipeline = buildListPipelineFromRequest(params, lookupStages)
+
 return WalnutAdminResponseSuccess(user, requestId)
 
-// Data masking
-import { maskEmail, maskSensitiveFields } from '@walnut/utils/mask'
-
-const masked = maskEmail('user@example.com') // 'us***@example.com'
-
-// Dayjs
-import { AppDayjs } from '@walnut/utils/dayjs'
+const masked = maskEmail('user@example.com')
 const now = AppDayjs().tz('Asia/Shanghai')
 ```
 

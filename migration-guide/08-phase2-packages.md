@@ -204,10 +204,10 @@ packages/
 ```typescript
 export const Patterns = {
   phone: /^1[3-9]\d{9}$/,
-  email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  email: /^[^\s@]+@[^\s@][^\s.@]*\.[^\s@]+$/,
   ipv4: /^(\d{1,3}\.){3}\d{1,3}$/,
   // ...
-} as const;
+} as const
 ```
 
 ---
@@ -317,19 +317,19 @@ The order below respects the dependency graph. Each package is moved only after 
           ┌──────┐ ┌───────┐ ┌──────┐
           │ util │ │ regex │ │crypto│
           └──┬───┘ └───────┘ └──────┘
-             │                     
-       ┌─────┴─────┐               
-       │           │               
-       ▼           ▼               
-   ┌─────────┐ ┌──────┐           
-   │ storage │ │ http │           
-   └─────────┘ └──────┘           
-                       
-                       
-             ┌──────────┐         
-             │    ui    │         
-             └──────────┘         
-               
+             │
+       ┌─────┴─────┐
+       │           │
+       ▼           ▼
+   ┌─────────┐ ┌──────┐
+   │ storage │ │ http │
+   └─────────┘ └──────┘
+
+
+             ┌──────────┐
+             │    ui    │
+             └──────────┘
+
     (Then move core/ and ai/ back to apps/admin/)
 ```
 

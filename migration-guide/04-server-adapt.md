@@ -352,12 +352,12 @@ Turbo spawns the dev command from the **package's working directory**, which is 
 
 **Option A: Use `__dirname` instead of `process.cwd()` (most robust)**
 ```typescript
-import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-const projectRoot = join(__dirname, '..', '..', '..', '..', '..')  // goes up from libs/config/src/ to apps/server/
+const projectRoot = join(__dirname, '..', '..', '..', '..', '..') // goes up from libs/config/src/ to apps/server/
 ```
 This resolves relative to the file location, not CWD. However, it's fragile because the path depth depends on the source tree structure.
 

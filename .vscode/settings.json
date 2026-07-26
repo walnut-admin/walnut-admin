@@ -96,7 +96,7 @@
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
   "js/ts.tsdk.path": "node_modules\\typescript\\lib",
-   "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.expand": false,
   "explorer.fileNesting.patterns": {
     ".agent": ".agent, .claude, .cline, .codebuddy, .codex, .commandcode, .continue, .crush, .cursor, .factory, .gemini, .goose, .junie, .kilocode, .kiro, .kode, .mcpjam, .mux, .neovate, .opencode, .openhands, .pi, .pochi, .qoder, .qwen, .roo, .trae, .windsurf, .zencoder",

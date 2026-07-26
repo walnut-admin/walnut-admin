@@ -8,6 +8,7 @@ export default antfu(
     },
     jsonc: false,
     yaml: false,
+    markdown: false,
     ignores: [
       '**/node_modules/**',
       '**/dist/**',

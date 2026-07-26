@@ -24,16 +24,19 @@ AsyncLocalStorage-based request tracing context for logging purposes. Provides a
 ## Usage
 
 ```typescript
+// 2. DI usage in middleware/interceptors
+import type { LoggerContextService } from '@walnut/context'
+
 // 1. Import in root AppModule
 import { WalnutContextModule } from '@walnut/context'
+
+// 4. Non-DI usage (e.g., Winston formatters)
+import { loggerContextALS } from '@walnut/context'
 
 @Module({
   imports: [WalnutContextModule],
 })
 export class AppModule {}
-
-// 2. DI usage in middleware/interceptors
-import { LoggerContextService } from '@walnut/context'
 
 @Injectable()
 export class RequestIdInterceptor {
@@ -50,9 +53,6 @@ export class RequestIdInterceptor {
 
 // 3. Read context anywhere in the request chain
 const requestId = this.loggerContext.getRequestId()
-
-// 4. Non-DI usage (e.g., Winston formatters)
-import { loggerContextALS } from '@walnut/context'
 
 const store = loggerContextALS.getStore()
 if (store) {

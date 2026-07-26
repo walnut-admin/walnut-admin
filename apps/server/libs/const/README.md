@@ -67,9 +67,9 @@ This library has no runtime exports (`index.ts` does `export {}`). All constants
 ## Usage
 
 ```typescript
+import { WalnutAdminConstAppCacheKeys } from '@walnut/const/app/cache'
 // Import specific constants from sub-paths
 import { WalnutAdminConstAppResponseCode } from '@walnut/const/app/responseCode'
-import { WalnutAdminConstAppCacheKeys } from '@walnut/const/app/cache'
 import { WalnutAdminConstDecoratorLogOperateAction } from '@walnut/const/decorator/logOperate'
 
 // Use in exceptions

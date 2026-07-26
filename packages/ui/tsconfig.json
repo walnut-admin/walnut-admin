@@ -1,12 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "jsxImportSource": "vue",
-    "baseUrl": ".",
-    "paths": {
-      "@walnut/shared": ["../../packages/shared/src"],
-      "@walnut/core": ["../../packages/core/src"]
-    }
+    "baseUrl": "."
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
   "exclude": ["node_modules", "dist"]

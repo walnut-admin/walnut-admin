@@ -1,11 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@walnut/shared": ["../../packages/shared/src"],
-      "@walnut/axios": ["../../packages/axios/src"]
-    }
+    "baseUrl": "."
   },
   "include": [
     "src/**/*.ts",
