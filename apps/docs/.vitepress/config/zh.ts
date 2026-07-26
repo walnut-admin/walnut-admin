@@ -92,6 +92,10 @@ const nav: DefaultTheme.NavItem[] = [
         text: '共享',
         link: '/content/shared/introduction',
       },
+      {
+        text: '架构',
+        link: '/content/monorepo/',
+      },
     ],
   },
   {
@@ -173,6 +177,15 @@ const sidebar: DefaultTheme.Sidebar = {
     {
       text: '后端',
       items: backendContent,
+    },
+    {
+      text: '架构',
+      items: [
+        {
+          text: 'Monorepo 架构与设计',
+          link: '/content/monorepo/',
+        },
+      ],
     },
     {
       text: '共享',
