@@ -9,6 +9,8 @@ export default antfu(
       'ts/no-namespace': 'off',
       'no-console': 'off',
       'regexp/no-unused-capturing-group': 'off',
+      'pnpm/json-enforce-catalog': 'off',
+      'pnpm/enforce-catalog': 'off',
     },
   },
 )

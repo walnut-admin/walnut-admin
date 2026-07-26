@@ -16,19 +16,19 @@
     "clean": "rimraf dist",
     "clean:all": "rimraf dist node_modules"
   },
-  "peerDependencies": {
-    "axios": "1.16.0",
-    "lodash-es": "^4.0.0",
-    "lru-cache": "^10.0.0",
-    "nanoid": "^5.0.0"
+  "dependencies": {
+    "axios": "catalog:",
+    "lodash-es": "catalog:",
+    "lru-cache": "catalog:",
+    "nanoid": "catalog:"
   },
   "devDependencies": {
-    "@types/lodash-es": "^4.17.0",
-    "@vitejs/plugin-vue": "6.0.6",
-    "easy-fns-ts": "2.1.1",
-    "rimraf": "6.1.3",
-    "typescript": "6.0.3",
-    "vite": "8.0.11",
-    "vite-plugin-dts": "4.5.4"
+    "@types/lodash-es": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "easy-fns-ts": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:"
   }
 }

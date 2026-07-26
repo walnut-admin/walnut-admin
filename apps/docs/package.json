@@ -28,20 +28,21 @@
     "taze": "npx taze -i -w"
   },
   "dependencies": {
-    "dayjs": "^1.11.19",
+    "dayjs": "catalog:",
     "vitepress": "1.6.3",
     "vitepress-mermaid-renderer": "1.1.5",
-    "vue": "3.5.25"
+    "vue": "catalog:"
   },
   "devDependencies": {
     "@mermaid-js/mermaid-mindmap": "9.3.0",
-    "@types/node": "22.16.0",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
     "mermaid": "11.8.0",
     "pagefind": "1.3.0",
     "segment": "0.1.3",
-    "taze": "19.1.0",
-    "vite": "5.4.19",
+    "taze": "catalog:",
+    "typescript": "catalog:",
     "vitepress-plugin-pagefind": "0.4.14",
-    "vitepress-plugin-tabs": "^0.7.3"
+    "vitepress-plugin-tabs": "0.7.3"
   }
 }

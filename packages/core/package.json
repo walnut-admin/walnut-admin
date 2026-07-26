@@ -16,23 +16,21 @@
     "clean": "rimraf dist",
     "clean:all": "rimraf dist node_modules"
   },
-  "peerDependencies": {
-    "@vueuse/core": "14.3.0",
-    "naive-ui": "2.44.1",
-    "vue": "3.5.34",
-    "vue-router": "5.0.6"
-  },
   "dependencies": {
-    "@walnut/shared": "workspace:*"
+    "@vueuse/core": "catalog:",
+    "@walnut/shared": "workspace:*",
+    "naive-ui": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
   },
   "devDependencies": {
-    "@types/lodash-es": "^4.17.0",
-    "@vitejs/plugin-vue": "6.0.6",
-    "@vitejs/plugin-vue-jsx": "5.1.5",
-    "easy-fns-ts": "2.1.1",
-    "rimraf": "6.1.3",
-    "typescript": "6.0.3",
-    "vite": "8.0.11",
-    "vite-plugin-dts": "4.5.4"
+    "@types/lodash-es": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "@vitejs/plugin-vue-jsx": "catalog:",
+    "easy-fns-ts": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:"
   }
 }

@@ -17,6 +17,8 @@ export default antfu(
       'style/no-tabs': 'off',
       'vue/no-unused-refs': 'warn',
       'import/newline-after-import': 'warn',
+      'pnpm/json-enforce-catalog': 'off',
+      'pnpm/enforce-catalog': 'off',
     },
   },
 )
