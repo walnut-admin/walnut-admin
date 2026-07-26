@@ -7,10 +7,10 @@ import {
   MemoryHealthIndicator,
   MongooseHealthIndicator,
 } from '@nestjs/terminus'
-import { WalnutAdminConstDecoratorRoleMode } from '@walnut/const/decorator/role'
+import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 
-import { WalnutAdminConstRole } from '@walnut/const/role/index'
-import { WalnutDBInjectConnection } from '@walnut/db'
+import { WalnutAdminConstRole } from '@walnut-server/const/role/index'
+import { WalnutDBInjectConnection } from '@walnut-server/db'
 import { Connection } from 'mongoose'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'

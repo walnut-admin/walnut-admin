@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 
 import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
 
 import { SysRoleRepoModule } from './repo/role.repo.module'
 import { SysRoleBasicRepository } from './role.basic.repository'

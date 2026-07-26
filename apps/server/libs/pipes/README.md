@@ -1,4 +1,4 @@
-# @walnut/pipes
+# @walnut-server/pipes
 
 Validation pipes for controller parameters. Four `PipeTransform` implementations for validating MongoDB ObjectIds, enum values, and required parameters. Used directly in controller method signatures without a NestJS module — each pipe is instantiated inline.
 
@@ -27,7 +27,7 @@ import {
   WalnutAdminPipeMongoIds,
   WalnutAdminPipeParamEnum,
   WalnutAdminPipeRequired,
-} from '@walnut/pipes'
+} from '@walnut-server/pipes'
 
 @Controller('users')
 export class UserController {
@@ -59,12 +59,12 @@ export class UserController {
 
 ## Dependencies
 
-- **Internal**: `@walnut/const/app/config` (for `idSeparator`), `@walnut/exceptions/base/400` (for `WalnutAdminExceptionInvalidID`, `WalnutAdminExceptionRequestDataError`)
+- **Internal**: `@walnut-server/const/app/config` (for `idSeparator`), `@walnut-server/exceptions/base/400` (for `WalnutAdminExceptionInvalidID`, `WalnutAdminExceptionRequestDataError`)
 - **External**: `@nestjs/common`, `lodash`, `mongoose`
 
 ## Notes
 
 - No NestJS module — pipes are instantiated directly in controller method decorators
 - `WalnutAdminPipeParamEnum` accepts a constructor parameter for the allowed values, making it reusable across different enum sets
-- All pipes use `WalnutAdminException*` from `@walnut/exceptions` for consistent error responses with proper error codes
+- All pipes use `WalnutAdminException*` from `@walnut-server/exceptions` for consistent error responses with proper error codes
 - The ID separator for `WalnutAdminPipeMongoIds` is configured via `WalnutAdminConstAppConfig.idSeparator` (default: `,`)

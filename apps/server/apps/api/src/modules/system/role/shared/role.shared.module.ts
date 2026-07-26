@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
 import { SharedScopeResolverModule } from '@/modules/shared/scopeResolver/scope-resolver.module'
 import { SysRoleSchema } from '../schema/role.schema'
 import { SysRoleSharedService } from './role.shared.service'

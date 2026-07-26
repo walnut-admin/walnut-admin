@@ -1,6 +1,6 @@
 import { applyDecorators, Get, HttpCode, HttpStatus } from '@nestjs/common'
 import { ApiParam } from '@nestjs/swagger'
-import { ApiWalnutOkResponse } from '@walnut/decorators/swagger'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
 
 export function WalnutAdminDecoratorRead(options: IWalnutAdminCrudOptions, field: string = 'id') {
   const { operateLog, swagger } = options

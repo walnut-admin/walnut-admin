@@ -5,9 +5,9 @@ import {
   Logger,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { IWalnutAdminConstDecoratorRoleMode, WalnutAdminConstDecoratorRoleMetadataKey, WalnutAdminConstDecoratorRoleMode } from '@walnut/const/decorator/role'
-import { IWalnutAdminConstRole, WalnutAdminConstRole, WalnutAdminConstRoleMode } from '@walnut/const/role/index'
-import { WalnutAdminExceptionNoAccessRolePermission } from '@walnut/exceptions/business/auth'
+import { IWalnutAdminConstDecoratorRoleMode, WalnutAdminConstDecoratorRoleMetadataKey, WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
+import { IWalnutAdminConstRole, WalnutAdminConstRole, WalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
+import { WalnutAdminExceptionNoAccessRolePermission } from '@walnut-server/exceptions/business/auth'
 import { isNil } from 'lodash'
 
 @Injectable()

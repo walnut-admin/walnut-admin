@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutDBVirtualName } from '@walnut/db'
+import { WalnutDBVirtualName } from '@walnut-server/db'
 
 import {
   SysLogOperateDTO,

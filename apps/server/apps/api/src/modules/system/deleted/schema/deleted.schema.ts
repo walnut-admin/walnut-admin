@@ -1,12 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 import {
   WalnutAdminDecoratorFieldDate,
   WalnutAdminDecoratorFieldMongoId,
   WalnutAdminDecoratorFieldString,
-} from '@walnut/decorators/field'
+} from '@walnut-server/decorators/field'
 
-import { RealPickType } from '@walnut/utils/dto'
+import { RealPickType } from '@walnut-server/utils/dto'
 import { HydratedDocument, Model, Types } from 'mongoose'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { addVirtualLogOperateThroughLogId, IVirtualLogOperate } from '@/common/model/virtual/logOperate'

@@ -1,11 +1,11 @@
 import { Body, Controller } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut/const/decorator/logOperate'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut/db'
+import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
+import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
 import {
   WalnutAdminDecoratorParamMongoId,
   WalnutAdminDecoratorParamMongoIds,
-} from '@walnut/decorators/params'
+} from '@walnut-server/decorators/params'
 import { ClientSession } from 'mongoose'
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'

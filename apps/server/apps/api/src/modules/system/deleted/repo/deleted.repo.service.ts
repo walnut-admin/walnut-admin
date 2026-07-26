@@ -1,7 +1,7 @@
 import type { ClientSession } from 'mongoose'
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminConstAppConfig } from '@walnut/const/app/config'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { WalnutAdminConstAppConfig } from '@walnut-server/const/app/config'
+import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { Types } from 'mongoose'
 
 import { SysDeletedDTOSafe } from '../dto/deleted.dto'

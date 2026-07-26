@@ -5,10 +5,10 @@ import {
   Logger,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
-import { IWalnutAdminConstDecoratorPermissionMode, WalnutAdminConstDecoratorPermissionMetadataKey, WalnutAdminConstDecoratorPermissionMode } from '@walnut/const/decorator/permissions'
-import { WalnutAdminConstRole, WalnutAdminConstRoleMode } from '@walnut/const/role/index'
-import { WalnutAdminExceptionNoAccessPermission } from '@walnut/exceptions/business/auth'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { IWalnutAdminConstDecoratorPermissionMode, WalnutAdminConstDecoratorPermissionMetadataKey, WalnutAdminConstDecoratorPermissionMode } from '@walnut-server/const/decorator/permissions'
+import { WalnutAdminConstRole, WalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
+import { WalnutAdminExceptionNoAccessPermission } from '@walnut-server/exceptions/business/auth'
 
 import { isNil } from 'lodash'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'

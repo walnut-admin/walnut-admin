@@ -1,8 +1,8 @@
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
-import { WalnutAdminConstAppHeaders } from '@walnut/const/app/header'
-import { IWalnutAdminConstAppLanguage } from '@walnut/const/app/lang'
+import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
 import { NextFunction } from 'express'
 
 @Injectable()

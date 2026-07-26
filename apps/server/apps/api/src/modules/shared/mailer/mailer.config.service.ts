@@ -4,7 +4,7 @@ import { HandlebarsAdapter } from '@nestjs-modules/mailer/adapters/handlebars.ad
 
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { isDev } from '@walnut/config/utils/env'
+import { isDev } from '@walnut-server/config/utils/env'
 
 @Injectable()
 export class AppMailerConfigService implements MailerOptionsFactory {

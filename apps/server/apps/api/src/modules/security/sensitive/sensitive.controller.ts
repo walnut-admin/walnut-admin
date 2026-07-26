@@ -1,8 +1,8 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Request } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut/db'
-import { ApiWalnutOkResponse } from '@walnut/decorators/swagger/response.decorator'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
 import { ClientSession } from 'mongoose'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'

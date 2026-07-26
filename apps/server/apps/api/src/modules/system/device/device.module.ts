@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
 import { SysUserDeviceSharedModule } from '../user_device/shared/user_device.shared.module'
 import { SysDeviceBasicRepository } from './device.basic.repository'
 import { SysDeviceController } from './device.controller'

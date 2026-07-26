@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 
 import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
 
 import { AppSettingsRepositoryModule } from './repo/setting.repo.module'
 import { AppSettingSchema } from './schema/setting.schema'

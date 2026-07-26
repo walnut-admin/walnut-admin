@@ -1,9 +1,9 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut/const/decorator/logOperate'
+import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 
-import { WalnutAdminDecoratorParamMongoId } from '@walnut/decorators/params'
-import { ApiWalnutOkResponse } from '@walnut/decorators/swagger/response.decorator'
+import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
 

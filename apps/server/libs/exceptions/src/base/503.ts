@@ -1,5 +1,5 @@
 import { ServiceUnavailableException } from '@nestjs/common'
-import { WalnutAdminConstAppResponseCode } from '@walnut/const/app/responseCode'
+import { WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
 
 export class WalnutAdminExceptionServiceUnavailable extends ServiceUnavailableException {
   constructor(payload?: IWalnutAdminExceptionConstructor) {

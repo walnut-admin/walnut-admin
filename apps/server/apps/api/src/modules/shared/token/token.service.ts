@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
-import { WalnutAdminConstAppTokenKey } from '@walnut/const/app/token'
-import { IWalnutAdminConstRole } from '@walnut/const/role/index'
+import { WalnutAdminConstAppTokenKey } from '@walnut-server/const/app/token'
+import { IWalnutAdminConstRole } from '@walnut-server/const/role/index'
 import { nanoid } from 'nanoid'
 import { ISysUserDocument } from '@/modules/system/user/schema/user.schema'
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutAdminConstAppCacheKeys } from '@walnut/const/app/cache'
+import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import {
   ValidationArguments,
   ValidatorConstraint,

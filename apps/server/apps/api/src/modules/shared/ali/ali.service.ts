@@ -3,7 +3,7 @@ import Sts20150401, * as $Sts20150401 from '@alicloud/sts20150401'
 import { Injectable } from '@nestjs/common'
 
 import { ConfigService } from '@nestjs/config'
-import { WalnutAdminConstRole } from '@walnut/const/role/index'
+import { WalnutAdminConstRole } from '@walnut-server/const/role/index'
 
 async function generateSTSToken(accessKeyId: string, accessKeySecret: string, endpoint: string, roleArn: string, roleSessionName: string, policy?: string) {
   const config = new $OpenApi.Config({

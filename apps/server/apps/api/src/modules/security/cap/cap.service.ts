@@ -1,6 +1,6 @@
 import Cap, { Solution } from '@cap.js/server'
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import { AppTechCookieService } from '@/modules/techniques/cookie/cookie.service'
 

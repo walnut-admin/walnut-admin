@@ -1,7 +1,7 @@
 import { Prop } from '@nestjs/mongoose'
-import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut/decorators/field'
-import { WalnutAdminDecoratorFieldObject } from '@walnut/decorators/field/object.decorator'
-import { RealPartialType } from '@walnut/utils/dto'
+import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
+import { RealPartialType } from '@walnut-server/utils/dto'
 import { IsOptional } from 'class-validator'
 import { ValueOf } from 'easy-fns-ts'
 

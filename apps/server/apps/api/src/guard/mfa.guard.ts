@@ -1,8 +1,8 @@
 import { CanActivate, ExecutionContext, Injectable, Logger, SetMetadata } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
-import { WalnutAdminConstRole, WalnutAdminConstRoleMode } from '@walnut/const/role/index'
-import { WalnutAdminExceptionMfaRequired, WalnutAdminExceptionMfaVerifyFailed } from '@walnut/exceptions/business/auth'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { WalnutAdminConstRole, WalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
+import { WalnutAdminExceptionMfaRequired, WalnutAdminExceptionMfaVerifyFailed } from '@walnut-server/exceptions/business/auth'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
 

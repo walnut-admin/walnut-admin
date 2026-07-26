@@ -1,7 +1,7 @@
 import { CACHE_KEY_METADATA, CACHE_MANAGER, CACHE_TTL_METADATA, CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager'
 import { applyDecorators, CallHandler, ExecutionContext, Inject, Logger, UseInterceptors } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { IWalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut/const/app/cache'
+import { IWalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { Cache } from 'cache-manager'
 import { isNil } from 'lodash'
 import { firstValueFrom, Observable, of } from 'rxjs'

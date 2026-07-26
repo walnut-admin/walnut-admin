@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName, WalnutDBVirtualName } from '@walnut/db'
+import { WalnutDBInjectModel, WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
 import { ClientSession, QueryFilter, QueryOptions, Types, UpdateQuery } from 'mongoose'
 import { IAppMonitorUserDocument, IAppMonitorUserModel } from '../schema/user.schema'
 

@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstDecoratorLogAuthType } from '@walnut/const/decorator/logAuth'
+import type { IWalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 
 declare global {
   // ========== Constants Types ==========

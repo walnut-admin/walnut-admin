@@ -6,13 +6,13 @@ import {
   SetMetadata,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { WalnutAdminConstAppCacheKeys } from '@walnut/const/app/cache'
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
+import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import {
   WalnutAdminExceptionCapInteractionRequired,
   WalnutAdminExceptionCapRefreshRequired,
   WalnutAdminExceptionYouAreBot,
-} from '@walnut/exceptions/business/auth'
+} from '@walnut-server/exceptions/business/auth'
 import { isNil } from 'lodash'
 import { MurLockService } from 'murlock'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'

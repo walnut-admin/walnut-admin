@@ -1,4 +1,4 @@
-import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldString } from '@walnut/decorators/field'
+import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 
 export class SecuritySignHandShakeRequestDTO {
   @WalnutAdminDecoratorFieldString({

@@ -11,9 +11,9 @@ import { ConfigService } from '@nestjs/config'
 import { NestFactory, Reflector } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { apiReference } from '@scalar/nestjs-api-reference'
-import { WalnutAdminExceptionRequestDataError } from '@walnut/exceptions/base/400'
+import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 
-import { getAllConstraints } from '@walnut/utils/response'
+import { getAllConstraints } from '@walnut-server/utils/response'
 
 import { useContainer } from 'class-validator'
 import { AppModule } from './app/app.module'

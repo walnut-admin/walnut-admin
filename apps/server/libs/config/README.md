@@ -1,4 +1,4 @@
-# @walnut/config
+# @walnut-server/config
 
 Global NestJS configuration module wrapping `@nestjs/config`. Loads environment-specific `.env` files from `env/` (production) or `env-local/` (development), validates all required environment variables at startup using `class-validator`, and registers 9 typed config namespaces accessible via `ConfigService`.
 
@@ -8,7 +8,7 @@ Global NestJS configuration module wrapping `@nestjs/config`. Loads environment-
 |--------|------|-------------|
 | `WalnutConfigModule` | NestJS `@Global()` Module | The single import — configures `ConfigModule.forRoot()` globally |
 
-Additionally, the sub-path `@walnut/config/utils/env` exports:
+Additionally, the sub-path `@walnut-server/config/utils/env` exports:
 
 | Export | Type | Description |
 |--------|------|-------------|
@@ -45,10 +45,10 @@ Additionally, the sub-path `@walnut/config/utils/env` exports:
 import type { ConfigService } from '@nestjs/config'
 
 // 1. Import in root AppModule
-import { WalnutConfigModule } from '@walnut/config'
+import { WalnutConfigModule } from '@walnut-server/config'
 
 // 3. Use environment helpers (from sub-path)
-import { isDev, isProd } from '@walnut/config/utils/env'
+import { isDev, isProd } from '@walnut-server/config/utils/env'
 
 @Module({
   imports: [WalnutConfigModule],
@@ -71,12 +71,12 @@ if (isDev) {
 
 ## Dependencies
 
-- **Internal**: None (but exports `isDev`/`isProd` used by `@walnut/utils`, `@walnut/exceptions`, and many app modules)
+- **Internal**: None (but exports `isDev`/`isProd` used by `@walnut-server/utils`, `@walnut-server/exceptions`, and many app modules)
 - **External**: `@nestjs/config`, `class-validator`, `class-transformer`
 
 ## Notes
 
 - Environment files are loaded from `env/` in production and `env-local/` in development
 - Startup validation fails fast if any required env var is missing — the app will not boot
-- The `isDev`/`isProd`/`isStage` helpers from `@walnut/config/utils/env` are a cross-cutting concern used by many other libs and app modules
+- The `isDev`/`isProd`/`isStage` helpers from `@walnut-server/config/utils/env` are a cross-cutting concern used by many other libs and app modules
 - **Critical env vars** that should never change after deployment (would break existing encrypted data): `AUTH_OPAQUE_SECRET`, `MFA_ENCRYPTION_KEY`, `RT_ENCRYPTION_KEY`, `DEVICE_ID_ENCRYPTION_KEY`, `USER_ID_ENCRYPTION_KEY`, `USER_ID_HASH_SALT`

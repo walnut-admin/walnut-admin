@@ -1,9 +1,9 @@
 import { Logger, Module } from '@nestjs/common'
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 
-import { WalnutConfigModule } from '@walnut/config'
-import { WalnutContextModule } from '@walnut/context'
-import { WalnutDBModule } from '@walnut/db'
+import { WalnutConfigModule } from '@walnut-server/config'
+import { WalnutContextModule } from '@walnut-server/context'
+import { WalnutDBModule } from '@walnut-server/db'
 
 import { WalnutAdminGuardIP } from '@/guard/ip.guard'
 import { WalnutAdminGuardSecurity } from '@/guard/security.guard'

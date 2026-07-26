@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { PassportStrategy } from '@nestjs/passport'
 
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions/base.exception'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { Strategy } from 'passport-local'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { otpType, WALNUT_ADMIN_OTP_STRATEGY } from './const/otp.const'

@@ -1,6 +1,6 @@
 import { BullModule } from '@nestjs/bull'
 import { Module } from '@nestjs/common'
-import { WalnutAdminConstAppQueue } from '@walnut/const/app/queue'
+import { WalnutAdminConstAppQueue } from '@walnut-server/const/app/queue'
 
 import { AliyunSmsModule } from './aliyun/aliyun.sms.module'
 import { AppSmsProcessor } from './sms.processor'

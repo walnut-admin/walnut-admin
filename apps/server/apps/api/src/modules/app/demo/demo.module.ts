@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
 
 import { SysDeletedModule } from '@/modules/system/deleted/deleted.module'
 import { AppDemoBasicRepository } from './demo.basic.repository'

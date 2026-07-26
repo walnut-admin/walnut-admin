@@ -1,5 +1,5 @@
 import { IntersectionType } from '@nestjs/swagger'
-import { RealOmitType, RealPartialType, RealPickType } from '@walnut/utils/dto'
+import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,

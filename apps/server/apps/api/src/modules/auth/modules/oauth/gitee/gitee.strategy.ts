@@ -3,13 +3,13 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { PassportStrategy } from '@nestjs/passport'
 
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
-import { WalnutAdminConstAppAuthStrategy } from '@walnut/const/app/strategy'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { WalnutAdminConstAppAuthStrategy } from '@walnut-server/const/app/strategy'
 
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { OAuthGiteeService } from './gitee.service'
 import { Strategy } from './strategy'
-// Note: IWalnutAdminIWalnutAdminOAuthGiteeUserInfo is now IWalnutAdminIWalnutAdminOAuthGiteeUserInfo global type from @walnut/types
+// Note: IWalnutAdminIWalnutAdminOAuthGiteeUserInfo is now IWalnutAdminIWalnutAdminOAuthGiteeUserInfo global type from @walnut-server/types
 
 // https://gitee.com/oauth/applications
 export const OAuthGiteeScope = ['user_info', 'emails']

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminConstAppSettingKeys } from '@walnut/const/app/cache'
+import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 

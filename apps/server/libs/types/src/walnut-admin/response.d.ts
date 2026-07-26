@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstAppResponseCode } from '@walnut/const/app/responseCode'
+import type { IWalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
 import { Recordable } from 'easy-fns-ts'
 
 declare global {

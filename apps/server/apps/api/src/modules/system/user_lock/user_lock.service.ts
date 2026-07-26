@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { ClientSession, Types } from 'mongoose'
 
 import { SysUserDeviceRepositoryService } from '../user_device/repo/user_device.repo.service'

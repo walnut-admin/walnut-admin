@@ -1,8 +1,8 @@
 import type { IOtpType } from '../const/otp.const'
 
 import { IntersectionType } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFieldEnum } from '@walnut/decorators/field'
-import { RealPickType } from '@walnut/utils/dto'
+import { WalnutAdminDecoratorFieldEnum } from '@walnut-server/decorators/field'
+import { RealPickType } from '@walnut-server/utils/dto'
 import { IdentityVerifyDTO } from '@/modules/auth/dto/identity.dto'
 import { otpType } from '../const/otp.const'
 

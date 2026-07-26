@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
+import type { IWalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import type { CookieOptions } from 'express'
 
 declare global {

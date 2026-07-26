@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Patch } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 
-import { ApiWalnutOkResponse } from '@walnut/decorators/swagger/response.decorator'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'

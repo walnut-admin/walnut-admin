@@ -1,5 +1,5 @@
 import { NotAcceptableException } from '@nestjs/common'
-import { WalnutAdminConstAppResponseCode } from '@walnut/const/app/responseCode'
+import { WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
 
 export class WalnutAdminExceptionNotAcceptable extends NotAcceptableException {
   constructor(payload?: IWalnutAdminExceptionConstructor) {

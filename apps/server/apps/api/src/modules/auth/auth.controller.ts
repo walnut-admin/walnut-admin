@@ -9,9 +9,9 @@ import {
 import {
   ApiTags,
 } from '@nestjs/swagger'
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut/db'
-import { ApiWalnutOkResponse } from '@walnut/decorators/swagger'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
 import { ClientSession } from 'mongoose'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'

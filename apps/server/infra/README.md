@@ -51,15 +51,15 @@ infra/
 SWC 配置中的 `jsc.paths` 与 tsconfig.json 保持一致：
 
 - `@/*` → `./apps/api/src/*`
-- `@walnut/config` → `./libs/config/src`
-- `@walnut/const` → `./libs/const/src`
-- `@walnut/db` → `./libs/db/src`
-- `@walnut/utils` → `./libs/utils/src`
-- `@walnut/types` → `./libs/types/src`
-- `@walnut/decorators` → `./libs/decorators/src`
-- `@walnut/pipes` → `./libs/pipes/src`
-- `@walnut/exceptions` → `./libs/exceptions/src`
-- `@walnut/context` → `./libs/context/src`
+- `@walnut-server/config` → `./libs/config/src`
+- `@walnut-server/const` → `./libs/const/src`
+- `@walnut-server/db` → `./libs/db/src`
+- `@walnut-server/utils` → `./libs/utils/src`
+- `@walnut-server/types` → `./libs/types/src`
+- `@walnut-server/decorators` → `./libs/decorators/src`
+- `@walnut-server/pipes` → `./libs/pipes/src`
+- `@walnut-server/exceptions` → `./libs/exceptions/src`
+- `@walnut-server/context` → `./libs/context/src`
 
 ## 性能对比
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutDBCollectionName, WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBCollectionName, WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { ClientSession } from 'mongoose'
 
 import { ISysDictDataDocument } from '../dictData/schema/dictData.schema'

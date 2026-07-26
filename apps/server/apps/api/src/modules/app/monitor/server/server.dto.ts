@@ -1,4 +1,4 @@
-import { TransformMbitsToMBs, TransformSecondsToHours, TransformSizeToGB, TransformToGHz, TransformToMWH, TransformToPercentage, TransformToVoltage, WalnutAdminDecoratorTransformDateToString } from '@walnut/decorators/transformer'
+import { TransformMbitsToMBs, TransformSecondsToHours, TransformSizeToGB, TransformToGHz, TransformToMWH, TransformToPercentage, TransformToVoltage, WalnutAdminDecoratorTransformDateToString } from '@walnut-server/decorators/transformer'
 
 export class AppMonitorServerDTOCPU {
   constructor(partial: Partial<AppMonitorServerDTOCPU>) {

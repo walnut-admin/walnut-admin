@@ -1,6 +1,6 @@
 import { Injectable, NestMiddleware } from '@nestjs/common'
-import { WalnutAdminConstAppHeaders } from '@walnut/const/app/header'
-import { AppDayjs } from '@walnut/utils/dayjs'
+import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { AppDayjs } from '@walnut-server/utils/dayjs'
 
 import { NextFunction } from 'express'
 

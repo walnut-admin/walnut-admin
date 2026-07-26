@@ -1,4 +1,4 @@
-# @walnut/exceptions
+# @walnut-server/exceptions
 
 Exception classes and global exception filter for standardized error handling. Provides 8 base HTTP exception classes, 30+ specialized business exception subclasses, a global `@Catch()` exception filter, and an error classification handler that translates raw errors into standardized API responses with business error codes.
 
@@ -116,7 +116,7 @@ Exception classes and global exception filter for standardized error handling. P
 
 ```typescript
 // 1. Import the global filter in root AppModule
-import { WalnutAdminFilterExceptionAll } from '@walnut/exceptions'
+import { WalnutAdminFilterExceptionAll } from '@walnut-server/exceptions'
 
 @Module({
   providers: [
@@ -125,8 +125,8 @@ import { WalnutAdminFilterExceptionAll } from '@walnut/exceptions'
 })
 
 // 2. Throw exceptions in services
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions'
-import { WalnutAdminConstAppResponseCode } from '@walnut/const/app/responseCode'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions'
+import { WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
 
 async check(dto: CheckDTO) {
   if (exists) {
@@ -138,7 +138,7 @@ async check(dto: CheckDTO) {
 }
 
 // 3. Use specialized exceptions
-import { WalnutAdminExceptionInvalidID, WalnutAdminExceptionDataExists } from '@walnut/exceptions'
+import { WalnutAdminExceptionInvalidID, WalnutAdminExceptionDataExists } from '@walnut-server/exceptions'
 
 // For simple cases (i18n key as error message)
 throw new WalnutAdminExceptionDataExists()
@@ -152,7 +152,7 @@ throw new WalnutAdminExceptionSensitiveVerificationFailed({ meta: { reason: 'pas
 
 ## Dependencies
 
-- **Internal**: `@walnut/const/app/responseCode` (for error codes), `@walnut/utils/response` (for response builder), `@walnut/utils/headers` (for custom headers)
+- **Internal**: `@walnut-server/const/app/responseCode` (for error codes), `@walnut-server/utils/response` (for response builder), `@walnut-server/utils/headers` (for custom headers)
 - **External**: `@nestjs/common`, `mongoose`
 - **App-level** (in the filter): `@/modules/app/error/error.service` (AppErrorService), `@/modules/shared/BLPath/BLPath.service` (SharedBLPathService), `nestjs-i18n` (I18nContext)
 

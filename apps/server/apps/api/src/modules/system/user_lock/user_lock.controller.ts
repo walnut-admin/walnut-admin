@@ -1,8 +1,8 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Request } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut/db'
-import { ApiWalnutOkResponse } from '@walnut/decorators/swagger/response.decorator'
+import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { ClientSession } from 'mongoose'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'

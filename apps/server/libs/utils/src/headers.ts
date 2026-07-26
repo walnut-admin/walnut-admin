@@ -1,5 +1,5 @@
 import type { ArgumentsHost } from '@nestjs/common'
-import { WalnutAdminConstAppHeaders } from '@walnut/const/app/header'
+import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
 
 export function setCustomHeaders(context: ArgumentsHost) {
   const ctx = context.switchToHttp()

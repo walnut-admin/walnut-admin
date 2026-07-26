@@ -1,9 +1,9 @@
 import { MailerService } from '@nestjs-modules/mailer'
 import { Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
-import { WalnutAdminConstAppProcess } from '@walnut/const/app/process'
-import { WalnutAdminConstAppQueue } from '@walnut/const/app/queue'
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions/base.exception'
+import { WalnutAdminConstAppProcess } from '@walnut-server/const/app/process'
+import { WalnutAdminConstAppQueue } from '@walnut-server/const/app/queue'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
 import { Job } from 'bull'
 import { Recordable } from 'easy-fns-ts'

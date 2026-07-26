@@ -6,10 +6,10 @@ import {
   HttpStatus,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutAdminConstAppCacheKeys } from '@walnut/const/app/cache'
-import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut/const/decorator/logOperate'
+import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
+import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
-import { WalnutAdminDecoratorParamMongoId } from '@walnut/decorators/params'
+import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorCache } from '@/decorators/walnut/cache.decorator'

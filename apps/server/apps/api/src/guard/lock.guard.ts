@@ -6,9 +6,9 @@ import {
   SetMetadata,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { WalnutAdminConstAppCacheKeys } from '@walnut/const/app/cache'
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
-import { WalnutAdminExceptionUserLocked } from '@walnut/exceptions/business/auth'
+import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { WalnutAdminExceptionUserLocked } from '@walnut-server/exceptions/business/auth'
 import { MurLockService } from 'murlock'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { SysUserLockService } from '@/modules/system/user_lock/user_lock.service'

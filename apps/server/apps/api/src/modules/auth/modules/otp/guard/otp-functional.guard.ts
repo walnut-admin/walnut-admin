@@ -1,6 +1,6 @@
 import type { CanActivate, ExecutionContext } from '@nestjs/common'
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminExceptionEndPointUnavailable } from '@walnut/exceptions/business/app'
+import { WalnutAdminExceptionEndPointUnavailable } from '@walnut-server/exceptions/business/app'
 import { otpType } from '../const/otp.const'
 import { OtpVerifyDTO } from '../dto/otp.dto'
 import { OtpSettingService } from '../otp.setting.service'

@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '@nestjs/common'
-import type { IWalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
+import type { IWalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { createParamDecorator } from '@nestjs/common'
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions/base.exception'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
 export const WalnutAdminDecoratorCookie = createParamDecorator(
   (key: IWalnutAdminConstCookieKeys, ctx: ExecutionContext): string => {

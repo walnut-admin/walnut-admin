@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutDBCollectionName, WalnutDBVirtualName } from '@walnut/db'
+import { WalnutDBCollectionName, WalnutDBVirtualName } from '@walnut-server/db'
 
-import { buildListPipelineFromRequest } from '@walnut/utils/listAggregate'
+import { buildListPipelineFromRequest } from '@walnut-server/utils/listAggregate'
 import { isNil } from 'lodash'
 import { ClientSession, PipelineStage } from 'mongoose'
 import { AuthRefreshSharedService } from '@/modules/auth/modules/refresh/shared/refresh.shared.service'

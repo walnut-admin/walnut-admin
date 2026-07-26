@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { ClientSession } from 'mongoose'
 
 import { SysLogOperateDTO } from '../dto/log.operate.dto'

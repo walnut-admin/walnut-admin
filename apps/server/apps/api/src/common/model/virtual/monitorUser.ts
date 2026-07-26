@@ -1,6 +1,6 @@
 import type { Schema } from 'mongoose'
 import type { IAppMonitorUserDocument } from '@/modules/app/monitor/user/schema/user.schema'
-import { WalnutDBModelName, WalnutDBVirtualName } from '@walnut/db'
+import { WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
 import { addVirtual } from '../virtual'
 
 export function addVirtualMonitorUserThroughDeviceId(schema: Schema) {

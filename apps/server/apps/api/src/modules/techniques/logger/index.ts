@@ -1,8 +1,8 @@
 import type { Recordable } from 'easy-fns-ts'
-import { isDev } from '@walnut/config/utils/env'
+import { isDev } from '@walnut-server/config/utils/env'
 
-import { loggerContextALS } from '@walnut/context'
-import { getPackageJsonData } from '@walnut/utils/pkg'
+import { loggerContextALS } from '@walnut-server/context'
+import { getPackageJsonData } from '@walnut-server/utils/pkg'
 import { isNil } from 'lodash'
 import { utilities, WinstonModule } from 'nest-winston'
 import * as winston from 'winston'

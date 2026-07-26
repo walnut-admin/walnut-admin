@@ -1,9 +1,9 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { IWalnutAdminConstAppSettingType, WalnutAdminConstAppSettingType } from '@walnut/const/app/setting'
+import { IWalnutAdminConstAppSettingType, WalnutAdminConstAppSettingType } from '@walnut-server/const/app/setting'
 
-import { WalnutDBCollectionName } from '@walnut/db'
+import { WalnutDBCollectionName } from '@walnut-server/db'
 
-import { WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldString } from '@walnut/decorators/field'
+import { WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { HydratedDocument, Model } from 'mongoose'
 
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'

@@ -1,4 +1,4 @@
-# @walnut/const
+# @walnut-server/const
 
 Application-wide constant definitions. Zero runtime exports — all values are compile-time constants consumed via sub-path imports. Organized into three sub-modules covering app configuration, decorator metadata keys, and role definitions.
 
@@ -7,19 +7,19 @@ Application-wide constant definitions. Zero runtime exports — all values are c
 This library has no runtime exports (`index.ts` does `export {}`). All constants are imported directly from sub-paths:
 
 ```
-@walnut/const/app/cache          @walnut/const/app/config
-@walnut/const/app/cookie         @walnut/const/app/env
-@walnut/const/app/event          @walnut/const/app/header
-@walnut/const/app/lang           @walnut/const/app/methods
-@walnut/const/app/permission     @walnut/const/app/process
-@walnut/const/app/queue          @walnut/const/app/responseCode
-@walnut/const/app/setting        @walnut/const/app/strategy
-@walnut/const/app/task           @walnut/const/app/token
-@walnut/const/decorator/encrypt  @walnut/const/decorator/functional
-@walnut/const/decorator/logAuth  @walnut/const/decorator/logOperate
-@walnut/const/decorator/permissions
-@walnut/const/decorator/response @walnut/const/decorator/role
-@walnut/const/role/index
+@walnut-server/const/app/cache          @walnut-server/const/app/config
+@walnut-server/const/app/cookie         @walnut-server/const/app/env
+@walnut-server/const/app/event          @walnut-server/const/app/header
+@walnut-server/const/app/lang           @walnut-server/const/app/methods
+@walnut-server/const/app/permission     @walnut-server/const/app/process
+@walnut-server/const/app/queue          @walnut-server/const/app/responseCode
+@walnut-server/const/app/setting        @walnut-server/const/app/strategy
+@walnut-server/const/app/task           @walnut-server/const/app/token
+@walnut-server/const/decorator/encrypt  @walnut-server/const/decorator/functional
+@walnut-server/const/decorator/logAuth  @walnut-server/const/decorator/logOperate
+@walnut-server/const/decorator/permissions
+@walnut-server/const/decorator/response @walnut-server/const/decorator/role
+@walnut-server/const/role/index
 ```
 
 ## Key Files
@@ -67,10 +67,10 @@ This library has no runtime exports (`index.ts` does `export {}`). All constants
 ## Usage
 
 ```typescript
-import { WalnutAdminConstAppCacheKeys } from '@walnut/const/app/cache'
+import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 // Import specific constants from sub-paths
-import { WalnutAdminConstAppResponseCode } from '@walnut/const/app/responseCode'
-import { WalnutAdminConstDecoratorLogOperateAction } from '@walnut/const/decorator/logOperate'
+import { WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
+import { WalnutAdminConstDecoratorLogOperateAction } from '@walnut-server/const/decorator/logOperate'
 
 // Use in exceptions
 throw new WalnutAdminExceptionBadRequest({

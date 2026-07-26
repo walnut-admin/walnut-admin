@@ -1,6 +1,6 @@
 import type { Recordable } from 'easy-fns-ts'
 import { Injectable } from '@nestjs/common'
-import { getPackageJsonData } from '@walnut/utils/pkg'
+import { getPackageJsonData } from '@walnut-server/utils/pkg'
 import { I18nContext, I18nService } from 'nestjs-i18n'
 
 const pkg = getPackageJsonData()

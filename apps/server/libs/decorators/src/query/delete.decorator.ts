@@ -3,7 +3,7 @@ import {
   ParseIntPipe,
   Query,
 } from '@nestjs/common'
-import { WalnutAdminPipeParamEnum } from '@walnut/pipes'
+import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 
 import { merge } from 'lodash'
 

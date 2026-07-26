@@ -1,4 +1,4 @@
-import { RealOmitType, RealPickType } from '@walnut/utils/dto'
+import { RealOmitType, RealPickType } from '@walnut-server/utils/dto'
 import { AppKeyModel } from '../schema/key.schema'
 
 export class AppKeyDTO extends AppKeyModel {

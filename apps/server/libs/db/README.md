@@ -1,4 +1,4 @@
-# @walnut/db
+# @walnut-server/db
 
 MongoDB/Mongoose database module for the application. Provides connection configuration with replica set support, a transaction interceptor with post-commit hooks, custom injection decorators, and constants for all 22 collection names, model names, and virtual populate names.
 
@@ -46,7 +46,7 @@ The module defines 22 collections across these domains:
 
 ```typescript
 // 1. Import in root AppModule
-import { WalnutDBModule } from '@walnut/db'
+import { WalnutDBModule } from '@walnut-server/db'
 
 @Module({
   imports: [WalnutDBModule],
@@ -54,8 +54,8 @@ import { WalnutDBModule } from '@walnut/db'
 export class AppModule {}
 
 // 2. Inject models using the wrapper decorator
-import { WalnutDBInjectModel } from '@walnut/db'
-import { WalnutAdminConstDBModelName } from '@walnut/const' // or use WalnutDBModelName directly
+import { WalnutDBInjectModel } from '@walnut-server/db'
+import { WalnutAdminConstDBModelName } from '@walnut-server/const' // or use WalnutDBModelName directly
 
 @Injectable()
 export class UserBasicRepository {
@@ -66,7 +66,7 @@ export class UserBasicRepository {
 }
 
 // 3. Use transaction decorator on controller methods
-import { WalnutDBTransaction, WalnutDBSession } from '@walnut/db'
+import { WalnutDBTransaction, WalnutDBSession } from '@walnut-server/db'
 
 @Post()
 @WalnutDBTransaction()
@@ -75,7 +75,7 @@ async create(@Body() dto: CreateDTO, @WalnutDBSession() session: ClientSession) 
 }
 
 // 4. Post-commit hooks in service layer
-import { runAfterCommit } from '@walnut/db'
+import { runAfterCommit } from '@walnut-server/db'
 
 async create(dto: CreateDTO) {
   const user = new this.userModel(dto)
@@ -98,6 +98,6 @@ async create(dto: CreateDTO) {
 
 - MongoDB **must** run in replica set mode for transactions to work
 - The connection URI is built from `database.user`, `database.pass`, `database.primary`, `database.secondary`, and `database.arbiter` config values
-- `WalnutDBConfigService` depends on `ConfigService` from `@nestjs/config` being available (satisfied by importing `@walnut/config`'s global `WalnutConfigModule`)
+- `WalnutDBConfigService` depends on `ConfigService` from `@nestjs/config` being available (satisfied by importing `@walnut-server/config`'s global `WalnutConfigModule`)
 - Model injection should use `WalnutDBInjectModel` (from this lib) rather than raw `@InjectModel` — this ensures the correct connection name is used
 - `runAfterCommit()` is the recommended function for most use cases — it safely degrades to inline execution when no transaction context exists

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { registerAfterCommitHook } from '@walnut/db'
+import { registerAfterCommitHook } from '@walnut-server/db'
 import { ClientSession } from 'mongoose'
 import { SysUserDeviceSharedService } from '@/modules/system/user_device/shared/user_device.shared.service'
 import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'

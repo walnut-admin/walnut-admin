@@ -1,9 +1,9 @@
 import { InjectQueue } from '@nestjs/bull'
 import { Injectable } from '@nestjs/common'
 
-import { IWalnutAdminConstAppLanguage } from '@walnut/const/app/lang'
-import { WalnutAdminConstAppProcess } from '@walnut/const/app/process'
-import { WalnutAdminConstAppQueue } from '@walnut/const/app/queue'
+import { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { WalnutAdminConstAppProcess } from '@walnut-server/const/app/process'
+import { WalnutAdminConstAppQueue } from '@walnut-server/const/app/queue'
 import { Queue } from 'bull'
 import { isNil } from 'lodash'
 

@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstRole, IWalnutAdminConstRoleMode } from '@walnut/const/role/index'
+import type { IWalnutAdminConstRole, IWalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
 
 declare global {
   interface IWalnutAdminAccessTokenPayload {

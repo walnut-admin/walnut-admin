@@ -1,4 +1,4 @@
-import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut/decorators/field'
+import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { IWalnutAdminConstSecurityLevel, IWalnutAdminConstSecuritySensitiveType, IWalnutAdminConstVerifyMethod, WalnutAdminConstSecurityLevel, WalnutAdminConstSecuritySensitiveType, WalnutAdminConstVerifyMethod } from './sensitive.const'
 
 export class SecuritySensitiveCheckResponseDTO {

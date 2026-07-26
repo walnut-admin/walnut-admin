@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { WalnutAdminCommonBasicRepository } from '@/common/repository/base.repository'
 
 import { ISysLocaleDocument, ISysLocaleModel } from './schema/locale.schema'

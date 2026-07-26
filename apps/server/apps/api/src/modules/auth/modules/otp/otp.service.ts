@@ -1,9 +1,9 @@
-import type { IWalnutAdminConstAppLanguage } from '@walnut/const/app/lang'
+import type { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
 import type { IOtpType } from './const/otp.const'
 
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutDBInjectConnection } from '@walnut/db'
-import { WalnutAdminExceptionSignupBanned } from '@walnut/exceptions/business/auth'
+import { WalnutDBInjectConnection } from '@walnut-server/db'
+import { WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
 import { ClientSession, Connection } from 'mongoose'
 import { SharedWelcomeService } from '@/modules/shared/welcome/welcome.service'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'

@@ -5,9 +5,9 @@ import {
   Logger,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { IWalnutAdminConstAppSettingKeys } from '@walnut/const/app/cache'
-import { WalnutAdminConstDecoratorFunctionalMetadataKey } from '@walnut/const/decorator/functional'
-import { WalnutAdminExceptionEndPointUnavailable } from '@walnut/exceptions/business/app'
+import { IWalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
+import { WalnutAdminConstDecoratorFunctionalMetadataKey } from '@walnut-server/const/decorator/functional'
+import { WalnutAdminExceptionEndPointUnavailable } from '@walnut-server/exceptions/business/app'
 
 import { Recordable } from 'easy-fns-ts'
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'

@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common'
 
-import { setCustomHeaders } from '@walnut/utils/headers'
+import { setCustomHeaders } from '@walnut-server/utils/headers'
 import { I18nContext } from 'nestjs-i18n'
 import { AppErrorService } from '@/modules/app/error/error.service'
 import { SharedBLPathService } from '@/modules/shared/BLPath/BLPath.service'

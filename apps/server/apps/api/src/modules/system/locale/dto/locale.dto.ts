@@ -2,8 +2,8 @@ import { IntersectionType } from '@nestjs/swagger'
 import {
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
-} from '@walnut/decorators/field'
-import { RealOmitType, RealPartialType, RealPickType } from '@walnut/utils/dto'
+} from '@walnut-server/decorators/field'
+import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,

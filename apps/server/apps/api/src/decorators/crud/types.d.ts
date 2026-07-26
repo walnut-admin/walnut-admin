@@ -1,4 +1,4 @@
-// Note: IWalnutAdminApiOkResponseOptions is now global from @walnut/decorators/swagger/types.d.ts
+// Note: IWalnutAdminApiOkResponseOptions is now global from @walnut-server/decorators/swagger/types.d.ts
 
 declare global {
   interface IWalnutAdminCrudOptions {

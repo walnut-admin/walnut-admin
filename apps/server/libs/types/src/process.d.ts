@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstAppEnv } from '@walnut/const/app/env'
+import type { IWalnutAdminConstAppEnv } from '@walnut-server/const/app/env'
 
 declare global {
   namespace NodeJS {

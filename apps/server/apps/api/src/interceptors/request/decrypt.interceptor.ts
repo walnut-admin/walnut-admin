@@ -6,7 +6,7 @@ import {
   NestInterceptor,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { WalnutAdminConstDecoratorEncryptMetadataKey } from '@walnut/const/decorator/encrypt'
+import { WalnutAdminConstDecoratorEncryptMetadataKey } from '@walnut-server/const/decorator/encrypt'
 
 import { Recordable } from 'easy-fns-ts'
 import { isNil, omit } from 'lodash'

@@ -22,58 +22,58 @@
       "@/*": [
         "./apps/api/src/*"
       ],
-      "@walnut/config": [
+      "@walnut-server/config": [
         "./libs/config/src"
       ],
-      "@walnut/config/*": [
+      "@walnut-server/config/*": [
         "./libs/config/src/*"
       ],
-      "@walnut/const": [
+      "@walnut-server/const": [
         "./libs/const/src"
       ],
-      "@walnut/const/*": [
+      "@walnut-server/const/*": [
         "./libs/const/src/*"
       ],
-      "@walnut/db": [
+      "@walnut-server/db": [
         "./libs/db/src"
       ],
-      "@walnut/db/*": [
+      "@walnut-server/db/*": [
         "./libs/db/src/*"
       ],
-      "@walnut/utils": [
+      "@walnut-server/utils": [
         "./libs/utils/src"
       ],
-      "@walnut/utils/*": [
+      "@walnut-server/utils/*": [
         "./libs/utils/src/*"
       ],
-      "@walnut/types": [
+      "@walnut-server/types": [
         "./libs/types/src"
       ],
-      "@walnut/types/*": [
+      "@walnut-server/types/*": [
         "./libs/types/src/*"
       ],
-      "@walnut/decorators": [
+      "@walnut-server/decorators": [
         "./libs/decorators/src"
       ],
-      "@walnut/decorators/*": [
+      "@walnut-server/decorators/*": [
         "./libs/decorators/src/*"
       ],
-      "@walnut/pipes": [
+      "@walnut-server/pipes": [
         "./libs/pipes/src"
       ],
-      "@walnut/pipes/*": [
+      "@walnut-server/pipes/*": [
         "./libs/pipes/src/*"
       ],
-      "@walnut/exceptions": [
+      "@walnut-server/exceptions": [
         "./libs/exceptions/src"
       ],
-      "@walnut/exceptions/*": [
+      "@walnut-server/exceptions/*": [
         "./libs/exceptions/src/*"
       ],
-      "@walnut/context": [
+      "@walnut-server/context": [
         "./libs/context/src"
       ],
-      "@walnut/context/*": [
+      "@walnut-server/context/*": [
         "./libs/context/src/*"
       ]
     }

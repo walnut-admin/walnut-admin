@@ -1,9 +1,9 @@
 import type { Recordable } from 'easy-fns-ts'
 import { registerAs } from '@nestjs/config'
-import { isProd } from '@walnut/config/utils/env'
-import { WalnutAdminConstAppHeaders } from '@walnut/const/app/header'
-import { WalnutAdminConstAppHTTPMethods } from '@walnut/const/app/methods'
-import { getPackageJsonData } from '@walnut/utils/pkg'
+import { isProd } from '@walnut-server/config/utils/env'
+import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { WalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
+import { getPackageJsonData } from '@walnut-server/utils/pkg'
 
 const pkg = getPackageJsonData()
 

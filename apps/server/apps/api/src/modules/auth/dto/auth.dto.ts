@@ -1,7 +1,7 @@
 import { IntersectionType } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFieldObject, WalnutAdminDecoratorFieldString } from '@walnut/decorators/field'
+import { WalnutAdminDecoratorFieldObject, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 
-import { RealPickType } from '@walnut/utils/dto'
+import { RealPickType } from '@walnut-server/utils/dto'
 import { SysMenuDTOSafe, SysMenuDTOTree } from '@/modules/system/menu/dto/menu.dto'
 import { SysMenuModelMeta } from '@/modules/system/menu/schema/menu.schema'
 // Note: Menu types (IMenuTreeItem, IVueRouteItem, ILayoutTabsItem, IIframeListItem) are now global

@@ -1,6 +1,6 @@
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import * as requestIp from '@supercharge/request-ip'
-import { WalnutAdminConstAppHeaders } from '@walnut/const/app/header'
+import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
 import { NextFunction } from 'express'
 
 @Injectable()

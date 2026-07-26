@@ -1,9 +1,9 @@
 import { applyDecorators, Delete, HttpCode, HttpStatus } from '@nestjs/common'
 import { ApiParam } from '@nestjs/swagger'
 
-import { WalnutAdminConstAppConfig } from '@walnut/const/app/config'
-import { WalnutAdminConstDecoratorLogOperateAction } from '@walnut/const/decorator/logOperate'
-import { ApiWalnutOkResponse } from '@walnut/decorators/swagger'
+import { WalnutAdminConstAppConfig } from '@walnut-server/const/app/config'
+import { WalnutAdminConstDecoratorLogOperateAction } from '@walnut-server/const/decorator/logOperate'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
 import { WalnutAdminDecoratorOperateLog } from '../walnut/log.operate.decorator'
 
 export function WalnutAdminDecoratorDeleteMany(options: IWalnutAdminCrudOptions, field: string = WalnutAdminConstAppConfig.deleteManyField) {

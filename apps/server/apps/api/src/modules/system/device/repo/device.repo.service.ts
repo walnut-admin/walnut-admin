@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { runAfterCommit, WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
-import { WalnutAdminExceptionNotFound } from '@walnut/exceptions'
-import { AppDayjs } from '@walnut/utils/dayjs'
+import { runAfterCommit, WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
+import { WalnutAdminExceptionNotFound } from '@walnut-server/exceptions'
+import { AppDayjs } from '@walnut-server/utils/dayjs'
 
 import { ClientSession } from 'mongoose'
 import { SharedLocationDTO } from '@/common/dto/shared.dto'

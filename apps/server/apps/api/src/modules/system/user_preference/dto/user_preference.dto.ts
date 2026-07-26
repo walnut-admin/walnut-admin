@@ -1,5 +1,5 @@
-import { WalnutAdminDecoratorFieldObject } from '@walnut/decorators/field/object.decorator'
-import { RealPickType } from '@walnut/utils/dto'
+import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
+import { RealPickType } from '@walnut-server/utils/dto'
 import { SysUserPreferenceModel } from '../schema/user_preference.schema'
 
 export class SysUserPreferenceDTO extends SysUserPreferenceModel {

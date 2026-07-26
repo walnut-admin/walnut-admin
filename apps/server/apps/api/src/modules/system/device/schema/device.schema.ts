@@ -1,12 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { WalnutDBCollectionName } from '@walnut/db'
+import { WalnutDBCollectionName } from '@walnut-server/db'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
-} from '@walnut/decorators/field'
-import { WalnutAdminDecoratorFieldObject } from '@walnut/decorators/field/object.decorator'
-import { RealPartialType } from '@walnut/utils/dto'
+} from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
+import { RealPartialType } from '@walnut-server/utils/dto'
 import { HydratedDocument, Model } from 'mongoose'
 import { SharedGeoPointDTO, SharedHardwareDTO, SharedHeightWidthDTO, SharedIpLocationHistoryDTO, SharedLocationDTO, SharedUserAgentDTO } from '@/common/dto/shared.dto'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'

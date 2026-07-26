@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { registerAfterCommitHook, WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
-import { WalnutAdminExceptionDataNotFound } from '@walnut/exceptions/base/404'
-import { WalnutAdminExceptionDeviceNotAcceptable } from '@walnut/exceptions/base/406'
-import { AppDayjs } from '@walnut/utils/dayjs'
+import { registerAfterCommitHook, WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
+import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
+import { WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
+import { AppDayjs } from '@walnut-server/utils/dayjs'
 
 import { omit } from 'lodash'
 import { ClientSession } from 'mongoose'

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutAdminConstAppLanguage } from '@walnut/const/app/lang'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { WalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { Types } from 'mongoose'
 
 import { SysUserPreferenceDTOAccessibilityRequest, SysUserPreferenceDTOBasicRequest, SysUserPreferenceDTOLayoutRequest, SysUserPreferenceDTOThemeRequest, SysUserPreferenceResponseDTO } from '../dto/user_preference.dto'

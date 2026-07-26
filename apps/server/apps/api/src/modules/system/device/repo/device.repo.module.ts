@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
 import { SysDeviceSchema } from '../schema/device.schema'
 import { SysDeviceRepositoryService } from './device.repo.service'
 

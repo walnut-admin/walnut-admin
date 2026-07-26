@@ -3,8 +3,8 @@ import { ExecutionContext, Injectable, SetMetadata } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { AuthGuard } from '@nestjs/passport'
 
-import { WalnutAdminConstAppAuthStrategy } from '@walnut/const/app/strategy'
-import { WalnutAdminExceptionAccessTokenExpired } from '@walnut/exceptions/business/auth'
+import { WalnutAdminConstAppAuthStrategy } from '@walnut-server/const/app/strategy'
+import { WalnutAdminExceptionAccessTokenExpired } from '@walnut-server/exceptions/business/auth'
 import { isNil } from 'lodash'
 
 export const WalnutAdminConstDecoratorJwtFreeKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_JWT_FREE')

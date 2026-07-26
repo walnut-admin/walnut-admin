@@ -1,6 +1,6 @@
 import type { ClientSession } from 'mongoose'
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 
 import { SysUserDTO } from '../dto/user.dto'
 import { ISysUserDocument, ISysUserModel } from '../schema/user.schema'

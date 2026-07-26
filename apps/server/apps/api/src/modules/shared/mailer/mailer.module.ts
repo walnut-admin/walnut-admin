@@ -1,7 +1,7 @@
 import { MailerModule } from '@nestjs-modules/mailer'
 import { BullModule } from '@nestjs/bull'
 import { Module } from '@nestjs/common'
-import { WalnutAdminConstAppQueue } from '@walnut/const/app/queue'
+import { WalnutAdminConstAppQueue } from '@walnut-server/const/app/queue'
 
 import { AppMailerConfigService } from './mailer.config.service'
 import { AppMailerProcessor } from './mailer.processor'

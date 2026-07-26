@@ -4,7 +4,7 @@ import * as $Util from '@alicloud/tea-util'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions/base.exception'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
 /**
  * Aliyun SMS Template Code Mapping

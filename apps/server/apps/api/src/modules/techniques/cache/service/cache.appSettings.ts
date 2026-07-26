@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { IWalnutAdminConstAppSettingKeys, WalnutAdminConstAppCacheKeys, WalnutAdminConstAppSettingKeys } from '@walnut/const/app/cache'
+import { IWalnutAdminConstAppSettingKeys, WalnutAdminConstAppCacheKeys, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 
-import { IWalnutAdminConstAppSettingAuthEmailKeys, IWalnutAdminConstAppSettingAuthOAuthGiteeKeys, IWalnutAdminConstAppSettingAuthOAuthGitHubKeys, IWalnutAdminConstAppSettingAuthOAuthGoogleKeys, IWalnutAdminConstAppSettingAuthOpaqueKeys, IWalnutAdminConstAppSettingAuthSmsKeys, IWalnutAdminConstAppSettingCapJSKeys, IWalnutAdminConstAppSettingCryptoHKDFKeys, IWalnutAdminConstAppSettingForceQuit, IWalnutAdminConstAppSettingFunctionalFrontendKeys, IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys, IWalnutAdminConstAppSettingFunctionalRoleKeys, IWalnutAdminConstAppSettingMfaKeys, WalnutAdminConstAppSettingScopeType } from '@walnut/const/app/setting'
-import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut/const/role/index'
+import { IWalnutAdminConstAppSettingAuthEmailKeys, IWalnutAdminConstAppSettingAuthOAuthGiteeKeys, IWalnutAdminConstAppSettingAuthOAuthGitHubKeys, IWalnutAdminConstAppSettingAuthOAuthGoogleKeys, IWalnutAdminConstAppSettingAuthOpaqueKeys, IWalnutAdminConstAppSettingAuthSmsKeys, IWalnutAdminConstAppSettingCapJSKeys, IWalnutAdminConstAppSettingCryptoHKDFKeys, IWalnutAdminConstAppSettingForceQuit, IWalnutAdminConstAppSettingFunctionalFrontendKeys, IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys, IWalnutAdminConstAppSettingFunctionalRoleKeys, IWalnutAdminConstAppSettingMfaKeys, WalnutAdminConstAppSettingScopeType } from '@walnut-server/const/app/setting'
+import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
 import { Recordable } from 'easy-fns-ts'
 import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 

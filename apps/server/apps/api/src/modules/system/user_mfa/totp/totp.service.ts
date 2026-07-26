@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { registerAfterCommitHook, WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions'
-import { WalnutAdminExceptionDataExists } from '@walnut/exceptions/base/400'
-import { WalnutAdminExceptionDataNotFound } from '@walnut/exceptions/base/404'
+import { registerAfterCommitHook, WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions'
+import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
+import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 import { isNil } from 'lodash'
 
 import { ClientSession, Types } from 'mongoose'

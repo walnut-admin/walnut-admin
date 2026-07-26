@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
 
 import { AuthMfaModule } from '@/modules/auth/modules/mfa/mfa.module'
 import { SysUserSharedModule } from '../user/shared/user.shared.module'

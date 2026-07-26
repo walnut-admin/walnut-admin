@@ -1,4 +1,4 @@
-# @walnut/context
+# @walnut-server/context
 
 AsyncLocalStorage-based request tracing context for logging purposes. Provides a `@Global()` NestJS module (`WalnutContextModule`) for DI-based usage, plus a raw `AsyncLocalStorage` instance for non-DI contexts like Winston log formatters.
 
@@ -25,13 +25,13 @@ AsyncLocalStorage-based request tracing context for logging purposes. Provides a
 
 ```typescript
 // 2. DI usage in middleware/interceptors
-import type { LoggerContextService } from '@walnut/context'
+import type { LoggerContextService } from '@walnut-server/context'
 
 // 1. Import in root AppModule
-import { WalnutContextModule } from '@walnut/context'
+import { WalnutContextModule } from '@walnut-server/context'
 
 // 4. Non-DI usage (e.g., Winston formatters)
-import { loggerContextALS } from '@walnut/context'
+import { loggerContextALS } from '@walnut-server/context'
 
 @Module({
   imports: [WalnutContextModule],
@@ -67,7 +67,7 @@ if (store) {
 
 ## Notes
 
-- **Not registered in `nest-cli.json`** — this library is manually created and accessed via the `@walnut/context` path alias in `tsconfig.json`. It has its own `tsconfig.lib.json` for compilation.
+- **Not registered in `nest-cli.json`** — this library is manually created and accessed via the `@walnut-server/context` path alias in `tsconfig.json`. It has its own `tsconfig.lib.json` for compilation.
 - The `LoggerContextService` is a thin wrapper around `loggerContextALS` — the raw ALS instance is exported for cases where DI is unavailable (e.g., Winston formats, which run outside NestJS's DI container)
 - Each request gets a unique `requestId` stored in the ALS context, allowing all logs within a request to be correlated
-- Unlike `@walnut/db`'s `DBTransactionHooksStore`, this context is specifically for logging/tracing, not transaction lifecycle management
+- Unlike `@walnut-server/db`'s `DBTransactionHooksStore`, this context is specifically for logging/tracing, not transaction lifecycle management

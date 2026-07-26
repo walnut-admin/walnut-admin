@@ -1,6 +1,6 @@
 import { IntersectionType } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFieldString } from '@walnut/decorators/field'
-import { RealPartialType, RealPickType } from '@walnut/utils/dto'
+import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import {

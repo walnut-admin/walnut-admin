@@ -10,7 +10,7 @@ import type { SendSmsRequest } from 'tencentcloud-sdk-nodejs/tencentcloud/servic
 
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions/base.exception'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
 import * as tencentcloud from 'tencentcloud-sdk-nodejs'
 

@@ -1,8 +1,8 @@
 import { Body, Controller } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 
-import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut/const/decorator/logOperate'
-import { WalnutAdminDecoratorParamMongoId } from '@walnut/decorators/params'
+import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
+import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 

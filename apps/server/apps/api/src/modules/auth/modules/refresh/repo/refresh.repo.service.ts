@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { IWalnutAdminConstRevokeRTType } from '@walnut/const/app/setting'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { IWalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
+import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { ClientSession, Types } from 'mongoose'
 
 import { IAuthRefreshTokenDocument, IAuthRefreshTokenModel } from '../schema/refresh.schema'

@@ -17,7 +17,7 @@ export interface ILoggerContextStore {
  * @example
  * ```typescript
  * // Non-DI usage (e.g., winston formatters)
- * import { loggerContextALS } from '@walnut/context'
+ * import { loggerContextALS } from '@walnut-server/context'
  *
  * const store = loggerContextALS.getStore()
  * if (store) {

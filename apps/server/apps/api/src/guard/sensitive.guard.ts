@@ -7,9 +7,9 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 
-import { WalnutAdminExceptionAccessTokenExpired, WalnutAdminExceptionSensitiveVerificationFailed } from '@walnut/exceptions/business/auth'
+import { WalnutAdminExceptionAccessTokenExpired, WalnutAdminExceptionSensitiveVerificationFailed } from '@walnut-server/exceptions/business/auth'
 import { isNil } from 'lodash'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { getOperationStrategy } from '@/modules/security/sensitive/sensitive.config'

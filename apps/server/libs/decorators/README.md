@@ -1,4 +1,4 @@
-# @walnut/decorators
+# @walnut-server/decorators
 
 Composite property-level decorators that combine class-validator, class-transformer, and Swagger `@ApiProperty` into single, reusable decorators. Used across all DTO classes in the application. Organized into 6 sub-modules: field decorators (the primary API), validators, transformers, param decorators, query decorators, and Swagger response decorators.
 
@@ -8,12 +8,12 @@ All exports via barrel files from 6 sub-modules:
 
 | Sub-module | Path | Contents |
 |------------|------|----------|
-| `field/` | `@walnut/decorators/field` | 7 composite decorators — the primary public API |
-| `validator/` | `@walnut/decorators/validator` | Individual class-validator constraint decorators |
-| `transformer/` | `@walnut/decorators/transformer` | Individual class-transformer `@Transform()` decorators |
-| `params/` | `@walnut/decorators/params` | Param decorators (array, mongoId) |
-| `query/` | `@walnut/decorators/query` | Query param decorators (array, delete) |
-| `swagger/` | `@walnut/decorators/swagger` | `@ApiWalnutOkResponse` — standardized Swagger success response |
+| `field/` | `@walnut-server/decorators/field` | 7 composite decorators — the primary public API |
+| `validator/` | `@walnut-server/decorators/validator` | Individual class-validator constraint decorators |
+| `transformer/` | `@walnut-server/decorators/transformer` | Individual class-transformer `@Transform()` decorators |
+| `params/` | `@walnut-server/decorators/params` | Param decorators (array, mongoId) |
+| `query/` | `@walnut-server/decorators/query` | Query param decorators (array, delete) |
+| `swagger/` | `@walnut-server/decorators/swagger` | `@ApiWalnutOkResponse` — standardized Swagger success response |
 
 ### Field Decorators (Primary API)
 
@@ -73,9 +73,9 @@ import {
   WalnutAdminDecoratorFieldEnum,
   WalnutAdminDecoratorFieldDate,
   WalnutAdminDecoratorFieldObject,
-} from '@walnut/decorators/field'
+} from '@walnut-server/decorators/field'
 
-import { ApiWalnutOkResponse } from '@walnut/decorators/swagger'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
 
 // Field decorators on DTO properties
 export class UserDTO {

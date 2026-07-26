@@ -1,7 +1,7 @@
 import { applyDecorators, HttpCode, HttpStatus, Post } from '@nestjs/common'
 
-import { WalnutAdminConstDecoratorLogOperateAction } from '@walnut/const/decorator/logOperate'
-import { ApiWalnutOkResponse } from '@walnut/decorators/swagger'
+import { WalnutAdminConstDecoratorLogOperateAction } from '@walnut-server/const/decorator/logOperate'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
 import { WalnutAdminDecoratorOperateLog } from '../walnut/log.operate.decorator'
 
 export function WalnutAdminDecoratorCreate(options: IWalnutAdminCrudOptions) {

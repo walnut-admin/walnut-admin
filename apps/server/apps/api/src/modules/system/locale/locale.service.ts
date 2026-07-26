@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common'
-import { IWalnutAdminConstAppLanguage, WalnutAdminConstAppLanguage } from '@walnut/const/app/lang'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { IWalnutAdminConstAppLanguage, WalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions/base.exception'
-import { WalnutAdminExceptionDataExists } from '@walnut/exceptions/base/400'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
+import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
 import {
   buildListPipelineFromRequest,
-} from '@walnut/utils/listAggregate'
+} from '@walnut-server/utils/listAggregate'
 
 import { Recordable } from 'easy-fns-ts'
 import { isNil } from 'lodash'

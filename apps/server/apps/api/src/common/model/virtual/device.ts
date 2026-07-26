@@ -1,5 +1,5 @@
-import { WalnutDBModelName, WalnutDBVirtualName } from '@walnut/db'
-import { WalnutAdminDecoratorFieldObject } from '@walnut/decorators/field/object.decorator'
+import { WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
+import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { Schema } from 'mongoose'
 import { SysDeviceDTOSafe } from '@/modules/system/device/dto/device.dto'
 import { ISysDeviceDocument } from '@/modules/system/device/schema/device.schema'

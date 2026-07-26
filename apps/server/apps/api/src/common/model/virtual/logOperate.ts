@@ -1,6 +1,6 @@
 import type { Schema } from 'mongoose'
 import type { ISysLogOperateDocument } from '@/modules/system/logs/operate/schema/log.operate.schema'
-import { WalnutDBModelName, WalnutDBVirtualName } from '@walnut/db'
+import { WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
 import { addVirtual } from '../virtual'
 
 export function addVirtualLogOperateThroughLogId(schema: Schema, localeField: string = 'logOperateId') {

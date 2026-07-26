@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '@nestjs/common'
 import { applyDecorators, createParamDecorator, SetMetadata, UseInterceptors } from '@nestjs/common'
-import { WalnutAdminConstDecoratorEncryptMetadataKey } from '@walnut/const/decorator/encrypt'
+import { WalnutAdminConstDecoratorEncryptMetadataKey } from '@walnut-server/const/decorator/encrypt'
 import { WalnutAdminInterceptorRequestDecrypt } from '@/interceptors/request/decrypt.interceptor'
 import { WalnutAdminInterceptorResponseEncrypt } from '@/interceptors/response/encrypt.interceptor'
 

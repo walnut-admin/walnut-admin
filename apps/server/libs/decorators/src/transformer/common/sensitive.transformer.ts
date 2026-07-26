@@ -1,5 +1,5 @@
 import type { TransformOptions } from 'class-transformer'
-import { maskEmail, maskPhone } from '@walnut/utils/mask'
+import { maskEmail, maskPhone } from '@walnut-server/utils/mask'
 import { Transform } from 'class-transformer'
 import { isNil } from 'lodash'
 

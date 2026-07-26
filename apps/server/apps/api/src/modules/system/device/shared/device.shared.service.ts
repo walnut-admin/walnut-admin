@@ -1,6 +1,6 @@
 import type { ClientSession } from 'mongoose'
 import { Injectable } from '@nestjs/common'
-import { runAfterCommit } from '@walnut/db'
+import { runAfterCommit } from '@walnut-server/db'
 import { SharedIpLocationHistoryDTO, SharedLocationDTO } from '@/common/dto/shared.dto'
 import { AppTechCacheDeviceService } from '@/modules/techniques/cache/service/cache.device'
 import { SysDeviceRepositoryService } from '../repo/device.repo.service'

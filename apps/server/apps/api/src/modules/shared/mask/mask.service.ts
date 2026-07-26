@@ -1,7 +1,7 @@
 import type { Recordable } from 'easy-fns-ts'
 import type { IncomingHttpHeaders } from 'node:http'
 import { Injectable } from '@nestjs/common'
-import { maskEmail, maskPhone, maskSensitiveFields } from '@walnut/utils/mask'
+import { maskEmail, maskPhone, maskSensitiveFields } from '@walnut-server/utils/mask'
 import { isNil } from 'lodash'
 
 @Injectable()

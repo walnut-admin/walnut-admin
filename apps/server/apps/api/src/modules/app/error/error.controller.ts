@@ -1,9 +1,9 @@
 import { Controller, Get, Param } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { IWalnutAdminConstAppResponseCode, WalnutAdminConstAppResponseCode } from '@walnut/const/app/responseCode'
-import { WalnutAdminConstDecoratorRoleMode } from '@walnut/const/decorator/role'
-import { WalnutAdminConstRole } from '@walnut/const/role/index'
-import { WalnutAdminExceptionDatabaseError } from '@walnut/exceptions/app/database'
+import { IWalnutAdminConstAppResponseCode, WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
+import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
+import { WalnutAdminConstRole } from '@walnut-server/const/role/index'
+import { WalnutAdminExceptionDatabaseError } from '@walnut-server/exceptions/app/database'
 
 import {
   WalnutAdminExceptionBadRequest,
@@ -14,15 +14,15 @@ import {
   WalnutAdminExceptionNotFound,
   WalnutAdminExceptionRequestTimeout,
   WalnutAdminExceptionUnauthorized,
-} from '@walnut/exceptions/base.exception'
+} from '@walnut-server/exceptions/base.exception'
 
 import {
   WalnutAdminExceptionDataExists,
   WalnutAdminExceptionInvalidID,
   WalnutAdminExceptionRequestDataError,
-} from '@walnut/exceptions/base/400'
+} from '@walnut-server/exceptions/base/400'
 
-import { WalnutAdminExceptionDataNotFound } from '@walnut/exceptions/base/404'
+import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 
 import {
   WalnutAdminExceptionDeviceBanned,
@@ -34,11 +34,11 @@ import {
   WalnutAdminExceptionUserAgentBrowserNotAcceptable,
   WalnutAdminExceptionUserAgentNotAcceptable,
   WalnutAdminExceptionUserAgentOSNotAcceptable,
-} from '@walnut/exceptions/base/406'
+} from '@walnut-server/exceptions/base/406'
 
-import { WalnutAdminExceptionServiceUnavailable, WalnutAdminExceptionServiceUnavailableDependencyDown } from '@walnut/exceptions/base/503'
+import { WalnutAdminExceptionServiceUnavailable, WalnutAdminExceptionServiceUnavailableDependencyDown } from '@walnut-server/exceptions/base/503'
 
-import { WalnutAdminExceptionEndPointUnavailable } from '@walnut/exceptions/business/app'
+import { WalnutAdminExceptionEndPointUnavailable } from '@walnut-server/exceptions/business/app'
 import {
   WalnutAdminExceptionAccessTokenExpired,
   WalnutAdminExceptionCapInteractionRequired,
@@ -59,10 +59,10 @@ import {
   WalnutAdminExceptionUserBannedToSignin,
   WalnutAdminExceptionUserLocked,
   WalnutAdminExceptionYouAreBot,
-} from '@walnut/exceptions/business/auth'
+} from '@walnut-server/exceptions/business/auth'
 
-import { WalnutAdminExceptionRsaDecryptFailed, WalnutAdminExceptionRsaPubKeyNotFound } from '@walnut/exceptions/business/rsa'
-import { WalnutAdminPipeParamEnum } from '@walnut/pipes'
+import { WalnutAdminExceptionRsaDecryptFailed, WalnutAdminExceptionRsaPubKeyNotFound } from '@walnut-server/exceptions/business/rsa'
+import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
 import { WalnutAdminDecoratorDevOnly } from '@/guard/env.guard'

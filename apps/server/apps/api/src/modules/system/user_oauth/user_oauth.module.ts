@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
 
 import { SysUserOAuthRepositoryModule } from './repo/user_oauth.repo.module'
 import { SysUserOauthSchema } from './schema/user_oauth.schema'

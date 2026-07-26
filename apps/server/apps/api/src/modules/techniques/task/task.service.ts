@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
-import { WalnutAdminConstAppCronTaskNames } from '@walnut/const/app/task'
+import { WalnutAdminConstAppCronTaskNames } from '@walnut-server/const/app/task'
 import { AppKeyService } from '@/modules/app/key/key.service'
 import { AppKeyTypeConst } from '@/modules/app/key/schema/key.schema'
 

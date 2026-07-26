@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 
 // ==================== Type Definitions ====================
-// Note: Types are now defined globally in @walnut/types/walnut-admin/risk.d.ts
+// Note: Types are now defined globally in @walnut-server/types/walnut-admin/risk.d.ts
 
 export const WalnutAdminConstRiskLevel = {
   LOW: 'LOW',
@@ -60,7 +60,7 @@ export const WalnutAdminConstRiskFactor = {
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
 } as const
 
-// Note: IWalnutAdminConstRiskFactor type is defined globally in @walnut/types/walnut-admin/risk.d.ts
+// Note: IWalnutAdminConstRiskFactor type is defined globally in @walnut-server/types/walnut-admin/risk.d.ts
 
 // ==================== Risk Factor Configuration (with full types) ====================
 

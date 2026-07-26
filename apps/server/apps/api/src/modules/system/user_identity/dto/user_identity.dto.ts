@@ -1,9 +1,9 @@
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldDate,
-} from '@walnut/decorators/field'
-import { WalnutAdminDecoratorFieldObject } from '@walnut/decorators/field/object.decorator'
-import { RealPartialType, RealPickType } from '@walnut/utils/dto'
+} from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
+import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { IdentitySendDTO, IdentityVerifyDTO } from '@/modules/auth/dto/identity.dto'
 import { SysUserIdentityModel } from '../schema/user_identity.schema'
 

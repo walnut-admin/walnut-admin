@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { IWalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut/const/app/cache'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { IWalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { arrToTree, formatTree, TreeNodeItem } from 'easy-fns-ts'
 
 import { cloneDeep, omit } from 'lodash'

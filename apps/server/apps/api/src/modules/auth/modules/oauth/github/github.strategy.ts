@@ -3,13 +3,13 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { PassportStrategy } from '@nestjs/passport'
 
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
-import { WalnutAdminConstAppAuthStrategy } from '@walnut/const/app/strategy'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { WalnutAdminConstAppAuthStrategy } from '@walnut-server/const/app/strategy'
 
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { OAuthGitHubService } from './github.service'
 import { Strategy } from './strategy'
-// Note: IWalnutAdminIWalnutAdminOAuthGitHubUserInfo is now IWalnutAdminIWalnutAdminOAuthGitHubUserInfo global type from @walnut/types
+// Note: IWalnutAdminIWalnutAdminOAuthGitHubUserInfo is now IWalnutAdminIWalnutAdminOAuthGitHubUserInfo global type from @walnut-server/types
 
 // https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/scopes-for-oauth-apps#available-scopes
 export const OAuthGitHubScope = ['read:user', 'user:email']

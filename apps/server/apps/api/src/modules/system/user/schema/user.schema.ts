@@ -1,13 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut/const/role/index'
-import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut/db'
+import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
+import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldEnum,
   WalnutAdminDecoratorFieldMongoId,
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
-} from '@walnut/decorators/field'
+} from '@walnut-server/decorators/field'
 
 import { ValueOf } from 'easy-fns-ts'
 

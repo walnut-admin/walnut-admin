@@ -1,7 +1,7 @@
 import type { ClassConstructor, TransformOptions } from 'class-transformer'
 import type { Recordable } from 'easy-fns-ts'
 import { applyDecorators } from '@nestjs/common'
-import { maskSensitiveFields } from '@walnut/utils/mask'
+import { maskSensitiveFields } from '@walnut-server/utils/mask'
 import { Transform, Type } from 'class-transformer'
 import { isNil } from 'lodash'
 import { WalnutAdminDecoratorTransformDefault } from '../common/default'

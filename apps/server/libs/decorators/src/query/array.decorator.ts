@@ -7,7 +7,7 @@ import {
   ParseArrayPipe,
   Query,
 } from '@nestjs/common'
-import { WalnutAdminPipeRequired } from '@walnut/pipes'
+import { WalnutAdminPipeRequired } from '@walnut-server/pipes'
 
 import { merge } from 'lodash'
 

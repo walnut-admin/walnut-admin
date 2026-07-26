@@ -8,9 +8,9 @@ import type {
 import type { ISensitivePermissionData } from './sensitive.type'
 
 import { Injectable } from '@nestjs/common'
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions/base.exception'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
-import { AppDayjs } from '@walnut/utils/dayjs'
+import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
 import { OtpSharedService } from '@/modules/auth/modules/otp/shared/otp.shared.service'
 import { WalnutAdminConstSysUserIdentityPurpose } from '@/modules/system/user_identity/schema/user_identity.schema'

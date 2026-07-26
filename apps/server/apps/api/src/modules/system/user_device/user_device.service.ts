@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutDBVirtualName } from '@walnut/db'
-import { WalnutAdminExceptionDataNotFound } from '@walnut/exceptions/base/404'
+import { WalnutDBVirtualName } from '@walnut-server/db'
+import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 import { ClientSession } from 'mongoose'
 import { AppMonitorUserRepositoryService } from '@/modules/app/monitor/user/repo/user.repo.service'
 import { AuthSignoutService } from '@/modules/auth/modules/signout/signout.service'

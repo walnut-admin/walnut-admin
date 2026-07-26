@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { IWalnutAdminConstAppLanguage } from '@walnut/const/app/lang'
-import { WalnutDBInjectConnection } from '@walnut/db'
+import { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { WalnutDBInjectConnection } from '@walnut-server/db'
 import { ClientSession, Connection } from 'mongoose'
 import { SharedWelcomeService } from '@/modules/shared/welcome/welcome.service'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'

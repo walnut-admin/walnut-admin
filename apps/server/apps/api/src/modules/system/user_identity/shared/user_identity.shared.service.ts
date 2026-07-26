@@ -1,8 +1,8 @@
 import type { IOtpType } from '@/modules/auth/modules/otp/const/otp.const'
 
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions/base.exception'
-import { WalnutAdminExceptionDataNotFound } from '@walnut/exceptions/base/404'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
+import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 
 import { isNil } from 'lodash'
 import { ClientSession } from 'mongoose'

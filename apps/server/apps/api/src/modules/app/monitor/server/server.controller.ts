@@ -5,8 +5,8 @@ import {
   HttpStatus,
   UseInterceptors,
 } from '@nestjs/common'
-import { WalnutAdminConstDecoratorRoleMode } from '@walnut/const/decorator/role'
-import { WalnutAdminConstRole } from '@walnut/const/role/index'
+import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
+import { WalnutAdminConstRole } from '@walnut-server/const/role/index'
 
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'

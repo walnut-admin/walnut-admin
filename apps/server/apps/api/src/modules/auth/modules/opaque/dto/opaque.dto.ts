@@ -1,6 +1,6 @@
 import { IntersectionType } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldString } from '@walnut/decorators/field'
-import { RealPickType } from '@walnut/utils/dto'
+import { WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import { RealPickType } from '@walnut-server/utils/dto'
 import { ValueOf } from 'easy-fns-ts'
 import { SysUserDTOSafe } from '@/modules/system/user/dto/user.dto'
 

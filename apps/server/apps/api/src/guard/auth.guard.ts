@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common'
 
 import { AuthGuard } from '@nestjs/passport'
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { SysLogAuthSharedService } from '@/modules/system/logs/auth/shared/log.auth.shared.service'
 

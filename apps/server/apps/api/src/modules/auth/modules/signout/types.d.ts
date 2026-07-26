@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstRevokeRTType } from '@walnut/const/app/setting'
+import type { IWalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 
 declare global {
   interface IWalnutAdminUserLogoutPayload {

@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstAppSettingForceQuitStrategy } from '@walnut/const/app/setting'
+import type { IWalnutAdminConstAppSettingForceQuitStrategy } from '@walnut-server/const/app/setting'
 
 declare global {
   type IWalnutAdminSocketEvents =

@@ -1,12 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldDate,
   WalnutAdminDecoratorFieldMongoId,
   WalnutAdminDecoratorFieldString,
-} from '@walnut/decorators/field'
-import { RealPickType } from '@walnut/utils/dto'
+} from '@walnut-server/decorators/field'
+import { RealPickType } from '@walnut-server/utils/dto'
 import { IsOptional } from 'class-validator'
 
 import { HydratedDocument, Model, Types } from 'mongoose'

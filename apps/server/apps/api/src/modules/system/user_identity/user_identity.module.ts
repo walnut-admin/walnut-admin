@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
 
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
 import { OtpSharedModule } from '@/modules/auth/modules/otp/shared/otp.shared.module'
 
 import { SysUserIdentityRepositoryModule } from './repo/user_identity.repo.module'

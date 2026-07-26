@@ -91,5 +91,5 @@ interface OAuthGitHubEmailItem {
   verified: boolean
 }
 
-// Note: OAuthGitHubUserInfo interface has been moved to @walnut/types/walnut-admin/oauth.d.ts
+// Note: OAuthGitHubUserInfo interface has been moved to @walnut-server/types/walnut-admin/oauth.d.ts
 // as IWalnutAdminOAuthGitHubUserInfo

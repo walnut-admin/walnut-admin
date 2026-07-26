@@ -1,4 +1,4 @@
-import { WalnutAdminConstAppResponseCode } from '@walnut/const/app/responseCode'
+import { WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
 import { WalnutAdminExceptionInternalServerError } from '../base.exception'
 
 // TODO not used

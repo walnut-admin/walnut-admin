@@ -1,5 +1,5 @@
-import { WalnutAdminDecoratorFieldString } from '@walnut/decorators/field'
-import { RealPickType } from '@walnut/utils/dto'
+import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import { RealPickType } from '@walnut-server/utils/dto'
 import { SysUserDeviceDTO } from '../../user_device/dto/user_device.dto'
 import { SysUserMfaModel } from '../schema/user_mfa.schema'
 

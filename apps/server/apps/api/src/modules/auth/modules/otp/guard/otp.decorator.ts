@@ -1,7 +1,7 @@
 import type { Type } from '@nestjs/common'
 // Note: IWalnutAdminOtpThrottleConfigProvider has been moved to global IWalnutAdminOtpThrottleConfigProvider
 import { applyDecorators, SetMetadata, UseGuards, UseInterceptors } from '@nestjs/common'
-import { WalnutAdminConstDecoratorLogAuthType } from '@walnut/const/decorator/logAuth'
+import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutAdminConstDecoratorLogAuthMetadataKey, WalnutAdminInterceptorRequestAuthLog } from '@/decorators/walnut/log.auth.decorator'
 import { OtpFunctionalGuard, OtpSendFunctionalGuard } from './otp-functional.guard'
 import { OtpThrottleGuard } from './otp-throttle.guard'

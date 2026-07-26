@@ -8,10 +8,10 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutAdminConstDecoratorLogAuthType } from '@walnut/const/decorator/logAuth'
+import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut/db'
-import { ApiWalnutOkResponse } from '@walnut/decorators/swagger/response.decorator'
+import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { ClientSession } from 'mongoose'
 import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'

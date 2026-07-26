@@ -1,6 +1,6 @@
 import { IntersectionType } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFieldString } from '@walnut/decorators/field'
-import { RealOmitType, RealPartialType, RealPickType } from '@walnut/utils/dto'
+import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@/common/dto/list.dto'
 import { SharedLngLatDTO, SharedLocationDTO, SharedTimeDTO } from '@/common/dto/shared.dto'
 import { SysUserDTOSafe } from '../../user/dto/user.dto'

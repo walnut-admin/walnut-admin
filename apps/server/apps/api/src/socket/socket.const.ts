@@ -8,7 +8,7 @@ export const WalnutAdminSocketRooms = {
   USER: (userId: string, visitorId: string) => `user:${userId}:${visitorId}` as const,
 }
 
-// Note: Type definitions have been moved to @walnut/types/walnut-admin/socket.d.ts
+// Note: Type definitions have been moved to @walnut-server/types/walnut-admin/socket.d.ts
 // - IWalnutAdminSocketEvents
 // - IWalnutAdminSocketEventDataMap
 // - IWalnutAdminSocketRoom

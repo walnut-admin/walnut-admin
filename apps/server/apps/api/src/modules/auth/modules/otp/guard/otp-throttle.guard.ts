@@ -6,7 +6,7 @@ import { isNil } from 'lodash'
 import { otpType } from '../const/otp.const'
 import { OtpVerifyDTO } from '../dto/otp.dto'
 
-// Note: IWalnutAdminOtpThrottleConfigProvider interface has been moved to @walnut/types/walnut-admin/guard.d.ts
+// Note: IWalnutAdminOtpThrottleConfigProvider interface has been moved to @walnut-server/types/walnut-admin/guard.d.ts
 // as IWalnutAdminOtpThrottleConfigProvider
 
 /**

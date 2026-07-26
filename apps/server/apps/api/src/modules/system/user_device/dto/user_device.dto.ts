@@ -1,6 +1,6 @@
 import { IntersectionType } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldString } from '@walnut/decorators/field'
-import { RealPickType } from '@walnut/utils/dto'
+import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import { RealPickType } from '@walnut-server/utils/dto'
 import { CreateWalnutAdminResponseListDTO } from '@/common/dto/list.dto'
 import { AppMonitorUserDTO } from '@/modules/app/monitor/user/dto/user.dto'
 import { SysUserDeviceModel } from '../schema/user_device.schema'

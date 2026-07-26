@@ -1,13 +1,13 @@
 import { Prop, Schema, SchemaFactory, Virtual } from '@nestjs/mongoose'
-import { IWalnutAdminConstAppLanguage, WalnutAdminConstAppLanguage } from '@walnut/const/app/lang'
+import { IWalnutAdminConstAppLanguage, WalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
 
-import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
-} from '@walnut/decorators/field'
+} from '@walnut-server/decorators/field'
 import { HydratedDocument, Model } from 'mongoose'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 

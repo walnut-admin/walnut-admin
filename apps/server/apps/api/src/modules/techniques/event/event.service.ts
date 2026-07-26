@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
-import { WalnutAdminConstAppEvent } from '@walnut/const/app/event'
+import { WalnutAdminConstAppEvent } from '@walnut-server/const/app/event'
 import { SysDeletedRepoService } from '@/modules/system/deleted/repo/deleted.repo.service'
 
 @Injectable()

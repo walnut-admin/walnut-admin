@@ -1,10 +1,10 @@
-import type { IWalnutAdminConstAppResponseCode } from '@walnut/const/app/responseCode'
+import type { IWalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
 import type { Recordable } from 'easy-fns-ts'
 import type { I18nContext } from 'nestjs-i18n'
 
 import { HttpException, HttpStatus } from '@nestjs/common'
-import { WalnutAdminConstAppResponseCode } from '@walnut/const/app/responseCode'
-import { WalnutAdminResponseException } from '@walnut/utils/response'
+import { WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
+import { WalnutAdminResponseException } from '@walnut-server/utils/response'
 import { mongo, MongooseError } from 'mongoose'
 
 export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I18nContext): IWalnutAdminResponseBase {

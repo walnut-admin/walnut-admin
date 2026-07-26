@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutDBCollectionName, WalnutDBInjectModel, WalnutDBModelName, WalnutDBVirtualName } from '@walnut/db'
+import { WalnutDBCollectionName, WalnutDBInjectModel, WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
 
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions/base.exception'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
-import { WalnutAdminExceptionDataNotFound } from '@walnut/exceptions/base/404'
+import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 import { Recordable } from 'easy-fns-ts'
 import { ClientSession, isObjectIdOrHexString, Types } from 'mongoose'
 import { SysDeletedBasicRepository } from './deleted.basic.repository'

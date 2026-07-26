@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { IWalnutAdminConstRole, WalnutAdminConstRoleMode } from '@walnut/const/role/index'
+import { IWalnutAdminConstRole, WalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
 import { uniqBy } from 'lodash'
 import { ClientSession } from 'mongoose'
 

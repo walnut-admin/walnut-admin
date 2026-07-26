@@ -1,14 +1,14 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut/const/app/setting'
+import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 
-import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldDate,
   WalnutAdminDecoratorFieldEnum,
   WalnutAdminDecoratorFieldMongoId,
   WalnutAdminDecoratorFieldString,
-} from '@walnut/decorators/field'
+} from '@walnut-server/decorators/field'
 import { HydratedDocument, Model, Types } from 'mongoose'
 
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'

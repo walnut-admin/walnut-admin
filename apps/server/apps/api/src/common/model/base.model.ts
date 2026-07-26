@@ -2,7 +2,7 @@ import { Prop } from '@nestjs/mongoose'
 import {
   WalnutAdminDecoratorFieldDate,
   WalnutAdminDecoratorFieldMongoId,
-} from '@walnut/decorators/field'
+} from '@walnut-server/decorators/field'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 

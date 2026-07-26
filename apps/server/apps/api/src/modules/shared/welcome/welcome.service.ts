@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstAppLanguage } from '@walnut/const/app/lang'
+import type { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
 import type { IOtpType } from '@/modules/auth/modules/otp/const/otp.const'
 import { Injectable, Logger } from '@nestjs/common'
 import { AppMailerService } from '../mailer/mailer.service'

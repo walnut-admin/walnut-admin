@@ -1,4 +1,4 @@
-# @walnut/types
+# @walnut-server/types
 
 Global ambient TypeScript type declarations (`.d.ts` files). Extends Express `Request`/`Response` objects with app-specific fields, defines token payload interfaces, response type structures, process environment types, i18n generated types, and decorator option interfaces. Zero runtime code — all types are declared via `declare global` and `declare module` blocks.
 
@@ -53,7 +53,7 @@ throw new WalnutAdminExceptionBadRequest({
 
 ## Dependencies
 
-- **Internal**: `@walnut/const` (for response code types in `token.d.ts` and `response.d.ts`)
+- **Internal**: `@walnut-server/const` (for response code types in `token.d.ts` and `response.d.ts`)
 - **External**: `express`, `mongoose`
 
 ## Notes

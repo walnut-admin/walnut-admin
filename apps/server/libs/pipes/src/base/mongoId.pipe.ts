@@ -1,7 +1,7 @@
 import { ArgumentMetadata, Injectable, PipeTransform } from '@nestjs/common'
-import { WalnutAdminConstAppConfig } from '@walnut/const/app/config'
+import { WalnutAdminConstAppConfig } from '@walnut-server/const/app/config'
 
-import { WalnutAdminExceptionInvalidID } from '@walnut/exceptions/base/400'
+import { WalnutAdminExceptionInvalidID } from '@walnut-server/exceptions/base/400'
 import { isNil } from 'lodash'
 import { Types } from 'mongoose'
 

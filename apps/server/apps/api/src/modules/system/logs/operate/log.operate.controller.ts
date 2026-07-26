@@ -1,11 +1,11 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, UseGuards } from '@nestjs/common'
 import { ApiParam, ApiTags } from '@nestjs/swagger'
 
-import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut/const/decorator/logOperate'
+import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import {
   WalnutAdminDecoratorParamMongoId,
-} from '@walnut/decorators/params'
-import { ApiWalnutOkResponse } from '@walnut/decorators/swagger/response.decorator'
+} from '@walnut-server/decorators/params'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { JwtAccessGuard } from '@/modules/auth/modules/jwt/jwt-access.guard'

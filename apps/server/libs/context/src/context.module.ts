@@ -9,7 +9,7 @@ import { LoggerContextService } from './logger-context.service'
  * Services:
  * - LoggerContextService: Manages requestId for logging/tracing
  *
- * Note: DBTransactionHooksStore remains in @walnut/db for transaction-specific usage
+ * Note: DBTransactionHooksStore remains in @walnut-server/db for transaction-specific usage
  */
 @Global()
 @Module({

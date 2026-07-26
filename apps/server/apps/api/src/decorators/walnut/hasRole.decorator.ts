@@ -1,8 +1,8 @@
-import type { IWalnutAdminConstDecoratorRoleMode } from '@walnut/const/decorator/role'
-import type { IWalnutAdminConstRole } from '@walnut/const/role/index'
+import type { IWalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
+import type { IWalnutAdminConstRole } from '@walnut-server/const/role/index'
 
 import { applyDecorators, SetMetadata, UseGuards } from '@nestjs/common'
-import { WalnutAdminConstDecoratorRoleMetadataKey } from '@walnut/const/decorator/role'
+import { WalnutAdminConstDecoratorRoleMetadataKey } from '@walnut-server/const/decorator/role'
 
 import { WalnutAdminGuardRole } from '../../guard/roles.guard'
 

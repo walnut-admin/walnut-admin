@@ -1,7 +1,7 @@
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldNumber,
-} from '@walnut/decorators/field'
+} from '@walnut-server/decorators/field'
 import { Expose, Type } from 'class-transformer'
 
 import { ValidateNested } from 'class-validator'

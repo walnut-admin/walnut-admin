@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstAppCacheType } from '@walnut/const/app/cache'
+import type { IWalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 
 declare global {
   interface IWalnutAdminCacheOptions {

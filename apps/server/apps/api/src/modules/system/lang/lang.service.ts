@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutDBCollectionName } from '@walnut/db'
+import { WalnutDBCollectionName } from '@walnut-server/db'
 import {
   SysLangDTOCreateRequest,
   SysLangDTOListRequest,

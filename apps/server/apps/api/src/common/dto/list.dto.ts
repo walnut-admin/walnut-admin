@@ -2,8 +2,8 @@ import {
   WalnutAdminDecoratorFieldEnum,
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
-} from '@walnut/decorators/field'
-import { WalnutAdminDecoratorFieldObject } from '@walnut/decorators/field/object.decorator'
+} from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 
 import {
   ClassConstructor,

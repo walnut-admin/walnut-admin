@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Request } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut/db'
+import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
 
-import { ApiWalnutOkResponse } from '@walnut/decorators/swagger/response.decorator'
-import { WalnutAdminPipeParamEnum } from '@walnut/pipes'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { ClientSession } from 'mongoose'
 
 import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'

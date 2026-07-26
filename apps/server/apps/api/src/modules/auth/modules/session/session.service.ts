@@ -6,7 +6,7 @@ import {
   timingSafeEqual,
 } from 'node:crypto'
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut/const/app/cache'
+import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { isNil } from 'lodash'
 import { AppTokenService } from '@/modules/shared/token/token.service'
 import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'

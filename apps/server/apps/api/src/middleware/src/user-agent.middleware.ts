@@ -1,6 +1,6 @@
 import { Injectable, NestMiddleware } from '@nestjs/common'
-import { isDev } from '@walnut/config/utils/env'
-import { WalnutAdminConstAppHeaders } from '@walnut/const/app/header'
+import { isDev } from '@walnut-server/config/utils/env'
+import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
 import { NextFunction } from 'express'
 import { isbot } from 'isbot'
 

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { AppDayjs } from '@walnut/utils/dayjs'
+import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
 import { ChallengeParams, SecurityRiskChallengeStateService } from './modules/challenge.service'
 import { SecurityRiskDeviceService } from './modules/device.service'

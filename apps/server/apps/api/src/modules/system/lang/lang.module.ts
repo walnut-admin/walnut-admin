@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 
 import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
 import { SysLangBasicRepository } from './lang.basic.repository'
 import { SysLangController } from './lang.controller'
 import { SysLangService } from './lang.service'

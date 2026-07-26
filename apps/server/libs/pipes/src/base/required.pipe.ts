@@ -1,5 +1,5 @@
 import { ArgumentMetadata, Injectable, PipeTransform } from '@nestjs/common'
-import { WalnutAdminExceptionRequestDataError } from '@walnut/exceptions/base/400'
+import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 import { isNil } from 'lodash'
 
 @Injectable()

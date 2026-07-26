@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
 import { SysUserLockSchema } from '../schema/user_lock.schema'
 import { SysUserLockRepositoryService } from './user_lock.repo.service'
 

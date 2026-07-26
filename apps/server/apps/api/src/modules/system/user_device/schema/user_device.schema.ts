@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 
 import {
 
@@ -8,7 +8,7 @@ import {
   WalnutAdminDecoratorFieldEnum,
   WalnutAdminDecoratorFieldMongoId,
   WalnutAdminDecoratorFieldString,
-} from '@walnut/decorators/field'
+} from '@walnut-server/decorators/field'
 import { IsOptional } from 'class-validator'
 
 import { ValueOf } from 'easy-fns-ts'

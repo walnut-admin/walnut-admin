@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { IWalnutAdminConstAppLanguage } from '@walnut/const/app/lang'
-import { WalnutDBCollectionName, WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { WalnutDBCollectionName, WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { Types } from 'mongoose'
 
 import { ISysLangModel, SysLangModel } from '../schema/lang.schema'

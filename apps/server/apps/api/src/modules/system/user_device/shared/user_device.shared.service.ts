@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { isDev } from '@walnut/config/utils/env'
-import { AppDayjs } from '@walnut/utils/dayjs'
+import { isDev } from '@walnut-server/config/utils/env'
+import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
 import { ClientSession } from 'mongoose'
 import { AppMonitorUserRepositoryService } from '@/modules/app/monitor/user/repo/user.repo.service'

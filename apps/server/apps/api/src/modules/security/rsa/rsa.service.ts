@@ -2,7 +2,7 @@ import { Buffer } from 'node:buffer'
 import { constants, createCipheriv, createDecipheriv, generateKeyPairSync, privateDecrypt, publicEncrypt, randomBytes } from 'node:crypto'
 
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminExceptionRsaDecryptFailed } from '@walnut/exceptions/business/rsa'
+import { WalnutAdminExceptionRsaDecryptFailed } from '@walnut-server/exceptions/business/rsa'
 import { AppKeyService } from '@/modules/app/key/key.service'
 import { AppTechCacheRsaService } from '@/modules/techniques/cache/service/cache.rsa'
 

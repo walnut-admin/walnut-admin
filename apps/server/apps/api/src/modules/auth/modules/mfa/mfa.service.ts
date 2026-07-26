@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions/base.exception'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { ClientSession } from 'mongoose'
 import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
 import { SysUserMfaSharedService } from '@/modules/system/user_mfa/shared/user_mfa.shared.service'

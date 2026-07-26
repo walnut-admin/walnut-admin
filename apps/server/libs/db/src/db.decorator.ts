@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@nestjs/common'
 import type { ClientSession } from 'mongoose'
 import { applyDecorators, createParamDecorator, UseInterceptors } from '@nestjs/common'
 import { InjectConnection, InjectModel } from '@nestjs/mongoose'
-import { WalnutDBConnectionName } from '@walnut/db'
+import { WalnutDBConnectionName } from '@walnut-server/db'
 import { TransactionInterceptor } from './transaction.interceptor'
 
 export function WalnutDBInjectModel(name: string) {

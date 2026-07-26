@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutAdminConstRole, WalnutAdminConstRoleRootId } from '@walnut/const/role/index'
-import { WalnutDBCollectionName } from '@walnut/db'
+import { WalnutAdminConstRole, WalnutAdminConstRoleRootId } from '@walnut-server/const/role/index'
+import { WalnutDBCollectionName } from '@walnut-server/db'
 
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions/base.exception'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
 import {
   SysRoleDTOCreateRequest,

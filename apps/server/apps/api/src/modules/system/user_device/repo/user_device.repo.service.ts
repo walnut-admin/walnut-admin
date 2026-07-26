@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName, WalnutDBVirtualName } from '@walnut/db'
-import { AppDayjs } from '@walnut/utils/dayjs'
+import { WalnutDBInjectModel, WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
+import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
 import { ClientSession, Types } from 'mongoose'
 import { ISysUserDeviceDocument, ISysUserDeviceModel } from '../schema/user_device.schema'

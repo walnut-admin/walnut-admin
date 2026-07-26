@@ -2,7 +2,7 @@ import type { Recordable } from 'easy-fns-ts'
 import type { Request, Response } from 'express'
 import type { ClientSession } from 'mongoose'
 import type { IResult } from 'ua-parser-js'
-import type { IWalnutAdminConstAppLanguage } from '@walnut/const/app/lang'
+import type { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
 
 declare global {
   namespace Express {

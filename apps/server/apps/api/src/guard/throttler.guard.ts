@@ -8,7 +8,7 @@ import {
 } from '@nestjs/throttler'
 import { isNil } from 'lodash'
 
-// Note: IWalnutAdminThrottleConfigProvider interface has been moved to @walnut/types/walnut-admin/guard.d.ts
+// Note: IWalnutAdminThrottleConfigProvider interface has been moved to @walnut-server/types/walnut-admin/guard.d.ts
 // as IWalnutAdminThrottleConfigProvider
 
 const THROTTLE_SERVICE_KEY = Symbol('THROTTLE_SERVICE')

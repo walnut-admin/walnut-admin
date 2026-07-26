@@ -15,8 +15,8 @@ import {
   verifyRegistrationResponse,
 } from '@simplewebauthn/server'
 import { isoBase64URL } from '@simplewebauthn/server/helpers'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
-import { WalnutAdminExceptionBadRequest, WalnutAdminExceptionNotFound } from '@walnut/exceptions/base.exception'
+import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
+import { WalnutAdminExceptionBadRequest, WalnutAdminExceptionNotFound } from '@walnut-server/exceptions/base.exception'
 import { isNil } from 'lodash'
 
 import { ClientSession, Types } from 'mongoose'

@@ -1,8 +1,8 @@
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
-import { WalnutAdminConstAppHeaders } from '@walnut/const/app/header'
-import { getPackageJsonData } from '@walnut/utils/pkg'
+import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { getPackageJsonData } from '@walnut-server/utils/pkg'
 import { NextFunction } from 'express'
 
 const pkg = getPackageJsonData()

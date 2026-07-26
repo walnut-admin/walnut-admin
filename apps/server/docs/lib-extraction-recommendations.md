@@ -4,7 +4,7 @@
 
 This report analyzes modules under `apps/api/src/modules/`, `apps/api/src/common/`, and `apps/api/src/decorators/` for potential extraction into reusable libraries under `libs/`. The analysis considers: business-logic coupling, dependency chains, module size, reusability, and extraction effort.
 
-The project currently has 9 libs under `libs/` (config, const, context, db, decorators, exceptions, pipes, types, utils). All are integrated via TypeScript path aliases (`@walnut/<name>`) and compiled together by SWC — they are not published packages.
+The project currently has 9 libs under `libs/` (config, const, context, db, decorators, exceptions, pipes, types, utils). All are integrated via TypeScript path aliases (`@walnut-server/<name>`) and compiled together by SWC — they are not published packages.
 
 ### How to Read This Report
 
@@ -26,16 +26,16 @@ These 13 candidates have **zero hard imports to `@/` modules**. They can be extr
 - **App Coupling**: None. Uses only `@nestjs/common` and `node:async_hooks`.
 - **Dependencies to Resolve**: None
 - **Effort**: **Low**
-- **Notes**: Overlaps with existing `@walnut/context` (which only stores `requestId`). Could either merge into `@walnut/context` or become its own `@walnut/als` lib. The existing `@walnut/context` is purposely scoped to logging only — this module handles broader request state.
+- **Notes**: Overlaps with existing `@walnut-server/context` (which only stores `requestId`). Could either merge into `@walnut-server/context` or become its own `@walnut/als` lib. The existing `@walnut-server/context` is purposely scoped to logging only — this module handles broader request state.
 
 ### 2. `modules/shared/mask/` — PII Data Masking
 
 - **Files**: `mask.module.ts`, `mask.service.ts`
-- **Purpose**: Sensitive data masking wrapper (emails, phones, identity cards, headers, JSON fields). Delegates to `@walnut/utils/mask` for core logic.
-- **App Coupling**: None. Imports only `@walnut/utils/mask` and NestJS decorators.
+- **Purpose**: Sensitive data masking wrapper (emails, phones, identity cards, headers, JSON fields). Delegates to `@walnut-server/utils/mask` for core logic.
+- **App Coupling**: None. Imports only `@walnut-server/utils/mask` and NestJS decorators.
 - **Dependencies to Resolve**: None
 - **Effort**: **Low**
-- **Notes**: Thin NestJS DI wrapper around `@walnut/utils/mask`. The `@Global()` module makes it available app-wide. A good candidate for `@walnut/mask` — consolidates the DI-facing API with the already-extracted utility functions.
+- **Notes**: Thin NestJS DI wrapper around `@walnut-server/utils/mask`. The `@Global()` module makes it available app-wide. A good candidate for `@walnut/mask` — consolidates the DI-facing API with the already-extracted utility functions.
 
 ### 3. `modules/shared/delay/` — Debounced Scheduler
 
@@ -53,13 +53,13 @@ These 13 candidates have **zero hard imports to `@/` modules**. They can be extr
 - **App Coupling**: None. Uses only `@nestjs/common`.
 - **Dependencies to Resolve**: None
 - **Effort**: **Very Low**
-- **Notes**: Currently used by the exception filter (`@walnut/exceptions`) via hard import — if extracted as a lib, the exception filter's dependency would be resolved more cleanly. Could become `@walnut/blpath`.
+- **Notes**: Currently used by the exception filter (`@walnut-server/exceptions`) via hard import — if extracted as a lib, the exception filter's dependency would be resolved more cleanly. Could become `@walnut/blpath`.
 
 ### 5. `modules/shared/mailer/` — Queue-Based Email
 
 - **Files**: `mailer.module.ts`, `mailer.config.service.ts`, `mailer.processor.ts`, `mailer.service.ts`
 - **Purpose**: Complete email module using `@nestjs-modules/mailer` + Bull queue. Sends welcome and verification emails.
-- **App Coupling**: Imports `WalnutAdminCommonBasicProcessor` from `@/common/processor/`. Queue name from `@walnut/const/app/queue`.
+- **App Coupling**: Imports `WalnutAdminCommonBasicProcessor` from `@/common/processor/`. Queue name from `@walnut-server/const/app/queue`.
 - **Dependencies to Resolve**: The base processor (`WalnutAdminCommonBasicProcessor`) would also need extraction (see Tier 2, candidate #5).
 - **Effort**: **Medium** (if base processor extracted first)
 - **Notes**: Well-structured module with config service, queue processor, and service layer. A strong candidate for `@walnut/mailer`.
@@ -68,7 +68,7 @@ These 13 candidates have **zero hard imports to `@/` modules**. They can be extr
 
 - **Files**: `sms.module.ts`, `sms.service.ts`, `sms.processor.ts`, `aliyun/aliyun.sms.module.ts`, `aliyun/aliyun.sms.service.ts`, `tencent/tencent.sms.service.ts`
 - **Purpose**: Queue-based SMS with Aliyun and Tencent provider implementations.
-- **App Coupling**: Same base processor dependency as mailer. Queue name from `@walnut/const`.
+- **App Coupling**: Same base processor dependency as mailer. Queue name from `@walnut-server/const`.
 - **Dependencies to Resolve**: Base processor extraction.
 - **Effort**: **Medium**
 - **Notes**: Same pattern as mailer. Could become `@walnut/sms`.
@@ -77,8 +77,8 @@ These 13 candidates have **zero hard imports to `@/` modules**. They can be extr
 
 - **Files**: `cache.module.ts`, `cache.config.service.ts`, `cache.service.ts`, `redis/redis.module.ts`, `redis/redis.service.ts`, `service/cache.*.ts` (10 domain-specific cache services)
 - **Purpose**: Redis-backed cache manager with typed wrappers. Base `AppTechCacheService` and `AppTechRedisService` are generic; 10 domain-specific cache services handle permission, RSA, lock, MFA, and other domain caching.
-- **App Coupling**: Cache key templates from `@walnut/const/app/cache`. The domain-specific cache services have no `@/` imports — they just compose the base cache with domain-specific key logic.
-- **Dependencies to Resolve**: The 10 domain cache services (`cache.permissions.ts`, `cache.rsa.ts`, etc.) would need to move with the lib (they ARE the lib's value-add). These use cache key constants from `@walnut/const`.
+- **App Coupling**: Cache key templates from `@walnut-server/const/app/cache`. The domain-specific cache services have no `@/` imports — they just compose the base cache with domain-specific key logic.
+- **Dependencies to Resolve**: The 10 domain cache services (`cache.permissions.ts`, `cache.rsa.ts`, etc.) would need to move with the lib (they ARE the lib's value-add). These use cache key constants from `@walnut-server/const`.
 - **Effort**: **Medium** (volume of files, not complexity)
 - **Notes**: A foundational candidate. If extracted as `@walnut/cache`, it would provide both low-level Redis access and high-level typed cache operations. The domain-specific cache services show the pattern for consumers.
 
@@ -122,8 +122,8 @@ These 13 candidates have **zero hard imports to `@/` modules**. They can be extr
 
 - **Files**: `throttler.module.ts`, `throttler.service.ts`
 - **Purpose**: Dynamic rate limiter extending `@nestjs/throttler`'s `ThrottlerGuard` with per-route config providers. Supports customizable limit/TTL per endpoint.
-- **App Coupling**: References `IWalnutAdminThrottleConfigProvider` type from `@walnut/types`. The guard's `getTracker` returns `req.realIp` which depends on Express request augmentation.
-- **Dependencies to Resolve**: The `realIp` dependency is satisfied by `@walnut/types` (already a lib). No `@/` imports.
+- **App Coupling**: References `IWalnutAdminThrottleConfigProvider` type from `@walnut-server/types`. The guard's `getTracker` returns `req.realIp` which depends on Express request augmentation.
+- **Dependencies to Resolve**: The `realIp` dependency is satisfied by `@walnut-server/types` (already a lib). No `@/` imports.
 - **Effort**: **Low**
 - **Notes**: Could become `@walnut/throttle`.
 
@@ -131,10 +131,10 @@ These 13 candidates have **zero hard imports to `@/` modules**. They can be extr
 
 - **Files**: `cookie.module.ts`, `cookie.service.ts`, `types.d.ts`
 - **Purpose**: Standardized cookie get/set/clear with env-aware options (`__Secure-`/`__Host-` prefixes in production).
-- **App Coupling**: Imports `isDev`/`isProd` from `@walnut/config/utils/env` and `getPackageJsonData` from `@walnut/utils/pkg` — both are already libs.
+- **App Coupling**: Imports `isDev`/`isProd` from `@walnut-server/config/utils/env` and `getPackageJsonData` from `@walnut-server/utils/pkg` — both are already libs.
 - **Dependencies to Resolve**: None (internal dependencies are on existing libs)
 - **Effort**: **Low**
-- **Notes**: Could become `@walnut/cookie` to complement the existing `@walnut/config` lib.
+- **Notes**: Could become `@walnut/cookie` to complement the existing `@walnut-server/config` lib.
 
 ---
 
@@ -147,7 +147,7 @@ These 7 candidates have **1-2 hard imports to `@/` modules** that would need ref
 - **Files**: `token.module.ts`, `token.service.ts`, `jwt.config.ts`
 - **Purpose**: JWT access + refresh token generation with config-driven secrets/expiry.
 - **App Coupling**: `getJwtAccessTokenPayload` method imports `ISysUserDocument` from `@/modules/system/user/schema/user.schema`.
-- **Dependencies to Resolve**: Replace `ISysUserDocument` with a plain interface (`IWalnutAdminAccessTokenPayloadInput`) defined in `@walnut/types`. Only 5 fields are needed: userId, roleIds, roleNames, currentRole, roleMode, mfaSetup.
+- **Dependencies to Resolve**: Replace `ISysUserDocument` with a plain interface (`IWalnutAdminAccessTokenPayloadInput`) defined in `@walnut-server/types`. Only 5 fields are needed: userId, roleIds, roleNames, currentRole, roleMode, mfaSetup.
 - **Effort**: **Medium** (type refactoring required)
 - **Notes**: The rest of the service (generate JTI, sign tokens, decode) is fully generic. This is a strong candidate for `@walnut/token`.
 
@@ -166,7 +166,7 @@ These 7 candidates have **1-2 hard imports to `@/` modules** that would need ref
 
 - **Files**: `scope-resolver.module.ts`, `scope-resolver.service.ts`
 - **Purpose**: Resolves setting values between global and entity-local scopes. ~23 lines.
-- **App Coupling**: None. Depends only on `IWalnutAdminScopeResolverConfig` and `WalnutAdminConstAppSettingScopeType` from `@walnut/const`.
+- **App Coupling**: None. Depends only on `IWalnutAdminScopeResolverConfig` and `WalnutAdminConstAppSettingScopeType` from `@walnut-server/const`.
 - **Dependencies to Resolve**: None — already uses only lib types.
 - **Effort**: **Very Low**
 - **Notes**: Borderline Tier 1. The service is fully generic. The only reason it's Tier 2 is the conceptual coupling to the app settings system. Could easily become `@walnut/scope-resolver`.
@@ -184,11 +184,11 @@ These 7 candidates have **1-2 hard imports to `@/` modules** that would need ref
 
 - **Files**: `base.repository.ts`
 - **Purpose**: Generic CRUD operations base class (create, readById, update, updateByField, soft-delete, real-delete, list with aggregation pipeline). Used by every entity repository.
-- **App Coupling**: Injects `ALSRequestService` (from `modules/shared/als/`), `WalnutDBInjectConnection` (from `@walnut/db`), and `SysDeletedRepoService` (from `@/modules/system/deleted`).
+- **App Coupling**: Injects `ALSRequestService` (from `modules/shared/als/`), `WalnutDBInjectConnection` (from `@walnut-server/db`), and `SysDeletedRepoService` (from `@/modules/system/deleted`).
 - **Dependencies to Resolve**:
   - `ALSRequestService` → resolves if ALS is extracted (Tier 1 candidate)
   - `SysDeletedRepoService` → the hardest coupling. Could be made optional via a strategy pattern (inject an optional `ISoftDeleteStrategy`)
-  - `WalnutDBInjectConnection` → already from `@walnut/db` lib
+  - `WalnutDBInjectConnection` → already from `@walnut-server/db` lib
 - **Effort**: **High** (strategy pattern refactoring for soft-delete)
 - **Notes**: This is the most impactful extraction candidate — it would create `@walnut/repository` that provides turn-key CRUD for any NestJS + Mongoose project. The soft-delete coupling to `SysDeletedRepoService` is the main blocker.
 
@@ -205,10 +205,10 @@ These 7 candidates have **1-2 hard imports to `@/` modules** that would need ref
 
 - **Files**: `list.dto.ts`, `base.dto.ts`, `shared.dto.ts`
 - **Purpose**: Generic list pagination/sorting/filtering DTO generators (`CreateWalnutAdminRequestListDTO`, `CreateWalnutAdminResponseListDTO`). Generates NestJS DTO classes with `@WalnutAdminDecoratorField*` decorators.
-- **App Coupling**: Uses `@walnut/decorators/field` extensively. No `@/` imports.
-- **Dependencies to Resolve**: None (depends only on `@walnut/decorators`)
+- **App Coupling**: Uses `@walnut-server/decorators/field` extensively. No `@/` imports.
+- **Dependencies to Resolve**: None (depends only on `@walnut-server/decorators`)
 - **Effort**: **Low**
-- **Notes**: Borderline Tier 1. Could live in `@walnut/decorators` or as a new `@walnut/list`. The factory pattern (accept a DTO, return a new DTO class with list params) is highly reusable.
+- **Notes**: Borderline Tier 1. Could live in `@walnut-server/decorators` or as a new `@walnut/list`. The factory pattern (accept a DTO, return a new DTO class with list params) is highly reusable.
 
 ---
 
@@ -220,7 +220,7 @@ These are pattern-level candidates with deeper coupling to the app's architectur
 
 - **Files**: `index.ts`, `create.ts`, `read.ts`, `update.ts`, `delete.ts`, `deleteMany.ts`, `list.ts`, `types.d.ts`
 - **Purpose**: `WalnutCrudDecorators()` factory that composes Swagger + operate log + HTTP method + route into pre-built CRUD method decorators. Dramatically reduces controller boilerplate.
-- **App Coupling**: Uses `@walnut/decorators/swagger`, `@walnut/const/decorator/logOperate` (already libs). `list.ts` uses `CreateWalnutAdminResponseListDTO` from `@/common/dto/list.dto`.
+- **App Coupling**: Uses `@walnut-server/decorators/swagger`, `@walnut-server/const/decorator/logOperate` (already libs). `list.ts` uses `CreateWalnutAdminResponseListDTO` from `@/common/dto/list.dto`.
 - **Dependencies to Resolve**: Would resolve if list DTO is extracted (Tier 2 candidate #7).
 - **Effort**: **Medium** (requires list DTO extraction first)
 - **Notes**: One of the most valuable patterns in the codebase. A `@walnut/crud` lib would let any NestJS project add full CRUD endpoints with a single factory call.
@@ -313,27 +313,27 @@ If pursuing extraction, the recommended dependency order is:
 
 ### Existing Issues to Address During Extraction
 
-1. **`@walnut/exceptions` imports `@/modules/app/error/error.service` and `@/modules/shared/BLPath/BLPath.service`** — The global exception filter has hard imports from app modules. If `BLPath` is extracted as a lib, the `BLPathService` dependency becomes clean. The `AppErrorService` dependency would need to become injectable or abstracted.
+1. **`@walnut-server/exceptions` imports `@/modules/app/error/error.service` and `@/modules/shared/BLPath/BLPath.service`** — The global exception filter has hard imports from app modules. If `BLPath` is extracted as a lib, the `BLPathService` dependency becomes clean. The `AppErrorService` dependency would need to become injectable or abstracted.
 
-2. **`@walnut/config/utils/env`** — The `isDev`/`isProd`/`isStage` helpers are used by `@walnut/utils` and `@walnut/exceptions` via sub-path imports. These should be promoted to first-class exports from `@walnut/config`.
+2. **`@walnut-server/config/utils/env`** — The `isDev`/`isProd`/`isStage` helpers are used by `@walnut-server/utils` and `@walnut-server/exceptions` via sub-path imports. These should be promoted to first-class exports from `@walnut-server/config`.
 
-3. **`@walnut/context` is not in `nest-cli.json`** — New libs should follow the standard registration pattern used by the other 8 libs.
+3. **`@walnut-server/context` is not in `nest-cli.json`** — New libs should follow the standard registration pattern used by the other 8 libs.
 
 4. **Base repository's `SysDeletedRepoService` coupling** — This is the single most impactful coupling in the extraction analysis. A strategy pattern (optional `ISoftDeleteStrategy` injection) would unlock `@walnut/repository` as a standalone lib.
 
 ### Lib-to-Lib Dependency Chain
 
 ```
-@walnut/const (no deps)
+@walnut-server/const (no deps)
   ↓
-@walnut/config → @walnut/const
+@walnut-server/config → @walnut-server/const
   ↓
-@walnut/utils → @walnut/config, @walnut/const
+@walnut-server/utils → @walnut-server/config, @walnut-server/const
   ↓
-@walnut/exceptions → @walnut/const, @walnut/utils
-@walnut/pipes → @walnut/const, @walnut/exceptions
-@walnut/decorators → (none internal)
-@walnut/types → @walnut/const
-@walnut/context → (none internal)
-@walnut/db → (self-contained)
+@walnut-server/exceptions → @walnut-server/const, @walnut-server/utils
+@walnut-server/pipes → @walnut-server/const, @walnut-server/exceptions
+@walnut-server/decorators → (none internal)
+@walnut-server/types → @walnut-server/const
+@walnut-server/context → (none internal)
+@walnut-server/db → (self-contained)
 ```

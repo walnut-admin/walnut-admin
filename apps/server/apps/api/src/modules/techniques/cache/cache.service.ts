@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { IWalnutAdminConstAppCacheType, WalnutAdminConstAppCacheType } from '@walnut/const/app/cache'
-import { AppDayjs } from '@walnut/utils/dayjs'
+import { IWalnutAdminConstAppCacheType, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { every, filter, get, isNil, orderBy, slice } from 'lodash'
 
 import sizeof from 'object-sizeof'
@@ -11,7 +11,7 @@ interface WalnutAdminCacheContent<T = any> extends IWalnutAdminCacheOptions {
   v: T
 }
 
-// Note: IWalnutAdminCacheOptions is now defined globally in @walnut/types/walnut-admin/cache.d.ts
+// Note: IWalnutAdminCacheOptions is now defined globally in @walnut-server/types/walnut-admin/cache.d.ts
 
 // 辅助函数：去�?key 的前缀，用于显�?
 function getDisplayKey(fullKey: string): string {

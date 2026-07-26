@@ -5,12 +5,12 @@ import {
   NestInterceptor,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { WalnutAdminConstDecoratorFreeResponseMetadataKey } from '@walnut/const/decorator/response'
+import { WalnutAdminConstDecoratorFreeResponseMetadataKey } from '@walnut-server/const/decorator/response'
 
-import { setCustomHeaders } from '@walnut/utils/headers'
+import { setCustomHeaders } from '@walnut-server/utils/headers'
 import {
   WalnutAdminResponseSuccess,
-} from '@walnut/utils/response'
+} from '@walnut-server/utils/response'
 import { I18nContext } from 'nestjs-i18n'
 import { Observable } from 'rxjs'
 import { map } from 'rxjs/operators'

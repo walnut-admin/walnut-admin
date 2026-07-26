@@ -1,4 +1,4 @@
-# @walnut/utils
+# @walnut-server/utils
 
 Shared utility functions used across the application. Provides DTO manipulation helpers, MongoDB aggregation pipeline builders, standardized response formatters, data masking, HTTP header utilities, dayjs configuration, and more. No NestJS module — purely functional utilities imported as needed.
 
@@ -8,15 +8,15 @@ Shared utility functions used across the application. Provides DTO manipulation 
 
 | Module | Export Path | Key Exports |
 |--------|-------------|-------------|
-| dayjs | `@walnut/utils/dayjs` | `AppDayjs` — dayjs instance configured with UTC and timezone plugins |
-| dto | `@walnut/utils/dto` | `RealPickType()`, `RealPartialType()`, `RealOmitType()` — DTO helpers that fix `@Expose()` issues with NestJS `PickType`/`PartialType` |
-| general | `@walnut/utils/general` | `generateVerifyCode(length)`, `sleep(ms)`, `objectToPaths(obj)` |
-| headers | `@walnut/utils/headers` | `setCustomHeaders(context)` — sets X-Request-ID, X-Request-IP, timezone, language, version headers on response |
-| listAggregate | `@walnut/utils/listAggregate` | `buildListPipelineFromRequest<T>(params, extra?, sortAfter?, extraMatch?)` — converts list request params to MongoDB `$facet` aggregation pipeline |
-| mask | `@walnut/utils/mask` | `maskEmail()`, `maskPhone()`, `maskSensitiveFields(obj)` — PII data masking |
-| pkg | `@walnut/utils/pkg` | `getPackageJsonData()` — reads and parses `package.json` from CWD |
-| regex | `@walnut/utils/regex` | `regexMap` — uuidv4, email, phone number regex patterns |
-| response | `@walnut/utils/response` | `WalnutAdminResponseSuccess<T>(data, requestId)`, `WalnutAdminResponseException(payload)`, `getAllConstraints(errors)` — standardized API response builders |
+| dayjs | `@walnut-server/utils/dayjs` | `AppDayjs` — dayjs instance configured with UTC and timezone plugins |
+| dto | `@walnut-server/utils/dto` | `RealPickType()`, `RealPartialType()`, `RealOmitType()` — DTO helpers that fix `@Expose()` issues with NestJS `PickType`/`PartialType` |
+| general | `@walnut-server/utils/general` | `generateVerifyCode(length)`, `sleep(ms)`, `objectToPaths(obj)` |
+| headers | `@walnut-server/utils/headers` | `setCustomHeaders(context)` — sets X-Request-ID, X-Request-IP, timezone, language, version headers on response |
+| listAggregate | `@walnut-server/utils/listAggregate` | `buildListPipelineFromRequest<T>(params, extra?, sortAfter?, extraMatch?)` — converts list request params to MongoDB `$facet` aggregation pipeline |
+| mask | `@walnut-server/utils/mask` | `maskEmail()`, `maskPhone()`, `maskSensitiveFields(obj)` — PII data masking |
+| pkg | `@walnut-server/utils/pkg` | `getPackageJsonData()` — reads and parses `package.json` from CWD |
+| regex | `@walnut-server/utils/regex` | `regexMap` — uuidv4, email, phone number regex patterns |
+| response | `@walnut-server/utils/response` | `WalnutAdminResponseSuccess<T>(data, requestId)`, `WalnutAdminResponseException(payload)`, `getAllConstraints(errors)` — standardized API response builders |
 
 ## Key Files
 
@@ -36,19 +36,19 @@ Shared utility functions used across the application. Provides DTO manipulation 
 
 ```typescript
 // Dayjs
-import { AppDayjs } from '@walnut/utils/dayjs'
+import { AppDayjs } from '@walnut-server/utils/dayjs'
 
 // DTO helpers — used in every CRUD module
-import { RealPartialType, RealPickType } from '@walnut/utils/dto'
+import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 
 // List aggregation — used in every basic repository
-import { buildListPipelineFromRequest } from '@walnut/utils/listAggregate'
+import { buildListPipelineFromRequest } from '@walnut-server/utils/listAggregate'
 
 // Data masking
-import { maskEmail, maskSensitiveFields } from '@walnut/utils/mask' // 'us***@example.com'
+import { maskEmail, maskSensitiveFields } from '@walnut-server/utils/mask' // 'us***@example.com'
 
 // Response builders
-import { WalnutAdminResponseSuccess } from '@walnut/utils/response'
+import { WalnutAdminResponseSuccess } from '@walnut-server/utils/response'
 
 export class SysUserCreateDTO extends RealPickType(SysUserDTO, ['username', 'email'] as const) {}
 
@@ -62,7 +62,7 @@ const now = AppDayjs().tz('Asia/Shanghai')
 
 ## Dependencies
 
-- **Internal**: `@walnut/config/utils/env` (for `isDev` in response builder)
+- **Internal**: `@walnut-server/config/utils/env` (for `isDev` in response builder)
 - **External**: `dayjs`, `class-transformer`, `@nestjs/swagger` (DTO helpers use `PickType`/`PartialType` from swagger), `lodash`, `mongoose`
 
 ## Notes

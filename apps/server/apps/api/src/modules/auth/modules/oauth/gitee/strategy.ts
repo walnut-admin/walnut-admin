@@ -93,5 +93,5 @@ interface OAuthGiteebEmailItem {
   scope: ('primary' | 'commmited' | 'secure' | 'notified')[]
 }
 
-// Note: OAuthGiteeUserInfo interface has been moved to @walnut/types/walnut-admin/oauth.d.ts
+// Note: OAuthGiteeUserInfo interface has been moved to @walnut-server/types/walnut-admin/oauth.d.ts
 // as IWalnutAdminOAuthGiteeUserInfo

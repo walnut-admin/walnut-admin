@@ -1,6 +1,6 @@
 import { applyDecorators, CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor, SetMetadata, UseInterceptors } from '@nestjs/common'
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
-import { IWalnutAdminConstDecoratorLogAuthType } from '@walnut/const/decorator/logAuth'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { IWalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { Observable } from 'rxjs'
 import { tap } from 'rxjs/operators'
 import { SysLogAuthSharedService } from '@/modules/system/logs/auth/shared/log.auth.shared.service'

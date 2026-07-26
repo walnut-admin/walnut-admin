@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstDecoratorLogOperateAction, IWalnutAdminConstDecoratorLogOperateTitle, IWalnutAdminConstDecoratorLogOperateType } from '@walnut/const/decorator/logOperate'
+import type { IWalnutAdminConstDecoratorLogOperateAction, IWalnutAdminConstDecoratorLogOperateTitle, IWalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 
 declare global {
   interface IWalnutAdminLogOperateOptions {

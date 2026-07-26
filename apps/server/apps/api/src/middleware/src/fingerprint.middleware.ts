@@ -1,5 +1,5 @@
 import { Injectable, NestMiddleware } from '@nestjs/common'
-import { WalnutAdminConstAppHeaders } from '@walnut/const/app/header'
+import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
 import { NextFunction } from 'express'
 
 @Injectable()

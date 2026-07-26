@@ -1,6 +1,6 @@
-import type { IWalnutAdminConstDecoratorLogOperateTitle } from '@walnut/const/decorator/logOperate'
+import type { IWalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import type { ClassConstructor } from 'class-transformer'
-import { WalnutAdminConstDecoratorLogOperateAction } from '@walnut/const/decorator/logOperate'
+import { WalnutAdminConstDecoratorLogOperateAction } from '@walnut-server/const/decorator/logOperate'
 
 import { WalnutAdminDecoratorCreate } from './create'
 import { WalnutAdminDecoratorDelete } from './delete'

@@ -1,4 +1,4 @@
-import { RealOmitType } from '@walnut/utils/dto'
+import { RealOmitType } from '@walnut-server/utils/dto'
 import { AppErrorModel } from './error.schema'
 
 class AppErrorDTO extends AppErrorModel {

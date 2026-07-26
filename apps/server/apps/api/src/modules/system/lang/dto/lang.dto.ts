@@ -1,5 +1,5 @@
-import { WalnutAdminDecoratorFieldNumber } from '@walnut/decorators/field'
-import { RealOmitType, RealPartialType, RealPickType } from '@walnut/utils/dto'
+import { WalnutAdminDecoratorFieldNumber } from '@walnut-server/decorators/field'
+import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,

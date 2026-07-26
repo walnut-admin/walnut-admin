@@ -1,17 +1,17 @@
 import { applyDecorators, CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor, SetMetadata, UseInterceptors } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { EventEmitter2 } from '@nestjs/event-emitter'
-import { WalnutAdminConstAppConfig } from '@walnut/const/app/config'
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
-import { WalnutAdminConstAppEvent } from '@walnut/const/app/event'
+import { WalnutAdminConstAppConfig } from '@walnut-server/const/app/config'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { WalnutAdminConstAppEvent } from '@walnut-server/const/app/event'
 
-import { IWalnutAdminConstAppHTTPMethods } from '@walnut/const/app/methods'
-import { IWalnutAdminConstDecoratorLogOperateAction, IWalnutAdminConstDecoratorLogOperateType, WalnutAdminConstDecoratorLogOperateAction } from '@walnut/const/decorator/logOperate'
+import { IWalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
+import { IWalnutAdminConstDecoratorLogOperateAction, IWalnutAdminConstDecoratorLogOperateType, WalnutAdminConstDecoratorLogOperateAction } from '@walnut-server/const/decorator/logOperate'
 
-import { translateResponseMessage } from '@walnut/exceptions/exception.filter'
-import { WalnutAdminExceptionHandler } from '@walnut/exceptions/handler'
-import { maskSensitiveFields } from '@walnut/utils/mask'
-import { WalnutAdminResponseSuccess } from '@walnut/utils/response'
+import { translateResponseMessage } from '@walnut-server/exceptions/exception.filter'
+import { WalnutAdminExceptionHandler } from '@walnut-server/exceptions/handler'
+import { maskSensitiveFields } from '@walnut-server/utils/mask'
+import { WalnutAdminResponseSuccess } from '@walnut-server/utils/response'
 import { Recordable } from 'easy-fns-ts'
 import { Types } from 'mongoose'
 import { I18nContext } from 'nestjs-i18n'
@@ -151,7 +151,7 @@ class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor {
   }
 }
 
-// Note: LogOperateOptions interface has been moved to @walnut/types/walnut-admin/log.d.ts
+// Note: LogOperateOptions interface has been moved to @walnut-server/types/walnut-admin/log.d.ts
 // as IWalnutAdminLogOperateOptions
 
 /**

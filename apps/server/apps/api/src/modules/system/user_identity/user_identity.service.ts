@@ -1,7 +1,7 @@
-import type { IWalnutAdminConstAppLanguage } from '@walnut/const/app/lang'
+import type { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
 
 import { Injectable } from '@nestjs/common'
-import { WalnutAdminExceptionBadRequest } from '@walnut/exceptions/base.exception'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
 import { ClientSession } from 'mongoose'
 import { OtpSharedService } from '@/modules/auth/modules/otp/shared/otp.shared.service'

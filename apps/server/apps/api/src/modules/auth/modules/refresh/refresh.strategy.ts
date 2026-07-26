@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { PassportStrategy } from '@nestjs/passport'
-import { WalnutAdminConstAppAuthStrategy } from '@walnut/const/app/strategy'
+import { WalnutAdminConstAppAuthStrategy } from '@walnut-server/const/app/strategy'
 import { ExtractJwt, Strategy } from 'passport-jwt'
 
 @Injectable()

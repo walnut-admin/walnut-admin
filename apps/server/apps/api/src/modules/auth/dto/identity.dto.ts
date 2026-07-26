@@ -1,4 +1,4 @@
-import { WalnutAdminDecoratorFieldString } from '@walnut/decorators/field'
+import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 
 export class IdentitySendDTO {
   @WalnutAdminDecoratorFieldString({

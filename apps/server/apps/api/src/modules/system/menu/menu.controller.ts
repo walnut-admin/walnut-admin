@@ -1,12 +1,12 @@
 import { Body, Controller, Get, HttpCode, HttpStatus } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut/const/decorator/logOperate'
+import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut/db'
-import { WalnutAdminDecoratorParamMongoId } from '@walnut/decorators/params'
-import { WalnutAdminDecoratorQueryDeleteCascade } from '@walnut/decorators/query'
+import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
+import { WalnutAdminDecoratorQueryDeleteCascade } from '@walnut-server/decorators/query'
 
-import { ApiWalnutOkResponse } from '@walnut/decorators/swagger/response.decorator'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { ClientSession } from 'mongoose'
 import { WalnutCrudDecorators } from '@/decorators/crud'
 

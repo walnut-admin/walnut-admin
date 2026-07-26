@@ -1,6 +1,6 @@
 import type { TransformOptions } from 'class-transformer'
 import { applyDecorators } from '@nestjs/common'
-import { AppDayjs } from '@walnut/utils/dayjs'
+import { AppDayjs } from '@walnut-server/utils/dayjs'
 
 import { Transform } from 'class-transformer'
 import { isNil } from 'lodash'

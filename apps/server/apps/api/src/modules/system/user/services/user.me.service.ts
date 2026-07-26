@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { IWalnutAdminConstRoleMode } from '@walnut/const/role/index'
-import { WalnutDBInjectModel, WalnutDBModelName, WalnutDBVirtualName } from '@walnut/db'
+import { IWalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
+import { WalnutDBInjectModel, WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
 import { ClientSession } from 'mongoose'
 import { SysUserMfaSharedService } from '../../user_mfa/shared/user_mfa.shared.service'
 import { SysUserMeDTOUpdateProfileRequest } from '../dto/user.me.dto'

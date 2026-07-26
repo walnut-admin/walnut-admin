@@ -1,7 +1,7 @@
 import {
   WalnutAdminDecoratorFieldMongoId,
   WalnutAdminDecoratorFieldString,
-} from '@walnut/decorators/field'
+} from '@walnut-server/decorators/field'
 
 export class ResetPasswordDto {
   @WalnutAdminDecoratorFieldMongoId({

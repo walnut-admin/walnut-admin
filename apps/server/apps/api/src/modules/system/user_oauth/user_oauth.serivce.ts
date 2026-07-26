@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 
 import { SysUserOauthDto } from './dto/user_oauth.dto'
 import { ISysUserOAuthModel } from './schema/user_oauth.schema'

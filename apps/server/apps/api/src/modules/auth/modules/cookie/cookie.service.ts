@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutAdminConstCookieKeys } from '@walnut/const/app/cookie'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { AppTokenService } from '@/modules/shared/token/token.service'
 import { AppTechCookieService } from '@/modules/techniques/cookie/cookie.service'
 

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { Namespace } from 'socket.io'
 import { ISocketClientToServerEvents, ISocketData, ISocketInterServerEvents, ISocketServerToClientEvents } from './socket'
 import { WalnutAdminSocketRooms } from './socket.const'
-// Note: IWalnutAdminSocketEvents and IWalnutAdminSocketEventDataMap are now global types from @walnut/types
+// Note: IWalnutAdminSocketEvents and IWalnutAdminSocketEventDataMap are now global types from @walnut-server/types
 
 @Injectable()
 export class SocketService {

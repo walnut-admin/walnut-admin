@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { IWalnutAdminScopeResolverConfig, WalnutAdminConstAppSettingScopeType } from '@walnut/const/app/setting'
+import { IWalnutAdminScopeResolverConfig, WalnutAdminConstAppSettingScopeType } from '@walnut-server/const/app/setting'
 
 @Injectable()
 export class SharedScopeResolverService {

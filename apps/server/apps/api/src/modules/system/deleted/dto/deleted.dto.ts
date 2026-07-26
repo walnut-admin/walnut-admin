@@ -1,6 +1,6 @@
 import { IntersectionType } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFieldDate } from '@walnut/decorators/field'
-import { RealOmitType, RealPartialType, RealPickType } from '@walnut/utils/dto'
+import { WalnutAdminDecoratorFieldDate } from '@walnut-server/decorators/field'
+import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { IsOptional } from 'class-validator'
 import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@/common/dto/list.dto'
 import { WalnutAdminVirtualUserDTO } from '@/common/model/virtual/user'

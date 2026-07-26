@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut/const/app/cache'
-import { WalnutAdminConstRole } from '@walnut/const/role/index'
+import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import { WalnutAdminConstRole } from '@walnut-server/const/role/index'
 import { AppTokenService } from '@/modules/shared/token/token.service'
 import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 

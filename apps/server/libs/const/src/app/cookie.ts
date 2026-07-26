@@ -1,5 +1,5 @@
 import type { ValueOf } from 'easy-fns-ts'
-import { isDev, isProd } from '@walnut/config/utils/env'
+import { isDev, isProd } from '@walnut-server/config/utils/env'
 
 function getSafeCookieKey(baseKey: string): string {
   if (isProd) {

@@ -1,9 +1,9 @@
 import type { ValidationError } from '@nestjs/common'
 
-import type { IWalnutAdminConstAppResponseCode } from '@walnut/const/app/responseCode'
+import type { IWalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
 import type { DeepKeyOf, Recordable } from 'easy-fns-ts'
-import { isDev } from '@walnut/config/utils/env'
-import { WalnutAdminConstAppResponseCode } from '@walnut/const/app/responseCode'
+import { isDev } from '@walnut-server/config/utils/env'
+import { WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
 
 export interface IWalnutAdminResponsePayload {
   requestId?: string

@@ -1,6 +1,6 @@
-import { IWalnutAdminConstDecoratorLogAuthType, WalnutAdminConstDecoratorLogAuthType } from '@walnut/const/decorator/logAuth'
-import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum } from '@walnut/decorators/field'
-import { RealOmitType, RealPartialType } from '@walnut/utils/dto'
+import { IWalnutAdminConstDecoratorLogAuthType, WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
+import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum } from '@walnut-server/decorators/field'
+import { RealOmitType, RealPartialType } from '@walnut-server/utils/dto'
 import { IsOptional } from 'class-validator'
 import {
   CreateWalnutAdminRequestListDTO,

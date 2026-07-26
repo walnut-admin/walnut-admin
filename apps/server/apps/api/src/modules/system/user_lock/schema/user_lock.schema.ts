@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut/db'
+import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 
 import {
   WalnutAdminDecoratorFieldBoolean,
@@ -7,9 +7,9 @@ import {
   WalnutAdminDecoratorFieldMongoId,
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
-} from '@walnut/decorators/field'
-import { WalnutAdminDecoratorFieldObject } from '@walnut/decorators/field/object.decorator'
-import { RealPartialType } from '@walnut/utils/dto'
+} from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
+import { RealPartialType } from '@walnut-server/utils/dto'
 import { genSalt, hash } from 'bcryptjs'
 import { Recordable, ValueOf } from 'easy-fns-ts'
 import { HydratedDocument, Model, Types } from 'mongoose'

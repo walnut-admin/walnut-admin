@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut/const/app/cache'
-import { WalnutAdminExceptionRsaPubKeyNotFound } from '@walnut/exceptions/business/rsa'
+import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import { WalnutAdminExceptionRsaPubKeyNotFound } from '@walnut-server/exceptions/business/rsa'
 import { isNil } from 'lodash'
 import { AppTechCacheService } from '../cache.service'
 

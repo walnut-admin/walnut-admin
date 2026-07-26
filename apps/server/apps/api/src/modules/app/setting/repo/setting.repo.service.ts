@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutAdminConstAppCacheType } from '@walnut/const/app/cache'
-import { runAfterCommit, WalnutDBInjectModel, WalnutDBModelName } from '@walnut/db'
+import { WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import { runAfterCommit, WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { ClientSession } from 'mongoose'
 
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'

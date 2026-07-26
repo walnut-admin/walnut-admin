@@ -1,7 +1,7 @@
-import type { IWalnutAdminConstDecoratorPermissionMode } from '@walnut/const/decorator/permissions'
+import type { IWalnutAdminConstDecoratorPermissionMode } from '@walnut-server/const/decorator/permissions'
 
 import { applyDecorators, SetMetadata, UseGuards } from '@nestjs/common'
-import { WalnutAdminConstDecoratorPermissionMetadataKey } from '@walnut/const/decorator/permissions'
+import { WalnutAdminConstDecoratorPermissionMetadataKey } from '@walnut-server/const/decorator/permissions'
 import { WalnutAdminGuardPermission } from '@/guard/permission.guard'
 
 /**

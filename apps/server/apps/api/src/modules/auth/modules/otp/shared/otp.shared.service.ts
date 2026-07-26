@@ -1,8 +1,8 @@
-import type { IWalnutAdminConstAppLanguage } from '@walnut/const/app/lang'
+import type { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
 import type { IOtpType } from '../const/otp.const'
 
 import { Injectable, Logger } from '@nestjs/common'
-import { generateVerifyCode } from '@walnut/utils/general'
+import { generateVerifyCode } from '@walnut-server/utils/general'
 import { isNil } from 'lodash'
 import { AppMailerService } from '@/modules/shared/mailer/mailer.service'
 import { AliyunSmsService } from '@/modules/shared/sms/aliyun/aliyun.sms.service'

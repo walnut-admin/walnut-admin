@@ -1,4 +1,4 @@
-import { WalnutAdminDecoratorFieldObject } from '@walnut/decorators/field/object.decorator'
+import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { SysUserDTOSafe } from '@/modules/system/user/dto/user.dto'
 
 export class AuthProfileResponseDto {

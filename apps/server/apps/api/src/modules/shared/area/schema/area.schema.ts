@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut/db'
-import { WalnutAdminDecoratorFieldString } from '@walnut/decorators/field'
+import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
+import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 
 import { HydratedDocument, Model } from 'mongoose'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'

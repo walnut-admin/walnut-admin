@@ -1,5 +1,5 @@
 import { IntersectionType } from '@nestjs/swagger'
-import { RealPartialType, RealPickType } from '@walnut/utils/dto'
+import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { SysUserDeviceDTO } from '../../user_device/dto/user_device.dto'
 import { SysUserLockModel } from '../schema/user_lock.schema'
 
