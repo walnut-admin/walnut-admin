@@ -41,3 +41,6 @@ config/husky/*
 apps/server/env-local/
 apps/server/logs/
 apps/server/dist/
+
+# AI agent workspace (ZCode plans, scratch)
+.zcode/
