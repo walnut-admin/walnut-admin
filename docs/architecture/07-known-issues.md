@@ -74,7 +74,7 @@
 
 ---
 
-## 问题 #3 🟡 CI/CD 对 monorepo 坏掉（大部分已解决）
+## 问题 #3 🔴 CI/CD 对 monorepo 坏掉（部分解决）
 
 **描述**：
 - `.github/workflows/deploy.yml` 用 SCP + 远程 `pnpm install --prod`，对 monorepo 根 lockfile 完全行不通（远程 install 会拉全仓库 workspace 包，且 `--prod` 模式与 workspace 冲突）
@@ -82,20 +82,20 @@
 - `turbo.json` 没有 `test` task
 
 **解决进度**（2026-07-26）：
-- ✅ **已加 PR CI**：`.github/workflows/ci.yml`——PR/push to main 触发，跑 `pnpm lint` + `pnpm types:check` + `pnpm build`，带 `concurrency` 取消旧 run、30 分钟 timeout、pnpm v11 + Node 24 缓存。本地全量验证通过（6 lint + 9 types:check task 全绿）。**不含 test**（server test 需 MongoDB+Redis，未来加 service containers）
 - ✅ **已加 turbo test task**：`turbo.json` 现有 `test` task（之前缺失）
-- ⬜ **deploy.yml 仍未修**：SCP + 远程 install 方案仍坏，文件内仍有 `TODO: monorepo 适配` 标注。推荐改用 `pnpm deploy --filter`（见 [08-refactor-plan.md](./08-refactor-plan.md) Phase 5 §5.4）
+- ⬜ **PR CI 暂缓**：曾尝试加 `.github/workflows/ci.yml`（PR 触发，跑 lint+types:check+build），但维护者反馈当前是单人开发、直接 push main 不开 PR、不希望 CI 在常规流程中触发。**已删除该 workflow**。维护者通过 tag 触发的 deploy service 处理部署（独立于本仓库 CI）。未来若引入协作工作流，可从 git 历史恢复或重写
+- ⬜ **deploy.yml 仍未修**：SCP + 远程 install 方案仍坏，文件内仍有 `TODO: monorepo 适配` 标注。维护者计划后续用独立的 deploy service 统一处理，不在本次范围内
 
 **证据**：
 - `.github/workflows/deploy.yml` 含多处 `TODO: monorepo 适配` 注释
-- `.github/workflows/` 现有：`ci.yml`（新）、`deploy.yml`（待修）、`release.yml`（工作正常）
-- `turbo.json` 已含 `test` task
+- `.github/workflows/` 现有：`deploy.yml`（待维护者用自己的 deploy service 重构）、`release.yml`（工作正常）
+- `turbo.json` 已含 `test` task（`turbo test` 可本地用）
 
-**影响**：PR 现在有 lint+typecheck+build 自动检查（已解决主要问题）；部署仍可能失败（deploy.yml 未修，剩余风险）。
+**影响**：PR 仍无自动检查（维护者可接受，单人开发 + AI 写 commit）；部署仍可能失败（deploy.yml 待重构）。
 
-**严重级别**：🟡 中等（从 🔴 降级——PR 质量门已建立，仅 deploy 残留）
+**严重级别**：🟡 中等（维护者明确接受现状，部署重构走独立路径）
 
-**对应 Phase**：[Phase 5](./08-refactor-plan.md#phase-5)（部分完成）
+**对应 Phase**：[Phase 5](./08-refactor-plan.md#phase-5)（test task 已做，其余按维护者节奏）
 
 ---
 
@@ -305,7 +305,7 @@
 |---|------|------|-------|------|
 | 1 | ✅ | `@walnut` 命名空间双重定义 | Phase 1 | ✅ 已改名 `@walnut-server/*` |
 | 2 | 🔴 | 前后端零契约共享 | Phase 4 | 待办 |
-| 3 | 🟡 | CI/CD 坏掉 | Phase 5 | 🟡 大部分解决（PR CI + test task 已加，deploy.yml 待修）|
+| 3 | 🟡 | CI/CD 坏掉 | Phase 5 | 🟡 部分（test task 已加，PR CI 经评估移除，deploy 待维护者处理）|
 | 4 | 🟡 | ui/ai 空壳 | Phase 3 | ✅ 已删除 |
 | 5 | 🟡 | tsconfig.base.node 孤儿 | Phase 2 | ✅ 已删除 |
 | 6 | 🟡 | baseUrl/paths 错配 | Phase 2 | ✅ 已删 paths |
@@ -318,9 +318,8 @@
 | 13 | ✅ | deploy.config 明文密码 | — | ✅ 已核实未泄露（误报）|
 
 **已完全解决**：#1、#4、#5、#6、#8、#12、#13（7 个）
-**大部分解决**：#3（PR CI + test task 已加，仅 deploy.yml 待修）
-**部分解决**：#9、#11（2 个）
-**待办**：#2、#7、#10（3 个，其中 #2 是契约包大工程）
+**部分解决**：#3（test task 已加；PR CI 经评估对单人开发无价值已移除；deploy 待维护者用独立 service 处理）、#9、#11
+**待办**：#2、#7、#10（3 个；#2 契约包大工程，#7 跨包 .d.ts 复杂，#10 commitlint 维护者已否决）
 
 ---
 

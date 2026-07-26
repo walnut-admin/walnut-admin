@@ -15,7 +15,7 @@
 | [Phase 2](#phase-2-tsconfig-清理) | 删孤儿 base、修 paths、消除跨包 reach | ~8 tsconfig + 7 .d.ts | 低-中 | 无 | 🟡 部分（#5/#6 已做，#7 跨包 reach 待办） |
 | [Phase 3](#phase-3-空壳包处置) | 删除 ui/ai | 2 目录 + 1 package.json | 极低 | 无 | ✅ 完成 |
 | [Phase 4](#phase-4-契约包-walnutcontract) | 引入共享契约包 | 1 新包 + 多处 re-export | 中（跨前后端） | Phase 1（命名空间清晰后再加 contract） | ⬜ 待办 |
-| [Phase 5](#phase-5-cicd-修复) | PR CI + test task + 修 deploy | turbo.json + 2 workflow | 低 | 无 | 🟡 部分（test task + catalog globalDep 已做，PR workflow + deploy 修复待办） |
+| [Phase 5](#phase-5-cicd-修复) | PR CI + test task + 修 deploy | turbo.json + 2 workflow | 低 | 无 | 🟡 部分（test task + catalog globalDep 已做；PR CI 经评估对单人开发无价值已移除；deploy 待维护者用独立 service 处理） |
 
 **已完成的工作**（2026-07-26）：
 - ✅ Phase 1 全部：后端 9 个 lib 从 `@walnut/*` 改名为 `@walnut-server/*`（403 文件、940 处替换）
