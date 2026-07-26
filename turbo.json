@@ -19,11 +19,10 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".vitepress/dist/**"],
       "inputs": [
-        "src/**",
-        "vite.config.*",
-        "tsconfig.json",
-        "package.json",
-        "infra/**"
+        "$TURBO_DEFAULT$",
+        "!README.md",
+        "!**/*.md",
+        "!**/tsconfig.tsbuildinfo"
       ],
       "cache": true
     },
@@ -35,40 +34,34 @@
     "lint": {
       "dependsOn": [],
       "inputs": [
-        "src/**",
-        "eslint.config.*",
-        "tsconfig.json",
-        "package.json"
+        "$TURBO_DEFAULT$",
+        "!**/dist/**",
+        "!**/*.md"
       ],
       "cache": true
     },
     "lint:fix": {
       "dependsOn": [],
       "inputs": [
-        "src/**",
-        "eslint.config.*",
-        "tsconfig.json",
-        "package.json"
+        "$TURBO_DEFAULT$",
+        "!**/dist/**",
+        "!**/*.md"
       ],
-      "cache": true
+      "cache": false
     },
     "types:check": {
       "dependsOn": ["^build"],
       "inputs": [
-        "src/**",
-        "tsconfig.json",
-        "package.json"
+        "$TURBO_DEFAULT$",
+        "!**/*.md"
       ],
       "cache": true
     },
     "test": {
       "dependsOn": [],
       "inputs": [
-        "src/**",
-        "test/**",
-        "vitest.config.*",
-        "tsconfig.json",
-        "package.json"
+        "$TURBO_DEFAULT$",
+        "!**/*.md"
       ],
       "outputs": ["coverage/**"],
       "cache": true
