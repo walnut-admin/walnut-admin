@@ -1,29 +1,64 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["tsconfig.base.json", "eslint.config.mjs"],
+  "globalDependencies": [
+    "tsconfig.base.json",
+    "tsconfig.json",
+    "eslint.config.mjs"
+  ],
   "globalEnv": ["NODE_ENV"],
+  "globalPassThroughEnv": [
+    "CI",
+    "GITHUB_TOKEN",
+    "VERCEL_TOKEN",
+    "TURBO_TOKEN",
+    "TURBO_TEAM"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".vitepress/dist/**"],
+      "inputs": [
+        "src/**",
+        "vite.config.*",
+        "tsconfig.json",
+        "package.json",
+        "infra/**"
+      ],
       "cache": true
     },
     "dev": {
-      "dependsOn": ["^build"],
       "persistent": true,
+      "interruptible": true,
       "cache": false
     },
     "lint": {
       "dependsOn": [],
+      "inputs": [
+        "src/**",
+        "eslint.config.*",
+        "tsconfig.json",
+        "package.json"
+      ],
       "cache": true
     },
     "lint:fix": {
       "dependsOn": [],
+      "inputs": [
+        "src/**",
+        "eslint.config.*",
+        "tsconfig.json",
+        "package.json"
+      ],
       "cache": true
     },
     "types:check": {
       "dependsOn": ["^build"],
-      "cache": false
+      "inputs": [
+        "src/**",
+        "tsconfig.json",
+        "package.json"
+      ],
+      "cache": true
     },
     "clean": {
       "dependsOn": [],
