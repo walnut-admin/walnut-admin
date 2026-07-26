@@ -3,7 +3,8 @@
   "globalDependencies": [
     "tsconfig.base.json",
     "tsconfig.json",
-    "eslint.config.mjs"
+    "eslint.config.mjs",
+    "pnpm-workspace.yaml"
   ],
   "globalEnv": ["NODE_ENV"],
   "globalPassThroughEnv": [
@@ -58,6 +59,18 @@
         "tsconfig.json",
         "package.json"
       ],
+      "cache": true
+    },
+    "test": {
+      "dependsOn": [],
+      "inputs": [
+        "src/**",
+        "test/**",
+        "vitest.config.*",
+        "tsconfig.json",
+        "package.json"
+      ],
+      "outputs": ["coverage/**"],
       "cache": true
     },
     "clean": {

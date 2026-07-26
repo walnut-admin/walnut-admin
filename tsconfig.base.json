@@ -9,9 +9,7 @@
     "paths": {
       "@walnut/shared": ["./packages/shared/src"],
       "@walnut/axios": ["./packages/axios/src"],
-      "@walnut/core": ["./packages/core/src"],
-      "@walnut/ui": ["./packages/ui/src"],
-      "@walnut/ai": ["./packages/ai/src"]
+      "@walnut/core": ["./packages/core/src"]
     },
     "resolveJsonModule": true,
     "typeRoots": ["./node_modules/@types/"],
