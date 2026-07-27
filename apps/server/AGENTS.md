@@ -38,7 +38,7 @@ pnpm dev
 
 ## 📖 更多资源
 
-- **Skill 指南**: `.agents/skills/` 目录下包含可复用的开发技能
+- **Skill 指南**: `.claude/skills/` 目录下包含可复用的开发技能（`be-*` 前缀为后端，`fe-*` 前缀为前端）
 - **项目结构**: 源码位于 `src/walnut/admin/com/app/`
 - **API 文档**: 开发环境自动生成的 Swagger UI
 
