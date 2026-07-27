@@ -435,7 +435,13 @@ ESLint enforces strict decorator order. Run `pnpm lint` to auto-fix.
 
 ## Environment Configuration
 
-Environment files are in `env/` directory:
+Environment files use **dotenvx** encryption (AES-256). See [环境变量加密管理](https://walnut-admin-doc.netlify.app/content/monorepo/env-management) for full documentation.
+
+Quick reference:
+- `pnpm setup-env` — decrypt `env-encrypted/` → `env-local/`（新成员初始化）
+- `pnpm encrypt-env` — encrypt `env-local/` → `env-encrypted/`（更新密钥后）
+
+Environment files loaded:
 - `.env.development` - Development config
 - `.env.production` - Production config
 - `.env.stage` - Staging config
@@ -445,6 +451,7 @@ Environment files are in `env/` directory:
 - `MFA_ENCRYPTION_KEY` - MFA data encryption
 - `RT_ENCRYPTION_KEY` - Refresh token encryption
 - `DEVICE_ID_ENCRYPTION_KEY` - Device ID encryption
+- `USER_ID_ENCRYPTION_KEY` - User identity encryption
 
 ## Testing
 

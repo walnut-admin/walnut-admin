@@ -2,13 +2,13 @@ import type { StandardSchemaV1 } from 'node_modules/zod/v4/core/standard-schema.
 import { ValidateEnv } from '@julr/vite-plugin-validate-env'
 import DevSchema from '../config/env.development'
 import ProdSchema from '../config/env.prod'
-import StagingSchema from '../config/env.staging'
+import StageSchema from '../config/env.stage'
 
 type RecordViteKeys<T> = Record<`${string}_${string}`, T>
 
 const envSchemaMap: Record<string, RecordViteKeys<StandardSchemaV1>> = {
   development: DevSchema,
-  staging: StagingSchema,
+  stage: StageSchema,
   production: ProdSchema,
 }
 

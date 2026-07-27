@@ -185,6 +185,10 @@ const sidebar: DefaultTheme.Sidebar = {
           text: 'Monorepo 架构与设计',
           link: '/content/monorepo/',
         },
+        {
+          text: '环境变量加密管理',
+          link: '/content/monorepo/env-management',
+        },
       ],
     },
     {

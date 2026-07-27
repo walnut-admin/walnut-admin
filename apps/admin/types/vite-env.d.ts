@@ -1,6 +1,6 @@
 type ImportMetaEnvAugmented = import('@julr/vite-plugin-validate-env').ImportMetaEnvAugmented<
   typeof import('../build/vite/config/env.development').default
-  & typeof import('../build/vite/config/env.staging').default
+  & typeof import('../build/vite/config/env.stage').default
 >
 
 interface ViteTypeOptions {

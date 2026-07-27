@@ -1,12 +1,14 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["ESNext"]
+    "lib": ["ESNext"],
+    "types": ["node"]
   },
   "include": [
     "*.mjs",
     "*.ts",
-    "*.js"
+    "*.js",
+    "scripts"
   ],
   "exclude": ["node_modules", "dist", ".turbo", "**/dist/**"]
 }

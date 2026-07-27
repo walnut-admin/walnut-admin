@@ -25,6 +25,7 @@ build/_generated/*.json
 build/_generated/*.log
 
 # Environment
+.env.keys
 env-local/
 
 # Deploy configs (may contain credentials)

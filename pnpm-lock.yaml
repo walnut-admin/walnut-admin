@@ -9,6 +9,9 @@ catalogs:
     '@antfu/eslint-config':
       specifier: 8.2.0
       version: 8.2.0
+    '@dotenvx/dotenvx':
+      specifier: 2.19.0
+      version: 2.19.0
     '@nestjs/common':
       specifier: 11.1.17
       version: 11.1.17
@@ -129,6 +132,9 @@ catalogs:
     tinyglobby:
       specifier: 0.2.16
       version: 0.2.16
+    tsx:
+      specifier: 4.21.0
+      version: 4.21.0
     typescript:
       specifier: 6.0.3
       version: 6.0.3
@@ -162,6 +168,12 @@ importers:
       '@antfu/eslint-config':
         specifier: 'catalog:'
         version: 8.2.0(@typescript-eslint/typescript-estree@8.65.0(typescript@6.0.3))(@typescript-eslint/utils@8.65.0(eslint@10.3.0(jiti@2.7.0))(typescript@6.0.3))(@unocss/eslint-plugin@66.6.8(eslint@10.3.0(jiti@2.7.0))(typescript@6.0.3))(@vue/compiler-sfc@3.5.40)(eslint@10.3.0(jiti@2.7.0))(typescript@6.0.3)(vitest@4.1.2(@types/node@25.5.0)(vite@8.0.11(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0)))
+      '@dotenvx/dotenvx':
+        specifier: 'catalog:'
+        version: 2.19.0
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.5.0
       eslint:
         specifier: 'catalog:'
         version: 10.3.0(jiti@2.7.0)
@@ -177,6 +189,9 @@ importers:
       taze:
         specifier: 'catalog:'
         version: 19.11.0
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
       turbo:
         specifier: 2.4.0
         version: 2.4.0
@@ -488,7 +503,7 @@ importers:
         specifier: 2.9.0
         version: 2.9.0
       tsx:
-        specifier: 4.21.0
+        specifier: 'catalog:'
         version: 4.21.0
       typescript:
         specifier: 'catalog:'
@@ -2281,6 +2296,16 @@ packages:
         optional: true
       search-insights:
         optional: true
+
+  '@dotenvx/dotenvx@2.19.0':
+    resolution: {integrity: sha512-DPy8Xbe+wV8gDRAC9Kr324dkgH4aQS7tPGh1YLkBSBICFvAQNe5umnpRT7IZ0yJ3VlsfWVFJ6+2s9dcZjtQOAw==}
+    hasBin: true
+
+  '@dotenvx/primitives@2.1.1':
+    resolution: {integrity: sha512-FvG4D0x5nELUxGjeGviXJnVHluK4jIeB3ebOTObgCMbc0/hc7byzUsl3nURTSyBcSCy9dQdOZ12zOIknircMkA==}
+
+  '@dotenvx/tooling@1.0.3':
+    resolution: {integrity: sha512-Gd6qQol/ICb4MPRWpiIH56y+pR9AVB7kPBkbhrLSGLtAiF4Qgy+k651/f2pze0Xbm3H5XewbPfIm4y9K+ic30Q==}
 
   '@e18e/eslint-plugin@0.3.0':
     resolution: {integrity: sha512-hHgfpxsrZ2UYHcicA+tGZnmk19uJTaye9VH79O+XS8R4ona2Hx3xjhXghclNW58uXMk3xXlbYEOMr8thsoBmWg==}
@@ -14443,6 +14468,10 @@ packages:
     resolution: {integrity: sha512-4LCcse/U2MHZ63HAJVE+v71o7yOdIe4cZ70Wpf8D/IyjDKYQLV5GD46B+hSTjJsvV5PztjvHoU580EftxjDZFQ==}
     engines: {node: '>=12.20'}
 
+  yocto-spinner@1.2.2:
+    resolution: {integrity: sha512-DODGl1wJjA/s5pnJFKau9lIYHT81lnhob1i3e1TjxZRxEhWRKl74nTbWE6H5KlkViQQTo/Z29YFdxzTZAMY3ng==}
+    engines: {node: '>=18.19'}
+
   yoctocolors-cjs@2.1.3:
     resolution: {integrity: sha512-U/PBtDf35ff0D8X8D0jfdzHYEPFxAI7jJlxZXwCSez5M3190m+QobIfh+sWDWSHMCWWJN2AWamkegn6vr6YBTw==}
     engines: {node: '>=18'}
@@ -16664,6 +16693,16 @@ snapshots:
       search-insights: 2.17.3
     transitivePeerDependencies:
       - '@algolia/client-search'
+
+  '@dotenvx/dotenvx@2.19.0':
+    dependencies:
+      '@dotenvx/primitives': 2.1.1
+      '@dotenvx/tooling': 1.0.3
+      yocto-spinner: 1.2.2
+
+  '@dotenvx/primitives@2.1.1': {}
+
+  '@dotenvx/tooling@1.0.3': {}
 
   '@e18e/eslint-plugin@0.3.0(eslint@10.3.0(jiti@2.7.0))':
     dependencies:
@@ -30716,6 +30755,10 @@ snapshots:
   yocto-queue@0.1.0: {}
 
   yocto-queue@1.2.2: {}
+
+  yocto-spinner@1.2.2:
+    dependencies:
+      yoctocolors: 2.1.2
 
   yoctocolors-cjs@2.1.3: {}
 

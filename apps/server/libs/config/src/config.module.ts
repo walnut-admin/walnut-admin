@@ -11,14 +11,12 @@ import JwtConfig from './modules/jwt.config'
 import MiddlewareConfig from './modules/middleware.config'
 import SocketConfig from './modules/socket.config'
 import VendorConfig from './modules/vendor.config'
-import { isDev } from './utils/env'
 import { validateConfig } from './validation'
 
 const rawEnv = process.env.NODE_ENV
 const env = rawEnv ?? 'development'
 const projectRoot = process.cwd()
-const envDir = isDev ? 'env-local' : 'env'
-const envFilePath = join(projectRoot, envDir, `.env.${env}`)
+const envFilePath = join(projectRoot, 'env-local', `.env.${env}`)
 
 @Module({
   imports: [

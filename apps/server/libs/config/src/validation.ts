@@ -27,6 +27,12 @@ class EnvironmentVariables {
   APP_I18N_FALLBACK: string
 
   @IsString()
+  APP_COOKIE_SECRET: string
+
+  @IsString()
+  APP_SESSION_SECRET: string
+
+  @IsString()
   APP_NAME: string
 
   @IsString()

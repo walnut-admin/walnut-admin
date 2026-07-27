@@ -10,6 +10,7 @@ overrides:
 
 catalog:
   '@antfu/eslint-config': 8.2.0
+  '@dotenvx/dotenvx': 2.19.0
   '@nestjs/common': 11.1.17
   '@nestjs/core': 11.1.17
   '@nestjs/platform-express': 11.1.17
@@ -51,6 +52,7 @@ catalog:
   superjson: 2.2.6
   taze: 19.11.0
   tinyglobby: 0.2.16
+  tsx: 4.21.0
   typescript: 6.0.3
   vite: 8.0.11
   vite-plugin-dts: 4.5.4
@@ -76,3 +78,7 @@ allowBuilds:
   simple-git-hooks: true
   unrs-resolver: true
   vue-demi: true
+
+minimumReleaseAgeExclude:
+  - '@dotenvx/dotenvx@2.19.0'
+  - '@dotenvx/primitives@2.1.1'

@@ -26,7 +26,7 @@
     "build:admin": "NODE_OPTIONS=--max-old-space-size=8192 turbo build --filter=@walnut/admin",
     "build:server": "NODE_OPTIONS=--max-old-space-size=8192 turbo build --filter=@walnut/server",
     "build:docs": "turbo build --filter=@walnut/docs",
-    "build:stage": "NODE_OPTIONS=--max-old-space-size=8192 turbo build --filter=@walnut/admin -- -- --mode staging",
+    "build:stage": "NODE_OPTIONS=--max-old-space-size=8192 turbo build --filter=@walnut/admin -- -- --mode stage",
     "preview": "turbo preview",
     "lint": "turbo lint",
     "lint:root": "eslint . --concurrency=auto",
@@ -35,10 +35,12 @@
     "types:check": "turbo types:check",
     "clean": "turbo clean",
     "clean:all": "rimraf node_modules apps/*/node_modules packages/*/node_modules build/node_modules",
+    "setup-env": "tsx scripts/setup-env.ts decrypt",
+    "encrypt-env": "tsx scripts/setup-env.ts encrypt",
     "check:deps:update": "npx taze major -l",
     "changelog": "tsx apps/admin/scripts/release/changelog.ts",
     "git:push": "tsx apps/admin/scripts/release/git.ts",
-    "deploy:stage": "deploy-cli-service deploy --mode staging",
+    "deploy:stage": "deploy-cli-service deploy --mode stage",
     "deploy:prod": "deploy-cli-service deploy --mode production",
     "generate-pwa-assets": "pwa-assets-generator"
   },
@@ -46,11 +48,14 @@
     "@antfu/eslint-config": "catalog:",
     "eslint": "catalog:",
     "lint-staged": "17.0.2",
+    "@dotenvx/dotenvx": "catalog:",
     "rimraf": "catalog:",
     "simple-git-hooks": "2.13.1",
+    "tsx": "catalog:",
     "taze": "catalog:",
     "turbo": "2.4.0",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "@types/node": "catalog:"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged",
