@@ -1,3 +1,4 @@
+import type { Fn } from '@walnut/shared/types/universal'
 import type { InputOtpProps } from 'naive-ui'
 
 export { default } from './index.vue'

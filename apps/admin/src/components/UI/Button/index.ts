@@ -1,3 +1,4 @@
+import type { Fn } from '@walnut/shared/types/universal'
 import type { ButtonProps } from 'naive-ui'
 import type { VNodeChild } from 'vue'
 

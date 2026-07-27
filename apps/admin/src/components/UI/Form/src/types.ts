@@ -1,4 +1,7 @@
 import type { IHooksUseProps } from '@walnut/core/hooks/core/useProps'
+import type { IDeepMaybeRef } from '@walnut/shared/types/deep-ref'
+import type { DeepKeyOf, ShortEmits } from '@walnut/shared/types/object-key'
+import type { Fn, IActionType } from '@walnut/shared/types/universal'
 import type { BaseDataType, Recordable, StringOrNumber } from 'easy-fns-ts'
 // raw
 import type {

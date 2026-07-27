@@ -1,3 +1,4 @@
+import type { IStorageAsync } from '../../types/storage'
 /**
  * @description Wraps any Storage instance with transparent encryption/decryption.
  * The underlying storage keys remain unchanged; values are encrypted on write and decrypted on read.

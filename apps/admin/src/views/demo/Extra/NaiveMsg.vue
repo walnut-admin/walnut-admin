@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { Fn } from '@walnut/shared/types/universal'
+
 defineOptions({
   name: 'NaiveMsgDemo',
   defaultView: false,

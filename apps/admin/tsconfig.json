@@ -18,8 +18,7 @@
     "src/**/*.vue",
     "types/*.d.ts",
     "build/**/*.ts",
-    "*.ts",
-    "../../packages/shared/src/types/*.d.ts"
+    "*.ts"
   ],
   "exclude": ["node_modules", "dist", "**/*.js"]
 }

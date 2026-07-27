@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { Fn } from '@walnut/shared/types/universal'
 import type { ICompExtraVerifyCodeProps } from '.'
 import { useFormItem } from 'naive-ui/es/_mixins'
 

@@ -1,3 +1,4 @@
+import type { IDeepMaybeRef } from '@walnut/shared/types/deep-ref'
 import type { ICompUIDropdownInst, ICompUIDropdownProps } from '.'
 import { isInSetup } from '@walnut/shared/shared'
 

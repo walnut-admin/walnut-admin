@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { Fn } from '@walnut/shared/types/universal'
 import { urls } from '~build/package'
 
 defineOptions({

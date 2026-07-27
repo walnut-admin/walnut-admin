@@ -1,3 +1,4 @@
+import type { Fn } from '@walnut/shared/types/universal'
 import type { ICompUIButtonProps } from '../Button'
 
 export { default } from './index.vue'

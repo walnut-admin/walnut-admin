@@ -1,3 +1,4 @@
+import type { IDeepMaybeRef } from '@walnut/shared/types/deep-ref'
 import { merge } from 'lodash-es'
 import { computed, ref, unref } from 'vue'
 

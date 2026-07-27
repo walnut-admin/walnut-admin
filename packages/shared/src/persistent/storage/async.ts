@@ -1,4 +1,5 @@
 import type { Ref } from 'vue'
+import type { IStorageAsync, IStorageData, IStorageOptions } from '../../types/storage'
 import { useDebounceFn } from '@vueuse/core'
 import { cloneDeep } from 'lodash-es'
 import superjson from 'superjson'

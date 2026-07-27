@@ -1,4 +1,5 @@
 <script lang="tsx" setup>
+import type { Fn } from '@walnut/shared/types/universal'
 import type { Recordable } from 'easy-fns-ts'
 import type { WForm } from '@/components/UI/Form'
 import { useState } from '@walnut/core/hooks/core/useState'

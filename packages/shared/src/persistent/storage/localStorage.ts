@@ -1,3 +1,5 @@
+import type { IStorageAsync } from '../../types/storage'
+
 class AsyncLocalStorage implements IStorageAsync {
   public length = localStorage.length
 

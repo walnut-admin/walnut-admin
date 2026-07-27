@@ -1,3 +1,4 @@
+import type { IDeepMaybeRef } from '@walnut/shared/types/deep-ref'
 import type { ICompUITreeInst, ICompUITreeProps } from '.'
 import { isInSetup } from '@walnut/shared/shared'
 

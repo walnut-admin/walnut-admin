@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { Fn } from '@walnut/shared/types/universal'
 // https://www.cnblogs.com/Arunoido/p/13937030.html?ivk_sa=1024320u
 defineOptions({
   name: 'SignInWithQR',
