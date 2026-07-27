@@ -62,7 +62,7 @@ export class AppErrorService {
       errorType: error.name,
       userId: req?.user?.userId,
       responseCode: resData.code!,
-      responseMsg: resData.msg!,
+      responseMsg: resData.msg,
       ip: req.realIp,
       env: process.env.NODE_ENV,
     }

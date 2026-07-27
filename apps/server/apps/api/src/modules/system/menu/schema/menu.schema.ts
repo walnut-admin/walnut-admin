@@ -10,6 +10,7 @@ import {
 
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPartialType } from '@walnut-server/utils/dto'
+import { CacheKeyStrategy, MenuTernal, MenuType } from '@walnut/contract/menu'
 import { Recordable, ValueOf } from 'easy-fns-ts'
 import { HydratedDocument, Model, Types } from 'mongoose'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
@@ -22,27 +23,15 @@ export interface ISysMenuMethods { }
 
 export interface ISysMenuStatics { }
 
-export const SysMenuTypeConst = {
-  CATALOG: 'catalog',
-  MENU: 'menu',
-  ELEMENT: 'element',
-} as const
+export const SysMenuTypeConst = MenuType
 
 export type ISysMenuTypeConst = ValueOf<typeof SysMenuTypeConst>
 
-export const SysMenuTernalConst = {
-  EXTERNAL: 'external',
-  INTERNAL: 'internal',
-  NONE: 'none',
-} as const
+export const SysMenuTernalConst = MenuTernal
 
 export type ISysMenuTernalConst = ValueOf<typeof SysMenuTernalConst>
 
-const SysMenuCacheKeyStrategyConst = {
-  NAME: 'name',
-  PATH: 'path',
-  CUSTOM: 'custom',
-} as const
+export const SysMenuCacheKeyStrategyConst = CacheKeyStrategy
 
 export type ISysMenuCacheKeyStrategyConst = ValueOf<typeof SysMenuCacheKeyStrategyConst>
 

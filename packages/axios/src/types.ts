@@ -1,10 +1,9 @@
+import type { ResponseBase } from '@walnut/contract/response'
 import type { AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
-import type { Recordable } from 'easy-fns-ts'
 
-/**
- * @description Sort order for list params (framework-agnostic)
- */
-export type SortOrder = 'ascend' | 'descend' | false
+// Re-export contract types for backward compatibility
+export type { ResponseBase }
+export type { BaseListParams, BaseListResponse, BasePageParams, BaseSortParams, SortOrder } from '@walnut/contract/pagination'
 
 export interface AxiosConfig {
   originalConfig: AxiosRequestConfig
@@ -18,34 +17,11 @@ export interface AxiosTransformers<T = any> {
   responseInterceptorsCatch?: <E = any>(error: AxiosError<E>) => void
 }
 
-export interface BaseResponse<T = any> {
-  code: number
-  msg: string
-  data: T
-  meta?: Recordable
-}
-
-export interface BaseListResponse<T = any> {
-  data: T[]
-  total: number
-}
-
-export type BaseSortParams<T = any> = {
-  field: keyof T
-  order: SortOrder
-  priority: number
-}[]
-
-export interface BasePageParams {
-  page: number
-  pageSize: number
-}
-
-export interface BaseListParams<T = any> {
-  query?: T
-  sort?: BaseSortParams<T>
-  page?: BasePageParams
-}
+/**
+ * @deprecated Use ResponseBase from @walnut/contract/response instead.
+ * Kept for backward compatibility.
+ */
+export type BaseResponse<T = any> = ResponseBase<T>
 
 // Augment AxiosRequestConfig with custom adapter config properties
 declare module 'axios' {

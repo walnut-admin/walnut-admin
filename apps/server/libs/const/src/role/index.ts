@@ -1,11 +1,7 @@
 import type { ValueOf } from 'easy-fns-ts'
+import { Role } from '@walnut/contract/role'
 
-export const WalnutAdminConstRole = {
-  ROOT: 'root',
-  DEVELOPER: 'developer',
-  ADMIN: 'admin',
-  VISITOR: 'visitor',
-} as const
+export const WalnutAdminConstRole = Role
 
 export type IWalnutAdminConstRole = ValueOf<typeof WalnutAdminConstRole>
 

@@ -10,6 +10,7 @@
     "esModuleInterop": true,
     "strictNullChecks": true,
     "target": "es2022",
+    "rootDir": "../../",
     "sourceMap": false,
     "outDir": "./dist",
     "incremental": true,
@@ -75,6 +76,12 @@
       ],
       "@walnut-server/context/*": [
         "./libs/context/src/*"
+      ],
+      "@walnut/contract": [
+        "../../packages/contract/src"
+      ],
+      "@walnut/contract/*": [
+        "../../packages/contract/src/*"
       ]
     }
   }

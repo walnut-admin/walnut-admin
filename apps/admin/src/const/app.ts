@@ -1,4 +1,7 @@
 import type { ValueOf } from 'easy-fns-ts'
+import { RequestHeaders as RequestHeadersContract } from '@walnut/contract/http'
+import { Locale as LocaleContract } from '@walnut/contract/i18n'
+import { Role } from '@walnut/contract/role'
 
 export const AppConstDevice = {
   MOBILE: 'mobile',
@@ -17,8 +20,8 @@ export const AppConstFontSize = {
 export type ValueOfAppConstFontSize = ValueOf<typeof AppConstFontSize>
 
 export const AppConstLocale = {
-  EN_US: 'en_US',
-  ZH_CN: 'zh_CN',
+  EN_US: LocaleContract.en_US,
+  ZH_CN: LocaleContract.zh_CN,
 } as const
 
 export type ValueOfAppConstLocale = ValueOf<typeof AppConstLocale>
@@ -75,22 +78,17 @@ export const AppConstCVD = {
 
 export type ValueOfAppCVD = ValueOf<typeof AppConstCVD>
 
-export const AppConstRoles = {
-  ROOT: 'root',
-  ADMIN: 'admin',
-  DEVELOPER: 'developer',
-  VISITOR: 'visitor',
-} as const
+export const AppConstRoles = Role
 
 export type ValueOfAppConstRoles = ValueOf<typeof AppConstRoles>
 
 export const AppConstRequestHeaders = {
-  AUTHORIZATION: 'Authorization',
-  LANGUAGE: 'x-language',
-  FINGERPRINT: 'x-fingerprint',
-  SIGN: 'x-sign',
-  TIMESTAMP: 'x-timestamp',
-  NONCE: 'x-nonce',
+  AUTHORIZATION: RequestHeadersContract.AUTHORIZATION,
+  LANGUAGE: RequestHeadersContract.LANGUAGE,
+  FINGERPRINT: RequestHeadersContract.FINGERPRINT,
+  SIGN: RequestHeadersContract.SIGN,
+  TIMESTAMP: RequestHeadersContract.TIMESTAMP,
+  NONCE: RequestHeadersContract.NONCE,
 } as const
 
 export type ValueOfAppConstRequestHeaders = ValueOf<typeof AppConstRequestHeaders>

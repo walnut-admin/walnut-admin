@@ -1,22 +1,10 @@
 import type { ValueOf } from 'easy-fns-ts'
+import { CacheKeyStrategy, MenuTernal, MenuType } from '@walnut/contract/menu'
 
-export const AppConstMenuType = {
-  CATALOG: 'catalog',
-  MENU: 'menu',
-  ELEMENT: 'element',
-} as const
-
-export const AppConstMenuTernal = {
-  EXTERNAL: 'external',
-  INTERNAL: 'internal',
-  NONE: 'none',
-} as const
-
-export const AppConstCacheKeyStrategy = {
-  NAME: 'name',
-  PATH: 'path',
-  CUSTOM: 'custom',
-} as const
+// Re-export from @walnut/contract with backward-compatible aliases
+export const AppConstMenuType = MenuType
+export const AppConstMenuTernal = MenuTernal
+export const AppConstCacheKeyStrategy = CacheKeyStrategy
 
 export type ValueOfAppConstMenuType = ValueOf<typeof AppConstMenuType>
 export type ValueOfAppConstMenuTernal = ValueOf<typeof AppConstMenuTernal>

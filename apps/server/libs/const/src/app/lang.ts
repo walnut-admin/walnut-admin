@@ -1,11 +1,7 @@
 import type { ValueOf } from 'easy-fns-ts'
+import { Locale } from '@walnut/contract/i18n'
 
-// app supported languages
-export const WalnutAdminConstAppLanguage = {
-  zh_CN: 'zh_CN',
-  en_US: 'en_US',
-} as const
+// Re-export from @walnut/contract — single source of truth
+export const WalnutAdminConstAppLanguage = Locale
 
-export type IWalnutAdminConstAppLanguage = ValueOf<
-  typeof WalnutAdminConstAppLanguage
->
+export type IWalnutAdminConstAppLanguage = ValueOf<typeof WalnutAdminConstAppLanguage>

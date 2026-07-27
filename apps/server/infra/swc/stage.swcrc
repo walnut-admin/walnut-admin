@@ -33,7 +33,9 @@
       "@walnut-server/exceptions": ["./libs/exceptions/src"],
       "@walnut-server/exceptions/*": ["./libs/exceptions/src/*"],
       "@walnut-server/context": ["./libs/context/src"],
-      "@walnut-server/context/*": ["./libs/context/src/*"]
+      "@walnut-server/context/*": ["./libs/context/src/*"],
+      "@walnut/contract": ["../../packages/contract/src"],
+      "@walnut/contract/*": ["../../packages/contract/src/*"]
     },
     "keepClassNames": true
   },

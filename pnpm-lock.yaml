@@ -243,6 +243,9 @@ importers:
       '@walnut/axios':
         specifier: workspace:*
         version: link:../../packages/axios
+      '@walnut/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
       '@walnut/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -981,6 +984,9 @@ importers:
 
   packages/axios:
     dependencies:
+      '@walnut/contract':
+        specifier: workspace:*
+        version: link:../contract
       axios:
         specifier: 'catalog:'
         version: 1.16.0
@@ -1015,6 +1021,19 @@ importers:
       vite-plugin-dts:
         specifier: 'catalog:'
         version: 4.5.4(@types/node@25.5.0)(rollup@4.60.3)(typescript@6.0.3)(vite@8.0.11(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
+
+  packages/contract:
+    dependencies:
+      easy-fns-ts:
+        specifier: 'catalog:'
+        version: 2.1.1
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   packages/core:
     dependencies:

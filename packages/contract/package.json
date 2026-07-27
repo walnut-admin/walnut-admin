@@ -1,9 +1,9 @@
 {
-  "name": "@walnut/axios",
+  "name": "@walnut/contract",
   "type": "module",
   "version": "0.0.1",
   "private": true,
-  "description": "Custom Axios HTTP client with interceptors for Walnut Admin",
+  "description": "Shared types and constants contract between frontend and backend",
   "license": "MIT",
   "exports": {
     ".": "./src/index.ts",
@@ -14,7 +14,7 @@
     "pnpm": ">=11.0.0"
   },
   "scripts": {
-    "build": "echo 'axios: pure source, no build needed'",
+    "build": "echo 'contract: pure source, no build needed'",
     "lint": "eslint . --concurrency=auto",
     "lint:fix": "eslint . --fix --concurrency=auto",
     "types:check": "tsc --noEmit",
@@ -22,19 +22,10 @@
     "clean:all": "rimraf dist node_modules"
   },
   "dependencies": {
-    "@walnut/contract": "workspace:*",
-    "axios": "catalog:",
-    "lodash-es": "catalog:",
-    "lru-cache": "catalog:",
-    "nanoid": "catalog:"
+    "easy-fns-ts": "catalog:"
   },
   "devDependencies": {
-    "@types/lodash-es": "catalog:",
-    "@vitejs/plugin-vue": "catalog:",
-    "easy-fns-ts": "catalog:",
     "rimraf": "catalog:",
-    "typescript": "catalog:",
-    "vite": "catalog:",
-    "vite-plugin-dts": "catalog:"
+    "typescript": "catalog:"
   }
 }

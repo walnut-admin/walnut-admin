@@ -1,16 +1,16 @@
 import type { IWalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
-import { Recordable } from 'easy-fns-ts'
+import type { ResponseBase } from '@walnut/contract/response'
+import type { Recordable } from 'easy-fns-ts'
 
 declare global {
-  interface IWalnutAdminResponseBase<T = any> {
-    data: T
+  /** Standard API success response — extends contract base with stricter code type */
+  interface IWalnutAdminResponseBase<T = any> extends ResponseBase<T> {
     code?: IWalnutAdminConstAppResponseCode
-    msg?: string
     requestId: string
     meta?: Recordable
-    _devMsg?: string
   }
 
+  /** Exception/error response shape (backend-specific — not shared in contract) */
   interface IWalnutAdminResponseExceptionBase {
     errType: string
     errMsg: string

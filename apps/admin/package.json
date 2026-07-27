@@ -62,6 +62,7 @@
     "@vueuse/integrations": "catalog:",
     "@vueuse/router": "catalog:",
     "@walnut/axios": "workspace:*",
+    "@walnut/contract": "workspace:*",
     "@walnut/core": "workspace:*",
     "@walnut/shared": "workspace:*",
     "@zxcvbn-ts/core": "3.0.4",
