@@ -1,4 +1,4 @@
-import type { Fn } from '@walnut/shared/types/universal'
+import type { Fn } from '@walnut/utils/types/universal'
 import type { Nullable } from 'easy-fns-ts'
 import type { AppTabUtilListItem } from '../types'
 import type { ICompExtraScrollbarInst } from '@/components/Extra/Scrollbar'

@@ -1,5 +1,5 @@
 import type { BaseListParams } from '@walnut/axios/types'
-import { useState } from '@walnut/core/hooks/core/useState'
+import { useState } from '@walnut/client/hooks/core/useState'
 
 export function useTableAPIListParams<T>() {
   const {

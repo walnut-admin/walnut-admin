@@ -1,6 +1,6 @@
 import type { NullableRecord } from 'easy-fns-ts'
 import type { WTable } from '../types'
-import { isInSetup } from '@walnut/shared/shared'
+import { isInSetup } from '@walnut/client/browser/shared'
 
 export function useTable<T>(props: WTable.Hooks.UseTable.Props<T>): WTable.Hooks.UseTable.ReturnType<T> {
   isInSetup()

@@ -1,4 +1,4 @@
-import { SingletonPromise } from '@walnut/shared/queue'
+import { SingletonPromise } from '@walnut/utils/queue'
 
 const appStoreSecurity = useAppStoreSecurity()
 const rsaPubKeyNotFoundQueue = new SingletonPromise<void>()

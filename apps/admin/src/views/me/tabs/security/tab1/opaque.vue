@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useState } from '@walnut/core/hooks/core/useState'
+import { useState } from '@walnut/client/hooks/core/useState'
 
 defineOptions({
   name: 'WMeTabSecurityTab1Opaque',

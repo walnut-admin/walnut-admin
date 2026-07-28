@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import type { IActionType } from '@walnut/shared/types/universal'
+import type { IActionType } from '@walnut/utils/types/universal'
 import type { StringOrNumber } from 'easy-fns-ts'
 import type { IAppSystemMenuForm } from './types'
 
 import type { IModels } from '@/api/models'
 import type { WForm } from '@/components/UI/Form'
-import { useState } from '@walnut/core/hooks/core/useState'
-import { objectToPaths, pathsToObject } from '@walnut/shared/shared'
+import { objectToPaths, pathsToObject } from '@walnut/client/browser/shared'
+import { useState } from '@walnut/client/hooks/core/useState'
 import { omit } from 'lodash-es'
 import { menuAPI } from '@/api/system/menu'
 import { useTree } from '@/components/UI/Tree'

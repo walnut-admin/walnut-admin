@@ -87,6 +87,9 @@ catalogs:
     js-base64:
       specifier: 3.7.8
       version: 3.7.8
+    lint-staged:
+      specifier: 17.0.2
+      version: 17.0.2
     lodash-es:
       specifier: 4.18.1
       version: 4.18.1
@@ -120,6 +123,9 @@ catalogs:
     rxjs:
       specifier: 7.8.2
       version: 7.8.2
+    simple-git-hooks:
+      specifier: 2.13.1
+      version: 2.13.1
     sortablejs:
       specifier: 1.15.7
       version: 1.15.7
@@ -135,6 +141,9 @@ catalogs:
     tsx:
       specifier: 4.21.0
       version: 4.21.0
+    turbo:
+      specifier: 2.4.0
+      version: 2.4.0
     typescript:
       specifier: 6.0.3
       version: 6.0.3
@@ -178,13 +187,13 @@ importers:
         specifier: 'catalog:'
         version: 10.3.0(jiti@2.7.0)
       lint-staged:
-        specifier: 17.0.2
+        specifier: 'catalog:'
         version: 17.0.2
       rimraf:
         specifier: 'catalog:'
         version: 6.1.3
       simple-git-hooks:
-        specifier: 2.13.1
+        specifier: 'catalog:'
         version: 2.13.1
       taze:
         specifier: 'catalog:'
@@ -193,7 +202,7 @@ importers:
         specifier: 'catalog:'
         version: 4.21.0
       turbo:
-        specifier: 2.4.0
+        specifier: 'catalog:'
         version: 2.4.0
       typescript:
         specifier: 'catalog:'
@@ -258,15 +267,15 @@ importers:
       '@walnut/axios':
         specifier: workspace:*
         version: link:../../packages/axios
+      '@walnut/client':
+        specifier: workspace:*
+        version: link:../../packages/client
       '@walnut/contract':
         specifier: workspace:*
         version: link:../../packages/contract
-      '@walnut/core':
+      '@walnut/utils':
         specifier: workspace:*
-        version: link:../../packages/core
-      '@walnut/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
+        version: link:../../packages/utils
       '@zxcvbn-ts/core':
         specifier: 3.0.4
         version: 3.0.4
@@ -716,6 +725,12 @@ importers:
       '@supercharge/request-ip':
         specifier: 1.2.0
         version: 1.2.0
+      '@walnut/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
+      '@walnut/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       axios:
         specifier: 'catalog:'
         version: 1.16.0
@@ -1037,30 +1052,32 @@ importers:
         specifier: 'catalog:'
         version: 4.5.4(@types/node@25.5.0)(rollup@4.60.3)(typescript@6.0.3)(vite@8.0.11(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
 
-  packages/contract:
-    dependencies:
-      easy-fns-ts:
-        specifier: 'catalog:'
-        version: 2.1.1
-    devDependencies:
-      rimraf:
-        specifier: 'catalog:'
-        version: 6.1.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
-  packages/core:
+  packages/client:
     dependencies:
       '@vueuse/core':
         specifier: 'catalog:'
         version: 14.3.0(vue@3.5.34(typescript@6.0.3))
-      '@walnut/shared':
+      '@walnut/utils':
         specifier: workspace:*
-        version: link:../shared
-      naive-ui:
+        version: link:../utils
+      detectincognitojs:
         specifier: 'catalog:'
-        version: 2.44.1(vue@3.5.34(typescript@6.0.3))
+        version: 1.6.2
+      idb:
+        specifier: 'catalog:'
+        version: 8.0.3
+      js-base64:
+        specifier: 'catalog:'
+        version: 3.7.8
+      lodash-es:
+        specifier: 'catalog:'
+        version: 4.18.1
+      nanoid:
+        specifier: 'catalog:'
+        version: 5.1.11
+      superjson:
+        specifier: 'catalog:'
+        version: 2.2.6
       vue:
         specifier: 'catalog:'
         version: 3.5.34(typescript@6.0.3)
@@ -1093,42 +1110,34 @@ importers:
         specifier: 'catalog:'
         version: 4.5.4(@types/node@25.5.0)(rollup@4.60.3)(typescript@6.0.3)(vite@8.0.11(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
 
-  packages/shared:
+  packages/contract:
     dependencies:
-      '@vueuse/core':
-        specifier: 'catalog:'
-        version: 14.3.0(vue@3.5.34(typescript@6.0.3))
-      detectincognitojs:
-        specifier: 'catalog:'
-        version: 1.6.2
-      idb:
-        specifier: 'catalog:'
-        version: 8.0.3
-      js-base64:
-        specifier: 'catalog:'
-        version: 3.7.8
-      lodash-es:
-        specifier: 'catalog:'
-        version: 4.18.1
-      nanoid:
-        specifier: 'catalog:'
-        version: 5.1.11
-      superjson:
-        specifier: 'catalog:'
-        version: 2.2.6
-      vue:
-        specifier: 'catalog:'
-        version: 3.5.34(typescript@6.0.3)
-    devDependencies:
-      '@types/lodash-es':
-        specifier: 'catalog:'
-        version: 4.17.12
-      '@vitejs/plugin-vue':
-        specifier: 'catalog:'
-        version: 6.0.6(vite@8.0.11(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))(vue@3.5.34(typescript@6.0.3))
       easy-fns-ts:
         specifier: 'catalog:'
         version: 2.1.1
+    devDependencies:
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vite:
+        specifier: 'catalog:'
+        version: 8.0.11(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0)
+      vite-plugin-dts:
+        specifier: 'catalog:'
+        version: 4.5.4(@types/node@25.5.0)(rollup@4.60.3)(typescript@6.0.3)(vite@8.0.11(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
+
+  packages/utils:
+    dependencies:
+      js-base64:
+        specifier: 'catalog:'
+        version: 3.7.8
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.5.0
       rimraf:
         specifier: 'catalog:'
         version: 6.1.3

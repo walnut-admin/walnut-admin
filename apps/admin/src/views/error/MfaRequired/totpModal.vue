@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { InputInst } from 'naive-ui'
 import type { IResponseData } from '@/api/response'
-import { downloadByBlob } from '@walnut/shared/file/download'
+import { downloadByBlob } from '@walnut/client/browser/file/download'
 import { name } from '~build/package'
 import { authMfaTotpBindAPI, authMfaTotpGenerateAPI, authMfaTotpUnbindAPI } from '@/api/auth/mfa'
 

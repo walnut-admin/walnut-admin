@@ -66,10 +66,17 @@ walnut-admin/
 │   │   ├── env-encrypted/    — encrypted env (committed, dotenvx)
 │   │   └── env-local/       — local env (real values, gitignored, generated)
 │   └── docs/                — Vitepress documentation site
-├── packages/                ← Shared libraries (consumed by apps/admin only)
-│   ├── shared/  @walnut/shared   — zero-dependency base layer (crypto, storage, types)
-│   ├── axios/   @walnut/axios    — HTTP client framework (instance + adapters)
-│   └── core/    @walnut/core     — generic composables/hooks (~16 files)
+├── packages/                ← Shared libraries (consumed by apps)
+│   ├── utils/     @walnut/utils        — pure utilities (regex, queue, crypto/const,
+│   │                                      crypto/transformer). CJS build for backend
+│   │                                      consumption, source for frontend.
+│   ├── contract/  @walnut/contract     — shared types & constants (response codes,
+│   │                                      enums, pagination, API contracts).
+│   │                                      CJS build for backend consumption.
+│   ├── client/    @walnut/client       — browser utilities + Vue composables
+│   │                                      (crypto, file, window, storage, hooks)
+│   │                                      (crypto, storage, file utils). Source-only.
+│   └── axios/    @walnut/axios         — HTTP client framework (instance + adapters)
 ├── build/                    ← Shared Vite build config
 ├── migration-guide/          ← Migration documentation & tracking
 ├── turbo.json                ← Turborepo pipeline

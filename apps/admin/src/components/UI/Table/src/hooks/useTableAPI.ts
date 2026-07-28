@@ -1,4 +1,4 @@
-import type { IHooksUseProps } from '@walnut/core/hooks/core/useProps'
+import type { IHooksUseProps } from '@walnut/client/hooks/core/useProps'
 
 import type { NullableRecord, StringOrNumber } from 'easy-fns-ts'
 import type { SorterMultiple } from 'naive-ui/es/data-table/src/interface'

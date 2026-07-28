@@ -1,6 +1,6 @@
 <script lang="ts" setup generic="T">
 import type { InputNumberInst } from 'naive-ui'
-import { useIntervalFnWithPercent } from '@walnut/core/hooks/vueuse/useIntervalFnWithPercent'
+import { useIntervalFnWithPercent } from '@walnut/client/hooks/vueuse/useIntervalFnWithPercent'
 import { useTableContext } from '../../../hooks/useTableContext'
 
 defineOptions({

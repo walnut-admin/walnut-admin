@@ -6,7 +6,7 @@ import type { DropdownMixedOption } from 'naive-ui/es/dropdown/src/interface'
 import type { TreeNodeProps, TreeRenderProps } from 'naive-ui/es/tree/src/interface'
 import type { ICompUITreeInst, ICompUITreeProps } from '.'
 
-import { useProps } from '@walnut/core/hooks/core/useProps'
+import { useProps } from '@walnut/client/hooks/core/useProps'
 import { findPath, formatTree, treeToArr } from 'easy-fns-ts'
 import { cloneDeep } from 'lodash-es'
 // TODO 111

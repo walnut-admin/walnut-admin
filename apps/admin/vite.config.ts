@@ -74,6 +74,7 @@ export default ({ mode }: ConfigEnv): UserConfig => {
     plugins: [...createVitePlugins(mode, processedEnv)],
 
     resolve: {
+      conditions: ['source'],
       alias: {
         '@': pathResolve('src'),
         // https://github.com/axios/axios/issues/5000#issuecomment-1362395864

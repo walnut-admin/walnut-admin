@@ -46,16 +46,16 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
-    "eslint": "catalog:",
-    "lint-staged": "17.0.2",
     "@dotenvx/dotenvx": "catalog:",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "lint-staged": "catalog:",
     "rimraf": "catalog:",
-    "simple-git-hooks": "2.13.1",
-    "tsx": "catalog:",
+    "simple-git-hooks": "catalog:",
     "taze": "catalog:",
-    "turbo": "2.4.0",
-    "typescript": "catalog:",
-    "@types/node": "catalog:"
+    "tsx": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged",

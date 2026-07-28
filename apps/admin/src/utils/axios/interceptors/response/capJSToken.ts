@@ -1,4 +1,4 @@
-import { SingletonPromise } from '@walnut/shared/queue'
+import { SingletonPromise } from '@walnut/utils/queue'
 
 const capJSRefreshQueue = new SingletonPromise<string>()
 const capJSInteractionQueue = new SingletonPromise<void>()

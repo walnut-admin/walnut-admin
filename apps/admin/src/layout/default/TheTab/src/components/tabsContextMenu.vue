@@ -1,7 +1,7 @@
 <script lang="tsx" setup>
 import type { DropdownOption } from 'naive-ui'
 
-import { downloadByBase64 } from '@walnut/shared/file/download'
+import { downloadByBase64 } from '@walnut/client/browser/file/download'
 import { toJpeg } from 'html-to-image'
 
 import { getThemeOverridesCommon } from '@/App/src/naive/src/theme'

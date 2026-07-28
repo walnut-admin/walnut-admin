@@ -1,5 +1,5 @@
 import type { EffectScope } from 'vue'
-import { toggleLocalRefreshFlag } from '@walnut/core/hooks/core/useLocalRefresh'
+import { toggleLocalRefreshFlag } from '@walnut/client/hooks/core/useLocalRefresh'
 
 export function useAppHijackF5() {
   let scope: EffectScope

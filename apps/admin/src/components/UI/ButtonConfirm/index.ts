@@ -1,4 +1,4 @@
-import type { Fn } from '@walnut/shared/types/universal'
+import type { Fn } from '@walnut/utils/types/universal'
 import type { PopconfirmProps } from 'naive-ui'
 import type { ICompUIButtonProps } from '../Button'
 

@@ -1,6 +1,6 @@
 import type { Nullable } from 'easy-fns-ts'
 import type { IStoreApp } from '@/store/types'
-import { useAppStorageSync } from '@walnut/shared/persistent/storage/sync'
+import { useAppStorageSync } from '@walnut/client/persistent/storage/sync'
 import { defineStore } from 'pinia'
 import { initialDeviceAPI } from '@/api/system/device'
 import { StoreKeys } from '../../constant'

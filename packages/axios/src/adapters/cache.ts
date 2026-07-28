@@ -1,6 +1,6 @@
 import type { AxiosAdapter, AxiosPromise } from 'axios'
 import { LRUCache } from 'lru-cache'
-import { BusinessCodeConst } from '../constant'
+import { WalnutAdminConstAppResponseCode } from '../constant'
 import { buildSortedURL } from '../utils'
 
 const CAPACITY = 100
@@ -37,7 +37,7 @@ export function createCacheAdapter(cacheTTLSeconds: number) {
           responsePromise = (async () => {
             try {
               const response = await adapter(config)
-              if (parseResponseCode(response.data) !== BusinessCodeConst.SUCCESS)
+              if (parseResponseCode(response.data) !== WalnutAdminConstAppResponseCode.SUCCESS)
                 cacheAdapterCache.delete(index)
 
               return response

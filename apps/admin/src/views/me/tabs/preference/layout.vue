@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { IStoreUser } from '@/store/types'
-import { objectToPaths, pathsToObject } from '@walnut/shared/shared'
+import { objectToPaths, pathsToObject } from '@walnut/client/browser/shared'
 import { updateLayoutPreferenceAPI } from '@/api/system/user_preference'
 
 defineOptions({

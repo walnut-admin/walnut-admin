@@ -1,6 +1,6 @@
 import type { IStoreApp } from '@/store/types'
-import { importAesKeyFromRaw } from '@walnut/shared/crypto/shared'
-import { base64ToArrayBuffer } from '@walnut/shared/crypto/transformer'
+import { importAesKeyFromRaw } from '@walnut/client/browser/crypto/shared'
+import { base64ToArrayBuffer } from '@walnut/utils/crypto/transformer'
 import { defineStore } from 'pinia'
 import { urlKeyAPI } from '@/api/app/key'
 import { getBaiduKeyAPI } from '@/api/auth'

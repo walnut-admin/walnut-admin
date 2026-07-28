@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { Fn } from '@walnut/shared/types/universal'
+import type { Fn } from '@walnut/utils/types/universal'
 import type { AxiosRequestConfig } from 'axios'
 import { removeAllCancel, removeLatestRequest } from '@walnut/axios/adapters/cancel'
 import { HelloAPI, HelloWithTokenAPI } from '@/api'

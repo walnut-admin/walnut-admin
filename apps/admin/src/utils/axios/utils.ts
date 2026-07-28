@@ -1,5 +1,5 @@
 import type { AxiosRequestConfig } from 'axios'
-import { getBoolean } from '@walnut/shared/shared'
+import { getBoolean } from '@walnut/client/browser/shared'
 
 /**
  * @description set auth header for axios

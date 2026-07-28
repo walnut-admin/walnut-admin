@@ -35,7 +35,9 @@
       "@walnut-server/context": ["libs/context/src"],
       "@walnut-server/context/*": ["libs/context/src/*"],
       "@walnut/contract": ["../../packages/contract/src"],
-      "@walnut/contract/*": ["../../packages/contract/src/*"]
+      "@walnut/contract/*": ["../../packages/contract/src/*"],
+      "@walnut/utils": ["../../packages/utils/src"],
+      "@walnut/utils/*": ["../../packages/utils/src/*"]
     },
     "keepClassNames": true
   },

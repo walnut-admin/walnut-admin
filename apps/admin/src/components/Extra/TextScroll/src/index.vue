@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { ICompExtraTextScrollProps } from '..'
-import { getDefaultSlotText } from '@walnut/shared/shared'
+import { getDefaultSlotText } from '@walnut/client/browser/shared'
 import TextScrollHorizontal from './Horizontal.vue'
 import TextScrollVertical from './Vertical.vue'
 

@@ -1,5 +1,5 @@
 import type { AxiosAdapter, AxiosResponse } from 'axios'
-import { BusinessCodeConst } from '../constant'
+import { WalnutAdminConstAppResponseCode } from '../constant'
 
 /**
  * Safely parse response data and extract the business code.
@@ -27,7 +27,7 @@ export function retryAdapter(adapter: AxiosAdapter): AxiosAdapter {
         try {
           const response = await adapter(config)
 
-          if (parseResponseCode(response.data) !== BusinessCodeConst.SUCCESS) {
+          if (parseResponseCode(response.data) !== WalnutAdminConstAppResponseCode.SUCCESS) {
             timeUp = _retryTimes === count
             if (timeUp)
               return response

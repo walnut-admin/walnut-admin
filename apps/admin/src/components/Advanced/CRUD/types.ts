@@ -1,6 +1,6 @@
 import type { BaseListParams } from '@walnut/axios/types'
-import type { IDeepMaybeRef } from '@walnut/shared/types/deep-ref'
-import type { IActionType } from '@walnut/shared/types/universal'
+import type { IDeepMaybeRef } from '@walnut/utils/types/deep-ref'
+import type { IActionType } from '@walnut/utils/types/universal'
 import type { NullableRecord, StringOrNumber } from 'easy-fns-ts'
 import type { BaseAPIType } from '@/api/base'
 import type { IModels } from '@/api/models'

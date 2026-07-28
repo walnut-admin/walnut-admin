@@ -82,6 +82,12 @@
       ],
       "@walnut/contract/*": [
         "../../packages/contract/src/*"
+      ],
+      "@walnut/utils": [
+        "../../packages/utils/src"
+      ],
+      "@walnut/utils/*": [
+        "../../packages/utils/src/*"
       ]
     }
   }

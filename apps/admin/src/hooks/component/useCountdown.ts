@@ -1,4 +1,4 @@
-import { useAppStorageSync } from '@walnut/shared/persistent/storage/sync'
+import { useAppStorageSync } from '@walnut/client/persistent/storage/sync'
 
 const buttonRetryMapPersistent = useAppStorageSync<Map<string, number>>(AppConstPersistKey.COUNTDOWN, new Map<string, number>())
 

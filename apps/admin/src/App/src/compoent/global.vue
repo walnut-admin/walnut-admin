@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useGlobalAsyncComponent } from '@walnut/core/hooks/component/useGlobalAsyncComponent'
+import { useGlobalAsyncComponent } from '@walnut/client/hooks/component/useGlobalAsyncComponent'
 
 defineOptions({
   name: 'WAppGlobalComponents',

@@ -1,7 +1,7 @@
 import type { IModels } from '../models'
 import type { IRequestPayload } from '../request'
 import type { IResponseData } from '../response'
-import { getCPUCoreCount, getGPUArchitecture, getIsInIncognitoMode, getMemoryGB } from '@walnut/shared/shared'
+import { getCPUCoreCount, getGPUArchitecture, getIsInIncognitoMode, getMemoryGB } from '@walnut/client/browser/shared'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 

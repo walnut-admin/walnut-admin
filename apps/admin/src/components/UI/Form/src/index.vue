@@ -1,9 +1,9 @@
 <script lang="ts" setup generic="T">
-import type { Fn } from '@walnut/shared/types/universal'
+import type { Fn } from '@walnut/utils/types/universal'
 import type { FormRules } from 'naive-ui'
 import type { CSSProperties } from 'vue'
 import type { WForm } from './types'
-import { useProps } from '@walnut/core/hooks/core/useProps'
+import { useProps } from '@walnut/client/hooks/core/useProps'
 
 import { omit } from 'lodash-es'
 

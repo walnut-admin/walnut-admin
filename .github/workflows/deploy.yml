@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: "Environment to deploy"
+        description: Environment to deploy
         required: true
         type: choice
         options:
@@ -41,7 +41,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "pnpm"
+          cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -72,7 +72,7 @@ jobs:
           host: ${{ env.ENVIRONMENT == 'prod' && env.PROD_HOST || env.STAGE_HOST }}
           username: ${{ env.ENVIRONMENT == 'prod' && env.PROD_USERNAME || env.STAGE_USERNAME }}
           password: ${{ env.ENVIRONMENT == 'prod' && env.PROD_PASSWORD || env.STAGE_PASSWORD }}
-          source: "apps/server/dist,apps/server/package.json,pnpm-lock.yaml,pnpm-workspace.yaml"
+          source: 'apps/server/dist,apps/server/package.json,pnpm-lock.yaml,pnpm-workspace.yaml'
           target: ${{ env.ENVIRONMENT == 'prod' && env.PROD_APP_DIR || env.STAGE_APP_DIR }}
 
       - name: Run deploy script on remote server

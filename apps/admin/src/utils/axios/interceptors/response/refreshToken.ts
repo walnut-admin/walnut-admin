@@ -1,5 +1,5 @@
 import type { AxiosRequestConfig } from 'axios'
-import { SingletonPromise } from '@walnut/shared/queue'
+import { SingletonPromise } from '@walnut/utils/queue'
 import { AppCoreFn1 } from '@/core'
 import { setTokenHeaderWithConfig } from '../../utils'
 

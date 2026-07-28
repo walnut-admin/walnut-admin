@@ -2,7 +2,7 @@ import type { BaseResponse } from '@walnut/axios/types'
 import type { AxiosResponse } from 'axios'
 import type { IModels } from '@/api/models'
 import { removeCurrentPageRequests } from '@walnut/axios/adapters/cancel'
-import { BusinessCodeConst, notAllowedErrorCodeMap } from '@walnut/axios/constant'
+import { WalnutAdminConstAppResponseCode } from '@walnut/axios/constant'
 import { get, isArray, set } from 'lodash-es'
 import { mainoutConst, mainoutLockRoute, mainoutMfaRequiredRoute, mainoutMfaVerifiedRoute } from '@/router/routes/mainout'
 import { AppAxios } from '../..'
@@ -20,7 +20,7 @@ export async function responseInterceptors(res: AxiosResponse<BaseResponse<IMode
   const { code, data, msg, meta } = res.data
 
   // normal success
-  if (code === BusinessCodeConst.SUCCESS) {
+  if (code === WalnutAdminConstAppResponseCode.SUCCESS) {
     // auto decrypt response data
     const keys = res.config._autoDecryptResponseData as string[]
 
@@ -43,38 +43,38 @@ export async function responseInterceptors(res: AxiosResponse<BaseResponse<IMode
 
   // cap js token interaction required
   // manually call cap global modal and verify
-  if (code === BusinessCodeConst.CAPJS_TOKEN_INTERACTION_REQUIRED) {
+  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED) {
     await SingletonPromiseCapJSInteraction()
     return await AppAxios.request(res.config)
   }
 
   // cap js token refresh required
   // https://capjs.js.org/guide/invisible.html
-  if (code === BusinessCodeConst.CAPJS_TOKEN_REFRESH_REQUIRED) {
+  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_REFRESH_REQUIRED) {
     await SingletonPromiseCapJSRefresh()
     return await AppAxios.request(res.config)
   }
 
   // when access token is expired, call refresh token api to get new token
-  if (code === BusinessCodeConst.ACCESS_TOKEN_EXPIRED) {
+  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED) {
     await SingletonPromiseRefreshToken(res.config)
     return await AppAxios.request(res.config)
   }
 
   // when signature is expired, call session key api to get new aes key
-  if (code === BusinessCodeConst.SIGNATURE_EXPIRED) {
+  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_EXPIRED_SIGNATURE) {
     await SingletonPromiseSign()
     return await AppAxios.request(res.config)
   }
 
   // refresh token is expired, so this user need to signout and re-signin
-  if (code === BusinessCodeConst.REFRESH_TOKEN_EXPIRED) {
+  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED) {
     await userStoreAuth.Signout(false)
     return Promise.reject(new Error('Refresh Token Expired'))
   }
 
   // rsa decrypt failed
-  if (code === BusinessCodeConst.RSA_DECRYPT_FAILED) {
+  if (code === WalnutAdminConstAppResponseCode.BAD_REQUEST_DECRYPT_FAILED) {
     // allow to execute encrypt logic in request interceptor again
     res.config._encrypted = false
     await SingletonPromiseRsaDecryptFailed(res)
@@ -82,12 +82,25 @@ export async function responseInterceptors(res: AxiosResponse<BaseResponse<IMode
   }
 
   // rsa pub key not found
-  if (code === BusinessCodeConst.RSA_PUB_KEY_NOT_FOUND) {
+  if (code === WalnutAdminConstAppResponseCode.BAD_REQUEST_RSA_PUB_KEY_NOT_FOUND) {
     await SingletonPromiseRsaPubKeyNotFound()
     return await AppAxios.request(res.config)
   }
 
   // not allowed
+  const notAllowedErrorCodeMap: Record<number, string> = {
+    [WalnutAdminConstAppResponseCode.UNAUTHORIZED_BOT_VERIFY_FAILED]: 'capjsTokenInvalid',
+    [WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE]: 'notAllowed',
+    [WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_OS_UNSUPPORTED]: 'os',
+    [WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_BROWSER_UNSUPPORTED]: 'browser',
+    [WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED]: 'ip',
+    [WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_USER_AGENT_UNSUPPORTED]: 'userAgent',
+    [WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED]: 'device',
+    [WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED]: 'deviceLocked',
+    [WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED]: 'deviceBanned',
+    [WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_RISK_TOO_HIGH]: 'riskTooHigh',
+    [WalnutAdminConstAppResponseCode.TOO_MANY_REQUESTS]: 'tooManyRequests',
+  }
   if (Object.keys(notAllowedErrorCodeMap).map(Number).includes(code)) {
     await AppRouter.replace({ name: mainoutConst.notAllowed.name, force: true, query: { type: notAllowedErrorCodeMap[code] } })
     removeCurrentPageRequests(AppRouter.currentRoute.value.path)
@@ -95,7 +108,7 @@ export async function responseInterceptors(res: AxiosResponse<BaseResponse<IMode
   }
 
   // mfa required
-  if (code === BusinessCodeConst.MFA_REQUIRED) {
+  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_MFA_REQUIRED) {
     const appStoreRoute = useAppStoreRoute()
     appStoreRoute.addDynamicAuthRoute(mainoutMfaRequiredRoute)
     await AppRouter.replace({ name: mainoutConst.mfaRequired.name, force: true })
@@ -103,7 +116,7 @@ export async function responseInterceptors(res: AxiosResponse<BaseResponse<IMode
   }
 
   // mfa verified
-  if (code === BusinessCodeConst.MFA_VERIFIED) {
+  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_MFA_VERIFY_FAILED) {
     const appStoreRoute = useAppStoreRoute()
     appStoreRoute.addDynamicAuthRoute(mainoutMfaVerifiedRoute)
     await AppRouter.replace({ name: mainoutConst.mfaVerified.name, force: true })
@@ -111,7 +124,7 @@ export async function responseInterceptors(res: AxiosResponse<BaseResponse<IMode
   }
 
   // user locked
-  if (code === BusinessCodeConst.USER_LOCKED) {
+  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCOUNT_LOCKED) {
     const appStoreRoute = useAppStoreRoute()
     appStoreRoute.addDynamicAuthRoute(mainoutLockRoute)
     await AppRouter.replace({ name: mainoutConst.lock.name, force: true })
@@ -119,7 +132,7 @@ export async function responseInterceptors(res: AxiosResponse<BaseResponse<IMode
   }
 
   // sensitive verification required
-  if (code === BusinessCodeConst.SENSITIVE_VERIFICATION_REQUIRED) {
+  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED) {
     // TODO call up global modal to verify, then retry request after verified
     console.log(123, meta)
     return Promise.reject(new Error('Sensitive Verification Required'))

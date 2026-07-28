@@ -1,9 +1,9 @@
-import type { Fn } from '@walnut/shared/types/universal'
+import type { Fn } from '@walnut/utils/types/universal'
 import type { Recordable } from 'easy-fns-ts'
 import type { FormItemRule, FormRules } from 'naive-ui'
 import type { WForm } from '../types'
-import { getBoolean } from '@walnut/shared/shared'
-import { wbtoa } from '@walnut/shared/window/base64'
+import { getBoolean } from '@walnut/client/browser/shared'
+import { wbtoa } from '@walnut/client/browser/window/base64'
 import { get } from 'lodash-es'
 import { componentMap } from '../components/FormItem/componentMap'
 

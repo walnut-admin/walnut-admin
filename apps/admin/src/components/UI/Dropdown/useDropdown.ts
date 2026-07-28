@@ -1,6 +1,6 @@
-import type { IDeepMaybeRef } from '@walnut/shared/types/deep-ref'
+import type { IDeepMaybeRef } from '@walnut/utils/types/deep-ref'
 import type { ICompUIDropdownInst, ICompUIDropdownProps } from '.'
-import { isInSetup } from '@walnut/shared/shared'
+import { isInSetup } from '@walnut/client/browser/shared'
 
 export function useDropdown(props: IDeepMaybeRef<ICompUIDropdownProps> | ICompUIDropdownProps): [(inst: ICompUIDropdownInst) => void, ICompUIDropdownInst] {
   isInSetup()

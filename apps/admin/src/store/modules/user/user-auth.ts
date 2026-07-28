@@ -1,9 +1,9 @@
 import type { IRequestPayload } from '@/api/request'
 import type { IStoreUser } from '@/store/types'
 import * as opaque from '@serenity-kit/opaque'
-import { enhancedAesGcmLocalStorage } from '@walnut/shared/persistent/enhance/index'
+import { enhancedAesGcmLocalStorage } from '@walnut/client/persistent/enhance/index'
 
-import { useAppStorageAsync } from '@walnut/shared/persistent/storage/async'
+import { useAppStorageAsync } from '@walnut/client/persistent/storage/async'
 import { defineStore } from 'pinia'
 import { refreshTokenAPI, signoutAPI } from '@/api/auth'
 import { authWithGoogleAPI } from '@/api/auth/google'

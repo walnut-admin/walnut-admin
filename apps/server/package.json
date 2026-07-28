@@ -77,6 +77,8 @@
     "@simplewebauthn/server": "13.3.0",
     "@socket.io/admin-ui": "0.5.1",
     "@supercharge/request-ip": "1.2.0",
+    "@walnut/contract": "workspace:*",
+    "@walnut/utils": "workspace:*",
     "axios": "catalog:",
     "bcryptjs": "3.0.3",
     "bull": "4.16.5",

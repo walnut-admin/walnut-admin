@@ -1,0 +1,48 @@
+{
+  "name": "@walnut/client",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Vue 3 composables and browser utilities for Walnut Admin frontend",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "engines": {
+    "node": ">=24.13.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "build": "echo 'composables: pure source, no build needed'",
+    "lint": "eslint . --concurrency=auto",
+    "lint:fix": "eslint . --fix --concurrency=auto",
+    "types:check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rimraf dist",
+    "clean:all": "rimraf dist node_modules"
+  },
+  "dependencies": {
+    "@vueuse/core": "catalog:",
+    "@walnut/utils": "workspace:*",
+    "detectincognitojs": "catalog:",
+    "idb": "catalog:",
+    "js-base64": "catalog:",
+    "lodash-es": "catalog:",
+    "nanoid": "catalog:",
+    "superjson": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
+  },
+  "devDependencies": {
+    "@types/lodash-es": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "@vitejs/plugin-vue-jsx": "catalog:",
+    "easy-fns-ts": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:"
+  }
+}

@@ -2,7 +2,7 @@
 import type { NullableRecord } from 'easy-fns-ts'
 import type { IRequestPayload } from '@/api/request'
 import type { ICompExtraPhoneNumberInputUpdateParams } from '@/components/Extra/PhoneNumberInput'
-import { isPhoneNumber } from '@walnut/shared/regex'
+import { isPhoneNumber } from '@walnut/utils/regex'
 // TODO 111
 import { NRadio, NText } from 'naive-ui'
 import { sendWithOTPAPI } from '@/api/auth/otp'

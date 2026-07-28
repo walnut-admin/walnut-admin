@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useSharedNetwork } from '@walnut/core/hooks/vueuse/useNetwork'
+import { useSharedNetwork } from '@walnut/client/hooks/vueuse/useNetwork'
 
 defineOptions({
   name: 'WAppLockNetwork',

@@ -1,6 +1,6 @@
 import type { AxiosAdapter, AxiosPromise, InternalAxiosRequestConfig } from 'axios'
 import { LRUCache } from 'lru-cache'
-import { BusinessCodeConst } from '../constant'
+import { WalnutAdminConstAppResponseCode } from '../constant'
 import { buildSortedURL } from '../utils'
 
 interface RecordedCache {
@@ -37,7 +37,7 @@ export function createThrottleAdapter(cacheTTLSeconds: number) {
           const responsePromise = (async () => {
             try {
               const response = await adapter(config)
-              if (parseResponseCode(response.data) !== BusinessCodeConst.SUCCESS) {
+              if (parseResponseCode(response.data) !== WalnutAdminConstAppResponseCode.SUCCESS) {
                 throttleAdapterCache.delete(index)
               }
               else {

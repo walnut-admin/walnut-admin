@@ -1,4 +1,4 @@
-import { useSharedPreferredReducedMotion } from '@walnut/core/hooks/vueuse/usePreferredReducedMotion'
+import { useSharedPreferredReducedMotion } from '@walnut/client/hooks/vueuse/usePreferredReducedMotion'
 import { getMergedTheme } from '@/App/src/naive/src/theme'
 
 const userStorePreference = useAppStoreUserPreference()

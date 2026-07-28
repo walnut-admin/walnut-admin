@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { enhancedAesGcmLocalStorage, enhancedBase64LocalStorage } from '@walnut/shared/persistent/enhance/index'
-import { removeStorageItemsContaining } from '@walnut/shared/persistent/shared'
-import { useAppStorageAsync } from '@walnut/shared/persistent/storage/async'
-import { useAppStorageSync } from '@walnut/shared/persistent/storage/sync'
+import { enhancedAesGcmLocalStorage, enhancedBase64LocalStorage } from '@walnut/client/persistent/enhance/index'
+import { removeStorageItemsContaining } from '@walnut/client/persistent/shared'
+import { useAppStorageAsync } from '@walnut/client/persistent/storage/async'
+import { useAppStorageSync } from '@walnut/client/persistent/storage/sync'
 import { getRandomInt } from 'easy-fns-ts'
 
 defineOptions({

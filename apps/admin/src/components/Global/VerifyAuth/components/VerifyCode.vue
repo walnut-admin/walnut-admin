@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { VerifyAuthMethod } from '../types'
-import { useState } from '@walnut/core/hooks/core/useState'
+import { useState } from '@walnut/client/hooks/core/useState'
 
 /**
  * Step 3: Verification Code Input

@@ -1,7 +1,7 @@
 <script lang="ts" setup  generic="T">
 import type { BaseDataType } from 'easy-fns-ts'
 import type { ICompUIDescriptionProps, ICompUIDescriptionsItem, ICompUIDescTypeDict, ICompUIDescTypeLink } from '.'
-import { getBoolean } from '@walnut/shared/shared'
+import { getBoolean } from '@walnut/client/browser/shared'
 import { omit } from 'lodash-es'
 import { openExternalLink } from '@/utils/window/open'
 

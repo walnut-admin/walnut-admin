@@ -1,6 +1,6 @@
-import type { IDeepMaybeRef } from '@walnut/shared/types/deep-ref'
+import type { IDeepMaybeRef } from '@walnut/utils/types/deep-ref'
 import type { ICompUITreeInst, ICompUITreeProps } from '.'
-import { isInSetup } from '@walnut/shared/shared'
+import { isInSetup } from '@walnut/client/browser/shared'
 
 export function useTree<T>(props: IDeepMaybeRef<ICompUITreeProps<T>> | ICompUITreeProps<T>): [(inst: ICompUITreeInst<T>) => void, ICompUITreeInst<T>] {
   isInSetup()

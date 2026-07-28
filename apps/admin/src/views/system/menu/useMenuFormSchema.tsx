@@ -1,4 +1,4 @@
-import type { IActionType } from '@walnut/shared/types/universal'
+import type { IActionType } from '@walnut/utils/types/universal'
 import type { TreeNodeItem } from 'easy-fns-ts'
 
 import type { IAppSystemMenuForm } from './types'
