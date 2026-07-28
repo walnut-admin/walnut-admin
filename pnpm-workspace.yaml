@@ -5,8 +5,6 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
-hoisting: true
-
 overrides:
   glob: 11.1.0
   lru-cache: 11.3.6
