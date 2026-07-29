@@ -28,9 +28,16 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
-hoisting: true   # 提升 node_modules（默认 true，显式声明）
+hoisting: false  # 严格隔离 node_modules（pnpm 默认，显式声明）
 
-overrides:        # 强制锁定 transitive dep 版本
+public-hoist-pattern:  # .npmrc 中配置，仅白名单工具链二进制
+  - '*turbo*'
+  - '*eslint*'
+  - '*simple-git-hooks*'
+  - '*@swc*'
+  - '*esbuild*'
+
+overrides:               # 强制锁定 transitive dep 版本
   glob: 11.1.0
   lru-cache: 11.3.6
 
@@ -46,7 +53,7 @@ allowBuilds:      # pnpm 11 的构建审批白名单（17 个原生/构建包）
   - vue-demi
   - ...（共 17 条）
 
-catalog:          # 47 条统一版本锁定（见 1.3）
+catalog:          # 247 条统一版本锁定（所有依赖强制使用 catalog:）
   vue: 3.5.34
   vite: 8.0.11
   typescript: 6.0.3
@@ -55,9 +62,11 @@ catalog:          # 47 条统一版本锁定（见 1.3）
 
 ### 1.3 catalog：版本单一真相源
 
-`catalog:` 是 pnpm 9.5+ 引入的特性。**所有共享依赖的版本集中在这一个块里声明**，各 workspace 包通过 `"xxx": "catalog:"` 引用（而不是写死版本号）。
+`catalog:` 是 pnpm 9.5+ 引入的特性。**所有依赖的版本集中在这一个块里声明**，各 workspace 包通过 `"xxx": "catalog:"` 引用。
 
-实测 catalog 块共 **47 条**，覆盖核心依赖：`vue`、`vite`、`typescript`、`eslint`、`@antfu/eslint-config`、`naive-ui`、`pinia`、`vue-router`、`@vueuse/core`、`vue-i18n`、`axios`、`mongoose`、`@nestjs/{common,core,platform-express}`、`dayjs`、`lodash-es`、`@vitejs/plugin-vue`、`@swc/core`、`rimraf`、`taze` 等。
+**策略：全部进 catalog。** 不再允许硬编码版本号——每个 package.json 的 `dependencies`/`devDependencies` 必须使用 `catalog:` 或 `workspace:*` 协议。ESLint 的 `pnpm/json-enforce-catalog` 规则已开启强制检查。
+
+实测 catalog 块共 **247 条**，覆盖全部依赖。
 
 **引用方式**（各 workspace package.json）：
 
@@ -162,12 +171,20 @@ turbo build --filter=@walnut/admin
 ### 2.5 `globalDependencies` 的作用
 
 ```json
-"globalDependencies": ["tsconfig.base.json", "tsconfig.json", "eslint.config.mjs"]
+"globalDependencies": [
+  "package.json",
+  "tsconfig.base.json",
+  "tsconfig.json",
+  "eslint.config.mjs",
+  "pnpm-workspace.yaml"
+]
 ```
 
-这三个文件**任何一个改动**，所有 task 的缓存都失效。这是合理的——tsconfig 改了，所有包都要重新 type-check/build。
-
-**注意缺失**：`pnpm-workspace.yaml`（含 catalog）不在 `globalDependencies` 里。改 catalog 版本不会自动失效缓存——这可能导致依赖版本变了但 turbo 用旧缓存。建议补上。
+这些文件**任何一个改动**，所有 task 的缓存都失效。涵盖：
+- `package.json` —— 根 scripts 变更影响构建行为
+- `tsconfig.base.json` / `tsconfig.json` —— TS 配置变更
+- `eslint.config.mjs` —— lint 规则变更
+- `pnpm-workspace.yaml` —— catalog 版本变更
 
 ### 2.6 根 package.json 的脚本编排
 
@@ -243,26 +260,32 @@ export default antfu({
 })
 ```
 
-### 4.2 关键点
+### 4.2 共享 Config Package
 
-- **`@antfu/eslint-config` 8.2.0**：Anthony Fu 的开箱即用 flat config，内置 Vue/TS/UnoCSS/import 排序/格式化（替代 Prettier）。仓库**没有单独的 `.prettierrc`**——antfu 包揽了格式化。
-- **flat config**（非 legacy `.eslintrc`）：ESLint 9+ 的新配置格式，单一 `eslint.config.mjs` 文件。
-- **关闭的规则**：
-  - `ts/no-namespace: off` —— 允许 TS namespace（后端 `apps/server/libs/types/` 有用）
-  - `no-console: off` —— 允许 console（由 build 时的 `drop_console` 控制）
-  - `pnpm/*: off` —— **关闭了 catalog 强制规则**。这意味着如果某个 package.json 写了 `"eslint": "10.3.0"` 而不是 `"catalog:"`，ESLint 不会报错。注释说是因为 `trustPolicy` 被 6 个 transitive high-risk dep 阻塞——但这意味着 catalog 的使用**完全靠自觉**，新增依赖时容易漏写 `catalog:`。
-- **`lint:root` 脚本**：根目录的 eslint 不走 turbo（因为根级文件不在任何 workspace 包里），用 `eslint . --concurrency=auto` 单独跑。
+ESLint 配置已提取到 `packages/eslint-config/`（`@walnut/eslint-config`），提供三个预设：
 
-### 4.3 各 app 的 ESLint
+| 预设 | 文件 | 适用场景 |
+|------|------|---------|
+| `base` | `base.mjs` | 纯 TS 库（通用规则：`ts/no-namespace` off, `no-console` off） |
+| `vue` | `vue.mjs` | Vue 前端（继承 base + UnoCSS + Vue + pnpm catalog 强制） |
+| `nest` | `nest.mjs` + `nest-local-rules.mjs` | NestJS 后端（继承 base + TypeScript project + 装饰器排序规则） |
 
-| 位置 | 配置 | 特点 |
+**关键点：**
+- 使用 `@antfu/eslint-config` 8.2.0（flat config），替代 Prettier
+- **pnpm catalog 强制已开启**（`pnpm: true`），所有依赖必须使用 `catalog:` 协议
+- Server 的自定义 `sort-nestjs-decorators` 规则已从 `apps/server/eslint-local-rules.mjs` 迁移到共享包
+
+### 4.3 各 workspace 的 ESLint 配置
+
+每个 workspace 使用**薄壳模式**（1-3 行配置，继承共享预设）：
+
+| 位置 | 配置 | 预设 |
 |------|------|------|
-| 根 `eslint.config.mjs` | antfu 8.2.0 | 全局共享 |
-| `apps/admin/` | 无独立配置 | 继承根（turbo lint 时用根配置） |
-| `apps/docs/` | `apps/docs/eslint.config.mjs` | 独立（VitePress 专用规则） |
-| `apps/server/` | `apps/server/eslint.config.mjs` + `eslint-local-rules.mjs` | **独立 + 自定义本地规则**（NestJS 装饰器排序规则） |
-
-后端的 `eslint-local-rules.mjs` 是自带的「装饰器顺序」规则，强制 HTTP method → HttpCode → Permission → Role → Guards → CRUD → ... 的装饰器顺序。这是后端业务约定，根 ESLint 不该管。
+| 根 `eslint.config.mjs` | `import vueConfig from '@walnut/eslint-config/vue'` | vue |
+| `apps/admin/eslint.config.mjs` | 同上 | vue |
+| `apps/docs/eslint.config.mjs` | 同上 + docs 专用 ignores/rules | vue |
+| `apps/server/eslint.config.mjs` | `import nestConfig from '@walnut/eslint-config/nest'` | nest |
+| `packages/*/` | 无独立配置（继承根） | vue（透传） |
 
 ---
 

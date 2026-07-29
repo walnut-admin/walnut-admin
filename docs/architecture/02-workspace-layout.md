@@ -112,7 +112,7 @@ apps/server/
 ├── env/ + env-local/               ← 环境变量
 ├── scripts/release/                ← changelog/git 脚本
 ├── CLAUDE.md / AGENTS.md / README.md / TODO.md / changelog-latest.md   ← 自带文档
-├── eslint.config.mjs + eslint-local-rules.mjs   ← 自带 ESLint + 自定义装饰器排序规则
+├── eslint.config.mjs               ← 薄壳（继承 @walnut/eslint-config/nest）
 └── .vscode/settings.json           ← 自带 VSCode 设置
 ```
 
