@@ -12,6 +12,7 @@
 | [0008](0008-unified-versioning-separate-deploy.md) | Single tag, separate deploy, backend-first | ⚠️ ADR written, deploy.yml not yet updated |
 | [0009](0009-ci-quality-gates.md) | Three-tier quality: commit (lint) → push (types) → CI (test) | ⚠️ ADR written, tests not yet added, CI workflow not updated |
 | [0010](0010-no-ts-project-references.md) | No TypeScript Project References | ✅ Existing (pre-grilling) |
+| [0011](0011-dependency-governance-release.md) | `catalogMode: strict`, unified versioning, changesets + git-cliff release pipeline | ✅ Implemented (2026-07-29) |
 
 ## Implementation Gaps
 
