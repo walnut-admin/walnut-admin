@@ -1,3 +1,4 @@
+// @boundaries-ignore
 import { homepage } from '~build/package'
 // TODO 111
 import WIcon from '@/components/UI/Icon'

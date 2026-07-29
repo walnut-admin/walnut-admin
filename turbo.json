@@ -1,5 +1,19 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "boundaries": {
+    "tags": {
+      "shared": {
+        "dependencies": {
+          "deny": ["app"]
+        }
+      },
+      "backend": {
+        "dependencies": {
+          "deny": ["browser"]
+        }
+      }
+    }
+  },
   "globalDependencies": [
     "package.json",
     "tsconfig.base.json",

@@ -38,6 +38,7 @@
     "@types/lodash-es": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "@walnut/eslint-config": "workspace:*",
+    "easy-fns-ts": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:"

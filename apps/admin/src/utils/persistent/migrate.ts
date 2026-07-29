@@ -1,3 +1,4 @@
+// @boundaries-ignore
 import { version } from '~build/package'
 
 // TODO need to delete after several versions of release

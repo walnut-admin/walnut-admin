@@ -1,3 +1,4 @@
+// @boundaries-ignore
 import type { StandardSchemaV1 } from 'node_modules/zod/v4/core/standard-schema.cjs'
 import { ValidateEnv } from '@julr/vite-plugin-validate-env'
 import DevSchema from '../config/env.development'

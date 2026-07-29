@@ -2,6 +2,7 @@
 import type { InputInst } from 'naive-ui'
 import type { IResponseData } from '@/api/response'
 import { downloadByBlob } from '@walnut/client/browser/file/download'
+// @boundaries-ignore
 import { name } from '~build/package'
 import { authMfaTotpBindAPI, authMfaTotpGenerateAPI, authMfaTotpUnbindAPI } from '@/api/auth/mfa'
 

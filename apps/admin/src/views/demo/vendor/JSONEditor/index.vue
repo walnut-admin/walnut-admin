@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+// @boundaries-ignore
 import { name, version } from '~build/package'
 
 defineOptions({
