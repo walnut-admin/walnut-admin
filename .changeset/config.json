@@ -1,0 +1,22 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.4/schema.json",
+  "changelog": false,
+  "commit": false,
+  "fixed": [
+    [
+      "@walnut/admin",
+      "@walnut/server",
+      "@walnut/docs",
+      "@walnut/utils",
+      "@walnut/contract",
+      "@walnut/client",
+      "@walnut/axios",
+      "@walnut/eslint-config"
+    ]
+  ],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": []
+}

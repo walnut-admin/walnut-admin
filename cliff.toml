@@ -1,0 +1,68 @@
+# git-cliff configuration for Walnut Admin Monorepo
+# https://git-cliff.org/docs/configuration
+
+[changelog]
+# Changelog header
+header = """
+# Changelog\n
+All notable changes to this project will be documented in this file.\n
+"""
+# Template for each release section
+body = """
+{% if version %}\
+    ## [{{ version | trim_start_matches(pat="v") }}] - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+    ## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+    ### {{ group | striptags | trim | upper_first }}
+    {% for commit in commits %}
+        - {% if commit.scope %}**{{ commit.scope }}:** {% endif %}\
+          {{ commit.message | upper_first }}\
+          ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/Zhaocl1997/walnut-admin/commit/{{ commit.id }}))\
+    {% endfor %}\
+{% endfor %}\n
+"""
+# Remove leading whitespace from the template
+trim = true
+# Number of releases to show in the changelog
+# Setting this to 0 makes it include all releases
+limit = 0
+
+[git]
+# Parse commits according to https://www.conventionalcommits.org
+conventional_commits = true
+# Filter out commits that are not conventional commits
+filter_unconventional = false
+# Process only commits that modify files in these paths
+# (empty = all files in the repo)
+include_path = []
+# Regex for splitting commits into different groups
+split_commits = false
+# Regex for preprocessing the commit messages
+commit_preprocessors = []
+# Protect all usernames from being displayed in the changelog
+protect_github_usernames = true
+# Link to the repository
+commit_url = "https://github.com/Zhaocl1997/walnut-admin/commit/{{ id }}"
+
+# Commit grouping and categorization
+# Each commit is matched against these patterns and assigned to a group
+commit_parsers = [
+  { message = "^feat", group = "<!-- 0 -->✨ Features" },
+  { message = "^fix", group = "<!-- 1 -->🐛 Bug Fixes" },
+  { message = "^perf", group = "<!-- 2 -->⚡ Performance" },
+  { message = "^refactor", group = "<!-- 3 -->♻️ Refactor" },
+  { message = "^revert", group = "<!-- 4 -->⏪ Revert" },
+  { message = "^docs", group = "<!-- 5 -->📝 Documentation" },
+  { message = "^style", group = "<!-- 6 -->🎨 Styling" },
+  { message = "^test", group = "<!-- 7 -->✅ Testing" },
+  { message = "^build", group = "<!-- 8 -->📦 Build" },
+  { message = "^ci", group = "<!-- 9 -->🤖 CI" },
+  { message = "^chore", group = "<!-- 10 -->🔧 Chores" },
+]
+
+# Sort commits in each group
+[commit_sort]
+# Sort by: oldest, newest
+order = "newest"
