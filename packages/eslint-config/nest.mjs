@@ -23,6 +23,18 @@ export default function nestConfig() {
         'no-console': 'off',
         'ts/no-this-alias': 'off',
         'no-empty-pattern': 'off',
+        'no-restricted-imports': ['error', {
+          patterns: [
+            {
+              group: ['@walnut/client', '@walnut/client/*'],
+              message: '@walnut/client contains Vue composables and browser-only APIs (Web Crypto, DOM, IndexedDB). Do not import from NestJS server code.',
+            },
+            {
+              group: ['@walnut/axios', '@walnut/axios/*'],
+              message: '@walnut/axios is the frontend HTTP client (browser interceptors, cache, retry). Server should use @nestjs/axios or raw axios.',
+            },
+          ],
+        }],
       },
     },
     {
