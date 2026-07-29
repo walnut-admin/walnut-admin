@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory, Virtual } from '@nestjs/mongoose'
-import { LocaleType, LocaleType } from '@walnut/contract'
+import { Locale,  LocaleType } from '@walnut/contract'
 
 import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 
@@ -37,7 +37,7 @@ export class SysLangModel extends WalnutAdminCommonBasicModel {
   @Prop({
     type: String,
     required: true,
-    enums: [...Object.values(LocaleType)],
+    enums: [...Object.values(Locale)],
   })
   lang: LocaleType
 

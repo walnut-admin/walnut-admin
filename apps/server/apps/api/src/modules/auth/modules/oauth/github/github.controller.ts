@@ -103,7 +103,7 @@ export class OAuthGithubController {
     }
     catch {
       this.logger.error(`oauth state parse error`)
-      lang = i18n.lang as Locale
+      lang = i18n.lang as LocaleType
       return {
         success: false,
         message: i18n.t('response.40000', { lang }),

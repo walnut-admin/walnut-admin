@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { LocaleType, LocaleType } from '@walnut/contract'
+import { Locale,  LocaleType } from '@walnut/contract'
 import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
@@ -155,7 +155,7 @@ export class SysLocaleService {
    * @description: get locale message (controller: getLocaleMessage)
    */
   async getLocaleMessage(lang: LocaleType, needCache: boolean) {
-    if (!Object.values(LocaleType).includes(lang)) {
+    if (!Object.values(Locale).includes(lang)) {
       return this.localeSharedService.getLocaleMessage(Locale.en_US, needCache)
     }
 

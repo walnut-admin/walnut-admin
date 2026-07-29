@@ -1,6 +1,6 @@
-import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
+import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { IWalnutAdminConstRoleMode } from '@walnut/contract'
+import { } from '@walnut/contract'
 import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 import {
   WalnutAdminDecoratorFieldBoolean,

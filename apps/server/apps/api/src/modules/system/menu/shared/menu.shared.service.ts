@@ -7,7 +7,8 @@ import { isNil, omit, pick } from 'lodash'
 import { AppTechCachePermissionsService } from '@/modules/techniques/cache/service/cache.permissions'
 import { SysRoleSharedService } from '../../role/shared/role.shared.service'
 import { SysMenuRepositoryService } from '../repo/menu.repo.service'
-import { ISysMenuDocument, SysMenuModel, MenuTernal, MenuType } from '../schema/menu.schema'
+import { ISysMenuDocument, SysMenuModel } from '../schema/menu.schema'
+import { MenuTernal, MenuType } from '@walnut/contract/menu'
 // Note: Menu types (IMenuTreeItem, IVueRouteItem, ILayoutTabsItem, IIframeListItem) are now global
 
 @Injectable()

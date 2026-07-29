@@ -1,5 +1,6 @@
+import { WalnutAdminConstRoleRootId } from '@walnut-server/const/role'
 import { Injectable } from '@nestjs/common'
-import { Role, WalnutAdminConstRoleRootId } from '@walnut/contract'
+import { Role } from '@walnut/contract'
 import { WalnutDBCollectionName } from '@walnut-server/db'
 
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'

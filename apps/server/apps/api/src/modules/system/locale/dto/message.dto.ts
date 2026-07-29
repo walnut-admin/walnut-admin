@@ -1,4 +1,4 @@
-import { LocaleType, LocaleType } from '@walnut/contract'
+import { Locale,  LocaleType } from '@walnut/contract'
 
 import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 
@@ -8,7 +8,7 @@ export class SysLocaleMessageDTO {
       title: 'language short',
     },
     validateOptions: {
-      onlyIn: [...Object.values(LocaleType)],
+      onlyIn: [...Object.values(Locale)],
     },
   })
   locale: LocaleType

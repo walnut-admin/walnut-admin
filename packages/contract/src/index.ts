@@ -1,8 +1,6 @@
 // Selective barrel exports — @walnut/contract public API
 // See ADR 0013 for barrel export policy
 
-export { AppRoutes, AuthRoutes, SecurityRoutes, SharedRoutes, SystemEndpointRoutes, SystemRoutes } from './routes'
-
 export { RequestHeaders } from './http'
 
 export { Locale, type LocaleType } from './i18n'
@@ -27,6 +25,8 @@ export {
 } from './response-code'
 
 export { Role, type RoleType } from './role'
+
+export { AppRoutes, AuthRoutes, SecurityRoutes, SharedRoutes, SystemEndpointRoutes, SystemRoutes } from './routes'
 
 export {
   type IWalnutAdminAccessTokenPayload,

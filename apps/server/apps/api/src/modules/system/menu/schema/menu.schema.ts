@@ -1,3 +1,4 @@
+import { Recordable } from "easy-fns-ts"
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { WalnutDBCollectionName } from '@walnut-server/db'
 import {
@@ -48,7 +49,7 @@ export class SysMenuModelMeta {
     enum: [...Object.values(MenuTernal)],
     default: MenuTernal.NONE,
   })
-  ternal: IMenuTernal
+  ternal: typeof MenuTernal[keyof typeof MenuTernal]
 
   @WalnutAdminDecoratorFieldString({
     default: null,
@@ -235,7 +236,7 @@ export class SysMenuModelMeta {
     enum: [...Object.values(CacheKeyStrategy)],
     default: null,
   })
-  cacheKeyStrategy: ICacheKeyStrategy
+  cacheKeyStrategy: typeof CacheKeyStrategy[keyof typeof CacheKeyStrategy]
 }
 
 @Schema({
@@ -267,7 +268,7 @@ export class SysMenuModel extends WalnutAdminCommonBasicModel {
     enum: [...Object.values(MenuType)],
     default: MenuType.CATALOG,
   })
-  type: IMenuType
+  type: typeof MenuType[keyof typeof MenuType]
 
   @WalnutAdminDecoratorFieldString({
     default: null,
