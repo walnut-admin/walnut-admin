@@ -22,6 +22,8 @@ catalog:
   '@cap.js/server': 4.0.5
   '@changesets/cli': 2.31.1
   '@codemirror/autocomplete': 6.20.2
+  '@commitlint/cli': 21.2.1
+  '@commitlint/config-conventional': 21.2.0
   '@codemirror/commands': 6.10.3
   '@codemirror/lang-javascript': 6.2.5
   '@codemirror/lang-json': 6.0.2

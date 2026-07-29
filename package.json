@@ -55,6 +55,8 @@
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
     "@changesets/cli": "catalog:",
+    "@commitlint/cli": "catalog:",
+    "@commitlint/config-conventional": "catalog:",
     "@dotenvx/dotenvx": "catalog:",
     "@types/node": "catalog:",
     "@walnut/eslint-config": "workspace:*",
@@ -70,6 +72,7 @@
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged",
+    "commit-msg": "pnpm commitlint --edit $1",
     "pre-push": "pnpm types:check"
   },
   "lint-staged": {

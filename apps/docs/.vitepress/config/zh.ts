@@ -137,6 +137,7 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: 'Git-cliff', link: '/content/monorepo/git-cliff' },
         { text: 'Knip 死代码检测', link: '/content/monorepo/knip' },
         { text: '环境变量加密管理', link: '/content/monorepo/env-management' },
+        { text: '📋 架构待办事项', link: '/content/monorepo/architecture-todo' },
       ],
     },
     {
