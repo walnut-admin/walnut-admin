@@ -21,8 +21,12 @@ export {
   uint8ArrayToUtf8,
   utf8ToUint8Array,
 } from './crypto/transformer'
+// Persistent storage enhancement
+export { withAsyncConditionalEncryption } from './persistent/enhance/async'
+
+export { withSyncConditionalEncryption } from './persistent/enhance/sync'
+
 // 工具类
 export { SingletonPromise } from './queue'
-
 // Regex
 export { isEmailAddress, isPhoneNumber } from './regex'

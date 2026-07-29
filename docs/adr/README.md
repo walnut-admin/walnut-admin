@@ -13,7 +13,8 @@
 | [0009](0009-ci-quality-gates.md) | Three-tier quality: commit (lint) → push (types) → CI (test) | ⚠️ ADR written, tests not yet added, CI workflow not updated |
 | [0010](0010-no-ts-project-references.md) | No TypeScript Project References | ✅ Existing (pre-grilling) |
 | [0011](0011-dependency-governance-release.md) | `catalogMode: strict`, unified versioning, changesets + git-cliff release pipeline | ✅ Implemented (2026-07-29) |
-| [0012](0012-toolchain-divergence.md) | Server tsconfig independence + build-time-static vs runtime env loading + turbo.json env declaration | ✅ Implemented (2026-07-29) |
+| [0012](0012-toolchain-divergence.md) | Server tsconfig independence + build-time-static vs runtime env loading + turbo.json env + hoisting + turbo boundaries | ✅ Implemented (2026-07-29) |
+| [0013](0013-barrel-exports-policy.md) | Selective barrel exports for package entries, direct imports for app code, no `export *` | ✅ Implemented (2026-07-29) |
 
 ## Implementation Gaps
 
