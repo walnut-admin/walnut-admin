@@ -2,7 +2,6 @@
   "name": "@walnut/contract",
   "type": "module",
   "version": "0.0.1",
-  "private": true,
   "description": "Shared types and constants contract between frontend and backend",
   "license": "MIT",
   "exports": {

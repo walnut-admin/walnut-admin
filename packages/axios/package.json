@@ -2,7 +2,6 @@
   "name": "@walnut/axios",
   "type": "module",
   "version": "0.0.1",
-  "private": true,
   "description": "Custom Axios HTTP client with interceptors for Walnut Admin",
   "license": "MIT",
   "exports": {

@@ -2,7 +2,6 @@
   "name": "@walnut/client",
   "type": "module",
   "version": "0.0.1",
-  "private": true,
   "description": "Vue 3 composables and browser utilities for Walnut Admin frontend",
   "license": "MIT",
   "exports": {

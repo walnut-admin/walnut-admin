@@ -2,7 +2,6 @@
   "name": "@walnut/utils",
   "type": "module",
   "version": "0.0.1",
-  "private": true,
   "description": "Zero-dependency shared utilities — consumed by both frontend and backend",
   "license": "MIT",
   "exports": {

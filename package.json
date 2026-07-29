@@ -1,7 +1,6 @@
 {
   "name": "walnut-admin",
   "type": "module",
-  "private": true,
   "packageManager": "pnpm@11.13.0",
   "description": "Walnut Admin Monorepo",
   "author": {
@@ -38,7 +37,12 @@
     "setup-env": "tsx scripts/setup-env.ts decrypt",
     "encrypt-env": "tsx scripts/setup-env.ts encrypt",
     "check:deps:update": "npx taze major -l",
-    "changelog": "tsx apps/admin/scripts/release/changelog.ts",
+    "changeset": "changeset",
+    "changeset:auto": "tsx scripts/version/auto-changeset.ts",
+    "changeset:status": "changeset status --since=origin/main",
+    "release": "tsx scripts/version/release.ts",
+    "changelog": "git-cliff -o CHANGELOG.md",
+    "changelog:preview": "git-cliff --unreleased",
     "git:push": "tsx apps/admin/scripts/release/git.ts",
     "deploy:stage": "deploy-cli-service deploy --mode stage",
     "deploy:prod": "deploy-cli-service deploy --mode production",
@@ -46,6 +50,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
+    "@changesets/cli": "catalog:",
     "@dotenvx/dotenvx": "catalog:",
     "@types/node": "catalog:",
     "@walnut/eslint-config": "workspace:*",

@@ -1,8 +1,7 @@
 {
   "name": "@walnut/eslint-config",
   "type": "module",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.0.1",
   "exports": {
     "./base": "./base.mjs",
     "./vue": "./vue.mjs",

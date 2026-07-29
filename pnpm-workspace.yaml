@@ -7,6 +7,8 @@ packages:
 
 hoisting: false
 
+catalogMode: strict
+
 overrides:
   glob: 11.1.0
   lru-cache: 11.3.6
@@ -260,6 +262,7 @@ catalog:
   winston-daily-rotate-file: 5.0.0
   workbox-window: 7.4.1
   zod: 4.4.3
+  '@changesets/cli': 2.31.1
 allowBuilds:
   '@alicloud/openapi-core': true
   '@compodoc/compodoc': true
@@ -277,4 +280,3 @@ allowBuilds:
   simple-git-hooks: true
   unrs-resolver: true
   vue-demi: true
-
