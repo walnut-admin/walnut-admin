@@ -1,59 +1,70 @@
 # 简介
 
-## 介绍
+## Walnut Admin 是什么
 
-[Walnut Admin][walnut-admin-client] 是一个基于 <WBaseLink preset="vue">Vue 3</WBaseLink>、<WBaseLink preset="vite">Vite</WBaseLink>、 <WBaseLink preset="naive-ui">Naive UI</WBaseLink>、<WBaseLink preset="ts">TypeScript</WBaseLink>、[Nest.js][nestjs] 的前后端分离的全栈解决方案，目标是为开发中大型项目提供开箱即用的解决方案。项目的重点是前端，所以本文档的重点也是偏向前端。其中前端包括二次封装组件、utils、hooks、动态菜单、权限校验、按钮级别权限控制等功能。项目会使用前端较新的技术栈，可以作为项目的启动模版，以帮助你快速搭建企业级中后台产品原型。也可以作为一个示例，用于学习 `vue3`、`vite`、`ts` 等主流技术。该项目会持续跟进最新技术，并将其应用在项目中。
+Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 Turborepo + pnpm workspaces 管理多包，提供开箱即用的企业级中后台解决方案。
+
+项目涵盖三个应用和五个共享包：
+
+| 应用 | 技术栈 | 说明 |
+|------|--------|------|
+| `apps/admin` | Vue 3 + Vite 8 + Naive UI + UnoCSS | 前端 SPA，含二次封装组件、动态菜单、权限校验、按钮级权限控制 |
+| `apps/server` | NestJS 11 + MongoDB + Redis + SWC | 后端 API，含 JWT/OAuth/WebAuthn/MFA 多层认证、18 个守卫 |
+| `apps/docs` | VitePress | 本文档站 |
+
+| 共享包 | 说明 |
+|--------|------|
+| `@walnut/contract` | 前后端共享类型、DTO、枚举、API 契约 |
+| `@walnut/utils` | 纯函数工具（regex、queue、crypto） |
+| `@walnut/client` | 浏览器工具 + Vue composables |
+| `@walnut/axios` | HTTP 客户端框架（instance + adapters） |
+| `@walnut/eslint-config` | 共享 ESLint 预设（vue / nest / base） |
+
+## 架构文档
+
+项目采用分层的架构文档体系：
+
+- **[架构](./monorepo/)** — TypeScript 配置、ESLint、pnpm Catalog、Turbo、Release、Knip 等 10 篇专题
+- **[ADR](./adr/)** — 16 条架构决策记录，覆盖包命名、工具链、测试、验证等
+- **[行业调研](./industry-research/)** — 业界主流 monorepo 实践与 Walnut Admin 的差异分析
 
 ## 所需知识
 
-本项目需要一定的软件知识，请确保掌握了下面的基础支持，以便能处理一些常见的问题。
-建议在开发前先学一下以下内容，提前了解和学习这些知识，会对项目理解非常有帮助:
+### 前端
 
-前端知识：
+- [Vue 3](https://vuejs.org/) — 组合式 API + `<script setup>`
+- [Vite](https://vitejs.dev/) — 构建工具
+- [TypeScript](https://www.typescriptlang.org/) — 类型系统
+- [Naive UI](https://www.naiveui.com/) — 组件库
+- [UnoCSS](https://unocss.dev/) — 原子化 CSS
+- [Vue Router](https://router.vuejs.org/) — 路由
+- [Pinia](https://pinia.vuejs.org/) — 状态管理
+- [Vue I18n](https://vue-i18n.intlify.dev/) — 国际化
 
-- <WBaseLink preset="vue">Vue</WBaseLink>
-- <WBaseLink preset="vite">Vite</WBaseLink>
-- <WBaseLink preset="ts">TypeScript</WBaseLink>
-- <WBaseLink preset="vue-router">vue-router</WBaseLink>
-- <WBaseLink preset="i18n">vue-i18n</WBaseLink>
-- <WBaseLink preset="naive-ui">Naive UI</WBaseLink>
-- <WBaseLink preset="vueuse">Vue Use</WBaseLink>
-- <WBaseLink preset="unocss">UnoCSS</WBaseLink>
-- <WBaseLink preset="iconify">Iconify</WBaseLink>
+### 后端
 
-后端知识：
+- [NestJS](https://nestjs.com/) — 服务端框架
+- [MongoDB](https://www.mongodb.com/) + [Mongoose](https://mongoosejs.com/) — 数据库
+- [Redis](https://redis.io/) — 缓存 + 队列
+- [SWC](https://swc.rs/) — 编译器
 
-- <WBaseLink preset="ts">TypeScript</WBaseLink>
-- [nestjs]
-- [mongodb]
-- [Redis]
+### 工程化
 
-## 代码
+- [pnpm](https://pnpm.io/) — 包管理（workspace + catalog）
+- [Turborepo](https://turbo.build/repo/docs) — 任务编排
+- [ESLint](https://eslint.org/) — 代码检查（flat config）
+- [Changesets](https://github.com/changesets/changesets) — 版本管理
+- [git-cliff](https://git-cliff.org/) — 变更日志
 
-- [walnut-admin-client]
+## 仓库地址
 
-项目前端地址，也是 walnut-admin 的开源部分。
+- [walnut-admin](https://github.com/walnut-admin/walnut-admin) — monorepo 主仓库
+- [在线演示](https://www.walnut-admin.com/)
+- [文档站](https://walnut-admin-doc.netlify.app/)
 
-- [walnut-admin-server]
+## 参与贡献
 
-项目后端地址，walnut-admin的私有仓库。
+- [Discord 讨论](https://discord.gg/kfVuasVXs2)
+- [GitHub Discussions](https://github.com/orgs/walnut-admin/discussions)
 
-## 如何加入我们
-
-- <a href="https://discord.gg/kfVuasVXs2" target='_blank'>discord 讨论</a>
-
-- <a href="https://github.com/orgs/walnut-admin/discussions" target='_blank'>github discussions 讨论</a>
-
-## 最后
-
-- [walnut-admin] 还在持续更新中，本项目欢迎您的参与，共同维护，逐步完善，将项目做得更强。同时前端项目本着开源的原则，原则上不会收取任何费用及版权，可以放心使用。
-- 如果你想加入我们，可以多提供一些好的建议或者提交 pr，我们会根据你的活跃度邀请你加入。
-
-<!-- links -->
-
-[walnut-admin]: https://github.com/walnut-admin
-[walnut-admin-client]: https://github.com/walnut-admin/walnut-admin-client
-[walnut-admin-server]: https://github.com/walnut-admin/walnut-admin-server
-[mongodb]: https://www.mongodb.com/
-[Redis]: https://redis.io/
-[nestjs]: https://nestjs.com/
+项目持续更新中，欢迎提交 PR 和建议。

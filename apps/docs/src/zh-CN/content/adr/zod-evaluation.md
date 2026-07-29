@@ -1,7 +1,7 @@
 # Zod vs class-validator — Evaluation
 
 > 评估日期：2026-07-29
-> 状态：**暂不迁移**，待触发条件满足后重新评估（见 [ADR-0016](../adr/0016-validation-strategy.md)）
+> 状态：**暂不迁移**，待触发条件满足后重新评估（见 [ADR-0016](./0016-validation-strategy.md)）
 
 ---
 
@@ -36,7 +36,7 @@
 
 ## 参考
 
-- [ADR-0016: Validation Strategy](../adr/0016-validation-strategy.md)
-- [docs/reference/07-fullstack-architecture.md](../reference/07-fullstack-architecture.md) — 业界推荐
+- [ADR-0016: Validation Strategy](./0016-validation-strategy.md)
+- [全栈架构调研](../industry-research/07-fullstack-architecture.md) — 业界推荐
 - [Zod 官方文档](https://zod.dev/)
 - [NestJS Zod Pipe 社区实现](https://github.com/risen228/nestjs-zod)

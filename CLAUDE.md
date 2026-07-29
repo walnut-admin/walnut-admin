@@ -113,9 +113,9 @@ This monorepo was created by merging three previously separate repositories:
 - ✅ Dependencies unified via pnpm `catalog:` (47 entries, single source of truth — ESLint version drift resolved)
 
 **For full architecture details and the remaining refactor roadmap:**
-- [`docs/architecture/`](./docs/architecture/README.md) — authoritative architecture docs (8 files)
-- [`docs/architecture/07-known-issues.md`](./docs/architecture/07-known-issues.md) — 13 issues tracked, 7 resolved
-- [`docs/architecture/08-refactor-plan.md`](./docs/architecture/08-refactor-plan.md) — 5-phase plan with file/line precision
+- [`apps/docs/src/zh-CN/content/monorepo/`](./apps/docs/src/zh-CN/content/monorepo/) — 架构文档（TypeScript / ESLint / pnpm Catalog / Turbo / Release / Knip 等 10 篇）
+- [`apps/docs/src/zh-CN/content/adr/`](./apps/docs/src/zh-CN/content/adr/) — 架构决策记录（ADR 0001-0016）
+- [`apps/docs/src/zh-CN/content/industry-research/`](./apps/docs/src/zh-CN/content/industry-research/) — 行业调研语料
 - `migration-guide/` — historical migration record (Phase 1 merge steps, now completed)
 
 ## Frontend Architecture (apps/admin/)

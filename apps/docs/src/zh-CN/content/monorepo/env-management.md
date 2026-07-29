@@ -1,28 +1,14 @@
 # 环境变量加密管理
 
-## 为什么需要加密
+## 概述
 
-Walnut Admin 是公开的 GitHub 仓库，但项目实际在运营，大量敏感密钥（数据库密码、JWT secret、OAuth key、云服务 AK 等）不能暴露在仓库中。
+Walnut Admin 是公开的 GitHub 仓库，但项目实际在运营——数据库密码、JWT secret、OAuth key、云服务 AK/SK 等敏感密钥不能暴露在仓库中。传统做法是 `.env.local` 放真实值、gitignore 掉、新成员入职手动发文件，效率低且容易泄露。
 
-传统做法是 `.env.local` 放真实值、gitignore 掉、新成员入职手动发文件。但换电脑或来新人时每次都要单独传，效率低且容易泄露。
+我们的方案：用 **dotenvx** 对 `.env` 文件做 ECIES 椭圆曲线加密（AES-256 + Secp256k1），每个变量值独立加密。密文直接提交 Git，团队成员只需一个私钥即可解密。
 
-我们的方案：用 **dotenvx** 加密 `.env` 文件，密文直接提交到 Git，团队成员只需一个私钥即可解密。
+## 我们做了什么
 
-## 原理
-
-dotenvx 使用 ECIES 椭圆曲线加密（AES-256 + Secp256k1），每个变量值独立加密：
-
-```
-# 明文
-DATABASE_PRIMARY=127.0.0.1:27017
-
-# 加密后（可安全提交 Git）
-DATABASE_PRIMARY=encrypted:BPjEdKHuA1vOFRXhmkq/DF93...
-```
-
-加密后的文件放在 `env-encrypted/` 目录下提交 Git。私钥存储在 `.env.keys` 文件（gitignored，通过 1Password 分发）。
-
-## 目录结构
+### 1. 三层目录结构
 
 ```
 walnut-admin/
@@ -31,8 +17,8 @@ walnut-admin/
 │
 ├── apps/admin/
 │   ├── env/               ← 模板（占位符参考，提交 Git）
-│   ├── env-encrypted/     ← 加密后的真实值（安全提交 Git！）
-│   └── env-local/         ← 明文真实值（gitignored，由脚本生成）
+│   ├── env-encrypted/     ← 加密后的真实值（安全提交 Git）
+│   └── env-local/         ← 明文真实值（gitignored，脚本生成）
 │
 └── apps/server/
     ├── env/               ← 模板
@@ -40,17 +26,15 @@ walnut-admin/
     └── env-local/         ← 明文真实值
 ```
 
-三个目录的关系：
-
 | 目录 | 内容 | 提交 Git? | 谁生成 |
 |------|------|-----------|--------|
-| `env/` | `{{your ...}}` 占位符模板 | ✅ 是 | 手动维护 |
+| `env/` | 占位符模板（如 `YOUR_DB_HOST`） | ✅ 是 | 手动维护 |
 | `env-encrypted/` | `encrypted:...` 密文 | ✅ 是（安全） | `pnpm encrypt-env` |
 | `env-local/` | 明文真实值 | ❌ 否 | `pnpm setup-env` |
 
-## 密钥设计
+### 2. 多环境密钥
 
-**3 把 key，按环境划分：**
+3 把 key 按环境划分，同一环境的 admin 和 server key 用逗号合并：
 
 ```
 .env.keys:
@@ -59,52 +43,34 @@ walnut-admin/
   DOTENV_PRIVATE_KEY_STAGE="admin的key,server的key"
 ```
 
-每个环境一把 key。因为 admin 和 server 都有 `.env.development`，dotenvx 对每个文件独立生成密钥对，同名 key 的值用逗号合并。解密时 dotenvx 会逐个尝试，哪个能解开就用哪个。
+解密时 dotenvx 逐个尝试，哪个能解开就用哪个。
 
-## 日常使用
-
-### 新成员入职
+### 3. 日常命令
 
 ```bash
-# 1. 从 1Password 获取私钥，创建 .env.keys 文件
-echo 'DOTENV_PRIVATE_KEY_DEVELOPMENT="..."' > .env.keys
-# ...（完整内容从 1Password 复制）
-
-# 2. 一键解密所有 env-encrypted/ → env-local/
-pnpm setup-env
-
-# 3. 正常开发
-pnpm dev:admin
-pnpm dev:server
+pnpm setup-env     # 一键解密 env-encrypted/ → env-local/
+pnpm encrypt-env   # 修改密钥后重新加密
 ```
 
-### 修改或新增密钥
+### 4. 前后端差异化
 
-```bash
-# 1. 直接修改 env-local/ 中的明文值
-# 2. 同步更新 env/ 模板（占位符）
-# 3. 重新加密
-pnpm encrypt-env
-# 4. 提交 env-encrypted/ + env/ 到 Git
-```
+| 环境变量加载方式 | 前端（Vite） | 后端（NestJS） |
+|----------------|-------------|---------------|
+| 时机 | 构建时静态替换（`import.meta.env.VITE_*`） | 运行时加载（`@nestjs/config` + `ConfigModule.forRoot()`） |
+| 影响缓存 | 是——`turbo.json` 声明了 `"env": ["VITE_*", "MODE"]` | 否——构建产物不包含 env 值 |
+| 新增变量后 | 更新 `build/vite/config/` 中的 Zod schema | 更新 `libs/config/src/validation.ts` |
 
-### 新增环境变量
+## 没做什么 / 为什么
 
-1. 在 `env-local/` 中添加新变量
-2. 在 `env/` 模板中对应添加
-3. **前端**：更新 `build/vite/config/env.*.ts` 中的 Zod schema
-4. **后端**：更新 `libs/config/src/validation.ts` 中的校验装饰器
-5. 运行 `pnpm encrypt-env` 重新加密
-6. 提交所有变更
+### 不加密所有 `.env` 文件
 
-## 哪些文件需要加密
+admin 的基础 `.env` 文件不加密——它只包含 app title、GA ID 等非敏感配置。只加密 `.env.development`、`.env.production`、`.env.stage` 以及 server 的全部 `.env.*`。
 
-| 文件 | 是否加密 | 原因 |
-|------|---------|------|
-| admin `.env`（基础） | ❌ 不加密 | 只有 app title、GA ID 等非敏感配置 |
-| admin `.env.development` | ✅ 加密 | 含内网代理地址 |
-| admin `.env.production` / `.env.stage` | ✅ 加密 | 含 Sentry Auth Token、生产 API 地址 |
-| server 全部 `.env.*` | ✅ 加密 | 含数据库密码、JWT secret、OAuth key、云 AK/SK |
+### 不把加密文件放在 monorepo 根目录
+
+每个 app 有自己的 `env-encrypted/` 目录，而不是集中在根目录。原因是 admin 和 server 的部署方式完全不同、环境变量数量和敏感度也不同——分开管理更清晰。
+
+---
 
 ## 注意事项
 
@@ -120,3 +86,19 @@ pnpm encrypt-env
 ::: info 后端运行路径
 服务器必须从 `apps/server/` 目录运行，因为 `ConfigModule` 使用 `process.cwd()` 定位 `env-local/` 目录。
 :::
+
+---
+
+## 关键文件
+
+| 文件 | 作用 |
+|------|------|
+| [scripts/setup-env.ts](https://github.com/walnut-admin/walnut-admin-client/blob/main/scripts/setup-env.ts) | 加解密脚本（`decrypt` / `encrypt` 子命令） |
+| [apps/admin/env/](https://github.com/walnut-admin/walnut-admin-client/tree/main/apps/admin/env) | admin 环境变量模板 |
+| [apps/server/env/](https://github.com/walnut-admin/walnut-admin-client/tree/main/apps/server/env) | server 环境变量模板 |
+| [.env.keys](https://github.com/walnut-admin/walnut-admin-client/blob/main/.env.keys)（gitignored） | 私钥，通过 1Password 分发 |
+
+## 相关 ADR
+
+- [ADR-0003: No `import.meta.env` / `process.env` defaults in shared code](/content/adr/0003-no-env-defaults.md)
+- [ADR-0012: Frontend-Backend Toolchain Divergence](/content/adr/0012-toolchain-divergence.md)（Decision 2: Environment Variable Loading）
