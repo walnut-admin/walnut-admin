@@ -118,6 +118,25 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 4. **The `VITE_*` wildcard pattern is future-proof:** Adding a new `VITE_*` variable to the Zod schema automatically gets cache tracking without touching `turbo.json`.
 5. **Cross-package resolution is workspace-native:** `@walnut/contract` and `@walnut/utils` resolve via pnpm symlinks + `package.json` `exports`, consistent with how they'd resolve if published to npm. The 4 previously duplicated paths entries are eliminated.
 
+## Decision 5: Strict Hoisting with Minimal Exceptions
+
+**Chosen:** Maintain `hoisting: false` with 5 `public-hoist-pattern` exceptions. No changes.
+
+**Rationale:**
+- `hoisting: false` is the pnpm default and provides strict dependency isolation — each package can only import what it declares in `dependencies`/`devDependencies`
+- 5 exceptions are necessary for tooling that must run at root level:
+  - `*turbo*` — task orchestration, runs from root
+  - `*eslint*` — unified ESLint config resolution
+  - `*simple-git-hooks*` — git hooks installed via root `postinstall`
+  - `*@swc*` — server compiler, needs to be at root for SWC configs
+  - `*esbuild*` — shared build tool (Vite, vitest, tsx)
+- The list has been stable since the monorepo merge — growth rate is near zero
+- Re-evaluate if the list exceeds 10 patterns
+
+**Alternatives considered:**
+- Removing `hoisting: false` entirely — rejected; would allow phantom dependencies (packages importing deps they didn't declare)
+- More granular per-package hoisting — rejected; adds configuration complexity without benefit
+
 ## Related
 
 - [ADR 0002](0002-dual-mode-consumption.md) — dual-mode package consumption (source for Vite, CJS build for backend)
