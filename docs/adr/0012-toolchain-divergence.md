@@ -88,12 +88,35 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 
 **What this prevents:** Switching between stage and production builds (different Sentry DSN, proxy URLs, CDN flags, etc.) without this declaration would return stale cached output — the build artifacts would contain the wrong API endpoints, wrong Sentry project, or missing CDN configuration.
 
+## Decision 4: No Cross-Package tsconfig Paths (Community Standard)
+
+**Chosen:** Remove all cross-package `paths` entries for `@walnut/contract` and `@walnut/utils` from server tsconfig and SWC configs. Rely solely on pnpm workspace protocol + `package.json` `exports`.
+
+**Rationale (community consensus, 2025):**
+
+1. **tsconfig `paths` overrides `package.json` `exports`** — when TypeScript matches a paths alias, it resolves directly to the filesystem path and completely skips `exports`, `main`, and `types` fields. This means the `exports` field (carefully configured per ADR 0002 for dual-mode consumption) becomes dead weight during type-checking.
+
+2. **Single source of truth** — `workspace:*` in `package.json` + `exports` in the dependency's `package.json` is sufficient. Cross-package paths duplicate this and create maintenance burden (4 files to keep in sync: 1 tsconfig + 3 SWC configs).
+
+3. **Mirrors real npm resolution** — when (if) these packages are published to npm, consumers will resolve through `node_modules` + `exports`, not through tsconfig paths. Keeping only the workspace protocol ensures dev behavior matches publish behavior.
+
+**Files cleaned (2026-07-29):**
+- `apps/server/tsconfig.json` — removed `@walnut/contract` and `@walnut/utils` paths
+- `apps/server/infra/swc/dev.swcrc` — removed same
+- `apps/server/infra/swc/prod.swcrc` — removed same
+- `apps/server/infra/swc/stage.swcrc` — removed same
+
+**What was kept:**
+- `@walnut-server/*` paths — these point to server-internal NestJS libraries (`libs/*`) which are NOT pnpm workspace packages. These paths are the only resolution mechanism for internal libs (no `workspace:*` protocol exists for them).
+- `@/*` paths — local convenience alias within each package (`src/*`), not cross-package.
+
 ## Consequences
 
 1. **Turborepo cache correctness:** `turbo build` now correctly invalidates when any `VITE_*` variable or mode changes.
 2. **Server tsconfig isolation is documented:** Future maintainers won't try to "fix" the server by making it extend the root base.
 3. **Env loading model is explicit:** The build-time-static vs runtime-loading distinction is recorded, preventing confusion about which vars need turbo.json declarations.
 4. **The `VITE_*` wildcard pattern is future-proof:** Adding a new `VITE_*` variable to the Zod schema automatically gets cache tracking without touching `turbo.json`.
+5. **Cross-package resolution is workspace-native:** `@walnut/contract` and `@walnut/utils` resolve via pnpm symlinks + `package.json` `exports`, consistent with how they'd resolve if published to npm. The 4 previously duplicated paths entries are eliminated.
 
 ## Related
 

@@ -37,12 +37,9 @@
   "devDependencies": {
     "@types/lodash-es": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
-    "@vitejs/plugin-vue-jsx": "catalog:",
     "@walnut/eslint-config": "workspace:*",
-    "easy-fns-ts": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
-    "vite-plugin-dts": "catalog:"
+    "vite": "catalog:"
   }
 }
