@@ -1,4 +1,5 @@
 {
+  "$comment": "This tsconfig is intentionally self-contained and does NOT extend ../../tsconfig.base.json. See ADR 0012 for rationale: CJS/ESM module system divergence makes shared compilerOptions unsafe.",
   "compilerOptions": {
     "module": "commonjs",
     "declaration": false,

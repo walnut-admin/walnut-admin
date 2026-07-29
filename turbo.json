@@ -25,6 +25,7 @@
         "!**/*.md",
         "!**/tsconfig.tsbuildinfo"
       ],
+      "env": ["VITE_*", "MODE"],
       "cache": true
     },
     "dev": {
