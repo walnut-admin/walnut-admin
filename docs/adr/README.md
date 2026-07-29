@@ -10,11 +10,14 @@
 | [0006](0006-runtime-api-separation.md) | Organize code by API dependency: pure → `utils`, browser → `client/browser`, Vue → `client/hooks` | ✅ Implemented |
 | [0007](0007-backend-libs-not-workspace.md) | Backend NestJS libraries stay as internal monorepo | ✅ Existing (pre-grilling) |
 | [0008](0008-unified-versioning-separate-deploy.md) | Single tag, separate deploy, backend-first | ⚠️ ADR written, deploy.yml not yet updated |
-| [0009](0009-ci-quality-gates.md) | Three-tier quality: commit (lint) → push (types) → CI (test) | ⚠️ ADR written, tests not yet added, CI workflow not updated |
+| [0009](0009-ci-quality-gates.md) | Three-tier quality: commit (lint) → push (types) → CI (test, once implemented) | ⚠️ ADR updated (test.dependsOn fixed), tests still pending |
 | [0010](0010-no-ts-project-references.md) | No TypeScript Project References | ✅ Existing (pre-grilling) |
-| [0011](0011-dependency-governance-release.md) | `catalogMode: strict`, unified versioning, changesets + git-cliff release pipeline | ✅ Implemented (2026-07-29) |
+| [0011](0011-dependency-governance-release.md) | `catalogMode: strict`, hybrid versioning (packages fixed, apps independent), changesets + git-cliff release pipeline | ✅ Implemented (2026-07-29) |
 | [0012](0012-toolchain-divergence.md) | Server tsconfig independence + build-time-static vs runtime env loading + turbo.json env + hoisting + turbo boundaries | ✅ Implemented (2026-07-29) |
 | [0013](0013-barrel-exports-policy.md) | Selective barrel exports for package entries, direct imports for app code, no `export *` | ✅ Implemented (2026-07-29) |
+| [0014](0014-eslint-config-strategy.md) | Shared ESLint config package with 3 presets (base/vue/nest), no oxlint/biome until Vue SFC support | ✅ Implemented (2026-07-29) |
+| [0015](0015-testing-strategy.md) | Vitest as single framework, co-located `__tests__/`, layered coverage targets (utils/contract 90%+) | ✅ Accepted (2026-07-29) |
+| [0016](0016-validation-strategy.md) | Keep class-validator + custom decorator system, do not migrate to Zod at this time | ✅ Accepted (2026-07-29) |
 
 ## Implementation Gaps
 

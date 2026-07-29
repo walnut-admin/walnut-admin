@@ -27,18 +27,19 @@ Three interdependent decisions needed to be made:
 - ESLint `pnpm/json-enforce-catalog` — belt-and-suspenders, but redundant with pnpm's native check
 - No enforcement — relying on convention alone; rejected because convention degrades over time
 
-## Decision 2: Unified Versioning with Independent Identity
+## Decision 2: Hybrid Versioning — Unified Packages, Independent Apps
 
-**Chosen:** All workspace members share version `0.0.1`, `private: true` removed from all packages.
+**Chosen:** 5 shared packages use a `fixed` group for synchronized versioning; 3 apps use independent versioning.
 
 **Rationale:**
-- `private: true` removal signals the code is publicly visible (not secret/internal)
-- Does NOT imply intent to publish to npm — just declares the code as open
-- Unified `0.0.1` as a clean starting point after the repo merge (previous versions were 0.0.1, 0.0.0, 1.0.0, 1.18.0 — inconsistent artifacts of separate repos)
-- `fixed` group in changesets ensures all 8 workspace packages stay in sync going forward
+- **Packages are tightly coupled** — `@walnut/contract` changes cascade to all consumers, `@walnut/utils` is consumed by both frontend and backend. A type change in `contract` is breaking to all package consumers, so synchronized bumping reflects reality.
+- **Apps have independent release cycles** — `apps/docs` content update does not affect `apps/server`; `apps/admin` UI change does not affect `apps/docs`. Independent versioning avoids spurious version bumps.
+- `private: true` removal signals the code is publicly visible (not secret/internal). Does NOT imply intent to publish to npm.
+- Unified `0.0.1` as a clean starting point after the repo merge (previous versions were 0.0.1, 0.0.0, 1.0.0, 1.18.0 — inconsistent artifacts of separate repos).
 
 **Alternatives considered:**
-- Independent versions per package — rejected; no packages are independently published, adds complexity without benefit
+- All 8 packages in Fixed Group — rejected; apps with independent release cycles get spurious version bumps (e.g., docs change triggers server version bump)
+- Full Independent for all — rejected; 5 packages are tightly coupled and benefit from synchronized versioning
 - Keep apps at 1.18.0 and packages at 0.0.1 — rejected; split versioning is confusing when all packages move together
 
 ## Decision 3: changesets + git-cliff Pipeline
@@ -64,7 +65,7 @@ Three interdependent decisions needed to be made:
 
 **Key configuration:**
 - `cliff.toml`: conventional commit parsing with emoji-categorized groups, GitHub commit links
-- `.changeset/config.json`: `fixed` group covering all 8 workspace packages, `changelog: false`, `access: public`
+- `.changeset/config.json`: `fixed` group covering 5 shared packages (`utils`, `contract`, `client`, `axios`, `eslint-config`), apps are independent, `changelog: false`, `access: public`
 
 ## Consequences
 
@@ -72,7 +73,7 @@ Three interdependent decisions needed to be made:
 - `pnpm release` (on `main` branch only) executes the full release pipeline
 - `pnpm changeset:auto` generates changeset files from commits (for review before release)
 - `pnpm changelog` generates CHANGELOG.md via git-cliff
-- All versions are mechanically kept in sync via the `fixed` group — no manual version editing needed
+- 5 shared packages are mechanically kept in sync via the `fixed` group; 3 apps version independently — no manual version editing needed
 
 ## Related
 

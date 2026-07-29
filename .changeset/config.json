@@ -4,9 +4,6 @@
   "commit": false,
   "fixed": [
     [
-      "@walnut/admin",
-      "@walnut/server",
-      "@walnut/docs",
       "@walnut/utils",
       "@walnut/contract",
       "@walnut/client",

@@ -34,7 +34,7 @@ Current state:
 | `@walnut/admin` | **Eventually** — complex SPA, needs component/E2E tests |
 | `@walnut/server` | **Existing** — vitest + playwright already configured |
 
-**`turbo.json` test task**: `dependsOn: ["^build"]` ensures shared packages are built before tests run (needed for backend CJS consumption).
+**`turbo.json` test task**: `dependsOn: ["build"]` ensures the current package is built before its tests run. `build` itself has `dependsOn: ["^build"]`, so upstream dependencies are transitively satisfied. Vitest uses esbuild for test compilation (not the CJS build output), so `["build"]` is the correct dependency chain per industry standard (see `docs/reference/04-testing-strategy.md`).
 
 ## Consequences
 
