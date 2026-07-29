@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { LocaleType } from '@walnut/contract'
 import { WalnutDBCollectionName, WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
+import { LocaleType } from '@walnut/contract'
 import { Types } from 'mongoose'
 
 import { ISysLangModel, SysLangModel } from '../schema/lang.schema'

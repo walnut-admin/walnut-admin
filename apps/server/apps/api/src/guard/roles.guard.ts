@@ -1,4 +1,3 @@
-import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import {
   CanActivate,
   ExecutionContext,
@@ -7,8 +6,9 @@ import {
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { IWalnutAdminConstDecoratorRoleMode, WalnutAdminConstDecoratorRoleMetadataKey, WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
-import { RoleType, Role } from '@walnut/contract'
+import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { WalnutAdminExceptionNoAccessRolePermission } from '@walnut-server/exceptions/business/auth'
+import { Role, RoleType } from '@walnut/contract'
 import { isNil } from 'lodash'
 
 @Injectable()

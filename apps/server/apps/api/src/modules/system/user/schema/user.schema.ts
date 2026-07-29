@@ -1,6 +1,5 @@
-import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { } from '@walnut/contract'
+import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 import {
   WalnutAdminDecoratorFieldBoolean,
@@ -9,6 +8,7 @@ import {
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
+import { } from '@walnut/contract'
 
 import { ValueOf } from 'easy-fns-ts'
 

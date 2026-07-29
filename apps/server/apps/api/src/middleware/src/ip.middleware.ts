@@ -1,7 +1,7 @@
+import type { NextFunction } from 'express'
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import * as requestIp from '@supercharge/request-ip'
 import { RequestHeaders } from '@walnut/contract/http'
-import type { NextFunction } from 'express'
 
 @Injectable()
 export class IpMiddleware implements NestMiddleware {

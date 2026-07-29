@@ -1,9 +1,9 @@
-import { Injectable, NestMiddleware } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-
-import { RequestHeaders } from '@walnut/contract/http'
-import { getPackageJsonData } from '@walnut-server/utils/pkg'
 import type { NextFunction } from 'express'
+import { Injectable, NestMiddleware } from '@nestjs/common'
+
+import { ConfigService } from '@nestjs/config'
+import { getPackageJsonData } from '@walnut-server/utils/pkg'
+import { RequestHeaders } from '@walnut/contract/http'
 
 const pkg = getPackageJsonData()
 @Injectable()

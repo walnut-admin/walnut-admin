@@ -9,8 +9,8 @@ import {
 } from '@nestjs/terminus'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 
-import { Role } from '@walnut/contract'
 import { WalnutDBInjectConnection } from '@walnut-server/db'
+import { Role } from '@walnut/contract'
 import { Connection } from 'mongoose'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'

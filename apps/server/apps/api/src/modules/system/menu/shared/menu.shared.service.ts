@@ -1,14 +1,14 @@
 import type { ClientSession } from 'mongoose'
 import { Injectable, Logger } from '@nestjs/common'
 import { IWalnutAdminConstAppPermissionType, WalnutAdminConstAppPermissionType } from '@walnut-server/const/app/permission'
-import { RoleType, Role } from '@walnut/contract'
+import { Role, RoleType } from '@walnut/contract'
+import { MenuTernal, MenuType } from '@walnut/contract/menu'
 import { arrToTree, filterTree, formatTree, orderTree, TreeNodeItem } from 'easy-fns-ts'
 import { isNil, omit, pick } from 'lodash'
 import { AppTechCachePermissionsService } from '@/modules/techniques/cache/service/cache.permissions'
 import { SysRoleSharedService } from '../../role/shared/role.shared.service'
 import { SysMenuRepositoryService } from '../repo/menu.repo.service'
 import { ISysMenuDocument, SysMenuModel } from '../schema/menu.schema'
-import { MenuTernal, MenuType } from '@walnut/contract/menu'
 // Note: Menu types (IMenuTreeItem, IVueRouteItem, ILayoutTabsItem, IIframeListItem) are now global
 
 @Injectable()

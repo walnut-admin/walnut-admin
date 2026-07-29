@@ -1,7 +1,7 @@
+import type { NextFunction } from 'express'
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import { isDev } from '@walnut-server/config/utils/env'
 import { RequestHeaders } from '@walnut/contract/http'
-import type { NextFunction } from 'express'
 import { isbot } from 'isbot'
 
 import { isNil } from 'lodash'

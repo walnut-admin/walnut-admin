@@ -1,8 +1,8 @@
-import { randomBytes } from 'node:crypto'
-import { Injectable, NestMiddleware } from '@nestjs/common'
-
-import { RequestHeaders } from '@walnut/contract/http'
 import type { NextFunction } from 'express'
+import { randomBytes } from 'node:crypto'
+
+import { Injectable, NestMiddleware } from '@nestjs/common'
+import { RequestHeaders } from '@walnut/contract/http'
 
 function generateRequestId(): string {
   // 1. 获取当前时间戳（毫秒），转为 36 进制�?-9a-z），占约 7-8 �?

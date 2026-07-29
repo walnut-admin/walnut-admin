@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { LocaleType } from '@walnut/contract'
 import { WalnutDBInjectConnection } from '@walnut-server/db'
-
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
+
 import { WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
+import { LocaleType } from '@walnut/contract'
 import { ClientSession, Connection } from 'mongoose'
 import { SharedWelcomeService } from '@/modules/shared/welcome/welcome.service'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'

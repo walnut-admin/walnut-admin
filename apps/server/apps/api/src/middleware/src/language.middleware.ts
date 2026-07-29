@@ -1,9 +1,9 @@
-import { Injectable, NestMiddleware } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-
-import { RequestHeaders } from '@walnut/contract/http'
-import { LocaleType } from '@walnut/contract'
 import type { NextFunction } from 'express'
+import { Injectable, NestMiddleware } from '@nestjs/common'
+
+import { ConfigService } from '@nestjs/config'
+import { LocaleType } from '@walnut/contract'
+import { RequestHeaders } from '@walnut/contract/http'
 
 @Injectable()
 export class LanguageMiddleware implements NestMiddleware {

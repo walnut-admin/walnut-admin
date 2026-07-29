@@ -1,6 +1,4 @@
 import { Prop, Schema, SchemaFactory, Virtual } from '@nestjs/mongoose'
-import { Locale,  LocaleType } from '@walnut/contract'
-
 import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 
 import {
@@ -8,6 +6,8 @@ import {
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
+
+import { Locale, LocaleType } from '@walnut/contract'
 import { HydratedDocument, Model } from 'mongoose'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 

@@ -1,8 +1,8 @@
+import type { CookieOptions } from 'express'
 import { Injectable, Logger } from '@nestjs/common'
 import { isDev, isProd } from '@walnut-server/config/utils/env'
 import { getPackageJsonData } from '@walnut-server/utils/pkg'
 import { Recordable } from 'easy-fns-ts'
-import type { CookieOptions } from 'express'
 
 // Note: IWalnutAdminCookieOptions interface has been moved to @walnut-server/types/walnut-admin/cookie.d.ts
 // as IWalnutAdminCookieOptions

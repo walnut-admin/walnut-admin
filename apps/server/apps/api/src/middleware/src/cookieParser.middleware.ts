@@ -1,7 +1,7 @@
+import type { NextFunction, RequestHandler } from 'express'
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import cookieParser from 'cookie-parser'
-import type { NextFunction, RequestHandler } from 'express'
 
 @Injectable()
 export class CookieParserMiddleware implements NestMiddleware {

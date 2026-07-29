@@ -1,5 +1,5 @@
-import { Injectable, NestMiddleware } from '@nestjs/common'
 import type { NextFunction } from 'express'
+import { Injectable, NestMiddleware } from '@nestjs/common'
 import { xss } from 'express-xss-sanitizer'
 
 @Injectable()
