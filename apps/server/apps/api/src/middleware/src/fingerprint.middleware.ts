@@ -1,6 +1,6 @@
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import { RequestHeaders } from '@walnut/contract/http'
-import { NextFunction } from 'express'
+import type { NextFunction } from 'express'
 
 @Injectable()
 export class FingerprintMiddleware implements NestMiddleware {

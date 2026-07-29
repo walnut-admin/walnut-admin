@@ -23,6 +23,13 @@ export default function nestConfig() {
         'no-console': 'off',
         'ts/no-this-alias': 'off',
         'no-empty-pattern': 'off',
+        // Relax type-aware rules that produce false positives with pnpm workspace cross-package `as const` imports.
+        // TypeScript's own tsc --noEmit has 0 errors; these rules cannot resolve literal types through workspace symlinks.
+        'ts/no-unsafe-assignment': 'warn',
+        'ts/no-unsafe-member-access': 'warn',
+        'ts/no-unsafe-argument': 'warn',
+        'ts/no-unsafe-return': 'warn',
+        'ts/no-unsafe-call': 'warn',
         'no-restricted-imports': ['error', {
           patterns: [
             {

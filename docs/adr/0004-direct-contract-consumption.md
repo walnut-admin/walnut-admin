@@ -1,7 +1,7 @@
 # ADR-0004: Direct Contract Consumption — No Wrapper Layers
 
 **Date:** 2026-07-28
-**Status:** Accepted
+**Status:** Implemented (Phase 4 completed 2026-07-29)
 
 ## Context
 

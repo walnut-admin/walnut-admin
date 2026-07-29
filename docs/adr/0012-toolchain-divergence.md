@@ -167,6 +167,18 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 - `node_modules/zod` deep import in `validate-env.ts` — pre-existing code smell, not a cross-package boundary concern
 - `vitest/config` in packages without explicit `vitest` devDependency — pre-existing, vitest is installed via pnpm
 
+## Decision 7: ESLint Type-Aware Rules Relaxed for Workspace Imports
+
+**Chosen:** Downgrade `ts/no-unsafe-*` rules from `error` to `warn` in the `nest` ESLint config.
+
+**Rationale:**
+- `@typescript-eslint` type-aware rules (`ts/no-unsafe-assignment`, `ts/no-unsafe-member-access`, etc.) use TypeScript's type checker through the ESLint plugin
+- When importing `as const` objects from pnpm workspace packages (e.g., `MenuType`, `Locale`, `Role` from `@walnut/contract`), the ESLint type checker cannot resolve literal types through workspace symlinks
+- TypeScript's own `tsc --noEmit` has 0 errors — the types are correct, the ESLint rules produce false positives
+- Downgrading to `warn` keeps the rules visible for real violations in local code while preventing false-positive build failures
+
+**This is a known limitation of pnpm workspaces + type-aware linting**, documented in the `@typescript-eslint` project. If/when TypeScript's type resolver improves workspace symlink handling, these rules can be restored to `error`.
+
 ## Related
 
 - [ADR 0002](0002-dual-mode-consumption.md) — dual-mode package consumption (source for Vite, CJS build for backend)

@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config'
 
 import { RequestHeaders } from '@walnut/contract/http'
 import { LocaleType } from '@walnut/contract'
-import { NextFunction } from 'express'
+import type { NextFunction } from 'express'
 
 @Injectable()
 export class LanguageMiddleware implements NestMiddleware {

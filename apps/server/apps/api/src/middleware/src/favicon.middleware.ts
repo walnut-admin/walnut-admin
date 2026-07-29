@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { Injectable, NestMiddleware } from '@nestjs/common'
-import { NextFunction } from 'express'
+import type { NextFunction } from 'express'
 import serveFavicon from 'serve-favicon'
 
 @Injectable()

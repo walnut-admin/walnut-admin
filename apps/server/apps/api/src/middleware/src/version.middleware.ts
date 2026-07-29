@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config'
 
 import { RequestHeaders } from '@walnut/contract/http'
 import { getPackageJsonData } from '@walnut-server/utils/pkg'
-import { NextFunction } from 'express'
+import type { NextFunction } from 'express'
 
 const pkg = getPackageJsonData()
 @Injectable()

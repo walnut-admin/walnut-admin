@@ -4,7 +4,7 @@ import { RequestHeaders } from '@walnut/contract/http'
 import { LoggerContextService } from '@walnut-server/context'
 import { maskSensitiveFields } from '@walnut-server/utils/mask'
 import { Recordable } from 'easy-fns-ts'
-import { NextFunction } from 'express'
+import type { NextFunction } from 'express'
 import { SharedBLPathService } from '@/modules/shared/BLPath/BLPath.service'
 
 @Injectable()

@@ -2,7 +2,7 @@ import { Injectable, NestMiddleware } from '@nestjs/common'
 import { RequestHeaders } from '@walnut/contract/http'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 
-import { NextFunction } from 'express'
+import type { NextFunction } from 'express'
 
 @Injectable()
 export class TimezoneMiddleware implements NestMiddleware {

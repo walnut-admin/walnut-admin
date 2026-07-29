@@ -1,4 +1,4 @@
-import type { StandardSchemaV1 } from 'node_modules/zod/v4/core/standard-schema.cjs'
+import type { StandardSchemaV1 } from 'zod/v4/core/standard-schema'
 import { ValidateEnv } from '@julr/vite-plugin-validate-env'
 import DevSchema from '../config/env.development'
 import ProdSchema from '../config/env.prod'

@@ -2,7 +2,7 @@ import { Injectable, NestMiddleware } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
 import cookieSession from 'cookie-session'
-import { NextFunction, RequestHandler } from 'express'
+import type { NextFunction, RequestHandler } from 'express'
 
 import { AppTokenService } from '@/modules/shared/token/token.service'
 import { defaultCookieOptions } from '@/modules/techniques/cookie/cookie.service'
