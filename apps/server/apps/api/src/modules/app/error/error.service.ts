@@ -4,7 +4,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { IWalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
 import { WalnutAdminConstAppProcess } from '@walnut-server/const/app/process'
 import { WalnutAdminConstAppQueue } from '@walnut-server/const/app/queue'
-import { IWalnutAdminConstAppResponseCode, WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
+import { IWalnutAdminConstAppResponseCode, WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 
 import { Queue } from 'bull'

@@ -11,7 +11,6 @@ import {
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPartialType } from '@walnut-server/utils/dto'
 import { CacheKeyStrategy, MenuTernal, MenuType } from '@walnut/contract/menu'
-import { Recordable, ValueOf } from 'easy-fns-ts'
 import { HydratedDocument, Model, Types } from 'mongoose'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 
@@ -22,18 +21,6 @@ export type ISysMenuModel = Model<ISysMenuDocument> & ISysMenuStatics
 export interface ISysMenuMethods { }
 
 export interface ISysMenuStatics { }
-
-export const SysMenuTypeConst = MenuType
-
-export type ISysMenuTypeConst = ValueOf<typeof SysMenuTypeConst>
-
-export const SysMenuTernalConst = MenuTernal
-
-export type ISysMenuTernalConst = ValueOf<typeof SysMenuTernalConst>
-
-export const SysMenuCacheKeyStrategyConst = CacheKeyStrategy
-
-export type ISysMenuCacheKeyStrategyConst = ValueOf<typeof SysMenuCacheKeyStrategyConst>
 
 export class SysMenuModelMeta {
   @WalnutAdminDecoratorFieldNumber({
@@ -47,21 +34,21 @@ export class SysMenuModelMeta {
   @Prop({ type: Number, default: null })
   order: number
 
-  @WalnutAdminDecoratorFieldEnum(() => SysMenuTernalConst, {
-    default: SysMenuTernalConst.NONE,
+  @WalnutAdminDecoratorFieldEnum(() => MenuTernal, {
+    default: MenuTernal.NONE,
     swaggerOptions: {
       title: 'menu ternal type',
       description:
         'internal => no jump, iframe inside page. external => jump url, need to confirm',
-      example: SysMenuTernalConst.NONE,
+      example: MenuTernal.NONE,
     },
   })
   @Prop({
-    type: () => SysMenuTernalConst,
-    enum: [...Object.values(SysMenuTernalConst)],
-    default: SysMenuTernalConst.NONE,
+    type: () => MenuTernal,
+    enum: [...Object.values(MenuTernal)],
+    default: MenuTernal.NONE,
   })
-  ternal: ISysMenuTernalConst
+  ternal: IMenuTernal
 
   @WalnutAdminDecoratorFieldString({
     default: null,
@@ -234,21 +221,21 @@ export class SysMenuModelMeta {
   @Prop({ type: String, default: 'fade' })
   transition: string
 
-  @WalnutAdminDecoratorFieldEnum(() => SysMenuCacheKeyStrategyConst, {
+  @WalnutAdminDecoratorFieldEnum(() => CacheKeyStrategy, {
     default: null,
     swaggerOptions: {
       title: 'cache key strategy',
       description:
         'name => use menu name as cache key. path => use menu path as cache key',
-      example: SysMenuCacheKeyStrategyConst.NAME,
+      example: CacheKeyStrategy.NAME,
     },
   })
   @Prop({
-    type: () => SysMenuCacheKeyStrategyConst,
-    enum: [...Object.values(SysMenuCacheKeyStrategyConst)],
+    type: () => CacheKeyStrategy,
+    enum: [...Object.values(CacheKeyStrategy)],
     default: null,
   })
-  cacheKeyStrategy: ISysMenuCacheKeyStrategyConst
+  cacheKeyStrategy: ICacheKeyStrategy
 }
 
 @Schema({
@@ -266,21 +253,21 @@ export class SysMenuModel extends WalnutAdminCommonBasicModel {
   @Prop({ type: Types.ObjectId, required: true })
   pid: Types.ObjectId | string
 
-  @WalnutAdminDecoratorFieldEnum(() => SysMenuTypeConst, {
-    default: SysMenuTypeConst.CATALOG,
+  @WalnutAdminDecoratorFieldEnum(() => MenuType, {
+    default: MenuType.CATALOG,
     swaggerOptions: {
       title: 'basic menu type, mostly used in front end',
       description:
         'catalog => like folder, can only have child nodes. menu => refer to route. element => front end element permission',
-      example: SysMenuTypeConst.CATALOG,
+      example: MenuType.CATALOG,
     },
   })
   @Prop({
-    type: () => SysMenuTypeConst,
-    enum: [...Object.values(SysMenuTypeConst)],
-    default: SysMenuTypeConst.CATALOG,
+    type: () => MenuType,
+    enum: [...Object.values(MenuType)],
+    default: MenuType.CATALOG,
   })
-  type: ISysMenuTypeConst
+  type: IMenuType
 
   @WalnutAdminDecoratorFieldString({
     default: null,

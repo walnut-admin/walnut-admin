@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
-import { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { LocaleType, LocaleType } from '@walnut/contract'
 import { runAfterCommit } from '@walnut-server/db'
 import { Recordable } from 'easy-fns-ts'
 import { ClientSession } from 'mongoose'
@@ -11,7 +11,7 @@ import { SysLocaleBasicRepository } from '../locale.basic.repository'
 import { ISysLocaleDocument } from '../schema/locale.schema'
 
 /**
- * Locale Shared Service
+ * LocaleType Shared Service
  *
  * Contains complex business logic involving other modules.
  * Used for operations that involve caching, cross-module coordination, etc.
@@ -26,7 +26,7 @@ export class SysLocaleSharedService {
     private readonly cacheService: AppTechCacheService,
   ) {}
 
-  private getCacheKeys(lang: IWalnutAdminConstAppLanguage) {
+  private getCacheKeys(lang: LocaleType) {
     return `${WalnutAdminConstAppCacheKeys.SYS_LOCALE_MESSAGES}:${lang.replace('-', '_').toLocaleUpperCase()}`
   }
 
@@ -71,7 +71,7 @@ export class SysLocaleSharedService {
   /**
    * @description: main entry for locales message retrieve
    */
-  async getLocaleMessage(lang: IWalnutAdminConstAppLanguage, needCache: boolean) {
+  async getLocaleMessage(lang: LocaleType, needCache: boolean) {
     const cached = await this.cacheService.get<Recordable>(this.getCacheKeys(lang))
 
     if (needCache && cached !== null) {

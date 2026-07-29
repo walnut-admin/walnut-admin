@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
 import { WalnutAdminConstAppTokenKey } from '@walnut-server/const/app/token'
-import { IWalnutAdminConstRole } from '@walnut-server/const/role/index'
+import { RoleType } from '@walnut/contract'
 import { nanoid } from 'nanoid'
 import { ISysUserDocument } from '@/modules/system/user/schema/user.schema'
 
@@ -91,10 +91,10 @@ export class AppTokenService {
       userId,
       userName,
       roleIds: populated_roles_list?.map(i => i._id.toString()) || [],
-      roleNames: populated_roles_list?.map(i => i.roleName.toString()) as IWalnutAdminConstRole[],
+      roleNames: populated_roles_list?.map(i => i.roleName.toString()) as RoleType[],
       currentRole: currentRole.toString(),
       roleMode,
-      currentRoleName: populated_roles_list?.find(i => i._id.toString() === currentRole.toString())?.roleName as IWalnutAdminConstRole,
+      currentRoleName: populated_roles_list?.find(i => i._id.toString() === currentRole.toString())?.roleName as RoleType,
       mfaSetup,
       mfaVerified: isTrusted,
     }

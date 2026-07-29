@@ -2,7 +2,7 @@ import type {
   ReferenceObject,
   SchemaObject,
 } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface'
-import { WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
+import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 
 export function WalnutAdminSwaggerResponseSuccessSchemeData(data: SchemaObject | ReferenceObject): SchemaObject {
   return {

@@ -1,5 +1,5 @@
 import { Injectable, NestMiddleware } from '@nestjs/common'
-import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { RequestHeaders } from '@walnut/contract/http'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 
 import { NextFunction } from 'express'
@@ -15,7 +15,7 @@ export class TimezoneMiddleware implements NestMiddleware {
   ) {
     const reqTZ = AppDayjs.tz.guess()
 
-    req.headers[WalnutAdminConstAppHeaders.TIMEZONE] = reqTZ
+    req.headers[RequestHeaders.TIMEZONE] = reqTZ
     req.timezone = reqTZ
 
     next()

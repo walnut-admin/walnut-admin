@@ -1,4 +1,4 @@
-import { WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
+import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { WalnutAdminExceptionServiceUnavailable } from '../base/503'
 
 export class WalnutAdminExceptionEndPointUnavailable extends WalnutAdminExceptionServiceUnavailable {

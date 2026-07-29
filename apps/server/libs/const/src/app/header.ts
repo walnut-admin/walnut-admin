@@ -1,4 +1,3 @@
-import { RequestHeaders } from '@walnut/contract/http'
-
 // Re-export from @walnut/contract — single source of truth
-export const WalnutAdminConstAppHeaders = RequestHeaders
+// Consumers should prefer direct import from @walnut/contract/http
+export { RequestHeaders as WalnutAdminConstAppHeaders } from '@walnut/contract/http'

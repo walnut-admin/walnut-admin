@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { Injectable, NestMiddleware } from '@nestjs/common'
 
-import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { RequestHeaders } from '@walnut/contract/http'
 import { NextFunction } from 'express'
 
 function generateRequestId(): string {
@@ -28,7 +28,7 @@ export class IdMiddleware implements NestMiddleware {
     next: NextFunction,
   ) {
     const uuid: string = generateRequestId()
-    req.headers[WalnutAdminConstAppHeaders.ID] = uuid
+    req.headers[RequestHeaders.ID] = uuid
     req.id = uuid
     next()
   }

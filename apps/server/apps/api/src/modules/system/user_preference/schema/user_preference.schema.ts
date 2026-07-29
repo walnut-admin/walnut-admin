@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { IWalnutAdminConstAppLanguage, WalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { LocaleType, LocaleType, LocaleType } from '@walnut/contract'
 import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldMongoId } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
@@ -139,19 +139,19 @@ export class SysUserPreferenceModel extends WalnutAdminCommonBasicModel {
   })
   CVD: ICVDConst
 
-  @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstAppLanguage, {
-    default: WalnutAdminConstAppLanguage.zh_CN,
+  @WalnutAdminDecoratorFieldEnum(() => LocaleType, {
+    default: LocaleType.zh_CN,
     swaggerOptions: {
       title: 'locale',
-      example: WalnutAdminConstAppLanguage.zh_CN,
+      example: LocaleType.zh_CN,
     },
   })
   @Prop({
-    type: () => WalnutAdminConstAppLanguage,
-    enum: [...Object.values(WalnutAdminConstAppLanguage)],
-    default: WalnutAdminConstAppLanguage.zh_CN,
+    type: () => LocaleType,
+    enum: [...Object.values(LocaleType)],
+    default: LocaleType.zh_CN,
   })
-  locale: IWalnutAdminConstAppLanguage
+  locale: LocaleType
 
   @WalnutAdminDecoratorFieldEnum(() => layoutModeConst, {
     default: layoutModeConst.LEFT_MENU,

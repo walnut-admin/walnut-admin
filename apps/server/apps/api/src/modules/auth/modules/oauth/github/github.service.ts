@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { LocaleType, LocaleType } from '@walnut/contract'
 import { WalnutDBInjectConnection } from '@walnut-server/db'
 
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
@@ -47,7 +47,7 @@ export class OAuthGitHubService {
     userName: string,
     email: string,
     avatar: string,
-    language: IWalnutAdminConstAppLanguage,
+    language: LocaleType,
     deviceId: string,
   ): Promise<IWalnutAdminAccessTokenPayload> {
     // Start transaction
@@ -138,7 +138,7 @@ export class OAuthGitHubService {
     userName: string,
     email: string,
     avatar: string,
-    language: IWalnutAdminConstAppLanguage,
+    language: LocaleType,
     deviceId: string,
     dbSession: ClientSession,
   ): Promise<IWalnutAdminAccessTokenPayload> {

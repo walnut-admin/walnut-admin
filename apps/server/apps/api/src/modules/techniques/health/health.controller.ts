@@ -9,7 +9,7 @@ import {
 } from '@nestjs/terminus'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 
-import { WalnutAdminConstRole } from '@walnut-server/const/role/index'
+import { Role } from '@walnut/contract'
 import { WalnutDBInjectConnection } from '@walnut-server/db'
 import { Connection } from 'mongoose'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
@@ -25,7 +25,7 @@ const Permissions = {
 
 @Controller('app/health')
 @ApiTags('app/health')
-@WalnutAdminDecoratorHasRole([WalnutAdminConstRole.ROOT, WalnutAdminConstRole.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
+@WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 export class AppTechHealthController {
   constructor(
     @WalnutDBInjectConnection() private readonly databaseConnection: Connection,

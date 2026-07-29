@@ -3,7 +3,7 @@
 
 export { RequestHeaders } from './http'
 
-export { Locale } from './i18n'
+export { Locale, type LocaleType } from './i18n'
 
 export { CacheKeyStrategy, MenuTernal, MenuType } from './menu'
 
@@ -13,6 +13,7 @@ export {
   type BasePageParams,
   type BaseSortParams,
   type SortOrder,
+  SortOrderValues,
   type SortParam,
 } from './pagination'
 
@@ -23,4 +24,4 @@ export {
   WalnutAdminConstAppResponseCode,
 } from './response-code'
 
-export { Role } from './role'
+export { Role, type RoleType } from './role'

@@ -15,7 +15,7 @@ import { ConfigService } from '@nestjs/config'
 import { ApiTags } from '@nestjs/swagger'
 
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
-import { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { LocaleType, LocaleType } from '@walnut/contract'
 import { IWalnutAdminConstAppSettingAuthOAuthGitHubKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
@@ -65,7 +65,7 @@ export class OAuthGithubController {
     return `oauth/github/${fp}`
   }
 
-  private getOAuthURL(fp: string, lang: IWalnutAdminConstAppLanguage) {
+  private getOAuthURL(fp: string, lang: LocaleType) {
     const payload = JSON.stringify({ fp, lang })
     return `${this.oauthUrl}?client_id=${this.clientId}&redirect_uri=${this.callbackURL
     }&response_type=code&scope=${OAuthGitHubScope.join('%20')}&state=${payload}`
@@ -93,17 +93,17 @@ export class OAuthGithubController {
     @I18n() i18n: I18nContext,
   ) {
     let fingerprint: string
-    let lang: IWalnutAdminConstAppLanguage
+    let lang: LocaleType
 
     // safe parse state
     try {
-      const parsed = JSON.parse(payload) as { fp: string, lang: IWalnutAdminConstAppLanguage }
+      const parsed = JSON.parse(payload) as { fp: string, lang: LocaleType }
       fingerprint = parsed.fp
       lang = parsed.lang || i18n.lang
     }
     catch {
       this.logger.error(`oauth state parse error`)
-      lang = i18n.lang as IWalnutAdminConstAppLanguage
+      lang = i18n.lang as Locale
       return {
         success: false,
         message: i18n.t('response.40000', { lang }),

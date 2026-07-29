@@ -1,5 +1,6 @@
+import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { Injectable } from '@nestjs/common'
-import { IWalnutAdminConstRole, WalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
+import { RoleType } from '@walnut/contract'
 import { uniqBy } from 'lodash'
 import { ClientSession } from 'mongoose'
 
@@ -44,7 +45,7 @@ export class SysRoleSharedService {
     const uniMenus = uniqBy(allMenus, '_id')
 
     return {
-      roleNames: roles.map(i => i.roleName) as IWalnutAdminConstRole[],
+      roleNames: roles.map(i => i.roleName) as RoleType[],
       menus: uniMenus,
     }
   }

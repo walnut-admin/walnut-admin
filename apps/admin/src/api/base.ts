@@ -1,4 +1,4 @@
-import type { BaseListParams, BaseListResponse } from '@walnut/axios/types'
+import type { BaseListParams, BaseListResponse } from '@walnut/contract'
 import type { StringOrNumber } from 'easy-fns-ts'
 import type { IModels } from './models'
 import { omit } from 'lodash-es'

@@ -1,4 +1,4 @@
-import type { BaseSortParams } from '@walnut/axios/types'
+import type { BaseSortParams } from '@walnut/contract'
 import type { DataTableSortState } from 'naive-ui'
 import type {
   SorterMultiple,

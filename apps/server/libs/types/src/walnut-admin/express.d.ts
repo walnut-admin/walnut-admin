@@ -2,7 +2,7 @@ import type { Recordable } from 'easy-fns-ts'
 import type { Request, Response } from 'express'
 import type { ClientSession } from 'mongoose'
 import type { IResult } from 'ua-parser-js'
-import type { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import type { LocaleType } from '@walnut/contract'
 
 declare global {
   namespace Express {
@@ -55,7 +55,7 @@ declare global {
     browser: string
     engine: string
     timezone: string
-    language: IWalnutAdminConstAppLanguage
+    language: LocaleType
     version: string
     repoVersion: string
 

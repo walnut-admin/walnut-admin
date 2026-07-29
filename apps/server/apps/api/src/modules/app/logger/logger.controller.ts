@@ -2,7 +2,7 @@ import { Body, Controller, DefaultValuePipe, Get, HttpCode, HttpStatus, Param, P
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
-import { WalnutAdminConstRole } from '@walnut-server/const/role/index'
+import { Role } from '@walnut/contract'
 import { WalnutAdminDecoratorList } from '@/decorators/crud/list'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
@@ -16,7 +16,7 @@ const Permissions = {
 
 @Controller('app/logger')
 @ApiTags('app/logger')
-@WalnutAdminDecoratorHasRole([WalnutAdminConstRole.ADMIN, WalnutAdminConstRole.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
+@WalnutAdminDecoratorHasRole([Role.ADMIN, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 export class AppLoggerController {
   constructor(private readonly appLoggerService: AppLoggerService) { }
 

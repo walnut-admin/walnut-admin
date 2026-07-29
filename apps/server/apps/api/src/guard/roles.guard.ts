@@ -1,3 +1,4 @@
+import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import {
   CanActivate,
   ExecutionContext,
@@ -6,7 +7,7 @@ import {
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { IWalnutAdminConstDecoratorRoleMode, WalnutAdminConstDecoratorRoleMetadataKey, WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
-import { IWalnutAdminConstRole, WalnutAdminConstRole, WalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
+import { RoleType, Role } from '@walnut/contract'
 import { WalnutAdminExceptionNoAccessRolePermission } from '@walnut-server/exceptions/business/auth'
 import { isNil } from 'lodash'
 
@@ -20,7 +21,7 @@ export class WalnutAdminGuardRole implements CanActivate {
     const ctx = context.switchToHttp()
     const request = ctx.getRequest<IWalnutAdminExpressRequest>()
 
-    const payloadRole = this.reflector.getAllAndOverride<IWalnutAdminConstRole | IWalnutAdminConstRole[]>(
+    const payloadRole = this.reflector.getAllAndOverride<RoleType | RoleType[]>(
       WalnutAdminConstDecoratorRoleMetadataKey.ROLE,
       [context.getHandler(), context.getClass()],
     )
@@ -49,19 +50,19 @@ export class WalnutAdminGuardRole implements CanActivate {
 
     // if current user role mode is combine
     // and current user has root role, just return true
-    if (user.roleMode === WalnutAdminConstRoleMode.COMBINE && user.roleNames[0] === WalnutAdminConstRole.ROOT)
+    if (user.roleMode === WalnutAdminConstRoleMode.COMBINE && user.roleNames[0] === Role.ROOT)
       return true
 
     // if current user role mode is switch
     // and current role is root
-    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === WalnutAdminConstRole.ROOT)
+    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === Role.ROOT)
       return true
 
     // get role names
     const allRoleNames = user.roleNames
 
     // visitor specfic handle
-    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === WalnutAdminConstRole.VISITOR) {
+    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === Role.VISITOR) {
       // simply throw error
       // controller with role guard visitor cannot access
       throw new WalnutAdminExceptionNoAccessRolePermission()

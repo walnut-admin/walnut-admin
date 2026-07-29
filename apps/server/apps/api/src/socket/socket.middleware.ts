@@ -2,7 +2,7 @@ import { promisify } from 'node:util'
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { RequestHeaders } from '@walnut/contract/http'
 import cookieParser from 'cookie-parser'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { AppTokenService } from '@/modules/shared/token/token.service'
@@ -34,7 +34,7 @@ export class SocketAuthMiddleware {
         return next(new Error('Missing Bearer token'))
 
       // 3. get fingerprint from handshake headers
-      const fingerprint = req.headers[WalnutAdminConstAppHeaders.FINGERPRINT.toLocaleLowerCase()] as string
+      const fingerprint = req.headers[RequestHeaders.FINGERPRINT.toLocaleLowerCase()] as string
       if (!fingerprint)
         return next(new Error('Missing fingerprint'))
 

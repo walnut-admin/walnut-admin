@@ -1,4 +1,4 @@
-import type { BaseListParams, BaseListResponse } from '@walnut/axios/types'
+import type { BaseListParams, BaseListResponse } from '@walnut/contract'
 import type { IHooksUseProps } from '@walnut/client/hooks/core/useProps'
 import type { IDeepMaybeRef } from '@walnut/utils/types/deep-ref'
 

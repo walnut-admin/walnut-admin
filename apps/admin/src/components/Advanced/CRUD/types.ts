@@ -1,4 +1,4 @@
-import type { BaseListParams } from '@walnut/axios/types'
+import type { BaseListParams } from '@walnut/contract'
 import type { IDeepMaybeRef } from '@walnut/utils/types/deep-ref'
 import type { IActionType } from '@walnut/utils/types/universal'
 import type { NullableRecord, StringOrNumber } from 'easy-fns-ts'

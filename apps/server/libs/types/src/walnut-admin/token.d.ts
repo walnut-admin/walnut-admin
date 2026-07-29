@@ -1,4 +1,5 @@
-import type { IWalnutAdminConstRole, IWalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
+import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
+import type { RoleType, IWalnutAdminConstRoleMode } from '@walnut/contract'
 
 declare global {
   interface IWalnutAdminAccessTokenPayload {
@@ -7,10 +8,10 @@ declare global {
     userName: string
     userId: string
     roleIds: string[]
-    roleNames: IWalnutAdminConstRole[]
+    roleNames: RoleType[]
     currentRole: string
     roleMode: IWalnutAdminConstRoleMode
-    currentRoleName: IWalnutAdminConstRole
+    currentRoleName: RoleType
     mfaSetup: boolean
     mfaVerified: boolean
 

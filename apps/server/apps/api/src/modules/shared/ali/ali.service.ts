@@ -3,7 +3,7 @@ import Sts20150401, * as $Sts20150401 from '@alicloud/sts20150401'
 import { Injectable } from '@nestjs/common'
 
 import { ConfigService } from '@nestjs/config'
-import { WalnutAdminConstRole } from '@walnut-server/const/role/index'
+import { Role } from '@walnut/contract'
 
 async function generateSTSToken(accessKeyId: string, accessKeySecret: string, endpoint: string, roleArn: string, roleSessionName: string, policy?: string) {
   const config = new $OpenApi.Config({
@@ -59,7 +59,7 @@ export class SharedAliService {
       endPoint,
       roleArn,
       roleSessionName,
-      user.currentRoleName === WalnutAdminConstRole.VISITOR ? policy : undefined,
+      user.currentRoleName === Role.VISITOR ? policy : undefined,
     )
 
     return {

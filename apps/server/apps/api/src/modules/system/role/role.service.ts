@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutAdminConstRole, WalnutAdminConstRoleRootId } from '@walnut-server/const/role/index'
+import { Role, WalnutAdminConstRoleRootId } from '@walnut/contract'
 import { WalnutDBCollectionName } from '@walnut-server/db'
 
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
@@ -28,7 +28,7 @@ export class SysRoleService {
    */
   async create(dto: SysRoleDTOCreateRequest) {
     // cannot create root/developer role
-    if (dto.roleName === WalnutAdminConstRole.ROOT || dto.roleName === WalnutAdminConstRole.DEVELOPER) {
+    if (dto.roleName === Role.ROOT || dto.roleName === Role.DEVELOPER) {
       throw new WalnutAdminExceptionBadRequest()
     }
     return this.roleBasicRepo.create(dto)
@@ -48,7 +48,7 @@ export class SysRoleService {
    */
   async update(id: string, dto: SysRoleDTOUpdateRequest) {
     // cannot update root role
-    if (dto.roleName === WalnutAdminConstRole.ROOT || id.toString() === WalnutAdminConstRoleRootId) {
+    if (dto.roleName === Role.ROOT || id.toString() === WalnutAdminConstRoleRootId) {
       throw new WalnutAdminExceptionBadRequest()
     }
     return this.roleBasicRepo.update(id, dto)

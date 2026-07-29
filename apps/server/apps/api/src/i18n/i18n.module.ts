@@ -2,7 +2,7 @@ import { join } from 'node:path'
 import { Module } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { isDev } from '@walnut-server/config/utils/env'
-import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { RequestHeaders } from '@walnut/contract/http'
 
 import {
   AcceptLanguageResolver,
@@ -27,8 +27,8 @@ import {
 
       resolvers: [
         new HeaderResolver([
-          WalnutAdminConstAppHeaders.LANGUAGE,
-          WalnutAdminConstAppHeaders.LANGUAGE.toLowerCase(),
+          RequestHeaders.LANGUAGE,
+          RequestHeaders.LANGUAGE.toLowerCase(),
         ]),
         new QueryResolver(['xl']),
         new AcceptLanguageResolver(),

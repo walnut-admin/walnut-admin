@@ -1,5 +1,5 @@
 import type { ArgumentsHost } from '@nestjs/common'
-import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { RequestHeaders } from '@walnut/contract/http'
 
 export function setCustomHeaders(context: ArgumentsHost) {
   const ctx = context.switchToHttp()
@@ -10,12 +10,12 @@ export function setCustomHeaders(context: ArgumentsHost) {
     return
 
   try {
-    response.setHeader(WalnutAdminConstAppHeaders.ID, request.id)
-    response.setHeader(WalnutAdminConstAppHeaders.IP, request.realIp)
-    response.setHeader(WalnutAdminConstAppHeaders.TIMEZONE, request.timezone)
-    response.setHeader(WalnutAdminConstAppHeaders.LANGUAGE, request.language)
-    response.setHeader(WalnutAdminConstAppHeaders.VERSION, request.version)
-    response.setHeader(WalnutAdminConstAppHeaders.REPO_VERSION, request.repoVersion)
+    response.setHeader(RequestHeaders.ID, request.id)
+    response.setHeader(RequestHeaders.IP, request.realIp)
+    response.setHeader(RequestHeaders.TIMEZONE, request.timezone)
+    response.setHeader(RequestHeaders.LANGUAGE, request.language)
+    response.setHeader(RequestHeaders.VERSION, request.version)
+    response.setHeader(RequestHeaders.REPO_VERSION, request.repoVersion)
   }
   catch (error) {
     console.error(error)

@@ -1,8 +1,8 @@
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
-import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
-import { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { RequestHeaders } from '@walnut/contract/http'
+import { LocaleType, LocaleType } from '@walnut/contract'
 import { NextFunction } from 'express'
 
 @Injectable()
@@ -14,15 +14,15 @@ export class LanguageMiddleware implements NestMiddleware {
     res: IWalnutAdminExpressResponse,
     next: NextFunction,
   ) {
-    const reqLang: IWalnutAdminConstAppLanguage
+    const reqLang: LocaleType
       = (req.headers[
-        WalnutAdminConstAppHeaders.LANGUAGE
-      ] as IWalnutAdminConstAppLanguage)
+        RequestHeaders.LANGUAGE
+      ] as LocaleType)
       || (req.headers[
-        WalnutAdminConstAppHeaders.LANGUAGE.toLowerCase()
-      ] as IWalnutAdminConstAppLanguage)
-      || (req.headers['accept-language'] as IWalnutAdminConstAppLanguage)
-      || this.configService.get<IWalnutAdminConstAppLanguage>('app.i18n.fallback')
+        RequestHeaders.LANGUAGE.toLowerCase()
+      ] as LocaleType)
+      || (req.headers['accept-language'] as LocaleType)
+      || this.configService.get<LocaleType>('app.i18n.fallback')
 
     req.language = reqLang
 

@@ -1,7 +1,8 @@
+import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { CanActivate, ExecutionContext, Injectable, Logger, SetMetadata } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { WalnutAdminConstRole, WalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
+import { Role } from '@walnut/contract'
 import { WalnutAdminExceptionMfaRequired, WalnutAdminExceptionMfaVerifyFailed } from '@walnut-server/exceptions/business/auth'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
@@ -43,7 +44,7 @@ export class WalnutAdminGuardMFA implements CanActivate {
     }
 
     // P4: skip for visitor role
-    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === WalnutAdminConstRole.VISITOR) {
+    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === Role.VISITOR) {
       this.logger.debug('MFA check skipped: visitor role')
       return true
     }

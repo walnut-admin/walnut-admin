@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config'
 import { Reflector } from '@nestjs/core'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { RequestHeaders } from '@walnut/contract/http'
 import {
   WalnutAdminExceptionExpiredSignature,
   WalnutAdminExceptionInvalidSignature,
@@ -199,10 +199,10 @@ export class WalnutAdminGuardSign implements CanActivate {
    * 提取Request元数�?
    */
   private extractRequestMetadata(req: IWalnutAdminExpressRequest) {
-    const sign = req.headers[WalnutAdminConstAppHeaders.SIGN.toLowerCase()] as string
-    const ua = req.headers[WalnutAdminConstAppHeaders.USER_AGENT.toLowerCase()] as string
-    const nonce = req.headers[WalnutAdminConstAppHeaders.NONCE.toLowerCase()] as string
-    const timestamp = req.headers[WalnutAdminConstAppHeaders.TIMESTAMP.toLowerCase()] as string
+    const sign = req.headers[RequestHeaders.SIGN.toLowerCase()] as string
+    const ua = req.headers[RequestHeaders.USER_AGENT.toLowerCase()] as string
+    const nonce = req.headers[RequestHeaders.NONCE.toLowerCase()] as string
+    const timestamp = req.headers[RequestHeaders.TIMESTAMP.toLowerCase()] as string
     const deviceId = getWalnutAdminCookie(req, WalnutAdminConstCookieKeys.DEVICE_ID)
     const signTicket = getWalnutAdminCookie(req, WalnutAdminConstCookieKeys.SIGN_TICKET)
 

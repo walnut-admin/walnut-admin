@@ -1,4 +1,4 @@
-import type { BaseListResponse } from '@walnut/axios/types'
+import type { BaseListResponse } from '@walnut/contract'
 import type { IRequestPayload } from '../request'
 import type { IResponseData } from '../response'
 import { AppAxios } from '@/utils/axios'

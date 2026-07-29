@@ -1,3 +1,4 @@
+import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import {
   CanActivate,
   ExecutionContext,
@@ -7,7 +8,7 @@ import {
 import { Reflector } from '@nestjs/core'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { IWalnutAdminConstDecoratorPermissionMode, WalnutAdminConstDecoratorPermissionMetadataKey, WalnutAdminConstDecoratorPermissionMode } from '@walnut-server/const/decorator/permissions'
-import { WalnutAdminConstRole, WalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
+import { Role } from '@walnut/contract'
 import { WalnutAdminExceptionNoAccessPermission } from '@walnut-server/exceptions/business/auth'
 
 import { isNil } from 'lodash'
@@ -68,19 +69,19 @@ export class WalnutAdminGuardPermission implements CanActivate {
 
     // if current user role mode is combine
     // and current user's first role is root, just return true
-    if (user.roleMode === WalnutAdminConstRoleMode.COMBINE && user.roleNames[0] === WalnutAdminConstRole.ROOT)
+    if (user.roleMode === WalnutAdminConstRoleMode.COMBINE && user.roleNames[0] === Role.ROOT)
       return true
 
     // if current user role mode is switch
     // and current role is root
-    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === WalnutAdminConstRole.ROOT)
+    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === Role.ROOT)
       return true
 
     // define the flag, default true
     let canNext = true
 
     // visitor specfic handle
-    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === WalnutAdminConstRole.VISITOR) {
+    if (user.roleMode === WalnutAdminConstRoleMode.SWITCH && user.currentRoleName === Role.VISITOR) {
       if (Array.isArray(payloadPermission)) {
         canNext = payloadPermission.every(perm => this.getVisitorWhiteListPermissions(perm))
       }

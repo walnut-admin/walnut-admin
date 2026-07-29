@@ -8,7 +8,7 @@ import {
   RequestTimeoutException,
   UnauthorizedException,
 } from '@nestjs/common'
-import { WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
+import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 
 export class WalnutAdminExceptionBadRequest extends BadRequestException {
   constructor(payload?: IWalnutAdminExceptionConstructor) {

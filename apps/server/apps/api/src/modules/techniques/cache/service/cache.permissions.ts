@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
-import { WalnutAdminConstRole } from '@walnut-server/const/role/index'
+import { Role } from '@walnut/contract'
 import { AppTokenService } from '@/modules/shared/token/token.service'
 import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 
@@ -31,7 +31,7 @@ export class AppTechCachePermissionsService {
     permissions: string[],
   ) {
     // visitor no need to set permission cache
-    if (user.currentRoleName === WalnutAdminConstRole.VISITOR) {
+    if (user.currentRoleName === Role.VISITOR) {
       return
     }
 

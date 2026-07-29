@@ -1,7 +1,7 @@
 import { InjectQueue } from '@nestjs/bull'
 import { Injectable } from '@nestjs/common'
 
-import { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { LocaleType, LocaleType } from '@walnut/contract'
 import { WalnutAdminConstAppProcess } from '@walnut-server/const/app/process'
 import { WalnutAdminConstAppQueue } from '@walnut-server/const/app/queue'
 import { Queue } from 'bull'
@@ -14,7 +14,7 @@ export class AppMailerService {
   ) {}
 
   // send welcome email
-  async sendWelcomeEmail(toEmail: string | string[], lang: IWalnutAdminConstAppLanguage) {
+  async sendWelcomeEmail(toEmail: string | string[], lang: LocaleType) {
     if (isNil(toEmail) || toEmail.length === 0)
       return
 
@@ -36,7 +36,7 @@ export class AppMailerService {
     toEmail: string,
     verifyCode: number,
     expireSeconds: number,
-    lang: IWalnutAdminConstAppLanguage,
+    lang: LocaleType,
   ) {
     // push to queue
     await this.emailQueue.add(

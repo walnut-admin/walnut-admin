@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { LocaleType, LocaleType } from '@walnut/contract'
 import { WalnutDBCollectionName, WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { Types } from 'mongoose'
 
@@ -79,7 +79,7 @@ export class SysLangRepoService {
   /**
    * @description get locale messages by language name
    */
-  async findMessagesByLang(lang: IWalnutAdminConstAppLanguage) {
+  async findMessagesByLang(lang: LocaleType) {
     const res = await this.langModel.aggregate<Record<string, string>>([
       {
         $match: { lang },

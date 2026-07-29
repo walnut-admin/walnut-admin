@@ -1,8 +1,8 @@
 import { Controller, Get, Param } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { IWalnutAdminConstAppResponseCode, WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
+import { IWalnutAdminConstAppResponseCode, WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
-import { WalnutAdminConstRole } from '@walnut-server/const/role/index'
+import { Role } from '@walnut/contract'
 import { WalnutAdminExceptionDatabaseError } from '@walnut-server/exceptions/app/database'
 
 import {
@@ -73,7 +73,7 @@ const Permissions = {
 
 @Controller('app/error')
 @ApiTags('app/error')
-@WalnutAdminDecoratorHasRole([WalnutAdminConstRole.ROOT, WalnutAdminConstRole.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
+@WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 @WalnutAdminDecoratorHasPermission(Permissions.TEST)
 export class AppErrorController {
   constructor() {}

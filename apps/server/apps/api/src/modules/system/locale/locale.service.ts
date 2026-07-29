@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { IWalnutAdminConstAppLanguage, WalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { LocaleType, LocaleType, LocaleType } from '@walnut/contract'
 import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
@@ -24,7 +24,7 @@ import { ISysLocaleDocument, ISysLocaleModel } from './schema/locale.schema'
 import { SysLocaleSharedService } from './shared/locale.shared.service'
 
 /**
- * Locale Service
+ * LocaleType Service
  *
  * This service has 1:1 mapping with controller endpoints.
  * NO direct Model usage - all data access through Repository/Repo Service/Shared Service layer.
@@ -154,9 +154,9 @@ export class SysLocaleService {
   /**
    * @description: get locale message (controller: getLocaleMessage)
    */
-  async getLocaleMessage(lang: IWalnutAdminConstAppLanguage, needCache: boolean) {
-    if (!Object.values(WalnutAdminConstAppLanguage).includes(lang)) {
-      return this.localeSharedService.getLocaleMessage(WalnutAdminConstAppLanguage.en_US, needCache)
+  async getLocaleMessage(lang: LocaleType, needCache: boolean) {
+    if (!Object.values(LocaleType).includes(lang)) {
+      return this.localeSharedService.getLocaleMessage(Locale.en_US, needCache)
     }
 
     return this.localeSharedService.getLocaleMessage(lang, needCache)

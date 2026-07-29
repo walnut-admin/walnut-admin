@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { IWalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
+import { IWalnutAdminConstRoleMode } from '@walnut/contract'
 import { WalnutDBInjectModel, WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
 import { ClientSession } from 'mongoose'
 import { SysUserMfaSharedService } from '../../user_mfa/shared/user_mfa.shared.service'

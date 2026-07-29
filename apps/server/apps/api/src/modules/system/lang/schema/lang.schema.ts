@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory, Virtual } from '@nestjs/mongoose'
-import { IWalnutAdminConstAppLanguage, WalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { LocaleType, LocaleType, LocaleType } from '@walnut/contract'
 
 import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 
@@ -37,9 +37,9 @@ export class SysLangModel extends WalnutAdminCommonBasicModel {
   @Prop({
     type: String,
     required: true,
-    enums: [...Object.values(WalnutAdminConstAppLanguage)],
+    enums: [...Object.values(LocaleType)],
   })
-  lang: IWalnutAdminConstAppLanguage
+  lang: LocaleType
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {

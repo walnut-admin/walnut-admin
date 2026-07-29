@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutAdminConstSafeRoleId, WalnutAdminConstSafeUserId } from '@walnut-server/const/role/index'
+import { WalnutAdminConstSafeRoleId, WalnutAdminConstSafeUserId } from '@walnut/contract'
 import { WalnutDBCollectionName, WalnutDBVirtualName } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { ClientSession, Types } from 'mongoose'

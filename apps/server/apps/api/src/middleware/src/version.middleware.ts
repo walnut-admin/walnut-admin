@@ -1,7 +1,7 @@
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
-import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { RequestHeaders } from '@walnut/contract/http'
 import { getPackageJsonData } from '@walnut-server/utils/pkg'
 import { NextFunction } from 'express'
 
@@ -17,10 +17,10 @@ export class VersionMiddleware implements NestMiddleware {
   ) {
     const version = this.configService.get<string>('app.api.version')!
 
-    req.headers[WalnutAdminConstAppHeaders.VERSION] = version
+    req.headers[RequestHeaders.VERSION] = version
     req.version = version
 
-    req.headers[WalnutAdminConstAppHeaders.REPO_VERSION] = pkg.version as string
+    req.headers[RequestHeaders.REPO_VERSION] = pkg.version as string
     req.repoVersion = pkg.version as string
 
     next()

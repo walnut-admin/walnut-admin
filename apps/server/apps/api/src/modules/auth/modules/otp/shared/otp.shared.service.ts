@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import type { LocaleType } from '@walnut/contract'
 import type { IOtpType } from '../const/otp.const'
 
 import { Injectable, Logger } from '@nestjs/common'
@@ -28,7 +28,7 @@ export class OtpSharedService {
   async sendVerifyCode(
     type: IOtpType,
     identifier: string,
-    language: IWalnutAdminConstAppLanguage,
+    language: LocaleType,
     userId?: string,
   ): Promise<boolean> {
     this.logger.log(`Sending ${type} verify code to: ${identifier}`)

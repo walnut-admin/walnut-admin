@@ -14,7 +14,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { LocaleType, LocaleType } from '@walnut/contract'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
 
@@ -117,7 +117,7 @@ export class SysLocaleController {
   @WalnutAdminGuardIpFree()
   async getLocaleMessage(
     // NOTICE do not use WalnutAdminPipeParamEnum
-    @Param('locale') locale: IWalnutAdminConstAppLanguage,
+    @Param('locale') locale: LocaleType,
     @Query('cache', new DefaultValuePipe(1), ParseIntPipe) cache: number,
   ) {
     return this.localeService.getLocaleMessage(locale, cache === 1)

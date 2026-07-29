@@ -10,7 +10,7 @@ import { ApiTags } from '@nestjs/swagger'
 
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
-import { WalnutAdminConstRole } from '@walnut-server/const/role/index'
+import { Role } from '@walnut/contract'
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
@@ -36,7 +36,7 @@ const { WalnutAdminDecoratorRead, WalnutAdminDecoratorList, WalnutAdminDecorator
 
 @Controller('app/monitor/cache')
 @ApiTags('app/monitor/cache')
-@WalnutAdminDecoratorHasRole([WalnutAdminConstRole.ROOT, WalnutAdminConstRole.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
+@WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 export class AppMonitorCacheController {
   constructor(private readonly cacheService: AppTechCacheService) { }
 

@@ -1,4 +1,4 @@
-import { IWalnutAdminConstAppLanguage, WalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { LocaleType, LocaleType, LocaleType } from '@walnut/contract'
 
 import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 
@@ -8,8 +8,8 @@ export class SysLocaleMessageDTO {
       title: 'language short',
     },
     validateOptions: {
-      onlyIn: [...Object.values(WalnutAdminConstAppLanguage)],
+      onlyIn: [...Object.values(LocaleType)],
     },
   })
-  locale: IWalnutAdminConstAppLanguage
+  locale: LocaleType
 }

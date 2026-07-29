@@ -1,13 +1,13 @@
 import type { ClientSession } from 'mongoose'
 import { Injectable, Logger } from '@nestjs/common'
 import { IWalnutAdminConstAppPermissionType, WalnutAdminConstAppPermissionType } from '@walnut-server/const/app/permission'
-import { IWalnutAdminConstRole, WalnutAdminConstRole } from '@walnut-server/const/role/index'
+import { RoleType, Role } from '@walnut/contract'
 import { arrToTree, filterTree, formatTree, orderTree, TreeNodeItem } from 'easy-fns-ts'
 import { isNil, omit, pick } from 'lodash'
 import { AppTechCachePermissionsService } from '@/modules/techniques/cache/service/cache.permissions'
 import { SysRoleSharedService } from '../../role/shared/role.shared.service'
 import { SysMenuRepositoryService } from '../repo/menu.repo.service'
-import { ISysMenuDocument, SysMenuModel, SysMenuTernalConst, SysMenuTypeConst } from '../schema/menu.schema'
+import { ISysMenuDocument, SysMenuModel, MenuTernal, MenuType } from '../schema/menu.schema'
 // Note: Menu types (IMenuTreeItem, IVueRouteItem, ILayoutTabsItem, IIframeListItem) are now global
 
 @Injectable()
@@ -107,7 +107,7 @@ export class SysMenuSharedService {
     const { menus, roleNames } = await this.roleSharedService.getCoreMenus(user)
 
     // root/visitor has all permissions
-    const menuArr = ([WalnutAdminConstRole.ROOT, WalnutAdminConstRole.VISITOR] as IWalnutAdminConstRole[]).includes(roleNames[0])
+    const menuArr = ([Role.ROOT, Role.VISITOR] as RoleType[]).includes(roleNames[0])
       ? await this.sysMenuRepoService.findAllMenus()
       : [
           await this.sysMenuRepoService.findRootMenu(),
@@ -132,7 +132,7 @@ export class SysMenuSharedService {
       [WalnutAdminConstAppPermissionType.ALL]: () => {
         const permissionStrings = this.getStrings(processedMenuArr)
         const keepAliveNames = processedMenuArr
-          .filter(i => i.type === SysMenuTypeConst.MENU && i.meta?.ternal !== SysMenuTernalConst.EXTERNAL && i.meta?.cache)
+          .filter(i => i.type === MenuType.MENU && i.meta?.ternal !== MenuTernal.EXTERNAL && i.meta?.cache)
           .map(i => i.name)
           .filter(Boolean)
         const affixedTabs = this.getLayoutTabs(processedMenuArr)
@@ -166,7 +166,7 @@ export class SysMenuSharedService {
   private getMenuTree(data: SysMenuModel[]): TreeNodeItem<IMenuTreeItem>[] {
     // item that is not type ELEMENT
     const inputPayload = data.filter(
-      i => i.type !== SysMenuTypeConst.ELEMENT,
+      i => i.type !== MenuType.ELEMENT,
     )
 
     // build tree
@@ -176,7 +176,7 @@ export class SysMenuSharedService {
     const treeOrdered = orderTree(treeMenu, (a, b) => a.meta.order - b.meta.order)
 
     // empty children for type not CATALOG
-    const formattedTree = formatTree(treeOrdered, node => node.type !== SysMenuTypeConst.CATALOG ? Object.assign(node, { children: [] }) : node)
+    const formattedTree = formatTree(treeOrdered, node => node.type !== MenuType.CATALOG ? Object.assign(node, { children: [] }) : node)
 
     return formattedTree
   }
@@ -188,12 +188,12 @@ export class SysMenuSharedService {
     }
 
     // menu root
-    if (node.type === SysMenuTypeConst.MENU) {
+    if (node.type === MenuType.MENU) {
       return node.name
     }
 
     // catelog root
-    if (node.type === SysMenuTypeConst.CATALOG && node.children && node.children.length) {
+    if (node.type === MenuType.CATALOG && node.children && node.children.length) {
       for (const child of node.children) {
         const menuName = this.getIndexMenuName(child) as string
         if (menuName) {
@@ -207,7 +207,7 @@ export class SysMenuSharedService {
   private getRouteTree(data: SysMenuModel[]) {
     // item that is not type ELEMENT
     const inputPayload = data.filter(
-      i => i.type !== SysMenuTypeConst.ELEMENT,
+      i => i.type !== MenuType.ELEMENT,
     )
 
     // build tree
@@ -235,7 +235,7 @@ export class SysMenuSharedService {
   // get tabs data
   private getLayoutTabs(data: SysMenuModel[]) {
     return data
-      .filter(i => i.type === SysMenuTypeConst.MENU && i.meta?.affix)
+      .filter(i => i.type === MenuType.MENU && i.meta?.affix)
       .sort((a, b) => b.meta?.order - a.meta?.order)
       .map(i => ({
         ...i,
@@ -248,7 +248,7 @@ export class SysMenuSharedService {
 
   // get iframe list
   private getIframeList(data: SysMenuModel[]) {
-    return data.filter(i => i.meta?.ternal === SysMenuTernalConst.INTERNAL && !!i.meta?.url)
+    return data.filter(i => i.meta?.ternal === MenuTernal.INTERNAL && !!i.meta?.url)
       .map(i => ({
         name: i.name,
         url: i.meta?.url,
@@ -273,10 +273,10 @@ export class SysMenuSharedService {
     })
 
     // used for parent node select
-    const treeWithoutTypeElement = filterTree(fullTree, node => node.type !== SysMenuTypeConst.ELEMENT)
+    const treeWithoutTypeElement = filterTree(fullTree, node => node.type !== MenuType.ELEMENT)
 
     // menu active name select options
-    const menuActiveNamesOptions = rawMenus.filter(i => i.type === SysMenuTypeConst.MENU)
+    const menuActiveNamesOptions = rawMenus.filter(i => i.type === MenuType.MENU)
       .map(i => ({
         name: i.name,
         title: i.title,

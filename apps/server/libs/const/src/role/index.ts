@@ -1,9 +1,7 @@
 import type { ValueOf } from 'easy-fns-ts'
-import { Role } from '@walnut/contract/role'
 
-export const WalnutAdminConstRole = Role
-
-export type IWalnutAdminConstRole = ValueOf<typeof WalnutAdminConstRole>
+// Role enum — now imported directly from @walnut/contract by consumers
+// This file retains only server-local role constants (mode, IDs) not shared via contract
 
 export const WalnutAdminConstRoleMode = {
   SWITCH: 'switchable',

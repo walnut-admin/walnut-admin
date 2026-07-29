@@ -137,6 +137,36 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 - Removing `hoisting: false` entirely — rejected; would allow phantom dependencies (packages importing deps they didn't declare)
 - More granular per-package hoisting — rejected; adds configuration complexity without benefit
 
+## Decision 6: Tag-Based Architecture Boundaries (Turbo 2.9)
+
+**Chosen:** Enable tag-based boundaries in root `turbo.json` with per-package `turbo.json` tag declarations.
+
+**Tags assigned (8 packages):**
+
+| Package | Tags |
+|---------|------|
+| `@walnut/admin` | `app`, `frontend` |
+| `@walnut/server` | `app`, `backend` |
+| `@walnut/docs` | `app`, `docs` |
+| `@walnut/utils` | `shared`, `pure` |
+| `@walnut/contract` | `shared`, `pure` |
+| `@walnut/client` | `shared`, `browser` |
+| `@walnut/axios` | `shared`, `browser` |
+| `@walnut/eslint-config` | `tooling` |
+
+**Rules:**
+1. `shared` packages cannot depend on `app` packages (libraries must not import application code)
+2. `backend` packages cannot depend on `browser` packages (server must not import `@walnut/client`/`@walnut/axios`)
+
+**Result:** 0 tag-rule violations across all 8 packages at time of implementation (2026-07-29).
+
+**Status:** Experimental feature in Turbo 2.9. Rules are enforced via `turbo boundaries` CLI. API may change in future Turbo versions.
+
+**Known limitations (pre-existing, not caused by boundaries):**
+- `~build/package` Vite virtual module — not a real dependency, but boundaries treats unknown imports as violations
+- `node_modules/zod` deep import in `validate-env.ts` — pre-existing code smell, not a cross-package boundary concern
+- `vitest/config` in packages without explicit `vitest` devDependency — pre-existing, vitest is installed via pnpm
+
 ## Related
 
 - [ADR 0002](0002-dual-mode-consumption.md) — dual-mode package consumption (source for Vite, CJS build for backend)

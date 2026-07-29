@@ -7,6 +7,12 @@
 /** Sort direction for list queries */
 export type SortOrder = 'ascend' | 'descend' | false
 
+/** Runtime constant for SortOrder values (for decorators / Swagger enum generation) */
+export const SortOrderValues = {
+  ASCEND: 'ascend',
+  DESCEND: 'descend',
+} as const
+
 /** Single sort parameter */
 export interface SortParam<T = any> {
   field: keyof T

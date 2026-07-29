@@ -1,4 +1,4 @@
-import { WalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
+import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { WalnutAdminExceptionUnauthorized } from '../base.exception'
 
 export class WalnutAdminExceptionAccessTokenExpired extends WalnutAdminExceptionUnauthorized {

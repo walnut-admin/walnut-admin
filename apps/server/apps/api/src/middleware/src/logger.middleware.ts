@@ -1,6 +1,6 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common'
 import { isProd } from '@walnut-server/config/utils/env'
-import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { RequestHeaders } from '@walnut/contract/http'
 import { LoggerContextService } from '@walnut-server/context'
 import { maskSensitiveFields } from '@walnut-server/utils/mask'
 import { Recordable } from 'easy-fns-ts'
@@ -40,7 +40,7 @@ export class LoggerMiddleware implements NestMiddleware {
       })
 
       res.once('finish', () => {
-        const resTime = res.getHeader(WalnutAdminConstAppHeaders.RES_TIME) as number || 0
+        const resTime = res.getHeader(RequestHeaders.RES_TIME) as number || 0
 
         // 2. RequestEnd
         this.logger.log('Request End', {

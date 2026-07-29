@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import type { LocaleType } from '@walnut/contract'
 import type { IOtpType } from './const/otp.const'
 
 import { Injectable, Logger } from '@nestjs/common'
@@ -40,7 +40,7 @@ export class OtpService {
   async validateIdentity(
     type: IOtpType,
     identifier: string,
-    language: IWalnutAdminConstAppLanguage,
+    language: LocaleType,
     deviceId: string,
   ): Promise<IWalnutAdminAccessTokenPayload> {
     // Start transaction
@@ -120,7 +120,7 @@ export class OtpService {
   async sendVerifyCode(
     type: IOtpType,
     identifier: string,
-    language: IWalnutAdminConstAppLanguage,
+    language: LocaleType,
   ) {
     return this.otpSharedService.sendVerifyCode(type, identifier, language)
   }

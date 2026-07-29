@@ -1,7 +1,7 @@
 import type { Recordable } from 'easy-fns-ts'
 import { registerAs } from '@nestjs/config'
 import { isProd } from '@walnut-server/config/utils/env'
-import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { RequestHeaders } from '@walnut/contract/http'
 import { WalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
 import { getPackageJsonData } from '@walnut-server/utils/pkg'
 
@@ -38,7 +38,7 @@ export default registerAs('middleware', () => ({
       'Host',
       'X-Requested-With',
       'X-Content-Type-Options',
-      ...Object.values(WalnutAdminConstAppHeaders),
+      ...Object.values(RequestHeaders),
     ],
   },
 }))

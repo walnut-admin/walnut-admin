@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import type { LocaleType } from '@walnut/contract'
 
 import { Injectable } from '@nestjs/common'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
@@ -56,7 +56,7 @@ export class SysUserIdentityService {
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
     dto: SysUserIdentityCheckRequestDTO,
-    language: IWalnutAdminConstAppLanguage,
+    language: LocaleType,
   ) {
     const { identifier } = dto
 
@@ -261,7 +261,7 @@ export class SysUserIdentityService {
     userId: string,
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
-    language: IWalnutAdminConstAppLanguage,
+    language: LocaleType,
   ) {
     // Get decrypted identifier from DB
     const identifier = await this.identitySharedService.getDecryptedIdentifier(userId, type, purpose)

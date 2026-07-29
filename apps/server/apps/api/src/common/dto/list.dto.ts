@@ -10,15 +10,9 @@ import {
   plainToInstance,
 } from 'class-transformer'
 
-import { ValueOf } from 'easy-fns-ts'
+import { SortOrderValues } from '@walnut/contract'
+import type { ValueOf } from 'easy-fns-ts'
 import { remove } from 'lodash'
-
-const WalnutAdminRequestListOrderConsts = {
-  ASCEND: 'ascend',
-  DESCEND: 'descend',
-} as const
-
-type WalnutAdminRequestListOrderConstsType = ValueOf<typeof WalnutAdminRequestListOrderConsts>
 
 // request list page dto
 class WalnutAdminRequestListPageDTO {
@@ -68,10 +62,10 @@ export function CreateWalnutAdminRequestListDTO<T>(dto: ClassConstructor<T>) {
     })
     readonly field: string
 
-    @WalnutAdminDecoratorFieldEnum(() => WalnutAdminRequestListOrderConsts, {
+    @WalnutAdminDecoratorFieldEnum(() => SortOrderValues, {
       swaggerOptions: { title: 'order type, ascend or descend' },
     })
-    readonly order: WalnutAdminRequestListOrderConstsType | false
+    readonly order: typeof SortOrderValues[keyof typeof SortOrderValues] | false
 
     @WalnutAdminDecoratorFieldNumber({
       swaggerOptions: { title: 'order priority' },

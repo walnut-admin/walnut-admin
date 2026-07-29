@@ -1,6 +1,6 @@
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import * as requestIp from '@supercharge/request-ip'
-import { WalnutAdminConstAppHeaders } from '@walnut-server/const/app/header'
+import { RequestHeaders } from '@walnut/contract/http'
 import { NextFunction } from 'express'
 
 @Injectable()
@@ -14,7 +14,7 @@ export class IpMiddleware implements NestMiddleware {
   ) {
     const ip = requestIp.getClientIp(req)
 
-    req.headers[WalnutAdminConstAppHeaders.IP] = ip
+    req.headers[RequestHeaders.IP] = ip
     req.realIp = ip!
 
     next()

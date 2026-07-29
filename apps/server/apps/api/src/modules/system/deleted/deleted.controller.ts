@@ -8,7 +8,7 @@ import {
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
-import { WalnutAdminConstRole } from '@walnut-server/const/role/index'
+import { Role } from '@walnut/contract'
 import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamMongoId, WalnutAdminDecoratorParamMongoIds } from '@walnut-server/decorators/params'
 import { ClientSession } from 'mongoose'
@@ -55,7 +55,7 @@ export class SysDeletedController {
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE_MANY)
-  @WalnutAdminDecoratorHasRole([WalnutAdminConstRole.ROOT, WalnutAdminConstRole.DEVELOPER, WalnutAdminConstRole.ADMIN], WalnutAdminConstDecoratorRoleMode.OR)
+  @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER, Role.ADMIN], WalnutAdminConstDecoratorRoleMode.OR)
   @WalnutAdminDecoratorDeleteMany()
   async deleteMany(@WalnutAdminDecoratorParamMongoIds() ids: string[]) {
     const deleted = await this.deletedService.deleteRealMany(ids)
@@ -83,7 +83,7 @@ export class SysDeletedController {
   @Post('recover')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.RECOVER)
-  @WalnutAdminDecoratorHasRole([WalnutAdminConstRole.ROOT, WalnutAdminConstRole.DEVELOPER, WalnutAdminConstRole.ADMIN], WalnutAdminConstDecoratorRoleMode.OR)
+  @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER, Role.ADMIN], WalnutAdminConstDecoratorRoleMode.OR)
   @WalnutDBTransaction()
   @WalnutAdminDecoratorOperateLog({
     title: WalnutAdminConstDecoratorLogOperateTitle.DELETED,

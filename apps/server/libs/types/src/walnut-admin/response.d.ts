@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstAppResponseCode } from '@walnut-server/const/app/responseCode'
+import type { IWalnutAdminConstAppResponseCode } from '@walnut/contract'
 import type { ResponseBase } from '@walnut/contract/response'
 import type { Recordable } from 'easy-fns-ts'
 

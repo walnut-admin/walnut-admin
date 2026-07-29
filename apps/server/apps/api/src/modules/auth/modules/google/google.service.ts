@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import { LocaleType, LocaleType } from '@walnut/contract'
 import { WalnutDBInjectConnection } from '@walnut-server/db'
 import { ClientSession, Connection } from 'mongoose'
 import { SharedWelcomeService } from '@/modules/shared/welcome/welcome.service'
@@ -26,7 +26,7 @@ export class AuthGoogleService {
    */
   async validateGoogle(
     emailAddress: string,
-    language: IWalnutAdminConstAppLanguage,
+    language: LocaleType,
     deviceId: string,
   ): Promise<IWalnutAdminTokenUser> {
     // TODO

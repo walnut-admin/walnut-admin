@@ -1,6 +1,7 @@
+import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Put } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role/index'
+import { IWalnutAdminConstRoleMode } from '@walnut/contract'
 import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'

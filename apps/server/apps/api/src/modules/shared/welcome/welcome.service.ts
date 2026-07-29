@@ -1,4 +1,4 @@
-import type { IWalnutAdminConstAppLanguage } from '@walnut-server/const/app/lang'
+import type { LocaleType } from '@walnut/contract'
 import type { IOtpType } from '@/modules/auth/modules/otp/const/otp.const'
 import { Injectable, Logger } from '@nestjs/common'
 import { AppMailerService } from '../mailer/mailer.service'
@@ -13,7 +13,7 @@ export class SharedWelcomeService {
   /**
    * @description send welcome message to user by type (email/sms)
    */
-  async sendWelcomeByType(type: IOtpType, identifier: string, language: IWalnutAdminConstAppLanguage) {
+  async sendWelcomeByType(type: IOtpType, identifier: string, language: LocaleType) {
     if (type === 'email') {
       const res = await this.mailerService.sendWelcomeEmail(identifier, language)
       this.logger.log(`send welcome email to ${identifier} result: ${res}`)
