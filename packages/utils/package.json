@@ -49,8 +49,8 @@
     "@walnut/eslint-config": "workspace:*",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
     "vite": "catalog:",
-    "vite-plugin-dts": "catalog:"
+    "vite-plugin-dts": "catalog:",
+    "vitest": "catalog:"
   }
 }

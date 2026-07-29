@@ -41,7 +41,7 @@
     "easy-fns-ts": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }
