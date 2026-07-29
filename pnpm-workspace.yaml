@@ -65,6 +65,7 @@ catalog:
   '@sentry/vite-plugin': 5.2.1
   '@sentry/vue': 10.52.0
   '@serenity-kit/opaque': 1.1.0
+  '@standard-schema/spec': 1.1.0
   '@simplewebauthn/browser': 13.3.0
   '@simplewebauthn/server': 13.3.0
   '@socket.io/admin-ui': 0.5.1

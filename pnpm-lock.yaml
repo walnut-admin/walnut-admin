@@ -171,6 +171,9 @@ catalogs:
     '@socket.io/admin-ui':
       specifier: 0.5.1
       version: 0.5.1
+    '@standard-schema/spec':
+      specifier: 1.1.0
+      version: 1.1.0
     '@supercharge/request-ip':
       specifier: 1.2.0
       version: 1.2.0
@@ -994,6 +997,9 @@ importers:
       '@sentry/vite-plugin':
         specifier: 'catalog:'
         version: 5.2.1(rollup@4.60.3)
+      '@standard-schema/spec':
+        specifier: 'catalog:'
+        version: 1.1.0
       '@types/ali-oss':
         specifier: 'catalog:'
         version: 6.23.3

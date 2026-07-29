@@ -111,6 +111,7 @@
     "@iconify/vue": "catalog:",
     "@julr/vite-plugin-validate-env": "catalog:",
     "@sentry/vite-plugin": "catalog:",
+    "@standard-schema/spec": "catalog:",
     "@types/ali-oss": "catalog:",
     "@types/codemirror": "catalog:",
     "@types/gtag.js": "catalog:",
