@@ -1,6 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [
+    "package.json",
     "tsconfig.base.json",
     "tsconfig.json",
     "eslint.config.mjs",
@@ -50,7 +51,7 @@
       "cache": false
     },
     "types:check": {
-      "dependsOn": ["^build"],
+      "dependsOn": [],
       "inputs": [
         "$TURBO_DEFAULT$",
         "!**/*.md"

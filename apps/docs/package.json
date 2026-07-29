@@ -29,21 +29,21 @@
   },
   "dependencies": {
     "dayjs": "catalog:",
-    "vitepress": "1.6.3",
-    "vitepress-mermaid-renderer": "1.1.5",
+    "vitepress": "catalog:",
+    "vitepress-mermaid-renderer": "catalog:",
     "vue": "catalog:"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "catalog:",
-    "@mermaid-js/mermaid-mindmap": "9.3.0",
+    "@mermaid-js/mermaid-mindmap": "catalog:",
     "@types/node": "catalog:",
+    "@walnut/eslint-config": "workspace:*",
     "eslint": "catalog:",
-    "mermaid": "11.8.0",
-    "pagefind": "1.3.0",
-    "segment": "0.1.3",
+    "mermaid": "catalog:",
+    "pagefind": "catalog:",
+    "segment": "catalog:",
     "taze": "catalog:",
     "typescript": "catalog:",
-    "vitepress-plugin-pagefind": "0.4.14",
-    "vitepress-plugin-tabs": "0.7.3"
+    "vitepress-plugin-pagefind": "catalog:",
+    "vitepress-plugin-tabs": "catalog:"
   }
 }
