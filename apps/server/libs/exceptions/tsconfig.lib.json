@@ -1,10 +1,6 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../tsconfig.lib.base.json",
   "compilerOptions": {
-    "declaration": true,
-    "outDir": "../../dist/libs/exceptions",
-    "rootDir": "./src"
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
+    "outDir": "../../dist/libs/exceptions"
+  }
 }
