@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
-import { LocaleType, LocaleType } from '@walnut/contract'
+import { LocaleType } from '@walnut/contract'
 import { runAfterCommit } from '@walnut-server/db'
 import { Recordable } from 'easy-fns-ts'
 import { ClientSession } from 'mongoose'

@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { LocaleType, LocaleType, LocaleType } from '@walnut/contract'
+import { Locale,  LocaleType, LocaleType } from '@walnut/contract'
 import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldMongoId } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
@@ -140,16 +140,16 @@ export class SysUserPreferenceModel extends WalnutAdminCommonBasicModel {
   CVD: ICVDConst
 
   @WalnutAdminDecoratorFieldEnum(() => LocaleType, {
-    default: LocaleType.zh_CN,
+    default: Locale.zh_CN,
     swaggerOptions: {
       title: 'locale',
-      example: LocaleType.zh_CN,
+      example: Locale.zh_CN,
     },
   })
   @Prop({
     type: () => LocaleType,
     enum: [...Object.values(LocaleType)],
-    default: LocaleType.zh_CN,
+    default: Locale.zh_CN,
   })
   locale: LocaleType
 

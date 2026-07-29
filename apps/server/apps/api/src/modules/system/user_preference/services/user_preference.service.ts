@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { LocaleType, LocaleType } from '@walnut/contract'
+import { Locale,  LocaleType } from '@walnut/contract'
 import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { Types } from 'mongoose'
 
@@ -16,7 +16,7 @@ export class SysUserPreferenceService {
   private getDefaultPreference(): SysUserPreferenceResponseDTO {
     return {
       basic: {
-        locale: LocaleType.zh_CN,
+        locale: Locale.zh_CN,
       },
       accessibility: {
         fontSize: fontSizeConst[14],

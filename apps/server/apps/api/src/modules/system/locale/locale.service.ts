@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { LocaleType, LocaleType, LocaleType } from '@walnut/contract'
+import { LocaleType, LocaleType } from '@walnut/contract'
 import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'

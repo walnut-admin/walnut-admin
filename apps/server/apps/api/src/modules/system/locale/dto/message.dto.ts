@@ -1,4 +1,4 @@
-import { LocaleType, LocaleType, LocaleType } from '@walnut/contract'
+import { LocaleType, LocaleType } from '@walnut/contract'
 
 import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 

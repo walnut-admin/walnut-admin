@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory, Virtual } from '@nestjs/mongoose'
-import { LocaleType, LocaleType, LocaleType } from '@walnut/contract'
+import { LocaleType, LocaleType } from '@walnut/contract'
 
 import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 

@@ -1,34 +1,10 @@
-import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
-import type { RoleType, IWalnutAdminConstRoleMode } from '@walnut/contract'
+import type { IWalnutAdminAccessTokenPayload as _AccessTokenPayload, IWalnutAdminRefreshTokenPayload as _RefreshTokenPayload } from '@walnut/contract'
 
+// Re-declare as global for backward compatibility — canonical definitions in @walnut/contract/token
 declare global {
-  interface IWalnutAdminAccessTokenPayload {
-    sid?: string
-
-    userName: string
-    userId: string
-    roleIds: string[]
-    roleNames: RoleType[]
-    currentRole: string
-    roleMode: IWalnutAdminConstRoleMode
-    currentRoleName: RoleType
-    mfaSetup: boolean
-    mfaVerified: boolean
-
-    key?: string
-    iat?: number
-    exp?: number
-  }
-
-  type IWalnutAdminTokenUser = Omit<
-    IWalnutAdminAccessTokenPayload,
-    'key' | 'iat' | 'exp'
-  >
-
-  interface IWalnutAdminRefreshTokenPayload {
-    sid: string
-    jti: string
-  }
+  type IWalnutAdminAccessTokenPayload = _AccessTokenPayload
+  type IWalnutAdminRefreshTokenPayload = _RefreshTokenPayload
+  type IWalnutAdminTokenUser = Omit<IWalnutAdminAccessTokenPayload, 'key' | 'iat' | 'exp'>
 }
 
 export {}

@@ -15,7 +15,7 @@ import { ConfigService } from '@nestjs/config'
 import { ApiTags } from '@nestjs/swagger'
 
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
-import { LocaleType, LocaleType } from '@walnut/contract'
+import { LocaleType } from '@walnut/contract'
 import { IWalnutAdminConstAppSettingAuthOAuthGitHubKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
