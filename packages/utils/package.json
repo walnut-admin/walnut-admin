@@ -47,6 +47,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@walnut/eslint-config": "workspace:*",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

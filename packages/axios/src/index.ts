@@ -6,7 +6,7 @@ export {
 
 export { composeAdapters } from './adapters/index'
 
-export { BusinessCodeConst, notAllowedErrorCodeMap } from './constant'
+export { WalnutAdminConstAppResponseCode } from './constant'
 
 export { Axios } from './instance'
 
