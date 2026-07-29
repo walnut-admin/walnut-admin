@@ -1,7 +1,6 @@
 <script lang="tsx" setup>
 import type { DropdownMixedOption } from 'naive-ui/lib/dropdown/src/interface'
 
-// @boundaries-ignore
 import { homepage, urls } from '~build/package'
 
 // TODO 111

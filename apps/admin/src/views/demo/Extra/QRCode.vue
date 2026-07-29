@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 import type { Fn } from '@walnut/utils/types/universal'
-// @boundaries-ignore
 import { urls } from '~build/package'
 
 defineOptions({

@@ -1,5 +1,4 @@
 import type { Router } from 'vue-router'
-// @boundaries-ignore
 import { version } from '~build/package'
 import { decryptRouterUrl, encryptRouterUrl } from '@/router/utils/crypto'
 
