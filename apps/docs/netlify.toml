@@ -5,8 +5,9 @@
 # Build only the docs app via pnpm filter
 command = "pnpm run build --filter @walnut/docs"
 
-# VitePress default output directory (relative to apps/docs/)
-publish = ".vitepress/dist"
+# ⚠️ publish 是相对于 base（默认根目录 /）解析的，不是相对于 netlify.toml 的位置
+# 所以必须写从仓库根目录出发的完整路径
+publish = "apps/docs/.vitepress/dist"
 
 [build.environment]
 NODE_VERSION = "24.13.0"
