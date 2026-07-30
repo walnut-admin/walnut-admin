@@ -11,6 +11,8 @@ const entries = {
   'role': resolve(__dirname, 'src/role.ts'),
   'i18n': resolve(__dirname, 'src/i18n.ts'),
   'http': resolve(__dirname, 'src/http.ts'),
+  'routes': resolve(__dirname, 'src/routes.ts'),
+  'token': resolve(__dirname, 'src/token.ts'),
 }
 
 export default defineConfig({

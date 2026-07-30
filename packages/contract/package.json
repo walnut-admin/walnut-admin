@@ -28,7 +28,7 @@
     "pnpm": ">=11.0.0"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && node scripts/build-barrel.mjs",
     "lint": "eslint . --concurrency=auto",
     "lint:fix": "eslint . --fix --concurrency=auto",
     "types:check": "tsc --noEmit",
