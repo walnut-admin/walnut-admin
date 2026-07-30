@@ -1,0 +1,17 @@
+{
+  "versionGroups": [
+    {
+      "label": "Local workspace packages use workspace:* protocol",
+      "dependencies": ["$LOCAL"],
+      "dependencyTypes": ["!local"],
+      "pinVersion": "workspace:*"
+    }
+  ],
+  "semverGroups": [
+    {
+      "label": "Use exact version numbers in catalog",
+      "dependencyTypes": ["pnpmCatalog"],
+      "range": ""
+    }
+  ]
+}

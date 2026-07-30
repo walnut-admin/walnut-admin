@@ -1,6 +1,8 @@
 {
   "name": "walnut-admin",
   "type": "module",
+  "version": "0.0.1",
+  "private": true,
   "packageManager": "pnpm@11.13.0",
   "description": "Walnut Admin Monorepo",
   "author": {
@@ -41,6 +43,9 @@
     "knip:packages": "knip --workspace packages/*",
     "knip:apps": "knip --workspace apps/*",
     "check:deps:update": "npx taze major -l",
+    "syncpack:lint": "syncpack lint --dependency-types dev,prod",
+    "syncpack:fix": "syncpack fix",
+    "syncpack:update": "syncpack update --dependency-types pnpmCatalog --interactive",
     "changeset": "changeset",
     "changeset:auto": "tsx scripts/version/auto-changeset.ts",
     "changeset:status": "changeset status --since=origin/main",
@@ -65,6 +70,7 @@
     "lint-staged": "catalog:",
     "rimraf": "catalog:",
     "simple-git-hooks": "catalog:",
+    "syncpack": "catalog:",
     "taze": "catalog:",
     "tsx": "catalog:",
     "turbo": "catalog:",
