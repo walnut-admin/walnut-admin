@@ -2,13 +2,14 @@ import { Buffer } from 'node:buffer'
 import crypto from 'node:crypto'
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { AES_GCM_WIRE } from '@walnut/contract/crypto-wire'
 import { isNil } from 'lodash'
 
 @Injectable()
 export class AppTechCryptoService {
   private readonly algorithm = 'aes-256-gcm'
-  private readonly IV_LENGTH = 12 // AES-GCM 推荐 96-bit nonce
-  private readonly AUTH_TAG_LENGTH = 16
+  private readonly IV_LENGTH = AES_GCM_WIRE.IV_LENGTH
+  private readonly AUTH_TAG_LENGTH = AES_GCM_WIRE.TAG_LENGTH
 
   constructor(private readonly configService: ConfigService) {}
 

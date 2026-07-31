@@ -38,6 +38,7 @@
     "clean:all": "rimraf dist node_modules"
   },
   "dependencies": {
+    "@walnut/contract": "workspace:*",
     "@walnut/types": "workspace:*",
     "js-base64": "catalog:"
   },

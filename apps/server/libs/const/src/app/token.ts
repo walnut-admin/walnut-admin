@@ -1,5 +1,2 @@
-// app auth token key
-export const WalnutAdminConstAppTokenKey = {
-  ACCESS: 'WALNUT_ACCESS_TOKEN',
-  REFRESH: 'WALNUT_REFRESH_TOKEN',
-} as const
+// Re-exported from @walnut/contract — single source of truth
+export { WalnutAdminConstAppTokenKey } from '@walnut/contract/token-key'

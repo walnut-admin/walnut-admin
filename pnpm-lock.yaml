@@ -1657,6 +1657,9 @@ importers:
 
   packages/platform-any/utils-core:
     dependencies:
+      '@walnut/contract':
+        specifier: workspace:*
+        version: link:../contract
       '@walnut/types':
         specifier: workspace:*
         version: link:../types

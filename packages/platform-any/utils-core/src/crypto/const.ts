@@ -3,18 +3,20 @@
  * Centralized configuration for crypto operations
  */
 
+import { AES_GCM_WIRE } from '@walnut/contract/crypto-wire'
+
 // ========== AES-GCM Constants ==========
 export const AES_GCM = {
   /** Algorithm name */
   NAME: 'AES-GCM' as const,
   /** Key length in bits (256-bit AES) */
   KEY_LENGTH: 256,
-  /** Initialization Vector length in bytes (96-bit IV recommended for GCM) */
-  IV_LENGTH: 12,
-  /** Authentication tag length in bytes (128-bit tag for GCM) */
-  TAG_LENGTH: 16,
-  /** Minimum encrypted payload length (IV + TAG, no ciphertext) */
-  MIN_PAYLOAD_LENGTH: 28, // 12 + 16
+  /** Initialization Vector length in bytes — shared wire format via @walnut/contract */
+  IV_LENGTH: AES_GCM_WIRE.IV_LENGTH,
+  /** Authentication tag length in bytes — shared wire format via @walnut/contract */
+  TAG_LENGTH: AES_GCM_WIRE.TAG_LENGTH,
+  /** Minimum encrypted payload length */
+  MIN_PAYLOAD_LENGTH: AES_GCM_WIRE.MIN_PAYLOAD_LENGTH,
 } as const
 
 // ========== RSA-OAEP Constants ==========

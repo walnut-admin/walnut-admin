@@ -2,7 +2,7 @@
  * Standard API response envelope shared between frontend and backend.
  */
 export interface ResponseBase<T = any> {
-  /** Business status code (0 = success) */
+  /** Business status code (20000 = success, see WalnutAdminConstAppResponseCode) */
   code: number
   /** Human-readable message */
   msg: string
