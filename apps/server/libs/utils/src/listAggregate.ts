@@ -1,9 +1,11 @@
 import type { PipelineStage, QueryFilter } from 'mongoose'
 import { isEmpty, isNaN, isNil, isObject } from 'lodash'
 import { isObjectIdOrHexString, Types } from 'mongoose'
-
 /**
- * @description list request params interface (generic, no business dependency)
+ * Server-side list request params.
+ * Shape mirrors @walnut/contract BaseListParams but uses Partial<T> for query
+ * (backend accepts subset fields) and is compatible with runtime DTO factories.
+ * Cannot be a direct type alias due to class-transformer DTO structural differences.
  */
 export interface IListRequestParams<T> {
   query?: Partial<T>
