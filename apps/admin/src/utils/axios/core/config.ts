@@ -1,5 +1,5 @@
 import type { AxiosRequestConfig } from 'axios'
-import { composeAdapters } from '@walnut/axios/adapters/index'
+import { composeAdapters } from '@walnut/http/adapters/index'
 import qs from 'qs'
 
 const { axiosTimeout: axiosTimeoutSeconds, axiosCache: axiosCacheSeconds } = useAppEnvSeconds()

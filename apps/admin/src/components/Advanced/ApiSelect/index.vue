@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { BaseListParams, BaseListResponse } from '@walnut/axios/types'
+import type { BaseListParams, BaseListResponse } from '@walnut/http/types'
 import type { OptionDataItem, Recordable, StringOrNumber } from 'easy-fns-ts'
 import { useState } from '@walnut/client/hooks/core/useState'
 import { isFunction } from 'easy-fns-ts'

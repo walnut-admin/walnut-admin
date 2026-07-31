@@ -37,8 +37,8 @@ export default function nestConfig() {
               message: '@walnut/client contains Vue composables and browser-only APIs (Web Crypto, DOM, IndexedDB). Do not import from NestJS server code.',
             },
             {
-              group: ['@walnut/axios', '@walnut/axios/*'],
-              message: '@walnut/axios is the frontend HTTP client (browser interceptors, cache, retry). Server should use @nestjs/axios or raw axios.',
+              group: ['@walnut/http', '@walnut/http/*'],
+              message: '@walnut/http is the frontend HTTP client (browser interceptors, cache, retry). Server should use @nestjs/axios or raw axios.',
             },
           ],
         }],

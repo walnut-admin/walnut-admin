@@ -1,5 +1,5 @@
-import type { BaseListParams } from '@walnut/axios/types'
 import type { IHooksUseProps } from '@walnut/client/hooks/core/useProps'
+import type { BaseListParams } from '@walnut/http/types'
 import type { Recordable } from 'easy-fns-ts'
 import type { DropdownOption, TagProps } from 'naive-ui'
 import type { FilterOption } from 'naive-ui/es/data-table/src/interface'

@@ -91,7 +91,7 @@ const config: KnipConfig = {
     'packages/client': {
       entry: ['src/index.ts'],
     },
-    'packages/axios': {
+    'packages/platform-web/http': {
       entry: ['src/index.ts'],
     },
     'packages/eslint-config': {

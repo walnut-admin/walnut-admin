@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { BaseListParams } from '@walnut/axios/types'
+import type { BaseListParams } from '@walnut/http/types'
 import type { DataTableColumn } from 'naive-ui'
 import type { IModels } from '@/api/models'
 import type { WForm } from '@/components/UI/Form'

@@ -1,5 +1,6 @@
-import type { Ref, MaybeRefOrGetter } from 'vue'
-import type { Fn, IsPrimitive, IsFunction, NoDistribute, RecursionLimit, NextDepth } from '@walnut/types/deep-ref'
+import type { IsFunction, IsPrimitive, NextDepth, NoDistribute, RecursionLimit } from '@walnut/types/deep-ref'
+import type { Fn } from '@walnut/types/universal'
+import type { MaybeRefOrGetter, Ref } from 'vue'
 
 // 只处理明确的对象类型
 export type IsRecursible<T>

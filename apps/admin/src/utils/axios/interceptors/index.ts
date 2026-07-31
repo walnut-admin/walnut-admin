@@ -1,4 +1,4 @@
-import type { AxiosTransformers } from '@walnut/axios/types'
+import type { AxiosTransformers } from '@walnut/http/types'
 import { requestInterceptorsCatch } from './request/catch'
 import { requestInterceptors } from './request/interceptor'
 import { responseInterceptorsCatch } from './response/catch'

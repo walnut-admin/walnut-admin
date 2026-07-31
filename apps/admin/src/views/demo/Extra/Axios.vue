@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { Fn } from '@walnut/types/universal'
 import type { AxiosRequestConfig } from 'axios'
-import { removeAllCancel, removeLatestRequest } from '@walnut/axios/adapters/cancel'
+import { removeAllCancel, removeLatestRequest } from '@walnut/http/adapters/cancel'
 import { HelloAPI, HelloWithTokenAPI } from '@/api'
 
 defineOptions({

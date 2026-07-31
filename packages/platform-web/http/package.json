@@ -1,8 +1,8 @@
 {
-  "name": "@walnut/axios",
+  "name": "@walnut/http",
   "type": "module",
   "version": "0.0.1",
-  "description": "Custom Axios HTTP client with interceptors for Walnut Admin",
+  "description": "Axios-based HTTP client — primarily browser, core logic is dual-runtime capable",
   "license": "MIT",
   "exports": {
     ".": "./src/index.ts",

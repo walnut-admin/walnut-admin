@@ -1,6 +1,6 @@
 /**
  * Shared pagination contract between frontend and backend.
- * Frontend: shipped via @walnut/axios
+ * Frontend: shipped via @walnut/http
  * Backend: used as base shapes by DTO factories
  */
 

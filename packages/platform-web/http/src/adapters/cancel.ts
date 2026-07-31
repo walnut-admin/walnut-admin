@@ -70,6 +70,10 @@ export function removeCurrentPageRequests(path: string) {
   }
 }
 
+function getCurrentPath(): string {
+  return typeof location !== 'undefined' ? location.pathname : '/'
+}
+
 export function cancelAdapter(adapter: AxiosAdapter): AxiosAdapter {
   return async (config) => {
     if (!config._cancelOnRouteChange)
@@ -80,7 +84,7 @@ export function cancelAdapter(adapter: AxiosAdapter): AxiosAdapter {
     // create AbortController and add to cancel pool
     const controller = new AbortController()
     config.signal = controller.signal // set AbortSignal
-    addToCancelPool(config, requestId, location.pathname, controller)
+    addToCancelPool(config, requestId, getCurrentPath(), controller)
 
     try {
       const res = await adapter(config)

@@ -1,5 +1,5 @@
 import type { Router } from 'vue-router'
-import { removeCurrentPageRequests } from '@walnut/axios/adapters/cancel'
+import { removeCurrentPageRequests } from '@walnut/http/adapters/cancel'
 
 const appStoreTab = useAppStoreTab()
 const appStoreCachedViews = useAppStoreCachedViews()
