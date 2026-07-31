@@ -88,13 +88,13 @@ const config: KnipConfig = {
     'packages/platform-any/types': {
       entry: ['src/universal.d.ts', 'src/storage.d.ts', 'src/deep-ref.d.ts', 'src/object-key.d.ts'],
     },
-    'packages/client': {
+    'packages/platform-web/client': {
       entry: ['src/index.ts'],
     },
     'packages/platform-web/http': {
       entry: ['src/index.ts'],
     },
-    'packages/eslint-config': {
+    'packages/tooling/eslint-config': {
       entry: ['base.mjs', 'vue.mjs', 'nest.mjs', 'nest-local-rules.mjs'],
     },
   },
