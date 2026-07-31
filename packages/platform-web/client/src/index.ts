@@ -1,3 +1,5 @@
+export { Cookie, getCookie, removeCookie, setCookie } from './browser/cookie'
+
 export { generateRsaOaepKeyPair } from './browser/crypto/asymmetric/rsa-oaep'
 
 export { deriveApiSignKey } from './browser/crypto/derive/api-sign-key'
@@ -78,3 +80,6 @@ export {
 export { getStorageIdbKey } from './persistent/idb/index'
 
 export { removeStorageItemsContaining } from './persistent/shared'
+
+// Store
+export { createWalnutStore } from './store/createWalnutStore'

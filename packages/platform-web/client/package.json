@@ -32,6 +32,7 @@
     "js-base64": "catalog:",
     "lodash-es": "catalog:",
     "nanoid": "catalog:",
+    "pinia": "catalog:",
     "superjson": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"
