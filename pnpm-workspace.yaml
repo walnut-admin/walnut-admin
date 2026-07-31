@@ -5,7 +5,6 @@ minimumReleaseAgeExclude:
   - '@dotenvx/primitives@2.1.1'
 packages:
   - 'apps/*'
-  - 'packages/*'
   - 'packages/platform-any/*'
   - 'packages/platform-web/*'
   - 'packages/tooling/*'
