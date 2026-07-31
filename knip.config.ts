@@ -79,7 +79,7 @@ const config: KnipConfig = {
     },
 
     // --- 共享包（严格检查 — 这里 knip 价值最大）---
-    'packages/contract': {
+    'packages/platform-any/contract': {
       entry: ['src/index.ts'],
     },
     'packages/utils': {

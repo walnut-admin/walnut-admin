@@ -6,6 +6,9 @@ minimumReleaseAgeExclude:
 packages:
   - 'apps/*'
   - 'packages/*'
+  - 'packages/platform-any/*'
+  - 'packages/platform-web/*'
+  - 'packages/tooling/*'
 
 hoisting: false
 

@@ -4,7 +4,7 @@
 
 ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的关键架构决策。每一条 ADR 包含：决策背景（Context）、决策内容（Decision）、以及后果（Consequences）。
 
-当前共 16 条 ADR，涵盖包命名、TypeScript 配置、依赖治理、发布流水线、测试策略、验证策略等领域。
+当前共 17 条 ADR，涵盖包命名、TypeScript 配置、依赖治理、发布流水线、测试策略、验证策略、包重组等领域。
 
 ## ADR 列表
 
@@ -26,6 +26,7 @@ ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的�
 | [0014](./0014-eslint-config-strategy.md) | ESLint 配置策略——共享 config 包 + 三预设 | ✅ 已实现 |
 | [0015](./0015-testing-strategy.md) | 测试策略——Vitest 统一、co-located、分层覆盖率 | ✅ 已接受 |
 | [0016](./0016-validation-strategy.md) | 验证策略——保持 class-validator，暂不迁移 Zod | ✅ 已接受 |
+| [0017](./0017-package-reorganization.md) | Package 重组——多维标签 + 目录分组 + 新增包规划 | 📋 Proposed |
 
 ## 补充文档
 
