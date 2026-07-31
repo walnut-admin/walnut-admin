@@ -1,5 +1,5 @@
 <script lang="ts" setup generic="T extends IModels.Base">
-import type { IActionType } from '@walnut/utils/types/universal'
+import type { IActionType } from '@walnut/types/universal'
 import type { StringOrNumber } from 'easy-fns-ts'
 import type { WCrud } from './types'
 import type { IModels } from '@/api/models'

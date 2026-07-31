@@ -2,7 +2,7 @@
   "name": "@walnut/utils",
   "type": "module",
   "version": "0.0.1",
-  "description": "Zero-dependency shared utilities — consumed by both frontend and backend",
+  "description": "Pure JS utility functions — consumed by both frontend and backend",
   "license": "MIT",
   "exports": {
     ".": {
@@ -11,10 +11,6 @@
       "import": "./src/index.ts",
       "require": "./dist/index.cjs",
       "default": "./dist/index.cjs"
-    },
-    "./types/*": {
-      "types": "./src/types/*.d.ts",
-      "default": "./src/types/*.d.ts"
     },
     "./*": {
       "source": "./src/*.ts",
@@ -42,6 +38,7 @@
     "clean:all": "rimraf dist node_modules"
   },
   "dependencies": {
+    "@walnut/types": "workspace:*",
     "js-base64": "catalog:"
   },
   "devDependencies": {

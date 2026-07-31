@@ -1,4 +1,4 @@
-import type { IStorageAsync } from '@walnut/utils/types/storage'
+import type { IStorageAsync } from '@walnut/types/storage'
 
 class AsyncLocalStorage implements IStorageAsync {
   public length = localStorage.length

@@ -1,6 +1,6 @@
+import type { IDeepMaybeRef } from '@walnut/client/types/vue-ref'
 import type { BaseListParams } from '@walnut/contract'
-import type { IDeepMaybeRef } from '@walnut/utils/types/deep-ref'
-import type { IActionType } from '@walnut/utils/types/universal'
+import type { IActionType } from '@walnut/types/universal'
 import type { NullableRecord, StringOrNumber } from 'easy-fns-ts'
 import type { BaseAPIType } from '@/api/base'
 import type { IModels } from '@/api/models'

@@ -1,0 +1,32 @@
+{
+  "name": "@walnut/types",
+  "type": "module",
+  "version": "0.0.1",
+  "description": "Environment-agnostic type declarations — consumed by both frontend and backend",
+  "license": "MIT",
+  "exports": {
+    "./*": "./src/*.d.ts"
+  },
+  "engines": {
+    "node": ">=24.13.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "build": "echo 'types: pure source, no build needed'",
+    "lint": "eslint . --concurrency=auto",
+    "lint:fix": "eslint . --fix --concurrency=auto",
+    "types:check": "tsc --noEmit",
+    "clean": "rimraf dist",
+    "clean:all": "rimraf dist node_modules"
+  },
+  "devDependencies": {
+    "@walnut/eslint-config": "workspace:*",
+    "rimraf": "catalog:",
+    "typescript": "catalog:"
+  },
+  "walnut": {
+    "platform": "any",
+    "type": "contract",
+    "runtime": "none"
+  }
+}

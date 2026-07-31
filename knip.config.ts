@@ -82,8 +82,11 @@ const config: KnipConfig = {
     'packages/platform-any/contract': {
       entry: ['src/index.ts'],
     },
-    'packages/utils': {
+    'packages/platform-any/utils-core': {
       entry: ['src/index.ts'],
+    },
+    'packages/platform-any/types': {
+      entry: ['src/universal.d.ts', 'src/storage.d.ts', 'src/deep-ref.d.ts', 'src/object-key.d.ts'],
     },
     'packages/client': {
       entry: ['src/index.ts'],

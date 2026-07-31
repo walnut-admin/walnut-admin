@@ -63,6 +63,7 @@
     "@walnut/axios": "workspace:*",
     "@walnut/client": "workspace:*",
     "@walnut/contract": "workspace:*",
+    "@walnut/types": "workspace:*",
     "@walnut/utils": "workspace:*",
     "@zxcvbn-ts/core": "catalog:",
     "ali-oss": "catalog:",

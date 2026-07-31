@@ -882,9 +882,12 @@ importers:
       '@walnut/contract':
         specifier: workspace:*
         version: link:../../packages/platform-any/contract
+      '@walnut/types':
+        specifier: workspace:*
+        version: link:../../packages/platform-any/types
       '@walnut/utils':
         specifier: workspace:*
-        version: link:../../packages/utils
+        version: link:../../packages/platform-any/utils-core
       '@zxcvbn-ts/core':
         specifier: 'catalog:'
         version: 3.0.4
@@ -1336,7 +1339,7 @@ importers:
         version: link:../../packages/platform-any/contract
       '@walnut/utils':
         specifier: workspace:*
-        version: link:../../packages/utils
+        version: link:../../packages/platform-any/utils-core
       axios:
         specifier: 'catalog:'
         version: 1.16.0
@@ -1654,9 +1657,12 @@ importers:
       '@vueuse/core':
         specifier: 'catalog:'
         version: 14.3.0(vue@3.5.34(typescript@6.0.3))
+      '@walnut/types':
+        specifier: workspace:*
+        version: link:../platform-any/types
       '@walnut/utils':
         specifier: workspace:*
-        version: link:../utils
+        version: link:../platform-any/utils-core
       detectincognitojs:
         specifier: 'catalog:'
         version: 1.6.2
@@ -1738,8 +1744,23 @@ importers:
         specifier: 'catalog:'
         version: 4.1.2(@types/node@25.5.0)(vite@8.0.11(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
 
-  packages/utils:
+  packages/platform-any/types:
+    devDependencies:
+      '@walnut/eslint-config':
+        specifier: workspace:*
+        version: link:../../eslint-config
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+
+  packages/platform-any/utils-core:
     dependencies:
+      '@walnut/types':
+        specifier: workspace:*
+        version: link:../types
       js-base64:
         specifier: 'catalog:'
         version: 3.7.8
@@ -1749,7 +1770,7 @@ importers:
         version: 25.5.0
       '@walnut/eslint-config':
         specifier: workspace:*
-        version: link:../eslint-config
+        version: link:../../eslint-config
       rimraf:
         specifier: 'catalog:'
         version: 6.1.3

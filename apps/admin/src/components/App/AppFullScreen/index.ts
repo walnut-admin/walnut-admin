@@ -1,4 +1,4 @@
-import type { Fn } from '@walnut/utils/types/universal'
+import type { Fn } from '@walnut/types/universal'
 import { createAsyncComponent } from '@/utils/factory/asyncComponent'
 
 export default createAsyncComponent(() => import('./index.vue'))

@@ -1,4 +1,4 @@
-import type { Fn } from '@walnut/utils/types/universal'
+import type { Fn } from '@walnut/types/universal'
 import type { IStoreApp } from '@/store/types'
 
 export function useTabsActions(onUpdateOverflow: Fn) {

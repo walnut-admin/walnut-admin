@@ -6,7 +6,8 @@
   "license": "MIT",
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*.ts"
+    "./*": "./src/*.ts",
+    "./types/*": "./src/types/*.d.ts"
   },
   "engines": {
     "node": ">=24.13.0",
@@ -24,6 +25,7 @@
   },
   "dependencies": {
     "@vueuse/core": "catalog:",
+    "@walnut/types": "workspace:*",
     "@walnut/utils": "workspace:*",
     "detectincognitojs": "catalog:",
     "idb": "catalog:",

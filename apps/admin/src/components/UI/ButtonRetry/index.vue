@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { Fn } from '@walnut/utils/types/universal'
+import type { Fn } from '@walnut/types/universal'
 import type { ICompUIButtonRetryProps } from '.'
 import type { ICompUIButtonProps } from '../Button'
 

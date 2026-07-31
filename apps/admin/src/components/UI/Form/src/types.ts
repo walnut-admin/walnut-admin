@@ -1,7 +1,8 @@
 import type { IHooksUseProps } from '@walnut/client/hooks/core/useProps'
-import type { IDeepMaybeRef } from '@walnut/utils/types/deep-ref'
-import type { DeepKeyOf, ShortEmits } from '@walnut/utils/types/object-key'
-import type { Fn, IActionType } from '@walnut/utils/types/universal'
+import type { DeepKeyOf } from '@walnut/client/types/vue-object-key'
+import type { IDeepMaybeRef } from '@walnut/client/types/vue-ref'
+import type { ShortEmits } from '@walnut/types/object-key'
+import type { Fn, IActionType } from '@walnut/types/universal'
 import type { BaseDataType, Recordable, StringOrNumber } from 'easy-fns-ts'
 // raw
 import type {

@@ -1,4 +1,4 @@
-import type { IDeepMaybeRef } from '@walnut/utils/types/deep-ref'
+import type { IDeepMaybeRef } from '@walnut/client/types/vue-ref'
 import type { TreeInst, TreeProps } from 'naive-ui'
 import type { DropdownMixedOption } from 'naive-ui/es/dropdown/src/interface'
 

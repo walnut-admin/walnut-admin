@@ -1,4 +1,4 @@
-import type { IDeepMaybeRef } from '@walnut/utils/types/deep-ref'
+import type { IDeepMaybeRef } from '@walnut/client/types/vue-ref'
 import type { ICompUITreeInst, ICompUITreeProps } from '.'
 import { isInSetup } from '@walnut/client/browser/shared'
 

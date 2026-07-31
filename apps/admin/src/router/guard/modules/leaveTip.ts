@@ -1,4 +1,4 @@
-import type { Fn } from '@walnut/utils/types/universal'
+import type { Fn } from '@walnut/types/universal'
 import type { Router } from 'vue-router'
 
 let removeEvent: Fn

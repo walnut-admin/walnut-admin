@@ -1,4 +1,4 @@
-import type { Fn } from '@walnut/utils/types/universal'
+import type { Fn } from '@walnut/types/universal'
 import { useEventListener, useThrottleFn } from '@vueuse/core'
 
 export function useWindowResize(fn: Fn, throttle = 200) {

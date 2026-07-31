@@ -1,5 +1,5 @@
 <script lang="ts" setup generic="T">
-import type { Fn } from '@walnut/utils/types/universal'
+import type { Fn } from '@walnut/types/universal'
 import type { FormRules } from 'naive-ui'
 import type { CSSProperties } from 'vue'
 import type { WForm } from './types'

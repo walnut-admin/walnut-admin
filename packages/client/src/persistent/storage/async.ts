@@ -1,4 +1,4 @@
-import type { IStorageAsync, IStorageData, IStorageOptions } from '@walnut/utils/types/storage'
+import type { IStorageAsync, IStorageData, IStorageOptions } from '@walnut/types/storage'
 import type { Ref } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { cloneDeep } from 'lodash-es'

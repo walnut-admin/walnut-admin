@@ -1,4 +1,4 @@
-import type { Fn } from '@walnut/utils/types/universal'
+import type { Fn } from '@walnut/types/universal'
 import type { WForm } from '../types'
 import { isInSetup } from '@walnut/client/browser/shared'
 

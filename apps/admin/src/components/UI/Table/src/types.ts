@@ -1,8 +1,8 @@
 import type { IHooksUseProps } from '@walnut/client/hooks/core/useProps'
+import type { IDeepMaybeRef } from '@walnut/client/types/vue-ref'
 import type { BaseListParams, BaseListResponse } from '@walnut/contract'
-import type { IDeepMaybeRef } from '@walnut/utils/types/deep-ref'
 
-import type { ShortEmits } from '@walnut/utils/types/object-key'
+import type { ShortEmits } from '@walnut/types/object-key'
 import type { NullableRecord, Recordable, StringOrNumber } from 'easy-fns-ts'
 import type { DataTableBaseColumn, DataTableColumn, DataTableCreateRowKey, DataTableCreateSummary, DataTableExpandColumn, DataTableFilterState, DataTableInst, DataTableSelectionColumn, DataTableSortState, PaginationProps, PopoverProps, ScrollbarProps, TagProps } from 'naive-ui'
 import type { HTMLAttributes, VNodeChild } from 'vue'

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { IActionType } from '@walnut/utils/types/universal'
+import type { IActionType } from '@walnut/types/universal'
 import type { StringOrNumber } from 'easy-fns-ts'
 import type { IAppSystemMenuForm } from './types'
 

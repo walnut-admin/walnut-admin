@@ -1,4 +1,4 @@
-import type { IActionType } from '@walnut/utils/types/universal'
+import type { IActionType } from '@walnut/types/universal'
 import type { WCrud } from './types'
 import type { IModels } from '@/api/models'
 import { isEqual, omit } from 'lodash-es'
