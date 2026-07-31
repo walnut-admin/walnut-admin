@@ -1,7 +1,7 @@
 # ADR-0017: Package 重组——多维标签 + 目录分组
 
 **Date:** 2026-07-31
-**Status:** Proposed
+**Status:** In Progress — Phase 1 + 2 完成，Phase 3 部分完成
 
 ## Context
 
@@ -573,6 +573,97 @@ Switch, Table, TimePicker, Tree, TreeSelect
 - `pnpm dev` — 前端 HMR 正常、所有页面可访问
 - `pnpm dev:server` — 后端启动正常、API 响应正常
 - `turbo boundaries` — 零违规
+
+---
+
+## Implementation Progress (2026-07-31)
+
+### ✅ Completed
+
+| Phase | Step | Commit | Summary |
+|-------|------|--------|---------|
+| 1.1 | 目录创建 + contract 移动 | `40e5ad5` | 创建 3 组目录，contract → `platform-any/contract/` |
+| 1.2 | utils 拆分 + `@walnut/types` | `c3baf56` | utils → utils-core（去 Vue 类型依赖），创建 `@walnut/types`，Vue 类型 → client |
+| 1.3 | axios → http 改名 | `4f0252d` | `@walnut/axios` → `@walnut/http`，抽象 `location.pathname` |
+| 1.4 | client + eslint-config 移动 | `9df305c` | client → `platform-web/`，eslint-config → `tooling/` |
+| 1.5 | 配置收尾 | `ea7959f` | pnpm workspace 清理，turbo tags，`@walnut/types` turbo.json |
+| 2.1 | contract 共享常量 | `04130cf` | socket/cookie/token/AES-GCM 去重，前后端统一从 contract import |
+| 2.3+2.5 | pagination + consts | `8f29a8b` | server consts → contract re-export，pagination 类型文档标注 |
+| 3.4 | createWalnutStore + Cookie | `dec4619` | `createWalnutStore()` 工厂 + Cookie 类 → `@walnut/client` |
+
+**验证**：`pnpm lint` 8/8 + `pnpm types:check` 8/8 零错误。
+
+### ⏭️ Deferred — 需要 Dedicated Session
+
+#### Phase 2.2: API 路由迁移
+
+**范围**：30+ hardcoded URL → `@walnut/contract/routes`。Contract 常量已就绪。
+
+**策略**：渐进式迁移——改到哪个文件顺手迁，不一口气改 30+ 文件。
+
+**涉及文件**：
+- Admin `apps/admin/src/api/**/*.ts`（30+ 处 `url: '/...'`）
+- Server controllers `@Controller('...')`
+
+#### Phase 2.4: Server libs/utils → `@walnut/utils`
+
+**评估结论：跳过**。理由：
+- Server libs/utils 被 73 个文件引用，迁移需要全量更新 import
+- 纯函数（`maskEmail`/`generateVerifyCode` 等）前端不需要
+- 当前 `@walnut/utils` 已被 server 声明为依赖但未使用——要么后续真正使用，要么移除声明
+
+#### Phase 3.1: `@walnut/ui`（25 组件）
+
+**挑战**：
+1. 每个组件有跨组件相对 import（`../../Button/index.ts`）→ 迁入 package 后需改为 `@walnut/ui` 绝对 import
+2. 组件依赖 naive-ui（peerDependency 需声明）
+3. `WalnutAdminComponentResolver`（`build/vite/plugin/component.ts`）扫描 admin 内部路径 → 需改为扫描 package 路径
+4. 全局方法 `$message`/`$dialog`/`$notification` 在 package 中需显式 import
+5. 自动导入（`unplugin-auto-import`）的隐式依赖需全部显式化
+
+**建议**：单独 PR，先迁 2-3 个简单组件验证模式，再批量迁移。
+
+#### Phase 3.2: `@walnut/i18n`
+
+**依赖注入接口设计（待定）**：
+```ts
+interface LocaleFetcher {
+  fetchMessages(lang: string): Promise<Record<string, any>>
+}
+interface LocaleCache {
+  get(key: string): Nullable<Record<string, any>>
+  set(key: string, messages: Record<string, any>): void
+}
+```
+
+**迁入内容**：`setupI18n`/`AppI18n`/`useAppI18n` + locale 状态机 + naive locale 映射。
+
+#### Phase 3.3: `@walnut/security`
+
+**依赖注入接口设计（待定）**：
+```ts
+interface SignProvider {
+  buildSignRaw(method: string, path: string, body: string, timestamp: string, nonce: string, ua: string): string
+}
+interface CryptoKeyProvider {
+  getAesKey(): Promise<CryptoKey>
+  getRsaPublicKey(): Promise<string>
+}
+interface VerifyAuthHandler {
+  verify(method: VerifyAuthMethodType, options: VerifyAuthOptions): Promise<VerifyAuthResult>
+}
+```
+
+**迁入内容**：URL 加密 guard 工厂 + sign interceptor crypto + VerifyAuth 类型。
+
+### 📋 Remaining Checklist
+
+- [ ] Phase 2.2: API 路由渐进式迁移（每次改文件顺手做）
+- [ ] Phase 2.4: 确认 `@walnut/utils` 死依赖处理（使用或移除声明）
+- [ ] Phase 3.1: `@walnut/ui` — 先 Proof-of-Concept（2-3 组件），再批量
+- [ ] Phase 3.2: `@walnut/i18n` — DI 接口设计 → 迁入
+- [ ] Phase 3.3: `@walnut/security` — DI 接口设计 → 迁入
+- [ ] Phase 4: 自动导入迁移 + `pnpm dev` 功能验证
 
 ---
 

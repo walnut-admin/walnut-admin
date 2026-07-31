@@ -26,7 +26,7 @@ ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的�
 | [0014](./0014-eslint-config-strategy.md) | ESLint 配置策略——共享 config 包 + 三预设 | ✅ 已实现 |
 | [0015](./0015-testing-strategy.md) | 测试策略——Vitest 统一、co-located、分层覆盖率 | ✅ 已接受 |
 | [0016](./0016-validation-strategy.md) | 验证策略——保持 class-validator，暂不迁移 Zod | ✅ 已接受 |
-| [0017](./0017-package-reorganization.md) | Package 重组——多维标签 + 目录分组 + 新增包规划 | 📋 Proposed |
+| [0017](./0017-package-reorganization.md) | Package 重组——多维标签 + 目录分组 + 新增包规划 | 🔄 In Progress（Phase 1-2 完成，Phase 3 部分完成） |
 
 ## 补充文档
 
