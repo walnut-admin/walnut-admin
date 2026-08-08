@@ -37,7 +37,12 @@
 
 ## 环境变量
 
-项目的环境变量配置位于[env]目录下的[.env]、[.env.development]、[.env.production]和[.env.staging]。其中[.env.staging]文件用途是模拟生产的阶段性打包，会借助一些 vite 插件和 rollup 插件处理一些相关打包逻辑。
+项目的环境变量采用两目录体系（基于 dotenvx 加密，详见[环境变量加密管理](../content/monorepo/env-management.md)）：
+
+- `env-encrypted/` — 加密后的真实值（安全提交 Git），文件内注释即模板
+- `env-local/` — 解密生成的明文真实值（gitignored，由 `pnpm setup-env` 生成）
+
+环境文件包括 `.env`、[.env.development]、[.env.production] 和 [.env.stage]。其中 [.env.stage] 文件用途是模拟生产的阶段性打包，会借助一些 vite 插件和 rollup 插件处理一些相关打包逻辑。
 
 更多相关环境变量的配置请查看[vite 关于 env 文档][vite-env]。
 
@@ -104,7 +109,7 @@ VITE_APP_PERSIST_SECOND = 604800
 ### .env.production
 
 :::warning
-`staging` 的环境变量文件和 `production` 的一致
+`stage` 的环境变量文件和 `production` 的一致
 :::
 
 生产环境配置
@@ -589,11 +594,10 @@ const appStateMemory = {
 
 <!-- links -->
 
-[env]: https://github.com/Zhaocl1997/walnut-admin-client/tree/naive-ui/env
-[.env]: https://github.com/Zhaocl1997/walnut-admin-client/tree/naive-ui/env/.env
-[.env.development]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/env/.env.development
-[.env.production]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/env/.env.production
-[.env.staging]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/env/.env.staging
+[env-encrypted]: https://github.com/walnut-admin/walnut-admin/tree/main/apps/admin/env-encrypted
+[.env.development]: https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/env-encrypted/.env.development
+[.env.production]: https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/env-encrypted/.env.production
+[.env.stage]: https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/env-encrypted/.env.stage
 [vite-env]: https://cn.vitejs.dev/guide/env-and-mode.html#env-files
 [vueuse]: https://vueuse.org/
 [tailwindcss]: https://tailwindcss.com/docs
