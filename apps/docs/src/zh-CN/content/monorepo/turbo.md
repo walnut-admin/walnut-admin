@@ -79,26 +79,33 @@ Turbo 2.x 的 **Strict Environment Mode** 要求显式声明 task 依赖哪些�
 Turbo 2.9 的实验性功能——通过标签声明包的角色并强制依赖方向：
 
 ```jsonc
-// 根 turbo.json
+// 根 turbo.json（2026-08-08 升级为 platform 维度，见 ADR 0017）
 {
   "boundaries": {
     "tags": {
-      "shared": { "dependencies": { "deny": ["app"] } },    // shared 包不能依赖 app 包
-      "backend": { "dependencies": { "deny": ["browser"] } } // 后端不能依赖浏览器包
+      "shared": { "dependencies": { "deny": ["app"] } },         // shared 包不能依赖 app 包
+      "backend": { "dependencies": { "deny": ["platform-web"] } }, // 后端不能依赖 web 平台包
+      "platform-any": { "dependencies": { "deny": ["platform-web", "platform-node"] } },
+      "platform-node": { "dependencies": { "deny": ["platform-web"] } }
     }
   }
 }
 ```
 
-各包的标签：
+各包的标签（platform 维度，2026-08-08）：
 
 | 包 | 标签 |
 |----|------|
-| `@walnut/admin` | `app`, `frontend` |
-| `@walnut/server` | `app`, `backend` |
-| `@walnut/utils` | `shared`, `pure` |
-| `@walnut/contract` | `shared`, `pure` |
-| `@walnut/client` | `shared`, `browser` |
+| `@walnut/admin` | `app`, `frontend`, `platform-web` |
+| `@walnut/server` | `app`, `backend`, `platform-node` |
+| `@walnut/docs` | `app`, `docs` |
+| `@walnut/utils` | `shared`, `pure`, `platform-any` |
+| `@walnut/contract` | `shared`, `pure`, `platform-any` |
+| `@walnut/types` | `shared`, `pure`, `platform-any` |
+| `@walnut/client` | `shared`, `platform-web` |
+| `@walnut/http` | `shared`, `platform-web` |
+| `@walnut/ui` | `shared`, `platform-web` |
+| `@walnut/eslint-config` | `tooling`, `platform-any` |
 
 ```bash
 pnpm turbo boundaries   # 检查是否有包违反了边界规则

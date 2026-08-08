@@ -141,22 +141,26 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 
 **Chosen:** Enable tag-based boundaries in root `turbo.json` with per-package `turbo.json` tag declarations.
 
-**Tags assigned (8 packages):**
+**Tags assigned (2026-08-08 更新——platform 维度，对应 ADR 0017 的目录分组):**
 
 | Package | Tags |
 |---------|------|
-| `@walnut/admin` | `app`, `frontend` |
-| `@walnut/server` | `app`, `backend` |
+| `@walnut/admin` | `app`, `frontend`, `platform-web` |
+| `@walnut/server` | `app`, `backend`, `platform-node` |
 | `@walnut/docs` | `app`, `docs` |
-| `@walnut/utils` | `shared`, `pure` |
-| `@walnut/contract` | `shared`, `pure` |
-| `@walnut/client` | `shared`, `browser` |
-| `@walnut/axios` | `shared`, `browser` |
-| `@walnut/eslint-config` | `tooling` |
+| `@walnut/utils` | `shared`, `pure`, `platform-any` |
+| `@walnut/contract` | `shared`, `pure`, `platform-any` |
+| `@walnut/types` | `shared`, `pure`, `platform-any` |
+| `@walnut/client` | `shared`, `platform-web` |
+| `@walnut/http` | `shared`, `platform-web` |
+| `@walnut/ui` | `shared`, `platform-web` |
+| `@walnut/eslint-config` | `tooling`, `platform-any` |
 
 **Rules:**
 1. `shared` packages cannot depend on `app` packages (libraries must not import application code)
-2. `backend` packages cannot depend on `browser` packages (server must not import `@walnut/client`/`@walnut/axios`)
+2. `backend` packages cannot depend on `platform-web` packages (server must not import `@walnut/client`/`@walnut/http`/`@walnut/ui`)
+3. `platform-any` packages cannot depend on `platform-web` or `platform-node` (platform-agnostic packages stay runtime-free)
+4. `platform-node` packages cannot depend on `platform-web`
 
 **Result:** 0 tag-rule violations across all 8 packages at time of implementation (2026-07-29).
 

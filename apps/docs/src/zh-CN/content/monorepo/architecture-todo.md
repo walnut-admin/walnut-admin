@@ -8,9 +8,9 @@
 
 | # | 事项 | 来源 | 工作量 | 说明 |
 |---|------|------|--------|------|
-| 1 | **CI/CD 流水线** | ADR 0009 | 中 | 当前无 CI workflow。需新增 `.github/workflows/ci.yml`，串联 lint → typecheck → test → build，加入 affected-only 过滤 |
-| 2 | **共享包测试** | ADR 0009 / 0015 | 中 | `@walnut/utils`（queue、regex、crypto）、`@walnut/contract`（快照测试）至今零测试。是 CI 流水线的前置条件 |
-| 3 | **前端构建修复** | ADR README 遗留 | 小 | `apps/admin` build 被 env 校验插件阻塞（已有问题，非本次重构引入） |
+| 1 | **CI/CD 流水线** | ADR 0009 | 中 | 当前无 CI workflow。需新增 `.github/workflows/ci.yml`，串联 lint → typecheck → test → build，加入 affected-only 过滤。commit 级（commitlint）与 push 级（pre-push types:check）门禁已就位，只剩 CI 级 |
+| 2 | **共享包测试** | ADR 0009 / 0015 | 中 | `@walnut/utils`（queue、regex、crypto）、`@walnut/contract`（快照测试）至今零测试。utils-core 的 vitest 配置已提交（`vitest.config.ts`），只差测试文件本体。是 CI 流水线的前置条件 |
+| 3 | **前端构建修复** | ADR README 遗留 | 小 | **✅ 已解决 2026-08-08**。三个根因：(1) env 文件缺失——正确流程是 `pnpm setup-env`（dotenvx 从 `env-encrypted/` 解密，需根 `.env.keys`）；(2) root overrides 把 `lru-cache` 全局强制为 v11（ESM-only），破坏 workbox-build 的 CJS 依赖链（`_lruCache is not a constructor`）——已移除 override；(3) `optimizeDeps.include: Object.keys(dependencies)` 把 workspace 包列入预构建导致 `@walnut/types` 等解析失败——已过滤 `@walnut/*`。另修复 `~build/package` 失效 import 及 tsbuildinfo 增量缓存掩盖的 6 处既有类型错误 |
 
 ---
 
@@ -18,9 +18,9 @@
 
 | # | 事项 | 来源 | 工作量 | 说明 |
 |---|------|------|--------|------|
-| 4 | **Turbo Remote Cache** | 行业调研 | 小 | `npx turbo login` + `npx turbo link` 即可接入 Vercel Remote Cache（免费）。CI 构建从分钟级变秒级 |
-| 5 | **部署流水线** | ADR 0008 | 大 | `deploy.yml` 从手动 SCP 改为 `pnpm deploy --filter`，加路径过滤，加前端部署 job |
-| 6 | **commitlint** | 行业调研 | 小 | enforce conventional commit 格式。Changesets + git-cliff 依赖 commit message 规范 |
+| 4 | **Turbo Remote Cache** | 行业调研 | 小 | `npx turbo login` + `npx turbo link` 即可接入 Vercel Remote Cache（免费）。CI 构建从分钟级变秒级。`globalPassThroughEnv` 已透传 `TURBO_TOKEN`/`TURBO_TEAM`，只差接入 |
+| 5 | **部署流水线** | ADR 0008 | 大 | `deploy.yml` 存在但为 monorepo 前的 SCP 老方案（文件内 TODO 自述"需要重新设计"）。需决策：`pnpm deploy --filter` 或 Docker（P2-8），并加前端部署 job |
+| 6 | **commitlint** | 行业调研 | 小 | enforce conventional commit 格式。**[✅ 已完成 2026-08-08（commit `029eb2b`）](./eslint.md)** ——`@commitlint/cli` + config + `commit-msg` hook 已就位，Changesets + git-cliff 依赖的 commit message 规范已保障 |
 | 7 | **Changeset Bot** | 行业调研 | 小 | GitHub App，PR 中自动提醒缺少 changeset。一次安装，零维护 |
 
 ---
@@ -29,10 +29,10 @@
 
 | # | 事项 | 来源 | 工作量 | 说明 |
 |---|------|------|--------|------|
-| 8 | **Docker 多阶段构建** | 行业调研 | 中 | `apps/server/Dockerfile`，生产镜像仅含运行时依赖。当前无容器化部署 |
+| 8 | **Docker 多阶段构建** | 行业调研 | 中 | `apps/server/Dockerfile`，生产镜像仅含运行时依赖。当前无容器化部署；也是 P1-5 部署方案的候选出路 |
 | 9 | **syncpack** | 行业调研 | 小 | 强制 workspace 中同类依赖版本一致。**[✅ 已完成 2026-07-30](./syncpack.md)** |
 | 10 | **Codecov / 覆盖率报告** | 行业调研 | 小 | PR 上自动评论覆盖率变化。免费，依赖 P0-2 测试先落地 |
-| 11 | **GitHub Environments** | 行业调研 | 中 | 多环境部署（staging / production），按环境隔离 Secrets |
+| 11 | **GitHub Environments** | 行业调研 | 中 | 多环境部署（staging / production），按环境隔离 Secrets。当前 deploy.yml 用 workflow_dispatch 的 inputs 模拟环境选择，未使用原生 `environment:` 机制 |
 
 ---
 
@@ -47,10 +47,33 @@
 
 ---
 
+## ADR 0017 遗留（Package 重组收尾线）
+
+ADR 0017 Phase 1（目录重组 + 既有包迁移）+ Phase 2.1/2.3（contract 共享常量）已完成。以下为剩余项：
+
+| # | 事项 | 状态 | 说明 |
+|---|------|------|------|
+| A1 | **旧目录残留清理** | ❌ 待做 | `packages/` 下残留 5 个空壳目录（`axios/`、`client/`、`contract/`、`eslint-config/`、`utils/`），仅含 node_modules/dist/空目录，零 git 跟踪文件。IDE 打开易混淆，直接删除 |
+| A2 | **walnut 标签补齐** | ❌ 待做 | ADR 0017 设计的 `package.json#walnut` 字段（platform/type/runtime）仅 `@walnut/types` 有，其余 5 包未补 |
+| A3 | **turbo boundaries 升级** | ❌ 待做 | 根 `turbo.json` boundaries 仍是旧标签（shared/backend/app/browser），未同步 ADR 0017 的 platform 维度（any/web/node） |
+| A4 | **`@walnut/client` vue-router 死依赖** | ❌ 待做 | `vue-router` 声明为依赖但未被 import，应移除 |
+| A5 | **Phase 2.2 API 路由迁移** | 🔄 渐进式 | ✅ admin 侧 30 处静态硬编码 URL 全部迁移到 `@walnut/contract/routes`（2026-08-08）。剩余 11 处为带参动态模板字符串（device 子路由等）与 server 侧 44 个 controller 的同步，留待渐进 |
+| A6 | **Phase 2.4 server 死依赖决策** | ✅ 已完成 | ✅ 2026-08-08 确认 server 0 处 import `@walnut/utils`，按 ADR 评估结论（libs/utils 迁移已跳过）移除依赖声明 |
+| A7 | **Phase 3.1 `@walnut/ui`** | 🔄 POC 完成 | ✅ 2026-08-08 创建 `packages/platform-web/ui/`，迁入 Switch/DynamicTags/TimePicker 验证模式：naive-ui peerDependency、显式 import naive 组件、`WalnutAdminComponentResolver` 增扫 package 路径、`Form/src/types.ts` 类型改从 `@walnut/ui/*` 导入。lint/types:check/boundaries 全绿。剩余 22 组件（含依赖链复杂的 Button/Card/Form/Table）待批量迁移，需处理跨组件相对 import 与 app store 依赖注入 |
+| A8 | **Phase 3.2 `@walnut/i18n`** | ❌ 待做 | locale bootstrap + 状态机 + naive locale 映射。需定义 `LocaleFetcher`/`LocaleCache` DI 接口 |
+| A9 | **Phase 3.3 `@walnut/security`** | ❌ 待做 | URL 加密 guard + sign interceptor crypto + VerifyAuth 类型。需定义 `SignProvider`/`CryptoKeyProvider`/`VerifyAuthHandler` DI 接口 |
+| A10 | **Phase 3.4 store 工厂迁移** | 🔄 半完成 | `createWalnutStore()` 已进 `@walnut/client`（commit `dec4619`），但 admin 24 个 store 文件 0 处使用，未逐个迁移 |
+| A11 | **Phase 4 自动导入迁移** | ❌ 待做 | 迁入 package 的代码中隐式全局变量改为显式 import；更新 auto-import / component resolver 指向新包 |
+
+---
+
 ## 执行记录
 
 | 日期 | 完成项 |
 |------|--------|
+| 2026-08-08 | **构建与 dev 验证**：P0-3 解决（env 解密流程 + lru-cache override + optimizeDeps 过滤）；修复 tsbuildinfo 掩盖的 6 处既有类型错误（Table/ApiSelect/CountryCallingSelect）；`pnpm build:admin` 成功；dev 前端（3100）+ dev 后端（3000，连 MongoDB/Redis）均启动验证通过，端口已清理 |
+| 2026-08-08 | **ADR 0017 收尾批次**：A1 旧目录残留清理；A2 6 包 walnut 标签补齐；A3 turbo boundaries 升级为 platform 维度（any/web/node）+ 修复 10 处 `~build/package` 失效 import + 清理 utils-core 残留 types；A4 client 移除 vue-router 死依赖 + easy-fns-ts 依赖分类修正；A5 admin 30 处硬编码路由 → contract；A6 server 移除 @walnut/utils 死依赖；A7 @walnut/ui POC（3 组件）。lint 9/9 + types:check 9/9 + boundaries 零违规 |
+| 2026-08-08 | 文档同步：commitlint (P1-6) 实际已完成；新增 ADR 0017 遗留收尾线 (A1-A11) |
 | 2026-07-30 | syncpack (P2 #9) — 依赖版本一致性检测接入 |
 | 2026-07-29 | P0 剩余 3 项未完成 |
 
@@ -60,5 +83,6 @@
 
 - [ADR 索引](../adr/)
 - [ADR 0009 - CI Quality Gates](../adr/0009-ci-quality-gates.md)
+- [ADR 0017 - Package 重组](../adr/0017-package-reorganization.md)
 - [行业调研 - CI/CD](../industry-research/03-ci-cd-pipeline.md)
 - [行业调研 - 测试](../industry-research/04-testing-strategy.md)
