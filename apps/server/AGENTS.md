@@ -27,8 +27,8 @@
 # 1. 安装依赖
 pnpm install
 
-# 2. 配置环境变量（复制 env/.env.development 并修改）
-cp env/.env.development env/.env.local
+# 2. 配置环境变量（在仓库根目录解密 env-encrypted/ → env-local/，需 .env.keys 私钥）
+pnpm setup-env
 
 # 3. 启动开发服务器
 pnpm dev

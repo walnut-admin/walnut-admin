@@ -1,6 +1,6 @@
 # @walnut-server/config
 
-Global NestJS configuration module wrapping `@nestjs/config`. Loads environment-specific `.env` files from `env/` (production) or `env-local/` (development), validates all required environment variables at startup using `class-validator`, and registers 9 typed config namespaces accessible via `ConfigService`.
+Global NestJS configuration module wrapping `@nestjs/config`. Loads environment-specific `.env` files from `env-local/`（由 `pnpm setup-env` 从 `env-encrypted/` 解密生成）, validates all required environment variables at startup using `class-validator`, and registers 9 typed config namespaces accessible via `ConfigService`.
 
 ## Exports
 
@@ -20,7 +20,7 @@ Additionally, the sub-path `@walnut-server/config/utils/env` exports:
 
 | File | Purpose |
 |------|---------|
-| `src/config.module.ts` | Module definition — determines env file path (`env-local/` for dev, `env/` for prod), loads 9 config namespaces, registers global validation |
+| `src/config.module.ts` | Module definition — determines env file path (`env-local/` for all environments, decrypted from `env-encrypted/` via `pnpm setup-env`), loads 9 config namespaces, registers global validation |
 | `src/validation.ts` | `EnvironmentVariables` class with ~55 `@IsString`/`@IsNumber` fields validating all required env vars; `validateConfig()` function using `plainToClass` + `validateSync` |
 | `src/utils/env.ts` | Exports `isDev`, `isProd`, `isStage` booleans derived from `process.env.NODE_ENV` |
 
@@ -76,7 +76,7 @@ if (isDev) {
 
 ## Notes
 
-- Environment files are loaded from `env/` in production and `env-local/` in development
+- Environment files are loaded from `env-local/` in all environments (decrypted from `env-encrypted/` via `pnpm setup-env`)
 - Startup validation fails fast if any required env var is missing — the app will not boot
 - The `isDev`/`isProd`/`isStage` helpers from `@walnut-server/config/utils/env` are a cross-cutting concern used by many other libs and app modules
 - **Critical env vars** that should never change after deployment (would break existing encrypted data): `AUTH_OPAQUE_SECRET`, `MFA_ENCRYPTION_KEY`, `RT_ENCRYPTION_KEY`, `DEVICE_ID_ENCRYPTION_KEY`, `USER_ID_ENCRYPTION_KEY`, `USER_ID_HASH_SALT`

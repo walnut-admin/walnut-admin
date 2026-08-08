@@ -8,7 +8,7 @@ Walnut Admin 是公开的 GitHub 仓库，但项目实际在运营——数据�
 
 ## 我们做了什么
 
-### 1. 三层目录结构
+### 1. 两层目录结构
 
 ```
 walnut-admin/
@@ -16,20 +16,17 @@ walnut-admin/
 ├── scripts/setup-env.ts   ← 加解密脚本
 │
 ├── apps/admin/
-│   ├── env/               ← 模板（占位符参考，提交 Git）
-│   ├── env-encrypted/     ← 加密后的真实值（安全提交 Git）
+│   ├── env-encrypted/     ← 加密后的真实值，文件内注释即模板（安全提交 Git）
 │   └── env-local/         ← 明文真实值（gitignored，脚本生成）
 │
 └── apps/server/
-    ├── env/               ← 模板
-    ├── env-encrypted/     ← 加密后的真实值
+    ├── env-encrypted/     ← 加密后的真实值，文件内注释即模板
     └── env-local/         ← 明文真实值
 ```
 
 | 目录 | 内容 | 提交 Git? | 谁生成 |
 |------|------|-----------|--------|
-| `env/` | 占位符模板（如 `YOUR_DB_HOST`） | ✅ 是 | 手动维护 |
-| `env-encrypted/` | `encrypted:...` 密文 | ✅ 是（安全） | `pnpm encrypt-env` |
+| `env-encrypted/` | `encrypted:...` 密文，文件内注释即模板 | ✅ 是（安全） | `pnpm encrypt-env` |
 | `env-local/` | 明文真实值 | ❌ 否 | `pnpm setup-env` |
 
 ### 2. 多环境密钥
@@ -64,7 +61,7 @@ pnpm encrypt-env   # 修改密钥后重新加密
 
 ### 不加密所有 `.env` 文件
 
-admin 的基础 `.env` 文件不加密——它只包含 app title、GA ID 等非敏感配置。只加密 `.env.development`、`.env.production`、`.env.stage` 以及 server 的全部 `.env.*`。
+admin 的基础 `.env` 模板（app title、GA ID 等非敏感配置）已随模板目录清理移除，不再维护明文模板。只加密 `.env.development`、`.env.production`、`.env.stage` 以及 server 的全部 `.env.*`，加密文件内的注释承担模板职责。
 
 ### 不把加密文件放在 monorepo 根目录
 
@@ -94,8 +91,8 @@ admin 的基础 `.env` 文件不加密——它只包含 app title、GA ID 等�
 | 文件 | 作用 |
 |------|------|
 | [scripts/setup-env.ts](https://github.com/walnut-admin/walnut-admin-client/blob/main/scripts/setup-env.ts) | 加解密脚本（`decrypt` / `encrypt` 子命令） |
-| [apps/admin/env/](https://github.com/walnut-admin/walnut-admin-client/tree/main/apps/admin/env) | admin 环境变量模板 |
-| [apps/server/env/](https://github.com/walnut-admin/walnut-admin-client/tree/main/apps/server/env) | server 环境变量模板 |
+| [apps/admin/env-encrypted/](https://github.com/walnut-admin/walnut-admin-client/tree/main/apps/admin/env-encrypted) | admin 加密环境变量（注释即模板） |
+| [apps/server/env-encrypted/](https://github.com/walnut-admin/walnut-admin-client/tree/main/apps/server/env-encrypted) | server 加密环境变量（注释即模板） |
 | [.env.keys](https://github.com/walnut-admin/walnut-admin-client/blob/main/.env.keys)（gitignored） | 私钥，通过 1Password 分发 |
 
 ## 相关 ADR
