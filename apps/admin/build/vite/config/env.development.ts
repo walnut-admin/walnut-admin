@@ -11,5 +11,4 @@ export default defineConfig({
   VITE_PROXY: VITE_PROXY_VALIDATE(),
 
   VITE_DEV_CSP: z.coerce.boolean(),
-  VITE_DEV_PWA: z.coerce.boolean(),
 })

@@ -54,8 +54,7 @@
     "changelog:preview": "git-cliff --unreleased",
     "git:push": "tsx apps/admin/scripts/release/git.ts",
     "deploy:stage": "deploy-cli-service deploy --mode stage",
-    "deploy:prod": "deploy-cli-service deploy --mode production",
-    "generate-pwa-assets": "pwa-assets-generator"
+    "deploy:prod": "deploy-cli-service deploy --mode production"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",

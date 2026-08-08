@@ -254,15 +254,6 @@ export namespace IStoreComp {
   }
 
   /**
-   * comp reload prompt state
-   */
-  export interface ReloadPrompt {
-    needRefresh: boolean
-    offlineReady: boolean
-    reloadFn: () => void
-  }
-
-  /**
    * comp verify auth state
    */
   export interface VerifyAuth {

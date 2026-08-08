@@ -4,7 +4,6 @@
 
 import { setupStorageMigrations } from '@/utils/persistent/migrate'
 import { App, setupApp } from './App'
-import { installAppPlugins } from './plugins'
 // unocss
 import 'virtual:uno.css'
 // iconify
@@ -24,8 +23,6 @@ import './assets/styles/main.scss'
   setupStorageMigrations()
 
   await setupApp(app)
-
-  installAppPlugins()
 
   app.mount('#app')
 })()

@@ -126,7 +126,6 @@
     "@unocss/preset-icons": "catalog:",
     "@unocss/reset": "catalog:",
     "@unocss/transformer-variant-group": "catalog:",
-    "@vite-pwa/assets-generator": "catalog:",
     "@vitejs/plugin-legacy": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "@vitejs/plugin-vue-jsx": "catalog:",
@@ -163,12 +162,10 @@
     "vite-plugin-devtools-json": "catalog:",
     "vite-plugin-image-optimizer": "catalog:",
     "vite-plugin-mkcert": "catalog:",
-    "vite-plugin-pwa": "catalog:",
     "vite-plugin-restart": "catalog:",
     "vite-plugin-vue-devtools": "catalog:",
     "vue-tsc": "catalog:",
     "web-vitals": "catalog:",
-    "workbox-window": "catalog:",
     "zod": "catalog:"
   }
 }

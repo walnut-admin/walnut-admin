@@ -26,7 +26,6 @@ interface IViteEnv {
 
   dev: {
     csp: boolean
-    pwa: boolean
   }
 
   build: {

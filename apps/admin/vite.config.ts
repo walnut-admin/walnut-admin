@@ -23,7 +23,6 @@ function useBuildEnv(env: Record<keyof ImportMetaEnv, string>): IViteEnv {
 
     dev: {
       csp: env.VITE_DEV_CSP === 'true',
-      pwa: env.VITE_DEV_PWA === 'true',
     },
 
     build: {

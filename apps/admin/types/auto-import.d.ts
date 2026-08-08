@@ -789,7 +789,6 @@ declare module 'vue' {
     readonly useStorageAsync: UnwrapRef<typeof import('@vueuse/core')['useStorageAsync']>
     readonly useStoreCompCapJS: UnwrapRef<typeof import('../src/store/modules/component/comp-capjs')['useStoreCompCapJS']>
     readonly useStoreCompForceQuit: UnwrapRef<typeof import('../src/store/modules/component/comp-force-quit')['useStoreCompForceQuit']>
-    readonly useStoreCompReloadPrompt: UnwrapRef<typeof import('../src/store/modules/component/comp-reload-prompt')['useStoreCompReloadPrompt']>
     readonly useStoreCompVerifyAuth: UnwrapRef<typeof import('../src/store/modules/component/comp-verify-auth')['useStoreCompVerifyAuth']>
     readonly useStyleTag: UnwrapRef<typeof import('@vueuse/core')['useStyleTag']>
     readonly useSupported: UnwrapRef<typeof import('@vueuse/core')['useSupported']>
