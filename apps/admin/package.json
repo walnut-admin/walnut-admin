@@ -136,7 +136,6 @@
     "git-cliff": "catalog:",
     "javascript-obfuscator": "catalog:",
     "mockjs": "catalog:",
-    "node-modules-inspector": "catalog:",
     "rollup": "catalog:",
     "sass": "catalog:",
     "sharp": "catalog:",
