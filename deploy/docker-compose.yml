@@ -1,0 +1,103 @@
+services:
+  # ---------- 入口 ----------
+  nginx:
+    image: ccr.ccs.tencentyun.com/walnut-admin/nginx:${IMG_TAG}
+    restart: always
+    container_name: walnut-nginx
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - frontend
+      - backend
+
+  # ---------- 应用 ----------
+  frontend:
+    image: ccr.ccs.tencentyun.com/walnut-admin/frontend:${IMG_TAG}
+    restart: always
+    container_name: walnut-frontend
+
+  backend:
+    image: ccr.ccs.tencentyun.com/walnut-admin/backend:${IMG_TAG}
+    restart: always
+    container_name: walnut-backend
+    env_file: ./env/.env.production
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      - prod-mongodb-primary
+      - prod-mongodb-secondary
+      - redis
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/api/w/v1/auth/captcha/cap').then(()=>process.exit(0)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ---------- 数据层（沿用现有容器名与卷名，无缝接管）----------
+  prod-mongodb-primary:
+    image: docker.io/bitnami/mongodb:latest
+    restart: always
+    container_name: prod-mongodb-primary
+    environment:
+      - MONGODB_REPLICA_SET_MODE=primary
+      - MONGODB_ROOT_USER=root
+      - MONGODB_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD}
+      - MONGODB_REPLICA_SET_KEY=${MONGODB_REPLICA_SET_KEY}
+      - MONGODB_REPLICA_SET_NAME=${MONGODB_REPLICA_SET_NAME}
+      - MONGODB_ADVERTISED_HOSTNAME=prod-mongodb-primary
+    volumes:
+      - 'mongodb_master_data:/bitnami/mongodb'
+
+  prod-mongodb-secondary:
+    image: docker.io/bitnami/mongodb:latest
+    restart: always
+    container_name: prod-mongodb-secondary
+    depends_on:
+      - prod-mongodb-primary
+    environment:
+      - MONGODB_REPLICA_SET_MODE=secondary
+      - MONGODB_INITIAL_PRIMARY_HOST=prod-mongodb-primary
+      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
+      - MONGODB_INITIAL_PRIMARY_ROOT_USER=root
+      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD}
+      - MONGODB_REPLICA_SET_KEY=${MONGODB_REPLICA_SET_KEY}
+      - MONGODB_REPLICA_SET_NAME=${MONGODB_REPLICA_SET_NAME}
+      - MONGODB_ADVERTISED_HOSTNAME=prod-mongodb-secondary
+
+  prod-mongodb-arbiter:
+    image: docker.io/bitnami/mongodb:latest
+    restart: always
+    container_name: prod-mongodb-arbiter
+    depends_on:
+      - prod-mongodb-primary
+    environment:
+      - MONGODB_REPLICA_SET_MODE=arbiter
+      - MONGODB_INITIAL_PRIMARY_HOST=prod-mongodb-primary
+      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
+      - MONGODB_INITIAL_PRIMARY_ROOT_USER=root
+      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD}
+      - MONGODB_REPLICA_SET_KEY=${MONGODB_REPLICA_SET_KEY}
+      - MONGODB_REPLICA_SET_NAME=${MONGODB_REPLICA_SET_NAME}
+      - MONGODB_ADVERTISED_HOSTNAME=prod-mongodb-arbiter
+
+  redis:
+    image: docker.io/bitnami/redis:latest
+    restart: always
+    container_name: prod-single-redis
+    environment:
+      - ALLOW_EMPTY_PASSWORD=no
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/bitnami/redis/data
+
+volumes:
+  mongodb_master_data:
+    driver: local
+  redis_data:
+    driver: local
