@@ -20,10 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         # 版本自动读取 package.json 的 packageManager 字段（pnpm@11.20.0）
         # 显式 version 会与 packageManager 冲突触发 ERR_PNPM_BAD_PM_VERSION
 
