@@ -34,16 +34,17 @@
       "@walnut-server/context": ["./libs/context/src"],
       "@walnut-server/context/*": ["./libs/context/src/*"]
     },
-    "keepClassNames": true
+    "keepClassNames": true,
+    "minify": {
+      "compress": {
+        "unused": true,
+        "dead_code": true
+      },
+      "mangle": false
+    }
   },
   "module": {
     "type": "commonjs"
   },
-  "minify": {
-    "compress": {
-      "unused": true,
-      "dead_code": true
-    },
-    "mangle": false
-  }
+  "minify": true
 }

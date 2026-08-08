@@ -34,4 +34,5 @@ RUN mkdir -p /app/logs
 
 EXPOSE 3000
 
-CMD ["node", "dist/walnut/admin/com/app/main.js"]
+# monorepo 合并后源码在 apps/api/src/，prod build（infra/nest/prod.json）输出到 dist/apps/api/src/main.js
+CMD ["node", "dist/apps/api/src/main.js"]

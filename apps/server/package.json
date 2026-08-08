@@ -20,9 +20,9 @@
     "url": "https://github.com/walnut-admin/walnut-admin-server/issues"
   },
   "scripts": {
-    "build": "cross-env NODE_ENV=production nest build -c infra/nest/prod.json",
+    "build": "cross-env NODE_ENV=production nest build api -c infra/nest/prod.json",
     "build:libs": "concurrently \"nest build config\" \"nest build const\" \"nest build db\" \"nest build utils\" \"nest build types\" \"nest build decorators\" \"nest build pipes\" \"nest build exceptions\"",
-    "build:stage": "cross-env NODE_ENV=stage nest build -c infra/nest/stage.json",
+    "build:stage": "cross-env NODE_ENV=stage nest build api -c infra/nest/stage.json",
     "dev": "cross-env NODE_ENV=development nest start api --watch -c infra/nest/dev.json",
     "start:debug": "nest start --debug --watch",
     "start:prod": "cross-env NODE_ENV=production node dist/walnut/admin/com/app/main.js",
