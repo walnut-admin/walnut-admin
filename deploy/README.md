@@ -14,7 +14,7 @@ docker compose version   # 确认 Compose v2
 
 ```bash
 mkdir -p /home/ubuntu/walnut-admin/deploy
-# 从本仓库拷贝 deploy/ 目录（nginx/、docker-compose.yml、.env.example）
+# 从本仓库拷贝 deploy/ 目录（docker-compose.yml、nginx/ 等；.env 与 env/ 由 CI 自动生成）
 # 目录结构：
 #   /home/ubuntu/walnut-admin/deploy/
 #   ├── docker-compose.yml
@@ -30,7 +30,7 @@ mkdir -p /home/ubuntu/walnut-admin/deploy
 
 4. **放置证书**：把现网 `/etc/nginx/conf.d` 中的证书文件复制到 `deploy/nginx/certs/`（文件名与 conf 中路径一致）。
 
-5. **填写 deploy/.env**：无需手动填写——由 CI 每次部署自动生成（数据层密码从解密产物提取）；仅本地验证时参考 `.env.example`。
+5. **填写 deploy/.env**：无需手动填写——由 CI 每次部署自动生成（数据层密码从解密产物提取）。
 
 6. **启动（首次会先拉数据库镜像，需国内镜像源或稍等）**：
 
