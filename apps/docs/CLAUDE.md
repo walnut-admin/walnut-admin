@@ -7,8 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is the documentation site for Walnut Admin, a full-stack admin template. The documentation is built with VitePress and supports bilingual content (Chinese and English, though currently primarily Chinese).
 
 **Related Repositories:**
-- Frontend: https://github.com/Zhaocl1997/walnut-admin-client
-- Backend: https://github.com/Zhaocl1997/walnut-admin-server
+- Monorepo: https://github.com/walnut-admin/walnut-admin (apps/admin + apps/server + apps/docs)
 - Live Demo: https://www.walnut-admin.com/
 
 ## Development Commands

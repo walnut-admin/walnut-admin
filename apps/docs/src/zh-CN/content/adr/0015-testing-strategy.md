@@ -5,7 +5,7 @@
 
 ## Context
 
-The monorepo has vitest configured in most packages but zero actual test files in shared packages (`@walnut/utils`, `@walnut/contract`, `@walnut/client`, `@walnut/axios`). ADR-0009 established that `@walnut/utils` and `@walnut/contract` **require** tests. This ADR specifies the how: framework, conventions, coverage targets, and file organization.
+The monorepo has vitest configured in most packages but zero actual test files in shared packages (`@walnut/utils`, `@walnut/contract`, `@walnut/client`, `@walnut/http`). ADR-0009 established that `@walnut/utils` and `@walnut/contract` **require** tests. This ADR specifies the how: framework, conventions, coverage targets, and file organization.
 
 ## Decision 1: Vitest as the Single Test Framework
 
@@ -16,13 +16,13 @@ The monorepo has vitest configured in most packages but zero actual test files i
 - **Shared with Vite** — same config format, same esbuild transform, familiar to frontend developers
 - **NestJS compatibility** — works with SWC-compiled NestJS code via minimal configuration
 - **Already present** — vitest config exists in `@walnut/utils`, `@walnut/contract`, `@walnut/client`, and `@walnut/server`
-- **No Jest migration needed** — the project never adopted Jest
+- **No Jest migration needed** — the project never adopted Jest; Jest-era remnant dependencies (`jest`, `ts-jest`, `ts-loader`, `ts-node`, `tsconfig-paths`, `@types/jest`) were removed from `apps/server`
 
 **Config per environment:**
 - `packages/utils`, `packages/contract`: `environment: "node"`
 - `packages/client`: `environment: "jsdom"` + Vue plugin
-- `apps/admin`: `environment: "jsdom"` + Vue plugin + router mocking
-- `apps/server`: `environment: "node"` + SWC plugin (for decorator metadata)
+- `apps/admin`: not yet configured — no `vitest.config.ts` in `apps/admin`
+- `apps/server`: `environment: "node"` + SWC plugin (for decorator metadata) — config at `apps/api/vitest.config.ts` (swc + vite-tsconfig-paths); the `test` script runs `vitest run --config ./apps/api/vitest.config.ts` (fixed 2026-08-08 — the script previously could not locate the config)
 
 ## Decision 2: Co-located Test Files
 
@@ -55,7 +55,7 @@ packages/utils/src/
 |-------------|----------------|-----------|
 | Pure utils / contract (`@walnut/utils`, `@walnut/contract`) | **90%+** | Pure functions, logic-dense, easy to test, high blast radius |
 | Browser/Vue composables (`@walnut/client`) | **80%+** | Some DOM-dependent logic is harder to test; hooks are testable in isolation |
-| HTTP client (`@walnut/axios`) | **80%+** | Adapters need mock servers; core logic is pure |
+| HTTP client (`@walnut/http`) | **80%+** | Adapters need mock servers; core logic is pure |
 | Vue app (`apps/admin`) | **60%+** | Component tests are expensive; prioritize stores, API layer, and interaction-heavy components |
 | NestJS app (`apps/server`) | **60%+** | Services and utils at 80%+; controllers via integration tests; module declarations are boilerplate |
 
@@ -66,14 +66,14 @@ packages/utils/src/
 **Chosen:** `turbo test --filter='[origin/main]'` for affected-only execution.
 
 See ADR-0009 for the three-tier quality gate (pre-commit → pre-push → CI). This ADR specifies the CI layer:
-- `turbo.json` `test.dependsOn: ["build"]` — build current package before testing (upstream deps transitively satisfied via `build`'s own `dependsOn: ["^build"]`)
+- `turbo.json` `test.dependsOn: []` — no build prerequisite; tests run against source directly
 - Affected-only via `turbo --filter` avoids re-running tests on unchanged packages
 - Coverage reports uploaded as CI artifacts (Codecov integration deferred — free, add later)
 
 ## Consequences
 
 - `@walnut/utils` and `@walnut/contract` are the immediate priority for test writing (per ADR-0009)
-- `@walnut/axios` needs a `vitest.config.ts` and `test` script (currently missing both)
+- `@walnut/utils`, `@walnut/contract`, and `@walnut/client` have `vitest.config.ts` in place but still zero test files; `@walnut/http` still needs its `vitest.config.ts` and `test` script (currently missing both)
 - All packages should standardize on `test`, `test:watch`, `test:coverage` scripts
 - No per-package vitest preset sharing needed at this scale — copy patterns from `@walnut/utils`
 

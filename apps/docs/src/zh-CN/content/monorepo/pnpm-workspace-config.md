@@ -21,10 +21,12 @@ catalogMode: strict
 ```yaml
 packages:
   - 'apps/*'
-  - 'packages/*'
+  - 'packages/platform-any/*'
+  - 'packages/platform-web/*'
+  - 'packages/tooling/*'
 ```
 
-声明哪些目录是 pnpm workspace 成员。当前是 `apps/`（3 个应用）和 `packages/`（5 个共享包），共 8 个 workspace 包。
+声明哪些目录是 pnpm workspace 成员。`apps/` 下 3 个应用 + `packages/` 下按平台分组的 9 个包（`platform-any` 纯逻辑包、`platform-web` 前端包、`tooling` 工具链包），共 12 个 workspace 包。
 
 ### `hoisting: false`
 
@@ -32,7 +34,7 @@ packages:
 hoisting: false
 ```
 
-禁止 pnpm 默认的依赖提升行为。默认 `true` 时，所有依赖会被提升到 `node_modules/.pnpm/node_modules`；设为 `false` 后，每个包只能访问自己 `package.json` 中声明的依赖。
+关闭 pnpm 默认的依赖提升行为。默认（`hoisting: true`）时，依赖会尽量提升到**根 `node_modules/`**（跨包去重共享同一份副本）；`node_modules/.pnpm/` 是 pnpm 的**虚拟 store**，存放未提升的精确版本副本。设为 `false` 后不做提升，每个包只能访问自己 `package.json` 中声明的依赖。
 
 **为什么**：严格的依赖隔离。不会出现"包 A 没声明 `lodash` 但能 import 到"的幽灵依赖（phantom dependency）问题。
 
@@ -43,12 +45,11 @@ hoisting: false
 ```yaml
 overrides:
   glob: 11.1.0
-  lru-cache: 11.3.6
 ```
 
-强制整个依赖树中这两个包统一为指定版本。无论间接依赖声明了 `glob@10.x` 还是 `glob@9.x`，pnpm 只用 `11.1.0`。
+强制整个依赖树中 `glob` 统一为指定版本。无论间接依赖声明了 `glob@10.x` 还是 `glob@9.x`，pnpm 只用 `11.1.0`。
 
-**为什么**：`glob` 和 `lru-cache` 是极底层的工具库，被几十个间接依赖引用。不统一版本会装多份，浪费空间 + 可能运行时冲突。
+**为什么**：`glob` 是极底层的工具库，被大量间接依赖引用。不统一版本会装多份，浪费空间 + 可能运行时冲突。`lru-cache` 此前也在 overrides 中强制，现已被 catalog 精确锁定（11.3.6），从 overrides 移除。
 
 ### `minimumReleaseAgeExclude`
 

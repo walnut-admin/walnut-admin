@@ -11,7 +11,7 @@ After merging 3 repos into a monorepo, the `packages/` directory had:
 |---------|---------|---------|
 | `@walnut/shared` | "Shared utilities" | 60% Vue + browser, backend can't consume |
 | `@walnut/core` | "Core" | 100% Vue composables |
-| `@walnut/ui` | "UI components" | Empty stub (deleted) |
+| `@walnut/ui` | "UI components" | Empty stub at merge time (resurrected as a real package under `platform-web/ui` — see ADR-0017) |
 | `@walnut/ai` | "AI" | Empty stub (deleted) |
 
 Misleading names cause:
@@ -28,7 +28,7 @@ Packages are named by **what they contain**, not by aspiration.
 | `@walnut/utils` | Pure functions, zero framework deps | Industry convention (Vue's `@vue/shared`, TanStack's `query-core`) |
 | `@walnut/contract` | Shared types & constants | Describes the API contract between frontend/backend |
 | `@walnut/client` | Browser utilities + Vue composables | "Client" accurately covers both crypto wrappers and composables |
-| `@walnut/axios` | HTTP client framework | Named after the library it wraps |
+| `@walnut/http` | HTTP client framework | Renamed from `@walnut/axios` (see ADR-0017) |
 
 **Naming anti-patterns avoided:**
 - `shared` — too vague, doesn't indicate what's shared or with whom

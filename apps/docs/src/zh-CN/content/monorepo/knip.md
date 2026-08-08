@@ -9,7 +9,7 @@
 - **未使用的 npm 依赖** —— `package.json` 中声明但代码未 import 的包
 - **孤立的 catalog 条目** —— `pnpm-workspace.yaml` 中列了但无 `package.json` 引用的依赖
 
-本项目已集成 Knip 6.29.0，配置文件位于仓库根目录 [`knip.config.ts`](https://github.com/walnut-admin/walnut-admin-client/blob/main/knip.config.ts)。
+本项目已集成 Knip 6.29.0，配置文件位于仓库根目录 [`knip.config.ts`](https://github.com/walnut-admin/walnut-admin/blob/main/knip.config.ts)。
 
 ---
 
@@ -19,7 +19,7 @@
 # 全仓扫描（含 apps + packages）
 pnpm knip
 
-# 只扫共享包（零误报，最干净）
+# 只扫共享包（跨平台 + tooling）
 pnpm knip:packages
 
 # 只扫应用
@@ -29,14 +29,16 @@ pnpm knip:apps
 pnpm knip:fix
 ```
 
+> 实际命令为 `cross-env NODE_OPTIONS=--max-old-space-size=8192 knip ...`（防 OOM + Windows 兼容）。`knip:packages` 使用 `--workspace ./packages/*/*`——此前写的 `packages/*` 匹配不到 `platform-any/*` 这类**两层**目录，knip 静默空操作，当时声称的"零发现"是假象；2026-08-08 修复为两层通配后才是真实结果。
+
 ---
 
 ## 预期结果
 
 | 命令 | 预期 | 说明 |
 |------|------|------|
-| `pnpm knip:packages` | **exit 0，零发现** | 共享包（contract / utils / client / axios / eslint-config）的 import 链完全显式，knip 可精确追踪 |
-| `pnpm knip`（全仓） | exit 1，少量发现 | 大部分是框架隐式组装的已知误报，少量可能是真实死代码 |
+| `pnpm knip:packages` | **exit 0，零发现** | 共享包（contract / types / utils-core / client / http / ui / eslint-config）的 import 链完全显式，knip 可精确追踪（修复为 `--workspace ./packages/*/*` 后的真实结果） |
+| `pnpm knip`（全仓） | exit 1，少量发现 | 大部分是框架隐式组装的已知误报，少量可能是真实死代码（exit 1 属预期门禁，见下文 CI 建议） |
 
 ---
 
@@ -47,7 +49,7 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 ### 共享包（packages/\*）
 
 ```ts
-"packages/contract": {
+"packages/platform-any/contract": {
   entry: ["src/index.ts"],  // barrel export → 追踪所有子模块
 },
 ```
@@ -121,7 +123,7 @@ knip 是**静态 import 追踪**工具。以下框架机制对 knip 不可见，
 | NestJS | `@Module()` 装饰器隐式组装 | ❌ |
 | NestJS | `@Controller()` / `@Injectable()` 依赖注入 | ❌ |
 | NestJS | Mongoose schema 动态加载 | ❌ |
-| Admin | vite.config.ts 在模块顶层调用 `JSON.parse(env)` | ❌ |
+| Admin | vite.config.ts 依赖 `loadEnv` / 回调执行（`useBuildEnv()` 内 `JSON.parse(env.VITE_PROXY)`），knip 的 jiti 无法安全加载 | ❌ |
 
 **对策**：这些文件类型在 `knip.config.ts` 中通过 `ignore` 排除在 unused files 检测之外。knip 仍会对它们做 export 级别的检测。
 
@@ -129,15 +131,15 @@ knip 是**静态 import 追踪**工具。以下框架机制对 knip 不可见，
 
 ## 已知技术局限
 
-### `~build/*` 路径别名
+### `~build/*` 路径别名（已解决）
 
-admin 中有 10 个文件 import `~build/package` 和 `~build/time`，knip 无法解析。这是因为 `vite-tsconfig-paths` 在构建时动态解析这些别名，knip 无此上下文。
+admin 中曾有文件 import `~build/package` 和 `~build/time`，旧版 knip 无法解析——`vite-tsconfig-paths` 在构建时动态解析这些别名，knip 无此上下文，输出 `Unresolved imports`。
 
-**影响**：`pnpm knip` 输出中会有 10 条 `Unresolved imports`。不影响代码正确性。
+**已解决（2026-08-08）**：`knip.config.ts` 中的 `paths` 块已删除，knip 不再做别名解析，对应问题不再出现。
 
 ### vite.config.ts 加载失败
 
-admin 的 `vite.config.ts` 在模块顶层调用 `JSON.parse(env.VITE_PROXY)`，knip 的 jiti 加载器执行时 env 未定义 → `JSON.parse(undefined)` 抛异常。
+admin 的 `vite.config.ts` 在 `useBuildEnv()` 函数内调用 `JSON.parse(env.VITE_PROXY)`（由 `loadEnv` 提供 env），knip 的 jiti 加载器无法安全执行 → 加载抛异常。
 
 **对策**：在 `apps/admin` workspace 配置中设置 `vite: false`，改为手动指定 entry files。
 
@@ -153,13 +155,15 @@ admin 的 `vite.config.ts` 在模块顶层调用 `JSON.parse(env.VITE_PROXY)`，
 
 ```text
 Unused files (7)        ← 值得排查：可能真的有死文件
-Unused dependencies (5) ← 值得排查：可能真的有没用到的包
-Unlisted binaries (4)   ← CLI 工具在 scripts 中引用但未列在 dependencies
+Unused dependencies (4) ← 值得排查：可能真的有没用到的包
+Unlisted binaries (1)   ← CLI 工具在 scripts 中引用但未列在 dependencies
 Unresolved imports      ← 路径别名问题，已知局限（见上文）
-Unused exports (39)     ← 导出但无消费者，可按需清理
+Unused exports (40+)    ← 导出但无消费者，可按需清理
 Unused catalog entries  ← pnpm-workspace.yaml 中的孤立条目
-Configuration hints     ← knip 建议清理的冗余配置项（可忽略）
+Configuration hints (69)← knip 建议清理的冗余配置项（可忽略）
 ```
+
+以上为全仓实测数字（2026-08-08），`pnpm knip` 当前退出码为 1——作为门禁属预期行为（见下文 CI 建议）。
 
 ---
 
@@ -167,10 +171,10 @@ Configuration hints     ← knip 建议清理的冗余配置项（可忽略）
 
 ### 添加新 workspace 包
 
-在 [`knip.config.ts`](https://github.com/walnut-admin/walnut-admin-client/blob/main/knip.config.ts) 的 `workspaces` 中添加：
+在 [`knip.config.ts`](https://github.com/walnut-admin/walnut-admin/blob/main/knip.config.ts) 的 `workspaces` 中添加：
 
 ```ts
-"packages/新包名": {
+"packages/platform-any/新包名": {
   entry: ["src/index.ts"],
 },
 ```
@@ -181,7 +185,7 @@ Configuration hints     ← knip 建议清理的冗余配置项（可忽略）
 
 ### CI 集成建议
 
-可以将 `pnpm knip:packages` 加入 CI 门禁（packages 零误报，exit 0 即健康）。全仓 `pnpm knip` 由于存在已知误报，建议作为信息性检查而非硬门禁。
+可以将 `pnpm knip:packages` 加入 CI 门禁（packages 零误报，exit 0 即健康；若直接调 knip，务必用 `--workspace ./packages/*/*` 的两层通配写法——`packages/*` 匹配不到 `platform-any/*` 这类两层目录，会静默空操作）。全仓 `pnpm knip` 由于存在已知误报，建议作为信息性检查而非硬门禁（当前实测 exit 1，属预期）。
 
 ```yaml
 # .github/workflows/ci.yml 示例片段

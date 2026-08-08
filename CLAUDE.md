@@ -15,7 +15,7 @@ Walnut Admin is a **full-stack monorepo** managed with **Turborepo + pnpm worksp
 - Demo: https://www.walnut-admin.com
 - Docs: https://walnut-admin-doc.netlify.app
 
-**Key versions:** Node >= 24.13.0, pnpm >= 11.0.0, TypeScript 6.0.3, Turbo 2.4.0
+**Key versions:** Node >= 24.13.0, pnpm >= 11.0.0, TypeScript 6.0.3, Turbo 2.9.14
 
 ## Development Commands
 
@@ -39,7 +39,7 @@ pnpm build:docs     # Docs only
 pnpm lint           # Lint all packages
 pnpm lint:fix       # Lint with auto-fix
 pnpm types:check    # Type check all packages
-pnpm test           # Run tests (currently only @walnut/server has vitest configured)
+pnpm test           # Run tests (server + release have vitest; utils/client pass with no tests yet)
 ```
 
 ## Monorepo Architecture
@@ -65,17 +65,21 @@ walnut-admin/
 │   │   ├── env-encrypted/    — encrypted env (committed, dotenvx, 注释即模板)
 │   │   └── env-local/       — local env (real values, gitignored, generated)
 │   └── docs/                — Vitepress documentation site
-├── packages/                ← Shared libraries (consumed by apps)
-│   ├── utils/     @walnut/utils        — pure utilities (regex, queue, crypto/const,
-│   │                                      crypto/transformer). CJS build for backend
-│   │                                      consumption, source for frontend.
-│   ├── contract/  @walnut/contract     — shared types & constants (response codes,
-│   │                                      enums, pagination, API contracts).
-│   │                                      CJS build for backend consumption.
-│   ├── client/    @walnut/client       — browser utilities + Vue composables
-│   │                                      (crypto, file, window, storage, hooks)
-│   │                                      (crypto, storage, file utils). Source-only.
-│   └── axios/    @walnut/axios         — HTTP client framework (instance + adapters)
+├── packages/                ← Shared libraries (grouped by platform, ADR 0017)
+│   ├── platform-any/        — runtime-agnostic packages
+│   │   ├── contract/  @walnut/contract    — types + constants (response codes, enums,
+│   │   │                                    pagination, API contracts). CJS build.
+│   │   ├── types/     @walnut/types       — ambient type declarations
+│   │   └── utils/     @walnut/utils       — pure utilities (regex, queue, crypto/const,
+│   │                                        crypto/transformer). CJS build.
+│   ├── platform-web/       — browser/Vue packages (source-only)
+│   │   ├── client/   @walnut/client       — browser utilities + Vue composables + store factory
+│   │   ├── http/     @walnut/http         — HTTP client framework (instance + adapters)
+│   │   └── ui/       @walnut/ui           — naive-ui based components (POC: 3 components)
+│   └── tooling/            — toolchain packages
+│       ├── eslint-config/    @walnut/eslint-config    — shared ESLint presets (vue/nest/base)
+│       ├── commitlint-config/@walnut/commitlint-config — commitlint rules
+│       └── release/          @walnut/release          — release orchestration (bins)
 ├── build/                    ← Shared Vite build config
 ├── migration-guide/          ← Migration documentation & tracking
 ├── turbo.json                ← Turborepo pipeline
@@ -91,7 +95,7 @@ The server (`apps/server/`) has its own **NestJS CLI monorepo** structure — it
 
 Key differences:
 - **Server libs** (`@walnut-server/config`, `@walnut-server/db`, etc.): CommonJS, tsconfig paths, SWC-compiled, NestJS-coupled. The `@walnut-server/*` scope is reserved for these internal libs.
-- **Frontend packages** (`@walnut/shared`, `@walnut/axios`, `@walnut/core`): ESM, pnpm workspace, Vite-compiled, framework-level. The `@walnut/*` scope (without `-server`) is reserved for these.
+- **Frontend packages** (`@walnut/contract`, `@walnut/utils`, `@walnut/http`, etc.): ESM, pnpm workspace, Vite-compiled, framework-level. The `@walnut/*` scope (without `-server`) is reserved for these.
 
 **Namespace strategy (post Phase 1):** the two scopes (`@walnut/*` vs `@walnut-server/*`) are physically separated to prevent silent misresolution. Adding a new frontend package like `@walnut/utils` will NOT collide with the backend's `@walnut-server/utils`. This was resolved in commit `609722b` — previously both groups shared the `@walnut/` scope and relied on name non-overlap.
 
@@ -109,11 +113,11 @@ This monorepo was created by merging three previously separate repositories:
 - ✅ Vestigial `paths` block removed from `tsconfig.base.json` (resolution was broken by baseUrl override; real resolution via pnpm symlinks + package `exports`)
 - ✅ `turbo.json` gained a `test` task and `pnpm-workspace.yaml` in `globalDependencies`
 - ✅ Root `dev` defaults to `dev:admin` (avoids starting server which needs MongoDB+Redis)
-- ✅ Dependencies unified via pnpm `catalog:` (47 entries, single source of truth — ESLint version drift resolved)
+- ✅ Dependencies unified via pnpm `catalog:` (248 entries, single source of truth — ESLint version drift resolved)
 
 **For full architecture details and the remaining refactor roadmap:**
 - [`apps/docs/src/zh-CN/content/monorepo/`](./apps/docs/src/zh-CN/content/monorepo/) — 架构文档（TypeScript / ESLint / pnpm Catalog / Turbo / Release / Knip 等 10 篇）
-- [`apps/docs/src/zh-CN/content/adr/`](./apps/docs/src/zh-CN/content/adr/) — 架构决策记录（ADR 0001-0016）
+- [`apps/docs/src/zh-CN/content/adr/`](./apps/docs/src/zh-CN/content/adr/) — 架构决策记录（ADR 0001-0017）
 - [`apps/docs/src/zh-CN/content/industry-research/`](./apps/docs/src/zh-CN/content/industry-research/) — 行业调研语料
 - `migration-guide/` — historical migration record (Phase 1 merge steps, now completed)
 
@@ -126,7 +130,7 @@ This monorepo was created by merging three previously separate repositories:
 - **Auto-imports**: `unplugin-auto-import` + `unplugin-vue-components`
 - **Path alias**: `@/*` → `apps/admin/src/*`, `~/*` → `apps/admin/types/*`
 - **Security**: OPAQUE password, WebAuthn/FIDO2, MFA/OTP, RSA encryption, device fingerprinting
-- **Build**: Vite 8 with optional obfuscation, CDN, PWA, Sentry, CSP
+- **Build**: Vite 8 with optional obfuscation, CDN, Sentry, CSP (PWA removed 2026-08-08)
 - Default port: 3100, proxied `/api` → `http://127.0.0.1:3000/w/v1`
 
 ## Backend Architecture (apps/server/)

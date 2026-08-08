@@ -28,6 +28,8 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 
 **一致性 > 自由度**。不要有的包叫 `lint`，有的叫 `eslint`——Turbo 需要统一的 task 名来编排。
 
+> 注：以上是**理想约定**，实际并非每个包都齐备——目前有 `test` 脚本的是 server / utils / client / release（server 的覆盖率脚本叫 `test:cov` 而非 `test:coverage`）；eslint-config 则没有任何 scripts。
+
 ### 2. 根 scripts 只做委托
 
 ```jsonc
@@ -36,34 +38,36 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
   "scripts": {
     "dev": "turbo dev --filter=@walnut/admin",  // 默认只启前端
     "dev:all": "turbo dev",                      // 全部启动
-    "build": "NODE_OPTIONS=--max-old-space-size=8192 turbo build",
+    "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 turbo build",
     "lint": "turbo lint",
     "lint:fix": "turbo lint:fix",
     "types:check": "turbo types:check",
-    "test": "turbo test",
+    "test": "turbo test",                        // 2026-08-08 补齐
     "clean": "turbo clean",
 
-    // 全局命令（不走 turbo，因为有副作用）
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-
     // 单包便捷命令
-    "dev:admin": "pnpm --filter @walnut/admin dev",
-    "dev:server": "pnpm --filter @walnut/server dev",
-    "dev:docs": "pnpm --filter @walnut/docs dev",
+    "dev:admin": "turbo dev --filter=@walnut/admin",
+    "dev:server": "turbo dev --filter=@walnut/server",
+    "dev:docs": "turbo dev --filter=@walnut/docs",
 
-    // 发布
-    "changeset": "changeset",
-    "changeset:auto": "tsx scripts/version/auto-changeset.ts",
-    "release": "tsx scripts/version/release.ts",
-    "changelog": "git-cliff -o CHANGELOG.md",
+    // 环境变量加解密
+    "setup-env": "tsx scripts/setup-env.ts decrypt",
+    "encrypt-env": "tsx scripts/setup-env.ts encrypt",
 
     // 代码质量
-    "knip": "knip",
-    "knip:packages": "knip --workspace packages/*"
+    "knip": "cross-env NODE_OPTIONS=--max-old-space-size=8192 knip",
+    "knip:packages": "cross-env NODE_OPTIONS=--max-old-space-size=8192 knip --workspace ./packages/*/*",
+    "knip:apps": "cross-env NODE_OPTIONS=--max-old-space-size=8192 knip --workspace ./apps/*",
+    "syncpack:lint": "syncpack lint --dependency-types dev,prod",
+    "syncpack:fix": "syncpack fix",
+
+    // 发布（@walnut/release 包的 bin，实现位于 packages/tooling/release/）
+    "release": "walnut-release"
   }
 }
 ```
+
+根 scripts 里的 `NODE_OPTIONS=` 前缀统一用 `cross-env` 包裹（Windows 兼容）。不再有 `changeset` / `changeset:auto` / `changelog` 脚本——git-cliff 已移除，`scripts/version/` 目录不存在，发布逻辑全部收敛到 `@walnut/release` 包。
 
 **关键规则**：根 scripts 不包含构建逻辑。`turbo build` 会找到所有包的 `build` script 并按拓扑顺序执行。
 
@@ -71,27 +75,28 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 
 | 包类型 | build | typecheck | dev |
 |--------|-------|-----------|-----|
-| Vue 应用 (`@walnut/admin`) | `vue-tsc --noEmit && vite build` | `vue-tsc --noEmit` | `vite --port 3100` |
+| Vue 应用 (`@walnut/admin`) | `vite build` | `vue-tsc --noEmit` | `vite` |
 | NestJS (`@walnut/server`) | `nest build` (SWC) | `tsc --noEmit` | `nest start --watch` |
 | 纯 TS 包 (`@walnut/utils`) | `tsc` | `tsc --noEmit` | `tsc --watch` |
 | 源码消费 (`@walnut/client`) | 不构建 | `tsc --noEmit` | — |
 
-前端构建的特殊性：`vue-tsc --noEmit` 在 build 阶段跑一次类型检查（Vite 构建本身不做类型检查）。日常开发的类型检查通过 `pnpm types:check`（`turbo types:check`）来做。
+前端构建的特殊性：admin 的 `build` 就是纯 `vite build`（不再含 `vue-tsc`，Vite 构建本身不做类型检查），类型检查由独立的 `types:check` 任务（`vue-tsc --noEmit`）承担。docs 的 `types:check` 是 `echo skipped`（文档站没有需要类型检查的 TS 逻辑）。
 
 ### 4. Git Hooks
 
 ```
 pre-commit → lint-staged（ESLint fix on staged files，秒级）
-pre-push   → pnpm types:check（全仓库类型检查，十秒级）
+commit-msg → commitlint（提交信息规范检查）
+pre-push   → pnpm types:check && pnpm syncpack:lint（类型检查 + 依赖一致性，十秒级）
 ```
 
-`pre-commit` 只跑 ESLint fix，不做类型检查（太慢，阻塞 commit 体验）。类型检查放在 `pre-push`。
+`pre-commit` 只跑 ESLint fix，不做类型检查（太慢，阻塞 commit 体验）；`commit-msg` 由 commitlint 校验提交信息格式；类型检查和 syncpack 依赖一致性检查放在 `pre-push`。
 
 ## 没做什么 / 为什么
 
 ### 不写 mega-scripts
 
-不在根 package.json 写复杂的 shell 脚本。所有跨包编排由 Turbo 处理，所有发布逻辑由 `scripts/version/` 下的 TS 文件处理。根 scripts 保持"一句话委托"。
+不在根 package.json 写复杂的 shell 脚本。所有跨包编排由 Turbo 处理，所有发布逻辑由 `@walnut/release` 包（`packages/tooling/release/`）的 bin 处理。根 scripts 保持"一句话委托"。
 
 ### 不用 `concurrently` 编排
 
@@ -103,6 +108,6 @@ pre-push   → pnpm types:check（全仓库类型检查，十秒级）
 
 | 文件 | 作用 |
 |------|------|
-| [package.json](https://github.com/walnut-admin/walnut-admin-client/blob/main/package.json) | 根 scripts，全为委托 |
-| [apps/admin/package.json](https://github.com/walnut-admin/walnut-admin-client/blob/main/apps/admin/package.json) | 前端 scripts（Vite + vue-tsc） |
-| [apps/server/package.json](https://github.com/walnut-admin/walnut-admin-client/blob/main/apps/server/package.json) | 后端 scripts（NestJS CLI + SWC） |
+| [package.json](https://github.com/walnut-admin/walnut-admin/blob/main/package.json) | 根 scripts，全为委托 |
+| [apps/admin/package.json](https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/package.json) | 前端 scripts（Vite） |
+| [apps/server/package.json](https://github.com/walnut-admin/walnut-admin/blob/main/apps/server/package.json) | 后端 scripts（NestJS CLI + SWC） |

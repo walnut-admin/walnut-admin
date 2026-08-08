@@ -9,15 +9,15 @@ The project needed a consistent policy on whether to use barrel files (`index.ts
 
 ## Decision
 
-**Package entry points use selective, explicit named re-exports. App-internal code uses direct imports only. `export *` is never used.**
+**Package entry points use selective, explicit named re-exports. App-internal code uses direct imports only. `export *` is never used in package entries.**
 
 ### Rules
 
 | Location | Barrel files? | Rule |
 |----------|--------------|------|
 | Package entry (`packages/*/src/index.ts`) | ✅ Selective only | Explicit named re-exports defining the package's public API |
-| App code (`apps/*/`) | ❌ No barrels | Direct deep imports only |
-| `export *` wildcard | ❌ Never | Hides exports, breaks tree-shaking |
+| App code (`apps/*/`) | ❌ No barrels | Direct deep imports only; component entries follow the ADR-0017 `index.ts` + `index.vue` structure |
+| `export *` wildcard | ❌ Package entries | Hides exports, breaks tree-shaking; legacy wildcard exports remain in `apps/admin/src` |
 
 ### Why selective over `export *`
 
@@ -64,7 +64,7 @@ No app-level barrel files were created or modified.
 2. **Tree-shaking preserved:** Selective named exports let bundlers eliminate unused code.
 3. **Public API is explicit:** Looking at `index.ts` tells you exactly what the package exposes.
 4. **App code stays direct:** No barrel overhead in `apps/admin` or `apps/server`.
-5. **No `export *` in the codebase:** ESLint can enforce this if needed in the future.
+5. **`export *` is not fully eliminated:** `apps/admin/src` still contains ~14 `export *` sites (e.g., `src/const/index.ts` exports six in a row; component entries like Form/Table/Tree use `index.ts` + `index.vue` per ADR-0017). The policy applies to package entries; ESLint can enforce this in app code if needed in the future.
 
 ## Related
 

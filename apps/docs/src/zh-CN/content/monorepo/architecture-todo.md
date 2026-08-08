@@ -19,7 +19,7 @@
 | # | 事项 | 来源 | 工作量 | 说明 |
 |---|------|------|--------|------|
 | 4 | **Turbo Remote Cache** | 行业调研 | 小 | `npx turbo login` + `npx turbo link` 即可接入 Vercel Remote Cache（免费）。CI 构建从分钟级变秒级。`globalPassThroughEnv` 已透传 `TURBO_TOKEN`/`TURBO_TEAM`，只差接入 |
-| 5 | **部署流水线** | ADR 0008 | 大 | `deploy.yml` 存在但为 monorepo 前的 SCP 老方案（文件内 TODO 自述"需要重新设计"）。需决策：`pnpm deploy --filter` 或 Docker（P2-8），并加前端部署 job |
+| 5 | **部署流水线** | ADR 0008 | 大 | **✅ 已完成（Docker 方案）**：`deploy.yml` 已重写为 Docker 三镜像（backend/nginx/frontend）→ TCR → 服务器 `docker compose pull && up -d`，前端部署含 nginx-brotli 基础镜像。非 SCP 老方案，文件内"需要重新设计"TODO 已随重写移除 |
 | 6 | **commitlint** | 行业调研 | 小 | enforce conventional commit 格式。**[✅ 已完成 2026-08-08（commit `029eb2b`）](./eslint.md)** ——`@commitlint/cli` + config + `commit-msg` hook 已就位，Changesets + git-cliff 依赖的 commit message 规范已保障 |
 | 7 | **Changeset Bot** | 行业调研 | 小 | GitHub App，PR 中自动提醒缺少 changeset。一次安装，零维护 |
 
@@ -29,7 +29,7 @@
 
 | # | 事项 | 来源 | 工作量 | 说明 |
 |---|------|------|--------|------|
-| 8 | **Docker 多阶段构建** | 行业调研 | 中 | `apps/server/Dockerfile`，生产镜像仅含运行时依赖。当前无容器化部署；也是 P1-5 部署方案的候选出路 |
+| 8 | **Docker 多阶段构建** | 行业调研 | 中 | **✅ 已完成**：`apps/server/Dockerfile`、`apps/admin/Dockerfile`、`deploy/nginx/Dockerfile`、`deploy/docker-compose.yml` 均存在，作为 P1-5 部署方案的落地方案（Docker + TCR + compose） |
 | 9 | **syncpack** | 行业调研 | 小 | 强制 workspace 中同类依赖版本一致。**[✅ 已完成 2026-07-30](./syncpack.md)** |
 | 10 | **Codecov / 覆盖率报告** | 行业调研 | 小 | PR 上自动评论覆盖率变化。免费，依赖 P0-2 测试先落地 |
 | 11 | **GitHub Environments** | 行业调研 | 中 | 多环境部署（staging / production），按环境隔离 Secrets。当前 deploy.yml 用 workflow_dispatch 的 inputs 模拟环境选择，未使用原生 `environment:` 机制 |
@@ -53,9 +53,9 @@ ADR 0017 Phase 1（目录重组 + 既有包迁移）+ Phase 2.1/2.3（contract �
 
 | # | 事项 | 状态 | 说明 |
 |---|------|------|------|
-| A1 | **旧目录残留清理** | ❌ 待做 | `packages/` 下残留 5 个空壳目录（`axios/`、`client/`、`contract/`、`eslint-config/`、`utils/`），仅含 node_modules/dist/空目录，零 git 跟踪文件。IDE 打开易混淆，直接删除 |
-| A2 | **walnut 标签补齐** | ❌ 待做 | ADR 0017 设计的 `package.json#walnut` 字段（platform/type/runtime）仅 `@walnut/types` 有，其余 5 包未补 |
-| A3 | **turbo boundaries 升级** | ❌ 待做 | 根 `turbo.json` boundaries 仍是旧标签（shared/backend/app/browser），未同步 ADR 0017 的 platform 维度（any/web/node） |
+| A1 | **旧目录残留清理** | ✅ 已完成 | 旧平铺目录（`packages/{axios,client,contract,eslint-config,utils}`）零文件，9 个包全部在新分组（platform-any/platform-web/tooling）下（2026-08-08 清理并核实） |
+| A2 | **walnut 标签补齐** | ✅ 已完成 | 9 个包全部带 `walnut` 字段（platform/type/runtime）（2026-08-08 完成并核实） |
+| A3 | **turbo boundaries 升级** | ✅ 已完成 | 根 `turbo.json` boundaries 已含 platform-any/platform-node 维度（any/web/node deny 规则）（2026-08-08 完成并核实） |
 | A4 | **`@walnut/client` vue-router 死依赖** | ❌ 待做 | `vue-router` 声明为依赖但未被 import，应移除 |
 | A5 | **Phase 2.2 API 路由迁移** | 🔄 渐进式 | ✅ admin 侧 30 处静态硬编码 URL 全部迁移到 `@walnut/contract/routes`（2026-08-08）。剩余 11 处为带参动态模板字符串（device 子路由等）与 server 侧 44 个 controller 的同步，留待渐进 |
 | A6 | **Phase 2.4 server 死依赖决策** | ✅ 已完成 | ✅ 2026-08-08 确认 server 0 处 import `@walnut/utils`，按 ADR 评估结论（libs/utils 迁移已跳过）移除依赖声明 |
@@ -71,6 +71,7 @@ ADR 0017 Phase 1（目录重组 + 既有包迁移）+ Phase 2.1/2.3（contract �
 
 | 日期 | 完成项 |
 |------|--------|
+| 2026-08-08 | **架构 review 修复批**：① 修复 production/stage 缺失 `USER_ID_ENCRYPTION_KEY`/`USER_ID_HASH_SALT`（validation fail-fast → 生产启动失败 bug，密钥与 development 对齐并重新加密）；② 根 `pnpm test` 可用（修复 server vitest 配置路径错误——配置在 `apps/api/` 子目录而脚本在包根跑、修复 smoke test 的 I18nService 依赖、utils/client `--passWithNoTests`、client 补 jsdom）；③ knip 假门禁修复：`knip:packages/apps` 的 `packages/*` glob 匹配不到两层目录改为 `./packages/*/*`（此前静默空操作），清理 `~build/*` 死 paths 与 8 条死 ignoreDependencies，全仓/包级 knip 加 8GB NODE_OPTIONS 防 OOM，移除真死依赖（client nanoid、admin lru-cache、docs dayjs、server pm2 脚本）；④ server jest/ts-jest/ts-loader/ts-node/tsconfig-paths/@types/jest 残留清理（vitest 时代死配置，spec 改显式 vitest import，tsconfig types 删 jest）；⑤ git-cliff 残留清理（release.test.ts 标题、knip ignore、文档引用）；⑥ 根 scripts `NODE_OPTIONS=` 前缀统一改 cross-env（Windows cmd 兼容），admin lint 同修 |
 | 2026-08-08 | **PWA 移除**：删除 vite-plugin-pwa + workbox-window + @vite-pwa/assets-generator 及全部相关代码（插件、注册、ReloadPrompt、store、图标、env schema）。原因：workbox-build 传递链问题多（lru-cache CJS 崩溃、高危漏洞、precaching 陈旧内容），后台场景价值有限。如未来需要 PWA 可考虑 Serwist 或自研轻量 SW |
 | 2026-08-08 | **构建与 dev 验证**：P0-3 解决（env 解密流程 + lru-cache override + optimizeDeps 过滤）；修复 tsbuildinfo 掩盖的 6 处既有类型错误（Table/ApiSelect/CountryCallingSelect）；`pnpm build:admin` 成功；dev 前端（3100）+ dev 后端（3000，连 MongoDB/Redis）均启动验证通过，端口已清理 |
 | 2026-08-08 | **ADR 0017 收尾批次**：A1 旧目录残留清理；A2 6 包 walnut 标签补齐；A3 turbo boundaries 升级为 platform 维度（any/web/node）+ 修复 10 处 `~build/package` 失效 import + 清理 utils-core 残留 types；A4 client 移除 vue-router 死依赖 + easy-fns-ts 依赖分类修正；A5 admin 30 处硬编码路由 → contract；A6 server 移除 @walnut/utils 死依赖；A7 @walnut/ui POC（3 组件）。lint 9/9 + types:check 9/9 + boundaries 零违规 |

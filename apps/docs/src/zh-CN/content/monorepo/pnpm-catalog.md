@@ -2,7 +2,7 @@
 
 ## 概述
 
-Walnut Admin 使用 **pnpm catalog + `catalogMode: strict`** 集中管理所有外部依赖版本。260+ 个依赖包的版本号在 `pnpm-workspace.yaml` 的 `catalog:` 段落中统一定义，所有 `package.json` 只能写 `"catalog:"` 引用，不允许直接写版本号。
+Walnut Admin 使用 **pnpm catalog + `catalogMode: strict`** 集中管理所有外部依赖版本。248 个依赖包的版本号在 `pnpm-workspace.yaml` 的 `catalog:` 段落中统一定义，所有 `package.json` 只能写 `"catalog:"` 引用，不允许直接写版本号。（2026-08-08：jest / ts-jest / ts-loader / ts-node / tsconfig-paths / @types/jest 等不再使用的条目已从 catalog 移除。）
 
 ## 我们做了什么
 
@@ -49,11 +49,13 @@ catalog:
 
 将 `pnpm-workspace.yaml` 加入 Dependabot 的监控范围后，catalog 依赖更新可以**一键提 PR**——改一行 catalog，所有包同步到位。不再需要跑 N 个 package.json 逐个改版本号。
 
+> 注：当前尚未配置 bot，catalog 升级靠 `syncpack update` / `taze` 手工完成，以上是接入 bot 后的预期形态。
+
 ## 没做什么 / 为什么
 
-### 不把所有依赖都塞进 catalog
+### 现状：依赖全量进 catalog
 
-只把**多个 package 共用的依赖**放入 catalog。单个 app 独有的依赖（如 `app/sever` 专用的某个 NestJS module）直接声明在对应 `package.json` 中即可。catalog 的本质是**共享版本的集中治理**，过度集中化反而增加维护噪音。
+当前是**全量 catalog**——不仅多包共用的依赖，连 NestJS 全家桶、阿里云 SDK、docs 专用插件等单包独有依赖也都在 `catalog:` 段落中集中管理。catalog 实际承担了"全部外部依赖版本的单一事实来源"角色，配合 `catalogMode: strict` 保证没有任何 `package.json` 直接写版本号。
 
 ### 不用 Named Catalogs
 
@@ -76,7 +78,7 @@ catalog:
   typescript: 6.0.3
   eslint: 10.3.0
   turbo: 2.9.14
-  # ... 260+ 条目
+  # ... 248 条目
 ```
 
 ## 添加新依赖的流程

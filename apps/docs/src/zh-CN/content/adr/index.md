@@ -17,10 +17,10 @@ ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的�
 | [0005](./0005-jit-vs-build.md) | 前端 only 包 JIT（源码），共享包构建 CJS | ✅ 已实现 |
 | [0006](./0006-runtime-api-separation.md) | 按运行时 API 依赖分层 | ✅ 已实现 |
 | [0007](./0007-backend-libs-not-workspace.md) | 后端 libs 保留为 NestJS CLI 内部 monorepo | ✅ 已实现 |
-| [0008](./0008-unified-versioning-separate-deploy.md) | 统一版本号，独立部署 | ⚠️ deploy.yml 待更新 |
+| [0008](./0008-unified-versioning-separate-deploy.md) | 统一版本号，独立部署 | ✅ 已实现 |
 | [0009](./0009-ci-quality-gates.md) | 三级质量门禁：commit → push → CI | ⚠️ 测试和 CI 待完善 |
 | [0010](./0010-no-ts-project-references.md) | 不用 TypeScript Project References | ✅ 已实现 |
-| [0011](./0011-dependency-governance-release.md) | `catalogMode: strict`、changesets + git-cliff 发布 | ✅ 已实现 |
+| [0011](./0011-dependency-governance-release.md) | `catalogMode: strict`、changesets + changelog-github 发布 | ✅ 已实现 |
 | [0012](./0012-toolchain-divergence.md) | 前后端工具链分歧（tsconfig 独立、env 加载、hoisting、边界） | ✅ 已实现 |
 | [0013](./0013-barrel-exports-policy.md) | Barrel export 策略——选择性 barrel，不用 `export *` | ✅ 已实现 |
 | [0014](./0014-eslint-config-strategy.md) | ESLint 配置策略——共享 config 包 + 三预设 | ✅ 已实现 |

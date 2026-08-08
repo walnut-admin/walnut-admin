@@ -8,7 +8,7 @@ Walnut Admin 是一个**异构工具链**的全栈 monorepo——前端用 ESM +
 
 ### 1. 根 `tsconfig.base.json` 只放纯语言级选项
 
-[`tsconfig.base.json`](https://github.com/walnut-admin/walnut-admin-client/blob/main/tsconfig.base.json) 是所有前端 workspace 包的共享基线：
+[`tsconfig.base.json`](https://github.com/walnut-admin/walnut-admin/blob/main/tsconfig.base.json) 是所有前端 workspace 包的共享基线：
 
 ```jsonc
 {
@@ -27,7 +27,7 @@ Walnut Admin 是一个**异构工具链**的全栈 monorepo——前端用 ESM +
 
 ### 2. 前端包 extends root base
 
-`apps/admin`、`packages/client`、`packages/axios` 等前端包直接 extends root base，仅声明自己的 `include`/`paths`：
+`apps/admin`、`packages/platform-web/client`、`packages/platform-web/http` 等前端包直接 extends root base，仅声明自己的 `include`/`paths`：
 
 ```jsonc
 // apps/admin/tsconfig.json
@@ -75,7 +75,7 @@ Walnut Admin 是一个**异构工具链**的全栈 monorepo——前端用 ESM +
 
 ### 不提取共享 tsconfig 包（`@repo/tsconfig`）
 
-当前只有 4 个前端包 + 1 个后端 app 需要 tsconfig，root base + 各自 extends 已足够。提取成 `@walnut/tsconfig` 包的主要收益是版本控制和外部消费，当前规模下不需要。如果未来 workspace 包超过 10 个再考虑。
+当前有 6 个共享包（contract / types / utils-core / client / http / ui）+ 3 个 tooling 包（eslint-config / release / commitlint-config）+ 3 个 app 需要 tsconfig，root base + 各自 extends 已足够。提取成 `@walnut/tsconfig` 包的主要收益是版本控制和外部消费，当前规模下不需要。
 
 ### 不声明跨包 `paths`
 

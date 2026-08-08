@@ -18,13 +18,13 @@ export default vueConfig()
 
 ### 2. 共享 ESLint Config 包
 
-[`@walnut/eslint-config`](https://github.com/walnut-admin/walnut-admin-client/tree/main/packages/eslint-config) 提供三种预设：
+[`@walnut/eslint-config`](https://github.com/walnut-admin/walnut-admin/tree/main/packages/tooling/eslint-config) 提供三种预设：
 
 | 预设 | 文件 | 适用场景 |
 |------|------|---------|
 | `vue` | `vue.mjs` | `apps/admin` — Vue 3 + TypeScript |
 | `nest` | `nest.mjs` | `apps/server` — NestJS + CJS + decorators |
-| `base` | `base.mjs` | `packages/*` — 纯 TypeScript 共享包 |
+| `base` | `base.mjs` | 目前无直接消费者——共享包没有本地 `eslint.config.mjs`，lint 时向上回溯到根 `vue` 预设 |
 
 每个消费者只需一行 import：
 
@@ -37,9 +37,9 @@ export default nestConfig()
 
 ESLint 的类型感知规则（`ts/no-unsafe-*`）在 NestJS 中做了降级处理（`error` → `warn`）。原因：pnpm workspace symlink 下，TypeScript 的 ESLint 插件无法解析 `@walnut/contract` 中 `as const` 对象的字面类型。`tsc --noEmit` 本身零报错——这些 ESLint 告警是已知误报，见 [ADR-0012](/content/adr/0012-toolchain-divergence.md)。
 
-### 4. Prettier 集成
+### 4. 格式化由 ESLint 承担
 
-根目录统一管理 `.prettierrc`，通过 `eslint-config-prettier` 关闭 ESLint 中与 Prettier 冲突的格式规则。`prettier` 是 catalog 统一版本。
+项目不使用 Prettier：没有 `.prettierrc`、没有 `eslint-config-prettier`、没有 `format` 脚本，`prettier` 也不在 catalog（仅作为 `@changesets` 的传递依赖存在）。格式化规则由 ESLint（`@antfu/eslint-config` 内置的 stylistic 规则）统一承担，`lint:fix` 和 lint-staged 就是格式化入口。
 
 ### 5. Git Hooks 门禁
 
@@ -48,7 +48,8 @@ ESLint 的类型感知规则（`ts/no-unsafe-*`）在 NestJS 中做了降级处�
 {
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged",
-    "pre-push": "pnpm types:check"    // pre-push 才跑类型检查（慢）
+    "commit-msg": "pnpm commitlint --edit $1",
+    "pre-push": "pnpm types:check && pnpm syncpack:lint"   // 类型检查 + 依赖一致性
   },
   "lint-staged": {
     "*.{ts,vue,mjs,js}": "eslint --fix --concurrency=auto",
@@ -62,7 +63,8 @@ ESLint 的类型感知规则（`ts/no-unsafe-*`）在 NestJS 中做了降级处�
 | 时机 | 做什么 | 耗时 |
 |------|--------|------|
 | pre-commit | ESLint fix on staged files | 秒级 |
-| pre-push | 全仓库类型检查 | 十秒级 |
+| commit-msg | commitlint 提交信息规范检查 | 秒级 |
+| pre-push | 全仓库类型检查 + syncpack 依赖一致性 | 十秒级 |
 | CI | 完整 lint + typecheck + test | 分钟级 |
 
 ## 没做什么 / 为什么
@@ -81,8 +83,7 @@ oxlint 和 biome（Rust 写的极速 linter）都不支持 Vue SFC（`.vue` 文�
 
 | 文件 | 作用 |
 |------|------|
-| [eslint.config.mjs](https://github.com/walnut-admin/walnut-admin-client/blob/main/eslint.config.mjs) | 根入口，委托给 `@walnut/eslint-config/vue` |
-| [packages/eslint-config/vue.mjs](https://github.com/walnut-admin/walnut-admin-client/blob/main/packages/eslint-config/vue.mjs) | 前端 Vue 3 预设 |
-| [packages/eslint-config/nest.mjs](https://github.com/walnut-admin/walnut-admin-client/blob/main/packages/eslint-config/nest.mjs) | 后端 NestJS 预设 |
-| [packages/eslint-config/base.mjs](https://github.com/walnut-admin/walnut-admin-client/blob/main/packages/eslint-config/base.mjs) | 共享包预设 |
-| [.prettierrc](https://github.com/walnut-admin/walnut-admin-client/blob/main/.prettierrc) | 格式化统一配置 |
+| [eslint.config.mjs](https://github.com/walnut-admin/walnut-admin/blob/main/eslint.config.mjs) | 根入口，委托给 `@walnut/eslint-config/vue` |
+| [packages/tooling/eslint-config/vue.mjs](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/vue.mjs) | 前端 Vue 3 预设 |
+| [packages/tooling/eslint-config/nest.mjs](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/nest.mjs) | 后端 NestJS 预设 |
+| [packages/tooling/eslint-config/base.mjs](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/base.mjs) | 共享包预设（当前无直接消费者） |
