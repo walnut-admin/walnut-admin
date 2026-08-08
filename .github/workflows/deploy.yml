@@ -37,9 +37,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # 前端构建输入：.env.keys 解密 env-encrypted → env-local
+      # heredoc 保留引号/注释行原样（${{ }} 在 run 执行前已由 Actions 渲染，不受 heredoc 影响）
       - name: Prepare env (.env.keys → setup-env)
         run: |
-          echo "${{ secrets.ENV_KEYS }}" > .env.keys
+          cat > .env.keys <<'EOF'
+          ${{ secrets.ENV_KEYS }}
+          EOF
           pnpm setup-env
         # 注意：secrets 会被 Actions 自动打码，日志安全
 
@@ -51,22 +54,25 @@ jobs:
           docker build -f apps/server/Dockerfile -t $REGISTRY/$IMAGE_NS/backend:$TAG .
           docker push $REGISTRY/$IMAGE_NS/backend:$TAG
 
+      # nginx 必须先于 frontend 构建：frontend Dockerfile 的
+      # FROM walnut-admin/nginx-brotli:latest 依赖本机刚构建的 nginx 镜像
+      - name: Build & push nginx
+        run: |
+          docker build -f deploy/nginx/Dockerfile -t $REGISTRY/$IMAGE_NS/nginx:$TAG .
+          docker tag $REGISTRY/$IMAGE_NS/nginx:$TAG walnut-admin/nginx-brotli:latest
+          docker push $REGISTRY/$IMAGE_NS/nginx:$TAG
+
       - name: Build & push frontend
         run: |
           docker build -f apps/admin/Dockerfile -t $REGISTRY/$IMAGE_NS/frontend:$TAG .
           docker push $REGISTRY/$IMAGE_NS/frontend:$TAG
 
-      - name: Build & push nginx
-        run: |
-          docker build -f deploy/nginx/Dockerfile -t $REGISTRY/$IMAGE_NS/nginx:$TAG .
-          docker push $REGISTRY/$IMAGE_NS/nginx:$TAG
-
       - name: Deploy on server
         uses: appleboy/ssh-action@v0.1.10
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USERNAME }}
-          password: ${{ secrets.PROD_PASSWORD }}
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USERNAME }}
+          password: ${{ secrets.PROD_SERVER_PASSWORD }}
           script: |
             cd /opt/walnut-admin/deploy
             # 只替换 IMG_TAG 行，保留服务器上的人工配置（数据层密码等）
