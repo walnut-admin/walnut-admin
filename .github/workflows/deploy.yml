@@ -74,7 +74,7 @@ jobs:
           username: ${{ secrets.PROD_SERVER_USERNAME }}
           password: ${{ secrets.PROD_SERVER_PASSWORD }}
           script: |
-            cd /opt/walnut-admin/deploy
+            cd /home/ubuntu/walnut-admin/deploy
             # 只替换 IMG_TAG 行，保留服务器上的人工配置（数据层密码等）
             if [ -f .env ] && grep -q '^IMG_TAG=' .env; then
               sed -i "s/^IMG_TAG=.*/IMG_TAG=${{ env.TAG }}/" .env

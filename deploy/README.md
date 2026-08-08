@@ -13,10 +13,10 @@ docker compose version   # 确认 Compose v2
 2. **创建部署目录并放置文件**：
 
 ```bash
-mkdir -p /opt/walnut-admin/deploy
+mkdir -p /home/ubuntu/walnut-admin/deploy
 # 从本仓库拷贝 deploy/ 目录（nginx/、docker-compose.yml、.env.example）
 # 目录结构：
-#   /opt/walnut-admin/deploy/
+#   /home/ubuntu/walnut-admin/deploy/
 #   ├── docker-compose.yml
 #   ├── .env                  ← 真实值（IMG_TAG + 数据层密码）
 #   ├── env/.env.production   ← 后端 env（见 deploy/env/README.md）
@@ -35,7 +35,7 @@ mkdir -p /opt/walnut-admin/deploy
 6. **启动（首次会先拉数据库镜像，需国内镜像源或稍等）**：
 
 ```bash
-cd /opt/walnut-admin/deploy
+cd /home/ubuntu/walnut-admin/deploy
 docker compose up -d
 docker compose ps   # 全部 healthy/running
 ```
@@ -50,13 +50,13 @@ systemctl stop nginx && systemctl disable nginx   # 停宿主机 nginx
 ## 日常更新（CI 自动执行）
 
 ```bash
-cd /opt/walnut-admin/deploy && docker compose pull && docker compose up -d
+cd /home/ubuntu/walnut-admin/deploy && docker compose pull && docker compose up -d
 ```
 
 ## 回滚
 
 ```bash
-cd /opt/walnut-admin/deploy
+cd /home/ubuntu/walnut-admin/deploy
 sed -i "s/^IMG_TAG=.*/IMG_TAG=<上一版本SHA>/" .env
 docker compose up -d
 ```
