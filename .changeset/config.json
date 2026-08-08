@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/@changesets/config@3.1.4/schema.json",
-  "changelog": false,
+  "changelog": "@changesets/changelog-github",
   "commit": false,
   "fixed": [
     [
@@ -11,6 +11,11 @@
       "@walnut/http",
       "@walnut/ui",
       "@walnut/eslint-config"
+    ],
+    [
+      "@walnut/admin",
+      "@walnut/server",
+      "@walnut/docs"
     ]
   ],
   "linked": [],

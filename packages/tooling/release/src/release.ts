@@ -21,7 +21,7 @@ function log(msg: string) {
 }
 
 /** bump 优先级: major=3, minor=2, patch=1 */
-function bumpPriority(bump: string): number {
+export function bumpPriority(bump: string): number {
   if (bump === 'major')
     return 3
   if (bump === 'minor')
@@ -48,18 +48,26 @@ function question(promptText: string): Promise<string> {
 }
 
 /**
- * 解析 changeset 文件，提取 bump 类型和摘要
+ * 解析 changeset 文件，提取 bump 类型（多包取最高）和摘要
+ * frontmatter 可含多行包声明（如 auto-changeset 生成的 admin + utils 两行）
  */
-function parseChangeset(filepath: string): { bump: string, summary: string } | null {
+export function parseChangeset(filepath: string): { bump: string, summary: string } | null {
   const content = fs.readFileSync(filepath, 'utf-8')
-  const match = content.match(/^---\n"[^"]+":\s*(\w+)\n---\n\n([\s\S]*)$/)
+  const match = content.match(/^---\n([\s\S]*?)\n---\n\n([\s\S]*)$/)
   if (!match)
     return null
-  return { bump: match[1], summary: match[2].trim() }
+  const bumps = match[1]
+    .split('\n')
+    .map(line => line.match(/:\s*(\w+)\s*$/)?.[1])
+    .filter((b): b is string => Boolean(b))
+  if (bumps.length === 0)
+    return null
+  const bump = bumps.reduce((max, b) => bumpPriority(b) > bumpPriority(max) ? b : max)
+  return { bump, summary: match[2].trim() }
 }
 
 /** 计算 semver 下一个版本号 */
-function nextVersion(version: string, bump: string): string {
+export function nextVersion(version: string, bump: string): string {
   const [major, minor, patch] = version.split('.').map(Number)
   if (bump === 'major')
     return `${major + 1}.0.0`
@@ -71,7 +79,7 @@ function nextVersion(version: string, bump: string): string {
 /**
  * 交互式确认/覆盖版本升级类型。
  */
-async function resolveBumpType(
+export async function resolveBumpType(
   files: string[],
   changesetDir: string,
   oldVersion: string,
@@ -151,7 +159,7 @@ function ensureMainBranch() {
 /**
  * 检测上次 git push 失败的遗留状态。
  */
-function handleFailedPushResume(pkgPath: string, changesetDir: string): boolean {
+export function handleFailedPushResume(pkgPath: string, changesetDir: string): boolean {
   const currentPkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
   const currentVersion: string = currentPkg.version
   const currentTag = `v${currentVersion}`
@@ -212,7 +220,7 @@ function handleFailedPushResume(pkgPath: string, changesetDir: string): boolean 
   process.exit(0)
 }
 
-async function main() {
+export async function main() {
   ensureMainBranch()
   const pkgPath = path.resolve('apps/admin/package.json')
   const changesetDir = path.resolve('.changeset')
@@ -254,18 +262,7 @@ async function main() {
 
   log(`版本: v${oldVersion} → v${newVersion}`)
 
-  // 5. 用 git-cliff 生成 CHANGELOG.md
-  log('生成 CHANGELOG.md (git-cliff)...')
-  try {
-    run('pnpm changelog')
-    log('CHANGELOG.md 已更新')
-  }
-  catch (err: any) {
-    log(`⚠️  git-cliff 执行失败: ${err.message}`)
-    log('继续发版流程（可稍后手动生成 CHANGELOG）')
-  }
-
-  // 6. git 提交版本变更
+  // 5. git 提交版本变更（各包 CHANGELOG.md 已由 changeset version 自动写入）
   log('提交版本变更...')
   run('git add .')
   try {
@@ -275,12 +272,12 @@ async function main() {
     log('没有需要提交的变更')
   }
 
-  // 7. 创建 tag
+  // 6. 创建 tag
   const tagName = `v${newVersion}`
   log(`创建标签: ${tagName}`)
   run(`git tag -a ${tagName} -m "${tagName}"`)
 
-  // 8. 推送
+  // 7. 推送
   const branch = run('git rev-parse --abbrev-ref HEAD')
   log(`推送分支 ${branch} 和标签...`)
   run(`git push origin ${branch}`)
@@ -288,8 +285,3 @@ async function main() {
 
   log(`发版完成: ${tagName}`)
 }
-
-main().catch((err) => {
-  console.error('\x1B[31m[release]\x1B[0m', err.message)
-  process.exit(1)
-})

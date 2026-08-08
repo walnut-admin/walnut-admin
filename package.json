@@ -11,6 +11,10 @@
     "url": "https://github.com/Zhaocl1997"
   },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/walnut-admin/walnut-admin.git"
+  },
   "engines": {
     "node": ">=24.13.0",
     "pnpm": ">=11.0.0"
@@ -47,11 +51,11 @@
     "syncpack:fix": "syncpack fix",
     "inspect:node-modules": "node-modules-inspector",
     "syncpack:update": "syncpack update --dependency-types pnpmCatalog --interactive",
-    "release": "walnut-release",
-    "changelog": "git-cliff -o CHANGELOG.md"
+    "release": "walnut-release"
   },
   "devDependencies": {
     "@antfu/eslint-config": "catalog:",
+    "@changesets/changelog-github": "catalog:",
     "@changesets/cli": "catalog:",
     "@commitlint/cli": "catalog:",
     "@dotenvx/dotenvx": "catalog:",
@@ -60,7 +64,6 @@
     "@walnut/eslint-config": "workspace:*",
     "@walnut/release": "workspace:*",
     "eslint": "catalog:",
-    "git-cliff": "catalog:",
     "knip": "catalog:",
     "lint-staged": "catalog:",
     "node-modules-inspector": "catalog:",
