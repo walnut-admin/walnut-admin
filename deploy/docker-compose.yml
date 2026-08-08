@@ -11,8 +11,10 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:
-      - frontend
-      - backend
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_healthy
 
   # ---------- 应用 ----------
   frontend:
@@ -24,15 +26,18 @@ services:
     image: ccr.ccs.tencentyun.com/walnut-admin/backend:${IMG_TAG}
     restart: always
     container_name: walnut-backend
-    env_file: ./env/.env.production
+    # bind mount 到 config.module.ts 读取的路径（process.cwd()/env-local/.env.production，容器内 /app/env-local/）
+    # 与 env_file 注入 process.env 相比，文件缺失会在启动时立即暴露而非静默
     volumes:
+      - ./env/.env.production:/app/env-local/.env.production:ro
       - ./logs:/app/logs
     depends_on:
       - prod-mongodb-primary
       - prod-mongodb-secondary
       - redis
     healthcheck:
-      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/api/w/v1/auth/captcha/cap').then(()=>process.exit(0)).catch(()=>process.exit(1))"]
+      # 真实存在的静态资源路由（main.ts useStaticAssets，绕过全部守卫返回 200），带 5s 超时
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/w/v1/static/images/demo.png', { signal: AbortSignal.timeout(5000) }).then(()=>process.exit(0)).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
