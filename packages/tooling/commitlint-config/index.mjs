@@ -16,6 +16,9 @@ const SCOPES = [
   'eslint-config',
   'commitlint-config',
   'release',
+  // deploy
+  'docker',
+  'deploy',
 ]
 
 export default {
