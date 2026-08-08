@@ -12,7 +12,7 @@ on:
 
 env:
   REGISTRY: ccr.ccs.tencentyun.com
-  IMAGE_NS: walnut-admin
+  IMAGE_NS: tron1997
   TAG: ${{ github.sha }}
 
 jobs:

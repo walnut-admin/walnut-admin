@@ -1,7 +1,7 @@
 services:
   # ---------- 入口 ----------
   nginx:
-    image: ccr.ccs.tencentyun.com/walnut-admin/nginx:${IMG_TAG}
+    image: ccr.ccs.tencentyun.com/tron1997/nginx:${IMG_TAG}
     restart: always
     container_name: walnut-nginx
     ports:
@@ -18,12 +18,12 @@ services:
 
   # ---------- 应用 ----------
   frontend:
-    image: ccr.ccs.tencentyun.com/walnut-admin/frontend:${IMG_TAG}
+    image: ccr.ccs.tencentyun.com/tron1997/frontend:${IMG_TAG}
     restart: always
     container_name: walnut-frontend
 
   backend:
-    image: ccr.ccs.tencentyun.com/walnut-admin/backend:${IMG_TAG}
+    image: ccr.ccs.tencentyun.com/tron1997/backend:${IMG_TAG}
     restart: always
     container_name: walnut-backend
     # bind mount 到 config.module.ts 读取的路径（process.cwd()/env-local/.env.production，容器内 /app/env-local/）
