@@ -11,15 +11,37 @@ function log(msg: string) {
   console.log(`\x1B[36m[auto-changeset]\x1B[0m ${msg}`)
 }
 
-const CHANGESET_DIR = path.resolve('.changeset')
-// App 版本基准：admin 独立版本（server/docs 不随发布自动 bump，各自独立 cycle）
-const PACKAGE_NAME = '@walnut/admin'
-// fixed 组代表包：被提及即触发 7 个共享包整组同步（见 .changeset/config.json fixed）
-// Changesets 的 fixed 组只在组内包被 changeset 提及时同步，因此必须显式提及
-const GROUP_PACKAGE = '@walnut/utils'
+/**
+ * commit scope（括号内包名）→ workspace 包名映射。
+ * commitlint 强制 scope 必须为包名（见 @walnut/commitlint-config）。
+ */
+export const SCOPE_TO_PACKAGE: Record<string, string> = {
+  // apps
+  'admin': '@walnut/admin',
+  'server': '@walnut/server',
+  'docs': '@walnut/docs',
+  // platform-any
+  'utils': '@walnut/utils',
+  'contract': '@walnut/contract',
+  'types': '@walnut/types',
+  // platform-web
+  'client': '@walnut/client',
+  'http': '@walnut/http',
+  'ui': '@walnut/ui',
+  // tooling
+  'eslint-config': '@walnut/eslint-config',
+  'commitlint-config': '@walnut/commitlint-config',
+  'release': '@walnut/release',
+}
+
+/**
+ * 兜底：无 scope / 未知 scope（如 commitlint 强制前的历史 commit）→ 提及两个 fixed 组代表。
+ * 两组代表被提及即触发整组同步（见 .changeset/config.json fixed），保证变更不丢失。
+ */
+const FALLBACK_PACKAGES = ['@walnut/admin', '@walnut/utils']
 
 /** bump 类型映射：约定式提交前缀 → changeset 类型 | "skip" */
-const BUMP_MAP: Record<string, string> = {
+export const BUMP_MAP: Record<string, string> = {
   feat: 'minor',
   fix: 'patch',
   perf: 'patch',
@@ -41,7 +63,7 @@ const NOISE_PATTERNS = [
   /^draft\b/i,
 ]
 
-function isNoise(message: string): boolean {
+export function isNoise(message: string): boolean {
   if (message.length < 4)
     return true
   // 纯数字/日期 如 "1", "6.4", "0527"
@@ -50,7 +72,7 @@ function isNoise(message: string): boolean {
   return NOISE_PATTERNS.some(r => r.test(message))
 }
 
-interface ParsedCommit {
+export interface ParsedCommit {
   hash: string
   type: string | null
   scope: string | null
@@ -58,7 +80,7 @@ interface ParsedCommit {
   summary: string
 }
 
-function parseCommit(line: string): ParsedCommit | null {
+export function parseCommit(line: string): ParsedCommit | null {
   const [hash, ...rest] = line.split('||')
   const message = rest.join('||') // 摘要可能含 ||
 
@@ -83,7 +105,7 @@ function parseCommit(line: string): ParsedCommit | null {
   return { hash, type: null, scope: null, breaking: false, summary: message }
 }
 
-function getBump(parsed: ParsedCommit): string {
+export function getBump(parsed: ParsedCommit): string {
   if (parsed.breaking)
     return 'major'
   if (parsed.type && BUMP_MAP[parsed.type]) {
@@ -93,17 +115,10 @@ function getBump(parsed: ParsedCommit): string {
   return 'patch'
 }
 
-function formatSummary(parsed: ParsedCommit): string {
-  if (parsed.scope) {
-    return `${parsed.scope}: ${parsed.summary}`
-  }
-  return parsed.summary
-}
-
-/** 获取 commit 变更的文件列表 */
-function getCommitFiles(hash: string): string[] {
+/** 获取 commit 变更的文件列表（--root：root commit 无 parent，需要与空树对比） */
+export function getCommitFiles(hash: string): string[] {
   try {
-    const output = run(`git diff-tree --no-commit-id --name-only -r ${hash}`)
+    const output = run(`git diff-tree --no-commit-id --name-only -r --root ${hash}`)
     if (!output)
       return []
     return output.split('\n').filter(Boolean)
@@ -116,7 +131,7 @@ function getCommitFiles(hash: string): string[] {
 /** 只涉及非代码目录的 commit 无需触发发版 */
 const NON_CODE_DIRS = ['docs/', '.github/', '.vscode/', '.changeset/']
 
-function isWorkspaceCommit(files: string[]): boolean {
+export function isWorkspaceCommit(files: string[]): boolean {
   if (files.length === 0)
     return false
   return !files.every(f => NON_CODE_DIRS.some(dir => f.startsWith(dir)))
@@ -155,8 +170,10 @@ function ensureMainBranch() {
   }
 }
 
-function main() {
+export function main() {
   ensureMainBranch()
+  // 运行时基于当前 cwd 解析（脚本从仓库根执行；测试在临时仓库中执行）
+  const CHANGESET_DIR = path.resolve('.changeset')
   log('从 git commit 自动生成 changeset...')
 
   const lastTag = getLastTag()
@@ -201,9 +218,11 @@ function main() {
       continue
     }
 
-    const summary = formatSummary(parsed)
-    const commitType = parsed.type || 'other'
-    const content = `---\n"${PACKAGE_NAME}": ${bump}\n"${GROUP_PACKAGE}": ${bump}\n---\n\n${parsed.hash} ::: ${commitType} ::: ${summary}\n`
+    // 按 scope 归因到对应包（fixed 组自动联动同组包）；无/未知 scope 兜底两组代表
+    const scoped = parsed.scope ? SCOPE_TO_PACKAGE[parsed.scope] : undefined
+    const targets = scoped ? [scoped] : FALLBACK_PACKAGES
+    // summary 为纯人类可读描述，直接进 per-package CHANGELOG
+    const content = `---\n${targets.map(p => `"${p}": ${bump}`).join('\n')}\n---\n\n${parsed.summary}\n`
 
     fs.writeFileSync(filepath, content, 'utf-8')
     generated++
@@ -211,5 +230,3 @@ function main() {
 
   log(`生成 ${generated} 个 changeset，跳过 ${skipped} 个（已存在），过滤 ${filtered} 个（噪声/无意义/内部改动）`)
 }
-
-main()

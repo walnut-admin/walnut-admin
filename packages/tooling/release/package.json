@@ -15,7 +15,8 @@
   "scripts": {
     "lint": "eslint . --concurrency=auto",
     "lint:fix": "eslint . --fix --concurrency=auto",
-    "types:check": "tsc --noEmit"
+    "types:check": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "tsx": "catalog:"
@@ -23,7 +24,8 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "eslint": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "walnut": {
     "platform": "any",
