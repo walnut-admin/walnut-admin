@@ -27,6 +27,7 @@ build/_generated/*.log
 # Environment
 .env.keys
 env-local/
+deploy/env/
 
 # Reports (keep .md files)
 report/*
