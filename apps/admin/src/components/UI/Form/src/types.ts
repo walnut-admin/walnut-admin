@@ -3,6 +3,10 @@ import type { DeepKeyOf } from '@walnut/client/types/vue-object-key'
 import type { IDeepMaybeRef } from '@walnut/client/types/vue-ref'
 import type { ShortEmits } from '@walnut/types/object-key'
 import type { Fn, IActionType } from '@walnut/types/universal'
+import type { ICompUIDynamicTagsProps } from '@walnut/ui/DynamicTags'
+import type { ICompUISwitchProps } from '@walnut/ui/Switch'
+
+import type { ICompUITimePickerProps } from '@walnut/ui/TimePicker'
 import type { BaseDataType, Recordable, StringOrNumber } from 'easy-fns-ts'
 // raw
 import type {
@@ -15,29 +19,25 @@ import type {
   InputOtpProps,
   SliderProps,
 } from 'naive-ui'
-
 import type { LabelAlign, LabelPlacement } from 'naive-ui/es/form/src/interface'
 import type { CSSProperties } from 'vue'
 // ui types
 import type { ICompUIButtonProps } from '../../Button'
 import type { ICompUIButtonConfirmProps } from '../../ButtonConfirm'
 import type { ICompUIButtonGroupProps } from '../../ButtonGroup'
+
 import type { ICompUIButtonRetryProps } from '../../ButtonRetry'
 import type { ICompUICheckboxProps } from '../../Checkbox'
-import type { ICompUIColorPickerProps } from '../../ColorPicker'
 
+import type { ICompUIColorPickerProps } from '../../ColorPicker'
 import type { ICompUIDatePickerProps } from '../../DatePicker'
 import type { ICompUIDescriptionProps, ICompUIDescriptionsItem } from '../../Descriptions'
-
 import type { ICompUIDrawerProps } from '../../Drawer'
-import type { ICompUIDynamicTagsProps } from '../../DynamicTags'
 import type { ICompUIInputProps } from '../../Input'
 import type { ICompUIInputNumberProps } from '../../InputNumber'
 import type { ICompUIModalProps } from '../../Modal'
 import type { ICompUIRadioProps } from '../../Radio'
 import type { ICompUISelectProps } from '../../Select'
-import type { ICompUISwitchProps } from '../../Switch'
-import type { ICompUITimePickerProps } from '../../TimePicker'
 import type { ICompUITreeProps } from '../../Tree'
 import type { ICompUITreeSelectProps } from '../../TreeSelect'
 // extend

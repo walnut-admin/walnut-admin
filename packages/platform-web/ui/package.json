@@ -1,0 +1,42 @@
+{
+  "name": "@walnut/ui",
+  "type": "module",
+  "version": "0.0.1",
+  "description": "Naive UI based Vue components for Walnut Admin — consumed by frontend apps",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*/index.ts"
+  },
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "engines": {
+    "node": ">=24.13.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "build": "echo 'components: pure source, no build needed'",
+    "lint": "eslint . --concurrency=auto",
+    "lint:fix": "eslint . --fix --concurrency=auto",
+    "types:check": "vue-tsc --noEmit",
+    "clean": "rimraf dist",
+    "clean:all": "rimraf dist node_modules"
+  },
+  "peerDependencies": {
+    "naive-ui": "catalog:",
+    "vue": "catalog:"
+  },
+  "devDependencies": {
+    "@walnut/eslint-config": "workspace:*",
+    "naive-ui": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vue": "catalog:",
+    "vue-tsc": "catalog:"
+  },
+  "walnut": {
+    "platform": "web",
+    "type": "ui",
+    "runtime": ["dom", "vue"]
+  }
+}

@@ -64,6 +64,7 @@
     "@walnut/contract": "workspace:*",
     "@walnut/http": "workspace:*",
     "@walnut/types": "workspace:*",
+    "@walnut/ui": "workspace:*",
     "@walnut/utils": "workspace:*",
     "@zxcvbn-ts/core": "catalog:",
     "ali-oss": "catalog:",
