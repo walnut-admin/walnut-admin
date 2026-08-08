@@ -71,6 +71,7 @@ ADR 0017 Phase 1（目录重组 + 既有包迁移）+ Phase 2.1/2.3（contract �
 
 | 日期 | 完成项 |
 |------|--------|
+| 2026-08-08 | **PWA 移除**：删除 vite-plugin-pwa + workbox-window + @vite-pwa/assets-generator 及全部相关代码（插件、注册、ReloadPrompt、store、图标、env schema）。原因：workbox-build 传递链问题多（lru-cache CJS 崩溃、高危漏洞、precaching 陈旧内容），后台场景价值有限。如未来需要 PWA 可考虑 Serwist 或自研轻量 SW |
 | 2026-08-08 | **构建与 dev 验证**：P0-3 解决（env 解密流程 + lru-cache override + optimizeDeps 过滤）；修复 tsbuildinfo 掩盖的 6 处既有类型错误（Table/ApiSelect/CountryCallingSelect）；`pnpm build:admin` 成功；dev 前端（3100）+ dev 后端（3000，连 MongoDB/Redis）均启动验证通过，端口已清理 |
 | 2026-08-08 | **ADR 0017 收尾批次**：A1 旧目录残留清理；A2 6 包 walnut 标签补齐；A3 turbo boundaries 升级为 platform 维度（any/web/node）+ 修复 10 处 `~build/package` 失效 import + 清理 utils-core 残留 types；A4 client 移除 vue-router 死依赖 + easy-fns-ts 依赖分类修正；A5 admin 30 处硬编码路由 → contract；A6 server 移除 @walnut/utils 死依赖；A7 @walnut/ui POC（3 组件）。lint 9/9 + types:check 9/9 + boundaries 零违规 |
 | 2026-08-08 | 文档同步：commitlint (P1-6) 实际已完成；新增 ADR 0017 遗留收尾线 (A1-A11) |
