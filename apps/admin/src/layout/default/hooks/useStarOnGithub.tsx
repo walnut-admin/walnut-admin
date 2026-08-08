@@ -1,6 +1,6 @@
-import { homepage } from '~build/package'
 // TODO 111
 import WIcon from '@/components/UI/Icon'
+import { homepage } from '@/const/package-info'
 import { getCookie, setCookie } from '@/utils/persistent/Cookie'
 import { openExternalLink } from '@/utils/window/open'
 

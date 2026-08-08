@@ -1,10 +1,10 @@
 <script lang="tsx" setup>
 import type { DropdownMixedOption } from 'naive-ui/lib/dropdown/src/interface'
 
-import { homepage, urls } from '~build/package'
-
 // TODO 111
 import WIcon from '@/components/UI/Icon'
+
+import { homepage, urls } from '@/const/package-info'
 import { openExternalLink } from '@/utils/window/open'
 import WAvatar from '@/views/me/components/avatar.vue'
 import SwitchRole from './switchRole.vue'

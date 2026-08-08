@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { MindElixirData, Options } from 'mind-elixir'
 import { getRandomInt } from 'easy-fns-ts'
-import { homepage, urls } from '~build/package'
+import { homepage, urls } from '@/const/package-info'
 
 defineOptions({
   name: 'MindmapDemo',

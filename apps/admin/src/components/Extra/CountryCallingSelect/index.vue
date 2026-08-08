@@ -1,5 +1,6 @@
 <script lang="tsx" setup>
 import type { CountryCode } from 'libphonenumber-js'
+import type { SelectFilter, SelectRenderTag } from 'naive-ui'
 import type { SelectMixedOption } from 'naive-ui/lib/select/src/interface'
 import type { VNodeChild } from 'vue'
 import type { ICompExtraCountryCallingSelectOption, ICompExtraCountryCallingSelectProps } from '.'
@@ -138,10 +139,10 @@ function onFilter(pattern: string, option: ICompExtraCountryCallingSelectOption)
     :options="getSortOptions"
     value-field="iso2"
     filterable
-    :filter="onFilter"
+    :filter="onFilter as SelectFilter"
     :placeholder="$t('app.base.countryCode')"
     :render-label="onRenderLabel"
-    :render-tag="onRenderTag"
+    :render-tag="onRenderTag as unknown as SelectRenderTag"
     :menu-props="{ style: 'width: 250px !important' }"
   />
 </template>

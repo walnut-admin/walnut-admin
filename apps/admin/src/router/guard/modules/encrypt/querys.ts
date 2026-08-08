@@ -1,5 +1,5 @@
 import type { Router } from 'vue-router'
-import { version } from '~build/package'
+import { version } from '@/const/package-info'
 import { decryptRouterUrl, encryptRouterUrl } from '@/router/utils/crypto'
 
 const ENHANCED_URL_PREFIX = `__eq__${version}__`

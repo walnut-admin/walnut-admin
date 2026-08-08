@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { BaseListParams, BaseListResponse } from '@walnut/http/types'
 import type { OptionDataItem, Recordable, StringOrNumber } from 'easy-fns-ts'
+import type { SelectMixedOption } from 'naive-ui/lib/select/src/interface'
 import { useState } from '@walnut/client/hooks/core/useState'
 import { isFunction } from 'easy-fns-ts'
 import { WithValueProps } from '@/components/HOC/WithValue'
@@ -62,7 +63,7 @@ async function onUpdateValue(val: StringOrNumber | StringOrNumber[]) {
     await onReset(false)
 }
 
-async function onScroll(e: MouseEvent) {
+async function onScroll(e: Event) {
   if (!e || !e.target)
     return
 
@@ -179,8 +180,8 @@ onMounted(async () => {
 
 <template>
   <WSelect
-    :value="value"
-    :options="getOptions"
+    :value="value as any"
+    :options="getOptions as SelectMixedOption[]"
     :multiple="multiple"
     :value-separator="valueSeparator"
     remote

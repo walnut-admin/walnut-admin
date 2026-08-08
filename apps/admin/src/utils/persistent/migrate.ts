@@ -1,4 +1,4 @@
-import { version } from '~build/package'
+import { version } from '@/const/package-info'
 
 // TODO need to delete after several versions of release
 localStorage.removeItem('__APP_MIGRATION_VERSION__')

@@ -86,8 +86,7 @@ const [
           },
           componentProp: {
             defaultValue: langId,
-            // @ts-expect-error it worked
-            options: langList,
+            options: langList as unknown as any[],
             clearable: true,
             onUpdateValue(v: string) {
               v && onApiList()

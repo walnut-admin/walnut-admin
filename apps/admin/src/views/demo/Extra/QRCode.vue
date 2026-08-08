@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { Fn } from '@walnut/types/universal'
-import { urls } from '~build/package'
+import { urls } from '@/const/package-info'
 
 defineOptions({
   name: 'QRCodeDemo',

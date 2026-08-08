@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { name, version } from '~build/package'
+import { name, version } from '@/const/package-info'
 
 defineOptions({
   name: 'JSONEditorDemo',

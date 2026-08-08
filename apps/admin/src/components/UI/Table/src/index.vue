@@ -1,4 +1,5 @@
 <script lang="ts" setup generic="T">
+import type { DataTableColumn } from 'naive-ui'
 import type { ICompUITableHooksAPIListParams } from './hooks/useTableAPIListParams'
 import type { WTable } from './types'
 import { useProps } from '@walnut/client/hooks/core/useProps'
@@ -140,7 +141,7 @@ const getTableHeight = computed(() => `calc(${appStoreSettingDev.getCalcContentH
       v-bind="getTableProps"
       :min-height="getProps?.minHeight ?? getTableHeight"
       :max-height="getProps?.maxHeight ?? getTableHeight"
-      :columns="tableColumns.filter(i => i._internalShow)"
+      :columns="tableColumns.filter(i => i._internalShow) as DataTableColumn<T>[]"
     />
   </n-card>
 </template>

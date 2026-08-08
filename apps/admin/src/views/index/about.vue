@@ -1,12 +1,13 @@
 <script lang="ts" setup>
 import type { ICompUIDescriptionsItem } from '@/components/UI/Descriptions'
-import { dependencies, devDependencies, homepage, urls, version } from '~build/package'
-import now from '~build/time'
 import { BackendDepsAPI } from '@/api'
+import { dependencies, devDependencies, homepage, urls, version } from '@/const/package-info'
 
 defineOptions({
   name: 'About',
 })
+
+const now = new Date()
 
 const { t } = useAppI18n()
 const appStoreAdapter = useAppStoreAdapter()

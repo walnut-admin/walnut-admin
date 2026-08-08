@@ -232,8 +232,7 @@ const [
           defaultValue: [],
 
           treeProps: {
-            // @ts-expect-error tree data
-            data: getLeftMenu,
+            data: getLeftMenu as unknown as any[],
             blockLine: true,
             blockNode: true,
             keyField,

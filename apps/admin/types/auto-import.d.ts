@@ -34,6 +34,7 @@ declare global {
   const AppNoti: typeof import('../src/hooks/component/useNoti').AppNoti
   const AppRouter: typeof import('../src/router/index').AppRouter
   const AppSocketEvents: typeof import('../src/socket/event').AppSocketEvents
+  const AppSocketRooms: typeof import('../src/socket/event').AppSocketRooms
   const EffectScope: typeof import('vue').EffectScope
   const WTablePresetCreatedAtColumn: typeof import('@/components/UI/Table/src/utils/presetColumns').WTablePresetCreatedAtColumn
   const WTablePresetOrderColumn: typeof import('@/components/UI/Table/src/utils/presetColumns').WTablePresetOrderColumn
@@ -64,7 +65,9 @@ declare global {
   const debouncedWatch: typeof import('@vueuse/core').debouncedWatch
   const defineAsyncComponent: typeof import('vue').defineAsyncComponent
   const defineComponent: typeof import('vue').defineComponent
+  const dependencies: typeof import('../src/const/package-info').dependencies
   const destroySocket: typeof import('../src/socket/index').destroySocket
+  const devDependencies: typeof import('../src/const/package-info').devDependencies
   const eagerComputed: typeof import('@vueuse/core').eagerComputed
   const effectScope: typeof import('vue').effectScope
   const extendRef: typeof import('@vueuse/core').extendRef
@@ -75,6 +78,7 @@ declare global {
   const getDictNameFromMap: typeof import('../src/hooks/core/useDict').getDictNameFromMap
   const getDictTarget: typeof import('../src/hooks/core/useDict').getDictTarget
   const h: typeof import('vue').h
+  const homepage: typeof import('../src/const/package-info').homepage
   const ignorableWatch: typeof import('@vueuse/core').ignorableWatch
   const initDict: typeof import('../src/hooks/core/useDict').initDict
   const inject: typeof import('vue').inject
@@ -88,6 +92,7 @@ declare global {
   const isShallow: typeof import('vue').isShallow
   const makeDestructurable: typeof import('@vueuse/core').makeDestructurable
   const markRaw: typeof import('vue').markRaw
+  const name: typeof import('../src/const/package-info').name
   const nextTick: typeof import('vue').nextTick
   const onActivated: typeof import('vue').onActivated
   const onBeforeMount: typeof import('vue').onBeforeMount
@@ -157,6 +162,7 @@ declare global {
   const unrefElement: typeof import('@vueuse/core').unrefElement
   const unregisterSocketEvent: typeof import('../src/socket/index').unregisterSocketEvent
   const until: typeof import('@vueuse/core').until
+  const urls: typeof import('../src/const/package-info').urls
   const useActiveElement: typeof import('@vueuse/core').useActiveElement
   const useAnimate: typeof import('@vueuse/core').useAnimate
   const useAppConfirm: typeof import('../src/hooks/component/useConfirm').useAppConfirm
@@ -387,6 +393,7 @@ declare global {
   const useWindowFocus: typeof import('@vueuse/core').useWindowFocus
   const useWindowScroll: typeof import('@vueuse/core').useWindowScroll
   const useWindowSize: typeof import('@vueuse/core').useWindowSize
+  const version: typeof import('../src/const/package-info').version
   const watch: typeof import('vue').watch
   const watchArray: typeof import('@vueuse/core').watchArray
   const watchAtMost: typeof import('@vueuse/core').watchAtMost
@@ -462,6 +469,7 @@ declare module 'vue' {
     readonly AppNoti: UnwrapRef<typeof import('../src/hooks/component/useNoti')['AppNoti']>
     readonly AppRouter: UnwrapRef<typeof import('../src/router/index')['AppRouter']>
     readonly AppSocketEvents: UnwrapRef<typeof import('../src/socket/event')['AppSocketEvents']>
+    readonly AppSocketRooms: UnwrapRef<typeof import('../src/socket/event')['AppSocketRooms']>
     readonly EffectScope: UnwrapRef<typeof import('vue')['EffectScope']>
     readonly WTablePresetCreatedAtColumn: UnwrapRef<typeof import('@/components/UI/Table/src/utils/presetColumns')['WTablePresetCreatedAtColumn']>
     readonly WTablePresetOrderColumn: UnwrapRef<typeof import('@/components/UI/Table/src/utils/presetColumns')['WTablePresetOrderColumn']>
@@ -492,7 +500,9 @@ declare module 'vue' {
     readonly debouncedWatch: UnwrapRef<typeof import('@vueuse/core')['debouncedWatch']>
     readonly defineAsyncComponent: UnwrapRef<typeof import('vue')['defineAsyncComponent']>
     readonly defineComponent: UnwrapRef<typeof import('vue')['defineComponent']>
+    readonly dependencies: UnwrapRef<typeof import('../src/const/package-info')['dependencies']>
     readonly destroySocket: UnwrapRef<typeof import('../src/socket/index')['destroySocket']>
+    readonly devDependencies: UnwrapRef<typeof import('../src/const/package-info')['devDependencies']>
     readonly eagerComputed: UnwrapRef<typeof import('@vueuse/core')['eagerComputed']>
     readonly effectScope: UnwrapRef<typeof import('vue')['effectScope']>
     readonly extendRef: UnwrapRef<typeof import('@vueuse/core')['extendRef']>
@@ -503,6 +513,7 @@ declare module 'vue' {
     readonly getDictNameFromMap: UnwrapRef<typeof import('../src/hooks/core/useDict')['getDictNameFromMap']>
     readonly getDictTarget: UnwrapRef<typeof import('../src/hooks/core/useDict')['getDictTarget']>
     readonly h: UnwrapRef<typeof import('vue')['h']>
+    readonly homepage: UnwrapRef<typeof import('../src/const/package-info')['homepage']>
     readonly ignorableWatch: UnwrapRef<typeof import('@vueuse/core')['ignorableWatch']>
     readonly initDict: UnwrapRef<typeof import('../src/hooks/core/useDict')['initDict']>
     readonly inject: UnwrapRef<typeof import('vue')['inject']>
@@ -516,6 +527,7 @@ declare module 'vue' {
     readonly isShallow: UnwrapRef<typeof import('vue')['isShallow']>
     readonly makeDestructurable: UnwrapRef<typeof import('@vueuse/core')['makeDestructurable']>
     readonly markRaw: UnwrapRef<typeof import('vue')['markRaw']>
+    readonly name: UnwrapRef<typeof import('../src/const/package-info')['name']>
     readonly nextTick: UnwrapRef<typeof import('vue')['nextTick']>
     readonly onActivated: UnwrapRef<typeof import('vue')['onActivated']>
     readonly onBeforeMount: UnwrapRef<typeof import('vue')['onBeforeMount']>
@@ -585,6 +597,7 @@ declare module 'vue' {
     readonly unrefElement: UnwrapRef<typeof import('@vueuse/core')['unrefElement']>
     readonly unregisterSocketEvent: UnwrapRef<typeof import('../src/socket/index')['unregisterSocketEvent']>
     readonly until: UnwrapRef<typeof import('@vueuse/core')['until']>
+    readonly urls: UnwrapRef<typeof import('../src/const/package-info')['urls']>
     readonly useActiveElement: UnwrapRef<typeof import('@vueuse/core')['useActiveElement']>
     readonly useAnimate: UnwrapRef<typeof import('@vueuse/core')['useAnimate']>
     readonly useAppConfirm: UnwrapRef<typeof import('../src/hooks/component/useConfirm')['useAppConfirm']>
@@ -815,6 +828,7 @@ declare module 'vue' {
     readonly useWindowFocus: UnwrapRef<typeof import('@vueuse/core')['useWindowFocus']>
     readonly useWindowScroll: UnwrapRef<typeof import('@vueuse/core')['useWindowScroll']>
     readonly useWindowSize: UnwrapRef<typeof import('@vueuse/core')['useWindowSize']>
+    readonly version: UnwrapRef<typeof import('../src/const/package-info')['version']>
     readonly watch: UnwrapRef<typeof import('vue')['watch']>
     readonly watchArray: UnwrapRef<typeof import('@vueuse/core')['watchArray']>
     readonly watchAtMost: UnwrapRef<typeof import('@vueuse/core')['watchAtMost']>

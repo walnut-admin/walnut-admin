@@ -1,5 +1,5 @@
 import type { Router } from 'vue-router'
-import { version } from '~build/package'
+import { version } from '@/const/package-info'
 import { layoutConst } from '@/router/routes/builtin'
 import { decryptRouterUrl, encryptRouterUrl } from '@/router/utils/crypto'
 

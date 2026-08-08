@@ -2,8 +2,8 @@
 import type { InputInst } from 'naive-ui'
 import type { IResponseData } from '@/api/response'
 import { downloadByBlob } from '@walnut/client/browser/file/download'
-import { name } from '~build/package'
 import { authMfaTotpBindAPI, authMfaTotpGenerateAPI, authMfaTotpUnbindAPI } from '@/api/auth/mfa'
+import { name } from '@/const/package-info'
 
 defineOptions({
   name: 'MfaTotpModal',
