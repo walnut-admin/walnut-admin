@@ -53,8 +53,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 Turborepo + pnpm w
 - [pnpm](https://pnpm.io/) — 包管理（workspace + catalog）
 - [Turborepo](https://turbo.build/repo/docs) — 任务编排
 - [ESLint](https://eslint.org/) — 代码检查（flat config）
-- [Changesets](https://github.com/changesets/changesets) — 版本管理
-- [git-cliff](https://git-cliff.org/) — 变更日志
+- [Changesets](https://github.com/changesets/changesets) — 版本管理 + per-package 变更日志（changelog-github 插件）
 
 ## 仓库地址
 

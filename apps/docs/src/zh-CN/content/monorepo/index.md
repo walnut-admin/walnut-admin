@@ -13,8 +13,8 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | 类型系统 | TypeScript 6.0（前端 ESM + 后端 CJS，双轨 toolchain） |
 | 代码检查 | ESLint 10.3 flat config + `@antfu/eslint-config` + `@walnut/eslint-config` |
 | 格式化 | Prettier 3（根目录统一管理） |
-| 版本管理 | Changesets（fixed group 共享包 + independent apps） |
-| 变更日志 | git-cliff（conventional commits 分组渲染） |
+| 版本管理 | Changesets（两组 fixed：Apps 3 包同步 + Packages 7 包同步） |
+| 变更日志 | Changesets changelog-github 插件（per-package，PR 链接 + 贡献者） |
 | 死代码检测 | Knip 6.29 |
 | Git Hooks | simple-git-hooks + lint-staged |
 | 前端框架 | Vue 3 + Vite 8 + Naive UI + UnoCSS |
@@ -35,8 +35,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | [package.json & Scripts](./package-scripts.md) | 标准 script 约定、根只做委托、按包类型差异化 |
 | [pnpm Catalog](./pnpm-catalog.md) | `catalogMode: strict`、精确版本锁死、`workspace:*` vs `catalog:` |
 | [Turbo](./turbo.md) | 任务拓扑编排、缓存策略、环境变量感知、Tag-Based 架构边界 |
-| [Release & Changeset](./release-changeset.md) | Fixed group 5包同步、3app 独立、auto-changeset 自动生成 |
-| [Git-cliff](./git-cliff.md) | Conventional commits 分组、changelog 渲染、发布流程中的位置 |
+| [发布 & 发版指南](./release.md) | 两组 fixed 版本策略、auto-changeset、git-cliff 渲染、发版实操 |
 | [Knip 死代码检测](./knip.md) | 死代码检测、配置设计、已知局限、日常维护 |
 | [环境变量加密管理](./env-management.md) | dotenvx 加密方案、多环境密钥、新成员入职流程 |
 
