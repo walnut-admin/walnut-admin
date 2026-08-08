@@ -224,7 +224,7 @@ async function main() {
   let files = fs.readdirSync(changesetDir).filter(f => f.endsWith('.md') && f !== 'README.md')
   if (files.length === 0) {
     log('没有待消费的 changeset，尝试从 git commit 自动生成...')
-    run('npx tsx scripts/version/auto-changeset.ts')
+    run('walnut-auto-changeset')
     files = fs.readdirSync(changesetDir).filter(f => f.endsWith('.md') && f !== 'README.md')
     if (files.length === 0) {
       log('没有可生成的变更记录，跳过发版')

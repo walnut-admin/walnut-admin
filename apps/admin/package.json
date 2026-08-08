@@ -133,7 +133,6 @@
     "chalk": "catalog:",
     "deploy-cli-service": "catalog:",
     "eslint": "catalog:",
-    "git-cliff": "catalog:",
     "javascript-obfuscator": "catalog:",
     "mockjs": "catalog:",
     "rollup": "catalog:",

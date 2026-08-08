@@ -2,17 +2,30 @@
 
 ## 概述
 
-Walnut Admin 使用 **Changesets** 管理 monorepo 的多包版本号，配合 `git-cliff` 生成 CHANGELOG。版本策略是 **5 个共享包 fixed 组（同步版本） + 3 个 app 独立版本**。
+Walnut Admin 使用 **Changesets** 管理 monorepo 的多包版本号，配合 `git-cliff` 生成 CHANGELOG。版本策略是 **7 个共享包 fixed 组（同步版本） + 3 个 app 独立版本**。
 
 ## 我们做了什么
 
-### 1. Changesets 三段式工作流
+### 1. 一步式发布流程
+
+发布编排在 `@walnut/release` 包（`packages/tooling/release/`），root 仅暴露两个脚本：
 
 ```
-开发时：pnpm changeset:auto  →  生成 .changeset/*.md 文件
-版本时：pnpm changeset version  →  消费 changeset，更新 package.json 版本号
-发布时：pnpm changeset publish  →  （内部项目，暂不发布到 npm）
+pnpm release     # 完整发布：auto-changeset → changeset version → git-cliff changelog → git tag → git push
+pnpm changelog   # 仅用 git-cliff 生成 CHANGELOG.md（手动场景）
 ```
+
+`pnpm release` 内部流程（仅 main 分支可执行）：
+
+```
+1. 无待消费 changeset？→ 自动从 git commit 生成（walnut-auto-changeset）
+2. 交互式确认 bump 类型（自动检测 major/minor/patch，可覆盖）
+3. changeset version → 消费 changeset，更新 package.json 版本号
+4. git-cliff 生成 CHANGELOG.md（调用 pnpm changelog）
+5. git tag + git push（含上次 push 失败的自动恢复）
+```
+
+开发者不需要手动运行 changeset 相关命令——只需保持 conventional commit 格式，release 一步到位。
 
 ### 2. Fixed Group（共享包同步版本）
 
@@ -23,8 +36,10 @@ Walnut Admin 使用 **Changesets** 管理 monorepo 的多包版本号，配合 `
   "fixed": [[
     "@walnut/utils",
     "@walnut/contract",
+    "@walnut/types",
     "@walnut/client",
-    "@walnut/axios",
+    "@walnut/http",
+    "@walnut/ui",
     "@walnut/eslint-config"
   ]],
   "changelog": false,         // 不用 Changesets 自带的 changelog（用 git-cliff）
@@ -35,7 +50,7 @@ Walnut Admin 使用 **Changesets** 管理 monorepo 的多包版本号，配合 `
 }
 ```
 
-**5 个共享包永远同版本号**。为什么？
+**7 个共享包永远同版本号**。为什么？
 - `@walnut/contract` 的类型变更会影响所有消费者
 - `@walnut/utils` 被前后端同时依赖
 - 它们是紧密耦合的一组——"一荣俱荣，一损俱损"
@@ -47,25 +62,18 @@ Walnut Admin 使用 **Changesets** 管理 monorepo 的多包版本号，配合 `
 
 ### 3. 自动 changeset 生成
 
-[`scripts/version/auto-changeset.ts`](https://github.com/walnut-admin/walnut-admin-client/blob/main/scripts/version/auto-changeset.ts) 从 conventional commits 自动生成 changeset 文件：
+[`packages/tooling/release/src/auto-changeset.ts`](https://github.com/walnut-admin/walnut-admin-client/blob/main/packages/tooling/release/src/auto-changeset.ts) 从 conventional commits 自动生成 changeset 文件（扫描自上次 tag 以来的 commits，过滤噪声/非代码改动，按 bump 映射生成 `.changeset/auto-*.md`）：
 
 ```bash
-pnpm changeset:auto   # 扫描自上次 tag 以来的 commits → 生成 .changeset/*.md
+pnpm exec walnut-auto-changeset   # 独立执行（release 内部已自动调用）
 ```
 
-开发者不需要手动运行 `pnpm changeset`——只需保持 conventional commit 格式，脚本自动处理。
+### 4. 脚本归属
 
-### 4. 发布流程
-
-[`scripts/version/release.ts`](https://github.com/walnut-admin/walnut-admin-client/blob/main/scripts/version/release.ts) 编排完整发布流程：
-
-```
-auto-changeset → changeset version → git-cliff changelog → git tag → git push
-```
-
-```bash
-pnpm release   # 仅在 main 分支执行
-```
+| 脚本 | 位置 |
+|------|------|
+| `release` / `changelog` | root package.json（调 `@walnut/release` bin） |
+| `auto-changeset` / `release` 编排 | `packages/tooling/release/src/`（tsx bin wrapper） |
 
 ## 没做什么 / 为什么
 
@@ -88,8 +96,9 @@ semantic-release 从 commit message **自动推断** semver bump 类型（`fix:`
 | 文件 | 作用 |
 |------|------|
 | [.changeset/config.json](https://github.com/walnut-admin/walnut-admin-client/blob/main/.changeset/config.json) | Changeset 配置：fixed group、access、changelog |
-| [scripts/version/auto-changeset.ts](https://github.com/walnut-admin/walnut-admin-client/blob/main/scripts/version/auto-changeset.ts) | 从 conventional commits 自动生成 changeset |
-| [scripts/version/release.ts](https://github.com/walnut-admin/walnut-admin-client/blob/main/scripts/version/release.ts) | 发布流水线编排 |
+| [packages/tooling/release/src/auto-changeset.ts](https://github.com/walnut-admin/walnut-admin-client/blob/main/packages/tooling/release/src/auto-changeset.ts) | 从 conventional commits 自动生成 changeset |
+| [packages/tooling/release/src/release.ts](https://github.com/walnut-admin/walnut-admin-client/blob/main/packages/tooling/release/src/release.ts) | 发布流水线编排 |
+| [packages/tooling/commitlint-config/index.mjs](https://github.com/walnut-admin/walnut-admin-client/blob/main/packages/tooling/commitlint-config/index.mjs) | commitlint 规则（type-enum），root config extends 消费 |
 
 ## 相关 ADR
 
