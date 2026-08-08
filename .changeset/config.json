@@ -6,8 +6,10 @@
     [
       "@walnut/utils",
       "@walnut/contract",
+      "@walnut/types",
       "@walnut/client",
-      "@walnut/axios",
+      "@walnut/http",
+      "@walnut/ui",
       "@walnut/eslint-config"
     ]
   ],
