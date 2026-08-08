@@ -10,9 +10,8 @@ const config: KnipConfig = {
   // ============================================================
   workspaces: {
     // --- 前端 Vue3 应用 ---
-    // Vite 插件设为 false：vite.config.ts 在模块顶层调用 JSON.parse(env)，
-    // knip 的 jiti 加载器无法执行它（env 未定义 → JSON.parse(undefined) 抛异常）。
-    // 改为手动指定 entry，效果一样。
+    // vite: false：阻止 knip 的 vite 插件尝试 jiti 加载 vite.config.ts
+    // （它依赖 loadEnv/回调执行，knip 无法安全执行）；entry 已手动指定。
     'apps/admin': {
       entry: [
         'src/main.ts',
@@ -100,14 +99,6 @@ const config: KnipConfig = {
   },
 
   // ============================================================
-  // 路径别名：knip 不读 vite.config.ts，需手动告知路径映射
-  // ============================================================
-  paths: {
-    '~build/package': ['./apps/admin/build/package.ts'],
-    '~build/time': ['./apps/admin/build/time.ts'],
-  },
-
-  // ============================================================
   // 全局忽略
   // ============================================================
   ignore: [
@@ -155,7 +146,6 @@ const config: KnipConfig = {
     '@swc/cli',
     'unplugin-swc',
     'reflect-metadata',
-    'ts-loader',
 
     // --- ESLint 生态（通过 @antfu/eslint-config 间接引用） ---
     '@antfu/eslint-config',
@@ -239,7 +229,6 @@ const config: KnipConfig = {
     // --- 类型包 ---
     '@types/node',
     '@types/express',
-    '@types/jest',
     '@types/supertest',
     '@types/codemirror',
     '@types/intro.js',
@@ -254,9 +243,11 @@ const config: KnipConfig = {
     'lint-staged',
     'knip',
 
+    // --- commitlint（通过 index.mjs 的 extends 字符串引用，knip 追踪不到） ---
+    '@commitlint/config-conventional',
+
     // --- 版本 & 发布 ---
     '@changesets/cli',
-    'git-cliff',
 
     // --- Dev 工具链 ---
     'taze',
@@ -267,10 +258,6 @@ const config: KnipConfig = {
     'concurrently',
     'cross-env',
     'nodemon',
-    'ts-node',
-    'ts-jest',
-    'jest',
-    'tsconfig-paths',
     'vite-tsconfig-paths',
 
     // --- ESLint config 包在 devDependencies 中的引用 ---

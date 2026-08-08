@@ -27,7 +27,6 @@
     "taze": "npx taze -i -w"
   },
   "dependencies": {
-    "dayjs": "catalog:",
     "vitepress": "catalog:",
     "vitepress-mermaid-renderer": "catalog:",
     "vue": "catalog:"

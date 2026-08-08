@@ -13,7 +13,7 @@
     "pnpm": ">=11.0.0"
   },
   "scripts": {
-    "build": "echo 'axios: pure source, no build needed'",
+    "build": "echo 'http: pure source, no build needed'",
     "lint": "eslint . --concurrency=auto",
     "lint:fix": "eslint . --fix --concurrency=auto",
     "types:check": "tsc --noEmit",
