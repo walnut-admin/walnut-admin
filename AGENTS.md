@@ -162,15 +162,6 @@ pnpm types:check
 pnpm check:deps:update
 ```
 
-### Deployment
-```bash
-# Deploy to staging
-pnpm deploy:stage
-
-# Deploy to production
-pnpm deploy:prod
-```
-
 ### Other
 ```bash
 # Generate PWA assets

@@ -257,7 +257,6 @@ const config: KnipConfig = {
     // --- 版本 & 发布 ---
     '@changesets/cli',
     'git-cliff',
-    'deploy-cli-service',
 
     // --- Dev 工具链 ---
     'taze',

@@ -28,9 +28,6 @@ build/_generated/*.log
 .env.keys
 env-local/
 
-# Deploy configs (may contain credentials)
-deploy.config.*
-
 # Reports (keep .md files)
 report/*
 !report/*.md

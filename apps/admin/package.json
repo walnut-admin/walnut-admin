@@ -131,7 +131,6 @@
     "@vitejs/plugin-vue-jsx": "catalog:",
     "@walnut/eslint-config": "workspace:*",
     "chalk": "catalog:",
-    "deploy-cli-service": "catalog:",
     "eslint": "catalog:",
     "javascript-obfuscator": "catalog:",
     "mockjs": "catalog:",
