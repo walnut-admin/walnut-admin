@@ -50,5 +50,10 @@
     "vite": "catalog:",
     "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
+  },
+  "walnut": {
+    "platform": "any",
+    "type": "utils",
+    "runtime": "none"
   }
 }

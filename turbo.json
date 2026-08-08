@@ -9,7 +9,17 @@
       },
       "backend": {
         "dependencies": {
-          "deny": ["browser"]
+          "deny": ["platform-web"]
+        }
+      },
+      "platform-any": {
+        "dependencies": {
+          "deny": ["platform-web", "platform-node"]
+        }
+      },
+      "platform-node": {
+        "dependencies": {
+          "deny": ["platform-web"]
         }
       }
     }

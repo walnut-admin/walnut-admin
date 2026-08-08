@@ -12,5 +12,10 @@
   },
   "dependencies": {
     "@antfu/eslint-config": "catalog:"
+  },
+  "walnut": {
+    "platform": "any",
+    "type": "tooling",
+    "runtime": "none"
   }
 }

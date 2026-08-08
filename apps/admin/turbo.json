@@ -1,4 +1,4 @@
 {
   "extends": ["//"],
-  "tags": ["app", "frontend"]
+  "tags": ["app", "frontend", "platform-web"]
 }

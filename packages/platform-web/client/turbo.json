@@ -1,4 +1,4 @@
 {
   "extends": ["//"],
-  "tags": ["shared", "browser"]
+  "tags": ["shared", "platform-web"]
 }

@@ -32,5 +32,10 @@
     "@walnut/eslint-config": "workspace:*",
     "rimraf": "catalog:",
     "typescript": "catalog:"
+  },
+  "walnut": {
+    "platform": "web",
+    "type": "http",
+    "runtime": ["dom", "vue"]
   }
 }

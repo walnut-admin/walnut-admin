@@ -77,7 +77,6 @@
     "@socket.io/admin-ui": "catalog:",
     "@supercharge/request-ip": "catalog:",
     "@walnut/contract": "workspace:*",
-    "@walnut/utils": "workspace:*",
     "axios": "catalog:",
     "bcryptjs": "catalog:",
     "bull": "catalog:",

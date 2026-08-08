@@ -28,23 +28,27 @@
     "@walnut/types": "workspace:*",
     "@walnut/utils": "workspace:*",
     "detectincognitojs": "catalog:",
+    "easy-fns-ts": "catalog:",
     "idb": "catalog:",
     "js-base64": "catalog:",
     "lodash-es": "catalog:",
     "nanoid": "catalog:",
     "pinia": "catalog:",
     "superjson": "catalog:",
-    "vue": "catalog:",
-    "vue-router": "catalog:"
+    "vue": "catalog:"
   },
   "devDependencies": {
     "@types/lodash-es": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "@walnut/eslint-config": "workspace:*",
-    "easy-fns-ts": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
+  },
+  "walnut": {
+    "platform": "web",
+    "type": "client",
+    "runtime": ["dom", "web-crypto", "vue"]
   }
 }
