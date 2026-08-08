@@ -116,7 +116,7 @@ export function getBump(parsed: ParsedCommit): string {
 }
 
 /** 获取 commit 变更的文件列表（--root：root commit 无 parent，需要与空树对比） */
-export function getCommitFiles(hash: string): string[] {
+function getCommitFiles(hash: string): string[] {
   try {
     const output = run(`git diff-tree --no-commit-id --name-only -r --root ${hash}`)
     if (!output)

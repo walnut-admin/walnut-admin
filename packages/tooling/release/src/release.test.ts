@@ -157,7 +157,7 @@ describe('main() 完整发版流程（mock 外部命令）', () => {
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
-  it('完整流程：changeset version → git-cliff --tag → commit → tag → push', async () => {
+  it('完整流程：changeset version → commit → tag → push', async () => {
     await main()
 
     expect(execCalls).toContain('pnpm changeset version')
