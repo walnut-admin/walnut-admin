@@ -55,10 +55,30 @@ pnpm changelog   # 仅用 git-cliff 生成 CHANGELOG.md（手动场景）
 - `@walnut/utils` 被前后端同时依赖
 - 它们是紧密耦合的一组——"一荣俱荣，一损俱损"
 
-**3 个 app 独立版本**。为什么？
-- `apps/admin` UI 变更不关 `apps/server` 的事
-- `apps/docs` 文档更新不影响 `apps/server`
-- 各自有独立的 release cycle
+**3 个 app 的版本行为**：
+- `apps/admin` — **版本基准**：auto-changeset 显式提及，独立 bump（`feat` → minor、`fix` → patch）
+- `apps/server` — 不随发布主动 bump，但依赖共享包 → `updateInternalDependencies: "patch"` 保证**至少 patch 跟随**
+- `apps/docs` — 不依赖任何共享包，完全独立（文档更新不触发版本变化）
+
+### 版本同步机制（为什么 packages 会跟着动）
+
+`auto-changeset` 生成的 frontmatter **同时提及 `@walnut/admin` 和 fixed 组代表 `@walnut/utils`**：
+
+```yaml
+---
+"@walnut/admin": minor
+"@walnut/utils": minor
+---
+```
+
+Changesets 的 fixed 组**只在组内包被 changeset 提及时整组同步**——因此必须显式提及代表包，否则 7 个共享包永远不会升级（2026-08-08 实测修复）。`changeset version` 的实际效果：
+
+| 包 | 版本变化 | 机制 |
+|----|---------|------|
+| `@walnut/admin` | 独立 bump | 显式提及（版本基准） |
+| 7 个 packages | 同步同版本 | fixed 组跟随代表包 |
+| `@walnut/server` | 至少 patch | `updateInternalDependencies` |
+| `@walnut/docs` | 不变 | 无共享依赖 |
 
 ### 3. 自动 changeset 生成
 

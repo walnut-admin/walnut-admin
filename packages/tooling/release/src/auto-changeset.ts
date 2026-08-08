@@ -12,8 +12,11 @@ function log(msg: string) {
 }
 
 const CHANGESET_DIR = path.resolve('.changeset')
-// Primary package for changesets; all others kept in sync via `fixed` group in .changeset/config.json
+// App 版本基准：admin 独立版本（server/docs 不随发布自动 bump，各自独立 cycle）
 const PACKAGE_NAME = '@walnut/admin'
+// fixed 组代表包：被提及即触发 7 个共享包整组同步（见 .changeset/config.json fixed）
+// Changesets 的 fixed 组只在组内包被 changeset 提及时同步，因此必须显式提及
+const GROUP_PACKAGE = '@walnut/utils'
 
 /** bump 类型映射：约定式提交前缀 → changeset 类型 | "skip" */
 const BUMP_MAP: Record<string, string> = {
@@ -200,7 +203,7 @@ function main() {
 
     const summary = formatSummary(parsed)
     const commitType = parsed.type || 'other'
-    const content = `---\n"${PACKAGE_NAME}": ${bump}\n---\n\n${parsed.hash} ::: ${commitType} ::: ${summary}\n`
+    const content = `---\n"${PACKAGE_NAME}": ${bump}\n"${GROUP_PACKAGE}": ${bump}\n---\n\n${parsed.hash} ::: ${commitType} ::: ${summary}\n`
 
     fs.writeFileSync(filepath, content, 'utf-8')
     generated++
