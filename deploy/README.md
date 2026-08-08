@@ -18,19 +18,19 @@ mkdir -p /home/ubuntu/walnut-admin/deploy
 # 目录结构：
 #   /home/ubuntu/walnut-admin/deploy/
 #   ├── docker-compose.yml
-#   ├── .env                  ← 真实值（IMG_TAG + 数据层密码）
-#   ├── env/.env.production   ← 后端 env（见 deploy/env/README.md）
+#   ├── .env                  ← CI 自动生成（IMG_TAG + 数据层密码）
+#   ├── env/.env.production   ← CI 自动生成（后端 env，见 deploy/env/README.md）
 #   ├── nginx/
 #   │   ├── conf.d/*.conf     ← 域名/证书路径已按现网填写
 #   │   └── certs/            ← SSL 证书（前端域名 + API 域名）
 #   └── logs/
 ```
 
-3. **准备后端 env**：见 `deploy/env/README.md`（连接串 host 改为服务名，密钥禁止改动）。
+3. **准备后端 env**：无需手动准备——`env/.env.production` 由 CI 每次部署自动生成（连接串 host 已替换为容器服务名）；仅本地验证场景才按 `deploy/env/README.md` 手动生成。
 
 4. **放置证书**：把现网 `/etc/nginx/conf.d` 中的证书文件复制到 `deploy/nginx/certs/`（文件名与 conf 中路径一致）。
 
-5. **填写 deploy/.env**：`IMG_TAG=latest`（首次）+ `MONGODB_ROOT_PASSWORD` / `MONGODB_REPLICA_SET_KEY` / `MONGODB_REPLICA_SET_NAME` / `REDIS_PASSWORD`（沿用现有 `apps/server/db/docker-compose.prod.yml` 中的真实值）。
+5. **填写 deploy/.env**：无需手动填写——由 CI 每次部署自动生成（数据层密码从解密产物提取）；仅本地验证时参考 `.env.example`。
 
 6. **启动（首次会先拉数据库镜像，需国内镜像源或稍等）**：
 

@@ -67,6 +67,38 @@ jobs:
           docker build -f apps/admin/Dockerfile -t $REGISTRY/$IMAGE_NS/frontend:$TAG .
           docker push $REGISTRY/$IMAGE_NS/frontend:$TAG
 
+      # 生成服务器 env 文件：连接串改服务名 + 从解密产物提取数据层密码拼装 .env
+      - name: Generate server env files
+        run: |
+          sed -i \
+            -e 's|^APP_REDIS_HOST=.*|APP_REDIS_HOST=prod-single-redis|' \
+            -e 's|^DATABASE_PRIMARY=.*|DATABASE_PRIMARY=prod-mongodb-primary:27017|' \
+            -e 's|^DATABASE_SECONDARY=.*|DATABASE_SECONDARY=prod-mongodb-secondary:27017|' \
+            -e 's|^DATABASE_ARBITER=.*|DATABASE_ARBITER=prod-mongodb-arbiter:27017|' \
+            apps/server/env-local/.env.production
+          DB_PASS=$(grep '^DATABASE_PASS=' apps/server/env-local/.env.production | cut -d= -f2- | tr -d '"')
+          REDIS_PASS=$(grep '^APP_REDIS_PASS=' apps/server/env-local/.env.production | cut -d= -f2- | tr -d '"')
+          test -n "$DB_PASS" || { echo "ERROR: DATABASE_PASS not found"; exit 1; }
+          test -n "$REDIS_PASS" || { echo "ERROR: APP_REDIS_PASS not found"; exit 1; }
+          mkdir -p deploy-files
+          cp apps/server/env-local/.env.production deploy-files/.env.production
+          cat > deploy-files/.env <<EOF
+          IMG_TAG=${{ env.TAG }}
+          MONGODB_ROOT_PASSWORD=${DB_PASS}
+          MONGODB_REPLICA_SET_KEY=WalnutAdminNestjsMongoDBReplicasetProdName
+          MONGODB_REPLICA_SET_NAME=WalnutAdminNestjsMongoDBReplicasetProdName
+          REDIS_PASSWORD=${REDIS_PASS}
+          EOF
+
+      - name: Upload env files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USERNAME }}
+          password: ${{ secrets.PROD_SERVER_PASSWORD }}
+          source: "deploy-files/"
+          target: /home/ubuntu/walnut-admin/deploy/
+
       - name: Deploy on server
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -75,7 +107,10 @@ jobs:
           password: ${{ secrets.PROD_SERVER_PASSWORD }}
           script: |
             cd /home/ubuntu/walnut-admin/deploy
-            # 只替换 IMG_TAG 行，保留服务器上的人工配置（数据层密码等）
+            mv -f deploy-files/.env .env
+            mv -f deploy-files/.env.production env/.env.production
+            rm -rf deploy-files
+            # 只替换 IMG_TAG 行，保留服务器上的人工配置（如有）
             if [ -f .env ] && grep -q '^IMG_TAG=' .env; then
               sed -i "s/^IMG_TAG=.*/IMG_TAG=${{ env.TAG }}/" .env
             else
