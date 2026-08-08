@@ -19,7 +19,8 @@ RUN pnpm --filter @walnut/contract build
 RUN pnpm --filter @walnut/server build
 
 # 提取生产依赖到 /out（含 node_modules + package.json + workspace 包产物）
-RUN pnpm deploy --filter=@walnut/server --prod /out
+# --legacy: pnpm v10+ 默认要求 inject-workspace-packages，仓库未启用，用 legacy 模式
+RUN pnpm deploy --legacy --filter=@walnut/server --prod /out
 
 # ---------- runtime ----------
 FROM node:24-bookworm-slim AS runtime
