@@ -2,6 +2,7 @@ import type { INestApplication } from '@nestjs/common'
 import type { Server } from 'node:http'
 import { Test } from '@nestjs/testing'
 import request from 'supertest'
+import { afterAll, beforeAll, describe, it } from 'vitest'
 import { AppModule } from '@/app/app.module'
 
 describe('AppController (e2e)', () => {

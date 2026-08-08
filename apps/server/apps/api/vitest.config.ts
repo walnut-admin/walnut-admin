@@ -15,5 +15,7 @@ export default defineConfig({
   test: {
     root: './',
     globals: true,
+    include: ['apps/api/src/**/*.spec.ts'],
+    exclude: ['**/node_modules/**', '**/dist/**'],
   },
 })

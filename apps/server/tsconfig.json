@@ -19,7 +19,7 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "composite": false,
-    "types": ["node", "jest"],
+    "types": ["node"],
     "paths": {
       "@/*": [
         "./apps/api/src/*"

@@ -1,5 +1,7 @@
 import type { TestingModule } from '@nestjs/testing'
 import { Test } from '@nestjs/testing'
+import { I18nService } from 'nestjs-i18n'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
@@ -10,14 +12,20 @@ describe('appController', () => {
   beforeAll(async () => {
     app = await Test.createTestingModule({
       controllers: [AppController],
-      providers: [AppService],
+      providers: [
+        AppService,
+        {
+          provide: I18nService,
+          useValue: { t: (_key: string) => 'Hello World!' },
+        },
+      ],
     }).compile()
   })
 
   describe('getHello', () => {
-    it('should return "Hello World!"', () => {
+    it('should return the i18n-translated greeting', async () => {
       const appController = app.get(AppController)
-      expect(appController.getHello()).toBe('Hello World!')
+      expect(await appController.getHello()).toBe('Hello World!')
     })
   })
 })

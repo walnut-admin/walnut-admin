@@ -6,7 +6,8 @@ export default defineConfig({
   plugins: [swc.vite(), tsconfigPaths()],
 
   test: {
-    include: ['**/*.e2e-spec.ts'],
+    include: ['apps/api/test/**/*.e2e-spec.ts'],
+    exclude: ['**/node_modules/**', '**/dist/**'],
     globals: true,
     root: './',
   },
