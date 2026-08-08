@@ -104,7 +104,8 @@ export default ({ mode }: ConfigEnv): UserConfig => {
     },
 
     optimizeDeps: {
-      include: Object.keys(dependencies),
+      // workspace 包有 source 条件直接消费源码，不应预构建
+      include: Object.keys(dependencies).filter(i => !i.startsWith('@walnut/')),
     },
 
     build: {

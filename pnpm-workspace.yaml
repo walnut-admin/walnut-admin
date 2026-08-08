@@ -13,7 +13,6 @@ hoisting: false
 
 overrides:
   glob: 11.1.0
-  lru-cache: 'catalog:'
 
 catalog:
   '@alicloud/dypnsapi20170525': 2.0.0
