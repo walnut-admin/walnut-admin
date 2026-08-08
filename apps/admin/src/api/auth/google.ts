@@ -1,5 +1,6 @@
 import type { IRequestPayload } from '../request'
 import type { IResponseData } from '../response'
+import { AuthRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 
 /**
@@ -7,7 +8,7 @@ import { AppAxios } from '@/utils/axios'
  */
 export function authWithGoogleAPI(data: IRequestPayload.Auth.Google) {
   return AppAxios.post<IResponseData.Auth.TokenPayload>({
-    url: '/auth/google',
+    url: AuthRoutes.GOOGLE,
     data,
   })
 }

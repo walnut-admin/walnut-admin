@@ -2,6 +2,7 @@ import type { IModels } from '../models'
 import type { IRequestPayload } from '../request'
 import type { IResponseData } from '../response'
 import { getCPUCoreCount, getGPUArchitecture, getIsInIncognitoMode, getMemoryGB } from '@walnut/client/browser/shared'
+import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
@@ -66,7 +67,7 @@ export async function initialDeviceAPI() {
   const isPrivate = await getIsInIncognitoMode()
 
   return AppAxios.post<IResponseData.System.Device.Initial>({
-    url: '/system/device/initial',
+    url: SystemEndpointRoutes.DEVICE_INITIAL,
     data: {
       deviceName: appStoreFingerprint.getDeviceNameFromFingerprint,
       private: isPrivate,

@@ -1,4 +1,5 @@
 import type { IResponseData } from '../response'
+import { SharedRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 
 /**
@@ -7,7 +8,7 @@ import { AppAxios } from '@/utils/axios'
 export function getAliSTSTokenAPI() {
   return AppAxios.get<IResponseData.Shared.AliStsToken>(
     {
-      url: '/shared/ali/sts',
+      url: SharedRoutes.ALI_STS,
       _autoDecryptResponseData: ['accessKeyId', 'accessKeySecret', 'stsToken'],
     },
   )

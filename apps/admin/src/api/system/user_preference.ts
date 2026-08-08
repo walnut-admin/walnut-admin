@@ -1,12 +1,13 @@
 import type { IResponseData } from '../response'
 import type { IStoreUser } from '@/store/types'
+import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 
 // get user preference
 export function getPreferenceAPI() {
   return AppAxios.get<IResponseData.System.User.Preference>(
     {
-      url: '/system/user/preference/read',
+      url: SystemEndpointRoutes.USER_PREFERENCE_READ,
     },
   )
 }
@@ -15,7 +16,7 @@ export function getPreferenceAPI() {
 export function updatePreferenceBasicAPI(payload: IStoreUser.Preference.Basic) {
   return AppAxios.patch<boolean>(
     {
-      url: '/system/user/preference/basic',
+      url: SystemEndpointRoutes.USER_PREFERENCE_BASIC,
       data: payload,
     },
   )
@@ -25,7 +26,7 @@ export function updatePreferenceBasicAPI(payload: IStoreUser.Preference.Basic) {
 export function updateAccessibilityPreferenceAPI(payload: IStoreUser.Preference.Accessibility) {
   return AppAxios.patch<boolean>(
     {
-      url: '/system/user/preference/accessibility',
+      url: SystemEndpointRoutes.USER_PREFERENCE_ACCESSIBILITY,
       data: payload,
     },
   )
@@ -35,7 +36,7 @@ export function updateAccessibilityPreferenceAPI(payload: IStoreUser.Preference.
 export function updateThemePreferenceAPI(payload: IStoreUser.Preference.Theme) {
   return AppAxios.patch<boolean>(
     {
-      url: '/system/user/preference/theme',
+      url: SystemEndpointRoutes.USER_PREFERENCE_THEME,
       data: payload,
     },
   )
@@ -45,7 +46,7 @@ export function updateThemePreferenceAPI(payload: IStoreUser.Preference.Theme) {
 export function updateLayoutPreferenceAPI(payload: IStoreUser.Preference.Layout) {
   return AppAxios.patch<boolean>(
     {
-      url: '/system/user/preference/layout',
+      url: SystemEndpointRoutes.USER_PREFERENCE_LAYOUT,
       data: payload,
     },
   )

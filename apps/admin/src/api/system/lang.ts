@@ -1,5 +1,6 @@
 import type { IModels } from '../models'
 import type { IResponseData } from '../response'
+import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
@@ -14,7 +15,7 @@ export const langAPI = new BaseAPI<IModels.SystemLang>({
  */
 export async function getLangListPublicAPI() {
   const lists = await AppAxios.get<IResponseData.System.Lang.Public>({
-    url: '/system/lang/list/public',
+    url: SystemEndpointRoutes.LANG_LIST_PUBLIC,
   })
 
   return lists.map(i => ({

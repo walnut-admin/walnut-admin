@@ -5,6 +5,7 @@
 
 // ============ Authentication ============
 export const AuthRoutes = {
+  BASE: '/auth',
   SIGNOUT: '/auth/signout',
   REFRESH: '/auth/refresh',
   PERMISSIONS: '/auth/permissions',
@@ -47,6 +48,12 @@ export const SystemEndpointRoutes = {
   USER_IDENTITY_SEND_CODE: '/system/user/identity/send-code',
   USER_IDENTITY_VERIFY: '/system/user/identity/verify',
   USER_DEVICE_LIST: '/system/user/device/list',
+  USER_LOCK_READ: '/system/user/lock/read',
+  USER_PREFERENCE_READ: '/system/user/preference/read',
+  USER_PREFERENCE_BASIC: '/system/user/preference/basic',
+  USER_PREFERENCE_ACCESSIBILITY: '/system/user/preference/accessibility',
+  USER_PREFERENCE_THEME: '/system/user/preference/theme',
+  USER_PREFERENCE_LAYOUT: '/system/user/preference/layout',
   DEVICE_INITIAL: '/system/device/initial',
   MENU_TREE: '/system/menu/tree',
   LANG_LIST_PUBLIC: '/system/lang/list/public',
@@ -61,6 +68,16 @@ export const AppRoutes = {
   SETTING_PRIVATE: '/app/setting/private',
   SETTING_CACHE_REFRESH: '/app/setting/cache/refresh',
   KEY_CURRENT: '/app/key/current',
+  KEY_AES_URL: '/app/key/current/AES_KEY_URL',
+  DEPS: '/deps',
+  MONITOR_SERVER_CPU: '/app/monitor/server/cpu',
+  MONITOR_SERVER_MEM: '/app/monitor/server/mem',
+  MONITOR_SERVER_OS: '/app/monitor/server/os',
+  MONITOR_SERVER_SYS: '/app/monitor/server/sys',
+  MONITOR_SERVER_DISK: '/app/monitor/server/disk',
+  MONITOR_SERVER_BATTERY: '/app/monitor/server/battery',
+  MONITOR_SERVER_TIME: '/app/monitor/server/time',
+  MONITOR_SERVER_NETWORK: '/app/monitor/server/network',
 } as const
 
 // ============ Security ============

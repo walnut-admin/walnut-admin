@@ -1,12 +1,13 @@
 import type { IResponseData } from '../response'
 import type { IStoreApp } from '@/store/types'
+import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 
 // get lock status
 export function getLockStatusAPI() {
   return AppAxios.get<IResponseData.System.User.LockStatus>(
     {
-      url: '/system/user/lock/read',
+      url: SystemEndpointRoutes.USER_LOCK_READ,
     },
   )
 }
@@ -15,7 +16,7 @@ export function getLockStatusAPI() {
 export function lockAPI(lockRoute: IStoreApp.LockRoute) {
   return AppAxios.patch<IResponseData.System.User.Lock>(
     {
-      url: '/system/user/lock',
+      url: SystemEndpointRoutes.USER_LOCK,
       data: { lockRoute },
     },
   )
@@ -25,7 +26,7 @@ export function lockAPI(lockRoute: IStoreApp.LockRoute) {
 export function unlockAPI() {
   return AppAxios.patch<IResponseData.System.User.Unlock>(
     {
-      url: '/system/user/lock/unlock',
+      url: SystemEndpointRoutes.USER_LOCK_UNLOCK,
     },
   )
 }

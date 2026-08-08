@@ -1,54 +1,55 @@
 import type { IResponseData } from '@/api/response'
+import { AppRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 
 export function getCpuInfoAPI() {
   return AppAxios.get<IResponseData.App.Monitor.CPU>({
-    url: '/app/monitor/server/cpu',
+    url: AppRoutes.MONITOR_SERVER_CPU,
   })
 }
 
 export function getMemInfoAPI() {
   return AppAxios.get<IResponseData.App.Monitor.Mem>({
-    url: '/app/monitor/server/mem',
+    url: AppRoutes.MONITOR_SERVER_MEM,
   })
 }
 
 export function getOSInfoAPI() {
   return AppAxios.get<IResponseData.App.Monitor.OS>({
-    url: '/app/monitor/server/os',
+    url: AppRoutes.MONITOR_SERVER_OS,
   })
 }
 
 export function getSysInfoAPI() {
   return AppAxios.get<IResponseData.App.Monitor.System>(
     {
-      url: '/app/monitor/server/sys',
+      url: AppRoutes.MONITOR_SERVER_SYS,
     },
   )
 }
 
 export function getDiskInfoAPI() {
   return AppAxios.get<IResponseData.App.Monitor.Disk[]>({
-    url: '/app/monitor/server/disk',
+    url: AppRoutes.MONITOR_SERVER_DISK,
   })
 }
 
 export function getBatteryInfoAPI() {
   return AppAxios.get<IResponseData.App.Monitor.Battery>({
-    url: '/app/monitor/server/battery',
+    url: AppRoutes.MONITOR_SERVER_BATTERY,
   })
 }
 
 export function getTimeInfoAPI() {
   return AppAxios.get<IResponseData.App.Monitor.Time>({
-    url: '/app/monitor/server/time',
+    url: AppRoutes.MONITOR_SERVER_TIME,
   })
 }
 
 export function getNetworkInfoAPI() {
   return AppAxios.get<IResponseData.App.Monitor.Network>(
     {
-      url: '/app/monitor/server/network',
+      url: AppRoutes.MONITOR_SERVER_NETWORK,
     },
   )
 }

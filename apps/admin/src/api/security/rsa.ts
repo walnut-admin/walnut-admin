@@ -1,3 +1,4 @@
+import { SecurityRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 
 /**
@@ -5,6 +6,6 @@ import { AppAxios } from '@/utils/axios'
  */
 export async function rsaPublicKeyAPI() {
   return await AppAxios.get<string>({
-    url: '/security/rsa/public-key',
+    url: SecurityRoutes.RSA_PUBLIC_KEY,
   })
 }

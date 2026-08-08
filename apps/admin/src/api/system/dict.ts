@@ -1,5 +1,6 @@
 import type { IModels } from '../models'
 import type { IResponseData } from '../response'
+import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
@@ -17,7 +18,7 @@ export const dictDataAPI = new BaseAPI<IModels.SystemDictType>({
 export function getDictByTypeAPI(types: string | string[]) {
   return AppAxios.get<IResponseData.System.Dict.MapDictValue[]>(
     {
-      url: '/system/dict/type/s',
+      url: SystemEndpointRoutes.DICT_TYPE_S,
       params: { types },
       _throttle: 500,
       _cache: true,

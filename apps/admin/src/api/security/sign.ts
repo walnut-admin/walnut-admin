@@ -1,4 +1,5 @@
 import type { IResponseData } from '../response'
+import { SecurityRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 
 /**
@@ -6,7 +7,7 @@ import { AppAxios } from '@/utils/axios'
  */
 export async function signInitialAPI(rsaPubKey: string, force = false) {
   return await AppAxios.post({
-    url: '/security/sign/initial',
+    url: SecurityRoutes.SIGN_INITIAL,
     data: {
       rsaPubKey,
       force,
@@ -19,7 +20,7 @@ export async function signInitialAPI(rsaPubKey: string, force = false) {
  */
 export async function signAesKeyAPI() {
   return await AppAxios.post<IResponseData.Security.Sign.AesKey>({
-    url: `/security/sign/aes-key`,
+    url: SecurityRoutes.SIGN_AES_KEY,
     _autoDecryptResponseData: ['aesKey'],
   })
 }
