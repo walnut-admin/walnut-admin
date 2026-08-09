@@ -5,9 +5,13 @@ FROM alpine:3.21
 
 RUN apk add --no-cache nginx nginx-mod-http-brotli
 
-# load_module 必须置于 http 块之前；插入到 Alpine nginx 包自带 nginx.conf 第一行
-RUN printf 'load_module /usr/lib/nginx/modules/ngx_http_brotli_filter_module.so;\nload_module /usr/lib/nginx/modules/ngx_http_brotli_static_module.so;\n' > /etc/nginx/modules-brotli.conf \
-    && sed -i '1i include /etc/nginx/modules-brotli.conf;' /etc/nginx/nginx.conf
+# nginx-mod-http-brotli 包自带 /etc/nginx/modules/10_http_brotli.conf 自动加载模块
+# （nginx.conf 默认 include /etc/nginx/modules/*.conf），再手动 load_module 会重复加载
+# 报 [emerg] already loaded。仅当包未自动加载时兜底手动加载 → 模块恰好加载一次
+RUN if ! grep -rq 'ngx_http_brotli' /etc/nginx/modules/ 2>/dev/null; then \
+      printf 'load_module /usr/lib/nginx/modules/ngx_http_brotli_filter_module.so;\nload_module /usr/lib/nginx/modules/ngx_http_brotli_static_module.so;\n' > /etc/nginx/modules-brotli.conf \
+      && sed -i '1i include /etc/nginx/modules-brotli.conf;' /etc/nginx/nginx.conf; \
+    fi
 
 # 构建期验证：模块加载失败（版本不匹配）→ 构建失败
 RUN nginx -t
