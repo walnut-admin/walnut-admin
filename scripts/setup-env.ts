@@ -16,8 +16,13 @@ interface EnvEntry {
 const ROOT = cwd()
 const KEYS_FILE = join(ROOT, '.env.keys')
 
-/** 需要加密的文件清单（admin 的 base .env 不涉密，跳过） */
+/**
+ * 需要加密的文件清单。
+ * admin 的基础 .env（env: ''，无环境后缀）存放构建必填的 VITE_* 变量
+ * （VITE_APP_TITLE 等），必须随仓库加密分发，否则 CI 构建取不到。
+ */
 const ENTRIES: EnvEntry[] = [
+  { app: 'admin', env: '' },
   { app: 'admin', env: 'development' },
   { app: 'admin', env: 'production' },
   { app: 'admin', env: 'stage' },
@@ -29,7 +34,7 @@ const ENTRIES: EnvEntry[] = [
 // --- helpers ---
 
 function envFileName(entry: EnvEntry): string {
-  return `.env.${entry.env}`
+  return entry.env ? `.env.${entry.env}` : '.env'
 }
 
 function encryptedPath(entry: EnvEntry): string {
@@ -74,7 +79,10 @@ function rebuildKeysFile(tmpKeysPath: string): string {
     if (eqIdx === -1 || trimmed === '')
       continue
 
-    const envName = line.slice(0, eqIdx).trim().replace('DOTENV_PRIVATE_KEY_', '')
+    // 基础 .env 的 key 名是 DOTENV_PRIVATE_KEY（无环境后缀），带后缀的如
+    // DOTENV_PRIVATE_KEY_PRODUCTION → envName = 'PRODUCTION'，无后缀 → ''
+    const rawName = line.slice(0, eqIdx).trim()
+    const envName = rawName.replace('DOTENV_PRIVATE_KEY', '').replace(/^_/, '')
     const value = line.slice(eqIdx + 1).trim().replace(/^"|"$/g, '')
     const keys = byEnv.get(envName) ?? []
     for (const k of value.split(',')) {
@@ -86,7 +94,11 @@ function rebuildKeysFile(tmpKeysPath: string): string {
 
   const body = [...byEnv.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([envName, keys]) => `# .env.${envName.toLowerCase()}\nDOTENV_PRIVATE_KEY_${envName}="${keys.join(',')}"`)
+    .map(([envName, keys]) => {
+      const fileSuffix = envName ? `.${envName.toLowerCase()}` : ''
+      const keySuffix = envName ? `_${envName}` : ''
+      return `# .env${fileSuffix}\nDOTENV_PRIVATE_KEY${keySuffix}="${keys.join(',')}"`
+    })
     .join('\n')
 
   return `${banner.join('\n')}\n${body}\n`
@@ -99,7 +111,7 @@ function doEncrypt(): void {
   //    避免部分文件换新密钥后 keys 文件不完整
   const missing = ENTRIES.filter(entry => !existsSync(localPath(entry)))
   if (missing.length > 0) {
-    console.error(`❌ 以下 env-local 源文件缺失，中止加密：${missing.map(e => `${e.app}/.env.${e.env}`).join(', ')}`)
+    console.error(`❌ 以下 env-local 源文件缺失，中止加密：${missing.map(e => `${e.app}/${envFileName(e)}`).join(', ')}`)
     exit(1)
   }
 
@@ -115,18 +127,25 @@ function doEncrypt(): void {
       const dest = join(tmpDir, entry.app, envFileName(entry))
       mkdirSync(join(tmpDir, entry.app), { recursive: true })
       cpSync(src, dest)
-      console.log(`🔒 加密 ${entry.app}/.env.${entry.env}`)
+      console.log(`🔒 加密 ${entry.app}/${envFileName(entry)}`)
       dotenvxEncode(['encrypt', '-f', dest, '-fk', tmpKeys])
       staged.push({ entry, dest })
     }
 
-    // 3. 校验：临时密钥必须能解密全部临时密文，失败即中止（未改动任何正式文件）
+    // 3. 校验：在密文的独立副本上验证可解密——dotenvx decrypt 会原地解密，
+    //    直接对 staged 文件解密会把密文变成明文（曾导致明文被提交的严重事故），
+    //    校验后再断言 staged 文件仍是密文
     for (const { entry, dest } of staged) {
+      const checkDest = join(tmpDir, `check-${entry.app}-${entry.env || 'base'}`)
+      cpSync(dest, checkDest)
       try {
-        dotenvxQuiet(['decrypt', '-f', dest, '-fk', tmpKeys])
+        dotenvxQuiet(['decrypt', '-f', checkDest, '-fk', tmpKeys])
       }
       catch {
-        throw new Error(`密钥校验失败：${entry.app}/.env.${entry.env} 无法解密，已中止（未改动任何文件）`)
+        throw new Error(`密钥校验失败：${entry.app}/${envFileName(entry)} 无法解密，已中止（未改动任何文件）`)
+      }
+      if (!readFileSync(dest, 'utf-8').includes('encrypted:')) {
+        throw new Error(`密文完整性检查失败：${entry.app}/${envFileName(entry)} 不含 encrypted: 前缀，已中止（未改动任何文件）`)
       }
     }
 
@@ -140,7 +159,7 @@ function doEncrypt(): void {
       cpSync(dest, encryptedPath(entry))
     }
 
-    const keyLines = fresh.split('\n').filter(l => l.startsWith('DOTENV_PRIVATE_KEY_'))
+    const keyLines = fresh.split('\n').filter(l => l.startsWith('DOTENV_PRIVATE_KEY'))
     const keyCounts = keyLines.map(l => l.slice(l.indexOf('=') + 1).replace(/^"|"$/g, '').split(',').length)
     console.log(`✅ 加密完成：env-encrypted/ 已更新，.env.keys 已重新生成（${keyLines.length} 行，每行 ${keyCounts.join('/')} 个 key）`)
     console.log('⚠  旧密钥已全部作废，请将新 .env.keys 同步到 1Password，并提交 env-encrypted/ 到 Git')
@@ -184,13 +203,13 @@ function doDecrypt(): void {
     const dest = localPath(entry)
 
     if (!existsSync(src)) {
-      console.warn(`⚠  跳过 ${entry.app}/.env.${entry.env}：env-encrypted 源文件不存在`)
+      console.warn(`⚠  跳过 ${entry.app}/${envFileName(entry)}：env-encrypted 源文件不存在`)
       continue
     }
 
     mkdirSync(join(ROOT, 'apps', entry.app, 'env-local'), { recursive: true })
 
-    console.log(`🔓 解密 ${entry.app}/.env.${entry.env} → env-local/`)
+    console.log(`🔓 解密 ${entry.app}/${envFileName(entry)} → env-local/`)
     cpSync(src, dest)
     dotenvxEncode(['decrypt', '-f', dest, '-fk', KEYS_FILE])
     stripPublicKeyHeader(dest)

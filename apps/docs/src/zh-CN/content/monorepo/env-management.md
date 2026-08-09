@@ -31,10 +31,11 @@ walnut-admin/
 
 ### 2. 多环境密钥
 
-3 把 key 按环境划分，同一环境的 admin 和 server key 用逗号合并：
+4 个 key 行：基础 `.env` 单独一行（无环境后缀，key 名为 `DOTENV_PRIVATE_KEY`），三个环境每行 2 个 key（同环境的 admin 和 server key 用逗号合并）：
 
 ```
 .env.keys:
+  DOTENV_PRIVATE_KEY="基础 .env 的 key"
   DOTENV_PRIVATE_KEY_DEVELOPMENT="admin的key,server的key"
   DOTENV_PRIVATE_KEY_PRODUCTION="admin的key,server的key"
   DOTENV_PRIVATE_KEY_STAGE="admin的key,server的key"
@@ -43,8 +44,8 @@ walnut-admin/
 解密时 dotenvx 逐个尝试，哪个能解开就用哪个。
 
 ::: info 2026-08-09 encrypt 行为变更
-`pnpm encrypt-env` 每次对全部 6 个文件生成**全新密钥**，并从零重建 `.env.keys`
-（始终 3 行 × 每环境 2 个 key，**不会累积**历史密钥）。旧密钥立即作废，改完需将
+`pnpm encrypt-env` 每次对全部 7 个文件生成**全新密钥**，并从零重建 `.env.keys`
+（基础 .env 1 行 + 每环境 2 个 key，**不会累积**历史密钥）。旧密钥立即作废，改完需将
 新 `.env.keys` 同步到 1Password，并提交 `env-encrypted/` 到 Git。加密先在临时
 目录完成、校验可解密后才原子替换正式文件，任一步失败都不会改动现有内容。
 :::
@@ -66,9 +67,9 @@ pnpm encrypt-env   # 修改 env-local/ 后重新加密（每次全量重建 .env
 
 ## 没做什么 / 为什么
 
-### 不加密所有 `.env` 文件
+### admin 基础 `.env` 已纳入加密管理（2026-08-09 起）
 
-admin 的基础 `.env`（无环境后缀的文件）是 **setup-env 不管理的遗留明文文件**——`scripts/setup-env.ts` 的 ENTRIES 只包含 development / production / stage 三个环境。基础 `.env` 模板（app title、GA ID 等非敏感配置）已随模板目录清理移除，不再维护明文模板。只加密 `.env.development`、`.env.production`、`.env.stage` 以及 server 的全部 `.env.*`，加密文件内的注释承担模板职责。
+admin 的基础 `.env`（无环境后缀）存放构建必填的 `VITE_*` 变量（`VITE_APP_TITLE`、`VITE_GA_ID`、`VITE_GOOGLE_CLIENT_ID`、`VITE_SERVER_STATIC_PUBLIC_KEY`、`VITE_SECONDS_*`）。此前它是 setup-env 不管理的本地明文文件（gitignored），CI 全新 checkout 构建时缺失这些变量而失败。现已由 setup-env 统一管理：`ENTRIES` 包含 `{ app: 'admin', env: '' }`，加密产物为 `apps/admin/env-encrypted/.env`，dotenvx 对其使用无后缀的 `DOTENV_PRIVATE_KEY` 密钥行。server 无基础 `.env`（ConfigModule 只按环境加载），仍只加密三个环境文件。文件内注释承担模板职责。
 
 ### 不把加密文件放在 monorepo 根目录
 
