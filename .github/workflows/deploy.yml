@@ -106,6 +106,7 @@ jobs:
           username: ${{ secrets.PROD_SERVER_USERNAME }}
           password: ${{ secrets.PROD_SERVER_PASSWORD }}
           script: |
+            set -e
             cd /home/ubuntu/walnut-admin/deploy
             mv -f deploy-files/.env .env
             mv -f deploy-files/.env.production env/.env.production
@@ -116,6 +117,13 @@ jobs:
             else
               echo "IMG_TAG=${{ env.TAG }}" >> .env
             fi
+            # 服务器端登录 TCR：runner 上的 docker login 不作用于服务器
+            echo "${{ secrets.TCR_PASSWORD }}" | docker login ccr.ccs.tencentyun.com -u "${{ secrets.TCR_USERNAME }}" --password-stdin
             docker compose pull
             docker compose up -d
             docker image prune -f --filter "until=72h"
+            # 部署后健康检查：经 nginx 容器访问前端（--resolve 指到本机，绕过公网/CDN）
+            command -v curl >/dev/null || { echo "ERROR: 服务器缺少 curl，无法健康检查"; exit 1; }
+            code=$(curl -sk -o /dev/null -w '%{http_code}' --resolve www.walnut-admin.com:443:127.0.0.1 https://www.walnut-admin.com/ -m 10 || true)
+            test "$code" = "200" -o "$code" = "301" -o "$code" = "302" || { echo "ERROR: 部署后健康检查失败（HTTP $code）"; exit 1; }
+            echo "部署成功，健康检查 HTTP $code"
