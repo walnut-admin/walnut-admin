@@ -8,10 +8,9 @@ RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
 # 构建内存：CI runner 约 7GB，本地 8G 配置直接沿用会 OOM
 ENV NODE_OPTIONS=--max-old-space-size=4096
 
+# env-local 由 CI 的 setup-env 解密生成，随 COPY . . 进入上下文
+# （.env.keys 已被 .dockerignore 排除，密钥不进入镜像；runtime 只取 dist）
 COPY . .
-
-# env-local 在 .dockerignore 中排除，单独显式 COPY（构建输入）
-COPY apps/admin/env-local/.env.production apps/admin/env-local/.env.production
 
 RUN pnpm install --frozen-lockfile
 
