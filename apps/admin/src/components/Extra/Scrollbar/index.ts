@@ -1,4 +1,4 @@
-import type { ScrollTo } from 'naive-ui/lib/_internal/scrollbar/src/ScrollBar'
+import type { ScrollTo } from 'naive-ui/lib/_internal/scrollbar/src/Scrollbar'
 
 export interface ICompExtraScrollbarProps {
   xScrollable?: boolean
