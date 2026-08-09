@@ -49,13 +49,20 @@ jobs:
       - name: Login to Tencent TCR
         run: echo "${{ secrets.TCR_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.TCR_USERNAME }}" --password-stdin
 
+      # buildx gha 缓存：依赖安装层跨运行命中（配套 Dockerfile 依赖清单分层 COPY）
       - name: Build & push backend
-        run: |
-          docker build -f apps/server/Dockerfile -t $REGISTRY/$IMAGE_NS/backend:$TAG .
-          docker push $REGISTRY/$IMAGE_NS/backend:$TAG
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/server/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NS }}/backend:${{ env.TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # nginx 必须先于 frontend 构建：frontend Dockerfile 的
       # FROM walnut-admin/nginx-brotli:latest 依赖本机刚构建的 nginx 镜像
+      # （nginx 构建仅 apk 安装耗时短，保留原生 docker build 以生成本地 tag）
       - name: Build & push nginx
         run: |
           docker build -f deploy/nginx/Dockerfile -t $REGISTRY/$IMAGE_NS/nginx:$TAG .
@@ -63,9 +70,14 @@ jobs:
           docker push $REGISTRY/$IMAGE_NS/nginx:$TAG
 
       - name: Build & push frontend
-        run: |
-          docker build -f apps/admin/Dockerfile -t $REGISTRY/$IMAGE_NS/frontend:$TAG .
-          docker push $REGISTRY/$IMAGE_NS/frontend:$TAG
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/admin/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NS }}/frontend:${{ env.TAG }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # 生成服务器 env 文件：连接串改服务名 + 从解密产物提取数据层密码拼装 .env
       - name: Generate server env files
