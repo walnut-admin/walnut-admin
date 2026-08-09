@@ -1,5 +1,6 @@
 import { execSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { argv, cwd, exit } from 'node:process'
 
@@ -43,82 +44,114 @@ function dotenvxEncode(args: string[]): void {
   execSync(`npx dotenvx ${args.join(' ')}`, { stdio: 'inherit', cwd: ROOT })
 }
 
-// --- merge .env.keys ---
+/** 静默执行 dotenvx（不向 stdout 输出解密内容），失败抛错 */
+function dotenvxQuiet(args: string[]): void {
+  execSync(`npx dotenvx ${args.join(' ')}`, { stdio: 'pipe', cwd: ROOT })
+}
+
+// --- rebuild .env.keys ---
 
 /**
- * dotenvx 对每个文件独立生成密钥，同名 key 会重复出现（admin + server 都有
- * .env.development）。读取 .env.keys 将同名 key 的值用逗号合并，写回。
+ * dotenvx encrypt 对每个文件生成全新密钥并追加进 keys 文件，同名 env 会重复出现
+ * （admin + server 都有 .env.development）。读取临时 keys 文件，按环境名分组、
+ * 逗号合并去重，重建规范的 .env.keys（每环境一行，admin 在前 server 在后）。
  */
-function mergeKeysFile(): void {
-  if (!existsSync(KEYS_FILE))
-    return
+function rebuildKeysFile(tmpKeysPath: string): string {
+  const banner: string[] = []
+  const byEnv = new Map<string, string[]>()
+  let bannerEnded = false
 
-  const raw = readFileSync(KEYS_FILE, 'utf-8')
-  const lines = raw.split('\n')
-
-  // 保留 header（以 # 或空行开头的注释块）
-  const header: string[] = []
-  const body = new Map<string, string[]>()
-  let headerEnded = false
-
-  for (const line of lines) {
+  for (const line of readFileSync(tmpKeysPath, 'utf-8').split('\n')) {
     const trimmed = line.trim()
-    if (!headerEnded && (trimmed.startsWith('#') || trimmed === '' || trimmed.startsWith('!'))) {
-      header.push(line)
+    // banner 以 #/ 开头（dotenvx 生成的固定头），# .env.* 是文件注释，不算 banner
+    if (!bannerEnded && (trimmed.startsWith('#/') || trimmed === '')) {
+      banner.push(line)
       continue
     }
-    headerEnded = true
+    bannerEnded = true
 
     const eqIdx = line.indexOf('=')
     if (eqIdx === -1 || trimmed === '')
       continue
 
-    const name = line.slice(0, eqIdx).trim()
+    const envName = line.slice(0, eqIdx).trim().replace('DOTENV_PRIVATE_KEY_', '')
     const value = line.slice(eqIdx + 1).trim().replace(/^"|"$/g, '')
-
-    if (!body.has(name))
-      body.set(name, [])
-    body.get(name)!.push(value)
+    const keys = byEnv.get(envName) ?? []
+    for (const k of value.split(',')) {
+      if (k && !keys.includes(k))
+        keys.push(k)
+    }
+    byEnv.set(envName, keys)
   }
 
-  // 重建文件：header + 去重合并后的 key
-  const merged: string[] = [...header]
-  for (const [name, values] of body) {
-    const unique = [...new Set(values)]
-    merged.push(unique.length === 1
-      ? `${name}=${unique[0]}`
-      : `${name}="${unique.join(',')}"`)
-  }
+  const body = [...byEnv.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([envName, keys]) => `# .env.${envName.toLowerCase()}\nDOTENV_PRIVATE_KEY_${envName}="${keys.join(',')}"`)
+    .join('\n')
 
-  writeFileSync(KEYS_FILE, `${merged.join('\n')}\n`)
+  return `${banner.join('\n')}\n${body}\n`
 }
 
 // --- commands ---
 
 function doEncrypt(): void {
-  if (!existsSync(KEYS_FILE)) {
-    console.error('❌ 未找到 .env.keys，请先运行一次 dotenvx encrypt 生成密钥对')
+  // 1. 前置校验：全部源文件必须存在。缺任何一个就中止，
+  //    避免部分文件换新密钥后 keys 文件不完整
+  const missing = ENTRIES.filter(entry => !existsSync(localPath(entry)))
+  if (missing.length > 0) {
+    console.error(`❌ 以下 env-local 源文件缺失，中止加密：${missing.map(e => `${e.app}/.env.${e.env}`).join(', ')}`)
     exit(1)
   }
 
-  for (const entry of ENTRIES) {
-    const src = localPath(entry)
-    const dest = encryptedPath(entry)
+  // 2. 在临时目录加密全部文件：dotenvx 对每个文件生成全新密钥并追加进临时
+  //    keys 文件。期间不触碰 env-encrypted/ 与 .env.keys，任一步失败可整体放弃
+  const tmpDir = mkdtempSync(join(tmpdir(), 'walnut-encrypt-'))
+  const tmpKeys = join(tmpDir, '.env.keys.tmp')
+  const staged: Array<{ entry: EnvEntry, dest: string }> = []
 
-    if (!existsSync(src)) {
-      console.warn(`⚠  跳过 ${entry.app}/.env.${entry.env}：env-local 源文件不存在`)
-      continue
+  try {
+    for (const entry of ENTRIES) {
+      const src = localPath(entry)
+      const dest = join(tmpDir, entry.app, envFileName(entry))
+      mkdirSync(join(tmpDir, entry.app), { recursive: true })
+      cpSync(src, dest)
+      console.log(`🔒 加密 ${entry.app}/.env.${entry.env}`)
+      dotenvxEncode(['encrypt', '-f', dest, '-fk', tmpKeys])
+      staged.push({ entry, dest })
     }
 
-    mkdirSync(join(ROOT, 'apps', entry.app, 'env-encrypted'), { recursive: true })
+    // 3. 校验：临时密钥必须能解密全部临时密文，失败即中止（未改动任何正式文件）
+    for (const { entry, dest } of staged) {
+      try {
+        dotenvxQuiet(['decrypt', '-f', dest, '-fk', tmpKeys])
+      }
+      catch {
+        throw new Error(`密钥校验失败：${entry.app}/.env.${entry.env} 无法解密，已中止（未改动任何文件）`)
+      }
+    }
 
-    console.log(`🔒 加密 ${entry.app}/.env.${entry.env} → env-encrypted/`)
-    cpSync(src, dest)
-    dotenvxEncode(['encrypt', '-f', dest, '-fk', KEYS_FILE])
+    // 4. 从临时 keys 重建正式 .env.keys（每环境一行、逗号合并，旧密钥全部作废）
+    const fresh = rebuildKeysFile(tmpKeys)
+    writeFileSync(KEYS_FILE, fresh)
+
+    // 5. 提交：临时密文覆盖 env-encrypted/
+    for (const { entry, dest } of staged) {
+      mkdirSync(join(ROOT, 'apps', entry.app, 'env-encrypted'), { recursive: true })
+      cpSync(dest, encryptedPath(entry))
+    }
+
+    const keyLines = fresh.split('\n').filter(l => l.startsWith('DOTENV_PRIVATE_KEY_'))
+    const keyCounts = keyLines.map(l => l.slice(l.indexOf('=') + 1).replace(/^"|"$/g, '').split(',').length)
+    console.log(`✅ 加密完成：env-encrypted/ 已更新，.env.keys 已重新生成（${keyLines.length} 行，每行 ${keyCounts.join('/')} 个 key）`)
+    console.log('⚠  旧密钥已全部作废，请将新 .env.keys 同步到 1Password，并提交 env-encrypted/ 到 Git')
   }
-
-  mergeKeysFile()
-  console.log('✅ 加密完成，请提交 env-encrypted/ 到 Git')
+  catch (e) {
+    console.error(`❌ ${(e as Error).message}`)
+    exit(1)
+  }
+  finally {
+    rmSync(tmpDir, { recursive: true, force: true })
+  }
 }
 
 /**

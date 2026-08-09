@@ -42,11 +42,18 @@ walnut-admin/
 
 解密时 dotenvx 逐个尝试，哪个能解开就用哪个。
 
+::: info 2026-08-09 encrypt 行为变更
+`pnpm encrypt-env` 每次对全部 6 个文件生成**全新密钥**，并从零重建 `.env.keys`
+（始终 3 行 × 每环境 2 个 key，**不会累积**历史密钥）。旧密钥立即作废，改完需将
+新 `.env.keys` 同步到 1Password，并提交 `env-encrypted/` 到 Git。加密先在临时
+目录完成、校验可解密后才原子替换正式文件，任一步失败都不会改动现有内容。
+:::
+
 ### 3. 日常命令
 
 ```bash
 pnpm setup-env     # 一键解密 env-encrypted/ → env-local/
-pnpm encrypt-env   # 修改密钥后重新加密
+pnpm encrypt-env   # 修改 env-local/ 后重新加密（每次全量重建 .env.keys，旧密钥作废）
 ```
 
 ### 4. 前后端差异化
