@@ -1,14 +1,15 @@
 import { CallHandler, ExecutionContext, Logger, NestInterceptor } from '@nestjs/common'
+import { InjectConnection } from '@nestjs/mongoose'
+import { WalnutDBConnectionName } from '@walnut-server/db'
 import { ClientSession, Connection } from 'mongoose'
-import { catchError, concatMap, Observable } from 'rxjs'
 
-import { WalnutDBInjectConnection } from './db.decorator'
+import { catchError, concatMap, Observable } from 'rxjs'
 import { DBTransactionHooksStore } from './db.hook'
 
 export class TransactionInterceptor implements NestInterceptor {
   protected readonly logger = new Logger(TransactionInterceptor.name)
 
-  constructor(@WalnutDBInjectConnection() private readonly connection: Connection) { }
+  constructor(@InjectConnection(WalnutDBConnectionName) private readonly connection: Connection) { }
 
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     const className = context.getClass().name
