@@ -28,6 +28,7 @@ build/_generated/*.log
 .env.keys
 env-local/
 deploy/env/
+deploy/nginx/certs/
 
 # Reports (keep .md files)
 report/*

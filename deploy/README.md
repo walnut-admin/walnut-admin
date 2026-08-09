@@ -22,13 +22,22 @@ mkdir -p /home/ubuntu/walnut-admin/deploy
 #   ├── env/.env.production   ← CI 自动生成（后端 env，见 deploy/env/README.md）
 #   ├── nginx/
 #   │   ├── conf.d/*.conf     ← 域名/证书路径已按现网填写
-#   │   └── certs/            ← SSL 证书（前端域名 + API 域名）
+#   │   └── certs/            ← SSL 证书 4 个文件（命名见第 4 步）
 #   └── logs/
 ```
 
 3. **准备后端 env**：无需手动准备——`env/.env.production` 由 CI 每次部署自动生成（连接串 host 已替换为容器服务名）；仅本地验证场景才按 `deploy/env/README.md` 手动生成。
 
-4. **放置证书**：把现网 `/etc/nginx/conf.d` 中的证书文件复制到 `deploy/nginx/certs/`（文件名与 conf 中路径一致）。
+4. **放置证书**：把 4 个证书文件直接放入服务器 `/home/ubuntu/walnut-admin/deploy/nginx/certs/`（即本仓库 `deploy/nginx/certs/`）。该目录经 docker-compose 挂载为容器内 `/etc/nginx/certs/`，nginx 按 conf 中的路径读取，**无需其他操作**。
+
+   固定 4 个文件（两个域名各一对证书 + 私钥，命名与 `nginx/conf.d/` 中 `ssl_certificate` / `ssl_certificate_key` 一一对应）：
+
+   | 文件 | 用途 |
+   |------|------|
+   | `www.walnut-admin.com.pem` | 前端域名证书（含完整链，腾讯云 bundle），`frontend.conf` 引用 |
+   | `www.walnut-admin.com.key` | 前端域名私钥 |
+   | `api.walnut-admin.com.pem` | API 域名证书（含完整链，腾讯云 bundle），`api.conf` 引用 |
+   | `api.walnut-admin.com.key` | API 域名私钥 |
 
 5. **填写 deploy/.env**：无需手动填写——由 CI 每次部署自动生成（数据层密码从解密产物提取）。
 
