@@ -39,7 +39,7 @@ pnpm build:docs     # Docs only
 pnpm lint           # Lint all packages
 pnpm lint:fix       # Lint with auto-fix
 pnpm types:check    # Type check all packages
-pnpm test           # Run tests (server + release have vitest; utils/client pass with no tests yet)
+pnpm test           # Run tests (server + contract snapshots + utils + client + release)
 ```
 
 ## Monorepo Architecture

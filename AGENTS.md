@@ -1,345 +1,64 @@
-# AGENTS.md - Walnut Admin Client
+# AGENTS.md - Walnut Admin Monorepo
 
-> ⚠️ **本文档已过时**（描述的是合并前的单包 `walnut-admin-client@1.17.0`）。
-> 当前仓库是 **monorepo**（`apps/admin` + `apps/server` + `apps/docs` + `packages/*`）。
->
-> AI coding agents 请优先阅读：
-> - [`CLAUDE.md`](./CLAUDE.md) — 当前最准确的仓库概览（monorepo 结构、命令、版本）
-> - [`docs/architecture/`](./docs/architecture/README.md) — 权威架构文档（8 个文件，含问题清单与改造方案）
->
-> 本文件计划在未来重写（见 `docs/architecture/07-known-issues.md` 问题 #11）。在此之前，下文中的版本号、命令、项目结构均与现状不符。
+> AI coding agents 工作指引（分发文档）。仓库权威概览见 [`CLAUDE.md`](./CLAUDE.md)，
+> 架构决策与设计文档见 `apps/docs/src/zh-CN/content/monorepo/`（Turbo / TypeScript / pnpm Catalog / ESLint / Release / Knip / Syncpack / env 管理）与 `apps/docs/src/zh-CN/content/adr/`（ADR 0001-0017）。
 
-This document provides essential information for AI coding agents working on the Walnut Admin Client project.
-
-## Project Overview
-
-Walnut Admin Client is an open-source back-office management system template built with Vue 3 and TypeScript. It is the frontend part of the Walnut Admin full-stack solution. The backend uses NestJS with MongoDB (see [walnut-admin-server](https://github.com/walnut-admin/walnut-admin-server)).
-
-- **Name**: walnut-admin-client
-- **Version**: 1.17.0
-- **License**: MIT
-- **Demo**: https://www.walnut-admin.com
-- **Documentation**: https://walnut-admin-doc.netlify.app
-
-## Technology Stack
-
-### Core Framework
-- **Vue**: 3.5.21 (Composition API)
-- **TypeScript**: 5.9.2
-- **Vite**: 7.1.5
-
-### UI & Styling
-- **Naive UI**: 2.43.2 (Component library)
-- **UnoCSS**: 66.5.1 (Atomic CSS framework)
-- **Animate.css**: 4.1.1 (CSS animations)
-- **SCSS**: For custom styling
-
-### State Management & Routing
-- **Pinia**: 3.0.3 (State management)
-- **Vue Router**: 4.5.1
-- **Vue I18n**: 11.1.12 (Internationalization)
-
-### HTTP & Real-time
-- **Axios**: 1.11.0 (HTTP client with custom adapters)
-- **Socket.io-client**: 4.8.1 (WebSocket)
-
-### Key Libraries
-- **VueUse**: 13.9.0 (Vue utilities)
-- **lodash-es**: 4.17.21 (Utilities)
-- **sortablejs**: 1.15.6 (Drag and drop)
-- **echarts**: 6.0.0 (Charts)
-- **tinymce**: 8.0.2 (Rich text editor)
-- **cropperjs**: 2.0.1 (Image cropping)
-- **driver.js**: 1.3.6 (User onboarding)
-
-## Project Structure
+## 仓库结构
 
 ```
-├── src/
-│   ├── api/              # API layer - organized by module (auth, system, app, security)
-│   │   └── base.ts       # BaseAPI class for CRUD operations
-│   ├── App/              # Application bootstrap
-│   │   ├── src/          # App.vue, providers, hooks, scripts
-│   │   └── index.ts      # Main export
-│   ├── assets/           # Static assets and SCSS styles
-│   │   └── styles/       # SCSS files organized by purpose
-│   ├── components/       # Vue components organized by category
-│   │   ├── Advanced/     # High-level components (CRUD, ApiSelect)
-│   │   ├── App/          # App-level components (Lock, Search, Settings)
-│   │   ├── Business/     # Business components (Dict, AreaCascader)
-│   │   ├── Extra/        # Extra utilities (Copy, QRCode, Password)
-│   │   ├── Global/       # Global components (Cap, DevSettings)
-│   │   ├── HOC/          # Higher-order components
-│   │   ├── UI/           # UI wrapper components (Form, Table, Modal)
-│   │   └── Vendor/       # Third-party wrappers (CodeMirror, ECharts, Tinymce)
-│   ├── const/            # Constants
-│   ├── core/             # Core initialization
-│   ├── hooks/            # Custom composables
-│   │   ├── app/          # App-related hooks
-│   │   ├── component/    # Component utilities
-│   │   ├── core/         # Core utilities
-│   │   ├── vueuse/       # VueUse extensions
-│   │   └── web/          # Web API hooks
-│   ├── layout/           # Layout components
-│   │   ├── default/      # Default layout (header, aside, tab, footer)
-│   │   ├── iframe/       # Iframe wrapper layout
-│   │   └── mainout/      # Full-page layout (no sidebar)
-│   ├── locales/          # i18n configuration
-│   ├── plugins/          # Plugin installations
-│   ├── router/           # Vue Router setup
-│   │   ├── guard/        # Route guards
-│   │   └── routes/       # Route definitions
-│   ├── socket/           # Socket.io configuration
-│   ├── store/            # Pinia stores
-│   │   └── modules/      # Organized by feature (app, user, component, setting)
-│   ├── utils/            # Utilities
-│   │   ├── axios/        # Axios instance with interceptors
-│   │   ├── crypto/       # Cryptographic functions (RSA, AES-GCM, HKDF)
-│   │   ├── persistent/   # Storage abstraction (localStorage, IndexedDB)
-│   │   └── ...           # Other utilities
-│   └── views/            # Page components
-│       ├── auth/         # Authentication pages
-│       ├── demo/         # Demo and examples
-│       ├── system/       # System management pages
-│       ├── app/          # Application pages
-│       ├── me/           # User profile pages
-│       └── index/        # Dashboard and home
-├── build/                # Build configuration
-│   ├── vite/             # Vite plugins and config
-│   │   ├── plugin/       # Individual plugin configurations
-│   │   ├── config/       # Environment validation schemas
-│   │   └── proxy.ts      # Development proxy
-│   ├── generate/         # Code generation scripts
-│   └── utils/            # Build utilities
-├── env-encrypted/        # Encrypted env files (committed, comments serve as template)
-├── env-local/            # Local environment files (gitignored, decrypted by pnpm setup-env)
-├── types/                # TypeScript type declarations
-│   ├── auto-import.d.ts  # Generated by unplugin-auto-import
-│   ├── components.d.ts   # Generated by unplugin-vue-components
-│   └── *.d.ts            # Various type declarations
-├── public/               # Public static assets
-└── scripts/              # Release scripts
+apps/admin   @walnut/admin    Vue3 + Vite 8 + Naive UI + UnoCSS（前端 SPA）
+apps/server  @walnut/server   NestJS 11 + SWC + Mongoose + Redis（后端，内部 Nest monorepo）
+apps/docs    @walnut/docs     VitePress 文档站
+packages/platform-any/   contract · types · utils-core   ← 平台无关（CJS 双模构建 / 纯类型 / 纯工具）
+packages/platform-web/   client · http · ui               ← 浏览器/Vue（源码直消费，不构建）
+packages/tooling/        eslint-config · commitlint-config · release
 ```
 
-## Build and Development Commands
+- 前端包 scope `@walnut/*`（ESM、pnpm workspace、Vite 编译）；后端内部 lib scope `@walnut-server/*`（CJS、tsconfig paths、SWC，见 `apps/server/`）。
+- 模块边界由 Turbo boundaries 强制执行（tags 声明在各包 workspace 级 `turbo.json`），`pnpm boundaries` / pre-push / CI 三道闸。
 
-### Development
+## 常用命令
+
 ```bash
-# Start development server
-pnpm dev
-
-# Clean cache
-pnpm clean:cache
+pnpm install          # 安装（pnpm 专用，preinstall 强制）
+pnpm dev              # = dev:admin（前端，http://127.0.0.1:3100）
+pnpm dev:server       # 后端（需 MongoDB replica set + Redis，从 apps/server 运行）
+pnpm dev:docs         # 文档站（http://localhost:8886）
+pnpm build            # 全量构建（packages → apps）
+pnpm build:stage      # admin stage 构建（turbo build:stage 任务）
+pnpm lint / lint:fix  # ESLint（stylistic 承担格式化，无 Prettier）
+pnpm types:check      # 全仓类型检查（admin/docs/ui 用 vue-tsc，其余 tsc，server strict）
+pnpm test             # vitest（server / utils / client / contract / release）
+pnpm boundaries       # Turbo 架构边界检查
+pnpm setup-env        # 解密 env-encrypted/ → env-local/（需根 .env.keys）
+pnpm knip             # 死代码检测
 ```
 
-### Build
-```bash
-# Build for production
-pnpm build
+## 环境配置
 
-# Build for staging
-pnpm build:stage
+- `env-encrypted/` 密文随仓库提交（dotenvx，文件内注释即模板）；`pnpm setup-env` 解密到 gitignore 的 `env-local/`；私钥 `.env.keys` 经 1Password 共享。
+- CI 通过 GitHub Secret `DOTENVX_KEYS_FILE`（内容即 `.env.keys` 全文）自动解密并启用 admin 构建。
+- 后端必须从 `apps/server/` 目录运行（ConfigModule 用 `process.cwd()` 定位 env）。
 
-# Preview production build
-pnpm preview
+## 关键纪律
 
-# Preview staging build
-pnpm preview:stage
-```
+1. **依赖**：只用 pnpm；新依赖一律走 `catalog:`（`pnpm-workspace.yaml`，strict 模式强制）；workspace 内部引用用 `workspace:*`（syncpack 强制）。
+2. **提交**：conventional commits，scope 必须是 workspace 包名（如 `feat(admin): …`、`fix(contract): …`）；发布归因依赖 scope（见 release.md）。pre-push 会跑 boundaries + types:check + syncpack。
+3. **导入**：admin 用 `@/*` → `apps/admin/src/*`、`~/*` → `apps/admin/types/*`；server 用 `@/*` → `apps/api/src/*`、`@walnut-server/*` → `libs/*/src`。跨模块禁止相对路径。
+4. **Auto-import 克制**：`unplugin-auto-import` 存在，但大项目显式导入优先——迁入 packages 的代码必须显式 import。
+5. **共享契约**：跨端常量只改 `@walnut/contract`（前后端直接消费，无包装层，ADR 0004）；contract 有快照测试守护，改动会触发快照 diff。
+6. **测试**：新增纯函数/工具必须补测试（现有模式见 `packages/platform-any/utils-core/src/**/*.test.ts`）。
+7. **注释**：`// LINK` 引用资料、`// TODO`/`// FIXME` 待办；中英混用可接受，文档以中文为主。
+8. **组件**：`ComponentName/index.ts`（导出）+ `ComponentName/index.vue`（实现）；API 函数以 `API` 结尾。
+9. **存储迁移**：改动持久化结构时同步 `src/utils/persistent/migrate.ts`（admin 侧）。
 
-### Code Quality
-```bash
-# Run ESLint
-pnpm lint
+## 各 app 专属指引
 
-# Fix ESLint issues
-pnpm lint:fix
+- `apps/server/CLAUDE.md` — 后端模块架构、Repository 三模式、DTO 装饰器规则、Guard 顺序
+- `apps/docs/CLAUDE.md` — 文档站结构、VitePress 配置
+- `apps/server/AGENTS.md` — 后端详细文档索引（.agents/docs/ 14 篇）
 
-# Type check
-pnpm types:check
+## 资源
 
-# Check dependencies for updates
-pnpm check:deps:update
-```
-
-### Other
-```bash
-# Generate PWA assets
-pnpm generate-pwa-assets
-
-# Generate changelog
-pnpm changelog
-
-# Git operations
-pnpm git:push
-```
-
-## Environment Configuration
-
-Environment files are committed encrypted in `env-encrypted/` (dotenvx AES-256; comments inside the files serve as the template):
-- `.env.development` - Development settings
-- `.env.production` - Production settings
-- `.env.stage` - Staging settings
-
-Run `pnpm setup-env` to decrypt them into `env-local/` (gitignored) — the only directory Vite/Nest read env files from. Private key in `.env.keys` (gitignored, shared via 1Password).
-
-### Key Environment Variables
-
-**Development:**
-- `VITE_PORT` - Dev server port (default: 3100)
-- `VITE_HOST` - Dev server host
-- `VITE_PROXY` - Proxy configuration for API and socket
-
-**Production/Staging:**
-- `VITE_BUILD_OUT_DIR` - Build output directory
-- `VITE_BUILD_OBFUSCATOR` - Enable code obfuscation
-- `VITE_BUILD_DROP_CONSOLE` - Remove console statements
-- `VITE_BUILD_COMPRESSION` - Enable gzip compression
-- `VITE_BUILD_CDN` - Use CDN for dependencies
-- `VITE_BUILD_SENTRY_*` - Sentry error tracking configuration
-
-## Code Style Guidelines
-
-### ESLint Configuration
-- Uses `@antfu/eslint-config` with custom rules
-- UnoCSS support enabled
-- `ts/no-namespace` is allowed
-- `no-console` is allowed (managed by build process)
-
-### TypeScript
-- Strict mode enabled
-- Path aliases: `@/*` maps to `src/*`, `~/*` maps to `types/*`
-- JSX preserved for Vue
-- Module resolution: bundler
-
-### Component Naming
-- Components use PascalCase
-- Component folders use PascalCase matching the component name
-- Each component typically has: `index.ts` (export), `index.vue` (component)
-
-### Auto-Imports
-The project uses `unplugin-auto-import` for:
-- Vue (ref, reactive, computed, etc.)
-- Vue Router (useRoute, useRouter)
-- Vue I18n (useI18n)
-- Pinia (defineStore, storeToRefs)
-- VueUse functions
-- Custom hooks from `src/hooks/**`
-
-**Important**: Do not abuse auto-imports. Explicit imports are preferred in large projects for clarity.
-
-### CSS/Styling
-- Uses UnoCSS for utility classes
-- Custom SCSS in `src/assets/styles/`
-- Naive UI CSS variables for theming
-- Dark mode support via CSS classes
-
-## Commit Convention
-
-Uses conventional commits with these types:
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation
-- `style`: Code style (formatting, no logic change)
-- `refactor`: Code refactoring
-- `perf`: Performance improvements
-- `test`: Tests
-- `chore`: Build process or auxiliary tool changes
-- `revert`: Revert previous commit
-- `wip`: Work in progress
-- `build`: Build system changes
-- `types`: Type definitions
-
-### Pre-commit Hooks
-- `lint-staged` runs ESLint fix on all staged files
-- `commitlint` validates commit messages
-
-## API Layer
-
-The API layer uses a class-based approach:
-
-```typescript
-// BaseAPI provides standard CRUD operations
-class BaseAPI<T> {
-  list(data?)    // POST /{model}/{section}/list
-  create(data)   // POST /{model}/{section}
-  read(id)       // GET /{model}/{section}/{id}
-  update(data)   // PUT /{model}/{section}/{data._id}
-  delete(id)     // DELETE /{model}/{section}/{id}
-}
-```
-
-Axios instance (`AppAxios`) includes:
-- Request/response interceptors
-- Token refresh logic
-- Request deduplication
-- Cache adapter
-- Retry adapter
-- Throttling
-- Crypto encryption for sensitive data
-
-## Router Architecture
-
-- Uses `createWebHistory`
-- Route guards handle: authentication, encryption, loading bar, lock screen
-- Routes are dynamically generated from menu configuration
-- Supports route-level caching with keep-alive
-- Query/params encryption support for sensitive data
-
-## State Management (Pinia)
-
-Stores are organized by domain:
-- `app-*`: App-level state (theme, locale, menu, tab, lock)
-- `user-*`: User state (auth, profile, preference, permission)
-- `comp-*`: Component state
-- `setting-*`: Settings state
-
-All stores use the `useXxxStore` naming convention.
-
-## Security Features
-
-- **OPAQUE protocol**: For password authentication
-- **RSA-OAEP**: For asymmetric encryption
-- **AES-GCM**: For symmetric encryption
-- **HKDF-SHA256**: For key derivation
-- **HMAC-SHA256**: For message authentication
-- **CAPTCHA (cap)**: Custom CAPTCHA implementation
-- **WebAuthn**: FIDO2 support for MFA
-- **TOTP**: Time-based one-time passwords
-- **Sentry**: Error tracking and monitoring
-
-## Browser Support
-
-- Modern browsers (ESNext target)
-- Legacy browser support via `@vitejs/plugin-legacy` (currently disabled)
-- Chrome DevTools integration in development
-
-## Important Notes for Agents
-
-1. **Always check existing patterns**: The project has established patterns for components, API calls, and state management. Follow existing conventions.
-
-2. **Type safety**: TypeScript strict mode is enabled. Avoid `any` types and ensure proper type definitions.
-
-3. **Component structure**: When creating new components, follow the folder structure: `ComponentName/index.ts` + `ComponentName/index.vue`.
-
-4. **API functions**: End all API function names with `API` suffix for clear identification.
-
-5. **Storage migrations**: When modifying persistent storage structures, update `src/utils/persistent/migrate.ts`.
-
-6. **Icons**: Uses Iconify with custom build process. SVG icons are in `.svg/` directory.
-
-7. **Testing**: Currently no test suite is configured. Manual testing via demo pages.
-
-8. **Comments**: The codebase uses `// LINK` comments for references and `// TODO`/`// FIXME` for pending work.
-
-9. **Language**: The project uses both English and Chinese. Primary documentation language is English, but code comments may be in Chinese.
-
-10. **Dependencies**: Use pnpm only. The project has `only-allow pnpm` preinstall hook.
-
-## Resources
-
-- [Vue 3 Docs](https://vuejs.org/)
-- [Naive UI Docs](https://www.naiveui.com/)
-- [Vite Docs](https://vitejs.dev/)
-- [UnoCSS Docs](https://unocss.dev/)
-- [VueUse Docs](https://vueuse.org/)
+- 演示：https://www.walnut-admin.com ｜ 文档：https://walnut-admin-doc.netlify.app
+- Vue 3 · Naive UI · UnoCSS · Vite · NestJS · Mongoose · Redis

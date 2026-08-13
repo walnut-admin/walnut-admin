@@ -9,7 +9,7 @@
 | # | 事项 | 来源 | 工作量 | 说明 |
 |---|------|------|--------|------|
 | 1 | **CI/CD 流水线** | ADR 0009 | 中 | **✅ 已完成**。`.github/workflows/ci.yml` 就位：`turbo boundaries` → affected lint/types:check/test → syncpack → server 构建（admin 构建经 `DOTENVX_KEYS_FILE` secret 解密 env 后启用）。commit 级（commitlint）+ push 级（pre-push：boundaries/types:check/syncpack）+ CI 级门禁齐备 |
-| 2 | **共享包测试** | ADR 0009 / 0015 | 中 | `@walnut/utils`（queue、regex、crypto）、`@walnut/contract`（快照测试）至今零测试。utils-core 的 vitest 配置已提交（`vitest.config.ts`），只差测试文件本体。是 CI 流水线的前置条件 |
+| 2 | **共享包测试** | ADR 0009 / 0015 | 中 | **✅ 已完成（2026-08-08）**。`@walnut/utils` 5 个测试文件（queue 去重/清理语义、regex 正负例、crypto transformer 三套往返、persistent sync/async 加密包装）；`@walnut/contract` 快照测试（12 组契约快照：wire format、错误码、角色、路由、socket 事件等 + API 表面）。contract 补 test 脚本与 vitest 配置，CI 的 affected test 自动覆盖 |
 | 3 | **前端构建修复** | ADR README 遗留 | 小 | **✅ 已解决 2026-08-08**。三个根因：(1) env 文件缺失——正确流程是 `pnpm setup-env`（dotenvx 从 `env-encrypted/` 解密，需根 `.env.keys`）；(2) root overrides 把 `lru-cache` 全局强制为 v11（ESM-only），破坏 workbox-build 的 CJS 依赖链（`_lruCache is not a constructor`）——已移除 override；(3) `optimizeDeps.include: Object.keys(dependencies)` 把 workspace 包列入预构建导致 `@walnut/types` 等解析失败——已过滤 `@walnut/*`。另修复 `~build/package` 失效 import 及 tsbuildinfo 增量缓存掩盖的 6 处既有类型错误 |
 
 ---
@@ -73,11 +73,11 @@ ADR 0017 Phase 1（目录重组 + 既有包迁移）+ Phase 2.1/2.3（contract �
 
 | # | 事项 | 说明 | 工作量 |
 |---|------|------|--------|
-| R1 | **peers 版本错位治理** | `pnpm peers check` 现存 3 个 unmet：`@swc/cli@0.8.1` 超出 `@nestjs/cli` peer 范围（^0.1.62~^0.7.0）、`chokidar@4` 不满足 `@swc/cli`/`nunjucks` 要的 ^3.3/^5、`class-validator@0.15` 超出 `@nestjs/mapped-types` peer（^0.13~^0.14）。strict-peer-dependencies 未阻断 install（pnpm 仅警告），但存在运行时隐患，需逐个评估升级/降级 | 中 |
+| R1 | **peers 版本错位治理** | **✅ 已完成（2026-08-08）**。`peerDependencyRules.allowedVersions` 豁免 5 项（@swc/cli、chokidar、class-validator、typescript、vite——均为仓库显式选用新版本、上游 peer 未跟进），`pnpm peers check` 恢复零告警 | — |
 | R2 | **knip 豁免清单裁剪** | `ignoreDependencies` 已膨胀至 80+ 条集中豁免，掩盖真实死依赖、维护成本高。建议按包拆分豁免并周期性清理（08-08 批次已清过一轮，仍可继续） | 中 |
 | R3 | **root eslint 换 base preset** | 根 `eslint.config.mjs` 用 vueConfig 但只 lint mjs/json/yaml/scripts，用 base preset 更贴切、更快 | 小 |
 | R4 | **根 tsconfig.json 接入类型检查** | 根 tsconfig 覆盖 `scripts/` 但无任何脚本执行它（types:check 只跑 turbo 包任务）。建议加 `types:check:root: tsc -p tsconfig.json` 并入 pre-push/CI | 小 |
-| R5 | **AGENTS.md 重写** | 根 `AGENTS.md` 自标过时（描述合并前单包结构），其声明的重写任务（旧文档问题 #11）一直未排期 | 中 |
+| R5 | **AGENTS.md 重写** | **✅ 已完成（2026-08-08）**。根 `AGENTS.md` 重写为分发式导航文档（结构 + 命令 + 关键纪律），权威信息指向 CLAUDE.md 与架构文档，避免再次漂移 | — |
 | R6 | **only-allow 加入 devDeps** | preinstall 里 `npx only-allow pnpm` 每次安装走网络拉取；加入 devDeps 并用 `pnpm exec only-allow pnpm`（packageManager 字段 + corepack 已兜底） | 小 |
 | R7 | **TS 7 / tsgo 迁移准备** | `tsconfig.base.json` 的 `ignoreDeprecations: "6.0"` 一刀切静音了通往原生编译器（tsgo）的迁移信号。建议列出实际触发的弃用项逐个决策，为 TS 7 铺路 | 中 |
 | R8 | **`@walnut/types` exports 结构** | 该包只有 `./*` 子路径导出、无根 `"."` 与 `types` 字段，消费方必须写 `@walnut/types/xxx`；评估是否补根导出 | 小 |
@@ -91,6 +91,7 @@ ADR 0017 Phase 1（目录重组 + 既有包迁移）+ Phase 2.1/2.3（contract �
 
 | 日期 | 完成项 |
 |------|--------|
+| 2026-08-08 | **共享包测试 + peers + AGENTS**：① P0-2 完成——`@walnut/utils` 5 个测试文件（queue/regex/crypto-transformer/persistent sync+async，20+ 用例）、`@walnut/contract` 12 组契约快照测试（防止错误码/路由/wire format 静默破坏）+ test 脚本与 vitest 配置；② R1 完成——`peerDependencyRules.allowedVersions` 豁免 5 项 peers 错位（@swc/cli、chokidar、class-validator、typescript、vite），`pnpm peers check` 零告警；③ R5 完成——根 AGENTS.md 重写为分发式导航文档（原文件自标过时、描述合并前单包结构） |
 | 2026-08-08 | **文档配套 + 优化池**：① A4 表格勾选（执行记录早已完成，表格漏更）；② P1-4 Remote Cache 标记为已决定不接入；③ P3-14 Vitest preset 理由更新（4 包 → 12 包）；④ 新增"架构优化池"R1-R11（peers 错位、knip 裁剪、root eslint base、types:check:root、tsgo 准备等）；⑤ 修复 turbo `preview` 任务缺失（root 脚本指向未定义任务）；⑥ release.md/index.md 的 fixed 组更新为 9+3；eslint.md 同步 pre-push/boundaries 与 lint-staged；turbo.md 补 preview 任务与 Remote Cache 决策；env-management.md 补 CI secret 用法；server/docs 的 CLAUDE.md 过时点修复 |
 | 2026-08-08 | **架构 review 第三批**：① `@walnut/client` 的 `vue`/`pinia` 从 dependencies 移入 peerDependencies（与 `@walnut/ui` 对齐，防双实例）+ devDependencies 补供本包解析；② DOM lib 下沉：`tsconfig.base.json` 仅 `lib: ["ESNext"]`、移除 `typeRoots`，DOM/DOM.Iterable 下沉到 admin/docs/platform-web/*，platform-any 不再可见 DOM 全局；③ server `strict: true`（保留 strictPropertyInitialization: false）——tsc 零错误；④ 清理 6 处残留空导入 `import { } from '@walnut/contract'`（contract 无 declare global，无副作用职责）；⑤ changesets fixed 组补齐 `@walnut/release`/`@walnut/commitlint-config`；⑥ `build:stage` 升级为独立 turbo 任务，废除 `turbo build -- -- --mode stage` 三重 `--` 透传（透传参数会泄漏给全图任务）；⑦ lint-staged 删除无效的 `*.md` 条目（eslint preset 关闭 markdown 后该条目静默无效） |
 | 2026-08-08 | **架构 review 第二批**：① turbo `dev`/`test` 任务接入 `dependsOn: ["^build"]`——修复 fresh clone 下 `dev:server` 因 contract/utils CJS dist 缺失（gitignore）而 MODULE_NOT_FOUND 的问题（ADR 0002 的 require 链路）；② `turbo boundaries` 接入 pre-push 与 CI 门禁（此前无任何 gate，root 新增 `boundaries` 脚本）；③ CI workflow 落地（P0-1 ✅：boundaries → affected lint/types:check/test → syncpack → 构建，admin 构建按 secret 存在与否自动启用）；④ 根 `clean:all` glob 修复（`packages/*/node_modules` 匹配不到两层嵌套目录，补 `packages/*/*/node_modules`）；⑤ `@walnut/eslint-config` 补 lint/lint:fix/types:check 脚本（此前该包代码从未被 lint）；⑥ `apps/admin|server|docs` 补 `private: true` 防误发布；⑦ 边界验证实测：临时给 contract 加 `app` 标签 → `turbo boundaries` 正确报出 3 处 shared→app 违规，回滚后零违规 |
