@@ -70,6 +70,12 @@
       "interruptible": true,
       "cache": false
     },
+    "preview": {
+      "dependsOn": ["^build"],
+      "persistent": true,
+      "interruptible": true,
+      "cache": false
+    },
     "lint": {
       "dependsOn": [],
       "inputs": [
