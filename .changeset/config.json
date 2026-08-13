@@ -8,8 +8,10 @@
       "@walnut/contract",
       "@walnut/types",
       "@walnut/client",
+      "@walnut/commitlint-config",
       "@walnut/http",
       "@walnut/ui",
+      "@walnut/release",
       "@walnut/eslint-config"
     ],
     [

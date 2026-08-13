@@ -8,7 +8,7 @@ Walnut Admin 使用 **Turborepo 2.9** 作为任务编排引擎。它负责解决
 
 ### 1. 任务拓扑编排
 
-[`turbo.json`](https://github.com/walnut-admin/walnut-admin/blob/main/turbo.json) 定义了 8 个任务：
+[`turbo.json`](https://github.com/walnut-admin/walnut-admin/blob/main/turbo.json) 定义了 9 个任务：
 
 ```jsonc
 {
@@ -18,7 +18,13 @@ Walnut Admin 使用 **Turborepo 2.9** 作为任务编排引擎。它负责解决
       "outputs": ["dist/**", ".vitepress/dist/**"],
       "env": ["VITE_*", "MODE"]       // 环境变量影响 → 变更时缓存失效
     },
+    "build:stage": {
+      "dependsOn": ["^build:stage"],  // admin 侧 vite build --mode stage
+      "outputs": ["dist/**", ".vitepress/dist/**"],
+      "env": ["VITE_*", "MODE"]
+    },
     "dev": {
+      "dependsOn": ["^build"],       // 先构建上游 CJS 产物（server 运行时 require 依赖）
       "persistent": true,              // 长期运行（dev server）
       "interruptible": true,           // 允许被信号中断（配合 persistent）
       "cache": false                   // 不缓存
@@ -26,7 +32,7 @@ Walnut Admin 使用 **Turborepo 2.9** 作为任务编排引擎。它负责解决
     "lint":        { "dependsOn": [], "cache": true },
     "lint:fix":    { "dependsOn": [], "cache": false },
     "types:check": { "dependsOn": [], "cache": true },
-    "test":        { "dependsOn": [], "cache": true },
+    "test":        { "dependsOn": ["^build"], "cache": true },
     "clean":       { "dependsOn": [], "cache": false },
     "clean:all":   { "dependsOn": [], "cache": false }
   }
@@ -39,6 +45,10 @@ Walnut Admin 使用 **Turborepo 2.9** 作为任务编排引擎。它负责解决
 依赖图：contract → utils → client → admin
 执行序：contract#build → utils#build → client#build → admin#build
 ```
+
+**`dev` / `test` 也依赖 `^build`**：后端运行时 `require('@walnut/contract')` 走 `exports.require` → `dist/index.cjs`（见 ADR 0002），而 `dist/` 是 gitignore 的构建产物。fresh clone 后直接 `pnpm dev:server` 若缺这一步会 MODULE_NOT_FOUND——因此 `dev` 与 `test` 都先跑一次 `^build`（Turbo 缓存，通常 <1s）。
+
+**`build:stage` 是独立任务**：`pnpm build:stage` = `turbo build:stage --filter=@walnut/admin`，由 admin 的 `build:stage`（`vite build --mode stage`）脚本承载，替代早期 `turbo build -- -- --mode stage` 的三重 `--` 透传（透传参数会泄漏给图中所有任务，且链路脆弱）。
 
 ### 2. 构建缓存
 
@@ -56,7 +66,7 @@ Turbo 对每个 task 做 **content-aware hashing**：hash 源码 + 依赖 + 环�
 }
 ```
 
-**效果**：没改过的包 → 200ms 从缓存恢复（vs 重新构建的 10-30s）。"CI 中 cache hit 率通常 > 80%" 是**期望值**——当前仓库还没有 CI workflow，该指标尚未实测落地。
+**效果**：没改过的包 → 200ms 从缓存恢复（vs 重新构建的 10-30s）。"CI 中 cache hit 率通常 > 80%" 是**期望值**——CI workflow（`.github/workflows/ci.yml`）已接入，该指标待实测。
 
 ### 3. 环境变量感知
 
@@ -114,18 +124,18 @@ Turbo 2.9 的实验性功能——通过标签声明包的角色并强制依赖�
 | `@walnut/commitlint-config` | `tooling`, `platform-any` |
 
 ```bash
-pnpm turbo boundaries   # 检查是否有包违反了边界规则
+pnpm turbo boundaries   # 检查是否有包违反了边界规则（pre-push 与 CI 中强制执行）
 ```
 
 ## 没做什么 / 为什么
 
 ### 不配置 Remote Cache
 
-Turborepo Remote Cache（Vercel 托管或自建）可以跨 CI 机器共享缓存。Walnut Admin 当前 CI 规模小，单机缓存已够用。如果 CI 并行度提升（多台机器同时构建），再加也不迟。
+Turborepo Remote Cache（Vercel 托管或自建）可以跨 CI 机器共享缓存。Walnut Admin 当前 CI 规模小，单机缓存已够用。如果 CI 并行度提升（多台机器同时构建），再加也不迟（`globalPassThroughEnv` 已预留 `TURBO_TOKEN`/`TURBO_TEAM` 透传，接入时零配置改动）。
 
-### 不用 `--filter` 替代 affected-only
+### CI 使用 affected-only
 
-当前 CI 使用的是全量检查。`turbo --filter='[origin/main]'`（只检查变更包）可以减少 CI 时间，待 CI 流程完善后加入。
+CI（`.github/workflows/ci.yml`）对 `lint` / `types:check` / `test` 使用 `turbo run <task> --affected`——只检查受变更影响的包。`turbo boundaries` 检查全仓（tag 规则与受影响集无关，全量扫描也只需数秒）。
 
 ---
 

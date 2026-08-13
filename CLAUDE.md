@@ -80,7 +80,7 @@ walnut-admin/
 │       ├── eslint-config/    @walnut/eslint-config    — shared ESLint presets (vue/nest/base)
 │       ├── commitlint-config/@walnut/commitlint-config — commitlint rules
 │       └── release/          @walnut/release          — release orchestration (bins)
-├── build/                    ← Shared Vite build config
+├── apps/admin/build/         ← Admin Vite build config (plugins/config/proxy)
 ├── migration-guide/          ← Migration documentation & tracking
 ├── turbo.json                ← Turborepo pipeline
 ├── pnpm-workspace.yaml       ← pnpm workspace + config
@@ -114,6 +114,14 @@ This monorepo was created by merging three previously separate repositories:
 - ✅ `turbo.json` gained a `test` task and `pnpm-workspace.yaml` in `globalDependencies`
 - ✅ Root `dev` defaults to `dev:admin` (avoids starting server which needs MongoDB+Redis)
 - ✅ Dependencies unified via pnpm `catalog:` (248 entries, single source of truth — ESLint version drift resolved)
+
+**Toolchain hardening (2026-08-08):**
+- ✅ `turbo.json` `dev`/`test` tasks now `dependsOn: ["^build"]` — fresh clones can `dev:server` directly (contract/utils CJS dist is a build artifact, see ADR 0002)
+- ✅ `turbo boundaries` wired into pre-push hook and CI (`.github/workflows/ci.yml`, P0-1 backlog item)
+- ✅ CI quality gates: boundaries → affected lint/types:check/test → syncpack → builds
+- ✅ Root `clean:all` covers nested `packages/*/*/node_modules`
+- ✅ `@walnut/eslint-config` gained its own lint scripts; `apps/*` marked `private: true`
+- ✅ `@walnut/client` `vue`/`pinia` moved to peerDependencies; server tsconfig `strict: true` (tsc zero errors); DOM lib pushed down from `tsconfig.base.json` to admin/docs/platform-web packages; 6 leftover empty `import { } from '@walnut/contract'` removed; `build:stage` is now a dedicated turbo task (triple-dash passthrough retired); changesets fixed groups include all tooling packages
 
 **For full architecture details and the remaining refactor roadmap:**
 - [`apps/docs/src/zh-CN/content/monorepo/`](./apps/docs/src/zh-CN/content/monorepo/) — 架构文档（TypeScript / ESLint / pnpm Catalog / Turbo / Release / Knip 等 10 篇）

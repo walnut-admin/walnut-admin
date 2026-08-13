@@ -39,6 +39,10 @@ Walnut Admin 是一个**异构工具链**的全栈 monorepo——前端用 ESM +
 }
 ```
 
+### 2.1 DOM lib 下沉（2026-08-08）
+
+`tsconfig.base.json` 只保留 `lib: ["ESNext"]`——`DOM`/`DOM.Iterable` 下沉到真正运行在浏览器的包（`apps/admin`、`apps/docs`、`packages/platform-web/*`）各自声明。platform-any 的 `contract`/`types`/`utils-core` 不再可见 `window`/`document` 等 DOM 全局，杜绝"平台无关包写出浏览器专用代码"的假阴性。`typeRoots` 同样从 base 移除，恢复 TypeScript 默认的逐级 `node_modules/@types` 自动发现。
+
 ### 3. 后端不 extends root base
 
 `apps/server/tsconfig.json` 是**完全独立**的——不 extends `tsconfig.base.json`。原因：后端使用 CJS + `moduleResolution: "node"` + `experimentalDecorators`（NestJS 必需），与 root base 的 ESM + `bundler` 完全冲突：
@@ -51,6 +55,8 @@ Walnut Admin 是一个**异构工具链**的全栈 monorepo——前端用 ESM +
 | `emitDecoratorMetadata` | — | `true` |
 | `noEmit` | `true` | `false`（SWC 需要 .js） |
 | `verbatimModuleSyntax` | `true` | 与 CJS 不兼容 |
+
+> 2026-08-08 收紧：后端启用 `strict: true`（仅保留 `strictPropertyInitialization: false`——NestJS 依赖注入属性由构造器装饰器初始化）。全仓 `tsc --noEmit` 零错误通过，含 `noImplicitAny`/`strictBindCallApply`/`strictFunctionTypes`。
 
 ### 4. 不用 TypeScript Project References
 
