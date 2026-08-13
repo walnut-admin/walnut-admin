@@ -65,6 +65,16 @@ pnpm encrypt-env   # 修改 env-local/ 后重新加密（每次全量重建 .env
 | 影响缓存 | 是——`turbo.json` 声明了 `"env": ["VITE_*", "MODE"]` | 否——构建产物不包含 env 值 |
 | 新增变量后 | 更新 `build/vite/config/` 中的 Zod schema | 更新 `libs/config/src/validation.ts` |
 
+### 5. CI 用法（2026-08-08 起）
+
+CI（`.github/workflows/ci.yml`）复用同一套加解密流程：
+
+1. 仓库 Settings → Secrets and variables → Actions 新增 **`DOTENVX_KEYS_FILE`**，内容即本地 `.env.keys` 文件**全文**（多行，含各环境密钥行）；
+2. CI 检测到该 secret 后自动执行：写入 `.env.keys` → `pnpm setup-env` 解密 → `turbo build --filter=@walnut/admin`；
+3. 未配置 secret 时 admin 构建步骤自动跳过（server 构建无需 env，编译期不加载）。
+
+`.env.keys` 本身仍 gitignore、经 1Password 团队共享——secret 与本地文件是同一份内容，轮换密钥后需同步更新。
+
 ## 没做什么 / 为什么
 
 ### admin 基础 `.env` 已纳入加密管理（2026-08-09 起）

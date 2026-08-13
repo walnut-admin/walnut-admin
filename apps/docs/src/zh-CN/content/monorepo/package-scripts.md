@@ -87,10 +87,10 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 ```
 pre-commit → lint-staged（ESLint fix on staged files，秒级）
 commit-msg → commitlint（提交信息规范检查）
-pre-push   → pnpm types:check && pnpm syncpack:lint（类型检查 + 依赖一致性，十秒级）
+pre-push   → pnpm boundaries && pnpm types:check && pnpm syncpack:lint（架构边界 + 类型检查 + 依赖一致性，十秒级）
 ```
 
-`pre-commit` 只跑 ESLint fix，不做类型检查（太慢，阻塞 commit 体验）；`commit-msg` 由 commitlint 校验提交信息格式；类型检查和 syncpack 依赖一致性检查放在 `pre-push`。
+`pre-commit` 只跑 ESLint fix，不做类型检查（太慢，阻塞 commit 体验）；`commit-msg` 由 commitlint 校验提交信息格式；架构边界（`turbo boundaries`）、类型检查和 syncpack 依赖一致性检查放在 `pre-push`。
 
 ## 没做什么 / 为什么
 

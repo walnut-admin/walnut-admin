@@ -24,7 +24,7 @@ monorepo 划分为 **2 个 fixed 组**，每组内部**永远同版本号**（�
 
 前端、后端、文档一荣俱荣——发布 tag `vX.Y.Z` 取组内版本（admin 为基准）。
 
-### Packages 组：7 个共享包同步一个版本号
+### Packages 组：9 个共享包同步一个版本号
 
 | 包 | 目录 |
 |----|------|
@@ -35,8 +35,10 @@ monorepo 划分为 **2 个 fixed 组**，每组内部**永远同版本号**（�
 | `@walnut/http` | packages/platform-web/http |
 | `@walnut/ui` | packages/platform-web/ui |
 | `@walnut/eslint-config` | packages/tooling/eslint-config |
+| `@walnut/release` | packages/tooling/release |
+| `@walnut/commitlint-config` | packages/tooling/commitlint-config |
 
-**不参与 fixed 组的包**：`@walnut/release`、`@walnut/commitlint-config`（内部工具包，被提及则独立 bump）。
+> 2026-08-08 起 `@walnut/release`、`@walnut/commitlint-config` 也并入本组——全部 12 个 workspace 包都在两个 fixed 组内，无不参与包（消除"tooling 包独立版本"的不对称）。
 
 ### fixed 组工作原理
 
@@ -161,8 +163,9 @@ pnpm release
 {
   "fixed": [
     [ "@walnut/utils", "@walnut/contract", "@walnut/types", "@walnut/client",
-      "@walnut/http", "@walnut/ui", "@walnut/eslint-config" ],  // Packages 组
-    [ "@walnut/admin", "@walnut/server", "@walnut/docs" ]       // Apps 组
+      "@walnut/commitlint-config", "@walnut/http", "@walnut/ui",
+      "@walnut/release", "@walnut/eslint-config" ],  // Packages 组（9 包）
+    [ "@walnut/admin", "@walnut/server", "@walnut/docs" ]  // Apps 组（3 包）
   ],
   "changelog": "@changesets/changelog-github",  // per-package CHANGELOG：PR 链接 + 贡献者
   "commit": false,            // 不让 CLI 自动 commit（release 编排统一处理）

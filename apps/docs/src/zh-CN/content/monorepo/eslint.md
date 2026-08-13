@@ -49,14 +49,15 @@ ESLint 的类型感知规则（`ts/no-unsafe-*`）在 NestJS 中做了降级处�
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged",
     "commit-msg": "pnpm commitlint --edit $1",
-    "pre-push": "pnpm types:check && pnpm syncpack:lint"   // 类型检查 + 依赖一致性
+    "pre-push": "pnpm boundaries && pnpm types:check && pnpm syncpack:lint"   // 架构边界 + 类型检查 + 依赖一致性
   },
   "lint-staged": {
-    "*.{ts,vue,mjs,js}": "eslint --fix --concurrency=auto",
-    "*.md": "eslint --fix"
+    "*.{ts,vue,mjs,js}": "eslint --fix --concurrency=auto"
   }
 }
 ```
+
+> 2026-08-08 起：pre-push 增加了 `turbo boundaries`（tag 架构边界检查）；lint-staged 移除了无效的 `*.md` 条目（ESLint preset 关闭 markdown 处理器后该条目静默无效）。
 
 分层策略：
 
@@ -64,8 +65,8 @@ ESLint 的类型感知规则（`ts/no-unsafe-*`）在 NestJS 中做了降级处�
 |------|--------|------|
 | pre-commit | ESLint fix on staged files | 秒级 |
 | commit-msg | commitlint 提交信息规范检查 | 秒级 |
-| pre-push | 全仓库类型检查 + syncpack 依赖一致性 | 十秒级 |
-| CI | 完整 lint + typecheck + test | 分钟级 |
+| pre-push | 架构边界 + 全仓库类型检查 + syncpack 依赖一致性 | 十秒级 |
+| CI | boundaries + affected lint/typecheck/test + syncpack + build | 分钟级 |
 
 ## 没做什么 / 为什么
 

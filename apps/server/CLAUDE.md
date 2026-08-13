@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Walnut Admin NestJS Server - A full-featured admin backend template built with NestJS 11.x, TypeScript 5.9+, MongoDB (Mongoose), Redis, and Bull queue system.
+Walnut Admin NestJS Server - A full-featured admin backend template built with NestJS 11.x, TypeScript 6.0.3, MongoDB (Mongoose), Redis, and Bull queue system.
 
 **Key Features**: Multi-auth (JWT, OAuth, WebAuthn, Opaque), RBAC, MFA, real-time (WebSocket/SSE), i18n, comprehensive security (IP/device guards, CAPTCHA, risk assessment, XSS protection).
 
@@ -22,8 +22,8 @@ pnpm build
 pnpm build:stage
 
 # Code quality
-pnpm lint              # ESLint check and auto-fix
-pnpm typecheck         # TypeScript type check
+pnpm lint              # ESLint check (fix: pnpm lint:fix)
+pnpm types:check       # TypeScript type check (strict mode)
 pnpm typecheck:watch   # Type check in watch mode
 
 # Testing
@@ -33,15 +33,13 @@ pnpm test:cov          # Coverage report
 
 # Production start
 pnpm start:prod        # Direct Node execution
-pnpm pm2:prod          # PM2 production
-pnpm pm2:stage         # PM2 staging
+pnpm start:stage       # Staging direct Node execution
 ```
 
 ## System Requirements
 
 - Node.js >= 24.13.0
-- npm >= 11.6.2
-- pnpm (enforced via package.json)
+- pnpm >= 11.0.0 (enforced via packageManager + preinstall hook)
 - MongoDB replica set (required for transactions)
 - Redis 7.x+
 
@@ -50,7 +48,7 @@ pnpm pm2:stage         # PM2 staging
 ### Directory Structure
 
 ```
-src/walnut/admin/com/app/
+apps/api/src/
 ├── modules/              # Feature modules
 │   ├── app/             # Application modules (demo, monitor, setting)
 │   ├── auth/            # Authentication (JWT, OAuth, MFA, OTP)
@@ -298,7 +296,7 @@ Guards execute in this order (defined in `app.module.ts`):
 
 ### Path Aliases
 
-Always use `@/*` alias from `src/walnut/admin/com/app/`:
+Always use `@/*` alias from `apps/api/src/`:
 
 ```typescript
 import { WalnutAdminDecoratorList } from '@/decorators/crud'
@@ -410,7 +408,7 @@ export class UserBasicRepository extends WalnutAdminCommonBasicRepository<IUserD
 
 ## Decorator Order
 
-ESLint enforces strict decorator order. Run `pnpm lint` to auto-fix.
+ESLint enforces strict decorator order. Run `pnpm lint:fix` to auto-fix.
 
 ### Method Decorators Order
 

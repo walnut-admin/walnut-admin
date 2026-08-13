@@ -55,7 +55,7 @@ pnpm build:docs
 # Lint & type check
 pnpm lint
 pnpm types:check
-pnpm test          # Run tests (only @walnut/server has vitest configured)
+pnpm test          # Run tests (server + release + utils/client vitest)
 ```
 
 ## History

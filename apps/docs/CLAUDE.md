@@ -28,8 +28,8 @@ pnpm preview
 # Lint code
 pnpm lint
 
-# Format code (auto-fix)
-pnpm format
+# Format code (ESLint stylistic auto-fix)
+pnpm lint:fix
 
 # Update dependencies interactively
 pnpm taze

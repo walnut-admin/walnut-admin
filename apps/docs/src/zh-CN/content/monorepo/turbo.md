@@ -8,7 +8,7 @@ Walnut Admin 使用 **Turborepo 2.9** 作为任务编排引擎。它负责解决
 
 ### 1. 任务拓扑编排
 
-[`turbo.json`](https://github.com/walnut-admin/walnut-admin/blob/main/turbo.json) 定义了 9 个任务：
+[`turbo.json`](https://github.com/walnut-admin/walnut-admin/blob/main/turbo.json) 定义了 10 个任务：
 
 ```jsonc
 {
@@ -28,6 +28,12 @@ Walnut Admin 使用 **Turborepo 2.9** 作为任务编排引擎。它负责解决
       "persistent": true,              // 长期运行（dev server）
       "interruptible": true,           // 允许被信号中断（配合 persistent）
       "cache": false                   // 不缓存
+    },
+    "preview": {
+      "dependsOn": ["^build"],       // 与 dev 同构：本地预览生产构建产物
+      "persistent": true,
+      "interruptible": true,
+      "cache": false
     },
     "lint":        { "dependsOn": [], "cache": true },
     "lint:fix":    { "dependsOn": [], "cache": false },
@@ -129,9 +135,9 @@ pnpm turbo boundaries   # 检查是否有包违反了边界规则（pre-push 与
 
 ## 没做什么 / 为什么
 
-### 不配置 Remote Cache
+### 不配置 Remote Cache（已决定，2026-08-08）
 
-Turborepo Remote Cache（Vercel 托管或自建）可以跨 CI 机器共享缓存。Walnut Admin 当前 CI 规模小，单机缓存已够用。如果 CI 并行度提升（多台机器同时构建），再加也不迟（`globalPassThroughEnv` 已预留 `TURBO_TOKEN`/`TURBO_TEAM` 透传，接入时零配置改动）。
+Turborepo Remote Cache（Vercel 托管或自建）可以跨 CI 机器共享缓存，但当前是单人维护、CI 规模小，单机缓存已够用——**已决定不接入**。`globalPassThroughEnv` 保留 `TURBO_TOKEN`/`TURBO_TEAM` 透传，若未来 CI 并行度提升（多台机器同时构建），接入零配置改动。
 
 ### CI 使用 affected-only
 
