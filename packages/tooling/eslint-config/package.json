@@ -7,6 +7,11 @@
     "./vue": "./vue.mjs",
     "./nest": "./nest.mjs"
   },
+  "scripts": {
+    "lint": "eslint . --concurrency=auto",
+    "lint:fix": "eslint . --fix --concurrency=auto",
+    "types:check": "echo 'config: pure JS, no type check needed'"
+  },
   "peerDependencies": {
     "eslint": "catalog:"
   },

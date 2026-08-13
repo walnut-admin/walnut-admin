@@ -154,8 +154,8 @@ catalog:
   isbot: 5.1.37
   javascript-obfuscator: 5.4.2
   jose: 6.2.2
-  jsdom: 30.0.1
   js-base64: 3.7.8
+  jsdom: 30.0.1
   json-editor-vue: 0.18.1
   knip: 6.29.0
   libphonenumber-js: 1.12.43

@@ -2,6 +2,7 @@
   "name": "@walnut/docs",
   "type": "module",
   "version": "0.0.1",
+  "private": true,
   "description": "Walnut Admin Documentation",
   "author": {
     "name": "zhaocl1997",

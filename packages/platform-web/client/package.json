@@ -23,6 +23,10 @@
     "clean": "rimraf dist",
     "clean:all": "rimraf dist node_modules"
   },
+  "peerDependencies": {
+    "pinia": "catalog:",
+    "vue": "catalog:"
+  },
   "dependencies": {
     "@vueuse/core": "catalog:",
     "@walnut/types": "workspace:*",
@@ -32,19 +36,19 @@
     "idb": "catalog:",
     "js-base64": "catalog:",
     "lodash-es": "catalog:",
-    "pinia": "catalog:",
-    "superjson": "catalog:",
-    "vue": "catalog:"
+    "superjson": "catalog:"
   },
   "devDependencies": {
     "@types/lodash-es": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "@walnut/eslint-config": "workspace:*",
     "jsdom": "catalog:",
+    "pinia": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "vue": "catalog:"
   },
   "walnut": {
     "platform": "web",
