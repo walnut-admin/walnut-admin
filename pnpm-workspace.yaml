@@ -257,6 +257,22 @@ catalog:
   winston: 3.19.0
   winston-daily-rotate-file: 5.0.0
   zod: 4.4.3
+
+# peers 错位豁免（R1，2026-08-08）——仓库显式选用新版本、但上游 peer 范围未跟进，
+# 且版本差异均为向后兼容的次版本升级（`pnpm peers check` 经此恢复零告警）：
+# - @nestjs/cli@11 的 peer 只接受 @swc/cli ^0.1.62~^0.7.0，仓库选 0.8.1
+# - nunjucks@3.2.4（hbs 邮件模板链）要 chokidar ^3.3.0，实际安装 4.0.3
+# - @nestjs/mapped-types@2.1.0 的 peer 只接受 class-validator ^0.13~^0.14，仓库选 0.15.1
+# - i18next/madge/tsconfck 的 peer 只声明 ^5，仓库已统一 TypeScript 6.0.3（tsc 全绿）
+# - vite-plugin-devtools-json/restart 的 peer 最高 ^7，仓库已用 vite 8（构建全绿）
+peerDependencyRules:
+  allowedVersions:
+    '@swc/cli': '0.8'
+    chokidar: '4'
+    class-validator: '0.15'
+    typescript: '6'
+    vite: '8'
+
 allowBuilds:
   '@alicloud/openapi-core': true
   '@compodoc/compodoc': true
