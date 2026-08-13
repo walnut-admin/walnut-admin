@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common'
 import { WalnutAdminConstSafeRoleId, WalnutAdminConstSafeUserId } from '@walnut-server/const/role'
 import { WalnutDBCollectionName, WalnutDBVirtualName } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
-import { } from '@walnut/contract'
 import { ClientSession, Types } from 'mongoose'
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import {

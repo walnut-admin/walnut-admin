@@ -8,7 +8,6 @@ import {
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
-import { } from '@walnut/contract'
 
 import { ValueOf } from 'easy-fns-ts'
 
