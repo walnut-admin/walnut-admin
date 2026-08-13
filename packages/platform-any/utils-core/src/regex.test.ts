@@ -34,6 +34,8 @@ describe('isPhoneNumber', () => {
     expect(isPhoneNumber('abc')).toBe(false)
     expect(isPhoneNumber('')).toBe(false)
     expect(isPhoneNumber('+86123abc')).toBe(false)
-    expect(isPhoneNumber('++8613800138000')).toBe(false)
+    expect(isPhoneNumber('++8613800138000')).toBe(false) // double plus
+    expect(isPhoneNumber('abc+8613800138000')).toBe(false) // junk prefix — ^ anchor
+    expect(isPhoneNumber('+8613800138000 ')).toBe(false) // trailing whitespace
   })
 })

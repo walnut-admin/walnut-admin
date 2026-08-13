@@ -1,0 +1,271 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`contract snapshots > aes-gcm wire format constants never change silently 1`] = `
+{
+  "IV_LENGTH": 12,
+  "MIN_PAYLOAD_LENGTH": 28,
+  "TAG_LENGTH": 16,
+}
+`;
+
+exports[`contract snapshots > api routes never change silently 1`] = `
+{
+  "AppRoutes": {
+    "DEPS": "/deps",
+    "KEY_AES_URL": "/app/key/current/AES_KEY_URL",
+    "KEY_CURRENT": "/app/key/current",
+    "MONITOR_SERVER_BATTERY": "/app/monitor/server/battery",
+    "MONITOR_SERVER_CPU": "/app/monitor/server/cpu",
+    "MONITOR_SERVER_DISK": "/app/monitor/server/disk",
+    "MONITOR_SERVER_MEM": "/app/monitor/server/mem",
+    "MONITOR_SERVER_NETWORK": "/app/monitor/server/network",
+    "MONITOR_SERVER_OS": "/app/monitor/server/os",
+    "MONITOR_SERVER_SYS": "/app/monitor/server/sys",
+    "MONITOR_SERVER_TIME": "/app/monitor/server/time",
+    "SETTING_CACHE_REFRESH": "/app/setting/cache/refresh",
+    "SETTING_PRIVATE": "/app/setting/private",
+    "SETTING_PUBLIC": "/app/setting/public",
+  },
+  "AuthRoutes": {
+    "BASE": "/auth",
+    "GOOGLE": "/auth/google",
+    "KEYS": "/auth/keys",
+    "MFA_STATUS": "/auth/mfa/status",
+    "MFA_VERIFY": "/auth/mfa/verify",
+    "OAUTH_GITEE_URL": "/auth/oauth/gitee/url",
+    "OAUTH_GITHUB_URL": "/auth/oauth/github/url",
+    "OTP_SEND": "/auth/otp/send",
+    "OTP_VERIFY": "/auth/otp/verify",
+    "PERMISSIONS": "/auth/permissions",
+    "REFRESH": "/auth/refresh",
+    "SIGNOUT": "/auth/signout",
+  },
+  "SecurityRoutes": {
+    "CAP_CHALLENGE": "/security/cap/challenge",
+    "CAP_REDEEM": "/security/cap/redeem",
+    "RSA_PUBLIC_KEY": "/security/rsa/public-key",
+    "SIGN_AES_KEY": "/security/sign/aes-key",
+    "SIGN_INITIAL": "/security/sign/initial",
+  },
+  "SharedRoutes": {
+    "ALI_STS": "/shared/ali/sts",
+    "AREA_CHILDREN": "/shared/area/children",
+    "AREA_FEEDBACK": "/shared/area/feedback",
+  },
+  "SystemEndpointRoutes": {
+    "DELETED_RECOVER": "/system/deleted/recover",
+    "DEVICE_INITIAL": "/system/device/initial",
+    "DICT_TYPE_S": "/system/dict/type/s",
+    "LANG_LIST_PUBLIC": "/system/lang/list/public",
+    "LOCALE_MESSAGE": "/system/locale/message",
+    "MENU_TREE": "/system/menu/tree",
+    "USER_DEVICE_LIST": "/system/user/device/list",
+    "USER_IDENTITY_BIND": "/system/user/identity/bind",
+    "USER_IDENTITY_CHECK": "/system/user/identity/check",
+    "USER_IDENTITY_SEND_CODE": "/system/user/identity/send-code",
+    "USER_IDENTITY_STATUS": "/system/user/identity/status",
+    "USER_IDENTITY_UNBIND": "/system/user/identity/unbind",
+    "USER_IDENTITY_VERIFY": "/system/user/identity/verify",
+    "USER_LOCK": "/system/user/lock",
+    "USER_LOCK_READ": "/system/user/lock/read",
+    "USER_LOCK_UNLOCK": "/system/user/lock/unlock",
+    "USER_ME_PROFILE": "/system/user/me/profile",
+    "USER_ME_SWITCH_ROLE": "/system/user/me/role/switch",
+    "USER_PREFERENCE": "/system/user/preference",
+    "USER_PREFERENCE_ACCESSIBILITY": "/system/user/preference/accessibility",
+    "USER_PREFERENCE_BASIC": "/system/user/preference/basic",
+    "USER_PREFERENCE_LAYOUT": "/system/user/preference/layout",
+    "USER_PREFERENCE_READ": "/system/user/preference/read",
+    "USER_PREFERENCE_THEME": "/system/user/preference/theme",
+  },
+  "SystemRoutes": {
+    "DELETED": "/system/deleted",
+    "DEVICE": "/system/device",
+    "DICT_DATA": "/system/dict/data",
+    "DICT_TYPE": "/system/dict/type",
+    "LANG": "/system/lang",
+    "LOCALE": "/system/locale",
+    "LOG_AUTH": "/system/log/auth",
+    "LOG_OPERATE": "/system/log/operate",
+    "MENU": "/system/menu",
+    "ROLE": "/system/role",
+    "USER": "/system/user",
+  },
+}
+`;
+
+exports[`contract snapshots > cookie keys never change silently 1`] = `
+{
+  "CAPJS_TOKEN": "CAPJS_TOKEN",
+  "DEVICE_ID": "DEVICE_ID",
+  "RT_JTI": "RT_JTI",
+  "SIGN_TICKET": "SIGN_TICKET",
+}
+`;
+
+exports[`contract snapshots > locale values never change silently 1`] = `
+{
+  "en_US": "en_US",
+  "zh_CN": "zh_CN",
+}
+`;
+
+exports[`contract snapshots > menu enums never change silently 1`] = `
+{
+  "CacheKeyStrategy": {
+    "CUSTOM": "custom",
+    "NAME": "name",
+    "PATH": "path",
+  },
+  "MenuTernal": {
+    "EXTERNAL": "external",
+    "INTERNAL": "internal",
+    "NONE": "none",
+  },
+  "MenuType": {
+    "CATALOG": "catalog",
+    "ELEMENT": "element",
+    "MENU": "menu",
+  },
+}
+`;
+
+exports[`contract snapshots > public API surface stays stable 1`] = `
+[
+  "AES_GCM_WIRE",
+  "AppRoutes",
+  "AuthRoutes",
+  "CacheKeyStrategy",
+  "Locale",
+  "MenuTernal",
+  "MenuType",
+  "RequestHeaders",
+  "Role",
+  "SecurityRoutes",
+  "SharedRoutes",
+  "SortOrderValues",
+  "SystemEndpointRoutes",
+  "SystemRoutes",
+  "WalnutAdminConstAppResponseCode",
+  "WalnutAdminConstAppTokenKey",
+  "WalnutAdminConstCookieKeys",
+  "WalnutAdminSocketEvents",
+  "WalnutAdminSocketRooms",
+]
+`;
+
+exports[`contract snapshots > request header names never change silently 1`] = `
+{
+  "AUTHORIZATION": "Authorization",
+  "FINGERPRINT": "X-Fingerprint",
+  "ID": "X-Request-ID",
+  "IP": "X-Request-IP",
+  "LANGUAGE": "X-Language",
+  "NONCE": "X-Nonce",
+  "REPO_VERSION": "X-Repo-Version",
+  "RES_TIME": "X-Response-Time",
+  "SERIAL": "X-Serial",
+  "SIGN": "X-Sign",
+  "TIMESTAMP": "X-Timestamp",
+  "TIMEZONE": "X-Timezone",
+  "USER_AGENT": "user-agent",
+  "VERSION": "X-Version",
+}
+`;
+
+exports[`contract snapshots > response codes never change silently 1`] = `
+{
+  "BAD_REQUEST": 40000,
+  "BAD_REQUEST_DATA_ERROR": 40099,
+  "BAD_REQUEST_DATA_EXISTS": 40001,
+  "BAD_REQUEST_DECRYPT_FAILED": 40011,
+  "BAD_REQUEST_INVALID_ID": 40002,
+  "BAD_REQUEST_RSA_PUB_KEY_NOT_FOUND": 40012,
+  "FORBIDDEN": 40300,
+  "GATEWAY_TIMEOUT": 50400,
+  "HTTP_VERSION_NOT_SUPPORTED": 50500,
+  "INTERNAL_SERVER_ERROR": 50000,
+  "INTERNAL_SERVER_ERROR_CACHE": 50002,
+  "INTERNAL_SERVER_ERROR_DATABASE": 50001,
+  "INTERNAL_SERVER_ERROR_MQ": 50003,
+  "NOT_ACCEPTABLE": 40600,
+  "NOT_ACCEPTABLE_BLACK_LIST_PATH_DETECTED": 40610,
+  "NOT_ACCEPTABLE_BOT_DETECTED": 40608,
+  "NOT_ACCEPTABLE_BROWSER_UNSUPPORTED": 40602,
+  "NOT_ACCEPTABLE_DEVICE_BANNED": 40607,
+  "NOT_ACCEPTABLE_DEVICE_LOCKED": 40606,
+  "NOT_ACCEPTABLE_DEVICE_UNSUPPORTED": 40605,
+  "NOT_ACCEPTABLE_IP_BLOCKED": 40603,
+  "NOT_ACCEPTABLE_OS_UNSUPPORTED": 40601,
+  "NOT_ACCEPTABLE_RISK_TOO_HIGH": 40666,
+  "NOT_ACCEPTABLE_SUSPICIOUS_REQUEST": 40609,
+  "NOT_ACCEPTABLE_USER_AGENT_UNSUPPORTED": 40604,
+  "NOT_FOUND": 40400,
+  "NOT_FOUND_DATA_NOT_FOUND": 40401,
+  "NOT_FOUND_ROUTE_NOT_FOUND": 40402,
+  "REQUEST_TIMEOUT": 40800,
+  "SERVICE_UNAVAILABLE": 50300,
+  "SERVICE_UNAVAILABLE_DEPENDENCY_DOWN": 50302,
+  "SERVICE_UNAVAILABLE_ENDPOINT_DOWN": 50301,
+  "SERVICE_UNAVAILABLE_MAINTENANCE": 50303,
+  "SUCCESS": 20000,
+  "TOO_MANY_REQUESTS": 42900,
+  "TOO_MANY_REQUESTS_RATE_LIMITED": 42901,
+  "UNAUTHORIZED": 40100,
+  "UNAUTHORIZED_ACCESS_TOKEN_EXPIRED": 40101,
+  "UNAUTHORIZED_ACCOUNT_BANNED": 40104,
+  "UNAUTHORIZED_ACCOUNT_LOCKED": 40118,
+  "UNAUTHORIZED_BOT_VERIFY_FAILED": 40111,
+  "UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED": 40116,
+  "UNAUTHORIZED_CAPTCHA_REFRESH_REQUIRED": 40117,
+  "UNAUTHORIZED_DUPLICATE_AUTH": 40109,
+  "UNAUTHORIZED_EXPIRED_SIGNATURE": 40113,
+  "UNAUTHORIZED_INVALID_CREDENTIALS": 40103,
+  "UNAUTHORIZED_INVALID_SIGNATURE": 40112,
+  "UNAUTHORIZED_MFA_REQUIRED": 40114,
+  "UNAUTHORIZED_MFA_VERIFY_FAILED": 40115,
+  "UNAUTHORIZED_NO_PERMISSION": 40105,
+  "UNAUTHORIZED_NO_ROLE_PERMISSION": 40106,
+  "UNAUTHORIZED_OAUTH_FAILED": 40107,
+  "UNAUTHORIZED_REFRESH_TOKEN_EXPIRED": 40102,
+  "UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED": 40119,
+  "UNAUTHORIZED_SIGNOUT_FAILED": 40110,
+  "UNAUTHORIZED_SIGNUP_BANNED": 40108,
+}
+`;
+
+exports[`contract snapshots > roles never change silently 1`] = `
+{
+  "ADMIN": "admin",
+  "DEVELOPER": "developer",
+  "ROOT": "root",
+  "VISITOR": "visitor",
+}
+`;
+
+exports[`contract snapshots > socket events and rooms never change silently 1`] = `
+{
+  "WalnutAdminSocketEvents": {
+    "FORCE_QUIT": "force:quit",
+    "LOCK": "lock:lock",
+    "UNLOCK": "lock:unlock",
+  },
+  "WalnutAdminSocketRooms": {
+    "USER": [Function],
+  },
+}
+`;
+
+exports[`contract snapshots > sort order values never change silently 1`] = `
+{
+  "ASCEND": "ascend",
+  "DESCEND": "descend",
+}
+`;
+
+exports[`contract snapshots > token keys never change silently 1`] = `
+{
+  "ACCESS": "WALNUT_ACCESS_TOKEN",
+  "REFRESH": "WALNUT_REFRESH_TOKEN",
+}
+`;
