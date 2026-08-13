@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint / Types / Test / Boundaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # turbo affected 需要完整 git 历史来计算变更集
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        # 版本取自根 package.json 的 packageManager 字段
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Architecture boundaries (turbo boundaries)
+        run: pnpm boundaries
+
+      - name: Lint (affected)
+        run: pnpm exec turbo run lint --affected
+
+      - name: Type check (affected)
+        run: pnpm exec turbo run types:check --affected
+
+      - name: Tests (affected)
+        run: pnpm exec turbo run test --affected
+
+      - name: Dependency consistency (syncpack)
+        run: pnpm syncpack:lint
+
+  build:
+    name: Build (server + shared packages)
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 编译不需要环境变量：SWC 只做语法转换，运行时才读取 env
+      - name: Build server + shared packages
+        run: pnpm exec turbo run build --filter=@walnut/server...
+
+      # admin 构建需要 VITE_* 环境变量（zod 校验 fail-fast）。
+      # env-encrypted/ 已随仓库提交，私钥经 1Password 共享 —— 在仓库 Secrets
+      # 中配置 DOTENVX_KEYS_FILE（内容即本地 .env.keys 文件全文）后自动启用。
+      - name: Decrypt environment files
+        if: ${{ secrets.DOTENVX_KEYS_FILE != '' }}
+        env:
+          DOTENVX_KEYS_FILE: ${{ secrets.DOTENVX_KEYS_FILE }}
+        run: |
+          echo "$DOTENVX_KEYS_FILE" > .env.keys
+          pnpm setup-env
+
+      - name: Build admin
+        if: ${{ secrets.DOTENVX_KEYS_FILE != '' }}
+        run: pnpm exec turbo run build --filter=@walnut/admin

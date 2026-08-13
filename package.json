@@ -31,16 +31,17 @@
     "build:admin": "cross-env NODE_OPTIONS=--max-old-space-size=8192 turbo build --filter=@walnut/admin",
     "build:server": "cross-env NODE_OPTIONS=--max-old-space-size=8192 turbo build --filter=@walnut/server",
     "build:docs": "turbo build --filter=@walnut/docs",
-    "build:stage": "cross-env NODE_OPTIONS=--max-old-space-size=8192 turbo build --filter=@walnut/admin -- -- --mode stage",
+    "build:stage": "cross-env NODE_OPTIONS=--max-old-space-size=8192 turbo build:stage --filter=@walnut/admin",
     "preview": "turbo preview",
     "lint": "turbo lint",
     "lint:root": "eslint *.mjs *.json *.yaml scripts/ --concurrency=auto",
     "lint:root:fix": "eslint *.mjs *.json *.yaml scripts/ --fix --concurrency=auto",
     "lint:fix": "turbo lint:fix",
+    "boundaries": "turbo boundaries",
     "types:check": "turbo types:check",
     "test": "turbo test",
     "clean": "turbo clean",
-    "clean:all": "rimraf node_modules apps/*/node_modules packages/*/node_modules build/node_modules",
+    "clean:all": "rimraf node_modules apps/*/node_modules packages/*/node_modules packages/*/*/node_modules build/node_modules",
     "setup-env": "tsx scripts/setup-env.ts decrypt",
     "encrypt-env": "tsx scripts/setup-env.ts encrypt",
     "knip": "cross-env NODE_OPTIONS=--max-old-space-size=8192 knip",
@@ -80,10 +81,9 @@
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged",
     "commit-msg": "pnpm commitlint --edit $1",
-    "pre-push": "pnpm types:check && pnpm syncpack:lint"
+    "pre-push": "pnpm boundaries && pnpm types:check && pnpm syncpack:lint"
   },
   "lint-staged": {
-    "*.{ts,vue,mjs,js}": "eslint --fix --concurrency=auto",
-    "*.md": "eslint --fix"
+    "*.{ts,vue,mjs,js}": "eslint --fix --concurrency=auto"
   }
 }

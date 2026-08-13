@@ -52,7 +52,20 @@
       "env": ["VITE_*", "MODE"],
       "cache": true
     },
+    "build:stage": {
+      "dependsOn": ["^build:stage"],
+      "outputs": ["dist/**", ".vitepress/dist/**"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!README.md",
+        "!**/*.md",
+        "!**/tsconfig.tsbuildinfo"
+      ],
+      "env": ["VITE_*", "MODE"],
+      "cache": true
+    },
     "dev": {
+      "dependsOn": ["^build"],
       "persistent": true,
       "interruptible": true,
       "cache": false
@@ -84,7 +97,7 @@
       "cache": true
     },
     "test": {
-      "dependsOn": [],
+      "dependsOn": ["^build"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "!**/*.md"
