@@ -24,7 +24,7 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v5
-        # 版本自动读取 package.json 的 packageManager 字段（pnpm@11.20.0）
+        # 版本自动读取 package.json 的 packageManager 字段（pnpm@12.5.1）
         # 显式 version 会与 packageManager 冲突触发 ERR_PNPM_BAD_PM_VERSION
 
       - name: Setup Node.js

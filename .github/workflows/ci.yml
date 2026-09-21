@@ -20,7 +20,7 @@ jobs:
           # turbo affected 需要完整 git 历史来计算变更集
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
         # 版本取自根 package.json 的 packageManager 字段
 
       - uses: actions/setup-node@v4
@@ -56,7 +56,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
 
       - uses: actions/setup-node@v4
         with:

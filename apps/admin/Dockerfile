@@ -3,7 +3,7 @@ FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
+RUN corepack enable && corepack prepare pnpm@12.5.1 --activate
 
 # 构建内存：CI runner 约 7GB，本地 8G 配置直接沿用会 OOM
 ENV NODE_OPTIONS=--max-old-space-size=4096

@@ -4,7 +4,7 @@ FROM node:24-bookworm-slim AS builder
 WORKDIR /app
 
 # pnpm 固定版本（root package.json 的 packageManager 字段）
-RUN corepack enable && corepack prepare pnpm@11.20.0 --activate
+RUN corepack enable && corepack prepare pnpm@12.5.1 --activate
 
 # 先拷贝依赖清单（仅 15 个文件），install 层只在依赖变更时失效，
 # 配合 CI 的 buildx gha 缓存实现跨运行命中
