@@ -1,6 +1,6 @@
 # pnpm-workspace.yaml 配置详解
 
-> 本文档逐项解释 `pnpm-workspace.yaml` 和 `.npmrc` 中的每一个配置项——它是什么、为什么这么配、改了会怎样。
+> 本文档逐项解释 `pnpm-workspace.yaml` 中的每一个配置项——它是什么、为什么这么配、改了会怎样。
 
 ---
 
@@ -28,104 +28,61 @@ packages:
 
 声明哪些目录是 pnpm workspace 成员。`apps/` 下 3 个应用 + `packages/` 下按平台分组的 9 个包（`platform-any` 纯逻辑包、`platform-web` 前端包、`tooling` 工具链包），共 12 个 workspace 包。
 
-### `hoisting: false`
+### `hoist: false`
 
 ```yaml
-hoisting: false
+hoist: false
 ```
 
-关闭 pnpm 默认的依赖提升行为。默认（`hoisting: true`）时，依赖会尽量提升到**根 `node_modules/`**（跨包去重共享同一份副本）；`node_modules/.pnpm/` 是 pnpm 的**虚拟 store**，存放未提升的精确版本副本。设为 `false` 后不做提升，每个包只能访问自己 `package.json` 中声明的依赖。
+关闭 pnpm 的依赖提升。默认（`hoist: true`）时依赖会被提升到 `node_modules/.pnpm/node_modules/`，从该目录下的任意位置都能解析到；`node_modules/.pnpm/` 本身是 pnpm 的**虚拟 store**，存放各精确版本副本。设为 `false` 后不再提升，每个包只能解析自己 `package.json` 中声明的依赖。
 
-**为什么**：严格的依赖隔离。不会出现"包 A 没声明 `lodash` 但能 import 到"的幽灵依赖（phantom dependency）问题。
+**为什么**：严格的依赖隔离。不会出现"包 A 没声明 `lodash` 却能 import 到"的幻影依赖（phantom dependency）问题。
 
-**例外**：5 个工具链包需要在 `.npmrc` 中通过 `public-hoist-pattern` 提升到根 `node_modules`（见下文）。
+> **键名注意**：官方键名是 `hoist`，不是 `hoisting`。写成 `hoisting` 会被 pnpm 忽略——pnpm 11 静默忽略，pnpm 12 在项目有 `packageManager` pin 时会直接以 `ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS` 失败。
 
-### `overrides`
+**判定是否生效**：`node_modules/.pnpm/node_modules/` 的条目数。隔离生效时应为 **0**（或仅剩 workspace 内部链接）。
+
+### `strictPeerDependencies`
 
 ```yaml
-overrides:
-  glob: 11.1.0
+strictPeerDependencies: false
 ```
 
-强制整个依赖树中 `glob` 统一为指定版本。无论间接依赖声明了 `glob@10.x` 还是 `glob@9.x`，pnpm 只用 `11.1.0`。
+为 `false` 时 peer 版本错位只告警、不阻断安装；错位情况可用 `pnpm peers check` 查看。
 
-**为什么**：`glob` 是极底层的工具库，被大量间接依赖引用。不统一版本会装多份，浪费空间 + 可能运行时冲突。`lru-cache` 此前也在 overrides 中强制，现已被 catalog 精确锁定（11.3.6），从 overrides 移除。
+**为什么是 false**：本仓多处刻意选用新于上游 peer 声明范围的版本——`vite@8`、`typescript@6`、`class-validator@0.15`、`@swc/cli@0.8`、`chokidar@4`。上游 peer 范围尚未跟进，严格模式与这个策略不兼容。
 
-### `minimumReleaseAgeExclude`
+### `engineStrict`
 
 ```yaml
-minimumReleaseAgeExclude:
-  - '@dotenvx/dotenvx@2.19.0'
-  - '@dotenvx/primitives@2.1.1'
+engineStrict: true
 ```
 
-pnpm 的安全机制：新发布的包要等一段"冷却期"才能安装（防止供应链攻击——恶意包被发现前有时间窗口）。这两个 `@dotenvx` 包发布频繁，不加白名单 CI 的 `pnpm install` 会报错。
+`package.json` 中 `engines` 不满足时拒绝安装。
 
-**为什么只排这两个**：它们是项目中唯一频繁发布的包。排除的是**精确版本号**（`@2.19.0`），不影响其他版本的安全检查。
+> pnpm 12 起它**沿依赖边**生效：即使整个子树挂在 `optionalDependencies` 下，只要是通过常规 `dependencies` 依赖到 engine 不兼容的包，安装同样失败（pnpm 11 只打警告）。
 
-### `allowBuilds`
-
-pnpm 默认禁止包执行 `postinstall` 脚本（安全措施）。`allowBuilds` 白名单允许特定包执行。
+### `saveExact`
 
 ```yaml
-allowBuilds:
-  '@alicloud/openapi-core': true  # 阿里云 SDK，需要 postinstall
-  '@compodoc/compodoc': true      # NestJS 文档生成器
-  '@nestjs/core': true            # NestJS 核心，需要编译原生扩展
-  '@parcel/watcher': true         # 文件监听原生模块
-  '@scarf/scarf': true            # 匿名使用统计（可选）
-  '@sentry/cli': true             # Sentry 错误追踪 CLI
-  '@swc/core': true               # SWC 编译器，Rust 原生模块
-  core-js: true                   # Polyfill 库
-  esbuild: true                   # Go 原生模块（Vite/Vitest 编译引擎）
-  json-editor-vue: true           # JSON 编辑器组件
-  msgpackr-extract: true          # 序列化库原生模块
-  rs-module-lexer: true           # Rust 模块解析器
-  sharp: true                     # 图片处理（libvips 原生模块）
-  simple-git-hooks: true          # Git hooks 管理器
-  unrs-resolver: true             # Rust 路径解析器
-  vue-demi: true                  # Vue 2/3 兼容层
+saveExact: true
 ```
-
-| 类别 | 包 | 为什么需要 |
-|------|-----|-----------|
-| 原生编译 | `@swc/core`, `esbuild`, `sharp`, `@parcel/watcher` | Rust/Go/C++ 原生模块，必须编译才能用 |
-| 框架核心 | `@nestjs/core` | NestJS 依赖注入引擎 |
-| 工具链 | `simple-git-hooks`, `@compodoc/compodoc`, `@sentry/cli` | Git hooks / 文档生成 / 错误上报 |
-| 云 SDK | `@alicloud/openapi-core` | 阿里云 API 调用 |
-| Polyfill | `core-js` | 浏览器兼容性 |
-| 兼容层 | `vue-demi` | Vue 2/3 双版本兼容 |
-| 序列化 | `msgpackr-extract`, `unrs-resolver`, `rs-module-lexer` | Rust 原生模块，性能优化 |
-| 组件 | `json-editor-vue` | JSON 编辑器 |
-| 统计 | `@scarf/scarf` | 可选匿名使用统计 |
-
----
-
-## .npmrc
-
-### `strict-peer-dependencies=true`
-
-peerDependencies 版本不匹配时 `pnpm install` 直接报错。
-
-### `engine-strict=true`
-
-`package.json` 中 `engines.node >= 24.13.0` 不满足时拒绝安装。
-
-### `save-exact=true`
 
 `pnpm add` 默认保存精确版本（不用 `^` 前缀）。配合 catalog 使用。
 
-### `public-hoist-pattern[]`
+### `publicHoistPattern`
 
-```ini
-public-hoist-pattern[]=*turbo*
-public-hoist-pattern[]=*eslint*
-public-hoist-pattern[]=*simple-git-hooks*
-public-hoist-pattern[]=*@swc*
-public-hoist-pattern[]=*esbuild*
+```yaml
+publicHoistPattern:
+  - '*turbo*'
+  - '*eslint*'
+  - '*simple-git-hooks*'
+  - '*@swc*'
+  - '*esbuild*'
+  - '@types/sortablejs'
 ```
 
-将匹配的包从 `node_modules/.pnpm/` 提升到根 `node_modules/`。仅用于**必须在根目录运行的 CLI 工具**。
+把匹配的包从 `node_modules/.pnpm/` 提升到根 `node_modules/`，使它们能从依赖树的任意位置解析到——这是 `hoist: false` 下唯一的放行通道，只用于确有必要的例外。
 
 | 模式 | 提升的包 | 原因 |
 |------|---------|------|
@@ -134,6 +91,75 @@ public-hoist-pattern[]=*esbuild*
 | `*simple-git-hooks*` | `simple-git-hooks` | 根 `postinstall` 注册 hooks |
 | `*@swc*` | `@swc/core`, `@swc/cli` | Server SWC 编译器 |
 | `*esbuild*` | `esbuild` | Vite、vitest、tsx 共用 |
+| `@types/sortablejs` | `@types/sortablejs` | 见下 |
+
+**`@types/sortablejs` 例外说明**：`@vueuse/integrations` 把 `sortablejs` 列为**可选 peer**，其类型声明需要从自身所在位置解析到 `@types/sortablejs`。`hoist: false` 会切断这条解析链，导致 `useSortable` 的选项类型退化（丢失 `animation` 等属性），`apps/admin` 的 Table 与 Tab 两处类型检查报错。放行这一个类型包，而不是重新打开全局提升。
+
+### 依赖构建脚本：`strictDepBuilds` 与 `allowBuilds`
+
+pnpm 10+ 默认禁止依赖执行 `postinstall` 等构建脚本（供应链防护）。`allowBuilds` 逐包放行。
+
+```yaml
+strictDepBuilds: false
+allowBuilds:
+  '@sentry/cli': true
+  # 以下全部显式 false
+  '@alicloud/openapi-core': false
+  '@compodoc/compodoc': false
+  '@nestjs/core': false
+  '@parcel/watcher': false
+  '@scarf/scarf': false
+  '@swc/core': false
+  core-js: false
+  esbuild: false
+  json-editor-vue: false
+  msgpackr-extract: false
+  rs-module-lexer: false
+  sharp: false
+  simple-git-hooks: false
+  vue-demi: false
+```
+
+**为什么列表这么短**：原配置放行 16 条，逐条实测后确认只有 `@sentry/cli` 保留放行，其余均不需要构建脚本：
+
+- `@swc/core`、`esbuild`、`sharp`、`@parcel/watcher`、`msgpackr-extract`、`rs-module-lexer`、`@sentry/cli` 等原生模块都通过 `optionalDependencies` 分发**预编译产物**（如 `@swc/core-win32-x64-msvc`、`@sentry/cli-win32-x64`），不需要编译；
+- `@nestjs/core`、`core-js`、`@scarf/scarf` 的脚本只是 funding / 遥测提示。
+
+验证方式：在构建脚本全部禁止的状态下跑通 `types:check`、`lint`、`test`、`boundaries`、server 构建（SWC 编译 711 文件）与 admin 完整生产构建（含依赖 `sharp` 的 image-optimizer）。
+
+**`@sentry/cli` 为何保留**：其二进制实际由 `@sentry/cli-<platform>` 提供，实测同样不需要 postinstall；但 Sentry 上传路径本地无法验证（缺真实 DSN / org / project / token），保留其构建脚本作为低成本保险。
+
+**`strictDepBuilds: false` 的作用**：pnpm 12 默认在存在被忽略的构建脚本时以 `ERR_PNPM_IGNORED_BUILDS` **阻断安装**。设为 `false` 后只告警，便于逐步确认。新增依赖若确实需要构建脚本，pnpm 会列出包名，照此加入 `allowBuilds` 并置 `true`。
+
+**每条都显式写 `true`/`false`**：若留空或缺失，pnpm 会向本文件写入 `set this to true or false` 占位模板。
+
+### 供应链防护
+
+```yaml
+minimumReleaseAge: 1440
+trustPolicy: no-downgrade
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - langium@3.3.1
+  - semver@5.7.2
+  - semver@6.3.1
+  - undici-types@6.21.0
+blockExoticSubdeps: true
+```
+
+| 设置 | 作用 |
+|------|------|
+| `minimumReleaseAge: 1440` | 新发布的版本需存放满 1440 分钟（1 天）才允许解析安装。恶意版本通常在数小时内被发现并下架，冷却期可避开这个窗口 |
+| `trustPolicy: no-downgrade` | 某包此前由可信发布者发布、现在只剩 provenance 或无可信证据时，拒绝安装 |
+| `blockExoticSubdeps: true` | 阻止**传递依赖**走 git 仓库、直连 tarball 等异源，只允许从 registry 解析 |
+
+`minimumReleaseAge` 显式写出是为了避免默认值变化时策略无声失效。
+
+**`trustPolicyExclude` 的 5 条例外**：均为 2019–2024 年间发布的历史版本，发布时 provenance 机制尚未普及，因而被 `no-downgrade` 判为"可信度下降"。这些版本已冻结且被广泛使用，逐条豁免而非整体关闭策略。
+
+**成本**：pnpm 12 会在安装路径上校验 lockfile 是否满足上述策略（约 2870 条目）。冷缓存实测 11–35 秒（受 registry 网络影响），热缓存约 0.2 秒。
+
+> **`.npmrc` 不存在于本仓库**。pnpm 只从 `.npmrc` 读取 auth 与 registry 设置，其余设置写在 `.npmrc` 中不会生效——因此上述所有配置项都位于 `pnpm-workspace.yaml`。
 
 ---
 
@@ -142,3 +168,4 @@ public-hoist-pattern[]=*esbuild*
 - [pnpm Catalog](./pnpm-catalog.md) — catalog 详细用法
 - [ADR-0012: Toolchain Divergence](../adr/0012-toolchain-divergence.md) — hoisting 和 public-hoist-pattern 的决策背景
 - [ADR-0011: Dependency Governance](../adr/0011-dependency-governance-release.md) — catalogMode strict 的决策背景
+- [供应链安全（pnpm 官方）](https://pnpm.io/supply-chain-security)

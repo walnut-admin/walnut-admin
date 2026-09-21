@@ -20,7 +20,7 @@ packages/tooling/        eslint-config · commitlint-config · release
 ## 常用命令
 
 ```bash
-pnpm install          # 安装（pnpm 专用，preinstall 强制）
+pnpm install          # 安装（pnpm 专用，由 packageManager 字段 + corepack 强制）
 pnpm dev              # = dev:admin（前端，http://127.0.0.1:3100）
 pnpm dev:server       # 后端（需 MongoDB replica set + Redis，从 apps/server 运行）
 pnpm dev:docs         # 文档站（http://localhost:8886）

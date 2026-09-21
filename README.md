@@ -36,7 +36,7 @@ walnut-admin/
 
 ## Quick Start
 
-**Requirements:** Node.js >= 24.13.0, pnpm >= 11.0.0
+**Requirements:** Node.js >= 24.13.0, pnpm >= 12.0.0
 
 ```bash
 pnpm install

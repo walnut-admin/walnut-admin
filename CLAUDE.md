@@ -15,7 +15,7 @@ Walnut Admin is a **full-stack monorepo** managed with **Turborepo + pnpm worksp
 - Demo: https://www.walnut-admin.com
 - Docs: https://walnut-admin-doc.netlify.app
 
-**Key versions:** Node >= 24.13.0, pnpm >= 11.0.0, TypeScript 6.0.3, Turbo 2.9.14
+**Key versions:** Node >= 24.13.0, pnpm >= 12.0.0, TypeScript 6.0.3, Turbo 2.9.14
 
 ## Development Commands
 

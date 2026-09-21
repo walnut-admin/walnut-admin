@@ -8,7 +8,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 
 | 层级 | 技术 |
 |------|------|
-| 包管理 | pnpm 11+（workspace + catalog，`catalogMode: strict`） |
+| 包管理 | pnpm 12+（workspace + catalog，`catalogMode: strict`） |
 | 任务编排 | Turborepo 2.9（任务拓扑 + 缓存 + 架构边界） |
 | 类型系统 | TypeScript 6.0（前端 ESM + 后端 CJS，双轨 toolchain） |
 | 代码检查 | ESLint 10.3 flat config + `@antfu/eslint-config` + `@walnut/eslint-config` |
@@ -84,7 +84,9 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 1. **异构 Toolchain**：前端 ESM + Vite + `moduleResolution: "bundler"`；后端 CJS + NestJS CLI + SWC + `moduleResolution: "node"`。Server **不继承** `tsconfig.base.json`。
 2. **两个命名空间**：`@walnut/*`（外层，pnpm workspace 包）和 `@walnut-server/*`（内层，NestJS internal libs）。物理分离，无命名冲突。
 3. **catalog 统一版本**：248 依赖通过 `pnpm-workspace.yaml` 的 `catalog:` 统一定义，`catalogMode: strict` 阻止直接版本号。
-4. **hoisting: false**：严格依赖隔离——每个包只能 import 自己声明的依赖。仅 5 个工具链例外被提升。
+4. **`hoist: false`**：严格依赖隔离——每个包只能解析自己 `package.json` 中声明的依赖，`node_modules/.pnpm/node_modules/` 条目数为 0。仅有 6 条 `publicHoistPattern` 例外被提升到根 `node_modules/`。
+5. **供应链防护**：`minimumReleaseAge`（1 天冷却期）、`trustPolicy: no-downgrade`（拒绝可信度下降的版本）、`blockExoticSubdeps`（传递依赖禁止异源）三项由 pnpm 在安装时校验 lockfile。
+6. **依赖构建脚本白名单收敛为单条**：仅 `@sentry/cli` 放行；其余原生模块（`@swc/core`、`esbuild`、`sharp` 等）通过 `optionalDependencies` 分发预编译产物，不需要构建脚本。
 
 ---
 

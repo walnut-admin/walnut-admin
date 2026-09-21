@@ -34,6 +34,11 @@ deploy/nginx/certs/
 report/*
 !report/*.md
 
+# VitePress 构建临时目录
+apps/docs/.vitepress/.temp/
+apps/docs/.vitepress/dist/
+apps/docs/.vitepress/cache/
+
 # Legacy
 config/husky/*
 
