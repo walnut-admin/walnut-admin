@@ -24,6 +24,22 @@ publicHoistPattern:
   # 解析到 @types/sortablejs。hoist 关闭后该解析链断裂，useSortable 的选项类型退化。
   - '@types/sortablejs'
 
+# --- 供应链防护（pnpm 12）---
+# 新发布的版本需存放满 1440 分钟（1 天）才允许解析安装。显式写出以免默认值变化时无声失效。
+minimumReleaseAge: 1440
+# 拒绝"可信度下降"的版本：某包此前由可信发布者发布，现在只剩 provenance 或无可信证据时不安装。
+trustPolicy: no-downgrade
+# 例外：以下均为 2019-2024 年间发布的历史版本，发布时 provenance 机制尚未普及，
+# 因而被判为"可信度下降"。这些版本已冻结、被广泛使用，逐条豁免而非整体关闭策略。
+trustPolicyExclude:
+  - chokidar@4.0.3
+  - langium@3.3.1
+  - semver@5.7.2
+  - semver@6.3.1
+  - undici-types@6.21.0
+# 阻止传递依赖走 git / 直连 tarball 等异源，只允许从 registry 解析。
+blockExoticSubdeps: true
+
 packages:
   - 'apps/*'
   - 'packages/platform-any/*'
