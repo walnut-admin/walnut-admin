@@ -274,20 +274,28 @@ catalog:
   winston-daily-rotate-file: 5.0.0
   zod: 4.4.3
 
+# 依赖构建脚本：默认不执行（pnpm 10+ 供应链防护）。
+# 每条都显式给出 true/false，避免 pnpm 写入待定模板。
+# strictDepBuilds: false —— 未列出的包只告警、不阻断安装。
+strictDepBuilds: false
 allowBuilds:
-  '@alicloud/openapi-core': true
-  '@compodoc/compodoc': true
-  '@nestjs/core': true
-  '@parcel/watcher': true
-  '@scarf/scarf': true
+  # 保留为 true 的唯一一条：@sentry/cli 的二进制实际由 optionalDependencies
+  # （@sentry/cli-<platform>）提供，实测无需 postinstall；但 Sentry 上传路径
+  # 本地无法验证（缺真实 DSN/org/project/token），保留其构建脚本作为低成本保险。
   '@sentry/cli': true
-  '@swc/core': true
-  core-js: true
-  esbuild: true
-  json-editor-vue: true
-  msgpackr-extract: true
-  rs-module-lexer: true
-  sharp: true
-  simple-git-hooks: true
-  unrs-resolver: true
-  vue-demi: true
+  # 以下均经实测确认不需要构建脚本：原生模块走 optionalDependencies 预编译产物，
+  # 其余仅为 funding/遥测提示。全部显式 false 以固定决策，避免 pnpm 写入待定模板。
+  '@alicloud/openapi-core': false
+  '@compodoc/compodoc': false
+  '@nestjs/core': false
+  '@parcel/watcher': false
+  '@scarf/scarf': false
+  '@swc/core': false
+  core-js: false
+  esbuild: false
+  json-editor-vue: false
+  msgpackr-extract: false
+  rs-module-lexer: false
+  sharp: false
+  simple-git-hooks: false
+  vue-demi: false
