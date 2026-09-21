@@ -14,25 +14,21 @@ hoist: false
 strictPeerDependencies: false
 engineStrict: true
 saveExact: true
+
+# hoist: false 的例外清单。每一条都是第三方包自身的缺陷，不是本仓代码问题
+# （knip 对自有源码报 0 条未声明依赖）。逐条实测得出，用精确包名而非 glob。
 publicHoistPattern:
-  - '*turbo*'
-  - '*eslint*'
-  - '*simple-git-hooks*'
-  - '*@swc*'
-  - '*esbuild*'
-  # @vueuse/integrations 把 sortablejs 列为可选 peer，其类型声明需要从自身位置
-  # 解析到 @types/sortablejs。hoist 关闭后该解析链断裂，useSortable 的选项类型退化。
+  # @vueuse/integrations 的可选 peer sortablejs 需要它做类型解析，
+  # 否则 useSortable 选项类型退化，admin 的 Table / Tab 类型检查失败。
   - '@types/sortablejs'
-  # langium 的上游缺陷：源码 import 了 4 个未在 dependencies 中声明的包
-  # （@chevrotain/regexp-to-ast、vscode-jsonrpc、vscode-languageserver-protocol、
-  # vscode-languageserver-types），它们仅经由 chevrotain / vscode-languageserver 传递而来。
-  # 仅影响文档站的 mermaid 依赖链，提升这些包以维持可解析。
+  # @unocss/eslint-plugin 的产物 import 它但未声明。
+  - '@typescript-eslint/types'
+  # langium 源码 import 了 4 个未声明的包（仅经 chevrotain / vscode-languageserver 传递）。
   - '@chevrotain/regexp-to-ast'
   - 'vscode-jsonrpc'
   - 'vscode-languageserver-protocol'
   - 'vscode-languageserver-types'
-  # vue-command-palette 的上游缺陷：产物 import 'vue'，但 package.json 中既无
-  # dependencies 也无 peerDependencies 声明 vue。store 中 vue 只有一个版本，提升不产生双实例。
+  # vue-command-palette 产物 import 'vue'，其 package.json 既无 dependencies 也无 peer。
   - 'vue'
 
 # --- 供应链防护（pnpm 12）---
@@ -301,17 +297,21 @@ catalog:
   winston-daily-rotate-file: 5.0.0
   zod: 4.4.3
 
-# 依赖构建脚本：默认不执行（pnpm 10+ 供应链防护）。
-# 每条都显式给出 true/false，避免 pnpm 写入待定模板。
-# strictDepBuilds: false —— 未列出的包只告警、不阻断安装。
+# 依赖构建脚本：pnpm 10+ 默认全部不执行（供应链防护）。
+#
+# 为什么必须逐条列出 false：pnpm 要求 allowBuilds 覆盖所有含构建脚本的依赖，
+# 缺项时它会自行往本文件写入 "set this to true or false" 占位符（每次 install 都写）。
+# 显式 false 是确定性的写法，也让"哪些包被拒绝"一目了然。
+#
+# strictDepBuilds: false —— 存在被忽略的构建脚本时只告警，不阻断安装。
 strictDepBuilds: false
 allowBuilds:
-  # 保留为 true 的唯一一条：@sentry/cli 的二进制实际由 optionalDependencies
-  # （@sentry/cli-<platform>）提供，实测无需 postinstall；但 Sentry 上传路径
-  # 本地无法验证（缺真实 DSN/org/project/token），保留其构建脚本作为低成本保险。
+  # 唯一放行项：Sentry 上传路径本地无法验证（缺真实 DSN/org/project/token），
+  # 保留其构建脚本作为低成本保险。
   '@sentry/cli': true
-  # 以下均经实测确认不需要构建脚本：原生模块走 optionalDependencies 预编译产物，
-  # 其余仅为 funding/遥测提示。全部显式 false 以固定决策，避免 pnpm 写入待定模板。
+  # 以下全部拒绝。原生模块（@swc/core、esbuild、sharp、@parcel/watcher、
+  # msgpackr-extract、rs-module-lexer）经 optionalDependencies 分发预编译产物，
+  # 不需要构建脚本；@nestjs/core、core-js、@scarf/scarf 的脚本只是 funding/遥测提示。
   '@alicloud/openapi-core': false
   '@compodoc/compodoc': false
   '@nestjs/core': false
