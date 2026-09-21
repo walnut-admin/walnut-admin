@@ -2,8 +2,8 @@ catalogMode: strict
 
 # 依赖提升。官方键名是 hoist；hoisting 不是合法键，会被 pnpm 静默忽略
 # （pnpm 12 在项目有 packageManager pin 时会直接报 ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS）。
-# true 即 pnpm 默认行为。改为 false 才开启严格依赖隔离，前提是先补齐各包未声明的依赖。
-hoist: true
+# false = 不做提升：每个包只能解析自己 package.json 中声明的依赖，幻影依赖会被立即暴露。
+hoist: false
 
 # 以下 4 项是 pnpm 设置，必须写在 pnpm-workspace.yaml：
 # pnpm 只从 .npmrc 读取 auth/registry，其余设置不会生效。
@@ -20,6 +20,9 @@ publicHoistPattern:
   - '*simple-git-hooks*'
   - '*@swc*'
   - '*esbuild*'
+  # @vueuse/integrations 把 sortablejs 列为可选 peer，其类型声明需要从自身位置
+  # 解析到 @types/sortablejs。hoist 关闭后该解析链断裂，useSortable 的选项类型退化。
+  - '@types/sortablejs'
 
 packages:
   - 'apps/*'
