@@ -23,6 +23,17 @@ publicHoistPattern:
   # @vueuse/integrations 把 sortablejs 列为可选 peer，其类型声明需要从自身位置
   # 解析到 @types/sortablejs。hoist 关闭后该解析链断裂，useSortable 的选项类型退化。
   - '@types/sortablejs'
+  # langium 的上游缺陷：源码 import 了 4 个未在 dependencies 中声明的包
+  # （@chevrotain/regexp-to-ast、vscode-jsonrpc、vscode-languageserver-protocol、
+  # vscode-languageserver-types），它们仅经由 chevrotain / vscode-languageserver 传递而来。
+  # 仅影响文档站的 mermaid 依赖链，提升这些包以维持可解析。
+  - '@chevrotain/regexp-to-ast'
+  - 'vscode-jsonrpc'
+  - 'vscode-languageserver-protocol'
+  - 'vscode-languageserver-types'
+  # vue-command-palette 的上游缺陷：产物 import 'vue'，但 package.json 中既无
+  # dependencies 也无 peerDependencies 声明 vue。store 中 vue 只有一个版本，提升不产生双实例。
+  - 'vue'
 
 # --- 供应链防护（pnpm 12）---
 # 新发布的版本需存放满 1440 分钟（1 天）才允许解析安装。显式写出以免默认值变化时无声失效。
