@@ -19,6 +19,8 @@ const SCOPES = [
   // deploy
   'docker',
   'deploy',
+  // repo infra（跨包的基础设施变更：包管理器、workspace 等）
+  'pnpm',
 ]
 
 export default {
