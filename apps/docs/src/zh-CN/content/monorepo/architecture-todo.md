@@ -13,9 +13,9 @@
 |------|------|------|
 | ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 P1-16 已被决定推迟，见[「搁置」](#搁置-等条件成熟) |
 | ~~P1~~ | 静态检查与门禁的缺口 | **当前为空** —— R4 已修（`types:check:root`），R1 / R2 按决定搁置 |
-| **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 · **P2-21** · **F2-b** |
+| **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 · **P2-21** |
 | **P3** | 远期 / 条件触发 | P3-12 · P3-13 · A8 · A9 · A11 · A12 · **A13** |
-| **搁置** | 等条件成熟（外部依赖或已决定先不动） | R1 · R2 · P1-16 · P2-11 · P3-20 |
+| **搁置** | 等条件成熟（外部依赖或已决定先不动） | R1 · R2 · P1-16 · P2-11 · P3-20 · **F2-b** |
 | **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | F9 · D1–D6 · D8<br><sub>F0–F8 **全部完成**；D7（TS 7 排期）已并入 R7。**D1–D6 / D8 全部指向业务代码**，按「本轮只做基建与文档」的决定**只登记不动手**</sub> |
 
 **已清掉的旧账**（2026-09-23 起逐条做掉即从本表移除，验收口径见文末「核实记录」与「执行记录」）：
@@ -45,7 +45,6 @@ R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）�
 | **A10** | **store 工厂迁移** | 中 | `createWalnutStore()` 只在 `@walnut/client` 内部被引用（`src/index.ts` + `store/createWalnutStore.ts`），admin 侧 **26** 个 store 文件 **0 处**使用。 |
 | **P2-21** | **拆分 `apps/server/AGENTS.md`**（加 F7 字数门禁时暴露） | 中 | 它 **16525 字符 / 509 行**，是官方建议（单个指引 ≤200 行）的 **2.5 倍**，也是全仓唯一被字数门禁**显式排除**的文件（排除这件事写在 `check-doc-budgets.ts` 的模块注释与用例里，不是静默略过）。不设预算的原因：设了会当场红、逼着在「加门禁」这一批里顺手做一次大拆分。<br>**文件自己已写明做法**：改动时优先往「先看哪份」那张表里加指针，真要拆就按模块拆成 `libs/<x>/AGENTS.md`（`libs/{config,const,context,db,decorators,exceptions,pipes,types,utils}` 各一份——它们的 README 其实**已经有了**，只是没被当成指引用起来）。<br>**做完的标志**：`apps/server/AGENTS.md` 降到 ~200 行以内（导航 + 通用规矩），并在 `check-doc-budgets.ts` 的 `DOC_BUDGETS` 里**加进它**。 |
 | **F2-a** | ~~文档死链：~74 条链接指向「未编写的组件页」~~ **已解决** | 中 | **2026-09-23 收掉**（走的是本条自己给的第二个选项「降级成纯文本」，因为**补写 74 个组件页**要逐个读组件、属于深入业务代码，不在本轮范围）：`content/frontend/component/index.md` 的 74 条链接降级为纯文本（保留全部规划信息与描述），`ignoreDeadLinks` 由此从 **4 条收到 1 条**（只剩冻结语料）。<br>**顺带证明这道白名单一直在掩盖真问题**：收掉后立刻暴露 **5 条此前被静默放过的死链** —— `/component/UI/form` ×3（`zh-CN` 与 `en-US` 的 `Vendor/Tinymce.md`、`en-US/component/UI/table.md`；该页只存在于**不被服务**的 `en-US` 树里）、`content/frontend/introduction.md` ×2（指向从未存在的 `component/extra/*`，其中 transition 那条已改指真实页面 `/component/Extra/transition`）。5 条全修，`build:docs` 绿。<br>CI 已有 `Docs build (dead-link check)` 步，所以**以后新增死链会直接红** —— 现在是真的红，不再有 74 条噪声垫底。 |
-| **F2-b** | **锚点校验 + prose 里的仓库路径引用**（调研已完成，结论见下方小节） | 小 | VitePress 内置只查「目标页是否存在」，**不查 `#fragment`**。实测全站只有 **6 条**带锚点的站内链接、其中 **2 条是坏的**（都是 `architecture-todo.md` 里我自己写的，已修 —— 全角括号会被 slugify 转成 `-`）。**现在加锚点门禁 ROI 很低**，配方已记在下方，等锚点链接变多再上。prose 里的 584 处仓库路径引用**没有现成库**可用（理由见下）。 |
 
 ---
 
@@ -72,6 +71,7 @@ R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）�
 | **R1** | `pnpm peers check` 红 + `peerDependencyRules` 豁免机制随 pnpm 12 迁移消失 | **2026-09-23 你的决定：先不动。** 理由是**马上要做全量 deps 升级**，5 组 unmet peer 的结论可能变；现在不接门禁、也不恢复白名单。<br>现状记录（免得以后重新查）：`pnpm peers check` **exit 1**，5 组 —— `vite` 8.0.11（插件要 ≤7）、`@swc/cli` 0.8.1（@nestjs/cli 要 ≤0.7）、`chokidar` 4.0.3（要 ^3/^5）、`class-validator` 0.15.1（@nestjs/mapped-types 要 ^0.13/0.14）、`typescript` 6.0.3（i18next / tsconfck / madge 要 ^5）。它**不在任何门禁里**，不影响 CI 与钩子。<br>**解冻**：全量 deps 升级跑完后重跑一次 `pnpm peers check`，看还剩几组再决定 (a) 恢复等价白名单并接门禁 还是 (b) 正式记录「红是预期」。 |
 | **P1-16** | tag 发布链路端到端验证 | **2026-09-23 你的决定：首次发版不着急。** 未验证的部分：镜像构建 → 推 TCR → 自动部署 → post-verify（本机无 Docker，只能等真跑一次 tag）。<br>**解冻**：真正准备发第一个版本时。到时清单 —— ① CI 的 affected 表 + `lint:root` / `types:check:root` 两步为绿；② run summary 的 staging 体积与三镜像 digest；③ `docker run --rm --entrypoint ls <backend> /app/env-local` 应报不存在；④ 部署日志出现「三个镜像均存在」、`--wait`、健康检查 200；⑤ 二次发布明显更快且出现 `scope=backend`；⑥ post-verify 绿。详见 [CI/CD 与容器构建](./ci-cd) |
 | **P2-11** | GitHub Environments | 已核实 deploy 作业**未**使用原生 `environment:`（只有作业级 `env:` + `workflow_call`/`workflow_dispatch` 的 `environment` 输入 + `concurrency: deploy-${env}`）。**解冻**：stage 服务器（火山引擎）到位后再评估。 |
+| **F2-b** | 锚点（`#fragment`）校验 | **2026-09-23 实测后搁置**：VitePress 内置只查「目标页是否存在」，**不查 `#fragment`**；能补这一块的现成工具只有 `lychee`（配方见下方 [F2-b 调研结论](#f2-b-调研结论文档链接校验用什么-2026-09-23)）。<br>**为什么现在不做**：全站带锚点的站内链接只有 **5 条**（2026-09-23 复测；当初是 6 条、其中 2 条是我自己写错的，已修）—— 为一个二进制 + 一个 CI 步骤换 5 条链接的校验，ROI 说不通。<br>**解冻条件**（满足任一条就捞回来）：① 带锚点的站内链接涨到**几十条**；② 出现一次**锚点静默失效**的真实事故（读者点了跳不到位置，而构建照样绿）。<br>⚠️ 另半条（prose 里几百处反引号仓库路径）**已经不做**了 —— 由 `pnpm lint:docs-refs` 覆盖，且它刻意只认「以顶层目录开头」的路径（收窄判据见该模块顶部注释）。 |
 | **R2** | **knip（`pnpm knip` exit 1 + `ignoreDependencies` 95 条）** | **2026-09-23 你的决定：先不动，只写明现状。** 不删代码、不接门禁。<br>**理由**：本仓是**模板项目，「未用导出」不等于死代码** —— 最典型的是 `apps/server/libs/decorators/src/transformer/**` 那 13 个 `WalnutAdminDecoratorTransform*`，它们正是留给模板使用者按需取用的 API 面；按「有没有人 import」删，等于把模板能力删掉。<br>现状已写进 `knip.config.ts` 顶部的文件级注释（7 未用文件 / 40 未用导出 / 3 未用类型，全在 `apps/admin` 与 `apps/server`；不在任何门禁里）。<br>**解冻/若将来要接门禁**：先分类再开闸 —— 用 `entry` / `includeEntryExports` 把「有意的公共面」显式标出来，只让真死代码亮红。 |
 | **P3-20** | 国内 self-hosted runner（决策门） | **解冻**：仅当 P1-16 的实测显示「tag 发布总时长 > 20 min 且跨境推送占大头」。runner 在美国、镜像仓库在腾讯云上海，跨境上传是旧流水线 78 分钟的主要嫌疑之一；腾讯云轻量服务器约 ¥30–60/月。**先看数据再决定。** |
 
