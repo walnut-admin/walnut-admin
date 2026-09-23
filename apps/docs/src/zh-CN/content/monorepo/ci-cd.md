@@ -131,6 +131,28 @@ compose 以 bind mount 注入 `./env/.env.production`，镜像里不需要也不
 2. **失败模式写成了可执行测试**：`deploy/post-verify.test.sh` 用假的 `docker`/`curl` 逐条覆盖上面每一个失败分支（含「只有 API 域名缺头」这一种），本地 `bash deploy/post-verify.test.sh` 即可跑，不需要 Docker。
 3. **安全头这条判据有两个面，缺一不可**：推送前 `pnpm lint:nginx-headers` 静态查 `deploy/nginx/conf.d/` 里的配置有没有写全（毫秒级），部署后这一段查「头真的发出去了没有」。**为什么两边都要**：nginx 的 `add_header` 是**整段替换而不是合并** —— 某个 `location` 自己写一条就把 server 级的全吃掉；两个并列的 `server` 块之间也不互相继承（2026-09-23 交叉对比时实测：`api.conf` 当时一个安全头都没有）。配置写错要在推送上就拦住，环境/drift（比如 conf 改了没 `nginx -s reload`）只能部署后看得见。
 
+## 源码密钥形态（`pnpm lint:secrets`）
+
+产物侧那道门禁（下一节）看的是**发出去的东西**；这一道看的是**仓库里的文本文件**。它存在的直接原因是 2026-09-23 的一次真实事故：
+
+我在一个**测试夹具**里写了腾讯云文档上那个样本 SecretId（`AKID` + 32 位），当时 **14 段 prepush 门禁 + 300 多个用例全绿** —— 然后 `git push` 被 **GitHub 服务端的 push protection 拒掉**，整条 push 推不上去：
+
+```text
+remote:  Push cannot contain secrets
+remote:    - commit: …  path: packages/tooling/scripts/src/ci/__tests__/check-dist-secrets.test.ts
+remote:       —— Tencent Cloud Secret ID ——
+```
+
+三点教训，直接决定了这道门禁的形态：
+
+1. **服务端那道闸在 CI 之前** —— 命中就拒 push，CI 根本轮不到跑。所以它必须在 **`prepush`** 里拦；只在 CI 里拦等于没有（那时 push 已经失败了）。CI 里那一份是补第二道，覆盖"绕过钩子直接推"的情形。
+2. **它只认形状，分不出样本与真货**。本仓的规矩因此是：**假样本也不许长成真凭据的形状** —— 夹具请**运行时拼装**（`` `AKIA${'IOSFODNN7EXAMPLE'}` ``、`` `AKID${'x'.repeat(32)}` ``），**不要**往门禁里加白名单：那道服务端的闸不会读我们的白名单。
+3. **规则表与产物侧同源**：两边共用 `check-dist-secrets.ts` 的 `scanText`（PEM 私钥要带 base64 正体 / 带凭据的连接串 / JWT 三段 / 云厂商 AK 形状）。源码侧另立一套必然与产物侧漂移。
+
+扫描面是 `git ls-files` **∪ 未跟踪且未被忽略**（所以**刚写下、还没 `git add` 的夹具也会被扫到** —— 这道门禁的价值全在"在 push 之前"）。`.gitignore` 覆盖的东西不在面内：`env-local/` 正是靠这个被排除的（它本来就是明文 env，但**不入库**，不该按"仓库里的凭据"报）。超过 4 MB 的文件跳过，但**跳过哪些会打印出来**（静默跳过是最容易变成假绿的地方）。
+
+判据按实测收窄过一处：连接串的**口令必须"像真口令"（长度 ≥ 8 且含非数字）**。拿同一份规则表扫全仓 2064 个文本文件时，5 处命中里有 4 处是格式说明与本地容器默认口令（`mongodb://u:p@`、bitnami 的 `root:123456@127.0.0.1`）—— 这正是「宁可漏报不可误报」的取舍。
+
 ## 产物去密体检（`pnpm lint:dist`）
 
 前端产物是**公开文件**（DevTools 里能看到全部字节），而"把后端 env 泄进前端"在本仓有一条现成的、静默的路径：`apps/server/env-local/` 与 `apps/admin/env-local/` 是**两套** env（都由 `pnpm setup-env` 解密），搬错一行、或被某个 import 间接读到，值就会被打包进去 —— 而构建、类型检查、lint、测试**全都不会响**。之前产物侧是**零门禁**。
@@ -149,6 +171,7 @@ compose 以 bind mount 注入 `./env/.env.production`，镜像里不需要也不
 
 ```bash
 pnpm lint:workflows    # actionlint（未安装则跳过并提示；CI 中强制执行）
+pnpm lint:secrets      # 源码密钥形态（**推送前就该跑** —— 服务端的 push protection 比 CI 更早）
 pnpm lint:dist         # 产物去密体检（先构建出 apps/admin/dist；没有产物会以「前置条件未满足」退出 2）
 pnpm images:print      # 只解析 docker-bake.hcl，不构建
 pnpm images:build      # 本地构建 backend + frontend（先按 deploy/README.md 准备 staging）

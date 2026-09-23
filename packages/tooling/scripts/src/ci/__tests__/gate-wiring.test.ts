@@ -320,7 +320,10 @@ describe('根脚本的形态（P1-18）', () => {
 
   it('形态断言确实覆盖到了东西（防止 package.json 读错后变成空转）', () => {
     expect(Object.keys(scripts).length).toBeGreaterThan(30)
-    expect(Object.keys(scripts).filter(n => n.startsWith('lint'))).toHaveLength(13)
+    // ⚠️ 这里原本写的是 `toHaveLength(13)` —— 加一条 `lint:*`（`lint:secrets`）就当场红。
+    // 正是本仓那条纪律说的「别写会腐烂的计数」：这条断言要的是**扫描面非空**，
+    // 不是"恰好 13 条"，所以改用下界表达。
+    expect(Object.keys(scripts).filter(n => n.startsWith('lint')).length).toBeGreaterThan(5)
   })
 
   it('负对照：形态正则与连接子判定本身是有效的', () => {

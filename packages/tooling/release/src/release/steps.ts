@@ -96,6 +96,9 @@ const RELEASE_BATTERY: BatteryStep[] = [
   // 同上。入口 nginx 的 4 个安全头：`add_header` 是整段替换而不是合并，写漏一条就静默裸奔。
   // 发版面能看见它还有一层意义 —— 部署用的就是这份 `deploy/nginx/conf.d/`。
   { id: 'nginx-headers', label: '入口 nginx 安全响应头（conf.d）', argv: ['lint:nginx-headers'] },
+  // 同上。**必须在这里**：GitHub 的 push protection 在服务端、且先于 CI —— 发版要 push tag，
+  // 被它拒掉的话 tag 就推不上去（而那是整条流程里最不该失败的一步）。
+  { id: 'secrets', label: '源码密钥形态（凭据形状不许进仓库）', argv: ['lint:secrets'] },
   {
     id: 'build',
     label: '构建（3 个 app + 共享包）',

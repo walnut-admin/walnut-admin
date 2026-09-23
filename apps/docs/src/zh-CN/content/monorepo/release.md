@@ -158,6 +158,7 @@ pnpm release
 | `turbo-cache` | `pnpm lint:turbo-cache`（turbo 配置不变量：产物 / outputs / env / 依赖边 + **tags**） |
 | `lockfile` | `pnpm lint:lockfile`（`pnpm-workspace.yaml` 的 catalog ↔ `pnpm-lock.yaml` 锁步；改声明忘了 `pnpm install` 时本地全绿、CI 死在 `--frozen-lockfile`） |
 | `nginx-headers` | `pnpm lint:nginx-headers`（`deploy/nginx/conf.d/` 各 `server`/`location` 块上的 4 个安全响应头；`add_header` 是整段替换而不是合并） |
+| `secrets` | `pnpm lint:secrets`（**源码**密钥形态：PEM 私钥 / 带真口令的连接串 / JWT / 云厂商 AK）。⚠️ 发版面**必须**有它 —— GitHub 的 push protection 在服务端且先于 CI，被它拒掉时 tag 就推不上去 |
 | `build` | ⏭️ **默认暂缓**：镜像由 `release.yml` 的 images job 真正构建；要跑就删掉表里那行的 `skip` |
 | `dist-secrets` | `pnpm lint:dist`（产物去密体检：机密形态 + 后端 env 真值 + 凭据文件）⏭️ **默认暂缓，与 `build` 是一对** —— 它扫的就是 `apps/admin/dist`，本地没构建时只会报「前置条件未满足」（退出码 2）。解冻时两条一起解冻 |
 

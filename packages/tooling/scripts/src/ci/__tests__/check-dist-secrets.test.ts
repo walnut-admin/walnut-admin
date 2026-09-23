@@ -17,6 +17,8 @@ import {
   collectFindings,
   collectSecretValues,
   findLeakedValues,
+  lineOf,
+  looksLikeRealPassword,
   parseSecretValues,
   scanDist,
   scanText,
@@ -42,6 +44,11 @@ import {
  */
 const fakeAwsAk = `AKIA${'IOSFODNN7EXAMPLE'}`
 const fakeTencentAk = `AKID${'x'.repeat(32)}`
+/** 连接串夹具同理拼装 —— 见下方 `looksLikeRealPassword` 那条用例（短口令本来就不报） */
+const fakeMongoUri = `mongodb://root:${'s3cr3t-password-9'}@db:27017/x`
+const fakeRedisUri = `redis://:${'r3dis-password'}@r:6379`
+/** jwt.io 上那个被引用了无数次的示例 token —— 同样不许以连续字面量出现 */
+const fakeJwt = ['eyJhbGciOiJIUzI1NiJ9', 'eyJzdWIiOiIxMjM0NTY3ODkwIn0', 'dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U'].join('.')
 
 describe('scanText —— 形态规则', () => {
   it('真私钥（头 + base64 正体）→ 报', () => {
@@ -55,16 +62,26 @@ describe('scanText —— 形态规则', () => {
     expect(scanText(template, 'a.js')).toEqual([])
   })
 
-  it('带凭据的连接串 → 报；不带凭据的 / 只有主机名的 → 不报', () => {
-    expect(scanText('mongodb://root:s3cr3t@db:27017/x', 'a.js').map(f => f.rule)).toEqual(['credential-uri'])
-    expect(scanText('redis://:pw@r:6379', 'a.js').map(f => f.rule)).toEqual(['credential-uri'])
+  it('带凭据的连接串 → 报；不带凭据的 / 只有主机名的 / 口令不像真的 → 不报', () => {
+    expect(scanText(fakeMongoUri, 'a.js').map(f => f.rule)).toEqual(['credential-uri'])
+    expect(scanText(fakeRedisUri, 'a.js').map(f => f.rule)).toEqual(['credential-uri'])
     expect(scanText('http://backend:3000/w/v1/', 'a.js')).toEqual([])
     expect(scanText('mongodb://db:27017/x', 'a.js')).toEqual([])
+    // ⚠️ 下面三条对应「短口令 / 纯数字」这条收窄 —— 它们是**量出来的**误报源：
+    // 文档里的格式说明 `mongodb://u:p@`、bitnami 本地默认口令 `root:123456@127.0.0.1`。
+    expect(scanText('带凭据的 `mongodb://u:p@` 形状', 'a.md')).toEqual([])
+    expect(scanText('mongodb://root:123456@127.0.0.1:27017/x', 'a.md')).toEqual([])
+  })
+
+  it('looksLikeRealPassword：长度 ≥ 8 且含非数字', () => {
+    for (const pw of ['p', 'pw', '123456', '1234567', '12345678'])
+      expect(looksLikeRealPassword(pw), `${pw} 不该被当成真口令`).toBe(false)
+    for (const pw of ['s3cr3t-password', 'abcdefgh', '1234567a'])
+      expect(looksLikeRealPassword(pw), `${pw} 应当被当成真口令`).toBe(true)
   })
 
   it('jWT 三段 → 报', () => {
-    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U'
-    expect(scanText(jwt, 'a.js').map(f => f.rule)).toEqual(['jwt'])
+    expect(scanText(fakeJwt, 'a.js').map(f => f.rule)).toEqual(['jwt'])
   })
 
   it('云厂商 AK 形状 → 报（AWS / 腾讯云各一）', () => {
@@ -81,6 +98,13 @@ describe('scanText —— 形态规则', () => {
     const [finding] = scanText(fakeAwsAk, 'static/js/x.js')
     expect(finding!.file).toBe('static/js/x.js')
     expect(finding!.detail).not.toContain(fakeAwsAk)
+  })
+
+  it('finding 带 index，`lineOf` 能把它换算成行号（源码侧报位置用）', () => {
+    const text = `line one\nline two\nconst ak = '${fakeAwsAk}'\n`
+    const [finding] = scanText(text, 'a.ts')
+    expect(finding!.index).toBe(text.indexOf(fakeAwsAk))
+    expect(lineOf(text, finding!.index!)).toBe(3)
   })
 })
 

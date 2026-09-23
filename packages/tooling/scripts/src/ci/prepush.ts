@@ -137,6 +137,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: 'nginx 的 `add_header` 是**整段替换**不是合并：某个 location 自己写了一条，就把 server 级的 4 个安全头全吃掉；两个并列的 `server` 块之间也不互相继承（2026-09-23 实测 `api.conf` 一个头都没有）。本机没有 Docker ⇒ `nginx -t` 都跑不了，这是唯一在推送前能看见它的地方。',
   },
   {
+    id: 'secrets',
+    label: '源码密钥形态（凭据形状不许进仓库）',
+    argv: ['lint:secrets'],
+    why: '**服务端那道闸在 CI 之前**：GitHub 的 push protection 只认形状、分不出样本与真货，命中就拒掉整条 push。2026-09-23 实测被它拦下一次（一个测试夹具里写了云厂商样本 SecretId），而当时那段门禁表**全绿** —— 只在 CI 里拦等于没有，必须在推送前。',
+  },
+  {
     id: 'versioning',
     label: 'workspace 版本锁步（pnpm change check）',
     argv: ['change', 'check'],

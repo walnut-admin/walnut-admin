@@ -125,6 +125,13 @@ jobs:
       - name: Entry nginx security headers check
         run: pnpm lint:nginx-headers
 
+      # 源码里的凭据形状（PEM 私钥 / 带真口令的连接串 / JWT / 云厂商 AK）。
+      # ⚠️ **它真正的位置是 prepush**：GitHub 的 push protection 在服务端、且先于 CI，
+      # 被它拒掉时本地这段门禁是绿的（2026-09-23 实测）。CI 这一份是补第二道，
+      # 覆盖"绕过钩子直接推"的情形。
+      - name: Source secret-shape check
+        run: pnpm lint:secrets
+
       # 防"affected 空集静默通过"：有文件变更却算出 0 个受影响包时必须失败
       - name: Affected set sanity check
         if: steps.affected.outputs.base != ''

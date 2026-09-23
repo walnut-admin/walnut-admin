@@ -73,18 +73,44 @@ export const SECRETISH_KEY = /SECRET|PASSWORD|PASSWD|(?:^|_)PASS(?:_|$)|PRIVATE_
 export const BAD_FILE_NAME = /(?:^|[\\/])(?:\.env(?:\..+)?|\.npmrc|id_rsa[^\\/]*)$|\.(?:pem|key|p12|pfx|jks|keystore)$/i
 
 const PEM_PRIVATE_KEY = /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]{0,40}?[A-Za-z0-9+/=\s]{100,}/
-// 用户名可以为空（`redis://:pw@host` 是 Redis 的常见写法），但**口令必须非空** ——
-// 只要 `user:pass@` 这个形状，`mongodb://host:27017/db` 那种没有凭据的不能报。
-const CREDENTIAL_URI = /(?:mongodb(?:\+srv)?|rediss?):\/\/[^\s"'`/@:]*:[^\s"'`/@]+@/
+// 用户名可以为空（`redis://:pw@host` 是 Redis 的常见写法），口令必须非空，且**得像真口令**：
+// 见下面的 `looksLikeRealPassword`。
+const URI_WITH_CREDENTIALS = /(?:mongodb(?:\+srv)?|rediss?):\/\/([^\s"'`/@:]*):([^\s"'`/@]+)@/g
 const JWT = /eyJ[\w-]{10,}\.eyJ[\w-]{10,}\.[\w-]{10,}/
 /** AWS `AKIA…` + 腾讯云 `AKID…`。**只认 AK ID 的形状**，见文件头（不靠键名里的 `_ID`） */
 const CLOUD_ACCESS_KEY = /AKIA[0-9A-Z]{16}|AKID[0-9A-Za-z]{13,}/
+
+/**
+ * 这段"口令"像不像真口令。
+ *
+ * 收窄是**量出来的**：2026-09-23 拿同一份规则表扫全仓 2064 个文本文件，5 处命中里有 **4 处**
+ * 是「格式说明 / 本地开发容器的默认口令」——`mongodb://u:p@`（文档里在描述规则）、
+ * `mongodb://root:123456@127.0.0.1`（bitnami 镜像的本地默认值）、我自己注释里的 `redis://:pw@host`。
+ * 它们的共同点是**口令短或纯数字**，而真实部署的口令不会是那样。
+ *
+ * 于是判据收成：**长度 ≥ 8 且至少含一个非数字字符**。代价是"6 位数字口令的真凭据"会漏报 ——
+ * 那正是 `宁可漏报不可误报` 的取舍方向（一个开始误报的门禁等于没有门禁）。
+ */
+export function looksLikeRealPassword(password: string): boolean {
+  return password.length >= 8 && /\D/.test(password)
+}
+
+/** 找第一处「带凭据且口令像真的」连接串（返回下标，供报行号用） */
+export function findCredentialUri(text: string): { index: number } | null {
+  for (const matched of text.matchAll(URI_WITH_CREDENTIALS)) {
+    if (looksLikeRealPassword(matched[2]!))
+      return { index: matched.index ?? 0 }
+  }
+  return null
+}
 
 export interface Finding {
   rule: string
   /** 相对仓库根的路径 */
   file: string
   detail: string
+  /** 命中位置在文件里的字符下标（源码侧据此报行号；产物侧用不上） */
+  index?: number
 }
 
 export interface SecretValue {
@@ -101,19 +127,41 @@ export function stripPrecompressed(name: string): string {
   return name.replace(/\.(?:br|gz|zst)$/i, '')
 }
 
-/** 一个文本产物里的形态命中（不含 env 真值比对，那条要外部喂值） */
+/**
+ * 一个文本文件里的形态命中（不含 env 真值比对，那条要外部喂值）。
+ *
+ * 产物侧与**源码侧**共用这一份规则表 —— 这是刻意的：源码侧另立一套必然漂移，
+ * 而真正要防的是同一件事（"凭据形状的东西进了仓库 / 进了产物"）。
+ * `index` 只在源码侧用（报行号），产物侧不需要。
+ *
+ * **每条规则只报第一处**：门禁只需要"红"，而同一文件里同规则的重复命中会把输出刷屏
+ * （压缩后的产物尤其如此）。修完第一处再跑一次即可。
+ */
 export function scanText(text: string, file: string): Finding[] {
   const findings: Finding[] = []
-  if (PEM_PRIVATE_KEY.test(text))
-    findings.push({ rule: 'pem-private-key', file, detail: '产物里有真正带 base64 正体的 PEM 私钥块' })
-  if (CREDENTIAL_URI.test(text))
-    findings.push({ rule: 'credential-uri', file, detail: '产物里有带用户名/口令的连接串（mongodb / redis）' })
-  if (JWT.test(text))
-    findings.push({ rule: 'jwt', file, detail: '产物里有 JWT 三段式字符串' })
+  const pem = PEM_PRIVATE_KEY.exec(text)
+  if (pem !== null)
+    findings.push({ rule: 'pem-private-key', file, index: pem.index, detail: '有真正带 base64 正体的 PEM 私钥块' })
+  const uri = findCredentialUri(text)
+  if (uri !== null)
+    findings.push({ rule: 'credential-uri', file, index: uri.index, detail: '有带用户名/口令的连接串（mongodb / redis），且口令看着像真的' })
+  const jwt = JWT.exec(text)
+  if (jwt !== null)
+    findings.push({ rule: 'jwt', file, index: jwt.index, detail: '有 JWT 三段式字符串' })
   const ak = CLOUD_ACCESS_KEY.exec(text)
   if (ak !== null)
-    findings.push({ rule: 'cloud-access-key', file, detail: `产物里有云厂商 AccessKey 形状的串（${ak[0].slice(0, 4)}…，共 ${ak[0].length} 字符）` })
+    findings.push({ rule: 'cloud-access-key', file, index: ak.index, detail: `有云厂商 AccessKey 形状的串（${ak[0].slice(0, 4)}…，共 ${ak[0].length} 字符）` })
   return findings
+}
+
+/** 字符下标 → 1-based 行号（源码侧报位置用） */
+export function lineOf(text: string, index: number): number {
+  let line = 1
+  for (let i = 0; i < index && i < text.length; i++) {
+    if (text[i] === '\n')
+      line++
+  }
+  return line
 }
 
 /**
