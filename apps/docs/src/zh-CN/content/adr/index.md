@@ -4,7 +4,7 @@
 
 ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的关键架构决策。每一条 ADR 包含：决策背景（Context）、决策内容（Decision）、以及后果（Consequences）。
 
-当前共 17 条 ADR，涵盖包命名、TypeScript 配置、依赖治理、发布流水线、测试策略、验证策略、包重组等领域。
+当前共 18 条 ADR，涵盖包命名、TypeScript 配置、依赖治理、发布流水线、测试策略、验证策略、包重组、Git 钩子等领域。
 
 ## ADR 列表
 
@@ -20,13 +20,14 @@ ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的�
 | [0008](./0008-unified-versioning-separate-deploy.md) | 统一版本号，独立部署 | ✅ 已实现 |
 | [0009](./0009-ci-quality-gates.md) | 三级质量门禁：commit → push → CI | ⚠️ 测试和 CI 待完善 |
 | [0010](./0010-no-ts-project-references.md) | 不用 TypeScript Project References | ✅ 已实现 |
-| [0011](./0011-dependency-governance-release.md) | `catalogMode: strict`、changesets + changelog-github 发布 | ✅ 已实现 |
+| [0011](./0011-dependency-governance-release.md) | `catalogMode: strict`、pnpm 原生发版（单一 fixed 组）+ git-cliff | ✅ 已实现 |
 | [0012](./0012-toolchain-divergence.md) | 前后端工具链分歧（tsconfig 独立、env 加载、hoisting、边界） | ✅ 已实现 |
 | [0013](./0013-barrel-exports-policy.md) | Barrel export 策略——选择性 barrel，不用 `export *` | ✅ 已实现 |
 | [0014](./0014-eslint-config-strategy.md) | ESLint 配置策略——共享 config 包 + 三预设 | ✅ 已实现 |
 | [0015](./0015-testing-strategy.md) | 测试策略——Vitest 统一、co-located、分层覆盖率 | ✅ 已接受 |
 | [0016](./0016-validation-strategy.md) | 验证策略——保持 class-validator，暂不迁移 Zod | ✅ 已接受 |
 | [0017](./0017-package-reorganization.md) | Package 重组——多维标签 + 目录分组 + 新增包规划 | 🔄 In Progress（Phase 1-2 完成，Phase 3 部分完成） |
+| [0018](./0018-git-hooks-lefthook.md) | Git Hooks——lefthook 取代 simple-git-hooks | ✅ 已实现 |
 
 ## 补充文档
 

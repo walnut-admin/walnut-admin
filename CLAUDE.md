@@ -39,7 +39,14 @@ pnpm build:docs     # Docs only
 pnpm lint           # Lint all packages
 pnpm lint:fix       # Lint with auto-fix
 pnpm types:check    # Type check all packages
-pnpm test           # Run tests (server + contract snapshots + utils + client + release)
+pnpm test           # Run tests (server + contract snapshots + utils + client + tooling)
+pnpm boundaries     # Turbo architecture-boundaries check
+pnpm lint:workflows # actionlint over .github/workflows
+pnpm prepush        # The pre-push aggregate gate: boundaries + types:check + syncpack + lint:workflows + pnpm change check
+pnpm hooks:check    # Assert the git hooks are lefthook-managed
+
+# Release
+pnpm release        # Version intents → pnpm version -r → git-cliff changelogs → commit/tag/push
 ```
 
 ## Monorepo Architecture
@@ -70,7 +77,7 @@ walnut-admin/
 │   │   ├── contract/  @walnut/contract    — types + constants (response codes, enums,
 │   │   │                                    pagination, API contracts). CJS build.
 │   │   ├── types/     @walnut/types       — ambient type declarations
-│   │   └── utils/     @walnut/utils       — pure utilities (regex, queue, crypto/const,
+│   │   └── utils-core/@walnut/utils       — pure utilities (regex, queue, crypto/const,
 │   │                                        crypto/transformer). CJS build.
 │   ├── platform-web/       — browser/Vue packages (source-only)
 │   │   ├── client/   @walnut/client       — browser utilities + Vue composables + store factory
@@ -79,7 +86,8 @@ walnut-admin/
 │   └── tooling/            — toolchain packages
 │       ├── eslint-config/    @walnut/eslint-config    — shared ESLint presets (vue/nest/base)
 │       ├── commitlint-config/@walnut/commitlint-config — commitlint rules
-│       └── release/          @walnut/release          — release orchestration (bins)
+│       └── scripts/          @walnut/tooling          — repo-level scripts: release
+│                                 orchestration, repo gates, env encrypt/decrypt (bins)
 ├── apps/admin/build/         ← Admin Vite build config (plugins/config/proxy)
 ├── migration-guide/          ← Migration documentation & tracking
 ├── turbo.json                ← Turborepo pipeline
@@ -113,15 +121,23 @@ This monorepo was created by merging three previously separate repositories:
 - ✅ Vestigial `paths` block removed from `tsconfig.base.json` (resolution was broken by baseUrl override; real resolution via pnpm symlinks + package `exports`)
 - ✅ `turbo.json` gained a `test` task and `pnpm-workspace.yaml` in `globalDependencies`
 - ✅ Root `dev` defaults to `dev:admin` (avoids starting server which needs MongoDB+Redis)
-- ✅ Dependencies unified via pnpm `catalog:` (248 entries, single source of truth — ESLint version drift resolved)
+- ✅ Dependencies unified via pnpm `catalog:` (242 entries, single source of truth — ESLint version drift resolved)
 
 **Toolchain hardening (2026-08-08):**
 - ✅ `turbo.json` `dev`/`test` tasks now `dependsOn: ["^build"]` — fresh clones can `dev:server` directly (contract/utils CJS dist is a build artifact, see ADR 0002)
 - ✅ `turbo boundaries` wired into pre-push hook and CI (`.github/workflows/ci.yml`, P0-1 backlog item)
-- ✅ CI quality gates: boundaries → affected lint/types:check/test → syncpack → builds
+- ✅ CI quality gates: boundaries → affected lint/types:check/test → affected self-check → syncpack → `pnpm change check` → builds
 - ✅ Root `clean:all` covers nested `packages/*/*/node_modules`
 - ✅ `@walnut/eslint-config` gained its own lint scripts; `apps/*` marked `private: true`
-- ✅ `@walnut/client` `vue`/`pinia` moved to peerDependencies; server tsconfig `strict: true` (tsc zero errors); DOM lib pushed down from `tsconfig.base.json` to admin/docs/platform-web packages; 6 leftover empty `import { } from '@walnut/contract'` removed; `build:stage` is now a dedicated turbo task (triple-dash passthrough retired); changesets fixed groups include all tooling packages
+- ✅ `@walnut/client` `vue`/`pinia` moved to peerDependencies; server tsconfig `strict: true` (tsc zero errors); DOM lib pushed down from `tsconfig.base.json` to admin/docs/platform-web packages; 6 leftover empty `import { } from '@walnut/contract'` removed; `build:stage` is now a dedicated turbo task (triple-dash passthrough retired)
+
+**Release & git-hook migration (2026-09-23):**
+- ✅ `@changesets/cli` + `@changesets/changelog-github` removed — version management is now **pnpm 12 native release management**: the `versioning` block in `pnpm-workspace.yaml` is the single source of truth (one `fixed` group covering all 12 workspace packages, `changelog.storage: registry`), `pnpm change` writes intents, `pnpm version -r` consumes them, `.changeset/ledger.yaml` is the consumption ledger, and `.changeset/config.json` is deleted
+- ✅ Changelogs are rendered per package by **git-cliff** (root `cliff.toml`) and written by `packages/tooling/scripts/src/release/changelog.ts` (sole writer); root `changelog-latest.md` is regenerated by `pnpm release` and committed (`release.yml` still publishes it via `body_path:`)
+- ✅ Git hooks moved from `simple-git-hooks` to **lefthook** (root `lefthook.yml`, ADR 0018): root `postinstall` is gone, `allowBuilds` now has `lefthook: true` instead of `simple-git-hooks: false`, and `pnpm hooks:check` mechanically asserts the hooks are installed
+- ✅ `@walnut/release` → **`@walnut/tooling`** (`packages/tooling/release/` → `packages/tooling/scripts/`); the root `scripts/` directory is gone and the old `tsx scripts/*.ts` root scripts became bins (`walnut-release`, `walnut-lint-workflows`, `walnut-setup-env`, `walnut-check-git-hooks`); new root scripts `hooks:check` and `prepush` (five sections incl. `pnpm change check`), which `ci.yml` also runs after syncpack
+- ✅ Attribution semantics: with one fixed group, package attribution no longer affects the version number — it only decides *whether* a commit produces an intent (path-first, scope-fallback; infra scopes produce none)
+- ✅ Deleted two stale changelog artifacts (root `changelog-latest.md`, `apps/server/changelog-latest.md`)
 
 **CI/CD rebuild (2026-09-21):**
 - ⚠️ CI had **never actually run** since 2026-08-13: `steps.if` used the `secrets` context, which the runner rejects → `Invalid workflow file`, startup failure with 0 jobs (looked like an ordinary red build). Fixed by binding the secret to a job-level `env` and testing `env.X != ''`; guarded by `.github/workflows/workflow-lint.yml` (actionlint, a separate file so it can report even if ci.yml breaks) plus `pnpm lint:workflows` in pre-push
@@ -133,7 +149,7 @@ This monorepo was created by merging three previously separate repositories:
 
 **For full architecture details and the remaining refactor roadmap:**
 - [`apps/docs/src/zh-CN/content/monorepo/`](./apps/docs/src/zh-CN/content/monorepo/) — 架构文档（TypeScript / ESLint / pnpm Catalog / Turbo / Release / Knip 等 10 篇）
-- [`apps/docs/src/zh-CN/content/adr/`](./apps/docs/src/zh-CN/content/adr/) — 架构决策记录（ADR 0001-0017）
+- [`apps/docs/src/zh-CN/content/adr/`](./apps/docs/src/zh-CN/content/adr/) — 架构决策记录（ADR 0001-0018）
 - [`apps/docs/src/zh-CN/content/industry-research/`](./apps/docs/src/zh-CN/content/industry-research/) — 行业调研语料
 - [`apps/docs/src/zh-CN/content/archive/`](./apps/docs/src/zh-CN/content/archive/) — 归档：带日期的设计 / 计划 / 评审文档（根 `docs/` 目录已移除，全部内容在此）
 - `migration-guide/` — historical migration record (Phase 1 merge steps, now completed)

@@ -1,0 +1,40 @@
+# Git 钩子的**唯一真源**（内容进仓库，改本文件不需要重装钩子）。
+#
+# 为什么从 simple-git-hooks 迁过来：钩子内容被搬进跟踪面后，pre-push 的聚合命令就是
+# 「真配置里跑的那一条」，而不是 postinstall 非原子写出的、不可见的 `.git/hooks` 文件 ——
+# 后者被截断时曾是「语法合法但少跑几项」的静默弱化形态。
+#
+# 钩子怎么装：lefthook 自己的 postinstall 就是 `lefthook install`，因此
+# `pnpm-workspace.yaml` 的 `allowBuilds` 必须放行 `lefthook: true`；不放行时本仓
+# `strictDepBuilds: false` 只会**告警**、不阻断安装 ⇒ 门禁静默消失。
+# 装没装上用 `pnpm hooks:check` 机械核对（发版第 0 步也会调它）。
+#
+# ⚠️ Windows：`run` 值里**禁止双引号**。lefthook 在 Windows 上用
+# `cmdLine = "\"" + sh + "\" -c \"" + cmdstr + "\""` 拼命令行，内层引号未转义 ⇒
+# 带引号的命令会**静默丢参、还照样报 ✓**（上游 PR #1464 未合并，已实测复现）。
+# `ci/__tests__/lefthook-config.test.ts` 机械拦这条。
+min_version: 2.1.14
+# 找不到 lefthook 时生成的 shim 默认只 echo 一行再 exit 0（= 全部门禁静默消失）；
+# 这一行把它变成响亮失败。
+assert_lefthook_installed: true
+
+# 提交前：只作用于暂存文件的可自动修复检查（lint-staged 自己会把修复重新 stage，故不写 stage_fixed）。
+pre-commit:
+  jobs:
+    - name: lint-staged
+      run: pnpm exec lint-staged
+
+# 提交信息：约定式提交的强制入口。`{1}` = git 传给 commit-msg 钩子的第一个参数（.git/COMMIT_EDITMSG）。
+# ⚠️ scope 必填且必须在 `@walnut/commitlint-config` 的白名单里 —— 发版的 release commit
+# 因此用 `chore(release): vX.Y.Z`（`release` 是保留的基础设施 scope，不是包 scope）。
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}
+
+# 推送前：**单条**聚合门禁（五段在根 `prepush` 脚本里按序跑）。
+# 收敛成单条的性质要保住：被截断只会退化成「命令不存在」，响亮报错。
+pre-push:
+  jobs:
+    - name: prepush-gates
+      run: pnpm --silent prepush

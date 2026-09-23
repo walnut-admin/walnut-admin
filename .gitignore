@@ -38,6 +38,19 @@ deploy/nginx/certs/
 report/*
 !report/*.md
 
+# Git hooks（lefthook 运行期缓存与本地覆写；钩子内容本身在 lefthook.yml，进仓库）
+.lefthook/
+.lefthook-local.yml
+
+# 发版
+# ⚠️ `.changeset/` 其余内容（意图 *.md、ledger.yaml、README.md）**必须提交**，不要整体忽略。
+# 这里只忽略本机状态与 pnpm 的寄存区：
+.changeset/.release-state.json
+# `.changeset/changelogs/` 是 pnpm 的 changelog 寄存区，只有 publish 时才有人读，
+# 而本仓 `versioning.changelog.storage: registry` + 从不 publish ⇒ 它没有消费者，
+# 发版脚本消费完连目录一起清掉；留这条是兜底（中断时可能留下残留）。
+.changeset/changelogs/
+
 # VitePress 构建临时目录
 apps/docs/.vitepress/.temp/
 apps/docs/.vitepress/dist/

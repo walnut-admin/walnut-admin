@@ -97,4 +97,4 @@ pnpm syncpack:update
 ## 相关文档
 
 - [pnpm Catalog](./pnpm-catalog.md) — 集中版本管理
-- [ADR 0011 - 依赖治理与发布](../adr/0011-dependency-governance-release.md) — catalog + changesets + git-cliff
+- [ADR 0011 - 依赖治理与发布](../adr/0011-dependency-governance-release.md) — catalog + pnpm 原生 release management（`versioning` + git-cliff）

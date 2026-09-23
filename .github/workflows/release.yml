@@ -183,6 +183,9 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   # ---------- 3. GitHub Release ----------
+  # 正文来源：根 changelog-latest.md —— 它由 `pnpm release` 用 git-cliff 生成本次发版的
+  # 整仓段落，并**随 release commit 一起提交**（因此 checkout 到这个 tag 时读到的就是本次的正文）。
+  # 这也是发版机不需要任何能改远端内容的凭据的原因：本地只生成文件，创建 Release 归这里。
   release:
     name: Create GitHub Release
     needs: [verify, images]

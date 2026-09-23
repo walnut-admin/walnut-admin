@@ -96,6 +96,10 @@ const config: KnipConfig = {
     'packages/tooling/eslint-config': {
       entry: ['base.mjs', 'vue.mjs', 'nest.mjs', 'nest-local-rules.mjs'],
     },
+    // 仓库级脚本包：入口全是 bin（一文件一个命令），其余为被 import 的模块
+    'packages/tooling/scripts': {
+      entry: ['bin/*.mjs'],
+    },
   },
 
   // ============================================================
@@ -135,6 +139,15 @@ const config: KnipConfig = {
     '**/infra/**',
     '**/migration-guide/**',
     '**/docker/**',
+  ],
+
+  // ============================================================
+  // 以下**二进制**来自工具自身，不是任何依赖提供的（knip 会把它们报成 unlisted）
+  // ============================================================
+  ignoreBinaries: [
+    // `pnpm change` 是 pnpm 12 的原生命令（发行版自带，不在 node_modules/.bin 里）。
+    // 出现在根 `prepush` 脚本与 ci.yml 的 quality job 里（fixed 组锁步门禁）。
+    'change',
   ],
 
   // ============================================================
@@ -239,20 +252,20 @@ const config: KnipConfig = {
     'playwright',
 
     // --- Git hooks & 代码质量 ---
-    'simple-git-hooks',
+    // lefthook 只在 `pnpm install` 的 postinstall 与 .git/hooks 里被调用，源码不 import 它
+    'lefthook',
     'lint-staged',
     'knip',
 
     // --- commitlint（通过 index.mjs 的 extends 字符串引用，knip 追踪不到） ---
     '@commitlint/config-conventional',
 
-    // --- 版本 & 发布 ---
-    '@changesets/cli',
+    // --- 发版（git-cliff 走编程 API 调用，但平台二进制由它自己的 optionalDependencies 提供） ---
+    'git-cliff',
 
     // --- Dev 工具链 ---
     'taze',
     'rimraf',
-    'tsx',
     'turbo',
     'madge',
     'concurrently',
@@ -262,6 +275,8 @@ const config: KnipConfig = {
 
     // --- ESLint config 包在 devDependencies 中的引用 ---
     '@walnut/eslint-config',
+    // --- 仓库级脚本包：根 scripts 通过它的 bin 调用（release / lint:workflows / setup-env） ---
+    '@walnut/tooling',
   ],
 }
 

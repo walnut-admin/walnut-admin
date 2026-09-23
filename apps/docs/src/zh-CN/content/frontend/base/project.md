@@ -8,7 +8,7 @@
 - 发现冗余：现代 [ESLint] 已内置诸多 [Prettier] 功能，无需单独安装；[Husky] 配置繁琐复杂，适合超大型多成员项目。
 
 ### 2. 现行简化方案（参考 <WBaseLink preset="antfu">antfu</WBaseLink> 大佬推荐）
-- **核心工具精简**：仅保留 [ESLint]，弃用 [Husky]，改用更轻量化的 **[simple-git-hooks]**。
+- **核心工具精简**：仅保留 [ESLint]，弃用 [Husky]，改用更轻量化的 **[lefthook]**（2026-09-23 起；此前是 simple-git-hooks，见 [ADR 0018](/content/adr/0018-git-hooks-lefthook)）。
 - 简化逻辑：原本通过 package.json 中 `pre-commit` 执行 [Lint staged]，再由 [Lint staged] 执行 `eslint --fix`。
 - 暂缺配置：
   - 未使用 commit lint（因短期内项目由个人开发维护，后续若有社区参与，可能重新添加）。
@@ -24,4 +24,4 @@
 [Prettier]: https://prettier.io/
 [Husky]: https://typicode.github.io/husky/
 [Lint staged]: https://github.com/okonet/lint-staged
-[simple-git-hooks]: https://github.com/toplenboren/simple-git-hooks
+[lefthook]: https://lefthook.dev/

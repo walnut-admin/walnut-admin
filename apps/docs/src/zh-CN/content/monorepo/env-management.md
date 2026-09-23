@@ -12,8 +12,8 @@ Walnut Admin 是公开的 GitHub 仓库，但项目实际在运营——数据�
 
 ```
 walnut-admin/
-├── .env.keys              ← gitignored（私钥，1Password 分发）
-├── scripts/setup-env.ts   ← 加解密脚本
+├── .env.keys                                  ← gitignored（私钥，1Password 分发）
+├── packages/tooling/scripts/src/env/setup-env.ts   ← 加解密脚本（bin：walnut-setup-env）
 │
 ├── apps/admin/
 │   ├── env-encrypted/     ← 加密后的真实值，文件内注释即模板（安全提交 Git）
@@ -65,13 +65,14 @@ pnpm encrypt-env   # 修改 env-local/ 后重新加密（每次全量重建 .env
 | 影响缓存 | 是——`turbo.json` 声明了 `"env": ["VITE_*", "MODE"]` | 否——构建产物不包含 env 值 |
 | 新增变量后 | 更新 `build/vite/config/` 中的 Zod schema | 更新 `libs/config/src/validation.ts` |
 
-### 5. CI 用法（2026-08-08 起）
+### 5. CI 用法（2026-08-08 起，2026-09-21 更新 secret 名）
 
 CI（`.github/workflows/ci.yml`）复用同一套加解密流程：
 
-1. 仓库 Settings → Secrets and variables → Actions 新增 **`DOTENVX_KEYS_FILE`**，内容即本地 `.env.keys` 文件**全文**（多行，含各环境密钥行）；
-2. CI 检测到该 secret 后自动执行：写入 `.env.keys` → `pnpm setup-env` 解密 → `turbo build --filter=@walnut/admin`；
-3. 未配置 secret 时 admin 构建步骤自动跳过（server 构建无需 env，编译期不加载）。
+1. 仓库 Settings → Secrets and variables → Actions 新增 **`ENV_KEYS`**，内容即本地 `.env.keys` 文件**全文**（多行，含各环境密钥行）。旧文档里的 `DOTENVX_KEYS_FILE` 已废弃；
+2. 需要它的 job 先把 secret 绑到 **job 级 `env`**（变量名 `DOTENVX_KEYS`，值取 `secrets.ENV_KEYS`），再用 `env.DOTENVX_KEYS != ''` 判断是否执行 —— ⚠️ `secrets` 上下文不允许出现在 step/job 的 `if` 里，否则整个 workflow 被判 `Invalid workflow file`（启动即失败、0 个 job）。写法示例见 [CI/CD 与容器构建](./ci-cd.md) 的硬约束 §1；
+3. 命中后走 composite action `.github/actions/decrypt-env`（ci / release / deploy 三处共用）：写入 `.env.keys` → `pnpm setup-env` 解密 → 立即 `rm .env.keys`；
+4. 未配置 secret 时 admin 构建步骤自动跳过（server 构建无需 env，编译期不加载）。
 
 `.env.keys` 本身仍 gitignore、经 1Password 团队共享——secret 与本地文件是同一份内容，轮换密钥后需同步更新。
 
@@ -113,7 +114,7 @@ production / stage 此前缺失 `USER_ID_ENCRYPTION_KEY` 与 `USER_ID_HASH_SALT`
 
 | 文件 | 作用 |
 |------|------|
-| [scripts/setup-env.ts](https://github.com/walnut-admin/walnut-admin/blob/main/scripts/setup-env.ts) | 加解密脚本（`decrypt` / `encrypt` 子命令） |
+| [packages/tooling/scripts/src/env/setup-env.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/scripts/src/env/setup-env.ts) | 加解密脚本（`decrypt` / `encrypt` 子命令，经 `walnut-setup-env` bin 调用；根 `scripts/` 目录已不存在） |
 | [apps/admin/env-encrypted/](https://github.com/walnut-admin/walnut-admin/tree/main/apps/admin/env-encrypted) | admin 加密环境变量（注释即模板） |
 | [apps/server/env-encrypted/](https://github.com/walnut-admin/walnut-admin/tree/main/apps/server/env-encrypted) | server 加密环境变量（注释即模板） |
 | [.env.keys](https://github.com/walnut-admin/walnut-admin/blob/main/.env.keys)（gitignored） | 私钥，通过 1Password 分发 |

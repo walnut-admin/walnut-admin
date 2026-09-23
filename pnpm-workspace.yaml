@@ -1,10 +1,5 @@
 catalogMode: strict
 
-# 依赖提升。官方键名是 hoist；hoisting 不是合法键，会被 pnpm 静默忽略
-# （pnpm 12 在项目有 packageManager pin 时会直接报 ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS）。
-# false = 不做提升：每个包只能解析自己 package.json 中声明的依赖，幻影依赖会被立即暴露。
-hoist: false
-
 # 以下 4 项是 pnpm 设置，必须写在 pnpm-workspace.yaml：
 # pnpm 只从 .npmrc 读取 auth/registry，其余设置不会生效。
 #
@@ -13,8 +8,16 @@ hoist: false
 # 与严格模式不兼容。错位仍可用 `pnpm peers check` 查看。
 strictPeerDependencies: false
 engineStrict: true
+# 依赖提升。官方键名是 hoist；hoisting 不是合法键，会被 pnpm 静默忽略
+# （pnpm 12 在项目有 packageManager pin 时会直接报 ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS）。
+# false = 不做提升：每个包只能解析自己 package.json 中声明的依赖，幻影依赖会被立即暴露。
+hoist: false
+
 saveExact: true
 
+# --- 供应链防护（pnpm 12）---
+# 新发布的版本需存放满 1440 分钟（1 天）才允许解析安装。显式写出以免默认值变化时无声失效。
+minimumReleaseAge: 1440
 # hoist: false 的例外清单。每一条都是第三方包自身的缺陷，不是本仓代码问题
 # （knip 对自有源码报 0 条未声明依赖）。逐条实测得出，用精确包名而非 glob。
 publicHoistPattern:
@@ -25,15 +28,12 @@ publicHoistPattern:
   - '@typescript-eslint/types'
   # langium 源码 import 了 4 个未声明的包（仅经 chevrotain / vscode-languageserver 传递）。
   - '@chevrotain/regexp-to-ast'
-  - 'vscode-jsonrpc'
-  - 'vscode-languageserver-protocol'
-  - 'vscode-languageserver-types'
+  - vscode-jsonrpc
+  - vscode-languageserver-protocol
+  - vscode-languageserver-types
   # vue-command-palette 产物 import 'vue'，其 package.json 既无 dependencies 也无 peer。
-  - 'vue'
+  - vue
 
-# --- 供应链防护（pnpm 12）---
-# 新发布的版本需存放满 1440 分钟（1 天）才允许解析安装。显式写出以免默认值变化时无声失效。
-minimumReleaseAge: 1440
 # 拒绝"可信度下降"的版本：某包此前由可信发布者发布，现在只剩 provenance 或无可信证据时不安装。
 trustPolicy: no-downgrade
 # 例外：以下均为 2019-2024 年间发布的历史版本，发布时 provenance 机制尚未普及，
@@ -53,6 +53,46 @@ packages:
   - 'packages/platform-web/*'
   - 'packages/tooling/*'
 
+# --- 发版（pnpm 原生 release management，v11.13+）---
+# 本段是版本策略的**唯一真源**（取代原来的 `.changeset/config.json`）。
+# 意图文件仍是 changesets 格式（`.changeset/*.md`）：由 `pnpm change` 写、`pnpm version -r` 消费、
+# 消费结果记进 `.changeset/ledger.yaml`。发版编排见 packages/tooling/scripts/src/release/。
+versioning:
+  changelog:
+    # `registry` = **不往仓库落 pnpm 自己写的 changelog 文件**。本仓刻意选它：changelog 改由
+    # git-cliff 渲染、由 release/changelog.ts 逐包写入（**唯一写入者**）。
+    # 为什么不做 `repository`：该模式会主动写 `CHANGELOG.md`，而它没有「关掉写入但保留意图消费」
+    # 的开关，于是 git-cliff 再写一次就会让同一版本出现两个 `## X.Y.Z` 段 —— 社区里「git-cliff 写
+    # changelog」最常见的翻车形态。storage 只影响「changelog 落在哪」，**意图照旧驱动版本号**。
+    # ⚠️ 本模式下 pnpm **不回收**已消费的意图文件（要等 registry 确认该版本已带 changelog 发布，
+    # 而本仓包全 private、从不 publish ⇒ 永不回收）；发版脚本消费完当场收走它们
+    # （release/generate.ts 的 deleteConsumedIntents()）；判据始终是 ledger，不是文件在不在。
+    storage: registry
+  # 单一 fixed 组：**全部 12 个 workspace 包永远同版本**，因此发布 tag `vX.Y.Z` 永远有唯一来源。
+  #
+  # 为什么不做两个组（Apps 3 + Packages 9，历史设计）：fixed 组各自独立，于是一次**只动共享包**的
+  # 发版只会 bump Packages 组、apps/admin 的版本不变 ⇒ 编排会命中「版本号未变更，跳过发版」而退出 0，
+  # 留下一个**已被 bump 却永远不会打 tag** 的脏工作区。一个组从结构上消灭这条路径。
+  # 另：ADR 0008 的标题本就是 Unified Versioning，单组与它一致。
+  #
+  # ⚠️ 组成员数必须 == 有 version 的 workspace 包数（无例外、无遗漏）：
+  #    新增 workspace 包时必须加进来，否则 `pnpm change check` 与 versioning-config.test.ts 都会拦。
+  fixed:
+    # ⚠️ 类型是 string[][]（组的数组，每组是包名的数组）。单组也要写成嵌套序列。
+    -
+      - '@walnut/admin'
+      - '@walnut/server'
+      - '@walnut/docs'
+      - '@walnut/utils'
+      - '@walnut/contract'
+      - '@walnut/types'
+      - '@walnut/client'
+      - '@walnut/http'
+      - '@walnut/ui'
+      - '@walnut/eslint-config'
+      - '@walnut/commitlint-config'
+      - '@walnut/tooling'
+
 catalog:
   '@alicloud/dypnsapi20170525': 2.0.0
   '@alicloud/openapi-client': 0.4.15
@@ -60,8 +100,6 @@ catalog:
   '@alicloud/tea-util': 1.4.11
   '@antfu/eslint-config': 8.2.0
   '@cap.js/server': 4.0.5
-  '@changesets/changelog-github': 0.7.0
-  '@changesets/cli': 2.31.1
   '@codemirror/autocomplete': 6.20.2
   '@codemirror/commands': 6.10.3
   '@codemirror/lang-javascript': 6.2.5
@@ -184,6 +222,7 @@ catalog:
   express-xss-sanitizer: 2.0.2
   fflate: 0.8.2
   fuse.js: 7.3.0
+  git-cliff: 2.13.1
   hbs: 4.2.0
   helmet: 8.1.0
   highlight.js: 11.11.1
@@ -197,6 +236,7 @@ catalog:
   jsdom: 30.0.1
   json-editor-vue: 0.18.1
   knip: 6.29.0
+  lefthook: 2.1.14
   libphonenumber-js: 1.12.43
   lint-staged: 17.0.2
   lodash: 4.17.21
@@ -242,7 +282,6 @@ catalog:
   sharp: 0.34.5
   sharp-ico: 0.1.5
   signature_pad: 5.1.3
-  simple-git-hooks: 2.13.1
   socket.io: 4.8.3
   socket.io-client: 4.8.3
   sortablejs: 1.15.7
@@ -295,6 +334,7 @@ catalog:
   web-vitals: 5.2.0
   winston: 3.19.0
   winston-daily-rotate-file: 5.0.0
+  yaml: 2.9.0
   zod: 4.4.3
 
 # 依赖构建脚本：pnpm 10+ 默认全部不执行（供应链防护）。
@@ -306,23 +346,30 @@ catalog:
 # strictDepBuilds: false —— 存在被忽略的构建脚本时只告警，不阻断安装。
 strictDepBuilds: false
 allowBuilds:
-  # 唯一放行项：Sentry 上传路径本地无法验证（缺真实 DSN/org/project/token），
-  # 保留其构建脚本作为低成本保险。
-  '@sentry/cli': true
   # 以下全部拒绝。原生模块（@swc/core、esbuild、sharp、@parcel/watcher、
   # msgpackr-extract、rs-module-lexer）经 optionalDependencies 分发预编译产物，
   # 不需要构建脚本；@nestjs/core、core-js、@scarf/scarf 的脚本只是 funding/遥测提示。
+  # git-cliff 同理（平台二进制走 optionalDependencies，无需 allowBuilds 条目）。
   '@alicloud/openapi-core': false
   '@compodoc/compodoc': false
   '@nestjs/core': false
   '@parcel/watcher': false
   '@scarf/scarf': false
+  # 两个放行项（`@sentry/cli` 与 `lefthook`），其余全部拒绝。
+  #
+  # 放行项 ①：Sentry 上传路径本地无法验证（缺真实 DSN/org/project/token），
+  # 保留其构建脚本作为低成本保险。
+  '@sentry/cli': true
   '@swc/core': false
   core-js: false
   esbuild: false
   json-editor-vue: false
+  # 放行项 ②：**lefthook 的 postinstall 就是「装 git 钩子」那一步**（`lefthook install`）。
+  # 不放行 ⇒ 钩子不会装，而本仓 `strictDepBuilds: false` 只会**告警**、不阻断安装 ——
+  # 那正是「pre-commit / commit-msg / pre-push 门禁全部静默失效」的形态
+  # （2026-09-21 的 pnpm12 迁移计划 R3 记过这条）。装没装上用 `pnpm hooks:check` 机械核对。
+  lefthook: true
   msgpackr-extract: false
   rs-module-lexer: false
   sharp: false
-  simple-git-hooks: false
   vue-demi: false

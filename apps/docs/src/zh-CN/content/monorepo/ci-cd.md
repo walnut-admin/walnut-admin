@@ -8,13 +8,15 @@
 
 | Workflow | 触发 | 内容 | 是否会构建容器 |
 |----------|------|------|----------------|
-| `ci.yml` | push `main`、PR | boundaries → affected lint/types:check/test → affected 自检 → syncpack → server 构建（+ 有 secret 时 admin 构建） | ❌ |
+| `ci.yml` | push `main`、PR | boundaries → affected lint/types:check/test → affected 自检 → syncpack → `pnpm change check` → server 构建（+ 有 secret 时 admin 构建） | ❌ |
 | `workflow-lint.yml` | `.github/**` 变更 | actionlint 校验所有 workflow 与本地 composite action | ❌ |
 | `release.yml` | tag `v*.*.*` | verify ∥ images → GitHub Release → 自动部署 | ✅ 仅此一处 |
-| `deploy.yml` | `workflow_call`（被 release 复用）/ `workflow_dispatch`（回滚重发） | 纯部署：校验镜像存在 → 生成 env → scp → `compose pull && up -d --wait` → 健康检查 → **部署后验证（post-verify）** | ❌ |
+| `deploy.yml` | `workflow_call`（被 release 复用）/ `workflow_dispatch`（回滚重发） | 纯部署：校验镜像存在 → 生成 env → scp → `compose pull && up -d --wait` → 健康检查 → **部署后验证（post-verify）**。入参 `image_tag`（必填）+ `environment`（默认 `prod`，目前只有 `prod`） | ❌ |
 
-发布流仍是 `pnpm release`（changeset 版本号 → changelog → commit → tag `vX.Y.Z` → push 分支与 tag，见 [发布 & 发版指南](./release.md)）。
+发布流仍是 `pnpm release`（pnpm 原生版本管理：`pnpm change` 写意图 → `pnpm version -r` 消费 → git-cliff 逐包渲染 changelog → commit → tag `vX.Y.Z` → push 分支与 tag，见 [发布 & 发版指南](./release.md)）。
 **tag 因此成为"只构建一次"的锚点**：失败后在该 run 上点 *Re-run all jobs* 即可，缓存命中后通常个位数分钟。
+
+GitHub Release 的**正文不是 CI 生成的**：`pnpm release` 在打 tag 前把本次发版的整仓段落写进根 `changelog-latest.md`，并**随 release commit 一起提交**；`release.yml` 的 release job checkout 到该 tag 后直接 `body_path: changelog-latest.md`（所以发版机不需要任何能改远端内容的凭据，旧 tag 重跑也能复现同一份正文）。
 
 ### 为什么拆成两个 workflow 文件
 

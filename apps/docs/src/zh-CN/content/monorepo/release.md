@@ -6,68 +6,78 @@
 
 | 环节 | 谁负责 |
 |------|--------|
-| 版本号怎么定 | **Changesets** 根据 changeset 文件（自动生成或手写）计算 |
-| CHANGELOG 怎么出 | **Changesets 自带插件**（`@changesets/changelog-github`），为每个被 bump 的包写入独立的 `CHANGELOG.md`（含 PR 链接 + 贡献者） |
-| 发了什么 | 各包版本号更新 + 各包 CHANGELOG.md + git tag `vX.Y.Z` + push（分支 + tag） |
+| 版本号怎么定 | **pnpm 原生 release management**（`pnpm change` 写意图 → `pnpm version -r` 消费） |
+| CHANGELOG 怎么出 | **git-cliff** 逐包渲染，由 `@walnut/tooling` 的 `release/changelog.ts` 写入（**唯一写入者**） |
+| GitHub Release 正文 | `pnpm release` 生成的根 `changelog-latest.md`（随 release commit 提交） |
+| 创建 GitHub Release | `.github/workflows/release.yml`（tag 推送触发，本地不调 API） |
+| 发了什么 | 12 个包的版本号 + 各包 `CHANGELOG.md` + `changelog-latest.md` + `.changeset/ledger.yaml` + git tag `vX.Y.Z` + push（分支 + tag） |
 
-## 版本策略
+> ⚠️ 本仓**不用** `@changesets/cli`。意图文件仍是 changesets 格式（`pnpm change` 沿用），但版本策略的
+> 唯一真源是根 [`pnpm-workspace.yaml`](../../../../../pnpm-workspace.yaml) 的 `versioning` 段，
+> `.changeset/config.json` 已删除。详见 [ADR 0011](/content/adr/0011-dependency-governance-release)。
 
-monorepo 划分为 **2 个 fixed 组**，每组内部**永远同版本号**（见 [.changeset/config.json](../../../../../.changeset/config.json)）：
+## 版本策略：单一 fixed 组
 
-### Apps 组：3 个 app 同步一个版本号
+```yaml
+versioning:
+  changelog:
+    storage: registry        # changelog 由 git-cliff 写，pnpm 不落文件（避免同一版本两段）
+  fixed:
+    -                           # 单一组：全部 12 个 workspace 包永远同版本
+      - '@walnut/admin'
+      # … 其余 11 个
+```
 
-| 包 | 目录 |
-|----|------|
-| `@walnut/admin` | apps/admin |
-| `@walnut/server` | apps/server |
-| `@walnut/docs` | apps/docs |
+12 个包（`apps/*` 3 个 + `platform-any` 3 个 + `platform-web` 3 个 + `tooling` 3 个）**永远同一个版本号**，
+发布 tag `vX.Y.Z` 因此永远有唯一来源（取组内版本，基准是 `apps/admin`）。
 
-前端、后端、文档一荣俱荣——发布 tag `vX.Y.Z` 取组内版本（admin 为基准）。
+### 为什么是「一组」而不是历史上的「Apps 组 + Packages 组」
 
-### Packages 组：9 个共享包同步一个版本号
+pnpm 的 fixed 组**各自独立**。两个组的写法会留下一条结构性陷阱：一次**只动共享包**的发版
+（如 `feat(utils): …`）只会 bump Packages 组、`apps/admin` 的版本不变 ⇒ 编排会命中
+「版本号未变更，跳过发版」而退出 0，留下一个**已被 bump 却永远不会打 tag** 的脏工作区。
 
-| 包 | 目录 |
-|----|------|
-| `@walnut/utils` | packages/platform-any/utils-core |
-| `@walnut/contract` | packages/platform-any/contract |
-| `@walnut/types` | packages/platform-any/types |
-| `@walnut/client` | packages/platform-web/client |
-| `@walnut/http` | packages/platform-web/http |
-| `@walnut/ui` | packages/platform-web/ui |
-| `@walnut/eslint-config` | packages/tooling/eslint-config |
-| `@walnut/release` | packages/tooling/release |
-| `@walnut/commitlint-config` | packages/tooling/commitlint-config |
+一个组从结构上消灭这条路径，也与 [ADR 0008](/content/adr/0008-unified-versioning-separate-deploy)
+的标题（Unified Versioning）一致。
 
-> 2026-08-08 起 `@walnut/release`、`@walnut/commitlint-config` 也并入本组——全部 12 个 workspace 包都在两个 fixed 组内，无不参与包（消除"tooling 包独立版本"的不对称）。
-
-### fixed 组工作原理
-
-Changesets 的 fixed 组**只在组内包被 changeset 提及时**整组同步。auto-changeset 按 commit 的 scope 提及对应包，同组其余包自动跟随。
+> 新增 workspace 包时**必须**把它加进 `versioning.fixed`，否则：
+> `pnpm change check`（CI 与 pre-push 会跑）报锁步失败，且 `pnpm release` 第 1 步的
+> fixed 组审计会直接拒绝发版（exit 1）。
 
 ## 提交纪律（发版的前提）
 
-commitlint 已强制以下格式（见 `packages/tooling/commitlint-config/`）：
+commitlint 强制（见 [`@walnut/commitlint-config`](../../../../../packages/tooling/commitlint-config/index.mjs)）：
 
-**`type(包名): message`** —— scope 必填，且必须是 workspace 包名：
+**`type(包名): message`** —— scope 必填，且必须是包名或基础设施 scope：
 
 ```
 feat(admin): 添加登录页
 fix(server): 修复事务回滚
-feat(utils)!: 破坏性 API 变更   ← breaking 用括号后感叹号
-chore(release): 更新发布脚本
-revert: xxx                     ← git revert 生成，豁免 scope
+feat(utils)!: 破坏性 API 变更     ← breaking 用括号后感叹号
+chore(release): v0.1.0            ← 发版记账提交专用 scope（不是包 scope）
+feat(deploy): 部署后验证           ← 基础设施 scope
 ```
-
-允许的 scope（12 个 workspace 包）：
 
 | 层 | scope |
 |----|-------|
 | apps | `admin` `server` `docs` |
 | platform-any | `utils` `contract` `types` |
 | platform-web | `client` `http` `ui` |
-| tooling | `eslint-config` `commitlint-config` `release` |
+| tooling | `eslint-config` `commitlint-config` `tooling` |
+| 基础设施 | `docker` `deploy` `pnpm` `release` |
 
-scope 决定发版归属：commit 被 auto-changeset 归因到对应包 → fixed 组联动。
+### 归属规则（决定「这条提交要不要发版」）
+
+因为只有一个 fixed 组，归属不影响**版本号**（任何一条意图都会让整组一起升），它只决定
+**这条提交是否产生意图**：
+
+1. **路径优先**：提交改动的文件落在哪个包目录下（最长前缀）；一个提交可命中多个包。
+2. **scope 兜底**：路径一个包都没命中时，用 commit scope 查表。
+3. **否则不产生意图**：基础设施 scope（`docker` / `deploy` / `pnpm` / `release`）、未在册的 scope、
+   以及只动仓库级文件（根配置、`.github/`、`deploy/`、文档站配置…）的提交。
+
+> 第 3 条是刻意设计，不是「变更丢失」：凡真改了某个包的文件，第 1 条就会命中。
+> 基础设施改动**不**带动产品版本号。
 
 ### bump 映射
 
@@ -76,137 +86,175 @@ scope 决定发版归属：commit 被 auto-changeset 归因到对应包 → fixe
 | `feat` | minor | ✅ |
 | `fix` / `perf` / `refactor` / `revert` | patch | ✅ |
 | 破坏性变更（`type(包名)!:`） | major | ✅ |
+| 无约定式前缀 | patch | ✅ |
 | `docs` / `chore` / `style` / `test` / `build` / `ci` | skip | ❌ |
 
-被过滤的噪声：`wip:`、`fixup!`、`squash!`、`tmp`、`draft`、纯数字，以及只改动非代码目录（`docs/`、`.github/`、`.vscode/`、`.changeset/`）的 commit。
+被过滤的噪声：`wip:`、`fixup!`、`squash!`、`tmp`、`draft`、纯数字，以及长度 < 4 的消息。
 
-**兜底**：无 scope / 未知 scope 的 commit（如 commitlint 强制前的历史提交）→ 归因到两个组代表（admin + utils），保证变更不丢失。
-
-> 依赖升级（`chore(deps)`）默认不触发发版——刻意设计；想记录就写手动 changeset，见"场景 4"。
+> 依赖升级（`chore(admin): upgrade vue`）默认不触发发版——刻意设计；想记录就手写一个意图。
 
 ## 发版一次的全过程
 
-在 main 分支、拉取最新代码后执行：
+在 `main` 分支、工作区干净、已 `git pull` 的前提下：
 
 ```bash
 pnpm release
 ```
 
-内部实际执行（`@walnut/release` 包编排，实现见 `packages/tooling/release/src/`）：
+六步（分节顺序即执行顺序）：
 
 ```
-1. 无待消费 changeset → auto-changeset 扫描自上次 tag 以来的 commit，按 scope 归因生成 .changeset/auto-*.md（幂等，文件名 = commit hash）
-2. 汇总待发布清单，展示自动检测的 bump 类型（major / minor / patch），可交互覆盖
-3. pnpm changeset version → 更新各包版本号（fixed 组自动同步）+ 写入各包 CHANGELOG.md（changelog-github 渲染，含 PR 链接与贡献者）
-4. git 提交 + 打 tag v{Apps 组新版本} + push 分支与 tag
+0   前置      分支=main / 未落后上游 / fixed 组已对齐 / 钩子已装 / GITHUB_TOKEN（可选）
+1   生成意图  扫上次 tag 以来的 commit → 归属到包 → pnpm change --bump --summary <pkg…>
+2   确认 bump 列出意图摘要 + 预期版本 → 交互确认，或 --bump 覆盖
+3   消费意图  pnpm version -r --no-git-checks（版本 + ledger）
+3.4 收走残留  删已记账的 .changeset/*.md；清 .changeset/changelogs/
+3.5 changelog 逐包 git-cliff 渲染 → 写 <包>/CHANGELOG.md（幂等、空段跳过、渲染失败即中止）
+3.6 notes     整仓本次发版段落 → 写根 changelog-latest.md（CI 的 Release 正文源）
+4   总览确认  包归属 / bump / 版本 / 条目 / 将提交文件数 / 将推 refs / 无关改动 → Y/n
+5   提交发布  git add -A → git commit -m "chore(release): vX.Y.Z"
+              → 发版前全量电池 → git tag -a → git push --atomic origin main vX.Y.Z
+6   完成       GitHub Release 由 release.yml 在 tag 推送后创建
 ```
 
 常见退出路径（不是错误）：
 
 | 输出 | 含义 |
 |------|------|
-| `没有新 commit，跳过` | 上次 tag 以来没有任何提交 |
-| `没有可生成的变更记录，跳过发版` | 有提交但全部是噪声/非代码改动 |
-| `版本号未变更，跳过发版` | 没有任何包被 changeset 提及 |
+| `没有可生成的变更记录，无需发版` | 有提交但全部是噪声 / 无归属 / 不触发发版 |
+| `无需发版：标签 vX.Y.Z 已在远端、且没有新提交` | 已经在目标状态 |
+| `全部 N 个意图都声明 none：本次不发版` | 意图集明确声明不发版 |
 
-## 实操场景
+## 为什么「门禁在打 tag 之前」
 
-### 场景 1：发版前端 / 场景 2：发版后端
+`pnpm release` 在**打 tag 之前**跑一遍发版前全量电池（`release/steps.ts` 的 `RELEASE_BATTERY`）：
 
-**同一条路，都是 `pnpm release`。** scope 决定归因，fixed 组自动联动：
+| id | 内容 |
+|----|------|
+| `boundaries` | `turbo boundaries` |
+| `lint` | `turbo run lint lint:root`（含**根级文件**的 lint 任务） |
+| `types` | `turbo run types:check` |
+| `test` | `turbo run test` |
+| `syncpack` | `syncpack lint` |
+| `versioning` | `pnpm change check`（fixed 组锁步） |
+| `workflows` | actionlint |
+| `build` | ⏭️ **默认暂缓**：镜像由 `release.yml` 的 images job 真正构建；要跑就删掉表里那行的 `skip` |
+
+**为什么是刻意的**：不跑门禁时，release 完全依赖 `git push` 顺带触发的 pre-push 钩子 ——
+而 push 发生在打 tag **之后**。于是「本地全绿、发版成功、CI 的 verify 却红」是可达的，
+那时远端已经有一个指向坏提交的 tag。放在打标之前 ⇒ 失败**不留本地 tag**，改完直接重跑。
+
+失败时退出码非 0，且**不会**留下需要手工清理的本地 tag。
+确实要带病发版：`--skip-gates`（门禁与电池一起跳）或 `--skip-gates=<id>[,<id>]`（只跳这几项）。
+两者都会**写进 tag annotation**（第二段 `-m`），事后可审计。
+
+## 只读面与 AI / 非交互用法
+
+| 入口 | 说明 |
+|------|------|
+| `pnpm release --status` | 现在停在哪一步、下一步是什么、为什么（含工作区与远端事实） |
+| `pnpm release --plan` | 同上，但按「计划」措辞 |
+| `pnpm release --intent-only` | 只生成变更意图 |
+| `pnpm release --dry-run` | 演练：打印将生成的意图 + 目标版本/tag + 后续命令链 |
+| `pnpm release --json` | 人类日志全走 stderr，stdout 只放一个 JSON（含 `nextStep` / `version` / `tag`） |
+
+交互**只在「是 TTY 且没给对应 flag」时**发生；非交互环境缺 flag 一律 `exit 2` 并说清缺什么，
+**不猜、不挂**，且此时**尚未改动任何文件**：
+
+| 交互点 | 人在终端 | AI / CI（非交互） |
+|--------|----------|-------------------|
+| ① 确认版本升级类型 | 回车取自动检测值，可输 `major`/`minor`/`patch` 覆盖 | `--bump major\|minor\|patch` |
+| ② 变更总览确认 | 打印总览后 `Y/n` | `--yes` / `-y` |
+
+### `--dry-run` 的边界
+
+不写盘 ⇒ 待消费意图恒为 0 ⇒ **它只演练到第 1 步**，输出的是「将要生成的意图 + 目标版本 / tag +
+后续命令链」（`--json` 里是 `wouldGenerate` / `toVersion` / `bump`）。
+会写盘或联网的步（`pnpm version -r` / commit / tag / push / changelog 落盘）**不演练** ——
+它们要么改工作区要么打远端。
+
+它也不受「非交互必须给 flag」约束：缺 `--bump` 时采用自动检测档位并打印预览。
+
+## 退出码
+
+| 码 | 含义 |
+|----|------|
+| 0 | 完成（含「无需发版」「已在目标状态」） |
+| 1 | 检出不一致 / 子步骤失败（fixed 组不一致、HEAD 版本复核失败、提交后工作区仍脏、门禁或电池未过、changelog 渲染失败、push 失败） |
+| 2 | 前置条件未满足（不在 main、落后上游、fixed 组半升级、非交互缺 flag、未知 `--skip-gates` id） |
+| 128+N | 信号中断（POSIX 130/143；Windows 上表现为 1） |
+
+## 断点续跑
+
+判定只看**可观测事实**（git / 工作区 / ledger / 远端 Release），不靠本机记忆：
+
+| 停在哪 | 重跑会做什么 |
+|--------|--------------|
+| 意图已生成、未消费 | 直接进 bump 确认（意图正文里的 hash 是幂等键，不会重复生成） |
+| 版本已 bump、changelog 没写完 | 幂等补写缺的那些包 |
+| 版本已 bump、未提交 | 跳到总览确认 —— **不会**再 bump 一次 |
+| 已提交、未打 tag / 未 push | 只补打 tag、只补 push |
+| 一切都已发布 | 打印 `done` 与原因，退出 0 |
+
+- `.changeset/.release-state.json`（gitignored）是**写前日志**：只让原因显示得更准，丢了也能正确接上。
+- Ctrl+C / SIGTERM 有信号钩子：**先确认子进程树真的死了**，再按事实重算下一步、打印「停在哪、重跑怎么接」，
+  然后按 shell 约定（128+N）退出。
+- 「还有没有未消费的意图」以 `.changeset/ledger.yaml` 为准，**不看文件是否残留**。
+- 补推只推不提交：只有「版本改动还没提交」时才 `git add -A` + commit。
+
+### 需要人工介入的状态
+
+| 现象 | 含义与处置 |
+|------|-----------|
+| `工作区不是可发版状态：fixed 组没对齐` | 上次消费被中断留下半升级状态。`git checkout -- .` 还原后重跑 |
+| `已 bump 但还剩 N 个未消费意图` | 刻意不自动选「删」还是「重来」：在已 bump 的版本上再 bump 一档会打出错版本号的 tag。看一眼再决定 |
+| `标签 vX.Y.Z 已存在，但它指向 …，而 HEAD 是 …` | 推它等于把别人的 commit 发布成这个版本。先查清是谁打的；确认重打：`git tag -d vX.Y.Z` |
+| `拒绝打标：HEAD 上的 apps/admin 版本是 …` | release commit 没落到 HEAD（提交被钩子拒绝 / 跳过）。先查清再重跑 |
+| `changelog 渲染失败` | **在打标之前中止**（放过去那一版的 changelog 就永远补不回来）。常见原因：`pnpm install` 没装全、`cliff.toml` 被改坏、GitHub API 不可达 |
+
+## GitHub 集成
+
+### Release 由 CI 创建，本地不调 API
+
+`release.yml` 的 release job 在 `verify` + `images` 之后运行，用
+`body_path: changelog-latest.md` 作为正文。那份文件由 `pnpm release` 生成并**随 release commit 提交**，
+所以 CI checkout 到该 tag 时读到的就是本次的正文；旧 tag 重跑也能复现同一份正文。
+
+发版机因此**不需要任何能改远端内容的凭据**。
+
+### `GITHUB_TOKEN` 是可选的（只影响 changelog 的丰富度）
+
+git-cliff 走 GitHub 原生 provider 补 **PR 号与作者**：
 
 ```bash
-# 日常提交
-git commit -m "feat(admin): 支持记住登录状态"    # → Apps 组
-git commit -m "fix(server): 修复事务回滚"         # → Apps 组（server 被提及，admin/docs 同步）
-
-# 发版（main 分支）：
-git checkout main && git pull
+export GITHUB_TOKEN=<token>    # 可选；公开仓匿名也能查，但限流 60 次/小时
 pnpm release
 ```
 
-结果：`@walnut/server` 的 CHANGELOG.md 记录本次 fix，admin / docs 的 CHANGELOG.md 同版本同步；纯 server 改动**不会** bump Packages 组。
+- 有 token：条目形如 `- [#12](…/pull/12) [`1a82770`](…/commit/1a82770…) by @user **admin** 支持记住登录状态`
+- 无 token：Step 0 打一次明确警告，条目降级为 commit 链接 + 主题
+- 要「缺 token 就硬失败」：`--require-github-meta`
+- token **不落盘**（没有 `~/.config` 凭证文件），且**不进任何子进程**（`git push` 会触发本仓脚本）
 
-### 场景 3：packages 共享包改动
+### 想确认 Release 建好了
 
 ```bash
-git commit -m "feat(utils): 新增 xx 工具函数"     # → Packages 组 7 包同步
-pnpm release
+pnpm release --status      # 公开仓无需 token 即可查询远端 Release
 ```
 
-改动共享包时，同组 7 包同步 bump；消费方（apps）由 `updateInternalDependencies: patch` 联动。
+## 关键文件
 
-### 场景 4：依赖相关
-
-| 情况 | 行为 |
+| 文件 | 作用 |
 |------|------|
-| 升级已有依赖（`chore(admin): upgrade vue`） | skip —— 不触发发版 |
-| 新增依赖（`feat(admin): 引入 xxx`） | 按前缀正常触发 |
-| 依赖升级想写进 CHANGELOG | 手动 `pnpm changeset add` 提及对应包 |
-| 共享包升级 → 消费者联动 | `updateInternalDependencies: patch` 自动处理 |
-
-手动 changeset 示例（`.changeset/xxx.md`，支持同时提及多个包）：
-
-```markdown
----
-"@walnut/server": patch
----
-
-修复数据库事务回滚
-```
-
-## 关键配置
-
-### .changeset/config.json
-
-```jsonc
-{
-  "fixed": [
-    [ "@walnut/utils", "@walnut/contract", "@walnut/types", "@walnut/client",
-      "@walnut/commitlint-config", "@walnut/http", "@walnut/ui",
-      "@walnut/release", "@walnut/eslint-config" ],  // Packages 组（9 包）
-    [ "@walnut/admin", "@walnut/server", "@walnut/docs" ]  // Apps 组（3 包）
-  ],
-  "changelog": "@changesets/changelog-github",  // per-package CHANGELOG：PR 链接 + 贡献者
-  "commit": false,            // 不让 CLI 自动 commit（release 编排统一处理）
-  "access": "public",
-  "baseBranch": "main",
-  "updateInternalDependencies": "patch"  // 依赖升级 → 消费者至少 patch bump
-}
-```
-
-### changelog-github 插件
-
-- 每个被 bump 的包写入自己的 `CHANGELOG.md`（`apps/admin/CHANGELOG.md`、`packages/platform-any/utils-core/CHANGELOG.md`…）
-- 条目带 **PR 链接与贡献者**（通过 GitHub API 关联 commit → PR）
-- 前提：各包 `package.json` 的 `repository` 字段指向本仓库（已统一为 `github.com/walnut-admin/walnut-admin`）
-- 建议：本地发版时配置 `GITHUB_TOKEN`（避免 GitHub API 限流导致 PR 信息缺失）
-
-## 没做什么 / 为什么
-
-### 不用 git-cliff（已移除）
-
-早期方案用 git-cliff 从 git history 渲染**单份根级 CHANGELOG.md**。现改为 Changesets 原生 per-package CHANGELOG——每个包独立记录自己的变更历史，这是 JS/TS monorepo 的主流做法（Changesets 的标准设计）。根级 CHANGELOG 不再生成；2026 年的新趋势是在 per-package 之上**可选**叠加根级聚合总览，当前不需要，后续要时可再引入。
-
-### 不用 semantic-release
-
-semantic-release 从 commit message **自动推断** semver bump 类型。Changesets 让开发者**确认** bump 类型——更可控，避免一条 commit message 的格式错误触发错误的版本号。
-
-### 不发布到 npm
-
-`"access": "public"` 代表代码公开可见（public repo），不代表实际发布。当前是内部 monorepo，通过 `workspace:*` 消费。未来若发布 npm，per-package CHANGELOG 即是最佳实践（包页面可直接展示）。
-
-## 常见问题
-
-| 问题 | 处理 |
-|------|------|
-| 不在 main 分支跑 release | 直接拒绝：`❌ 只能在 main 分支执行发版` |
-| 上次 push 失败 | 重跑 `pnpm release` 即可，自动检测"本地有 tag、远端没有、无待消费 changeset"并恢复推送 |
-| 想确认哪些 commit 会被发版 | 看 `.changeset/` 下生成的 `auto-*.md` 文件 |
-| commit 被 commitlint 拒绝 | 检查格式 `type(包名): message`，scope 必须是 12 个包名之一 |
-| 想手动创建 changeset | `pnpm changeset add` 或手写 `.changeset/xxx.md` |
+| [`pnpm-workspace.yaml`](../../../../../pnpm-workspace.yaml) | `versioning` 段 = 版本策略唯一真源 |
+| [`.changeset/`](../../../../../.changeset/) | 意图（`*.md`）、消费台账（`ledger.yaml`）、写前日志（gitignored） |
+| [`cliff.toml`](../../../../../cliff.toml) | changelog 渲染规则 |
+| [`lefthook.yml`](../../../../../lefthook.yml) | git 钩子唯一真源 |
+| `packages/tooling/scripts/src/release/` | 发版编排（模块地图见该包的 README） |
+| [`.github/workflows/release.yml`](../../../../../.github/workflows/release.yml) | tag 推送 → 镜像 → GitHub Release → 部署 |
 
 ## 相关 ADR
 
-- [ADR-0011: Dependency Governance & Release Pipeline](/content/adr/0011-dependency-governance-release.md)
-- [ADR-0008: Unified Versioning, Separate Deploy](/content/adr/0008-unified-versioning-separate-deploy.md)
+- [ADR-0011: Dependency Governance & Release Pipeline](/content/adr/0011-dependency-governance-release)
+- [ADR-0008: Unified Versioning, Separate Deploy](/content/adr/0008-unified-versioning-separate-deploy)
+- [ADR-0018: Git Hooks (lefthook)](/content/adr/0018-git-hooks-lefthook)

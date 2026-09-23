@@ -2,7 +2,7 @@
 
 ## 概述
 
-Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm workspaces** 管理 12 个包（3 个 app + 9 个共享包，按 platform-any/platform-web/tooling 分组）。项目从三个独立仓库合并而来，通过 pnpm catalog 统一依赖版本、Turborepo 编排任务、Changesets 管理版本号，构建了一套可维护的 monorepo 基础设施。
+Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm workspaces** 管理 12 个包（3 个 app + 9 个共享包，按 platform-any/platform-web/tooling 分组）。项目从三个独立仓库合并而来，通过 pnpm catalog 统一依赖版本、Turborepo 编排任务、pnpm 原生 release management（`versioning.fixed` 单一组）管理版本号，构建了一套可维护的 monorepo 基础设施。
 
 ### 技术栈速览
 
@@ -13,10 +13,10 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | 类型系统 | TypeScript 6.0（前端 ESM + 后端 CJS，双轨 toolchain） |
 | 代码检查 | ESLint 10.3 flat config + `@antfu/eslint-config` + `@walnut/eslint-config` |
 | 格式化 | ESLint stylistic（无 Prettier，`lint:fix` / lint-staged 即格式化入口） |
-| 版本管理 | Changesets（两组 fixed：Apps 3 包同步 + Packages 9 包同步） |
-| 变更日志 | Changesets changelog-github 插件（per-package，PR 链接 + 贡献者） |
+| 版本管理 | pnpm 原生 release management（`versioning.fixed` 单一组：12 个包永远同版本） |
+| 变更日志 | git-cliff 逐包渲染 `CHANGELOG.md`（PR 链接 + 贡献者）；`pnpm release` 另生成根 `changelog-latest.md` |
 | 死代码检测 | Knip 6.29 |
-| Git Hooks | simple-git-hooks + lint-staged |
+| Git Hooks | lefthook（`lefthook.yml`）+ lint-staged |
 | 前端框架 | Vue 3 + Vite 8 + Naive UI + UnoCSS |
 | 后端框架 | NestJS 11 + SWC + Mongoose + Redis |
 | 文档引擎 | VitePress 1.6 |
@@ -35,7 +35,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | [package.json & Scripts](./package-scripts.md) | 标准 script 约定、根只做委托、按包类型差异化 |
 | [pnpm Catalog](./pnpm-catalog.md) | `catalogMode: strict`、精确版本锁死、`workspace:*` vs `catalog:` |
 | [Turbo](./turbo.md) | 任务拓扑编排、缓存策略、环境变量感知、Tag-Based 架构边界 |
-| [发布 & 发版指南](./release.md) | 两组 fixed 版本策略、auto-changeset、git-cliff 渲染、发版实操 |
+| [发布 & 发版指南](./release.md) | 单一 fixed 版本策略、`pnpm change` / `pnpm version -r` 消费意图、git-cliff 渲染、发版实操 |
 | [CI/CD 与容器构建](./ci-cd.md) | 触发矩阵（commit 只跑门禁 / tag 才构建镜像）、薄镜像与 buildx 缓存 scope、两条硬约束 |
 | [Knip 死代码检测](./knip.md) | 死代码检测、配置设计、已知局限、日常维护 |
 | [环境变量加密管理](./env-management.md) | dotenvx 加密方案、多环境密钥、新成员入职流程 |
@@ -68,7 +68,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 │   └── tooling/                     ← 工具链
 │       ├── eslint-config/           ← @walnut/eslint-config（共享 ESLint 预设）
 │       ├── commitlint-config/       ← @walnut/commitlint-config（commitlint 规则）
-│       └── release/                 ← @walnut/release（发版编排 bin）
+│       └── scripts/                 ← @walnut/tooling（仓库级脚本：发版编排 / 门禁 / env，bin 入口）
 ├── turbo.json                       ← 任务定义 + 缓存 + 架构边界
 ├── pnpm-workspace.yaml              ← workspace 声明 + catalog + overrides
 ├── tsconfig.base.json               ← 前端 ESM 基线（server 不继承）
@@ -84,10 +84,10 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 
 1. **异构 Toolchain**：前端 ESM + Vite + `moduleResolution: "bundler"`；后端 CJS + NestJS CLI + SWC + `moduleResolution: "node"`。Server **不继承** `tsconfig.base.json`。
 2. **两个命名空间**：`@walnut/*`（外层，pnpm workspace 包）和 `@walnut-server/*`（内层，NestJS internal libs）。物理分离，无命名冲突。
-3. **catalog 统一版本**：248 依赖通过 `pnpm-workspace.yaml` 的 `catalog:` 统一定义，`catalogMode: strict` 阻止直接版本号。
-4. **`hoist: false`**：严格依赖隔离——每个包只能解析自己 `package.json` 中声明的依赖，`node_modules/.pnpm/node_modules/` 条目数为 0。仅有 6 条 `publicHoistPattern` 例外被提升到根 `node_modules/`。
+3. **catalog 统一版本**：242 依赖通过 `pnpm-workspace.yaml` 的 `catalog:` 统一定义，`catalogMode: strict` 阻止直接版本号。
+4. **`hoist: false`**：严格依赖隔离——每个包只能解析自己 `package.json` 中声明的依赖，`node_modules/.pnpm/node_modules/` 条目数为 0。仅有 7 条精确包名的 `publicHoistPattern` 例外被提升到根 `node_modules/`。
 5. **供应链防护**：`minimumReleaseAge`（1 天冷却期）、`trustPolicy: no-downgrade`（拒绝可信度下降的版本）、`blockExoticSubdeps`（传递依赖禁止异源）三项由 pnpm 在安装时校验 lockfile。
-6. **依赖构建脚本白名单收敛为单条**：仅 `@sentry/cli` 放行；其余原生模块（`@swc/core`、`esbuild`、`sharp` 等）通过 `optionalDependencies` 分发预编译产物，不需要构建脚本。
+6. **依赖构建脚本白名单只有两条放行**：`@sentry/cli`（Sentry 上传路径本地无法验证）与 `lefthook`（它的 postinstall 就是 `lefthook install`，不放行则 git 钩子静默消失，见 ADR 0018）；其余原生模块（`@swc/core`、`esbuild`、`sharp` 等）通过 `optionalDependencies` 分发预编译产物，不需要构建脚本。
 
 ---
 
@@ -119,7 +119,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 | `@walnut/ui` | naive-ui 组件（Switch/DynamicTags/TimePicker POC） | naive-ui + vue（peer） |
 | `@walnut/eslint-config` | ESLint 共享预设（vue / nest / base） | ESLint |
 | `@walnut/commitlint-config` | commitlint 规则（scope-enum 等） | commitlint |
-| `@walnut/release` | 发版编排（auto-changeset + release bin） | changesets |
+| `@walnut/tooling` | 仓库级脚本的家：发版编排（`release/`）、仓库门禁（`ci/`）、env 加解密（`env/`）、通用纯逻辑（`lib/`），经 bin 被根 scripts 调用 | 无（node + git-cliff / yaml / tsx） |
 
 ### 消费方式
 

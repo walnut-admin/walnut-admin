@@ -120,28 +120,29 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 
 ## Decision 5: Strict Hoisting with Minimal Exceptions
 
-**Chosen:** Maintain `hoisting: false` with 5 `public-hoist-pattern` exceptions. No changes.
+**Chosen:** Maintain `hoist: false` with a short `publicHoistPattern` exception list made of **exact package names** (no globs).
+
+*(Key names: pnpm's key is `hoist`, not `hoisting` — the misspelling is silently ignored by pnpm 11 and rejected outright by pnpm 12; and since pnpm 10 moved non-auth settings out of `.npmrc`, both settings live in `pnpm-workspace.yaml` as `hoist` / `publicHoistPattern`. Details in [pnpm-workspace.yaml 配置详解](/content/monorepo/pnpm-workspace-config).)*
 
 **Rationale:**
-- `hoisting: false` is the pnpm default and provides strict dependency isolation — each package can only import what it declares in `dependencies`/`devDependencies`
-- 5 exceptions are necessary for tooling that must run at root level:
-  - `*turbo*` — task orchestration, runs from root
-  - `*eslint*` — unified ESLint config resolution
-  - `*simple-git-hooks*` — git hooks installed via root `postinstall`
-  - `*@swc*` — server compiler, needs to be at root for SWC configs
-  - `*esbuild*` — shared build tool (Vite, vitest, tsx)
-- The list has been stable since the monorepo merge — growth rate is near zero
-- Re-evaluate if the list exceeds 10 patterns
+- `hoist: false` provides strict dependency isolation — each package can only import what it declares in `dependencies`/`devDependencies`
+- 7 exceptions, every one of them a third-party defect (knip reports 0 undeclared dependencies in our own source), are necessary because the offending package cannot resolve them from its own position:
+  - `@types/sortablejs` — `@vueuse/integrations`' optional peer needs its types resolvable from there
+  - `@typescript-eslint/types` — `@unocss/eslint-plugin`'s output imports it without declaring it
+  - `@chevrotain/regexp-to-ast`, `vscode-jsonrpc`, `vscode-languageserver-protocol`, `vscode-languageserver-types` — `langium` imports 4 undeclared packages (only via `chevrotain` / `vscode-languageserver`)
+  - `vue` — `vue-command-palette`'s output imports `'vue'`, with neither `dependencies` nor `peerDependencies` declared
+- **The old glob list is gone.** `*turbo*` / `*eslint*` / `*@swc*` / `*esbuild*` described packages that are root `package.json` direct dependencies anyway, so the patterns had no effect (recorded in the archived 2026-09-21 architecture review — pnpm 10 stopped reading those settings from `.npmrc`). The `*simple-git-hooks*` entry is gone for good with the lefthook migration ([ADR 0018](/content/adr/0018-git-hooks-lefthook)): the dependency itself was removed, and `lefthook` needs no hoist exception — it is a root devDependency that only requires an `allowBuilds: true` entry.
+- Growth rate is near zero — re-evaluate if the list exceeds 10 patterns
 
 **Alternatives considered:**
-- Removing `hoisting: false` entirely — rejected; would allow phantom dependencies (packages importing deps they didn't declare)
+- Removing `hoist: false` entirely — rejected; would allow phantom dependencies (packages importing deps they didn't declare)
 - More granular per-package hoisting — rejected; adds configuration complexity without benefit
 
 ## Decision 6: Tag-Based Architecture Boundaries (Turbo 2.9)
 
 **Chosen:** Enable tag-based boundaries in root `turbo.json` with per-package `turbo.json` tag declarations.
 
-**Tags assigned (2026-08-08 更新——platform 维度，对应 ADR 0017 的目录分组):**
+**Tags assigned (2026-09-23 更新——platform 维度，对应 ADR 0017 的目录分组):**
 
 | Package | Tags |
 |---------|------|
@@ -155,6 +156,12 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 | `@walnut/http` | `shared`, `platform-web` |
 | `@walnut/ui` | `shared`, `platform-web` |
 | `@walnut/eslint-config` | `tooling`, `platform-any` |
+| `@walnut/commitlint-config` | `tooling`, `platform-any` |
+| `@walnut/tooling` | `tooling`, `platform-any` |
+
+> 本表随包增删更新：上面的 12 行与工作区里的 12 个包一一对应
+> （`@walnut/commitlint-config` 与 `@walnut/tooling` 是 2026-08-08 之后加入的，后者原名 `@walnut/release`，
+> 2026-09-23 改名并收编根 `scripts/`，见 [ADR 0018](/content/adr/0018-git-hooks-lefthook)）。
 
 **Rules:**
 1. `shared` packages cannot depend on `app` packages (libraries must not import application code)
@@ -162,7 +169,7 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 3. `platform-any` packages cannot depend on `platform-web` or `platform-node` (platform-agnostic packages stay runtime-free)
 4. `platform-node` packages cannot depend on `platform-web`
 
-**Result:** 0 tag-rule violations across all 8 packages at time of implementation (2026-07-29).
+**Result:** 0 tag-rule violations (at implementation on 2026-07-29, over the 8 packages that existed then; `pnpm boundaries` now covers all 12 workspace packages and reports "no issues found").
 
 **Status:** Experimental feature in Turbo 2.9. Rules are enforced via `turbo boundaries` CLI. API may change in future Turbo versions.
 

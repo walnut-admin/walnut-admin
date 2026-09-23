@@ -28,7 +28,7 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 
 **一致性 > 自由度**。不要有的包叫 `lint`，有的叫 `eslint`——Turbo 需要统一的 task 名来编排。
 
-> 注：以上是**理想约定**，实际并非每个包都齐备——目前有 `test` 脚本的是 server / utils / client / release（server 的覆盖率脚本叫 `test:cov` 而非 `test:coverage`）；eslint-config 则没有任何 scripts。
+> 注：以上是**理想约定**，实际并非每个包都齐备——目前有 `test` 脚本的是 server / contract / utils / client / tooling（server 的覆盖率脚本叫 `test:cov` 而非 `test:coverage`，utils / client 带 `--passWithNoTests`）；eslint-config 只有 `lint` / `lint:fix` / `types:check`，没有 `test`。
 
 ### 2. 根 scripts 只做委托
 
@@ -50,9 +50,9 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
     "dev:server": "turbo dev --filter=@walnut/server",
     "dev:docs": "turbo dev --filter=@walnut/docs",
 
-    // 环境变量加解密
-    "setup-env": "tsx scripts/setup-env.ts decrypt",
-    "encrypt-env": "tsx scripts/setup-env.ts encrypt",
+    // 环境变量加解密（@walnut/tooling 的 bin）
+    "setup-env": "walnut-setup-env decrypt",
+    "encrypt-env": "walnut-setup-env encrypt",
 
     // 代码质量
     "knip": "cross-env NODE_OPTIONS=--max-old-space-size=8192 knip",
@@ -60,14 +60,19 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
     "knip:apps": "cross-env NODE_OPTIONS=--max-old-space-size=8192 knip --workspace ./apps/*",
     "syncpack:lint": "syncpack lint --dependency-types dev,prod",
     "syncpack:fix": "syncpack fix",
+    "lint:workflows": "walnut-lint-workflows",   // actionlint 校验 .github/workflows
+    "hooks:check": "walnut-check-git-hooks",     // 断言 git 钩子由 lefthook 托管
 
-    // 发布（@walnut/release 包的 bin，实现位于 packages/tooling/release/）
+    // pre-push 的聚合门禁（lefthook 的 pre-push 只调这一条）
+    "prepush": "pnpm boundaries && pnpm types:check && pnpm syncpack:lint && pnpm lint:workflows && pnpm change check",
+
+    // 发布（@walnut/tooling 的 bin，实现位于 packages/tooling/scripts/src/release/）
     "release": "walnut-release"
   }
 }
 ```
 
-根 scripts 里的 `NODE_OPTIONS=` 前缀统一用 `cross-env` 包裹（Windows 兼容）。不再有 `changeset` / `changeset:auto` / `changelog` 脚本——git-cliff 已移除，`scripts/version/` 目录不存在，发布逻辑全部收敛到 `@walnut/release` 包。
+根 scripts 里的 `NODE_OPTIONS=` 前缀统一用 `cross-env` 包裹（Windows 兼容）。早期的 `tsx scripts/*.ts` 写法已消失：仓库级脚本全部收进 `packages/tooling/scripts/`，根 `scripts/` 目录不存在，根 scripts 只经 bin 调用（`walnut-release` / `walnut-lint-workflows` / `walnut-setup-env` / `walnut-check-git-hooks`）。也没有 `changeset` / `changeset:auto` / `changelog` 脚本——版本意图由 `pnpm change` 写、`pnpm version -r` 消费（见 [发布 & 发版指南](./release.md)）。
 
 **关键规则**：根 scripts 不包含构建逻辑。`turbo build` 会找到所有包的 `build` script 并按拓扑顺序执行。
 
@@ -84,19 +89,24 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 
 ### 4. Git Hooks
 
+钩子内容的唯一真源是根 `lefthook.yml`（lefthook，不再是 `simple-git-hooks`，见 [ADR 0018](/content/adr/0018-git-hooks-lefthook)）：
+
 ```
-pre-commit → lint-staged（ESLint fix on staged files，秒级）
-commit-msg → commitlint（提交信息规范检查）
-pre-push   → pnpm boundaries && pnpm types:check && pnpm syncpack:lint（架构边界 + 类型检查 + 依赖一致性，十秒级）
+pre-commit → pnpm exec lint-staged（ESLint fix on staged files，秒级）
+commit-msg → pnpm exec commitlint --edit {1}（提交信息规范检查）
+pre-push   → pnpm --silent prepush（单条聚合门禁：五段按序跑，十秒级）
 ```
 
-`pre-commit` 只跑 ESLint fix，不做类型检查（太慢，阻塞 commit 体验）；`commit-msg` 由 commitlint 校验提交信息格式；架构边界（`turbo boundaries`）、类型检查和 syncpack 依赖一致性检查放在 `pre-push`。
+`prepush` = `pnpm boundaries && pnpm types:check && pnpm syncpack:lint && pnpm lint:workflows && pnpm change check`
+（架构边界 + 类型检查 + 依赖一致性 + actionlint + fixed 组版本锁步）。
+
+`pre-commit` 只跑 ESLint fix，不做类型检查（太慢，阻塞 commit 体验）；`commit-msg` 由 commitlint 校验提交信息格式；架构边界（`turbo boundaries`）、类型检查、syncpack 依赖一致性、workflow 校验与版本锁步都放在 `pre-push`。pre-push 刻意收敛成**单条命令**：被截断时只会退化成"命令不存在"，响亮报错，而不是"语法合法但少跑几项"的静默弱化。
 
 ## 没做什么 / 为什么
 
 ### 不写 mega-scripts
 
-不在根 package.json 写复杂的 shell 脚本。所有跨包编排由 Turbo 处理，所有发布逻辑由 `@walnut/release` 包（`packages/tooling/release/`）的 bin 处理。根 scripts 保持"一句话委托"。
+不在根 package.json 写复杂的 shell 脚本。所有跨包编排由 Turbo 处理，所有仓库级脚本（发版编排、门禁、env 加解密）由 `@walnut/tooling`（`packages/tooling/scripts/`）的 bin 处理。根 scripts 保持"一句话委托"。
 
 ### 不用 `concurrently` 编排
 

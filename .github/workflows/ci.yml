@@ -99,6 +99,11 @@ jobs:
       - name: Dependency consistency (syncpack)
         run: pnpm syncpack:lint
 
+      # 拦住「某个包的版本漂出 versioning.fixed 组」——在本 PR 上拦，而不是等到发版那天
+      # 才发现 fixed 组锁步失败（那时 tag 与镜像已经在路上）。
+      - name: Workspace version lockstep (pnpm change check)
+        run: pnpm change check
+
   build:
     name: Build (server + shared packages, admin if secrets available)
     needs: quality

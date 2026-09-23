@@ -126,7 +126,7 @@ Turbo 2.9 的实验性功能——通过标签声明包的角色并强制依赖�
 | `@walnut/http` | `shared`, `platform-web` |
 | `@walnut/ui` | `shared`, `platform-web` |
 | `@walnut/eslint-config` | `tooling`, `platform-any` |
-| `@walnut/release` | `tooling`, `platform-any` |
+| `@walnut/tooling` | `tooling`, `platform-any` |
 | `@walnut/commitlint-config` | `tooling`, `platform-any` |
 
 ```bash

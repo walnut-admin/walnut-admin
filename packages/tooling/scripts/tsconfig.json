@@ -1,0 +1,13 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "types": ["node"],
+    // 本包**没有构建步骤**：源码由 tsx/esm loader 直接执行（bin/*.mjs 先 `import 'tsx/esm'`）。
+    // Node 的 ESM 解析不做扩展名推断，所以内部相对导入必须写 `.ts` —— 本开关让它合法。
+    // 它要求 noEmit（tsconfig.base.json 已设），因此不会与产物语义冲突。
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
+}

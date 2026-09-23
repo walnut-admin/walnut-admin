@@ -1,0 +1,67 @@
+# CHANGELOG 的渲染规则（唯一写入者是 packages/tooling/scripts/src/release/changelog.ts）。
+#
+# 为什么 `header` / `footer` 留空：文件的一级标题 `# @walnut/<包名>` 是**每个包各不相同**的，
+# 而 git-cliff 的配置只有一份。渲染只负责「这一版的段落」，标题与落盘（prepend / 幂等）由调用方做：
+# 这样两边都不需要猜对方（靠 `GIT_CLIFF__CHANGELOG__HEADER` 逐包覆盖 header 才能让 `--prepend`
+# 正确剥头，是多一处隐式契约）。
+#
+# ⚠️ 段落标题必须**逐字** `## <版本>`（不带方括号、不带日期后缀）：release/plan.ts 的
+# `extractChangelogSection()` 用 `l.trim() === '## ' + version` 精确匹配（Release 正文与幂等判据都靠它）。
+# 改模板前先看那两处。
+#
+# 为什么 `filter_unconventional = false` + 末尾 skip-all：非约定式提交要被**显式**列进某个分支
+# （要么进分组、要么 skip），而不是被工具静默丢掉 —— 本仓的提交规范由 commit-msg 钩子保证，
+# 历史里那些非约定式的提交则落在上个 tag 之前、本次渲染范围之外。
+
+[changelog]
+header = ""
+# 空白处理：Tera 对换行敏感，这里的 `-%}` 与空行是实测调出来的形状。
+# 落盘前写入侧还会做 `trim() + 把 3 个以上连续换行压成 2 个`，所以模板里多一层空行不会泄漏到文件。
+#
+# commit 链接用**字面量** base（不用 `commit.remote`）：`commit.remote` 只在 GitHub API 返回过该
+# commit 时才存在，它是「PR 号 / 作者」的来源，不是 URL 的来源。base 与实际 remote 的一致性由
+# changelog.ts 的 assertCliffRemoteMatches() 在发版时断言（不一致就 die(1)）——否则链接会全部 404。
+body = """{% if version %}## {{ version | trim_start_matches(pat="v") }}{% else %}## 未发布{% endif %}
+{% for group, commits in commits | group_by(attribute="group") %}
+
+### {{ group | striptags | trim }}
+
+{% for commit in commits -%}
+- {% if commit.remote.pr_number %}[#{{ commit.remote.pr_number }}](https://github.com/walnut-admin/walnut-admin/pull/{{ commit.remote.pr_number }}) {% endif %}[`{{ commit.id | truncate(length=7, end="") }}`](https://github.com/walnut-admin/walnut-admin/commit/{{ commit.id }}){% if commit.remote.pr_author or commit.remote.username %} by @{{ commit.remote.pr_author | default(value=commit.remote.username) }}{% endif %}{% if commit.scope %} **{{ commit.scope }}**{% endif %} {{ commit.message | split(pat="\\n") | first | trim }}
+{% endfor -%}
+{% endfor -%}"""
+footer = ""
+trim = true
+
+[git]
+conventional_commits = true
+# 显式列出每个 type 的去向（见文件头），不依赖「unconventional 被静默过滤」
+filter_unconventional = false
+# 不按换行拆分提交：多行 body 是一个条目，不是多行 changelog
+split_commits = false
+# 顺序：组内按时间从早到晚（与 pnpm/Changesets 原生写出的历史段落一致）
+sort_commits = "oldest"
+# ⚠️ 必须：仓库里只有 `vX.Y.Z` 是发版边界，任何其它形状的 tag 都不该被当成边界。
+tag_pattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
+commit_parsers = [
+  # 噪声：合并提交与 release 提交本身
+  { message = "^Merge", skip = true },
+  { message = "^chore\\(release\\)", skip = true },
+  # 与 release/commit-intent.ts 的 BUMP_MAP 同口径：进 changelog 的只有这五类。
+  # ⚠️ `<!-- N -->` 是**排序键**：`group_by` 按组名字典序排，而中文组名的字典序不是语义序
+  # （「修复」会排在「新功能」前面）；模板里用 `striptags` 把它去掉，只留给人看的名字。
+  { message = "^feat", group = "<!-- 1 -->新功能" },
+  { message = "^fix", group = "<!-- 2 -->修复" },
+  { message = "^perf", group = "<!-- 3 -->性能" },
+  { message = "^refactor", group = "<!-- 4 -->重构" },
+  { message = "^revert", group = "<!-- 5 -->回滚" },
+  # 其余（docs / chore / style / test / build / ci 与一切未约定的写法）不进 changelog
+  { message = ".*", skip = true },
+]
+
+# GitHub 原生 provider：为每个 commit 补 PR 号与作者（模板里经守卫读取，缺了不中断渲染）。
+# 走 REST API，未认证限流 60 次/小时；发版时用 GITHUB_TOKEN 提升配额（见 release/credentials.ts）。
+# 未设 offline：本仓在 GitHub 上，provider 是本仓唯一能拿到 PR 号/作者的通路。
+[remote.github]
+owner = "walnut-admin"
+repo = "walnut-admin"

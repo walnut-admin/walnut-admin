@@ -39,18 +39,33 @@ ESLint 的类型感知规则（`ts/no-unsafe-*`）在 NestJS 中做了降级处�
 
 ### 4. 格式化由 ESLint 承担
 
-项目不使用 Prettier：没有 `.prettierrc`、没有 `eslint-config-prettier`、没有 `format` 脚本，`prettier` 也不在 catalog（仅作为 `@changesets` 的传递依赖存在）。格式化规则由 ESLint（`@antfu/eslint-config` 内置的 stylistic 规则）统一承担，`lint:fix` 和 lint-staged 就是格式化入口。
+项目不使用 Prettier：没有 `.prettierrc`、没有 `eslint-config-prettier`、没有 `format` 脚本，`prettier` 也不在 catalog（此前仅作为 `@changesets/cli` 的传递依赖存在，该依赖已随 pnpm 原生发版迁移移除）。格式化规则由 ESLint（`@antfu/eslint-config` 内置的 stylistic 规则）统一承担，`lint:fix` 和 lint-staged 就是格式化入口。
 
 ### 5. Git Hooks 门禁
+
+钩子内容的唯一真源是根 `lefthook.yml`（2026-09-23 起由 lefthook 托管，替代 `simple-git-hooks`，见 [ADR 0018](/content/adr/0018-git-hooks-lefthook)）：
+
+```yaml
+# lefthook.yml —— 钩子内容进仓库，可被单测审计
+pre-commit:
+  jobs:
+    - name: lint-staged
+      run: pnpm exec lint-staged
+commit-msg:
+  jobs:
+    - name: commitlint
+      run: pnpm exec commitlint --edit {1}
+pre-push:
+  jobs:
+    - name: prepush-gates
+      run: pnpm --silent prepush        # 五段聚合门禁，见下表
+```
+
+staged 文件的匹配规则仍在根 `package.json` 的 `lint-staged` 块：
 
 ```jsonc
 // package.json
 {
-  "simple-git-hooks": {
-    "pre-commit": "pnpm lint-staged",
-    "commit-msg": "pnpm commitlint --edit $1",
-    "pre-push": "pnpm boundaries && pnpm types:check && pnpm syncpack:lint"   // 架构边界 + 类型检查 + 依赖一致性
-  },
   "lint-staged": {
     "*.{ts,vue,mjs,js}": "eslint --fix --concurrency=auto"
   }
@@ -58,6 +73,7 @@ ESLint 的类型感知规则（`ts/no-unsafe-*`）在 NestJS 中做了降级处�
 ```
 
 > 2026-08-08 起：pre-push 增加了 `turbo boundaries`（tag 架构边界检查）；lint-staged 移除了无效的 `*.md` 条目（ESLint preset 关闭 markdown 处理器后该条目静默无效）。
+> 2026-09-23 起：钩子改由 lefthook 托管，pre-push 收敛为单条 `pnpm --silent prepush`（五段），并新增 `pnpm hooks:check` 机械核对钩子是否真的装上。
 
 分层策略：
 
@@ -65,8 +81,8 @@ ESLint 的类型感知规则（`ts/no-unsafe-*`）在 NestJS 中做了降级处�
 |------|--------|------|
 | pre-commit | ESLint fix on staged files | 秒级 |
 | commit-msg | commitlint 提交信息规范检查 | 秒级 |
-| pre-push | 架构边界 + 全仓库类型检查 + syncpack 依赖一致性 | 十秒级 |
-| CI | boundaries + affected lint/typecheck/test + syncpack + build | 分钟级 |
+| pre-push | 架构边界 + 全仓库类型检查 + syncpack 依赖一致性 + actionlint + `pnpm change check`（fixed 组锁步） | 十秒级 |
+| CI | boundaries + affected lint/typecheck/test + affected 自检 + syncpack + `pnpm change check` + build | 分钟级 |
 
 ## 没做什么 / 为什么
 
@@ -88,3 +104,4 @@ oxlint 和 biome（Rust 写的极速 linter）都不支持 Vue SFC（`.vue` 文�
 | [packages/tooling/eslint-config/vue.mjs](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/vue.mjs) | 前端 Vue 3 预设 |
 | [packages/tooling/eslint-config/nest.mjs](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/nest.mjs) | 后端 NestJS 预设 |
 | [packages/tooling/eslint-config/base.mjs](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/base.mjs) | 共享包预设（当前无直接消费者） |
+| [lefthook.yml](https://github.com/walnut-admin/walnut-admin/blob/main/lefthook.yml) | git 钩子唯一真源（pre-commit / commit-msg / pre-push） |
