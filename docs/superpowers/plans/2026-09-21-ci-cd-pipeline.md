@@ -75,6 +75,23 @@
 
 ## 5. 上线后要做的验证（CI 首跑）
 
+### 5.0 首跑实测（2026-09-23，commit `524988c`）
+
+同一 commit 触发两个 workflow（run 编号各自独立计数，详见设计文档 §3.1）：
+
+| run | 结果 | 关键耗时 |
+|-----|------|----------|
+| **CI #3**（`ci.yml`，5 周来第一次真正运行） | ✅ 质量门禁 job 通过 | install 25s → boundaries 1s → affected lint 59s → affected types 36s → affected test 7s → **affected 自检通过** → syncpack 1s，合计 **2m28s** |
+| **CI #3** 第二个 job（build） | ✅ 通过 | install 20s → server+shared 构建 6s → **解密 env 9s（旧写法会直接让 workflow 非法，现在正常生效）** → admin 构建通过 |
+| **Workflow lint #1**（actionlint） | ❌ → 已修 | 11 秒即红：`SC2086`，`docker login $REGISTRY` 少引号（见下） |
+
+**教训（验证盲点）**：actionlint 只有在装了 `shellcheck` 时才做 SC* 检查。本机没装 →
+本地 `exit 0`，而 ubuntu-latest runner 预装 shellcheck → 同一个文件两边结论不同。
+现在本地验证必须带 shellcheck（`shellcheck` 进 PATH 后再跑 `pnpm lint:workflows`），
+本次两处 SC2086（`docker login $REGISTRY`）已加引号修复。
+
+### 5.1 后续每次发布要看的点
+
 1. **CI**：push 后确认 CI run 有 job（不再 0 job）；看 Affected 范围表；确认门禁真的在跑（不是 skipped）
 2. **发布**：`pnpm release` 打 tag 后确认四个 job 依次通过；记录 run summary 里的 staging 体积与镜像 digest
 3. **镜像**：`docker run --rm --entrypoint ls <backend> /app/env-local` 应报不存在（密钥剔除生效）

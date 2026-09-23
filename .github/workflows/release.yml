@@ -128,7 +128,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
 
       - name: Login to Tencent TCR
-        run: echo "${{ secrets.TCR_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.TCR_USERNAME }}" --password-stdin
+        run: echo "${{ secrets.TCR_PASSWORD }}" | docker login "$REGISTRY" -u "${{ secrets.TCR_USERNAME }}" --password-stdin
 
       # nginx 必须先推送：frontend target 的 NGINX_BASE 指向 ${REGISTRY}/nginx:${TAG}，
       # 它从 registry 拉取基础镜像。nginx 构建仅 apk 安装（约 20s），不占关键路径。

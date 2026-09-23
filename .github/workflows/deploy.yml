@@ -74,7 +74,7 @@ jobs:
       - name: Verify images exist in TCR
         run: |
           set -euo pipefail
-          echo "${{ secrets.TCR_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.TCR_USERNAME }}" --password-stdin
+          echo "${{ secrets.TCR_PASSWORD }}" | docker login "$REGISTRY" -u "${{ secrets.TCR_USERNAME }}" --password-stdin
           for img in nginx backend frontend; do
             if ! docker buildx imagetools inspect "$REGISTRY/$IMAGE_NS/$img:$TAG" > /dev/null 2>&1; then
               echo "::error::镜像不存在：$REGISTRY/$IMAGE_NS/$img:$TAG（tag 写错了？）"
