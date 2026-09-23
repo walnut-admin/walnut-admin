@@ -16,6 +16,8 @@
   "scripts": {
     "lint": "eslint . --concurrency=auto",
     "lint:fix": "eslint . --fix --concurrency=auto",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "types:check": "tsc --noEmit"
   },
   "peerDependencies": {
@@ -28,8 +30,10 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@walnut/tsconfig": "workspace:*",
+    "@walnut/vitest-config": "workspace:*",
     "eslint": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "walnut": {
     "platform": "any",

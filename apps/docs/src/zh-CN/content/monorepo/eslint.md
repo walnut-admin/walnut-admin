@@ -32,7 +32,7 @@ export default baseConfig()
 |------|------|---------|
 | `vue` | `vue.ts` | `apps/admin`、`apps/docs`、`packages/platform-web/*`——Vue 3 + TypeScript（+ UnoCSS） |
 | `nest` | `nest.ts` | `apps/server`——NestJS + CJS + decorators（带本地装饰器排序规则 `nest-local-rules.ts`） |
-| `base` | `base.ts` | 目前无直接消费者——纯平台无关基线（不开 Vue / UnoCSS），共享包没有本地 config 时向上回溯到根 `vue` 预设 |
+| `base` | `base.ts` | **根 `eslint.config.ts`**（因此也是那 10 个没有自己配置的包的预设）；纯平台无关基线（不开 Vue / UnoCSS）+ 两条脚本入口规则 `script-rules.ts` |
 
 各消费者在包根写一行 `eslint.config.ts`：
 
@@ -43,9 +43,22 @@ import nestConfig from '@walnut/eslint-config/nest'
 export default nestConfig()
 ```
 
-目前有本地 `eslint.config.ts` 的是：根、`apps/admin`、`apps/docs`、`apps/server`、`packages/platform-web/ui`（唯一一个有本地配置的包）。其余包（platform-any/*、platform-web/{client,http}、tooling/*）在 `pnpm lint` 时向上回溯到根 `vue` 预设。
+目前有本地 `eslint.config.ts` 的是：根、`apps/admin`、`apps/docs`、`apps/server`、`packages/platform-web/ui`（唯一一个有本地配置的包）。其余包（platform-any/*、platform-web/{client,http}、tooling/*）在 `pnpm lint` 时向上回溯到**根配置**（= `base` 预设）—— 也就是说 `base.ts` 的改动会直接改这 10 个包的 lint 行为。
 
 `types:check` 在本包是真正的 `tsc --noEmit`（此前是空跑的 `echo`）——预设本身是 TS 源码，写错类型会在 `pnpm types:check` 当场报错。
+
+### 两条本地规则：脚本入口的形态（`script-rules.ts`）
+
+本仓有两条**成文却没有判据**的约定，2026-09-23 把它们做成了本地规则（只在 `**/bin/*.ts` 上生效）：
+
+| 规则 | 判据 | 为什么值得一条规则 |
+|------|------|-------------------|
+| `walnut-script/script-header` | 第一个语句之前必须有注释（shebang 不算 —— 它每份都一样） | 实测 13 个 bin 里有 **2 个连文件头都没有**。⚠️ 它只保证「有一段文件头」，**不保证写得好**（bin 里那段模板能过），别当成文档质量门禁 |
+| `walnut-script/script-exit-code` | 退出码只能 **0 / 1 / 2**（三态：通过 / 查出违规 / 前置条件未满足） | 这条约定写在多份文档里，此前**没有任何东西在查**。判据落在两个真正的退出口：`process.exit(<数字>)` 与**名为 `main` 的函数**里的 `return <数字>` |
+
+刻意**不查**的两处（宁可漏报不可误报）：`process.exit(变量)`（判不出取值，而本仓 bin 全是 `process.exit(main())`）、`process.exitCode = N`（那是合法的信号码出口，比如 SIGINT 会写 130）。`main()` 里**嵌套箭头函数**返回 `-1` 也不算违规 —— 近邻函数判定只看最近的一层。
+
+接这两条规则时顺带补了本包的**第一套测试**（`script-rules.test.ts`，RuleTester 正反语料）：本地规则的失效模式是「悄悄不再命中」，而 lint 全绿看起来永远是对的。
 
 ### 3. NestJS 特殊规则放宽容忍
 
@@ -119,5 +132,6 @@ oxlint 和 biome（Rust 写的极速 linter）都不支持 Vue SFC（`.vue` 文�
 | [packages/tooling/eslint-config/vue.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/vue.ts) | 浏览器 + Vue 预设（admin / docs / ui） |
 | [packages/tooling/eslint-config/nest.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/nest.ts) | 后端 NestJS 预设 |
 | [packages/tooling/eslint-config/nest-local-rules.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/nest-local-rules.ts) | NestJS 装饰器排序等本地规则插件 |
+| [packages/tooling/eslint-config/script-rules.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/script-rules.ts) | 脚本入口的两条本地规则（文件头 / 退出码三态），只作用于 `**/bin/*.ts` |
 | [packages/tooling/eslint-config/base.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/base.ts) | 平台无关基线预设（根入口 + 10 个 TS-only 包）；显式开 `pnpm: true` 以保住 catalog 规则 |
 | [lefthook.yml](https://github.com/walnut-admin/walnut-admin/blob/main/lefthook.yml) | git 钩子唯一真源（pre-commit / commit-msg / pre-push） |

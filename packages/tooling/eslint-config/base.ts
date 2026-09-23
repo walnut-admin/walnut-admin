@@ -4,6 +4,7 @@ import antfu from '@antfu/eslint-config'
 // 于是本文件会进 `apps/server` 的类型程序，而那份 tsconfig（ADR 0012，自包含）没开
 // `allowImportingTsExtensions` —— 带扩展名会让 `@walnut/server` 的 types:check 报 TS5097。
 // 本文件由 jiti 加载（不经 Node 的类型剥离），扩展名推断由它负责。
+import scriptRules from './script-rules'
 import { turboEnvVarsConfig } from './turbo-env-vars'
 
 /**
@@ -45,5 +46,15 @@ export default function baseConfig(options: OptionsConfig = {}): WalnutEslintCon
     ...options,
   },
   // 三个预设共用的一段 —— 为什么单独成文件见 turbo-env-vars.ts 顶部
-  turboEnvVarsConfig())
+  turboEnvVarsConfig(),
+  // 脚本入口的两条形态约定（P1-19）：文件头必须有注释、退出码只能是 0/1/2。
+  // 只作用于 `bin/*.ts` —— 那才是「脚本入口」；规则自身的取舍见 script-rules.ts 顶部。
+  {
+    files: ['**/bin/*.ts'],
+    plugins: { 'walnut-script': scriptRules },
+    rules: {
+      'walnut-script/script-header': 'error',
+      'walnut-script/script-exit-code': 'error',
+    },
+  })
 }
