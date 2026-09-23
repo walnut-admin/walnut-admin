@@ -89,6 +89,7 @@ cd /home/ubuntu/walnut-admin/deploy && docker compose pull && docker compose up 
 | 后端日志 | 不得出现 `Nest can't resolve` / `MODULE_NOT_FOUND` / `EADDRINUSE` / `MongoServerError` / `ECONNREFUSED` 等；必须出现启动标记 `APP is running in`（来自 `apps/server/apps/api/src/main.ts`） |
 | 前端 / 入口 nginx 日志 | 不得出现 5xx |
 | 端到端 | 经公网域名 `--resolve` 指回本机：前端 `/` = 200，API `/w/v1/static/images/demo.png` = 200 |
+| 安全响应头 | **两个域名各取一次响应头**，`Strict-Transport-Security` / `X-Content-Type-Options` / `X-Frame-Options` / `Referrer-Policy` 必须都在（只比头名、不比取值）。它们写死在 `nginx/conf.d/` 里，而本机没有 Docker ⇒ 这是唯一验得到「头真的发出去了」的地方 |
 
 任一硬条件在超时前不满足 → 该步骤失败（**部署不判成功**），并打印后端 / nginx 日志尾部便于定位。
 在 Actions 里看 `deploy` job 的 **Post-deploy verification** 步骤。
@@ -104,8 +105,13 @@ bash post-verify.sh 6 5      # 只想快速看一眼：30 秒
 改了脚本之后先在本地跑行为测试（用假 docker/curl，不需要 Docker）：
 
 ```bash
-bash deploy/post-verify.test.sh   # 10 个场景：正常 / 未运行 / 重启过 / tag 不匹配 / 致命错误 / 5xx / 端到端不过 / 超时
+bash deploy/post-verify.test.sh   # 覆盖各条失败分支：容器/tag/后端日志/5xx/端到端/安全头/超时
 ```
+
+> 安全响应头那一段有**两个面**，别只记住一个：
+> 推送前由 `pnpm lint:nginx-headers` 静态查「`conf.d/` 里的配置写全了没有」（毫秒级、不需要 Docker），
+> 部署后由 `post-verify.sh` 查「头真的发出去了没有」（环境/drift 那一面）。
+> 两边的头名清单必须一致，由 `nginx-headers.test.ts` 机械核对。
 
 > **nginx 日志为什么能通过 `docker logs` 看到**：alpine 的 nginx 包默认把 access/error log 写进
 > `/var/log/nginx/*.log`（容器里 `docker logs` 是空的）。`deploy/nginx/Dockerfile` 用两个软链把它们

@@ -9,6 +9,7 @@
 #   3) 后端日志：是否出现致命错误、是否出现启动成功标记
 #   4) 前端与入口 nginx 日志：是否出现 5xx（日志走 stdout，见 deploy/nginx/Dockerfile）
 #   5) 端到端请求：经公网域名（--resolve 指回本机）访问前端与 API 静态路由
+#   6) 安全响应头：入口 nginx 有没有把 HSTS 等 4 个头发出来（见下方 check_security_headers）
 # 轮询期内任一硬条件不满足 → 退出码 1，CI 步骤失败（部署不判成功）。
 #
 # 用法：post-verify.sh [轮询次数] [间隔秒]   默认 24 × 5s = 2 分钟
@@ -35,6 +36,7 @@ READY_RE='APP is running in'
 BACKEND_READY=0
 FRONT_CODE=""
 API_CODE=""
+HEADERS_MISSING=""
 
 say() { printf '[%s] %s\n' "$(date '+%H:%M:%S')" "$*"; }
 
@@ -103,13 +105,38 @@ probe_urls() {
   API_CODE="$(curl -sk -o /dev/null -w '%{http_code}' --resolve "$API_DOMAIN:443:127.0.0.1" "https://$API_DOMAIN$API_PROBE_PATH" -m 10 || true)"
 }
 
+# ---- 安全响应头：入口 nginx 有没有把它们发出来 ----
+#
+# 为什么在这里验：本机没有 Docker，`deploy/nginx/conf.d/*.conf` 的改动
+# **没有任何本地手段能验证**（`pnpm lint:workflows` 那个 actionlint 管不到 nginx）。
+# 部署后这一次是唯一验得到的地方，所以它是**硬条件**而不是提示。
+#
+# 判据是「响应头里出现了这几个名字」，**不比对取值** —— 取值会随运维调整（如 HSTS max-age），
+# 逐字比对会变成误报源。用 `-D -` 单独取一次头，不复用 probe_urls 的 `-w '%{http_code}'`。
+#
+# **两个域名都要查**：`frontend.conf` 与 `api.conf` 是两个并列的 server 块，nginx 的
+# `add_header` 不跨 server 块继承 —— 只查前端域名会漏掉整个 api 域名（那个坑实测踩过）。
+check_security_headers() {
+  local domain hdrs name miss missing=''
+  for domain in "$FRONT_DOMAIN" "$API_DOMAIN"; do
+    hdrs="$(curl -sk -D - -o /dev/null --resolve "$domain:443:127.0.0.1" "https://$domain/" -m 10 || true)"
+    miss=''
+    for name in Strict-Transport-Security X-Content-Type-Options X-Frame-Options Referrer-Policy; do
+      # 头名大小写不敏感；`|| true` 防空集时 grep 的退出码把脚本带偏
+      printf '%s\n' "$hdrs" | grep -qi "^${name}:" || miss="$miss $name"
+    done
+    [ -z "$miss" ] || missing="$missing $domain:$miss"
+  done
+  HEADERS_MISSING="${missing# }"
+}
+
 # ------------------------------ main ------------------------------
 
 cd "$COMPOSE_DIR" || die "找不到部署目录 $COMPOSE_DIR"
 
 IMG_TAG="$(grep -m1 '^IMG_TAG=' .env 2>/dev/null | cut -d= -f2- | tr -d '"')"
 say "post-verify 开始：IMG_TAG=${IMG_TAG:-未知}，最多 $ITER 次 × ${INTERVAL}s"
-say "检查项：容器状态/重启次数、镜像 tag、后端日志、nginx 5xx、前端+API 端到端"
+say "检查项：容器状态/重启次数、镜像 tag、后端日志、nginx 5xx、安全响应头、前端+API 端到端"
 
 i=0
 while [ "$i" -lt "$ITER" ]; do
@@ -119,9 +146,10 @@ while [ "$i" -lt "$ITER" ]; do
   scan_backend_logs
   scan_http_logs
   probe_urls
-  say "#$i 后端就绪=$BACKEND_READY 前端=$FRONT_CODE API=$API_CODE"
-  if [ "$BACKEND_READY" = "1" ] && [ "$FRONT_CODE" = "200" ] && [ "$API_CODE" = "200" ]; then
-    printf '\n✅ POST-VERIFY PASS（第 %s 次轮询：后端已就绪，前端 200，API 200）\n' "$i"
+  check_security_headers
+  say "#$i 后端就绪=$BACKEND_READY 前端=$FRONT_CODE API=$API_CODE 缺失安全头='${HEADERS_MISSING}'"
+  if [ "$BACKEND_READY" = "1" ] && [ "$FRONT_CODE" = "200" ] && [ "$API_CODE" = "200" ] && [ -z "$HEADERS_MISSING" ]; then
+    printf '\n✅ POST-VERIFY PASS（第 %s 次轮询：后端已就绪，前端 200，API 200，安全头齐备）\n' "$i"
     exit 0
   fi
   if [ "$i" -lt "$ITER" ]; then
@@ -137,4 +165,5 @@ docker logs --tail 20 "$CONTAINER_NGINX" 2>&1 || true
 
 [ "$BACKEND_READY" = "1" ] || die "超时：后端日志始终没有出现启动标记（匹配 $READY_RE）"
 [ "$FRONT_CODE" = "200" ] || die "超时：前端域名返回 $FRONT_CODE（期望 200）"
+[ -z "$HEADERS_MISSING" ] || die "超时：入口 nginx 仍缺安全响应头 [$HEADERS_MISSING]（改的是 deploy/nginx/conf.d/frontend.conf？重载了吗？）"
 die "超时：API 域名返回 $API_CODE（期望 200）"
