@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -32,6 +32,22 @@ function findRoot(start: string): string {
 const ROOT = findRoot(process.cwd())
 const read = (rel: string) => readTurboJson(path.join(ROOT, rel))
 const dry = loadTurboDry(ROOT)
+
+/**
+ * ⚠️ **三个用例的前提：`apps/admin/env-local/` 存在**（= 那台机器解过密）。
+ *
+ * 这道门禁有三条不变量读的是**解密后的 env**（`VITE_BUILD_OUT_DIR` → 产物目录；`env-local/**`
+ * 是否在 inputs 里）；`env-local/` 被 gitignore，**干净检出里根本没有** ⇒ 门禁按"不适用"跳过。
+ *
+ * 2026-09-23 实测到代价：这些用例只在有 env-local 的机器上通过，**CI 上一条不变量都不跑**
+ * 于是三条断言全红（而它的发现是：这段测试此前从没在 CI 上跑过 —— `turbo run test --affected`
+ * 只在改了 `packages/tooling/scripts` 的推送里才选中它）。
+ * 处理方式是**把前提写出来**：有 env-local 时查正面，没有时另有一条用例查"它确实安静地跳过了"——
+ * 两种情形都有断言，而不是让它静默 skip。
+ *
+ * **判据放模块级**：它在两个 describe 里都要用（跨块引用会直接 `ReferenceError`，实测踩到）。
+ */
+const hasEnvLocal = existsSync(path.join(ROOT, 'apps/admin/env-local'))
 
 describe('readTurboJson', () => {
   it('按 JSONC 读根 turbo.json（里面有注释，JSON.parse 会炸）', () => {
@@ -107,7 +123,7 @@ describe('collectFindings（对着真实仓库跑）', () => {
     expect(packageDirs(dry, ROOT)).toHaveLength(15)
   })
 
-  it('产物目录掉出 outputs 会被报出来（dist-staging 那个 bug 的守卫）', () => {
+  it.skipIf(!hasEnvLocal)('产物目录掉出 outputs 会被报出来（dist-staging 那个 bug 的守卫）', () => {
     const broken = structuredClone(dry)
     const t = broken.tasks.find(x => x.taskId === '@walnut/admin#build:stage')!
     t.resolvedTaskDefinition.outputs = ['dist/**', '.vitepress/dist/**']
@@ -116,7 +132,7 @@ describe('collectFindings（对着真实仓库跑）', () => {
     expect(hit[0].detail).toContain('dist-staging')
   })
 
-  it('env-local 掉出 inputs 会被报出来', () => {
+  it.skipIf(!hasEnvLocal)('env-local 掉出 inputs 会被报出来', () => {
     const broken = structuredClone(dry)
     for (const t of broken.tasks) {
       if (t.task === 'build' && t.resolvedTaskDefinition.inputs)
@@ -125,6 +141,16 @@ describe('collectFindings（对着真实仓库跑）', () => {
     const hit = collectFindings(broken, ROOT).filter(f => f.rule === 'env-local-in-inputs')
     expect(hit.length).toBeGreaterThan(0)
     expect(hit[0].detail).toContain('env-local/**')
+  })
+
+  // 反面：干净检出（CI）里那三条不变量**跳过**，而不是误报 —— 这条断言在两种环境下都跑
+  it('env-local 不存在时，读 env 的那三条不变量安静跳过（不是误报）', () => {
+    const rules = ['env-local-in-inputs', 'outputs-cover-artifacts']
+    const fired = collectFindings(dry, ROOT).filter(f => rules.includes(f.rule))
+    if (hasEnvLocal)
+      expect(fired, '有 env-local 时这面本来就该是干净的').toEqual([])
+    else
+      expect(fired, '没有 env-local ⇒ 前置条件不满足，门禁不该报').toEqual([])
   })
 
   it('docs#build 的输入里没有 .md 会被报出来', () => {
@@ -178,7 +204,8 @@ describe('边界本身（哈希层的不变量回归）', () => {
     expect(Object.keys(t.inputs ?? {}).filter(k => k.endsWith('.md'))).toEqual([])
   })
 
-  it('env-local 在 build 的输入里（它被 gitignore，只能靠显式 glob 捞回来）', () => {
+  // 同上前提：干净检出里 `env-local/` 不存在 ⇒ turbo 的 inputs 里也不会有它的文件
+  it.skipIf(!hasEnvLocal)('env-local 在 build 的输入里（它被 gitignore，只能靠显式 glob 捞回来）', () => {
     for (const id of ['@walnut/admin#build', '@walnut/admin#build:stage']) {
       const t = dry.tasks.find(x => x.taskId === id)!
       expect(Object.keys(t.inputs ?? {}).filter(k => k.startsWith('env-local/')).length, id).toBeGreaterThan(0)

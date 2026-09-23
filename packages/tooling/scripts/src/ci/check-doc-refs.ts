@@ -21,6 +21,7 @@
  *      本身就是信号（说明有人开始往门禁里塞豁免而不是修引用）。
  */
 
+import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { lsFilesWithUntracked } from '../lib/git.ts'
@@ -293,14 +294,54 @@ export function linkResolves(target: string, docFile: string, fsExists: (repoRel
  * 在 Windows 上 `path.join` 会给出反斜杠，调用方写 `endsWith('apps/server/x')` 这种断言就会假失败
  * （实测踩到），而 `fs.existsSync` 本来两种分隔符都认 —— 那就统一成正斜杠。
  */
-export function pathResolves(ref: string, docFile: string, fsExists: (repoRelative: string) => boolean): boolean {
+/** 一条引用要探的三种基址（仓库根 → 文档所在目录 → `apps/server/`）—— `pathResolves` 与之同源 */
+export function pathProbes(ref: string, docFile: string): string[] {
   const docDir = path.posix.dirname(docFile)
-  const probes = [
+  return [
     ref,
     path.posix.normalize(path.posix.join(docDir, ref)),
     path.posix.join('apps/server', ref),
   ]
-  return probes.some(p => fsExists(p))
+}
+
+export function pathResolves(ref: string, docFile: string, fsExists: (repoRelative: string) => boolean): boolean {
+  return pathProbes(ref, docFile).some(p => fsExists(p))
+}
+
+/**
+ * 这个引用算不算「指向一个真实存在的仓库路径」。
+ *
+ * ⚠️ **「被 gitignore 的路径」也算** —— 这条是 2026-09-23 补的，起因是一次**本地全绿、CI 全红**：
+ *
+ * `env-local/`、`apps/admin/dist` 这类路径**只在有人的机器上存在**（一个要解密、一个是构建产物），
+ * 干净检出里根本没有。于是同一份文档在本机通过、在 CI 上报「引用不存在的路径」——
+ * 判据里混进了一个**与环境相关**的事实（"我这台机器上有没有那个目录"），
+ * 而它想说的其实是"这个引用指不指向一个**仓库文件**"。
+ *
+ * 现在：路径不存在但被 gitignore ⇒ 它是**产物 / 运行时文件**，不当作死引用。
+ * git 问不到（不在检出内 / 没装 git）时**按"没被忽略"处理**（宁可报出来，不静默放过）。
+ *
+ * ⚠️ **必须一次性批量问**（`git check-ignore --stdin`），不能每条路径起一个进程：
+ * 第一版就是逐条 spawn，而 `pathResolves` 每条引用要探**三种**形态（原样 / 文档相对 / `apps/server/` 相对），
+ * 后两种通常都不存在 ⇒ 一次全仓扫描变成几百次进程启动，实测 **15 秒**（vitest 默认 5s 超时当场红）。
+ * 现在整轮只问一次 git。
+ */
+function ignoredProbes(probes: Iterable<string>): Set<string> {
+  const list = [...probes]
+  if (list.length === 0)
+    return new Set()
+  // 两种问法一起喂进去：`.gitignore` 里的 `dist/` 是**目录**模式，而 `git check-ignore` 对
+  // 一个**不在盘上**的路径判断不出它是不是目录 ⇒ 不带尾斜杠时问不出结果
+  // （实测：`apps/admin/dist` 在目录存在时报 ignored，把目录挪走后同一问法变成 not-ignored）。
+  const input = `${[...list, ...list.map(p => `${p}/`)].join('\0')}\0`
+  try {
+    const out = execFileSync('git', ['check-ignore', '-z', '--stdin'], { cwd: REPO_ROOT, input, encoding: 'utf8' })
+    return new Set(out.split('\0').filter(Boolean).map(p => p.replace(/\/$/, '')))
+  }
+  catch {
+    // 「一个都没被忽略」时 git 退出码是 1 —— 对我们要的语义来说就是空集
+    return new Set()
+  }
 }
 
 export interface CheckOptions {
@@ -311,12 +352,43 @@ export interface CheckOptions {
   readText?: (file: string) => string
 }
 
-/** 收集所有发现（纯函数，便于单测） */
+/**
+ * 收集所有发现（纯函数，便于单测）。
+ *
+ * ⚠️ **两遍扫描，只为了一次 git 调用**（第一版逐条 spawn 让全仓扫描变成 15 秒）：
+ *   1. 第一遍用**纯 `existsSync`** 跑，把「问过但不存在」的路径记进 `misses`；
+ *   2. 拿 `misses` 一次性问 git（`check-ignore --stdin`），得到被 gitignore 的集合；
+ *   3. 若有命中，用「存在 **或** 被 gitignore」再跑一遍。
+ *
+ * 这样做的额外好处：**路径引用、markdown 链接、`@/` 别名三种探针自动同权** ——
+ * 不必为每种探针各写一套"要探哪些形态"的清单（那种清单一定会漏，而漏掉的那种就失去 gitignore 语义）。
+ */
 export function collectFindings(options: CheckOptions = {}): Finding[] {
+  if (options.fsExists !== undefined)
+    return runCollect(options, options.fsExists)
+
+  const misses = new Set<string>()
+  const first = runCollect(options, (p) => {
+    const ok = fs.existsSync(path.join(REPO_ROOT, p))
+    if (!ok)
+      misses.add(p)
+    return ok
+  })
+  if (misses.size === 0)
+    return first
+
+  const ignored = ignoredProbes(misses)
+  if (ignored.size === 0)
+    return first
+  // 被 gitignore 的路径：`ignored` 里存的是**去掉尾斜杠**的形式，探针可能带尾斜杠
+  return runCollect(options, p => fs.existsSync(path.join(REPO_ROOT, p)) || ignored.has(p.replace(/\/$/, '')))
+}
+
+function runCollect(options: CheckOptions, fsExists: (repoRelative: string) => boolean): Finding[] {
   const docs = options.docs ?? liveDocs()
   const realPackages = options.realPackages ?? workspacePackageNames()
-  const fsExists = options.fsExists ?? ((p: string) => fs.existsSync(path.join(REPO_ROOT, p)))
   const readText = options.readText ?? ((file: string) => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'))
+
   const pkgHits = new Map<string, string[]>()
   const pathHits = new Map<string, string[]>()
   const linkHits = new Map<string, string[]>()

@@ -153,6 +153,27 @@ describe('链接检查的覆盖边界（与 VitePress 零重叠）', () => {
 })
 
 describe('真实仓库上跑一遍（防豁免清单腐化）', () => {
+  // ⚠️ 这两条钉的是「判据与环境无关」：`env-local/`、`apps/admin/dist` 这类路径**只在解过密 /
+  // 构建过的机器上存在**，干净检出里没有。第一版判据用 `existsSync` ⇒ 同一份文档在本机过、在 CI 红
+  // （2026-09-23 实测：push 之后 CI 才第一次跑到这一面）。现在被 gitignore 的路径一律不算死引用。
+  it('引用 gitignore 的路径（产物 / 解密的 env）不算死引用', () => {
+    const found = collectFindings({
+      docs: ['apps/docs/src/zh-CN/content/x.md'],
+      realPackages: workspacePackageNames(),
+      readText: () => '产物在 `apps/admin/dist`、明文 env 在 `env-local/`、后端那份在 `apps/server/env-local/`。',
+    })
+    expect(found.filter(f => f.kind === 'path')).toEqual([])
+  })
+
+  it('真正不存在的普通路径照样报（收窄不能把门禁关掉）', () => {
+    const found = collectFindings({
+      docs: ['apps/docs/src/zh-CN/content/x.md'],
+      realPackages: workspacePackageNames(),
+      readText: () => '见 `apps/docs/definitely-gone-9f8a/file.ts`。',
+    })
+    expect(found.filter(f => f.kind === 'path').map(f => f.ref)).toEqual(['apps/docs/definitely-gone-9f8a/file.ts'])
+  })
+
   it('当前仓库没有任何未豁免的失效引用', () => {
     expect(collectFindings()).toEqual([])
   })
