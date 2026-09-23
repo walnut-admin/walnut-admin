@@ -107,10 +107,10 @@ Per-package `CHANGELOG.md` is rendered by **git-cliff** and written by
   `commit-intent.ts`'s `BUMP_MAP`, and the `[remote.github]` provider
 - `pnpm release --status` / `--plan` / `--dry-run` / `--json` are the read-only and machine-readable
   surfaces; the resume ladder is a pure function of observable facts (`release/plan.ts`)
-- `lint:root` is **not** a turbo task (it is a root `package.json` script), so the battery runs it as its
-  own step — `turbo run lint` + `pnpm lint:root`. Folding it into one `turbo run lint lint:root` fails
-  with `Could not find task 'lint:root' in project` (fixed 2026-09-23; see
-  [`monorepo/release.md`](/content/monorepo/release)).
+- `lint:root` / `types:check:root` are **not** turbo tasks (they are root `package.json` scripts), so the
+  battery runs each as its own step — `turbo run lint` + `pnpm lint:root` + `pnpm types:check:root`.
+  Folding them into the turbo argv fails with `Could not find task 'lint:root' in project`
+  (fixed 2026-09-23; see [`monorepo/release.md`](/content/monorepo/release)).
 
 **Alternatives considered:**
 - **Keep `@changesets/cli` + `@changesets/changelog-github`** — the previous design. Its changelog

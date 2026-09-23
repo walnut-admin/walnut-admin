@@ -22,10 +22,20 @@ export default function baseConfig(options: OptionsConfig = {}): WalnutEslintCon
       'pnpm-lock.yaml',
     ],
     markdown: false,
+    // 为什么基线预设也开 pnpm：`catalog:` 是仓库级不变量（`catalogMode: strict` + `hoist: false`），
+    // 而根 `eslint.config.ts` 是本预设目前唯一的消费者，它**同时管着 10 个没有自己 config 的包**
+    // （`platform-any/*`、`platform-web/{client,http}`、`tooling/*` —— ESLint 会向上查找根配置）。
+    // 这些包全是 TS-only（零 `.vue`），base 正是它们的预设；而它们的 `package.json` 依赖声明
+    // 恰好是 `pnpm/json-enforce-catalog` 要守的地方。缺了 `pnpm: true`，根级与这 10 个包的
+    // `package.json` / `pnpm-workspace.yaml` 就只剩通用规则（实测：会丢掉 3~4 条 `pnpm/*`）。
+    pnpm: true,
     rules: {
       'ts/no-namespace': 'off',
       'no-console': 'off',
       'regexp/no-unused-capturing-group': 'off',
+      // 与 vue 预设同一条豁免（实测：开它会在 `pnpm-workspace.yaml` 报 `shellEmulator` setting
+      // mismatch）。两个预设都关，避免同一份 workspace 配置在两条路径上结论不一致。
+      'pnpm/yaml-enforce-settings': 'off',
     },
     ...options,
   })

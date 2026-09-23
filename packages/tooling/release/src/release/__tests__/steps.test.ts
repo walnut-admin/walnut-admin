@@ -36,6 +36,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
       ['exec', 'turbo', 'run', 'lint'],
       ['lint:root'],
       ['exec', 'turbo', 'run', 'types:check'],
+      ['types:check:root'],
       ['exec', 'turbo', 'run', 'test'],
       ['syncpack:lint'],
       ['change', 'check'],

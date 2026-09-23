@@ -120,7 +120,8 @@ packages/tooling/
   导致 11 个 controller 报出**假违规**。已用「三张顺序表与原文逐项比对」的方式验证一致
   （38 / 17 / 3 项全等）。
 - 根级配置（`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`）此前**不被任何门禁覆盖** ——
-  `prepush` 与 CI 都只跑包内任务。本轮把 `pnpm lint:root` 加进 `prepush`（现为六段）与 `ci.yml`
+  `prepush` 与 CI 都只跑包内任务。本轮把 `pnpm lint:root` 加进 `prepush`（当时为六段，
+  2026-09-23 又补 `pnpm types:check:root` 后为七段）与 `ci.yml`
   的 quality job。
 - 发版电池（`RELEASE_BATTERY`）里有一条写的是 `turbo run lint lint:root`，但 `lint:root` 只是根
   `package.json` 的脚本、**不是** turbo 任务 ⇒ 该命令以 `Could not find task 'lint:root' in project`

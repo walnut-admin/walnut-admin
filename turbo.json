@@ -110,7 +110,10 @@
         "$TURBO_DEFAULT$",
         "!**/*.md"
       ],
-      "outputs": ["coverage/**"],
+      // 正常 `vitest run`（不带 --coverage）不产出任何文件 —— 声明 `coverage/**` 会让每个
+      // 有 test 脚本的包都刷一条 "no output files found for task"。要恢复覆盖率产物缓存，
+      // 就在 run 脚本里加 --coverage，并把这里改回 ["coverage/**"]。
+      "outputs": [],
       "cache": true
     },
     "clean": {

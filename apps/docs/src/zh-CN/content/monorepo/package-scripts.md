@@ -43,6 +43,7 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
     "lint:root": "eslint *.ts *.json *.yaml",    // 根级文件（配置层）单独一节
     "lint:fix": "turbo lint:fix",
     "types:check": "turbo types:check",
+    "types:check:root": "tsc -p tsconfig.json",  // 根级配置（*.ts）的类型检查
     "test": "turbo test",                        // 2026-08-08 补齐
     "clean": "turbo clean",
 
@@ -63,8 +64,8 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
     "lint:workflows": "walnut-lint-workflows",   // actionlint 校验 .github/workflows
     "hooks:check": "walnut-check-git-hooks",     // 断言 git 钩子由 lefthook 托管
 
-    // pre-push 的聚合门禁（lefthook 的 pre-push 只调这一条，六段按序跑）
-    "prepush": "pnpm boundaries && pnpm lint:root && pnpm types:check && pnpm syncpack:lint && pnpm lint:workflows && pnpm change check",
+    // pre-push 的聚合门禁（lefthook 的 pre-push 只调这一条，七段按序跑）
+    "prepush": "pnpm boundaries && pnpm lint:root && pnpm types:check && pnpm types:check:root && pnpm syncpack:lint && pnpm lint:workflows && pnpm change check",
 
     // 发布（@walnut/release 的 bin，实现位于 packages/tooling/release/src/release/）
     "release": "walnut-release"
@@ -101,7 +102,7 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 ```
 pre-commit → pnpm exec lint-staged（ESLint fix on staged files，秒级）
 commit-msg → pnpm exec commitlint --edit {1}（提交信息规范检查）
-pre-push   → pnpm --silent prepush（单条聚合门禁：六段按序跑，十秒级）
+pre-push   → pnpm --silent prepush（单条聚合门禁：七段按序跑，十秒级）
 ```
 
 `prepush` = `pnpm boundaries && pnpm lint:root && pnpm types:check && pnpm syncpack:lint && pnpm lint:workflows && pnpm change check`

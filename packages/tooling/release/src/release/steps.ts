@@ -65,6 +65,9 @@ const RELEASE_BATTERY: BatteryStep[] = [
   // 所以这一行省不得。
   { id: 'lint-root', label: 'lint 根级配置（pnpm lint:root）', argv: ['lint:root'] },
   { id: 'types', label: '类型检查（不排任何包）', argv: ['exec', 'turbo', 'run', 'types:check'] },
+  // 根 tsconfig.json（include: ["*.ts"]）覆盖 eslint.config.ts / commitlint.config.ts / knip.config.ts，
+  // 这三者不入 turbo 的图。与 lint-root 同理：**独立一行**、经根脚本跑，不能写进上面的 turbo argv。
+  { id: 'types-root', label: '根级配置类型检查（pnpm types:check:root）', argv: ['types:check:root'] },
   { id: 'test', label: '测试（不排任何包）', argv: ['exec', 'turbo', 'run', 'test'] },
   { id: 'syncpack', label: '依赖一致性（syncpack）', argv: ['syncpack:lint'] },
   { id: 'versioning', label: 'workspace 版本锁步（pnpm change check）', argv: ['change', 'check'] },

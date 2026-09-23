@@ -1,4 +1,10 @@
 {
   "extends": ["//"],
-  "tags": ["shared", "platform-web"]
+  "tags": ["shared", "platform-web"],
+  // 同 @walnut/client：无产物的 build，显式声明空 outputs 以免 turbo 刷警告。
+  "tasks": {
+    "build": {
+      "outputs": []
+    }
+  }
 }

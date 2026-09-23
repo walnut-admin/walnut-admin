@@ -11,19 +11,15 @@
 
 | 级别 | 判据 | 条目 |
 |------|------|------|
-| **P0** | 阻塞首次发版 | P1-16 |
-| **P1** | 静态检查与门禁的缺口（会让「绿」变成假象） | R1 · R4 · R2 |
-| **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 · R3 · R8 · R11 · P3-19 · P2-10 · P2-11 |
-| **P3** | 远期 / 条件触发 | P3-12 · P3-14 · P3-15 · P3-13 · A8 · A9 · A11 · P3-17 · P3-18 · P3-20 |
-| **未裁决** | 2026-09-21 评审提出，**尚未决定做不做**（先看 P0/P1） | F1–F4 · F6–F7 · D1–D6 · D8<br><sub>F0 / F5 已完成；D7（TS 7 排期）已并入 R7</sub> |
+| ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 P1-16 已被决定推迟，见[「搁置」](#搁置等条件成熟) |
+| **P1** | 静态检查与门禁的缺口（会让「绿」变成假象） | R2 |
+| **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 · R8 · R11 · P2-10 · P2-11 |
+| **P3** | 远期 / 条件触发 | P3-12 · P3-14 · P3-15 · P3-13 · A8 · A9 · A11 · P3-17 · P3-18 |
+| **搁置** | 等条件成熟（外部依赖或已决定先不动） | R1 · P1-16 · P2-11 · P3-20 |
+| **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | F1–F4 · F6–F7 · D1–D6 · D8<br><sub>F0 / F5 已完成；D7（TS 7 排期）已并入 R7</sub> |
 
----
-
-## P0 — 阻塞首次发版
-
-| # | 事项 | 工作量 | 现状与判据 |
-|---|------|--------|-----------|
-| **P1-16** | **tag 发布链路端到端验证** | 小 | ❗**一次都没跑过**。质量门禁在 GitHub 实测绿过（CI #3/#4，2m28s），但「构建镜像 → 推 TCR → 自动部署」从未执行（本机无 Docker，Dockerfile / bake 无法本地验证）。且 2026-09-23 又给 `ci.yml` 加了一步 `pnpm lint:root`（根级配置不在 turbo 的 affected 图里），**连质量门禁也需要在新提交上重跑一次**才算验证。<br>清单：① CI 的 affected Summary 表 + 新增的 lint:root 步为绿；② run summary 的 staging 体积与三镜像 digest；③ `docker run --rm --entrypoint ls <backend> /app/env-local` 应报不存在；④ 部署日志出现「三个镜像均存在」、`--wait`、健康检查 200；⑤ 二次发布（Re-run all jobs）明显更快且出现 `scope=backend` / `scope=frontend`；⑥ 新增的 **post-verify** 步骤绿（脚本已用假 docker/curl 覆盖 10 个场景，但没在真实服务器上跑过）。<br>详见 [CI/CD 与容器构建](./ci-cd) |
+**已清掉的旧账**（2026-09-23 起逐条做掉即从本表移除，验收口径见文末「核实记录」与「执行记录」）：
+R1 改判回退 → 已按决定搁置 ｜ R3 · R4 · P3-19 已做完
 
 ---
 
@@ -31,9 +27,10 @@
 
 | # | 事项 | 工作量 | 现状与判据 |
 |---|------|--------|-----------|
-| **R1** | **`pnpm peers check` 已经红了**（原「✅ 已完成」，本轮改判） | 中 | ⚠️ **回退项**。原记录称「`peerDependencyRules.allowedVersions` 豁免 5 项 → 零告警」，但该段配置已随 2026-09-21 的 pnpm 12 迁移**整段删除**，检查现在 **exit 1**、报 5 组 unmet peer：`vite` 8.0.11（vite-plugin-restart / devtools-json 要 ≤7）、`@swc/cli` 0.8.1（@nestjs/cli 要 ≤0.7）、`chokidar` 4.0.3（要 ^3 / ^5）、`class-validator` 0.15.1（@nestjs/mapped-types 要 ^0.13/0.14）、`typescript` 6.0.3（i18next / tsconfck / madge 要 ^5）。<br>这 5 项都是「本仓显式选用新版本、上游 peer 未跟进」，本身可接受 —— 问题是它现在**没人看的红**。二选一：**(a)** 找 pnpm 12 的等价机制恢复白名单并接进门禁；**(b)** 明确「红是预期」，在 `pnpm-workspace.yaml` 写清楚并把它排除出门禁。 |
-| **R4** | **根 `tsconfig.json` 无人执行** | 小 | 根 tsconfig（`include: ["*.ts"]`，extends `@walnut/tsconfig/base.json`）覆盖 `eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`，但**没有任何脚本跑它**（`types:check` 只跑包任务，`lint:root` 只 lint）。即这三个根配置的类型错误当前无门禁覆盖。<br>建议加 `types:check:root: tsc -p tsconfig.json` 并入 `prepush` 与 `ci.yml`。注意根配置走 `base.json`（无 `erasableSyntaxOnly`），加之前先确认它在 `ts.json` 之外自洽。 |
-| **R2** | **knip 集中豁免 95 条** | 中 | `knip.config.ts` 的 `ignoreDependencies` 已 **95 条**（本轮核实），集中豁免会掩盖真实死依赖。建议按包拆豁免、周期性清理（2026-08-08 清过一轮）。<br>另：整仓 `pnpm knip` 当前 **exit 1**，命中的全是 **app 代码既有项**（7 未用文件 / 40 未用导出 / 3 导出类型），且不在任何门禁里 —— 要么修完接进门禁，要么在文档里明确它「只作参考、不设门禁」。 |
+| **R2** | **knip 集中豁免 95 条** | 中 | `knip.config.ts` 的 `ignoreDependencies` 已 **95 条**（2026-09-23 核实），集中豁免会掩盖真实死依赖。建议按包拆豁免、周期性清理（2026-08-08 清过一轮）。<br>另：整仓 `pnpm knip` 当前 **exit 1**，命中的全是 **app 代码既有项**（7 未用文件 / 40 未用导出 / 3 导出类型），且不在任何门禁里 —— 要么修完接进门禁，要么在文档里明确它「只作参考、不设门禁」。 |
+
+> R4（根 tsconfig 无人执行）与 R1（peers 检查）已离开本档：前者 2026-09-23 补上 `pnpm types:check:root`
+> 并接入 prepush / ci.yml / 发版电池；后者按决定搁置（见下）。
 
 ---
 
@@ -41,16 +38,13 @@
 
 | # | 事项 | 工作量 | 现状与判据 |
 |---|------|--------|-----------|
-| **R7** | **TS 7 / tsgo 迁移准备**（评审建议上调到 P2） | 中 | `@walnut/tsconfig/base.json` 的 `ignoreDeprecations: "6.0"` 一刀切静音了通往原生编译器的迁移信号。**TS 7.0 已正式发布**（2026-07-08），评审提出应先做一次**阻塞面实测**：全仓 `types:check` 用 TS 7 跑一遍摸清阻塞点，再定排期。另注意 `apps/server/tsconfig.json` 未显式声明 `moduleResolution`（`module: commonjs` 使其落到默认 `node10`）。 |
+| **R7** | **TS 7 / tsgo 迁移准备**（评审建议上调到 P2） | 中 | `@walnut/tsconfig/base.json` 的 `ignoreDeprecations: "6.0"` 一刀切静音了通往原生编译器的迁移信号。**TS 7.0 已正式发布**（2026-07-08），评审提出应先做一次**阻塞面实测**：全仓 `types:check` 用 TS 7 跑一遍摸清阻塞点，再定排期。另注意 `apps/server/tsconfig.json` 未显式声明 `moduleResolution`（`module: commonjs` 使其落到默认 `node10`）。<br>⚠️ 与「全量 deps 升级」有重叠，建议并到那一次一起做。 |
 | **A5** | **API 路由迁移收尾**（原「剩余 11 处 + server 44 controller」） | 中 | admin 侧已大量使用 contract 路由常量（`AuthRoutes` / `AppRoutes` / `SystemRoutes` / `SecurityRoutes` / `SharedRoutes` / `SystemEndpointRoutes`，`apps/admin/src` 里 101 行涉及）。**剩余全在 server 侧**：`git grep WalnutAdminConstApiRoute apps/server` → **0 处**，controller 仍用字面量路径。<br>评审建议（D6）别手工逐个改：写 `gen-route-catalog`（扫 `@Controller` + `contract/routes`）+ `verify-route-parity` 门禁，一次性发现全部差异。 |
 | **A7** | **`@walnut/ui` 剩余组件** | 大 | admin 侧仍有 **22** 个 UI 组件目录，`@walnut/ui` 只有 3 个（DynamicTags / Switch / TimePicker）。需处理跨组件相对 import 与 app store 注入。<br>评审建议（D5）先用「零 app 依赖 + 已被 ≥2 处复用」过滤，避免为迁而迁。 |
 | **A10** | **store 工厂迁移** | 中 | `createWalnutStore()` 只在 `@walnut/client` 内部被引用（`src/index.ts` + `store/createWalnutStore.ts`），admin 侧 **26** 个 store 文件 **0 处**使用。 |
-| **R3** | **root eslint 换 base preset** | 小 | 根 `eslint.config.ts` 现在是 `import vueConfig from '@walnut/eslint-config/vue'`，但根级 glob 只有 `*.ts *.json *.yaml`（无 `.vue`），用 base preset 更贴切、更快。 |
 | **R8** | **`@walnut/types` exports 结构** | 小 | 该包 `exports` 只有 `{ "./*": "./src/*.d.ts" }`，**无根 `"."`、无 `types` 字段**，消费方必须写 `@walnut/types/xxx`。评估是否补根导出。 |
 | **R11** | **文档漂移清扫** | 小 | 本轮又修掉几处：`apps/docs/CLAUDE.md`（`preinstall` / `only-allow` 已不存在）、`apps/server/CLAUDE.md`（pnpm 11 → 12、preinstall）、`deploy.yml` 注释（setup-env 不再用 tsx）、`.gitignore` 的死规则 `report/*`。剩余 `.claude/`、`.zcode/` 等入口文档待查。 |
-| **P3-19** | **turbo build「no output files」警告** | 小 | `@walnut/{client,http,types,ui}` 的 `build` 是 `echo`、无产物，但根 `turbo.json` 的 `build` 任务声明了 `outputs` → 每次刷 4 条警告。四个包都已有自己的 workspace `turbo.json`，加 `"build": { "outputs": [] }` 即可（或移除它们的 build 任务）。 |
-| **P2-10** | **Codecov / 覆盖率报告** | 小 | PR 上自动评论覆盖率变化（免费）。现在 6 份 vitest 配置都具备 coverage 能力但未接入。 |
-| **P2-11** | **GitHub Environments** | 中 | 已核实 deploy 作业**未**使用原生 `environment:`（只有作业级 `env:` 变量 + `workflow_call`/`workflow_dispatch` 的 `environment` 输入 + `concurrency: deploy-${env}`）。stage 服务器（火山引擎）到位后再评估。 |
+| **P2-10** | **Codecov / 覆盖率报告** | 小 | PR 上自动评论覆盖率变化（免费）。现在 6 份 vitest 配置都具备 coverage 能力但未接入。<br>⚠️ 需要账号/令牌，**待你确认是否要做**。 |
 
 ---
 
@@ -67,7 +61,19 @@
 | **A11** | **Phase 4 自动导入迁移** | 中 | 迁入 package 的代码里隐式全局变量改为显式 import；auto-import / component resolver 已指向 `@walnut/ui`（`component.ts` 扫 `packages/platform-web/ui/src/*/index.ts`），其余待迁。 |
 | **P3-18** | **`skip_deploy` 开关** | 小 | 给 `release.yml` 加 `workflow_dispatch` + `skip_deploy` 输入（约 5 行），用于「只想验证镜像构建、不碰生产」。现状：有 `workflow_dispatch`，**无** `skip_deploy`。 |
 | **P3-17** | **TCR 旧 tag 清理** | 小 | 腾讯云 TCR 个人版单镜像上限 100 版本，每次发布推 `vX.Y.Z` + `nginx:brotli`，长期会顶到上限。可在 `release.yml` 加清理步骤（保留最近 N 个），或交给 TCR 控制台的生命周期策略。 |
-| **P3-20** | **国内 self-hosted runner（决策门）** | 中 | **门控在 P0（P1-16）的实测数据**：仅当「tag 发布总时长 > 20 min 且跨境推送占大头」时再评估。runner 在美国、镜像仓库在腾讯云上海，跨境上传是旧流水线 78 分钟的主要嫌疑之一；腾讯云轻量服务器约 ¥30–60/月。**先看数据再决定。** |
+
+---
+
+## 搁置（等条件成熟）
+
+> 这些**不是不做**，是现在做不了或已决定先不动。写清解冻条件，条件到了再捞回来。
+
+| # | 事项 | 搁置原因与解冻条件 |
+|---|------|-------------------|
+| **R1** | `pnpm peers check` 红 + `peerDependencyRules` 豁免机制随 pnpm 12 迁移消失 | **2026-09-23 你的决定：先不动。** 理由是**马上要做全量 deps 升级**，5 组 unmet peer 的结论可能变；现在不接门禁、也不恢复白名单。<br>现状记录（免得以后重新查）：`pnpm peers check` **exit 1**，5 组 —— `vite` 8.0.11（插件要 ≤7）、`@swc/cli` 0.8.1（@nestjs/cli 要 ≤0.7）、`chokidar` 4.0.3（要 ^3/^5）、`class-validator` 0.15.1（@nestjs/mapped-types 要 ^0.13/0.14）、`typescript` 6.0.3（i18next / tsconfck / madge 要 ^5）。它**不在任何门禁里**，不影响 CI 与钩子。<br>**解冻**：全量 deps 升级跑完后重跑一次 `pnpm peers check`，看还剩几组再决定 (a) 恢复等价白名单并接门禁 还是 (b) 正式记录「红是预期」。 |
+| **P1-16** | tag 发布链路端到端验证 | **2026-09-23 你的决定：首次发版不着急。** 未验证的部分：镜像构建 → 推 TCR → 自动部署 → post-verify（本机无 Docker，只能等真跑一次 tag）。<br>**解冻**：真正准备发第一个版本时。到时清单 —— ① CI 的 affected 表 + `lint:root` / `types:check:root` 两步为绿；② run summary 的 staging 体积与三镜像 digest；③ `docker run --rm --entrypoint ls <backend> /app/env-local` 应报不存在；④ 部署日志出现「三个镜像均存在」、`--wait`、健康检查 200；⑤ 二次发布明显更快且出现 `scope=backend`；⑥ post-verify 绿。详见 [CI/CD 与容器构建](./ci-cd) |
+| **P2-11** | GitHub Environments | 已核实 deploy 作业**未**使用原生 `environment:`（只有作业级 `env:` + `workflow_call`/`workflow_dispatch` 的 `environment` 输入 + `concurrency: deploy-${env}`）。**解冻**：stage 服务器（火山引擎）到位后再评估。 |
+| **P3-20** | 国内 self-hosted runner（决策门） | **解冻**：仅当 P1-16 的实测显示「tag 发布总时长 > 20 min 且跨境推送占大头」。runner 在美国、镜像仓库在腾讯云上海，跨境上传是旧流水线 78 分钟的主要嫌疑之一；腾讯云轻量服务器约 ¥30–60/月。**先看数据再决定。** |
 
 ---
 
@@ -101,6 +107,7 @@
 
 | 日期 | 完成项 |
 |------|--------|
+| 2026-09-23 | **清旧账第 1 批**（R4 / R3 / P3-19，验收口径即核实方式）：<br>① **R4 根配置接入类型检查** —— 新增 `types:check:root: tsc -p tsconfig.json`，接入 `prepush`（六段 → **七段**）、`ci.yml`（新步骤 `Type check root configs`）与**发版电池**（新行 `types-root`，`steps.test.ts` 同步）；`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts` 此前没有任何脚本做类型检查。<br>② **R3 根 eslint 换 base 预设** —— 根 `eslint.config.ts` 由 `vue` 预设改为 `base`。核实中发现原条目描述的前提是错的：仓内只有 5 份 `eslint.config.ts`，**另外 10 个包经 ESLint 向上查找也用根配置**（它们全是 TS-only、零 `.vue`，`base` 才是它们该用的预设）。用 `eslint --print-config` 逐文件比对规则集，确认只丢掉 2 条对 TS 无效的 `unocss/*`；同时给 base 补上 `pnpm: true` 与 `pnpm/yaml-enforce-settings: off`，否则会丢 3~4 条 `pnpm/*` 规则并让 `lint:root` 直接报 `shellEmulator` mismatch。<br>③ **P3-19 turbo 产出警告** —— `@walnut/{client,http,types,ui}` 四个包的 `turbo.json` 声明 `"build": { "outputs": [] }`；根 `turbo.json` 的 `test` 任务把 `outputs` 从 `["coverage/**"]` 改为 `[]`（正常 `vitest run` 不产出任何文件，6 个有 test 脚本的包此前每次刷警告）。实测 `build --force` 与 `test --force` 的 "no output files found" 警告 **合计 10 → 0**。<br>验证：`build`（9/9，2m27s）、`test`（12/12）、`lint`（14/14）、`lint:root`、`types:check:root`、`prepush` 七段、`build:docs`、actionlint 全绿 |
 | 2026-09-23 | **待办表核实与瘦身**（本轮）：逐条核实原 P0-P3 / A1-A11 / R1-R11 的 ✅ 标记 → 18 项确认完成并移出、**1 项（R1）判定回退后重开**；剩余项按 P0-P3 重排，新增「未裁决」段收纳 2026-09-21 评审的 F/D 项（即评审建议 **F5「状态移出文档」** 的落地）；新增 `tsx` 全局移除后的文档同步（ADR-0019 / AGENTS.md / CLAUDE.md / package-scripts.md / pnpm-workspace-config.md），catalog 243 → 242 |
 | 2026-09-23 | **仓内彻底移除 `tsx`**：`apps/admin` 的 `predev` / `types:check:log` 改由 `node` 原生类型剥离执行（相对导入补 `.ts` 扩展名、JSON 导入补 `with { type: 'json' }`），devDependency 与 catalog 条目删除；顺带修掉 `.gitignore` 的死规则 `report/*`（带斜杠锚定到仓库根，实际产物在 `apps/admin/report/`）。详见 commit `3daafc0` |
 | 2026-09-23 | **工具链拆包 + tsconfig 预设提取 + 全仓去 `.mjs`**：`packages/tooling/` 1 → **5 包**；提取 `@walnut/tsconfig`（base / ts / vue）并删根 `tsconfig.base.json`；16 个 `.mjs` → `.ts`（含 249 行装饰器排序插件补类型）；根 devDeps 18 → 19；`prepush` 五段 → 六段。**完整决策与代价见 [ADR 0019](../adr/0019-tsconfig-presets-and-no-mjs.md)**，commit `2190873` |

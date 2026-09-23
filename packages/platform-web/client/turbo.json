@@ -1,4 +1,11 @@
 {
   "extends": ["//"],
-  "tags": ["shared", "platform-web"]
+  "tags": ["shared", "platform-web"],
+  // 本包源码直消费、`build` 只是一句 echo，没有产物 —— 必须显式声明空 outputs，
+  // 否则根 `build` 任务的 `outputs` 会让 turbo 每次刷 "no output files found for task"。
+  "tasks": {
+    "build": {
+      "outputs": []
+    }
+  }
 }

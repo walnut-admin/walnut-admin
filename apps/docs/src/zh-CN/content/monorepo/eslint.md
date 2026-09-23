@@ -12,10 +12,15 @@ ESLint v9+ 默认只支持 flat config（`eslint.config.ts`）。旧的 `.eslint
 
 ```ts
 // root eslint.config.ts — 全仓库入口
-import vueConfig from '@walnut/eslint-config/vue'
+import baseConfig from '@walnut/eslint-config/base'
 
-export default vueConfig()
+export default baseConfig()
 ```
+
+> ⚠️ 这个文件的作用域**不止根目录**：仓内只有 5 份 `eslint.config.ts`（根 + 3 个 app + ui），
+> 其余 10 个包（`platform-any/*`、`platform-web/{client,http}`、`tooling/*`）没有自己的配置，
+> ESLint 会**向上查到本文件** —— 它们全是 TS-only（零 `.vue`），`base` 正是它们该用的预设。
+> 2026-09-23 之前根入口用的是 `vue` 预设，等于给这 10 个包白装了 vue / unocss 插件。
 
 > 2026-09-23 起，仓库里**没有任何 `.mjs` / `.cjs` 文件**：4 个包级 ESLint 配置、`eslint-config` 的 4 个文件（3 个预设 + 本地规则插件 `nest-local-rules`）、commitlint 配置与 config 包、4 个 bin、contract 的 `build-barrel` 脚本全部改成 `.ts`。ESLint 加载 `eslint.config.ts` 需要 **`jiti`**（ESLint 官方的 TS 配置加载器），因此根 `devDependencies` 新增了它。详见 [ADR-0019](/content/adr/0019-tsconfig-presets-and-no-mjs)。
 
@@ -67,7 +72,7 @@ commit-msg:
 pre-push:
   jobs:
     - name: prepush-gates
-      run: pnpm --silent prepush        # 六段聚合门禁，见下表
+      run: pnpm --silent prepush        # 七段聚合门禁，见下表
 ```
 
 staged 文件的匹配规则仍在根 `package.json` 的 `lint-staged` 块：
@@ -110,9 +115,9 @@ oxlint 和 biome（Rust 写的极速 linter）都不支持 Vue SFC（`.vue` 文�
 
 | 文件 | 作用 |
 |------|------|
-| [eslint.config.ts](https://github.com/walnut-admin/walnut-admin/blob/main/eslint.config.ts) | 根入口，委托给 `@walnut/eslint-config/vue` |
-| [packages/tooling/eslint-config/vue.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/vue.ts) | 浏览器 + Vue 预设（admin / docs / platform-web） |
+| [eslint.config.ts](https://github.com/walnut-admin/walnut-admin/blob/main/eslint.config.ts) | 根入口，委托给 `@walnut/eslint-config/base`；**同时是 10 个没有自己配置的包的生效配置**（ESLint 向上查找） |
+| [packages/tooling/eslint-config/vue.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/vue.ts) | 浏览器 + Vue 预设（admin / docs / ui） |
 | [packages/tooling/eslint-config/nest.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/nest.ts) | 后端 NestJS 预设 |
 | [packages/tooling/eslint-config/nest-local-rules.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/nest-local-rules.ts) | NestJS 装饰器排序等本地规则插件 |
-| [packages/tooling/eslint-config/base.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/base.ts) | 共享包预设（当前无直接消费者） |
+| [packages/tooling/eslint-config/base.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/base.ts) | 平台无关基线预设（根入口 + 10 个 TS-only 包）；显式开 `pnpm: true` 以保住 catalog 规则 |
 | [lefthook.yml](https://github.com/walnut-admin/walnut-admin/blob/main/lefthook.yml) | git 钩子唯一真源（pre-commit / commit-msg / pre-push） |

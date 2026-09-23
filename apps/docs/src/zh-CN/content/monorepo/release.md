@@ -143,17 +143,19 @@ pnpm release
 | `lint` | `turbo run lint`（所有包，不排任何包） |
 | `lint-root` | `pnpm lint:root`（**根级文件**的 lint：`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
 | `types` | `turbo run types:check` |
+| `types-root` | `pnpm types:check:root`（根 tsconfig 覆盖的 `eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
 | `test` | `turbo run test` |
 | `syncpack` | `syncpack lint` |
 | `versioning` | `pnpm change check`（fixed 组锁步） |
 | `workflows` | actionlint |
 | `build` | ⏭️ **默认暂缓**：镜像由 `release.yml` 的 images job 真正构建；要跑就删掉表里那行的 `skip` |
 
-> ⚠️ `lint-root` 必须是**独立一行**、且经根脚本跑（`pnpm lint:root`），**不能**并进上一条写成
-> `turbo run lint lint:root` —— `lint:root` 只是根 `package.json` 的脚本、不是 turbo 任务，
-> `turbo run lint:root` 会直接以 `Could not find task 'lint:root' in project` 非 0 退出
-> （2026-09-23 实测：这会让**每一次发版都在打 tag 之前失败**）。`steps.test.ts` 钉住了这一形状：
-> 断言 `lint:root` 独立成行、且没有任何一条 argv 把 `lint:root` 交给 `turbo`。
+> ⚠️ `lint-root` / `types-root` 必须是**独立一行**、且经根脚本跑（`pnpm lint:root` /
+> `pnpm types:check:root`），**不能**并进上一条写成 `turbo run lint lint:root` —— 它们只是根
+> `package.json` 的脚本、不是 turbo 任务，`turbo run lint:root` 会直接以
+> `Could not find task 'lint:root' in project` 非 0 退出（2026-09-23 实测：这会让**每一次发版都在
+> 打 tag 之前失败**）。`steps.test.ts` 钉住了这一形状：断言二者都独立成行、且没有任何一条 argv
+> 把它们交给 `turbo`。
 
 **为什么是刻意的**：不跑门禁时，release 完全依赖 `git push` 顺带触发的 pre-push 钩子 ——
 而 push 发生在打 tag **之后**。于是「本地全绿、发版成功、CI 的 verify 却红」是可达的，

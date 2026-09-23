@@ -72,6 +72,11 @@ jobs:
       - name: Lint root configs
         run: pnpm lint:root
 
+      # 根 tsconfig（include: ["*.ts"]）覆盖 eslint.config.ts / commitlint.config.ts / knip.config.ts。
+      # 它们同样不入 turbo 的图，且 lint 不做类型检查 —— 必须显式跑这条。
+      - name: Type check root configs
+        run: pnpm types:check:root
+
       - name: Type check (affected)
         run: pnpm exec turbo run types:check --affected
 

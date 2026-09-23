@@ -39,10 +39,11 @@ pnpm lint           # Lint all packages (turbo lint)
 pnpm lint:root      # Lint root-level config files only (eslint *.ts *.json *.yaml)
 pnpm lint:fix       # Lint with auto-fix
 pnpm types:check    # Type check all packages
+pnpm types:check:root # Type check the root configs only (tsc -p tsconfig.json)
 pnpm test           # Run tests (server + contract snapshots + utils + client + scripts + release)
 pnpm boundaries     # Turbo architecture-boundaries check
 pnpm lint:workflows # actionlint over .github/workflows
-pnpm prepush        # The pre-push aggregate gate (six sections): boundaries + lint:root + types:check + syncpack + lint:workflows + pnpm change check
+pnpm prepush        # The pre-push aggregate gate (seven sections): boundaries + lint:root + types:check + types:check:root + syncpack + lint:workflows + pnpm change check
 pnpm hooks:check    # Assert the git hooks are lefthook-managed
 
 # Release

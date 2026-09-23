@@ -1,4 +1,10 @@
 {
   "extends": ["//"],
-  "tags": ["shared", "pure", "platform-any"]
+  "tags": ["shared", "pure", "platform-any"],
+  // 纯类型声明包：`build` 只是一句 echo，无产物 —— 显式声明空 outputs 以免 turbo 刷警告。
+  "tasks": {
+    "build": {
+      "outputs": []
+    }
+  }
 }
