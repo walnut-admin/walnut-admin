@@ -14,7 +14,7 @@
 | ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 P1-16 已被决定推迟，见[「搁置」](#搁置-等条件成熟) |
 | ~~P1~~ | 静态检查与门禁的缺口 | **当前为空** —— R4 已修（`types:check:root`），R1 / R2 按决定搁置 |
 | **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 |
-| **P3** | 远期 / 条件触发 | P3-12 · P3-13 · **P3-21** · A8 · A9 · A11 · A12 · A13 |
+| **P3** | 远期 / 条件触发 | P3-12 · P3-13 · **P3-21** · **P3-22** · A8 · A9 · A11 · A12 · A13 |
 | **搁置** | 等条件成熟（外部依赖或已决定先不动） | R1 · R2 · P1-16 · P2-11 · P3-20 · **F2-b** |
 | **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | D1–D6 · D8<br><sub>F0–F9 **全部裁决完毕**（F9 于 2026-09-23 定：英文站不要、组件文档按 74 页那套新命名写 → 后者已转为 P3-21）；D7（TS 7 排期）已并入 R7。**D1–D6 / D8 全部指向业务代码**，按「本轮只做基建与文档」的决定**只登记不动手**</sub> |
 
@@ -65,6 +65,7 @@ R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）�
 
 | # | 事项 | 工作量 | 现状与判据 |
 |---|------|--------|-----------|
+| **P3-22** | **`@walnut/server` 的两条构建流程共用一个 `dist`**（turbo 缓存边界那一轮的副产物） | 中 | **2026-09-23 实测发现**：`apps/server/infra/nest/prod.json` 与 `stage.json` 的 `outDir` **都是** `dist/apps/api/src`（且 `deleteOutDir: true`），而根 `turbo.json` 给 `build` / `build:stage` 声明的产物面也都是 `dist/**`。<br>**为什么是问题**：turbo 缓存命中时**不真跑构建**，而是按任务键把声明的 `outputs` 重放回盘上 ⇒ 两条流程互相覆盖，**最后一次（含缓存重放）决定 `dist` 里留的是哪一版**。这正是不久前在 admin 侧抓到的那个 bug（`build:stage` 报 `FULL TURBO` 却一个文件都不产出）的**另一半**。<br>**治本**：把 staging 的 `outDir` 改成独立目录（如 `dist-stage/apps/api/src`），并同步 Dockerfile / 部署脚本 / `.gitignore` —— **要改 `apps/server/**`，属业务代码，本轮不动**。<br>**影响面有限**：根脚本 `pnpm build:stage` 带 `--filter=@walnut/admin`，平时不会顺手跑到 server 的 `build:stage`；只有显式 `turbo build:stage`（不带 filter）才会撞上。<br>**判据在哪儿**：[Turbo 缓存边界 §4.4](./turbo-cache-boundary) |
 | **P3-12** | **后端验证策略**（原「Zod 替换 class-validator」，评审建议重述） | 大 | 方向不变但**前提已变**：NestJS 12 已官方支持 Standard Schema（`@Body({ schema })` + `StandardSchemaValidationPipe`，同一 schema 还能驱动 OpenAPI），`industry-research/07` 里「手写 `ZodValidationPipe`」的示例已过时；class-validator 仍完全支持、无移除计划。<br>评审建议把本条**从「换校验器」重述为「补齐边界校验清单」**：真正的缺口在**持久化读回 / 队列 / SSE** 三处，工程量从「100+ DTO 迁移」降到「补 3 处边界校验」；如果补不上这三处，这次迁移就不值得做。 |
 | **P3-13** | **E2E 测试（Playwright）** | 大 | 优先覆盖单元 + 集成测试；E2E 等测试体系稳定后再加。 |
 | **A8** | **`@walnut/i18n` 新包** | 大 | 目录**未创建**。locale bootstrap + 状态机 + naive locale 映射。评审（D1）提醒 seam 形态应先决策：ADR 0017 原方案用 TS `interface`，但 `interface` 无运行时令牌，无法表达「依赖 definition 而非 provider」。 |

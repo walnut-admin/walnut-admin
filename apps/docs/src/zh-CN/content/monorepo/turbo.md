@@ -8,11 +8,15 @@ Walnut Admin 使用 **Turborepo 2.9** 作为任务编排引擎。它负责解决
 
 ### 1. 任务拓扑编排
 
-[`turbo.json`](https://github.com/walnut-admin/walnut-admin/blob/main/turbo.json) 定义了 10 个任务：
+[`turbo.json`](https://github.com/walnut-admin/walnut-admin/blob/main/turbo.json) 定义了 11 个任务：
 
 ```jsonc
 {
   "tasks": {
+    "transit": {
+      "dependsOn": ["^transit"],      // ← 传递节点（没有对应脚本）：把上游**源码**串进哈希
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"]
+    },
     "build": {
       "dependsOn": ["^build"],        // ← 关键：先构建所有上游依赖
       "outputs": ["dist/**", ".vitepress/dist/**"],
@@ -20,7 +24,7 @@ Walnut Admin 使用 **Turborepo 2.9** 作为任务编排引擎。它负责解决
     },
     "build:stage": {
       "dependsOn": ["^build:stage"],  // admin 侧 vite build --mode stage
-      "outputs": ["dist/**", ".vitepress/dist/**"],
+      "outputs": ["dist/**", "dist-staging/**", ".vitepress/dist/**"],  // ← staging 落 dist-staging
       "env": ["VITE_*", "MODE"]
     },
     "dev": {
@@ -37,13 +41,18 @@ Walnut Admin 使用 **Turborepo 2.9** 作为任务编排引擎。它负责解决
     },
     "lint":        { "dependsOn": [], "cache": true },
     "lint:fix":    { "dependsOn": [], "cache": false },
-    "types:check": { "dependsOn": [], "cache": true },
+    "types:check": { "dependsOn": ["transit"], "cache": true },  // ← 不挂 ^build，靠 transit 拿上游源码
     "test":        { "dependsOn": ["^build"], "cache": true },
     "clean":       { "dependsOn": [], "cache": false },
     "clean:all":   { "dependsOn": [], "cache": false }
   }
 }
 ```
+
+**`transit` 为什么存在**：本仓 6 个共享包**不构建**（`build` 只是一句 echo），下游读到的是它们的**源码**，
+而 `types:check` 原本 `dependsOn: []` ⇒ 改依赖包源码时它**不失效**、直接回放旧的类型结论。
+`transit` 是没有脚本的传递节点，让「上游的 inputs」沿依赖图逐级并进本 task 的哈希。
+实测与取舍见 [Turbo 缓存边界 §4.2](./turbo-cache-boundary)。
 
 **`dependsOn: ["^build"]`** 是核心设计——`^` 前缀表示"拓扑依赖"：Turbo 会自动计算包的依赖图，先执行被依赖的包的 `build`，再执行依赖者的 `build`。
 
@@ -63,7 +72,8 @@ Turbo 对每个 task 做 **content-aware hashing**：hash 源码 + 依赖 + 环�
 ```jsonc
 "build": {
   "inputs": [
-    "$TURBO_DEFAULT$",    // 默认 hash 包内所有文件
+    "$TURBO_DEFAULT$",    // 默认 hash 包内所有文件（git 跟踪 + 未被忽略的未跟踪文件）
+    "env-local/**",       // 必须显式写——它被 gitignore，而 Vite 的 envDir 就是它
     "!README.md",         // 排除——README 变更不影响构建
     "!**/*.md",           // 排除——Markdown 变更不影响构建
     "!**/tsconfig.tsbuildinfo"  // 排除——增量编译元数据
@@ -73,6 +83,12 @@ Turbo 对每个 task 做 **content-aware hashing**：hash 源码 + 依赖 + 环�
 ```
 
 **效果**：没改过的包 → 200ms 从缓存恢复（vs 重新构建的 10-30s）。"CI 中 cache hit 率通常 > 80%" 是**期望值**——CI workflow（`.github/workflows/ci.yml`）已接入，该指标待实测。
+
+> 🧊 **「改哪个文件会让哪个 task 的缓存失效」的完整实测判据表在
+> [Turbo 缓存边界](./turbo-cache-boundary)** —— 包括四条已经修掉的缝
+> （`build:stage` 漏产物目录导致**缓存命中却一个文件都不产出**、`types:check` 看不到依赖包源码、
+> 解密后的 `env-local` 不进哈希、`@walnut/server` 两条构建流程共用一个 `dist`），
+> 以及守这些不变量的门禁 `pnpm lint:turbo-cache`（push 前 + CI + 发版电池三处都跑）。
 
 ### 3. 环境变量感知
 
