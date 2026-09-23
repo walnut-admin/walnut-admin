@@ -67,13 +67,15 @@
 
 ### C. 结构性但更大
 
+> **已全部登记**为待办表条目：C1 → **P3-23**、C2 → **P1-17**、C3 → **P1-18**、C4 → **P3-24**、C5 → **P1-19**（对比页保留逐块对比与理由，条目里放判据与前置）。
+
 | # | 事项 | 说明 |
 |---|------|------|
-| C1 | **命令行公共层** | Z 有 `verdict`（三态退出码归一）／`gate-ui`（`unmet()` 抛前置条件错）／`argv`（统一参数解析）／`errors` 基类 + 唯一映射。我们：**5 个门禁各抄一遍 `return 2/0/1`**、**12 个文件 50 处裸 `console.*`**（Z 对应层只有 2 处）。⚠️ **有绑定项**：若输出层走 `stream.write`，必须同时把 9 个 `bin/*.ts` 的 `process.exit(main())` 换掉，否则会复现 Z 记录过的「管道下退出码对、拒绝理由一个字没出来」 |
+| C1 | **命令行公共层** | Z 有 `verdict`（三态退出码归一）／`gate-ui`（`unmet()` 抛前置条件错）／`argv`（统一参数解析）／`errors` 基类 + 唯一映射。我们：**每道门禁各抄一遍 `return 2/0/1`**、**一批裸 `console.*`**（调研时数到 12 个文件 50 处，Z 对应层只有 2 处）。⚠️ **有绑定项**：若输出层走 `stream.write`，必须同时把 `bin/*.ts` 那批 `process.exit(main())` 换掉，否则会复现 Z 记录过的「管道下退出码对、拒绝理由一个字没出来」 |
 | C2 | **包标准的机械门禁（最小骨架）** | Z 有 **22 条**机械规则（`turbo-tags` / `exports-shape` / `script-matrix` / `package-json-fields` / 目录索引双向对账 …），我们 **0 条**，只有散文判据。**先做 `turbo-tags`**：漏写一个 tag = 那个包**静默豁免**于整套 `turbo boundaries` |
-| C3 | **根脚本白名单** | 43 条根脚本零约束。Z 用「白名单 + 形态正则 + 理由」三件套。**只搬「名字双向 + 形态正则」两段**，不搬它的三条 forbidden |
+| C3 | **根脚本白名单** | 根脚本（调研时 43 条，**条数会随门禁增加而变**）零约束。Z 用「白名单 + 形态正则 + 理由」三件套。**只搬「名字双向 + 形态正则」两段**，不搬它的三条 forbidden |
 | C4 | **turbo 缓存跨 CI run** | 实测全仓无 `actions/cache`。⚠️ **风险**：key 设计错会命中陈旧缓存 ⇒ 反而静默跳过门禁，必须先确认 hash 覆盖面 |
-| C5 | **本地 ESLint 规则（0 条）** | Z 有 13 条 + 每条配 RuleTester 正反语料。**只搬两条零误报的**：`script-header`（脚本必须 JSDoc 文件头）与 `script-exit-code`（退出码只能 0/1/2）—— 本仓已有成文约定却零判据，且存量已满足，**上线即绿** |
+| C5 | **本地 ESLint 规则（0 条）** | Z 有 13 条 + 每条配 RuleTester 正反语料。**只搬两条零误报的**：`script-header`（脚本必须 JSDoc 文件头）与 `script-exit-code`（退出码只能 0/1/2）—— 本仓有成文约定却零判据。⚠️ **"上线即绿"这句初稿写错了，登记时逐个数过**：`bin/*.ts` **一个 JSDoc 文件头都没有**（全是 `//` 行注释，`check-git-hooks.ts` / `setup-env.ts` 连注释都没有）⇒ 真按"JSDoc 文件头"接规则会**当场一片红**。要么先让规则接受"任意文件头注释"，要么先补一遍存量。 |
 
 ### D. 参考仓更弱：**不要反向学**
 
@@ -102,8 +104,10 @@
 
 ### F. 只登记不动手（业务代码，本轮范围外）
 
-- `apps/admin/src/utils/window/open.ts` 第 24 行的 `window.open` **没带 `noopener`**（同文件另外两处都带了）。
-- `no-dangerous-html` 类规则一旦启用会立刻命中 7 处（`apps/admin/src/components/Global/AI/**` 的 4 个 `v-html` + `apps/admin/src/views/auth/index.vue` 的 2 处 `innerHTML = ''`）—— 全在业务代码里，**按本仓「一排开始误报的门禁等于没有门禁」的口径，现在不该开**。
+> **已登记**为待办表的 **P3-25**（含核实结论与"为什么不能照抄改法"）。本节保留原始观察。
+
+- `apps/admin/src/utils/window/open.ts` 第 24 行的 `window.open` **没带 `noopener`**（同文件另外两处都带了）。**登记时又核实出两件原文没写的事**：① 带 `noopener` 时 `window.open` **返回 `null`**，而调用点 `apps/admin/src/views/auth/src/shared/other.vue` 接住返回值用来关弹窗 ⇒ "照抄加上 `noopener`"会让弹窗关不掉；② 好在该流程走 **SSE** 收登录结果，不依赖 `window.opener`，所以加 `noopener` 不会打断登录。**正确改法要连"怎么关窗"一起重新设计。**
+- `no-dangerous-html` 类规则一旦启用会立刻命中 **4 个 `v-html`**（`apps/admin/src/components/Global/AI/**`），另有 `apps/admin/src/views/auth/index.vue` 第 26 / 31 行的 **2 处 `innerHTML = ''`**（是**清空**而不是注入）—— 全在业务代码里，**按本仓「一排开始误报的门禁等于没有门禁」的口径，现在不该开**。⚠️ 本节初稿写的是"7 处"，登记时逐个数了一遍：**4 + 2 = 6**，初稿的数字是错的。
 
 ---
 
