@@ -8,6 +8,7 @@
 
 | 文档 | 类型 | 说明 |
 |------|------|------|
+| [2026-07-26 内部 lib 抽取建议](./2026-07-26-lib-extraction-recommendations.md) | 计划 | 从 `apps/api/src/{modules,common,decorators}` 向 `apps/server/libs/`（**内部 lib，不是 workspace 包**）抽取的 24 个候选、三档分级与推荐顺序。**未执行**；归档时把候选包名从 `@walnut/*`（前端 scope）改为 `@walnut-server/*` |
 | [2026-08-08 全容器化部署设计](./2026-08-08-dockerized-deployment-design.md) | 设计 | 前端/后端/Nginx 全容器化 + TCR + compose 的目标架构。CI 章节已被 [CI/CD 与容器构建](/content/monorepo/ci-cd) 取代，其余（镜像仓库、compose、证书、服务器初始化）仍有效 |
 | [2026-08-08 全容器化部署实施计划](./2026-08-08-dockerized-deployment-plan.md) | 计划 | 上述设计的 task-by-task 执行方案（含当时的本地验证与上线步骤） |
 | [2026-09-21 CI/CD 重构实施记录](./2026-09-21-ci-cd-pipeline-plan.md) | 计划 | 修复 5 周静默失效的 CI + 拆分流水线 + 薄镜像 + bake 缓存 scope 的完整改动清单、验证结果、回退方式 |
@@ -19,4 +20,5 @@
 
 - 文件名带日期，正文保留当时的写法（不追改），但**顶部会加一段归档说明**，指出哪些结论已被取代、当前该看哪篇。
 - 这些文档原在仓库根 `docs/superpowers/` 与 `docs/reviews/`；2026-09-23 统一迁入文档站，根 `docs/` 目录已移除。
+- `apps/server/docs/` 也曾是过程文档的落脚点（只有 `lib-extraction-recommendations.md` 一份），2026-09-23 随归档迁入本站后该目录已空。
 - 新增过程文档时：直接写在 `content/archive/`，并在 [架构待办事项](/content/monorepo/architecture-todo) 的执行记录里登记一行。

@@ -1,7 +1,0 @@
-# AreaCascader
-
-## Usage
-
-## Props
-
-## Type

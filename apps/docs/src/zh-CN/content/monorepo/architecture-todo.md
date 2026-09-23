@@ -14,9 +14,9 @@
 | ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 P1-16 已被决定推迟，见[「搁置」](#搁置等条件成熟) |
 | **P1** | 静态检查与门禁的缺口（会让「绿」变成假象） | R2 |
 | **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 · R8 · R11 · P2-10 · **F2-a** · **F2-b** |
-| **P3** | 远期 / 条件触发 | P3-12 · P3-14 · P3-15 · P3-13 · A8 · A9 · A11 · P3-17 · P3-18 |
+| **P3** | 远期 / 条件触发 | P3-12 · P3-14 · P3-15 · P3-13 · A8 · A9 · A11 · P3-17 · P3-18 · **A12** |
 | **搁置** | 等条件成熟（外部依赖或已决定先不动） | R1 · P1-16 · P2-11 · P3-20 |
-| **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | F1–F4 · F6–F7 · D1–D6 · D8<br><sub>F0 / F5 已完成；D7（TS 7 排期）已并入 R7</sub> |
+| **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | F1–F2 · F6–F7 · D1–D6 · D8<br><sub>F0 / F3 / F4 / F5 已完成；D7（TS 7 排期）已并入 R7</sub> |
 
 **已清掉的旧账**（2026-09-23 起逐条做掉即从本表移除，验收口径见文末「核实记录」与「执行记录」）：
 R1 改判回退 → 已按决定搁置 ｜ R3 · R4 · P3-19 已做完
@@ -63,6 +63,7 @@ R1 改判回退 → 已按决定搁置 ｜ R3 · R4 · P3-19 已做完
 | **A11** | **Phase 4 自动导入迁移** | 中 | 迁入 package 的代码里隐式全局变量改为显式 import；auto-import / component resolver 已指向 `@walnut/ui`（`component.ts` 扫 `packages/platform-web/ui/src/*/index.ts`），其余待迁。 |
 | **P3-18** | **`skip_deploy` 开关** | 小 | 给 `release.yml` 加 `workflow_dispatch` + `skip_deploy` 输入（约 5 行），用于「只想验证镜像构建、不碰生产」。现状：有 `workflow_dispatch`，**无** `skip_deploy`。 |
 | **P3-17** | **TCR 旧 tag 清理** | 小 | 腾讯云 TCR 个人版单镜像上限 100 版本，每次发布推 `vX.Y.Z` + `nginx:brotli`，长期会顶到上限。可在 `release.yml` 加清理步骤（保留最近 N 个），或交给 TCR 控制台的生命周期策略。 |
+| **A12** | **server 内部 lib 抽取（24 个候选）** | 大 | 计划已归档：[2026-07-26 内部 lib 抽取建议](../archive/2026-07-26-lib-extraction-recommendations.md) —— 从 `apps/api/src/{modules,common,decorators}` 向 `apps/server/libs/`（**内部 lib，不是 workspace 包**）抽取 13 + 7 + 4 个候选，含耦合分析与推荐顺序。<br>**归档时的两处更正**：① 它不与 ADR 0007 冲突（落点是内部 lib）；② 原稿候选包名用了前端 scope `@walnut/*`，已全部改为 `@walnut-server/*`。<br>**未执行**，也没有排期 —— 属于"深入业务代码"的重构，按 2026-09-23 的决定先不做。要做时从这里捡起。 |
 
 ---
 
@@ -89,8 +90,6 @@ R1 改判回退 → 已按决定搁置 ｜ R3 · R4 · P3-19 已做完
 |---|------|--------|
 | **F1** | 根文档单一化 | `CLAUDE.md` → `AGENTS.md` 的符号链接（Windows 无权限时退化为 include 说明），消灭双份漂移。现状：**两份独立文件**。 |
 | **F2** | 补 4 道文档门禁 | `verify-md-links`（失效链接/锚点）、`verify-doc-refs`（拒绝引用已不存在的路径）、`doc-typecheck`（fenced `ts` 块必须编译）、`gen-package-catalog`（从 `package.json` 生成包清单）。现状：**四者皆无**。 |
-| **F3** | 重复文档处置 | `apps/docs/{zh-CN,en-US}/` 下现有 **164** 个文件（归档评审认定为不被渲染的重复文档，2026-09-21 时是 156 个）：删除或明确用途。 |
-| **F4** | 孤儿报告裁决 | `apps/server/docs/lib-extraction-recommendations.md` **仍存在**：要么废除，要么把结论折进 ADR 0007（并把其中的 `@walnut/*` 改为 `@walnut-server/*`）。 |
 | **F6** | ADR 规范化 | `adr/` 补 `## Alternatives considered` 必填 + `Status` 枚举（Proposed / Accepted / Rejected / Superseded）。现有 19 篇全是 `Accepted`，看不出哪些被否决过。 |
 | **F7** | 字数上限门禁 | `verify-doc-budgets` 最小版：只给根 `AGENTS.md` / `CLAUDE.md` / `monorepo/index.md` 定上限。优先级最低。 |
 | **D1** | `@walnut/i18n` / `@walnut/security` 的 seam 形态 | (a) TS `interface`；(b) abstract class + 独立 provider 包。**倾向 (b)**（`interface` 无运行时令牌）。 |
@@ -109,6 +108,7 @@ R1 改判回退 → 已按决定搁置 ｜ R3 · R4 · P3-19 已做完
 
 | 日期 | 完成项 |
 |------|--------|
+| 2026-09-23 | **清旧账第 3 批（F3 + F4，文档治理）**：<br>① **F3 删掉重复文档树** —— `apps/docs/{zh-CN,en-US}/` **164 个文件**全删。删前逐文件核对（不是拍脑袋）：164 个**全部**在 `apps/docs/src/` 下有同名文件（内层还多 49 个），其中 **157 个逐字节相同**，7 个有差异的都是**旧修订版**（内层 5 个更大、已重写；`support.md` / `frontend/base/vendor.md` 2 个外层更大，含已从站点移除的旧段落）；`srcDir: 'src'` 且全仓零引用 ⇒ 外层树从不参与构建。删后 `pnpm build:docs` exit 0。<br>② **F4 孤儿报告归档**（**不是**按评审说的"废除/折进 ADR 0007"）—— 核对原文后发现**评审的前提有误**：`apps/server/docs/lib-extraction-recommendations.md` 提议的落点是 `apps/server/libs/`（NestJS **内部 lib**），与 ADR 0007「后端 lib 保持内部 lib、不提升为 workspace 包」**并不冲突**；真正的问题是候选包名用了**前端** scope `@walnut/*`（会把 `609722b` 修掉的命名碰撞重新引入），以及全仓零引用。<br>因此按本仓既有归档约定（"新增过程文档直接写在 `content/archive/`"）迁到 [archive/2026-07-26-lib-extraction-recommendations.md](../archive/2026-07-26-lib-extraction-recommendations.md)：加归档横幅说明未被执行的实情 + 把 **21 处** `@walnut/<候选>` 改为 `@walnut-server/<候选>`（核验后无残留）+ 登记进 archive 索引；`apps/server/docs/` 随之清空。抽取计划本身记为 **A12**（未排期）。<br>验证：`pnpm build:docs` exit 0、零死链 |
 | 2026-09-23 | **清旧账第 2 批（F2 的第一半：文档链接门禁）**：`apps/docs/.vitepress/config/index.ts` 的 `ignoreDeadLinks` 由 `true` 改为**白名单数组** —— 打开 VitePress 内置死链校验，**零新增依赖、零新增脚本**。打开后实测暴露 **86 条死链**，收窄白名单并修掉真错的 9 条后归零：<br>· 真错并已修：`monorepo/release.md` 的「关键文件」表 5 条相对路径**层级数错**（`../../../../../cliff.toml` 之类，且这些是仓库文件、不是站点页面）→ 统一改 GitHub 链接；`monorepo/architecture-todo.md` 2 条 `./industry-research/…` 少了一级 → `../industry-research/…`；`content.md` 的 `./vue/introduction.md` → `./content/frontend/introduction.md`；`frontend/base/vendor.md` 的 `../components/vendor.md` → `../component/index.md`；`en-US/guide/configuration.md` 的 `../content/monorepo/env-management.md` → 根绝对路径。<br>· 白名单只留两类并各写理由：冻结语料（`archive/`、`industry-research/`）+ `content/frontend/component/index.md` 里指向**尚未编写**的 ~74 个组件页的链接（记为 F2-a）。<br>· `ci.yml` quality job 新增 `Docs build (dead-link check)` 步 —— 以后新增死链直接红。<br>验证：`pnpm build:docs` exit 0（0 死链）、actionlint exit 0 |
 | 2026-09-23 | **清旧账第 1 批**（R4 / R3 / P3-19，验收口径即核实方式）：<br>① **R4 根配置接入类型检查** —— 新增 `types:check:root: tsc -p tsconfig.json`，接入 `prepush`（六段 → **七段**）、`ci.yml`（新步骤 `Type check root configs`）与**发版电池**（新行 `types-root`，`steps.test.ts` 同步）；`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts` 此前没有任何脚本做类型检查。<br>② **R3 根 eslint 换 base 预设** —— 根 `eslint.config.ts` 由 `vue` 预设改为 `base`。核实中发现原条目描述的前提是错的：仓内只有 5 份 `eslint.config.ts`，**另外 10 个包经 ESLint 向上查找也用根配置**（它们全是 TS-only、零 `.vue`，`base` 才是它们该用的预设）。用 `eslint --print-config` 逐文件比对规则集，确认只丢掉 2 条对 TS 无效的 `unocss/*`；同时给 base 补上 `pnpm: true` 与 `pnpm/yaml-enforce-settings: off`，否则会丢 3~4 条 `pnpm/*` 规则并让 `lint:root` 直接报 `shellEmulator` mismatch。<br>③ **P3-19 turbo 产出警告** —— `@walnut/{client,http,types,ui}` 四个包的 `turbo.json` 声明 `"build": { "outputs": [] }`；根 `turbo.json` 的 `test` 任务把 `outputs` 从 `["coverage/**"]` 改为 `[]`（正常 `vitest run` 不产出任何文件，6 个有 test 脚本的包此前每次刷警告）。实测 `build --force` 与 `test --force` 的 "no output files found" 警告 **合计 10 → 0**。<br>验证：`build`（9/9，2m27s）、`test`（12/12）、`lint`（14/14）、`lint:root`、`types:check:root`、`prepush` 七段、`build:docs`、actionlint 全绿 |
 | 2026-09-23 | **待办表核实与瘦身**（本轮）：逐条核实原 P0-P3 / A1-A11 / R1-R11 的 ✅ 标记 → 18 项确认完成并移出、**1 项（R1）判定回退后重开**；剩余项按 P0-P3 重排，新增「未裁决」段收纳 2026-09-21 评审的 F/D 项（即评审建议 **F5「状态移出文档」** 的落地）；新增 `tsx` 全局移除后的文档同步（ADR-0019 / AGENTS.md / CLAUDE.md / package-scripts.md / pnpm-workspace-config.md），catalog 243 → 242 |
