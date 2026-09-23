@@ -98,27 +98,10 @@ describe('根 package.json —— 钩子与门禁脚本', () => {
     expect(JSON.stringify(rootManifest)).not.toContain('simple-git-hooks')
   })
 
-  it('有 prepush 脚本，且十段门禁按序都在里面', () => {
-    const prepush = rootManifest.scripts?.prepush ?? ''
-    expect(prepush.length).toBeGreaterThan(0)
-    // 整表列出（不是抽样）：prepush 是**唯一**的推送前门禁，少一段就是少一道闸。
-    // 段数变过多次（五 → 六 → 七 → 八 → 九 → 十），每加一段都在这里登记。
-    const gates = [
-      'pnpm boundaries',
-      'pnpm lint:root',
-      'pnpm types:check',
-      'pnpm types:check:root',
-      'pnpm syncpack:lint',
-      'pnpm lint:workflows',
-      'pnpm lint:docs-refs',
-      'pnpm lint:adr',
-      'pnpm lint:doc-ts',
-      'pnpm change check',
-    ]
-    for (const gate of gates)
-      expect(prepush, `prepush 里缺 ${gate}`).toContain(gate)
-    const positions = gates.map(gate => prepush.indexOf(gate))
-    expect(positions).toEqual([...positions].sort((a, b) => a - b))
+  it('prepush 只是 `walnut-prepush` 一个词 —— 门禁表不在 package.json 里', () => {
+    // 以前这里是一条 300+ 字符的 `a && b && …` 串。现在清单只有一处（src/ci/prepush.ts），
+    // 根脚本退化成入口名；于是「加一段门禁」不再需要在长串里找位置。
+    expect(rootManifest.scripts?.prepush).toBe('walnut-prepush')
   })
 
   it('hooks:check 就是 walnut-check-git-hooks（装没装上要能机械核对）', () => {

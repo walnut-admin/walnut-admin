@@ -17,7 +17,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 Turborepo + pnpm w
 | `@walnut/contract` | 前后端共享类型、DTO、枚举、API 契约 |
 | `@walnut/utils` | 纯函数工具（regex、queue、crypto） |
 | `@walnut/client` | 浏览器工具 + Vue composables |
-| `@walnut/axios` | HTTP 客户端框架（instance + adapters） |
+| `@walnut/http` | HTTP 客户端框架（instance + adapters）—— **原名 `@walnut/axios`**（2026-07 更名） |
 | `@walnut/eslint-config` | 共享 ESLint 预设（vue / nest / base） |
 
 ## 架构文档

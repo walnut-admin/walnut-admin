@@ -217,6 +217,8 @@ const sidebar: DefaultTheme.Sidebar = {
       text: '架构',
       items: [
         { text: 'Monorepo 架构与设计', link: '/content/monorepo/' },
+        { text: '📍 架构地图（先看这个）', link: '/content/monorepo/architecture' },
+        { text: '术语表', link: '/content/monorepo/glossary' },
         { text: 'TypeScript 配置', link: '/content/monorepo/typescript' },
         { text: 'ESLint 配置', link: '/content/monorepo/eslint' },
         { text: 'package.json & Scripts', link: '/content/monorepo/package-scripts' },

@@ -92,7 +92,7 @@ export const ALLOWED_MISSING_PACKAGES: Record<string, string> = {
   '@walnut/i18n': '规划中（待办 A8）',
   '@walnut/security': '规划中（待办 A9）',
   // 已更名 / 已删除：引用处都是历史叙述
-  '@walnut/axios': '已更名 @walnut/http（2026-07）',
+  '@walnut/axios': '已更名 @walnut/http（2026-07）。现在只剩 ADR（改名决策的历史记录）与冻结语料里还提它 —— 2026-09-23 把最后一处活文档（`content/introduction.md` 的包清单）改正后，活文档已零引用',
   '@walnut/tooling': '已拆成 6 个包（2026-09）',
   '@walnut/shared': '从未存在（ADR 0001 讨论过的候选名）',
   '@walnut/core': '从未存在（ADR 0001 讨论过的候选名）',

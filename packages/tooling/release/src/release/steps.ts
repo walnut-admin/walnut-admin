@@ -80,6 +80,8 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'adr', label: 'ADR 形态校验（编号 / 状态 / 小节）', argv: ['lint:adr'] },
   // 同上。文档里标成 `ts` 的围栏块必须能按 TypeScript 解析（JSON 块不许标成 ts）。
   { id: 'doc-ts', label: '文档代码块校验（ts 块必须能解析）', argv: ['lint:doc-ts'] },
+  // 同上。常驻上下文的几个文件（根 AGENTS.md / CLAUDE.md / 包级指引）不许无限膨胀。
+  { id: 'doc-budget', label: '文档字数预算（常驻文件不许膨胀）', argv: ['lint:doc-budget'] },
   {
     id: 'build',
     label: '构建（3 个 app + 共享包）',
@@ -351,8 +353,9 @@ export async function stepCommitTagPush(ui: ReleaseUi, newVersion: string, optio
     assertSafeRef(branch, '当前分支名'),
     assertSafeRef(tag, 'tag 名'),
   ], {
-    hint: '远端 pre-receive 之前会先跑本仓的 pre-push 门禁（`pnpm --silent prepush`：boundaries / types:check / '
-      + 'syncpack / lint:workflows / pnpm change check），冷缓存数分钟属预期；心跳会告诉你是「在跑」还是「卡住了」。',
+    hint: '远端 pre-receive 之前会先跑本仓的 pre-push 门禁（`pnpm --silent prepush`：'
+      + 'src/ci/prepush.ts 那张表，11 段并行、每段报耗时），冷缓存数分钟属预期；'
+      + '心跳会告诉你是「在跑」还是「卡住了」。',
     ...ui.childOptions(),
   })
 }

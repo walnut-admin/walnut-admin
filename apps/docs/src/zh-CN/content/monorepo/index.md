@@ -1,164 +1,40 @@
-# Monorepo 架构与设计体系
+# Monorepo 架构与设计
 
-## 概述
+> **这个仓长什么样、东西该放哪** → 先看 [**架构地图**](./architecture.md)，那里有仓库全景、
+> 共享包依赖图，以及一张「**我要加 X，该放哪**」的判据表。
+>
+> 本页只是这一节的目录。
 
-Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm workspaces** 管理 15 个包（3 个 app + 3 个 platform-any 包 + 3 个 platform-web 包 + 6 个 tooling 包）。项目从三个独立仓库合并而来，通过 pnpm catalog 统一依赖版本、Turborepo 编排任务、pnpm 原生 release management（`versioning.fixed` 单一组）管理版本号，构建了一套可维护的 monorepo 基础设施。
+## 从这里开始
 
-### 技术栈速览
+| 你想知道 | 去哪 |
+|---------|------|
+| 仓库形态、包分组、**新东西该放哪**、新增门禁怎么接线 | [架构地图](./architecture.md) |
+| 还剩哪些架构 / 工程债没还 | [架构待办](./architecture-todo.md)（P2 / P3 / 搁置 / 未裁决） |
+| 还剩哪些**产品 / 功能**没做 | 仓库根的 [`TODO.md`](https://github.com/walnut-admin/walnut-admin/blob/main/TODO.md) |
+| 某条设计**为什么**是这样 | [ADR 索引](../adr/index.md)（含已否决的决策） |
 
-| 层级 | 技术 |
-|------|------|
-| 包管理 | pnpm 12+（workspace + catalog，`catalogMode: strict`） |
-| 任务编排 | Turborepo 2.9（任务拓扑 + 缓存 + 架构边界） |
-| 类型系统 | TypeScript 6.0（前端 ESM + 后端 CJS，双轨 toolchain） |
-| 代码检查 | ESLint 10.3 flat config + `@antfu/eslint-config` + `@walnut/eslint-config` |
-| 格式化 | ESLint stylistic（无 Prettier，`lint:fix` / lint-staged 即格式化入口） |
-| 版本管理 | pnpm 原生 release management（`versioning.fixed` 单一组：14 个包永远同版本） |
-| 变更日志 | git-cliff 逐包渲染 `CHANGELOG.md`（PR 链接 + 贡献者）；`pnpm release` 另生成根 `changelog-latest.md` |
-| 死代码检测 | Knip 6.29 |
-| Git Hooks | lefthook（`lefthook.yml`）+ lint-staged |
-| 前端框架 | Vue 3 + Vite 8 + Naive UI + UnoCSS |
-| 后端框架 | NestJS 11 + SWC + Mongoose + Redis |
-| 文档引擎 | VitePress 1.6 |
-| Node 要求 | >= 24.13.0 |
+> 两本账**刻意分开**：本节的待办记的是**工程债**（每条都能写出一条机械判据 —— 门禁 / 测试 / 脚本），
+> 根 `TODO.md` 记的是**产品取舍**。别把产品功能塞进架构待办，也别把门禁缺口塞进根 `TODO.md`。
 
----
-
-## 架构文档索引
-
-以下是按主题拆分的架构文档，每个文档覆盖一个顶层设计领域：
+## 专题文档
 
 | 文档 | 主题 |
 |------|------|
+| [架构地图](./architecture.md) | 仓库全景、双层级 monorepo、共享包依赖图、「我要加 X 该放哪」 |
 | [TypeScript 配置](./typescript.md) | `@walnut/tsconfig` 三预设（base / ts / vue）、server 不继承任何预设、不用 Project References |
-| [ESLint 配置](./eslint.md) | Flat config、`@walnut/eslint-config` 三预设、pre-commit/pre-push 门禁 |
+| [ESLint 配置](./eslint.md) | Flat config、`@walnut/eslint-config` 三预设、pre-commit / pre-push 门禁 |
 | [package.json & Scripts](./package-scripts.md) | 标准 script 约定、根只做委托、按包类型差异化 |
 | [pnpm Catalog](./pnpm-catalog.md) | `catalogMode: strict`、精确版本锁死、`workspace:*` vs `catalog:` |
+| [pnpm-workspace.yaml 详解](./pnpm-workspace-config.md) | workspace 声明、`versioning` 段、hoisting 与供应链防护 |
 | [Turbo](./turbo.md) | 任务拓扑编排、缓存策略、环境变量感知、Tag-Based 架构边界 |
+| [Syncpack 版本一致性](./syncpack.md) | 依赖版本一致性检测 |
 | [发布 & 发版指南](./release.md) | 单一 fixed 版本策略、`pnpm change` / `pnpm version -r` 消费意图、git-cliff 渲染、发版实操 |
 | [CI/CD 与容器构建](./ci-cd.md) | 触发矩阵（commit 只跑门禁 / tag 才构建镜像）、薄镜像与 buildx 缓存 scope、两条硬约束 |
 | [Knip 死代码检测](./knip.md) | 死代码检测、配置设计、已知局限、日常维护 |
 | [环境变量加密管理](./env-management.md) | dotenvx 加密方案、多环境密钥、新成员入职流程 |
+| [架构待办事项](./architecture-todo.md) | 未完成的架构 / 工程债 |
 
----
+## 相关
 
-## 仓库全景
-
-### 双层级 monorepo
-
-项目存在**两层**包管理结构：
-
-```
-walnut-admin/                        ← Turborepo + pnpm workspace（外层）
-├── apps/
-│   ├── admin/                       ← @walnut/admin（Vue3 SPA）
-│   ├── server/                      ← @walnut/server（NestJS API）
-│   │   ├── apps/api/                ← NestJS 应用入口
-│   │   └── libs/                    ← NestJS CLI monorepo（内层，9 个 lib）
-│   └── docs/                        ← @walnut/docs（VitePress 文档站）
-├── packages/                        ← 共享库（按平台分组，ADR 0017）
-│   ├── platform-any/                ← 运行时无关
-│   │   ├── contract/                ← @walnut/contract（类型 + 常量）
-│   │   ├── types/                   ← @walnut/types（类型声明）
-│   │   └── utils-core/              ← @walnut/utils（纯函数工具）
-│   ├── platform-web/                ← 浏览器/Vue（纯源码）
-│   │   ├── client/                  ← @walnut/client（浏览器工具 + Vue composables + store 工厂）
-│   │   ├── http/                    ← @walnut/http（HTTP 客户端框架，原名 axios）
-│   │   └── ui/                      ← @walnut/ui（naive-ui 组件，POC 3 组件）
-│   └── tooling/                     ← 工具链（2026-09-23 拆成 5 个包 + 同日新增 vitest-config，见 ADR 0019）
-│       ├── tsconfig/                ← @walnut/tsconfig（纯 JSON tsconfig 预设：base / ts / vue）
-│       ├── eslint-config/           ← @walnut/eslint-config（ESLint 预设 base / vue / nest）
-│       ├── commitlint-config/       ← @walnut/commitlint-config（commitlint 规则）
-│       ├── vitest-config/           ← @walnut/vitest-config（共享 Vitest 预设：发现规则 / 环境 / 覆盖率）
-│       ├── scripts/                 ← @walnut/scripts（仓库级脚本通用层：lib / ci / env，5 个 bin）
-│       └── release/                 ← @walnut/release（发版编排，bin：walnut-release）
-├── turbo.json                       ← 任务定义 + 缓存 + 架构边界
-├── pnpm-workspace.yaml              ← workspace 声明 + catalog + versioning
-├── tsconfig.json                    ← 仓库根 TS 配置（extends `@walnut/tsconfig/base.json`）
-├── eslint.config.ts                 ← 根 ESLint 入口
-└── knip.config.ts                   ← 死代码检测配置
-```
-
-**外层**（Turborepo 层面）：`apps/*` + `packages/platform-any/*` + `packages/platform-web/*` + `packages/tooling/*` 共 15 个 workspace 包，通过 pnpm workspace 协议（`workspace:*`）相互引用。
-
-**内层**（Server 内部）：`apps/server/libs/*` 下的 9 个 NestJS 内部库，通过 TypeScript `paths` 映射解析，不走 pnpm workspace。命名空间为 `@walnut-server/*`，与外层 `@walnut/*` 物理分离。
-
-### 关键设计决策
-
-1. **异构 Toolchain**：前端 ESM + Vite + `moduleResolution: "bundler"`；后端 CJS + NestJS CLI + SWC + `moduleResolution: "node"`。Server **不继承**任何 `@walnut/tsconfig` 预设（`base.json` / `ts.json` / `vue.json`）。
-2. **两个命名空间**：`@walnut/*`（外层，pnpm workspace 包）和 `@walnut-server/*`（内层，NestJS internal libs）。物理分离，无命名冲突。
-3. **catalog 统一版本**：242 依赖通过 `pnpm-workspace.yaml` 的 `catalog:` 统一定义，`catalogMode: strict` 阻止直接版本号。
-4. **`hoist: false`**：严格依赖隔离——每个包只能解析自己 `package.json` 中声明的依赖，`node_modules/.pnpm/node_modules/` 条目数为 0。仅有 7 条精确包名的 `publicHoistPattern` 例外被提升到根 `node_modules/`。
-5. **供应链防护**：`minimumReleaseAge`（1 天冷却期）、`trustPolicy: no-downgrade`（拒绝可信度下降的版本）、`blockExoticSubdeps`（传递依赖禁止异源）三项由 pnpm 在安装时校验 lockfile。
-6. **依赖构建脚本白名单只有两条放行**：`@sentry/cli`（Sentry 上传路径本地无法验证）与 `lefthook`（它的 postinstall 就是 `lefthook install`，不放行则 git 钩子静默消失，见 ADR 0018）；其余原生模块（`@swc/core`、`esbuild`、`sharp` 等）通过 `optionalDependencies` 分发预编译产物，不需要构建脚本。
-
----
-
-## 共享包体系
-
-### 依赖图
-
-```
-@walnut/contract          ← 基础层（类型 + 常量）
-    ↑
-@walnut/utils             ← 纯函数工具（依赖 contract + types）
-    ↑
-@walnut/client  @walnut/http   ← 浏览器/Vue 层（依赖 utils + contract）
-    ↑              ↑
-@walnut/ui                ← naive-ui 组件层（peer: naive-ui + vue）
-    ↑
-@walnut/admin             ← 消费所有共享包
-```
-
-### 各包职责
-
-| 包 | 职责 | 框架依赖 |
-|----|------|---------|
-| `@walnut/contract` | 共享类型、DTO、枚举、API 契约 | 零运行时依赖 |
-| `@walnut/utils` | 纯函数（regex、queue、crypto） | contract + types |
-| `@walnut/types` | 环境类型声明（universal/storage/deep-ref/object-key） | 零依赖 |
-| `@walnut/client` | 浏览器工具 + Vue composables + store 工厂 | Vue 3 |
-| `@walnut/http` | HTTP 客户端框架（instance + adapters，原名 axios） | axios + client |
-| `@walnut/ui` | naive-ui 组件（Switch/DynamicTags/TimePicker POC） | naive-ui + vue（peer） |
-| `@walnut/eslint-config` | ESLint 共享预设（vue / nest / base） | ESLint |
-| `@walnut/commitlint-config` | commitlint 规则（scope-enum 等） | commitlint |
-| `@walnut/tsconfig` | 纯 JSON tsconfig 预设（base / ts / vue），无依赖、无源码 | 无 |
-| `@walnut/vitest-config` | 共享 Vitest 预设：只收敛用例发现规则 / 运行环境 / 覆盖率采集范围 | vitest（peer） |
-| `@walnut/scripts` | 仓库级脚本的通用层：纯逻辑工具（`lib/`）、仓库门禁（`ci/`）、env 加解密（`env/`），经 5 个 bin 被根 scripts 调用 | `@dotenvx/dotenvx`（+ devDep `yaml`） |
-| `@walnut/release` | 发版编排（`src/release/`，20 个模块），bin `walnut-release` | `@walnut/scripts` + git-cliff + yaml |
-
-### 消费方式
-
-- **前端**（Vite）：通过 `workspace:*` symlink 直接消费源码（JIT 模式）
-- **后端**（NestJS）：通过 `workspace:*` symlink 消费 CJS 构建产物（`exports` 的 `require` 条件）
-- **不发布** npm：当前为内部 monorepo。6 个平台包不含 `private` 字段（表示代码公开可见，**不**代表要发布到 npm）；3 个 app 与 `@walnut/scripts` / `@walnut/release` / `@walnut/tsconfig` 为 `private: true`（纯仓库内使用）。
-
----
-
-## 后端内部库体系
-
-Server 内部通过 NestJS CLI + SWC 管理 9 个内部库，命名空间 `@walnut-server/*`：
-
-```
-apps/server/libs/
-├── config/       @walnut-server/config       — 环境配置 + 验证
-├── const/        @walnut-server/const        — 常量 + 错误码
-├── context/      @walnut-server/context      — ALS 上下文
-├── db/           @walnut-server/db           — Mongoose + 事务
-├── decorators/   @walnut-server/decorators   — 自定义装饰器体系
-├── exceptions/   @walnut-server/exceptions   — 异常 + 全局过滤器
-├── pipes/        @walnut-server/pipes        — 参数管道
-├── types/        @walnut-server/types        — 类型声明
-└── utils/        @walnut-server/utils        — 工具函数
-```
-
-这些 lib 通过 `apps/server/tsconfig.json` 的 `paths` 映射解析，由 NestJS CLI + SWC 统一编译。它们**不参与** pnpm workspace，不通过 `package.json` `exports` 消费。
-
----
-
-## 相关 ADR
-
-- [ADR-0010: No TypeScript Project References](/content/adr/0010-no-ts-project-references.md)
-- [ADR-0011: Dependency Governance & Release Pipeline](/content/adr/0011-dependency-governance-release.md)
-- [ADR-0012: Frontend-Backend Toolchain Divergence](/content/adr/0012-toolchain-divergence.md)
-- [ADR-0019: 共享 tsconfig 预设包与「无 `.mjs`」约束](/content/adr/0019-tsconfig-presets-and-no-mjs.md)
+- [ADR 索引](../adr/index.md) ｜ [归档：设计 / 计划 / 评审](../archive/index.md) ｜ [行业调研](../industry-research/03-ci-cd-pipeline.md)

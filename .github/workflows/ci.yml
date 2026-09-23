@@ -104,6 +104,11 @@ jobs:
       - name: Doc code-block check
         run: pnpm lint:doc-ts
 
+      # 常驻上下文的几个文件（根 AGENTS.md / CLAUDE.md / 包级指引）不许无限膨胀；
+      # 预算**用不到一半**同样失败（那种预算已经约束不到任何东西）。
+      - name: Doc budget check
+        run: pnpm lint:doc-budget
+
       # 防"affected 空集静默通过"：有文件变更却算出 0 个受影响包时必须失败
       - name: Affected set sanity check
         if: steps.affected.outputs.base != ''

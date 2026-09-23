@@ -57,7 +57,7 @@ ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的�
 3. 在下面的表格里**加一行**，状态列写 `**Status:**` 的**原文**（门禁要求两处逐字一致）。
 
 漏掉第 3 步、写错编号、状态不在枚举内、少了任何一个小节 —— `pnpm lint:adr`（在 `prepush`
-十段里的第八段、`ci.yml` 的 quality job、以及发版电池里）都会直接红。
+推送前门禁表里、`ci.yml` 的 quality job、以及发版电池里）都会直接红。
 
 ## ADR 列表
 
