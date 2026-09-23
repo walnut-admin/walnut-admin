@@ -19,6 +19,15 @@
   //      `!**/__never__/**` 排除，实测 0 个 task 失效；而真改 `inputs`/`outputs` 会失效。
   // ─────────────────────────────────────────────────────────────────────────────
   "$schema": "https://turbo.build/schema.json",
+  // ── 本地缓存的自动回收（Turbo 2.10+；本仓 2026-09-23 从 2.9.14 升到 2.11.2 才拿到）──────
+  // 以前 `.turbo/cache` 只涨不落，得手工清。这两个上限让它随用随回收。
+  "cacheMaxAge": "14d",
+  "cacheMaxSize": "5GB",
+  // 并发上限。**Turbo 的默认值是 10** —— 本仓 12 核，而 `test` 任务下每个 vitest 进程默认
+  // 又会按 CPU 数开 worker ⇒ 两级并发乘起来最坏能到 10×12 个进程。
+  // 收到 4 是与 `@walnut/vitest-config` 的 `maxWorkers: '50%'` **配套**的（那一条同时钉住
+  // 单任务的 worker 数）—— 两级必须一起收敛，只改一级等于没改。
+  "concurrency": "4",
   "boundaries": {
     "tags": {
       "shared": {

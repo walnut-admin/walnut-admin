@@ -2,7 +2,7 @@
 
 ## 概述
 
-Walnut Admin 使用 **Turborepo 2.9** 作为任务编排引擎。它负责解决三个核心问题：(1) 按依赖拓扑顺序执行任务；(2) 缓存构建产物避免重复计算；(3) 只对受变更影响的包执行任务。
+Walnut Admin 使用 **Turborepo 2.11** 作为任务编排引擎。它负责解决三个核心问题：(1) 按依赖拓扑顺序执行任务；(2) 缓存构建产物避免重复计算；(3) 只对受变更影响的包执行任务。
 
 ## 我们做了什么
 
@@ -120,7 +120,7 @@ Turbo 2.x 的 **Strict Environment Mode** 要求显式声明 task 依赖哪些�
 
 ### 4. Tag-Based 架构边界
 
-Turbo 2.9 的实验性功能——通过标签声明包的角色并强制依赖方向：
+Tag-Based 架构边界（Turbo 2.9 引入时是实验特性，2.11 下依然由 `turbo boundaries` 强制执行）——通过标签声明包的角色并强制依赖方向：
 
 ```jsonc
 // 根 turbo.json（2026-08-08 升级为 platform 维度，见 ADR 0017）
@@ -165,11 +165,44 @@ Turbo 2.9 的实验性功能——通过标签声明包的角色并强制依赖�
 pnpm turbo boundaries   # 检查是否有包违反了边界规则（pre-push 与 CI 中强制执行）
 ```
 
+## 本地缓存的自动回收与并发上限
+
+```jsonc
+"cacheMaxAge": "14d",     // 缓存条目最长留 14 天
+"cacheMaxSize": "5GB",    // 缓存目录体积上限
+"concurrency": "4"        // 同时跑几个 task
+```
+
+前两个要 **Turbo 2.10+**（2026-09-23 从 2.9.14 升到 2.11.2 才拿到）—— 在此之前
+`.turbo/cache` 只涨不落，要手工清。
+
+`concurrency` 的关键事实：**Turbo 的默认值是 10**，而本仓 12 核、`test` 任务下每个 vitest
+进程默认又会按 CPU 数开 worker ⇒ 两级并发乘起来最坏能到 10×12 个进程。收到 4 是把它砍掉一半多。
+
+> ⚠️ **升级时踩到的一条**：`turbo@2.11.3` 当天发布（约 9 小时前），被本仓自己的
+> `minimumReleaseAge: 1440`（24 小时成熟期）拦下 —— pnpm 直接拒绝安装并提示三种绕过方式。
+> **没有**去动 `minimumReleaseAgeExclude`（那是供应链策略，不为图新而松），而是选了已过成熟期的
+> `2.11.2`。这条规矩值得记住：升级先看成熟期，别第一时间改豁免清单。
+
 ## 没做什么 / 为什么
 
 ### 不配置 Remote Cache（已决定，2026-08-08）
 
 Turborepo Remote Cache（Vercel 托管或自建）可以跨 CI 机器共享缓存，但当前是单人维护、CI 规模小，单机缓存已够用——**已决定不接入**。`globalPassThroughEnv` 保留 `TURBO_TOKEN`/`TURBO_TEAM` 透传，若未来 CI 并行度提升（多台机器同时构建），接入零配置改动。
+
+### 不设 vitest 的 `maxWorkers`（测过，无差异）
+
+参考仓把 `concurrency: 4` 与 vitest 的 `maxWorkers: '50%'` **配套**设（两级并发放一起收敛）。
+本仓**只设了前者**，理由是实测：
+
+| vitest `maxWorkers` | 全仓 `pnpm test --force` 两次 |
+|---|---|
+| 不设（默认按 CPU 数） | 11.2s / 9.5s |
+| `'50%'` | 9.8s / 9.9s |
+
+**没有可辨差异**，而 `@walnut/vitest-config` 自己的定位是「只收敛会漂移的东西，不设聪明的默认值」——
+为一个测不出收益的项去改全仓测试语义不划算；何况在 2 核 CI 上 `50%` 会只剩 1 个 worker，反而可能欠配。
+真要收敛，正确的触发条件是**观察到 CI 上因争抢导致的超时**，而不是「参考仓这么写了」。
 
 ### CI 使用 affected-only
 

@@ -77,7 +77,7 @@ catalog:
   vue: 3.5.34
   typescript: 6.0.3
   eslint: 10.3.0
-  turbo: 2.9.14
+  turbo: 2.11.2
   # ... 242 条目
 ```
 

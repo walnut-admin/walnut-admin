@@ -19,7 +19,7 @@
 | `apps/server/` | `@walnut/server` | NestJS 11 + SWC + Mongoose + Redis（**自有内部 Nest monorepo**） |
 | `apps/docs/` | `@walnut/docs` | VitePress 文档站（端口 8886） |
 
-Node >= 24.13.0 ｜ pnpm >= 12.0.0 ｜ TypeScript 6.0.3 ｜ Turbo 2.9.14
+Node >= 24.13.0 ｜ pnpm >= 12.0.0 ｜ TypeScript 6.0.3 ｜ Turbo 2.11.2
 
 ## 仓库结构
 

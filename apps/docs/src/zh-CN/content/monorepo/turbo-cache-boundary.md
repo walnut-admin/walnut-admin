@@ -242,8 +242,8 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 | 产物目录 | ⚠️ 只写「不声明 `outputs` 等于放弃缓存」，**没说清真正的症状**：声明了但**漏一个目录**时是「命中缓存 ⇒ 静默不产出 + exit 0」 | ✅ 实测过同一类 bug，并把 `dist` / `dist-stage` **按画像分离** | ✅ 本轮补上 `dist-staging`，并把它做成门禁（Z 仓靠断言 + 负向验证器） |
 | 根级文件的缓存 | ❌ 未涉及 | ✅ 有 `//#lint:root` 这种**根任务**，inputs 用 `$TURBO_ROOT$/**` + 逐条排除运行期目录，且记了「漏排除 ⇒ 缓存永不命中」「排除过头 ⇒ 门禁回放假绿」两个方向的坑 | ✅ 已补 `//#lint:root` 根任务（inputs 逐字等于脚本的 glob），冷跑 3.8s → 热跑 0.11s，见 4.6 |
 | 环境变量 | ✅ `env` vs `passThroughEnv` 讲清了 | ✅ 进一步：`NODE_ENV` 被工具链自身改写 ⇒ 放 `passThroughEnv`；`PATH` / `npm_execpath` 必须声明否则发版脚本找不到 pnpm；护栏是 `eslint-plugin-turbo` 的 `no-undeclared-env-vars`（error 级，上线时抓出 5 个真实缺口） | ✅ `NODE_ENV` 已按同一条实测结论改到 `globalPassThroughEnv`（见 4.5）；⚠️ 但**仍然没有** eslint-plugin-turbo ⇒ 未声明的变量会被静默剥离而没人拦。<br>**接这条规则前先看这组实测**（2026-09-23）：全仓 `process.env.*` 共 **75 个不同的变量名**，其中 **74 处在 `apps/server/libs/config/src/modules/*.config.ts`**（运行期从 `.env` 读，`@nestjs/config` 在进程内注入，**不是**构建期输入）、24 处在发版工具链、admin 侧只有 1 处。naive 打开这条规则会一次报出近百条，**几乎全是误报** —— 按本仓「一个开始误报的门禁等于没有门禁」的标准，正确做法是先划清「构建期真输入」与「运行期配置」的边界（前者进 `env`/`globalEnv`，后者进 `globalPassThroughEnv` 或规则的 `allowList`），再开闸 |
-| 缓存淘汰 | ❌ 未涉及 | ✅ `cacheMaxAge: "14d"` + `cacheMaxSize: "5GB"`（Turbo 2.10+） | ❌ 没有（本仓 turbo 2.9.14，这两个键要 2.10+） |
-| 并发 | ❌ 未涉及 | ✅ `concurrency: 4`，并与 vitest 的 `maxWorkers` 一起收敛（两级并发不一起算就是 4×CPU 个 worker） | ❌ 没有（用 turbo 默认） |
+| 缓存淘汰 | ❌ 未涉及 | ✅ `cacheMaxAge: "14d"` + `cacheMaxSize: "5GB"` | ✅ 已对齐（同日把 turbo 升到 2.11.2 —— 这两个键要 2.10+） |
+| 并发 | ❌ 未涉及 | ✅ `concurrency: 4`，并与 vitest 的 `maxWorkers: '50%'` 一起收敛 | ⚠️ `concurrency: "4"` 已加（Turbo 默认是 **10**，本仓 12 核 ⇒ 收了一半多）；但**没**跟着设 vitest 的 `maxWorkers` —— 本机实测两种设置下全仓 test 都是 9.5–11s（无差异），而在小核 CI 上 `50%` 反而可能欠配。结论与实测记在 [Turbo](./turbo) |
 | 边界怎么被守住 | ❌ 未涉及 | ✅ 把缓存断言写进 `check-scripts` / `check-package-standard`，并给关键断言配**负向验证器**（注入错误证明它真会红） | ✅ 本轮补上 `walnut-check-turbo-cache` + 7 个注入用例 |
 | 远端缓存 | ⚠️ 推荐接入（后被推翻） | ✅ 明确只用本地缓存，理由是「单机验证够用、CI 是构建 tag 不是增量」 | ✅ 同为不接入，理由一致 |
 

@@ -299,7 +299,7 @@ catalog:
   tinyglobby: 0.2.16
   tinymce: 8.5.0
   ts-json-schema-generator: 2.9.1-next.18
-  turbo: 2.9.14
+  turbo: 2.11.2
   typescript: 6.0.3
   ua-parser-js: 2.0.9
   unocss: 66.6.8
