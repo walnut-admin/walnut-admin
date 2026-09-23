@@ -60,9 +60,22 @@
     "packages/tooling/tsconfig/*.json",
     "packages/tooling/vitest-config/*.ts"
   ],
-  "globalEnv": ["NODE_ENV"],
+  // ⚠️ `NODE_ENV` **刻意不放在 `globalEnv`**（2026-09-23 裁决）。
+  //
+  // 它必须**可见** —— Turbo 的严格模式会剥离未声明的变量，而 `NODE_ENV` **不在** Turbo 的
+  // 内置放行名单里（实测：不声明就会被剥成 undefined）。所以它留在这里。
+  //
+  // 但它**不该进哈希**：没有任何 task 的**产物**取决于外部传进来的这个值 ——
+  //   · `@walnut/server` 的 build / build:stage 由脚本自己 `cross-env NODE_ENV=…` 设定；
+  //   · `@walnut/admin` 走 `vite build`，Vite 自己强制 production、vitest 自己强制 test；
+  //   · `@walnut/docs` 走 `vitepress build`，同理。
+  // 放进 `globalEnv` 的实测代价：`NODE_ENV=production` 与 `NODE_ENV=development` 跑同一份代码
+  // → **90 个 task 全部失效**（2026-09-23 干跑实测），白扔一整轮缓存。
+  // 判据可重跑：`NODE_ENV=a pnpm exec turbo run build --dry=json` 与 `NODE_ENV=b …` 比 hash，
+  // 现在应当**一个都不变**。
   "globalPassThroughEnv": [
     "CI",
+    "NODE_ENV",
     "GITHUB_TOKEN",
     "VERCEL_TOKEN",
     "TURBO_TOKEN",

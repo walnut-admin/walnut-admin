@@ -188,6 +188,23 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 > 它来自 `VITE_BUILD_OUT_DIR` —— 那个值在**加密的** env 文件里，改它要重建 dotenvx 密钥、
 > 会让 CI 的 `ENV_KEYS` secret 失效。所以只改 server 这一侧，并把两个目录名都写进 `outputs`。
 
+### 4.5 `NODE_ENV` 该不该进哈希 ✅ 已裁决（不进）
+
+原本放在 `globalEnv`（进哈希）。实测代价：`NODE_ENV=production` 与 `NODE_ENV=development`
+跑同一份代码 → **90 个 task 全部失效**，白扔一整轮缓存。
+
+**裁决：改到 `globalPassThroughEnv`**（可见、不进哈希）。两条理由：
+
+1. **可见性仍然是必须的** —— Turbo 的严格模式会剥离未声明的变量，而 `NODE_ENV` **不在**
+   Turbo 的内置放行名单里（不声明就被剥成 undefined）。
+2. **它不该进哈希** —— 没有任何 task 的**产物**取决于外部传进来的这个值：
+   `@walnut/server` 的 build 由脚本自己 `cross-env NODE_ENV=…` 设定；
+   `@walnut/admin` 走 `vite build`，Vite 自己强制 production、vitest 自己强制 test；
+   `@walnut/docs` 走 `vitepress build`，同理。
+
+判据可重跑：`NODE_ENV=a pnpm exec turbo run build --dry=json` 与 `NODE_ENV=b …` 比 hash ——
+改前 90/90 失效，改后 **0/90**。
+
 ---
 
 ## 五、交叉对比：调研文档 / 参考仓 Z / 本仓
@@ -200,7 +217,7 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 | 依赖包源码变更 | ❌ 未涉及 | ✅ **`transit` 传递节点**（本仓直接采纳了这个设计） | ✅ 本轮补上 |
 | 产物目录 | ⚠️ 只写「不声明 `outputs` 等于放弃缓存」，**没说清真正的症状**：声明了但**漏一个目录**时是「命中缓存 ⇒ 静默不产出 + exit 0」 | ✅ 实测过同一类 bug，并把 `dist` / `dist-stage` **按画像分离** | ✅ 本轮补上 `dist-staging`，并把它做成门禁（Z 仓靠断言 + 负向验证器） |
 | 根级文件的缓存 | ❌ 未涉及 | ✅ 有 `//#lint:root` 这种**根任务**，inputs 用 `$TURBO_ROOT$/**` + 逐条排除运行期目录，且记了「漏排除 ⇒ 缓存永不命中」「排除过头 ⇒ 门禁回放假绿」两个方向的坑 | ⚠️ `lint:root` 是**根脚本、不是 turbo 任务** ⇒ 完全不缓存。简单，但每次 push 都真跑 |
-| 环境变量 | ✅ `env` vs `passThroughEnv` 讲清了 | ✅ 进一步：`NODE_ENV` 被工具链自身改写 ⇒ 放 `passThroughEnv`；`PATH` / `npm_execpath` 必须声明否则发版脚本找不到 pnpm；护栏是 `eslint-plugin-turbo` 的 `no-undeclared-env-vars`（error 级，上线时抓出 5 个真实缺口） | ⚠️ `NODE_ENV` 放在 **`globalEnv`（进哈希）**；**没有** eslint-plugin-turbo ⇒ 未声明的变量会被静默剥离而没人拦 |
+| 环境变量 | ✅ `env` vs `passThroughEnv` 讲清了 | ✅ 进一步：`NODE_ENV` 被工具链自身改写 ⇒ 放 `passThroughEnv`；`PATH` / `npm_execpath` 必须声明否则发版脚本找不到 pnpm；护栏是 `eslint-plugin-turbo` 的 `no-undeclared-env-vars`（error 级，上线时抓出 5 个真实缺口） | ✅ `NODE_ENV` 已按同一条实测结论改到 `globalPassThroughEnv`（见 4.5）；⚠️ 但**仍然没有** eslint-plugin-turbo ⇒ 未声明的变量会被静默剥离而没人拦。<br>**接这条规则前先看这组实测**（2026-09-23）：全仓 `process.env.*` 共 **75 个不同的变量名**，其中 **74 处在 `apps/server/libs/config/src/modules/*.config.ts`**（运行期从 `.env` 读，`@nestjs/config` 在进程内注入，**不是**构建期输入）、24 处在发版工具链、admin 侧只有 1 处。naive 打开这条规则会一次报出近百条，**几乎全是误报** —— 按本仓「一个开始误报的门禁等于没有门禁」的标准，正确做法是先划清「构建期真输入」与「运行期配置」的边界（前者进 `env`/`globalEnv`，后者进 `globalPassThroughEnv` 或规则的 `allowList`），再开闸 |
 | 缓存淘汰 | ❌ 未涉及 | ✅ `cacheMaxAge: "14d"` + `cacheMaxSize: "5GB"`（Turbo 2.10+） | ❌ 没有（本仓 turbo 2.9.14，这两个键要 2.10+） |
 | 并发 | ❌ 未涉及 | ✅ `concurrency: 4`，并与 vitest 的 `maxWorkers` 一起收敛（两级并发不一起算就是 4×CPU 个 worker） | ❌ 没有（用 turbo 默认） |
 | 边界怎么被守住 | ❌ 未涉及 | ✅ 把缓存断言写进 `check-scripts` / `check-package-standard`，并给关键断言配**负向验证器**（注入错误证明它真会红） | ✅ 本轮补上 `walnut-check-turbo-cache` + 7 个注入用例 |

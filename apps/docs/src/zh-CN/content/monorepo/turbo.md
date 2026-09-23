@@ -101,14 +101,22 @@ Turbo 2.x 的 **Strict Environment Mode** 要求显式声明 task 依赖哪些�
 ```
 
 ```jsonc
-"globalEnv": ["NODE_ENV"]       // 变更 → 全部任务缓存失效
-
-"globalPassThroughEnv": [       // 运行时可见但不影响缓存的变量
-  "CI", "GITHUB_TOKEN", "VERCEL_TOKEN", "TURBO_TOKEN", "TURBO_TEAM"
+// 运行时可见但**不进哈希**的变量。
+// ⚠️ `NODE_ENV` 刻意在这里而不是 `globalEnv`：它必须可见（Turbo 严格模式会剥离未声明的
+// 变量，而 NODE_ENV 不在 Turbo 的内置放行名单里），但没有任何 task 的**产物**取决于外部
+// 传进来的这个值 —— 各工具链自己会设定它（Vite build 强制 production、vitest 强制 test、
+// 后端 build 由脚本 `cross-env` 设定）。放进 globalEnv 的实测代价是「同一份代码换个
+// NODE_ENV 就跑满 90 个 task」，白扔一整轮缓存。
+"globalPassThroughEnv": [
+  "CI", "NODE_ENV", "GITHUB_TOKEN", "VERCEL_TOKEN", "TURBO_TOKEN", "TURBO_TEAM"
 ]
 ```
 
 `VITE_*` 通配符覆盖所有 26 个前端构建时变量。后端环境变量不需要声明——后端在运行时从 `.env` 读取，不影响构建产物。
+
+> 更细的一层：`VITE_*` 是**进程环境**里的变量；Vite 构建时还会从磁盘读 `env-local/.env*`
+> （`envDir`），那一份靠 `inputs` 里的 `env-local/**` 进缓存键 —— 两条通道都要管，
+> 详见 [Turbo 缓存边界 §4.3](./turbo-cache-boundary)。
 
 ### 4. Tag-Based 架构边界
 
