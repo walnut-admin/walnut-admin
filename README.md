@@ -43,8 +43,7 @@ walnut-admin/
 │       ├── scripts/           @walnut/scripts           — 仓库级脚本：lib / ci 门禁 / env 加解密 + 3 个 bin
 │       └── release/           @walnut/release           — 发版编排（bin walnut-release）
 ├── turbo.json                    — Turborepo pipeline
-├── pnpm-workspace.yaml           — pnpm workspace + 版本策略（versioning.fixed 唯一真源）
-└── migration-guide/              — 历史迁移记录（已完成）
+└── pnpm-workspace.yaml           — pnpm workspace + 版本策略（versioning.fixed 唯一真源）
 ```
 
 > 架构决策见 [`apps/docs/src/zh-CN/content/`](./apps/docs/src/zh-CN/content/)：
@@ -86,4 +85,4 @@ This monorepo was created by merging three previously separate repositories:
 - [walnut-admin-server](https://github.com/walnut-admin/walnut-admin-server) — NestJS backend (now `apps/server/`)
 - [walnut-admin-doc](https://github.com/walnut-admin/walnut-admin-doc) — Vitepress docs (now `apps/docs/`)
 
-See [migration-guide/](./migration-guide/) for the historical migration record, and [`apps/docs/src/zh-CN/content/`](./apps/docs/src/zh-CN/content/) for the current architecture documentation and refactor roadmap ([monorepo architecture](./apps/docs/src/zh-CN/content/monorepo/) / [ADRs](./apps/docs/src/zh-CN/content/adr/) / [archived design & review docs](./apps/docs/src/zh-CN/content/archive/)).
+See [`apps/docs/src/zh-CN/content/`](./apps/docs/src/zh-CN/content/) for the architecture documentation and refactor roadmap ([monorepo architecture](./apps/docs/src/zh-CN/content/monorepo/) / [ADRs](./apps/docs/src/zh-CN/content/adr/) / [archived design & review docs](./apps/docs/src/zh-CN/content/archive/)), and [`AGENTS.md`](./AGENTS.md) for the agent-facing guide.

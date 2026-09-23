@@ -41,7 +41,7 @@ Current state:
 **`turbo.json` test task**: `dependsOn: ["^build"]` — a package's tests need its upstream dependencies' build output
 (`@walnut/contract` / `@walnut/utils` publish a CJS `dist/` for the backend's `require` path, see ADR 0002), while the
 package under test is *not* built first: Vitest compiles it from source with esbuild. `["^build"]` (not `["build"]`)
-is the correct chain per industry standard (see `docs/reference/04-testing-strategy.md`).
+is the correct chain per industry standard (see [行业调研：测试体系](../industry-research/04-testing-strategy.md)).
 
 ## Consequences
 

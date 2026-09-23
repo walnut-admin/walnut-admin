@@ -138,7 +138,6 @@ const config: KnipConfig = {
     '**/env*/**',
     '**/env-*/**',
     '**/infra/**',
-    '**/migration-guide/**',
     '**/docker/**',
   ],
 

@@ -19,26 +19,30 @@ The monorepo has vitest configured in most packages but zero actual test files i
 - **No Jest migration needed** — the project never adopted Jest; Jest-era remnant dependencies (`jest`, `ts-jest`, `ts-loader`, `ts-node`, `tsconfig-paths`, `@types/jest`) were removed from `apps/server`
 
 **Config per environment:**
-- `packages/utils`, `packages/contract`: `environment: "node"`
-- `packages/client`: `environment: "jsdom"` + Vue plugin
+- `packages/platform-any/utils-core`, `packages/platform-any/contract`: `environment: "node"`
+- `packages/platform-web/client`: `environment: "jsdom"` + Vue plugin
 - `apps/admin`: not yet configured — no `vitest.config.ts` in `apps/admin`
-- `apps/server`: `environment: "node"` + SWC plugin (for decorator metadata) — config at `apps/api/vitest.config.ts` (swc + vite-tsconfig-paths); the `test` script runs `vitest run --config ./apps/api/vitest.config.ts` (fixed 2026-08-08 — the script previously could not locate the config)
+- `apps/server`: `environment: "node"` + SWC plugin (for decorator metadata) — config at `apps/server/apps/api/vitest.config.ts` (swc + vite-tsconfig-paths); the `test` script runs `vitest run --config ./apps/api/vitest.config.ts` (fixed 2026-08-08 — the script previously could not locate the config)
+
+> 2026-09-23 校正：本节的路径当时写的是重组前的平铺布局（`packages/{utils,contract,client}`），
+> 已按 ADR 0017 之后的真实位置改写。
 
 ## Decision 2: Co-located Test Files
 
 **Chosen:** Test files live in `__tests__/` directories co-located with source.
 
 ```
-packages/utils/src/
-├── queue/
-│   ├── queue.ts
-│   └── __tests__/
-│       └── queue.test.ts
-├── regex/
-│   ├── regex.ts
-│   └── __tests__/
-│       └── regex.test.ts
+packages/tooling/release/src/release/
+├── plan.ts
+├── steps.ts
+└── __tests__/
+    ├── plan.test.ts
+    └── steps.test.ts
 ```
+
+> 注意实践里是**两种并存**：`tooling/{release,scripts}` 用 `__tests__/` 目录，
+> 而 `platform-any/utils-core` 直接与源码同级（`src/queue.test.ts`）。两者都算「co-located」，
+> 门禁只要求 `*.test.ts` 命名一致（见下）。
 
 **Rationale:**
 - **Industry convention** — co-location is the dominant pattern in pnpm/Turborepo monorepos
@@ -79,6 +83,6 @@ See ADR-0009 for the three-tier quality gate (pre-commit → pre-push → CI). T
 
 ## Related
 
-- `docs/adr/0009-ci-quality-gates.md` — three-tier quality gate framework
-- `docs/reference/04-testing-strategy.md` — industry standard testing practices for monorepos
+- [`0009`](./0009-ci-quality-gates.md) — three-tier quality gate framework
+- [行业调研：测试体系](../industry-research/04-testing-strategy.md) — industry standard testing practices for monorepos
 - `turbo.json` — `test` task configuration

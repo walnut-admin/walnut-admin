@@ -23,7 +23,7 @@ paths:
 - 模块路径：`apps/server/apps/api/src/modules/<apiPath>/`
 - Schema Model 必须 `extends WalnutAdminCommonBasicModel`
 - Type 导出三件套：`ISysXxxDocument`、`ISysXxxModel`、`ISysXxxMethods`
-- DB Model 名称常量在 `apps/server/apps/api/src/const/app/config.ts` 中定义（key 用 `SYS_XXX`）
+- DB Model 名称常量在 `apps/server/libs/const/src/app/config.ts` 中定义（key 用 `SYS_XXX`）
 - 模块注册：`system/*` → system 父模块；`app/*` → app 父模块
 - Model 注入用 `AppInjectModel(WalnutDBModelName.XXX)`，**禁止** `@InjectModel` 和 `Model.name`
 - DTO 必须包含构造函数：`constructor(partial: Partial<XxxDTO>) { super(); Object.assign(this, partial) }`

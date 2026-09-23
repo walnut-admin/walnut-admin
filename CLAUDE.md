@@ -92,7 +92,6 @@ walnut-admin/
 │       │                                 repo gates (ci/), env encrypt/decrypt (env/); 3 bins
 │       └── release/          @walnut/release          — release orchestration (src/release/); bin walnut-release
 ├── apps/admin/build/         ← Admin Vite build config (plugins/config/proxy)
-├── migration-guide/          ← Migration documentation & tracking
 ├── turbo.json                ← Turborepo pipeline
 ├── pnpm-workspace.yaml       ← pnpm workspace + config
 ├── tsconfig.json             ← Root TS config (extends `@walnut/tsconfig/base.json`)
@@ -170,7 +169,6 @@ This monorepo was created by merging three previously separate repositories:
 - [`apps/docs/src/zh-CN/content/adr/`](./apps/docs/src/zh-CN/content/adr/) — 架构决策记录（ADR 0001-0019）
 - [`apps/docs/src/zh-CN/content/industry-research/`](./apps/docs/src/zh-CN/content/industry-research/) — 行业调研语料
 - [`apps/docs/src/zh-CN/content/archive/`](./apps/docs/src/zh-CN/content/archive/) — 归档：带日期的设计 / 计划 / 评审文档（根 `docs/` 目录已移除，全部内容在此）
-- `migration-guide/` — historical migration record (Phase 1 merge steps, now completed)
 
 ## Frontend Architecture (apps/admin/)
 

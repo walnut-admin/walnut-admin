@@ -7,7 +7,7 @@
 
 The NestJS backend uses `class-validator` + `class-transformer` for request validation, integrated via a custom decorator system (`WalnutAdminDecoratorField*`). The frontend has no runtime schema validation layer.
 
-Industry consensus (see `docs/reference/07-fullstack-architecture.md`) favors **Zod** for fullstack monorepos: a single schema serves both backend validation and frontend form validation, with automatic TypeScript type inference (`z.infer<typeof schema>`).
+Industry consensus (see [行业调研：Vue3 + NestJS 全栈架构](../industry-research/07-fullstack-architecture.md)) favors **Zod** for fullstack monorepos: a single schema serves both backend validation and frontend form validation, with automatic TypeScript type inference (`z.infer<typeof schema>`).
 
 Two paths exist:
 1. **Migrate to Zod** — replace `class-validator` DTOs with Zod schemas, add `ZodValidationPipe` in NestJS
@@ -56,7 +56,7 @@ Revisit this decision when any of these conditions are met:
 
 ## Related
 
-- `docs/decisions/zod-evaluation.md` — detailed Zod vs class-validator comparison
-- `docs/reference/07-fullstack-architecture.md` — industry recommendation for Zod in fullstack monorepos
+- [Zod vs class-validator 评估](./zod-evaluation.md) — detailed Zod vs class-validator comparison
+- [行业调研：Vue3 + NestJS 全栈架构](../industry-research/07-fullstack-architecture.md) — industry recommendation for Zod in fullstack monorepos
 - `apps/server/libs/decorators/` — current class-validator decorator system
 - `apps/server/CLAUDE.md` — DTO design rules (RealPickType, field decorator usage)

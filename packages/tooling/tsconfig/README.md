@@ -41,7 +41,7 @@
 | `apps/admin` | `vue.json` | Vue SPA，Vite 编译 |
 | `apps/docs` | `vue.json` | VitePress（自己声明 `types: ["node"]`） |
 | `apps/server` | **不继承任何预设** | ADR 0012：CJS + `moduleResolution: node` + decorators 与 ESM + bundler 冲突 |
-| `packages/platform-any/contract` | `ts.json` | 有 Node 执行的 `scripts/build-barrel.ts` |
+| `packages/platform-any/contract` | `ts.json` | 有 Node 执行的 `packages/platform-any/contract/scripts/build-barrel.ts` |
 | `packages/platform-any/types` | `ts.json` | 纯 `.d.ts` |
 | `packages/platform-any/utils-core` | `ts.json` | 纯逻辑（自持 `types: ["node"]`） |
 | `packages/platform-web/*` | `vue.json` | 浏览器 + Vue |
