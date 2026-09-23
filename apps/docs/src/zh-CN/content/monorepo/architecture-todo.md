@@ -1,7 +1,7 @@
 # 架构待办事项
 
 > **本表只列未完成的项。** 2026-09-23 逐条核实了原表里所有 ✅ / ❌ 标记：确认完成的已从表中移除
-> （核实方式见文末[「核实记录」](#核实记录已移出待办)，避免再次出现「标了完成其实没做」）；
+> （核实方式见文末[「核实记录」](#核实记录-已移出待办)，避免再次出现「标了完成其实没做」）；
 > 其中 **R1 核实后判定为已回退**，重新回到待办并升级到 P1。
 > 完成项的历史留在文末「执行记录」，细节见对应 ADR / 专题文档。
 
@@ -11,7 +11,7 @@
 
 | 级别 | 判据 | 条目 |
 |------|------|------|
-| ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 P1-16 已被决定推迟，见[「搁置」](#搁置等条件成熟) |
+| ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 P1-16 已被决定推迟，见[「搁置」](#搁置-等条件成熟) |
 | **P1** | 静态检查与门禁的缺口（会让「绿」变成假象） | R2 |
 | **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 · R8 · R11 · P2-10 · **F2-a** · **F2-b** |
 | **P3** | 远期 / 条件触发 | P3-12 · P3-14 · P3-15 · P3-13 · A8 · A9 · A11 · P3-17 · P3-18 · **A12** |
@@ -46,7 +46,7 @@ R1 改判回退 → 已按决定搁置 ｜ R3 · R4 · P3-19 已做完
 | **R11** | **文档漂移清扫** | 小 | 本轮又修掉几处：`apps/docs/CLAUDE.md`（`preinstall` / `only-allow` 已不存在）、`apps/server/CLAUDE.md`（pnpm 11 → 12、preinstall）、`deploy.yml` 注释（setup-env 不再用 tsx）、`.gitignore` 的死规则 `report/*`。剩余 `.claude/`、`.zcode/` 等入口文档待查。 |
 | **P2-10** | **Codecov / 覆盖率报告** | 小 | PR 上自动评论覆盖率变化（免费）。现在 6 份 vitest 配置都具备 coverage 能力但未接入。<br>⚠️ 需要账号/令牌，**待你确认是否要做**。 |
 | **F2-a** | **文档死链：已开校验，但 ~74 条链接指向「未编写的组件页」** | 中 | 2026-09-23 把 VitePress 的 `ignoreDeadLinks` 从 `true` 收窄成白名单（只忽略冻结语料 + `content/frontend/component/` 那份索引里指向未编写页面的链接），并修掉 9 条真错的相对路径（`release.md` 的仓库文件表 5 条层级写错、`architecture-todo.md` 2 条少了一级、`content.md` / `vendor.md` / `en-US/configuration.md` 各 1 条）。<br>**剩余欠账**：`content/frontend/component/index.md` 按功能分层列了 ~74 个组件页，但 `content/frontend/component/` 目录下**只有 index.md**。要么补写这些页、要么把索引里的链接降级成纯文本（保留规划信息但不产生死链），然后就能把白名单收掉、让索引也受校验。<br>CI 已加 `Docs build (dead-link check)` 步，所以**以后新增死链会直接红**。 |
-| **F2-b** | **锚点校验 + prose 里的仓库路径引用**（等第三方库调研结论） | 中 | VitePress 内置只查「目标页是否存在」，**不查 `#fragment` 是否真实存在**；文档正文里还有约 584 处反引号引用的仓库文件路径（如 `` `packages/tooling/release/src/release/steps.ts` ``）目前完全无校验 —— 这正是本轮反复出现文档漂移的根因之一。正在调研现成库（`remark-validate-links` / `lychee` / `markdown-link-check` 等），结论出来再定实现。 |
+| **F2-b** | **锚点校验 + prose 里的仓库路径引用**（调研已完成，结论见下方小节） | 小 | VitePress 内置只查「目标页是否存在」，**不查 `#fragment`**。实测全站只有 **6 条**带锚点的站内链接、其中 **2 条是坏的**（都是 `architecture-todo.md` 里我自己写的，已修 —— 全角括号会被 slugify 转成 `-`）。**现在加锚点门禁 ROI 很低**，配方已记在下方，等锚点链接变多再上。prose 里的 584 处仓库路径引用**没有现成库**可用（理由见下）。 |
 
 ---
 
@@ -80,6 +80,49 @@ R1 改判回退 → 已按决定搁置 ｜ R3 · R4 · P3-19 已做完
 
 ---
 
+## F2-b 调研结论：文档链接校验用什么（2026-09-23）
+
+需求拆成三块，分别找现成工具，**结论是只有第 1 块有零成本方案**：
+
+| 需求 | 候选 | 结论 |
+|------|------|------|
+| ① 站内相对/绝对链接的**目标页是否存在** | VitePress 内置 `ignoreDeadLinks` | ✅ **已启用**（见执行记录第 2 批）。零依赖、就是构建本身 |
+| ② **`#fragment` 锚点**是否真实存在 | [`remark-validate-links`](https://github.com/remarkjs/remark-validate-links)（v13，离线）<br>[`lychee`](https://github.com/lycheeverse/lychee) + [`lycheeverse/lychee-action`](https://github.com/lycheeverse/lychee-action)<br>`markdown-link-check` / `linkinator` / `broken-link-checker` | 见下 |
+| ③ prose 里反引号引用的**仓库路径**（约 584 处） | 无 | ❌ **没有现成库**。所有链接检查器都只认真正的链接语法，不认反引号里的纯文本。要么不查，要么自己写几十行 |
+
+**为什么 VitePress 用不了 remark 插件**（这是选型的关键，已核实）：VitePress 的 markdown 引擎是
+**markdown-it**，不是 remark/unified —— `markdown.config` 拿到的是 markdown-it 实例（本仓现在用它装
+`vitepress-plugin-tabs`），所以 `remark-validate-links` **插不进构建**。若退化成 `remark-cli` 单独一步，
+它又要求链接指向**真实存在的文件**，而本仓 174 条相对链接里有 ~15 条是**不带 `.md` 后缀**的（VitePress
+允许、会自己补），会直接误报。⇒ **不推荐**。
+
+**推荐（要用时直接抄）**：`lychee` 是唯一能补上锚点校验的现成工具 —— 它支持
+`--offline`（不联网）、`--include-fragments`（查锚点）、`--fallback-extensions md`（补 VitePress 的扩展名省略）、
+`--exclude-path`（排除冻结语料）。**CI 里用官方 action，不需要本地装二进制**，与本仓
+`lint:workflows`（actionlint 没装就跳过、CI 强制）**完全同形**：
+
+```yaml
+- uses: lycheeverse/lychee-action@v2
+  with:
+    args: >-
+      --offline --include-fragments --no-progress
+      --fallback-extensions md
+      --exclude-path 'apps/docs/src/zh-CN/content/archive'
+      --exclude-path 'apps/docs/src/zh-CN/content/industry-research'
+      'apps/docs/src/zh-CN/content/**/*.md'
+```
+
+**为什么现在没装**：全站只有 **6 条**带锚点的站内链接（纯锚点 4 + 跨文件带锚点 0），而 VitePress 内置
+已经覆盖了「目标页不存在」这个大头 —— 为 6 条链接引入一个二进制 + 一个 CI 步骤，ROI 说不通。
+**触发条件**：等锚点链接涨到几十条，或出现一次「锚点静默失效」的真实事故。
+
+**顺带查出的真实错误（已修）**：`architecture-todo.md` 里两个锚点写错了。VitePress 的 slugify 会把
+**全角括号变成 `-`**：`## 搁置（等条件成熟）` 生成的是 `id="搁置-等条件成熟"`，而我原来写的是
+`#搁置等条件成熟`（无横杠）。已按构建产物里的真实 `id` 改正。
+📌 记住这条规则：**中文标题里的 `（）` 会变成 `-`**，手写锚点必须对照构建产物的 `id`。
+
+---
+
 ## 未裁决（2026-09-21 评审提出，尚未决定做不做）
 
 > 来自[归档：架构 Review 与调研审计](../archive/2026-09-21-architecture-review.md)。原文说这些是**新增项**，
@@ -108,6 +151,7 @@ R1 改判回退 → 已按决定搁置 ｜ R3 · R4 · P3-19 已做完
 
 | 日期 | 完成项 |
 |------|--------|
+| 2026-09-23 | **清旧账第 4 批（F2-b 调研 + 修掉 3 个坏锚点 + 修一个门禁失效）**：调研「文档链接校验用什么现成工具」，结论见[上方小节](#f2-b-调研结论-文档链接校验用什么-2026-09-23)：<br>① **VitePress 是 markdown-it 不是 remark** ⇒ `remark-validate-links` 插不进构建，且它要求链接指向真实文件（本仓 ~15 条不带 `.md` 的链接会误报）；② `lychee`（`--offline --include-fragments --fallback-extensions md`）是唯一能补锚点校验的现成工具，**CI 用 `lycheeverse/lychee-action` 不需要本地装二进制**，配方已写进文档；③ 外链检查器（`markdown-link-check` / `linkinator`）会因 177 条外链常年红，不用；④ **prose 里 584 处反引号仓库路径没有现成库**。<br>**实测 ROI 后决定暂不安装**：全站只有 **6 条**带锚点的站内链接，为它引入二进制 + CI 步骤说不通。<br>**修掉 3 个真实坏锚点**（都在 `architecture-todo.md`，是我自己写的）：VitePress 的 slugify 把**全角括号与全角冒号都转成 `-`** —— `## 搁置（等条件成熟）` 的真实 `id` 是 `搁置-等条件成熟`；已按构建产物的真实 `id` 逐个改正。<br>**顺带修掉一个门禁失效**：根 `turbo.json` 的 `build` 任务把 `!**/*.md` 排除在缓存输入外 ⇒ **改文档不会让 docs 构建缓存失效**，本地 `pnpm build:docs` 会重放旧 dist、静默跳过死链校验（CI 无缓存所以不受影响，但本地会骗人）。已在 `apps/docs/turbo.json` 覆盖 `inputs` 把 `.md` 纳入。<br>验证：`pnpm build:docs` 强制真实构建 exit 0、零死链、页内锚点全部可解析 |
 | 2026-09-23 | **清旧账第 3 批（F3 + F4，文档治理）**：<br>① **F3 删掉重复文档树** —— `apps/docs/{zh-CN,en-US}/` **164 个文件**全删。删前逐文件核对（不是拍脑袋）：164 个**全部**在 `apps/docs/src/` 下有同名文件（内层还多 49 个），其中 **157 个逐字节相同**，7 个有差异的都是**旧修订版**（内层 5 个更大、已重写；`support.md` / `frontend/base/vendor.md` 2 个外层更大，含已从站点移除的旧段落）；`srcDir: 'src'` 且全仓零引用 ⇒ 外层树从不参与构建。删后 `pnpm build:docs` exit 0。<br>② **F4 孤儿报告归档**（**不是**按评审说的"废除/折进 ADR 0007"）—— 核对原文后发现**评审的前提有误**：`apps/server/docs/lib-extraction-recommendations.md` 提议的落点是 `apps/server/libs/`（NestJS **内部 lib**），与 ADR 0007「后端 lib 保持内部 lib、不提升为 workspace 包」**并不冲突**；真正的问题是候选包名用了**前端** scope `@walnut/*`（会把 `609722b` 修掉的命名碰撞重新引入），以及全仓零引用。<br>因此按本仓既有归档约定（"新增过程文档直接写在 `content/archive/`"）迁到 [archive/2026-07-26-lib-extraction-recommendations.md](../archive/2026-07-26-lib-extraction-recommendations.md)：加归档横幅说明未被执行的实情 + 把 **21 处** `@walnut/<候选>` 改为 `@walnut-server/<候选>`（核验后无残留）+ 登记进 archive 索引；`apps/server/docs/` 随之清空。抽取计划本身记为 **A12**（未排期）。<br>验证：`pnpm build:docs` exit 0、零死链 |
 | 2026-09-23 | **清旧账第 2 批（F2 的第一半：文档链接门禁）**：`apps/docs/.vitepress/config/index.ts` 的 `ignoreDeadLinks` 由 `true` 改为**白名单数组** —— 打开 VitePress 内置死链校验，**零新增依赖、零新增脚本**。打开后实测暴露 **86 条死链**，收窄白名单并修掉真错的 9 条后归零：<br>· 真错并已修：`monorepo/release.md` 的「关键文件」表 5 条相对路径**层级数错**（`../../../../../cliff.toml` 之类，且这些是仓库文件、不是站点页面）→ 统一改 GitHub 链接；`monorepo/architecture-todo.md` 2 条 `./industry-research/…` 少了一级 → `../industry-research/…`；`content.md` 的 `./vue/introduction.md` → `./content/frontend/introduction.md`；`frontend/base/vendor.md` 的 `../components/vendor.md` → `../component/index.md`；`en-US/guide/configuration.md` 的 `../content/monorepo/env-management.md` → 根绝对路径。<br>· 白名单只留两类并各写理由：冻结语料（`archive/`、`industry-research/`）+ `content/frontend/component/index.md` 里指向**尚未编写**的 ~74 个组件页的链接（记为 F2-a）。<br>· `ci.yml` quality job 新增 `Docs build (dead-link check)` 步 —— 以后新增死链直接红。<br>验证：`pnpm build:docs` exit 0（0 死链）、actionlint exit 0 |
 | 2026-09-23 | **清旧账第 1 批**（R4 / R3 / P3-19，验收口径即核实方式）：<br>① **R4 根配置接入类型检查** —— 新增 `types:check:root: tsc -p tsconfig.json`，接入 `prepush`（六段 → **七段**）、`ci.yml`（新步骤 `Type check root configs`）与**发版电池**（新行 `types-root`，`steps.test.ts` 同步）；`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts` 此前没有任何脚本做类型检查。<br>② **R3 根 eslint 换 base 预设** —— 根 `eslint.config.ts` 由 `vue` 预设改为 `base`。核实中发现原条目描述的前提是错的：仓内只有 5 份 `eslint.config.ts`，**另外 10 个包经 ESLint 向上查找也用根配置**（它们全是 TS-only、零 `.vue`，`base` 才是它们该用的预设）。用 `eslint --print-config` 逐文件比对规则集，确认只丢掉 2 条对 TS 无效的 `unocss/*`；同时给 base 补上 `pnpm: true` 与 `pnpm/yaml-enforce-settings: off`，否则会丢 3~4 条 `pnpm/*` 规则并让 `lint:root` 直接报 `shellEmulator` mismatch。<br>③ **P3-19 turbo 产出警告** —— `@walnut/{client,http,types,ui}` 四个包的 `turbo.json` 声明 `"build": { "outputs": [] }`；根 `turbo.json` 的 `test` 任务把 `outputs` 从 `["coverage/**"]` 改为 `[]`（正常 `vitest run` 不产出任何文件，6 个有 test 脚本的包此前每次刷警告）。实测 `build --force` 与 `test --force` 的 "no output files found" 警告 **合计 10 → 0**。<br>验证：`build`（9/9，2m27s）、`test`（12/12）、`lint`（14/14）、`lint:root`、`types:check:root`、`prepush` 七段、`build:docs`、actionlint 全绿 |

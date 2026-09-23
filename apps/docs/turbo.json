@@ -1,4 +1,19 @@
 {
   "extends": ["//"],
-  "tags": ["app", "docs"]
+  "tags": ["app", "docs"],
+  // ⚠️ 根 `build` 任务把 `!**/*.md` 排除在缓存输入外（对代码包合理：改 README 不该重建）。
+  // 但 docs 的**内容就是 .md** —— 沿用根 inputs 会让「改文档」不触发重建，本地
+  // `pnpm build:docs` 直接重放旧 dist、**静默跳过 VitePress 的死链校验**。
+  // 这里覆盖 inputs 把 .md 纳入（仅排除产物目录）。
+  // LINK 死链校验就是构建本身，见 .vitepress/config/index.ts 的 ignoreDeadLinks。
+  "tasks": {
+    "build": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/dist/**",
+        "!**/.vitepress/dist/**",
+        "!**/.vitepress/cache/**"
+      ]
+    }
+  }
 }
