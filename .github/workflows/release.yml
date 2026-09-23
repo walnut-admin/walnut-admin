@@ -14,6 +14,15 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  # 手动补跑：用于「只想验证镜像构建、不碰生产」——**ref 必须选那个 tag**（`github.ref_name` 既是镜像
+  # tag 也是 Release 的 tag_name；选分支会拿分支名当版本号）。
+  # 注意 `inputs` 是**允许**出现在 job 级 `if` 的（与 `secrets` 不同，见 ci.yml 顶部的血泪注释）。
+  workflow_dispatch:
+    inputs:
+      skip_deploy:
+        description: '⚠️ ref 请选 tag。只跑门禁 + 构建推镜像 + 建 Release，跳过部署到生产'
+        type: boolean
+        default: false
 
 concurrency:
   group: release-${{ github.ref }}
@@ -210,6 +219,8 @@ jobs:
   deploy:
     name: Deploy to prod
     needs: [verify, images, release]
+    # `skip_deploy` 只可能来自 workflow_dispatch；tag 推送时 `inputs` 为空 → 照常部署。
+    if: ${{ !inputs.skip_deploy }}
     uses: ./.github/workflows/deploy.yml
     with:
       image_tag: ${{ github.ref_name }}

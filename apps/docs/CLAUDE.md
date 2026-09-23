@@ -124,6 +124,9 @@ The `scripts/fetch-version.js` script fetches the latest release version from th
 
 4. **Custom Components**: The three custom components (`WPageTitle`, `WFrontLink`, `WBaseLink`) are globally registered and can be used in any markdown file.
 
-5. **Dead Links**: Currently `ignoreDeadLinks: true` is set in config - this should be addressed eventually.
+5. **Dead Links**: `ignoreDeadLinks` is now a **curated allowlist** (frozen corpora + the ~74 not-yet-written component pages), not `true` — `vitepress build` fails on a real dead link. It is enforced in CI (`Docs build (dead-link check)`).
+   ⚠️ VitePress only checks **`.md`** links. Non-`.md` relative links and every markdown file outside `apps/docs/src/` are covered by `pnpm lint:docs-refs` instead (`@walnut/scripts` 的 `check-doc-refs`).
 
-6. **Locale Structure**: The root locale is Chinese (via rewrites), so Chinese content appears at `/` while English would be at `/en-US/`.
+6. **⚠️ Never write raw `${{ … }}` in prose.** VitePress compiles markdown as a Vue template, so `${{ x }}` in a paragraph or table cell is treated as an **interpolation** and the build dies with `Cannot read properties of undefined` (hit 2026-09-23 while documenting a GitHub Actions `if` expression). It is safe inside **fenced code blocks** (VitePress renders those with `v-pre`). To show one inline, either drop the wrapper and name the expression, or wrap it: `<span v-pre>` + the text + `</span>`.
+
+7. **Locale Structure**: The root locale is Chinese (via rewrites), so Chinese content appears at `/` while English would be at `/en-US/`.
