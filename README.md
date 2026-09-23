@@ -41,7 +41,7 @@ walnut-admin/
 │       ├── eslint-config/     @walnut/eslint-config     — 共享 ESLint 预设（base / vue / nest）
 │       ├── commitlint-config/ @walnut/commitlint-config — commitlint 规则
 │       ├── vitest-config/     @walnut/vitest-config     — 共享 Vitest 预设（发现规则 / 环境 / 覆盖率）
-│       ├── scripts/           @walnut/scripts           — 仓库级脚本：lib / ci 门禁 / env 加解密 + 4 个 bin
+│       ├── scripts/           @walnut/scripts           — 仓库级脚本：lib / ci 门禁 / env 加解密 + 5 个 bin
 │       └── release/           @walnut/release           — 发版编排（bin walnut-release）
 ├── turbo.json                    — Turborepo pipeline
 └── pnpm-workspace.yaml           — pnpm workspace + 版本策略（versioning.fixed 唯一真源）

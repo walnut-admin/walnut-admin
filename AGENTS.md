@@ -33,7 +33,7 @@ packages/tooling/        tsconfig · eslint-config · commitlint-config · vites
                          ← 工具链 6 包：@walnut/tsconfig（纯 JSON 预设 base/ts/vue）·
                            @walnut/eslint-config · @walnut/commitlint-config ·
                            @walnut/vitest-config（共享测试预设）·
-                           @walnut/scripts（lib/ci/env + 4 bin）· @walnut/release（发版编排，bin walnut-release）
+                           @walnut/scripts（lib/ci/env + 5 bin）· @walnut/release（发版编排，bin walnut-release）
 ```
 
 - 前端包 scope `@walnut/*`（ESM、pnpm workspace、Vite 编译）；后端内部 lib scope `@walnut-server/*`
@@ -109,7 +109,7 @@ pnpm knip             # 死代码检测（**当前是红的且有意维持**，�
 8. **组件**：`ComponentName/index.ts`（导出）+ `ComponentName/index.vue`（实现）；API 函数以 `API` 结尾。
 9. **存储迁移**：改动持久化结构时同步 `src/utils/persistent/migrate.ts`（admin 侧）。
 10. **不许新建 `.mjs` / `.cjs`**：配置、ESLint 预设、bin、构建脚本一律 `.ts`；所有 `.ts` 入口都由 Node 24 原生类型剥离执行（**仓库内已无任何 `tsx` 依赖** —— 连 `apps/admin` 的 `predev` / `types:check:log` 也改走 `node`），该约束由 `ts.json` 的 `erasableSyntaxOnly` 在编译期保证（ADR 0019）。
-11. **改文档要过门禁**：`pnpm lint:docs-refs` 校验正文里引用的包名与仓库路径；`pnpm lint:adr` 校验 ADR 形态（形状约定见 [`adr/index.md`](./apps/docs/src/zh-CN/content/adr/index.md)）；`pnpm build:docs` 会因死链失败。**别在正文里写原始 `${{ }}`**（VitePress 当 Vue 插值，构建直接炸 —— 见 [`apps/docs/AGENTS.md`](./apps/docs/AGENTS.md)）。
+11. **改文档要过门禁**：`pnpm lint:docs-refs` 校验正文里引用的包名与仓库路径；`pnpm lint:adr` 校验 ADR 形态（形状约定见 [`adr/index.md`](./apps/docs/src/zh-CN/content/adr/index.md)）；`pnpm build:docs` 会因死链失败。**别在正文里写原始 `${{ }}`**（VitePress 当 Vue 插值，构建直接炸 —— 见 [`apps/docs/AGENTS.md`](./apps/docs/AGENTS.md)）。**也别写会腐烂的计数**（包数 / bin 数 / 依赖条目数）—— 那类数字没有门禁拦得住；优先写判据。细节见同一个文件的重要约定 8。
 
 ## 各 app 专属指引
 

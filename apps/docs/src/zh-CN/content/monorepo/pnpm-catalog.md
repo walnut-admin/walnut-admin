@@ -2,7 +2,7 @@
 
 ## 概述
 
-Walnut Admin 使用 **pnpm catalog + `catalogMode: strict`** 集中管理所有外部依赖版本。248 个依赖包的版本号在 `pnpm-workspace.yaml` 的 `catalog:` 段落中统一定义，所有 `package.json` 只能写 `"catalog:"` 引用，不允许直接写版本号。（2026-08-08：jest / ts-jest / ts-loader / ts-node / tsconfig-paths / @types/jest 等不再使用的条目已从 catalog 移除。）
+Walnut Admin 使用 **pnpm catalog + `catalogMode: strict`** 集中管理所有外部依赖版本。**242** 条依赖的版本号在 `pnpm-workspace.yaml` 的 `catalog:` 段落中统一定义，所有 `package.json` 只能写 `"catalog:"` 引用，不允许直接写版本号。（2026-08-08：jest / ts-jest / ts-loader / ts-node / tsconfig-paths / @types/jest 等不再使用的条目已从 catalog 移除；2026-09-23：工具链拆包与去 `tsx` 后再降到 242 —— 增减明细见 [pnpm-workspace 配置](./pnpm-workspace-config.md)。）
 
 ## 我们做了什么
 
@@ -78,7 +78,7 @@ catalog:
   typescript: 6.0.3
   eslint: 10.3.0
   turbo: 2.9.14
-  # ... 248 条目
+  # ... 242 条目
 ```
 
 ## 添加新依赖的流程

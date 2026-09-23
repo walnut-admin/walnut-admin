@@ -3,7 +3,7 @@
 > **层判定问句**：这个模块认识「发版」吗？认识 → 它在 [`@walnut/release`](../release/)；不认识 → 它在这儿。
 >
 > 本包装**不认识业务的仓库基础设施**：纯逻辑工具（`lib/`）、仓库门禁（`ci/`）、env 加解密（`env/`）。
-> 它自己也提供四个 bin，被根 `package.json` 直接调用。
+> 它自己也提供五个 bin，被根 `package.json` 直接调用。
 
 ## 入口（root scripts 经 bin 调用）
 
@@ -61,7 +61,7 @@
 
 ## 两条硬约束
 
-1. **本包源码由 Node 原生执行**（四个 bin + 被 `@walnut/release` 的 bin 间接拉起）。
+1. **本包源码由 Node 原生执行**（五个 bin + 被 `@walnut/release` 的 bin 间接拉起）。
    因此它继承 `@walnut/tsconfig/ts.json`，受 **`erasableSyntaxOnly`** 约束：
    不许 `enum`、不许非 ambient `namespace`、不许构造函数参数属性。
    违反会在 `pnpm types:check` 当场报错，而不是等到运行时才炸。

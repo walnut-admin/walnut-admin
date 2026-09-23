@@ -16,7 +16,7 @@
 | **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 · **F2-a** · **F2-b** |
 | **P3** | 远期 / 条件触发 | P3-12 · P3-13 · A8 · A9 · A11 · A12 |
 | **搁置** | 等条件成熟（外部依赖或已决定先不动） | R1 · R2 · P1-16 · P2-11 · P3-20 |
-| **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | F2 · F7 · D1–D6 · D8<br><sub>F0 / F1 / F3 / F4 / F5 / F6 已完成；D7（TS 7 排期）已并入 R7</sub> |
+| **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | F2 · F7–F8 · D1–D6 · D8<br><sub>F0 / F1 / F3 / F4 / F5 / F6 已完成；D7（TS 7 排期）已并入 R7</sub> |
 
 **已清掉的旧账**（2026-09-23 起逐条做掉即从本表移除，验收口径见文末「核实记录」与「执行记录」）：
 R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）｜ R3 · R4 · P3-18 · P3-19 · **R11** · **F1** ·
@@ -129,6 +129,7 @@ R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）�
 | **F2** | 补文档门禁（原 4 道 → **已做 2 道**，剩 2 道待定） | — | ① `verify-md-links`（失效链接）→ ✅ **已由 VitePress 内置完成**（执行记录第 2 批）。<br>② `verify-doc-refs`（引用不存在的包名/路径）→ ✅ **已实现并接进门禁**：`@walnut/scripts` 新增 bin `walnut-check-doc-refs`（根脚本 `pnpm lint:docs-refs`），进 `prepush`（现为九段）、`ci.yml`、发版电池；15 个单测含「豁免清单不许腐化」的守卫。设计口径与全部判据写在 `packages/tooling/scripts/src/ci/check-doc-refs.ts` 的模块注释里（为什么不用现成库见下方 F2-b 小节）。<br>③ `doc-typecheck`（fenced `ts` 块必须编译）：本仓文档里的 ts 块多为片段，成本可能高于收益 —— **待你定**。<br>④ `gen-package-catalog`（从 `package.json` 生成包清单）：手写清单散在 README / AGENTS / CLAUDE / `monorepo/index.md` / `turbo.md` 至少 5 处（本轮已修其中 2 处）。**注意** `verify-doc-refs` 已能挡住「引用了不存在的包」，剩下的是「包清单漏了新包」—— 值不值得再上一道，**待你定**。 |
 | **F6** | ADR 规范化 | `adr/` 补 `## Alternatives considered` 必填 + `Status` 枚举（Proposed / Accepted / Rejected / Superseded）。现有 19 篇全是 `Accepted`，看不出哪些被否决过。 |
 | **F7** | 字数上限门禁 | `verify-doc-budgets` 最小版：只给根 `AGENTS.md` / `CLAUDE.md` / `monorepo/index.md` 定上限。优先级最低。 |
+| **F8** | **文档架构方案**（同一次评审的 §6，**此前的待办表整个漏了它**） | 提议「一个事实一个家」的七层归属：`monorepo/index.md` 升格为 `architecture.md`；新建 `monorepo/glossary.md` **吸收根 `CONTEXT.md`**；新建 `monorepo/subsystems/*.md` 逐包参考（契约 / 配置 / 扩展点 / 已知限制）；各包 README 补 `## Known Limitations and Deferred Work`；生成物（包清单 / 路由表 / env 表）一律不手改。配套三条纪律：① 文档只描述**当前状态**、不写变更史；② 一处事实一个家；③ 可机械检查的引用用相对 Markdown 路径 —— **第③条已由 F2 的 `lint:docs-refs` 落地**。<br>**现状盘点（2026-09-23）**：根 `CONTEXT.md` 仍在根；`packages/**` 仍是「有非显然规则才写指径」（上一批的决定），不是「每包一份子系统文档」；本表与根 `TODO.md` 是**刻意分开的两本账**（工程债 vs 产品待办，见「相关文档」）。<br>⚠️ 纪律① 与本表自身的形态**有张力**：本表的「执行记录」「核实记录」就是有意的变更史。真要做这条，得先划清「哪类文档允许记历史」。 |
 | **D1** | `@walnut/i18n` / `@walnut/security` 的 seam 形态 | (a) TS `interface`；(b) abstract class + 独立 provider 包。**倾向 (b)**（`interface` 无运行时令牌）。 |
 | **D2** | 前端组合根 | (a) 维持隐式全局；(b) 显式 `createWalnutApp(options)`；(c) 轻量 DI 容器。**倾向 (b)**；(a) 会让 A8/A9 无法落地。 |
 | **D3** | 源码面 / 产物面分离 | (a) 维持 ADR 0002 双模 `exports` + 补一道「dist 过期」检测；(b) 让消费者显式声明所在面。**倾向先 (a) + 检测**。 |
@@ -216,9 +217,17 @@ R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）�
 
 ## 相关文档
 
+- **另一本账（产品 / 功能待办）**：仓库根的 [`TODO.md`](https://github.com/walnut-admin/walnut-admin/blob/main/TODO.md)
+  —— 按「重要紧急 ×4 档」手写，记的是**功能与体验**（个人设置、CASL、org 模块、组件扩展…）；
+  本表记的是**架构与工程债**。两者**刻意分开**：本表的每一项都能写出一条机械判据，根 `TODO.md`
+  的多是产品取舍。⚠️ 那个文件里的编号项（`000` / `111` / `999`）**被源码里的 `// TODO NNN` 注释引用**，
+  改那个文件的编号等于改 39 处注释的锚点。
 - [CI/CD 与容器构建](./ci-cd)（触发矩阵 / 薄镜像 / 两条硬约束）
 - [发布 & 发版指南](./release.md)
 - [ADR 索引](../adr/index.md) ｜ [ADR 0009 CI 质量门禁](../adr/0009-ci-quality-gates.md) ｜ [ADR 0017 包重组](../adr/0017-package-reorganization.md) ｜ [ADR 0018 Git 钩子迁 lefthook](../adr/0018-git-hooks-lefthook.md) ｜ [ADR 0019 tsconfig 预设与无 `.mjs`](../adr/0019-tsconfig-presets-and-no-mjs.md)
 - [归档：架构 Review 与调研审计](../archive/2026-09-21-architecture-review.md)（F / D 项的完整论证）
+  —— 其中 **第三档「明确不建议照搬」的 10 条**（oxlint 全量替代 ESLint、移除 catalog、自研 release
+  families、per-file 100% coverage、门禁图写 TS、自研 vendor 框架层…）是**已否决的决策**，
+  按「否决也要留痕」留在那里；它们**不**在本表里重复。
 - [归档：CI/CD 重构实施记录](../archive/2026-09-21-ci-cd-pipeline-plan.md)
 - [行业调研 - CI/CD](../industry-research/03-ci-cd-pipeline.md) ｜ [行业调研 - 测试](../industry-research/04-testing-strategy.md)

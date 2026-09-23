@@ -70,7 +70,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 │       ├── eslint-config/           ← @walnut/eslint-config（ESLint 预设 base / vue / nest）
 │       ├── commitlint-config/       ← @walnut/commitlint-config（commitlint 规则）
 │       ├── vitest-config/           ← @walnut/vitest-config（共享 Vitest 预设：发现规则 / 环境 / 覆盖率）
-│       ├── scripts/                 ← @walnut/scripts（仓库级脚本通用层：lib / ci / env，4 个 bin）
+│       ├── scripts/                 ← @walnut/scripts（仓库级脚本通用层：lib / ci / env，5 个 bin）
 │       └── release/                 ← @walnut/release（发版编排，bin：walnut-release）
 ├── turbo.json                       ← 任务定义 + 缓存 + 架构边界
 ├── pnpm-workspace.yaml              ← workspace 声明 + catalog + versioning
@@ -124,7 +124,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 | `@walnut/commitlint-config` | commitlint 规则（scope-enum 等） | commitlint |
 | `@walnut/tsconfig` | 纯 JSON tsconfig 预设（base / ts / vue），无依赖、无源码 | 无 |
 | `@walnut/vitest-config` | 共享 Vitest 预设：只收敛用例发现规则 / 运行环境 / 覆盖率采集范围 | vitest（peer） |
-| `@walnut/scripts` | 仓库级脚本的通用层：纯逻辑工具（`lib/`）、仓库门禁（`ci/`）、env 加解密（`env/`），经 4 个 bin 被根 scripts 调用 | `@dotenvx/dotenvx`（+ devDep `yaml`） |
+| `@walnut/scripts` | 仓库级脚本的通用层：纯逻辑工具（`lib/`）、仓库门禁（`ci/`）、env 加解密（`env/`），经 5 个 bin 被根 scripts 调用 | `@dotenvx/dotenvx`（+ devDep `yaml`） |
 | `@walnut/release` | 发版编排（`src/release/`，20 个模块），bin `walnut-release` | `@walnut/scripts` + git-cliff + yaml |
 
 ### 消费方式

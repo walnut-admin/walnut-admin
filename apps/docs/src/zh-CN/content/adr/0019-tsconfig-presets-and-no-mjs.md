@@ -31,7 +31,7 @@ packages/tooling/
 ```
 
 > **2026-09-23 后续更新**：同日又新增 `vitest-config/`（`@walnut/vitest-config`，共享 Vitest 预设，
-> 待办 P3-14），tooling 自此为 **6 个包**；`@walnut/scripts` 的 bin 也从 3 个增至 **4 个**
+> 待办 P3-14），tooling 自此为 **6 个包**；`@walnut/scripts` 的 bin 也从 3 个增至 **5 个**
 > （新增门禁 `walnut-check-doc-refs`）。上面的目录树保留决策当时的样子 ——
 > **拆分的判据（按耦合度切，而不是按能力切）未变**，`vitest-config` 走的就是同一条判据。
 

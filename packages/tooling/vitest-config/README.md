@@ -57,7 +57,7 @@ export default defineWalnutVitestConfig({
 
 ## 为什么是独立包而不是塞进 `@walnut/scripts`
 
-`@walnut/scripts` 的定位是「被其它工具包复用的**模块**（`src/lib/*`）+ 四个 bin」，而
+`@walnut/scripts` 的定位是「被其它工具包复用的**模块**（`src/lib/*`）+ 五个 bin」，而
 `@walnut/eslint-config` / `@walnut/tsconfig` / `@walnut/commitlint-config` 已经确立了
 「一种共享配置一个包」的分法。塞进 `scripts` 会让它同时承担两种角色。
 

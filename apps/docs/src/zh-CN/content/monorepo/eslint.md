@@ -22,7 +22,7 @@ export default baseConfig()
 > ESLint 会**向上查到本文件** —— 它们全是 TS-only（零 `.vue`），`base` 正是它们该用的预设。
 > 2026-09-23 之前根入口用的是 `vue` 预设，等于给这 10 个包白装了 vue / unocss 插件。
 
-> 2026-09-23 起，仓库里**没有任何 `.mjs` / `.cjs` 文件**：4 个包级 ESLint 配置、`eslint-config` 的 4 个文件（3 个预设 + 本地规则插件 `nest-local-rules`）、commitlint 配置与 config 包、4 个 bin、contract 的 `build-barrel` 脚本全部改成 `.ts`。ESLint 加载 `eslint.config.ts` 需要 **`jiti`**（ESLint 官方的 TS 配置加载器），因此根 `devDependencies` 新增了它。详见 [ADR-0019](/content/adr/0019-tsconfig-presets-and-no-mjs)。
+> 2026-09-23 起，仓库里**没有任何 `.mjs` / `.cjs` 文件**：4 个包级 ESLint 配置、`eslint-config` 的 4 个文件（3 个预设 + 本地规则插件 `nest-local-rules`）、commitlint 配置与 config 包、5 个 bin、contract 的 `build-barrel` 脚本全部改成 `.ts`。ESLint 加载 `eslint.config.ts` 需要 **`jiti`**（ESLint 官方的 TS 配置加载器），因此根 `devDependencies` 新增了它。详见 [ADR-0019](/content/adr/0019-tsconfig-presets-and-no-mjs)。
 
 ### 2. 共享 ESLint Config 包
 
