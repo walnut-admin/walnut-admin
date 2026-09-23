@@ -154,21 +154,27 @@ function buildRoutes(payload: AppMenu[]) {
   })
 
   // 本来应该是直接推入404然后返回的
-  // 但是为了让页面缓存功能好使，暂时写了个函数又拍扁了路由（就是拍成只有两级的，不是原来嵌套的模式）
+  // 但是为了让页面缓存功能好使，要把路由拍扁（拍成只有两级的，不是原来嵌套的模式）
   // routes.push(App404Route)
   // return routes
 
-  // TODO 999
-  const _tempRoutes = _tempFlatNestedRoutes(routes)
-  _tempRoutes.push(App404Route)
-  return _tempRoutes
+  const transformedRouteTree = transformToTwoLevelRouteTree(routes)
+  transformedRouteTree.push(App404Route)
+  return transformedRouteTree
 }
 
-// TODO 999
 /**
+ * 两级路由树转换。
+ *
  * @link https://github.com/vuejs/vue-router-next/issues/626
+ *
+ * > ⚠️ **2026-09-23 更新**：这**不再是临时方案**。源码里已写明
+ * > “I have decided to make this into a final solution, not for temporarily anymore”，
+ * > 函数也从 `_tempFlatNestedRoutes` 改名为 `transformToTwoLevelRouteTree`（本文档此前一直在用旧名）。
+ * > 上游 issue #626 至今仍 open，所以扁平化会长期留着；
+ * > 代价是 keep-alive 的名字列表要补上根路由（见 `store/modules/app/app-menu.ts`）。
  */
-function _tempFlatNestedRoutes(routes: RouteRecordRaw[]) {
+function transformToTwoLevelRouteTree(routes: RouteRecordRaw[]) {
   const ret: RouteRecordRaw[] = []
 
   const tree = cloneDeep(routes)

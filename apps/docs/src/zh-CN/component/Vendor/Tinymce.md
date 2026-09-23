@@ -31,7 +31,7 @@
 
 ## Form Usage
 
-富文本在表单中是经常使用的，所以封装进了[w-form](/component/UI/form)里。具体用法如下，很简单。
+富文本在表单中是经常使用的，所以封装进了 `w-form` 里。具体用法如下，很简单。
 
 ```ts
 const formSchemas = [

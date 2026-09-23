@@ -20,8 +20,8 @@
  - ❤️ web-vitals 接入，可随时在 <WBaseLink preset="google-analytics">google-analytics</WBaseLink> 后台看到统计情况，维度很丰富，[查看这里](./features/ga.md)
  - 🙌 driverjs 轻量化的引导，[查看这里](./features/driver.md)
  - 😒 html-to-image 页面快照？实则不然，就是个截图，[查看这里](./features/html-to-image.md)
- - 🤩 libphonenumber-js 实现的国际化手机号表单项，[查看这里](./component/extra/phone-number-input.md)
+ - 🤩 libphonenumber-js 实现的国际化手机号表单项（`PhoneNumberInput`，文档页尚未编写）
  - 😊 untyper 打字机？star虽少，功能够用，[查看这里](./features/untyper.md)
  - 😇 21st 太酷了！这才是真正的前端，[查看这里](./features/21st.md)
  - 👍 sentry 接入，对于非大型项目来说绝对够用了，[查看这里](./features/sentry.md)
- - 😘 animate.css + vue的 transition 封装的组件，[查看这里](./component/extra/transition.md)
+ - 😘 animate.css + vue的 transition 封装的组件，[查看这里](/component/Extra/transition)
