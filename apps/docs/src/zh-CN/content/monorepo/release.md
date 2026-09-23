@@ -141,9 +141,10 @@ pnpm release
 
 | id | 内容 |
 |----|------|
+| `hooks` | **第 0 步**：`pnpm hooks:check` —— 断言本机 git 钩子仍由 lefthook 托管。`prepush` 本身就是钩子调的（钩子没装时它根本不会跑），所以只有 `pnpm release` 这种**不经钩子**的入口才检查得到「本机门禁是否已静默失效」 |
 | `boundaries` | `turbo boundaries` |
 | `lint` | `turbo run lint`（所有包，不排任何包） |
-| `lint-root` | `pnpm lint:root`（**根级文件**的 lint：`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
+| `lint-root` | `turbo run lint:root`（**根级文件**的 lint：`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
 | `types` | `turbo run types:check` |
 | `types-root` | `pnpm types:check:root`（根 tsconfig 覆盖的 `eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
 | `test` | `turbo run test` |
@@ -151,14 +152,26 @@ pnpm release
 | `versioning` | `pnpm change check`（fixed 组锁步） |
 | `workflows` | actionlint |
 | `docs-refs` | `pnpm lint:docs-refs`（活文档正文里引用的 workspace 包名 / 仓库路径必须真实存在） |
+| `adr` | `pnpm lint:adr`（ADR 形态：编号连续 / Status 在枚举内 / 四个必需小节 / index 双向对齐） |
+| `doc-ts` | `pnpm lint:doc-ts`（标成 `ts` 的代码块必须能按 TypeScript 解析） |
+| `doc-budget` | `pnpm lint:doc-budget`（常驻上下文文件不许膨胀，用不到一半也算失败） |
+| `turbo-cache` | `pnpm lint:turbo-cache`（产物 / outputs / env 不变量） |
 | `build` | ⏭️ **默认暂缓**：镜像由 `release.yml` 的 images job 真正构建；要跑就删掉表里那行的 `skip` |
 
-> ⚠️ `lint-root` / `types-root` 必须是**独立一行**、且经根脚本跑（`pnpm lint:root` /
-> `pnpm types:check:root`），**不能**并进上一条写成 `turbo run lint lint:root` —— 它们只是根
-> `package.json` 的脚本、不是 turbo 任务，`turbo run lint:root` 会直接以
-> `Could not find task 'lint:root' in project` 非 0 退出（2026-09-23 实测：这会让**每一次发版都在
-> 打 tag 之前失败**）。`steps.test.ts` 钉住了这一形状：断言二者都独立成行、且没有任何一条 argv
-> 把它们交给 `turbo`。
+> **这张表与 `packages/tooling/release/src/release/steps.ts` 的 `RELEASE_BATTERY` 必须一致** ——
+> `steps.test.ts` 逐行钉住了它。加一段门禁时两边都要改（**注意：这里说的「逐行钉住」指的是
+> 那个测试文件钉 `RELEASE_BATTERY`，不是本页**；本页的表格眼下仍靠人工同步，见
+> [与参考仓 Z 的基建交叉对比](./reference-repo-comparison) 的 A1）。
+
+> ⚠️ `types-root` 必须是**独立一行**、且经根脚本跑（`pnpm types:check:root`）—— 它只是根
+> `package.json` 的脚本、**没有**对应的 turbo 任务，`turbo run types:check:root` 会直接以
+> `Could not find task 'types:check:root' in project` 非 0 退出。
+>
+> **`lint-root` 曾经也是这个形态，2026-09-23 起不是了**：根 `turbo.json` 新增了 `//#lint:root`
+> 根任务（带精确 inputs —— 就是根脚本那三个 glob），于是它改成走 `turbo run lint:root` 从而
+> 可缓存（实测冷跑 3.8s → 热跑 0.11s）。**别按旧结论把它改回 `pnpm lint:root`** —— 那样会丢掉
+> 缓存；也**别**把 `types-root` 改成 turbo，它到今天仍没有任务定义。判据：`turbo run lint:root`
+> 与 `turbo run types:check:root` 各跑一次，前者 1 个任务、后者报 `Could not find task`。
 
 **为什么是刻意的**：不跑门禁时，release 完全依赖 `git push` 顺带触发的 pre-push 钩子 ——
 而 push 发生在打 tag **之后**。于是「本地全绿、发版成功、CI 的 verify 却红」是可达的，

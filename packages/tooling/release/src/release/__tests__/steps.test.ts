@@ -32,6 +32,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
 
   it('逐行钉住会跑的电池（顺序即执行顺序）', () => {
     expect(releaseBatteryArgvs()).toEqual([
+      ['hooks:check'],
       ['boundaries'],
       ['exec', 'turbo', 'run', 'lint'],
       ['exec', 'turbo', 'run', 'lint:root'],
@@ -46,6 +47,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
       ['lint:doc-ts'],
       ['lint:doc-budget'],
       ['lint:turbo-cache'],
+      ['lint:lockfile'],
     ])
   })
 

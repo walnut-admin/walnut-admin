@@ -114,6 +114,11 @@ jobs:
       - name: Turbo cache boundary check
         run: pnpm lint:turbo-cache
 
+      # 「改 catalog 一行忘了 pnpm install」= 本地必然全绿、CI 必然死在 install
+      # （`--frozen-lockfile`）。这是唯一看得见它的地方。
+      - name: Catalog / lockfile lockstep check
+        run: pnpm lint:lockfile
+
       # 防"affected 空集静默通过"：有文件变更却算出 0 个受影响包时必须失败
       - name: Affected set sanity check
         if: steps.affected.outputs.base != ''

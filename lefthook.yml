@@ -7,7 +7,11 @@
 # 钩子怎么装：lefthook 自己的 postinstall 就是 `lefthook install`，因此
 # `pnpm-workspace.yaml` 的 `allowBuilds` 必须放行 `lefthook: true`；不放行时本仓
 # `strictDepBuilds: false` 只会**告警**、不阻断安装 ⇒ 门禁静默消失。
-# 装没装上用 `pnpm hooks:check` 机械核对（发版第 0 步也会调它）。
+# 装没装上用 `pnpm hooks:check` 机械核对 —— **它现在是发版电池的第 0 步**。
+# 为什么只有那里检查得到：`prepush` 本身就是钩子调的，钩子没装时它根本不会跑
+# ⇒ 它保护不了自己；`pnpm release` 是**不经钩子**的入口，是唯一能观察到
+# 「本机门禁已静默失效」的位置。（2026-09-23 之前这句注释是**空头承诺**：
+# 当时 `hooks:check` 全仓零自动调用点，只有这句注释在说它会被调。）
 #
 # ⚠️ Windows：`run` 值里**禁止双引号**。lefthook 在 Windows 上用
 # `cmdLine = "\"" + sh + "\" -c \"" + cmdstr + "\""` 拼命令行，内层引号未转义 ⇒

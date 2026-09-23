@@ -39,6 +39,7 @@
     "lint:doc-ts": "walnut-check-doc-ts",
     "lint:doc-budget": "walnut-check-doc-budgets",
     "lint:turbo-cache": "walnut-check-turbo-cache",
+    "lint:lockfile": "walnut-check-catalog-lockstep",
     "lint:fix": "turbo lint:fix",
     "images:build": "docker buildx bake --file docker-bake.hcl",
     "images:push": "docker buildx bake --file docker-bake.hcl --push",

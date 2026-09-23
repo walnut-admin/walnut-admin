@@ -62,6 +62,7 @@ describe('pREPUSH_GATES —— 表本身', () => {
       'doc-ts',
       'doc-budget',
       'turbo-cache',
+      'lockfile',
       'versioning',
     ])
   })

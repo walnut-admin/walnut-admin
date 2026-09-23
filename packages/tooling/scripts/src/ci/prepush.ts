@@ -125,6 +125,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: 'turbo.json 里漏一个产物目录、少挂一条依赖边，症状全是**静默的** —— `FULL TURBO` + exit 0，但门禁回放了旧结论。2026-09-23 实测到 `pnpm build:stage` 报成功却一个文件都没产出。',
   },
   {
+    id: 'lockfile',
+    label: 'catalog 与锁文件锁步（catalog ↔ pnpm-lock）',
+    argv: ['lint:lockfile'],
+    why: '「升级依赖」在本仓 = 改 catalog 一行，而改了声明忘了 `pnpm install` 时**本地必然全绿**（所有门禁都用既有 node_modules）、**CI 必然红**（`--frozen-lockfile`），连打 tag 的发版面一起炸。这是唯一看得见它的地方。',
+  },
+  {
     id: 'versioning',
     label: 'workspace 版本锁步（pnpm change check）',
     argv: ['change', 'check'],

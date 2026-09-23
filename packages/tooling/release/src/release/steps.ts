@@ -55,14 +55,20 @@ interface BatteryStep {
  * 「表还在、命令没人跑」当场发生。`__tests__/steps.test.ts` 同时钉住遍历与每条 argv。
  */
 const RELEASE_BATTERY: BatteryStep[] = [
+  // 第 0 步：**本机的 git 钩子还活着吗**。
+  // 为什么只有这里检查得到：`prepush` 本身就是钩子调的 —— 钩子没装时 prepush 根本不会跑，
+  // 所以它保护不了自己。`pnpm release` 是**不经钩子**的入口，是唯一能观察到「本机门禁是否
+  // 已经静默失效」的位置。`lefthook.yml` 顶部那句「发版第 0 步也会调它」描述的就是这里
+  // （2026-09-23 之前那句是**空头承诺**：`hooks:check` 当时全仓零自动调用点）。
+  // 失败语义是「前置条件未满足」（exit 2）而不是「查出违规」，这正是本仓三态退出码的用法。
+  { id: 'hooks', label: 'git 钩子托管校验（pnpm hooks:check）', argv: ['hooks:check'] },
   { id: 'boundaries', label: '架构边界（turbo boundaries）', argv: ['boundaries'] },
   { id: 'lint', label: 'lint（所有包，不排任何包）', argv: ['exec', 'turbo', 'run', 'lint'] },
-  // ⚠️ `lint:root` 必须是**独立一行**、且经根脚本跑（`pnpm lint:root`），**不能**写进上面那行的
-  // `turbo run lint lint:root` —— 它只是根 package.json 的脚本，不是 turbo 任务：
-  // `turbo run lint:root` 会直接 `Could not find task \`lint:root\` in project` 退出（实测），
-  // 于是整条电池在打 tag **之前**失败、每次都拦下发版。
-  // 根级配置（eslint.config.ts / commitlint.config.ts / knip.config.ts）不在任何包的 lint 范围里，
-  // 所以这一行省不得。
+  // ⚠️ `types-root` 必须是**独立一行**、且经根脚本跑（`pnpm types:check:root`）—— 它只是根
+  // `package.json` 的脚本，**没有**对应的 turbo 任务，写进 turbo 的 argv 会直接
+  // `Could not find task` 退出。
+  // （`lint-root` 一度也是这个形态，2026-09-23 起不是了：根 turbo.json 定义了 `//#lint:root`
+  //  根任务，所以它现在走 `turbo run lint:root` 从而可缓存 —— 别按旧结论改回去。）
   { id: 'lint-root', label: 'lint 根级配置（turbo run //#lint:root）', argv: ['exec', 'turbo', 'run', 'lint:root'] },
   { id: 'types', label: '类型检查（不排任何包）', argv: ['exec', 'turbo', 'run', 'types:check'] },
   // 根 tsconfig.json（include: ["*.ts"]）覆盖 eslint.config.ts / commitlint.config.ts / knip.config.ts，
@@ -84,6 +90,8 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'doc-budget', label: '文档字数预算（常驻文件不许膨胀）', argv: ['lint:doc-budget'] },
   // 同上。turbo.json 写错一个产物目录/依赖边不会报错，只会让 turbo 报 FULL TURBO 却少跑或少产出。
   { id: 'turbo-cache', label: 'turbo 缓存边界（产物 / 依赖边不变量）', argv: ['lint:turbo-cache'] },
+  // 同上。改 catalog 忘了 `pnpm install` = 本地全绿、CI 死在 install —— 发版面必须也看得见。
+  { id: 'lockfile', label: 'catalog 与锁文件锁步', argv: ['lint:lockfile'] },
   {
     id: 'build',
     label: '构建（3 个 app + 共享包）',

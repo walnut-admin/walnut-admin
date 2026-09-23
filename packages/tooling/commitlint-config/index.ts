@@ -54,5 +54,19 @@ export default {
     // ⚠️ 发版脚本用 `chore(release): vX.Y.Z`：`scope-empty: never` 会拒绝无 scope 的
     // `chore: release …`，而 release 提交被拒会让 tag 指向一个不含版本号的提交（后果严重）。
     'scope-enum': [2, 'always', SCOPES],
+    // ⚠️ **刻意关掉 `subject-case`**（2026-09-23 裁决）。
+    //
+    // `@commitlint/config-conventional` 默认把它设成 `never` + `[sentence-case, start-case,
+    // pascal-case, upper-case]`，而 `sentence-case` 的实现是 `upperFirst(x) === x`
+    // —— 于是**任何以大写拉丁字母开头的 subject 一律被拒**：`fix(admin): F9 裁决…`、
+    // `feat(tooling): NODE_ENV …`、`docs(docs): R7 记一笔…` 全中。
+    // 实测代价：2026-09-23 一次会话里因此改了 **4 次**提交信息，每次只能改成中文开头。
+    //
+    // 关掉它**不削弱门禁**：type 的大小写由 `type-case` 管、类型白名单由 `type-enum` 管、
+    // scope 的大小写由 `scope-case` 管、scope 白名单由 `scope-enum` 管。
+    // 它唯一拦住的「英文 Sentence Case」在本仓没有意义 —— changelog 全中文，
+    // 而它误伤的「拉丁词/缩写开头」恰恰是正常写法。
+    // 同一条判断的另一面见仓库根 `AGENTS.md` 的关键纪律 11：一个开始误报的门禁等于没有门禁。
+    'subject-case': [0],
   },
 }
