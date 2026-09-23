@@ -258,3 +258,78 @@ describe('bin ↔ 根脚本的二段跳', () => {
     expect(referenced.size).toBeGreaterThan(5)
   })
 })
+
+/**
+ * 根脚本的**形态**（待办 P1-18，来自交叉对比的 C3）。
+ *
+ * 参考仓用「白名单 + 形态正则 + 理由」三件套管它的脚本面；本仓**只搬前两段**：
+ * ① 名字形态；② 值里不许出现 shell 连接子。它那三条 forbidden 与本仓语境无关，不搬。
+ *
+ * **为什么值里不许有连接子值得单列一条**：`package-scripts.md` 写着「根 scripts 保持
+ * 一句话委托」「不写 mega-scripts」，但那是**散文约定、零判据** —— 而本仓恰好有过一次
+ * 「11 段门禁写成一条 300+ 字符 `a && b && …`」的历史（第 16 批拆掉的），
+ * 那正是这条要防的形态。判据是机械的：出现 `&&` / `||` / `;` / `|` 就红。
+ *
+ * ⚠️ 这里**不查**「每个值必须指向 bin / turbo / eslint」那种白名单 —— 本仓根脚本合法地
+ * 直接调 `eslint` / `tsc` / `rimraf` / `syncpack` / `docker` / `cross-env` 等一大票工具，
+ * 白名单会变成一份**要不停维护的名单**（参考仓自己也只对 `lint:*` 那一段收紧了）。
+ * 只对 `lint:*` 收了紧：那一段是本仓的门禁面，形态必须收敛。
+ */
+describe('根脚本的形态（P1-18）', () => {
+  const scripts = JSON.parse(read('package.json')).scripts as Record<string, string>
+
+  /** 小写 kebab，`:` 分段，无空段（`build:stage` / `lint:root:fix` / `check:deps:update` 都合法） */
+  const NAME_SHAPE = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*(?::[a-z][a-z0-9]*(?:-[a-z0-9]+)*)*$/
+
+  /** shell 里能把两条命令接起来的字符 —— 出现即说明它不再是「一句话委托」 */
+  const CONNECTORS = [
+    { token: '&&', why: '条件串联' },
+    { token: '||', why: '条件串联' },
+    { token: ';', why: '顺序串联' },
+    { token: '|', why: '管道' },
+  ]
+
+  it('名字形态：小写 kebab + `:` 分段', () => {
+    const bad = Object.keys(scripts).filter(n => !NAME_SHAPE.test(n))
+    expect(bad, `这些根脚本名不符合形态：${bad.join(', ')}`).toEqual([])
+  })
+
+  it('值里不许出现 shell 连接子（`&&` / `||` / `;` / `|`）—— 这就是「一句话委托」的机械版本', () => {
+    const bad: string[] = []
+    for (const [name, cmd] of Object.entries(scripts)) {
+      for (const { token, why } of CONNECTORS) {
+        if (cmd.includes(token))
+          bad.push(`\`${name}\` 的值里有 ${token}（${why}）：${cmd}`)
+      }
+    }
+    expect(bad).toEqual([])
+  })
+
+  it('`lint:*` 必须落到 eslint / turbo / `walnut-*` bin 三种形态之一（门禁面不许自由发挥）', () => {
+    const bad: string[] = []
+    for (const [name, cmd] of Object.entries(scripts)) {
+      if (!name.startsWith('lint'))
+        continue
+      const head = cmd.split(/\s+/)[0]!
+      const ok = head === 'eslint' || head === 'turbo' || head.startsWith('walnut-')
+      if (!ok)
+        bad.push(`\`${name}\` 的值是 \`${cmd}\` —— 首词既不是 eslint / turbo，也不是 walnut-* bin`)
+    }
+    expect(bad).toEqual([])
+  })
+
+  it('形态断言确实覆盖到了东西（防止 package.json 读错后变成空转）', () => {
+    expect(Object.keys(scripts).length).toBeGreaterThan(30)
+    expect(Object.keys(scripts).filter(n => n.startsWith('lint'))).toHaveLength(13)
+  })
+
+  it('负对照：形态正则与连接子判定本身是有效的', () => {
+    // 正则不靠"当前恰好没有坏名字"来成立 —— 拿几个**故意坏**的名字验一遍
+    for (const bad of ['Lint', 'lint::root', 'lint:Root', '-lint', 'lint:', 'lint_thing'])
+      expect(NAME_SHAPE.test(bad), `\`${bad}\` 不该通过形态检查`).toBe(false)
+    for (const good of ['lint', 'lint:root', 'lint:root:fix', 'check:deps:update', 'inspect:node-modules'])
+      expect(NAME_SHAPE.test(good), `\`${good}\` 应该通过形态检查`).toBe(true)
+    // 连接子判定：拿本仓历史上那个真实的坏形态验
+    expect('a && b'.includes('&&')).toBe(true)
+  })
+})
