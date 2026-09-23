@@ -247,6 +247,7 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: 'pnpm Catalog', link: '/content/monorepo/pnpm-catalog' },
         { text: 'Turbo', link: '/content/monorepo/turbo' },
         { text: '🧊 Turbo 缓存边界（实测判据表）', link: '/content/monorepo/turbo-cache-boundary' },
+        { text: '🔍 与参考仓 Z 的基建交叉对比', link: '/content/monorepo/reference-repo-comparison' },
         { text: '📦 发布 & 发版指南', link: '/content/monorepo/release' },
         { text: '🚀 CI/CD 与容器构建', link: '/content/monorepo/ci-cd' },
         { text: 'Knip 死代码检测', link: '/content/monorepo/knip' },
