@@ -101,6 +101,14 @@ const RELEASE_BATTERY: BatteryStep[] = [
     argv: ['build'],
     skip: '镜像由 release.yml 的 images job 真正构建；本地全量 build 是分钟级且需要 setup-env 解密后的 env。要跑就删掉本行的 skip。',
   },
+  // 与上面的 `build` 是**一对**：它扫的就是 `apps/admin/dist`，没有构建就没有产物
+  // （那时它是"前置条件未满足"退出码 2，而不是静默通过）。解冻时两条一起解冻。
+  {
+    id: 'dist-secrets',
+    label: '产物去密体检（apps/admin/dist）',
+    argv: ['lint:dist'],
+    skip: '需要 `apps/admin/dist` —— 与上面的 build 同步：本地没构建时它只会报"前置条件未满足"。真跑它请一起解开 build。',
+  },
 ]
 
 /** 全量电池**会跑**的条数（演练横幅用；跳过的不算） */

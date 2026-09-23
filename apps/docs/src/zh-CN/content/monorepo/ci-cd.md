@@ -131,10 +131,25 @@ compose 以 bind mount 注入 `./env/.env.production`，镜像里不需要也不
 2. **失败模式写成了可执行测试**：`deploy/post-verify.test.sh` 用假的 `docker`/`curl` 逐条覆盖上面每一个失败分支（含「只有 API 域名缺头」这一种），本地 `bash deploy/post-verify.test.sh` 即可跑，不需要 Docker。
 3. **安全头这条判据有两个面，缺一不可**：推送前 `pnpm lint:nginx-headers` 静态查 `deploy/nginx/conf.d/` 里的配置有没有写全（毫秒级），部署后这一段查「头真的发出去了没有」。**为什么两边都要**：nginx 的 `add_header` 是**整段替换而不是合并** —— 某个 `location` 自己写一条就把 server 级的全吃掉；两个并列的 `server` 块之间也不互相继承（2026-09-23 交叉对比时实测：`api.conf` 当时一个安全头都没有）。配置写错要在推送上就拦住，环境/drift（比如 conf 改了没 `nginx -s reload`）只能部署后看得见。
 
+## 产物去密体检（`pnpm lint:dist`）
+
+前端产物是**公开文件**（DevTools 里能看到全部字节），而"把后端 env 泄进前端"在本仓有一条现成的、静默的路径：`apps/server/env-local/` 与 `apps/admin/env-local/` 是**两套** env（都由 `pnpm setup-env` 解密），搬错一行、或被某个 import 间接读到，值就会被打包进去 —— 而构建、类型检查、lint、测试**全都不会响**。之前产物侧是**零门禁**。
+
+`ci.yml` 的 build job 里它紧跟 `Build admin`（扫的就是 `dist`，没有构建就没有体检对象），CI 之外也可以在本地对着已有的 `dist` 直接跑。
+
+**机密源只有 `apps/server/env-local/`**：`apps/admin/env-local/` 里全是 `VITE_*`，它们**本来就该进产物**（Vite 在构建时把这些键替换成字面量 —— 实测产物里连 `VITE_` 这个词都搜不到，0 个）。拿前端 env 当机密源等于 100% 误报。
+
+判据与**被否掉的规则**都写在 `check-dist-secrets.ts` 顶部那张表里，这里只留结论 —— 因为"为什么不要某条规则"比规则本身更容易被后人改回去：
+
+- 采纳：真 PEM 私钥（头 + ≥100 字符 base64 正体）／带凭据的 `mongodb://u:p@`、`redis://:pw@`／JWT 三段／云厂商 AK 形状（`AKIA…`、`AKID…`）／不该发布的文件名（`.env*`、`*.pem`、`*.key`…）／**产物里出现后端 env 的机密值**（最硬的一条）。
+- **否掉**（都在真产物上试过，全是误报）：裸 PEM 头（命中的是 WebCrypto 的模板常量）／「机密词键名 = 值」正则（命中的是演示账号与 localStorage 键名枚举）／超长 base64（命中的是内联 data-URI 图片）／熵值分析。
+- finding **只报键名与文件、永不回显值** —— 它进的是 CI 日志，那是公开面；用例里有一条专门钉这件事。
+
 ## 本地验证 CI 改动
 
 ```bash
 pnpm lint:workflows    # actionlint（未安装则跳过并提示；CI 中强制执行）
+pnpm lint:dist         # 产物去密体检（先构建出 apps/admin/dist；没有产物会以「前置条件未满足」退出 2）
 pnpm images:print      # 只解析 docker-bake.hcl，不构建
 pnpm images:build      # 本地构建 backend + frontend（先按 deploy/README.md 准备 staging）
 ```

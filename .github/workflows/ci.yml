@@ -195,6 +195,14 @@ jobs:
         if: env.DOTENVX_KEYS != ''
         run: pnpm exec turbo run build --filter=@walnut/admin
 
+      # 前端产物是**公开文件**，而"把后端 env 泄进前端"在本仓有现成的静默路径：
+      # apps/server/env-local 与 apps/admin/env-local 是两套 env，搬错一行就会被打包进去，
+      # 而构建 / 类型 / lint / 测试全都不会响。**必须紧跟构建**：它扫的就是 dist。
+      # 规则表与「为什么只有这几条」写在 check-dist-secrets.ts 顶部（都是在真产物上试出来的）。
+      - name: Dist secret scan
+        if: env.DOTENVX_KEYS != ''
+        run: pnpm lint:dist
+
       - name: Note skipped admin build
         if: env.DOTENVX_KEYS == ''
         run: echo "::notice::未配置 ENV_KEYS secret，跳过 admin 构建（镜像构建由 tag 发布流程负责）"

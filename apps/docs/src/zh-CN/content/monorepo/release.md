@@ -159,6 +159,7 @@ pnpm release
 | `lockfile` | `pnpm lint:lockfile`（`pnpm-workspace.yaml` 的 catalog ↔ `pnpm-lock.yaml` 锁步；改声明忘了 `pnpm install` 时本地全绿、CI 死在 `--frozen-lockfile`） |
 | `nginx-headers` | `pnpm lint:nginx-headers`（`deploy/nginx/conf.d/` 各 `server`/`location` 块上的 4 个安全响应头；`add_header` 是整段替换而不是合并） |
 | `build` | ⏭️ **默认暂缓**：镜像由 `release.yml` 的 images job 真正构建；要跑就删掉表里那行的 `skip` |
+| `dist-secrets` | `pnpm lint:dist`（产物去密体检：机密形态 + 后端 env 真值 + 凭据文件）⏭️ **默认暂缓，与 `build` 是一对** —— 它扫的就是 `apps/admin/dist`，本地没构建时只会报「前置条件未满足」（退出码 2）。解冻时两条一起解冻 |
 
 > **这张表与 `packages/tooling/release/src/release/steps.ts` 的 `RELEASE_BATTERY` 必须一致** ——
 > `steps.test.ts` 逐行钉住了它。加一段门禁时两边都要改（**注意：这里说的「逐行钉住」指的是

@@ -41,6 +41,7 @@
     "lint:turbo-cache": "walnut-check-turbo-cache",
     "lint:lockfile": "walnut-check-catalog-lockstep",
     "lint:nginx-headers": "walnut-check-nginx-headers",
+    "lint:dist": "walnut-check-dist-secrets",
     "lint:fix": "turbo lint:fix",
     "images:build": "docker buildx bake --file docker-bake.hcl",
     "images:push": "docker buildx bake --file docker-bake.hcl --push",

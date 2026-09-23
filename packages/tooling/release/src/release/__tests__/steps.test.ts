@@ -90,11 +90,15 @@ describe('电池计数与 id 集合', () => {
       expect(id.length).toBeGreaterThan(0)
   })
 
-  it('被暂缓的只有 build 一行，且暂缓理由写在表里（不是静默少跑）', () => {
+  // 暂缓的**只能是**「本地跑不了 / 要分钟级」的那几条，且每条都要写清理由（不是静默少跑）。
+  // 2026-09-23 从 1 条变 2 条：新增的 `dist-secrets`（产物去密体检）与 `build` 是一对 ——
+  // 它扫的就是 `apps/admin/dist`，本地没构建时它只会报「前置条件未满足」。
+  it('被暂缓的只有 build 与 dist-secrets 两行，且暂缓理由都写在表里', () => {
     const skips = releaseBatterySkips()
-    expect(skips.map(item => item.id)).toEqual(['build'])
-    expect(skips[0]?.skip.length).toBeGreaterThan(0)
-    expect(releaseBatterySkippedCount()).toBe(1)
+    expect(skips.map(item => item.id)).toEqual(['build', 'dist-secrets'])
+    for (const item of skips)
+      expect(item.skip.length, `${item.id} 没写暂缓理由`).toBeGreaterThan(0)
+    expect(releaseBatterySkippedCount()).toBe(2)
   })
 })
 
