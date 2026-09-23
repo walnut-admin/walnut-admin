@@ -72,6 +72,9 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'syncpack', label: '依赖一致性（syncpack）', argv: ['syncpack:lint'] },
   { id: 'versioning', label: 'workspace 版本锁步（pnpm change check）', argv: ['change', 'check'] },
   { id: 'workflows', label: 'workflow 校验（actionlint）', argv: ['lint:workflows'] },
+  // 与上面同理：它是 @walnut/scripts 的 bin（根脚本），**不是** turbo 任务。
+  // 活文档正文里引用的包名/仓库路径必须真实存在 —— VitePress 内置只查 markdown 链接。
+  { id: 'docs-refs', label: '文档引用校验（包名 / 仓库路径）', argv: ['lint:docs-refs'] },
   {
     id: 'build',
     label: '构建（3 个 app + 共享包）',

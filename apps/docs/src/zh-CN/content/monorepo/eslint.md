@@ -72,7 +72,7 @@ commit-msg:
 pre-push:
   jobs:
     - name: prepush-gates
-      run: pnpm --silent prepush        # 七段聚合门禁，见下表
+      run: pnpm --silent prepush        # 八段聚合门禁，见下表
 ```
 
 staged 文件的匹配规则仍在根 `package.json` 的 `lint-staged` 块：

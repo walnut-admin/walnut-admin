@@ -14,7 +14,7 @@ packages/platform-web/   client · http · ui               ← 浏览器/Vue（
 packages/tooling/        tsconfig · eslint-config · commitlint-config · scripts · release
                          ← 工具链 5 包：@walnut/tsconfig（纯 JSON 预设 base/ts/vue）·
                            @walnut/eslint-config · @walnut/commitlint-config ·
-                           @walnut/scripts（lib/ci/env + 3 bin）· @walnut/release（发版编排，bin walnut-release）
+                           @walnut/scripts（lib/ci/env + 4 bin）· @walnut/release（发版编排，bin walnut-release）
 ```
 
 - 前端包 scope `@walnut/*`（ESM、pnpm workspace、Vite 编译）；后端内部 lib scope `@walnut-server/*`（CJS、tsconfig paths、SWC，见 `apps/server/`）。
@@ -39,7 +39,8 @@ pnpm types:check:root # 只检查根级配置（tsc -p tsconfig.json）
 pnpm test             # vitest（server / contract / utils / client / scripts / release）
 pnpm boundaries       # Turbo 架构边界检查
 pnpm lint:workflows   # actionlint 校验 .github/workflows（CI 强制）
-pnpm prepush          # pre-push 的聚合门禁：boundaries + lint:root + types:check + types:check:root + syncpack + lint:workflows + pnpm change check
+pnpm lint:docs-refs   # 校验活文档正文引用的包名 / 仓库路径是否真实存在
+pnpm prepush          # pre-push 的聚合门禁：boundaries + lint:root + types:check + types:check:root + syncpack + lint:workflows + lint:docs-refs + pnpm change check
 pnpm hooks:check      # 断言 git 钩子由 lefthook 托管（防门禁静默消失）
 pnpm release          # 发版（pnpm 原生 release management + git-cliff，详见 docs 的 release.md）
 pnpm setup-env        # 解密 env-encrypted/ → env-local/（需根 .env.keys）
@@ -55,7 +56,7 @@ pnpm knip             # 死代码检测
 ## 关键纪律
 
 1. **依赖**：只用 pnpm；新依赖一律走 `catalog:`（`pnpm-workspace.yaml`，strict 模式强制）；workspace 内部引用用 `workspace:*`（syncpack 强制）。
-2. **提交**：conventional commits，scope 必填，且必须是 workspace 包名（如 `feat(admin): …`、`fix(contract): …`）或基础设施 scope（`docker` / `deploy` / `pnpm` / `release` —— `release` 只给发版记账提交 `chore(release): vX.Y.Z` 用，工具链包的改动走 `tooling`）。发版归属**路径优先、scope 兜底**，基础设施 scope 与未在册 scope 不产生意图（见 release.md）。pre-push 是一条聚合命令 `pnpm prepush`：boundaries + lint:root + types:check + types:check:root + syncpack + lint:workflows + `pnpm change check`（七段，fixed 组锁步）；钩子由 lefthook 托管（根 `lefthook.yml`，见 ADR 0018），装没装上用 `pnpm hooks:check` 机械核对。
+2. **提交**：conventional commits，scope 必填，且必须是 workspace 包名（如 `feat(admin): …`、`fix(contract): …`）或基础设施 scope（`docker` / `deploy` / `pnpm` / `release` —— `release` 只给发版记账提交 `chore(release): vX.Y.Z` 用，工具链包的改动走 `tooling`）。发版归属**路径优先、scope 兜底**，基础设施 scope 与未在册 scope 不产生意图（见 release.md）。pre-push 是一条聚合命令 `pnpm prepush`：boundaries + lint:root + types:check + types:check:root + syncpack + lint:workflows + lint:docs-refs + `pnpm change check`（八段，fixed 组锁步）；钩子由 lefthook 托管（根 `lefthook.yml`，见 ADR 0018），装没装上用 `pnpm hooks:check` 机械核对。
 3. **导入**：admin 用 `@/*` → `apps/admin/src/*`、`~/*` → `apps/admin/types/*`；server 用 `@/*` → `apps/api/src/*`、`@walnut-server/*` → `libs/*/src`。跨模块禁止相对路径。
 4. **Auto-import 克制**：`unplugin-auto-import` 存在，但大项目显式导入优先——迁入 packages 的代码必须显式 import。
 5. **共享契约**：跨端常量只改 `@walnut/contract`（前后端直接消费，无包装层，ADR 0004）；contract 有快照测试守护，改动会触发快照 diff。

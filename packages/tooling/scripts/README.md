@@ -3,13 +3,14 @@
 > **层判定问句**：这个模块认识「发版」吗？认识 → 它在 [`@walnut/release`](../release/)；不认识 → 它在这儿。
 >
 > 本包装**不认识业务的仓库基础设施**：纯逻辑工具（`lib/`）、仓库门禁（`ci/`）、env 加解密（`env/`）。
-> 它自己也提供三个 bin，被根 `package.json` 直接调用。
+> 它自己也提供四个 bin，被根 `package.json` 直接调用。
 
 ## 入口（root scripts 经 bin 调用）
 
 | bin | 根脚本 | 作用 |
 |-----|--------|------|
 | `walnut-lint-workflows` | `pnpm lint:workflows` | actionlint 校验 workflow（未安装时跳过，CI 强制） |
+| `walnut-check-doc-refs` | `pnpm lint:docs-refs` | 校验**活文档正文**里引用的 workspace 包名与仓库路径是否真实存在 |
 | `walnut-setup-env` | `pnpm setup-env` / `pnpm encrypt-env` | dotenvx 加解密 `env-encrypted/` ↔ `env-local/` |
 | `walnut-check-git-hooks` | `pnpm hooks:check` | 断言 git 钩子由 lefthook 托管（防门禁静默消失） |
 
@@ -49,6 +50,7 @@
 | 模块 | 职责 |
 |------|------|
 | `lint-workflows.ts` | actionlint（缺二进制时跳过并告警；CI 的 workflow-lint.yml 才是权威闸门） |
+| `check-doc-refs.ts` | 活文档里的包名 / 仓库路径引用校验。**判据宁可漏报不可误报**：路径只在 markdown 反引号里查、必须顶层目录开头、允许语境解析（仓库根 / 文档目录 / `apps/server/`）；ADR 与待办文档因「合法引用历史路径」被排除；`ALLOWED_*` 豁免清单每条都要写理由 |
 | `check-git-hooks.ts` | 断言三个钩子文件存在且含 lefthook 托管标记 |
 
 ### `src/env/` —— 环境文件
@@ -59,7 +61,7 @@
 
 ## 两条硬约束
 
-1. **本包源码由 Node 原生执行**（三个 bin + 被 `@walnut/release` 的 bin 间接拉起）。
+1. **本包源码由 Node 原生执行**（四个 bin + 被 `@walnut/release` 的 bin 间接拉起）。
    因此它继承 `@walnut/tsconfig/ts.json`，受 **`erasableSyntaxOnly`** 约束：
    不许 `enum`、不许非 ambient `namespace`、不许构造函数参数属性。
    违反会在 `pnpm types:check` 当场报错，而不是等到运行时才炸。

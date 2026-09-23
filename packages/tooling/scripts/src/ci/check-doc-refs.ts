@@ -1,0 +1,263 @@
+/**
+ * 文档引用校验：**活文档**里提到的 workspace 包名与仓库路径必须真实存在。
+ *
+ * 为什么要有它（两次实测的战果，不是假想需求）：
+ * - 2026-09-23 第一轮按「不存在的包名」扫，查出 `attribution.ts` 里 `'tooling': '@walnut/tooling'`
+ *   这条**陈尸** —— 那个包早已拆成 5 个，而它会让一条提交为幽灵包写出版本意图；同轮还查出
+ *   `README.md` 的结构块整块虚构（`packages/{shared,axios,core}` 三个包一个都不存在）。
+ * - 第二轮按「不存在的路径」扫，查出 9 类失效引用：ADR 里全是迁移前的 `docs/reference/*`、
+ *   `.claude/skills/**` 把 DB Model 常量指到错误目录、以及**引用了一个根本不存在**的
+ *   `migration-guide/` 目录。
+ *
+ * 判据（**宁可漏报，不可误报**）：一个门禁一旦有噪声，人就会开始无视它，等于没做。
+ * 因此本模块刻意收窄：
+ *   ① 包名只认 `@walnut/<段>` 形态；`@walnut-server/*` 是后端内部 lib 命名空间（不是包），不查。
+ *   ② 路径只在 **markdown** 里查（代码里的 import 由 tsc / boundaries 管），且必须**以顶层目录开头**
+ *      （`apps/` `packages/` `deploy/` `.github/` …），否则不认 —— 半截相对片段太容易误判。
+ *   ③ 路径允许**语境解析**：先按仓库根解析，再按文档自身所在目录、以及 `apps/server/` 解析
+ *      （`env-encrypted/` 这类写法就是相对 server 的）。任一命中即算存在。
+ *   ④ 冻结语料（`content/archive/`、`content/industry-research/`）**不扫** —— 它们有意保留当时的路径。
+ *   ⑤ 明确「尚未存在 / 有意删除」的少数引用走 `ALLOWED_*` 清单，**每一条都写了理由**；清单变长
+ *      本身就是信号（说明有人开始往门禁里塞豁免而不是修引用）。
+ */
+
+import fs from 'node:fs'
+import path from 'node:path'
+import { lsFilesWithUntracked } from '../lib/git.ts'
+import { REPO_ROOT } from '../lib/repo-root.ts'
+
+/**
+ * 冻结语料：有意保留当时路径的历史文档，不参与校验。
+ * ⚠️ 与 VitePress 的 `ignoreDeadLinks` 白名单是**同一条口径**（见 apps/docs/.vitepress/config/index.ts）。
+ */
+const FROZEN = /(?:^|\/)content\/(?:archive|industry-research)\//
+
+/**
+ * **只对路径引用**生效的排除面。
+ *
+ * 为什么要把 ADR 排掉：ADR 是「某时刻的决策记录」，它**合法地**引用当时存在、现在已经没有的路径
+ * —— 例如 ADR 0017 讲的就是包重组本身，正文里那张"重组前"表列的全是旧路径。把它们算失效，
+ * 门禁就会长出一串永远不修、只能豁免的条目。
+ * 代价很小：ADR 里的**markdown 链接**仍被 VitePress 内置死链校验覆盖（那是另一条闸）。
+ *
+ * 为什么把待办文档排掉：`architecture-todo.md` 的职责恰恰是**记录失效的引用本身**
+ * （「裸 `scripts/…` → 补全为 …」「`migration-guide/` 目录根本不存在」），它必然包含死路径。
+ */
+const PATH_CHECK_EXCLUDED = /(?:^|\/)content\/adr\/|architecture-todo\.md$/
+
+/** 后端内部 lib 的命名空间：不是 workspace 包，没有 package.json */
+const SERVER_LIB_NAMESPACE = '@walnut-server/'
+
+/** 路径引用只认这些顶层目录开头的（收窄判据 ②） */
+const TOP_LEVEL_DIRS = [
+  'apps',
+  'packages',
+  'deploy',
+  'scripts',
+  'docs',
+  '.github',
+  '.changeset',
+  '.vscode',
+  '.claude',
+  'env-encrypted',
+  'env-local',
+  'migration-guide',
+]
+
+const PATH_EXT = /\.(?:ts|tsx|vue|js|mjs|cjs|json|jsonc|yaml|yml|toml|sh|hcl|css|md|env|d\.ts)$/
+
+/**
+ * 允许「不存在」的**路径**引用。每条都要写清理由 —— 没理由的豁免等于把门禁关掉。
+ *
+ * 只有 3 条：**路径**那一半刻意收得很紧（`PATH_CHECK_EXCLUDED` 已经把 ADR 与待办文档排掉），
+ * 所以这里的长度本身就是「扫描面有没有失控」的体温计。
+ */
+export const ALLOWED_MISSING_PATHS: Record<string, string> = {
+  '.changeset/ledger.yaml': '首次发版时才生成（pnpm 的消费台账）',
+  '.changeset/.release-state.json': '发版中间状态，gitignored，只在跑发版时短暂存在',
+  '.changeset/config.json': '有意删除（迁到 pnpm-workspace.yaml 的 versioning 段），引用处都在说「已删除」',
+  'apps/server/changelog-latest.md': '已删除的历史产物；引用处的原话就是「已删除两个陈旧 changelog」',
+  'deploy/env/.env.production': '部署机上的运行时文件（gitignored）',
+  'deploy/nginx/certs/': '证书目录，只在服务器上存在（gitignored）',
+  // 「提及某路径**正是因为**它不存在」是合法写法，机械检查分辨不了，只能豁免：
+  // 两处原文分别是「根 `scripts/` 目录已不存在」与「根 `scripts/` 目录不存在，根 scripts 只经 bin 调用」。
+  'scripts/': '根 scripts/ 目录已取消（拆进 packages/tooling/）；引用处在说它不存在',
+}
+
+/**
+ * 允许「不存在」的**包名**引用。分三类，都写理由。
+ */
+export const ALLOWED_MISSING_PACKAGES: Record<string, string> = {
+  // 规划中（架构待办有对应条目，建出来之后应从本清单删掉）
+  '@walnut/i18n': '规划中（待办 A8）',
+  '@walnut/security': '规划中（待办 A9）',
+  // 已更名 / 已删除：引用处都是历史叙述
+  '@walnut/axios': '已更名 @walnut/http（2026-07）',
+  '@walnut/tooling': '已拆成 5 个包（2026-09）',
+  '@walnut/shared': '从未存在（ADR 0001 讨论过的候选名）',
+  '@walnut/core': '从未存在（ADR 0001 讨论过的候选名）',
+  '@walnut/ai': '已删除的空壳包',
+  // 名称 ≠ 目录名，容易被写错；正名是 @walnut/utils
+  '@walnut/utils-core': '包名是 @walnut/utils，`utils-core` 只是目录名',
+  // 归档的抽取提案 / 行业调研里的示例名
+  '@walnut/als': '归档提案里的候选名',
+  '@walnut/mask': '归档提案里的候选名',
+  '@walnut/mailer': '归档提案里的候选名',
+  '@walnut/cache': '归档提案里的候选名',
+  '@walnut/crud': '归档提案里的候选名',
+  '@walnut/admin-dist': '行业调研里的示例镜像名',
+  '@walnut/server-dist': '行业调研里的示例镜像名',
+}
+
+export interface DocRefs {
+  packages: Map<string, string[]>
+  paths: Map<string, string[]>
+}
+
+/** 扫描面：全部跟踪（∪ 未跟踪）的 .md，排除冻结语料 */
+export function liveDocs(): string[] {
+  return lsFilesWithUntracked('*.md').filter(f => !FROZEN.test(f))
+}
+
+/** 包名引用：`@walnut/<段>`（`@walnut-server/` 不查，见模块头注释 ①） */
+export function extractPackageRefs(text: string): string[] {
+  const found = new Set<string>()
+  for (const m of text.matchAll(/@walnut\/([a-z0-9][a-z0-9-]*)/g))
+    found.add(`@walnut/${m[1]}`)
+  return [...found]
+}
+
+/** 路径引用：markdown 反引号里、以顶层目录开头、带扩展名或以 `/` 结尾的 token（判据 ②） */
+export function extractPathRefs(text: string): string[] {
+  const found = new Set<string>()
+  let inFence = false
+  for (const line of text.split('\n')) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence
+      continue
+    }
+    for (const m of line.matchAll(/`([^`\n]+)`/g)) {
+      const raw = m[1].trim()
+      // 去掉行内注释尾巴与锚点
+      const token = raw.split(/\s+#/)[0].split('#')[0].trim()
+      // `*` 通配、`<包>` 占位、`...` 省略、`$VAR`、含空格的句子 —— 都不是可解析的路径
+      if (!token || /[*<>{}|$\s]/.test(token) || token.includes('...'))
+        continue
+      if (token.startsWith('~/') || token.startsWith('http'))
+        continue
+      if (!TOP_LEVEL_DIRS.some(dir => token === `${dir}/` || token.startsWith(`${dir}/`)))
+        continue
+      const looksLikePath = PATH_EXT.test(token) || token.endsWith('/') || !token.includes('.')
+      if (!looksLikePath)
+        continue
+      found.add(token)
+    }
+  }
+  return [...found]
+}
+
+export interface Finding {
+  kind: 'package' | 'path'
+  ref: string
+  files: string[]
+}
+
+/**
+ * 路径能否解析：仓库根 → 文档所在目录 → `apps/server/`（判据 ③）。
+ *
+ * `fsExists` 收到的是**仓库相对、正斜杠**的路径 —— 三个探针都用 `path.posix` 拼，
+ * 由调用方（默认实现）决定怎么落到真实文件系统。**不要把绝对路径透出去**：
+ * 在 Windows 上 `path.join` 会给出反斜杠，调用方写 `endsWith('apps/server/x')` 这种断言就会假失败
+ * （实测踩到），而 `fs.existsSync` 本来两种分隔符都认 —— 那就统一成正斜杠。
+ */
+export function pathResolves(ref: string, docFile: string, fsExists: (repoRelative: string) => boolean): boolean {
+  const docDir = path.posix.dirname(docFile)
+  const probes = [
+    ref,
+    path.posix.normalize(path.posix.join(docDir, ref)),
+    path.posix.join('apps/server', ref),
+  ]
+  return probes.some(p => fsExists(p))
+}
+
+export interface CheckOptions {
+  docs?: string[]
+  realPackages?: Set<string>
+  fsExists?: (repoRelative: string) => boolean
+}
+
+/** 收集所有发现（纯函数，便于单测） */
+export function collectFindings(options: CheckOptions = {}): Finding[] {
+  const docs = options.docs ?? liveDocs()
+  const realPackages = options.realPackages ?? workspacePackageNames()
+  const fsExists = options.fsExists ?? ((p: string) => fs.existsSync(path.join(REPO_ROOT, p)))
+  const pkgHits = new Map<string, string[]>()
+  const pathHits = new Map<string, string[]>()
+
+  for (const file of docs) {
+    const text = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')
+    for (const ref of extractPackageRefs(text)) {
+      if (ref.startsWith(SERVER_LIB_NAMESPACE) || realPackages.has(ref) || ref in ALLOWED_MISSING_PACKAGES)
+        continue
+      pkgHits.set(ref, [...(pkgHits.get(ref) ?? []), file])
+    }
+    for (const ref of extractPathRefs(text)) {
+      if (PATH_CHECK_EXCLUDED.test(file))
+        continue
+      if (ref in ALLOWED_MISSING_PATHS || pathResolves(ref, file, fsExists))
+        continue
+      pathHits.set(ref, [...(pathHits.get(ref) ?? []), file])
+    }
+  }
+
+  const findings: Finding[] = [
+    ...[...pkgHits].map(([ref, files]) => ({ kind: 'package' as const, ref, files })),
+    ...[...pathHits].map(([ref, files]) => ({ kind: 'path' as const, ref, files })),
+  ]
+  return findings.sort((a, b) => a.kind.localeCompare(b.kind) || b.files.length - a.files.length)
+}
+
+/** 真实 workspace 包名（读盘上的 package.json，不维护手写清单） */
+export function workspacePackageNames(): Set<string> {
+  const names = new Set<string>()
+  for (const file of lsFilesWithUntracked('*package.json')) {
+    const dir = path.posix.dirname(file)
+    if (dir === '.' || !/^(?:apps\/[^/]+|packages\/[^/]+\/[^/]+)$/.test(dir))
+      continue
+    try {
+      const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')) as { name?: string }
+      if (manifest.name)
+        names.add(manifest.name)
+    }
+    catch {
+      // 读不动就当它不存在：本门禁只做「引用是否指向真实包」，不做清单审计（那是 release 的活）
+    }
+  }
+  return names
+}
+
+export function main(): number {
+  const findings = collectFindings()
+  const docs = liveDocs()
+  if (docs.length === 0 || workspacePackageNames().size === 0) {
+    console.error('✖ 扫描面为空（活文档 0 篇或 0 个包）—— 拒绝把「扫不到东西」当绿灯')
+    return 2
+  }
+
+  console.log(`文档引用校验：${docs.length} 篇活文档；包名豁免 ${Object.keys(ALLOWED_MISSING_PACKAGES).length} 条、路径豁免 ${Object.keys(ALLOWED_MISSING_PATHS).length} 条`)
+
+  if (findings.length === 0) {
+    console.log('✅ 没有引用不存在的包名或路径')
+    return 0
+  }
+
+  for (const f of findings) {
+    const label = f.kind === 'package' ? '包名' : '路径'
+    console.error(`\n✖ ${label} ${f.ref}  （${f.files.length} 处）`)
+    for (const file of f.files.slice(0, 6)) console.error(`    ${file}`)
+    if (f.files.length > 6)
+      console.error(`    … 另外 ${f.files.length - 6} 处`)
+  }
+  console.error(`\n共 ${findings.length} 类失效引用。修掉它们，或在 check-doc-refs.ts 的 ALLOWED_* 清单里写明理由。`)
+  return 1
+}

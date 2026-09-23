@@ -148,6 +148,7 @@ pnpm release
 | `syncpack` | `syncpack lint` |
 | `versioning` | `pnpm change check`（fixed 组锁步） |
 | `workflows` | actionlint |
+| `docs-refs` | `pnpm lint:docs-refs`（活文档正文里引用的 workspace 包名 / 仓库路径必须真实存在） |
 | `build` | ⏭️ **默认暂缓**：镜像由 `release.yml` 的 images job 真正构建；要跑就删掉表里那行的 `skip` |
 
 > ⚠️ `lint-root` / `types-root` 必须是**独立一行**、且经根脚本跑（`pnpm lint:root` /

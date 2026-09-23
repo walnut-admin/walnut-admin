@@ -32,7 +32,7 @@ commit-msg:
     - name: commitlint
       run: pnpm exec commitlint --edit {1}
 
-# 推送前：**单条**聚合门禁（七段在根 `prepush` 脚本里按序跑）。
+# 推送前：**单条**聚合门禁（八段在根 `prepush` 脚本里按序跑）。
 # 收敛成单条的性质要保住：被截断只会退化成「命令不存在」，响亮报错。
 pre-push:
   jobs:

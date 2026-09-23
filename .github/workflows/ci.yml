@@ -89,6 +89,11 @@ jobs:
       - name: Docs build (dead-link check)
         run: pnpm build:docs
 
+      # 补 VitePress 内置查不到的那一半：活文档**正文**里引用的 workspace 包名与仓库路径。
+      # （内置只认 markdown 链接语法，反引号里的 `@walnut/xxx` / `packages/a/b.ts` 它看不见。）
+      - name: Doc reference check
+        run: pnpm lint:docs-refs
+
       # 防"affected 空集静默通过"：有文件变更却算出 0 个受影响包时必须失败
       - name: Affected set sanity check
         if: steps.affected.outputs.base != ''

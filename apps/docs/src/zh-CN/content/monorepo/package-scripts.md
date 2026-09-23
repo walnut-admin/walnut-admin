@@ -62,10 +62,11 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
     "syncpack:lint": "syncpack lint --dependency-types dev,prod",
     "syncpack:fix": "syncpack fix",
     "lint:workflows": "walnut-lint-workflows",   // actionlint 校验 .github/workflows
+    "lint:docs-refs": "walnut-check-doc-refs",   // 校验活文档正文引用的包名 / 仓库路径
     "hooks:check": "walnut-check-git-hooks",     // 断言 git 钩子由 lefthook 托管
 
-    // pre-push 的聚合门禁（lefthook 的 pre-push 只调这一条，七段按序跑）
-    "prepush": "pnpm boundaries && pnpm lint:root && pnpm types:check && pnpm types:check:root && pnpm syncpack:lint && pnpm lint:workflows && pnpm change check",
+    // pre-push 的聚合门禁（lefthook 的 pre-push 只调这一条，八段按序跑）
+    "prepush": "pnpm boundaries && pnpm lint:root && pnpm types:check && pnpm types:check:root && pnpm syncpack:lint && pnpm lint:workflows && pnpm lint:docs-refs && pnpm change check",
 
     // 发布（@walnut/release 的 bin，实现位于 packages/tooling/release/src/release/）
     "release": "walnut-release"
@@ -102,7 +103,7 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 ```
 pre-commit → pnpm exec lint-staged（ESLint fix on staged files，秒级）
 commit-msg → pnpm exec commitlint --edit {1}（提交信息规范检查）
-pre-push   → pnpm --silent prepush（单条聚合门禁：七段按序跑，十秒级）
+pre-push   → pnpm --silent prepush（单条聚合门禁：八段按序跑，十秒级）
 ```
 
 `prepush` = `pnpm boundaries && pnpm lint:root && pnpm types:check && pnpm syncpack:lint && pnpm lint:workflows && pnpm change check`

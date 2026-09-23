@@ -43,7 +43,8 @@ pnpm types:check:root # Type check the root configs only (tsc -p tsconfig.json)
 pnpm test           # Run tests (server + contract snapshots + utils + client + scripts + release)
 pnpm boundaries     # Turbo architecture-boundaries check
 pnpm lint:workflows # actionlint over .github/workflows
-pnpm prepush        # The pre-push aggregate gate (seven sections): boundaries + lint:root + types:check + types:check:root + syncpack + lint:workflows + pnpm change check
+pnpm lint:docs-refs # Check package/path references in live docs
+pnpm prepush        # The pre-push aggregate gate (eight sections): boundaries + lint:root + types:check + types:check:root + syncpack + lint:workflows + lint:docs-refs + pnpm change check
 pnpm hooks:check    # Assert the git hooks are lefthook-managed
 
 # Release
@@ -89,7 +90,7 @@ walnut-admin/
 │       ├── eslint-config/    @walnut/eslint-config    — shared ESLint presets (base / vue / nest)
 │       ├── commitlint-config/@walnut/commitlint-config — commitlint rules
 │       ├── scripts/          @walnut/scripts          — repo-level scripts: generic lib/,
-│       │                                 repo gates (ci/), env encrypt/decrypt (env/); 3 bins
+│       │                                 repo gates (ci/), env encrypt/decrypt (env/); 4 bins
 │       └── release/          @walnut/release          — release orchestration (src/release/); bin walnut-release
 ├── apps/admin/build/         ← Admin Vite build config (plugins/config/proxy)
 ├── turbo.json                ← Turborepo pipeline
