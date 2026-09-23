@@ -92,6 +92,9 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'turbo-cache', label: 'turbo 缓存边界（产物 / 依赖边不变量）', argv: ['lint:turbo-cache'] },
   // 同上。改 catalog 忘了 `pnpm install` = 本地全绿、CI 死在 install —— 发版面必须也看得见。
   { id: 'lockfile', label: 'catalog 与锁文件锁步', argv: ['lint:lockfile'] },
+  // 同上。入口 nginx 的 4 个安全头：`add_header` 是整段替换而不是合并，写漏一条就静默裸奔。
+  // 发版面能看见它还有一层意义 —— 部署用的就是这份 `deploy/nginx/conf.d/`。
+  { id: 'nginx-headers', label: '入口 nginx 安全响应头（conf.d）', argv: ['lint:nginx-headers'] },
   {
     id: 'build',
     label: '构建（3 个 app + 共享包）',

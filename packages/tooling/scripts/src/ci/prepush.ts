@@ -3,7 +3,7 @@
  *
  * ## 为什么要有这个文件
  *
- * 在这之前，11 段门禁是一条 `a && b && c && …` 的**单行 shell 串**写在根 `package.json` 的
+ * 在这之前，门禁是一条 `a && b && c && …` 的**单行 shell 串**写在根 `package.json` 的
  * `prepush` 里。两件事一起把它变成了维护负担：① 一行 300+ 字符，加一段得在中间找位置；
  * ② 同一份清单被**四处文档各抄一遍**（`AGENTS.md` / `README.md` / `package-scripts.md` /
  * ADR 0018）—— 正是本仓刚立的那条纪律「别在正文里写会腐烂的清单」的典型反例。
@@ -11,13 +11,13 @@
  * 现在：**门禁表就是这个数组**，增删改都只看这一处；命令行只剩一个词 `pnpm prepush`
  * （= `walnut-prepush`）；文档只指向本文件。顺带拿到的两件事：
  *
- * - **并行**：11 段里有 10 段是秒级的纯读盘检查，唯一的重活（`types:check`）以前只能排在它们
- *   后面干等。现在按有界并发跑，重活与轻活重叠。
+ * - **并行**：表里绝大多数段是秒级的纯读盘检查，唯一的重活（`types:check`）以前只能排在
+ *   它们后面干等。现在按有界并发跑，重活与轻活重叠。
  * - **每段耗时**：以前哪一段慢完全看不出来（`&&` 串只给一个总时间）。
  *
  * ## 为什么不搬进 `lefthook.yml`
  *
- * 曾经认真考虑过「pre-push 下写 11 个 job」。**没搬的两个理由**：
+ * 曾经认真考虑过「pre-push 下写十几个 job」。**没搬的两个理由**：
  * ① `pnpm prepush` 这个名字被发版工具链引用着（`release/src/release/env.ts` 与
  *    `lib/child-run.ts` 都要在发版流程里剥掉 `LEFTHOOK*` 环境变量，否则发版时的 `git push`
  *    会递归触发它自己）—— 搬走等于让发版代码去认识一个钩子配置。
@@ -29,7 +29,7 @@
  * ## 顺序即执行顺序？不是
  *
  * 并行之后**完成顺序不等于表里的顺序**。表里的顺序表达的是「读起来该按什么顺序理解」，
- * 不是依赖关系 —— 这 11 段之间**没有任何依赖**（都是只读检查，不产生产物给对方用）。
+ * 不是依赖关系 —— 表里各段之间**没有任何依赖**（都是只读检查，不产生产物给对方用）。
  * 哪天出现真有依赖的两段，就该把它们合成一段，而不是靠顺序兜。
  */
 
@@ -131,6 +131,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: '「升级依赖」在本仓 = 改 catalog 一行，而改了声明忘了 `pnpm install` 时**本地必然全绿**（所有门禁都用既有 node_modules）、**CI 必然红**（`--frozen-lockfile`），连打 tag 的发版面一起炸。这是唯一看得见它的地方。',
   },
   {
+    id: 'nginx-headers',
+    label: '入口 nginx 安全响应头（conf.d）',
+    argv: ['lint:nginx-headers'],
+    why: 'nginx 的 `add_header` 是**整段替换**不是合并：某个 location 自己写了一条，就把 server 级的 4 个安全头全吃掉；两个并列的 `server` 块之间也不互相继承（2026-09-23 实测 `api.conf` 一个头都没有）。本机没有 Docker ⇒ `nginx -t` 都跑不了，这是唯一在推送前能看见它的地方。',
+  },
+  {
     id: 'versioning',
     label: 'workspace 版本锁步（pnpm change check）',
     argv: ['change', 'check'],
@@ -148,7 +154,7 @@ export interface GateResult {
   gate: PrepushGate
   ok: boolean
   ms: number
-  /** 捕获到的完整输出（并行下不直接转播，避免 11 路输出交织） */
+  /** 捕获到的完整输出（并行下不直接转播，避免多路输出交织） */
   output: string
 }
 
@@ -180,7 +186,7 @@ export async function runGates(
         await runArgs(pnpmBin, gate.argv, {
           // ⚠️ cwd 必须是**仓库根**：从子目录跑时 `pnpm <脚本>` 会解析到最近那个包的脚本
           cwd: REPO_ROOT,
-          // 并行下不转播子进程输出（11 路交织会糊成一片）；收进缓冲，失败时整段回放
+          // 并行下不转播子进程输出（多路交织会糊成一片）；收进缓冲，失败时整段回放
           output: { write: text => chunks.push(text) },
           // 探针（`$ pnpm …` 与心跳）也静音 —— 执行器自己会打印一行结果
           note: () => {},
@@ -225,7 +231,7 @@ export async function main(): Promise<number> {
     return 0
   }
 
-  // 失败才回放输出：成功时那 11 段输出没人看，失败时它是唯一线索
+  // 失败才回放输出：成功时那些输出没人看，失败时它是唯一线索
   for (const result of failed) {
     console.error(`\n${'─'.repeat(20)} ${result.gate.label} 失败（${(result.ms / 1000).toFixed(1)}s） ${'─'.repeat(20)}`)
     console.error(`为什么必须有这一段：${result.gate.why}`)

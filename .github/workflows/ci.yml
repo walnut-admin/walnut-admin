@@ -119,6 +119,12 @@ jobs:
       - name: Catalog / lockfile lockstep check
         run: pnpm lint:lockfile
 
+      # nginx 的 add_header 是「整段替换」：location 自己写一条就吃掉 server 级的 4 个安全头，
+      # 并列的 server 块之间也不互相继承。本机没 Docker ⇒ 推送前只有这一段能看见它
+      # （「头真的发出去了」由 deploy/post-verify.sh 在部署后核实）。
+      - name: Entry nginx security headers check
+        run: pnpm lint:nginx-headers
+
       # 防"affected 空集静默通过"：有文件变更却算出 0 个受影响包时必须失败
       - name: Affected set sanity check
         if: steps.affected.outputs.base != ''
