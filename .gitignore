@@ -35,8 +35,11 @@ deploy/env/
 deploy/nginx/certs/
 
 # Reports (keep .md files)
-report/*
-!report/*.md
+# ⚠️ 必须写 `**/`：带斜杠的模式是**锚定到本文件所在目录**的，`report/*` 只匹配仓库根的
+# `report/`（该目录并不存在），而实际产出在 `apps/admin/report/`（`types:check:log` 写的
+# tsc.log）—— 那只会在每个跑过该脚本的机器上留下一个未跟踪文件。
+**/report/*
+!**/report/*.md
 
 # Git hooks（lefthook 运行期缓存与本地覆写；钩子内容本身在 lefthook.yml，进仓库）
 .lefthook/

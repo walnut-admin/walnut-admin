@@ -21,7 +21,7 @@ packages/tooling/        tsconfig · eslint-config · commitlint-config · scrip
 - 模块边界由 Turbo boundaries 强制执行（tags 声明在各包 workspace 级 `turbo.json`），`pnpm boundaries` / pre-push / CI 三道闸。
 - 全仓共 14 个 workspace 包（3 app + 3 platform-any + 3 platform-web + 5 tooling），同属 `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组。
 - tsconfig 走 `@walnut/tsconfig/*.json` 预设（`vue.json` 给浏览器/Vue、`ts.json` 给 Node 原生执行的代码、`base.json` 给由 jiti / commitlint loader 加载的根配置）；**`apps/server/tsconfig.json` 不 extends 任何预设**（ADR 0012）。根 `tsconfig.base.json` 已删除。
-- **不许新建 `.mjs` / `.cjs`**：配置、ESLint 预设、bin、构建脚本一律 `.ts`；bin 由 Node 24 原生类型剥离执行（仓库不再依赖 `tsx` 跑工具链），该约束由 `ts.json` 的 `erasableSyntaxOnly` 在编译期保证（ADR 0019）。
+- **不许新建 `.mjs` / `.cjs`**：配置、ESLint 预设、bin、构建脚本一律 `.ts`；所有 `.ts` 入口都由 Node 24 原生类型剥离执行（**仓库内已无任何 `tsx` 依赖** —— 连 `apps/admin` 的 `predev` / `types:check:log` 也改走 `node`），该约束由 `ts.json` 的 `erasableSyntaxOnly` 在编译期保证（ADR 0019）。
 
 ## 常用命令
 

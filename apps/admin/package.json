@@ -27,7 +27,7 @@
     "pnpm": ">=12.0.0"
   },
   "scripts": {
-    "predev": "tsx build/generate/genJSONSchemas.ts",
+    "predev": "node build/generate/genJSONSchemas.ts",
     "dev": "vite",
     "build": "vite build",
     "build:stage": "vite build --mode stage",
@@ -36,7 +36,7 @@
     "lint": "cross-env NODE_OPTIONS=--max-old-space-size=8192 eslint . --concurrency=auto",
     "lint:fix": "cross-env NODE_OPTIONS=--max-old-space-size=8192 eslint . --fix --concurrency=auto",
     "types:check": "vue-tsc --noEmit",
-    "types:check:log": "tsx build/types.ts",
+    "types:check:log": "node build/types.ts",
     "clean:cache": "rimraf node_modules/.vite",
     "clean:lib": "rimraf node_modules",
     "clean": "rimraf dist",
@@ -143,7 +143,6 @@
     "tinyglobby": "catalog:",
     "tinymce": "catalog:",
     "ts-json-schema-generator": "catalog:",
-    "tsx": "catalog:",
     "typescript": "catalog:",
     "unocss": "catalog:",
     "unplugin-auto-import": "catalog:",

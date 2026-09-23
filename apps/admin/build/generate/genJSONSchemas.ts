@@ -1,10 +1,10 @@
 import * as TJS from 'ts-json-schema-generator'
 
-import { BuildUtilsWriteFile } from '../utils'
+import { BuildUtilsWriteFile } from '../utils/index.ts'
 import {
   AppSettingsDevInterfaceFilePath,
   AppSettingsDevJSONSchemaFilePath,
-} from '../utils/paths'
+} from '../utils/paths.ts'
 
 const config: import('ts-json-schema-generator/dist/src/Config').Config = {
   path: AppSettingsDevInterfaceFilePath,

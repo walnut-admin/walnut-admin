@@ -48,7 +48,7 @@ versioning:
 
 > 本次发版迁移对 catalog 的增删：新增 `git-cliff@2.13.1`、`lefthook@2.1.14`、`yaml@2.9.0`；移除 `@changesets/cli`、`@changesets/changelog-github`、`simple-git-hooks`。
 
-> 2026-09-23 工具链拆分对 catalog 的增删：新增 `jiti@2.7.0`（ESLint 加载 `eslint.config.ts` 的官方 TS 加载器，根 devDependency）；`yaml@2.9.0` 与 `git-cliff@2.13.1` 的所有权从根/`@walnut/tooling` 下沉——`yaml` 变为 `@walnut/release` 的 dependency（同时是 `@walnut/scripts` 的 devDependency，只给 lefthook 配置的审计用例用），`git-cliff` 变为 `@walnut/release` 的 dependency；`@dotenvx/dotenvx@2.19.0` 变为 `@walnut/scripts` 的 dependency。改动后 catalog 共 243 条。`tsx@4.21.0` **仍在 catalog 里**：工具链已不用它（bin 走 Node 原生类型剥离），但 `apps/admin` 的 `predev` / `types:check:log` 还在用。
+> 2026-09-23 工具链拆分对 catalog 的增删：新增 `jiti@2.7.0`（ESLint 加载 `eslint.config.ts` 的官方 TS 加载器，根 devDependency）；`yaml@2.9.0` 与 `git-cliff@2.13.1` 的所有权从根/`@walnut/tooling` 下沉——`yaml` 变为 `@walnut/release` 的 dependency（同时是 `@walnut/scripts` 的 devDependency，只给 lefthook 配置的审计用例用），`git-cliff` 变为 `@walnut/release` 的 dependency；`@dotenvx/dotenvx@2.19.0` 变为 `@walnut/scripts` 的 dependency；**移除 `tsx@4.21.0`**（仓内最后一个使用者是 `apps/admin` 的 `predev` / `types:check:log`，两个脚本改由 Node 24 原生类型剥离执行后已无任何直接依赖）。改动后 catalog 共 242 条。
 
 ### `hoist: false`
 

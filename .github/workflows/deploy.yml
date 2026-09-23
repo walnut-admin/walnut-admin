@@ -61,7 +61,7 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      # pnpm install 只为 pnpm setup-env（tsx + dotenvx）服务，约 30s（store 有缓存）
+      # pnpm install 只为 pnpm setup-env（@walnut/scripts 的 dotenvx bin）服务，约 30s（store 有缓存）
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 

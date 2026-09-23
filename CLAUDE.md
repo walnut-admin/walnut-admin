@@ -102,8 +102,9 @@ walnut-admin/
 > 14 workspace packages in total (3 apps + 3 platform-any + 3 platform-web + 5 tooling); all share one
 > `versioning.fixed` group. `apps/server/tsconfig.json` extends **no** preset (ADR 0012) and is the only
 > TS config outside the preset scheme. There are **no `.mjs` / `.cjs` files** in the repo: configs, ESLint
-> presets, bins and build scripts are all `.ts`, executed by Node 24 native type stripping (no `tsx` in the
-> toolchain) with the invariant enforced at compile time by `erasableSyntaxOnly` in `ts.json`.
+> presets, bins and build scripts are all `.ts`, executed by Node 24 native type stripping (`tsx` is no
+> longer a dependency of any package) with the invariant enforced at compile time by `erasableSyntaxOnly`
+> in `ts.json`.
 
 ### Important: Server Internal Monorepo
 
@@ -129,7 +130,7 @@ This monorepo was created by merging three previously separate repositories:
 - ✅ Vestigial `paths` block removed from `tsconfig.base.json` (resolution was broken by baseUrl override; real resolution via pnpm symlinks + package `exports`)
 - ✅ `turbo.json` gained a `test` task and `pnpm-workspace.yaml` in `globalDependencies`
 - ✅ Root `dev` targets `@walnut/admin` only (avoids starting server which needs MongoDB+Redis); the duplicate `dev:admin` alias was removed on 2026-09-23
-- ✅ Dependencies unified via pnpm `catalog:` (243 entries, single source of truth — ESLint version drift resolved)
+- ✅ Dependencies unified via pnpm `catalog:` (242 entries, single source of truth — ESLint version drift resolved)
 
 **Toolchain hardening (2026-08-08):**
 - ✅ `turbo.json` `dev`/`test` tasks now `dependsOn: ["^build"]` — fresh clones can `dev:server` directly (contract/utils CJS dist is a build artifact, see ADR 0002)
@@ -150,7 +151,7 @@ This monorepo was created by merging three previously separate repositories:
 **Toolchain split, tsconfig presets, zero `.mjs` (2026-09-23, ADR 0019):**
 - ✅ `packages/tooling/` went from 1 package to **5**: `@walnut/tsconfig` (pure-JSON presets `base`/`ts`/`vue`), `@walnut/eslint-config`, `@walnut/commitlint-config`, `@walnut/scripts` (`src/lib` + `src/ci` + `src/env`, bins `walnut-lint-workflows`/`walnut-setup-env`/`walnut-check-git-hooks`) and `@walnut/release` (`src/release` moved out of `packages/tooling/scripts/`, bin `walnut-release`). The old `@walnut/tooling` no longer exists; `@walnut/release` consumes generic helpers via `@walnut/scripts/lib/*`
 - ✅ `@walnut/tsconfig` extracted and root `tsconfig.base.json` **deleted** (reverses the previously documented "don't extract" decision): `ts.json` = base + `erasableSyntaxOnly` (code Node executes directly), `vue.json` = base + DOM libs + Vue JSX, `base.json` = environment-neutral baseline used by the root `tsconfig.json`, `@walnut/eslint-config` and `@walnut/commitlint-config` (loaded by jiti / commitlint's TS loader, not by Node). Packages now `"extends": "@walnut/tsconfig/<preset>.json"` instead of climbing `../../../tsconfig.base.json`. `apps/server/tsconfig.json` still extends **nothing** (ADR 0012)
-- ✅ Every `.mjs` became `.ts` (16 files: 4 package-level ESLint configs, the 4 ESLint presets, the commitlint config + config package, 4 bins, contract's `build-barrel`); no `.mjs`/`.cjs` remains tracked. Bins run on Node 24 native type stripping — `tsx` is gone from the toolchain (the `apps/admin` `predev`/`types:check:log` scripts still use it, so the catalog entry stays) and the invariant is enforced by `erasableSyntaxOnly`
+- ✅ Every `.mjs` became `.ts` (16 files: 4 package-level ESLint configs, the 4 ESLint presets, the commitlint config + config package, 4 bins, contract's `build-barrel`); no `.mjs`/`.cjs` remains tracked. Every `.ts` entry point runs on Node 24 native type stripping — **`tsx` was removed from the repo entirely** (`apps/admin`'s `predev`/`types:check:log` were the last users; their two build scripts now run via `node`, which required explicit `.ts` extensions in `build/utils/**` and a `with { type: 'json' }` attribute on the `package.json` import) and the invariant is enforced by `erasableSyntaxOnly`
 - ✅ Root devDependencies pushed down: dropped `@antfu/eslint-config` / `@dotenvx/dotenvx` / `@walnut/tooling`, added `@walnut/release` / `@walnut/scripts` / `@walnut/tsconfig` / `jiti` (ESLint needs jiti to load `eslint.config.ts`) — 18 → 19 entries
 - ✅ `prepush` gained `pnpm lint:root` (six sections); `ci.yml`'s quality job got the same explicit step (root configs are outside turbo's affected graph); `lint:root` glob is now `*.ts *.json *.yaml`, `lint-staged` matches `*.{ts,vue,js}`; the duplicate `dev:admin` script was removed
 - ✅ The release battery's `lint` step was split into `turbo run lint` + `pnpm lint:root` — `lint:root` is a root `package.json` script, not a turbo task, so the previous `turbo run lint lint:root` form exited with `Could not find task 'lint:root' in project` and would have blocked every release

@@ -1,6 +1,6 @@
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
-import { BuildUtilsLog } from './log'
+import { BuildUtilsLog } from './log.ts'
 
 const promisifyExec = promisify(exec)
 

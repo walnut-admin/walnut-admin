@@ -75,8 +75,12 @@ packages/tooling/
 
 - 16 个 `.mjs` 全部改成 `.ts`（含那把 249 行的 NestJS 装饰器排序规则插件 —— 它此前是无类型的实验代码，
   本轮补齐类型并让它过 `tsc --noEmit`）。
-- bin 由 **Node 24 的原生类型剥离**执行，不再 `import 'tsx/esm'`；**工具链**不再依赖 `tsx`。
-  （`tsx` 并未从仓库消失：`apps/admin` 的 `predev` / `types:check:log` 仍在用，catalog 条目保留。）
+- bin 由 **Node 24 的原生类型剥离**执行，不再 `import 'tsx/esm'`；`tsx` 也从仓库**彻底移除** ——
+  最后一个使用者是 `apps/admin` 的 `predev` / `types:check:log`，两个脚本改走 `node`，`tsx` 的
+  devDependency 与 catalog 条目一并删掉。
+  代价是那两条链路必须满足 Node ESM 的解析规则：`build/utils/**` 的相对导入要写全 `.ts` 扩展名
+  （Node 不做扩展名推断），`build/utils/log.ts` 里 `import pkg from '../../package.json'` 要补
+  `with { type: 'json' }` 导入属性（ESM 不会替你猜 JSON 的模块类型）。
 - 该不变量由 `ts.json` 的 **`erasableSyntaxOnly: true`** 在编译期保证：
   源码只要用了 `enum` / 非 ambient `namespace` / 构造函数参数属性，`pnpm types:check` 当场报错 ——
   而不是等到某个 bin 被调用时才炸。

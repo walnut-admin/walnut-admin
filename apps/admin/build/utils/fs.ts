@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs'
 import { EOL } from 'node:os'
 // import { EOL } from 'node:os'
-import { BuildUtilsLog } from './log'
+import { BuildUtilsLog } from './log.ts'
 
 const stage = 'File'
 

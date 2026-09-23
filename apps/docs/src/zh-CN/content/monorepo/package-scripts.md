@@ -74,6 +74,8 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 
 根 scripts 里的 `NODE_OPTIONS=` 前缀统一用 `cross-env` 包裹（Windows 兼容）。早期的 `tsx scripts/*.ts` 写法已消失：仓库级脚本拆在 `packages/tooling/scripts/`（通用层 + 3 个 bin）与 `packages/tooling/release/`（发版编排 + `walnut-release`），根 `scripts/` 目录不存在，根 scripts 只经 bin 调用（`walnut-release` / `walnut-lint-workflows` / `walnut-setup-env` / `walnut-check-git-hooks`）。也没有 `changeset` / `changeset:auto` / `changelog` 脚本——版本意图由 `pnpm change` 写、`pnpm version -r` 消费（见 [发布 & 发版指南](./release.md)）。
 
+> `tsx` 已**完全移出仓库**（不只是根 scripts）：仓内最后一个使用者是 `apps/admin` 的 `predev`（`node build/generate/genJSONSchemas.ts`）与 `types:check:log`（`node build/types.ts`），两个脚本改走 Node 24 原生类型剥离后，`tsx` 的 devDependency 与 catalog 条目一起删掉。代价是这两条链路要满足 Node ESM 的解析规则：`build/utils/**` 的相对导入补全 `.ts` 扩展名，`build/utils/log.ts` 的 `import pkg from '../../package.json'` 补 `with { type: 'json' }` 导入属性。
+
 > `lint:root` 是 2026-09-23 新增的一节（glob 从 `*.mjs` 改为 `*.ts`）。根级配置（`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts` / `package.json` / `pnpm-workspace.yaml`）此前**不被任何门禁覆盖**——`pnpm lint` 只跑各包的 `lint` 任务。它现在进 `prepush` 与发版电池，`ci.yml` 的 quality job 也补了一步 `pnpm lint:root`（它不进 turbo 的 affected 图，所以必须显式跑）。
 
 **关键规则**：根 scripts 不包含构建逻辑。`turbo build` 会找到所有包的 `build` script 并按拓扑顺序执行。

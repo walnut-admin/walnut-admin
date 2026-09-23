@@ -4,7 +4,7 @@ import process from 'node:process'
 import chalk from 'chalk'
 
 import { getNow } from 'easy-fns-ts'
-import pkg from '../../package.json'
+import pkg from '../../package.json' with { type: 'json' }
 
 function title(stage: string) {
   return chalk.magenta.bgBlack(

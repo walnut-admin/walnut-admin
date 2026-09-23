@@ -86,7 +86,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 
 1. **异构 Toolchain**：前端 ESM + Vite + `moduleResolution: "bundler"`；后端 CJS + NestJS CLI + SWC + `moduleResolution: "node"`。Server **不继承**任何 `@walnut/tsconfig` 预设（`base.json` / `ts.json` / `vue.json`）。
 2. **两个命名空间**：`@walnut/*`（外层，pnpm workspace 包）和 `@walnut-server/*`（内层，NestJS internal libs）。物理分离，无命名冲突。
-3. **catalog 统一版本**：243 依赖通过 `pnpm-workspace.yaml` 的 `catalog:` 统一定义，`catalogMode: strict` 阻止直接版本号。
+3. **catalog 统一版本**：242 依赖通过 `pnpm-workspace.yaml` 的 `catalog:` 统一定义，`catalogMode: strict` 阻止直接版本号。
 4. **`hoist: false`**：严格依赖隔离——每个包只能解析自己 `package.json` 中声明的依赖，`node_modules/.pnpm/node_modules/` 条目数为 0。仅有 7 条精确包名的 `publicHoistPattern` 例外被提升到根 `node_modules/`。
 5. **供应链防护**：`minimumReleaseAge`（1 天冷却期）、`trustPolicy: no-downgrade`（拒绝可信度下降的版本）、`blockExoticSubdeps`（传递依赖禁止异源）三项由 pnpm 在安装时校验 lockfile。
 6. **依赖构建脚本白名单只有两条放行**：`@sentry/cli`（Sentry 上传路径本地无法验证）与 `lefthook`（它的 postinstall 就是 `lefthook install`，不放行则 git 钩子静默消失，见 ADR 0018）；其余原生模块（`@swc/core`、`esbuild`、`sharp` 等）通过 `optionalDependencies` 分发预编译产物，不需要构建脚本。
