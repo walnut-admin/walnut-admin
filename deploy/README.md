@@ -77,6 +77,40 @@ cd /home/ubuntu/walnut-admin/deploy && docker compose pull && docker compose up 
 - 构建失败的补救：在该 run 上点 **Re-run all jobs**（同一个 tag，缓存命中后会快很多）
 - 镜像 tag = 发布 tag（如 `v1.2.3`）；TCR 上同时保留 `nginx:brotli` 稳定别名
 
+### 部署后验证（post-verify）
+
+`docker compose up -d --wait` 只证明"容器起来了 + healthcheck 过"，不证明服务真的在工作。
+所以 deploy 的最后一步会在服务器上跑 `post-verify.sh`（默认 **24 次 × 5s = 2 分钟**轮询）：
+
+| 检查项 | 判定 |
+|--------|------|
+| 容器状态与重启次数 | 三个容器必须 `running` 且 `RestartCount=0`（`restart: always` 会把崩溃重启伪装成"一直 running"） |
+| 运行中的镜像 tag | `Config.Image` 必须以本次 `.env` 的 `IMG_TAG` 结尾（防"部署成功但没换镜像"） |
+| 后端日志 | 不得出现 `Nest can't resolve` / `MODULE_NOT_FOUND` / `EADDRINUSE` / `MongoServerError` / `ECONNREFUSED` 等；必须出现启动标记 `APP is running in`（来自 `apps/server/apps/api/src/main.ts`） |
+| 前端 / 入口 nginx 日志 | 不得出现 5xx |
+| 端到端 | 经公网域名 `--resolve` 指回本机：前端 `/` = 200，API `/w/v1/static/images/demo.png` = 200 |
+
+任一硬条件在超时前不满足 → 该步骤失败（**部署不判成功**），并打印后端 / nginx 日志尾部便于定位。
+在 Actions 里看 `deploy` job 的 **Post-deploy verification** 步骤。
+
+手动排查时在服务器上直接跑：
+
+```bash
+cd /home/ubuntu/walnut-admin/deploy
+bash post-verify.sh          # 默认 24 次 × 5s
+bash post-verify.sh 6 5      # 只想快速看一眼：30 秒
+```
+
+改了脚本之后先在本地跑行为测试（用假 docker/curl，不需要 Docker）：
+
+```bash
+bash deploy/post-verify.test.sh   # 10 个场景：正常 / 未运行 / 重启过 / tag 不匹配 / 致命错误 / 5xx / 端到端不过 / 超时
+```
+
+> **nginx 日志为什么能通过 `docker logs` 看到**：alpine 的 nginx 包默认把 access/error log 写进
+> `/var/log/nginx/*.log`（容器里 `docker logs` 是空的）。`deploy/nginx/Dockerfile` 用两个软链把它们
+> 接到 stdout/stderr（与官方 nginx 镜像做法一致）；入口 nginx 与 frontend 共用同一基础镜像，因此都生效。
+
 ## 回滚
 
 **推荐：Actions → Deploy → Run workflow**，`image_tag` 填上一个发布 tag（如 `v0.9.0`），

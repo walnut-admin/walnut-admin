@@ -16,5 +16,12 @@ RUN if ! grep -rq 'ngx_http_brotli' /etc/nginx/modules/ 2>/dev/null; then \
 # 构建期验证：模块加载失败（版本不匹配）→ 构建失败
 RUN nginx -t
 
+# 日志走 stdout/stderr。alpine 的 nginx 包默认把 access/error log 写进
+# /var/log/nginx/*.log，容器里 `docker logs` 因此是空的（官方 nginx 镜像就是靠这两个
+# 软链解决的）。部署后的 post-verify（deploy/post-verify.sh）要靠 docker logs 检查
+# 5xx 与启动错误；frontend 镜像 FROM 本镜像，因此一并生效。
+RUN ln -sf /dev/stdout /var/log/nginx/access.log \
+    && ln -sf /dev/stderr /var/log/nginx/error.log
+
 # 前台运行（Alpine nginx 包无官方镜像的 entrypoint）
 CMD ["nginx", "-g", "daemon off;"]

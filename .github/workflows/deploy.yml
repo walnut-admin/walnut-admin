@@ -99,6 +99,8 @@ jobs:
           test -n "$REDIS_PASS" || { echo "ERROR: APP_REDIS_PASS not found"; exit 1; }
           mkdir -p deploy-files
           cp apps/server/env-local/.env.production deploy-files/.env.production
+          # 部署后验证脚本一起上传，部署完在服务器上跑（见下方 Post-deploy verification）
+          cp deploy/post-verify.sh deploy-files/post-verify.sh
           cat > deploy-files/.env <<EOF
           IMG_TAG=${TAG}
           MONGODB_ROOT_PASSWORD=${DB_PASS}
@@ -131,6 +133,8 @@ jobs:
             # ---- 写入 CI 生成的环境文件 ----
             mv -f deploy-files/.env .env
             mv -f deploy-files/.env.production env/.env.production
+            # 验证脚本留在部署目录，供下一步调用（deploy-files 其余内容清掉）
+            mv -f deploy-files/post-verify.sh post-verify.sh
             rm -rf deploy-files
             # 只替换 IMG_TAG 行，保留服务器上的人工配置（如有）
             if grep -q '^IMG_TAG=' .env; then
@@ -166,6 +170,21 @@ jobs:
             test "$code" = "200" -o "$code" = "301" -o "$code" = "302" || { echo "ERROR: 部署后健康检查失败（HTTP $code）"; exit 1; }
             echo "部署成功：IMG_TAG=${{ env.TAG }}，健康检查 HTTP $code"
 
+      # 部署后验证（post-verify）：上一步只保证"容器起来了 + healthcheck 过"，
+      # 这一步持续观察 2 分钟，证明服务真的在工作：镜像 tag 正确、后端出现启动标记、
+      # 后端日志无致命错误、前端/入口 nginx 无 5xx、公网域名端到端 200。详见 deploy/post-verify.sh
+      - name: Post-deploy verification
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USERNAME }}
+          password: ${{ secrets.PROD_SERVER_PASSWORD }}
+          command_timeout: 10m
+          script: |
+            set -e
+            cd /home/ubuntu/walnut-admin/deploy
+            bash post-verify.sh 24 5
+
       - name: Summary
         if: always()
         run: |
@@ -176,7 +195,11 @@ jobs:
             echo "| --- | --- |"
             echo "| 环境 | ${INPUT_ENV} |"
             echo "| IMG_TAG | \`${TAG}\` |"
+            echo "| 部署步骤 | 见 Deploy on server |"
+            echo "| 部署后验证 | 见 Post-deploy verification（失败即整个 job 失败） |"
             echo "| 结果 | ${{ job.status }} |"
+            echo ""
+            echo "> 验证脚本：[deploy/post-verify.sh](https://github.com/walnut-admin/walnut-admin/blob/main/deploy/post-verify.sh)"
           } >> "$GITHUB_STEP_SUMMARY"
         env:
           INPUT_ENV: ${{ inputs.environment }}

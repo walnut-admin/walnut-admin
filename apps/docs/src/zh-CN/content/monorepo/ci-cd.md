@@ -11,7 +11,7 @@
 | `ci.yml` | push `main`、PR | boundaries → affected lint/types:check/test → affected 自检 → syncpack → server 构建（+ 有 secret 时 admin 构建） | ❌ |
 | `workflow-lint.yml` | `.github/**` 变更 | actionlint 校验所有 workflow 与本地 composite action | ❌ |
 | `release.yml` | tag `v*.*.*` | verify ∥ images → GitHub Release → 自动部署 | ✅ 仅此一处 |
-| `deploy.yml` | `workflow_call`（被 release 复用）/ `workflow_dispatch`（回滚重发） | 纯部署：校验镜像存在 → 生成 env → scp → `compose pull && up -d --wait` → 健康检查 | ❌ |
+| `deploy.yml` | `workflow_call`（被 release 复用）/ `workflow_dispatch`（回滚重发） | 纯部署：校验镜像存在 → 生成 env → scp → `compose pull && up -d --wait` → 健康检查 → **部署后验证（post-verify）** | ❌ |
 
 发布流仍是 `pnpm release`（changeset 版本号 → changelog → commit → tag `vX.Y.Z` → push 分支与 tag，见 [发布 & 发版指南](./release.md)）。
 **tag 因此成为"只构建一次"的锚点**：失败后在该 run 上点 *Re-run all jobs* 即可，缓存命中后通常个位数分钟。
@@ -88,6 +88,25 @@ jobs:
 - `apps/server/Dockerfile`：`RUN rm -rf /app/env-local /app/env-encrypted …` 兜底
 
 compose 以 bind mount 注入 `./env/.env.production`，镜像里不需要也不允许存在 env 文件。
+
+## 部署后验证（post-verify）
+
+部署不是"容器起来就算成功"。`deploy.yml` 的最后一步会在服务器上跑 `deploy/post-verify.sh`：**每 5 秒轮询一次、默认 2 分钟**，检查
+
+| 检查项 | 为什么 |
+|--------|--------|
+| 容器状态 + **重启次数** | `restart: always` 会把"崩溃 → 重启"伪装成"一直 running"，只看状态会被骗 |
+| 运行中的镜像 tag | 防"部署日志说成功、容器其实还是旧镜像"（比对 `.env` 的 `IMG_TAG`） |
+| 后端日志 | 无 `Nest can't resolve` / `MODULE_NOT_FOUND` / `EADDRINUSE` / `MongoServerError` / `ECONNREFUSED` 等；且必须出现启动标记 `APP is running in` |
+| 前端 / 入口 nginx 日志 | 无 5xx |
+| 端到端 | 经公网域名（`--resolve` 指回本机）前端 `/` = 200、API 静态路由 = 200 |
+
+任一硬条件在超时前不满足 → 该步骤失败，**部署不判成功**，并打印后端 / nginx 日志尾部。在 Actions 里看 `deploy` job 的 **Post-deploy verification** 步骤。
+
+两个实现细节值得记住：
+
+1. **nginx 日志能进 `docker logs` 是特意做的**：alpine 的 nginx 包默认把 access/error log 写进 `/var/log/nginx/*.log`，容器里 `docker logs` 是空的。`deploy/nginx/Dockerfile` 用两个软链接到 stdout/stderr（官方 nginx 镜像的做法），入口 nginx 与 frontend 共用同一基础镜像，因此都生效。
+2. **失败模式写成了可执行测试**：`deploy/post-verify.test.sh` 用假的 `docker`/`curl` 覆盖 10 个场景（正常 / 容器未运行 / 重启过 / tag 不匹配 / 后端致命错误 / 前端 5xx / 入口 nginx 5xx / 前端非 200 / API 非 200 / 无启动标记），本地 `bash deploy/post-verify.test.sh` 即可跑，不需要 Docker。
 
 ## 本地验证 CI 改动
 
