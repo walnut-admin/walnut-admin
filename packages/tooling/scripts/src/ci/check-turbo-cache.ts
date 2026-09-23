@@ -1,0 +1,292 @@
+// Turborepo 缓存边界门禁。
+//
+// **为什么需要它**：`turbo.json` 里写错一个 glob、漏一个产物目录、少挂一条依赖边，
+// 症状全都是**静默的** —— turbo 照样 `FULL TURBO` + exit 0，只是跑了不该跑的（浪费）
+// 或者没跑该跑的（**门禁回放假绿**）。2026-09-23 就实测到后者：
+// `pnpm build:stage` 在缓存命中时打印 "1 successful / FULL TURBO / exit 0"，
+// 而 `apps/admin/dist-staging` **一个文件都没有** —— `outputs` 里漏了它。
+//
+// 这道门禁**不改任何文件**（不做「改一个文件看 hash 变不变」的变异实验 —— 那是
+// 一次性调研用的手段，见 `turbo-cache-boundary.md`），只做静态断言：
+// 拿 `turbo run --dry=json` 的**解析结果**（turbo 自己的真源，不是我们对配置的二次解读）
+// 去核对一组不变量。判据偏「宁可漏报不可误报」：每条断言都必须能机械判定，
+// 不确定的一律不查（一个开始误报的门禁等于没有门禁）。
+import { execFileSync } from 'node:child_process'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import path from 'node:path'
+import { parseConfigFileTextToJson } from 'typescript'
+
+import { REPO_ROOT } from '../lib/repo-root.ts'
+
+/** 需要 dry-run 解析的任务名（都是会被缓存、且缓存边界出过问题的那些） */
+const PROBE_TASKS = ['build', 'build:stage', 'transit', 'types:check', 'lint', 'test'] as const
+
+export interface Finding {
+  /** 不变量编号，报错时好定位 */
+  rule: string
+  detail: string
+}
+
+interface TurboTask {
+  taskId: string
+  task: string
+  package: string
+  directory: string
+  hash: string
+  inputs?: Record<string, string>
+  outputs?: string[] | null
+  /** 这张图里本 task 直接依赖的上游 task（`^build` / `transit` 展开后的结果） */
+  dependencies?: string[]
+  hashOfExternalDependencies?: string
+  resolvedTaskDefinition: {
+    dependsOn?: string[]
+    inputs?: string[]
+    outputs?: string[]
+  }
+}
+
+export interface TurboDry {
+  tasks: TurboTask[]
+  packages: string[]
+  globalCacheInputs: { files: Record<string, string> }
+}
+
+/** 跑一次 turbo 的干跑，拿解析后的真源 */
+export function loadTurboDry(cwd = REPO_ROOT): TurboDry {
+  const out = execFileSync('cmd', ['/c', `pnpm exec turbo run ${PROBE_TASKS.join(' ')} --dry=json 2>nul`], {
+    cwd,
+    maxBuffer: 1 << 30,
+    encoding: 'utf8',
+  })
+  const dry = JSON.parse(out) as TurboDry
+  // ⚠️ 两个都必须处理，否则门禁会**静默变绿**：
+  // ① turbo 把**自己的 cwd** 当成仓库根（它向上找 `turbo.json`，而在子目录里就能找到那个包自己的
+  //    一份）—— 在 `packages/tooling/scripts` 下跑，`--dry=json` 只会报 1 个包 12 个 task，
+  //    所有断言照样「全部成立」。这是本仓反复强调的「扫描面为空 ⇒ 假绿」的又一例。
+  // ② 这种情形下它报的 `directory` 是**相对路径**，得按 cwd 还原成绝对路径再比。
+  for (const t of dry.tasks) t.directory = path.resolve(cwd, t.directory)
+  if ((dry.packages?.length ?? 0) < 2) {
+    throw new Error(
+      `turbo 只在 ${cwd} 下发现了 ${dry.packages?.length ?? 0} 个包 —— 它把当前目录当成了仓库根（要在仓库根跑）`,
+    )
+  }
+  return dry
+}
+
+/** 每个 workspace 包的目录（相对仓库根，正斜杠） */
+export function packageDirs(dry: TurboDry, cwd = REPO_ROOT): string[] {
+  const dirs = new Set<string>()
+  for (const t of dry.tasks) dirs.add(norm(t.directory, cwd))
+  return [...dirs].sort()
+}
+
+function norm(p: string, cwd: string): string {
+  const rel = path.relative(cwd, p).replace(/\\/g, '/')
+  return rel === '' ? '.' : rel
+}
+
+/**
+ * 读 `turbo.json`。**必须按 JSONC 读**：根 `turbo.json` 里有大量注释，
+ * 那些注释是这套边界规则唯一的就地文档（`JSON.parse` 会直接炸）。
+ * 用 TypeScript 自带的 JSONC 解析器 —— 与 `check-doc-ts` 同一个，不引入新依赖。
+ */
+export function readTurboJson(file: string): Record<string, unknown> {
+  const { config, error } = parseConfigFileTextToJson(file, readFileSync(file, 'utf8'))
+  if (error)
+    throw new Error(`${file} 解析失败：${error.messageText}`)
+  return config as Record<string, unknown>
+}
+
+/** glob → 是否至少命中一个真实文件（只支持本仓实际用到的形态：`*` 段与 `**` 段） */
+export function globMatchesSomething(glob: string, cwd = REPO_ROOT): boolean {
+  const abs = path.join(cwd, glob)
+  if (existsSync(abs))
+    return true
+  // `a/*/b` / `a/**` 形态：逐段向下走
+  const segs = glob.split('/')
+  let frontier = [cwd]
+  for (const seg of segs) {
+    const next: string[] = []
+    for (const dir of frontier) {
+      if (!existsSync(dir))
+        continue
+      let entries: string[]
+      try {
+        entries = readdirSync(dir)
+      }
+      catch {
+        continue
+      }
+      if (seg === '**') {
+        next.push(dir)
+        for (const e of entries) {
+          const p = path.join(dir, e)
+          try {
+            if (readdirSync(p))
+              next.push(p)
+          }
+          catch { /* 不是目录 */ }
+        }
+      }
+      else if (seg.includes('*')) {
+        const re = new RegExp(`^${seg.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*')}$`)
+        for (const e of entries) {
+          if (re.test(e))
+            next.push(path.join(dir, e))
+        }
+      }
+      else {
+        next.push(path.join(dir, seg))
+      }
+    }
+    frontier = next
+    if (frontier.length === 0)
+      return false
+  }
+  return frontier.some(p => existsSync(p))
+}
+
+/**
+ * 从 `apps/<app>/env-local/.env.<mode>` 里读 `VITE_BUILD_OUT_DIR` 的真实取值。
+ * 这是**产物目录的真源** —— admin 的 staging 产物叫 `dist-staging` 而不是 `dist`，
+ * 光看 `turbo.json` 是看不出来的。目录不存在（CI 没解密过 env）就跳过，
+ * 属「前置条件未满足」，不算失败。
+ */
+export function declaredOutDirs(envFile: string): string[] {
+  if (!existsSync(envFile))
+    return []
+  const txt = readFileSync(envFile, 'utf8')
+  const out: string[] = []
+  for (const raw of txt.split('\n')) {
+    // 手写解析而不是一条正则打到底：`\s*…\s*` 那种写法会被
+    // `regexp/no-super-linear-backtracking` 判为可多项式回溯（同仓已有先例）。
+    const line = raw.trim()
+    if (!line.startsWith('VITE_BUILD_OUT_DIR'))
+      continue
+    const eq = line.indexOf('=')
+    if (eq < 0)
+      continue
+    const value = line.slice(eq + 1).trim().replace(/^"|"$/g, '')
+    if (value !== '')
+      out.push(value)
+  }
+  return out
+}
+
+/** 把一个产物目录名转成 turbo outputs 里的 glob */
+function outGlob(dir: string): string {
+  return dir.endsWith('/') ? `${dir}**` : `${dir}/**`
+}
+
+export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
+  const findings: Finding[] = []
+  const taskOf = (id: string) => dry.tasks.find(t => t.taskId === id)
+
+  // ① 每个 workspace 包都必须有可解析的 `turbo.json`（extends + tags）。
+  //    漏一个 = 那个包**完全不受 boundaries 约束**，且是静默的。
+  for (const dir of packageDirs(dry, cwd)) {
+    const f = path.join(cwd, dir, 'turbo.json')
+    if (!existsSync(f)) {
+      findings.push({ rule: 'package-turbo-json', detail: `${dir}/turbo.json 不存在 —— 该包不受 tags 边界约束` })
+      continue
+    }
+    let cfg: { extends?: string[], tags?: string[] }
+    try {
+      cfg = readTurboJson(f) as { extends?: string[], tags?: string[] }
+    }
+    catch (e) {
+      findings.push({ rule: 'package-turbo-json', detail: `${dir}/turbo.json 解析失败：${(e as Error).message}` })
+      continue
+    }
+    if (JSON.stringify(cfg.extends) !== '["//"]')
+      findings.push({ rule: 'package-turbo-json', detail: `${dir}/turbo.json 的 extends 必须是 ["//"]，实际 ${JSON.stringify(cfg.extends)}` })
+    if (!Array.isArray(cfg.tags) || cfg.tags.length === 0)
+      findings.push({ rule: 'package-turbo-json', detail: `${dir}/turbo.json 没有 tags —— 该包在 boundaries 眼里没有角色` })
+  }
+
+  // ② `globalDependencies` 的每一条都必须命中真实文件。
+  //    写错一个字符（改名、挪目录）不会报错，只会**少一个全局失效源**。
+  const rootPkg = readTurboJson(path.join(cwd, 'turbo.json')) as { globalDependencies?: string[], tasks?: Record<string, { dependsOn?: string[] }> }
+  for (const g of rootPkg.globalDependencies ?? []) {
+    if (!globMatchesSomething(g, cwd))
+      findings.push({ rule: 'global-dependency-exists', detail: `globalDependencies 里的 \`${g}\` 匹配不到任何文件` })
+  }
+
+  // ③ 解过密的 app：`env-local/**` 必须进 build 的 inputs。
+  //    它被 gitignore，`$TURBO_DEFAULT$` 看不见 —— 漏了就等于「改 .env 不重建」。
+  for (const appDir of packageDirs(dry, cwd).filter(d => d.startsWith('apps/'))) {
+    if (!existsSync(path.join(cwd, appDir, 'env-local')))
+      continue
+    for (const taskName of ['build', 'build:stage']) {
+      const t = dry.tasks.find(x => x.task === taskName && norm(x.directory, cwd) === appDir)
+      const inputs = t?.resolvedTaskDefinition.inputs ?? []
+      if (!inputs.includes('env-local/**'))
+        findings.push({ rule: 'env-local-in-inputs', detail: `${appDir} 有 env-local/ 但 ${taskName}.inputs 里没有 "env-local/**"` })
+    }
+  }
+
+  // ④ 产物目录必须逐个进 outputs —— 这条就是 `dist-staging` 那个 bug 的守卫。
+  //    判据取自 env 文件里的真实取值（VITE_BUILD_OUT_DIR），而不是我们手抄的目录名。
+  const outDirCases = [
+    { app: 'apps/admin', task: 'build', env: 'apps/admin/env-local/.env.production' },
+    { app: 'apps/admin', task: 'build:stage', env: 'apps/admin/env-local/.env.stage' },
+  ]
+  for (const c of outDirCases) {
+    const dirs = declaredOutDirs(path.join(cwd, c.env))
+    if (dirs.length === 0)
+      continue
+    const t = dry.tasks.find(x => x.task === c.task && norm(x.directory, cwd) === c.app)
+    const outputs = t?.resolvedTaskDefinition.outputs ?? []
+    for (const d of dirs) {
+      const want = outGlob(d)
+      if (!outputs.includes(want))
+        findings.push({ rule: 'outputs-cover-artifacts', detail: `${c.app} 的 ${c.task} 实际产物目录是 ${d}（${c.env}），但 outputs ${JSON.stringify(outputs)} 里没有 "${want}" —— 缓存命中时不会回放产物` })
+    }
+  }
+
+  // ⑤ `types:check` 必须经 `transit` 拿到上游**源码**的哈希。
+  //    本仓共享包的 exports 指 ./src/**，下游类型是从源码读的；断了这条边就是回放假绿。
+  const tc = (rootPkg.tasks ?? {})
+  if (!tc.transit) {
+    findings.push({ rule: 'transit-exists', detail: '根 turbo.json 里没有 `transit` 任务 —— types:check 会看不到依赖包的源码变更' })
+  }
+  else {
+    if (!(tc.transit.dependsOn ?? []).includes('^transit'))
+      findings.push({ rule: 'transit-chains', detail: 'transit.dependsOn 里必须含 "^transit"，否则不会沿依赖图逐级上溯' })
+    if (!(tc['types:check']?.dependsOn ?? []).includes('transit'))
+      findings.push({ rule: 'transit-chains', detail: 'types:check.dependsOn 里必须含 "transit"' })
+  }
+
+  // ⑥ docs 的 build 必须把 .md 算进输入 —— 那同时也是死链门禁的输入。
+  //    根 build 任务排除了 `!**/*.md`，docs 靠包级覆写补回来；覆写丢了 = 改文档不重建、静默跳过死链校验。
+  const docsBuild = taskOf('@walnut/docs#build')
+  if (docsBuild) {
+    const mdCount = Object.keys(docsBuild.inputs ?? {}).filter(k => k.endsWith('.md')).length
+    if (mdCount === 0)
+      findings.push({ rule: 'docs-build-sees-markdown', detail: '@walnut/docs#build 的输入里一个 .md 都没有 —— 改文档不会重建，死链校验被跳过' })
+  }
+
+  return findings
+}
+
+export function main(): number {
+  let dry: TurboDry
+  try {
+    dry = loadTurboDry()
+  }
+  catch (e) {
+    console.error(`✖ 无法解析 turbo 配置（\`turbo run --dry=json\` 失败）：${(e as Error).message}`)
+    return 2
+  }
+  const findings = collectFindings(dry)
+  const tasks = dry.tasks.length
+
+  if (findings.length === 0) {
+    console.log(`Turborepo 缓存边界：${tasks} 个 task、${packageDirs(dry).length} 个包，6 条不变量全部成立 ✅`)
+    return 0
+  }
+  console.error(`✖ Turborepo 缓存边界有 ${findings.length} 处问题：\n`)
+  for (const f of findings) console.error(`  [${f.rule}] ${f.detail}`)
+  console.error('\n判据与手工复核方法见 apps/docs/src/zh-CN/content/monorepo/turbo-cache-boundary.md')
+  return 1
+}

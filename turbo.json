@@ -1,4 +1,23 @@
 {
+  // ─────────────────────────────────────────────────────────────────────────────
+  // 缓存边界（改哪个文件会让哪个 task 的缓存失效）—— 完整判据表见
+  // apps/docs/src/zh-CN/content/monorepo/turbo-cache-boundary.md
+  //
+  // 全部结论都是**实测**出来的，方法固定可重跑：
+  //   pnpm exec turbo run <task> --dry=json   →  比对各 task 的 hash
+  //   `--dry=json` 还会给出每个 task 的 `inputs`（文件 → 内容哈希）与
+  //   `globalCacheInputs`（全局哈希的构成），是这条边界的唯一真源。
+  // 机械门禁：`pnpm lint:turbo-cache`（walnut-check-turbo-cache）。
+  //
+  // 三条最容易踩的（都是实测结论，不是推测）：
+  //   ① 本仓所有共享包都是**源码直消费**（`exports` 指 `./src/**`），所以「依赖包源码变了」
+  //      必须让下游的 `types:check` 失效 —— 这就是下面 `transit` 任务存在的原因。
+  //   ② 产物目录必须逐个进 `outputs`：漏一个的后果不是报错，而是**缓存命中时静默不产出**。
+  //      2026-09-23 实测：`pnpm build:stage` 删掉 `apps/admin/dist-staging` 后再跑，
+  //      turbo 报 `FULL TURBO / 1 successful / exit 0`，而盘上**一个文件都没有**。
+  //   ③ 根 `turbo.json` 本身按**解析后的语义**进哈希，不按文本：加一条匹配不到任何文件的
+  //      `!**/__never__/**` 排除，实测 0 个 task 失效；而真改 `inputs`/`outputs` 会失效。
+  // ─────────────────────────────────────────────────────────────────────────────
   "$schema": "https://turbo.build/schema.json",
   "boundaries": {
     "tags": {
@@ -24,6 +43,13 @@
       }
     }
   },
+  // 全局哈希的构成（任何一条变了 → 全部 task 失效）。三块：
+  //   a. 这些文件的内容
+  //   b. `globalEnv` 里变量的值
+  //   c. **内部依赖哈希** —— 根 `package.json` 依赖到的那几个 workspace 包，其源码内容也算全局输入
+  //      （实测：改 `packages/tooling/{eslint-config,release,scripts}` 的任一 .ts → 75 个 task 全失效；
+  //      而它们的 package.json / tsconfig.json / turbo.json / README.md 只影响自己那几段）
+  // 想缩小失效面就别往这里加；想扩大覆盖面优先考虑 `transit`，而不是继续堆全局条目。
   "globalDependencies": [
     "package.json",
     "tsconfig.json",
@@ -43,11 +69,36 @@
     "TURBO_TEAM"
   ],
   "tasks": {
+    // 传递节点（**没有对应脚本**，只是个图节点）。存在的唯一理由：
+    // `dependsOn: ["^build"]` 只能把「上游的 build 产物」串进哈希，而本仓的共享包
+    // （contract / types / utils / client / http / ui）**根本不构建**（vitest/jest 之外的
+    // `build` 只是一句 echo），下游真正读到的是它们的**源码**。
+    // 2026-09-23 实测（改 `packages/platform-any/types/src/index.d.ts` 一行注释）：
+    //   加 transit 之前 → 只有 14 个 task 失效，`@walnut/admin#types:check` **纹丝不动**
+    //                     （它 `dependsOn: []`，而依赖包源码不在它的 inputs 里）⇒ 回放假绿
+    //   加 transit 之后 → 上游源码进哈希，`types:check` 正确失效
+    // `transit` 自己带 `^transit`，于是「上游的 inputs」沿依赖图逐级并进本节点的哈希。
+    // 只挂给 `types:check`：`test`/`build` 走 `^build` 已经覆盖（那几个 echo 的 build
+    // 任务 inputs 就是包内文件）；`lint` **刻意不挂** —— ESLint 不跨包跟随 import，
+    // 依赖包源码变化不该让下游重 lint（挂了会让 lint 缓存命中率大跌）。
+    "transit": {
+      "dependsOn": ["^transit"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
+      "outputs": [],
+      "cache": true
+    },
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".vitepress/dist/**"],
+      // ⚠️ `env-local/**` 必须显式写：Vite 的 `envDir` 就是它（apps/admin/build/constant.ts），
+      // 但它**被 gitignore**，所以 `$TURBO_DEFAULT$` 看不见它 —— 也就不进哈希。
+      // 后果：改一份解密后的 .env（或重跑 `pnpm setup-env` 换了值）→ 构建**不失效** →
+      // 打出来的包内联的是旧 `VITE_*`。2026-09-23 实测：显式 glob **能**盖过 gitignore
+      // （加上后 admin#build 的输入从 748 → 752，多出的正是 env-local 下那 4 个文件）。
+      // 该 glob 是包内相对路径，只对真有 `env-local/` 的包生效。
       "inputs": [
         "$TURBO_DEFAULT$",
+        "env-local/**",
         "!README.md",
         "!**/*.md",
         "!**/tsconfig.tsbuildinfo"
@@ -57,9 +108,13 @@
     },
     "build:stage": {
       "dependsOn": ["^build:stage"],
-      "outputs": ["dist/**", ".vitepress/dist/**"],
+      // ⚠️ `dist-staging/**` 必须在这儿：admin 的 staging 画像由 `VITE_BUILD_OUT_DIR` 决定，
+      // 实际值是 `dist-staging`（生产是 `dist`，见 apps/admin/env-local/.env.{production,stage}）。
+      // 漏掉它的后果是**静默**的 —— 2026-09-23 实测见文件头 ②。
+      "outputs": ["dist/**", "dist-staging/**", ".vitepress/dist/**"],
       "inputs": [
         "$TURBO_DEFAULT$",
+        "env-local/**",
         "!README.md",
         "!**/*.md",
         "!**/tsconfig.tsbuildinfo"
@@ -98,7 +153,9 @@
       "cache": false
     },
     "types:check": {
-      "dependsOn": [],
+      // 挂 `transit` 而不是 `^build`：本仓共享包不构建，类型是从**源码**读的。
+      // 详见 `transit` 任务上方的实测记录。
+      "dependsOn": ["transit"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "!**/*.md"

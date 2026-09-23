@@ -38,6 +38,7 @@
     "lint:adr": "walnut-check-adr",
     "lint:doc-ts": "walnut-check-doc-ts",
     "lint:doc-budget": "walnut-check-doc-budgets",
+    "lint:turbo-cache": "walnut-check-turbo-cache",
     "lint:fix": "turbo lint:fix",
     "images:build": "docker buildx bake --file docker-bake.hcl",
     "images:push": "docker buildx bake --file docker-bake.hcl --push",

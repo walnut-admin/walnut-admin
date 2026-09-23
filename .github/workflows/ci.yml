@@ -109,6 +109,11 @@ jobs:
       - name: Doc budget check
         run: pnpm lint:doc-budget
 
+      # turbo 缓存边界：产物目录有没有进 outputs、依赖包源码有没有串进 types:check 的哈希……
+      # 这类错误**不会报错**，只会让 turbo 报 FULL TURBO + exit 0 却少跑/少产出。
+      - name: Turbo cache boundary check
+        run: pnpm lint:turbo-cache
+
       # 防"affected 空集静默通过"：有文件变更却算出 0 个受影响包时必须失败
       - name: Affected set sanity check
         if: steps.affected.outputs.base != ''

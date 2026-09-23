@@ -82,6 +82,8 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'doc-ts', label: '文档代码块校验（ts 块必须能解析）', argv: ['lint:doc-ts'] },
   // 同上。常驻上下文的几个文件（根 AGENTS.md / CLAUDE.md / 包级指引）不许无限膨胀。
   { id: 'doc-budget', label: '文档字数预算（常驻文件不许膨胀）', argv: ['lint:doc-budget'] },
+  // 同上。turbo.json 写错一个产物目录/依赖边不会报错，只会让 turbo 报 FULL TURBO 却少跑或少产出。
+  { id: 'turbo-cache', label: 'turbo 缓存边界（产物 / 依赖边不变量）', argv: ['lint:turbo-cache'] },
   {
     id: 'build',
     label: '构建（3 个 app + 共享包）',

@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.0.1",
   "private": true,
-  "description": "仓库级脚本的通用层：纯逻辑工具（src/lib）、仓库门禁（src/ci）、env 加解密（src/env）。不对外导出成品功能，只导出被其它工具包复用的模块与八个 bin。",
+  "description": "仓库级脚本的通用层：纯逻辑工具（src/lib）、仓库门禁（src/ci）、env 加解密（src/env）。不对外导出成品功能，只导出被其它工具包复用的模块与九个 bin。",
   "license": "MIT",
   "exports": {
     "./lib/*": "./src/lib/*.ts"
@@ -16,6 +16,7 @@
     "walnut-check-adr": "./bin/check-adr.ts",
     "walnut-check-doc-ts": "./bin/check-doc-ts.ts",
     "walnut-check-doc-budgets": "./bin/check-doc-budgets.ts",
+    "walnut-check-turbo-cache": "./bin/check-turbo-cache.ts",
     "walnut-prepush": "./bin/prepush.ts"
   },
   "engines": {

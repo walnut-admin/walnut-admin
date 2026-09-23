@@ -117,6 +117,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: '根 `AGENTS.md` / `CLAUDE.md` / 包级指引是**每次会话都进上下文**的常驻内容，膨胀了会挤掉别的东西；预算用不到一半同样算失败（那种预算已经失效）。',
   },
   {
+    id: 'turbo-cache',
+    label: 'turbo 缓存边界（产物/outputs/env 不变量）',
+    argv: ['lint:turbo-cache'],
+    why: 'turbo.json 里漏一个产物目录、少挂一条依赖边，症状全是**静默的** —— `FULL TURBO` + exit 0，但门禁回放了旧结论。2026-09-23 实测到 `pnpm build:stage` 报成功却一个文件都没产出。',
+  },
+  {
     id: 'versioning',
     label: 'workspace 版本锁步（pnpm change check）',
     argv: ['change', 'check'],
