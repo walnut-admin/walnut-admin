@@ -14,7 +14,7 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
-import { parseConfigFileTextToJson } from 'typescript'
+import { parseConfigFileTextToJson, parseJsonConfigFileContent, readConfigFile, sys } from 'typescript'
 
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
@@ -178,6 +178,50 @@ function outGlob(dir: string): string {
   return dir.endsWith('/') ? `${dir}**` : `${dir}/**`
 }
 
+/**
+ * Nest CLI 的产物目录 —— **真源是 tsconfig 的 `outDir`，不是 `nest-cli` 里的
+ * `compilerOptions.outDir`**。
+ *
+ * 2026-09-23 实测踩到过：在 `infra/nest/stage.json` 的顶层与项目级都写上
+ * `compilerOptions.outDir: "dist-stage"`，Nest 的 SWC builder **完全忽略**它 ——
+ * 编译产物照旧落 `dist/`（因为 `apps/server/tsconfig.json` 里写着 `outDir: "./dist"`），
+ * 只有 `assets[].outDir` 生效。更糟的是 `deleteOutDir: true` 会先把 **prod 的 dist**
+ * 删掉再写 —— 正是这条不变量要防的事。
+ *
+ * 所以这里顺着 `tsConfigPath` → `extends` 链把 `outDir` 解出来（用 TypeScript 自己的
+ * 配置解析器，别手写 extends 链）。
+ */
+export function nestOutDir(appDir: string, env: 'prod' | 'stage' | 'dev'): string | null {
+  const nestJson = path.join(appDir, 'infra/nest', `${env}.json`)
+  if (!existsSync(nestJson))
+    return null
+  const cfg = readTurboJson(nestJson) as {
+    compilerOptions?: { outDir?: string, tsConfigPath?: string }
+    projects?: Record<string, { compilerOptions?: { outDir?: string, tsConfigPath?: string } }>
+  }
+  // nest-cli 自己的 outDir 若写了就尊重它（将来 Nest 支持了就自动跟上），否则看 tsconfig
+  const nestCliOut = cfg.projects?.api?.compilerOptions?.outDir ?? cfg.compilerOptions?.outDir
+  if (nestCliOut)
+    return nestCliOut
+
+  const tsConfigPath = cfg.projects?.api?.compilerOptions?.tsConfigPath ?? cfg.compilerOptions?.tsConfigPath
+  if (!tsConfigPath)
+    return null
+  const abs = path.resolve(appDir, tsConfigPath)
+  // ⚠️ 读文件的回调必须**显式 utf8**：直接传 `readFileSync` 会拿到 Buffer，
+  // TypeScript 解析不出配置（实测：那样两个环境都解析成 null）。
+  const { config, error } = readConfigFile(abs, p => readFileSync(p, 'utf8'))
+  if (error || !config)
+    return null
+  const parsed = parseJsonConfigFileContent(config, sys, path.dirname(abs))
+  const outDir = parsed.options.outDir
+  if (!outDir)
+    return null
+  // 返回**包内相对**路径（`dist` / `dist-stage`）——`turbo.json` 的 `outputs` 就是包内相对的，
+  // 两边必须同一口径才能比。
+  return path.relative(appDir, outDir).replace(/\\/g, '/')
+}
+
 export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
   const findings: Finding[] = []
   const taskOf = (id: string) => dry.tasks.find(t => t.taskId === id)
@@ -244,6 +288,33 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
     }
   }
 
+  // ④b 同一个 app 的两条构建流程不能落进同一个产物目录。
+  //     turbo 缓存命中时按 `outputs` 把产物**重放**回盘上 ⇒ 两边声明同一个目录时，
+  //     后跑的那次（含缓存重放）决定盘上留的是哪一版，而且**不报错**。
+  //     判据取自 nest 配置里的真实 outDir（server 侧），不是手抄的目录名。
+  for (const appDir of packageDirs(dry, cwd).filter(d => d.startsWith('apps/'))) {
+    const appAbs = path.join(cwd, appDir)
+    const hasNest = existsSync(path.join(appAbs, 'infra/nest/prod.json'))
+    if (!hasNest)
+      continue
+    const prod = nestOutDir(appAbs, 'prod')
+    const stage = nestOutDir(appAbs, 'stage')
+    // ⚠️ 解析不出来**不能当成「不适用」跳过** —— 2026-09-23 自己踩过：`appDir` 少取了一级
+    // 目录，两个都解析成 null，于是这条检查静默跳过、门禁照样全绿。
+    if (prod === null || stage === null) {
+      findings.push({ rule: 'stage-outdir-separate', detail: `${appDir} 有 infra/nest/prod.json，但解析不出 ${prod === null ? 'prod' : 'stage'} 的产物目录（看 infra/nest/*.json 的 tsConfigPath → tsconfig 的 outDir）` })
+      continue
+    }
+    if (prod === stage) {
+      findings.push({ rule: 'stage-outdir-separate', detail: `${appDir} 的 prod 与 stage 构建都写 ${prod}/（infra/nest/{prod,stage}.json）—— 缓存重放会让两条流程互相覆盖产物` })
+      continue
+    }
+    const t = dry.tasks.find(x => x.task === 'build:stage' && norm(x.directory, cwd) === appDir)
+    const outputs = t?.resolvedTaskDefinition.outputs ?? []
+    if (!outputs.includes(outGlob(stage)))
+      findings.push({ rule: 'outputs-cover-artifacts', detail: `${appDir} 的 build:stage 产物目录是 ${stage}（infra/nest/stage.json），但 outputs ${JSON.stringify(outputs)} 里没有 "${outGlob(stage)}"` })
+  }
+
   // ⑤ `types:check` 必须经 `transit` 拿到上游**源码**的哈希。
   //    本仓共享包的 exports 指 ./src/**，下游类型是从源码读的；断了这条边就是回放假绿。
   const tc = (rootPkg.tasks ?? {})
@@ -282,7 +353,7 @@ export function main(): number {
   const tasks = dry.tasks.length
 
   if (findings.length === 0) {
-    console.log(`Turborepo 缓存边界：${tasks} 个 task、${packageDirs(dry).length} 个包，6 条不变量全部成立 ✅`)
+    console.log(`Turborepo 缓存边界：${tasks} 个 task、${packageDirs(dry).length} 个包，7 条不变量全部成立 ✅`)
     return 0
   }
   console.error(`✖ Turborepo 缓存边界有 ${findings.length} 处问题：\n`)

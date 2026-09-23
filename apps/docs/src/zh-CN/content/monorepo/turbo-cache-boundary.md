@@ -155,17 +155,38 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 **改法**：`build` / `build:stage` 的 `inputs` 显式加 `env-local/**`
 （实测显式 glob 能盖过 gitignore）。
 
-### 4.4 `@walnut/server` 的 `build` 与 `build:stage` 写同一个目录 ⏳ 待裁决
+### 4.4 `@walnut/server` 的 `build` 与 `build:stage` 写同一个目录 ✅ 已修
 
-`apps/server/infra/nest/{prod,stage}.json` 的 `outDir` **都是** `dist/apps/api/src`，
+`apps/server/infra/nest/{prod,stage}.json` 的 `compilerOptions.outDir` **原本都是默认的 `dist`**，
 而根 `turbo.json` 给这两个任务声明的 outputs 也都是 `dist/**`。
 这正是 4.1 那个 bug 的**另一半**：两条流程声明了同一个产物面，
 缓存命中会把盘上的产物换成另一条流程的那一版（后跑的那次说话）。
 
-- 治本要改 `apps/server/infra/nest/stage.json` 的 `outDir`（→ `dist-stage/apps/api/src`），
-  并同步 Dockerfile / 部署脚本 —— **属业务代码，本轮不动**，已登记进架构待办。
-- 影响面有限：根脚本 `pnpm build:stage` 带 `--filter=@walnut/admin`，
-  平时不会顺手跑到 server 的 `build:stage`；显式 `turbo build:stage`（不带 filter）才会撞上。
+**改法**（用户 2026-09-23 拍板：「build:stage 肯定要单独输出到一个独立的 dist 下」）：
+把**最外层那个目录名**换掉。踩了两个坑，都记下来：
+
+1. **`outDir` 的真源是 tsconfig，不是 `nest-cli` 的配置**。先在 `nest/stage.json` 的顶层与项目级
+   都写了 `compilerOptions.outDir: "dist-stage"`，实测 **Nest 的 SWC builder 完全忽略它** ——
+   编译产物照旧落 `dist/`（`apps/server/tsconfig.json` 里写着 `outDir: "./dist"`），
+   **只有 `assets[].outDir` 生效**；而 `deleteOutDir: true` 照样先把 **prod 的 `dist` 删了再写**。
+   正确做法是给 staging 一份自己的 tsconfig（`apps/api/tsconfig.app.stage.json`，只覆盖
+   `outDir` 与 `tsBuildInfoFile`），再让 `nest/stage.json` 的 `tsConfigPath` 指向它。
+2. **`nest/*.json` 由 Nest CLI 按严格 JSON 解析**（不是 JSONC）。第一版我在里面写了注释，
+   构建直接报 `Expected property name or '}' in JSON`。说明因此写在
+   `apps/server/infra/README.md` 而不是配置里。
+
+里面的 `apps/api/src` 结构不动（那由 Nest monorepo 的 `root` / `sourceRoot` 决定）。
+路径有**四处**同源声明，改一处必须改其余：`apps/api/tsconfig.app.stage.json` 的 `outDir`（真源）、
+`nest/stage.json` 的 `tsConfigPath`（**顶层与 `projects.api` 两处**）与三条 `assets[].outDir`、
+`apps/server/package.json` 的 `start:stage`、根 `turbo.json` 的 `build:stage.outputs`。
+
+**实测**：`turbo run build:stage --filter=@walnut/server` 冷跑 → `dist-stage` 1465 个文件、
+含 `dist-stage/apps/api/src/main.js`，而 prod 的 `dist` **一字未动**（754 个文件，sha 不变）；
+删掉 `dist-stage` 再跑 → `FULL TURBO` 命中并**完整回放 1465 个文件**。
+
+> 两个 app 的 staging 目录名**不同**是刻意的：admin 侧是 `dist-staging`，
+> 它来自 `VITE_BUILD_OUT_DIR` —— 那个值在**加密的** env 文件里，改它要重建 dotenvx 密钥、
+> 会让 CI 的 `ENV_KEYS` secret 失效。所以只改 server 这一侧，并把两个目录名都写进 `outputs`。
 
 ---
 
@@ -204,9 +225,9 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 
 ---
 
-## 六、这道门禁守什么（6 条不变量 + 负向验证）
+## 六、这道门禁守什么（7 条不变量 + 负向验证）
 
-`pnpm lint:turbo-cache` **不改任何文件**，只拿 `--dry=json` 的解析结果核对 6 条不变量：
+`pnpm lint:turbo-cache` **不改任何文件**，只拿 `--dry=json` 的解析结果 + 配置文件里的真实取值核对 7 条不变量：
 
 | # | 不变量 | 不守会怎样 |
 |---|--------|-----------|
@@ -216,8 +237,9 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 | 4 | 从 `env-local/.env.*` 读出的 `VITE_BUILD_OUT_DIR` 必须出现在对应任务的 `outputs` 里 | 缓存命中静默不产出（4.1） |
 | 5 | `transit` 存在、带 `^transit`，且 `types:check` 挂它 | 依赖包源码变更 ⇒ 类型门禁回放假绿（4.2） |
 | 6 | `@walnut/docs#build` 的输入里有 `.md` | 改文档不重建 ⇒ **死链校验被跳过** |
+| 7 | 同一个 app 的 prod 与 stage **不许落进同一个产物目录**（判据顺着 `tsConfigPath → extends` 读 tsconfig 的 `outDir`），且该目录必须在 `build:stage.outputs` 里 | 两条流程抢同一目录 ⇒ 缓存重放互相覆盖；`deleteOutDir` 还会先删掉对方的产物（4.4） |
 
-**它真的会红吗**——7 个注入用例逐个验过（改完即还原，`turbo.json` sha 不变）：
+**它真的会红吗**——10 个注入用例逐个验过（改完即还原，`turbo.json` sha 不变）：
 
 | 注入的错误 | 报出的规则 |
 |-----------|-----------|
@@ -228,6 +250,9 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 | `globalDependencies` 写了不存在的路径 | `global-dependency-exists` |
 | 删掉某个包的 `turbo.json` | `package-turbo-json` |
 | docs 的 build 不再把 `.md` 当输入 | `docs-build-sees-markdown` |
+| server 的 stage 又写回 `dist`（P3-22 复现） | `stage-outdir-separate` |
+| `nest/stage.json` 的 `tsConfigPath` 指回 prod 的 tsconfig | `stage-outdir-separate` |
+| `build:stage.outputs` 漏掉 `dist-stage/**` | `outputs-cover-artifacts` |
 
 另外还有一道**跑错目录**的守卫：在子目录里跑时 turbo 只会看到 1 个包、
 所有断言照样成立 —— 门禁对此硬报错（`turbo 只在 <cwd> 下发现了 1 个包`），

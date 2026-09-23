@@ -8,6 +8,7 @@ import {
   declaredOutDirs,
   globMatchesSomething,
   loadTurboDry,
+  nestOutDir,
   packageDirs,
   readTurboJson,
 } from '../check-turbo-cache.ts'
@@ -76,6 +77,23 @@ describe('declaredOutDirs', () => {
     const f = path.join(dir, '.env.production')
     writeFileSync(f, 'VITE_PUBLIC_PATH="/"\n')
     expect(declaredOutDirs(f)).toEqual([])
+  })
+})
+
+describe('nestOutDir —— server 侧产物目录的真源在 tsconfig', () => {
+  const app = path.join(ROOT, 'apps/server')
+
+  it('prod 落 dist、stage 落 dist-stage（两条流程不许共用目录）', () => {
+    expect(nestOutDir(app, 'prod')).toBe('dist')
+    expect(nestOutDir(app, 'stage')).toBe('dist-stage')
+  })
+
+  it('dev 落 dist（dev 不经 turbo 缓存，与 prod 共目录是有意的）', () => {
+    expect(nestOutDir(app, 'dev')).toBe('dist')
+  })
+
+  it('配置不存在时返回 null（而不是编一个默认值出来）', () => {
+    expect(nestOutDir(path.join(ROOT, 'apps/docs'), 'stage')).toBeNull()
   })
 })
 

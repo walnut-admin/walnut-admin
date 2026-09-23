@@ -27,7 +27,7 @@
     "dev": "cross-env NODE_ENV=development nest start api --watch -c infra/nest/dev.json",
     "start:debug": "nest start --debug --watch",
     "start:prod": "cross-env NODE_ENV=production node dist/apps/api/src/main.js",
-    "start:stage": "cross-env NODE_ENV=stage node dist/apps/api/src/main.js",
+    "start:stage": "cross-env NODE_ENV=stage node dist-stage/apps/api/src/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --concurrency=auto",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix --concurrency=auto",
     "types:check": "tsc --noEmit --pretty",

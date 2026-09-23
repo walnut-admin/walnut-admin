@@ -19,6 +19,29 @@ infra/
 
 ## 环境差异
 
+> ⚠️ **产物目录按画像分离**（2026-09-23）：`prod` → `dist/`、`stage` → `dist-stage/`。
+> **不要**把两者改回同一个目录 —— turbo 缓存命中时**不真跑构建**，而是按任务键把声明的
+> `outputs` 重放回盘上；两条流程声明同一个产物面时，后跑的那次（含缓存重放）决定盘上留的是
+> 哪一版，**且不会报错**。更直接的一层：`deleteOutDir: true` 会先把对方的产物**删掉**再写。
+>
+> ⚠️ **`outDir` 的真源是 tsconfig，不是 `nest/<环境>.json`**（2026-09-23 实测踩到）：
+> 在 `nest/stage.json` 的顶层与项目级都写 `compilerOptions.outDir: "dist-stage"` 后，
+> Nest 的 **SWC builder 完全忽略它** —— 编译产物照旧落 `dist/`（因为
+> `apps/server/tsconfig.json` 里写着 `outDir: "./dist"`），**只有 `assets[].outDir` 生效**；
+> 而 `deleteOutDir: true` 照样把 prod 的 `dist` 删了。正确做法是给 staging 一份自己的
+> tsconfig（`apps/api/tsconfig.app.stage.json`，只覆盖 `outDir` 与 `tsBuildInfoFile`），
+> 再让 `nest/stage.json` 的 `tsConfigPath` 指向它。
+>
+> 路径的**四处**同源声明（改一处必须改其余）：
+> ① `apps/api/tsconfig.app.stage.json` 的 `outDir`（**真源**）；
+> ② `nest/stage.json` 的 `tsConfigPath`（顶层与 `projects.api` **两处都要改**）与三条 `assets[].outDir`；
+> ③ `package.json` 的 `start:stage`；
+> ④ 根 `turbo.json` 的 `build:stage.outputs`。
+> 门禁 `pnpm lint:turbo-cache` 会顺着 `tsConfigPath → extends` 链把 `outDir` 解出来核对这些。
+>
+> ⚠️ 另：`nest/*.json` 由 **Nest CLI 按严格 JSON 解析**（不是 JSONC）—— **别在里面写注释**，
+> 否则构建直接报 `Expected property name or '}' in JSON`。所以本节的说明放在这里而不是配置里。
+
 ### 开发环境 (dev)
 - **sourceMaps**: 启用（便于调试）
 - **inlineSourcesContent**: 启用
@@ -30,21 +53,23 @@ infra/
 - **inlineSourcesContent**: 禁用
 - **watchAssets**: 禁用
 - **minify**: 禁用
+- **产物目录**: `dist-stage/`（内部仍是 `apps/api/src/` —— 那由 Nest monorepo 的 `root` 决定）
 
 ### 生产环境 (prod)
 - **sourceMaps**: 禁用
 - **watchAssets**: 禁用
 - **minify**: 启用（基础压缩）
+- **产物目录**: `dist/`
 
 ## 静态资源处理
 
 静态资源通过 Nest CLI 的 `assets` 配置处理：
 
-| 资源目录 | 说明 | 输出路径 |
-|---------|------|---------|
-| `i18n/**/*` | 国际化文件 | `dist/apps/api/src/i18n` |
-| `public/**/*` | 静态文件（图片等） | `dist/apps/api/src/public` |
-| `views/**/*` | 模板文件（邮件模板） | `dist/apps/api/src/views` |
+| 资源目录 | 说明 | 输出路径（prod / stage） |
+|---------|------|------------------------|
+| `i18n/**/*` | 国际化文件 | `dist/apps/api/src/i18n` · `dist-stage/apps/api/src/i18n` |
+| `public/**/*` | 静态文件（图片等） | `dist/apps/api/src/public` · `dist-stage/apps/api/src/public` |
+| `views/**/*` | 模板文件（邮件模板） | `dist/apps/api/src/views` · `dist-stage/apps/api/src/views` |
 
 ## 路径映射
 

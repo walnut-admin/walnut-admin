@@ -1,0 +1,8 @@
+{
+  "$comment": "staging 画像专用的类型/发射配置。存在的唯一理由：把产物目录从 dist 换成 dist-stage —— 见 infra/README.md 的「产物目录按画像分离」。唯一需要记住的一点：**`outDir` 的真源在 tsconfig，不在 infra/nest/*.json**（Nest 的 SWC builder 忽略 nest-cli 里的 compilerOptions.outDir，实测 2026-09-23）。",
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "outDir": "../../dist-stage",
+    "tsBuildInfoFile": "../../node_modules/.cache/tsconfig.app.stage.tsbuildinfo"
+  }
+}

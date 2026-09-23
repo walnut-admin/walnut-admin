@@ -108,10 +108,11 @@
     },
     "build:stage": {
       "dependsOn": ["^build:stage"],
-      // ⚠️ `dist-staging/**` 必须在这儿：admin 的 staging 画像由 `VITE_BUILD_OUT_DIR` 决定，
-      // 实际值是 `dist-staging`（生产是 `dist`，见 apps/admin/env-local/.env.{production,stage}）。
-      // 漏掉它的后果是**静默**的 —— 2026-09-23 实测见文件头 ②。
-      "outputs": ["dist/**", "dist-staging/**", ".vitepress/dist/**"],
+      // ⚠️ 两个 staging 产物目录都要在这儿：admin 的由 `VITE_BUILD_OUT_DIR` 决定、实际值是
+      // `dist-staging`；server 的由 `infra/nest/stage.json` 的 `compilerOptions.outDir` 决定、
+      // 实际值是 `dist-stage`（里面再套一层 `apps/api/src`，那是 Nest monorepo 的 root 决定的）。
+      // 漏掉任何一个的后果都是**静默**的 —— 2026-09-23 实测见文件头 ②。
+      "outputs": ["dist/**", "dist-staging/**", "dist-stage/**", ".vitepress/dist/**"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "env-local/**",

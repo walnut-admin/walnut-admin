@@ -6,7 +6,7 @@
   "sourceRoot": "apps/api/src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "tsConfigPath": "apps/api/tsconfig.app.json",
+    "tsConfigPath": "apps/api/tsconfig.app.stage.json",
     "builder": {
       "type": "swc",
       "options": {
@@ -34,22 +34,22 @@
       "entryFile": "main",
       "sourceRoot": "apps/api/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/api/tsconfig.app.json",
+        "tsConfigPath": "apps/api/tsconfig.app.stage.json",
         "deleteOutDir": true,
         "assets": [
           {
             "include": "i18n/**/*",
-            "outDir": "dist/apps/api/src",
+            "outDir": "dist-stage/apps/api/src",
             "watchAssets": false
           },
           {
             "include": "public/**/*",
-            "outDir": "dist/apps/api/src",
+            "outDir": "dist-stage/apps/api/src",
             "watchAssets": false
           },
           {
             "include": "views/**/*",
-            "outDir": "dist/apps/api/src",
+            "outDir": "dist-stage/apps/api/src",
             "watchAssets": false
           }
         ]
