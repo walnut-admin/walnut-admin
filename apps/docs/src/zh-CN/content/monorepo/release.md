@@ -263,12 +263,16 @@ pnpm release --status      # 公开仓无需 token 即可查询远端 Release
 
 | 文件 | 作用 |
 |------|------|
-| [`pnpm-workspace.yaml`](../../../../../pnpm-workspace.yaml) | `versioning` 段 = 版本策略唯一真源 |
-| [`.changeset/`](../../../../../.changeset/) | 意图（`*.md`）、消费台账（`ledger.yaml`）、写前日志（gitignored） |
-| [`cliff.toml`](../../../../../cliff.toml) | changelog 渲染规则 |
-| [`lefthook.yml`](../../../../../lefthook.yml) | git 钩子唯一真源 |
+| [`pnpm-workspace.yaml`](https://github.com/walnut-admin/walnut-admin/blob/main/pnpm-workspace.yaml) | `versioning` 段 = 版本策略唯一真源 |
+| [`.changeset/`](https://github.com/walnut-admin/walnut-admin/tree/main/.changeset) | 意图（`*.md`）、消费台账（`ledger.yaml`）、写前日志（gitignored） |
+| [`cliff.toml`](https://github.com/walnut-admin/walnut-admin/blob/main/cliff.toml) | changelog 渲染规则 |
+| [`lefthook.yml`](https://github.com/walnut-admin/walnut-admin/blob/main/lefthook.yml) | git 钩子唯一真源 |
 | `packages/tooling/release/src/release/` | 发版编排（模块地图见该包的 README） |
-| [`.github/workflows/release.yml`](../../../../../.github/workflows/release.yml) | tag 推送 → 镜像 → GitHub Release → 部署 |
+| [`.github/workflows/release.yml`](https://github.com/walnut-admin/walnut-admin/blob/main/.github/workflows/release.yml) | tag 推送 → 镜像 → GitHub Release → 部署 |
+
+> ⚠️ 这一表原本写的是相对路径（`../../../../../cliff.toml` 之类）——**层级数错了**，而且这些是
+> **仓库文件、不是站点页面**，站点上也渲染不出来。2026-09-23 打开 VitePress 内置死链校验时被抓出来，
+> 已统一改成 GitHub 链接。
 
 ## 相关 ADR
 

@@ -83,6 +83,12 @@ jobs:
       - name: Tests (affected)
         run: pnpm exec turbo run test --affected
 
+      # 文档站构建顺带做死链校验（VitePress 内置；`ignoreDeadLinks` 已从 true 收窄成
+      # 「冻结语料 + 尚未编写的组件页」白名单）。跑在 CI 而不是 local pre-push：约 40s，
+      # 且只对文档改动有意义。
+      - name: Docs build (dead-link check)
+        run: pnpm build:docs
+
       # 防"affected 空集静默通过"：有文件变更却算出 0 个受影响包时必须失败
       - name: Affected set sanity check
         if: steps.affected.outputs.base != ''

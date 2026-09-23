@@ -2,7 +2,7 @@
 
 ## 一、插件分类概述
 项目中的第三方插件分为两类：
-1. **UI组件类**：位于<WFrontLink path="/src/components/Vendor">`components/Vendor`</WFrontLink>目录下，带有UI界面，可能需要配合表单录入或实现特殊功能。详情查看[组件章节](../components/vendor.md)。
+1. **UI组件类**：位于<WFrontLink path="/src/components/Vendor">`components/Vendor`</WFrontLink>目录下，带有UI界面，可能需要配合表单录入或实现特殊功能。详情查看[组件章节](../component/index.md)。
 
 2. **功能性辅助类**：通过编程方式调用，提供各种功能性支持。
 

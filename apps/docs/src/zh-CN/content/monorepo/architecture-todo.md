@@ -13,7 +13,7 @@
 |------|------|------|
 | ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 P1-16 已被决定推迟，见[「搁置」](#搁置等条件成熟) |
 | **P1** | 静态检查与门禁的缺口（会让「绿」变成假象） | R2 |
-| **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 · R8 · R11 · P2-10 · P2-11 |
+| **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 · R8 · R11 · P2-10 · **F2-a** · **F2-b** |
 | **P3** | 远期 / 条件触发 | P3-12 · P3-14 · P3-15 · P3-13 · A8 · A9 · A11 · P3-17 · P3-18 |
 | **搁置** | 等条件成熟（外部依赖或已决定先不动） | R1 · P1-16 · P2-11 · P3-20 |
 | **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | F1–F4 · F6–F7 · D1–D6 · D8<br><sub>F0 / F5 已完成；D7（TS 7 排期）已并入 R7</sub> |
@@ -45,6 +45,8 @@ R1 改判回退 → 已按决定搁置 ｜ R3 · R4 · P3-19 已做完
 | **R8** | **`@walnut/types` exports 结构** | 小 | 该包 `exports` 只有 `{ "./*": "./src/*.d.ts" }`，**无根 `"."`、无 `types` 字段**，消费方必须写 `@walnut/types/xxx`。评估是否补根导出。 |
 | **R11** | **文档漂移清扫** | 小 | 本轮又修掉几处：`apps/docs/CLAUDE.md`（`preinstall` / `only-allow` 已不存在）、`apps/server/CLAUDE.md`（pnpm 11 → 12、preinstall）、`deploy.yml` 注释（setup-env 不再用 tsx）、`.gitignore` 的死规则 `report/*`。剩余 `.claude/`、`.zcode/` 等入口文档待查。 |
 | **P2-10** | **Codecov / 覆盖率报告** | 小 | PR 上自动评论覆盖率变化（免费）。现在 6 份 vitest 配置都具备 coverage 能力但未接入。<br>⚠️ 需要账号/令牌，**待你确认是否要做**。 |
+| **F2-a** | **文档死链：已开校验，但 ~74 条链接指向「未编写的组件页」** | 中 | 2026-09-23 把 VitePress 的 `ignoreDeadLinks` 从 `true` 收窄成白名单（只忽略冻结语料 + `content/frontend/component/` 那份索引里指向未编写页面的链接），并修掉 9 条真错的相对路径（`release.md` 的仓库文件表 5 条层级写错、`architecture-todo.md` 2 条少了一级、`content.md` / `vendor.md` / `en-US/configuration.md` 各 1 条）。<br>**剩余欠账**：`content/frontend/component/index.md` 按功能分层列了 ~74 个组件页，但 `content/frontend/component/` 目录下**只有 index.md**。要么补写这些页、要么把索引里的链接降级成纯文本（保留规划信息但不产生死链），然后就能把白名单收掉、让索引也受校验。<br>CI 已加 `Docs build (dead-link check)` 步，所以**以后新增死链会直接红**。 |
+| **F2-b** | **锚点校验 + prose 里的仓库路径引用**（等第三方库调研结论） | 中 | VitePress 内置只查「目标页是否存在」，**不查 `#fragment` 是否真实存在**；文档正文里还有约 584 处反引号引用的仓库文件路径（如 `` `packages/tooling/release/src/release/steps.ts` ``）目前完全无校验 —— 这正是本轮反复出现文档漂移的根因之一。正在调研现成库（`remark-validate-links` / `lychee` / `markdown-link-check` 等），结论出来再定实现。 |
 
 ---
 
@@ -107,6 +109,7 @@ R1 改判回退 → 已按决定搁置 ｜ R3 · R4 · P3-19 已做完
 
 | 日期 | 完成项 |
 |------|--------|
+| 2026-09-23 | **清旧账第 2 批（F2 的第一半：文档链接门禁）**：`apps/docs/.vitepress/config/index.ts` 的 `ignoreDeadLinks` 由 `true` 改为**白名单数组** —— 打开 VitePress 内置死链校验，**零新增依赖、零新增脚本**。打开后实测暴露 **86 条死链**，收窄白名单并修掉真错的 9 条后归零：<br>· 真错并已修：`monorepo/release.md` 的「关键文件」表 5 条相对路径**层级数错**（`../../../../../cliff.toml` 之类，且这些是仓库文件、不是站点页面）→ 统一改 GitHub 链接；`monorepo/architecture-todo.md` 2 条 `./industry-research/…` 少了一级 → `../industry-research/…`；`content.md` 的 `./vue/introduction.md` → `./content/frontend/introduction.md`；`frontend/base/vendor.md` 的 `../components/vendor.md` → `../component/index.md`；`en-US/guide/configuration.md` 的 `../content/monorepo/env-management.md` → 根绝对路径。<br>· 白名单只留两类并各写理由：冻结语料（`archive/`、`industry-research/`）+ `content/frontend/component/index.md` 里指向**尚未编写**的 ~74 个组件页的链接（记为 F2-a）。<br>· `ci.yml` quality job 新增 `Docs build (dead-link check)` 步 —— 以后新增死链直接红。<br>验证：`pnpm build:docs` exit 0（0 死链）、actionlint exit 0 |
 | 2026-09-23 | **清旧账第 1 批**（R4 / R3 / P3-19，验收口径即核实方式）：<br>① **R4 根配置接入类型检查** —— 新增 `types:check:root: tsc -p tsconfig.json`，接入 `prepush`（六段 → **七段**）、`ci.yml`（新步骤 `Type check root configs`）与**发版电池**（新行 `types-root`，`steps.test.ts` 同步）；`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts` 此前没有任何脚本做类型检查。<br>② **R3 根 eslint 换 base 预设** —— 根 `eslint.config.ts` 由 `vue` 预设改为 `base`。核实中发现原条目描述的前提是错的：仓内只有 5 份 `eslint.config.ts`，**另外 10 个包经 ESLint 向上查找也用根配置**（它们全是 TS-only、零 `.vue`，`base` 才是它们该用的预设）。用 `eslint --print-config` 逐文件比对规则集，确认只丢掉 2 条对 TS 无效的 `unocss/*`；同时给 base 补上 `pnpm: true` 与 `pnpm/yaml-enforce-settings: off`，否则会丢 3~4 条 `pnpm/*` 规则并让 `lint:root` 直接报 `shellEmulator` mismatch。<br>③ **P3-19 turbo 产出警告** —— `@walnut/{client,http,types,ui}` 四个包的 `turbo.json` 声明 `"build": { "outputs": [] }`；根 `turbo.json` 的 `test` 任务把 `outputs` 从 `["coverage/**"]` 改为 `[]`（正常 `vitest run` 不产出任何文件，6 个有 test 脚本的包此前每次刷警告）。实测 `build --force` 与 `test --force` 的 "no output files found" 警告 **合计 10 → 0**。<br>验证：`build`（9/9，2m27s）、`test`（12/12）、`lint`（14/14）、`lint:root`、`types:check:root`、`prepush` 七段、`build:docs`、actionlint 全绿 |
 | 2026-09-23 | **待办表核实与瘦身**（本轮）：逐条核实原 P0-P3 / A1-A11 / R1-R11 的 ✅ 标记 → 18 项确认完成并移出、**1 项（R1）判定回退后重开**；剩余项按 P0-P3 重排，新增「未裁决」段收纳 2026-09-21 评审的 F/D 项（即评审建议 **F5「状态移出文档」** 的落地）；新增 `tsx` 全局移除后的文档同步（ADR-0019 / AGENTS.md / CLAUDE.md / package-scripts.md / pnpm-workspace-config.md），catalog 243 → 242 |
 | 2026-09-23 | **仓内彻底移除 `tsx`**：`apps/admin` 的 `predev` / `types:check:log` 改由 `node` 原生类型剥离执行（相对导入补 `.ts` 扩展名、JSON 导入补 `with { type: 'json' }`），devDependency 与 catalog 条目删除；顺带修掉 `.gitignore` 的死规则 `report/*`（带斜杠锚定到仓库根，实际产物在 `apps/admin/report/`）。详见 commit `3daafc0` |
@@ -165,4 +168,4 @@ R1 改判回退 → 已按决定搁置 ｜ R3 · R4 · P3-19 已做完
 - [ADR 索引](../adr/index.md) ｜ [ADR 0009 CI 质量门禁](../adr/0009-ci-quality-gates.md) ｜ [ADR 0017 包重组](../adr/0017-package-reorganization.md) ｜ [ADR 0018 Git 钩子迁 lefthook](../adr/0018-git-hooks-lefthook.md) ｜ [ADR 0019 tsconfig 预设与无 `.mjs`](../adr/0019-tsconfig-presets-and-no-mjs.md)
 - [归档：架构 Review 与调研审计](../archive/2026-09-21-architecture-review.md)（F / D 项的完整论证）
 - [归档：CI/CD 重构实施记录](../archive/2026-09-21-ci-cd-pipeline-plan.md)
-- [行业调研 - CI/CD](./industry-research/03-ci-cd-pipeline.md) ｜ [行业调研 - 测试](./industry-research/04-testing-strategy.md)
+- [行业调研 - CI/CD](../industry-research/03-ci-cd-pipeline.md) ｜ [行业调研 - 测试](../industry-research/04-testing-strategy.md)

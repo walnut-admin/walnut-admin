@@ -37,7 +37,7 @@
 
 ## 环境变量
 
-项目的环境变量采用两目录体系（基于 dotenvx 加密，详见[环境变量加密管理](../content/monorepo/env-management.md)）：
+项目的环境变量采用两目录体系（基于 dotenvx 加密，详见[环境变量加密管理](/content/monorepo/env-management)）：
 
 - `env-encrypted/` — 加密后的真实值（安全提交 Git），文件内注释即模板
 - `env-local/` — 解密生成的明文真实值（gitignored，由 `pnpm setup-env` 生成）

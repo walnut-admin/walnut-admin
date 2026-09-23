@@ -2,7 +2,7 @@
 
 ## 前端
 
-[看这里吧](./vue/introduction.md)
+[看这里吧](./content/frontend/introduction.md)
 
 ## 后端
 :::info
