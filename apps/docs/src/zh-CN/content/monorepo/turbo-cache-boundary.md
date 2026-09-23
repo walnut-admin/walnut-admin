@@ -313,22 +313,37 @@ Turbo 的严格 env 模式会把「没在 `env` / `globalEnv` / `passThroughEnv`
 
 ---
 
-## 六、这道门禁守什么（8 条不变量 + 负向验证）
+## 六、这道门禁守什么（每条都有 rule id，报错时按它定位）
 
-`pnpm lint:turbo-cache` **不改任何文件**，只拿 `--dry=json` 的解析结果 + 配置文件里的真实取值核对 8 条不变量：
+`pnpm lint:turbo-cache` **不改任何文件**，只拿 `--dry=json` 的解析结果 + 配置文件里的真实取值核对一组不变量
+（**表里不写条数** —— 它随门禁增删而变；真源是 `check-turbo-cache.ts` 里的 rule id）：
 
-| # | 不变量 | 不守会怎样 |
-|---|--------|-----------|
-| 1 | 每个 workspace 包都有 `turbo.json`，且 `extends: ["//"]` + 非空 `tags` | 那个包**静默不受** `turbo boundaries` 约束 |
-| 2 | `globalDependencies` 每条都命中真实文件 | 写错一个字符 = 少一个全局失效源（本轮实测出 `packages/tooling/tsconfig/*.json` 顺带纳入了 `turbo.json`，说明这类 glob 值得核） |
-| 3 | 有 `env-local/` 的 app，其 `build` / `build:stage` 的 inputs 必须含 `env-local/**` | 改 .env 不重建（4.3） |
-| 4 | 从 `env-local/.env.*` 读出的 `VITE_BUILD_OUT_DIR` 必须出现在对应任务的 `outputs` 里 | 缓存命中静默不产出（4.1） |
-| 5 | `transit` 存在、带 `^transit`，且 `types:check` 挂它 | 依赖包源码变更 ⇒ 类型门禁回放假绿（4.2） |
-| 6 | `@walnut/docs#build` 的输入里有 `.md` | 改文档不重建 ⇒ **死链校验被跳过** |
-| 8 | `//#lint:root` 的 `inputs` 与根脚本里那几个 glob **双向一致** | 写成大排除式 ⇒ 漏排一个运行期目录就**永不命中**；排过头 ⇒ 根 eslint 配置的改动不进缓存键、**门禁回放假绿** |
-| 7 | 同一个 app 的 prod 与 stage **不许落进同一个产物目录**（判据顺着 `tsConfigPath → extends` 读 tsconfig 的 `outDir`），且该目录必须在 `build:stage.outputs` 里 | 两条流程抢同一目录 ⇒ 缓存重放互相覆盖；`deleteOutDir` 还会先删掉对方的产物（4.4） |
+| # | 不变量（rule id） | 不守会怎样 |
+|---|------------------|-----------|
+| 1 | 每个 workspace 包都有 `turbo.json`，且 `extends: ["//"]` + 非空 `tags`（`package-turbo-json`） | 那个包**静默不受** `turbo boundaries` 约束 |
+| 2 | `globalDependencies` 每条都命中真实文件（`global-dependency-exists`） | 写错一个字符 = 少一个全局失效源（本轮实测出 `packages/tooling/tsconfig/*.json` 顺带纳入了 `turbo.json`，说明这类 glob 值得核） |
+| 3 | 有 `env-local/` 的 app，其 `build` / `build:stage` 的 inputs 必须含 `env-local/**`（`env-local-in-inputs`） | 改 .env 不重建（4.3） |
+| 4 | 从 `env-local/.env.*` 读出的 `VITE_BUILD_OUT_DIR` 必须出现在对应任务的 `outputs` 里（`outputs-cover-artifacts`） | 缓存命中静默不产出（4.1） |
+| 5 | `transit` 存在、带 `^transit`，且 `types:check` 挂它（`transit-exists` / `transit-chains`） | 依赖包源码变更 ⇒ 类型门禁回放假绿（4.2） |
+| 6 | `@walnut/docs#build` 的输入里有 `.md`（`docs-build-sees-markdown`） | 改文档不重建 ⇒ **死链校验被跳过** |
+| 7 | 同一个 app 的 prod 与 stage **不许落进同一个产物目录**（判据顺着 `tsConfigPath → extends` 读 tsconfig 的 `outDir`），且该目录必须在 `build:stage.outputs` 里（`stage-outdir-separate`） | 两条流程抢同一目录 ⇒ 缓存重放互相覆盖；`deleteOutDir` 还会先删掉对方的产物（4.4） |
+| 8 | `//#lint:root` 的 `inputs` 与根脚本里那几个 glob **双向一致**（`lint-root-inputs`） | 写成大排除式 ⇒ 漏排一个运行期目录就**永不命中**；排过头 ⇒ 根 eslint 配置的改动不进缓存键、**门禁回放假绿** |
+| 9 | `tags` 的**形态**：字符串、小写 kebab-case、无重复（`tag-shape`） | `Platform_Web` 这种拼法能通过 JSON 校验，却**匹配不上** `boundaries` 里那条 `platform-web` 的规则 ⇒ 与"没写"同效 |
+| 10 | **平台 tag 与目录组一致**：`packages/platform-any/*` 必须带 `platform-any` 且不带另两个（`platform-tag-matches-dir`） | 那条 boundaries 规则会**套到错的一侧**（比如 platform-any 的包声明了 platform-web，于是它躲开了本该受的约束） |
+| 11 | **反向断言**：根 `boundaries.tags` 的每个 key 都得有包真的声明它（`boundary-rule-has-subject`） | 那条规则**永远不会触发** —— 恒关的规则等于没有规则（与 `lint:doc-budget` 的「预算用不到一半也算失败」同一族） |
 
-**它真的会红吗**——13 个注入用例逐个验过（改完即还原，`turbo.json` sha 不变）：
+第 9–11 条是 2026-09-23 交叉对比时补的（待办 P1-17）：原先把「非空 tags」当成够用了，
+但它只挡住「整个忘写」，挡不住「写了个不会匹配任何规则的 tag」—— 后者同样是**静默豁免**。
+
+> ⚠️ **这道门禁曾经在 CI 上从没成立过**（2026-09-23 读出来的真 bug）：
+> `loadTurboDry()` 原本是 `execFileSync('cmd', ['/c', 'pnpm exec turbo … 2>nul'])` ——
+> 那是**只在 Windows 上成立**的写法，而 CI 的 runner 是 `ubuntu-latest`：那里没有 `cmd`，
+> 直接 ENOENT ⇒ 这一步在 CI 上只会**报错退出 2**。（当时那批提交还没推过，所以没红过 ——
+> 一推就会红。）现已改走 `getPnpmBin()`（本仓唯一被认可起 pnpm 的方式，Windows 上
+> `execFileSync('pnpm', …)` 同样会 ENOENT，而 `shell: true` 会重新解析 argv）。
+> `check-turbo-cache.test.ts` 里有一条**剥注释后**扫源码的守卫，防止再退回去。
+
+**它真的会红吗**——注入用例逐个验过（改完即还原，`turbo.json` sha 不变）：
 
 | 注入的错误 | 报出的规则 |
 |-----------|-----------|
@@ -345,6 +360,13 @@ Turbo 的严格 env 模式会把「没在 `env` / `globalEnv` / `passThroughEnv`
 | `//#lint:root` 的 inputs 少一个 glob | `lint-root-inputs` |
 | 改成 `$TURBO_ROOT$/**` 大排除式 | `lint-root-inputs` |
 | 根脚本多检查一类文件、inputs 没跟上 | `lint-root-inputs` |
+| tag 写成 `Platform_Web` ／ tags 有重复 | `tag-shape` |
+| `packages/platform-any/*` 漏了 `platform-any`／声明了 `platform-web` | `platform-tag-matches-dir` |
+| `boundaries.tags` 里有一条没有包声明 | `boundary-rule-has-subject` |
+
+第 9–11 条的三行用例走的是**临时夹具仓库**（`mkdtemp` 造一个只有 1 个包的迷你仓，
+把 `dry` 的 `directory` 指过去）—— 因为 tags 是门禁从**盘上的 `turbo.json`** 读的，
+没法像 outputs 那样靠改 `dry` 注入。
 
 另外还有一道**跑错目录**的守卫：在子目录里跑时 turbo 只会看到 1 个包、
 所有断言照样成立 —— 门禁对此硬报错（`turbo 只在 <cwd> 下发现了 1 个包`），

@@ -88,8 +88,9 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'doc-ts', label: '文档代码块校验（ts 块必须能解析）', argv: ['lint:doc-ts'] },
   // 同上。常驻上下文的几个文件（根 AGENTS.md / CLAUDE.md / 包级指引）不许无限膨胀。
   { id: 'doc-budget', label: '文档字数预算（常驻文件不许膨胀）', argv: ['lint:doc-budget'] },
-  // 同上。turbo.json 写错一个产物目录/依赖边不会报错，只会让 turbo 报 FULL TURBO 却少跑或少产出。
-  { id: 'turbo-cache', label: 'turbo 缓存边界（产物 / 依赖边不变量）', argv: ['lint:turbo-cache'] },
+  // 同上。turbo.json 写错一个产物目录/依赖边不会报错，只会让 turbo 报 FULL TURBO 却少跑或少产出；
+  // 同一个文件里的 tags 写错则会让那个包**静默豁免于整套 boundaries**。
+  { id: 'turbo-cache', label: 'turbo 配置不变量（缓存边界 + tags）', argv: ['lint:turbo-cache'] },
   // 同上。改 catalog 忘了 `pnpm install` = 本地全绿、CI 死在 install —— 发版面必须也看得见。
   { id: 'lockfile', label: 'catalog 与锁文件锁步', argv: ['lint:lockfile'] },
   // 同上。入口 nginx 的 4 个安全头：`add_header` 是整段替换而不是合并，写漏一条就静默裸奔。

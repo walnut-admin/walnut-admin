@@ -1,4 +1,4 @@
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -98,7 +98,7 @@ describe('nestOutDir —— server 侧产物目录的真源在 tsconfig', () => 
 })
 
 describe('collectFindings（对着真实仓库跑）', () => {
-  it('本仓当前 8 条不变量全部成立', () => {
+  it('本仓当前全部不变量都成立', () => {
     // 断言直接落在 «规则 id + 细节» 上：失败时能一眼看出是哪一条不变量、差在哪
     expect(collectFindings(dry, ROOT).map(f => `${f.rule} :: ${f.detail}`)).toEqual([])
   })
@@ -190,5 +190,114 @@ describe('边界本身（哈希层的不变量回归）', () => {
     expect(files).toContain('pnpm-workspace.yaml')
     expect(files).toContain('eslint.config.ts')
     expect(files).toContain('packages/tooling/tsconfig/base.json')
+  })
+})
+
+/**
+ * tags 的三条不变量（P1-17）。
+ *
+ * ⚠️ 这一段**没法靠改 `dry` 注入**：tags 是 `collectFindings` 从**盘上的 turbo.json** 读的，
+ * 不在 dry 里。所以这里搭一个**临时夹具仓库**（`cwd` 指向 tmp），把 `dry` 里的 `directory`
+ * 指到夹具包上 —— `packageDirs()` 就是靠 `directory` + `cwd` 还原包目录的。
+ */
+describe('tags —— 形态 / 平台一致 / 反向断言', () => {
+  const ROOT_TURBO = {
+    globalDependencies: [],
+    boundaries: { tags: { shared: { dependencies: { deny: ['app'] } } } },
+    tasks: {
+      'transit': { dependsOn: ['^transit'] },
+      'types:check': { dependsOn: ['transit'] },
+      '//#lint:root': { inputs: ['$TURBO_ROOT$/*.ts'] },
+    },
+  }
+
+  /** 造一个只含一个包的夹具仓库；`tags` 决定那个包的 turbo.json 长什么样 */
+  function fixture(dir: string, tags: unknown): { cwd: string, dry: ReturnType<typeof fakeDry> } {
+    const cwd = mkdtempSync(path.join(tmpdir(), 'walnut-tags-'))
+    const pkgRoot = path.join(cwd, dir)
+    mkdirSync(pkgRoot, { recursive: true })
+    writeFileSync(path.join(cwd, 'turbo.json'), JSON.stringify(ROOT_TURBO, null, 2))
+    writeFileSync(path.join(cwd, 'package.json'), JSON.stringify({ scripts: { 'lint:root': 'eslint *.ts' } }))
+    writeFileSync(path.join(pkgRoot, 'turbo.json'), JSON.stringify({ extends: ['//'], tags }, null, 2))
+    return { cwd, dry: fakeDry(cwd, dir) }
+  }
+
+  function fakeDry(cwd: string, dir: string) {
+    return {
+      tasks: [{
+        taskId: 'pkg#build',
+        task: 'build',
+        package: 'pkg',
+        directory: path.join(cwd, dir),
+        hash: 'x',
+        resolvedTaskDefinition: { outputs: [], inputs: [] },
+      }],
+      packages: ['//', 'pkg'],
+      globalCacheInputs: { files: {} },
+    } as unknown as Parameters<typeof collectFindings>[0]
+  }
+
+  const rulesOf = (f: ReturnType<typeof fixture>) => collectFindings(f.dry, f.cwd).map(x => x.rule)
+
+  it('合规的包里里外外都通过（夹具本身是绿的，才谈得上负对照）', () => {
+    expect(rulesOf(fixture('packages/platform-any/a', ['shared', 'platform-any']))).toEqual([])
+  })
+
+  it('tags 写成大写/下划线 → 报 tag-shape（它匹配不上 boundaries 里任何一条规则）', () => {
+    expect(rulesOf(fixture('packages/platform-any/a', ['shared', 'Platform_Web']))).toContain('tag-shape')
+  })
+
+  it('tags 有重复 → 报 tag-shape', () => {
+    expect(rulesOf(fixture('packages/platform-any/a', ['shared', 'shared']))).toContain('tag-shape')
+  })
+
+  it('platform-any 目录下的包漏了 platform-any → 报', () => {
+    expect(rulesOf(fixture('packages/platform-any/a', ['shared']))).toContain('platform-tag-matches-dir')
+  })
+
+  it('platform-any 目录下的包声明了 platform-web → 报（规则会套到错的一侧）', () => {
+    expect(rulesOf(fixture('packages/platform-any/a', ['shared', 'platform-any', 'platform-web']))).toContain('platform-tag-matches-dir')
+  })
+
+  it('boundaries.tags 里有一条没有任何包声明它 → 报 boundary-rule-has-subject（恒关的规则 = 没有规则）', () => {
+    const f = fixture('packages/platform-any/a', ['platform-any']) // 没有 `shared`
+    expect(rulesOf(f)).toContain('boundary-rule-has-subject')
+  })
+
+  it('apps/* 不参与平台 tag 一致性检查（目录名与平台 tag 没有对应关系）', () => {
+    expect(rulesOf(fixture('apps/docs', ['shared', 'app', 'docs']))).toEqual([])
+  })
+})
+
+describe('跨平台：这一段门禁必须能在 CI 的 Linux runner 上跑', () => {
+  /**
+   * ⚠️ **必须先剥注释再断言** —— 这是参考仓安全评审里明确记过的一条教训：
+   * 「子串匹配的断言可以被一行注释满足」。第一版这里直接扫源码，结果**被我自己写的
+   * 那条「以前是 `execFileSync('cmd', …)`」的说明注释当场判红**（注释里当然有那个子串）。
+   * 断言必须落在**代码位置**上，而不是文本里有没有出现过某个词。
+   */
+  function stripComments(src: string): string {
+    return src
+      .replace(/\/\*[\s\S]*?\*\//g, '') // 块注释
+      .replace(/(^|\s)\/\/.*$/gm, '$1') // 行注释（`://` 不会被吃掉）
+  }
+  const code = stripComments(readFileSync(path.join(ROOT, 'packages/tooling/scripts/src/ci/check-turbo-cache.ts'), 'utf8'))
+
+  // 2026-09-23 读出来的真 bug：loadTurboDry 原本是 `execFileSync('cmd', ['/c', '… 2>nul'])`，
+  // 那是**只在 Windows 上成立**的写法 —— CI 的 runner 是 ubuntu-latest，那里没有 `cmd`，
+  // 会直接 ENOENT ⇒ 整段门禁在 CI 上从来没成立过（当时这些提交还没推过，所以没红过）。
+  it('剥掉注释后的代码里不许再出现 cmd.exe / 2>nul', () => {
+    expect(code, '又退回 Windows-only 了').not.toMatch(/execFileSync\(\s*'cmd'/)
+    expect(code).not.toContain('2>nul')
+  })
+
+  it('改用 getPnpmBin()（本仓唯一被认可起 pnpm 的方式）', () => {
+    expect(code).toContain('getPnpmBin()')
+  })
+
+  it('剥注释这一步本身是对的（否则上面两条可能是空转）', () => {
+    const raw = readFileSync(path.join(ROOT, 'packages/tooling/scripts/src/ci/check-turbo-cache.ts'), 'utf8')
+    expect(raw, '说明注释里应当提到那个旧写法').toContain('2>nul')
+    expect(code, '剥完就该没有了').not.toContain('2>nul')
   })
 })

@@ -120,9 +120,9 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
   },
   {
     id: 'turbo-cache',
-    label: 'turbo 缓存边界（产物/outputs/env 不变量）',
+    label: 'turbo 配置不变量（缓存边界 + tags）',
     argv: ['lint:turbo-cache'],
-    why: 'turbo.json 里漏一个产物目录、少挂一条依赖边，症状全是**静默的** —— `FULL TURBO` + exit 0，但门禁回放了旧结论。2026-09-23 实测到 `pnpm build:stage` 报成功却一个文件都没产出。',
+    why: 'turbo.json 里漏一个产物目录、少挂一条依赖边、tags 写错一个字符，症状全是**静默的** —— `FULL TURBO` + exit 0，但门禁回放了旧结论，或那个包**根本没被 boundaries 检查**。2026-09-23 实测到前者（`pnpm build:stage` 报成功却一个文件都没产出）。',
   },
   {
     id: 'lockfile',

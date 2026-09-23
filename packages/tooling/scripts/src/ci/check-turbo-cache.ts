@@ -16,6 +16,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { parseConfigFileTextToJson, parseJsonConfigFileContent, readConfigFile, sys } from 'typescript'
 
+import { getPnpmBin } from '../lib/pnpm-launcher.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
 /** 需要 dry-run 解析的任务名（都是会被缓存、且缓存边界出过问题的那些） */
@@ -53,10 +54,18 @@ export interface TurboDry {
 
 /** 跑一次 turbo 的干跑，拿解析后的真源 */
 export function loadTurboDry(cwd = REPO_ROOT): TurboDry {
-  const out = execFileSync('cmd', ['/c', `pnpm exec turbo run ${PROBE_TASKS.join(' ')} --dry=json 2>nul`], {
+  // ⚠️ **这里曾经是 `execFileSync('cmd', ['/c', 'pnpm exec turbo … 2>nul'])`** ——
+  // 那让整道门禁**只能在 Windows 上跑**：CI 的 runner 是 `ubuntu-latest`，那里没有 `cmd`，
+  // `execFileSync` 直接 ENOENT ⇒ 这一段的结论是「在 CI 上从来没成立过」。
+  // （2026-09-23 交叉对比时读出来的；当时这些提交还没推过，所以 CI 没红过 —— 一推就会红。）
+  // 现在走 `getPnpmBin()`：它是本仓**唯一**被认可起 pnpm 的方式（Windows 上 `pnpm` 是
+  // `pnpm.cmd`，`execFileSync('pnpm', …)` 会 ENOENT；而 `shell: true` 又会重解析 argv）。
+  // 顺带把 `2>nul` 去掉：那本来就是 cmd 的语法，这里用 stdio 直接丢弃 stderr。
+  const out = execFileSync(getPnpmBin(), ['exec', 'turbo', 'run', ...PROBE_TASKS, '--dry=json'], {
     cwd,
     maxBuffer: 1 << 30,
     encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
   })
   const dry = JSON.parse(out) as TurboDry
   // ⚠️ 两个都必须处理，否则门禁会**静默变绿**：
@@ -232,6 +241,17 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
 
   // ① 每个 workspace 包都必须有可解析的 `turbo.json`（extends + tags）。
   //    漏一个 = 那个包**完全不受 boundaries 约束**，且是静默的。
+  //
+  // ①b tags 本身还有三条更细的（2026-09-23 交叉对比时补的，P1-17）—— 「非空」只挡住了
+  //    「整个忘写」，挡不住「写了个不会匹配任何规则的 tag」（那同样是**静默豁免**）：
+  //      · 形态：小写 kebab、字符串、无重复（`Platform_Web` 这种拼法能通过 JSON 校验，
+  //        却匹配不上 boundaries 里那条 `platform-web` 的规则）；
+  //      · 平台 tag 与目录组一致：`packages/platform-any/*` 的目录名**就是**那条 tag 的语义，
+  //        写成 `platform-web` 会让规则套到错的一侧；
+  //      · 反向断言：`boundaries.tags` 里每条规则的 key 都要有包真的声明它 ——
+  //        没有的话那条规则**永远不会触发**（恒关的规则 = 没有规则，与 `lint:doc-budget`
+  //        的「预算用不到一半也算失败」同一族）。
+  const declaredTags = new Map<string, string[]>()
   for (const dir of packageDirs(dry, cwd)) {
     const f = path.join(cwd, dir, 'turbo.json')
     if (!existsSync(f)) {
@@ -248,8 +268,46 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
     }
     if (JSON.stringify(cfg.extends) !== '["//"]')
       findings.push({ rule: 'package-turbo-json', detail: `${dir}/turbo.json 的 extends 必须是 ["//"]，实际 ${JSON.stringify(cfg.extends)}` })
-    if (!Array.isArray(cfg.tags) || cfg.tags.length === 0)
+    if (!Array.isArray(cfg.tags) || cfg.tags.length === 0) {
       findings.push({ rule: 'package-turbo-json', detail: `${dir}/turbo.json 没有 tags —— 该包在 boundaries 眼里没有角色` })
+      continue
+    }
+    declaredTags.set(dir, cfg.tags)
+    for (const tag of cfg.tags) {
+      if (typeof tag !== 'string' || !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(tag))
+        findings.push({ rule: 'tag-shape', detail: `${dir}/turbo.json 的 tag \`${String(tag)}\` 不是小写 kebab-case —— 这种 tag 匹配不上 boundaries 里任何一条规则` })
+    }
+    if (new Set(cfg.tags).size !== cfg.tags.length)
+      findings.push({ rule: 'tag-shape', detail: `${dir}/turbo.json 的 tags 有重复：${JSON.stringify(cfg.tags)}` })
+  }
+
+  // 平台 tag 与目录组一致（只查两个 `packages/platform-*` 组：那里**目录名就是 tag 的语义**，
+  // 是布局给的判据，不是我们发明的约定。apps/* 的目录名与平台 tag 没有这种对应关系，故不查）。
+  const PLATFORM_GROUPS = [
+    { prefix: 'packages/platform-any/', tag: 'platform-any', forbidden: ['platform-web', 'platform-node'] },
+    { prefix: 'packages/platform-web/', tag: 'platform-web', forbidden: ['platform-any', 'platform-node'] },
+  ] as const
+  for (const [dir, tags] of declaredTags) {
+    for (const group of PLATFORM_GROUPS) {
+      if (!dir.startsWith(group.prefix))
+        continue
+      if (!tags.includes(group.tag))
+        findings.push({ rule: 'platform-tag-matches-dir', detail: `${dir} 在 ${group.prefix} 下，但 tags ${JSON.stringify(tags)} 里没有 \`${group.tag}\`` })
+      for (const bad of group.forbidden) {
+        if (tags.includes(bad))
+          findings.push({ rule: 'platform-tag-matches-dir', detail: `${dir} 在 ${group.prefix} 下，却声明了 \`${bad}\` —— 那条 boundaries 规则会套到错的一侧` })
+      }
+    }
+  }
+
+  // ①c 反向断言：root `boundaries.tags` 的每个 key 都得有包在声明。
+  {
+    const boundaries = (readTurboJson(path.join(cwd, 'turbo.json')) as { boundaries?: { tags?: Record<string, unknown> } }).boundaries
+    const allDeclared = new Set([...declaredTags.values()].flat())
+    for (const tag of Object.keys(boundaries?.tags ?? {})) {
+      if (!allDeclared.has(tag))
+        findings.push({ rule: 'boundary-rule-has-subject', detail: `根 turbo.json 的 boundaries.tags.\`${tag}\` 没有任何包声明这个 tag —— 这条规则永远不会生效（恒关的规则 = 没有规则）` })
+    }
   }
 
   // ② `globalDependencies` 的每一条都必须命中真实文件。
@@ -383,17 +441,19 @@ export function main(): number {
     dry = loadTurboDry()
   }
   catch (e) {
-    console.error(`✖ 无法解析 turbo 配置（\`turbo run --dry=json\` 失败）：${(e as Error).message}`)
+    // 措辞刻意不写「配置有问题」：这里失败也可能是**根本起不来 turbo**（找不到 pnpm、cwd 不对）
+    console.error(`✖ 拿不到 turbo 的解析结果（\`pnpm exec turbo run … --dry=json\` 没跑成）：${(e as Error).message}`)
     return 2
   }
   const findings = collectFindings(dry)
   const tasks = dry.tasks.length
 
   if (findings.length === 0) {
-    console.log(`Turborepo 缓存边界：${tasks} 个 task、${packageDirs(dry).length} 个包，8 条不变量全部成立 ✅`)
+    console.log(`Turborepo 配置不变量：${tasks} 个 task、${packageDirs(dry).length} 个包，全部成立 ✅`)
+    console.log('  （覆盖两类：缓存边界 —— 产物/outputs/env/依赖边；以及 tags —— 形态/平台一致/反向断言）')
     return 0
   }
-  console.error(`✖ Turborepo 缓存边界有 ${findings.length} 处问题：\n`)
+  console.error(`✖ Turborepo 配置有 ${findings.length} 处问题：\n`)
   for (const f of findings) console.error(`  [${f.rule}] ${f.detail}`)
   console.error('\n判据与手工复核方法见 apps/docs/src/zh-CN/content/monorepo/turbo-cache-boundary.md')
   return 1
