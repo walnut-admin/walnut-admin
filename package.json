@@ -35,7 +35,11 @@
     "lint": "turbo lint",
     "lint:root": "eslint *.mjs *.json *.yaml scripts/ --concurrency=auto",
     "lint:root:fix": "eslint *.mjs *.json *.yaml scripts/ --fix --concurrency=auto",
+    "lint:workflows": "tsx scripts/lint-workflows.ts",
     "lint:fix": "turbo lint:fix",
+    "images:build": "docker buildx bake --file docker-bake.hcl",
+    "images:push": "docker buildx bake --file docker-bake.hcl --push",
+    "images:print": "docker buildx bake --file docker-bake.hcl --print",
     "boundaries": "turbo boundaries",
     "types:check": "turbo types:check",
     "test": "turbo test",
@@ -80,7 +84,7 @@
   "simple-git-hooks": {
     "pre-commit": "pnpm lint-staged",
     "commit-msg": "pnpm commitlint --edit $1",
-    "pre-push": "pnpm boundaries && pnpm types:check && pnpm syncpack:lint"
+    "pre-push": "pnpm boundaries && pnpm types:check && pnpm syncpack:lint && pnpm lint:workflows"
   },
   "lint-staged": {
     "*.{ts,vue,mjs,js}": "eslint --fix --concurrency=auto"

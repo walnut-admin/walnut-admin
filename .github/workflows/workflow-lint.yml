@@ -1,0 +1,38 @@
+name: Workflow lint
+
+# 为什么单独一个 workflow 来校验 workflow：
+# 非法的 workflow 文件自己不会运行 —— GitHub 把它判为 "Invalid workflow file"，
+# 结果是启动即失败、0 个 job，在 Actions 列表里表现为一个"跑失败了的红叉"。
+# 2026-08-13 起本仓 CI 正是这样静默失效（ci.yml 的 steps.if 里用了 secrets 上下文），
+# 五周无人察觉。所以校验必须由另一个文件承担：它坏了，别人还能报出来。
+#
+# 触发条件限定在 .github/** 变更时，避免每次提交都多跑一个 job。
+
+on:
+  pull_request:
+    paths:
+      - '.github/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download actionlint
+        run: bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+
+      # actionlint 会同时校验 .github/workflows/*.yml 与本地 composite action
+      # （context 可用性、表达式、shell 引用等）
+      - name: Lint workflows and local actions
+        run: ./actionlint -color

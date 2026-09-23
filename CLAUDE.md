@@ -123,6 +123,14 @@ This monorepo was created by merging three previously separate repositories:
 - ✅ `@walnut/eslint-config` gained its own lint scripts; `apps/*` marked `private: true`
 - ✅ `@walnut/client` `vue`/`pinia` moved to peerDependencies; server tsconfig `strict: true` (tsc zero errors); DOM lib pushed down from `tsconfig.base.json` to admin/docs/platform-web packages; 6 leftover empty `import { } from '@walnut/contract'` removed; `build:stage` is now a dedicated turbo task (triple-dash passthrough retired); changesets fixed groups include all tooling packages
 
+**CI/CD rebuild (2026-09-21):**
+- ⚠️ CI had **never actually run** since 2026-08-13: `steps.if` used the `secrets` context, which the runner rejects → `Invalid workflow file`, startup failure with 0 jobs (looked like an ordinary red build). Fixed by binding the secret to a job-level `env` and testing `env.X != ''`; guarded by `.github/workflows/workflow-lint.yml` (actionlint, a separate file so it can report even if ci.yml breaks) plus `pnpm lint:workflows` in pre-push
+- ✅ `turbo --affected` now gets an explicit base/head (`TURBO_SCM_BASE`/`TURBO_SCM_HEAD`) — on direct pushes to main the merge-base is HEAD, so the affected set silently computed empty; a sanity check now fails when files changed but no package is affected
+- ✅ Container builds moved off the per-deploy path: `ci.yml` never touches Docker, tag pushes (`release.yml`) build once, `deploy.yml` is a reusable deploy-only workflow (rollback = dispatch with an older tag, 1–3 min)
+- ✅ Image builds: `docker-bake.hcl` gives each image its own GHA cache scope (all three previously shared the default `buildkit` scope and overwrote each other → backend was always cold: 15m49s ~ 77m53s, 85 min per deploy), and the heavy work (install/build/`pnpm deploy`) runs on the runner — images only `COPY`
+- ✅ Fixed a secret leak: `pnpm deploy --prod` copies `apps/server/env-local` (decrypted env) into the image; both the staging step and the backend Dockerfile now strip it
+- ⚠️ `pnpm deploy --prod` marks the workspace `node_modules/.modules.yaml` as `devDependencies: false`, so **any later pnpm command prunes devDependencies** (vite/cross-env disappear) — deploy must be the last pnpm step in a job
+
 **For full architecture details and the remaining refactor roadmap:**
 - [`apps/docs/src/zh-CN/content/monorepo/`](./apps/docs/src/zh-CN/content/monorepo/) — 架构文档（TypeScript / ESLint / pnpm Catalog / Turbo / Release / Knip 等 10 篇）
 - [`apps/docs/src/zh-CN/content/adr/`](./apps/docs/src/zh-CN/content/adr/) — 架构决策记录（ADR 0001-0017）

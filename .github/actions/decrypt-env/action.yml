@@ -1,0 +1,35 @@
+name: Decrypt environment files
+description: 用仓库 Secret ENV_KEYS（即本地 .env.keys 全文）把 env-encrypted/ 解密到 env-local/
+
+# 为什么要单独抽成 composite action：
+# - 三处流程都需要同一段逻辑（CI 的 admin 构建、Release 的镜像构建、Deploy 的 env 生成）
+# - 密钥只在这一个文件里落盘，减少泄漏面；用完立即删除 .env.keys
+#
+# 注意：调用方**不要**把 secret 直接写进 step/job 的 if 里 —— secrets 上下文在
+# if 中不可用，会让整个 workflow 变成 "Invalid workflow file"（启动即失败、0 个 job）。
+# 正确做法见 ci.yml 顶部注释：先把 secret 绑到 job 级 env，再用 env.X != '' 判断。
+
+inputs:
+  keys:
+    description: .env.keys 文件全文（来自 secrets.ENV_KEYS）
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Write .env.keys and decrypt
+      shell: bash
+      env:
+        DOTENVX_KEYS: ${{ inputs.keys }}
+      run: |
+        set -euo pipefail
+        if [ -z "${DOTENVX_KEYS}" ]; then
+          echo "::warning::ENV_KEYS 为空，跳过解密（env-local 将不存在，admin 构建会失败）"
+          exit 0
+        fi
+        # heredoc 保留引号/注释行原样；secrets 会被 Actions 自动打码，日志安全
+        printf '%s\n' "$DOTENVX_KEYS" > .env.keys
+        pnpm setup-env
+        # 解密完成后私钥不再需要，立即删除
+        rm -f .env.keys
+        echo "env-local 解密完成：$(ls apps/admin/env-local apps/server/env-local | wc -l) 个文件"

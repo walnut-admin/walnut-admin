@@ -56,19 +56,74 @@ pm2 delete walnut-admin-nestjs-prod        # 停旧后端
 systemctl stop nginx && systemctl disable nginx   # 停宿主机 nginx
 ```
 
-## 日常更新（CI 自动执行）
+## 日常更新（tag 发布自动执行）
+
+发布流程：`pnpm release` → changeset 版本号 + changelog → commit → 打 tag `vX.Y.Z` → push。
+推 tag 会触发 `.github/workflows/release.yml`：
+
+```
+verify（全量质量门禁）  ┐
+                        ├─→ images（构建推送三镜像）→ GitHub Release → deploy（拉镜像 + 滚动重启 + 健康检查）
+images（构建推送镜像）  ┘
+```
+
+服务器侧由 CI 自动完成，等价于手动执行：
 
 ```bash
-cd /home/ubuntu/walnut-admin/deploy && docker compose pull && docker compose up -d
+cd /home/ubuntu/walnut-admin/deploy && docker compose pull && docker compose up -d --wait
 ```
+
+- commit / PR 只跑质量门禁（`ci.yml`，不含 Docker）；只有 tag 才构建镜像
+- 构建失败的补救：在该 run 上点 **Re-run all jobs**（同一个 tag，缓存命中后会快很多）
+- 镜像 tag = 发布 tag（如 `v1.2.3`）；TCR 上同时保留 `nginx:brotli` 稳定别名
 
 ## 回滚
 
+**推荐：Actions → Deploy → Run workflow**，`image_tag` 填上一个发布 tag（如 `v0.9.0`），
+workflow 会先校验三个镜像都存在、再部署，并在日志里打印部署前后的容器→镜像映射。
+
+手动兜底（服务器上直接改 tag）：
+
 ```bash
 cd /home/ubuntu/walnut-admin/deploy
-sed -i "s/^IMG_TAG=.*/IMG_TAG=<上一版本SHA>/" .env
-docker compose up -d
+sed -i "s/^IMG_TAG=.*/IMG_TAG=v0.9.0/" .env
+docker compose pull && docker compose up -d --wait
 ```
+
+## 本地构建镜像（薄镜像流程）
+
+镜像里不再有任何 `pnpm install` / 构建 —— 重活都在本机（或 CI runner）完成，
+镜像只 `COPY` 产物。所以本地构建要按同样的三步来：
+
+```bash
+# 1) 后端：构建 + 抽取生产依赖（产出 build/image/server）
+pnpm exec turbo run build --filter=@walnut/server...
+pnpm deploy --legacy --filter=@walnut/server --prod build/image/server
+
+# 2) 前端：Vite 产物 + 站点配置（产出 build/image/frontend）
+pnpm exec turbo run build --filter=@walnut/admin
+mkdir -p build/image/frontend/html
+cp -a apps/admin/dist/. build/image/frontend/html/
+cp deploy/nginx/frontend-server.conf build/image/frontend/
+
+# 3) 构建镜像（backend + frontend 并行；nginx 需要先有基础镜像）
+docker build -f deploy/nginx/Dockerfile -t walnut-admin/nginx-brotli:local deploy/nginx
+docker build --build-arg NGINX_BASE=walnut-admin/nginx-brotli:local -f apps/admin/Dockerfile build/image/frontend
+docker build -f apps/server/Dockerfile build/image/server
+```
+
+或直接用 bake（`docker-bake.hcl`，与 CI 同一份定义）：
+
+```bash
+REGISTRY=ccr.ccs.tencentyun.com NS=tron1997 TAG=local pnpm images:build   # backend + frontend
+pnpm images:print                                                          # 只打印解析结果
+```
+
+> ⚠️ `pnpm deploy --prod` 会把工作区标记成"仅生产依赖"，**之后任何 pnpm 命令都会删掉 devDependencies**
+> （`vite`、`cross-env` 当场消失）。所以 deploy 要放在最后；万一踩到，`pnpm install` 即可恢复。
+>
+> ⚠️ 产物目录曾把 `apps/server/env-local/`（解密后的明文密钥）一起拷进去 —— 镜像里绝不允许有，
+> CI 与 Dockerfile 都有剔除步骤；本地手工构建时请确认 `build/image/server/env-local` 不存在。
 
 ## 证书更新（一年一次）
 

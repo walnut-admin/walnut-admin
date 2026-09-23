@@ -1,8 +1,30 @@
-name: Deploy Docker Images to Server
+name: Deploy
+
+# 纯部署：只拉取已发布的镜像并滚动重启，不构建任何东西（历史上 build+deploy 耦合，
+# 每次上线都要重建三个镜像，实测 85 分钟；现在部署本身是分钟级）。
+#
+# 两种用法：
+# 1) 被 release.yml 复用（workflow_call）：tag 发布成功后自动部署该 tag
+# 2) 手动 workflow_dispatch：**回滚/重发**用 —— image_tag 填上一个发布 tag（如 v0.9.0）
 
 on:
+  workflow_call:
+    inputs:
+      image_tag:
+        description: 要部署的镜像 tag（发布 tag，如 v0.10.0）
+        required: true
+        type: string
+      environment:
+        description: 目标环境
+        required: false
+        type: string
+        default: prod
   workflow_dispatch:
     inputs:
+      image_tag:
+        description: 要部署的镜像 tag（回滚时填上一个发布 tag，如 v0.9.0）
+        required: true
+        type: string
       environment:
         description: Environment to deploy
         required: true
@@ -10,78 +32,61 @@ on:
         options:
           - prod
 
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 env:
   REGISTRY: ccr.ccs.tencentyun.com
   IMAGE_NS: tron1997
-  TAG: ${{ github.sha }}
 
 jobs:
-  build-and-deploy:
+  deploy:
+    name: Deploy ${{ inputs.image_tag }} → ${{ inputs.environment }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TAG: ${{ inputs.image_tag }}
+      DOTENVX_KEYS: ${{ secrets.ENV_KEYS }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v5
-        # 版本自动读取 package.json 的 packageManager 字段（pnpm@12.5.1）
-        # 显式 version 会与 packageManager 冲突触发 ERR_PNPM_BAD_PM_VERSION
+      - uses: pnpm/action-setup@v5
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
 
+      # pnpm install 只为 pnpm setup-env（tsx + dotenvx）服务，约 30s（store 有缓存）
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # 前端构建输入：.env.keys 解密 env-encrypted → env-local
-      # heredoc 保留引号/注释行原样（${{ }} 在 run 执行前已由 Actions 渲染，不受 heredoc 影响）
-      - name: Prepare env (.env.keys → setup-env)
-        run: |
-          cat > .env.keys <<'EOF'
-          ${{ secrets.ENV_KEYS }}
-          EOF
-          pnpm setup-env
-        # 注意：secrets 会被 Actions 自动打码，日志安全
-
-      - name: Login to Tencent TCR
-        run: echo "${{ secrets.TCR_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.TCR_USERNAME }}" --password-stdin
-
-      # buildx gha 缓存：依赖安装层跨运行命中（配套 Dockerfile 依赖清单分层 COPY）
-      - name: Build & push backend
-        uses: docker/build-push-action@v6
+      - name: Decrypt environment files
+        uses: ./.github/actions/decrypt-env
         with:
-          context: .
-          file: apps/server/Dockerfile
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NS }}/backend:${{ env.TAG }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          keys: ${{ env.DOTENVX_KEYS }}
 
-      # nginx 必须先于 frontend 构建：frontend Dockerfile 的
-      # FROM walnut-admin/nginx-brotli:latest 依赖本机刚构建的 nginx 镜像
-      # （nginx 构建仅 apk 安装耗时短，保留原生 docker build 以生成本地 tag）
-      - name: Build & push nginx
+      # 回滚时最容易犯的错是把 tag 写错：先确认三个镜像都真实存在，再动服务器
+      - name: Verify images exist in TCR
         run: |
-          docker build -f deploy/nginx/Dockerfile -t $REGISTRY/$IMAGE_NS/nginx:$TAG .
-          docker tag $REGISTRY/$IMAGE_NS/nginx:$TAG walnut-admin/nginx-brotli:latest
-          docker push $REGISTRY/$IMAGE_NS/nginx:$TAG
-
-      - name: Build & push frontend
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: apps/admin/Dockerfile
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NS }}/frontend:${{ env.TAG }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          set -euo pipefail
+          echo "${{ secrets.TCR_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.TCR_USERNAME }}" --password-stdin
+          for img in nginx backend frontend; do
+            if ! docker buildx imagetools inspect "$REGISTRY/$IMAGE_NS/$img:$TAG" > /dev/null 2>&1; then
+              echo "::error::镜像不存在：$REGISTRY/$IMAGE_NS/$img:$TAG（tag 写错了？）"
+              exit 1
+            fi
+          done
+          echo "三个镜像均存在：$TAG"
 
       # 生成服务器 env 文件：连接串改服务名 + 从解密产物提取数据层密码拼装 .env
       - name: Generate server env files
         run: |
+          set -euo pipefail
           sed -i \
             -e 's|^APP_REDIS_HOST=.*|APP_REDIS_HOST=prod-single-redis|' \
             -e 's|^DATABASE_PRIMARY=.*|DATABASE_PRIMARY=prod-mongodb-primary:27017|' \
@@ -95,12 +100,13 @@ jobs:
           mkdir -p deploy-files
           cp apps/server/env-local/.env.production deploy-files/.env.production
           cat > deploy-files/.env <<EOF
-          IMG_TAG=${{ env.TAG }}
+          IMG_TAG=${TAG}
           MONGODB_ROOT_PASSWORD=${DB_PASS}
           MONGODB_REPLICA_SET_KEY=WalnutAdminNestjsMongoDBReplicasetProdName
           MONGODB_REPLICA_SET_NAME=WalnutAdminNestjsMongoDBReplicasetProdName
           REDIS_PASSWORD=${REDIS_PASS}
           EOF
+          echo "deploy-files 生成完成（IMG_TAG=${TAG}）"
 
       - name: Upload env files to server
         uses: appleboy/scp-action@v0.1.7
@@ -111,6 +117,7 @@ jobs:
           source: "deploy-files/"
           target: /home/ubuntu/walnut-admin/deploy/
 
+      # 证据链：部署前后各打印一次容器→镜像映射，避免"4 秒就成功"这种无法自证的部署
       - name: Deploy on server
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -120,22 +127,56 @@ jobs:
           script: |
             set -e
             cd /home/ubuntu/walnut-admin/deploy
+
+            # ---- 写入 CI 生成的环境文件 ----
             mv -f deploy-files/.env .env
             mv -f deploy-files/.env.production env/.env.production
             rm -rf deploy-files
             # 只替换 IMG_TAG 行，保留服务器上的人工配置（如有）
-            if [ -f .env ] && grep -q '^IMG_TAG=' .env; then
+            if grep -q '^IMG_TAG=' .env; then
               sed -i "s/^IMG_TAG=.*/IMG_TAG=${{ env.TAG }}/" .env
             else
               echo "IMG_TAG=${{ env.TAG }}" >> .env
             fi
+
+            echo "=== 部署前 ==="
+            docker compose ps --format 'table {{.Service}}\t{{.Image}}\t{{.Status}}' || true
+
             # 服务器端登录 TCR：runner 上的 docker login 不作用于服务器
             echo "${{ secrets.TCR_PASSWORD }}" | docker login ccr.ccs.tencentyun.com -u "${{ secrets.TCR_USERNAME }}" --password-stdin
+
             docker compose pull
-            docker compose up -d
+
+            # compose >= 2.17 支持 --wait：等 healthcheck 通过再返回，避免"起来就成功"的假绿
+            if docker compose version --short | awk -F. '{ exit !($2 >= 17) }'; then
+              docker compose up -d --wait --wait-timeout 180
+            else
+              docker compose up -d
+            fi
+
+            echo "=== 部署后 ==="
+            docker compose ps --format 'table {{.Service}}\t{{.Image}}\t{{.Status}}'
+            docker inspect --format '{{.Name}} → {{.Config.Image}}' walnut-nginx walnut-frontend walnut-backend
+
             docker image prune -f --filter "until=72h"
-            # 部署后健康检查：经 nginx 容器访问前端（--resolve 指到本机，绕过公网/CDN）
+
+            # ---- 健康检查：经 nginx 容器访问前端（--resolve 指到本机，绕过公网/CDN）----
             command -v curl >/dev/null || { echo "ERROR: 服务器缺少 curl，无法健康检查"; exit 1; }
             code=$(curl -sk -o /dev/null -w '%{http_code}' --resolve www.walnut-admin.com:443:127.0.0.1 https://www.walnut-admin.com/ -m 10 || true)
             test "$code" = "200" -o "$code" = "301" -o "$code" = "302" || { echo "ERROR: 部署后健康检查失败（HTTP $code）"; exit 1; }
-            echo "部署成功，健康检查 HTTP $code"
+            echo "部署成功：IMG_TAG=${{ env.TAG }}，健康检查 HTTP $code"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## 部署结果"
+            echo ""
+            echo "| 项 | 值 |"
+            echo "| --- | --- |"
+            echo "| 环境 | ${INPUT_ENV} |"
+            echo "| IMG_TAG | \`${TAG}\` |"
+            echo "| 结果 | ${{ job.status }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          INPUT_ENV: ${{ inputs.environment }}

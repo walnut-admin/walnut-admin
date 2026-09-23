@@ -1,42 +1,21 @@
-# ---------- builder ----------
-FROM node:24-bookworm-slim AS builder
+# ---------- runtime（薄镜像）----------
+# 前端产物由 CI 在 runner 上构建（Vite + brotli/gzip 预压缩，见 release.yml 的 Stage 步骤），
+# 本文件只做 COPY。构建上下文 = build/image/frontend：
+#   html/                 ← apps/admin/dist 的拷贝
+#   frontend-server.conf  ← deploy/nginx/frontend-server.conf
+#
+# 基础镜像是同一次发布构建出的 nginx（含 brotli_static/filter 模块）：
+# CI 先 build+push ${REGISTRY}/${NS}/nginx:${TAG}，再 bake 本 target，由 NGINX_BASE 拉取。
+# 旧的本地 tag（walnut-admin/nginx-brotli:latest）耦合已移除 —— 那条路径依赖"必须先在本机
+# 构建 nginx 镜像"，在 bake/并行构建下无法成立。
+#
+# 本地构建见 deploy/README.md「本地构建镜像」：
+#   先 docker build -f deploy/nginx/Dockerfile -t walnut-admin/nginx-brotli:local deploy/nginx
+#   再 docker build --build-arg NGINX_BASE=walnut-admin/nginx-brotli:local -f apps/admin/Dockerfile build/image/frontend
+ARG NGINX_BASE=ccr.ccs.tencentyun.com/tron1997/nginx:brotli
+FROM ${NGINX_BASE}
 
-WORKDIR /app
-
-RUN corepack enable && corepack prepare pnpm@12.5.1 --activate
-
-# 构建内存：CI runner 约 7GB，本地 8G 配置直接沿用会 OOM
-ENV NODE_OPTIONS=--max-old-space-size=4096
-
-# 先拷贝依赖清单（仅 15 个文件），install 层只在依赖变更时失效，
-# 配合 CI 的 buildx gha 缓存实现跨运行命中
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/admin/package.json apps/admin/package.json
-COPY apps/server/package.json apps/server/package.json
-COPY apps/docs/package.json apps/docs/package.json
-COPY packages/platform-any/contract/package.json packages/platform-any/contract/package.json
-COPY packages/platform-any/types/package.json packages/platform-any/types/package.json
-COPY packages/platform-any/utils/package.json packages/platform-any/utils/package.json
-COPY packages/platform-web/client/package.json packages/platform-web/client/package.json
-COPY packages/platform-web/http/package.json packages/platform-web/http/package.json
-COPY packages/platform-web/ui/package.json packages/platform-web/ui/package.json
-COPY packages/tooling/eslint-config/package.json packages/tooling/eslint-config/package.json
-COPY packages/tooling/commitlint-config/package.json packages/tooling/commitlint-config/package.json
-COPY packages/tooling/release/package.json packages/tooling/release/package.json
-
-RUN pnpm install --frozen-lockfile
-
-# env-local 由 CI 的 setup-env 解密生成，随 COPY . . 进入上下文
-# （.env.keys 已被 .dockerignore 排除，密钥不进入镜像；runtime 只取 dist）
-COPY . .
-
-RUN pnpm --filter @walnut/admin build
-
-# ---------- runtime ----------
-# 使用 Task 4 构建的 brotli 镜像（含 brotli_static/filter 模块）
-FROM walnut-admin/nginx-brotli:latest AS runtime
-
-COPY --from=builder /app/apps/admin/dist /usr/share/nginx/html
-COPY deploy/nginx/frontend-server.conf /etc/nginx/conf.d/default.conf
+COPY html/ /usr/share/nginx/html/
+COPY frontend-server.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80

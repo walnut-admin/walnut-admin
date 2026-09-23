@@ -1,5 +1,12 @@
 name: CI
 
+# ⚠️ 本文件（以及所有 workflow）禁止把 secrets 上下文写进 step/job 的 if。
+# GitHub 只在 jobs.<id>.if / steps.*.if 暴露 github/needs/strategy/matrix/job/runner/env/vars/steps/inputs，
+# 写 secrets.X 会让**整个文件**被判为 "Invalid workflow file"：启动即失败、0 个 job，
+# 在 Actions 列表里只留一个看起来"跑失败了"的红叉 —— 2026-08-13 到 09-21 本仓 CI 就是这样
+# 静默失效了五周（Line 77/85: Unrecognized named-value: 'secrets'）。
+# 需要按 secret 是否存在决定是否执行时：先绑到 job 级 env，再用 env.X 判断（见下方 build job）。
+
 on:
   push:
     branches: [main]
@@ -9,13 +16,16 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   quality:
     name: Lint / Types / Test / Boundaries
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           # turbo affected 需要完整 git 历史来计算变更集
           fetch-depth: 0
@@ -31,6 +41,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # turbo --affected 默认对比"当前分支与默认分支的 merge-base"。本仓直接 push main，
+      # merge-base 就是 HEAD 自身 → 受影响集会算空、门禁静默跳过。
+      # 显式给出 base/head（TURBO_SCM_BASE / TURBO_SCM_HEAD）才有可靠语义。
+      # LINK https://turborepo.dev/docs/guides/skipping-tasks
+      - name: Resolve affected base
+        id: affected
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          # 新分支 / force push 时 before 是全零
+          if [ -z "$base" ] || [[ "$base" =~ ^0+$ ]]; then
+            base="$(git rev-parse HEAD^ 2>/dev/null || true)"
+          fi
+          if [ -z "$base" ]; then
+            echo "::warning::无法确定 affected 基准，本次按全量执行"
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "TURBO_SCM_BASE=$base" >> "$GITHUB_ENV"
+          echo "TURBO_SCM_HEAD=${{ github.sha }}" >> "$GITHUB_ENV"
+
       - name: Architecture boundaries (turbo boundaries)
         run: pnpm boundaries
 
@@ -43,16 +73,42 @@ jobs:
       - name: Tests (affected)
         run: pnpm exec turbo run test --affected
 
+      # 防"affected 空集静默通过"：有文件变更却算出 0 个受影响包时必须失败
+      - name: Affected set sanity check
+        if: steps.affected.outputs.base != ''
+        run: |
+          set -euo pipefail
+          changed=$(git diff --name-only "$TURBO_SCM_BASE" "$TURBO_SCM_HEAD" | wc -l)
+          dry=$(pnpm exec turbo run lint --affected --dry=json 2>/dev/null | sed -n '/^{/,$p')
+          pkgs=$(printf '%s' "$dry" | jq '.packages | length')
+          {
+            echo "## Affected 范围"
+            echo ""
+            echo "| 项 | 值 |"
+            echo "| --- | --- |"
+            echo "| base | \`${TURBO_SCM_BASE}\` |"
+            echo "| head | \`${TURBO_SCM_HEAD}\` |"
+            echo "| 变更文件数 | ${changed} |"
+            echo "| 受影响包数 | ${pkgs} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$changed" -gt 0 ] && [ "$pkgs" -eq 0 ]; then
+            echo "::error::有 ${changed} 个文件变更，但 affected 包数为 0（基准失效？）"
+            exit 1
+          fi
+
       - name: Dependency consistency (syncpack)
         run: pnpm syncpack:lint
 
   build:
-    name: Build (server + shared packages)
+    name: Build (server + shared packages, admin if secrets available)
     needs: quality
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # secrets 上下文不能出现在 if 里 → 先绑到 env，再用 env 判断（本文件顶部注释）
+      DOTENVX_KEYS: ${{ secrets.ENV_KEYS }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -70,17 +126,18 @@ jobs:
       - name: Build server + shared packages
         run: pnpm exec turbo run build --filter=@walnut/server...
 
-      # admin 构建需要 VITE_* 环境变量（zod 校验 fail-fast）。
-      # env-encrypted/ 已随仓库提交，私钥经 1Password 共享 —— 在仓库 Secrets
-      # 中配置 DOTENVX_KEYS_FILE（内容即本地 .env.keys 文件全文）后自动启用。
+      # admin 构建需要 VITE_* 环境变量（zod 校验 fail-fast）。env-encrypted/ 已随仓库提交，
+      # 私钥在仓库 Secrets（ENV_KEYS = .env.keys 全文）里。fork PR 没有 secrets → 跳过。
       - name: Decrypt environment files
-        if: ${{ secrets.DOTENVX_KEYS_FILE != '' }}
-        env:
-          DOTENVX_KEYS_FILE: ${{ secrets.DOTENVX_KEYS_FILE }}
-        run: |
-          echo "$DOTENVX_KEYS_FILE" > .env.keys
-          pnpm setup-env
+        if: env.DOTENVX_KEYS != ''
+        uses: ./.github/actions/decrypt-env
+        with:
+          keys: ${{ env.DOTENVX_KEYS }}
 
       - name: Build admin
-        if: ${{ secrets.DOTENVX_KEYS_FILE != '' }}
+        if: env.DOTENVX_KEYS != ''
         run: pnpm exec turbo run build --filter=@walnut/admin
+
+      - name: Note skipped admin build
+        if: env.DOTENVX_KEYS == ''
+        run: echo "::notice::未配置 ENV_KEYS secret，跳过 admin 构建（镜像构建由 tag 发布流程负责）"

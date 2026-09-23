@@ -8,7 +8,7 @@
 
 | # | 事项 | 来源 | 工作量 | 说明 |
 |---|------|------|--------|------|
-| 1 | **CI/CD 流水线** | ADR 0009 | 中 | **✅ 已完成**。`.github/workflows/ci.yml` 就位：`turbo boundaries` → affected lint/types:check/test → syncpack → server 构建（admin 构建经 `DOTENVX_KEYS_FILE` secret 解密 env 后启用）。commit 级（commitlint）+ push 级（pre-push：boundaries/types:check/syncpack）+ CI 级门禁齐备 |
+| 1 | **CI/CD 流水线** | ADR 0009 | 中 | **⚠️ 2026-09-21 修正**：`.github/workflows/ci.yml` 自 2026-08-13 起**从未真正运行过** —— step 级 `if` 里写了 `secrets` 上下文（该位置不允许），GitHub 判定 `Invalid workflow file`，启动即失败、0 个 job，界面上只是一个"失败的 CI"，被当成普通构建失败忽略五周。已修复：secret 绑到 job 级 `env` 后用 `env.X != ''` 判断；新增 `.github/workflows/workflow-lint.yml`（actionlint，独立文件兜底）+ `pnpm lint:workflows`（pre-push）。同时补上 affected 的显式基准 `TURBO_SCM_BASE/HEAD`（push main 时 merge-base 即 HEAD，受影响集会算空）与"变更非空但受影响包为 0 → 失败"的自检。详见 [CI/CD 与容器构建重构设计](https://github.com/walnut-admin/walnut-admin/blob/main/docs/superpowers/specs/2026-09-21-ci-cd-pipeline-design.md) |
 | 2 | **共享包测试** | ADR 0009 / 0015 | 中 | **✅ 已完成（2026-08-08）**。`@walnut/utils` 5 个测试文件（queue 去重/清理语义、regex 正负例、crypto transformer 三套往返、persistent sync/async 加密包装）；`@walnut/contract` 快照测试（12 组契约快照：wire format、错误码、角色、路由、socket 事件等 + API 表面）。contract 补 test 脚本与 vitest 配置，CI 的 affected test 自动覆盖 |
 | 3 | **前端构建修复** | ADR README 遗留 | 小 | **✅ 已解决 2026-08-08**。三个根因：(1) env 文件缺失——正确流程是 `pnpm setup-env`（dotenvx 从 `env-encrypted/` 解密，需根 `.env.keys`）；(2) root overrides 把 `lru-cache` 全局强制为 v11（ESM-only），破坏 workbox-build 的 CJS 依赖链（`_lruCache is not a constructor`）——已移除 override；(3) `optimizeDeps.include: Object.keys(dependencies)` 把 workspace 包列入预构建导致 `@walnut/types` 等解析失败——已过滤 `@walnut/*`。另修复 `~build/package` 失效 import 及 tsbuildinfo 增量缓存掩盖的 6 处既有类型错误 |
 
@@ -19,7 +19,7 @@
 | # | 事项 | 来源 | 工作量 | 说明 |
 |---|------|------|--------|------|
 | 4 | **Turbo Remote Cache** | 行业调研 | — | **❌ 已决定不接入（2026-08-08）**。单人维护 + CI 规模小，单机缓存足够。`globalPassThroughEnv` 的 `TURBO_TOKEN`/`TURBO_TEAM` 透传保留，未来接入零配置 |
-| 5 | **部署流水线** | ADR 0008 | 大 | **✅ 已完成（Docker 方案）**：`deploy.yml` 已重写为 Docker 三镜像（backend/nginx/frontend）→ TCR → 服务器 `docker compose pull && up -d`，前端部署含 nginx-brotli 基础镜像。非 SCP 老方案，文件内"需要重新设计"TODO 已随重写移除 |
+| 5 | **部署流水线** | ADR 0008 | 大 | **✅ 已完成（Docker 方案）**；**⚠️ 2026-09-21 重构**：原实现把 build 与 deploy 耦合在同一次手动 dispatch 里，且镜像内要 `pnpm install` 全仓 5800+ 依赖 → 单次上线实测 **85 分钟**（其中 backend 镜像构建 77m53s，同一 Dockerfile 在另一 run 只要 15m49s）。根因是三个镜像共用 buildx 默认缓存 scope（`buildkit`）互相覆盖，backend 永远冷构建。现在：commit 只跑 ci.yml 质量门禁；tag 发布才构建镜像（`docker-bake.hcl`：每镜像独立 scope、backend/frontend 并行、staging 在 runner 上完成 → 镜像只 COPY）；`deploy.yml` 改为可复用的纯部署（回滚 1–3 分钟）；并修掉"env-local 明文密钥被 `pnpm deploy --prod` 拷进镜像"的泄漏 |
 | 6 | **commitlint** | 行业调研 | 小 | enforce conventional commit 格式。**[✅ 已完成 2026-08-08（commit `029eb2b`）](./eslint.md)** ——`@commitlint/cli` + config + `commit-msg` hook 已就位，Changesets + git-cliff 依赖的 commit message 规范已保障 |
 | 7 | **Changeset Bot** | 行业调研 | 小 | GitHub App，PR 中自动提醒缺少 changeset。一次安装，零维护 |
 
@@ -29,7 +29,7 @@
 
 | # | 事项 | 来源 | 工作量 | 说明 |
 |---|------|------|--------|------|
-| 8 | **Docker 多阶段构建** | 行业调研 | 中 | **✅ 已完成**：`apps/server/Dockerfile`、`apps/admin/Dockerfile`、`deploy/nginx/Dockerfile`、`deploy/docker-compose.yml` 均存在，作为 P1-5 部署方案的落地方案（Docker + TCR + compose） |
+| 8 | **Docker 多阶段构建** | 行业调研 | 中 | **✅ 已完成；2026-09-21 改为"薄镜像"**：`apps/server/Dockerfile`、`apps/admin/Dockerfile` 不再在镜像内 `pnpm install`/构建，只 COPY runner 侧产物（`pnpm deploy --prod` 输出 / Vite dist），三镜像由 `docker-bake.hcl` 统一编排。`deploy/nginx/Dockerfile`（alpine + brotli）与 `deploy/docker-compose.yml` 保持不变 |
 | 9 | **syncpack** | 行业调研 | 小 | 强制 workspace 中同类依赖版本一致。**[✅ 已完成 2026-07-30](./syncpack.md)** |
 | 10 | **Codecov / 覆盖率报告** | 行业调研 | 小 | PR 上自动评论覆盖率变化。免费，依赖 P0-2 测试先落地 |
 | 11 | **GitHub Environments** | 行业调研 | 中 | 多环境部署（staging / production），按环境隔离 Secrets。当前 deploy.yml 用 workflow_dispatch 的 inputs 模拟环境选择，未使用原生 `environment:` 机制 |

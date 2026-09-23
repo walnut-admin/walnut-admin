@@ -37,7 +37,7 @@ pnpm knip             # 死代码检测
 ## 环境配置
 
 - `env-encrypted/` 密文随仓库提交（dotenvx，文件内注释即模板）；`pnpm setup-env` 解密到 gitignore 的 `env-local/`；私钥 `.env.keys` 经 1Password 共享。
-- CI 通过 GitHub Secret `DOTENVX_KEYS_FILE`（内容即 `.env.keys` 全文）自动解密并启用 admin 构建。
+- CI 通过 GitHub Secret `ENV_KEYS`（内容即 `.env.keys` 全文）自动解密并启用 admin 构建（旧文档里的 `DOTENVX_KEYS_FILE` 已废弃）。⚠️ 它只能绑到 job 级 `env` 后用 `env.X != ''` 判断 —— `secrets` 上下文不允许出现在 step/job 的 `if` 里，否则整个 workflow 会被判为 `Invalid workflow file`（启动即失败、0 个 job）。
 - 后端必须从 `apps/server/` 目录运行（ConfigModule 用 `process.cwd()` 定位 env）。
 
 ## 关键纪律

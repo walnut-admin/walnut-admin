@@ -1,18 +1,197 @@
-name: Create Release
+name: Release
+
+# 触发：tag 推送（pnpm release → changeset version → commit → tag vX.Y.Z → push）。
+# 为什么由 tag 触发容器构建：
+# - 之前容器构建挂在手动 workflow_dispatch 的 deploy.yml 上，且 build 与 deploy 耦合，
+#   导致每次上线都要重建三个镜像（实测一次 85 分钟，其中 backend 构建 77m53s）。
+# - 现在：commit/push 只跑 ci.yml 的质量门禁；发布 tag 才构建镜像；日常上线/回滚走
+#   deploy.yml（纯部署，不构建）。
+#
+# 失败后要重建镜像：在 Actions 里对该 run 点 "Re-run all jobs"（同一个 tag/SHA），
+# 缓存命中后总耗时通常在个位数分钟。
 
 on:
   push:
     tags:
       - 'v*.*.*'
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ccr.ccs.tencentyun.com
+  IMAGE_NS: tron1997
+  TAG: ${{ github.ref_name }}
+  # staging 落在工作区之外（相对仓库根 → /home/runner/work/walnut-image-staging），
+  # 让 268MB / 4 万文件的产物不污染工作树。位置不影响下面的关键约束：
+  #
+  # ⚠️ pnpm deploy --prod 会把工作区 node_modules/.modules.yaml 的 devDependencies
+  #    标记为 false；此后**任何** pnpm 命令都会自动按 prod 重装，把 vite / cross-env
+  #    等开发依赖当场删掉（本地实测：deploy 之后跑 pnpm exec 立即触发 prune）。
+  #    因此 deploy 必须是本 job 里最后一个 pnpm 命令 —— 后面只剩 rm/cp 与 docker。
+  IMAGE_STAGE: ../walnut-image-staging
+
 jobs:
-  create-release:
+  # ---------- 1. 质量门禁（发布是低频动作，跑全量而不是 affected，用时间换"不漏跑"）----------
+  verify:
+    name: Quality gates
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Architecture boundaries
+        run: pnpm boundaries
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm types:check
+
+      - name: Tests
+        run: pnpm test
+
+      - name: Dependency consistency (syncpack)
+        run: pnpm syncpack:lint
+
+  # ---------- 2. 构建并推送镜像（与 verify 并行；部署必须等两者都成功）----------
+  images:
+    name: Build & push images
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DOTENVX_KEYS: ${{ secrets.ENV_KEYS }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Decrypt environment files
+        uses: ./.github/actions/decrypt-env
+        with:
+          keys: ${{ env.DOTENVX_KEYS }}
+
+      # 重活全部在 runner 上完成（pnpm store 由 setup-node 缓存，install 约 30s）：
+      # 镜像里不再有 pnpm install / nest build / vite build。
+      # ⚠️ 顺序约束：pnpm deploy --prod 必须是本 job 最后一个 pnpm 命令
+      # （它会把工作区标记成仅生产依赖，之后的 pnpm 命令会删掉 devDeps，见文件顶部 env 注释）。
+      - name: Build server + shared packages
+        run: pnpm exec turbo run build --filter=@walnut/server...
+
+      - name: Build admin
+        run: pnpm exec turbo run build --filter=@walnut/admin
+
+      - name: Stage backend runtime (pnpm deploy --prod)
+        run: |
+          set -euo pipefail
+          rm -rf "$IMAGE_STAGE/server"
+          mkdir -p "$IMAGE_STAGE/server"
+          pnpm deploy --legacy --filter=@walnut/server --prod "$IMAGE_STAGE/server"
+          # pnpm deploy 会把 apps/server/env-local（dotenvx 解密出的明文密钥）一起拷进产物，
+          # 旧流程把它 COPY 进了镜像。这里先剔除，Dockerfile 里还有一层兜底。
+          rm -rf "$IMAGE_STAGE/server/env-local" "$IMAGE_STAGE/server/env-encrypted"
+          du -sh "$IMAGE_STAGE/server"
+
+      - name: Stage frontend runtime
+        run: |
+          set -euo pipefail
+          mkdir -p "$IMAGE_STAGE/frontend/html"
+          cp -a apps/admin/dist/. "$IMAGE_STAGE/frontend/html/"
+          cp deploy/nginx/frontend-server.conf "$IMAGE_STAGE/frontend/"
+          du -sh "$IMAGE_STAGE/frontend/html"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to Tencent TCR
+        run: echo "${{ secrets.TCR_PASSWORD }}" | docker login $REGISTRY -u "${{ secrets.TCR_USERNAME }}" --password-stdin
+
+      # nginx 必须先推送：frontend target 的 NGINX_BASE 指向 ${REGISTRY}/nginx:${TAG}，
+      # 它从 registry 拉取基础镜像。nginx 构建仅 apk 安装（约 20s），不占关键路径。
+      - name: Build & push nginx
+        run: |
+          set -euo pipefail
+          docker build \
+            -f deploy/nginx/Dockerfile \
+            -t "$REGISTRY/$IMAGE_NS/nginx:$TAG" \
+            -t "$REGISTRY/$IMAGE_NS/nginx:brotli" \
+            deploy/nginx
+          docker push "$REGISTRY/$IMAGE_NS/nginx:$TAG"
+          docker push "$REGISTRY/$IMAGE_NS/nginx:brotli"
+
+      # backend 与 frontend 在同一个 bake 里并行构建，各自使用独立的 GHA 缓存 scope
+      # （历史 bug：三次 build 共用默认 scope=buildkit → 互相覆盖缓存 → backend 永远冷构建）
+      - name: Build & push backend + frontend (bake)
+        uses: docker/bake-action@v6
+        env:
+          SERVER_CONTEXT: ${{ env.IMAGE_STAGE }}/server
+          FRONTEND_CONTEXT: ${{ env.IMAGE_STAGE }}/frontend
+        with:
+          files: docker-bake.hcl
+          push: true
+          provenance: false
+
+      # ---------- 度量：把体积/耗时/digest 写进 run summary，便于和基线对比 ----------
+      - name: Image digests
+        if: always()
+        run: |
+          set -uo pipefail
+          {
+            echo "## 镜像（tag: \`${TAG}\`）"
+            echo ""
+            echo "| 镜像 | digest |"
+            echo "| --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for img in nginx backend frontend; do
+            d=$(docker buildx imagetools inspect "$REGISTRY/$IMAGE_NS/$img:$TAG" --format '{{.Manifest.Digest}}' 2>/dev/null || echo 'n/a')
+            echo "| ${img} | \`${d}\` |" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Build context sizes
+        if: always()
+        run: |
+          {
+            echo ""
+            echo "| 构建上下文 | 体积 |"
+            echo "| --- | --- |"
+            echo "| backend（pnpm deploy --prod 产物） | $(du -sh "$IMAGE_STAGE/server" 2>/dev/null | cut -f1 || echo n/a) |"
+            echo "| frontend（Vite dist） | $(du -sh "$IMAGE_STAGE/frontend/html" 2>/dev/null | cut -f1 || echo n/a) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------- 3. GitHub Release ----------
+  release:
+    name: Create GitHub Release
+    needs: [verify, images]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -23,3 +202,12 @@ jobs:
           generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------- 4. 自动部署（复用 deploy.yml，与手动回滚走同一条路径）----------
+  deploy:
+    name: Deploy to prod
+    needs: [verify, images, release]
+    uses: ./.github/workflows/deploy.yml
+    with:
+      image_tag: ${{ github.ref_name }}
+    secrets: inherit

@@ -24,6 +24,10 @@ build/_generated/*.ts
 build/_generated/*.json
 build/_generated/*.log
 
+# 镜像构建的 staging 目录（pnpm deploy --prod 产物 / 前端 dist 拷贝）
+# CI 里改为落在工作区之外（见 release.yml），这里是本地构建用的默认位置
+build/image/
+
 # Environment
 .env.keys
 env-local/

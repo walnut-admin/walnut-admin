@@ -143,6 +143,9 @@ Turborepo Remote Cache（Vercel 托管或自建）可以跨 CI 机器共享缓�
 
 CI（`.github/workflows/ci.yml`）对 `lint` / `types:check` / `test` 使用 `turbo run <task> --affected`——只检查受变更影响的包。`turbo boundaries` 检查全仓（tag 规则与受影响集无关，全量扫描也只需数秒）。
 
+**必须显式给出比较基准**：`--affected` 默认对比"当前分支与默认分支的 merge-base"，而本仓是直接 push main —— merge-base 就是 HEAD 自身，受影响集会算成空集、门禁静默跳过。CI 里通过 `TURBO_SCM_BASE` / `TURBO_SCM_HEAD` 显式指定（PR 用 `base.sha`，push 用 `event.before`，全零时回退 `HEAD^`），并有一道"有文件变更但受影响包为 0 → 失败"的自检。
+LINK https://turborepo.dev/docs/guides/skipping-tasks
+
 ---
 
 ## 常用命令

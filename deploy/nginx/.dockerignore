@@ -1,0 +1,4 @@
+# 构建上下文 = deploy/nginx（见 docker-bake.hcl 的 nginx target 与 release.yml）
+# 该镜像只做 apk 安装，不需要任何文件；证书私钥只存在于部署服务器，
+# 绝不能进入构建上下文（即使不进镜像，也没有理由上传给 builder）。
+certs/
