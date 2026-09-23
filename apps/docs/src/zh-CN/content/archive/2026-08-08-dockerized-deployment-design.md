@@ -1,11 +1,12 @@
 # Walnut Admin 全容器化部署设计
 
-日期：2026-08-08
-
-> **部分被取代（2026-09-21）**：本文的「CI 流水线（重写 deploy.yml）」章节已由
-> [2026-09-21 CI/CD 与容器构建重构设计](./2026-09-21-ci-cd-pipeline-design.md) 取代 ——
-> 镜像内构建（单次部署 85 分钟）、GHA 缓存 scope 冲突、build/deploy 耦合都已改掉。
+> 📦 **归档文档（2026-08-08 设计 / 已实施，部分被取代）**：本文的「CI 流水线（重写 deploy.yml）」章节已由
+> [CI/CD 与容器构建](/content/monorepo/ci-cd) 取代 —— 镜像内构建（单次部署 85 分钟）、
+> GHA 缓存 scope 冲突、build/deploy 耦合都已改掉。
 > 其余部分（镜像仓库 TCR、compose 编排、证书、服务器初始化流程）仍然有效。
+> 实施过程见 [全容器化部署实现计划](./2026-08-08-dockerized-deployment-plan)。
+
+日期：2026-08-08
 
 ## 背景与现状
 

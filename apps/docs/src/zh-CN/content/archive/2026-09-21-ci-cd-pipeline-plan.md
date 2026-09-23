@@ -1,7 +1,10 @@
 # CI/CD 与容器构建重构实施计划 + 执行记录
 
+> 📦 **归档文档（2026-09-21，历史记录）**：这是一次重构的**过程记录**，其中的文件路径、workflow 结构可能与当前不一致。
+> 当前设计请看 [CI/CD 与容器构建](/content/monorepo/ci-cd)。
+
 日期：2026-09-21
-设计：[2026-09-21 CI/CD 与容器构建重构设计](../specs/2026-09-21-ci-cd-pipeline-design.md)
+设计：[CI/CD 与容器构建](/content/monorepo/ci-cd)（原 `docs/superpowers/specs/2026-09-21-ci-cd-pipeline-design.md`，已并入文档站）
 
 ## 1. 目标与验收
 
@@ -25,8 +28,8 @@
 | `docker-bake.hcl` | 三镜像定义 + 独立 cache scope + staging 上下文变量 |
 | `scripts/lint-workflows.ts` | `pnpm lint:workflows`（actionlint 缺失时跳过），已接入 pre-push |
 | `deploy/nginx/.dockerignore` | 不让证书私钥进入构建上下文 |
-| `docs/superpowers/specs/2026-09-21-ci-cd-pipeline-design.md` | 设计文档（含证据与度量基线） |
-| `docs/superpowers/plans/2026-09-21-ci-cd-pipeline.md` | 本文件 |
+| `docs/superpowers/specs/2026-09-21-ci-cd-pipeline-design.md` → `apps/docs/src/zh-CN/content/monorepo/ci-cd.md` | 设计文档（含证据与度量基线），已重写为长期文档 |
+| `docs/superpowers/plans/2026-09-21-ci-cd-pipeline.md` → 本文件 | 实施记录 |
 
 ### 修改
 
@@ -53,7 +56,7 @@
 | 验证项 | 命令 | 结果 |
 |--------|------|------|
 | workflow / action 语法与表达式 | `actionlint -color`（v1.7.12） | **exit 0**，四个 workflow + composite action 全通过 |
-| **门禁有效性（负例）** | 把旧写法 `if: ${{ secrets.X != '' }}` 单独喂给 actionlint | **exit 1**：`context "secrets" is not allowed here. available contexts are "env", "github", …` —— 证明新闸门能抓住这次事故 |
+| **门禁有效性（负例）** | 把旧写法 `if: $&#123;&#123; secrets.X != '' &#125;&#125;` 单独喂给 actionlint | **exit 1**：`context "secrets" is not allowed here. available contexts are "env", "github", …` —— 证明新闸门能抓住这次事故 |
 | 本地守卫脚本 | `pnpm lint:workflows`（装了 actionlint / 未装两种情形） | 装了 → 透传 actionlint 退出码（0）；未装 → 明确提示并跳过（0），不阻塞 push |
 | 新增/改动文件的 lint | `eslint scripts/lint-workflows.ts package.json` | 干净（首轮报 2 处 `node/prefer-global/process` + 1 处 import 排序，均已修） |
 | 依赖一致性 | `pnpm syncpack:lint` | `✓ No issues found` |

@@ -8,7 +8,7 @@
 
 | # | 事项 | 来源 | 工作量 | 说明 |
 |---|------|------|--------|------|
-| 1 | **CI/CD 流水线** | ADR 0009 | 中 | **⚠️ 2026-09-21 修正**：`.github/workflows/ci.yml` 自 2026-08-13 起**从未真正运行过** —— step 级 `if` 里写了 `secrets` 上下文（该位置不允许），GitHub 判定 `Invalid workflow file`，启动即失败、0 个 job，界面上只是一个"失败的 CI"，被当成普通构建失败忽略五周。已修复：secret 绑到 job 级 `env` 后用 `env.X != ''` 判断；新增 `.github/workflows/workflow-lint.yml`（actionlint，独立文件兜底）+ `pnpm lint:workflows`（pre-push）。同时补上 affected 的显式基准 `TURBO_SCM_BASE/HEAD`（push main 时 merge-base 即 HEAD，受影响集会算空）与"变更非空但受影响包为 0 → 失败"的自检。详见 [CI/CD 与容器构建重构设计](https://github.com/walnut-admin/walnut-admin/blob/main/docs/superpowers/specs/2026-09-21-ci-cd-pipeline-design.md) |
+| 1 | **CI/CD 流水线** | ADR 0009 | 中 | **⚠️ 2026-09-21 修正**：`.github/workflows/ci.yml` 自 2026-08-13 起**从未真正运行过** —— step 级 `if` 里写了 `secrets` 上下文（该位置不允许），GitHub 判定 `Invalid workflow file`，启动即失败、0 个 job，界面上只是一个"失败的 CI"，被当成普通构建失败忽略五周。已修复：secret 绑到 job 级 `env` 后用 `env.X != ''` 判断；新增 `.github/workflows/workflow-lint.yml`（actionlint，独立文件兜底）+ `pnpm lint:workflows`（pre-push）。同时补上 affected 的显式基准 `TURBO_SCM_BASE/HEAD`（push main 时 merge-base 即 HEAD，受影响集会算空）与"变更非空但受影响包为 0 → 失败"的自检。详见 [CI/CD 与容器构建](./ci-cd) |
 | 2 | **共享包测试** | ADR 0009 / 0015 | 中 | **✅ 已完成（2026-08-08）**。`@walnut/utils` 5 个测试文件（queue 去重/清理语义、regex 正负例、crypto transformer 三套往返、persistent sync/async 加密包装）；`@walnut/contract` 快照测试（12 组契约快照：wire format、错误码、角色、路由、socket 事件等 + API 表面）。contract 补 test 脚本与 vitest 配置，CI 的 affected test 自动覆盖 |
 | 3 | **前端构建修复** | ADR README 遗留 | 小 | **✅ 已解决 2026-08-08**。三个根因：(1) env 文件缺失——正确流程是 `pnpm setup-env`（dotenvx 从 `env-encrypted/` 解密，需根 `.env.keys`）；(2) root overrides 把 `lru-cache` 全局强制为 v11（ESM-only），破坏 workbox-build 的 CJS 依赖链（`_lruCache is not a constructor`）——已移除 override；(3) `optimizeDeps.include: Object.keys(dependencies)` 把 workspace 包列入预构建导致 `@walnut/types` 等解析失败——已过滤 `@walnut/*`。另修复 `~build/package` 失效 import 及 tsbuildinfo 增量缓存掩盖的 6 处既有类型错误 |
 
@@ -22,6 +22,7 @@
 | 5 | **部署流水线** | ADR 0008 | 大 | **✅ 已完成（Docker 方案）**；**⚠️ 2026-09-21 重构**：原实现把 build 与 deploy 耦合在同一次手动 dispatch 里，且镜像内要 `pnpm install` 全仓 5800+ 依赖 → 单次上线实测 **85 分钟**（其中 backend 镜像构建 77m53s，同一 Dockerfile 在另一 run 只要 15m49s）。根因是三个镜像共用 buildx 默认缓存 scope（`buildkit`）互相覆盖，backend 永远冷构建。现在：commit 只跑 ci.yml 质量门禁；tag 发布才构建镜像（`docker-bake.hcl`：每镜像独立 scope、backend/frontend 并行、staging 在 runner 上完成 → 镜像只 COPY）；`deploy.yml` 改为可复用的纯部署（回滚 1–3 分钟）；并修掉"env-local 明文密钥被 `pnpm deploy --prod` 拷进镜像"的泄漏 |
 | 6 | **commitlint** | 行业调研 | 小 | enforce conventional commit 格式。**[✅ 已完成 2026-08-08（commit `029eb2b`）](./eslint.md)** ——`@commitlint/cli` + config + `commit-msg` hook 已就位，Changesets + git-cliff 依赖的 commit message 规范已保障 |
 | 7 | **Changeset Bot** | 行业调研 | 小 | GitHub App，PR 中自动提醒缺少 changeset。一次安装，零维护 |
+| 16 | **tag 发布链路验证** | CI/CD 重构 | 小 | ❗**未验证**。质量门禁已在 GitHub 实测通过（CI #3/#4 全绿：install 25s → boundaries 1s → affected lint 59s → types 36s → test 7s → affected 自检 → syncpack，合计 2m28s），但**构建镜像 → 推 TCR → 自动部署**这条 tag 链路一次都没跑过（本机无 Docker，Dockerfile/bake 的实际执行无法本地验证）。验证清单见 [CI/CD 与容器构建](./ci-cd) §度量 与归档 plan §5：① run summary 的 staging 体积 + 三镜像 digest；② `docker run --rm --entrypoint ls <backend> /app/env-local` 应报不存在（密钥剔除）；③ 部署日志出现"三个镜像均存在"、前后 `compose ps`、`--wait`、健康检查 200；④ 二次发布（Re-run all jobs）应明显更快且日志出现 `scope=backend`/`scope=frontend` |
 
 ---
 
@@ -32,7 +33,7 @@
 | 8 | **Docker 多阶段构建** | 行业调研 | 中 | **✅ 已完成；2026-09-21 改为"薄镜像"**：`apps/server/Dockerfile`、`apps/admin/Dockerfile` 不再在镜像内 `pnpm install`/构建，只 COPY runner 侧产物（`pnpm deploy --prod` 输出 / Vite dist），三镜像由 `docker-bake.hcl` 统一编排。`deploy/nginx/Dockerfile`（alpine + brotli）与 `deploy/docker-compose.yml` 保持不变 |
 | 9 | **syncpack** | 行业调研 | 小 | 强制 workspace 中同类依赖版本一致。**[✅ 已完成 2026-07-30](./syncpack.md)** |
 | 10 | **Codecov / 覆盖率报告** | 行业调研 | 小 | PR 上自动评论覆盖率变化。免费，依赖 P0-2 测试先落地 |
-| 11 | **GitHub Environments** | 行业调研 | 中 | 多环境部署（staging / production），按环境隔离 Secrets。当前 deploy.yml 用 workflow_dispatch 的 inputs 模拟环境选择，未使用原生 `environment:` 机制 |
+| 11 | **GitHub Environments** | 行业调研 | 中 | 多环境部署（staging / production），按环境隔离 Secrets。当前 deploy.yml 用 workflow_dispatch 的 inputs 选择环境，未使用原生 `environment:` 机制；改用可复用 workflow 后，串行由 `concurrency: deploy-${env}` 保证。stage 服务器（火山引擎）到位后再评估 |
 
 ---
 
@@ -44,6 +45,10 @@
 | 13 | **E2E 测试（Playwright）** | 行业调研 | 优先覆盖单元+集成测试。E2E 在测试体系稳定后再加 |
 | 14 | **Vitest 共享 preset** | 行业调研 | 理由已过时，重新评估 | 当时包数 4 个、复制配置即可。现 12 个包、4 份 vitest.config 复制（server/api、utils、client、release），且 P0-2 测试补齐后配置会更多。规模已跨过提取阈值，可再议 |
 | 15 | **oxlint / biome** | 行业调研 | 都不支持 Vue SFC。等支持后再加为 ESLint 的快速第一道扫描 |
+| 17 | **TCR 旧 tag 清理** | CI/CD 重构 | 小 | 腾讯云 TCR 个人版单镜像上限 100 版本；每次发布推 `vX.Y.Z` + `nginx:brotli`，长期累积会顶到上限。可在 release.yml 加一步清理旧 tag（保留最近 N 个），或改由 TCR 控制台的生命周期策略处理 |
+| 18 | **`skip_deploy` 开关** | CI/CD 重构 | 小 | 给 `release.yml` 加 `workflow_dispatch` + `skip_deploy` 输入（约 5 行），用于"只想验证镜像构建、不碰生产"的场景。当前要验证镜像就必须真发 tag（会连带部署） |
+| 19 | **turbo build 输出警告** | CI/CD 重构 | 小 | `@walnut/{client,http,types,ui}#build` 在构建时刷 "no output files found for task …" 警告（这几个包源码直消费、`build` 任务确实无产物）。要么移除它们的 `build` 任务、要么在 `turbo.json` 声明无 outputs |
+| 20 | **国内 self-hosted runner（决策门）** | CI/CD 重构 | 中 | 仅当 P1-16 的实测显示"tag 发布总时长 > 20 min 且跨境推送占大头"时再评估：runner 在美国、镜像仓库在腾讯云上海，跨境上传是旧流水线 78 分钟的主要嫌疑之一。腾讯云轻量服务器作 self-hosted runner（TCR 同地域、pnpm store 与 buildx 缓存可持久化，约 ¥30–60/月）能显著改善，但需要额外支出，**先看数据再决定** |
 
 ---
 
@@ -82,7 +87,7 @@ ADR 0017 Phase 1（目录重组 + 既有包迁移）+ Phase 2.1/2.3（contract �
 | R7 | **TS 7 / tsgo 迁移准备** | `tsconfig.base.json` 的 `ignoreDeprecations: "6.0"` 一刀切静音了通往原生编译器（tsgo）的迁移信号。建议列出实际触发的弃用项逐个决策，为 TS 7 铺路 | 中 |
 | R8 | **`@walnut/types` exports 结构** | 该包只有 `./*` 子路径导出、无根 `"."` 与 `types` 字段，消费方必须写 `@walnut/types/xxx`；评估是否补根导出 | 小 |
 | R9 | **turbo preview 任务** | ✅ 已修复（2026-08-08）：根 `preview: turbo preview` 脚本曾指向未定义任务（turbo 报 Could not find task），已在 `turbo.json` 补 `preview` 任务（persistent + ^build） | — |
-| R10 | **CI affected 空集行为验证** | `turbo run test --affected` 在受影响集全为无 test 脚本的包（admin/docs/contract/types/http/ui）时是否报 "No tasks were executed" 失败——需实测确认 CI 矩阵的健壮性 | 小 |
+| R10 | **CI affected 空集行为验证** | **✅ 已实测（2026-09-23）**。CI 首次真正运行：`turbo run test --affected` 在受影响集不含"有 test 脚本的包"时正常结束（不报 No tasks were executed），并在 ci.yml 增补了"有文件变更但受影响包为 0 → 失败"的自检步骤。附带修掉一个更隐蔽的问题：直接 push main 时 `--affected` 的 merge-base 就是 HEAD，受影响集会算成空集 —— 现已显式传 `TURBO_SCM_BASE/TURBO_SCM_HEAD` | — |
 | R11 | **文档漂移清扫** | `apps/server/CLAUDE.md`（pm2 脚本已删、`pnpm typecheck` → `types:check`、TS 5.9 → 6.0.3）、`apps/docs/CLAUDE.md`（`pnpm format` 不存在）等入口文档与现状的落差；本轮已修 server/docs 两处，其余（.claude/、.zcode/ 等）待查 | 小 |
 
 ---
@@ -91,6 +96,8 @@ ADR 0017 Phase 1（目录重组 + 既有包迁移）+ Phase 2.1/2.3（contract �
 
 | 日期 | 完成项 |
 |------|--------|
+| 2026-09-23 | **CI/CD 与容器构建重构**：① 修复 `ci.yml` 的非法表达式（`steps.if` 里用 `secrets` 上下文 → GitHub 判 `Invalid workflow file`、启动即失败 0 个 job，CI **自 2026-08-13 起五周从未运行**）；② 拆流水线——commit 只跑质量门禁，tag 才构建镜像，`deploy.yml` 改为可复用纯部署（回滚 1–3 分钟）；③ 修 buildx 缓存 scope 冲突（三镜像共用默认 `scope=buildkit` 互相覆盖 → backend 永远冷构建，实测 15m49s~77m53s，单次上线 85 分钟）+ `docker-bake.hcl` 并行构建；④ 镜像改"薄运行时"（重活在 runner，镜像只 COPY），顺带剔除 `pnpm deploy --prod` 拷进产物的 `env-local` 明文密钥；⑤ 新增 actionlint 闸门（`workflow-lint.yml` + `pnpm lint:workflows`）。实测：CI 全绿 2m28s，首跑抓出并修掉两处 shellcheck SC2086（本地漏装 shellcheck 的验证盲点） |
+| 2026-09-23 | **文档整理**：根 `docs/` 目录移除。CI/CD 设计重写为长期文档 [CI/CD 与容器构建](./ci-cd)；6 份过程文档（2 份 2026-08-08 容器化设计/计划、1 份 CI/CD 实施记录、3 份 2026-09-21 评审与迁移计划）统一迁入文档站 `content/archive/` 并加归档说明横幅；`docs/reviews/` 里 2 份**未入库**的评审文档先搬迁后删除，避免内容丢失 |
 | 2026-08-08 | **共享包测试 + peers + AGENTS**：① P0-2 完成——`@walnut/utils` 5 个测试文件（queue/regex/crypto-transformer/persistent sync+async，20+ 用例）、`@walnut/contract` 12 组契约快照测试（防止错误码/路由/wire format 静默破坏）+ test 脚本与 vitest 配置；② R1 完成——`peerDependencyRules.allowedVersions` 豁免 5 项 peers 错位（@swc/cli、chokidar、class-validator、typescript、vite），`pnpm peers check` 零告警；③ R5 完成——根 AGENTS.md 重写为分发式导航文档（原文件自标过时、描述合并前单包结构） |
 | 2026-08-08 | **文档配套 + 优化池**：① A4 表格勾选（执行记录早已完成，表格漏更）；② P1-4 Remote Cache 标记为已决定不接入；③ P3-14 Vitest preset 理由更新（4 包 → 12 包）；④ 新增"架构优化池"R1-R11（peers 错位、knip 裁剪、root eslint base、types:check:root、tsgo 准备等）；⑤ 修复 turbo `preview` 任务缺失（root 脚本指向未定义任务）；⑥ release.md/index.md 的 fixed 组更新为 9+3；eslint.md 同步 pre-push/boundaries 与 lint-staged；turbo.md 补 preview 任务与 Remote Cache 决策；env-management.md 补 CI secret 用法；server/docs 的 CLAUDE.md 过时点修复 |
 | 2026-08-08 | **架构 review 第三批**：① `@walnut/client` 的 `vue`/`pinia` 从 dependencies 移入 peerDependencies（与 `@walnut/ui` 对齐，防双实例）+ devDependencies 补供本包解析；② DOM lib 下沉：`tsconfig.base.json` 仅 `lib: ["ESNext"]`、移除 `typeRoots`，DOM/DOM.Iterable 下沉到 admin/docs/platform-web/*，platform-any 不再可见 DOM 全局；③ server `strict: true`（保留 strictPropertyInitialization: false）——tsc 零错误；④ 清理 6 处残留空导入 `import { } from '@walnut/contract'`（contract 无 declare global，无副作用职责）；⑤ changesets fixed 组补齐 `@walnut/release`/`@walnut/commitlint-config`；⑥ `build:stage` 升级为独立 turbo 任务，废除 `turbo build -- -- --mode stage` 三重 `--` 透传（透传参数会泄漏给全图任务）；⑦ lint-staged 删除无效的 `*.md` 条目（eslint preset 关闭 markdown 后该条目静默无效） |
@@ -107,6 +114,9 @@ ADR 0017 Phase 1（目录重组 + 既有包迁移）+ Phase 2.1/2.3（contract �
 
 ## 相关文档
 
+- [CI/CD 与容器构建](./ci-cd)（当前设计：触发矩阵 / 薄镜像 / 两条硬约束）
+- [归档：CI/CD 重构实施记录](../archive/2026-09-21-ci-cd-pipeline-plan.md)
+- [归档：架构 Review 与调研审计](../archive/2026-09-21-architecture-review.md)
 - [ADR 索引](../adr/)
 - [ADR 0009 - CI Quality Gates](../adr/0009-ci-quality-gates.md)
 - [ADR 0017 - Package 重组](../adr/0017-package-reorganization.md)

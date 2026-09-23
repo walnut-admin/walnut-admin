@@ -1,5 +1,8 @@
 # Walnut Admin 全容器化部署实现计划
 
+> 📦 **归档文档（2026-08-08，历史记录）**：这是一次迁移的**过程记录**，其中的 task 清单、临时命令、当时的目录结构都保持原样，未随代码演进而更新。
+> 当前部署方式见仓库 `deploy/README.md` 与 [CI/CD 与容器构建](/content/monorepo/ci-cd)。
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 将前端、后端、Nginx 全部容器化，用 GitHub Actions 构建镜像推到腾讯云 TCR，服务器上单一 docker-compose 部署，替换现有的 PM2 + 宿主机 Nginx 方案。
@@ -13,7 +16,7 @@
 2. 本地（Windows）有 Docker Desktop 可用，用于 Task 8 本地验证
 3. 本地 `.env.keys` 存在（1Password 获取），`pnpm setup-env` 可解密
 
-**Spec:** `docs/superpowers/specs/2026-08-08-dockerized-deployment-design.md`
+**Spec:** `apps/docs/src/zh-CN/content/archive/2026-08-08-dockerized-deployment-design.md`
 
 ---
 

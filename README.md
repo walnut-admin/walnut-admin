@@ -65,4 +65,4 @@ This monorepo was created by merging three previously separate repositories:
 - [walnut-admin-server](https://github.com/walnut-admin/walnut-admin-server) — NestJS backend (now `apps/server/`)
 - [walnut-admin-doc](https://github.com/walnut-admin/walnut-admin-doc) — Vitepress docs (now `apps/docs/`)
 
-See [migration-guide/](./migration-guide/) for the historical migration record, and [docs/architecture/](./docs/architecture/README.md) for the current architecture documentation and refactor roadmap.
+See [migration-guide/](./migration-guide/) for the historical migration record, and [`apps/docs/src/zh-CN/content/`](./apps/docs/src/zh-CN/content/) for the current architecture documentation and refactor roadmap ([monorepo architecture](./apps/docs/src/zh-CN/content/monorepo/) / [ADRs](./apps/docs/src/zh-CN/content/adr/) / [archived design & review docs](./apps/docs/src/zh-CN/content/archive/)).

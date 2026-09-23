@@ -36,6 +36,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | [pnpm Catalog](./pnpm-catalog.md) | `catalogMode: strict`、精确版本锁死、`workspace:*` vs `catalog:` |
 | [Turbo](./turbo.md) | 任务拓扑编排、缓存策略、环境变量感知、Tag-Based 架构边界 |
 | [发布 & 发版指南](./release.md) | 两组 fixed 版本策略、auto-changeset、git-cliff 渲染、发版实操 |
+| [CI/CD 与容器构建](./ci-cd.md) | 触发矩阵（commit 只跑门禁 / tag 才构建镜像）、薄镜像与 buildx 缓存 scope、两条硬约束 |
 | [Knip 死代码检测](./knip.md) | 死代码检测、配置设计、已知局限、日常维护 |
 | [环境变量加密管理](./env-management.md) | dotenvx 加密方案、多环境密钥、新成员入职流程 |
 
