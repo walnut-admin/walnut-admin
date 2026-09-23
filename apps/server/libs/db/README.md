@@ -54,8 +54,7 @@ import { WalnutDBModule } from '@walnut-server/db'
 export class AppModule {}
 
 // 2. Inject models using the wrapper decorator
-import { WalnutDBInjectModel } from '@walnut-server/db'
-import { WalnutAdminConstDBModelName } from '@walnut-server/const' // or use WalnutDBModelName directly
+import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 
 @Injectable()
 export class UserBasicRepository {

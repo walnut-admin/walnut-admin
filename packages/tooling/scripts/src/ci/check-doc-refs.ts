@@ -163,20 +163,36 @@ export interface Finding {
 }
 
 /**
- * **只对 `.claude/skills/**` 生效**的别名解析。
+ * **别名基址唯一可判**的文件 → 该按哪个基址解析。返回 `null` = 这类文件不查别名。
  *
- * 为什么单单管这批文件：它们是 agent 生成后端模块时**真正照着做**的指令 —— 里面写错一个 import
- * 路径，等于让 agent 稳定地产出坏代码，而且**没有任何门禁看得见**（`@/x` 不以顶层目录开头，
- * 判据 ② 直接跳过；它也不是 `@walnut/*` 包名）。
+ * 为什么只查这几类：`@/` 的基址随 app 而变（后端 `apps/api/src`、前端 `apps/admin/src`），
+ * 普通文档里**无从判断**该按哪个解析 ⇒ 一律不管（宁可漏报不可误报）。下面这些地方的基址是唯一的：
  *
- * 2026-09-23 实测：13 个 skill 文件里 **12 处**别名指向不存在的路径（`@/decorators/field`、
- * `@/const/permissions`、`@/hooks/core/useProps`、`@walnut/utils/dto`）。
+ * | 文件 | 基址 | 判据 |
+ * |------|------|------|
+ * | `.claude/skills/` 下 `be-` 前缀的目录 | 后端 | 目录名前缀就是约定（`be-` = backend） |
+ * | `.claude/skills/` 下 `fe-` 前缀的目录 | 前端 | 同上（`fe-` = frontend） |
+ * | `apps/server/libs/` 下的 markdown | 后端 | 后端内部 lib 的文档只服务后端 |
  *
- * 为什么**只**对这批文件开：`@/` 的基址随 app 而变（后端是 `apps/api/src`，前端是 `apps/admin/src`），
- * 普通文档里无从判断该按哪个解析 ⇒ 一律不管。skill 目录有条确定性约定（`be-*` = 后端、`fe-*` = 前端），
- * 于是判据唯一、零歧义。`@walnut-server/*` 的映射直接照抄 `apps/server/tsconfig.json` 的 `paths`。
+ * 为什么值得为它们破例：**这批文件是 agent 照着做的东西**。2026-09-23 实测 —— 13 个 skill 文件里
+ * **12 处**别名指向不存在的路径（`@/decorators/field`、`@/const/permissions`、
+ * `@/hooks/core/useProps`、`@walnut/utils/dto`），而 `libs/db/README.md` 里还写着
+ * 一个全仓 0 命中的 `WalnutAdminConstDBModelName`。**两条门禁都看不见它们**：
+ * 别名不以顶层目录开头（判据 ② 跳过），也不是 `@walnut/*` 包名。
  */
-const SKILLS_DIR = /^\.claude\/skills\//
+function aliasBaseOf(file: string): 'server' | 'admin' | null {
+  if (/^\.claude\/skills\//.test(file)) {
+    const skill = file.split('/')[2] ?? ''
+    if (skill.startsWith('be-'))
+      return 'server'
+    if (skill.startsWith('fe-'))
+      return 'admin'
+    return null
+  }
+  if (/^apps\/server\/libs\//.test(file))
+    return 'server'
+  return null
+}
 
 /** 反引号里的 TS 别名引用：`@/…` 或 `@walnut-server/…` */
 export function extractAliasRefs(text: string): string[] {
@@ -199,24 +215,24 @@ export function extractAliasRefs(text: string): string[] {
 }
 
 /** 别名 → 可能的真实文件（按 `.ts` / `.tsx` / `.vue` / `index.*` 展开） */
-function aliasCandidates(ref: string, file: string): string[] {
-  const isBackend = /\/be-/.test(file)
-  let base: string
+function aliasCandidates(ref: string, base: 'server' | 'admin'): string[] {
+  let dir: string
   if (ref.startsWith('@walnut-server/')) {
     const [lib, ...rest] = ref.slice('@walnut-server/'.length).split('/')
-    base = path.posix.join('apps/server/libs', lib ?? '', 'src', ...rest)
+    dir = path.posix.join('apps/server/libs', lib ?? '', 'src', ...rest)
   }
   else {
-    base = path.posix.join(isBackend ? 'apps/server/apps/api/src' : 'apps/admin/src', ref.slice(2))
+    dir = path.posix.join(base === 'server' ? 'apps/server/apps/api/src' : 'apps/admin/src', ref.slice(2))
   }
-  return [base, `${base}.ts`, `${base}.tsx`, `${base}.vue`, `${base}/index.ts`, `${base}/index.tsx`, `${base}/index.vue`]
+  return [dir, `${dir}.ts`, `${dir}.tsx`, `${dir}.vue`, `${dir}/index.ts`, `${dir}/index.tsx`, `${dir}/index.vue`]
 }
 
-/** 这个别名引用能不能落到真实文件上（`.claude/skills/**` 之外一律返回 true —— 见上） */
+/** 这个别名引用能不能落到真实文件上（基址不唯一可判的文件一律返回 true —— 见 `aliasBaseOf`） */
 export function aliasResolves(ref: string, file: string, fsExists: (repoRelative: string) => boolean): boolean {
-  if (!SKILLS_DIR.test(file))
+  const base = aliasBaseOf(file)
+  if (base === null)
     return true
-  return aliasCandidates(ref, file).some(fsExists)
+  return aliasCandidates(ref, base).some(fsExists)
 }
 
 /**

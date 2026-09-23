@@ -186,12 +186,13 @@ describe('extractAliasRefs —— 反引号里的 TS 别名', () => {
   })
 })
 
-describe('aliasResolves —— 只对 .claude/skills/** 生效', () => {
+describe('aliasResolves —— 只对「基址唯一可判」的文件生效', () => {
   const onlyOne = (p: string) => p === 'apps/server/libs/db/src'
 
-  it('skill 目录之外一律返回 true（`@/` 的基址随 app 而变，普通文档里无从判断）', () => {
+  it('基址不唯一的文件一律返回 true（`@/` 随 app 而变，普通文档里无从判断）', () => {
     expect(aliasResolves('@/whatever/does-not-exist', 'apps/server/AGENTS.md', () => false)).toBe(true)
     expect(aliasResolves('@/whatever/does-not-exist', 'apps/docs/src/x.md', () => false)).toBe(true)
+    expect(aliasResolves('@/whatever/does-not-exist', '.claude/skills/other-thing/SKILL.md', () => false)).toBe(true)
   })
 
   it('`be-*` → 后端基址（apps/api/src）', () => {
@@ -201,6 +202,11 @@ describe('aliasResolves —— 只对 .claude/skills/** 生效', () => {
 
   it('`fe-*` → 前端基址（apps/admin/src）', () => {
     expect(aliasResolves('@/hooks/core/useProps', '.claude/skills/fe-walnut-component/SKILL.md', p => p === 'apps/admin/src/hooks/core/useProps.ts')).toBe(true)
+  })
+
+  it('`apps/server/libs/**` 的文档按后端基址查（它们只服务后端）', () => {
+    expect(aliasResolves('@/common/repository/base.repository', 'apps/server/libs/db/README.md', p => p === 'apps/server/apps/api/src/common/repository/base.repository.ts')).toBe(true)
+    expect(aliasResolves('@/common/repository/base.repository', 'apps/server/libs/db/README.md', () => false)).toBe(false)
   })
 
   it('`@walnut-server/<lib>/<rest>` 按 tsconfig paths 映射到 libs/<lib>/src/<rest>', () => {
