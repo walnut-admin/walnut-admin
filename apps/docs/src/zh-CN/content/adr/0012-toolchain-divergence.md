@@ -159,14 +159,16 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 | `@walnut/tsconfig` | `tooling`, `platform-any` |
 | `@walnut/eslint-config` | `tooling`, `platform-any` |
 | `@walnut/commitlint-config` | `tooling`, `platform-any` |
+| `@walnut/vitest-config` | `tooling`, `platform-any` |
 | `@walnut/scripts` | `tooling`, `platform-any` |
 | `@walnut/release` | `tooling`, `platform-any` |
 
-> 本表随包增删更新：上面的 14 行与工作区里的 14 个包一一对应。5 个 tooling 包的 workspace 级
+> 本表随包增删更新：上面的 15 行与工作区里的 15 个包一一对应。6 个 tooling 包的 workspace 级
 > `turbo.json` 都声明 `"tags": ["tooling", "platform-any"]`。
 > 历史沿革：`@walnut/commitlint-config` 与 `@walnut/release` 是 2026-08-08 之后加入的；`@walnut/release`
 > 2026-09-23 曾改名 `@walnut/tooling`（收编根 `scripts/`，见 [ADR 0018](/content/adr/0018-git-hooks-lefthook)），
-> 同日再随 tooling 拆包恢复为 `@walnut/release`，并新增 `@walnut/tsconfig` / `@walnut/scripts`
+> 同日再随 tooling 拆包恢复为 `@walnut/release`，并新增 `@walnut/tsconfig` / `@walnut/scripts` /
+> `@walnut/vitest-config`（末者在 P3-14 落地）
 > （见 [ADR 0019](/content/adr/0019-tsconfig-presets-and-no-mjs)）。
 
 **Rules:**

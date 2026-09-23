@@ -145,6 +145,8 @@
     "@types/serve-favicon": "catalog:",
     "@types/supertest": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "@walnut/eslint-config": "workspace:*",
+    "@walnut/vitest-config": "workspace:*",
     "concurrently": "catalog:",
     "cross-env": "catalog:",
     "csv-parse": "catalog:",
@@ -158,8 +160,7 @@
     "typescript": "catalog:",
     "unplugin-swc": "catalog:",
     "vite-tsconfig-paths": "catalog:",
-    "vitest": "catalog:",
-    "@walnut/eslint-config": "workspace:*"
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=24.13.0",

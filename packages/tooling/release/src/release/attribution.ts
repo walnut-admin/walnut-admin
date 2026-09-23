@@ -29,7 +29,7 @@ import { parse as parseYaml } from 'yaml'
  * ⚠️ **表里每个值都必须是真实存在的 workspace 包** —— 指向一个已删除的包时，scope 兜底会为它写出
  * 一条版本意图（`pnpm change` 的 argv 里出现幽灵包名）。`attribution.test.ts` 用
  * `workspacePackages()` 反过来钉住这条不变量；2026-09-23 就是靠它查出 `'tooling': '@walnut/tooling'`
- * 这条陈尸（`@walnut/tooling` 已拆成 5 个包）。
+ * 这条陈尸（`@walnut/tooling` 早已拆成多个包）。
  *
  * 导出仅为让那条不变量可测。
  */
@@ -50,8 +50,8 @@ export const SCOPE_TO_PACKAGE: Record<string, string> = {
   'eslint-config': '@walnut/eslint-config',
   'commitlint-config': '@walnut/commitlint-config',
   // ⚠️ 这里**刻意没有** `'tooling'` 这一条：`tooling` 是 commitlint 允许的 scope，但仓里没有
-  // 同名包 —— 工具链 5 个包各自有 scope（eslint-config / commitlint-config）或被**路径**归属
-  // （scripts / release / tsconfig）。它归入下面的 NON_PACKAGE_SCOPES。
+  // 同名包 —— 工具链各包要么有自己的 scope（eslint-config / commitlint-config），要么只按**路径**
+  // 归属（tsconfig / vitest-config / scripts / release）。它归入下面的 NON_PACKAGE_SCOPES。
 }
 
 /**

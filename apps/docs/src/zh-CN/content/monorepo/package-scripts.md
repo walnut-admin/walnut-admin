@@ -74,7 +74,7 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 }
 ```
 
-根 scripts 里的 `NODE_OPTIONS=` 前缀统一用 `cross-env` 包裹（Windows 兼容）。早期的 `tsx scripts/*.ts` 写法已消失：仓库级脚本拆在 `packages/tooling/scripts/`（通用层 + 3 个 bin）与 `packages/tooling/release/`（发版编排 + `walnut-release`），根 `scripts/` 目录不存在，根 scripts 只经 bin 调用（`walnut-release` / `walnut-lint-workflows` / `walnut-setup-env` / `walnut-check-git-hooks`）。也没有 `changeset` / `changeset:auto` / `changelog` 脚本——版本意图由 `pnpm change` 写、`pnpm version -r` 消费（见 [发布 & 发版指南](./release.md)）。
+根 scripts 里的 `NODE_OPTIONS=` 前缀统一用 `cross-env` 包裹（Windows 兼容）。早期的 `tsx scripts/*.ts` 写法已消失：仓库级脚本拆在 `packages/tooling/scripts/`（通用层 + 4 个 bin）与 `packages/tooling/release/`（发版编排 + `walnut-release`），根 `scripts/` 目录不存在，根 scripts 只经 bin 调用（`walnut-release` / `walnut-lint-workflows` / `walnut-setup-env` / `walnut-check-git-hooks` / `walnut-check-doc-refs`）。也没有 `changeset` / `changeset:auto` / `changelog` 脚本——版本意图由 `pnpm change` 写、`pnpm version -r` 消费（见 [发布 & 发版指南](./release.md)）。
 
 > `tsx` 已**完全移出仓库**（不只是根 scripts）：仓内最后一个使用者是 `apps/admin` 的 `predev`（`node build/generate/genJSONSchemas.ts`）与 `types:check:log`（`node build/types.ts`），两个脚本改走 Node 24 原生类型剥离后，`tsx` 的 devDependency 与 catalog 条目一起删掉。代价是这两条链路要满足 Node ESM 的解析规则：`build/utils/**` 的相对导入补全 `.ts` 扩展名，`build/utils/log.ts` 的 `import pkg from '../../package.json'` 补 `with { type: 'json' }` 导入属性。
 
@@ -91,7 +91,7 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 | NestJS (`@walnut/server`) | `nest build`（SWC，按 `infra/nest/*.json`） | `tsc --noEmit` | `nest start api --watch` |
 | 平台无关包 (`@walnut/utils`、`@walnut/contract`) | `vite build`（产出 CJS dist；contract 之后还跑 `node scripts/build-barrel.ts`） | `tsc --noEmit` | 无 `dev` 脚本 |
 | 源码直消费 (`@walnut/client`、`@walnut/http`、`@walnut/ui`、`@walnut/types`) | 不构建（`echo` 占位） | `tsc --noEmit`（`ui` 用 `vue-tsc`） | 无 `dev` 脚本 |
-| 工具链包 (`@walnut/scripts`、`@walnut/release`、`@walnut/eslint-config`、`@walnut/commitlint-config`) | 无 | `tsc --noEmit` | 无 `dev` 脚本 |
+| 工具链包 (`@walnut/scripts`、`@walnut/release`、`@walnut/eslint-config`、`@walnut/commitlint-config`、`@walnut/vitest-config`) | 无 | `tsc --noEmit` | 无 `dev` 脚本 |
 | `@walnut/tsconfig` | 无（纯 JSON 预设） | `echo`（无源码可查） | 无 `dev` 脚本 |
 
 前端构建的特殊性：admin 的 `build` 就是纯 `vite build`（不再含 `vue-tsc`，Vite 构建本身不做类型检查），类型检查由独立的 `types:check` 任务（`vue-tsc --noEmit`）承担。docs 的 `types:check` 是 `echo skipped`（文档站没有需要类型检查的 TS 逻辑）。**没有 `build` 产物的包不是"漏了脚本"**：它们的 `build` 是一句 `echo` 占位，只为让 turbo 的 `build` 任务拓扑（`dependsOn: ["^build"]`）在整图上成立。
@@ -117,7 +117,7 @@ pre-push   → pnpm --silent prepush（单条聚合门禁：八段按序跑，�
 
 ### 不写 mega-scripts
 
-不在根 package.json 写复杂的 shell 脚本。所有跨包编排由 Turbo 处理，所有仓库级脚本（门禁、env 加解密、发版编排）由 `@walnut/scripts`（`packages/tooling/scripts/`，3 个 bin）与 `@walnut/release`（`packages/tooling/release/`，bin `walnut-release`）提供。根 scripts 保持"一句话委托"。
+不在根 package.json 写复杂的 shell 脚本。所有跨包编排由 Turbo 处理，所有仓库级脚本（门禁、env 加解密、发版编排）由 `@walnut/scripts`（`packages/tooling/scripts/`，4 个 bin）与 `@walnut/release`（`packages/tooling/release/`，bin `walnut-release`）提供。根 scripts 保持"一句话委托"。
 
 ### 不用 `concurrently` 编排
 
@@ -130,7 +130,8 @@ pre-push   → pnpm --silent prepush（单条聚合门禁：八段按序跑，�
 | 文件 | 作用 |
 |------|------|
 | [package.json](https://github.com/walnut-admin/walnut-admin/blob/main/package.json) | 根 scripts，全为委托 |
-| [packages/tooling/scripts/](https://github.com/walnut-admin/walnut-admin/tree/main/packages/tooling/scripts) | `@walnut/scripts`——3 个 bin（`walnut-lint-workflows` / `walnut-setup-env` / `walnut-check-git-hooks`） |
+| [packages/tooling/scripts/](https://github.com/walnut-admin/walnut-admin/tree/main/packages/tooling/scripts) | `@walnut/scripts`——4 个 bin（`walnut-lint-workflows` / `walnut-setup-env` / `walnut-check-git-hooks` / `walnut-check-doc-refs`） |
+| [packages/tooling/vitest-config/](https://github.com/walnut-admin/walnut-admin/tree/main/packages/tooling/vitest-config) | `@walnut/vitest-config`——共享 Vitest 预设（无 bin、无 build） |
 | [packages/tooling/release/](https://github.com/walnut-admin/walnut-admin/tree/main/packages/tooling/release) | `@walnut/release`——bin `walnut-release`（根 `pnpm release`） |
 | [apps/admin/package.json](https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/package.json) | 前端 scripts（Vite） |
 | [apps/server/package.json](https://github.com/walnut-admin/walnut-admin/blob/main/apps/server/package.json) | 后端 scripts（NestJS CLI + SWC） |

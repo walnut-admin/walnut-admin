@@ -43,6 +43,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@walnut/tsconfig": "workspace:*",
+    "@walnut/vitest-config": "workspace:*",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

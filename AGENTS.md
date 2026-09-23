@@ -29,15 +29,16 @@ apps/server  @walnut/server   NestJS 11 + SWC + Mongoose + Redis（后端，内�
 apps/docs    @walnut/docs     VitePress 文档站
 packages/platform-any/   contract · types · utils-core     ← 平台无关（CJS 双模构建 / 纯类型 / 纯工具 @walnut/utils）
 packages/platform-web/   client · http · ui               ← 浏览器/Vue（源码直消费，不构建）
-packages/tooling/        tsconfig · eslint-config · commitlint-config · scripts · release
-                         ← 工具链 5 包：@walnut/tsconfig（纯 JSON 预设 base/ts/vue）·
+packages/tooling/        tsconfig · eslint-config · commitlint-config · vitest-config · scripts · release
+                         ← 工具链 6 包：@walnut/tsconfig（纯 JSON 预设 base/ts/vue）·
                            @walnut/eslint-config · @walnut/commitlint-config ·
+                           @walnut/vitest-config（共享测试预设）·
                            @walnut/scripts（lib/ci/env + 4 bin）· @walnut/release（发版编排，bin walnut-release）
 ```
 
 - 前端包 scope `@walnut/*`（ESM、pnpm workspace、Vite 编译）；后端内部 lib scope `@walnut-server/*`
   （CJS、tsconfig paths、SWC，见 [`apps/server/AGENTS.md`](./apps/server/AGENTS.md)）。
-- 全仓共 **14 个 workspace 包**（3 app + 3 platform-any + 3 platform-web + 5 tooling），同属
+- 全仓共 **15 个 workspace 包**（3 app + 3 platform-any + 3 platform-web + 6 tooling），同属
   `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组 —— 组长必须恒等于「有 version 的包数」，
   由 `versioning-config.test.ts` 机械拦。
 - `apps/server/` 内部另有 **9 个 NestJS 内部库**

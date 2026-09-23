@@ -27,7 +27,7 @@ Walnut Admin 是一个**异构工具链**的全栈 monorepo——前端用 ESM +
 |-----------|--------|-----------|
 | `vue.json` | `apps/admin`、`apps/docs`、`packages/platform-web/{client,http,ui}` | 由 Vite / vue-tsc 编译，需要 DOM + Vue JSX |
 | `ts.json` | `packages/platform-any/{contract,types,utils-core}`、`@walnut/scripts`、`@walnut/release` | 「Node / 纯逻辑 / 工具链」环境；其中 `@walnut/contract` 的 `packages/platform-any/contract/scripts/build-barrel.ts` 与两个工具链包的 bin 由 Node 原生执行，必须只写「可擦除语法」 |
-| `base.json` | 仓库根 `tsconfig.json`、`@walnut/eslint-config`、`@walnut/commitlint-config` | 这些文件由 ESLint（经 jiti）/ commitlint 的 TS loader 加载，**不是** Node 原生执行 ⇒ 不需要 `erasableSyntaxOnly` |
+| `base.json` | 仓库根 `tsconfig.json`、`@walnut/eslint-config`、`@walnut/commitlint-config`、`@walnut/vitest-config` | 这些文件由 ESLint（经 jiti）/ commitlint 的 TS loader / Vitest 的 esbuild 加载，**不是** Node 原生执行 ⇒ 不需要 `erasableSyntaxOnly` |
 | 不继承任何预设 | `apps/server` | 见第 3 节 |
 
 预设包本身没有可检查的 TS 源码，所以它的 `types:check` 只是一句 `echo`（`packages/tooling/tsconfig/package.json`）；而 `@walnut/eslint-config` 的预设是**真 TS 源码**，`types:check` 是真正的 `tsc --noEmit`。

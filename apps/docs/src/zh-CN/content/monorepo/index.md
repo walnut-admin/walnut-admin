@@ -2,7 +2,7 @@
 
 ## 概述
 
-Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm workspaces** 管理 14 个包（3 个 app + 3 个 platform-any 包 + 3 个 platform-web 包 + 5 个 tooling 包）。项目从三个独立仓库合并而来，通过 pnpm catalog 统一依赖版本、Turborepo 编排任务、pnpm 原生 release management（`versioning.fixed` 单一组）管理版本号，构建了一套可维护的 monorepo 基础设施。
+Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm workspaces** 管理 15 个包（3 个 app + 3 个 platform-any 包 + 3 个 platform-web 包 + 6 个 tooling 包）。项目从三个独立仓库合并而来，通过 pnpm catalog 统一依赖版本、Turborepo 编排任务、pnpm 原生 release management（`versioning.fixed` 单一组）管理版本号，构建了一套可维护的 monorepo 基础设施。
 
 ### 技术栈速览
 
@@ -65,11 +65,12 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 │   │   ├── client/                  ← @walnut/client（浏览器工具 + Vue composables + store 工厂）
 │   │   ├── http/                    ← @walnut/http（HTTP 客户端框架，原名 axios）
 │   │   └── ui/                      ← @walnut/ui（naive-ui 组件，POC 3 组件）
-│   └── tooling/                     ← 工具链（2026-09-23 拆成 5 个包，见 ADR 0019）
+│   └── tooling/                     ← 工具链（2026-09-23 拆成 5 个包 + 同日新增 vitest-config，见 ADR 0019）
 │       ├── tsconfig/                ← @walnut/tsconfig（纯 JSON tsconfig 预设：base / ts / vue）
 │       ├── eslint-config/           ← @walnut/eslint-config（ESLint 预设 base / vue / nest）
 │       ├── commitlint-config/       ← @walnut/commitlint-config（commitlint 规则）
-│       ├── scripts/                 ← @walnut/scripts（仓库级脚本通用层：lib / ci / env，3 个 bin）
+│       ├── vitest-config/           ← @walnut/vitest-config（共享 Vitest 预设：发现规则 / 环境 / 覆盖率）
+│       ├── scripts/                 ← @walnut/scripts（仓库级脚本通用层：lib / ci / env，4 个 bin）
 │       └── release/                 ← @walnut/release（发版编排，bin：walnut-release）
 ├── turbo.json                       ← 任务定义 + 缓存 + 架构边界
 ├── pnpm-workspace.yaml              ← workspace 声明 + catalog + versioning
@@ -78,7 +79,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 └── knip.config.ts                   ← 死代码检测配置
 ```
 
-**外层**（Turborepo 层面）：`apps/*` + `packages/platform-any/*` + `packages/platform-web/*` + `packages/tooling/*` 共 14 个 workspace 包，通过 pnpm workspace 协议（`workspace:*`）相互引用。
+**外层**（Turborepo 层面）：`apps/*` + `packages/platform-any/*` + `packages/platform-web/*` + `packages/tooling/*` 共 15 个 workspace 包，通过 pnpm workspace 协议（`workspace:*`）相互引用。
 
 **内层**（Server 内部）：`apps/server/libs/*` 下的 9 个 NestJS 内部库，通过 TypeScript `paths` 映射解析，不走 pnpm workspace。命名空间为 `@walnut-server/*`，与外层 `@walnut/*` 物理分离。
 
@@ -122,7 +123,8 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 | `@walnut/eslint-config` | ESLint 共享预设（vue / nest / base） | ESLint |
 | `@walnut/commitlint-config` | commitlint 规则（scope-enum 等） | commitlint |
 | `@walnut/tsconfig` | 纯 JSON tsconfig 预设（base / ts / vue），无依赖、无源码 | 无 |
-| `@walnut/scripts` | 仓库级脚本的通用层：纯逻辑工具（`lib/`）、仓库门禁（`ci/`）、env 加解密（`env/`），经 3 个 bin 被根 scripts 调用 | `@dotenvx/dotenvx`（+ devDep `yaml`） |
+| `@walnut/vitest-config` | 共享 Vitest 预设：只收敛用例发现规则 / 运行环境 / 覆盖率采集范围 | vitest（peer） |
+| `@walnut/scripts` | 仓库级脚本的通用层：纯逻辑工具（`lib/`）、仓库门禁（`ci/`）、env 加解密（`env/`），经 4 个 bin 被根 scripts 调用 | `@dotenvx/dotenvx`（+ devDep `yaml`） |
 | `@walnut/release` | 发版编排（`src/release/`，20 个模块），bin `walnut-release` | `@walnut/scripts` + git-cliff + yaml |
 
 ### 消费方式

@@ -26,7 +26,7 @@ packages:
   - 'packages/tooling/*'
 ```
 
-声明哪些目录是 pnpm workspace 成员。`apps/` 下 3 个应用 + `packages/` 下按平台分组的 11 个包（`platform-any` 3 个纯逻辑包、`platform-web` 3 个前端包、`tooling` 5 个工具链包），共 14 个 workspace 包。
+声明哪些目录是 pnpm workspace 成员。`apps/` 下 3 个应用 + `packages/` 下按平台分组的 12 个包（`platform-any` 3 个纯逻辑包、`platform-web` 3 个前端包、`tooling` 6 个工具链包），共 15 个 workspace 包。
 
 ### `versioning`
 
@@ -34,10 +34,10 @@ packages:
 versioning:
   changelog:
     storage: registry        # changelog 由 git-cliff 逐包写，pnpm 不落文件
-  fixed:                     # 单一组：全部 14 个 workspace 包永远同版本
+  fixed:                     # 单一组：全部 15 个 workspace 包永远同版本
     -
       - '@walnut/admin'
-      # … 其余 13 个（apps 3 + platform-any 3 + platform-web 3 + tooling 5）
+      # … 其余 14 个（apps 3 + platform-any 3 + platform-web 3 + tooling 6）
 ```
 
 **本段是版本策略的唯一真源**——取代原来的 `.changeset/config.json`（已删除）。意图文件仍是 changesets 格式（`.changeset/*.md`）：由 `pnpm change` 写、`pnpm version -r` 消费、消费结果记进 `.changeset/ledger.yaml`；发版编排在 `packages/tooling/release/src/release/`。详见 [发布 & 发版指南](./release.md)。

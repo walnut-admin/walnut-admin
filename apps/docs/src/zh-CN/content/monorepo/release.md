@@ -23,16 +23,18 @@ versioning:
   changelog:
     storage: registry        # changelog 由 git-cliff 写，pnpm 不落文件（避免同一版本两段）
   fixed:
-    -                           # 单一组：全部 14 个 workspace 包永远同版本
+    -                           # 单一组：全部 15 个 workspace 包永远同版本
       - '@walnut/admin'
-      # … 其余 13 个
+      # … 其余 14 个
 ```
 
-14 个包（`apps/*` 3 个 + `platform-any` 3 个 + `platform-web` 3 个 + `tooling` 5 个）**永远同一个版本号**，
+15 个包（`apps/*` 3 个 + `platform-any` 3 个 + `platform-web` 3 个 + `tooling` 6 个）**永远同一个版本号**，
 发布 tag `vX.Y.Z` 因此永远有唯一来源（取组内版本，基准是 `apps/admin`）。
 
-> `tooling` 那 5 个是 `@walnut/tsconfig` / `@walnut/eslint-config` / `@walnut/commitlint-config` /
-> `@walnut/scripts` / `@walnut/release`（2026-09-23 由 `@walnut/tooling` 单包拆分而来，见 [ADR 0019](/content/adr/0019-tsconfig-presets-and-no-mjs)）。
+> `tooling` 那 6 个是 `@walnut/tsconfig` / `@walnut/eslint-config` / `@walnut/commitlint-config` /
+> `@walnut/vitest-config` / `@walnut/scripts` / `@walnut/release`（前五个 2026-09-23 由
+> `@walnut/tooling` 单包拆分而来、见 [ADR 0019](/content/adr/0019-tsconfig-presets-and-no-mjs)，
+> `vitest-config` 同日为待办 P3-14 新增）。
 
 ### 为什么是「一组」而不是历史上的「Apps 组 + Packages 组」
 

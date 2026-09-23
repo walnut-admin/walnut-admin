@@ -46,6 +46,7 @@
     "@types/node": "catalog:",
     "@walnut/eslint-config": "workspace:*",
     "@walnut/tsconfig": "workspace:*",
+    "@walnut/vitest-config": "workspace:*",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

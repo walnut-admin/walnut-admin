@@ -16,7 +16,7 @@
 | `@walnut/ui` | naive-ui based components (POC: 3 components). Source-only. |
 | `@walnut/types` | Ambient type declarations, consumed as `@walnut/types/<name>`. |
 | `@walnut-server/*` | Backend-internal NestJS libraries (config, const, context, db, decorators, exceptions, pipes, types, utils). CJS, SWC-compiled, NestJS-coupled. NOT workspace packages — resolved via tsconfig paths. |
-| `@walnut/{tsconfig,eslint-config,commitlint-config,scripts,release}` | The 5 tooling packages (split out of the former `@walnut/tooling`, 2026-09). See `packages/tooling/`. |
+| `@walnut/{tsconfig,eslint-config,commitlint-config,vitest-config,scripts,release}` | The 6 tooling packages (the first five split out of the former `@walnut/tooling` in 2026-09; `vitest-config` added 2026-09). See `packages/tooling/`. |
 
 ## Rules
 

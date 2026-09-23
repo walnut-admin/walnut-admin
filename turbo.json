@@ -31,7 +31,8 @@
     "commitlint.config.ts",
     "knip.config.ts",
     "pnpm-workspace.yaml",
-    "packages/tooling/tsconfig/*.json"
+    "packages/tooling/tsconfig/*.json",
+    "packages/tooling/vitest-config/*.ts"
   ],
   "globalEnv": ["NODE_ENV"],
   "globalPassThroughEnv": [

@@ -68,7 +68,7 @@ versioning:
     # 而本仓包全 private、从不 publish ⇒ 永不回收）；发版脚本消费完当场收走它们
     # （release/generate.ts 的 deleteConsumedIntents()）；判据始终是 ledger，不是文件在不在。
     storage: registry
-  # 单一 fixed 组：**全部 14 个 workspace 包永远同版本**，因此发布 tag `vX.Y.Z` 永远有唯一来源。
+  # 单一 fixed 组：**全部 15 个 workspace 包永远同版本**，因此发布 tag `vX.Y.Z` 永远有唯一来源。
   #
   # 为什么不做两个组（Apps 3 + Packages 9，历史设计）：fixed 组各自独立，于是一次**只动共享包**的
   # 发版只会 bump Packages 组、apps/admin 的版本不变 ⇒ 编排会命中「版本号未变更，跳过发版」而退出 0，
@@ -92,6 +92,7 @@ versioning:
       - '@walnut/eslint-config'
       - '@walnut/commitlint-config'
       - '@walnut/tsconfig'
+      - '@walnut/vitest-config'
       - '@walnut/scripts'
       - '@walnut/release'
 

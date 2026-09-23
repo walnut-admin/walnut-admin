@@ -19,7 +19,7 @@
 
 ## Monorepo Structure
 
-14 个 workspace 包（3 app + 3 platform-any + 3 platform-web + 5 tooling），同属 `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组：
+15 个 workspace 包（3 app + 3 platform-any + 3 platform-web + 6 tooling），同属 `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组：
 
 ```
 walnut-admin/
@@ -36,11 +36,12 @@ walnut-admin/
 │   │   ├── client/      @walnut/client     — 浏览器工具 + Vue composables + store 工厂
 │   │   ├── http/        @walnut/http       — HTTP 客户端框架（实例 + 适配器）
 │   │   └── ui/          @walnut/ui         — 基于 naive-ui 的组件
-│   └── tooling/                     — 工具链 5 包
+│   └── tooling/                     — 工具链 6 包
 │       ├── tsconfig/          @walnut/tsconfig          — 纯 JSON tsconfig 预设（base / ts / vue）
 │       ├── eslint-config/     @walnut/eslint-config     — 共享 ESLint 预设（base / vue / nest）
 │       ├── commitlint-config/ @walnut/commitlint-config — commitlint 规则
-│       ├── scripts/           @walnut/scripts           — 仓库级脚本：lib / ci 门禁 / env 加解密 + 3 个 bin
+│       ├── vitest-config/     @walnut/vitest-config     — 共享 Vitest 预设（发现规则 / 环境 / 覆盖率）
+│       ├── scripts/           @walnut/scripts           — 仓库级脚本：lib / ci 门禁 / env 加解密 + 4 个 bin
 │       └── release/           @walnut/release           — 发版编排（bin walnut-release）
 ├── turbo.json                    — Turborepo pipeline
 └── pnpm-workspace.yaml           — pnpm workspace + 版本策略（versioning.fixed 唯一真源）

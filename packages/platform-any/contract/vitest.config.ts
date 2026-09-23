@@ -1,9 +1,3 @@
-import { defineConfig } from 'vitest/config'
+import { defineWalnutVitestConfig } from '@walnut/vitest-config'
 
-export default defineConfig({
-  test: {
-    environment: 'node',
-    include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
-    coverage: { provider: 'v8', include: ['src'] },
-  },
-})
+export default defineWalnutVitestConfig()

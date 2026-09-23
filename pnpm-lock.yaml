@@ -1672,6 +1672,9 @@ importers:
       '@walnut/eslint-config':
         specifier: workspace:*
         version: link:../../packages/tooling/eslint-config
+      '@walnut/vitest-config':
+        specifier: workspace:*
+        version: link:../../packages/tooling/vitest-config
       concurrently:
         specifier: 'catalog:'
         version: 9.2.1
@@ -1727,6 +1730,9 @@ importers:
       '@walnut/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
+      '@walnut/vitest-config':
+        specifier: workspace:*
+        version: link:../../tooling/vitest-config
       rimraf:
         specifier: 'catalog:'
         version: 6.1.3
@@ -1779,6 +1785,9 @@ importers:
       '@walnut/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
+      '@walnut/vitest-config':
+        specifier: workspace:*
+        version: link:../../tooling/vitest-config
       rimraf:
         specifier: 'catalog:'
         version: 6.1.3
@@ -1837,6 +1846,9 @@ importers:
       '@walnut/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/tsconfig
+      '@walnut/vitest-config':
+        specifier: workspace:*
+        version: link:../../tooling/vitest-config
       jsdom:
         specifier: 'catalog:'
         version: 30.0.1(@noble/hashes@2.2.0)
@@ -1973,6 +1985,9 @@ importers:
       '@walnut/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
+      '@walnut/vitest-config':
+        specifier: workspace:*
+        version: link:../vitest-config
       eslint:
         specifier: 'catalog:'
         version: 10.3.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -1995,6 +2010,9 @@ importers:
       '@walnut/tsconfig':
         specifier: workspace:*
         version: link:../tsconfig
+      '@walnut/vitest-config':
+        specifier: workspace:*
+        version: link:../vitest-config
       eslint:
         specifier: 'catalog:'
         version: 10.3.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -2009,6 +2027,24 @@ importers:
         version: 2.9.0
 
   packages/tooling/tsconfig: {}
+
+  packages/tooling/vitest-config:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.5.0
+      '@walnut/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      eslint:
+        specifier: 'catalog:'
+        version: 10.3.0(jiti@2.7.0)(supports-color@10.2.2)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.2(@types/node@25.5.0)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.0.11(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
 
 packages:
 

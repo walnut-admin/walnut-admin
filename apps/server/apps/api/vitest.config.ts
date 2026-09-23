@@ -1,8 +1,10 @@
+import { defineWalnutVitestConfig } from '@walnut/vitest-config'
 import swc from 'unplugin-swc'
 import tsconfigPaths from 'vite-tsconfig-paths'
-import { defineConfig } from 'vitest/config'
 
-export default defineConfig({
+export default defineWalnutVitestConfig({
+  // 用例在 apps/api/src 而不是 src —— 覆盖范围要跟着根目录口径走
+  coverageInclude: ['apps/api/src'],
   plugins: [
     tsconfigPaths(),
     // This is required to build the test files with SWC
@@ -11,7 +13,6 @@ export default defineConfig({
       module: { type: 'es6' },
     }),
   ],
-
   test: {
     root: './',
     globals: true,

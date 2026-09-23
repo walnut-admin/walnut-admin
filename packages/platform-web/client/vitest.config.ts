@@ -1,11 +1,7 @@
 import vue from '@vitejs/plugin-vue'
-import { defineConfig } from 'vitest/config'
+import { defineWalnutVitestConfig } from '@walnut/vitest-config'
 
-export default defineConfig({
+export default defineWalnutVitestConfig({
+  environment: 'jsdom',
   plugins: [vue()],
-  test: {
-    environment: 'jsdom',
-    include: ['src/**/*.test.ts', 'src/**/*.spec.ts'],
-    coverage: { provider: 'v8', include: ['src'] },
-  },
 })

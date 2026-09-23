@@ -1,0 +1,11 @@
+{
+  "extends": "@walnut/tsconfig/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "types": ["node"]
+  },
+  // 本文件由 Vitest 自己的 esbuild 打包加载（不是 Node 原生剥离类型），因此用 base 而非 ts.json
+  // —— 与 @walnut/eslint-config / @walnut/commitlint-config 同一判据。
+  "include": ["*.ts"],
+  "exclude": ["node_modules"]
+}
