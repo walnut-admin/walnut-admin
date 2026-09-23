@@ -124,6 +124,94 @@ const nav: DefaultTheme.NavItem[] = [
 ]
 
 const sidebar: DefaultTheme.Sidebar = {
+  // 组件文档：`/component/**` 是与 `/content/` **并列的另一棵树**，不共享 sidebar 键。
+  // 此前它没有任何 sidebar 条目 ⇒ 42 篇真实组件文档只能手敲 URL 才看得到（违反本站
+  // 「新增页面必须登记进 sidebar，否则页面不可达」的规矩）。见架构待办 F9。
+  '/component/': [
+    {
+      text: '组件文档',
+      items: [
+        {
+          text: 'Advanced —— 通用高级组件',
+          collapsed: true,
+          items: [
+            { text: 'ApiSelect', link: '/component/Advanced/apiSelect' },
+            { text: 'AreaCascader', link: '/component/Advanced/areaCascader' },
+            { text: 'LocaleSelect', link: '/component/Advanced/localeSelect' },
+          ],
+        },
+        {
+          text: 'App —— 应用级全局组件',
+          collapsed: true,
+          items: [
+            { text: '权限组件', link: '/component/App/authorize' },
+            { text: '暗色模式', link: '/component/App/darkmode' },
+            { text: '全屏组件', link: '/component/App/fullscreen' },
+            { text: '国际化组件', link: '/component/App/localepicker' },
+            { text: 'lock', link: '/component/App/lock' },
+            { text: 'settings', link: '/component/App/settings' },
+          ],
+        },
+        {
+          text: 'Extra —— 通用辅助组件',
+          collapsed: true,
+          items: [
+            { text: 'JSON 显示', link: '/component/Extra/JSON' },
+            { text: '箭头', link: '/component/Extra/arrow' },
+            { text: '翻转卡片', link: '/component/Extra/flipper' },
+            { text: '图标选择器', link: '/component/Extra/iconPicker' },
+            { text: '提示消息', link: '/component/Extra/message' },
+            { text: '滚动条', link: '/component/Extra/scrollbar' },
+            { text: '通用标题', link: '/component/Extra/title' },
+            { text: '过渡', link: '/component/Extra/transition' },
+            { text: '过渡下拉框', link: '/component/Extra/transitionSelect' },
+          ],
+        },
+        {
+          text: 'HOC —— 高阶组件',
+          collapsed: true,
+          items: [
+            { text: 'WithValue', link: '/component/HOC/withValue' },
+          ],
+        },
+        {
+          text: 'UI —— 原子化基础组件',
+          collapsed: true,
+          items: [
+            { text: '按钮', link: '/component/UI/button' },
+            { text: '卡片', link: '/component/UI/card' },
+            { text: '多选框（组）', link: '/component/UI/checkbox' },
+            { text: '颜色选择器', link: '/component/UI/colorPicker' },
+            { text: '日期选择器', link: '/component/UI/datePicker' },
+            { text: '描述', link: '/component/UI/descriptions' },
+            { text: '抽屉组件', link: '/component/UI/drawer' },
+            { text: '下拉菜单组件', link: '/component/UI/dropdown' },
+            { text: '动态标签组件', link: '/component/UI/dynamicTags' },
+            { text: '图标', link: '/component/UI/icon' },
+            { text: '图标按钮组件', link: '/component/UI/iconButton' },
+            { text: '输入框组件', link: '/component/UI/input' },
+            { text: '模态框组件', link: '/component/UI/modal' },
+            { text: '单选框（组）', link: '/component/UI/radio' },
+            { text: '下拉框', link: '/component/UI/select' },
+          ],
+        },
+        {
+          text: 'Vendor —— 第三方依赖组件',
+          collapsed: true,
+          items: [
+            { text: '头像裁剪上传', link: '/component/Vendor/AvatarUpload' },
+            { text: '代码编辑器', link: '/component/Vendor/CodeMirror' },
+            { text: '图片裁剪', link: '/component/Vendor/Cropper' },
+            { text: '图表', link: '/component/Vendor/Echarts' },
+            { text: '坐标选择器(TODO)', link: '/component/Vendor/LocationPicker' },
+            { text: '前端文件直传阿里 OSS', link: '/component/Vendor/OSSUpload' },
+            { text: '签名板', link: '/component/Vendor/SignPad' },
+            { text: '富文本编辑器', link: '/component/Vendor/Tinymce' },
+          ],
+        },
+      ],
+    },
+  ],
   '/content/': [
     {
       text: '架构',
