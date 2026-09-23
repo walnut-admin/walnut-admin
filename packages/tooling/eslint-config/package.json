@@ -22,7 +22,8 @@
     "eslint": "catalog:"
   },
   "dependencies": {
-    "@antfu/eslint-config": "catalog:"
+    "@antfu/eslint-config": "catalog:",
+    "eslint-plugin-turbo": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",

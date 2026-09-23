@@ -85,6 +85,22 @@
   "globalPassThroughEnv": [
     "CI",
     "NODE_ENV",
+    // ⚠️ 这三个是 `eslint-plugin-turbo` 的 `no-undeclared-env-vars` 上线时**当场抓出来的真缺口**
+    // （2026-09-23，全仓仅有 3 条命中，都在 `@walnut/scripts`）：
+    //   · `npm_execpath` —— `lib/pnpm-launcher.ts` 靠它定位 pnpm 的真 exe。
+    //     被严格模式剥掉 ⇒ 退化成「找不到 pnpm」，且报错信息只会说找不到命令。
+    //   · `PATH` —— 同上那条查找路径的后备。
+    //   · `PREPUSH_CONCURRENCY` —— `prepush.ts` 的并发旋钮（`pnpm prepush` 本身不经 turbo，
+    //     但同一份代码也会在 `@walnut/scripts` 的 turbo 任务里被 import 与测试）。
+    // 三者都「只需可见、不进哈希」：它们不改变任何产物，只决定「去哪找可执行文件 / 开几路」。
+    "npm_execpath",
+    "PATH",
+    "PREPUSH_CONCURRENCY",
+    // 发版工具链真正依赖的两个（同样由上面那条规则抓出，2026-09-23）：
+    //   · `GITHUB_API_URL` —— `release/src/release/github.ts` 的 GitHub Enterprise 覆盖点；
+    //   · `GH_TOKEN` —— `release/src/release/credentials.ts` 的 token 回退来源（gh CLI 的惯例名）。
+    "GITHUB_API_URL",
+    "GH_TOKEN",
     "GITHUB_TOKEN",
     "VERCEL_TOKEN",
     "TURBO_TOKEN",

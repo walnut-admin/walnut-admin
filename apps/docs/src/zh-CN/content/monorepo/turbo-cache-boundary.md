@@ -229,6 +229,53 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 > `Could not find task` 当场退 1。那是**当时**的实测事实；`//#lint:root` 定义出来之后前提就没了，
 > 现在 `turbo run lint lint:root` 实测 16 个任务、正常跑通。断言已按新事实改写并留了记录。
 
+### 4.7 未声明的环境变量会被静默剥离 ✅ 已加护栏
+
+Turbo 的严格 env 模式会把「没在 `env` / `globalEnv` / `passThroughEnv` / `globalPassThroughEnv`
+里声明过」的变量从任务进程里**剥掉** —— **没有任何报错**，只是那个变量在构建期变成 `undefined`。
+本仓此前对这件事**零护栏**。现在接了 `eslint-plugin-turbo` 的 `no-undeclared-env-vars`（error 级），
+判据的唯一真源就是根 `turbo.json`（插件按被 lint 文件的目录向上找）。
+
+**上线当场抓出 6 个真缺口**（参考仓同类规则抓出 5 个）：
+
+| 变量 | 谁在读 | 被剥掉的后果 |
+|------|--------|--------------|
+| `npm_execpath` | `@walnut/scripts` 的 `lib/pnpm-launcher.ts` | 定位不到 pnpm 的真 exe，退化成「找不到 pnpm」 |
+| `PATH` | 同上（查找路径的后备） | 同上 |
+| `PREPUSH_CONCURRENCY` | `prepush.ts` 的并发旋钮 | 旋钮失效、静默回落默认值 |
+| `GITHUB_API_URL` | `@walnut/release` 的 `github.ts` | GitHub Enterprise 覆盖点失效 |
+| `GH_TOKEN` | `@walnut/release` 的 `credentials.ts` | token 回退来源失效 |
+| `WALNUT_TEST_MARKER` | 发版工具链的测试夹具 | （见下：夹具，走 allowList 而不是声明） |
+
+**四类豁免，各自有不同理由**（这个分类本身就是这条规则的落地经验）：
+
+| 类别 | 成员 | 为什么不进 `turbo.json` |
+|------|------|------------------------|
+| 框架编译期内建 | `DEV` `PROD` `SSR` `BASE_URL` | 打包器在编译期替换成字面量。规则**同时匹配 `import.meta.env.X`**，所以 `apps/admin/src/utils/constant/vue.ts` 那三行会被误报 |
+| 运行时注入 | `npm_package_version`、`npm_config_*` | 由 npm/pnpm 执行脚本时注入，不是外部传入 |
+| 测试夹具 | `WALNUT_TEST_MARKER` | 用例自己设再断言，不是任何代码的依赖 —— **只在测试文件里**豁免 |
+| **运行期配置面** | `apps/server/libs/config/src/modules/*.config.ts` 的 ~70 个（`APP_*` / `AUTH_*` / `DATABASE_*` …） | 见下 |
+
+最后那一类值得单独说：它们是 `@nestjs/config` 的 `registerAs` 工厂，读的是**磁盘上的
+`env-local/.env.*`**（`pnpm setup-env` 解密而来），由 `ConfigModule` 在**进程内**灌进 `process.env`。
+把它们写进 `globalPassThroughEnv` 是**语义错误** —— 那份清单的含义是「外部传给 turbo 任务的变量」。
+判据（2026-09-23 实测）：全仓 `process.env.*` 共 **75 个不同变量名**，其中 **74 处集中在这个目录**；
+去掉它之后，剩下的命中刚好就是上面那 6 个真缺口 —— 也就是说这份豁免**只**盖住了运行期配置面，
+没有盖住真缺口。豁免写在 `nest.ts` 里并附了这段理由。
+
+**验证**：注入一个未声明的 `process.env.WALNUT_BOUNDARY_PROBE` → 规则报红（并**字节级还原**验证过）。
+
+**接线时踩的三个坑**（都会静默失败，记下来省得下次重踩）：
+
+1. **共用的一段必须三个预设都挂**。`base` / `vue` / `nest` 各自直接调 `antfu(...)`，`nest` **不经过**
+   `base` —— 第一版只改了 `base.ts`，跑 server 的 lint 得到 **0 条命中**（看着像「没有缺口」，
+   其实是规则根本没生效）。所以抽成了 `eslint-config/turbo-env-vars.ts`。
+2. **那个相对导入不能带 `.ts` 扩展名**。`nest.ts` 以类型方式引入 `base.ts`，于是 `base.ts` 会进
+   `apps/server` 的类型程序，而那份 tsconfig（ADR 0012 自包含）没开 `allowImportingTsExtensions`
+   ⇒ 带扩展名让 `@walnut/server` 的 `types:check` 报 TS5097。同一个坑 `nest.ts` 的文件头早就写过。
+3. **规则元组不能用 `as const`**：`readonly [...]` 不满足 flat config 的 `RuleEntry`（要求可变元组），
+   会报 TS2345。
+
 ---
 
 ## 五、交叉对比：调研文档 / 参考仓 Z / 本仓
@@ -241,7 +288,7 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 | 依赖包源码变更 | ❌ 未涉及 | ✅ **`transit` 传递节点**（本仓直接采纳了这个设计） | ✅ 本轮补上 |
 | 产物目录 | ⚠️ 只写「不声明 `outputs` 等于放弃缓存」，**没说清真正的症状**：声明了但**漏一个目录**时是「命中缓存 ⇒ 静默不产出 + exit 0」 | ✅ 实测过同一类 bug，并把 `dist` / `dist-stage` **按画像分离** | ✅ 本轮补上 `dist-staging`，并把它做成门禁（Z 仓靠断言 + 负向验证器） |
 | 根级文件的缓存 | ❌ 未涉及 | ✅ 有 `//#lint:root` 这种**根任务**，inputs 用 `$TURBO_ROOT$/**` + 逐条排除运行期目录，且记了「漏排除 ⇒ 缓存永不命中」「排除过头 ⇒ 门禁回放假绿」两个方向的坑 | ✅ 已补 `//#lint:root` 根任务（inputs 逐字等于脚本的 glob），冷跑 3.8s → 热跑 0.11s，见 4.6 |
-| 环境变量 | ✅ `env` vs `passThroughEnv` 讲清了 | ✅ 进一步：`NODE_ENV` 被工具链自身改写 ⇒ 放 `passThroughEnv`；`PATH` / `npm_execpath` 必须声明否则发版脚本找不到 pnpm；护栏是 `eslint-plugin-turbo` 的 `no-undeclared-env-vars`（error 级，上线时抓出 5 个真实缺口） | ✅ `NODE_ENV` 已按同一条实测结论改到 `globalPassThroughEnv`（见 4.5）；⚠️ 但**仍然没有** eslint-plugin-turbo ⇒ 未声明的变量会被静默剥离而没人拦。<br>**接这条规则前先看这组实测**（2026-09-23）：全仓 `process.env.*` 共 **75 个不同的变量名**，其中 **74 处在 `apps/server/libs/config/src/modules/*.config.ts`**（运行期从 `.env` 读，`@nestjs/config` 在进程内注入，**不是**构建期输入）、24 处在发版工具链、admin 侧只有 1 处。naive 打开这条规则会一次报出近百条，**几乎全是误报** —— 按本仓「一个开始误报的门禁等于没有门禁」的标准，正确做法是先划清「构建期真输入」与「运行期配置」的边界（前者进 `env`/`globalEnv`，后者进 `globalPassThroughEnv` 或规则的 `allowList`），再开闸 |
+✅ **已接** `no-undeclared-env-vars`（error 级，三个预设共用一段），上线当场抓出 **6 个真缺口**；四类豁免（框架内建 / 运行时注入 / 测试夹具 / 运行期配置面）各有理由，见 4.7
 | 缓存淘汰 | ❌ 未涉及 | ✅ `cacheMaxAge: "14d"` + `cacheMaxSize: "5GB"` | ✅ 已对齐（同日把 turbo 升到 2.11.2 —— 这两个键要 2.10+） |
 | 并发 | ❌ 未涉及 | ✅ `concurrency: 4`，并与 vitest 的 `maxWorkers: '50%'` 一起收敛 | ⚠️ `concurrency: "4"` 已加（Turbo 默认是 **10**，本仓 12 核 ⇒ 收了一半多）；但**没**跟着设 vitest 的 `maxWorkers` —— 本机实测两种设置下全仓 test 都是 9.5–11s（无差异），而在小核 CI 上 `50%` 反而可能欠配。结论与实测记在 [Turbo](./turbo) |
 | 边界怎么被守住 | ❌ 未涉及 | ✅ 把缓存断言写进 `check-scripts` / `check-package-standard`，并给关键断言配**负向验证器**（注入错误证明它真会红） | ✅ 本轮补上 `walnut-check-turbo-cache` + 7 个注入用例 |

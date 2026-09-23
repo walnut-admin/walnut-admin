@@ -1,6 +1,7 @@
 import type { OptionsConfig } from '@antfu/eslint-config'
 import type { WalnutEslintConfig } from './base.ts'
 import antfu from '@antfu/eslint-config'
+import { turboEnvVarsConfig } from './turbo-env-vars'
 
 /**
  * 浏览器 + Vue 预设：apps/admin、apps/docs、packages/platform-web/*。
@@ -25,5 +26,7 @@ export default function vueConfig(options: OptionsConfig = {}): WalnutEslintConf
       'pnpm/yaml-enforce-settings': 'off',
     },
     ...options,
-  })
+  },
+  // 三个预设共用的一段 —— 为什么单独成文件见 turbo-env-vars.ts 顶部
+  turboEnvVarsConfig())
 }

@@ -6,6 +6,7 @@ import antfu from '@antfu/eslint-config'
 // 带扩展名会让 `@walnut/server` 的 types:check 直接报 TS5097。
 // ESLint 经 jiti 加载本文件，扩展名推断由它负责 ⇒ 不带扩展名两边都能解析。
 import localRules from './nest-local-rules'
+import { turboEnvVarsConfig } from './turbo-env-vars'
 
 /**
  * NestJS 后端预设：apps/server。
@@ -69,6 +70,32 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
           fixStyle: 'separate-type-imports',
         }],
         'local/sort-nestjs-decorators': 'error',
+      },
+    },
+    // 三个预设共用的一段 —— 为什么单独成文件见 turbo-env-vars.ts 顶部。
+    // ⚠️ 这里的相对导入同样**不写扩展名**（理由见文件头那段注释）。
+    turboEnvVarsConfig(),
+    {
+      // ── 运行期配置模块：豁免 Turbo 的 env 声明检查 ────────────────────────────────
+      // `libs/config/src/modules/*.config.ts` 是 `@nestjs/config` 的 `registerAs` 工厂，
+      // 读的是**磁盘上的 `env-local/.env.*` 文件**（由 `pnpm setup-env` 解密而来），
+      // `ConfigModule` 在**进程内**把这些值灌进 `process.env` —— 不是从外部进程环境传进来的。
+      //
+      // 所以把它们声明进 `turbo.json` 的 `globalPassThroughEnv` 是**语义错误**：那份清单的含义是
+      // 「外部传给 turbo 任务、必须放行（或必须进哈希）的变量」。这里的 ~70 个是应用的运行期配置面，
+      // 已经由 `env-encrypted/.env.*` 的注释模板 + `docs` 的后端配置页各自记了一份。
+      //
+      // 反过来说：在 turbo 下跑这些文件时，它们本来就不该读外部环境 —— 严格模式把偶发的同名 shell
+      // 变量剥掉，反而让「测试结果只取决于 .env 文件」这件事成立。这与规则想拦的
+      // 「构建期输入静默丢失」是两回事。
+      //
+      // 判据（2026-09-23 实测）：全仓 `process.env.*` 共 75 个不同变量名，其中 74 处集中在这个目录；
+      // 剩下的（`npm_execpath` / `PATH` / `GITHUB_API_URL` / `GH_TOKEN` 等真依赖）都已在
+      // turbo.json 里声明 —— 也就是说这份豁免**只**盖住了运行期配置面，没有盖住真缺口。
+      name: 'walnut/turbo-env-vars/server-runtime-config',
+      files: ['**/libs/config/src/modules/**/*.ts'],
+      rules: {
+        'turbo/no-undeclared-env-vars': 'off',
       },
     },
   )
