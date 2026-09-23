@@ -84,7 +84,7 @@ pnpm syncpack:update
 | 核心功能 | 发现过期依赖、可视化 diff | 强制版本一致性、同步 catalog |
 | 更新方式 | 交互式 visual diff，按包浏览 | 交互式/批量，按 catalog 分组 |
 | pnpm catalog | 不支持 | v15 原生支持 |
-| 当前用法 | `npx taze major -l` 快速扫描 | `syncpack lint` CI 门禁 + `syncpack update` 精确更新 |
+| 当前用法 | `taze major -l` 快速扫描（根脚本 `pnpm check:deps:update`；`taze` 是根 devDependency，走本地 bin，不经 `npx`） | `syncpack lint` CI 门禁 + `syncpack update` 精确更新 |
 
 两者互补：taze 是"浏览器"，快速扫描整个仓库；syncpack 是"执行器"，精确管理 catalog 并确保一致。
 

@@ -28,6 +28,7 @@
   },
   "devDependencies": {
     "@walnut/eslint-config": "workspace:*",
+    "@walnut/tsconfig": "workspace:*",
     "naive-ui": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
@@ -37,6 +38,9 @@
   "walnut": {
     "platform": "web",
     "type": "ui",
-    "runtime": ["dom", "vue"]
+    "runtime": [
+      "dom",
+      "vue"
+    ]
   }
 }

@@ -1,0 +1,12 @@
+{
+  "extends": "@walnut/tsconfig/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "types": ["node"]
+  },
+  // 预设由 ESLint 通过 jiti 加载（不是 Node 原生剥离类型），因此不用 ts.json 的
+  // erasableSyntaxOnly —— 本包里的本地规则要用装饰器 AST 的窄接口 + 类型断言，属于「只擦除」范围
+  // 之外的常见写法，没必要为它让步。
+  "include": ["*.ts"],
+  "exclude": ["node_modules"]
+}

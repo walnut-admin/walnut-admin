@@ -1,17 +1,22 @@
-import { execSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import process from 'node:process'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
 /**
  * env-encrypted/ ↔ env-local/ 的加解密（dotenvx）。
  *
- * 由 `scripts/setup-env.ts` 收编而来（@walnut/tooling 是仓库级脚本的家）。行为与原文一致，
- * 只有两处**收紧**：
+ * 由 `scripts/setup-env.ts` 收编而来（仓库级脚本现在归 @walnut/scripts）。行为与原文一致，
+ * 三处**收紧**：
  *   ① 仓库根从 `cwd()` 改为 `REPO_ROOT` —— 从子目录跑时原文会读错位置并写错文件；
- *   ② dotenvx 的调用一律带 `cwd: REPO_ROOT`。
+ *   ② dotenvx 的调用一律带 `cwd: REPO_ROOT`；
+ *   ③ **不再用 `npx dotenvx`**：`@dotenvx/dotenvx` 现在是本包自己的 dependency，直接从它的
+ *      `package.json#bin` 解析出 CLI 入口、用 `process.execPath` 以 argv 拉起。
+ *      原来的 `npx` 形态依赖「cwd 能找到 dotenvx」，依赖一下沉就会**静默退化成联网下载**；
+ *      而且它经 shell、在 Windows 上要额外处理 `.cmd`。现在：shell-free、跨平台、解析确定。
  *
  * 用法：`pnpm setup-env`（decrypt）/ `pnpm encrypt-env`（encrypt）。
  */
@@ -53,14 +58,54 @@ export function localPath(entry: EnvEntry): string {
   return join(ROOT, 'apps', entry.app, 'env-local', envFileName(entry))
 }
 
-/** dotenvx 的参数全部是本文件里的字面量路径（不含用户输入），故用 shell 形态是安全的 */
-function dotenvxEncode(args: string[]): void {
-  execSync(`npx dotenvx ${args.join(' ')}`, { stdio: 'inherit', cwd: ROOT })
+/**
+ * 解析 dotenvx 的 CLI 入口（本包 dependency 自带，不走 npx）。
+ *
+ * `@dotenvx/dotenvx` 的 `exports` 暴露了 `./package.json`，所以 `require.resolve` 拿得到；
+ * 再用它的 `bin.dotenvx` 拼出入口路径 —— 不依赖 node_modules/.bin 的软链形态（Windows 上是 `.cmd`）。
+ */
+let cachedCliPath: string | null = null
+function dotenvxCliPath(): string {
+  if (cachedCliPath)
+    return cachedCliPath
+  const require = createRequire(import.meta.url)
+  const manifestPath = require.resolve('@dotenvx/dotenvx/package.json')
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+    bin?: Record<string, string> | string
+  }
+  const binField = typeof manifest.bin === 'string' ? manifest.bin : manifest.bin?.dotenvx
+  if (!binField) {
+    throw new Error(
+      '@dotenvx/dotenvx 的 package.json 里没有 bin.dotenvx —— 无法定位 CLI 入口。'
+      + '上游改了包结构？请检查该依赖的 bin 字段。',
+    )
+  }
+  cachedCliPath = join(dirname(manifestPath), binField)
+  return cachedCliPath
 }
 
-/** 静默执行 dotenvx（不向 stdout 输出解密内容），失败抛错 */
+/** 以 argv 直传拉 dotenvx（不经 shell：参数里含仓库内的路径，不能让 shell 再解释一次） */
+function runDotenvx(args: string[], mode: 'inherit' | 'pipe'): { status: number, stderr: string } {
+  const result = spawnSync(process.execPath, [dotenvxCliPath(), ...args], {
+    cwd: ROOT,
+    stdio: mode === 'inherit' ? 'inherit' : 'pipe',
+    encoding: 'utf8',
+  })
+  return { status: result.status ?? 1, stderr: result.stderr ?? '' }
+}
+
+/** 输出直通终端（加密时想看到逐文件进度） */
+function dotenvxEncode(args: string[]): void {
+  const { status } = runDotenvx(args, 'inherit')
+  if (status !== 0)
+    throw new Error(`dotenvx ${args[0]} 退出码 ${status}`)
+}
+
+/** 静默执行（不向 stdout 输出解密内容），失败抛错 */
 function dotenvxQuiet(args: string[]): void {
-  execSync(`npx dotenvx ${args.join(' ')}`, { stdio: 'pipe', cwd: ROOT })
+  const { status, stderr } = runDotenvx(args, 'pipe')
+  if (status !== 0)
+    throw new Error(`dotenvx ${args[0]} 退出码 ${status}：${stderr.trim().split('\n').slice(-3).join(' ')}`)
 }
 
 /**

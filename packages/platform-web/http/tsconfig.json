@@ -1,7 +1,6 @@
 {
-  "extends": "../../../tsconfig.base.json",
+  "extends": "@walnut/tsconfig/vue.json",
   "compilerOptions": {
-    "lib": ["DOM", "ESNext", "DOM.Iterable"],
     "baseUrl": "."
   },
   "include": [

@@ -29,11 +29,13 @@ Three interdependent decisions needed to be made:
 - ESLint `pnpm/json-enforce-catalog` — belt-and-suspenders, but redundant with pnpm's native check
 - No enforcement — relying on convention alone; rejected because convention degrades over time
 
-## Decision 2: One Fixed Group — all 12 workspace packages
+## Decision 2: One Fixed Group — every workspace package
 
-**Chosen:** a **single** `versioning.fixed` group containing all 12 workspace packages
-(3 apps + 9 packages). Every package always shares one version number, so the release tag `vX.Y.Z`
-always has exactly one source (the group version, baselined on `apps/admin`).
+**Chosen:** a **single** `versioning.fixed` group containing **all** workspace packages
+(originally 3 apps + 9 packages; **14** since 2026-09-23, when `packages/tooling/` was split into
+5 packages — see [ADR 0019](0019-tsconfig-presets-and-no-mjs.md)). Every package always shares one
+version number, so the release tag `vX.Y.Z` always has exactly one source (the group version,
+baselined on `apps/admin`).
 
 **Rationale:**
 - **Two groups left a structural trap.** pnpm's (and changesets') fixed groups are mutually
@@ -43,7 +45,7 @@ always has exactly one source (the group version, baselined on `apps/admin`).
   get a tag**. One group removes that path structurally rather than by convention.
 - **It matches the ADR-0008 title** (Unified Versioning) — unified versioning was already the
   intent; two tracks were an accident of the original package layout.
-- **Nothing was lost.** All 12 packages sat at `0.0.1` with zero tags; the separate package track
+- **Nothing was lost.** All packages sat at `0.0.1` with zero tags; the separate package track
   was never exercised.
 - `private: true` removal signals the code is publicly visible (not secret/internal). Does NOT
   imply intent to publish to npm.
@@ -69,7 +71,7 @@ changes must not drive the product version.
 (`pnpm change` writes intents, `pnpm version -r` consumes them, `.changeset/ledger.yaml` is the
 consumption ledger), configured by the `versioning:` block in `pnpm-workspace.yaml`.
 Per-package `CHANGELOG.md` is rendered by **git-cliff** and written by
-`packages/tooling/scripts/src/release/changelog.ts` — the **sole writer**.
+`packages/tooling/release/src/release/changelog.ts` (`@walnut/release`) — the **sole writer**.
 
 **Rationale:**
 - **The ledger is the thing that was missing.** `pnpm version -r` records every consumed intent in
@@ -97,14 +99,18 @@ Per-package `CHANGELOG.md` is rendered by **git-cliff** and written by
 | `pnpm version -r` | Bump versions across the fixed group, write `ledger.yaml` |
 | `pnpm change check` | Validate committed versions against `versioning.fixed` (CI + prepush gate) |
 | git-cliff | Render changelog sections (`--unreleased --tag vX.Y.Z`, per-package include/exclude paths) |
-| `walnut-release` | Orchestrate the six steps: intents → bump confirm → consume → changelog → summary → commit/gates/tag/push |
+| `walnut-release` | Orchestrate the six steps: intents → bump confirm → consume → changelog → summary → commit/gates/tag/push（bin of `@walnut/release`, in `packages/tooling/release/`） |
 
 **Key configuration:**
-- `pnpm-workspace.yaml#versioning`: single `fixed` group (12 packages); `changelog.storage: registry`
+- `pnpm-workspace.yaml#versioning`: single `fixed` group (14 packages since 2026-09-23); `changelog.storage: registry`
 - `cliff.toml` (repo root): group names, `tag_pattern`, `commit_parsers` kept in step with
   `commit-intent.ts`'s `BUMP_MAP`, and the `[remote.github]` provider
 - `pnpm release --status` / `--plan` / `--dry-run` / `--json` are the read-only and machine-readable
   surfaces; the resume ladder is a pure function of observable facts (`release/plan.ts`)
+- `lint:root` is **not** a turbo task (it is a root `package.json` script), so the battery runs it as its
+  own step — `turbo run lint` + `pnpm lint:root`. Folding it into one `turbo run lint lint:root` fails
+  with `Could not find task 'lint:root' in project` (fixed 2026-09-23; see
+  [`monorepo/release.md`](/content/monorepo/release)).
 
 **Alternatives considered:**
 - **Keep `@changesets/cli` + `@changesets/changelog-github`** — the previous design. Its changelog
@@ -124,7 +130,7 @@ Per-package `CHANGELOG.md` is rendered by **git-cliff** and written by
 - `pnpm add` without `--save-catalog` will now fail — developers must use `pnpm add <pkg> --save-catalog`
 - `pnpm release` (= `walnut-release`, `main` branch only) executes the full pipeline; there is no
   root `changeset` / `changeset:auto` / `changelog` script
-- All 12 packages are mechanically kept in one version via the single `fixed` group — no manual
+- All workspace packages are mechanically kept in one version via the single `fixed` group — no manual
   version editing, and `pnpm change check` catches drift
 - A workspace package that is not listed in `versioning.fixed` blocks the release (the fixed-group
   audit in `release/attribution.ts` fails the run with exit 1)
@@ -139,6 +145,8 @@ Per-package `CHANGELOG.md` is rendered by **git-cliff** and written by
 - Supersedes the versioning aspect of ADR 0008 (unified versioning confirmed, deploy separation unchanged)
 - Enables ADR 0009 quality gates (the version management foundation for CI test requirements)
 - ADR 0018 records the git-hook migration (`simple-git-hooks` → lefthook) that this pipeline assumes
-- References: release orchestration lives in `packages/tooling/scripts/src/release/`
+- ADR 0019 records the tooling split (`@walnut/tooling` → `@walnut/scripts` + `@walnut/release`) and the
+  `fixed` group growing from 12 to 14 packages
+- References: release orchestration lives in `packages/tooling/release/src/release/`
   (module map in that package's `README.md`); operator guide in
   [`monorepo/release.md`](/content/monorepo/release)

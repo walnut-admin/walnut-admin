@@ -26,7 +26,7 @@ packages:
   - 'packages/tooling/*'
 ```
 
-声明哪些目录是 pnpm workspace 成员。`apps/` 下 3 个应用 + `packages/` 下按平台分组的 9 个包（`platform-any` 纯逻辑包、`platform-web` 前端包、`tooling` 工具链包），共 12 个 workspace 包。
+声明哪些目录是 pnpm workspace 成员。`apps/` 下 3 个应用 + `packages/` 下按平台分组的 11 个包（`platform-any` 3 个纯逻辑包、`platform-web` 3 个前端包、`tooling` 5 个工具链包），共 14 个 workspace 包。
 
 ### `versioning`
 
@@ -34,19 +34,21 @@ packages:
 versioning:
   changelog:
     storage: registry        # changelog 由 git-cliff 逐包写，pnpm 不落文件
-  fixed:                     # 单一组：全部 12 个 workspace 包永远同版本
+  fixed:                     # 单一组：全部 14 个 workspace 包永远同版本
     -
       - '@walnut/admin'
-      # … 其余 11 个（apps 3 + platform-any 3 + platform-web 3 + tooling 3）
+      # … 其余 13 个（apps 3 + platform-any 3 + platform-web 3 + tooling 5）
 ```
 
-**本段是版本策略的唯一真源**——取代原来的 `.changeset/config.json`（已删除）。意图文件仍是 changesets 格式（`.changeset/*.md`）：由 `pnpm change` 写、`pnpm version -r` 消费、消费结果记进 `.changeset/ledger.yaml`；发版编排在 `packages/tooling/scripts/src/release/`。详见 [发布 & 发版指南](./release.md)。
+**本段是版本策略的唯一真源**——取代原来的 `.changeset/config.json`（已删除）。意图文件仍是 changesets 格式（`.changeset/*.md`）：由 `pnpm change` 写、`pnpm version -r` 消费、消费结果记进 `.changeset/ledger.yaml`；发版编排在 `packages/tooling/release/src/release/`。详见 [发布 & 发版指南](./release.md)。
 
 为什么是**一个** fixed 组（而不是历史上的 Apps 3 + Packages 9 两组）：pnpm 的 fixed 组各自独立，只动共享包的发版会只 bump Packages 组、`apps/admin` 版本不变 ⇒ 编排命中"版本号未变更，跳过发版"而退出 0，留下"已被 bump 却永远不会打 tag"的脏工作区。单组从结构上消灭这条路径，发布 tag `vX.Y.Z` 因此永远只有唯一来源。
 
 > ⚠️ 新增 workspace 包时**必须**把它加进 `fixed`，否则 `pnpm change check`（CI 与 pre-push 都会跑）报锁步失败。
 
 > 本次发版迁移对 catalog 的增删：新增 `git-cliff@2.13.1`、`lefthook@2.1.14`、`yaml@2.9.0`；移除 `@changesets/cli`、`@changesets/changelog-github`、`simple-git-hooks`。
+
+> 2026-09-23 工具链拆分对 catalog 的增删：新增 `jiti@2.7.0`（ESLint 加载 `eslint.config.ts` 的官方 TS 加载器，根 devDependency）；`yaml@2.9.0` 与 `git-cliff@2.13.1` 的所有权从根/`@walnut/tooling` 下沉——`yaml` 变为 `@walnut/release` 的 dependency（同时是 `@walnut/scripts` 的 devDependency，只给 lefthook 配置的审计用例用），`git-cliff` 变为 `@walnut/release` 的 dependency；`@dotenvx/dotenvx@2.19.0` 变为 `@walnut/scripts` 的 dependency。改动后 catalog 共 243 条。`tsx@4.21.0` **仍在 catalog 里**：工具链已不用它（bin 走 Node 原生类型剥离），但 `apps/admin` 的 `predev` / `types:check:log` 还在用。
 
 ### `hoist: false`
 
@@ -192,4 +194,5 @@ blockExoticSubdeps: true
 - [pnpm Catalog](./pnpm-catalog.md) — catalog 详细用法
 - [ADR-0012: Toolchain Divergence](../adr/0012-toolchain-divergence.md) — hoisting 和 public-hoist-pattern 的决策背景
 - [ADR-0011: Dependency Governance](../adr/0011-dependency-governance-release.md) — catalogMode strict 的决策背景
+- [ADR-0019: 共享 tsconfig 预设包与「无 `.mjs`」约束](../adr/0019-tsconfig-presets-and-no-mjs.md) — `versioning.fixed` 12 → 14、catalog 增删的决策背景
 - [供应链安全（pnpm 官方）](https://pnpm.io/supply-chain-security)

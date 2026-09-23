@@ -42,6 +42,7 @@
     "@types/lodash-es": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "@walnut/eslint-config": "workspace:*",
+    "@walnut/tsconfig": "workspace:*",
     "jsdom": "catalog:",
     "pinia": "catalog:",
     "rimraf": "catalog:",

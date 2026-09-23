@@ -14,7 +14,7 @@
   - 未使用 commit lint（因短期内项目由个人开发维护，后续若有社区参与，可能重新添加）。
 
 ## 二、当前 [ESLint] 配置文件详情
-- 位置：项目根目录下的 <WFrontLink path="/eslint.config.mjs">`eslint.config.mjs`</WFrontLink>。
+- 位置：项目根目录下的 <WFrontLink path="/eslint.config.ts">`eslint.config.ts`</WFrontLink>（2026-09-23 起全仓配置文件统一为 `.ts`，不再有 `.mjs`；见 [ADR 0019](/content/adr/0019-tsconfig-presets-and-no-mjs)）。
 - 内容：
   - 包含一些对默认规则的 override（重写）。
   - 开启 <WBaseLink preset="unocss">unocss</WBaseLink> 的 [ESLint] 配置，涉及样式顺序等校验规则的设置。

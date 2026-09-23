@@ -112,7 +112,7 @@ Turbo 2.9 的实验性功能——通过标签声明包的角色并强制依赖�
 }
 ```
 
-各包的标签（platform 维度，2026-08-08）：
+各包的标签（platform 维度，2026-08-08；`packages/tooling/` 于 2026-09-23 拆成 5 个包后同步为 14 行）：
 
 | 包 | 标签 |
 |----|------|
@@ -125,9 +125,15 @@ Turbo 2.9 的实验性功能——通过标签声明包的角色并强制依赖�
 | `@walnut/client` | `shared`, `platform-web` |
 | `@walnut/http` | `shared`, `platform-web` |
 | `@walnut/ui` | `shared`, `platform-web` |
+| `@walnut/tsconfig` | `tooling`, `platform-any` |
 | `@walnut/eslint-config` | `tooling`, `platform-any` |
-| `@walnut/tooling` | `tooling`, `platform-any` |
 | `@walnut/commitlint-config` | `tooling`, `platform-any` |
+| `@walnut/scripts` | `tooling`, `platform-any` |
+| `@walnut/release` | `tooling`, `platform-any` |
+
+> 5 个 tooling 包的 workspace 级 `turbo.json` 内容相同（`{"extends": ["//"], "tags": ["tooling", "platform-any"]}`）——
+> 预设包是纯 JSON、脚本包由 Node 原生执行，**没有一个**依赖 `platform-web` 或某个 app。
+> 原先那一行 `@walnut/tooling` 已随拆包消失。
 
 ```bash
 pnpm turbo boundaries   # 检查是否有包违反了边界规则（pre-push 与 CI 中强制执行）

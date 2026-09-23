@@ -1,0 +1,39 @@
+{
+  "name": "@walnut/release",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "description": "发版编排：变更意图 → 确认 bump → pnpm version -r 消费 → git-cliff 逐包 changelog → Release 正文 → 提交/门禁/打标/推送。唯一的 bin 是 walnut-release（根 `pnpm release`）。",
+  "license": "MIT",
+  "bin": {
+    "walnut-release": "./bin/release.ts"
+  },
+  "engines": {
+    "node": ">=24.13.0",
+    "pnpm": ">=12.0.0"
+  },
+  "scripts": {
+    "lint": "eslint . --concurrency=auto",
+    "lint:fix": "eslint . --fix --concurrency=auto",
+    "types:check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@walnut/scripts": "workspace:*",
+    "git-cliff": "catalog:",
+    "yaml": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@walnut/tsconfig": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "walnut": {
+    "platform": "any",
+    "type": "tooling",
+    "runtime": "none"
+  }
+}

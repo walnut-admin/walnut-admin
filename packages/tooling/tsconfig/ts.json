@@ -1,0 +1,16 @@
+{
+  // ── Node / 纯逻辑 / 工具链 ──
+  // 用于：packages/platform-any/*（平台无关纯逻辑）与 packages/tooling/{scripts,release}。
+  // 仓库根 tsconfig.json 走的是 base.json —— 根级配置由 jiti / commitlint 的 TS loader 加载，
+  // 不经 Node 原生类型剥离，故不需要 erasableSyntaxOnly。
+  //
+  // 相对 base 只加一件事：**erasableSyntaxOnly**。
+  "extends": "./base.json",
+  "compilerOptions": {
+    // 这些包的源码会被 **Node 原生执行**（仓库脚本的 bin、build-barrel 这类构建脚本、
+    // 以及 ESLint / commitlint 直接加载的配置），靠 Node 24 的类型剥离而不是 tsx/ts-node。
+    // 类型剥离只支持**可擦除语法**（无 enum、无非 ambient namespace、无构造函数参数属性、
+    // 无 `import =`），本开关让 tsc 在编译期就拦住这些写法 —— 否则要到运行时才炸。
+    "erasableSyntaxOnly": true
+  }
+}

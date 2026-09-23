@@ -1,15 +1,17 @@
 {
-  "name": "@walnut/tooling",
+  "name": "@walnut/scripts",
   "type": "module",
   "version": "0.0.1",
   "private": true,
-  "description": "仓库级脚本的家：发版编排（release/）、仓库门禁（ci/）、env 加解密（env/）、通用纯逻辑（lib/）。不对外导出——由根 package.json 的脚本经 bin 调用。",
+  "description": "仓库级脚本的通用层：纯逻辑工具（src/lib）、仓库门禁（src/ci）、env 加解密（src/env）。不对外导出成品功能，只导出被其它工具包复用的模块与三个 bin。",
   "license": "MIT",
+  "exports": {
+    "./lib/*": "./src/lib/*.ts"
+  },
   "bin": {
-    "walnut-release": "./bin/release.mjs",
-    "walnut-lint-workflows": "./bin/lint-workflows.mjs",
-    "walnut-setup-env": "./bin/setup-env.mjs",
-    "walnut-check-git-hooks": "./bin/check-git-hooks.mjs"
+    "walnut-lint-workflows": "./bin/lint-workflows.ts",
+    "walnut-setup-env": "./bin/setup-env.ts",
+    "walnut-check-git-hooks": "./bin/check-git-hooks.ts"
   },
   "engines": {
     "node": ">=24.13.0",
@@ -23,15 +25,15 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "git-cliff": "catalog:",
-    "tsx": "catalog:",
-    "yaml": "catalog:"
+    "@dotenvx/dotenvx": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@walnut/tsconfig": "workspace:*",
     "eslint": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "yaml": "catalog:"
   },
   "walnut": {
     "platform": "any",

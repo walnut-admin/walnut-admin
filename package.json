@@ -22,7 +22,6 @@
   "scripts": {
     "dev": "turbo dev --filter=@walnut/admin",
     "dev:all": "turbo dev",
-    "dev:admin": "turbo dev --filter=@walnut/admin",
     "dev:server": "turbo dev --filter=@walnut/server",
     "dev:docs": "turbo dev --filter=@walnut/docs",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 turbo build",
@@ -32,8 +31,8 @@
     "build:stage": "cross-env NODE_OPTIONS=--max-old-space-size=8192 turbo build:stage --filter=@walnut/admin",
     "preview": "turbo preview",
     "lint": "turbo lint",
-    "lint:root": "eslint *.mjs *.json *.yaml --concurrency=auto",
-    "lint:root:fix": "eslint *.mjs *.json *.yaml --fix --concurrency=auto",
+    "lint:root": "eslint *.ts *.json *.yaml --concurrency=auto",
+    "lint:root:fix": "eslint *.ts *.json *.yaml --fix --concurrency=auto",
     "lint:workflows": "walnut-lint-workflows",
     "lint:fix": "turbo lint:fix",
     "images:build": "docker buildx bake --file docker-bake.hcl",
@@ -43,7 +42,7 @@
     "types:check": "turbo types:check",
     "test": "turbo test",
     "hooks:check": "walnut-check-git-hooks",
-    "prepush": "pnpm boundaries && pnpm types:check && pnpm syncpack:lint && pnpm lint:workflows && pnpm change check",
+    "prepush": "pnpm boundaries && pnpm lint:root && pnpm types:check && pnpm syncpack:lint && pnpm lint:workflows && pnpm change check",
     "clean": "turbo clean",
     "clean:all": "rimraf node_modules apps/*/node_modules packages/*/node_modules packages/*/*/node_modules build/node_modules",
     "setup-env": "walnut-setup-env decrypt",
@@ -52,7 +51,7 @@
     "knip:fix": "cross-env NODE_OPTIONS=--max-old-space-size=8192 knip --fix",
     "knip:packages": "cross-env NODE_OPTIONS=--max-old-space-size=8192 knip --workspace ./packages/*/*",
     "knip:apps": "cross-env NODE_OPTIONS=--max-old-space-size=8192 knip --workspace ./apps/*",
-    "check:deps:update": "npx taze major -l",
+    "check:deps:update": "taze major -l",
     "syncpack:lint": "syncpack lint --dependency-types dev,prod",
     "syncpack:fix": "syncpack fix",
     "inspect:node-modules": "node-modules-inspector",
@@ -60,15 +59,16 @@
     "release": "walnut-release"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "catalog:",
     "@commitlint/cli": "catalog:",
-    "@dotenvx/dotenvx": "catalog:",
     "@types/node": "catalog:",
     "@walnut/commitlint-config": "workspace:*",
     "@walnut/eslint-config": "workspace:*",
-    "@walnut/tooling": "workspace:*",
+    "@walnut/release": "workspace:*",
+    "@walnut/scripts": "workspace:*",
+    "@walnut/tsconfig": "workspace:*",
     "cross-env": "catalog:",
     "eslint": "catalog:",
+    "jiti": "catalog:",
     "knip": "catalog:",
     "lefthook": "catalog:",
     "lint-staged": "catalog:",
@@ -80,6 +80,6 @@
     "typescript": "catalog:"
   },
   "lint-staged": {
-    "*.{ts,vue,mjs,js}": "eslint --fix --concurrency=auto"
+    "*.{ts,vue,js}": "eslint --fix --concurrency=auto"
   }
 }

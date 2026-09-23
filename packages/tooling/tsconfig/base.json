@@ -1,0 +1,36 @@
+{
+  // ── 环境无关基线 ──
+  // 只放「与运行环境无关」的编译语义：严格性、模块系统、互操作、发射开关。
+  // 刻意**不含** lib 之外的运行环境假设：jsx / jsxImportSource / types / erasableSyntaxOnly
+  // 都留给下层预设补齐：
+  //   · ts.json  = Node / 纯逻辑 / 工具链（不开 JSX；额外要求可剥离语法）
+  //   · vue.json = 浏览器 + Vue（DOM lib、Vue JSX 运行时）
+  // 直接 extends 本文件的消费者 = 由 jiti / commitlint 的 TS loader 加载、不经 tsc 发射的根级配置：
+  // 仓库根 tsconfig.json、@walnut/eslint-config、@walnut/commitlint-config。
+  "compilerOptions": {
+    "target": "ESNext",
+    // 默认**不含 DOM**：写 `document` 之类的浏览器全局在纯逻辑包里应当直接编译失败。
+    // 浏览器包经 vue.json 显式补上（数组型选项是覆盖而非合并，所以这里写基线的那个值）。
+    "lib": ["ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowJs": true,
+    // 严格性基线：逐包加强项（noUncheckedIndexedAccess 等）各自 opt-in，不在基线里一刀切
+    "strict": true,
+    // 本仓只做类型检查（真实产物由 Vite / vue-tsc / SWC / Nest CLI 负责）
+    "noEmit": true,
+    "importHelpers": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    // 源码直消费的包（@walnut/* 走 exports 指到 .ts）以及被 Node 原生执行的脚本，
+    // 其内部相对导入必须带显式 `.ts` 扩展名（ESM 不做扩展名推断）。
+    // 该开关要求 noEmit（上面已设），因此不会与产物语义冲突。
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "ignoreDeprecations": "6.0"
+  }
+}

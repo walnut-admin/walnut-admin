@@ -67,6 +67,11 @@ jobs:
       - name: Lint (affected)
         run: pnpm exec turbo run lint --affected
 
+      # 根级配置（eslint.config.ts / commitlint.config.ts / knip.config.ts）既不在任何包的
+      # lint 范围里，也不进 turbo 的 affected 图 —— 必须显式跑，否则只有本地 pre-push 拦得住。
+      - name: Lint root configs
+        run: pnpm lint:root
+
       - name: Type check (affected)
         run: pnpm exec turbo run types:check --affected
 

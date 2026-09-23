@@ -46,6 +46,10 @@ packages/
     └── eslint-config/     @walnut/eslint-config
 ```
 
+> 2026-09-23 更新：`tooling/` 已从 1 个目录长到 5 个包 —— 新增 `tsconfig/`（`@walnut/tsconfig`）、
+> `commitlint-config/`、`scripts/`（`@walnut/scripts`）、`release/`（`@walnut/release`）。
+> 拆包理由与边界见 [ADR 0019](0019-tsconfig-presets-and-no-mjs.md)。
+
 **标签体系**（每个包的 `package.json` 中声明）：
 
 | 维度 | 标签 | 说明 |
@@ -274,7 +278,7 @@ export function createWalnutStore<T>(storeKey: string, setup: () => T): () => T 
 | 重命名 | `@walnut/axios` → `@walnut/http`，目录 `packages/axios/` → `packages/platform-web/http/` |
 | 抽象 `location.pathname` | `cancel.ts` 中唯一的浏览器 only 行：将"当前页面 key"改为可注入参数，默认值用 `typeof location !== 'undefined' ? location.pathname : '/'`——这样整个包在 Node 中也能跑 |
 | 更新依赖声明 | 所有 `@walnut/axios` import → `@walnut/http` |
-| Server ESLint 规则同步 | `nest.mjs` 中的 `no-restricted-imports` 从 `@walnut/axios*` 改为 `@walnut/http*` |
+| Server ESLint 规则同步 | `nest.ts` 中的 `no-restricted-imports` 从 `@walnut/axios*` 改为 `@walnut/http*` |
 
 ### 实际上的双运行时能力
 
@@ -380,7 +384,7 @@ Switch, Table, TimePicker, Tree, TreeSelect
 ### 同步更新
 
 ```diff
-# nest.mjs — no-restricted-imports
+# nest.ts — no-restricted-imports
 - "@walnut/client*"
 - "@walnut/axios*"
 + "@walnut/client*"      // platform-web，后端不能 import
@@ -471,7 +475,7 @@ Switch, Table, TimePicker, Tree, TreeSelect
   // 改为可注入参数，默认值兼容 Node
   const currentPath = typeof location !== 'undefined' ? location.pathname : '/'
   ```
-- 更新 ESLint `nest.mjs` 的 `no-restricted-imports`：`@walnut/axios*` → `@walnut/http*`
+- 更新 ESLint `nest.ts` 的 `no-restricted-imports`：`@walnut/axios*` → `@walnut/http*`
 - `@walnut/server` 的 `package.json` 移除 `@walnut/axios` 依赖声明（死依赖）
 - **验证**：`pnpm types:check` + `pnpm lint`；前端 API 调用正常；`grep -r "@walnut/axios" apps/ packages/` 零结果
 
@@ -486,7 +490,7 @@ Switch, Table, TimePicker, Tree, TreeSelect
 
 - `turbo.json` boundaries 标签同步新包名 + platform 标签
 - `pnpm-workspace.yaml` 确认所有子目录被正确匹配
-- ESLint `nest.mjs` `no-restricted-imports` 补全 `@walnut/ui*`/`@walnut/i18n*`/`@walnut/security*`
+- ESLint `nest.ts` `no-restricted-imports` 补全 `@walnut/ui*`/`@walnut/i18n*`/`@walnut/security*`
 - 更新所有 ADR 文档中引用的旧 package 名
 - **验证**：`turbo boundaries` 零违规；`pnpm build` 全量构建成功
 

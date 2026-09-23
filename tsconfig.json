@@ -1,14 +1,13 @@
 {
-  "extends": "./tsconfig.base.json",
+  "extends": "@walnut/tsconfig/base.json",
   "compilerOptions": {
-    "lib": ["ESNext"],
+    "baseUrl": ".",
     "types": ["node"]
   },
+  // 仓库根只覆盖「根目录下由工具加载的配置」：eslint.config.ts / commitlint.config.ts / knip.config.ts。
+  // 它们各自被 ESLint / commitlint / knip 的 TS loader 加载（不是 Node 原生剥离类型）⇒ 用 base 预设。
   "include": [
-    "*.mjs",
-    "*.ts",
-    "*.js",
-    "scripts"
+    "*.ts"
   ],
   "exclude": ["node_modules", "dist", ".turbo", "**/dist/**"]
 }

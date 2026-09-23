@@ -93,13 +93,9 @@ const config: KnipConfig = {
     'packages/platform-web/http': {
       entry: ['src/index.ts'],
     },
-    'packages/tooling/eslint-config': {
-      entry: ['base.mjs', 'vue.mjs', 'nest.mjs', 'nest-local-rules.mjs'],
-    },
-    // 仓库级脚本包：入口全是 bin（一文件一个命令），其余为被 import 的模块
-    'packages/tooling/scripts': {
-      entry: ['bin/*.mjs'],
-    },
+    // ⚠️ packages/tooling/* 刻意**不写 entry**：knip 能从 package.json 的 `exports`（预设/通用能力）
+    // 与 `bin`（命令入口）自己推出入口文件。显式列一遍既是重复，也会随包结构变化而腐化 ——
+    // knip 的 Configuration hints 一直在提示这一点，本轮按其建议删掉。
   },
 
   // ============================================================
@@ -109,6 +105,11 @@ const config: KnipConfig = {
     '**/dist/**',
     '**/.turbo/**',
     '**/node_modules/**',
+
+    // 纯 JSON 的 tsconfig 预设包：没有源码、没有导入。knip 会把预设里的
+    // `jsxImportSource: "vue"` 读成「未声明的依赖 vue」、把 `importHelpers: true` 读成
+    // 「未解析的导入 tslib」—— 两者都是 tsconfig 选项，不是模块引用，属确定性误报。
+    'packages/tooling/tsconfig/**',
 
     // 测试
     '**/*.test.ts',
@@ -257,7 +258,7 @@ const config: KnipConfig = {
     'lint-staged',
     'knip',
 
-    // --- commitlint（通过 index.mjs 的 extends 字符串引用，knip 追踪不到） ---
+    // --- commitlint（通过 index.ts 的 extends 字符串引用，knip 追踪不到） ---
     '@commitlint/config-conventional',
 
     // --- 发版（git-cliff 走编程 API 调用，但平台二进制由它自己的 optionalDependencies 提供） ---
@@ -273,10 +274,13 @@ const config: KnipConfig = {
     'nodemon',
     'vite-tsconfig-paths',
 
-    // --- ESLint config 包在 devDependencies 中的引用 ---
+    // --- 工具链包在根 devDependencies 里的引用（都通过 bin 或 tsconfig extends 使用） ---
     '@walnut/eslint-config',
-    // --- 仓库级脚本包：根 scripts 通过它的 bin 调用（release / lint:workflows / setup-env） ---
-    '@walnut/tooling',
+    '@walnut/commitlint-config',
+    '@walnut/tsconfig',
+    // 根 scripts 通过它们的 bin 调用：release / lint:workflows / setup-env / check-git-hooks
+    '@walnut/scripts',
+    '@walnut/release',
   ],
 }
 

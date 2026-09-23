@@ -13,8 +13,8 @@ import process from 'node:process'
  * 会强制安装并执行，那里才是权威闸门。
  * LINK https://github.com/rhysd/actionlint
  *
- * 本文件由 `scripts/lint-workflows.ts` 收编而来（@walnut/tooling 是仓库级脚本的家），
- * 行为一字未改；`pnpm lint:workflows` 现在指向本模块的 bin。
+ * 本文件由根 `scripts/lint-workflows.ts` 收编而来（仓库级脚本的家现在是 @walnut/scripts），
+ * 行为一字未改；`pnpm lint:workflows` 指向本目录 bin。
  */
 export function main(): number {
   const probe = spawnSync('actionlint', ['--version'], { encoding: 'utf8', shell: true })

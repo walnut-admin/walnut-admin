@@ -18,20 +18,21 @@ Three questions need explicit decisions:
 
 **Rationale:**
 - **Single source of truth** — upgrade an ESLint plugin once, all consumers pick it up
-- **3 presets match the 3 runtime environments:**
-  - `base.mjs` — TypeScript, `no-namespace: off`, `no-console: off` (currently zero consumers — shared packages have no local `eslint.config.mjs` and fall back to the root Vue preset via upward resolution)
-  - `vue.mjs` — extends base + UnoCSS + Vue + TypeScript + pnpm catalog enforcement
-  - `nest.mjs` — extends base + TypeScript project mode + NestJS-specific rules (decorator ordering, restrict frontend imports `@walnut/client`/`@walnut/http`)
+- **3 presets match the 3 runtime environments**（2026-09-23 起全部为 `.ts`，见 [ADR 0019](0019-tsconfig-presets-and-no-mjs.md)）:
+  - `base.ts` — TypeScript, `no-namespace: off`, `no-console: off` (currently zero consumers — shared packages mostly have no local ESLint config; `packages/platform-web/ui` writes one and uses the `vue` preset, the rest fall back to the root `vue` preset via upward resolution)
+  - `vue.ts` — extends base + UnoCSS + Vue + TypeScript + pnpm catalog enforcement
+  - `nest.ts` — extends base + TypeScript project mode + NestJS-specific rules (decorator ordering via the local `nest-local-rules.ts` plugin, restrict frontend imports `@walnut/client`/`@walnut/http`/`@walnut/ui`)
 - **ESLint plugins live in the config package's `dependencies`** — consumers only need to `extends` the preset
 - `eslint` itself is a `peerDependency` — avoids multiple ESLint versions coexisting
+- **ESLint loads `eslint.config.ts` through `jiti`** (ESLint's official TS config loader), which is why the root gained a `jiti` devDependency. The package's own `types:check` is a real `tsc --noEmit` (it used to be a no-op `echo`)
 
 **Consumer pattern:**
-```js
-// apps/admin/eslint.config.mjs
+```ts
+// apps/admin/eslint.config.ts
 import vueConfig from "@walnut/eslint-config/vue";
 export default vueConfig();
 
-// apps/server/eslint.config.mjs
+// apps/server/eslint.config.ts
 import nestConfig from "@walnut/eslint-config/nest";
 export default nestConfig();
 ```
@@ -66,6 +67,8 @@ export default nestConfig();
 
 ## Related
 
-- `packages/tooling/eslint-config/` — source code for the config package
+- `packages/tooling/eslint-config/` — source code for the config package（预设为 `base.ts` / `vue.ts` / `nest.ts`，另有本地规则插件 `nest-local-rules.ts`）
+- [ADR 0012](0012-toolchain-divergence.md) Decision 7 — ESLint type-aware rules relaxed for workspace imports
+- [ADR 0019](0019-tsconfig-presets-and-no-mjs.md) — 全仓 `.mjs` → `.ts`（含本包的 4 个文件：3 个预设 + `nest-local-rules`），以及 `jiti` 的引入
 - `apps/docs/src/zh-CN/content/industry-research/02-eslint-configuration.md` — industry standard practices for ESLint in monorepos
-- `docs/adr/0012-toolchain-divergence.md` D7 — ESLint type-aware rules relaxed for workspace imports
+- [`monorepo/eslint.md`](/content/monorepo/eslint) — operator-facing ESLint guide

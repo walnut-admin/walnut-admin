@@ -30,12 +30,16 @@
   "devDependencies": {
     "@types/lodash-es": "catalog:",
     "@walnut/eslint-config": "workspace:*",
+    "@walnut/tsconfig": "workspace:*",
     "rimraf": "catalog:",
     "typescript": "catalog:"
   },
   "walnut": {
     "platform": "web",
     "type": "http",
-    "runtime": ["dom", "vue"]
+    "runtime": [
+      "dom",
+      "vue"
+    ]
   }
 }

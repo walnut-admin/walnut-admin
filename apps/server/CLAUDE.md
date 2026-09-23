@@ -39,7 +39,7 @@ pnpm start:stage       # Staging direct Node execution
 ## System Requirements
 
 - Node.js >= 24.13.0
-- pnpm >= 11.0.0 (enforced via packageManager + preinstall hook)
+- pnpm >= 12.0.0 (enforced via the `packageManager` field + corepack + `engineStrict`; the old `preinstall` hook was removed in the 2026-09-21 pnpm 12 migration)
 - MongoDB replica set (required for transactions)
 - Redis 7.x+
 

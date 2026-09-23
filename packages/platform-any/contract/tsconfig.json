@@ -1,8 +1,13 @@
 {
-  "extends": "../../../tsconfig.base.json",
+  "extends": "@walnut/tsconfig/ts.json",
   "compilerOptions": {
-    "baseUrl": "."
+    "baseUrl": ".",
+    // `scripts/build-barrel.ts` 是构建期脚本（Node 原生执行），需要 Node 类型。
+    // 显式列 `types` 而不是留空自动包含：把可见的全局类型收窄到 Node —— 与 @walnut/utils 同口径。
+    "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
+  // `scripts/` 是构建期脚本（把 dist 的多个 .cjs 合成一个 barrel），
+  // 由 Node 原生执行 ⇒ 必须一起进类型检查，erasableSyntaxOnly 才对它生效。
+  "include": ["src/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

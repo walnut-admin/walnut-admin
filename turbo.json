@@ -26,10 +26,12 @@
   },
   "globalDependencies": [
     "package.json",
-    "tsconfig.base.json",
     "tsconfig.json",
-    "eslint.config.mjs",
-    "pnpm-workspace.yaml"
+    "eslint.config.ts",
+    "commitlint.config.ts",
+    "knip.config.ts",
+    "pnpm-workspace.yaml",
+    "packages/tooling/tsconfig/*.json"
   ],
   "globalEnv": ["NODE_ENV"],
   "globalPassThroughEnv": [

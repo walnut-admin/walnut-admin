@@ -8,7 +8,7 @@
 
 | Workflow | 触发 | 内容 | 是否会构建容器 |
 |----------|------|------|----------------|
-| `ci.yml` | push `main`、PR | boundaries → affected lint/types:check/test → affected 自检 → syncpack → `pnpm change check` → server 构建（+ 有 secret 时 admin 构建） | ❌ |
+| `ci.yml` | push `main`、PR | boundaries → affected lint/types:check/test → 根级配置 lint（`pnpm lint:root`，不进 affected 图）→ affected 自检 → syncpack → `pnpm change check` → server 构建（+ 有 secret 时 admin 构建） | ❌ |
 | `workflow-lint.yml` | `.github/**` 变更 | actionlint 校验所有 workflow 与本地 composite action | ❌ |
 | `release.yml` | tag `v*.*.*` | verify ∥ images → GitHub Release → 自动部署 | ✅ 仅此一处 |
 | `deploy.yml` | `workflow_call`（被 release 复用）/ `workflow_dispatch`（回滚重发） | 纯部署：校验镜像存在 → 生成 env → scp → `compose pull && up -d --wait` → 健康检查 → **部署后验证（post-verify）**。入参 `image_tag`（必填）+ `environment`（默认 `prod`，目前只有 `prod`） | ❌ |

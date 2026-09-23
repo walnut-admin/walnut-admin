@@ -7,10 +7,10 @@
 | 环节 | 谁负责 |
 |------|--------|
 | 版本号怎么定 | **pnpm 原生 release management**（`pnpm change` 写意图 → `pnpm version -r` 消费） |
-| CHANGELOG 怎么出 | **git-cliff** 逐包渲染，由 `@walnut/tooling` 的 `release/changelog.ts` 写入（**唯一写入者**） |
+| CHANGELOG 怎么出 | **git-cliff** 逐包渲染，由 `@walnut/release` 的 `src/release/changelog.ts` 写入（**唯一写入者**） |
 | GitHub Release 正文 | `pnpm release` 生成的根 `changelog-latest.md`（随 release commit 提交） |
 | 创建 GitHub Release | `.github/workflows/release.yml`（tag 推送触发，本地不调 API） |
-| 发了什么 | 12 个包的版本号 + 各包 `CHANGELOG.md` + `changelog-latest.md` + `.changeset/ledger.yaml` + git tag `vX.Y.Z` + push（分支 + tag） |
+| 发了什么 | 14 个包的版本号 + 各包 `CHANGELOG.md` + `changelog-latest.md` + `.changeset/ledger.yaml` + git tag `vX.Y.Z` + push（分支 + tag） |
 
 > ⚠️ 本仓**不用** `@changesets/cli`。意图文件仍是 changesets 格式（`pnpm change` 沿用），但版本策略的
 > 唯一真源是根 [`pnpm-workspace.yaml`](../../../../../pnpm-workspace.yaml) 的 `versioning` 段，
@@ -23,13 +23,16 @@ versioning:
   changelog:
     storage: registry        # changelog 由 git-cliff 写，pnpm 不落文件（避免同一版本两段）
   fixed:
-    -                           # 单一组：全部 12 个 workspace 包永远同版本
+    -                           # 单一组：全部 14 个 workspace 包永远同版本
       - '@walnut/admin'
-      # … 其余 11 个
+      # … 其余 13 个
 ```
 
-12 个包（`apps/*` 3 个 + `platform-any` 3 个 + `platform-web` 3 个 + `tooling` 3 个）**永远同一个版本号**，
+14 个包（`apps/*` 3 个 + `platform-any` 3 个 + `platform-web` 3 个 + `tooling` 5 个）**永远同一个版本号**，
 发布 tag `vX.Y.Z` 因此永远有唯一来源（取组内版本，基准是 `apps/admin`）。
+
+> `tooling` 那 5 个是 `@walnut/tsconfig` / `@walnut/eslint-config` / `@walnut/commitlint-config` /
+> `@walnut/scripts` / `@walnut/release`（2026-09-23 由 `@walnut/tooling` 单包拆分而来，见 [ADR 0019](/content/adr/0019-tsconfig-presets-and-no-mjs)）。
 
 ### 为什么是「一组」而不是历史上的「Apps 组 + Packages 组」
 
@@ -46,7 +49,7 @@ pnpm 的 fixed 组**各自独立**。两个组的写法会留下一条结构性�
 
 ## 提交纪律（发版的前提）
 
-commitlint 强制（见 [`@walnut/commitlint-config`](../../../../../packages/tooling/commitlint-config/index.mjs)）：
+commitlint 强制（见 [`@walnut/commitlint-config`](../../../../../packages/tooling/commitlint-config/index.ts)）：
 
 **`type(包名): message`** —— scope 必填，且必须是包名或基础设施 scope：
 
@@ -65,6 +68,11 @@ feat(deploy): 部署后验证           ← 基础设施 scope
 | platform-web | `client` `http` `ui` |
 | tooling | `eslint-config` `commitlint-config` `tooling` |
 | 基础设施 | `docker` `deploy` `pnpm` `release` |
+
+> 白名单真源是 `packages/tooling/commitlint-config/index.ts` 的 `SCOPES`。`tooling` 这个 scope 保留给
+> 工具链包的改动（`@walnut/scripts` / `@walnut/release` / `@walnut/tsconfig` 都在 `packages/tooling/` 下，
+> 归属规则按**路径**命中这些包）；`release` 是**发版记账提交专用**的 infra scope（`chore(release): vX.Y.Z`），
+> 不产生变更意图。
 
 ### 归属规则（决定「这条提交要不要发版」）
 
@@ -132,13 +140,20 @@ pnpm release
 | id | 内容 |
 |----|------|
 | `boundaries` | `turbo boundaries` |
-| `lint` | `turbo run lint lint:root`（含**根级文件**的 lint 任务） |
+| `lint` | `turbo run lint`（所有包，不排任何包） |
+| `lint-root` | `pnpm lint:root`（**根级文件**的 lint：`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
 | `types` | `turbo run types:check` |
 | `test` | `turbo run test` |
 | `syncpack` | `syncpack lint` |
 | `versioning` | `pnpm change check`（fixed 组锁步） |
 | `workflows` | actionlint |
 | `build` | ⏭️ **默认暂缓**：镜像由 `release.yml` 的 images job 真正构建；要跑就删掉表里那行的 `skip` |
+
+> ⚠️ `lint-root` 必须是**独立一行**、且经根脚本跑（`pnpm lint:root`），**不能**并进上一条写成
+> `turbo run lint lint:root` —— `lint:root` 只是根 `package.json` 的脚本、不是 turbo 任务，
+> `turbo run lint:root` 会直接以 `Could not find task 'lint:root' in project` 非 0 退出
+> （2026-09-23 实测：这会让**每一次发版都在打 tag 之前失败**）。`steps.test.ts` 钉住了这一形状：
+> 断言 `lint:root` 独立成行、且没有任何一条 argv 把 `lint:root` 交给 `turbo`。
 
 **为什么是刻意的**：不跑门禁时，release 完全依赖 `git push` 顺带触发的 pre-push 钩子 ——
 而 push 发生在打 tag **之后**。于是「本地全绿、发版成功、CI 的 verify 却红」是可达的，
@@ -250,7 +265,7 @@ pnpm release --status      # 公开仓无需 token 即可查询远端 Release
 | [`.changeset/`](../../../../../.changeset/) | 意图（`*.md`）、消费台账（`ledger.yaml`）、写前日志（gitignored） |
 | [`cliff.toml`](../../../../../cliff.toml) | changelog 渲染规则 |
 | [`lefthook.yml`](../../../../../lefthook.yml) | git 钩子唯一真源 |
-| `packages/tooling/scripts/src/release/` | 发版编排（模块地图见该包的 README） |
+| `packages/tooling/release/src/release/` | 发版编排（模块地图见该包的 README） |
 | [`.github/workflows/release.yml`](../../../../../.github/workflows/release.yml) | tag 推送 → 镜像 → GitHub Release → 部署 |
 
 ## 相关 ADR

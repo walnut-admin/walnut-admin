@@ -1,0 +1,12 @@
+{
+  // ── 浏览器 + Vue ──
+  // 用于：apps/admin、apps/docs、packages/platform-web/*（client / http / ui）。
+  // 这些包全部由 Vite / vue-tsc 编译，**不经 Node 原生剥离类型**，因此不需要 erasableSyntaxOnly。
+  "extends": "./base.json",
+  "compilerOptions": {
+    // 数组型选项是覆盖：这里整体替换 base 的 `lib: ["ESNext"]`
+    "lib": ["DOM", "ESNext", "DOM.Iterable"],
+    "jsx": "preserve",
+    "jsxImportSource": "vue"
+  }
+}

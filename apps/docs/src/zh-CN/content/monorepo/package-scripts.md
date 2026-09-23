@@ -28,7 +28,7 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 
 **一致性 > 自由度**。不要有的包叫 `lint`，有的叫 `eslint`——Turbo 需要统一的 task 名来编排。
 
-> 注：以上是**理想约定**，实际并非每个包都齐备——目前有 `test` 脚本的是 server / contract / utils / client / tooling（server 的覆盖率脚本叫 `test:cov` 而非 `test:coverage`，utils / client 带 `--passWithNoTests`）；eslint-config 只有 `lint` / `lint:fix` / `types:check`，没有 `test`。
+> 注：以上是**理想约定**，实际并非每个包都齐备——目前有 `test` 脚本的是 server / contract / utils / client / scripts / release（server 的覆盖率脚本叫 `test:cov` 而非 `test:coverage`，utils / client 带 `--passWithNoTests`）；eslint-config / commitlint-config / tsconfig 只有 `lint` / `lint:fix` / `types:check`，没有 `test`（tsconfig 是纯 JSON 预设，`types:check` 只是一句 `echo`）。
 
 ### 2. 根 scripts 只做委托
 
@@ -39,18 +39,18 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
     "dev": "turbo dev --filter=@walnut/admin",  // 默认只启前端
     "dev:all": "turbo dev",                      // 全部启动
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 turbo build",
-    "lint": "turbo lint",
+    "lint": "turbo lint",                        // 各包的 lint 任务
+    "lint:root": "eslint *.ts *.json *.yaml",    // 根级文件（配置层）单独一节
     "lint:fix": "turbo lint:fix",
     "types:check": "turbo types:check",
     "test": "turbo test",                        // 2026-08-08 补齐
     "clean": "turbo clean",
 
-    // 单包便捷命令
-    "dev:admin": "turbo dev --filter=@walnut/admin",
+    // 单包便捷命令（`dev` 本身就等于 dev:admin，重复的那条已删除）
     "dev:server": "turbo dev --filter=@walnut/server",
     "dev:docs": "turbo dev --filter=@walnut/docs",
 
-    // 环境变量加解密（@walnut/tooling 的 bin）
+    // 环境变量加解密（@walnut/scripts 的 bin）
     "setup-env": "walnut-setup-env decrypt",
     "encrypt-env": "walnut-setup-env encrypt",
 
@@ -63,29 +63,34 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
     "lint:workflows": "walnut-lint-workflows",   // actionlint 校验 .github/workflows
     "hooks:check": "walnut-check-git-hooks",     // 断言 git 钩子由 lefthook 托管
 
-    // pre-push 的聚合门禁（lefthook 的 pre-push 只调这一条）
-    "prepush": "pnpm boundaries && pnpm types:check && pnpm syncpack:lint && pnpm lint:workflows && pnpm change check",
+    // pre-push 的聚合门禁（lefthook 的 pre-push 只调这一条，六段按序跑）
+    "prepush": "pnpm boundaries && pnpm lint:root && pnpm types:check && pnpm syncpack:lint && pnpm lint:workflows && pnpm change check",
 
-    // 发布（@walnut/tooling 的 bin，实现位于 packages/tooling/scripts/src/release/）
+    // 发布（@walnut/release 的 bin，实现位于 packages/tooling/release/src/release/）
     "release": "walnut-release"
   }
 }
 ```
 
-根 scripts 里的 `NODE_OPTIONS=` 前缀统一用 `cross-env` 包裹（Windows 兼容）。早期的 `tsx scripts/*.ts` 写法已消失：仓库级脚本全部收进 `packages/tooling/scripts/`，根 `scripts/` 目录不存在，根 scripts 只经 bin 调用（`walnut-release` / `walnut-lint-workflows` / `walnut-setup-env` / `walnut-check-git-hooks`）。也没有 `changeset` / `changeset:auto` / `changelog` 脚本——版本意图由 `pnpm change` 写、`pnpm version -r` 消费（见 [发布 & 发版指南](./release.md)）。
+根 scripts 里的 `NODE_OPTIONS=` 前缀统一用 `cross-env` 包裹（Windows 兼容）。早期的 `tsx scripts/*.ts` 写法已消失：仓库级脚本拆在 `packages/tooling/scripts/`（通用层 + 3 个 bin）与 `packages/tooling/release/`（发版编排 + `walnut-release`），根 `scripts/` 目录不存在，根 scripts 只经 bin 调用（`walnut-release` / `walnut-lint-workflows` / `walnut-setup-env` / `walnut-check-git-hooks`）。也没有 `changeset` / `changeset:auto` / `changelog` 脚本——版本意图由 `pnpm change` 写、`pnpm version -r` 消费（见 [发布 & 发版指南](./release.md)）。
+
+> `lint:root` 是 2026-09-23 新增的一节（glob 从 `*.mjs` 改为 `*.ts`）。根级配置（`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts` / `package.json` / `pnpm-workspace.yaml`）此前**不被任何门禁覆盖**——`pnpm lint` 只跑各包的 `lint` 任务。它现在进 `prepush` 与发版电池，`ci.yml` 的 quality job 也补了一步 `pnpm lint:root`（它不进 turbo 的 affected 图，所以必须显式跑）。
 
 **关键规则**：根 scripts 不包含构建逻辑。`turbo build` 会找到所有包的 `build` script 并按拓扑顺序执行。
 
 ### 3. 按包类型的差异化
 
-| 包类型 | build | typecheck | dev |
+| 包类型 | build | types:check | dev |
 |--------|-------|-----------|-----|
 | Vue 应用 (`@walnut/admin`) | `vite build` | `vue-tsc --noEmit` | `vite` |
-| NestJS (`@walnut/server`) | `nest build` (SWC) | `tsc --noEmit` | `nest start --watch` |
-| 纯 TS 包 (`@walnut/utils`) | `tsc` | `tsc --noEmit` | `tsc --watch` |
-| 源码消费 (`@walnut/client`) | 不构建 | `tsc --noEmit` | — |
+| 文档站 (`@walnut/docs`) | `vitepress build` | `echo skipped` | `vitepress` |
+| NestJS (`@walnut/server`) | `nest build`（SWC，按 `infra/nest/*.json`） | `tsc --noEmit` | `nest start api --watch` |
+| 平台无关包 (`@walnut/utils`、`@walnut/contract`) | `vite build`（产出 CJS dist；contract 之后还跑 `node scripts/build-barrel.ts`） | `tsc --noEmit` | 无 `dev` 脚本 |
+| 源码直消费 (`@walnut/client`、`@walnut/http`、`@walnut/ui`、`@walnut/types`) | 不构建（`echo` 占位） | `tsc --noEmit`（`ui` 用 `vue-tsc`） | 无 `dev` 脚本 |
+| 工具链包 (`@walnut/scripts`、`@walnut/release`、`@walnut/eslint-config`、`@walnut/commitlint-config`) | 无 | `tsc --noEmit` | 无 `dev` 脚本 |
+| `@walnut/tsconfig` | 无（纯 JSON 预设） | `echo`（无源码可查） | 无 `dev` 脚本 |
 
-前端构建的特殊性：admin 的 `build` 就是纯 `vite build`（不再含 `vue-tsc`，Vite 构建本身不做类型检查），类型检查由独立的 `types:check` 任务（`vue-tsc --noEmit`）承担。docs 的 `types:check` 是 `echo skipped`（文档站没有需要类型检查的 TS 逻辑）。
+前端构建的特殊性：admin 的 `build` 就是纯 `vite build`（不再含 `vue-tsc`，Vite 构建本身不做类型检查），类型检查由独立的 `types:check` 任务（`vue-tsc --noEmit`）承担。docs 的 `types:check` 是 `echo skipped`（文档站没有需要类型检查的 TS 逻辑）。**没有 `build` 产物的包不是"漏了脚本"**：它们的 `build` 是一句 `echo` 占位，只为让 turbo 的 `build` 任务拓扑（`dependsOn: ["^build"]`）在整图上成立。
 
 ### 4. Git Hooks
 
@@ -94,19 +99,21 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 ```
 pre-commit → pnpm exec lint-staged（ESLint fix on staged files，秒级）
 commit-msg → pnpm exec commitlint --edit {1}（提交信息规范检查）
-pre-push   → pnpm --silent prepush（单条聚合门禁：五段按序跑，十秒级）
+pre-push   → pnpm --silent prepush（单条聚合门禁：六段按序跑，十秒级）
 ```
 
-`prepush` = `pnpm boundaries && pnpm types:check && pnpm syncpack:lint && pnpm lint:workflows && pnpm change check`
-（架构边界 + 类型检查 + 依赖一致性 + actionlint + fixed 组版本锁步）。
+`prepush` = `pnpm boundaries && pnpm lint:root && pnpm types:check && pnpm syncpack:lint && pnpm lint:workflows && pnpm change check`
+（架构边界 + **根级文件 lint** + 类型检查 + 依赖一致性 + actionlint + fixed 组版本锁步）。
 
-`pre-commit` 只跑 ESLint fix，不做类型检查（太慢，阻塞 commit 体验）；`commit-msg` 由 commitlint 校验提交信息格式；架构边界（`turbo boundaries`）、类型检查、syncpack 依赖一致性、workflow 校验与版本锁步都放在 `pre-push`。pre-push 刻意收敛成**单条命令**：被截断时只会退化成"命令不存在"，响亮报错，而不是"语法合法但少跑几项"的静默弱化。
+`pre-commit` 只跑 ESLint fix，不做类型检查（太慢，阻塞 commit 体验）；`commit-msg` 由 commitlint 校验提交信息格式；架构边界（`turbo boundaries`）、根级文件 lint（`pnpm lint:root`）、类型检查、syncpack 依赖一致性、workflow 校验与版本锁步都放在 `pre-push`。pre-push 刻意收敛成**单条命令**：被截断时只会退化成"命令不存在"，响亮报错，而不是"语法合法但少跑几项"的静默弱化。
+
+> 注意 `pnpm lint:root` 是根 `package.json` 里的**普通脚本**，不是 turbo 任务（根 `turbo.json` 的 `tasks` 里没有 `lint:root`）。因此它只能经 `pnpm` 调用——`turbo run lint:root` 会直接报 `Could not find task 'lint:root' in project`。
 
 ## 没做什么 / 为什么
 
 ### 不写 mega-scripts
 
-不在根 package.json 写复杂的 shell 脚本。所有跨包编排由 Turbo 处理，所有仓库级脚本（发版编排、门禁、env 加解密）由 `@walnut/tooling`（`packages/tooling/scripts/`）的 bin 处理。根 scripts 保持"一句话委托"。
+不在根 package.json 写复杂的 shell 脚本。所有跨包编排由 Turbo 处理，所有仓库级脚本（门禁、env 加解密、发版编排）由 `@walnut/scripts`（`packages/tooling/scripts/`，3 个 bin）与 `@walnut/release`（`packages/tooling/release/`，bin `walnut-release`）提供。根 scripts 保持"一句话委托"。
 
 ### 不用 `concurrently` 编排
 
@@ -119,5 +126,7 @@ pre-push   → pnpm --silent prepush（单条聚合门禁：五段按序跑，�
 | 文件 | 作用 |
 |------|------|
 | [package.json](https://github.com/walnut-admin/walnut-admin/blob/main/package.json) | 根 scripts，全为委托 |
+| [packages/tooling/scripts/](https://github.com/walnut-admin/walnut-admin/tree/main/packages/tooling/scripts) | `@walnut/scripts`——3 个 bin（`walnut-lint-workflows` / `walnut-setup-env` / `walnut-check-git-hooks`） |
+| [packages/tooling/release/](https://github.com/walnut-admin/walnut-admin/tree/main/packages/tooling/release) | `@walnut/release`——bin `walnut-release`（根 `pnpm release`） |
 | [apps/admin/package.json](https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/package.json) | 前端 scripts（Vite） |
 | [apps/server/package.json](https://github.com/walnut-admin/walnut-admin/blob/main/apps/server/package.json) | 后端 scripts（NestJS CLI + SWC） |

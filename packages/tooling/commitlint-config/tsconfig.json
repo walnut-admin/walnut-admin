@@ -1,0 +1,10 @@
+{
+  "extends": "@walnut/tsconfig/base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "types": ["node"]
+  },
+  // 本文件由 commitlint 的 TS loader 加载（不是 Node 原生剥离类型）⇒ 用 base 预设。
+  "include": ["*.ts"],
+  "exclude": ["node_modules"]
+}

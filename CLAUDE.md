@@ -23,9 +23,8 @@ Walnut Admin is a **full-stack monorepo** managed with **Turborepo + pnpm worksp
 pnpm install        # Install all workspace dependencies
 
 # Per-app dev servers
-pnpm dev            # = pnpm dev:admin (frontend only, the common case)
+pnpm dev            # Frontend only, the common case (http://127.0.0.1:3100) — there is no separate dev:admin
 pnpm dev:all        # Start ALL three apps simultaneously (server needs MongoDB+Redis)
-pnpm dev:admin      # Frontend → http://127.0.0.1:3100
 pnpm dev:server     # Backend  → requires MongoDB + Redis
 pnpm dev:docs       # Docs     → http://localhost:8886
 
@@ -36,13 +35,14 @@ pnpm build:server   # Backend only
 pnpm build:docs     # Docs only
 
 # Code quality
-pnpm lint           # Lint all packages
+pnpm lint           # Lint all packages (turbo lint)
+pnpm lint:root      # Lint root-level config files only (eslint *.ts *.json *.yaml)
 pnpm lint:fix       # Lint with auto-fix
 pnpm types:check    # Type check all packages
-pnpm test           # Run tests (server + contract snapshots + utils + client + tooling)
+pnpm test           # Run tests (server + contract snapshots + utils + client + scripts + release)
 pnpm boundaries     # Turbo architecture-boundaries check
 pnpm lint:workflows # actionlint over .github/workflows
-pnpm prepush        # The pre-push aggregate gate: boundaries + types:check + syncpack + lint:workflows + pnpm change check
+pnpm prepush        # The pre-push aggregate gate (six sections): boundaries + lint:root + types:check + syncpack + lint:workflows + pnpm change check
 pnpm hooks:check    # Assert the git hooks are lefthook-managed
 
 # Release
@@ -83,19 +83,27 @@ walnut-admin/
 │   │   ├── client/   @walnut/client       — browser utilities + Vue composables + store factory
 │   │   ├── http/     @walnut/http         — HTTP client framework (instance + adapters)
 │   │   └── ui/       @walnut/ui           — naive-ui based components (POC: 3 components)
-│   └── tooling/            — toolchain packages
-│       ├── eslint-config/    @walnut/eslint-config    — shared ESLint presets (vue/nest/base)
+│   └── tooling/            — toolchain packages (5 packages since 2026-09-23, ADR 0019)
+│       ├── tsconfig/         @walnut/tsconfig         — pure-JSON tsconfig presets (base / ts / vue)
+│       ├── eslint-config/    @walnut/eslint-config    — shared ESLint presets (base / vue / nest)
 │       ├── commitlint-config/@walnut/commitlint-config — commitlint rules
-│       └── scripts/          @walnut/tooling          — repo-level scripts: release
-│                                 orchestration, repo gates, env encrypt/decrypt (bins)
+│       ├── scripts/          @walnut/scripts          — repo-level scripts: generic lib/,
+│       │                                 repo gates (ci/), env encrypt/decrypt (env/); 3 bins
+│       └── release/          @walnut/release          — release orchestration (src/release/); bin walnut-release
 ├── apps/admin/build/         ← Admin Vite build config (plugins/config/proxy)
 ├── migration-guide/          ← Migration documentation & tracking
 ├── turbo.json                ← Turborepo pipeline
 ├── pnpm-workspace.yaml       ← pnpm workspace + config
-├── tsconfig.base.json        ← Shared TS config (frontend ESM)
-├── eslint.config.mjs         ← Root ESLint config
+├── tsconfig.json             ← Root TS config (extends `@walnut/tsconfig/base.json`)
+├── eslint.config.ts          ← Root ESLint config
 └── package.json              ← Root workspace config
 ```
+
+> 14 workspace packages in total (3 apps + 3 platform-any + 3 platform-web + 5 tooling); all share one
+> `versioning.fixed` group. `apps/server/tsconfig.json` extends **no** preset (ADR 0012) and is the only
+> TS config outside the preset scheme. There are **no `.mjs` / `.cjs` files** in the repo: configs, ESLint
+> presets, bins and build scripts are all `.ts`, executed by Node 24 native type stripping (no `tsx` in the
+> toolchain) with the invariant enforced at compile time by `erasableSyntaxOnly` in `ts.json`.
 
 ### Important: Server Internal Monorepo
 
@@ -120,8 +128,8 @@ This monorepo was created by merging three previously separate repositories:
 - ✅ Orphan `tsconfig.base.node.json` removed (zero consumers)
 - ✅ Vestigial `paths` block removed from `tsconfig.base.json` (resolution was broken by baseUrl override; real resolution via pnpm symlinks + package `exports`)
 - ✅ `turbo.json` gained a `test` task and `pnpm-workspace.yaml` in `globalDependencies`
-- ✅ Root `dev` defaults to `dev:admin` (avoids starting server which needs MongoDB+Redis)
-- ✅ Dependencies unified via pnpm `catalog:` (242 entries, single source of truth — ESLint version drift resolved)
+- ✅ Root `dev` targets `@walnut/admin` only (avoids starting server which needs MongoDB+Redis); the duplicate `dev:admin` alias was removed on 2026-09-23
+- ✅ Dependencies unified via pnpm `catalog:` (243 entries, single source of truth — ESLint version drift resolved)
 
 **Toolchain hardening (2026-08-08):**
 - ✅ `turbo.json` `dev`/`test` tasks now `dependsOn: ["^build"]` — fresh clones can `dev:server` directly (contract/utils CJS dist is a build artifact, see ADR 0002)
@@ -132,12 +140,20 @@ This monorepo was created by merging three previously separate repositories:
 - ✅ `@walnut/client` `vue`/`pinia` moved to peerDependencies; server tsconfig `strict: true` (tsc zero errors); DOM lib pushed down from `tsconfig.base.json` to admin/docs/platform-web packages; 6 leftover empty `import { } from '@walnut/contract'` removed; `build:stage` is now a dedicated turbo task (triple-dash passthrough retired)
 
 **Release & git-hook migration (2026-09-23):**
-- ✅ `@changesets/cli` + `@changesets/changelog-github` removed — version management is now **pnpm 12 native release management**: the `versioning` block in `pnpm-workspace.yaml` is the single source of truth (one `fixed` group covering all 12 workspace packages, `changelog.storage: registry`), `pnpm change` writes intents, `pnpm version -r` consumes them, `.changeset/ledger.yaml` is the consumption ledger, and `.changeset/config.json` is deleted
-- ✅ Changelogs are rendered per package by **git-cliff** (root `cliff.toml`) and written by `packages/tooling/scripts/src/release/changelog.ts` (sole writer); root `changelog-latest.md` is regenerated by `pnpm release` and committed (`release.yml` still publishes it via `body_path:`)
+- ✅ `@changesets/cli` + `@changesets/changelog-github` removed — version management is now **pnpm 12 native release management**: the `versioning` block in `pnpm-workspace.yaml` is the single source of truth (one `fixed` group covering every workspace package — 12 at the time, **14** after the tooling split below — `changelog.storage: registry`), `pnpm change` writes intents, `pnpm version -r` consumes them, `.changeset/ledger.yaml` is the consumption ledger, and `.changeset/config.json` is deleted
+- ✅ Changelogs are rendered per package by **git-cliff** (root `cliff.toml`) and written by `packages/tooling/release/src/release/changelog.ts` (`@walnut/release`, sole writer); root `changelog-latest.md` is regenerated by `pnpm release` and committed (`release.yml` still publishes it via `body_path:`)
 - ✅ Git hooks moved from `simple-git-hooks` to **lefthook** (root `lefthook.yml`, ADR 0018): root `postinstall` is gone, `allowBuilds` now has `lefthook: true` instead of `simple-git-hooks: false`, and `pnpm hooks:check` mechanically asserts the hooks are installed
-- ✅ `@walnut/release` → **`@walnut/tooling`** (`packages/tooling/release/` → `packages/tooling/scripts/`); the root `scripts/` directory is gone and the old `tsx scripts/*.ts` root scripts became bins (`walnut-release`, `walnut-lint-workflows`, `walnut-setup-env`, `walnut-check-git-hooks`); new root scripts `hooks:check` and `prepush` (five sections incl. `pnpm change check`), which `ci.yml` also runs after syncpack
+- ✅ New root scripts `hooks:check` and `prepush` (five sections at the time, **six** after the tooling split below), which `ci.yml` also runs `pnpm change check` in
 - ✅ Attribution semantics: with one fixed group, package attribution no longer affects the version number — it only decides *whether* a commit produces an intent (path-first, scope-fallback; infra scopes produce none)
 - ✅ Deleted two stale changelog artifacts (root `changelog-latest.md`, `apps/server/changelog-latest.md`)
+
+**Toolchain split, tsconfig presets, zero `.mjs` (2026-09-23, ADR 0019):**
+- ✅ `packages/tooling/` went from 1 package to **5**: `@walnut/tsconfig` (pure-JSON presets `base`/`ts`/`vue`), `@walnut/eslint-config`, `@walnut/commitlint-config`, `@walnut/scripts` (`src/lib` + `src/ci` + `src/env`, bins `walnut-lint-workflows`/`walnut-setup-env`/`walnut-check-git-hooks`) and `@walnut/release` (`src/release` moved out of `packages/tooling/scripts/`, bin `walnut-release`). The old `@walnut/tooling` no longer exists; `@walnut/release` consumes generic helpers via `@walnut/scripts/lib/*`
+- ✅ `@walnut/tsconfig` extracted and root `tsconfig.base.json` **deleted** (reverses the previously documented "don't extract" decision): `ts.json` = base + `erasableSyntaxOnly` (code Node executes directly), `vue.json` = base + DOM libs + Vue JSX, `base.json` = environment-neutral baseline used by the root `tsconfig.json`, `@walnut/eslint-config` and `@walnut/commitlint-config` (loaded by jiti / commitlint's TS loader, not by Node). Packages now `"extends": "@walnut/tsconfig/<preset>.json"` instead of climbing `../../../tsconfig.base.json`. `apps/server/tsconfig.json` still extends **nothing** (ADR 0012)
+- ✅ Every `.mjs` became `.ts` (16 files: 4 package-level ESLint configs, the 4 ESLint presets, the commitlint config + config package, 4 bins, contract's `build-barrel`); no `.mjs`/`.cjs` remains tracked. Bins run on Node 24 native type stripping — `tsx` is gone from the toolchain (the `apps/admin` `predev`/`types:check:log` scripts still use it, so the catalog entry stays) and the invariant is enforced by `erasableSyntaxOnly`
+- ✅ Root devDependencies pushed down: dropped `@antfu/eslint-config` / `@dotenvx/dotenvx` / `@walnut/tooling`, added `@walnut/release` / `@walnut/scripts` / `@walnut/tsconfig` / `jiti` (ESLint needs jiti to load `eslint.config.ts`) — 18 → 19 entries
+- ✅ `prepush` gained `pnpm lint:root` (six sections); `ci.yml`'s quality job got the same explicit step (root configs are outside turbo's affected graph); `lint:root` glob is now `*.ts *.json *.yaml`, `lint-staged` matches `*.{ts,vue,js}`; the duplicate `dev:admin` script was removed
+- ✅ The release battery's `lint` step was split into `turbo run lint` + `pnpm lint:root` — `lint:root` is a root `package.json` script, not a turbo task, so the previous `turbo run lint lint:root` form exited with `Could not find task 'lint:root' in project` and would have blocked every release
 
 **CI/CD rebuild (2026-09-21):**
 - ⚠️ CI had **never actually run** since 2026-08-13: `steps.if` used the `secrets` context, which the runner rejects → `Invalid workflow file`, startup failure with 0 jobs (looked like an ordinary red build). Fixed by binding the secret to a job-level `env` and testing `env.X != ''`; guarded by `.github/workflows/workflow-lint.yml` (actionlint, a separate file so it can report even if ci.yml breaks) plus `pnpm lint:workflows` in pre-push
@@ -149,7 +165,7 @@ This monorepo was created by merging three previously separate repositories:
 
 **For full architecture details and the remaining refactor roadmap:**
 - [`apps/docs/src/zh-CN/content/monorepo/`](./apps/docs/src/zh-CN/content/monorepo/) — 架构文档（TypeScript / ESLint / pnpm Catalog / Turbo / Release / Knip 等 10 篇）
-- [`apps/docs/src/zh-CN/content/adr/`](./apps/docs/src/zh-CN/content/adr/) — 架构决策记录（ADR 0001-0018）
+- [`apps/docs/src/zh-CN/content/adr/`](./apps/docs/src/zh-CN/content/adr/) — 架构决策记录（ADR 0001-0019）
 - [`apps/docs/src/zh-CN/content/industry-research/`](./apps/docs/src/zh-CN/content/industry-research/) — 行业调研语料
 - [`apps/docs/src/zh-CN/content/archive/`](./apps/docs/src/zh-CN/content/archive/) — 归档：带日期的设计 / 计划 / 评审文档（根 `docs/` 目录已移除，全部内容在此）
 - `migration-guide/` — historical migration record (Phase 1 merge steps, now completed)

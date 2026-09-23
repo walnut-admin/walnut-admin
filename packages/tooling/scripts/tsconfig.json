@@ -1,13 +1,11 @@
 {
-  "extends": "../../../tsconfig.base.json",
+  "extends": "@walnut/tsconfig/ts.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "types": ["node"],
-    // 本包**没有构建步骤**：源码由 tsx/esm loader 直接执行（bin/*.mjs 先 `import 'tsx/esm'`）。
-    // Node 的 ESM 解析不做扩展名推断，所以内部相对导入必须写 `.ts` —— 本开关让它合法。
-    // 它要求 noEmit（tsconfig.base.json 已设），因此不会与产物语义冲突。
-    "allowImportingTsExtensions": true
+    "types": ["node"]
   },
-  "include": ["src/**/*.ts"],
+  // bin 也进类型检查：它们由 Node 原生执行（浏览器包与工具包之外唯一被 `node` 直接拉起的东西），
+  // 必须一起受 erasableSyntaxOnly 约束。
+  "include": ["src/**/*.ts", "bin/**/*.ts"],
   "exclude": ["node_modules"]
 }

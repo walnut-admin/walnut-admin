@@ -39,17 +39,18 @@ pre-push:    # 单条：pnpm --silent prepush
 
 四条配套约束：
 
-1. **pre-push 收敛成单条命令**。五段（boundaries / types:check / syncpack / lint:workflows / change check）
+1. **pre-push 收敛成单条命令**。六段（boundaries / lint:root / types:check / syncpack / lint:workflows / change check）
    在根 `package.json` 的 `prepush` 脚本里按序跑。被截断只会退化成「命令不存在」，响亮报错。
+   （最初是五段；`lint:root` 于 2026-09-23 随工具链重构补入 —— 根级配置文件此前不被 prepush / CI 覆盖。）
 2. **安装路径必须有构建脚本放行**。lefthook 自己的 postinstall 就是 `lefthook install`，
    因此 `pnpm-workspace.yaml` 的 `allowBuilds` 必须 `lefthook: true`。
    本仓 `strictDepBuilds: false`，漏了只会**告警**、不阻断安装 —— 正是要防的那个形态。
-3. **安装结果可观测**：新增 `pnpm hooks:check`（`@walnut/tooling` 的 `ci/check-git-hooks.ts`），
+3. **安装结果可观测**：新增 `pnpm hooks:check`（`@walnut/scripts` 的 `src/ci/check-git-hooks.ts`），
    断言三个钩子文件存在且含 lefthook 托管标记，缺失则 exit 1。
 4. **Windows 上 `run` 值禁止双引号**。lefthook 2.1.14 在 Windows 上用
    `cmdLine = "\"" + sh + "\" -c \"" + cmdstr + "\""` 拼命令行，内层引号未转义 ⇒
    带引号的命令**静默丢参、还照样报 ✓**（上游 PR #1464 未合并）。
-   由 `ci/__tests__/lefthook-config.test.ts` 机械拦下。
+   由 `packages/tooling/scripts/src/ci/__tests__/lefthook-config.test.ts` 机械拦下。
 
 ## Consequences
 
@@ -58,7 +59,7 @@ pre-push:    # 单条：pnpm --silent prepush
 - 钩子内容在跟踪面里，可被单测审计；`lefthook.yml` 改了就生效，不需要重装钩子。
 - 门禁缺失从「静默」变成「响亮」：二进制缺失时 lefthook 直接报错，
   安装失败由 `pnpm hooks:check` 抓出来。
-- pre-push 的五段有一条可见、可单独运行的聚合命令（`pnpm prepush`）。
+- pre-push 的六段有一条可见、可单独运行的聚合命令（`pnpm prepush`）。
 
 **代价：**
 
@@ -77,6 +78,7 @@ pre-push:    # 单条：pnpm --silent prepush
 ## References
 
 - [`lefthook.yml`](/lefthook.yml) — 钩子唯一真源
-- `packages/tooling/scripts/src/ci/check-git-hooks.ts` — 安装结果的可观测判据
+- `packages/tooling/scripts/src/ci/check-git-hooks.ts` — 安装结果的可观测判据（`@walnut/scripts`）
 - `packages/tooling/scripts/src/ci/__tests__/lefthook-config.test.ts` — Windows 引号坑的机械判据
+- [ADR 0019](/content/adr/0019-tsconfig-presets-and-no-mjs) — 工具链拆包（`@walnut/tooling` → `@walnut/scripts` + `@walnut/release`）与 `prepush` 增段
 - [lefthook 上游 PR #1464](https://github.com/evilmartians/lefthook/pull/1464)

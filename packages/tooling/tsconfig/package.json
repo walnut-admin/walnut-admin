@@ -1,0 +1,27 @@
+{
+  "name": "@walnut/tsconfig",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "description": "共享 TypeScript 预设：base（环境无关）/ ts（Node · 纯逻辑 · 工具链）/ vue（浏览器 + Vue）。各包 `extends: \"@walnut/tsconfig/<preset>.json\"`，不再从仓库根相对路径继承。",
+  "license": "MIT",
+  "exports": {
+    "./base.json": "./base.json",
+    "./ts.json": "./ts.json",
+    "./vue.json": "./vue.json"
+  },
+  "engines": {
+    "node": ">=24.13.0",
+    "pnpm": ">=12.0.0"
+  },
+  "scripts": {
+    "lint": "eslint . --concurrency=auto",
+    "lint:fix": "eslint . --fix --concurrency=auto",
+    "types:check": "echo 'config: pure JSON presets, no type check needed'"
+  },
+  "walnut": {
+    "platform": "any",
+    "type": "tooling",
+    "runtime": "none"
+  }
+}

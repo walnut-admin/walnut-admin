@@ -130,6 +130,7 @@
     "@vitejs/plugin-vue": "catalog:",
     "@vitejs/plugin-vue-jsx": "catalog:",
     "@walnut/eslint-config": "workspace:*",
+    "@walnut/tsconfig": "workspace:*",
     "chalk": "catalog:",
     "cross-env": "catalog:",
     "eslint": "catalog:",

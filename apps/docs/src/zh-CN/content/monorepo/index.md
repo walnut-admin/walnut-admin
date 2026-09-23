@@ -2,7 +2,7 @@
 
 ## 概述
 
-Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm workspaces** 管理 12 个包（3 个 app + 9 个共享包，按 platform-any/platform-web/tooling 分组）。项目从三个独立仓库合并而来，通过 pnpm catalog 统一依赖版本、Turborepo 编排任务、pnpm 原生 release management（`versioning.fixed` 单一组）管理版本号，构建了一套可维护的 monorepo 基础设施。
+Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm workspaces** 管理 14 个包（3 个 app + 3 个 platform-any 包 + 3 个 platform-web 包 + 5 个 tooling 包）。项目从三个独立仓库合并而来，通过 pnpm catalog 统一依赖版本、Turborepo 编排任务、pnpm 原生 release management（`versioning.fixed` 单一组）管理版本号，构建了一套可维护的 monorepo 基础设施。
 
 ### 技术栈速览
 
@@ -13,7 +13,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | 类型系统 | TypeScript 6.0（前端 ESM + 后端 CJS，双轨 toolchain） |
 | 代码检查 | ESLint 10.3 flat config + `@antfu/eslint-config` + `@walnut/eslint-config` |
 | 格式化 | ESLint stylistic（无 Prettier，`lint:fix` / lint-staged 即格式化入口） |
-| 版本管理 | pnpm 原生 release management（`versioning.fixed` 单一组：12 个包永远同版本） |
+| 版本管理 | pnpm 原生 release management（`versioning.fixed` 单一组：14 个包永远同版本） |
 | 变更日志 | git-cliff 逐包渲染 `CHANGELOG.md`（PR 链接 + 贡献者）；`pnpm release` 另生成根 `changelog-latest.md` |
 | 死代码检测 | Knip 6.29 |
 | Git Hooks | lefthook（`lefthook.yml`）+ lint-staged |
@@ -30,7 +30,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 
 | 文档 | 主题 |
 |------|------|
-| [TypeScript 配置](./typescript.md) | tsconfig 分层策略、root base vs server 独立、不用 Project References |
+| [TypeScript 配置](./typescript.md) | `@walnut/tsconfig` 三预设（base / ts / vue）、server 不继承任何预设、不用 Project References |
 | [ESLint 配置](./eslint.md) | Flat config、`@walnut/eslint-config` 三预设、pre-commit/pre-push 门禁 |
 | [package.json & Scripts](./package-scripts.md) | 标准 script 约定、根只做委托、按包类型差异化 |
 | [pnpm Catalog](./pnpm-catalog.md) | `catalogMode: strict`、精确版本锁死、`workspace:*` vs `catalog:` |
@@ -60,31 +60,33 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 │   ├── platform-any/                ← 运行时无关
 │   │   ├── contract/                ← @walnut/contract（类型 + 常量）
 │   │   ├── types/                   ← @walnut/types（类型声明）
-│   │   └── utils/                   ← @walnut/utils（纯函数工具）
+│   │   └── utils-core/              ← @walnut/utils（纯函数工具）
 │   ├── platform-web/                ← 浏览器/Vue（纯源码）
 │   │   ├── client/                  ← @walnut/client（浏览器工具 + Vue composables + store 工厂）
 │   │   ├── http/                    ← @walnut/http（HTTP 客户端框架，原名 axios）
 │   │   └── ui/                      ← @walnut/ui（naive-ui 组件，POC 3 组件）
-│   └── tooling/                     ← 工具链
-│       ├── eslint-config/           ← @walnut/eslint-config（共享 ESLint 预设）
+│   └── tooling/                     ← 工具链（2026-09-23 拆成 5 个包，见 ADR 0019）
+│       ├── tsconfig/                ← @walnut/tsconfig（纯 JSON tsconfig 预设：base / ts / vue）
+│       ├── eslint-config/           ← @walnut/eslint-config（ESLint 预设 base / vue / nest）
 │       ├── commitlint-config/       ← @walnut/commitlint-config（commitlint 规则）
-│       └── scripts/                 ← @walnut/tooling（仓库级脚本：发版编排 / 门禁 / env，bin 入口）
+│       ├── scripts/                 ← @walnut/scripts（仓库级脚本通用层：lib / ci / env，3 个 bin）
+│       └── release/                 ← @walnut/release（发版编排，bin：walnut-release）
 ├── turbo.json                       ← 任务定义 + 缓存 + 架构边界
-├── pnpm-workspace.yaml              ← workspace 声明 + catalog + overrides
-├── tsconfig.base.json               ← 前端 ESM 基线（server 不继承）
-├── eslint.config.mjs                ← 根 ESLint 入口
+├── pnpm-workspace.yaml              ← workspace 声明 + catalog + versioning
+├── tsconfig.json                    ← 仓库根 TS 配置（extends `@walnut/tsconfig/base.json`）
+├── eslint.config.ts                 ← 根 ESLint 入口
 └── knip.config.ts                   ← 死代码检测配置
 ```
 
-**外层**（Turborepo 层面）：`apps/*` + `packages/platform-any/*` + `packages/platform-web/*` + `packages/tooling/*` 共 12 个 workspace 包，通过 pnpm workspace 协议（`workspace:*`）相互引用。
+**外层**（Turborepo 层面）：`apps/*` + `packages/platform-any/*` + `packages/platform-web/*` + `packages/tooling/*` 共 14 个 workspace 包，通过 pnpm workspace 协议（`workspace:*`）相互引用。
 
 **内层**（Server 内部）：`apps/server/libs/*` 下的 9 个 NestJS 内部库，通过 TypeScript `paths` 映射解析，不走 pnpm workspace。命名空间为 `@walnut-server/*`，与外层 `@walnut/*` 物理分离。
 
 ### 关键设计决策
 
-1. **异构 Toolchain**：前端 ESM + Vite + `moduleResolution: "bundler"`；后端 CJS + NestJS CLI + SWC + `moduleResolution: "node"`。Server **不继承** `tsconfig.base.json`。
+1. **异构 Toolchain**：前端 ESM + Vite + `moduleResolution: "bundler"`；后端 CJS + NestJS CLI + SWC + `moduleResolution: "node"`。Server **不继承**任何 `@walnut/tsconfig` 预设（`base.json` / `ts.json` / `vue.json`）。
 2. **两个命名空间**：`@walnut/*`（外层，pnpm workspace 包）和 `@walnut-server/*`（内层，NestJS internal libs）。物理分离，无命名冲突。
-3. **catalog 统一版本**：242 依赖通过 `pnpm-workspace.yaml` 的 `catalog:` 统一定义，`catalogMode: strict` 阻止直接版本号。
+3. **catalog 统一版本**：243 依赖通过 `pnpm-workspace.yaml` 的 `catalog:` 统一定义，`catalogMode: strict` 阻止直接版本号。
 4. **`hoist: false`**：严格依赖隔离——每个包只能解析自己 `package.json` 中声明的依赖，`node_modules/.pnpm/node_modules/` 条目数为 0。仅有 7 条精确包名的 `publicHoistPattern` 例外被提升到根 `node_modules/`。
 5. **供应链防护**：`minimumReleaseAge`（1 天冷却期）、`trustPolicy: no-downgrade`（拒绝可信度下降的版本）、`blockExoticSubdeps`（传递依赖禁止异源）三项由 pnpm 在安装时校验 lockfile。
 6. **依赖构建脚本白名单只有两条放行**：`@sentry/cli`（Sentry 上传路径本地无法验证）与 `lefthook`（它的 postinstall 就是 `lefthook install`，不放行则 git 钩子静默消失，见 ADR 0018）；其余原生模块（`@swc/core`、`esbuild`、`sharp` 等）通过 `optionalDependencies` 分发预编译产物，不需要构建脚本。
@@ -119,13 +121,15 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 | `@walnut/ui` | naive-ui 组件（Switch/DynamicTags/TimePicker POC） | naive-ui + vue（peer） |
 | `@walnut/eslint-config` | ESLint 共享预设（vue / nest / base） | ESLint |
 | `@walnut/commitlint-config` | commitlint 规则（scope-enum 等） | commitlint |
-| `@walnut/tooling` | 仓库级脚本的家：发版编排（`release/`）、仓库门禁（`ci/`）、env 加解密（`env/`）、通用纯逻辑（`lib/`），经 bin 被根 scripts 调用 | 无（node + git-cliff / yaml / tsx） |
+| `@walnut/tsconfig` | 纯 JSON tsconfig 预设（base / ts / vue），无依赖、无源码 | 无 |
+| `@walnut/scripts` | 仓库级脚本的通用层：纯逻辑工具（`lib/`）、仓库门禁（`ci/`）、env 加解密（`env/`），经 3 个 bin 被根 scripts 调用 | `@dotenvx/dotenvx`（+ devDep `yaml`） |
+| `@walnut/release` | 发版编排（`src/release/`，20 个模块），bin `walnut-release` | `@walnut/scripts` + git-cliff + yaml |
 
 ### 消费方式
 
 - **前端**（Vite）：通过 `workspace:*` symlink 直接消费源码（JIT 模式）
 - **后端**（NestJS）：通过 `workspace:*` symlink 消费 CJS 构建产物（`exports` 的 `require` 条件）
-- **不发布** npm：当前为内部 monorepo，`private: true` 已移除但暂不公开发布
+- **不发布** npm：当前为内部 monorepo。6 个平台包不含 `private` 字段（表示代码公开可见，**不**代表要发布到 npm）；3 个 app 与 `@walnut/scripts` / `@walnut/release` / `@walnut/tsconfig` 为 `private: true`（纯仓库内使用）。
 
 ---
 
@@ -155,3 +159,4 @@ apps/server/libs/
 - [ADR-0010: No TypeScript Project References](/content/adr/0010-no-ts-project-references.md)
 - [ADR-0011: Dependency Governance & Release Pipeline](/content/adr/0011-dependency-governance-release.md)
 - [ADR-0012: Frontend-Backend Toolchain Divergence](/content/adr/0012-toolchain-divergence.md)
+- [ADR-0019: 共享 tsconfig 预设包与「无 `.mjs`」约束](/content/adr/0019-tsconfig-presets-and-no-mjs.md)

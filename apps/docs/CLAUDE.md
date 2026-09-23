@@ -110,9 +110,9 @@ The `scripts/fetch-version.js` script fetches the latest release version from th
 
 ## Code Style
 
-- Uses `@antfu/eslint-config` (minimal config in `eslint.config.mjs`)
+- Uses the shared `@walnut/eslint-config` vue preset (minimal config in `eslint.config.ts`)
 - Pre-commit hook runs `lint-staged` to auto-fix all staged files
-- Package manager is locked to pnpm via `preinstall` script
+- Package manager is locked to pnpm via the `packageManager` field + corepack; the old `preinstall: npx only-allow pnpm` guard was removed in the 2026-09-21 pnpm 12 migration
 
 ## Important Notes
 

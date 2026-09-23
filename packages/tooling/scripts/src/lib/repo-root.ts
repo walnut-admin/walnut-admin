@@ -33,8 +33,8 @@ function findRepoRoot(startDir: string): string {
  * 本文件所在仓库的根目录（模块加载时求值一次）。
  *
  * 相对 `import.meta.dirname` 而非调用方的 cwd：脚本被从任意目录调用（CI、pre-push、手工
- * `node scripts/src/<层>/<名>.ts`）都要拿到同一个根。经 `tsx/esm` 加载时本文件仍是 Node 亲自
- * 加载的 ESM 模块，`import.meta.dirname`（Node 20.11+）因此指向它所在的 `scripts/src/lib/`，
- * 与谁启动它、启动时 cwd 在哪都无关。
+ * `node packages/tooling/scripts/bin/<名>.ts`）都要拿到同一个根。本文件始终是 Node 亲自加载的
+ * ESM 模块（bin 靠 Node 24 原生类型剥离执行，不经 tsx/ts-node），`import.meta.dirname`
+ * （Node 20.11+）因此指向它所在的 `src/lib/`，与谁启动它、启动时 cwd 在哪都无关。
  */
 export const REPO_ROOT = findRepoRoot(import.meta.dirname)

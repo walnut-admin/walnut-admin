@@ -12,14 +12,14 @@ Walnut Admin uses two fundamentally different toolchains under one monorepo:
 
 This divergence is not an accident — it reflects the different deployment models (static SPA vs long-running Node process) and has cascading effects on TypeScript configuration, environment variable handling, and Turborepo cache strategy.
 
-## Decision 1: Server tsconfig Does NOT Extend `tsconfig.base.json`
+## Decision 1: Server tsconfig Does NOT Extend Any `@walnut/tsconfig` Preset
 
-**Chosen:** `apps/server/tsconfig.json` is self-contained. It does NOT extend the root `tsconfig.base.json`.
+**Chosen:** `apps/server/tsconfig.json` is self-contained. It does NOT extend any `@walnut/tsconfig` preset (`base.json` / `ts.json` / `vue.json`), and it never extended the root `tsconfig.base.json` that the presets replaced (that file was deleted on 2026-09-23, see [ADR 0019](/content/adr/0019-tsconfig-presets-and-no-mjs)).
 
-**Why the root base is incompatible with the server:**
+**Why the shared baseline is incompatible with the server:**
 
-| Option | `tsconfig.base.json` (frontend) | `apps/server/tsconfig.json` (backend) |
-|--------|--------------------------------|---------------------------------------|
+| Option | `@walnut/tsconfig` baseline (`base.json` / `vue.json`) | `apps/server/tsconfig.json` (backend) |
+|--------|--------------------------------------------------------|---------------------------------------|
 | `module` | `ESNext` | `commonjs` |
 | `moduleResolution` | `bundler` | `node` |
 | `target` | `ESNext` | `es2022` |
@@ -27,8 +27,9 @@ This divergence is not an accident — it reflects the different deployment mode
 | `emitDecoratorMetadata` | — (not set) | `true` (required by NestJS) |
 | `noEmit` | `true` (Vite handles output) | `false` (SWC needs `.js` output) |
 | `verbatimModuleSyntax` | `true` | incompatible with CJS `require()` |
+| `erasableSyntaxOnly` | `true` in `ts.json` | not set (SWC handles decorators/emit) |
 
-Forcing the server to extend the root base would require `compilerOptions` overrides for every single divergent field — defeating the purpose of a shared base. Worse, a future developer adding a frontend-oriented option to the base (e.g., `jsx: "preserve"`) could silently break the server build.
+Forcing the server to extend a shared preset would require `compilerOptions` overrides for every single divergent field — defeating the purpose of a shared base. Worse, a future developer adding a frontend-oriented option to a preset (e.g., `jsx: "preserve"`, which lives in `vue.json`) could silently break the server build. The presets were split by **runtime environment** precisely so that this class of assumption stops leaking across packages; the server sits outside all three environments.
 
 **This is permanent.** The CJS-vs-ESM divide is a fundamental property of the architecture, not a transitional state. If a future backend utility is extracted to a pnpm workspace package, it will follow the `@walnut/utils` pattern (Vite CJS build, `require` condition in `exports`), not a shared tsconfig base.
 
@@ -113,7 +114,7 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 ## Consequences
 
 1. **Turborepo cache correctness:** `turbo build` now correctly invalidates when any `VITE_*` variable or mode changes.
-2. **Server tsconfig isolation is documented:** Future maintainers won't try to "fix" the server by making it extend the root base.
+2. **Server tsconfig isolation is documented:** Future maintainers won't try to "fix" the server by making it extend a shared preset.
 3. **Env loading model is explicit:** The build-time-static vs runtime-loading distinction is recorded, preventing confusion about which vars need turbo.json declarations.
 4. **The `VITE_*` wildcard pattern is future-proof:** Adding a new `VITE_*` variable to the Zod schema automatically gets cache tracking without touching `turbo.json`.
 5. **Cross-package resolution is workspace-native:** `@walnut/contract` and `@walnut/utils` resolve via pnpm symlinks + `package.json` `exports`, consistent with how they'd resolve if published to npm. The 4 previously duplicated paths entries are eliminated.
@@ -142,7 +143,7 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 
 **Chosen:** Enable tag-based boundaries in root `turbo.json` with per-package `turbo.json` tag declarations.
 
-**Tags assigned (2026-09-23 更新——platform 维度，对应 ADR 0017 的目录分组):**
+**Tags assigned (2026-09-23 更新——platform 维度，对应 ADR 0017 的目录分组；`packages/tooling/` 拆成 5 包后同步为 14 行):**
 
 | Package | Tags |
 |---------|------|
@@ -155,13 +156,18 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 | `@walnut/client` | `shared`, `platform-web` |
 | `@walnut/http` | `shared`, `platform-web` |
 | `@walnut/ui` | `shared`, `platform-web` |
+| `@walnut/tsconfig` | `tooling`, `platform-any` |
 | `@walnut/eslint-config` | `tooling`, `platform-any` |
 | `@walnut/commitlint-config` | `tooling`, `platform-any` |
-| `@walnut/tooling` | `tooling`, `platform-any` |
+| `@walnut/scripts` | `tooling`, `platform-any` |
+| `@walnut/release` | `tooling`, `platform-any` |
 
-> 本表随包增删更新：上面的 12 行与工作区里的 12 个包一一对应
-> （`@walnut/commitlint-config` 与 `@walnut/tooling` 是 2026-08-08 之后加入的，后者原名 `@walnut/release`，
-> 2026-09-23 改名并收编根 `scripts/`，见 [ADR 0018](/content/adr/0018-git-hooks-lefthook)）。
+> 本表随包增删更新：上面的 14 行与工作区里的 14 个包一一对应。5 个 tooling 包的 workspace 级
+> `turbo.json` 都声明 `"tags": ["tooling", "platform-any"]`。
+> 历史沿革：`@walnut/commitlint-config` 与 `@walnut/release` 是 2026-08-08 之后加入的；`@walnut/release`
+> 2026-09-23 曾改名 `@walnut/tooling`（收编根 `scripts/`，见 [ADR 0018](/content/adr/0018-git-hooks-lefthook)），
+> 同日再随 tooling 拆包恢复为 `@walnut/release`，并新增 `@walnut/tsconfig` / `@walnut/scripts`
+> （见 [ADR 0019](/content/adr/0019-tsconfig-presets-and-no-mjs)）。
 
 **Rules:**
 1. `shared` packages cannot depend on `app` packages (libraries must not import application code)
@@ -169,7 +175,7 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 3. `platform-any` packages cannot depend on `platform-web` or `platform-node` (platform-agnostic packages stay runtime-free)
 4. `platform-node` packages cannot depend on `platform-web`
 
-**Result:** 0 tag-rule violations (at implementation on 2026-07-29, over the 8 packages that existed then; `pnpm boundaries` now covers all 12 workspace packages and reports "no issues found").
+**Result:** 0 tag-rule violations (at implementation on 2026-07-29, over the 8 packages that existed then; `pnpm boundaries` now covers all 14 workspace packages and reports "no issues found").
 
 **Status:** Experimental feature in Turbo 2.9. Rules are enforced via `turbo boundaries` CLI. API may change in future Turbo versions.
 
@@ -195,4 +201,6 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 - [ADR 0002](0002-dual-mode-consumption.md) — dual-mode package consumption (source for Vite, CJS build for backend)
 - [ADR 0005](0005-jit-vs-build.md) — JIT for frontend-only packages, CJS build for shared packages
 - [ADR 0007](0007-backend-libs-not-workspace.md) — backend NestJS libraries stay as internal monorepo
-- `docs/architecture/05-tsconfig-strategy.md` — detailed tsconfig topology
+- [ADR 0019](0019-tsconfig-presets-and-no-mjs.md) — 共享 tsconfig 预设包（`@walnut/tsconfig`），server 仍不继承任何预设
+- [`monorepo/typescript.md`](/content/monorepo/typescript) — detailed tsconfig topology
+  (the old `docs/architecture/05-tsconfig-strategy.md` no longer exists; the root `docs/` directory was folded into this site)

@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@walnut/eslint-config": "workspace:*",
+    "@walnut/tsconfig": "workspace:*",
     "rimraf": "catalog:",
     "typescript": "catalog:"
   },

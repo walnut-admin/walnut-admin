@@ -25,7 +25,7 @@
     "lint": "eslint . --concurrency=auto",
     "lint:fix": "eslint . --fix --concurrency=auto",
     "types:check": "echo skipped",
-    "taze": "npx taze -i -w"
+    "taze": "taze -i -w"
   },
   "dependencies": {
     "vitepress": "catalog:",
@@ -36,6 +36,7 @@
     "@mermaid-js/mermaid-mindmap": "catalog:",
     "@types/node": "catalog:",
     "@walnut/eslint-config": "workspace:*",
+    "@walnut/tsconfig": "workspace:*",
     "eslint": "catalog:",
     "mermaid": "catalog:",
     "pagefind": "catalog:",

@@ -4,7 +4,7 @@
 
 ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的关键架构决策。每一条 ADR 包含：决策背景（Context）、决策内容（Decision）、以及后果（Consequences）。
 
-当前共 18 条 ADR，涵盖包命名、TypeScript 配置、依赖治理、发布流水线、测试策略、验证策略、包重组、Git 钩子等领域。
+当前共 19 条 ADR，涵盖包命名、TypeScript 配置、依赖治理、发布流水线、测试策略、验证策略、包重组、Git 钩子等领域。
 
 ## ADR 列表
 
@@ -28,6 +28,7 @@ ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的�
 | [0016](./0016-validation-strategy.md) | 验证策略——保持 class-validator，暂不迁移 Zod | ✅ 已接受 |
 | [0017](./0017-package-reorganization.md) | Package 重组——多维标签 + 目录分组 + 新增包规划 | 🔄 In Progress（Phase 1-2 完成，Phase 3 部分完成） |
 | [0018](./0018-git-hooks-lefthook.md) | Git Hooks——lefthook 取代 simple-git-hooks | ✅ 已实现 |
+| [0019](./0019-tsconfig-presets-and-no-mjs.md) | 共享 tsconfig 预设包与「无 `.mjs`」约束 | ✅ 已实现 |
 
 ## 补充文档
 

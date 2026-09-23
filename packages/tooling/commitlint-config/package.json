@@ -2,12 +2,11 @@
   "name": "@walnut/commitlint-config",
   "type": "module",
   "version": "0.0.1",
-  "description": "Shared commitlint configuration for Walnut Admin monorepo",
+  "description": "共享 commitlint 规则：type 白名单、scope 必填、scope 必须是 workspace 包名或基础设施 scope。根的 commitlint.config.ts 只做 `extends: ['@walnut/commitlint-config']`。",
   "license": "MIT",
   "exports": {
-    ".": "./index.mjs"
+    ".": "./index.ts"
   },
-  "main": "./index.mjs",
   "engines": {
     "node": ">=24.13.0",
     "pnpm": ">=12.0.0"
@@ -15,13 +14,16 @@
   "scripts": {
     "lint": "eslint . --concurrency=auto",
     "lint:fix": "eslint . --fix --concurrency=auto",
-    "types:check": "echo 'config: pure source, no type check needed'"
+    "types:check": "tsc --noEmit"
   },
   "dependencies": {
     "@commitlint/config-conventional": "catalog:"
   },
   "devDependencies": {
-    "eslint": "catalog:"
+    "@types/node": "catalog:",
+    "@walnut/tsconfig": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:"
   },
   "walnut": {
     "platform": "any",
