@@ -16,10 +16,10 @@
 | **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 · R8 · P2-10 · **F2-a** · **F2-b** |
 | **P3** | 远期 / 条件触发 | P3-12 · P3-14 · P3-15 · P3-13 · A8 · A9 · A11 · P3-17 · **A12** |
 | **搁置** | 等条件成熟（外部依赖或已决定先不动） | R1 · R2 · P1-16 · P2-11 · P3-20 |
-| **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | F1–F2 · F6–F7 · D1–D6 · D8<br><sub>F0 / F3 / F4 / F5 已完成；D7（TS 7 排期）已并入 R7</sub> |
+| **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | F2 · F6–F7 · D1–D6 · D8<br><sub>F0 / F1 / F3 / F4 / F5 已完成；D7（TS 7 排期）已并入 R7</sub> |
 
 **已清掉的旧账**（2026-09-23 起逐条做掉即从本表移除，验收口径见文末「核实记录」与「执行记录」）：
-R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）｜ R3 · R4 · P3-18 · P3-19 · **R11** 已做完
+R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）｜ R3 · R4 · P3-18 · P3-19 · **R11** · **F1** 已做完
 **最后一次反回归复验**：2026-09-23，把移出的 20 项逐条重跑 → **20/20 通过、0 回退**（判据见「执行记录」第 9 批）
 
 ---
@@ -122,47 +122,6 @@ R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）�
 
 ---
 
-## F1 形式：`AGENTS.md` 与 `CLAUDE.md` 到底谁被读（2026-09-23 查证）
-
-原本打算「内容搬进 `AGENTS.md`，`CLAUDE.md` 改成薄指针」。**查证后推翻** —— 那样做会让
-Claude Code **读不到任何内容**。
-
-查到的事实（来源：Anthropic Claude Code 文档 *How Claude remembers your project*、
-[agents.md](https://agents.md/)、以及一篇逐条对照两处官方文档的[分析](https://news.qiniu.com/archives/1789868369682)）：
-
-| 仓库状态 | Claude Code 的默认行为 |
-|----------|----------------------|
-| 只有 `AGENTS.md` | 读 `AGENTS.md`（**需 v2.1.277+**） |
-| 只有 `CLAUDE.md` | 读 `CLAUDE.md` |
-| **两者同时存在** | **默认只读 `CLAUDE.md`** —— `AGENTS.md` 是「没有 CLAUDE 文件时」的 fallback |
-
-所以「感觉读 `CLAUDE.md` 多一些」不是错觉，是**默认策略**。想两个都读，要在 `/config` →
-Project instructions 里显式选 `claude-md-and-agents-md`。
-
-另外两条容易踩的：
-- **原生加载 `AGENTS.md` 时，它不出现在 `/context` 的 Memory files 列表里、也不触发
-  `InstructionsLoaded` hook** —— 「看不到」不等于「没读」。
-- 跨工具仓库的稳妥写法是在 `CLAUDE.md` 里写 **`@AGENTS.md` 导入**（是文件导入，不是让模型
-  「自己决定去读」的自然语言提示）；官方文档明确说即使版本已支持原生加载，这种导入
-  **也不会导致重复读取**。
-
-**据此定的形式**（待确认后执行）：
-
-```
-AGENTS.md   ← 唯一真源：仓库结构 / 常用命令 / 关键纪律 / 环境配置（跨工具，Codex 等也读）
-CLAUDE.md   ← @AGENTS.md 一行导入 + 少量 Claude 专属（目标 ≤30 行，现状 196 行）
-```
-
-**包级**（范围已定为「只给有非显然规则的包」）：包内写 `AGENTS.md`（跨工具生效）；
-若也要 Claude Code 就近读到，同目录再放一个**只有一行 `@AGENTS.md`** 的 `CLAUDE.md` ——
-与根同一模式，且因为它是导入而非拷贝，不会产生「两份要同步」的问题。
-
-> 篇幅提醒：官方建议单个 `CLAUDE.md` 控制在 **200 行以内**（可加载上限 4 MiB，但过长会挤占
-> 上下文并降低遵循度）。现根 `CLAUDE.md` **196 行**，正好在边上 —— 这也是「把细节挪去文档站、
-> 只留纪律」的一条独立理由。
-
----
-
 ## 未裁决（2026-09-21 评审提出，尚未决定做不做）
 
 > 来自[归档：架构 Review 与调研审计](../archive/2026-09-21-architecture-review.md)。原文说这些是**新增项**，
@@ -171,7 +130,6 @@ CLAUDE.md   ← @AGENTS.md 一行导入 + 少量 Claude 专属（目标 ≤30 �
 
 | # | 议题 | 一句话 |
 |---|------|--------|
-| **F1** | 根文档单一化 | **2026-09-23 查证后改口径**：不是「symlink 或指针」，而是 `AGENTS.md` = 真源 + `CLAUDE.md` 里写 **`@AGENTS.md` 导入**（Claude Code 两者并存时默认只读 `CLAUDE.md`，见我此前那段薄指针方案会踩的坑 → 见上方「F1 形式」小节）。形式待你确认。 |
 | **F2** | 补文档门禁（原 4 道 → **已做 2 道**，剩 2 道待定） | — | ① `verify-md-links`（失效链接）→ ✅ **已由 VitePress 内置完成**（执行记录第 2 批）。<br>② `verify-doc-refs`（引用不存在的包名/路径）→ ✅ **已实现并接进门禁**：`@walnut/scripts` 新增 bin `walnut-check-doc-refs`（根脚本 `pnpm lint:docs-refs`），进 `prepush`（八段）、`ci.yml`、发版电池；15 个单测含「豁免清单不许腐化」的守卫。设计口径与全部判据写在 `packages/tooling/scripts/src/ci/check-doc-refs.ts` 的模块注释里（为什么不用现成库见下方 F2-b 小节）。<br>③ `doc-typecheck`（fenced `ts` 块必须编译）：本仓文档里的 ts 块多为片段，成本可能高于收益 —— **待你定**。<br>④ `gen-package-catalog`（从 `package.json` 生成包清单）：手写清单散在 README / AGENTS / CLAUDE / `monorepo/index.md` / `turbo.md` 至少 5 处（本轮已修其中 2 处）。**注意** `verify-doc-refs` 已能挡住「引用了不存在的包」，剩下的是「包清单漏了新包」—— 值不值得再上一道，**待你定**。 |
 | **F6** | ADR 规范化 | `adr/` 补 `## Alternatives considered` 必填 + `Status` 枚举（Proposed / Accepted / Rejected / Superseded）。现有 19 篇全是 `Accepted`，看不出哪些被否决过。 |
 | **F7** | 字数上限门禁 | `verify-doc-budgets` 最小版：只给根 `AGENTS.md` / `CLAUDE.md` / `monorepo/index.md` 定上限。优先级最低。 |
@@ -191,6 +149,7 @@ CLAUDE.md   ← @AGENTS.md 一行导入 + 少量 Claude 专属（目标 ≤30 �
 
 | 日期 | 完成项 |
 |------|--------|
+| 2026-09-23 | **清旧账第 11 批（F1 执行：agent 指引收敛成一份）**：`AGENTS.md` = 唯一真源、`CLAUDE.md` = 一行 `@AGENTS.md` 导入。**为什么不能直接删 `CLAUDE.md`**：Claude Code 在两者并存时**默认只读 `CLAUDE.md`**（只有 `AGENTS.md` 时才会 fallback 读它，原生支持需 v2.1.277+），删掉反而让 Claude Code 什么都读不到；`@AGENTS.md` 是文件导入语法（不是自然语言提示），官方说明即使 `/config` 选了 `claude-md-and-agents-md` 也**不会重复读取**。<br>**落地**：根 `AGENTS.md` 收全（技术栈 / 仓库结构 / 包级指引表 / 常用命令 / 环境配置 / 关键纪律 11 条 / 各 app 专属指引），根 `CLAUDE.md` **196 → 35 行**；新增 `apps/admin/AGENTS.md`（别名、auto-import 克制、组件与 store 约定）与 `apps/docs/AGENTS.md`（VitePress 结构、死链校验与 `${{ }}` 两个坑、新增页面要改侧边栏，原为 132 行 `CLAUDE.md`）；`apps/server/AGENTS.md` 收编原 473 行正文并删掉迁入时残留的 `### CLAUDE.md` 标题与一句脚手架样板话，同时把「先看哪份」表里指向 `CLAUDE.md` 的行改为「本文件下半部分的『后端开发规矩』」（原来那张表会把人指向一个已无内容的文件）。<br>**范围口径**（上一批已定）：包级指引**只给有非显然规则的包**，其余包继承根文档，不 14 个包全配。server 那份 510 行超了官方建议的单指引 200 行 —— 已在节首写明改法：优先往「先看哪份」表里加指针，真要拆就按模块拆成 `libs/<x>/AGENTS.md`。<br>验证：`pnpm lint:docs-refs` exit 0（242 篇活文档）、`pnpm build:docs` 0 死链、`pnpm prepush` 八段全绿。commit `730dfd2` |
 | 2026-09-23 | **清旧账第 10 批（逐个确认待定项，落定 3 件）**：<br>① **knip 先不动**（你的决定）：不删代码、不接门禁，只把现状与理由写进 `knip.config.ts` 的文件级注释 —— 本仓是模板项目，「未用导出」≠ 死代码（13 个 `WalnutAdminDecoratorTransform*` 就是留给使用者的 API 面）。R2 因此离开 P1，P1 现在**为空**。<br>② **每包 agent 指引的范围 = 只给有非显然规则的包**（你的决定）：根文档承载通用纪律，包级只补局部差异；不再 14 个包全配。<br>③ **`apps/server/TODO.md` 当历史留着**（你的决定）：已加头部说明「历史草稿、非本仓 backlog」并指向本表，内容不动。<br>④ **F1 的形式查证后推翻了我自己先前的方案**（详见下方「F1 形式」小节）：Claude Code 在 `CLAUDE.md` 与 `AGENTS.md` **同时存在时默认只读 CLAUDE.md**，我原打算「内容搬去 AGENTS.md、CLAUDE.md 变成薄指针」会**让 Claude Code 读不到任何内容**。已改为 `AGENTS.md` = 真源 + `CLAUDE.md` 里写 `@AGENTS.md` **导入**这一形式，待你确认后执行。 |
 | 2026-09-23 | **清旧账第 9 批（反回归复验 20 项 + P3-18）**：<br>**① 复验全部「已移除」项**：R1 那次「标了完成其实已回退」的教训说明**「已移除」不等于「仍然成立」**，于是把从本表移出的 **20 项**逐条用机械判据重跑 —— **20/20 通过、0 回退**。判据全部落在「读配置 + 查文件存在 + 在声明里搜依赖」这类可重跑的动作上（不含需要跑半小时的 `build:admin`）。<br>**② 顺带修掉复验脚本自己的一个误报**：P1-7 的判据是正则 `/changesets/` 扫 `pnpm-workspace.yaml`，结果命中注释里的「意图文件仍是 **changesets** 格式」这句散文 —— 已改成只认各 `package.json` 里的**依赖声明**。**这是脚本假阳性，不是回退**；同时把那条硬编码的「详情」文案改成真实取值（否则真出问题时它会骗人）。<br>**③ P3-18 `skip_deploy` 完成**：`release.yml` 加 `workflow_dispatch` + `boolean` 输入 `skip_deploy`，`deploy` job 的 `if` 用 `!inputs.skip_deploy`（GitHub 表达式，外层是 `$` + 双花括号；**本行刻意不写那对花括号** —— VitePress 会把它当 Vue 插值，构建当场报 `Cannot read properties of undefined`）。**这件挂在 P3，实际是 P1-16 的前置** —— 以前想验证「镜像能不能构建」就必须真打 tag、连带部署生产；现在可以 dispatch 到那个 tag 上勾选它，只跑门禁 + 构建推镜像 + 建 Release。<br>⚠️ **风险与验证边界**：`inputs` 出现在 job 级 `if` 是允许的（与 `secrets` 不同），actionlint exit 0；但「tag 推送时 `inputs` 为空 ⇒ 照常部署」这条**运行时语义本地无法验证**，只能等第一次真跑 tag 时确认 —— 已写进 `ci-cd.md` 的触发矩阵。<br>验证：actionlint exit 0、`pnpm lint:workflows` exit 0、`pnpm prepush` 八段全绿 |
 | 2026-09-23 | **清旧账第 8 批（R11 收尾 + 门禁再扩一半）**：<br>**① 门禁扩到 markdown 链接**。上一轮的 `walnut-check-doc-refs` 只看反引号里的路径，**看不见真链接** —— 而 `apps/server/AGENTS.md` 那份 14 行索引**每一条都指向不存在的文件**（`.agents/docs/` 目录从未进过仓库），当时完全没被拦住。现已加 `extractLinkTargets` / `linkResolves`（对齐 VitePress 的三种解析：原样 / 补 `.md` / 当目录找 `index.md`）。<br>**② 边界是实测出来的，与 VitePress 零重叠**：埋一条指向不存在 `.yaml` 的相对链接 → `build:docs` **exit 0**（VitePress 不查非 `.md` 链接）；埋一条 `.md` → exit 1。于是定为：文档站里的 `.md` 链接交给 VitePress（它有自己那份「冻结语料 + 未编写组件页」白名单，**不重复维护**），文档站里的**非 `.md`** 链接、以及文档站**之外**的全部链接由本门禁查。<br>**③ 又抓出 17 类真失效**并全部修掉：`apps/server/AGENTS.md` ×14（重写为真正的包内导航：指向 `CLAUDE.md` / 根文档 / ADR / `.claude/skills`，并写明 `.agents/docs/` 从未进仓库这段历史）；`release.md` ×2 条**层级写错的**非 `.md` 链接（`../../../../../pnpm-workspace.yaml` → GitHub 链接，VitePress 查不到这类）；`apps/admin/.../AI/docs/REVIEW.md` ×1 —— 顺带查出**该 review 的 A1 条目已过期**：`deepseek.ts` 全盘搜索不存在、源码里也没有任何 `DEEPSEEK` 引用，已标注关闭。<br>**④ R11 收尾**：`apps/server/README.md` 原是**未改动的 NestJS 脚手架 README**（`$ npm install` / `$ npm run start`，与本仓 pnpm-only 相悖）→ 重写为真实的后端 README；`apps/server/TODO.md`（原 server 仓草稿待办，无日期、18 条未完成、零引用）→ 加头部说明它是**历史草稿而非本仓 backlog**，并指向 `architecture-todo.md`。<br>验证：`@walnut/scripts` **92 用例**（新增 11 个链接相关）、`pnpm lint:docs-refs` exit 0、`pnpm prepush` 八段、`pnpm build:docs`、actionlint 全绿 |
@@ -247,6 +206,7 @@ CLAUDE.md   ← @AGENTS.md 一行导入 + 少量 Claude 专属（目标 ≤30 �
 | R9 | turbo preview 任务 | 根 `turbo.json` 的 `tasks` 含 `preview` |
 | R10 | CI affected 空集行为 | `ci.yml` 含名为「Affected set sanity check」的步骤（文件变更非空但受影响包为 0 → 失败） |
 | F0 | 修正 `hoisting: false` | `pnpm-workspace.yaml` 已是合法的 `hoist: false`（2026-09-21 pnpm 12 迁移完成） |
+| F1 | 根文档单一化 | 4 份 `CLAUDE.md`（根 + 三个 app）**各只剩一行 `@AGENTS.md` 导入**、无正文规则；`apps/{admin,docs,server}/AGENTS.md` 三份包级指引均在；根 `CLAUDE.md` 196 → 35 行 |
 | F5 | 状态移出文档 | **本轮完成**：完成项从待办表移除，只留本核实索引 |
 
 ---
