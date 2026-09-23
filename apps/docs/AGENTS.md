@@ -82,8 +82,9 @@ src/
 2. **Mermaid**：改动图表（尤其 `shared/sign.md`）要确认亮/暗两种主题下都能正确渲染。
 3. **导航 / 侧边栏**：新增页面必须在 `.vitepress/config/zh.ts` 的 sidebar 数组里登记，否则页面不可达。
 4. **自定义组件**：`WPageTitle` / `WFrontLink` / `WBaseLink` 全局注册，任意 markdown 可直接用。
-5. **死链校验就是构建本身**：`ignoreDeadLinks` 已从 `true` 收窄成**白名单**（冻结语料 + 尚未编写的
-   组件页），`vitepress build` 遇到真死链直接失败；CI 里有 `Docs build (dead-link check)` 一步。
+5. **死链校验就是构建本身**：`ignoreDeadLinks` 已从 `true` 收窄成**白名单**，2026-09-23 起白名单
+   **只剩「冻结语料」一条**（`archive/` + `industry-research/`），全站其余链接一律受查；
+   `vitepress build` 遇到真死链直接失败；CI 里有 `Docs build (dead-link check)` 一步。
    ⚠️ **VitePress 只查 `.md` 链接** —— 非 `.md` 的相对链接、以及 `apps/docs/src/` 之外的 markdown，
    由 `pnpm lint:docs-refs`（`@walnut/scripts` 的 `check-doc-refs`）负责。
 6. **⚠️ 正文里绝不写原始 `${{ … }}`**：VitePress 把 markdown 当 Vue 模板编译，段落或表格里的
@@ -93,9 +94,17 @@ src/
 7. **Locale**：根 locale 是中文（靠 rewrites），所以中文在 `/`，英文在 `/en-US/`。
 8. **别在正文里写会变的计数**（包数 / 包清单 / bin 数 / catalog 条目数 / 「N 份配置」）。
    2026-09-23 一天之内就在这批文档里抓到 **三处已经烂掉的计数**：`14 个 workspace 包`（实为 15）、
-   `@walnut/scripts 的 4 个 bin`（实为 5，且其中一处的列举本身还漏了一个）、
-   `248 个依赖`（实为 242）—— 它们**没有任何门禁**能拦，因为没有工具知道你想说的是哪个数。
+   `@walnut/scripts 的 4 个 bin`、`248 个依赖`（实为 242）—— 它们**没有任何门禁**能拦，因为没有
+   工具知道你想说的是哪个数。**其中最讽刺的一条**：写这条纪律时那个 bin 数是「实为 5」，
+   同一天稍后又加了 `walnut-check-doc-ts` 变成 **6** —— 这条规则本身就是它自己的最佳证据。
    **要写就写判据而不是数字**：能机械核对的东西（如「组成员数必须等于有 version 的包数，由
    `versioning-config.test.ts` 机械拦」）比一个会腐烂的常数有用得多；确实要写数字时，
    写明它是**哪个 commit / 哪一天**的口径。**加新包 / 新 bin 时**主动 grep 一遍
    `` 个包 ``、`` 个 bin ``、`条目` 这类词。
+9. **围栏语言要标对**：标成 `ts` / `tsx` 的块**必须能按 TypeScript 解析** —— `pnpm lint:doc-ts`
+   会逐个用 TypeScript 的解析器验。**最容易犯的是把 JSON 标成 `ts`**（2026-09-23 实测抓到 4 处，
+   都在 `monorepo/knip.md`：内容其实是「键带引号、子键裸写」的 JSON5 片段，语法高亮全错）——
+   请改成 ```` ```jsonc ````。真的有意写**不合法**的伪代码时，块的第一行写 `// @pseudo` 显式豁免，
+   不要让门禁去猜。
+   > 这道门禁**刻意只做语法解析，不要求文档块能编译**：实测 131 个 ts 块里零个存在真正的语法
+   > 错误、而「必须编译」会 100% 误报（文档块绝大多数是片段）。一个开始误报的门禁等于没有门禁。

@@ -43,6 +43,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
       ['lint:workflows'],
       ['lint:docs-refs'],
       ['lint:adr'],
+      ['lint:doc-ts'],
     ])
   })
 

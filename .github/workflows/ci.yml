@@ -99,6 +99,11 @@ jobs:
       - name: ADR shape check
         run: pnpm lint:adr
 
+      # 文档里标成 `ts` 的围栏块必须能按 TypeScript 解析：JSON 块不许标成 ts、不许截断/乱码。
+      # 只做「零误报」的那一半（不要求文档块能编译 —— 实测那样会 100% 误报）。
+      - name: Doc code-block check
+        run: pnpm lint:doc-ts
+
       # 防"affected 空集静默通过"：有文件变更却算出 0 个受影响包时必须失败
       - name: Affected set sanity check
         if: steps.affected.outputs.base != ''

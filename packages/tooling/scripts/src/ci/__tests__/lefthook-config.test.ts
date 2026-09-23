@@ -98,11 +98,11 @@ describe('根 package.json —— 钩子与门禁脚本', () => {
     expect(JSON.stringify(rootManifest)).not.toContain('simple-git-hooks')
   })
 
-  it('有 prepush 脚本，且九段门禁按序都在里面', () => {
+  it('有 prepush 脚本，且十段门禁按序都在里面', () => {
     const prepush = rootManifest.scripts?.prepush ?? ''
     expect(prepush.length).toBeGreaterThan(0)
     // 整表列出（不是抽样）：prepush 是**唯一**的推送前门禁，少一段就是少一道闸。
-    // 段数变过多次（五 → 六 → 七 → 八 → 九），每加一段都在这里登记。
+    // 段数变过多次（五 → 六 → 七 → 八 → 九 → 十），每加一段都在这里登记。
     const gates = [
       'pnpm boundaries',
       'pnpm lint:root',
@@ -112,6 +112,7 @@ describe('根 package.json —— 钩子与门禁脚本', () => {
       'pnpm lint:workflows',
       'pnpm lint:docs-refs',
       'pnpm lint:adr',
+      'pnpm lint:doc-ts',
       'pnpm change check',
     ]
     for (const gate of gates)

@@ -48,7 +48,7 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 
 ### 共享包（packages/\*）
 
-```ts
+```jsonc
 "packages/platform-any/contract": {
   entry: ["src/index.ts"],  // barrel export → 追踪所有子模块
 },
@@ -58,7 +58,7 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 
 ### 前端应用（apps/admin）
 
-```ts
+```jsonc
 "apps/admin": {
   entry: [
     "src/main.ts",                    // 应用入口
@@ -84,7 +84,7 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 
 ### 后端应用（apps/server）
 
-```ts
+```jsonc
 "apps/server": {
   entry: ["apps/api/src/main.ts"],
   project: ["apps/**/*.ts", "libs/**/*.ts"],
@@ -173,7 +173,7 @@ Configuration hints (69)← knip 建议清理的冗余配置项（可忽略）
 
 在 [`knip.config.ts`](https://github.com/walnut-admin/walnut-admin/blob/main/knip.config.ts) 的 `workspaces` 中添加：
 
-```ts
+```jsonc
 "packages/platform-any/新包名": {
   entry: ["src/index.ts"],
 },

@@ -2,9 +2,9 @@
 
 **Date:** 2026-07-28
 **Status:** Accepted
-**Last revised:** 2026-09-23 — 门禁表按现状更新：git 钩子改由 lefthook 托管（ADR 0018），pre-push 是九段
-聚合命令 `pnpm --silent prepush`（含 `lint:root` / `types:check:root` / `lint:docs-refs` / `lint:adr`）；CI 步骤补 boundaries / affected 自检 /
-syncpack / `pnpm change check` / `lint:root` / `types:check:root` / `lint:adr`；
+**Last revised:** 2026-09-23 — 门禁表按现状更新：git 钩子改由 lefthook 托管（ADR 0018），pre-push 是十段
+聚合命令 `pnpm --silent prepush`（含 `lint:root` / `types:check:root` / `lint:docs-refs` / `lint:adr` / `lint:doc-ts`）；CI 步骤补 boundaries / affected 自检 /
+syncpack / `pnpm change check` / `lint:root` / `types:check:root` / `lint:adr` / `lint:doc-ts`；
 `test` 任务的依赖是 `["^build"]`；`@walnut/axios` 已更名 `@walnut/http`。
 
 ## Context

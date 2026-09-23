@@ -237,7 +237,7 @@ packages/
 
 ```ts
 // 当前：每个 store 文件都复制此模式
-const useAppStoreXInside = defineStore(StoreKeys.X, {...})
+const useAppStoreXInside = defineStore(StoreKeys.X, { /* … */ })
 const useAppStoreXOutside = () => useAppStoreXInside(store)
 export function useAppStoreX() {
   if (getCurrentInstance()) return useAppStoreXInside()

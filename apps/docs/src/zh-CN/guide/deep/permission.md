@@ -7,7 +7,7 @@
 ### ts 类型
 
 ```ts
-permissions: string[]
+type Permissions = string[]
 ```
 
 ## 相关函数

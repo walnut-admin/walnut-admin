@@ -39,10 +39,10 @@ pre-push:    # 单条：pnpm --silent prepush
 
 四条配套约束：
 
-1. **pre-push 收敛成单条命令**。九段（boundaries / lint:root / types:check / types:check:root / syncpack / lint:workflows / lint:docs-refs / lint:adr / change check）
+1. **pre-push 收敛成单条命令**。十段（boundaries / lint:root / types:check / types:check:root / syncpack / lint:workflows / lint:docs-refs / lint:adr / lint:doc-ts / change check）
    在根 `package.json` 的 `prepush` 脚本里按序跑。被截断只会退化成「命令不存在」，响亮报错。
    （最初是五段；`lint:root` / `types:check:root` / `lint:docs-refs` 于 2026-09-23 陆续补入，
-   `lint:adr` 同日随 F6 补入 ——
+   `lint:adr` 与 `lint:doc-ts` 同日随 F6 / F2③ 补入 ——
    根级配置文件此前既不被 prepush / CI 覆盖、也没有任何脚本对它做类型检查，而文档正文里的包名与
    仓库路径引用、以及 ADR 的形态更是完全没人管。）
 2. **安装路径必须有构建脚本放行**。lefthook 自己的 postinstall 就是 `lefthook install`，
@@ -67,7 +67,7 @@ pre-push:    # 单条：pnpm --silent prepush
 - 钩子内容在跟踪面里，可被单测审计；`lefthook.yml` 改了就生效，不需要重装钩子。
 - 门禁缺失从「静默」变成「响亮」：二进制缺失时 lefthook 直接报错，
   安装失败由 `pnpm hooks:check` 抓出来。
-- pre-push 的九段有一条可见、可单独运行的聚合命令（`pnpm prepush`）。
+- pre-push 的十段有一条可见、可单独运行的聚合命令（`pnpm prepush`）。
 
 **代价：**
 

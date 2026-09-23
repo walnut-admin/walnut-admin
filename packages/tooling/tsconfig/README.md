@@ -45,7 +45,7 @@
 | `packages/platform-any/types` | `ts.json` | 纯 `.d.ts` |
 | `packages/platform-any/utils-core` | `ts.json` | 纯逻辑（自持 `types: ["node"]`） |
 | `packages/platform-web/*` | `vue.json` | 浏览器 + Vue |
-| `packages/tooling/scripts` | `ts.json` | 五个 bin 由 Node 原生执行 |
+| `packages/tooling/scripts` | `ts.json` | 六个 bin 由 Node 原生执行 |
 | `packages/tooling/release` | `ts.json` | bin 由 Node 原生执行 |
 | `packages/tooling/eslint-config` | `base.json` | 由 ESLint 经 jiti 加载，不经 Node 剥离 |
 | `packages/tooling/commitlint-config` | `base.json` | 由 commitlint 的 TS loader 加载 |

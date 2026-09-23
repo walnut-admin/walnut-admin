@@ -78,6 +78,8 @@ const RELEASE_BATTERY: BatteryStep[] = [
   // 同上：@walnut/scripts 的 bin。ADR 的形态（编号连续 / Status 在枚举内 / 四个必需小节 /
   // index.md 双向对齐）没有任何现成工具管，见待办 F6。
   { id: 'adr', label: 'ADR 形态校验（编号 / 状态 / 小节）', argv: ['lint:adr'] },
+  // 同上。文档里标成 `ts` 的围栏块必须能按 TypeScript 解析（JSON 块不许标成 ts）。
+  { id: 'doc-ts', label: '文档代码块校验（ts 块必须能解析）', argv: ['lint:doc-ts'] },
   {
     id: 'build',
     label: '构建（3 个 app + 共享包）',

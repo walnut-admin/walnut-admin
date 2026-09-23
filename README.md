@@ -76,7 +76,7 @@ pnpm lint          # 各包的 lint 任务
 pnpm lint:root     # 只 lint 根级配置
 pnpm types:check   # 全仓类型检查
 pnpm test          # vitest（12 个包有 test 任务）
-pnpm prepush       # pre-push 的聚合门禁（九段）
+pnpm prepush       # pre-push 的聚合门禁（十段）
 ```
 
 ## History
