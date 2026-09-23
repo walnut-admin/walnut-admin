@@ -1,5 +1,21 @@
 import type { KnipConfig } from 'knip'
 
+/**
+ * ⚠️ **`pnpm knip` 当前是红的，而且这是已知的、有意维持的状态**（2026-09-23 决策）。
+ *
+ * 现状：exit 1，命中 7 个未用文件 / 40 个未用导出 / 3 个未用类型，全部落在 `apps/admin` 与
+ * `apps/server`。它**不在任何门禁里**（prepush / CI / 发版电池都没有它），所以不影响交付，
+ * 但也意味着**没人会看到这些提示** —— 这个文件里的注释就是它们的落脚点。
+ *
+ * 为什么不为了变绿而删（这是决策的全部理由）：**本仓是模板项目，「未用导出」不等于死代码。**
+ * 最典型的是 `apps/server/libs/decorators/src/transformer/**` 里那 13 个
+ * `WalnutAdminDecoratorTransform*` —— 它们正是**留给模板使用者按需取用**的装饰器 API 面，
+ * 仓内没有消费者是正常的；`sleep` / `TransformToSeconds` / `TransformToBytes` 同理。
+ * 按「有没有人 import」来删，等于把模板的能力删掉。
+ *
+ * 如果将来要把它接进门禁：**先分类再开闸** —— 用 `entry` / `includeEntryExports` 之类把
+ * 「有意的公共面」显式标出来，只让真正的死代码亮红。不要直接删。
+ */
 const config: KnipConfig = {
   // ============================================================
   // Workspace 包入口
