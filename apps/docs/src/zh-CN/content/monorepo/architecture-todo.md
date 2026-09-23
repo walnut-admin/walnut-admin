@@ -1,128 +1,161 @@
 # 架构待办事项
 
-> 基于 ADR 实现差距 + 行业调研对比，梳理架构层面剩余工作。按优先级 P0-P3 排列。
+> **本表只列未完成的项。** 2026-09-23 逐条核实了原表里所有 ✅ / ❌ 标记：确认完成的已从表中移除
+> （核实方式见文末[「核实记录」](#核实记录已移出待办)，避免再次出现「标了完成其实没做」）；
+> 其中 **R1 核实后判定为已回退**，重新回到待办并升级到 P1。
+> 完成项的历史留在文末「执行记录」，细节见对应 ADR / 专题文档。
+
+**最后核实**：2026-09-23 ｜ 14 个 workspace 包 ｜ 全门禁绿（`prepush` / `lint` / `types:check` / `test` / `boundaries` / `syncpack` / `build:admin` / `build:docs`）
+
+## 优先级总览
+
+| 级别 | 判据 | 条目 |
+|------|------|------|
+| **P0** | 阻塞首次发版 | P1-16 |
+| **P1** | 静态检查与门禁的缺口（会让「绿」变成假象） | R1 · R4 · R2 |
+| **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 · R3 · R8 · R11 · P3-19 · P2-10 · P2-11 |
+| **P3** | 远期 / 条件触发 | P3-12 · P3-14 · P3-15 · P3-13 · A8 · A9 · A11 · P3-17 · P3-18 · P3-20 |
+| **未裁决** | 2026-09-21 评审提出，**尚未决定做不做**（先看 P0/P1） | F1–F4 · F6–F7 · D1–D6 · D8<br><sub>F0 / F5 已完成；D7（TS 7 排期）已并入 R7</sub> |
 
 ---
 
-## P0 — 阻塞项（必须尽快解决）
+## P0 — 阻塞首次发版
 
-| # | 事项 | 来源 | 工作量 | 说明 |
-|---|------|------|--------|------|
-| 1 | **CI/CD 流水线** | ADR 0009 | 中 | **⚠️ 2026-09-21 修正**：`.github/workflows/ci.yml` 自 2026-08-13 起**从未真正运行过** —— step 级 `if` 里写了 `secrets` 上下文（该位置不允许），GitHub 判定 `Invalid workflow file`，启动即失败、0 个 job，界面上只是一个"失败的 CI"，被当成普通构建失败忽略五周。已修复：secret 绑到 job 级 `env` 后用 `env.X != ''` 判断；新增 `.github/workflows/workflow-lint.yml`（actionlint，独立文件兜底）+ `pnpm lint:workflows`（pre-push）。同时补上 affected 的显式基准 `TURBO_SCM_BASE/HEAD`（push main 时 merge-base 即 HEAD，受影响集会算空）与"变更非空但受影响包为 0 → 失败"的自检。详见 [CI/CD 与容器构建](./ci-cd) |
-| 2 | **共享包测试** | ADR 0009 / 0015 | 中 | **✅ 已完成（2026-08-08）**。`@walnut/utils` 5 个测试文件（queue 去重/清理语义、regex 正负例、crypto transformer 三套往返、persistent sync/async 加密包装）；`@walnut/contract` 快照测试（12 组契约快照：wire format、错误码、角色、路由、socket 事件等 + API 表面）。contract 补 test 脚本与 vitest 配置，CI 的 affected test 自动覆盖 |
-| 3 | **前端构建修复** | ADR README 遗留 | 小 | **✅ 已解决 2026-08-08**。三个根因：(1) env 文件缺失——正确流程是 `pnpm setup-env`（dotenvx 从 `env-encrypted/` 解密，需根 `.env.keys`）；(2) root overrides 把 `lru-cache` 全局强制为 v11（ESM-only），破坏 workbox-build 的 CJS 依赖链（`_lruCache is not a constructor`）——已移除 override；(3) `optimizeDeps.include: Object.keys(dependencies)` 把 workspace 包列入预构建导致 `@walnut/types` 等解析失败——已过滤 `@walnut/*`。另修复 `~build/package` 失效 import 及 tsbuildinfo 增量缓存掩盖的 6 处既有类型错误 |
+| # | 事项 | 工作量 | 现状与判据 |
+|---|------|--------|-----------|
+| **P1-16** | **tag 发布链路端到端验证** | 小 | ❗**一次都没跑过**。质量门禁在 GitHub 实测绿过（CI #3/#4，2m28s），但「构建镜像 → 推 TCR → 自动部署」从未执行（本机无 Docker，Dockerfile / bake 无法本地验证）。且 2026-09-23 又给 `ci.yml` 加了一步 `pnpm lint:root`（根级配置不在 turbo 的 affected 图里），**连质量门禁也需要在新提交上重跑一次**才算验证。<br>清单：① CI 的 affected Summary 表 + 新增的 lint:root 步为绿；② run summary 的 staging 体积与三镜像 digest；③ `docker run --rm --entrypoint ls <backend> /app/env-local` 应报不存在；④ 部署日志出现「三个镜像均存在」、`--wait`、健康检查 200；⑤ 二次发布（Re-run all jobs）明显更快且出现 `scope=backend` / `scope=frontend`；⑥ 新增的 **post-verify** 步骤绿（脚本已用假 docker/curl 覆盖 10 个场景，但没在真实服务器上跑过）。<br>详见 [CI/CD 与容器构建](./ci-cd) |
 
 ---
 
-## P1 — 高收益（有明确的效率/质量提升）
+## P1 — 静态检查与门禁的缺口
 
-| # | 事项 | 来源 | 工作量 | 说明 |
-|---|------|------|--------|------|
-| 4 | **Turbo Remote Cache** | 行业调研 | — | **❌ 已决定不接入（2026-08-08）**。单人维护 + CI 规模小，单机缓存足够。`globalPassThroughEnv` 的 `TURBO_TOKEN`/`TURBO_TEAM` 透传保留，未来接入零配置 |
-| 5 | **部署流水线** | ADR 0008 | 大 | **✅ 已完成（Docker 方案）**；**⚠️ 2026-09-21 重构**：原实现把 build 与 deploy 耦合在同一次手动 dispatch 里，且镜像内要 `pnpm install` 全仓 5800+ 依赖 → 单次上线实测 **85 分钟**（其中 backend 镜像构建 77m53s，同一 Dockerfile 在另一 run 只要 15m49s）。根因是三个镜像共用 buildx 默认缓存 scope（`buildkit`）互相覆盖，backend 永远冷构建。现在：commit 只跑 ci.yml 质量门禁；tag 发布才构建镜像（`docker-bake.hcl`：每镜像独立 scope、backend/frontend 并行、staging 在 runner 上完成 → 镜像只 COPY）；`deploy.yml` 改为可复用的纯部署（回滚 1–3 分钟）；并修掉"env-local 明文密钥被 `pnpm deploy --prod` 拷进镜像"的泄漏 |
-| 6 | **commitlint** | 行业调研 | 小 | enforce conventional commit 格式。**[✅ 已完成 2026-08-08（commit `029eb2b`）](./eslint.md)** ——`@commitlint/cli` + config + `commit-msg` hook 已就位，Changesets + git-cliff 依赖的 commit message 规范已保障 |
-| 7 | **Changeset Bot** | 行业调研 | — | **❌ 已作废（2026-09-23）**：本仓不再使用 `@changesets/cli`，变更意图由 `pnpm change` 在发版时从 commit 生成（`.changeset/*.md` 是脚本产物，不是贡献者在 PR 里手工创建的 artifact），该 bot 的前提已不存在 |
-| 16 | **tag 发布链路验证** | CI/CD 重构 | 小 | ❗**未验证**。质量门禁已在 GitHub 实测通过（CI #3/#4 全绿：install 25s → boundaries 1s → affected lint 59s → types 36s → test 7s → affected 自检 → syncpack，合计 2m28s），但**构建镜像 → 推 TCR → 自动部署**这条 tag 链路一次都没跑过（本机无 Docker，Dockerfile/bake 的实际执行无法本地验证）。验证清单见 [CI/CD 与容器构建](./ci-cd) §度量 与归档 plan §5：① run summary 的 staging 体积 + 三镜像 digest；② `docker run --rm --entrypoint ls <backend> /app/env-local` 应报不存在（密钥剔除）；③ 部署日志出现"三个镜像均存在"、前后 `compose ps`、`--wait`、健康检查 200；④ 二次发布（Re-run all jobs）应明显更快且日志出现 `scope=backend`/`scope=frontend`；⑤ 新增的 **部署后验证（post-verify）** 步骤必须绿（轮询容器日志 + 端到端，脚本行为已在本地用假 docker/curl 测过 10 个场景，但没在真实服务器上跑过） |
+| # | 事项 | 工作量 | 现状与判据 |
+|---|------|--------|-----------|
+| **R1** | **`pnpm peers check` 已经红了**（原「✅ 已完成」，本轮改判） | 中 | ⚠️ **回退项**。原记录称「`peerDependencyRules.allowedVersions` 豁免 5 项 → 零告警」，但该段配置已随 2026-09-21 的 pnpm 12 迁移**整段删除**，检查现在 **exit 1**、报 5 组 unmet peer：`vite` 8.0.11（vite-plugin-restart / devtools-json 要 ≤7）、`@swc/cli` 0.8.1（@nestjs/cli 要 ≤0.7）、`chokidar` 4.0.3（要 ^3 / ^5）、`class-validator` 0.15.1（@nestjs/mapped-types 要 ^0.13/0.14）、`typescript` 6.0.3（i18next / tsconfck / madge 要 ^5）。<br>这 5 项都是「本仓显式选用新版本、上游 peer 未跟进」，本身可接受 —— 问题是它现在**没人看的红**。二选一：**(a)** 找 pnpm 12 的等价机制恢复白名单并接进门禁；**(b)** 明确「红是预期」，在 `pnpm-workspace.yaml` 写清楚并把它排除出门禁。 |
+| **R4** | **根 `tsconfig.json` 无人执行** | 小 | 根 tsconfig（`include: ["*.ts"]`，extends `@walnut/tsconfig/base.json`）覆盖 `eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`，但**没有任何脚本跑它**（`types:check` 只跑包任务，`lint:root` 只 lint）。即这三个根配置的类型错误当前无门禁覆盖。<br>建议加 `types:check:root: tsc -p tsconfig.json` 并入 `prepush` 与 `ci.yml`。注意根配置走 `base.json`（无 `erasableSyntaxOnly`），加之前先确认它在 `ts.json` 之外自洽。 |
+| **R2** | **knip 集中豁免 95 条** | 中 | `knip.config.ts` 的 `ignoreDependencies` 已 **95 条**（本轮核实），集中豁免会掩盖真实死依赖。建议按包拆豁免、周期性清理（2026-08-08 清过一轮）。<br>另：整仓 `pnpm knip` 当前 **exit 1**，命中的全是 **app 代码既有项**（7 未用文件 / 40 未用导出 / 3 导出类型），且不在任何门禁里 —— 要么修完接进门禁，要么在文档里明确它「只作参考、不设门禁」。 |
 
 ---
 
-## P2 — 锦上添花（改善体验）
+## P2 — 维护性 / 体验改善
 
-| # | 事项 | 来源 | 工作量 | 说明 |
-|---|------|------|--------|------|
-| 8 | **Docker 多阶段构建** | 行业调研 | 中 | **✅ 已完成；2026-09-21 改为"薄镜像"**：`apps/server/Dockerfile`、`apps/admin/Dockerfile` 不再在镜像内 `pnpm install`/构建，只 COPY runner 侧产物（`pnpm deploy --prod` 输出 / Vite dist），三镜像由 `docker-bake.hcl` 统一编排。`deploy/nginx/Dockerfile`（alpine + brotli）与 `deploy/docker-compose.yml` 保持不变 |
-| 9 | **syncpack** | 行业调研 | 小 | 强制 workspace 中同类依赖版本一致。**[✅ 已完成 2026-07-30](./syncpack.md)** |
-| 10 | **Codecov / 覆盖率报告** | 行业调研 | 小 | PR 上自动评论覆盖率变化。免费，依赖 P0-2 测试先落地 |
-| 11 | **GitHub Environments** | 行业调研 | 中 | 多环境部署（staging / production），按环境隔离 Secrets。当前 deploy.yml 用 `workflow_dispatch` 的 inputs 选择环境（2026-09-23 起 `environment` input 在 `workflow_call` 下默认 `prod`，`workflow_dispatch` 只提供 `prod` 一个选项），未使用原生 `environment:` 机制；改用可复用 workflow 后，串行由 `concurrency: deploy-${env}` 保证。stage 服务器（火山引擎）到位后再评估 |
-
----
-
-## P3 — 远期（当前不做）
-
-| # | 事项 | 来源 | 原因 |
-|---|------|------|------|
-| 12 | **Zod 替换 class-validator** | ADR 0016 | 工程量巨大（100+ DTO 类，6 个子系统）。评估已完成，暂不迁移 |
-| 13 | **E2E 测试（Playwright）** | 行业调研 | 优先覆盖单元+集成测试。E2E 在测试体系稳定后再加 |
-| 14 | **Vitest 共享 preset** | 行业调研 | 理由已过时，重新评估 | 当时包数 4 个、复制配置即可。现 14 个包、6 份 vitest 配置（server/api、contract、utils-core、client、scripts、release），测试面还在扩；规模已跨过提取阈值，可再议 |
-| 15 | **oxlint / biome** | 行业调研 | 都不支持 Vue SFC。等支持后再加为 ESLint 的快速第一道扫描 |
-| 17 | **TCR 旧 tag 清理** | CI/CD 重构 | 小 | 腾讯云 TCR 个人版单镜像上限 100 版本；每次发布推 `vX.Y.Z` + `nginx:brotli`，长期累积会顶到上限。可在 release.yml 加一步清理旧 tag（保留最近 N 个），或改由 TCR 控制台的生命周期策略处理 |
-| 18 | **`skip_deploy` 开关** | CI/CD 重构 | 小 | 给 `release.yml` 加 `workflow_dispatch` + `skip_deploy` 输入（约 5 行），用于"只想验证镜像构建、不碰生产"的场景。当前要验证镜像就必须真发 tag（会连带部署） |
-| 19 | **turbo build 输出警告** | CI/CD 重构 | 小 | `@walnut/{client,http,types,ui}#build` 在构建时刷 "no output files found for task …" 警告（这几个包源码直消费、`build` 任务确实无产物）。要么移除它们的 `build` 任务、要么在 `turbo.json` 声明无 outputs |
-| 20 | **国内 self-hosted runner（决策门）** | CI/CD 重构 | 中 | 仅当 P1-16 的实测显示"tag 发布总时长 > 20 min 且跨境推送占大头"时再评估：runner 在美国、镜像仓库在腾讯云上海，跨境上传是旧流水线 78 分钟的主要嫌疑之一。腾讯云轻量服务器作 self-hosted runner（TCR 同地域、pnpm store 与 buildx 缓存可持久化，约 ¥30–60/月）能显著改善，但需要额外支出，**先看数据再决定** |
+| # | 事项 | 工作量 | 现状与判据 |
+|---|------|--------|-----------|
+| **R7** | **TS 7 / tsgo 迁移准备**（评审建议上调到 P2） | 中 | `@walnut/tsconfig/base.json` 的 `ignoreDeprecations: "6.0"` 一刀切静音了通往原生编译器的迁移信号。**TS 7.0 已正式发布**（2026-07-08），评审提出应先做一次**阻塞面实测**：全仓 `types:check` 用 TS 7 跑一遍摸清阻塞点，再定排期。另注意 `apps/server/tsconfig.json` 未显式声明 `moduleResolution`（`module: commonjs` 使其落到默认 `node10`）。 |
+| **A5** | **API 路由迁移收尾**（原「剩余 11 处 + server 44 controller」） | 中 | admin 侧已大量使用 contract 路由常量（`AuthRoutes` / `AppRoutes` / `SystemRoutes` / `SecurityRoutes` / `SharedRoutes` / `SystemEndpointRoutes`，`apps/admin/src` 里 101 行涉及）。**剩余全在 server 侧**：`git grep WalnutAdminConstApiRoute apps/server` → **0 处**，controller 仍用字面量路径。<br>评审建议（D6）别手工逐个改：写 `gen-route-catalog`（扫 `@Controller` + `contract/routes`）+ `verify-route-parity` 门禁，一次性发现全部差异。 |
+| **A7** | **`@walnut/ui` 剩余组件** | 大 | admin 侧仍有 **22** 个 UI 组件目录，`@walnut/ui` 只有 3 个（DynamicTags / Switch / TimePicker）。需处理跨组件相对 import 与 app store 注入。<br>评审建议（D5）先用「零 app 依赖 + 已被 ≥2 处复用」过滤，避免为迁而迁。 |
+| **A10** | **store 工厂迁移** | 中 | `createWalnutStore()` 只在 `@walnut/client` 内部被引用（`src/index.ts` + `store/createWalnutStore.ts`），admin 侧 **26** 个 store 文件 **0 处**使用。 |
+| **R3** | **root eslint 换 base preset** | 小 | 根 `eslint.config.ts` 现在是 `import vueConfig from '@walnut/eslint-config/vue'`，但根级 glob 只有 `*.ts *.json *.yaml`（无 `.vue`），用 base preset 更贴切、更快。 |
+| **R8** | **`@walnut/types` exports 结构** | 小 | 该包 `exports` 只有 `{ "./*": "./src/*.d.ts" }`，**无根 `"."`、无 `types` 字段**，消费方必须写 `@walnut/types/xxx`。评估是否补根导出。 |
+| **R11** | **文档漂移清扫** | 小 | 本轮又修掉几处：`apps/docs/CLAUDE.md`（`preinstall` / `only-allow` 已不存在）、`apps/server/CLAUDE.md`（pnpm 11 → 12、preinstall）、`deploy.yml` 注释（setup-env 不再用 tsx）、`.gitignore` 的死规则 `report/*`。剩余 `.claude/`、`.zcode/` 等入口文档待查。 |
+| **P3-19** | **turbo build「no output files」警告** | 小 | `@walnut/{client,http,types,ui}` 的 `build` 是 `echo`、无产物，但根 `turbo.json` 的 `build` 任务声明了 `outputs` → 每次刷 4 条警告。四个包都已有自己的 workspace `turbo.json`，加 `"build": { "outputs": [] }` 即可（或移除它们的 build 任务）。 |
+| **P2-10** | **Codecov / 覆盖率报告** | 小 | PR 上自动评论覆盖率变化（免费）。现在 6 份 vitest 配置都具备 coverage 能力但未接入。 |
+| **P2-11** | **GitHub Environments** | 中 | 已核实 deploy 作业**未**使用原生 `environment:`（只有作业级 `env:` 变量 + `workflow_call`/`workflow_dispatch` 的 `environment` 输入 + `concurrency: deploy-${env}`）。stage 服务器（火山引擎）到位后再评估。 |
 
 ---
 
-## ADR 0017 遗留（Package 重组收尾线）
+## P3 — 远期 / 条件触发
 
-ADR 0017 Phase 1（目录重组 + 既有包迁移）+ Phase 2.1/2.3（contract 共享常量）已完成。以下为剩余项：
-
-| # | 事项 | 状态 | 说明 |
-|---|------|------|------|
-| A1 | **旧目录残留清理** | ✅ 已完成 | 旧平铺目录（`packages/{axios,client,contract,eslint-config,utils}`）零文件，9 个包全部在新分组（platform-any/platform-web/tooling）下（2026-08-08 清理并核实） |
-| A2 | **walnut 标签补齐** | ✅ 已完成 | 9 个包全部带 `walnut` 字段（platform/type/runtime）（2026-08-08 完成并核实） |
-| A3 | **turbo boundaries 升级** | ✅ 已完成 | 根 `turbo.json` boundaries 已含 platform-any/platform-node 维度（any/web/node deny 规则）（2026-08-08 完成并核实） |
-| A4 | **`@walnut/client` vue-router 死依赖** | ✅ 已完成 | `vue-router` 依赖声明已移除（2026-08-08，见执行记录）；现 client 的 vue/pinia 也已移入 peerDependencies |
-| A5 | **Phase 2.2 API 路由迁移** | 🔄 渐进式 | ✅ admin 侧 30 处静态硬编码 URL 全部迁移到 `@walnut/contract/routes`（2026-08-08）。剩余 11 处为带参动态模板字符串（device 子路由等）与 server 侧 44 个 controller 的同步，留待渐进 |
-| A6 | **Phase 2.4 server 死依赖决策** | ✅ 已完成 | ✅ 2026-08-08 确认 server 0 处 import `@walnut/utils`，按 ADR 评估结论（libs/utils 迁移已跳过）移除依赖声明 |
-| A7 | **Phase 3.1 `@walnut/ui`** | 🔄 POC 完成 | ✅ 2026-08-08 创建 `packages/platform-web/ui/`，迁入 Switch/DynamicTags/TimePicker 验证模式：naive-ui peerDependency、显式 import naive 组件、`WalnutAdminComponentResolver` 增扫 package 路径、`Form/src/types.ts` 类型改从 `@walnut/ui/*` 导入。lint/types:check/boundaries 全绿。剩余 22 组件（含依赖链复杂的 Button/Card/Form/Table）待批量迁移，需处理跨组件相对 import 与 app store 依赖注入 |
-| A8 | **Phase 3.2 `@walnut/i18n`** | ❌ 待做 | locale bootstrap + 状态机 + naive locale 映射。需定义 `LocaleFetcher`/`LocaleCache` DI 接口 |
-| A9 | **Phase 3.3 `@walnut/security`** | ❌ 待做 | URL 加密 guard + sign interceptor crypto + VerifyAuth 类型。需定义 `SignProvider`/`CryptoKeyProvider`/`VerifyAuthHandler` DI 接口 |
-| A10 | **Phase 3.4 store 工厂迁移** | 🔄 半完成 | `createWalnutStore()` 已进 `@walnut/client`（commit `dec4619`），但 admin 24 个 store 文件 0 处使用，未逐个迁移 |
-| A11 | **Phase 4 自动导入迁移** | ❌ 待做 | 迁入 package 的代码中隐式全局变量改为显式 import；更新 auto-import / component resolver 指向新包 |
+| # | 事项 | 工作量 | 现状与判据 |
+|---|------|--------|-----------|
+| **P3-12** | **后端验证策略**（原「Zod 替换 class-validator」，评审建议重述） | 大 | 方向不变但**前提已变**：NestJS 12 已官方支持 Standard Schema（`@Body({ schema })` + `StandardSchemaValidationPipe`，同一 schema 还能驱动 OpenAPI），`industry-research/07` 里「手写 `ZodValidationPipe`」的示例已过时；class-validator 仍完全支持、无移除计划。<br>评审建议把本条**从「换校验器」重述为「补齐边界校验清单」**：真正的缺口在**持久化读回 / 队列 / SSE** 三处，工程量从「100+ DTO 迁移」降到「补 3 处边界校验」；如果补不上这三处，这次迁移就不值得做。 |
+| **P3-14** | **Vitest 共享 preset** | 中 | 规模已跨过阈值：**6 份** vitest 配置（`apps/server/apps/api`、`contract`、`utils-core`、`client`、`scripts`、`release`）。评审提醒技术基线要更新为 Vitest 的 **`projects` 配置**（不是旧的 workspace 配置）。 |
+| **P3-15** | **oxlint / biome** | 小 | 结论保留（暂不作为主 linter），措辞修正：不是「都不支持 Vue SFC」，而是**官方框架支持仍在 RFC 阶段，第三方插件（`oxlint-vue` 等）可用但不成熟**。 |
+| **P3-13** | **E2E 测试（Playwright）** | 大 | 优先覆盖单元 + 集成测试；E2E 等测试体系稳定后再加。 |
+| **A8** | **`@walnut/i18n` 新包** | 大 | 目录**未创建**。locale bootstrap + 状态机 + naive locale 映射。评审（D1）提醒 seam 形态应先决策：ADR 0017 原方案用 TS `interface`，但 `interface` 无运行时令牌，无法表达「依赖 definition 而非 provider」。 |
+| **A9** | **`@walnut/security` 新包** | 大 | 目录**未创建**。URL 加密 guard + sign interceptor crypto + VerifyAuth 类型。同 A8，受 D1 阻塞。<br>评审（D2）指出这两条的**真正前置**是前端组合根：不先做显式 `createWalnutApp(options)` 工厂，A8/A9 落不了地。 |
+| **A11** | **Phase 4 自动导入迁移** | 中 | 迁入 package 的代码里隐式全局变量改为显式 import；auto-import / component resolver 已指向 `@walnut/ui`（`component.ts` 扫 `packages/platform-web/ui/src/*/index.ts`），其余待迁。 |
+| **P3-18** | **`skip_deploy` 开关** | 小 | 给 `release.yml` 加 `workflow_dispatch` + `skip_deploy` 输入（约 5 行），用于「只想验证镜像构建、不碰生产」。现状：有 `workflow_dispatch`，**无** `skip_deploy`。 |
+| **P3-17** | **TCR 旧 tag 清理** | 小 | 腾讯云 TCR 个人版单镜像上限 100 版本，每次发布推 `vX.Y.Z` + `nginx:brotli`，长期会顶到上限。可在 `release.yml` 加清理步骤（保留最近 N 个），或交给 TCR 控制台的生命周期策略。 |
+| **P3-20** | **国内 self-hosted runner（决策门）** | 中 | **门控在 P0（P1-16）的实测数据**：仅当「tag 发布总时长 > 20 min 且跨境推送占大头」时再评估。runner 在美国、镜像仓库在腾讯云上海，跨境上传是旧流水线 78 分钟的主要嫌疑之一；腾讯云轻量服务器约 ¥30–60/月。**先看数据再决定。** |
 
 ---
 
-## 架构优化池（2026-08-08 review 新增）
+## 未裁决（2026-09-21 评审提出，尚未决定做不做）
 
-> 全仓 review 发现、但非阻塞的优化候选。按收益排序，随手可做。
+> 来自[归档：架构 Review 与调研审计](../archive/2026-09-21-architecture-review.md)。原文说这些是**新增项**，
+> 但一直没进过本表。**先别急着做** —— 建议在 P0/P1 清完之后再逐条裁决。
+> 裁决结果要么变成上面的 P0–P3 条目，要么写进 ADR（「已否决」也要留痕）。
 
-| # | 事项 | 说明 | 工作量 |
-|---|------|------|--------|
-| R1 | **peers 版本错位治理** | **✅ 已完成（2026-08-08）**。`peerDependencyRules.allowedVersions` 豁免 5 项（@swc/cli、chokidar、class-validator、typescript、vite——均为仓库显式选用新版本、上游 peer 未跟进），`pnpm peers check` 恢复零告警 | — |
-| R2 | **knip 豁免清单裁剪** | `ignoreDependencies` 已膨胀至 94 条集中豁免，掩盖真实死依赖、维护成本高。建议按包拆分豁免并周期性清理（08-08 批次已清过一轮，仍可继续） | 中 |
-| R3 | **root eslint 换 base preset** | 根 `eslint.config.ts` 用 vueConfig，但根级 glob 只有 `*.ts *.json *.yaml`（无 `.vue`），用 base preset 更贴切、更快 | 小 |
-| R4 | **根 tsconfig.json 接入类型检查** | 根 tsconfig（`include: ["*.ts"]`，extends `@walnut/tsconfig/base.json`）覆盖 `eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`，但仍无任何脚本执行它（`types:check` 只跑 turbo 包任务；`lint:root` 只 lint 不做类型检查）。建议加 `types:check:root: tsc -p tsconfig.json` 并入 pre-push/CI | 小 |
-| R5 | **AGENTS.md 重写** | **✅ 已完成（2026-08-08）**。根 `AGENTS.md` 重写为分发式导航文档（结构 + 命令 + 关键纪律），权威信息指向 CLAUDE.md 与架构文档，避免再次漂移 | — |
-| R6 | **only-allow 加入 devDeps** | **✅ 已作废（2026-09-21 pnpm 12 迁移）**：根 `preinstall: npx only-allow pnpm` 与整个 `only-allow` 依赖已从仓库移除——pnpm 专用性现在只由 `packageManager` 字段 + corepack + `engineStrict` 保证，不再有安装期的网络拉取 | — |
-| R7 | **TS 7 / tsgo 迁移准备** | `@walnut/tsconfig/base.json` 的 `ignoreDeprecations: "6.0"` 一刀切静音了通往原生编译器（tsgo）的迁移信号。建议列出实际触发的弃用项逐个决策，为 TS 7 铺路 | 中 |
-| R8 | **`@walnut/types` exports 结构** | 该包只有 `./*` 子路径导出、无根 `"."` 与 `types` 字段，消费方必须写 `@walnut/types/xxx`；评估是否补根导出 | 小 |
-| R9 | **turbo preview 任务** | ✅ 已修复（2026-08-08）：根 `preview: turbo preview` 脚本曾指向未定义任务（turbo 报 Could not find task），已在 `turbo.json` 补 `preview` 任务（persistent + ^build） | — |
-| R10 | **CI affected 空集行为验证** | **✅ 已实测（2026-09-23）**。CI 首次真正运行：`turbo run test --affected` 在受影响集不含"有 test 脚本的包"时正常结束（不报 No tasks were executed），并在 ci.yml 增补了"有文件变更但受影响包为 0 → 失败"的自检步骤。附带修掉一个更隐蔽的问题：直接 push main 时 `--affected` 的 merge-base 就是 HEAD，受影响集会算成空集 —— 现已显式传 `TURBO_SCM_BASE/TURBO_SCM_HEAD` | — |
-| R11 | **文档漂移清扫** | `apps/server/CLAUDE.md`（pm2 脚本已删、`pnpm typecheck` → `types:check`、TS 5.9 → 6.0.3）、`apps/docs/CLAUDE.md`（`pnpm format` 不存在）等入口文档与现状的落差；本轮已修 server/docs 两处，其余（.claude/、.zcode/ 等）待查 | 小 |
+| # | 议题 | 一句话 |
+|---|------|--------|
+| **F1** | 根文档单一化 | `CLAUDE.md` → `AGENTS.md` 的符号链接（Windows 无权限时退化为 include 说明），消灭双份漂移。现状：**两份独立文件**。 |
+| **F2** | 补 4 道文档门禁 | `verify-md-links`（失效链接/锚点）、`verify-doc-refs`（拒绝引用已不存在的路径）、`doc-typecheck`（fenced `ts` 块必须编译）、`gen-package-catalog`（从 `package.json` 生成包清单）。现状：**四者皆无**。 |
+| **F3** | 重复文档处置 | `apps/docs/{zh-CN,en-US}/` 下现有 **164** 个文件（归档评审认定为不被渲染的重复文档，2026-09-21 时是 156 个）：删除或明确用途。 |
+| **F4** | 孤儿报告裁决 | `apps/server/docs/lib-extraction-recommendations.md` **仍存在**：要么废除，要么把结论折进 ADR 0007（并把其中的 `@walnut/*` 改为 `@walnut-server/*`）。 |
+| **F6** | ADR 规范化 | `adr/` 补 `## Alternatives considered` 必填 + `Status` 枚举（Proposed / Accepted / Rejected / Superseded）。现有 19 篇全是 `Accepted`，看不出哪些被否决过。 |
+| **F7** | 字数上限门禁 | `verify-doc-budgets` 最小版：只给根 `AGENTS.md` / `CLAUDE.md` / `monorepo/index.md` 定上限。优先级最低。 |
+| **D1** | `@walnut/i18n` / `@walnut/security` 的 seam 形态 | (a) TS `interface`；(b) abstract class + 独立 provider 包。**倾向 (b)**（`interface` 无运行时令牌）。 |
+| **D2** | 前端组合根 | (a) 维持隐式全局；(b) 显式 `createWalnutApp(options)`；(c) 轻量 DI 容器。**倾向 (b)**；(a) 会让 A8/A9 无法落地。 |
+| **D3** | 源码面 / 产物面分离 | (a) 维持 ADR 0002 双模 `exports` + 补一道「dist 过期」检测；(b) 让消费者显式声明所在面。**倾向先 (a) + 检测**。 |
+| **D4** | admin 内部分层是否入门禁 | 建议先只加最贵的一条：**API 层不得 import store**。 |
+| **D5** | `@walnut/ui` 迁移范围 | (a) 按 ADR 0017 迁 22 个；(b) 只迁「零 app 依赖 + 已被 ≥2 处复用」。**倾向 (b)**（与 A7 合并裁决）。 |
+| **D6** | A5 的 server 侧迁移方式 | (a) 手工逐个改；(b) `gen-route-catalog` + `verify-route-parity`。**倾向 (b)**（与 A5 合并裁决）。 |
+| **D8** | 后端验证策略 | (a) 维持 class-validator；(b) 新模块用 Standard Schema、存量不动；(c) 全量迁移。**倾向先 (b)**（与 P3-12 合并裁决）。 |
 
 ---
 
 ## 执行记录
 
+> 追加式历史。**只有本表记录「做过什么」**，上面的待办表只回答「还剩什么」。
+
 | 日期 | 完成项 |
 |------|--------|
-| 2026-09-23 | **工具链拆包 + tsconfig 预设提取 + 全仓去 `.mjs`**（详见 [ADR 0019](../adr/0019-tsconfig-presets-and-no-mjs.md)）：① `packages/tooling/` 由 1 个包拆成 **5 个** —— `@walnut/tsconfig`（纯 JSON 预设 base / ts / vue）、`@walnut/eslint-config`、`@walnut/commitlint-config`、`@walnut/scripts`（`src/lib` + `src/ci` + `src/env`，3 个 bin）、`@walnut/release`（`packages/tooling/scripts/src/release/**` → `packages/tooling/release/src/release/**`，bin `walnut-release`）；`@walnut/release` 依赖 `@walnut/scripts`，只经其 `exports` 的 `./lib/*` 复用通用能力；旧的 `@walnut/tooling` 不复存在。② 提取 `@walnut/tsconfig` 并**删除根 `tsconfig.base.json`**，推翻本文档与 ADR 0010 里「不提取共享 tsconfig 包」的旧结论（旧理由只算了包数量、没算三个环境的分化）：`ts.json` = base + `erasableSyntaxOnly`（Node 原生执行的代码）、`vue.json` = base + DOM libs + Vue JSX（浏览器/Vue）、`base.json` = 环境无关基线（根 `tsconfig.json`、eslint-config、commitlint-config 用它，因为它们由 jiti / commitlint 的 TS loader 加载）；各包从按目录深度写 `../../../tsconfig.base.json` 改为 `"extends": "@walnut/tsconfig/<preset>.json"` 并在 devDependencies 声明 `@walnut/tsconfig: workspace:*`；**`apps/server` 仍完全不 extends 任何预设**（ADR 0012 理由不变）。③ 全仓 **16 个 `.mjs` 全部改 `.ts`**（4 个包级 ESLint 配置、eslint-config 的 4 个文件（3 个预设 + `nest-local-rules`）、commitlint 配置与 config 包、4 个 bin、contract 的 `build-barrel` 脚本），跟踪面已无 `.mjs`/`.cjs`；该不变量由 `ts.json` 的 `erasableSyntaxOnly` 在编译期保证。④ 工具链不再用 `tsx`（bin 由 Node 24 原生类型剥离执行），根 devDependencies 新增 `jiti`（ESLint 加载 `eslint.config.ts`）；同时把「只有某个包用」的依赖下沉：去掉 `@antfu/eslint-config` / `@dotenvx/dotenvx` / `@walnut/tooling`，加入 `@walnut/release` / `@walnut/scripts` / `@walnut/tsconfig`（18 → 19 项）。⑤ `prepush` 从五段变**六段**（新增 `pnpm lint:root`——根级配置此前不被 prepush/CI 覆盖，`ci.yml` 的 quality job 同步补上该步，因为它不进 turbo 的 affected 图），根 `lint:root` glob `*.mjs *.json *.yaml` → `*.ts *.json *.yaml`，lint-staged 模式 `*.{ts,vue,mjs,js}` → `*.{ts,vue,js}`；`versioning.fixed` 单组 12 → **14** 个包（+`@walnut/tsconfig`、+`@walnut/release`、−`@walnut/tooling`）；catalog 新增 `jiti@2.7.0`、移除 `tsx@4.21.0`（工具链与 `apps/admin` 的 `predev` / `types:check:log` 都改由 Node 原生类型剥离执行，仓内已无 `tsx` 直接依赖；242 条）。⑥ 删除 `dev:admin`（与 `dev` 完全重复）。⚠️ **顺带修掉**：发版电池里的 `turbo run lint lint:root` 会以 `Could not find task 'lint:root' in project` 失败（`lint:root` 是根 `package.json` 的普通脚本，未在 `turbo.json` 声明）—— 已拆成 `turbo run lint` + `pnpm lint:root` 两行，见 release.md 的电池表 |
-| 2026-09-23 | **发版与 Git 钩子迁移**：① 移除 `@changesets/cli` + `@changesets/changelog-github`，改 **pnpm 12 原生 release management** —— 版本策略唯一真源是根 `pnpm-workspace.yaml` 的 `versioning` 段（单一 `fixed` 组覆盖全部 workspace 包 + `changelog.storage: registry`），`.changeset/config.json` 删除，`pnpm change` 写意图 / `pnpm version -r` 消费 / `.changeset/ledger.yaml` 是消费台账；② changelog 改由 **git-cliff**（根 `cliff.toml`）逐包渲染，唯一写入者是 `packages/tooling/release/src/release/changelog.ts`，根 `changelog-latest.md` 由 `pnpm release` 生成并随 release commit 提交（`release.yml` 仍用 `body_path:` 作为 Release 正文）；③ Git 钩子从 `simple-git-hooks` 迁到 **lefthook**（根 `lefthook.yml`，ADR 0018）：根 `postinstall` 删除、`allowBuilds` 删 `simple-git-hooks: false` 加 `lefthook: true`、新增 `pnpm hooks:check`；④ `@walnut/release` → **`@walnut/tooling`**（目录 `packages/tooling/release/` → `packages/tooling/scripts/`），根 `scripts/` 目录取消，`tsx scripts/*.ts` 写法改为 bin（`walnut-release` / `walnut-lint-workflows` / `walnut-setup-env` / `walnut-check-git-hooks`），根 scripts 新增 `hooks:check` 与 `prepush`（当时五段：boundaries + types:check + syncpack + lint:workflows + `pnpm change check`），ci.yml 的 quality job 补 `pnpm change check`；⑤ commitlint 白名单里 `release` 从包 scope 转为**发版记账提交专用** infra scope（`chore(release): vX.Y.Z`），`tooling` 承接当时的 `@walnut/tooling`；⑥ 归属语义随单组简化——归属只决定"这条提交是否产生意图"，路径优先、infra/未在册 scope 不产生意图；⑦ 删除两个陈旧 changelog 文件（根 `changelog-latest.md`、`apps/server/changelog-latest.md`）。**注**：④ 的包拆分与命名已在同日被上面那一条取代（`@walnut/tooling` 再拆成 5 个包，`packages/tooling/scripts/` 只保留通用层与门禁） |
-| 2026-09-23 | **CI/CD 与容器构建重构**：① 修复 `ci.yml` 的非法表达式（`steps.if` 里用 `secrets` 上下文 → GitHub 判 `Invalid workflow file`、启动即失败 0 个 job，CI **自 2026-08-13 起五周从未运行**）；② 拆流水线——commit 只跑质量门禁，tag 才构建镜像，`deploy.yml` 改为可复用纯部署（回滚 1–3 分钟）；③ 修 buildx 缓存 scope 冲突（三镜像共用默认 `scope=buildkit` 互相覆盖 → backend 永远冷构建，实测 15m49s~77m53s，单次上线 85 分钟）+ `docker-bake.hcl` 并行构建；④ 镜像改"薄运行时"（重活在 runner，镜像只 COPY），顺带剔除 `pnpm deploy --prod` 拷进产物的 `env-local` 明文密钥；⑤ 新增 actionlint 闸门（`workflow-lint.yml` + `pnpm lint:workflows`）。实测：CI 全绿 2m28s，首跑抓出并修掉两处 shellcheck SC2086（本地漏装 shellcheck 的验证盲点） |
-| 2026-09-23 | **部署后验证（post-verify）**：① 新增 `deploy/post-verify.sh` —— 部署后轮询 2 分钟（默认 24×5s）检查：三容器 running 且未重启、运行镜像 tag 与 `.env` 的 `IMG_TAG` 一致、后端日志无致命错误且出现启动标记、前端与入口 nginx 无 5xx、经公网域名端到端前端/API 均 200；任一不过即让部署步骤失败并打印日志尾部；② `deploy/nginx/Dockerfile` 把 `/var/log/nginx/{access,error}.log` 软链到 stdout/stderr（alpine 包默认写文件，`docker logs` 读不到），入口 nginx 与 frontend 共用该基础镜像；③ `deploy.yml` 上传并执行该脚本，Summary 记录；④ 新增 `deploy/post-verify.test.sh`：假 docker/curl 覆盖 10 个失败/成功场景，本地全绿 + shellcheck 干净 |
-| 2026-09-23 | **文档整理**：根 `docs/` 目录移除。CI/CD 设计重写为长期文档 [CI/CD 与容器构建](./ci-cd)；6 份过程文档（2 份 2026-08-08 容器化设计/计划、1 份 CI/CD 实施记录、3 份 2026-09-21 评审与迁移计划）统一迁入文档站 `content/archive/` 并加归档说明横幅；`docs/reviews/` 里 2 份**未入库**的评审文档先搬迁后删除，避免内容丢失 |
-| 2026-08-08 | **共享包测试 + peers + AGENTS**：① P0-2 完成——`@walnut/utils` 5 个测试文件（queue/regex/crypto-transformer/persistent sync+async，20+ 用例）、`@walnut/contract` 12 组契约快照测试（防止错误码/路由/wire format 静默破坏）+ test 脚本与 vitest 配置；② R1 完成——`peerDependencyRules.allowedVersions` 豁免 5 项 peers 错位（@swc/cli、chokidar、class-validator、typescript、vite），`pnpm peers check` 零告警；③ R5 完成——根 AGENTS.md 重写为分发式导航文档（原文件自标过时、描述合并前单包结构） |
-| 2026-08-08 | **文档配套 + 优化池**：① A4 表格勾选（执行记录早已完成，表格漏更）；② P1-4 Remote Cache 标记为已决定不接入；③ P3-14 Vitest preset 理由更新（4 包 → 12 包）；④ 新增"架构优化池"R1-R11（peers 错位、knip 裁剪、root eslint base、types:check:root、tsgo 准备等）；⑤ 修复 turbo `preview` 任务缺失（root 脚本指向未定义任务）；⑥ release.md/index.md 的 fixed 组更新为 9+3；eslint.md 同步 pre-push/boundaries 与 lint-staged；turbo.md 补 preview 任务与 Remote Cache 决策；env-management.md 补 CI secret 用法；server/docs 的 CLAUDE.md 过时点修复 |
-| 2026-08-08 | **架构 review 第三批**：① `@walnut/client` 的 `vue`/`pinia` 从 dependencies 移入 peerDependencies（与 `@walnut/ui` 对齐，防双实例）+ devDependencies 补供本包解析；② DOM lib 下沉：`tsconfig.base.json` 仅 `lib: ["ESNext"]`、移除 `typeRoots`，DOM/DOM.Iterable 下沉到 admin/docs/platform-web/*，platform-any 不再可见 DOM 全局；③ server `strict: true`（保留 strictPropertyInitialization: false）——tsc 零错误；④ 清理 6 处残留空导入 `import { } from '@walnut/contract'`（contract 无 declare global，无副作用职责）；⑤ changesets fixed 组补齐 `@walnut/release`/`@walnut/commitlint-config`；⑥ `build:stage` 升级为独立 turbo 任务，废除 `turbo build -- -- --mode stage` 三重 `--` 透传（透传参数会泄漏给全图任务）；⑦ lint-staged 删除无效的 `*.md` 条目（eslint preset 关闭 markdown 后该条目静默无效） |
-| 2026-08-08 | **架构 review 第二批**：① turbo `dev`/`test` 任务接入 `dependsOn: ["^build"]`——修复 fresh clone 下 `dev:server` 因 contract/utils CJS dist 缺失（gitignore）而 MODULE_NOT_FOUND 的问题（ADR 0002 的 require 链路）；② `turbo boundaries` 接入 pre-push 与 CI 门禁（此前无任何 gate，root 新增 `boundaries` 脚本）；③ CI workflow 落地（P0-1 ✅：boundaries → affected lint/types:check/test → syncpack → 构建，admin 构建按 secret 存在与否自动启用）；④ 根 `clean:all` glob 修复（`packages/*/node_modules` 匹配不到两层嵌套目录，补 `packages/*/*/node_modules`）；⑤ `@walnut/eslint-config` 补 lint/lint:fix/types:check 脚本（此前该包代码从未被 lint）；⑥ `apps/admin|server|docs` 补 `private: true` 防误发布；⑦ 边界验证实测：临时给 contract 加 `app` 标签 → `turbo boundaries` 正确报出 3 处 shared→app 违规，回滚后零违规 |
-| 2026-08-08 | **架构 review 修复批**：① 修复 production/stage 缺失 `USER_ID_ENCRYPTION_KEY`/`USER_ID_HASH_SALT`（validation fail-fast → 生产启动失败 bug，密钥与 development 对齐并重新加密）；② 根 `pnpm test` 可用（修复 server vitest 配置路径错误——配置在 `apps/api/` 子目录而脚本在包根跑、修复 smoke test 的 I18nService 依赖、utils/client `--passWithNoTests`、client 补 jsdom）；③ knip 假门禁修复：`knip:packages/apps` 的 `packages/*` glob 匹配不到两层目录改为 `./packages/*/*`（此前静默空操作），清理 `~build/*` 死 paths 与 8 条死 ignoreDependencies，全仓/包级 knip 加 8GB NODE_OPTIONS 防 OOM，移除真死依赖（client nanoid、admin lru-cache、docs dayjs、server pm2 脚本）；④ server jest/ts-jest/ts-loader/ts-node/tsconfig-paths/@types/jest 残留清理（vitest 时代死配置，spec 改显式 vitest import，tsconfig types 删 jest）；⑤ git-cliff 残留清理（release.test.ts 标题、knip ignore、文档引用）；⑥ 根 scripts `NODE_OPTIONS=` 前缀统一改 cross-env（Windows cmd 兼容），admin lint 同修 |
-| 2026-08-08 | **PWA 移除**：删除 vite-plugin-pwa + workbox-window + @vite-pwa/assets-generator 及全部相关代码（插件、注册、ReloadPrompt、store、图标、env schema）。原因：workbox-build 传递链问题多（lru-cache CJS 崩溃、高危漏洞、precaching 陈旧内容），后台场景价值有限。如未来需要 PWA 可考虑 Serwist 或自研轻量 SW |
-| 2026-08-08 | **构建与 dev 验证**：P0-3 解决（env 解密流程 + lru-cache override + optimizeDeps 过滤）；修复 tsbuildinfo 掩盖的 6 处既有类型错误（Table/ApiSelect/CountryCallingSelect）；`pnpm build:admin` 成功；dev 前端（3100）+ dev 后端（3000，连 MongoDB/Redis）均启动验证通过，端口已清理 |
-| 2026-08-08 | **ADR 0017 收尾批次**：A1 旧目录残留清理；A2 6 包 walnut 标签补齐；A3 turbo boundaries 升级为 platform 维度（any/web/node）+ 修复 10 处 `~build/package` 失效 import + 清理 utils-core 残留 types；A4 client 移除 vue-router 死依赖 + easy-fns-ts 依赖分类修正；A5 admin 30 处硬编码路由 → contract；A6 server 移除 @walnut/utils 死依赖；A7 @walnut/ui POC（3 组件）。lint 9/9 + types:check 9/9 + boundaries 零违规 |
-| 2026-08-08 | 文档同步：commitlint (P1-6) 实际已完成；新增 ADR 0017 遗留收尾线 (A1-A11) |
-| 2026-07-30 | syncpack (P2 #9) — 依赖版本一致性检测接入 |
-| 2026-07-29 | P0 剩余 3 项未完成 |
+| 2026-09-23 | **待办表核实与瘦身**（本轮）：逐条核实原 P0-P3 / A1-A11 / R1-R11 的 ✅ 标记 → 18 项确认完成并移出、**1 项（R1）判定回退后重开**；剩余项按 P0-P3 重排，新增「未裁决」段收纳 2026-09-21 评审的 F/D 项（即评审建议 **F5「状态移出文档」** 的落地）；新增 `tsx` 全局移除后的文档同步（ADR-0019 / AGENTS.md / CLAUDE.md / package-scripts.md / pnpm-workspace-config.md），catalog 243 → 242 |
+| 2026-09-23 | **仓内彻底移除 `tsx`**：`apps/admin` 的 `predev` / `types:check:log` 改由 `node` 原生类型剥离执行（相对导入补 `.ts` 扩展名、JSON 导入补 `with { type: 'json' }`），devDependency 与 catalog 条目删除；顺带修掉 `.gitignore` 的死规则 `report/*`（带斜杠锚定到仓库根，实际产物在 `apps/admin/report/`）。详见 commit `3daafc0` |
+| 2026-09-23 | **工具链拆包 + tsconfig 预设提取 + 全仓去 `.mjs`**：`packages/tooling/` 1 → **5 包**；提取 `@walnut/tsconfig`（base / ts / vue）并删根 `tsconfig.base.json`；16 个 `.mjs` → `.ts`（含 249 行装饰器排序插件补类型）；根 devDeps 18 → 19；`prepush` 五段 → 六段。**完整决策与代价见 [ADR 0019](../adr/0019-tsconfig-presets-and-no-mjs.md)**，commit `2190873` |
+| 2026-09-23 | **发版与 Git 钩子迁移**：`@changesets/cli` → **pnpm 12 原生 release management**（`versioning` 段为唯一真源、`.changeset/ledger.yaml` 为台账）；changelog 改 git-cliff 逐包渲染；钩子 `simple-git-hooks` → **lefthook**（ADR 0018）。详见 [发布 & 发版指南](./release.md) 与 commit `4e16d7d` |
+| 2026-09-23 | **CI/CD 与容器构建重构**：修复 `ci.yml` 的非法表达式（`steps.if` 用 `secrets` 上下文 → `Invalid workflow file`，CI 自 2026-08-13 起五周从未运行）；拆流水线（commit 只跑质量门禁、tag 才构建镜像、`deploy.yml` 改可复用纯部署）；修 buildx 缓存 scope 冲突（单次上线实测 85 min → 正常）；镜像改「薄运行时」并剔除 `pnpm deploy --prod` 拷进产物的 `env-local` 明文密钥；新增 actionlint 闸门。详见 [CI/CD 与容器构建](./ci-cd) |
+| 2026-09-23 | **部署后验证（post-verify）**：新增 `deploy/post-verify.sh`（轮询 2 分钟检查三容器 running / 镜像 tag 一致 / 后端日志无致命错误 / 前端与入口 nginx 无 5xx / 公网端到端 200）；`deploy/nginx/Dockerfile` 把 nginx 日志软链到 stdout/stderr；新增 `deploy/post-verify.test.sh` 用假 docker/curl 覆盖 10 个场景 |
+| 2026-09-23 | **文档整理**：根 `docs/` 目录移除；CI/CD 设计重写为长期文档 [CI/CD 与容器构建](./ci-cd)；6 份过程文档迁入 `content/archive/` 并加归档横幅 |
+| 2026-08-08 | **共享包测试 + peers + AGENTS**：`@walnut/utils` 5 个测试文件、`@walnut/contract` 12 组契约快照测试 + vitest 配置；`peerDependencyRules.allowedVersions` 豁免 5 项 peers 错位（**该机制已于 2026-09-21 随 pnpm 12 迁移删除 → 见 R1**）；根 `AGENTS.md` 重写为分发式导航文档 |
+| 2026-08-08 | **文档配套 + 优化池**：A4 表格补勾；P1-4 Remote Cache 标记不接入；P3-14 理由更新；新增「架构优化池」R1-R11；修复 turbo `preview` 任务缺失；release.md / index.md / eslint.md / turbo.md / env-management.md / server+docs 的 CLAUDE.md 同步 |
+| 2026-08-08 | **架构 review 第三批**：`@walnut/client` 的 vue/pinia 移入 peerDependencies；DOM lib 下沉到 admin/docs/platform-web；server `strict: true`（保留 `strictPropertyInitialization: false`）；清理 6 处残留空导入 `import { } from '@walnut/contract'`；`build:stage` 升级为独立 turbo 任务（废除三重 `--` 透传）；lint-staged 删除无效的 `*.md` 条目 |
+| 2026-08-08 | **架构 review 第二批**：turbo `dev`/`test` 接入 `dependsOn: ["^build"]`（修 fresh clone 下 `dev:server` 的 MODULE_NOT_FOUND）；`turbo boundaries` 接入 pre-push 与 CI；CI workflow 落地（P0-1）；根 `clean:all` glob 修复；`@walnut/eslint-config` 补 lint 脚本；`apps/*` 补 `private: true`；边界验证实测（临时加 `app` 标签 → 正确报 3 处 shared→app 违规） |
+| 2026-08-08 | **架构 review 修复批**：修复 production/stage 缺失 `USER_ID_ENCRYPTION_KEY` / `USER_ID_HASH_SALT`（生产启动失败 bug）；根 `pnpm test` 可用（server vitest 配置路径、I18nService 依赖、`--passWithNoTests`、client jsdom）；knip 假门禁修复（`packages/*` → `./packages/*/*`，此前静默空操作）+ 清死依赖；server 的 jest/ts-jest/ts-node 残留清理；根 scripts `NODE_OPTIONS=` 改 cross-env |
+| 2026-08-08 | **PWA 移除**：删 vite-plugin-pwa + workbox-window + @vite-pwa/assets-generator 及全部相关代码。原因：workbox-build 传递链问题多（lru-cache CJS 崩溃、高危漏洞、precaching 陈旧内容），后台场景价值有限 |
+| 2026-08-08 | **构建与 dev 验证**：P0-3 解决（env 解密流程 + lru-cache override + optimizeDeps 过滤）；修复 tsbuildinfo 掩盖的 6 处既有类型错误（Table / ApiSelect / CountryCallingSelect）；`pnpm build:admin` 成功；dev 前端（3100）+ 后端（3000，连 MongoDB/Redis）启动验证通过 |
+| 2026-08-08 | **ADR 0017 收尾批次**：A1 旧目录清理；A2 包 `walnut` 标签补齐；A3 boundaries 升级为 platform 维度 + 修 10 处 `~build/package` 失效 import；A4 client 移除 vue-router 死依赖；A5 admin 硬编码路由 → contract；A6 server 移除 `@walnut/utils` 死依赖；A7 `@walnut/ui` POC（3 组件）。lint 9/9 + types:check 9/9 + boundaries 零违规 |
+| 2026-08-08 | 文档同步：commitlint（P1-6）实际已完成；新增 ADR 0017 遗留收尾线（A1-A11） |
+| 2026-07-30 | syncpack（P2-9）— 依赖版本一致性检测接入 |
+| 2026-07-29 | P0 剩余 3 项未完成（CI/CD 流水线、共享包测试、前端构建修复 —— 后均已完成） |
+
+---
+
+## 核实记录（已移出待办）
+
+> 2026-09-23 逐条复核。**只留一行索引**：记录「当初的验收口径」，便于日后发现回退时对照。
+
+| 原编号 | 事项 | 核实方式与结果 |
+|--------|------|----------------|
+| P0-1 | CI/CD 流水线 | `.github/workflows/{ci,workflow-lint}.yml` 均在；`ci.yml` 无 `if: … secrets.*`、含 `TURBO_SCM_BASE/HEAD` 与 `Affected set sanity check` 步；`prepush` 含 `lint:workflows`；actionlint v1.7.7 全 workflow 通过 |
+| P0-2 | 共享包测试 | `@walnut/utils` 5 个 `*.test.ts`（queue / regex / transformer / persistent×2）；`@walnut/contract/src/index.test.ts` + `vitest.config.ts`；`pnpm test` 12 包全绿（utils 29 例 / contract 12 例 / scripts 66 / release 180） |
+| P0-3 | 前端构建修复 | `pnpm-workspace.yaml` 已**无 `overrides:` 段**（`lru-cache` 只剩 catalog 条目，非 override）；`pnpm build:admin` → ✓ built in 1m49s |
+| P1-4 | Turbo Remote Cache | 决策为**不接入**；`globalPassThroughEnv` 保留 `TURBO_TOKEN` / `TURBO_TEAM`；无 remoteCache 配置 |
+| P1-5 | 部署流水线 | `deploy.yml` 是 `workflow_call` + `workflow_dispatch` 的纯部署；`docker-bake.hcl` 每镜像独立 cache scope；backend Dockerfile 含 env-local 剔除 |
+| P1-6 | commitlint | 根 `commitlint.config.ts` + `@walnut/commitlint-config` + lefthook `commit-msg`；本轮两次提交均被其真实校验放行 |
+| P1-7 | Changeset Bot | 全仓无 `@changesets/*` 依赖声明、lockfile 无残留、`.changeset/config.json` 已删（目录只剩 `README.md`） |
+| P2-8 | Docker 多阶段 → 薄镜像 | 三个 Dockerfile 均**无** `pnpm install` / `pnpm deploy`（只 COPY runner 侧产物） |
+| P2-9 | syncpack | `pnpm syncpack:lint` → exit 0「No issues found」 |
+| A1 | 旧目录残留清理 | `packages/{axios,client,contract,eslint-config,utils}` 均**不存在** |
+| A2 | `walnut` 标签补齐 | `packages/` 下 **11** 个包的 `package.json` 全部带 `walnut` 字段 |
+| A3 | turbo boundaries 升级 | 根 `turbo.json` 的 `boundaries.tags` 含 `platform-any` / `platform-node` |
+| A4 | `@walnut/client` vue-router 死依赖 | dependencies / devDependencies / peerDependencies 三处均无 `vue-router` |
+| A6 | server 死依赖决策 | `apps/server` 无 `@walnut/utils` 声明；`git grep @walnut/utils apps/server/{apps,libs}` → 0 |
+| R5 | AGENTS.md 重写 | 根 `AGENTS.md` 是分发式导航文档（含「仓库结构」「常用命令」「关键纪律」） |
+| R6 | only-allow | 根 `package.json` **无 `preinstall`**；全仓无 `only-allow` |
+| R9 | turbo preview 任务 | 根 `turbo.json` 的 `tasks` 含 `preview` |
+| R10 | CI affected 空集行为 | `ci.yml` 含名为「Affected set sanity check」的步骤（文件变更非空但受影响包为 0 → 失败） |
+| F0 | 修正 `hoisting: false` | `pnpm-workspace.yaml` 已是合法的 `hoist: false`（2026-09-21 pnpm 12 迁移完成） |
+| F5 | 状态移出文档 | **本轮完成**：完成项从待办表移除，只留本核实索引 |
 
 ---
 
 ## 相关文档
 
-- [CI/CD 与容器构建](./ci-cd)（当前设计：触发矩阵 / 薄镜像 / 两条硬约束）
+- [CI/CD 与容器构建](./ci-cd)（触发矩阵 / 薄镜像 / 两条硬约束）
+- [发布 & 发版指南](./release.md)
+- [ADR 索引](../adr/index.md) ｜ [ADR 0009 CI 质量门禁](../adr/0009-ci-quality-gates.md) ｜ [ADR 0017 包重组](../adr/0017-package-reorganization.md) ｜ [ADR 0018 Git 钩子迁 lefthook](../adr/0018-git-hooks-lefthook.md) ｜ [ADR 0019 tsconfig 预设与无 `.mjs`](../adr/0019-tsconfig-presets-and-no-mjs.md)
+- [归档：架构 Review 与调研审计](../archive/2026-09-21-architecture-review.md)（F / D 项的完整论证）
 - [归档：CI/CD 重构实施记录](../archive/2026-09-21-ci-cd-pipeline-plan.md)
-- [归档：架构 Review 与调研审计](../archive/2026-09-21-architecture-review.md)
-- [ADR 索引](../adr/)
-- [ADR 0009 - CI Quality Gates](../adr/0009-ci-quality-gates.md)
-- [ADR 0017 - Package 重组](../adr/0017-package-reorganization.md)
-- [ADR 0019 - 共享 tsconfig 预设包与「无 `.mjs`」约束](../adr/0019-tsconfig-presets-and-no-mjs.md)
-- [行业调研 - CI/CD](../industry-research/03-ci-cd-pipeline.md)
-- [行业调研 - 测试](../industry-research/04-testing-strategy.md)
+- [行业调研 - CI/CD](./industry-research/03-ci-cd-pipeline.md) ｜ [行业调研 - 测试](./industry-research/04-testing-strategy.md)
