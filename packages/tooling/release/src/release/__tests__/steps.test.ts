@@ -34,7 +34,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
     expect(releaseBatteryArgvs()).toEqual([
       ['boundaries'],
       ['exec', 'turbo', 'run', 'lint'],
-      ['lint:root'],
+      ['exec', 'turbo', 'run', 'lint:root'],
       ['exec', 'turbo', 'run', 'types:check'],
       ['types:check:root'],
       ['exec', 'turbo', 'run', 'test'],
@@ -49,17 +49,17 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
     ])
   })
 
-  it('根级 lint 是**独立一行**且经根脚本跑，绝不混进 turbo 的 argv', () => {
+  it('根级 lint 走 turbo 根任务 `//#lint:root`，且整条电池里只出现一次', () => {
     const argvs = releaseBatteryArgvs()
-    // `lint:root` 只是根 package.json 的脚本，不是 turbo 任务：
-    // `turbo run lint lint:root` 会 `Could not find task \`lint:root\` in project` 当场退 1
-    // （实测），于是整条电池在打 tag 之前失败、每次都拦下发版。
-    expect(argvs).toContainEqual(['lint:root'])
-    for (const argv of argvs) {
-      if (argv.includes('turbo')) {
-        expect(argv, `turbo 的 argv 不得包含 lint:root：${argv.join(' ')}`).not.toContain('lint:root')
-      }
-    }
+    expect(argvs).toContainEqual(['exec', 'turbo', 'run', 'lint:root'])
+    // ⚠️ 这条断言 2026-09-23 **翻转**过，留个记录免得下次又改回去：
+    // 原先它是 `['lint:root']`（直接跑根脚本），理由是「`lint:root` 只是根 package.json 的脚本、
+    // 不是 turbo 任务，`turbo run lint lint:root` 会 `Could not find task` 当场退 1（实测）」。
+    // 那条理由当时成立 —— 但根 `turbo.json` 现在**定义了** `//#lint:root`（带精确 inputs，
+    // 就是根脚本那三个 glob），`turbo run lint lint:root` 实测 16 个任务、正常跑通。
+    // 走 turbo 才有缓存：冷跑 3.8s → 热跑 0.1s（以前每次发版都真跑）。
+    const hits = argvs.filter(a => a.join(' ').includes('lint:root'))
+    expect(hits, '根级 lint 在电池里只能出现一次').toHaveLength(1)
   })
 
   it('暂缓的 build 不在会跑的序列里', () => {

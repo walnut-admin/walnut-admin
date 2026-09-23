@@ -63,7 +63,7 @@ const RELEASE_BATTERY: BatteryStep[] = [
   // 于是整条电池在打 tag **之前**失败、每次都拦下发版。
   // 根级配置（eslint.config.ts / commitlint.config.ts / knip.config.ts）不在任何包的 lint 范围里，
   // 所以这一行省不得。
-  { id: 'lint-root', label: 'lint 根级配置（pnpm lint:root）', argv: ['lint:root'] },
+  { id: 'lint-root', label: 'lint 根级配置（turbo run //#lint:root）', argv: ['exec', 'turbo', 'run', 'lint:root'] },
   { id: 'types', label: '类型检查（不排任何包）', argv: ['exec', 'turbo', 'run', 'types:check'] },
   // 根 tsconfig.json（include: ["*.ts"]）覆盖 eslint.config.ts / commitlint.config.ts / knip.config.ts，
   // 这三者不入 turbo 的图。与 lint-root 同理：**独立一行**、经根脚本跑，不能写进上面的 turbo argv。

@@ -82,6 +82,25 @@
     "TURBO_TEAM"
   ],
   "tasks": {
+    // 根级文件的 lint。**没有对应的 workspace 包**（`//#` = 根任务），所以它是一个独立任务，
+    // 不会跟着任何包的 `lint` 跑；用 `turbo run lint:root` 调它才会命中缓存。
+    //
+    // ⚠️ `inputs` 与根脚本里那三个 glob **逐字一致**（`eslint *.ts *.json *.yaml`）——
+    // 这是本任务唯一需要记住的规矩，也是两个坑的分界线：
+    //   · 写成 `$TURBO_ROOT$/**` 再逐条排除 ⇒ 那些「随运行变化」的目录（`.turbo`、各包的
+    //     `dist`、`node_modules`）漏排一个，缓存就**永不命中**（每次 push 都真跑）；
+    //   · 排过头（比如顺手排掉 `packages/**`）⇒ 根 eslint 配置 import 的东西不进缓存键，
+    //     改完规则却回放旧结论 —— **门禁假绿**（参考仓实测踩过这个方向）。
+    // 实测（2026-09-23）：这三个 glob 在根目录命中 9 个文件，`eslint` 实际检查的正是这 9 个。
+    // 门禁 `walnut-check-turbo-cache` 的第 8 条不变量会把「脚本 glob」与「task inputs」对起来。
+    "//#lint:root": {
+      "outputs": [],
+      "inputs": [
+        "$TURBO_ROOT$/*.ts",
+        "$TURBO_ROOT$/*.json",
+        "$TURBO_ROOT$/*.yaml"
+      ]
+    },
     // 传递节点（**没有对应脚本**，只是个图节点）。存在的唯一理由：
     // `dependsOn: ["^build"]` 只能把「上游的 build 产物」串进哈希，而本仓的共享包
     // （contract / types / utils / client / http / ui）**根本不构建**（vitest/jest 之外的

@@ -19,7 +19,7 @@ import { parseConfigFileTextToJson, parseJsonConfigFileContent, readConfigFile, 
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
 /** 需要 dry-run 解析的任务名（都是会被缓存、且缓存边界出过问题的那些） */
-const PROBE_TASKS = ['build', 'build:stage', 'transit', 'types:check', 'lint', 'test'] as const
+const PROBE_TASKS = ['build', 'build:stage', 'transit', 'types:check', 'lint', 'lint:root', 'test'] as const
 
 export interface Finding {
   /** 不变量编号，报错时好定位 */
@@ -73,10 +73,14 @@ export function loadTurboDry(cwd = REPO_ROOT): TurboDry {
   return dry
 }
 
-/** 每个 workspace 包的目录（相对仓库根，正斜杠） */
+/** 每个 workspace 包的目录（相对仓库根，正斜杠）。**根任务**（`//#…`）不算包，要排掉。 */
 export function packageDirs(dry: TurboDry, cwd = REPO_ROOT): string[] {
   const dirs = new Set<string>()
-  for (const t of dry.tasks) dirs.add(norm(t.directory, cwd))
+  for (const t of dry.tasks) {
+    if (t.taskId.startsWith('//#'))
+      continue
+    dirs.add(norm(t.directory, cwd))
+  }
   return [...dirs].sort()
 }
 
@@ -337,6 +341,39 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
       findings.push({ rule: 'docs-build-sees-markdown', detail: '@walnut/docs#build 的输入里一个 .md 都没有 —— 改文档不会重建，死链校验被跳过' })
   }
 
+  // ⑧ `//#lint:root` 的 `inputs` 必须与根脚本里那几个 glob **双向一致**。
+  //    这条是「根级文件也要能被缓存」的守卫，两个方向都会出事：
+  //      · 写成 `$TURBO_ROOT$/**` 再逐条排除 ⇒ 运行期目录（`.turbo` / 各包 `dist` /
+  //        `node_modules`）漏排一个，缓存就**永不命中**（每次 push 都真跑）；
+  //      · 排过头（例如顺手排掉 `packages/**`）⇒ 根 eslint 配置 import 的东西不进缓存键，
+  //        改完规则却回放旧结论 —— **门禁假绿**（参考仓实测踩过这个方向）。
+  //    最稳的写法就是让 inputs 逐字等于脚本的 glob，这条断言把「最稳」变成强制的。
+  {
+    const rootPkgJson = readTurboJson(path.join(cwd, 'package.json')) as { scripts?: Record<string, string> }
+    const script = rootPkgJson.scripts?.['lint:root']
+    const task = (rootPkg.tasks ?? {})['//#lint:root'] as { inputs?: string[] } | undefined
+    if (script === undefined || task === undefined) {
+      findings.push({ rule: 'lint-root-inputs', detail: `根 \`lint:root\` 脚本或 \`//#lint:root\` 任务缺失（脚本：${script === undefined ? '无' : '有'}，任务：${task === undefined ? '无' : '有'}）` })
+    }
+    else {
+      // 从脚本里挑出「看起来是 glob 的位置参数」：含 `*` 且不以 `-` 开头
+      const globs = script.split(/\s+/).filter(t => t.includes('*') && !t.startsWith('-'))
+      const inputs = new Set(task.inputs ?? [])
+      for (const g of globs) {
+        const want = `$TURBO_ROOT$/${g}`
+        if (!inputs.has(want))
+          findings.push({ rule: 'lint-root-inputs', detail: `根脚本 lint:root 里的 \`${g}\` 不在 //#lint:root 的 inputs 里（缺 \`${want}\`）—— 改这类文件不会重新 lint` })
+      }
+      for (const i of inputs) {
+        if (!i.startsWith('$TURBO_ROOT$/'))
+          continue
+        const g = i.slice('$TURBO_ROOT$/'.length)
+        if (!globs.includes(g))
+          findings.push({ rule: 'lint-root-inputs', detail: `//#lint:root 的 inputs 里有 \`${i}\`，但根脚本并不检查它 —— 白担了「随运行变化 ⇒ 缓存永不命中」的风险` })
+      }
+    }
+  }
+
   return findings
 }
 
@@ -353,7 +390,7 @@ export function main(): number {
   const tasks = dry.tasks.length
 
   if (findings.length === 0) {
-    console.log(`Turborepo 缓存边界：${tasks} 个 task、${packageDirs(dry).length} 个包，7 条不变量全部成立 ✅`)
+    console.log(`Turborepo 缓存边界：${tasks} 个 task、${packageDirs(dry).length} 个包，8 条不变量全部成立 ✅`)
     return 0
   }
   console.error(`✖ Turborepo 缓存边界有 ${findings.length} 处问题：\n`)

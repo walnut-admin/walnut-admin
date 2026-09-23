@@ -98,7 +98,7 @@ describe('nestOutDir —— server 侧产物目录的真源在 tsconfig', () => 
 })
 
 describe('collectFindings（对着真实仓库跑）', () => {
-  it('本仓当前 6 条不变量全部成立', () => {
+  it('本仓当前 8 条不变量全部成立', () => {
     // 断言直接落在 «规则 id + 细节» 上：失败时能一眼看出是哪一条不变量、差在哪
     expect(collectFindings(dry, ROOT).map(f => `${f.rule} :: ${f.detail}`)).toEqual([])
   })
@@ -132,6 +132,25 @@ describe('collectFindings（对着真实仓库跑）', () => {
     const t = broken.tasks.find(x => x.taskId === '@walnut/docs#build')!
     t.inputs = Object.fromEntries(Object.entries(t.inputs ?? {}).filter(([k]) => !k.endsWith('.md')))
     expect(collectFindings(broken, ROOT).map(f => f.rule)).toContain('docs-build-sees-markdown')
+  })
+})
+
+describe('//#lint:root —— 根级文件也要能被缓存', () => {
+  it('任务存在，且 inputs 逐字等于根脚本那三个 glob', () => {
+    const task = (read('turbo.json') as { tasks: Record<string, { inputs?: string[] }> }).tasks['//#lint:root']
+    expect(task.inputs).toEqual(['$TURBO_ROOT$/*.ts', '$TURBO_ROOT$/*.json', '$TURBO_ROOT$/*.yaml'])
+  })
+
+  it('它真的在 turbo 的图里（不是只写在配置里没人调）', () => {
+    expect(dry.tasks.some(t => t.taskId === '//#lint:root')).toBe(true)
+  })
+
+  it('inputs 与脚本不一致时会被报出来（两个方向）', () => {
+    // 直接打桩：把 package.json 的脚本读成多一个 glob 的样子做不到（断言读的是真文件），
+    // 所以这条靠**负向注入实验**覆盖（见 turbo-cache-boundary.md 第六节）。
+    // 这里只钉住「当前状态是自洽的」这一半。
+    const f = collectFindings(dry, ROOT).filter(x => x.rule === 'lint-root-inputs')
+    expect(f).toEqual([])
   })
 })
 

@@ -205,6 +205,30 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 判据可重跑：`NODE_ENV=a pnpm exec turbo run build --dry=json` 与 `NODE_ENV=b …` 比 hash ——
 改前 90/90 失效，改后 **0/90**。
 
+### 4.6 根级文件的 lint 完全不缓存 ✅ 已修
+
+根 `lint:root` 脚本（`eslint *.ts *.json *.yaml`）以前只以**根脚本**的身份被 prepush 与发版电池直接调用
+⇒ 每次推送都真跑，而它检查的只是根目录那 **9 个**文件。
+
+**改法**：在根 `turbo.json` 里定义 **`//#lint:root` 根任务**（`//#` 前缀 = 没有对应 workspace 包的任务），
+`inputs` **逐字等于脚本里那三个 glob**；prepush 与发版电池改走 `turbo run lint:root`。
+
+**为什么 inputs 要逐字相等**（本项唯一需要记住的规矩，也是两个坑的分界线）：
+
+- 写成 `$TURBO_ROOT$/**` 再逐条排除 ⇒ 那些「随运行变化」的目录（`.turbo`、各包 `dist`、
+  `node_modules`）漏排一个，缓存就**永不命中**；
+- 排过头（例如顺手排掉 `packages/**`）⇒ 根 eslint 配置 import 的东西不进缓存键，
+  改完规则却回放旧结论 —— **门禁假绿**（参考仓实测踩过这个方向）。
+
+**实测**：冷跑 3.8s → 热跑 **0.11s**（`FULL TURBO`）。边界也精确：
+改 `node-modules-inspector.config.ts` 或 `.syncpackrc.json`（根文件，且**不在** `globalDependencies` 里）
+→ 根任务失效、**其他 0 个 task 失效**；改 `apps/admin/src/main.ts` → 5 个包任务失效、根任务**不动**。
+
+> 顺带翻了一处**过期的断言**：发版电池的测试原本钉着「`lint:root` 只是根脚本、不是 turbo 任务，
+> 所以绝不能放进 turbo 的 argv」—— 理由是 `turbo run lint lint:root` 会
+> `Could not find task` 当场退 1。那是**当时**的实测事实；`//#lint:root` 定义出来之后前提就没了，
+> 现在 `turbo run lint lint:root` 实测 16 个任务、正常跑通。断言已按新事实改写并留了记录。
+
 ---
 
 ## 五、交叉对比：调研文档 / 参考仓 Z / 本仓
@@ -216,7 +240,7 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 | `inputs` 精确化 | ✅ 提出（「默认 hash 包内所有文件，改 README 也会失效」） | ✅ 做到，且**按消费面分层**：全包共享的根输入放 `transit`，只有某个 app 消费的（`.env*` / `types/**` / `vendor/**`）收进该 app 的包级 `turbo.json` | ✅ 做了排除与包级覆写，但**没有分层**：全局输入一律 `globalDependencies`，一处改动全仓失效 |
 | 依赖包源码变更 | ❌ 未涉及 | ✅ **`transit` 传递节点**（本仓直接采纳了这个设计） | ✅ 本轮补上 |
 | 产物目录 | ⚠️ 只写「不声明 `outputs` 等于放弃缓存」，**没说清真正的症状**：声明了但**漏一个目录**时是「命中缓存 ⇒ 静默不产出 + exit 0」 | ✅ 实测过同一类 bug，并把 `dist` / `dist-stage` **按画像分离** | ✅ 本轮补上 `dist-staging`，并把它做成门禁（Z 仓靠断言 + 负向验证器） |
-| 根级文件的缓存 | ❌ 未涉及 | ✅ 有 `//#lint:root` 这种**根任务**，inputs 用 `$TURBO_ROOT$/**` + 逐条排除运行期目录，且记了「漏排除 ⇒ 缓存永不命中」「排除过头 ⇒ 门禁回放假绿」两个方向的坑 | ⚠️ `lint:root` 是**根脚本、不是 turbo 任务** ⇒ 完全不缓存。简单，但每次 push 都真跑 |
+| 根级文件的缓存 | ❌ 未涉及 | ✅ 有 `//#lint:root` 这种**根任务**，inputs 用 `$TURBO_ROOT$/**` + 逐条排除运行期目录，且记了「漏排除 ⇒ 缓存永不命中」「排除过头 ⇒ 门禁回放假绿」两个方向的坑 | ✅ 已补 `//#lint:root` 根任务（inputs 逐字等于脚本的 glob），冷跑 3.8s → 热跑 0.11s，见 4.6 |
 | 环境变量 | ✅ `env` vs `passThroughEnv` 讲清了 | ✅ 进一步：`NODE_ENV` 被工具链自身改写 ⇒ 放 `passThroughEnv`；`PATH` / `npm_execpath` 必须声明否则发版脚本找不到 pnpm；护栏是 `eslint-plugin-turbo` 的 `no-undeclared-env-vars`（error 级，上线时抓出 5 个真实缺口） | ✅ `NODE_ENV` 已按同一条实测结论改到 `globalPassThroughEnv`（见 4.5）；⚠️ 但**仍然没有** eslint-plugin-turbo ⇒ 未声明的变量会被静默剥离而没人拦。<br>**接这条规则前先看这组实测**（2026-09-23）：全仓 `process.env.*` 共 **75 个不同的变量名**，其中 **74 处在 `apps/server/libs/config/src/modules/*.config.ts`**（运行期从 `.env` 读，`@nestjs/config` 在进程内注入，**不是**构建期输入）、24 处在发版工具链、admin 侧只有 1 处。naive 打开这条规则会一次报出近百条，**几乎全是误报** —— 按本仓「一个开始误报的门禁等于没有门禁」的标准，正确做法是先划清「构建期真输入」与「运行期配置」的边界（前者进 `env`/`globalEnv`，后者进 `globalPassThroughEnv` 或规则的 `allowList`），再开闸 |
 | 缓存淘汰 | ❌ 未涉及 | ✅ `cacheMaxAge: "14d"` + `cacheMaxSize: "5GB"`（Turbo 2.10+） | ❌ 没有（本仓 turbo 2.9.14，这两个键要 2.10+） |
 | 并发 | ❌ 未涉及 | ✅ `concurrency: 4`，并与 vitest 的 `maxWorkers` 一起收敛（两级并发不一起算就是 4×CPU 个 worker） | ❌ 没有（用 turbo 默认） |
@@ -242,9 +266,9 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 
 ---
 
-## 六、这道门禁守什么（7 条不变量 + 负向验证）
+## 六、这道门禁守什么（8 条不变量 + 负向验证）
 
-`pnpm lint:turbo-cache` **不改任何文件**，只拿 `--dry=json` 的解析结果 + 配置文件里的真实取值核对 7 条不变量：
+`pnpm lint:turbo-cache` **不改任何文件**，只拿 `--dry=json` 的解析结果 + 配置文件里的真实取值核对 8 条不变量：
 
 | # | 不变量 | 不守会怎样 |
 |---|--------|-----------|
@@ -254,9 +278,10 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 | 4 | 从 `env-local/.env.*` 读出的 `VITE_BUILD_OUT_DIR` 必须出现在对应任务的 `outputs` 里 | 缓存命中静默不产出（4.1） |
 | 5 | `transit` 存在、带 `^transit`，且 `types:check` 挂它 | 依赖包源码变更 ⇒ 类型门禁回放假绿（4.2） |
 | 6 | `@walnut/docs#build` 的输入里有 `.md` | 改文档不重建 ⇒ **死链校验被跳过** |
+| 8 | `//#lint:root` 的 `inputs` 与根脚本里那几个 glob **双向一致** | 写成大排除式 ⇒ 漏排一个运行期目录就**永不命中**；排过头 ⇒ 根 eslint 配置的改动不进缓存键、**门禁回放假绿** |
 | 7 | 同一个 app 的 prod 与 stage **不许落进同一个产物目录**（判据顺着 `tsConfigPath → extends` 读 tsconfig 的 `outDir`），且该目录必须在 `build:stage.outputs` 里 | 两条流程抢同一目录 ⇒ 缓存重放互相覆盖；`deleteOutDir` 还会先删掉对方的产物（4.4） |
 
-**它真的会红吗**——10 个注入用例逐个验过（改完即还原，`turbo.json` sha 不变）：
+**它真的会红吗**——13 个注入用例逐个验过（改完即还原，`turbo.json` sha 不变）：
 
 | 注入的错误 | 报出的规则 |
 |-----------|-----------|
@@ -270,6 +295,9 @@ Vite 的 `envDir` 是 `apps/admin/env-local`，而它**被 gitignore** ⇒ 不�
 | server 的 stage 又写回 `dist`（P3-22 复现） | `stage-outdir-separate` |
 | `nest/stage.json` 的 `tsConfigPath` 指回 prod 的 tsconfig | `stage-outdir-separate` |
 | `build:stage.outputs` 漏掉 `dist-stage/**` | `outputs-cover-artifacts` |
+| `//#lint:root` 的 inputs 少一个 glob | `lint-root-inputs` |
+| 改成 `$TURBO_ROOT$/**` 大排除式 | `lint-root-inputs` |
+| 根脚本多检查一类文件、inputs 没跟上 | `lint-root-inputs` |
 
 另外还有一道**跑错目录**的守卫：在子目录里跑时 turbo 只会看到 1 个包、
 所有断言照样成立 —— 门禁对此硬报错（`turbo 只在 <cwd> 下发现了 1 个包`），

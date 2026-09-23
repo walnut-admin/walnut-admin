@@ -64,9 +64,11 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
   },
   {
     id: 'lint-root',
-    label: 'lint 根级配置（pnpm lint:root）',
-    argv: ['lint:root'],
-    why: '根级文件（`eslint.config.ts` / `knip.config.ts` / `package.json` / `pnpm-workspace.yaml`）**不在任何包的 lint 范围里**（它们不进 turbo 的图），所以必须单独一段。',
+    label: 'lint 根级配置（turbo run //#lint:root）',
+    // 走 turbo 而不是直接 `pnpm lint:root`：根任务有精确的 inputs（就是脚本里那三个 glob），
+    // 没改根级文件时命中缓存 —— 实测冷跑 3.8s / 热跑 0.1s（以前每次 push 都真跑 12s 上下）。
+    argv: ['exec', 'turbo', 'run', 'lint:root'],
+    why: '根级文件（`eslint.config.ts` / `knip.config.ts` / `package.json` / `pnpm-workspace.yaml`）**不在任何包的 lint 范围里**（它们不进 turbo 的包图），所以必须单独一段。',
   },
   {
     id: 'types',
