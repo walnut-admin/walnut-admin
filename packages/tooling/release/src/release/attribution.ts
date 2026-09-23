@@ -1,7 +1,7 @@
 /**
  * 提交 → 包归属，以及 workspace / fixed 组的机械审计。
  *
- * ⚠️ 本模块在本仓的性质与参考仓不同，值得先说清：本仓是**单一 fixed 组**（全部 12 个包永远同版本），
+ * ⚠️ 本模块在本仓的性质与参考仓不同，值得先说清：本仓是**单一 fixed 组**（全部 14 个包永远同版本），
  * 所以「归属到哪个包」不再影响版本号 —— 只要产生**一条**意图，整组就会被 bump 到同一个新版本。
  * 因此本模块真正决定的事情只有一件：**这条提交要不要产生意图**（= 要不要发版）。
  * 包名清单仍要写对，因为它进 `pnpm change` 的 argv、并由 `pnpm change check` 核对。
@@ -23,8 +23,17 @@ import { lsFilesWithUntracked } from '@walnut/scripts/lib/git'
 import { REPO_ROOT } from '@walnut/scripts/lib/repo-root'
 import { parse as parseYaml } from 'yaml'
 
-/** commit scope（括号内的名字）→ workspace 包名。与 `@walnut/commitlint-config` 的包名段同口径。 */
-const SCOPE_TO_PACKAGE: Record<string, string> = {
+/**
+ * commit scope（括号内的名字）→ workspace 包名。与 `@walnut/commitlint-config` 的包名段同口径。
+ *
+ * ⚠️ **表里每个值都必须是真实存在的 workspace 包** —— 指向一个已删除的包时，scope 兜底会为它写出
+ * 一条版本意图（`pnpm change` 的 argv 里出现幽灵包名）。`attribution.test.ts` 用
+ * `workspacePackages()` 反过来钉住这条不变量；2026-09-23 就是靠它查出 `'tooling': '@walnut/tooling'`
+ * 这条陈尸（`@walnut/tooling` 已拆成 5 个包）。
+ *
+ * 导出仅为让那条不变量可测。
+ */
+export const SCOPE_TO_PACKAGE: Record<string, string> = {
   // apps
   'admin': '@walnut/admin',
   'server': '@walnut/server',
@@ -40,7 +49,9 @@ const SCOPE_TO_PACKAGE: Record<string, string> = {
   // tooling
   'eslint-config': '@walnut/eslint-config',
   'commitlint-config': '@walnut/commitlint-config',
-  'tooling': '@walnut/tooling',
+  // ⚠️ 这里**刻意没有** `'tooling'` 这一条：`tooling` 是 commitlint 允许的 scope，但仓里没有
+  // 同名包 —— 工具链 5 个包各自有 scope（eslint-config / commitlint-config）或被**路径**归属
+  // （scripts / release / tsconfig）。它归入下面的 NON_PACKAGE_SCOPES。
 }
 
 /**
@@ -51,6 +62,15 @@ const SCOPE_TO_PACKAGE: Record<string, string> = {
  * `chore(release): vX.Y.Z`，那种提交的 type 是 chore，本来就不会发版）。
  */
 const INFRA_SCOPES: readonly string[] = ['docker', 'deploy', 'pnpm', 'release']
+
+/**
+ * 「在册但不是包」的 scope：commitlint 白名单允许，但仓库里没有同名包 ⇒ 同样不产生意图。
+ *
+ * `tooling` 是工具链改动的兜底 scope。真正改了 `packages/tooling/**` 的提交由**路径**归属到具体包，
+ * 根本走不到 scope 兜底；只有「scope 写 tooling、却没动任何包目录」（例如只改根 `turbo.json`）才会
+ * 落到这里 —— 那种提交不该带动产品版本号，与基础设施 scope 同理。
+ */
+const NON_PACKAGE_SCOPES: readonly string[] = [...INFRA_SCOPES, 'tooling']
 
 /** workspace 包目录的形状：`apps/<x>` 或 `packages/<group>/<x>` */
 const WORKSPACE_DIR_SHAPE = /^(?:apps\/[^/]+|packages\/[^/]+\/[^/]+)$/
@@ -224,7 +244,7 @@ export function attributeCommit(
   const scope = parsed.scope
   if (scope === null)
     return null
-  if (INFRA_SCOPES.includes(scope))
+  if (NON_PACKAGE_SCOPES.includes(scope))
     return null
   const scoped = SCOPE_TO_PACKAGE[scope]
   return scoped ? [scoped] : null
@@ -241,6 +261,8 @@ export function describeAttributionSkip(parsed: ParsedCommit, files: string[]): 
     return '无 scope 且改动不在任何包目录下'
   if (INFRA_SCOPES.includes(parsed.scope))
     return `基础设施 scope（${parsed.scope}）`
+  if (parsed.scope === 'tooling')
+    return 'scope tooling 但改动不在任何包目录下（工具链改动按路径归属，无路径命中即不发版）'
   if (!SCOPE_TO_PACKAGE[parsed.scope])
     return `未在册的 scope（${parsed.scope}）且改动不在任何包目录下`
   return '无归属'

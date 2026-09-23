@@ -19,20 +19,38 @@
 
 ## Monorepo Structure
 
+14 个 workspace 包（3 app + 3 platform-any + 3 platform-web + 5 tooling），同属 `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组：
+
 ```
 walnut-admin/
 ├── apps/
-│   ├── admin/    @walnut/admin   — Vue3 SPA (管理后台)
-│   ├── server/   @walnut/server  — NestJS API (后端服务)
-│   └── docs/     @walnut/docs    — Vitepress (文档站)
-├── packages/                     — Frontend shared libraries (consumed by apps/admin)
-│   ├── shared/   @walnut/shared   — zero-dependency base (crypto, storage, types)
-│   ├── axios/    @walnut/axios    — HTTP client framework (instance + adapters)
-│   └── core/     @walnut/core     — generic composables/hooks
+│   ├── admin/     @walnut/admin    — Vue3 SPA + Vite 8 + Naive UI + UnoCSS
+│   ├── server/    @walnut/server   — NestJS 11 + SWC + Mongoose + Redis（内部 Nest monorepo）
+│   └── docs/      @walnut/docs     — VitePress 文档站
+├── packages/
+│   ├── platform-any/                — 平台无关（CJS 双模构建 / 纯类型 / 纯工具）
+│   │   ├── contract/    @walnut/contract   — 类型与常量（响应码、枚举、分页、路由契约）
+│   │   ├── types/       @walnut/types      — ambient 类型声明
+│   │   └── utils-core/  @walnut/utils      — 纯工具（regex、queue、crypto）
+│   ├── platform-web/                — 浏览器 / Vue（源码直消费，不构建）
+│   │   ├── client/      @walnut/client     — 浏览器工具 + Vue composables + store 工厂
+│   │   ├── http/        @walnut/http       — HTTP 客户端框架（实例 + 适配器）
+│   │   └── ui/          @walnut/ui         — 基于 naive-ui 的组件
+│   └── tooling/                     — 工具链 5 包
+│       ├── tsconfig/          @walnut/tsconfig          — 纯 JSON tsconfig 预设（base / ts / vue）
+│       ├── eslint-config/     @walnut/eslint-config     — 共享 ESLint 预设（base / vue / nest）
+│       ├── commitlint-config/ @walnut/commitlint-config — commitlint 规则
+│       ├── scripts/           @walnut/scripts           — 仓库级脚本：lib / ci 门禁 / env 加解密 + 3 个 bin
+│       └── release/           @walnut/release           — 发版编排（bin walnut-release）
 ├── turbo.json                    — Turborepo pipeline
-├── pnpm-workspace.yaml           — pnpm workspace config
-└── migration-guide/              — Migration documentation
+├── pnpm-workspace.yaml           — pnpm workspace + 版本策略（versioning.fixed 唯一真源）
+└── migration-guide/              — 历史迁移记录（已完成）
 ```
+
+> 架构决策见 [`apps/docs/src/zh-CN/content/`](./apps/docs/src/zh-CN/content/)：
+> [monorepo 架构](./apps/docs/src/zh-CN/content/monorepo/) · [ADR](./apps/docs/src/zh-CN/content/adr/) ·
+> [归档设计/评审](./apps/docs/src/zh-CN/content/archive/)。
+> 给 AI agent 的工作指引见 [`AGENTS.md`](./AGENTS.md)。
 
 ## Quick Start
 
@@ -42,20 +60,23 @@ walnut-admin/
 pnpm install
 
 # Start individual apps
-pnpm dev           # = pnpm dev:admin (frontend only, the common case)
-pnpm dev:admin     # Frontend → http://localhost:3100
-pnpm dev:server    # Backend  → requires MongoDB + Redis
-pnpm dev:docs      # Docs     → http://localhost:8886
+pnpm dev           # 前端（= turbo dev --filter=@walnut/admin）→ http://127.0.0.1:3100
+pnpm dev:server    # 后端  → 需要 MongoDB replica set + Redis
+pnpm dev:docs      # 文档站 → http://localhost:8886
+pnpm dev:all       # 三个一起起
 
 # Build
+pnpm build         # 全量（packages → apps）
 pnpm build:admin
 pnpm build:server
 pnpm build:docs
 
-# Lint & type check
-pnpm lint
-pnpm types:check
-pnpm test          # Run tests (server + release + utils/client vitest)
+# Lint & type check & test
+pnpm lint          # 各包的 lint 任务
+pnpm lint:root     # 只 lint 根级配置
+pnpm types:check   # 全仓类型检查
+pnpm test          # vitest（12 个包有 test 任务）
+pnpm prepush       # pre-push 的聚合门禁（七段）
 ```
 
 ## History
