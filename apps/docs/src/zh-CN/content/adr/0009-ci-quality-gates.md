@@ -2,9 +2,9 @@
 
 **Date:** 2026-07-28
 **Status:** Accepted
-**Last revised:** 2026-09-23 — 门禁表按现状更新：git 钩子改由 lefthook 托管（ADR 0018），pre-push 是八段
-聚合命令 `pnpm --silent prepush`（含 `lint:root` 与 `types:check:root`）；CI 步骤补 boundaries / affected 自检 /
-syncpack / `pnpm change check` / `lint:root` / `types:check:root`；
+**Last revised:** 2026-09-23 — 门禁表按现状更新：git 钩子改由 lefthook 托管（ADR 0018），pre-push 是九段
+聚合命令 `pnpm --silent prepush`（含 `lint:root` / `types:check:root` / `lint:docs-refs` / `lint:adr`）；CI 步骤补 boundaries / affected 自检 /
+syncpack / `pnpm change check` / `lint:root` / `types:check:root` / `lint:adr`；
 `test` 任务的依赖是 `["^build"]`；`@walnut/axios` 已更名 `@walnut/http`。
 
 ## Context
@@ -42,6 +42,11 @@ Current state:
 (`@walnut/contract` / `@walnut/utils` publish a CJS `dist/` for the backend's `require` path, see ADR 0002), while the
 package under test is *not* built first: Vitest compiles it from source with esbuild. `["^build"]` (not `["build"]`)
 is the correct chain per industry standard (see [行业调研：测试体系](../industry-research/04-testing-strategy.md)).
+
+## Alternatives considered
+
+- **Keep the pre-decision setup (`simple-git-hooks` with a pre-push that only ran `pnpm types:check`, and no CI workflow running tests)** —— pre-merge validation has to catch type errors, lint violations, and regressions before they reach production.
+- **Run the test suite in the pre-push hook instead of in CI** —— pre-push is deliberately kept in the ten-second class, so it executes no tests; CI is what catches test failures without blocking the local development flow.
 
 ## Consequences
 

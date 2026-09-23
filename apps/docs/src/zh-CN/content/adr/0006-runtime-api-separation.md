@@ -48,6 +48,11 @@ This makes it immediately clear whether a function:
 - Needs a browser (→ `@walnut/client/browser/`)
 - Needs Vue (→ `@walnut/client/hooks/`)
 
+## Alternatives considered
+
+- **One omnibus shared package that ignores runtime API categories** —— the backend cannot consume browser code (no DOM) and the frontend cannot consume Node code (no `fs`), and pure utilities get buried under framework dependencies.
+- **A flat `@walnut/client` that keeps all code at one level** —— the `browser/` / `hooks/` / `persistent/` split is what makes it immediately clear whether a function can run in any JS runtime, needs a browser, or needs Vue.
+
 ## Consequences
 
 - `@walnut/utils` has zero `vue`, `@vueuse`, `idb`, or DOM dependencies. Only `js-base64`.

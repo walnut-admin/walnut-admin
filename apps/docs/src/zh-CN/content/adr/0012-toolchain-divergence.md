@@ -1,7 +1,7 @@
-# ADR 0012: Frontend-Backend Toolchain Divergence
+# ADR-0012: Frontend-Backend Toolchain Divergence
 
 **Date:** 2026-07-29
-**Status:** Implemented
+**Status:** Accepted
 
 ## Context
 
@@ -135,10 +135,6 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 - **The old glob list is gone.** `*turbo*` / `*eslint*` / `*@swc*` / `*esbuild*` described packages that are root `package.json` direct dependencies anyway, so the patterns had no effect (recorded in the archived 2026-09-21 architecture review — pnpm 10 stopped reading those settings from `.npmrc`). The `*simple-git-hooks*` entry is gone for good with the lefthook migration ([ADR 0018](/content/adr/0018-git-hooks-lefthook)): the dependency itself was removed, and `lefthook` needs no hoist exception — it is a root devDependency that only requires an `allowBuilds: true` entry.
 - Growth rate is near zero — re-evaluate if the list exceeds 10 patterns
 
-**Alternatives considered:**
-- Removing `hoist: false` entirely — rejected; would allow phantom dependencies (packages importing deps they didn't declare)
-- More granular per-package hoisting — rejected; adds configuration complexity without benefit
-
 ## Decision 6: Tag-Based Architecture Boundaries (Turbo 2.9)
 
 **Chosen:** Enable tag-based boundaries in root `turbo.json` with per-package `turbo.json` tag declarations.
@@ -177,9 +173,11 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 3. `platform-any` packages cannot depend on `platform-web` or `platform-node` (platform-agnostic packages stay runtime-free)
 4. `platform-node` packages cannot depend on `platform-web`
 
-**Result:** 0 tag-rule violations (at implementation on 2026-07-29, over the 8 packages that existed then; `pnpm boundaries` now covers all 14 workspace packages and reports "no issues found").
+**Result:** 0 tag-rule violations (at implementation on 2026-07-29, over the 8 packages that existed then; `pnpm boundaries` now covers all 15 workspace packages and reports "no issues found").
 
-**Status:** Experimental feature in Turbo 2.9. Rules are enforced via `turbo boundaries` CLI. API may change in future Turbo versions.
+**Turbo feature status:** Experimental feature in Turbo 2.9. Rules are enforced via `turbo boundaries` CLI. API may change in future Turbo versions.
+<!-- 刻意不写 `**Status:**` —— 那是 ADR 自己的状态字段（本文件第 4 行），`pnpm lint:adr` 只认第一个匹配，
+     但同一文件出现两个同名字段会让人（和未来的解析器）读错。 -->
 
 **Known limitations (pre-existing, not caused by boundaries):**
 - `~build/package` Vite virtual module — not a real dependency, but boundaries treats unknown imports as violations
@@ -197,6 +195,13 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 - Downgrading to `warn` keeps the rules visible for real violations in local code while preventing false-positive build failures
 
 **This is a known limitation of pnpm workspaces + type-aware linting**, documented in the `@typescript-eslint` project. If/when TypeScript's type resolver improves workspace symlink handling, these rules can be restored to `error`.
+
+## Alternatives considered
+
+### Decision 5: 严格 hoist 与最小例外清单
+
+- **完全去掉 `hoist: false`** —— 否决；会放任幻影依赖（包导入了自己没声明的依赖）。
+- **更细粒度的按包 hoist** —— 否决；只增加配置复杂度，没有收益。
 
 ## Related
 

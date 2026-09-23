@@ -38,6 +38,10 @@ The question: should they be promoted to pnpm workspace packages like `@walnut/c
 
 4. **The boundary is already correct**: `@walnut/contract` and `@walnut/utils` (pure, framework-agnostic) bridge the gap via pnpm workspace. The NestJS-coupled code stays where it belongs — inside the server.
 
+## Alternatives considered
+
+- **Promote the backend libs to pnpm workspace packages** (like `@walnut/client` and `@walnut/contract`) —— the CommonJS backend libs would form a second class of workspace packages consumable only by the backend, they are tightly coupled to NestJS (`@Injectable()`, `emitDecoratorMetadata`), and SWC would have to resolve them as external dependencies, adding configuration complexity without benefit; the boundary is already bridged by the pure, framework-agnostic `@walnut/contract` and `@walnut/utils`.
+
 ## Consequences
 
 - `@walnut-server/*` remains a separate namespace from `@walnut/*`

@@ -43,15 +43,6 @@ packages/tooling/
 - `@walnut/release` 依赖 `@walnut/scripts`，按需 import `lib`（10 个模块）。
   `lib` 里不许出现「发版 / 包 / 意图」这类业务词；本包需要通用能力时**上提**到 `lib`。
 
-**为什么不按能力切成 `script-lib` + `release` + `checks` + `env`（6~7 包）**：`ci/` 只有 2 个模块、
-`env/` 只有 1 个，为它们各建一个包，收益（可读性）低于成本（每个包一套 `package.json` +
-`tsconfig.json` + `turbo.json` + 依赖声明）。**按耦合度切**让每一边都足够大且内聚。
-
-**为什么不学参考仓（一个 `@zhenfei/tooling` 装下 `scripts/{build,ci,dev,lib,local,release}`）**：
-参考仓的 tooling 是**单包多目录**，本仓的 `release` 已经长到 20 个模块、且有独立的测试面与依赖
-（`git-cliff`、`yaml`），把它留在一个「什么都装」的包里会让「谁依赖 git-cliff」这类问题无法从
-`package.json` 读出来。
-
 ### 2. 提取 `@walnut/tsconfig`，删掉根 `tsconfig.base.json`
 
 三个预设**按运行环境**分，不按「项目 / 库」分：
@@ -94,6 +85,21 @@ packages/tooling/
 **为什么值得**：`.mjs` 与 `.ts` 并存意味着「哪些文件能写类型、哪些不能」要靠记忆。
 统一成 `.ts` 后，配置、预设、bin、构建脚本与业务代码是同一套心智模型，类型检查也覆盖到了配置层
 （`@walnut/eslint-config` 的 `types:check` 此前是一句空跑的 `echo`，现在是真正的 `tsc --noEmit`）。
+
+## Alternatives considered
+
+### 决策 1：`packages/tooling/` 拆成 5 个包，按**耦合度**切
+
+- **按能力切成 `script-lib` + `release` + `checks` + `env`（6~7 包）** —— `ci/` 只有 2 个模块、`env/` 只有 1 个，为它们各建一个包，收益（可读性）低于成本（每个包一套 `package.json` + `tsconfig.json` + `turbo.json` + 依赖声明）；**按耦合度切**让每一边都足够大且内聚。
+- **学参考仓，用一个 `@zhenfei/tooling` 装下 `scripts/{build,ci,dev,lib,local,release}`** —— 参考仓的 tooling 是**单包多目录**，本仓的 `release` 已经长到 20 个模块、且有独立的测试面与依赖（`git-cliff`、`yaml`），把它留在一个「什么都装」的包里会让「谁依赖 git-cliff」这类问题无法从 `package.json` 读出来。
+
+### 决策 2：提取 `@walnut/tsconfig`，删掉根 `tsconfig.base.json`
+
+- **不提取共享 tsconfig 包，每个包继续用 `../../../tsconfig.base.json` 这类按目录深度的相对路径继承** —— ADR 0010 与 `monorepo/typescript.md` 当时的理由是「12 包规模下 root base 足够」，但那笔账只算了数量、没算分化：Node 原生执行 / 浏览器 + Vue / 纯 JSON 三类环境已经长出不同需求，且每个消费者还要写不同深度的 `../../../`。
+
+### 决策 3：全仓消除 `.mjs`，去掉 `tsx`
+
+- **保留 16 个 `.mjs`（含继续用 `tsx` 执行 bin）** —— `.mjs` 与 `.ts` 并存意味着「哪些文件能写类型、哪些不能」要靠记忆；统一成 `.ts` 后，配置、预设、bin、构建脚本与业务代码是同一套心智模型，类型检查也覆盖到了配置层（`@walnut/eslint-config` 的 `types:check` 从空跑的 `echo` 变成真正的 `tsc --noEmit`）。
 
 ## Consequences
 

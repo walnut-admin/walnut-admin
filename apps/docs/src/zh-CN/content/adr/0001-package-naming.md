@@ -35,6 +35,10 @@ Packages are named by **what they contain**, not by aspiration.
 - `core` — implies everything depends on it; our backend can't even consume it
 - `composables` — only accurate for `use*` functions, not for `aesGcmEncrypt` or `downloadByUrl`
 
+## Alternatives considered
+
+- **Keep naming packages by aspiration instead of by what they contain** —— the document records why that lost: misleading names send backend developers to a package they cannot import, and leave new team members unsure where code belongs.
+
 ## Consequences
 
 - A developer reading `import { aesGcmEncrypt } from '@walnut/client/crypto/symmetric/aes-gcm'` immediately knows this is browser-only code

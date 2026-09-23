@@ -33,6 +33,11 @@ The question: when a tag is pushed, should everything deploy together or indepen
 
 **Why unified versioning**: Small team, tightly coupled packages, `@walnut/contract` changes must stay in sync across frontend and backend. Independent versioning adds coordination overhead without benefit at this scale. Since 2026-09-23 this is mechanically enforced as **one** fixed group (the historical two-group split — Apps + Packages — could bump a shared package without ever producing a tag).
 
+## Alternatives considered
+
+- **Deploy everything every time** —— frontend-only changes should not restart the backend and backend-only changes should not rebuild the frontend; deployment is a separate workflow that only pulls images already built and pushed, so a rollback is a `workflow_dispatch` with an older `image_tag` (1–3 min) instead of a rebuild.
+- **Independent (per-package) versioning** —— the team is small, the packages are tightly coupled, and `@walnut/contract` changes must stay in sync across frontend and backend, so independent versioning adds coordination overhead without benefit at this scale; the historical two-group split could bump a shared package without ever producing a tag.
+
 ## Consequences
 
 - `deploy.yml` is reusable (`workflow_call`, called by `release.yml`) and manually dispatchable (`workflow_dispatch`) for rollback — no `dorny/paths-filter` needed

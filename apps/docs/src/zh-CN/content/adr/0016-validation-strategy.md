@@ -46,6 +46,10 @@ Revisit this decision when any of these conditions are met:
 | `class-validator` becomes unmaintained or incompatible with a NestJS major version | Forced migration |
 | The project grows to 3+ frontend apps sharing validation with the same backend | Shared schema ROI increases |
 
+## Alternatives considered
+
+- **Migrate to Zod** (replace `class-validator` DTOs with Zod schemas, add a `ZodValidationPipe` in NestJS) —— the migration cost is disproportionate to the current benefit. The `WalnutAdminDecoratorField*` decorators already fold validation (`class-validator`), transformation (`class-transformer`) and Swagger documentation into a single declaration; 16 guard classes plus the middleware / interceptor layers depend on the existing pipeline's error format; all 6 sub-systems under `libs/decorators/` (~30 decorator files) and ~100+ DTO classes would have to be rewritten. And because the frontend has not adopted VeeValidate + Zod, the "one schema shared by frontend and backend" payoff is not reachable — Zod on the backend alone only adds a second validation paradigm.
+
 ## Consequences
 
 - Validation logic remains backend-only (no frontend schema reuse)
@@ -59,4 +63,4 @@ Revisit this decision when any of these conditions are met:
 - [Zod vs class-validator 评估](./zod-evaluation.md) — detailed Zod vs class-validator comparison
 - [行业调研：Vue3 + NestJS 全栈架构](../industry-research/07-fullstack-architecture.md) — industry recommendation for Zod in fullstack monorepos
 - `apps/server/libs/decorators/` — current class-validator decorator system
-- `apps/server/CLAUDE.md` — DTO design rules (RealPickType, field decorator usage)
+- `apps/server/AGENTS.md` — DTO design rules (RealPickType, field decorator usage)

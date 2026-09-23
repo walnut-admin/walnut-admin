@@ -14,15 +14,6 @@ The monorepo has two consumers with incompatible module systems:
 
 Packages consumed by both (`@walnut/contract`, `@walnut/utils`) need to work in both worlds.
 
-**Alternatives considered:**
-
-| Approach | Frontend | Backend | Verdict |
-|----------|----------|---------|---------|
-| Source-only (JIT) | ✅ Instant HMR | ❌ Can't resolve ESM source | Rejected |
-| CJS-only build | ❌ No HMR, build latency | ✅ Native `require()` | Rejected |
-| Dual build (ESM + CJS) | ✅ `import` reads ESM | ✅ `require` reads CJS | ✅ Accepted |
-| tsconfig paths only | ✅ Works | ✅ Works but 4 files to maintain | Rejected — doesn't scale |
-
 ## Decision
 
 Use `package.json` `exports` with a custom `"source"` condition:
@@ -47,6 +38,12 @@ Use `package.json` `exports` with a custom `"source"` condition:
 - **IDE**: TypeScript resolves `"types"` → source `.ts`
 
 **`"source"` not `"development"`**: Webpack's `NODE_ENV=development` also matches the `"development"` export condition. A scope-qualified name avoids this collision. (Vite RFC, Nx, and Turborepo docs all recommend this pattern.)
+
+## Alternatives considered
+
+- **Source-only (JIT) for every package** —— the backend cannot resolve ESM source, so the CJS consumer would break.
+- **CJS-only build** —— the frontend loses HMR and pays build latency.
+- **tsconfig paths only** —— it works on both sides, but leaves 4 files to maintain and does not scale.
 
 ## Consequences
 

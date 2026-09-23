@@ -1,9 +1,9 @@
-# ADR 0011: Dependency Governance & Release Pipeline
+# ADR-0011: Dependency Governance & Release Pipeline
 
 **Date:** 2026-07-29
-**Status:** Implemented
+**Status:** Accepted
 **Last revised:** 2026-09-23 — Decision 2 与 Decision 3 被重写（单一 fixed 组 + pnpm 原生 release management + git-cliff）。
-原决策的理由与历史保留在各自的 "Alternatives considered" 里。
+原决策的理由与历史集中收进下方唯一的 `## Alternatives considered` 小节。
 
 ## Context
 
@@ -24,10 +24,6 @@ Three interdependent decisions needed to be made:
 - Zero breakage — all existing deps already use `catalog:` protocol
 - One-line change with no maintenance burden
 - Prevents future version drift from `pnpm add` without `--save-catalog`
-
-**Alternatives considered:**
-- ESLint `pnpm/json-enforce-catalog` — belt-and-suspenders, but redundant with pnpm's native check
-- No enforcement — relying on convention alone; rejected because convention degrades over time
 
 ## Decision 2: One Fixed Group — every workspace package
 
@@ -57,13 +53,6 @@ longer affects the version number — it only decides *whether* a commit produce
 Attribution is path-first, scope-as-fallback, and infrastructure scopes (`docker`, `deploy`,
 `pnpm`, `release`) plus unknown scopes produce **no** intent. This is deliberate: infrastructure
 changes must not drive the product version.
-
-**Alternatives considered:**
-- **Two fixed groups (Apps + Packages)** — the previous design; rejected per the trap above.
-- **All packages in one group + apps independent** — rejected; the tag needs a single source, and
-  a package-only release would still produce no tag.
-- **Full Independent for all** — rejected; 9 packages are tightly coupled (`@walnut/contract`
-  changes cascade to every consumer) and benefit from synchronized versioning.
 
 ## Decision 3: pnpm native release management + git-cliff
 
@@ -112,18 +101,25 @@ Per-package `CHANGELOG.md` is rendered by **git-cliff** and written by
   Folding them into the turbo argv fails with `Could not find task 'lint:root' in project`
   (fixed 2026-09-23; see [`monorepo/release.md`](/content/monorepo/release)).
 
-**Alternatives considered:**
-- **Keep `@changesets/cli` + `@changesets/changelog-github`** — the previous design. Its changelog
-  format is richer out of the box (it parses `pr:` / `commit:` / `author:` directives out of the
-  changeset body), but it has no ledger, no `change check`, and requires a second config file.
-  Rejected because the ledger + gate are worth more here than the plugin.
-- **`versioning.changelog.storage: repository`** (pnpm writes the committed changelog) — rejected;
-  it writes `CHANGELOG.md` itself with no way to keep only intent consumption, so git-cliff would
-  produce a duplicate section for the same version.
-- **A hand-rolled changelog writer reading `git log`** — rejected; git-cliff already solves
-  grouping, link generation, and per-package path scoping, and its config is testable.
-- **`offline = true` + a literal repo URL in the template** — rejected; it forfeits PR numbers and
-  authors, which are the whole reason to prefer commit-derived changelogs.
+## Alternatives considered
+
+### Decision 1: 启用 `catalogMode: strict`
+
+- **ESLint `pnpm/json-enforce-catalog`** —— 双重保险，但与 pnpm 的原生检查重复。
+- **不做任何强制、只靠约定** —— 否决；约定会随时间退化。
+
+### Decision 2: 单一 fixed 组（覆盖全部 workspace 包）
+
+- **两个 fixed 组（Apps + Packages）** —— 即原设计；因上述结构性陷阱被否决。
+- **全部包一组、apps 各自独立** —— 否决；tag 需要唯一来源，而只发包的版本仍然产生不了 tag。
+- **全部 Full Independent** —— 否决；9 个包紧耦合（`@walnut/contract` 的改动会级联到每个消费方），同步版本更有利。
+
+### Decision 3: pnpm 原生 release management + git-cliff
+
+- **保留 `@changesets/cli` + `@changesets/changelog-github`** —— 即原设计；开箱的 changelog 格式更丰富（能从 changeset 正文解析 `pr:` / `commit:` / `author:` 指令），但没有 ledger、没有 `change check`，还要多一个配置文件；此处 ledger + 门禁比该插件更值，故否决。
+- **`versioning.changelog.storage: repository`**（由 pnpm 写入提交进仓库的 changelog）—— 否决；它会自己写 `CHANGELOG.md`，无法只保留 intent 消费，git-cliff 会为同一版本产出重复章节。
+- **手写读取 `git log` 的 changelog writer** —— 否决；git-cliff 已解决分组、链接生成与按包路径筛选，且其配置可测试。
+- **`offline = true` + 在模板里写死仓库 URL** —— 否决；会丢掉 PR 号与作者，而这两者正是选用「从提交渲染 changelog」的全部理由。
 
 ## Consequences
 

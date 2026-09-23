@@ -5,7 +5,7 @@
 > 其中 **R1 核实后判定为已回退**，重新回到待办并升级到 P1。
 > 完成项的历史留在文末「执行记录」，细节见对应 ADR / 专题文档。
 
-**最后核实**：2026-09-23 ｜ 14 个 workspace 包 ｜ 全门禁绿（`prepush` / `lint` / `types:check` / `test` / `boundaries` / `syncpack` / `build:admin` / `build:docs`）
+**最后核实**：2026-09-23 ｜ 15 个 workspace 包 ｜ 全门禁绿（`prepush` 九段 / `lint` / `types:check` / `test` / `boundaries` / `syncpack` / `build` / `build:docs` / `lint:adr`）
 
 ## 优先级总览
 
@@ -13,13 +13,14 @@
 |------|------|------|
 | ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 P1-16 已被决定推迟，见[「搁置」](#搁置-等条件成熟) |
 | ~~P1~~ | 静态检查与门禁的缺口 | **当前为空** —— R4 已修（`types:check:root`），R1 / R2 按决定搁置 |
-| **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 · R8 · P2-10 · **F2-a** · **F2-b** |
-| **P3** | 远期 / 条件触发 | P3-12 · P3-14 · P3-15 · P3-13 · A8 · A9 · A11 · P3-17 · **A12** |
+| **P2** | 维护性 / 体验改善 | R7 · A5 · A7 · A10 · **F2-a** · **F2-b** |
+| **P3** | 远期 / 条件触发 | P3-12 · P3-13 · A8 · A9 · A11 · A12 |
 | **搁置** | 等条件成熟（外部依赖或已决定先不动） | R1 · R2 · P1-16 · P2-11 · P3-20 |
-| **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | F2 · F6–F7 · D1–D6 · D8<br><sub>F0 / F1 / F3 / F4 / F5 已完成；D7（TS 7 排期）已并入 R7</sub> |
+| **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | F2 · F7 · D1–D6 · D8<br><sub>F0 / F1 / F3 / F4 / F5 / F6 已完成；D7（TS 7 排期）已并入 R7</sub> |
 
 **已清掉的旧账**（2026-09-23 起逐条做掉即从本表移除，验收口径见文末「核实记录」与「执行记录」）：
-R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）｜ R3 · R4 · P3-18 · P3-19 · **R11** · **F1** 已做完
+R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）｜ R3 · R4 · P3-18 · P3-19 · **R11** · **F1** ·
+**R8** · **F6** · **P2-10** · **P3-14** · **P3-15** · **P3-17** 已做完
 **最后一次反回归复验**：2026-09-23，把移出的 20 项逐条重跑 → **20/20 通过、0 回退**（判据见「执行记录」第 9 批）
 
 ---
@@ -42,8 +43,6 @@ R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）�
 | **A5** | **API 路由迁移收尾**（原「剩余 11 处 + server 44 controller」） | 中 | admin 侧已大量使用 contract 路由常量（`AuthRoutes` / `AppRoutes` / `SystemRoutes` / `SecurityRoutes` / `SharedRoutes` / `SystemEndpointRoutes`，`apps/admin/src` 里 101 行涉及）。**剩余全在 server 侧**：`git grep WalnutAdminConstApiRoute apps/server` → **0 处**，controller 仍用字面量路径。<br>评审建议（D6）别手工逐个改：写 `gen-route-catalog`（扫 `@Controller` + `contract/routes`）+ `verify-route-parity` 门禁，一次性发现全部差异。 |
 | **A7** | **`@walnut/ui` 剩余组件** | 大 | admin 侧仍有 **22** 个 UI 组件目录，`@walnut/ui` 只有 3 个（DynamicTags / Switch / TimePicker）。需处理跨组件相对 import 与 app store 注入。<br>评审建议（D5）先用「零 app 依赖 + 已被 ≥2 处复用」过滤，避免为迁而迁。 |
 | **A10** | **store 工厂迁移** | 中 | `createWalnutStore()` 只在 `@walnut/client` 内部被引用（`src/index.ts` + `store/createWalnutStore.ts`），admin 侧 **26** 个 store 文件 **0 处**使用。 |
-| **R8** | **`@walnut/types` exports 结构** | 小 | 该包 `exports` 只有 `{ "./*": "./src/*.d.ts" }`，**无根 `"."`、无 `types` 字段**，消费方必须写 `@walnut/types/xxx`。评估是否补根导出。 |
-| **P2-10** | **Codecov / 覆盖率报告** | 小 | PR 上自动评论覆盖率变化（免费）。现在 6 份 vitest 配置都具备 coverage 能力但未接入。<br>⚠️ 需要账号/令牌，**待你确认是否要做**。 |
 | **F2-a** | **文档死链：已开校验，但 ~74 条链接指向「未编写的组件页」** | 中 | 2026-09-23 把 VitePress 的 `ignoreDeadLinks` 从 `true` 收窄成白名单（只忽略冻结语料 + `content/frontend/component/` 那份索引里指向未编写页面的链接），并修掉 9 条真错的相对路径（`release.md` 的仓库文件表 5 条层级写错、`architecture-todo.md` 2 条少了一级、`content.md` / `vendor.md` / `en-US/configuration.md` 各 1 条）。<br>**剩余欠账**：`content/frontend/component/index.md` 按功能分层列了 ~74 个组件页，但 `content/frontend/component/` 目录下**只有 index.md**。要么补写这些页、要么把索引里的链接降级成纯文本（保留规划信息但不产生死链），然后就能把白名单收掉、让索引也受校验。<br>CI 已加 `Docs build (dead-link check)` 步，所以**以后新增死链会直接红**。 |
 | **F2-b** | **锚点校验 + prose 里的仓库路径引用**（调研已完成，结论见下方小节） | 小 | VitePress 内置只查「目标页是否存在」，**不查 `#fragment`**。实测全站只有 **6 条**带锚点的站内链接、其中 **2 条是坏的**（都是 `architecture-todo.md` 里我自己写的，已修 —— 全角括号会被 slugify 转成 `-`）。**现在加锚点门禁 ROI 很低**，配方已记在下方，等锚点链接变多再上。prose 里的 584 处仓库路径引用**没有现成库**可用（理由见下）。 |
 
@@ -54,13 +53,10 @@ R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）�
 | # | 事项 | 工作量 | 现状与判据 |
 |---|------|--------|-----------|
 | **P3-12** | **后端验证策略**（原「Zod 替换 class-validator」，评审建议重述） | 大 | 方向不变但**前提已变**：NestJS 12 已官方支持 Standard Schema（`@Body({ schema })` + `StandardSchemaValidationPipe`，同一 schema 还能驱动 OpenAPI），`industry-research/07` 里「手写 `ZodValidationPipe`」的示例已过时；class-validator 仍完全支持、无移除计划。<br>评审建议把本条**从「换校验器」重述为「补齐边界校验清单」**：真正的缺口在**持久化读回 / 队列 / SSE** 三处，工程量从「100+ DTO 迁移」降到「补 3 处边界校验」；如果补不上这三处，这次迁移就不值得做。 |
-| **P3-14** | **Vitest 共享 preset** | 中 | 规模已跨过阈值：**6 份** vitest 配置（`apps/server/apps/api`、`contract`、`utils-core`、`client`、`scripts`、`release`）。评审提醒技术基线要更新为 Vitest 的 **`projects` 配置**（不是旧的 workspace 配置）。 |
-| **P3-15** | **oxlint / biome** | 小 | 结论保留（暂不作为主 linter），措辞修正：不是「都不支持 Vue SFC」，而是**官方框架支持仍在 RFC 阶段，第三方插件（`oxlint-vue` 等）可用但不成熟**。 |
 | **P3-13** | **E2E 测试（Playwright）** | 大 | 优先覆盖单元 + 集成测试；E2E 等测试体系稳定后再加。 |
 | **A8** | **`@walnut/i18n` 新包** | 大 | 目录**未创建**。locale bootstrap + 状态机 + naive locale 映射。评审（D1）提醒 seam 形态应先决策：ADR 0017 原方案用 TS `interface`，但 `interface` 无运行时令牌，无法表达「依赖 definition 而非 provider」。 |
 | **A9** | **`@walnut/security` 新包** | 大 | 目录**未创建**。URL 加密 guard + sign interceptor crypto + VerifyAuth 类型。同 A8，受 D1 阻塞。<br>评审（D2）指出这两条的**真正前置**是前端组合根：不先做显式 `createWalnutApp(options)` 工厂，A8/A9 落不了地。 |
 | **A11** | **Phase 4 自动导入迁移** | 中 | 迁入 package 的代码里隐式全局变量改为显式 import；auto-import / component resolver 已指向 `@walnut/ui`（`component.ts` 扫 `packages/platform-web/ui/src/*/index.ts`），其余待迁。 |
-| **P3-17** | **TCR 旧 tag 清理** | 小 | 腾讯云 TCR 个人版单镜像上限 100 版本，每次发布推 `vX.Y.Z` + `nginx:brotli`，长期会顶到上限。可在 `release.yml` 加清理步骤（保留最近 N 个），或交给 TCR 控制台的生命周期策略。 |
 | **A12** | **server 内部 lib 抽取（24 个候选）** | 大 | 计划已归档：[2026-07-26 内部 lib 抽取建议](../archive/2026-07-26-lib-extraction-recommendations.md) —— 从 `apps/api/src/{modules,common,decorators}` 向 `apps/server/libs/`（**内部 lib，不是 workspace 包**）抽取 13 + 7 + 4 个候选，含耦合分析与推荐顺序。<br>**归档时的两处更正**：① 它不与 ADR 0007 冲突（落点是内部 lib）；② 原稿候选包名用了前端 scope `@walnut/*`，已全部改为 `@walnut-server/*`。<br>**未执行**，也没有排期 —— 属于"深入业务代码"的重构，按 2026-09-23 的决定先不做。要做时从这里捡起。 |
 
 ---
@@ -130,7 +126,7 @@ R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）�
 
 | # | 议题 | 一句话 |
 |---|------|--------|
-| **F2** | 补文档门禁（原 4 道 → **已做 2 道**，剩 2 道待定） | — | ① `verify-md-links`（失效链接）→ ✅ **已由 VitePress 内置完成**（执行记录第 2 批）。<br>② `verify-doc-refs`（引用不存在的包名/路径）→ ✅ **已实现并接进门禁**：`@walnut/scripts` 新增 bin `walnut-check-doc-refs`（根脚本 `pnpm lint:docs-refs`），进 `prepush`（八段）、`ci.yml`、发版电池；15 个单测含「豁免清单不许腐化」的守卫。设计口径与全部判据写在 `packages/tooling/scripts/src/ci/check-doc-refs.ts` 的模块注释里（为什么不用现成库见下方 F2-b 小节）。<br>③ `doc-typecheck`（fenced `ts` 块必须编译）：本仓文档里的 ts 块多为片段，成本可能高于收益 —— **待你定**。<br>④ `gen-package-catalog`（从 `package.json` 生成包清单）：手写清单散在 README / AGENTS / CLAUDE / `monorepo/index.md` / `turbo.md` 至少 5 处（本轮已修其中 2 处）。**注意** `verify-doc-refs` 已能挡住「引用了不存在的包」，剩下的是「包清单漏了新包」—— 值不值得再上一道，**待你定**。 |
+| **F2** | 补文档门禁（原 4 道 → **已做 2 道**，剩 2 道待定） | — | ① `verify-md-links`（失效链接）→ ✅ **已由 VitePress 内置完成**（执行记录第 2 批）。<br>② `verify-doc-refs`（引用不存在的包名/路径）→ ✅ **已实现并接进门禁**：`@walnut/scripts` 新增 bin `walnut-check-doc-refs`（根脚本 `pnpm lint:docs-refs`），进 `prepush`（现为九段）、`ci.yml`、发版电池；15 个单测含「豁免清单不许腐化」的守卫。设计口径与全部判据写在 `packages/tooling/scripts/src/ci/check-doc-refs.ts` 的模块注释里（为什么不用现成库见下方 F2-b 小节）。<br>③ `doc-typecheck`（fenced `ts` 块必须编译）：本仓文档里的 ts 块多为片段，成本可能高于收益 —— **待你定**。<br>④ `gen-package-catalog`（从 `package.json` 生成包清单）：手写清单散在 README / AGENTS / CLAUDE / `monorepo/index.md` / `turbo.md` 至少 5 处（本轮已修其中 2 处）。**注意** `verify-doc-refs` 已能挡住「引用了不存在的包」，剩下的是「包清单漏了新包」—— 值不值得再上一道，**待你定**。 |
 | **F6** | ADR 规范化 | `adr/` 补 `## Alternatives considered` 必填 + `Status` 枚举（Proposed / Accepted / Rejected / Superseded）。现有 19 篇全是 `Accepted`，看不出哪些被否决过。 |
 | **F7** | 字数上限门禁 | `verify-doc-budgets` 最小版：只给根 `AGENTS.md` / `CLAUDE.md` / `monorepo/index.md` 定上限。优先级最低。 |
 | **D1** | `@walnut/i18n` / `@walnut/security` 的 seam 形态 | (a) TS `interface`；(b) abstract class + 独立 provider 包。**倾向 (b)**（`interface` 无运行时令牌）。 |
@@ -149,6 +145,7 @@ R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）�
 
 | 日期 | 完成项 |
 |------|--------|
+| 2026-09-23 | **清旧账第 12 批（P2/P3 里 ROI 最高的四项 + 两条外部依赖项裁决）**：<br>**① R8 —— `@walnut/types` 补根导出**。它是 6 个平台包里**唯一**既没有根导出也没有 `src/index` 的，而 ADR 0013 明写「包入口用选择性 barrel」⇒ 判为**策略一致性缺口**而不是可选项。新增 `src/index.d.ts` 做显式具名 re-export（15 个名字，四个模块零重名）+ `exports` 补 `"."`。纯类型包零运行时成本；探针实测 `import type { … } from '@walnut/types'` 可解析（`utils-core` 的 `types:check` 通过后即删）。<br>**② F6 —— ADR 规范化 + 新门禁**。19 篇 ADR 的 `**Status:**` 原有三种互不兼容取值（`Accepted` ×12 / `Implemented` ×4 / `In Progress` ×1 —— `Implemented` 是**范畴错误**：ADR 记的是「决策算不算数」，不是「代码写完没有」），「备选方案」有四种记法（无 / Context 里的粗体表 / Decision 里逐个子决策各一段 / 散在正文的「为什么不…」）。现已统一：状态收敛为 `Proposed` / `Accepted` / `Rejected` / `Superseded by ADR-NNNN`；19 篇各补**恰好一个** `## Alternatives considered`（**搬**而不是抄 —— 0011 的三段、0012 的一段、0014 的一段、0019 的两段都从原处删掉，全仓只剩一个家），内容只许来自本篇（本篇没给理由就如实写「本文档未展开理由」）。新增门禁 `walnut-check-adr`（根脚本 `pnpm lint:adr`，`@walnut/scripts` 第 5 个 bin），查：编号从 0001 连续、标题编号与文件名一致、`**Date:**` 形态、Status 在枚举内（`Superseded by` 的目标必须存在）、四个必需小节齐备、`## Alternatives considered` 恰好一个且有列表项、`adr/index.md` 与文件**双向**对齐（含状态列逐字一致）。38 个用例。<br>**门禁第一次跑就抓出真错**：0011 / 0012 / 0013 的标题是 `# ADR 0011:`（空格），其余 16 篇是 `# ADR-0011:`（连字符）—— 已统一为连字符。形状约定写进 [`adr/index.md`](../adr/index.md)。<br>**③ P3-14 —— 第 6 个 tooling 包 `@walnut/vitest-config`**（单独 commit `ca07d53`，含 7 份配置收敛、单一 fixed 组 14 → 15、以及顺带修掉的 4 处「包清单漏了新包」计数腐化）。<br>**④ P3-15 措辞修正**：ADR 0014 原文写 oxlint / biome「**不支持** Vue SFC」——已过期，改为「官方框架支持仍在 RFC 阶段，第三方插件可用但不成熟」，结论不变。<br>**⑤ P3-17 交给 TCR 控制台生命周期策略**（你的决定）：不在 `release.yml` 加清理脚本（本机无 Docker，改坏了要等下次真发版才发现），配置要点与「必须排除 `nginx:brotli`」记进 [CI/CD 与容器构建](./ci-cd)，并明写这条**没有机械判据**。<br>**⑥ P2-10 Codecov：不做**（你的决定）。<br>验证：`pnpm prepush` 九段全绿、`pnpm lint` 15/15、`pnpm test` 12/12（`@walnut/scripts` 124 用例）、`pnpm build:docs` 0 死链、`pnpm lint:adr` exit 0 |
 | 2026-09-23 | **清旧账第 11 批（F1 执行：agent 指引收敛成一份）**：`AGENTS.md` = 唯一真源、`CLAUDE.md` = 一行 `@AGENTS.md` 导入。**为什么不能直接删 `CLAUDE.md`**：Claude Code 在两者并存时**默认只读 `CLAUDE.md`**（只有 `AGENTS.md` 时才会 fallback 读它，原生支持需 v2.1.277+），删掉反而让 Claude Code 什么都读不到；`@AGENTS.md` 是文件导入语法（不是自然语言提示），官方说明即使 `/config` 选了 `claude-md-and-agents-md` 也**不会重复读取**。<br>**落地**：根 `AGENTS.md` 收全（技术栈 / 仓库结构 / 包级指引表 / 常用命令 / 环境配置 / 关键纪律 11 条 / 各 app 专属指引），根 `CLAUDE.md` **196 → 35 行**；新增 `apps/admin/AGENTS.md`（别名、auto-import 克制、组件与 store 约定）与 `apps/docs/AGENTS.md`（VitePress 结构、死链校验与 `${{ }}` 两个坑、新增页面要改侧边栏，原为 132 行 `CLAUDE.md`）；`apps/server/AGENTS.md` 收编原 473 行正文并删掉迁入时残留的 `### CLAUDE.md` 标题与一句脚手架样板话，同时把「先看哪份」表里指向 `CLAUDE.md` 的行改为「本文件下半部分的『后端开发规矩』」（原来那张表会把人指向一个已无内容的文件）。<br>**范围口径**（上一批已定）：包级指引**只给有非显然规则的包**，其余包继承根文档，不 14 个包全配。server 那份 510 行超了官方建议的单指引 200 行 —— 已在节首写明改法：优先往「先看哪份」表里加指针，真要拆就按模块拆成 `libs/<x>/AGENTS.md`。<br>验证：`pnpm lint:docs-refs` exit 0（242 篇活文档）、`pnpm build:docs` 0 死链、`pnpm prepush` 八段全绿。commit `730dfd2` |
 | 2026-09-23 | **清旧账第 10 批（逐个确认待定项，落定 3 件）**：<br>① **knip 先不动**（你的决定）：不删代码、不接门禁，只把现状与理由写进 `knip.config.ts` 的文件级注释 —— 本仓是模板项目，「未用导出」≠ 死代码（13 个 `WalnutAdminDecoratorTransform*` 就是留给使用者的 API 面）。R2 因此离开 P1，P1 现在**为空**。<br>② **每包 agent 指引的范围 = 只给有非显然规则的包**（你的决定）：根文档承载通用纪律，包级只补局部差异；不再 14 个包全配。<br>③ **`apps/server/TODO.md` 当历史留着**（你的决定）：已加头部说明「历史草稿、非本仓 backlog」并指向本表，内容不动。<br>④ **F1 的形式查证后推翻了我自己先前的方案**（详见下方「F1 形式」小节）：Claude Code 在 `CLAUDE.md` 与 `AGENTS.md` **同时存在时默认只读 CLAUDE.md**，我原打算「内容搬去 AGENTS.md、CLAUDE.md 变成薄指针」会**让 Claude Code 读不到任何内容**。已改为 `AGENTS.md` = 真源 + `CLAUDE.md` 里写 `@AGENTS.md` **导入**这一形式，待你确认后执行。 |
 | 2026-09-23 | **清旧账第 9 批（反回归复验 20 项 + P3-18）**：<br>**① 复验全部「已移除」项**：R1 那次「标了完成其实已回退」的教训说明**「已移除」不等于「仍然成立」**，于是把从本表移出的 **20 项**逐条用机械判据重跑 —— **20/20 通过、0 回退**。判据全部落在「读配置 + 查文件存在 + 在声明里搜依赖」这类可重跑的动作上（不含需要跑半小时的 `build:admin`）。<br>**② 顺带修掉复验脚本自己的一个误报**：P1-7 的判据是正则 `/changesets/` 扫 `pnpm-workspace.yaml`，结果命中注释里的「意图文件仍是 **changesets** 格式」这句散文 —— 已改成只认各 `package.json` 里的**依赖声明**。**这是脚本假阳性，不是回退**；同时把那条硬编码的「详情」文案改成真实取值（否则真出问题时它会骗人）。<br>**③ P3-18 `skip_deploy` 完成**：`release.yml` 加 `workflow_dispatch` + `boolean` 输入 `skip_deploy`，`deploy` job 的 `if` 用 `!inputs.skip_deploy`（GitHub 表达式，外层是 `$` + 双花括号；**本行刻意不写那对花括号** —— VitePress 会把它当 Vue 插值，构建当场报 `Cannot read properties of undefined`）。**这件挂在 P3，实际是 P1-16 的前置** —— 以前想验证「镜像能不能构建」就必须真打 tag、连带部署生产；现在可以 dispatch 到那个 tag 上勾选它，只跑门禁 + 构建推镜像 + 建 Release。<br>⚠️ **风险与验证边界**：`inputs` 出现在 job 级 `if` 是允许的（与 `secrets` 不同），actionlint exit 0；但「tag 推送时 `inputs` 为空 ⇒ 照常部署」这条**运行时语义本地无法验证**，只能等第一次真跑 tag 时确认 —— 已写进 `ci-cd.md` 的触发矩阵。<br>验证：actionlint exit 0、`pnpm lint:workflows` exit 0、`pnpm prepush` 八段全绿 |
@@ -207,6 +204,12 @@ R1 改判回退 → 已按决定搁置 ｜ R2 按决定不修（写明现状）�
 | R10 | CI affected 空集行为 | `ci.yml` 含名为「Affected set sanity check」的步骤（文件变更非空但受影响包为 0 → 失败） |
 | F0 | 修正 `hoisting: false` | `pnpm-workspace.yaml` 已是合法的 `hoist: false`（2026-09-21 pnpm 12 迁移完成） |
 | F1 | 根文档单一化 | 4 份 `CLAUDE.md`（根 + 三个 app）**各只剩一行 `@AGENTS.md` 导入**、无正文规则；`apps/{admin,docs,server}/AGENTS.md` 三份包级指引均在；根 `CLAUDE.md` 196 → 35 行 |
+| R8 | `@walnut/types` exports 结构 | `exports` 同时有 `"."`（→ `src/index.d.ts`）与 `"./*"`；`src/index.d.ts` 是**具名** re-export（无 `export *`）；探针 `import type { … } from '@walnut/types'` 在 `utils-core` 的 `types:check` 下可解析 |
+| F6 | ADR 规范化 | 19 篇 ADR 的 `**Status:**` 全部是 `Accepted`（枚举内、无 `Implemented`/`In Progress`）；标题全部 `# ADR-NNNN:`（连字符）；每篇恰好一个 `## Alternatives considered` 且有列表项；`pnpm lint:adr` exit 0 |
+| P3-14 | Vitest 共享 preset | `packages/tooling/vitest-config/` 存在且是单一 fixed 组第 15 个成员；7 份 `vitest.config*.ts` 全部经 `defineWalnutVitestConfig`；`versioning-config.test.ts` 6 用例通过 |
+| P3-15 | oxlint / biome 措辞 | ADR 0014 Decision 2 的 rationale 不再出现「不支持 Vue SFC」的绝对判断；带 `**Last revised:** 2026-09-23` 注记 |
+| P3-17 | TCR 旧 tag 清理 | `ci-cd.md` 有「镜像仓库的版本上限与清理策略」一节，写明走控制台生命周期策略 + 必须排除 `nginx:brotli` + 本条无机械判据 |
+| P2-10 | Codecov | 决策为**不接入**；根 `package.json` 与各 `vitest.config*` 均无 codecov 相关配置 |
 | F5 | 状态移出文档 | **本轮完成**：完成项从待办表移除，只留本核实索引 |
 
 ---

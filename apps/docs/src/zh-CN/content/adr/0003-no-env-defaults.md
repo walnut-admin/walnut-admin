@@ -37,6 +37,10 @@ These dependencies mean:
 | `getStorageKey` reads `import.meta.env.MODE` | `getStorageKey` accepts an optional `prefix` parameter |
 | `version` from `~build/package` | `version` read from own `package.json` |
 
+## Alternatives considered
+
+- **Let shared packages read `import.meta.env` / `process.env` and carry their own environment-derived defaults** —— such code cannot be consumed by the backend, fails in tests outside a Vite context, and leaks build assumptions into consumers.
+
 ## Consequences
 
 - `withAsyncConditionalEncryption` and `withSyncConditionalEncryption` now require an explicit `shouldEncrypt` callback from the caller

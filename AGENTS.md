@@ -79,7 +79,8 @@ pnpm test             # vitest（server / contract / utils / client / scripts / 
 pnpm boundaries       # Turbo 架构边界检查
 pnpm lint:workflows   # actionlint 校验 .github/workflows（CI 强制）
 pnpm lint:docs-refs   # 校验活文档正文引用的包名 / 仓库路径是否真实存在
-pnpm prepush          # pre-push 的聚合门禁：boundaries + lint:root + types:check + types:check:root + syncpack + lint:workflows + lint:docs-refs + pnpm change check
+pnpm lint:adr         # 校验 ADR 形态（编号连续 / Status 在枚举内 / 四个必需小节 / index 双向对齐）
+pnpm prepush          # pre-push 的聚合门禁：boundaries + lint:root + types:check + types:check:root + syncpack + lint:workflows + lint:docs-refs + lint:adr + pnpm change check
 pnpm hooks:check      # 断言 git 钩子由 lefthook 托管（防门禁静默消失）
 pnpm release          # 发版（pnpm 原生 release management + git-cliff，详见 docs 的 release.md）
 pnpm setup-env        # 解密 env-encrypted/ → env-local/（需根 .env.keys）
@@ -99,7 +100,7 @@ pnpm knip             # 死代码检测（**当前是红的且有意维持**，�
 ## 关键纪律
 
 1. **依赖**：只用 pnpm；新依赖一律走 `catalog:`（`pnpm-workspace.yaml`，strict 模式强制）；workspace 内部引用用 `workspace:*`（syncpack 强制）。
-2. **提交**：conventional commits，scope 必填，且必须是 workspace 包名（如 `feat(admin): …`、`fix(contract): …`）或基础设施 scope（`docker` / `deploy` / `pnpm` / `release` —— `release` 只给发版记账提交 `chore(release): vX.Y.Z` 用，工具链包的改动走 `tooling`）。发版归属**路径优先、scope 兜底**，基础设施 scope 与未在册 scope 不产生意图（见 release.md）。pre-push 是一条聚合命令 `pnpm prepush`：boundaries + lint:root + types:check + types:check:root + syncpack + lint:workflows + lint:docs-refs + `pnpm change check`（八段，fixed 组锁步）；钩子由 lefthook 托管（根 `lefthook.yml`，见 ADR 0018），装没装上用 `pnpm hooks:check` 机械核对。
+2. **提交**：conventional commits，scope 必填，且必须是 workspace 包名（如 `feat(admin): …`、`fix(contract): …`）或基础设施 scope（`docker` / `deploy` / `pnpm` / `release` —— `release` 只给发版记账提交 `chore(release): vX.Y.Z` 用，工具链包的改动走 `tooling`）。发版归属**路径优先、scope 兜底**，基础设施 scope 与未在册 scope 不产生意图（见 release.md）。pre-push 是一条聚合命令 `pnpm prepush`：boundaries + lint:root + types:check + types:check:root + syncpack + lint:workflows + lint:docs-refs + lint:adr + `pnpm change check`（九段，fixed 组锁步）；钩子由 lefthook 托管（根 `lefthook.yml`，见 ADR 0018），装没装上用 `pnpm hooks:check` 机械核对。
 3. **导入**：admin 用 `@/*` → `apps/admin/src/*`、`~/*` → `apps/admin/types/*`；server 用 `@/*` → `apps/api/src/*`、`@walnut-server/*` → `libs/*/src`。跨模块禁止相对路径。
 4. **Auto-import 克制**：`unplugin-auto-import` 存在，但大项目显式导入优先——迁入 packages 的代码必须显式 import。
 5. **共享契约**：跨端常量只改 `@walnut/contract`（前后端直接消费，无包装层，ADR 0004）；contract 有快照测试守护，改动会触发快照 diff。
@@ -108,7 +109,7 @@ pnpm knip             # 死代码检测（**当前是红的且有意维持**，�
 8. **组件**：`ComponentName/index.ts`（导出）+ `ComponentName/index.vue`（实现）；API 函数以 `API` 结尾。
 9. **存储迁移**：改动持久化结构时同步 `src/utils/persistent/migrate.ts`（admin 侧）。
 10. **不许新建 `.mjs` / `.cjs`**：配置、ESLint 预设、bin、构建脚本一律 `.ts`；所有 `.ts` 入口都由 Node 24 原生类型剥离执行（**仓库内已无任何 `tsx` 依赖** —— 连 `apps/admin` 的 `predev` / `types:check:log` 也改走 `node`），该约束由 `ts.json` 的 `erasableSyntaxOnly` 在编译期保证（ADR 0019）。
-11. **改文档要过门禁**：`pnpm lint:docs-refs` 校验正文里引用的包名与仓库路径；`pnpm build:docs` 会因死链失败。**别在正文里写原始 `${{ }}`**（VitePress 当 Vue 插值，构建直接炸 —— 见 [`apps/docs/AGENTS.md`](./apps/docs/AGENTS.md)）。
+11. **改文档要过门禁**：`pnpm lint:docs-refs` 校验正文里引用的包名与仓库路径；`pnpm lint:adr` 校验 ADR 形态（形状约定见 [`adr/index.md`](./apps/docs/src/zh-CN/content/adr/index.md)）；`pnpm build:docs` 会因死链失败。**别在正文里写原始 `${{ }}`**（VitePress 当 Vue 插值，构建直接炸 —— 见 [`apps/docs/AGENTS.md`](./apps/docs/AGENTS.md)）。
 
 ## 各 app 专属指引
 

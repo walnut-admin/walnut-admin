@@ -74,6 +74,12 @@ See ADR-0009 for the three-tier quality gate (pre-commit → pre-push → CI). T
 - Affected-only via `turbo --filter` avoids re-running tests on unchanged packages
 - Coverage reports uploaded as CI artifacts (Codecov integration deferred — free, add later)
 
+## Alternatives considered
+
+### Decision 1: Vitest 作为唯一测试框架
+
+- **不用 Vitest（沿用或引入 Jest 等其它框架）** —— 本文档未展开理由。
+
 ## Consequences
 
 - `@walnut/utils` and `@walnut/contract` are the immediate priority for test writing (per ADR-0009)

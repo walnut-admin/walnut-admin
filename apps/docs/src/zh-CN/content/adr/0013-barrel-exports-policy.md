@@ -1,7 +1,7 @@
-# ADR 0013: Barrel Export Policy
+# ADR-0013: Barrel Export Policy
 
 **Date:** 2026-07-29
-**Status:** Implemented
+**Status:** Accepted
 
 ## Context
 
@@ -57,6 +57,16 @@ Package entries benefit from selective barrels because:
 | `@walnut/axios` | `src/index.ts` | instance, types, constants, adapters (cache, retry, throttle, cancel, merge) |
 
 No app-level barrel files were created or modified.
+
+## Alternatives considered
+
+### 包入口（`packages/*/src/index.ts`）：`export *` 通配重导出
+
+- **包入口改用 `export *` 通配重导出** —— 本文档未展开理由。
+
+### 应用代码（`apps/*/`）：barrel 文件
+
+- **应用代码改用 barrel 文件聚合后再导出** —— 本文档未展开理由。
 
 ## Consequences
 

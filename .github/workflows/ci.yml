@@ -94,6 +94,11 @@ jobs:
       - name: Doc reference check
         run: pnpm lint:docs-refs
 
+      # ADR 的形态（编号连续 / Status 在枚举内 / 四个必需小节 / index.md 双向对齐）没有任何
+      # 现成工具管 —— 19 篇 ADR 曾有三种互不兼容的 Status 取值。见待办 F6。
+      - name: ADR shape check
+        run: pnpm lint:adr
+
       # 防"affected 空集静默通过"：有文件变更却算出 0 个受影响包时必须失败
       - name: Affected set sanity check
         if: steps.affected.outputs.base != ''

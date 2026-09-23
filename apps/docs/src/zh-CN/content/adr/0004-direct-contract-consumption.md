@@ -1,7 +1,7 @@
 # ADR-0004: Direct Contract Consumption — No Wrapper Layers
 
 **Date:** 2026-07-28
-**Status:** Implemented (Phase 4 completed 2026-07-29)
+**Status:** Accepted
 
 ## Context
 
@@ -44,6 +44,10 @@ export { MenuType as AppConstMenuType } from '@walnut/contract/menu'
 // ❌ Removed
 export const BusinessCodeConst = { SUCCESS: WalnutAdminConstAppResponseCode.SUCCESS }
 ```
+
+## Alternatives considered
+
+- **Keep the wrapper layers and deprecated aliases around `@walnut/contract`** —— every new contract constant then needs updating in two or more places, git blame shows wrapper maintenance instead of real changes, and new developers cannot tell which import path to use.
 
 ## Consequences
 

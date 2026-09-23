@@ -27,6 +27,10 @@ The question: should Walnut Admin adopt Project References for its packages?
 
 6. **Risk to existing resolution**: 49 subpath imports across the frontend work via `exports`. Introducing references could break this resolution.
 
+## Alternatives considered
+
+- **Adopt TypeScript Project References (`composite: true` + `references`)** —— the toolchain is heterogeneous (frontend `moduleResolution: bundler`, backend `moduleResolution: node10`), the source-consumed packages export raw `.ts` while references expect compiled `.js` + `.d.ts`, Vite/VitePress resolve packages through pnpm workspace symlinks + `exports` rather than tsconfig references, the backend does not extend the root tsconfig and would not benefit, `tsbuildinfo` coordination is not justified by three small source-consumed packages, and references would put the 49 existing subpath imports at risk.
+
 ## Consequences
 
 - Package dependency ordering is handled by Turborepo (`dependsOn: ["^build"]`), not by TypeScript

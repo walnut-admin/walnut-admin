@@ -27,6 +27,10 @@ For shared packages, the backend (CJS, SWC) needs build artifacts. For frontend-
 
 **CJS build pattern**: Vite builds CJS to `dist/*.cjs`. Backend resolves via tsconfig path aliases (for dev) or pnpm workspace resolution (for prod, via `"require"` condition).
 
+## Alternatives considered
+
+- **Use JIT source exports for every package, including the shared ones** —— the backend is CJS/SWC and needs real build artifacts to resolve `require`.
+
 ## Consequences
 
 - `@walnut/contract` and `@walnut/utils` have a build step (`vite build`). Must run before backend dev/build.

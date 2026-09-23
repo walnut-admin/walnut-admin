@@ -37,19 +37,19 @@ import nestConfig from "@walnut/eslint-config/nest";
 export default nestConfig();
 ```
 
-**Alternatives considered:**
-- Root-level monolithic config — rejected; would need project-specific globs and conditional rules, becoming unmaintainable as packages grow
-- Per-package independent configs — rejected; duplicated rules, version drift in ESLint plugins
-
 ## Decision 2: No oxlint/biome — Continue ESLint Only
 
 **Chosen:** Do not introduce oxlint or biome at this time.
 
 **Rationale:**
-- **oxlint**: does not support Vue SFC (`.vue` files) — this is a hard blocker for `apps/admin`
-- **biome**: does not support Vue SFC; does not support custom rules (we have NestJS decorator-ordering rules)
-- ESLint performance is adequate for this project's scale (~4 packages + 2 apps)
-- Re-evaluate when oxlint or biome adds Vue SFC support
+- **oxlint**: official Vue SFC support is still at the RFC stage; third-party plugins (`oxlint-vue` and friends) exist but are not mature — for a `.vue` surface the size of `apps/admin`, the risk outweighs the gain
+- **biome**: likewise no official Vue SFC support; and no custom-rule support (we have a NestJS decorator-ordering rule of our own)
+- ESLint performance is adequate at this project's scale
+- Re-evaluate when oxlint or biome ships official Vue SFC support
+
+> **Last revised:** 2026-09-23 —— 措辞修正（待办 P3-15）。上面两条原先写的是「**不支持** Vue SFC」，
+> 那是个已经过期的绝对判断：事实是**官方框架支持仍在 RFC 阶段**，第三方插件可用但不成熟。
+> 结论（暂不作为主 linter）不变，理由换成了经得起复查的那条。
 
 ## Decision 3: Prettier Deprecated — Formatting via ESLint
 
@@ -59,10 +59,17 @@ export default nestConfig();
 - One tool covers both linting and formatting — no config drift between a formatter and ESLint rules
 - The `@antfu` stylistic rules make a separate Prettier setup redundant
 
+## Alternatives considered
+
+### Decision 1: 把 `@walnut/eslint-config` 作为共享配置包维护
+
+- **根级单体配置** —— 否决；需要按项目写 glob 与条件规则，随包增多会变得无法维护。
+- **各包各自独立配置** —— 否决；规则重复，ESLint 插件版本会漂移。
+
 ## Consequences
 
 - ESLint configuration changes require updating `@walnut/eslint-config` only — all consumers pick up changes on next `pnpm install`
-- No oxlint/biome adoption path until Vue SFC support lands (track [oxc#vue](https://github.com/oxc-project/oxc/issues?q=vue) and [biome#vue](https://github.com/biomejs/biome/issues?q=vue))
+- No oxlint/biome adoption path until official Vue SFC support lands (track [oxc#vue](https://github.com/oxc-project/oxc/issues?q=vue) and [biome#vue](https://github.com/biomejs/biome/issues?q=vue))
 - No Prettier — formatting is enforced purely via ESLint stylistic rules; re-introducing Prettier would require `eslint-config-prettier` to be placed last in config arrays (flat config rule: later configs override earlier ones)
 
 ## Related

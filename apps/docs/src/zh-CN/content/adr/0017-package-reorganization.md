@@ -1,7 +1,7 @@
 # ADR-0017: Package 重组——多维标签 + 目录分组
 
 **Date:** 2026-07-31
-**Status:** In Progress — Phase 1 + 2 完成，Phase 3 部分完成
+**Status:** Accepted
 
 ## Context
 
@@ -670,6 +670,28 @@ interface VerifyAuthHandler {
 - [ ] Phase 4: 自动导入迁移 + `pnpm dev` 功能验证
 
 ---
+
+## Alternatives considered
+
+### 决策 1：多维标签 + 目录分组
+
+- **保持 `packages/` 平铺，继续用 ADR-0006 的单一运行时分层标签** —— 5 个包平铺还能管理，但未来加到 10+ 包时就需要目录分组和更精确的分类体系（`platform` / `type` / `runtime` 三维标签），平铺结构没有扩展性。
+
+### 决策 2：`@walnut/utils` 拆成 `utils-core` + `@walnut/types`
+
+- **不拆分，把环境相关的类型继续留在 `@walnut/utils`** —— 该包运行时代码确实是纯的，但 `deep-ref.d.ts`、`object-key.d.ts` 依赖 Vue 类型且未在 `package.json` 中声明，「零依赖」只在运行时成立。
+
+### 决策 3：`@walnut/axios` 改名 `@walnut/http`
+
+- **保留 `@walnut/axios` 这个包名（目录也留在 `packages/axios/`）** —— 该包实际上几乎双运行时（只有 `cancel.ts` 中一行 `location.pathname` 是浏览器 only），命名却暗示通用 HTTP 客户端，放到 `platform-web/` 下更诚实。
+
+### 决策 4：`@walnut/i18n` 的迁入范围
+
+- **把 `views/system/lang/` 与 `components/App/AppLocalePicker` 一并迁入 `@walnut/i18n`** —— 前者是语言管理页面（管理员功能，app-specific），后者是 locale 切换 UI；文档把两者列为「不建议迁入」，按关注点分离留在 `apps/admin/`。
+
+### 决策 5：server `libs/utils` 纯子集是否迁入 `@walnut/utils`
+
+- **把 server `libs/utils` 的纯子集（`general.ts` / `regex.ts` / `mask.ts` / `dayjs.ts` / `pkg.ts`）迁入 `@walnut/utils`** —— 2026-07-31 的评估结论是跳过：`libs/utils` 被 73 个文件引用，迁移需要全量更新 import，而 `maskEmail` / `generateVerifyCode` 这类纯函数前端并不需要；`@walnut/utils` 目前仍是 server 声明了却未使用的依赖。
 
 ## Consequences
 
