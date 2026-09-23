@@ -59,7 +59,10 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 1. `src/ci/<name>.ts` 写**纯逻辑**（`collectFindings()` 之类）+ `bin/<name>.ts` 一行 `process.exit(main())`；
 2. `packages/tooling/scripts/package.json` 的 `bin` 里登记；
 3. 根 `package.json` 加一条 `lint:<name>` 脚本；
-4. **接进 `pnpm prepush`**（那是一条 `&&` 串起来的聚合命令；`lefthook-config.test.ts` 会整表校验它有没有漏段）；
+4. **接进推送前门禁表**：`packages/tooling/scripts/src/ci/prepush.ts` 的 `PREPUSH_GATES` 里加一项
+   （`{ id, label, argv, why }` —— **`why` 要写清「凭什么它在推送前必须跑」**）。执行器并行跑、
+   每段报耗时；`prepush.test.ts` 会机械校验**每一项的 `argv[0]` 都落到真实存在的根脚本上**
+   （打错一个名字 = 一整段门禁静默消失）；
 5. **接进 `ci.yml` 的 quality job**（CI 无缓存，是唯一能兜住本地跳过的闸）；若它也属于发版前必须过的，再加进 `packages/tooling/release/src/release/steps.ts` 的电池（`steps.test.ts` 会校验整表）。
 
 > 另外两条约定：门禁**由 `pnpm install --force` 才会重新链接 bin**（`pnpm install` 有时不重链）；

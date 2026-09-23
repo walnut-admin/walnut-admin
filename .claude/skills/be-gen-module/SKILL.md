@@ -12,10 +12,10 @@ paths:
 
 1. **禁止**创建 `index.ts` 文件
 2. Service **禁止**直接注入 Model → 必须走 BasicRepository / RepoService / SharedService 三层
-3. DTO **必须**使用 `RealPickType` / `RealPartialType`（`@walnut/utils/dto`），**禁止** NestJS 原生 `PickType` / `PartialType`
+3. DTO **必须**使用 `RealPickType` / `RealPartialType`（`@walnut-server/utils/dto`），**禁止** NestJS 原生 `PickType` / `PartialType`
 4. DTO 字段**禁止** `?` 和 `!` 标记 → 用装饰器 `default` 选项替代
-5. 字段装饰器**必须**来自 `@/decorators/field`，**禁止**原生 class-validator
-6. 权限定义为 controller 文件内局部 `const Permissions`，**禁止**从 `@/const/permissions` 导入
+5. 字段装饰器**必须**来自 `@walnut-server/decorators/field`，**禁止**原生 class-validator
+6. 权限定义为 controller 文件内局部 `const Permissions`，**禁止**集中到一个共享权限常量模块
 7. 跨模块 import **必须**用 `@/*` alias，**禁止**相对路径 `../../`
 
 ## 关键约定
@@ -23,9 +23,9 @@ paths:
 - 模块路径：`apps/server/apps/api/src/modules/<apiPath>/`
 - Schema Model 必须 `extends WalnutAdminCommonBasicModel`
 - Type 导出三件套：`ISysXxxDocument`、`ISysXxxModel`、`ISysXxxMethods`
-- DB Model 名称常量在 `apps/server/libs/const/src/app/config.ts` 中定义（key 用 `SYS_XXX`）
+- DB Model 名称常量是 `@walnut-server/db` 的 `WalnutDBModelName`（定义在 `apps/server/libs/db/src/db.const.ts`，key 形如 `SYS_XXX`）
 - 模块注册：`system/*` → system 父模块；`app/*` → app 父模块
-- Model 注入用 `AppInjectModel(WalnutDBModelName.XXX)`，**禁止** `@InjectModel` 和 `Model.name`
+- Model 注入用 `WalnutDBInjectModel(WalnutDBModelName.XXX)`（两者都来自 `@walnut-server/db`），**禁止** `@InjectModel` 和 `Model.name`
 - DTO 必须包含构造函数：`constructor(partial: Partial<XxxDTO>) { super(); Object.assign(this, partial) }`
 
 ## 三层数据访问
@@ -40,7 +40,7 @@ paths:
 
 ## 常见错误
 
-- 用 `@InjectModel` 替代 `AppInjectModel` — 序列化拦截器会失效
+- 用 `@InjectModel` 替代 `WalnutDBInjectModel` — 序列化拦截器会失效
 - 用 `Model.name` 替代 `WalnutDBModelName` 常量
 - DTO 缺构造函数 → `ClassSerializerInterceptor` 过滤掉所有字段
 - Service 直接 import Model → 必须通过 repo/shared 层

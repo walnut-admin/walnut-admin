@@ -13,7 +13,7 @@ paths:
 1. **必须**是 `index.ts` + `index.vue` 双文件结构，**禁止**单文件组件放在 `components/` 下
 2. **必须**用 `defineOptions({ name: 'WComp{Category}{Name}' })` 声明组件名
 3. 父子通信**必须**用 `register + methods` 模式（`emit('hook', methods)` + `defineExpose(methods)`）
-4. 动态 prop 更新用 `useProps` hook（`@/hooks/core/useProps`）
+4. 动态 prop 更新用 `useProps` hook（`@walnut/client/hooks/core/useProps`）
 5. 样式**优先** UnoCSS，仅复杂/私有样式用 `<style scoped>`
 
 ## 组件分类

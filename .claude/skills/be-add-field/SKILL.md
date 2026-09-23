@@ -25,7 +25,7 @@ isActive: boolean
 code: string
 ```
 
-### 2. 字段装饰器映射（来自 `@/decorators/field`）
+### 2. 字段装饰器映射（来自 `@walnut-server/decorators/field`）
 
 | 类型 | 装饰器 |
 |------|--------|

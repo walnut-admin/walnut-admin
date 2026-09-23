@@ -157,9 +157,66 @@ export function extractPathRefs(text: string): string[] {
 }
 
 export interface Finding {
-  kind: 'package' | 'path' | 'link'
+  kind: 'package' | 'path' | 'link' | 'alias'
   ref: string
   files: string[]
+}
+
+/**
+ * **只对 `.claude/skills/**` 生效**的别名解析。
+ *
+ * 为什么单单管这批文件：它们是 agent 生成后端模块时**真正照着做**的指令 —— 里面写错一个 import
+ * 路径，等于让 agent 稳定地产出坏代码，而且**没有任何门禁看得见**（`@/x` 不以顶层目录开头，
+ * 判据 ② 直接跳过；它也不是 `@walnut/*` 包名）。
+ *
+ * 2026-09-23 实测：13 个 skill 文件里 **12 处**别名指向不存在的路径（`@/decorators/field`、
+ * `@/const/permissions`、`@/hooks/core/useProps`、`@walnut/utils/dto`）。
+ *
+ * 为什么**只**对这批文件开：`@/` 的基址随 app 而变（后端是 `apps/api/src`，前端是 `apps/admin/src`），
+ * 普通文档里无从判断该按哪个解析 ⇒ 一律不管。skill 目录有条确定性约定（`be-*` = 后端、`fe-*` = 前端），
+ * 于是判据唯一、零歧义。`@walnut-server/*` 的映射直接照抄 `apps/server/tsconfig.json` 的 `paths`。
+ */
+const SKILLS_DIR = /^\.claude\/skills\//
+
+/** 反引号里的 TS 别名引用：`@/…` 或 `@walnut-server/…` */
+export function extractAliasRefs(text: string): string[] {
+  const found = new Set<string>()
+  let inFence = false
+  for (const line of text.split('\n')) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence
+      continue
+    }
+    if (inFence)
+      continue
+    for (const m of line.matchAll(/`(@\/[\w./-]+|@walnut-server\/[\w./-]+)`/g)) {
+      const ref = m[1] ?? ''
+      if (!ref.includes('*'))
+        found.add(ref)
+    }
+  }
+  return [...found]
+}
+
+/** 别名 → 可能的真实文件（按 `.ts` / `.tsx` / `.vue` / `index.*` 展开） */
+function aliasCandidates(ref: string, file: string): string[] {
+  const isBackend = /\/be-/.test(file)
+  let base: string
+  if (ref.startsWith('@walnut-server/')) {
+    const [lib, ...rest] = ref.slice('@walnut-server/'.length).split('/')
+    base = path.posix.join('apps/server/libs', lib ?? '', 'src', ...rest)
+  }
+  else {
+    base = path.posix.join(isBackend ? 'apps/server/apps/api/src' : 'apps/admin/src', ref.slice(2))
+  }
+  return [base, `${base}.ts`, `${base}.tsx`, `${base}.vue`, `${base}/index.ts`, `${base}/index.tsx`, `${base}/index.vue`]
+}
+
+/** 这个别名引用能不能落到真实文件上（`.claude/skills/**` 之外一律返回 true —— 见上） */
+export function aliasResolves(ref: string, file: string, fsExists: (repoRelative: string) => boolean): boolean {
+  if (!SKILLS_DIR.test(file))
+    return true
+  return aliasCandidates(ref, file).some(fsExists)
 }
 
 /**
@@ -247,6 +304,7 @@ export function collectFindings(options: CheckOptions = {}): Finding[] {
   const pkgHits = new Map<string, string[]>()
   const pathHits = new Map<string, string[]>()
   const linkHits = new Map<string, string[]>()
+  const aliasHits = new Map<string, string[]>()
 
   for (const file of docs) {
     const text = readText(file)
@@ -254,6 +312,12 @@ export function collectFindings(options: CheckOptions = {}): Finding[] {
       if (ref.startsWith(SERVER_LIB_NAMESPACE) || realPackages.has(ref) || ref in ALLOWED_MISSING_PACKAGES)
         continue
       pkgHits.set(ref, [...(pkgHits.get(ref) ?? []), file])
+    }
+    // 别名只管 `.claude/skills/**`（aliasResolves 内部按目录前缀决定要不要查，见它的注释）
+    for (const ref of extractAliasRefs(text)) {
+      if (aliasResolves(ref, file, fsExists))
+        continue
+      aliasHits.set(ref, [...(aliasHits.get(ref) ?? []), file])
     }
     for (const ref of extractPathRefs(text)) {
       if (PATH_CHECK_EXCLUDED.test(file))
@@ -284,6 +348,7 @@ export function collectFindings(options: CheckOptions = {}): Finding[] {
     ...[...pkgHits].map(([ref, files]) => ({ kind: 'package' as const, ref, files })),
     ...[...pathHits].map(([ref, files]) => ({ kind: 'path' as const, ref, files })),
     ...[...linkHits].map(([ref, files]) => ({ kind: 'link' as const, ref, files })),
+    ...[...aliasHits].map(([ref, files]) => ({ kind: 'alias' as const, ref, files })),
   ]
   return findings.sort((a, b) => a.kind.localeCompare(b.kind) || b.files.length - a.files.length)
 }
@@ -323,7 +388,7 @@ export function main(): number {
   }
 
   for (const f of findings) {
-    const label = f.kind === 'package' ? '包名' : f.kind === 'link' ? '链接' : '路径'
+    const label = f.kind === 'package' ? '包名' : f.kind === 'link' ? '链接' : f.kind === 'alias' ? '别名' : '路径'
     console.error(`\n✖ ${label} ${f.ref}  （${f.files.length} 处）`)
     for (const file of f.files.slice(0, 6)) console.error(`    ${file}`)
     if (f.files.length > 6)

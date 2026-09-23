@@ -82,9 +82,16 @@ describe('仓库真实预算表', () => {
     expect(new Set(files).size).toBe(files.length)
   })
 
-  it('server 的包级指引被**显式**排除（不是静默漏掉）', () => {
-    // 它 509 行 / 16525 字符，是官方建议的 2.5 倍；给它设预算会让门禁当场红、逼着立刻拆分。
-    // 拆分是对的但属于独立的文档重构 ⇒ 排除，且排除这件事写在模块注释里。
-    expect(DOC_BUDGETS.map(b => b.file)).not.toContain('apps/server/AGENTS.md')
+  it('server 的包级指引**也在表里** —— 拆分后已纳入（它曾经被显式排除过）', () => {
+    // 它一度 16150 字符 / 537 行（官方建议的 2.5 倍），当时**刻意排除**而不是让门禁当场红；
+    // 2026-09-23 拆成「常驻规矩留原文件 + 参考型内容进文档站 content/backend/ 五篇」后降到 ~6035，
+    // 于是纳入。这条用例守的是「别再把它漏回去」。
+    expect(DOC_BUDGETS.map(b => b.file)).toContain('apps/server/AGENTS.md')
+  })
+
+  it('全仓五份常驻指引都在表里（根两份 + 3 个 app 各一份）', () => {
+    const files = DOC_BUDGETS.map(b => b.file)
+    for (const f of ['AGENTS.md', 'CLAUDE.md', 'apps/admin/AGENTS.md', 'apps/docs/AGENTS.md', 'apps/server/AGENTS.md'])
+      expect(files, `${f} 不在预算表里`).toContain(f)
   })
 })

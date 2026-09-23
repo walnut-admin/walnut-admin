@@ -69,6 +69,28 @@ const backendContent = [
     text: '数据库设计',
     link: '/content/backend/mongodb',
   },
+  // 「后端规范」一簇：原 apps/server/AGENTS.md 的参考部分（2026-09-23 拆分）。
+  // 每篇都在 AGENTS.md 的「先看哪份」表里有对应的 repo 相对路径。
+  {
+    text: '架构与模块结构',
+    link: '/content/backend/architecture',
+  },
+  {
+    text: 'DTO 与装饰器',
+    link: '/content/backend/dto',
+  },
+  {
+    text: 'MongoDB 事务',
+    link: '/content/backend/transactions',
+  },
+  {
+    text: '环境配置',
+    link: '/content/backend/configuration',
+  },
+  {
+    text: '代码风格',
+    link: '/content/backend/code-style',
+  },
 ]
 
 const nav: DefaultTheme.NavItem[] = [

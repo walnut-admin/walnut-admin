@@ -19,7 +19,7 @@ paths:
 
 ## Controller
 
-- [ ] 权限是局部 `const Permissions`，**未**从 `@/const/permissions` 导入
+- [ ] 权限是局部 `const Permissions`，**未**集中到共享常量
 - [ ] 装饰器顺序正确（HTTP → HttpCode → Permission → CRUD → GuardFree → Transaction → Swagger → Functional）
 - [ ] 参数装饰器顺序正确（User → DeviceId → Session → ParamMongoId → Body → Ip）
 - [ ] 响应包装在 DTO 中，未返回原始 service 结果
@@ -27,8 +27,8 @@ paths:
 
 ## DTO
 
-- [ ] 使用 `RealPickType` / `RealPartialType`（`@walnut/utils/dto`），**未**用 NestJS 原生版本
-- [ ] 字段装饰器来自 `@/decorators/field`，**未**用原生 class-validator
+- [ ] 使用 `RealPickType` / `RealPartialType`（`@walnut-server/utils/dto`），**未**用 NestJS 原生版本
+- [ ] 字段装饰器来自 `@walnut-server/decorators/field`，**未**用原生 class-validator
 - [ ] 字段**没有** `?` 或 `!` 标记
 - [ ] 每个 DTO 有 `constructor(partial) { super(); Object.assign(this, partial) }`
 - [ ] List Request 用 `CreateWalnutAdminRequestListDTO()`
@@ -53,7 +53,7 @@ paths:
 
 - [ ] 跨模块引用用 `@/*` alias（无 `../../`）
 - [ ] 顶层 `import type`（非内联 `import { type X }`）
-- [ ] Model 注入用 `AppInjectModel`（非 `@InjectModel`）
+- [ ] Model 注入用 `WalnutDBInjectModel`（非 `@InjectModel`）
 - [ ] 用 `WalnutDBModelName` 常量（非 `Model.name`）
 - [ ] **没有** `index.ts` 桶文件
 
