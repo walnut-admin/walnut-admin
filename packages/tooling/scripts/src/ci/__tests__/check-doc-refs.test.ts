@@ -11,8 +11,10 @@ import {
   ALLOWED_MISSING_PACKAGES,
   ALLOWED_MISSING_PATHS,
   collectFindings,
+  extractLinkTargets,
   extractPackageRefs,
   extractPathRefs,
+  linkResolves,
   pathResolves,
   workspacePackageNames,
 } from '../check-doc-refs.ts'
@@ -78,6 +80,73 @@ describe('pathResolves —— 语境解析（仓库根 / 文档所在目录 / ap
 
   it('三处都不命中才算不存在', () => {
     expect(pathResolves('apps/nope/nope.ts', 'README.md', () => false)).toBe(false)
+  })
+})
+
+describe('extractLinkTargets —— 只认显式相对（./ 与 ../）', () => {
+  it('抽出相对链接与引用式定义', () => {
+    const got = extractLinkTargets('见 [a](./x.md) 与 [b](../y/z.ts)\n\n[c]: ./w.md\n')
+    expect(got.sort()).toEqual(['../y/z.ts', './w.md', './x.md'])
+  })
+
+  it('跳过外链 / 纯锚点 / 站点绝对路径 —— 站点绝对路径是 VitePress 的语义', () => {
+    expect(extractLinkTargets('[a](https://x/y) [b](#sec) [c](/content/monorepo/index) [d](mailto:a@b.c)'))
+      .toEqual([])
+  })
+
+  it('剥掉锚点与 title', () => {
+    expect(extractLinkTargets('[a](./x.md#L18) [b](./y.md "标题")')).toEqual(['./x.md', './y.md'])
+  })
+
+  it('跳过代码块内的内容', () => {
+    expect(extractLinkTargets('```\n[a](./nope.md)\n```')).toEqual([])
+  })
+})
+
+describe('linkResolves —— 对齐 VitePress 的三种解析', () => {
+  const onlyIndex = (p: string) => p === 'docs/a/index.md'
+  const onlyBare = (p: string) => p === 'docs/b.ts'
+
+  it('原样命中', () => {
+    expect(linkResolves('./b.ts', 'docs/page.md', onlyBare)).toBe(true)
+  })
+
+  it('补 .md 命中（本仓 174 条相对链接里有 15 条不带后缀）', () => {
+    expect(linkResolves('./a', 'docs/page.md', (p: string) => p === 'docs/a.md')).toBe(true)
+  })
+
+  it('当目录找 index.md 命中', () => {
+    expect(linkResolves('./a', 'docs/page.md', onlyIndex)).toBe(true)
+  })
+
+  it('三种都不命中才算失效', () => {
+    expect(linkResolves('./nope', 'docs/page.md', () => false)).toBe(false)
+  })
+})
+
+describe('链接检查的覆盖边界（与 VitePress 零重叠）', () => {
+  // 同一份正文，两个位置：文档站内 vs 文档站外
+  const text = '# t\n\n[a](./gone.md)\n\n[b](./gone.yaml)\n'
+  const opts = (file: string) => ({
+    docs: [file],
+    realPackages: new Set(['@walnut/x']),
+    fsExists: () => false,
+    readText: () => text,
+  })
+
+  it('文档站里的 .md 链接交给 VitePress（本门禁不报，避免与它的白名单重复）', () => {
+    const found = collectFindings(opts('apps/docs/src/zh-CN/content/x.md'))
+    expect(found.map(f => f.ref)).toEqual(['./gone.yaml'])
+  })
+
+  it('文档站里**非 .md** 的链接照查 —— VitePress 实测不查这类', () => {
+    const found = collectFindings(opts('apps/docs/src/zh-CN/content/x.md'))
+    expect(found.some(f => f.kind === 'link' && f.ref === './gone.yaml')).toBe(true)
+  })
+
+  it('文档站**之外**的 .md 链接照查 —— 没有任何其它工具管它', () => {
+    const found = collectFindings(opts('apps/server/AGENTS.md'))
+    expect(found.filter(f => f.kind === 'link').map(f => f.ref).sort()).toEqual(['./gone.md', './gone.yaml'])
   })
 })
 

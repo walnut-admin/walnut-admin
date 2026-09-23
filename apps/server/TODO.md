@@ -1,3 +1,13 @@
+> 📝 **这是什么**：原 `walnut-admin-server` 仓的**草稿待办**，随三仓合并带过来。**没有日期、没有排序、
+> 也没有人维护** —— 里面的 `[x]` 是当时的完成标记，`[ ]` 是当时记下的想法（其中不少已经过时，
+> 例如「移除 enum 都用 as const」那时还没有 `erasableSyntaxOnly` 的约束来源）。
+>
+> **它不是本仓的 backlog**：
+> - 当前架构层面的待办 → [架构待办事项](../docs/src/zh-CN/content/monorepo/architecture-todo.md)
+> - 后端开发规矩 → [`CLAUDE.md`](./CLAUDE.md) · [`AGENTS.md`](./AGENTS.md)
+>
+> 保留原文是为了「当时在想什么」这点信息；要用某一条时请先核实它是否仍然成立。
+
 - [x] jwt
 - [ ] location dto
 - [ ] 文件表 && 图片上传策略 选择文件后直接传到oss临时路径，提交到后端再复制文件到指定路径，然后删除临时路径的文件

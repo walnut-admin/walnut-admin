@@ -157,9 +157,59 @@ export function extractPathRefs(text: string): string[] {
 }
 
 export interface Finding {
-  kind: 'package' | 'path'
+  kind: 'package' | 'path' | 'link'
   ref: string
   files: string[]
+}
+
+/**
+ * markdown 链接目标里**显式相对**（`./` / `../` 开头）的那些。
+ *
+ * 为什么单独要看链接：反引号里的路径只是「提及」，而链接是**承诺能点开**。两者的失效形态不同，
+ * 覆盖也不同 —— 文档站的链接由 VitePress 内置死链校验管，但**仓库里其它 markdown**
+ * （各 app 的 `README.md`、`apps/server/AGENTS.md`、`.claude/` 下的技能文件）没人管。
+ * 2026-09-23 实测：`apps/server/AGENTS.md` 那份 14 行索引**每一条都指向不存在的文件**
+ * （`.agents/docs/` 目录从未进仓库），而当时的门禁只看反引号，完全没看见。
+ *
+ * 只认 `./` `../` 开头：站点绝对路径（`/content/...`）是 VitePress 的语义，由它自己校验。
+ */
+export function extractLinkTargets(text: string): string[] {
+  const found = new Set<string>()
+  let inFence = false
+  for (const line of text.split('\n')) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence
+      continue
+    }
+    if (inFence)
+      continue
+    // 行内链接 `](target)` 与引用式定义 `[id]: target`（去掉可选的 "title" 与 <...> 包裹）
+    const raw = [
+      ...[...line.matchAll(/\]\(([^)\n]+)\)/g)].map(m => m[1]),
+      ...[...line.matchAll(/^\s*\[[^\]]+\]:\s*(\S+)/g)].map(m => m[1]),
+    ]
+    for (const item of raw) {
+      const target = item.trim().split(/\s+/)[0].replace(/^<|>$/g, '')
+      if (!target.startsWith('./') && !target.startsWith('../'))
+        continue
+      found.add(target.split('#')[0])
+    }
+  }
+  return [...found].filter(Boolean)
+}
+
+/**
+ * 链接目标能否解析：按文档所在目录解析，依次试**原样**、**补 `.md`**、**当目录找 index**。
+ *
+ * 三条都试是为了对齐 VitePress 的解析规则 —— 本仓文档里 174 条相对链接有 15 条不带 `.md`
+ * （`./ci-cd`），只按原样判会把它们全报成死链。
+ */
+export function linkResolves(target: string, docFile: string, fsExists: (repoRelative: string) => boolean): boolean {
+  const docDir = path.posix.dirname(docFile)
+  const base = path.posix.normalize(path.posix.join(docDir, target))
+  return fsExists(base)
+    || fsExists(`${base}.md`)
+    || fsExists(`${base}/index.md`)
 }
 
 /**
@@ -184,6 +234,8 @@ export interface CheckOptions {
   docs?: string[]
   realPackages?: Set<string>
   fsExists?: (repoRelative: string) => boolean
+  /** 读文档正文；默认从盘上读。抽成参数是为了让单测能注入内容（不必在盘上造文件） */
+  readText?: (file: string) => string
 }
 
 /** 收集所有发现（纯函数，便于单测） */
@@ -191,11 +243,13 @@ export function collectFindings(options: CheckOptions = {}): Finding[] {
   const docs = options.docs ?? liveDocs()
   const realPackages = options.realPackages ?? workspacePackageNames()
   const fsExists = options.fsExists ?? ((p: string) => fs.existsSync(path.join(REPO_ROOT, p)))
+  const readText = options.readText ?? ((file: string) => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'))
   const pkgHits = new Map<string, string[]>()
   const pathHits = new Map<string, string[]>()
+  const linkHits = new Map<string, string[]>()
 
   for (const file of docs) {
-    const text = fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')
+    const text = readText(file)
     for (const ref of extractPackageRefs(text)) {
       if (ref.startsWith(SERVER_LIB_NAMESPACE) || realPackages.has(ref) || ref in ALLOWED_MISSING_PACKAGES)
         continue
@@ -208,11 +262,28 @@ export function collectFindings(options: CheckOptions = {}): Finding[] {
         continue
       pathHits.set(ref, [...(pathHits.get(ref) ?? []), file])
     }
+    for (const ref of extractLinkTargets(text)) {
+      if (PATH_CHECK_EXCLUDED.test(file))
+        continue
+      // 分工（2026-09-23 实测后定的边界，**两边零重叠**）：
+      //   · 文档站里的 `.md` 链接 → 交给 VitePress 内置死链校验（它有自己的白名单：冻结语料 +
+      //     尚未编写的组件页）。实测它会在这个 case 上 exit 1。
+      //   · 文档站里的**非 `.md`** 链接 → VitePress **不查**（实测：指向不存在的 `.yaml` 也照样 exit 0），
+      //     所以留在这里查。`release.md` 那两条层级写错的 `../../../../../pnpm-workspace.yaml` 就是这么抓到的。
+      //   · 文档站**之外**的 markdown 链接 → 没有任何工具管，全部在这里查。
+      const isDocsTree = file.startsWith('apps/docs/src/')
+      if (isDocsTree && ref.endsWith('.md'))
+        continue
+      if (linkResolves(ref, file, fsExists))
+        continue
+      linkHits.set(ref, [...(linkHits.get(ref) ?? []), file])
+    }
   }
 
   const findings: Finding[] = [
     ...[...pkgHits].map(([ref, files]) => ({ kind: 'package' as const, ref, files })),
     ...[...pathHits].map(([ref, files]) => ({ kind: 'path' as const, ref, files })),
+    ...[...linkHits].map(([ref, files]) => ({ kind: 'link' as const, ref, files })),
   ]
   return findings.sort((a, b) => a.kind.localeCompare(b.kind) || b.files.length - a.files.length)
 }
@@ -252,7 +323,7 @@ export function main(): number {
   }
 
   for (const f of findings) {
-    const label = f.kind === 'package' ? '包名' : '路径'
+    const label = f.kind === 'package' ? '包名' : f.kind === 'link' ? '链接' : '路径'
     console.error(`\n✖ ${label} ${f.ref}  （${f.files.length} 处）`)
     for (const file of f.files.slice(0, 6)) console.error(`    ${file}`)
     if (f.files.length > 6)

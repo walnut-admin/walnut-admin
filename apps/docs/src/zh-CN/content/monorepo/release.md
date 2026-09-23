@@ -13,7 +13,7 @@
 | 发了什么 | 14 个包的版本号 + 各包 `CHANGELOG.md` + `changelog-latest.md` + `.changeset/ledger.yaml` + git tag `vX.Y.Z` + push（分支 + tag） |
 
 > ⚠️ 本仓**不用** `@changesets/cli`。意图文件仍是 changesets 格式（`pnpm change` 沿用），但版本策略的
-> 唯一真源是根 [`pnpm-workspace.yaml`](../../../../../pnpm-workspace.yaml) 的 `versioning` 段，
+> 唯一真源是根 [`pnpm-workspace.yaml`](https://github.com/walnut-admin/walnut-admin/blob/main/pnpm-workspace.yaml) 的 `versioning` 段，
 > `.changeset/config.json` 已删除。详见 [ADR 0011](/content/adr/0011-dependency-governance-release)。
 
 ## 版本策略：单一 fixed 组
@@ -49,7 +49,7 @@ pnpm 的 fixed 组**各自独立**。两个组的写法会留下一条结构性�
 
 ## 提交纪律（发版的前提）
 
-commitlint 强制（见 [`@walnut/commitlint-config`](../../../../../packages/tooling/commitlint-config/index.ts)）：
+commitlint 强制（见 [`@walnut/commitlint-config`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/commitlint-config/index.ts)）：
 
 **`type(包名): message`** —— scope 必填，且必须是包名或基础设施 scope：
 

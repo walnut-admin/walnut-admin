@@ -23,7 +23,12 @@
 
 ### A1 — DeepSeek API Key 硬编码在源码中
 
-**文件**: [deepseek.ts](../../../api/ai/deepseek.ts#L18)
+> ✅ **2026-09-23 核查：已随重构消失**。`apps/admin/src` 下**已不存在** `deepseek.ts`（全盘搜索无果），
+> 源码里也没有任何 `DEEPSEEK` 引用 —— 唯一残留就是下面这段本文件自己引用的示例。
+> 原文的文件链接因此指向一个已删除的路径，已改为纯文本。
+> 下面保留当时的记录，供需要时追溯。
+
+**文件**: `deepseek.ts`（已删除）
 
 ```typescript
 const DEEPSEEK_API_KEY = 'sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
@@ -33,7 +38,7 @@ API Key 明文硬编码已提交到 Git 仓库。任何有仓库访问权限的�
 
 **建议**: 移至 `.env`（`VITE_DEEPSEEK_API_KEY`），`deepseek.ts` 改为 `import.meta.env.VITE_DEEPSEEK_API_KEY`。如正式环境由后端代理，前端不应持有此 Key。
 
-> 备注：上一版 REVIEW.md（2026-05-26）已标记，至今未修复。
+> 备注：上一版 REVIEW.md（2026-05-26）已标记；2026-09-23 核查时该文件已不存在，本条关闭。
 
 ---
 

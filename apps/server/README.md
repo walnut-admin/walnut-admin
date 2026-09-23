@@ -1,73 +1,61 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# `@walnut/server` — Walnut Admin 后端
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS 11 + SWC + Mongoose + Redis。**内部 Nest CLI monorepo**：`apps/api/` 与 `libs/` 不是 pnpm
+workspace 包，靠 `apps/server/tsconfig.json` 的 paths（`@walnut-server/*`）解析，与 app 一起由 SWC 编译。
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+> 为什么不做成 workspace 包：见 [ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md)
+> （CJS + NestJS 耦合 + SWC 编译，不适合当 ESM 包）。
 
-## Description
+| 想看什么 | 去哪 |
+|----------|------|
+| Agent 入口 / 导航 | [`AGENTS.md`](./AGENTS.md) |
+| 后端全部规矩（模块结构、三种 Repository 模式、DTO 与装饰器、Guard 顺序） | [`CLAUDE.md`](./CLAUDE.md) |
+| 未整理的草稿待办（原 server 仓遗留，**不是**当前 backlog） | [`TODO.md`](./TODO.md) |
+| 当前架构 backlog | [架构待办事项](../docs/src/zh-CN/content/monorepo/architecture-todo.md) |
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 目录
 
-## Installation
-
-```bash
-$ npm install
+```
+apps/server/
+├── apps/api/src/     应用入口与源码（modules / guard / decorators / common / config / const …）
+├── libs/*/src        9 个内部库（config · const · context · db · decorators · exceptions · pipes · types · utils）
+├── infra/nest/       nest-cli 构建配置（dev / stage / prod）
+├── infra/swc/        SWC 编译配置
+├── env-encrypted/    密文（随仓库提交，dotenvx；文件内注释即模板）
+├── env-local/        明文 env（由 `pnpm setup-env` 生成，gitignored）
+└── docker/           后端镜像相关
 ```
 
-## Running the app
+## 环境要求
+
+- Node.js >= 24.13.0
+- **MongoDB 副本集**（事务必需；单节点副本集也行：`rs.initiate()`）
+- **Redis 7+**
+
+## 快速开始
 
 ```bash
-# development
-$ npm run start
+# 1) 在仓库根解密 env（需要根 .env.keys）
+pnpm setup-env
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+# 2) 起服务：必须从 apps/server/ 运行（ConfigModule 用 process.cwd() 定位 env）
+cd apps/server
+pnpm dev            # nest start --watch
 ```
 
-## Test
+Swagger UI：<http://localhost:3000/api>
+
+## 常用命令
+
+在 `apps/server/` 下运行：
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+pnpm dev            # 开发（watch）
+pnpm build          # 生产构建
+pnpm build:stage    # stage 构建
+pnpm start:prod     # 直接跑产物
+pnpm lint           # ESLint（fix: pnpm lint:fix）
+pnpm types:check    # tsc --noEmit --pretty
+pnpm test           # vitest
+pnpm test:cov       # 覆盖率
 ```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-  Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).

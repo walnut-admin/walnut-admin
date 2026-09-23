@@ -1,47 +1,52 @@
 # Walnut Admin NestJS Server - Agent Guide
 
-> **导航文档** - 快速找到你需要的详细指南
+> 本包（`apps/server/`）的 **agent 入口**。按 [AGENTS.md 约定](https://agents.md/)，agent 读的是
+> **离被改文件最近**的那份指引 —— 改后端代码时，这份 + [`CLAUDE.md`](./CLAUDE.md) 就是权威来源。
 
-## 📚 文档索引
+## 先看哪份
 
-| 文档 | 内容 | 适用场景 |
-|------|------|----------|
-| [01_PROJECT_OVERVIEW](./.agents/docs/01_PROJECT_OVERVIEW.md) | 项目概述、技术栈、功能特性 | 了解项目全貌 |
-| [02_PROJECT_STRUCTURE](./.agents/docs/02_PROJECT_STRUCTURE.md) | 目录结构、文件命名规范 | 熟悉代码组织 |
-| [03_BUILD_AND_DEV](./.agents/docs/03_BUILD_AND_DEV.md) | 构建命令、开发流程 | 日常开发 |
-| [04_CODE_STYLE](./.agents/docs/04_CODE_STYLE.md) | ESLint 规则、TS 规范 | 代码规范 |
-| [05_MODULE_ARCHITECTURE](./.agents/docs/05_MODULE_ARCHITECTURE.md) | 模块架构概览 | 理解模块设计 |
-| [06_REPOSITORY_PATTERNS](./.agents/docs/06_REPOSITORY_PATTERNS.md) | 三种 Repository 模式详解 | 数据访问层开发 |
-| [07_SERVICE_LAYER_RULES](./.agents/docs/07_SERVICE_LAYER_RULES.md) | 服务层架构规则 | Service 层开发 |
-| [08_CRUD_DECORATORS](./.agents/docs/08_CRUD_DECORATORS.md) | CRUD 装饰器使用 | 控制器开发 |
-| [09_SECURITY_GUARDS](./.agents/docs/09_SECURITY_GUARDS.md) | Guard 体系、执行顺序 | 安全相关开发 |
-| [10_DATABASE_SETUP](./.agents/docs/10_DATABASE_SETUP.md) | MongoDB/Redis 配置 | 数据库配置 |
-| [11_TESTING_GUIDE](./.agents/docs/11_TESTING_GUIDE.md) | 测试指南 | 编写测试 |
-| [12_ENVIRONMENT_CONFIG](./.agents/docs/12_ENVIRONMENT_CONFIG.md) | 环境变量 | 配置管理 |
-| [13_UTILITIES](./.agents/docs/13_UTILITIES.md) | 工具脚本 | 使用工具 |
-| [14_TROUBLESHOOTING](./.agents/docs/14_TROUBLESHOOTING.md) | 常见问题 | 解决问题 |
+| 想看什么 | 去哪 |
+|----------|------|
+| **后端全部规矩**（模块结构、三种 Repository 模式、DTO/装饰器规则、Guard 顺序、环境变量） | [`CLAUDE.md`](./CLAUDE.md) —— 本目录下内容最全的一份，**改代码前先读它** |
+| 全仓结构、命令、提交纪律 | 仓库根 [`AGENTS.md`](../../AGENTS.md) · [`CLAUDE.md`](../../CLAUDE.md) |
+| 架构决策（为什么后端 lib 不提升为 workspace 包、为什么工具链与前端分叉） | [ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md) · [ADR 0012](../docs/src/zh-CN/content/adr/0012-toolchain-divergence.md) |
+| 可复用的后端开发技能 | [`.claude/skills/`](../../.claude/skills/) 下 `be-*` 前缀（建模块 / 加字段 / 加接口 / 自查 / 评审） |
 
-## 🚀 快速开始
+> ⚠️ **历史说明**：本文件此前是一份 **14 行的文档索引**，指向 `./.agents/docs/01_PROJECT_OVERVIEW.md`
+> 等 14 个文件 —— 而那个目录**从未进过仓库**，14 条链接**全部失效**（2026-09-23 由
+> `pnpm lint:docs-refs` 一次性抓出）。内容职责已由 `CLAUDE.md` 与文档站承担，故改为上面这张导航表。
+
+## 这个包是什么
+
+NestJS 11 + SWC + Mongoose（**内部 Nest CLI monorepo**，不是 pnpm workspace 包）：
+
+- `apps/api/src/` —— 应用入口与源码（`modules/` `guard/` `decorators/` `common/` `config/` `const/` …）
+- `libs/*/src` —— 9 个内部库，经 tsconfig `paths` 以 `@walnut-server/*` 解析，与 app 一起由 SWC 编译
+- 为什么这样：见 [ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md)
+  （CJS + NestJS 耦合 + SWC 编译，不适合当 ESM workspace 包）
+
+**源码不在** `src/walnut/admin/com/app/`（那是三仓合并前的路径，已废弃）。
+
+## 命令（注意 cwd）
 
 ```bash
-# 1. 安装依赖
-pnpm install
+# 从**仓库根**运行
+pnpm setup-env      # 解密 env-encrypted/ → env-local/（需根 .env.keys）
+pnpm dev:server     # 起后端（= turbo dev --filter=@walnut/server）
+pnpm test           # 全仓测试；只跑后端：pnpm --filter=@walnut/server test
 
-# 2. 配置环境变量（在仓库根目录解密 env-encrypted/ → env-local/，需 .env.keys 私钥）
-pnpm setup-env
-
-# 3. 启动开发服务器
-pnpm dev
+# 从 **apps/server/** 运行（ConfigModule 用 process.cwd() 定位 env，必须在这个目录）
+pnpm dev            # nest start --watch
+pnpm build          # 生产构建
+pnpm types:check    # tsc --noEmit --pretty
 ```
 
-访问 http://localhost:3000/api 查看 Swagger 文档
+⚠️ 后端的 `pnpm dev` **不能**在仓库根跑 —— 根 `dev` 只起前端（`turbo dev --filter=@walnut/admin`）。
 
-## 📖 更多资源
+## 跑起来需要什么
 
-- **Skill 指南**: `.claude/skills/` 目录下包含可复用的开发技能（`be-*` 前缀为后端，`fe-*` 前缀为前端）
-- **项目结构**: 源码位于 `src/walnut/admin/com/app/`
-- **API 文档**: 开发环境自动生成的 Swagger UI
+- **MongoDB 副本集**（事务必需；单节点副本集也行：`rs.initiate()`）
+- **Redis 7+**
+- 环境文件：`pnpm setup-env` 解密后落在 `apps/server/env-local/`（gitignored）
 
----
-
-*最后更新: 2026-02-24*
+Swagger UI：<http://localhost:3000/api>
