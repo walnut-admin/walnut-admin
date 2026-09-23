@@ -51,8 +51,8 @@ const frontendContent = [
     link: '/content/frontend/base/hooks',
   },
   {
-    text: 'google-analytics',
-    link: '/content/frontend/features/ga',
+    text: '功能集成（含待写清单）',
+    link: '/content/frontend/features/',
   },
 ]
 
@@ -248,6 +248,7 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: 'Turbo', link: '/content/monorepo/turbo' },
         { text: '🧊 Turbo 缓存边界（实测判据表）', link: '/content/monorepo/turbo-cache-boundary' },
         { text: '🔍 与参考仓 Z 的基建交叉对比', link: '/content/monorepo/reference-repo-comparison' },
+        { text: '✍️ 文档规范（写之前先看）', link: '/content/monorepo/doc-conventions' },
         { text: '📦 发布 & 发版指南', link: '/content/monorepo/release' },
         { text: '🚀 CI/CD 与容器构建', link: '/content/monorepo/ci-cd' },
         { text: 'Knip 死代码检测', link: '/content/monorepo/knip' },
@@ -255,6 +256,8 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: 'Syncpack 版本一致性', link: '/content/monorepo/syncpack' },
         { text: '环境变量加密管理', link: '/content/monorepo/env-management' },
         { text: '📋 架构待办事项', link: '/content/monorepo/architecture-todo' },
+        { text: '　⤷ 搁置（未落地的设计）', link: '/content/monorepo/architecture-todo#搁置-等条件成熟' },
+        { text: '　⤷ 未裁决（等你拍板）', link: '/content/monorepo/architecture-todo#未裁决-2026-09-21-评审提出-尚未决定做不做' },
       ],
     },
     {

@@ -156,6 +156,8 @@ pnpm release
 | `doc-ts` | `pnpm lint:doc-ts`（标成 `ts` 的代码块必须能按 TypeScript 解析） |
 | `doc-budget` | `pnpm lint:doc-budget`（常驻上下文文件不许膨胀，用不到一半也算失败） |
 | `turbo-cache` | `pnpm lint:turbo-cache`（产物 / outputs / env 不变量） |
+| `lockfile` | `pnpm lint:lockfile`（`pnpm-workspace.yaml` 的 catalog ↔ `pnpm-lock.yaml` 锁步；改声明忘了 `pnpm install` 时本地全绿、CI 死在 `--frozen-lockfile`） |
+| `nginx-headers` | `pnpm lint:nginx-headers`（`deploy/nginx/conf.d/` 各 `server`/`location` 块上的 4 个安全响应头；`add_header` 是整段替换而不是合并） |
 | `build` | ⏭️ **默认暂缓**：镜像由 `release.yml` 的 images job 真正构建；要跑就删掉表里那行的 `skip` |
 
 > **这张表与 `packages/tooling/release/src/release/steps.ts` 的 `RELEASE_BATTERY` 必须一致** ——

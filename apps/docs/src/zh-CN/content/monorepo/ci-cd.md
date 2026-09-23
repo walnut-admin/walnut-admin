@@ -121,13 +121,15 @@ compose 以 bind mount 注入 `./env/.env.production`，镜像里不需要也不
 | 后端日志 | 无 `Nest can't resolve` / `MODULE_NOT_FOUND` / `EADDRINUSE` / `MongoServerError` / `ECONNREFUSED` 等；且必须出现启动标记 `APP is running in` |
 | 前端 / 入口 nginx 日志 | 无 5xx |
 | 端到端 | 经公网域名（`--resolve` 指回本机）前端 `/` = 200、API 静态路由 = 200 |
+| 安全响应头 | **两个域名各取一次响应头**：`Strict-Transport-Security` / `X-Content-Type-Options` / `X-Frame-Options` / `Referrer-Policy` 必须都在（只比头名、不比取值 —— 取值会随运维调整，逐字比对是误报源） |
 
 任一硬条件在超时前不满足 → 该步骤失败，**部署不判成功**，并打印后端 / nginx 日志尾部。在 Actions 里看 `deploy` job 的 **Post-deploy verification** 步骤。
 
-两个实现细节值得记住：
+三个实现细节值得记住：
 
 1. **nginx 日志能进 `docker logs` 是特意做的**：alpine 的 nginx 包默认把 access/error log 写进 `/var/log/nginx/*.log`，容器里 `docker logs` 是空的。`deploy/nginx/Dockerfile` 用两个软链接到 stdout/stderr（官方 nginx 镜像的做法），入口 nginx 与 frontend 共用同一基础镜像，因此都生效。
-2. **失败模式写成了可执行测试**：`deploy/post-verify.test.sh` 用假的 `docker`/`curl` 覆盖 10 个场景（正常 / 容器未运行 / 重启过 / tag 不匹配 / 后端致命错误 / 前端 5xx / 入口 nginx 5xx / 前端非 200 / API 非 200 / 无启动标记），本地 `bash deploy/post-verify.test.sh` 即可跑，不需要 Docker。
+2. **失败模式写成了可执行测试**：`deploy/post-verify.test.sh` 用假的 `docker`/`curl` 逐条覆盖上面每一个失败分支（含「只有 API 域名缺头」这一种），本地 `bash deploy/post-verify.test.sh` 即可跑，不需要 Docker。
+3. **安全头这条判据有两个面，缺一不可**：推送前 `pnpm lint:nginx-headers` 静态查 `deploy/nginx/conf.d/` 里的配置有没有写全（毫秒级），部署后这一段查「头真的发出去了没有」。**为什么两边都要**：nginx 的 `add_header` 是**整段替换而不是合并** —— 某个 `location` 自己写一条就把 server 级的全吃掉；两个并列的 `server` 块之间也不互相继承（2026-09-23 交叉对比时实测：`api.conf` 当时一个安全头都没有）。配置写错要在推送上就拦住，环境/drift（比如 conf 改了没 `nginx -s reload`）只能部署后看得见。
 
 ## 本地验证 CI 改动
 
