@@ -132,6 +132,10 @@ jobs:
       - name: Source secret-shape check
         run: pnpm lint:secrets
 
+      # 共享包不构建就被消费（exports 指 ./src/**）⇒ exports 写错 = 解析到别的入口 / 类型静默丢失。
+      - name: Package exports shape check
+        run: pnpm lint:exports
+
       # 防"affected 空集静默通过"：有文件变更却算出 0 个受影响包时必须失败
       - name: Affected set sanity check
         if: steps.affected.outputs.base != ''

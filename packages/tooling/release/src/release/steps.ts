@@ -99,6 +99,8 @@ const RELEASE_BATTERY: BatteryStep[] = [
   // 同上。**必须在这里**：GitHub 的 push protection 在服务端、且先于 CI —— 发版要 push tag，
   // 被它拒掉的话 tag 就推不上去（而那是整条流程里最不该失败的一步）。
   { id: 'secrets', label: '源码密钥形态（凭据形状不许进仓库）', argv: ['lint:secrets'] },
+  // 同上。共享包**不构建就被消费**（exports 指 ./src/**）⇒ exports 写错 = 解析到别的入口 / 类型静默丢失。
+  { id: 'exports', label: '包 exports 形态（目标存在 / types 在前 / 与 main 一致）', argv: ['lint:exports'] },
   {
     id: 'build',
     label: '构建（3 个 app + 共享包）',

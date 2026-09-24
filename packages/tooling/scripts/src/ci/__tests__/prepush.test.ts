@@ -64,6 +64,7 @@ describe('pREPUSH_GATES —— 表本身', () => {
       'turbo-cache',
       'lockfile',
       'nginx-headers',
+      'exports',
       'secrets',
       'versioning',
     ])

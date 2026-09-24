@@ -17,6 +17,7 @@
     "walnut-check-doc-ts": "./bin/check-doc-ts.ts",
     "walnut-check-git-hooks": "./bin/check-git-hooks.ts",
     "walnut-check-nginx-headers": "./bin/check-nginx-headers.ts",
+    "walnut-check-package-exports": "./bin/check-package-exports.ts",
     "walnut-check-source-secrets": "./bin/check-source-secrets.ts",
     "walnut-check-turbo-cache": "./bin/check-turbo-cache.ts",
     "walnut-lint-workflows": "./bin/lint-workflows.ts",

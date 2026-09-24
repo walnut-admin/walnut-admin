@@ -51,6 +51,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
       ['lint:lockfile'],
       ['lint:nginx-headers'],
       ['lint:secrets'],
+      ['lint:exports'],
     ])
   })
 

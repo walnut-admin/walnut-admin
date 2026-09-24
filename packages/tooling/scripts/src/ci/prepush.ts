@@ -137,6 +137,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: 'nginx 的 `add_header` 是**整段替换**不是合并：某个 location 自己写了一条，就把 server 级的 4 个安全头全吃掉；两个并列的 `server` 块之间也不互相继承（2026-09-23 实测 `api.conf` 一个头都没有）。本机没有 Docker ⇒ `nginx -t` 都跑不了，这是唯一在推送前能看见它的地方。',
   },
   {
+    id: 'exports',
+    label: '包 exports 形态（目标存在 / types 在前 / 与 main 一致）',
+    argv: ['lint:exports'],
+    why: '本仓共享包**不构建就被消费**（`exports` 指 `./src/**`）⇒ 写错一个字符的症状不是报错，而是解析到别的入口或**类型静默丢失**，往往在下游才炸；而这一面此前零判据（15 个包的 `exports` 全靠人工对齐）。',
+  },
+  {
     id: 'secrets',
     label: '源码密钥形态（凭据形状不许进仓库）',
     argv: ['lint:secrets'],

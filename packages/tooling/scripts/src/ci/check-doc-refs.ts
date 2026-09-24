@@ -21,11 +21,11 @@
  *      本身就是信号（说明有人开始往门禁里塞豁免而不是修引用）。
  */
 
-import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
-import { lsFilesWithUntracked } from '../lib/git.ts'
+import { ignoredPaths, lsFilesWithUntracked } from '../lib/git.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
+import { workspacePackageNames } from '../lib/workspace.ts'
 
 /**
  * 冻结语料：有意保留当时路径的历史文档，不参与校验。
@@ -327,21 +327,9 @@ export function pathResolves(ref: string, docFile: string, fsExists: (repoRelati
  * 现在整轮只问一次 git。
  */
 function ignoredProbes(probes: Iterable<string>): Set<string> {
-  const list = [...probes]
-  if (list.length === 0)
-    return new Set()
-  // 两种问法一起喂进去：`.gitignore` 里的 `dist/` 是**目录**模式，而 `git check-ignore` 对
-  // 一个**不在盘上**的路径判断不出它是不是目录 ⇒ 不带尾斜杠时问不出结果
-  // （实测：`apps/admin/dist` 在目录存在时报 ignored，把目录挪走后同一问法变成 not-ignored）。
-  const input = `${[...list, ...list.map(p => `${p}/`)].join('\0')}\0`
-  try {
-    const out = execFileSync('git', ['check-ignore', '-z', '--stdin'], { cwd: REPO_ROOT, input, encoding: 'utf8' })
-    return new Set(out.split('\0').filter(Boolean).map(p => p.replace(/\/$/, '')))
-  }
-  catch {
-    // 「一个都没被忽略」时 git 退出码是 1 —— 对我们要的语义来说就是空集
-    return new Set()
-  }
+  // 实现搬进 `lib/git.ts` 了（`exports` 门禁要用同一件事）—— 那里写着为什么必须「一次问一批」、
+  // 以及为什么要把「带尾斜杠」的形态一起喂进去。
+  return ignoredPaths(probes)
 }
 
 export interface CheckOptions {
@@ -441,24 +429,8 @@ function runCollect(options: CheckOptions, fsExists: (repoRelative: string) => b
   return findings.sort((a, b) => a.kind.localeCompare(b.kind) || b.files.length - a.files.length)
 }
 
-/** 真实 workspace 包名（读盘上的 package.json，不维护手写清单） */
-export function workspacePackageNames(): Set<string> {
-  const names = new Set<string>()
-  for (const file of lsFilesWithUntracked('*package.json')) {
-    const dir = path.posix.dirname(file)
-    if (dir === '.' || !/^(?:apps\/[^/]+|packages\/[^/]+\/[^/]+)$/.test(dir))
-      continue
-    try {
-      const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')) as { name?: string }
-      if (manifest.name)
-        names.add(manifest.name)
-    }
-    catch {
-      // 读不动就当它不存在：本门禁只做「引用是否指向真实包」，不做清单审计（那是 release 的活）
-    }
-  }
-  return names
-}
+/** 真实 workspace 包名（读盘上的 package.json，不维护手写清单）—— 枚举逻辑在 `lib/workspace.ts` */
+export { workspacePackageNames }
 
 export function main(): number {
   const findings = collectFindings()

@@ -49,16 +49,16 @@
 
 | # | 事项 | 证据 | 代价 |
 |---|------|------|------|
-| A1 | **CI ↔ 门禁名册的对账断言** | 全仓**没有任何测试读 `.github/workflows/ci.yml`**（唯二提到它的地方是把它当示例路径字符串用）；`prepush.test.ts` 的 7 条断言**全是单向**的 ⇒ **删掉一整段门禁没有任何测试会红**。这是唯一 0 覆盖率的接线面 | 半天 |
-| A2 | **`hooks:check` 那句假陈述** | `lefthook.yml` 顶部注释写「装没装上用 `pnpm hooks:check` 机械核对（**发版第 0 步也会调它**）」，但 `packages/tooling/release/` 里**零引用**、`.github/` 零引用、`prepush.ts` 零引用 —— 全仓只有那句注释与它的脚本定义 | 5 分钟（改注释）／半小时（真加进发版电池） |
-| A3 | **`release.md` 的电池表与过期论证** | 见第二节最后一行 | 20 分钟 |
-| A4 | **`subject-case` 关掉** | **唯一已确认在伤害日常提交的**：该规则把「大写拉丁字母开头的 subject」判成 sentence-case 一律拒绝。实测：一次会话内被拒 4 次（`F9…` / `NODE_ENV…` / `R7…` / `P3-22…`），每次都只能改成中文开头 | 5 分钟 |
+| A1 | **CI ↔ 门禁名册的对账断言** ✅ **已做** | 全仓**没有任何测试读 `.github/workflows/ci.yml`**（唯二提到它的地方是把它当示例路径字符串用）；`prepush.test.ts` 的 7 条断言**全是单向**的 ⇒ **删掉一整段门禁没有任何测试会红**。这是唯一 0 覆盖率的接线面 | 半天 |
+| A2 | **`hooks:check` 那句假陈述** ✅ **已做**（真补进发版电池第 0 步） | `lefthook.yml` 顶部注释写「装没装上用 `pnpm hooks:check` 机械核对（**发版第 0 步也会调它**）」，但 `packages/tooling/release/` 里**零引用**、`.github/` 零引用、`prepush.ts` 零引用 —— 全仓只有那句注释与它的脚本定义 | 5 分钟（改注释）／半小时（真加进发版电池） |
+| A3 | **`release.md` 的电池表与过期论证** ✅ **已做** | 见第二节最后一行 | 20 分钟 |
+| A4 | **`subject-case` 关掉** ✅ **已做** | **唯一已确认在伤害日常提交的**：该规则把「大写拉丁字母开头的 subject」判成 sentence-case 一律拒绝。实测：一次会话内被拒 4 次（`F9…` / `NODE_ENV…` / `R7…` / `P3-22…`），每次都只能改成中文开头 | 5 分钟 |
 
 ### B. 值得做（缺口明确 + 有机械判据）
 
 | # | 事项 | 为什么 |
 |---|------|--------|
-| B1 | **bin ↔ 根脚本 ↔ 门禁表 的接线门禁** | 根脚本经 `walnut-*` bin 二段跳，全靠人工对齐；重命名一个 bin 会让整段门禁**静默消失**。已核对：今天 0 漂移，所以**上了就是绿的** |
+| B1 | **bin ↔ 根脚本 ↔ 门禁表 的接线门禁** ✅ **已做**（`gate-wiring.test.ts` 的「二段跳」一段） | 根脚本经 `walnut-*` bin 二段跳，全靠人工对齐；重命名一个 bin 会让整段门禁**静默消失**。已核对：今天 0 漂移，所以**上了就是绿的** |
 | B2 | **`check-lockfile` 的版本锁步（L5）** ✅ **已做**（`pnpm lint:lockfile`）| 「`catalog:` 的解析版本 == catalog 声明值」。本仓风险比 Z 大：catalog **243 条** + `catalogMode: strict`。**但落地时发现原设计会「恒关」**，见下方 §4.6 的踩坑记录 —— 最终改成比对 **HEAD 里那一对** |
 | B3 | **文档三件套**（归档归宿列 / 占位页处置 / 文档规范页） ✅ **已做** | `archive/index.md` 里「未执行」与「已执行」两篇长得一样；`frontend/features/` 下有 **7 个 1 行的占位页**；「文档该长什么样」散在四处 |
 | B4 | **nginx 安全响应头** ✅ **已做**（`pnpm lint:nginx-headers` + post-verify 硬条件）| 实测 `deploy/nginx/` 下 `add_header` 只有 2 条且**都不是安全头**（HSTS / X-Frame-Options / X-Content-Type-Options / Referrer-Policy 全缺），而 CSP 插件在构建配置里是**注释掉的** ⇒ 这一面目前无人兜。**动手时又实测出一条更重的**：`api.conf`（API 域名的入口）**一个安全头都没有** —— 它和 `frontend.conf` 是两个并列 `server` 块，nginx 的 `add_header` 不跨块继承。于是这条按「配置面（推送前静态查）+ 运行面（部署后真发头）」两端落地 |
@@ -74,7 +74,7 @@
 | # | 事项 | 说明 |
 |---|------|------|
 | C1 | **命令行公共层** | Z 有 `verdict`（三态退出码归一）／`gate-ui`（`unmet()` 抛前置条件错）／`argv`（统一参数解析）／`errors` 基类 + 唯一映射。我们：**每道门禁各抄一遍 `return 2/0/1`**、**一批裸 `console.*`**（调研时数到 12 个文件 50 处，Z 对应层只有 2 处）。⚠️ **有绑定项**：若输出层走 `stream.write`，必须同时把 `bin/*.ts` 那批 `process.exit(main())` 换掉，否则会复现 Z 记录过的「管道下退出码对、拒绝理由一个字没出来」 |
-| C2 | **包标准的机械门禁（最小骨架）** ✅ **tags 那一条已做** | Z 有 **22 条**机械规则（`turbo-tags` / `exports-shape` / `script-matrix` / `package-json-fields` / 目录索引双向对账 …）。本仓不是 0 条（见上方更正）：`lint:turbo-cache` 已有 8 条不变量，其中第 1 条就是「每个包 `turbo.json` 的 `extends` + tags」。**剩下的候选**仍以 `exports-shape` 与 `script-matrix` 最值得看（本仓 `exports` 全靠人工对齐） |
+| C2 | **包标准的机械门禁（最小骨架）** ✅ **tags 与 `exports-shape` 已做** | Z 有 **22 条**机械规则（`turbo-tags` / `exports-shape` / `script-matrix` / `package-json-fields` / 目录索引双向对账 …）。本仓不是 0 条（见上方更正）：`lint:turbo-cache` 已有 8 条不变量，其中第 1 条就是「每个包 `turbo.json` 的 `extends` + tags」；2026-09-23 又补了 `exports-shape`（`pnpm lint:exports`，四条不变量：目标存在 / 通配命中 / `types` 条件在前 / 与顶层 `main`·`types` 不矛盾）—— 本仓共享包**不构建就被消费**，`exports` 写错 = 解析到别的入口或类型静默丢失，而这一面此前零判据。**剩下的候选**：`script-matrix`、`package-json-fields`、目录索引双向对账 |
 | C3 | **根脚本白名单** ✅ **已做（只搬前两段）** | 根脚本（调研时 43 条，现已 46 条）零约束。Z 用「白名单 + 形态正则 + 理由」三件套。落地时**只搬「名字形态 + 值里不许有 shell 连接子」**，并只对 `lint:*` 收了紧 —— 全量白名单会变成一份要不停维护的名单（本仓根脚本合法地直接调 `tsc` / `rimraf` / `syncpack` / `docker` / `cross-env`） |
 | C4 | **turbo 缓存跨 CI run** | 实测全仓无 `actions/cache`。⚠️ **风险**：key 设计错会命中陈旧缓存 ⇒ 反而静默跳过门禁，必须先确认 hash 覆盖面 |
 | C5 | **本地 ESLint 规则** ✅ **已做（两条）** | Z 有 13 条 + 每条配 RuleTester 正反语料。落地取「本仓有成文约定却零判据」的两条：`script-header` 与 `script-exit-code`（0/1/2 三态）。⚠️ **初稿那句「存量已满足、上线即绿」对 `script-header` 是错的** —— 登记时逐个数过：`bin/*.ts` **一个 JSDoc 文件头都没有**；落地实测 13 个 bin 里 2 个连注释都没有，已补。退出码那条实测 1515 个文件零违规，确实上线即绿 |

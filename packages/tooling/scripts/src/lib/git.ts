@@ -220,6 +220,39 @@ export function lsFilesStrict(pattern: string): string[] {
 }
 
 /**
+ * 一次问 git：这批路径里哪些**被 gitignore**。
+ *
+ * 为什么是「一次问一批」而不是逐条：`check-ignore` 是个进程 —— 逐条 spawn 会让一次全仓扫描
+ * 从 1 秒变成 15 秒（实测：`check-doc-refs` 因为每条引用要探三种形态，vitest 的 5s 超时当场红）。
+ *
+ * 为什么调用方要把**两种形态**都喂进来：`.gitignore` 里的 `dist/` 是**目录**模式，而 git 对一个
+ * **不在盘上**的路径判断不出它是不是目录 ⇒ 不带尾斜杠时问不出结果（实测：目录在盘上时报 ignored，
+ * 把目录挪走后同一问法变成 not-ignored）。这里替调用方补上带尾斜杠的那一份，返回集合里统一去掉它。
+ *
+ * 读不到（git 失败 / 不在检出内）返回**空集** —— 调用方按"没被忽略"处理，宁可报出来也不静默放过。
+ */
+export function ignoredPaths(paths: Iterable<string>): Set<string> {
+  const list = [...paths]
+  if (list.length === 0)
+    return new Set()
+  const input = `${[...list, ...list.map(p => `${p}/`)].join('\0')}\0`
+  try {
+    const out = execFileSync('git', ['check-ignore', '-z', '--stdin'], {
+      cwd: REPO_ROOT,
+      input,
+      stdio: ['pipe', 'pipe', 'ignore'],
+      timeout: GIT_TIMEOUT_MS,
+      windowsHide: true,
+    }).toString()
+    return new Set(out.split('\0').filter(Boolean).map(p => p.replace(/\/$/, '')))
+  }
+  catch {
+    // 「一个都没被忽略」时 git 的退出码是 1 —— 对我们要的语义来说就是空集
+    return new Set()
+  }
+}
+
+/**
  * 跟踪面 **∪ 未跟踪但未被忽略** 的文件。
  *
  * 为什么需要第三档（前两档是 lsFiles / lsFilesStrict）：**工作区包清单要按盘上实际有什么来算**，
