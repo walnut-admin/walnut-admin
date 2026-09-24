@@ -17,6 +17,7 @@
 | [2026-09-21 CI/CD 重构实施记录](./2026-09-21-ci-cd-pipeline-plan.md) | 计划 | 修复 5 周静默失效的 CI + 拆分流水线 + 薄镜像 + bake 缓存 scope 的完整改动清单、验证结果、回退方式 | ✅ **已执行**；现行口径见 [CI/CD 与容器构建](/content/monorepo/ci-cd) |
 | [2026-09-21 架构 Review](./2026-09-21-architecture-review.md) | 评审 | 行业调研 × 工程实践的融合分析：机制提炼、边界与治理问题、优化建议，以及文档层级方案 | 🔀 **大部分已落地**（F 项已清零），未做的进 [架构待办](/content/monorepo/architecture-todo) 的未裁决段 |
 | [2026-09-21 行业调研审计](./2026-09-21-industry-research-audit.md) | 评审 | 本地 20 篇调研/架构文档的逐篇审计、29 条第三方链接核实、55 条决策清单 | 🔀 **B 部分（时效性核实）大多已处理**；结论并入各 ADR 与专题页，别再单独引本篇 |
+| [2026-09-24 架构待办的历史](./2026-09-24-architecture-ledger-history.md) | 记录 | 从待办页搬出来的三块：逐批执行记录、已移出待办项的核实记录、一份已决的调研结论（原待办页 116 KB 里约九成是这些历史） | ✅ **历史文献，不再更新**；「还剩什么」看 [架构待办事项](/content/monorepo/architecture-todo)，现状看 [架构地图](/content/monorepo/architecture) |
 | [2026-09-21 pnpm 12 迁移计划](./2026-09-21-pnpm12-and-hoist-migration-plan.md) | 计划 | pnpm 11 → 12.5.1 升级 + 依赖隔离/供应链防护设置的分阶段方案 | ✅ **已执行完毕**；现行配置见 [pnpm-workspace.yaml 详解](/content/monorepo/pnpm-workspace-config) |
 
 ## 归档约定
@@ -34,7 +35,7 @@
 - 文件名带日期，正文保留当时的写法（不追改），但**顶部加一段归档说明**，指出哪些结论已被取代、
   当前该看哪篇；**并且在本表登记「归宿」**。
 - 新增过程文档时直接写在 `content/archive/`，并在
-  [架构待办事项](/content/monorepo/architecture-todo) 的执行记录里登记一行。
+  [执行记录归档页](/content/archive/2026-09-24-architecture-ledger-history) 里登记一行。
 
 ### 历史落脚点（都已迁到本站）
 
