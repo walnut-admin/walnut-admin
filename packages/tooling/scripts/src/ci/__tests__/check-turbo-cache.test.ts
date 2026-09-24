@@ -4,6 +4,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import {
+  ciStepsWritingBuildProducts,
   collectFindings,
   declaredOutDirs,
   globMatchesSomething,
@@ -326,5 +327,88 @@ describe('跨平台：这一段门禁必须能在 CI 的 Linux runner 上跑', (
     const raw = readFileSync(path.join(ROOT, 'packages/tooling/scripts/src/ci/check-turbo-cache.ts'), 'utf8')
     expect(raw, '说明注释里应当提到那个旧写法').toContain('2>nul')
     expect(code, '剥完就该没有了').not.toContain('2>nul')
+  })
+})
+
+/**
+ * 不变量 ⑨：**CI 那份跨 run 的缓存里只许有元数据条目**（2026-09-24 实测踩到后补的）。
+ *
+ * 用**合成 YAML** 覆盖各个方向，不依赖真 workflow —— 真文件只能证明"现在是干净的"，
+ * 而这里要守的是"以后改坏了会红"。
+ */
+describe('ci.yml 的缓存范围：有产物的构建任务不许落在缓存步骤之后', () => {
+  const scripts = {
+    'build': 'turbo build',
+    'build:stage': 'turbo build:stage',
+    'build:docs': 'turbo build --filter=@walnut/docs',
+    'lint': 'turbo lint',
+  }
+  /** 缓存步骤在前、可选步骤在中、另一个 job 在后（用来验「只扫同一个 job」） */
+  const workflow = (steps: string) => `jobs:
+  quality:
+    steps:
+      - uses: actions/checkout@v5
+      - name: Restore turbo cache (quality gates)
+        uses: actions/cache@v5
+        with:
+          path: .turbo/cache
+${steps}
+  build:
+    steps:
+      - name: Build admin
+        run: pnpm build
+`
+
+  it('真 ci.yml 现在是干净的', () => {
+    const ci = readFileSync(path.join(ROOT, '.github/workflows/ci.yml'), 'utf8')
+    const real = (read('package.json') as { scripts: Record<string, string> }).scripts
+    expect(ciStepsWritingBuildProducts(ci, real)).toEqual([])
+  })
+
+  it('官方写法（--cache-dir 直接跟在脚本名后）放行', () => {
+    const yaml = workflow('      - name: Docs build\n        run: pnpm build:docs --cache-dir=.turbo/cache-docs')
+    expect(ciStepsWritingBuildProducts(yaml, scripts)).toEqual([])
+  })
+
+  it('缓存步骤之后跑 build:docs 却不给缓存目录 ⇒ 报 missing', () => {
+    const yaml = workflow('      - name: Docs build\n        run: pnpm build:docs')
+    const found = ciStepsWritingBuildProducts(yaml, scripts)
+    expect(found).toHaveLength(1)
+    expect(found[0]?.kind).toBe('missing')
+    expect(found[0]?.step).toBe('Docs build')
+  })
+
+  it('--cache-dir 写在 `--` 之后 ⇒ 报 passthrough（那个参数到不了 turbo）', () => {
+    const yaml = workflow('      - name: Docs build\n        run: pnpm run build:docs -- --cache-dir=.turbo/cache-docs')
+    const found = ciStepsWritingBuildProducts(yaml, scripts)
+    expect(found).toHaveLength(1)
+    expect(found[0]?.kind).toBe('passthrough')
+  })
+
+  it('跑在缓存步骤**之前** ⇒ 不管（产物进不了这份缓存）', () => {
+    const yaml = `jobs:
+  quality:
+    steps:
+      - name: Docs build
+        run: pnpm build:docs
+      - name: Restore turbo cache (quality gates)
+        uses: actions/cache@v5
+        with:
+          path: .turbo/cache
+`
+    expect(ciStepsWritingBuildProducts(yaml, scripts)).toEqual([])
+  })
+
+  it('在**另一个 job** 里跑 ⇒ 不管（缓存步骤是 job 级的）', () => {
+    expect(ciStepsWritingBuildProducts(workflow('      - name: Lint\n        run: pnpm lint'), scripts)).toEqual([])
+  })
+
+  it('没有产物的任务（lint）不受影响', () => {
+    const yaml = workflow('      - name: Lint (affected)\n        run: pnpm lint')
+    expect(ciStepsWritingBuildProducts(yaml, scripts)).toEqual([])
+  })
+
+  it('文件里根本没有缓存步骤 ⇒ 不管（没有跨 run 缓存，也就无所谓）', () => {
+    expect(ciStepsWritingBuildProducts('jobs:\n  quality:\n    steps:\n      - run: pnpm build\n', scripts)).toEqual([])
   })
 })

@@ -237,6 +237,75 @@ export function nestOutDir(appDir: string, env: 'prod' | 'stage' | 'dev'): strin
   return path.relative(appDir, outDir).replace(/\\/g, '/')
 }
 
+/**
+ * 从 `ci.yml` 里挑出「**跑有产物的构建任务、却落在跨 run 缓存路径上**」的步骤。
+ *
+ * 背景（2026-09-24 实测）：`actions/cache` 的 `path` 是整个 `.turbo/cache` ⇒ 在「恢复缓存」
+ * 那一步**之后**跑的 turbo 任务，产物会随 job 末尾的整份上传一起进缓存。第一版就是这么漏的：
+ * `Docs build` 那步是 `turbo build --filter=@walnut/docs`（产物 4.6 MB），于是归档从几十 KB
+ * 涨到 4.7 MB、第二次 9.8 MB，而且随每次 docs 改动继续长。
+ *
+ * 判据全部机械、不猜：① 文件里得有 `uses: actions/cache@…`；② 只看**同一个 job**（遇到下一个
+ * 顶格两空格的 job 名就停 —— 缓存是 job 级的）；③ 命令解析后跑的确实是 `build*` 任务
+ * （根脚本按 `package.json` 里的**值**判断是不是 turbo build，**不按名字猜**）；
+ * ④ 命令里没有**真正生效**的 `--cache-dir=`。
+ *
+ * `kind` 两种：`missing` = 压根没给缓存目录；`passthrough` = 给了但写在 `--` 之后
+ * —— 那种写法参数到不了 turbo（实测 VitePress 收到了它、缓存照旧写默认目录）。
+ */
+export function ciStepsWritingBuildProducts(
+  ciYaml: string,
+  scripts: Record<string, string>,
+): Array<{ step: string, command: string, kind: 'missing' | 'passthrough' }> {
+  const lines = ciYaml.split(/\r?\n/)
+  const cacheAt = lines.findIndex(l => /^\s*uses:\s*actions\/cache@/.test(l))
+  if (cacheAt === -1)
+    return []
+
+  const out: Array<{ step: string, command: string, kind: 'missing' | 'passthrough' }> = []
+  let step = '(未命名步骤)'
+  for (let i = cacheAt + 1; i < lines.length; i++) {
+    const l = lines[i] ?? ''
+    // 下一个 job 开始 ⇒ 缓存步骤管不到那里
+    if (/^ {2}[a-z][\w-]*:\s*$/i.test(l))
+      break
+    const name = /^\s*-\s*name:\s*(\S.*)$/.exec(l)
+    if (name?.[1] !== undefined) {
+      step = name[1].trim()
+      continue
+    }
+    const run = /^\s*run:\s*(\S.*)$/.exec(l)
+    if (run?.[1] === undefined)
+      continue
+    const command = run[1].trim()
+    if (!runsBuildProductTask(command, scripts))
+      continue
+    const flagAt = command.indexOf('--cache-dir=')
+    const sepAt = command.indexOf(' -- ')
+    if (flagAt !== -1 && (sepAt === -1 || flagAt < sepAt))
+      continue
+    out.push({ step, command, kind: flagAt === -1 ? 'missing' : 'passthrough' })
+  }
+  return out
+}
+
+/** 这条命令是不是在跑 `build` / `build:stage` / `build:docs` 这类**有产物**的 turbo 任务 */
+function runsBuildProductTask(command: string, scripts: Record<string, string>): boolean {
+  const tokens = command.split(/\s+/)
+  if (tokens[0] !== 'pnpm')
+    return false
+  const i = tokens[1] === 'run' || tokens[1] === 'exec' ? 2 : 1
+  const target = tokens[i]
+  if (target === undefined)
+    return false
+  if (target === 'turbo') {
+    const task = tokens[i + 1] === 'run' ? tokens[i + 2] : tokens[i + 1]
+    return /^build(?::|$)/.test(task ?? '')
+  }
+  const value = scripts[target]
+  return value !== undefined && /turbo\s+(?:run\s+)?build(?:\s|$)/.test(value)
+}
+
 export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
   const findings: Finding[] = []
   const taskOf = (id: string) => dry.tasks.find(t => t.taskId === id)
@@ -430,6 +499,22 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
         const g = i.slice('$TURBO_ROOT$/'.length)
         if (!globs.includes(g))
           findings.push({ rule: 'lint-root-inputs', detail: `//#lint:root 的 inputs 里有 \`${i}\`，但根脚本并不检查它 —— 白担了「随运行变化 ⇒ 缓存永不命中」的风险` })
+      }
+    }
+  }
+
+  // ⑨ CI 那份跨 run 的缓存里**只许有元数据条目**（2026-09-24 实测踩到，见 §七）。
+  //    缓存路径是整个 `.turbo/cache` ⇒ 恢复之后跑的 turbo 任务，产物会随 job 末尾的整份上传
+  //    一起进缓存：`Docs build`（4.6 MB）把归档从几十 KB 顶到 4.7 MB、第二次 9.8 MB。
+  //    判据见 `ciStepsWritingBuildProducts`（含「`--cache-dir` 写在 `--` 之后到不了 turbo」那条）。
+  {
+    const ciPath = path.join(cwd, '.github/workflows/ci.yml')
+    const scripts = (readTurboJson(path.join(cwd, 'package.json')) as { scripts?: Record<string, string> }).scripts ?? {}
+    if (existsSync(ciPath)) {
+      for (const s of ciStepsWritingBuildProducts(readFileSync(ciPath, 'utf8'), scripts)) {
+        findings.push(s.kind === 'passthrough'
+          ? { rule: 'ci-cache-flag-reaches-turbo', detail: `ci.yml 的步骤「${s.step}」把 \`--cache-dir\` 写在 \`--\` 之后 ⇒ 它被 turbo 当成**透传给任务本身**的参数（实测：VitePress 收到它，缓存照旧写默认目录）。去掉那个 \`--\`：\`${s.command}\`` }
+          : { rule: 'ci-cache-holds-only-metadata', detail: `ci.yml 的步骤「${s.step}」跑的是**有产物**的构建任务（\`${s.command}\`），却又落在跨 run 缓存的路径上 —— 产物会随整份 \`.turbo/cache\` 一起上传（实测把归档从几十 KB 顶到 4.7 MB）。给它自己的 \`--cache-dir\`，或把这一步挪到恢复缓存之前。` })
       }
     }
   }

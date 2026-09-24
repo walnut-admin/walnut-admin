@@ -331,9 +331,12 @@ Turbo 的严格 env 模式会把「没在 `env` / `globalEnv` / `passThroughEnv`
 | 9 | `tags` 的**形态**：字符串、小写 kebab-case、无重复（`tag-shape`） | `Platform_Web` 这种拼法能通过 JSON 校验，却**匹配不上** `boundaries` 里那条 `platform-web` 的规则 ⇒ 与"没写"同效 |
 | 10 | **平台 tag 与目录组一致**：`packages/platform-any/*` 必须带 `platform-any` 且不带另两个（`platform-tag-matches-dir`） | 那条 boundaries 规则会**套到错的一侧**（比如 platform-any 的包声明了 platform-web，于是它躲开了本该受的约束） |
 | 11 | **反向断言**：根 `boundaries.tags` 的每个 key 都得有包真的声明它（`boundary-rule-has-subject`） | 那条规则**永远不会触发** —— 恒关的规则等于没有规则（与 `lint:doc-budget` 的「预算用不到一半也算失败」同一族） |
+| 12 | **CI 那份跨 run 的缓存里只许有元数据**：`ci.yml` 里落在「恢复缓存」步骤**之后**（且同一个 job 内）的步骤，只要跑的是 `build*` 这类**有产物**的 turbo 任务，就必须显式给 `--cache-dir`（`ci-cache-holds-only-metadata`） | 产物会随整份 `.turbo/cache` 一起上传：实测 `Docs build`（4.6 MB）把归档从几十 KB 顶到 4.7 MB、第二次 9.8 MB（见 §七） |
+| 13 | `--cache-dir` 不许写在 `--` 之后（`ci-cache-flag-reaches-turbo`） | 那个参数会被 turbo 当成**透传给任务本身**的参数 ⇒ 缓存照旧写默认目录：看着像改好了、其实一行没生效（2026-09-24 实测踩到，见 §七 7.2） |
 
 第 9–11 条是 2026-09-23 交叉对比时补的（待办 P1-17）：原先把「非空 tags」当成够用了，
 但它只挡住「整个忘写」，挡不住「写了个不会匹配任何规则的 tag」—— 后者同样是**静默豁免**。
+第 12–13 条是 2026-09-24 CI 实测踩到「docs 构建混进了缓存」之后补的（细节见 §七）。
 
 > ⚠️ **这道门禁曾经在 CI 上从没成立过**（2026-09-23 读出来的真 bug）：
 > `loadTurboDry()` 原本是 `execFileSync('cmd', ['/c', 'pnpm exec turbo … 2>nul'])` ——
@@ -437,6 +440,13 @@ run #15 保存下来的归档实测 **4,912,216 字节（4.7 MB）**，而按「
 **只差一个 `--`，行为完全不同** —— 前者被 turbo 当成**透传给任务本身**的参数（VitePress 收到
 `--cache-dir=x`，缓存照旧写进默认目录），后者才到 turbo。判别法很简单：参数真到了 turbo ⇒ 新目录
 是空的 ⇒ 这次必定 miss 并重建；被吞掉 ⇒ 直接命中、新目录不会出现。
+
+**收口实测（run #18，v2 的第一次跑）**：`Restore` 0s（v2 还没有归档可命中）、`Docs build` **20s
+真跑**（没有回放）、job 末尾保存出的 v2 归档 **32,194 字节（32 KB）** —— 对照 v1 最后那份 9.8 MB
+差 **306 倍**，docs 构建产物确实不再进来了（判据：`actions/caches` API，公开可读）。
+
+**已上门禁**：上面 §六 的第 12/13 条 —— 那条断言直接解析 `ci.yml`，所以这个坑的**任何一种复发**
+（新加一步跑 `build`、或把 `--cache-dir` 写到 `--` 后面）都会在推送前当场红。
 
 ### 7.3 当时为什么不算正确性问题（留档）
 
