@@ -3,7 +3,8 @@
 ## 需求
 
 :::info
-本地开发可以直接使用主机上的vpn让wsl内通网，云服务就是换镜像地址了
+本地开发让 WSL 里的 docker 直接走 Windows 上已有的 VPN。**不需要镜像加速器** —— 公共加速源到
+2026 年基本都停服或限流了，换源是绕远路，代理才是简单且长久的方案。
 :::
 
 - windows本地开发，把数据库和redis都塞到wsl中用docker管理，方便使用和更新。
@@ -58,73 +59,166 @@ apt-get upgrade
 nano /etc/apt/sources.list.d/ubuntu.sources
 ```
 
-## docker
+## 让 WSL 和 docker 走 Windows 的 VPN
 
-- 直接看[这里](./docker.md)，按照官方文档安装就行
-
-- 安装完成复制docker-compose.dev.yml到wsl中，准备拉取镜像
-
-:::warning
-镜像现在都会很难拉取，建议直接win上vpn+局域网，wsl内部直接vpn拉取
+:::warning 先记住这一句，能省掉一半排查时间
+`docker pull` 是 **`dockerd`（systemd 服务）** 发起的，不是 `docker` 这个 CLI。
+所以在 shell 里 `export HTTPS_PROXY=...` 对**已经在跑的 daemon 完全无效** ——
+这就是「我 `curl` 能通、但 `docker pull` 还是超时」的原因。daemon 必须单独配。
 :::
 
-- 下面是wsl全局配置
+### 方案：mirrored 网络 + autoProxy
 
-```bash
-# 编辑bash配置（zsh改~/.zshrc）
-nano ~/.bashrc
+为什么是这个组合，而不是「NAT + 自动取 Windows 网关 IP」：
 
-# 末尾添加（自动获取Windows IP，永不失效）
-export WIN_IP=$(ip route show default | awk '/default/ {print $3}')
-export HTTP_PROXY=http://$WIN_IP:7897
-export HTTPS_PROXY=http://$WIN_IP:7897
-export NO_PROXY=localhost,127.0.0.1,.local,.internal,172.0.0.0/8,10.0.0.0/8,192.168.0.0/16,.docker.internal
+- NAT 模式下 Windows 主机 IP（`ip route` 里的 `172.x.x.1`）是 WSL **每次启动动态分配**的，
+  写进任何配置都会失效 —— 网上那些「自动获取 Windows IP，永不失效」的写法其实只在当前这个
+  shell / 本次开机内成立；systemd 的 unit 文件里写命令替换更是**根本不会执行**。
+- mirrored 模式下 WSL 直接复用 Windows 的回环，代理地址**永远是** `127.0.0.1:<端口>`；
+  顺带也不用再在 VPN 客户端里开「允许局域网连接」了。
 
-# 生效配置
-source ~/.bashrc
+出处：微软 [WSL 网络文档](https://learn.microsoft.com/zh-cn/windows/wsl/networking)（mirrored / autoProxy /
+dnsTunneling 的官方说明，也写了 mirrored 下用 `127.0.0.1` 连 Windows 服务器）、
+Docker [daemon 代理文档](https://docs.docker.com/engine/daemon/proxy/)（`proxies` 字段，以及「当前终端里
+`export HTTPS_PROXY` 不代表已运行的 daemon 会继承」的原文）。
 
-# 验证
-echo $HTTP_PROXY
+前置条件：Windows 11 22H2+，WSL ≥ 2.0。查一下：
+
+```powershell
+wsl --version
 ```
 
-- 下面是docker单独配置
+**1. Windows 侧建 `%USERPROFILE%\.wslconfig`**（没有就新建）：
 
-```bash
-# 创建配置目录
-sudo mkdir -p /etc/systemd/system/docker.service.d
+```ini
+[wsl2]
+networkingMode=mirrored
+dnsTunneling=true
+autoProxy=true
+firewall=true
+```
 
-# 编辑配置文件
-sudo nano /etc/systemd/system/docker.service.d/http-proxy.conf
+| 配置 | 作用 |
+|------|------|
+| `networkingMode=mirrored` | 把 Windows 的网络接口镜像进 WSL，于是 WSL 里的 `127.0.0.1` 就是 Windows 的 `127.0.0.1`（微软文档明确支持），VPN 兼容性也更好 |
+| `dnsTunneling=true` | DNS 请求走虚拟化通道而不是发网络包，对 VPN / 复杂网络更友好（Win11 22H2+ 默认就开） |
+| `autoProxy=true` | 让 WSL 自动继承 Windows 的系统代理设置 —— curl / git / wget 这些命令行工具就不用再手动 export 了 |
 
-# 粘贴内容（自动获取Windows IP）
-[Service]
-Environment="HTTP_PROXY=http://$(ip route show default | awk '/default/ {print $3}'):7897"
-Environment="HTTPS_PROXY=http://$(ip route show default | awk '/default/ {print $3}'):7897"
-Environment="NO_PROXY=localhost,127.0.0.1,.docker.internal,172.0.0.0/8"
+**2. 重启 WSL 让配置生效**：
 
-# 生效配置
-sudo systemctl daemon-reload
-sudo systemctl restart docker
-
-# 验证配置
-docker info | grep Proxy
+```powershell
+wsl --shutdown
 ```
 
 :::warning
-还是不行有可能是防火墙的问题，需要win上开管理员powershell暂时执行下
-```bash
-netsh advfirewall set allprofiles state off
+`wsl --shutdown` 会关掉 Ubuntu 里所有进程（docker 容器一起停）。先保存东西再执行。
+:::
+
+重进 WSL 后，先确认 Windows 上的代理端口。**端口不是固定的**：Clash Verge 系是 `7897`、
+Clash for Windows 是 `7890`、v2rayN 是 `10809`。查实际值：
+
+```powershell
+Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' | Select-Object ProxyServer
 ```
 
-测试wsl内是不是和win的vpn通了
-```bash
-# 自动获取Windows主机IP（永远正确，不会变）
-WIN_IP=$(ip route show default | awk '/default/ {print $3}')
-echo "Windows主机IP：$WIN_IP"
+**3. 验证 WSL 通网**：
 
-# 测试1：用代理访问Google（核心验证）
-curl -x http://$WIN_IP:7897 -I https://www.google.com
+```bash
+# 不加 -x 也该是 401（registry 未认证的正常响应，等于通了）；超时就是没走代理
+curl -s -o /dev/null -w 'direct: %{http_code}\n' https://registry-1.docker.io/v2/
+
+# 显式指定代理再试一次（mirrored 模式下 127.0.0.1 就是 Windows）
+curl -s -o /dev/null -w 'proxy:  %{http_code}\n' -x http://127.0.0.1:7897 https://registry-1.docker.io/v2/
 ```
+
+**4. 给 dockerd 配代理（关键一步）**：
+
+```bash
+sudo install -d -m 0755 /etc/docker
+sudo tee /etc/docker/daemon.json >/dev/null <<'EOF'
+{
+  "proxies": {
+    "http-proxy": "http://127.0.0.1:7897",
+    "https-proxy": "http://127.0.0.1:7897",
+    "no-proxy": "localhost,127.0.0.1,::1"
+  }
+}
+EOF
+
+sudo systemctl restart docker
+
+sudo docker info | grep -i proxy    # 应打印出上面三条
+sudo docker pull hello-world        # 收工
+```
+
+:::tip
+`no-proxy` 里务必留着 `localhost,127.0.0.1`，否则以后访问本机 / 内网 registry 也会被塞进代理。
+:::
+
+**5.（可选）构建与容器内的代理**：`daemon.json` 只管 daemon 拉 / 推镜像。`docker build` 里的
+网络步骤（比如 `deploy/nginx/Dockerfile` 那句 `apk add`）**不继承**它，要写在 `~/.docker/config.json`：
+
+```json
+{
+  "proxies": {
+    "default": {
+      "httpProxy": "http://127.0.0.1:7897",
+      "httpsProxy": "http://127.0.0.1:7897",
+      "noProxy": "localhost,127.0.0.1"
+    }
+  }
+}
+```
+
+**回退**：删掉 `%USERPROFILE%\.wslconfig` 再 `wsl --shutdown`，一秒回到 NAT 模式。
+
+### 排错对照表
+
+| 现象 / 报错 | 真正的原因 | 怎么办 |
+|---|---|---|
+| `i/o timeout`、`TLS handshake timeout`、`connection reset by peer` | dockerd 在直连 registry，没走代理 | 回到第 4 步 |
+| 本机 curl 通、`docker pull` 不通 | `docker pull` 由 dockerd 发起，shell 里的 `export HTTPS_PROXY` 对它无效 | 回到第 4 步 |
+| `proxyconnect tcp: dial tcp 127.0.0.1:7897: connect: connection refused` | 配了 `127.0.0.1`，但 WSL 还在 NAT 模式（NAT 下这个地址是 WSL 自己） | 回到第 1、2 步切 mirrored |
+| `401 Unauthorized` | 通了 | 不是错误，别去修 |
+| `429 Too Many Requests` | Docker Hub 限流：匿名按**出口 IP** 算 100 次 / 6 小时，VPN 共享出口很容易吃满 | `docker login` |
+| `manifest unknown`、`not found` | 不是网络问题，是镜像名 / 标签不对 | 去查 tag，别乱改代理 |
+| `permission denied while trying to connect to the docker API at unix:///var/run/docker.sock` | 当前用户不在 `docker` 组 | `sudo usermod -aG docker $USER`，然后重新登录 WSL |
+
+:::warning 为什么不用镜像加速器
+- 2026 年的现状：阿里云个人加速**已停止同步最新镜像**，DaoCloud / 1panel 那类有限流和白名单，
+  USTC / 163 / 百度那批 2024 年就停服了；旧教程里的地址基本都不能照抄。
+- `registry-mirrors` **只对 Docker Hub 生效**，改不了 `ghcr.io` / `registry.k8s.io` / `nvcr.io`
+  —— 而代理对**所有** registry 都管用。
+- 所以有可用代理时就不要配 `registry-mirrors`，两套混着只会让故障点更难判断。
+:::
+
+:::details 旧做法：systemd drop-in（能用，但没必要了）
+```bash
+sudo mkdir -p /etc/systemd/system/docker.service.d
+sudo nano /etc/systemd/system/docker.service.d/http-proxy.conf
+sudo systemctl daemon-reload && sudo systemctl restart docker
+```
+
+Docker 23.0 起 `daemon.json` 的 `proxies` 就是官方入口，改一个文件 + restart 即可，不必碰 systemd。
+另外注意：unit 文件里的 `Environment=` **不做命令替换**，写 `$(ip route ...)` 只会被当成字面量
+—— 很多教程照抄会失败，原因就在这。
+:::
+
+## docker
+
+- 安装看[官方文档](https://docs.docker.com/engine/install/ubuntu/)，或本目录的[docker记录](./docker.md)
+
+- 拉镜像的网络问题**只看上面那一节**（给 dockerd 配代理），不要再配镜像加速源
+
+- 仓库里的 compose 在 `apps/server/docker/docker-compose.dev.yml`，起来即可：
+
+```bash
+sudo docker compose -f apps/server/docker/docker-compose.dev.yml up -d
+```
+
+:::tip
+现在用户不在 `docker` 组，所以要么前面加 `sudo`，要么执行一次
+`sudo usermod -aG docker $USER` 再重新登录 WSL。
 :::
 
 ## redis
@@ -134,6 +228,12 @@ curl -x http://$WIN_IP:7897 -I https://www.google.com
 ## mongodb
 
 - 同理，bitnami的replicaset镜像，提供好的环境变量直接使用就行，看[这里](https://github.com/bitnami/containers/blob/main/bitnami/mongodb/README.md)
+
+:::warning
+Bitnami 在 2025 年把大部分免费镜像搬去了 `bitnamilegacy`（不再更新）。本页用的
+`bitnami/mongodb` / `bitnami/redis` 目前仍在正常更新，但哪天 `latest` 报 `manifest unknown` 了，
+就是这件事 —— 换 `bitnamilegacy/<name>` 或改用官方 `mongo` / `redis` 镜像。
+:::
 
 - 连接串
 
@@ -153,73 +253,5 @@ windows主机的`hosts`(C:\Windows\System32\drivers\etc)文件需要配置一下
 
 ## 完整docker-compose.yml
 
-```yml
-services:
-  dev-mongodb-primary:
-    image: docker.io/bitnami/mongodb:latest
-    restart: always
-    container_name: dev-mongodb-primary
-    environment:
-      - MONGODB_ADVERTISED_HOSTNAME=dev-mongodb-primary
-      - MONGODB_REPLICA_SET_MODE=primary
-      - MONGODB_ROOT_USER=root
-      - MONGODB_ROOT_PASSWORD=123456
-      - MONGODB_REPLICA_SET_KEY=replicaset
-    volumes:
-      - 'mongodb_master_data:/bitnami/mongodb'
-    ports:
-      - 27017:27017
-
-  dev-mongodb-secondary:
-    image: docker.io/bitnami/mongodb:latest
-    restart: always
-    container_name: dev-mongodb-secondary
-    depends_on:
-      - dev-mongodb-primary
-    environment:
-      - MONGODB_REPLICA_SET_MODE=secondary
-      - MONGODB_ADVERTISED_HOSTNAME=dev-mongodb-secondary
-      - MONGODB_INITIAL_PRIMARY_HOST=dev-mongodb-primary
-      - MONGODB_INITIAL_PRIMARY_ROOT_USER=root
-      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=123456
-      - MONGODB_REPLICA_SET_KEY=replicaset
-      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
-    ports:
-      - 27027:27017
-
-  dev-mongodb-arbiter:
-    image: docker.io/bitnami/mongodb:latest
-    restart: always
-    container_name: dev-mongodb-arbiter
-    depends_on:
-      - dev-mongodb-primary
-    environment:
-      - MONGODB_REPLICA_SET_MODE=arbiter
-      - MONGODB_ADVERTISED_HOSTNAME=dev-mongodb-arbiter
-      - MONGODB_INITIAL_PRIMARY_HOST=dev-mongodb-primary
-      - MONGODB_INITIAL_PRIMARY_ROOT_USER=root
-      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=123456
-      - MONGODB_REPLICA_SET_KEY=replicaset
-      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
-    ports:
-      - 27037:27017
-
-  redis:
-    restart: always
-    container_name: dev-single-redis
-    image: docker.io/bitnami/redis:latest
-    environment:
-      - ALLOW_EMPTY_PASSWORD=no
-      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
-      - REDIS_PASSWORD=123456
-    ports:
-      - 6379:6379
-    volumes:
-      - redis_data:/bitnami/redis/data
-
-volumes:
-  mongodb_master_data:
-    driver: local
-  redis_data:
-    driver: local
-```
+见仓库里的 `apps/server/docker/docker-compose.dev.yml`（唯一真源 —— 本页曾复刻一份 70 行的副本，
+已删除：两处必然会漂移）。启动命令在上一节。
