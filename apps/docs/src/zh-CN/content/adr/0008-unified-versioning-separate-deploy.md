@@ -43,5 +43,5 @@ The question: when a tag is pushed, should everything deploy together or indepen
 - `deploy.yml` is reusable (`workflow_call`, called by `release.yml`) and manually dispatchable (`workflow_dispatch`) for rollback — no `dorny/paths-filter` needed
 - Backend, nginx, and frontend ship as Docker images to TCR (`ccr.ccs.tencentyun.com`); the server runs them via `docker compose` (`deploy/docker-compose.yml`)
 - Tag `v1.19.0` triggers `release.yml`, which runs the quality gates in parallel with the image builds, creates the GitHub Release from the tag's committed `changelog-latest.md`, and then chains `deploy.yml` — a tag push therefore deploys automatically; the same tag can be re-deployed later by dispatching `deploy.yml`
-- The tag half of the chain (image builds → TCR → served containers) is only as verified as its last real run; the open verification checklist lives in [架构待办事项 P1-16](/content/monorepo/architecture-todo)
+- The tag half of the chain (image builds → TCR → served containers) is only as verified as its last real run; the open verification checklist lives in [架构待办事项：tag 发布链路端到端验证](/content/monorepo/architecture-todo)
 - Docs has no deploy job in `deploy.yml` — the docs site deploys independently (VitePress static site)

@@ -34,7 +34,7 @@ versioning:
 > `tooling` 那 6 个是 `@walnut/tsconfig` / `@walnut/eslint-config` / `@walnut/commitlint-config` /
 > `@walnut/vitest-config` / `@walnut/scripts` / `@walnut/release`（前五个 2026-09-23 由
 > `@walnut/tooling` 单包拆分而来、见 [ADR 0019](/content/adr/0019-tsconfig-presets-and-no-mjs)，
-> `vitest-config` 同日为待办 P3-14 新增）。
+> `vitest-config` 同日新增）。
 
 ### 为什么是「一组」而不是历史上的「Apps 组 + Packages 组」
 

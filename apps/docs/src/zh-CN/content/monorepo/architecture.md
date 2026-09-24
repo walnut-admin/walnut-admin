@@ -41,7 +41,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | 纯函数工具（不碰 DOM、不碰 Vue） | `@walnut/utils` | `packages/platform-any/utils-core/src/` | 目标是**后端也能以 CJS 消费** ⇒ 引 Vue/DOM 就出界（ADR 0006）；必须补测试 |
 | 浏览器工具 / Vue composable | `@walnut/client` | `packages/platform-web/client/src/` | 仅浏览器；Vue / pinia 是 peerDependency |
 | HTTP 适配器 / 拦截器 | `@walnut/http` | `packages/platform-web/http/src/` | 包名是 `@walnut/http`（旧名 axios） |
-| 可复用 UI 组件 | `@walnut/ui` | `packages/platform-web/ui/src/<Name>/{index.ts,index.vue}` | **只有「零 app 依赖 + 已被 ≥2 处复用」才迁**（待办 A7 / 评审的 D5），否则先留在 `apps/admin/src/components` |
+| 可复用 UI 组件 | `@walnut/ui` | `packages/platform-web/ui/src/<Name>/{index.ts,index.vue}` | **只有「零 app 依赖 + 已被 ≥2 处复用」才迁**（判据见[架构待办](/content/monorepo/architecture-todo)的「`@walnut/ui` 剩余组件」），否则先留在 `apps/admin/src/components` |
 | 只属于 admin 的组件 / store / 页面 | `apps/admin` | `src/components/**`、`src/store/modules/**`、`src/views/**` | 组件一律 `index.ts`（导出）+ `index.vue`（实现）；API 函数以 `API` 结尾 |
 | 后端接口 | `apps/server` | `apps/api/src/modules/<domain>/` | 一模块一套 module / controller / service / basic.repository，规则见 `apps/server/AGENTS.md` |
 | 后端内部共享能力 | `apps/server/libs/<x>` | 新建 lib 或在既有 9 个里加 | 它们**不是** workspace 包，走 tsconfig `paths`，namespace `@walnut-server/*`（ADR 0007） |

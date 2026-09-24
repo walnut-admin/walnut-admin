@@ -28,7 +28,7 @@
 | **`@walnut/types`** | 纯 ambient 类型声明（`universal` / `storage` / `deep-ref` / `object-key`），零运行时。子路径 `@walnut/types/<name>` 与根导出 `@walnut/types` 都可用 |
 | **`@walnut/client`** | 仅浏览器的代码：Web Crypto 封装、文件工具、window 帮助函数、持久化存储、Vue composables、store 工厂。源码直消费，无构建 |
 | **`@walnut/http`** | 基于 Axios 的 HTTP 客户端框架：instance、拦截器、适配器（cache / retry / throttle / cancel / merge）。**原名 `@walnut/axios`**（2026-07 更名） |
-| **`@walnut/ui`** | 基于 naive-ui 的组件。**目前只有 3 个**（`Switch` / `DynamicTags` / `TimePicker`），迁移仍在进行（待办 A7） |
+| **`@walnut/ui`** | 基于 naive-ui 的组件。**目前只有 3 个**（`Switch` / `DynamicTags` / `TimePicker`），迁移仍在进行（见待办表的「`@walnut/ui` 剩余组件」） |
 | **`@walnut/tsconfig`** | 纯 JSON 的 tsconfig 预设：`base` / `ts` / `vue`，按**运行环境**而不是「项目 vs 库」分（ADR 0019） |
 | **`@walnut/scripts`** | 仓库级脚本的通用层：`lib/`（纯逻辑，供其它工具包复用）、`ci/`（仓库门禁）、`env/`（加解密），以及若干 bin。**只导出 `lib/*`**，`ci/` 与 `env/` 刻意不导出 |
 | **`@walnut/release`** | 发版编排（`src/release/`），唯一 bin 是 `walnut-release`（根 `pnpm release`） |
