@@ -308,7 +308,7 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
    * 交互前提**在任何写操作之前**一次性判掉。
    *
    * 为什么不能留给各交互点自己判：`--yes` 若在总览那一步才判，那一步跑在 `pnpm version -r`
-   * （= 会改写 12 个 manifest）**之后** —— 非交互缺 flag 属**用法问题**，必须挡在动仓库之前。
+   * （= 会改写所有包的 manifest）**之后** —— 非交互缺 flag 属**用法问题**，必须挡在动仓库之前。
    * 只读入口（`--status` / `--plan` / `--intent-only` / `--dry-run`）不在此列：它们本来就不写盘。
    */
   if (!args.intentOnly && !args.dryRun && !isInteractive()) {

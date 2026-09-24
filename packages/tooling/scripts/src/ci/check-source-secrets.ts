@@ -5,7 +5,7 @@
  *
  * 2026-09-23，`check-dist-secrets`（产物侧）已经把「产物里有没有机密」看住了，
  * 但**没有任何东西扫源码与夹具**。于是我在一个测试夹具里写了腾讯云文档上那个样本 SecretId
- * （`AKID` + 32 位），14 段 prepush 门禁 + 300 多个用例**全绿**，直到 `git push` 被
+ * （`AKID` + 32 位），当时 14 段 prepush 门禁 + 300 多个用例**全绿**，直到 `git push` 被
  * **GitHub 服务端的 push protection** 拦下 —— 整条 push 被拒：
  *
  * ```text
