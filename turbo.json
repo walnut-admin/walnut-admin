@@ -1,26 +1,24 @@
 {
   // ─────────────────────────────────────────────────────────────────────────────
-  // 缓存边界（改哪个文件会让哪个 task 的缓存失效）—— 完整判据表见
+  // 缓存边界（改哪个文件会让哪个 task 的缓存失效）：完整判据表见
   // apps/docs/src/zh-CN/content/monorepo/turbo-cache-boundary.md
   //
-  // 全部结论都是**实测**出来的，方法固定可重跑：
-  //   pnpm exec turbo run <task> --dry=json   →  比对各 task 的 hash
-  //   `--dry=json` 还会给出每个 task 的 `inputs`（文件 → 内容哈希）与
-  //   `globalCacheInputs`（全局哈希的构成），是这条边界的唯一真源。
-  // 机械门禁：`pnpm lint:turbo-cache`（walnut-check-turbo-cache）。
+  // 判据的唯一真源是**跑出来的**，不是我们对配置的二次解读：
+  //   pnpm exec turbo run <task> --dry=json → 比对各 task 的 hash；它同时给出每个 task 的
+  //   `inputs`（文件 → 内容哈希）与 `globalCacheInputs`（全局哈希的构成）。
+  // 机械门禁：`pnpm lint:turbo-cache`（walnut-check-turbo-cache），push 前 / CI / 发版三处都跑。
   //
-  // 三条最容易踩的（都是实测结论，不是推测）：
-  //   ① 本仓所有共享包都是**源码直消费**（`exports` 指 `./src/**`），所以「依赖包源码变了」
-  //      必须让下游的 `types:check` 失效 —— 这就是下面 `transit` 任务存在的原因。
-  //   ② 产物目录必须逐个进 `outputs`：漏一个的后果不是报错，而是**缓存命中时静默不产出**。
-  //      2026-09-23 实测：`pnpm build:stage` 删掉 `apps/admin/dist-staging` 后再跑，
-  //      turbo 报 `FULL TURBO / 1 successful / exit 0`，而盘上**一个文件都没有**。
-  //   ③ 根 `turbo.json` 本身按**解析后的语义**进哈希，不按文本：加一条匹配不到任何文件的
-  //      `!**/__never__/**` 排除，实测 0 个 task 失效；而真改 `inputs`/`outputs` 会失效。
+  // 三条最容易踩的：
+  //   ① 共享包是**源码直消费**（`exports` 指 `./src/**`）⇒「依赖包源码变了」必须让下游的
+  //      `types:check` 失效 —— 这就是下面 `transit` 任务存在的原因。
+  //   ② 产物目录必须逐个进 `outputs`：漏一个的后果不是报错，而是**缓存命中时静默不产出**
+  //      （turbo 照报 `FULL TURBO` + exit 0，而盘上一个文件都没有）。
+  //   ③ 根 `turbo.json` 按**解析后的语义**进哈希、不按文本：加一条匹配不到任何文件的排除 glob
+  //      不会让任何 task 失效，而真改 `inputs` / `outputs` 会。
   // ─────────────────────────────────────────────────────────────────────────────
   "$schema": "https://turbo.build/schema.json",
-  // ── 本地缓存的自动回收（Turbo 2.10+；本仓 2026-09-23 从 2.9.14 升到 2.11.2 才拿到）──────
-  // 以前 `.turbo/cache` 只涨不落，得手工清。这两个上限让它随用随回收。
+  // ── 本地缓存的自动回收（Turbo 2.10+）──────────────────────────────────────────
+  // 上限到了随用随回收，不必再手工清 `.turbo/cache`。
   "cacheMaxAge": "14d",
   "cacheMaxSize": "5GB",
   // 并发上限。**Turbo 的默认值是 10** —— 本仓 12 核，而 `test` 任务下每个 vitest 进程默认
@@ -52,12 +50,8 @@
       }
     }
   },
-  // 全局哈希的构成（任何一条变了 → 全部 task 失效）。三块：
-  //   a. 这些文件的内容
-  //   b. `globalEnv` 里变量的值
-  //   c. **内部依赖哈希** —— 根 `package.json` 依赖到的那几个 workspace 包，其源码内容也算全局输入
-  //      （实测：改 `packages/tooling/{eslint-config,release,scripts}` 的任一 .ts → 75 个 task 全失效；
-  //      而它们的 package.json / tsconfig.json / turbo.json / README.md 只影响自己那几段）
+  // 全局哈希的构成（任何一条变了 → 全部 task 失效）：这些文件的内容 + `globalEnv` 的值 +
+  // **内部依赖哈希**（根 `package.json` 依赖到的 workspace 包，其源码内容也算全局输入）。
   // 想缩小失效面就别往这里加；想扩大覆盖面优先考虑 `transit`，而不是继续堆全局条目。
   "globalDependencies": [
     "package.json",
@@ -69,24 +63,16 @@
     "packages/tooling/tsconfig/*.json",
     "packages/tooling/vitest-config/*.ts"
   ],
-  // ⚠️ `NODE_ENV` **刻意不放在 `globalEnv`**（2026-09-23 裁决）。
-  //
-  // 它必须**可见** —— Turbo 的严格模式会剥离未声明的变量，而 `NODE_ENV` **不在** Turbo 的
-  // 内置放行名单里（实测：不声明就会被剥成 undefined）。所以它留在这里。
-  //
-  // 但它**不该进哈希**：没有任何 task 的**产物**取决于外部传进来的这个值 ——
-  //   · `@walnut/server` 的 build / build:stage 由脚本自己 `cross-env NODE_ENV=…` 设定；
-  //   · `@walnut/admin` 走 `vite build`，Vite 自己强制 production、vitest 自己强制 test；
-  //   · `@walnut/docs` 走 `vitepress build`，同理。
-  // 放进 `globalEnv` 的实测代价：`NODE_ENV=production` 与 `NODE_ENV=development` 跑同一份代码
-  // → **90 个 task 全部失效**（2026-09-23 干跑实测），白扔一整轮缓存。
+  // ⚠️ `NODE_ENV` **刻意不放在 `globalEnv`**：它必须**可见**（Turbo 的严格模式会剥离未声明的
+  // 变量，而它不在内置放行名单里），但**不该进哈希** —— 没有任何 task 的**产物**取决于外部传进来
+  // 的这个值（server 的 build 由脚本自己 `cross-env` 设定；Vite / Vitest / VitePress 各自强制
+  // 自己的值）。放进 `globalEnv` 的代价是**整轮缓存作废**。
   // 判据可重跑：`NODE_ENV=a pnpm exec turbo run build --dry=json` 与 `NODE_ENV=b …` 比 hash，
-  // 现在应当**一个都不变**。
+  // 应当一个都不变。
   "globalPassThroughEnv": [
     "CI",
     "NODE_ENV",
-    // ⚠️ 这三个是 `eslint-plugin-turbo` 的 `no-undeclared-env-vars` 上线时**当场抓出来的真缺口**
-    // （2026-09-23，全仓仅有 3 条命中，都在 `@walnut/scripts`）：
+    // ⚠️ 这三个是 `eslint-plugin-turbo` 的 `no-undeclared-env-vars` 抓出来的真缺口（都在 `@walnut/scripts`）：
     //   · `npm_execpath` —— `lib/pnpm-launcher.ts` 靠它定位 pnpm 的真 exe。
     //     被严格模式剥掉 ⇒ 退化成「找不到 pnpm」，且报错信息只会说找不到命令。
     //   · `PATH` —— 同上那条查找路径的后备。
