@@ -47,14 +47,12 @@
 
 > ### 📌 还剩哪些（一眼版）
 >
-> **已经全部落地**：**A1–A4**（立刻做）· **B1–B5**（值得做）· **C2 / C3 / C5**（结构性三项里的三项）。
+> **已经全部落地**：**A1–A4**（立刻做）· **B1–B5**（值得做）· **C1 / C2 / C3 / C4 / C5**（结构性五项全做完）。
 >
-> **还没做的只有三条**（都登记在[架构待办事项](./architecture-todo)里，按 id 搜）：
+> **还没做的只剩一条**（登记在[架构待办事项](./architecture-todo)里，按 id 搜）：
 >
 > | 剩什么 | 待办表里的 id | 为什么现在没做 |
 > |---|---|---|
-> | **C1 命令行公共层** | `P3-23` | 大，而且**有绑定项**：改输出层就必须同时换掉 `bin/*.ts` 那批 `process.exit` |
-> | **C4 turbo 缓存跨 CI run** | `P3-24` | 前置未满足：**必须先确认 hash 覆盖面**，否则缓存会静默回放旧结论 |
 > | **F 组两条业务代码观察** | `P3-25` | 要改 `apps/admin/src`，在本轮范围铁律之外（只登记不动手） |
 >
 > **决定不做**：**B6**（后端 i18n key 集合门禁）—— 理由与**解冻条件**见 §五 的 Q5。
@@ -92,10 +90,10 @@
 
 | # | 事项 | 说明 |
 |---|------|------|
-| C1 | **命令行公共层** | Z 有 `verdict`（三态退出码归一）／`gate-ui`（`unmet()` 抛前置条件错）／`argv`（统一参数解析）／`errors` 基类 + 唯一映射。我们：**每道门禁各抄一遍 `return 2/0/1`**、**一批裸 `console.*`**（调研时数到 12 个文件 50 处，Z 对应层只有 2 处）。⚠️ **有绑定项**：若输出层走 `stream.write`，必须同时把 `bin/*.ts` 那批 `process.exit(main())` 换掉，否则会复现 Z 记录过的「管道下退出码对、拒绝理由一个字没出来」 |
+| C1 | **命令行公共层** ✅ **已做**（`lib/cli.ts` 的 `runCli` + 门禁全部改走 `lib/log.ts`） | Z 有 `verdict`（三态退出码归一）／`gate-ui`（`unmet()` 抛前置条件错）／`argv`（统一参数解析）／`errors` 基类 + 唯一映射。**⚠️ 初稿的描述要更正**：本仓**那一层大半本来就有** —— `lib/log.ts`（TTY/管道两条正确路径）与 `lib/errors.ts`（`PreconditionError` 广泛使用），真正的缺口是「**门禁没在用它**」：12 个文件 77 处裸 `console.*`，失败还是 `return 1/2` + 自己打印，而 **`ViolationError` 定义了却全仓零使用（死类）**。落地：`runCli` 成为**错误→退出码的唯一映射点**（0/1/2 + 其它异常→1），15 个 bin 从 `process.exit(main())` 改为 `await runCli(main)`，门禁改成**抛错 + 打明细**、结语由 `runCli` 统一。⚠️ **初稿说的绑定项（改输出层就必须同时换掉 `process.exit`）已一并处理** —— 而且方向正好相反：`log.ts` 在管道下走**同步**写，所以真正要消除的是 `console.*` 的异步路径 |
 | C2 | **包标准的机械门禁（最小骨架）** ✅ **tags 与 `exports-shape` 已做** | Z 有 **22 条**机械规则（`turbo-tags` / `exports-shape` / `script-matrix` / `package-json-fields` / 目录索引双向对账 …）。本仓不是 0 条（见上方更正）：`lint:turbo-cache` 已有 8 条不变量，其中第 1 条就是「每个包 `turbo.json` 的 `extends` + tags」；2026-09-23 又补了 `exports-shape`（`pnpm lint:exports`，四条不变量：目标存在 / 通配命中 / `types` 条件在前 / 与顶层 `main`·`types` 不矛盾）—— 本仓共享包**不构建就被消费**，`exports` 写错 = 解析到别的入口或类型静默丢失，而这一面此前零判据。**剩下的候选**：`script-matrix`、`package-json-fields`、目录索引双向对账 |
 | C3 | **根脚本白名单** ✅ **已做（只搬前两段）** | 根脚本（调研时 43 条，现已 46 条）零约束。Z 用「白名单 + 形态正则 + 理由」三件套。落地时**只搬「名字形态 + 值里不许有 shell 连接子」**，并只对 `lint:*` 收了紧 —— 全量白名单会变成一份要不停维护的名单（本仓根脚本合法地直接调 `tsc` / `rimraf` / `syncpack` / `docker` / `cross-env`） |
-| C4 | **turbo 缓存跨 CI run** | 实测全仓无 `actions/cache`。⚠️ **风险**：key 设计错会命中陈旧缓存 ⇒ 反而静默跳过门禁，必须先确认 hash 覆盖面 |
+| C4 | **turbo 缓存跨 CI run** ✅ **已做**（`ci.yml` 的 quality job，只缓存质量门） | 实测全仓无 `actions/cache`。**落地时把方案换了一个范围，ROI 完全不同**：整份 `.turbo/cache` 是 **385 MB**（build 产物占绝大部分，搬运费吃掉收益），而**只缓存质量门**（lint / types:check / test，它们的 `outputs` 是空的）只要 **0.1 MB** —— 实测冷跑 **144s → 命中 0.13s**（43/43 `FULL TURBO`）。⚠️ 初稿那条风险**比想的低**：turbo 的条目**按 task hash 校验**，恢复到不匹配的只会 miss、不会误用；而且本仓**每次 push 都在用同一套**（prepush 的 `turbo run lint:root` / `types:check` 本来就命中本地缓存）。真正决定"会不会误用"的是 **hash 覆盖面** —— 那正是 `lint:turbo-cache` 那组不变量的职责。**前提实测**：CI 注入的 `CI` / `TURBO_SCM_BASE` / `TURBO_SCM_HEAD` / `GITHUB_ACTIONS` 都不改变 task hash。详见 [Turbo 缓存边界](./turbo-cache-boundary) 第七节 |
 | C5 | **本地 ESLint 规则** ✅ **已做（两条）** | Z 有 13 条 + 每条配 RuleTester 正反语料。落地取「本仓有成文约定却零判据」的两条：`script-header` 与 `script-exit-code`（0/1/2 三态）。⚠️ **初稿那句「存量已满足、上线即绿」对 `script-header` 是错的** —— 登记时逐个数过：`bin/*.ts` **一个 JSDoc 文件头都没有**；落地实测 13 个 bin 里 2 个连注释都没有，已补。退出码那条实测 1515 个文件零违规，确实上线即绿 |
 
 ### D. 参考仓更弱：**不要反向学**（无需动作）
