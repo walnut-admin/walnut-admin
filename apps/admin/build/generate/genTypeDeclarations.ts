@@ -17,17 +17,18 @@
  * 由 `pretypes:check` 调用（`dev` / `build` 本来就跑 vite，插件自己会写，不用重复跑）。
  */
 import { resolve } from 'node:path'
-import process from 'node:process'
 import { build } from 'vite'
 
 import { autoImportDtsPath, componentsDtsPath } from '../utils/paths.ts'
 import { createAutoImportPlugin } from '../vite/plugin/auto-import.ts'
 import { createComponentPlugin } from '../vite/plugin/component.ts'
 
-const root = process.cwd() // 由包脚本调用 ⇒ cwd 就是 apps/admin（与 genJSONSchemas.ts 同口径）
+/** ⚠️ 从**本文件位置**推根，不看 cwd —— 这个脚本也会被 `pre*` 钩子以外的方式调用（手跑、调试） */
+const root = resolve(import.meta.dirname, '../..')
 const STUB = 'virtual:dts-gen'
 
-async function main() {
+/** 生成两个 unplugin 的 dts（由 `build/generate/index.ts` 统一调用） */
+export async function generateTypeDeclarations() {
   await build({
     configFile: false,
     root,
@@ -59,9 +60,3 @@ async function main() {
 
   console.log(`✅ 生成完成：${autoImportDtsPath} / ${componentsDtsPath}（生成物，不进 git）`)
 }
-
-// 不吞异常：失败时把错误打出来并以非零退出（`pretypes:check` 掛了就整条 types:check 红）
-main().catch((error: unknown) => {
-  console.error('生成声明文件失败：', error)
-  process.exitCode = 1
-})

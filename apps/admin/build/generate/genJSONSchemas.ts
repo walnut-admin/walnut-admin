@@ -12,9 +12,8 @@ const config: import('ts-json-schema-generator/dist/src/Config').Config = {
   type: 'IStoreSetting.Dev', // Or <type-name> if you want to generate schema for that one type only
 }
 
-const shapeSchema = TJS.createGenerator(config).createSchema(config.type)
-  ;(async () => {
-  const newData = JSON.stringify(shapeSchema, null, 2)
-
-  await BuildUtilsWriteFile(AppSettingsDevJSONSchemaFilePath, newData)
-})()
+/** 生成 `.vscode/settings-dev.schema.json`（由 `build/generate/index.ts` 统一调用） */
+export async function generateJSONSchemas() {
+  const shapeSchema = TJS.createGenerator(config).createSchema(config.type)
+  await BuildUtilsWriteFile(AppSettingsDevJSONSchemaFilePath, JSON.stringify(shapeSchema, null, 2))
+}
