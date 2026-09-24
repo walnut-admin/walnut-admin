@@ -231,6 +231,20 @@ apps/server/libs/
 
 这些 lib 通过 `apps/server/tsconfig.json` 的 `paths` 映射解析，由 NestJS CLI + SWC 统一编译。它们**不参与** pnpm workspace，不通过 `package.json` `exports` 消费。为什么这样：[ADR 0007](../adr/0007-backend-libs-not-workspace.md)。
 
+## 现状 / 待办 / 历史 的分工
+
+三件事各有一个家，**别互相抄**（「一个事实一个家」）：
+
+| 想知道 | 去哪 |
+|---|---|
+| **现在是什么样** | 本页 + `monorepo/` 下的各专题页（`package-scripts` / `turbo-cache-boundary` / `ci-cd` / `release` / `doc-conventions` …） |
+| **还剩什么没做** | [架构待办事项](./architecture-todo) —— 每条都写清「为什么现在不能做」与解冻条件，条目**不带编号**（用名字） |
+| **做过什么** | 归档的[执行记录与核实记录](/content/archive/2026-09-24-architecture-ledger-history)（2026-09-24 从待办页搬出来冻结，待办页因此从 116 KB 降到 ~27 KB） |
+
+> 判据：**当前状态**写成可核对的断言（或一条能重跑的判据），**待办**写成「解冻条件」，
+> **历史**只在归档里叙事。三处都不要写会腐烂的计数（包数 / bin 数 / 门禁段数）——
+> 那类数字没有门禁拦得住，2026-09-24 实测抓到 4 处已经不准的。
+
 ## 相关 ADR
 
 - [ADR 0002 双模式消费](../adr/0002-dual-mode-consumption.md) ｜ [ADR 0004 直接消费 contract](../adr/0004-direct-contract-consumption.md) ｜ [ADR 0005 JIT vs 构建](../adr/0005-jit-vs-build.md)
