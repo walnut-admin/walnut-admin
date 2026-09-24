@@ -33,8 +33,11 @@ Tailwind v3 兼容）· Pinia · Vue Router（web history）· Vue I18n
   但 **admin 侧 26 个 store 文件目前 0 处使用**（待办 A10）—— 新 store 请优先用它，别再复制模式。
 - 仓库级的组件与 store 约定见根 [`AGENTS.md`](../../AGENTS.md) 的「关键纪律」8 / 9。
 
-## 两个容易踩的生成物
+## 三个容易踩的生成物
 
+- **两个 unplugin 的 dts（`types/generated/`，已 gitignore）**：由
+  `pretypes:check` → `build/generate/genTypeDeclarations.ts` 生成；`dev`/`build` 里插件也会写。
+  ⚠️ 以前它们被跟踪且 ignore 规则失效 ⇒ **每次 `pnpm dev` 都弄脏工作区**。
 - **`predev` 会跑 `node build/generate/genJSONSchemas.ts`**：从 `src/store/types.d.ts` 的
   `IStoreSetting.Dev` 生成 `.vscode/settings-dev.schema.json`（**该文件在仓库里，且生成结果确定**）。
   改了 store 的 setting 类型，schema 要跟着重新生成。

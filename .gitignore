@@ -16,8 +16,13 @@ dev-dist/
 *.tsbuildinfo
 
 # Auto-generated
-types/auto-import.d.ts
-types/components.d.ts
+# ⚠️ 与下面 `report/` 那条同一个坑：带斜杠的模式**锚定到本文件所在目录**。原来这里写的是
+# `types/auto-import.d.ts` —— 锚定的是**仓库根**（那里没有 types/），而文件其实在
+# `apps/admin/types/` 下 ⇒ 两条规则**一条都没生效**（`git check-ignore` 无输出），
+# 于是它们既没被忽略、又被 git 跟踪，每次 `pnpm dev` 重写都把工作区弄脏。
+# 现在生成物统一落到 `apps/admin/types/generated/`（生成器 `build/generate/genTypeDeclarations.ts`，
+# 由 `pretypes:check` 调用），规则写成**从仓库根出发的路径**，锚定语义与预期一致。
+apps/admin/types/generated/
 
 # Build generated
 build/_generated/*.ts

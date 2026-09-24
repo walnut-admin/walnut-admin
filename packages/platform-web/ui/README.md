@@ -82,7 +82,7 @@ const props: Partial<ICompUISwitchProps> = {
 - **`/* @vue-ignore */` 这个 hack 还在（TODO 000）**：三个组件的 props 接口都带 `// TODO 000`，指向根 `TODO.md` 的 000 条 —— 被 `@vue-ignore` 跳过的那部分**不会进运行时的 `props` 声明**，只能靠 `inheritAttrs` 默认 true 兜着，所以对 `inheritAttrs: false` 的组件会静默失效（`UI/Tree` 就是因此换成了「收一个 `treeProps`」的写法）；Vue 3.5.34 与 3.5.40 的编译器行为一致，没有版本级修复可等。
 - **包内没有自注册**：组件要被 `<WDynamicTags>` 这样用，依赖的是 app 侧 resolver 里那条**相对路径** glob（`apps/admin/build/vite/plugin/component.ts`）—— 本包自己没有注册入口，ADR 0017 §6 把「或由 package 内部自注册」留作未决项。
 - **零测试**：`package.json` 没有 `test` 脚本，包内也没有 `vitest.config.ts`，`turbo test` 会整包跳过它；ADR 0015 的覆盖率表里也没有 ui 这一档。
-- **三个组件只有 `DynamicTags` 有真实消费者**：app 侧唯一的用法是 `apps/admin/src/views/demo/UI/DynamicTags.vue`（自动注册的 `<WDynamicTags v-model:value="…" />`，`types/components.d.ts` 里也只登记了它），`Switch` / `TimePicker` 目前只有文档页示例。
+- **三个组件只有 `DynamicTags` 有真实消费者**：app 侧唯一的用法是 `apps/admin/src/views/demo/UI/DynamicTags.vue`（自动注册的 `<WDynamicTags v-model:value="…" />`，`apps/admin/types/generated/components.d.ts` 里也只登记了它），`Switch` / `TimePicker` 目前只有文档页示例。
 
 ## 相关
 

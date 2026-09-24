@@ -36,6 +36,7 @@
     "lint": "cross-env NODE_OPTIONS=--max-old-space-size=8192 eslint . --concurrency=auto",
     "lint:fix": "cross-env NODE_OPTIONS=--max-old-space-size=8192 eslint . --fix --concurrency=auto",
     "types:check": "vue-tsc --noEmit",
+    "pretypes:check": "node build/generate/genTypeDeclarations.ts",
     "types:check:log": "node build/types.ts",
     "clean:cache": "rimraf node_modules/.vite",
     "clean:lib": "rimraf node_modules",

@@ -1,5 +1,7 @@
 import AutoImport from 'unplugin-auto-import/vite'
 
+import { autoImportDtsPath } from '../../utils/paths.ts'
+
 export function createAutoImportPlugin() {
   return AutoImport({
     include: [
@@ -9,7 +11,7 @@ export function createAutoImportPlugin() {
       /\.md$/, // .md
     ],
 
-    dts: 'types/auto-import.d.ts',
+    dts: autoImportDtsPath,
 
     // Auto import for module exports under directories
     // by default it only scan one level of modules under the directory

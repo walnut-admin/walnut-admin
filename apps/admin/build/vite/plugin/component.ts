@@ -3,6 +3,8 @@ import { globSync } from 'tinyglobby'
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
 import Components from 'unplugin-vue-components/vite'
 
+import { componentsDtsPath } from '../../utils/paths.ts'
+
 function WalnutAdminComponentResolver(): ComponentResolver {
   // 扫描 admin 内部组件
   const allComponents = globSync('src/components/**/**/index.ts', { dot: true })
@@ -44,7 +46,7 @@ export function createComponentPlugin() {
       /\.md$/, // .md
     ],
 
-    dts: 'types/components.d.ts',
+    dts: componentsDtsPath,
 
     deep: false,
 
