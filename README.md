@@ -59,11 +59,13 @@ walnut-admin/
 ```bash
 pnpm install
 
-# Start individual apps
-pnpm dev           # 前端（= turbo dev --filter=@walnut/admin）→ http://127.0.0.1:3100
-pnpm dev:server    # 后端  → 需要 MongoDB replica set + Redis
-pnpm dev:docs      # 文档站 → http://localhost:8886
-pnpm dev:all       # 三个一起起
+# Start dev servers
+pnpm dev           # 前端 + 后端（前端 → http://127.0.0.1:3100；后端需 MongoDB replica set + Redis）
+pnpm dev:server    # 只起后端
+pnpm dev:docs      # 只起文档站 → http://localhost:8886
+
+# 只起前端（不需要 Mongo + Redis，也没有后端那一路的日志）
+pnpm exec turbo dev --filter=@walnut/admin
 
 # Build
 pnpm build         # 全量（packages → apps）

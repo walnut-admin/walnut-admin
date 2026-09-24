@@ -13,8 +13,8 @@
 - `pnpm encrypt-env` —— 改完密钥后把 `env-local/` 重新加密回 `env-encrypted/`
 
 `apps/server/env-local/` 是 gitignored 的。所以「改了 env 却不生效」的第一嫌疑永远是这个顺序问题：
-先 `setup-env`，并且**后端必须从 `apps/server/` 目录启动**（ConfigModule 用 `process.cwd()` 定位 env，
-在仓库根跑 `pnpm dev` 只会起前端）。
+先 `setup-env`，并且**后端必须从 `apps/server/` 目录启动**（ConfigModule 用 `process.cwd()` 定位 env；
+从仓库根起后端走 `pnpm dev` 或 `pnpm dev:server` —— 它们由 turbo 在 `apps/server/` 下执行，cwd 正确）。
 
 CI 里通过 GitHub Secret `ENV_KEYS`（内容就是 `.env.keys` 全文）自动解密；旧文档里的
 `DOTENVX_KEYS_FILE` 已废弃。

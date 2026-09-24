@@ -36,8 +36,7 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 // root package.json — 极薄的一层
 {
   "scripts": {
-    "dev": "turbo dev --filter=@walnut/admin",  // 默认只启前端
-    "dev:all": "turbo dev",                      // 全部启动
+    "dev": "turbo dev --filter=@walnut/admin --filter=@walnut/server",  // 前端 + 后端
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 turbo build",
     "lint": "turbo lint",                        // 各包的 lint 任务
     "lint:root": "eslint *.ts *.json *.yaml",    // 根级文件（配置层）单独一节
@@ -47,7 +46,7 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
     "test": "turbo test",                        // 2026-08-08 补齐
     "clean": "turbo clean",
 
-    // 单包便捷命令（`dev` 本身就等于 dev:admin，重复的那条已删除）
+    // 只起单个 app 的便捷命令
     "dev:server": "turbo dev --filter=@walnut/server",
     "dev:docs": "turbo dev --filter=@walnut/docs",
 

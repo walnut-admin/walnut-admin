@@ -66,8 +66,8 @@ packages/tooling/        tsconfig · eslint-config · commitlint-config · vites
 
 ```bash
 pnpm install          # 安装（pnpm 专用，由 packageManager 字段 + corepack 强制）
-pnpm dev              # 前端（= turbo dev --filter=@walnut/admin，http://127.0.0.1:3100；`dev:admin` 已删除）
-pnpm dev:server       # 后端（需 MongoDB replica set + Redis，从 apps/server 运行）
+pnpm dev              # 前端 + 后端（前端 3100；后端需 MongoDB replica set + Redis）
+pnpm dev:server       # 只起后端（从根经 turbo 跑，cwd 是 apps/server）
 pnpm dev:docs         # 文档站（http://localhost:8886）
 pnpm build            # 全量构建（packages → apps）
 pnpm build:stage      # admin stage 构建（turbo build:stage 任务）

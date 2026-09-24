@@ -66,7 +66,8 @@ pnpm test:cov         # 覆盖率
 pnpm test:e2e         # E2E（vitest.config.e2e.ts）
 ```
 
-⚠️ 后端的 `pnpm dev` **不能**在仓库根跑 —— 根 `dev` 只起前端（`turbo dev --filter=@walnut/admin`）。
+⚠️ 后端的**裸** `pnpm dev` 只能在 `apps/server/` 下跑。从仓库根起后端用 `pnpm dev:server`（或现在
+会同时起前后端的 `pnpm dev`）—— 它们由 turbo 在 `apps/server/` 下执行，`process.cwd()` 定位 env 正常。
 
 ## 跑起来需要什么
 
