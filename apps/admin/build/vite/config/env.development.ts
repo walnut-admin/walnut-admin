@@ -5,17 +5,14 @@ import { VITE_PROXY_VALIDATE, VITE_SHARED_CONFIG } from './shared'
 export default defineConfig({
   ...VITE_SHARED_CONFIG(),
 
-  // ⚠️ dev 下这两个**允许不配**（覆盖 shared 里那条必填）。判据是代码自己就是「没配也能跑」：
-  //   · `src/App/src/scripts/analytics.ts` 开头就是 `if (!import.meta.env.VITE_GA_ID) return`
-  //     —— 没有 GA 就不上报，是设计好的分支；
-  //   · Google 登录靠 GIS 的 `clientId` 为空时自然不启用。
-  //
-  // 而 `@julr/vite-plugin-validate-env` 对**键不存在**是**硬报错**，不是警告：
-  //   standardValidation → validator['~standard'].validate(env[key])
-  //   ⇒ env[key] 是 undefined 就 `Failed to validate environment variables
-  //     … Invalid value for "VITE_GA_ID" : expected string, received undefined`
-  //   ⇒ dev server 直接起不来（页面打不开）。
-  // 留成空值（`VITE_GA_ID=`）能过校验，但没人该为了"能启动"而在本地保留两行空配置。
+  // dev 下这两个**允许不配**（覆盖 shared 里那条必填）：`@julr/vite-plugin-validate-env` 对
+  // **键不存在**是硬报错 —— standardValidation 只做 `validator['~standard'].validate(env[key])`，
+  // undefined 即 `Invalid input: expected string, received undefined` ⇒ dev server 起不来。
+  // 但「允许不配」≠「空着也能跑」，两者的实际后果不同：
+  //   · `VITE_GA_ID` 空着没事 —— `analytics.ts` 自己写着 `if (!…VITE_GA_ID) return`；
+  //   · `VITE_GOOGLE_CLIENT_ID` 空着会在**运行时**抛（`vue3-google-signin` 的 install() 见空即
+  //     `clientId is required to initialize`，调用点 `src/App/src/scripts/google-signin.ts`）。
+  // 这里放开的只是**启动校验**；要用 Google 登录，本地必须填真 client id。
   VITE_GA_ID: z.string().optional(),
   VITE_GOOGLE_CLIENT_ID: z.string().optional(),
 
