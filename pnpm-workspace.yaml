@@ -33,6 +33,19 @@ publicHoistPattern:
   - vscode-languageserver-types
   # vue-command-palette 产物 import 'vue'，其 package.json 既无 dependencies 也无 peer。
   - vue
+  # @nestjs-modules/mailer 的产物 require('lodash')（dist/mailer.service.js），
+  # 但它的 package.json 里 dependencies 只有 @css-inline/css-inline / glob / tslib ——
+  # lodash 只以 **devDependencies 的 `@types/lodash`** 出现（2.3.4 实测，类型进了依赖、运行时依赖漏了）。
+  # 少了它后端**每条启动路径都会挂在引导阶段**：auth → google → shared → welcome → mailer 这条链
+  # 一 import 就 `Cannot find module 'lodash'`（错误栈里只有 .pnpm 下的 mailer，看不出是谁漏声明）。
+  - lodash
+  # 阿里云 SDK 一族（同样只在产物里 require、package.json 里没有；后端 sms/aliyun 那条链一 import 就挂）：
+  #   · @alicloud/openapi-core@1.0.8 的 dependencies 写的是改名后的 @darabonba/typescript，
+  #     产物却仍 require 老名字 @alicloud/tea-typescript；
+  #   · @alicloud/credentials@2.4.5 的 dependencies 里没有 debug。
+  # 两条都是用「从 apps/server 编译产物出发走 require 图」扫出来的，不是猜的。
+  - '@alicloud/tea-typescript'
+  - debug
 
 # 拒绝"可信度下降"的版本：某包此前由可信发布者发布，现在只剩 provenance 或无可信证据时不安装。
 trustPolicy: no-downgrade
