@@ -65,27 +65,19 @@ jobs:
         run: pnpm boundaries
 
       # ── turbo 本地缓存（跨 run 持久化）──────────────────────────────────────────
-      # 缓存的**不是「哪几类任务」，而是「这条 job 里 turbo 跑过的一切」**（路径就是整个
-      # `.turbo/cache`）。所以范围由这条 job 跑什么决定，而不是由 key 决定。
+      # 缓存路径是**整个 `.turbo/cache`** ⇒ 缓存的是「**这条 job 里 turbo 跑过的一切**」，
+      # 而不是「哪几类任务」；范围由这条 job 跑什么决定。
       #
-      # ⚠️ 实测（2026-09-24）：质量门三类任务（lint / types:check / test）的 `outputs` 都是 `[]`，
-      # 条目只是「这个 hash 跑过且通过了」的元数据 ⇒ 归档是**几十 KB** 那一档。而 `Docs build`
-      # 那一步**也是 turbo 任务**、产物是真实文件（4.6 MB）⇒ 它落进来会让整份归档从几十 KB
-      # 涨到 4.7 MB，并随每次 docs 改动继续长（实测 4.7 MB → 9.8 MB）。**已用 `--cache-dir`
-      # 把它挡在外面**（见下面那一步），于是这份缓存重新只剩元数据。
+      # ⚠️ 这条 job 里跑的不止质量门：`Docs build` 也是 turbo 任务、产物 4.6 MB，**已用
+      # `--cache-dir` 把它挡在外面**（见那一步）—— 否则归档会从几十 KB 涨到 MB 级、并随每次
+      # docs 改动继续长。完整实测与取舍见 turbo-cache-boundary.md 第七节。
       #
-      # ⚠️ key 从 v1 换成 **v2**：v1 的归档里已经混着那批 docs 构建产物（最大一份 9.8 MB）。
-      # `restore-keys` 是**前缀匹配**，所以 key 与 restore-keys 必须**一起换**，
-      # 只换 key 照样会把 v1 那份拉回来。
+      # ⚠️ **key 必须 rolling**（带 `github.sha` + `restore-keys` 前缀）：`actions/cache` 只在
+      # key 不存在时保存 ⇒ 固定 key 会让缓存**冻在第一次写入那一版**，新条目永远进不去。
+      # 换 key 时 `restore-keys` 的前缀要**一起换** —— 它是前缀匹配，只换 key 照样会拉回旧的。
       #
-      # ⚠️ **key 必须 rolling**（带 `github.sha` + `restore-keys` 前缀），不能只用 lockfile 哈希：
-      # 固定 key 一旦写入就**冻在那一版**（actions/cache 只在 key 不存在时保存），
-      # 之后新产生的 task 条目永远进不去、命中率越用越低。
-      #
-      # 安全性：turbo 的缓存**按 task hash 校验** —— 恢复到不匹配的条目只会 miss、不会误用。
-      # 也就是说这不是新的风险类别，本仓本地每次 push 都在用同一套（prepush 的
-      # `turbo run lint:root` / `types:check` 就命中缓存）；真正的守卫是 **hash 覆盖面**，
-      # 那由 `pnpm lint:turbo-cache` 的不变量盯着（env 有没有声明、inputs 全不全）。
+      # 安全性：turbo 缓存**按 task hash 校验** ⇒ 恢复到不匹配的条目只会 miss、不会误用；
+      # 真正的守卫是 **hash 覆盖面**，由 `pnpm lint:turbo-cache` 的不变量盯着。
       - name: Restore turbo cache (quality gates)
         # v5 而不是 v4：v4 跑在 node20 上，而本仓已经在为 `actions/setup-node@v4` 收
         # 「Node.js 20 is deprecated」的告警 —— 别再添一个。
