@@ -374,6 +374,50 @@ Turbo 的严格 env 模式会把「没在 `env` / `globalEnv` / `passThroughEnv`
 
 ---
 
+## 七、CI 里的缓存：**只缓存质量门**（2026-09-23 落地）
+
+在此之前 CI **完全没有 `actions/cache`**（`actions/setup-node` 的 `cache: pnpm` 只缓存 pnpm store，
+不缓存 turbo 的 task 缓存）⇒ 每次 push 都是冷跑。现在 quality job 里恢复了 `.turbo/cache`，
+但**范围是刻意收窄的**：
+
+| | 全部缓存（本地那份） | **只缓存质量门**（CI 采用的） |
+|---|---|---|
+| 内容 | lint / types / test / **build** | lint / types:check / test |
+| 体积（实测） | **385 MB** / 6150 文件 | **0.1 MB** / 129 文件 |
+| 冷跑 → 热跑（实测） | — | **144s → 0.13s**（43/43 `FULL TURBO`） |
+
+**为什么差别这么大**：turbo 只为 task 声明的 `outputs` 存盘，而质量门三类任务的 `outputs` 都是 `[]`
+（本仓刻意如此，见 §三）⇒ 缓存条目只是"这个 hash 跑过且通过了"的元数据，几百字节；
+**385 MB 里的绝大部分是 build 产物**，把它塞进 CI 缓存等于每次 push 多搬几百 MB，
+收益还不够付上传下载的时间。
+
+### 两个容易做错的点
+
+1. **key 必须 rolling**。`actions/cache` 只在 key **不存在**时才保存 ⇒ 用固定的
+   「锁文件哈希」当 key，会让缓存**冻在第一次写入那一版**，
+   之后新产生的 task 条目永远进不去、命中率越用越低。现在写成
+   `key: <os>-turbo-quality-<本次 sha>` + `restore-keys: <os>-turbo-quality-`：
+   每次恢复"最近的一份"，保存一份新的（0.1 MB，无所谓）。
+2. **别把 build 也塞进来**（见上表）。它只多省约 80s，却要搬 385 MB。
+
+### 为什么这条的风险比看上去低
+
+「缓存 key 设计错 ⇒ 命中陈旧缓存 ⇒ 门禁静默回放旧结论」是对的担心，但**它不是新的风险类别**：
+
+- turbo 的缓存条目**按 task hash 校验** —— 恢复到不匹配的条目只会 **miss，不会误用**；
+- 本仓**每次 push 都在用同一套机制**（prepush 里 `turbo run lint:root` 与 `turbo run types:check`
+  本来就命中本地缓存），CI 只是把同一份缓存**持久化到下一次 run**；
+- 真正决定"会不会误用"的是 **hash 覆盖面**（env 有没有声明、inputs 全不全），
+  而那正是 `pnpm lint:turbo-cache` 那一组不变量的职责（见 §六）。
+
+**实测确认了前提**：CI 注入的 `CI` / `TURBO_SCM_BASE` / `TURBO_SCM_HEAD` / `GITHUB_ACTIONS`
+**都不改变 task hash**（比对同一个 task 的 hash，完全一致）⇒ 粗 key 不会"永远 miss"。
+
+> 与**远端缓存**的关系：本仓早已决定不接入远端缓存（待办 P1-4 标记"不接入"）——
+> 那需要外部服务与 token。这一条是它的**本地替代**：只在 CI 内部持久化，不引任何外部依赖。
+
+---
+
 ## 相关文档
 
 - [Turbo](./turbo) —— 任务编排与边界（本页是它的「缓存」那一半的展开）

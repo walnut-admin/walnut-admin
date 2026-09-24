@@ -16,6 +16,12 @@
 发布流仍是 `pnpm release`（pnpm 原生版本管理：`pnpm change` 写意图 → `pnpm version -r` 消费 → git-cliff 逐包渲染 changelog → commit → tag `vX.Y.Z` → push 分支与 tag，见 [发布 & 发版指南](./release.md)）。
 **tag 因此成为"只构建一次"的锚点**：失败后在该 run 上点 *Re-run all jobs* 即可，缓存命中后通常个位数分钟。
 
+> **`ci.yml` 的 quality job 现在有 turbo 缓存**（2026-09-23 加）：只缓存 **lint / types:check / test** 三类任务的条目
+> —— 它们的 `outputs` 是空的，所以整份缓存只有 **0.1 MB**，而这三类任务冷跑 **144s**、命中后 **0.13s**。
+> **刻意不缓存 build**（那会让缓存变成 385 MB，搬运费吃掉收益；build 在另一个 job，也拿不到这个 key）。
+> key 用 rolling（带 `github.sha` + `restore-keys` 前缀），否则缓存会**冻在第一次写入那一版**。
+> 完整取舍与实测数字见 [Turbo 缓存边界](./turbo-cache-boundary) 第七节。
+
 GitHub Release 的**正文不是 CI 生成的**：`pnpm release` 在打 tag 前把本次发版的整仓段落写进根 `changelog-latest.md`，并**随 release commit 一起提交**；`release.yml` 的 release job checkout 到该 tag 后直接 `body_path: changelog-latest.md`（所以发版机不需要任何能改远端内容的凭据，旧 tag 重跑也能复现同一份正文）。
 
 ### 为什么拆成两个 workflow 文件

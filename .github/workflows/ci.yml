@@ -64,6 +64,32 @@ jobs:
       - name: Architecture boundaries (turbo boundaries)
         run: pnpm boundaries
 
+      # ── turbo 本地缓存（跨 run 持久化）──────────────────────────────────────────
+      # 只缓存**质量门那三类任务**（lint / types:check / test）的缓存条目 ——
+      # 它们的 `outputs` 都是 `[]`，所以条目极小：**实测 0.1 MB / 129 文件**，
+      # 而这三类任务的冷跑是 **144s**、命中后 **0.13s（43/43 FULL TURBO）**。
+      #
+      # ⚠️ **刻意不缓存 build**：整份 `.turbo/cache` 实测 **385 MB**（build 产物占绝大部分），
+      # 上传下载会吃掉收益，还要占掉 10 GB 配额的 4%。build 在另一个 job，也拿不到这个 key。
+      #
+      # ⚠️ **key 必须 rolling**（带 `github.sha` + `restore-keys` 前缀），不能只用 lockfile 哈希：
+      # 固定 key 一旦写入就**冻在那一版**（actions/cache 只在 key 不存在时保存），
+      # 之后新产生的 task 条目永远进不去、命中率越用越低。
+      #
+      # 安全性：turbo 的缓存**按 task hash 校验** —— 恢复到不匹配的条目只会 miss、不会误用。
+      # 也就是说这不是新的风险类别，本仓本地每次 push 都在用同一套（prepush 的
+      # `turbo run lint:root` / `types:check` 就命中缓存）；真正的守卫是 **hash 覆盖面**，
+      # 那由 `pnpm lint:turbo-cache` 的不变量盯着（env 有没有声明、inputs 全不全）。
+      - name: Restore turbo cache (quality gates)
+        # v5 而不是 v4：v4 跑在 node20 上，而本仓已经在为 `actions/setup-node@v4` 收
+        # 「Node.js 20 is deprecated」的告警 —— 别再添一个。
+        uses: actions/cache@v5
+        with:
+          path: .turbo/cache
+          key: ${{ runner.os }}-turbo-quality-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-quality-
+
       - name: Lint (affected)
         run: pnpm exec turbo run lint --affected
 
