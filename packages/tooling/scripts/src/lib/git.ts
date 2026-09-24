@@ -1,10 +1,9 @@
 /**
  * **通用** git 只读访问面：一条命令行一个具名函数，argv 直传，cwd 固定仓库根，读不到返回 null / 空集。
  *
- * 为什么需要：脚本里到处是 `execSync('git …')` 这种**整条命令行**，调用点把 ref / 分支名拼进去 ——
- * 而 git 允许 ref 名含 `$ ( ) { } > "`，一个被污染的值就能执行命令替换（实测
- * `git show v9.9.9$(touch PWNED):…` 真会建出文件）；cwd 也随运行目录漂移（从子目录跑会读错位置）。
- * 这里统一成 argv + `cwd: REPO_ROOT`，两类问题一起消失。
+ * 为什么是 argv 而不是整条命令行：ref / 分支名要拼进命令，而 git 允许 ref 名含 `$ ( ) { } > "`
+ * ⇒ 一个被污染的值就能做命令替换；cwd 也随运行目录漂移。argv + `cwd: REPO_ROOT` 把两类一起收掉
+ * （ref 另有 `lib/ref-guard.ts` 把关）。
  * 失败口径：读不到就返回 null / 空数组（由调用方决定怎么办）；**值不合法抛** `PreconditionError`
  * （→ 退出码 2）；`lsFilesStrict` 连「git 跑不动」也抛 —— 「扫描面未知」绝不能静默变成「空集」。
  * 不做什么：**零业务语义**（不认识「发版」「包」「意图」），不打印、不决定退出码、不写盘。
@@ -37,11 +36,9 @@ function runGit(args: string[]): { ok: true, out: string } | { ok: false, detail
 /**
  * 与 `runGit` 同形，但**不 trim 聚合输出**。
  *
- * 为什么必须单独有一条：`git status --porcelain` 是**定宽**格式 —— 每行前两列是状态位、第三列是空格
- * （` M path` / `?? path` / `D  path`）。对整段输出 `.trim()` 会吃掉**第一行**的前导空格，于是
- * 「状态位 + 空格」的固定切片在首行错位一位，路径就少掉一个字符
- * （实测：`.changeset/README.md` 被读成 `changeset/README.md` ⇒ 「发版自己会改的文件」判据失效，
- * 本来不该进提交的 ledger/意图文件会被当成「无关改动」）。
+ * 为什么必须单独有一条：`git status --porcelain` 是**定宽**格式（每行前两列状态位、第三列空格）。
+ * 整段 `.trim()` 会吃掉**第一行**的前导空格 ⇒ 按「状态位 + 空格」切路径时首行少一个字符，
+ * 路径判据（`.changeset/` 之类）静默失效。
  */
 function runGitRaw(args: string[]): { ok: true, out: string } | { ok: false, detail: string } {
   return runGitInternal(args, false)
@@ -125,8 +122,7 @@ export function tagCommit(tag: string): string | null {
 /**
  * 自某个基线以来的提交（`{ hash, subject }`）—— 区间是 `<tag>..HEAD`，没有基线就是整个 `HEAD`。
  *
- * 用 `%x1f`（单元分隔符）而不是 `||` / 空格：commit 摘要里这两种字符都常出现，用它们做分隔会被
- * 摘要内容误伤（切成两半或错位）；US 是 ASCII 控制字符，人不会打进提交信息里。
+ * 分隔符用 `%x1f`（US，ASCII 控制字符）而不是 `||` / 空格：后两者在摘要里常见，会被内容误伤。
  */
 export function commitsSince(tag: string | null): { hash: string, subject: string }[] {
   const out = tryGit(['log', '--no-merges', '--format=%h%x1f%s', rangeSince(tag)]) ?? ''
@@ -209,8 +205,7 @@ export function lsFiles(pattern: string): string[] {
  * 绝不返回 `[]`。
  *
  * 为什么必须有它：`lsFiles()` 把「git 失败」与「一个文件都没有」都收敛成 `[]`，而 `[]` **正是**
- * 各门禁都在挡的「空扫描面渲染成绿灯」⇒ 抽象恰好在最需要复用的地方漏了。
- * 空集护栏仍留在调用方（**什么算扫描面**各自定，措辞也各不相同）。
+ * 各门禁都在挡的「空扫描面渲染成绿灯」。「空集算不算失败」留给调用方（各自口径不同）。
  */
 export function lsFilesStrict(pattern: string): string[] {
   return git(['-c', 'core.quotePath=false', 'ls-files', '--full-name', pattern])
@@ -222,12 +217,11 @@ export function lsFilesStrict(pattern: string): string[] {
 /**
  * 一次问 git：这批路径里哪些**被 gitignore**。
  *
- * 为什么是「一次问一批」而不是逐条：`check-ignore` 是个进程 —— 逐条 spawn 会让一次全仓扫描
- * 从 1 秒变成 15 秒（实测：`check-doc-refs` 因为每条引用要探三种形态，vitest 的 5s 超时当场红）。
+ * 为什么一次问一批：`check-ignore` 每次都要起进程，逐条 spawn 会把全仓扫描拖到超时。
  *
- * 为什么调用方要把**两种形态**都喂进来：`.gitignore` 里的 `dist/` 是**目录**模式，而 git 对一个
- * **不在盘上**的路径判断不出它是不是目录 ⇒ 不带尾斜杠时问不出结果（实测：目录在盘上时报 ignored，
- * 把目录挪走后同一问法变成 not-ignored）。这里替调用方补上带尾斜杠的那一份，返回集合里统一去掉它。
+ * 为什么调用方要喂**两种形态**（带 / 不带尾斜杠）：`.gitignore` 里的 `dist/` 是**目录**模式，而 git
+ * 对一个**不在盘上**的路径判断不出它是不是目录 ⇒ 少了带尾斜杠那份就问不出结果。补的那份在返回
+ * 集合里统一去掉。
  *
  * 读不到（git 失败 / 不在检出内）返回**空集** —— 调用方按"没被忽略"处理，宁可报出来也不静默放过。
  */
@@ -255,12 +249,11 @@ export function ignoredPaths(paths: Iterable<string>): Set<string> {
 /**
  * 跟踪面 **∪ 未跟踪但未被忽略** 的文件。
  *
- * 为什么需要第三档（前两档是 lsFiles / lsFilesStrict）：**工作区包清单要按盘上实际有什么来算**，
- * 而不是按「已经提交了什么」。pnpm 自己解析 workspace 时读的是盘上的 `package.json`；
- * 新增一个包、还没提交就发版时，只看跟踪面会把那个包判成「不存在」，
- * 于是 `versioning.fixed` 的审计会报出「组里有、工作区没有」的假警（实测踩到）。
+ * 为什么需要第三档（前两档是 lsFiles / lsFilesStrict）：**包清单要按盘上实际有什么算**，不是按
+ * 「已经提交了什么」—— pnpm 解析 workspace 读的是盘上的 `package.json`。新增包还没提交就发版时，
+ * 只看跟踪面会把它判成「不存在」，`versioning.fixed` 的审计随即报假警。
  *
- * `--exclude-standard` 仍然生效 ⇒ `node_modules` 等被忽略的目录不会被卷进来。
+ * `--exclude-standard` 仍然生效 ⇒ 被忽略的目录不会被卷进来。
  */
 export function lsFilesWithUntracked(pattern: string): string[] {
   return git(['-c', 'core.quotePath=false', 'ls-files', '--full-name', '--cached', '--others', '--exclude-standard', pattern])
