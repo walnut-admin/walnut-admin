@@ -66,6 +66,7 @@ describe('pREPUSH_GATES —— 表本身', () => {
       'nginx-headers',
       'exports',
       'secrets',
+      'pre-hooks',
       'versioning',
     ])
   })

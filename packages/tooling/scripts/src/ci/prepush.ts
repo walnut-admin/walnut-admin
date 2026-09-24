@@ -151,6 +151,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: '**服务端那道闸在 CI 之前**：GitHub 的 push protection 只认形状、分不出样本与真货，命中就拒掉整条 push。2026-09-23 实测被它拦下一次（一个测试夹具里写了云厂商样本 SecretId），而当时那段门禁表**全绿** —— 只在 CI 里拦等于没有，必须在推送前。',
   },
   {
+    id: 'pre-hooks',
+    label: '脚本前置钩子（vite / vue-tsc 前必须先跑生成）',
+    argv: ['lint:pre-hooks'],
+    why: '生成物移出跟踪面之后，**干净检出里没有它们**，而 vite 的检查器可能在生成之前就读 ⇒ 2026-09-24 实测把 CI 的 `Build admin` 打挂过（一串 `Cannot find name …`）。这一面的判据是一条命令就能核对的（读 package.json），拦在推送前的成本几乎为零，而漏到 CI 的代价是一整轮红灯 + 一次"改了东边坏了西边"。',
+  },
+  {
     id: 'versioning',
     label: 'workspace 版本锁步（pnpm change check）',
     argv: ['change', 'check'],

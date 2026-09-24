@@ -38,6 +38,7 @@
     "lint:doc-ts": "walnut-check-doc-ts",
     "lint:doc-budget": "walnut-check-doc-budgets",
     "lint:turbo-cache": "walnut-check-turbo-cache",
+    "lint:pre-hooks": "walnut-check-pre-hooks",
     "lint:lockfile": "walnut-check-catalog-lockstep",
     "lint:nginx-headers": "walnut-check-nginx-headers",
     "lint:dist": "walnut-check-dist-secrets",

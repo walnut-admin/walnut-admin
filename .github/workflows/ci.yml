@@ -177,6 +177,12 @@ jobs:
       - name: Package exports shape check
         run: pnpm lint:exports
 
+      # 有生成物的包（admin 的两个 unplugin dts），它跑 vite / vue-tsc 的脚本必须都接了生成步骤。
+      # ⚠️ 这条是 2026-09-24 那次事故的守卫：生成物移出跟踪面后漏了 `prebuild`，
+      # 于是 `Build admin` 里 vite 的检查器在生成之前就读它 ⇒ 一串 `Cannot find name …`。
+      - name: Script pre-hook check
+        run: pnpm lint:pre-hooks
+
       # 防"affected 空集静默通过"：有文件变更却算出 0 个受影响包时必须失败
       - name: Affected set sanity check
         if: steps.affected.outputs.base != ''

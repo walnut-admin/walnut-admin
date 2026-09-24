@@ -101,6 +101,9 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'secrets', label: '源码密钥形态（凭据形状不许进仓库）', argv: ['lint:secrets'] },
   // 同上。共享包**不构建就被消费**（exports 指 ./src/**）⇒ exports 写错 = 解析到别的入口 / 类型静默丢失。
   { id: 'exports', label: '包 exports 形态（目标存在 / types 在前 / 与 main 一致）', argv: ['lint:exports'] },
+  // 同上。发版要**构建**，而这条正是「跑 vite 的脚本没接生成步骤」的守卫 —— 2026-09-24 它把 CI 的
+  // `Build admin` 打挂过一次；发版面漏了它，代价是打到一半才发现构建起不来。
+  { id: 'pre-hooks', label: '脚本前置钩子（vite / vue-tsc 前必须先跑生成）', argv: ['lint:pre-hooks'] },
   {
     id: 'build',
     label: '构建（3 个 app + 共享包）',

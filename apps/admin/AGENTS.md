@@ -35,9 +35,9 @@ Tailwind v3 兼容）· Pinia · Vue Router（web history）· Vue I18n
 
 ## 三个容易踩的生成物
 
-- **两个 unplugin 的 dts（`types/generated/`，已 gitignore）**：由 `pre*` 钩子统一跑
-  `build/generate/index.ts` 生成（dev / build / types:check 前都会跑）；插件自己也会写。
-  ⚠️ 以前它们被跟踪且 ignore 规则失效 ⇒ **每次 `pnpm dev` 都弄脏工作区**。
+- **两个 unplugin 的 dts（`types/generated/`，已 gitignore，别提交）**：由 `pre*` 钩子跑
+  `build/generate/index.ts` 生成；跑 `vite`/`vue-tsc` 的脚本必须有 `pre` 钩子
+  （门禁 `pnpm lint:pre-hooks` 守，事故经过见 09-24 执行记录）。
 - **`genJSONSchemas` 会从 `src/store/types.d.ts` 的 `IStoreSetting.Dev` 生成
   `.vscode/settings-dev.schema.json`**（它在仓库里、生成结果确定）；改了 store 的 setting 类型
   要跟着重新生成 —— 它也在上面那个统一入口里跑。
