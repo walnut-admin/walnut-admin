@@ -55,7 +55,7 @@ runner（pnpm store 命中，install ≈30s）
 2. **每个镜像独立的 buildx 缓存 scope**（见 `docker-bake.hcl`）。三次 build 若共用默认 `scope=buildkit`，会互相覆盖缓存（Docker 官方文档："each build will overwrite the cache of the previous"）→ 第一个构建的 backend 永远是冷缓存，这正是 15 分钟 ~ 78 分钟巨大抖动的原因。
 3. **backend 与 frontend 在同一个 bake 里并行构建**；nginx 因为被 frontend 的 `FROM` 依赖，单独用 `docker build` 先推送，顺序确定、无隐式依赖。
 
-### 镜像仓库的版本上限与清理策略（2026-09-23 决定，待办 P3-17）
+### 镜像仓库的版本上限与清理策略（2026-09-23 决定）
 
 腾讯云 **TCR 个人版对单个镜像仓库有 100 个版本的上限**。本仓每次发版推两个 tag
 （`vX.Y.Z` + 共享基础镜像 `nginx:brotli`），**长期会顶到上限** —— 顶到之后推送开始失败，

@@ -13,7 +13,8 @@
 
 1. **钩子内容不在跟踪面里被校验**。真正执行的是 `postinstall` 非原子写出的 `.git/hooks/*` 文件；
    它被截断时呈「语法合法但少跑几项」的静默弱化形态，而仓库里没有任何机器判据能发现。
-   2026-09-21 的 pnpm 12 迁移计划（archive）把这条记为 R3：
+   这条最早记在 2026-09-21 的 pnpm 12 迁移计划里（见
+   [archive](../archive/2026-09-21-pnpm12-and-hoist-migration-plan.md)）：
    `simple-git-hooks` 的 postinstall 不执行时，pre-commit / pre-push 门禁**全部失效，且不报错**。
 2. **pre-push 是四条命令的 shell 串**（`pnpm boundaries && pnpm types:check && pnpm syncpack:lint && pnpm lint:workflows`）。
    串中任何一段被改动/截断，退化的形态不可预测。
@@ -42,10 +43,9 @@ pre-push:    # 单条：pnpm --silent prepush
 1. **pre-push 只调一条命令**。钩子文件里唯一的一行是 `lefthook run "pre-push"`，而它调的
    `pnpm --silent prepush` 跑**一张门禁表**（`packages/tooling/scripts/src/ci/prepush.ts`，
    并行跑、每段报耗时）。
-   （最初是五段；`lint:root` / `types:check:root` / `lint:docs-refs` 于 2026-09-23 陆续补入，
-   `lint:adr` / `lint:doc-ts` / `lint:doc-budget` 同日随 F6 / F2③ / F7 补入 ——
-   根级配置文件此前既不被 prepush / CI 覆盖、也没有任何脚本对它做类型检查，而文档正文里的包名与
-   仓库路径引用、以及 ADR 的形态更是完全没人管。）
+   （表里的条目随缺口被发现而增长 —— 根级配置文件此前既不被 prepush / CI 覆盖、也没有任何脚本
+   对它做类型检查，而文档正文里的包名与仓库路径引用、以及 ADR 的形态更是完全没人管。
+   当前有哪几段只看表本身：`packages/tooling/scripts/src/ci/prepush.ts`。）
 
    > ⚠️ **2026-09-23 修正本段原先的理由**。原文写的是「收敛成单条命令后，**被截断只会退化成
    > 「命令不存在」，响亮报错**」。迁到 lefthook 之后这句话**已经不成立**，而且方向是反的：
@@ -72,8 +72,8 @@ pre-push:    # 单条：pnpm --silent prepush
 
 ## Alternatives considered
 
-- **保留 `simple-git-hooks`，钩子命令继续写在根 `package.json` 的 `simple-git-hooks` 块里、由 `postinstall: "npx simple-git-hooks"` 生成 `.git/hooks/*`** —— 钩子内容不在跟踪面里被校验，非原子写出的 `.git/hooks/*` 被截断时呈「语法合法但少跑几项」的静默弱化形态，仓库里没有任何机器判据能发现；2026-09-21 的 pnpm 12 迁移计划（archive）把这条记为 R3：postinstall 不执行时，pre-commit / pre-push 门禁全部失效且不报错。
-- **pre-push 继续用 shell 串（`pnpm boundaries && pnpm types:check && …`）** —— 串里任何一段被改动或截断，退化的形态不可预测：**截断成前几段照样退出 0**，也就是本 ADR 最想消灭的那种静默弱化。当年（四段时）的处置是「收敛成单条 `pnpm --silent prepush`」；2026-09-23 长到十一段后又走了一步 —— 清单搬进 `packages/tooling/scripts/src/ci/prepush.ts` 的一张表（每段带 `why`、并行执行、每段报耗时），根脚本只剩 `prepush: "walnut-prepush"` 一个词。**为什么不干脆写成 `lefthook.yml` 的 11 个 job**：`pnpm prepush` 这个名字被发版工具链引用（`release/src/release/env.ts` 与 `lib/child-run.ts` 要在发版流程里剥掉 `LEFTHOOK*`，否则发版时的 `git push` 会递归触发它自己），搬走等于让发版代码去认识一个钩子配置。
+- **保留 `simple-git-hooks`，钩子命令继续写在根 `package.json` 的 `simple-git-hooks` 块里、由 `postinstall: "npx simple-git-hooks"` 生成 `.git/hooks/*`** —— 钩子内容不在跟踪面里被校验，非原子写出的 `.git/hooks/*` 被截断时呈「语法合法但少跑几项」的静默弱化形态，仓库里没有任何机器判据能发现（postinstall 不执行时，pre-commit / pre-push 门禁会全部失效且不报错）。
+- **pre-push 继续用 shell 串（`pnpm boundaries && pnpm types:check && …`）** —— 串里任何一段被改动或截断，退化的形态不可预测：**截断成前几段照样退出 0**，也就是本 ADR 最想消灭的那种静默弱化。当年（那时串里只有四条）的处置是「收敛成单条 `pnpm --silent prepush`」；串变长之后又走了一步 —— 清单搬进 `packages/tooling/scripts/src/ci/prepush.ts` 的一张表（每段带 `why`、并行执行、每段报耗时），根脚本只剩 `prepush: "walnut-prepush"` 一个词。**为什么不干脆写成 `lefthook.yml` 的一堆 job**：`pnpm prepush` 这个名字被发版工具链引用（`release/src/release/env.ts` 与 `lib/child-run.ts` 要在发版流程里剥掉 `LEFTHOOK*`，否则发版时的 `git push` 会递归触发它自己），搬走等于让发版代码去认识一个钩子配置。
 
 ## Consequences
 

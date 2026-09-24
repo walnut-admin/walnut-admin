@@ -47,7 +47,7 @@ export default nestConfig();
 - ESLint performance is adequate at this project's scale
 - Re-evaluate when oxlint or biome ships official Vue SFC support
 
-> **Last revised:** 2026-09-23 —— 措辞修正（待办 P3-15）。上面两条原先写的是「**不支持** Vue SFC」，
+> **Last revised:** 2026-09-23 —— 措辞修正。上面两条原先写的是「**不支持** Vue SFC」，
 > 那是个已经过期的绝对判断：事实是**官方框架支持仍在 RFC 阶段**，第三方插件可用但不成熟。
 > 结论（暂不作为主 linter）不变，理由换成了经得起复查的那条。
 

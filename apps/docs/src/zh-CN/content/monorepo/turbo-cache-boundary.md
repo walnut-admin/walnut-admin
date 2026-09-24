@@ -334,7 +334,7 @@ Turbo 的严格 env 模式会把「没在 `env` / `globalEnv` / `passThroughEnv`
 | 12 | **CI 那份跨 run 的缓存里只许有元数据**：`ci.yml` 里落在「恢复缓存」步骤**之后**（且同一个 job 内）的步骤，只要跑的是 `build*` 这类**有产物**的 turbo 任务，就必须显式给 `--cache-dir`（`ci-cache-holds-only-metadata`） | 产物会随整份 `.turbo/cache` 一起上传：实测 `Docs build`（4.6 MB）把归档从几十 KB 顶到 4.7 MB、第二次 9.8 MB（见 §七） |
 | 13 | `--cache-dir` 不许写在 `--` 之后（`ci-cache-flag-reaches-turbo`） | 那个参数会被 turbo 当成**透传给任务本身**的参数 ⇒ 缓存照旧写默认目录：看着像改好了、其实一行没生效（2026-09-24 实测踩到，见 §七 7.2） |
 
-第 9–11 条是 2026-09-23 交叉对比时补的（待办 P1-17）：原先把「非空 tags」当成够用了，
+第 9–11 条是 2026-09-23 交叉对比时补的：原先把「非空 tags」当成够用了，
 但它只挡住「整个忘写」，挡不住「写了个不会匹配任何规则的 tag」—— 后者同样是**静默豁免**。
 第 12–13 条是 2026-09-24 CI 实测踩到「docs 构建混进了缓存」之后补的（细节见 §七）。
 
@@ -357,7 +357,7 @@ Turbo 的严格 env 模式会把「没在 `env` / `globalEnv` / `passThroughEnv`
 | `globalDependencies` 写了不存在的路径 | `global-dependency-exists` |
 | 删掉某个包的 `turbo.json` | `package-turbo-json` |
 | docs 的 build 不再把 `.md` 当输入 | `docs-build-sees-markdown` |
-| server 的 stage 又写回 `dist`（P3-22 复现） | `stage-outdir-separate` |
+| server 的 stage 又写回 `dist` | `stage-outdir-separate` |
 | `nest/stage.json` 的 `tsConfigPath` 指回 prod 的 tsconfig | `stage-outdir-separate` |
 | `build:stage.outputs` 漏掉 `dist-stage/**` | `outputs-cover-artifacts` |
 | `//#lint:root` 的 inputs 少一个 glob | `lint-root-inputs` |
@@ -482,8 +482,8 @@ run #15 保存下来的归档实测 **4,912,216 字节（4.7 MB）**，而按「
 **实测确认了前提**：CI 注入的 `CI` / `TURBO_SCM_BASE` / `TURBO_SCM_HEAD` / `GITHUB_ACTIONS`
 **都不改变 task hash**（比对同一个 task 的 hash，完全一致）⇒ 粗 key 不会"永远 miss"。
 
-> 与**远端缓存**的关系：本仓早已决定不接入远端缓存（待办 P1-4 标记"不接入"）——
-> 那需要外部服务与 token。这一条是它的**本地替代**：只在 CI 内部持久化，不引任何外部依赖。
+> 与**远端缓存**的关系：本仓**早已决定不接入**远端缓存 —— 那需要外部服务与 token。
+> 这一条是它的**本地替代**：只在 CI 内部持久化，不引任何外部依赖。
 
 ---
 
