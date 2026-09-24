@@ -1,13 +1,10 @@
 /**
  * 文档引用校验：**活文档**里提到的 workspace 包名与仓库路径必须真实存在。
  *
- * 为什么要有它（两次实测的战果，不是假想需求）：
- * - 2026-09-23 第一轮按「不存在的包名」扫，查出 `attribution.ts` 里 `'tooling': '@walnut/tooling'`
- *   这条**陈尸** —— 那个包早已拆成 5 个，而它会让一条提交为幽灵包写出版本意图；同轮还查出
- *   `README.md` 的结构块整块虚构（`packages/{shared,axios,core}` 三个包一个都不存在）。
- * - 第二轮按「不存在的路径」扫，查出 9 类失效引用：ADR 里全是迁移前的 `docs/reference/*`、
- *   `.claude/skills/**` 把 DB Model 常量指到错误目录、以及**引用了一个根本不存在**的
- *   `migration-guide/` 目录。
+ * 为什么要有它：这一面**没有任何别的东西在看** —— `tsc` / boundaries 管代码里的 import，
+ * VitePress 只认 markdown 链接语法，正文反引号里的包名与路径没人管。实测抓到过的形态：
+ * 引用一个**早已拆掉的幽灵包**（`'tooling': '@walnut/tooling'`，会让一条提交为幽灵包写出版本
+ * 意图）、README 的结构块**整块虚构**、以及引用一个**根本不存在**的目录。
  *
  * 判据（**宁可漏报，不可误报**）：一个门禁一旦有噪声，人就会开始无视它，等于没做。
  * 因此本模块刻意收窄：
@@ -72,8 +69,8 @@ const PATH_EXT = /\.(?:ts|tsx|vue|js|mjs|cjs|json|jsonc|yaml|yml|toml|sh|hcl|css
 /**
  * 允许「不存在」的**路径**引用。每条都要写清理由 —— 没理由的豁免等于把门禁关掉。
  *
- * 只有 3 条：**路径**那一半刻意收得很紧（`PATH_CHECK_EXCLUDED` 已经把 ADR 与待办文档排掉），
- * 所以这里的长度本身就是「扫描面有没有失控」的体温计。
+ * **路径**那一半刻意收得很紧（ADR 与待办文档已被 `PATH_CHECK_EXCLUDED` 排掉），
+ * 所以这份清单的**长度本身就是「扫描面有没有失控」的体温计** —— 不写条数，看清单。
  */
 export const ALLOWED_MISSING_PATHS: Record<string, string> = {
   '.changeset/ledger.yaml': '首次发版时才生成（pnpm 的消费台账）',
