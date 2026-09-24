@@ -65,12 +65,18 @@ jobs:
         run: pnpm boundaries
 
       # ── turbo 本地缓存（跨 run 持久化）──────────────────────────────────────────
-      # 只缓存**质量门那三类任务**（lint / types:check / test）的缓存条目 ——
-      # 它们的 `outputs` 都是 `[]`，所以条目极小：**实测 0.1 MB / 129 文件**，
-      # 而这三类任务的冷跑是 **144s**、命中后 **0.13s（43/43 FULL TURBO）**。
+      # 缓存的**不是「哪几类任务」，而是「这条 job 里 turbo 跑过的一切」**（路径就是整个
+      # `.turbo/cache`）。所以范围由这条 job 跑什么决定，而不是由 key 决定。
       #
-      # ⚠️ **刻意不缓存 build**：整份 `.turbo/cache` 实测 **385 MB**（build 产物占绝大部分），
-      # 上传下载会吃掉收益，还要占掉 10 GB 配额的 4%。build 在另一个 job，也拿不到这个 key。
+      # ⚠️ 实测（2026-09-24）：质量门三类任务（lint / types:check / test）的 `outputs` 都是 `[]`，
+      # 条目只是「这个 hash 跑过且通过了」的元数据 ⇒ 归档是**几十 KB** 那一档。而 `Docs build`
+      # 那一步**也是 turbo 任务**、产物是真实文件（4.6 MB）⇒ 它落进来会让整份归档从几十 KB
+      # 涨到 4.7 MB，并随每次 docs 改动继续长（实测 4.7 MB → 9.8 MB）。**已用 `--cache-dir`
+      # 把它挡在外面**（见下面那一步），于是这份缓存重新只剩元数据。
+      #
+      # ⚠️ key 从 v1 换成 **v2**：v1 的归档里已经混着那批 docs 构建产物（最大一份 9.8 MB）。
+      # `restore-keys` 是**前缀匹配**，所以 key 与 restore-keys 必须**一起换**，
+      # 只换 key 照样会把 v1 那份拉回来。
       #
       # ⚠️ **key 必须 rolling**（带 `github.sha` + `restore-keys` 前缀），不能只用 lockfile 哈希：
       # 固定 key 一旦写入就**冻在那一版**（actions/cache 只在 key 不存在时保存），
@@ -86,9 +92,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: .turbo/cache
-          key: ${{ runner.os }}-turbo-quality-${{ github.sha }}
+          key: ${{ runner.os }}-turbo-quality-v2-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-turbo-quality-
+            ${{ runner.os }}-turbo-quality-v2-
 
       - name: Lint (affected)
         run: pnpm exec turbo run lint --affected
@@ -112,8 +118,17 @@ jobs:
       # 文档站构建顺带做死链校验（VitePress 内置；`ignoreDeadLinks` 已从 true 收窄成
       # 「冻结语料 + 尚未编写的组件页」白名单）。跑在 CI 而不是 local pre-push：约 40s，
       # 且只对文档改动有意义。
+      #
+      # ⚠️ **给它自己的缓存目录**：这步是 turbo 任务、产物 4.6 MB，落进 `.turbo/cache` 会被
+      # 上面那步整份上传（实测把归档从几十 KB 顶到 4.7 MB 起）。换目录后它**每次都真跑、
+      # 不回放** —— 对一条「死链校验就是构建本身」的门禁来说，这正是想要的态度。
+      #
+      # ⚠️ 参数写法**实测过**，两种只差一个 `--`，行为完全不同：
+      #   `pnpm run build:docs -- --cache-dir=x`  → 参数被 turbo 当**透传参数**给了任务本身
+      #                                            （VitePress 收到 `--cache-dir=x`，缓存照旧写默认目录）
+      #   `pnpm build:docs --cache-dir=x`         → 到 turbo（实测条目落进 `x`，默认目录未被写入）
       - name: Docs build (dead-link check)
-        run: pnpm build:docs
+        run: pnpm build:docs --cache-dir=.turbo/cache-docs
 
       # 补 VitePress 内置查不到的那一半：活文档**正文**里引用的 workspace 包名与仓库路径。
       # （内置只认 markdown 链接语法，反引号里的 `@walnut/xxx` / `packages/a/b.ts` 它看不见。）

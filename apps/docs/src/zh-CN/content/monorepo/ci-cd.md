@@ -18,12 +18,14 @@
 
 > **`ci.yml` 的 quality job 现在有 turbo 缓存**（2026-09-23 加）：恢复整个 `.turbo/cache`，
 > 于是这条 job 里跑过的 turbo 任务（lint / types:check / test）都能跨 run 命中 ——
-> 这三类任务的 `outputs` 是空的，条目只是"这个 hash 跑过且通过了"的元数据。
+> 这三类任务的 `outputs` 是空的，条目只是"这个 hash 跑过且通过了"的元数据（归档几十 KB 那一档）。
 > **刻意不把 admin / server 的 build 搬进来**：那两份产物才是本地那份 385 MB 的主体，搬运费吃掉收益。
 > key 用 rolling（带本次 `sha` + `restore-keys` 前缀），否则缓存会**冻在第一次写入那一版**。
-> ⚠️ 范围的实际口径是「**这条 job 里 turbo 跑过什么**」而不是「哪几类任务」：`Docs build (dead-link check)`
-> 也是 turbo 任务、也跑在这条 job 里，所以 **docs 构建产物同样进了缓存**（实测首份归档 4.7 MB，
-> 其中绝大部分是它）。完整取舍与实测数字见 [Turbo 缓存边界](./turbo-cache-boundary) 第七节。
+> ⚠️ 范围的口径是「**这条 job 里 turbo 跑过什么**」而不是「哪几类任务」：`Docs build (dead-link check)`
+> 也是 turbo 任务，第一版就把 4.6 MB 的 VitePress 产物一起传了上去（实测归档 4.7 MB → 9.8 MB）；
+> 现在用 `--cache-dir` 把它挡在外面（它因此每次真跑、不回放），缓存 key 同步升到 `…-v2-`。
+> **实测命中**：run #17 三个质量门步骤全 **0s**（无缓存基线 69 / 41 / 10s）。
+> 完整取舍与实测数字见 [Turbo 缓存边界](./turbo-cache-boundary) 第七节。
 
 GitHub Release 的**正文不是 CI 生成的**：`pnpm release` 在打 tag 前把本次发版的整仓段落写进根 `changelog-latest.md`，并**随 release commit 一起提交**；`release.yml` 的 release job checkout 到该 tag 后直接 `body_path: changelog-latest.md`（所以发版机不需要任何能改远端内容的凭据，旧 tag 重跑也能复现同一份正文）。
 

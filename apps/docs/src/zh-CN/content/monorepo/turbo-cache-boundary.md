@@ -374,54 +374,85 @@ Turbo 的严格 env 模式会把「没在 `env` / `globalEnv` / `passThroughEnv`
 
 ---
 
-## 七、CI 里的缓存：**只缓存质量门**（2026-09-23 落地 · 2026-09-24 CI 实测）
+## 七、CI 里的缓存：**只缓存质量门**（2026-09-23 落地 · 2026-09-24 在 CI 上实测并收口）
 
 在此之前 CI **完全没有 `actions/cache`**（`actions/setup-node` 的 `cache: pnpm` 只缓存 pnpm store，
 不缓存 turbo 的 task 缓存）⇒ 每次 push 都是冷跑。现在 quality job 里恢复了 `.turbo/cache`。
 
-⚠️ **范围的实际口径是「这条 job 里 turbo 跑过什么」，不是按任务类型过滤** —— 缓存路径就是整个
-`.turbo/cache`：job 里跑过的 turbo 任务都会写进去，job 结束时整份上传。
+⚠️ **范围的口径是「这条 job 里 turbo 跑过什么」，不是「哪几类任务」** —— 恢复 / 保存的路径就是整个
+`.turbo/cache`。所以「只缓存质量门」不是靠 key 或过滤器做到的，而是靠**这条 job 里本来只有质量门
+那几类 turbo 任务**；一旦有别的 turbo 任务在这条 job 里跑，它的产物就会跟着上传
+（第一版就踩到了，见 7.2）。
 
 | | 本地整份 `.turbo/cache` | CI quality job 保存的那份 |
 |---|---|---|
-| 内容 | lint / types / test / **build**（admin·server·docs 全量） | lint / types:check / test + **docs 构建** |
-| 体积（实测） | **385 MB** / 6150 文件（2026-09-23 口径） | **4.7 MB**（CI 归档 4,912,216 字节，2026-09-24） |
+| 内容 | lint / types / test / **build**（admin·server·docs 全量） | 只有 lint / types:check / test 的元数据 |
+| 体积（实测） | **385 MB** / 6150 文件（2026-09-23 口径） | **几十 KB**（质量门 `outputs: []`，条目只是"这个 hash 跑过且通过了"） |
 | 冷跑 → 热跑（实测） | — | **144s → 0.13s**（43/43 `FULL TURBO`，**本地**口径） |
 
-**为什么 CI 那份只有几 MB**：本仓最大的两类产物 —— admin / server 的 `dist` —— **不在这条 job 里**
-（它们在 `build` job）；而质量门三类任务的 `outputs` 都是 `[]`（本仓刻意如此，见 §三）⇒ 条目只是
-"这个 hash 跑过且通过了"的元数据。385 MB 里的绝大部分在这条 job 里**根本不存在**。
+**为什么 CI 那份小**：本仓最大的两类产物 —— admin / server 的 `dist` —— **不在这条 job 里**
+（它们在 `build` job）。385 MB 里的绝大部分在这儿**根本不存在**。
 
-### 7.1 CI 实测：首跑必冷，第二跑才可能命中
+### 7.1 CI 实测（2026-09-24）
 
-- **每个新提交的第一次跑一定 miss**：key 里带本次 `sha`，恢复步骤没有可命中的对象（实测耗时 **0s**），
-  跑完在 job 末尾保存一份归档。首跑实测（`906b571`，无缓存可用）：`Lint (affected)` **69s**、
-  `Type check (affected)` **41s**、`Tests (affected)` **10s** —— 这就是"没缓存"的基线。
-- 保存下来的归档 **4.7 MB**，**与「只有质量门 ⇒ 0.1 MB」的预期不符**。多出来的是 **docs 构建**：
-  `Docs build (dead-link check)` 那一步跑的是 `pnpm build:docs`，而它就是
-  `turbo build --filter=@walnut/docs`（**是 turbo 任务**），位置又在恢复之后、保存（job 末尾）之前 ⇒
-  VitePress 的构建产物一起进了缓存。本地同一个任务的条目 **4.84 MB**（`tar.zst` 4.63 MB +
-  manifest 215 KB），与 CI 那份归档吻合；质量门那部分元数据只有几十 KB。
-- ⚠️ 所以「**0.1 MB**」这个数要说清口径：它量的是「只跑质量门三类任务时它们的条目有多大」，
-  **不是** CI 每次真正上传 / 下载的那一份。
+| run | 缓存 | `Restore` | `Lint (affected)` | `Type check (affected)` | `Tests (affected)` | `Docs build` |
+|---|---|---|---|---|---|---|
+| #15（首跑） | miss，末尾保存 | 0s | **69s** | **41s** | **10s** | 23s |
+| #16 | **命中** | 1s | 17s | 20s | 0s | 20s |
+| #17 | **命中** | 2s | **0s** | **0s** | **0s** | **1s** |
 
-### 7.2 docs 构建进缓存**不引入新风险**（本仓早为它写过理由）
+- **每个新提交的第一次跑一定 miss**：key 里带本次 `sha`，恢复步骤没有可命中的对象 ⇒ 那三个数
+  （69 / 41 / 10s）就是"没缓存"的基线。
+- run #17 三个步骤全 **0s** ＝ 任务全部回放（对照冷跑 69 / 41 / 10s）；`Docs build` 从 20s 掉到 **1s**
+  同样是回放（那次没动 docs，hash 与上一次相同）。**「命中了」有两份独立证据**：① 步骤耗时坍缩；
+  ② `actions/caches` API 上那份归档的 `last_accessed_at` 被刷新到 run #16 的恢复时刻
+  —— 这个 API 公开可读，判据可重跑。
+- ⚠️ run #16 的 17s / 20s **不是**缓存失效：那次推送**改了 `apps/admin/types/components.d.ts`**，
+  而它在 admin 的 hash 输入里（748 条 inputs 之一；注意它**同时被 `.gitignore` 忽略、又被 git 跟踪**，
+  是生成物）⇒ hash 变了就该真跑。**改了就真跑、没改就 0s**，这正是"按内容 hash 判断"而不是
+  "按这台机器上有没有"的现场证据。
 
-`apps/docs/turbo.json` 特意覆盖了 `build.inputs`，把 `.md` 纳回哈希 —— 根 `build` 的 inputs 是
-`!**/*.md`，沿用会让「改文档不触发重建」⇒ 本地 `pnpm build:docs` 直接重放旧 `dist`、
-**静默跳过 VitePress 的死链校验**（那段注释写的就是这句话）。hash 覆盖了 docs 的全部输入 ⇒
-只有输入完全相同时才可能回放 —— 这正是下面「为什么这条的风险比看上去低」那条推理的具体实例。
+### 7.2 一次「差 47 倍」的排查：docs 构建混进了缓存（已收口）
 
-代价是每次 push 多搬 4.6 MB（相对 385 MB 仍是两个数量级），换来 docs 输入未变时那一步可以回放
-（它在首跑里耗时 23s，即这份节省的上限）。
+run #15 保存下来的归档实测 **4,912,216 字节（4.7 MB）**，而按「质量门三类任务的 `outputs` 都是 `[]`
+⇒ 条目只有元数据」推出来的是 0.1 MB。差 47 倍，原因不在 key、也不在 `actions/cache`：
+
+- `Docs build (dead-link check)` 那一步是 `pnpm build:docs`，而它就是
+  `turbo build --filter=@walnut/docs` —— **是 turbo 任务**，位置又在恢复之后、保存（job 末尾）之前
+  ⇒ VitePress 的构建产物一起进了缓存。本地同一个任务的条目 **4.84 MB**（`tar.zst` 4.63 MB +
+  manifest 215 KB），与 CI 那 4.7 MB 吻合；质量门那部分只有几十 KB。
+- 而且它会**继续长**：归档每次整份重传，每动一次 docs 的推送就多一个 4.6 MB 的构建条目 ——
+  实测 run #16 保存的那份已经是 **9.8 MB**（4.9 → 9.8，正好差一个 docs 构建条目）。
+
+**处置**（两条必须一起做）：
+
+1. 那一步改用**自己的缓存目录**：`pnpm build:docs --cache-dir=.turbo/cache-docs`。于是它
+   **每次都真跑、不回放** —— 对一条「死链校验就是构建本身」的门禁，这正是想要的态度；
+   而那 4.6 MB 从此不进这份跨 run 的归档。代价：docs 输入没变时省不下那 20s。
+2. 缓存 key 从 `…-turbo-quality-` 换成 `…-turbo-quality-v2-`，**`restore-keys` 一起换**：
+   v1 的归档里已经混着那批产物条目，而 `restore-keys` 是**前缀匹配** —— 只换 key 不换前缀，
+   照样会把 v1 那份拉回来。
+
+⚠️ **改这条时踩的坑（实测）**：`pnpm run build:docs -- --cache-dir=x` 与 `pnpm build:docs --cache-dir=x`
+**只差一个 `--`，行为完全不同** —— 前者被 turbo 当成**透传给任务本身**的参数（VitePress 收到
+`--cache-dir=x`，缓存照旧写进默认目录），后者才到 turbo。判别法很简单：参数真到了 turbo ⇒ 新目录
+是空的 ⇒ 这次必定 miss 并重建；被吞掉 ⇒ 直接命中、新目录不会出现。
+
+### 7.3 当时为什么不算正确性问题（留档）
+
+万一把它留在缓存里也不会"误用"：`apps/docs/turbo.json` 特意覆盖了 `build.inputs` 把 `.md` 纳回哈希
+—— 根 `build` 的 inputs 是 `!**/*.md`，沿用会让「改文档不触发重建」⇒ 本地 `pnpm build:docs` 直接
+重放旧 `dist`、**静默跳过 VitePress 的死链校验**（那段注释写的就是这句话）。hash 覆盖了 docs 的
+全部输入 ⇒ 只有输入完全相同时才可能回放。**把它挡在外面是为了体积口径，不是因为回放会出错**
+—— 这与下面「为什么这条的风险比看上去低」是同一条推理。
 
 ### 两个容易做错的点
 
 1. **key 必须 rolling**。`actions/cache` 只在 key **不存在**时才保存 ⇒ 用固定的
    「锁文件哈希」当 key，会让缓存**冻在第一次写入那一版**，
    之后新产生的 task 条目永远进不去、命中率越用越低。现在写成
-   `key: <os>-turbo-quality-<本次 sha>` + `restore-keys: <os>-turbo-quality-`：
-   每次恢复"最近的一份"，保存一份新的（几 MB，无所谓）。
+   `key: <os>-turbo-quality-v2-<本次 sha>` + `restore-keys: <os>-turbo-quality-v2-`：
+   每次恢复"最近的一份"，保存一份新的（几十 KB，无所谓）。
 2. **别把 admin / server 的 build 也搬进这条 job**（见上表）。它俩才是 385 MB 的来源，
    而只值约 80s。
 
