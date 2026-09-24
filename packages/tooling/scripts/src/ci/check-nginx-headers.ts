@@ -1,38 +1,21 @@
 /**
  * `deploy/nginx/conf.d/*.conf` 的安全响应头体检。
  *
- * ## 它防的是哪一种失败
+ * 防的失败：nginx 的 `add_header` 是**整段替换**而不是合并 —— 下级块只要自己写了一条
+ * `add_header`，上级块的全部 `add_header` 都不再继承。所以最常见的坏改动是给某个 `location`
+ * 加一条 `add_header Cache-Control …`，那个 location 就**静默地**丢掉 server 级安全头：
+ * 配置还在、`nginx -t` 是绿的、浏览器那边却没有 HSTS。`conf.d/` 下各 `server` 块同样**并列**，
+ * 互相也拿不到任何头。
  *
- * nginx 的 `add_header` 有一条**反直觉的继承规则**：
- * **下级块只要自己写了哪怕一条 `add_header`，上级块的全部 `add_header` 都不再继承**
- * （不是"合并"，是"整段替换"）。于是最常见的坏改动是：给某个 `location` 加了一条
- * `add_header Cache-Control …`，那个 location 就**静默地**丢掉了 server 级的安全头
- * —— 配置看着还在、`nginx -t` 也是绿的、浏览器那边却没有 HSTS。
+ * 与 `deploy/post-verify.sh` 的分工：那是**部署后**核实（镜像已 pull、容器已 recreate），
+ * 这一段把同一判据提前到推送前（纯读盘），让「少写一条 `add_header`」在本地就红。
+ * 头的名字只有一处真源（{@link REQUIRED_HEADERS}），两段的一致性由 `nginx-headers.test.ts`
+ * 机械核对 —— 漂了就成了「看着有门禁」。
  *
- * 同理，`deploy/nginx/conf.d/` 下的每个 `server` 块是**并列**的：
- * `api.conf` 不会从 `frontend.conf` 拿到任何头。2026-09-23 交叉对比时实测发现
- * `api.conf` 当时**一个安全头都没有**（而它才是 API 域名的入口）。
- *
- * ## 为什么不能只靠 deploy/post-verify.sh
- *
- * `deploy/post-verify.sh` 会在**每次部署后**核实这 4 个头发出来了没有 —— 但那是
- * **上了生产之后**：镜像已经 pull、容器已经 recreate。这一段把同一件事提前到推送前
- * （实测毫秒级、纯读盘），让"少写一条 `add_header`"在本地就红。
- * 两者是**同一个判据的两端**：这一端防写错，那一端防环境/drift（例如 conf 没重载）。
- * 那 4 个名字只有一处真源（本文件的 {@link REQUIRED_HEADERS}），
- * `deploy/post-verify.sh` 与它的一致性由 `nginx-headers.test.ts` 机械核对 ——
- * 两边漂了的话，一段在验的东西另一段不认，就成了"看着有门禁"。
- *
- * ## 判据刻意宽松的地方（宁可漏报不可误报）
- *
- * - **只比头名，不比取值**。取值会随运维调整（HSTS `max-age`、将来可能加 `preload`），
- *   逐字比对是纯误报源。
- * - **只查文件里的直接内容，不跟随 `include`**。真出现 `include` 时会打印提示并跳过
- *   该块（漏报），而不是猜那个被包含的文件里有什么（误报）。
- * - **只管 `conf.d/*.conf`**。`deploy/nginx/frontend-server.conf` 是 frontend 镜像内部
- *   那个 `server_name _` 的配置（只面对容器网络，浏览器永远看不到），不适用本条规则。
- * - **非 443 的 `server` 不要求**：`listen 80` 那个块只做跳转，HSTS 在明文 HTTP 上
- *   本来就被浏览器忽略，要求它是没有意义的。
+ * 判据刻意宽松（宁可漏报不可误报）：只比头名不比取值（`max-age` 之类会随运维调）；不跟随
+ * `include`（遇到就打印提示并跳过该块）；只管 `conf.d/*.conf`（`deploy/nginx/frontend-server.conf`
+ * 是镜像内部那个 `server_name _`，浏览器看不到）；`listen 80` 的跳转块不要求（HSTS 在明文 HTTP
+ * 上本就被浏览器忽略）。
  */
 
 import { readdirSync, readFileSync } from 'node:fs'
@@ -192,8 +175,8 @@ export function checkConfigText(text: string, file: string): Finding[] {
       const parentEffective = effectiveHeaders(block, inherited)
 
       if (child.hasInclude) {
-        // ⚠️ 这里**不打印**（纯函数不带副作用 —— 原先它是 `console.warn`，于是用例只能靠 spy 断言）。
-        // 改成一条 rule 不同的 finding：`main()` 把它当**提示**打出来，而不是当违规。
+        // ⚠️ 纯函数不打印：这里只产 finding，由 `main()` 把 `include-unverified` 当**提示**打出来。
+        // 不要改回 `console.warn` —— 那样用例只能靠 spy 断言。
         findings.push({
           rule: 'include-unverified',
           file,
