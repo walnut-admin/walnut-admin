@@ -385,7 +385,7 @@ allowBuilds:
   # 放行项 ②：**lefthook 的 postinstall 就是「装 git 钩子」那一步**（`lefthook install`）。
   # 不放行 ⇒ 钩子不会装，而本仓 `strictDepBuilds: false` 只会**告警**、不阻断安装 ——
   # 那正是「pre-commit / commit-msg / pre-push 门禁全部静默失效」的形态
-  # （2026-09-21 的 pnpm12 迁移计划 R3 记过这条）。装没装上用 `pnpm hooks:check` 机械核对。
+  # （pnpm 12 迁移时踩过这条）。装没装上用 `pnpm hooks:check` 机械核对。
   lefthook: true
   msgpackr-extract: false
   rs-module-lexer: false

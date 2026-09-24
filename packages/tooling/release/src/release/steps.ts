@@ -59,7 +59,7 @@ const RELEASE_BATTERY: BatteryStep[] = [
   // 为什么只有这里检查得到：`prepush` 本身就是钩子调的 —— 钩子没装时 prepush 根本不会跑，
   // 所以它保护不了自己。`pnpm release` 是**不经钩子**的入口，是唯一能观察到「本机门禁是否
   // 已经静默失效」的位置。`lefthook.yml` 顶部那句「发版第 0 步也会调它」描述的就是这里
-  // （2026-09-23 之前那句是**空头承诺**：`hooks:check` 当时全仓零自动调用点）。
+  // （补上这里之前，那句话是全仓零自动调用点的**空头承诺**）。
   // 失败语义是「前置条件未满足」（exit 2）而不是「查出违规」，这正是本仓三态退出码的用法。
   { id: 'hooks', label: 'git 钩子托管校验（pnpm hooks:check）', argv: ['hooks:check'] },
   { id: 'boundaries', label: '架构边界（turbo boundaries）', argv: ['boundaries'] },
@@ -67,8 +67,8 @@ const RELEASE_BATTERY: BatteryStep[] = [
   // ⚠️ `types-root` 必须是**独立一行**、且经根脚本跑（`pnpm types:check:root`）—— 它只是根
   // `package.json` 的脚本，**没有**对应的 turbo 任务，写进 turbo 的 argv 会直接
   // `Could not find task` 退出。
-  // （`lint-root` 一度也是这个形态，2026-09-23 起不是了：根 turbo.json 定义了 `//#lint:root`
-  //  根任务，所以它现在走 `turbo run lint:root` 从而可缓存 —— 别按旧结论改回去。）
+  // （`lint-root` **不走**这条路：根 `turbo.json` 定义了 `//#lint:root`
+  //  根任务，它要经 `turbo run lint:root` 才可缓存 —— 别按旧结论改回去。）
   { id: 'lint-root', label: 'lint 根级配置（turbo run //#lint:root）', argv: ['exec', 'turbo', 'run', 'lint:root'] },
   { id: 'types', label: '类型检查（不排任何包）', argv: ['exec', 'turbo', 'run', 'types:check'] },
   // 根 tsconfig.json（include: ["*.ts"]）覆盖 eslint.config.ts / commitlint.config.ts / knip.config.ts，
