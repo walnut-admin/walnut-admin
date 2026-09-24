@@ -1,16 +1,14 @@
 // Turborepo 缓存边界门禁。
 //
-// **为什么需要它**：`turbo.json` 里写错一个 glob、漏一个产物目录、少挂一条依赖边，
-// 症状全都是**静默的** —— turbo 照样 `FULL TURBO` + exit 0，只是跑了不该跑的（浪费）
-// 或者没跑该跑的（**门禁回放假绿**）。2026-09-23 就实测到后者：
-// `pnpm build:stage` 在缓存命中时打印 "1 successful / FULL TURBO / exit 0"，
-// 而 `apps/admin/dist-staging` **一个文件都没有** —— `outputs` 里漏了它。
+// **为什么需要它**：`turbo.json` 里写错一个 glob、漏一个产物目录、少挂一条依赖边，症状全都是
+// **静默的** —— turbo 照样 `FULL TURBO` + exit 0，只是跑了不该跑的（浪费）或者没跑该跑的
+// （**门禁回放假绿**）。最典型的是 `outputs` 漏了产物目录：缓存命中时它一个文件都不产出，
+// 而报告照样是 "1 successful / FULL TURBO / exit 0"。
 //
-// 这道门禁**不改任何文件**（不做「改一个文件看 hash 变不变」的变异实验 —— 那是
-// 一次性调研用的手段，见 `turbo-cache-boundary.md`），只做静态断言：
-// 拿 `turbo run --dry=json` 的**解析结果**（turbo 自己的真源，不是我们对配置的二次解读）
-// 去核对一组不变量。判据偏「宁可漏报不可误报」：每条断言都必须能机械判定，
-// 不确定的一律不查（一个开始误报的门禁等于没有门禁）。
+// 这道门禁**不改任何文件**（不做「改一个文件看 hash 变不变」的变异实验 —— 那是一次性调研用的
+// 手段，见 `turbo-cache-boundary.md`），只做静态断言：拿 `turbo run --dry=json` 的**解析结果**
+// （turbo 自己的真源，不是我们对配置的二次解读）去核对一组不变量。判据偏「宁可漏报不可误报」：
+// 每条断言都必须能机械判定，不确定的一律不查（一个开始误报的门禁等于没有门禁）。
 import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -56,13 +54,10 @@ export interface TurboDry {
 
 /** 跑一次 turbo 的干跑，拿解析后的真源 */
 export function loadTurboDry(cwd = REPO_ROOT): TurboDry {
-  // ⚠️ **这里曾经是 `execFileSync('cmd', ['/c', 'pnpm exec turbo … 2>nul'])`** ——
-  // 那让整道门禁**只能在 Windows 上跑**：CI 的 runner 是 `ubuntu-latest`，那里没有 `cmd`，
-  // `execFileSync` 直接 ENOENT ⇒ 这一段的结论是「在 CI 上从来没成立过」。
-  // （2026-09-23 交叉对比时读出来的；当时这些提交还没推过，所以 CI 没红过 —— 一推就会红。）
-  // 现在走 `getPnpmBin()`：它是本仓**唯一**被认可起 pnpm 的方式（Windows 上 `pnpm` 是
-  // `pnpm.cmd`，`execFileSync('pnpm', …)` 会 ENOENT；而 `shell: true` 又会重解析 argv）。
-  // 顺带把 `2>nul` 去掉：那本来就是 cmd 的语法，这里用 stdio 直接丢弃 stderr。
+  // ⚠️ 起 pnpm 只能走 `getPnpmBin()`：Windows 上 `pnpm` 是 `pnpm.cmd`，
+  // `execFileSync('pnpm', …)` 会 ENOENT，而 `shell: true` 又会重新解析 argv。
+  // 也别用 `cmd /c … 2>nul` 那类写法 —— 它只在 Windows 上成立（CI 的 runner 没有 `cmd`），
+  // 丢弃 stderr 用 stdio 就行。
   const out = execFileSync(getPnpmBin(), ['exec', 'turbo', 'run', ...PROBE_TASKS, '--dry=json'], {
     cwd,
     maxBuffer: 1 << 30,
