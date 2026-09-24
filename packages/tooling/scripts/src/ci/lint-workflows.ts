@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process'
-import process from 'node:process'
+import { ViolationError } from '../lib/errors.ts'
+import { err, lineErr, out } from '../lib/log.ts'
 
 /**
  * 校验 .github/workflows/*.yml 与本地 composite action。
@@ -16,22 +17,20 @@ import process from 'node:process'
  * 本文件由根 `scripts/lint-workflows.ts` 收编而来（仓库级脚本的家现在是 @walnut/scripts），
  * 行为一字未改；`pnpm lint:workflows` 指向本目录 bin。
  */
-export function main(): number {
+export function main(): void {
   const probe = spawnSync('actionlint', ['--version'], { encoding: 'utf8', shell: true })
 
   if (probe.error || probe.status !== 0) {
-    console.warn('⚠  未检测到 actionlint，跳过 workflow 校验（CI 中会强制执行）')
-    console.warn('   安装：https://github.com/rhysd/actionlint#download')
-    return 0
+    lineErr('warning', '未检测到 actionlint，跳过 workflow 校验（CI 中会强制执行）')
+    err('   安装：https://github.com/rhysd/actionlint#download')
+    return
   }
 
-  console.log(`actionlint: ${(probe.stdout || '').trim()}`)
+  out(`actionlint: ${(probe.stdout || '').trim()}`)
 
+  // 输出直接 `inherit` 给 actionlint（它自己往 stderr 写结构化诊断，中间隔一层只会丢信息）
   const result = spawnSync('actionlint', ['-color'], { stdio: 'inherit', shell: true })
 
-  return result.status ?? 1
+  if (result.status !== 0)
+    throw new ViolationError('actionlint 校验未通过（明细见上）')
 }
-
-// 直接执行（bin 之外的调用点：`node <本文件>`）
-if (process.argv[1] && import.meta.filename === process.argv[1])
-  process.exit(main())

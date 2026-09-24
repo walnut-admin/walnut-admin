@@ -29,7 +29,9 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { PreconditionError, ViolationError } from '../lib/errors.ts'
 import { lsFilesWithUntracked } from '../lib/git.ts'
+import { err, line, lineErr, out } from '../lib/log.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
 /** ADR 目录（仓库相对）。`index.md` 与 `zod-evaluation.md` 是站点页面，不是 ADR。 */
@@ -279,12 +281,11 @@ export function adrFiles(): string[] {
   return lsFilesWithUntracked(`${ADR_DIR}/*.md`).sort()
 }
 
-export function main(): number {
+export function main(): void {
   const files = adrFiles()
   const indexFile = `${ADR_DIR}/index.md`
   if (!files.includes(indexFile)) {
-    console.error(`✖ 找不到 ${indexFile}`)
-    return 2
+    throw new PreconditionError(`找不到 ${indexFile}`)
   }
 
   const findings = collectFindings({
@@ -294,11 +295,11 @@ export function main(): number {
   })
 
   const count = files.filter(f => !NON_ADR_FILES.has(path.posix.basename(f))).length
-  console.log(`ADR 形态校验：${count} 篇 ADR（状态枚举 ${ADR_STATUSES.join(' / ')} / Superseded by ADR-NNNN）`)
+  out(`ADR 形态校验：${count} 篇 ADR（状态枚举 ${ADR_STATUSES.join(' / ')} / Superseded by ADR-NNNN）`)
 
   if (findings.length === 0) {
-    console.log('✅ 编号连续、状态在枚举内、四个必需小节齐备、index.md 双向对齐')
-    return 0
+    line('ok', '编号连续、状态在枚举内、四个必需小节齐备、index.md 双向对齐')
+    return
   }
 
   const byFile = new Map<string, string[]>()
@@ -306,9 +307,9 @@ export function main(): number {
     byFile.set(f.file, [...(byFile.get(f.file) ?? []), f.problem])
 
   for (const [file, problems] of byFile) {
-    console.error(`\n✖ ${file}`)
-    for (const p of problems) console.error(`    ${p}`)
+    lineErr('violation', `${file}`)
+    for (const p of problems) err(`    ${p}`)
   }
-  console.error(`\n共 ${findings.length} 处形态问题。形状约定见 apps/docs/src/zh-CN/content/adr/index.md。`)
-  return 1
+  err(`\n共 ${findings.length} 处形态问题。形状约定见 apps/docs/src/zh-CN/content/adr/index.md。`)
+  throw new ViolationError(`ADR 形态有 ${findings.length} 处问题（明细见上）`)
 }

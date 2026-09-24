@@ -56,6 +56,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { isAbsolute, join, relative } from 'node:path'
 
+import { PreconditionError, ViolationError } from '../lib/errors.ts'
+import { err, line, lineErr, out } from '../lib/log.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
 /** 默认体检对象（相对仓库根） */
@@ -298,37 +300,35 @@ export function collectFindings(distDir = join(REPO_ROOT, DEFAULT_DIST_DIR)): Sc
   return scanDist(distDir, join(REPO_ROOT, DEFAULT_SECRET_ENV_DIR))
 }
 
-export function main(argv: string[] = []): number {
+export function main(argv: string[] = []): void {
   // 允许显式传产物目录（本地对着别处的产物跑），默认仓库里那份
   const distDir = argv[0] === undefined
     ? join(REPO_ROOT, DEFAULT_DIST_DIR)
     : (isAbsolute(argv[0]) ? argv[0] : join(REPO_ROOT, argv[0]))
 
   const result = collectFindings(distDir)
-  if (result.precondition !== undefined) {
-    console.error(`✖ 前置条件未满足：\n  ${result.precondition}`)
-    return 2
-  }
+  if (result.precondition !== undefined)
+    throw new PreconditionError(result.precondition)
 
   const mb = (result.stats.bytes / 1024 / 1024).toFixed(2)
-  console.log(`产物去密体检：${DEFAULT_DIST_DIR}（${result.stats.files} 个文件 / ${mb} MB；扫文本 ${result.stats.textFiles}，跳过压缩/二进制 ${result.stats.skippedBinary}）`)
+  line('ok', `产物去密体检：${DEFAULT_DIST_DIR}（${result.stats.files} 个文件 / ${mb} MB；扫文本 ${result.stats.textFiles}，跳过压缩/二进制 ${result.stats.skippedBinary}）`)
   if (result.secretCount === 0) {
-    console.warn(`⚠  ${DEFAULT_SECRET_ENV_DIR}/ 不存在（没解密？）⇒ **跳过 env 真值比对**，只跑了形状规则。形状规则拦不住「恰好不像任何形状」的机密，这是漏报面不是通过面。`)
+    lineErr('warning', ` ${DEFAULT_SECRET_ENV_DIR}/ 不存在（没解密？）⇒ **跳过 env 真值比对**，只跑了形状规则。形状规则拦不住「恰好不像任何形状」的机密，这是漏报面不是通过面。`)
   }
   else {
-    console.log(`   env 真值比对：拿 ${DEFAULT_SECRET_ENV_DIR}/ 里 ${result.secretCount} 个**键名像机密**的值逐个在产物里找过 ✅`)
+    out(`   env 真值比对：拿 ${DEFAULT_SECRET_ENV_DIR}/ 里 ${result.secretCount} 个**键名像机密**的值逐个在产物里找过`)
   }
 
   if (result.findings.length === 0) {
-    console.log('✅ 产物里没有机密形态、没有后端 env 机密值、没有凭据文件。')
-    return 0
+    line('ok', '产物里没有机密形态、没有后端 env 机密值、没有凭据文件。')
+    return
   }
 
-  console.error(`\n✖ 产物里有 ${result.findings.length} 处疑似机密泄漏 —— **产物是公开文件**，先当作已泄漏处理：\n`)
+  lineErr('violation', `产物里有 ${result.findings.length} 处疑似机密泄漏 —— **产物是公开文件**，先当作已泄漏处理：\n`)
   for (const f of result.findings)
-    console.error(`  [${f.rule}] ${f.file}\n      ${f.detail}`)
-  console.error('\n修法：先确认它是不是真值（本页刻意不回显值，避免 CI 日志二次泄漏）。')
-  console.error('若是真值：① 轮换那个凭据；② 找到它是怎么进去的（多半是某行 env 从 server 搬到了 admin）；')
-  console.error('③ 修完后重跑本门禁。若判定是误报，请把**这条规则的判据**写进 check-dist-secrets.ts 顶部的表里，而不是加白名单。')
-  return 1
+    err(`  [${f.rule}] ${f.file}\n      ${f.detail}`)
+  err('\n修法：先确认它是不是真值（本页刻意不回显值，避免 CI 日志二次泄漏）。')
+  err('若是真值：① 轮换那个凭据；② 找到它是怎么进去的（多半是某行 env 从 server 搬到了 admin）；')
+  err('③ 修完后重跑本门禁。若判定是误报，请把**这条规则的判据**写进 check-dist-secrets.ts 顶部的表里，而不是加白名单。')
+  throw new ViolationError(`产物里有 ${result.findings.length} 处疑似机密泄漏（明细见上）`)
 }

@@ -6,5 +6,6 @@
  */
 import process from 'node:process'
 import { main } from '../src/env/setup-env.ts'
+import { runCli } from '../src/lib/cli.ts'
 
-process.exit(main(process.argv.slice(2)))
+await runCli(() => main(process.argv.slice(2)))

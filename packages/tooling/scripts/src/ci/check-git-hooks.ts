@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import process from 'node:process'
+import { ViolationError } from '../lib/errors.ts'
+import { out } from '../lib/log.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
 /**
@@ -73,12 +74,11 @@ export function checkGitHooks(repoRoot: string = REPO_ROOT): HookCheckResult {
   return { ok: false, lines }
 }
 
-export function main(): number {
+export function main(): void {
   const result = checkGitHooks()
   for (const line of result.lines)
-    console.log(line)
-  return result.ok ? 0 : 1
+    out(line)
+  // 明细（哪些钩子没托管、为什么、怎么修）由 `checkGitHooks()` 组织好；**结论这一句**统一由 `runCli` 打
+  if (!result.ok)
+    throw new ViolationError('git 钩子不是 lefthook 托管的（明细见上）')
 }
-
-if (process.argv[1] && import.meta.filename === process.argv[1])
-  process.exit(main())

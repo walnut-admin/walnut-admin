@@ -23,7 +23,9 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { PreconditionError, ViolationError } from '../lib/errors.ts'
 import { ignoredPaths, lsFilesWithUntracked } from '../lib/git.ts'
+import { err, line, lineErr, out } from '../lib/log.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 import { workspacePackageNames } from '../lib/workspace.ts'
 
@@ -432,28 +434,27 @@ function runCollect(options: CheckOptions, fsExists: (repoRelative: string) => b
 /** 真实 workspace 包名（读盘上的 package.json，不维护手写清单）—— 枚举逻辑在 `lib/workspace.ts` */
 export { workspacePackageNames }
 
-export function main(): number {
+export function main(): void {
   const findings = collectFindings()
   const docs = liveDocs()
   if (docs.length === 0 || workspacePackageNames().size === 0) {
-    console.error('✖ 扫描面为空（活文档 0 篇或 0 个包）—— 拒绝把「扫不到东西」当绿灯')
-    return 2
+    throw new PreconditionError('扫描面为空（活文档 0 篇或 0 个包）—— 拒绝把「扫不到东西」当绿灯')
   }
 
-  console.log(`文档引用校验：${docs.length} 篇活文档；包名豁免 ${Object.keys(ALLOWED_MISSING_PACKAGES).length} 条、路径豁免 ${Object.keys(ALLOWED_MISSING_PATHS).length} 条`)
+  out(`文档引用校验：${docs.length} 篇活文档；包名豁免 ${Object.keys(ALLOWED_MISSING_PACKAGES).length} 条、路径豁免 ${Object.keys(ALLOWED_MISSING_PATHS).length} 条`)
 
   if (findings.length === 0) {
-    console.log('✅ 没有引用不存在的包名或路径')
-    return 0
+    line('ok', '没有引用不存在的包名或路径')
+    return
   }
 
   for (const f of findings) {
     const label = f.kind === 'package' ? '包名' : f.kind === 'link' ? '链接' : f.kind === 'alias' ? '别名' : '路径'
-    console.error(`\n✖ ${label} ${f.ref}  （${f.files.length} 处）`)
-    for (const file of f.files.slice(0, 6)) console.error(`    ${file}`)
+    lineErr('violation', `${label} ${f.ref}  （${f.files.length} 处）`)
+    for (const file of f.files.slice(0, 6)) err(`    ${file}`)
     if (f.files.length > 6)
-      console.error(`    … 另外 ${f.files.length - 6} 处`)
+      err(`    … 另外 ${f.files.length - 6} 处`)
   }
-  console.error(`\n共 ${findings.length} 类失效引用。修掉它们，或在 check-doc-refs.ts 的 ALLOWED_* 清单里写明理由。`)
-  return 1
+  err(`\n共 ${findings.length} 类失效引用。修掉它们，或在 check-doc-refs.ts 的 ALLOWED_* 清单里写明理由。`)
+  throw new ViolationError(`文档引用有 ${findings.length} 类失效（明细见上）`)
 }

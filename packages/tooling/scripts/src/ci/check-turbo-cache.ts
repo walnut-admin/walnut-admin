@@ -16,6 +16,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { parseConfigFileTextToJson, parseJsonConfigFileContent, readConfigFile, sys } from 'typescript'
 
+import { PreconditionError, ViolationError } from '../lib/errors.ts'
+import { err, line, lineErr, out } from '../lib/log.ts'
 import { getPnpmBin } from '../lib/pnpm-launcher.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
@@ -435,26 +437,25 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
   return findings
 }
 
-export function main(): number {
+export function main(): void {
   let dry: TurboDry
   try {
     dry = loadTurboDry()
   }
   catch (e) {
     // 措辞刻意不写「配置有问题」：这里失败也可能是**根本起不来 turbo**（找不到 pnpm、cwd 不对）
-    console.error(`✖ 拿不到 turbo 的解析结果（\`pnpm exec turbo run … --dry=json\` 没跑成）：${(e as Error).message}`)
-    return 2
+    throw new PreconditionError(`拿不到 turbo 的解析结果（\`pnpm exec turbo run … --dry=json\` 没跑成）：${(e as Error).message}`)
   }
   const findings = collectFindings(dry)
   const tasks = dry.tasks.length
 
   if (findings.length === 0) {
-    console.log(`Turborepo 配置不变量：${tasks} 个 task、${packageDirs(dry).length} 个包，全部成立 ✅`)
-    console.log('  （覆盖两类：缓存边界 —— 产物/outputs/env/依赖边；以及 tags —— 形态/平台一致/反向断言）')
-    return 0
+    line('ok', `Turborepo 配置不变量：${tasks} 个 task、${packageDirs(dry).length} 个包，全部成立`)
+    out('  （覆盖两类：缓存边界 —— 产物/outputs/env/依赖边；以及 tags —— 形态/平台一致/反向断言）')
+    return
   }
-  console.error(`✖ Turborepo 配置有 ${findings.length} 处问题：\n`)
-  for (const f of findings) console.error(`  [${f.rule}] ${f.detail}`)
-  console.error('\n判据与手工复核方法见 apps/docs/src/zh-CN/content/monorepo/turbo-cache-boundary.md')
-  return 1
+  lineErr('violation', `Turborepo 配置有 ${findings.length} 处问题：\n`)
+  for (const f of findings) err(`  [${f.rule}] ${f.detail}`)
+  err('\n判据与手工复核方法见 apps/docs/src/zh-CN/content/monorepo/turbo-cache-boundary.md')
+  throw new ViolationError(`Turbo 配置有 ${findings.length} 处问题（明细见上）`)
 }

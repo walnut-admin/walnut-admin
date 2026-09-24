@@ -56,14 +56,52 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 
 以 `@walnut/scripts` 的某个 bin 为例 —— 本仓已有多条门禁，历史上漏接过步骤：
 
-1. `src/ci/<name>.ts` 写**纯逻辑**（`collectFindings()` 之类）+ `bin/<name>.ts` 一行 `process.exit(main())`；
+1. `src/ci/<name>.ts` 写**纯逻辑**（`collectFindings()` 之类）+ `bin/<name>.ts` 三行：
+   ```ts
+   import { main } from '../src/ci/<name>.ts'
+   import { runCli } from '../src/lib/cli.ts'
+
+   await runCli(main)
+   ```
 2. `packages/tooling/scripts/package.json` 的 `bin` 里登记；
 3. 根 `package.json` 加一条 `lint:<name>` 脚本；
 4. **接进推送前门禁表**：`packages/tooling/scripts/src/ci/prepush.ts` 的 `PREPUSH_GATES` 里加一项
    （`{ id, label, argv, why }` —— **`why` 要写清「凭什么它在推送前必须跑」**）。执行器并行跑、
    每段报耗时；`prepush.test.ts` 会机械校验**每一项的 `argv[0]` 都落到真实存在的根脚本上**
    （打错一个名字 = 一整段门禁静默消失）；
-5. **接进 `ci.yml` 的 quality job**（CI 无缓存，是唯一能兜住本地跳过的闸）；若它也属于发版前必须过的，再加进 `packages/tooling/release/src/release/steps.ts` 的电池（`steps.test.ts` 会校验整表）。
+5. **接进 `ci.yml` 的 quality job**；若它也属于发版前必须过的，再加进 `packages/tooling/release/src/release/steps.ts` 的电池（`steps.test.ts` 会校验整表）。
+
+#### 门禁的**输出与退出码**口径（2026-09-23 统一，别各写各的）
+
+**退出码不由门禁决定**，由 `lib/cli.ts` 的 `runCli` 一处映射 —— 门禁只负责「抛什么」：
+
+| 门禁里怎么做 | 退出码 | 含义 |
+|---|---|---|
+| 正常 `return` | **0** | 通过 |
+| `throw new ViolationError('…')` | **1** | 查出违规（改代码就能过） |
+| `throw new PreconditionError('…')` | **2** | 前置条件未满足（先修环境再重跑） |
+| 别的异常（`TypeError` 等） | **1** | 脚本自己出问题 —— 不该让人去修一个不存在的前置条件 |
+
+**输出走 `lib/log.ts`，不直接用 `console.*`**（它有 TTY/管道两条正确路径；`console.*` 在 POSIX 管道下
+配合 `process.exit` 会**丢输出**）。四种出口，够用且不重叠：
+
+| 出口 | 去哪 | 什么时候用 |
+|---|---|---|
+| `line('ok' \| 'warning', text)` | stdout | **结论行**（带标记） |
+| `lineErr('violation' \| 'warning', text)` | stderr | 违规结论 / 降级提示 |
+| `out(text)` | stdout | **上下文字**（"这次扫了多少东西"），不带标记 |
+| `err(text)` | stderr | 明细与「修法：…」，不带标记 |
+
+**结语由 `runCli` 统一打**（`✖ <ViolationError 的消息>` / `✖ 前置条件未满足：<消息>`）：
+门禁自己打**明细**，最后一行让 `runCli` 说 —— 于是所有门禁的收尾长得一样。
+标记词表在 `log.ts` 的 `MARK`（`✅` / `✖` / `⚠` / `⏭️`）。
+
+> ⚠️ **`prepush` 的对齐表格是唯一例外**：那里用 `✓` / `✗` 而不是 `✅` / `✖`，
+> 因为表格靠 `padStart` 对齐、而 emoji 是**双宽**字符，混进去整列会歪。
+
+> ⚠️ **发版 CLI（`@walnut/release`）也保留自己的顶层 catch**：它的映射多一条规则
+> （子进程退出码 2 也算前置条件未满足 → 2），但**词表与出口是同一套**（`log.ts` + `errors.ts`）。
+> 别为了"形式统一"把它硬塞进 `runCli` —— 那会丢掉那条规则。
 
 > 另外两条约定：门禁**由 `pnpm install --force` 才会重新链接 bin**（`pnpm install` 有时不重链）；
 > 以及**宁可漏报不可误报** —— 一个开始误报的门禁会被无视，等于没做（各门禁模块顶部都写了这条取舍）。

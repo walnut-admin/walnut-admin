@@ -1,3 +1,4 @@
+import { PreconditionError, ViolationError } from '../lib/errors.ts'
 /**
  * 包 `exports` 的形态体检（对比页 C2 的 `exports-shape`）。
  *
@@ -34,6 +35,7 @@
  * （工具链包有没有 `exports` 是本仓有意的差异，不是漂移）。
  */
 import { ignoredPaths } from '../lib/git.ts'
+import { err, line, lineErr, out } from '../lib/log.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 import { workspacePackages } from '../lib/workspace.ts'
 import { globMatchesSomething } from './check-turbo-cache.ts'
@@ -181,29 +183,28 @@ export function collectFindings(
   return findings
 }
 
-export function main(): number {
+export function main(): void {
   let findings: Finding[]
   try {
     findings = collectFindings()
   }
   catch (e) {
-    console.error(`✖ 拿不到包清单或 gitignore 信息：${(e as Error).message}`)
-    return 2
+    throw new PreconditionError(`拿不到包清单或 gitignore 信息：${(e as Error).message}`)
   }
 
   const packages = workspacePackages()
   const withExports = packages.filter(p => p.manifest.exports !== undefined).length
-  console.log(`包 exports 形态体检：${packages.length} 个 workspace 包，其中 ${withExports} 个声明了 \`exports\``)
+  out(`包 exports 形态体检：${packages.length} 个 workspace 包，其中 ${withExports} 个声明了 \`exports\``)
 
   if (findings.length === 0) {
-    console.log('✅ 目标都存在 / 通配都有命中 / `types` 条件在前 / 与顶层 main·types 不矛盾。')
-    console.log('   提示：**产物（gitignore 的路径，如 ./dist/*.cjs）不查存在性** —— 判据是"仓库里该有的文件在不在"。')
-    return 0
+    line('ok', '目标都存在 / 通配都有命中 / `types` 条件在前 / 与顶层 main·types 不矛盾。')
+    out('   提示：**产物（gitignore 的路径，如 ./dist/*.cjs）不查存在性** —— 判据是"仓库里该有的文件在不在"。')
+    return
   }
 
-  console.error(`\n✖ 有 ${findings.length} 处 exports 形态问题：\n`)
+  lineErr('violation', `有 ${findings.length} 处 exports 形态问题：\n`)
   for (const f of findings)
-    console.error(`  [${f.rule}] ${f.detail}`)
-  console.error('\n改完请跑 `pnpm lint:exports` 复验；这类错的症状通常出现在很远的下游（解析到别的入口 / 类型丢失）。')
-  return 1
+    err(`  [${f.rule}] ${f.detail}`)
+  err('\n改完请跑 `pnpm lint:exports` 复验；这类错的症状通常出现在很远的下游（解析到别的入口 / 类型丢失）。')
+  throw new ViolationError(`包 exports 有 ${findings.length} 处形态问题（明细见上）`)
 }

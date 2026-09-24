@@ -35,6 +35,8 @@
 
 import process from 'node:process'
 import { runArgs } from '../lib/child-run.ts'
+import { ViolationError } from '../lib/errors.ts'
+import { err, line, out } from '../lib/log.ts'
 import { getPnpmBin } from '../lib/pnpm-launcher.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
@@ -229,26 +231,27 @@ export function formatLine(result: GateResult): string {
   return `  ${mark} ${secs.padStart(7)}  ${result.gate.label}`
 }
 
-export async function main(): Promise<number> {
+export async function main(): Promise<void> {
   const concurrency = Math.max(1, Number(process.env.PREPUSH_CONCURRENCY) || DEFAULT_CONCURRENCY)
   const started = Date.now()
-  console.log(`推送前门禁：${PREPUSH_GATES.length} 段，最多并行 ${concurrency} 路（表在 packages/tooling/scripts/src/ci/prepush.ts）`)
+  out(`推送前门禁：${PREPUSH_GATES.length} 段，最多并行 ${concurrency} 路（表在 packages/tooling/scripts/src/ci/prepush.ts）`)
 
-  const results = await runGates(PREPUSH_GATES, result => console.log(formatLine(result)), concurrency)
+  const results = await runGates(PREPUSH_GATES, result => out(formatLine(result)), concurrency)
   const failed = results.filter(r => !r.ok)
   const total = ((Date.now() - started) / 1000).toFixed(1)
 
   if (failed.length === 0) {
-    console.log(`✅ ${results.length} 段全部通过（总 ${total}s）`)
-    return 0
+    line('ok', `${results.length} 段全部通过（总 ${total}s）`)
+    return
   }
 
   // 失败才回放输出：成功时那些输出没人看，失败时它是唯一线索
   for (const result of failed) {
-    console.error(`\n${'─'.repeat(20)} ${result.gate.label} 失败（${(result.ms / 1000).toFixed(1)}s） ${'─'.repeat(20)}`)
-    console.error(`为什么必须有这一段：${result.gate.why}`)
-    console.error(result.output.trimEnd() || '（这一段没有输出，只有非零退出码）')
+    err(`\n${'─'.repeat(20)} ${result.gate.label} 失败（${(result.ms / 1000).toFixed(1)}s） ${'─'.repeat(20)}`)
+    err(`为什么必须有这一段：${result.gate.why}`)
+    err(result.output.trimEnd() || '（这一段没有输出，只有非零退出码）')
   }
-  console.error(`\n✖ ${failed.length}/${results.length} 段失败：${failed.map(r => r.gate.id).join(', ')}（总 ${total}s）`)
-  return 1
+  // 这一行是**明细**（哪几段、各自耗时），不带标记 —— 唯一那句结论由 `runCli` 打
+  err(`${failed.length}/${results.length} 段失败：${failed.map(r => r.gate.id).join(', ')}（总 ${total}s）`)
+  throw new ViolationError(`${failed.length} 段推送前门禁失败（明细见上）`)
 }

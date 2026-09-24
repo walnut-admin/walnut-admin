@@ -1,7 +1,10 @@
 #!/usr/bin/env node
-// 由 Node 原生执行 `.ts`（Node 24 默认剥离类型）—— 不需要 tsx / ts-node。
-// 前提是源码只用**可擦除语法**，由 @walnut/tsconfig/ts.json 的 erasableSyntaxOnly 在编译期保证。
-import process from 'node:process'
+/**
+ * 活文档正文里引用的包名 / 仓库路径是否真实存在
+ *
+ * 退出码与输出由 `runCli` 统一（0 通过 / 1 查出违规 / 2 前置条件未满足）—— 见 `src/lib/cli.ts`。
+ */
 import { main } from '../src/ci/check-doc-refs.ts'
+import { runCli } from '../src/lib/cli.ts'
 
-process.exit(main())
+await runCli(main)

@@ -32,7 +32,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import ts from 'typescript'
+import { PreconditionError, ViolationError } from '../lib/errors.ts'
 import { lsFilesWithUntracked } from '../lib/git.ts'
+import { err, line, lineErr, out } from '../lib/log.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
 /** 冻结语料：有意保留当时样子的历史文档，不参与校验（与 check-doc-refs.ts 同一条口径） */
@@ -205,11 +207,10 @@ export function collectFindings(
   return out
 }
 
-export function main(): number {
+export function main(): void {
   const files = docFiles()
   if (files.length === 0) {
-    console.error('✖ 扫描面为空（0 篇文档）—— 拒绝把「扫不到东西」当绿灯')
-    return 2
+    throw new PreconditionError('扫描面为空（0 篇文档）—— 拒绝把「扫不到东西」当绿灯')
   }
 
   const findings = collectFindings(files, f => fs.readFileSync(path.join(REPO_ROOT, f), 'utf8'))
@@ -218,15 +219,15 @@ export function main(): number {
   for (const file of files)
     blocks += tsBlocksOf(fencedBlocks(file, fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'))).length
 
-  console.log(`文档代码块校验：${files.length} 篇活文档里的 ${blocks} 个 ts 块`)
+  out(`文档代码块校验：${files.length} 篇活文档里的 ${blocks} 个 ts 块`)
 
   if (findings.length === 0) {
-    console.log('✅ 全部能按 TypeScript 解析（JSON 块没有标成 ts，也没有截断/乱码）')
-    return 0
+    line('ok', '全部能按 TypeScript 解析（JSON 块没有标成 ts，也没有截断/乱码）')
+    return
   }
 
   for (const f of findings)
-    console.error(`\n✖ ${f.file}:${f.line}  [${f.kind}]\n    ${f.message}`)
-  console.error(`\n共 ${findings.length} 处。有意的伪代码请在块的第一行写 \`${PSEUDO_MARKER}\`。`)
-  return 1
+    lineErr('violation', `${f.file}:${f.line}  [${f.kind}]\n    ${f.message}`)
+  err(`\n共 ${findings.length} 处。有意的伪代码请在块的第一行写 \`${PSEUDO_MARKER}\`。`)
+  throw new ViolationError(`文档代码块有 ${findings.length} 处问题（明细见上）`)
 }

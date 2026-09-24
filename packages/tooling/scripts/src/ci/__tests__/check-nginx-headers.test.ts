@@ -14,7 +14,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { REPO_ROOT } from '../../lib/repo-root.ts'
 import { checkConfigText, collectFindings, NGINX_CONF_DIR, parseBlocks, REQUIRED_HEADERS } from '../check-nginx-headers.ts'
@@ -129,11 +129,12 @@ ${ALL}
   })
 
   it('含 include 的块只提示、不报（宁可漏报不可误报）', () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
     const conf = SERVER_443('    include snippets/nope.conf;')
-    expect(checkConfigText(conf, 'x.conf')).toEqual([])
-    expect(warn).toHaveBeenCalledOnce()
-    warn.mockRestore()
+    // 它不是"缺失"（rule 不同），`main()` 把它当 warning 打出来 —— 于是这里能**直接断言返回值**，
+    // 不必再 spy 某个 `console.*`（那正是这一次把纯函数里的副作用拿掉的原因）。
+    const found = checkConfigText(conf, 'x.conf')
+    expect(found.map(f => f.rule)).toEqual(['include-unverified'])
+    expect(found[0]!.detail).toContain('未核实')
   })
 })
 

@@ -31,6 +31,8 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { PreconditionError, ViolationError } from '../lib/errors.ts'
+import { err, line, lineErr, out } from '../lib/log.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
 export interface DocBudget {
@@ -138,10 +140,9 @@ export function evaluateBudgets(
   return [findings, reports]
 }
 
-export function main(): number {
+export function main(): void {
   if (!fs.existsSync(path.join(REPO_ROOT, 'AGENTS.md'))) {
-    console.error('✖ 找不到根 AGENTS.md —— 拒绝把「读不到东西」当绿灯')
-    return 2
+    throw new PreconditionError('找不到根 AGENTS.md —— 拒绝把「读不到东西」当绿灯')
   }
 
   const [findings, reports] = evaluateBudgets(
@@ -149,17 +150,17 @@ export function main(): number {
     file => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8'),
   )
 
-  console.log(`文档字数预算：${reports.length} 个常驻文件`)
+  out(`文档字数预算：${reports.length} 个常驻文件`)
   for (const r of reports)
-    console.log(`  ${String(r.percent).padStart(3)}%  ${String(r.chars).padStart(6)} / ${String(r.maxChars).padEnd(6)}  ${r.file}`)
+    out(`  ${String(r.percent).padStart(3)}%  ${String(r.chars).padStart(6)} / ${String(r.maxChars).padEnd(6)}  ${r.file}`)
 
   if (findings.length === 0) {
-    console.log('✅ 都在预算内，且没有哪个预算已经失效')
-    return 0
+    line('ok', '都在预算内，且没有哪个预算已经失效')
+    return
   }
 
   for (const f of findings)
-    console.error(`\n✖ ${f.file}  [${f.kind === 'over' ? '超上限' : '预算过期'}]\n    ${f.message}`)
-  console.error(`\n共 ${findings.length} 处。预算表在 packages/tooling/scripts/src/ci/check-doc-budgets.ts。`)
-  return 1
+    lineErr('violation', `${f.file}  [${f.kind === 'over' ? '超上限' : '预算过期'}]\n    ${f.message}`)
+  err(`\n共 ${findings.length} 处。预算表在 packages/tooling/scripts/src/ci/check-doc-budgets.ts。`)
+  throw new ViolationError(`文档字数预算有 ${findings.length} 处问题（明细见上）`)
 }

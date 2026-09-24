@@ -38,6 +38,8 @@
  */
 import { execFileSync } from 'node:child_process'
 
+import { PreconditionError, ViolationError } from '../lib/errors.ts'
+import { err, line, lineErr } from '../lib/log.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
 export interface Finding {
@@ -198,21 +200,20 @@ export function collectFindings(cwd = REPO_ROOT): Finding[] {
   return compareCatalogs(ws, lock)
 }
 
-export function main(): number {
+export function main(): void {
   const findings = collectFindings()
   const precondition = findings.filter(f => f.rule === 'precondition')
 
   if (precondition.length > 0) {
-    console.error(`✖ 前置条件未满足：\n${precondition.map(f => `  ${f.detail}`).join('\n')}`)
-    return 2
+    throw new PreconditionError(`${precondition.map(f => `  ${f.detail}`).join('\n')}`)
   }
   if (findings.length === 0) {
-    console.log('catalog ↔ 锁文件（HEAD 里那一对）：全部锁步 ✅')
-    return 0
+    line('ok', 'catalog ↔ 锁文件（HEAD 里那一对）：全部锁步')
+    return
   }
-  console.error(`✖ HEAD 里的 catalog 与锁文件有 ${findings.length} 处不一致 —— CI 会在 \`pnpm install --frozen-lockfile\` 阶段失败（它的报错不会说清是哪一条）：\n`)
+  lineErr('violation', `HEAD 里的 catalog 与锁文件有 ${findings.length} 处不一致 —— CI 会在 \`pnpm install --frozen-lockfile\` 阶段失败（它的报错不会说清是哪一条）：\n`)
   for (const f of findings)
-    console.error(`  [${f.rule}] ${f.detail}`)
-  console.error('\n修法：在工作区跑一次 `pnpm install`，把 `pnpm-lock.yaml` 一起提交。')
-  return 1
+    err(`  [${f.rule}] ${f.detail}`)
+  err('\n修法：在工作区跑一次 `pnpm install`，把 `pnpm-lock.yaml` 一起提交。')
+  throw new ViolationError(`catalog 与锁文件有 ${findings.length} 处不一致（明细见上）`)
 }

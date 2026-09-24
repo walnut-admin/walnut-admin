@@ -38,6 +38,8 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { PreconditionError, ViolationError } from '../lib/errors.ts'
+import { err, line, lineErr, out } from '../lib/log.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
 /** 安全响应头的**唯一真源**（`deploy/post-verify.sh` 必须验同一组，由测试机械核对） */
@@ -190,7 +192,14 @@ export function checkConfigText(text: string, file: string): Finding[] {
       const parentEffective = effectiveHeaders(block, inherited)
 
       if (child.hasInclude) {
-        console.warn(`⚠️  ${file}:${child.line} ${child.head} 里有 \`include\`，本门禁不跟随它 ⇒ 该块**未核实**`)
+        // ⚠️ 这里**不打印**（纯函数不带副作用 —— 原先它是 `console.warn`，于是用例只能靠 spy 断言）。
+        // 改成一条 rule 不同的 finding：`main()` 把它当**提示**打出来，而不是当违规。
+        findings.push({
+          rule: 'include-unverified',
+          file,
+          line: child.line,
+          detail: `${child.head} 里有 \`include\`，本门禁不跟随它 ⇒ 该块**未核实**`,
+        })
         walk(child, parentEffective)
         continue
       }
@@ -238,25 +247,31 @@ export function collectFindings(dir = join(REPO_ROOT, NGINX_CONF_DIR)): Finding[
   return findings
 }
 
-export function main(): number {
-  const findings = collectFindings()
-  const precondition = findings.filter(f => f.rule === 'precondition')
+export function main(): void {
+  const all = collectFindings()
+  const precondition = all.filter(f => f.rule === 'precondition')
 
-  if (precondition.length > 0) {
-    console.error(`✖ 前置条件未满足：\n${precondition.map(f => `  ${f.detail}`).join('\n')}`)
-    return 2
-  }
+  if (precondition.length > 0)
+    throw new PreconditionError(precondition.map(f => f.detail).join('\n'))
+
+  // `include-unverified` 是**提示**不是违规（见 `checkConfigText` 里的说明）—— 单独走 warning 通道
+  const unverified = all.filter(f => f.rule === 'include-unverified')
+  const findings = all.filter(f => f.rule !== 'include-unverified')
+
+  for (const f of unverified)
+    lineErr('warning', `${f.file}:${f.line} ${f.detail}`)
+
   if (findings.length === 0) {
-    console.log(`入口 nginx 安全响应头（${NGINX_CONF_DIR}）：${REQUIRED_HEADERS.length} 个头在各 server/location 块上都到位 ✅`)
-    console.log('  提示：这一段只证明**配置写对了**；"头真的发出去了"由 deploy/post-verify.sh 在每次部署后核实。')
-    return 0
+    line('ok', `入口 nginx 安全响应头（${NGINX_CONF_DIR}）：${REQUIRED_HEADERS.length} 个头在各 server/location 块上都到位${unverified.length > 0 ? '（有 include 的块未核实，见上方提示）' : ''}`)
+    out('  提示：这一段只证明**配置写对了**；"头真的发出去了"由 deploy/post-verify.sh 在每次部署后核实。')
+    return
   }
 
-  console.error(`✖ 入口 nginx 有 ${findings.length} 处安全响应头缺失：\n`)
+  lineErr('violation', `入口 nginx 有 ${findings.length} 处安全响应头缺失：\n`)
   for (const f of findings)
-    console.error(`  ${f.file}:${f.line}  ${f.detail}`)
-  console.error(`
+    err(`  ${f.file}:${f.line}  ${f.detail}`)
+  err(`
 修法：把那 ${REQUIRED_HEADERS.length} 条 \`add_header\` 补到出问题的块里（取值照抄同级已有的那几条）。`)
-  console.error('为什么不能只写一份：https://nginx.org/en/docs/http/ngx_http_headers_module.html#add_header')
-  return 1
+  err('为什么不能只写一份：https://nginx.org/en/docs/http/ngx_http_headers_module.html#add_header')
+  throw new ViolationError(`入口 nginx 有 ${findings.length} 处安全响应头缺失（明细见上）`)
 }

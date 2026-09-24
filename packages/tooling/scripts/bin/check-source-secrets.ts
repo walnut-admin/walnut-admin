@@ -1,11 +1,10 @@
 #!/usr/bin/env node
 /**
- * 源码密钥形态体检（`pnpm lint:secrets`）：仓库里的文本文件不许出现凭据形状的串。
+ * 源码里的凭据形状（PEM 私钥 / 带真口令的连接串 / JWT / 云厂商 AK）
  *
- * 为什么必须在**推送前**跑：GitHub 的 push protection 在服务端、且**先于 CI** ——
- * 靠 CI 拦等于拦不住（那时 push 已经被拒了）。缘由与判据见 `src/ci/check-source-secrets.ts`。
+ * 退出码与输出由 `runCli` 统一（0 通过 / 1 查出违规 / 2 前置条件未满足）—— 见 `src/lib/cli.ts`。
  */
-import process from 'node:process'
 import { main } from '../src/ci/check-source-secrets.ts'
+import { runCli } from '../src/lib/cli.ts'
 
-process.exit(main())
+await runCli(main)

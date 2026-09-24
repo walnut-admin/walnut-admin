@@ -46,7 +46,9 @@
 import { readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { PreconditionError, ViolationError } from '../lib/errors.ts'
 import { lsFilesWithUntracked } from '../lib/git.ts'
+import { err, line, lineErr, out } from '../lib/log.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 import { lineOf, scanText } from './check-dist-secrets.ts'
 
@@ -120,34 +122,33 @@ export function collectFindings(cwd = REPO_ROOT): SourceScanResult {
   return { findings, scanned, skippedTooLarge, total: all.length }
 }
 
-export function main(): number {
+export function main(): void {
   let result: SourceScanResult
   try {
     result = collectFindings()
   }
   catch (e) {
-    console.error(`✖ 拿不到仓库文件清单（git ls-files 失败）：${(e as Error).message}`)
-    return 2
+    throw new PreconditionError(`拿不到仓库文件清单（git ls-files 失败）：${(e as Error).message}`)
   }
 
-  console.log(`源码密钥形态体检：${result.scanned} / ${result.total} 个文件（跟踪面 ∪ 未跟踪未被忽略，只读文本后缀）`)
+  out(`源码密钥形态体检：${result.scanned} / ${result.total} 个文件（跟踪面 ∪ 未跟踪未被忽略，只读文本后缀）`)
   if (result.skippedTooLarge.length > 0)
-    console.warn(`⚠  跳过了 ${result.skippedTooLarge.length} 个超过 ${Math.round(MAX_FILE_BYTES / 1024 / 1024)} MB 的文件：${result.skippedTooLarge.join(', ')}`)
+    lineErr('warning', ` 跳过了 ${result.skippedTooLarge.length} 个超过 ${Math.round(MAX_FILE_BYTES / 1024 / 1024)} MB 的文件：${result.skippedTooLarge.join(', ')}`)
 
   if (result.findings.length === 0) {
-    console.log('✅ 没有凭据形状的串（PEM 私钥 / 带真口令的连接串 / JWT / 云厂商 AK）。')
-    console.log('   提示：GitHub 的 push protection 在**服务端**跑，它只认形状、分不出样本与真货。')
-    console.log('   所以测试夹具请**运行时拼装**（把前缀与值分开拼，别写成连续字面量），**不要**往这里加白名单。')
-    return 0
+    line('ok', '没有凭据形状的串（PEM 私钥 / 带真口令的连接串 / JWT / 云厂商 AK）。')
+    out('   提示：GitHub 的 push protection 在**服务端**跑，它只认形状、分不出样本与真货。')
+    out('   所以测试夹具请**运行时拼装**（把前缀与值分开拼，别写成连续字面量），**不要**往这里加白名单。')
+    return
   }
 
-  console.error(`\n✖ 有 ${result.findings.length} 处凭据形状的串 —— 服务端 push protection 会用同样的判据拒掉整条 push：\n`)
+  lineErr('violation', `有 ${result.findings.length} 处凭据形状的串 —— 服务端 push protection 会用同样的判据拒掉整条 push：\n`)
   for (const f of result.findings)
-    console.error(`  ${f.file}:${f.line}  [${f.rule}] ${f.detail}`)
-  console.error('\n修法（按优先级）：')
-  console.error('  ① 如果是**真凭据**：先轮换它，再从历史里删掉（改完的提交用 rebase 重写，别只删最新那版）。')
-  console.error(`  ② 如果是**夹具**：把它**拼出来**，别写字面量 —— 前缀与值分开拼即可（见 check-dist-secrets.test.ts 顶部）。`)
-  console.error('  ③ 如果是**文档里的格式说明**：写成不带 scheme 前缀的形状（如「连接串里的 `user:pass@`」）。')
-  console.error('  ⚠️ 不要走"加白名单"这条路：那道服务端的闸不会读我们的白名单。')
-  return 1
+    err(`  ${f.file}:${f.line}  [${f.rule}] ${f.detail}`)
+  err('\n修法（按优先级）：')
+  err('  ① 如果是**真凭据**：先轮换它，再从历史里删掉（改完的提交用 rebase 重写，别只删最新那版）。')
+  err(`  ② 如果是**夹具**：把它**拼出来**，别写字面量 —— 前缀与值分开拼即可（见 check-dist-secrets.test.ts 顶部）。`)
+  err('  ③ 如果是**文档里的格式说明**：写成不带 scheme 前缀的形状（如「连接串里的 `user:pass@`」）。')
+  err('  ⚠️ 不要走"加白名单"这条路：那道服务端的闸不会读我们的白名单。')
+  throw new ViolationError(`源码里有 ${result.findings.length} 处凭据形状的串（明细见上）`)
 }

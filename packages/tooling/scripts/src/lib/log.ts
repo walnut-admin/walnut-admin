@@ -45,3 +45,47 @@ export function writeOut(text: string, toStdErr: boolean): void {
 export function frame(lines: string[]): string {
   return `${RULE}\n${lines.join('\n')}\n${RULE}\n`
 }
+
+/**
+ * 结论标记的**唯一词表**（门禁与 CLI 输出文案的最小口径）。
+ *
+ * 为什么只有这四个：这些程序的输出都是「一行一个结论」，而这四类结论的**下一步动作完全不同** ——
+ * **通过**（什么都不用做）、**违规**（改代码）、**提示**（知道就行：降级、跳过、未核实）、
+ * **跳过**（这一步按设计没跑）。多一个标记就等于多一个要解释的语义。
+ *
+ * ⚠️ **`prepush` 的对齐表格是刻意的例外**：那里用 `✓` / `✗` 而不是 `✅` / `✖` ——
+ * 表格靠 `padStart` 对齐，而 emoji 是**双宽**字符，混进去整列会歪。例外只有这一处。
+ */
+export const MARK = {
+  ok: '✅',
+  violation: '✖',
+  warning: '⚠',
+  skipped: '⏭️',
+} as const
+
+export type MarkKind = keyof typeof MARK
+
+/** 一行结论 → **stdout**（通过 / 进度这类"正常叙述"） */
+export function line(kind: MarkKind, text: string): void {
+  writeOut(`${MARK[kind]} ${text}\n`, false)
+}
+
+/** 一行结论 → **stderr**（违规明细 / 诊断这类"出事了才看"的内容） */
+export function lineErr(kind: MarkKind, text: string): void {
+  writeOut(`${MARK[kind]} ${text}\n`, true)
+}
+
+/**
+ * 无标记的**上下文字**（"这次扫了多少东西"这类叙述）→ stdout。
+ *
+ * 为什么单独给一个函数：判据行一律带标记，而上下文行**不该**抢标记 ——
+ * 读者扫一眼标记就知道结论，标记一泛滥就失去意义。
+ */
+export function out(text: string): void {
+  writeOut(text.endsWith('\n') ? text : `${text}\n`, false)
+}
+
+/** 无标记的**说明 / 修法** → stderr（跟着详细发现一起出现） */
+export function err(text: string): void {
+  writeOut(text.endsWith('\n') ? text : `${text}\n`, true)
+}
