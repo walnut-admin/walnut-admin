@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { Recordable } from 'easy-fns-ts'
 import type { IModels } from '@/api/models'
 import { computed, ref } from 'vue'
 import { getLogOperateDeviceAPI, getLogOperateSnapshotAPI, logOperateAPI } from '@/api/system/log'
@@ -30,6 +31,19 @@ const mergeData = ref<{
   snapshotBefore?: string
   snapshotAfter?: string
 }>({})
+
+/**
+ * 后端的快照是**对象**（`IResponseData.System.LogOperate.Snapshot` 里是 `Recordable`，服务端就是
+ * `cloneDeep` 出来的文档），而 `WCodeMirrorMerge` 要的是**文本**。这里统一序列化 —— 顺带修掉一处
+ * 一直没被发现的运行时错配：以前那句 `mergeData.value = snapshot` 把对象塞给了文本 prop。
+ * （类型上之所以一直没报，是因为 `response.d.ts` 里 `Recordable` **忘了 import**、被 `skipLibCheck`
+ * 静默变成 `any`；那条路 2026-09-29 由 `pnpm lint:dts` 堵上了。）
+ */
+function toSnapshotText(value: Recordable | undefined): string {
+  if (value === undefined)
+    return ''
+  return typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+}
 
 const deviceData = ref<IModels.SystemDevice>({})
 
@@ -344,7 +358,10 @@ const [
             try {
               const formData = onGetFormData()
               const snapshot = await getLogOperateSnapshotAPI(formData.value._id!)
-              mergeData.value = snapshot
+              mergeData.value = {
+                snapshotBefore: toSnapshotText(snapshot.snapshotBefore),
+                snapshotAfter: toSnapshotText(snapshot.snapshotAfter),
+              }
               showMerge.value = true
             }
             finally {

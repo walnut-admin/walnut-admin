@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { EChartsType } from 'echarts/core'
 import type { ICompVendorEChartsProps } from '.'
 import { tryOnMounted, tryOnUnmounted, useEventListener } from '@vueuse/core'
 import { genString } from 'easy-fns-ts'
@@ -19,7 +20,10 @@ const props = withDefaults(defineProps<ICompVendorEChartsProps>(), {
 
 const chartId = ref(`echarts-${genString(8)}`)
 // third party libs should use shallowRef !!!
-const chartInst = shallowRef<echarts.ECharts>()
+// ⚠️ 类型用 `echarts/core` 的 `EChartsType`，**不要**用全局 UMD 命名空间里的 `echarts.ECharts`：
+// 本工程装的是 ESM 的 `echarts/core`（见 `on-demand.ts`），两边是**互不兼容的两套类型身份**
+// （各有一套私有 `_setting`）。混用只会得到一句看起来毫不相干的 TS2322。
+const chartInst = shallowRef<EChartsType>()
 
 const appStoreLocale = useAppStoreLocale()
 const userStorePreference = useAppStoreUserPreference()

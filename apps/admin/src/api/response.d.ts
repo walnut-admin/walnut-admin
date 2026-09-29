@@ -1,5 +1,5 @@
 import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser'
-import type { TreeNodeItem } from 'easy-fns-ts'
+import type { Recordable, TreeNodeItem } from 'easy-fns-ts'
 import type { RouteRecordRaw } from 'vue-router'
 import type { IModels } from './models'
 import type { IStoreApp, IStoreSetting, IStoreUser } from '@/store/types'
@@ -244,7 +244,7 @@ export namespace IResponseData {
         snapshotBefore: Recordable
         snapshotAfter: Recordable
       }
-      export type Device = IModels.SystemLogOperateDevice
+      export type Device = IModels.SystemDevice
     }
   }
 }
