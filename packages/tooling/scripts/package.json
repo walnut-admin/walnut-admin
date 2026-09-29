@@ -20,6 +20,7 @@
     "walnut-check-nginx-headers": "./bin/check-nginx-headers.ts",
     "walnut-check-package-exports": "./bin/check-package-exports.ts",
     "walnut-check-pre-hooks": "./bin/check-pre-hooks.ts",
+    "walnut-check-seed": "./bin/check-seed.ts",
     "walnut-check-source-secrets": "./bin/check-source-secrets.ts",
     "walnut-check-turbo-cache": "./bin/check-turbo-cache.ts",
     "walnut-db-export": "./bin/db-export.ts",

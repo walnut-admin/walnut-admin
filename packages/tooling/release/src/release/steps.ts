@@ -88,6 +88,9 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'doc-ts', label: '文档代码块校验（ts 块必须能解析）', argv: ['lint:doc-ts'] },
   // 同上。常驻上下文的几个文件（根 AGENTS.md / CLAUDE.md / 包级指引）不许无限膨胀。
   { id: 'doc-budget', label: '文档字数预算（常驻文件不许膨胀）', argv: ['lint:doc-budget'] },
+  // 同上。初始化数据（apps/server/db/seed）的形态：私钥/凭证进仓、未裁剪账号被发布、引用被改坏
+  // —— 这三种失效都不会报错，只会让装出来的环境少一块或空掉侧边栏。
+  { id: 'seed', label: '初始化数据形态（必需集合 / 禁入集合 / 体积 / 凭据形状 / 引用完整性）', argv: ['lint:seed'] },
   // 同上。手写的 `.d.ts` 关掉 `skipLibCheck` 查一遍 —— 那些文件里的错平时会静默退化成 any。
   { id: 'dts', label: '手写 .d.ts 检查（关掉 skipLibCheck）', argv: ['lint:dts'] },
   // 同上。turbo.json 写错一个产物目录/依赖边不会报错，只会让 turbo 报 FULL TURBO 却少跑或少产出；

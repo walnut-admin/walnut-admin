@@ -142,6 +142,12 @@ jobs:
       - name: Doc budget check
         run: pnpm lint:doc-budget
 
+      # 初始化数据（apps/server/db/seed）的形态。这份数据**随仓库发布、并被 `db:seed` 直接灌进库**，
+      # 而它的失效方式全是静默的：真私钥/凭证被手工导进来、89MB 的行政区划进了 git 历史、
+      # 未裁剪的账号被发布、引用坏了让侧边栏空掉且不报错。判据只看数据本身，不需要数据库。
+      - name: Seed data shape check
+        run: pnpm lint:seed
+
       # 手写的 `.d.ts` 关掉 `skipLibCheck` 查一遍（只报仓库内文件）。
       # `skipLibCheck: true` 跳过的是**全部** `.d.ts`，含我们自己写的那十几份 ⇒ 里面的错会静默
       # 退化成 any、症状跑到消费方去（2026-09-29 实测：16 处诊断 / 6 个文件，含两处 PWA 残留）。

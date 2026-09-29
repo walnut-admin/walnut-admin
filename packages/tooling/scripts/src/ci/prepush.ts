@@ -127,6 +127,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: '根 `AGENTS.md` / `CLAUDE.md` / 包级指引是**每次会话都进上下文**的常驻内容，膨胀了会挤掉别的东西；预算用不到一半同样算失败（那种预算已经失效）。',
   },
   {
+    id: 'seed',
+    label: '初始化数据形态（必需集合 / 禁入集合 / 体积 / 凭据形状 / 引用完整性）',
+    argv: ['lint:seed'],
+    why: '这份数据**随仓库发布、并被 `db:seed` 直接灌进库**，失效方式全是静默的：有人把 `app_key`（真私钥 PEM、AES keyB64）或凭证表手工导进来 = 私钥进公开仓；有人塞 `shared_area` = 89MB 进 git 历史；有人直接 dump 未裁剪的 `sys_user` = 开发者本人账号被发布（原始导出里就有）；引用被改坏（角色指向不存在的菜单）= 登录后侧边栏空掉且不报错。判据全落在数据本身、不需要数据库，所以能进这道闸。',
+  },
+  {
     id: 'dts',
     label: '手写 .d.ts 检查（关掉 skipLibCheck，只报仓库内文件）',
     argv: ['lint:dts'],
