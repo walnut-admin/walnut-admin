@@ -8,6 +8,7 @@ import { computed, onActivated, onDeactivated, ref, shallowRef, watch } from 'vu
 import { isDark } from '@/hooks/app/useAppDark'
 import { useAppStoreLocale } from '@/store/modules/app/app-locale'
 import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
+import echarts from './on-demand'
 
 defineOptions({
   name: 'WCompVendorECharts',
@@ -53,8 +54,9 @@ function onInit() {
   if (!target)
     return
 
-  // if ondemand usage, just uncomment top echarts import, and change below to `echarts.init`
-  const chart = window.echarts.init(target, getSkinName.value, {
+  // 直接 import 按需版（`on-demand.ts` 已经 `echarts.use(...)` 注册过用到的图表），
+  // 不再走 `window.echarts` 那个隐式全局 —— 理由见 on-demand.ts 里的注释。
+  const chart = echarts.init(target, getSkinName.value, {
     locale: getLangName.value,
   })
 

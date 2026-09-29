@@ -2,7 +2,6 @@
 // 而本工程的 `compilerOptions.types` 是空数组 ⇒ 它不会被自动加载 ⇒ 原来那行
 // `import type * as Gtag from 'gtag.js'` 从来就没生效过（`Gtag.DataLayer` 一直静默是 any）。
 /// <reference types="gtag.js" />
-import type * as ECharts from 'echarts/core'
 import type { DialogApiInjection } from 'naive-ui/lib/dialog/src/DialogProvider'
 import type { LoadingBarApiInjection } from 'naive-ui/lib/loading-bar/src/LoadingBarProvider'
 import type { MessageApiInjection } from 'naive-ui/lib/message/src/MessageProvider'
@@ -37,8 +36,10 @@ declare global {
     $notification: NotificationApiInjection
     $dialog: DialogApiInjection
 
-    // echarts
-    echarts: typeof ECharts
+    // ⚠️ 这里**不再**声明 `echarts`（2026-09-29）：它原先按 `echarts/core`（ESM）声明，而 echarts
+    // 自己用 **UMD 全局**声明了同一个 `Window.echarts` ⇒ 接口合并成一个**交集**，两边各有一套私有
+    // `_setting`、互不兼容，赋值点只能靠断言糊过去。现在改成消费方直接 `import echarts from
+    // './on-demand'`（见那个文件），全局没了、交集没了、断言也没了。
 
     // google analytics
     // ⚠️ 这里没有 `dataLayer`：`@types/gtag.js` 只声明了 `Gtag.Gtag` 与若干参数类型、**没有**

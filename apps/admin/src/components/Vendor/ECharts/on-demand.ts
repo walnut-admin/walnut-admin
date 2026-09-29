@@ -25,10 +25,9 @@ echarts.use([
   CanvasRenderer,
 ])
 
-// ⚠️ 这里必须断言：echarts 自己用 **UMD 全局**声明了 `Window.echarts`，而本文件给它的是
-// `echarts/core`（ESM）的模块对象 —— 两边各有一套私有 `_setting`，身份互不兼容（实测：删掉我们
-// 自己的 `Window.echarts` 声明，这条赋值**照样**报 TS2322 ⇒ 是上游形状问题）。
-// `types/window.d.ts` 里按 ESM 声明（这样 `window.echarts.init(...)` 有类型），赋值点在这里收口。
-window.echarts = echarts as typeof window.echarts
-
+// ⚠️ 这里**不再**把 echarts 挂到 `window.echarts` 上（2026-09-29）：echarts 自己用 **UMD 全局**
+// 声明了 `Window.echarts`，而本文件用的是 `echarts/core`（ESM）—— 两边各有一套私有 `_setting`，
+// **类型身份互不兼容**，赋值只能靠断言糊过去，而那条断言正是「全局关掉 `skipLibCheck`」过不去的
+// 那道墙（见 VERIFICATION-LOG 的 V12）。改成让消费方直接 `import echarts from './on-demand'`：
+// 全局没了、断言没了、双身份也没了（顺带与「不许隐式全局」的方向一致）。
 export default echarts
