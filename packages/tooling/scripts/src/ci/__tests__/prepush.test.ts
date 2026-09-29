@@ -61,6 +61,7 @@ describe('pREPUSH_GATES —— 表本身', () => {
       'adr',
       'doc-ts',
       'doc-budget',
+      'dts',
       'turbo-cache',
       'lockfile',
       'nginx-headers',

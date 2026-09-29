@@ -1,0 +1,19 @@
+{
+  // ⚠️ 这份配置**只服务于 `pnpm lint:dts`**（门禁 `walnut-check-dts`）：把手写的 `.d.ts` 单独拉出来、
+  // **关掉 `skipLibCheck`** 查一遍。判据、理由与首跑抓到的 12 处问题见
+  // `packages/tooling/scripts/src/ci/check-handwritten-dts.ts` 的文件头。
+  //
+  // 为什么不直接改主 `tsconfig.json`：`skipLibCheck` 是**全局**开关 —— 主工程关掉它，会把
+  // `node_modules` 里所有 `.d.ts` 一起拖进来查（实测 15 条错误全来自依赖：`@vueuse/core` /
+  // `naive-ui` / `vue-i18n` / `@vue/compiler-core` …，我们修不了）。所以这里 ① 只收 `.d.ts`、
+  // ② 关掉 `skipLibCheck`、③ 由门禁脚本按**路径**过滤掉依赖的诊断。
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": false,
+    "noEmit": true,
+    "incremental": false,
+    "types": []
+  },
+  "include": ["types/**/*.d.ts", "src/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

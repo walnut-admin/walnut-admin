@@ -142,6 +142,12 @@ jobs:
       - name: Doc budget check
         run: pnpm lint:doc-budget
 
+      # 手写的 `.d.ts` 关掉 `skipLibCheck` 查一遍（只报仓库内文件）。
+      # `skipLibCheck: true` 跳过的是**全部** `.d.ts`，含我们自己写的那十几份 ⇒ 里面的错会静默
+      # 退化成 any、症状跑到消费方去（2026-09-29 实测：16 处诊断 / 6 个文件，含两处 PWA 残留）。
+      - name: Hand-written .d.ts check
+        run: pnpm lint:dts
+
       # turbo 缓存边界：产物目录有没有进 outputs、依赖包源码有没有串进 types:check 的哈希……
       # 这类错误**不会报错**，只会让 turbo 报 FULL TURBO + exit 0 却少跑/少产出。
       - name: Turbo cache boundary check

@@ -15,6 +15,7 @@
     "walnut-check-doc-budgets": "./bin/check-doc-budgets.ts",
     "walnut-check-doc-refs": "./bin/check-doc-refs.ts",
     "walnut-check-doc-ts": "./bin/check-doc-ts.ts",
+    "walnut-check-dts": "./bin/check-dts.ts",
     "walnut-check-git-hooks": "./bin/check-git-hooks.ts",
     "walnut-check-nginx-headers": "./bin/check-nginx-headers.ts",
     "walnut-check-package-exports": "./bin/check-package-exports.ts",

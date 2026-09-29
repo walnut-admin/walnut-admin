@@ -121,6 +121,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: '根 `AGENTS.md` / `CLAUDE.md` / 包级指引是**每次会话都进上下文**的常驻内容，膨胀了会挤掉别的东西；预算用不到一半同样算失败（那种预算已经失效）。',
   },
   {
+    id: 'dts',
+    label: '手写 .d.ts 检查（关掉 skipLibCheck，只报仓库内文件）',
+    argv: ['lint:dts'],
+    why: '`skipLibCheck: true` 跳过的是**全部** `.d.ts`，含我们自己写的那十几份 ⇒ 手写 `.d.ts` 里解析不了的写法会**静默退化成 any**，错误只在消费方漏出来（移除 auto-import 时就是这样：`types.d.ts` 借的全局 `Ref` 一走，报出来的却是 `user-scroll.ts` 里一句「参数隐式 any」）。首跑抓到 16 处诊断 / 6 个文件（含两处 PWA 残留、一个从未存在的模型引用、两处 `@types/gtag.js` 误用）。',
+  },
+  {
     id: 'turbo-cache',
     label: 'turbo 配置不变量（缓存边界 + tags）',
     argv: ['lint:turbo-cache'],
