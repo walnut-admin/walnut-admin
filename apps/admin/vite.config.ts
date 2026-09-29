@@ -73,7 +73,14 @@ export default ({ mode }: ConfigEnv): UserConfig => {
     plugins: [...createVitePlugins(mode, processedEnv)],
 
     resolve: {
-      conditions: ['source'],
+      // `resolve.conditions` 是**替换**而不是追加（V13 的根因，2026-09-29）：
+      // 只写 `['source']` 会把 Vite 默认的 `module` / `browser` / `development|production` 一起抹掉，
+      // 于是**每个 `exports` 映射里没有 `source` 分支的依赖都会落到 `default`**。tslib 正是如此：
+      // 2.3.0 的 `exports` 里 `import` 指 ESM、`default` 指 UMD（`tslib.js`），conditions 被抹掉后
+      // 解析到 UMD；而那份 UMD 自带 `__esModule` 标记 ⇒ 打包器不再合成 `default`，产物里就出现
+      // 「从 undefined 的 `.default` 上解构 `__extends`」⇒ **生产包打开即崩**（留档 V13）。
+      // 把默认值写回来即可，`source` 仍排在最前（workspace 包里声明了该条件的照旧直吃源码）。
+      conditions: ['source', 'module', 'browser', 'development|production'],
       alias: {
         '@': pathResolve('src'),
         // https://github.com/axios/axios/issues/5000#issuecomment-1362395864
@@ -116,7 +123,7 @@ export default ({ mode }: ConfigEnv): UserConfig => {
       target: 'esnext',
       sourcemap: processedEnv.build.sentry.enabled,
 
-      // ⚠️ Vite 8: rollupOptions 已更名为 rolldownOptions
+      // Vite 8: rollupOptions 已更名为 rolldownOptions
       // 兼容层会自动转换，但建议显式迁移
       rolldownOptions: {
         output: {
