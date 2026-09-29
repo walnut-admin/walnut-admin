@@ -52,13 +52,31 @@ import 过 `Ref`**，借的是 auto-import dts 的全局类型再导出。dts �
 全仓命中**只有这 1 个文件、6 个名字**；对**值**的全局名同样扫了一遍，命中全是
 `name` / `version` / `readonly` 这类属性名与关键字的假阳性（值全局在 `.d.ts` 里没有借道空间）。
 
-**本次处置**：补显式 import（`Ref` 并入既有的 `vue` 类型行，5 个 `ValueOfAppConst*` 并入既有的
-`@/const` 行）→ 残留错误归零。
+**本次处置（2026-09-29，已修）**：分两步。
 
-**建议方案方向**：**`skipLibCheck: true` 是本仓最大的静默面**（它跳过的不只是 `node_modules`，
-是**全部** `.d.ts`，含我们自己写的那 16 份）。值得单独评估：① 那 6 个名字的扫描做成常驻门禁
-（本次是一次性脚本，没进仓）；② 或对手写 `.d.ts` 关掉 `skipLibCheck`（`skipLibCheck` 是全局开关，
-做不到按目录 —— 需要换思路，例如把手写 `.d.ts` 改成 `.ts`）。
+① 补显式 import（`Ref` 并入既有的 `vue` 类型行，5 个 `ValueOfAppConst*` 并入既有的 `@/const` 行）
+→ 残留错误归零。
+
+② **把这条静默面本身做成门禁**：新增 `pnpm lint:dts`（`walnut-check-dts`）。做法是把 admin 手写的
+`.d.ts` 单独拉进一个工程（`apps/admin/tsconfig.dts.json`）、**关掉 `skipLibCheck`**，再**只报仓库内、
+且路径段里没有 `node_modules` 的诊断** —— 关掉 `skipLibCheck` 会连依赖的 `.d.ts` 一起查（实测 15 条
+错误全来自依赖：`@vueuse/core` / `naive-ui` / `vue-i18n` / `@vue/compiler-core` …），那不是我们的
+代码；一个开始报「你改不了的错」的门禁等于没有门禁。
+
+**门禁首跑就抓到 16 处诊断 / 6 个文件**（全部已修，见 commit `c22d925`）：两处 PWA 残留（PWA
+2026-08-08 移除，但 `/// <reference types="vite-plugin-pwa/*" />` 与一个 `virtual:pwa-register/vue`
+模块声明还留着）、`web-vitals` v5 已无的 `FIDMetric`/`onFID`、`declare global` 里多余的 `declare`
+（TS1038）、把命名空间当类型用的 `echarts: ECharts`（TS2709）、`interface HTMLAttributes extends
+HTMLAttributes`（自己继承自己，TS2310 —— 那个文件已整个删除）、`Recordable` 忘了 import（4 处）、
+一个指向**从未在仓里存在过**的模型（`IModels.SystemLogOperateDevice`）的类型引用，以及两处只有这条
+门禁能看见的 `@types/gtag.js` 误用（把全局类型包当模块 import、`Gtag.DataLayer` 这个成员根本不存在
+而仓里零处用它）。
+
+**它顺带逼出两处真 bug**（以前被静默 any 挡着）：`views/system/log/operate/index.vue` 把**对象**快照
+塞给了要**文本**的 `WCodeMirrorMerge`；`ECharts` 的 `chartInst` 混用了 UMD 与 ESM 两套类型身份。
+
+**还剩一件事（见 V12）**：想全局关掉 `skipLibCheck` 现在做不到 —— echarts 会挡路，所以门禁只收
+`.d.ts`（`.d.ts` 的 import 会把普通 `.ts` 拉进 program，那些文件上的库身份问题按 `.d.ts` 过滤掉）。
 
 ## V3 · `vite-plugin-checker` 的 ESLint 只在启动时跑一次（已修）
 
@@ -138,11 +156,24 @@ CI 上大概率不复现（runner 核数与负载不同），所以它更像是*
 `NODE_OPTIONS=--max-old-space-size=8192` —— 12 × 8 GB 的堆上限在 64 GB 机器上撞到原生层分配失败
 是合理猜测，但**没有取证**（没有抓崩溃转储），别当结论用。
 
-**本次处置**：**不改**（按「留档后单独出方案」的口径），验证结论按「固定并发下全绿」记。
+**本次处置（2026-09-29，已修）**：全仓 **16 个 manifest / 33 处** `--concurrency=auto` 一律改成
+`--concurrency=4`（含各包 `lint` / `lint:fix`、根 `lint:root` / `lint:root:fix`，以及根 `lint-staged`
+里那条 `eslint --fix`）。改之前先量了代价 —— 同一个 `apps/admin` 全量 lint：
 
-**建议方案方向**：把 admin（与 server）的 `--concurrency=auto` 换成固定值（本机实测 2 与 4 都不崩）
-或去掉；要保留 `auto` 的话，`lint:fix` 使用前应能检出「半修复」状态（例如 `--fix` 后紧接一次
-`--no-fix` 复核）。
+```text
+--concurrency=auto   28.1s
+--concurrency=4      26.8s   ← 固定值反而最快
+--concurrency=6      28.3s
+```
+
+worker 越多调度开销越明显（ESLint 自己也会打 `ESLintPoorConcurrencyWarning`），所以这不是
+「拿速度换稳定」，是两边都赚。理由与这组数字写进了 `content/monorepo/package-scripts.md`
+（`package.json` 存不下注释，而这个 `4` 一旦被「优化」回 `auto` 就会把崩溃带回来）。
+改后复跑：`--concurrency=4` **5/5 通过**（含 `lint` 与 `lint:fix`）。
+
+**还建议做**：给上游 `eslint` 提一个可诊断性问题 —— `0xC0000005` 这种原生崩溃没有任何可用输出
+（连「哪个 worker 崩了」都没有）；以及 `lint:fix` 崩在中途会留下**半修复**工作区，理想情况下
+`--fix` 要么原子要么能检出残留（例如 `--fix` 后紧接一次不带 `--fix` 的复核）。
 
 ## V6 · 后台作业 + `2>&1` 会把成功报成 exit 1（采集假失败）
 
@@ -189,7 +220,88 @@ Error: [unocss] Fetch web fonts timeout.
 本机网络到 `fonts.googleapis.com` 不通时会稳定复现；**不影响产物**（构建照样 `✓ built`），
 但它在日志里长成 `Error:` + 栈，很容易被读成致命错误。
 
-**建议方案方向**：给 preset-web-fonts 配 `offline: true` 或本地字体，或把超时降级成 warn。
+**本次处置（2026-09-29）：不改，按「环境噪声（已知）」结案。** 理由：它**不是缺陷** —— dev 与 build
+都成功（`✓ built`）、产物完整，只是 UnoCss 的 `preset-web-fonts` 在拿不到 `fonts.googleapis.com` 时
+把超时抛在 `setTimeout` 里，于是 Node 打出一整段 `Error:` + 栈，看起来像致命错误。而任何「修」都要
+么改产物行为（`offline: true` 会让构建不再内联 Google Fonts 的 `@import`，CI 有网时会与本地产出不同）、
+要么只是把噪声挪个位置；本机网络受限是**本机**的事，不该让仓库为它改产物。真嫌吵的话按下面第二条走。
+
+**建议方案方向**（留作可选）：① 想彻底不抓就别用 `presetWebFonts` 的远程 provider（换本地字体文件）；
+② 想保留抓取、只是别让它长得像崩溃，得等 UnoCss 把这条 `logger.error` 换成 warn（上游），或在
+`uno.config.ts` 里给 `presetWebFonts` 传一个更短的 `timeout` 缩短卡顿窗口。
+
+## V10 · 一次提交几百个文件时 pre-commit 必挂（**已修**，lint-staged 上游 bug）
+
+**症状**：分批次提交这次改动时，第一笔（369 个暂存文件）在 pre-commit 直接失败，输出只有一句
+**「命令行太长」**（`lint-staged` 把 lint 任务标成 `[FAILED]` 后回滚了暂存状态）；而逐个文件跑
+`eslint --fix` 全是 exit 0。
+
+**根因（读分发代码确认，不是猜）**：`lint-staged@17.0.2` 的 CLI 把该选项算成
+`parseInt(values['max-arg-length'], 10)` —— **没传时是 `NaN`**；而 `lib/index.js` 里那个合理的默认值
+`maxArgLength = getMaxArgLength() / 2`（win32 = 4095）是**解构默认值**，只在「值为 `undefined`」时
+生效 ⇒ `NaN` 不是 `undefined` ⇒ 默认值失效 ⇒ `chunkFiles` 走 `if (!maxArgLength)` 那条分支
+**静默关掉分块** ⇒ 所有暂存路径塞进一条命令，超过 Windows 的 8191 字符上限。
+
+**判据**：`node_modules/lint-staged/lib/cli.js:184` 与 `lib/index.js:94`、`lib/chunkFiles.js:49`
+三处连线可直接读到；`lib/index.js:37` 的 `getMaxArgLength()` 在 `win32` 返回 8191。
+
+**影响**：**任何** Windows + lint-staged 17.x 的仓库，只要一次提交的文件够多（本仓实测 369 个必挂、
+少量文件不会）就会撞上；CI（Linux）不受影响，所以这是一个只在本地阻断提交的坑。
+
+**本次处置**：在 `lefthook.yml` 的 pre-commit 里显式传
+`pnpm exec lint-staged --max-arg-length=4000`（贴着 win32 默认值 8191/2，跨平台也安全），
+并把上面这段根因写进配置注释；commit `1e5b2e6` 已落地。**实测 369 个文件的提交随后正常通过**
+（lint-staged 8.61s ✓ / commitlint ✓）。
+
+**建议方案方向**：这是上游 bug，除了本地兜住，值得给上游提 issue/PR（`cli.js` 把
+`parseInt(...)` 换成 `values['max-arg-length'] === undefined ? undefined : parseInt(...)`，
+让解构默认值生效）。另外可考虑把这条不变量做成机械判据 —— 但那需要跑一次真实的多文件提交，
+成本高于收益，暂不做。
+
+---
+
+## V11 · 新增 bin 后 `pnpm install` 不链接它（本地空转一次）
+
+**症状**：给 `@walnut/scripts` 加了新 bin（`walnut-check-dts`）与根脚本 `lint:dts` 之后，
+`pnpm lint:dts` 报 `'walnut-check-dts' is not recognized as an internal or external command`，
+而同一个 bin 直接 `node packages/tooling/scripts/bin/check-dts.ts` 跑得好好的。
+
+**判据**：`pnpm install` 的输出是 **`Already up to date`**（9ms），`node_modules/.bin/walnut-check-dts`
+**不存在**；`pnpm install --force`（5.5s）之后 bin 出现、`pnpm lint:dts` exit 0。
+`Test-Path node_modules/.bin/walnut-check-dts` 一条命令就能判定。
+
+**影响**：只影响**已有检出**拉下「新增 bin」这类改动之后的第一次本地门禁运行；CI 不受影响
+（全新 `pnpm install --frozen-lockfile` 会链接 bin）。症状看起来像「门禁脚本写错了」，
+实际是链接问题 —— 会浪费一轮排查。
+
+**本次处置**：不改（属于 pnpm 行为，不是本仓的 bug），只记一笔，并把它写进了那个 commit 的正文。
+
+**建议方案方向**：真要消除这一坑，可以在 `pnpm lint:dts` 跑不通时给出更响的提示 ——
+但那需要包一层脚本，成本高于收益；**更省的办法是记住 `--force`**（或者以后新增 bin 的那次提交里
+顺带把这条写进 commit 正文，本次就是这么做的）。
+
+## V12 · 想全局关掉 `skipLibCheck` 现在做不到：echarts 会挡路
+
+**症状**：V2 那条「或对手写 `.d.ts` 关掉 `skipLibCheck`」看着最干净，实测**卡在 echarts**。
+关掉 `skipLibCheck` 之后 `src/components/Vendor/ECharts/on-demand.ts:28`（`window.echarts = echarts`）
+报 TS2322：`typeof import("echarts/core")` 不能赋给
+`typeof import("echarts/core") & typeof import("echarts/types/dist/echarts")` ——
+两边的 `Axis` / `Scale` 各带一套私有 `_setting`，**互不兼容**。
+
+**判据**：把 `types/window.d.ts` 里我们自己那条 `Window.echarts` 声明**整条删掉**，这条错误
+**照样存在**（实测 1 条不降）⇒ 冲突来自 echarts 自己的 UMD 全局声明，不是我们引入的。
+
+**影响**：决定了 `pnpm lint:dts` 的扫描面必须收窄到 `.d.ts`（`isOwnFile` 第一条判据）——
+`.d.ts` 里的 `import` 会把普通 `.ts` 一起拉进 program，那些文件上会报出这类**只有关掉
+`skipLibCheck` 才成立**的库身份问题。同时它也说明：**本仓现在没法把 `skipLibCheck` 全局关掉**，
+echarts（可能还有别的库）会是第一道墙。
+
+**本次处置**：不改（上游形状问题），把「为什么门禁只收 `.d.ts`」写进门禁的判据注释里，并在此留档。
+
+**建议方案方向**：将来若要全局关掉 `skipLibCheck`，先解决 echarts 的双身份 —— 可选
+① 统一走 UMD（不用 `echarts/core` 的按需引入）；② 或给 `on-demand.ts` 那个赋值点保留断言
+（本次已经这么做了）并接受 `Window.echarts` 用 ESM 身份；③ 或等 echarts 修。
+这件事**值得单独立项**，别顺手做。
 
 ---
 
@@ -198,10 +310,31 @@ Error: [unocss] Fetch web fonts timeout.
 | 项 | 结果 |
 |----|------|
 | `apps/admin` `vue-tsc --noEmit`（隐藏 auto-import dts 后） | **0 错误**（起点 2416） |
-| admin `eslint .` | exit 0（9 次里 2 次崩在 `--concurrency=auto`；固定并发 3/3 通过 —— 见 V5） |
+| `pnpm types:check`（全仓，含 V2 修复后） | **15/15 任务通过** |
+| admin `eslint .` | exit 0（V5 修掉 `--concurrency=auto` 后：固定 4，未再崩） |
 | `pnpm --filter @walnut/admin build` | exit 0，产物齐全（见 V6 的采集差异） |
 | `pnpm dev` 三行检查器（checker **0.14.5**） | `[ESLint] 0` / `[TypeScript] 0` / `[vue-tsc] 0` |
-| `pnpm prepush` | **17/17 段全绿**，总 54.9s |
+| `pnpm prepush` | **18/18 段全绿**（V2 之后新增 `dts` 段），总 45.1s |
 | `pnpm build:docs` | exit 0（0 死链） |
-| `pnpm test` | 13/13 turbo 任务通过 |
+| `pnpm test` | 13/13 turbo 任务通过；`@walnut/scripts` 363/363、`@walnut/release` 198/198 |
 | 浏览器运行期（headless） | **无** `ReferenceError` / `is not defined` / `Uncaught`；但卡 splash，见 V4 |
+
+## 结案状态（2026-09-29）
+
+| 条目 | 状态 |
+|------|------|
+| V1 旧 dts 残留假绿 | **已修**（生成器自愈清理） |
+| V2 `skipLibCheck` 静默 any | **已修** + **已加门禁** `pnpm lint:dts`（16 处诊断全修；全局关 `skipLibCheck` 仍被 V12 挡着） |
+| V3 checker `watchPath` | **已修** |
+| V4 启动序列没容错 / 空库 | **定性完毕，待立项**（既有问题，已在 `architecture-todo.md` 名下；另需一个本地 seed 脚本） |
+| V5 `--concurrency=auto` 崩 | **已修**（16 个 manifest / 33 处 → 固定 4，实测不慢反快） |
+| V6 后台作业报 exit 1 | **定性完毕**（采集层，非项目问题） |
+| V7 预算读数腐烂 / CLAUDE.md 99% | **已修**（读数不写进表，上限按现状重校） |
+| V8 `json` 围栏放 JSON5 无人拦 | **已修**（`lint:doc-ts` 加严格 JSON 校验 + 7 处改标 `jsonc`） |
+| V9 UnoCss 字体超时像致命错 | **定性完毕：不改**（环境噪声，非缺陷） |
+| V10 lint-staged 大提交必挂 | **已修**（`--max-arg-length=4000` + 用例钉住） |
+| V11 新增 bin 不链接 | **已定性**（`pnpm install --force` 一次） |
+| V12 echarts 双身份挡住全局关 `skipLibCheck` | **已定性，待立项** |
+
+**仍然打开的两条**：V4（前端启动序列容错 + 本地无 seed —— 属业务代码 + 环境供给）与 V12
+（echarts 双身份 ⇒ 全局关 `skipLibCheck` 的前置）。其余全部结案。
