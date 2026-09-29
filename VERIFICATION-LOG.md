@@ -431,7 +431,54 @@ conditions: ['source', 'module', 'browser', 'development|production'],
 | `pnpm build:docs` | exit 0（0 死链） |
 | `pnpm test` | 13/13 turbo 任务通过；`@walnut/scripts` 363/363、`@walnut/release` 198/198 |
 | 浏览器运行期（CDP 实测，dev 模式） | 改后：**已挂载**（splash 消失）+ 逐条降级提示 + `App Initializing`；改前：卡 splash + 1 条未捕获异常（见 V4） |
-| 浏览器运行期（静态伺服 `dist`） | **跑不起来**：`vendor-*.js` 抛 `__extends of undefined`（见 V13，既有问题） |
+| 浏览器运行期（静态伺服 `dist`） | **已修**（V13）：`pnpm smoke:dist` 实测 1.9s 内完成挂载 |
+
+---
+
+## V16 · 初始化数据（seed）随仓库与 Release 发布（**新建，已落地**）
+
+**背景**：这件事一直想做但没做过 —— 老实现是「后台 `_db` 文件夹 13 个 json + Studio 3T 手工导入」
+（`apps/docs/.../backend/mongodb.md` 的原文），而那些 json **从来不在本仓**（三仓合并时没带过来）。
+本机也没有 `mongoimport` / `mongosh`（无 Docker），所以整条链走 Node + `mongodb` 驱动。
+
+**定稿：哪些进、哪些不进**（判据写在 `apps/server/db/seed/README.md`，不靠记忆）
+
+| 进仓（8 集 / 约 0.78MB） | 不进仓 | 理由 |
+|---|---|---|
+| `app_setting` · `sys_lang` · `sys_locale` · `sys_menu` · `sys_role` · `sys_user`(裁剪) · `sys_dict_type` · `sys_dict_data` | — | 起得来 + 界面有字 + 权限树完整 |
+| — | `app_key` | 里面是**真密钥材料**（RSA 私钥 PEM 1704 字符、AES `keyB64`）。进公开仓既泄密、又会被本仓 `lint:secrets` 判红 ⇒ 改为**播种时现生成** |
+| — | `sys_user_identity` | OPAQUE 注册记录**绑定 `AUTH_OPAQUE_SECRET`**（该 secret 就是 `serverSetup`）⇒ 换环境必然登不进去 ⇒ 改为 `db:seed --admin` **现场生成并验证** |
+| — | `sys_user_mfa` · `sys_user_oauth` · `sys_device` · `sys_user_device` | env 密钥绑定 / 运行时状态 / 个人数据 |
+| — | `shared_area`（66 万条 / 89MB） | 参考数据、体量大 ⇒ **随 Release 发资产** |
+
+**工具链（仓是唯一真源）**：`db:seed`（幂等 upsert / `--dry-run` / `--only` / `--with-areas` 分块且支持
+`.json.gz` / `--admin --password`）· `db:export`（反向导出，**与仓内文件逐字节可比**）·
+`seed:pack [--areas-from-db]`（带版本号的发版资产；上传交给 `release.yml` 里**已在用的**
+`softprops/action-gh-release@v2`，只需补 `files:`，不写上传代码）· `lint:seed`（形态门禁）·
+`lint:emoji`（注释与常驻文档）· `smoke:dist`（产物冒烟）。
+
+**判据与实测证据**
+
+| 判据 | 结果 |
+|---|---|
+| `db:seed` → `db:export` 往返 | **8/8 集合 SHA-256 逐字节一致**（过程中真发现 `sys_locale` 顺序不同，已把仓内文件规范化为导出顺序） |
+| 幂等 | 第二次播种 `新增 0 / 覆盖全部`；`app_key` 不重复生成 |
+| 行政区划真实体量 | 66 万条首次 **181s**、复跑 **39s**（`新增 0 / 覆盖 662853`） |
+| **空库 → 播种 → 能登录** | `db:seed --admin visitor --password …` 后跑**完整 OPAQUE 登录握手**：会话密钥 **86 字节** |
+| 负对照：口令不对 / 换一份 `serverSetup` | 握手均**失败**（后者把"凭证不可跨环境搬运"这个协议性质钉成了用例） |
+| 负对照：错 `AUTH_OPAQUE_SECRET` | 注册那步在 WASM 里炸 ⇒ 退出码 2 + 把 wasm 栈翻成"它必须是后端实际使用的那一份" |
+| `lint:seed` 反例 | 12 条（缺必需集合、7 种禁入集合逐个、凭据字段、未裁剪账号、三类引用损坏、解析失败、体积超限）+ 本仓当前干净 |
+| `lint:emoji` 反例 | 11 条（分派正确性、``/``/`` 与 `→ ⇒ ≤` 不误伤、`--fix` 就地剔除） |
+| `smoke:dist` 正负对照 | 真产物 1.9s 挂载；假产物（只有 splash + 入口 throw）退出码 1，诊断直指"打开即死" |
+
+**过程中被自己的门禁抓到四次**（这算门禁有效的证据）：`lint:secrets` 抓到用例里的 PEM 字面量与带口令
+的连接串；`walnut-comment/no-emoji` 抓到我注释里的 emoji；`turbo/no-undeclared-env-vars` 抓到
+`TEMP`/`TMPDIR`/`SEED_ADMIN_PASSWORD`；`walnut-script/script-header` 抓到 bin 少了文件头。
+
+**仍开放**：`sys_role` 里 `visitor` 与 `root` 的 `menus` 都是 0 个 —— 演示账号登录后侧边栏会不会空，
+要靠真后端才能实测（本轮验证止步于协议层）。
+
+---
 
 ## 结案状态（2026-09-29）
 
@@ -452,7 +499,8 @@ conditions: ['source', 'module', 'browser', 'development|production'],
 | V12 echarts 双身份挡全局关 `skipLibCheck` | **已修**（删掉 `window.echarts` 隐式全局，改直接 import；echarts 那道墙消失，剩下的是依赖自身 13 条） |
 | V13 生产产物跑不起来 | **已修**（根因是 `resolve.conditions: ['source']` **替换**掉了 Vite 默认条件 ⇒ 依赖落到 CJS/UMD 入口；把默认条件写回来即可。产物里 UMD 工厂 1 → 0、CDP 实测已挂载、dev 侧同样正常） |
 | V14 prepush 不跑各包 lint | **已修**（prepush 表补 `lint` 段 = `turbo run lint`，与发版电池对齐；`prepush.test.ts` 整表断言同步） |
-| V15 注释里的 emoji 变乱码 | **已加门禁**（本地规则 `walnut-comment/no-emoji`，可自动修复；存量清 140 + 20 处。已知空白：eslint 覆盖面外的 `.yml` / `.gitignore` / `.toml` 注释暂无机械判据） |
+| V15 注释里的 emoji 变乱码 | **已加门禁**（本地规则 `walnut-comment/no-emoji` + 跨文件类型的 `pnpm lint:emoji`；存量清 140 + 20 + 8 处） |
+| V16 初始化数据（seed） | **已落地**（8 集进仓 / 密钥与凭证现生成 / 往返逐字节一致 / 空库播种后能登录 / 发版资产） |
 
 **仍然打开的**：V4b（seed，数据源不在仓里）、V15 的空白（eslint 覆盖面之外的文本文件注释 emoji）；
 另外 **CI 缺一步「构建产物冒烟」**（V13 建议，见该条末段）—— 这三条都属于「需要单独裁定」的量级。
