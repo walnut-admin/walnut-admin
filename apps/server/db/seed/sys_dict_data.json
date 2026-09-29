@@ -1,0 +1,3256 @@
+[
+  {
+    "_id": {
+      "$oid": "6211b63100ab785c169ee54b"
+    },
+    "description": "系统默认状态真值",
+    "status": true,
+    "order": 0,
+    "value": "true",
+    "label": "dict.status.true",
+    "typeId": {
+      "$oid": "621098e6273ac97843b98dfb"
+    },
+    "createdAt": {
+      "$date": "2022-02-20T03:32:01.375Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-24T09:52:20.341Z"
+    },
+    "tagType": "success"
+  },
+  {
+    "_id": {
+      "$oid": "6211b6a700ab785c169ee551"
+    },
+    "description": "系统默认状态假值",
+    "status": true,
+    "order": 1,
+    "value": "false",
+    "label": "dict.status.false",
+    "typeId": {
+      "$oid": "621098e6273ac97843b98dfb"
+    },
+    "createdAt": {
+      "$date": "2022-02-20T03:33:59.175Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-24T09:50:49.280Z"
+    },
+    "tagType": "error"
+  },
+  {
+    "_id": {
+      "$oid": "62138f0d4572d5ea0982d194"
+    },
+    "description": "male",
+    "status": true,
+    "order": 1,
+    "value": "1",
+    "label": "dict.sex.male",
+    "typeId": {
+      "$oid": "6212457a5694253a76fddd89"
+    },
+    "createdAt": {
+      "$date": "2022-02-21T13:09:33.188Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:01:06.313Z"
+    },
+    "tagType": "primary"
+  },
+  {
+    "_id": {
+      "$oid": "62138f1e4572d5ea0982d198"
+    },
+    "description": "female",
+    "status": true,
+    "order": 2,
+    "value": "2",
+    "label": "dict.sex.female",
+    "typeId": {
+      "$oid": "6212457a5694253a76fddd89"
+    },
+    "createdAt": {
+      "$date": "2022-02-21T13:09:50.407Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:01:11.026Z"
+    },
+    "tagType": "info"
+  },
+  {
+    "_id": {
+      "$oid": "623c522fcc4e009b0d21eda8"
+    },
+    "description": "primary style",
+    "tagType": "primary",
+    "status": true,
+    "order": 1,
+    "value": "primary",
+    "label": "dict.type.primary",
+    "typeId": {
+      "$oid": "623c3c64e8a9064c857cf754"
+    },
+    "createdAt": {
+      "$date": "2022-03-24T11:12:47.629Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-24T11:12:47.629Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623c5247cc4e009b0d21edb5"
+    },
+    "description": "info style",
+    "tagType": "info",
+    "status": true,
+    "order": 2,
+    "value": "info",
+    "label": "dict.type.info",
+    "typeId": {
+      "$oid": "623c3c64e8a9064c857cf754"
+    },
+    "createdAt": {
+      "$date": "2022-03-24T11:13:11.549Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-24T11:13:11.549Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623c525bcc4e009b0d21edb9"
+    },
+    "description": "success style",
+    "tagType": "success",
+    "status": true,
+    "order": 3,
+    "value": "success",
+    "label": "dict.type.success",
+    "typeId": {
+      "$oid": "623c3c64e8a9064c857cf754"
+    },
+    "createdAt": {
+      "$date": "2022-03-24T11:13:31.287Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-24T11:13:31.287Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623c5269cc4e009b0d21edbd"
+    },
+    "description": "warning style",
+    "tagType": "warning",
+    "status": true,
+    "order": 4,
+    "value": "warning",
+    "label": "dict.type.warning",
+    "typeId": {
+      "$oid": "623c3c64e8a9064c857cf754"
+    },
+    "createdAt": {
+      "$date": "2022-03-24T11:13:45.582Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-24T11:13:45.582Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623c527acc4e009b0d21edc1"
+    },
+    "description": "error style",
+    "tagType": "error",
+    "status": true,
+    "order": 5,
+    "value": "error",
+    "label": "dict.type.error",
+    "typeId": {
+      "$oid": "623c3c64e8a9064c857cf754"
+    },
+    "createdAt": {
+      "$date": "2022-03-24T11:14:02.068Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-24T11:14:02.068Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6246c01abd7d7fe6184005f9"
+    },
+    "description": "系统默认成功",
+    "tagType": "success",
+    "status": true,
+    "order": 1,
+    "value": "true",
+    "label": "dict.success.true",
+    "typeId": {
+      "$oid": "6246bf79bd7d7fe6184005a6"
+    },
+    "createdAt": {
+      "$date": "2022-04-01T09:04:26.931Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-01T09:04:26.931Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6246c028bd7d7fe618400600"
+    },
+    "description": "系统默认失败",
+    "tagType": "error",
+    "status": true,
+    "order": 2,
+    "value": "false",
+    "label": "dict.success.false",
+    "typeId": {
+      "$oid": "6246bf79bd7d7fe6184005a6"
+    },
+    "createdAt": {
+      "$date": "2022-04-01T09:04:40.839Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-01T09:04:40.839Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c07679781ef4d9511fc82"
+    },
+    "tagType": "info",
+    "status": true,
+    "order": 0,
+    "value": "0",
+    "label": "dict.sex.unknown",
+    "typeId": {
+      "$oid": "6212457a5694253a76fddd89"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:09:59.169Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:10:06.786Z"
+    },
+    "description": "unknown"
+  },
+  {
+    "_id": {
+      "$oid": "624c077c9781ef4d9511fc8f"
+    },
+    "description": "undescribed",
+    "tagType": "warning",
+    "status": true,
+    "order": 3,
+    "value": "9",
+    "label": "dict.sex.undescribed",
+    "typeId": {
+      "$oid": "6212457a5694253a76fddd89"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:10:20.971Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:10:20.971Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0e81cd8a291d7880cb06"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 1,
+    "value": "10",
+    "label": "dict.edu.yjsjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:40:17.643Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:40:17.643Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0e9bcd8a291d7880cb0d"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 2,
+    "value": "11",
+    "label": "dict.edu.bsyjsby",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:40:43.346Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:40:43.346Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0ea6cd8a291d7880cb14"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 3,
+    "value": "12",
+    "label": "dict.edu.bsyjsjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:40:54.186Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:40:54.186Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0eb0cd8a291d7880cb1b"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 4,
+    "value": "13",
+    "label": "dict.edu.bsyjsyy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:41:04.797Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:41:04.797Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0ed8cd8a291d7880cb30"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 5,
+    "value": "14",
+    "label": "dict.edu.ssyjsby",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:41:44.301Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:41:44.301Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0eeacd8a291d7880cb37"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 6,
+    "value": "15",
+    "label": "dict.edu.ssyjsjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:42:02.930Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:42:02.930Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0efdcd8a291d7880cb3e"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 7,
+    "value": "16",
+    "label": "dict.edu.ssyjsyy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:42:21.618Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:42:21.618Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0f64cd8a291d7880cb45"
+    },
+    "description": "我国研究生教育中属于硕士生层次的一种非导师制的方式。其招生和入学条件与硕士生相似；学制两年或一年半。完成全部学习项目并考核合格者，发给研究生班毕业证书（研究生课程班不在此列）",
+    "tagType": "primary",
+    "status": true,
+    "order": 8,
+    "value": "17",
+    "label": "dict.edu.yjsbby",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:44:04.224Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:44:04.224Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0f7acd8a291d7880cb4c"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 9,
+    "value": "18",
+    "label": "dict.edu.yjsbjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:44:26.245Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:44:26.245Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0f8acd8a291d7880cb55"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 10,
+    "value": "19",
+    "label": "dict.edu.yjsbyy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:44:42.317Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:44:42.317Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0fbdcd8a291d7880cb5c"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 11,
+    "value": "20/30",
+    "label": "dict.edu.dxbkzkjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:45:33.002Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:45:33.002Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0fcccd8a291d7880cb63"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 12,
+    "value": "21",
+    "label": "dict.edu.dxbkby",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:45:48.317Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:45:48.317Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0fd8cd8a291d7880cb6a"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 13,
+    "value": "22",
+    "label": "dict.edu.dxbkjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:46:00.372Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:46:00.372Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0fe3cd8a291d7880cb71"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 14,
+    "value": "23",
+    "label": "dict.edu.dxbkyy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:46:11.193Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:46:11.193Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c0ff4cd8a291d7880cb78"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 15,
+    "value": "28",
+    "label": "dict.edu.dxptbby",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:46:28.281Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:46:28.281Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c1004cd8a291d7880cb7f"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 16,
+    "value": "31",
+    "label": "dict.edu.dxzkby",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:46:44.561Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:46:44.561Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c100fcd8a291d7880cb86"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 17,
+    "value": "32",
+    "label": "dict.edu.dxzkjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:46:55.177Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:47:26.623Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c1024cd8a291d7880cb8d"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 18,
+    "value": "33",
+    "label": "dict.edu.dxzkyy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:47:16.345Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:47:16.345Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c1076cd8a291d7880cbab"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 19,
+    "value": "40",
+    "label": "dict.edu.zdzyjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:48:38.271Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:48:38.271Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c1089cd8a291d7880cbb2"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 20,
+    "value": "41",
+    "label": "dict.edu.zdzkby",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:48:57.539Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:48:57.539Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c1097cd8a291d7880cbb9"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 21,
+    "value": "42",
+    "label": "dict.edu.zdzkjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:49:11.088Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:49:11.088Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c109fcd8a291d7880cbbf"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 22,
+    "value": "43",
+    "label": "dict.edu.zdzkyy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:49:19.351Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:49:19.351Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c10bdcd8a291d7880cbc6"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 23,
+    "value": "44",
+    "label": "dict.edu.zygzby",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:49:49.299Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:49:49.299Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c10c8cd8a291d7880cbcd"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 24,
+    "value": "45",
+    "label": "dict.edu.zygzjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:50:00.457Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:50:00.457Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c10d5cd8a291d7880cbd4"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 25,
+    "value": "46",
+    "label": "dict.edu.zygzyy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:50:13.492Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:50:13.492Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c10f4cd8a291d7880cbdb"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 26,
+    "value": "47",
+    "label": "dict.edu.jgxxby",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:50:44.368Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:50:44.368Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c1100cd8a291d7880cbe2"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 27,
+    "value": "48",
+    "label": "dict.edu.jgxxjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:50:56.812Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:50:56.812Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c110ccd8a291d7880cbe9"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 28,
+    "value": "49",
+    "label": "dict.edu.jgxxyy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:51:08.898Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:51:08.898Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c1121cd8a291d7880cbf0"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 29,
+    "value": "60",
+    "label": "dict.edu.ptgjzxjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:51:29.163Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:51:29.163Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c112dcd8a291d7880cbf7"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 30,
+    "value": "61",
+    "label": "dict.edu.ptgzby",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:51:41.168Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:51:41.168Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c1136cd8a291d7880cbfd"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 31,
+    "value": "62",
+    "label": "dict.edu.ptgzjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:51:50.684Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:51:50.684Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c1142cd8a291d7880cc04"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 32,
+    "value": "63",
+    "label": "dict.edu.ptgzyy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:52:02.981Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:52:02.981Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c1156cd8a291d7880cc0b"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 33,
+    "value": "70",
+    "label": "dict.edu.cjzxjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:52:22.168Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:52:22.168Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c1164cd8a291d7880cc12"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 35,
+    "value": "71",
+    "label": "dict.edu.czby",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:52:36.543Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:52:55.749Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c1171cd8a291d7880cc19"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 34,
+    "value": "73",
+    "label": "dict.edu.czyy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:52:49.349Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:52:49.349Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c118acd8a291d7880cc26"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 36,
+    "value": "80",
+    "label": "dict.edu.xxjy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:53:14.059Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:53:14.059Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c1194cd8a291d7880cc2d"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 37,
+    "value": "81",
+    "label": "dict.edu.xxby",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:53:24.372Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:53:24.372Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c119fcd8a291d7880cc34"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 38,
+    "value": "83",
+    "label": "dict.edu.xxyy",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:53:35.509Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:53:35.509Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c11bfcd8a291d7880cc3e"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 99,
+    "value": "90",
+    "label": "dict.edu.qt",
+    "typeId": {
+      "$oid": "624c09659781ef4d9511fcc4"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T09:54:07.386Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T09:54:07.386Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2cfcb4cc94bb20c31d22"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 1,
+    "value": "01",
+    "label": "dict.nation.ha",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:50:20.928Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:51:18.140Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d05b4cc94bb20c31d28"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 2,
+    "value": "02",
+    "label": "dict.nation.mg",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:50:29.659Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:51:21.317Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d0fb4cc94bb20c31d2f"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 3,
+    "value": "03",
+    "label": "dict.nation.hu",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:50:39.551Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:51:24.334Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d19b4cc94bb20c31d36"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 4,
+    "value": "04",
+    "label": "dict.nation.za",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:50:49.912Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:51:27.018Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d22b4cc94bb20c31d3c"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 5,
+    "value": "05",
+    "label": "dict.nation.ug",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:50:58.958Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:51:30.834Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d4bb4cc94bb20c31d64"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 6,
+    "value": "06",
+    "label": "dict.nation.mh",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:51:39.749Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:51:39.749Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d53b4cc94bb20c31d6a"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 7,
+    "value": "07",
+    "label": "dict.nation.yi",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:51:47.682Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:51:47.682Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d5eb4cc94bb20c31d71"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 8,
+    "value": "08",
+    "label": "dict.nation.zh",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:51:58.220Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:51:58.220Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d67b4cc94bb20c31d77"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 9,
+    "value": "09",
+    "label": "dict.nation.by",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:52:07.864Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:52:07.864Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d6fb4cc94bb20c31d7e"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 10,
+    "value": "10",
+    "label": "dict.nation.cs",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:52:15.470Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:52:15.470Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d81b4cc94bb20c31d87"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 11,
+    "value": "11",
+    "label": "dict.nation.mz",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:52:33.292Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:52:33.292Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d87b4cc94bb20c31d8d"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 12,
+    "value": "12",
+    "label": "dict.nation.do",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:52:39.790Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:52:39.790Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d90b4cc94bb20c31d94"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 13,
+    "value": "13",
+    "label": "dict.nation.ya",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:52:48.028Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:52:48.028Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d96b4cc94bb20c31d9a"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 14,
+    "value": "14",
+    "label": "dict.nation.ba",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:52:54.264Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:52:54.264Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2d9fb4cc94bb20c31da1"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 15,
+    "value": "15",
+    "label": "dict.nation.tj",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:53:03.300Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:53:03.300Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2dabb4cc94bb20c31da8"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 16,
+    "value": "16",
+    "label": "dict.nation.hn",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:53:15.513Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:53:15.513Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2dd7b4cc94bb20c31db6"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 17,
+    "value": "17",
+    "label": "dict.nation.kz",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:53:59.617Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:53:59.617Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2de1b4cc94bb20c31dbd"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 18,
+    "value": "18",
+    "label": "dict.nation.da",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:54:09.639Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:54:09.639Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2deab4cc94bb20c31dc3"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 19,
+    "value": "19",
+    "label": "dict.nation.li",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:54:18.746Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:54:18.746Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2df3b4cc94bb20c31dca"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 20,
+    "value": "20",
+    "label": "dict.nation.ls",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:54:27.590Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:54:27.590Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2dfeb4cc94bb20c31dd1"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 21,
+    "value": "21",
+    "label": "dict.nation.va",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:54:38.337Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:54:38.337Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e0bb4cc94bb20c31dd8"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 22,
+    "value": "22",
+    "label": "dict.nation.sh",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:54:51.681Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:54:51.681Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e1db4cc94bb20c31ddf"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 23,
+    "value": "23",
+    "label": "dict.nation.gs",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:55:09.061Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:55:09.061Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e2eb4cc94bb20c31de6"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 24,
+    "value": "24",
+    "label": "dict.nation.lh",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:55:26.626Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:55:26.626Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e37b4cc94bb20c31dec"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 25,
+    "value": "25",
+    "label": "dict.nation.su",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:55:35.254Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:55:35.254Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e41b4cc94bb20c31df3"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 26,
+    "value": "26",
+    "label": "dict.nation.dx",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:55:45.578Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:55:45.578Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e49b4cc94bb20c31df9"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 27,
+    "value": "27",
+    "label": "dict.nation.nx",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:55:53.050Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:55:53.050Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e51b4cc94bb20c31e00"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 28,
+    "value": "28",
+    "label": "dict.nation.jp",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:56:01.954Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:56:01.954Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e60b4cc94bb20c31e07"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 29,
+    "value": "29",
+    "label": "dict.nation.kg",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:56:16.024Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:56:16.024Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e6ab4cc94bb20c31e0e"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 30,
+    "value": "30",
+    "label": "dict.nation.tu",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:56:26.843Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:56:26.843Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e74b4cc94bb20c31e15"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 31,
+    "value": "31",
+    "label": "dict.nation.du",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:56:36.823Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:56:36.823Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e7fb4cc94bb20c31e1c"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 32,
+    "value": "32",
+    "label": "dict.nation.ml",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:56:47.663Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:56:47.663Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e89b4cc94bb20c31e23"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 33,
+    "value": "33",
+    "label": "dict.nation.qi",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:56:57.594Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:56:57.594Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e94b4cc94bb20c31e2a"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 34,
+    "value": "34",
+    "label": "dict.nation.bl",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:57:08.462Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:57:08.462Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2e9cb4cc94bb20c31e30"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 35,
+    "value": "35",
+    "label": "dict.nation.sl",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:57:16.848Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:57:16.848Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2ed8b4cc94bb20c31e37"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 36,
+    "value": "36",
+    "label": "dict.nation.mn",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:58:16.830Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:58:16.830Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2ee2b4cc94bb20c31e3e"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 37,
+    "value": "37",
+    "label": "dict.nation.gl",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:58:26.532Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:58:26.532Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2eeab4cc94bb20c31e44"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 38,
+    "value": "38",
+    "label": "dict.nation.xb",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:58:34.779Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:58:34.779Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2ef3b4cc94bb20c31e4b"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 39,
+    "value": "39",
+    "label": "dict.nation.ac",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:58:43.358Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:58:43.358Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2effb4cc94bb20c31e52"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 40,
+    "value": "40",
+    "label": "dict.nation.pm",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:58:55.164Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:58:55.164Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f09b4cc94bb20c31e59"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 41,
+    "value": "41",
+    "label": "dict.nation.ta",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:59:05.872Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:59:05.872Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f11b4cc94bb20c31e5f"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 42,
+    "value": "42",
+    "label": "dict.nation.nu",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:59:13.313Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:59:13.313Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f1eb4cc94bb20c31e66"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 43,
+    "value": "43",
+    "label": "dict.nation.uz",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:59:26.555Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:59:26.555Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f26b4cc94bb20c31e6c"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 44,
+    "value": "44",
+    "label": "dict.nation.rs",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:59:34.940Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:59:34.940Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f33b4cc94bb20c31e73"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 45,
+    "value": "45",
+    "label": "dict.nation.ew",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:59:47.534Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:59:47.534Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f3ab4cc94bb20c31e79"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 46,
+    "value": "46",
+    "label": "dict.nation.de",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:59:54.060Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:59:54.060Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f43b4cc94bb20c31e80"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 47,
+    "value": "47",
+    "label": "dict.nation.bn",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:00:03.458Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:00:03.458Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f4cb4cc94bb20c31e86"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 48,
+    "value": "48",
+    "label": "dict.nation.yg",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:00:12.194Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:00:12.194Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f55b4cc94bb20c31e8d"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 49,
+    "value": "49",
+    "label": "dict.nation.gi",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:00:21.188Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:00:21.188Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f66b4cc94bb20c31e98"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 50,
+    "value": "50",
+    "label": "dict.nation.tt",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:00:38.103Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:00:38.103Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f70b4cc94bb20c31e9f"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 51,
+    "value": "51",
+    "label": "dict.nation.dr",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:00:48.999Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:00:48.999Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f80b4cc94bb20c31ea6"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 52,
+    "value": "52",
+    "label": "dict.nation.or",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:01:04.375Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:01:04.375Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f8cb4cc94bb20c31eaf"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 53,
+    "value": "53",
+    "label": "dict.nation.hz",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:01:16.821Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:01:16.821Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f93b4cc94bb20c31eb5"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 54,
+    "value": "54",
+    "label": "dict.nation.mb",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:01:23.877Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:01:23.877Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2f9bb4cc94bb20c31ebc"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 55,
+    "value": "55",
+    "label": "dict.nation.lb",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:01:31.036Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:01:31.036Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2fa1b4cc94bb20c31ec2"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 56,
+    "value": "56",
+    "label": "dict.nation.jn",
+    "typeId": {
+      "$oid": "624c29a6b4cc94bb20c31a21"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:01:37.694Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:01:37.694Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c3094b4cc94bb20c31f5b"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 1,
+    "value": "10",
+    "label": "dict.marriage.wh",
+    "typeId": {
+      "$oid": "624c2fe9b4cc94bb20c31ecc"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:05:40.061Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:05:40.061Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c30a5b4cc94bb20c31f62"
+    },
+    "tagType": "info",
+    "status": true,
+    "order": 2,
+    "value": "20",
+    "label": "dict.marriage.yh",
+    "typeId": {
+      "$oid": "624c2fe9b4cc94bb20c31ecc"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:05:57.742Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:05:57.742Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c30b1b4cc94bb20c31f69"
+    },
+    "tagType": "success",
+    "status": true,
+    "order": 3,
+    "value": "21",
+    "label": "dict.marriage.ch",
+    "typeId": {
+      "$oid": "624c2fe9b4cc94bb20c31ecc"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:06:09.630Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:06:09.630Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c30beb4cc94bb20c31f70"
+    },
+    "tagType": "warning",
+    "status": true,
+    "order": 4,
+    "value": "22",
+    "label": "dict.marriage.zh",
+    "typeId": {
+      "$oid": "624c2fe9b4cc94bb20c31ecc"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:06:22.142Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:06:22.142Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c30cab4cc94bb20c31f77"
+    },
+    "tagType": "info",
+    "status": true,
+    "order": 5,
+    "value": "23",
+    "label": "dict.marriage.fh",
+    "typeId": {
+      "$oid": "624c2fe9b4cc94bb20c31ecc"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:06:34.761Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:06:34.761Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c30dcb4cc94bb20c31f7e"
+    },
+    "tagType": "error",
+    "status": true,
+    "order": 6,
+    "value": "30",
+    "label": "dict.marriage.so",
+    "typeId": {
+      "$oid": "624c2fe9b4cc94bb20c31ecc"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:06:52.108Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:06:52.108Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c30e8b4cc94bb20c31f85"
+    },
+    "tagType": "error",
+    "status": true,
+    "order": 7,
+    "value": "40",
+    "label": "dict.marriage.lh",
+    "typeId": {
+      "$oid": "624c2fe9b4cc94bb20c31ecc"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:07:04.153Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:07:04.153Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c3102b4cc94bb20c31f8c"
+    },
+    "tagType": "warning",
+    "status": true,
+    "order": 8,
+    "value": "90",
+    "label": "dict.marriage.undescribed",
+    "typeId": {
+      "$oid": "624c2fe9b4cc94bb20c31ecc"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:07:30.060Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:07:30.060Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c31ecb4cc94bb20c31fe5"
+    },
+    "description": "人体生理机能、营养、发育状况良好",
+    "tagType": "primary",
+    "status": true,
+    "order": 1,
+    "value": "1",
+    "label": "dict.health.jk",
+    "typeId": {
+      "$oid": "624c3168b4cc94bb20c31f97"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:11:24.717Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:11:24.717Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c320ab4cc94bb20c31fec"
+    },
+    "description": "人体生理机能、营养、发育状况正常，但身体体质较弱",
+    "tagType": "info",
+    "status": true,
+    "order": 2,
+    "value": "2",
+    "label": "dict.health.yb",
+    "typeId": {
+      "$oid": "624c3168b4cc94bb20c31f97"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:11:54.100Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:11:54.100Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c3219b4cc94bb20c31ff3"
+    },
+    "description": "有慢性疾病",
+    "tagType": "warning",
+    "status": true,
+    "order": 3,
+    "value": "3",
+    "label": "dict.health.mx",
+    "typeId": {
+      "$oid": "624c3168b4cc94bb20c31f97"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:12:09.767Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:12:09.767Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c326eb4cc94bb20c31ffa"
+    },
+    "description": "心理、生理、人体结构上，某种组织、功能丧失或不正常，全部或部分丧失以正常方式从事某种活动的人",
+    "tagType": "error",
+    "status": true,
+    "order": 4,
+    "value": "6",
+    "label": "dict.health.cj",
+    "typeId": {
+      "$oid": "624c3168b4cc94bb20c31f97"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:13:34.812Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:13:34.812Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c33cbb4cc94bb20c320e7"
+    },
+    "description": "包括参照、依照公务员管理的人员",
+    "tagType": "primary",
+    "status": true,
+    "order": 1,
+    "value": "11",
+    "label": "dict.employ.gjgwy",
+    "typeId": {
+      "$oid": "624c32aab4cc94bb20c32004"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:19:23.838Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:19:23.838Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c34489bb578e5f327d57b"
+    },
+    "tagType": "info",
+    "status": true,
+    "order": 2,
+    "value": "13",
+    "label": "dict.employ.zyjsry",
+    "typeId": {
+      "$oid": "624c32aab4cc94bb20c32004"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:21:28.050Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:21:28.050Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c34539bb578e5f327d582"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 3,
+    "value": "17",
+    "label": "dict.employ.zy",
+    "typeId": {
+      "$oid": "624c32aab4cc94bb20c32004"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:21:39.540Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:21:39.540Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c345d9bb578e5f327d589"
+    },
+    "tagType": "info",
+    "status": true,
+    "order": 4,
+    "value": "21",
+    "label": "dict.employ.qyglry",
+    "typeId": {
+      "$oid": "624c32aab4cc94bb20c32004"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:21:49.550Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:21:49.550Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c346e9bb578e5f327d590"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 5,
+    "value": "24",
+    "label": "dict.employ.gr",
+    "typeId": {
+      "$oid": "624c32aab4cc94bb20c32004"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:22:06.956Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:22:06.956Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c347b9bb578e5f327d597"
+    },
+    "tagType": "info",
+    "status": true,
+    "order": 6,
+    "value": "27",
+    "label": "dict.employ.nm",
+    "typeId": {
+      "$oid": "624c32aab4cc94bb20c32004"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:22:19.227Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:22:19.227Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c34939bb578e5f327d59e"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 7,
+    "value": "31",
+    "label": "dict.employ.xs",
+    "typeId": {
+      "$oid": "624c32aab4cc94bb20c32004"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:22:43.485Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:22:43.485Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c34a19bb578e5f327d5a5"
+    },
+    "tagType": "info",
+    "status": true,
+    "order": 8,
+    "value": "37",
+    "label": "dict.employ.xyjr",
+    "typeId": {
+      "$oid": "624c32aab4cc94bb20c32004"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:22:57.896Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:22:57.896Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c34ad9bb578e5f327d5ac"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 9,
+    "value": "51",
+    "label": "dict.employ.zyzyz",
+    "typeId": {
+      "$oid": "624c32aab4cc94bb20c32004"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:23:09.133Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:23:09.133Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c34c79bb578e5f327d5b3"
+    },
+    "tagType": "info",
+    "status": true,
+    "order": 10,
+    "value": "54",
+    "label": "dict.employ.gtjyz",
+    "typeId": {
+      "$oid": "624c32aab4cc94bb20c32004"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:23:35.287Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:23:35.287Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c34d39bb578e5f327d5ba"
+    },
+    "tagType": "primary",
+    "status": true,
+    "order": 11,
+    "value": "70",
+    "label": "dict.employ.wyry",
+    "typeId": {
+      "$oid": "624c32aab4cc94bb20c32004"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:23:47.836Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:23:47.836Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c34e59bb578e5f327d5c8"
+    },
+    "tagType": "info",
+    "status": true,
+    "order": 12,
+    "value": "80",
+    "label": "dict.employ.txry",
+    "typeId": {
+      "$oid": "624c32aab4cc94bb20c32004"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:24:05.597Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:24:05.597Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c34f19bb578e5f327d5cf"
+    },
+    "tagType": "warning",
+    "status": true,
+    "order": 13,
+    "value": "90",
+    "label": "dict.employ.qt",
+    "typeId": {
+      "$oid": "624c32aab4cc94bb20c32004"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T12:24:17.251Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T12:24:17.251Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632136221173a975c154532d"
+    },
+    "typeId": {
+      "$oid": "632134e81173a975c154529e"
+    },
+    "label": "dict.sys_auth_type.opaque",
+    "value": "opaque",
+    "order": 1,
+    "status": true,
+    "tagType": "primary",
+    "createdAt": {
+      "$date": "2022-09-14T02:02:10.576Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-15T07:14:11.608Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632136301173a975c1545333"
+    },
+    "typeId": {
+      "$oid": "632134e81173a975c154529e"
+    },
+    "label": "dict.sys_auth_type.email",
+    "value": "emailAddress",
+    "order": 2,
+    "status": true,
+    "tagType": "info",
+    "createdAt": {
+      "$date": "2022-09-14T02:02:24.816Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-14T02:51:09.275Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6321364d1173a975c1545339"
+    },
+    "typeId": {
+      "$oid": "632134e81173a975c154529e"
+    },
+    "label": "dict.sys_auth_type.phone",
+    "value": "phoneNumber",
+    "order": 3,
+    "status": true,
+    "tagType": "warning",
+    "createdAt": {
+      "$date": "2022-09-14T02:02:53.064Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-14T02:51:15.439Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632136881173a975c1545340"
+    },
+    "typeId": {
+      "$oid": "632134e81173a975c154529e"
+    },
+    "label": "dict.sys_auth_type.qr",
+    "value": "qrcode",
+    "order": 4,
+    "status": true,
+    "tagType": "error",
+    "createdAt": {
+      "$date": "2022-09-14T02:03:52.923Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-14T02:51:21.619Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632136931173a975c1545346"
+    },
+    "typeId": {
+      "$oid": "632134e81173a975c154529e"
+    },
+    "label": "dict.sys_auth_type.other.qq",
+    "value": "qq",
+    "order": 5,
+    "status": true,
+    "tagType": "primary",
+    "createdAt": {
+      "$date": "2022-09-14T02:04:03.117Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-14T02:51:25.306Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6335558a8747bc18696e81af"
+    },
+    "typeId": {
+      "$oid": "6335556d8747bc18696e81a5"
+    },
+    "label": "dict.app_cache_type.built_in",
+    "value": "built-in",
+    "order": 1,
+    "status": true,
+    "tagType": "primary",
+    "createdAt": {
+      "$date": "2022-09-29T08:21:30.927Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-29T08:21:30.927Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6335559e8747bc18696e81b7"
+    },
+    "typeId": {
+      "$oid": "6335556d8747bc18696e81a5"
+    },
+    "label": "dict.app_cache_type.auth_permissions",
+    "value": "auth-permissions",
+    "order": 2,
+    "status": true,
+    "tagType": "info",
+    "createdAt": {
+      "$date": "2022-09-29T08:21:50.379Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-29T08:21:50.379Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "633555e2745a38c86bd4f00e"
+    },
+    "typeId": {
+      "$oid": "6335556d8747bc18696e81a5"
+    },
+    "label": "dict.app_cache_type.verify_code",
+    "value": "verify-code",
+    "order": 4,
+    "status": true,
+    "tagType": "warning",
+    "createdAt": {
+      "$date": "2022-09-29T08:22:58.519Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-29T08:22:58.519Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "633555f4745a38c86bd4f016"
+    },
+    "typeId": {
+      "$oid": "6335556d8747bc18696e81a5"
+    },
+    "label": "dict.app_cache_type.locales",
+    "value": "sys-locale-messages",
+    "order": 6,
+    "status": true,
+    "tagType": "warning",
+    "createdAt": {
+      "$date": "2022-09-29T08:23:16.980Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-26T05:19:23.650Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63364cbc43a02b1a3e109893"
+    },
+    "typeId": {
+      "$oid": "63364acb20d7bce263f4566a"
+    },
+    "label": "dict.app_setting_type.auth",
+    "value": "auth",
+    "order": 1,
+    "status": true,
+    "tagType": "info",
+    "createdAt": {
+      "$date": "2022-09-30T01:56:12.055Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-30T06:42:07.457Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63428f6b83c762348e30f67a"
+    },
+    "typeId": {
+      "$oid": "632134e81173a975c154529e"
+    },
+    "label": "dict.sys_auth_type.other.gitee",
+    "value": "gitee",
+    "order": 6,
+    "status": true,
+    "tagType": "info",
+    "createdAt": {
+      "$date": "2022-10-09T09:07:55.779Z"
+    },
+    "updatedAt": {
+      "$date": "2022-10-09T09:07:55.779Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63428f7683c762348e30f682"
+    },
+    "typeId": {
+      "$oid": "632134e81173a975c154529e"
+    },
+    "label": "dict.sys_auth_type.other.github",
+    "value": "github",
+    "order": 7,
+    "status": true,
+    "tagType": "info",
+    "createdAt": {
+      "$date": "2022-10-09T09:08:06.579Z"
+    },
+    "updatedAt": {
+      "$date": "2022-10-09T09:08:06.579Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6833f9d336f1d0707ee01ae5"
+    },
+    "typeId": {
+      "$oid": "6335556d8747bc18696e81a5"
+    },
+    "label": "dict.app_cache_type.sysDeviceIdList",
+    "value": "sys-device-id-list",
+    "order": 5,
+    "status": true,
+    "tagType": "info",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-05-26T05:19:15.359Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-26T05:19:15.359Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6833fa0136f1d0707ee01b01"
+    },
+    "typeId": {
+      "$oid": "6335556d8747bc18696e81a5"
+    },
+    "label": "dict.app_cache_type.controller",
+    "value": "controller",
+    "order": 3,
+    "status": true,
+    "tagType": "primary",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-05-26T05:20:01.128Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-26T05:20:01.128Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6833fa1c36f1d0707ee01b07"
+    },
+    "typeId": {
+      "$oid": "6335556d8747bc18696e81a5"
+    },
+    "label": "dict.app_cache_type.sysLangIdList",
+    "value": "sys-lang-id-list",
+    "order": 7,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-05-26T05:20:28.425Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-26T05:20:28.425Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6833fa2b36f1d0707ee01b0d"
+    },
+    "typeId": {
+      "$oid": "6335556d8747bc18696e81a5"
+    },
+    "label": "dict.app_cache_type.sharedArea",
+    "value": "shared-area",
+    "order": 8,
+    "status": true,
+    "tagType": "error",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-05-26T05:20:43.332Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-26T05:20:43.332Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6889ba3676e71da30b30d592"
+    },
+    "typeId": {
+      "$oid": "63364acb20d7bce263f4566a"
+    },
+    "label": "dict.app_setting_type.global",
+    "value": "global",
+    "order": 2,
+    "status": true,
+    "tagType": "success",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-07-30T06:22:46.104Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-30T06:22:46.104Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6889ba4f76e71da30b30d598"
+    },
+    "typeId": {
+      "$oid": "63364acb20d7bce263f4566a"
+    },
+    "label": "dict.app_setting_type.functional",
+    "value": "functional",
+    "order": 3,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-07-30T06:23:11.034Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-10T08:01:24.201Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d931619fb85827a546b6f"
+    },
+    "typeId": {
+      "$oid": "690d921819fb85827a546aac"
+    },
+    "label": "dict.sys_operate_action.create",
+    "value": "CREATE",
+    "order": 1,
+    "status": true,
+    "tagType": "primary",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T06:35:02.768Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T06:35:27.343Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d931f19fb85827a546b74"
+    },
+    "typeId": {
+      "$oid": "690d921819fb85827a546aac"
+    },
+    "label": "dict.sys_operate_action.update",
+    "value": "UPDATE",
+    "order": 2,
+    "status": true,
+    "tagType": "info",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T06:35:11.308Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T06:35:31.606Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d935e19fb85827a546ba0"
+    },
+    "typeId": {
+      "$oid": "690d921819fb85827a546aac"
+    },
+    "label": "dict.sys_operate_action.delete",
+    "value": "DELETE",
+    "order": 3,
+    "status": true,
+    "tagType": "error",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T06:36:14.449Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T06:36:14.449Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d936a19fb85827a546ba5"
+    },
+    "typeId": {
+      "$oid": "690d921819fb85827a546aac"
+    },
+    "label": "dict.sys_operate_action.delete_many",
+    "value": "DELETE_MANY",
+    "order": 4,
+    "status": true,
+    "tagType": "error",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T06:36:26.228Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T06:36:26.228Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d937519fb85827a546baa"
+    },
+    "typeId": {
+      "$oid": "690d921819fb85827a546aac"
+    },
+    "label": "dict.sys_operate_action.import",
+    "value": "IMPORT",
+    "order": 5,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T06:36:37.619Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T06:36:37.619Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d937f19fb85827a546baf"
+    },
+    "typeId": {
+      "$oid": "690d921819fb85827a546aac"
+    },
+    "label": "dict.sys_operate_action.export",
+    "value": "EXPORT",
+    "order": 6,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T06:36:47.563Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T06:36:47.563Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d938d19fb85827a546bb4"
+    },
+    "typeId": {
+      "$oid": "690d921819fb85827a546aac"
+    },
+    "label": "dict.sys_operate_action.clear",
+    "value": "CLEAR",
+    "order": 7,
+    "status": true,
+    "tagType": "error",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T06:37:01.450Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T06:37:01.450Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d939519fb85827a546bb9"
+    },
+    "typeId": {
+      "$oid": "690d921819fb85827a546aac"
+    },
+    "label": "dict.sys_operate_action.refresh",
+    "value": "REFRESH",
+    "order": 8,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T06:37:09.984Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T06:37:09.984Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d93a819fb85827a546bbe"
+    },
+    "typeId": {
+      "$oid": "690d921819fb85827a546aac"
+    },
+    "label": "dict.sys_operate_action.other",
+    "value": "OTHER",
+    "order": 9,
+    "status": true,
+    "tagType": "info",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T06:37:28.760Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T06:37:28.760Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d9ba6c98f82c2a862371b"
+    },
+    "typeId": {
+      "$oid": "623c53e6cc4e009b0d21ee0f"
+    },
+    "label": "dict.sys_operate_type.deleted_recover",
+    "value": "deleted.recover",
+    "order": 1,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T07:11:34.100Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T07:11:34.100Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d9bb6c98f82c2a8623720"
+    },
+    "typeId": {
+      "$oid": "623c53e6cc4e009b0d21ee0f"
+    },
+    "label": "dict.sys_operate_type.force_quit",
+    "value": "appMonitorUser.forceQuit",
+    "order": 2,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T07:11:50.966Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T07:11:50.966Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d9bcac98f82c2a8623725"
+    },
+    "typeId": {
+      "$oid": "623c53e6cc4e009b0d21ee0f"
+    },
+    "label": "dict.sys_operate_type.update_password",
+    "value": "user.updatePassword",
+    "order": 3,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T07:12:10.495Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T07:12:10.495Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d9bd6c98f82c2a862372a"
+    },
+    "typeId": {
+      "$oid": "623c53e6cc4e009b0d21ee0f"
+    },
+    "label": "dict.sys_operate_type.clear_password",
+    "value": "user.clearPassword",
+    "order": 4,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T07:12:22.958Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-06T06:57:14.887Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d9bebc98f82c2a862372f"
+    },
+    "typeId": {
+      "$oid": "623c53e6cc4e009b0d21ee0f"
+    },
+    "label": "dict.sys_operate_type.device_lock",
+    "value": "device.lock",
+    "order": 5,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T07:12:43.265Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T07:12:43.265Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d9bf8c98f82c2a8623734"
+    },
+    "typeId": {
+      "$oid": "623c53e6cc4e009b0d21ee0f"
+    },
+    "label": "dict.sys_operate_type.device_unlock",
+    "value": "device.unlock",
+    "order": 6,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T07:12:56.311Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T07:12:56.311Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d9c04c98f82c2a8623739"
+    },
+    "typeId": {
+      "$oid": "623c53e6cc4e009b0d21ee0f"
+    },
+    "label": "dict.sys_operate_type.device_ban",
+    "value": "device.ban",
+    "order": 7,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T07:13:08.984Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T07:13:08.984Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d9c12c98f82c2a862373e"
+    },
+    "typeId": {
+      "$oid": "623c53e6cc4e009b0d21ee0f"
+    },
+    "label": "dict.sys_operate_type.device_unban",
+    "value": "device.unban",
+    "order": 8,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T07:13:22.409Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T07:13:22.409Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690d9c21c98f82c2a8623743"
+    },
+    "typeId": {
+      "$oid": "623c53e6cc4e009b0d21ee0f"
+    },
+    "label": "dict.sys_operate_type.app_setting_cache_refresh",
+    "value": "appSetting.refreshCache",
+    "order": 9,
+    "status": true,
+    "tagType": "warning",
+    "description": null,
+    "createdAt": {
+      "$date": "2025-11-07T07:13:37.331Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-07T07:13:37.331Z"
+    }
+  }
+]

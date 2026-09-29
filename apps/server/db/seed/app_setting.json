@@ -1,0 +1,344 @@
+[
+  {
+    "_id": {
+      "$oid": "63281b92205f44b6727fd7d1"
+    },
+    "settingName": "应用默认 - 角色",
+    "settingKey": "app.default.role",
+    "settingValue": "5fb27aee3a30b717d8078eb5",
+    "remark": "默认的角色ID",
+    "createdBy": {
+      "$oid": "5fc63f5640cad739606d1700"
+    },
+    "createdAt": {
+      "$date": "2022-09-19T07:34:42.881Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-30T06:41:49.761Z"
+    },
+    "settingType": "functional"
+  },
+  {
+    "_id": {
+      "$oid": "633650e306e64e1ec72700d0"
+    },
+    "settingName": "认证 - 二维码",
+    "settingKey": "app.auth.qrcode",
+    "settingValue": "0",
+    "settingType": "auth",
+    "remark": "1 开启 0 关闭\n可根据此配置显隐认证表单",
+    "createdBy": {
+      "$oid": "5fc63f5640cad739606d1700"
+    },
+    "createdAt": {
+      "$date": "2022-09-30T02:13:55.229Z"
+    },
+    "updatedAt": {
+      "$date": "2022-10-30T01:49:57.213Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6858ff6281e10eb2eed75d75"
+    },
+    "settingName": "capjs 验证码配置项",
+    "settingKey": "app.global.capjs.config",
+    "settingValue": "{\"count\":10,\"size\":16,\"difficulty\":4,\"ttl\":3600,\"throttleLimit\":4,\"throttleTtl\":60}",
+    "settingType": "functional",
+    "remark": "https://capjs.js.org/guide/benchmark.html#benchmark-results",
+    "createdAt": {
+      "$date": "2025-06-23T07:16:50.904Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-30T06:41:44.307Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68639c26f9765404b64f4f47"
+    },
+    "settingName": "强制退出登录配置",
+    "settingKey": "app.global.forceQuit.config",
+    "settingValue": "{\"updatePass\":\"FORCE_IMMEDIATE_SIGNOUT\",\"resetPass\":\"FORCE_COUNTDOWN_MODAL\",\"updateEmail\":\"FORCE_COUNTDOWN_MODAL\",\"updatePhoneNumber\":\"FORCE_COUNTDOWN_MODAL\",\"forceQuitOnline\":\"FORCE_IMMEDIATE_SIGNOUT\",\"forceQuitOffline\":\"FORCE_COUNTDOWN_MODAL\",\"currentRoleBanned\":\"FORCE_IMMEDIATE_SIGNOUT\",\"currentUserBanned\":\"FORCE_IMMEDIATE_SIGNOUT\",\"deviceBanned\":\"FORCE_IMMEDIATE_SIGNOUT\",\"deviceHighRisk\":\"FORCE_COUNTDOWN_MODAL\",\"versionUpdrade\":\"MANUAL_COUNTDOWN_MODAL\",\"userKickOther\":\"MANUAL_COUNTDOWN_MODAL\"}",
+    "settingType": "functional",
+    "remark": "FORCE_IMMEDIATE_SIGNOUT =&gt; 强制立即登出\nFORCE_COUNTDOWN_MODAL =&gt; 强制倒计时弹窗\nMANUAL_COUNTDOWN_MODAL =&gt; 强制弹窗带退出登录按钮",
+    "createdAt": {
+      "$date": "2025-07-01T08:28:22.745Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-04T13:30:05.439Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68663fab8ef358510ae19183"
+    },
+    "settingName": "IP黑名单",
+    "settingKey": "app.global.ipBlackList",
+    "settingValue": "[]",
+    "settingType": "functional",
+    "remark": "上了黑名单无法访问系统接口",
+    "createdAt": {
+      "$date": "2025-07-03T08:30:35.928Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-30T06:41:37.956Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "686643c41a1da6039b523e78"
+    },
+    "settingName": "os白名单",
+    "settingKey": "app.global.osWhiteList",
+    "settingValue": "[\"Mobile\",\"Mac OS\",\"Windows\",\"UNIX\",\"Linux\",\"iOS\",\"Android\",\"Ubuntu\"]",
+    "settingType": "functional",
+    "remark": "os白名单，如有特殊设备需添加项目",
+    "createdAt": {
+      "$date": "2025-07-03T08:48:04.252Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-30T06:41:34.947Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "686643fe1a1da6039b523e7f"
+    },
+    "settingName": "browser白名单",
+    "settingKey": "app.global.browserWhiteList",
+    "settingValue": "[\"IE\",\"Safari\",\"Mobile Safari\",\"Edge\",\"Opera\",\"Chrome\",\"Mobile Chrome\",\"Firefox\",\"Samsung Browser\",\"UCBrowser\"]",
+    "settingType": "functional",
+    "remark": "browser白名单，如有特殊需添加项目",
+    "createdAt": {
+      "$date": "2025-07-03T08:49:02.291Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-30T06:41:32.082Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68885d2b3fe10a0e035ce5a0"
+    },
+    "settingName": "邮箱验证码",
+    "settingKey": "app.auth.email",
+    "settingValue": "{\"authEnable\":\"1\",\"verifyFigure\":\"6\",\"verifyTtl\":\"300\",\"sendEnable\":\"1\",\"sendLimit\":\"5\",\"sendTtl\":\"600\",\"newUserSignup\":\"1\"}",
+    "settingType": "auth",
+    "remark": "authEnable: 1/0  邮箱验证功能开启/关闭\nverifyFigure: 验证码位数 默认6位\nverifyTtl: 验证码存活时间，单位秒，默认300秒\nsendEnable: 1/0  邮件发送功能开启/关闭\nsendLimit: 发送接口limit\nsendTtl: 发送接口限流ttl\nnewUserSignup: 1/0 允许/禁止新用户直接注册登录",
+    "createdAt": {
+      "$date": "2025-07-29T05:33:31.363Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-30T05:06:13.401Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6889a83c8420b1ed11220ba6"
+    },
+    "settingName": "短信验证码",
+    "settingKey": "app.auth.phone",
+    "settingValue": "{\"authEnable\":\"1\",\"verifyFigure\":\"6\",\"verifyTtl\":\"300\",\"sendEnable\":\"1\",\"sendLimit\":\"5\",\"sendTtl\":\"600\",\"newUserSignup\":\"1\"}",
+    "settingType": "auth",
+    "remark": "authEnable: 1/0  邮箱验证功能开启/关闭\nverifyFigure: 验证码位数 默认6位\nverifyTtl: 验证码存活时间，单位秒，默认300秒\nsendEnable: 1/0  邮件发送功能开启/关闭\nsendLimit: 发送接口limit\nsendTtl: 发送接口限流ttl\nnewUserSignup: 1/0 允许/禁止新用户直接注册登录",
+    "createdAt": {
+      "$date": "2025-07-30T05:06:04.297Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-16T09:21:55.707Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6889b6382af1f4dfbc413b1f"
+    },
+    "settingName": "GitHub认证",
+    "settingKey": "app.auth.github",
+    "settingValue": "{\"authEnable\":\"1\",\"newUserSignup\":\"1\"}",
+    "settingType": "auth",
+    "remark": "authEnable: 1/0  GitHub OAuth功能开启/关闭\nnewUserSignup: 1/0 允许/禁止新用户直接注册登录",
+    "createdAt": {
+      "$date": "2025-07-30T06:05:44.614Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-30T06:05:44.614Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6889b64d2af1f4dfbc413b27"
+    },
+    "settingName": "Gitee认证",
+    "settingKey": "app.auth.gitee",
+    "settingValue": "{\"authEnable\":\"1\",\"newUserSignup\":\"1\"}",
+    "settingType": "auth",
+    "remark": "authEnable: 1/0  GitHub OAuth功能开启/关闭\nnewUserSignup: 1/0 允许/禁止新用户直接注册登录",
+    "createdAt": {
+      "$date": "2025-07-30T06:06:05.156Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-30T06:06:05.156Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6889c0005f0efe2f2ffd165f"
+    },
+    "settingName": "角色功能",
+    "settingKey": "app.functional.role",
+    "settingValue": "{\"scope\":\"global\",\"defaultRole\":\"5fb27aee3a30b717d8078eb5\",\"globalValue\":\"switchable\",\"localKey\":\"roleMode\"}",
+    "settingType": "functional",
+    "remark": "roleRange: scope看用户表字段roleMode global看后面的全局roleMode\ndefaultRole: 默认角色\nroleMode: roleRange为global时生效",
+    "createdAt": {
+      "$date": "2025-07-30T06:47:28.081Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-30T06:47:28.081Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "688b12f40c116f669f67e1e5"
+    },
+    "settingName": "纯前端功能",
+    "settingKey": "app.functional.front",
+    "settingValue": "{\"fullScreen\":\"1\",\"search\":\"1\",\"dark\":\"1\",\"locale\":\"1\"}",
+    "settingType": "functional",
+    "remark": "1 启用 0 关闭",
+    "createdAt": {
+      "$date": "2025-07-31T06:53:40.724Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-31T06:53:40.724Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68da123e863a7efe5d9f3e01"
+    },
+    "settingName": "前端url掩码",
+    "settingKey": "app.functional.front.maskUrl",
+    "settingValue": "{\"status\":true,\"scope\":\"scope\",\"globalValue\":true,\"localKey\":\"maskUrl\"}",
+    "settingType": "functional",
+    "remark": "对浏览器url的path/params/query进行加密处理",
+    "createdAt": {
+      "$date": "2025-09-29T04:59:42.368Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-10T08:20:47.983Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68da128d221527b1e91f35b8"
+    },
+    "settingName": "前端F5刷新拦截",
+    "settingKey": "app.functional.front.hijackRefresh",
+    "settingValue": "{\"status\":true,\"scope\":\"scope\",\"globalValue\":true,\"localKey\":\"hijackRefresh\"}",
+    "settingType": "functional",
+    "remark": "前端F5事件拦截做局部刷新",
+    "createdAt": {
+      "$date": "2025-09-29T05:01:01.556Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-10T08:35:03.586Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68da135d221527b1e91f35c5"
+    },
+    "settingName": "前端水印",
+    "settingKey": "app.functional.front.watermark",
+    "settingValue": "{\"status\":true,\"scope\":\"scope\",\"globalValue\":{\"content\":\"Walnut Admin\",\"cross\":true,\"fullscreen\":true,\"fontSize\":16,\"lineHeight\":16,\"width\":196,\"height\":196,\"rotate\":-15,\"xOffset\":12,\"yOffset\":60,\"zIndex\":99999},\"localKey\":\"watermark\"}",
+    "settingType": "functional",
+    "remark": null,
+    "createdAt": {
+      "$date": "2025-09-29T05:04:29.105Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-10T08:35:12.756Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68da139e221527b1e91f35cc"
+    },
+    "settingName": "前端transition动画",
+    "settingKey": "app.functional.front.transition",
+    "settingValue": "{\"status\":true,\"scope\":\"scope\",\"globalValue\":\"fade\",\"localKey\":\"transition\"}",
+    "settingType": "functional",
+    "remark": "前端transitionName",
+    "createdAt": {
+      "$date": "2025-09-29T05:05:34.082Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-10T08:35:21.250Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "694cecbfe0d25d921e7d1098"
+    },
+    "settingName": "opaque密码认证",
+    "settingKey": "app.auth.opaque",
+    "settingValue": "{\"authEnable\":\"1\",\"register\":\"1\",\"forget\":\"1\",\"change\":\"1\"}",
+    "settingType": "auth",
+    "remark": "authEnable: 1/0 opaque 认证功能开启/关闭\nregister: 1/0  开启/关闭注册功能\nforge: 1/0 开启/关闭忘记密码功能\nchange: 1/0 开启/关闭修改密码功能",
+    "createdAt": {
+      "$date": "2025-12-25T07:50:23.996Z"
+    },
+    "updatedAt": {
+      "$date": "2025-12-25T07:51:36.269Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "694e09e183b32fe0574cd1ab"
+    },
+    "settingName": "google onetap认证",
+    "settingKey": "app.auth.google",
+    "settingValue": "{\"authEnable\":\"1\"}",
+    "settingType": "auth",
+    "remark": "authEnable: 1/0  GitHub OAuth功能开启/关闭",
+    "createdAt": {
+      "$date": "2025-12-26T04:06:57.462Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-06T07:43:52.783Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "695cbd61b7c8266711515f96"
+    },
+    "settingName": "MFA 认证",
+    "settingKey": "app.auth.mfa",
+    "settingValue": "{\"methodsRequiredCount\":1}",
+    "settingType": "auth",
+    "remark": "\n",
+    "createdAt": {
+      "$date": "2026-01-06T07:44:33.701Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-05T06:43:24.667Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6980249cd823d53714eb2ca5"
+    },
+    "settingName": "HKDF派生info参数",
+    "settingKey": "app.crypto.hkdfInfo",
+    "settingValue": "{\"API_SIGN\":\"walnut-admin-api-sign-v1\"}",
+    "settingType": "global",
+    "remark": null,
+    "createdAt": {
+      "$date": "2026-02-02T04:14:20.914Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-02T04:14:20.914Z"
+    }
+  }
+]

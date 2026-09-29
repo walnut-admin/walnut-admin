@@ -1,0 +1,56 @@
+[
+  {
+    "_id": {
+      "$oid": "5fbd10a430391c1438ef8aa0"
+    },
+    "status": true,
+    "age": 22,
+    "createdAt": {
+      "$date": "2020-11-24T13:54:44.222Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-04T13:23:50.601Z"
+    },
+    "userName": "visitor",
+    "nickName": "Shinji",
+    "avatar": null,
+    "description": "1",
+    "gender": 1,
+    "roles": [
+      {
+        "$oid": "5fb27aee3a30b717d8078eb5"
+      }
+    ],
+    "roleMode": "switchable",
+    "currentRole": {
+      "$oid": "5fb27aee3a30b717d8078eb5"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "5fc63f5640cad739606d1700"
+    },
+    "status": true,
+    "age": 23,
+    "createdAt": {
+      "$date": "2020-12-01T13:04:22.463Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-05T04:22:11.705Z"
+    },
+    "userName": "admin",
+    "avatar": null,
+    "description": "2",
+    "gender": 2,
+    "nickName": "Kaguya",
+    "roles": [
+      {
+        "$oid": "5fc63efbc661230af4695249"
+      }
+    ],
+    "roleMode": "switchable",
+    "currentRole": {
+      "$oid": "5fc63efbc661230af4695249"
+    }
+  }
+]

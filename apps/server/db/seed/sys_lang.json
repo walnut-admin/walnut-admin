@@ -1,0 +1,32 @@
+[
+  {
+    "_id": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "status": true,
+    "order": 1,
+    "description": "English",
+    "lang": "en_US",
+    "createdAt": {
+      "$date": "2021-11-14T05:50:35.845Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T07:01:45.621Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "status": true,
+    "order": 2,
+    "description": "简体中文",
+    "lang": "zh_CN",
+    "createdAt": {
+      "$date": "2021-11-14T05:52:16.348Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T07:01:51.220Z"
+    }
+  }
+]

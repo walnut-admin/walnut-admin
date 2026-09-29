@@ -1,0 +1,153 @@
+[
+  {
+    "_id": {
+      "$oid": "5fb27aee3a30b717d8078eb5"
+    },
+    "description": "游览角色",
+    "createdAt": {
+      "$date": "2020-11-16T13:13:18.172Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-04T07:07:10.222Z"
+    },
+    "roleName": "visitor",
+    "status": true,
+    "order": 0,
+    "menus": []
+  },
+  {
+    "_id": {
+      "$oid": "5fc63efbc661230af4695249"
+    },
+    "description": "管理员",
+    "createdAt": {
+      "$date": "2020-12-01T13:02:51.746Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-05T04:22:02.718Z"
+    },
+    "roleName": "admin",
+    "status": true,
+    "order": -1,
+    "menus": [
+      {
+        "$oid": "61e80d1f67ad74c06742e3c5"
+      },
+      {
+        "$oid": "60c2006b0308d73288e7fc6d"
+      },
+      {
+        "$oid": "6170e72ffc6141211c6691d8"
+      },
+      {
+        "$oid": "6258ed9d6d34af167fe374b1"
+      },
+      {
+        "$oid": "6258ede76d34af167fe374c9"
+      },
+      {
+        "$oid": "694e1a71e2ac7579a25ecd9e"
+      }
+    ]
+  },
+  {
+    "_id": {
+      "$oid": "6821922e2c6308bd27d20bcb"
+    },
+    "roleName": "test-home",
+    "description": "test role with home page only",
+    "order": 1,
+    "menus": [
+      {
+        "$oid": "60c2006b0308d73288e7fc6d"
+      }
+    ],
+    "status": true,
+    "createdAt": {
+      "$date": "2025-05-12T06:16:14.363Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-13T05:21:32.387Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6822d705c9b6405a2ef94821"
+    },
+    "roleName": "test-dashboard",
+    "description": "test role with dashboard only",
+    "order": 2,
+    "menus": [
+      {
+        "$oid": "6170e72ffc6141211c6691d8"
+      }
+    ],
+    "status": true,
+    "createdAt": {
+      "$date": "2025-05-13T05:22:13.510Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-05T02:47:09.812Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68635668a1f084bfd66da715"
+    },
+    "roleName": "root",
+    "description": "根用户",
+    "order": -999,
+    "menus": [],
+    "status": true,
+    "createdAt": {
+      "$date": "2025-07-01T03:30:48.079Z"
+    },
+    "updatedAt": {
+      "$date": "2025-07-01T03:31:21.199Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6863567ba1f084bfd66da71b"
+    },
+    "roleName": "developer",
+    "description": "开发者",
+    "order": -888,
+    "menus": [
+      {
+        "$oid": "63281931205f44b6727fd74e"
+      },
+      {
+        "$oid": "6328193a205f44b6727fd758"
+      },
+      {
+        "$oid": "63281943205f44b6727fd763"
+      },
+      {
+        "$oid": "6328194d205f44b6727fd76d"
+      },
+      {
+        "$oid": "694e1a71e2ac7579a25ecd9e"
+      },
+      {
+        "$oid": "6258ede76d34af167fe374c9"
+      },
+      {
+        "$oid": "6258ed9d6d34af167fe374b1"
+      },
+      {
+        "$oid": "6328117e9b748373ba4695b3"
+      },
+      {
+        "$oid": "632811239b748373ba4695a6"
+      }
+    ],
+    "status": true,
+    "createdAt": {
+      "$date": "2025-07-01T03:31:07.942Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-05T04:21:11.437Z"
+    }
+  }
+]

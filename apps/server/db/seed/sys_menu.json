@@ -1,0 +1,4577 @@
+[
+  {
+    "_id": {
+      "$oid": "5fc8e3cd0144eb274c1c9780"
+    },
+    "type": "catalog",
+    "title": "app.base.root",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "order": 0,
+      "ternal": "none",
+      "affix": false
+    },
+    "createdAt": {
+      "$date": "2020-12-03T13:10:37.101Z"
+    },
+    "updatedAt": {
+      "$date": "2021-02-09T06:03:33.643Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "catalog",
+    "title": "sys.menu.system",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "order": 1,
+      "ternal": "none",
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "5fc8e3cd0144eb274c1c9780"
+    },
+    "path": "system",
+    "name": "System",
+    "icon": "ant-design:bars-outlined",
+    "createdAt": {
+      "$date": "2021-01-17T07:57:02.574Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-12T13:15:47.120Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6003eec803dc9237d49ff02d"
+    },
+    "type": "menu",
+    "title": "sys.menu.role",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "order": 1,
+      "ternal": "none",
+      "affix": false,
+      "leaveTip": false,
+      "menuActiveSameTab": false,
+      "position": false
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "path": "role",
+    "name": "Role",
+    "component": "system/role/index",
+    "icon": "ant-design:usergroup-add-outlined",
+    "createdAt": {
+      "$date": "2021-01-17T08:01:12.749Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-12T13:14:18.734Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6003f0fa03dc9237d49ff02e"
+    },
+    "type": "menu",
+    "title": "sys.menu.user",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "order": 2,
+      "ternal": "none",
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "path": "user",
+    "name": "User",
+    "component": "system/user/index",
+    "icon": "ant-design:user-outlined",
+    "createdAt": {
+      "$date": "2021-01-17T08:10:34.348Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-15T03:50:15.770Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6003f13103dc9237d49ff02f"
+    },
+    "type": "menu",
+    "title": "sys.menu.menu",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "order": 3,
+      "ternal": "none",
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "path": "menu",
+    "name": "Menu",
+    "component": "system/menu/index",
+    "icon": "ant-design:menu-outlined",
+    "createdAt": {
+      "$date": "2021-01-17T08:11:29.568Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-15T03:50:29.595Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6022325a2daf803624a6ea88"
+    },
+    "type": "catalog",
+    "title": "sys.menu.demo",
+    "meta": {
+      "order": 99,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": "ant-design:appstore-add-outlined"
+    },
+    "pid": {
+      "$oid": "5fc8e3cd0144eb274c1c9780"
+    },
+    "path": "demo",
+    "name": "Demo",
+    "icon": "ant-design:appstore-twotone",
+    "createdAt": {
+      "$date": "2021-02-09T06:57:30.796Z"
+    },
+    "updatedAt": {
+      "$date": "2025-06-18T04:10:51.091Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "602235812daf803624a6ea8f"
+    },
+    "type": "menu",
+    "title": "sys.menu.comp.table",
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "url": null,
+      "show": false,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "position": false,
+      "leaveTip": false,
+      "transition": null
+    },
+    "pid": {
+      "$oid": "6022325a2daf803624a6ea88"
+    },
+    "path": "table",
+    "name": "DemoTable",
+    "component": "demo/table/index",
+    "icon": "ant-design:table-outlined",
+    "createdAt": {
+      "$date": "2021-02-09T07:10:57.000Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-21T02:35:22.811Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6022359a2daf803624a6ea90"
+    },
+    "type": "menu",
+    "title": "sys.menu.comp.table.base",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "order": 1,
+      "ternal": "none",
+      "affix": false
+    },
+    "pid": {
+      "$oid": "602235812daf803624a6ea8f"
+    },
+    "path": "base",
+    "name": "BaseTable",
+    "component": "demo/table/baseTable",
+    "icon": "ant-design:align-center-outlined",
+    "createdAt": {
+      "$date": "2021-02-09T07:11:22.432Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-29T09:53:00.094Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "602235f92daf803624a6ea93"
+    },
+    "type": "menu",
+    "title": "sys.menu.comp.form",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "order": 3,
+      "ternal": "none",
+      "affix": false,
+      "badge": "REDO",
+      "leaveTip": false,
+      "menuActiveSameTab": false,
+      "position": false
+    },
+    "pid": "6022325a2daf803624a6ea88",
+    "path": "form",
+    "name": "DemoForm",
+    "component": "demo/form/index",
+    "icon": "ant-design:form-outlined",
+    "createdAt": {
+      "$date": "2021-02-09T07:12:57.000Z"
+    },
+    "updatedAt": {
+      "$date": "2025-04-30T01:54:53.991Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6045959fc987c22a54227033"
+    },
+    "type": "menu",
+    "title": "sys.menu.comp.table.hook",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "order": 2,
+      "ternal": "none",
+      "affix": false
+    },
+    "pid": {
+      "$oid": "602235812daf803624a6ea8f"
+    },
+    "path": "hook",
+    "name": "UseTableDemo",
+    "component": "demo/table/useTable",
+    "icon": "ant-design:appstore-add-outlined",
+    "createdAt": {
+      "$date": "2021-03-08T03:10:23.206Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-29T09:53:02.822Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "60519d34566f3121ccab6d76"
+    },
+    "type": "catalog",
+    "title": "sys.menu.link",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "order": 98,
+      "ternal": "none",
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6022325a2daf803624a6ea88"
+    },
+    "path": "link",
+    "name": "Link",
+    "icon": "ant-design:link-outlined",
+    "createdAt": {
+      "$date": "2021-03-17T06:09:56.819Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-07T13:23:59.305Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "60c2006b0308d73288e7fc6d"
+    },
+    "type": "menu",
+    "title": "sys.menu.homepage",
+    "meta": {
+      "status": true,
+      "cache": false,
+      "show": true,
+      "order": -2,
+      "ternal": "none",
+      "affix": true,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "5fc8e3cd0144eb274c1c9780"
+    },
+    "path": "home",
+    "name": "Homepage",
+    "component": "index/home/index",
+    "icon": "ant-design:home-outlined",
+    "createdAt": {
+      "$date": "2021-06-10T12:07:07.292Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-19T08:44:54.390Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "616e5bd040bcd83498cec209"
+    },
+    "type": "catalog",
+    "title": "sys.menu.link.internal",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 1,
+      "affix": false
+    },
+    "pid": {
+      "$oid": "60519d34566f3121ccab6d76"
+    },
+    "path": "internal",
+    "name": "Internal",
+    "icon": "ant-design:link-outlined",
+    "createdAt": {
+      "$date": "2021-10-19T05:46:56.630Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T07:38:59.425Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "616e5cc040bcd83498cec20a"
+    },
+    "type": "menu",
+    "title": "sys.menu.link.iconify",
+    "meta": {
+      "status": true,
+      "cache": false,
+      "show": true,
+      "ternal": "internal",
+      "order": 2,
+      "url": "https://docs.iconify.design/",
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "616e5bd040bcd83498cec209"
+    },
+    "path": "iconify",
+    "name": "Iconify",
+    "icon": "ant-design:link-outlined",
+    "createdAt": {
+      "$date": "2021-10-19T05:50:56.228Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-03T08:27:24.735Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "616e630940bcd83498cec20b"
+    },
+    "type": "menu",
+    "title": "sys.menu.link.doc",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "internal",
+      "order": 1,
+      "url": "https://walnut-admin-doc.netlify.app/",
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "616e5bd040bcd83498cec209"
+    },
+    "path": "doc",
+    "name": "Doc",
+    "icon": "ant-design:link-outlined",
+    "createdAt": {
+      "$date": "2021-10-19T06:17:45.950Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-12T11:31:20.316Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "616e74d740bcd83498cec20d"
+    },
+    "type": "catalog",
+    "title": "sys.menu.link.external",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 2,
+      "affix": false
+    },
+    "pid": {
+      "$oid": "60519d34566f3121ccab6d76"
+    },
+    "path": "external",
+    "name": "External",
+    "icon": "ant-design:link-outlined",
+    "createdAt": {
+      "$date": "2021-10-19T07:33:43.133Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T07:39:05.966Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "616e77f640bcd83498cec20e"
+    },
+    "type": "menu",
+    "title": "sys.menu.link.vite",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "external",
+      "order": 1,
+      "url": "https://cn.vitejs.dev/",
+      "affix": false
+    },
+    "pid": {
+      "$oid": "616e74d740bcd83498cec20d"
+    },
+    "path": "vite",
+    "name": "Vite",
+    "icon": "simple-icons:vite",
+    "createdAt": {
+      "$date": "2021-10-19T07:47:02.673Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-29T09:54:21.194Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "616e782540bcd83498cec20f"
+    },
+    "type": "menu",
+    "title": "sys.menu.link.vue3",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "external",
+      "order": 2,
+      "url": "https://vuejs.org/",
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "616e74d740bcd83498cec20d"
+    },
+    "path": "vue-next",
+    "name": "VueNext",
+    "icon": "simple-icons:vuedotjs",
+    "createdAt": {
+      "$date": "2021-10-19T07:47:49.871Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-12T09:52:10.294Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "616e791e40bcd83498cec210"
+    },
+    "type": "menu",
+    "title": "sys.menu.link.vueRouter",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "external",
+      "order": 3,
+      "url": "https://next.router.vuejs.org/zh",
+      "affix": false
+    },
+    "pid": {
+      "$oid": "616e74d740bcd83498cec20d"
+    },
+    "path": "vue-router-next",
+    "name": "VueRouterNext",
+    "icon": "ant-design:link-outlined",
+    "createdAt": {
+      "$date": "2021-10-19T07:51:58.697Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-29T09:54:44.006Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "616e794c40bcd83498cec211"
+    },
+    "type": "menu",
+    "title": "sys.menu.link.vueI18n",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "external",
+      "order": 4,
+      "url": "https://vue-i18n.intlify.dev/",
+      "affix": false
+    },
+    "pid": {
+      "$oid": "616e74d740bcd83498cec20d"
+    },
+    "path": "vue-i18n",
+    "name": "VueI18n",
+    "icon": "ant-design:link-outlined",
+    "createdAt": {
+      "$date": "2021-10-19T07:52:44.292Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-29T09:54:27.815Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "616e796840bcd83498cec212"
+    },
+    "type": "menu",
+    "title": "sys.menu.link.naiveui",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "external",
+      "order": 5,
+      "url": "https://www.naiveui.com/zh-CN/dark",
+      "affix": false
+    },
+    "pid": {
+      "$oid": "616e74d740bcd83498cec20d"
+    },
+    "path": "naiveui",
+    "name": "Naiveui",
+    "icon": "ant-design:link-outlined",
+    "createdAt": {
+      "$date": "2021-10-19T07:53:12.069Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-29T09:54:30.266Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "616e799b40bcd83498cec213"
+    },
+    "type": "menu",
+    "title": "sys.menu.link.vueuse",
+    "meta": {
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "external",
+      "order": 6,
+      "url": "https://vueuse.org/",
+      "affix": false
+    },
+    "pid": {
+      "$oid": "616e74d740bcd83498cec20d"
+    },
+    "path": "vueuse",
+    "name": "Vueuse",
+    "icon": "ant-design:link-outlined",
+    "createdAt": {
+      "$date": "2021-10-19T07:54:03.757Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-29T09:54:33.284Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6170e72ffc6141211c6691d8"
+    },
+    "type": "menu",
+    "title": "sys.menu.dashboard",
+    "meta": {
+      "affix": true,
+      "status": true,
+      "cache": false,
+      "show": true,
+      "ternal": "none",
+      "order": -1,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "5fc8e3cd0144eb274c1c9780"
+    },
+    "path": "dashboard",
+    "name": "Dashboard",
+    "component": "index/dashboard/index",
+    "icon": "ant-design:dashboard-outlined",
+    "createdAt": {
+      "$date": "2021-10-21T04:06:07.526Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-19T08:44:57.991Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "61712bd5fc6141211c6691d9"
+    },
+    "type": "menu",
+    "title": "sys.menu.dict",
+    "meta": {
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 4,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "path": "dict",
+    "name": "Dict",
+    "component": "system/dict/index",
+    "icon": "mdi:library-shelves",
+    "createdAt": {
+      "$date": "2021-10-21T08:59:01.582Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-15T03:50:49.429Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618f804f8a88fd8fb3c02aed"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:role:create",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 2
+    },
+    "pid": {
+      "$oid": "6003eec803dc9237d49ff02d"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T09:07:27.819Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-13T09:27:39.098Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618f84d48a88fd8fb3c02b32"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:role:read",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 3
+    },
+    "pid": {
+      "$oid": "6003eec803dc9237d49ff02d"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T09:26:44.583Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-13T09:27:43.560Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618f84dc8a88fd8fb3c02b36"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:role:update",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 4
+    },
+    "pid": {
+      "$oid": "6003eec803dc9237d49ff02d"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T09:26:52.536Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-13T09:27:50.261Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618f84eb8a88fd8fb3c02b3a"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:role:delete",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 5
+    },
+    "pid": {
+      "$oid": "6003eec803dc9237d49ff02d"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T09:27:07.931Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-13T09:27:54.622Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618f85028a88fd8fb3c02b3e"
+    },
+    "type": "element",
+    "meta": {
+      "order": 1,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:role:list",
+      "menuActiveName": null,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "pid": {
+      "$oid": "6003eec803dc9237d49ff02d"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T09:27:30.942Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-16T05:33:42.179Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618f85348a88fd8fb3c02b53"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:user:list",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 1
+    },
+    "pid": {
+      "$oid": "6003f0fa03dc9237d49ff02e"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T09:28:20.170Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-13T09:30:28.592Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618f853d8a88fd8fb3c02b57"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:user:create",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 2
+    },
+    "pid": {
+      "$oid": "6003f0fa03dc9237d49ff02e"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T09:28:29.795Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-13T09:30:33.577Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618f85478a88fd8fb3c02b5b"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:user:read",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 3
+    },
+    "pid": {
+      "$oid": "6003f0fa03dc9237d49ff02e"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T09:28:39.812Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-13T09:34:52.196Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618f85508a88fd8fb3c02b5f"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:user:update",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 4
+    },
+    "pid": {
+      "$oid": "6003f0fa03dc9237d49ff02e"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T09:28:48.622Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-13T09:35:07.686Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618f855d8a88fd8fb3c02b63"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:user:delete",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 5
+    },
+    "pid": {
+      "$oid": "6003f0fa03dc9237d49ff02e"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T09:29:01.745Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-13T09:35:13.560Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618fa028b31ca2c89078a0ad"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:menu:list",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 1
+    },
+    "pid": {
+      "$oid": "6003f13103dc9237d49ff02f"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T11:23:20.850Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-13T11:23:43.742Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618fa03ab31ca2c89078a0b5"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:menu:create",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 2
+    },
+    "pid": {
+      "$oid": "6003f13103dc9237d49ff02f"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T11:23:38.756Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-03T12:50:33.243Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618fa04cb31ca2c89078a0bd"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:menu:read",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 3
+    },
+    "pid": {
+      "$oid": "6003f13103dc9237d49ff02f"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T11:23:56.860Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-13T11:23:56.860Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618fa056b31ca2c89078a0c1"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:menu:update",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 4
+    },
+    "pid": {
+      "$oid": "6003f13103dc9237d49ff02f"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T11:24:06.816Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-13T11:24:06.816Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "618fa05fb31ca2c89078a0c5"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:menu:delete",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 5
+    },
+    "pid": {
+      "$oid": "6003f13103dc9237d49ff02f"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T11:24:15.603Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-13T11:24:15.603Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6190a34a006f39bf8a155a24"
+    },
+    "type": "menu",
+    "title": "sys.menu.lang",
+    "meta": {
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 5
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "path": "lang",
+    "name": "Lang",
+    "component": "system/lang/index",
+    "icon": "ant-design:barcode-outlined",
+    "createdAt": {
+      "$date": "2021-11-14T05:48:58.273Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-29T09:49:56.180Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6190a93eedc77272517f6dbe"
+    },
+    "type": "menu",
+    "title": "sys.menu.locale",
+    "meta": {
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 6
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "path": "locale",
+    "name": "Locale",
+    "component": "system/locale/index",
+    "icon": "ant-design:barcode-outlined",
+    "createdAt": {
+      "$date": "2021-11-14T06:14:22.020Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-29T09:49:58.802Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "61e80d1f67ad74c06742e3c5"
+    },
+    "type": "menu",
+    "title": "sys.menu.about",
+    "meta": {
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 999,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "5fc8e3cd0144eb274c1c9780"
+    },
+    "path": "about",
+    "name": "About",
+    "component": "index/about",
+    "icon": "ant-design:bars-outlined",
+    "createdAt": {
+      "$date": "2022-01-19T13:07:43.616Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-23T04:34:26.574Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6214ddd23a1012291095aeb0"
+    },
+    "type": "menu",
+    "title": "sys.menu.dict.detail",
+    "meta": {
+      "order": 4,
+      "ternal": "none",
+      "url": null,
+      "show": false,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": "Dict",
+      "menuActiveSameTab": true,
+      "badge": null,
+      "activeIcon": null,
+      "position": false,
+      "leaveTip": false,
+      "maskUrl": null,
+      "hijackRefresh": null,
+      "transition": null,
+      "cacheKeyStrategy": null
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "path": "dict/:id",
+    "name": "DictDetail",
+    "component": "system/dict/detail",
+    "icon": "ant-design:android-outlined",
+    "createdAt": {
+      "$date": "2022-02-22T12:57:54.491Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-10T08:00:43.648Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "621e198f5611ec6fe497938a"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.UI",
+    "meta": {
+      "menuActiveSameTab": false,
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": -2,
+      "leaveTip": false,
+      "position": false
+    },
+    "pid": {
+      "$oid": "6022325a2daf803624a6ea88"
+    },
+    "path": "UI",
+    "name": "DemoUI",
+    "component": "demo/UI/index",
+    "icon": "ant-design:align-center-outlined",
+    "createdAt": {
+      "$date": "2022-03-01T13:03:11.464Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-15T03:49:40.334Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "621f6a72d99d2ee9f68f0ef2"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.extra",
+    "meta": {
+      "order": -1,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": false,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "position": false,
+      "maskUrl": false,
+      "transition": null
+    },
+    "pid": {
+      "$oid": "6022325a2daf803624a6ea88"
+    },
+    "path": "extra",
+    "name": "DemoExtra",
+    "component": "demo/Extra/index",
+    "icon": "ant-design:align-center-outlined",
+    "createdAt": {
+      "$date": "2022-03-02T13:00:34.332Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-16T04:45:46.917Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6220b7c738da123db2834156"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:user:deleteMany",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 6
+    },
+    "pid": {
+      "$oid": "6003f0fa03dc9237d49ff02e"
+    },
+    "createdAt": {
+      "$date": "2022-03-03T12:42:47.841Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-03T12:42:47.841Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6220beee38da123db2834229"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:dict:type:list",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 1
+    },
+    "pid": {
+      "$oid": "61712bd5fc6141211c6691d9"
+    },
+    "createdAt": {
+      "$date": "2021-11-13T09:28:20.170Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:42:45.704Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6220c17f38da123db283424d"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:dict:type:create",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 2
+    },
+    "pid": {
+      "$oid": "61712bd5fc6141211c6691d9"
+    },
+    "createdAt": {
+      "$date": "2022-03-03T13:24:15.225Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:42:50.980Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "62249d0d0028e424fa18c9fa"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:dict:type:read",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 3
+    },
+    "pid": {
+      "$oid": "61712bd5fc6141211c6691d9"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T11:37:49.294Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:42:55.543Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "62249d180028e424fa18c9fe"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:dict:type:update",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 4
+    },
+    "pid": {
+      "$oid": "61712bd5fc6141211c6691d9"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T11:38:00.990Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:43:00.174Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "62249d2b0028e424fa18ca0c"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:dict:type:delete",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 5
+    },
+    "pid": {
+      "$oid": "61712bd5fc6141211c6691d9"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T11:38:19.651Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:43:04.432Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224aa8b0028e424fa18cbd8"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:dict:data:list",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 1
+    },
+    "pid": {
+      "$oid": "6214ddd23a1012291095aeb0"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:35:23.259Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:43:10.923Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224aad70028e424fa18cbe6"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:dict:data:create",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 2
+    },
+    "pid": {
+      "$oid": "6214ddd23a1012291095aeb0"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:36:39.373Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:43:15.590Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224aade0028e424fa18cbea"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:dict:data:read",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 3
+    },
+    "pid": {
+      "$oid": "6214ddd23a1012291095aeb0"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:36:46.095Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:43:20.451Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224aae40028e424fa18cbee"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:dict:data:update",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 4
+    },
+    "pid": {
+      "$oid": "6214ddd23a1012291095aeb0"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:36:52.413Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:43:24.853Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224aaee0028e424fa18cbf2"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:dict:data:delete",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 5
+    },
+    "pid": {
+      "$oid": "6214ddd23a1012291095aeb0"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:37:02.142Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:43:29.097Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224abb80028e424fa18cc26"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:lang:list",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 1
+    },
+    "pid": {
+      "$oid": "6190a34a006f39bf8a155a24"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:40:24.279Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-06T12:40:24.279Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224abbe0028e424fa18cc2a"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:lang:create",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 2
+    },
+    "pid": {
+      "$oid": "6190a34a006f39bf8a155a24"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:40:30.311Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-06T12:40:30.311Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224abc40028e424fa18cc2e"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:lang:read",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 3
+    },
+    "pid": {
+      "$oid": "6190a34a006f39bf8a155a24"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:40:36.307Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-06T12:40:36.307Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224abca0028e424fa18cc32"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:lang:update",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 4
+    },
+    "pid": {
+      "$oid": "6190a34a006f39bf8a155a24"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:40:42.779Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-06T12:40:42.779Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224abd00028e424fa18cc36"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:lang:delete",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 5
+    },
+    "pid": {
+      "$oid": "6190a34a006f39bf8a155a24"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:40:48.326Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-06T12:40:48.326Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224ad410028e424fa18cc68"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:locale:list",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 1
+    },
+    "pid": {
+      "$oid": "6190a93eedc77272517f6dbe"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:46:57.563Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-06T12:46:57.563Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224ad4a0028e424fa18cc6c"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:locale:create",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 2
+    },
+    "pid": {
+      "$oid": "6190a93eedc77272517f6dbe"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:47:06.438Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-06T12:47:06.438Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224ad530028e424fa18cc70"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:locale:read",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 3
+    },
+    "pid": {
+      "$oid": "6190a93eedc77272517f6dbe"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:47:15.407Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-06T12:47:15.407Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224ad590028e424fa18cc74"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:locale:update",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 4
+    },
+    "pid": {
+      "$oid": "6190a93eedc77272517f6dbe"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:47:21.123Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-06T12:47:21.123Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6224ad5f0028e424fa18cc78"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:locale:delete",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 5
+    },
+    "pid": {
+      "$oid": "6190a93eedc77272517f6dbe"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T12:47:27.126Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-06T12:47:27.126Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "622763165647466fca9861d7"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:locale:deleteMany",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 6
+    },
+    "pid": {
+      "$oid": "6190a93eedc77272517f6dbe"
+    },
+    "createdAt": {
+      "$date": "2022-03-08T14:07:18.568Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-08T14:07:18.568Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6237dd4728e68df6172905ab"
+    },
+    "type": "catalog",
+    "title": "sys.menu.demo.vendor",
+    "meta": {
+      "menuActiveSameTab": false,
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 5
+    },
+    "pid": {
+      "$oid": "6022325a2daf803624a6ea88"
+    },
+    "path": "vendor",
+    "name": "Vendor",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-03-21T02:04:55.450Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-22T04:20:19.314Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6237e23828e68df61729066c"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.vendor.tinymce",
+    "meta": {
+      "menuActiveSameTab": false,
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 1
+    },
+    "pid": {
+      "$oid": "6237dd4728e68df6172905ab"
+    },
+    "path": "tinymce",
+    "name": "TinymceDemo",
+    "component": "demo/vendor/Tinymce/index",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-03-21T02:26:00.090Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-28T02:55:10.229Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "62394e7d447e5b7a22718401"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.vendor.echarts",
+    "meta": {
+      "menuActiveSameTab": false,
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 0,
+      "leaveTip": false,
+      "position": false
+    },
+    "pid": "6237dd4728e68df6172905ab",
+    "path": "echarts",
+    "name": "EChartsDemo",
+    "component": "demo/vendor/ECharts/index",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-03-22T04:20:13.000Z"
+    },
+    "updatedAt": {
+      "$date": "2025-04-30T06:58:22.667Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623c2cc7de538055d468fcc6"
+    },
+    "type": "catalog",
+    "title": "sys.menu.log",
+    "meta": {
+      "menuActiveSameTab": false,
+      "affix": false,
+      "status": true,
+      "cache": false,
+      "show": true,
+      "ternal": "none",
+      "order": 7,
+      "menuActiveName": "Dict"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "path": "log",
+    "name": "Log",
+    "component": "system/locale/index",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-03-24T08:33:11.697Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-24T08:35:01.140Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623c2d50de538055d468fce2"
+    },
+    "type": "menu",
+    "title": "sys.menu.log.operate",
+    "meta": {
+      "menuActiveSameTab": false,
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 1
+    },
+    "pid": {
+      "$oid": "623c2cc7de538055d468fcc6"
+    },
+    "path": "operate",
+    "name": "LogOperate",
+    "component": "system/log/operate/index",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-03-24T08:35:28.027Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-24T08:35:28.027Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623db4365c7676f8d9d3f0df"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:log:operate:list",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 1
+    },
+    "pid": {
+      "$oid": "623c2d50de538055d468fce2"
+    },
+    "createdAt": {
+      "$date": "2022-03-25T12:23:18.691Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-25T12:23:18.691Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623db4455c7676f8d9d3f0e7"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:log:operate:read",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 2
+    },
+    "pid": {
+      "$oid": "623c2d50de538055d468fce2"
+    },
+    "createdAt": {
+      "$date": "2022-03-25T12:23:33.946Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-25T12:23:33.946Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6246b81fd6c32887258b6ca0"
+    },
+    "type": "menu",
+    "title": "sys.menu.log.auth",
+    "meta": {
+      "menuActiveSameTab": false,
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 2
+    },
+    "pid": {
+      "$oid": "623c2cc7de538055d468fcc6"
+    },
+    "path": "auth",
+    "name": "LogAuth",
+    "component": "system/log/auth/index",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-04-01T08:30:23.581Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-01T08:31:23.988Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6246c70d6edcdc0703a8f3e0"
+    },
+    "type": "element",
+    "meta": {
+      "menuActiveSameTab": false,
+      "permission": "system:log:auth:list",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 1
+    },
+    "pid": {
+      "$oid": "6246b81fd6c32887258b6ca0"
+    },
+    "createdAt": {
+      "$date": "2022-04-01T09:34:05.288Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-01T09:34:05.288Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6246c7196edcdc0703a8f3e9"
+    },
+    "type": "element",
+    "meta": {
+      "order": 3,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:log:auth:deleteMany",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "position": null,
+      "leaveTip": null,
+      "maskUrl": null,
+      "hijackRefresh": null,
+      "transition": null
+    },
+    "pid": {
+      "$oid": "6246b81fd6c32887258b6ca0"
+    },
+    "createdAt": {
+      "$date": "2022-04-01T09:34:17.929Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-15T07:30:47.019Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6258ede76d34af167fe374c9"
+    },
+    "type": "menu",
+    "title": "sys.menu.account.setting",
+    "meta": {
+      "order": 998,
+      "ternal": "none",
+      "url": null,
+      "show": false,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "position": null,
+      "leaveTip": null,
+      "maskUrl": null,
+      "hijackRefresh": null,
+      "transition": null,
+      "cacheKeyStrategy": "name"
+    },
+    "pid": {
+      "$oid": "5fc8e3cd0144eb274c1c9780"
+    },
+    "path": "me/:tab?/:child_tab?",
+    "name": "Me",
+    "component": "me/index",
+    "icon": "mdi:account-cog",
+    "createdAt": {
+      "$date": "2022-04-15T04:00:39.492Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-10T07:48:55.299Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "625e7c51f474c618aa61ee48"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.vendor.OSSUpload",
+    "meta": {
+      "menuActiveSameTab": false,
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 2
+    },
+    "pid": {
+      "$oid": "6237dd4728e68df6172905ab"
+    },
+    "path": "oss-upload",
+    "name": "OSSUploadDemo",
+    "component": "demo/vendor/OSSUpload/index",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-04-19T09:09:37.907Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-19T09:09:37.907Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "627dc4da3ee9a2b0cddf9774"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.vendor.cropper",
+    "meta": {
+      "order": 3,
+      "ternal": "none",
+      "show": true,
+      "cache": false,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6237dd4728e68df6172905ab"
+    },
+    "path": "cropper",
+    "name": "CropperDemo",
+    "component": "demo/vendor/Cropper/index",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-05-13T02:39:22.218Z"
+    },
+    "updatedAt": {
+      "$date": "2022-08-26T02:23:32.892Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63082e316ae5e1af5c9977ae"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.vendor.codeMirror",
+    "meta": {
+      "order": 4,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6237dd4728e68df6172905ab"
+    },
+    "path": "codeMirror",
+    "name": "CodeMirrorDemo",
+    "component": "demo/vendor/CodeMirror/index",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-08-26T02:21:37.928Z"
+    },
+    "updatedAt": {
+      "$date": "2022-08-26T02:21:37.928Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "630874336ae5e1af5c9979c7"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.vendor.signpad",
+    "meta": {
+      "order": 5,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6237dd4728e68df6172905ab"
+    },
+    "path": "signature-pad",
+    "name": "SignPadDemo",
+    "component": "demo/vendor/SignPad/index",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-08-26T07:20:19.414Z"
+    },
+    "updatedAt": {
+      "$date": "2022-08-26T07:20:19.414Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "631eed9507ea59129a0bf734"
+    },
+    "type": "element",
+    "meta": {
+      "order": 1,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:cache:list",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "63315816f42e92210ac8d946"
+    },
+    "createdAt": {
+      "$date": "2022-09-12T08:28:05.227Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-26T08:30:05.865Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "631eedb407ea59129a0bf73c"
+    },
+    "type": "element",
+    "meta": {
+      "order": 3,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:cache:delete",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "63315816f42e92210ac8d946"
+    },
+    "createdAt": {
+      "$date": "2022-09-12T08:28:36.343Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-28T03:23:33.404Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "631eeeb807ea59129a0bf79f"
+    },
+    "type": "catalog",
+    "title": "sys.menu.health",
+    "meta": {
+      "order": 97,
+      "ternal": "none",
+      "show": false,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "path": "health",
+    "name": "Health",
+    "icon": "mdi:health-potion-outline",
+    "createdAt": {
+      "$date": "2022-09-12T08:32:56.238Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:32:56.238Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "631eeec307ea59129a0bf7a7"
+    },
+    "type": "element",
+    "meta": {
+      "order": 1,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:health:network",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "631eeeb807ea59129a0bf79f"
+    },
+    "createdAt": {
+      "$date": "2022-09-12T08:33:07.632Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:33:07.632Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "631eeece07ea59129a0bf7b0"
+    },
+    "type": "element",
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:health:database",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "631eeeb807ea59129a0bf79f"
+    },
+    "createdAt": {
+      "$date": "2022-09-12T08:33:18.033Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:33:18.033Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "631eeed507ea59129a0bf7b8"
+    },
+    "type": "element",
+    "meta": {
+      "order": 3,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:health:memory-heap",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "631eeeb807ea59129a0bf79f"
+    },
+    "createdAt": {
+      "$date": "2022-09-12T08:33:25.623Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:33:25.623Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "631eeedd07ea59129a0bf7c0"
+    },
+    "type": "element",
+    "meta": {
+      "order": 4,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:health:memory-rss",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "631eeeb807ea59129a0bf79f"
+    },
+    "createdAt": {
+      "$date": "2022-09-12T08:33:33.700Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:33:33.700Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "631eeee607ea59129a0bf7c8"
+    },
+    "type": "element",
+    "meta": {
+      "order": 5,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:health:disk",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "631eeeb807ea59129a0bf79f"
+    },
+    "createdAt": {
+      "$date": "2022-09-12T08:33:42.278Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:33:42.278Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632811239b748373ba4695a6"
+    },
+    "type": "catalog",
+    "title": "sys.menu.app",
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "5fc8e3cd0144eb274c1c9780"
+    },
+    "path": "app",
+    "name": "App",
+    "icon": "ant-design:bars-outlined",
+    "createdAt": {
+      "$date": "2022-09-19T06:50:11.356Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-19T06:50:11.356Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6328117e9b748373ba4695b3"
+    },
+    "type": "menu",
+    "title": "sys.menu.appSetting",
+    "meta": {
+      "order": 1,
+      "ternal": "none",
+      "show": true,
+      "cache": false,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "632811239b748373ba4695a6"
+    },
+    "path": "setting",
+    "name": "AppSetting",
+    "component": "app/setting/index",
+    "icon": "ant-design:unordered-list-outlined",
+    "createdAt": {
+      "$date": "2022-09-19T06:51:42.333Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-19T06:51:42.333Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63281931205f44b6727fd74e"
+    },
+    "type": "element",
+    "meta": {
+      "order": 1,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:setting:list",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6328117e9b748373ba4695b3"
+    },
+    "createdAt": {
+      "$date": "2022-09-19T07:24:33.205Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-19T07:24:33.205Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6328193a205f44b6727fd758"
+    },
+    "type": "element",
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:setting:create",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6328117e9b748373ba4695b3"
+    },
+    "createdAt": {
+      "$date": "2022-09-19T07:24:42.470Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-19T07:24:42.470Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63281943205f44b6727fd763"
+    },
+    "type": "element",
+    "meta": {
+      "order": 3,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:setting:read",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6328117e9b748373ba4695b3"
+    },
+    "createdAt": {
+      "$date": "2022-09-19T07:24:51.050Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-19T07:24:51.050Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6328194d205f44b6727fd76d"
+    },
+    "type": "element",
+    "meta": {
+      "order": 4,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:setting:update",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6328117e9b748373ba4695b3"
+    },
+    "createdAt": {
+      "$date": "2022-09-19T07:25:01.015Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-19T07:25:01.015Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6329885f9740ae25c94becac"
+    },
+    "type": "catalog",
+    "title": "sys.menu.app.monitor",
+    "meta": {
+      "order": 9,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "pid": {
+      "$oid": "632811239b748373ba4695a6"
+    },
+    "path": "monitor",
+    "name": "Monitor",
+    "icon": "carbon:cloud-monitoring",
+    "createdAt": {
+      "$date": "2022-09-20T09:31:11.514Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-10T07:09:48.401Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632a72f23c6bc798baa81ae8"
+    },
+    "type": "menu",
+    "title": "sys.menu.app.monitor.server",
+    "meta": {
+      "order": 1,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6329885f9740ae25c94becac"
+    },
+    "path": "server",
+    "name": "AppMonitorServer",
+    "component": "app/monitor/server/index",
+    "icon": "mdi:server",
+    "createdAt": {
+      "$date": "2022-09-21T02:12:02.726Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-21T02:12:02.726Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c2251e6c8fe1ea09ba353"
+    },
+    "type": "element",
+    "meta": {
+      "order": 1,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:server:cpu",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "632a72f23c6bc798baa81ae8"
+    },
+    "createdAt": {
+      "$date": "2022-09-22T08:52:33.939Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T08:52:33.939Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c2268e6c8fe1ea09ba35d"
+    },
+    "type": "element",
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:server:memory",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "632a72f23c6bc798baa81ae8"
+    },
+    "createdAt": {
+      "$date": "2022-09-22T08:52:56.016Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T08:52:56.016Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c2272e6c8fe1ea09ba369"
+    },
+    "type": "element",
+    "meta": {
+      "order": 3,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:server:os",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "632a72f23c6bc798baa81ae8"
+    },
+    "createdAt": {
+      "$date": "2022-09-22T08:53:06.480Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T08:53:06.480Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c227de6c8fe1ea09ba373"
+    },
+    "type": "element",
+    "meta": {
+      "order": 4,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:server:system",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "632a72f23c6bc798baa81ae8"
+    },
+    "createdAt": {
+      "$date": "2022-09-22T08:53:17.865Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T08:53:17.865Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c2288e6c8fe1ea09ba37d"
+    },
+    "type": "element",
+    "meta": {
+      "order": 5,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:server:disk",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "632a72f23c6bc798baa81ae8"
+    },
+    "createdAt": {
+      "$date": "2022-09-22T08:53:28.778Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T08:53:28.778Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c2291e6c8fe1ea09ba387"
+    },
+    "type": "element",
+    "meta": {
+      "order": 6,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:server:battery",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "632a72f23c6bc798baa81ae8"
+    },
+    "createdAt": {
+      "$date": "2022-09-22T08:53:37.479Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T08:53:37.479Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c229ae6c8fe1ea09ba391"
+    },
+    "type": "element",
+    "meta": {
+      "order": 7,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:server:time",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "632a72f23c6bc798baa81ae8"
+    },
+    "createdAt": {
+      "$date": "2022-09-22T08:53:46.700Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T08:53:46.700Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63310be86a9505ffac5c2f85"
+    },
+    "type": "element",
+    "meta": {
+      "order": 8,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:server:network",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "632a72f23c6bc798baa81ae8"
+    },
+    "createdAt": {
+      "$date": "2022-09-26T02:18:16.883Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-26T02:18:16.883Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63315816f42e92210ac8d946"
+    },
+    "type": "menu",
+    "title": "sys.menu.app.monitor.cache",
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6329885f9740ae25c94becac"
+    },
+    "path": "cache",
+    "name": "AppMonitorCache",
+    "component": "app/monitor/cache/index",
+    "icon": "mdi:account-cache",
+    "createdAt": {
+      "$date": "2022-09-26T07:43:18.272Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-26T07:43:18.272Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6333be2f61086b3e95afc5a9"
+    },
+    "type": "element",
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:cache:read",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "63315816f42e92210ac8d946"
+    },
+    "createdAt": {
+      "$date": "2022-09-28T03:23:27.050Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-28T06:37:13.269Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6333be4661086b3e95afc5bc"
+    },
+    "type": "element",
+    "meta": {
+      "order": 4,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:cache:clear",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "63315816f42e92210ac8d946"
+    },
+    "createdAt": {
+      "$date": "2022-09-28T03:23:50.402Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-28T03:23:50.402Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "634904b51bc156e0af45b756"
+    },
+    "type": "menu",
+    "title": "sys.menu.app.monitor.user",
+    "meta": {
+      "order": 3,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6329885f9740ae25c94becac"
+    },
+    "path": "user",
+    "name": "AppMonitorUser",
+    "component": "app/monitor/user/index",
+    "icon": "mdi:user-settings-variant",
+    "createdAt": {
+      "$date": "2022-10-14T06:41:57.865Z"
+    },
+    "updatedAt": {
+      "$date": "2022-10-14T06:41:57.865Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "639a96c4d87fd3fdf17f8a80"
+    },
+    "type": "catalog",
+    "title": "sys.menu.demo.features",
+    "meta": {
+      "order": -99,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": "NEW",
+      "activeIcon": "ant-design:appstore-add-outlined"
+    },
+    "pid": {
+      "$oid": "6022325a2daf803624a6ea88"
+    },
+    "path": "features",
+    "name": "Features",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-12-15T03:38:44.818Z"
+    },
+    "updatedAt": {
+      "$date": "2025-06-18T04:10:36.218Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "639a9709d87fd3fdf17f8aa9"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.features.leaveTip",
+    "meta": {
+      "order": 1,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": false,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "leaveTip": true,
+      "transition": null
+    },
+    "pid": {
+      "$oid": "639a96c4d87fd3fdf17f8a80"
+    },
+    "path": "leaveTip",
+    "name": "FeatureLeaveTip",
+    "component": "demo/features/leaveTip",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-12-15T03:39:53.904Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-16T05:32:56.331Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "639a9a05d87fd3fdf17f8bb2"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.features.position",
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": false,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "position": true,
+      "transition": null
+    },
+    "pid": {
+      "$oid": "639a96c4d87fd3fdf17f8a80"
+    },
+    "path": "position",
+    "name": "FeaturePosition",
+    "component": "demo/features/position",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-12-15T03:52:37.355Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-16T06:48:45.110Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "639abd9e0cf46cce18de7189"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.features.badge",
+    "meta": {
+      "order": 3,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false,
+      "badge": "HOT"
+    },
+    "pid": {
+      "$oid": "639a96c4d87fd3fdf17f8a80"
+    },
+    "path": "badge",
+    "name": "FeatureBadge",
+    "component": "demo/features/badge",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-12-15T06:24:30.344Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-15T06:26:32.566Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "639abdd60cf46cce18de7195"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.features.activeIcon",
+    "meta": {
+      "order": 4,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false,
+      "activeIcon": "ant-design:appstore-add-outlined"
+    },
+    "pid": {
+      "$oid": "639a96c4d87fd3fdf17f8a80"
+    },
+    "path": "activeIcon",
+    "name": "FeatureActiveIcon",
+    "component": "demo/features/activeIcon",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-12-15T06:25:26.967Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-15T06:26:24.948Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "639abdff0cf46cce18de71a1"
+    },
+    "type": "menu",
+    "title": "app.base.transition",
+    "meta": {
+      "order": 5,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": "slide-right"
+    },
+    "pid": {
+      "$oid": "639a96c4d87fd3fdf17f8a80"
+    },
+    "path": "transition",
+    "name": "FeatureTransition",
+    "component": "demo/features/transition",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-12-15T06:26:07.327Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-10T08:58:29.236Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "639ac5e50cf46cce18de740b"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.features.layoutTabs",
+    "meta": {
+      "order": 6,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "639a96c4d87fd3fdf17f8a80"
+    },
+    "path": "layoutTabs",
+    "name": "FeatureLayoutTabs",
+    "component": "demo/features/layoutTabs",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-12-15T06:59:49.759Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-15T06:59:49.759Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63a8415265a4eea7a77f93bf"
+    },
+    "type": "element",
+    "title": "",
+    "meta": {
+      "order": 1,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:user:list",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "634904b51bc156e0af45b756"
+    },
+    "createdAt": {
+      "$date": "2022-12-25T12:25:54.707Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-25T12:25:54.707Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63a8416d65a4eea7a77f93ca"
+    },
+    "type": "element",
+    "title": "",
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:user:forceQuit",
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "634904b51bc156e0af45b756"
+    },
+    "createdAt": {
+      "$date": "2022-12-25T12:26:21.405Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-25T12:26:21.405Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63abbdf9f7896f278d71bfe8"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.vendor.mindmap",
+    "meta": {
+      "order": 6,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "pid": {
+      "$oid": "6237dd4728e68df6172905ab"
+    },
+    "path": "mindmap",
+    "name": "MindmapDemo",
+    "component": "demo/vendor/Mindmap/index",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2022-12-28T03:54:33.489Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-28T03:54:52.963Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68198016c361e4586a14d01d"
+    },
+    "type": "menu",
+    "title": "sys.menu.demo.business",
+    "meta": {
+      "order": 99,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false,
+      "position": false,
+      "leaveTip": false
+    },
+    "pid": "6022325a2daf803624a6ea88",
+    "path": "business",
+    "name": "DemoBusiness",
+    "component": "demo/business/index",
+    "icon": "ant-design:api-outlined",
+    "createdAt": {
+      "$date": "2025-05-06T03:20:54.752Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-06T03:20:54.752Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6822b225b005a640183d1569"
+    },
+    "type": "element",
+    "title": null,
+    "meta": {
+      "order": 7,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:user:pass:update",
+      "menuActiveSameTab": false,
+      "position": false,
+      "leaveTip": false
+    },
+    "pid": {
+      "$oid": "6003f0fa03dc9237d49ff02e"
+    },
+    "createdAt": {
+      "$date": "2025-05-13T02:44:53.450Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-13T03:02:58.191Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6822b66cb005a640183d1739"
+    },
+    "type": "element",
+    "title": null,
+    "meta": {
+      "order": 8,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:user:pass:clear",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "position": false,
+      "leaveTip": false,
+      "transition": null
+    },
+    "pid": {
+      "$oid": "6003f0fa03dc9237d49ff02e"
+    },
+    "createdAt": {
+      "$date": "2025-05-13T03:03:08.597Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-06T06:47:04.314Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6836674dcef5c814f0c4b39c"
+    },
+    "type": "element",
+    "title": null,
+    "meta": {
+      "order": 3,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:monitor:user:read",
+      "menuActiveSameTab": false,
+      "position": false,
+      "leaveTip": false
+    },
+    "pid": {
+      "$oid": "634904b51bc156e0af45b756"
+    },
+    "createdAt": {
+      "$date": "2025-05-28T01:30:53.366Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-28T01:30:53.366Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6840361085185cf1922fff76"
+    },
+    "type": "menu",
+    "title": "app.base.maskUrl",
+    "meta": {
+      "order": 7,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "position": false,
+      "leaveTip": false,
+      "maskUrl": true,
+      "transition": null
+    },
+    "pid": {
+      "$oid": "639a96c4d87fd3fdf17f8a80"
+    },
+    "path": "maskUrl",
+    "name": "FeatureMaskUrl",
+    "component": "demo/features/maskUrl",
+    "icon": "ant-design:appstore-outlined",
+    "createdAt": {
+      "$date": "2025-06-04T12:03:28.665Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-10T08:57:34.391Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "684970316b805d69dc2e21bf"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "menu",
+    "path": "deleted",
+    "name": "Deleted",
+    "component": "system/deleted/index",
+    "title": "sys.menu.delete",
+    "icon": "ant-design:delete-outlined",
+    "meta": {
+      "order": 9,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "menuActiveSameTab": false
+    },
+    "createdAt": {
+      "$date": "2025-06-11T12:01:53.748Z"
+    },
+    "updatedAt": {
+      "$date": "2025-06-11T12:01:53.748Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "684971863e0bbec5793c2803"
+    },
+    "pid": {
+      "$oid": "684970316b805d69dc2e21bf"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 1,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:deleted:list",
+      "menuActiveSameTab": false
+    },
+    "createdAt": {
+      "$date": "2025-06-11T12:07:34.920Z"
+    },
+    "updatedAt": {
+      "$date": "2025-06-11T12:07:34.920Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "684971913e0bbec5793c2808"
+    },
+    "pid": {
+      "$oid": "684970316b805d69dc2e21bf"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:deleted:read",
+      "menuActiveSameTab": false
+    },
+    "createdAt": {
+      "$date": "2025-06-11T12:07:45.189Z"
+    },
+    "updatedAt": {
+      "$date": "2025-06-11T12:07:45.189Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "684971a33e0bbec5793c280d"
+    },
+    "pid": {
+      "$oid": "684970316b805d69dc2e21bf"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 3,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:deleted:deleteMany",
+      "menuActiveSameTab": false
+    },
+    "createdAt": {
+      "$date": "2025-06-11T12:08:03.490Z"
+    },
+    "updatedAt": {
+      "$date": "2025-06-11T12:08:03.490Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "684971b13e0bbec5793c2812"
+    },
+    "pid": {
+      "$oid": "684970316b805d69dc2e21bf"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 4,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:deleted:recover",
+      "menuActiveSameTab": false
+    },
+    "createdAt": {
+      "$date": "2025-06-11T12:08:17.942Z"
+    },
+    "updatedAt": {
+      "$date": "2025-06-11T12:08:17.942Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "684971bb3e0bbec5793c2817"
+    },
+    "pid": {
+      "$oid": "684970316b805d69dc2e21bf"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 5,
+      "ternal": "none",
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:deleted:recover:mine",
+      "menuActiveSameTab": false
+    },
+    "createdAt": {
+      "$date": "2025-06-11T12:08:27.564Z"
+    },
+    "updatedAt": {
+      "$date": "2025-06-11T12:09:18.938Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68e8c6553b5b041e8052e16e"
+    },
+    "pid": {
+      "$oid": "639a96c4d87fd3fdf17f8a80"
+    },
+    "type": "menu",
+    "path": "hijackRefresh",
+    "name": "FeatureHijackRefresh",
+    "component": "demo/features/hijackRefresh",
+    "title": "app.base.hijackRefresh",
+    "icon": "ant-design:appstore-outlined",
+    "meta": {
+      "order": 8,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "position": false,
+      "leaveTip": false,
+      "maskUrl": false,
+      "hijackRefresh": true,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-10-10T08:39:49.247Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-16T05:37:44.093Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68e8cbd92f0b92e66313b053"
+    },
+    "pid": {
+      "$oid": "639a96c4d87fd3fdf17f8a80"
+    },
+    "type": "menu",
+    "path": "watermark",
+    "name": "FeatureWatermark",
+    "component": "demo/features/watermark",
+    "title": "app.base.watermark",
+    "icon": "ant-design:appstore-outlined",
+    "meta": {
+      "order": 9,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "position": false,
+      "leaveTip": false,
+      "maskUrl": false,
+      "hijackRefresh": false,
+      "watermark": {
+        "content": "Walnut Admin",
+        "cross": true,
+        "fullscreen": true,
+        "fontSize": 18,
+        "lineHeight": 16,
+        "width": 196,
+        "height": 196,
+        "rotate": -15,
+        "xOffset": 12,
+        "yOffset": 60,
+        "zIndex": 99999
+      },
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-10-10T09:03:21.761Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-16T06:40:27.848Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68ef3ff002e21166092ba69b"
+    },
+    "pid": {
+      "$oid": "6328117e9b748373ba4695b3"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 5,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:setting:cache:refresh",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-10-15T06:32:16.365Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-15T06:32:16.365Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f07adbde4be5dde5863bf4"
+    },
+    "pid": {
+      "$oid": "6237dd4728e68df6172905ab"
+    },
+    "type": "menu",
+    "path": "json-editor",
+    "name": "JSONEditorDemo",
+    "component": "demo/vendor/JSONEditor/index",
+    "title": "sys.menu.demo.vendor.jsonEditor",
+    "icon": "ant-design:appstore-outlined",
+    "meta": {
+      "order": 7,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-10-16T04:55:55.312Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-16T05:33:29.101Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f871a18702e5463b7e02ae"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "menu",
+    "path": "device",
+    "name": "Device",
+    "component": "system/device/index",
+    "title": "sys.menu.deivce",
+    "icon": "mdi:devices",
+    "meta": {
+      "order": 10,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-10-22T05:54:41.639Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-22T05:54:41.639Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f871e28702e5463b7e02d6"
+    },
+    "pid": {
+      "$oid": "68f871a18702e5463b7e02ae"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 1,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:device:list",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-10-22T05:55:46.472Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-22T05:55:46.472Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f871ea8702e5463b7e02dc"
+    },
+    "pid": {
+      "$oid": "68f871a18702e5463b7e02ae"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:device:read",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-10-22T05:55:54.206Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-22T05:55:54.206Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6909bdd2dd9eccd56c754b50"
+    },
+    "pid": {
+      "$oid": "623c2d50de538055d468fce2"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 3,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:log:operate:getSnapshot",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-11-04T08:48:18.403Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-05T04:09:23.412Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690acdfd89ac17d3b5dce436"
+    },
+    "pid": {
+      "$oid": "623c2d50de538055d468fce2"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 4,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:log:operate:getDevice",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-11-05T04:09:33.762Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-05T04:09:33.762Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690c364cfc22c051d1f4dbd5"
+    },
+    "pid": {
+      "$oid": "68f871a18702e5463b7e02ae"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 3,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:device:lock",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-11-06T05:46:52.364Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-06T05:46:52.364Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690c3658fc22c051d1f4dbdb"
+    },
+    "pid": {
+      "$oid": "68f871a18702e5463b7e02ae"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 4,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:device:unlock",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-11-06T05:47:04.007Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-06T05:47:04.007Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690c366bfc22c051d1f4dbe1"
+    },
+    "pid": {
+      "$oid": "68f871a18702e5463b7e02ae"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 5,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:device:ban",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-11-06T05:47:23.886Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-06T05:47:23.886Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690c3672fc22c051d1f4dbe7"
+    },
+    "pid": {
+      "$oid": "68f871a18702e5463b7e02ae"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 6,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:device:unban",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-11-06T05:47:30.827Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-06T05:47:30.827Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690c367ffc22c051d1f4dbed"
+    },
+    "pid": {
+      "$oid": "68f871a18702e5463b7e02ae"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 7,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:device:getCurrentUser",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-11-06T05:47:43.321Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-06T05:47:43.321Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "690c3688fc22c051d1f4dbf3"
+    },
+    "pid": {
+      "$oid": "68f871a18702e5463b7e02ae"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 8,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:device:getHistoryUsers",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-11-06T05:47:52.086Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-06T05:47:52.086Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "691ac6decbd57e665173450e"
+    },
+    "pid": {
+      "$oid": "632811239b748373ba4695a6"
+    },
+    "type": "menu",
+    "path": "logger",
+    "name": "AppLogger",
+    "component": "app/logger/index",
+    "title": "sys.menu.app.logger",
+    "icon": "carbon:cloud-logging",
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": false,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-11-17T06:55:26.543Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-17T06:56:34.904Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "691ac82dcbd57e66517345ab"
+    },
+    "pid": {
+      "$oid": "691ac6decbd57e665173450e"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 1,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:logger:list",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-11-17T07:01:01.721Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-17T07:01:01.721Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "691ac832cbd57e66517345b0"
+    },
+    "pid": {
+      "$oid": "691ac6decbd57e665173450e"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "app:logger:read",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2025-11-17T07:01:06.505Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-17T07:01:06.505Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "694e1a71e2ac7579a25ecd9e"
+    },
+    "pid": {
+      "$oid": "6258ede76d34af167fe374c9"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "status": true,
+      "order": 1,
+      "ternal": "none",
+      "url": null,
+      "cache": true,
+      "show": true,
+      "affix": false,
+      "permission": "me:auth:opaque:changePassword",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "activeIcon": null,
+      "badge": null,
+      "position": false,
+      "leaveTip": false,
+      "maskUrl": false,
+      "hijackRefresh": false,
+      "watermark": {},
+      "transition": "fade"
+    },
+    "createdAt": {
+      "$date": "2025-12-26T05:17:37.434Z"
+    },
+    "updatedAt": {
+      "$date": "2025-12-26T05:17:37.434Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6981a6250bc7f745450dfd65"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "catalog",
+    "path": "user/device",
+    "name": "UserDevice",
+    "component": null,
+    "title": "sys.menu.user.device",
+    "icon": "carbon:edge-device",
+    "meta": {
+      "order": 98,
+      "ternal": "none",
+      "url": null,
+      "show": false,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2026-02-03T07:39:17.756Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-03T07:39:17.756Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6981a63d0bc7f745450dfd6b"
+    },
+    "pid": {
+      "$oid": "6981a6250bc7f745450dfd65"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "status": true,
+      "order": 0,
+      "ternal": "none",
+      "url": null,
+      "cache": true,
+      "show": true,
+      "affix": false,
+      "permission": "system:user:device:list",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "activeIcon": null,
+      "badge": null,
+      "position": false,
+      "leaveTip": false,
+      "maskUrl": false,
+      "hijackRefresh": false,
+      "watermark": {},
+      "transition": "fade"
+    },
+    "createdAt": {
+      "$date": "2026-02-03T07:39:41.885Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-03T07:39:41.885Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6981fc70716c4aadf5472c22"
+    },
+    "pid": {
+      "$oid": "6981a6250bc7f745450dfd65"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 1,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:user:device:updateName",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "position": false,
+      "leaveTip": false,
+      "maskUrl": false,
+      "hijackRefresh": false,
+      "transition": "fade"
+    },
+    "createdAt": {
+      "$date": "2026-02-03T13:47:28.079Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-03T13:47:28.079Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6981fc7a716c4aadf5472c27"
+    },
+    "pid": {
+      "$oid": "6981a6250bc7f745450dfd65"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 3,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:user:device:forceQuit",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "position": false,
+      "leaveTip": false,
+      "maskUrl": false,
+      "hijackRefresh": false,
+      "transition": "fade"
+    },
+    "createdAt": {
+      "$date": "2026-02-03T13:47:38.794Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-04T04:17:42.215Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6982c85c8251451019ac8c54"
+    },
+    "pid": {
+      "$oid": "6981a6250bc7f745450dfd65"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:user:device:lock",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "position": false,
+      "leaveTip": false,
+      "maskUrl": false,
+      "hijackRefresh": false,
+      "transition": "fade"
+    },
+    "createdAt": {
+      "$date": "2026-02-04T04:17:32.935Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-04T04:17:40.200Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6982f0a3b5a59d80c5a08a64"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "catalog",
+    "path": "shared",
+    "name": "Shared",
+    "component": null,
+    "title": "sys.menu.shared",
+    "icon": "carbon:folder-shared",
+    "meta": {
+      "status": true,
+      "order": 99,
+      "ternal": "none",
+      "url": null,
+      "cache": true,
+      "show": false,
+      "affix": false,
+      "permission": null,
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "activeIcon": null,
+      "badge": null,
+      "position": false,
+      "leaveTip": false,
+      "maskUrl": false,
+      "hijackRefresh": false,
+      "watermark": {},
+      "transition": "fade"
+    },
+    "createdAt": {
+      "$date": "2026-02-04T07:09:23.472Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-04T07:09:23.472Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6991762c5ffd57847c25512c"
+    },
+    "pid": {
+      "$oid": "6246b81fd6c32887258b6ca0"
+    },
+    "type": "element",
+    "path": null,
+    "name": null,
+    "component": null,
+    "title": null,
+    "icon": null,
+    "meta": {
+      "order": 2,
+      "ternal": "none",
+      "url": null,
+      "show": true,
+      "cache": true,
+      "status": true,
+      "affix": false,
+      "permission": "system:log:auth:delete",
+      "menuActiveName": null,
+      "menuActiveSameTab": false,
+      "badge": null,
+      "activeIcon": null,
+      "position": null,
+      "leaveTip": null,
+      "maskUrl": null,
+      "hijackRefresh": null,
+      "transition": null
+    },
+    "createdAt": {
+      "$date": "2026-02-15T07:30:52.322Z"
+    },
+    "updatedAt": {
+      "$date": "2026-02-15T07:30:52.322Z"
+    }
+  }
+]
