@@ -3,7 +3,6 @@ import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 
 import devtoolsJson from 'vite-plugin-devtools-json'
-import { createAutoImportPlugin } from './auto-import'
 import { createBannerPlugin } from './banner'
 import { createCdnImportPlugin } from './cdn-import'
 import { createCheckerPlugin } from './checker'
@@ -50,10 +49,7 @@ export function createVitePlugins(mode: string, env: IViteEnv) {
     // https://github.com/yjl9903/unplugin-info
     createInfoPlugin(),
 
-    // https://github.com/antfu/unplugin-auto-import
-    createAutoImportPlugin(),
-
-    // https://github.com/antfu/unplugin-vue-components
+    // https://github.com/unplugin/unplugin-vue-components
     createComponentPlugin(),
 
     // https://github.com/unocss/unocss
