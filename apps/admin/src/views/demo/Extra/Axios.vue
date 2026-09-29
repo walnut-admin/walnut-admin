@@ -2,7 +2,9 @@
 import type { Fn } from '@walnut/types/universal'
 import type { AxiosRequestConfig } from 'axios'
 import { removeAllCancel, removeLatestRequest } from '@walnut/http/adapters/cancel'
+import { ref } from 'vue'
 import { HelloAPI, HelloWithTokenAPI } from '@/api'
+import { useAppMsgSuccess } from '@/hooks/component/useMessage'
 
 defineOptions({
   name: 'AxiosDemo',

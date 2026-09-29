@@ -1,3 +1,8 @@
+import { debouncedWatch, useScroll } from '@vueuse/core'
+import { computed, nextTick, toRefs, useTemplateRef, watch } from 'vue'
+import { useAppRouter } from '@/router/index'
+import { useAppStoreUserScroll } from '@/store/modules/user/user-scroll'
+
 export function useScrollWrapper() {
   const userStoreScroll = useAppStoreUserScroll()
 

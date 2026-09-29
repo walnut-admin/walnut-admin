@@ -1,5 +1,9 @@
+import { tryOnBeforeMount } from '@vueuse/core'
 import { useAppBreakpoints } from '@walnut/client/hooks/vueuse/useBreakpoints'
 import { useWindowResize } from '@walnut/client/hooks/vueuse/useResize'
+import { AppConstDevice } from '@/const/app'
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
 
 export function useAppResize() {
   const appStoreAdapter = useAppStoreAdapter()

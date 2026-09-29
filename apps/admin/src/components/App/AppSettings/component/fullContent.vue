@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+import { useEventListener } from '@vueuse/core'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+
 defineOptions({
   name: 'WAppSettingsExitFullContent',
 })

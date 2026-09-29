@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { WCompExtraAbsImageInst } from '@/components/Extra/AbsImage'
 import { downloadByBase64, downloadByBlob, downloadByUrl } from '@walnut/client/browser/file/download'
+import { ref, shallowRef, useTemplateRef } from 'vue'
 
 defineOptions({
   name: 'AbsImageDemo',

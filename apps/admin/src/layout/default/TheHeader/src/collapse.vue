@@ -1,4 +1,8 @@
 <script lang="ts" setup>
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+
 const appStoreSettingDev = useAppStoreSettingDev()
 const appStoreMenu = useAppStoreMenu()
 const appStoreAdapter = useAppStoreAdapter()

@@ -1,9 +1,13 @@
 <script lang="tsx" setup>
 import type { IModels } from '@/api/models'
 import { monitorCacheAPI } from '@/api/app/monitor/cache'
-
+import { useCRUD } from '@/components/Advanced/CRUD'
 // TODO 111
 import WJSON from '@/components/Extra/JSON'
+import { useAppConfirm } from '@/hooks/component/useConfirm'
+import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+
+import { useAppI18n } from '@/locales/index'
 
 defineOptions({
   name: 'AppMonitorCache',

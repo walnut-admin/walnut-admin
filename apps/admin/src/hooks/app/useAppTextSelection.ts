@@ -1,3 +1,6 @@
+import { useTextSelection } from '@vueuse/core'
+import { watchEffect } from 'vue'
+
 export function useAppTextSelection() {
   const state = useTextSelection()
 

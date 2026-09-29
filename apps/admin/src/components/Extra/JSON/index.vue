@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import type { ICompExtraJSONProps } from '.'
+import { useElementHover } from '@vueuse/core'
+import { computed, useTemplateRef } from 'vue'
 
 defineOptions({
   name: 'WCompExtraJSON',

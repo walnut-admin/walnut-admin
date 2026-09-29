@@ -1,5 +1,7 @@
 import { useSharedPreferredReducedMotion } from '@walnut/client/hooks/vueuse/usePreferredReducedMotion'
+import { computed } from 'vue'
 import { getMergedTheme } from '@/App/src/naive/src/theme'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 
 const userStorePreference = useAppStoreUserPreference()
 const isReducedMotion = useSharedPreferredReducedMotion()

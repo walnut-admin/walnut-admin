@@ -1,4 +1,5 @@
 import type { DialogOptions } from 'naive-ui'
+import { AppI18n } from '@/locales/index'
 
 export function useAppDialog() {
   return window.$dialog

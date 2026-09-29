@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { useAppStoreLock } from '@/store/modules/app/app-lock'
 import LockDesktop from './src/desktop.vue'
 import LockMobile from './src/mobile.vue'
 

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { ICompUICardProps } from '.'
+import { ref } from 'vue'
 
 defineOptions({
   name: 'WCompUICardProps',

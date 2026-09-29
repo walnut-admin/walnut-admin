@@ -3,10 +3,17 @@ import type { IHooksUseProps } from '@walnut/client/hooks/core/useProps'
 import type { NullableRecord, StringOrNumber } from 'easy-fns-ts'
 import type { SorterMultiple } from 'naive-ui/es/data-table/src/interface'
 
+import type { Ref } from 'vue'
 import type { WTable } from '../types'
 import type { ICompUITableHooksAPIListParams } from './useTableAPIListParams'
 import { isFunction, isNumber, isUndefined } from 'easy-fns-ts'
 import { cloneDeep } from 'lodash-es'
+import { onMounted, ref } from 'vue'
+import { useAppConfirm } from '@/hooks/component/useConfirm'
+import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useAppNotiError } from '@/hooks/component/useNoti'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreUserPermission } from '@/store/modules/user/user-permission'
 import { extractDefaultFormDataFromSchemas } from '../../../Form/src/utils'
 import {
   generateDefaultSortParams,

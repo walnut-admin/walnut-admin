@@ -1,4 +1,9 @@
 <script lang="ts" setup>
+import { ref } from 'vue'
+import { useCountdownStorage } from '@/hooks/component/useCountdown'
+import { useStoreCompForceQuit } from '@/store/modules/component/comp-force-quit'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
+
 defineOptions({
   name: 'WCompGlobalForceQuit',
   inheritAttrs: false,

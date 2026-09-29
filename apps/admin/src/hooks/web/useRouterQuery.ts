@@ -1,4 +1,7 @@
+import { computed } from 'vue'
 import { urlQueryEncrypt } from '@/router/guard/modules/encrypt/querys'
+import { useAppRoute, useAppRouter } from '@/router/index'
+import { useAppStoreSettingScope } from '@/store/modules/setting/setting-scope'
 
 export function useRouterQuery(path: string, defaultValue?: string) {
   const route = useAppRoute()

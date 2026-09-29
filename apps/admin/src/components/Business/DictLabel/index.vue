@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import type { ICompBusinessDictLabelProps } from '.'
+import { computed, onBeforeMount } from 'vue'
+import { getDictTarget, useDict } from '@/hooks/core/useDict'
 
 defineOptions({
   name: 'WCompBusinessDictLabel',

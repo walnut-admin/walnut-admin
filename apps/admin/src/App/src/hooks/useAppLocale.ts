@@ -1,3 +1,7 @@
+import { watch } from 'vue'
+import { useAppStoreLocale } from '@/store/modules/app/app-locale'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
+
 export function useAppLocale() {
   const userStorePreference = useAppStoreUserPreference()
   const appStoreLocale = useAppStoreLocale()

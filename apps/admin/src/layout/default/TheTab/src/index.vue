@@ -1,4 +1,9 @@
 <script lang="ts" setup>
+import { computed } from 'vue'
+import { AppConstTabUtilsShowMode } from '@/const/tab'
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 import TabsContentMain from './components/tabsContentMain.vue'
 import TabsContextMenu from './components/tabsContextMenu.vue'
 import TabsDevTools from './components/tabsDevTools.vue'

@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+import { useElementHover } from '@vueuse/core'
+import { computed, onBeforeMount, onBeforeUnmount, ref, useTemplateRef } from 'vue'
+
 defineOptions({
   name: 'WCompExtraTextScrollVertical',
 })

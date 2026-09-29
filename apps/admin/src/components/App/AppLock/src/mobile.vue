@@ -1,5 +1,7 @@
 <script lang="ts" setup>
+import { useNow } from '@vueuse/core'
 import { useSharedBattery } from '@walnut/client/hooks/vueuse/useBattery'
+import { computed } from 'vue'
 import Network from './components/Network.vue'
 import UnlockButton from './components/UnlockButton.vue'
 

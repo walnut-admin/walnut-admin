@@ -1,6 +1,10 @@
 import type { Driver, DriveStep } from 'driver.js'
+import { tryOnUnmounted } from '@vueuse/core'
 import { useLinkTag } from '@walnut/client/hooks/web/useLinkTag'
 import { driver } from 'driver.js'
+import { shallowRef, watch } from 'vue'
+import { isDark } from '@/hooks/app/useAppDark'
+import { useAppI18n } from '@/locales/index'
 import { getCookie, setCookie } from '@/utils/persistent/Cookie'
 
 export function useDriver(key: string, steps: DriveStep[]) {

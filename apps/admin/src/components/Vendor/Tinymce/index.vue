@@ -1,9 +1,13 @@
 <script lang="ts" setup>
 import type { RawEditorOptions } from 'tinymce'
-
 import type { ICompVendorTinymceProps } from '.'
 import TinymceEditor from '@tinymce/tinymce-vue'
 import { genString } from 'easy-fns-ts'
+import { computed, ref, shallowRef, watch } from 'vue'
+
+import { isDark } from '@/hooks/app/useAppDark'
+import { useAppEnvProxy } from '@/hooks/app/useAppEnv'
+import { useAppStoreLocale } from '@/store/modules/app/app-locale'
 import { menubar, plugins, toolbar } from './resource'
 
 defineOptions({

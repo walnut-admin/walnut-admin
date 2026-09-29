@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import type { Recordable } from 'easy-fns-ts'
+import { computed, onMounted, ref } from 'vue'
+import { useAppStoreTab } from '@/store/modules/app/app-tab'
 
 defineOptions({
   name: 'FeatureLayoutTabs',

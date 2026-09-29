@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { computed, ref, toRefs, watch, watchEffect } from 'vue'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
 import TheIFrameWrapper from '../iframe/wrapper.vue'
 import TheAppBackToTop from './Features/backToTop.vue'
 import { useFixedTopScroll } from './hooks/useFixedTopScroll'

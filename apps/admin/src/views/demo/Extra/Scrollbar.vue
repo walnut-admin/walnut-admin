@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { ICompExtraScrollbarInst } from '@/components/Extra/Scrollbar'
+import { ref, watch } from 'vue'
 
 defineOptions({
   name: 'ScrollbarDemo',

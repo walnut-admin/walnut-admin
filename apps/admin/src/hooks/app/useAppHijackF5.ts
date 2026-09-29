@@ -1,5 +1,9 @@
 import type { EffectScope } from 'vue'
+import { useEventListener } from '@vueuse/core'
 import { toggleLocalRefreshFlag } from '@walnut/client/hooks/core/useLocalRefresh'
+import { effectScope, watch } from 'vue'
+import { useAppRouter } from '@/router/index'
+import { useAppStoreSettingScope } from '@/store/modules/setting/setting-scope'
 
 export function useAppHijackF5() {
   let scope: EffectScope

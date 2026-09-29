@@ -5,8 +5,14 @@ import type { ICompExtraPhoneNumberInputUpdateParams } from '@/components/Extra/
 import { isPhoneNumber } from '@walnut/utils/regex'
 // TODO 111
 import { NRadio, NText } from 'naive-ui'
+import { computed, reactive, ref } from 'vue'
 import { sendWithOTPAPI } from '@/api/auth/otp'
+import { useForm } from '@/components/UI/Form'
+import { useAppMsgWarning } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
 import { mainoutConst } from '@/router/routes/mainout'
+import { useAppStoreNaive } from '@/store/modules/app/app-naive'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 import { openExternalLink } from '@/utils/window/open'
 
 defineOptions({

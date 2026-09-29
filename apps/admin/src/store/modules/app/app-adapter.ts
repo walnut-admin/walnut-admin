@@ -1,5 +1,8 @@
+import type { ValueOfAppConstDevice } from '@/const/app'
 import type { IStoreApp } from '@/store/types'
 import { defineStore } from 'pinia'
+import { getCurrentInstance } from 'vue'
+import { AppConstDevice } from '@/const/app'
 import { StoreKeys } from '../../constant'
 import { store } from '../../pinia'
 

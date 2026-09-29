@@ -1,5 +1,6 @@
 import type { IStoreUser } from '@/store/types'
 import { defineStore } from 'pinia'
+import { getCurrentInstance } from 'vue'
 import { StoreKeys } from '../../constant'
 import { store } from '../../pinia'
 

@@ -1,5 +1,7 @@
 <script lang="ts" setup>
+import { useNow } from '@vueuse/core'
 import { formatTime } from 'easy-fns-ts'
+import { computed } from 'vue'
 import FlipItem from './item.vue'
 
 defineOptions({

@@ -2,6 +2,9 @@
 import type { Recordable } from 'easy-fns-ts'
 import type { ScrollbarInst } from 'naive-ui'
 import type { ICompExtraScrollbarInst, ICompExtraScrollbarProps } from '.'
+import { useElementHover, useEventListener } from '@vueuse/core'
+import { computed, onMounted, useTemplateRef } from 'vue'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 
 defineOptions({
   name: 'WCompExtraScrollbar',

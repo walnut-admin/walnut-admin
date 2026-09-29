@@ -1,3 +1,4 @@
+import { AppI18n } from '@/locales/index'
 // get friendly error message
 export function getWebAuthnErrorMessage(error: any): string {
   const errorName = error?.name || ''

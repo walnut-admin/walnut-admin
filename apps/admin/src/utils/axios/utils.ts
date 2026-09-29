@@ -1,5 +1,6 @@
 import type { AxiosRequestConfig } from 'axios'
 import { getBoolean } from '@walnut/client/browser/shared'
+import { AppConstRequestHeaders } from '@/const/app'
 
 /**
  * @description set auth header for axios

@@ -2,9 +2,14 @@
 import type { DropdownOption } from 'naive-ui'
 import type { IModels } from '@/api/models'
 import type { IResponseData } from '@/api/response'
+import { onBeforeMount, ref, useTemplateRef } from 'vue'
 import { getSecurityTab1StatusAPI2, sendCodeForVerifyAPI, unBindUserIdentityAPI, updateUserIdentityStatusAPI } from '@/api/system/user_identity'
 // TODO 111
 import WIcon from '@/components/UI/Icon'
+import { useAppConfirm } from '@/hooks/component/useConfirm'
+import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreUserProfile } from '@/store/modules/user/user-profile'
 import WMeTabSecurityTab1Opaque from './opaque.vue'
 import WMeTabSecurityTab1OTP from './otp.vue'
 

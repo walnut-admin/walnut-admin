@@ -1,6 +1,11 @@
 import type { IStoreSetting } from '@/store/types'
 import { defineStore } from 'pinia'
+import { getCurrentInstance } from 'vue'
+import { AppConstCollapseMode } from '@/const/app'
 import settingsDev from '@/settings-dev.json'
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 import { StoreKeys } from '../../constant'
 import { store } from '../../pinia'
 

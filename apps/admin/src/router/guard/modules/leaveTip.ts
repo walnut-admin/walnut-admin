@@ -1,5 +1,8 @@
 import type { Fn } from '@walnut/types/universal'
 import type { Router } from 'vue-router'
+import { useEventListener } from '@vueuse/core'
+import { useAppConfirm } from '@/hooks/component/useConfirm'
+import { AppI18n } from '@/locales/index'
 
 let removeEvent: Fn
 

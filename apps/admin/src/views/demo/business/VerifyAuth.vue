@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useStoreCompVerifyAuth } from '@/store/modules/component/comp-verify-auth'
+
 defineOptions({
   name: 'VerifyAuthDemo',
   defaultView: false,

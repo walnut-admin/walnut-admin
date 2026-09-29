@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
+
 const appStoreMenu = useAppStoreMenu()
 const userStorePreference = useAppStoreUserPreference()
 

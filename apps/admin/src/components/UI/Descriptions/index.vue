@@ -3,6 +3,9 @@ import type { BaseDataType } from 'easy-fns-ts'
 import type { ICompUIDescriptionProps, ICompUIDescriptionsItem, ICompUIDescTypeDict, ICompUIDescTypeLink } from '.'
 import { getBoolean } from '@walnut/client/browser/shared'
 import { omit } from 'lodash-es'
+import { computed, onBeforeMount, reactive, ref } from 'vue'
+import { getDictTarget, initDict } from '@/hooks/core/useDict'
+import { useAppI18n } from '@/locales/index'
 import { openExternalLink } from '@/utils/window/open'
 
 defineOptions({

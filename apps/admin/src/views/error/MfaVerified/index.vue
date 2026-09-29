@@ -1,9 +1,14 @@
 <script lang="ts" setup>
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser'
 import type { InputInst } from 'naive-ui'
+import type { ComputedRef } from 'vue'
 import { startAuthentication } from '@simplewebauthn/browser'
+import { computed, nextTick, onBeforeMount, ref, useTemplateRef } from 'vue'
 import { authMfaStatusAPI, authMfaTotpVerifyAPI, authMfaWebauthnAuthenticateOptionsAPI, authMfaWebauthnAuthenticateVerifyAPI } from '@/api/auth/mfa'
+import { useAppI18n } from '@/locales/index'
 import { mainoutMfaVerifiedRoute } from '@/router/routes/mainout'
+import { useAppStoreRoute } from '@/store/modules/app/app-route'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 import { getWebAuthnErrorMessage } from '../MfaRequired/shared'
 
 defineOptions({

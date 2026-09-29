@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+import { useAppMsgError, useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useStoreCompCapJS } from '@/store/modules/component/comp-capjs'
+
 defineOptions({
   name: 'CapDemo',
   defaultView: false,

@@ -1,7 +1,10 @@
 import type { App } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 
-import { createRouter, createWebHistory } from 'vue-router'
+import { getCurrentInstance } from 'vue'
+import { createRouter, createWebHistory, useRoute, useRouter } from 'vue-router'
+import { useAppMessage } from '@/hooks/component/useMessage'
+import { AppI18n } from '@/locales/index'
 import { createRouterGuard } from './guard'
 import { builtinRoutes } from './routes/builtin'
 import { parseQuery, stringifyQuery } from './utils/query'

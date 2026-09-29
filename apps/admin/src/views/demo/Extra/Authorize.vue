@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+import { nextTick, ref } from 'vue'
+import { useAppStoreUserPermission } from '@/store/modules/user/user-permission'
+
 defineOptions({
   name: 'AuthorizeDemo',
   defaultView: false,

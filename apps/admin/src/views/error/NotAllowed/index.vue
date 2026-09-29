@@ -1,4 +1,9 @@
 <script lang="ts" setup>
+import { useAppMessage } from '@/hooks/component/useMessage'
+import { useRouterQuery } from '@/hooks/web/useRouterQuery'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
+
 defineOptions({
   name: 'AppErrorNotAllowed',
 })

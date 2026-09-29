@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { useSharedNetwork } from '@walnut/client/hooks/vueuse/useNetwork'
+import { computed } from 'vue'
 
 defineOptions({
   name: 'WAppLockNetwork',

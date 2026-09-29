@@ -1,7 +1,10 @@
 <script lang="ts" setup>
 import type { ICompUIDescriptionsItem } from '@/components/UI/Descriptions'
+import { computed, onBeforeMount, ref } from 'vue'
 import { BackendDepsAPI } from '@/api'
 import { dependencies, devDependencies, homepage, urls, version } from '@/const/package-info'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
 
 defineOptions({
   name: 'About',

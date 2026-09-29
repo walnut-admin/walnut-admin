@@ -1,12 +1,23 @@
 <script lang="tsx" setup>
 import type { MenuOption } from 'naive-ui'
-
 import type { IModels } from '@/api/models'
+import type { ValueOfAppConstMenuTernal, ValueOfAppConstMenuType } from '@/const/menu'
 import { findPath, formatTree } from 'easy-fns-ts'
-
 import { omit } from 'lodash-es'
+import { computed, nextTick, ref, toRaw, watch } from 'vue'
 // TODO 111
 import WIcon from '@/components/UI/Icon'
+import { AppConstMenuTernal, AppConstMenuType } from '@/const/menu'
+import { useAppMessage } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
+import { useAppRouter, useAppRouterPush } from '@/router/index'
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
+import { useAppStoreTab } from '@/store/modules/app/app-tab'
+
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 import { openExternalLink } from '@/utils/window/open'
 
 interface MenuMeta {

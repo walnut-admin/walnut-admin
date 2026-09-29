@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { Fn } from '@walnut/types/universal'
+import { ref } from 'vue'
 import { urls } from '@/const/package-info'
 
 defineOptions({

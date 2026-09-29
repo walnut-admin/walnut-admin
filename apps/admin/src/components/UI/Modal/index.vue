@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { ICompUIModalProps } from '.'
 import { toggleClass } from 'easy-fns-ts'
+import { nextTick, ref, useAttrs, useTemplateRef } from 'vue'
 
 defineOptions({
   name: 'WCompUIModal',

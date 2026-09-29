@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { ICompVendorSignPadInst } from '@/components/Vendor/SignPad'
+import { ref, useTemplateRef } from 'vue'
 import { url } from './url'
 
 defineOptions({

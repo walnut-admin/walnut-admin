@@ -1,6 +1,14 @@
 <script lang="ts" setup>
 import type { Recordable } from 'easy-fns-ts'
+import { useEventListener } from '@vueuse/core'
+import { computed, onUnmounted } from 'vue'
 import { getGiteeURIAPI, getGitHubURIAPI } from '@/api/auth/third'
+import { useAppEnvProxy } from '@/hooks/app/useAppEnv'
+import { useAppMessage, useAppMsgError, useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreFingerprint } from '@/store/modules/app/app-fingerprint'
+import { useAppStoreSettingBackend } from '@/store/modules/app/app-setting-backend'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 import { openOAuthWindow } from '@/utils/window/open'
 import { useGoogleOneTap } from '../hooks/useGoogleOneTap'
 

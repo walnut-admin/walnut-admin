@@ -1,6 +1,10 @@
 <script lang="ts" setup>
 import type { RouteLocationNormalizedLoadedGeneric } from 'vue-router'
 import { localRefreshFlag } from '@walnut/client/hooks/core/useLocalRefresh'
+import { computed } from 'vue'
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+import { useAppStoreSettingScope } from '@/store/modules/setting/setting-scope'
 
 const appStoreMenu = useAppStoreMenu()
 const appStoreSettingDev = useAppStoreSettingDev()

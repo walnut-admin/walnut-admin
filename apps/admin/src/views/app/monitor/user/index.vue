@@ -1,6 +1,10 @@
 <script lang="ts" setup>
 import type { IModels } from '@/api/models'
+import { computed } from 'vue'
 import { forceQuitAPI, monitorUserAPI } from '@/api/app/monitor/user'
+import { useCRUD } from '@/components/Advanced/CRUD'
+import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
 
 defineOptions({
   name: 'AppMonitorUser',

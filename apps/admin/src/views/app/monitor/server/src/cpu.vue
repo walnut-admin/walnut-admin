@@ -1,7 +1,9 @@
 <script lang="ts" setup>
 import type { IResponseData } from '@/api/response'
 import type { ICompUIDescriptionsItem } from '@/components/UI/Descriptions'
+import { computed, onBeforeMount, ref } from 'vue'
 import { getCpuInfoAPI } from '@/api/app/monitor/server'
+import { useAppI18n } from '@/locales/index'
 
 defineOptions({
   name: 'AppMonitorServerCPU',

@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+import { reactive, ref } from 'vue'
+import { useDict } from '@/hooks/core/useDict'
+
 defineOptions({
   name: 'DictDemo',
   defaultView: false,

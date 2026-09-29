@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useAppStoreUserProfile } from '@/store/modules/user/user-profile'
+
 defineOptions({
   name: 'WAvatar',
   defaultView: false,

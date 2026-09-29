@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { ICompExtraEmailInputProps } from '.'
 import { useSharedNavigatorLanguage } from '@walnut/client/hooks/vueuse/useNavigatorLanguage'
+import { computed } from 'vue'
 import data, { defaultSuffix } from './data'
 
 defineOptions({

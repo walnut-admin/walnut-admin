@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useRouterQuery } from '@/hooks/web/useRouterQuery'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
 import AppSettingExitFullContent from './component/fullContent.vue'
 
 defineOptions({

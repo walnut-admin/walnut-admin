@@ -1,10 +1,15 @@
 import type { Fn } from '@walnut/types/universal'
 import type { Recordable } from 'easy-fns-ts'
 import type { FormItemRule, FormRules } from 'naive-ui'
+import type { ComputedRef, Ref } from 'vue'
 import type { WForm } from '../types'
+import type { ValueOfAppConstTransitionName } from '@/const/transition'
+import type { AppI18n } from '@/locales/index'
 import { getBoolean } from '@walnut/client/browser/shared'
 import { wbtoa } from '@walnut/client/browser/window/base64'
 import { get } from 'lodash-es'
+import { toRaw, unref } from 'vue'
+import { useAppStoreLocale } from '@/store/modules/app/app-locale'
 import { componentMap } from '../components/FormItem/componentMap'
 
 const appStoreLocale = useAppStoreLocale()

@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useFps } from '@vueuse/core'
+
 defineOptions({
   name: 'WAppLockFPS',
 })

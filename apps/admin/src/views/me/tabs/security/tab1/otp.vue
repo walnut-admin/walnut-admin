@@ -3,7 +3,11 @@ import type { IModels } from '@/api/models'
 import type { ICompExtraPhoneNumberInputUpdateParams } from '@/components/Extra/PhoneNumberInput'
 import { useState } from '@walnut/client/hooks/core/useState'
 import { isEmailAddress, isPhoneNumber } from '@walnut/utils/regex'
+import { computed, ref } from 'vue'
 import { bindUserIdentityAPI, checkUserIdentityAPI, verifyUserIdentityAPI } from '@/api/system/user_identity'
+import { useForm } from '@/components/UI/Form'
+import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
 
 defineOptions({
   name: 'WMeTabSecurityTab1OTP',

@@ -1,5 +1,7 @@
 <script lang="tsx" setup>
 import type { ICompUIButtonProps } from '.'
+import { useDebounceFn } from '@vueuse/core'
+import { useAppStoreUserPermission } from '@/store/modules/user/user-permission'
 
 defineOptions({
   name: 'WCompUIButton',

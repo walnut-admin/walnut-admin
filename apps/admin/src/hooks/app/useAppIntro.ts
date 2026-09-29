@@ -1,3 +1,7 @@
+import { useDriver } from '@/hooks/component/useDriver'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+
 export function useAppIntro(delay = 1500) {
   const { t } = useAppI18n()
   const appStoreSettingDev = useAppStoreSettingDev()

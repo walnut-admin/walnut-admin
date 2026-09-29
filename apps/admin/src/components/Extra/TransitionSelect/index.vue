@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import type { SelectMixedOption } from 'naive-ui/es/select/src/interface'
+import { ref } from 'vue'
+import { AppConstTransitionName } from '@/const/transition'
 
 defineOptions({
   name: 'WCompExtraTransitionSelect',

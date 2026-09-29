@@ -1,10 +1,16 @@
 <script lang="tsx" setup>
 import type { DropdownMixedOption } from 'naive-ui/lib/dropdown/src/interface'
-
+import { computed, useTemplateRef } from 'vue'
 // TODO 111
 import WIcon from '@/components/UI/Icon'
-
 import { homepage, urls } from '@/const/package-info'
+import { useAppConfirm } from '@/hooks/component/useConfirm'
+import { useAppI18n } from '@/locales/index'
+import { useAppRouterPush } from '@/router/index'
+
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
+
+import { useAppStoreUserProfile } from '@/store/modules/user/user-profile'
 import { openExternalLink } from '@/utils/window/open'
 import WAvatar from '@/views/me/components/avatar.vue'
 import SwitchRole from './switchRole.vue'

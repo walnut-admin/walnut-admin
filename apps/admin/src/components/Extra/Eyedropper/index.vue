@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+import { useEyeDropper } from '@vueuse/core'
+import { watchEffect } from 'vue'
+
 defineOptions({
   name: 'WCompExtraEyedropper',
 })

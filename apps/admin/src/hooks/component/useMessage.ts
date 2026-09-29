@@ -1,4 +1,6 @@
 import type { MessageType, NotificationPlacement } from 'naive-ui'
+import { AppI18n } from '@/locales/index'
+import { useAppStoreNaive } from '@/store/modules/app/app-naive'
 
 export function useAppMessage() {
   return window.$message || {}

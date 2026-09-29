@@ -1,6 +1,11 @@
 import type { IModels } from '@/api/models'
+import { useEventListener } from '@vueuse/core'
 import { useSharedDocumentVisibility } from '@walnut/client/hooks/vueuse/useDocumentVisibility'
+import { watch } from 'vue'
+import { useAppEnvProxy } from '@/hooks/app/useAppEnv'
+import { AppRouter } from '@/router/index'
 import { layoutConst } from '@/router/routes/builtin'
+import { useAppStoreFingerprint } from '@/store/modules/app/app-fingerprint'
 
 const appStoreFingerprint = useAppStoreFingerprint()
 

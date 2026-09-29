@@ -1,6 +1,10 @@
 <script lang="ts" setup>
 import type { SelectOption } from 'naive-ui'
 import type { ICompExtraLocaleSelectProps } from '.'
+import { computed, onDeactivated, ref } from 'vue'
+import { useAppI18n } from '@/locales/index'
+import { useAppRouterPush } from '@/router/index'
+import { useAppStoreLocale } from '@/store/modules/app/app-locale'
 
 defineOptions({
   name: 'WCompExtraLocaleSelect',

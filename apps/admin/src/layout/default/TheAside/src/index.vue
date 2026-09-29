@@ -1,4 +1,8 @@
 <script lang="ts" setup>
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 import MenuCollpaseButton from './collapseButton.vue'
 import AsideLogo from './logo.vue'
 import AsideMenu from './menu.vue'

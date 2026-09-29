@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { securityCapApiEndpoint } from '@/api/security/cap'
+import { useStoreCompCapJS } from '@/store/modules/component/comp-capjs'
 
 defineOptions({
   name: 'WCompGlobalCap',

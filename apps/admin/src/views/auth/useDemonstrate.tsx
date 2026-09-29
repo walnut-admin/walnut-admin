@@ -1,3 +1,9 @@
+import { tryOnUnmounted } from '@vueuse/core'
+import { useTemplateRef } from 'vue'
+import { useAppNotiInfo } from '@/hooks/component/useNoti'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreNaive } from '@/store/modules/app/app-naive'
+
 export function useDemonstrate() {
   const { t } = useAppI18n()
   const naiveStore = useAppStoreNaive()

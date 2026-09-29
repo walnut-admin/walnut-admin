@@ -1,5 +1,6 @@
 import type { Recordable } from 'easy-fns-ts'
 import type { IModels } from '../models'
+import type { ValueOfAppConstLocale } from '@/const/app'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 

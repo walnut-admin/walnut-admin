@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { toggleDark } from '@/hooks/app/useAppDark'
+
 defineOptions({
   name: 'AppDarkMode',
 })

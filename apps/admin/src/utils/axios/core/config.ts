@@ -1,6 +1,7 @@
 import type { AxiosRequestConfig } from 'axios'
 import { composeAdapters } from '@walnut/http/adapters/index'
 import qs from 'qs'
+import { useAppEnvProxy, useAppEnvSeconds } from '@/hooks/app/useAppEnv'
 
 const { axiosTimeout: axiosTimeoutSeconds, axiosCache: axiosCacheSeconds } = useAppEnvSeconds()
 

@@ -1,6 +1,10 @@
 <script lang="ts" setup>
 import type { IModels } from '@/api/models'
+import { computed, ref } from 'vue'
 import { getLogOperateDeviceAPI, getLogOperateSnapshotAPI, logOperateAPI } from '@/api/system/log'
+import { useCRUD } from '@/components/Advanced/CRUD'
+import { useForm } from '@/components/UI/Form'
+import { useAppI18n } from '@/locales/index'
 import { logOperateFormSchema } from './schema'
 
 defineOptions({

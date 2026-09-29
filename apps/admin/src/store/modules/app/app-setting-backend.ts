@@ -1,5 +1,6 @@
 import type { IStoreApp } from '@/store/types'
 import { defineStore } from 'pinia'
+import { getCurrentInstance } from 'vue'
 import { getPublicSettingsAPI } from '@/api/app/setting'
 import { StoreKeys } from '../../constant'
 import { store } from '../../pinia'

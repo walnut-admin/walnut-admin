@@ -1,3 +1,4 @@
+import { AppRouter } from '@/router/index'
 import { layoutConst } from '@/router/routes/builtin'
 
 /**

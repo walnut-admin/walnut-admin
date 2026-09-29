@@ -1,5 +1,8 @@
 <script lang="ts" setup>
 import type { TabsInst } from 'naive-ui'
+import { nextTick, ref, useTemplateRef, watch } from 'vue'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreSettingBackend } from '@/store/modules/app/app-setting-backend'
 
 import SignInWitEmail from './common/email.vue'
 import SignInWithOpaque from './common/opaque.vue'

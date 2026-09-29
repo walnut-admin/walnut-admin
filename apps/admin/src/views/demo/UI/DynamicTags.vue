@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { reactive } from 'vue'
+
 defineOptions({
   name: 'DynamicTagsDemo',
   defaultView: false,

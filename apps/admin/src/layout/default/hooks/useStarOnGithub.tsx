@@ -1,6 +1,10 @@
 // TODO 111
 import WIcon from '@/components/UI/Icon'
 import { homepage } from '@/const/package-info'
+import { useAppNotiInfo } from '@/hooks/component/useNoti'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreNaive } from '@/store/modules/app/app-naive'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
 import { getCookie, setCookie } from '@/utils/persistent/Cookie'
 import { openExternalLink } from '@/utils/window/open'
 

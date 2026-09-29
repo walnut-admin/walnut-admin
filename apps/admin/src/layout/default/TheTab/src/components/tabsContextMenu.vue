@@ -1,12 +1,20 @@
 <script lang="tsx" setup>
 import type { DropdownOption } from 'naive-ui'
-
+import type { ValueOfAppConstTabDeleteType } from '@/const/tab'
 import { downloadByBase64 } from '@walnut/client/browser/file/download'
 import { toJpeg } from 'html-to-image'
-
+import { computed } from 'vue'
 import { getThemeOverridesCommon } from '@/App/src/naive/src/theme'
 // TODO 111
 import WIcon from '@/components/UI/Icon'
+import { AppConstTabDeleteType } from '@/const/tab'
+import { useRedirect } from '@/hooks/core/useRedirect'
+
+import { useAppI18n } from '@/locales/index'
+import { useAppRouter } from '@/router/index'
+
+import { useAppStoreTab } from '@/store/modules/app/app-tab'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
 
 import { isDev } from '@/utils/constant/vue'
 import { openExternalLink } from '@/utils/window/open'

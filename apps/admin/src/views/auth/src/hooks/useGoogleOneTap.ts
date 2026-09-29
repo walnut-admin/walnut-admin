@@ -1,5 +1,6 @@
 import type { CredentialResponse, PromptMomentNotification } from 'vue3-google-signin'
 import { useOneTap } from 'vue3-google-signin'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 
 const userStoreAuth = useAppStoreUserAuth()
 

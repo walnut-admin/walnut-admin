@@ -2,6 +2,8 @@ import type { NotificationPlacement, NotificationReactive } from 'naive-ui'
 import type { CSSProperties } from 'vue'
 import type { IStoreApp } from '@/store/types'
 import { defineStore } from 'pinia'
+import { getCurrentInstance } from 'vue'
+import { useAppNotification } from '@/hooks/component/useNoti'
 import { StoreKeys } from '../../constant'
 import { store } from '../../pinia'
 

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { CSSProperties } from 'vue'
+import { computed, ref, useTemplateRef, watchEffect } from 'vue'
 
 defineOptions({
   name: 'WCompExtraTextScrollHorizontal',

@@ -3,6 +3,8 @@ import type { MindElixirData, MindElixirInstance, Options } from 'mind-elixir'
 import type { CSSProperties } from 'vue'
 import { genString } from 'easy-fns-ts'
 import MindElixir from 'mind-elixir'
+import { onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
+import { isDark } from '@/hooks/app/useAppDark'
 
 defineOptions({
   name: 'WCompVendorMindmap',

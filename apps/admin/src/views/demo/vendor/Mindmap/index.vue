@@ -2,6 +2,7 @@
 import type { MindElixirData, Options } from 'mind-elixir'
 import { getRandomInt } from 'easy-fns-ts'
 import { homepage, urls } from '@/const/package-info'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
 
 defineOptions({
   name: 'MindmapDemo',

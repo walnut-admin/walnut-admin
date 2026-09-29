@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // https://21st.dev/davidhzdev/letter-glitch/default
 import type { CSSProperties } from 'vue'
+import { onMounted, onUnmounted, ref, shallowRef, watch } from 'vue'
 
 interface Props {
   glitchColors?: string[]

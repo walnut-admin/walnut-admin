@@ -1,6 +1,8 @@
 <script lang="ts" setup generic="T">
 import type { WForm } from '../../types'
 import { clone, isBoolean, isFunction, omit } from 'lodash-es'
+import { computed } from 'vue'
+import { getDictNameFromMap } from '@/hooks/core/useDict'
 import { useFormContext } from '../../hooks/useFormContext'
 import { formItemUtils } from '../../utils'
 

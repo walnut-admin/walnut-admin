@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import type { ICompVendorJSONEditorProps } from '.'
+import { createReusableTemplate } from '@vueuse/core'
 import { useLinkTag } from '@walnut/client/hooks/web/useLinkTag'
 import JsonEditorVue from 'json-editor-vue'
+import { ref, watch } from 'vue'
+import { isDark } from '@/hooks/app/useAppDark'
 
 defineOptions({
   name: 'WCompVendorJSONEditor',

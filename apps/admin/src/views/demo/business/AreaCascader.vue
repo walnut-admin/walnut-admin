@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+
 defineOptions({
   name: 'AreaCascaderDemo',
   defaultView: false,

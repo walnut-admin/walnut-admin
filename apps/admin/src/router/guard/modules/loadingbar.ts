@@ -1,4 +1,5 @@
 import type { Router } from 'vue-router'
+import { useAppStoreCachedViews } from '@/store/modules/app/app-cached-views'
 
 export function createLoadingbarGuard(router: Router) {
   const appStoreCachedViews = useAppStoreCachedViews()

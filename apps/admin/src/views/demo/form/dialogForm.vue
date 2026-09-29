@@ -1,6 +1,9 @@
 <script lang="ts" setup>
 import type { Recordable } from 'easy-fns-ts'
 import type { WForm } from '@/components/UI/Form'
+import { computed, ref } from 'vue'
+import { useForm } from '@/components/UI/Form'
+import { useAppMessage } from '@/hooks/component/useMessage'
 
 defineOptions({
   name: 'DialogForm',

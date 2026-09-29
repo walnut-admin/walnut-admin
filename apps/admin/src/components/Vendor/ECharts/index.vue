@@ -1,7 +1,12 @@
 <script lang="ts" setup>
 import type { ICompVendorEChartsProps } from '.'
+import { tryOnMounted, tryOnUnmounted, useEventListener } from '@vueuse/core'
 import { genString } from 'easy-fns-ts'
 import { clone } from 'lodash-es'
+import { computed, onActivated, onDeactivated, ref, shallowRef, watch } from 'vue'
+import { isDark } from '@/hooks/app/useAppDark'
+import { useAppStoreLocale } from '@/store/modules/app/app-locale'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 
 defineOptions({
   name: 'WCompVendorECharts',

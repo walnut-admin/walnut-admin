@@ -1,4 +1,7 @@
 import type { RouteLocationRaw } from 'vue-router'
+import { computed } from 'vue'
+import { useAppRoute, useAppRouter } from '@/router/index'
+import { useAppStoreSettingScope } from '@/store/modules/setting/setting-scope'
 
 export function useRouterParam(path: string, defaultValue?: string) {
   const router = useAppRouter()

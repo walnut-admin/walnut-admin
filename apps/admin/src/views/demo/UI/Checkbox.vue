@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { Recordable } from 'easy-fns-ts'
+import { ref } from 'vue'
 import { options } from '../data'
 
 defineOptions({

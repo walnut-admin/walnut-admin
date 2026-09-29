@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { IAppAuthorizeProps } from '.'
+import { useAppStoreUserPermission } from '@/store/modules/user/user-permission'
 import { createAsyncComponent } from '@/utils/factory/asyncComponent'
 
 defineOptions({

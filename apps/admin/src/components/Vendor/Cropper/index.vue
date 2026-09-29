@@ -1,11 +1,14 @@
 <script lang="ts" setup>
 import type { ICompVendorCropperProps } from '.'
 import type { WCompExtraAbsImageInst } from '@/components/Extra/AbsImage'
+import { useDebounceFn } from '@vueuse/core'
 import { base64ToBlob } from '@walnut/client/browser/file/base64'
 import { downloadByUrl } from '@walnut/client/browser/file/download'
 import { useBlob } from '@walnut/client/hooks/web/useBlob'
 import { CropperCanvas, CropperCrosshair, CropperGrid, CropperHandle, CropperImage, CropperSelection, CropperShade, CropperViewer } from 'cropperjs'
 import { customAlphabet } from 'nanoid'
+import { nextTick, ref, shallowRef, useTemplateRef, watchEffect } from 'vue'
+import { useAppI18n } from '@/locales/index'
 
 defineOptions({
   name: 'WCompVendorCropper',

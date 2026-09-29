@@ -1,5 +1,8 @@
+import type { Ref } from 'vue'
 import type { WHomeNumberCardProps } from './components/types'
+import { useIntervalFn } from '@vueuse/core'
 import { getRandomInt } from 'easy-fns-ts'
+import { ref } from 'vue'
 
 const n = (t: number) => getRandomInt(10 ** t, 10 ** (t + 1))
 

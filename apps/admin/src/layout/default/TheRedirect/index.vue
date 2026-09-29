@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useAppRouter } from '@/router/index'
+
 defineOptions({
   name: 'Redirect',
 })

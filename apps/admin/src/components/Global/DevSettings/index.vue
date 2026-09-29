@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+import { useClipboard } from '@vueuse/core'
+import { computed, ref } from 'vue'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
 import AppForm from './app.vue'
 import BreadcrumbForm from './breadcrumb.vue'
 import FooterForm from './footer.vue'

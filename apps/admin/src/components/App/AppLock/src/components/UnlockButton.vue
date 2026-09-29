@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useAppStoreLock } from '@/store/modules/app/app-lock'
+
 defineOptions({
   name: 'WAppLockUnlockButton',
 })

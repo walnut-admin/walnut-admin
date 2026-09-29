@@ -1,4 +1,6 @@
-import type { EffectScope } from 'vue'
+import type { EffectScope, Ref } from 'vue'
+import { useIntervalFn, useMouseInElement } from '@vueuse/core'
+import { effectScope, onScopeDispose, ref, useTemplateRef, watch } from 'vue'
 
 export function useFixedTopScroll(
   refString: string,

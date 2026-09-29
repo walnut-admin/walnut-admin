@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useAppStoreNaive } from '@/store/modules/app/app-naive'
 // notice that `cls-preifx` is not recommended to change
 // the reason is that there are some class-selectors which starts with `.w-` influence the style
 import { hljs } from './src/hljs'

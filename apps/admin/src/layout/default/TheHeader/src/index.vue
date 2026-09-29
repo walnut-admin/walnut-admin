@@ -1,4 +1,12 @@
 <script lang="ts" setup>
+import { useFullscreen } from '@vueuse/core'
+import { useAppEnvTitle } from '@/hooks/app/useAppEnv'
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { useAppStoreLock } from '@/store/modules/app/app-lock'
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
+import { useAppStoreSettingBackend } from '@/store/modules/app/app-setting-backend'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 import HeaderBreadCrumb from './breadcrumb.vue'
 import HeaderCollapse from './collapse.vue'
 import HeaderDropdown from './dropdown.vue'

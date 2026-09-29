@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { ICompExtraPhoneNumberInputUpdateParams } from '@/components/Extra/PhoneNumberInput'
+import { ref } from 'vue'
 
 defineOptions({
   name: 'PhoneInputDemo',

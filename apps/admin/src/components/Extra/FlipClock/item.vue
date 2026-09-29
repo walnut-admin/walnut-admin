@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { onBeforeMount, ref, watch } from 'vue'
+
 const props = withDefaults(defineProps<{
   total?: number
   current?: number

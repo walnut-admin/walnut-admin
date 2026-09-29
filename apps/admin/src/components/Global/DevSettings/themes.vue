@@ -1,4 +1,8 @@
 <script lang="tsx" setup>
+import { ref } from 'vue'
+import { useForm } from '@/components/UI/Form'
+import { isDark } from '@/hooks/app/useAppDark'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
 import AppSettingsDevColors from './colors'
 import { modalColor } from './shared'
 

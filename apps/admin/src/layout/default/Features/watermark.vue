@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useAppStoreSettingScope } from '@/store/modules/setting/setting-scope'
+
 defineOptions({
   name: 'TheAppWatermark',
 })

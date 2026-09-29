@@ -1,8 +1,12 @@
 <script lang="ts" setup>
+import type { Ref } from 'vue'
 import type { VerifyAuthMethod, VerifyAuthOptions } from '../types'
 import { useState } from '@walnut/client/hooks/core/useState'
+import { computed, inject, onMounted, ref } from 'vue'
 import { authMfaStatusAPI } from '@/api/auth/mfa'
 import { getSecurityTab1StatusAPI2 } from '@/api/system/user_identity'
+import { useForm } from '@/components/UI/Form'
+import { useAppI18n } from '@/locales/index'
 
 /**
  * Step 1: Authentication Method Selection

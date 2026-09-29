@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { ICompExtraCopyProps } from '.'
+import { useClipboard } from '@vueuse/core'
 
 defineOptions({
   name: 'WCompExtraCopy',

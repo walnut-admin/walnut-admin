@@ -1,6 +1,13 @@
 <script lang="ts" setup>
 import type { IModels } from '@/api/models'
+import { computed } from 'vue'
 import { dictDataAPI } from '@/api/system/dict'
+import { useCRUD } from '@/components/Advanced/CRUD'
+import { WTablePresetCreatedAtColumn, WTablePresetOrderColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
+import { useRouterParam } from '@/hooks/web/useRouterParam'
+import { useRouterQuery } from '@/hooks/web/useRouterQuery'
+import { useAppI18n } from '@/locales/index'
+import { useAppRouterPush } from '@/router/index'
 
 defineOptions({
   name: 'DictDetail',

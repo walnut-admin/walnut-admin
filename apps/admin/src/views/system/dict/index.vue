@@ -1,6 +1,11 @@
 <script lang="ts" setup>
 import type { IModels } from '@/api/models'
+import { computed } from 'vue'
 import { dictTypeAPI } from '@/api/system/dict'
+import { useCRUD } from '@/components/Advanced/CRUD'
+import { WTablePresetCreatedAtColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
+import { useAppI18n } from '@/locales/index'
+import { useAppRouterPush } from '@/router/index'
 
 defineOptions({
   name: 'Dict',

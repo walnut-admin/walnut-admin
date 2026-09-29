@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { SelectMixedOption } from 'naive-ui/es/select/src/interface'
+import { reactive, ref } from 'vue'
 
 defineOptions({
   name: 'SelectDemo',

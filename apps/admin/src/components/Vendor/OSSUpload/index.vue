@@ -4,10 +4,13 @@ import type {
   UploadFileInfo,
   UploadInst,
 } from 'naive-ui'
-
 import type { ICompVendorOSSUploadProps } from '.'
 import { downloadByUrl } from '@walnut/client/browser/file/download'
 import { genString } from 'easy-fns-ts'
+
+import { computed, ref, useTemplateRef, watch } from 'vue'
+import { useAppMessage } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
 import { AliOSSClient } from './client'
 
 defineOptions({

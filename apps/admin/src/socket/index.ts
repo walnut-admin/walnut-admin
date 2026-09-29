@@ -1,6 +1,13 @@
 import type { Recordable } from 'easy-fns-ts'
 import type { Socket } from 'socket.io-client'
 import { io } from 'socket.io-client'
+import { AppConstRequestHeaders } from '@/const/app'
+import { useAppEnvProxy } from '@/hooks/app/useAppEnv'
+import { AppSocketEvents } from '@/socket/event'
+import { useAppStoreFingerprint } from '@/store/modules/app/app-fingerprint'
+import { useAppStoreLocale } from '@/store/modules/app/app-locale'
+import { useStoreCompForceQuit } from '@/store/modules/component/comp-force-quit'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 
 const { ws } = useAppEnvProxy()
 const useProxy = +ws[0] === 1

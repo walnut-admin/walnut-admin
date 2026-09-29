@@ -1,10 +1,12 @@
 <script lang="ts" setup>
 import type { InputInst } from 'naive-ui'
 import type { ICompExtraIconPickerProps } from '.'
+import { watchThrottled } from '@vueuse/core'
 import { mockListApi } from '@walnut/client/browser/shared'
 import { useFormItem } from 'naive-ui/es/_mixins'
 import iconList from 'virtual:icon/list'
 import iconSet from 'virtual:icon/set'
+import { computed, nextTick, onBeforeMount, ref, useTemplateRef, watch } from 'vue'
 
 defineOptions({
   name: 'WCompExtraIconPicker',

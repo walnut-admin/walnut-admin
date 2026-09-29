@@ -2,8 +2,10 @@ import type { TreeNodeItem } from 'easy-fns-ts'
 
 import type { RouteRecordMultipleViewsWithChildren, RouteRecordNameGeneric, RouteRecordRaw } from 'vue-router'
 import { findPath, formatTree } from 'easy-fns-ts'
+import { AppConstMenuTernal, AppConstMenuType } from '@/const/menu'
 import ParentComponent from '@/layout/default/TheContent'
 import IFrameFaker from '@/layout/iframe/faker.vue'
+import { AppRouter, useAppRouter } from '@/router/index'
 import { App404Route, App500Route, layoutConst } from '../routes/builtin'
 import { mainoutConst, mainoutExternalLinkRoute } from '../routes/mainout'
 

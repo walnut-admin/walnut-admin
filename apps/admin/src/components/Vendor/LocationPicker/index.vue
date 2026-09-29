@@ -1,5 +1,9 @@
 <script lang="ts" setup>
 import type { IWCompVendorLocationPickerProps } from '.'
+import { tryOnScopeDispose, useDebounceFn, useEventListener } from '@vueuse/core'
+import { ref, shallowRef } from 'vue'
+import { useAppStoreGeoIP } from '@/store/modules/app/app-geo-ip'
+import { useAppStoreKey } from '@/store/modules/app/app-key'
 
 defineOptions({ name: 'WVendorLocationPicker' })
 

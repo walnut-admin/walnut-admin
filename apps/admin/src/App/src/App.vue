@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { onBeforeMount } from 'vue'
+import { useAppStoreSettingBackend } from '@/store/modules/app/app-setting-backend'
 import GlobalComponents from './compoent/global.vue'
 import { useAppHooks } from './hooks'
 import ThemeProvider from './naive/AppTheme.vue'

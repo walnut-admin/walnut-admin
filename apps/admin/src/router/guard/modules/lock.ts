@@ -1,5 +1,7 @@
 import type { Router } from 'vue-router'
 import { mainoutConst } from '@/router/routes/mainout'
+import { useAppStoreLock } from '@/store/modules/app/app-lock'
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
 
 export function createLockGuard(router: Router) {
   const appStoreLock = useAppStoreLock()

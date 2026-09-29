@@ -1,6 +1,7 @@
 import type { IDeepMaybeRef } from '@walnut/client/types/vue-ref'
 import type { ICompUIDropdownInst, ICompUIDropdownProps } from '.'
 import { isInSetup } from '@walnut/client/browser/shared'
+import { shallowRef, watchEffect } from 'vue'
 
 export function useDropdown(props: IDeepMaybeRef<ICompUIDropdownProps> | ICompUIDropdownProps): [(inst: ICompUIDropdownInst) => void, ICompUIDropdownInst] {
   isInSetup()

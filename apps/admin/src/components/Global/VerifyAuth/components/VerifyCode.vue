@@ -1,6 +1,9 @@
 <script lang="ts" setup>
+import type { Ref } from 'vue'
 import type { VerifyAuthMethod } from '../types'
 import { useState } from '@walnut/client/hooks/core/useState'
+import { computed, inject } from 'vue'
+import { useForm } from '@/components/UI/Form'
 
 /**
  * Step 3: Verification Code Input

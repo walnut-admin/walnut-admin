@@ -1,4 +1,8 @@
 <script lang="ts" setup>
+import { computed } from 'vue'
+import { useForm } from '@/components/UI/Form'
+import { AppConstTabUtilsShowMode } from '@/const/tab'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
 import { getCanAnimate, modalColor } from './shared'
 
 defineOptions({

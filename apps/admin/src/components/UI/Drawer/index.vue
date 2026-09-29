@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import type { ICompUIDrawerProps } from '.'
+import { computed } from 'vue'
+import { useAppRouter } from '@/router/index'
 
 defineOptions({
   name: 'WCompUIDrawer',

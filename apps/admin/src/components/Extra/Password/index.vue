@@ -2,7 +2,9 @@
 import type { ProgressStatus } from 'naive-ui'
 import type { EffectScope } from 'vue'
 import type { ICompExtraPasswordProps } from '.'
+import { useDebounceFn } from '@vueuse/core'
 import { zxcvbnAsync } from '@zxcvbn-ts/core'
+import { effectScope, onUnmounted, ref, watch } from 'vue'
 import { statusTable } from './utils'
 
 defineOptions({

@@ -1,7 +1,9 @@
 import type { TreeNodeItem } from 'easy-fns-ts'
 import type { IModels } from '@/api/models'
 import { formatTree } from 'easy-fns-ts'
+import { computed, onMounted, ref } from 'vue'
 import { getMenuTreeAPI } from '@/api/system/menu'
+import { useAppI18n } from '@/locales/index'
 
 export function useMenuTree() {
   const { t } = useAppI18n()

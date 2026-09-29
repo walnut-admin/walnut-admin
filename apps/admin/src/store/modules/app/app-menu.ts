@@ -1,6 +1,8 @@
 import type { IModels } from '@/api/models'
 import type { IStoreApp } from '@/store/types'
 import { defineStore } from 'pinia'
+import { getCurrentInstance } from 'vue'
+import { useAppRouterPush } from '@/router/index'
 import { layoutConst } from '@/router/routes/builtin'
 import { StoreKeys } from '../../constant'
 import { store } from '../../pinia'

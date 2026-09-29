@@ -1,5 +1,9 @@
 import type { Nullable } from 'easy-fns-ts'
 import type { ICompExtraScrollbarInst } from '@/components/Extra/Scrollbar'
+import { computed, nextTick, ref, watch } from 'vue'
+import { useAppRoute, useAppRouter } from '@/router/index'
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { useAppStoreTab } from '@/store/modules/app/app-tab'
 
 /**
  * @description App Tab Core Function

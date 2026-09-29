@@ -1,5 +1,7 @@
 import type { WHomeChartCardProps } from './components/types'
+import { useIntervalFn } from '@vueuse/core'
 import { getRandomInt } from 'easy-fns-ts'
+import { ref } from 'vue'
 import echarts from '@/components/Vendor/ECharts/on-demand'
 
 function onGetOption1(): EChartsOption {

@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+import { useKeyModifier } from '@vueuse/core'
+import { ref, watchEffect } from 'vue'
+
 defineOptions({
   name: 'WCompExtraCapsLockToolTip',
 })

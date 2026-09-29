@@ -1,6 +1,7 @@
 import type { AxiosRequestConfig } from 'axios'
 import { SingletonPromise } from '@walnut/utils/queue'
 import { AppCoreFn1 } from '@/core'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 import { setTokenHeaderWithConfig } from '../../utils'
 
 const userStoreAuth = useAppStoreUserAuth()

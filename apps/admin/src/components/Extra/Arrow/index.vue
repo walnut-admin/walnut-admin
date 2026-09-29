@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { ICompExtraArrowProps } from '.'
+import { computed } from 'vue'
 
 defineOptions({
   name: 'WCompExtraArrow',

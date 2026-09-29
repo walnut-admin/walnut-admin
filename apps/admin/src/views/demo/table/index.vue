@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import type { SelectOption } from 'naive-ui'
+import { computed } from 'vue'
+import { useRouterQuery } from '@/hooks/web/useRouterQuery'
 
 defineOptions({
   name: 'DemoTable',

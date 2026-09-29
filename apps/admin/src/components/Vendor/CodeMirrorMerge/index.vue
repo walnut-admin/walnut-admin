@@ -6,6 +6,8 @@ import { MergeView } from '@codemirror/merge'
 import { EditorState } from '@codemirror/state'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { basicSetup, EditorView } from 'codemirror'
+import { computed, onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue'
+import { isDark } from '@/hooks/app/useAppDark'
 
 const props = withDefaults(defineProps<ICompVendorCodeMirrorMergeProps>(), {
   height: 400,

@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { computed } from 'vue'
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
 import { isDev } from '@/utils/constant/vue'
 import { getTabsContext } from '../hooks/useTabsContext'
 

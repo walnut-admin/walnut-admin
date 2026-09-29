@@ -1,7 +1,12 @@
 <script lang="ts" setup>
 import type { IModels } from '@/api/models'
+import { computed, ref } from 'vue'
 import { deletedAPI, recoverAPI } from '@/api/system/deleted'
 import { logOperateAPI } from '@/api/system/log'
+import { useCRUD } from '@/components/Advanced/CRUD'
+import { useForm } from '@/components/UI/Form'
+import { useAppMsgSuccess, useAppMsgWarning } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
 import { logOperateFormSchema } from '../log/operate/schema'
 
 defineOptions({

@@ -5,6 +5,7 @@ import { useWindowResize } from '@walnut/client/hooks/vueuse/useResize'
 import { genString } from 'easy-fns-ts'
 import { toJpeg, toPng } from 'html-to-image'
 import SignaturePad from 'signature_pad'
+import { onMounted, ref, shallowRef, watchEffect } from 'vue'
 
 defineOptions({
   name: 'WVendorSignaturePad',

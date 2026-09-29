@@ -3,6 +3,7 @@ import type { Recordable } from 'easy-fns-ts'
 import type { SelectOption, SelectProps } from 'naive-ui'
 import type { RenderOption } from 'naive-ui/es/_internal/select-menu/src/interface'
 import type { ICompUISelectProps } from '.'
+import { useAttrs } from 'vue'
 
 defineOptions({
   name: 'WCompUISelect',

@@ -1,5 +1,6 @@
-import type { Component, ComponentOptionsBase, DefineComponent } from 'vue'
+import type { Component, ComponentOptionsBase, ComponentPublicInstance, DefineComponent } from 'vue'
 import { NSpin, NText } from 'naive-ui'
+import { defineAsyncComponent, h } from 'vue'
 
 // loading component
 function loadingComponent() {

@@ -1,6 +1,7 @@
 import type { VerifyAuthOptions } from '@/components/Global/VerifyAuth/types'
 import type { IStoreComp } from '@/store/types'
 import { defineStore } from 'pinia'
+import { getCurrentInstance } from 'vue'
 import { StoreKeys } from '../../constant'
 import { store } from '../../pinia'
 

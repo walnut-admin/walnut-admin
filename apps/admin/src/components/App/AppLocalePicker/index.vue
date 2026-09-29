@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import type { SelectMixedOption } from 'naive-ui/es/select/src/interface'
+import { onBeforeMount } from 'vue'
+import { useAppStoreLocale } from '@/store/modules/app/app-locale'
 
 defineOptions({
   name: 'AppStoreLocalePicker',

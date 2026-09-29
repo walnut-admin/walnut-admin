@@ -1,6 +1,7 @@
 import type { Router } from 'vue-router'
 import { version } from '@/const/package-info'
 import { decryptRouterUrl, encryptRouterUrl } from '@/router/utils/crypto'
+import { useAppStoreSettingScope } from '@/store/modules/setting/setting-scope'
 
 const ENHANCED_URL_PREFIX = `__eq__${version}__`
 const queryWhiteList = ['url']

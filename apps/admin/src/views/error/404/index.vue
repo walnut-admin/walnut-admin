@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
+
 defineOptions({
   name: 'App404',
 })

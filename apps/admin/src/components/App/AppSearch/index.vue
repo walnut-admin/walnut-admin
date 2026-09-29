@@ -3,9 +3,15 @@ import type { TreeNodeItem } from 'easy-fns-ts'
 import type { InputInst } from 'naive-ui'
 import type { IModels } from '@/api/models'
 import type { ICompExtraScrollbarInst } from '@/components/Extra/Scrollbar'
+import { useEventListener } from '@vueuse/core'
 import Fuse from 'fuse.js'
 import { cloneDeep } from 'lodash-es'
+import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import { getTheme } from '@/App/src/naive/src/theme'
+import { AppConstMenuType } from '@/const/menu'
+import { useAppI18n } from '@/locales/index'
+import { useAppRouterPush } from '@/router/index'
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
 
 defineOptions({
   name: 'AppSearch',

@@ -1,5 +1,9 @@
 import type { AxiosError } from 'axios'
 import { isCancel } from 'axios'
+import { useAppNotiError } from '@/hooks/component/useNoti'
+import { AppI18n } from '@/locales/index'
+import { useAppRouterPush } from '@/router/index'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 
 export async function responseInterceptorsCatch(err: AxiosError) {
   if (err.message === 'Network Error') {

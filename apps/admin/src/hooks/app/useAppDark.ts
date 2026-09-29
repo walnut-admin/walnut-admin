@@ -1,4 +1,7 @@
+import { createSharedComposable, useDark } from '@vueuse/core'
 import { useSharedPreferredReducedMotion } from '@walnut/client/hooks/vueuse/usePreferredReducedMotion'
+import { nextTick } from 'vue'
+import { AppConstPersistKey } from '@/const/persistent'
 
 const isReducedMotion = useSharedPreferredReducedMotion()
 

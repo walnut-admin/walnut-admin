@@ -1,10 +1,14 @@
 <script lang="tsx" setup>
 import type { DropdownOption } from 'naive-ui'
 import type { IResponseData } from '@/api/response'
+import { computed, onBeforeMount, ref } from 'vue'
 import { authMfaTotpUpdateStatusAPI } from '@/api/auth/mfa'
 import { getSecurityTab2StatusAPI } from '@/api/system/user_me'
 // TODO 111
 import WIcon from '@/components/UI/Icon'
+import { useAppConfirm } from '@/hooks/component/useConfirm'
+import { useAppMsgSuccess, useAppMsgWarning } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
 
 defineOptions({
   name: 'WMeTabSecurityTab2',

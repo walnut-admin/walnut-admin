@@ -1,12 +1,12 @@
 import type { Nullable, OptionDataItem, Recordable, TreeNodeItem } from 'easy-fns-ts'
 import type { MessageReactive, NotificationPlacement, NotificationReactive, WatermarkProps } from 'naive-ui'
-import type { CSSProperties } from 'vue'
+import type { CSSProperties, Ref } from 'vue'
 import type { RouteMeta, RouteRecordNameGeneric } from 'vue-router'
 import type { IModels } from '@/api/models'
 import type { IRequestPayload } from '@/api/request'
 import type { IResponseData } from '@/api/response'
 import type { VerifyAuthOptions } from '@/components/Global/VerifyAuth/types'
-import type { ValueOfAppConstBasicMode, ValueOfAppConstColorMode, ValueOfAppConstDevice, ValueOfAppConstLayoutMode, ValueOfAppConstLocale, ValueOfAppConstTabUtilsShowMode, ValueOfAppConstTransitionName, ValueOfAppCVD } from '@/const'
+import type { ValueOfAppConstBasicMode, ValueOfAppConstCollapseMode, ValueOfAppConstColorMode, ValueOfAppConstDevice, ValueOfAppConstLayoutMode, ValueOfAppConstLocale, ValueOfAppConstTabAffixMode, ValueOfAppConstTabCloseMode, ValueOfAppConstTabStyleMode, ValueOfAppConstTabUtilsShowMode, ValueOfAppConstTransitionName, ValueOfAppCVD } from '@/const'
 
 export namespace IStoreApp {
   /**

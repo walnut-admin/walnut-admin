@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import type { Recordable } from 'easy-fns-ts'
+import { ref } from 'vue'
+import { useAppMsgSuccess } from '@/hooks/component/useMessage'
 
 defineOptions({
   name: 'VerifyCodeDemo',

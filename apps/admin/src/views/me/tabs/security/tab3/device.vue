@@ -1,7 +1,12 @@
 <script lang="ts" setup>
 import type { IResponseData } from '@/api/response'
 import { useState } from '@walnut/client/hooks/core/useState'
+import { computed, ref } from 'vue'
 import { forceQuitUserDeviceAPI, listUserDevicesAPI, lockUserDeviceAPI, unlockUserDeviceAPI, updateUserDeviceNameAPI } from '@/api/system/user_device'
+import { useForm } from '@/components/UI/Form'
+import { useTable } from '@/components/UI/Table'
+import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
 
 defineOptions({
   name: 'WAccountSettingsTabSecurityTab3Device',

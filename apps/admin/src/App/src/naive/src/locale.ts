@@ -1,5 +1,8 @@
 import type { NDateLocale, NLocale } from 'naive-ui'
 import { dateZhCN, zhCN } from 'naive-ui'
+import { computed } from 'vue'
+import { AppConstLocale } from '@/const/app'
+import { useAppStoreLocale } from '@/store/modules/app/app-locale'
 
 const appStoreLocale = useAppStoreLocale()
 

@@ -1,6 +1,7 @@
 import { exportAesKeyToRaw, generateAes256Key, importRsaPublicKey, rsaOaepEncrypt } from '@walnut/client/browser/crypto/shared'
 import { aesGcmEncrypt } from '@walnut/client/browser/crypto/symmetric/aes-gcm'
 import { arrayBufferToBase64, uint8ArrayToBase64 } from '@walnut/utils/crypto/transformer'
+import { useAppStoreSecurity } from '@/store/modules/app/app-security'
 
 interface CipherEnvelope {
   enc: 'AES_256_GCM'

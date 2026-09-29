@@ -2,6 +2,8 @@
 import type { IconifyIconLoaderAbort } from '@iconify/vue'
 import type { ICompUIIconProps } from '.'
 import { Icon, iconLoaded, loadIcons } from '@iconify/vue'
+import { computed, onUnmounted, ref, watch } from 'vue'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 
 defineOptions({
   name: 'WCompUIIcon',

@@ -1,5 +1,8 @@
 <script lang="ts" setup>
 import { useGlobalAsyncComponent } from '@walnut/client/hooks/component/useGlobalAsyncComponent'
+import { computed } from 'vue'
+import { useStoreCompCapJS } from '@/store/modules/component/comp-capjs'
+import { useStoreCompVerifyAuth } from '@/store/modules/component/comp-verify-auth'
 
 defineOptions({
   name: 'WAppGlobalComponents',

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // https://21st.dev/davidhzdev/hover-glare-card/default
 import type { CSSProperties } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
+import { isDark } from '@/hooks/app/useAppDark'
 
 interface Props {
   glareColor?: string

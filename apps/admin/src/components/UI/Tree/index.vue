@@ -2,18 +2,21 @@
 import type { StringOrNumber, TreeNodeItem } from 'easy-fns-ts'
 import type { DropdownOption, TreeInst, TreeOption } from 'naive-ui'
 import type { DropdownMixedOption } from 'naive-ui/es/dropdown/src/interface'
-
 import type { TreeNodeProps, TreeRenderProps } from 'naive-ui/es/tree/src/interface'
 import type { ICompUITreeInst, ICompUITreeProps } from '.'
-
 import { useProps } from '@walnut/client/hooks/core/useProps'
+
 import { findPath, formatTree, treeToArr } from 'easy-fns-ts'
 import { cloneDeep } from 'lodash-es'
+
+import { computed, nextTick, ref, toRaw, useTemplateRef, watch } from 'vue'
 // TODO 111
 import WTransition from '@/components/Extra/Transition'
 import { useDropdown } from '@/components/UI/Dropdown'
 import WIcon from '@/components/UI/Icon'
 import WIconButton from '@/components/UI/IconButton'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreUserPermission } from '@/store/modules/user/user-permission'
 
 // TODO expandedKeys feedback support
 

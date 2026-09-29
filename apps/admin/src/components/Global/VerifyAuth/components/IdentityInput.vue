@@ -1,9 +1,13 @@
 <script lang="ts" setup>
+import type { Ref } from 'vue'
 import type { VerifyAuthMethod } from '../types'
 import type { ICompExtraPhoneNumberInputUpdateParams } from '@/components/Extra/PhoneNumberInput'
 import type { WForm } from '@/components/UI/Form'
 import { useState } from '@walnut/client/hooks/core/useState'
 import { isEmailAddress, isPhoneNumber } from '@walnut/utils/regex'
+import { computed, inject, ref } from 'vue'
+import { useForm } from '@/components/UI/Form'
+import { useAppI18n } from '@/locales/index'
 
 /**
  * Step 2: Identity Input (Bind Mode)

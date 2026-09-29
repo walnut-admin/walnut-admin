@@ -1,6 +1,8 @@
 <script lang="ts" setup generic="T">
 import type { InputNumberInst } from 'naive-ui'
+import { useMagicKeys } from '@vueuse/core'
 import { useIntervalFnWithPercent } from '@walnut/client/hooks/vueuse/useIntervalFnWithPercent'
+import { computed, nextTick, onActivated, onDeactivated, ref, useTemplateRef, watch } from 'vue'
 import { useTableContext } from '../../../hooks/useTableContext'
 
 defineOptions({

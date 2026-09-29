@@ -1,5 +1,7 @@
 <script lang="ts" setup generic="T">
 import type { ICompUIFormItemExtendDividerProps } from '.'
+import { computed, ref } from 'vue'
+import { useAppI18n } from '@/locales/index'
 import { useFormContext } from '../../../hooks/useFormContext'
 
 defineOptions({

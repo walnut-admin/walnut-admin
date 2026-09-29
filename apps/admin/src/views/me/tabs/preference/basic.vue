@@ -1,7 +1,14 @@
 <script lang="ts" setup>
 import type { SelectMixedOption } from 'naive-ui/es/select/src/interface'
 import type { IStoreUser } from '@/store/types'
+import { computed, ref } from 'vue'
 import { updatePreferenceBasicAPI } from '@/api/system/user_preference'
+import { useForm } from '@/components/UI/Form'
+import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { useAppStoreLocale } from '@/store/modules/app/app-locale'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 
 defineOptions({
   name: 'WMeTabPreferenceBasic',

@@ -1,6 +1,9 @@
 import type { IStoreComp } from '@/store/types'
+import { useScriptTag } from '@vueuse/core'
 import { defineStore } from 'pinia'
+import { getCurrentInstance } from 'vue'
 import { securityCapApiEndpoint } from '@/api/security/cap'
+import { useAppEnvProxy } from '@/hooks/app/useAppEnv'
 import { StoreKeys } from '../../constant'
 import { store } from '../../pinia'
 

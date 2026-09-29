@@ -1,7 +1,12 @@
 <script lang="ts" setup>
+import type { ComputedRef } from 'vue'
 import { noop } from 'lodash-es'
+import { computed, onBeforeMount, ref, useTemplateRef } from 'vue'
 import { authMfaStatusAPI, authMfaVerifyAPI } from '@/api/auth/mfa'
+import { useAppI18n } from '@/locales/index'
 import { mainoutMfaRequiredRoute } from '@/router/routes/mainout'
+import { useAppStoreRoute } from '@/store/modules/app/app-route'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 import TotpModal from './totpModal.vue'
 import WebauthnModal from './webauthnModal.vue'
 

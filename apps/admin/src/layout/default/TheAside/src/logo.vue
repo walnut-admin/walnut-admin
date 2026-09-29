@@ -1,4 +1,8 @@
 <script lang="ts" setup>
+import { useAppEnvTitle } from '@/hooks/app/useAppEnv'
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+
 const appStoreMenu = useAppStoreMenu()
 const appStoreSettingDev = useAppStoreSettingDev()
 

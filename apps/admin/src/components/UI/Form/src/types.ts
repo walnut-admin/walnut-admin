@@ -20,7 +20,7 @@ import type {
   SliderProps,
 } from 'naive-ui'
 import type { LabelAlign, LabelPlacement } from 'naive-ui/es/form/src/interface'
-import type { CSSProperties } from 'vue'
+import type { ComputedRef, CSSProperties, Ref, VNode } from 'vue'
 // ui types
 import type { ICompUIButtonProps } from '../../Button'
 import type { ICompUIButtonConfirmProps } from '../../ButtonConfirm'
@@ -59,6 +59,7 @@ import type { ICompExtraTransitionProps } from '@/components/Extra/Transition'
 import type { ICompExtraVerifyCodeProps } from '@/components/Extra/VerifyCode'
 import type { ICompVendorJSONEditorProps } from '@/components/Vendor/JSONEditor'
 import type { ICompVendorTinymceProps } from '@/components/Vendor/Tinymce'
+import type { ValueOfAppConstTransitionName } from '@/const/transition'
 
 export declare type RuleType = 'string' | 'number' | 'boolean' | 'method' | 'regexp' | 'integer' | 'float' | 'array' | 'object' | 'enum' | 'date' | 'url' | 'hex' | 'email' | 'pattern' | 'any'
 

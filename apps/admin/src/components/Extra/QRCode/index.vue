@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import type { Fn } from '@walnut/types/universal'
 import type { ICompExtraQRCodeProps } from '.'
+import { useIntervalFn } from '@vueuse/core'
+import { ref } from 'vue'
 
 defineOptions({
   name: 'WCompExtraQRCode',

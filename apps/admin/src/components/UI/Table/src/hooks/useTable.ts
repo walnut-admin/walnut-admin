@@ -1,6 +1,7 @@
 import type { NullableRecord } from 'easy-fns-ts'
 import type { WTable } from '../types'
 import { isInSetup } from '@walnut/client/browser/shared'
+import { shallowRef, unref, watchEffect } from 'vue'
 
 export function useTable<T>(props: WTable.Hooks.UseTable.Props<T>): WTable.Hooks.UseTable.ReturnType<T> {
   isInSetup()

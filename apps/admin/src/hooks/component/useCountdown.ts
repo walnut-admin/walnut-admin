@@ -1,4 +1,8 @@
+import { useIntervalFn } from '@vueuse/core'
 import { useAppStorageSync } from '@walnut/client/persistent/storage/sync'
+import { onBeforeMount, ref } from 'vue'
+import { AppConstPersistKey } from '@/const/persistent'
+import { useAppI18n } from '@/locales/index'
 
 const buttonRetryMapPersistent = useAppStorageSync<Map<string, number>>(AppConstPersistKey.COUNTDOWN, new Map<string, number>())
 

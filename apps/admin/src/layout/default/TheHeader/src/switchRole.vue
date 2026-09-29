@@ -1,6 +1,13 @@
 <script lang="ts" setup>
 import { useState } from '@walnut/client/hooks/core/useState'
+import { computed } from 'vue'
 import { switchRoleAPI } from '@/api/system/user_me'
+import { useForm } from '@/components/UI/Form'
+import { useAppConfirm } from '@/hooks/component/useConfirm'
+import { useAppMessage } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
+import { useAppStoreUserProfile } from '@/store/modules/user/user-profile'
 
 defineOptions({
   name: 'TheHeaderDropdownSwitchRole',

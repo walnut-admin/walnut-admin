@@ -1,6 +1,11 @@
 import type { EffectScope } from 'vue'
 import type { IStoreApp } from '@/store/types'
+import { tryOnMounted } from '@vueuse/core'
 import { useAppStorageSync } from '@walnut/client/persistent/storage/sync'
+import { effectScope, onScopeDispose, watch } from 'vue'
+import { AppConstPersistKey } from '@/const/persistent'
+import { useAppStoreTab } from '@/store/modules/app/app-tab'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
 
 export function useTabsPersistent() {
   let scope: EffectScope

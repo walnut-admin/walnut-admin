@@ -1,15 +1,20 @@
 <script lang="ts" setup>
 import type { EditorView, ViewUpdate } from '@codemirror/view'
-
 import type { Recordable } from 'easy-fns-ts'
 import type { ICompVendorCodeMirrorProps } from '.'
 import { redo, undo } from '@codemirror/commands'
 import { closeSearchPanel, openSearchPanel } from '@codemirror/search'
-
 import { oneDark } from '@codemirror/theme-one-dark'
+
+import { computed, ref, shallowRef, watch } from 'vue'
 // TODO not update any more, move the code to this folder
 // https://github.com/surmon-china/vue-codemirror/blob/main/src/codemirror.ts
 import { Codemirror } from 'vue-codemirror'
+import { AppConstLocale } from '@/const/app'
+import { isDark } from '@/hooks/app/useAppDark'
+
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreLocale } from '@/store/modules/app/app-locale'
 import { languages } from './language'
 
 defineOptions({

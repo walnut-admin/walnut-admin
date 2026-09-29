@@ -1,4 +1,5 @@
 import type { WForm } from '../types'
+import { initDict } from '@/hooks/core/useDict'
 
 export async function useFormDict<T>(schemas: WForm.Schema.Item<T>[]) {
   if (schemas.some(i => i.type === 'Business:Dict')) {

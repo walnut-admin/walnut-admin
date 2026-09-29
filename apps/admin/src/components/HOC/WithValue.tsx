@@ -1,7 +1,8 @@
 import type { Fn } from '@walnut/types/universal'
 import type { BaseDataType, StringOrNumber } from 'easy-fns-ts'
-import type { ExtractPropTypes } from 'vue'
+import type { ExtractPropTypes, PropType } from 'vue'
 import { omit } from 'lodash-es'
+import { defineComponent, ref, watch } from 'vue'
 
 export const WithValueProps = {
   value: [String, Number, Boolean, Array] as PropType<

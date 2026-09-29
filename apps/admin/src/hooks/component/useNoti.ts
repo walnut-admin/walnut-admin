@@ -1,6 +1,8 @@
 import type { NotificationOptions, NotificationPlacement } from 'naive-ui'
 import type { CSSProperties } from 'vue'
 import { formatTime } from 'easy-fns-ts'
+import { useAppEnvTitle } from '@/hooks/app/useAppEnv'
+import { useAppStoreNaive } from '@/store/modules/app/app-naive'
 
 export function useAppNotification() {
   return window.$notification

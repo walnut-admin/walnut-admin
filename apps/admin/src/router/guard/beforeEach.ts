@@ -1,6 +1,12 @@
 import type { Router } from 'vue-router'
 import { isNil, isUndefined } from 'lodash-es'
 import { AppCoreFn1 } from '@/core'
+import { useAppRouter } from '@/router/index'
+import { useAppStoreLock } from '@/store/modules/app/app-lock'
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
+import { useAppStoreRoute } from '@/store/modules/app/app-route'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
+import { useAppStoreUserProfile } from '@/store/modules/user/user-profile'
 import { mainoutConst, mainoutMissingPermissionsRoute } from '../routes/mainout'
 
 export function createBeforeEachGuard(router: Router) {

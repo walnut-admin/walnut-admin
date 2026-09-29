@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useNow } from '@vueuse/core'
 import Battery from './components/Battery.vue'
 import FPS from './components/FPS.vue'
 import Network from './components/Network.vue'

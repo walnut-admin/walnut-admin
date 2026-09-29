@@ -1,5 +1,8 @@
 <script lang="ts" setup>
+import type { ValueOfAppConstTransitionName } from '@/const/transition'
 import { random } from 'lodash-es'
+import { computed, ref } from 'vue'
+import { useForm } from '@/components/UI/Form'
 
 defineOptions({
   name: 'TransitionDemo',

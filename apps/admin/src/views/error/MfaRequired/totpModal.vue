@@ -2,8 +2,12 @@
 import type { InputInst } from 'naive-ui'
 import type { IResponseData } from '@/api/response'
 import { downloadByBlob } from '@walnut/client/browser/file/download'
+import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import { authMfaTotpBindAPI, authMfaTotpGenerateAPI, authMfaTotpUnbindAPI } from '@/api/auth/mfa'
 import { name } from '@/const/package-info'
+import { useAppConfirm } from '@/hooks/component/useConfirm'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreFingerprint } from '@/store/modules/app/app-fingerprint'
 
 defineOptions({
   name: 'MfaTotpModal',

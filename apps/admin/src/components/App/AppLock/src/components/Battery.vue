@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { useSharedBattery } from '@walnut/client/hooks/vueuse/useBattery'
+import { computed } from 'vue'
 
 defineOptions({
   name: 'WAppLockBattery',

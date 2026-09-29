@@ -1,3 +1,5 @@
+import { useScriptTag } from '@vueuse/core'
+
 function getDebugInfo(name: string, attribution: any) {
   if (!attribution)
     return { debug_target: '(not set)' }

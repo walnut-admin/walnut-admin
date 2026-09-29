@@ -1,7 +1,10 @@
 <script lang="ts" setup>
 import type { VerifyAuthMethod, VerifyAuthMethodType, VerifyAuthOptions, VerifyAuthStep } from './types'
+import { computed, provide, ref, useTemplateRef } from 'vue'
 import { authMfaTotpVerifyAPI } from '@/api/auth/mfa'
 import { bindUserIdentityAPI, checkUserIdentityAPI, verifyUserIdentityAPI } from '@/api/system/user_identity'
+import { useAppI18n } from '@/locales/index'
+import { useStoreCompVerifyAuth } from '@/store/modules/component/comp-verify-auth'
 import IdentityInput from './components/IdentityInput.vue'
 import MethodSelect from './components/MethodSelect.vue'
 import VerifyCode from './components/VerifyCode.vue'

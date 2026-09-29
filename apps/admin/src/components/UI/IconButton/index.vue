@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { ICompUIIconButtonProps } from '.'
+import { createReusableTemplate } from '@vueuse/core'
 
 defineOptions({
   name: 'WCompUIIconButton',

@@ -1,5 +1,10 @@
 import type { InternalAxiosRequestConfig } from 'axios'
 import { cloneDeep, get, isArray, set } from 'lodash-es'
+import { AppConstRequestHeaders } from '@/const/app'
+import { useAppStoreFingerprint } from '@/store/modules/app/app-fingerprint'
+import { useAppStoreLocale } from '@/store/modules/app/app-locale'
+import { useAppStoreSecurity } from '@/store/modules/app/app-security'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 import { setTokenHeaderWithConfig } from '../../utils'
 import { encryptRequestValue } from './crypto'
 

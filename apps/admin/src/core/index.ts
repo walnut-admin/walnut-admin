@@ -1,6 +1,10 @@
 import { getPermissionsAPI } from '@/api/auth'
+import { AppRouter } from '@/router/index'
 import { layoutConst } from '@/router/routes/builtin'
 import { buildRoutes } from '@/router/utils/route'
+import { useAppStoreMenu } from '@/store/modules/app/app-menu'
+import { useAppStoreTab } from '@/store/modules/app/app-tab'
+import { useAppStoreUserPermission } from '@/store/modules/user/user-permission'
 
 /**
  * @description App Core Function 1 - Routes & Menus & KeepAliveRouteNameList. Will add permissions handle logic here later.

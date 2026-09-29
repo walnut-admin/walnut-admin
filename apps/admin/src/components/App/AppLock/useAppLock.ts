@@ -1,4 +1,10 @@
 import type { EffectScope } from 'vue'
+import type { ValueOfAppConstLockMode } from '@/const/app'
+import { debouncedWatch, tryOnUnmounted, useDocumentVisibility, useIdle, usePageLeave } from '@vueuse/core'
+import { effectScope, watch } from 'vue'
+import { AppConstLockMode } from '@/const/app'
+import { useAppRouter } from '@/router/index'
+import { useAppStoreLock } from '@/store/modules/app/app-lock'
 
 export function useAppLock() {
   let lockScope: EffectScope | null = null

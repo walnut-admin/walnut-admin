@@ -1,6 +1,8 @@
 import type { RouteRecordSingleView } from 'vue-router'
 import type { IStoreApp } from '@/store/types'
 import { defineStore } from 'pinia'
+import { getCurrentInstance } from 'vue'
+import { useAppRouter } from '@/router/index'
 import { layoutConst } from '@/router/routes/builtin'
 import { mainoutConst, mainoutRoutes } from '@/router/routes/mainout'
 import { StoreKeys } from '../../constant'

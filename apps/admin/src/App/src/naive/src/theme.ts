@@ -2,6 +2,11 @@ import type { GlobalThemeOverrides, ThemeCommonVars } from 'naive-ui'
 import { darken, lighten, saturate } from 'colorizr'
 import { merge } from 'lodash-es'
 import { darkTheme, lightTheme } from 'naive-ui'
+import { computed } from 'vue'
+import { AppConstCVD } from '@/const/app'
+import { isDark } from '@/hooks/app/useAppDark'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 
 const appStoreSettingDev = useAppStoreSettingDev()
 const userStorePreference = useAppStoreUserPreference()

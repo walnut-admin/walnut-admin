@@ -1,5 +1,9 @@
 <script lang="ts" setup>
 import type { Fn } from '@walnut/types/universal'
+import { useAppConfirm } from '@/hooks/component/useConfirm'
+import { useAppMsgError, useAppMsgInfo, useAppMsgSuccess, useAppMsgWarning } from '@/hooks/component/useMessage'
+import { useAppNotiError, useAppNotiInfo, useAppNotiSuccess, useAppNotiWarning } from '@/hooks/component/useNoti'
+import { useAppStoreNaive } from '@/store/modules/app/app-naive'
 
 defineOptions({
   name: 'NaiveMsgDemo',

@@ -1,6 +1,7 @@
 import type { RouteRecordNameGeneric } from 'vue-router'
 import type { IStoreApp } from '@/store/types'
 import { defineStore } from 'pinia'
+import { getCurrentInstance } from 'vue'
 import { StoreKeys } from '../../constant'
 import { store } from '../../pinia'
 

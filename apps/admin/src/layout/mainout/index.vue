@@ -1,5 +1,9 @@
 <script lang="ts" setup>
+import { computed, watch } from 'vue'
+import { useAppRouter } from '@/router/index'
 import { mainoutRoutes } from '@/router/routes/mainout'
+import { useAppStoreSettingBackend } from '@/store/modules/app/app-setting-backend'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 import { isDev } from '@/utils/constant/vue'
 
 defineOptions({

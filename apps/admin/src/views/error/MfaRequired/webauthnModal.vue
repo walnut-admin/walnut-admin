@@ -4,10 +4,14 @@ import type {
 } from '@simplewebauthn/browser'
 import type { InputInst } from 'naive-ui'
 import { startRegistration } from '@simplewebauthn/browser'
+import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import {
   authMfaWebauthnRegisterOptionsAPI,
   authMfaWebauthnRegisterVerifyAPI,
 } from '@/api/auth/mfa'
+import { useAppMsgWarning } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreFingerprint } from '@/store/modules/app/app-fingerprint'
 import { getWebAuthnErrorMessage } from './shared'
 
 defineOptions({

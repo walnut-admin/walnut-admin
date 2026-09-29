@@ -1,6 +1,12 @@
 <script lang="ts" setup>
 import type { IStoreUser } from '@/store/types'
+import { computed, ref } from 'vue'
 import { updateThemePreferenceAPI } from '@/api/system/user_preference'
+import { useForm } from '@/components/UI/Form'
+import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 
 defineOptions({
   name: 'WMeTabPreferenceTheme',

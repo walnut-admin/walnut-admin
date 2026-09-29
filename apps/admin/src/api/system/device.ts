@@ -3,6 +3,7 @@ import type { IRequestPayload } from '../request'
 import type { IResponseData } from '../response'
 import { getCPUCoreCount, getGPUArchitecture, getIsInIncognitoMode, getMemoryGB } from '@walnut/client/browser/shared'
 import { SystemEndpointRoutes } from '@walnut/contract'
+import { useAppStoreFingerprint } from '@/store/modules/app/app-fingerprint'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 

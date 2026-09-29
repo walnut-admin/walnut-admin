@@ -1,4 +1,6 @@
 import { useSharedPreferredReducedMotion } from '@walnut/client/hooks/vueuse/usePreferredReducedMotion'
+import { watch, watchEffect } from 'vue'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 
 export function useAppReducedMotion() {
   const userStorePreference = useAppStoreUserPreference()

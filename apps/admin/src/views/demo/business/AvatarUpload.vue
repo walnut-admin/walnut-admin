@@ -1,5 +1,8 @@
 <script lang="ts" setup>
 import type { WAvatarUploadInst } from '@/components/Business/AvatarUpload'
+import { ref, useTemplateRef } from 'vue'
+import { useAppMsgInfo, useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useAppStoreUserProfile } from '@/store/modules/user/user-profile'
 
 defineOptions({
   name: 'AvatarUploadDemo',

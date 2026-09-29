@@ -1,3 +1,7 @@
+import { sendUserMonitorBeacon } from '@/hooks/web/useMonitor'
+import { useAppStoreFingerprint } from '@/store/modules/app/app-fingerprint'
+import { useAppStoreGeoIP } from '@/store/modules/app/app-geo-ip'
+import { useAppStoreSecurity } from '@/store/modules/app/app-security'
 import { setupGoogleAnalytics } from './analytics'
 
 export async function setupAppScripts() {

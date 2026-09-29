@@ -6,6 +6,8 @@ import { detectDeviceType } from '@walnut/client/browser/shared'
 import { enhancedBase64LocalStorage } from '@walnut/client/persistent/enhance/index'
 import { useAppStorageSync } from '@walnut/client/persistent/storage/sync'
 import { defineStore } from 'pinia'
+import { getCurrentInstance } from 'vue'
+import { AppConstPersistKey } from '@/const/persistent'
 import { StoreKeys } from '../../constant'
 import { store } from '../../pinia'
 

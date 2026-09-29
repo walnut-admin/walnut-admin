@@ -1,6 +1,11 @@
 <script lang="ts" setup>
 import type { IStoreApp } from '@/store/types'
 import { useSortable } from '@vueuse/integrations/useSortable'
+import { computed, useTemplateRef, watchEffect } from 'vue'
+import { AppConstTabStyleMode } from '@/const/tab'
+import { useAppStoreTab } from '@/store/modules/app/app-tab'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 import { getTabsContext } from '../hooks/useTabsContext'
 import TabsItem from './tabsItem.vue'
 

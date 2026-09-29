@@ -1,5 +1,11 @@
 <script lang="ts" setup>
 import { useState } from '@walnut/client/hooks/core/useState'
+import { computed, ref } from 'vue'
+import { useForm } from '@/components/UI/Form'
+import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 
 defineOptions({
   name: 'WMeTabSecurityTab1Opaque',

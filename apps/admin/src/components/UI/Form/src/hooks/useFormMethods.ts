@@ -1,3 +1,4 @@
+import type { Ref } from 'vue'
 import type { WForm } from '../types'
 
 export function useFormMethods<T>(formRef: Ref<WForm.Inst.NFormInst | null>) {

@@ -1,3 +1,4 @@
+import type { Ref } from 'vue'
 import type { WTable } from '../types'
 
 export function useTableMethods(tableRef: Ref<WTable.Inst.NDataTableInst | null>) {

@@ -1,3 +1,5 @@
+import { ref } from 'vue'
+
 export function useTabsContextMenu() {
   const x = ref(0)
   const y = ref(0)

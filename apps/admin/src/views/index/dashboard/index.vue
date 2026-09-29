@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import type { MaybeElement } from '@vueuse/core'
+import { useAnimate } from '@vueuse/core'
+import { shallowRef } from 'vue'
 
 defineOptions({
   name: 'Dashboard',

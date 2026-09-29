@@ -3,6 +3,8 @@ import type { CountryCode } from 'libphonenumber-js'
 import type { FormValidationStatus, InputInst } from 'naive-ui'
 import type { ICompExtraPhoneNumberInputProps, ICompExtraPhoneNumberInputUpdateParams } from '.'
 import { getExampleNumber, parsePhoneNumberFromString } from 'libphonenumber-js'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
+import { useAppI18n } from '@/locales/index'
 import { getExamplePhoneNumber, phoneNumberExample } from './utils'
 
 defineOptions({

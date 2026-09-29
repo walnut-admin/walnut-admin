@@ -1,5 +1,8 @@
 <script lang="ts" setup>
 import type { ICompBusinessDictProps } from '.'
+import { computed, onBeforeMount } from 'vue'
+import { getDictDataFromMap, useDict } from '@/hooks/core/useDict'
+import { useAppI18n } from '@/locales/index'
 
 defineOptions({
   name: 'WCompBusinessDict',

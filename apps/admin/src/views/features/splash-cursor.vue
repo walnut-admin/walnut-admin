@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useEventListener, useFps } from '@vueuse/core'
+import { onMounted, onUnmounted, useTemplateRef } from 'vue'
 /**
  * @description source code: https://21st.dev/davidhzdev/splash-cursor/default
  * Transformed to vue3 code by deepseek

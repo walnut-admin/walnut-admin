@@ -2,9 +2,13 @@
 import type { DataTableColumn } from 'naive-ui'
 import type { ICompUITableHooksAPIListParams } from './hooks/useTableAPIListParams'
 import type { WTable } from './types'
+import { useElementSize } from '@vueuse/core'
 import { useProps } from '@walnut/client/hooks/core/useProps'
-
 import { omit } from 'lodash-es'
+import { computed, useTemplateRef } from 'vue'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 import TableHeader from './components/header/index.vue'
 
 import QueryForm from './components/queryForm.vue'

@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { watch } from 'vue'
+import { useRouterParam } from '@/hooks/web/useRouterParam'
 import AccountSettingTabAccount from './tabs/account.vue'
 import AccountSettingTabBasic from './tabs/basic.vue'
 import AccountSettingTabPreference from './tabs/preference/index.vue'

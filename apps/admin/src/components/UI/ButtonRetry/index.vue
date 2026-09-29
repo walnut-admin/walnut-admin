@@ -2,6 +2,8 @@
 import type { Fn } from '@walnut/types/universal'
 import type { ICompUIButtonRetryProps } from '.'
 import type { ICompUIButtonProps } from '../Button'
+import { useAttrs } from 'vue'
+import { useCountdownStorage } from '@/hooks/component/useCountdown'
 
 defineOptions({
   name: 'WCompUIButtonRetry',

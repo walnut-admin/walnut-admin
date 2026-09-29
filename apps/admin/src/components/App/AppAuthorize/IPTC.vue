@@ -1,6 +1,10 @@
 <script lang="ts" setup>
 import type { FormItemRule } from 'naive-ui'
 import type { IAppAuthorizeIPTCProps } from '.'
+import { ref, watch } from 'vue'
+import { useAppMsgError } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreUserPermission } from '@/store/modules/user/user-permission'
 
 defineOptions({
   name: 'AppAuthorizeInputPermissionToConfirm',

@@ -1,6 +1,8 @@
 <script lang="ts" setup generic="T">
 import type { ICompUIDescriptionsItem } from '@/components/UI/Descriptions'
 import { get } from 'lodash-es'
+import { computed } from 'vue'
+import { useAppI18n } from '@/locales/index'
 import { useFormContext } from '../../../hooks/useFormContext'
 import { formItemUtils } from '../../../utils'
 

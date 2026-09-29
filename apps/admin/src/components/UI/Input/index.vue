@@ -2,6 +2,7 @@
 import type { InputInst } from 'naive-ui'
 import type { ICompUIInputProps } from '.'
 import { clearIllegalChars, upperFirst } from 'easy-fns-ts'
+import { useTemplateRef } from 'vue'
 
 defineOptions({
   name: 'WCompUIInput',

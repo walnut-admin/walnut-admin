@@ -1,5 +1,8 @@
 <script lang="ts" setup>
 import type { IResponseData } from '@/api/response'
+import { onBeforeMount, ref, useTemplateRef } from 'vue'
+import { useAppMsgWarning } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
 import WAccountSettingsTabSecurityTab3Device from './device.vue'
 
 defineOptions({

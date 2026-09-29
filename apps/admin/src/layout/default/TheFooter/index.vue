@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
+
 const appStoreSettingDev = useAppStoreSettingDev()
 const userStorePreference = useAppStoreUserPreference()
 </script>

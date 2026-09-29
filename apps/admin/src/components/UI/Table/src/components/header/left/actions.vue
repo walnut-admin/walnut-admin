@@ -1,6 +1,9 @@
 <script lang="ts" setup generic="T">
 import type { WTable } from '../../../types'
 import { sortBy } from 'lodash-es'
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useAppStoreUserPermission } from '@/store/modules/user/user-permission'
 
 import { useTableContext } from '../../../hooks/useTableContext'
 

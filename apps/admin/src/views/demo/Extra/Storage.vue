@@ -4,6 +4,7 @@ import { removeStorageItemsContaining } from '@walnut/client/persistent/shared'
 import { useAppStorageAsync } from '@walnut/client/persistent/storage/async'
 import { useAppStorageSync } from '@walnut/client/persistent/storage/sync'
 import { getRandomInt } from 'easy-fns-ts'
+import { onUnmounted } from 'vue'
 
 defineOptions({
   name: 'StorageDemo',

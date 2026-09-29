@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 import type { WHomeNumberCardProps } from './types'
+import { nextTick, ref, watch } from 'vue'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 
 defineOptions({
   name: 'WHomeNumberCard',

@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { ref } from 'vue'
 import { readAppLoggerMoreAPI } from '@/api/app/logger'
 
 // TODO fucking disaster

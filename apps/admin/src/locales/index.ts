@@ -1,6 +1,7 @@
 import type { App } from 'vue'
 import type { I18n, Locale } from 'vue-i18n'
-import { createI18n } from 'vue-i18n'
+import { createI18n, useI18n } from 'vue-i18n'
+import { useAppStoreLocale } from '@/store/modules/app/app-locale'
 
 const i18n = createI18n({
   legacy: false,

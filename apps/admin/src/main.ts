@@ -2,6 +2,8 @@
 // TODO build error, did not figure out which plugin conflict
 // import '~console/theme-detect'
 
+import { createApp } from 'vue'
+
 import { setupStorageMigrations } from '@/utils/persistent/migrate'
 import { App, setupApp } from './App'
 // unocss
@@ -14,8 +16,6 @@ import '@unocss/reset/tailwind-compat.css'
 import 'animate.css'
 // custom scss
 import './assets/styles/main.scss'
-
-;
 
 (async () => {
   const app = createApp(App)

@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { reactive } from 'vue'
 import { options } from '../data'
 
 defineOptions({

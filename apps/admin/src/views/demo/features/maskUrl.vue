@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useRouterQuery } from '@/hooks/web/useRouterQuery'
+
 defineOptions({
   name: 'FeatureMaskUrl',
 })

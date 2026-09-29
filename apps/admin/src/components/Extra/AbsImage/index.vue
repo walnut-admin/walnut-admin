@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import type { UploadFileInfo } from 'naive-ui'
+import { useObjectUrl } from '@vueuse/core'
 import { blobToBase64 } from '@walnut/client/browser/file/base64'
+import { shallowRef } from 'vue'
 
 defineOptions({
   name: 'WCompExtraAbsImage',

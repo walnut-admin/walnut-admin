@@ -1,3 +1,6 @@
+import { useAppResize } from '@/hooks/app/useAppResize'
+import { useAppTitle } from '@/hooks/app/useAppTitle'
+import { useAppUserMonitor } from '@/hooks/web/useMonitor'
 import { useAppColorMode } from './useAppColorMode'
 import { useAppCvdMode } from './useAppCvdMode'
 import { useAppDark } from './useAppDark'

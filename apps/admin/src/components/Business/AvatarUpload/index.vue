@@ -1,6 +1,9 @@
 <script lang="ts" setup>
 import type { WCropperInst } from '@/components/Vendor/Cropper'
 import { imgUrlToBase64 } from '@walnut/client/browser/file/base64'
+import { ref, useTemplateRef, watchEffect } from 'vue'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreUserProfile } from '@/store/modules/user/user-profile'
 import { AliOSSClient } from '../../Vendor/OSSUpload/client'
 
 defineOptions({

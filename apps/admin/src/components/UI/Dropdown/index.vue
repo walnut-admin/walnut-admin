@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { ICompUIDropdownInst, ICompUIDropdownProps } from '.'
 import { useProps } from '@walnut/client/hooks/core/useProps'
+import { ref } from 'vue'
 
 defineOptions({
   name: 'WCompUIDropdown',

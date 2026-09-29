@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useTable } from '@/components/UI/Table'
 import { openExternalLink } from '@/utils/window/open'
 
 defineOptions({

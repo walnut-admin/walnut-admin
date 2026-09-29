@@ -2,7 +2,13 @@
 import type { IModels } from '@/api/models'
 import type { WAvatarUploadInst } from '@/components/Business/AvatarUpload'
 import { omit, pick } from 'lodash-es'
+import { computed, ref, useTemplateRef } from 'vue'
 import { updateProfileAPI } from '@/api/system/user_me'
+import { useForm } from '@/components/UI/Form'
+import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useAppI18n } from '@/locales/index'
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { useAppStoreUserProfile } from '@/store/modules/user/user-profile'
 import WAvatar from '../components/avatar.vue'
 
 defineOptions({

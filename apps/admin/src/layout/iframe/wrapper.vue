@@ -1,6 +1,12 @@
 <script lang="tsx" setup>
+import type { PropType } from 'vue'
 import type { IStoreApp } from '@/store/types'
+import { createReusableTemplate } from '@vueuse/core'
+import { computed, defineComponent } from 'vue'
 import WTransition from '@/components/Extra/Transition'
+import { useAppRouter } from '@/router/index'
+import { useAppStoreTab } from '@/store/modules/app/app-tab'
+import { useAppStoreSettingScope } from '@/store/modules/setting/setting-scope'
 import WIFrame from './index.vue'
 
 defineOptions({

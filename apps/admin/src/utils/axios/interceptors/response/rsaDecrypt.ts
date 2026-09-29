@@ -2,6 +2,7 @@ import type { ResponseBase } from '@walnut/contract'
 import type { AxiosResponse } from 'axios'
 import type { IModels } from '@/api/models'
 import { SingletonPromise } from '@walnut/utils/queue'
+import { useAppStoreSecurity } from '@/store/modules/app/app-security'
 
 const appStoreSecurity = useAppStoreSecurity()
 const capJSQueue = new SingletonPromise<string>()

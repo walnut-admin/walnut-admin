@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { IModels } from '@/api/models'
 import { logAuthAPI } from '@/api/system/log'
+import { useCRUD } from '@/components/Advanced/CRUD'
 
 defineOptions({
   name: 'LogAuth',

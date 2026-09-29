@@ -1,5 +1,13 @@
 <script lang="ts" setup>
 import type { IStoreApp } from '@/store/types'
+import { useElementHover } from '@vueuse/core'
+import { computed, useTemplateRef } from 'vue'
+import { AppConstTabAffixMode, AppConstTabCloseMode } from '@/const/tab'
+import { useAppI18n } from '@/locales/index'
+import { useAppRouter } from '@/router/index'
+import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
+import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
 import { getTabsContext } from '../hooks/useTabsContext'
 
 defineOptions({

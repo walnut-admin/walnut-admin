@@ -2,6 +2,7 @@
 import type { Fn } from '@walnut/types/universal'
 import type { ICompExtraVerifyCodeProps } from '.'
 import { useFormItem } from 'naive-ui/es/_mixins'
+import { nextTick, ref, useTemplateRef, watch } from 'vue'
 
 defineOptions({
   name: 'WCompExtraVerifyCode',

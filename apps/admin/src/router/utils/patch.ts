@@ -1,6 +1,7 @@
 import type { Router, RouteRecordNameGeneric, RouteRecordRaw } from 'vue-router'
 import { deflateSync, strToU8 } from 'fflate'
 import { Base64 } from 'js-base64'
+import { useAppStoreSettingScope } from '@/store/modules/setting/setting-scope'
 
 function maskRoute(routeObj: any) {
   // 1. Convert to string

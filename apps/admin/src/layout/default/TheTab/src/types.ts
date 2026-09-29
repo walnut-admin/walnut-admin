@@ -1,6 +1,8 @@
 import type { Fn } from '@walnut/types/universal'
 import type { Nullable } from 'easy-fns-ts'
+import type { ComputedRef, Ref } from 'vue'
 import type { ICompExtraScrollbarInst } from '@/components/Extra/Scrollbar'
+import type { ValueOfAppConstTabDeleteType } from '@/const/tab'
 import type { IStoreApp } from '@/store/types'
 
 export interface AppTabUtilListItem {

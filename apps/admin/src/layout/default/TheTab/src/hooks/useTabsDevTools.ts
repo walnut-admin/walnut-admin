@@ -1,4 +1,5 @@
 import type { IStoreApp } from '@/store/types'
+import { ref } from 'vue'
 
 export function useTabsDevTools() {
   const devToolShow = ref(false)

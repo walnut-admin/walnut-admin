@@ -1,4 +1,9 @@
+import { useTitle } from '@vueuse/core'
 import { useSharedDocumentVisibility } from '@walnut/client/hooks/vueuse/useDocumentVisibility'
+import { watch } from 'vue'
+import { useAppEnvTitle } from '@/hooks/app/useAppEnv'
+import { useAppI18n } from '@/locales/index'
+import { useAppRouter } from '@/router/index'
 /**
  * @description reactive document title
  */

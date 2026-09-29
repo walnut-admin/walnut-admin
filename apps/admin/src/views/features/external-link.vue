@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import { useAppRouter } from '@/router/index'
 import { openExternalLink } from '@/utils/window/open'
 
 defineOptions({

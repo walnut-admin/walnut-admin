@@ -1,5 +1,6 @@
 import type { OptionDataItem, Recordable } from 'easy-fns-ts'
 import { getBoolean } from '@walnut/client/browser/shared'
+import { AppConstCacheKeyStrategy, AppConstMenuTernal, AppConstMenuType } from '@/const/menu'
 
 /**
  * @link https://stackoverflow.com/questions/47062922/how-to-get-all-keys-with-values-from-nested-objects
