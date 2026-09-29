@@ -65,22 +65,6 @@
   },
   {
     "_id": {
-      "$oid": "6191d1c46066b81ab7b7bf9d"
-    },
-    "value": "展开",
-    "key": "app.base.expand",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2025-06-13T07:59:39.761Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-15T03:19:32.413Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "6191d1c46066b81ab7b7bf9c"
     },
     "value": "Expand",
@@ -90,6 +74,22 @@
     },
     "updatedAt": {
       "$date": "2025-06-13T07:59:39.762Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-15T03:19:32.413Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6191d1c46066b81ab7b7bf9d"
+    },
+    "value": "展开",
+    "key": "app.base.expand",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "updatedAt": {
+      "$date": "2025-06-13T07:59:39.761Z"
     },
     "createdAt": {
       "$date": "2021-11-15T03:19:32.413Z"
@@ -1057,6 +1057,70 @@
   },
   {
     "_id": {
+      "$oid": "61949b8e355587f69782babc"
+    },
+    "createdAt": {
+      "$date": "2021-11-17T06:05:02.099Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T06:05:02.099Z"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "sys.menu.dashboard",
+    "value": "Dashboard"
+  },
+  {
+    "_id": {
+      "$oid": "61949b8e355587f69782babd"
+    },
+    "createdAt": {
+      "$date": "2021-11-17T06:05:02.099Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T06:05:02.099Z"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "sys.menu.dashboard",
+    "value": "概要面板"
+  },
+  {
+    "_id": {
+      "$oid": "61949b9e355587f69782bac4"
+    },
+    "createdAt": {
+      "$date": "2021-11-17T06:05:18.890Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T06:05:18.890Z"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "sys.menu.auth",
+    "value": "Authentication"
+  },
+  {
+    "_id": {
+      "$oid": "61949b9e355587f69782bac5"
+    },
+    "createdAt": {
+      "$date": "2021-11-17T06:05:18.890Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T06:05:18.890Z"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "sys.menu.auth",
+    "value": "认证"
+  },
+  {
+    "_id": {
       "$oid": "61949bbc355587f69782bacc"
     },
     "value": "System Manage",
@@ -1377,6 +1441,38 @@
   },
   {
     "_id": {
+      "$oid": "61949d70355587f69782bb57"
+    },
+    "createdAt": {
+      "$date": "2021-11-17T06:13:04.835Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T06:13:04.835Z"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "sys.menu.comp.form",
+    "value": "Form"
+  },
+  {
+    "_id": {
+      "$oid": "61949d70355587f69782bb58"
+    },
+    "createdAt": {
+      "$date": "2021-11-17T06:13:04.835Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T06:13:04.835Z"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "sys.menu.comp.form",
+    "value": "表单"
+  },
+  {
+    "_id": {
       "$oid": "61949e34355587f69782bbaf"
     },
     "value": "Axios",
@@ -1601,6 +1697,70 @@
   },
   {
     "_id": {
+      "$oid": "61949f49355587f69782bbf7"
+    },
+    "createdAt": {
+      "$date": "2021-11-17T06:20:57.477Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T06:20:57.477Z"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "sys.menu.link.vite",
+    "value": "Vite"
+  },
+  {
+    "_id": {
+      "$oid": "61949f49355587f69782bbf8"
+    },
+    "createdAt": {
+      "$date": "2021-11-17T06:20:57.477Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T06:20:57.477Z"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "sys.menu.link.vite",
+    "value": "Vite"
+  },
+  {
+    "_id": {
+      "$oid": "61949f56355587f69782bbff"
+    },
+    "createdAt": {
+      "$date": "2021-11-17T06:21:10.702Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T06:21:10.702Z"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "sys.menu.link.vue3",
+    "value": "Vue Next"
+  },
+  {
+    "_id": {
+      "$oid": "61949f56355587f69782bc00"
+    },
+    "createdAt": {
+      "$date": "2021-11-17T06:21:10.702Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T06:21:10.702Z"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "sys.menu.link.vue3",
+    "value": "Vue Next"
+  },
+  {
+    "_id": {
       "$oid": "61949f64355587f69782bc07"
     },
     "value": "Vue Router Next",
@@ -1662,6 +1822,38 @@
     "createdAt": {
       "$date": "2021-11-17T06:21:38.199Z"
     }
+  },
+  {
+    "_id": {
+      "$oid": "61949f80355587f69782bc17"
+    },
+    "createdAt": {
+      "$date": "2021-11-17T06:21:52.517Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T06:21:52.517Z"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "sys.menu.link.naiveui",
+    "value": "Naive UI"
+  },
+  {
+    "_id": {
+      "$oid": "61949f80355587f69782bc18"
+    },
+    "createdAt": {
+      "$date": "2021-11-17T06:21:52.517Z"
+    },
+    "updatedAt": {
+      "$date": "2021-11-17T06:21:52.517Z"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "sys.menu.link.naiveui",
+    "value": "Naive UI"
   },
   {
     "_id": {
@@ -2433,6 +2625,38 @@
   },
   {
     "_id": {
+      "$oid": "6199c9251170784ae2eb1d3a"
+    },
+    "value": "App Settings",
+    "key": "app.settings.title",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:20:53.733Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:20:53.733Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199c9251170784ae2eb1d3b"
+    },
+    "value": "全局设置",
+    "key": "app.settings.title",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:20:53.733Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:20:53.733Z"
+    }
+  },
+  {
+    "_id": {
       "$oid": "6199c9ab1170784ae2eb1d42"
     },
     "value": "App Relatives",
@@ -2589,6 +2813,166 @@
     },
     "createdAt": {
       "$date": "2021-11-21T04:25:01.965Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199ccef1170784ae2eb1d8f"
+    },
+    "value": "Show Logo",
+    "key": "form.app.app.showLogo",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:37:03.906Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:37:03.906Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199ccef1170784ae2eb1d90"
+    },
+    "value": "显示logo",
+    "key": "form.app.app.showLogo",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:37:03.906Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:37:03.906Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199cd391170784ae2eb1daa"
+    },
+    "value": "Show Menu",
+    "key": "form.app.app.showMenu",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:38:17.648Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:38:17.648Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199cd391170784ae2eb1dab"
+    },
+    "value": "显示菜单",
+    "key": "form.app.app.showMenu",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:38:17.648Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:38:17.648Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199cd481170784ae2eb1db2"
+    },
+    "value": "Show Header",
+    "key": "form.app.app.showHeader",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:38:32.536Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:38:32.536Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199cd481170784ae2eb1db3"
+    },
+    "value": "显示头部",
+    "key": "form.app.app.showHeader",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:38:32.536Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:38:32.536Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199cd581170784ae2eb1dba"
+    },
+    "value": "Show Tabs",
+    "key": "form.app.app.showTabs",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:38:48.945Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:38:48.945Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199cd581170784ae2eb1dbb"
+    },
+    "value": "显示选项卡",
+    "key": "form.app.app.showTabs",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:38:48.945Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:38:48.945Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199cd6e1170784ae2eb1dc2"
+    },
+    "value": "Show Footer",
+    "key": "form.app.app.showFooter",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:39:10.473Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:39:10.473Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199cd6e1170784ae2eb1dc3"
+    },
+    "value": "显示底部",
+    "key": "form.app.app.showFooter",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:39:10.473Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:39:10.473Z"
     }
   },
   {
@@ -2945,6 +3329,38 @@
   },
   {
     "_id": {
+      "$oid": "6199cf2e1170784ae2eb1e3c"
+    },
+    "value": "Inverted",
+    "key": "form.app.menu.inverted",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:46:38.051Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:46:38.051Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199cf2e1170784ae2eb1e3d"
+    },
+    "value": "反转样式",
+    "key": "form.app.menu.inverted",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:46:38.051Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:46:38.051Z"
+    }
+  },
+  {
+    "_id": {
       "$oid": "6199cfd21170784ae2eb1e8a"
     },
     "value": "Header Height",
@@ -2973,6 +3389,38 @@
     },
     "createdAt": {
       "$date": "2021-11-21T04:49:22.204Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199cfe01170784ae2eb1e92"
+    },
+    "value": "Breadcrumb",
+    "key": "form.app.header.showBreadcrumb",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:49:36.925Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:49:36.925Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199cfe01170784ae2eb1e93"
+    },
+    "value": "显示面包屑",
+    "key": "form.app.header.showBreadcrumb",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:49:36.925Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:49:36.925Z"
     }
   },
   {
@@ -3009,6 +3457,70 @@
   },
   {
     "_id": {
+      "$oid": "6199d00f1170784ae2eb1ea2"
+    },
+    "value": "Locale",
+    "key": "form.app.header.showLocale",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:50:23.719Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:50:23.719Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199d00f1170784ae2eb1ea3"
+    },
+    "value": "显示国际化",
+    "key": "form.app.header.showLocale",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:50:23.719Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:50:23.719Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199d02a1170784ae2eb1eb2"
+    },
+    "value": "Lock",
+    "key": "form.app.header.showLock",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:50:50.900Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:50:50.900Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199d02a1170784ae2eb1eb3"
+    },
+    "value": "显示锁屏",
+    "key": "form.app.header.showLock",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:50:50.900Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:50:50.900Z"
+    }
+  },
+  {
+    "_id": {
       "$oid": "6199d0391170784ae2eb1eba"
     },
     "value": "Search Icon",
@@ -3037,6 +3549,38 @@
     },
     "createdAt": {
       "$date": "2021-11-21T04:51:05.010Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199d0441170784ae2eb1ec2"
+    },
+    "value": "Inverted",
+    "key": "form.app.header.inverted",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:51:16.937Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:51:16.937Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199d0441170784ae2eb1ec3"
+    },
+    "value": "反转样式",
+    "key": "form.app.header.inverted",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T04:51:16.937Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T04:51:16.937Z"
     }
   },
   {
@@ -3297,18 +3841,66 @@
   },
   {
     "_id": {
-      "$oid": "619b255dd1bdf2bddc995c3b"
+      "$oid": "6199d3c91170784ae2eb1f52"
     },
-    "value": "代码 & 兴趣",
-    "key": "app.auth.h1",
+    "value": "Devtool",
+    "key": "form.app.tab.devtool",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T05:06:17.729Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T05:06:17.729Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199d3c91170784ae2eb1f53"
+    },
+    "value": "开发工具",
+    "key": "form.app.tab.devtool",
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
     "updatedAt": {
-      "$date": "2022-09-12T12:45:49.404Z"
+      "$date": "2021-11-21T05:06:17.729Z"
     },
     "createdAt": {
-      "$date": "2021-11-22T05:06:37.504Z"
+      "$date": "2021-11-21T05:06:17.729Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199d6b61170784ae2eb1f82"
+    },
+    "value": "App's env has a higher priority. \\n \nThis is customized for developers.",
+    "key": "form.app.tab.devtool.helpMsg",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T05:28:16.813Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T05:18:46.338Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6199d6b61170784ae2eb1f83"
+    },
+    "value": "应用的环境有着更高的优先级。\\n 此选项是为了不想使用此特性的开发人员而设计。",
+    "key": "form.app.tab.devtool.helpMsg",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "updatedAt": {
+      "$date": "2021-11-21T05:28:16.814Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-21T05:18:46.338Z"
     }
   },
   {
@@ -3319,6 +3911,22 @@
     "key": "app.auth.h1",
     "langId": {
       "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T12:45:49.404Z"
+    },
+    "createdAt": {
+      "$date": "2021-11-22T05:06:37.504Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "619b255dd1bdf2bddc995c3b"
+    },
+    "value": "代码 & 兴趣",
+    "key": "app.auth.h1",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "updatedAt": {
       "$date": "2022-09-12T12:45:49.404Z"
@@ -3841,12 +4449,12 @@
   },
   {
     "_id": {
-      "$oid": "61a479f1351fb855ba6a63bb"
+      "$oid": "61a479f1351fb855ba6a63ba"
     },
-    "value": "Vue特性。利用Name属性缓存页面。",
+    "value": "Vue Features. Using Name to keep alive pages in memory.",
     "key": "form.menu.meta.cache.helpMsg",
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "createdAt": {
       "$date": "2021-11-29T06:57:53.354Z"
@@ -3857,12 +4465,12 @@
   },
   {
     "_id": {
-      "$oid": "61a479f1351fb855ba6a63ba"
+      "$oid": "61a479f1351fb855ba6a63bb"
     },
-    "value": "Vue Features. Using Name to keep alive pages in memory.",
+    "value": "Vue特性。利用Name属性缓存页面。",
     "key": "form.menu.meta.cache.helpMsg",
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "createdAt": {
       "$date": "2021-11-29T06:57:53.354Z"
@@ -4289,12 +4897,12 @@
   },
   {
     "_id": {
-      "$oid": "61a5c0392562b39dd8c1ba3b"
+      "$oid": "61a5c0392562b39dd8c1ba3a"
     },
-    "value": "选择你喜欢的图标！",
+    "value": "Choose your favorite Icon!",
     "key": "comp.iconPicker.title",
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "createdAt": {
       "$date": "2021-11-30T06:10:01.868Z"
@@ -4305,12 +4913,12 @@
   },
   {
     "_id": {
-      "$oid": "61a5c0392562b39dd8c1ba3a"
+      "$oid": "61a5c0392562b39dd8c1ba3b"
     },
-    "value": "Choose your favorite Icon!",
+    "value": "选择你喜欢的图标！",
     "key": "comp.iconPicker.title",
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "createdAt": {
       "$date": "2021-11-30T06:10:01.868Z"
@@ -4481,22 +5089,6 @@
   },
   {
     "_id": {
-      "$oid": "61d6e9834b4bee23c9b782d0"
-    },
-    "value": "关键字",
-    "key": "table.lang.lang",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-01-06T13:07:15.591Z"
-    },
-    "updatedAt": {
-      "$date": "2022-01-08T07:36:27.577Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "61d6e9834b4bee23c9b782cf"
     },
     "value": "Language",
@@ -4509,6 +5101,22 @@
     },
     "updatedAt": {
       "$date": "2022-01-08T07:36:27.578Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "61d6e9834b4bee23c9b782d0"
+    },
+    "value": "关键字",
+    "key": "table.lang.lang",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-01-06T13:07:15.591Z"
+    },
+    "updatedAt": {
+      "$date": "2022-01-08T07:36:27.577Z"
     }
   },
   {
@@ -5185,22 +5793,6 @@
   },
   {
     "_id": {
-      "$oid": "61e80cdf67ad74c06742e3b6"
-    },
-    "value": "关于",
-    "key": "sys.menu.about",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-01-19T13:06:39.410Z"
-    },
-    "updatedAt": {
-      "$date": "2022-01-19T13:06:39.410Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "61e80cdf67ad74c06742e3b5"
     },
     "value": "About",
@@ -5217,18 +5809,18 @@
   },
   {
     "_id": {
-      "$oid": "61ecf0fe73af4bf55fc69ec1"
+      "$oid": "61e80cdf67ad74c06742e3b6"
     },
-    "value": "版本",
-    "key": "desc.about.info.version",
+    "value": "关于",
+    "key": "sys.menu.about",
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
     "createdAt": {
-      "$date": "2022-01-23T06:09:02.493Z"
+      "$date": "2022-01-19T13:06:39.410Z"
     },
     "updatedAt": {
-      "$date": "2022-01-23T06:09:02.493Z"
+      "$date": "2022-01-19T13:06:39.410Z"
     }
   },
   {
@@ -5245,6 +5837,22 @@
     },
     "updatedAt": {
       "$date": "2022-01-23T06:09:02.492Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "61ecf0fe73af4bf55fc69ec1"
+    },
+    "value": "版本",
+    "key": "desc.about.info.version",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-01-23T06:09:02.493Z"
+    },
+    "updatedAt": {
+      "$date": "2022-01-23T06:09:02.493Z"
     }
   },
   {
@@ -5377,6 +5985,38 @@
   },
   {
     "_id": {
+      "$oid": "61ff7276300c657de2c70545"
+    },
+    "value": "Lock when mouse is left",
+    "key": "form.app.app.pageLeaveLock",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "createdAt": {
+      "$date": "2022-02-06T07:02:14.368Z"
+    },
+    "updatedAt": {
+      "$date": "2022-02-06T07:02:14.368Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "61ff7276300c657de2c70546"
+    },
+    "value": "鼠标离开页面锁屏",
+    "key": "form.app.app.pageLeaveLock",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-02-06T07:02:14.368Z"
+    },
+    "updatedAt": {
+      "$date": "2022-02-06T07:02:14.368Z"
+    }
+  },
+  {
+    "_id": {
       "$oid": "61ff72f1300c657de2c7054f"
     },
     "value": "Seconds idle to lock",
@@ -5437,6 +6077,38 @@
     },
     "updatedAt": {
       "$date": "2025-10-17T07:15:36.829Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "61ffd6e0300c657de2c70776"
+    },
+    "value": "Copy Success!",
+    "key": "form.app.app.copy.success",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "createdAt": {
+      "$date": "2022-02-06T14:10:40.348Z"
+    },
+    "updatedAt": {
+      "$date": "2022-02-06T14:10:40.348Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "61ffd6e0300c657de2c70777"
+    },
+    "value": "复制成功",
+    "key": "form.app.app.copy.success",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-02-06T14:10:40.348Z"
+    },
+    "updatedAt": {
+      "$date": "2022-02-06T14:10:40.348Z"
     }
   },
   {
@@ -5601,12 +6273,12 @@
   },
   {
     "_id": {
-      "$oid": "620e52cb5ad19bc054f8ff66"
+      "$oid": "620e52cb5ad19bc054f8ff65"
     },
-    "value": "相关信息",
+    "value": "Relative informations",
     "key": "about.title.info",
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "createdAt": {
       "$date": "2022-02-17T13:51:07.469Z"
@@ -5617,12 +6289,12 @@
   },
   {
     "_id": {
-      "$oid": "620e52cb5ad19bc054f8ff65"
+      "$oid": "620e52cb5ad19bc054f8ff66"
     },
-    "value": "Relative informations",
+    "value": "相关信息",
     "key": "about.title.info",
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "createdAt": {
       "$date": "2022-02-17T13:51:07.469Z"
@@ -6337,12 +7009,12 @@
   },
   {
     "_id": {
-      "$oid": "621e28b52cc67b04e797d573"
+      "$oid": "621e28b52cc67b04e797d572"
     },
-    "value": "序号",
+    "value": "Index",
     "key": "app.base.index",
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "createdAt": {
       "$date": "2022-03-01T14:07:49.302Z"
@@ -6353,12 +7025,12 @@
   },
   {
     "_id": {
-      "$oid": "621e28b52cc67b04e797d572"
+      "$oid": "621e28b52cc67b04e797d573"
     },
-    "value": "Index",
+    "value": "序号",
     "key": "app.base.index",
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "createdAt": {
       "$date": "2022-03-01T14:07:49.302Z"
@@ -6465,22 +7137,6 @@
   },
   {
     "_id": {
-      "$oid": "622470ad0028e424fa18c7c5"
-    },
-    "value": "复制",
-    "key": "app.base.copy",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-03-06T08:28:29.045Z"
-    },
-    "updatedAt": {
-      "$date": "2025-06-13T08:00:03.601Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "622470ad0028e424fa18c7c4"
     },
     "value": "Copy",
@@ -6493,6 +7149,22 @@
     },
     "updatedAt": {
       "$date": "2025-06-13T08:00:03.603Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "622470ad0028e424fa18c7c5"
+    },
+    "value": "复制",
+    "key": "app.base.copy",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-03-06T08:28:29.045Z"
+    },
+    "updatedAt": {
+      "$date": "2025-06-13T08:00:03.601Z"
     }
   },
   {
@@ -6721,12 +7393,12 @@
   },
   {
     "_id": {
-      "$oid": "622c8089d05f1ce6131068ba"
+      "$oid": "622c8089d05f1ce6131068b9"
     },
-    "value": "最后编译时间",
+    "value": "Last build time",
     "key": "desc.about.info.buildTime",
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "createdAt": {
       "$date": "2022-03-12T11:14:17.774Z"
@@ -6737,12 +7409,12 @@
   },
   {
     "_id": {
-      "$oid": "622c8089d05f1ce6131068b9"
+      "$oid": "622c8089d05f1ce6131068ba"
     },
-    "value": "Last build time",
+    "value": "最后编译时间",
     "key": "desc.about.info.buildTime",
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "createdAt": {
       "$date": "2022-03-12T11:14:17.774Z"
@@ -7037,6 +7709,38 @@
     },
     "updatedAt": {
       "$date": "2022-03-24T09:23:27.690Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623c38a151a3642afabd898b"
+    },
+    "value": "IP Address",
+    "key": "table.log.operate.ip",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "createdAt": {
+      "$date": "2022-03-24T09:23:45.772Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-25T11:58:51.458Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623c38a151a3642afabd898c"
+    },
+    "value": "IP地址",
+    "key": "table.log.operate.ip",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-03-24T09:23:45.772Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-25T11:58:51.459Z"
     }
   },
   {
@@ -7777,6 +8481,70 @@
   },
   {
     "_id": {
+      "$oid": "623dadb05c7676f8d9d3efc9"
+    },
+    "value": "Operating System",
+    "key": "table.log.operate.os",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "createdAt": {
+      "$date": "2022-03-25T11:55:28.863Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-25T11:55:28.863Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623dadb05c7676f8d9d3efca"
+    },
+    "value": "操作系统",
+    "key": "table.log.operate.os",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-03-25T11:55:28.864Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-25T11:55:28.864Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623dadba5c7676f8d9d3efd5"
+    },
+    "value": "Browser",
+    "key": "table.log.operate.browser",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "createdAt": {
+      "$date": "2022-03-25T11:55:38.601Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-25T11:55:38.601Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623dadba5c7676f8d9d3efd6"
+    },
+    "value": "浏览器",
+    "key": "table.log.operate.browser",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-03-25T11:55:38.601Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-25T11:55:38.601Z"
+    }
+  },
+  {
+    "_id": {
       "$oid": "623db3da5c7676f8d9d3f0bd"
     },
     "value": "No authority, please concact administrator!",
@@ -7837,6 +8605,38 @@
     },
     "updatedAt": {
       "$date": "2022-03-25T12:27:17.134Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623db839f41c85cde539a84c"
+    },
+    "value": "Location",
+    "key": "table.log.operate.location",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "createdAt": {
+      "$date": "2022-03-25T12:40:25.366Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-25T12:40:25.366Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "623db839f41c85cde539a84d"
+    },
+    "value": "操作地点",
+    "key": "table.log.operate.location",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-03-25T12:40:25.366Z"
+    },
+    "updatedAt": {
+      "$date": "2022-03-25T12:40:25.366Z"
     }
   },
   {
@@ -7997,6 +8797,134 @@
     },
     "updatedAt": {
       "$date": "2022-04-01T08:21:35.635Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6246b629d6c32887258b6c17"
+    },
+    "value": "Signin IP",
+    "key": "table.log.signin.ip",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "createdAt": {
+      "$date": "2022-04-01T08:22:01.300Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-01T08:22:50.900Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6246b629d6c32887258b6c18"
+    },
+    "value": "登录地址",
+    "key": "table.log.signin.ip",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-04-01T08:22:01.300Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-01T08:22:50.901Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6246b648d6c32887258b6c24"
+    },
+    "value": "Signin Location",
+    "key": "table.log.signin.location",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "createdAt": {
+      "$date": "2022-04-01T08:22:32.979Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-01T08:22:32.979Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6246b648d6c32887258b6c25"
+    },
+    "value": "登录地点",
+    "key": "table.log.signin.location",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-04-01T08:22:32.979Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-01T08:22:32.979Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6246b674d6c32887258b6c3c"
+    },
+    "value": "OS",
+    "key": "table.log.signin.os",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "createdAt": {
+      "$date": "2022-04-01T08:23:16.624Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-01T08:23:16.624Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6246b674d6c32887258b6c3d"
+    },
+    "value": "操作系统",
+    "key": "table.log.signin.os",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-04-01T08:23:16.624Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-01T08:23:16.624Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6246b680d6c32887258b6c49"
+    },
+    "value": "Browser",
+    "key": "table.log.signin.browser",
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "createdAt": {
+      "$date": "2022-04-01T08:23:28.137Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-01T08:23:28.137Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6246b680d6c32887258b6c4a"
+    },
+    "value": "浏览器",
+    "key": "table.log.signin.browser",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-04-01T08:23:28.137Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-01T08:23:28.137Z"
     }
   },
   {
@@ -8225,12 +9153,12 @@
   },
   {
     "_id": {
-      "$oid": "624c058c2792806ad6818d61"
+      "$oid": "624c058c2792806ad6818d60"
     },
-    "value": "未知",
+    "value": "Unknown",
     "key": "dict.sex.unknown",
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "createdAt": {
       "$date": "2022-04-05T09:02:04.017Z"
@@ -8241,12 +9169,12 @@
   },
   {
     "_id": {
-      "$oid": "624c058c2792806ad6818d60"
+      "$oid": "624c058c2792806ad6818d61"
     },
-    "value": "Unknown",
+    "value": "未知",
     "key": "dict.sex.unknown",
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "createdAt": {
       "$date": "2022-04-05T09:02:04.017Z"
@@ -9729,12 +10657,12 @@
   },
   {
     "_id": {
-      "$oid": "624c2a53b4cc94bb20c31a8f"
+      "$oid": "624c2a53b4cc94bb20c31a8e"
     },
     "value": "苗族",
     "key": "dict.nation.mh",
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "createdAt": {
       "$date": "2022-04-05T11:38:59.039Z"
@@ -9745,12 +10673,12 @@
   },
   {
     "_id": {
-      "$oid": "624c2a53b4cc94bb20c31a8e"
+      "$oid": "624c2a53b4cc94bb20c31a8f"
     },
     "value": "苗族",
     "key": "dict.nation.mh",
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "createdAt": {
       "$date": "2022-04-05T11:38:59.039Z"
@@ -10081,12 +11009,12 @@
   },
   {
     "_id": {
-      "$oid": "624c2accb4cc94bb20c31b1a"
+      "$oid": "624c2accb4cc94bb20c31b19"
     },
     "value": "哈萨克族",
     "key": "dict.nation.kz",
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "createdAt": {
       "$date": "2022-04-05T11:41:00.698Z"
@@ -10097,12 +11025,12 @@
   },
   {
     "_id": {
-      "$oid": "624c2accb4cc94bb20c31b19"
+      "$oid": "624c2accb4cc94bb20c31b1a"
     },
     "value": "哈萨克族",
     "key": "dict.nation.kz",
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "createdAt": {
       "$date": "2022-04-05T11:41:00.698Z"
@@ -11233,22 +12161,6 @@
   },
   {
     "_id": {
-      "$oid": "624c2cbbb4cc94bb20c31ce8"
-    },
-    "value": "赫哲族",
-    "key": "dict.nation.hz",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:49:15.839Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:49:15.839Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "624c2cbbb4cc94bb20c31ce7"
     },
     "value": "赫哲族",
@@ -11261,6 +12173,22 @@
     },
     "updatedAt": {
       "$date": "2022-04-05T11:49:15.838Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "624c2cbbb4cc94bb20c31ce8"
+    },
+    "value": "赫哲族",
+    "key": "dict.nation.hz",
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "createdAt": {
+      "$date": "2022-04-05T11:49:15.839Z"
+    },
+    "updatedAt": {
+      "$date": "2022-04-05T11:49:15.839Z"
     }
   },
   {
@@ -12609,12 +13537,12 @@
   },
   {
     "_id": {
-      "$oid": "6253f3c1a8ae07abb7d4848a"
+      "$oid": "6253f3c1a8ae07abb7d48489"
     },
-    "value": "获取验证码",
+    "value": "Captcha",
     "key": "comp.verifyInput.send",
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "createdAt": {
       "$date": "2022-04-11T09:24:17.249Z"
@@ -12625,12 +13553,12 @@
   },
   {
     "_id": {
-      "$oid": "6253f3c1a8ae07abb7d48489"
+      "$oid": "6253f3c1a8ae07abb7d4848a"
     },
-    "value": "Captcha",
+    "value": "获取验证码",
     "key": "comp.verifyInput.send",
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "createdAt": {
       "$date": "2022-04-11T09:24:17.249Z"
@@ -13153,12 +14081,12 @@
   },
   {
     "_id": {
-      "$oid": "6258fc156d34af167fe375a1"
+      "$oid": "6258fc156d34af167fe375a0"
     },
-    "value": "个人页",
+    "value": "Personal Center",
     "key": "sys.menu.account",
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "createdAt": {
       "$date": "2022-04-15T05:01:09.595Z"
@@ -13169,12 +14097,12 @@
   },
   {
     "_id": {
-      "$oid": "6258fc156d34af167fe375a0"
+      "$oid": "6258fc156d34af167fe375a1"
     },
-    "value": "Personal Center",
+    "value": "个人页",
     "key": "sys.menu.account",
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "createdAt": {
       "$date": "2022-04-15T05:01:09.595Z"
@@ -14177,22 +15105,6 @@
   },
   {
     "_id": {
-      "$oid": "62fe0b60f40eff2dafd27b05"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.base.next",
-    "value": "下一步",
-    "createdAt": {
-      "$date": "2022-08-18T09:50:24.574Z"
-    },
-    "updatedAt": {
-      "$date": "2026-01-08T07:35:51.017Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "62fe0b60f40eff2dafd27b04"
     },
     "langId": {
@@ -14205,6 +15117,22 @@
     },
     "updatedAt": {
       "$date": "2026-01-08T07:35:51.015Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "62fe0b60f40eff2dafd27b05"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.base.next",
+    "value": "下一步",
+    "createdAt": {
+      "$date": "2022-08-18T09:50:24.574Z"
+    },
+    "updatedAt": {
+      "$date": "2026-01-08T07:35:51.017Z"
     }
   },
   {
@@ -14913,13 +15841,13 @@
   },
   {
     "_id": {
-      "$oid": "630333842e4731539c141325"
+      "$oid": "630333842e4731539c141324"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "form.app.settings.tab.itemTransition",
-    "value": "切换动画",
+    "value": "Item Transition",
     "createdAt": {
       "$date": "2022-08-22T07:43:00.868Z"
     },
@@ -14929,13 +15857,13 @@
   },
   {
     "_id": {
-      "$oid": "630333842e4731539c141324"
+      "$oid": "630333842e4731539c141325"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "form.app.settings.tab.itemTransition",
-    "value": "Item Transition",
+    "value": "切换动画",
     "createdAt": {
       "$date": "2022-08-22T07:43:00.868Z"
     },
@@ -15329,6 +16257,38 @@
   },
   {
     "_id": {
+      "$oid": "631eed4c07ea59129a0bf717"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "sys.menu.cache",
+    "value": "Cache Management",
+    "createdAt": {
+      "$date": "2022-09-12T08:26:52.515Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:26:52.515Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "631eed4c07ea59129a0bf718"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "sys.menu.cache",
+    "value": "缓存管理",
+    "createdAt": {
+      "$date": "2022-09-12T08:26:52.515Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-12T08:26:52.515Z"
+    }
+  },
+  {
+    "_id": {
       "$oid": "631eee4407ea59129a0bf773"
     },
     "langId": {
@@ -15425,13 +16385,13 @@
   },
   {
     "_id": {
-      "$oid": "631f2ac4e082d18a2743e3de"
+      "$oid": "631f2ac4e082d18a2743e3dd"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "app.base.emailAddress",
-    "value": "邮箱地址",
+    "value": "Email Address",
     "createdAt": {
       "$date": "2022-09-12T12:49:08.755Z"
     },
@@ -15441,13 +16401,13 @@
   },
   {
     "_id": {
-      "$oid": "631f2ac4e082d18a2743e3dd"
+      "$oid": "631f2ac4e082d18a2743e3de"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "app.base.emailAddress",
-    "value": "Email Address",
+    "value": "邮箱地址",
     "createdAt": {
       "$date": "2022-09-12T12:49:08.755Z"
     },
@@ -15969,22 +16929,6 @@
   },
   {
     "_id": {
-      "$oid": "632c0c416a4f8e89660c8386"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.monitor.server.cpu.cores",
-    "value": "CPU总核心数",
-    "createdAt": {
-      "$date": "2022-09-22T07:18:25.177Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-22T07:21:17.067Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "632c0c416a4f8e89660c8385"
     },
     "langId": {
@@ -15994,6 +16938,22 @@
     "value": "Total Cores",
     "createdAt": {
       "$date": "2022-09-22T07:18:25.176Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T07:21:17.067Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c0c416a4f8e89660c8386"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.monitor.server.cpu.cores",
+    "value": "CPU总核心数",
+    "createdAt": {
+      "$date": "2022-09-22T07:18:25.177Z"
     },
     "updatedAt": {
       "$date": "2022-09-22T07:21:17.067Z"
@@ -16033,22 +16993,6 @@
   },
   {
     "_id": {
-      "$oid": "632c0ca46a4f8e89660c83a0"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.monitor.server.cpu.speed",
-    "value": "CPU频率",
-    "createdAt": {
-      "$date": "2022-09-22T07:20:04.908Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-22T07:21:22.396Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "632c0ca46a4f8e89660c839f"
     },
     "langId": {
@@ -16065,18 +17009,18 @@
   },
   {
     "_id": {
-      "$oid": "632c0cc56a4f8e89660c83ad"
+      "$oid": "632c0ca46a4f8e89660c83a0"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.monitor.server.cpu.manufacturer",
-    "value": "CPU制造商",
+    "key": "app.monitor.server.cpu.speed",
+    "value": "CPU频率",
     "createdAt": {
-      "$date": "2022-09-22T07:20:37.500Z"
+      "$date": "2022-09-22T07:20:04.908Z"
     },
     "updatedAt": {
-      "$date": "2022-09-22T07:21:28.295Z"
+      "$date": "2022-09-22T07:21:22.396Z"
     }
   },
   {
@@ -16097,18 +17041,18 @@
   },
   {
     "_id": {
-      "$oid": "632c0d156a4f8e89660c83f5"
+      "$oid": "632c0cc56a4f8e89660c83ad"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.monitor.server.cpu",
-    "value": "处理器信息",
+    "key": "app.monitor.server.cpu.manufacturer",
+    "value": "CPU制造商",
     "createdAt": {
-      "$date": "2022-09-22T07:21:57.876Z"
+      "$date": "2022-09-22T07:20:37.500Z"
     },
     "updatedAt": {
-      "$date": "2022-09-22T07:23:05.978Z"
+      "$date": "2022-09-22T07:21:28.295Z"
     }
   },
   {
@@ -16120,6 +17064,22 @@
     },
     "key": "app.monitor.server.cpu",
     "value": "CPU",
+    "createdAt": {
+      "$date": "2022-09-22T07:21:57.876Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T07:23:05.978Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c0d156a4f8e89660c83f5"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.monitor.server.cpu",
+    "value": "处理器信息",
     "createdAt": {
       "$date": "2022-09-22T07:21:57.876Z"
     },
@@ -16161,13 +17121,13 @@
   },
   {
     "_id": {
-      "$oid": "632c0d2f6a4f8e89660c840f"
+      "$oid": "632c0d2f6a4f8e89660c840e"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "app.monitor.server.os",
-    "value": "操作系统信息",
+    "value": "OS",
     "createdAt": {
       "$date": "2022-09-22T07:22:23.368Z"
     },
@@ -16177,13 +17137,13 @@
   },
   {
     "_id": {
-      "$oid": "632c0d2f6a4f8e89660c840e"
+      "$oid": "632c0d2f6a4f8e89660c840f"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "app.monitor.server.os",
-    "value": "OS",
+    "value": "操作系统信息",
     "createdAt": {
       "$date": "2022-09-22T07:22:23.368Z"
     },
@@ -16289,22 +17249,6 @@
   },
   {
     "_id": {
-      "$oid": "632c0d6d6a4f8e89660c8470"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.monitor.server.time",
-    "value": "时间信息",
-    "createdAt": {
-      "$date": "2022-09-22T07:23:25.858Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-22T07:23:25.858Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "632c0d6d6a4f8e89660c846f"
     },
     "langId": {
@@ -16321,18 +17265,18 @@
   },
   {
     "_id": {
-      "$oid": "632c0db66a4f8e89660c847d"
+      "$oid": "632c0d6d6a4f8e89660c8470"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.monitor.server.mem.total",
-    "value": "总内存",
+    "key": "app.monitor.server.time",
+    "value": "时间信息",
     "createdAt": {
-      "$date": "2022-09-22T07:24:38.032Z"
+      "$date": "2022-09-22T07:23:25.858Z"
     },
     "updatedAt": {
-      "$date": "2022-09-22T07:24:38.032Z"
+      "$date": "2022-09-22T07:23:25.858Z"
     }
   },
   {
@@ -16344,6 +17288,22 @@
     },
     "key": "app.monitor.server.mem.total",
     "value": "Total Memory",
+    "createdAt": {
+      "$date": "2022-09-22T07:24:38.032Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T07:24:38.032Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c0db66a4f8e89660c847d"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.monitor.server.mem.total",
+    "value": "总内存",
     "createdAt": {
       "$date": "2022-09-22T07:24:38.032Z"
     },
@@ -16385,22 +17345,6 @@
   },
   {
     "_id": {
-      "$oid": "632c0de16a4f8e89660c8497"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.monitor.server.mem.used",
-    "value": "已用内存",
-    "createdAt": {
-      "$date": "2022-09-22T07:25:21.784Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-22T07:25:21.784Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "632c0de16a4f8e89660c8496"
     },
     "langId": {
@@ -16417,18 +17361,18 @@
   },
   {
     "_id": {
-      "$oid": "632c0dff6a4f8e89660c84a4"
+      "$oid": "632c0de16a4f8e89660c8497"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.monitor.server.mem.available",
-    "value": "可用内存",
+    "key": "app.monitor.server.mem.used",
+    "value": "已用内存",
     "createdAt": {
-      "$date": "2022-09-22T07:25:51.458Z"
+      "$date": "2022-09-22T07:25:21.784Z"
     },
     "updatedAt": {
-      "$date": "2022-09-22T07:25:51.458Z"
+      "$date": "2022-09-22T07:25:21.784Z"
     }
   },
   {
@@ -16449,18 +17393,18 @@
   },
   {
     "_id": {
-      "$oid": "632c0e946a4f8e89660c84b9"
+      "$oid": "632c0dff6a4f8e89660c84a4"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.monitor.server.os.hostname",
-    "value": "主机名",
+    "key": "app.monitor.server.mem.available",
+    "value": "可用内存",
     "createdAt": {
-      "$date": "2022-09-22T07:28:20.801Z"
+      "$date": "2022-09-22T07:25:51.458Z"
     },
     "updatedAt": {
-      "$date": "2022-09-22T07:28:20.801Z"
+      "$date": "2022-09-22T07:25:51.458Z"
     }
   },
   {
@@ -16472,6 +17416,22 @@
     },
     "key": "app.monitor.server.os.hostname",
     "value": "Hostname",
+    "createdAt": {
+      "$date": "2022-09-22T07:28:20.801Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T07:28:20.801Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c0e946a4f8e89660c84b9"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.monitor.server.os.hostname",
+    "value": "主机名",
     "createdAt": {
       "$date": "2022-09-22T07:28:20.801Z"
     },
@@ -16545,22 +17505,6 @@
   },
   {
     "_id": {
-      "$oid": "632c0f896a4f8e89660c84e0"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.monitor.server.os.platform",
-    "value": "平台",
-    "createdAt": {
-      "$date": "2022-09-22T07:32:25.334Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-22T07:32:25.334Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "632c0f896a4f8e89660c84df"
     },
     "langId": {
@@ -16577,18 +17521,18 @@
   },
   {
     "_id": {
-      "$oid": "632c0fb86a4f8e89660c84ed"
+      "$oid": "632c0f896a4f8e89660c84e0"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.monitor.server.system.manufacturer",
-    "value": "制造商",
+    "key": "app.monitor.server.os.platform",
+    "value": "平台",
     "createdAt": {
-      "$date": "2022-09-22T07:33:12.164Z"
+      "$date": "2022-09-22T07:32:25.334Z"
     },
     "updatedAt": {
-      "$date": "2022-09-22T07:33:12.164Z"
+      "$date": "2022-09-22T07:32:25.334Z"
     }
   },
   {
@@ -16600,6 +17544,22 @@
     },
     "key": "app.monitor.server.system.manufacturer",
     "value": "Manufacturer",
+    "createdAt": {
+      "$date": "2022-09-22T07:33:12.164Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T07:33:12.164Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c0fb86a4f8e89660c84ed"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.monitor.server.system.manufacturer",
+    "value": "制造商",
     "createdAt": {
       "$date": "2022-09-22T07:33:12.164Z"
     },
@@ -16641,22 +17601,6 @@
   },
   {
     "_id": {
-      "$oid": "632c0ffa6a4f8e89660c8507"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.monitor.server.system.version",
-    "value": "版本",
-    "createdAt": {
-      "$date": "2022-09-22T07:34:18.781Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-22T07:34:18.781Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "632c0ffa6a4f8e89660c8506"
     },
     "langId": {
@@ -16673,18 +17617,18 @@
   },
   {
     "_id": {
-      "$oid": "632c100b6a4f8e89660c8514"
+      "$oid": "632c0ffa6a4f8e89660c8507"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.monitor.server.system.uuid",
-    "value": "唯一标识ID",
+    "key": "app.monitor.server.system.version",
+    "value": "版本",
     "createdAt": {
-      "$date": "2022-09-22T07:34:35.852Z"
+      "$date": "2022-09-22T07:34:18.781Z"
     },
     "updatedAt": {
-      "$date": "2022-09-22T07:34:35.852Z"
+      "$date": "2022-09-22T07:34:18.781Z"
     }
   },
   {
@@ -16705,18 +17649,18 @@
   },
   {
     "_id": {
-      "$oid": "632c11526a4f8e89660c8534"
+      "$oid": "632c100b6a4f8e89660c8514"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.monitor.server.disk.name",
-    "value": "硬盘名称",
+    "key": "app.monitor.server.system.uuid",
+    "value": "唯一标识ID",
     "createdAt": {
-      "$date": "2022-09-22T07:40:02.645Z"
+      "$date": "2022-09-22T07:34:35.852Z"
     },
     "updatedAt": {
-      "$date": "2022-09-22T07:40:02.645Z"
+      "$date": "2022-09-22T07:34:35.852Z"
     }
   },
   {
@@ -16728,6 +17672,22 @@
     },
     "key": "app.monitor.server.disk.name",
     "value": "Disk Name",
+    "createdAt": {
+      "$date": "2022-09-22T07:40:02.645Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T07:40:02.645Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c11526a4f8e89660c8534"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.monitor.server.disk.name",
+    "value": "硬盘名称",
     "createdAt": {
       "$date": "2022-09-22T07:40:02.645Z"
     },
@@ -16769,13 +17729,13 @@
   },
   {
     "_id": {
-      "$oid": "632c11d36a4f8e89660c854f"
+      "$oid": "632c11d36a4f8e89660c854e"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "app.monitor.server.disk.device",
-    "value": "硬盘设备",
+    "value": "Disk Device",
     "createdAt": {
       "$date": "2022-09-22T07:42:11.068Z"
     },
@@ -16785,13 +17745,13 @@
   },
   {
     "_id": {
-      "$oid": "632c11d36a4f8e89660c854e"
+      "$oid": "632c11d36a4f8e89660c854f"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "app.monitor.server.disk.device",
-    "value": "Disk Device",
+    "value": "硬盘设备",
     "createdAt": {
       "$date": "2022-09-22T07:42:11.068Z"
     },
@@ -16833,13 +17793,13 @@
   },
   {
     "_id": {
-      "$oid": "632c11fc6a4f8e89660c8569"
+      "$oid": "632c11fc6a4f8e89660c8568"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "app.monitor.server.battery.voltage",
-    "value": "电池电压",
+    "value": "Battery Voltage",
     "createdAt": {
       "$date": "2022-09-22T07:42:52.668Z"
     },
@@ -16849,13 +17809,13 @@
   },
   {
     "_id": {
-      "$oid": "632c11fc6a4f8e89660c8568"
+      "$oid": "632c11fc6a4f8e89660c8569"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "app.monitor.server.battery.voltage",
-    "value": "Battery Voltage",
+    "value": "电池电压",
     "createdAt": {
       "$date": "2022-09-22T07:42:52.668Z"
     },
@@ -16961,22 +17921,6 @@
   },
   {
     "_id": {
-      "$oid": "632c12746a4f8e89660c859d"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.monitor.server.time.current",
-    "value": "当前时间",
-    "createdAt": {
-      "$date": "2022-09-22T07:44:52.264Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-22T07:44:52.264Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "632c12746a4f8e89660c859c"
     },
     "langId": {
@@ -16993,18 +17937,18 @@
   },
   {
     "_id": {
-      "$oid": "632c128b6a4f8e89660c85aa"
+      "$oid": "632c12746a4f8e89660c859d"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.monitor.server.time.uptime",
-    "value": "开机时间",
+    "key": "app.monitor.server.time.current",
+    "value": "当前时间",
     "createdAt": {
-      "$date": "2022-09-22T07:45:15.616Z"
+      "$date": "2022-09-22T07:44:52.264Z"
     },
     "updatedAt": {
-      "$date": "2022-09-22T07:45:15.616Z"
+      "$date": "2022-09-22T07:44:52.264Z"
     }
   },
   {
@@ -17016,6 +17960,22 @@
     },
     "key": "app.monitor.server.time.uptime",
     "value": "Uptime",
+    "createdAt": {
+      "$date": "2022-09-22T07:45:15.616Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-22T07:45:15.616Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632c128b6a4f8e89660c85aa"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.monitor.server.time.uptime",
+    "value": "开机时间",
     "createdAt": {
       "$date": "2022-09-22T07:45:15.616Z"
     },
@@ -17057,22 +18017,6 @@
   },
   {
     "_id": {
-      "$oid": "632c13076a4f8e89660c85c4"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.monitor.server.time.timezoneName",
-    "value": "时区名称",
-    "createdAt": {
-      "$date": "2022-09-22T07:47:19.849Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-22T07:47:19.849Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "632c13076a4f8e89660c85c3"
     },
     "langId": {
@@ -17089,18 +18033,18 @@
   },
   {
     "_id": {
-      "$oid": "632d23a4a5e80922a36759f8"
+      "$oid": "632c13076a4f8e89660c85c4"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.authorize.iptc.label",
-    "value": "在下方输入权限码",
+    "key": "app.monitor.server.time.timezoneName",
+    "value": "时区名称",
     "createdAt": {
-      "$date": "2022-09-23T03:10:28.337Z"
+      "$date": "2022-09-22T07:47:19.849Z"
     },
     "updatedAt": {
-      "$date": "2022-09-23T03:10:28.337Z"
+      "$date": "2022-09-22T07:47:19.849Z"
     }
   },
   {
@@ -17112,6 +18056,22 @@
     },
     "key": "app.authorize.iptc.label",
     "value": "Input the permission code below",
+    "createdAt": {
+      "$date": "2022-09-23T03:10:28.337Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-23T03:10:28.337Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632d23a4a5e80922a36759f8"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.authorize.iptc.label",
+    "value": "在下方输入权限码",
     "createdAt": {
       "$date": "2022-09-23T03:10:28.337Z"
     },
@@ -17153,22 +18113,6 @@
   },
   {
     "_id": {
-      "$oid": "632d25a9a5e80922a3675a40"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.authorize.tip.title",
-    "value": "暂无权限",
-    "createdAt": {
-      "$date": "2022-09-23T03:19:05.368Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-23T03:20:24.938Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "632d25a9a5e80922a3675a3f"
     },
     "langId": {
@@ -17185,18 +18129,18 @@
   },
   {
     "_id": {
-      "$oid": "632d25e0a5e80922a3675a58"
+      "$oid": "632d25a9a5e80922a3675a40"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.authorize.tip.desc",
-    "value": "请联系管理员",
+    "key": "app.authorize.tip.title",
+    "value": "暂无权限",
     "createdAt": {
-      "$date": "2022-09-23T03:20:00.768Z"
+      "$date": "2022-09-23T03:19:05.368Z"
     },
     "updatedAt": {
-      "$date": "2022-09-23T03:20:00.768Z"
+      "$date": "2022-09-23T03:20:24.938Z"
     }
   },
   {
@@ -17208,6 +18152,22 @@
     },
     "key": "app.authorize.tip.desc",
     "value": "Please contact the administrator",
+    "createdAt": {
+      "$date": "2022-09-23T03:20:00.768Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-23T03:20:00.768Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "632d25e0a5e80922a3675a58"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.authorize.tip.desc",
+    "value": "请联系管理员",
     "createdAt": {
       "$date": "2022-09-23T03:20:00.768Z"
     },
@@ -17249,22 +18209,6 @@
   },
   {
     "_id": {
-      "$oid": "63311299980b7308c89c4082"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.monitor.server.network.iface",
-    "value": "网络接口",
-    "createdAt": {
-      "$date": "2022-09-26T02:46:49.541Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-26T02:46:49.541Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "63311299980b7308c89c4081"
     },
     "langId": {
@@ -17281,18 +18225,18 @@
   },
   {
     "_id": {
-      "$oid": "633112a8980b7308c89c408f"
+      "$oid": "63311299980b7308c89c4082"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.monitor.server.network.ip4",
-    "value": "ip4地址",
+    "key": "app.monitor.server.network.iface",
+    "value": "网络接口",
     "createdAt": {
-      "$date": "2022-09-26T02:47:04.381Z"
+      "$date": "2022-09-26T02:46:49.541Z"
     },
     "updatedAt": {
-      "$date": "2022-09-26T02:47:04.381Z"
+      "$date": "2022-09-26T02:46:49.541Z"
     }
   },
   {
@@ -17304,6 +18248,22 @@
     },
     "key": "app.monitor.server.network.ip4",
     "value": "IP4",
+    "createdAt": {
+      "$date": "2022-09-26T02:47:04.381Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-26T02:47:04.381Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "633112a8980b7308c89c408f"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.monitor.server.network.ip4",
+    "value": "ip4地址",
     "createdAt": {
       "$date": "2022-09-26T02:47:04.381Z"
     },
@@ -17473,13 +18433,13 @@
   },
   {
     "_id": {
-      "$oid": "63340cbe310c90950bff6a79"
+      "$oid": "63340cbe310c90950bff6a78"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "table.appCache.startTime",
-    "value": "缓存开始时间",
+    "value": "Cache Start Time",
     "createdAt": {
       "$date": "2022-09-28T08:58:38.979Z"
     },
@@ -17489,13 +18449,13 @@
   },
   {
     "_id": {
-      "$oid": "63340cbe310c90950bff6a78"
+      "$oid": "63340cbe310c90950bff6a79"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "table.appCache.startTime",
-    "value": "Cache Start Time",
+    "value": "缓存开始时间",
     "createdAt": {
       "$date": "2022-09-28T08:58:38.979Z"
     },
@@ -17537,13 +18497,13 @@
   },
   {
     "_id": {
-      "$oid": "63340f98310c90950bff6b07"
+      "$oid": "63340f98310c90950bff6b06"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "table.appCache.expire",
-    "value": "存活时间",
+    "value": "TTL",
     "createdAt": {
       "$date": "2022-09-28T09:10:48.036Z"
     },
@@ -17553,13 +18513,13 @@
   },
   {
     "_id": {
-      "$oid": "63340f98310c90950bff6b06"
+      "$oid": "63340f98310c90950bff6b07"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "table.appCache.expire",
-    "value": "TTL",
+    "value": "存活时间",
     "createdAt": {
       "$date": "2022-09-28T09:10:48.036Z"
     },
@@ -17665,22 +18625,6 @@
   },
   {
     "_id": {
-      "$oid": "633554b88747bc18696e814e"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "dict.app_cache_type.built_in",
-    "value": "系统内置",
-    "createdAt": {
-      "$date": "2022-09-29T08:18:00.450Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-29T08:18:00.450Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "633554b88747bc18696e814d"
     },
     "langId": {
@@ -17697,18 +18641,18 @@
   },
   {
     "_id": {
-      "$oid": "633554dc8747bc18696e815d"
+      "$oid": "633554b88747bc18696e814e"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "dict.app_cache_type.auth_permissions",
-    "value": "认证权限",
+    "key": "dict.app_cache_type.built_in",
+    "value": "系统内置",
     "createdAt": {
-      "$date": "2022-09-29T08:18:36.071Z"
+      "$date": "2022-09-29T08:18:00.450Z"
     },
     "updatedAt": {
-      "$date": "2022-09-29T08:18:36.071Z"
+      "$date": "2022-09-29T08:18:00.450Z"
     }
   },
   {
@@ -17729,18 +18673,18 @@
   },
   {
     "_id": {
-      "$oid": "633555218747bc18696e817c"
+      "$oid": "633554dc8747bc18696e815d"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "dict.app_cache_type.verify_code",
-    "value": "应用验证码",
+    "key": "dict.app_cache_type.auth_permissions",
+    "value": "认证权限",
     "createdAt": {
-      "$date": "2022-09-29T08:19:45.956Z"
+      "$date": "2022-09-29T08:18:36.071Z"
     },
     "updatedAt": {
-      "$date": "2022-09-29T08:19:45.956Z"
+      "$date": "2022-09-29T08:18:36.071Z"
     }
   },
   {
@@ -17761,18 +18705,18 @@
   },
   {
     "_id": {
-      "$oid": "6335553a8747bc18696e818b"
+      "$oid": "633555218747bc18696e817c"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "dict.app_cache_type.locales",
-    "value": "国际化词条",
+    "key": "dict.app_cache_type.verify_code",
+    "value": "应用验证码",
     "createdAt": {
-      "$date": "2022-09-29T08:20:10.589Z"
+      "$date": "2022-09-29T08:19:45.956Z"
     },
     "updatedAt": {
-      "$date": "2022-09-29T08:20:10.589Z"
+      "$date": "2022-09-29T08:19:45.956Z"
     }
   },
   {
@@ -17793,18 +18737,18 @@
   },
   {
     "_id": {
-      "$oid": "63355f55a6ae5f2f17b71a5a"
+      "$oid": "6335553a8747bc18696e818b"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "table.appCache.advancedTitle",
-    "value": "应用缓存",
+    "key": "dict.app_cache_type.locales",
+    "value": "国际化词条",
     "createdAt": {
-      "$date": "2022-09-29T09:03:17.710Z"
+      "$date": "2022-09-29T08:20:10.589Z"
     },
     "updatedAt": {
-      "$date": "2022-09-29T09:03:17.710Z"
+      "$date": "2022-09-29T08:20:10.589Z"
     }
   },
   {
@@ -17816,6 +18760,22 @@
     },
     "key": "table.appCache.advancedTitle",
     "value": "App Cache",
+    "createdAt": {
+      "$date": "2022-09-29T09:03:17.710Z"
+    },
+    "updatedAt": {
+      "$date": "2022-09-29T09:03:17.710Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63355f55a6ae5f2f17b71a5a"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "table.appCache.advancedTitle",
+    "value": "应用缓存",
     "createdAt": {
       "$date": "2022-09-29T09:03:17.710Z"
     },
@@ -17921,22 +18881,6 @@
   },
   {
     "_id": {
-      "$oid": "63428c3883c762348e30f573"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.auth.other.gitee",
-    "value": "使用Gitee账号登录/注册",
-    "createdAt": {
-      "$date": "2022-10-09T08:54:16.189Z"
-    },
-    "updatedAt": {
-      "$date": "2022-10-09T08:54:16.189Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "63428c3883c762348e30f572"
     },
     "langId": {
@@ -17949,6 +18893,22 @@
     },
     "updatedAt": {
       "$date": "2022-10-09T08:54:16.188Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63428c3883c762348e30f573"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.auth.other.gitee",
+    "value": "使用Gitee账号登录/注册",
+    "createdAt": {
+      "$date": "2022-10-09T08:54:16.189Z"
+    },
+    "updatedAt": {
+      "$date": "2022-10-09T08:54:16.189Z"
     }
   },
   {
@@ -18049,13 +19009,13 @@
   },
   {
     "_id": {
-      "$oid": "6349045b1bc156e0af45b740"
+      "$oid": "6349045b1bc156e0af45b73f"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "sys.menu.app.monitor.user",
-    "value": "用户监控",
+    "value": "Visitor Monitor",
     "createdAt": {
       "$date": "2022-10-14T06:40:27.932Z"
     },
@@ -18065,13 +19025,13 @@
   },
   {
     "_id": {
-      "$oid": "6349045b1bc156e0af45b73f"
+      "$oid": "6349045b1bc156e0af45b740"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "sys.menu.app.monitor.user",
-    "value": "Visitor Monitor",
+    "value": "用户监控",
     "createdAt": {
       "$date": "2022-10-14T06:40:27.932Z"
     },
@@ -18209,22 +19169,6 @@
   },
   {
     "_id": {
-      "$oid": "634910badb389516ae3f83f0"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "table.app.monitor.user.visitorId",
-    "value": "访客指纹",
-    "createdAt": {
-      "$date": "2022-10-14T07:33:14.264Z"
-    },
-    "updatedAt": {
-      "$date": "2022-10-14T07:33:14.264Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "634910badb389516ae3f83ef"
     },
     "langId": {
@@ -18241,18 +19185,18 @@
   },
   {
     "_id": {
-      "$oid": "63491102db389516ae3f841c"
+      "$oid": "634910badb389516ae3f83f0"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.base.userId",
-    "value": "用户ID",
+    "key": "table.app.monitor.user.visitorId",
+    "value": "访客指纹",
     "createdAt": {
-      "$date": "2022-10-14T07:34:26.733Z"
+      "$date": "2022-10-14T07:33:14.264Z"
     },
     "updatedAt": {
-      "$date": "2022-10-14T07:34:26.733Z"
+      "$date": "2022-10-14T07:33:14.264Z"
     }
   },
   {
@@ -18264,6 +19208,22 @@
     },
     "key": "app.base.userId",
     "value": "User ID",
+    "createdAt": {
+      "$date": "2022-10-14T07:34:26.733Z"
+    },
+    "updatedAt": {
+      "$date": "2022-10-14T07:34:26.733Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63491102db389516ae3f841c"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.base.userId",
+    "value": "用户ID",
     "createdAt": {
       "$date": "2022-10-14T07:34:26.733Z"
     },
@@ -18497,13 +19457,13 @@
   },
   {
     "_id": {
-      "$oid": "6349164fdb389516ae3f85be"
+      "$oid": "6349164fdb389516ae3f85bd"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "table.app.monitor.user.focus.false",
-    "value": "焦点丢失",
+    "value": "Bluring",
     "createdAt": {
       "$date": "2022-10-14T07:57:03.932Z"
     },
@@ -18513,13 +19473,13 @@
   },
   {
     "_id": {
-      "$oid": "6349164fdb389516ae3f85bd"
+      "$oid": "6349164fdb389516ae3f85be"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "table.app.monitor.user.focus.false",
-    "value": "Bluring",
+    "value": "焦点丢失",
     "createdAt": {
       "$date": "2022-10-14T07:57:03.932Z"
     },
@@ -18593,22 +19553,6 @@
   },
   {
     "_id": {
-      "$oid": "634cfdb97a90d831b8446f25"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.monitor.user.forceLogout",
-    "value": "强制登出",
-    "createdAt": {
-      "$date": "2022-10-17T07:01:13.788Z"
-    },
-    "updatedAt": {
-      "$date": "2022-10-17T07:01:13.788Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "634cfdb97a90d831b8446f24"
     },
     "langId": {
@@ -18625,18 +19569,18 @@
   },
   {
     "_id": {
-      "$oid": "63660d1b8bc0931cd6bddf71"
+      "$oid": "634cfdb97a90d831b8446f25"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.layout.tab.closeMode",
-    "value": "关闭方式",
+    "key": "app.monitor.user.forceLogout",
+    "value": "强制登出",
     "createdAt": {
-      "$date": "2022-11-05T07:13:31.589Z"
+      "$date": "2022-10-17T07:01:13.788Z"
     },
     "updatedAt": {
-      "$date": "2025-10-03T03:25:37.875Z"
+      "$date": "2022-10-17T07:01:13.788Z"
     }
   },
   {
@@ -18653,6 +19597,22 @@
     },
     "updatedAt": {
       "$date": "2025-10-03T03:25:37.877Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63660d1b8bc0931cd6bddf71"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.layout.tab.closeMode",
+    "value": "关闭方式",
+    "createdAt": {
+      "$date": "2022-11-05T07:13:31.589Z"
+    },
+    "updatedAt": {
+      "$date": "2025-10-03T03:25:37.875Z"
     }
   },
   {
@@ -19073,22 +20033,6 @@
   },
   {
     "_id": {
-      "$oid": "638ddd5548bdd50c4f0491ad"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.base.fixed",
-    "value": "固定",
-    "createdAt": {
-      "$date": "2022-12-05T12:00:21.459Z"
-    },
-    "updatedAt": {
-      "$date": "2022-12-05T12:00:21.459Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "638ddd5548bdd50c4f0491ac"
     },
     "langId": {
@@ -19105,18 +20049,18 @@
   },
   {
     "_id": {
-      "$oid": "638ddd7848bdd50c4f0491c0"
+      "$oid": "638ddd5548bdd50c4f0491ad"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.base.id",
-    "value": "唯一ID",
+    "key": "app.base.fixed",
+    "value": "固定",
     "createdAt": {
-      "$date": "2022-12-05T12:00:56.050Z"
+      "$date": "2022-12-05T12:00:21.459Z"
     },
     "updatedAt": {
-      "$date": "2022-12-05T12:02:01.859Z"
+      "$date": "2022-12-05T12:00:21.459Z"
     }
   },
   {
@@ -19137,18 +20081,18 @@
   },
   {
     "_id": {
-      "$oid": "638ddd8f48bdd50c4f0491d3"
+      "$oid": "638ddd7848bdd50c4f0491c0"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.base.transition",
-    "value": "过渡动画",
+    "key": "app.base.id",
+    "value": "唯一ID",
     "createdAt": {
-      "$date": "2022-12-05T12:01:19.770Z"
+      "$date": "2022-12-05T12:00:56.050Z"
     },
     "updatedAt": {
-      "$date": "2022-12-05T12:01:19.770Z"
+      "$date": "2022-12-05T12:02:01.859Z"
     }
   },
   {
@@ -19160,6 +20104,22 @@
     },
     "key": "app.base.transition",
     "value": "Transition Name",
+    "createdAt": {
+      "$date": "2022-12-05T12:01:19.770Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-05T12:01:19.770Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "638ddd8f48bdd50c4f0491d3"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.base.transition",
+    "value": "过渡动画",
     "createdAt": {
       "$date": "2022-12-05T12:01:19.770Z"
     },
@@ -19201,13 +20161,13 @@
   },
   {
     "_id": {
-      "$oid": "638ddfc448bdd50c4f0492ef"
+      "$oid": "638ddfc448bdd50c4f0492ee"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "app.base.inverted",
-    "value": "反转样式",
+    "value": "Inverted",
     "createdAt": {
       "$date": "2022-12-05T12:10:44.521Z"
     },
@@ -19217,13 +20177,13 @@
   },
   {
     "_id": {
-      "$oid": "638ddfc448bdd50c4f0492ee"
+      "$oid": "638ddfc448bdd50c4f0492ef"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "app.base.inverted",
-    "value": "Inverted",
+    "value": "反转样式",
     "createdAt": {
       "$date": "2022-12-05T12:10:44.521Z"
     },
@@ -19425,22 +20385,6 @@
   },
   {
     "_id": {
-      "$oid": "63971db63e512c76c3c38d8e"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.404.button",
-    "value": "返回主页",
-    "createdAt": {
-      "$date": "2022-12-12T12:25:26.044Z"
-    },
-    "updatedAt": {
-      "$date": "2022-12-12T12:25:26.044Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "63971db63e512c76c3c38d8d"
     },
     "langId": {
@@ -19457,18 +20401,18 @@
   },
   {
     "_id": {
-      "$oid": "63971e543e512c76c3c38dba"
+      "$oid": "63971db63e512c76c3c38d8e"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.500.title1",
-    "value": "服务器错误",
+    "key": "app.404.button",
+    "value": "返回主页",
     "createdAt": {
-      "$date": "2022-12-12T12:28:04.759Z"
+      "$date": "2022-12-12T12:25:26.044Z"
     },
     "updatedAt": {
-      "$date": "2022-12-12T12:28:04.759Z"
+      "$date": "2022-12-12T12:25:26.044Z"
     }
   },
   {
@@ -19480,6 +20424,22 @@
     },
     "key": "app.500.title1",
     "value": "Server error",
+    "createdAt": {
+      "$date": "2022-12-12T12:28:04.759Z"
+    },
+    "updatedAt": {
+      "$date": "2022-12-12T12:28:04.759Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "63971e543e512c76c3c38dba"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.500.title1",
+    "value": "服务器错误",
     "createdAt": {
       "$date": "2022-12-12T12:28:04.759Z"
     },
@@ -19521,13 +20481,13 @@
   },
   {
     "_id": {
-      "$oid": "63971f413e512c76c3c38de0"
+      "$oid": "63971f413e512c76c3c38ddf"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "app.500.button",
-    "value": "还是出现错误？",
+    "value": "Still got error?",
     "createdAt": {
       "$date": "2022-12-12T12:32:01.440Z"
     },
@@ -19537,13 +20497,13 @@
   },
   {
     "_id": {
-      "$oid": "63971f413e512c76c3c38ddf"
+      "$oid": "63971f413e512c76c3c38de0"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "app.500.button",
-    "value": "Still got error?",
+    "value": "还是出现错误？",
     "createdAt": {
       "$date": "2022-12-12T12:32:01.440Z"
     },
@@ -19617,13 +20577,13 @@
   },
   {
     "_id": {
-      "$oid": "639736cd3e512c76c3c39367"
+      "$oid": "639736cd3e512c76c3c39366"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "app.route.externalLink.button",
-    "value": "继续前往",
+    "value": "Continure",
     "createdAt": {
       "$date": "2022-12-12T14:12:29.568Z"
     },
@@ -19633,13 +20593,13 @@
   },
   {
     "_id": {
-      "$oid": "639736cd3e512c76c3c39366"
+      "$oid": "639736cd3e512c76c3c39367"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "app.route.externalLink.button",
-    "value": "Continure",
+    "value": "继续前往",
     "createdAt": {
       "$date": "2022-12-12T14:12:29.568Z"
     },
@@ -19681,13 +20641,13 @@
   },
   {
     "_id": {
-      "$oid": "639a961ad87fd3fdf17f8a4a"
+      "$oid": "639a961ad87fd3fdf17f8a49"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "sys.menu.demo.features.leaveTip",
-    "value": "离开提示",
+    "value": "Leave Tip",
     "createdAt": {
       "$date": "2022-12-15T03:35:54.233Z"
     },
@@ -19697,13 +20657,13 @@
   },
   {
     "_id": {
-      "$oid": "639a961ad87fd3fdf17f8a49"
+      "$oid": "639a961ad87fd3fdf17f8a4a"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "sys.menu.demo.features.leaveTip",
-    "value": "Leave Tip",
+    "value": "离开提示",
     "createdAt": {
       "$date": "2022-12-15T03:35:54.233Z"
     },
@@ -19809,13 +20769,13 @@
   },
   {
     "_id": {
-      "$oid": "639ac5b20cf46cce18de73fc"
+      "$oid": "639ac5b20cf46cce18de73fb"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "sys.menu.demo.features.layoutTabs",
-    "value": "选项卡功能",
+    "value": "Layout Tabs",
     "createdAt": {
       "$date": "2022-12-15T06:58:58.104Z"
     },
@@ -19825,13 +20785,13 @@
   },
   {
     "_id": {
-      "$oid": "639ac5b20cf46cce18de73fb"
+      "$oid": "639ac5b20cf46cce18de73fc"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "sys.menu.demo.features.layoutTabs",
-    "value": "Layout Tabs",
+    "value": "选项卡功能",
     "createdAt": {
       "$date": "2022-12-15T06:58:58.104Z"
     },
@@ -19901,774 +20861,6 @@
     },
     "updatedAt": {
       "$date": "2022-12-28T03:04:09.107Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199c9251170784ae2eb1d3a"
-    },
-    "value": "App Settings",
-    "key": "app.settings.title",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:20:53.733Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:20:53.733Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199c9251170784ae2eb1d3b"
-    },
-    "value": "全局设置",
-    "key": "app.settings.title",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:20:53.733Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:20:53.733Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199ccef1170784ae2eb1d8f"
-    },
-    "value": "Show Logo",
-    "key": "form.app.app.showLogo",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:37:03.906Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:37:03.906Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199ccef1170784ae2eb1d90"
-    },
-    "value": "显示logo",
-    "key": "form.app.app.showLogo",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:37:03.906Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:37:03.906Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199cd391170784ae2eb1daa"
-    },
-    "value": "Show Menu",
-    "key": "form.app.app.showMenu",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:38:17.648Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:38:17.648Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199cd391170784ae2eb1dab"
-    },
-    "value": "显示菜单",
-    "key": "form.app.app.showMenu",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:38:17.648Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:38:17.648Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199cd481170784ae2eb1db2"
-    },
-    "value": "Show Header",
-    "key": "form.app.app.showHeader",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:38:32.536Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:38:32.536Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199cd481170784ae2eb1db3"
-    },
-    "value": "显示头部",
-    "key": "form.app.app.showHeader",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:38:32.536Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:38:32.536Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199cd581170784ae2eb1dba"
-    },
-    "value": "Show Tabs",
-    "key": "form.app.app.showTabs",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:38:48.945Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:38:48.945Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199cd581170784ae2eb1dbb"
-    },
-    "value": "显示选项卡",
-    "key": "form.app.app.showTabs",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:38:48.945Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:38:48.945Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199cd6e1170784ae2eb1dc2"
-    },
-    "value": "Show Footer",
-    "key": "form.app.app.showFooter",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:39:10.473Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:39:10.473Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199cd6e1170784ae2eb1dc3"
-    },
-    "value": "显示底部",
-    "key": "form.app.app.showFooter",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:39:10.473Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:39:10.473Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199cf2e1170784ae2eb1e3c"
-    },
-    "value": "Inverted",
-    "key": "form.app.menu.inverted",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:46:38.051Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:46:38.051Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199cf2e1170784ae2eb1e3d"
-    },
-    "value": "反转样式",
-    "key": "form.app.menu.inverted",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:46:38.051Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:46:38.051Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199cfe01170784ae2eb1e92"
-    },
-    "value": "Breadcrumb",
-    "key": "form.app.header.showBreadcrumb",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:49:36.925Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:49:36.925Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199cfe01170784ae2eb1e93"
-    },
-    "value": "显示面包屑",
-    "key": "form.app.header.showBreadcrumb",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:49:36.925Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:49:36.925Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199d00f1170784ae2eb1ea2"
-    },
-    "value": "Locale",
-    "key": "form.app.header.showLocale",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:50:23.719Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:50:23.719Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199d00f1170784ae2eb1ea3"
-    },
-    "value": "显示国际化",
-    "key": "form.app.header.showLocale",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:50:23.719Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:50:23.719Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199d02a1170784ae2eb1eb2"
-    },
-    "value": "Lock",
-    "key": "form.app.header.showLock",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:50:50.900Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:50:50.900Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199d02a1170784ae2eb1eb3"
-    },
-    "value": "显示锁屏",
-    "key": "form.app.header.showLock",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:50:50.900Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:50:50.900Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199d0441170784ae2eb1ec2"
-    },
-    "value": "Inverted",
-    "key": "form.app.header.inverted",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:51:16.937Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:51:16.937Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199d0441170784ae2eb1ec3"
-    },
-    "value": "反转样式",
-    "key": "form.app.header.inverted",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T04:51:16.937Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T04:51:16.937Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199d3c91170784ae2eb1f52"
-    },
-    "value": "Devtool",
-    "key": "form.app.tab.devtool",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T05:06:17.729Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T05:06:17.729Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199d3c91170784ae2eb1f53"
-    },
-    "value": "开发工具",
-    "key": "form.app.tab.devtool",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T05:06:17.729Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T05:06:17.729Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199d6b61170784ae2eb1f82"
-    },
-    "value": "App's env has a higher priority. \\n \nThis is customized for developers.",
-    "key": "form.app.tab.devtool.helpMsg",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T05:28:16.813Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T05:18:46.338Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6199d6b61170784ae2eb1f83"
-    },
-    "value": "应用的环境有着更高的优先级。\\n 此选项是为了不想使用此特性的开发人员而设计。",
-    "key": "form.app.tab.devtool.helpMsg",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "updatedAt": {
-      "$date": "2021-11-21T05:28:16.814Z"
-    },
-    "createdAt": {
-      "$date": "2021-11-21T05:18:46.338Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "61ff7276300c657de2c70545"
-    },
-    "value": "Lock when mouse is left",
-    "key": "form.app.app.pageLeaveLock",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "createdAt": {
-      "$date": "2022-02-06T07:02:14.368Z"
-    },
-    "updatedAt": {
-      "$date": "2022-02-06T07:02:14.368Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "61ff7276300c657de2c70546"
-    },
-    "value": "鼠标离开页面锁屏",
-    "key": "form.app.app.pageLeaveLock",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-02-06T07:02:14.368Z"
-    },
-    "updatedAt": {
-      "$date": "2022-02-06T07:02:14.368Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "61ffd6e0300c657de2c70776"
-    },
-    "value": "Copy Success!",
-    "key": "form.app.app.copy.success",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "createdAt": {
-      "$date": "2022-02-06T14:10:40.348Z"
-    },
-    "updatedAt": {
-      "$date": "2022-02-06T14:10:40.348Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "61ffd6e0300c657de2c70777"
-    },
-    "value": "复制成功",
-    "key": "form.app.app.copy.success",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-02-06T14:10:40.348Z"
-    },
-    "updatedAt": {
-      "$date": "2022-02-06T14:10:40.348Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623c38a151a3642afabd898b"
-    },
-    "value": "IP Address",
-    "key": "table.log.operate.ip",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "createdAt": {
-      "$date": "2022-03-24T09:23:45.772Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-25T11:58:51.458Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623c38a151a3642afabd898c"
-    },
-    "value": "IP地址",
-    "key": "table.log.operate.ip",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-03-24T09:23:45.772Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-25T11:58:51.459Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623dadb05c7676f8d9d3efc9"
-    },
-    "value": "Operating System",
-    "key": "table.log.operate.os",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "createdAt": {
-      "$date": "2022-03-25T11:55:28.863Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-25T11:55:28.863Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623dadb05c7676f8d9d3efca"
-    },
-    "value": "操作系统",
-    "key": "table.log.operate.os",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-03-25T11:55:28.864Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-25T11:55:28.864Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623dadba5c7676f8d9d3efd5"
-    },
-    "value": "Browser",
-    "key": "table.log.operate.browser",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "createdAt": {
-      "$date": "2022-03-25T11:55:38.601Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-25T11:55:38.601Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623dadba5c7676f8d9d3efd6"
-    },
-    "value": "浏览器",
-    "key": "table.log.operate.browser",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-03-25T11:55:38.601Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-25T11:55:38.601Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623db839f41c85cde539a84c"
-    },
-    "value": "Location",
-    "key": "table.log.operate.location",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "createdAt": {
-      "$date": "2022-03-25T12:40:25.366Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-25T12:40:25.366Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623db839f41c85cde539a84d"
-    },
-    "value": "操作地点",
-    "key": "table.log.operate.location",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-03-25T12:40:25.366Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-25T12:40:25.366Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6246b629d6c32887258b6c17"
-    },
-    "value": "Signin IP",
-    "key": "table.log.signin.ip",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "createdAt": {
-      "$date": "2022-04-01T08:22:01.300Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-01T08:22:50.900Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6246b629d6c32887258b6c18"
-    },
-    "value": "登录地址",
-    "key": "table.log.signin.ip",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-04-01T08:22:01.300Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-01T08:22:50.901Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6246b648d6c32887258b6c24"
-    },
-    "value": "Signin Location",
-    "key": "table.log.signin.location",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "createdAt": {
-      "$date": "2022-04-01T08:22:32.979Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-01T08:22:32.979Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6246b648d6c32887258b6c25"
-    },
-    "value": "登录地点",
-    "key": "table.log.signin.location",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-04-01T08:22:32.979Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-01T08:22:32.979Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6246b674d6c32887258b6c3c"
-    },
-    "value": "OS",
-    "key": "table.log.signin.os",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "createdAt": {
-      "$date": "2022-04-01T08:23:16.624Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-01T08:23:16.624Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6246b674d6c32887258b6c3d"
-    },
-    "value": "操作系统",
-    "key": "table.log.signin.os",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-04-01T08:23:16.624Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-01T08:23:16.624Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6246b680d6c32887258b6c49"
-    },
-    "value": "Browser",
-    "key": "table.log.signin.browser",
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "createdAt": {
-      "$date": "2022-04-01T08:23:28.137Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-01T08:23:28.137Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6246b680d6c32887258b6c4a"
-    },
-    "value": "浏览器",
-    "key": "table.log.signin.browser",
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "createdAt": {
-      "$date": "2022-04-01T08:23:28.137Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-01T08:23:28.137Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "631eed4c07ea59129a0bf717"
-    },
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "key": "sys.menu.cache",
-    "value": "Cache Management",
-    "createdAt": {
-      "$date": "2022-09-12T08:26:52.515Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-12T08:26:52.515Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "631eed4c07ea59129a0bf718"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "sys.menu.cache",
-    "value": "缓存管理",
-    "createdAt": {
-      "$date": "2022-09-12T08:26:52.515Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-12T08:26:52.515Z"
     }
   },
   {
@@ -20865,22 +21057,6 @@
   },
   {
     "_id": {
-      "$oid": "64f832340fa750ef8a52554b"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "comp.emailInput.ph",
-    "value": "请输入邮箱地址",
-    "createdAt": {
-      "$date": "2023-09-06T08:03:00.198Z"
-    },
-    "updatedAt": {
-      "$date": "2023-09-06T08:03:00.198Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "64f832340fa750ef8a52554a"
     },
     "langId": {
@@ -20897,18 +21073,18 @@
   },
   {
     "_id": {
-      "$oid": "6822bfdcc53f32b47beea0c5"
+      "$oid": "64f832340fa750ef8a52554b"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.base.pass.clear.confirm",
-    "value": "确定要清空 {userName} 的密码吗？",
+    "key": "comp.emailInput.ph",
+    "value": "请输入邮箱地址",
     "createdAt": {
-      "$date": "2025-05-13T03:43:24.191Z"
+      "$date": "2023-09-06T08:03:00.198Z"
     },
     "updatedAt": {
-      "$date": "2026-01-06T06:49:24.777Z"
+      "$date": "2023-09-06T08:03:00.198Z"
     }
   },
   {
@@ -20929,18 +21105,18 @@
   },
   {
     "_id": {
-      "$oid": "6822d50b21780025b8ac7585"
+      "$oid": "6822bfdcc53f32b47beea0c5"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.base.nickName",
-    "value": "昵称",
+    "key": "app.base.pass.clear.confirm",
+    "value": "确定要清空 {userName} 的密码吗？",
     "createdAt": {
-      "$date": "2025-05-13T05:13:47.965Z"
+      "$date": "2025-05-13T03:43:24.191Z"
     },
     "updatedAt": {
-      "$date": "2025-11-05T06:10:21.558Z"
+      "$date": "2026-01-06T06:49:24.777Z"
     }
   },
   {
@@ -20957,6 +21133,22 @@
     },
     "updatedAt": {
       "$date": "2025-11-05T06:10:21.561Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6822d50b21780025b8ac7585"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.base.nickName",
+    "value": "昵称",
+    "createdAt": {
+      "$date": "2025-05-13T05:13:47.965Z"
+    },
+    "updatedAt": {
+      "$date": "2025-11-05T06:10:21.558Z"
     }
   },
   {
@@ -20993,13 +21185,13 @@
   },
   {
     "_id": {
-      "$oid": "6822de78cc4243ec50239568"
+      "$oid": "6822de78cc4243ec50239567"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "app.base.pass.new",
-    "value": "新密码",
+    "value": "New Password",
     "createdAt": {
       "$date": "2025-05-13T05:54:00.758Z"
     },
@@ -21009,13 +21201,13 @@
   },
   {
     "_id": {
-      "$oid": "6822de78cc4243ec50239567"
+      "$oid": "6822de78cc4243ec50239568"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "app.base.pass.new",
-    "value": "New Password",
+    "value": "新密码",
     "createdAt": {
       "$date": "2025-05-13T05:54:00.758Z"
     },
@@ -21057,22 +21249,6 @@
   },
   {
     "_id": {
-      "$oid": "68268d2ba9bb8f43d917adc4"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "table.locale.langId",
-    "value": "未完成词条",
-    "createdAt": {
-      "$date": "2025-05-16T00:56:11.349Z"
-    },
-    "updatedAt": {
-      "$date": "2025-05-16T00:56:11.349Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "68268d2ba9bb8f43d917adc3"
     },
     "langId": {
@@ -21089,18 +21265,18 @@
   },
   {
     "_id": {
-      "$oid": "6826dd25aea1fc2b6f15cca0"
+      "$oid": "68268d2ba9bb8f43d917adc4"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.settings.tooltip.exitFullContent",
-    "value": "退出全屏内容 (Esc)",
+    "key": "table.locale.langId",
+    "value": "未完成词条",
     "createdAt": {
-      "$date": "2025-05-16T06:37:25.727Z"
+      "$date": "2025-05-16T00:56:11.349Z"
     },
     "updatedAt": {
-      "$date": "2025-05-16T06:38:56.439Z"
+      "$date": "2025-05-16T00:56:11.349Z"
     }
   },
   {
@@ -21117,6 +21293,22 @@
     },
     "updatedAt": {
       "$date": "2025-05-16T06:38:56.437Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6826dd25aea1fc2b6f15cca0"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.settings.tooltip.exitFullContent",
+    "value": "退出全屏内容 (Esc)",
+    "createdAt": {
+      "$date": "2025-05-16T06:37:25.727Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-16T06:38:56.439Z"
     }
   },
   {
@@ -21281,22 +21473,6 @@
   },
   {
     "_id": {
-      "$oid": "682d753a6595ef1351bc2ad3"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.base.backToTop",
-    "value": "返回顶部",
-    "createdAt": {
-      "$date": "2025-05-21T06:39:54.153Z"
-    },
-    "updatedAt": {
-      "$date": "2025-05-21T06:39:54.153Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "682d753a6595ef1351bc2ad2"
     },
     "langId": {
@@ -21309,6 +21485,22 @@
     },
     "updatedAt": {
       "$date": "2025-05-21T06:39:54.152Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "682d753a6595ef1351bc2ad3"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.base.backToTop",
+    "value": "返回顶部",
+    "createdAt": {
+      "$date": "2025-05-21T06:39:54.153Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-21T06:39:54.153Z"
     }
   },
   {
@@ -21377,22 +21569,6 @@
   },
   {
     "_id": {
-      "$oid": "682fec571e3c5e01b7791c6c"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "comp.form.closeConfirm",
-    "value": "确定要关闭当前表单页吗？",
-    "createdAt": {
-      "$date": "2025-05-23T03:32:39.055Z"
-    },
-    "updatedAt": {
-      "$date": "2025-05-23T03:32:39.055Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "682fec571e3c5e01b7791c6b"
     },
     "langId": {
@@ -21409,18 +21585,18 @@
   },
   {
     "_id": {
-      "$oid": "6833f8f536f1d0707ee01a89"
+      "$oid": "682fec571e3c5e01b7791c6c"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "dict.app_cache_type.sysDeviceIdList",
-    "value": "系统设备ID列表",
+    "key": "comp.form.closeConfirm",
+    "value": "确定要关闭当前表单页吗？",
     "createdAt": {
-      "$date": "2025-05-26T05:15:33.604Z"
+      "$date": "2025-05-23T03:32:39.055Z"
     },
     "updatedAt": {
-      "$date": "2025-05-26T05:17:40.020Z"
+      "$date": "2025-05-23T03:32:39.055Z"
     }
   },
   {
@@ -21441,18 +21617,18 @@
   },
   {
     "_id": {
-      "$oid": "6833f95336f1d0707ee01aa6"
+      "$oid": "6833f8f536f1d0707ee01a89"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "dict.app_cache_type.sysLangIdList",
-    "value": "系统语言ID列表",
+    "key": "dict.app_cache_type.sysDeviceIdList",
+    "value": "系统设备ID列表",
     "createdAt": {
-      "$date": "2025-05-26T05:17:07.989Z"
+      "$date": "2025-05-26T05:15:33.604Z"
     },
     "updatedAt": {
-      "$date": "2025-05-26T05:17:47.922Z"
+      "$date": "2025-05-26T05:17:40.020Z"
     }
   },
   {
@@ -21469,6 +21645,22 @@
     },
     "updatedAt": {
       "$date": "2025-05-26T05:17:47.923Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6833f95336f1d0707ee01aa6"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "dict.app_cache_type.sysLangIdList",
+    "value": "系统语言ID列表",
+    "createdAt": {
+      "$date": "2025-05-26T05:17:07.989Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-26T05:17:47.922Z"
     }
   },
   {
@@ -21505,13 +21697,13 @@
   },
   {
     "_id": {
-      "$oid": "6833f9f436f1d0707ee01af5"
+      "$oid": "6833f9f436f1d0707ee01af4"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "dict.app_cache_type.controller",
-    "value": "控制器层缓存",
+    "value": "Controller Cache",
     "createdAt": {
       "$date": "2025-05-26T05:19:48.898Z"
     },
@@ -21521,13 +21713,13 @@
   },
   {
     "_id": {
-      "$oid": "6833f9f436f1d0707ee01af4"
+      "$oid": "6833f9f436f1d0707ee01af5"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "dict.app_cache_type.controller",
-    "value": "Controller Cache",
+    "value": "控制器层缓存",
     "createdAt": {
       "$date": "2025-05-26T05:19:48.898Z"
     },
@@ -21569,13 +21761,13 @@
   },
   {
     "_id": {
-      "$oid": "68367382246737df9ed8184b"
+      "$oid": "68367382246737df9ed8184a"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "app.base.sr",
-    "value": "屏幕分辨率",
+    "value": "Screen Resolution",
     "createdAt": {
       "$date": "2025-05-28T02:22:58.922Z"
     },
@@ -21585,13 +21777,13 @@
   },
   {
     "_id": {
-      "$oid": "68367382246737df9ed8184a"
+      "$oid": "68367382246737df9ed8184b"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "app.base.sr",
-    "value": "Screen Resolution",
+    "value": "屏幕分辨率",
     "createdAt": {
       "$date": "2025-05-28T02:22:58.922Z"
     },
@@ -21633,22 +21825,6 @@
   },
   {
     "_id": {
-      "$oid": "683673b8246737df9ed81870"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.base.isp",
-    "value": "互联网服务供应商",
-    "createdAt": {
-      "$date": "2025-05-28T02:23:52.447Z"
-    },
-    "updatedAt": {
-      "$date": "2025-05-28T02:23:52.447Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "683673b8246737df9ed8186f"
     },
     "langId": {
@@ -21665,18 +21841,18 @@
   },
   {
     "_id": {
-      "$oid": "683673de246737df9ed81881"
+      "$oid": "683673b8246737df9ed81870"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.base.firstVisitAt",
-    "value": "初次访问时间",
+    "key": "app.base.isp",
+    "value": "互联网服务供应商",
     "createdAt": {
-      "$date": "2025-05-28T02:24:30.637Z"
+      "$date": "2025-05-28T02:23:52.447Z"
     },
     "updatedAt": {
-      "$date": "2025-05-28T02:24:30.637Z"
+      "$date": "2025-05-28T02:23:52.447Z"
     }
   },
   {
@@ -21697,18 +21873,18 @@
   },
   {
     "_id": {
-      "$oid": "683673f5246737df9ed81892"
+      "$oid": "683673de246737df9ed81881"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.base.lastActiveAt",
-    "value": "最后活跃时间",
+    "key": "app.base.firstVisitAt",
+    "value": "初次访问时间",
     "createdAt": {
-      "$date": "2025-05-28T02:24:53.123Z"
+      "$date": "2025-05-28T02:24:30.637Z"
     },
     "updatedAt": {
-      "$date": "2025-05-28T02:24:53.123Z"
+      "$date": "2025-05-28T02:24:30.637Z"
     }
   },
   {
@@ -21729,18 +21905,18 @@
   },
   {
     "_id": {
-      "$oid": "6836742c246737df9ed818b1"
+      "$oid": "683673f5246737df9ed81892"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.base.currentRouter",
-    "value": "当前页面",
+    "key": "app.base.lastActiveAt",
+    "value": "最后活跃时间",
     "createdAt": {
-      "$date": "2025-05-28T02:25:48.802Z"
+      "$date": "2025-05-28T02:24:53.123Z"
     },
     "updatedAt": {
-      "$date": "2025-05-28T02:25:48.802Z"
+      "$date": "2025-05-28T02:24:53.123Z"
     }
   },
   {
@@ -21761,18 +21937,18 @@
   },
   {
     "_id": {
-      "$oid": "68367541246737df9ed81955"
+      "$oid": "6836742c246737df9ed818b1"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "table.app.monitor.user.advancedTitle",
-    "value": "用户监控",
+    "key": "app.base.currentRouter",
+    "value": "当前页面",
     "createdAt": {
-      "$date": "2025-05-28T02:30:25.470Z"
+      "$date": "2025-05-28T02:25:48.802Z"
     },
     "updatedAt": {
-      "$date": "2025-05-28T02:30:25.470Z"
+      "$date": "2025-05-28T02:25:48.802Z"
     }
   },
   {
@@ -21789,6 +21965,22 @@
     },
     "updatedAt": {
       "$date": "2025-05-28T02:30:25.469Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68367541246737df9ed81955"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "table.app.monitor.user.advancedTitle",
+    "value": "用户监控",
+    "createdAt": {
+      "$date": "2025-05-28T02:30:25.470Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-28T02:30:25.470Z"
     }
   },
   {
@@ -21857,22 +22049,6 @@
   },
   {
     "_id": {
-      "$oid": "68367bac246737df9ed81b7d"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "app.base.platform",
-    "value": "平台",
-    "createdAt": {
-      "$date": "2025-05-28T02:57:48.209Z"
-    },
-    "updatedAt": {
-      "$date": "2025-05-28T02:57:48.209Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "68367bac246737df9ed81b7c"
     },
     "langId": {
@@ -21889,18 +22065,18 @@
   },
   {
     "_id": {
-      "$oid": "68367bc9246737df9ed81b89"
+      "$oid": "68367bac246737df9ed81b7d"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.base.netType",
-    "value": "网络类型",
+    "key": "app.base.platform",
+    "value": "平台",
     "createdAt": {
-      "$date": "2025-05-28T02:58:17.292Z"
+      "$date": "2025-05-28T02:57:48.209Z"
     },
     "updatedAt": {
-      "$date": "2025-05-28T02:58:17.292Z"
+      "$date": "2025-05-28T02:57:48.209Z"
     }
   },
   {
@@ -21912,6 +22088,22 @@
     },
     "key": "app.base.netType",
     "value": "Network Type",
+    "createdAt": {
+      "$date": "2025-05-28T02:58:17.292Z"
+    },
+    "updatedAt": {
+      "$date": "2025-05-28T02:58:17.292Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68367bc9246737df9ed81b89"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.base.netType",
+    "value": "网络类型",
     "createdAt": {
       "$date": "2025-05-28T02:58:17.292Z"
     },
@@ -21953,13 +22145,13 @@
   },
   {
     "_id": {
-      "$oid": "684144da3f35fb3120c34ef1"
+      "$oid": "684144da3f35fb3120c34ef0"
     },
     "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
+      "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "app.base.contactAdmin",
-    "value": "联系管理员",
+    "value": "Contact with Admin",
     "createdAt": {
       "$date": "2025-06-05T07:18:50.243Z"
     },
@@ -21969,13 +22161,13 @@
   },
   {
     "_id": {
-      "$oid": "684144da3f35fb3120c34ef0"
+      "$oid": "684144da3f35fb3120c34ef1"
     },
     "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
+      "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "app.base.contactAdmin",
-    "value": "Contact with Admin",
+    "value": "联系管理员",
     "createdAt": {
       "$date": "2025-06-05T07:18:50.243Z"
     },
@@ -22177,22 +22369,6 @@
   },
   {
     "_id": {
-      "$oid": "684a8cfb054061a6ed4d6faa"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "table.deleted.content",
-    "value": "删除内容",
-    "createdAt": {
-      "$date": "2025-06-12T08:16:59.153Z"
-    },
-    "updatedAt": {
-      "$date": "2025-06-12T08:16:59.153Z"
-    }
-  },
-  {
-    "_id": {
       "$oid": "684a8cfb054061a6ed4d6fa9"
     },
     "langId": {
@@ -22209,18 +22385,18 @@
   },
   {
     "_id": {
-      "$oid": "684a8d1a054061a6ed4d6fb6"
+      "$oid": "684a8cfb054061a6ed4d6faa"
     },
     "langId": {
       "$oid": "6190a410006f39bf8a155a46"
     },
-    "key": "app.base.modelName",
-    "value": "模型名称",
+    "key": "table.deleted.content",
+    "value": "删除内容",
     "createdAt": {
-      "$date": "2025-06-12T08:17:30.929Z"
+      "$date": "2025-06-12T08:16:59.153Z"
     },
     "updatedAt": {
-      "$date": "2025-06-12T08:17:30.929Z"
+      "$date": "2025-06-12T08:16:59.153Z"
     }
   },
   {
@@ -22232,6 +22408,22 @@
     },
     "key": "app.base.modelName",
     "value": "Model Name",
+    "createdAt": {
+      "$date": "2025-06-12T08:17:30.929Z"
+    },
+    "updatedAt": {
+      "$date": "2025-06-12T08:17:30.929Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "684a8d1a054061a6ed4d6fb6"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "app.base.modelName",
+    "value": "模型名称",
     "createdAt": {
       "$date": "2025-06-12T08:17:30.929Z"
     },
@@ -22369,195 +22561,19 @@
   },
   {
     "_id": {
-      "$oid": "61949b8e355587f69782babd"
-    },
-    "createdAt": {
-      "$date": "2021-11-17T06:05:02.099Z"
-    },
-    "updatedAt": {
-      "$date": "2021-11-17T06:05:02.099Z"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "sys.menu.dashboard",
-    "value": "概要面板"
-  },
-  {
-    "_id": {
-      "$oid": "61949b8e355587f69782babc"
-    },
-    "createdAt": {
-      "$date": "2021-11-17T06:05:02.099Z"
-    },
-    "updatedAt": {
-      "$date": "2021-11-17T06:05:02.099Z"
+      "$oid": "684a8f21f623a74bcb30ee7f"
     },
     "langId": {
       "$oid": "6190a3ab006f39bf8a155a3a"
     },
-    "key": "sys.menu.dashboard",
-    "value": "Dashboard"
-  },
-  {
-    "_id": {
-      "$oid": "61949f56355587f69782bc00"
-    },
+    "key": "table.deleted.advancedTitle",
+    "value": "Deleted",
     "createdAt": {
-      "$date": "2021-11-17T06:21:10.702Z"
+      "$date": "2025-06-12T08:26:09.808Z"
     },
     "updatedAt": {
-      "$date": "2021-11-17T06:21:10.702Z"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "sys.menu.link.vue3",
-    "value": "Vue Next"
-  },
-  {
-    "_id": {
-      "$oid": "61949f56355587f69782bbff"
-    },
-    "createdAt": {
-      "$date": "2021-11-17T06:21:10.702Z"
-    },
-    "updatedAt": {
-      "$date": "2021-11-17T06:21:10.702Z"
-    },
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "key": "sys.menu.link.vue3",
-    "value": "Vue Next"
-  },
-  {
-    "_id": {
-      "$oid": "61949f49355587f69782bbf8"
-    },
-    "createdAt": {
-      "$date": "2021-11-17T06:20:57.477Z"
-    },
-    "updatedAt": {
-      "$date": "2021-11-17T06:20:57.477Z"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "sys.menu.link.vite",
-    "value": "Vite"
-  },
-  {
-    "_id": {
-      "$oid": "61949f49355587f69782bbf7"
-    },
-    "createdAt": {
-      "$date": "2021-11-17T06:20:57.477Z"
-    },
-    "updatedAt": {
-      "$date": "2021-11-17T06:20:57.477Z"
-    },
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "key": "sys.menu.link.vite",
-    "value": "Vite"
-  },
-  {
-    "_id": {
-      "$oid": "61949d70355587f69782bb58"
-    },
-    "createdAt": {
-      "$date": "2021-11-17T06:13:04.835Z"
-    },
-    "updatedAt": {
-      "$date": "2021-11-17T06:13:04.835Z"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "sys.menu.comp.form",
-    "value": "表单"
-  },
-  {
-    "_id": {
-      "$oid": "61949d70355587f69782bb57"
-    },
-    "createdAt": {
-      "$date": "2021-11-17T06:13:04.835Z"
-    },
-    "updatedAt": {
-      "$date": "2021-11-17T06:13:04.835Z"
-    },
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "key": "sys.menu.comp.form",
-    "value": "Form"
-  },
-  {
-    "_id": {
-      "$oid": "61949f80355587f69782bc18"
-    },
-    "createdAt": {
-      "$date": "2021-11-17T06:21:52.517Z"
-    },
-    "updatedAt": {
-      "$date": "2021-11-17T06:21:52.517Z"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "sys.menu.link.naiveui",
-    "value": "Naive UI"
-  },
-  {
-    "_id": {
-      "$oid": "61949f80355587f69782bc17"
-    },
-    "createdAt": {
-      "$date": "2021-11-17T06:21:52.517Z"
-    },
-    "updatedAt": {
-      "$date": "2021-11-17T06:21:52.517Z"
-    },
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "key": "sys.menu.link.naiveui",
-    "value": "Naive UI"
-  },
-  {
-    "_id": {
-      "$oid": "61949b9e355587f69782bac5"
-    },
-    "createdAt": {
-      "$date": "2021-11-17T06:05:18.890Z"
-    },
-    "updatedAt": {
-      "$date": "2021-11-17T06:05:18.890Z"
-    },
-    "langId": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
-    "key": "sys.menu.auth",
-    "value": "认证"
-  },
-  {
-    "_id": {
-      "$oid": "61949b9e355587f69782bac4"
-    },
-    "createdAt": {
-      "$date": "2021-11-17T06:05:18.890Z"
-    },
-    "updatedAt": {
-      "$date": "2021-11-17T06:05:18.890Z"
-    },
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "key": "sys.menu.auth",
-    "value": "Authentication"
+      "$date": "2025-06-12T08:26:09.808Z"
+    }
   },
   {
     "_id": {
@@ -22573,22 +22589,6 @@
     },
     "updatedAt": {
       "$date": "2025-06-12T08:26:09.809Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "684a8f21f623a74bcb30ee7f"
-    },
-    "langId": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
-    "key": "table.deleted.advancedTitle",
-    "value": "Deleted",
-    "createdAt": {
-      "$date": "2025-06-12T08:26:09.808Z"
-    },
-    "updatedAt": {
-      "$date": "2025-06-12T08:26:09.808Z"
     }
   },
   {

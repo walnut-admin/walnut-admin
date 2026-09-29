@@ -8,13 +8,19 @@
  * - `app_key` 的**形状**（这里刻意不重复后端的生成逻辑，所以形状只能靠用例钉住：
  *   真实数据里 AES 的 `keyB64` 是 44 字符、RSA 私钥 PEM 是 1704 字符）。
  */
+import type { Db } from 'mongodb'
 import { Buffer } from 'node:buffer'
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { gzipSync } from 'node:zlib'
 import { ObjectId } from 'mongodb'
 import { describe, expect, it } from 'vitest'
 import { generateAesKey, generateAppKeys, generateRsaKey, KEY_VALID_DAYS } from '../app-keys.ts'
 import { fromExtendedJson, parseCollectionFile, stringifyCollectionFile, toExtendedJson } from '../ejson.ts'
-import { buildMongoUri, listSeedCollections, parseArgs, parseEnvFile } from '../seed.ts'
+import { applyPolicy } from '../policy.ts'
+import { buildMongoUri, listSeedCollections, parseArgs, parseEnvFile, resolvePath, seedAreas } from '../seed.ts'
 
 describe('ejson', () => {
   it('$oid / $date 往返不丢精度', () => {
@@ -137,6 +143,62 @@ describe('argv', () => {
 
   it('缺参数值也报错', () => {
     expect(() => parseArgs(['--uri'])).toThrowError(/缺参数值/)
+  })
+
+  it('两个方向的参数互为禁区：seed 不认 --out，export 不认 --dry-run', () => {
+    // 静默忽略的代价是"以为导出了、其实没导" / "以为 dry-run 了、其实写库了"
+    expect(() => parseArgs(['--out', 'x'], 'seed')).toThrowError(/db:seed 不支持 --out/)
+    expect(() => parseArgs(['--dry-run'], 'export')).toThrowError(/db:export 不支持 --dry-run/)
+    expect(() => parseArgs(['--with-areas', 'x'], 'export')).toThrowError(/--areas/)
+    expect(() => parseArgs(['--areas', 'x'], 'seed')).toThrowError(/--with-areas/)
+    expect(parseArgs(['--out', 'tmp/x'], 'export').outDir).toBe('tmp/x')
+  })
+})
+
+describe('路径解析', () => {
+  it('相对路径按仓库根解，绝对路径原样（否则会拼出 D:\\repo\\C:\\Users\\… 这种怪物）', () => {
+    expect(resolvePath('D:/repo', 'apps/server/db/seed')).toBe(join('D:/repo', 'apps/server/db/seed'))
+    expect(resolvePath('D:/repo', 'C:/tmp/out')).toBe('C:/tmp/out')
+  })
+})
+
+describe('裁剪策略（两个方向共用一份）', () => {
+  it('sys_user 只留演示账号，且头像外链置空', () => {
+    const docs = [
+      { userName: 'visitor', avatar: 'https://cdn.example.com/a.png' },
+      { userName: 'tron97', avatar: 'https://cdn.example.com/b.png' },
+      { userName: 'admin', avatar: null },
+    ]
+    const out = applyPolicy('sys_user', docs)
+    expect(out.map(d => d.userName)).toEqual(['visitor', 'admin'])
+    expect(out.every(d => d.avatar === null)).toBe(true)
+    // 原数组不该被就地改动（导出时还要拿它做别的）
+    expect(docs[0].avatar).toBe('https://cdn.example.com/a.png')
+  })
+
+  it('没有策略的集合原样返回（且是副本）', () => {
+    const docs = [{ _id: 1 }]
+    const out = applyPolicy('sys_role', docs)
+    expect(out).toEqual(docs)
+    expect(out).not.toBe(docs)
+  })
+})
+
+describe('行政区划单独导入', () => {
+  it('支持 .json.gz：dry-run 只解析不写库', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'walnut-seed-'))
+    const file = join(dir, 'shared_area.json.gz')
+    const docs = [{ _id: new ObjectId(), name: '北京市', code: '110000', pcode: '0' }, { _id: new ObjectId(), name: '东城区', code: '110101', pcode: '110000' }]
+    writeFileSync(file, gzipSync(Buffer.from(stringifyCollectionFile(docs), 'utf8')))
+
+    // dry-run 不碰 db，所以这里传一个会在被访问时报错的假对象（真去连库就会暴露）
+    const fakeDb = {
+      collection: () => {
+        throw new Error('dry-run 不该访问数据库')
+      },
+    } as unknown as Db
+    const result = await seedAreas(fakeDb, file, true)
+    expect(result).toMatchObject({ collection: 'shared_area', total: 2, inserted: 0 })
   })
 })
 

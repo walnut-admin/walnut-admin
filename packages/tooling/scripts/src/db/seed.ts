@@ -20,8 +20,9 @@
  */
 import type { Db, Document, Filter } from 'mongodb'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 import process from 'node:process'
+import { gunzipSync } from 'node:zlib'
 import { MongoClient } from 'mongodb'
 import { PreconditionError } from '../lib/errors.ts'
 import { line, out } from '../lib/log.ts'
@@ -49,7 +50,13 @@ export interface SeedOptions {
   withAreas?: string
   /** 只播种数据、不碰 app_key（排障用） */
   skipAppKeys: boolean
+  /** 导出侧的落盘目录（`db:export --out`；播种命令不认这个参数） */
+  outDir: string
+  /** 导出侧的行政区划另存路径（`db:export --areas`） */
+  areas?: string
 }
+
+export type CommandMode = 'seed' | 'export'
 
 /** 极简 `KEY=VALUE` 解析（env 文件已是明文；不引 dotenv，避免多一个依赖面） */
 export function parseEnvFile(text: string): Record<string, string> {
@@ -90,17 +97,37 @@ export function buildMongoUri(env: Record<string, string>, dbNameOverride?: stri
   return `mongodb://${auth}${hosts.join(',')}/${dbName}${query}`
 }
 
+/**
+ * 路径解析：相对路径按**仓库根**解，绝对路径原样用。
+ *
+ * 为什么要有它：`--out`/`--with-areas` 这类参数用户既可能给相对路径（`apps/server/db/seed`），
+ * 也可能给绝对路径（临时目录、下载下来的 Release 资产）。直接 `join(repoRoot, p)` 会把绝对路径
+ * 拼成 `D:\repo\C:\Users\…` 这种怪物 —— 实测踩到过。
+ */
+export function resolvePath(repoRoot: string, p: string): string {
+  return isAbsolute(p) ? p : join(repoRoot, p)
+}
+
 /** 取后端那份 env 文件（`NODE_ENV ?? development`，与后端同一口径） */
 export function resolveEnvFile(repoRoot: string, envFileOverride?: string): string {
   if (envFileOverride !== undefined)
-    return envFileOverride
+    return resolvePath(repoRoot, envFileOverride)
   const env = process.env.NODE_ENV ?? 'development'
   return join(repoRoot, 'apps/server/env-local', `.env.${env}`)
 }
 
-/** 解析 argv（`--flag` / `--key value`；未知参数直接报错，避免"拼错了却静默跑默认值"） */
-export function parseArgs(argv: readonly string[]): SeedOptions {
-  const opts: SeedOptions = { seedDir: SEED_DIR, envFile: '', dryRun: false, skipAppKeys: false }
+/**
+ * 解析 argv（`--flag` / `--key value`；未知参数直接报错，避免"拼错了却静默跑默认值"）。
+ *
+ * `mode` 用来**把两个方向各自的参数挡在门外**：`db:seed` 不认 `--out`/`--areas`，
+ * `db:export` 不认 `--dry-run`/`--with-areas`。静默忽略的代价是"以为导出了、其实没导"。
+ */
+export function parseArgs(argv: readonly string[], mode: CommandMode = 'seed'): SeedOptions {
+  const opts: SeedOptions = { seedDir: SEED_DIR, envFile: '', dryRun: false, skipAppKeys: false, outDir: SEED_DIR }
+  const allowed: Record<CommandMode, string> = {
+    seed: '--dry-run / --only / --uri / --db / --env-file / --seed-dir / --with-areas / --skip-app-keys',
+    export: '--only / --uri / --db / --env-file / --seed-dir / --out / --areas',
+  }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     const next = (): string => {
@@ -111,10 +138,29 @@ export function parseArgs(argv: readonly string[]): SeedOptions {
     }
     switch (arg) {
       case '--dry-run':
+        if (mode !== 'seed')
+          throw new PreconditionError(`db:export 不支持 ${arg}（支持 ${allowed.export}）`)
         opts.dryRun = true
         break
       case '--skip-app-keys':
+        if (mode !== 'seed')
+          throw new PreconditionError(`db:export 不支持 ${arg}（支持 ${allowed.export}）`)
         opts.skipAppKeys = true
+        break
+      case '--with-areas':
+        if (mode !== 'seed')
+          throw new PreconditionError(`db:export 不支持 ${arg}（行政区划另存请用 --areas）`)
+        opts.withAreas = next()
+        break
+      case '--out':
+        if (mode !== 'export')
+          throw new PreconditionError(`db:seed 不支持 ${arg}（支持 ${allowed.seed}）`)
+        opts.outDir = next()
+        break
+      case '--areas':
+        if (mode !== 'export')
+          throw new PreconditionError(`db:seed 不支持 ${arg}（导入行政区划请用 --with-areas）`)
+        opts.areas = next()
         break
       case '--only':
         opts.only = next().split(',').map(s => s.trim()).filter(Boolean)
@@ -131,14 +177,30 @@ export function parseArgs(argv: readonly string[]): SeedOptions {
       case '--seed-dir':
         opts.seedDir = next()
         break
-      case '--with-areas':
-        opts.withAreas = next()
-        break
       default:
-        throw new PreconditionError(`未知参数 ${arg}（支持 --dry-run / --only / --uri / --db / --env-file / --seed-dir / --with-areas / --skip-app-keys）`)
+        throw new PreconditionError(`未知参数 ${arg}（支持 ${allowed[mode]}）`)
     }
   }
   return opts
+}
+
+/**
+ * 连接口径（两个方向共用）：`--uri` 优先，否则从后端那份 env 文件拼。
+ * 库名取 `--db` → URI 里的路径 → env 的 `DATABASE_NAME`。
+ */
+export function resolveConnection(repoRoot: string, opts: Pick<SeedOptions, 'uri' | 'dbName' | 'envFile'>): { uri: string, dbName: string } {
+  const envFile = resolveEnvFile(repoRoot, opts.envFile === '' ? undefined : opts.envFile)
+  let uri = opts.uri
+  if (uri === undefined) {
+    if (!existsSync(envFile)) {
+      throw new PreconditionError(`找不到 env 文件 ${envFile} —— 先跑 \`pnpm setup-env\`，或用 --env-file / --uri 指定`)
+    }
+    uri = buildMongoUri(parseEnvFile(readFileSync(envFile, 'utf8')), opts.dbName)
+  }
+  const dbName = opts.dbName ?? new URL(uri).pathname.replace(/^\//, '')
+  if (dbName === '')
+    throw new PreconditionError('解析不出库名 —— 用 --db 明确指定')
+  return { uri, dbName }
 }
 
 interface WriteResult {
@@ -189,22 +251,45 @@ async function seedAppKeys(db: Db, dryRun: boolean): Promise<WriteResult> {
   return { collection: 'app_key', total: wanted.length, inserted: missing.length, replaced: 0 }
 }
 
+/**
+ * 行政区划：**单独一个文件**（89MB，随 Release 发资产，不进仓）。
+ *
+ * 分块 upsert：66 万条一次性 bulkWrite 会把内存和单条命令的 BSON 上限一起顶穿。
+ * 支持 `.json` 与 `.json.gz`（Release 资产是压缩过的，省得下游再解一遍）。
+ */
+export async function seedAreas(db: Db, file: string, dryRun: boolean, chunkSize = 5000): Promise<WriteResult> {
+  const raw = file.endsWith('.gz') ? gunzipSync(readFileSync(file)) : readFileSync(file)
+  const docs = parseCollectionFile(raw.toString('utf8'))
+
+  if (dryRun)
+    return { collection: 'shared_area', total: docs.length, inserted: 0, replaced: 0 }
+
+  const collection = db.collection('shared_area')
+  let inserted = 0
+  let matched = 0
+  for (let i = 0; i < docs.length; i += chunkSize) {
+    const chunk = docs.slice(i, i + chunkSize)
+    const result = await collection.bulkWrite(
+      chunk.map(doc => ({ replaceOne: { filter: { _id: doc._id } as Filter<Document>, replacement: doc, upsert: true } })),
+      { ordered: false },
+    )
+    inserted += result.upsertedCount
+    matched += result.matchedCount
+    if ((i / chunkSize) % 20 === 0)
+      out(`  shared_area 进度 ${Math.min(i + chunkSize, docs.length)} / ${docs.length}`)
+  }
+  return { collection: 'shared_area', total: docs.length, inserted, replaced: matched }
+}
+
 /** 命令行主体：读数据、连库、写、打汇总 */
 export async function main(): Promise<void> {
   const repoRoot = process.cwd()
-  const opts = parseArgs(process.argv.slice(2))
-  const seedDir = join(repoRoot, opts.seedDir)
+  const opts = parseArgs(process.argv.slice(2), 'seed')
+  const seedDir = resolvePath(repoRoot, opts.seedDir)
   if (!existsSync(seedDir))
     throw new PreconditionError(`找不到 seed 目录：${seedDir}`)
 
-  const envFile = resolveEnvFile(repoRoot, opts.envFile === '' ? undefined : opts.envFile)
-  let uri = opts.uri
-  if (uri === undefined) {
-    if (!existsSync(envFile))
-      throw new PreconditionError(`找不到 env 文件 ${envFile} —— 先跑 \`pnpm setup-env\`，或用 --env-file / --uri 指定`)
-    uri = buildMongoUri(parseEnvFile(readFileSync(envFile, 'utf8')), opts.dbName)
-  }
-  const dbName = opts.dbName ?? new URL(uri).pathname.replace(/^\//, '')
+  const { uri, dbName } = resolveConnection(repoRoot, opts)
 
   const collections = listSeedCollections(seedDir).filter(c => opts.only === undefined || opts.only.includes(c))
   if (collections.length === 0)
@@ -229,6 +314,17 @@ export async function main(): Promise<void> {
       const detail = opts.dryRun ? `待写入 ${r.total}` : `新增 ${r.inserted} / 覆盖 ${r.replaced}`
       out(`  ${r.collection.padEnd(16)} ${detail}`)
     }
+
+    if (opts.withAreas !== undefined) {
+      const file = resolvePath(repoRoot, opts.withAreas)
+      if (!existsSync(file))
+        throw new PreconditionError(`找不到行政区划文件：${file}`)
+      const r = await seedAreas(db, file, opts.dryRun)
+      const detail = opts.dryRun ? `待写入 ${r.total}` : `新增 ${r.inserted} / 覆盖 ${r.replaced}`
+      out(`  ${r.collection.padEnd(16)} ${detail}`)
+      results.push(r)
+    }
+
     line('ok', `${opts.dryRun ? 'dry-run 完成（未写入任何文档）' : `播种完成：${results.length} 个集合`}`)
   }
   finally {
