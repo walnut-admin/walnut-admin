@@ -1,5 +1,5 @@
 {
-  // ⚠️ 这份配置**只服务于 `pnpm lint:dts`**（门禁 `walnut-check-dts`）：把手写的 `.d.ts` 单独拉出来、
+  // 这份配置**只服务于 `pnpm lint:dts`**（门禁 `walnut-check-dts`）：把手写的 `.d.ts` 单独拉出来、
   // **关掉 `skipLibCheck`** 查一遍。判据、理由与首跑抓到的 16 处问题见
   // `packages/tooling/scripts/src/ci/check-handwritten-dts.ts` 的文件头。
   //

@@ -65,6 +65,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: '包之间的依赖方向由 tags 声明。违规一旦合并进去，纠正成本远高于拦在推送前。',
   },
   {
+    id: 'lint',
+    label: 'lint 各包（turbo run lint，不排任何包）',
+    argv: ['exec', 'turbo', 'run', 'lint'],
+    why: '**这一段的缺位被实测抓到过**（留档 V14）：`prepush` 原先只有 `lint:root`，而 `lint-staged` 的 glob 是 `*.{ts,vue,js}` ⇒ **纯 JSON / 非 TS 文件**的 lint 问题在推送前**没有任何一段看得见**，只在 CI 的 `Lint (affected)` 现形（当时改的是 `tsconfig.dts.json`，本地 18 段全绿、CI 会红）。发版电池里一直有这一段，prepush 漏了；走的也是 turbo，所以没改动的包命中缓存、冷跑才是全量。',
+  },
+  {
     id: 'lint-root',
     label: 'lint 根级配置（turbo run //#lint:root）',
     // 走 turbo 而不是直接 `pnpm lint:root`：根任务有精确的 inputs（就是脚本里那三个 glob），

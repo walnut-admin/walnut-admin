@@ -87,7 +87,7 @@ describe('lefthook.yml —— pre-push 是单条聚合门禁', () => {
   })
 
   it('pre-commit 与 commit-msg 各自绑定 lint-staged / commitlint', () => {
-    // ⚠️ `--max-arg-length=4000` **不能省**，不是可选优化：lint-staged 17.0.2 的 CLI 把未传的该选项
+    // `--max-arg-length=4000` **不能省**，不是可选优化：lint-staged 17.0.2 的 CLI 把未传的该选项
     // 算成 `parseInt(undefined, 10)` = NaN，而 `lib/index.js` 里 `getMaxArgLength() / 2`（win32 = 4095）
     // 那个默认值是**解构默认值**、只对 `undefined` 生效 ⇒ NaN 让它失效 ⇒ 分块被静默关掉 ⇒ 一次提交
     // 几百个文件时所有路径塞进一条命令，Windows 上以「命令行太长」失败（2026-09-29 实测 369 个必挂）。

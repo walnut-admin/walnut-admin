@@ -36,13 +36,13 @@ declare global {
     $notification: NotificationApiInjection
     $dialog: DialogApiInjection
 
-    // ⚠️ 这里**不再**声明 `echarts`（2026-09-29）：它原先按 `echarts/core`（ESM）声明，而 echarts
+    // 这里**不再**声明 `echarts`（2026-09-29）：它原先按 `echarts/core`（ESM）声明，而 echarts
     // 自己用 **UMD 全局**声明了同一个 `Window.echarts` ⇒ 接口合并成一个**交集**，两边各有一套私有
     // `_setting`、互不兼容，赋值点只能靠断言糊过去。现在改成消费方直接 `import echarts from
     // './on-demand'`（见那个文件），全局没了、交集没了、断言也没了。
 
     // google analytics
-    // ⚠️ 这里没有 `dataLayer`：`@types/gtag.js` 只声明了 `Gtag.Gtag` 与若干参数类型、**没有**
+    // 这里没有 `dataLayer`：`@types/gtag.js` 只声明了 `Gtag.Gtag` 与若干参数类型、**没有**
     // `DataLayer`；而仓里也**零处**读 `window.dataLayer` ⇒ 原来那条声明既解析不了、也没人用，
     // 于是被 `skipLibCheck` 藏成了一行静默 any（2026-09-29 由 `pnpm lint:dts` 抓出）。
     // 哪天真要用，按 GA4 的实际形状自己声明，别再从 `Gtag` 命名空间里找一个不存在的成员。

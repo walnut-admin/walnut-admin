@@ -30,7 +30,7 @@ const STUB = 'virtual:dts-gen'
 
 /** 生成组件声明（由 `build/generate/index.ts` 统一调用） */
 export async function generateTypeDeclarations() {
-  // ⚠️ **先清理已废除的生成物**（`unplugin-auto-import` 于 2026-09-29 移除，见 ADR 0020）。
+  // **先清理已废除的生成物**（`unplugin-auto-import` 于 2026-09-29 移除，见 ADR 0020）。
   //
   // 为什么必须在这一步机械地删，而不是写在文档里让人自己删：那份 dts 是 **gitignored** 的 ——
   // `git pull` 到这次改动时，它**不会被删掉**（git 不管未跟踪文件），而 `tsconfig.json` 的
@@ -66,5 +66,5 @@ export async function generateTypeDeclarations() {
     },
   })
 
-  console.log(`✅ 生成完成：${componentsDtsPath}（生成物，不进 git）`)
+  console.log(`生成完成：${componentsDtsPath}（生成物，不进 git）`)
 }

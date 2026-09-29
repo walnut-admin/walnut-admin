@@ -21,7 +21,7 @@ export function installI18n(app: App) {
 /**
  * 拉当前语言的语言包（从后端 `/system/locale/message/:locale`，落到 i18n 实例里）。
  *
- * ⚠️ 本仓**没有**内置语言包兜底文件（`src/locales/` 只有这个 index）—— 语言包的唯一来源就是库。
+ * 本仓**没有**内置语言包兜底文件（`src/locales/` 只有这个 index）—— 语言包的唯一来源就是库。
  * 所以这一步失败时应用会以降级状态进页面：界面显示的是 i18n key，控制台/提示条会说清是这一步挂了。
  * 这比「一屏 loading 到底、原因只在控制台」可诊断得多（见 `bootstrap.ts` 顶部）。
  */

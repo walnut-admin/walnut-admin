@@ -52,6 +52,7 @@ describe('pREPUSH_GATES —— 表本身', () => {
     // 表里的顺序是「读起来该怎么理解」，不是依赖关系（并行跑）。改动它应该是**有意的**。
     expect(PREPUSH_GATES.map(g => g.id)).toEqual([
       'boundaries',
+      'lint',
       'lint-root',
       'types',
       'types-root',

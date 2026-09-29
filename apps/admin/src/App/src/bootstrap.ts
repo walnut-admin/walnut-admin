@@ -77,7 +77,7 @@ async function withTimeout(name: string, run: () => void | Promise<void>): Promi
 /**
  * 按序跑启动步骤。**不抛异常** —— 失败都变成返回值，由调用方决定「显示错误屏」还是「降级启动」。
  *
- * ⚠️ 顺序是刻意保留的（与拆分前一致）：设备/指纹/签名要在 i18n 与 router 之前就绪，否则路由组件一
+ * 顺序是刻意保留的（与拆分前一致）：设备/指纹/签名要在 i18n 与 router 之前就绪，否则路由组件一
  * 挂载就会发出没有签名、没有设备标识的请求。想调整顺序请先想清楚这件事。
  */
 export async function bootstrapApp(app: App): Promise<BootstrapResult> {

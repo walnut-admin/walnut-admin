@@ -23,7 +23,7 @@ Tailwind v3 兼容）· Pinia · Vue Router（web history）· Vue I18n
   `@vueuse/core`、`src/{const,locales,router,store/modules,hooks,socket}`、`useForm`/`useTable`/`useCRUD`
   统统要显式 import。漏了 `vue-tsc` 会直接红，**别再把插件加回来**。
 - 只剩一个隐式机制：`unplugin-vue-components` 的**组件**自动注册（`<WXxx>` / `<NButton>` 不用 import）。
-  ⚠️ 它**没有类型安全网**：tsconfig 未开 `vueCompilerOptions.strictTemplates`，组件名写错时
+  它**没有类型安全网**：tsconfig 未开 `vueCompilerOptions.strictTemplates`，组件名写错时
   `vue-tsc` 不报错，只有运行时才发现 —— 别指望编译器帮你验组件名存在。
 
 ## 组件与 store 约定

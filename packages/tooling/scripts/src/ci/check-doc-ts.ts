@@ -52,7 +52,7 @@ const TS_LANGS = new Set(['ts', 'tsx', 'typescript'])
 /**
  * 会被当作**严格 JSON** 校验的围栏语言标注。
  *
- * ⚠️ 刻意只收 `json`，**不收 `jsonc`** —— 这不是漏了，是量过之后的取舍（2026-09-29）：
+ * 刻意只收 `json`，**不收 `jsonc`** —— 这不是漏了，是量过之后的取舍（2026-09-29）：
  * 全仓 `json` / `jsonc` 块共 26 个，其中严格 `JSON.parse` 只有 3 个能过。`jsonc` 在本仓是
  * 「**带注释 / 裸键的 JSON5 片段**」这一桶（`apps/docs/AGENTS.md` 明确把 knip.md 那 4 个
  * 裸键块指到 `jsonc`），16 个里连 `ts.parseJsonText`（JSONC 解析器）都过不了 8 个。

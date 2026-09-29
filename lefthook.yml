@@ -26,7 +26,7 @@ assert_lefthook_installed: true
 pre-commit:
   jobs:
     - name: lint-staged
-      # ⚠️ `--max-arg-length` 不能省。lint-staged 17.0.2 的 CLI 把该选项算成
+      # `--max-arg-length` 不能省。lint-staged 17.0.2 的 CLI 把该选项算成
       # `parseInt(values['max-arg-length'], 10)` —— 没传时是 **NaN**；而 `index.js` 里那个
       # 合理的默认值（`getMaxArgLength() / 2`，win32 = 4095）是**解构默认值**，只在「值为
       # undefined」时生效 ⇒ NaN 让它失效 ⇒ 分块被静默关掉 ⇒ 所有暂存路径塞进一条命令，
