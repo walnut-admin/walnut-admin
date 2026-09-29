@@ -205,6 +205,22 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # 初始化数据打成一个**带版本号**的资产随 Release 发布（`walnut-admin-seed-<version>.tar.gz`）。
+      # 这里只打**仓内那部分**（8 个集合，约 0.1MB）：行政区划（66 万条）刻意不进 git，它需要一份
+      # 有数据的库才能导出，所以那部分由发版机本地跑 `pnpm seed:pack --areas-from-db` 产出，
+      # 再用 `gh release upload <tag> <文件> --clobber` 覆盖上去（`pnpm seed:pack` 会把这条命令打出来）。
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Pack seed asset
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm --silent seed:pack
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -212,6 +228,7 @@ jobs:
           name: ${{ github.ref_name }}
           body_path: changelog-latest.md
           generate_release_notes: false
+          files: apps/server/db/.pack/*.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

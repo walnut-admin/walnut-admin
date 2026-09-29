@@ -27,6 +27,7 @@
     "walnut-db-seed": "./bin/db-seed.ts",
     "walnut-lint-emoji": "./bin/check-emoji.ts",
     "walnut-lint-workflows": "./bin/lint-workflows.ts",
+    "walnut-pack-seed": "./bin/pack-seed.ts",
     "walnut-prepush": "./bin/prepush.ts",
     "walnut-setup-env": "./bin/setup-env.ts",
     "walnut-smoke-dist": "./bin/smoke-dist.ts"

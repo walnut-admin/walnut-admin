@@ -26,10 +26,16 @@ pnpm db:seed --with-areas <文件> # 额外导入行政区划（见下）
 ```bash
 pnpm db:export                  # 从当前库反向导出到 apps/server/db/seed/
 pnpm lint:seed                  # 形态门禁：必需/禁入集合、体积、凭据形状、引用完整性
+pnpm db:seed --admin <账号> --password <口令>   # 在**本环境**给某账号建口令凭证并当场验证登录
+pnpm seed:pack --areas-from-db  # 打成发版资产（挂到 GitHub Release 上）
 ```
 
 导出与仓内文件**逐字节可比**（导出按 `_id` 升序、并套用同一份裁剪规则），所以 `git diff` 就是判据：
 数据漂了、有人手工改过、库里多出该裁剪的账号 —— 都会在这里露出来。
+
+**口令为什么不随仓库发**：OPAQUE 的服务端 `serverSetup` 就是 `AUTH_OPAQUE_SECRET`，客户端的注册
+记录由 OPRF 输出派生的密钥加密 ⇒ 换一个 secret 必然登不进去。所以 seed 只发无凭证的账号档案，
+口令由 `--admin` 在目标环境现生成（走与线上完全相同的协议），并在写入后跑一遍完整登录握手验证。
 
 ## 哪些数据**刻意不在**仓里
 
@@ -39,7 +45,7 @@ pnpm lint:seed                  # 形态门禁：必需/禁入集合、体积、
 | 口令凭证（`sys_user_identity`） | OPAQUE 的注册记录**绑定服务端的 `AUTH_OPAQUE_SECRET`**（该 secret 就是 OPAQUE 的 `serverSetup`）⇒ 换环境必然登不进去，发布它等于发布一份在别人机器上无效的凭证 | 装好后**走应用的注册流程**建立第一个管理员；演示账号同理 |
 | MFA 密文 / OAuth 绑定 | 密文用 env 密钥加密（跨环境解不开），且属用户隐私；OAuth 是运行时状态 | 各自在使用中产生 |
 | 设备指纹 / 用户设备 | 设备信息、IP 与地理位置历史 —— 运行时状态 + 个人数据 | 各自在使用中产生 |
-| 行政区划（`shared_area`） | 66 万条、压缩后仍有数 MB。它的定位是**参考数据**，不是配置 | 由发版产物附带的资产提供，用 `pnpm db:seed --with-areas <文件>` 导入（支持 `.json` 与 `.json.gz`） |
+| 行政区划（`shared_area`） | 66 万条、压缩后仍有数 MB。它的定位是**参考数据**，不是配置 | 作为**发版资产**随 Release 发布：CI 会打一份只含仓内数据的 `walnut-admin-seed-<版本>.tar.gz`；带行政区划的完整包由发版机本地跑 `pnpm seed:pack --areas-from-db` 产出（那需要一份有数据的库），再按脚本打出的 `gh release upload` 命令覆盖上去。消费方下载后 `pnpm db:seed --with-areas <文件>` 导入（支持 `.json` 与 `.json.gz`） |
 
 ## 注意：这不是"清库工具"
 
