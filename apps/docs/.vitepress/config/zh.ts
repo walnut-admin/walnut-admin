@@ -66,7 +66,7 @@ const backendContent = [
     link: '/content/backend/cors',
   },
   {
-    text: '数据库设计',
+    text: '数据库与初始化数据',
     link: '/content/backend/mongodb',
   },
   // 「后端规范」一簇：原 apps/server/AGENTS.md 的参考部分（2026-09-23 拆分）。
