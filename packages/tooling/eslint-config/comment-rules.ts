@@ -50,6 +50,22 @@ const EMOJI = /[\p{Extended_Pictographic}\uFE0F\u200D]/u
 
 const EMOJI_RUN = /[\p{Extended_Pictographic}\uFE0F\u200D]+ ?/gu
 
+/**
+ * **不是 emoji 的排版符号**：版权、注册商标、商标。
+ *
+ * 它们**落在 `\p{Extended_Pictographic}` 里**（Unicode 把版权符号也标成了带 Emoji 属性的字符，
+ * 配上变体选择符确实能当 emoji 用），但在本仓的用法是**法律声明**那一类。实测代价：规则第一版
+ * 把它们当 emoji 删掉了 —— `apps/admin/src/store/types.d.ts` 的 JSDoc `@default Copyright © …`
+ * 被改，**随仓库提交的生成物** `.vscode/settings-dev.schema.json` 随之漂移。这三个符号在终端里
+ * 显示正常、也从不乱码，所以直接豁免，而不是靠 `eslint-disable` 到处兜。
+ */
+const NOT_EMOJI = /^[\u00A9\u00AE\u2122\s]+$/u
+
+/** 命中的片段里剔除「纯排版符号」的那些 */
+function realHits(raw: string): RegExpMatchArray[] {
+  return [...raw.matchAll(EMOJI_RUN)].filter(m => !NOT_EMOJI.test(m[0]))
+}
+
 /** 报错时把命中的字符列出来（最多 3 个），便于定位 */
 function describe(matches: readonly string[]): string {
   return [...new Set(matches.map(m => m.trim()))].slice(0, 3).join(' ')
@@ -77,7 +93,7 @@ const noEmojiInComments: Rule.RuleModule = {
           // 用**原文**（含 `//` / `/* */` / `#` 这些定界符）来算范围，修起来与语言无关
           const raw = sourceCode.getText(comment as never)
           const base = comment.range?.[0] ?? 0
-          const hits = [...raw.matchAll(EMOJI_RUN)].map(m => m[0])
+          const hits = realHits(raw).map(m => m[0])
           if (hits.length === 0)
             continue
 
@@ -87,7 +103,7 @@ const noEmojiInComments: Rule.RuleModule = {
             data: { chars: describe(hits) },
             fix: (fixer) => {
               const ranges: [number, number][] = []
-              for (const m of raw.matchAll(EMOJI_RUN)) {
+              for (const m of realHits(raw)) {
                 const start = m.index ?? 0
                 // `EMOJI_RUN` 已经吃掉一个**尾随**空格；没有尾随空格时（emoji 在行尾）改吃一个**前导**
                 // 空格 —— 否则修复会留下一串多余空格，等于换了个形态的脏。

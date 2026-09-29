@@ -23,6 +23,9 @@ describe('no-emoji —— 注释里不许有 emoji', () => {
         { code: 'const t = "⏭️ 文档断言用的标记也在字符串里"' },
         { code: 'const n = `模板字符串里的 🚀 不管`' },
         { code: 'const re = /⚠️/u' },
+        // 版权 / 注册商标 / 商标：落在 \p{Extended_Pictographic} 里，但本仓的用法是法律声明
+        { code: '/** @default Copyright © 2020-present Walnut Admin. All Rights Reserved. */' },
+        { code: '// 品牌名后跟 ® 或 ™ 也不算 emoji' },
       ],
       invalid: [
         {

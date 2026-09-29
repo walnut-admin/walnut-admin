@@ -774,7 +774,7 @@ export namespace IStoreSetting {
 
       /**
        * @description Custom footer content
-       * @default Copyright 2020-present Walnut Admin. All Rights Reserved.
+       * @default Copyright © 2020-present Walnut Admin. All Rights Reserved.
        */
       content: string
     }
