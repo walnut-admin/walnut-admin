@@ -82,6 +82,8 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 
 > `lint:root` 是 2026-09-23 新增的一节（glob 从 `*.mjs` 改为 `*.ts`）。根级配置（`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts` / `package.json` / `pnpm-workspace.yaml`）此前**不被任何门禁覆盖**——`pnpm lint` 只跑各包的 `lint` 任务。它现在进 `prepush` 与发版电池，`ci.yml` 的 quality job 也补了一步 `pnpm lint:root`（它不进 turbo 的 affected 图，所以必须显式跑）。
 
+> **所有 `lint` / `lint:fix` 都写死 `--concurrency=4`，别再改回 `auto`**（2026-09-29）。原因是一次实测：在 12 逻辑核的机器上，`auto` 会开 12 个 worker，而 `apps/admin` 的脚本还带 `NODE_OPTIONS=--max-old-space-size=8192` ⇒ 12 × 8 GB 的堆上限落在 64 GB 的机器上，`eslint`（含 `--fix`）会偶发以 `0xC0000005`（ACCESS_VIOLATION）崩溃；`--fix` 崩在中途还会**落下半修复的工作区**。改固定 4 之后同类跑法 5/5 通过，且**并不更慢**：同一个 `apps/admin` 全量 lint 实测 `auto` 28.1s / `4` 26.8s / `6` 28.3s（worker 越多，调度开销越明显，ESLint 自己也会打 `ESLintPoorConcurrencyWarning`）。根因（内存压力）只是合理推断，**没有抓崩溃转储**——留档见仓库根 `VERIFICATION-LOG.md` 的 V5。
+
 **关键规则**：根 scripts 不包含构建逻辑。`turbo build` 会找到所有包的 `build` script 并按拓扑顺序执行。
 
 ### 3. 按包类型的差异化

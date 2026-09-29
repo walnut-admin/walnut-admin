@@ -14,8 +14,8 @@
   },
   "scripts": {
     "build": "echo 'types: pure source, no build needed'",
-    "lint": "eslint . --concurrency=auto",
-    "lint:fix": "eslint . --fix --concurrency=auto",
+    "lint": "eslint . --concurrency=4",
+    "lint:fix": "eslint . --fix --concurrency=4",
     "types:check": "tsc --noEmit",
     "clean": "rimraf dist",
     "clean:all": "rimraf dist node_modules"

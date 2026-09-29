@@ -12,8 +12,8 @@
     "pnpm": ">=12.0.0"
   },
   "scripts": {
-    "lint": "eslint . --concurrency=auto",
-    "lint:fix": "eslint . --fix --concurrency=auto",
+    "lint": "eslint . --concurrency=4",
+    "lint:fix": "eslint . --fix --concurrency=4",
     "types:check": "tsc --noEmit"
   },
   "dependencies": {
