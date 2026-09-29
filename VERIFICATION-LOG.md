@@ -95,22 +95,14 @@ HTMLAttributes`（自己继承自己，TS2310 —— 那个文件已整个删除
 **建议方案方向**：这类「路径写错 → 工具静默降级成什么都不做」的配置没有门禁看得见。
 可以给几个已知的 watch 型选项加一条启动期断言（目录不存在就直接报错），成本极低。
 
-## V4 · 前端卡在 splash：空库 + 启动序列没容错（**既有问题，与本次无关**）
+## V4 · 前端卡在 splash：空库 + 启动序列没容错（**已修**）
 
 **症状**：`pnpm dev`（前后端都起）后浏览器停在 `index.html` 里那屏 loading，控制台一片红。
 
-**判据（headless Chrome 实测，前后两份代码都跑了）**：
-
-| 观察 | 改动后 | `git stash` 回到 HEAD（auto-import 仍在） |
-|------|--------|------------------------------------------|
-| DOM 里 `<div class="app-loading">` | 仍在 | 仍在 |
-| 控制台有 `vue-devtools` 注入（说明 JS 跑了） | 有 | 有 |
-| 控制台有 `setupApp` 末尾那行 `App Initializing` | **无** | **无** |
-| 控制台有 `ReferenceError` / `is not defined` / `Uncaught` | **无** | **无** |
-
-⇒ 两次**逐项一致**：卡住的位置与 auto-import 无关。真正的链是：
-`main.ts` 的 `await setupApp(app)` 在 `app.mount('#app')` **之前**，而 `setupApp` 里
-`await setupI18n(app)` 依赖的 `GET /w/v1/system/locale/message/zh_CN` 返回 **500**：
+**成因链**：`main.ts` 是 `await setupApp(app)` 再 `app.mount('#app')` —— 启动序列里**任何一步抛出**
+都会让 `mount` 永不执行，用户只看到一屏 loading，原因只在控制台。而空库时这一步**必然**抛：
+`setupI18n` 依赖的 `GET /w/v1/system/locale/message/zh_CN` 返回 **500**（库是空的，启动 cron 自己
+打了 `locale message count : 0`）：
 
 ```
 [AppTechCacheAppSettingsService] "undefined" is not valid JSON
@@ -118,17 +110,45 @@ HTMLAttributes`（自己继承自己，TS2310 —— 那个文件已整个删除
   at SysLocaleSharedService.getLocaleMessage (... locale.shared.service.ts:83:66)
 ```
 
-而库是空的 —— 启动 cron 自己打了 `app settings count : 0` / `locale message count : 0`。
-`setupApp` 里任何一个 await 抛出 ⇒ `mount` 永不执行 ⇒ 只剩 splash + 控制台刷屏，
-**这正好是用户最初报的「一万个错误」**。
+**判据（CDP 实测，同一环境、同一份库 —— 改前 / 改后各跑一次）**：
 
-**本次处置**：不动（不在本次范围）。**已在仓里登记**：
-`apps/docs/src/zh-CN/content/monorepo/architecture-todo.md` 的「前端启动序列没有容错」。
+| 观察 | 改前（HEAD） | 改后 |
+|------|--------------|------|
+| `#app` 里还有 `<div class="app-loading">` | **是**（等了 75s 仍在 splash） | **否** |
+| 页面正文 | `Walnut Admin`（只剩 splash 标题） | 登录页（正文可见） |
+| 控制台 `setupApp` 末尾那行 `App Initializing` | **无** | **有** |
+| 未捕获异常 | 1 条：`TypeError: useAppMessage(...).create is not a function` | 0 条 |
+| 失败步骤的可见性 | 只在控制台，且是一句与根因无关的 TypeError | 逐条 `[bootstrap] 可降级步骤失败：device-id / sign / locale-messages` + 一条汇总 warning |
 
-**建议方案方向**：① 那几组启动调用分清「没它就不能进页面」与「可以先进页面再补」，后者的 await
-挪到 `mount` 之后，或在组合根统一收敛错误；② **本地无播种脚本** —— `apps/server` 没有
-`seed` / `db:init`（本次查过 package.json 与全仓文件），空库必然卡死，端到端验证因此做不了，
-建议补一个最小 seed。
+**本次处置（已修）**：把组合根从 `App/src/App.ts` 挪进 `App/src/bootstrap.ts`，并把启动序列拆成
+**带名字、带关键性的一步步**：
+
+- **关键步**（store / i18n 壳 / router）失败 ⇒ **不 mount**，把 splash 换成一屏**能读懂的**错误
+  （`renderBootstrapFailure`，纯 DOM、不用 `innerHTML`，带「失败的步骤 + 错误消息 + 重试」）；
+- **可降级步**（GA / 指纹 / 设备 / 签名 / 语言包 / sentry）失败 ⇒ 记下来照常进页面，mount 之后
+  逐条 `console.error` + 一条 `$message.warning` 汇总（`reportBootstrapProblems`）；
+- 网络类步骤加**超时兜底**（20s）：请求挂死时 `await` 永不 resolve，那是「无限 splash」的另一种成因，
+  光靠 try/catch 拦不住；
+- `setupI18n` 拆成 `installI18n`（同步、不会失败）+ `loadLocaleMessages`（网络，可降级）——
+  装 i18n 是进页面的前提，拿语言包不是；
+- `App/src/scripts/index.ts` 的四步各自成函数，报错能说清是哪一步（原来只得到一句「启动失败」）。
+
+**两条分支都实测过**：可降级路径见上表；关键路径把 `installI18n` 临时改成抛错后，页面显示
+「应用启动失败 / 失败的步骤：i18n / probe: …」，未捕获异常 0 条。
+
+**⚠️ 顺带更正一条测量教训**：本条目最初那版「判据」用的是 headless `--dump-dom` 的截图对比
+（结论「前后都停在 splash、所以与 auto-import 无关」）。**那次对比是无效测量**：dev server 的模块图
+太大，headless 的 virtual-time 预算跑不完 —— 我们的代码**一行都没执行**，两次都只是静态
+`index.html` 的 splash。改前/改后两张表都是在**代码确实跑起来**的前提下测的（CDP 走真实时间）。
+教训：**「页面没变化」不等于「代码跑了但结果一样」**，先确认被测代码执行过（判据：`App Initializing`
+这类只可能由它打出的日志，或页面正文真的变了）。
+
+**仍待立项（V4 的另一半）**：**本地无播种脚本** —— `apps/server` 没有 `seed` / `db:init`（查过
+package.json 与全仓文件），空库时前端只能降级启动（语言包/设备/签名三步都会失败）。
+而**播种数据在仓里根本不存在**：前端语言包的唯一来源就是库（`src/locales/` 只有一个 index.ts，
+没有内置兜底语言文件），用户还需要 OPAQUE 注册记录（口令要走客户端协议，不是随便插一条 hash）。
+所以这一半**不该由 agent 凭空造数据集**，建议单独立项，方向：① 从演示库导出 `app_setting` +
+`sys_lang` + locale messages 当 fixtures；② 用户/角色/菜单走「初始化向导」或一次性导入脚本。
 
 ## V5 · `eslint --concurrency=auto` 崩过一次（flaky，未修）
 
@@ -296,12 +316,61 @@ Error: [unocss] Fetch web fonts timeout.
 `skipLibCheck` 才成立**的库身份问题。同时它也说明：**本仓现在没法把 `skipLibCheck` 全局关掉**，
 echarts（可能还有别的库）会是第一道墙。
 
-**本次处置**：不改（上游形状问题），把「为什么门禁只收 `.d.ts`」写进门禁的判据注释里，并在此留档。
+**本次处置（2026-09-29，已修）**：**把 `window.echarts` 这个隐式全局整个删掉**，而不是继续给它打补丁 ——
+echarts 的组件本来就只有两处用到它（`on-demand.ts` 赋值、`index.vue` 读），改成消费方直接
+`import echarts from './on-demand'`：全局没了、`as typeof window.echarts` 那个断言没了、
+`types/window.d.ts` 里那条与 UMD 撞车的声明也没了 ⇒ **双身份从根上消失**（顺带与仓里「不许隐式全局」
+的方向一致）。
 
-**建议方案方向**：将来若要全局关掉 `skipLibCheck`，先解决 echarts 的双身份 —— 可选
-① 统一走 UMD（不用 `echarts/core` 的按需引入）；② 或给 `on-demand.ts` 那个赋值点保留断言
-（本次已经这么做了）并接受 `Window.echarts` 用 ESM 身份；③ 或等 echarts 修。
-这件事**值得单独立项**，别顺手做。
+**复核**：`apps/admin/src/components/Vendor/ECharts/on-demand.ts` 在关掉 `skipLibCheck` 后
+**0 条错误**（改前 1 条）；门禁 `pnpm lint:dts` 仍 0 错误。
+
+**还剩一道墙（不是 echarts 了）**：关掉 `skipLibCheck` 后**依赖自身**仍报 13 条
+（`@vueuse/core` / `naive-ui` / `vue-i18n` / `@vue/compiler-core` / `unplugin-info` …）。
+那些不是我们的代码、修不了 ⇒ **全局关掉 `skipLibCheck` 仍然不可行**，但这条已经不再是
+「echarts 挡路」，而是「依赖的 `.d.ts` 质量」这个无法在本仓解决的事实。所以 `pnpm lint:dts`
+的做法（只收 `.d.ts` + 按路径过滤依赖）是长期解，不是权宜之计。
+
+---
+
+## V13 · **生产构建产物根本跑不起来**（cropperjs × tslib 的 interop；既有问题，未修）
+
+**症状**：把 `dist` 用静态服务器伺服、真实 Chrome 打开，页面**执行到一半抛未捕获异常**、停在
+splash：
+
+```
+Uncaught TypeError: Cannot destructure property '__extends' of 'e(...).default' as it is undefined.
+  source: http://127.0.0.1:4173/static/js/vendor-033kZhHc.js
+```
+
+**根因（已定位到行）**：provider 分块里紧跟在 **cropperjs 2.1.1** 那段类代码之后是
+
+```js
+var {__extends: ER, __assign: _Ft, __rest: vFt, …} = <X>.default
+```
+
+即 `import * as tslib from 'tslib'` 被 rolldown 降级成了「从 `.default` 解构」，而 `<X>.default`
+是 `undefined`。本仓装了**四个** tslib（`1.13.0` / `1.14.1` / `2.3.0` / `2.8.1`），而 `1.13.0` 的
+`package.json` **没有 `exports` 映射**（只有 `main: tslib.js` + `module: tslib.es6.js`）——
+典型的 CJS/ESM 双入口 interop 误判。
+
+**判据（含对照，排除「本次改动引入」）**：`git stash` 回 HEAD 源码、删掉孤立的未跟踪文件后
+**重新构建**（`✓ built in 5m 7s`，exit 0），同一台机器同一个 Chrome 打开 → **一模一样的报错**
+（`vendor-DDDO6QgV.js`）。⇒ 与 V4/V12 无关，是既有缺陷。
+
+**影响（为什么它是 P0 而不是噪声）**：**构建成功 ≠ 跑得起来** —— CI 的 admin 那一步只有
+`pnpm build`（加 dist 密钥扫描），**没有运行期冒烟**，所以这道红灯一直没人看见；
+而它意味着「按文档构建出来的产物打不开」。本地 `pnpm dev` 正常，因为 dev 不做打包、没有这层 interop。
+
+**本次处置**：**不改**（不在 V4/V12 范围内，且每次试修都要一次 3–5 分钟的完整构建来验证）。
+定位与对照都已做完，直接可接手。
+
+**建议方案方向**（按成本排序）：① `resolve.alias` 把 `tslib` 指到单一的 ESM 入口
+（`tslib/tslib.es6.js`），把四个版本收敛成一个 —— 最省事、最可能一击命中；② 或给
+`pnpm-workspace.yaml` 加 `overrides`/catalog 固定 tslib 版本，让依赖树里只剩一份；
+③ 或调 `build.rolldownOptions.output.interop`（`auto` / `compat` / `esModule`）—— 属 rolldown 语义，
+需要先小范围验证；④ 无论怎么修，**建议给 CI 补一步「构建产物冒烟」**（静态伺服 dist + 真实浏览器
+断言 `#app` 已挂载）：这类「构建绿、打开死」的错误只有运行期看得见。
 
 ---
 
@@ -317,16 +386,18 @@ echarts（可能还有别的库）会是第一道墙。
 | `pnpm prepush` | **18/18 段全绿**（V2 之后新增 `dts` 段），总 45.1s |
 | `pnpm build:docs` | exit 0（0 死链） |
 | `pnpm test` | 13/13 turbo 任务通过；`@walnut/scripts` 363/363、`@walnut/release` 198/198 |
-| 浏览器运行期（headless） | **无** `ReferenceError` / `is not defined` / `Uncaught`；但卡 splash，见 V4 |
+| 浏览器运行期（CDP 实测，dev 模式） | 改后：**已挂载**（splash 消失）+ 逐条降级提示 + `App Initializing`；改前：卡 splash + 1 条未捕获异常（见 V4） |
+| 浏览器运行期（静态伺服 `dist`） | **跑不起来**：`vendor-*.js` 抛 `__extends of undefined`（见 V13，既有问题） |
 
 ## 结案状态（2026-09-29）
 
 | 条目 | 状态 |
 |------|------|
 | V1 旧 dts 残留假绿 | **已修**（生成器自愈清理） |
-| V2 `skipLibCheck` 静默 any | **已修** + **已加门禁** `pnpm lint:dts`（16 处诊断全修；全局关 `skipLibCheck` 仍被 V12 挡着） |
+| V2 `skipLibCheck` 静默 any | **已修** + **已加门禁** `pnpm lint:dts`（16 处诊断全修） |
 | V3 checker `watchPath` | **已修** |
-| V4 启动序列没容错 / 空库 | **定性完毕，待立项**（既有问题，已在 `architecture-todo.md` 名下；另需一个本地 seed 脚本） |
+| V4 启动序列没容错 | **已修**（组合根逐步隔离 + 关键步错误屏 + 可降级步提示 + 20s 超时；CDP 实测改前卡 splash、改后挂载并逐条报失败） |
+| V4b 本地无 seed | **待立项**（数据源不在仓里：前端语言包唯一来源是库；用户还要 OPAQUE 注册记录 —— 不该由 agent 凭空造数据集，方向见 V4 末段） |
 | V5 `--concurrency=auto` 崩 | **已修**（16 个 manifest / 33 处 → 固定 4，实测不慢反快） |
 | V6 后台作业报 exit 1 | **定性完毕**（采集层，非项目问题） |
 | V7 预算读数腐烂 / CLAUDE.md 99% | **已修**（读数不写进表，上限按现状重校） |
@@ -334,7 +405,8 @@ echarts（可能还有别的库）会是第一道墙。
 | V9 UnoCss 字体超时像致命错 | **定性完毕：不改**（环境噪声，非缺陷） |
 | V10 lint-staged 大提交必挂 | **已修**（`--max-arg-length=4000` + 用例钉住） |
 | V11 新增 bin 不链接 | **已定性**（`pnpm install --force` 一次） |
-| V12 echarts 双身份挡住全局关 `skipLibCheck` | **已定性，待立项** |
+| V12 echarts 双身份挡全局关 `skipLibCheck` | **已修**（删掉 `window.echarts` 隐式全局，改直接 import；echarts 那道墙消失，剩下的是依赖自身 13 条） |
+| V13 生产产物跑不起来（cropperjs × tslib） | **已定位 + 对照，未修**（P0，独立一批；建议顺手给 CI 补「产物冒烟」） |
+| V14 prepush 不跑各包 lint | **新发现，待定**（`tsconfig.dts.json` 的键序问题就是这样漏过 18/18 全绿、只在 CI 的 Lint 那步会红；要不要把 `turbo lint` 加进 prepush 是取舍：它是最慢的一段） |
 
-**仍然打开的两条**：V4（前端启动序列容错 + 本地无 seed —— 属业务代码 + 环境供给）与 V12
-（echarts 双身份 ⇒ 全局关 `skipLibCheck` 的前置）。其余全部结案。
+**仍然打开的**：V4b（seed，数据源不在仓里）、V13（生产产物 P0）、V14（prepush 覆盖面取舍）。
