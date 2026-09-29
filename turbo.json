@@ -88,6 +88,9 @@
     "GITHUB_API_URL",
     "GH_TOKEN",
     "GITHUB_TOKEN",
+    // `db:seed --admin` 的口令回退来源（同样由 `no-undeclared-env-vars` 抓出）：命令行参数更好，
+    // 但它会进 shell 历史 —— CI / 脚本里用环境变量更合适。只需可见、不进哈希（不影响任何产物）。
+    "SEED_ADMIN_PASSWORD",
     "VERCEL_TOKEN",
     "TURBO_TOKEN",
     "TURBO_TEAM"

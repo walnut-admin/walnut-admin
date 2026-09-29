@@ -24,8 +24,9 @@ import { isAbsolute, join } from 'node:path'
 import process from 'node:process'
 import { gunzipSync } from 'node:zlib'
 import { MongoClient } from 'mongodb'
-import { PreconditionError } from '../lib/errors.ts'
-import { line, out } from '../lib/log.ts'
+import { PreconditionError, ViolationError } from '../lib/errors.ts'
+import { err, line, out } from '../lib/log.ts'
+import { buildPasswordIdentity, verifyPasswordIdentity } from './admin-credential.ts'
 import { generateAppKeys } from './app-keys.ts'
 import { parseCollectionFile } from './ejson.ts'
 
@@ -54,6 +55,10 @@ export interface SeedOptions {
   outDir: string
   /** 导出侧的行政区划另存路径（`db:export --areas`） */
   areas?: string
+  /** 给哪个账号建口令凭证（`db:seed --admin <userName>`） */
+  admin?: string
+  /** 该账号的口令（与 `--admin` 配对；也可用环境变量 SEED_ADMIN_PASSWORD） */
+  password?: string
 }
 
 export type CommandMode = 'seed' | 'export'
@@ -157,6 +162,16 @@ export function parseArgs(argv: readonly string[], mode: CommandMode = 'seed'): 
           throw new PreconditionError(`db:seed 不支持 ${arg}（支持 ${allowed.seed}）`)
         opts.outDir = next()
         break
+      case '--admin':
+        if (mode !== 'seed')
+          throw new PreconditionError(`db:export 不支持 ${arg}`)
+        opts.admin = next()
+        break
+      case '--password':
+        if (mode !== 'seed')
+          throw new PreconditionError(`db:export 不支持 ${arg}`)
+        opts.password = next()
+        break
       case '--areas':
         if (mode !== 'export')
           throw new PreconditionError(`db:seed 不支持 ${arg}（导入行政区划请用 --with-areas）`)
@@ -188,7 +203,7 @@ export function parseArgs(argv: readonly string[], mode: CommandMode = 'seed'): 
  * 连接口径（两个方向共用）：`--uri` 优先，否则从后端那份 env 文件拼。
  * 库名取 `--db` → URI 里的路径 → env 的 `DATABASE_NAME`。
  */
-export function resolveConnection(repoRoot: string, opts: Pick<SeedOptions, 'uri' | 'dbName' | 'envFile'>): { uri: string, dbName: string } {
+export function resolveConnection(repoRoot: string, opts: Pick<SeedOptions, 'uri' | 'dbName' | 'envFile'>): { uri: string, dbName: string, envFile: string } {
   const envFile = resolveEnvFile(repoRoot, opts.envFile === '' ? undefined : opts.envFile)
   let uri = opts.uri
   if (uri === undefined) {
@@ -200,7 +215,7 @@ export function resolveConnection(repoRoot: string, opts: Pick<SeedOptions, 'uri
   const dbName = opts.dbName ?? new URL(uri).pathname.replace(/^\//, '')
   if (dbName === '')
     throw new PreconditionError('解析不出库名 —— 用 --db 明确指定')
-  return { uri, dbName }
+  return { uri, dbName, envFile }
 }
 
 interface WriteResult {
@@ -281,6 +296,51 @@ export async function seedAreas(db: Db, file: string, dryRun: boolean, chunkSize
   return { collection: 'shared_area', total: docs.length, inserted, replaced: matched }
 }
 
+/**
+ * 给某个已存在的账号建口令凭证（`db:seed --admin`）。
+ *
+ * 凭证**不能随仓库发布**（OPAQUE 的注册记录绑定本环境的 `AUTH_OPAQUE_SECRET`，见
+ * `admin-credential.ts` 顶部），所以这一步必须在目标环境里现跑；跑完立刻用同一套协议验证一遍登录。
+ */
+export async function seedAdminCredential(db: Db, admin: string, password: string, serverSetup: string): Promise<void> {
+  const user = await db.collection('sys_user').findOne({ userName: admin })
+  if (user === null)
+    throw new PreconditionError(`库里没有账号 ${admin} —— 先跑 \`pnpm db:seed\`（它会播演示账号档案），或换一个已存在的 userName`)
+
+  let identity
+  try {
+    identity = buildPasswordIdentity(String(user._id), admin, password, serverSetup)
+  }
+  catch (error) {
+    // 实测：secret 不是一份有效的 OPAQUE serverSetup 时，**注册那一步**就在 WASM 里炸了，
+    // 报出来是一串 wasm 栈 —— 对使用者毫无信息量。这里翻成一句能照做的话（并归为"前置条件"）。
+    throw new PreconditionError(
+      `拿本环境的 AUTH_OPAQUE_SECRET 跑 OPAQUE 注册失败（${error instanceof Error ? error.message : String(error)}）`
+      + '\n  · 它必须是后端实际使用的那一份（--env-file 指向的 env 文件里的 AUTH_OPAQUE_SECRET）',
+    )
+  }
+  const collection = db.collection('sys_user_identity')
+  const result = await collection.bulkWrite(
+    [{
+      replaceOne: {
+        filter: { userId: identity.userId, type: identity.type, purpose: identity.purpose },
+        replacement: identity,
+        upsert: true,
+      },
+    }],
+    { ordered: false },
+  )
+  out(`  sys_user_identity  ${result.upsertedCount > 0 ? '新增 1' : '覆盖 1'}（账号 ${admin} 的口令凭证）`)
+
+  const proof = verifyPasswordIdentity(admin, password, identity.value, serverSetup)
+  if (!proof.ok) {
+    err(`凭证写进去了，但登录握手没通过：${proof.reason}`)
+    err('这通常说明 AUTH_OPAQUE_SECRET 与后端实际使用的不一致 —— 检查 --env-file 指向的那份 env。')
+    throw new ViolationError('口令凭证在本环境验证失败（明细见上）')
+  }
+  line('ok', `口令已验证：${admin} 用该口令能完成完整 OPAQUE 登录握手（会话密钥 ${proof.sessionKeyLength} 字节）`)
+}
+
 /** 命令行主体：读数据、连库、写、打汇总 */
 export async function main(): Promise<void> {
   const repoRoot = process.cwd()
@@ -289,7 +349,7 @@ export async function main(): Promise<void> {
   if (!existsSync(seedDir))
     throw new PreconditionError(`找不到 seed 目录：${seedDir}`)
 
-  const { uri, dbName } = resolveConnection(repoRoot, opts)
+  const { uri, dbName, envFile } = resolveConnection(repoRoot, opts)
 
   const collections = listSeedCollections(seedDir).filter(c => opts.only === undefined || opts.only.includes(c))
   if (collections.length === 0)
@@ -323,6 +383,20 @@ export async function main(): Promise<void> {
       const detail = opts.dryRun ? `待写入 ${r.total}` : `新增 ${r.inserted} / 覆盖 ${r.replaced}`
       out(`  ${r.collection.padEnd(16)} ${detail}`)
       results.push(r)
+    }
+
+    if (opts.admin !== undefined) {
+      const env = existsSync(envFile) ? parseEnvFile(readFileSync(envFile, 'utf8')) : {}
+      const serverSetup = env.AUTH_OPAQUE_SECRET
+      if (serverSetup === undefined || serverSetup === '')
+        throw new PreconditionError(`env 里没有 AUTH_OPAQUE_SECRET（${envFile}）—— 口令凭证必须用**本环境**的 OPAQUE 密钥生成`)
+      const password = opts.password ?? process.env.SEED_ADMIN_PASSWORD
+      if (password === undefined || password === '')
+        throw new PreconditionError('--admin 需要配 --password（或环境变量 SEED_ADMIN_PASSWORD）')
+      if (opts.dryRun)
+        out(`  sys_user_identity  待写入（账号 ${opts.admin} 的口令凭证；dry-run 不生成也不验证）`)
+      else
+        await seedAdminCredential(db, opts.admin, password, serverSetup)
     }
 
     line('ok', `${opts.dryRun ? 'dry-run 完成（未写入任何文档）' : `播种完成：${results.length} 个集合`}`)

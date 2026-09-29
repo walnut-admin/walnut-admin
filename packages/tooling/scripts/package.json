@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "@dotenvx/dotenvx": "catalog:",
+    "@serenity-kit/opaque": "catalog:",
     "mongodb": "catalog:",
     "typescript": "catalog:"
   },

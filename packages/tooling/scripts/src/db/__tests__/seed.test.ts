@@ -15,8 +15,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
+import { server } from '@serenity-kit/opaque'
 import { ObjectId } from 'mongodb'
 import { describe, expect, it } from 'vitest'
+import { buildPasswordIdentity, verifyPasswordIdentity } from '../admin-credential.ts'
 import { generateAesKey, generateAppKeys, generateRsaKey, KEY_VALID_DAYS } from '../app-keys.ts'
 import { fromExtendedJson, parseCollectionFile, stringifyCollectionFile, toExtendedJson } from '../ejson.ts'
 import { applyPolicy } from '../policy.ts'
@@ -181,6 +183,49 @@ describe('裁剪策略（两个方向共用一份）', () => {
     const out = applyPolicy('sys_role', docs)
     expect(out).toEqual(docs)
     expect(out).not.toBe(docs)
+  })
+})
+
+describe('口令凭证（OPAQUE 注册 + 登录验证）', () => {
+  // 用**真实**的 OPAQUE 协议在进程内跑：注册 → 入库形状 → 用同一套 serverSetup 验证登录握手。
+  // 这条用例是"播种后能登录"的最小判据（不需要起后端与 HTTP）。
+  const serverSetup = server.createSetup()
+
+  it('注册记录的形状与服务端 finishRegister 一致（value 与 valueHash 都放记录本身）', () => {
+    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup)
+    expect(identity).toMatchObject({
+      userId: 'u1',
+      type: 'password',
+      purpose: 'login',
+      maskedValue: '********',
+      verified: true,
+      isPrimary: true,
+      status: true,
+      metadata: {},
+    })
+    expect(identity.value.length).toBeGreaterThan(100)
+    expect(identity.valueHash).toBe(identity.value)
+    expect(identity.verifiedAt).toBeInstanceOf(Date)
+  })
+
+  it('同一份 serverSetup 下能完成完整登录握手（拿到会话密钥）', () => {
+    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup)
+    const proof = verifyPasswordIdentity('visitor', 'pw-123456', identity.value, serverSetup)
+    expect(proof.ok).toBe(true)
+    expect(proof.sessionKeyLength).toBeGreaterThan(0)
+  })
+
+  it('口令不对 ⇒ 握手失败（判据不是"写进去了就算"）', () => {
+    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup)
+    const proof = verifyPasswordIdentity('visitor', 'another-password', identity.value, serverSetup)
+    expect(proof.ok).toBe(false)
+  })
+
+  it('serverSetup 换一份（等价于换了 AUTH_OPAQUE_SECRET） ⇒ 握手失败', () => {
+    // 这条钉住的是"凭证不可跨环境搬运"这个**协议性质**：正因如此，seed 里不能发凭证
+    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', serverSetup)
+    const proof = verifyPasswordIdentity('visitor', 'pw-123456', identity.value, server.createSetup())
+    expect(proof.ok).toBe(false)
   })
 })
 
