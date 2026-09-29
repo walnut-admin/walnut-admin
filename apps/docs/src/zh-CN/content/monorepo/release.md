@@ -155,6 +155,7 @@ pnpm release
 | `adr` | `pnpm lint:adr`（ADR 形态：编号连续 / Status 在枚举内 / 四个必需小节 / index 双向对齐） |
 | `doc-ts` | `pnpm lint:doc-ts`（标成 `ts` 的代码块必须能按 TypeScript 解析） |
 | `doc-budget` | `pnpm lint:doc-budget`（常驻上下文文件不许膨胀，用不到一半也算失败） |
+| `emoji` | `pnpm lint:emoji`（注释与常驻文档里不许有 emoji：跨所有被跟踪文本文件） |
 | `seed` | `pnpm lint:seed`（初始化数据形态：必需/禁入集合、体积、凭据形状、引用完整性） |
 | `dts` | `pnpm lint:dts`（手写 `.d.ts` 关掉 `skipLibCheck` 查一遍，只报仓库内文件） |
 | `turbo-cache` | `pnpm lint:turbo-cache`（turbo 配置不变量：产物 / outputs / env / 依赖边 + **tags**） |

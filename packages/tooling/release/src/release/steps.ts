@@ -88,6 +88,9 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'doc-ts', label: '文档代码块校验（ts 块必须能解析）', argv: ['lint:doc-ts'] },
   // 同上。常驻上下文的几个文件（根 AGENTS.md / CLAUDE.md / 包级指引）不许无限膨胀。
   { id: 'doc-budget', label: '文档字数预算（常驻文件不许膨胀）', argv: ['lint:doc-budget'] },
+  // 同上。emoji 在非 UTF-8 代码页下必然乱码，且会污染 diff 与日志；ESLint 那条规则够不着
+  // workflow/.gitignore/.toml/.conf 这些文件，所以另有一条跨文件类型的门禁。
+  { id: 'emoji', label: '注释与常驻文档里不许有 emoji（跨所有被跟踪文本文件）', argv: ['lint:emoji'] },
   // 同上。初始化数据（apps/server/db/seed）的形态：私钥/凭证进仓、未裁剪账号被发布、引用被改坏
   // —— 这三种失效都不会报错，只会让装出来的环境少一块或空掉侧边栏。
   { id: 'seed', label: '初始化数据形态（必需集合 / 禁入集合 / 体积 / 凭据形状 / 引用完整性）', argv: ['lint:seed'] },

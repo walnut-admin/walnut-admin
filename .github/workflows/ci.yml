@@ -142,6 +142,12 @@ jobs:
       - name: Doc budget check
         run: pnpm lint:doc-budget
 
+      # 注释里的 emoji 在非 UTF-8 代码页下必然乱码，也会污染 diff 与日志。ESLint 那条规则够不着
+      # workflow / .gitignore / .toml / nginx .conf 这些文件，所以另有一条跨文件类型的门禁；
+      # 常驻上下文文档走更严的一档（任意位置，不只注释）。
+      - name: Emoji-in-comments check
+        run: pnpm lint:emoji
+
       # 初始化数据（apps/server/db/seed）的形态。这份数据**随仓库发布、并被 `db:seed` 直接灌进库**，
       # 而它的失效方式全是静默的：真私钥/凭证被手工导进来、89MB 的行政区划进了 git 历史、
       # 未裁剪的账号被发布、引用坏了让侧边栏空掉且不报错。判据只看数据本身，不需要数据库。

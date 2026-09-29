@@ -3,7 +3,7 @@
 > **本仓 agent 指引的唯一真源。** 用的是跨工具的开放格式
 > （[agents.md](https://agents.md/)，60k+ 项目在用；Codex / Cursor / Copilot / Gemini CLI 等都读）。
 >
-> ⚠️ 根 [`CLAUDE.md`](./CLAUDE.md) **只有一行 `@AGENTS.md` 导入**，别往它里面写内容 ——
+> 根 [`CLAUDE.md`](./CLAUDE.md) **只有一行 `@AGENTS.md` 导入**，别往它里面写内容 ——
 > Claude Code 在两者并存时**默认只读 `CLAUDE.md`**，那行导入是它拿到本文件的唯一路径。
 >
 > 包级指引见下方「包级指引」表：按 agents.md 约定，agent 读**离被改文件最近**的那份。
@@ -94,7 +94,7 @@ pnpm knip             # 死代码检测（**当前是红的且有意维持**，�
 - `apps/server/env-encrypted/` 密文随仓库提交（dotenvx，文件内注释即模板）；`pnpm setup-env` 解密到
   gitignored 的 `apps/server/env-local/`；私钥 `.env.keys` 经 1Password 共享。
 - CI 通过 GitHub Secret `ENV_KEYS`（内容即 `.env.keys` 全文）自动解密并启用 admin 构建（旧文档里的
-  `DOTENVX_KEYS_FILE` 已废弃）。⚠️ 它只能绑到 job 级 `env` 后用 `env.X != ''` 判断 —— `secrets`
+  `DOTENVX_KEYS_FILE` 已废弃）。它只能绑到 job 级 `env` 后用 `env.X != ''` 判断 —— `secrets`
   上下文不允许出现在 step/job 的 `if` 里，否则整个 workflow 会被判为 `Invalid workflow file`
   （启动即失败、0 个 job）。
 - 后端必须从 `apps/server/` 目录运行（ConfigModule 用 `process.cwd()` 定位 env）。

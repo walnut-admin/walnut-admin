@@ -127,6 +127,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: '根 `AGENTS.md` / `CLAUDE.md` / 包级指引是**每次会话都进上下文**的常驻内容，膨胀了会挤掉别的东西；预算用不到一半同样算失败（那种预算已经失效）。',
   },
   {
+    id: 'emoji',
+    label: '注释与常驻文档里不许有 emoji（跨所有被跟踪文本文件）',
+    argv: ['lint:emoji'],
+    why: 'emoji 在非 UTF-8 代码页的终端里**必然**显示成乱码（中文有稳定双字节表示、emoji 没有：`⚠️` 是基础字符 + 变体选择符，`🚀` 之类更是代理对），也会污染 diff 与日志。ESLint 那条本地规则只覆盖 ESLint 能 lint 的文件，`.github/workflows/*.yml` / `.gitignore` / `cliff.toml` / `deploy/nginx/*.conf` / `lefthook.yml` 全在覆盖面之外（实测漏掉过 20 处），所以用一段跨文件类型的门禁兜住；常驻上下文文档走更严的一档（任意位置，不只注释）。',
+  },
+  {
     id: 'seed',
     label: '初始化数据形态（必需集合 / 禁入集合 / 体积 / 凭据形状 / 引用完整性）',
     argv: ['lint:seed'],

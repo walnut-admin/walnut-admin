@@ -62,6 +62,7 @@ describe('pREPUSH_GATES —— 表本身', () => {
       'adr',
       'doc-ts',
       'doc-budget',
+      'emoji',
       'seed',
       'dts',
       'turbo-cache',

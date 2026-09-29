@@ -30,7 +30,7 @@ Tailwind v3 兼容）· Pinia · Vue Router（web history）· Vue I18n
 
 - 组件一律 `ComponentName/index.ts`（导出）+ `ComponentName/index.vue`（实现）。
 - API 函数以 `API` 结尾。
-- ⚠️ **`apps/admin/build/` 是 Vite 构建配置**（plugins / config / proxy），**不是运行时源码** ——
+- **`apps/admin/build/` 是 Vite 构建配置**（plugins / config / proxy），**不是运行时源码** ——
   改它等于改构建，别在里面写业务逻辑。
 - store 工厂 `createWalnutStore()` 在 [`@walnut/client`](../../packages/platform-web/client/)，
   但 **admin 侧 26 个 store 文件目前 0 处使用**（待办 A10）—— 新 store 请优先用它，别再复制模式。

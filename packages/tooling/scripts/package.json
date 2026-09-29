@@ -25,6 +25,7 @@
     "walnut-check-turbo-cache": "./bin/check-turbo-cache.ts",
     "walnut-db-export": "./bin/db-export.ts",
     "walnut-db-seed": "./bin/db-seed.ts",
+    "walnut-lint-emoji": "./bin/check-emoji.ts",
     "walnut-lint-workflows": "./bin/lint-workflows.ts",
     "walnut-prepush": "./bin/prepush.ts",
     "walnut-setup-env": "./bin/setup-env.ts"

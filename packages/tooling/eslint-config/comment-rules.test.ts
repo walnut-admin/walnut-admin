@@ -23,9 +23,11 @@ describe('no-emoji —— 注释里不许有 emoji', () => {
         { code: 'const t = "⏭️ 文档断言用的标记也在字符串里"' },
         { code: 'const n = `模板字符串里的 🚀 不管`' },
         { code: 'const re = /⚠️/u' },
-        // 版权 / 注册商标 / 商标：落在 \p{Extended_Pictographic} 里，但本仓的用法是法律声明
+        // 版权 / 注册商标 / 商标：不在手写区块里，且本仓的用法是法律声明
         { code: '/** @default Copyright © 2020-present Walnut Admin. All Rights Reserved. */' },
         { code: '// 品牌名后跟 ® 或 ™ 也不算 emoji' },
+        // 排版箭头（↔ → ⇒）与数学算子（≤ ≠）刻意不算 ── 判定面是手写区块，不是 \p{Extended_Pictographic}
+        { code: '// 双向映射 ↔ 单向映射 → 推导 ⇒ 不大于 ≤' },
       ],
       invalid: [
         {

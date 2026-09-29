@@ -85,9 +85,9 @@ src/
 5. **死链校验就是构建本身**：`ignoreDeadLinks` 已从 `true` 收窄成**白名单**，2026-09-23 起白名单
    **只剩「冻结语料」一条**（`archive/` + `industry-research/`），全站其余链接一律受查；
    `vitepress build` 遇到真死链直接失败；CI 里有 `Docs build (dead-link check)` 一步。
-   ⚠️ **VitePress 只查 `.md` 链接** —— 非 `.md` 的相对链接、以及 `apps/docs/src/` 之外的 markdown，
+   **VitePress 只查 `.md` 链接** —— 非 `.md` 的相对链接、以及 `apps/docs/src/` 之外的 markdown，
    由 `pnpm lint:docs-refs`（`@walnut/scripts` 的 `check-doc-refs`）负责。
-6. **⚠️ 正文里绝不写原始 `${{ … }}`**：VitePress 把 markdown 当 Vue 模板编译，段落或表格里的
+6. **正文里绝不写原始 `${{ … }}`**：VitePress 把 markdown 当 Vue 模板编译，段落或表格里的
    `${{ x }}` 会被当**插值**求值，构建直接以 `Cannot read properties of undefined` 失败
    （2026-09-23 实测踩到）。**围栏代码块里是安全的**（VitePress 用 `v-pre` 渲染）。要行内展示，
    要么去掉外层花括号只写表达式，要么用 `<span v-pre>` 包起来。

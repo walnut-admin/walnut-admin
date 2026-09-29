@@ -15,7 +15,7 @@
 #
 # Windows：`run` 值里**禁止双引号**。lefthook 在 Windows 上用
 # `cmdLine = "\"" + sh + "\" -c \"" + cmdstr + "\""` 拼命令行，内层引号未转义 ⇒
-# 带引号的命令会**静默丢参、还照样报 ✓**（上游 PR #1464 未合并，已实测复现）。
+# 带引号的命令会**静默丢参、还照样报**（上游 PR #1464 未合并，已实测复现）。
 # `ci/__tests__/lefthook-config.test.ts` 机械拦这条。
 min_version: 2.1.14
 # 找不到 lefthook 时生成的 shim 默认只 echo 一行再 exit 0（= 全部门禁静默消失）；
