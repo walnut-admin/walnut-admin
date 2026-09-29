@@ -55,7 +55,7 @@ syncpack 填补了这些 gap。它和 pnpm catalog 是**互补关系**：
 
 `pnpm-workspace.yaml` 的 `overrides` 条目由 pnpm 管理，不应纳入 syncpack 检查。脚本中通过 `--dependency-types dev,prod` 过滤：
 
-```json
+```jsonc
 // package.json
 "syncpack:lint": "syncpack lint --dependency-types dev,prod",
 "syncpack:fix": "syncpack fix",

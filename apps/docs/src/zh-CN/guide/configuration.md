@@ -536,7 +536,7 @@ const appStateMemory = {
 
 - 详细介绍
 
-```json
+```jsonc
 {
   // brotli压缩，并且删除源文件
   "ext": ".br",

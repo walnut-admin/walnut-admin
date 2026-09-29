@@ -63,7 +63,7 @@ lint 不是必须的，但是很有必要，一个项目做大了以后或者参
 
 - 示例：
 
-```json
+```jsonc
 {
   // 禁用不能使用any
   "@typescript-eslint/no-explicit-any": 0,
@@ -142,7 +142,7 @@ git commit -m 'feat(home): add home page'
 
 - 示例
 
-```json
+```jsonc
 {
   // 提交字数不超过100
   "subjectLimit": 100,

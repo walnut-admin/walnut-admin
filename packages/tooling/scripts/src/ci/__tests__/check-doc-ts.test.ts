@@ -13,6 +13,8 @@ import {
   collectFindings,
   fencedBlocks,
   findingsOfBlock,
+  jsonBlocksOf,
+  jsonFindingsOfBlock,
   PSEUDO_MARKER,
   tsBlocksOf,
 } from '../check-doc-ts.ts'
@@ -162,5 +164,61 @@ describe('collectFindings —— 汇总', () => {
     }
     expect(collectFindings(['AGENTS.md'], f => texts[f] ?? '')).toHaveLength(1)
     expect(collectFindings([], () => '')).toEqual([])
+  })
+})
+
+describe('json 块：标了 `json` 就必须是合法 JSON（2026-09-29 加）', () => {
+  it('jsonBlocksOf 只认 `json`：jsonc / json5 / ts 都不在面里', () => {
+    const blocks: DocBlock[] = [
+      block('{ "a": 1 }', 'json'),
+      block('{ // c\n "a": 1 }', 'jsonc'),
+      block('{ a: 1 }', 'json5'),
+      block('const a = 1', 'ts'),
+    ]
+    expect(jsonBlocksOf(blocks).map(b => b.lang)).toEqual(['json'])
+  })
+
+  it(`第一行是 \`${PSEUDO_MARKER}\` 的 json 块同样豁免`, () => {
+    expect(jsonBlocksOf([block(`${PSEUDO_MARKER}\n{ "a": 1, }`, 'json')])).toEqual([])
+  })
+
+  it('合法 JSON 不报（含对象、数组、数字、字符串、null）', () => {
+    for (const code of ['{ "a": 1 }', '[1, 2, 3]', '"x"', 'null', '{\n  "a": [\n    { "b": true }\n  ]\n}'])
+      expect(jsonFindingsOfBlock(block(code, 'json'))).toEqual([])
+  })
+
+  it('带注释 → 报 json-syntax，并指到注释所在行 + 给出改法', () => {
+    const code = ['{', '  // 注释', '  "a": 1', '}'].join('\n')
+    const got = jsonFindingsOfBlock(block(code, 'json', 100))
+    expect(got).toHaveLength(1)
+    expect(got[0]?.kind).toBe('json-syntax')
+    // 报错位置若能解析出来就换算成文件行号；解析不出来则退回块首行
+    expect(got[0]?.line).toBeGreaterThanOrEqual(100)
+    expect(got[0]?.line).toBeLessThanOrEqual(104)
+    expect(got[0]?.message).toContain('jsonc')
+  })
+
+  it('裸键 / 尾逗号也报（JSON5 写法进不了 `json`）', () => {
+    expect(jsonFindingsOfBlock(block('{ a: 1 }', 'json'))[0]?.kind).toBe('json-syntax')
+    expect(jsonFindingsOfBlock(block('{ "a": 1, }', 'json'))[0]?.kind).toBe('json-syntax')
+  })
+
+  it('`jsonc` 块里的注释**不**报（这一桶刻意不校验）', () => {
+    // 注意：范围过滤发生在 `jsonBlocksOf` 这一层（与 `tsBlocksOf` / `findingsOfBlock` 的分工一致：
+    // 判定函数只管「怎么判」，不管「该不该判」），所以这里端到端断言它进不了检查面。
+    const texts: Record<string, string> = {
+      'apps/docs/src/a.md': ['```jsonc', '{ // c', '  "a": 1', '}', '```'].join('\n'),
+    }
+    expect(collectFindings(['apps/docs/src/a.md'], f => texts[f] ?? '')).toEqual([])
+    expect(jsonBlocksOf([block('{ // c\n "a": 1 }', 'jsonc')])).toEqual([])
+  })
+
+  it('collectFindings 会把 json 块一起汇总', () => {
+    const texts: Record<string, string> = {
+      'apps/docs/src/a.md': ['```json', '{ // c', '  "a": 1', '}', '```'].join('\n'),
+    }
+    const got = collectFindings(['apps/docs/src/a.md'], f => texts[f] ?? '')
+    expect(got).toHaveLength(1)
+    expect(got[0]?.kind).toBe('json-syntax')
   })
 })
