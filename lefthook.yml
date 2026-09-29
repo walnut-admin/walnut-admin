@@ -26,7 +26,14 @@ assert_lefthook_installed: true
 pre-commit:
   jobs:
     - name: lint-staged
-      run: pnpm exec lint-staged
+      # ⚠️ `--max-arg-length` 不能省。lint-staged 17.0.2 的 CLI 把该选项算成
+      # `parseInt(values['max-arg-length'], 10)` —— 没传时是 **NaN**；而 `index.js` 里那个
+      # 合理的默认值（`getMaxArgLength() / 2`，win32 = 4095）是**解构默认值**，只在「值为
+      # undefined」时生效 ⇒ NaN 让它失效 ⇒ 分块被静默关掉 ⇒ 所有暂存路径塞进一条命令，
+      # Windows 上以 `命令行太长` 失败（2026-09-29 实测：369 个暂存文件必挂，
+      # 而逐个文件跑 `eslint --fix` 全是 exit 0）。
+      # 4000 贴着 win32 那个默认值（8191 / 2），跨平台也安全。
+      run: pnpm exec lint-staged --max-arg-length=4000
 
 # 提交信息：约定式提交的强制入口。`{1}` = git 传给 commit-msg 钩子的第一个参数（.git/COMMIT_EDITMSG）。
 # ⚠️ scope 必填且必须在 `@walnut/commitlint-config` 的白名单里 —— 发版的 release commit
