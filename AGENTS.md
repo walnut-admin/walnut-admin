@@ -9,7 +9,7 @@
 > 包级指引见下方「包级指引」表：按 agents.md 约定，agent 读**离被改文件最近**的那份。
 >
 > 架构决策与设计文档在 [`apps/docs/src/zh-CN/content/`](./apps/docs/src/zh-CN/content/)
-> （monorepo 架构 10 篇 / ADR 0001-0020 / 归档的设计·计划·评审）。
+> （monorepo 架构专题 / **ADR 索引** / 归档的设计·计划·评审）。
 
 ## 技术栈与版本
 

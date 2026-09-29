@@ -21,7 +21,7 @@ instructions 选 `claude-md-and-agents-md`；官方文档说明即使那样也**
 它的「Current State」历史清单（2026-07-26 架构清理 / 2026-08-08 工具链加固 / 2026-09-21
 CI-CD 重构 / 2026-09-23 发版与工具链拆分）已按「一个事实一个家」拆开：
 
-- **决策与理由** → [`apps/docs/src/zh-CN/content/adr/`](./apps/docs/src/zh-CN/content/adr/)（ADR 0001-0019）
+- **决策与理由** → [`apps/docs/src/zh-CN/content/adr/`](./apps/docs/src/zh-CN/content/adr/)（**ADR 索引**是入口；编号会一直加，这里刻意不写区间）
 - **架构现状** → [`apps/docs/src/zh-CN/content/monorepo/`](./apps/docs/src/zh-CN/content/monorepo/)（10 篇）
 - **逐批执行记录** → [`archive/2026-09-24-architecture-ledger-history.md`](./apps/docs/src/zh-CN/content/archive/2026-09-24-architecture-ledger-history.md)（2026-09-24 从待办页搬出来冻结）
 - **仍然是待办的** → [`architecture-todo.md`](./apps/docs/src/zh-CN/content/monorepo/architecture-todo.md) 的 P0–P3 / 搁置 / 未裁决
