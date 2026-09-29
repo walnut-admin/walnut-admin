@@ -9,6 +9,14 @@ import scriptRules from './script-rules'
 import { turboEnvVarsConfig } from './turbo-env-vars'
 
 /**
+ * 各包的 `lint` / `lint:fix` 脚本一律写**固定并发** `--concurrency=4`，不要改回
+ * `--concurrency=auto`：2026-09-29 实测 auto 会**偶发崩溃**（退出码 `0xC0000005` /
+ * ACCESS_VIOLATION，实测 7 次里崩 2 次），而 `--fix` 崩在中途会**落下半修复的工作区**
+ * （一部分文件已重排 import、其余没动）—— 那种状态极难发现，因为 lint 全绿。
+ * 固定 4 也不慢：实测 auto 28.1s / 4 26.8s / 6 28.3s（本机 12 逻辑核）。
+ */
+
+/**
  * `antfu()` 的返回类型。
  *
  * 为什么用 `ReturnType` 而不是直接标 `FlatConfigComposer<...>`：那个类型来自 antfu 自己的依赖

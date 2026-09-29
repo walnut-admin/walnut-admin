@@ -16,6 +16,13 @@
 
 发版编排的 bin（`walnut-release`）在 [`@walnut/release`](../release/)。
 
+### 加一个新 bin 之后（这个坑实测踩过两次）
+
+`pnpm install` 会报 **"Already up to date" 并且不把新 bin 链接到 `node_modules/.bin/`** —— 于是
+`pnpm <新脚本>` 报 "command not found"，看起来像脚本写错了。修法：跑一次
+`pnpm install --force`（**加 bin、加 workspace 依赖之后都算**）。
+判据：`Test-Path node_modules/.bin/<bin 名>`，或直接 `pnpm exec <bin 名> --help`。
+
 ## 对外接口：只有 `lib/*`
 
 ```jsonc

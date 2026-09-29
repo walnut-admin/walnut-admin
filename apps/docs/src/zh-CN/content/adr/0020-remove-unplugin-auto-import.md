@@ -120,16 +120,21 @@
   「auto-import」为由的 `ignore` 注释改为「Pinia / barrel」，并留了一条 `TODO`：那份清单是移除前
   列的，要收紧得先跑 `pnpm knip` 看真实命中（knip 本仓有意维持红色，没有门禁看着它）。
 - **验证**：`vue-tsc` 0 错误（**隐藏那份 dts 之后也是 0** —— 这是本次唯一的硬判据）、`eslint` 0 错误
-  （它本身在这台机器上偶发崩溃，与本次改动无关，见留档 V5）、
+  （它本身在那台机器上偶发崩溃，与本次改动无关：`--concurrency=auto` 的判据与修法写在
+  `@walnut/eslint-config` 的 [`base.ts`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/base.ts) 顶部注释里）、
   `vite build` exit 0、`build:docs` 0 死链、`prepush` 17/17 段全绿、`test` 13/13。
   **运行时冒烟只做到「模块图干净」这一层**：headless Chrome 渲染后控制台**无** `ReferenceError` /
   `is not defined` / `Uncaught`（`vue-devtools` 已注入 ⇒ JS 确实跑了）。**端到端没跑通**：本地 Mongo 是
   空库，`setupI18n` 依赖的 `/system/locale/message/zh_CN` 返回 500，`setupApp` 抛在 `mount` **之前**
   ⇒ 停在 `index.html` 那屏 splash。用 `git stash` 回到 HEAD 做了对照：**改动前后逐项一致** ⇒
-  与本次移除无关，是既有的「启动序列没容错 + 无播种脚本」。
-- **验证留档**：过程中撞到的报错与 flaky（旧 dts 残留造成假绿、`skipLibCheck` 藏起来的静默 `any`、
-  checker 的 `watchPath`、splash、`eslint --concurrency=auto` 崩过一次、后台作业把 exit 0 报成 1 …）
-  逐条留在仓库根的 `VERIFICATION-LOG.md`，**后续单独出方案**。
+  与本次移除无关，是既有的「启动序列没容错 + 无播种脚本」——**两者此后都已解决**：
+  启动序列的容错在 `apps/admin/src/App/src/bootstrap.ts`（关键步失败给错误屏、可降级步照常进页面、
+  网络步 20s 超时），播种在文档站「数据库与初始化数据」那一页（`pnpm db:seed` 一条命令）。
+- **过程中的其他发现**：旧 dts 残留造成假绿、`skipLibCheck` 藏起来的静默 `any`、checker 的 `watchPath`、
+  `eslint --concurrency=auto` 偶发崩溃、后台作业把 exit 0 报成 1 之类，当时逐条记在一份临时验收留档里，
+  **现已全部修掉或定性，结论都搬进了各自代码/门禁的注释**（例如 `lint:dts` 门禁、
+  `@walnut/eslint-config` 的 `base.ts`、`lefthook.yml`），那份临时留档已删除 —— 仓库里不留"只记录问题、
+  不指向修法"的文档。
 - **未做**：`unplugin-vue-components`（Decision 2）、`strictTemplates`（Alternatives 第 4 条）、
   `knip` 那份 `ignore` 清单的收紧 —— 都留作独立批次。
 
