@@ -1,6 +1,9 @@
 export interface IStorageSync extends Storage {}
 
-export interface IStorageAsync extends Exclude<Storage, 'getItem' | 'setItem'> {
+// ⚠️ 这里必须是 `Omit` 而不是 `Exclude`：`Exclude` 作用在**联合类型**上，而 `Storage` 是接口
+// ⇒ `Exclude<Storage, 'getItem' | 'setItem'>` 原样返回 `Storage`，于是下面两行等于用不兼容的签名
+// 去覆盖父接口的成员（`tsc` 报 TS2430，而 `skipLibCheck` 把这条错误藏了很久）。
+export interface IStorageAsync extends Omit<Storage, 'getItem' | 'setItem'> {
   getItem: (key: string) => string | null | Promise<string | null>
   setItem: (key: string, value: string) => void | Promise<void>
 }
