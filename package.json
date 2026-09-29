@@ -28,6 +28,7 @@
     "build:server": "cross-env NODE_OPTIONS=--max-old-space-size=8192 turbo build --filter=@walnut/server",
     "build:docs": "turbo build --filter=@walnut/docs",
     "build:stage": "cross-env NODE_OPTIONS=--max-old-space-size=8192 turbo build:stage --filter=@walnut/admin",
+    "smoke:dist": "walnut-smoke-dist",
     "preview": "turbo preview",
     "lint": "turbo lint",
     "lint:root": "eslint *.ts *.json *.yaml --concurrency=4",

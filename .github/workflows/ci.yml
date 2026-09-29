@@ -263,6 +263,14 @@ jobs:
         if: env.DOTENVX_KEYS != ''
         run: pnpm exec turbo run build --filter=@walnut/admin
 
+      # 构建成功不等于跑得起来（留档 V13）：那次 `resolve.conditions` 少了默认条件，产物一执行就抛
+      # `Cannot destructure property '__extends' …`、页面停在 splash —— 而 tsc / lint / build /
+      # dist 密钥扫描**全绿**。所以构建完立刻用真实浏览器打开一次：断言 `#app` 里的 splash 消失
+      # （= mount 真的执行了）。runner 自带 google-chrome；没浏览器时脚本会明确 SKIP 而不是假绿。
+      - name: Smoke test the built admin bundle
+        if: env.DOTENVX_KEYS != ''
+        run: pnpm smoke:dist
+
       # 前端产物是**公开文件**，而"把后端 env 泄进前端"在本仓有现成的静默路径：
       # apps/server/env-local 与 apps/admin/env-local 是两套 env，搬错一行就会被打包进去，
       # 而构建 / 类型 / lint / 测试全都不会响。**必须紧跟构建**：它扫的就是 dist。

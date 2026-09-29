@@ -28,7 +28,8 @@
     "walnut-lint-emoji": "./bin/check-emoji.ts",
     "walnut-lint-workflows": "./bin/lint-workflows.ts",
     "walnut-prepush": "./bin/prepush.ts",
-    "walnut-setup-env": "./bin/setup-env.ts"
+    "walnut-setup-env": "./bin/setup-env.ts",
+    "walnut-smoke-dist": "./bin/smoke-dist.ts"
   },
   "engines": {
     "node": ">=24.13.0",
