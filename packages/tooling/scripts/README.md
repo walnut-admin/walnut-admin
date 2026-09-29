@@ -16,7 +16,13 @@
 
 发版编排的 bin（`walnut-release`）在 [`@walnut/release`](../release/)。
 
-### 加一个新 bin 之后（这个坑实测踩过两次）
+### 写用例时别只看本机（CI 跑 Linux）
+
+本地是 Windows、CI 是 Linux，**平台假设**会让"本机全绿"变成"CI 三个用例红"（2026-09-29 实测：
+`/usr/bin/google-chrome` 在 runner 上**真的存在**、`C:/tmp` 在 Linux 上**不是**绝对路径、
+`path.relative` 对 `C:\repo` 的判定完全不同）。规矩：**被测函数把平台原语做成可注入参数**
+（`exists` / `isAbsolute` / `relative` 之类，默认值仍是真实实现），用例注入两个方向各测一遍 ——
+这样断言与宿主无关，也顺带把"另一种平台的语义"真的测到了。
 
 `pnpm install` 会报 **"Already up to date" 并且不把新 bin 链接到 `node_modules/.bin/`** —— 于是
 `pnpm <新脚本>` 报 "command not found"，看起来像脚本写错了。修法：跑一次

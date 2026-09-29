@@ -60,8 +60,16 @@ const MIME: Record<string, string> = {
  * 找一个可用的浏览器二进制。
  *
  * 顺序：`CHROME_PATH` 环境变量 → 各平台常见位置。返回 `null` = 这台机器没有 ⇒ 调用方打 SKIP。
+ *
+ * `exists` 可注入：用例要能确定性地测"有 / 没有"两条分支，而**宿主机器本身装没装浏览器**是环境事实
+ * —— CI 的 ubuntu runner 自带 `/usr/bin/google-chrome`，本机是 Windows 路径，写死断言必然一边红
+ * （实测：本地全绿、CI 三个用例红）。
  */
-export function findChrome(env: NodeJS.ProcessEnv = process.env, platform: NodeJS.Platform = process.platform): string | null {
+export function findChrome(
+  env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform,
+  exists: (path: string) => boolean = existsSync,
+): string | null {
   const candidates: string[] = []
   if (env.CHROME_PATH !== undefined && env.CHROME_PATH !== '')
     candidates.push(env.CHROME_PATH)
@@ -91,7 +99,7 @@ export function findChrome(env: NodeJS.ProcessEnv = process.env, platform: NodeJ
     )
   }
 
-  return candidates.find(c => c !== '' && existsSync(c)) ?? null
+  return candidates.find(c => c !== '' && exists(c)) ?? null
 }
 
 export interface StaticServer {

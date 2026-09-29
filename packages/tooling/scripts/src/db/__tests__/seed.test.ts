@@ -12,7 +12,7 @@ import type { Db } from 'mongodb'
 import { Buffer } from 'node:buffer'
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import path, { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { gzipSync } from 'node:zlib'
 import { server } from '@serenity-kit/opaque'
@@ -160,7 +160,14 @@ describe('argv', () => {
 describe('路径解析', () => {
   it('相对路径按仓库根解，绝对路径原样（否则会拼出 D:\\repo\\C:\\Users\\… 这种怪物）', () => {
     expect(resolvePath('D:/repo', 'apps/server/db/seed')).toBe(join('D:/repo', 'apps/server/db/seed'))
-    expect(resolvePath('D:/repo', 'C:/tmp/out')).toBe('C:/tmp/out')
+    // 注入平台判定：绝对路径的语义是平台相关的（`C:/tmp` 在 Linux 上不是绝对路径），直接拿宿主的
+    // `isAbsolute` 测会在 CI 的 Linux 上得到相反结论（实测就是这么红的）。
+    const winAbs = (p: string): boolean => path.win32.isAbsolute(p)
+    const posixAbs = (p: string): boolean => path.posix.isAbsolute(p)
+    expect(resolvePath('D:/repo', 'C:/tmp/out', winAbs)).toBe('C:/tmp/out')
+    expect(resolvePath('/repo', '/tmp/out', posixAbs)).toBe('/tmp/out')
+    // 宿主自己的语义也照样成立（真实调用路径）
+    expect(resolvePath('D:/repo', resolve('/tmp/out'))).toBe(resolve('/tmp/out'))
   })
 })
 

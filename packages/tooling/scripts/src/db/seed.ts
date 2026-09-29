@@ -108,9 +108,13 @@ export function buildMongoUri(env: Record<string, string>, dbNameOverride?: stri
  * 为什么要有它：`--out`/`--with-areas` 这类参数用户既可能给相对路径（`apps/server/db/seed`），
  * 也可能给绝对路径（临时目录、下载下来的 Release 资产）。直接 `join(repoRoot, p)` 会把绝对路径
  * 拼成 `D:\repo\C:\Users\…` 这种怪物 —— 实测踩到过。
+ *
+ * `isAbs` 可注入：绝对路径的判定是**平台语义**（`C:/tmp` 在 Linux 上不是绝对路径，`/tmp` 在
+ * Windows 上也不是），用例要能确定性地两种都测 —— 否则同一个断言在 Windows 绿、在 CI 的 Linux 红
+ * （实测就是这么红的）。
  */
-export function resolvePath(repoRoot: string, p: string): string {
-  return isAbsolute(p) ? p : join(repoRoot, p)
+export function resolvePath(repoRoot: string, p: string, isAbs: (path: string) => boolean = isAbsolute): string {
+  return isAbs(p) ? p : join(repoRoot, p)
 }
 
 /** 取后端那份 env 文件（`NODE_ENV ?? development`，与后端同一口径） */

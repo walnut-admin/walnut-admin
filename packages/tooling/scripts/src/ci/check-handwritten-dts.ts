@@ -74,16 +74,22 @@ export interface DtsFinding {
  *   ① 以 `.d.ts` 结尾 —— 门禁只管手写声明文件。`.d.ts` 里的 `import` 会把普通 `.ts` 一起拉进
  *      program，那些文件上可能报出**只有关掉 `skipLibCheck` 才成立**的库身份问题（实测
  *      `echarts` 的 `_setting` 私有属性双身份），那不是这条门禁要管的事；
- *   ② 在仓库内（`path.relative` 不以 `..` 开头）；
- *   ③ 路径段里没有 `node_modules` —— 不能省：pnpm 的 workspace symlink 会让依赖的真实路径落在
+ *   ② 在仓库内（`path.relative` 不以 `..` 开头）； *   ③ 路径段里没有 `node_modules` —— 不能省：pnpm 的 workspace symlink 会让依赖的真实路径落在
  *      `node_modules/.pnpm/**`，而 `.d.ts` 里的 `import` 解析结果正是那条路径。
+ *
+ * `relative` 可注入：路径语义是**平台相关**的（`C:\repo` 在 Linux 上不是绝对路径），用例要能拿
+ * `path.win32.relative` 确定性地测 Windows 形态 —— 否则同一条断言在 Windows 绿、在 CI 的 Linux 红。
  */
-export function isOwnFile(fileName: string | undefined, root: string = REPO_ROOT): boolean {
+export function isOwnFile(
+  fileName: string | undefined,
+  root: string = REPO_ROOT,
+  relative: (from: string, to: string) => string = path.relative,
+): boolean {
   if (fileName === undefined)
     return false
   if (!fileName.endsWith('.d.ts'))
     return false
-  const rel = path.relative(root, fileName).replace(/\\/g, '/')
+  const rel = relative(root, fileName).replace(/\\/g, '/')
   if (rel.startsWith('..'))
     return false
   return !rel.split('/').includes('node_modules')

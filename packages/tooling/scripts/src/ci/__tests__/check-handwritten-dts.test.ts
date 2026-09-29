@@ -6,6 +6,7 @@
  * 「仓库外」与「`node_modules` 里」两种路径。用例的重点就在这里。
  */
 
+import path from 'node:path'
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import { isOwnFile, ownFindings, toDiagLike } from '../check-handwritten-dts.ts'
@@ -35,8 +36,12 @@ describe('isOwnFile —— 「谁的错」按路径判', () => {
   })
 
   it('windows 反斜杠路径同样判得对', () => {
-    expect(isOwnFile('C:\\repo\\apps\\admin\\types\\a.d.ts', 'C:\\repo')).toBe(true)
-    expect(isOwnFile('C:\\repo\\node_modules\\vue\\a.d.ts', 'C:\\repo')).toBe(false)
+    // 注入 `path.win32.relative`：路径语义是平台相关的，直接拿宿主的 `path.relative` 测会在
+    // Linux 上得到完全不同的结论（CI 就是这么红的）—— 这里要测的是 **Windows 形态**，与宿主无关。
+    const win = (from: string, to: string): string => path.win32.relative(from, to)
+    expect(isOwnFile('C:\\repo\\apps\\admin\\types\\a.d.ts', 'C:\\repo', win)).toBe(true)
+    expect(isOwnFile('C:\\repo\\node_modules\\vue\\a.d.ts', 'C:\\repo', win)).toBe(false)
+    expect(isOwnFile('C:\\elsewhere\\a.d.ts', 'C:\\repo', win)).toBe(false)
   })
 })
 

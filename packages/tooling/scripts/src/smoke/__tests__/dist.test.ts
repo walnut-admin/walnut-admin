@@ -41,13 +41,26 @@ describe('常量与判据', () => {
 })
 
 describe('findChrome', () => {
+  // 宿主装没装浏览器是**环境事实**（CI 的 ubuntu runner 自带 `/usr/bin/google-chrome`，本机是
+  // Windows 路径）—— 所以断言必须注入 `exists` 才确定。第一版没注入：本地全绿、CI 三个用例红。
+  const nothing: (path: string) => boolean = () => false
+  const everything: (path: string) => boolean = () => true
+
   it('cHROME_PATH 优先，且路径不存在时不认', () => {
-    expect(findChrome({ CHROME_PATH: process.execPath }, 'linux')).toBe(process.execPath)
-    expect(findChrome({ CHROME_PATH: '/definitely/not/here/chrome' }, 'linux')).toBeNull()
+    expect(findChrome({ CHROME_PATH: '/opt/chrome' }, 'linux', everything)).toBe('/opt/chrome')
+    expect(findChrome({ CHROME_PATH: '/opt/chrome' }, 'linux', nothing)).toBeNull()
+  })
+
+  it('按平台找常见位置（linux / win32 / darwin 各一条）', () => {
+    const onlyChromium = (p: string): boolean => p === '/usr/bin/chromium'
+    expect(findChrome({}, 'linux', onlyChromium)).toBe('/usr/bin/chromium')
+    expect(findChrome({ LOCALAPPDATA: 'C:/Users/x/AppData/Local' }, 'win32', everything)).toContain('chrome.exe')
+    expect(findChrome({}, 'darwin', everything)).toContain('Google Chrome.app')
   })
 
   it('找不到时返回 null（上层据此打 SKIP，而不是当成失败）', () => {
-    expect(findChrome({}, 'linux')).toBeNull()
+    expect(findChrome({}, 'linux', nothing)).toBeNull()
+    expect(findChrome({}, 'darwin', nothing)).toBeNull()
   })
 })
 
