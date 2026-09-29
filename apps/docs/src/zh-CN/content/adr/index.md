@@ -4,7 +4,7 @@
 
 ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的关键架构决策。
 
-当前共 **19** 条 ADR，涵盖包命名、TypeScript 配置、依赖治理、发布流水线、测试策略、验证策略、包重组、Git 钩子等领域。
+当前共 **20** 条 ADR，涵盖包命名、TypeScript 配置、依赖治理、发布流水线、测试策略、验证策略、包重组、Git 钩子等领域。
 
 ## 形态约定（2026-09-23 起，由 `pnpm lint:adr` 机械强制）
 
@@ -82,8 +82,9 @@ ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的�
 | [0017](./0017-package-reorganization.md) | Package 重组——多维标签 + 目录分组 + 新增包规划 | Accepted |
 | [0018](./0018-git-hooks-lefthook.md) | Git Hooks——lefthook 取代 simple-git-hooks | Accepted |
 | [0019](./0019-tsconfig-presets-and-no-mjs.md) | 共享 tsconfig 预设包与「无 `.mjs`」约束 | Accepted |
+| [0020](./0020-remove-unplugin-auto-import.md) | 移除 `unplugin-auto-import`，隐式全局改显式 import | Accepted |
 
-> 全部 19 篇目前都是 `Accepted` —— 这不是「列没意义」，而是这个仓到目前**没有被否决或取代过的决策**。
+> 全部 20 篇目前都是 `Accepted` —— 这不是「列没意义」，而是这个仓到目前**没有被否决或取代过的决策**。
 > 枚举的价值在于：真出现 `Rejected` / `Superseded by ADR-NNNN` 时，有地方放、也有门禁保证它被填对。
 
 ## 补充文档

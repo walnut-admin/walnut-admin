@@ -163,6 +163,10 @@
   但仓里 27 个 tsx 文件**已经零例外地显式导入**，没有反证 —— 要动它得先真跑一次构建验证，
   而且根 `AGENTS.md` 纪律 4 已经把「显式 import」定为规则。**建议：当成过时但无害的文档，别批量删。**
 
+  **2026-09-29 更新**：`unplugin-auto-import` 已整个移除（[ADR 0020](./apps/docs/src/zh-CN/content/adr/0020-remove-unplugin-auto-import.md)），
+  上面那句「同一文件的 composable 仍是自动导入的」**前提已经不成立** —— 现在 composable 也必须显式
+  import。这批标记的取舍要重新过一遍：理由变了，但结论（显式导入）没变，所以更可能只是文字过时。
+
 - [x] axios config demo
 - [x] 页面中的错误模拟 demo
 - [ ] pdf/word/excel/print.js plugin

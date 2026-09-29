@@ -12,10 +12,16 @@
 - [vite-plugin-validate-env]：用于环境变量验证，确保环境变量配置正确。
 - [unplugin-info]：用于在项目中引入项目信息，如版本号、构建时间等。
 
-### 2. 自动引入插件
-实现方法/函数、组件（组件库组件及自定义组件）的自动引入：
-- 涉及插件：[unplugin-auto-import]（自动引入方法/函数）、[unplugin-vue-components]（自动引入组件）。
-- 配置细节：具体自动引入的文件夹、包及规则，可查看 `auto-import.ts` 和 `component.ts` 两个文件。
+### 2. 组件自动注册
+组件（组件库组件及项目内 `<W…>` 组件）在模板里可直接使用，无需手动 import：
+- 涉及插件：[unplugin-vue-components]。
+- 配置细节：扫哪些目录、`W` 前缀如何解析到 `@/components/**` 与 `@walnut/ui`，见 `component.ts`。
+- ⚠️ 这套注册**没有类型安全网**：`vueCompilerOptions.strictTemplates` 未开，组件名写错时 `vue-tsc`
+  不报错，只有运行时才会发现。
+- **方法/函数的自动引入（`unplugin-auto-import`）已于 2026-09-29 移除** —— 隐式全局在大型项目里是
+  灾难（读代码看不出依赖、静态分析全瞎、`.d.ts` 里还会被 `skipLibCheck` 藏成静默 `any`）。现在
+  vue / vue-router / `@vueuse/core` / store / hooks / const 一律显式 import。理由与迁移方法见
+  [ADR 0020](/content/adr/0020-remove-unplugin-auto-import)。
 
 ### 3. 样式相关插件
 - <WBaseLink preset="unocss">UnoCSS</WBaseLink> 插件：
@@ -118,7 +124,6 @@
 [vuejsx]: https://github.com/vitejs/vite-plugin-vue/tree/main/packages/plugin-vue-jsx
 [Web component]: https://developer.mozilla.org/en-US/docs/Web/API/Web_components
 [React]: https://react.dev/
-[unplugin-auto-import]: https://github.com/antfu/unplugin-auto-import
 [unplugin-vue-components]: https://github.com/antfu/unplugin-vue-components
 [windi CSS3]: https://windicss.org/
 [vite-plugin-checker]: https://github.com/fi3ework/vite-plugin-checker

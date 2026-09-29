@@ -51,8 +51,8 @@
 
 项目使用了数个[antfu][antfu]参与开发的各类 vite 插件，不用不知道，是真的很爽！
 
-- [unplugin-auto-import][unplugin-auto-import] - 自动引入，再也不用 import 这儿 import 那儿啦！后续可能还会支持类型的自动引入（那就更爽了）。
 - [unplugin-vue-components][unplugin-vue-components] - 组件的自动引入，同时支持类型优化，用过的都较好！
+  （方法/函数的自动引入 `unplugin-auto-import` 已于 2026-09-29 [移除](/content/adr/0020-remove-unplugin-auto-import)：现在一律显式 import。）
 - [unplugin-icons][unplugin-icons] - 项目暂时还没引用，不过我也是用的 iconify 做的图标集，后续可能迁移。
 - [vite-plugin-windicss][vite-plugin-windicss] - 再也不用写 css/scss/sass 啦！功能十分强大！
 - [rollup-plugin-visualizer][rollup-plugin-visualizer] - rollup 的打包大小可视化插件，打完包哪里大一目了然！
@@ -97,7 +97,6 @@
 [unocss]: https://github.com/unocss/unocss
 [iconify]: https://iconify.design/
 [vue-i18n]: https://vue-i18n.intlify.dev/
-[unplugin-auto-import]: https://github.com/antfu/unplugin-auto-import
 [unplugin-vue-components]: https://github.com/antfu/unplugin-vue-components
 [unplugin-icons]: https://github.com/antfu/unplugin-icons
 [vite-plugin-windicss]: https://github.com/windicss/vite-plugin-windicss

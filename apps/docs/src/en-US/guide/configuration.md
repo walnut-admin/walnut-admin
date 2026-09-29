@@ -341,61 +341,14 @@ const appStateMemory = {
 
 ## vite 插件
 
-### [auto-import](https://github.com/antfu/unplugin-auto-import)
+### auto-import（已于 2026-09-29 移除）
 
-- 基本介绍
+`unplugin-auto-import` 已移除：vue / vue-router / `vue-i18n` / `@vueuse/core` 的 api、
+`src/{const,locales,router,store/modules,hooks,socket}` 六个目录里的内容、以及 `useForm` / `useTable` /
+`useCRUD` / `WTablePreset*Column`，现在**都必须在文件里显式 import**。
 
-  - 按需自动引入 api，很好的 vite/ts 支持
-
-  - 具体查看[auto-import.ts](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/build/vite/plugin/auto-import.ts)
-
-- 详细介绍
-
-  - 基本的文件类型都做了支持，js/ts/jsx/tsx/vue/md
-
-  - 开启了 dts，会自动生成 ts 文件，项目中只要是以上类型的文件中都可以直接使用。例如想要使用@vueuse/core 的 api 时，只需要输入 use，vscode 会自动识别并提供很好的提示
-
-  - 默认预置了 `vue`/`vue-router`/`vue-i18n`/`@vuseuse/core` 的 api 自动引入
-
-  - 同时添加了一系列的自定义 api 的支持，下面描述的 api 都可直接使用，无需引入
-
-:::tip
-下方以 `useApp` 或 `App` 为首出现的函数均是在原有的 **_api_** 上的二次封装，例如`useAppRouter`、`useAppI18n`等。主要目的就是为了统一一下函数入口，后续想做函数扩展方便进展。
-:::
-
-```json
-// ...
-// 以下目录内的所有内容都会自动引入，无需手动引入
-{
-  "dirs": [
-    "src/const/**",
-    "src/locales/**",
-    "src/router",
-    "src/store/modules/**",
-    "src/hooks/**",
-    "src/utils/**"
-  ]
-}
-```
-
-```json
-// ...
-// 下面是一些自定义的自动引入
-{
-  // form/table/CRUD组件的hook函数
-  "/@/components/UI/Form": ["useForm"],
-  "/@/components/UI/Table": ["useTable"],
-  "/@/components/Advanced/CRUD": ["useCRUD"],
-
-  // table preset columns
-  "@/components/UI/Table/src/utils/presetColumns": [
-    "WTablePresetOrderColumn",
-    "WTablePresetStatusColumn",
-    "WTablePresetCreatedAtColumn",
-    "WTablePresetUpdatedAtColumn"
-  ]
-}
-```
+- 为什么移除、怎么迁移的：见 [ADR 0020](/content/adr/0020-remove-unplugin-auto-import)。
+- 漏了 import 会直接被 `vue-tsc` 拦下（`pnpm types:check` / `prepush` / CI 三处都跑），不再有静默的全局。
 
 ### [components](https://github.com/antfu/unplugin-vue-components)
 

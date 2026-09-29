@@ -19,9 +19,12 @@ Tailwind v3 兼容）· Pinia · Vue Router（web history）· Vue I18n
 | `~/*` | `apps/admin/types/*` |
 
 - 跨模块**禁止相对路径**。
-- **`unplugin-auto-import` / `unplugin-vue-components` 是给存量代码的便利，不是风格指引**：
-  新写的代码、以及**任何迁进 `packages/` 的代码必须显式 import** —— 那两处不在 auto-import 的
-  扫描范围里，靠隐式全局会直接报未定义。
+- **不许隐式全局**：`unplugin-auto-import` 已于 2026-09-29 **移除**（ADR 0020）—— vue / vue-router /
+  `@vueuse/core`、`src/{const,locales,router,store/modules,hooks,socket}`、`useForm`/`useTable`/`useCRUD`
+  统统要显式 import。漏了 `vue-tsc` 会直接红，**别再把插件加回来**。
+- 只剩一个隐式机制：`unplugin-vue-components` 的**组件**自动注册（`<WXxx>` / `<NButton>` 不用 import）。
+  ⚠️ 它**没有类型安全网**：tsconfig 未开 `vueCompilerOptions.strictTemplates`，组件名写错时
+  `vue-tsc` 不报错，只有运行时才发现 —— 别指望编译器帮你验组件名存在。
 
 ## 组件与 store 约定
 
@@ -35,8 +38,8 @@ Tailwind v3 兼容）· Pinia · Vue Router（web history）· Vue I18n
 
 ## 三个容易踩的生成物
 
-- **两个 unplugin 的 dts（`types/generated/`，已 gitignore，别提交）**：由 `pre*` 钩子跑
-  `build/generate/index.ts` 生成；跑 `vite`/`vue-tsc` 的脚本必须有 `pre` 钩子
+- **`unplugin-vue-components` 的 dts（`types/generated/components.d.ts`，已 gitignore，别提交）**：由
+  `pre*` 钩子跑 `build/generate/index.ts` 生成；跑 `vite`/`vue-tsc` 的脚本必须有 `pre` 钩子
   （门禁 `pnpm lint:pre-hooks` 守，事故经过见 09-24 执行记录）。
 - **`genJSONSchemas` 会从 `src/store/types.d.ts` 的 `IStoreSetting.Dev` 生成
   `.vscode/settings-dev.schema.json`**（它在仓库里、生成结果确定）；改了 store 的 setting 类型

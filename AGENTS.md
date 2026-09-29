@@ -9,7 +9,7 @@
 > 包级指引见下方「包级指引」表：按 agents.md 约定，agent 读**离被改文件最近**的那份。
 >
 > 架构决策与设计文档在 [`apps/docs/src/zh-CN/content/`](./apps/docs/src/zh-CN/content/)
-> （monorepo 架构 10 篇 / ADR 0001-0019 / 归档的设计·计划·评审）。
+> （monorepo 架构 10 篇 / ADR 0001-0020 / 归档的设计·计划·评审）。
 
 ## 技术栈与版本
 
@@ -57,7 +57,7 @@ packages/tooling/        tsconfig · eslint-config · commitlint-config · vites
 | 目录 | 指引 | 里面写了什么规则 |
 |------|------|------------------|
 | `apps/server/` | [`apps/server/AGENTS.md`](./apps/server/AGENTS.md) | 内部 Nest monorepo 的形态、`@walnut-server/*` 命名空间策略、必须从本目录运行的命令 |
-| `apps/admin/` | [`apps/admin/AGENTS.md`](./apps/admin/AGENTS.md) | `@/*` `~/*` 别名、auto-import 的克制原则、组件与 store 的约定 |
+| `apps/admin/` | [`apps/admin/AGENTS.md`](./apps/admin/AGENTS.md) | `@/*` `~/*` 别名、**禁止隐式全局**、组件与 store 的约定 |
 | `apps/docs/` | [`apps/docs/AGENTS.md`](./apps/docs/AGENTS.md) | VitePress 结构、**死链校验与 `${{ }}` 两个坑**、新增页面要改侧边栏 |
 
 `packages/**` 目前没有包级指引 —— 有非显然规则时再加，**不要为凑数而写**。
@@ -104,7 +104,7 @@ pnpm knip             # 死代码检测（**当前是红的且有意维持**，�
 1. **依赖**：只用 pnpm；新依赖一律走 `catalog:`（`pnpm-workspace.yaml`，strict 模式强制）；workspace 内部引用用 `workspace:*`（syncpack 强制）。
 2. **提交**：conventional commits，scope 必填，且必须是 workspace 包名（如 `feat(admin): …`、`fix(contract): …`）或基础设施 scope（`docker` / `deploy` / `pnpm` / `release` —— `release` 只给发版记账提交 `chore(release): vX.Y.Z` 用，工具链包的改动走 `tooling`）。发版归属**路径优先、scope 兜底**，基础设施 scope 与未在册 scope 不产生意图（见 release.md）。pre-push 是一条聚合命令 `pnpm prepush`（= `walnut-prepush`）—— 它跑**一张门禁表**（并行、每段报耗时；表只有一处：`packages/tooling/scripts/src/ci/prepush.ts`，含 fixed 组锁步那段）；钩子由 lefthook 托管（根 `lefthook.yml`，见 ADR 0018），装没装上用 `pnpm hooks:check` 机械核对。
 3. **导入**：admin 用 `@/*` → `apps/admin/src/*`、`~/*` → `apps/admin/types/*`；server 用 `@/*` → `apps/api/src/*`、`@walnut-server/*` → `libs/*/src`。跨模块禁止相对路径。
-4. **Auto-import 克制**：`unplugin-auto-import` 存在，但大项目显式导入优先——迁入 packages 的代码必须显式 import。
+4. **显式导入（不许隐式全局）**：admin 的 `unplugin-auto-import` 已于 2026-09-29 **移除**（ADR 0020）—— vue / vue-router / `@vueuse/core` / `src/{const,locales,router,store/modules,hooks,socket}` 以及 `useForm`/`useTable`/`useCRUD` 这些全部要显式 import。**别把它加回来**：隐式全局在大型项目里是灾难（读代码时看不出依赖、删文件不报错、`tsc` 之外的工具看不见）。`vue-tsc` 是这条纪律的机械守卫 —— 漏了 import 会直接红。`packages/**` 同理（那两处从来不在扫描范围内）。
 5. **共享契约**：跨端常量只改 `@walnut/contract`（前后端直接消费，无包装层，ADR 0004）；contract 有快照测试守护，改动会触发快照 diff。
 6. **测试**：新增纯函数/工具必须补测试（现有模式见 `packages/platform-any/utils-core/src/**/*.test.ts`）。
 7. **注释**：`// LINK` 引用资料、`// TODO`/`// FIXME` 待办；中英混用可接受，文档以中文为主。
@@ -116,7 +116,7 @@ pnpm knip             # 死代码检测（**当前是红的且有意维持**，�
 ## 各 app 专属指引
 
 - [`apps/server/AGENTS.md`](./apps/server/AGENTS.md) — 后端模块架构、Repository 三模式、DTO 装饰器规则、Guard 顺序（含全部后端规矩）
-- [`apps/admin/AGENTS.md`](./apps/admin/AGENTS.md) — 前端别名、auto-import、组件与 store 约定
+- [`apps/admin/AGENTS.md`](./apps/admin/AGENTS.md) — 前端别名、禁止隐式全局、组件与 store 约定
 - [`apps/docs/AGENTS.md`](./apps/docs/AGENTS.md) — 文档站结构与两个构建坑
 
 ## 资源

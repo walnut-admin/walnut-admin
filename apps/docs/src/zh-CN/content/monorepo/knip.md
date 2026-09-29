@@ -68,9 +68,9 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
   project: ["src/**/*.{ts,vue}"],
   vite: false,                        // 禁用 Vite 插件（见下文）
   ignore: [
-    "src/components/**",              // auto-import 隐式注册
-    "src/composables/**",             // 同上
-    "src/hooks/**",                   // 同上
+    "src/components/**",              // 组件自动注册（unplugin-vue-components）
+    "src/composables/**",             // 组件自动注册
+    "src/hooks/**",                   // 组件自动注册
     "src/api/**",                     // barrel + store 动态引用
     "src/store/**",                   // Pinia 动态注册
     "src/socket/**",                  // 动态 import
@@ -117,7 +117,6 @@ knip 是**静态 import 追踪**工具。以下框架机制对 knip 不可见，
 
 | 框架 | 机制 | knip 能追踪？ |
 |------|------|--------------|
-| Vue 3 | `unplugin-auto-import`（自动注入 composables） | ❌ |
 | Vue 3 | `unplugin-vue-components`（自动注册组件） | ❌ |
 | Vue 3 | Pinia store 动态注册 | ❌ |
 | NestJS | `@Module()` 装饰器隐式组装 | ❌ |
@@ -145,7 +144,7 @@ admin 的 `vite.config.ts` 在 `useBuildEnv()` 函数内调用 `JSON.parse(env.V
 
 ### Vite 插件 devDependencies
 
-30+ 个 Vite 插件（如 `@vitejs/plugin-vue`、`unplugin-auto-import`）在 `devDependencies` 中声明但不会在源码中 import——它们只在 `vite.config.ts` 中引用。knip 无法解析 `vite.config.ts`，所以报告为 "unused devDependencies"。
+30+ 个 Vite 插件（如 `@vitejs/plugin-vue`、`vite-plugin-checker`）在 `devDependencies` 中声明但不会在源码中 import——它们只在 `vite.config.ts` 中引用。knip 无法解析 `vite.config.ts`，所以报告为 "unused devDependencies"。
 
 **对策**：已加入 `ignoreDependencies` 列表。
 

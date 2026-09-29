@@ -74,7 +74,7 @@ const props: Partial<ICompUISwitchProps> = {
 
 - **零 `dependencies`**：`naive-ui` + `vue` 走 `peerDependencies`；devDependencies 里各装一份，供 `vue-tsc --noEmit` 做类型检查。
 - **谁依赖它**：`@walnut/admin`（`workspace:*`）。消费有两条路 —— 显式 `import { DynamicTags } from '@walnut/ui'`，或让 `WalnutAdminComponentResolver` 扫成 `<W*>`：它先扫 admin 自己的 `src/components/**/**/index.ts`，再用相对路径 glob `../../packages/platform-web/ui/src/*/index.ts` 覆盖同名项，所以同名组件以包内为准（`apps/admin/build/vite/plugin/component.ts`）。
-- **边界**：turbo 标签 `shared` + `platform-web`，`platform-any` / `backend` 都不能依赖它；后端另有 ESLint `no-restricted-imports` 兜底。迁进本包的代码**必须显式 import**（根 AGENTS 纪律 4：packages 不在 auto-import 的扫描范围里），naive-ui 挂在 `window` 上的 `$message` / `$dialog` / `$notification` 也要改成显式 import（待办 A11）。
+- **边界**：turbo 标签 `shared` + `platform-web`，`platform-any` / `backend` 都不能依赖它；后端另有 ESLint `no-restricted-imports` 兜底。本包代码**必须显式 import**（根 AGENTS 纪律 4：包代码从来不在 auto-import 的扫描范围里，而那份插件已随 [ADR 0020](../../../apps/docs/src/zh-CN/content/adr/0020-remove-unplugin-auto-import.md) 在 2026-09-29 整个移除），naive-ui 挂在 `window` 上的 `$message` / `$dialog` / `$notification` 也要改成显式 import（待办 A11）。
 
 ## 已知限制与延后工作
 

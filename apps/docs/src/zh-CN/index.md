@@ -20,7 +20,7 @@ features:
   - title: 💡 最新技术栈
     details: 基于Vue3、Vite、TypeScript等最新技术栈开发
   - title: ⚡️ 开发友好
-    details: 类型支持丰富,组件/类型自动引入
+    details: 类型支持丰富，组件自动注册（方法/函数一律显式 import）
   - title: 🛠️ 丰富的示例
     details: 常见的Web端插件示例实现
   - title: 📦 组件封装

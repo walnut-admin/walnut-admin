@@ -25,7 +25,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 Turborepo + pnpm w
 项目采用分层的架构文档体系：
 
 - **[架构](./monorepo/)** — TypeScript 配置、ESLint、pnpm Catalog、Turbo、Release、Knip 等 10 篇专题
-- **[ADR](./adr/)** — 16 条架构决策记录，覆盖包命名、工具链、测试、验证等
+- **[ADR](./adr/)** — 架构决策记录（含**已否决**的那些），覆盖包命名、工具链、测试、验证等
 - **[行业调研](./industry-research/)** — 业界主流 monorepo 实践与 Walnut Admin 的差异分析
 
 ## 所需知识
