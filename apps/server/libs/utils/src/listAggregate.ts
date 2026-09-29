@@ -150,7 +150,7 @@ function createListAggregation(
     },
   })
 
-  // ✅ 核心优化: 添加 $project 阶段，直接拍平 total 结构
+  // 核心优化: 添加 $project 阶段，直接拍平 total 结构
   // 结果将变为: [{ data: [...], total: 10 }] 而不是 [{ data: [...], total: [{ total: 10 }] }]
   pipeline.push({
     $project: {

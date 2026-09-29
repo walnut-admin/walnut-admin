@@ -158,7 +158,7 @@ export function releaseNoteSource(input: ReleaseNoteInput): 'cliff' | 'intents' 
 /**
  * 组装写进 `changelog-latest.md`（= CI 的 GitHub Release 正文）的内容。
  *
- * ⚠️ 为什么这一档必须有兜底：`release.yml` 的 release job 在 `verify` + `images` **之后**才跑，
+ * 为什么这一档必须有兜底：`release.yml` 的 release job 在 `verify` + `images` **之后**才跑，
  * 那时 tag 已经推上去了。正文文件如果没随 release commit 提交，CI 会去读上一个版本留下的内容，
  * 或者干脆读不到 —— 两种情况都会让 Release 正文与本次发版对不上。
  */

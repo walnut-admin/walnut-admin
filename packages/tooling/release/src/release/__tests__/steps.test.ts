@@ -1,7 +1,7 @@
 /**
  * 第 4–5 步（steps.ts）：全量电池表的机械审计 + 顺序不变式的源码断言。
  *
- * ⚠️ 本套用例**刻意不调** `runReleaseGates` / `runReleaseBattery`：它们会真的起子进程
+ * 本套用例**刻意不调** `runReleaseGates` / `runReleaseBattery`：它们会真的起子进程
  * （pnpm / turbo），既需要仓库状态，也远超单测该碰的边界。要钉的性质用两种方式拿：
  *   ① 表本身通过导出的纯函数读（`releaseBatteryArgvs` / `releaseBatteryIds` …）；
  *   ② 顺序不变式（门禁在打 tag **之前**）用源码文本的索引断言。
@@ -60,7 +60,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
   it('根级 lint 走 turbo 根任务 `//#lint:root`，且整条电池里只出现一次', () => {
     const argvs = releaseBatteryArgvs()
     expect(argvs).toContainEqual(['exec', 'turbo', 'run', 'lint:root'])
-    // ⚠️ 这条断言 2026-09-23 **翻转**过，留个记录免得下次又改回去：
+    // 这条断言 2026-09-23 **翻转**过，留个记录免得下次又改回去：
     // 原先它是 `['lint:root']`（直接跑根脚本），理由是「`lint:root` 只是根 package.json 的脚本、
     // 不是 turbo 任务，`turbo run lint lint:root` 会 `Could not find task` 当场退 1（实测）」。
     // 那条理由当时成立 —— 但根 `turbo.json` 现在**定义了** `//#lint:root`（带精确 inputs，
@@ -134,17 +134,17 @@ describe('顺序不变式：门禁必须在打 tag **之前**', () => {
 })
 
 /**
- * 电池表 ↔ 文档表 的对账。
+ * 电池表 文档表 的对账。
  *
  * **为什么要有这一段**：`release.md` 里那张表是给人看的（它比源码好读：每行写清了这条门禁
  * 在防什么），但它是**手抄的** —— 文档自己都写着「本页的表格眼下仍靠人工同步」。而这份表的
  * 真源是 `RELEASE_BATTERY`。加一段门禁不加文档、或删了门禁忘了划掉文档那一行，两边就分了岔，
- * 而**读者只会看到文档**。A1（CI↔门禁名册对账）覆盖的是 `.github/workflows` 那一面，
+ * 而**读者只会看到文档**。A1（CI门禁名册对账）覆盖的是 `.github/workflows` 那一面，
  * 这一段补的就是同一族里剩下的那个人工同步点。
  *
  * 实测（2026-09-23，加这段之前）：两边**已经对齐**，所以它是「上了就是绿的」那种门禁。
  *
- * ⚠️ **它读的是包外的文件**（文档站在 `apps/docs`）。两个已知边界，写在这里免得下次误判：
+ * **它读的是包外的文件**（文档站在 `apps/docs`）。两个已知边界，写在这里免得下次误判：
  *   · 改**只**改那份 md（不动电池）时，CI 的 `test --affected` 不会选中 `@walnut/release`
  *     ⇒ 这一段不会跑。真正要防的方向是反过来的（改了电池忘了改表），那个方向一定会跑到。
  *   · `test` 任务的 inputs 里有一条**否定 glob 把所有 markdown 排除了**（根 `turbo.json`），

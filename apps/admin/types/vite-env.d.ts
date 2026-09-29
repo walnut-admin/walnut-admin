@@ -6,7 +6,7 @@ type ImportMetaEnvAugmented = import('@julr/vite-plugin-validate-env').ImportMet
 interface ViteTypeOptions {
   // Avoid adding an index type to `ImportMetaDev` so
   // there's an error when accessing unknown properties.
-  // ⚠️ This option requires Vite 6.3.x or higher
+  // This option requires Vite 6.3.x or higher
   strictImportMetaEnv: unknown
 }
 

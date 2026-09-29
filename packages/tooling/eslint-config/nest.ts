@@ -1,10 +1,11 @@
 import type { OptionsConfig } from '@antfu/eslint-config'
 import type { WalnutEslintConfig } from './base.ts'
 import antfu from '@antfu/eslint-config'
-// ⚠️ 这个相对导入**刻意不写 `.ts` 扩展名**：本文件会被消费方的类型程序一起编译
+// 这个相对导入**刻意不写 `.ts` 扩展名**：本文件会被消费方的类型程序一起编译
 // （`apps/server/tsconfig.json` 按 ADR 0012 是自包含的，没有开 `allowImportingTsExtensions`），
 // 带扩展名会让 `@walnut/server` 的 types:check 直接报 TS5097。
 // ESLint 经 jiti 加载本文件，扩展名推断由它负责 ⇒ 不带扩展名两边都能解析。
+import { commentPolicyConfig } from './comment-rules'
 import localRules from './nest-local-rules'
 import { turboEnvVarsConfig } from './turbo-env-vars'
 
@@ -73,8 +74,10 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
       },
     },
     // 三个预设共用的一段 —— 为什么单独成文件见 turbo-env-vars.ts 顶部。
-    // ⚠️ 这里的相对导入同样**不写扩展名**（理由见文件头那段注释）。
+    // 这里的相对导入同样**不写扩展名**（理由见文件头那段注释）。
     turboEnvVarsConfig(),
+    // 注释里不许有 emoji（纯文字）—— 三个预设共用，理由见 comment-rules.ts 顶部
+    commentPolicyConfig(),
     {
       // ── 运行期配置模块：豁免 Turbo 的 env 声明检查 ────────────────────────────────
       // `libs/config/src/modules/*.config.ts` 是 `@nestjs/config` 的 `registerAs` 工厂，

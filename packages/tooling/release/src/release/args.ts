@@ -153,7 +153,7 @@ export function parseReleaseArgs(argv: string[]): ParseResult {
   }
 
   // ── 入口点互斥矩阵 ──────────────────────────────────────────────────────
-  // ⚠️ `--status` 与 `--plan` 的判定必须在通用的「多个入口」判定**之前**：两者都在 ACTION_FLAGS 里，
+  // `--status` 与 `--plan` 的判定必须在通用的「多个入口」判定**之前**：两者都在 ACTION_FLAGS 里，
   // 通用判定会把它们拦成「这些入口一次只能用一个：--status / --plan」—— 行为对，但文案不如
   // 「它俩其实是同一件事的两种措辞」有用（用户多半是拿不准该用哪个，而不是想同时跑两个入口）。
   if (args.status && args.plan)

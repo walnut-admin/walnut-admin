@@ -1,6 +1,6 @@
 name: CI
 
-# ⚠️ 本文件（以及所有 workflow）禁止把 secrets 上下文写进 step/job 的 if。
+# 本文件（以及所有 workflow）禁止把 secrets 上下文写进 step/job 的 if。
 # GitHub 只在 jobs.<id>.if / steps.*.if 暴露 github/needs/strategy/matrix/job/runner/env/vars/steps/inputs，
 # 写 secrets.X 会让**整个文件**被判为 "Invalid workflow file"：启动即失败、0 个 job，
 # 在 Actions 列表里只留一个看起来"跑失败了"的红叉 —— 2026-08-13 到 09-21 本仓 CI 就是这样
@@ -68,11 +68,11 @@ jobs:
       # 缓存路径是**整个 `.turbo/cache`** ⇒ 缓存的是「**这条 job 里 turbo 跑过的一切**」，
       # 而不是「哪几类任务」；范围由这条 job 跑什么决定。
       #
-      # ⚠️ 这条 job 里跑的不止质量门：`Docs build` 也是 turbo 任务、产物 4.6 MB，**已用
+      # 这条 job 里跑的不止质量门：`Docs build` 也是 turbo 任务、产物 4.6 MB，**已用
       # `--cache-dir` 把它挡在外面**（见那一步）—— 否则归档会从几十 KB 涨到 MB 级、并随每次
       # docs 改动继续长。完整实测与取舍见 turbo-cache-boundary.md 第七节。
       #
-      # ⚠️ **key 必须 rolling**（带 `github.sha` + `restore-keys` 前缀）：`actions/cache` 只在
+      # **key 必须 rolling**（带 `github.sha` + `restore-keys` 前缀）：`actions/cache` 只在
       # key 不存在时保存 ⇒ 固定 key 会让缓存**冻在第一次写入那一版**，新条目永远进不去。
       # 换 key 时 `restore-keys` 的前缀要**一起换** —— 它是前缀匹配，只换 key 照样会拉回旧的。
       #
@@ -111,11 +111,11 @@ jobs:
       # 「冻结语料 + 尚未编写的组件页」白名单）。跑在 CI 而不是 local pre-push：约 40s，
       # 且只对文档改动有意义。
       #
-      # ⚠️ **给它自己的缓存目录**：这步是 turbo 任务、产物 4.6 MB，落进 `.turbo/cache` 会被
+      # **给它自己的缓存目录**：这步是 turbo 任务、产物 4.6 MB，落进 `.turbo/cache` 会被
       # 上面那步整份上传（实测把归档从几十 KB 顶到 4.7 MB 起）。换目录后它**每次都真跑、
       # 不回放** —— 对一条「死链校验就是构建本身」的门禁来说，这正是想要的态度。
       #
-      # ⚠️ 参数写法**实测过**，两种只差一个 `--`，行为完全不同：
+      # 参数写法**实测过**，两种只差一个 `--`，行为完全不同：
       #   `pnpm run build:docs -- --cache-dir=x`  → 参数被 turbo 当**透传参数**给了任务本身
       #                                            （VitePress 收到 `--cache-dir=x`，缓存照旧写默认目录）
       #   `pnpm build:docs --cache-dir=x`         → 到 turbo（实测条目落进 `x`，默认目录未被写入）
@@ -165,7 +165,7 @@ jobs:
         run: pnpm lint:nginx-headers
 
       # 源码里的凭据形状（PEM 私钥 / 带真口令的连接串 / JWT / 云厂商 AK）。
-      # ⚠️ **它真正的位置是 prepush**：GitHub 的 push protection 在服务端、且先于 CI，
+      # **它真正的位置是 prepush**：GitHub 的 push protection 在服务端、且先于 CI，
       # 被它拒掉时本地这段门禁是绿的（2026-09-23 实测）。CI 这一份是补第二道，
       # 覆盖"绕过钩子直接推"的情形。
       - name: Source secret-shape check
@@ -176,7 +176,7 @@ jobs:
         run: pnpm lint:exports
 
       # 有生成物的包（admin 的两个 unplugin dts），它跑 vite / vue-tsc 的脚本必须都接了生成步骤。
-      # ⚠️ 这条是 2026-09-24 那次事故的守卫：生成物移出跟踪面后漏了 `prebuild`，
+      # 这条是 2026-09-24 那次事故的守卫：生成物移出跟踪面后漏了 `prebuild`，
       # 于是 `Build admin` 里 vite 的检查器在生成之前就读它 ⇒ 一串 `Cannot find name …`。
       - name: Script pre-hook check
         run: pnpm lint:pre-hooks

@@ -5,7 +5,7 @@
 # 这样两边都不需要猜对方（靠 `GIT_CLIFF__CHANGELOG__HEADER` 逐包覆盖 header 才能让 `--prepend`
 # 正确剥头，是多一处隐式契约）。
 #
-# ⚠️ 段落标题必须**逐字** `## <版本>`（不带方括号、不带日期后缀）：release/plan.ts 的
+# 段落标题必须**逐字** `## <版本>`（不带方括号、不带日期后缀）：release/plan.ts 的
 # `extractChangelogSection()` 用 `l.trim() === '## ' + version` 精确匹配（Release 正文与幂等判据都靠它）。
 # 改模板前先看那两处。
 #
@@ -41,14 +41,14 @@ filter_unconventional = false
 split_commits = false
 # 顺序：组内按时间从早到晚（与 pnpm/Changesets 原生写出的历史段落一致）
 sort_commits = "oldest"
-# ⚠️ 必须：仓库里只有 `vX.Y.Z` 是发版边界，任何其它形状的 tag 都不该被当成边界。
+# 必须：仓库里只有 `vX.Y.Z` 是发版边界，任何其它形状的 tag 都不该被当成边界。
 tag_pattern = "^v[0-9]+\\.[0-9]+\\.[0-9]+$"
 commit_parsers = [
   # 噪声：合并提交与 release 提交本身
   { message = "^Merge", skip = true },
   { message = "^chore\\(release\\)", skip = true },
   # 与 release/commit-intent.ts 的 BUMP_MAP 同口径：进 changelog 的只有这五类。
-  # ⚠️ `<!-- N -->` 是**排序键**：`group_by` 按组名字典序排，而中文组名的字典序不是语义序
+  # `<!-- N -->` 是**排序键**：`group_by` 按组名字典序排，而中文组名的字典序不是语义序
   # （「修复」会排在「新功能」前面）；模板里用 `striptags` 把它去掉，只留给人看的名字。
   { message = "^feat", group = "<!-- 1 -->新功能" },
   { message = "^fix", group = "<!-- 2 -->修复" },

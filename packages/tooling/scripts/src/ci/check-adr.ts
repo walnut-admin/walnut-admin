@@ -20,7 +20,7 @@
  *   ⑤ 必需小节：`## Context`、至少一个 `## Decision*`、**恰好一个** `## Alternatives considered`、
  *      `## Consequences`；
  *   ⑥ `## Alternatives considered` 必须排在**第一个 `## Decision` 之后**，且至少一条 `- ` 列表项。
- *      ⚠️ 刻意**不**约束它与 `## Consequences` 的先后：ADR 0012 的 `## Consequences` 在正文中间
+ *      刻意**不**约束它与 `## Consequences` 的先后：ADR 0012 的 `## Consequences` 在正文中间
  *      （Decision 4 之后还有 Decision 5/6/7），硬约束顺序会把它判死 —— 那是篇真实的 ADR，
  *      不是笔误。
  *   ⑦ `adr/index.md` 的表格**双向**对得上：每篇 ADR 都有一行，每行的链接都指向存在的文件，

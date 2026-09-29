@@ -26,7 +26,7 @@
  *
  * 这 16 处没有一个曾是「红的」—— 它们全被 `skipLibCheck` 藏住了。
  *
- * ⚠️ 顺带实测到一件**不属于本门禁**的事：关掉 `skipLibCheck` 后
+ * 顺带实测到一件**不属于本门禁**的事：关掉 `skipLibCheck` 后
  * `src/components/Vendor/ECharts/on-demand.ts` 会报 echarts 的双身份错误（`echarts` 的 UMD 全局与
  * `echarts/core` 模块各有一套 `_setting` 私有属性 ⇒ 互不兼容）。删掉我们自己的 `Window.echarts`
  * 声明它**依然存在** ⇒ 是上游形状问题，不是我们该修的。**这也是「不能全局关掉 `skipLibCheck`」的

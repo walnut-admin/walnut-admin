@@ -24,7 +24,7 @@ import { build } from 'vite'
 import { componentsDtsPath, legacyAutoImportDtsPath } from '../utils/paths.ts'
 import { createComponentPlugin } from '../vite/plugin/component.ts'
 
-/** ⚠️ 从**本文件位置**推根，不看 cwd —— 这个脚本也会被 `pre*` 钩子以外的方式调用（手跑、调试） */
+/** 从**本文件位置**推根，不看 cwd —— 这个脚本也会被 `pre*` 钩子以外的方式调用（手跑、调试） */
 const root = resolve(import.meta.dirname, '../..')
 const STUB = 'virtual:dts-gen'
 

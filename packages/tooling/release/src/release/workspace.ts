@@ -199,11 +199,11 @@ export interface CollectedIntents {
 /**
  * 收走消费后的残留：① 已记账的意图文件；② pnpm 的 `.changeset/changelogs/` 寄存区。
  *
- * ⚠️ 为什么由我们删：registry 模式下 pnpm **不回收**（理由见 `readLedger` 的注释）。
+ * 为什么由我们删：registry 模式下 pnpm **不回收**（理由见 `readLedger` 的注释）。
  * 不收就会在每次发版时堆一批，并随 release commit 进仓库。判据仍在 ledger，
  * 所以删文件不影响「消费过没有」这个判断。
  *
- * ⚠️ 顺序要紧：必须在写 changelog **之前**调它，否则本次 release commit 的 `git add -A`
+ * 顺序要紧：必须在写 changelog **之前**调它，否则本次 release commit 的 `git add -A`
  * 会把刚收走的那些文件又卷进来。
  */
 export function deleteConsumedIntents(): CollectedIntents {

@@ -32,7 +32,7 @@ export function useChatScroll() {
     }
   }, { immediate: true })
 
-  // Scroll to bottom after panel mode transitions (panel ↔ large-panel ↔ content-aside)
+  // Scroll to bottom after panel mode transitions (panel large-panel content-aside)
   watch(() => aiPrefs.value.panelMode, (newMode, oldMode) => {
     if (newMode === oldMode || !isExpanded.value)
       return

@@ -7,7 +7,7 @@ import process from 'node:process'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
 /**
- * env-encrypted/ ↔ env-local/ 的加解密（dotenvx）。
+ * env-encrypted/ env-local/ 的加解密（dotenvx）。
  *
  * 由 `scripts/setup-env.ts` 收编而来（仓库级脚本现在归 @walnut/scripts）。行为与原文一致，
  * 三处**收紧**：

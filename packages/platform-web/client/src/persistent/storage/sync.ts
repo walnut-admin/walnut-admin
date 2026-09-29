@@ -36,8 +36,8 @@ export function useAppStorageSync<T>(
 
   const realKey = usePresetKey ? getStorageKey(key) : key
   const state = ref<T>()
-  let isInitializing = true // ✅ 添加初始化标志
-  let cachedExpireTime: number | null = null // ✅ 缓存过期时间
+  let isInitializing = true // 添加初始化标志
+  let cachedExpireTime: number | null = null // 缓存过期时间
 
   const { arm: armExpireTimer, clear: clearExpireTimer } = useExpireTimer({
     onExpire: () => {
@@ -48,7 +48,7 @@ export function useAppStorageSync<T>(
   function resetToInitial() {
     storage.removeItem(realKey)
     clearExpireTimer()
-    cachedExpireTime = null // ✅ 清除缓存
+    cachedExpireTime = null // 清除缓存
 
     if (resetBehavior === 'keepInitial') {
       const fresh = cloneDeep(initialValue)
@@ -65,7 +65,7 @@ export function useAppStorageSync<T>(
     if (ttlMode === 'sliding')
       return Date.now() + expire
 
-    // ✅ 使用缓存避免重复读取
+    // 使用缓存避免重复读取
     if (cachedExpireTime !== null)
       return cachedExpireTime
 
@@ -77,7 +77,7 @@ export function useAppStorageSync<T>(
           return e
       }
       catch (error) {
-        // ✅ 记录错误
+        // 记录错误
         console.warn(`Failed to parse storage data for key "${realKey}":`, error)
       }
     }
@@ -92,10 +92,10 @@ export function useAppStorageSync<T>(
     try {
       const { v, e } = superjson.parse(raw) as IStorageData<T>
 
-      // ✅ 保存过期时间到缓存
+      // 保存过期时间到缓存
       cachedExpireTime = e ?? null
 
-      // ✅ 使用 > 而不是 >= 更符合直觉
+      // 使用 > 而不是 >= 更符合直觉
       if (e && Date.now() > e) {
         resetToInitial()
         return null
@@ -104,7 +104,7 @@ export function useAppStorageSync<T>(
       return v as T
     }
     catch (error) {
-      // ✅ 记录错误
+      // 记录错误
       console.warn(`Failed to read storage data for key "${realKey}":`, error)
       storage.removeItem(realKey)
       return null
@@ -123,7 +123,7 @@ export function useAppStorageSync<T>(
       exp ? armExpireTimer(exp) : clearExpireTimer()
     }
     catch (error) {
-      // ✅ 处理存储失败（如 QuotaExceededError）
+      // 处理存储失败（如 QuotaExceededError）
       console.error(`Failed to write storage data for key "${realKey}":`, error)
     }
   }
@@ -137,16 +137,16 @@ export function useAppStorageSync<T>(
     write(initialValue)
   }
 
-  isInitializing = false // ✅ 标记初始化完成
+  isInitializing = false // 标记初始化完成
 
-  // ✅ 防抖写入，避免频繁 I/O
+  // 防抖写入，避免频繁 I/O
   const debouncedWrite = useDebounceFn(write, 100, { maxWait: 500 })
 
   watch(
     state,
     (val) => {
       if (isInitializing)
-        return // ✅ 跳过初始化触发
+        return // 跳过初始化触发
 
       if (val === null || val === undefined) {
         storage.removeItem(realKey)

@@ -338,7 +338,7 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
     }
 
     if (outcome.files.length === 0) {
-      // ⚠️ `--dry-run` 下 `files` **恒为空**（那正是「不写盘」的定义），所以这里绝不能说「无需发版」——
+      // `--dry-run` 下 `files` **恒为空**（那正是「不写盘」的定义），所以这里绝不能说「无需发版」——
       // 上面一行刚打印过「生成 N 个意图」，两句并列会让一次演练被读成「没有可发布的东西」。
       if (args.dryRun && outcome.generated > 0) {
         const planned = args.bump ?? (outcome.wouldBump === 'none' ? 'patch' : outcome.wouldBump)

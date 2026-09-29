@@ -15,7 +15,7 @@ import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/servi
 /**
  * Auth Session 存储结构
  *
- * ⚠️ 生产环境必须使用 Redis 并启用持久化
+ * 生产环境必须使用 Redis 并启用持久化
  */
 interface AuthSession {
   /**
@@ -123,7 +123,7 @@ export class AuthSessionService {
    * @param sessionKeyMaterial Session Key 材料
    *        - OPAQUE: login finish �?session key（string / Buffer�?
    *        - 其他认证方式: randomBytes(32)
-   * @returns sessionId �?authSessionKey（⚠�?仅返回一次）
+   * @returns sessionId �?authSessionKey（�?仅返回一次）
    */
   async createAuthSession(
     userId: string,
@@ -131,7 +131,7 @@ export class AuthSessionService {
     sessionKeyMaterial: Buffer | string = randomBytes(32).toString('base64'),
   ): Promise<{
     sessionId: string
-    authSessionKey: Buffer // ⚠️ 仅返回一次，客户端需要妥善保?
+    authSessionKey: Buffer // 仅返回一次，客户端需要妥善保?
   }> {
     // 1. 生成随机 Session ID
     const sessionId = randomSessionId()
@@ -165,7 +165,7 @@ export class AuthSessionService {
       `Auth session created: user=${userId}, device=${deviceId}, session=${sessionId}, ttl=${ttl}s`,
     )
 
-    // 6. 返回 sessionId 和原�?authSessionKey（⚠�?仅此一次）
+    // 6. 返回 sessionId 和原�?authSessionKey（�?仅此一次）
     return {
       sessionId,
       authSessionKey, // 客户端需要存储此 key 用于后续签名

@@ -91,7 +91,7 @@ export class WalnutAdminGuardCap implements CanActivate {
     }
 
     // ============================================================
-    // Step 3: CAP token 硬校验（⚠️ 必须先于 shouldChallenge�?
+    // Step 3: CAP token 硬校验（必须先于 shouldChallenge�?
     // ============================================================
 
     const capToken = getWalnutAdminCookie(

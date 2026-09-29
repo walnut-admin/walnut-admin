@@ -175,7 +175,7 @@ export function jsonFindingsOfBlock(block: DocBlock): DocTsFinding[] {
 /**
  * 读 `parseDiagnostics`。
  *
- * ⚠️ 这个属性**运行时存在、但 TypeScript 的公开 `.d.ts` 里没有声明**（`createSourceFile` 与
+ * 这个属性**运行时存在、但 TypeScript 的公开 `.d.ts` 里没有声明**（`createSourceFile` 与
  * `parseJsonText` 的返回值上都有；实测确认）。所以这里用一个窄的交叉类型把它读出来 ——
  * 而不是为了拿解析诊断去建一个完整的 Program（那要解析整个 tsconfig 与依赖图，代价高一个量级）。
  */

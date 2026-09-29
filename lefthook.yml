@@ -13,7 +13,7 @@
 # 「本机门禁已静默失效」的位置。（2026-09-23 之前这句注释是**空头承诺**：
 # 当时 `hooks:check` 全仓零自动调用点，只有这句注释在说它会被调。）
 #
-# ⚠️ Windows：`run` 值里**禁止双引号**。lefthook 在 Windows 上用
+# Windows：`run` 值里**禁止双引号**。lefthook 在 Windows 上用
 # `cmdLine = "\"" + sh + "\" -c \"" + cmdstr + "\""` 拼命令行，内层引号未转义 ⇒
 # 带引号的命令会**静默丢参、还照样报 ✓**（上游 PR #1464 未合并，已实测复现）。
 # `ci/__tests__/lefthook-config.test.ts` 机械拦这条。
@@ -36,7 +36,7 @@ pre-commit:
       run: pnpm exec lint-staged --max-arg-length=4000
 
 # 提交信息：约定式提交的强制入口。`{1}` = git 传给 commit-msg 钩子的第一个参数（.git/COMMIT_EDITMSG）。
-# ⚠️ scope 必填且必须在 `@walnut/commitlint-config` 的白名单里 —— 发版的 release commit
+# scope 必填且必须在 `@walnut/commitlint-config` 的白名单里 —— 发版的 release commit
 # 因此用 `chore(release): vX.Y.Z`（`release` 是保留的基础设施 scope，不是包 scope）。
 commit-msg:
   jobs:

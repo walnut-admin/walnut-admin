@@ -77,7 +77,7 @@ versioning:
     # 为什么不做 `repository`：该模式会主动写 `CHANGELOG.md`，而它没有「关掉写入但保留意图消费」
     # 的开关，于是 git-cliff 再写一次就会让同一版本出现两个 `## X.Y.Z` 段 —— 社区里「git-cliff 写
     # changelog」最常见的翻车形态。storage 只影响「changelog 落在哪」，**意图照旧驱动版本号**。
-    # ⚠️ 本模式下 pnpm **不回收**已消费的意图文件（要等 registry 确认该版本已带 changelog 发布，
+    # 本模式下 pnpm **不回收**已消费的意图文件（要等 registry 确认该版本已带 changelog 发布，
     # 而本仓包全 private、从不 publish ⇒ 永不回收）；发版脚本消费完当场收走它们
     # （release/generate.ts 的 deleteConsumedIntents()）；判据始终是 ledger，不是文件在不在。
     storage: registry
@@ -88,10 +88,10 @@ versioning:
   # 留下一个**已被 bump 却永远不会打 tag** 的脏工作区。一个组从结构上消灭这条路径。
   # 另：ADR 0008 的标题本就是 Unified Versioning，单组与它一致。
   #
-  # ⚠️ 组成员数必须 == 有 version 的 workspace 包数（无例外、无遗漏）：
+  # 组成员数必须 == 有 version 的 workspace 包数（无例外、无遗漏）：
   #    新增 workspace 包时必须加进来，否则 `pnpm change check` 与 versioning-config.test.ts 都会拦。
   fixed:
-    # ⚠️ 类型是 string[][]（组的数组，每组是包名的数组）。单组也要写成嵌套序列。
+    # 类型是 string[][]（组的数组，每组是包名的数组）。单组也要写成嵌套序列。
     -
       - '@walnut/admin'
       - '@walnut/server'

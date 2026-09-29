@@ -1,7 +1,7 @@
 import type { KnipConfig } from 'knip'
 
 /**
- * ⚠️ **`pnpm knip` 当前是红的，而且这是已知的、有意维持的状态**（2026-09-23 决策）。
+ * **`pnpm knip` 当前是红的，而且这是已知的、有意维持的状态**（2026-09-23 决策）。
  *
  * 它**不在任何门禁里**（prepush / CI / 发版电池都没有它）⇒ 不影响交付，但也意味着**没人会看到
  * 它的提示** —— 这个文件里的注释就是那些提示的落脚点。也因此这里**不写命中计数**：数会变，
@@ -115,7 +115,7 @@ const config: KnipConfig = {
     'packages/platform-web/http': {
       entry: ['src/index.ts'],
     },
-    // ⚠️ packages/tooling/* 刻意**不写 entry**：knip 能从 package.json 的 `exports`（预设/通用能力）
+    // packages/tooling/* 刻意**不写 entry**：knip 能从 package.json 的 `exports`（预设/通用能力）
     // 与 `bin`（命令入口）自己推出入口文件。显式列一遍既是重复，也会随包结构变化而腐化 ——
     // knip 的 Configuration hints 一直在提示这一点，本轮按其建议删掉。
   },

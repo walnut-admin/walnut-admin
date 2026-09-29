@@ -37,7 +37,7 @@ export class TransactionInterceptor implements NestInterceptor {
             await session.endSession()
           }
 
-          // ✅ execute post-commit hooks (sync)
+          // execute post-commit hooks (sync)
           for (const hook of hooks) {
             try {
               await hook()

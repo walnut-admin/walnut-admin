@@ -51,7 +51,7 @@ describe('scanSourceText —— 报位置（行号）', () => {
     expect(finding!.rule).toBe('cloud-access-key')
   })
 
-  // ⚠️ 每条规则**只报第一处**（见 `scanText` 的注释：门禁只需要红，重复命中会刷屏）。
+  // 每条规则**只报第一处**（见 `scanText` 的注释：门禁只需要红，重复命中会刷屏）。
   // 这条断言把那个行为钉住，免得有人以为"报了 1 处 = 只有 1 处"。
   it('同一文件里同一条规则命中多处时，只报第一处', () => {
     const text = `${fakeAwsAk}\n\n${fakeTencentAk}\n`

@@ -27,7 +27,7 @@ interface ActiveChild {
 /**
  * 当前活跃的子进程（模块级）。
  *
- * ⚠️ 是**集合**不是单槽：早先只记最后一个时，「两个子进程同时在跑」的 `killActiveChild()` 返回值
+ * 是**集合**不是单槽：早先只记最后一个时，「两个子进程同时在跑」的 `killActiveChild()` 返回值
  * 只反映最后一个 ⇒ 那是个**假确认**（另一个还在写盘，调用方却以为收干净了）。
  */
 const active = new Map<ChildProcess, ActiveChild>()

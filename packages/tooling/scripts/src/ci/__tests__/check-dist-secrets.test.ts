@@ -26,7 +26,7 @@ import {
 } from '../check-dist-secrets.ts'
 
 /**
- * ⚠️ **云厂商 AK 的假样本刻意"拼"出来，不要"简化"成字面量。**
+ * **云厂商 AK 的假样本刻意"拼"出来，不要"简化"成字面量。**
  *
  * 2026-09-23 实测踩过：第一版直接写了腾讯云文档里那个样本 SecretId（`AKID` + 32 位），
  * **GitHub 的 push protection 当场把整个 push 拦下**（它认得那是「Tencent Cloud Secret ID」，
@@ -67,7 +67,7 @@ describe('scanText —— 形态规则', () => {
     expect(scanText(fakeRedisUri, 'a.js').map(f => f.rule)).toEqual(['credential-uri'])
     expect(scanText('http://backend:3000/w/v1/', 'a.js')).toEqual([])
     expect(scanText('mongodb://db:27017/x', 'a.js')).toEqual([])
-    // ⚠️ 下面三条对应「短口令 / 纯数字」这条收窄 —— 它们是**量出来的**误报源：
+    // 下面三条对应「短口令 / 纯数字」这条收窄 —— 它们是**量出来的**误报源：
     // 文档里的格式说明 `mongodb://u:p@`、bitnami 本地默认口令 `root:123456@127.0.0.1`。
     expect(scanText('带凭据的 `mongodb://u:p@` 形状', 'a.md')).toEqual([])
     expect(scanText('mongodb://root:123456@127.0.0.1:27017/x', 'a.md')).toEqual([])
@@ -174,7 +174,7 @@ describe('findLeakedValues —— 最硬的那条', () => {
     const [finding] = findLeakedValues(`var x="${secret.value}"`, 'static/js/a.js', [secret])
     expect(finding!.rule).toBe('env-value-leak')
     expect(finding!.detail).toContain('JWT_ACCESS_TOKEN_SECRET')
-    // ⚠️ finding 会进 CI 日志（公开面）—— 值一个字符都不许出现在里面
+    // finding 会进 CI 日志（公开面）—— 值一个字符都不许出现在里面
     expect(finding!.detail).not.toContain('super-secret-token-value')
     expect(JSON.stringify(finding)).not.toContain('super-secret-token-value')
   })

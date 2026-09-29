@@ -10,7 +10,7 @@ import type { Rule } from 'eslint'
  *
  * ## `script-header`：文件头要有注释
  *
- * ⚠️ **它只保证「有一段文件头」，不保证它写得好** —— 本仓 bin 里那段（「由 Node 原生执行 `.ts`…」）
+ * **它只保证「有一段文件头」，不保证它写得好** —— 本仓 bin 里那段（「由 Node 原生执行 `.ts`…」）
  * 是逐字相同的模板，它**能过**这条规则。别把它读成文档质量门禁；它挡的是「新加一个 bin，
  * 一句注释都没有」（2026-09-23 实测：13 个 bin 里有 2 个连模板都没有）。
  *
@@ -39,7 +39,7 @@ interface ExitCodeOptions {
 /**
  * 取数字字面量的值。
  *
- * ⚠️ **必须同时处理一元负号**：`process.exit(-1)` 在 AST 里是 `UnaryExpression(-, Literal(1))`，
+ * **必须同时处理一元负号**：`process.exit(-1)` 在 AST 里是 `UnaryExpression(-, Literal(1))`，
  * 不是 `Literal(-1)` —— 只认 `Literal` 会让 `-1` 这种最典型的坏退出码**静默漏过**
  * （本规则的用例里就有这一条，第一版正是这么挂的）。
  */
@@ -79,7 +79,7 @@ const scriptHeader: Rule.RuleModule = {
         const head = first.range?.[0] ?? -1
         const header = sourceCode.getAllComments().some((comment) => {
           // shebang（`#!/usr/bin/env node`）**不算文件头** —— 它每份都一样，说明不了任何事。
-          // ⚠️ 必须按运行期的 `type === 'Shebang'` 判：ESLint 的**类型定义里没有这一支**
+          // 必须按运行期的 `type === 'Shebang'` 判：ESLint 的**类型定义里没有这一支**
           // （`Comment` 只声明 `Line | Block`），所以这里要显式放宽成 string 再比 ——
           // 直接写 `!== 'Shebang'` 会被 TS 判成「两个类型没有交集」的恒真比较。
           if ((comment.type as string) === 'Shebang')

@@ -70,7 +70,7 @@ export function nextVersion(version: string, bump: Bump): string | null {
  * 会这么写，见 https://pnpm.io/cli/change 「Referencing packages by directory」）；
  * **没有正文**（手写的、只有 frontmatter 的意图）。
  *
- * ⚠️ 「没有正文」这一条是修出来的：早先的正则要求 `---` 之后**要么**是「空行 + 正文」**要么**直接是
+ * 「没有正文」这一条是修出来的：早先的正则要求 `---` 之后**要么**是「空行 + 正文」**要么**直接是
  * 行尾，于是 `---\n<fm>\n---\n`（既有换行、又没有正文）两条都不满足 ⇒ 整个意图返回 null，
  * 而 `readIntents()` 对解析失败的文件是**静默跳过**的 —— 一个手写的无正文意图会无声地不参与
  * 自动档位汇总（用户以为写了，实际没生效）。静默丢信息正是本仓最想避免的形态。
@@ -132,7 +132,7 @@ export function parseFrontmatterLine(line: string): { name: string, prefix: stri
   /**
    * 名字的原样文本（**保留引号**）—— `prefix` 必须用它重建，不能用下面剥过引号的 `name`。
    *
-   * ⚠️ 这条是实测踩出来的：`@` 是 YAML 的保留指示符，**不能作为 plain scalar 的开头**，
+   * 这条是实测踩出来的：`@` 是 YAML 的保留指示符，**不能作为 plain scalar 的开头**，
    * 所以包名必须带引号（`"@walnut/admin": patch`）。早先用剥引号后的名字重建 prefix，
    * 于是 `--bump` 改写会把 `"@walnut/admin": patch` 写成 `@walnut/admin: minor` ——
    * 那不是合法 YAML，pnpm 再也读不了这个意图文件，用户选的档位直接丢失。

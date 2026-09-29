@@ -1,6 +1,7 @@
 import type { OptionsConfig } from '@antfu/eslint-config'
 import antfu from '@antfu/eslint-config'
-// ⚠️ 这个相对导入**刻意不写 `.ts` 扩展名**：`nest.ts` 以类型方式引入本文件，
+import { commentPolicyConfig } from './comment-rules'
+// 这个相对导入**刻意不写 `.ts` 扩展名**：`nest.ts` 以类型方式引入本文件，
 // 于是本文件会进 `apps/server` 的类型程序，而那份 tsconfig（ADR 0012，自包含）没开
 // `allowImportingTsExtensions` —— 带扩展名会让 `@walnut/server` 的 types:check 报 TS5097。
 // 本文件由 jiti 加载（不经 Node 的类型剥离），扩展名推断由它负责。
@@ -47,6 +48,8 @@ export default function baseConfig(options: OptionsConfig = {}): WalnutEslintCon
   },
   // 三个预设共用的一段 —— 为什么单独成文件见 turbo-env-vars.ts 顶部
   turboEnvVarsConfig(),
+  // 注释里不许有 emoji（纯文字）—— 三个预设共用，理由见 comment-rules.ts 顶部
+  commentPolicyConfig(),
   // 脚本入口的两条形态约定（P1-19）：文件头必须有注释、退出码只能是 0/1/2。
   // 只作用于 `bin/*.ts` —— 那才是「脚本入口」；规则自身的取舍见 script-rules.ts 顶部。
   {

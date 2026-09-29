@@ -35,7 +35,7 @@ const read = (rel: string) => readTurboJson(path.join(ROOT, rel))
 const dry = loadTurboDry(ROOT)
 
 /**
- * ⚠️ **三个用例的前提：`apps/admin/env-local/` 存在**（= 那台机器解过密）。
+ * **三个用例的前提：`apps/admin/env-local/` 存在**（= 那台机器解过密）。
  *
  * 这道门禁有三条不变量读的是**解密后的 env**（`VITE_BUILD_OUT_DIR` → 产物目录；`env-local/**`
  * 是否在 inputs 里）；`env-local/` 被 gitignore，**干净检出里根本没有** ⇒ 门禁按"不适用"跳过。
@@ -224,7 +224,7 @@ describe('边界本身（哈希层的不变量回归）', () => {
 /**
  * tags 的三条不变量（P1-17）。
  *
- * ⚠️ 这一段**没法靠改 `dry` 注入**：tags 是 `collectFindings` 从**盘上的 turbo.json** 读的，
+ * 这一段**没法靠改 `dry` 注入**：tags 是 `collectFindings` 从**盘上的 turbo.json** 读的，
  * 不在 dry 里。所以这里搭一个**临时夹具仓库**（`cwd` 指向 tmp），把 `dry` 里的 `directory`
  * 指到夹具包上 —— `packageDirs()` 就是靠 `directory` + `cwd` 还原包目录的。
  */
@@ -299,7 +299,7 @@ describe('tags —— 形态 / 平台一致 / 反向断言', () => {
 
 describe('跨平台：这一段门禁必须能在 CI 的 Linux runner 上跑', () => {
   /**
-   * ⚠️ **必须先剥注释再断言** —— 这是参考仓安全评审里明确记过的一条教训：
+   * **必须先剥注释再断言** —— 这是参考仓安全评审里明确记过的一条教训：
    * 「子串匹配的断言可以被一行注释满足」。第一版这里直接扫源码，结果**被我自己写的
    * 那条「以前是 `execFileSync('cmd', …)`」的说明注释当场判红**（注释里当然有那个子串）。
    * 断言必须落在**代码位置**上，而不是文本里有没有出现过某个词。

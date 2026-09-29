@@ -7,7 +7,7 @@
  * 把 `types/generated/` 移走再直接跑 `vue-tsc`，报的就是同一批名字）。
  * 以前没这个问题，纯粹是因为提交里躺着一份完整的 dts 替它兜着。
  *
- * ⚠️ 所以**凡是会启动 vite 或 vue-tsc 的脚本，都要先有这一步**（pnpm 的 `pre*` 钩子会跑它）；
+ * 所以**凡是会启动 vite 或 vue-tsc 的脚本，都要先有这一步**（pnpm 的 `pre*` 钩子会跑它）；
  * 加新的生成物时加到这个文件里，别各写各的 `pre` 命令。
  */
 import process from 'node:process'

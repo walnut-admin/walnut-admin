@@ -1,6 +1,7 @@
 import type { OptionsConfig } from '@antfu/eslint-config'
 import type { WalnutEslintConfig } from './base.ts'
 import antfu from '@antfu/eslint-config'
+import { commentPolicyConfig } from './comment-rules'
 import { turboEnvVarsConfig } from './turbo-env-vars'
 
 /**
@@ -28,5 +29,7 @@ export default function vueConfig(options: OptionsConfig = {}): WalnutEslintConf
     ...options,
   },
   // 三个预设共用的一段 —— 为什么单独成文件见 turbo-env-vars.ts 顶部
-  turboEnvVarsConfig())
+  turboEnvVarsConfig(),
+  // 注释里不许有 emoji（纯文字）—— 三个预设共用，理由见 comment-rules.ts 顶部
+  commentPolicyConfig())
 }

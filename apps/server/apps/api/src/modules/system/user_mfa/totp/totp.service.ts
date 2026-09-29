@@ -104,7 +104,7 @@ export class SysUserMfaTotpService {
       throw new WalnutAdminExceptionBadRequest()
     }
 
-    // 👇 check if TOTP device already bound
+    // check if TOTP device already bound
     const existingTotp = await this.sysUserMfaModel.findOne({
       userId: new Types.ObjectId(userId),
       type: 'totp',
@@ -115,7 +115,7 @@ export class SysUserMfaTotpService {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.mfa.totp.alreadyBound' })
     }
 
-    // 👇 cache service get TOTP secret
+    // cache service get TOTP secret
     const encryptedSecret = await this.cacheMfaService.getTotpCache(userId, deviceId)
 
     if (isNil(encryptedSecret)) {
@@ -128,7 +128,7 @@ export class SysUserMfaTotpService {
       this.MFA_ENCRYPTION_KEY,
     )
 
-    // 👇 verify TOTP code using v13 async API
+    // verify TOTP code using v13 async API
     const result = await verify({
       strategy: 'totp',
       secret,
@@ -153,10 +153,10 @@ export class SysUserMfaTotpService {
       lastUsedAt: new Date(),
     }], { session: dbSession })
 
-    // 👇 generate backup codes
+    // generate backup codes
     const backupCodes = this.sysUserMfaDeviceHelperService.generateBackupCodes(10)
 
-    // 👇 save backup codes（using hash storage, irreversible）
+    // save backup codes（using hash storage, irreversible）
     await this.sysUserMfaModel.create([{
       userId: new Types.ObjectId(userId),
       type: 'backup_codes',
@@ -195,13 +195,13 @@ export class SysUserMfaTotpService {
       throw new WalnutAdminExceptionDataNotFound()
     }
 
-    // 👇 decrypt TOTP secret using crypto service
+    // decrypt TOTP secret using crypto service
     const secret = this.cryptoService.decrypt(
       totpDevice.totpSecretCiphertext,
       this.MFA_ENCRYPTION_KEY,
     )
 
-    // 👇 verify TOTP code using v13 async API
+    // verify TOTP code using v13 async API
     const result = await verify({
       strategy: 'totp',
       secret,
@@ -214,7 +214,7 @@ export class SysUserMfaTotpService {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.verifyCodeError' })
     }
 
-    // 👇 update last used time
+    // update last used time
     totpDevice.lastUsedAt = new Date()
     await totpDevice.save({ session: dbSession })
 
@@ -226,7 +226,7 @@ export class SysUserMfaTotpService {
    * TODO: use backup code to recover
    */
   async verifyBackupCode(userId: string, code: string) {
-    // 👇 format user input
+    // format user input
     const formattedCode = this.sysUserMfaDeviceHelperService.formatBackupCode(code)
 
     if (!this.sysUserMfaDeviceHelperService.validateBackupCodeFormat(formattedCode)) {
@@ -246,20 +246,20 @@ export class SysUserMfaTotpService {
       throw new WalnutAdminExceptionDataNotFound()
     }
 
-    // 👇 hash user input backup code
+    // hash user input backup code
     const hashedInput = this.cryptoService.hash(formattedCode)
 
-    // 👇 find matching backup code
+    // find matching backup code
     const index = backupDevice.backupCodesCiphertext.indexOf(hashedInput)
 
     if (index === -1) {
       throw new UnauthorizedException('备用码错误或已使用')
     }
 
-    // 👇 remove used backup code
+    // remove used backup code
     backupDevice.backupCodesCiphertext.splice(index, 1)
 
-    // 👇 if all backup codes used, disable device
+    // if all backup codes used, disable device
     if (backupDevice.backupCodesCiphertext.length === 0) {
       backupDevice.status = false
     }

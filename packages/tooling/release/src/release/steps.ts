@@ -36,7 +36,7 @@ interface BatteryStep {
   id: string
   label: string
   argv: string[]
-  /** 非空 = 该条**暂缓**（每次跑都会打 `⏭️` 一行，绝不静默少跑） */
+  /** 非空 = 该条**暂缓**（每次跑都会打 `` 一行，绝不静默少跑） */
   skip?: string
 }
 
@@ -51,7 +51,7 @@ interface BatteryStep {
  * 本地全量 build 是分钟级且需要 `pnpm setup-env` 解密后的 env —— 它拦住的多半是环境没配好，
  * 而不是代码问题。要跑就删掉该行的 `skip` 字段（命令与判据都原样留在表里）。
  *
- * ⚠️ 本表必须**整表被遍历**（`for (const step of RELEASE_BATTERY)`）：把这里改成空数组会让
+ * 本表必须**整表被遍历**（`for (const step of RELEASE_BATTERY)`）：把这里改成空数组会让
  * 「表还在、命令没人跑」当场发生。`__tests__/steps.test.ts` 同时钉住遍历与每条 argv。
  */
 const RELEASE_BATTERY: BatteryStep[] = [
@@ -64,7 +64,7 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'hooks', label: 'git 钩子托管校验（pnpm hooks:check）', argv: ['hooks:check'] },
   { id: 'boundaries', label: '架构边界（turbo boundaries）', argv: ['boundaries'] },
   { id: 'lint', label: 'lint（所有包，不排任何包）', argv: ['exec', 'turbo', 'run', 'lint'] },
-  // ⚠️ `types-root` 必须是**独立一行**、且经根脚本跑（`pnpm types:check:root`）—— 它只是根
+  // `types-root` 必须是**独立一行**、且经根脚本跑（`pnpm types:check:root`）—— 它只是根
   // `package.json` 的脚本，**没有**对应的 turbo 任务，写进 turbo 的 argv 会直接
   // `Could not find task` 退出。
   // （`lint-root` **不走**这条路：根 `turbo.json` 定义了 `//#lint:root`
@@ -159,7 +159,7 @@ async function runReleaseBattery(ui: ReleaseUi, skippedIds: Set<string>): Promis
   const failures: string[] = []
   for (const step of RELEASE_BATTERY) {
     if (step.skip !== undefined) {
-      // 暂缓的条目**响亮跳过**：打一行 ⏭️ + 原因，绝不静默少跑（静默弱化门禁是本仓最想避免的形态）
+      // 暂缓的条目**响亮跳过**：打一行 + 原因，绝不静默少跑（静默弱化门禁是本仓最想避免的形态）
       ui.log(`⏭️ 跳过 ${step.label}：${step.skip}`)
       continue
     }
@@ -301,13 +301,13 @@ export async function stepCommitTagPush(ui: ReleaseUi, newVersion: string, optio
       ui.log('提交版本变更...')
       // `-C REPO_ROOT`：`git add .` 只覆盖 **cwd** 子树，从子目录跑会漏掉版本改动
       await runArgs('git', ['-C', REPO_ROOT, 'add', '-A'], ui.childOptions())
-      // ⚠️ 提交失败**必须当场中断**，绝不能被 catch 吞成「没有需要提交的变更」。
+      // 提交失败**必须当场中断**，绝不能被 catch 吞成「没有需要提交的变更」。
       // 走到这里的前提是工作区非空 ⇒ 确实有东西要提交，所以失败只有一种解释：提交本身被拒
       // （pre-commit 的 lint-staged lint 失败 / 缺 user.email / commit-msg 钩子拒绝）。
       // 吞掉它的后果是：流程照常打 tag、push，**远端得到一个不含版本号的 vX.Y.Z tag**，
       // 而人被告知发版完成 —— 这正是本仓最想避免的「绿着却做错了」形态。
       //
-      // ⚠️ 提交信息必须带 scope：本仓 commitlint 的 `scope-empty: never` 会拒绝 `chore: release …`，
+      // 提交信息必须带 scope：本仓 commitlint 的 `scope-empty: never` 会拒绝 `chore: release …`，
       // 而 `release` 是保留的基础设施 scope（不是包 scope）。
       await runArgs('git', ['-C', REPO_ROOT, 'commit', '-m', `chore(release): v${newVersion}`], ui.childOptions())
     }

@@ -58,7 +58,7 @@ function changelogPackages(): ChangelogPackage[] {
  * 不属于任何包 ⇒ 谁都不会记它们；而本仓的既有口径是「这类改动归主应用」（否则会出现
  * 「发了一版但主页 changelog 是空的」）。这里从 `git ls-files` 现算，不维护手写清单。
  *
- * ⚠️ 两种粒度，别退化成「一律 `<顶层段>/**`」：
+ * 两种粒度，别退化成「一律 `<顶层段>/**`」：
  *   - 顶层段里**没有**包目录（`deploy` / `.github` / `cliff.toml` …）⇒ 整段纳入 `<顶层段>/**`；
  *   - 顶层段里**住着**包目录（`apps` → `apps/admin`、`packages` → `packages/tooling/scripts`）
  *     ⇒ 只能精确到**文件本身**（如 `apps/README.md`）。写成 `apps/**` 会把 `apps/server/**`
@@ -201,7 +201,7 @@ async function renderCliff(args: string[]): Promise<string> {
 /**
  * 渲染「本次发版」的整仓段落（给 `changelog-latest.md` / GitHub Release 正文用）。
  *
- * ⚠️ `expectedVersion` 是**必须**的：渲染跑在打 tag 之前，用 `--unreleased --tag vX.Y.Z`，
+ * `expectedVersion` 是**必须**的：渲染跑在打 tag 之前，用 `--unreleased --tag vX.Y.Z`，
  * 而标题里的版本必须与本次要发的一致 —— 对不上就返回 null，由调用方退回意图摘要。
  */
 export async function renderReleaseNotes(expectedVersion: string): Promise<string | null> {

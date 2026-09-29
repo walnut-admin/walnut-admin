@@ -41,7 +41,7 @@ export const getThemeOverridesCommon = computed(
         // 红绿色盲最安全的是蓝色和橙色/红色
         primary: '#0072B2', // 深蓝 (比 #0066CC 更对比度友好)
         info: '#56B4E9', // 天蓝
-        // ✅ 建议修改：Success 改为蓝绿色或深青色，避开纯绿
+        // 建议修改：Success 改为蓝绿色或深青色，避开纯绿
         success: '#0EA5E9', // 使用 Sky Blue 代替 Green，更安全
         warning: '#D55E00', // 朱红橙 (比 Amber 更可见)
         error: '#CC79A7', // 红紫/洋红 (与橙色对比明显)
@@ -67,7 +67,7 @@ export const getThemeOverridesCommon = computed(
         // 蓝黄盲避开蓝色系，使用红/黑/白
         primary: '#D55E00', // 橙色
         info: '#E69F00', // 黄/琥珀色
-        // ✅ 建议修改：Success 推荐用红色或深灰色
+        // 建议修改：Success 推荐用红色或深灰色
         success: '#DC2626', // 红色
         warning: '#F0E442', // 黄色 (需配黑字)
         error: '#000000', // 纯黑 (最强对比)

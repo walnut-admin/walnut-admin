@@ -201,7 +201,7 @@ export async function runGates(
 ): Promise<GateResult[]> {
   const results = new Map<string, GateResult>()
   let next = 0
-  // ⚠️ Windows 上不能直接 `spawn('pnpm', …)`：PATH 上是 `pnpm.cmd`，而 `shell: false` 下 Node 24
+  // Windows 上不能直接 `spawn('pnpm', …)`：PATH 上是 `pnpm.cmd`，而 `shell: false` 下 Node 24
   // 不再把 `.cmd` 当可执行文件解析 ⇒ ENOENT（实测）。走 lib/pnpm-launcher.ts 找那个真 exe，
   // 它同时保证 argv 不经 cmd.exe（`%VAR%` / `&` 不会被展开）。
   const pnpmBin = getPnpmBin()
@@ -216,7 +216,7 @@ export async function runGates(
       let ok = true
       try {
         await runArgs(pnpmBin, gate.argv, {
-          // ⚠️ cwd 必须是**仓库根**：从子目录跑时 `pnpm <脚本>` 会解析到最近那个包的脚本
+          // cwd 必须是**仓库根**：从子目录跑时 `pnpm <脚本>` 会解析到最近那个包的脚本
           cwd: REPO_ROOT,
           // 并行下不转播子进程输出（多路交织会糊成一片）；收进缓冲，失败时整段回放
           output: { write: text => chunks.push(text) },

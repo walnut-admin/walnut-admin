@@ -41,7 +41,7 @@ describe('topLevelSection', () => {
 
 describe('parseDeclaredCatalog', () => {
   it('剥掉包名两侧的引号', () => {
-    // ⚠️ 这条是实测踩出来的：不剥引号时 243 条里会误报 97 条（catalog 里
+    // 这条是实测踩出来的：不剥引号时 243 条里会误报 97 条（catalog 里
     // `'@scope/name': 1.0.0` 是常见写法，而锁文件那侧本来就不带引号）
     const m = parseDeclaredCatalog('catalog:\n  \'@a/b\': 1.0.0\n  plain: 2.0.0\n')
     expect([...m.entries()]).toEqual([['@a/b', '1.0.0'], ['plain', '2.0.0']])
@@ -148,7 +148,7 @@ describe('collectFindings（比对 HEAD 里那一对）', () => {
   })
 
   it('读不到 HEAD 时按前置条件报错（不是静默通过）', () => {
-    // ⚠️ 必须用**仓库之外**的目录：`git show` 会向上找仓库根，传仓内子目录照样读得到
+    // 必须用**仓库之外**的目录：`git show` 会向上找仓库根，传仓内子目录照样读得到
     // （那是好行为 —— 门禁对 cwd 不敏感）。第一次拿 `apps/docs` 当反例，测试就假失败了。
     expect(collectFindings(tmpdir()).map(f => f.rule)).toContain('precondition')
   })

@@ -2,7 +2,7 @@
  * 机械审计**真实仓库**的 git 钩子配置（`lefthook.yml` + 根 `package.json`）。
  *
  * 为什么这些断言值得存在：钩子安装是**静默失败**的经典形态，而 Windows 上的双引号缺陷是
- * 「带引号的命令会静默丢参、还照样报 ✓」（lefthook 用 `cmd.exe` 拼行、内层引号未转义）。
+ * 「带引号的命令会静默丢参、还照样报」（lefthook 用 `cmd.exe` 拼行、内层引号未转义）。
  */
 
 import { readFileSync } from 'node:fs'

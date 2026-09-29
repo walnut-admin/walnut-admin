@@ -28,7 +28,7 @@ import { workspacePackageNames } from '../lib/workspace.ts'
 
 /**
  * 冻结语料：有意保留当时路径的历史文档，不参与校验。
- * ⚠️ 与 VitePress 的 `ignoreDeadLinks` 白名单是**同一条口径**（见 apps/docs/.vitepress/config/index.ts）。
+ * 与 VitePress 的 `ignoreDeadLinks` 白名单是**同一条口径**（见 apps/docs/.vitepress/config/index.ts）。
  */
 const FROZEN = /(?:^|\/)content\/(?:archive|industry-research)\//
 
@@ -310,7 +310,7 @@ export function pathResolves(ref: string, docFile: string, fsExists: (repoRelati
 /**
  * 这个引用算不算「指向一个真实存在的仓库路径」。
  *
- * ⚠️ **「被 gitignore 的路径」也算** —— 这条是 2026-09-23 补的，起因是一次**本地全绿、CI 全红**：
+ * **「被 gitignore 的路径」也算** —— 这条是 2026-09-23 补的，起因是一次**本地全绿、CI 全红**：
  *
  * `env-local/`、`apps/admin/dist` 这类路径**只在有人的机器上存在**（一个要解密、一个是构建产物），
  * 干净检出里根本没有。于是同一份文档在本机通过、在 CI 上报「引用不存在的路径」——
@@ -320,7 +320,7 @@ export function pathResolves(ref: string, docFile: string, fsExists: (repoRelati
  * 现在：路径不存在但被 gitignore ⇒ 它是**产物 / 运行时文件**，不当作死引用。
  * git 问不到（不在检出内 / 没装 git）时**按"没被忽略"处理**（宁可报出来，不静默放过）。
  *
- * ⚠️ **必须一次性批量问**（`git check-ignore --stdin`），不能每条路径起一个进程：
+ * **必须一次性批量问**（`git check-ignore --stdin`），不能每条路径起一个进程：
  * 第一版就是逐条 spawn，而 `pathResolves` 每条引用要探**三种**形态（原样 / 文档相对 / `apps/server/` 相对），
  * 后两种通常都不存在 ⇒ 一次全仓扫描变成几百次进程启动，实测 **15 秒**（vitest 默认 5s 超时当场红）。
  * 现在整轮只问一次 git。
@@ -342,7 +342,7 @@ export interface CheckOptions {
 /**
  * 收集所有发现（纯函数，便于单测）。
  *
- * ⚠️ **两遍扫描，只为了一次 git 调用**（第一版逐条 spawn 让全仓扫描变成 15 秒）：
+ * **两遍扫描，只为了一次 git 调用**（第一版逐条 spawn 让全仓扫描变成 15 秒）：
  *   1. 第一遍用**纯 `existsSync`** 跑，把「问过但不存在」的路径记进 `misses`；
  *   2. 拿 `misses` 一次性问 git（`check-ignore --stdin`），得到被 gitignore 的集合；
  *   3. 若有命中，用「存在 **或** 被 gitignore」再跑一遍。

@@ -175,7 +175,7 @@ export function checkConfigText(text: string, file: string): Finding[] {
       const parentEffective = effectiveHeaders(block, inherited)
 
       if (child.hasInclude) {
-        // ⚠️ 纯函数不打印：这里只产 finding，由 `main()` 把 `include-unverified` 当**提示**打出来。
+        // 纯函数不打印：这里只产 finding，由 `main()` 把 `include-unverified` 当**提示**打出来。
         // 不要改回 `console.warn` —— 那样用例只能靠 spy 断言。
         findings.push({
           rule: 'include-unverified',

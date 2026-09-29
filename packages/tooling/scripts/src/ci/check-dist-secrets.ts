@@ -9,20 +9,20 @@
  * 间接读到，值就会被打包进去，而**构建、类型检查、lint、测试全都不会响**。
  * 产物侧此前**零门禁**（`@walnut/admin` 的 build 只有 `vite build`）。
  *
- * ## ⚠️ 为什么这里只有 5 条规则 —— 每条都是在**真产物**上试出来的
+ * ## 为什么这里只有 5 条规则 —— 每条都是在**真产物**上试出来的
  *
  * 2026-09-23 在 12.68 MB / 1471 个文件的真实 `apps/admin/dist` 上逐条试过。**被否掉的规则与
  * 被采纳的同样重要**，因为一个开始误报的门禁等于没有门禁：
  *
  * | 候选规则 | 实测结果 | 结论 |
  * |---|---|---|
- * | 裸 `-----BEGIN … PRIVATE KEY-----` | **1 次命中**，是 WebCrypto 导出 PEM 时的**模板常量** | ❌ 否掉，改成"头 + ≥100 字符 base64 正体" |
- * | 「机密词键名 = 值」正则 | **8 次命中全是误报**：演示账号 `password:`2020abcd``、localStorage 键名枚举、`/auth/refresh` 路由、第三方解析器的报错文案 | ❌ 否掉（前端产物里 `xxx:` 后面跟字符串太常见） |
- * | 超长 base64（≥200） | **5 次命中全是内联 data-URI 图片**（`iVBORw0KGgo…`） | ❌ 否掉 |
- * | `AKIA…` / `AKID…` / `SecretId…` | 0 次 | ✅ 采纳 |
- * | 带凭据的 `mongodb://u:p@` / `redis://u:p@` | 0 次 | ✅ 采纳 |
- * | JWT 三段 | 0 次 | ✅ 采纳 |
- * | 产物里出现**后端** env 的机密值 | 0 次（见下） | ✅ 采纳，这是最硬的一条 |
+ * | 裸 `-----BEGIN … PRIVATE KEY-----` | **1 次命中**，是 WebCrypto 导出 PEM 时的**模板常量** | 否掉，改成"头 + ≥100 字符 base64 正体" |
+ * | 「机密词键名 = 值」正则 | **8 次命中全是误报**：演示账号 `password:`2020abcd``、localStorage 键名枚举、`/auth/refresh` 路由、第三方解析器的报错文案 | 否掉（前端产物里 `xxx:` 后面跟字符串太常见） |
+ * | 超长 base64（≥200） | **5 次命中全是内联 data-URI 图片**（`iVBORw0KGgo…`） | 否掉 |
+ * | `AKIA…` / `AKID…` / `SecretId…` | 0 次 | 采纳 |
+ * | 带凭据的 `mongodb://u:p@` / `redis://u:p@` | 0 次 | 采纳 |
+ * | JWT 三段 | 0 次 | 采纳 |
+ * | 产物里出现**后端** env 的机密值 | 0 次（见下） | 采纳，这是最硬的一条 |
  *
  * ## 机密源为什么只取 `apps/server/env-local/`，不取 `apps/admin/env-local/`
  *
@@ -36,7 +36,7 @@
  * `…_REGION` —— 那两个值是**给浏览器用的**（前端直传 OSS），6 条误报全出自它们。
  * **别把这条放宽回去**；要放宽带的是新键名的命名，不是这里的模式。
  *
- * ⚠️ **AK ID 的形状**由 `AKIA…` / `AKID…` 两条形状规则覆盖，不靠键名里的 `_ID`
+ * **AK ID 的形状**由 `AKIA…` / `AKID…` 两条形状规则覆盖，不靠键名里的 `_ID`
  * ——`_ID` 会顺带命中 `VENDOR_KEYS_TX_SMS_SDK_APP_ID` 这类**公开**的 AppID。
  *
  * ## 前置条件与降级（刻意不静默）
@@ -169,7 +169,7 @@ export function lineOf(text: string, index: number): number {
 /**
  * 产物里有没有出现某个机密值。
  *
- * ⚠️ **只报键名与文件，永不回显值** —— 这个函数的输出会进 CI 日志，而 CI 日志是公开面。
+ * **只报键名与文件，永不回显值** —— 这个函数的输出会进 CI 日志，而 CI 日志是公开面。
  * 用例里有一条专门钉这件事。
  */
 export function findLeakedValues(text: string, file: string, secrets: readonly SecretValue[]): Finding[] {

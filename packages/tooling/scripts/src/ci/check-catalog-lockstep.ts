@@ -1,5 +1,5 @@
 /**
- * `pnpm-workspace.yaml` 的 `catalog:` ↔ `pnpm-lock.yaml` 的锁步体检。
+ * `pnpm-workspace.yaml` 的 `catalog:` `pnpm-lock.yaml` 的锁步体检。
  *
  * ## 它防的是哪一种失败
  *
@@ -8,7 +8,7 @@
  * 本地一切正常，CI 却死在 `pnpm install --frozen-lockfile`，而且 pnpm 的报错**不会告诉你是哪一条**
  * （它只说 lockfile 不是最新的）。
  *
- * ## ⚠️ 为什么必须比 **HEAD 里那一对**，而不是工作区
+ * ## 为什么必须比 **HEAD 里那一对**，而不是工作区
  *
  * 这是本门禁最容易做错、也最容易做成「恒关」的地方。实测（2026-09-23）：
  * **pnpm 12 默认会在跑任何脚本之前自动 install**（`verifyDepsBeforeRun` 未设置时的默认行为）。
@@ -16,8 +16,8 @@
  *
  * | 调用路径 | 能看到不一致吗 |
  * |---|---|
- * | `pnpm lint:lockfile`（prepush / CI / 发版电池走的都是这条） | ❌ **看不到** —— pnpm 先把锁文件改对了才轮到门禁 |
- * | `node bin/check-catalog-lockstep.ts`（绕过 pnpm） | ✅ 看得到 |
+ * | `pnpm lint:lockfile`（prepush / CI / 发版电池走的都是这条） | **看不到** —— pnpm 先把锁文件改对了才轮到门禁 |
+ * | `node bin/check-catalog-lockstep.ts`（绕过 pnpm） | 看得到 |
  *
  * 也就是说：只看工作区的话，这段门禁**永远绿**，属于「恒关的门禁 = 没有门禁」。
  * 而 `git show HEAD:…` 拿到的是**即将被 CI 检出的那一对**，与 pnpm 的自动 install 无关
@@ -103,7 +103,7 @@ export function parseDeclaredCatalog(workspaceYaml: string): Map<string, string>
     return out
   for (const l of sec.lines) {
     const kv = splitIndentedKV(l, 2)
-    // ⚠️ 名字必须**剥引号**：catalog 里 `'@scope/name': 1.0.0` 是常见写法。
+    // 名字必须**剥引号**：catalog 里 `'@scope/name': 1.0.0` 是常见写法。
     // 不剥会与锁文件那侧（已剥）对不上 —— 实测 243 条里会误报 97 条。
     if (kv && kv.value !== '')
       out.set(unquote(kv.key), kv.value)

@@ -1,7 +1,7 @@
 /**
  * GitHub REST —— **只读**：查「某个 tag 有没有 Release」。
  *
- * ⚠️ 本模块刻意**不**建、不改 Release。建 Release 是 `.github/workflows/release.yml` 的职责
+ * 本模块刻意**不**建、不改 Release。建 Release 是 `.github/workflows/release.yml` 的职责
  * （tag 推送触发，走 `softprops/action-gh-release`）。本地要的只是一个只读事实，好让
  * `--status` 能说出「标签已发布、Release 还没建」，而不是让发版机握着一个能改远端内容的凭据。
  *

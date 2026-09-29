@@ -1,7 +1,7 @@
 /**
  * 提交 → 包归属，以及 workspace / fixed 组的机械审计。
  *
- * ⚠️ 本模块在本仓的性质与参考仓不同，值得先说清：本仓是**单一 fixed 组**（全部 workspace 包永远同版本），
+ * 本模块在本仓的性质与参考仓不同，值得先说清：本仓是**单一 fixed 组**（全部 workspace 包永远同版本），
  * 所以「归属到哪个包」不再影响版本号 —— 只要产生**一条**意图，整组就会被 bump 到同一个新版本。
  * 因此本模块真正决定的事情只有一件：**这条提交要不要产生意图**（= 要不要发版）。
  * 包名清单仍要写对，因为它进 `pnpm change` 的 argv、并由 `pnpm change check` 核对。
@@ -26,7 +26,7 @@ import { parse as parseYaml } from 'yaml'
 /**
  * commit scope（括号内的名字）→ workspace 包名。与 `@walnut/commitlint-config` 的包名段同口径。
  *
- * ⚠️ **表里每个值都必须是真实存在的 workspace 包** —— 指向一个已删除的包时，scope 兜底会为它写出
+ * **表里每个值都必须是真实存在的 workspace 包** —— 指向一个已删除的包时，scope 兜底会为它写出
  * 一条版本意图（`pnpm change` 的 argv 里出现幽灵包名）。`attribution.test.ts` 用
  * `workspacePackages()` 反过来钉住这条不变量；2026-09-23 就是靠它查出 `'tooling': '@walnut/tooling'`
  * 这条陈尸（`@walnut/tooling` 早已拆成多个包）。
@@ -49,7 +49,7 @@ export const SCOPE_TO_PACKAGE: Record<string, string> = {
   // tooling
   'eslint-config': '@walnut/eslint-config',
   'commitlint-config': '@walnut/commitlint-config',
-  // ⚠️ 这里**刻意没有** `'tooling'` 这一条：`tooling` 是 commitlint 允许的 scope，但仓里没有
+  // 这里**刻意没有** `'tooling'` 这一条：`tooling` 是 commitlint 允许的 scope，但仓里没有
   // 同名包 —— 工具链各包要么有自己的 scope（eslint-config / commitlint-config），要么只按**路径**
   // 归属（tsconfig / vitest-config / scripts / release）。它归入下面的 NON_PACKAGE_SCOPES。
 }

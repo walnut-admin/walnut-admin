@@ -38,7 +38,7 @@ env:
   # staging 落在工作区之外（相对仓库根 → /home/runner/work/walnut-image-staging），
   # 让 268MB / 4 万文件的产物不污染工作树。位置不影响下面的关键约束：
   #
-  # ⚠️ pnpm deploy --prod 会把工作区 node_modules/.modules.yaml 的 devDependencies
+  # pnpm deploy --prod 会把工作区 node_modules/.modules.yaml 的 devDependencies
   #    标记为 false；此后**任何** pnpm 命令都会自动按 prod 重装，把 vite / cross-env
   #    等开发依赖当场删掉（本地实测：deploy 之后跑 pnpm exec 立即触发 prune）。
   #    因此 deploy 必须是本 job 里最后一个 pnpm 命令 —— 后面只剩 rm/cp 与 docker。
@@ -107,7 +107,7 @@ jobs:
 
       # 重活全部在 runner 上完成（pnpm store 由 setup-node 缓存，install 约 30s）：
       # 镜像里不再有 pnpm install / nest build / vite build。
-      # ⚠️ 顺序约束：pnpm deploy --prod 必须是本 job 最后一个 pnpm 命令
+      # 顺序约束：pnpm deploy --prod 必须是本 job 最后一个 pnpm 命令
       # （它会把工作区标记成仅生产依赖，之后的 pnpm 命令会删掉 devDeps，见文件顶部 env 注释）。
       - name: Build server + shared packages
         run: pnpm exec turbo run build --filter=@walnut/server...

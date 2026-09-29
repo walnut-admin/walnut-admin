@@ -51,10 +51,10 @@ export default {
     // 注意：git revert 自动生成的 "Revert ..." 提交不满足格式，需用 --no-verify 或改写为 revert(x): 后提交
     'scope-empty': [2, 'never'],
     // scope 必须是包名或基础设施 scope。
-    // ⚠️ 发版脚本用 `chore(release): vX.Y.Z`：`scope-empty: never` 会拒绝无 scope 的
+    // 发版脚本用 `chore(release): vX.Y.Z`：`scope-empty: never` 会拒绝无 scope 的
     // `chore: release …`，而 release 提交被拒会让 tag 指向一个不含版本号的提交（后果严重）。
     'scope-enum': [2, 'always', SCOPES],
-    // ⚠️ **刻意关掉 `subject-case`**（2026-09-23 裁决）。
+    // **刻意关掉 `subject-case`**（2026-09-23 裁决）。
     //
     // `@commitlint/config-conventional` 默认把它设成 `never` + `[sentence-case, start-case,
     // pascal-case, upper-case]`，而 `sentence-case` 的实现是 `upperFirst(x) === x`

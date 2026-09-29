@@ -148,7 +148,7 @@ export async function generateIntents(ui: ReleaseUi, input: GenerateInput): Prom
       )
     }
 
-    // ⚠️ 必须验「文件真的落盘且含该 hash」：`pnpm change` 可能因 corepack 提示 / 网络静默不动，
+    // 必须验「文件真的落盘且含该 hash」：`pnpm change` 可能因 corepack 提示 / 网络静默不动，
     // 把「尝试写入」误报成「已生成」会让后续的 ledger 对账全错。
     if (!intentFileContainsHash(parsed.hash)) {
       throw new PreconditionError(
@@ -165,7 +165,7 @@ export async function generateIntents(ui: ReleaseUi, input: GenerateInput): Prom
   /**
    * 自动检测档位 = **本次扫描到的档位** 与 **盘上已有意图的档位** 取最高。
    *
-   * ⚠️ 不能只看盘上：`--dry-run` 不写盘 ⇒ `readIntents()` 永远只剩旧意图，于是
+   * 不能只看盘上：`--dry-run` 不写盘 ⇒ `readIntents()` 永远只剩旧意图，于是
    * 「扫出一堆 feat、却报 patch」这种自相矛盾的演练结果（实测踩到，v0.0.2 而列表里全是 minor）。
    * 也不能只看扫描：断点续跑时部分意图已落盘、本次被 `skippedExisting` 跳过，它们的档位不在
    * `bumpsSeen` 里。两个来源取最高才对两边都成立。
@@ -289,7 +289,7 @@ export async function resolveBump(
 /**
  * 把选定的档位写回**所有**意图文件的 frontmatter。
  *
- * ⚠️ 为什么必须逐个改而不是只改一个：`pnpm version -r` 取的是「组内最大 bump」，
+ * 为什么必须逐个改而不是只改一个：`pnpm version -r` 取的是「组内最大 bump」，
  * 漏改任何一条都会让另一个更高的档位重新胜出 —— 用户的选择就会静默失效。
  */
 function applyBumpOverride(ui: ReleaseUi, entries: Intent[], bump: Bump, dryRun: boolean): void {

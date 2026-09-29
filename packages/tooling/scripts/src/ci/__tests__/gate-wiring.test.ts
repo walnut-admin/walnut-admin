@@ -211,9 +211,9 @@ describe('发版电池的引用也必须是真脚本', () => {
 })
 
 /**
- * `walnut-*` bin ↔ 根脚本 的二段跳。
+ * `walnut-*` bin 根脚本 的二段跳。
  *
- * ⚠️ **为什么这是一条测试而不是一段 prepush 门禁**（2026-09-23 分析后下调的定位）：
+ * **为什么这是一条测试而不是一段 prepush 门禁**（2026-09-23 分析后下调的定位）：
  * 这个二段跳的失效模式**不是静默的** —— 根脚本指向不存在的 bin 时，`pnpm <script>` 会当场
  * `command not found` 非 0 退出；而「prepush 表里的 `argv[0]` 能不能落到真实根脚本」由
  * `prepush.test.ts` 已经在守。真正剩下的只有「孤儿 bin（声明了没有任何地方用）」这一项，
@@ -270,7 +270,7 @@ describe('bin ↔ 根脚本的二段跳', () => {
  * 「11 段门禁写成一条 300+ 字符 `a && b && …`」的历史（第 16 批拆掉的），
  * 那正是这条要防的形态。判据是机械的：出现 `&&` / `||` / `;` / `|` 就红。
  *
- * ⚠️ 这里**不查**「每个值必须指向 bin / turbo / eslint」那种白名单 —— 本仓根脚本合法地
+ * 这里**不查**「每个值必须指向 bin / turbo / eslint」那种白名单 —— 本仓根脚本合法地
  * 直接调 `eslint` / `tsc` / `rimraf` / `syncpack` / `docker` / `cross-env` 等一大票工具，
  * 白名单会变成一份**要不停维护的名单**（参考仓自己也只对 `lint:*` 那一段收紧了）。
  * 只对 `lint:*` 收了紧：那一段是本仓的门禁面，形态必须收敛。
@@ -320,7 +320,7 @@ describe('根脚本的形态（P1-18）', () => {
 
   it('形态断言确实覆盖到了东西（防止 package.json 读错后变成空转）', () => {
     expect(Object.keys(scripts).length).toBeGreaterThan(30)
-    // ⚠️ 这里原本写的是 `toHaveLength(13)` —— 加一条 `lint:*`（`lint:secrets`）就当场红。
+    // 这里原本写的是 `toHaveLength(13)` —— 加一条 `lint:*`（`lint:secrets`）就当场红。
     // 正是本仓那条纪律说的「别写会腐烂的计数」：这条断言要的是**扫描面非空**，
     // 不是"恰好 13 条"，所以改用下界表达。
     expect(Object.keys(scripts).filter(n => n.startsWith('lint')).length).toBeGreaterThan(5)

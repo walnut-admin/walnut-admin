@@ -54,7 +54,7 @@ export interface TurboDry {
 
 /** 跑一次 turbo 的干跑，拿解析后的真源 */
 export function loadTurboDry(cwd = REPO_ROOT): TurboDry {
-  // ⚠️ 起 pnpm 只能走 `getPnpmBin()`：Windows 上 `pnpm` 是 `pnpm.cmd`，
+  // 起 pnpm 只能走 `getPnpmBin()`：Windows 上 `pnpm` 是 `pnpm.cmd`，
   // `execFileSync('pnpm', …)` 会 ENOENT，而 `shell: true` 又会重新解析 argv。
   // 也别用 `cmd /c … 2>nul` 那类写法 —— 它只在 Windows 上成立（CI 的 runner 没有 `cmd`），
   // 丢弃 stderr 用 stdio 就行。
@@ -65,7 +65,7 @@ export function loadTurboDry(cwd = REPO_ROOT): TurboDry {
     stdio: ['ignore', 'pipe', 'ignore'],
   })
   const dry = JSON.parse(out) as TurboDry
-  // ⚠️ 两个都必须处理，否则门禁会**静默变绿**：
+  // 两个都必须处理，否则门禁会**静默变绿**：
   // ① turbo 把**自己的 cwd** 当成仓库根（它向上找 `turbo.json`，而在子目录里就能找到那个包自己的
   //    一份）—— 在 `packages/tooling/scripts` 下跑，`--dry=json` 只会报 1 个包 12 个 task，
   //    所有断言照样「全部成立」。这是本仓反复强调的「扫描面为空 ⇒ 假绿」的又一例。
@@ -218,7 +218,7 @@ export function nestOutDir(appDir: string, env: 'prod' | 'stage' | 'dev'): strin
   if (!tsConfigPath)
     return null
   const abs = path.resolve(appDir, tsConfigPath)
-  // ⚠️ 读文件的回调必须**显式 utf8**：直接传 `readFileSync` 会拿到 Buffer，
+  // 读文件的回调必须**显式 utf8**：直接传 `readFileSync` 会拿到 Buffer，
   // TypeScript 解析不出配置（实测：那样两个环境都解析成 null）。
   const { config, error } = readConfigFile(abs, p => readFileSync(p, 'utf8'))
   if (error || !config)
@@ -427,7 +427,7 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
       continue
     const prod = nestOutDir(appAbs, 'prod')
     const stage = nestOutDir(appAbs, 'stage')
-    // ⚠️ 解析不出来**不能当成「不适用」跳过** —— 2026-09-23 自己踩过：`appDir` 少取了一级
+    // 解析不出来**不能当成「不适用」跳过** —— 2026-09-23 自己踩过：`appDir` 少取了一级
     // 目录，两个都解析成 null，于是这条检查静默跳过、门禁照样全绿。
     if (prod === null || stage === null) {
       findings.push({ rule: 'stage-outdir-separate', detail: `${appDir} 有 infra/nest/prod.json，但解析不出 ${prod === null ? 'prod' : 'stage'} 的产物目录（看 infra/nest/*.json 的 tsConfigPath → tsconfig 的 outDir）` })

@@ -49,7 +49,7 @@ export interface DocBudget {
  * 数字贴着现状留约 12% 余量（都落在上限的 88% 上下）；`pnpm lint:doc-budget` 会在用量掉到
  * 一半以下时要求你收紧它。
  *
- * ⚠️ 表里的数字是 **`readFileSync(utf8).length`（UTF-16 码元数）**，不是 PowerShell
+ * 表里的数字是 **`readFileSync(utf8).length`（UTF-16 码元数）**，不是 PowerShell
  * `Get-Content -Raw` 的读数 —— 两者在本仓对不上（实测 `AGENTS.md`：Node 7521 / PS 8181，
  * 且行数 125 vs 67）。门禁用前者，所以校准也以它为准。
  *

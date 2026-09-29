@@ -16,7 +16,7 @@ const path = useProxy ? ws[1] : ws[3]
 
 let socket: Socket | null = null
 
-// ✅ 事件处理器映射表
+// 事件处理器映射表
 const eventHandlers: Map<string, (payload: any) => void> = new Map()
 
 /**
@@ -70,7 +70,7 @@ export function setupSocket() {
     console.error('[Socket] Error:', err)
   })
 
-  // ✅ 注册 FORCE_QUIT 事件
+  // 注册 FORCE_QUIT 事件
   socket.on(AppSocketEvents.FORCE_QUIT, async (payload: { strategy: string }) => {
     console.log('[Socket] FORCE_QUIT received:', payload.strategy)
 
@@ -91,7 +91,7 @@ export function setupSocket() {
       await handler()
   })
 
-  // ✅ 重新注册所有已注册的事件
+  // 重新注册所有已注册的事件
   eventHandlers.forEach((handler, event) => {
     socket?.on(event, handler)
     console.info(`[Socket] Re-registered event: ${event}`)

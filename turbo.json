@@ -63,7 +63,7 @@
     "packages/tooling/tsconfig/*.json",
     "packages/tooling/vitest-config/*.ts"
   ],
-  // ⚠️ `NODE_ENV` **刻意不放在 `globalEnv`**：它必须**可见**（Turbo 的严格模式会剥离未声明的
+  // `NODE_ENV` **刻意不放在 `globalEnv`**：它必须**可见**（Turbo 的严格模式会剥离未声明的
   // 变量，而它不在内置放行名单里），但**不该进哈希** —— 没有任何 task 的**产物**取决于外部传进来
   // 的这个值（server 的 build 由脚本自己 `cross-env` 设定；Vite / Vitest / VitePress 各自强制
   // 自己的值）。放进 `globalEnv` 的代价是**整轮缓存作废**。
@@ -72,7 +72,7 @@
   "globalPassThroughEnv": [
     "CI",
     "NODE_ENV",
-    // ⚠️ 这三个是 `eslint-plugin-turbo` 的 `no-undeclared-env-vars` 抓出来的真缺口（都在 `@walnut/scripts`）：
+    // 这三个是 `eslint-plugin-turbo` 的 `no-undeclared-env-vars` 抓出来的真缺口（都在 `@walnut/scripts`）：
     //   · `npm_execpath` —— `lib/pnpm-launcher.ts` 靠它定位 pnpm 的真 exe。
     //     被严格模式剥掉 ⇒ 退化成「找不到 pnpm」，且报错信息只会说找不到命令。
     //   · `PATH` —— 同上那条查找路径的后备。
@@ -96,7 +96,7 @@
     // 根级文件的 lint。**没有对应的 workspace 包**（`//#` = 根任务），所以它是一个独立任务，
     // 不会跟着任何包的 `lint` 跑；用 `turbo run lint:root` 调它才会命中缓存。
     //
-    // ⚠️ `inputs` 与根脚本里那三个 glob **逐字一致**（`eslint *.ts *.json *.yaml`）——
+    // `inputs` 与根脚本里那三个 glob **逐字一致**（`eslint *.ts *.json *.yaml`）——
     // 这是本任务唯一需要记住的规矩，也是两个坑的分界线：
     //   · 写成 `$TURBO_ROOT$/**` 再逐条排除 ⇒ 那些「随运行变化」的目录（`.turbo`、各包的
     //     `dist`、`node_modules`）漏排一个，缓存就**永不命中**（每次 push 都真跑）；
@@ -133,7 +133,7 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".vitepress/dist/**"],
-      // ⚠️ `env-local/**` 必须显式写：Vite 的 `envDir` 就是它（apps/admin/build/constant.ts），
+      // `env-local/**` 必须显式写：Vite 的 `envDir` 就是它（apps/admin/build/constant.ts），
       // 但它**被 gitignore**，所以 `$TURBO_DEFAULT$` 看不见它 —— 也就不进哈希。
       // 后果：改一份解密后的 .env（或重跑 `pnpm setup-env` 换了值）→ 构建**不失效** →
       // 打出来的包内联的是旧 `VITE_*`。2026-09-23 实测：显式 glob **能**盖过 gitignore
@@ -151,7 +151,7 @@
     },
     "build:stage": {
       "dependsOn": ["^build:stage"],
-      // ⚠️ 两个 staging 产物目录都要在这儿：admin 的由 `VITE_BUILD_OUT_DIR` 决定、实际值是
+      // 两个 staging 产物目录都要在这儿：admin 的由 `VITE_BUILD_OUT_DIR` 决定、实际值是
       // `dist-staging`；server 的由 `infra/nest/stage.json` 的 `compilerOptions.outDir` 决定、
       // 实际值是 `dist-stage`（里面再套一层 `apps/api/src`，那是 Nest monorepo 的 root 决定的）。
       // 漏掉任何一个的后果都是**静默**的 —— 2026-09-23 实测见文件头 ②。

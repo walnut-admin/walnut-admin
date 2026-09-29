@@ -82,7 +82,7 @@ export class SysUserOAuthModel extends WalnutAdminCommonBasicModel {
 export const SysUserOauthSchema
   = SchemaFactory.createForClass(SysUserOAuthModel)
 
-// 👇 复合唯一索引：同一个外部账号只能绑定一个用�?
+// 复合唯一索引：同一个外部账号只能绑定一个用�?
 SysUserOauthSchema.index({ provider: 1, providerId: 1 }, { unique: true })
-// 👇 查询用户的所有OAuth绑定
+// 查询用户的所有OAuth绑定
 SysUserOauthSchema.index({ userId: 1, enabled: 1 })
