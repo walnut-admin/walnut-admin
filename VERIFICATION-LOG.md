@@ -333,7 +333,7 @@ echarts 的组件本来就只有两处用到它（`on-demand.ts` 赋值、`index
 
 ---
 
-## V13 · **生产构建产物根本跑不起来**（cropperjs × tslib 的 interop；既有问题，未修）
+## V13 · **生产构建产物根本跑不起来**（`resolve.conditions` 抹掉了 Vite 默认条件；**已修**）
 
 **症状**：把 `dist` 用静态服务器伺服、真实 Chrome 打开，页面**执行到一半抛未捕获异常**、停在
 splash：
@@ -343,34 +343,78 @@ Uncaught TypeError: Cannot destructure property '__extends' of 'e(...).default' 
   source: http://127.0.0.1:4173/static/js/vendor-033kZhHc.js
 ```
 
-**根因（已定位到行）**：provider 分块里紧跟在 **cropperjs 2.1.1** 那段类代码之后是
+**先更正我自己写错的一版归因**：本条目最初说「cropperjs × tslib」—— **错的**。当时只看到压缩产物里
+那段类代码紧挨着解构语句，而压缩后**模块边界看不见**，把相邻当成了同源。实据是：
 
-```js
-var {__extends: ER, __assign: _Ft, __rest: vFt, …} = <X>.default
-```
+1. `pnpm --filter @walnut/admin why tslib` —— admin 到 tslib 的路径只有 **2.3.0**（echarts / zrender）
+   与 **2.8.1**（构建期工具）；**cropperjs 根本不依赖 tslib**（它只依赖 `@cropper/elements` / `@cropper/utils`）。
+2. 产物里搜 `tslib` 只剩 **1 处** —— 是 **UMD 工厂**（`define('tslib', ['exports'], …)`）。
+   也就是说某种依赖被解析到了 **CJS/UMD 入口**，而不是 ESM 入口。
+3. tslib 2.3.0 的 `exports` 是 `{ module: ./tslib.es6.js, import: ./modules/index.js, default: ./tslib.js }`
+   —— **它本来有 ESM 分支**；只有把 `module` / `import` 条件一起抹掉，才会落到 `default`（UMD）。
 
-即 `import * as tslib from 'tslib'` 被 rolldown 降级成了「从 `.default` 解构」，而 `<X>.default`
-是 `undefined`。本仓装了**四个** tslib（`1.13.0` / `1.14.1` / `2.3.0` / `2.8.1`），而 `1.13.0` 的
-`package.json` **没有 `exports` 映射**（只有 `main: tslib.js` + `module: tslib.es6.js`）——
-典型的 CJS/ESM 双入口 interop 误判。
+**根因**：`apps/admin/vite.config.ts` 写的是 `resolve.conditions: ['source']`，而该选项是**替换**而不是
+追加（Vite 8 的默认是 `['module', 'browser', 'development|production']`）⇒ **每个 `exports` 映射里没有
+`source` 分支的依赖都会落到 `default`**。tslib 落到 UMD，那份 UMD 自带 `__esModule` 标记，打包器据此
+**不再合成 `default`**，消费方却仍在 `.default` 上解构 `__extends` ⇒ 打开即崩。
+
+`source` 的收益也远小于代价：全仓只有 `@walnut/contract` 与 `@walnut/utils` 声明了它；
+`ui` / `client` / `http` / `types` 用的是**纯字符串 exports**（本来就直吃源码、不需要条件）。
 
 **判据（含对照，排除「本次改动引入」）**：`git stash` 回 HEAD 源码、删掉孤立的未跟踪文件后
 **重新构建**（`✓ built in 5m 7s`，exit 0），同一台机器同一个 Chrome 打开 → **一模一样的报错**
-（`vendor-DDDO6QgV.js`）。⇒ 与 V4/V12 无关，是既有缺陷。
+（`vendor-DDDO6QgV.js`）⇒ 既有缺陷，与 V4/V12 无关。
 
-**影响（为什么它是 P0 而不是噪声）**：**构建成功 ≠ 跑得起来** —— CI 的 admin 那一步只有
-`pnpm build`（加 dist 密钥扫描），**没有运行期冒烟**，所以这道红灯一直没人看见；
-而它意味着「按文档构建出来的产物打不开」。本地 `pnpm dev` 正常，因为 dev 不做打包、没有这层 interop。
+**本次处置（已修）**：把默认条件写回来，`source` 仍排最前：
 
-**本次处置**：**不改**（不在 V4/V12 范围内，且每次试修都要一次 3–5 分钟的完整构建来验证）。
-定位与对照都已做完，直接可接手。
+```ts
+conditions: ['source', 'module', 'browser', 'development|production'],
+```
 
-**建议方案方向**（按成本排序）：① `resolve.alias` 把 `tslib` 指到单一的 ESM 入口
-（`tslib/tslib.es6.js`），把四个版本收敛成一个 —— 最省事、最可能一击命中；② 或给
-`pnpm-workspace.yaml` 加 `overrides`/catalog 固定 tslib 版本，让依赖树里只剩一份；
-③ 或调 `build.rolldownOptions.output.interop`（`auto` / `compat` / `esModule`）—— 属 rolldown 语义，
-需要先小范围验证；④ 无论怎么修，**建议给 CI 补一步「构建产物冒烟」**（静态伺服 dist + 真实浏览器
-断言 `#app` 已挂载）：这类「构建绿、打开死」的错误只有运行期看得见。
+- 重新构建后产物里 `tslib` 出现次数 **1 → 0**（UMD 工厂彻底消失），坏形态不再存在；
+- 静态伺服 + CDP 实测：`splash: false`（**已挂载**）、无 `__extends` 异常、登录页正常渲染；
+- dev 侧同样实测（`https://127.0.0.1:3100` + 后端）：`splash: false` + 按 V4 的设计逐条报降级步骤
+  ⇒ 没带坏日常开发路径。
+
+**两条给后来人的结论**：
+
+1. **构建绿 ≠ 跑得起来**：CI 的 admin 那步只有 `pnpm build`（加 dist 密钥扫描），**没有运行期冒烟**，
+   所以这道红灯一直没人看见；而它意味着「按文档构建出来的产物打不开」。建议补一步「静态伺服 dist +
+   断言 `#app` 已挂载」—— 这类错误只有运行期看得见。
+2. `minify: false` 在生产构建里**不生效**（实测产物大小与压缩后一致、崩溃依旧）—— 排障别指望它，
+   证据要从「依赖解析到哪个入口」上取（`why` + 产物里搜入口特征串）。
+
+---
+
+## V15 · 注释里的 emoji 会变成乱码（**已加门禁**）
+
+**症状**：用户看到「注释写成乱码」：同一份文件里**中文正常、emoji 坏掉**（`` 显示成 `鈿狅笍`、
+`` 显示成 `鉁?`）。
+
+**根因（两个叠加，都不是文件坏了 —— 全仓扫过：0 处真乱码）**：
+
+1. **我用 PowerShell `Set-Content -Encoding utf8` 写过仓里的文件** —— 那条路径会加 **BOM**（`vite.config.ts`
+   因此带上 BOM，`unicode-bom` 直接让构建红），并在非 UTF-8 代码页下读写时弄坏非 BMP 字符。
+2. emoji 本身在非 UTF-8 代码页下**必然**乱码：`` 是 `U+26A0 U+FE0F`（基础字符 + **变体选择符**），
+   `` 之类在基本平面之外（代理对）—— 中文有稳定双字节表示，emoji 没有，所以「中文没坏、emoji 坏了」。
+
+**本次处置（已加门禁）**：本地规则 `walnut-comment/no-emoji`
+（`packages/tooling/eslint-config/comment-rules.ts`），三个预设共用（与 `turbo-env-vars` 同一模式）：
+
+- **只查注释，不查字符串**（刻意收窄）：CLI 输出图标、用例里对文档的逐字断言都不属注释；文档站正文是
+  markdown，本仓 eslint 刻意不 lint。
+- 判定用 `\p{Extended_Pictographic}` + 变体选择符 / 零宽连接符，**刻意不含排版符号**（`→` `⇒` `≤`）——
+  全仓注释大量在用，误报会让规则变噪声。
+- **可自动修复**（删 emoji 并吃掉相邻一个空格），所以存量一条命令清干净。
+- 存量：`pnpm lint:fix` + `pnpm lint:root:fix` 清掉注释里 **140 处**；eslint 覆盖面之外的文本文件
+  （workflow `.yml` / `.gitignore` / `cliff.toml` / nginx `.conf` / `lefthook.yml`）另清 **20 处** `#` 注释。
+
+**已知空白（要不要补门禁另议）**：那 20 处所在的文件**没有 eslint 守**（根级 `lint:root` 只扫
+`*.ts *.json *.yaml`），所以这类文件的注释 emoji 目前**没有机械判据**。补法：一个扫「所有被跟踪文本
+文件」注释的小门禁（按扩展名分派 `#` / `//` / `/* */` 注释形态）。
+
+**顺带一条纪律**：仓里的文件**只用编辑工具写**，不要用 shell 重定向 / `Set-Content` —— 本次的 BOM 与
+「emoji 坏、中文不坏」都源自那一类写入。
 
 ---
 
@@ -406,7 +450,9 @@ var {__extends: ER, __assign: _Ft, __rest: vFt, …} = <X>.default
 | V10 lint-staged 大提交必挂 | **已修**（`--max-arg-length=4000` + 用例钉住） |
 | V11 新增 bin 不链接 | **已定性**（`pnpm install --force` 一次） |
 | V12 echarts 双身份挡全局关 `skipLibCheck` | **已修**（删掉 `window.echarts` 隐式全局，改直接 import；echarts 那道墙消失，剩下的是依赖自身 13 条） |
-| V13 生产产物跑不起来（cropperjs × tslib） | **已定位 + 对照，未修**（P0，独立一批；建议顺手给 CI 补「产物冒烟」） |
-| V14 prepush 不跑各包 lint | **新发现，待定**（`tsconfig.dts.json` 的键序问题就是这样漏过 18/18 全绿、只在 CI 的 Lint 那步会红；要不要把 `turbo lint` 加进 prepush 是取舍：它是最慢的一段） |
+| V13 生产产物跑不起来 | **已修**（根因是 `resolve.conditions: ['source']` **替换**掉了 Vite 默认条件 ⇒ 依赖落到 CJS/UMD 入口；把默认条件写回来即可。产物里 UMD 工厂 1 → 0、CDP 实测已挂载、dev 侧同样正常） |
+| V14 prepush 不跑各包 lint | **已修**（prepush 表补 `lint` 段 = `turbo run lint`，与发版电池对齐；`prepush.test.ts` 整表断言同步） |
+| V15 注释里的 emoji 变乱码 | **已加门禁**（本地规则 `walnut-comment/no-emoji`，可自动修复；存量清 140 + 20 处。已知空白：eslint 覆盖面外的 `.yml` / `.gitignore` / `.toml` 注释暂无机械判据） |
 
-**仍然打开的**：V4b（seed，数据源不在仓里）、V13（生产产物 P0）、V14（prepush 覆盖面取舍）。
+**仍然打开的**：V4b（seed，数据源不在仓里）、V15 的空白（eslint 覆盖面之外的文本文件注释 emoji）；
+另外 **CI 缺一步「构建产物冒烟」**（V13 建议，见该条末段）—— 这三条都属于「需要单独裁定」的量级。
