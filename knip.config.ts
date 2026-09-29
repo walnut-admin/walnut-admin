@@ -20,9 +20,10 @@ const config: KnipConfig = {
   // ============================================================
   // Workspace 包入口
   //
-  // 注意：Vue3 项目用了 unplugin-auto-import + unplugin-vue-components
-  // 组件和 composable 是自动注册的，knip 追踪不到这些隐式依赖。
+  // 注意：Vue3 项目用了 unplugin-vue-components
+  // 组件是自动注册的，knip 追踪不到这些隐式依赖。
   // 因此 apps/admin 的 components/ 排除在 unused files 检测之外。
+  // （`unplugin-auto-import` 已于 2026-09-29 移除，隐式全局那一条不再成立。）
   // ============================================================
   workspaces: {
     // --- 前端 Vue3 应用 ---
@@ -39,8 +40,13 @@ const config: KnipConfig = {
       ignore: [
         // 构建辅助脚本
         'build/**',
-        // 以下目录的文件通过 auto-import / Pinia 动态注册 / barrel 聚合引用，
+        // 以下目录的文件通过组件自动注册 / Pinia 动态注册 / barrel 聚合引用，
         // knip 追踪不到这些隐式 import 链 → 不应报告为 unused
+        //
+        // TODO: 这份清单是**移除 auto-import（2026-09-29）之前**按「自动导入」的理由列的；
+        // 当时那些文件里确实有隐式全局。现在理由是「Pinia / barrel」，而 knip 本仓有意维持
+        // 红色、没有门禁看着它 ⇒ 没人验证过收紧之后是否还有真实命中。要收紧就先跑 `pnpm knip`
+        // 看这批目录里到底还剩什么，别直接删。
         'src/components/**',
         'src/composables/**',
         'src/hooks/**',
@@ -147,7 +153,6 @@ const config: KnipConfig = {
 
     // 类型声明 & 生成
     '**/*.d.ts',
-    '**/auto-imports.d.ts',
     '**/components.d.ts',
 
     // 环境 & 部署
@@ -186,7 +191,7 @@ const config: KnipConfig = {
     '@nestjs/swagger',
     '@compodoc/compodoc',
 
-    // --- Admin: 通过 vue-codemirror / Pinia / auto-import 等间接引用 ---
+    // --- Admin: 通过 vue-codemirror / Pinia 等间接引用 ---
     'codemirror',
     '@codemirror/autocomplete',
     '@codemirror/commands',
@@ -233,7 +238,6 @@ const config: KnipConfig = {
     'vite-plugin-vue-devtools',
     'vite-bundle-analyzer',
     '@sentry/vite-plugin',
-    'unplugin-auto-import',
     'unplugin-vue-components',
 
     // --- Admin 构建辅助 ---

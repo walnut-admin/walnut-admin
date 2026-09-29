@@ -57,7 +57,7 @@ export const DOC_BUDGETS: readonly DocBudget[] = [
   {
     file: 'AGENTS.md',
     maxChars: 8700,
-    why: '**每次会话都进上下文**的常驻规则。当前 7644（88%）。它是「只留纪律 + 指针」的那一份，细节都应该在文档站里；再涨就该往下挪。',
+    why: '**每次会话都进上下文**的常驻规则。当前 7665（88%）。它是「只留纪律 + 指针」的那一份，细节都应该在文档站里；再涨就该往下挪。',
   },
   {
     file: 'CLAUDE.md',
@@ -71,8 +71,8 @@ export const DOC_BUDGETS: readonly DocBudget[] = [
   },
   {
     file: 'apps/admin/AGENTS.md',
-    maxChars: 1950,
-    why: 'admin 的包级常驻指引（别名、auto-import 的克制、组件与 store 约定）。当前 1735（89%）。',
+    maxChars: 2500,
+    why: 'admin 的包级常驻指引（别名、禁止隐式全局、组件与 store 约定、三个生成物）。当前 2195（88%）。它在 2026-09-29 移除 auto-import 时涨过一轮（多了「不许隐式全局」与「组件自动注册没有类型安全网」两条），上限从 1950 跟着调到 2500。',
   },
   {
     file: 'apps/docs/AGENTS.md',
