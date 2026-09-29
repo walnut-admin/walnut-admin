@@ -56,6 +56,7 @@
     "prepush": "walnut-prepush",
     "clean": "turbo clean",
     "clean:all": "rimraf node_modules apps/*/node_modules packages/*/node_modules packages/*/*/node_modules build/node_modules",
+    "db:seed": "walnut-db-seed",
     "setup-env": "walnut-setup-env decrypt",
     "encrypt-env": "walnut-setup-env encrypt",
     "knip": "cross-env NODE_OPTIONS=--max-old-space-size=8192 knip",

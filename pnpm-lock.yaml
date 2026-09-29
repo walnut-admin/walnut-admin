@@ -632,6 +632,9 @@ catalogs:
     mockjs:
       specifier: 1.1.0
       version: 1.1.0
+    mongodb:
+      specifier: 7.1.1
+      version: 7.1.1
     mongoose:
       specifier: 9.3.3
       version: 9.3.3
@@ -2009,6 +2012,9 @@ importers:
       '@dotenvx/dotenvx':
         specifier: 'catalog:'
         version: 2.19.0
+      mongodb:
+        specifier: 'catalog:'
+        version: 7.1.1(socks@2.8.9)
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
