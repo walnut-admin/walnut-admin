@@ -216,6 +216,10 @@
   dir: packages/tooling/scripts
   intents:
     - neat-ducks-change
+"@walnut/scripts@0.1.2":
+  dir: packages/tooling/scripts
+  intents:
+    - good-deers-judge
 "@walnut/server@0.1.0":
   dir: apps/server
   intents:
