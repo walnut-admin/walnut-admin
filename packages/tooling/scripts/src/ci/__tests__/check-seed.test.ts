@@ -128,6 +128,16 @@ describe('collectFindings —— 反例（每条判据都要能红）', () => {
     expect(details(root)).toContain('解析失败')
   })
 
+  it('未脱敏的个人数据（与 `db:export --anonymize` 同一套规则自检）', () => {
+    const root = makeRepo({
+      ...validCollections(),
+      sys_device: [{ _id: 'd1', deviceId: 'fp_9f2c41ab77de5510', ip: '203.0.113.7' }],
+    })
+    const found = details(root)
+    expect(found).toContain('未脱敏的个人数据：deviceId=')
+    expect(found).toContain('未脱敏的个人数据：ip=')
+  })
+
   it('体积预算：单文件超限（该考虑当发版资产发）', () => {
     // 1.1MB 的假数据 —— 只为越过 FILE_BUDGET_BYTES（1MB）
     const big = Array.from({ length: 4000 }, (_, i) => ({ _id: `x${i}`, padding: 'a'.repeat(280) }))

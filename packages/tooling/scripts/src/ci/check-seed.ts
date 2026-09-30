@@ -21,6 +21,7 @@ import type { SeedPolicy } from '../db/policy.ts'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import process from 'node:process'
+import { findUnmaskedPersonal } from '../db/anonymize.ts'
 import { parseCollectionFile } from '../db/ejson.ts'
 import { applyPolicy, SEED_POLICY } from '../db/policy.ts'
 import { ViolationError } from '../lib/errors.ts'
@@ -106,6 +107,11 @@ export function collectFindings(repoRoot: string, seedDir = 'apps/server/db/seed
       if (text.includes(`"${key}"`))
         add(rel, `出现凭据形状的字段 \`${key}\` —— 这类数据（密钥/凭证/MFA 密文）不能进公开仓`)
     }
+
+    // 未脱敏的个人数据：用**与 `db:export --anonymize` 同一套规则**自检（`db/anonymize.ts`）——
+    // 于是"有人把带真实个人数据的集合放进仓"与"字段改名绕过脱敏规则"都会在这里被点名到字段路径。
+    for (const hit of docs.flatMap(doc => findUnmaskedPersonal(doc)).slice(0, 5))
+      add(rel, `未脱敏的个人数据：${hit}（判据见 db/anonymize.ts；这类数据不该进仓）`)
 
     // 裁剪必须已经生效：拿策略再跑一遍，结果必须与文件内容一致（否则说明有人导了未裁剪的原始数据）
     const policy = SEED_POLICY[file.replace(/\.json$/, '')] as SeedPolicy | undefined

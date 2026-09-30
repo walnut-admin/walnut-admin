@@ -57,6 +57,8 @@ export interface SeedOptions {
   outDir: string
   /** 导出侧的行政区划另存路径（`db:export --areas`） */
   areas?: string
+  /** 导出时脱敏（`db:export --anonymize`；给「线上 → 开发」这条通道用） */
+  anonymize: boolean
   /** 给哪个账号建口令凭证（`db:seed --admin <userName>`） */
   admin?: string
   /** 该账号的口令（与 `--admin` 配对；也可用环境变量 SEED_ADMIN_PASSWORD） */
@@ -134,10 +136,10 @@ export function resolveEnvFile(repoRoot: string, envFileOverride?: string): stri
  * `db:export` 不认 `--dry-run`/`--with-areas`。静默忽略的代价是"以为导出了、其实没导"。
  */
 export function parseArgs(argv: readonly string[], mode: CommandMode = 'seed'): SeedOptions {
-  const opts: SeedOptions = { seedDir: SEED_DIR, envFile: '', dryRun: false, skipAppKeys: false, ifMissing: false, outDir: SEED_DIR }
+  const opts: SeedOptions = { seedDir: SEED_DIR, envFile: '', dryRun: false, skipAppKeys: false, ifMissing: false, anonymize: false, outDir: SEED_DIR }
   const allowed: Record<CommandMode, string> = {
     seed: '--dry-run / --only / --uri / --db / --env-file / --seed-dir / --with-areas / --skip-app-keys / --if-missing / --admin / --password',
-    export: '--only / --uri / --db / --env-file / --seed-dir / --out / --areas',
+    export: '--only / --uri / --db / --env-file / --seed-dir / --out / --areas / --anonymize',
   }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
@@ -182,6 +184,11 @@ export function parseArgs(argv: readonly string[], mode: CommandMode = 'seed'): 
         if (mode !== 'seed')
           throw new PreconditionError(`db:export 不支持 ${arg}`)
         opts.password = next()
+        break
+      case '--anonymize':
+        if (mode !== 'export')
+          throw new PreconditionError(`db:seed 不支持 ${arg}（播种不做脱敏）`)
+        opts.anonymize = true
         break
       case '--areas':
         if (mode !== 'export')
