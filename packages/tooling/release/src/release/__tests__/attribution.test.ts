@@ -13,15 +13,16 @@ import {
   attributeCommit,
   buildAttributionContext,
   describeAttributionSkip,
+  INFRA_BUCKET,
   SCOPE_TO_PACKAGE,
   workspacePackages,
 } from '../attribution.ts'
 
-/** 造一条最小可用的提交（本模块只读 `scope`，其余字段与归属无关） */
-function commit(scope: string | null): ParsedCommit {
+/** 造一条最小可用的提交（本模块只读 `scope`；`type` 只在"类型本身该 skip"那类用例里用得上） */
+function commit(scope: string | null, type = 'fix'): ParsedCommit {
   return {
     hash: 'deadbee',
-    type: 'fix',
+    type,
     scope,
     breaking: false,
     summary: 'x',
@@ -77,13 +78,13 @@ describe('attributeCommit —— 路径优先、scope 兜底、否则不发版',
     expect(attributeCommit(commit('contract'), ['turbo.json'], context)).toEqual(['@walnut/contract'])
   })
 
-  it('基础设施 scope 不产生意图', () => {
+  it('基础设施 scope 归到 `infra` 桶（2026-09-30 起：基建也是交付物，见 INFRA_BUCKET 顶部）', () => {
     for (const scope of ['docker', 'deploy', 'pnpm', 'release'])
-      expect(attributeCommit(commit(scope), ['turbo.json'], context)).toBeNull()
+      expect(attributeCommit(commit(scope), ['turbo.json'], context)).toEqual([INFRA_BUCKET])
   })
 
-  it('scope=tooling 且没有路径命中时不产生意图（本该如此：没动任何包）', () => {
-    expect(attributeCommit(commit('tooling'), ['turbo.json'], context)).toBeNull()
+  it('scope=tooling 且没有路径命中时也归 `infra` 桶（它确实改了仓库级文件）', () => {
+    expect(attributeCommit(commit('tooling'), ['turbo.json'], context)).toEqual([INFRA_BUCKET])
   })
 
   it('scope=tooling 但改了工具链包时，仍然按**路径**归属', () => {
@@ -91,31 +92,30 @@ describe('attributeCommit —— 路径优先、scope 兜底、否则不发版',
       .toEqual(['@walnut/scripts'])
   })
 
-  it('未在册的 scope 不产生意图', () => {
-    expect(attributeCommit(commit('nope'), ['turbo.json'], context)).toBeNull()
+  it('未在册的 scope 只要改了文件也归 `infra` 桶（静默丢弃会让"修了却发不出去"）', () => {
+    expect(attributeCommit(commit('nope'), ['turbo.json'], context)).toEqual([INFRA_BUCKET])
   })
 
-  it('没有 scope 且没有路径命中时不产生意图', () => {
-    expect(attributeCommit(commit(null), ['turbo.json'], context)).toBeNull()
+  it('没有 scope 但改了文件同样归 `infra` 桶', () => {
+    expect(attributeCommit(commit(null), ['turbo.json'], context)).toEqual([INFRA_BUCKET])
+  })
+
+  it('**一个文件都没改**才是真的不产生意图（空提交）', () => {
+    expect(attributeCommit(commit('release'), [], context)).toBeNull()
+    expect(attributeCommit(commit(null), [], context)).toBeNull()
   })
 })
 
 describe('describeAttributionSkip —— 日志里要能看懂为什么没意图', () => {
   it('空改动', () => {
-    expect(describeAttributionSkip(commit('contract'), [])).toBe('空改动')
+    expect(describeAttributionSkip(commit('contract'), [])).toBe('空改动（没有改任何文件）')
   })
 
-  it('scope=tooling 有专门的说法（不能报成「未在册的 scope」）', () => {
-    const msg = describeAttributionSkip(commit('tooling'), ['turbo.json'])
-    expect(msg).toContain('tooling')
-    expect(msg).not.toContain('未在册')
+  it('类型本身是 skip 的（docs / chore / …）说清是类型挡的，而不是路径', () => {
+    expect(describeAttributionSkip(commit('release', 'chore'), ['turbo.json'])).toContain('类型 chore')
   })
 
-  it('基础设施 scope 如实报出', () => {
-    expect(describeAttributionSkip(commit('deploy'), ['turbo.json'])).toBe('基础设施 scope（deploy）')
-  })
-
-  it('未在册的 scope 如实报出', () => {
-    expect(describeAttributionSkip(commit('nope'), ['turbo.json'])).toContain('未在册的 scope（nope）')
+  it('仍未归因时，指出它本该落到 infra 桶（说明这是不该发生的情况）', () => {
+    expect(describeAttributionSkip(commit('nope', 'fix'), ['turbo.json'])).toContain(INFRA_BUCKET)
   })
 })

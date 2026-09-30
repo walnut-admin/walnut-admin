@@ -22,6 +22,7 @@ import { PreconditionError } from '@walnut/scripts/lib/errors'
 import { lsFilesWithUntracked } from '@walnut/scripts/lib/git'
 import { REPO_ROOT } from '@walnut/scripts/lib/repo-root'
 import { parse as parseYaml } from 'yaml'
+import { BUMP_MAP } from './commit-intent.ts'
 
 /**
  * commit scope（括号内的名字）→ workspace 包名。与 `@walnut/commitlint-config` 的包名段同口径。
@@ -209,6 +210,25 @@ export interface AttributionContext {
   dirIndex: WorkspacePackage[]
 }
 
+/**
+ * 基建归属桶：**只动仓库级 / 基础设施文件**的提交归到这里。
+ *
+ * ## 为什么不再是"不产生意图"
+ *
+ * 原先 `INFRA_SCOPES` 与"只动仓库级文件"一律返回 `null`（刻意不归因），理由是"基建改动不带动产品
+ * 版本号"。但 2026-09-30 实测撞到了它的反面：一次 `fix(release)` 只改了
+ * `.github/workflows/release.yml` + `docker-bake.hcl` + `deploy/README.md`（修的是**发版构建失败**
+ * 本身），于是它既不进 changelog、也不产生版本升级 ⇒ **修复合不进去**，"下次发版自动带上"成了死循环。
+ *
+ * 现在的口径：基建也是交付物，按**同样的 type 规则**参与版本升级（`fix` → patch），并在 changelog 里
+ * 以包的形态出现（桶名 `infra`，人读时就是「基建」那一类）。刻意不带产品包名的前缀 —— 它不属于任何
+ * 产品包，写成一个包名会在"按包分组"的地方撒谎。
+ *
+ * 仍然不产生意图的只剩两种：**没有改任何文件**（空提交）、以及**类型本身是 skip**（docs / chore /
+ * style / test / build / ci —— 在 `commit-intent.ts` 的 `BUMP_MAP` 里，走不到这里）。
+ */
+export const INFRA_BUCKET = 'infra'
+
 export function buildAttributionContext(packages: WorkspacePackage[] = workspacePackages()): AttributionContext {
   return { dirIndex: packages }
 }
@@ -242,28 +262,27 @@ export function attributeCommit(
 
   // ② scope 兜底（仅当路径一个包都没命中）
   const scope = parsed.scope
-  if (scope === null)
-    return null
-  if (NON_PACKAGE_SCOPES.includes(scope))
-    return null
-  const scoped = SCOPE_TO_PACKAGE[scope]
-  return scoped ? [scoped] : null
+  if (scope !== null && !NON_PACKAGE_SCOPES.includes(scope)) {
+    const scoped = SCOPE_TO_PACKAGE[scope]
+    if (scoped)
+      return [scoped]
+  }
 
-  // ③ 其余一律不产生意图：未在册的 scope 与「只动仓库级文件」的提交不带动产品版本号。
-  //    凡真改了某个包的文件，① 已经命中了 —— 这不是「变更丢失」。
+  // ③ 基建桶：改了文件但不在任何包目录下（`.github/**`、`deploy/**`、根配置等）
+  //    —— 见 `INFRA_BUCKET` 顶部那段：静默丢弃会让"修了却发不出去"。
+  if (files.length > 0)
+    return [INFRA_BUCKET]
+
+  return null
 }
 
 /** 诊断用：这条提交被谁挡住了（`--status` 与日志里解释「为什么没有意图」） */
 export function describeAttributionSkip(parsed: ParsedCommit, files: string[]): string {
   if (files.length === 0)
-    return '空改动'
-  if (parsed.scope === null)
-    return '无 scope 且改动不在任何包目录下'
-  if (INFRA_SCOPES.includes(parsed.scope))
-    return `基础设施 scope（${parsed.scope}）`
-  if (parsed.scope === 'tooling')
-    return 'scope tooling 但改动不在任何包目录下（工具链改动按路径归属，无路径命中即不发版）'
-  if (!SCOPE_TO_PACKAGE[parsed.scope])
-    return `未在册的 scope（${parsed.scope}）且改动不在任何包目录下`
+    return '空改动（没有改任何文件）'
+  if (parsed.type !== null && BUMP_MAP[parsed.type] === 'skip')
+    return `类型 ${parsed.type} 按约定不进 changelog / 不升级版本（见 commit-intent.ts 的 BUMP_MAP）`
+  if (parsed.scope !== null && !SCOPE_TO_PACKAGE[parsed.scope] && !NON_PACKAGE_SCOPES.includes(parsed.scope))
+    return `未在册的 scope（${parsed.scope}）—— 但它只改了基建文件，本应归到 ${INFRA_BUCKET} 桶`
   return '无归属'
 }

@@ -83,11 +83,16 @@ feat(deploy): 部署后验证           ← 基础设施 scope
 
 1. **路径优先**：提交改动的文件落在哪个包目录下（最长前缀）；一个提交可命中多个包。
 2. **scope 兜底**：路径一个包都没命中时，用 commit scope 查表。
-3. **否则不产生意图**：基础设施 scope（`docker` / `deploy` / `pnpm` / `release`）、未在册的 scope、
-   以及只动仓库级文件（根配置、`.github/`、`deploy/`、文档站配置…）的提交。
+3. **基建桶（`infra`）**：改了文件、但不在任何包目录下（根配置、`.github/`、`deploy/`、`docker-bake.hcl`
+   这类）—— 归到 `infra` 桶，**按 type 正常参与版本升级**（`fix` → patch），并在 changelog 里出现。
 
-> 第 3 条是刻意设计，不是「变更丢失」：凡真改了某个包的文件，第 1 条就会命中。
-> 基础设施改动**不**带动产品版本号。
+> 第 3 条在 2026-09-30 改过一次（原口径是"基础设施改动不带动产品版本号"）。改的原因是一次实测：
+> 一个 `fix(release)` 只改了 `.github/workflows/release.yml` + `docker-bake.hcl` + `deploy/README.md`
+> （修的正是**发版构建失败**本身），按旧口径它既不进 changelog 也不升级版本 ⇒ **修复合不进去**，
+> "下次发版自动带上"成了死循环。基建也是交付物，静默丢弃比"多一个 patch"贵得多。
+>
+> 真正不产生意图的只剩两种：**一个文件都没改**（空提交），以及 **type 本身是 skip**
+> （`docs` / `chore` / `style` / `test` / `build` / `ci`）—— 后者在 `commit-intent.ts` 的 `BUMP_MAP` 里。
 
 ### bump 映射
 
