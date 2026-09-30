@@ -83,10 +83,17 @@ pnpm seed:pack --areas-from-db  # 打成发版资产（挂到 GitHub Release 上
 
 ### 通道 2：线上 → 开发（排障、复现）—— 单向 + **必须脱敏**
 
-- 工具就是 `mongodump` 或本仓的 `db:export`；导入前**必须过一遍脱敏**（邮箱、手机、设备指纹、IP 与
-  地理位置历史、MFA 密文都属个人数据）。
-- 脱敏规则与导出脚本放**同一个仓库**（本仓 `packages/tooling/scripts/src/db/policy.ts` 就是这套规则的
-  落点：它现在负责"哪些账号进仓"，掩码规则也加在这里），受门禁保护 —— 不靠人记。
+```bash
+# 从线上拉一份快照到本地（脱敏是有损的，所以必须换一个目录，别覆盖仓内 seed）
+pnpm db:export --anonymize --out tmp/prod-snapshot
+```
+
+- 工具就是 `mongodump` 或本仓的 `db:export --anonymize`；导入前**必须过一遍脱敏**（邮箱、手机、
+  设备指纹、IP 与地理位置历史、MFA 密文都属个人数据）。
+- 脱敏规则在 `packages/tooling/scripts/src/db/anonymize.ts`：按**键名**判定（不按集合路径 ——
+  路径写法等于把 schema 抄一遍，字段一改规则就静默失效），掩码保留形状（邮箱 `a***@example.com`、
+  手机 `138****1111`、IP `203.0.*.*`、密文 `<redacted:32>`、坐标降到城市级）。
+- 同一套规则也挂在 `pnpm lint:seed` 上：仓内 seed 里出现未脱敏的个人数据会被点名到字段路径。
 - 反向（开发 → 线上）**不做**：把开发库的数据直接写进线上，ObjectId 冲突事小，同文档互相覆盖与
   "删除算谁的"事大。
 
