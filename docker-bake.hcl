@@ -72,18 +72,24 @@ target "nginx" {
 }
 
 # 上下文 = 本机/runner 侧 `pnpm deploy --legacy --filter=@walnut/server --prod` 的产物
+#
+# `dockerfile` 在 bake 里是相对 **context** 解析的（不像 `docker build -f` 那样相对 cwd）——
+# 所以 staging 步骤会把 `apps/server/Dockerfile` 拷到 context 根，这里按根引用。
+# 写成 `apps/server/Dockerfile` 会让 bake 去 context 里找 `apps/server/`（staged 树里只有
+# `apps/api`）⇒ 报 "failed to read dockerfile"（2026-09-30 v0.1.0 首次发版实测踩到）。
 target "backend" {
   context    = SERVER_CONTEXT
-  dockerfile = "apps/server/Dockerfile"
+  dockerfile = "Dockerfile"
   tags       = ["${REGISTRY}/${NS}/backend:${TAG}"]
   cache-from = ["type=gha,scope=backend"]
   cache-to   = ["type=gha,mode=max,scope=backend,ignore-error=true"]
 }
 
-# 上下文 = 本机/runner 侧 Vite 产物 + 站点配置（<stage>/frontend/{html,frontend-server.conf}）
+# 上下文 = 本机/runner 侧 Vite 产物 + 站点配置（<stage>/frontend/{html,frontend-server.conf,Dockerfile}）
+# `dockerfile` 同理按 context 根引用（staging 步骤把 apps/admin/Dockerfile 拷了过来）
 target "frontend" {
   context    = FRONTEND_CONTEXT
-  dockerfile = "apps/admin/Dockerfile"
+  dockerfile = "Dockerfile"
   tags       = ["${REGISTRY}/${NS}/frontend:${TAG}"]
   args = {
     NGINX_BASE = "${REGISTRY}/${NS}/nginx:${TAG}"

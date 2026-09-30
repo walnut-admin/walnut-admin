@@ -182,17 +182,27 @@ docker compose pull && docker compose up -d --wait
 # 1) 后端：构建 + 抽取生产依赖（产出 build/image/server）
 pnpm exec turbo run build --filter=@walnut/server...
 pnpm deploy --legacy --filter=@walnut/server --prod build/image/server
+# Dockerfile 必须落在 **context 根**：`docker buildx bake` 里 `dockerfile` 相对 context 解析
+# （`docker build -f` 才是相对 cwd）—— 少了这行，`pnpm images:*` 会报 "failed to read dockerfile"
+cp apps/server/Dockerfile build/image/server/Dockerfile
 
 # 2) 前端：Vite 产物 + 站点配置（产出 build/image/frontend）
 pnpm exec turbo run build --filter=@walnut/admin
 mkdir -p build/image/frontend/html
 cp -a apps/admin/dist/. build/image/frontend/html/
 cp deploy/nginx/frontend-server.conf build/image/frontend/
+cp apps/admin/Dockerfile build/image/frontend/Dockerfile   # 同上
 
 # 3) 构建镜像（backend + frontend 并行；nginx 需要先有基础镜像）
 docker build -f deploy/nginx/Dockerfile -t walnut-admin/nginx-brotli:local deploy/nginx
 docker build --build-arg NGINX_BASE=walnut-admin/nginx-brotli:local -f apps/admin/Dockerfile build/image/frontend
 docker build -f apps/server/Dockerfile build/image/server
+```
+
+对照与自查（不需要真的构建，`--print` 会把解析后的 context / dockerfile 打出来）：
+
+```bash
+pnpm images:print   # 三行里 backend/frontend 的 dockerfile 应当都是 "Dockerfile"
 ```
 
 或直接用 bake（`docker-bake.hcl`，与 CI 同一份定义）：

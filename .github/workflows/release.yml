@@ -124,6 +124,11 @@ jobs:
           # pnpm deploy 会把 apps/server/env-local（dotenvx 解密出的明文密钥）一起拷进产物，
           # 旧流程把它 COPY 进了镜像。这里先剔除，Dockerfile 里还有一层兜底。
           rm -rf "$IMAGE_STAGE/server/env-local" "$IMAGE_STAGE/server/env-encrypted"
+          # Dockerfile 必须落在 **context 根**：`docker buildx bake` 里 `dockerfile` 是相对
+          # context 解析的（不像 `docker build -f` 那样相对 cwd）—— 少了这一行，bake 会报
+          # "failed to read dockerfile: …/walnut-image-staging/server: not found"（2026-09-30
+          # v0.1.0 首次发版实测踩到）。
+          cp apps/server/Dockerfile "$IMAGE_STAGE/server/Dockerfile"
           du -sh "$IMAGE_STAGE/server"
 
       - name: Stage frontend runtime
@@ -132,6 +137,8 @@ jobs:
           mkdir -p "$IMAGE_STAGE/frontend/html"
           cp -a apps/admin/dist/. "$IMAGE_STAGE/frontend/html/"
           cp deploy/nginx/frontend-server.conf "$IMAGE_STAGE/frontend/"
+          # 同上：Dockerfile 落在 context 根
+          cp apps/admin/Dockerfile "$IMAGE_STAGE/frontend/Dockerfile"
           du -sh "$IMAGE_STAGE/frontend/html"
 
       - uses: docker/setup-buildx-action@v3
