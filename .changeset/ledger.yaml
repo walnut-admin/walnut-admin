@@ -235,6 +235,10 @@
   intents:
     - afraid-squids-repair
     - polite-houses-sip
+"@walnut/scripts@0.1.6":
+  dir: packages/tooling/scripts
+  intents:
+    - young-tables-sell
 "@walnut/server@0.1.0":
   dir: apps/server
   intents:
