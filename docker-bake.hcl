@@ -84,20 +84,22 @@ target "nginx" {
 
 # 上下文 = 本机/runner 侧 `pnpm deploy --legacy --filter=@walnut/server --prod` 的产物
 #
-# `dockerfile` 在 bake 里是相对 **context** 解析的（不像 `docker build -f` 那样相对 cwd）——
-# 所以 staging 步骤会把 `apps/server/Dockerfile` 拷到 context 根，这里按根引用。
-# 写成 `apps/server/Dockerfile` 会让 bake 去 context 里找 `apps/server/`（staged 树里只有
-# `apps/api`）⇒ 报 "failed to read dockerfile"（2026-09-30 v0.1.0 首次发版实测踩到）。
+# `dockerfile` 默认相对 **context 根**（staging 步骤会把 apps/server/Dockerfile 拷进去）；
+# CI 用绝对路径覆盖（见 release.yml 的 SERVER_DOCKERFILE）。
+#
+# `cache-to` 刻意**不写 `mode=max`**（2026-09-30 改）：本镜像是单 stage 薄镜像，`min` 已经覆盖
+# 全部有效层；而 `mode=max` 会把每个 stage 的缓存全量导出，冷缓存下是最常见的"构建卡几十分钟"来源
+# （v0.1.2 实测：这一步跑了 45 分钟仍没结束，被人工取消）。
 target "backend" {
   context    = SERVER_CONTEXT
   dockerfile = SERVER_DOCKERFILE
   tags       = ["${REGISTRY}/${NS}/backend:${TAG}"]
   cache-from = ["type=gha,scope=backend"]
-  cache-to   = ["type=gha,mode=max,scope=backend,ignore-error=true"]
+  cache-to   = ["type=gha,scope=backend,ignore-error=true"]
 }
 
 # 上下文 = 本机/runner 侧 Vite 产物 + 站点配置（<stage>/frontend/{html,frontend-server.conf,Dockerfile}）
-# `dockerfile` 同理按 context 根引用（staging 步骤把 apps/admin/Dockerfile 拷了过来）
+# `dockerfile` 同理（CI 用绝对路径覆盖）
 target "frontend" {
   context    = FRONTEND_CONTEXT
   dockerfile = FRONTEND_DOCKERFILE
@@ -106,5 +108,5 @@ target "frontend" {
     NGINX_BASE = "${REGISTRY}/${NS}/nginx:${TAG}"
   }
   cache-from = ["type=gha,scope=frontend"]
-  cache-to   = ["type=gha,mode=max,scope=frontend,ignore-error=true"]
+  cache-to   = ["type=gha,scope=frontend,ignore-error=true"]
 }
