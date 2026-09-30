@@ -29,6 +29,25 @@
 `pnpm install --force`（**加 bin、加 workspace 依赖之后都算**）。
 判据：`Test-Path node_modules/.bin/<bin 名>`，或直接 `pnpm exec <bin 名> --help`。
 
+### 新增一道门禁 = **五处**接线（2026-09-30 实测漏过三处）
+
+加一个门禁 bin 不是"写完那个文件"就完了 —— 仓库有三条机械判据盯着"门禁必须真的被跑到"，漏一处就红：
+
+| 面 | 在哪 | 漏了会怎样 |
+|---|---|---|
+| 门禁本体 + bin 登记 | `src/ci/check-*.ts` + `bin/*.ts` + 本包 `package.json` 的 `bin` 映射 | `pnpm <脚本>` 报 command not found |
+| 根脚本 | 仓库根 `package.json` 的 `lint:*` | 同上 |
+| 推送前门禁表 | `src/ci/prepush.ts` 的段 | `prepush.test.ts` 的整表快照红 |
+| 发版电池 | `packages/tooling/release/src/release/steps.ts` | `gate-wiring.test.ts`「发版电池是 prepush 的超集」红 |
+| CI 触发面 | `.github/workflows/*.yml` 里真跑一步 | `gate-wiring.test.ts`「没有『只有本地守』的门禁」红 |
+| 文档 | `apps/docs/.../monorepo/release.md` 的电池表 | `steps.test.ts`「电池表与 RELEASE_BATTERY 逐字对账」红 |
+
+**这五条判据本身就是那道闸**：漏了不用等人发现，`pnpm test` 直接点名 ✓。另外两条来自同一轮的教训：
+
+- **`actionlint` 与 shell 门禁互补**：它用 Go 的 YAML 解析器，比 `yaml`（npm）宽松 —— 2026-09-30 我把
+  `run: |` 与下一行拼成一行，**`actionlint` 判绿**而 shell 门禁报出精确行列号。两个都要留。
+- **别用 `pwsh`/`Set-Content` 改仓库里的中文文本**：编码与 BOM 会毁掉注释（本仓实测多次）；用编辑工具。
+
 ## 对外接口：只有 `lib/*`
 
 ```jsonc
