@@ -248,36 +248,41 @@ jobs:
             test -n "$CID" || { echo "ERROR: 找不到 prod-mongodb-primary 容器"; exit 1; }
             docker cp seed-staging/seed/. "$CID":/tmp/seed-ref
 
-            # 容器内执行：凭据取自容器自身的环境变量（Bitnami 注入），不回显、不进命令行
-            in_mongo() {
-              docker compose exec -T prod-mongodb-primary sh -c "
-                mongosh --quiet \
-                  --username \"\$MONGODB_ROOT_USER\" --password \"\$MONGODB_ROOT_PASSWORD\" \
-                  --authenticationDatabase admin '$DB_NAME' --eval \"$1\"
-              "
-            }
+            # 循环体**整段推进容器里执行**：宿主侧只负责把库名当参数传进去。
+            #
+            # 为什么必须这样（2026-09-30 线上实测失败）：原来的写法是宿主 `sh` 里再套
+            # `docker compose exec … sh -c "… \"\$MONGODB_ROOT_USER\" … --eval \"$1\""` ——
+            # 三层引号（宿主 → exec → 容器 sh）叠在一起，手工在服务器上跑没事、放进脚本必炸，
+            # 而且报错文本被 `| tail -2` 吃掉，只看到"这一步红了"看不出哪一行。
+            # 现在用**带引号的 heredoc**（`<<'INNER'` 不做变量展开 ⇒ 容器里原样执行），
+            # 库名经 `sh -s "$DB_NAME"` 以 `$1` 传入；容器里直接读它自己的 env 取凭据。
+            echo "--- phase: 逐集合注入（空则插、非空则跳过）"
+            docker compose exec -T prod-mongodb-primary sh -s "$DB_NAME" <<'INNER'
+            set -e
+            DB="$1"
+            URI_ARGS="--username $MONGODB_ROOT_USER --password $MONGODB_ROOT_PASSWORD --authenticationDatabase admin"
 
-            echo "=== 逐集合注入（空则插、非空则跳过）==="
-            for f in seed-staging/seed/*.json; do
+            for f in /tmp/seed-ref/*.json; do
+              [ -e "$f" ] || continue
               col=$(basename "$f" .json)
-              existing=$(in_mongo "db.getCollection('$col').countDocuments()" | tr -d '[:space:]')
-              if [ "${existing:-0}" != "0" ]; then
-                echo "  skip   $col（库里已有 ${existing} 条：不覆盖运维数据）"
+              existing=$(mongosh --quiet $URI_ARGS "$DB" --eval "db.getCollection('$col').countDocuments()" | tr -d '[:space:]')
+              case "$existing" in
+                ''|*[!0-9]*) echo "  warn   $col（取条数失败，按跳过处理：宁可不导也不覆盖）"; continue ;;
+              esac
+              if [ "$existing" != "0" ]; then
+                echo "  skip   $col（库里已有 $existing 条：不覆盖运维数据）"
                 continue
               fi
-              docker compose exec -T prod-mongodb-primary sh -c "
-                mongoimport \
-                  --username \"\$MONGODB_ROOT_USER\" --password \"\$MONGODB_ROOT_PASSWORD\" \
-                  --authenticationDatabase admin \
-                  --db '$DB_NAME' --collection '$col' \
-                  --file '/tmp/seed-ref/$(basename "$f")' \
-                  --jsonArray --mode=insert 2>&1 | tail -2
-              "
+              echo "  import $col"
+              mongoimport $URI_ARGS --db "$DB" --collection "$col" \
+                --file "$f" --jsonArray --mode=insert
             done
 
-            echo "=== 注入后条数（这就是可复核的证据）==="
-            in_mongo 'db.getCollectionNames().sort().forEach(c => print("  " + c.padEnd(18) + db.getCollection(c).countDocuments()))'
+            echo "--- phase: 注入后条数（可复核的证据）"
+            mongosh --quiet $URI_ARGS "$DB" --eval 'db.getCollectionNames().sort().forEach(c => print("  " + c.padEnd(18) + db.getCollection(c).countDocuments()))'
+            INNER
 
+            echo "--- phase: 清理"
             rm -rf seed-staging seed-asset
             echo "参考数据注入完成：空集合已补齐，非空集合一个文档都没动"
 
