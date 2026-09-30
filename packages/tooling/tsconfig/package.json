@@ -1,7 +1,7 @@
 {
   "name": "@walnut/tsconfig",
   "type": "module",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "private": true,
   "description": "共享 TypeScript 预设：base（环境无关）/ ts（Node · 纯逻辑 · 工具链）/ vue（浏览器 + Vue）。各包 `extends: \"@walnut/tsconfig/<preset>.json\"`，不再从仓库根相对路径继承。",
   "license": "MIT",

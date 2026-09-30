@@ -1,6 +1,6 @@
 {
   "name": "@walnut/server",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "private": true,
   "description": "An admin template, using `vue3`,`ts`,`vite`,`naive-ui`. Continuously updating...",
   "author": {

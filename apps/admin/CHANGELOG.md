@@ -1,5 +1,11 @@
 # @walnut/admin
 
+## 0.1.13
+
+### 修复
+
+- [`49e8fb3`](https://github.com/walnut-admin/walnut-admin/commit/49e8fb3d2908542f3b476704e759609dfc45d06e) **deploy** runner 侧探测源站四项判定，失败原因自动进注解
+
 ## 0.1.12
 
 ### 修复
