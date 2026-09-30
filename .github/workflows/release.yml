@@ -91,7 +91,14 @@ jobs:
   images:
     name: Build & push images
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 90 分钟（原 45）：bake 那一步的耗时**波动很大** —— 2026-09-30 实测两次同 tag 重跑，
+    # v0.1.5 整轮 34 分钟（bake 跑完），v0.1.6 的 bake 跑了 45 分钟仍没结束 ⇒ 45 分钟的上限
+    # 把它**取消**掉了（现象是"挂起"，实际是作业超时）。慢但能跑完的构建不该被砍掉。
+    #
+    # 波动来源（尚未治理）：构建上下文是 `pnpm deploy` 的 staging 产物（约 268MB / 4 万文件），
+    # 经 `source: .` 传给 BuildKit 容器，外加 GHA 缓存的冷热差异。治本要么瘦身上下文、
+    # 要么换更省传输的形式 —— 那需要先量，别凭猜改。
+    timeout-minutes: 90
     env:
       DOTENVX_KEYS: ${{ secrets.ENV_KEYS }}
     steps:
