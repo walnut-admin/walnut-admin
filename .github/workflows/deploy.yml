@@ -433,6 +433,41 @@ jobs:
       # 部署后验证放在**最后**：它要观察 2 分钟（镜像 tag / 后端启动标记 / 无致命错误 / 无 5xx /
       # 公网 200），而首次部署到空库时后端会在注入参考数据之前先崩一轮 —— 排在注入之前必然假红
       # （2026-09-30 实测）。顺序：up -d（不等）→ 注入数据 → 等健康 → 再跑这条持续观察。
+      # 诊断：在 **runner 侧**直接探测源站（`--resolve` 指到服务器 IP，绕开 CDN），把 post-verify
+      # 判的四项值打出来。
+      #
+      # 为什么需要它（2026-09-30 连吃三次"假设驱动修复"的教训）：post-verify 跑在服务器上，
+      # 它的输出我**读不到** —— 步骤日志要鉴权，而 ssh-action 远端的 `::error::` **不会**变成注解
+      # （实测过）。但 runner 侧**失败步骤的输出尾部会自动成为注解**（bake 的报错、TS1434 都是
+      # 这样读到的）⇒ 这里刻意在任一项不满足时 exit 1 并打全四项值，失败原因就自己浮出来了。
+      - name: Diagnose origin (runner side)
+        env:
+          SERVER_HOST: ${{ secrets.PROD_SERVER_HOST }}
+        run: |
+          set -uo pipefail
+          FRONT=www.walnut-admin.com
+          API=api.walnut-admin.com
+          PROBE=/w/v1/static/images/demo.png
+          code() { curl -sk -o /dev/null -w '%{http_code}' --resolve "$1:443:$SERVER_HOST" "https://$1$2" -m 12 || true; }
+          FC="$(code "$FRONT" /)"
+          AC="$(code "$API" "$PROBE")"
+          FH="$(curl -sk -D - -o /dev/null --resolve "$FRONT:443:$SERVER_HOST" "https://$FRONT/" -m 12 || true)"
+          AH="$(curl -sk -D - -o /dev/null --resolve "$API:443:$SERVER_HOST" "https://$API/" -m 12 || true)"
+          miss=''
+          for n in Strict-Transport-Security X-Content-Type-Options X-Frame-Options Referrer-Policy; do
+            printf '%s\n' "$FH" | grep -qi "^$n:" || miss="$miss front:$n"
+            printf '%s\n' "$AH" | grep -qi "^$n:" || miss="$miss api:$n"
+          done
+          echo "origin 诊断（--resolve …:$SERVER_HOST）"
+          echo "  front /  -> $FC"
+          echo "  api $PROBE -> $AC"
+          echo "  缺失安全头 ->${miss:- 无}"
+          printf '%s\n' "$FH" | head -20
+          if [ "$FC" != "200" ] || [ "$AC" != "200" ] || [ -n "$miss" ]; then
+            echo "ORIGIN-DIAG-NOT-OK front=$FC api=$AC missing=$miss"
+            exit 1
+          fi
+
       # 失败原因**必须能被人看到**：post-verify 的每一条判据失败都会打一行
       # `POST-VERIFY FAILED: <原因>`（脚本里那句原本带一个叹号符号，这里按仓库的 emoji 门禁去掉），
       # 但它埋在步骤日志里 —— 而日志需要鉴权才能读。
