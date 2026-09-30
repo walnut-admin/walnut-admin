@@ -185,6 +185,11 @@ jobs:
       #
       # dockerfile 走**绝对路径**：bake 的 `dockerfile` 字段相对谁解析（context / bake 文件 / cwd）
       # 文档里没写清，试错成本是一次发版 —— 绝对路径三种解释下都指向同一个文件。
+      # bake 的开始时刻记进 `$GITHUB_ENV`（跨步骤可见）—— 后面的 `Image digests`（`if: always()`）
+      # 用它算 bake 的整体耗时。这一步刻意独立：不碰上下任何现有脚本。
+      - name: Mark bake start
+        run: echo "BAKE_START=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Build & push backend + frontend (bake)
         uses: docker/bake-action@v6
         env:
@@ -199,11 +204,29 @@ jobs:
           provenance: false
 
       # ---------- 度量：把体积/耗时/digest 写进 run summary，便于和基线对比 ----------
+      #
+      # bake 的**整体耗时**从这里算：上一步（bake 之前）把开始时刻写进 `$GITHUB_ENV`，
+      # 本步（`if: always()`，取消/失败也会跑）算出差值。想知道 transfer / build / cache-export
+      # 的**内部分段**，看本 run 的 artifact `docker-build-*`（docker 的 build record，含每步耗时）。
+      #
+      # 为什么只测这一处：bake 是唯一"分钟级且方差大"的步骤（2026-09-30 实测 22 分钟 ~ 45 分钟未完），
+      # P2 的取舍全靠这个数；其余步骤在 run 页面各自有耗时，重复度量只会加噪声。
       - name: Image digests
         if: always()
         run: |
           set -uo pipefail
           {
+            echo "## 时序（tag: \`${TAG}\`）"
+            echo ""
+            echo "| 阶段 | 值 |"
+            echo "| --- | --- |"
+            if [ -n "${BAKE_START:-}" ]; then
+              echo "| bake（backend + frontend） | $(( $(date +%s) - BAKE_START ))s |"
+            else
+              echo "| bake（backend + frontend） | n/a（没走到 bake） |"
+            fi
+            echo "| bake 内部分段 | 见本 run 的 artifact \`docker-build-*\`（build record，含 transfer / build / cache-export） |"
+            echo ""
             echo "## 镜像（tag: \`${TAG}\`）"
             echo ""
             echo "| 镜像 | digest |"
