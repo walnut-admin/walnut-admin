@@ -51,6 +51,8 @@ export interface SeedOptions {
   withAreas?: string
   /** 只播种数据、不碰 app_key（排障用） */
   skipAppKeys: boolean
+  /** 只插不改：已存在的文档一个字都不动（**生产注入用**，见 `buildSeedOps`） */
+  ifMissing: boolean
   /** 导出侧的落盘目录（`db:export --out`；播种命令不认这个参数） */
   outDir: string
   /** 导出侧的行政区划另存路径（`db:export --areas`） */
@@ -132,9 +134,9 @@ export function resolveEnvFile(repoRoot: string, envFileOverride?: string): stri
  * `db:export` 不认 `--dry-run`/`--with-areas`。静默忽略的代价是"以为导出了、其实没导"。
  */
 export function parseArgs(argv: readonly string[], mode: CommandMode = 'seed'): SeedOptions {
-  const opts: SeedOptions = { seedDir: SEED_DIR, envFile: '', dryRun: false, skipAppKeys: false, outDir: SEED_DIR }
+  const opts: SeedOptions = { seedDir: SEED_DIR, envFile: '', dryRun: false, skipAppKeys: false, ifMissing: false, outDir: SEED_DIR }
   const allowed: Record<CommandMode, string> = {
-    seed: '--dry-run / --only / --uri / --db / --env-file / --seed-dir / --with-areas / --skip-app-keys',
+    seed: '--dry-run / --only / --uri / --db / --env-file / --seed-dir / --with-areas / --skip-app-keys / --if-missing / --admin / --password',
     export: '--only / --uri / --db / --env-file / --seed-dir / --out / --areas',
   }
   for (let i = 0; i < argv.length; i++) {
@@ -150,6 +152,11 @@ export function parseArgs(argv: readonly string[], mode: CommandMode = 'seed'): 
         if (mode !== 'seed')
           throw new PreconditionError(`db:export 不支持 ${arg}（支持 ${allowed.export}）`)
         opts.dryRun = true
+        break
+      case '--if-missing':
+        if (mode !== 'seed')
+          throw new PreconditionError(`db:export 不支持 ${arg}`)
+        opts.ifMissing = true
         break
       case '--skip-app-keys':
         if (mode !== 'seed')
@@ -229,20 +236,43 @@ interface WriteResult {
   replaced: number
 }
 
-/** 一个集合的幂等写入：按 `_id`（缺 `_id` 时按 `key`）replace + upsert */
-async function seedCollection(db: Db, name: string, docs: readonly Record<string, unknown>[], dryRun: boolean): Promise<WriteResult> {
+/**
+ * 构造一个集合的写入计划 —— **纯函数**，两种语义刻意分开：
+ *
+ * - 默认（覆盖）：`replaceOne + upsert` —— **整文档替换**。开发环境要的就是这个：仓是唯一真源。
+ * - `ifMissing`（只插不改）：`updateOne + $setOnInsert + upsert` —— 不存在才插入，存在就**一个字不动**。
+ *
+ * 为什么生产注入必须用后者：运维会在后台改菜单名、调应用设置，而默认语义会**把这些改动覆盖回去**
+ * （`replaceOne` 是把整文档换掉，不是打补丁）。生产要的是"把缺的补上"，不是"把库对齐到仓"。
+ *
+ * `_id` 缺失的文档（现生成的 app_key）按 `key` 认身份 —— 否则每次跑都会多插一份。
+ */
+export function buildSeedOps(
+  docs: readonly Record<string, unknown>[],
+  ifMissing: boolean,
+): { filter: Filter<Document>, replacement?: Record<string, unknown>, update?: Document }[] {
+  return docs.map((doc) => {
+    const filter = (doc._id === undefined ? { key: doc.key } : { _id: doc._id }) as Filter<Document>
+    return ifMissing ? { filter, update: { $setOnInsert: doc } } : { filter, replacement: doc }
+  })
+}
+
+/** 一个集合的幂等写入：按 `_id`（缺 `_id` 时按 `key`）认身份 */
+async function seedCollection(
+  db: Db,
+  name: string,
+  docs: readonly Record<string, unknown>[],
+  dryRun: boolean,
+  ifMissing: boolean,
+): Promise<WriteResult> {
   if (dryRun)
     return { collection: name, total: docs.length, inserted: 0, replaced: 0 }
 
   const result = await db.collection(name).bulkWrite(
-    docs.map(doc => ({
-      replaceOne: {
-        // 没有 `_id` 的文档（现生成的 app_key）按 `key` 判存在 —— 否则每次播种都会多塞一份
-        filter: (doc._id === undefined ? { key: doc.key } : { _id: doc._id }) as Filter<Document>,
-        replacement: doc,
-        upsert: true,
-      },
-    })),
+    buildSeedOps(docs, ifMissing).map(op => (op.replacement !== undefined
+      ? { replaceOne: { filter: op.filter, replacement: op.replacement, upsert: true } }
+      // `$setOnInsert` + upsert：不存在才写，存在则完全不动（`matchedCount` 就是"已存在、被跳过"的数量）
+      : { updateOne: { filter: op.filter, update: op.update as Document, upsert: true } })),
     { ordered: false },
   )
   return {
@@ -369,7 +399,7 @@ export async function main(): Promise<void> {
     const results: WriteResult[] = []
     for (const name of collections) {
       const docs = parseCollectionFile(readFileSync(join(seedDir, `${name}.json`), 'utf8'))
-      results.push(await seedCollection(db, name, docs, opts.dryRun))
+      results.push(await seedCollection(db, name, docs, opts.dryRun, opts.ifMissing))
     }
     if (!opts.skipAppKeys)
       results.push(await seedAppKeys(db, opts.dryRun))

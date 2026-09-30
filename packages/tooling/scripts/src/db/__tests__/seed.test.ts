@@ -22,7 +22,7 @@ import { buildPasswordIdentity, verifyPasswordIdentity } from '../admin-credenti
 import { generateAesKey, generateAppKeys, generateRsaKey, KEY_VALID_DAYS } from '../app-keys.ts'
 import { fromExtendedJson, parseCollectionFile, stringifyCollectionFile, toExtendedJson } from '../ejson.ts'
 import { applyPolicy } from '../policy.ts'
-import { buildMongoUri, listSeedCollections, parseArgs, parseEnvFile, resolvePath, seedAreas } from '../seed.ts'
+import { buildMongoUri, buildSeedOps, listSeedCollections, parseArgs, parseEnvFile, resolvePath, seedAreas } from '../seed.ts'
 
 describe('ejson', () => {
   it('$oid / $date 往返不丢精度', () => {
@@ -190,6 +190,30 @@ describe('裁剪策略（两个方向共用一份）', () => {
     const out = applyPolicy('sys_role', docs)
     expect(out).toEqual(docs)
     expect(out).not.toBe(docs)
+  })
+})
+
+describe('写入计划（默认覆盖 vs --if-missing 只插不改）', () => {
+  const docs = [{ _id: 'a', title: '仓内值' }, { key: 'aes_key_url-1', meta: {} }]
+
+  it('默认语义是整文档替换（replaceOne + upsert）', () => {
+    const ops = buildSeedOps(docs, false)
+    expect(ops[0].replacement).toEqual(docs[0])
+    expect(ops[0].update).toBeUndefined()
+  })
+
+  it('--if-missing 用 $setOnInsert + upsert：存在就一个字不动', () => {
+    const ops = buildSeedOps(docs, true)
+    expect(ops[0].update).toEqual({ $setOnInsert: docs[0] })
+    expect(ops[0].replacement).toBeUndefined()
+  })
+
+  it('两种语义都按 `_id` 认身份；没有 `_id` 的（现生成的 app_key）按 `key`', () => {
+    for (const ifMissing of [false, true]) {
+      const ops = buildSeedOps(docs, ifMissing)
+      expect(ops[0].filter).toEqual({ _id: 'a' })
+      expect(ops[1].filter).toEqual({ key: 'aes_key_url-1' })
+    }
   })
 })
 
