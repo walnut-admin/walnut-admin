@@ -35,14 +35,21 @@ env:
   REGISTRY: ccr.ccs.tencentyun.com
   IMAGE_NS: tron1997
   TAG: ${{ github.ref_name }}
-  # staging 落在工作区之外（相对仓库根 → /home/runner/work/walnut-image-staging），
-  # 让 268MB / 4 万文件的产物不污染工作树。位置不影响下面的关键约束：
+  # staging 必须落在**工作区之内**：
+  #
+  # 原来放在工作区之外（`../walnut-image-staging`）是为了"不污染工作树"，但 `docker/bake-action`
+  # 读不到工作区之外的本地 context —— 两次发版（v0.1.0 / v0.1.1）都停在同一步：
+  #   target backend: failed to solve: failed to read dockerfile: … "/walnut-image-staging/server": not found
+  # 而 staging 本身是成功的（同一步里的 `du -sh` / `cp` 都在 set -e 下过了）。改回工作区内的
+  # `build/image`（也正是 docker-bake.hcl 的默认值、本地构建用的位置），`build/` 已在 .gitignore 里。
+  #
+  # 位置不影响下面的关键约束：
   #
   # pnpm deploy --prod 会把工作区 node_modules/.modules.yaml 的 devDependencies
   #    标记为 false；此后**任何** pnpm 命令都会自动按 prod 重装，把 vite / cross-env
   #    等开发依赖当场删掉（本地实测：deploy 之后跑 pnpm exec 立即触发 prune）。
   #    因此 deploy 必须是本 job 里最后一个 pnpm 命令 —— 后面只剩 rm/cp 与 docker。
-  IMAGE_STAGE: ../walnut-image-staging
+  IMAGE_STAGE: build/image
 
 jobs:
   # ---------- 1. 质量门禁（发布是低频动作，跑全量而不是 affected，用时间换"不漏跑"）----------
@@ -161,12 +168,25 @@ jobs:
 
       # backend 与 frontend 在同一个 bake 里并行构建，各自使用独立的 GHA 缓存 scope
       # （历史 bug：三次 build 共用默认 scope=buildkit → 互相覆盖缓存 → backend 永远冷构建）
+      #
+      # `source: .` 是**必需**的（2026-09-30 连挂两次发版才定位到）：bake-action v6 起默认用
+      # Git context（`https://github.com/<owner>/<repo>.git#<ref>`），官方 README 明说
+      # "any file mutation in the steps that precede the build step will be ignored" ——
+      # 于是上面 staging 出来的 `build/image/**`（还带 gitignore）在 context 里根本不存在，
+      # 报错就长成 `failed to read dockerfile: … "…/server": not found`。加 `source: .` 切到
+      # Path context（工作区路径）之后，staging 的产物才可见。
+      #
+      # dockerfile 走**绝对路径**：bake 的 `dockerfile` 字段相对谁解析（context / bake 文件 / cwd）
+      # 文档里没写清，试错成本是一次发版 —— 绝对路径三种解释下都指向同一个文件。
       - name: Build & push backend + frontend (bake)
         uses: docker/bake-action@v6
         env:
           SERVER_CONTEXT: ${{ env.IMAGE_STAGE }}/server
           FRONTEND_CONTEXT: ${{ env.IMAGE_STAGE }}/frontend
+          SERVER_DOCKERFILE: ${{ github.workspace }}/${{ env.IMAGE_STAGE }}/server/Dockerfile
+          FRONTEND_DOCKERFILE: ${{ github.workspace }}/${{ env.IMAGE_STAGE }}/frontend/Dockerfile
         with:
+          source: .
           files: docker-bake.hcl
           push: true
           provenance: false

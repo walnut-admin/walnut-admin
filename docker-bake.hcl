@@ -45,6 +45,17 @@ variable "FRONTEND_CONTEXT" {
   default = "build/image/frontend"
 }
 
+# Dockerfile 位置。默认值相对 **context 根**（staging 步骤会把 apps/*/Dockerfile 拷进去），
+# CI 里则由 release.yml 传**绝对路径**覆盖 —— bake 的 `dockerfile` 字段相对谁解析（context /
+# bake 文件 / cwd）文档没写清，绝对路径三种解释下都指向同一个文件，省掉一次试错发版。
+variable "SERVER_DOCKERFILE" {
+  default = "Dockerfile"
+}
+
+variable "FRONTEND_DOCKERFILE" {
+  default = "Dockerfile"
+}
+
 # CI 里的默认组：nginx 已由前一步构建推送，这里只并行构建两个应用镜像
 group "default" {
   targets = ["backend", "frontend"]
@@ -79,7 +90,7 @@ target "nginx" {
 # `apps/api`）⇒ 报 "failed to read dockerfile"（2026-09-30 v0.1.0 首次发版实测踩到）。
 target "backend" {
   context    = SERVER_CONTEXT
-  dockerfile = "Dockerfile"
+  dockerfile = SERVER_DOCKERFILE
   tags       = ["${REGISTRY}/${NS}/backend:${TAG}"]
   cache-from = ["type=gha,scope=backend"]
   cache-to   = ["type=gha,mode=max,scope=backend,ignore-error=true"]
@@ -89,7 +100,7 @@ target "backend" {
 # `dockerfile` 同理按 context 根引用（staging 步骤把 apps/admin/Dockerfile 拷了过来）
 target "frontend" {
   context    = FRONTEND_CONTEXT
-  dockerfile = "Dockerfile"
+  dockerfile = FRONTEND_DOCKERFILE
   tags       = ["${REGISTRY}/${NS}/frontend:${TAG}"]
   args = {
     NGINX_BASE = "${REGISTRY}/${NS}/nginx:${TAG}"
