@@ -237,6 +237,40 @@ jobs:
             echo "| ${img} | \`${d}\` |" >> "$GITHUB_STEP_SUMMARY"
           done
 
+          # digests.json：把三个镜像**当时**的 digest 落成文件，随 Release 一起发布。
+          #
+          # 为什么需要它（P3-lite）：部署只认 `vX.Y.Z` 这个 tag 时，"线上跑的到底是哪份产物"取决于
+          # 那个 tag 当时指向什么 —— tag 被重打、镜像被重建，线上就换了东西，而日志里看不出来。
+          # 有了这份清单，部署侧就能**按 digest 核对**（下一轮接的就是这一步），回滚也有了精确目标。
+          #
+          # 注意 `n/a`：拿不到 digest 时不写假值 —— 部署侧看到 n/a 会明确报"该镜像没有 digest 记录"。
+          {
+            echo "{"
+            echo "  \"tag\": \"${TAG}\","
+            echo "  \"registry\": \"${REGISTRY}/${IMAGE_NS}\","
+            first=1
+            for img in nginx backend frontend; do
+              d=$(docker buildx imagetools inspect "$REGISTRY/$IMAGE_NS/$img:$TAG" --format '{{.Manifest.Digest}}' 2>/dev/null || echo 'n/a')
+              [ "$first" -eq 1 ] || echo ","
+              first=0
+              printf '  "%s": "%s"' "$img" "$d"
+            done
+            echo ""
+            echo "}"
+          } > digests.json
+          echo "digests.json:"; cat digests.json
+
+      # digests.json 交给 release 作业：**跨作业不能靠工作区**（各自一台 runner），必须走工件。
+      # `name: digests` 是必需的：bake-action 会上传 build record 工件，`download-artifact` 在
+      # 不指定 name/pattern 时会下载全部工件（bake-action README 专门提醒过这一点）。
+      - name: Upload digests (artifact)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests
+          path: digests.json
+          if-no-files-found: error
+
       - name: Build context sizes
         if: always()
         run: |
@@ -262,6 +296,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # 取回 images 作业产出的 `digests.json`（三个镜像当时的 digest），随 Release 一起发布 ——
+      # 部署与回滚据此**按 digest 核对**线上产物，而不是只认 `vX.Y.Z` 这个 tag。
+      - name: Download digests artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: digests
+          path: .
+
       # 初始化数据打成一个**带版本号**的资产随 Release 发布（`walnut-admin-seed-<version>.tar.gz`）。
       # 这里只打**仓内那部分**（8 个集合，约 0.1MB）：行政区划（66 万条）刻意不进 git，它需要一份
       # 有数据的库才能导出，所以那部分由发版机本地跑 `pnpm seed:pack --areas-from-db` 产出，
@@ -285,7 +327,9 @@ jobs:
           name: ${{ github.ref_name }}
           body_path: changelog-latest.md
           generate_release_notes: false
-          files: apps/server/db/.pack/*.tar.gz
+          files: |
+            apps/server/db/.pack/*.tar.gz
+            digests.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
