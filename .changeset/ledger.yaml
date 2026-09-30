@@ -237,6 +237,10 @@
   dir: packages/tooling/scripts
   intents:
     - sweet-spiders-watch
+"@walnut/scripts@0.1.12":
+  dir: packages/tooling/scripts
+  intents:
+    - afraid-bats-guess
 "@walnut/scripts@0.1.2":
   dir: packages/tooling/scripts
   intents:

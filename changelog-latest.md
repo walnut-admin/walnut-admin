@@ -1,8 +1,8 @@
-## 0.1.11
+## 0.1.12
 
 ### 修复
 
-- [`8ac109f`](https://github.com/walnut-admin/walnut-admin/commit/8ac109ff8253efe1d393ab9d3f5e9dc005bf027b) **deploy** post-verify 的就绪判定改用容器健康状态（日志窗口会滚动）
+- [`dbdaf13`](https://github.com/walnut-admin/walnut-admin/commit/dbdaf13f66aa6b9aff998f90a87e8722b362c680) **deploy** 同步入口 nginx 配置到服务器（带备份 + nginx -t + 自动回滚）
 
 ---
-由 `pnpm release` 生成（v0.1.11）。
+由 `pnpm release` 生成（v0.1.12）。
