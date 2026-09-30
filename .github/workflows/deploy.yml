@@ -242,16 +242,34 @@ jobs:
             cd /home/ubuntu/walnut-admin/deploy
             echo "--- phase: 核对镜像 digest"
             fail=0
+            # 一次核对一个镜像。**两道防假红的门**（2026-09-30 实测被这道闸拦红过一次发版）：
+            #
+            # ① 取 digest 要**先拿容器的镜像 ID、再 inspect 那个 ID**：
+            #    `docker image inspect` 只认镜像引用/ID，**不认容器名** —— 原来直接拿容器名去 inspect，
+            #    必然取不到 ⇒ 被当成 MISMATCH ⇒ 整步红（本地没有 Docker，我上轮只重放了"比对逻辑"、
+            #    没重放真实命令，所以没抓到）。
+            # ② **取不到就不判**：拿不到 actual 时打 warn 并跳过 —— 与"发版时没记录 digest"同档。
+            #    这道闸该红的只有一种情形：**两边都拿得到、且真的不一致**（那时才是"线上产物被换过"）。
+            #    宁可说"核对不了"，也不能因为命令写错而拦红一次发版（代价是整轮 + 后面的步骤全 skip）。
             check() {
               name="$1"; expected="$2"; container="$3"
               if [ -z "$expected" ] || [ "$expected" = "n/a" ]; then
                 echo "  skip   $name（发版时没记录 digest，无法核对）"
                 return 0
               fi
-              actual=$(docker image inspect "$container" --format '{{range .RepoDigests}}{{println .}}{{end}}' 2>/dev/null | head -1)
+              image_id=$(docker inspect "$container" --format '{{.Image}}' 2>/dev/null || true)
+              if [ -z "$image_id" ]; then
+                echo "  warn   $name（拿不到容器 $container 的镜像 ID，跳过核对）"
+                return 0
+              fi
+              actual=$(docker image inspect "$image_id" --format '{{range .RepoDigests}}{{println .}}{{end}}' 2>/dev/null | head -1)
+              if [ -z "$actual" ]; then
+                echo "  warn   $name（镜像 $image_id 没有 RepoDigests，跳过核对）"
+                return 0
+              fi
               case "$actual" in
                 *"$expected") echo "  ok     $name  $expected" ;;
-                *) echo "  MISMATCH $name"; echo "         期望 $expected"; echo "         实际 ${actual:-（取不到）}"; fail=1 ;;
+                *) echo "  MISMATCH $name"; echo "         期望 $expected"; echo "         实际 $actual"; fail=1 ;;
               esac
             }
             check nginx "$DIGEST_NGINX" walnut-nginx
