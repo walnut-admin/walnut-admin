@@ -13,7 +13,18 @@ RUN if ! grep -rq 'ngx_http_brotli' /etc/nginx/modules/ 2>/dev/null; then \
       && sed -i '1i include /etc/nginx/modules-brotli.conf;' /etc/nginx/nginx.conf; \
     fi
 
-# 构建期验证：模块加载失败（版本不匹配）→ 构建失败
+# 自带 nginx.conf（替换 Alpine 包里那份）：它把 vhost 目录 include 在 `http` 层。
+#
+# 为什么必须自带（2026-09-30 线上实测）：Alpine 包的 nginx.conf 把 vhost 目录记作
+# /etc/nginx/http.d/，而我们的 vhost 挂在 /etc/nginx/conf.d/ ⇒ 被包含在 `http` 之外 ⇒ 容器
+# 启动即报 `[emerg] "server" directive is not allowed here in /etc/nginx/conf.d/api.conf:1`
+# 并反复重启。自带这一份之后，这个约定由我们自己保证，与发行版布局无关。
+#
+# 必须放在 `RUN nginx -t` **之前**：这样构建期校验的就是这份配置（写错 ⇒ 镜像构建失败，
+# 而不是等上线后容器 crash-loop）。
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# 构建期验证：模块加载失败（版本不匹配）→ 构建失败；顺带校验上面那份 nginx.conf
 RUN nginx -t
 
 # 日志走 stdout/stderr。alpine 的 nginx 包默认把 access/error log 写进
