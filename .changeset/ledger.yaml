@@ -226,6 +226,11 @@
     - breezy-seals-fly
     - early-eels-punch
     - quick-elephants-give
+"@walnut/scripts@0.1.4":
+  dir: packages/tooling/scripts
+  intents:
+    - afraid-squids-repair
+    - polite-houses-sip
 "@walnut/server@0.1.0":
   dir: apps/server
   intents:

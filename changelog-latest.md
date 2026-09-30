@@ -1,13 +1,9 @@
-## 0.1.3
+## 0.1.4
 
 ### 修复
 
-- [`7aee87d`](https://github.com/walnut-admin/walnut-admin/commit/7aee87d301eeb42c7c0f1e2f877b6db968c281ca) by @Zhaocl1997 **tooling** smoke:dist 的 Chrome 参数与新版本兼容（CI 假红的真因）
-- [`96572f5`](https://github.com/walnut-admin/walnut-admin/commit/96572f5cff802e11f35aab1c66aaa2750d7a99e7) by @Zhaocl1997 **deploy** 先把容器起起来、注入参考数据，再等健康（空库首次部署必挂的顺序错误）
-
-### 性能
-
-- [`f22de5c`](https://github.com/walnut-admin/walnut-admin/commit/f22de5c94a9748fb73d0d6c4a8521807daf843fd) by @Zhaocl1997 **release** bake 的 cache-to 去掉 mode=max（冷缓存下最慢的一段）
+- [`c13082a`](https://github.com/walnut-admin/walnut-admin/commit/c13082a632dcd65580417931e746ffc982353ae5) by @Zhaocl1997 **deploy** 参考数据注入改为每次部署都跑（tag 自动发版够不到那个开关）
+- [`9a198c1`](https://github.com/walnut-admin/walnut-admin/commit/9a198c1291e363c976d504b6d47e354e64a9db42) by @Zhaocl1997 **deploy** nginx 镜像自带 nginx.conf —— Alpine 那份把 vhost 包含在 http 之外，容器起不来
 
 ---
-由 `pnpm release` 生成（v0.1.3）。
+由 `pnpm release` 生成（v0.1.4）。
