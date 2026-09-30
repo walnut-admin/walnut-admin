@@ -1,8 +1,9 @@
 /**
  * 约定式提交 → 变更意图的分类规则（纯逻辑）。
  *
- * 判据来自 commit-intent.ts 的注释：能进 changelog / 能触发版本升级的就是那五类，其余一律 skip；
- * `!` 记作 breaking ⇒ major。本套用例是「与 @walnut/commitlint-config 同口径」那条承诺的机械拦网。
+ * 判据来自 commit-intent.ts 的注释：`feat/fix/perf/refactor/revert` 与 `ci/build` 会产生意图，
+ * `docs/chore/style/test` 一律 skip；`!` 记作 breaking ⇒ major。
+ * 本套用例是「与 @walnut/commitlint-config 同口径」那条承诺的机械拦网。
  */
 
 import type { ParsedCommit } from '../commit-intent.ts'
@@ -25,12 +26,15 @@ describe('bUMP_MAP —— 与 commitlint 的 type-enum 同口径', () => {
       perf: 'patch',
       refactor: 'patch',
       revert: 'patch',
+      // `ci` / `build` 是 patch（2026-09-30 放宽）：它们改的是 CI workflow / 镜像构建 / 部署脚本，
+      // 而线上跑的镜像正是这些文件产出的 ⇒ 属于交付物。放宽前实测：连着 5 条 `ci(...)` 全被 skip，
+      // 一条意图都不产生 ⇒ 走不到版本升级 ⇒ 这些改动根本发不出去。
+      ci: 'patch',
+      build: 'patch',
       docs: 'skip',
       chore: 'skip',
       style: 'skip',
       test: 'skip',
-      build: 'skip',
-      ci: 'skip',
     })
   })
 
@@ -130,9 +134,15 @@ describe('getBump —— 这条提交该发哪一档', () => {
     expect(getBump(parsed('revert(admin): x'))).toBe('patch')
   })
 
-  it('docs / chore / ci / test / build / style ⇒ skip', () => {
-    for (const type of ['docs', 'chore', 'ci', 'test', 'build', 'style']) {
+  it('docs / chore / test / style ⇒ skip（纯文档、记账、用例、格式，不影响交付物）', () => {
+    for (const type of ['docs', 'chore', 'test', 'style']) {
       expect(getBump(parsed(`${type}(admin): x`)), `${type} 不该触发发版`).toBe('skip')
+    }
+  })
+
+  it('ci / build ⇒ patch（它们改的是 CI / 构建 / 部署，线上镜像正是这些文件产出的）', () => {
+    for (const type of ['ci', 'build']) {
+      expect(getBump(parsed(`${type}(tooling): x`)), `${type} 应当触发 patch`).toBe('patch')
     }
   })
 

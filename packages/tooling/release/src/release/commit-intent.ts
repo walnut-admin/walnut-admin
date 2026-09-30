@@ -15,12 +15,21 @@ export const BUMP_MAP: Record<string, string> = {
   perf: 'patch',
   refactor: 'patch',
   revert: 'patch',
+  // `ci` / `build` 算 patch（2026-09-30 改）。
+  //
+  // 为什么放宽：这两个类型**会随发版交付出去** —— 改的是 CI workflow、镜像构建、部署脚本，
+  // 而线上跑的镜像就是这些文件产出的。实测代价：本会话连着 5 条 `ci(...)`（nginx 配置、注入
+  // 步骤、超时、digest 核对、发版观测）全部被 skip ⇒ **一条意图都不产生 ⇒ 走不到版本升级**
+  // ⇒ 这些改动**根本发不出去**。它们不是"仓库维护噪音"，而是交付物的一部分。
+  //
+  // 仍不产生意图的：`docs` / `chore` / `style` / `test`（纯文档、记账、格式、用例 —— 不影响
+  // 交付物），以及没有改任何文件的空提交。
+  ci: 'patch',
+  build: 'patch',
   docs: 'skip',
   chore: 'skip',
   style: 'skip',
   test: 'skip',
-  build: 'skip',
-  ci: 'skip',
 }
 
 /**

@@ -55,7 +55,11 @@ commit_parsers = [
   { message = "^perf", group = "<!-- 3 -->性能" },
   { message = "^refactor", group = "<!-- 4 -->重构" },
   { message = "^revert", group = "<!-- 5 -->回滚" },
-  # 其余（docs / chore / style / test / build / ci 与一切未约定的写法）不进 changelog
+  # `ci` / `build` 单列一组（2026-09-30 加）：它们**会随发版交付出去**（CI workflow / 镜像构建 /
+  # 部署脚本产出的就是线上那套），所以既算 patch（见 release/commit-intent.ts 的 BUMP_MAP）
+  # 也要在 changelog 里可见 —— 否则"改了什么、为什么发这一版"就断了。
+  { message = "^(ci|build)", group = "<!-- 6 -->基建（CI / 构建 / 部署）" },
+  # 其余（docs / chore / style / test 与一切未约定的写法）不进 changelog
   { message = ".*", skip = true },
 ]
 
