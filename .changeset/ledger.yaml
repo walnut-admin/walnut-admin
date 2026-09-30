@@ -257,6 +257,10 @@
     - mean-grapes-ring
     - real-beans-tap
     - soft-ravens-cheat
+"@walnut/scripts@0.1.8":
+  dir: packages/tooling/scripts
+  intents:
+    - new-swans-hammer
 "@walnut/server@0.1.0":
   dir: apps/server
   intents:
