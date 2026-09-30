@@ -124,6 +124,11 @@
     - young-olives-occur
     - young-seals-visit
     - young-trees-rest
+"@walnut/docs@0.1.1":
+  dir: apps/docs
+  intents:
+    - big-cats-cry
+    - sharp-jobs-try
 "@walnut/eslint-config@0.1.0":
   dir: packages/tooling/eslint-config
   intents:
@@ -165,6 +170,12 @@
     - thick-swans-joke
     - tough-mugs-judge
     - wet-cats-know
+"@walnut/release@0.1.1":
+  dir: packages/tooling/release
+  intents:
+    - big-cats-cry
+    - sharp-jobs-try
+    - silly-books-wonder
 "@walnut/scripts@0.1.0":
   dir: packages/tooling/scripts
   intents:
@@ -201,6 +212,10 @@
     - thin-waves-pump
     - tough-mugs-judge
     - wet-cats-know
+"@walnut/scripts@0.1.1":
+  dir: packages/tooling/scripts
+  intents:
+    - neat-ducks-change
 "@walnut/server@0.1.0":
   dir: apps/server
   intents:
