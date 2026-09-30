@@ -220,6 +220,12 @@
   dir: packages/tooling/scripts
   intents:
     - good-deers-judge
+"@walnut/scripts@0.1.3":
+  dir: packages/tooling/scripts
+  intents:
+    - breezy-seals-fly
+    - early-eels-punch
+    - quick-elephants-give
 "@walnut/server@0.1.0":
   dir: apps/server
   intents:

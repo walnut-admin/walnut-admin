@@ -1,7 +1,7 @@
 {
   "name": "@walnut/eslint-config",
   "type": "module",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "共享 ESLint 预设（flat config，基于 @antfu/eslint-config）：base（平台无关）/ vue（浏览器+Vue）/ nest（NestJS 后端，带本地装饰器排序规则）。",
   "license": "MIT",
   "exports": {

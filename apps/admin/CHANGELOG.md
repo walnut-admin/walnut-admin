@@ -1,5 +1,15 @@
 # @walnut/admin
 
+## 0.1.3
+
+### 修复
+
+- [`96572f5`](https://github.com/walnut-admin/walnut-admin/commit/96572f5cff802e11f35aab1c66aaa2750d7a99e7) by @Zhaocl1997 **deploy** 先把容器起起来、注入参考数据，再等健康（空库首次部署必挂的顺序错误）
+
+### 性能
+
+- [`f22de5c`](https://github.com/walnut-admin/walnut-admin/commit/f22de5c94a9748fb73d0d6c4a8521807daf843fd) by @Zhaocl1997 **release** bake 的 cache-to 去掉 mode=max（冷缓存下最慢的一段）
+
 ## 0.1.2
 
 ### 修复

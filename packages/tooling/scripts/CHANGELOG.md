@@ -1,5 +1,11 @@
 # @walnut/scripts
 
+## 0.1.3
+
+### 修复
+
+- [`7aee87d`](https://github.com/walnut-admin/walnut-admin/commit/7aee87d301eeb42c7c0f1e2f877b6db968c281ca) by @Zhaocl1997 **tooling** smoke:dist 的 Chrome 参数与新版本兼容（CI 假红的真因）
+
 ## 0.1.0
 
 ### 新功能
