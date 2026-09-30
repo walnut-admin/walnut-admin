@@ -73,9 +73,26 @@ check_image_tags() {
 }
 
 # ---- 后端日志：致命错误 / 启动标记 ----
+#
+# **已知良性噪声的单行豁免**（2026-09-30 实测：它把 v0.1.8 的部署判死过一次）。
+#
+# 空库首次启动时，`app_setting` 里还没有任何设置，`AppTechCacheAppSettingsService.getSetting`
+# 会走 `JSON.parse(undefined)` ⇒ 抛 `SyntaxError: "undefined" is not valid JSON` ⇒ **被它自己的
+# catch 接住并返回默认值**（源码里就有 try/catch）—— 也就是说：**这行是「已捕获」的日志噪声，
+# 应用照常启动**。而 `FATAL_RE` 里的 `SyntaxError` 会把它判成致命错误。
+#
+# 为什么必须豁免而不是"让后端别打"：那是应用代码的日志策略，不该由部署脚本要求它改；
+# 而且首次部署（空库）**必然**出现这行 ⇒ 不豁免就等于"首次部署永远失败"。
+#
+# 豁免条件写得**极窄**：要么是那条服务名 + 那句话，要么是**那句消息本身**所在的 stack 行
+# （实测：这条日志是**多行**的 —— `SyntaxError: "undefined" is not valid JSON` 在单独一行上，
+# 只豁免第一行不够，本地重放当场抓到）。真正的 SyntaxError（别的消息）仍然会命中 FATAL_RE。
+BENIGN_RE='AppTechCacheAppSettingsService.*"undefined" is not valid JSON|SyntaxError: "undefined" is not valid JSON'
+
 scan_backend_logs() {
   local logs
   logs="$(docker logs --tail 300 "$CONTAINER_BACKEND" 2>&1 || true)"
+  logs="$(printf '%s\n' "$logs" | grep -Ev "$BENIGN_RE" || true)"
   if printf '%s\n' "$logs" | grep -Eq "$FATAL_RE"; then
     printf '%s\n' "$logs" | grep -E "$FATAL_RE" | tail -n 15
     die "后端日志出现致命错误"
