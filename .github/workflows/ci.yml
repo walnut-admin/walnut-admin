@@ -259,9 +259,19 @@ jobs:
         with:
           keys: ${{ env.DOTENVX_KEYS }}
 
+      # `--force` 是**刻意**的：忽略 turbo 缓存、真的跑一次构建。
+      #
+      # 为什么必须在 CI 里强制一次（2026-09-30 实测）：v0.1.4 的发版死在 `Build admin` 上
+      # （`types/generated/components.d.ts` 被读到半写内容 ⇒ `TS1434 / TS1128`），而**同一个提交的
+      # CI 是绿的** —— 因为 CI 命中了 turbo 缓存、压根没真构建。也就是说：CI 的绿有可能是缓存给的，
+      # 而发版是 cache miss ⇒ 真构建 ⇒ 才暴露。"构建产物对不对"这件事必须由**无缓存**的那次来担保，
+      # 否则这类 bug 永远只能在发版时付代价（一次发版 + 一轮排查）。
+      #
+      # 代价：这一步不再吃缓存（约 1~2 分钟）；换来的是 CI 与发版在"构建"这件事上**同源**。
+      # 这条约束由 `src/ci/__tests__/ci-workflow.test.ts` 机械钉住 —— 别把它改回去。
       - name: Build admin
         if: env.DOTENVX_KEYS != ''
-        run: pnpm exec turbo run build --filter=@walnut/admin
+        run: pnpm exec turbo run build --filter=@walnut/admin --force
 
       # 构建成功不等于跑得起来（留档 V13）：那次 `resolve.conditions` 少了默认条件，产物一执行就抛
       # `Cannot destructure property '__extends' …`、页面停在 splash —— 而 tsc / lint / build /
