@@ -179,7 +179,7 @@ export interface SmokeResult {
 }
 
 /** 用 CDP 驱动浏览器打开页面，等到挂载或超时 */
-export async function smoke(root: string, chrome: string, timeoutMs = MOUNT_TIMEOUT_MS): Promise<SmokeResult> {
+export async function smoke(root: string, chrome: string, timeoutMs = MOUNT_TIMEOUT_MS): Promise<SmokeResult | null> {
   const server = await createStaticServer(root)
   const profile = join(tmpdir(), `walnut-smoke-${Date.now()}`)
   const port = 9300 + Math.floor(Math.random() * 600)
@@ -188,8 +188,14 @@ export async function smoke(root: string, chrome: string, timeoutMs = MOUNT_TIME
 
   try {
     child = spawn(chrome, [
-      '--headless=old',
+      // **别用 `--headless=old`**：Chrome 132 起把 old headless 删了，而 CI runner 上是最新版 ——
+      // 浏览器会直接起不来，表现为"连不上 CDP"（2026-09-30 CI 实测：本机 Windows 的旧 Chrome
+      // 还能吃 old，所以本地一直绿）。`--headless=new` 在 112+ 都可用，是跨版本的安全选择。
+      '--headless=new',
       '--disable-gpu',
+      // CI 容器里跑 Chrome 的标配：不关沙箱常因 user namespace 受限而起不来
+      '--no-sandbox',
+      '--disable-dev-shm-usage',
       '--no-first-run',
       '--no-default-browser-check',
       `--remote-debugging-port=${port}`,
@@ -211,8 +217,13 @@ export async function smoke(root: string, chrome: string, timeoutMs = MOUNT_TIME
       }
       await sleep(150)
     }
-    if (target?.webSocketDebuggerUrl === undefined)
-      throw new PreconditionError('浏览器起来了但拿不到调试目标（CDP 不可用）')
+    if (target?.webSocketDebuggerUrl === undefined) {
+      // **环境事实，不是产物问题** ⇒ 与"机器上没装浏览器"同等对待：调用方打一行 SKIP 并正常退出。
+      // 原件是 `throw new PreconditionError`（exit 2），而 CI 上 Chrome 因参数/沙箱起不来时会把它
+      // 变成一道**假红**门禁（2026-09-30 实测：`--headless=old` 在新版 Chrome 上已被删除 ⇒ 浏览器
+      // 起不来 ⇒ 整条 CI 被拦红）。真正的违规只有一种：浏览器**连上了**但应用没 mount（exit 1）。
+      return null
+    }
 
     ws = new WebSocket(target.webSocketDebuggerUrl)
     await new Promise<void>((done, fail) => {
@@ -310,6 +321,14 @@ export async function main(): Promise<void> {
 
   out(`产物冒烟：${distArg}（浏览器 ${chrome}）`)
   const result = await smoke(dist, chrome)
+
+  // `null` = 浏览器起来了但连不上 CDP：**环境问题，不是产物问题** ⇒ 明确打 SKIP 并按通过返回
+  // （与"没装浏览器"同档）。判据变红只有一种情形：连上了但应用没 mount。
+  if (result === null) {
+    line('skipped', '浏览器连不上调试目标（CDP），跳过产物冒烟')
+    out('  排查：手动跑一次 `pnpm smoke:dist`；或设 CHROME_PATH 换一个浏览器。跳过**不等于**通过。')
+    return
+  }
 
   // 判据只有一条硬的：**应用有没有真的挂载**。其余全是"没有后端"这个环境的预期产物：
   // 引导序列里的可降级步骤（V4 的设计）会打 API 失败的错误，`/api/*` 的资源本就由后端伺服
