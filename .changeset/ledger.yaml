@@ -1,0 +1,286 @@
+"@walnut/admin@0.1.0":
+  dir: apps/admin
+  intents:
+    - afraid-grapes-love
+    - afraid-trains-marry
+    - clean-roses-cough
+    - cool-crabs-itch
+    - curvy-lions-roll
+    - empty-carrots-search
+    - fair-pandas-chew
+    - fresh-bears-obey
+    - fresh-squids-hear
+    - giant-icons-rule
+    - good-bees-sing
+    - good-bottles-listen
+    - good-crabs-explain
+    - good-emus-repair
+    - kind-cows-whisper
+    - light-waves-cross
+    - little-flowers-cry
+    - loud-onions-double
+    - loud-socks-lie
+    - mighty-pigs-chew
+    - mighty-wolves-sleep
+    - neat-rats-hang
+    - nice-donkeys-whisper
+    - nice-poets-grow
+    - nice-swans-start
+    - quiet-cups-teach
+    - quiet-kiwis-study
+    - real-snakes-carry
+    - shaggy-pens-attack
+    - shaggy-rabbits-repair
+    - shaggy-stars-explode
+    - sharp-dolphins-move
+    - short-dolphins-mix
+    - smooth-birds-beam
+    - sour-houses-burn
+    - strong-geese-obey
+    - tame-beds-shine
+    - thick-lions-warn
+    - tidy-mice-grow
+    - tidy-monkeys-cough
+    - tidy-rabbits-peel
+    - tiny-dragons-hang
+    - tiny-waves-smash
+    - warm-tigers-flash
+    - wet-cats-know
+    - wicked-olives-remember
+    - wide-bears-wait
+    - wide-pigs-agree
+    - young-seals-visit
+"@walnut/client@0.1.0":
+  dir: packages/platform-web/client
+  intents:
+    - afraid-trains-marry
+    - clean-roses-cough
+    - famous-frogs-juggle
+    - shaggy-pens-attack
+    - shaggy-rabbits-repair
+    - slow-lamps-fry
+"@walnut/commitlint-config@0.1.0":
+  dir: packages/tooling/commitlint-config
+  intents:
+    - fluffy-peaches-clean
+    - great-moose-rest
+    - mighty-chairs-flash
+    - neat-bears-roll
+    - shaggy-pens-attack
+    - shaggy-rabbits-repair
+"@walnut/contract@0.1.0":
+  dir: packages/platform-any/contract
+  intents:
+    - big-dogs-care
+    - cool-crabs-itch
+    - famous-frogs-juggle
+    - lazy-wombats-live
+    - real-snakes-carry
+    - shaggy-pens-attack
+    - slow-lamps-fry
+"@walnut/docs@0.1.0":
+  dir: apps/docs
+  intents:
+    - afraid-grapes-love
+    - brave-bats-care
+    - breezy-pears-melt
+    - calm-geese-occur
+    - chilly-eels-visit
+    - clean-roses-cough
+    - clever-boxes-begin
+    - cool-lamps-tan
+    - fair-spoons-pump
+    - famous-frogs-juggle
+    - fluffy-peaches-clean
+    - happy-turtles-enjoy
+    - hungry-pigs-end
+    - kind-cows-whisper
+    - light-waves-cross
+    - loud-pigs-sip
+    - lucky-crabs-speak
+    - mighty-lions-visit
+    - mighty-pigs-chew
+    - mighty-wolves-sleep
+    - nice-poets-grow
+    - purple-lamps-rush
+    - quiet-fireants-hide
+    - quiet-kiwis-study
+    - quiet-peaches-smash
+    - rare-turtles-compete
+    - rare-worms-decide
+    - shaggy-pens-attack
+    - shaggy-rabbits-repair
+    - sharp-dolphins-move
+    - short-dolphins-mix
+    - slow-lamps-fry
+    - spicy-ravens-open
+    - strong-cups-join
+    - thick-lions-warn
+    - thick-swans-joke
+    - tidy-rabbits-peel
+    - tiny-waves-smash
+    - tough-mugs-judge
+    - wet-cats-know
+    - young-olives-occur
+    - young-seals-visit
+    - young-trees-rest
+"@walnut/eslint-config@0.1.0":
+  dir: packages/tooling/eslint-config
+  intents:
+    - rare-worms-decide
+    - shaggy-pens-attack
+    - shaggy-rabbits-repair
+    - strong-cups-join
+    - wet-cats-know
+    - wicked-olives-remember
+"@walnut/http@0.1.0":
+  dir: packages/platform-web/http
+  intents:
+    - clean-roses-cough
+    - famous-frogs-juggle
+    - shaggy-pens-attack
+"@walnut/release@0.1.0":
+  dir: packages/tooling/release
+  intents:
+    - brave-bats-care
+    - breezy-pears-melt
+    - calm-geese-occur
+    - clever-boxes-begin
+    - famous-frogs-juggle
+    - fluffy-peaches-clean
+    - kind-cows-flow
+    - kind-cows-whisper
+    - large-tigers-chew
+    - loud-pigs-sip
+    - lucky-crabs-speak
+    - mighty-chairs-flash
+    - quiet-peaches-smash
+    - shaggy-pens-attack
+    - shaggy-rabbits-repair
+    - short-dolphins-mix
+    - slow-lamps-fry
+    - slow-stars-peel
+    - spicy-ravens-open
+    - thick-lions-warn
+    - thick-swans-joke
+    - tough-mugs-judge
+    - wet-cats-know
+"@walnut/scripts@0.1.0":
+  dir: packages/tooling/scripts
+  intents:
+    - afraid-grapes-love
+    - brave-bats-care
+    - bright-rocks-turn
+    - calm-geese-occur
+    - chilly-eels-visit
+    - clever-boxes-begin
+    - cool-lamps-tan
+    - early-pumas-tell
+    - famous-frogs-juggle
+    - fluffy-peaches-clean
+    - giant-bears-destroy
+    - kind-cows-flow
+    - kind-cows-whisper
+    - large-tigers-chew
+    - loud-pigs-sip
+    - purple-lamps-rush
+    - quiet-fireants-hide
+    - quiet-peaches-smash
+    - rare-foxes-melt
+    - rare-lions-sniff
+    - rare-worms-decide
+    - shaggy-pens-attack
+    - shaggy-rabbits-repair
+    - shaggy-ravens-fly
+    - slow-lamps-fry
+    - small-spiders-raise
+    - sour-moles-repair
+    - spicy-ravens-open
+    - thick-lions-warn
+    - thick-swans-joke
+    - thin-waves-pump
+    - tough-mugs-judge
+    - wet-cats-know
+"@walnut/server@0.1.0":
+  dir: apps/server
+  intents:
+    - afraid-grapes-love
+    - bright-rocks-turn
+    - clean-roses-cough
+    - early-pumas-tell
+    - early-rings-ring
+    - empty-carrots-search
+    - fluffy-carrots-stay
+    - happy-turtles-enjoy
+    - honest-bottles-enjoy
+    - itchy-boats-hear
+    - large-goats-drop
+    - lazy-elephants-tie
+    - light-waves-cross
+    - loud-onions-double
+    - mighty-pigs-chew
+    - mighty-wolves-sleep
+    - modern-roses-warn
+    - neat-rats-hang
+    - nice-donkeys-whisper
+    - nice-poets-grow
+    - polite-lamps-hug
+    - purple-lamps-rush
+    - quiet-kiwis-study
+    - rare-foxes-melt
+    - real-snakes-carry
+    - shaggy-fishes-explode
+    - shaggy-pens-attack
+    - shaggy-rabbits-repair
+    - sharp-dolphins-move
+    - short-dolphins-mix
+    - slow-lamps-fry
+    - slow-rats-rescue
+    - smart-cobras-cover
+    - smooth-birds-beam
+    - sour-houses-burn
+    - tame-cups-lick
+    - thin-stars-notice
+    - tidy-rabbits-peel
+    - tidy-seas-move
+    - warm-tigers-flash
+    - wet-cats-know
+    - wide-pigs-agree
+    - young-seals-visit
+"@walnut/tsconfig@0.1.0":
+  dir: packages/tooling/tsconfig
+  intents:
+    - famous-frogs-juggle
+    - shaggy-pens-attack
+    - slow-lamps-fry
+    - thick-swans-joke
+"@walnut/types@0.1.0":
+  dir: packages/platform-any/types
+  intents:
+    - famous-frogs-juggle
+    - quick-bats-bow
+    - shaggy-pens-attack
+    - shaggy-rabbits-repair
+"@walnut/ui@0.1.0":
+  dir: packages/platform-web/ui
+  intents:
+    - clean-roses-cough
+    - famous-frogs-juggle
+    - loud-socks-lie
+    - shaggy-pens-attack
+    - tiny-waves-smash
+"@walnut/utils@0.1.0":
+  dir: packages/platform-any/utils-core
+  intents:
+    - big-dogs-care
+    - famous-frogs-juggle
+    - real-snakes-carry
+    - shaggy-pens-attack
+    - slow-lamps-fry
+"@walnut/vitest-config@0.1.0":
+  dir: packages/tooling/vitest-config
+  intents:
+    - famous-frogs-juggle
+    - shaggy-pens-attack
+    - slow-lamps-fry
+    - thick-swans-joke
