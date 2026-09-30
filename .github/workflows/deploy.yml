@@ -19,6 +19,14 @@ on:
         required: false
         type: string
         default: prod
+      # 参考数据注入：**默认关闭**。默认语义（mongoimport --mode=upsert）是整文档替换，会把运维在
+      # 后台改过的菜单/设置覆盖回去；所以这里走 `--mode=insert`（只插不改，等价于 `db:seed --if-missing`），
+      # 且只在**显式勾选**时跑 —— 首次部署（空库）用一次，之后不该再跑。
+      seed_reference_data:
+        description: 是否把参考数据（菜单/字典/语言包/应用设置）注入到线上库（只插不改）
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
     inputs:
       image_tag:
@@ -31,6 +39,11 @@ on:
         type: choice
         options:
           - prod
+      seed_reference_data:
+        description: 是否注入参考数据（只插不改；首次部署/空库时勾）
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-${{ inputs.environment }}
@@ -184,6 +197,98 @@ jobs:
             set -e
             cd /home/ubuntu/walnut-admin/deploy
             bash post-verify.sh 24 5
+
+      # 参考数据注入（只有勾了 seed_reference_data 才跑）。
+      #
+      # 判据刻意**不依赖重复键语义**：`mongoimport` 的 `--stopOnError` 行为在版本间含糊（默认是继续
+      # 还是中止、重复键会不会中断整批，官方文档与历史 issue 都不一致），而这条路径在生产上没法
+      # 先试错。所以改成**按集合判**：
+      #   · 集合为空  -> `--mode=insert` 整集插入（空集合不可能撞重复键，语义确定）；
+      #   · 集合非空  -> **整集跳过**，不碰运维在后台改过的任何一条。
+      # 副作用是明说的：后续版本往已有集合里**新增**的行不会被这条路径带上去 —— 那类增量走通道 1
+      # （`pnpm db:export` 出差异 → PR 审 → 随发版走），或运维显式跑一次 `db:seed`。
+      #
+      # 为什么把文件 `docker cp` 进容器：`mongoimport` 跑在 mongo 容器里、看不到宿主路径；
+      # 凭据用**容器自己的环境变量**（Bitnami 注入的 root 账号），不落到命令行上 —— 命令行会进
+      # CI 日志与服务器进程表。
+      - name: Download seed asset from the release
+        if: inputs.seed_reference_data
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p seed-asset
+          gh release download "${{ env.TAG }}" --pattern 'walnut-admin-seed-*.tar.gz' --dir seed-asset
+          ls -l seed-asset
+
+      - name: Upload seed asset to server
+        if: inputs.seed_reference_data
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USERNAME }}
+          password: ${{ secrets.PROD_SERVER_PASSWORD }}
+          source: "seed-asset/"
+          target: /home/ubuntu/walnut-admin/deploy/
+
+      - name: Seed reference data on server
+        if: inputs.seed_reference_data
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USERNAME }}
+          password: ${{ secrets.PROD_SERVER_PASSWORD }}
+          command_timeout: 10m
+          script: |
+            set -e
+            cd /home/ubuntu/walnut-admin/deploy
+
+            # 目标库名取自后端自己那份 env（别写死：它由 CI 从 env-encrypted 生成）
+            DB_NAME=$(grep -E '^DATABASE_NAME=' env/.env.production | head -1 | cut -d= -f2-)
+            test -n "$DB_NAME" || { echo "ERROR: env/.env.production 里没有 DATABASE_NAME"; exit 1; }
+            echo "目标库：$DB_NAME"
+
+            rm -rf seed-staging && mkdir -p seed-staging
+            tar xzf seed-asset/walnut-admin-seed-*.tar.gz -C seed-staging
+            test -d seed-staging/seed || { echo "ERROR: 资产里没有 seed/ 目录"; exit 1; }
+
+            # 参考数据都在主节点上操作（副本集会自动同步到从节点）
+            CID=$(docker compose ps -q prod-mongodb-primary)
+            test -n "$CID" || { echo "ERROR: 找不到 prod-mongodb-primary 容器"; exit 1; }
+            docker cp seed-staging/seed/. "$CID":/tmp/seed-ref
+
+            # 容器内执行：凭据取自容器自身的环境变量（Bitnami 注入），不回显、不进命令行
+            in_mongo() {
+              docker compose exec -T prod-mongodb-primary sh -c "
+                mongosh --quiet \
+                  --username \"\$MONGODB_ROOT_USER\" --password \"\$MONGODB_ROOT_PASSWORD\" \
+                  --authenticationDatabase admin '$DB_NAME' --eval \"$1\"
+              "
+            }
+
+            echo "=== 逐集合注入（空则插、非空则跳过）==="
+            for f in seed-staging/seed/*.json; do
+              col=$(basename "$f" .json)
+              existing=$(in_mongo "db.getCollection('$col').countDocuments()" | tr -d '[:space:]')
+              if [ "${existing:-0}" != "0" ]; then
+                echo "  skip   $col（库里已有 ${existing} 条：不覆盖运维数据）"
+                continue
+              fi
+              docker compose exec -T prod-mongodb-primary sh -c "
+                mongoimport \
+                  --username \"\$MONGODB_ROOT_USER\" --password \"\$MONGODB_ROOT_PASSWORD\" \
+                  --authenticationDatabase admin \
+                  --db '$DB_NAME' --collection '$col' \
+                  --file '/tmp/seed-ref/$(basename "$f")' \
+                  --jsonArray --mode=insert 2>&1 | tail -2
+              "
+            done
+
+            echo "=== 注入后条数（这就是可复核的证据）==="
+            in_mongo 'db.getCollectionNames().sort().forEach(c => print("  " + c.padEnd(18) + db.getCollection(c).countDocuments()))'
+
+            rm -rf seed-staging seed-asset
+            echo "参考数据注入完成：空集合已补齐，非空集合一个文档都没动"
 
       - name: Summary
         if: always()

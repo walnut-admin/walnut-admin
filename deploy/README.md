@@ -77,6 +77,49 @@ cd /home/ubuntu/walnut-admin/deploy && docker compose pull && docker compose up 
 - 构建失败的补救：在该 run 上点 **Re-run all jobs**（同一个 tag，缓存命中后会快很多）
 - 镜像 tag = 发布 tag（如 `v1.2.3`）；TCR 上同时保留 `nginx:brotli` 稳定别名
 
+### 首次部署后注入参考数据（一次性，默认关闭）
+
+空库起来后界面能用，但**菜单是空的、界面显示 i18n key** —— 参考数据（菜单 / 字典 / 语言包 / 应用设置）
+还没进库。它随 Release 以发版资产的形式发布，注入由部署工作流里一个**默认关闭**的开关触发：
+
+```
+Actions → Deploy → Run workflow → 勾上 seed_reference_data → Run
+（或 release.yml 调 deploy 时传 seed_reference_data: true）
+```
+
+它做的事（`deploy.yml` 的 `Seed reference data on server` 一步）：
+
+1. 从该 tag 的 Release 下载 `walnut-admin-seed-<版本>.tar.gz`（由 `pnpm seed:pack` 打出）；
+2. `scp` 到服务器，解到部署目录下的 `seed-staging/`，再 `docker cp` 进 mongo 容器
+   （`mongoimport` 跑在容器里，看不到宿主路径）；
+3. **逐集合判**：集合**为空**就 `mongoimport --mode=insert` 整集插入；集合**非空**就**整集跳过**。
+4. 打印每个集合的条数 —— 那就是可复核的证据。
+
+**为什么不直接用 `--mode=upsert`**：upsert 是**整文档替换**，会把运维在后台改过的菜单名、应用设置
+覆盖回仓里的值。开发环境要的正是"库对齐到仓"（`pnpm db:seed` 的默认语义），**生产不要**。
+这里刻意不依赖 `mongoimport` 的重复键行为（`--stopOnError` 在版本间语义含糊、没法先试错），
+而是按集合空/非空决定 —— 判据确定，且非空集合**一个文档都不动**。
+
+**代价（明说）**：后续版本往**已有**集合里新增的行不会被这条路径带上去。那类增量走通道 1：
+`pnpm db:export` 拉回仓库 → `git diff` → PR 审 → 随发版走；或运维显式跑一次 `pnpm db:seed`（
+默认语义，会覆盖同 `_id` 的文档 —— 跑之前先 `--dry-run` 看一遍）。
+
+**在服务器上自己复核**（不用等 CI）：
+
+```bash
+cd /home/ubuntu/walnut-admin/deploy
+# 参考数据是否就位（空库首跑后这些数字应当接近仓内条数：菜单 157 / 字典 169 / 语言包 1806 …）
+docker compose exec -T prod-mongodb-primary sh -c '
+  mongosh --quiet -u "$MONGODB_ROOT_USER" -p "$MONGODB_ROOT_PASSWORD" --authenticationDatabase admin \
+    "$MONGODB_DATABASE" --eval "db.getCollectionNames().sort().forEach(c => print(c.padEnd(18), db.getCollection(c).countDocuments()))"'
+# 看应用是否已经能用（语言包不再返回 500）
+curl -sk -o /dev/null -w '%{http_code}\n' https://www.walnut-admin.com/api/system/locale/message/zh_CN
+```
+
+**口令凭证不在这条路径上**：演示账号与第一个管理员的口令是 OPAQUE 注册记录，**绑定本环境的
+`AUTH_OPAQUE_SECRET`**，不能随仓库发布。它的建立是显式的一次性操作（见
+[`backend/mongodb.md`](../apps/docs/src/zh-CN/content/backend/mongodb.md) 的「哪些数据刻意不在仓库里」）。
+
 ### 部署后验证（post-verify）
 
 `docker compose up -d --wait` 只证明"容器起来了 + healthcheck 过"，不证明服务真的在工作。
