@@ -1,8 +1,8 @@
-## 0.1.9
+## 0.1.10
 
 ### 修复
 
-- [`2e25cbb`](https://github.com/walnut-admin/walnut-admin/commit/2e25cbb61f5cecefa064b7a134c0271219582fe4) **deploy** post-verify 不再把空库首启的已捕获噪声当致命错误
+- [`d561a1f`](https://github.com/walnut-admin/walnut-admin/commit/d561a1fe0cddc419cc36c653e7d6d05b27def7ed) **deploy** post-verify 的失败原因转成 annotation（否则只能靠翻日志）
 
 ---
-由 `pnpm release` 生成（v0.1.9）。
+由 `pnpm release` 生成（v0.1.10）。

@@ -229,6 +229,10 @@
   dir: packages/tooling/scripts
   intents:
     - neat-ducks-change
+"@walnut/scripts@0.1.10":
+  dir: packages/tooling/scripts
+  intents:
+    - dry-insects-help
 "@walnut/scripts@0.1.2":
   dir: packages/tooling/scripts
   intents:
