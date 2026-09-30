@@ -83,13 +83,18 @@ feat(deploy): 部署后验证           ← 基础设施 scope
 
 1. **路径优先**：提交改动的文件落在哪个包目录下（最长前缀）；一个提交可命中多个包。
 2. **scope 兜底**：路径一个包都没命中时，用 commit scope 查表。
-3. **基建桶（`infra`）**：改了文件、但不在任何包目录下（根配置、`.github/`、`deploy/`、`docker-bake.hcl`
-   这类）—— 归到 `infra` 桶，**按 type 正常参与版本升级**（`fix` → patch），并在 changelog 里出现。
+3. **基建提交挂到载体包**：改了文件、但不在任何包目录下（根配置、`.github/`、`deploy/`、`docker-bake.hcl`
+   这类）—— 意图挂到 `@walnut/scripts`（拥有 CI / 门禁 / 构建脚本的那个包），**按 type 正常参与版本升级**
+   （`fix` → patch），于是它会进 changelog 并带动发版。
 
 > 第 3 条在 2026-09-30 改过一次（原口径是"基础设施改动不带动产品版本号"）。改的原因是一次实测：
 > 一个 `fix(release)` 只改了 `.github/workflows/release.yml` + `docker-bake.hcl` + `deploy/README.md`
 > （修的正是**发版构建失败**本身），按旧口径它既不进 changelog 也不升级版本 ⇒ **修复合不进去**，
 > "下次发版自动带上"成了死循环。基建也是交付物，静默丢弃比"多一个 patch"贵得多。
+>
+> 载体包是**必须**的：意图文件由 `pnpm change` 写成 changesets 格式，包名只能是本 workspace 的真实包 ——
+> 自造一个 `infra` 会被直接拒（`ERR_PNPM_VERSIONING_UNKNOWN_PACKAGE`，实测踩到过）。本仓是单一 fixed 组，
+> 挂给谁不影响版本号，只决定这条意图记在哪个包的账上。
 >
 > 真正不产生意图的只剩两种：**一个文件都没改**（空提交），以及 **type 本身是 skip**
 > （`docs` / `chore` / `style` / `test` / `build` / `ci`）—— 后者在 `commit-intent.ts` 的 `BUMP_MAP` 里。

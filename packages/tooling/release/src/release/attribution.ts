@@ -211,23 +211,36 @@ export interface AttributionContext {
 }
 
 /**
- * 基建归属桶：**只动仓库级 / 基础设施文件**的提交归到这里。
+ * 基建提交的**载体包**：只动仓库级 / 基础设施文件的提交，意图挂在这个**真实包**上。
  *
- * ## 为什么不再是"不产生意图"
+ * ## 为什么需要一个载体（而不是自造一个 `infra` 桶）
  *
- * 原先 `INFRA_SCOPES` 与"只动仓库级文件"一律返回 `null`（刻意不归因），理由是"基建改动不带动产品
- * 版本号"。但 2026-09-30 实测撞到了它的反面：一次 `fix(release)` 只改了
- * `.github/workflows/release.yml` + `docker-bake.hcl` + `deploy/README.md`（修的是**发版构建失败**
- * 本身），于是它既不进 changelog、也不产生版本升级 ⇒ **修复合不进去**，"下次发版自动带上"成了死循环。
+ * 第一版我用了自造的 `INFRA_BUCKET = 'infra'`，想让 changelog 里出现一个"基建"归属 —— **错的**：
+ * 意图文件是 changesets 格式、由 `pnpm change` 写，而 pnpm 要求包名必须是**本 workspace 可发布的包**，
+ * 自造名字直接被拒：
  *
- * 现在的口径：基建也是交付物，按**同样的 type 规则**参与版本升级（`fix` → patch），并在 changelog 里
- * 以包的形态出现（桶名 `infra`，人读时就是「基建」那一类）。刻意不带产品包名的前缀 —— 它不属于任何
- * 产品包，写成一个包名会在"按包分组"的地方撒谎。
+ * ```
+ * ERR_PNPM_VERSIONING_UNKNOWN_PACKAGE  × infra is not a releasable package of this workspace
+ * ```
  *
- * 仍然不产生意图的只剩两种：**没有改任何文件**（空提交）、以及**类型本身是 skip**（docs / chore /
- * style / test / build / ci —— 在 `commit-intent.ts` 的 `BUMP_MAP` 里，走不到这里）。
+ * （2026-09-30 用户实跑 `pnpm release` 撞到，第 1 步就停。）
+ *
+ * ## 为什么是 `@walnut/scripts`
+ *
+ * 它是拥有 CI / 门禁 / 构建脚本的那个包，基建改动与它的职责最近。本仓是**单一 fixed 组**，
+ * 所以挂给谁**不影响版本号**（任何一条意图都会让整组一起升），只决定这条意图记在哪个包的账上；
+ * 意图正文里仍带着 `scope: 主题`（如 `release: bake 的 dockerfile…`），读起来不会认错。
+ *
+ * ## 为什么原先的"不产生意图"要改掉
+ *
+ * 一次 `fix(release)` 只改了 `.github/workflows/release.yml` + `docker-bake.hcl` + `deploy/README.md`
+ * （修的正是**发版构建失败**本身），按旧口径它既不进 changelog、也不产生版本升级 ⇒ **修复合不进去**，
+ * "下次发版自动带上"成了死循环。基建也是交付物，按同样的 type 规则参与版本升级。
+ *
+ * 仍然不产生意图的只剩两种：**没有改任何文件**（空提交）、以及 **type 本身是 skip**
+ * （`docs` / `chore` / `style` / `test` / `build` / `ci` —— 在 `commit-intent.ts` 的 `BUMP_MAP` 里）。
  */
-export const INFRA_BUCKET = 'infra'
+export const INFRA_CARRIER = '@walnut/scripts'
 
 export function buildAttributionContext(packages: WorkspacePackage[] = workspacePackages()): AttributionContext {
   return { dirIndex: packages }
@@ -268,10 +281,9 @@ export function attributeCommit(
       return [scoped]
   }
 
-  // ③ 基建桶：改了文件但不在任何包目录下（`.github/**`、`deploy/**`、根配置等）
-  //    —— 见 `INFRA_BUCKET` 顶部那段：静默丢弃会让"修了却发不出去"。
+  // ③ 基建提交挂到载体包（见 `INFRA_CARRIER`：pnpm 只接受本 workspace 的真实包名）
   if (files.length > 0)
-    return [INFRA_BUCKET]
+    return [INFRA_CARRIER]
 
   return null
 }
@@ -282,7 +294,5 @@ export function describeAttributionSkip(parsed: ParsedCommit, files: string[]): 
     return '空改动（没有改任何文件）'
   if (parsed.type !== null && BUMP_MAP[parsed.type] === 'skip')
     return `类型 ${parsed.type} 按约定不进 changelog / 不升级版本（见 commit-intent.ts 的 BUMP_MAP）`
-  if (parsed.scope !== null && !SCOPE_TO_PACKAGE[parsed.scope] && !NON_PACKAGE_SCOPES.includes(parsed.scope))
-    return `未在册的 scope（${parsed.scope}）—— 但它只改了基建文件，本应归到 ${INFRA_BUCKET} 桶`
-  return '无归属'
+  return `无归属（本应挂到载体包 ${INFRA_CARRIER}）`
 }

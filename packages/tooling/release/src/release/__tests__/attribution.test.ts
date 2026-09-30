@@ -13,7 +13,7 @@ import {
   attributeCommit,
   buildAttributionContext,
   describeAttributionSkip,
-  INFRA_BUCKET,
+  INFRA_CARRIER,
   SCOPE_TO_PACKAGE,
   workspacePackages,
 } from '../attribution.ts'
@@ -78,13 +78,13 @@ describe('attributeCommit —— 路径优先、scope 兜底、否则不发版',
     expect(attributeCommit(commit('contract'), ['turbo.json'], context)).toEqual(['@walnut/contract'])
   })
 
-  it('基础设施 scope 归到 `infra` 桶（2026-09-30 起：基建也是交付物，见 INFRA_BUCKET 顶部）', () => {
+  it('基础设施 scope 挂到载体包（见 INFRA_CARRIER：pnpm 只接受本 workspace 的真实包名）', () => {
     for (const scope of ['docker', 'deploy', 'pnpm', 'release'])
-      expect(attributeCommit(commit(scope), ['turbo.json'], context)).toEqual([INFRA_BUCKET])
+      expect(attributeCommit(commit(scope), ['turbo.json'], context)).toEqual([INFRA_CARRIER])
   })
 
-  it('scope=tooling 且没有路径命中时也归 `infra` 桶（它确实改了仓库级文件）', () => {
-    expect(attributeCommit(commit('tooling'), ['turbo.json'], context)).toEqual([INFRA_BUCKET])
+  it('scope=tooling 且没有路径命中时也挂载体包（它确实改了仓库级文件）', () => {
+    expect(attributeCommit(commit('tooling'), ['turbo.json'], context)).toEqual([INFRA_CARRIER])
   })
 
   it('scope=tooling 但改了工具链包时，仍然按**路径**归属', () => {
@@ -92,12 +92,12 @@ describe('attributeCommit —— 路径优先、scope 兜底、否则不发版',
       .toEqual(['@walnut/scripts'])
   })
 
-  it('未在册的 scope 只要改了文件也归 `infra` 桶（静默丢弃会让"修了却发不出去"）', () => {
-    expect(attributeCommit(commit('nope'), ['turbo.json'], context)).toEqual([INFRA_BUCKET])
+  it('未在册的 scope 只要改了文件也挂载体包（静默丢弃会让"修了却发不出去"）', () => {
+    expect(attributeCommit(commit('nope'), ['turbo.json'], context)).toEqual([INFRA_CARRIER])
   })
 
-  it('没有 scope 但改了文件同样归 `infra` 桶', () => {
-    expect(attributeCommit(commit(null), ['turbo.json'], context)).toEqual([INFRA_BUCKET])
+  it('没有 scope 但改了文件同样挂载体包', () => {
+    expect(attributeCommit(commit(null), ['turbo.json'], context)).toEqual([INFRA_CARRIER])
   })
 
   it('**一个文件都没改**才是真的不产生意图（空提交）', () => {
@@ -115,7 +115,7 @@ describe('describeAttributionSkip —— 日志里要能看懂为什么没意图
     expect(describeAttributionSkip(commit('release', 'chore'), ['turbo.json'])).toContain('类型 chore')
   })
 
-  it('仍未归因时，指出它本该落到 infra 桶（说明这是不该发生的情况）', () => {
-    expect(describeAttributionSkip(commit('nope', 'fix'), ['turbo.json'])).toContain(INFRA_BUCKET)
+  it('仍未归因时，指出它本该挂到载体包（说明这是不该发生的情况）', () => {
+    expect(describeAttributionSkip(commit('nope', 'fix'), ['turbo.json'])).toContain(INFRA_CARRIER)
   })
 })
