@@ -125,6 +125,33 @@ export function describeStep(step: ReleaseStep): string {
   return STEP_TEXT[step]
 }
 
+/**
+ * 发版步骤的固定顺序（`done` 不是步骤，是人读的终态）。
+ *
+ * 为什么要显式列出：进度头要能说"第几步 / 共几步"，而这个数必须与 `ReleaseStep` 保持同步 ——
+ * 写死 `5` 会在加步骤时静默说谎，所以 `__tests__` 里有一条把两边钉在一起。
+ */
+export const RELEASE_STEP_ORDER: readonly ReleaseStep[] = [
+  'generate-intents',
+  'confirm-bump',
+  'consume-intents',
+  'confirm-summary',
+  'commit-tag-push',
+]
+
+/**
+ * 进度头：`── [2/5] 确认版本升级类型（major / minor / patch）`。
+ *
+ * 起因（用户反馈）：`pnpm release` 跑到分钟级的那几步时，屏幕上只有子进程的"仍在执行"，
+ * 看不出跑到第几步、这一步在干什么。步数之外还把**任务名**带上（而不是只写"步骤 2"）。
+ */
+export function formatStepHeader(step: ReleaseStep): string {
+  const index = RELEASE_STEP_ORDER.indexOf(step)
+  const total = RELEASE_STEP_ORDER.length
+  const label = index === -1 ? describeStep(step) : `[${index + 1}/${total}] ${describeStep(step)}`
+  return `── ${label}`
+}
+
 /** 从 CHANGELOG.md 里取某个版本的段落（`## 1.9.0` 起，到下一个 `## ` 或文件末尾） */
 export function extractChangelogSection(markdown: string, version: string): string | null {
   const lines = markdown.split('\n')

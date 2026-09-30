@@ -38,7 +38,7 @@ import { collateFacts, collectUnrelatedChanges, makeReleaseProbe } from './facts
 import { generateIntents, nextVersionOrDie, resolveBump } from './generate.ts'
 import { maskToken } from './github.ts'
 import { writeReleaseNotes } from './notes.ts'
-import { describeStep, isBumped, planRelease } from './plan.ts'
+import { describeStep, formatStepHeader, isBumped, planRelease } from './plan.ts'
 import { abortHintLines, dryRunGenerateLines, statusLines } from './report.ts'
 import { clearState, readState, setStateDryRun, writeState } from './state.ts'
 import { confirmSummary, releaseBatteryCount, releaseBatterySkippedCount, stepCommitTagPush } from './steps.ts'
@@ -328,6 +328,7 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
     if (!args.intentOnly && !args.dryRun && plan.step === 'generate-intents' && readState())
       clearState() // 新一轮开始：上个版本留下的写前日志不得并进本次状态
 
+    log(formatStepHeader('generate-intents'))
     log('从上次 tag 以来的 commit 生成变更意图...')
     const outcome = await generateIntents(ui, { dryRun: args.dryRun, baseTag: facts.baseTag })
 
@@ -415,6 +416,7 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
       return
     }
 
+    log(formatStepHeader('consume-intents'))
     log(`消费变更意图，更新版本号（目标 v${newVersion}）...`)
     const consumedVersion = await consumeIntents(ui, args, { oldVersion, newVersion })
     newVersion = consumedVersion
@@ -461,6 +463,7 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
     if (plan.step === 'confirm-summary' && !isInteractive() && newlyUnrelated.length > 0 && !args.allowDirty)
       die(2, `工作区新出现 ${newlyUnrelated.length} 个与发版无关的改动（非交互模式不替你决定）：${newlyUnrelated.join(', ')}。先 stash，或显式加 --allow-dirty`)
 
+    log(formatStepHeader('confirm-summary'))
     await confirmSummary(ui, args, {
       entries,
       oldVersion,
@@ -480,6 +483,7 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
 
   // ── 5. 提交 / 门禁 / 打标 / 推送 ────────────────────────────────────────
   saveState({ fromVersion: oldVersion, toVersion: newVersion, bump, nextStep: 'commit-tag-push', baseTag: freshFacts.baseTag, branch })
+  log(formatStepHeader('commit-tag-push'))
   await stepCommitTagPush(ui, newVersion, { commit: freshFacts.versionConsumed, skipGates: ARGS.skipGates })
 
   clearState()

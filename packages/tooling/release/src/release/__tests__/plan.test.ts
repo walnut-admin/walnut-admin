@@ -7,7 +7,34 @@
 
 import type { ReleaseFacts, ReleaseNoteInput, ReleaseStep } from '../plan.ts'
 import { describe, expect, it } from 'vitest'
-import { buildReleaseNotes, describeStep, extractChangelogSection, isBumped, planRelease, releaseNoteSource } from '../plan.ts'
+import { buildReleaseNotes, describeStep, extractChangelogSection, formatStepHeader, isBumped, planRelease, RELEASE_STEP_ORDER, releaseNoteSource } from '../plan.ts'
+
+/**
+ * 进度头（`formatStepHeader`）。
+ *
+ * 起因：`pnpm release` 跑到分钟级的那几步时屏幕上只有子进程的"仍在执行"，看不出第几步、在干什么。
+ * 用例钉两件事：**格式**（第几步 / 共几步 + 任务名）与**步数表的同步**（加步骤时不能还只说 5 步）。
+ */
+describe('formatStepHeader —— 进度头', () => {
+  it('带上「第几步 / 共几步」与任务名', () => {
+    expect(formatStepHeader('generate-intents')).toBe('── [1/5] 扫描 commit 生成变更意图')
+    expect(formatStepHeader('confirm-bump')).toContain('[2/5]')
+    expect(formatStepHeader('consume-intents')).toContain('[3/5]')
+    expect(formatStepHeader('commit-tag-push')).toBe('── [5/5] 提交版本变更 → 跑门禁 → 打 tag → 推分支与 tag')
+  })
+
+  it('步数表与真实步骤同步：五步、无重复、不含终态 `done`', () => {
+    expect(RELEASE_STEP_ORDER).toHaveLength(5)
+    expect(new Set(RELEASE_STEP_ORDER).size).toBe(RELEASE_STEP_ORDER.length)
+    expect(RELEASE_STEP_ORDER).not.toContain('done')
+    for (const step of RELEASE_STEP_ORDER)
+      expect(describeStep(step)).toBeTruthy()
+  })
+
+  it('不在表里的步骤（`done`）退化成只报任务名，不谎报序号', () => {
+    expect(formatStepHeader('done')).toBe('── 已完成')
+  })
+})
 
 /**
  * 默认事实：一个「刚发完 v1.0.0、没有待办」的干净仓库。
