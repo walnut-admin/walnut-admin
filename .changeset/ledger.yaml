@@ -261,6 +261,10 @@
   dir: packages/tooling/scripts
   intents:
     - new-swans-hammer
+"@walnut/scripts@0.1.9":
+  dir: packages/tooling/scripts
+  intents:
+    - bright-crabs-switch
 "@walnut/server@0.1.0":
   dir: apps/server
   intents:

@@ -1,8 +1,8 @@
-## 0.1.8
+## 0.1.9
 
 ### 修复
 
-- [`99b6bb8`](https://github.com/walnut-admin/walnut-admin/commit/99b6bb8b97f271e4a5671850fc7100f71bf5f164) by @Zhaocl1997 **deploy** digest 核对取错对象（image inspect 不认容器名）+ 取不到就不判
+- [`2e25cbb`](https://github.com/walnut-admin/walnut-admin/commit/2e25cbb61f5cecefa064b7a134c0271219582fe4) **deploy** post-verify 不再把空库首启的已捕获噪声当致命错误
 
 ---
-由 `pnpm release` 生成（v0.1.8）。
+由 `pnpm release` 生成（v0.1.9）。
