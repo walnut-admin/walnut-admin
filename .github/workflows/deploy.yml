@@ -464,6 +464,9 @@ jobs:
           echo "  缺失安全头 ->${miss:- 无}"
           printf '%s\n' "$FH" | head -20
           if [ "$FC" != "200" ] || [ "$AC" != "200" ] || [ -n "$miss" ]; then
+            # 这一行是**给注解用的**：runner 侧 `run:` 步骤的 `::error::` 会被解析成注解，
+            # 而 ssh-action 远端的同样输出不会（实测过）。有它才不用去翻需要鉴权的日志。
+            echo "::error::ORIGIN-DIAG front=$FC api=$AC missing=${miss:-无}"
             echo "ORIGIN-DIAG-NOT-OK front=$FC api=$AC missing=$miss"
             exit 1
           fi
