@@ -199,8 +199,13 @@ jobs:
       # 为什么把文件 `docker cp` 进容器：`mongoimport` 跑在 mongo 容器里、看不到宿主路径；
       # 凭据用**容器自己的环境变量**（Bitnami 注入的 root 账号），不落到命令行上 —— 命令行会进
       # CI 日志与服务器进程表。
+      # **每次部署都跑**（不再挂在 `seed_reference_data` 开关上）。
+      #
+      # 为什么撤掉开关：注入的语义本来就是"**集合为空才插、非空整集跳过**"⇒ 幂等、且不动运维数据，
+      # 每次跑都安全。而挂在开关上有个结构性漏洞 —— tag 推送触发的发版走 `workflow_call`，
+      # **根本没法设置这个输入**，于是"打 tag 自动部署"这条路永远不注入数据（2026-09-30 实测：
+      # v0.1.2 / v0.1.3 两次发版的注入步骤全是 skipped，线上库一直是空的）。
       - name: Download seed asset from the release
-        if: inputs.seed_reference_data
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -210,7 +215,6 @@ jobs:
           ls -l seed-asset
 
       - name: Upload seed asset to server
-        if: inputs.seed_reference_data
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.PROD_SERVER_HOST }}
@@ -220,7 +224,6 @@ jobs:
           target: /home/ubuntu/walnut-admin/deploy/
 
       - name: Seed reference data on server
-        if: inputs.seed_reference_data
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.PROD_SERVER_HOST }}
