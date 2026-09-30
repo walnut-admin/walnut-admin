@@ -1,5 +1,15 @@
 # @walnut/release
 
+## 0.1.7
+
+### 修复
+
+- [`75030f0`](https://github.com/walnut-admin/walnut-admin/commit/75030f0e29fe2c1dbe81bd822b3f401c9658aa4f) **release** ci / build 类型改为 patch（会随发版交付，放宽前发不出去）
+
+### 基建（CI / 构建 / 部署）
+
+- [`5ee3a50`](https://github.com/walnut-admin/walnut-admin/commit/5ee3a5048ddc8d1033c15d8d12b2934225bc0678) by @Zhaocl1997 **tooling** 新增 workflow shell 语法门禁（逐块 bash -n）+ 五处接线
+
 ## 0.1.1
 
 ### 新功能

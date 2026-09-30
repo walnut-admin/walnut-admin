@@ -1,5 +1,12 @@
 # @walnut/scripts
 
+## 0.1.7
+
+### 基建（CI / 构建 / 部署）
+
+- [`5ee3a50`](https://github.com/walnut-admin/walnut-admin/commit/5ee3a5048ddc8d1033c15d8d12b2934225bc0678) by @Zhaocl1997 **tooling** 新增 workflow shell 语法门禁（逐块 bash -n）+ 五处接线
+- [`6be9d81`](https://github.com/walnut-admin/walnut-admin/commit/6be9d81d21b4bfaec20c217af935e4debda07131) by @Zhaocl1997 **tooling** CI 的 admin 构建改为 --force（缓存掩盖过一次发版事故）
+
 ## 0.1.3
 
 ### 修复

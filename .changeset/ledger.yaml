@@ -133,6 +133,10 @@
   intents:
     - big-cats-cry
     - sharp-jobs-try
+"@walnut/docs@0.1.7":
+  dir: apps/docs
+  intents:
+    - mean-grapes-ring
 "@walnut/eslint-config@0.1.0":
   dir: packages/tooling/eslint-config
   intents:
@@ -180,6 +184,11 @@
     - big-cats-cry
     - sharp-jobs-try
     - silly-books-wonder
+"@walnut/release@0.1.7":
+  dir: packages/tooling/release
+  intents:
+    - mean-grapes-ring
+    - strong-kids-whisper
 "@walnut/scripts@0.1.0":
   dir: packages/tooling/scripts
   intents:
@@ -239,6 +248,15 @@
   dir: packages/tooling/scripts
   intents:
     - young-tables-sell
+"@walnut/scripts@0.1.7":
+  dir: packages/tooling/scripts
+  intents:
+    - clever-mice-own
+    - giant-monkeys-wink
+    - kind-shirts-rhyme
+    - mean-grapes-ring
+    - real-beans-tap
+    - soft-ravens-cheat
 "@walnut/server@0.1.0":
   dir: apps/server
   intents:
