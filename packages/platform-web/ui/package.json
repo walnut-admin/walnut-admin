@@ -1,7 +1,7 @@
 {
   "name": "@walnut/ui",
   "type": "module",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "Naive UI based Vue components for Walnut Admin — consumed by frontend apps",
   "license": "MIT",
   "exports": {

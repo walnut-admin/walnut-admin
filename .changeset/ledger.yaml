@@ -245,6 +245,10 @@
   dir: packages/tooling/scripts
   intents:
     - fast-cows-decide
+"@walnut/scripts@0.1.14":
+  dir: packages/tooling/scripts
+  intents:
+    - mean-horses-fry
 "@walnut/scripts@0.1.2":
   dir: packages/tooling/scripts
   intents:
