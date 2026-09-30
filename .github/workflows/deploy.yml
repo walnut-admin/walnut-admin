@@ -396,6 +396,11 @@ jobs:
       # 部署后验证放在**最后**：它要观察 2 分钟（镜像 tag / 后端启动标记 / 无致命错误 / 无 5xx /
       # 公网 200），而首次部署到空库时后端会在注入参考数据之前先崩一轮 —— 排在注入之前必然假红
       # （2026-09-30 实测）。顺序：up -d（不等）→ 注入数据 → 等健康 → 再跑这条持续观察。
+      # 失败原因**必须能被人看到**：post-verify 的每一条判据失败都会打一行
+      # `❌ POST-VERIFY FAILED: <原因>`，但它埋在步骤日志里 —— 而日志需要鉴权才能读。
+      # 所以这里把那一行**转成 GitHub annotation**（`::error::` 由 runner 解析步骤 stdout 得到，
+      # 远端的输出会经 ssh-action 落到同一个 stdout）。有它之后，任何一次失败的原因都能从
+      # run 的注解里直接读到，不必再让人翻日志。
       - name: Post-deploy verification
         uses: appleboy/ssh-action@v0.1.10
         with:
@@ -404,9 +409,19 @@ jobs:
           password: ${{ secrets.PROD_SERVER_PASSWORD }}
           command_timeout: 10m
           script: |
-            set -e
             cd /home/ubuntu/walnut-admin/deploy
-            bash post-verify.sh 24 5
+            # 不用管道：`… | tee` 的退出码是 **tee 的**（恒为 0）⇒ 既不会触发注解、
+            # 又会把 post-verify 的失败吞成"通过"。改成重定向到文件，再自己判 exit code。
+            if bash post-verify.sh 24 5 > /tmp/post-verify.log 2>&1; then
+              cat /tmp/post-verify.log
+              echo "::notice::post-verify 通过"
+              exit 0
+            fi
+            cat /tmp/post-verify.log
+            reason="$(grep -m1 'POST-VERIFY FAILED' /tmp/post-verify.log || true)"
+            [ -n "$reason" ] || reason="（没抓到 POST-VERIFY FAILED 那一行，见上面的日志）"
+            echo "::error::post-verify 失败：$reason"
+            exit 1
 
       - name: Summary
         if: always()
