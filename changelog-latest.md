@@ -1,8 +1,8 @@
-## 0.1.10
+## 0.1.11
 
 ### 修复
 
-- [`d561a1f`](https://github.com/walnut-admin/walnut-admin/commit/d561a1fe0cddc419cc36c653e7d6d05b27def7ed) **deploy** post-verify 的失败原因转成 annotation（否则只能靠翻日志）
+- [`8ac109f`](https://github.com/walnut-admin/walnut-admin/commit/8ac109ff8253efe1d393ab9d3f5e9dc005bf027b) **deploy** post-verify 的就绪判定改用容器健康状态（日志窗口会滚动）
 
 ---
-由 `pnpm release` 生成（v0.1.10）。
+由 `pnpm release` 生成（v0.1.11）。
