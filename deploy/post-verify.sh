@@ -90,14 +90,27 @@ check_image_tags() {
 BENIGN_RE='AppTechCacheAppSettingsService.*"undefined" is not valid JSON|SyntaxError: "undefined" is not valid JSON'
 
 scan_backend_logs() {
-  local logs
-  logs="$(docker logs --tail 300 "$CONTAINER_BACKEND" 2>&1 || true)"
+  local logs health
+  # 「后端是否就绪」优先看**容器健康状态**（compose 的 healthcheck 探的就是那个静态路由），
+  # 而不是日志里的启动标记 —— 2026-09-30 实测出的坑：镜像没变时 compose **不会重建**后端，
+  # 于是它的日志里已经积了几个小时的 cron 行，`--tail 300` 早就把启动标记挤出去 ⇒
+  # `BACKEND_READY` 永远是 0 ⇒ post-verify 必然跑满 24 轮超时（部署假红）。
+  # 健康状态与日志长度无关，且正是 `docker compose up --wait` 判过的同一件事。
+  health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$CONTAINER_BACKEND" 2>/dev/null || true)"
+  if [ "$health" = "healthy" ]; then
+    BACKEND_READY=1
+  fi
+
+  # 日志仍然要看：**致命错误**的判据不能因为"没重建容器"而失效（那种情况下更要看老日志）。
+  # 窗口从 300 行放宽到 3000 行，避免长时间运行的容器把错误挤出窗口。
+  logs="$(docker logs --tail 3000 "$CONTAINER_BACKEND" 2>&1 || true)"
   logs="$(printf '%s\n' "$logs" | grep -Ev "$BENIGN_RE" || true)"
   if printf '%s\n' "$logs" | grep -Eq "$FATAL_RE"; then
     printf '%s\n' "$logs" | grep -E "$FATAL_RE" | tail -n 15
     die "后端日志出现致命错误"
   fi
-  if printf '%s\n' "$logs" | grep -q "$READY_RE"; then
+  # 没有 healthcheck 定义时（health 为空）退回日志标记，且同样用放宽后的窗口。
+  if [ "$BACKEND_READY" != "1" ] && printf '%s\n' "$logs" | grep -q "$READY_RE"; then
     BACKEND_READY=1
   fi
 }
