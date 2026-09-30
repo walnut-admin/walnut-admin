@@ -53,7 +53,12 @@ deploy/nginx/certs/
 .lefthook-local.yml
 
 # 发版
-# `.changeset/` 其余内容（意图 *.md、ledger.yaml、README.md）**必须提交**，不要整体忽略。
+# 意图 `*.md` 是**发版过程的临时产物**：`pnpm change` 生成 → `pnpm version -r` 消费 → 脚本立刻删掉。
+# 所以不进 git（2026-09-30 改的口径；旧注释写着"必须提交"，那会让失败的半程状态被提交进来 ——
+# 实测踩到：一次中断留下 2 个意图文件，收尾的 `git add -A` 把它们卷进了提交）。
+# `ledger.yaml`（谁被发过版的账）与 `README.md` **仍然必须提交**。
+.changeset/*.md
+!.changeset/README.md
 # 这里只忽略本机状态与 pnpm 的寄存区：
 .changeset/.release-state.json
 # `.changeset/changelogs/` 是 pnpm 的 changelog 寄存区，只有 publish 时才有人读，
