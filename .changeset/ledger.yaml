@@ -50,6 +50,10 @@
     - wide-bears-wait
     - wide-pigs-agree
     - young-seals-visit
+"@walnut/admin@0.1.5":
+  dir: apps/admin
+  intents:
+    - great-trains-retire
 "@walnut/client@0.1.0":
   dir: packages/platform-web/client
   intents:
