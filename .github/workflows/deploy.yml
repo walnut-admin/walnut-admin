@@ -164,12 +164,12 @@ jobs:
 
             docker compose pull
 
-            # compose >= 2.17 支持 --wait：等 healthcheck 通过再返回，避免"起来就成功"的假绿
-            if docker compose version --short | awk -F. '{ exit !($2 >= 17) }'; then
-              docker compose up -d --wait --wait-timeout 180
-            else
-              docker compose up -d
-            fi
+            # **先起容器、不等健康**：空库环境下后端会在启动期读不到 app_setting 而报错
+            # （2026-09-30 实测：AppTechTasksService 在 onModuleInit 里 getSetting → JSON.parse('undefined')
+            # 抛异常 ⇒ 容器起不来）。所以顺序必须是：up -d（不等）→ 注入参考数据 → 再等健康
+            # （见后面 "Wait for health after seeding" 一步）。这里**不能**用 --wait，
+            # 否则首次部署到空库时会在数据注入之前就超时失败。
+            docker compose up -d
 
             echo "=== 部署后 ==="
             docker compose ps --format 'table {{.Service}}\t{{.Image}}\t{{.Status}}'
@@ -186,18 +186,6 @@ jobs:
       # 部署后验证（post-verify）：上一步只保证"容器起来了 + healthcheck 过"，
       # 这一步持续观察 2 分钟，证明服务真的在工作：镜像 tag 正确、后端出现启动标记、
       # 后端日志无致命错误、前端/入口 nginx 无 5xx、公网域名端到端 200。详见 deploy/post-verify.sh
-      - name: Post-deploy verification
-        uses: appleboy/ssh-action@v0.1.10
-        with:
-          host: ${{ secrets.PROD_SERVER_HOST }}
-          username: ${{ secrets.PROD_SERVER_USERNAME }}
-          password: ${{ secrets.PROD_SERVER_PASSWORD }}
-          command_timeout: 10m
-          script: |
-            set -e
-            cd /home/ubuntu/walnut-admin/deploy
-            bash post-verify.sh 24 5
-
       # 参考数据注入（只有勾了 seed_reference_data 才跑）。
       #
       # 判据刻意**不依赖重复键语义**：`mongoimport` 的 `--stopOnError` 行为在版本间含糊（默认是继续
@@ -289,6 +277,52 @@ jobs:
 
             rm -rf seed-staging seed-asset
             echo "参考数据注入完成：空集合已补齐，非空集合一个文档都没动"
+
+      # 数据就位之后**才**等健康检查。
+      #
+      # 为什么把它单独放在最后：后端启动期会读 app_setting（`AppTechTasksService.onModuleInit` →
+      # `AppTechCacheAppSettingsService.getSetting`），空库时 `JSON.parse('undefined')` 直接抛异常、
+      # 容器起不来（2026-09-30 首次部署实测）。所以"等健康"必须排在注入之后，否则首次部署到空库
+      # 一定超时失败（`up -d --wait` 会在数据注入之前就放弃）。
+      #
+      # 没勾 `seed_reference_data` 时这一步仍然有意义：它是"部署完真的健康"的判据
+      # （compose >= 2.17 支持 `--wait`；老版本退化成只确认容器在跑）。
+      - name: Wait for health after seeding
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USERNAME }}
+          password: ${{ secrets.PROD_SERVER_PASSWORD }}
+          command_timeout: 10m
+          script: |
+            set -e
+            cd /home/ubuntu/walnut-admin/deploy
+            if docker compose version --short | awk -F. '{ exit !($2 >= 17) }'; then
+              docker compose up -d --wait --wait-timeout 180
+            else
+              docker compose up -d
+            fi
+            echo "=== 健康检查后 ==="
+            docker compose ps --format 'table {{.Service}}\t{{.Image}}\t{{.Status}}'
+            # 后端有没有在启动期报错（空库那条 JSON.parse 就是在这里暴露的）
+            docker compose logs --tail=40 backend | grep -E "ERROR|SyntaxError" && {
+              echo "ERROR: 后端日志里有启动期错误（上面这些行）"; exit 1
+            } || echo "后端日志无启动期错误"
+
+      # 部署后验证放在**最后**：它要观察 2 分钟（镜像 tag / 后端启动标记 / 无致命错误 / 无 5xx /
+      # 公网 200），而首次部署到空库时后端会在注入参考数据之前先崩一轮 —— 排在注入之前必然假红
+      # （2026-09-30 实测）。顺序：up -d（不等）→ 注入数据 → 等健康 → 再跑这条持续观察。
+      - name: Post-deploy verification
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.PROD_SERVER_HOST }}
+          username: ${{ secrets.PROD_SERVER_USERNAME }}
+          password: ${{ secrets.PROD_SERVER_PASSWORD }}
+          command_timeout: 10m
+          script: |
+            set -e
+            cd /home/ubuntu/walnut-admin/deploy
+            bash post-verify.sh 24 5
 
       - name: Summary
         if: always()
