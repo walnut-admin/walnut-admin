@@ -114,6 +114,11 @@ jobs:
           cp apps/server/env-local/.env.production deploy-files/.env.production
           # 部署后验证脚本一起上传，部署完在服务器上跑（见下方 Post-deploy verification）
           cp deploy/post-verify.sh deploy-files/post-verify.sh
+          # 入口 nginx 配置一起上传：服务器上那份是手工拷贝的，不同步就等于"仓库改了也不生效"
+          # （安全响应头就是这么一直缺的）。安装带备份 + nginx -t + 自动回滚，见 Deploy on server。
+          mkdir -p deploy-files/nginx
+          cp -a deploy/nginx/conf.d deploy-files/nginx/conf.d
+          cp -a deploy/nginx/frontend-server.conf deploy-files/nginx/frontend-server.conf
           cat > deploy-files/.env <<EOF
           IMG_TAG=${TAG}
           MONGODB_ROOT_PASSWORD=${DB_PASS}
@@ -148,6 +153,38 @@ jobs:
             mv -f deploy-files/.env.production env/.env.production
             # 验证脚本留在部署目录，供下一步调用（deploy-files 其余内容清掉）
             mv -f deploy-files/post-verify.sh post-verify.sh
+
+            # ---- 同步入口 nginx 配置（仓库是唯一真源）----
+            #
+            # 为什么必须同步：`nginx/conf.d/*.conf`（安全响应头、location 规则）在服务器上是**手工
+            # 拷贝**的，而部署流程原先只同步 env 与 seed 资产 ⇒ 仓库里后来加/改的配置**永远到不了
+            # 线上**。2026-09-30 实测：post-verify 要求两个域名都有 4 个安全响应头，仓库里齐全
+            # （`pnpm lint:nginx-headers` 逐块核对），而线上一直不 PASS ⇒ 就是这份拷贝陈旧。
+            #
+            # 三道护栏（这是**线上配置**，不能裸奔）：
+            #   1) 覆盖前把现有 conf **备份**到 nginx-backup/<时间戳>/；
+            #   2) 覆盖后先 `nginx -t` 校验，**只有通过才 reload**；
+            #   3) 校验不通过 ⇒ 从备份**自动回滚**并 reload 旧配置（结果是"维持原样 + 一条 WARN"，
+            #      不会把入口 nginx 弄挂）。
+            if [ -d deploy-files/nginx ]; then
+              echo "--- phase: 同步 nginx 配置"
+              ts="$(date +%Y%m%d%H%M%S)"
+              mkdir -p "nginx-backup/$ts"
+              cp -a nginx/conf.d/. "nginx-backup/$ts/" 2>/dev/null || true
+              cp -a nginx/frontend-server.conf "nginx-backup/$ts/frontend-server.conf" 2>/dev/null || true
+              mkdir -p nginx/conf.d
+              cp -a deploy-files/nginx/conf.d/. nginx/conf.d/
+              cp -a deploy-files/nginx/frontend-server.conf nginx/frontend-server.conf 2>/dev/null || true
+              if docker compose exec -T nginx nginx -t >/dev/null 2>&1; then
+                docker compose exec -T nginx nginx -s reload >/dev/null 2>&1 || true
+                echo "  ok   nginx 配置已同步并 reload（备份：nginx-backup/$ts）"
+              else
+                echo "  WARN 新配置未通过 nginx -t，回滚到 nginx-backup/$ts"
+                cp -a "nginx-backup/$ts/." nginx/conf.d/ 2>/dev/null || true
+                docker compose exec -T nginx nginx -s reload >/dev/null 2>&1 || true
+              fi
+            fi
+
             rm -rf deploy-files
             # 只替换 IMG_TAG 行，保留服务器上的人工配置（如有）
             if grep -q '^IMG_TAG=' .env; then
