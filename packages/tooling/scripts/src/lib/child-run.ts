@@ -180,10 +180,15 @@ export async function runArgs(cmd: string, args: string[], opts: RunVisibleOptio
   try {
     const code = await new Promise<number>((resolve, reject) => {
       if (heartbeatMs > 0) {
-        // 心跳只报告事实（已跑多久 + 预算），不猜原因
+        // 心跳只报告事实（在跑什么 + 已跑多久 + 预算），不猜原因。
+        //
+        // 「在跑什么」这半截是 2026-09-30 补的：用户反馈发版时只看到 `… 仍在执行 15s`，
+        // 既不知道这是第几步、也不知道在等哪条命令（hint 只在启动时打一次，分钟级的长任务里
+        // 早就滚出屏幕了）。没有 hint 时退化成命令行本身 —— 信息少一点，但绝不会是空的。
+        const label = opts.hint ?? (display.length > 80 ? `${display.slice(0, 77)}…` : display)
         heartbeat = setInterval(() => {
           const ran = Math.round((Date.now() - startedAt) / 1000)
-          note(`   … 仍在执行 ${ran}s${budgetMs > 0 ? `（上限 ${Math.round(budgetMs / 1000)}s）` : ''}`)
+          note(`   … ${label}｜仍在执行 ${ran}s${budgetMs > 0 ? `（上限 ${Math.round(budgetMs / 1000)}s）` : ''}`)
         }, heartbeatMs)
       }
       if (budgetMs > 0) {

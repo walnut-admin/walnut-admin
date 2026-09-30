@@ -103,6 +103,22 @@ function childOptions(extra: Record<string, unknown> = {}): any {
   }
 }
 
+/** 当前正在跑的步骤：给子进程心跳带上「第几步 + 任务名」（`formatStepHeader` 打印时同步设置） */
+let currentStep: ReleaseStep | null = null
+
+/** 打印进度头，并记住当前步骤（心跳要用） */
+function stepHeader(step: ReleaseStep): void {
+  currentStep = step
+  log(formatStepHeader(step))
+}
+
+/** 子进程心跳的标签：`[5/5] 提交版本变更 → … · <调用方给的 hint>` */
+function heartbeatLabel(hint?: string): string | undefined {
+  const step = currentStep === null ? null : formatStepHeader(currentStep).replace(/^── /, '')
+  const parts = [step, hint].filter((part): part is string => part !== null && part !== undefined && part !== '')
+  return parts.length > 0 ? parts.join(' · ') : undefined
+}
+
 /** 步骤模块与 CLI 之间的接口：**实现都在本文件**（日志 / 交互 / 退出策略 / 子进程出口） */
 const ui: ReleaseUi = {
   log,
@@ -112,7 +128,7 @@ const ui: ReleaseUi = {
   die,
   childOptions,
   runPnpmStep: async (args, hint) => {
-    await runArgs(getPnpmBin(), args, childOptions({ hint }))
+    await runArgs(getPnpmBin(), args, childOptions({ hint: heartbeatLabel(hint) }))
   },
   execPnpmSync: (args) => {
     // 同步执行秒级命令（`pnpm change` 每个 commit 一次）：走同一个出口 ⇒ 同样剥凭据、同样 argv 直传
@@ -328,7 +344,7 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
     if (!args.intentOnly && !args.dryRun && plan.step === 'generate-intents' && readState())
       clearState() // 新一轮开始：上个版本留下的写前日志不得并进本次状态
 
-    log(formatStepHeader('generate-intents'))
+    stepHeader('generate-intents')
     log('从上次 tag 以来的 commit 生成变更意图...')
     const outcome = await generateIntents(ui, { dryRun: args.dryRun, baseTag: facts.baseTag })
 
@@ -416,7 +432,7 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
       return
     }
 
-    log(formatStepHeader('consume-intents'))
+    stepHeader('consume-intents')
     log(`消费变更意图，更新版本号（目标 v${newVersion}）...`)
     const consumedVersion = await consumeIntents(ui, args, { oldVersion, newVersion })
     newVersion = consumedVersion
@@ -463,7 +479,7 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
     if (plan.step === 'confirm-summary' && !isInteractive() && newlyUnrelated.length > 0 && !args.allowDirty)
       die(2, `工作区新出现 ${newlyUnrelated.length} 个与发版无关的改动（非交互模式不替你决定）：${newlyUnrelated.join(', ')}。先 stash，或显式加 --allow-dirty`)
 
-    log(formatStepHeader('confirm-summary'))
+    stepHeader('confirm-summary')
     await confirmSummary(ui, args, {
       entries,
       oldVersion,
@@ -483,7 +499,7 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
 
   // ── 5. 提交 / 门禁 / 打标 / 推送 ────────────────────────────────────────
   saveState({ fromVersion: oldVersion, toVersion: newVersion, bump, nextStep: 'commit-tag-push', baseTag: freshFacts.baseTag, branch })
-  log(formatStepHeader('commit-tag-push'))
+  stepHeader('commit-tag-push')
   await stepCommitTagPush(ui, newVersion, { commit: freshFacts.versionConsumed, skipGates: ARGS.skipGates })
 
   clearState()
