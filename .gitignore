@@ -22,9 +22,16 @@ apps/server/db/.pack/
 # `types/auto-import.d.ts` —— 锚定的是**仓库根**（那里没有 types/），而文件其实在
 # `apps/admin/types/` 下 ⇒ 两条规则**一条都没生效**（`git check-ignore` 无输出），
 # 于是它们既没被忽略、又被 git 跟踪，每次 `pnpm dev` 重写都把工作区弄脏。
-# 现在生成物统一落到 `apps/admin/types/generated/`（生成器 `build/generate/genTypeDeclarations.ts`，
-# 由 `pretypes:check` 调用），规则写成**从仓库根出发的路径**，锚定语义与预期一致。
-apps/admin/types/generated/
+# 现在生成物统一落到 `apps/admin/types/generated/`，规则写成**从仓库根出发的路径**。
+#
+# 2026-09-30 改：**组件声明那份纳入跟踪**（`!…/components.d.ts`）。理由（三条实测结论）：
+#   · 插件写 dts 的判据是 `if (code !== originalContent)`（dist 源码）⇒ 提交后"组件集合没变"
+#     时它**根本不写** ⇒ 与 checker 的竞争消失（v0.1.4 的 `TS1434/TS1128` 就是读到半写文件）；
+#   · checker 建 TS program 时 dts 必须**已经存在** ⇒ 提交进仓正好满足（换台电脑/干净检出开箱可用）；
+#   · 陈旧由 CI 的 "Generated dts is up to date" 一步机械拦（组件变了没提交生成物 ⇒ 红）。
+# 其余生成物（如 `unplugin-auto-import` 已废弃的 `auto-import.d.ts`）仍然忽略。
+apps/admin/types/generated/*
+!apps/admin/types/generated/components.d.ts
 
 # Build generated
 build/_generated/*.ts
