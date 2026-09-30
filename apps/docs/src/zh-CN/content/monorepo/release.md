@@ -161,6 +161,7 @@ pnpm release
 | `syncpack` | `syncpack lint` |
 | `versioning` | `pnpm change check`（fixed 组锁步） |
 | `workflows` | `pnpm lint:workflows`（actionlint；本机没装则提示后跳过，CI 侧由 `workflow-lint.yml` 直接跑二进制） |
+| `workflows-shell` | `pnpm lint:workflows-shell`（把每个 `run:` / `with.script:` 抽出来逐块 `bash -n` —— actionlint **看不见**字符串里的 shell 语法；本机没有 bash 时明确 SKIP） |
 | `docs-refs` | `pnpm lint:docs-refs`（活文档正文里引用的 workspace 包名 / 仓库路径必须真实存在） |
 | `adr` | `pnpm lint:adr`（ADR 形态：编号连续 / Status 在枚举内 / 四个必需小节 / index 双向对齐） |
 | `doc-ts` | `pnpm lint:doc-ts`（标成 `ts` 的代码块必须能按 TypeScript 解析） |

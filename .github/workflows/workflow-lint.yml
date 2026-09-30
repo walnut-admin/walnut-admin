@@ -36,3 +36,15 @@ jobs:
       # （context 可用性、表达式、shell 引用等）
       - name: Lint workflows and local actions
         run: ./actionlint -color
+
+      # actionlint **看不见** `run:` / `with.script:` 字符串里的 shell 语法 —— 2026-09-30 两次实测
+      # （注入步骤的三层嵌套引号、带引号 heredoc 的缩进）都是发版才撞出来的。这一步把每个 shell 块
+      # 抽出来过 `bash -n`（ubuntu runner 自带 bash，所以这里一定真跑）。
+      - name: Workflow shell syntax (bash -n per block)
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint:workflows-shell
+
+      - name: Note
+        run: echo "::notice::workflow 的 YAML 由 actionlint 校验，shell 块语法由 lint:workflows-shell 校验"

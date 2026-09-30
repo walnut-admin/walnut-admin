@@ -43,6 +43,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
       ['syncpack:lint'],
       ['change', 'check'],
       ['lint:workflows'],
+      ['lint:workflows-shell'],
       ['lint:docs-refs'],
       ['lint:adr'],
       ['lint:doc-ts'],

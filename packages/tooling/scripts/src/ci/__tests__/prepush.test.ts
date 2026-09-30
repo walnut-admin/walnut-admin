@@ -58,6 +58,7 @@ describe('pREPUSH_GATES —— 表本身', () => {
       'types-root',
       'syncpack',
       'workflows',
+      'workflows-shell',
       'docs-refs',
       'adr',
       'doc-ts',

@@ -103,6 +103,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: '`.github/workflows` 只被 GitHub 在**真正触发时**校验 —— 一个非法表达式能让整条流水线「启动即失败、0 个 job」，本地不拦就只能在 push 后发现。',
   },
   {
+    id: 'workflows-shell',
+    label: 'workflow shell 语法（逐块 bash -n）',
+    argv: ['lint:workflows-shell'],
+    why: 'actionlint 只看 YAML 与表达式，**看不见字符串里的 shell 语法**：2026-09-30 两次实测（注入步骤的三层嵌套引号、以及带引号 heredoc 的缩进）都只能靠发版撞出来。这道闸把 shell 块的语法错提前到推送前。本机没有 bash 时明确 SKIP。',
+  },
+  {
     id: 'docs-refs',
     label: '文档引用校验（包名 / 仓库路径）',
     argv: ['lint:docs-refs'],

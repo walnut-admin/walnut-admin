@@ -78,6 +78,10 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'syncpack', label: '依赖一致性（syncpack）', argv: ['syncpack:lint'] },
   { id: 'versioning', label: 'workspace 版本锁步（pnpm change check）', argv: ['change', 'check'] },
   { id: 'workflows', label: 'workflow 校验（actionlint）', argv: ['lint:workflows'] },
+  // 同上：@walnut/scripts 的 bin。actionlint 只看得见 YAML 与表达式，**看不见 `run:` / `with.script:`
+  // 里的 shell 语法**（2026-09-30 两次实测：注入步骤的三层嵌套引号、带引号 heredoc 的缩进，
+  // 都只能靠发版撞出来）⇒ 逐块 `bash -n`。
+  { id: 'workflows-shell', label: 'workflow shell 语法（逐块 bash -n）', argv: ['lint:workflows-shell'] },
   // 与上面同理：它是 @walnut/scripts 的 bin（根脚本），**不是** turbo 任务。
   // 活文档正文里引用的包名/仓库路径必须真实存在 —— VitePress 内置只查 markdown 链接。
   { id: 'docs-refs', label: '文档引用校验（包名 / 仓库路径）', argv: ['lint:docs-refs'] },

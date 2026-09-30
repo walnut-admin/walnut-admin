@@ -23,6 +23,7 @@
     "walnut-check-seed": "./bin/check-seed.ts",
     "walnut-check-source-secrets": "./bin/check-source-secrets.ts",
     "walnut-check-turbo-cache": "./bin/check-turbo-cache.ts",
+    "walnut-check-workflow-shell": "./bin/check-workflow-shell.ts",
     "walnut-db-export": "./bin/db-export.ts",
     "walnut-db-seed": "./bin/db-seed.ts",
     "walnut-lint-emoji": "./bin/check-emoji.ts",
