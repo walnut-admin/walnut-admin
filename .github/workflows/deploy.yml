@@ -518,6 +518,35 @@ jobs:
             echo "::error::post-verify 失败：$reason"
             exit 1
 
+      # 把服务器上 post-verify 的**判定原文**取回 runner 并变成注解。
+      #
+      # 为什么必须这么做（2026-09-30 反复踩过）：post-verify 跑在服务器上，它的输出我读不到 ——
+      # ssh-action 远端的 `::error::` **不会**被 runner 解析成注解（实测），而步骤日志要鉴权。
+      # 只有 **runner 侧 `run:` 步骤的 stdout** 会进注解。所以这里在 runner 上装 sshpass、
+      # 直接把 /tmp/post-verify.log 的判定行抓回来（失败时两条判据行都在：每轮的 `#N …` 快照
+      # 与最终的 `POST-VERIFY FAILED: <原因>`）。
+      - name: Fetch post-verify verdict (annotation)
+        if: failure()
+        env:
+          SSHPASS: ${{ secrets.PROD_SERVER_PASSWORD }}
+          SUSER: ${{ secrets.PROD_SERVER_USERNAME }}
+          SHOST: ${{ secrets.PROD_SERVER_HOST }}
+        run: |
+          set -uo pipefail
+          sudo apt-get update -qq >/dev/null 2>&1 || true
+          sudo apt-get install -y -qq sshpass >/dev/null 2>&1 || true
+          command -v sshpass >/dev/null 2>&1 || { echo "::warning::没装上 sshpass，取不到 post-verify 判定"; exit 0; }
+          out="$(sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 \
+            "$SUSER@$SHOST" 'tail -40 /tmp/post-verify.log 2>/dev/null || echo "（服务器上没有 /tmp/post-verify.log）"' 2>&1 || true)"
+          echo "$out"
+          reason="$(printf '%s\n' "$out" | grep -m1 'POST-VERIFY FAILED' || true)"
+          last="$(printf '%s\n' "$out" | grep -m1 '后端就绪' || true)"
+          if [ -n "$reason" ]; then
+            echo "::error::post-verify 判定：$reason"
+          else
+            echo "::error::post-verify 未通过但没抓到判据行；最后一个快照：${last:-（无）}"
+          fi
+
       - name: Summary
         if: always()
         run: |
