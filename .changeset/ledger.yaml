@@ -277,6 +277,10 @@
   dir: packages/tooling/scripts
   intents:
     - new-rabbits-play
+"@walnut/scripts@0.1.21":
+  dir: packages/tooling/scripts
+  intents:
+    - tame-beans-grow
 "@walnut/scripts@0.1.3":
   dir: packages/tooling/scripts
   intents:

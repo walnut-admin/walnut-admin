@@ -1,8 +1,8 @@
-## 0.1.20
+## 0.1.21
 
 ### 修复
 
-- [`556d28f`](https://github.com/walnut-admin/walnut-admin/commit/556d28f3868a913e8c26abb08b70c0a236956723) **deploy** post-verify 允许重建窗口内重试，不再一次查不到就判死
+- [`9e7a30c`](https://github.com/walnut-admin/walnut-admin/commit/9e7a30c684bf0caba18d3adb1c738e24abb52111) **deploy** post-verify 探测值先归一化再比较，超时消息逐项说实话
 
 ---
-由 `pnpm release` 生成（v0.1.20）。
+由 `pnpm release` 生成（v0.1.21）。
