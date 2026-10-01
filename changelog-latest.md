@@ -1,8 +1,8 @@
-## 0.1.22
+## 0.1.23
 
 ### 修复
 
-- [`ab8d127`](https://github.com/walnut-admin/walnut-admin/commit/ab8d1275ba78d209ad08757b60f2f2f005bd6bbc) **deploy** 容器判据保留 docker 的 stderr，不再把失败伪装成 missing
+- [`b19f8f6`](https://github.com/walnut-admin/walnut-admin/commit/b19f8f6d530d82cdb637ff9c4f82c8a553baa89c) **deploy** docker inspect 的 RestartCount 是顶层字段，模板写错导致整晚假红
 
 ---
-由 `pnpm release` 生成（v0.1.22）。
+由 `pnpm release` 生成（v0.1.23）。
