@@ -59,7 +59,11 @@ check_containers() {
     # **不要 `2>/dev/null`**（2026-09-30 实测的第三个坑）：原来把 docker 的报错丢掉、只留一个
     # 自己编的 `missing`，于是"inspector 失败"和"容器真不存在"看起来一模一样，排查被带偏两轮。
     # 现在保留 stderr 并把它写进失败原因里 —— 判据必须把**原因**带出来。
-    if state="$(docker inspect -f '{{.State.Status}} {{.State.RestartCount}}' "$c" 2>&1)"; then
+    # 字段名是**顶层** `.RestartCount`，不是 `.State.RestartCount`（2026-09-30 实测的**真根因**）：
+    # 写错的那一版会让 `docker inspect` 报
+    # `template parsing error: … at <.State.RestartCount>: map has no entry for key "RestartCount"`，
+    # 而它原本被 `2>/dev/null` 吞掉 ⇒ 看起来就是"容器 missing" ✗，把排查带偏了整晚。
+    if state="$(docker inspect -f '{{.State.Status}} {{.RestartCount}}' "$c" 2>&1)"; then
       read -r status restarts <<< "$state"
       status="${status:-unknown}"
       restarts="${restarts:-0}"
