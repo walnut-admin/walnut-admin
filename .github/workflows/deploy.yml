@@ -175,13 +175,30 @@ jobs:
               mkdir -p nginx/conf.d
               cp -a deploy-files/nginx/conf.d/. nginx/conf.d/
               cp -a deploy-files/nginx/frontend-server.conf nginx/frontend-server.conf 2>/dev/null || true
-              if docker compose exec -T nginx nginx -t >/dev/null 2>&1; then
+              # 判据不只看 `nginx -t`（**语法**），还要看入口 nginx **是否真的应答**：
+              # `nginx -t` 对"证书文件不存在/路径不对"这类问题是**通过**的，而线上表现就是
+              # 443 完全没响应（外网实测 000 / Cloudflare 522，2026-09-30）。所以这里补一条本机探测。
+              ok=1
+              docker compose exec -T nginx nginx -t >/dev/null 2>&1 || ok=0
+              if [ "$ok" = "1" ]; then
                 docker compose exec -T nginx nginx -s reload >/dev/null 2>&1 || true
-                echo "  ok   nginx 配置已同步并 reload（备份：nginx-backup/$ts）"
+                sleep 2
+                code="$(curl -sk -o /dev/null -w '%{http_code}' --resolve "www.walnut-admin.com:443:127.0.0.1" https://www.walnut-admin.com/ -m 8 || true)"
+                case "$code" in
+                  200|301|302) ;;
+                  *) echo "  WARN 入口 nginx 探测返回 ${code:-无响应}，回滚配置"; ok=0 ;;
+                esac
               else
-                echo "  WARN 新配置未通过 nginx -t，回滚到 nginx-backup/$ts"
+                echo "  WARN 新配置未通过 nginx -t，回滚配置"
+              fi
+              if [ "$ok" != "1" ]; then
                 cp -a "nginx-backup/$ts/." nginx/conf.d/ 2>/dev/null || true
                 docker compose exec -T nginx nginx -s reload >/dev/null 2>&1 || true
+                sleep 2
+                code2="$(curl -sk -o /dev/null -w '%{http_code}' --resolve "www.walnut-admin.com:443:127.0.0.1" https://www.walnut-admin.com/ -m 8 || true)"
+                echo "  回滚后探测：${code2:-无响应}（备份保留在 nginx-backup/$ts）"
+              else
+                echo "  ok   nginx 配置已同步、探测通过（备份：nginx-backup/$ts）"
               fi
             fi
 
