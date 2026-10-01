@@ -1,8 +1,8 @@
-## 0.1.15
+## 0.1.16
 
 ### 修复
 
-- [`0b7c586`](https://github.com/walnut-admin/walnut-admin/commit/0b7c58611fe9d6c229274bb5f076ed4965e9ccc1) **deploy** nginx 同步后探测入口是否应答，不通过即从备份回滚
+- [`a874ad0`](https://github.com/walnut-admin/walnut-admin/commit/a874ad074cc0035f521cedff2c05d33683bfd5f6) **deploy** 源站可达性诊断降级为告警，发版判据交回 post-verify
 
 ---
-由 `pnpm release` 生成（v0.1.15）。
+由 `pnpm release` 生成（v0.1.16）。

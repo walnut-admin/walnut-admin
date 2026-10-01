@@ -253,6 +253,10 @@
   dir: packages/tooling/scripts
   intents:
     - real-bats-hide
+"@walnut/scripts@0.1.16":
+  dir: packages/tooling/scripts
+  intents:
+    - dry-cats-hope
 "@walnut/scripts@0.1.2":
   dir: packages/tooling/scripts
   intents:
