@@ -1,7 +1,7 @@
 {
   "name": "@walnut/admin",
   "type": "module",
-  "version": "0.1.21",
+  "version": "0.1.22",
   "private": true,
   "description": "An admin template, using `vue3`,`ts`,`vite`,`naive-ui`. Continuously updating...",
   "author": {

@@ -281,6 +281,10 @@
   dir: packages/tooling/scripts
   intents:
     - tame-beans-grow
+"@walnut/scripts@0.1.22":
+  dir: packages/tooling/scripts
+  intents:
+    - empty-clouds-start
 "@walnut/scripts@0.1.3":
   dir: packages/tooling/scripts
   intents:
