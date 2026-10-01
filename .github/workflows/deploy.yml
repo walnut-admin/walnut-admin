@@ -548,12 +548,15 @@ jobs:
           echo "::warning::容器与监听：${state_clean:-（取不到）}"
           # post-verify 的判定原文（这一步存在的**首要理由**，别删）。
           reason="$(printf '%s\n' "$out" | grep -m1 'POST-VERIFY FAILED' || true)"
-          last="$(printf '%s\n' "$out" | grep -m1 '后端就绪' || true)"
+          # 快照行的关键字是 `就绪=`（2026-09-30 起是 `#N 就绪=…`；早前叫 `后端就绪=`，改过名，
+          # 取值时别再按旧名字 grep —— 否则拿不到"是哪一项不满足"）。
+          last="$(printf '%s\n' "$out" | grep -m1 '就绪=' || true)"
           if [ -n "$reason" ]; then
             echo "::error::post-verify 判定：$reason"
           else
             echo "::error::post-verify 未通过但没抓到判据行；最后一个快照：${last:-（无）}"
           fi
+          [ -n "$last" ] && echo "::warning::post-verify 最后一轮快照：$last"
 
       - name: Summary
         if: always()

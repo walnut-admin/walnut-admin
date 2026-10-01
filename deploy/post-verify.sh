@@ -208,7 +208,17 @@ docker logs --tail 40 "$CONTAINER_BACKEND" 2>&1 || true
 say '--- 诊断：入口 nginx 日志尾部 ---'
 docker logs --tail 20 "$CONTAINER_NGINX" 2>&1 || true
 
-[ "$BACKEND_READY" = "1" ] || die "超时：后端日志始终没有出现启动标记（匹配 $READY_RE）"
-[ "$FRONT_CODE" = "200" ] || die "超时：前端域名返回 $FRONT_CODE（期望 200）"
+# **先把探测值归一化再比较**（2026-09-30 实测的坑）：`[ "$API_CODE" = "200" ]` 是逐字符比较，
+# 而 curl 的 `-w '%{http_code}'` 经过命令替换/远端传输后可能带上 CR 或空白 ⇒ 值"看起来是 200"
+# 却不等于 "200"，于是死在一句**自相矛盾**的 `超时：API 域名返回 200（期望 200）` 上，
+# 把排查带偏了好几轮。这里先去掉所有空白字符，再逐项判，且每项的消息只说**自己这一项**。
+FRONT_CODE="$(printf '%s' "${FRONT_CODE:-}" | tr -d '[:space:]')"
+API_CODE="$(printf '%s' "${API_CODE:-}" | tr -d '[:space:]')"
+
+say "最终各项：就绪=$BACKEND_READY 容器='${CONTAINERS_BAD}' tag='${IMAGE_TAG_BAD}' 前端='$FRONT_CODE' API='$API_CODE' 缺失安全头='${HEADERS_MISSING}'"
+[ -z "$CONTAINERS_BAD" ] || die "超时：容器状态不对 [$CONTAINERS_BAD]（部署在重建窗口内没等到 running？）"
+[ -z "$IMAGE_TAG_BAD" ] || die "超时：运行中的镜像与 IMG_TAG 不一致 [$IMAGE_TAG_BAD]"
+[ "$BACKEND_READY" = "1" ] || die "超时：后端既不是 healthy、日志里也没有启动标记（匹配 $READY_RE）"
+[ "$FRONT_CODE" = "200" ] || die "超时：前端域名返回 '$FRONT_CODE'（期望 200）"
 [ -z "$HEADERS_MISSING" ] || die "超时：入口 nginx 仍缺安全响应头 [$HEADERS_MISSING]（改的是 deploy/nginx/conf.d/frontend.conf？重载了吗？）"
-die "超时：API 域名返回 $API_CODE（期望 200）"
+[ "$API_CODE" = "200" ] || die "超时：API 域名返回 '$API_CODE'（期望 200）"
