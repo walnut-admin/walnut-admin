@@ -54,16 +54,23 @@ die() {
 # 瞬时状态必须允许重试 ⇒ 这里只记录问题，由主循环决定是否超时失败。
 CONTAINERS_BAD=''
 check_containers() {
-  local c state status restarts bad=''
+  local c state status restarts bad='' err
   for c in "$CONTAINER_BACKEND" "$CONTAINER_FRONTEND" "$CONTAINER_NGINX"; do
-    state="$(docker inspect -f '{{.State.Status}} {{.State.RestartCount}}' "$c" 2>/dev/null || echo 'missing 0')"
-    read -r status restarts <<< "$state"
-    status="${status:-missing}"
-    restarts="${restarts:-0}"
-    if [ "$status" != "running" ]; then
-      bad="$bad $c=$status"
-    elif [ "$restarts" -ne 0 ]; then
-      bad="$bad $c=重启${restarts}次"
+    # **不要 `2>/dev/null`**（2026-09-30 实测的第三个坑）：原来把 docker 的报错丢掉、只留一个
+    # 自己编的 `missing`，于是"inspector 失败"和"容器真不存在"看起来一模一样，排查被带偏两轮。
+    # 现在保留 stderr 并把它写进失败原因里 —— 判据必须把**原因**带出来。
+    if state="$(docker inspect -f '{{.State.Status}} {{.State.RestartCount}}' "$c" 2>&1)"; then
+      read -r status restarts <<< "$state"
+      status="${status:-unknown}"
+      restarts="${restarts:-0}"
+      if [ "$status" != "running" ]; then
+        bad="$bad $c=$status"
+      elif [ "$restarts" -ne 0 ]; then
+        bad="$bad $c=重启${restarts}次"
+      fi
+    else
+      err="$(printf '%s' "$state" | tr '\n' ' ' | cut -c1-160)"
+      bad="$bad $c=inspect失败(${err:-无输出})"
     fi
   done
   CONTAINERS_BAD="${bad# }"
