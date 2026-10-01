@@ -1,7 +1,7 @@
 {
   "name": "@walnut/commitlint-config",
   "type": "module",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "共享 commitlint 规则：type 白名单、scope 必填、scope 必须是 workspace 包名或基础设施 scope。根的 commitlint.config.ts 只做 `extends: ['@walnut/commitlint-config']`。",
   "license": "MIT",
   "exports": {

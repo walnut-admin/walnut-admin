@@ -1,7 +1,7 @@
 {
   "name": "@walnut/vitest-config",
   "type": "module",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "共享 Vitest 预设：只收敛「用例发现规则 / 运行环境 / 覆盖率采集范围」三件会漂移的事，plugins 与 root 等交给各包显式传入。",
   "license": "MIT",
   "exports": {
