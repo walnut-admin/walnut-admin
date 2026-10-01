@@ -1,8 +1,8 @@
-## 0.1.16
+## 0.1.17
 
 ### 修复
 
-- [`a874ad0`](https://github.com/walnut-admin/walnut-admin/commit/a874ad074cc0035f521cedff2c05d33683bfd5f6) **deploy** 源站可达性诊断降级为告警，发版判据交回 post-verify
+- [`f8bb843`](https://github.com/walnut-admin/walnut-admin/commit/f8bb8439d51a92039f9057fe8e40fc37a3c3ab50) **deploy** runner 侧取回 post-verify 判定并转成注解
 
 ---
-由 `pnpm release` 生成（v0.1.16）。
+由 `pnpm release` 生成（v0.1.17）。

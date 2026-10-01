@@ -257,6 +257,10 @@
   dir: packages/tooling/scripts
   intents:
     - dry-cats-hope
+"@walnut/scripts@0.1.17":
+  dir: packages/tooling/scripts
+  intents:
+    - quick-knives-lie
 "@walnut/scripts@0.1.2":
   dir: packages/tooling/scripts
   intents:
