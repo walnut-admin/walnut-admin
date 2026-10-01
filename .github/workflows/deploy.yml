@@ -539,12 +539,14 @@ jobs:
           out="$(sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 \
             "$SUSER@$SHOST" 'tail -40 /tmp/post-verify.log 2>/dev/null || echo "（服务器上没有 /tmp/post-verify.log）"' 2>&1 || true)"
           echo "$out"
-          # 容器现状（2026-09-30 实测：post-verify 第一条判据就死在 walnut-backend "missing" ⇒
-          # 必须知道"是整栈没起来，还是 compose 的容器名与脚本里写死的名字不一致"）。
+          # 容器与监听现状。**必须把 ssh 的 known_hosts 提示行滤掉** —— 2026-09-30 实测它排在
+          # 最前面，把注解前 320 字符全占了，真正的输出被挤没（等于白跑一轮）。
+          # 这几条直接回答两个问题：① 容器到底存不存在；② 443 为什么从外面连不上。
           state="$(sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 \
-            "$SUSER@$SHOST" 'cd /home/ubuntu/walnut-admin/deploy && echo "--- compose ps -a ---" && (docker compose ps -a 2>&1 | head -20) && echo "--- compose services ---" && (docker compose config --services 2>&1 | head -20) && echo "--- docker ps 全部（按名字找 walnut）---" && (docker ps -a --format "{{.Names}}\t{{.Status}}" 2>&1 | grep -i walnut || echo "（没有任何 walnut 容器）")' 2>&1 || true)"
-          echo "$state"
-          state_one="$(printf '%s\n' "$state" | tr '\n' ' ' | cut -c1-320)"
+            "$SUSER@$SHOST" 'cd /home/ubuntu/walnut-admin/deploy 2>/dev/null || cd /home/ubuntu/walnut-admin; echo "PS:"; docker ps -a --format "{{.Names}}|{{.Status}}" 2>&1 | head -12; echo "SERVICES:"; docker compose config --services 2>&1 | head -10; echo "LISTEN:"; (ss -ltn 2>/dev/null || netstat -ltn) | grep -E ":443|:80 " | head -6; echo "DISK:"; df -h / | tail -1' 2>/dev/null || true)"
+          state_clean="$(printf '%s\n' "$state" | grep -v 'Permanently added' | tr '\n' ' ' | cut -c1-600)"
+          echo "::warning::容器与监听：${state_clean:-（取不到）}"
+          # post-verify 的判定原文（这一步存在的**首要理由**，别删）。
           reason="$(printf '%s\n' "$out" | grep -m1 'POST-VERIFY FAILED' || true)"
           last="$(printf '%s\n' "$out" | grep -m1 '后端就绪' || true)"
           if [ -n "$reason" ]; then
@@ -552,7 +554,6 @@ jobs:
           else
             echo "::error::post-verify 未通过但没抓到判据行；最后一个快照：${last:-（无）}"
           fi
-          echo "::warning::容器现状：$state_one"
 
       - name: Summary
         if: always()
