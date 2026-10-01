@@ -46,30 +46,44 @@ die() {
 }
 
 # ---- 容器状态与重启次数 ----
+#
+# **不在这里 `die`**（2026-09-30 实测的假红）：部署过程中 `docker compose up -d` 会**重建**容器，
+# 重建的那一瞬间按名字 `docker inspect` 是查不到的 ⇒ 原来第一次轮询撞上窗口就整轮判死，
+# 报出来的是 `容器 walnut-backend 状态异常：missing`，而实际上后端**Up 且 healthy**（同一轮
+# 抓到的现场：`walnut-backend|Up 2 minutes (healthy)`）。整脚本本来就是个"最多 24 次的观察循环"，
+# 瞬时状态必须允许重试 ⇒ 这里只记录问题，由主循环决定是否超时失败。
+CONTAINERS_BAD=''
 check_containers() {
-  local c state status restarts
+  local c state status restarts bad=''
   for c in "$CONTAINER_BACKEND" "$CONTAINER_FRONTEND" "$CONTAINER_NGINX"; do
     state="$(docker inspect -f '{{.State.Status}} {{.State.RestartCount}}' "$c" 2>/dev/null || echo 'missing 0')"
     read -r status restarts <<< "$state"
     status="${status:-missing}"
     restarts="${restarts:-0}"
-    [ "$status" = "running" ] || die "容器 $c 状态异常：$status（期望 running）"
-    [ "$restarts" -eq 0 ] || die "容器 $c 已重启 $restarts 次（崩溃循环？）"
+    if [ "$status" != "running" ]; then
+      bad="$bad $c=$status"
+    elif [ "$restarts" -ne 0 ]; then
+      bad="$bad $c=重启${restarts}次"
+    fi
   done
+  CONTAINERS_BAD="${bad# }"
 }
 
 # ---- 运行中的镜像 tag 是否与 .env 的 IMG_TAG 一致 ----
+# 同样不 `die`：重建窗口镜像 tag 也可能一时对不上，交给主循环的窗口去等。
+IMAGE_TAG_BAD=''
 check_image_tags() {
-  local expected c image
+  local expected c image bad=''
   expected="$(grep -m1 '^IMG_TAG=' .env 2>/dev/null | cut -d= -f2- | tr -d '"')"
-  [ -n "$expected" ] || return 0
+  [ -n "$expected" ] || { IMAGE_TAG_BAD=''; return 0; }
   for c in "$CONTAINER_BACKEND" "$CONTAINER_FRONTEND" "$CONTAINER_NGINX"; do
     image="$(docker inspect -f '{{.Config.Image}}' "$c" 2>/dev/null || true)"
     case "$image" in
       *":$expected") ;;
-      *) die "容器 $c 运行的镜像不是本次 tag：$image（期望以 :$expected 结尾）" ;;
+      *) bad="$bad $c=${image:-取不到}" ;;
     esac
   done
+  IMAGE_TAG_BAD="${bad# }"
 }
 
 # ---- 后端日志：致命错误 / 启动标记 ----
@@ -177,9 +191,10 @@ while [ "$i" -lt "$ITER" ]; do
   scan_http_logs
   probe_urls
   check_security_headers
-  say "#$i 后端就绪=$BACKEND_READY 前端=$FRONT_CODE API=$API_CODE 缺失安全头='${HEADERS_MISSING}'"
-  if [ "$BACKEND_READY" = "1" ] && [ "$FRONT_CODE" = "200" ] && [ "$API_CODE" = "200" ] && [ -z "$HEADERS_MISSING" ]; then
-    printf '\n✅ POST-VERIFY PASS（第 %s 次轮询：后端已就绪，前端 200，API 200，安全头齐备）\n' "$i"
+  say "#$i 就绪=$BACKEND_READY 容器='${CONTAINERS_BAD}' tag='${IMAGE_TAG_BAD}' 前端=$FRONT_CODE API=$API_CODE 缺失安全头='${HEADERS_MISSING}'"
+  if [ "$BACKEND_READY" = "1" ] && [ -z "$CONTAINERS_BAD" ] && [ -z "$IMAGE_TAG_BAD" ] \
+    && [ "$FRONT_CODE" = "200" ] && [ "$API_CODE" = "200" ] && [ -z "$HEADERS_MISSING" ]; then
+    printf '\n✅ POST-VERIFY PASS（第 %s 次轮询：容器 running、镜像 tag 一致、后端已就绪，前端 200，API 200，安全头齐备）\n' "$i"
     exit 0
   fi
   if [ "$i" -lt "$ITER" ]; then
