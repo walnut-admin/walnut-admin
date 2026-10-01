@@ -1,8 +1,8 @@
-## 0.1.18
+## 0.1.19
 
 ### 修复
 
-- [`e466d5f`](https://github.com/walnut-admin/walnut-admin/commit/e466d5ff88c288ae0ded61ff8cc633ec0426cf64) **deploy** 取回判定时一并dump容器现状（区分整栈未起与名字不一致）
+- [`ca091b5`](https://github.com/walnut-admin/walnut-admin/commit/ca091b51ad4fb20d893c7c2df3d6cb67aa8e1e6d) **deploy** 容器现状 dump 滤掉 ssh 提示行，并补回判定行
 
 ---
-由 `pnpm release` 生成（v0.1.18）。
+由 `pnpm release` 生成（v0.1.19）。

@@ -1,7 +1,7 @@
 {
   "name": "@walnut/http",
   "type": "module",
-  "version": "0.1.18",
+  "version": "0.1.19",
   "description": "Axios-based HTTP client — primarily browser, core logic is dual-runtime capable",
   "license": "MIT",
   "exports": {

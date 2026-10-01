@@ -265,6 +265,10 @@
   dir: packages/tooling/scripts
   intents:
     - loud-deers-grin
+"@walnut/scripts@0.1.19":
+  dir: packages/tooling/scripts
+  intents:
+    - soft-poets-press
 "@walnut/scripts@0.1.2":
   dir: packages/tooling/scripts
   intents:
