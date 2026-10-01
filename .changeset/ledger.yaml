@@ -249,6 +249,10 @@
   dir: packages/tooling/scripts
   intents:
     - mean-horses-fry
+"@walnut/scripts@0.1.15":
+  dir: packages/tooling/scripts
+  intents:
+    - real-bats-hide
 "@walnut/scripts@0.1.2":
   dir: packages/tooling/scripts
   intents:
