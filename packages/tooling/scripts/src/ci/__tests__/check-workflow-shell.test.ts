@@ -94,15 +94,16 @@ describe('checkWithBash —— 真跑 bash -n', () => {
 describe('真实仓库上跑一遍（防这道闸变成假绿）', () => {
   const bash = findBash()
 
-  // 这两条扫**真实仓库**、且每段 shell 都要 spawn 一次 bash：本机（Windows）实测约 6 秒，
-  // 而 vitest 默认上限 5 秒 —— 2026-09-30 实测它就超时了（同一个坑 doc-refs 那套也踩过）。
-  // 要守的判据是"有没有语法错"，不是"能不能 5 秒跑完"。
+  // 这两条扫**真实仓库**、且每段 shell 都要 spawn 一次 bash：本机（Windows）实测 5~8 秒，
+  // 但发版时同一台机器上还在并行跑门禁表与 turbo test，会被拖慢 —— 2026-09-30 实测它两次在
+  // 30 秒上限上**偶发**变红，把 `pnpm release` 的 test 段整段拦下（判据没坏，是超时抖动）。
+  // 上限给足：要守的是"有没有语法错"，不是"能不能 30 秒跑完"。
   it('至少抽到 20 段 shell 块（抽不到就说明抽取器坏了）', () => {
     const files = listWorkflows(REPO_ROOT)
     expect(files.length).toBeGreaterThanOrEqual(3)
     const total = files.reduce((sum, file) => sum + collectShellBlocks(readFileSync(join(REPO_ROOT, file), 'utf8'), file).length, 0)
     expect(total).toBeGreaterThanOrEqual(20)
-  }, 30_000)
+  }, 90_000)
 
   it.runIf(bash !== null)('当前仓库所有 shell 块语法通过', () => {
     const files = listWorkflows(REPO_ROOT)
@@ -110,5 +111,5 @@ describe('真实仓库上跑一遍（防这道闸变成假绿）', () => {
       .map(block => ({ block, error: checkWithBash(bash!, block.script) }))
       .filter(item => item.error !== null))
     expect(failures.map(f => `${f.block.where}: ${f.error}`)).toEqual([])
-  }, 30_000)
+  }, 90_000)
 })
