@@ -62,7 +62,8 @@ check_containers() {
     # 字段名是**顶层** `.RestartCount`，不是 `.State.RestartCount`（2026-09-30 实测的**真根因**）：
     # 写错的那一版会让 `docker inspect` 报
     # `template parsing error: … at <.State.RestartCount>: map has no entry for key "RestartCount"`，
-    # 而它原本被 `2>/dev/null` 吞掉 ⇒ 看起来就是"容器 missing" ✗，把排查带偏了整晚。
+    # 而它原本被 `2>/dev/null` 吞掉，看起来就成了"容器 missing"，把排查带偏了整晚。
+    # 教训：判据必须把底层报错**原样带出来**，否则一个字段名就能伪装成完全不同的故障。
     if state="$(docker inspect -f '{{.State.Status}} {{.RestartCount}}' "$c" 2>&1)"; then
       read -r status restarts <<< "$state"
       status="${status:-unknown}"
