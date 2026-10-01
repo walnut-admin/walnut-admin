@@ -1,8 +1,8 @@
-## 0.1.17
+## 0.1.18
 
 ### 修复
 
-- [`f8bb843`](https://github.com/walnut-admin/walnut-admin/commit/f8bb8439d51a92039f9057fe8e40fc37a3c3ab50) **deploy** runner 侧取回 post-verify 判定并转成注解
+- [`e466d5f`](https://github.com/walnut-admin/walnut-admin/commit/e466d5ff88c288ae0ded61ff8cc633ec0426cf64) **deploy** 取回判定时一并dump容器现状（区分整栈未起与名字不一致）
 
 ---
-由 `pnpm release` 生成（v0.1.17）。
+由 `pnpm release` 生成（v0.1.18）。

@@ -261,6 +261,10 @@
   dir: packages/tooling/scripts
   intents:
     - quick-knives-lie
+"@walnut/scripts@0.1.18":
+  dir: packages/tooling/scripts
+  intents:
+    - loud-deers-grin
 "@walnut/scripts@0.1.2":
   dir: packages/tooling/scripts
   intents:
