@@ -82,6 +82,12 @@
     "npm_execpath",
     "PATH",
     "PREPUSH_CONCURRENCY",
+    // `SMOKE_FAIL_API` —— `pnpm smoke:dist` 的**负对照开关**（2026-10-08）：置 `1` 时静态服务把所有
+    // `/api/**` 按后端真实错误信封应答（500 + `code: 50000`），用来确定性地复现
+    // 「空库 ⇒ 签名握手失败 ⇒ 应用必须显示错误屏、而不是白屏」这条链路。
+    // 同样「只需可见、不进哈希」：它不改变任何产物，只决定这次冒烟**期望**看到哪种结果。
+    // （它由 `no-undeclared-env-vars` 抓出 —— 那条规则是对的：未声明的变量在严格模式下会被剥掉。）
+    "SMOKE_FAIL_API",
     // 发版工具链真正依赖的两个（同样由上面那条规则抓出，2026-09-23）：
     //   · `GITHUB_API_URL` —— `release/src/release/github.ts` 的 GitHub Enterprise 覆盖点；
     //   · `GH_TOKEN` —— `release/src/release/credentials.ts` 的 token 回退来源（gh CLI 的惯例名）。

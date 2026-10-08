@@ -109,6 +109,18 @@ export interface StaticServer {
   missing: string[]
 }
 
+/** 静态服务器的可选行为（负对照用） */
+export interface StaticServerOptions {
+  /**
+   * 模拟后端故障：所有 `/api/**` 都按**后端真实错误信封**应答（HTTP 500 + `{ code: 50000 }`）。
+   *
+   * 用途：确定性地复现 2026-10-08 的事故链——空库 ⇒ `/security/sign/aes-key` 拿不到密钥 ⇒
+   * 启动序列的 `sign` 步失败 ⇒（它是 blocking）⇒ 应当出现**错误屏**而不是白屏。
+   * 没有这个开关，产物冒烟就永远只能证明「能挂载」，证明不了「挂不上时会怎样」。
+   */
+  failApi?: boolean
+}
+
 /**
  * 起一个只伺服 `dist` 的静态服务器（history 模式回退到 index.html）。
  *
@@ -116,11 +128,22 @@ export interface StaticServer {
  * 浏览器报 `SyntaxError: Unexpected token '<'` —— 那是**这个服务器制造的假异常**，
  * 会把冒烟结论搅浑（实测踩过）。资源缺失就老实回 404，并记进 `missing` 供诊断。
  */
-export async function createStaticServer(root: string): Promise<StaticServer> {
+export async function createStaticServer(root: string, options: StaticServerOptions = {}): Promise<StaticServer> {
   const base = resolve(root)
   const missing: string[] = []
   const server = createServer((req, res) => {
     const raw = (req.url ?? '/').split('?')[0]
+
+    // 负对照：把接口统统打成后端故障。形状照抄后端真实返回（`code: 50000` + 那句 msg），
+    // 这样前端走的是**与线上同一条**错误路径，而不是我编的另一种失败。
+    // 开关两处认：函数参数（给用例用）或环境变量 `SMOKE_FAIL_API=1`（给 CLI 用，
+    // 这样不必改动 `smoke()` 的签名，调用方也就不会被牵连）。
+    if ((options.failApi === true || process.env.SMOKE_FAIL_API === '1') && raw.startsWith('/api/')) {
+      res.writeHead(500, { 'content-type': 'application/json; charset=utf-8' })
+      res.end(JSON.stringify({ code: 50000, msg: '服务器内部错误', data: null }))
+      return
+    }
+
     const requested = normalize(decodeURIComponent(raw))
     let file = join(base, requested)
     if (!file.startsWith(base))
@@ -167,6 +190,15 @@ interface CdpMessage {
 
 export interface SmokeResult {
   mounted: boolean
+  /**
+   * 启动错误屏上写着的**步骤名**（`data-walnut-error-screen` 的值）；`null` = 没有错误屏。
+   *
+   * 为什么要把这个值带回来：`renderBootstrapFailure` 是**整体替换** `#app` 的子节点，
+   * 所以「splash 没了 + #app 在」在**错误屏**和**正常挂载**两种情况下都成立 —— 只看那两条
+   * 必然把「打开即错误屏」判成「跑起来了」。负对照（`SMOKE_FAIL_API=1`）期望的恰恰是错误屏，
+   * 于是它成了判据的分界。
+   */
+  errorScreenStep: string | null
   /** **挂载前**抛的未捕获异常 —— 这才是"启动序列被炸"（V13 那类），算违规 */
   fatalExceptions: string[]
   /** 挂载后抛的异常：产物在没有后端的环境里必然有降级噪声（API 调用失败），只报不拦 */
@@ -237,6 +269,8 @@ export async function smoke(root: string, chrome: string, timeoutMs = MOUNT_TIME
     const lateExceptions: string[] = []
     const consoleErrors: string[] = []
     let mounted = false
+    /** 错误屏上的步骤名（见 `SmokeResult.errorScreenStep` 的说明） */
+    let errorScreenStep: string | null = null
 
     ws.addEventListener('message', (event) => {
       const msg = JSON.parse(String(event.data)) as CdpMessage
@@ -276,13 +310,18 @@ export async function smoke(root: string, chrome: string, timeoutMs = MOUNT_TIME
     while (Date.now() - started < timeoutMs) {
       await sleep(500)
       const probe = await send('Runtime.evaluate', {
-        expression: `JSON.stringify({ splash: !!document.querySelector('${SPLASH_SELECTOR}'), app: !!document.getElementById('app') })`,
+        expression: `JSON.stringify({ splash: !!document.querySelector('${SPLASH_SELECTOR}'), app: !!document.getElementById('app'), errorScreenStep: document.querySelector('[data-walnut-error-screen]')?.getAttribute('data-walnut-error-screen') ?? null })`,
         returnByValue: true,
       })
       const raw = String(probe.result?.result?.value ?? '')
       if (raw !== '') {
-        const parsed = JSON.parse(raw) as { splash: boolean, app: boolean }
-        if (parsed.app && !parsed.splash) {
+        const parsed = JSON.parse(raw) as { splash: boolean, app: boolean, errorScreenStep: string | null }
+        if (parsed.errorScreenStep !== null)
+          errorScreenStep = parsed.errorScreenStep
+        // **错误屏不算挂载**：启动步阻断时 `renderBootstrapFailure` 会把 `#app` 的子节点整体换掉，
+        // 于是「splash 没了 + #app 在」这两条**同时成立** —— 只看这两条会把「打开即错误屏」误判成
+        // 「跑起来了」。所以显式排除它（负对照正是靠这条分界）。
+        if (parsed.app && !parsed.splash && parsed.errorScreenStep === null) {
           mounted = true
           break
         }
@@ -292,7 +331,7 @@ export async function smoke(root: string, chrome: string, timeoutMs = MOUNT_TIME
         break
     }
 
-    return { mounted, fatalExceptions, lateExceptions, consoleErrors, missingAssets: [...new Set(server.missing)], waitedMs: Date.now() - started }
+    return { mounted, errorScreenStep, fatalExceptions, lateExceptions, consoleErrors, missingAssets: [...new Set(server.missing)], waitedMs: Date.now() - started }
   }
   finally {
     ws?.close()
@@ -346,15 +385,50 @@ export async function main(): Promise<void> {
   if (noise > 0)
     out(`  提示：以上 ${noise} 条来自"没有后端"的降级路径，不计入结论。`)
 
-  if (result.mounted && backendAssets.length === 0) {
-    line('ok', `产物能跑起来：${(result.waitedMs / 1000).toFixed(1)}s 内完成挂载（无后端时的降级噪声 ${noise} 条，已忽略）`)
+  // ---- 负对照模式（`SMOKE_FAIL_API=1`）：期望的恰恰是「没挂载」+「错误屏在」 ----
+  //
+  // 这是 2026-10-08 事故链的**确定性复现**：`/api/**` 全部按后端故障应答（500 + code 50000）
+  // ⇒ 启动序列的 `sign` 步拿不到密钥 ⇒ 它是 blocking ⇒ 必须出现**错误屏**，
+  // 而不是白屏、也不是「一直卡在 splash」。没有这一段，这道闸就只能证明「能挂载」，
+  // 证明不了「挂不上时会怎样」——而后者才是用户会骂的那一半。
+  if (process.env.SMOKE_FAIL_API === '1') {
+    if (!result.mounted && result.errorScreenStep !== null) {
+      line('ok', `负对照通过：错误屏如期出现（data-walnut-error-screen="${result.errorScreenStep}"），页面不是空白`)
+      return
+    }
+    line(
+      'violation',
+      result.mounted
+        ? '负对照失败：接口全 500 的情况下居然挂载成功了 —— 「关键步骤失败会阻断启动」这条已失效'
+        : `负对照失败：既没挂载、也没有错误屏（等了 ${(result.waitedMs / 1000).toFixed(1)}s）—— 这就是白屏 / 卡 splash`,
+    )
     return
   }
 
-  if (!result.mounted) {
+  // ---- 正对照：**启动必须有结论** ----
+  //
+  // 判据在 2026-10-08 从「必须挂载」改成「splash 必须消失」：
+  // 启动序列里的 `sign` 已是 blocking（拿不到签名密钥 ⇒ 每个请求都废 ⇒ 应用没有可用状态），
+  // 而产物冒烟的环境**没有后端** ⇒ sign 必然失败 ⇒ 应用**按设计拒绝挂载**并显示错误屏。
+  // 若继续要求"必须挂载"，这道闸等于在要求应用**带着坏掉的签名链路进页面**——那不是我们要的。
+  //
+  // 换来的是更贴近用户的那条不变式：**不能白屏、不能卡在 splash**。
+  // V13 的防护力不丢：那次事故正是"卡在 splash"，splash 仍在 ⇒ 依然判红。
+  // 负对照（`SMOKE_FAIL_API=1`）另行断言"必须是错误屏"，两者互补。
+  const conclusion = result.mounted
+    ? `已挂载（${(result.waitedMs / 1000).toFixed(1)}s）`
+    : (result.errorScreenStep !== null ? `以错误屏收尾（失败步骤 ${result.errorScreenStep}）` : '仍卡在 splash')
+
+  if (!result.mounted && result.errorScreenStep === null) {
     for (const e of result.fatalExceptions.slice(0, 5))
       line('violation', `挂载前的未捕获异常：${e}`)
-    line('violation', `${(result.waitedMs / 1000).toFixed(1)}s 内没挂载（\`#app\` 里还有 splash）—— 产物打开即死`)
+    line('violation', `${(result.waitedMs / 1000).toFixed(1)}s 内既没挂载、也没有错误屏（\`#app\` 里还有 splash）—— 产物打开即死（白屏 / 卡 loading）`)
+    return
+  }
+
+  if (backendAssets.length === 0) {
+    line('ok', `产物启动有结论：${conclusion}（无后端时的降级噪声 ${noise} 条，已忽略）`)
+    return
   }
   for (const m of backendAssets)
     line('violation', `产物里缺这个文件：${m}`)
