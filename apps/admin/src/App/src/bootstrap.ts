@@ -3,6 +3,7 @@ import { installI18n, loadLocaleMessages } from '@/locales'
 import { setupRouter } from '@/router'
 import { setupStore } from '@/store/pinia'
 import { isDev } from '@/utils/constant/vue'
+import { reportRuntimeFatal } from './runtime-error'
 import { setupAnalytics, setupDeviceId, setupFingerprint, setupSign } from './scripts'
 import { setupGoogleSignIn } from './scripts/google-signin'
 import { setupSentry } from './scripts/sentry'
@@ -17,14 +18,24 @@ import { setupSentry } from './scripts/sentry'
  * 原因只在控制台。这正是 2026-09-24 登记在 `architecture-todo.md` 的「前端启动序列没有容错」，
  * 也是「移除 auto-import」那次被误判成「插件不生效」的真凶。
  *
- * 现在的判据分两类：
+ * 现在的判据分**三档**（2026-10-08 起；分档标准 = **失败后用户还能不能用**，不看步骤名）：
  *
- * - **关键步（`critical`）**：没它就不能进页面（store / i18n 壳 / router）。失败 ⇒ **不 mount**，
- *   直接把 splash 换成一屏**能读懂的错误**（`renderBootstrapFailure`），控制台另有完整堆栈。
- * - **可降级步**：失败只记下来，照常进页面，mount 之后弹一条 warning + 控制台逐条打
- *   （`reportBootstrapProblems`）。**宁可降级也不要静默空转**：语言包拿不到就显出 key，
- *   设备/签名没就绪就早失败，都比「一屏 loading 到底」可诊断。
+ * - **`blocking`（阻断）**：没它就不能进页面。失败 ⇒ **不 mount**，把 splash 换成一屏
+ *   **能读懂的错误**（`renderBootstrapFailure`），控制台另有完整堆栈。
+ *   除了 store / i18n 壳 / router，**`sign` 也在这一档**：签名是请求拦截器里做的
+ *   （`utils/axios/interceptors/request/interceptor.ts` 对**每个**请求 `await` 签名），
+ *   密钥拿不到 ⇒ 之后每一个请求都是坏的 ⇒ 页面等于打不开。2026-10-08 实测：空库时
+ *   `/security/sign/aes-key` 返回 50000、密钥为空、页面白屏——根因就是这一步被当成
+ *   「可降级」放行了。
+ * - **`degraded`（降级）**：失败照常进页面，但**必须让人看见**（`reportBootstrapProblems`
+ *   + 挂载后的全局提示）。判据：不影响「请求能不能发出去」，只影响信息完整度——
+ *   语言包拿不到就显 key；设备指纹 / 设备注册拿不到只是少一个风控标识
+ *   （它们不在每请求的必需头里：`AppConstRequestHeaders` 只有 AUTHORIZATION / LANGUAGE /
+ *   FINGERPRINT / SIGN / TIMESTAMP / NONCE，且指纹头的构造只读 store、不会抛）。
+ * - **`optional`（可选）**：纯观测 / 第三方，失败只 `console` 一条，用户无感。
  *
+ * **「请求会不会坏」是分档唯一的硬标准**：签名（每请求必需，缺了必坏）⇒ blocking；
+ * 设备 / 指纹（头里可空、构造不抛）⇒ degraded；统计类 ⇒ optional。
  * 网络类步骤额外加超时兜底（`STEP_TIMEOUT_MS`）：请求挂死时 `await` 永不 resolve，
  * 那是「无限 splash」的另一种成因，光靠 try/catch 拦不住。
  */
@@ -32,23 +43,28 @@ import { setupSentry } from './scripts/sentry'
 /** 单个网络类步骤的超时兜底；到点按「这一步失败」处理，绝不无限等 */
 export const STEP_TIMEOUT_MS = 20_000
 
+/** 步骤分级；缺省按 `degraded` 处理——忘了标也不会静默吞掉 */
+export type BootstrapStepLevel = 'blocking' | 'degraded' | 'optional'
+
 export interface BootstrapProblem {
   /** 步骤名（表里的 `name`），报错与提示都用它 */
   step: string
+  /** 该步的分级；调用方据此决定「错误屏」还是「提示」 */
+  level: BootstrapStepLevel
   error: unknown
 }
 
 export interface BootstrapResult {
-  /** 关键步失败：没它就不能进页面（调用方**不要** mount） */
+  /** `blocking` 步失败：没它就不能进页面（调用方**不要** mount） */
   fatal?: BootstrapProblem
-  /** 可降级步失败：照常进页面，但必须提示 */
+  /** `degraded` / `optional` 步失败：照常进页面，但降级必须提示 */
   problems: BootstrapProblem[]
 }
 
 interface BootstrapStep {
   name: string
-  /** 关键步：失败则不再继续，直接返回 fatal */
-  critical?: boolean
+  /** 分级（见文件顶部说明）；缺省按 `degraded` */
+  level?: BootstrapStepLevel
   /** 网络类步骤：加超时兜底 */
   timeout?: boolean
   run: () => void | Promise<void>
@@ -85,16 +101,28 @@ export async function bootstrapApp(app: App): Promise<BootstrapResult> {
   let router: ReturnType<typeof setupRouter> | undefined
 
   const steps: BootstrapStep[] = [
-    { name: 'store', critical: true, run: () => setupStore(app) },
-    { name: 'google-signin', run: () => setupGoogleSignIn(app) },
-    { name: 'analytics', timeout: true, run: setupAnalytics },
-    { name: 'fingerprint', timeout: true, run: setupFingerprint },
-    { name: 'device-id', timeout: true, run: setupDeviceId },
-    { name: 'sign', timeout: true, run: setupSign },
-    { name: 'i18n', critical: true, run: () => installI18n(app) },
-    { name: 'locale-messages', timeout: true, run: loadLocaleMessages },
-    { name: 'router', critical: true, run: () => { router = setupRouter(app) } },
-    { name: 'sentry', run: () => setupSentry(app, router!) },
+    { name: 'store', level: 'blocking', run: () => setupStore(app) },
+    { name: 'google-signin', level: 'optional', run: () => setupGoogleSignIn(app) },
+    { name: 'analytics', level: 'optional', timeout: true, run: setupAnalytics },
+    { name: 'fingerprint', level: 'degraded', timeout: true, run: setupFingerprint },
+    { name: 'device-id', level: 'degraded', timeout: true, run: setupDeviceId },
+    { name: 'sign', level: 'blocking', timeout: true, run: setupSign },
+    { name: 'i18n', level: 'blocking', run: () => installI18n(app) },
+    { name: 'locale-messages', level: 'degraded', timeout: true, run: loadLocaleMessages },
+    {
+      name: 'router',
+      level: 'blocking',
+      run: () => {
+        router = setupRouter(app)
+        // 懒加载 chunk 拉不到时 vue-router 会走到这里（典型场景：发版后浏览器还持有旧页面，
+        // 旧 HTML 去要已被替换掉的 chunk 名）。它发生在**导航时**、也就是挂载之后，
+        // 所以交给运行时覆盖层，而不是启动错误屏（那时 mount 早就完成了）。
+        router.onError((error) => {
+          reportRuntimeFatal(error, 'router.onError（页面资源加载失败；多半是刚发版、刷新即可）')
+        })
+      },
+    },
+    { name: 'sentry', level: 'optional', run: () => setupSentry(app, router!) },
   ]
 
   for (const step of steps) {
@@ -102,8 +130,9 @@ export async function bootstrapApp(app: App): Promise<BootstrapResult> {
       await (step.timeout === true ? withTimeout(step.name, step.run) : step.run())
     }
     catch (error) {
-      const problem: BootstrapProblem = { step: step.name, error }
-      if (step.critical === true)
+      const level = step.level ?? 'degraded'
+      const problem: BootstrapProblem = { step: step.name, level, error }
+      if (level === 'blocking')
         return { fatal: problem, problems }
       problems.push(problem)
     }
@@ -132,6 +161,9 @@ export function renderBootstrapFailure(problem: BootstrapProblem): void {
     return
 
   const wrap = document.createElement('div')
+  // 稳定标记：给冒烟/端到端断言用（`pnpm smoke:dist` 的负对照要判「错误屏出现了、页面不是空白」）。
+  // 值就是失败的步骤名，排障时从 DOM 上直接能读出来是哪一步挂的。
+  wrap.setAttribute('data-walnut-error-screen', problem.step)
   wrap.setAttribute(
     'style',
     'position:fixed;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;'
@@ -168,20 +200,37 @@ export function renderBootstrapFailure(problem: BootstrapProblem): void {
   host.replaceChildren(wrap)
 }
 
-/** 可降级步失败：**必须让人看见**（否则用户只感觉到「某些功能不对」） */
+/**
+ * 启动问题上报。**按档位呈现**（2026-10-08 起）：
+ *
+ * - `degraded`：影响用户能感知到的完整度（语言包、设备标识…）⇒ 除控制台外**再弹一条提示**，
+ *   让人知道「应用起来了但少了东西」，而不是自己犯嘀咕「怎么有点不对」。
+ * - `optional`：纯观测 / 第三方（统计、Sentry…）⇒ **只进控制台**，不打扰用户。
+ *
+ * 两类都逐条 `console.error`，排障时一眼能看出是哪一步失败的。
+ */
 export function reportBootstrapProblems(problems: readonly BootstrapProblem[]): void {
   if (problems.length === 0)
     return
 
   for (const problem of problems)
-    console.error(`[bootstrap] 可降级步骤失败：${problem.step}`, problem.error)
+    console.error(`[bootstrap] 启动步骤失败（${problem.level}）：${problem.step}`, problem.error)
 
+  const degraded = problems.filter(p => p.level === 'degraded')
+  const optional = problems.filter(p => p.level === 'optional')
   const names = problems.map(p => p.step).join('、')
-  console.warn(`[bootstrap] ${problems.length} 个步骤失败，应用以降级状态启动：${names}`)
+  console.warn(
+    `[bootstrap] ${problems.length} 个步骤失败（degraded ${degraded.length} / optional ${optional.length}），`
+    + `应用继续启动：${names}`,
+  )
+
+  // 只有 degraded 才弹提示：它影响用户能感知到的完整度；optional 失败用户本就无感，弹了只是噪音。
+  if (degraded.length === 0)
+    return
 
   // naive-ui 的 provider 在 App.vue 里 ⇒ mount 之后才有 window.$message（见 types/window.d.ts）
   window.$message?.warning(
-    `启动时有 ${problems.length} 个步骤失败（${names}），详情见控制台`,
+    `启动时有 ${degraded.length} 个步骤失败（${degraded.map(p => p.step).join('、')}），详情见控制台`,
     { duration: 8000 },
   )
 }

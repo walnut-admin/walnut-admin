@@ -6,6 +6,7 @@ import { createApp } from 'vue'
 
 import { setupStorageMigrations } from '@/utils/persistent/migrate'
 import { App, bootstrapApp, renderBootstrapFailure, reportBootstrapProblems } from './App'
+import { reportRuntimeFatal } from './App/src/runtime-error'
 // unocss
 import 'virtual:uno.css'
 // iconify
@@ -19,6 +20,30 @@ import './assets/styles/main.scss'
 
 (async () => {
   const app = createApp(App)
+
+  // ---- 运行时未捕获错误 ⇒ 全局覆盖层（2026-10-08）----
+  //
+  // 为什么需要它：启动序列早有容错（bootstrap 三档 + renderBootstrapFailure），但**挂载之后**的
+  // 未捕获错误没人管 —— 2026-10-08 实测：空库 ⇒ `/security/sign/aes-key` 返回 50000 ⇒ 响应解密
+  // 链路抛 `sa(...).create is not a function` ⇒ 页面「壳在、内容空」，除了浏览器控制台没有任何提示。
+  //
+  // 三条线各管一段（组件内外都要覆盖）：
+  //   app.config.errorHandler  → 组件渲染 / 生命周期里抛出的
+  //   unhandledrejection       → 没人 catch 的 Promise（axios 链路最常走这条）
+  //   window.onerror           → 同步脚本错误
+  //
+  // 那个 `event.error` 判断不是多余的：**资源加载失败**（`<img>`/`<script>` 404，例如开着 DevTools
+  // 时浏览器去请求 `*.js.map`）同样会触发 `error` 事件，但那是噪音，不该弹全屏错误。
+  app.config.errorHandler = (err, _instance, info) => reportRuntimeFatal(err, `vue:${info}`)
+
+  window.addEventListener('unhandledrejection', (event) => {
+    reportRuntimeFatal(event.reason, 'unhandledrejection')
+  })
+
+  window.addEventListener('error', (event) => {
+    if (event.error !== undefined && event.error !== null)
+      reportRuntimeFatal(event.error, 'window.onerror')
+  })
 
   setupStorageMigrations()
 
