@@ -1,119 +1,86 @@
-<script setup lang="ts">
+<script lang="ts" setup>
+import { useClipboard } from '@vueuse/core'
+import { ref } from 'vue'
 import { runtimeFatalError } from '@/App/src/runtime-error'
+import { useAppI18n } from '@/locales/index'
 
 /**
  * 运行时致命错误的**全屏覆盖层**。
  *
- * 为什么是覆盖层、而不是跳 `/500`：用户 2026-10-08 指出（并在代码里核实过）——`sign` 是 bootstrap
- * 第 5 步、`router` 是第 9 步，签名失败时**路由还不存在**，跳转这条路根本走不通；而且「不换 URL」
- * 还有个好处：刷新即重试，不需要用户理解发生了什么。
+ * 为什么是覆盖层、而不是跳 `/500`：`sign` 是 bootstrap 第 5 步、`router` 是第 9 步 ——
+ * 签名失败时路由**还不存在**，跳转这条路走不通；不换 URL 还有个好处：刷新即重试。
  *
- * 为什么纯 HTML + 内联样式、不用 naive-ui：走到这里说明运行时已经出过问题，组件库/provider 同样
- * 可能是坏的。与 `renderBootstrapFailure` 的取舍一致（那边更极端：连 Vue 都不用）。
+ * 两处**刻意**的取舍（都不是随手写的）：
+ * 1. **不用 naive-ui 的组件**（`n-button` 等）：走到这里是运行时致命错误，provider / 主题
+ *    可能已经坏了，用它们等于让"错误界面"也依赖可能坏掉的东西。样式一律走 UnoCSS 原子类
+ *    （与 `views/error/500` 同一套写法），只有一个原生 `<button>`。
+ * 2. **文案走 i18n，但带内置退化文案**：本仓语言包唯一来源是后端（见 `locales/index.ts` 顶部），
+ *    而"后端没起来 / 库是空的"恰恰是最常见的触发场景 —— 那时 `t()` 只会吐出 key 本身。
+ *    所以这里先 `te()` 判断，没有就退到内置中文（否则错误屏上会显示 `app.error.title`）。
  */
+defineOptions({
+  name: 'AppRuntimeErrorOverlay',
+})
+
+const { t, te } = useAppI18n()
+const { copy, copied, isSupported } = useClipboard({ source: () => runtimeFatalError.value?.detail ?? '' })
+
+/** 有语言包就用语言包，没有就用内置文案（见文件头第 2 条） */
+function tr(key: string, fallback: string): string {
+  return te(key) ? t(key) : fallback
+}
+
 const retry = () => location.reload()
+
+const showDetail = ref(false)
 </script>
 
 <template>
   <div
     v-if="runtimeFatalError"
-    class="runtime-fatal"
+    class="fixed inset-0 z-99999 flex items-center justify-center bg-black/70 p-6"
     role="alertdialog"
     aria-modal="true"
-    aria-labelledby="runtime-fatal-title"
+    :aria-label="tr('app.error.title', '页面遇到无法恢复的错误')"
   >
-    <div class="runtime-fatal__card">
-      <h1 id="runtime-fatal-title" class="runtime-fatal__title">
-        {{ runtimeFatalError.title }}
+    <div class="max-h-[86vh] max-w-[880px] w-full overflow-auto rounded-xl bg-#1f1f1f p-6 text-white shadow-2xl">
+      <h1 class="m-0 text-xl text-red-300 font-semibold">
+        {{ tr('app.error.title', '页面遇到无法恢复的错误') }}
       </h1>
 
-      <p class="runtime-fatal__hint">
-        已停止继续渲染，避免出现「界面在但点了没反应」的假象。常见原因：后端未就绪、数据库是空的、
-        或者前后端版本对不上。可以重新加载试试；如果一直这样，把下面的详情发给我们。
+      <p class="mb-4 mt-3 text-sm text-white/75 leading-relaxed">
+        {{ tr('app.error.hint', '已停止继续渲染，避免出现「界面在但点了没反应」的假象。常见原因：后端未就绪、数据库是空的、或前后端版本对不上。可以重新加载试试；若一直如此，把下面的技术细节发给我们。') }}
       </p>
 
-      <div class="runtime-fatal__actions">
-        <button class="runtime-fatal__btn" type="button" @click="retry">
-          重新加载
+      <div class="flex flex-wrap gap-3">
+        <button
+          type="button"
+          class="cursor-pointer border-0 rounded-md bg-#0065cc px-5 py-2 text-white transition-colors hover:bg-#0057ad"
+          @click="retry"
+        >
+          {{ tr('app.error.retry', '重新加载') }}
+        </button>
+        <button
+          v-if="isSupported"
+          type="button"
+          class="cursor-pointer border border-white/25 rounded-md border-solid bg-transparent px-5 py-2 text-white/85 transition-colors hover:border-white/45"
+          @click="copy()"
+        >
+          {{ copied ? tr('app.error.copied', '已复制') : tr('app.error.copy', '复制技术细节') }}
         </button>
       </div>
 
-      <details class="runtime-fatal__details">
-        <summary>技术细节</summary>
-        <pre class="runtime-fatal__pre">{{ runtimeFatalError.detail }}</pre>
+      <details class="mt-4" @toggle="showDetail = !showDetail">
+        <summary class="cursor-pointer select-none text-xs text-white/45">
+          {{ tr('app.error.detail', '技术细节') }}
+        </summary>
+        <pre
+          v-if="showDetail"
+          class="mt-2 max-h-[40vh] overflow-auto whitespace-pre-wrap break-words rounded-lg bg-#151515 p-3 text-xs text-red-200"
+        >{{ runtimeFatalError.detail }}</pre>
       </details>
     </div>
   </div>
 </template>
 
-<style scoped>
-.runtime-fatal {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: rgb(0 0 0 / 72%);
-}
-
-.runtime-fatal__card {
-  width: min(880px, 100%);
-  max-height: 86vh;
-  overflow: auto;
-  padding: 24px;
-  border-radius: 12px;
-  background: #1f1f1f;
-  color: #f5f5f5;
-  box-shadow: 0 12px 48px rgb(0 0 0 / 45%);
-}
-
-.runtime-fatal__title {
-  margin: 0 0 12px;
-  font-size: 20px;
-  font-weight: 600;
-  color: #ffb4b4;
-}
-
-.runtime-fatal__hint {
-  margin: 0 0 16px;
-  font-size: 14px;
-  line-height: 1.7;
-  color: #d0d0d0;
-}
-
-.runtime-fatal__actions {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.runtime-fatal__btn {
-  padding: 8px 20px;
-  border: 0;
-  border-radius: 6px;
-  background: #0065cc;
-  color: #fff;
-  cursor: pointer;
-}
-
-.runtime-fatal__details summary {
-  cursor: pointer;
-  font-size: 13px;
-  color: #9e9e9e;
-}
-
-.runtime-fatal__pre {
-  max-height: 40vh;
-  overflow: auto;
-  margin: 8px 0 0;
-  padding: 12px;
-  border-radius: 8px;
-  background: #151515;
-  color: #ffb4b4;
-  font-size: 12px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-</style>
+<style lang="scss" scoped></style>
