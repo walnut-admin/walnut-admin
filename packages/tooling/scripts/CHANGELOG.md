@@ -1,5 +1,11 @@
 # @walnut/scripts
 
+## 0.1.24
+
+### 修复
+
+- [`65e18c8`](https://github.com/walnut-admin/walnut-admin/commit/65e18c8a61f8531ef8251e698595bffe9f4d8459) **tooling** 产物冒烟支持模拟后端故障，负对照断言错误屏
+
 ## 0.1.7
 
 ### 基建（CI / 构建 / 部署）

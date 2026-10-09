@@ -50,6 +50,10 @@
     - wide-bears-wait
     - wide-pigs-agree
     - young-seals-visit
+"@walnut/admin@0.1.24":
+  dir: apps/admin
+  intents:
+    - slow-wolves-whisper
 "@walnut/admin@0.1.5":
   dir: apps/admin
   intents:
@@ -289,6 +293,10 @@
   dir: packages/tooling/scripts
   intents:
     - khaki-kids-dig
+"@walnut/scripts@0.1.24":
+  dir: packages/tooling/scripts
+  intents:
+    - lucky-wolves-beg
 "@walnut/scripts@0.1.3":
   dir: packages/tooling/scripts
   intents:
