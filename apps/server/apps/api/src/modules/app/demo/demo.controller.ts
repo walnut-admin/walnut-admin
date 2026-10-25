@@ -3,9 +3,10 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import {
-  WalnutAdminDecoratorParamMongoId,
-  WalnutAdminDecoratorParamMongoIds,
+  WalnutAdminDecoratorParamUuid,
+  WalnutAdminDecoratorParamUuids,
 } from '@walnut-server/decorators/params'
+import { plainToInstance } from 'class-transformer'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
@@ -43,6 +44,13 @@ const {
   DTO: AppDemoDTOSafe,
 })
 
+/**
+ * B1 迁移模板（controller 层）：
+ * - 路由参数 ParamMongoId(s) → uuid 参数装饰器；
+ * - 事务句柄 `ctx.dbSession` → `ctx.em`（WalnutTxContext 双引擎上下文，已迁侧取 em）；
+ * - 响应组装 `.toObject()` 移除（PG 实体即 POJO），统一 `plainToInstance(DTO, entity)`
+ *   —— 实体字段的可空性比 DTO 宽，直配构造器过不了 TS，plainToInstance 免转型。
+ */
 @Controller('app/demo')
 @ApiTags('app/demo')
 export class AppDemoController {
@@ -51,28 +59,22 @@ export class AppDemoController {
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
   async create(@Body() payload: AppDemoDTOCreateRequest) {
-    return new AppDemoDTOCreateResponse(
-      (await this.demoService.create(payload)).toObject(),
-    )
+    return plainToInstance(AppDemoDTOCreateResponse, await this.demoService.create(payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
-  async read(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new AppDemoDTOReadResponse(
-      (await this.demoService.read(id)).toObject(),
-    )
+  async read(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(AppDemoDTOReadResponse, await this.demoService.read(id))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.UPDATE)
   @WalnutAdminDecoratorUpdate()
   async update(
-    @WalnutAdminDecoratorParamMongoId() id: string,
     @Body() payload: AppDemoDTOUpdateRequest,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return new AppDemoDTOUpdateResponse(
-      (await this.demoService.update(id, payload)).toObject(),
-    )
+    return plainToInstance(AppDemoDTOUpdateResponse, await this.demoService.update(id, payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
@@ -81,10 +83,11 @@ export class AppDemoController {
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutDBSession() ctx: WalnutTxContext,
-    @WalnutAdminDecoratorParamMongoId() id: string,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return new AppDemoDTODeleteResponse(
-      (await this.demoService.delete(id, user.userId, ctx.dbSession!)).toObject(),
+    return plainToInstance(
+      AppDemoDTODeleteResponse,
+      await this.demoService.delete(id, user.userId, ctx.em),
     )
   }
 
@@ -94,16 +97,16 @@ export class AppDemoController {
   async deleteMany(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutDBSession() ctx: WalnutTxContext,
-    @WalnutAdminDecoratorParamMongoIds() ids: string[],
+    @WalnutAdminDecoratorParamUuids() ids: string[],
   ) {
-    const deleted = await this.demoService.deleteMany(ids, user.userId, ctx.dbSession!)
+    const deleted = await this.demoService.deleteMany(ids, user.userId, ctx.em)
 
-    return deleted.map(i => new AppDemoDTODeleteResponse(i.toObject()))
+    return deleted.map(i => plainToInstance(AppDemoDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: AppDemoDTOListRequest) {
-    return new AppDemoDTOListResponse(await this.demoService.list(payload))
+    return plainToInstance(AppDemoDTOListResponse, await this.demoService.list(payload))
   }
 }

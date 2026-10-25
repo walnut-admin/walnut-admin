@@ -1,26 +1,23 @@
 import { BullModule } from '@nestjs/bull'
 import { Module } from '@nestjs/common'
 import { APP_FILTER } from '@nestjs/core'
-import { MongooseModule } from '@nestjs/mongoose'
+import { TypeOrmModule } from '@nestjs/typeorm'
 import { WalnutAdminConstAppQueue } from '@walnut-server/const/app/queue'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminFilterExceptionAll } from '@walnut-server/exceptions/exception.filter'
+import { AppErrorEntity } from './entity/error.entity'
+import { AppErrorBasicRepository } from './error.basic.repository'
 import { AppErrorController } from './error.controller'
 import { AppErrorProcessor } from './error.process'
-import { AppErrorSchema } from './error.schema'
 import { AppErrorService } from './error.service'
 
+/**
+ * B1 接线（模板同 demo.module）：PG forFeature 进既有 module，本模块的 Mongo
+ * forFeature 随迁移摘除；错误写入改走 AppErrorBasicRepository（PG）。
+ */
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [
-        {
-          name: WalnutDBModelName.APP_ERROR,
-          schema: AppErrorSchema,
-        },
-      ],
-      WalnutDBConnectionName,
-    ),
+    TypeOrmModule.forFeature([AppErrorEntity], WalnutPGConnectionName),
 
     BullModule.registerQueue({
       name: WalnutAdminConstAppQueue.ERROR,
@@ -28,6 +25,7 @@ import { AppErrorService } from './error.service'
   ],
   controllers: [AppErrorController],
   providers: [
+    AppErrorBasicRepository,
     AppErrorService,
     AppErrorProcessor,
     {

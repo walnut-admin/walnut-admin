@@ -1,22 +1,21 @@
+import type { AppErrorEntity } from './entity/error.entity'
 import process from 'node:process'
 import { InjectQueue } from '@nestjs/bull'
 import { Injectable, Logger } from '@nestjs/common'
 import { IWalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
 import { WalnutAdminConstAppProcess } from '@walnut-server/const/app/process'
 import { WalnutAdminConstAppQueue } from '@walnut-server/const/app/queue'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
-import { IWalnutAdminConstAppResponseCode, WalnutAdminConstAppResponseCode } from '@walnut/contract'
 
+import { IWalnutAdminConstAppResponseCode, WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { Queue } from 'bull'
 import { SharedMaskService } from '@/modules/shared/mask/mask.service'
+import { AppErrorBasicRepository } from './error.basic.repository'
 import { AppErrorDTOSafe } from './error.dto'
-import { IAppErrorModel } from './error.schema'
 
 @Injectable()
 export class AppErrorService {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.APP_ERROR)
-    private readonly appErrorModel: IAppErrorModel,
+    private readonly appErrorBasicRepo: AppErrorBasicRepository,
 
     @InjectQueue(WalnutAdminConstAppQueue.ERROR) private readonly errorQueue: Queue,
 
@@ -77,6 +76,13 @@ export class AppErrorService {
   }
 
   async insertToDB(payload: Partial<AppErrorDTOSafe>) {
-    await this.appErrorModel.create(payload)
+    // schema（Mongo 元数据基座）与 PG 实体的字段形态差异在此收口：
+    // - response_code 列是 varchar(16)（phase2 4.22），AppResponseCode const 是数值型，落列转 text；
+    // - userId 松引用 uuid 直传（B1：删去原 processor 里的 ObjectId 包装）。
+    // 断言只桥接 DTO 侧的 ObjectId/object 宽类型，不改字段集
+    await this.appErrorBasicRepo.create({
+      ...payload,
+      responseCode: payload.responseCode == null ? null : String(payload.responseCode),
+    } as Partial<AppErrorEntity>)
   }
 }

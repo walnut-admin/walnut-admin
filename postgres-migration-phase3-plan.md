@@ -28,7 +28,7 @@
 | 批 | 范围 | 状态 |
 |---|---|---|
 | B0 | 公共骨架（上表全部）+ 初始 migration + data-source.cli | ✅ fc0d51c |
-| B1 | app/demo + app/error（叶子试点，确立三层改造模板） | ⏳ |
+| B1 | app/demo + app/error（叶子试点，确立三层改造模板） | ✅ |
 | B2 | sys_lang + sys_locale（FK 同批；i18n 聚合 SQL 重写） | |
 | B3 | dictType + dictData（FK 同批） | |
 | B4 | app_setting + app_key + shared_area（递归 CTE + CYCLE 兜底） | |
@@ -43,13 +43,21 @@
 
 - controller：`@WalnutDBSession() ctx: WalnutTxContext` → service 调用传 `ctx.em`；
   路由参数 ParamMongoId → uuid 参数装饰器；DTO 校验 IsMongoId → IsUUID；`.toObject()` 移除
-  （实体即 POJO），DTO 组装改 `plainToInstance(DTO, entity)` 或直配。
+  （实体即 POJO），DTO 组装统一 `plainToInstance(DTO, entity)`（B1 定案：实体字段可空性比
+  DTO 宽，直配构造器过不了 TS，plainToInstance 免转型，后续一致）。
 - service：方法签名 `dbSession?: ClientSession` → `em?: EntityManager`，纯透传。
-- repo：`XxxBasicRepository extends WalnutAdminCommonPgBaseRepository<AppDemoEntity>`，
-  模块内 `TypeOrmModule.forFeature([AppDemoEntity], WalnutPGConnectionName)` 注册
-  （autoLoadEntities 自动装载）；特殊查询用 QueryBuilder / `customize` 钩子，不用原生 SQL 拼接。
-- 模块接线形态：每个模块新增 `xxx.pg.module.ts` 或在既有 module imports 数组加 forFeature
-  （以 B1 确立的形态为准，后续一致）。
+- repo：`XxxBasicRepository extends WalnutAdminCommonPgBaseRepository<XxxEntity>`，类名与
+  文件名保持不变（DI token 不动）；特殊查询用 QueryBuilder / `customize` 钩子，不用原生 SQL
+  拼接。原先无 repo 的模块（如 error 直持 model）随迁移补一个同模板 repo。
+- 模块接线形态（B1 定案）：直接在既有 module 的 imports 数组加
+  `TypeOrmModule.forFeature([XxxEntity], WalnutPGConnectionName)`（autoLoadEntities 装载），
+  **不新建 xxx.pg.module 文件**；该模块的 Mongo forFeature 随迁移摘除，未迁模块原样保留。
+- DTO 形态（B1 定案）：DTO 链继续以既有 schema 类为元数据基座（schema 文件保留，模型注册
+  摘除后仅承载校验/swagger/Expose）；uuid 化字段在 DTO 子类**重声明**，用
+  `WalnutAdminDecoratorValidatorUuid` 整体替换继承的 IsMongoId 约束（class-validator 按
+  propertyName+type 去重，实测子类重声明即替换），schema 侧属性 TS 类型注解随列型放开为
+  string；DTO 头部补 `id`（Expose + IsOptional + uuid 校验，供响应序列化与 list 键枚举），
+  Safe 层剔除 Mongo `_id`。
 
 ## 3. 测试演进规则
 
@@ -57,6 +65,8 @@
   ObjectId 形态断言换 uuid 形态。
 - **载体退役**：Mongo 版基线测试若以已迁模块为载体（如 demo），随批退役——其行为基准已在
   git 历史存档（Phase 0 提交），PG 侧对应用例接管。retire 而非硬留。
+  B1 已退役：repository.base / recycle.recover / virtual.populate / transaction 四个
+  int-spec；pg.transaction 的 Mongo 写腿改用未迁的 dict_type 模型直写（B10 清理）。
 - 并存冒烟：B7 增「同 ctx 双写、PG rollback 连带 Mongo abort」用例（B0 已有基础用例可扩展）。
 - B9/B10：删 Mongo 段 global-setup 与 Mongo int-spec。
 
@@ -69,7 +79,7 @@
 | base.repository deletedBy / deleted.repo createSoftDelete | B0 ✅ |
 | locale.pipe、lang.repo.service | B2 |
 | role.repo.service `$in` | B5 |
-| error.process.ts | B1 |
+| error.process.ts | B1 ✅（uuid 直传，删除 ObjectId 包装） |
 | monitor/user.repo.service | B6 |
 | user.crud / user.shared（defaultRole 消费点） | B7（前置：B5 订正脚本落地） |
 | user_device/user_identity/user_lock/user_mfa/totp/webauthn/user_preference/refresh.repo | B7 |

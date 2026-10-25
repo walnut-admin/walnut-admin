@@ -1,5 +1,5 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { ClientSession } from 'mongoose'
 import { AppDemoBasicRepository } from './demo.basic.repository'
 import {
   AppDemoDTOCreateRequest,
@@ -7,6 +7,10 @@ import {
   AppDemoDTOUpdateRequest,
 } from './dto/demo.dto'
 
+/**
+ * B1 迁移模板（service 层）：除事务句柄签名 `dbSession?: ClientSession` →
+ * `em?: EntityManager`（纯透传给 repo，取自 `WalnutTxContext.em`）外零逻辑改动。
+ */
 @Injectable()
 export class AppDemoService {
   constructor(private readonly demoBasicRepo: AppDemoBasicRepository) { }
@@ -23,12 +27,12 @@ export class AppDemoService {
     return this.demoBasicRepo.update(id, payload)
   }
 
-  async delete(id: string, userId: string, dbSession: ClientSession) {
-    return this.demoBasicRepo.deleteSoftById(id, userId, dbSession)
+  async delete(id: string, userId: string, em?: EntityManager) {
+    return this.demoBasicRepo.deleteSoftById(id, userId, em)
   }
 
-  async deleteMany(ids: string[], userId: string, dbSession: ClientSession) {
-    return this.demoBasicRepo.deleteSoftByIdMany(ids, userId, dbSession)
+  async deleteMany(ids: string[], userId: string, em?: EntityManager) {
+    return this.demoBasicRepo.deleteSoftByIdMany(ids, userId, em)
   }
 
   async list(payload: AppDemoDTOListRequest) {

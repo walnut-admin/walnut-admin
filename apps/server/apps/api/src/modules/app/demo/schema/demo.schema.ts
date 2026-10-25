@@ -274,8 +274,11 @@ export class AppDemoModel extends WalnutAdminCommonBasicModel {
       example: '628f238fb7f0c07915e4c859',
     },
   })
+  // B1 迁 PG（phase2 4.20 demo_uuid）：属性 TS 类型随列型放开为 string；uuid 校验在
+  // DTO 子类重声明接管（demo.dto.ts 模板），本 schema 的 Mongo 装饰器仅作为 DTO 元数据
+  // 基座保留（模型注册已随迁移从 demo.module 摘除，@Prop 不再有运行时语义）
   @Prop({ type: Types.ObjectId, default: null })
-  demoMongoId: Types.ObjectId
+  demoMongoId: string
 
   @WalnutAdminDecoratorFieldMongoId({
     default: [],
@@ -292,7 +295,7 @@ export class AppDemoModel extends WalnutAdminCommonBasicModel {
     },
   })
   @Prop([{ type: Types.ObjectId, default: null }])
-  demoMongoIdArray: Types.ObjectId[]
+  demoMongoIdArray: string[]
 
   @WalnutAdminDecoratorFieldObject(DemoObject, {
     default: null,

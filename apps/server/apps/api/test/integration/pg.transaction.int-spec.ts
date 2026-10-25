@@ -2,15 +2,15 @@ import type { CallHandler, ExecutionContext, INestApplication } from '@nestjs/co
 import type { WalnutTxContext } from '@walnut-server/db'
 import type { ClientSession, Connection } from 'mongoose'
 import type { DataSource, EntityManager } from 'typeorm'
+import type { ISysDictTypeModel } from '@/modules/system/dict/dictType/schema/dictType.schema'
 import { randomUUID } from 'node:crypto'
 import { SetMetadata } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { TypeOrmModule } from '@nestjs/typeorm'
-import { registerAfterCommitHook, WalnutPGConnectionName, WalnutTxEngine, WalnutTxEngineMetadataKey, WalnutTxInterceptor } from '@walnut-server/db'
+import { getModelToken } from '@nestjs/mongoose'
+import { registerAfterCommitHook, WalnutDBConnectionName, WalnutDBModelName, WalnutTxEngine, WalnutTxEngineMetadataKey, WalnutTxInterceptor } from '@walnut-server/db'
 import { from, lastValueFrom, throwError } from 'rxjs'
 
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { AppDemoBasicRepository } from '@/modules/app/demo/demo.basic.repository'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
 import { createIntegrationApp, getWalnutConnection, getWalnutPgDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
@@ -24,20 +24,24 @@ import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
  * - handler 抛错 → PG rollback + Mongo abort，两侧零残留；
  * - after-commit 钩子在两个引擎都 commit 后执行，且能看到已提交数据；
  * - engine 元数据收窄：`mongo` 不开 PG 事务、`pg` 不开 Mongo session。
+ *
+ * Mongo 写腿（B1 起）：demo 模块已迁 PG，不再有经 AppDemoBasicRepository 的 Mongo
+ * 写路径 —— 改为任选一个**未迁模块的已注册 mongoose 模型**（sys_dict_type）直接
+ * `model.create(..., { session })`；双引擎语义不受载体影响，载体随 B10 清理。
  */
 describe('WalnutTxInterceptor dual-engine transaction semantics (on real PG + Mongo)', () => {
   let app: INestApplication
-  let demoRepo: AppDemoBasicRepository
+  let dictTypeModel: ISysDictTypeModel
   let mongoConnection: Connection
   let pgDataSource: DataSource
 
-  function uniqueDemoPayload() {
+  function uniqueDictPayload() {
     const seed = randomUUID()
 
     return {
-      demoString: `int-pg-txn-${seed}`,
-      // demoPhoneNumber 在 Mongo 与 PG 两侧都带 unique 索引，必须给唯一值
-      demoPhoneNumber: `137${seed.replaceAll('-', '')}`,
+      // name/type 均必填；type 唯一索引，必须给唯一值
+      name: `int-pg-txn-${seed}`,
+      type: `int_pg_txn_${seed.replaceAll('-', '_')}`,
     }
   }
 
@@ -80,11 +84,11 @@ describe('WalnutTxInterceptor dual-engine transaction semantics (on real PG + Mo
   }
 
   beforeAll(async () => {
-    // PG 侧按需注册 AppDemoEntity（业务模块仍是 Mongo，实体注册不进 demo.module）
-    app = await createIntegrationApp([
-      TypeOrmModule.forFeature([AppDemoEntity], WalnutPGConnectionName),
-    ])
-    demoRepo = app.get(AppDemoBasicRepository)
+    // AppDemoEntity 已随 demo.module 迁 PG 注册（B1 起），这里直接用全量 AppModule
+    app = await createIntegrationApp()
+    dictTypeModel = app.get<ISysDictTypeModel>(
+      getModelToken(WalnutDBModelName.SYS_DICT_TYPE, WalnutDBConnectionName),
+    )
     mongoConnection = getWalnutConnection(app)
     pgDataSource = getWalnutPgDataSource(app)
 
@@ -92,10 +96,10 @@ describe('WalnutTxInterceptor dual-engine transaction semantics (on real PG + Mo
     expect(pgDataSource.options.database).toBe(INTEGRATION_DATABASE_NAME)
     expect(mongoConnection.name).toBe(INTEGRATION_DATABASE_NAME)
 
-    // Mongoose 的惰性建索引会隐式创建集合：若本文件的事务写 app_demo 时集合尚不存在，
+    // Mongoose 的惰性建索引会隐式创建集合：若本文件的事务写 sys_dict_type 时集合尚不存在，
     // 事务的隐式建集合会与 boot 期索引构建相撞，commit 报 "already in use"。
     // 开事务前先确保集合存在，让事务写走普通路径。
-    await mongoConnection.db?.createCollection('app_demo').catch(() => undefined)
+    await mongoConnection.db?.createCollection('sys_dict_type').catch(() => undefined)
   })
 
   afterAll(async () => {
@@ -110,58 +114,101 @@ describe('WalnutTxInterceptor dual-engine transaction semantics (on real PG + Mo
     return pgDataSource.manager.count(AppDemoEntity, { where: { demoString } })
   }
 
-  function countMongo(demoString: string) {
-    return demoRepo.dbModel.countDocuments({ demoString })
+  function countMongo(dictType: string) {
+    return dictTypeModel.countDocuments({ type: dictType })
   }
+
+  /**
+   * MongoDB 事务锁竞争重试（**只用于非事务操作**）：上一条事务 commit/abort 已 await，
+   * 但服务端锁释放是异步的（unique 索引维护会延长持锁），紧随其后的同集合非事务读可能
+   * 撞 IX 锁获取超时（"Unable to acquire IX lock ... within 5ms"）—— 官方归类的
+   * TransientTransactionError，标准处置是退避重试。
+   *
+   * 刻意不包装事务内的写：锁超时发生在事务内时服务端已把整个事务置为 aborted，
+   * 正确处置是放弃整条事务重来（整测试重试），不是在同一条死事务里重试写。
+   */
+  async function withIxLockRetry<T>(fn: () => Promise<T>): Promise<T> {
+    const LOCK_ERROR = 'Unable to acquire IX lock'
+    let lastError: unknown
+
+    for (let attempt = 0; attempt < 40; attempt++) {
+      try {
+        return await fn()
+      }
+      catch (e) {
+        lastError = e
+        if (!(e instanceof Error) || !e.message.includes(LOCK_ERROR)) {
+          throw e
+        }
+        await new Promise(resolve => setTimeout(resolve, 50))
+      }
+    }
+
+    throw lastError
+  }
+
+  /**
+   * 用例间的锁排空：上一条用例的事务锁释放是异步的，下一条用例的事务首写可能在
+   * 5ms 内抢不到 IX 锁、连坐整条事务。这里以**非事务**探针写（插一条随即删除）
+   * 轮询到成功为止 —— 非事务写能成功即证明集合锁已可用，下一条用例从干净状态开始。
+   */
+  afterEach(async () => {
+    await withIxLockRetry(async () => {
+      const probe = await dictTypeModel.create([
+        { name: 'lock-drain-probe', type: `lock_drain_probe_${randomUUID().replaceAll('-', '_')}` },
+      ])
+      await dictTypeModel.deleteOne({ _id: probe[0]._id })
+    })
+  })
 
   it('双 commit：同一 WalnutTxContext 下 PG 写 + Mongo 写全部落库', async () => {
     const interceptor = buildInterceptor()
-    const payload = uniqueDemoPayload()
+    const payload = uniqueDictPayload()
     const request = {}
     let ctxAtHandlerTime: WalnutTxContext | undefined
 
     await drive(interceptor, request, async (tx) => {
       ctxAtHandlerTime = tx
-      await tx.em.insert(AppDemoEntity, pgInsertPayload(payload.demoString, payload.demoPhoneNumber))
-      await demoRepo.create({ ...payload }, tx.dbSession)
+      await tx.em.insert(AppDemoEntity, pgInsertPayload(payload.name, `137${randomUUID().replaceAll('-', '')}`))
+      await dictTypeModel.create([{ ...payload }], { session: tx.dbSession })
     })
 
     expect(ctxAtHandlerTime!.dbSession).toBeDefined()
-    expect(await countPg(payload.demoString)).toBe(1)
-    expect(await countMongo(payload.demoString)).toBe(1)
+    expect(await countPg(payload.name)).toBe(1)
+    expect(await withIxLockRetry(() => countMongo(payload.type))).toBe(1)
   })
 
   it('回滚：handler 抛错 → PG rollback + Mongo abort，两侧零残留', async () => {
     const interceptor = buildInterceptor()
-    const payload = uniqueDemoPayload()
+    const payload = uniqueDictPayload()
     const request = {}
 
     await expect(drive(interceptor, request, async (tx) => {
-      await tx.em.insert(AppDemoEntity, pgInsertPayload(payload.demoString, payload.demoPhoneNumber))
-      await demoRepo.create({ ...payload }, tx.dbSession)
+      await tx.em.insert(AppDemoEntity, pgInsertPayload(payload.name, `137${randomUUID().replaceAll('-', '')}`))
+      await dictTypeModel.create([{ ...payload }], { session: tx.dbSession })
       throw new Error('rollback on purpose')
     })).rejects.toThrow('rollback on purpose')
 
-    expect(await countPg(payload.demoString)).toBe(0)
-    expect(await countMongo(payload.demoString)).toBe(0)
+    expect(await countPg(payload.name)).toBe(0)
+    expect(await withIxLockRetry(() => countMongo(payload.type))).toBe(0)
   })
 
   it('after-commit 钩子：两个引擎 commit 后执行，且钩子里能看到已提交数据', async () => {
     const interceptor = buildInterceptor()
-    const payload = uniqueDemoPayload()
+    const payload = uniqueDictPayload()
     const request = {}
     let hookRan = false
     let pgCountAtHookTime = -1
     let mongoCountAtHookTime = -1
 
     await drive(interceptor, request, async (tx) => {
-      await tx.em.insert(AppDemoEntity, pgInsertPayload(payload.demoString, payload.demoPhoneNumber))
-      await demoRepo.create({ ...payload }, tx.dbSession)
+      await tx.em.insert(AppDemoEntity, pgInsertPayload(payload.name, `137${randomUUID().replaceAll('-', '')}`))
+      await dictTypeModel.create([{ ...payload }], { session: tx.dbSession })
 
       registerAfterCommitHook(async () => {
         hookRan = true
-        pgCountAtHookTime = await countPg(payload.demoString)
-        mongoCountAtHookTime = await countMongo(payload.demoString)
+        pgCountAtHookTime = await countPg(payload.name)
+        mongoCountAtHookTime = await withIxLockRetry(() => countMongo(payload.type))
       })
 
       // handler 结束时钩子只是入队
@@ -209,13 +256,13 @@ describe('WalnutTxInterceptor dual-engine transaction semantics (on real PG + Mo
     SetMetadata(WalnutTxEngineMetadataKey, WalnutTxEngine.PG)(handler)
 
     const interceptor = new WalnutTxInterceptor(mongoConnection, pgDataSource, new Reflector())
-    const payload = uniqueDemoPayload()
+    const payload = uniqueDictPayload()
     const request = {}
     let seen: { em: EntityManager, dbSession?: undefined } | undefined
 
     const next: CallHandler = { handle: () => from((async () => {
       seen = (request as { txContext: { em: EntityManager, dbSession?: undefined } }).txContext
-      await seen.em.insert(AppDemoEntity, pgInsertPayload(payload.demoString, payload.demoPhoneNumber))
+      await seen.em.insert(AppDemoEntity, pgInsertPayload(payload.name, `137${randomUUID().replaceAll('-', '')}`))
     })()) }
 
     const result$ = await interceptor.intercept(makeExecutionContext(request, handler), next)
@@ -223,7 +270,7 @@ describe('WalnutTxInterceptor dual-engine transaction semantics (on real PG + Mo
 
     expect(seen!.dbSession).toBeUndefined()
     expect(seen!.em).not.toBe(pgDataSource.manager)
-    expect(await countPg(payload.demoString)).toBe(1)
+    expect(await countPg(payload.name)).toBe(1)
   })
 
   it('PG commit 自身抛错：原始错误透传、不回滚已释放 runner、Mongo session 仍被 abort', async () => {
