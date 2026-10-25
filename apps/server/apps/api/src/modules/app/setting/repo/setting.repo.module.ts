@@ -1,22 +1,17 @@
 import { Global, Module } from '@nestjs/common'
 
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
-import { AppSettingSchema } from '../schema/setting.schema'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
+import { AppSettingEntity } from '../entity/setting.entity'
 import { AppSettingRepositoryService } from './setting.repo.service'
 
+/**
+ * B4 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态）。
+ */
 @Global()
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [
-        {
-          name: WalnutDBModelName.APP_SETTING,
-          schema: AppSettingSchema,
-        },
-      ],
-      WalnutDBConnectionName,
-    ),
+    TypeOrmModule.forFeature([AppSettingEntity], WalnutPGConnectionName),
   ],
   controllers: [],
   providers: [AppSettingRepositoryService],

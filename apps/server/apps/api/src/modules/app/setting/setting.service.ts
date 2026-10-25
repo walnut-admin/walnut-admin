@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
-
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 
 import {
@@ -11,17 +9,17 @@ import {
   AppSettingDTOUpdateRequest,
 } from './dto/setting.dto'
 import { AppSettingRepositoryService } from './repo/setting.repo.service'
-import { IAppSettingModel } from './schema/setting.schema'
 import { AppSettingBasicRepository } from './setting.basic.repository'
 
+/**
+ * B4 迁移（service 层）：除 Mongo model 注入摘除（原本就未使用）外零逻辑改动；
+ * 缓存刷新链路（create/update → extractAppSettingIntoCache）原样保留。
+ */
 @Injectable()
 export class AppSettingService {
   private readonly logger = new Logger(AppSettingService.name)
 
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.APP_SETTING)
-    private readonly appSettingModel: IAppSettingModel,
-
     private readonly settingBasicRepo: AppSettingBasicRepository,
     private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
     private readonly settingRepoService: AppSettingRepositoryService,

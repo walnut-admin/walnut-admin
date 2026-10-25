@@ -1,21 +1,29 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { IWalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { arrToTree, formatTree, TreeNodeItem } from 'easy-fns-ts'
 
 import { cloneDeep, omit } from 'lodash'
 import { MurLockService } from 'murlock'
 
 import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
-import { ISharedAreaModel, SharedAreaModel } from './schema/area.schema'
+import { SharedAreaBasicRepository } from './area.basic.repository'
+import { SharedAreaEntity } from './entity/area.entity'
 
+/**
+ * B4 迁移（service 层）：Mongo model 直持 → SharedAreaBasicRepository（PG），除数据
+ * 访问改写外零逻辑改动 —— 取数查询模式与 Mongo 版逐一对齐（按 code 点查一层、按 pcode
+ * 查一层子节点），Redis 缓存按 pcode 粒度的策略与 murlock 防击穿链路原样保留；
+ * children/parent virtual 的 PG 等价能力（递归 CTE 整子树/限深 + children 数组组装）
+ * 在 SharedAreaBasicRepository.findSubtreeByCode / assembleSubtree 承接。
+ * 类型标注 SharedAreaModel → SharedAreaEntity（行形态 { name, code, pcode } 不变，
+ * 沿袭 Mongo 版 `.select('-_id name code pcode')` 投影）。
+ */
 @Injectable()
 export class SharedAreaService {
   private readonly logger = new Logger(SharedAreaService.name)
 
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SHARED_AREA)
-    private readonly sharedAreaModel: ISharedAreaModel,
+    private readonly sharedAreaBasicRepo: SharedAreaBasicRepository,
     private readonly cacheService: AppTechCacheService,
     private readonly murLockService: MurLockService,
   ) {}
@@ -62,7 +70,7 @@ export class SharedAreaService {
       return []
 
     const CACHE_KEY = this.getCacheKeyByCode(code)
-    const cachedData = await this.cacheService.get<SharedAreaModel[]>(CACHE_KEY)
+    const cachedData = await this.cacheService.get<SharedAreaEntity[]>(CACHE_KEY)
 
     // Return same-level data from cache if target code exists in cache
     if (cachedData?.some(i => i.code === code)) {
@@ -72,10 +80,7 @@ export class SharedAreaService {
     }
 
     // Query target area from DB to get its parent code (pcode)
-    const target = await this.sharedAreaModel
-      .findOne({ code })
-      .select('-_id name code pcode')
-      .lean()
+    const target = await this.sharedAreaBasicRepo.findByCode(code)
 
     if (!target)
       return []
@@ -91,7 +96,7 @@ export class SharedAreaService {
    */
   async getChildrenByPcodeWithCache(pcode: string = '0') {
     const CACHE_KEY = this.getCacheKeyByPcode(pcode)
-    const cachedData = await this.cacheService.get<SharedAreaModel[]>(CACHE_KEY)
+    const cachedData = await this.cacheService.get<SharedAreaEntity[]>(CACHE_KEY)
 
     // Fast path: cache has data for current pcode, return immediately without lock
     if (cachedData?.some(i => i.pcode === pcode)) {
@@ -106,7 +111,7 @@ export class SharedAreaService {
       3000,
       async () => {
         // Double-check: re-read cache after acquiring lock
-        const doubleCheckData = await this.cacheService.get<SharedAreaModel[]>(CACHE_KEY)
+        const doubleCheckData = await this.cacheService.get<SharedAreaEntity[]>(CACHE_KEY)
 
         // Another request already populated the cache while we waited for the lock
         if (doubleCheckData?.some(i => i.pcode === pcode)) {
@@ -114,10 +119,7 @@ export class SharedAreaService {
         }
 
         // Still a miss, query the database
-        const res = await this.sharedAreaModel
-          .find({ pcode })
-          .select('-_id name code pcode')
-          .lean()
+        const res = await this.sharedAreaBasicRepo.findChildrenByPcode(pcode)
 
         if (doubleCheckData === null) {
           await this.cacheService.set(CACHE_KEY, res, {
@@ -143,7 +145,7 @@ export class SharedAreaService {
    * @param data Flat array of area models to build into a tree
    * @returns Formatted area tree with `depth` and `isLeaf` properties
    */
-  private buildAreaResponseTree(data: SharedAreaModel[]) {
+  private buildAreaResponseTree(data: SharedAreaEntity[]) {
     if (data === null || data.length === 0)
       return []
 
@@ -167,7 +169,7 @@ export class SharedAreaService {
      * @param node Original tree node (contains `children` field)
      * @returns Decorated node (without `children` field, with `depth` and `isLeaf`)
      */
-    const decorateNode = (node: SharedAreaModel) => {
+    const decorateNode = (node: SharedAreaEntity) => {
       const nodeDepth = depthMap[node.code.length]
       return {
         ...omit(node, 'children'), // Remove `children` field from final response
@@ -197,7 +199,7 @@ export class SharedAreaService {
       return level1.map(i => ({ ...i, depth: 0, isLeaf: true }))
     }
 
-    const levelsCollected: SharedAreaModel[][] = [] // Stores same-level areas for each level (from target upward)
+    const levelsCollected: SharedAreaEntity[][] = [] // Stores same-level areas for each level (from target upward)
     let currentCode = code
 
     // Traverse upward from target area to collect same-level areas for each parent level
@@ -226,14 +228,14 @@ export class SharedAreaService {
    * @param tree Formatted area tree (from `buildAreaResponseTree`)
    * @returns Flat array of area models (without `children` field)
    */
-  private flattenTree(tree: SharedAreaModel[]): SharedAreaModel[] {
-    const res: SharedAreaModel[] = []
+  private flattenTree(tree: SharedAreaEntity[]): SharedAreaEntity[] {
+    const res: SharedAreaEntity[] = []
 
     /**
      * Depth-First Search (DFS) to traverse tree and collect nodes
      * @param nodes Current level nodes to process
      */
-    const dfs = (nodes: TreeNodeItem<SharedAreaModel>[]) => {
+    const dfs = (nodes: TreeNodeItem<SharedAreaEntity>[]) => {
       if (nodes === null || !nodes.length)
         return
       for (const node of nodes) {
@@ -258,7 +260,7 @@ export class SharedAreaService {
     if (!codes?.length)
       return []
 
-    const allNodes: SharedAreaModel[] = []
+    const allNodes: SharedAreaEntity[] = []
 
     // Collect and flatten tree nodes for each code
     for (const code of codes) {
@@ -268,7 +270,7 @@ export class SharedAreaService {
     }
 
     // Deduplicate nodes by code (one node per code; merge fields if duplicated)
-    const uniqueMap = new Map<string, SharedAreaModel>()
+    const uniqueMap = new Map<string, SharedAreaEntity>()
     for (const node of allNodes) {
       if (!uniqueMap.has(node.code)) {
         uniqueMap.set(node.code, node)

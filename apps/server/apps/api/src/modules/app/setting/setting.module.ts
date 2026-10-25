@@ -1,25 +1,22 @@
 import { Module } from '@nestjs/common'
 
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 
+import { AppSettingEntity } from './entity/setting.entity'
 import { AppSettingsRepositoryModule } from './repo/setting.repo.module'
-import { AppSettingSchema } from './schema/setting.schema'
 import { AppSettingBasicRepository } from './setting.basic.repository'
 import { AppSettingController } from './setting.controller'
 import { AppSettingService } from './setting.service'
 
+/**
+ * B4 迁移（接线形态同 demo.module，B1 确立）：Mongo forFeature 摘除，
+ * 换 PG forFeature；跨模块的 AppSettingRepositoryService 由全局的
+ * AppSettingsRepositoryModule 继续提供（task / ip 消费方不动）。
+ */
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [
-        {
-          name: WalnutDBModelName.APP_SETTING,
-          schema: AppSettingSchema,
-        },
-      ],
-      WalnutDBConnectionName,
-    ),
+    TypeOrmModule.forFeature([AppSettingEntity], WalnutPGConnectionName),
     AppSettingsRepositoryModule,
   ],
   controllers: [AppSettingController],

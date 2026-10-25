@@ -2,8 +2,9 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/commo
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 
-import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
+import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { plainToInstance } from 'class-transformer'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
 
@@ -81,36 +82,28 @@ export class AppSettingController {
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
   async create(@Body() payload: AppSettingDTOCreateRequest) {
-    return new AppSettingDTOCreateResponse(
-      (await this.settingService.create(payload)).toObject(),
-    )
+    return plainToInstance(AppSettingDTOCreateResponse, await this.settingService.create(payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
-  async read(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new AppSettingDTOReadResponse(
-      (await this.settingService.read(id)).toObject(),
-    )
+  async read(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(AppSettingDTOReadResponse, await this.settingService.read(id))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.UPDATE)
   @WalnutAdminDecoratorUpdate()
   async update(
-    @WalnutAdminDecoratorParamMongoId() id: string,
     @Body() payload: AppSettingDTOUpdateRequest,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return new AppSettingDTOUpdateResponse(
-      (await this.settingService.update(id, payload)).toObject(),
-    )
+    return plainToInstance(AppSettingDTOUpdateResponse, await this.settingService.update(id, payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: AppSettingDTOListRequest) {
-    return new AppSettingDTOListResponse(
-      await this.settingService.list(payload),
-    )
+    return plainToInstance(AppSettingDTOListResponse, await this.settingService.list(payload))
   }
 
   @Post('cache/refresh')

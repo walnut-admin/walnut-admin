@@ -1,3 +1,4 @@
+import type { EntityManager } from 'typeorm'
 import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
@@ -7,7 +8,6 @@ import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { Recordable } from 'easy-fns-ts'
 import isLocalhostIp from 'is-localhost-ip'
 import { isNil } from 'lodash'
-import { ClientSession } from 'mongoose'
 import { firstValueFrom } from 'rxjs'
 import { SharedLocationDTO } from '@/common/dto/shared.dto'
 import { AppSettingRepositoryService } from '@/modules/app/setting/repo/setting.repo.service'
@@ -113,21 +113,21 @@ export class SharedIpService {
   /**
    * @description add ip to permanent blacklist
    */
-  async addToPermanentBlackList(ip: string, dbSession?: ClientSession) {
+  async addToPermanentBlackList(ip: string, em?: EntityManager) {
     const ipKey = WalnutAdminConstAppSettingKeys.APP_GLOBAL_IP_BLACKLIST
-    const oldValue = await this.appSettingRepo.findAppSettingByKey<string[]>(ipKey, dbSession)
+    const oldValue = await this.appSettingRepo.findAppSettingByKey<string[]>(ipKey, em)
     const newValue = oldValue ? oldValue.concat(ip) : [ip]
-    await this.appSettingRepo.updateAppSettingByKey(ipKey, JSON.stringify(newValue), dbSession)
+    await this.appSettingRepo.updateAppSettingByKey(ipKey, JSON.stringify(newValue), em)
   }
 
   /**
    * @description remove ip from permanent blacklist
    */
-  async removeFromPermanentBlackList(ip: string, dbSession?: ClientSession) {
+  async removeFromPermanentBlackList(ip: string, em?: EntityManager) {
     const ipKey = WalnutAdminConstAppSettingKeys.APP_GLOBAL_IP_BLACKLIST
-    const oldValue = await this.appSettingRepo.findAppSettingByKey<string[]>(ipKey, dbSession)
+    const oldValue = await this.appSettingRepo.findAppSettingByKey<string[]>(ipKey, em)
     const newValue = oldValue ? oldValue.filter(item => item !== ip) : []
-    await this.appSettingRepo.updateAppSettingByKey(ipKey, JSON.stringify(newValue), dbSession)
+    await this.appSettingRepo.updateAppSettingByKey(ipKey, JSON.stringify(newValue), em)
   }
 
   /**

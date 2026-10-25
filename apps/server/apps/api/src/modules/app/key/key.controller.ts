@@ -3,12 +3,17 @@ import { ApiParam, ApiTags } from '@nestjs/swagger'
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { Role } from '@walnut/contract'
+import { plainToInstance } from 'class-transformer'
 
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
 import { AppKeyDTOInit, AppKeyDTOSafe } from './dto/key.dto'
 import { AppKeyService } from './key.service'
 import { AppKeyTypeConst, AppKeyTypeConstType } from './schema/key.schema'
 
+/**
+ * B4 迁移（controller 层，模板同 demo）：事务句柄 `ctx.dbSession` → `ctx.em`；
+ * 响应组装 `.toObject()` 移除（PG 实体即 POJO），统一 plainToInstance(DTO, entity)。
+ */
 @Controller('app/key')
 @ApiTags('app/key')
 export class AppKeyController {
@@ -29,7 +34,7 @@ export class AppKeyController {
   @WalnutAdminDecoratorHasRole(Role.ROOT)
   async init(@Body() dto: AppKeyDTOInit) {
     const { type } = dto
-    return new AppKeyDTOSafe((await this.appKeyService.initFirst(type))!.toObject())
+    return plainToInstance(AppKeyDTOSafe, await this.appKeyService.initFirst(type))
   }
 
   @Post('rotate/:type')
@@ -42,6 +47,6 @@ export class AppKeyController {
     @Param('type', new WalnutAdminPipeParamEnum(AppKeyTypeConst))
     type: AppKeyTypeConstType,
   ) {
-    return new AppKeyDTOSafe((await this.appKeyService.rotate(type, ctx.dbSession))!.toObject())
+    return plainToInstance(AppKeyDTOSafe, await this.appKeyService.rotate(type, ctx.em))
   }
 }

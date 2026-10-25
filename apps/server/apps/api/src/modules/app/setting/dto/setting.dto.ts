@@ -1,8 +1,10 @@
-import { IntersectionType } from '@nestjs/swagger'
+import { ApiProperty, IntersectionType } from '@nestjs/swagger'
 import { IWalnutAdminConstAppSettingType, WalnutAdminConstAppSettingType } from '@walnut-server/const/app/setting'
 import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
+import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
+import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import {
   CreateWalnutAdminRequestListDTO,
@@ -15,11 +17,21 @@ export class AppSettingDTO extends AppSettingModel {
     super()
     Object.assign(this, partial)
   }
+
+  // PG 主键 id（uuid，phase2 4.19）：B1 模板 —— @Expose 供响应序列化与
+  // RealPickType/RealPartialType 的键枚举；入参不从这里进（主键只走路由参数的
+  // uuid pipe），IsOptional 仅为 list 查询可选过滤
+  @Expose()
+  @IsOptional()
+  @ApiProperty({ type: String, required: false })
+  @WalnutAdminDecoratorValidatorUuid({ nullable: true })
+  id?: string
 }
 
+// Safe 层剔除 Mongo 的 _id（B1 模板：PG 响应以 id 为唯一标识，_id 在 PG 实体上不存在）
 export class AppSettingDTOSafe extends RealOmitType(
-  AppSettingModel,
-  [] as const,
+  AppSettingDTO,
+  ['_id'] as const,
 ) {
   constructor(partial: Partial<AppSettingDTOSafe>) {
     super()

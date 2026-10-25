@@ -1,0 +1,134 @@
+import type { INestApplication } from '@nestjs/common'
+import type { DataSource } from 'typeorm'
+import { WalnutAdminExceptionNotFound } from '@walnut-server/exceptions/base.exception'
+
+import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
+import { AppDayjs } from '@walnut-server/utils/dayjs'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { AppKeyEntity } from '@/modules/app/key/entity/key.entity'
+import { AppKeyBasicRepository } from '@/modules/app/key/key.basic.repository'
+import { AppKeyService } from '@/modules/app/key/key.service'
+import { AppKeyTypeConst } from '@/modules/app/key/schema/key.schema'
+import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
+
+/**
+ * B4 app_key 轻量用例（phase2 4.23 / phase3-plan §1 B4）：
+ * - initFirst：首个 key 落库（uuid 主键 / meta jsonb）+ 唯一性语义（同类型二钻抛
+ *   DataExists；uq_key 唯一索引由 DB 兜底）；
+ * - rotate：ctx.em 透传路径 —— 当期 ACTIVE 置 DEPRECATED、新 key version+1，事务内
+ *   同回滚（rotation 内没有可回滚的中间态暴露）；
+ * - rotateForCronJob：手动 Mongo session 事务改 repo.transactional 后语义不变 ——
+ *   未到期不转、到期才转、转完当期换人；
+ * - getCurrentActiveKey：version 最大的 ACTIVE 行（idx_app_key_status 过滤 + version 排序）。
+ *
+ * 消费方兼容锚点：security/rsa 只读 getCurrent('RSA_PAIR') 的 PEM 对、techniques/task
+ * 只调 rotateForCronJob —— 两者出参/行为面本套用例即守卫。
+ */
+describe('B4 app_key (on real PG)', () => {
+  let app: INestApplication
+  let pgDataSource: DataSource
+  let keyService: AppKeyService
+  let keyRepo: AppKeyBasicRepository
+
+  beforeAll(async () => {
+    app = await createIntegrationApp()
+    pgDataSource = getWalnutPgDataSource(app)
+    expect(pgDataSource.options.database).toBe(INTEGRATION_DATABASE_NAME)
+
+    keyService = app.get(AppKeyService)
+    keyRepo = app.get(AppKeyBasicRepository)
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  it('initFirst：首个 key 落库（uuid 主键 / meta jsonb / validEnd +30d）', async () => {
+    const created = await keyService.initFirst(AppKeyTypeConst.RSA_PAIR)
+
+    expect(created!.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+    expect(created!.type).toBe(AppKeyTypeConst.RSA_PAIR)
+    expect(created!.version).toBe(1)
+    expect(created!.status).toBe('ACTIVE')
+    expect(created!.meta!.publicKeyPem).toContain('BEGIN PUBLIC KEY')
+    expect(created!.meta!.privateKeyPem).toContain('BEGIN PRIVATE KEY')
+    expect(created!.validEnd!.getTime()).toBeGreaterThan(Date.now())
+
+    // 消费方只读面：getCurrent 出参形态（PEM 对）
+    const current = await keyService.getCurrent(AppKeyTypeConst.RSA_PAIR)
+    expect(current.publicKeyPem).toBe(created!.meta!.publicKeyPem)
+    expect(current.privateKeyPem).toBe(created!.meta!.privateKeyPem)
+  })
+
+  it('唯一键语义：同类型 initFirst 二钻抛 DataExists；uq_key 由 DB 约束兜底', async () => {
+    await expect(keyService.initFirst(AppKeyTypeConst.RSA_PAIR))
+      .rejects
+      .toThrow(WalnutAdminExceptionDataExists)
+
+    // uq_key 唯一索引（phase2 4.23）：同 key 值插入被 DB 拒绝
+    const repo = pgDataSource.getRepository(AppKeyEntity)
+    const existed = await repo.findOne({ where: { type: AppKeyTypeConst.RSA_PAIR } })
+    await expect(repo.insert({
+      key: existed!.key,
+      type: AppKeyTypeConst.AES_KEY_URL,
+      version: 1,
+      validStart: new Date(),
+    })).rejects.toThrow()
+  })
+
+  it('rotate：当期置 DEPRECATED + 新 key version+1（em 透传，controller ctx.em 同路径）', async () => {
+    const before = await keyService.getCurrentActiveKey(AppKeyTypeConst.RSA_PAIR)
+
+    await keyRepo.transactional(async (em) => {
+      const next = await keyService.rotate(AppKeyTypeConst.RSA_PAIR, em)
+      expect(next!.version).toBe(before!.version + 1)
+      expect(next!.status).toBe('ACTIVE')
+    })
+
+    // 旧 key 已 DEPRECATED、当期换成新 key
+    const old = await pgDataSource.getRepository(AppKeyEntity).findOne({ where: { id: before!.id } })
+    expect(old!.status).toBe('DEPRECATED')
+    const current = await keyService.getCurrentActiveKey(AppKeyTypeConst.RSA_PAIR)
+    expect(current!.id).not.toBe(before!.id)
+    expect(current!.version).toBe(before!.version + 1)
+  })
+
+  it('rotate 无 ACTIVE key → NotFound', async () => {
+    await expect(keyService.rotate(AppKeyTypeConst.JWT_AT))
+      .rejects
+      .toThrow(WalnutAdminExceptionNotFound)
+  })
+
+  it('rotateForCronJob：未到期不转（合法 key 不产生新版本）', async () => {
+    await keyService.initFirst(AppKeyTypeConst.AES_KEY_URL)
+    const before = await keyService.getCurrentActiveKey(AppKeyTypeConst.AES_KEY_URL)
+
+    await keyService.rotateForCronJob(AppKeyTypeConst.AES_KEY_URL)
+
+    const after = await keyService.getCurrentActiveKey(AppKeyTypeConst.AES_KEY_URL)
+    expect(after!.id).toBe(before!.id)
+  })
+
+  it('rotateForCronJob：到期 key 触发轮转，事务内完成「废弃 + 换新」', async () => {
+    const repo = pgDataSource.getRepository(AppKeyEntity)
+    const before = await keyService.getCurrentActiveKey(AppKeyTypeConst.AES_KEY_URL)
+
+    // 把当期 key 的 validEnd 拨到过去（模拟到期）
+    await repo.update({ id: before!.id }, { validEnd: AppDayjs().subtract(1, 'day').toDate() })
+
+    await keyService.rotateForCronJob(AppKeyTypeConst.AES_KEY_URL)
+
+    const old = await repo.findOne({ where: { id: before!.id } })
+    expect(old!.status).toBe('DEPRECATED')
+
+    const current = await keyService.getCurrentActiveKey(AppKeyTypeConst.AES_KEY_URL)
+    expect(current!.id).not.toBe(before!.id)
+    expect(current!.version).toBe(before!.version + 1)
+    expect(current!.validEnd!.getTime()).toBeGreaterThan(Date.now())
+
+    // 消费方只读面：AES 的 getCurrent 出参（keyB64）
+    const meta = await keyService.getCurrent(AppKeyTypeConst.AES_KEY_URL)
+    expect(meta.keyB64).toBe(current!.meta!.keyB64)
+  })
+})

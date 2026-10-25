@@ -31,7 +31,7 @@
 | B1 | app/demo + app/error（叶子试点，确立三层改造模板） | ✅ |
 | B2 | sys_lang + sys_locale（FK 同批；i18n 聚合 SQL 重写） | ✅ |
 | B3 | dictType + dictData（FK 同批） | ✅ |
-| B4 | app_setting + app_key + shared_area（递归 CTE + CYCLE 兜底） | |
+| B4 | app_setting + app_key + shared_area（递归 CTE + CYCLE 兜底） | ✅ |
 | B5 | sys_menu（meta 拍平组装出参）+ sys_role + sys_role_menu；产出 defaultRole uuid 订正脚本 | |
 | B6 | sys_device + sys_user_device + app_monitor_user（双向环同批） | |
 | B7 | SCC-A 账户团九表（user/identity/oauth/lock/mfa/preference/device/refresh + auth 全系 + security） | |

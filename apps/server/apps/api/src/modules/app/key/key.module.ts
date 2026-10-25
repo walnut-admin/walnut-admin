@@ -1,20 +1,23 @@
 import { Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 
+import { AppKeyEntity } from './entity/key.entity'
+import { AppKeyBasicRepository } from './key.basic.repository'
 import { AppKeyController } from './key.controller'
 import { AppKeyService } from './key.service'
-import { AppKeySchema } from './schema/key.schema'
 
+/**
+ * B4 迁移（接线形态同 demo.module，B1 确立）：Mongo forFeature 摘除，换 PG forFeature；
+ * service 原先直持 model，随迁移补 AppKeyBasicRepository（PG）。消费方 security/rsa 与
+ * techniques/task 不动（AppKeyModule 的 exports 面不变）。
+ */
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [{ name: WalnutDBModelName.APP_KEY, schema: AppKeySchema }],
-      WalnutDBConnectionName,
-    ),
+    TypeOrmModule.forFeature([AppKeyEntity], WalnutPGConnectionName),
   ],
   controllers: [AppKeyController],
-  providers: [AppKeyService],
+  providers: [AppKeyBasicRepository, AppKeyService],
   exports: [AppKeyService],
 })
 export class AppKeyModule {}
