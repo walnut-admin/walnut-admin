@@ -33,10 +33,24 @@ const RUNTIME_INJECTED = [
  * **测试夹具**：用例自己 `process.env.X = …` 造出来的变量，用来验证「env 的克隆 / 净化」这类行为
  * （如 `WALNUT_TEST_MARKER`）。它们不是任何代码的依赖 —— 用例先设再断言，缺了也照样跑。
  * 所以只在测试文件里豁免，**不进 turbo.json**（把它写进全局清单会让那份清单失去「都是真依赖」的含义）。
+ *
+ * `DATABASE_NAME` —— server 集成测试（`apps/server/apps/api/test/integration/`）的
+ * setup-env 把它写成集成库名 `walnut-admin-integration`，是夹具而不是外部依赖：
+ * 正常运行时它由 `env-encrypted/.env.*` 提供（那一运行期配置面在 `nest.ts` 里对
+ * `libs/config/src/modules` 整段豁免），声明进全局清单反而会让 shell 里偶发的同名
+ * 变量压过 env 文件。
  */
-const TEST_FIXTURES = ['WALNUT_TEST_MARKER']
+const TEST_FIXTURES = ['WALNUT_TEST_MARKER', 'DATABASE_NAME']
 
-const TEST_FILE_GLOBS = ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}']
+const TEST_FILE_GLOBS = [
+  '**/__tests__/**/*.{ts,tsx}',
+  '**/*.test.{ts,tsx}',
+  '**/*.spec.{ts,tsx}',
+  // integration 测试基建整段（含 vitest 的 setupFiles，如 server 的
+  // `apps/api/test/integration/helpers/setup-env.ts` —— 不是 .test/.spec 命名，
+  // 但性质同样是「测试自己写 env」的夹具代码）
+  '**/test/integration/**',
+]
 
 export function turboEnvVarsConfig() {
   // 返回**可变元组**：`as const` 会得到 `readonly [...]`，而 flat config 的 `RuleEntry` 要求可变元组
