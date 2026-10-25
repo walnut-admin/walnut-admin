@@ -111,6 +111,8 @@ export class OAuthGithubController {
     }
 
     try {
+      // B7a 跨引擎窗口：refresh 写腿（generateAuthTokens）仍走 ctx.dbSession 到 Mongo，
+      // identity 写腿已迁 PG 走 ctx.em —— 双引擎拦截器统一提交，7c 归一
       const { accessToken, refreshTokenJti, authSessionKey } = await this.authSharedService.generateAuthTokens(user, deviceId, ctx.dbSession!)
 
       // Mark email identity as verified after successful OAuth validation
@@ -118,7 +120,7 @@ export class OAuthGithubController {
         user.userId,
         WalnutAdminConstSysUserIdentityType.EMAIL_ADDRESS,
         'login',
-        ctx.dbSession,
+        ctx.em,
       )
 
       // Set refresh token jti to cookie

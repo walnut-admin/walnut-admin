@@ -8,6 +8,7 @@ import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base
 import { In } from 'typeorm'
 import { assembleSysMenu } from '../../menu/dto/menu.dto'
 import { SysMenuEntity } from '../../menu/entity/menu.entity'
+import { SysUserRoleEntity } from '../../user/entity/user-role.entity'
 import { SysRoleMenuEntity } from '../entity/role-menu.entity'
 import { SysRoleEntity } from '../entity/role.entity'
 
@@ -77,10 +78,11 @@ export class SysRoleRepoService {
     const qb = this.getManager(em)
       .createQueryBuilder(SysRoleEntity, 'role')
       .addSelect((sub) => {
-        // sys_user_role 关联表计数（junction 实体随 B7 user 迁移注册，表名同源）
+        // sys_user_role 关联表计数（B7a：junction 实体已随 user 迁移注册，P3-3 ——
+        // 裸表名换成实体引用，表名同源不变）
         return sub
           .select('count(*)::int')
-          .from('sys_user_role', 'user_role')
+          .from(SysUserRoleEntity, 'user_role')
           .where('user_role.role_id = role.id')
       }, 'populated_users_count')
       .where('role.id = :id', { id })

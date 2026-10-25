@@ -30,6 +30,8 @@ import { SysUserIdentityService } from './user_identity.service'
 export class SysUserIdentityController {
   constructor(private readonly userIdentityService: SysUserIdentityService) {}
 
+  // B7a 迁移：事务句柄统一取 ctx.em（WalnutTxContext 双引擎上下文，已迁侧取 em）
+
   @Post('list')
   @HttpCode(HttpStatus.OK)
   @ApiWalnutOkResponse({
@@ -57,7 +59,7 @@ export class SysUserIdentityController {
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose))
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
   ) {
-    return new SysUserIdentityStatusResponseDTO(await this.userIdentityService.getStatus(user.userId, purpose, ctx.dbSession!))
+    return new SysUserIdentityStatusResponseDTO(await this.userIdentityService.getStatus(user.userId, purpose, ctx.em))
   }
 
   @Post('check/:type/:purpose')
@@ -91,7 +93,7 @@ export class SysUserIdentityController {
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityBindRequestDTO,
   ) {
-    await this.userIdentityService.bind(user.userId, type, purpose, dto, ctx.dbSession)
+    await this.userIdentityService.bind(user.userId, type, purpose, dto, ctx.em)
     return true
   }
 
@@ -108,7 +110,7 @@ export class SysUserIdentityController {
     @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
   ) {
-    await this.userIdentityService.unbind(user.userId, type, purpose, ctx.dbSession)
+    await this.userIdentityService.unbind(user.userId, type, purpose, ctx.em)
     return true
   }
 
@@ -126,7 +128,7 @@ export class SysUserIdentityController {
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityUpdateDTO,
   ) {
-    await this.userIdentityService.update(user.userId, type, purpose, dto, ctx.dbSession)
+    await this.userIdentityService.update(user.userId, type, purpose, dto, ctx.em)
     return true
   }
 
@@ -161,7 +163,7 @@ export class SysUserIdentityController {
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityVerifyRequestDTO,
   ) {
-    await this.userIdentityService.verify(user.userId, type, purpose, dto, ctx.dbSession)
+    await this.userIdentityService.verify(user.userId, type, purpose, dto, ctx.em)
     return true
   }
 
@@ -184,7 +186,7 @@ export class SysUserIdentityController {
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityStatusRequestDTO,
   ) {
-    await this.userIdentityService.updateStatus(user.userId, type, purpose, dto, ctx.dbSession)
+    await this.userIdentityService.updateStatus(user.userId, type, purpose, dto, ctx.em)
     return true
   }
 }

@@ -1,5 +1,6 @@
 import { IntersectionType } from '@nestjs/swagger'
 import { WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealPickType } from '@walnut-server/utils/dto'
 import { ValueOf } from 'easy-fns-ts'
 import { SysUserDTOSafe } from '@/modules/system/user/dto/user.dto'
@@ -49,8 +50,16 @@ export class AuthOpaqueStartChangePasswordDTO extends AuthOpaqueStartDTO {}
 
 export class AuthOpaqueFinishChangePasswordDTO extends AuthOpaqueFinishDTO {}
 
-export class AuthOpaqueStartChangePasswordForAdminDTO extends IntersectionType(RealPickType(SysUserDTOSafe, ['_id']), AuthOpaqueStartDTO) {}
+// B7a：管理端按 user 主键定位 —— PG 侧唯一标识是 id（uuid），_id 随 Safe 层剔除。
+// id 是这三个 DTO 的唯一定位键，不用 SysUserDTO 上「list 查询可选过滤」的可选声明，
+// 在此按必填 uuid 重声明
+class AuthOpaqueAdminUserIdDTO {
+  @WalnutAdminDecoratorValidatorUuid()
+  id: string
+}
 
-export class AuthOpaqueFinishChangePasswordForAdminDTO extends IntersectionType(RealPickType(SysUserDTOSafe, ['_id']), AuthOpaqueFinishDTO) {}
+export class AuthOpaqueStartChangePasswordForAdminDTO extends IntersectionType(AuthOpaqueAdminUserIdDTO, AuthOpaqueStartDTO) {}
 
-export class AuthOpaqueClearPasswordForAdminDTO extends RealPickType(SysUserDTOSafe, ['_id'] as const) {}
+export class AuthOpaqueFinishChangePasswordForAdminDTO extends IntersectionType(AuthOpaqueAdminUserIdDTO, AuthOpaqueFinishDTO) {}
+
+export class AuthOpaqueClearPasswordForAdminDTO extends AuthOpaqueAdminUserIdDTO {}

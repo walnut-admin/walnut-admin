@@ -10,12 +10,13 @@ import {
   buildPgListQueryOptions,
   WALNUT_PG_LIST_TOTAL_ALIAS,
 } from '@/common/repository/pg-list.builder'
+import { SysUserRoleEntity } from '../user/entity/user-role.entity'
 import { SysRoleMenuEntity } from './entity/role-menu.entity'
 import { SysRoleEntity } from './entity/role.entity'
 
 /**
  * role 列表行：实体列 + Mongo 版 $lookup/$size 注入的 populated_usersCount
- * （sys_user_role 关联表计数；实体注册随 B7 user 迁移补齐，计数先走同源表名）。
+ * （sys_user_role 关联表计数；B7a 起 junction 实体已注册，子查询走实体引用）。
  */
 export interface ISysRoleListRow extends SysRoleEntity {
   populated_usersCount: number
@@ -79,12 +80,12 @@ export class SysRoleBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
 
     applyPgListQuery(qb, 'entity', buildPgListQueryOptions<T>(params))
 
-    // 对齐 Mongo 版 $lookup(sys_user) + $size：junction 计数子查询（B7 注册
-    // SysUserRoleEntity 后可换实体引用，表名同源不变）
+    // 对齐 Mongo 版 $lookup(sys_user) + $size：junction 计数子查询（B7a：P3-3 ——
+    // SysUserRoleEntity 已注册，裸表名换实体引用，表名同源不变）
     qb.addSelect((sub) => {
       return sub
         .select('count(*)::int')
-        .from('sys_user_role', 'user_role')
+        .from(SysUserRoleEntity, 'user_role')
         .where('user_role.role_id = entity.id')
     }, 'populated_users_count')
 

@@ -1,3 +1,4 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import * as opaque from '@serenity-kit/opaque'
@@ -59,20 +60,22 @@ export class AuthOpaqueCoreService {
   /**
    * Start the OPAQUE login flow (Step 1 of 2)
    * Receives client's login request and generates server's login response
+   *
+   * B7a 签名适配：user/identity 读腿迁 PG —— 事务句柄改收 `em`（ctx.em）。
    */
-  async startLogin(userName: string, startLoginRequest: string, deviceId: string, dbSession: ClientSession) {
+  async startLogin(userName: string, startLoginRequest: string, deviceId: string, em: EntityManager) {
     // Find user by username
-    const user = await this.userRepo.findUserByUserName(userName, dbSession)
+    const user = await this.userRepo.findUserByUserName(userName, em)
     if (!user) {
       throw new WalnutAdminExceptionInvalidCredential()
     }
 
     // Get password identity from user_identity table
     const passwordIdentity = await this.userIdentityRepo.getValueByUserIdTypeAndPurpose(
-      user._id.toString(),
+      user.id,
       'password',
       'login',
-      dbSession,
+      em,
     )
     if (isNil(passwordIdentity)) {
       throw new WalnutAdminExceptionInvalidCredential()
@@ -86,7 +89,7 @@ export class AuthOpaqueCoreService {
         serverSetup: this.getServerSetup(),
         startLoginRequest,
         identifiers: {
-          client: user.userName,
+          client: user.userName!,
           server: this.getAppName(),
         },
       })
@@ -107,6 +110,7 @@ export class AuthOpaqueCoreService {
   /**
    * Finalize the login process and generate authentication tokens
    * This is called after successful OPAQUE validation to issue JWT tokens
+   * （refresh 写腿仍在 Mongo —— dbSession 保留，7c 归一）
    */
   async finishLogin(payload: IWalnutAdminAccessTokenPayload, deviceId: string, dbSession: ClientSession) {
     try {
@@ -158,10 +162,13 @@ export class AuthOpaqueCoreService {
 
   /**
    * Finish user registration process
+   * （B7a 签名适配：user/identity 写腿迁 PG —— em 取 ctx.em，两腿同事务；
+   * Mongo 版此处本就没传 session，接线后反而获得了事务原子性）
    */
   async finishRegister(
     userName: string,
     newPassword: string,
+    em?: EntityManager,
   ) {
     // 再次检查（防止并发�?
     const existingUser = await this.userRepo.findUserByUserName(userName)
@@ -173,11 +180,11 @@ export class AuthOpaqueCoreService {
       // 创建新用户（不设�?password
       const newUser = await this.sysUserSharedService.createForAuthUser({
         userName,
-      })
+      }, em)
 
       // �?user_identity 表中创建密码凭证
       await this.userIdentityRepo.createIdentity({
-        userId: newUser._id.toString(),
+        userId: newUser.id,
         type: 'password',
         purpose: 'login',
         value: newPassword,
@@ -186,7 +193,7 @@ export class AuthOpaqueCoreService {
         verified: true,
         verifiedAt: new Date(),
         metadata: {},
-      })
+      }, em)
 
       this.logger.log(`User registered successfully: ${userName}`)
 
@@ -234,13 +241,15 @@ export class AuthOpaqueCoreService {
    *
    * @param userName - Username from authenticated user token
    * @param newPassword - New base64-encoded registration record from client
+   *
+   * B7a 签名适配：user/identity 读写腿迁 PG —— 事务句柄改收 `em`（ctx.em）。
    */
   async finishChangePassword(
     userName: string,
     newPassword: string,
-    dbSession: ClientSession,
+    em: EntityManager,
   ) {
-    const user = await this.userRepo.findUserByUserName(userName, dbSession)
+    const user = await this.userRepo.findUserByUserName(userName, em)
     if (!user) {
       throw new WalnutAdminExceptionInvalidCredential()
     }
@@ -248,14 +257,14 @@ export class AuthOpaqueCoreService {
     try {
       // Update password identity in user_identity table
       await this.userIdentityRepo.updateByUserIdTypeAndPurpose(
-        user._id.toString(),
+        user.id,
         'password',
         'login',
         {
           value: newPassword,
           valueHash: newPassword,
         },
-        dbSession,
+        em,
       )
 
       this.logger.log(`Password changed successfully for user: ${userName}`)

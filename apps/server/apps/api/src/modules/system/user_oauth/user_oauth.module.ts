@@ -1,24 +1,19 @@
 import { Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 
+import { SysUserOauthEntity } from './entity/user-oauth.entity'
 import { SysUserOAuthRepositoryModule } from './repo/user_oauth.repo.module'
-import { SysUserOauthSchema } from './schema/user_oauth.schema'
 import { SysUserOAuthBasicRepository } from './user_oauth.basic.repository'
 import { SysUserOauthController } from './user_oauth.controller'
 import { SysUserOauthService } from './user_oauth.serivce'
 
+/**
+ * B7a 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态，不另建 pg.module）。
+ */
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [
-        {
-          name: WalnutDBModelName.SYS_USER_OAUTH,
-          schema: SysUserOauthSchema,
-        },
-      ],
-      WalnutDBConnectionName,
-    ),
+    TypeOrmModule.forFeature([SysUserOauthEntity], WalnutPGConnectionName),
     SysUserOAuthRepositoryModule,
   ],
   controllers: [SysUserOauthController],

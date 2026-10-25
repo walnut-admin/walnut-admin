@@ -1,18 +1,22 @@
+import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
-import { WalnutAdminCommonBasicRepository } from '@/common/repository/base.repository'
+import { InjectDataSource } from '@nestjs/typeorm'
 
-import {
-  ISysUserOAuthDocument,
-  ISysUserOAuthModel,
-} from './schema/user_oauth.schema'
+import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 
+import { SysUserOauthEntity } from './entity/user-oauth.entity'
+
+/**
+ * B7a 迁移模板（repo 层）：类名与文件名保持不变（DI token 不动），基类换成 PG 版
+ * （B1 确立）。本模块无特殊查询 —— upsert 语义的绑定写在 SysUserOAuthRepositoryService。
+ */
 @Injectable()
-export class SysUserOAuthBasicRepository extends WalnutAdminCommonBasicRepository<ISysUserOAuthDocument> {
+export class SysUserOAuthBasicRepository extends WalnutAdminCommonPgBaseRepository<SysUserOauthEntity> {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SYS_USER_OAUTH)
-    readonly dbModel: ISysUserOAuthModel,
+    @InjectDataSource(WalnutPGConnectionName)
+    dataSource: DataSource,
   ) {
-    super(dbModel)
+    super(SysUserOauthEntity, WalnutDBModelName.SYS_USER_OAUTH, dataSource)
   }
 }

@@ -1,9 +1,9 @@
 import type { LocaleType } from '@walnut/contract'
+import type { EntityManager } from 'typeorm'
 
 import { Injectable } from '@nestjs/common'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
-import { ClientSession } from 'mongoose'
 import { OtpSharedService } from '@/modules/auth/modules/otp/shared/otp.shared.service'
 import {
   SysUserIdentityBindRequestDTO,
@@ -13,6 +13,7 @@ import {
   SysUserIdentityUpdateDTO,
   SysUserIdentityVerifyRequestDTO,
 } from './dto/user_identity.dto'
+import { SysUserIdentityEntity } from './entity/user-identity.entity'
 import { SysUserIdentityRepositoryService } from './repo/user_identity.repo.service'
 import {
   IWalnutAdminConstSysUserIdentityPurpose,
@@ -22,6 +23,10 @@ import {
 import { SysUserIdentitySharedService } from './shared/user_identity.shared.service'
 import { SysUserIdentityBasicRepository } from './user_identity.basic.repository'
 
+/**
+ * B7a 迁移：事务句柄 `dbSession?: ClientSession` → `em?: EntityManager`（纯透传，
+ * B1 模板）；`existing._id.toString()` → `existing.id`（PG 实体即 POJO）。
+ */
 @Injectable()
 export class SysUserIdentityService {
   constructor(
@@ -32,9 +37,9 @@ export class SysUserIdentityService {
   ) {}
 
   // List identities for a user
-  async list(dto: SysUserIdentityListDTO & { userId: string }, dbSession?: ClientSession) {
+  async list(dto: SysUserIdentityListDTO & { userId: string }, em?: EntityManager) {
     const { userId } = dto
-    const identities = await this.userIdentityRepoService.findByUserId(userId, dbSession)
+    const identities = await this.userIdentityRepoService.findByUserId(userId, em)
 
     return {
       data: identities,
@@ -43,8 +48,8 @@ export class SysUserIdentityService {
   }
 
   // Get user identity status (like Figure 1)
-  async getStatus(userId: string, purpose: IWalnutAdminConstSysUserIdentityPurpose, dbSession: ClientSession) {
-    return this.identitySharedService.getUserIdentityStatus(userId, purpose, dbSession)
+  async getStatus(userId: string, purpose: IWalnutAdminConstSysUserIdentityPurpose, em?: EntityManager) {
+    return this.identitySharedService.getUserIdentityStatus(userId, purpose, em)
   }
 
   /**
@@ -77,7 +82,7 @@ export class SysUserIdentityService {
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
     dto: SysUserIdentityBindRequestDTO,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
     const { identifier, verifyCode, setAsSecurity } = dto
 
@@ -85,10 +90,10 @@ export class SysUserIdentityService {
     await this.identitySharedService.verifyOtpCode(type, identifier, verifyCode, userId)
 
     // Step 2: Check if already exists
-    await this.identitySharedService.assertIdentityNotExists(userId, type, purpose, dbSession)
+    await this.identitySharedService.assertIdentityNotExists(userId, type, purpose, em)
 
     // Step 3: Check if value is already used by another user
-    await this.identitySharedService.assertValueNotExists(type, purpose, identifier, dbSession)
+    await this.identitySharedService.assertValueNotExists(type, purpose, identifier, em)
 
     // Step 4: Prepare identity value
     const identityValue = this.identitySharedService.prepareIdentityValue(type, identifier)
@@ -102,11 +107,11 @@ export class SysUserIdentityService {
       verified: true,
       verifiedAt: new Date(),
       metadata: {},
-    }, dbSession)
+    }, em)
 
     // Step 6: Handle security identity if needed
     if (setAsSecurity && purpose === 'login') {
-      await this.handleSecurityIdentity(userId, type, identityValue, dbSession)
+      await this.handleSecurityIdentity(userId, type, identityValue, em)
     }
 
     return result
@@ -117,13 +122,13 @@ export class SysUserIdentityService {
     userId: string,
     type: IWalnutAdminConstSysUserIdentityType,
     identityValue: { value: string, valueHash: string, maskedValue: string },
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
     const existingSecurity = await this.userIdentityRepoService.findByUserIdTypeAndPurpose(
       userId,
       type,
       WalnutAdminConstSysUserIdentityPurpose.SECURITY,
-      dbSession,
+      em,
     )
 
     const securityPayload = {
@@ -138,7 +143,7 @@ export class SysUserIdentityService {
         type,
         WalnutAdminConstSysUserIdentityPurpose.SECURITY,
         securityPayload,
-        dbSession,
+        em,
       )
     }
     else {
@@ -148,7 +153,7 @@ export class SysUserIdentityService {
         purpose: WalnutAdminConstSysUserIdentityPurpose.SECURITY,
         ...securityPayload,
         metadata: {},
-      }, dbSession)
+      }, em)
     }
   }
 
@@ -157,25 +162,25 @@ export class SysUserIdentityService {
     userId: string,
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
-    const existing = await this.identitySharedService.getIdentityOrThrow(userId, type, purpose, dbSession)
+    const existing = await this.identitySharedService.getIdentityOrThrow(userId, type, purpose, em)
 
     // Cannot unbind if it's the only verified login method
     if (type !== 'password' && purpose === 'login') {
-      await this.assertCanUnbind(userId, type, dbSession)
+      await this.assertCanUnbind(userId, type, em)
     }
 
-    return this.identityBasicRepo.deleteRealById(existing._id.toString(), dbSession)
+    return this.identityBasicRepo.deleteRealById(existing.id, em)
   }
 
   // Helper: Check if user has other verified login methods
   private async assertCanUnbind(
     userId: string,
     type: IWalnutAdminConstSysUserIdentityType,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
-    const allIdentities = await this.userIdentityRepoService.findByUserId(userId, dbSession)
+    const allIdentities = await this.userIdentityRepoService.findByUserId(userId, em)
 
     // Count other verified and active login methods (excluding current one)
     const otherVerifiedLoginMethods = allIdentities.filter(
@@ -201,17 +206,17 @@ export class SysUserIdentityService {
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
     dto: SysUserIdentityUpdateDTO,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
     const { value, verified, status } = dto
 
-    const existing = await this.identitySharedService.getIdentityOrThrow(userId, type, purpose, dbSession)
+    const existing = await this.identitySharedService.getIdentityOrThrow(userId, type, purpose, em)
 
-    const updatePayload: Record<string, unknown> = {}
+    const updatePayload: Partial<SysUserIdentityEntity> = {}
 
     if (value !== undefined) {
       // Check if new value is already used by another user
-      await this.identitySharedService.assertValueNotExists(type, purpose, value, dbSession)
+      await this.identitySharedService.assertValueNotExists(type, purpose, value, em)
 
       // Prepare new identity value
       const identityValue = this.identitySharedService.prepareIdentityValue(type, value)
@@ -232,9 +237,9 @@ export class SysUserIdentityService {
     }
 
     return this.identityBasicRepo.updateByField(
-      { _id: existing._id },
+      { id: existing.id },
       updatePayload,
-      dbSession,
+      em,
     )
   }
 
@@ -244,15 +249,15 @@ export class SysUserIdentityService {
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
     dto: SysUserIdentityStatusRequestDTO,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
     const { status } = dto
-    const existing = await this.identitySharedService.getIdentityOrThrow(userId, type, purpose, dbSession)
+    const existing = await this.identitySharedService.getIdentityOrThrow(userId, type, purpose, em)
 
     return this.identityBasicRepo.updateByField(
-      { _id: existing._id },
+      { id: existing.id },
       { status },
-      dbSession,
+      em,
     )
   }
 
@@ -277,22 +282,22 @@ export class SysUserIdentityService {
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
     dto: SysUserIdentityVerifyRequestDTO,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
     const { verifyCode } = dto
 
     // Step 1: Get identity and decrypt identifier
-    const existing = await this.identitySharedService.getIdentityOrThrow(userId, type, purpose, dbSession)
-    const identifier = await this.identitySharedService.getDecryptedIdentifier(userId, type, purpose, dbSession)
+    const existing = await this.identitySharedService.getIdentityOrThrow(userId, type, purpose, em)
+    const identifier = await this.identitySharedService.getDecryptedIdentifier(userId, type, purpose, em)
 
     // Step 2: Verify the verification code
     await this.identitySharedService.verifyOtpCode(type, identifier, verifyCode, userId)
 
     // Step 3: Mark as verified
     return this.identityBasicRepo.updateByField(
-      { _id: existing._id },
+      { id: existing.id },
       { verified: true, verifiedAt: new Date() },
-      dbSession,
+      em,
     )
   }
 }

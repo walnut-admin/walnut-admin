@@ -47,7 +47,7 @@ export class AuthOpaqueUserService {
         finishLoginRequest,
         serverLoginState,
         identifiers: {
-          client: user.userName,
+          client: user.userName!,
           server: this.opaqueCoreService.getAppName(),
         },
       })

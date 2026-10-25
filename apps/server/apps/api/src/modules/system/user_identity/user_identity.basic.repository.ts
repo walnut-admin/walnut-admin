@@ -1,16 +1,23 @@
+import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
+import { InjectDataSource } from '@nestjs/typeorm'
 
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
-import { WalnutAdminCommonBasicRepository } from '@/common/repository/base.repository'
+import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 
-import { ISysUserIdentityDocument, ISysUserIdentityModel } from './schema/user_identity.schema'
+import { SysUserIdentityEntity } from './entity/user-identity.entity'
 
+/**
+ * B7a 迁移模板（repo 层）：类名与文件名保持不变（DI token 不动），基类从 Mongo 版
+ * `WalnutAdminCommonBasicRepository` 换成 PG 版（B1 确立）。本模块无特殊查询 ——
+ * 带 key 的读写走 SysUserIdentityRepositoryService，base CRUD 走本类。
+ */
 @Injectable()
-export class SysUserIdentityBasicRepository extends WalnutAdminCommonBasicRepository<ISysUserIdentityDocument> {
+export class SysUserIdentityBasicRepository extends WalnutAdminCommonPgBaseRepository<SysUserIdentityEntity> {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SYS_USER_IDENTITY)
-    readonly dbModel: ISysUserIdentityModel,
+    @InjectDataSource(WalnutPGConnectionName)
+    dataSource: DataSource,
   ) {
-    super(dbModel)
+    super(SysUserIdentityEntity, WalnutDBModelName.SYS_USER_IDENTITY, dataSource)
   }
 }

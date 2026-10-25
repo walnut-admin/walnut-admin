@@ -1,3 +1,5 @@
+import type { EntityManager } from 'typeorm'
+
 import type { IOtpType } from '@/modules/auth/modules/otp/const/otp.const'
 
 import { Injectable, Logger } from '@nestjs/common'
@@ -5,7 +7,6 @@ import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.e
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 
 import { isNil } from 'lodash'
-import { ClientSession } from 'mongoose'
 import { OtpSharedService } from '@/modules/auth/modules/otp/shared/otp.shared.service'
 import { SharedMaskService } from '@/modules/shared/mask/mask.service'
 import { AppTechCryptoService } from '@/modules/techniques/crypto/crypto.service'
@@ -17,6 +18,10 @@ import {
   IWalnutAdminConstSysUserIdentityType,
 } from '../schema/user_identity.schema'
 
+/**
+ * B7a 迁移：事务句柄 `dbSession?: ClientSession` → `em?: EntityManager`（纯透传给
+ * repo，取自 `WalnutTxContext.em`），加密 / 掩码 / 哈希逻辑零改动。
+ */
 @Injectable()
 export class SysUserIdentitySharedService {
   private readonly logger = new Logger(SysUserIdentitySharedService.name)
@@ -70,9 +75,9 @@ export class SysUserIdentitySharedService {
   async getUserIdentityStatus(
     userId: string,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
-    const identities = await this.userIdentityRepoService.findByUserId(userId, dbSession)
+    const identities = await this.userIdentityRepoService.findByUserId(userId, em)
 
     const result: SysUserIdentityStatusResponseDTO = {
       password: { set: false, lastChanged: new Date(0) },
@@ -97,7 +102,7 @@ export class SysUserIdentitySharedService {
       if (type === 'password') {
         result.password = {
           set: true,
-          lastChanged: createdAt!,
+          lastChanged: createdAt,
         }
         continue
       }
@@ -121,10 +126,10 @@ export class SysUserIdentitySharedService {
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
     value: string,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
     const valueHash = this.generateValueHash(value)
-    const existing = await this.userIdentityRepoService.findByValueHash(type, purpose, valueHash, dbSession)
+    const existing = await this.userIdentityRepoService.findByValueHash(type, purpose, valueHash, em)
     return !!existing
   }
 
@@ -133,13 +138,13 @@ export class SysUserIdentitySharedService {
     userId: string,
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
     return this.userIdentityRepoService.findByUserIdTypeAndPurpose(
       userId,
       type,
       purpose,
-      dbSession,
+      em,
     )
   }
 
@@ -149,7 +154,7 @@ export class SysUserIdentitySharedService {
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
     value: string,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
     const encryptedValue = this.encryptValue(value)
     const maskedValue = this.maskService.maskIdentityValue(type, value)
@@ -164,7 +169,7 @@ export class SysUserIdentitySharedService {
       maskedValue,
       verified: false,
       metadata: {},
-    }, dbSession)
+    }, em)
   }
 
   // Mark identity as verified (called after OTP/GitHub/Gitee validation success)
@@ -172,7 +177,7 @@ export class SysUserIdentitySharedService {
     userId: string,
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
     return this.userIdentityRepoService.updateByUserIdTypeAndPurpose(
       userId,
@@ -182,7 +187,7 @@ export class SysUserIdentitySharedService {
         verified: true,
         verifiedAt: new Date(),
       },
-      dbSession,
+      em,
     )
   }
 
@@ -193,13 +198,13 @@ export class SysUserIdentitySharedService {
     userId: string,
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
     const existing = await this.userIdentityRepoService.findByUserIdTypeAndPurpose(
       userId,
       type,
       purpose,
-      dbSession,
+      em,
     )
 
     if (!existing) {
@@ -214,17 +219,17 @@ export class SysUserIdentitySharedService {
     userId: string,
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
     // Step 1: Check if identity exists
-    await this.getIdentityOrThrow(userId, type, purpose, dbSession)
+    await this.getIdentityOrThrow(userId, type, purpose, em)
 
     // Step 2: Get encrypted value (select: false field) via dedicated method
     const encryptedValue = await this.userIdentityRepoService.getValueByUserIdTypeAndPurpose(
       userId,
       type,
       purpose,
-      dbSession,
+      em,
     )
 
     if (isNil(encryptedValue)) {
@@ -241,10 +246,10 @@ export class SysUserIdentitySharedService {
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
     value: string,
-    dbSession?: ClientSession,
+    em?: EntityManager,
     errMsg?: string,
   ) {
-    const valueExists = await this.checkValueExists(type, purpose, value, dbSession)
+    const valueExists = await this.checkValueExists(type, purpose, value, em)
     if (valueExists) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: isNil(errMsg) ? 'business.auth.identityAlreadyUsed' : errMsg })
     }
@@ -256,14 +261,14 @@ export class SysUserIdentitySharedService {
     userId: string,
     type: IWalnutAdminConstSysUserIdentityType,
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
-    dbSession?: ClientSession,
+    em?: EntityManager,
     errMsg?: string,
   ) {
     const existing = await this.userIdentityRepoService.findByUserIdTypeAndPurpose(
       userId,
       type,
       purpose,
-      dbSession,
+      em,
     )
     if (existing) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: isNil(errMsg) ? 'business.auth.identityAlreadyBound' : errMsg })

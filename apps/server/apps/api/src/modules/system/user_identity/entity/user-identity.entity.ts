@@ -4,8 +4,8 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColum
  * sys_user_identity —— MongoDB `sys_user_identity` 集合的 PostgreSQL 实体（phase2 4.10）。
  *
  * - (user_id, type, purpose) 复合唯一（schema.index 声明）；(type, value_hash) 服务登录查找路径。
- * - value 是 AES-256-GCM 密文：对齐 schema 的 `select: false` 语义由后续 repository 层处理
- *   （查询默认不选该列），实体本身无法表达。
+ * - value 是 AES-256-GCM 密文：`select: false` 对齐 schema 语义 —— 默认查询不出该列，
+ *   取值走 repo 的显式 addSelect 通道（B7a）。
  * - FK user_id → sys_user ON DELETE CASCADE，DDL 在 migration。
  */
 @Index('uq_identity', ['userId', 'type', 'purpose'], { unique: true })
@@ -25,8 +25,8 @@ export class SysUserIdentityEntity {
   @Column({ type: 'varchar', length: 8, name: 'purpose' })
   purpose: string
 
-  // AES-256-GCM 密文
-  @Column({ type: 'text', name: 'value' })
+  // AES-256-GCM 密文（schema select: false → 实体同款，默认查询不出）
+  @Column({ type: 'text', name: 'value', select: false })
   value: string
 
   // HMAC-SHA256，查找键

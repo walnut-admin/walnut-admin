@@ -4,7 +4,8 @@ import { JwtService } from '@nestjs/jwt'
 import { WalnutAdminConstAppTokenKey } from '@walnut-server/const/app/token'
 import { RoleType } from '@walnut/contract'
 import { nanoid } from 'nanoid'
-import { ISysUserDocument } from '@/modules/system/user/schema/user.schema'
+import { SysUserEntity } from '@/modules/system/user/entity/user.entity'
+import { ISysUserPopulated } from '@/modules/system/user/repo/user.repo.service'
 
 @Injectable()
 export class AppTokenService {
@@ -78,23 +79,26 @@ export class AppTokenService {
 
   /**
    * @description get access token payload
+   * （B7a：入参从 Mongo document 换成 PG 实体 + junction 组装的 populated_roles_list）
    */
   async getJwtAccessTokenPayload(
-    user: ISysUserDocument,
+    user: SysUserEntity & Partial<ISysUserPopulated>,
     { isTrusted }: { isTrusted: boolean },
   ): Promise<IWalnutAdminAccessTokenPayload> {
-    const { _id, populated_roles_list, userName, currentRole, roleMode, mfaSetup } = user
+    const { id, populated_roles_list, userName, currentRole, roleMode, mfaSetup } = user
 
-    const userId = _id.toString()
+    const userId = id
 
     return {
       userId,
-      userName,
-      roleIds: populated_roles_list?.map(i => i._id.toString()) || [],
+      // 实体列可空（user_name nullable），token 契约要 string —— Mongo 版运行时同样可能
+      // 带 null，这里只做类型收窄不改行为
+      userName: userName as string,
+      roleIds: populated_roles_list?.map(i => i.id) || [],
       roleNames: populated_roles_list?.map(i => i.roleName.toString()) as RoleType[],
-      currentRole: currentRole.toString(),
+      currentRole: currentRole as string,
       roleMode,
-      currentRoleName: populated_roles_list?.find(i => i._id.toString() === currentRole.toString())?.roleName as RoleType,
+      currentRoleName: populated_roles_list?.find(i => i.id === currentRole)?.roleName as RoleType,
       mfaSetup,
       mfaVerified: isTrusted,
     }

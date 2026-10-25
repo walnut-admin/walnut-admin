@@ -102,7 +102,7 @@ export class SysDeviceDTOListResponse extends CreateWalnutAdminResponseListDTO(
 export class SysDeviceDTOReadResponse extends SysDeviceDTOSafe { }
 
 // history users
-export class SysDeviceDTOHistoryUsersResponse extends IntersectionType(RealPickType(SysUserDTOSafe, ['_id', 'nickName', 'userName'] as const), RealPickType(SharedTimeDTO, ['lastActiveAt'] as const)) {
+export class SysDeviceDTOHistoryUsersResponse extends IntersectionType(RealPickType(SysUserDTOSafe, ['id', 'nickName', 'userName'] as const), RealPickType(SharedTimeDTO, ['lastActiveAt'] as const)) {
   constructor(partial?: Partial<SysDeviceDTOHistoryUsersResponse>) {
     super()
     Object.assign(this, partial)

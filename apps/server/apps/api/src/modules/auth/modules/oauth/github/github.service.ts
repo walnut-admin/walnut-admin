@@ -1,10 +1,12 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutDBInjectConnection } from '@walnut-server/db'
+import { InjectDataSource } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
 import { WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
 import { LocaleType } from '@walnut/contract'
-import { ClientSession, Connection } from 'mongoose'
+import { DataSource } from 'typeorm'
 import { SharedWelcomeService } from '@/modules/shared/welcome/welcome.service'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
 import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
@@ -21,10 +23,9 @@ import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/servi
 export class OAuthGitHubService {
   private readonly logger = new Logger(OAuthGitHubService.name)
 
-  @WalnutDBInjectConnection()
-  readonly dbConnection: Connection
-
   constructor(
+    @InjectDataSource(WalnutPGConnectionName)
+    private readonly pgDataSource: DataSource,
     private readonly sysUserSharedService: SysUserSharedService,
     private readonly sysUserRepoService: SysUserRepositoryService,
     private readonly userIdentityRepoService: SysUserIdentityRepositoryService,
@@ -41,6 +42,11 @@ export class OAuthGitHubService {
    * - If not bound, check email identity
    * - If email identity exists, reject with email already used error
    * - If no email identity and auto-signup enabled, create new user and bind
+   *
+   * B7a 签名适配：user/identity/oauth 三条数据腿全部迁 PG。本流程从 passport
+   * strategy（guard 阶段）发起，早于拦截器事务 —— `request.txContext` 尚不存在，
+   * 故沿用 Mongo 版「自管事务」的形态换成 PG QueryRunner（签名不变，strategy 零改动）；
+   * refresh 写腿在 controller 的 generateAuthTokens（ctx.dbSession，7c 归一）。
    */
   async validateIdentity(
     githubUserId: string,
@@ -50,9 +56,10 @@ export class OAuthGitHubService {
     language: LocaleType,
     deviceId: string,
   ): Promise<IWalnutAdminAccessTokenPayload> {
-    // Start transaction
-    const dbSession = await this.dbConnection.startSession()
-    dbSession.startTransaction()
+    // Start transaction（自管 PG 事务，guard 阶段拿不到拦截器的 txContext）
+    const queryRunner = this.pgDataSource.createQueryRunner()
+    await queryRunner.connect()
+    await queryRunner.startTransaction()
 
     try {
       let result: IWalnutAdminAccessTokenPayload
@@ -61,7 +68,7 @@ export class OAuthGitHubService {
       const existingBinding = await this.sysUserOAuthRepoService.findByProviderAndProviderId(
         'github',
         githubUserId,
-        dbSession,
+        queryRunner.manager,
       )
 
       if (existingBinding) {
@@ -69,14 +76,14 @@ export class OAuthGitHubService {
 
         // GitHub account already bound, return the associated user
         const user = await this.sysUserRepoService.findUserByUserId(
-          existingBinding.userId.toString(),
-          dbSession,
+          existingBinding.userId,
+          queryRunner.manager,
         )
         if (!user) {
-          this.logger.error(`OAuth binding exists but user not found: ${existingBinding.userId.toString()}`)
+          this.logger.error(`OAuth binding exists but user not found: ${existingBinding.userId}`)
           throw new WalnutAdminExceptionSignupBanned()
         }
-        result = await this.sysUserSharedService.getAccessTokenPayloadWhenUserExisted(user, deviceId)
+        result = await this.sysUserSharedService.getAccessTokenPayloadWhenUserExisted(user, deviceId, queryRunner.manager)
       }
       else {
         // Step 2: Not bound - check if new user signup is allowed early
@@ -93,7 +100,7 @@ export class OAuthGitHubService {
           WalnutAdminConstSysUserIdentityType.EMAIL_ADDRESS,
           WalnutAdminConstSysUserIdentityPurpose.LOGIN,
           emailHash,
-          dbSession,
+          queryRunner.manager,
         )
 
         if (emailIdentity) {
@@ -112,21 +119,21 @@ export class OAuthGitHubService {
           avatar,
           language,
           deviceId,
-          dbSession,
+          queryRunner.manager,
         )
       }
 
       // Commit transaction
-      await dbSession.commitTransaction()
+      await queryRunner.commitTransaction()
       return result
     }
     catch (error) {
       // Abort transaction on error
-      await dbSession.abortTransaction()
+      await queryRunner.rollbackTransaction()
       throw error
     }
     finally {
-      await dbSession.endSession()
+      await queryRunner.release()
     }
   }
 
@@ -140,7 +147,7 @@ export class OAuthGitHubService {
     avatar: string,
     language: LocaleType,
     deviceId: string,
-    dbSession: ClientSession,
+    em: EntityManager,
   ): Promise<IWalnutAdminAccessTokenPayload> {
     this.logger.log(`Creating new user from GitHub: ${email}`)
 
@@ -148,7 +155,7 @@ export class OAuthGitHubService {
     const result = await this.sysUserSharedService.getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser(
       { userName, avatar },
       deviceId,
-      dbSession,
+      em,
     )
 
     // Create email identity in user_identity table
@@ -157,7 +164,7 @@ export class OAuthGitHubService {
       WalnutAdminConstSysUserIdentityType.EMAIL_ADDRESS,
       WalnutAdminConstSysUserIdentityPurpose.LOGIN,
       email,
-      dbSession,
+      em,
     )
 
     // Bind github OAuth info
@@ -165,7 +172,7 @@ export class OAuthGitHubService {
       result.userId,
       'github',
       githubUserId,
-      dbSession,
+      em,
     )
 
     // Send welcome email

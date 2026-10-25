@@ -282,11 +282,12 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       await deviceBasicRepo.create({ deviceName: unique('b6-ua-name'), deviceId: deviceAKey, deviceInfo: {}, ipHistory: [] })
       await deviceBasicRepo.create({ deviceName: unique('b6-ub-name'), deviceId: deviceBKey, deviceInfo: {}, ipHistory: [] })
 
-      // FK 挂在业务键 sys_device(device_id)（Q5 定案）：幽灵业务键拒绝
+      // FK 挂在业务键 sys_device(device_id)（Q5 定案）：幽灵业务键拒绝，
+      // 且必须是 PG 的 foreign_key_violation（23503）—— B7a review 挂单补错误码断言
       await expect(pgDataSource.query(
         'INSERT INTO sys_user_device (user_id, device_id) VALUES ($1, $2)',
         [pgUserId, unique('b6-ghost-device')],
-      )).rejects.toThrow()
+      )).rejects.toMatchObject({ code: '23503' })
 
       const row = await userDeviceRepo.upsertDevice(pgUserId, deviceAKey, unique('b6-ua-name'))
       expect(row.deviceId).toBe(deviceAKey)

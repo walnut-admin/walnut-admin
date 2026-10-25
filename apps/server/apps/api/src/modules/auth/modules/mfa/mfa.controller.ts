@@ -52,7 +52,9 @@ export class AuthMfaController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: AuthMfaVerifyDTO,
   ) {
-    const newAccessToken = await this.authMfaService.verifyMfaStatus(jti, dto, user.userId, user.sid!, deviceId, ctx.dbSession!)
+    // B7a 跨引擎窗口双句柄：user.mfaSetup 写腿（PG）走 ctx.em，
+    // mfa 状态读腿 + post verification（Mongo）走 ctx.dbSession —— 7b/7c 归一
+    const newAccessToken = await this.authMfaService.verifyMfaStatus(jti, dto, user.userId, user.sid!, deviceId, ctx.em, ctx.dbSession!)
     return new AuthSuccessDTO({ accessToken: newAccessToken })
   }
 }

@@ -1,17 +1,13 @@
 import { Global, Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
-import { SysUserOauthSchema } from '../schema/user_oauth.schema'
 import { SysUserOAuthRepositoryService } from './user_oauth.repo.service'
 
+/**
+ * B7a 迁移：Mongo forFeature 摘除（实体注册在 SysUserOauthModule 的 PG forFeature 里）。
+ * 模块保持 @Global —— gitee/github 等 auth 系消费方经它注入 SysUserOAuthRepositoryService。
+ */
 @Global()
 @Module({
-  imports: [
-    MongooseModule.forFeature(
-      [{ name: WalnutDBModelName.SYS_USER_OAUTH, schema: SysUserOauthSchema }],
-      WalnutDBConnectionName,
-    ),
-  ],
+  imports: [],
   controllers: [],
   providers: [SysUserOAuthRepositoryService],
   exports: [SysUserOAuthRepositoryService],

@@ -1,9 +1,9 @@
+import type { ClientSession } from 'mongoose'
+import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { IWalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
-import { WalnutDBVirtualName } from '@walnut-server/db'
 import { WalnutAdminExceptionDuplicateSignIn, WalnutAdminExceptionRefreshTokenExpired } from '@walnut-server/exceptions/business/auth'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
-import { ClientSession } from 'mongoose'
 import { AppTokenService } from '@/modules/shared/token/token.service'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
 import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
@@ -198,8 +198,11 @@ export class AuthRefreshSharedService {
 
   /**
    * @description refresh access token and refresh token together
+   *
+   * B7a 签名适配：refresh 表写腿仍在 Mongo（dbSession，7c 归一）；user 读腿 +
+   * roles populate 已迁 PG（em = ctx.em）—— 双句柄并传。
    */
-  async getNewAccessToken(jti: string, deviceId: string, sessionId: string, dbSession: ClientSession) {
+  async getNewAccessToken(jti: string, deviceId: string, sessionId: string, em: EntityManager, dbSession: ClientSession) {
     // Step 1 - get refresh token record
     const record = await this.authRefreshRepo.findByJti(jti, dbSession)
 
@@ -229,14 +232,15 @@ export class AuthRefreshSharedService {
       throw new WalnutAdminExceptionRefreshTokenExpired()
     }
 
-    // Step 2 - get user with user id
-    const user = await this.sysUserRepoService.findUserByUserId(record.userId.toString(), dbSession)
+    // Step 2 - get user with user id（B7a：user 已迁 PG；refresh 行仍是 Mongo 文档，
+    // userId 字段取 `.toString()` 归一成字符串直传 —— 7c 归一后随 refresh 迁移收掉）
+    const user = await this.sysUserRepoService.findUserByUserId(record.userId.toString(), em)
     if (!user) {
       throw new WalnutAdminExceptionRefreshTokenExpired()
     }
 
-    // Step 2.5 - populate role infos
-    const populatedUser = await user.populate({ path: WalnutDBVirtualName.ROLES_LIST })
+    // Step 2.5 - populate role infos（junction 组装，对照 Mongo 版 populate virtual）
+    const populatedUser = await this.sysUserSharedService.getUserWithPopulatedRoles(user, em)
 
     // Step 3 - check user status
     await this.sysUserSharedService.checkUserAndRoleStatus(populatedUser)

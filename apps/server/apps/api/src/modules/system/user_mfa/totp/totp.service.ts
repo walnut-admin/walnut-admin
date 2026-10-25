@@ -1,11 +1,12 @@
+import type { EntityManager } from 'typeorm'
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { registerAfterCommitHook, WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions'
 import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
-import { isNil } from 'lodash'
 
+import { isNil } from 'lodash'
 import { ClientSession, Types } from 'mongoose'
 import { generateSecret, generateURI, verify } from 'otplib'
 import * as QRCode from 'qrcode'
@@ -43,7 +44,8 @@ export class SysUserMfaTotpService {
    * generate TOTP secret and QR code
    */
   async generateTotp(userId: string, deviceId: string, dbSession: ClientSession) {
-    const user = await this.userRepo.findUserByUserId(userId, dbSession)
+    // B7a 签名适配：user 读腿迁 PG —— 不再传 Mongo session（连接级读，7b 归一）
+    const user = await this.userRepo.findUserByUserId(userId)
 
     if (!user) {
       throw new WalnutAdminExceptionDataNotFound()
@@ -66,7 +68,7 @@ export class SysUserMfaTotpService {
     const otpauthUrl = generateURI({
       strategy: 'totp',
       issuer: this.issuer,
-      label: user.userName,
+      label: user.userName!,
       secret,
     })
 
@@ -90,7 +92,7 @@ export class SysUserMfaTotpService {
       totpId: `${userId},${deviceId}`,
       secret,
       qrCode,
-      account: user.userName,
+      account: user.userName!,
     }
   }
 
@@ -180,8 +182,9 @@ export class SysUserMfaTotpService {
 
   /**
    * verify TOTP
+   * （B7a 签名适配：user 读腿迁 PG —— 双句柄并传，em = ctx.em）
    */
-  async verifyTotp(jti: string, deviceId: string, user: IWalnutAdminAccessTokenPayload, dto: SysUserMfaDeviceVerifyTotpDTO, dbSession: ClientSession) {
+  async verifyTotp(jti: string, deviceId: string, user: IWalnutAdminAccessTokenPayload, dto: SysUserMfaDeviceVerifyTotpDTO, em: EntityManager, dbSession: ClientSession) {
     const totpDevice = await this.sysUserMfaModel
       .findOne({
         userId: new Types.ObjectId(user.userId),
@@ -219,7 +222,8 @@ export class SysUserMfaTotpService {
     await totpDevice.save({ session: dbSession })
 
     // post verification
-    return this.authMfaPostVerificationService.handlePostVerification(dto.trusted, jti, user.sid!, user.userId, deviceId, dbSession)
+    // B7a 签名适配：user 读腿（PG）与 mfa 写腿（Mongo）双句柄并传
+    return this.authMfaPostVerificationService.handlePostVerification(dto.trusted, jti, user.sid!, user.userId, deviceId, em, dbSession)
   }
 
   /**

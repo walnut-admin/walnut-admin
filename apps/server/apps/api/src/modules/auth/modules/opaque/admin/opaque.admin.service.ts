@@ -1,6 +1,7 @@
+import type { ClientSession } from 'mongoose'
+import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
-import { ClientSession } from 'mongoose'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
 import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
 import { AuthSignoutService } from '../../signout/signout.service'
@@ -10,6 +11,9 @@ import { AuthOpaqueFinishChangePasswordForAdminDTO, AuthOpaqueStartChangePasswor
 /**
  * OPAQUE (Oblivious Pseudorandom Function) authentication service
  * Implements password-authenticated key exchange protocol that never exposes passwords to the server
+ *
+ * B7a 签名适配：user/identity 腿迁 PG（em = ctx.em）；signout 的 refresh 写腿仍在
+ * Mongo（dbSession = ctx.dbSession）—— 双句柄并传，7c 归一。
  */
 @Injectable()
 export class AuthOpaqueAdminService {
@@ -23,43 +27,43 @@ export class AuthOpaqueAdminService {
   ) {}
 
   async startChangePassword(dto: AuthOpaqueStartChangePasswordForAdminDTO) {
-    const user = await this.userRepo.findUserByUserId(dto._id.toString())
+    const user = await this.userRepo.findUserByUserId(dto.id)
 
     if (!user) {
       throw new WalnutAdminExceptionBadRequest()
     }
 
-    return this.authOpaqueCoreService.startChangePassword(user.userName, dto.start)
+    return this.authOpaqueCoreService.startChangePassword(user.userName!, dto.start)
   }
 
-  async finishChangePassword(dto: AuthOpaqueFinishChangePasswordForAdminDTO, dbSession: ClientSession) {
-    const user = await this.userRepo.findUserByUserId(dto._id.toString())
+  async finishChangePassword(dto: AuthOpaqueFinishChangePasswordForAdminDTO, em: EntityManager, dbSession: ClientSession) {
+    const user = await this.userRepo.findUserByUserId(dto.id)
 
     if (!user) {
       throw new WalnutAdminExceptionBadRequest()
     }
 
-    await this.authOpaqueCoreService.finishChangePassword(user.userName, dto.finish, dbSession)
+    await this.authOpaqueCoreService.finishChangePassword(user.userName!, dto.finish, em)
 
-    await this.signoutService.doSignout(user._id.toString(), { trigger: 'security-policy', revokeReason: 'updatePass' }, dbSession)
+    await this.signoutService.doSignout(user.id, { trigger: 'security-policy', revokeReason: 'updatePass' }, dbSession)
 
     return true
   }
 
-  async clearPassword(userId: string, dbSession: ClientSession) {
+  async clearPassword(userId: string, em: EntityManager) {
     // Delete password identity from user_identity table
     const identity = await this.userIdentityRepo.findByUserIdTypeAndPurpose(
       userId,
       'password',
       'login',
-      dbSession,
+      em,
     )
     if (identity) {
       await this.userIdentityRepo.deleteByUserIdTypeAndPurpose(
         userId,
         'password',
         'login',
-        dbSession,
+        em,
       )
     }
     return true

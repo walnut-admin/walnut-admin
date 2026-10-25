@@ -86,7 +86,8 @@ export class SysUserMfaTotpController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: SysUserMfaDeviceVerifyTotpDTO,
   ) {
-    const newAccessToken = await this.userMfaTotpService.verifyTotp(jti, deviceId, user, dto, ctx.dbSession!)
+    // B7a 跨引擎窗口双句柄：user 读腿（PG）走 ctx.em，mfa 表写腿（Mongo）走 ctx.dbSession —— 7b 归一
+    const newAccessToken = await this.userMfaTotpService.verifyTotp(jti, deviceId, user, dto, ctx.em, ctx.dbSession!)
     return new AuthSuccessDTO({ accessToken: newAccessToken })
   }
 

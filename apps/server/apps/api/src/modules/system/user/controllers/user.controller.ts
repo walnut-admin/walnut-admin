@@ -8,7 +8,8 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
-import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
+import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
+import { plainToInstance } from 'class-transformer'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
@@ -48,6 +49,11 @@ const {
   DTO: SysUserDTOSafe,
 })
 
+/**
+ * B7a 迁移（controller 层，B1 模板）：ParamMongoId → uuid 参数装饰器；事务句柄
+ * `ctx.dbSession` → `ctx.em`（WalnutTxContext 双引擎上下文，已迁侧取 em）；
+ * 响应组装 `.toObject()` 移除（PG 实体即 POJO），统一 plainToInstance(DTO, entity)。
+ */
 @Controller('system/user')
 @ApiTags('system/user')
 export class SysUserController {
@@ -60,17 +66,13 @@ export class SysUserController {
   )
   @WalnutAdminDecoratorCreate()
   async create(@Body() payload: SysUserDTOCreateRequest) {
-    return new SysUserDTOCreateResponse(
-      (await this.userCrudService.create(payload)).toObject(),
-    )
+    return plainToInstance(SysUserDTOCreateResponse, await this.userCrudService.create(payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
-  async read(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new SysUserDTOReadResponse(
-      (await this.userCrudService.read(id)).toObject(),
-    )
+  async read(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(SysUserDTOReadResponse, await this.userCrudService.read(id))
   }
 
   @WalnutAdminDecoratorHasPermission(
@@ -78,12 +80,10 @@ export class SysUserController {
   )
   @WalnutAdminDecoratorUpdate()
   async update(
-    @WalnutAdminDecoratorParamMongoId() id: string,
     @Body() payload: SysUserDTOUpdateRequest,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return new SysUserDTOUpdateResponse(
-      (await this.userCrudService.update(id, payload)).toObject(),
-    )
+    return plainToInstance(SysUserDTOUpdateResponse, await this.userCrudService.update(id, payload))
   }
 
   @WalnutAdminDecoratorHasPermission(
@@ -94,16 +94,17 @@ export class SysUserController {
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutDBSession() ctx: WalnutTxContext,
-    @WalnutAdminDecoratorParamMongoId() id: string,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return new SysUserDTODeleteResponse(
-      (await this.userCrudService.delete(id, user.userId, ctx.dbSession)).toObject(),
+    return plainToInstance(
+      SysUserDTODeleteResponse,
+      await this.userCrudService.delete(id, user.userId, ctx.em),
     )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: SysUserDTOListRequest) {
-    return new SysUserDTOListResponse(await this.userCrudService.list(payload))
+    return plainToInstance(SysUserDTOListResponse, await this.userCrudService.list(payload))
   }
 }

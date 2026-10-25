@@ -6,6 +6,7 @@ import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.e
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 import { Recordable } from 'easy-fns-ts'
 import { ClientSession, isObjectIdOrHexString, Types } from 'mongoose'
+import { SysUserRepositoryService } from '../user/repo/user.repo.service'
 import { SysDeletedBasicRepository } from './deleted.basic.repository'
 import { SysDeletedDTORecoverRequest, SystemDeletedDTOListRequest } from './dto/deleted.dto'
 import { ISysDeletedModel } from './schema/deleted.schema'
@@ -19,10 +20,21 @@ export class SysDeletedService {
     private readonly SysDeletedModel: ISysDeletedModel,
 
     private readonly deletedBasicRepo: SysDeletedBasicRepository,
+    private readonly sysUserRepoService: SysUserRepositoryService,
   ) { }
 
   async read(id: string) {
-    return (await this.deletedBasicRepo.readById(id)).populate({ path: WalnutDBVirtualName.USER, select: 'userName' })
+    const doc = await this.deletedBasicRepo.readById(id)
+
+    // B7a：user 已迁 PG，Mongo 侧 SYS_USER 模型注册随之摘除 —— populate 读腿改查
+    // PG sys_user 同源表（B5 usersCount 同款手法）。Mongo 窗口内 hex deletedBy 在
+    // PG 侧查不到 → populated_user null（B9 归一）
+    const deletedBy = doc.deletedBy?.toString() ?? ''
+    const user = isObjectIdOrHexString(deletedBy) ? null : await this.sysUserRepoService.findUserByUserId(deletedBy)
+
+    return Object.assign(doc.toObject(), {
+      [WalnutDBVirtualName.USER]: user ? { id: user.id, userName: user.userName } : null,
+    })
   }
 
   async deleteRealMany(ids: string[]) {

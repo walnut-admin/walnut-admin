@@ -53,7 +53,8 @@ export class AuthOpaqueUserController {
     @Body() dto: AuthOpaqueStartSignInDTO,
   ) {
     try {
-      return await this.authOpaqueCoreService.startLogin(dto.userName, dto.start, deviceId, ctx.dbSession!)
+      // B7a 签名适配：user/identity 读腿迁 PG —— 传 ctx.em
+      return await this.authOpaqueCoreService.startLogin(dto.userName, dto.start, deviceId, ctx.em)
     }
     catch (error) {
       // Record failed auth log and risk
@@ -150,11 +151,15 @@ export class AuthOpaqueUserController {
   })
   async finishRegister(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: AuthOpaqueFinishSignUpDTO,
   ) {
+    // B7a 签名适配：user/identity 写腿迁 PG —— 传 ctx.em（该端点本就挂了
+    // @WalnutDBTransaction，接线后注册两腿获得事务原子性）
     return this.authOpaqueCoreService.finishRegister(
       user.userName,
       dto.finish,
+      ctx.em,
     )
   }
 
@@ -196,12 +201,14 @@ export class AuthOpaqueUserController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: AuthOpaqueFinishChangePasswordDTO,
   ) {
+    // B7a 跨引擎窗口：signout 的 refresh 写腿仍走 ctx.dbSession 到 Mongo，
+    // identity 写腿已迁 PG 走 ctx.em —— 7c 归一
     await this.signoutService.doSignout(user.userId, { trigger: 'security-policy', revokeReason: 'updatePass' }, ctx.dbSession!)
 
     return this.authOpaqueCoreService.finishChangePassword(
       user.userName,
       dto.finish,
-      ctx.dbSession!,
+      ctx.em,
     )
   }
 }

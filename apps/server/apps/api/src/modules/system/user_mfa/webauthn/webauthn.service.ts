@@ -5,8 +5,9 @@ import type {
   VerifyAuthenticationResponseOpts,
   VerifyRegistrationResponseOpts,
 } from '@simplewebauthn/server'
-import { Injectable } from '@nestjs/common'
+import type { EntityManager } from 'typeorm'
 
+import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import {
   generateAuthenticationOptions,
@@ -17,8 +18,8 @@ import {
 import { isoBase64URL } from '@simplewebauthn/server/helpers'
 import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest, WalnutAdminExceptionNotFound } from '@walnut-server/exceptions/base.exception'
-import { isNil } from 'lodash'
 
+import { isNil } from 'lodash'
 import { ClientSession, Types } from 'mongoose'
 import { AuthMfaPostVerificationService } from '@/modules/auth/modules/mfa/mfa.post.service'
 import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
@@ -214,6 +215,7 @@ export class SysUserMfaWebauthnService {
     deviceId: string,
     user: IWalnutAdminAccessTokenPayload,
     dto: SysUserMfaWebauthnAuthenticateVerifyDTO,
+    em: EntityManager,
     dbSession: ClientSession,
   ) {
     // 获取 challenge
@@ -274,6 +276,7 @@ export class SysUserMfaWebauthnService {
     await this.cacheMfaService.delWebauthnCache(user.userId, deviceId, 'authentication')
 
     // post verification
-    return this.authMfaPostVerificationService.handlePostVerification(dto.trusted, jti, user.sid!, user.userId, deviceId, dbSession)
+    // B7a 签名适配：user 读腿（PG）与 mfa 写腿（Mongo）双句柄并传
+    return this.authMfaPostVerificationService.handlePostVerification(dto.trusted, jti, user.sid!, user.userId, deviceId, em, dbSession)
   }
 }

@@ -1,17 +1,15 @@
+import type { ClientSession } from 'mongoose'
 import { Injectable } from '@nestjs/common'
 import { IWalnutAdminConstRoleMode } from '@walnut-server/const/role'
-import { WalnutDBInjectModel, WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
-import { ClientSession } from 'mongoose'
 import { SysUserMfaSharedService } from '../../user_mfa/shared/user_mfa.shared.service'
 import { SysUserMeDTOUpdateProfileRequest } from '../dto/user.me.dto'
-import { ISysUserModel } from '../schema/user.schema'
+import { SysUserRepositoryService } from '../repo/user.repo.service'
 import { SysUserSharedService } from '../shared/user.shared.service'
 
 @Injectable()
 export class SysUserMeService {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SYS_USER)
-    private readonly SysUserModel: ISysUserModel,
+    private readonly sysUserRepoService: SysUserRepositoryService,
 
     private readonly sysUserMfaSharedService: SysUserMfaSharedService,
     private readonly sysUserSharedService: SysUserSharedService,
@@ -21,13 +19,19 @@ export class SysUserMeService {
    * @description get user profile
    */
   async getUserProfile(userId: string) {
-    return this.SysUserModel.findById(userId).populate({ path: WalnutDBVirtualName.ROLES_LIST })
+    const user = await this.sysUserRepoService.findUserByUserId(userId)
+    if (!user) {
+      return null
+    }
+
+    return this.sysUserRepoService.attachPopulatedRoles(user)
   }
 
   async updateProfile(userId: string, payload: SysUserMeDTOUpdateProfileRequest) {
-    return this.SysUserModel.findByIdAndUpdate(userId, payload, { returnDocument: 'after' })
+    return this.sysUserRepoService.findUserByIdAndUpdate(userId, payload)
   }
 
+  // mfa 侧 7b 迁移前仍走 Mongo session（ctx.dbSession），本方法只透传
   async getSecurityTab2Status(userId: string, dbSession: ClientSession) {
     return this.sysUserMfaSharedService.getUserMfaTotalStatus(userId, dbSession)
   }

@@ -205,7 +205,11 @@ export class AppTechCacheAppSettingsService {
     scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
     globalValue: WalnutAdminConstRoleMode.SWITCH,
     localKey: 'roleMode',
-    defaultRole: '5fb27aee3a30b717d8078eb5', // visitor id
+    // B7a：visitor role 的 v5 uuid（ETL namespace 派生自原 hex 5fb27aee3a30b717d8078eb5，
+    // 派生规则见 packages/tooling/scripts/src/db/uuid5.ts；B5 订正脚本把 setting 值统一成
+    // uuid 后，缺省兜底也必须是 uuid —— PG 侧 current_role_id / sys_user_role.role_id
+    // 是 uuid 列，hex 兜底会让默认链路插入直接炸）
+    defaultRole: 'd6e8ca57-1faf-56d7-b090-9ff0c0b78ce6',
   }
 
   async getFunctionalRole(): Promise<IWalnutAdminConstAppSettingFunctionalRoleKeys<IWalnutAdminConstRoleMode>> {

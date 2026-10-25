@@ -34,7 +34,7 @@
 | B4 | app_setting + app_key + shared_area（递归 CTE + CYCLE 兜底） | ✅ |
 | B5 | sys_menu（meta 拍平组装出参）+ sys_role + sys_role_menu；产出 defaultRole uuid 订正脚本 | ✅ |
 | B6 | sys_device + sys_user_device + app_monitor_user（双向环同批） | ✅ |
-| B7 | SCC-A 账户团九表（user/identity/oauth/lock/mfa/preference/device/refresh + auth 全系 + security） | |
+| B7 | SCC-A 账户团九表（user/identity/oauth/lock/mfa/preference/device/refresh + auth 全系 + security） | ◐ **B7a ✅**（user/identity/oauth + auth 系签名适配 + review 挂单三项；7b=lock/mfa/preference/refresh、7c=auth 全链 + security 归一） |
 | B8 | sys_log_operate + sys_log_auth + techniques/event（fire-and-forget 旁路） | |
 | B9 | sys_deleted 收尾：恢复注册表装配、recover/recoverMine PG 化、Mongo 侧下线 | |
 | B10 | 终批清理（摘 MongooseModule、Mongo int-spec、双轨残留；与 Phase 5 合并执行） | |
@@ -75,6 +75,8 @@
 - 并存冒烟：B7 增「同 ctx 双写、PG rollback 连带 Mongo abort」用例（B0 已有基础用例可扩展）。
 - B6 交付 `device.user-device.monitor.pg.int-spec`（设备三角对账基准：业务键 FK / CASCADE /
   ipHistory 追加截断 / visitorId upsert / forceQuit 链路 / JOIN 版列表）。
+- B7a 交付 `user.identity.oauth.pg.int-spec`（junction 组装 / defaultRole v5 uuid 链路 /
+  identity 复合唯一 23505 + value select:false 通道 / oauth bind upsert + 外部账号唯一）。
 - B9/B10：删 Mongo 段 global-setup 与 Mongo int-spec。
 
 ## 4. ID 使用点清查（改造归属）
@@ -88,8 +90,8 @@
 | role.repo.service `$in` | B5 ✅（`In(uuid[])`；junction populate 同批） |
 | error.process.ts | B1 ✅（uuid 直传，删除 ObjectId 包装） |
 | monitor/user.repo.service | B6 ✅（`new ObjectId` → uuid 直传；user_device.repo 同批完成） |
-| user.crud / user.shared（defaultRole 消费点） | B7（前置：B5 订正脚本落地） |
-| user_identity/user_lock/user_mfa/totp/webauthn/user_preference/refresh.repo | B7 |
+| user.crud / user.shared（defaultRole 消费点） | B7a ✅（uuid 直用；safe id 常量补 v5 双形态） |
+| user_identity（B7a ✅）/ user_oauth（B7a ✅）/ user_lock / user_mfa / totp / webauthn / user_preference / refresh.repo | B7a ✅（identity/oauth）；其余 7b/7c |
 | log.operate.decorator / log.auth.shared.service | B8 |
 | deleted.service recover 链路 | B9 |
 
@@ -97,7 +99,9 @@
 
 1. **回收站双源**（B1~B9）：已迁模块软删写 PG `sys_deleted`，未迁写 Mongo；回收站列表/恢复
    在 B9 前是 Mongo 版，看不到 PG 侧删除。缓解：B0 注册表骨架 + 迁移期口径「回收站只管未迁
-   模块」。B9 归一。
+   模块」。B9 归一。（B7a 附带：deleted.service read 的 deletedBy populate 随 SYS_USER
+   Mongo 注册摘除改查 PG 同源表 —— Mongo 窗口内 hex deletedBy 查不到 → populated_user
+   null，B9 归一。）
 2. **setting_value 内嵌 id**（B4~B7）：`app.default.role` 值须在 B7 切换前重写为 role 的 v5 uuid。
    B5 已产出订正脚本：`packages/tooling/scripts/src/db/fix-setting-default-role.ts`
    （bin `walnut-fix-setting-default-role`，根目录 `pnpm db:fix-default-role`；从仓库根运行，
@@ -106,21 +110,24 @@
    v5（namespace 见 `packages/tooling/scripts/src/db/uuid5.ts`，phase2 §3.3 回写引用）；
    脏值拒绝改写。E2E 见 `apps/server/apps/api/test/integration/pg.fix-default-role.int-spec.ts`
    （集成库实跑脚本断言重写 + 幂等重跑 no-op + 脏值 exit 1）。**运行时机：B7 开工前对目标库跑一次并核对。**
-3. **权限链路跨引擎**（B5~B7）：menu/role 已迁 PG，但 user 仍在 Mongo —— token 里的
-   roleIds/currentRole 还是 ObjectId hex，`In(uuid[])` 查不到行（ETL 前的 PG 侧 sys_role
-   本就为空），故 B5~B7 期间登录后的权限/路由生成走 PG 空数据，`getCorePermissions` 的
+   B7a 后消费侧已全量 uuid 语义（crud/shared 直用 + cache.appSettings 兜底常量改 v5 uuid，
+   见 §6）—— 对目标库跑订正脚本是**运行时前置**，代码侧不再有 hex 分支。
+3. **权限链路跨引擎**（B5~B7a）：menu/role 已迁 PG，user 在 B7a 前仍在 Mongo —— token 里的
+   roleIds/currentRole 是 ObjectId hex，`In(uuid[])` 查不到行（ETL 前的 PG 侧 sys_role
+   本就为空），故 B5~B7a 期间登录后的权限/路由生成走 PG 空数据，`getCorePermissions` 的
    root 分支需要 PG 里存在根菜单。集成测试以 PG fixture 直建覆盖该链路；运行时行为在
-   B7（user 迁移 + 订正脚本落地）后归一。
+   B7a（user 迁移 + 订正脚本落地）后归一。**token 里 roleIds/currentRole 现为 uuid**
+   （B7a 起 getJwtAccessTokenPayload 吃 PG 实体 + junction 组装），7c 前登录态两条腿
+   （user/role 查询、refresh 表）跨引擎由双引擎拦截器统一提交。
 4. **设备三角跨引擎 user 引用**（B6~B7）：`sys_user_device.user_id`（FK → sys_user）与
-   `app_monitor_user.user_id`（松引用）是 uuid 列，但 token 里的 userId 在 B7 ETL 前仍是
+   `app_monitor_user.user_id`（松引用）是 uuid 列，B7a 前 token 里的 userId 是
    ObjectId hex —— 登录绑设备（bindDeviceForUser）、auth 访客的 monitor state（DTO 已换
    IsUUID，hex 请求 400）、user 维度的锁定 / forceQuit 读写会以 22P02 / FK 拒绝呈现；
-   device.initial 与匿名 monitor state（无 userId）不受影响。消费方签名适配时已迁模块的
-   Mongo session 参数一律摘除（auth.shared / mfa.post / refresh.shared）或换双句柄并传
-   （forceQuit 的 PG 读 + Mongo revoke）；doSignout 的 refresh 写腿 B7 前仍在 Mongo，
-   uuid 传参过不了 ObjectId 构造（int-spec 钉住现状）。populate user 读腿查 PG sys_user
-   同源表（role B5 的 usersCount 同款手法），ETL 前恒空。集成测试以 PG sys_user 直插覆盖；
-   B7（user 迁移 + ETL）后归一。
+   device.initial 与匿名 monitor state（无 userId）不受影响。B7a 后 token userId 即
+   PG uuid，该窗口**归一**；refresh 表（Mongo）里的存量行 userId 仍是 hex，
+   `getNewAccessToken` 读到旧行时 `findUserByUserId(hex)` 落空 → RefreshTokenExpired
+   （用户重新登录自愈），7c 随 refresh 迁移 ETL 后彻底消失。populate user 读腿查 PG
+   sys_user 同源表（role B5 的 usersCount 同款手法）。
 5. 审计旁路本就是 fire-and-forget 最终一致，不新增风险。
 
 ## 6. 岔路决策记录（自主执行期间按推荐项走）
@@ -129,3 +136,31 @@
 - 载体退役优先于硬留（见 §3）。
 - 特殊查询一律 QueryBuilder + `customize`，不写原生 SQL 字符串拼接。
 - 每批一个提交，type feat/test 视内容，scope server。
+
+### B7a 追加
+
+- **guard 阶段发起的 auth 流程自管 PG 事务**：gitee/github/otp 的 validateIdentity 从
+  passport strategy（guard 阶段）发起，早于拦截器 —— `request.txContext` 尚不存在，
+  传不了 `ctx.em`。沿用 Mongo 版「自管事务」的形态换成 QueryRunner（签名不变、strategy
+  零改动、三条 PG 写腿保持原子）；handler 阶段的 generateAuthTokens / verifyIdentity
+  照常走 ctx（双引擎）。
+- **auth 双句柄并传**（finishChangePassword / verifyMfaStatus / getNewAccessToken /
+  totp·webauthn verify）：PG 腿收 `em`（ctx.em），仍迁 Mongo 的腿收 `dbSession`
+  （ctx.dbSession），7b/7c 归一时摘。
+- **safe id 常量双形态**：`WalnutAdminConstSafeRoleId/UserId` 同时持有原 hex 与 v5 派生
+  uuid（派生规则 uuid5.ts 同源）—— user.crud 的 safe 拦截在双引擎窗口两边都拦得住，
+  B10 摘 hex。
+- **defaultRole 兜底常量改 v5 uuid**：cache.appSettings 的 `defaultRole` 兜底值由 hex
+  改为其 v5 派生 uuid（注释留派生来源）—— setting 缺失时 PG 侧 current_role_id /
+  junction 写入不再炸 22P02。
+- **opaque finishRegister 接线 ctx.em**：该端点本就挂 `@WalnutDBTransaction`，接线后
+  注册两腿（createForAuthUser + createIdentity）获得事务原子性（Mongo 版没传 session，
+  本是两笔隐式事务）。
+- **user_device upsertDevice 幂等化**：check-then-insert 改
+  `ON CONFLICT (user_id, device_id) DO UPDATE SET device_name`；行回读用复查点查承接
+  （raw 列名是 snake_case，不经实体映射，不直接 RETURNING 进调用方），并发首绑不再撞
+  uq_user_device。
+- **deleted.service read populate 摘除**：SYS_USER 的 Mongo 模型注册随 user 迁移摘除，
+  deletedBy populate 改查 PG sys_user 同源表；Mongo 窗口内 hex deletedBy → null（§5.1）。
+- **identity value 的 select:false**：实体列 `select: false` 对齐 schema；取密文走
+  repo 的 `getValueByUserIdTypeAndPurpose` 显式 addSelect 通道（登录/敏感校验路径）。

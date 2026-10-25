@@ -1,11 +1,12 @@
-import type { ClientSession } from 'mongoose'
-import { Injectable, Logger } from '@nestjs/common'
+import type { EntityManager } from 'typeorm'
+import { Injectable } from '@nestjs/common'
 import { SysUserOAuthRepositoryService } from '../repo/user_oauth.repo.service'
 
+/**
+ * B7a 迁移：事务句柄 `dbSession: ClientSession` → `em?: EntityManager`（纯透传）。
+ */
 @Injectable()
 export class SysUserOAuthSharedService {
-  private readonly logger = new Logger(SysUserOAuthSharedService.name)
-
   constructor(
     private readonly sysUserOAuthRepoService: SysUserOAuthRepositoryService,
   ) { }
@@ -14,7 +15,7 @@ export class SysUserOAuthSharedService {
    * @description bind oauth info for user
    * @returns new document
    */
-  async bindOAuthForUser(userId: string, provider: string, providerId: string, dbSession: ClientSession) {
-    return this.sysUserOAuthRepoService.bindOAuthForUser(userId, provider, providerId, dbSession)
+  async bindOAuthForUser(userId: string, provider: string, providerId: string, em?: EntityManager) {
+    return this.sysUserOAuthRepoService.bindOAuthForUser(userId, provider, providerId, em)
   }
 }

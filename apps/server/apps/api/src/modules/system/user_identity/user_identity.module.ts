@@ -1,22 +1,22 @@
 import { Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
+import { TypeOrmModule } from '@nestjs/typeorm'
 
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 import { OtpSharedModule } from '@/modules/auth/modules/otp/shared/otp.shared.module'
 
+import { SysUserIdentityEntity } from './entity/user-identity.entity'
 import { SysUserIdentityRepositoryModule } from './repo/user_identity.repo.module'
-import { SysUserIdentitySchema } from './schema/user_identity.schema'
 import { SysUserIdentitySharedModule } from './shared/user_identity.shared.module'
 import { SysUserIdentityBasicRepository } from './user_identity.basic.repository'
 import { SysUserIdentityController } from './user_identity.controller'
 import { SysUserIdentityService } from './user_identity.service'
 
+/**
+ * B7a 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态，不另建 pg.module）。
+ */
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [{ name: WalnutDBModelName.SYS_USER_IDENTITY, schema: SysUserIdentitySchema }],
-      WalnutDBConnectionName,
-    ),
+    TypeOrmModule.forFeature([SysUserIdentityEntity], WalnutPGConnectionName),
     SysUserIdentityRepositoryModule,
     SysUserIdentitySharedModule,
     OtpSharedModule,

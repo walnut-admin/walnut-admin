@@ -141,6 +141,8 @@ export class SysUserModel extends WalnutAdminCommonBasicModel {
       unique: true,
     },
   })
+  // B7a：roles 随 PG 关联表 sys_user_role 放开为 uuid 数组（phase2 4.1；IsMongoId 约束
+  // 由 DTO 子类重声明替换为 uuid，B5 role.schema.menus 同款处理）
   @Prop([
     {
       type: Types.ObjectId,
@@ -148,7 +150,7 @@ export class SysUserModel extends WalnutAdminCommonBasicModel {
       unique: true,
     },
   ])
-  roles: Types.ObjectId[] | string[]
+  roles: string[]
 
   @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstRoleMode, {
     default: WalnutAdminConstRoleMode.SWITCH,
@@ -175,7 +177,8 @@ export class SysUserModel extends WalnutAdminCommonBasicModel {
     type: Types.ObjectId,
     ref: WalnutDBModelName.SYS_ROLE,
   })
-  currentRole: Types.ObjectId | string
+  // B7a：随 PG 列 current_role_id（uuid，可空）放开类型注解
+  currentRole: string | null
 
   @WalnutAdminDecoratorFieldBoolean({
     default: false,

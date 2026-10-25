@@ -2,9 +2,10 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Put } from '
 import { ApiTags } from '@nestjs/swagger'
 import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
-import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
+import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
+import { plainToInstance } from 'class-transformer'
 
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
@@ -32,7 +33,7 @@ export class SysUserMeController {
   })
   async updateProfile(@WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload, @Body() payload: SysUserMeDTOUpdateProfileRequest) {
     const profile = await this.userMeService.updateProfile(user.userId, payload)
-    return new SysUserDTOSafe(profile?.toObject())
+    return plainToInstance(SysUserDTOSafe, profile)
   }
 
   // TODO should remove
@@ -60,7 +61,7 @@ export class SysUserMeController {
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
   ) {
     const res = await this.userMeService.getUserProfile(user.userId)
-    return new SysUserDTOSafe(res?.toObject())
+    return plainToInstance(SysUserDTOSafe, res)
   }
 
   @Patch('role/switch/:roleId')
@@ -71,7 +72,7 @@ export class SysUserMeController {
   })
   async switchRole(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutAdminDecoratorParamMongoId('roleId') roleId: string,
+    @WalnutAdminDecoratorParamUuid('roleId') roleId: string,
   ) {
     await this.userMeService.switchRole(user.userId, roleId)
     return true

@@ -136,15 +136,17 @@ export class SysUserMfaSharedService {
       const userIdsWithMfa = userMfaStats.map(s => s._id.toString())
 
       // Find users without MFA devices but marked as verified
+      // （B7a：findAllUsers 读 PG sys_user —— 主键是 id，B10 前 Mongo mfa 侧 group id
+      // 仍是旧形态，跨引擎对不上的行自然落不进 usersToReset，7b 归一）
       const allUsersWithMfaSetup = await this.sysUserRepoService.findAllUsers()
       const usersToReset = allUsersWithMfaSetup.filter(
-        user => user.mfaSetup === true && !userIdsWithMfa.includes(user._id.toString()),
+        user => user.mfaSetup === true && !userIdsWithMfa.includes(user.id),
       )
 
       // Reset each user individually using findByIdAndUpdate
       for (const user of usersToReset) {
         await this.sysUserRepoService.findUserByIdAndUpdate(
-          user._id.toString(),
+          user.id,
           { mfaSetup: false },
         )
       }

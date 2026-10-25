@@ -182,6 +182,11 @@ export class SysUserDeviceRepositoryService {
 
   /**
    * @description upsert device for user
+   *
+   * B7a review 挂单：check-then-insert 有并发首绑竞态（两请求同时 miss 后双插，
+   * 一条撞 uq_user_device 拒绝）—— 改 `ON CONFLICT (user_id, device_id) DO UPDATE`
+   * 幂等化：冲突即回写 device_name 并 RETURNING 既有行（TypeORM orUpdate + returning，
+   * 不拼原生 SQL）。返回行恒为落库后的唯一一行。
    */
   async upsertDevice(
     userId: string,
@@ -189,13 +194,17 @@ export class SysUserDeviceRepositoryService {
     deviceName: string,
     em?: EntityManager,
   ) {
-    const oldDevice = await this.findByUserAndDevice(userId, deviceId, em)
-    if (oldDevice) {
-      return oldDevice
-    }
+    await this.getManager(em)
+      .createQueryBuilder()
+      .insert()
+      .into(SysUserDeviceEntity)
+      .values({ userId, deviceId, deviceName })
+      .orUpdate(['device_name'], ['user_id', 'device_id'])
+      .execute()
 
-    const repository = this.getRepository(em)
-    return repository.save(repository.create({ userId, deviceId, deviceName }))
+    // RETURNING 语义由复查承接（raw 列名是 snake_case，不经实体映射）：冲突路径
+    // UPDATE 后行即唯一行，点查便宜且拿到的是受管实体
+    return this.findByUserAndDevice(userId, deviceId, em) as Promise<SysUserDeviceEntity>
   }
 
   /**

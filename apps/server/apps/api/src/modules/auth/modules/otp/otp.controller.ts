@@ -81,7 +81,7 @@ export class OtpController {
       user.userId,
       OtpIdentityTypeMap[payload.type],
       'login',
-      ctx.dbSession,
+      ctx.em,
     )
 
     // Set refresh token jti to cookie

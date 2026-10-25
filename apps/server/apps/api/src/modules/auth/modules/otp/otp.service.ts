@@ -1,10 +1,12 @@
 import type { LocaleType } from '@walnut/contract'
+import type { ClientSession } from 'mongoose'
 import type { IOtpType } from './const/otp.const'
 
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutDBInjectConnection } from '@walnut-server/db'
+import { InjectDataSource } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
-import { ClientSession, Connection } from 'mongoose'
+import { DataSource } from 'typeorm'
 import { SharedWelcomeService } from '@/modules/shared/welcome/welcome.service'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
 import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
@@ -19,10 +21,9 @@ import { OtpSharedService } from './shared/otp.shared.service'
 export class OtpService {
   private readonly logger = new Logger(OtpService.name)
 
-  @WalnutDBInjectConnection()
-  readonly dbConnection: Connection
-
   constructor(
+    @InjectDataSource(WalnutPGConnectionName)
+    private readonly pgDataSource: DataSource,
     private readonly sysUserSharedService: SysUserSharedService,
     private readonly sysUserRepoService: SysUserRepositoryService,
     private readonly userIdentityRepoService: SysUserIdentityRepositoryService,
@@ -36,6 +37,11 @@ export class OtpService {
   /**
    * Validate user identity (email or phone) with transaction
    * Creates new user if not exists and auto-signup is enabled
+   *
+   * B7a 签名适配：user/identity 两条数据腿全部迁 PG。本流程从 passport strategy
+   * （guard 阶段）发起，早于拦截器事务 —— `request.txContext` 尚不存在，故沿用
+   * Mongo 版「自管事务」的形态换成 PG QueryRunner（签名不变，strategy 零改动）；
+   * refresh 写腿在 authWithOtp 的 generateAuthTokens（ctx.dbSession，7c 归一）。
    */
   async validateIdentity(
     type: IOtpType,
@@ -43,9 +49,10 @@ export class OtpService {
     language: LocaleType,
     deviceId: string,
   ): Promise<IWalnutAdminAccessTokenPayload> {
-    // Start transaction
-    const dbSession = await this.dbConnection.startSession()
-    dbSession.startTransaction()
+    // Start transaction（自管 PG 事务，guard 阶段拿不到拦截器的 txContext）
+    const queryRunner = this.pgDataSource.createQueryRunner()
+    await queryRunner.connect()
+    await queryRunner.startTransaction()
 
     try {
       // Generate hash for lookup
@@ -57,19 +64,19 @@ export class OtpService {
         identityType,
         'login',
         valueHash,
-        dbSession,
+        queryRunner.manager,
       )
 
       let result: IWalnutAdminAccessTokenPayload
 
       // User existed
       if (identity) {
-        const user = await this.sysUserRepoService.findUserByUserId(identity.userId.toString(), dbSession)
+        const user = await this.sysUserRepoService.findUserByUserId(identity.userId, queryRunner.manager)
         if (!user) {
-          this.logger.error(`${type} identity exists but user not found: ${identity.userId.toString()}`)
+          this.logger.error(`${type} identity exists but user not found: ${identity.userId}`)
           throw new WalnutAdminExceptionSignupBanned()
         }
-        result = await this.sysUserSharedService.getAccessTokenPayloadWhenUserExisted(user, deviceId)
+        result = await this.sysUserSharedService.getAccessTokenPayloadWhenUserExisted(user, deviceId, queryRunner.manager)
       }
       // New user
       else {
@@ -84,7 +91,7 @@ export class OtpService {
         result = await this.sysUserSharedService.getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser(
           {},
           deviceId,
-          dbSession,
+          queryRunner.manager,
         )
 
         // Create identity in user_identity table
@@ -93,7 +100,7 @@ export class OtpService {
           identityType,
           'login',
           identifier,
-          dbSession,
+          queryRunner.manager,
         )
 
         // Send welcome message
@@ -101,16 +108,16 @@ export class OtpService {
       }
 
       // Commit transaction
-      await dbSession.commitTransaction()
+      await queryRunner.commitTransaction()
       return result
     }
     catch (error) {
       // Abort transaction on error
-      await dbSession.abortTransaction()
+      await queryRunner.rollbackTransaction()
       throw error
     }
     finally {
-      await dbSession.endSession()
+      await queryRunner.release()
     }
   }
 
@@ -126,7 +133,7 @@ export class OtpService {
   }
 
   /**
-   * Authenticate with OTP and generate tokens
+   * Authenticate with OTP and generate tokens（refresh 写腿仍在 Mongo，7c 归一）
    */
   async authWithOtp(
     type: IOtpType,
