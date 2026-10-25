@@ -31,10 +31,12 @@ export class AuthMfaPostVerificationService {
     em?: EntityManager,
   ) {
     // update user device trusted status
+    // （B7c 归一：trusted 写腿收进同一 PG 事务 —— 与 verify 后的 refresh 轮换同提交/同回滚）
     await this.sysUserDeviceSharedService.updateTrustedStatusForUserDevice(
       userId,
       deviceId,
       trusted,
+      em,
     )
 
     // set temporary cache for guard use (out of transaction)

@@ -1,4 +1,4 @@
-import type { ClientSession } from 'mongoose'
+import type { EntityManager } from 'typeorm'
 
 import type {
   IWalnutAdminConstSecurityLevel,
@@ -349,6 +349,10 @@ export class SecuritySensitiveService {
 
   /**
    * Verify user identity and grant permission
+   *
+   * B7c 迁移：事务句柄签名 `dbSession?: ClientSession` → `em?: EntityManager`。
+   * 注意：上游 Mongo 版该形参即未接线（identity 读腿走缺省连接级 manager，`_` 前缀
+   * 声明未使用）—— 缺陷原样迁移登记（phase3-plan §6 B7c），不在本批顺手接线。
    */
   async verifyAndGrantPermission(
     userId: string,
@@ -358,7 +362,7 @@ export class SecuritySensitiveService {
     method: IWalnutAdminConstVerifyMethod,
     credential: string,
     supportedMethods: IWalnutAdminConstVerifyMethod[],
-    _dbSession?: ClientSession,
+    _em?: EntityManager,
   ): Promise<void> {
     // Check if method is allowed
     const availableMethods = await this.getUserAvailableMethods(userId, supportedMethods)

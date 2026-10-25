@@ -75,7 +75,9 @@ export class SecuritySensitiveController {
       dto.method,
       dto.credential,
       strategy.supportedMethods,
-      ctx.dbSession,
+      // B7c 归一：security/sensitive 收口 —— 传 ctx.em（写腿全在 Redis / 已迁 PG 的
+      // identity 读腿，事务句柄签名随批次迁 em；上游 em 形参未接线，见 service 注释）
+      ctx.em,
     )
 
     return true

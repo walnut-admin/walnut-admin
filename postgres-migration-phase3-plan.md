@@ -34,7 +34,7 @@
 | B4 | app_setting + app_key + shared_area（递归 CTE + CYCLE 兜底） | ✅ |
 | B5 | sys_menu（meta 拍平组装出参）+ sys_role + sys_role_menu；产出 defaultRole uuid 订正脚本 | ✅ |
 | B6 | sys_device + sys_user_device + app_monitor_user（双向环同批） | ✅ |
-| B7 | SCC-A 账户团九表（user/identity/oauth/lock/mfa/preference/device/refresh + auth 全系 + security） | ◐ **B7a ✅ B7b ✅**（7a=user/identity/oauth + auth 系签名适配 + review 挂单三项；7b=lock/mfa/preference/refresh 全 PG + 消费方单 em 归一；7c=auth 全链 + security 归一） |
+| B7 | SCC-A 账户团九表（user/identity/oauth/lock/mfa/preference/device/refresh + auth 全系 + security） | ◐ **B7a ✅ B7b ✅ B7c ✅**（7a=user/identity/oauth + auth 系签名适配 + review 挂单三项；7b=lock/mfa/preference/refresh 全 PG + 消费方单 em 归一；7c=auth 全链 + security 收口 + 登录全链 int-spec，SCC-A 九表全部 PG） |
 | B8 | sys_log_operate + sys_log_auth + techniques/event（fire-and-forget 旁路） | |
 | B9 | sys_deleted 收尾：恢复注册表装配、recover/recoverMine PG 化、Mongo 侧下线 | |
 | B10 | 终批清理（摘 MongooseModule、Mongo int-spec、双轨残留；与 Phase 5 合并执行） | |
@@ -85,6 +85,10 @@
   CASCADE）；`user-preference.upsert.int-spec` 改写 PG（upsert 幂等三态 + jsonb orUpdate +
   bind 幂等）。B6 的 forceQuit 跨引擎用例段（refresh 写腿走 Mongo 的现状断言）随本批改写为
   同库 revoked 断言。
+- B7c 交付 `auth.login-chain.pg.int-spec`（登录全链对账基准：opaque 注册/登录真实
+  crypto 栈 + 注册/登录事务原子性 force-rollback / otp 三态与验证码消费 / oauth
+  identity 建立链 / signout 三触发 / MFA verify 双通道 / sensitive 授权生命周期
+  与钉现状 / risk 四条评估写腿）。
 - B9/B10：删 Mongo 段 global-setup 与 Mongo int-spec。
 
 ## 4. ID 使用点清查（改造归属）
@@ -125,19 +129,22 @@
    本就为空），故 B5~B7a 期间登录后的权限/路由生成走 PG 空数据，`getCorePermissions` 的
    root 分支需要 PG 里存在根菜单。集成测试以 PG fixture 直建覆盖该链路；运行时行为在
    B7a（user 迁移 + 订正脚本落地）后归一。**token 里 roleIds/currentRole 现为 uuid**
-   （B7a 起 getJwtAccessTokenPayload 吃 PG 实体 + junction 组装）。**B7b 后登录态两条腿
-   （user/role 查询、refresh 表）同为 PG**，刷新轮换 / mfa verify / signout 的 revoke
-   单 em 单事务；7c 只收 auth 策略内部与 security。
+   （B7a 起 getJwtAccessTokenPayload 吃 PG 实体 + junction 组装）。B7b 后登录态两条腿
+   （user/role 查询、refresh 表）同为 PG；**B7c 后 auth 策略内部与 security 全部收口，
+   登录链路（opaque/otp/gitee/github + refresh 轮换 + device 绑定）单引擎单事务，
+   本窗口已归一（B7c）**。
 4. **设备三角跨引擎 user 引用**（B6~B7）：`sys_user_device.user_id`（FK → sys_user）与
    `app_monitor_user.user_id`（松引用）是 uuid 列，B7a 前 token 里的 userId 是
    ObjectId hex —— 登录绑设备（bindDeviceForUser）、auth 访客的 monitor state（DTO 已换
    IsUUID，hex 请求 400）、user 维度的锁定 / forceQuit 读写会以 22P02 / FK 拒绝呈现；
    device.initial 与匿名 monitor state（无 userId）不受影响。B7a 后 token userId 即
-   PG uuid，该窗口**归一**；**B7b 后 refresh 读写走 PG** —— Mongo 侧存量 refresh 行
+   PG uuid；**B7b 后 refresh 读写走 PG** —— Mongo 侧存量 refresh 行
    不再被读到（userId 仍是 hex 的旧行留在 Mongo，随 Phase 4 ETL 评估是否搬移），
    已登录会话首次刷新令牌时 `findByJti` 落空 → RefreshTokenExpired（用户重新登录自愈，
    与 B7a 前提的旧行 hex 落空路径同一自愈形态）。populate user 读腿查 PG
-   sys_user 同源表（role B5 的 usersCount 同款手法）。
+   sys_user 同源表（role B5 的 usersCount 同款手法）。**B7c 后登录绑设备
+   （bindDeviceForUser）与 MFA trusted 写腿也收进登录/verify 的同一 PG 事务，
+   该窗口已归一（B7c）**。
 5. 审计旁路本就是 fire-and-forget 最终一致，不新增风险。
 
 ## 6. 岔路决策记录（自主执行期间按推荐项走）
@@ -194,3 +201,52 @@
 - **verify 双句柄收单 em**：mfa/totp/webauthn verify、refresh 轮换（getNewAccessToken）、
   signout 链（auth.service/opaque/google/otp 等仅签名适配）、generateAuthTokens、
   user_device forceQuit/lock/unlock 全部单 `em`；7c 只剩 auth 策略内部与 security 的收口。
+
+### B7c 追加
+
+- **auth 策略内部现状**：7a 已把 gitee/github/otp 的 validateIdentity 换成自管 PG
+  QueryRunner（strategy 零改动），7b 已把 refresh 轮换/signout 链收单 em —— 7c 复核
+  全链无 Mongo 写腿残留后**零策略改动**；google.service 摘除残留的
+  `@WalnutDBInjectConnection() dbConnection`（B7a 起无消费方的死 Mongo 连接注入）。
+- **登录/注册事务最后一腿**：`generateAuthTokens` 的 `bindDeviceForUser` 与
+  `mfa.post` 的 `updateTrustedStatusForUserDevice` 此前调用漏传 em（写腿落在连接级
+  manager，事务外提交）—— 7c 传 em 收进同一 PG 事务，登录（refresh + device）与
+  MFA verify（trusted + 轮换）自此原子；`auth.login-chain.pg.int-spec` 以
+  force-rollback 断言两腿同清。
+- **security/sensitive 签名迁 PG**：`verifyAndGrantPermission` 形参
+  `dbSession?: ClientSession` → `em?: EntityManager`，controller 传 `ctx.em`；
+  risk 系（user/device/ip/failedLogin）在 7a/7b 已随 PG 仓库服务直读 PG，murlock
+  分布式锁（Redis 域）不动。
+- **上游缺陷原样迁移登记（不修，int-spec 钉现状）**：
+  1. sensitive `verifyPassword` 读 `identity.value`，而 identity value 列
+     `select: false`（Mongo/PG 两代同款）—— 默认查询不出该列，decrypt 恒抛错被
+     catch 吞掉，password 通道恒 false（正确明文也过不了）；取值本应走
+     `getValueByUserIdTypeAndPurpose` 显式通道。B10/Mongo 下线后一并评估修复。
+  2. sensitive `verifyAndGrantPermission` 的事务句柄形参上游即未接线（`_` 前缀、
+     identity 读腿走连接级 manager）—— 7c 按签名迁移原样保留（`_em`），不在本批
+     顺手接线。
+  3. risk `evaluateIP` 判据 `if (cached.permanent)` 直接吃 Redis hGetAll 的字符串值
+     —— 临时黑名单写的 `permanent: 0` 回来是 `'0'`（真值），黑名单 IP 恒报
+     `IP_BLACKLIST_PERMANENT` 因子（与写入侧的临时/永久语义脱节）。int-spec 钉现状。
+  4. `AppTechCacheService.delByPattern` 对 scanIterator 的空页产出处理错误：v5 驱动
+     逐页 yield `reply.keys`（数组），最后一页常为 `[]`，`Array.isArray(key) ? key[0] : key`
+     把空数组取成 `undefined` 塞进 `del` 批次 —— 共享 Redis 多页扫描时 signout 的
+     缓存清理（revokeSession 等）抛 TypeError。int-spec 钩子容错执行钉现状。
+  5. sensitive `getUserAvailableMethods` 对缺失的 phone/email security identity 走
+     `getIdentityOrThrow`（缺失即抛 DataNotFound）而非跳过该方式 —— 无手机绑定的用户
+     列举可用验证方式直接 404。int-spec 钉现状（可用方式列举用例造齐三通道，
+     缺失通道单独用例断言抛错）。
+- **登录全链 int-spec**（`auth.login-chain.pg.int-spec.ts`，service 级 + 完整
+  AppModule 装配）：opaque 注册/登录真实 crypto 栈（客户端 fixture 走
+  @serenity-kit/opaque client 流程，identifiers 双端一致）+ 注册两腿 force-rollback
+  原子性；generateAuthTokens 的 refresh+device 回滚/提交双路径；otp validateIdentity
+  三态 + verifyCode 缓存通道 + authWithOtp 验证码消费；gitee 全链（新用户/email
+  占用/再登录/注册关闭）+ github 冒烟；signout 三触发 revoke_reason 落库；
+  MFA verify 双通道（totp/webauthn，mfaSetup + trusted 写腿断言）；sensitive 授权
+  生命周期与钉现状；risk user/device/ip/failedLogin 四条评估写腿（真实 Redis，
+  键带 uuid 前缀 afterAll 清理）。controller 层取舍：auth 端点挂 sign guard（HMAC
+  握手）+ passport strategy + functional guard 三层，service 级替代（B7a/B7b
+  int-spec 同口径），拦截器事务形态由 pg.transaction.int-spec 覆盖。
+- **双引擎窗口收尾后的 dbSession 残留面**：仅剩 B8（log.operate/log.auth）、
+  B9（sys_deleted recover 链）与 B0 的 tx-context/tx.interceptor 类型定义；
+  auth 链与 security 内零残留。

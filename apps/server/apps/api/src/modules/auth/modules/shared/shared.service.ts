@@ -38,8 +38,9 @@ export class AuthSharedService {
     this.logger.log(`Refresh Token JTI created, refreshTokenJti: ${refreshTokenJti}`)
 
     // 4. bind current device to user
-    // （B6：user_device 已迁 PG —— 写腿走 PG，签名适配摘掉 Mongo session；逻辑不动）
-    const bindedDevice = await this.userDeviceSharedService.bindDeviceForUser(payload.userId, deviceId)
+    // （B7c 归一：user_device 写腿收进同一 PG 事务 —— refresh（步骤 3）与设备绑定
+    // 联动原子提交/回滚，B7 核心验收「登录 refresh + device 同事务」的最后一腿）
+    const bindedDevice = await this.userDeviceSharedService.bindDeviceForUser(payload.userId, deviceId, em)
     this.logger.log(`User Device bound, deviceId: ${bindedDevice.deviceId}`)
 
     return { accessToken, refreshTokenJti, authSessionKey: authSessionKey.toString('base64') }
