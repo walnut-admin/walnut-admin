@@ -29,8 +29,8 @@
 |---|---|---|
 | B0 | 公共骨架（上表全部）+ 初始 migration + data-source.cli | ✅ fc0d51c |
 | B1 | app/demo + app/error（叶子试点，确立三层改造模板） | ✅ |
-| B2 | sys_lang + sys_locale（FK 同批；i18n 聚合 SQL 重写） | |
-| B3 | dictType + dictData（FK 同批） | |
+| B2 | sys_lang + sys_locale（FK 同批；i18n 聚合 SQL 重写） | ✅ |
+| B3 | dictType + dictData（FK 同批） | ✅ |
 | B4 | app_setting + app_key + shared_area（递归 CTE + CYCLE 兜底） | |
 | B5 | sys_menu（meta 拍平组装出参）+ sys_role + sys_role_menu；产出 defaultRole uuid 订正脚本 | |
 | B6 | sys_device + sys_user_device + app_monitor_user（双向环同批） | |
@@ -66,7 +66,12 @@
 - **载体退役**：Mongo 版基线测试若以已迁模块为载体（如 demo），随批退役——其行为基准已在
   git 历史存档（Phase 0 提交），PG 侧对应用例接管。retire 而非硬留。
   B1 已退役：repository.base / recycle.recover / virtual.populate / transaction 四个
-  int-spec；pg.transaction 的 Mongo 写腿改用未迁的 dict_type 模型直写（B10 清理）。
+  int-spec。B2/B3 交付 `lang.locale.i18n.int-spec`（i18n 聚合 SQL 重写的对账基准）。
+- **pg.transaction 的 Mongo 写腿永久解耦**（B2/B3 定案）：B1 曾改用「任选一个未迁模块的
+  已注册 mongoose 模型（sys_dict_type）直写」，随 B3 迁走 dict_type 即失效——按模块追着换
+  载体不可持续。改为在命名连接上注册一次性 scratch 模型
+  （`new Schema({}, { strict: false })`，集合 `int_spec_scratch`），用它的
+  `create(..., { session })` 做事务性 Mongo 写。载体与迁移顺序无关，B10 随 Mongo 一起清理。
 - 并存冒烟：B7 增「同 ctx 双写、PG rollback 连带 Mongo abort」用例（B0 已有基础用例可扩展）。
 - B9/B10：删 Mongo 段 global-setup 与 Mongo int-spec。
 
@@ -77,7 +82,7 @@
 | mongoId pipe/validator/ParamMongoId（新增 uuid 版并存） | B0 ✅ |
 | listAggregate.ts:70-71（ObjectId 转换分支） | B0 ✅（PG 版）|
 | base.repository deletedBy / deleted.repo createSoftDelete | B0 ✅ |
-| locale.pipe、lang.repo.service | B2 |
+| locale.pipe、lang.repo.service | B2 ✅（pipe 换 uuid 校验；lang.repo 两条聚合 SQL 重写） |
 | role.repo.service `$in` | B5 |
 | error.process.ts | B1 ✅（uuid 直传，删除 ObjectId 包装） |
 | monitor/user.repo.service | B6 |

@@ -21,6 +21,7 @@ import { WalnutAdminDecoratorParamArray } from '@walnut-server/decorators/params
 import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 import { getAllConstraints } from '@walnut-server/utils/response'
 import { LocaleType } from '@walnut/contract'
+import { plainToInstance } from 'class-transformer'
 import { ValidationError } from 'class-validator'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
@@ -102,6 +103,10 @@ function TransformedLocaleBody() {
   )
 }
 
+/**
+ * B2 迁移模板（controller 层）：事务句柄 `ctx.dbSession` → `ctx.em`（已迁侧取 em）；
+ * `.toObject()` 移除（PG 实体即 POJO），统一 plainToInstance(DTO, entity)。
+ */
 @Controller('system/locale')
 @ApiTags('system/locale')
 export class SysLocaleController {
@@ -130,8 +135,8 @@ export class SysLocaleController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @TransformedLocaleBody() payload: SysLocaleDTOCreateRequest[],
   ) {
-    const res = await this.localeService.create(payload, ctx.dbSession!)
-    return res.map(i => new SysLocaleDTOCreateResponse(i.toObject()))
+    const res = await this.localeService.create(payload, ctx.em)
+    return res.map(i => plainToInstance(SysLocaleDTOCreateResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
@@ -147,8 +152,8 @@ export class SysLocaleController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @TransformedLocaleBody() payload: SysLocaleDTOUpdateRequest[],
   ) {
-    const res = await this.localeService.update(payload, ctx.dbSession!)
-    return res.map(i => new SysLocaleDTOUpdateResponse(i.toObject()))
+    const res = await this.localeService.update(payload, ctx.em)
+    return res.map(i => plainToInstance(SysLocaleDTOUpdateResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
@@ -159,8 +164,8 @@ export class SysLocaleController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Param('key') key: string,
   ) {
-    const res = await this.localeService.deleteByKey(key, user.userId, ctx.dbSession!)
-    return res.map(i => new SysLocaleDTODeleteResponse(i.toObject()))
+    const res = await this.localeService.deleteByKey(key, user.userId, ctx.em)
+    return res.map(i => plainToInstance(SysLocaleDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE_MANY)
@@ -171,13 +176,13 @@ export class SysLocaleController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamArray({ fieldName: 'keys' }) keys: string[],
   ) {
-    const res = await this.localeService.deleteManyByKey(keys, user.userId, ctx.dbSession!)
-    return res.map(i => new SysLocaleDTODeleteResponse(i.toObject()))
+    const res = await this.localeService.deleteManyByKey(keys, user.userId, ctx.em)
+    return res.map(i => plainToInstance(SysLocaleDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() params: SysLocaleDTOListRequest) {
-    return new SysLocaleDTOListResponse(await this.localeService.list(params))
+    return plainToInstance(SysLocaleDTOListResponse, await this.localeService.list(params))
   }
 }

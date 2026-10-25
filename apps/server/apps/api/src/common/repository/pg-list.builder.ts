@@ -27,7 +27,8 @@ import { isEmpty, isNaN, isNil, isObject } from 'lodash'
  *   届时应改用子查询或 EXISTS 承接 populate。
  */
 
-const ILIKE_ESCAPE_REGEX = /[\\%_]/g
+// B2 起导出共用：locale.repo.service 的聚合重写（phase2 5.2）走同一套字面量转义口径
+export const ILIKE_ESCAPE_REGEX = /[\\%_]/g
 
 export interface IWalnutPgListQueryOptions {
   /** 列过滤：{ 属性名, 值 }；值形态决定谓词（见文件头注释） */

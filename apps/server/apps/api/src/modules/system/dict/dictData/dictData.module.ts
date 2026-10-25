@@ -1,24 +1,18 @@
 import { Module } from '@nestjs/common'
-
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 import { SysLocaleSharedModule } from '../../locale/shared/locale.shared.module'
 import { SysDictDataBasicRepository } from './dictData.basic.repository'
 import { SysDictDataController } from './dictData.controller'
 import { SysDictDataService } from './dictData.service'
-import { SysDictDataSchema } from './schema/dictData.schema'
+import { SysDictDataEntity } from './entity/dict-data.entity'
 
+/**
+ * B3 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态，不另建 pg.module）。
+ */
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [
-        {
-          name: WalnutDBModelName.SYS_DICT_DATA,
-          schema: SysDictDataSchema,
-        },
-      ],
-      WalnutDBConnectionName,
-    ),
+    TypeOrmModule.forFeature([SysDictDataEntity], WalnutPGConnectionName),
     SysLocaleSharedModule,
   ],
   controllers: [SysDictDataController],

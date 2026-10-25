@@ -30,6 +30,10 @@ export const SysDictDataTagTypeConst = {
 
 export type SysDictDataTagTypeConstType = ValueOf<typeof SysDictDataTagTypeConst>
 
+/**
+ * B3 迁移后仅作为 DTO 元数据基座保留（模型注册已随迁移从 dictData.module /
+ * dictType.module 摘除，@Prop 不再有运行时语义）；PG 列型见 entity/dict-data.entity.ts。
+ */
 @Schema({
   collection: WalnutDBCollectionName.DICT_DATA,
   versionKey: false,
@@ -47,7 +51,8 @@ export class SysDictDataModel extends WalnutAdminCommonBasicModel {
     type: Types.ObjectId,
     ref: WalnutDBModelName.SYS_DICT_TYPE,
   })
-  typeId: Types.ObjectId | string
+  // B3：TS 类型随 PG 列型放开为 string（uuid FK，phase2 4.7），uuid 校验在 DTO 子类接管
+  typeId: string
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {

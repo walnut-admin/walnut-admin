@@ -1,23 +1,20 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { WalnutDBCollectionName, WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
-import { ClientSession } from 'mongoose'
 
-import { ISysDictDataDocument } from '../dictData/schema/dictData.schema'
-
+import { SysDictDataBasicRepository } from '../dictData/dictData.basic.repository'
+import { SysDictDataEntity } from '../dictData/entity/dict-data.entity'
 import { SysDictTypeBasicRepository } from './dictType.basic.repository'
 import {
   SysDictTypeDTOCreateRequest,
   SysDictTypeDTOListRequest,
   SysDictTypeDTOUpdateRequest,
 } from './dto/dictType.dto'
-import { ISysDictTypeModel } from './schema/dictType.schema'
 
 @Injectable()
 export class SysDictTypeService {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SYS_DICT_TYPE)
-    private readonly dictTypeModel: ISysDictTypeModel,
     private readonly dictTypeBasicRepo: SysDictTypeBasicRepository,
+    private readonly dictDataBasicRepo: SysDictDataBasicRepository,
   ) {}
 
   // base CRUD
@@ -33,49 +30,32 @@ export class SysDictTypeService {
     return this.dictTypeBasicRepo.update(id, dto)
   }
 
-  async delete(id: string, userId: string, dbSession: ClientSession) {
-    return this.dictTypeBasicRepo.deleteSoftById(id, userId, dbSession)
+  async delete(id: string, userId: string, em: EntityManager) {
+    return this.dictTypeBasicRepo.deleteSoftById(id, userId, em)
   }
 
   async list(params: SysDictTypeDTOListRequest) {
-    return this.dictTypeBasicRepo.list(params, [
-      {
-        $lookup: {
-          from: WalnutDBCollectionName.DICT_DATA,
-          localField: '_id',
-          foreignField: 'typeId',
-          as: 'count',
-        },
-      },
-      { $addFields: { populated_dictDataCount: { $size: '$count' } } },
-      { $unset: 'count' },
-    ])
+    return this.dictTypeBasicRepo.list(params)
   }
 
   /**
    * @description: get dict by type
+   *
+   * Mongo 版 findOne + populate（match { status: true }）；PG 版拆成两次取数
+   * （findByType + findActiveByTypeId），出参形态不变：{ type, name, dictData }。
    */
   async getByType(type: string) {
-    const dictType = await this.dictTypeModel.findOne({ type })
+    const dictType = await this.dictTypeBasicRepo.findByType(type)
 
     if (!dictType)
       return []
 
-    const data = await dictType.populate<{
-      populated_dictData: ISysDictDataDocument[]
-    }>({
-      path: 'populated_dictData',
-      select: 'value label order tagType _id -typeId',
-      match: { status: true },
-      options: {
-        lean: true,
-      },
-    })
+    const data: SysDictDataEntity[] = await this.dictDataBasicRepo.findActiveByTypeId(dictType.id)
 
     return {
-      type: data.type,
-      name: data.name,
-      dictData: data.populated_dictData,
+      type: dictType.type,
+      name: dictType.name,
+      dictData: data,
     }
   }
 

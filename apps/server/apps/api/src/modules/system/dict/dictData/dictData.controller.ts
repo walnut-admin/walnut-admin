@@ -6,7 +6,8 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
-import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
+import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
+import { plainToInstance } from 'class-transformer'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
@@ -44,6 +45,11 @@ const {
   DTO: SysDictDataDTOSafe,
 })
 
+/**
+ * B3 迁移模板（controller 层）：路由参数 ParamMongoId → uuid 参数装饰器；事务句柄
+ * `ctx.dbSession` → `ctx.em`（dict data 与级联删的 locale 都在 PG 侧，同一事务）；
+ * `.toObject()` 移除，统一 plainToInstance(DTO, entity)。
+ */
 @Controller('system/dict/data')
 @ApiTags('system/dict/data')
 export class SysDictDataController {
@@ -52,28 +58,22 @@ export class SysDictDataController {
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
   async create(@Body() payload: SysDictDataDTOCreateRequest) {
-    return new SysDictDataDTOCreateResponse(
-      (await this.dictDataService.create(payload)).toObject(),
-    )
+    return plainToInstance(SysDictDataDTOCreateResponse, await this.dictDataService.create(payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
-  async read(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new SysDictDataDTOReadResponse(
-      (await this.dictDataService.read(id)).toObject(),
-    )
+  async read(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(SysDictDataDTOReadResponse, await this.dictDataService.read(id))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.UPDATE)
   @WalnutAdminDecoratorUpdate()
   async update(
-    @WalnutAdminDecoratorParamMongoId() id: string,
     @Body() payload: SysDictDataDTOUpdateRequest,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return new SysDictDataDTOUpdateResponse(
-      (await this.dictDataService.update(id, payload)).toObject(),
-    )
+    return plainToInstance(SysDictDataDTOUpdateResponse, await this.dictDataService.update(id, payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
@@ -82,18 +82,17 @@ export class SysDictDataController {
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutDBSession() ctx: WalnutTxContext,
-    @WalnutAdminDecoratorParamMongoId() id: string,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return new SysDictDataDTODeleteResponse(
-      (await this.dictDataService.delete(id, user.userId, ctx.dbSession!)).toObject(),
+    return plainToInstance(
+      SysDictDataDTODeleteResponse,
+      await this.dictDataService.delete(id, user.userId, ctx.em),
     )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: SysDictDataDTOListRequest) {
-    return new SysDictDataDTOListResponse(
-      await this.dictDataService.list(payload),
-    )
+    return plainToInstance(SysDictDataDTOListResponse, await this.dictDataService.list(payload))
   }
 }

@@ -1,13 +1,12 @@
 import type { CallHandler, ExecutionContext, INestApplication } from '@nestjs/common'
 import type { WalnutTxContext } from '@walnut-server/db'
-import type { ClientSession, Connection } from 'mongoose'
+import type { ClientSession, Connection, Model } from 'mongoose'
 import type { DataSource, EntityManager } from 'typeorm'
-import type { ISysDictTypeModel } from '@/modules/system/dict/dictType/schema/dictType.schema'
 import { randomUUID } from 'node:crypto'
 import { SetMetadata } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { getModelToken } from '@nestjs/mongoose'
-import { registerAfterCommitHook, WalnutDBConnectionName, WalnutDBModelName, WalnutTxEngine, WalnutTxEngineMetadataKey, WalnutTxInterceptor } from '@walnut-server/db'
+import { registerAfterCommitHook, WalnutTxEngine, WalnutTxEngineMetadataKey, WalnutTxInterceptor } from '@walnut-server/db'
+import { Schema } from 'mongoose'
 import { from, lastValueFrom, throwError } from 'rxjs'
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
@@ -25,23 +24,22 @@ import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
  * - after-commit 钩子在两个引擎都 commit 后执行，且能看到已提交数据；
  * - engine 元数据收窄：`mongo` 不开 PG 事务、`pg` 不开 Mongo session。
  *
- * Mongo 写腿（B1 起）：demo 模块已迁 PG，不再有经 AppDemoBasicRepository 的 Mongo
- * 写路径 —— 改为任选一个**未迁模块的已注册 mongoose 模型**（sys_dict_type）直接
- * `model.create(..., { session })`；双引擎语义不受载体影响，载体随 B10 清理。
+ * Mongo 写腿（B3 起）：与迁移顺序解耦的永久方案 —— 在命名连接上注册一次性
+ * scratch 模型（`Schema({}, { strict: false })`，集合 `int_spec_scratch`），直接
+ * `create(..., { session })` 做事务性 Mongo 写。不再跟随任何一个业务模块的迁移
+ * 状态换载体（B1 时代指到 sys_dict_type，B3 迁走即失效）；该集合与迁移无关，
+ * B10 随 Mongo 一起清理。
  */
 describe('WalnutTxInterceptor dual-engine transaction semantics (on real PG + Mongo)', () => {
   let app: INestApplication
-  let dictTypeModel: ISysDictTypeModel
+  let scratchModel: Model<Record<string, unknown>>
   let mongoConnection: Connection
   let pgDataSource: DataSource
 
-  function uniqueDictPayload() {
-    const seed = randomUUID()
-
+  function uniqueScratchPayload() {
     return {
-      // name/type 均必填；type 唯一索引，必须给唯一值
-      name: `int-pg-txn-${seed}`,
-      type: `int_pg_txn_${seed.replaceAll('-', '_')}`,
+      kind: 'int-pg-txn',
+      seed: randomUUID(),
     }
   }
 
@@ -86,9 +84,6 @@ describe('WalnutTxInterceptor dual-engine transaction semantics (on real PG + Mo
   beforeAll(async () => {
     // AppDemoEntity 已随 demo.module 迁 PG 注册（B1 起），这里直接用全量 AppModule
     app = await createIntegrationApp()
-    dictTypeModel = app.get<ISysDictTypeModel>(
-      getModelToken(WalnutDBModelName.SYS_DICT_TYPE, WalnutDBConnectionName),
-    )
     mongoConnection = getWalnutConnection(app)
     pgDataSource = getWalnutPgDataSource(app)
 
@@ -96,10 +91,15 @@ describe('WalnutTxInterceptor dual-engine transaction semantics (on real PG + Mo
     expect(pgDataSource.options.database).toBe(INTEGRATION_DATABASE_NAME)
     expect(mongoConnection.name).toBe(INTEGRATION_DATABASE_NAME)
 
-    // Mongoose 的惰性建索引会隐式创建集合：若本文件的事务写 sys_dict_type 时集合尚不存在，
+    // B3 起的 Mongo 写腿载体：一次性 scratch 模型（strict: false 的空 schema），
+    // 只服务本 spec 的事务语义验证，与业务模块的迁移状态解耦（B10 随 Mongo 清理）
+    scratchModel = (mongoConnection.models.IntSpecScratchTx
+      ?? mongoConnection.model('IntSpecScratchTx', new Schema({}, { strict: false }), 'int_spec_scratch')) as Model<Record<string, unknown>>
+
+    // Mongoose 的惰性建索引会隐式创建集合：若本文件的事务写 int_spec_scratch 时集合尚不存在，
     // 事务的隐式建集合会与 boot 期索引构建相撞，commit 报 "already in use"。
     // 开事务前先确保集合存在，让事务写走普通路径。
-    await mongoConnection.db?.createCollection('sys_dict_type').catch(() => undefined)
+    await mongoConnection.db?.createCollection('int_spec_scratch').catch(() => undefined)
   })
 
   afterAll(async () => {
@@ -114,8 +114,8 @@ describe('WalnutTxInterceptor dual-engine transaction semantics (on real PG + Mo
     return pgDataSource.manager.count(AppDemoEntity, { where: { demoString } })
   }
 
-  function countMongo(dictType: string) {
-    return dictTypeModel.countDocuments({ type: dictType })
+  function countMongo(seed: string) {
+    return scratchModel.countDocuments({ seed })
   }
 
   /**
@@ -154,61 +154,61 @@ describe('WalnutTxInterceptor dual-engine transaction semantics (on real PG + Mo
    */
   afterEach(async () => {
     await withIxLockRetry(async () => {
-      const probe = await dictTypeModel.create([
-        { name: 'lock-drain-probe', type: `lock_drain_probe_${randomUUID().replaceAll('-', '_')}` },
+      const probe = await scratchModel.create([
+        { kind: 'lock-drain-probe', seed: randomUUID() },
       ])
-      await dictTypeModel.deleteOne({ _id: probe[0]._id })
+      await scratchModel.deleteOne({ _id: probe[0]._id })
     })
   })
 
   it('双 commit：同一 WalnutTxContext 下 PG 写 + Mongo 写全部落库', async () => {
     const interceptor = buildInterceptor()
-    const payload = uniqueDictPayload()
+    const payload = uniqueScratchPayload()
     const request = {}
     let ctxAtHandlerTime: WalnutTxContext | undefined
 
     await drive(interceptor, request, async (tx) => {
       ctxAtHandlerTime = tx
-      await tx.em.insert(AppDemoEntity, pgInsertPayload(payload.name, `137${randomUUID().replaceAll('-', '')}`))
-      await dictTypeModel.create([{ ...payload }], { session: tx.dbSession })
+      await tx.em.insert(AppDemoEntity, pgInsertPayload(payload.seed, `137${randomUUID().replaceAll('-', '')}`))
+      await scratchModel.create([{ ...payload }], { session: tx.dbSession })
     })
 
     expect(ctxAtHandlerTime!.dbSession).toBeDefined()
-    expect(await countPg(payload.name)).toBe(1)
-    expect(await withIxLockRetry(() => countMongo(payload.type))).toBe(1)
+    expect(await countPg(payload.seed)).toBe(1)
+    expect(await withIxLockRetry(() => countMongo(payload.seed))).toBe(1)
   })
 
   it('回滚：handler 抛错 → PG rollback + Mongo abort，两侧零残留', async () => {
     const interceptor = buildInterceptor()
-    const payload = uniqueDictPayload()
+    const payload = uniqueScratchPayload()
     const request = {}
 
     await expect(drive(interceptor, request, async (tx) => {
-      await tx.em.insert(AppDemoEntity, pgInsertPayload(payload.name, `137${randomUUID().replaceAll('-', '')}`))
-      await dictTypeModel.create([{ ...payload }], { session: tx.dbSession })
+      await tx.em.insert(AppDemoEntity, pgInsertPayload(payload.seed, `137${randomUUID().replaceAll('-', '')}`))
+      await scratchModel.create([{ ...payload }], { session: tx.dbSession })
       throw new Error('rollback on purpose')
     })).rejects.toThrow('rollback on purpose')
 
-    expect(await countPg(payload.name)).toBe(0)
-    expect(await withIxLockRetry(() => countMongo(payload.type))).toBe(0)
+    expect(await countPg(payload.seed)).toBe(0)
+    expect(await withIxLockRetry(() => countMongo(payload.seed))).toBe(0)
   })
 
   it('after-commit 钩子：两个引擎 commit 后执行，且钩子里能看到已提交数据', async () => {
     const interceptor = buildInterceptor()
-    const payload = uniqueDictPayload()
+    const payload = uniqueScratchPayload()
     const request = {}
     let hookRan = false
     let pgCountAtHookTime = -1
     let mongoCountAtHookTime = -1
 
     await drive(interceptor, request, async (tx) => {
-      await tx.em.insert(AppDemoEntity, pgInsertPayload(payload.name, `137${randomUUID().replaceAll('-', '')}`))
-      await dictTypeModel.create([{ ...payload }], { session: tx.dbSession })
+      await tx.em.insert(AppDemoEntity, pgInsertPayload(payload.seed, `137${randomUUID().replaceAll('-', '')}`))
+      await scratchModel.create([{ ...payload }], { session: tx.dbSession })
 
       registerAfterCommitHook(async () => {
         hookRan = true
-        pgCountAtHookTime = await countPg(payload.name)
-        mongoCountAtHookTime = await withIxLockRetry(() => countMongo(payload.type))
+        pgCountAtHookTime = await countPg(payload.seed)
+        mongoCountAtHookTime = await withIxLockRetry(() => countMongo(payload.seed))
       })
 
       // handler 结束时钩子只是入队
@@ -256,13 +256,13 @@ describe('WalnutTxInterceptor dual-engine transaction semantics (on real PG + Mo
     SetMetadata(WalnutTxEngineMetadataKey, WalnutTxEngine.PG)(handler)
 
     const interceptor = new WalnutTxInterceptor(mongoConnection, pgDataSource, new Reflector())
-    const payload = uniqueDictPayload()
+    const payload = uniqueScratchPayload()
     const request = {}
     let seen: { em: EntityManager, dbSession?: undefined } | undefined
 
     const next: CallHandler = { handle: () => from((async () => {
       seen = (request as { txContext: { em: EntityManager, dbSession?: undefined } }).txContext
-      await seen.em.insert(AppDemoEntity, pgInsertPayload(payload.name, `137${randomUUID().replaceAll('-', '')}`))
+      await seen.em.insert(AppDemoEntity, pgInsertPayload(payload.seed, `137${randomUUID().replaceAll('-', '')}`))
     })()) }
 
     const result$ = await interceptor.intercept(makeExecutionContext(request, handler), next)
@@ -270,7 +270,7 @@ describe('WalnutTxInterceptor dual-engine transaction semantics (on real PG + Mo
 
     expect(seen!.dbSession).toBeUndefined()
     expect(seen!.em).not.toBe(pgDataSource.manager)
-    expect(await countPg(payload.name)).toBe(1)
+    expect(await countPg(payload.seed)).toBe(1)
   })
 
   it('PG commit 自身抛错：原始错误透传、不回滚已释放 runner、Mongo session 仍被 abort', async () => {

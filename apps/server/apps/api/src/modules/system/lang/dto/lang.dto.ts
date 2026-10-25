@@ -1,5 +1,9 @@
+import { ApiProperty } from '@nestjs/swagger'
 import { WalnutAdminDecoratorFieldNumber } from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
+import { Expose } from 'class-transformer'
+import { IsOptional } from 'class-validator'
 import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,
@@ -11,9 +15,20 @@ export class SysLangDTO extends SysLangModel {
     super()
     Object.assign(this, partial)
   }
+
+  // PG 主键 id（uuid，phase2 4.4）：B1 模板 —— @Expose 供响应序列化
+  // （ClassSerializerInterceptor excludeExtraneousValues 只放行 Expose 字段）与
+  // RealPickType/RealPartialType 的键枚举；入参不从这里进（主键只走路由参数的
+  // uuid pipe），IsOptional 仅为 list 查询可选过滤
+  @Expose()
+  @IsOptional()
+  @ApiProperty({ type: String, required: false })
+  @WalnutAdminDecoratorValidatorUuid({ nullable: true })
+  id?: string
 }
 
-export class SysLangDTOSafe extends RealOmitType(SysLangDTO, [] as const) {
+// Safe 层剔除 Mongo 的 _id（B1 模板：PG 响应以 id 为唯一标识，_id 在 PG 实体上不存在）
+export class SysLangDTOSafe extends RealOmitType(SysLangDTO, ['_id'] as const) {
   constructor(partial?: Partial<SysLangDTOSafe>) {
     super()
     Object.assign(this, partial)

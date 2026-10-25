@@ -1,4 +1,5 @@
 import type { ClientSession } from 'mongoose'
+import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { SysLocaleSharedService } from '../locale/shared/locale.shared.service'
 import {
@@ -39,12 +40,16 @@ export class SysMenuService {
     return this.menuBasicRepo.update(id, dto)
   }
 
-  async delete(id: string, userId: string, cascade: number, dbSession: ClientSession) {
+  /**
+   * B2 迁移接线：locale 已迁 PG，级联删 locale 需要事务内的 PG 句柄 em —— menu 本体
+   * 仍是 Mongo（B5），两个句柄并存透传，事务语义不变。
+   */
+  async delete(id: string, userId: string, cascade: number, dbSession: ClientSession, em?: EntityManager) {
     const deletedMenu = await this.menuBasicRepo.deleteSoftById(id, userId, dbSession)
 
     if (cascade === 1) {
       // delete all locales with deleted menu title
-      await this.localeSharedService.deleteByKey(deletedMenu.title, userId, dbSession)
+      await this.localeSharedService.deleteByKey(deletedMenu.title, userId, em)
     }
 
     // TODO remove all cache auth data when menu changed

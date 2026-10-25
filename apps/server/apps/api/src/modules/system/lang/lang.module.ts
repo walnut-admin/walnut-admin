@@ -1,19 +1,18 @@
 import { Module } from '@nestjs/common'
-
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
+import { SysLangEntity } from './entity/lang.entity'
 import { SysLangBasicRepository } from './lang.basic.repository'
 import { SysLangController } from './lang.controller'
 import { SysLangService } from './lang.service'
 import { SysLangRepoModule } from './repo/lang.repo.module'
-import { SysLangSchema } from './schema/lang.schema'
 
+/**
+ * B2 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态，不另建 pg.module）。
+ */
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [{ name: WalnutDBModelName.SYS_LANG, schema: SysLangSchema }],
-      WalnutDBConnectionName,
-    ),
+    TypeOrmModule.forFeature([SysLangEntity], WalnutPGConnectionName),
     SysLangRepoModule,
   ],
   controllers: [SysLangController],

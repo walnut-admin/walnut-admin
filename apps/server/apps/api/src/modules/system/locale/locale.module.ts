@@ -1,21 +1,21 @@
 import { Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 
+import { SysLocaleEntity } from './entity/locale.entity'
 import { SysLocaleBasicRepository } from './locale.basic.repository'
 import { SysLocaleController } from './locale.controller'
 import { SysLocaleService } from './locale.service'
 import { LocaleLangIdValidate } from './locale.validate'
 import { SysLocaleRepoModule } from './repo/locale.repo.module'
-import { SysLocaleSchema } from './schema/locale.schema'
 import { SysLocaleSharedModule } from './shared/locale.shared.module'
 
+/**
+ * B2 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态，不另建 pg.module）。
+ */
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [{ name: WalnutDBModelName.SYS_LOCALE, schema: SysLocaleSchema }],
-      WalnutDBConnectionName,
-    ),
+    TypeOrmModule.forFeature([SysLocaleEntity], WalnutPGConnectionName),
     SysLocaleRepoModule,
     SysLocaleSharedModule,
   ],

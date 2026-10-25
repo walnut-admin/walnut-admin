@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common'
-import { WalnutDBCollectionName } from '@walnut-server/db'
 import {
   SysLangDTOCreateRequest,
   SysLangDTOListRequest,
@@ -44,38 +43,11 @@ export class SysLangService {
 
   /**
    * @description list langs (controller: list)
+   *
+   * Mongo 版的 locale 计数 / process 管道随 B2 迁入 lang.basic.repository 的 PG list 覆写
    */
   async list(payload: SysLangDTOListRequest) {
-    return this.langBasicRepo.list(payload, [
-      {
-        $lookup: {
-          from: WalnutDBCollectionName.LOCALE,
-          localField: '_id',
-          foreignField: 'langId',
-          as: 'totalCount',
-        },
-      },
-      { $addFields: { populated_localesTotalCount: { $size: '$totalCount' } } },
-      { $unset: 'totalCount' },
-      {
-        $lookup: {
-          from: WalnutDBCollectionName.LOCALE,
-          localField: '_id',
-          foreignField: 'langId',
-          as: 'finishedCount',
-          pipeline: [
-            {
-              $match: {
-                value: { $ne: null },
-              },
-            },
-          ],
-        },
-      },
-      { $addFields: { populated_localesFinishedCount: { $size: '$finishedCount' } } },
-      { $unset: 'finishedCount' },
-      { $addFields: { process: { $multiply: [{ $divide: ['$populated_localesFinishedCount', '$populated_localesTotalCount'] }, 100] } } },
-    ])
+    return this.langBasicRepo.list(payload)
   }
 
   /**

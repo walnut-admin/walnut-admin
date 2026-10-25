@@ -1,14 +1,14 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { runAfterCommit } from '@walnut-server/db'
 import { LocaleType } from '@walnut/contract'
 import { Recordable } from 'easy-fns-ts'
-import { ClientSession } from 'mongoose'
 import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
+import { SysLangEntity } from '../../lang/entity/lang.entity'
 import { SysLangRepoService } from '../../lang/repo/lang.repo.service'
-import { ISysLangDocument } from '../../lang/schema/lang.schema'
+import { SysLocaleEntity } from '../entity/locale.entity'
 import { SysLocaleBasicRepository } from '../locale.basic.repository'
-import { ISysLocaleDocument } from '../schema/locale.schema'
 
 /**
  * LocaleType Shared Service
@@ -32,11 +32,14 @@ export class SysLocaleSharedService {
 
   /**
    * @description extract lang ids to cache which is used for locale request validate
+   *
+   * B2 迁移：缓存值从 ObjectId 十六进制串改为 lang 的 uuid（消费方 locale.validate 同步改），
+   * 缓存键不变。
    */
-  async extractLangIdsIntoCache(langs: ISysLangDocument[]) {
+  async extractLangIdsIntoCache(langs: SysLangEntity[]) {
     await this.cacheService.set(
       WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST,
-      langs.map(i => i._id),
+      langs.map(i => i.id),
       {
         t: WalnutAdminConstAppCacheType.SYSTEM,
       },
@@ -55,11 +58,14 @@ export class SysLocaleSharedService {
 
     await Promise.all(
       langs.map(async (i) => {
-        const data = await this.langRepoService.findMessagesByLang(i.lang)
+        // entity.lang 列型是 string；DB 值域由 seed / DTO 校验收敛到 contract Locale
+        const lang = i.lang as LocaleType
+
+        const data = await this.langRepoService.findMessagesByLang(lang)
 
         localeMsgCountForEachLanguage = Object.keys(data.data).length
 
-        await this.cacheService.set(this.getCacheKeys(i.lang), data.data, {
+        await this.cacheService.set(this.getCacheKeys(lang), data.data, {
           t: WalnutAdminConstAppCacheType.SYSTEM,
         })
       }),
@@ -90,11 +96,11 @@ export class SysLocaleSharedService {
   /**
    * @description: delete locales through key (used by controller and other modules)
    */
-  async deleteByKey(key: string, userId: string, dbSession?: ClientSession) {
+  async deleteByKey(key: string, userId: string, em?: EntityManager) {
     const deleted = await this.localeBasicRepo.deleteSoftManyByCondition(
       { key },
       userId,
-      dbSession,
+      em,
     )
 
     this.triggerCacheRefresh()
@@ -105,10 +111,10 @@ export class SysLocaleSharedService {
   /**
    * @description: batch delete by keys (used by controller and other modules)
    */
-  async deleteManyByKey(keys: string[], userId: string, dbSession?: ClientSession) {
-    const deleted: ISysLocaleDocument[] = []
+  async deleteManyByKey(keys: string[], userId: string, em?: EntityManager) {
+    const deleted: SysLocaleEntity[] = []
     for (const key of keys) {
-      const deletedItems = await this.localeBasicRepo.deleteSoftManyByCondition({ key }, userId, dbSession)
+      const deletedItems = await this.localeBasicRepo.deleteSoftManyByCondition({ key }, userId, em)
       deletedItems.map(i => deleted.push(i))
     }
 

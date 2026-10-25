@@ -4,9 +4,10 @@ import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/d
 
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 
-import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
+import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { WalnutAdminDecoratorQueryArray } from '@walnut-server/decorators/query'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { plainToInstance } from 'class-transformer'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
 
@@ -45,6 +46,11 @@ const {
   DTO: SysDictTypeDTOSafe,
 })
 
+/**
+ * B3 迁移模板（controller 层）：路由参数 ParamMongoId → uuid 参数装饰器；事务句柄
+ * `ctx.dbSession` → `ctx.em`；`.toObject()` 移除（PG 实体即 POJO），统一
+ * plainToInstance(DTO, entity)。
+ */
 @Controller('system/dict/type')
 @ApiTags('system/dict/type')
 export class SysDictTypeController {
@@ -68,34 +74,28 @@ export class SysDictTypeController {
   ) {
     const dictData = await this.dictTypeService.getByTypeMany(types)
 
-    return dictData.map(i => new SysDictTypeDTOWithDictDataResponse(i))
+    return dictData.map(i => plainToInstance(SysDictTypeDTOWithDictDataResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
   async create(@Body() payload: SysDictTypeDTOCreateRequest) {
-    return new SysDictTypeDTOCreateResponse(
-      (await this.dictTypeService.create(payload)).toObject(),
-    )
+    return plainToInstance(SysDictTypeDTOCreateResponse, await this.dictTypeService.create(payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
-  async read(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new SysDictTypeDTOReadResponse(
-      (await this.dictTypeService.read(id)).toObject(),
-    )
+  async read(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(SysDictTypeDTOReadResponse, await this.dictTypeService.read(id))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.UPDATE)
   @WalnutAdminDecoratorUpdate()
   async update(
-    @WalnutAdminDecoratorParamMongoId() id: string,
     @Body() payload: SysDictTypeDTOUpdateRequest,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return new SysDictTypeDTOUpdateResponse(
-      (await this.dictTypeService.update(id, payload)).toObject(),
-    )
+    return plainToInstance(SysDictTypeDTOUpdateResponse, await this.dictTypeService.update(id, payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
@@ -104,18 +104,17 @@ export class SysDictTypeController {
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutDBSession() ctx: WalnutTxContext,
-    @WalnutAdminDecoratorParamMongoId() id: string,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return new SysDictTypeDTODeleteResponse(
-      (await this.dictTypeService.delete(id, user.userId, ctx.dbSession!)).toObject(),
+    return plainToInstance(
+      SysDictTypeDTODeleteResponse,
+      await this.dictTypeService.delete(id, user.userId, ctx.em),
     )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: SysDictTypeDTOListRequest) {
-    return new SysDictTypeDTOListResponse(
-      await this.dictTypeService.list(payload),
-    )
+    return plainToInstance(SysDictTypeDTOListResponse, await this.dictTypeService.list(payload))
   }
 }

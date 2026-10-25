@@ -1,6 +1,5 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
-import { ClientSession } from 'mongoose'
 
 import { SysLocaleSharedService } from '../../locale/shared/locale.shared.service'
 import { SysDictDataBasicRepository } from './dictData.basic.repository'
@@ -9,13 +8,11 @@ import {
   SysDictDataDTOListRequest,
   SysDictDataDTOUpdateRequest,
 } from './dto/dictData.dto'
-import { ISysDictDataModel } from './schema/dictData.schema'
+import { SysDictDataEntity } from './entity/dict-data.entity'
 
 @Injectable()
 export class SysDictDataService {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SYS_DICT_DATA)
-    private readonly dictDataModel: ISysDictDataModel,
     private readonly dictDataBasicRepo: SysDictDataBasicRepository,
     private readonly localeSharedService: SysLocaleSharedService,
   ) {}
@@ -33,11 +30,11 @@ export class SysDictDataService {
     return this.dictDataBasicRepo.update(id, dto)
   }
 
-  async delete(id: string, userId: string, dbSession: ClientSession) {
-    const deletedDictData = await this.dictDataBasicRepo.deleteSoftById(id, userId, dbSession)
+  async delete(id: string, userId: string, em: EntityManager) {
+    const deletedDictData: SysDictDataEntity = await this.dictDataBasicRepo.deleteSoftById(id, userId, em)
 
     // delete all locales with deleted dict data label
-    await this.localeSharedService.deleteByKey(deletedDictData.label, userId, dbSession)
+    await this.localeSharedService.deleteByKey(deletedDictData.label, userId, em)
 
     return deletedDictData
   }

@@ -100,7 +100,7 @@ export class SysMenuController {
     @WalnutAdminDecoratorQueryDeleteCascade() cascade: number,
   ) {
     return new SysMenuDTODeleteResponse(
-      (await this.menuService.delete(id, user.userId, cascade, ctx.dbSession!)).toObject(),
+      (await this.menuService.delete(id, user.userId, cascade, ctx.dbSession!, ctx.em)).toObject(),
     )
   }
 

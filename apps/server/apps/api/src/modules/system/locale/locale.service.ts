@@ -1,39 +1,32 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
 import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
-import {
-  buildListPipelineFromRequest,
-} from '@walnut-server/utils/listAggregate'
 import { Locale, LocaleType } from '@walnut/contract'
 
 import { Recordable } from 'easy-fns-ts'
-import { isNil } from 'lodash'
 
-import { ClientSession, PipelineStage } from 'mongoose'
 import { SysLangRepoService } from '../lang/repo/lang.repo.service'
 import {
   SysLocaleDTOCreateRequest,
   SysLocaleDTOListRequest,
   SysLocaleDTOUpdateRequest,
 } from './dto/locale.dto'
+import { SysLocaleEntity } from './entity/locale.entity'
 import { SysLocaleBasicRepository } from './locale.basic.repository'
 import { SysLocaleRepoService } from './repo/locale.repo.service'
-import { ISysLocaleDocument, ISysLocaleModel } from './schema/locale.schema'
 import { SysLocaleSharedService } from './shared/locale.shared.service'
 
 /**
  * LocaleType Service
  *
  * This service has 1:1 mapping with controller endpoints.
- * NO direct Model usage - all data access through Repository/Repo Service/Shared Service layer.
+ * NO direct Model usage - all data access through Repository/Repo Service layer.
  */
 @Injectable()
 export class SysLocaleService {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SYS_LOCALE)
-    private readonly localeModel: ISysLocaleModel,
     private readonly localeBasicRepo: SysLocaleBasicRepository,
     private readonly localeRepoService: SysLocaleRepoService,
     private readonly localeSharedService: SysLocaleSharedService,
@@ -43,15 +36,15 @@ export class SysLocaleService {
   /**
    * @description: create locale messages (controller: create)
    */
-  async create(payload: SysLocaleDTOCreateRequest[], dbSession: ClientSession) {
-    const isExisted = await this.localeRepoService.existsByKey(payload[0].key, dbSession)
+  async create(payload: SysLocaleDTOCreateRequest[], em: EntityManager) {
+    const isExisted = await this.localeRepoService.existsByKey(payload[0].key, em)
     if (isExisted) {
       throw new WalnutAdminExceptionDataExists()
     }
 
-    const res: ISysLocaleDocument[] = []
+    const res: SysLocaleEntity[] = []
     for (const locale of payload) {
-      const target = await this.localeBasicRepo.create(locale, dbSession)
+      const target = await this.localeBasicRepo.create(locale, em)
       res.push(target)
     }
 
@@ -63,10 +56,11 @@ export class SysLocaleService {
   /**
    * @description: locale read (controller: read)
    */
-  async read(key: string, dbSession?: ClientSession) {
-    const data = await this.localeRepoService.findByKey(key, dbSession)
+  async read(key: string, em?: EntityManager) {
+    const data = await this.localeRepoService.findByKey(key, em)
 
-    const result: Recordable = Object.fromEntries(data.map(i => [i.langId.toString(), i.value]))
+    // langId 在 PG 侧即 uuid 字符串（Mongo 版的 ObjectId.toString() 不再需要）
+    const result: Recordable = Object.fromEntries(data.map(i => [i.langId, i.value]))
 
     return {
       ...result,
@@ -77,17 +71,17 @@ export class SysLocaleService {
   /**
    * @description: update (controller: update)
    */
-  async update(payload: SysLocaleDTOUpdateRequest[], dbSession: ClientSession) {
+  async update(payload: SysLocaleDTOUpdateRequest[], em: EntityManager) {
     if (payload[0].key !== payload[0].oldKey) {
-      const isExist = await this.localeRepoService.existsByKey(payload[0].key, dbSession)
+      const isExist = await this.localeRepoService.existsByKey(payload[0].key, em)
       if (isExist) {
         throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.locale.updateExist' })
       }
     }
 
-    const res: ISysLocaleDocument[] = []
+    const res: SysLocaleEntity[] = []
     for (const i of payload) {
-      const target = await this.localeBasicRepo.updateByField({ key: i.oldKey, langId: i.langId }, { ...i }, dbSession)
+      const target = await this.localeBasicRepo.updateByField({ key: i.oldKey, langId: i.langId }, { ...i }, em)
       res.push(target)
     }
 
@@ -99,56 +93,34 @@ export class SysLocaleService {
   /**
    * @description: delete locales through key (controller: delete)
    */
-  async deleteByKey(key: string, userId: string, dbSession: ClientSession) {
-    return this.localeSharedService.deleteByKey(key, userId, dbSession)
+  async deleteByKey(key: string, userId: string, em: EntityManager) {
+    return this.localeSharedService.deleteByKey(key, userId, em)
   }
 
   /**
    * @description: batch delete (controller: deleteMany)
    */
-  async deleteManyByKey(keys: string[], userId: string, dbSession: ClientSession) {
-    return this.localeSharedService.deleteManyByKey(keys, userId, dbSession)
+  async deleteManyByKey(keys: string[], userId: string, em: EntityManager) {
+    return this.localeSharedService.deleteManyByKey(keys, userId, em)
   }
 
   /**
    * @description: base list (controller: list)
+   *
+   * Mongo 版 extraPipeline（$group/$unwind/$match/$project 分组聚合）随 B2 SQL 重写收口进
+   * locale.repo.service 的 aggregateList；这里只保留入参拆分（value/langId 是文档级过滤，
+   * 不进公共 query）与语言总数的取数。
    */
-  async list(params: SysLocaleDTOListRequest, dbSession?: ClientSession) {
+  async list(params: SysLocaleDTOListRequest, em?: EntityManager) {
     const langs = await this.langRepoService.findAll()
 
     const { value, langId, ...commonQuery } = params.query
 
-    const extraPipeline: PipelineStage[] = [
-      { $group: { _id: '$key', finished: { $sum: { $cond: [{ $ne: ['$value', null] }, 1, 0] } }, docs: { $push: '$$ROOT' } } },
-      { $unwind: '$docs' },
-      ...(!isNil(value) ? [{ $match: { 'docs.value': { $regex: value, $options: 'i' } } }] : []),
-      ...(langId ? [{ $match: { 'docs.langId': langId, 'docs.value': null } }] : []),
-      { $group: { _id: '$_id', finished: { $first: '$finished' }, data: { $push: '$docs' } } },
-      {
-        $project: {
-          _id: 1,
-          key: '$_id',
-          value: '$data.value',
-          data: 1,
-          createdAt: { $arrayElemAt: ['$data.createdAt', 0] },
-          updatedAt: { $arrayElemAt: ['$data.updatedAt', 0] },
-          process: { $divide: ['$finished', langs.length] },
-        },
-      },
-    ]
-
-    const pipeline = buildListPipelineFromRequest(
+    return this.localeRepoService.aggregateList(
       { ...params, query: commonQuery },
-      extraPipeline,
-      true,
+      { value, langId, langsCount: langs.length },
+      em,
     )
-
-    const [result] = await this.localeModel.aggregate<{
-      data: ISysLocaleDocument[]
-      total: number
-    }>(pipeline).session(dbSession!)
-
-    return result
   }
 
   /**

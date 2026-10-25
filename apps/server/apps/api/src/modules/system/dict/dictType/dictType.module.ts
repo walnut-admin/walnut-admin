@@ -1,27 +1,28 @@
 import { Module } from '@nestjs/common'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
-
+import { SysDictDataBasicRepository } from '../dictData/dictData.basic.repository'
+import { SysDictDataEntity } from '../dictData/entity/dict-data.entity'
 import { SysDictTypeBasicRepository } from './dictType.basic.repository'
 import { SysDictTypeController } from './dictType.controller'
 import { SysDictTypeService } from './dictType.service'
-import { SysDictTypeSchema } from './schema/dictType.schema'
+import { SysDictTypeEntity } from './entity/dict-type.entity'
 
+/**
+ * B3 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态，不另建 pg.module）。
+ * getByType 跨 dict data 取数（populate → findActiveByTypeId），SysDictDataEntity 与其
+ * repo 一并在本模块装配。
+ */
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [
-        {
-          name: WalnutDBModelName.SYS_DICT_TYPE,
-          schema: SysDictTypeSchema,
-        },
-      ],
-      WalnutDBConnectionName,
+    TypeOrmModule.forFeature(
+      [SysDictTypeEntity, SysDictDataEntity],
+      WalnutPGConnectionName,
     ),
   ],
   controllers: [SysDictTypeController],
-  providers: [SysDictTypeBasicRepository, SysDictTypeService],
+  providers: [SysDictTypeBasicRepository, SysDictDataBasicRepository, SysDictTypeService],
   exports: [SysDictTypeService],
 })
 export class SysDictTypeModule {}

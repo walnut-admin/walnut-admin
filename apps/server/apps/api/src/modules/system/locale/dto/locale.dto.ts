@@ -1,13 +1,17 @@
-import { IntersectionType } from '@nestjs/swagger'
+import { ApiProperty, IntersectionType } from '@nestjs/swagger'
 import {
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
+import { Expose } from 'class-transformer'
+import { IsOptional } from 'class-validator'
 import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,
 } from '@/common/dto/list.dto'
+import { LocaleLangIdValidate } from '../locale.validate'
 import { SysLocaleModel } from '../schema/locale.schema'
 
 export class SysLocaleDTO extends SysLocaleModel {
@@ -15,9 +19,30 @@ export class SysLocaleDTO extends SysLocaleModel {
     super()
     Object.assign(this, partial)
   }
+
+  // PG 主键 id（uuid，phase2 4.5）：B1 模板 —— @Expose 供响应序列化
+  // （ClassSerializerInterceptor excludeExtraneousValues 只放行 Expose 字段）与
+  // RealPickType/RealPartialType 的键枚举；入参不从这里进（主键只走路由参数的
+  // uuid pipe），IsOptional 仅为 list 查询可选过滤
+  @Expose()
+  @IsOptional()
+  @ApiProperty({ type: String, required: false })
+  @WalnutAdminDecoratorValidatorUuid({ nullable: true })
+  id?: string
+
+  // IsMongoId → IsUUID 模板（B1 确立）：在 DTO 子类重声明同名字段整体替换继承的
+  // IsMongoId 约束；langId 原有的业务校验（缓存 lang id 白名单）经 options.validate 保留
+  @Expose()
+  @ApiProperty({
+    type: String,
+    example: '0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c',
+  })
+  @WalnutAdminDecoratorValidatorUuid({ validate: LocaleLangIdValidate })
+  declare langId: string
 }
 
-export class SysLocaleDTOSafe extends RealOmitType(SysLocaleDTO, [] as const) {
+// Safe 层剔除 Mongo 的 _id（B1 模板：PG 响应以 id 为唯一标识，_id 在 PG 实体上不存在）
+export class SysLocaleDTOSafe extends RealOmitType(SysLocaleDTO, ['_id'] as const) {
   constructor(partial?: Partial<SysLocaleDTOSafe>) {
     super()
     Object.assign(this, partial)
@@ -44,7 +69,7 @@ export class SysLocaleDTOListRequest extends CreateWalnutAdminRequestListDTO(
 export class SysLocaleDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(
     RealPickType(SysLocaleDTOSafe, [
-      '_id',
+      'id',
       'key',
       'process',
       'createdAt',

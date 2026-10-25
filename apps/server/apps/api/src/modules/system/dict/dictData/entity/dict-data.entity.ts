@@ -7,7 +7,9 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColum
  *   复合前缀同时服务 type_id 上的 FK 查找（PG 的 FK 不自动建索引）。
  * - FK type_id → sys_dict_type ON DELETE CASCADE，DDL 在 migration。
  */
-@Index('idx_dict_data_type_order', ['typeId', 'sortOrder'])
+// @Index 数组按属性名取列：属性是 order（列 sort_order，避保留字），B3 注册实体时
+// 首次暴露此笔误并修正（索引本体在 migration：idx_dict_data_type_order (type_id, sort_order)）
+@Index('idx_dict_data_type_order', ['typeId', 'order'])
 @Entity({ name: 'sys_dict_data' })
 export class SysDictDataEntity {
   @PrimaryColumn({ type: 'uuid', name: 'id', default: () => 'gen_random_uuid()' })

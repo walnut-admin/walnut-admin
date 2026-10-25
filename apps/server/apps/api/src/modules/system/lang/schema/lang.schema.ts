@@ -19,6 +19,11 @@ export interface ISysLangMethods { }
 
 export interface ISysLangStatics { }
 
+/**
+ * B2 迁移后仅作为 DTO 元数据基座保留（模型注册已随迁移从 lang.module /
+ * lang.repo.module 摘除，@Prop/@Virtual 不再有运行时语义）；PG 列型见 entity/lang.entity.ts，
+ * 两个 locale 计数 virtual 在 PG 侧改为相关子查询（repo 层，phase2 5.2）。
+ */
 @Schema({
   collection: WalnutDBCollectionName.LANG,
   versionKey: false,

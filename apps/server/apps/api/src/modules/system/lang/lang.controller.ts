@@ -9,7 +9,9 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
-import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
+import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
+
+import { plainToInstance } from 'class-transformer'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorCache } from '@/decorators/walnut/cache.decorator'
@@ -47,6 +49,10 @@ const { WalnutAdminDecoratorCreate, WalnutAdminDecoratorRead, WalnutAdminDecorat
     DTO: SysLangDTO,
   })
 
+/**
+ * B2 迁移模板（controller 层）：路由参数 ParamMongoId → uuid 参数装饰器；
+ * `.toObject()` 移除（PG 实体即 POJO），统一 plainToInstance(DTO, entity)。
+ */
 @Controller('system/lang')
 @ApiTags('system/lang')
 export class SysLangController {
@@ -55,32 +61,28 @@ export class SysLangController {
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
   async create(@Body() payload: SysLangDTOCreateRequest) {
-    return new SysLangDTOCreateResponse(
-      (await this.langService.create(payload)).toObject(),
-    )
+    return plainToInstance(SysLangDTOCreateResponse, await this.langService.create(payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
-  async read(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new SysLangDTOReadResponse(await this.langService.read(id))
+  async read(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(SysLangDTOReadResponse, await this.langService.read(id))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.UPDATE)
   @WalnutAdminDecoratorUpdate()
   async update(
-    @WalnutAdminDecoratorParamMongoId() id: string,
     @Body() payload: SysLangDTOUpdateRequest,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return new SysLangDTOUpdateResponse(
-      (await this.langService.update(id, payload)).toObject(),
-    )
+    return plainToInstance(SysLangDTOUpdateResponse, await this.langService.update(id, payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: SysLangDTOListRequest) {
-    return new SysLangDTOListResponse(await this.langService.list(payload))
+    return plainToInstance(SysLangDTOListResponse, await this.langService.list(payload))
   }
 
   @Get('list/public')
