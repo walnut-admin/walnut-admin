@@ -17,9 +17,9 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstAppSettingAuthOAuthGiteeKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { LocaleType } from '@walnut/contract'
-import { ClientSession } from 'mongoose'
+
 import { I18n, I18nContext } from 'nestjs-i18n'
 import { WalnutAdminDecoratorFunctionalGuard } from '@/decorators/walnut/functional.decorator'
 import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
@@ -87,7 +87,7 @@ export class OAuthGiteeController {
   async callback(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
     @Query('state') payload: string,
     @I18n() i18n: I18nContext,
@@ -111,14 +111,14 @@ export class OAuthGiteeController {
     }
 
     try {
-      const { accessToken, refreshTokenJti, authSessionKey } = await this.authSharedService.generateAuthTokens(user, deviceId, dbSession)
+      const { accessToken, refreshTokenJti, authSessionKey } = await this.authSharedService.generateAuthTokens(user, deviceId, ctx.dbSession!)
 
       // Mark email identity as verified after successful OAuth validation
       await this.userIdentitySharedService.verifyIdentity(
         user.userId,
         WalnutAdminConstSysUserIdentityType.EMAIL_ADDRESS,
         'login',
-        dbSession,
+        ctx.dbSession,
       )
 
       // Set refresh token jti to cookie

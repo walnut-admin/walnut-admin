@@ -10,9 +10,9 @@ import {
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
-import { ClientSession } from 'mongoose'
+
 import { WalnutCrudDecorators } from '@/decorators/crud'
 
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
@@ -75,10 +75,10 @@ export class AppMonitorUserController {
     operateType: WalnutAdminConstDecoratorLogOperateType.APP_MONITOR_USER_FORCE_QUIT,
   })
   async forceQuit(
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamMongoId() id: string,
   ) {
-    return this.monitorUserService.forceQuitByMonitorId(id, dbSession)
+    return this.monitorUserService.forceQuitByMonitorId(id, ctx.dbSession!)
   }
 
   @Post('state')
@@ -90,9 +90,9 @@ export class AppMonitorUserController {
   @WalnutDBTransaction()
   async monitor(
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Body() data: AppMonitorUserDTOUpdateState,
   ) {
-    return this.monitorUserService.updateState(deviceId, data, dbSession)
+    return this.monitorUserService.updateState(deviceId, data, ctx.dbSession!)
   }
 }

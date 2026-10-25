@@ -38,9 +38,9 @@ const RUNTIME_INJECTED = [
  * setup-env 把它写成集成库名 `walnut-admin-integration`，是夹具而不是外部依赖：
  * 正常运行时它由 `env-encrypted/.env.*` 提供（那一运行期配置面在 `nest.ts` 里对
  * `libs/config/src/modules` 整段豁免），声明进全局清单反而会让 shell 里偶发的同名
- * 变量压过 env 文件。
+ * 变量压过 env 文件。`DATABASE_PG_NAME` 同理（PG 集成库，Phase 3 PG 迁移起同款用法）。
  */
-const TEST_FIXTURES = ['WALNUT_TEST_MARKER', 'DATABASE_NAME']
+const TEST_FIXTURES = ['WALNUT_TEST_MARKER', 'DATABASE_NAME', 'DATABASE_PG_NAME']
 
 const TEST_FILE_GLOBS = [
   '**/__tests__/**/*.{ts,tsx}',

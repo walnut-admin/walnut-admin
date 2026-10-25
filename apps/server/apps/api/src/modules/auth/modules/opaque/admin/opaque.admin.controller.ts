@@ -1,9 +1,9 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
+
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
 import { AuthOpaqueClearPasswordForAdminDTO, AuthOpaqueFinishChangePasswordForAdminDTO, AuthOpaqueStartChangePasswordForAdminDTO } from '../dto/opaque.dto'
@@ -52,10 +52,10 @@ export class AuthOpaqueAdminController {
     operateType: WalnutAdminConstDecoratorLogOperateType.USER_UPDATE_PASSWORD,
   })
   async changePasswordFinish(
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: AuthOpaqueFinishChangePasswordForAdminDTO,
   ) {
-    return this.authOpaqueAdminService.finishChangePassword(dto, dbSession)
+    return this.authOpaqueAdminService.finishChangePassword(dto, ctx.dbSession!)
   }
 
   @Post('password/clear')
@@ -74,9 +74,9 @@ export class AuthOpaqueAdminController {
     operateType: WalnutAdminConstDecoratorLogOperateType.USER_CLEAR_PASSWORD,
   })
   async clearPasswordFinish(
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: AuthOpaqueClearPasswordForAdminDTO,
   ) {
-    return this.authOpaqueAdminService.clearPassword(dto._id.toString(), dbSession)
+    return this.authOpaqueAdminService.clearPassword(dto._id.toString(), ctx.dbSession!)
   }
 }

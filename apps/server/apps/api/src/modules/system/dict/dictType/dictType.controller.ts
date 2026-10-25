@@ -2,12 +2,11 @@ import { Body, Controller, Get, HttpCode, HttpStatus } from '@nestjs/common'
 import { ApiQuery, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 
 import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
 import { WalnutAdminDecoratorQueryArray } from '@walnut-server/decorators/query'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
 
@@ -104,11 +103,11 @@ export class SysDictTypeController {
   @WalnutDBTransaction()
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() session: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamMongoId() id: string,
   ) {
     return new SysDictTypeDTODeleteResponse(
-      (await this.dictTypeService.delete(id, user.userId, session)).toObject(),
+      (await this.dictTypeService.delete(id, user.userId, ctx.dbSession!)).toObject(),
     )
   }
 

@@ -1,8 +1,8 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
+
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
 import { WalnutAdminGuardMFAFree } from '@/guard/mfa.guard'
@@ -31,9 +31,9 @@ export class AuthMfaController {
   async getAvailableMethods(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
   ) {
-    const res = await this.authMfaService.getMfaStatus(user.userId, deviceId, dbSession)
+    const res = await this.authMfaService.getMfaStatus(user.userId, deviceId, ctx.dbSession!)
     return res.map(item => new AuthMfaStatusDTO(item))
   }
 
@@ -49,10 +49,10 @@ export class AuthMfaController {
     @WalnutAdminDecoratorJti() jti: string,
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: AuthMfaVerifyDTO,
   ) {
-    const newAccessToken = await this.authMfaService.verifyMfaStatus(jti, dto, user.userId, user.sid!, deviceId, dbSession)
+    const newAccessToken = await this.authMfaService.verifyMfaStatus(jti, dto, user.userId, user.sid!, deviceId, ctx.dbSession!)
     return new AuthSuccessDTO({ accessToken: newAccessToken })
   }
 }

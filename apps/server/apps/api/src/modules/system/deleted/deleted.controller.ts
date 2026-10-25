@@ -8,10 +8,10 @@ import {
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamMongoId, WalnutAdminDecoratorParamMongoIds } from '@walnut-server/decorators/params'
 import { Role } from '@walnut/contract'
-import { ClientSession } from 'mongoose'
+
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 
@@ -74,10 +74,10 @@ export class SysDeletedController {
   @WalnutDBTransaction()
   async recoverMine(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() session: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Body() payload: SysDeletedDTORecoverRequest,
   ) {
-    return this.deletedService.recoverMine(payload, user.userId, session)
+    return this.deletedService.recoverMine(payload, user.userId, ctx.dbSession!)
   }
 
   @Post('recover')
@@ -91,9 +91,9 @@ export class SysDeletedController {
     operateType: WalnutAdminConstDecoratorLogOperateType.DELETED_RECOVER,
   })
   async recover(
-    @WalnutDBSession() session: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Body() payload: SysDeletedDTORecoverRequest,
   ) {
-    return this.deletedService.recover(payload, session)
+    return this.deletedService.recover(payload, ctx.dbSession!)
   }
 }

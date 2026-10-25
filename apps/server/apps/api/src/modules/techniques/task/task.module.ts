@@ -4,6 +4,7 @@ import { AppKeyModule } from '@/modules/app/key/key.module'
 
 import { AppMonitorUserSharedModule } from '@/modules/app/monitor/user/shared/user.shared.module'
 
+import { AuthRefreshTokenPgModule } from '@/modules/auth/modules/refresh/repo/refresh.pg.module'
 import { AuthRefreshSharedModule } from '@/modules/auth/modules/refresh/shared/refresh.shared.module'
 import { SysLocaleSharedModule } from '@/modules/system/locale/shared/locale.shared.module'
 import { SysUserDeviceSharedModule } from '@/modules/system/user_device/shared/user_device.shared.module'
@@ -15,6 +16,8 @@ import { AppTechTasksService } from './task.service'
     ScheduleModule.forRoot(),
     SysLocaleSharedModule,
     AuthRefreshSharedModule,
+    // PG 版过期 refresh token purge job（自身带 @Cron，随本模块的 ScheduleModule 注册）
+    AuthRefreshTokenPgModule,
     AppKeyModule,
     SysUserDeviceSharedModule,
     AppMonitorUserSharedModule,

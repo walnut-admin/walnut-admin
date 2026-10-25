@@ -1,9 +1,9 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common'
 import { ApiParam, ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { Role } from '@walnut/contract'
-import { ClientSession } from 'mongoose'
+
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
 import { AppKeyDTOInit, AppKeyDTOSafe } from './dto/key.dto'
 import { AppKeyService } from './key.service'
@@ -38,10 +38,10 @@ export class AppKeyController {
   @WalnutDBTransaction()
   @ApiParam({ name: 'type', description: 'key type enum', enum: AppKeyTypeConst })
   async rotate(
-    @WalnutDBSession() session: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Param('type', new WalnutAdminPipeParamEnum(AppKeyTypeConst))
     type: AppKeyTypeConstType,
   ) {
-    return new AppKeyDTOSafe((await this.appKeyService.rotate(type, session))!.toObject())
+    return new AppKeyDTOSafe((await this.appKeyService.rotate(type, ctx.dbSession))!.toObject())
   }
 }

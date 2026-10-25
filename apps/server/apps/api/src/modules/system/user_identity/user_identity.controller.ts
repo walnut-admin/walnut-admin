@@ -1,10 +1,9 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Request } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
-import { ClientSession } from 'mongoose'
 
 import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardRequireSensitive } from '@/guard/sensitive.guard'
@@ -54,11 +53,11 @@ export class SysUserIdentityController {
   })
   async getStatus(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose))
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
   ) {
-    return new SysUserIdentityStatusResponseDTO(await this.userIdentityService.getStatus(user.userId, purpose, dbSession))
+    return new SysUserIdentityStatusResponseDTO(await this.userIdentityService.getStatus(user.userId, purpose, ctx.dbSession!))
   }
 
   @Post('check/:type/:purpose')
@@ -87,12 +86,12 @@ export class SysUserIdentityController {
   })
   async bind(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityBindRequestDTO,
   ) {
-    await this.userIdentityService.bind(user.userId, type, purpose, dto, dbSession)
+    await this.userIdentityService.bind(user.userId, type, purpose, dto, ctx.dbSession)
     return true
   }
 
@@ -105,11 +104,11 @@ export class SysUserIdentityController {
   })
   async unbind(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
   ) {
-    await this.userIdentityService.unbind(user.userId, type, purpose, dbSession)
+    await this.userIdentityService.unbind(user.userId, type, purpose, ctx.dbSession)
     return true
   }
 
@@ -122,12 +121,12 @@ export class SysUserIdentityController {
   })
   async update(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityUpdateDTO,
   ) {
-    await this.userIdentityService.update(user.userId, type, purpose, dto, dbSession)
+    await this.userIdentityService.update(user.userId, type, purpose, dto, ctx.dbSession)
     return true
   }
 
@@ -157,12 +156,12 @@ export class SysUserIdentityController {
   })
   async verify(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityVerifyRequestDTO,
   ) {
-    await this.userIdentityService.verify(user.userId, type, purpose, dto, dbSession)
+    await this.userIdentityService.verify(user.userId, type, purpose, dto, ctx.dbSession)
     return true
   }
 
@@ -180,12 +179,12 @@ export class SysUserIdentityController {
   })
   async updateStatus(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityStatusRequestDTO,
   ) {
-    await this.userIdentityService.updateStatus(user.userId, type, purpose, dto, dbSession)
+    await this.userIdentityService.updateStatus(user.userId, type, purpose, dto, ctx.dbSession)
     return true
   }
 }

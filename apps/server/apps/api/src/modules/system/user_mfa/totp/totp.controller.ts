@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, HttpCode, HttpStatus, Post, Put } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
+
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
@@ -38,9 +38,9 @@ export class SysUserMfaTotpController {
   async generateTotp(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
   ) {
-    const res = await this.userMfaTotpService.generateTotp(user.userId, deviceId, dbSession)
+    const res = await this.userMfaTotpService.generateTotp(user.userId, deviceId, ctx.dbSession!)
     return new SysUserMfaGenerateTotpResponseDTO(res)
   }
 
@@ -54,10 +54,10 @@ export class SysUserMfaTotpController {
   async bindTotp(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: SysUserMfaBindTotpDTO,
   ) {
-    const res = await this.userMfaTotpService.bindTotp(user.userId, deviceId, dto, dbSession)
+    const res = await this.userMfaTotpService.bindTotp(user.userId, deviceId, dto, ctx.dbSession!)
     return new SysUserMfaBindTotpResponseDTO(res)
   }
 
@@ -68,8 +68,8 @@ export class SysUserMfaTotpController {
     description: 'unbind TOTP device',
     primitive: 'boolean',
   })
-  async unbindDevice(@WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload, @WalnutDBSession() dbSession: ClientSession) {
-    return this.userMfaTotpService.unbindTotp(user.userId, dbSession)
+  async unbindDevice(@WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload, @WalnutDBSession() ctx: WalnutTxContext) {
+    return this.userMfaTotpService.unbindTotp(user.userId, ctx.dbSession!)
   }
 
   @Post('verify')
@@ -83,10 +83,10 @@ export class SysUserMfaTotpController {
     @WalnutAdminDecoratorJti() jti: string,
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: SysUserMfaDeviceVerifyTotpDTO,
   ) {
-    const newAccessToken = await this.userMfaTotpService.verifyTotp(jti, deviceId, user, dto, dbSession)
+    const newAccessToken = await this.userMfaTotpService.verifyTotp(jti, deviceId, user, dto, ctx.dbSession!)
     return new AuthSuccessDTO({ accessToken: newAccessToken })
   }
 
@@ -100,9 +100,9 @@ export class SysUserMfaTotpController {
   })
   async updateStatus(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: SysUserMfaUpdateStatusDTO,
   ) {
-    return this.userMfaTotpService.updateStatus(user.userId, dto.status, dbSession)
+    return this.userMfaTotpService.updateStatus(user.userId, dto.status, ctx.dbSession!)
   }
 }

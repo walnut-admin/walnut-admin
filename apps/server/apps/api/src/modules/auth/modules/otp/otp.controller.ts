@@ -10,9 +10,9 @@ import {
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
+
 import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { SysUserIdentitySharedService } from '@/modules/system/user_identity/shared/user_identity.shared.service'
@@ -64,7 +64,7 @@ export class OtpController {
   async authWithOtp(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
     @Body() payload: OtpVerifyDTO,
   ) {
@@ -73,7 +73,7 @@ export class OtpController {
       payload.identifier,
       user,
       deviceId,
-      dbSession,
+      ctx.dbSession!,
     )
 
     // Mark identity as verified after successful OTP validation
@@ -81,7 +81,7 @@ export class OtpController {
       user.userId,
       OtpIdentityTypeMap[payload.type],
       'login',
-      dbSession,
+      ctx.dbSession,
     )
 
     // Set refresh token jti to cookie

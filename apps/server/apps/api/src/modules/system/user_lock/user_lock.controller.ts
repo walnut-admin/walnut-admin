@@ -1,9 +1,9 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Request } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
+
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
 import { SysUserLockDoLockDto, SysUserLockPreferenceDTO, SysUserLockUnLockDto } from './dto/user_lock.dto'
@@ -39,11 +39,11 @@ export class SysUserLockController {
   async lock(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() session: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
     @Body() payload: SysUserLockDoLockDto,
   ) {
-    return this.lockService.lock(user.userId, deviceId, req.fingerprint, payload, session)
+    return this.lockService.lock(user.userId, deviceId, req.fingerprint, payload, ctx.dbSession!)
   }
 
   @Patch('unlock')
@@ -57,10 +57,10 @@ export class SysUserLockController {
   async unlock(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() session: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
     @Body() payload: SysUserLockUnLockDto,
   ) {
-    return this.lockService.unlock(user.userId, deviceId, req.fingerprint, payload, session)
+    return this.lockService.unlock(user.userId, deviceId, req.fingerprint, payload, ctx.dbSession!)
   }
 }

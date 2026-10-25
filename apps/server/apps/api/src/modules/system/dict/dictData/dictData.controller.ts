@@ -5,9 +5,9 @@ import {
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
-import { ClientSession } from 'mongoose'
+
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
@@ -81,11 +81,11 @@ export class SysDictDataController {
   @WalnutDBTransaction()
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() session: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamMongoId() id: string,
   ) {
     return new SysDictDataDTODeleteResponse(
-      (await this.dictDataService.delete(id, user.userId, session)).toObject(),
+      (await this.dictDataService.delete(id, user.userId, ctx.dbSession!)).toObject(),
     )
   }
 

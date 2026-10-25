@@ -1,8 +1,8 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
+
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
 import { WalnutAdminGuardMFAFree } from '@/guard/mfa.guard'
@@ -92,7 +92,7 @@ export class SysUserMfaWebauthnController {
     @WalnutAdminDecoratorJti() jti: string,
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: SysUserMfaWebauthnAuthenticateVerifyDTO,
   ) {
     const newAccessToken = await this.userMfaWebauthnService.verifyAuthentication(
@@ -100,7 +100,7 @@ export class SysUserMfaWebauthnController {
       deviceId,
       user,
       dto,
-      dbSession,
+      ctx.dbSession!,
     )
     return new AuthSuccessDTO({ accessToken: newAccessToken })
   }

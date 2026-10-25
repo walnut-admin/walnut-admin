@@ -3,6 +3,7 @@ import type { Request, Response } from 'express'
 import type { ClientSession } from 'mongoose'
 import type { IResult } from 'ua-parser-js'
 import type { LocaleType } from '@walnut/contract'
+import type { WalnutTxContext } from '@walnut-server/db'
 
 declare global {
   namespace Express {
@@ -83,6 +84,13 @@ declare global {
      * @description Used with `@WalnutDBTransaction` and `@WalnutDBSession` to get mongodb transaction
      */
     mongooseSession?: ClientSession
+
+    /**
+     * @description Used with `@WalnutDBTransaction` and `@WalnutDBSession` to get the
+     * dual-engine transaction context (PG EntityManager + Mongo ClientSession).
+     * Populated by WalnutTxInterceptor (tx.interceptor.ts).
+     */
+    txContext?: WalnutTxContext
 
     /**
      * @description Used with `@WalnutAdminDecoratorDecryptRequest` to get decrypted request body

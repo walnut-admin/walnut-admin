@@ -3,9 +3,9 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstAppSettingAuthOAuthGoogleKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
+
 import { WalnutAdminDecoratorFunctionalGuard } from '@/decorators/walnut/functional.decorator'
 import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
@@ -41,10 +41,10 @@ export class AuthGoogleController {
   async login(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
   ) {
-    const { accessToken, refreshTokenJti, authSessionKey } = await this.authGoogleService.authWithGoogleFedCM(user, deviceId, dbSession)
+    const { accessToken, refreshTokenJti, authSessionKey } = await this.authGoogleService.authWithGoogleFedCM(user, deviceId, ctx.dbSession!)
 
     // set refresh token jti to cookie
     this.authCookieService.setRTJtiCookie(req, refreshTokenJti)

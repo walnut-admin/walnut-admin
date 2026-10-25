@@ -15,14 +15,14 @@ import {
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamArray } from '@walnut-server/decorators/params'
 
 import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 import { getAllConstraints } from '@walnut-server/utils/response'
 import { LocaleType } from '@walnut/contract'
 import { ValidationError } from 'class-validator'
-import { ClientSession } from 'mongoose'
+
 import { WalnutCrudDecorators } from '@/decorators/crud'
 
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
@@ -127,10 +127,10 @@ export class SysLocaleController {
   @WalnutAdminDecoratorCreate()
   @WalnutDBTransaction()
   async create(
-    @WalnutDBSession() session: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @TransformedLocaleBody() payload: SysLocaleDTOCreateRequest[],
   ) {
-    const res = await this.localeService.create(payload, session)
+    const res = await this.localeService.create(payload, ctx.dbSession!)
     return res.map(i => new SysLocaleDTOCreateResponse(i.toObject()))
   }
 
@@ -144,10 +144,10 @@ export class SysLocaleController {
   @WalnutAdminDecoratorUpdate()
   @WalnutDBTransaction()
   async update(
-    @WalnutDBSession() session: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @TransformedLocaleBody() payload: SysLocaleDTOUpdateRequest[],
   ) {
-    const res = await this.localeService.update(payload, session)
+    const res = await this.localeService.update(payload, ctx.dbSession!)
     return res.map(i => new SysLocaleDTOUpdateResponse(i.toObject()))
   }
 
@@ -156,10 +156,10 @@ export class SysLocaleController {
   @WalnutDBTransaction()
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() session: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Param('key') key: string,
   ) {
-    const res = await this.localeService.deleteByKey(key, user.userId, session)
+    const res = await this.localeService.deleteByKey(key, user.userId, ctx.dbSession!)
     return res.map(i => new SysLocaleDTODeleteResponse(i.toObject()))
   }
 
@@ -168,10 +168,10 @@ export class SysLocaleController {
   @WalnutDBTransaction()
   async deleteMany(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() session: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamArray({ fieldName: 'keys' }) keys: string[],
   ) {
-    const res = await this.localeService.deleteManyByKey(keys, user.userId, session)
+    const res = await this.localeService.deleteManyByKey(keys, user.userId, ctx.dbSession!)
     return res.map(i => new SysLocaleDTODeleteResponse(i.toObject()))
   }
 

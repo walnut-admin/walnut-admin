@@ -1,11 +1,11 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Put } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
-import { ClientSession } from 'mongoose'
+
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { SysUserDTOSafe } from '../dto/user.dto'
@@ -45,9 +45,9 @@ export class SysUserMeController {
   })
   async getSecurityTab2Status(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
   ) {
-    return this.userMeService.getSecurityTab2Status(user.userId, dbSession)
+    return this.userMeService.getSecurityTab2Status(user.userId, ctx.dbSession!)
   }
 
   @Get('profile')

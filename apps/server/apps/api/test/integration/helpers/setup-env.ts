@@ -15,3 +15,6 @@ import { INTEGRATION_DATABASE_NAME } from './integration.const'
  */
 process.env.NODE_ENV = 'development'
 process.env.DATABASE_NAME = INTEGRATION_DATABASE_NAME
+// PG 集成库与 Mongo 集成库同名但独立实例：globalSetup 编程式跑 migration，
+// 运行时 PG DataSource（pg.config.ts 读 DATABASE_PG_NAME）必须指向同一个库
+process.env.DATABASE_PG_NAME = INTEGRATION_DATABASE_NAME

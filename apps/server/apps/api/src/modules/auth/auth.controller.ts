@@ -10,9 +10,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
-import { ClientSession } from 'mongoose'
+
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'
 import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
@@ -55,10 +55,10 @@ export class AuthController {
   async signout(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
   ) {
-    await this.authService.signout(user, deviceId, req.realIp, dbSession)
+    await this.authService.signout(user, deviceId, req.realIp, ctx.dbSession!)
     // clear refresh token in cookie
     this.cookieService.clearCookie(req, [{ key: WalnutAdminConstCookieKeys.RT_JTI }])
     return true

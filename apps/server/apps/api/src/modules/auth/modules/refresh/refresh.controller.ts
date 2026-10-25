@@ -7,9 +7,9 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
+
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'
 import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
@@ -46,10 +46,10 @@ export class AuthRefreshController {
   async refreshAccessTokenByRefreshToken(
     @WalnutAdminDecoratorJti() jti: string,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
   ) {
-    const newAccessToken = await this.authRefreshSharedService.getNewAccessToken(jti, deviceId, req.RT.sid, dbSession)
+    const newAccessToken = await this.authRefreshSharedService.getNewAccessToken(jti, deviceId, req.RT.sid, ctx.dbSession!)
 
     // set refresh token jti to cookie
     this.authCookieService.setRTJtiCookie(req, jti)

@@ -4,10 +4,10 @@ import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstAppSettingAuthOpaqueKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
-import { ClientSession } from 'mongoose'
+
 import { WalnutAdminDecoratorFunctionalGuard } from '@/decorators/walnut/functional.decorator'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
@@ -48,12 +48,12 @@ export class AuthOpaqueUserController {
   })
   async startLogin(
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
     @Body() dto: AuthOpaqueStartSignInDTO,
   ) {
     try {
-      return await this.authOpaqueCoreService.startLogin(dto.userName, dto.start, deviceId, dbSession)
+      return await this.authOpaqueCoreService.startLogin(dto.userName, dto.start, deviceId, ctx.dbSession!)
     }
     catch (error) {
       // Record failed auth log and risk
@@ -112,11 +112,11 @@ export class AuthOpaqueUserController {
   async finishLogin(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
     @Body() _dto: AuthOpaqueFinishSignInDTO,
   ) {
-    const { accessToken, refreshTokenJti, authSessionKey } = await this.authOpaqueCoreService.finishLogin(user, deviceId, dbSession)
+    const { accessToken, refreshTokenJti, authSessionKey } = await this.authOpaqueCoreService.finishLogin(user, deviceId, ctx.dbSession!)
 
     // set refresh token jti to cookie
     this.authCookieService.setRTJtiCookie(req, refreshTokenJti)
@@ -193,15 +193,15 @@ export class AuthOpaqueUserController {
   })
   async changePasswordFinish(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: AuthOpaqueFinishChangePasswordDTO,
   ) {
-    await this.signoutService.doSignout(user.userId, { trigger: 'security-policy', revokeReason: 'updatePass' }, dbSession)
+    await this.signoutService.doSignout(user.userId, { trigger: 'security-policy', revokeReason: 'updatePass' }, ctx.dbSession!)
 
     return this.authOpaqueCoreService.finishChangePassword(
       user.userName,
       dto.finish,
-      dbSession,
+      ctx.dbSession!,
     )
   }
 }

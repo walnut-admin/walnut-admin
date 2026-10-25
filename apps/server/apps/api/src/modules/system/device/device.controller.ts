@@ -2,10 +2,10 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, Req } from '@
 import { ApiParam, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
+
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
@@ -56,11 +56,11 @@ export class SysDeviceController {
   @WalnutDBTransaction()
   @WalnutAdminDecoratorThrottle(SysDeviceSettingService)
   async initial(
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
     @Body() payload: SysDeviceDTOInitialRequest,
   ) {
-    const { deviceId, locationInfo } = await this.deviceService.initial(req, payload, dbSession)
+    const { deviceId, locationInfo } = await this.deviceService.initial(req, payload, ctx.dbSession!)
 
     const maxAge = 30 * 24 * 60 * 60 * 1000
     // set device id cookie

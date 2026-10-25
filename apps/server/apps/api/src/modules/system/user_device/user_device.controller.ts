@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Put } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
+
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { SysUserLockUnLockDto } from '../user_lock/dto/user_lock.dto'
@@ -66,10 +66,10 @@ export class SysUserDeviceController {
   })
   async forceQuitUserDevice(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Param('deviceId') deviceId: string,
   ) {
-    await this.userDeviceService.forceQuitUserDevice(user.userId, deviceId, dbSession)
+    await this.userDeviceService.forceQuitUserDevice(user.userId, deviceId, ctx.dbSession!)
     return true
   }
 
@@ -83,10 +83,10 @@ export class SysUserDeviceController {
   })
   async lockUserDevice(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Param('deviceId') deviceId: string,
   ) {
-    await this.userDeviceService.lockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, dbSession)
+    await this.userDeviceService.lockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, ctx.dbSession!)
     return true
   }
 
@@ -100,11 +100,11 @@ export class SysUserDeviceController {
   })
   async unlockUserDevice(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Param('deviceId') deviceId: string,
     @Body() body: SysUserLockUnLockDto,
   ) {
-    await this.userDeviceService.unlockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, body.lockPwdHash!, dbSession)
+    await this.userDeviceService.unlockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, body.lockPwdHash!, ctx.dbSession!)
     return true
   }
 }

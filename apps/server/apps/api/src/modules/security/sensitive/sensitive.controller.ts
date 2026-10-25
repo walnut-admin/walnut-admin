@@ -1,10 +1,9 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Request } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
-import { ClientSession } from 'mongoose'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { getOperationStrategy } from './sensitive.config'
@@ -61,7 +60,7 @@ export class SecuritySensitiveController {
   })
   async verify(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
     @Body() dto: SecuritySensitiveVerifyRequestDTO,
   ) {
@@ -76,7 +75,7 @@ export class SecuritySensitiveController {
       dto.method,
       dto.credential,
       strategy.supportedMethods,
-      dbSession,
+      ctx.dbSession,
     )
 
     return true

@@ -1,9 +1,11 @@
-import type { INestApplication } from '@nestjs/common'
+import type { DynamicModule, INestApplication, Provider, Type } from '@nestjs/common'
 import type { Connection } from 'mongoose'
+import type { DataSource } from 'typeorm'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { getConnectionToken } from '@nestjs/mongoose'
 import { Test } from '@nestjs/testing'
-import { WalnutDBConnectionName } from '@walnut-server/db'
+import { getDataSourceToken } from '@nestjs/typeorm'
+import { WalnutDBConnectionName, WalnutPGConnectionName } from '@walnut-server/db'
 
 import { createCache } from 'cache-manager'
 import { AppModule } from '@/app/app.module'
@@ -22,10 +24,18 @@ import { INTEGRATION_DATABASE_NAME } from './integration.const'
  * vite 侧 inline / alias 都钉不干净——经 vite 转换的模块与 native require 的模块
  * 即使同一物理文件也是不同实例，类身份无法统一）。
  * 本套测试验证的是 Repository 层的 Mongo 语义，不依赖 Redis 缓存，内存实现即可。
+ *
+ * @param extraImports 额外追加的模块（如给 PG 侧补 `TypeOrmModule.forFeature` 实体注册）。
+ * @param extraProviders 额外追加的 provider（如测试内联的 PG 版仓库子类）。
+ * 两者缺省为空，装配与 `app.e2e-spec.ts` 完全一致。
  */
-export async function createIntegrationApp(): Promise<INestApplication> {
+export async function createIntegrationApp(
+  extraImports: (DynamicModule | Type)[] = [],
+  extraProviders: Provider[] = [],
+): Promise<INestApplication> {
   const moduleRef = await Test.createTestingModule({
-    imports: [AppModule],
+    imports: [AppModule, ...extraImports],
+    providers: extraProviders,
   })
     .overrideProvider(CACHE_MANAGER)
     .useValue(createCache())
@@ -35,6 +45,7 @@ export async function createIntegrationApp(): Promise<INestApplication> {
   await app.init()
 
   ensureIntegrationDatabase(app)
+  ensureIntegrationPgDatabase(app)
 
   return app
 }
@@ -46,6 +57,14 @@ export async function createIntegrationApp(): Promise<INestApplication> {
  */
 export function getWalnutConnection(app: INestApplication): Connection {
   return app.get<Connection>(getConnectionToken(WalnutDBConnectionName))
+}
+
+/**
+ * PG 命名连接（`WalnutPGConnectionName`，libs/db/src/pg.module.ts）。
+ * 双引擎事务与 PG 版仓库骨架的测试都从这取 DataSource。
+ */
+export function getWalnutPgDataSource(app: INestApplication): DataSource {
+  return app.get<DataSource>(getDataSourceToken(WalnutPGConnectionName))
 }
 
 /**
@@ -61,6 +80,21 @@ export function ensureIntegrationDatabase(app: INestApplication): void {
   if (dbName !== INTEGRATION_DATABASE_NAME) {
     throw new Error(
       `[integration] expected dbName "${INTEGRATION_DATABASE_NAME}", got "${dbName}" — refusing to run against anything else`,
+    )
+  }
+}
+
+/**
+ * PG 侧同款 fail-fast 守卫：运行时 DataSource 的库名必须是集成库。
+ * DataSource 的 database 选项即库名（本仓不连到 maintenance 库跑业务查询）。
+ */
+export function ensureIntegrationPgDatabase(app: INestApplication): void {
+  const dataSource = getWalnutPgDataSource(app)
+
+  const dbName = dataSource.options.database as string | undefined
+  if (dbName !== INTEGRATION_DATABASE_NAME) {
+    throw new Error(
+      `[integration] expected pg database "${INTEGRATION_DATABASE_NAME}", got "${dbName}" — refusing to run against anything else`,
     )
   }
 }
