@@ -72,7 +72,8 @@ export class SysDeletedService {
 
     try {
       // recover to original collection
-      await targetModel.create(JSON.parse(deleted.content) as Recordable, { session: dbSession })
+      // NOTICE: mongoose 9 的 create 单文档签名不收 options（第二参被当待建文档、session 被静默丢弃），带 session 必须传数组
+      await targetModel.create([this.restoreSnapshotContent(deleted.content)], { session: dbSession })
     }
     catch (e) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.delete.recoverFail', _devMsg: e as string })
@@ -102,14 +103,9 @@ export class SysDeletedService {
     const TargetModel = this.SysDeletedModel.db.model(deleted.modelName)
 
     try {
-      const deletedContent = Object.fromEntries(Object.entries(JSON.parse(deleted.content) as Recordable).map(([k, v]) => {
-        if (isObjectIdOrHexString(v)) {
-          return [k, new Types.ObjectId(`${v}`)]
-        }
-        return [k, v]
-      }))
       // recover to original collection
-      await TargetModel.create(deletedContent, { session: dbSession })
+      // NOTICE: mongoose 9 的 create 单文档签名不收 options（第二参被当待建文档、session 被静默丢弃），带 session 必须传数组
+      await TargetModel.create([this.restoreSnapshotContent(deleted.content)], { session: dbSession })
     }
     catch (e) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.delete.recoverFail', _devMsg: e as string })
@@ -119,5 +115,21 @@ export class SysDeletedService {
     await this.SysDeletedModel.findByIdAndDelete(deleted._id).session(dbSession)
 
     return true
+  }
+
+  /**
+   * 快照 content（JSON 序列化产物）还原成待恢复文档。两条恢复路径（recover / recoverMine）
+   * 必须走同一转换，语义是「恢复出的文档与被删时一致」：
+   * - ObjectId 落进快照是 hex 字符串，恢复时转回 `Types.ObjectId`；
+   * - 目标 schema 的 `@Prop({ type: Types.ObjectId })` 运行时是 Mixed（不 cast），写入什么存什么，
+   *   不在这里显式转换的话 hex 字符串会原样入库。
+   */
+  private restoreSnapshotContent(content: string): Recordable {
+    return Object.fromEntries(Object.entries(JSON.parse(content) as Recordable).map(([k, v]) => {
+      if (isObjectIdOrHexString(v)) {
+        return [k, new Types.ObjectId(`${v}`)]
+      }
+      return [k, v]
+    }))
   }
 }

@@ -10,20 +10,20 @@ import { SysDeletedService } from '@/modules/system/deleted/deleted.service'
 import { createIntegrationApp, getWalnutConnection } from './helpers/create-integration-app'
 
 /**
- * 基线（characterization）：回收站恢复端到端 —— `SysDeletedService.recover`（manage）
- * 与 `recoverMine`（本人）的差异现状。服务层的 dbSession 在真实请求里由
- * TransactionInterceptor 塞进 request，这里直接从命名连接开 session 传入。
+ * 基线：回收站恢复端到端 —— `SysDeletedService.recover`（manage）与 `recoverMine`（本人）
+ * 两条路径走 service 里同一个 `restoreSnapshotContent` 转换，存库形态一致。
+ * 服务层的 dbSession 在真实请求里由 TransactionInterceptor 塞进 request，这里直接从
+ * 命名连接开 session 传入。
  *
- * 已固化的现状怪癖（迁移对比重点）：
- * 1. Service 里恢复用的是 mongoose 9 的 `Model.create(doc, { session })` **非数组**形式 ——
- *    mongoose 会把第二参 options 当作**第二个待创建文档**（被 strict mode 剥成只剩默认值的
- *    空文档，demoString: null），且 session 被静默丢弃（mongoose 发 WARNING）→ 恢复写入实际
- *    **逃逸事务**，并在 app_demo 里多出一条 demoString: null 的垃圾文档（见各用例的 +1 断言）。
- *    仓储 base 的 create 是数组形式（session 生效），事务语义见 transaction.int-spec.ts。
+ * 固化的行为（迁移对比重点）：
+ * 1. 恢复写入走 mongoose 9 的 `Model.create([doc], { session })` **数组**形式 —— 带 session
+ *    必须传数组（单文档签名 `create(doc, options)` 不收 options：第二参被当待建文档、
+ *    session 被静默丢弃并触发 mongoose WARNING，恢复写会逃逸事务）。数组形式下恢复是
+ *    原子的（回滚语义见 transaction.int-spec.ts），原集合**不会**多出 demoString: null
+ *    的垃圾文档 —— 各用例的垃圾文档计数断言同时是「改回单文档签名」的回归守卫。
  * 2. demo schema 的 `demoMongoId` 路径在运行时是 **Mixed**（`@Prop({ type: Types.ObjectId })`
- *    经 SchemaFactory 落地后 instance 为 Mixed），不做任何 cast：写入什么就存什么。
- *    于是 recover（显式 `new Types.ObjectId` 转换）恢复出 ObjectId，recoverMine（裸 JSON 字符串）
- *    恢复出**字符串** —— 两条恢复路径存库形态**并不一致**，这是 PG 侧 join 对比的关键差异。
+ *    落地后不 cast，写入什么存什么）：快照里的 hex 字符串由 restoreSnapshotContent 显式
+ *    转回 ObjectId，两条恢复路径恢复出的文档都与被删时形态一致。
  */
 describe('SysDeletedService recover (characterization on real MongoDB)', () => {
   let app: INestApplication
@@ -44,7 +44,7 @@ describe('SysDeletedService recover (characterization on real MongoDB)', () => {
   }
 
   async function countGarbageDocs(): Promise<number> {
-    // create(doc, { session }) 的第二参被当作文档后，strict mode 剥出 demoString: null 的垃圾文档
+    // demoString: null 是逃逸事务写入的垃圾签名（strict mode 把误当文档的 options 剥成只剩默认值）
     return demoRepo.dbModel.countDocuments({ demoString: null })
   }
 
@@ -80,7 +80,7 @@ describe('SysDeletedService recover (characterization on real MongoDB)', () => {
     connection = getWalnutConnection(app)
   })
 
-  // 清理上一条用例恢复路径遗留的垃圾文档（demoString: null），保证用例互相独立
+  // 清理历史遗留的垃圾文档（demoString: null），保证用例互相独立
   afterEach(async () => {
     await demoRepo.dbModel.deleteMany({ demoString: null })
   })
@@ -89,7 +89,7 @@ describe('SysDeletedService recover (characterization on real MongoDB)', () => {
     await app.close()
   })
 
-  it('recover：文档回原集合，ObjectId 字段真的是 ObjectId，快照被移除', async () => {
+  it('recover：文档回原集合，ObjectId 字段真的是 ObjectId，快照被移除，不产生额外文档', async () => {
     const { created, record } = await createSoftDeletedDemo()
     const garbageBefore = await countGarbageDocs()
 
@@ -104,7 +104,7 @@ describe('SysDeletedService recover (characterization on real MongoDB)', () => {
       throw new Error('expected recovered document in app_demo')
     }
 
-    // recover 显式把 isObjectIdOrHexString 的顶层值转回 `new Types.ObjectId`
+    // restoreSnapshotContent 把快照里的 hex 字符串转回 `Types.ObjectId`
     expect(restored._id).toBeInstanceOf(Types.ObjectId)
     expect(restored._id.toString()).toBe(created._id.toString())
     expect(restored.demoMongoId).toBeInstanceOf(Types.ObjectId)
@@ -116,9 +116,8 @@ describe('SysDeletedService recover (characterization on real MongoDB)', () => {
     // sys_deleted 里的快照被删掉
     expect(await deletedRepo.dbModel.countDocuments({ _id: record._id })).toBe(0)
 
-    // characterization：create(doc, { session }) 的 session 被丢弃 + 第二参被当成第二个文档
-    // → 恢复写入逃逸事务，app_demo 里多出一条 demoString: null 的垃圾文档
-    expect(await countGarbageDocs()).toBe(garbageBefore + 1)
+    // create 走数组形式、session 生效：恢复写入不逃逸事务，原集合不产生 demoString: null 的垃圾文档
+    expect(await countGarbageDocs()).toBe(garbageBefore)
   })
 
   it('recover：deletedId 不匹配 → BadRequest，快照保留、原集合不出现文档', async () => {
@@ -138,12 +137,10 @@ describe('SysDeletedService recover (characterization on real MongoDB)', () => {
     expect(await countGarbageDocs()).toBe(garbageBefore)
   })
 
-  it('recoverMine：不做显式 ObjectId 转换，demoMongoId 以字符串存取（characterization：与 recover 的存库形态不一致）', async () => {
-    // 与 recover 对照：recoverMine 直接 create(JSON.parse(content))，
-    // 没有 recover 里的 isObjectIdOrHexString → new Types.ObjectId 转换。
-    // demo schema 的 demoMongoId 路径运行时是 Mixed（不 cast），字符串原样入库；
-    // `_id`（mongoose 特殊处理）与 createdAt/updatedAt（timestamps）仍会 cast 回
-    // ObjectId / Date。迁移 PG 时两条恢复路径的存库形态差异以此为准。
+  it('recoverMine：与 recover 同一转换，demoMongoId 恢复为 ObjectId（两条路径存库形态一致）', async () => {
+    // recoverMine 与 recover 走同一个 restoreSnapshotContent：快照里的 hex 字符串转回
+    // ObjectId 后入库（Mixed 路径不 cast，写入什么存什么）；`_id`（mongoose 特殊处理）
+    // 与 createdAt/updatedAt（timestamps）由 schema cast 回 ObjectId / Date。
     const owner = new Types.ObjectId()
     const { created, record } = await createSoftDeletedDemo(owner)
     const garbageBefore = await countGarbageDocs()
@@ -162,16 +159,16 @@ describe('SysDeletedService recover (characterization on real MongoDB)', () => {
 
     expect(restored._id).toBeInstanceOf(Types.ObjectId)
     expect(restored._id.toString()).toBe(created._id.toString())
-    // Mixed 路径不 cast：快照里的 hex 字符串原样存取
-    expect(restored.demoMongoId).toBe(created.demoMongoId.toString())
-    expect(typeof restored.demoMongoId).toBe('string')
+    // 与 recover 一致：demoMongoId 恢复为 ObjectId，不再是快照里的 hex 字符串
+    expect(restored.demoMongoId).toBeInstanceOf(Types.ObjectId)
+    expect(restored.demoMongoId.toString()).toBe(created.demoMongoId.toString())
     expect(restored.createdAt).toBeInstanceOf(Date)
     expect(restored.demoString).toBe(created.demoString)
 
     expect(await deletedRepo.dbModel.countDocuments({ _id: record._id })).toBe(0)
 
-    // 同 recover：session 丢弃 + 垃圾文档 +1
-    expect(await countGarbageDocs()).toBe(garbageBefore + 1)
+    // 同 recover：恢复写入不逃逸事务，不产生垃圾文档
+    expect(await countGarbageDocs()).toBe(garbageBefore)
   })
 
   it('recoverMine：deletedBy 不是本人 → BadRequest', async () => {

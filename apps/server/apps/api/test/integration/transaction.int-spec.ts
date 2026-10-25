@@ -10,6 +10,7 @@ import { Types } from 'mongoose'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AppDemoBasicRepository } from '@/modules/app/demo/demo.basic.repository'
 import { SysDeletedBasicRepository } from '@/modules/system/deleted/deleted.basic.repository'
+import { SysDeletedService } from '@/modules/system/deleted/deleted.service'
 import { createIntegrationApp, getWalnutConnection } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 
@@ -24,6 +25,7 @@ describe('MongoDB transaction semantics (characterization on real replica set)',
   let app: INestApplication
   let demoRepo: AppDemoBasicRepository
   let deletedRepo: SysDeletedBasicRepository
+  let deletedService: SysDeletedService
   let connection: ReturnType<typeof getWalnutConnection>
 
   const userId = new Types.ObjectId().toString()
@@ -55,6 +57,7 @@ describe('MongoDB transaction semantics (characterization on real replica set)',
     app = await createIntegrationApp()
     demoRepo = app.get(AppDemoBasicRepository)
     deletedRepo = app.get(SysDeletedBasicRepository)
+    deletedService = app.get(SysDeletedService)
     connection = getWalnutConnection(app)
   })
 
@@ -81,6 +84,29 @@ describe('MongoDB transaction semantics (characterization on real replica set)',
     // 软删的两步写入（sys_deleted 快照 + app_demo 删除）全部回滚
     expect(await demoRepo.dbModel.countDocuments({ _id: created._id })).toBe(1)
     expect(await deletedRepo.dbModel.countDocuments({ deletedId: created._id })).toBe(0)
+  })
+
+  it('回滚：withTransaction 内 recover 后抛错 → 恢复文档与快照删除全部回滚', async () => {
+    const created = await demoRepo.create(uniqueDemoPayload())
+    await demoRepo.deleteSoftById(created._id.toString(), userId)
+
+    const record = await deletedRepo.dbModel.findOne({ deletedId: created._id })
+    if (!record) {
+      throw new Error('expected sys_deleted snapshot to exist after soft delete')
+    }
+
+    await expect(runInSessionStore(async (session) => {
+      await deletedService.recover(
+        { _id: record._id.toString(), deletedId: record.deletedId.toString() },
+        session,
+      )
+      throw new Error('rollback recover on purpose')
+    })).rejects.toThrow('rollback recover on purpose')
+
+    // recover 的两步写入（app_demo 恢复 + sys_deleted 快照删除）都走同一个 session 才可回滚 ——
+    // create 若脱离数组形式，恢复写会逃逸事务：回滚后 app_demo 留下恢复的文档而快照仍在，恢复不再原子
+    expect(await demoRepo.dbModel.countDocuments({ _id: created._id })).toBe(0)
+    expect(await deletedRepo.dbModel.countDocuments({ _id: record._id })).toBe(1)
   })
 
   it('提交：withTransaction 内 create + deleteSoftById → 软删生效且快照落库', async () => {
