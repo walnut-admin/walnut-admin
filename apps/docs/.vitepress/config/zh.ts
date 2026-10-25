@@ -283,6 +283,8 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: '0017 包重组', link: '/content/adr/0017-package-reorganization' },
         { text: '0018 Git 钩子迁 lefthook', link: '/content/adr/0018-git-hooks-lefthook' },
         { text: '0019 tsconfig 预设与无 .mjs', link: '/content/adr/0019-tsconfig-presets-and-no-mjs' },
+        { text: '0020 移除 auto-import', link: '/content/adr/0020-remove-unplugin-auto-import' },
+        { text: '0021 MongoDB 迁 PostgreSQL', link: '/content/adr/0021-postgresql-migration' },
         { text: 'Zod vs class-validator 评估', link: '/content/adr/zod-evaluation' },
       ],
     },
