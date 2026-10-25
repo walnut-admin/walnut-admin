@@ -37,6 +37,7 @@
     "test:cov": "vitest run --config ./apps/api/vitest.config.ts --coverage",
     "test:debug": "vitest --inspect-brk --inspect --logHeapUsage --threads=false --config ./apps/api/vitest.config.ts",
     "test:e2e": "vitest run --config ./apps/api/vitest.config.e2e.ts",
+    "test:integration": "vitest run --config ./apps/api/vitest.config.integration.ts",
     "test:pw": "esno playwright/example.ts",
     "gen:doc": "@compodoc/compodoc -p tsconfig.json -s",
     "check:update": "npm-check-updates -i",
