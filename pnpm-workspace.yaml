@@ -158,6 +158,7 @@ catalog:
   '@nestjs/terminus': 11.1.1
   '@nestjs/testing': 11.1.17
   '@nestjs/throttler': 6.5.0
+  '@nestjs/typeorm': 12.0.2
   '@nestjs/websockets': 11.1.17
   '@scalar/nestjs-api-reference': 1.1.5
   '@sentry/vite-plugin': 5.2.1
@@ -285,6 +286,7 @@ catalog:
   passport-jwt: 4.0.1
   passport-local: 1.0.0
   passport-oauth2: 1.8.0
+  pg: 8.23.1
   pinia: 3.0.4
   playwright: 1.59.0
   qrcode: 1.5.4
@@ -315,6 +317,7 @@ catalog:
   tinymce: 8.5.0
   ts-json-schema-generator: 2.9.1-next.18
   turbo: 2.11.2
+  typeorm: 1.1.2
   typescript: 6.0.3
   ua-parser-js: 2.0.9
   unocss: 66.6.8
