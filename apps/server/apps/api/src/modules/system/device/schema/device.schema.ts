@@ -12,6 +12,11 @@ import { SharedGeoPointDTO, SharedHardwareDTO, SharedHeightWidthDTO, SharedIpLoc
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { addVirtualMonitorUserThroughDeviceId, IVirtualMonitorUser } from '@/common/model/virtual/monitorUser'
 
+/**
+ * B6 起本 schema 不再注册进 Mongoose（模型注册随迁移从 device.module / repo.module
+ * 摘除），仅作为 DTO 链的校验/swagger 元数据基座保留；@Prop / virtual 不再有运行时
+ * 语义。PG 实体见 ../entity/device.entity.ts（phase2 4.8）。
+ */
 export type ISysDeviceDocument = HydratedDocument<
   SysDeviceModel & ISysDeviceMethods & IVirtualMonitorUser
 >

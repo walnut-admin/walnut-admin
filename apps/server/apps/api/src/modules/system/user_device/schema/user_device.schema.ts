@@ -28,6 +28,11 @@ interface ISysUserDeviceMethods { }
 
 interface ISysUserDeviceStatics { }
 
+/**
+ * B6 起本 schema 不再注册进 Mongoose（模型注册随迁移摘除），仅作为 DTO 链的
+ * 校验/swagger 元数据基座保留；@Prop / virtual 不再有运行时语义。
+ * userId 的 uuid 校验在 DTO 子类重声明（同 B1 模板）；deviceId 保持字符串业务键。
+ */
 export const DeviceLinkConst = {
   USER: 'user',
   ADMIN: 'admin',
@@ -53,13 +58,15 @@ export class SysUserDeviceModel extends WalnutAdminCommonBasicModel {
   @Prop({ type: String, default: null })
   deviceName: string
 
+  // B6：PG 侧 user_id 是 uuid（FK → sys_user(id)，phase2 4.9）；属性 TS 类型随列型
+  // 放开为 string（uuid 校验在 DTO 子类重声明接管）
   @WalnutAdminDecoratorFieldMongoId({
     swaggerOptions: {
       title: 'user id',
     },
   })
   @Prop({ type: Types.ObjectId, required: true, ref: WalnutDBModelName.SYS_USER })
-  userId: Types.ObjectId
+  userId: string
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {

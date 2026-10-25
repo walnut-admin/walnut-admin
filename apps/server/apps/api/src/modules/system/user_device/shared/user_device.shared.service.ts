@@ -1,13 +1,18 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { isDev } from '@walnut-server/config/utils/env'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
-import { ClientSession } from 'mongoose'
 import { AppMonitorUserRepositoryService } from '@/modules/app/monitor/user/repo/user.repo.service'
 import { SysDeviceRepositoryService } from '../../device/repo/device.repo.service'
 import { SysDeviceSharedService } from '../../device/shared/device.shared.service'
 import { SysUserDeviceRepositoryService } from '../repo/user_device.repo.service'
 
+/**
+ * B6 迁移：事务句柄签名 `dbSession?: ClientSession` → `em?: EntityManager`
+ * （本模块数据面已全量在 PG；仍有 Mongo 写腿的消费方（auth 系）经编译期红点逐一把
+ * session 参数摘除，见各消费方适配注释）。
+ */
 @Injectable()
 export class SysUserDeviceSharedService {
   private readonly logger = new Logger(SysUserDeviceSharedService.name)
@@ -26,25 +31,27 @@ export class SysUserDeviceSharedService {
   async getUserDeviceTrusted(
     userId: string,
     deviceId: string,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
     const device = await this.userDeviceRepo.findTrustedDevice(
       userId,
       deviceId,
-      dbSession,
+      em,
     )
     return this.userDeviceRepo.isTrustedAndValid(device)
   }
 
   /**
    * @description get all users by device id
+   * （基线语义原样保留：Mongo 版这个 filter 只放行 populated_user 缺失的行 —— 看似
+   * 反转、实为现状行为，PG 侧只把判等键从 _id 换成 id，不做"修正"）
    */
   async getAllUsersByDeviceId(deviceId: string) {
     const docs = await this.userDeviceRepo.findAllUserInCurrentDevice(deviceId)
     return docs
-      .filter(i => isNil(i.populated_user?._id))
+      .filter(i => isNil(i.populated_user?.id))
       .map(i => ({
-        ...i.populated_user?.toObject(),
+        ...(i.populated_user ?? {}),
         lastActiveAt: i.lastActiveAt,
       }))
   }
@@ -56,12 +63,12 @@ export class SysUserDeviceSharedService {
   async bindDeviceForUser(
     userId: string,
     deviceId: string,
-    dbSession: ClientSession,
+    em?: EntityManager,
   ) {
     this.logger.log(`Bind device for user, userId: ${userId}, deviceId: ${deviceId}`)
     const deviceName = await this.deviceRepo.getDeviceNameByDeviceId(
       deviceId,
-      dbSession,
+      em,
     )
 
     this.logger.log(`Extracted Device name: ${deviceName}`)
@@ -70,7 +77,7 @@ export class SysUserDeviceSharedService {
       userId,
       deviceId,
       deviceName,
-      dbSession,
+      em,
     )
   }
 
@@ -81,7 +88,7 @@ export class SysUserDeviceSharedService {
     userId: string,
     deviceId: string,
     trusted: boolean,
-    dbSession: ClientSession,
+    em?: EntityManager,
   ) {
     const trustedExpiredAt = trusted
       ? this.userDeviceRepo.getTrustedExpiredAt()
@@ -92,7 +99,7 @@ export class SysUserDeviceSharedService {
       deviceId,
       trusted,
       trustedExpiredAt,
-      dbSession,
+      em,
     )
   }
 
@@ -134,8 +141,9 @@ export class SysUserDeviceSharedService {
         // also delete monitor record
         await this.appMonitorUserRepo.delMonitorByDeviceId(device.deviceId)
 
-        if (res)
+        if (res) {
           deletedCount++
+        }
       }
     }
 

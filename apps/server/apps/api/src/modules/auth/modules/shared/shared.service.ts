@@ -34,7 +34,8 @@ export class AuthSharedService {
     this.logger.log(`Refresh Token JTI created, refreshTokenJti: ${refreshTokenJti}`)
 
     // 4. bind current device to user
-    const bindedDevice = await this.userDeviceSharedService.bindDeviceForUser(payload.userId, deviceId, dbSession)
+    // （B6：user_device 已迁 PG —— 写腿走 PG，签名适配摘掉 Mongo session；逻辑不动）
+    const bindedDevice = await this.userDeviceSharedService.bindDeviceForUser(payload.userId, deviceId)
     this.logger.log(`User Device bound, deviceId: ${bindedDevice.deviceId}`)
 
     return { accessToken, refreshTokenJti, authSessionKey: authSessionKey.toString('base64') }

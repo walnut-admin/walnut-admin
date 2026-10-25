@@ -11,7 +11,8 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
-import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
+import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
+import { plainToInstance } from 'class-transformer'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
 
@@ -42,6 +43,11 @@ const { WalnutAdminDecoratorList, WalnutAdminDecoratorRead } = WalnutCrudDecorat
   DTO: AppMonitorUserDTO,
 })
 
+/**
+ * B6 迁移（controller 层，B1 同款）：路由参数 ParamMongoId → uuid 参数装饰器；事务
+ * 句柄 `ctx.dbSession` → `ctx.em`；`.toObject()` 移除，出参统一 plainToInstance。
+ * forceQuit 的 refresh revoke 写腿仍在 Mongo（B7），同一事务里 em + dbSession 并传。
+ */
 @Controller('app/monitor/user')
 @ApiTags('app/monitor/user')
 export class AppMonitorUserController {
@@ -52,17 +58,13 @@ export class AppMonitorUserController {
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: AppMonitorUserDTOListRequest) {
-    return new AppMonitorUserDTOListResponse(
-      await this.monitorUserService.list(payload),
-    )
+    return plainToInstance(AppMonitorUserDTOListResponse, await this.monitorUserService.list(payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
-  async read(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new AppMonitorUserDTOReadResponse(
-      (await this.monitorUserService.read(id)).toObject(),
-    )
+  async read(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(AppMonitorUserDTOReadResponse, await this.monitorUserService.read(id))
   }
 
   @Delete('force-quit/:id')
@@ -76,9 +78,9 @@ export class AppMonitorUserController {
   })
   async forceQuit(
     @WalnutDBSession() ctx: WalnutTxContext,
-    @WalnutAdminDecoratorParamMongoId() id: string,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return this.monitorUserService.forceQuitByMonitorId(id, ctx.dbSession!)
+    return this.monitorUserService.forceQuitByMonitorId(id, ctx.em, ctx.dbSession!)
   }
 
   @Post('state')
@@ -93,6 +95,6 @@ export class AppMonitorUserController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Body() data: AppMonitorUserDTOUpdateState,
   ) {
-    return this.monitorUserService.updateState(deviceId, data, ctx.dbSession!)
+    return this.monitorUserService.updateState(deviceId, data, ctx.em)
   }
 }

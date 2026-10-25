@@ -1,18 +1,23 @@
+import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
-import { WalnutAdminCommonBasicRepository } from '@/common/repository/base.repository'
+import { InjectDataSource } from '@nestjs/typeorm'
+import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
-import {
-  ISysDeviceDocument,
-  ISysDeviceModel,
-} from './schema/device.schema'
+import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
+import { SysDeviceEntity } from './entity/device.entity'
 
+/**
+ * B6 迁移模板（repo 层）：类名与文件名保持不变（DI token 不动），基类从 Mongo 版
+ * `WalnutAdminCommonBasicRepository` 换成 PG 版。device 自身的 CRUD 全走基类公共面；
+ * 按业务键 device_id 的特有查询在 `SysDeviceRepositoryService`（QueryBuilder 语义对照
+ * Mongo 版，不拼原生 SQL）。
+ */
 @Injectable()
-export class SysDeviceBasicRepository extends WalnutAdminCommonBasicRepository<ISysDeviceDocument> {
+export class SysDeviceBasicRepository extends WalnutAdminCommonPgBaseRepository<SysDeviceEntity> {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SYS_DEVICE)
-    readonly dbModel: ISysDeviceModel,
+    @InjectDataSource(WalnutPGConnectionName)
+    dataSource: DataSource,
   ) {
-    super(dbModel)
+    super(SysDeviceEntity, WalnutDBModelName.SYS_DEVICE, dataSource)
   }
 }

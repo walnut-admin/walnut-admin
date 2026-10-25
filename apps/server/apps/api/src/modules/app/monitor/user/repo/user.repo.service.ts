@@ -1,87 +1,159 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
-import { ClientSession, QueryFilter, QueryOptions, Types, UpdateQuery } from 'mongoose'
-import { IAppMonitorUserDocument, IAppMonitorUserModel } from '../schema/user.schema'
+import { InjectDataSource } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
+import { DataSource } from 'typeorm'
+import { AppMonitorUserEntity } from '../entity/monitor-user.entity'
 
+export interface IMonitorPopulatedUserBrief {
+  id: string
+  userName: string | null
+}
+
+/**
+ * B6 迁移：Mongo model → PG 命名连接 DataSource。
+ *
+ * - userId / deviceId 是松引用（phase2 4.21 不建 FK）：user 侧查 PG `sys_user` 同源表
+ *   （B7 注册实体后换实体 JOIN；ETL 前为空数据窗口，phase3-plan §5）；
+ * - 事务句柄 `dbSession?: ClientSession` → `em?: EntityManager`（缺省连接级 manager）。
+ */
 @Injectable()
 export class AppMonitorUserRepositoryService {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.APP_MONITOR_USER)
-    private readonly appMonitorUserModel: IAppMonitorUserModel,
+    @InjectDataSource(WalnutPGConnectionName)
+    private readonly dataSource: DataSource,
   ) {}
 
+  private getManager(em?: EntityManager) {
+    return em ?? this.dataSource.manager
+  }
+
+  private getRepository(em?: EntityManager) {
+    return this.getManager(em).getRepository(AppMonitorUserEntity)
+  }
+
   /**
-   * @description find monitor user by filter and update
+   * @description find monitor by filter and update
+   * （Mongo 版 findOneAndUpdate(filter, update, options) 的窄化等价：filter 只剩
+   * visitorId、options 只剩 upsert；命中即整体赋值保存，未命中且 upsert 时插入后回读
+   * （让 DB 默认值列进实体），未命中且非 upsert 返回 null）
    */
   async findOneAndUpdate(
-    filter: QueryFilter<IAppMonitorUserDocument>,
-    update: UpdateQuery<IAppMonitorUserDocument>,
-    options: QueryOptions<IAppMonitorUserDocument>,
-    dbSession?: ClientSession,
+    filter: { visitorId: string },
+    update: Partial<AppMonitorUserEntity>,
+    options: { upsert: boolean },
+    em?: EntityManager,
   ) {
-    return this.appMonitorUserModel.findOneAndUpdate(
-      filter,
-      update,
-      options,
-    ).session(dbSession!)
+    const repository = this.getRepository(em)
+
+    const target = await repository.findOne({ where: filter })
+
+    if (!target) {
+      if (!options.upsert) {
+        return null
+      }
+
+      await repository.insert({ ...filter, ...update })
+      return repository.findOne({ where: filter })
+    }
+
+    Object.assign(target, update)
+    return repository.save(target)
   }
 
   /**
    * @description find monitor by monitor user document id
    */
-  async findByMonitorId(id: string, dbSession?: ClientSession) {
-    return this.appMonitorUserModel.findById(id).session(dbSession!)
+  async findByMonitorId(id: string, em?: EntityManager) {
+    return this.getRepository(em).findOne({ where: { id } })
   }
 
   /**
    * @description find active monitor by device id (not left)
    */
   async findActiveByDeviceId(deviceId: string) {
-    return this.appMonitorUserModel.findOne({ left: false, deviceId })
+    return this.getRepository().findOne({ where: { left: false, deviceId } })
+  }
+
+  /**
+   * @description find first monitor by device id（对齐 Mongo 版 deviceId virtual
+   * justOne 的"任取一行"语义，不筛 left）
+   */
+  async findFirstByDeviceId(deviceId: string, em?: EntityManager) {
+    return this.getRepository(em).findOne({ where: { deviceId } })
   }
 
   /**
    * @description delete monitor by device id
    */
   async delMonitorByDeviceId(deviceId: string) {
-    return this.appMonitorUserModel.findOneAndDelete({
-      deviceId,
-    })
+    const target = await this.getRepository().findOne({ where: { deviceId } })
+    if (!target) {
+      return null
+    }
+
+    const snapshot = { ...target }
+    await this.getRepository().remove(target)
+    return snapshot
   }
 
   /**
    * @description find all monitors by user id
    */
   async findAllByUserId(userId: string) {
-    return this.appMonitorUserModel.find({
-      userId: new Types.ObjectId(userId),
-    })
+    return this.getRepository().find({ where: { userId } })
   }
 
   /**
    * @description find monitor by user id and device id
    */
-  async findByUserIdAndDeviceId(userId: string, deviceId: string, dbSession?: ClientSession) {
-    return this.appMonitorUserModel.findOne({
-      userId: new Types.ObjectId(userId),
-      deviceId,
-    }).session(dbSession!)
+  async findByUserIdAndDeviceId(userId: string, deviceId: string, em?: EntityManager) {
+    return this.getRepository(em).findOne({ where: { userId, deviceId } })
   }
 
   /**
    * @description find monitor with populated user
+   * （Mongo 版 populate(USER, select nickName userName) → PG 侧按 user_id 查 sys_user
+   * 同源表；B7 注册 SysUserEntity 后换实体 JOIN）
    */
   async findActiveUserByDeviceId(deviceId: string) {
-    const monitorData = await this.appMonitorUserModel.findOne({
-      left: false,
-      deviceId,
-    })
+    const monitorData = await this.getRepository().findOne({ where: { left: false, deviceId } })
 
-    if (!monitorData)
+    if (monitorData === null || monitorData.userId === null) {
       return null
+    }
 
-    await monitorData.populate({ path: WalnutDBVirtualName.USER, select: 'nickName userName' })
+    return this.findUserBriefById(monitorData.userId)
+  }
 
-    return monitorData.populated_user
+  /**
+   * @description 按行 id 查 sys_user 简要字段（read 的 populated_user 出参）
+   */
+  async findUserBriefById(userId: string, em?: EntityManager) {
+    const user = await this.getManager(em)
+      .createQueryBuilder()
+      .select('u.id', 'id')
+      .addSelect('u.user_name', 'userName')
+      .addSelect('u.nick_name', 'nickName')
+      .from('sys_user', 'u')
+      .where('u.id = :userId', { userId })
+      .getRawOne<{ id: string, userName: string | null, nickName: string | null }>()
+
+    if (!user) {
+      return null
+    }
+
+    return user
+  }
+
+  /**
+   * @description 更新 monitor 行（cron 任务把过期访客置为未认证，对照 Mongo 版
+   * `monitorData.save()`）
+   */
+  async updateAuthState(monitor: AppMonitorUserEntity, em?: EntityManager) {
+    const repository = this.getRepository(em)
+    monitor.auth = false
+    monitor.userId = null
+    return repository.save(monitor)
   }
 }

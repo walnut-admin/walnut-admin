@@ -242,10 +242,11 @@ export class AuthRefreshSharedService {
     await this.sysUserSharedService.checkUserAndRoleStatus(populatedUser)
 
     // Step 3.5 - check user device trusted status
+    // （B6：user_device 已迁 PG —— 事务里的 Mongo session 不再传入，读走 PG 连接级；
+    // 签名适配，逻辑不动）
     const isTrusted = await this.sysUserDeviceSharedService.getUserDeviceTrusted(
       record.userId.toString(),
       record.deviceId,
-      dbSession,
     )
 
     // Step 4 - construct access token payload

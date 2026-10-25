@@ -33,7 +33,7 @@
 | B3 | dictType + dictData（FK 同批） | ✅ |
 | B4 | app_setting + app_key + shared_area（递归 CTE + CYCLE 兜底） | ✅ |
 | B5 | sys_menu（meta 拍平组装出参）+ sys_role + sys_role_menu；产出 defaultRole uuid 订正脚本 | ✅ |
-| B6 | sys_device + sys_user_device + app_monitor_user（双向环同批） | |
+| B6 | sys_device + sys_user_device + app_monitor_user（双向环同批） | ✅ |
 | B7 | SCC-A 账户团九表（user/identity/oauth/lock/mfa/preference/device/refresh + auth 全系 + security） | |
 | B8 | sys_log_operate + sys_log_auth + techniques/event（fire-and-forget 旁路） | |
 | B9 | sys_deleted 收尾：恢复注册表装配、recover/recoverMine PG 化、Mongo 侧下线 | |
@@ -73,6 +73,8 @@
   （`new Schema({}, { strict: false })`，集合 `int_spec_scratch`），用它的
   `create(..., { session })` 做事务性 Mongo 写。载体与迁移顺序无关，B10 随 Mongo 一起清理。
 - 并存冒烟：B7 增「同 ctx 双写、PG rollback 连带 Mongo abort」用例（B0 已有基础用例可扩展）。
+- B6 交付 `device.user-device.monitor.pg.int-spec`（设备三角对账基准：业务键 FK / CASCADE /
+  ipHistory 追加截断 / visitorId upsert / forceQuit 链路 / JOIN 版列表）。
 - B9/B10：删 Mongo 段 global-setup 与 Mongo int-spec。
 
 ## 4. ID 使用点清查（改造归属）
@@ -85,9 +87,9 @@
 | locale.pipe、lang.repo.service | B2 ✅（pipe 换 uuid 校验；lang.repo 两条聚合 SQL 重写） |
 | role.repo.service `$in` | B5 ✅（`In(uuid[])`；junction populate 同批） |
 | error.process.ts | B1 ✅（uuid 直传，删除 ObjectId 包装） |
-| monitor/user.repo.service | B6 |
+| monitor/user.repo.service | B6 ✅（`new ObjectId` → uuid 直传；user_device.repo 同批完成） |
 | user.crud / user.shared（defaultRole 消费点） | B7（前置：B5 订正脚本落地） |
-| user_device/user_identity/user_lock/user_mfa/totp/webauthn/user_preference/refresh.repo | B7 |
+| user_identity/user_lock/user_mfa/totp/webauthn/user_preference/refresh.repo | B7 |
 | log.operate.decorator / log.auth.shared.service | B8 |
 | deleted.service recover 链路 | B9 |
 
@@ -109,7 +111,17 @@
    本就为空），故 B5~B7 期间登录后的权限/路由生成走 PG 空数据，`getCorePermissions` 的
    root 分支需要 PG 里存在根菜单。集成测试以 PG fixture 直建覆盖该链路；运行时行为在
    B7（user 迁移 + 订正脚本落地）后归一。
-4. 审计旁路本就是 fire-and-forget 最终一致，不新增风险。
+4. **设备三角跨引擎 user 引用**（B6~B7）：`sys_user_device.user_id`（FK → sys_user）与
+   `app_monitor_user.user_id`（松引用）是 uuid 列，但 token 里的 userId 在 B7 ETL 前仍是
+   ObjectId hex —— 登录绑设备（bindDeviceForUser）、auth 访客的 monitor state（DTO 已换
+   IsUUID，hex 请求 400）、user 维度的锁定 / forceQuit 读写会以 22P02 / FK 拒绝呈现；
+   device.initial 与匿名 monitor state（无 userId）不受影响。消费方签名适配时已迁模块的
+   Mongo session 参数一律摘除（auth.shared / mfa.post / refresh.shared）或换双句柄并传
+   （forceQuit 的 PG 读 + Mongo revoke）；doSignout 的 refresh 写腿 B7 前仍在 Mongo，
+   uuid 传参过不了 ObjectId 构造（int-spec 钉住现状）。populate user 读腿查 PG sys_user
+   同源表（role B5 的 usersCount 同款手法），ETL 前恒空。集成测试以 PG sys_user 直插覆盖；
+   B7（user 迁移 + ETL）后归一。
+5. 审计旁路本就是 fire-and-forget 最终一致，不新增风险。
 
 ## 6. 岔路决策记录（自主执行期间按推荐项走）
 

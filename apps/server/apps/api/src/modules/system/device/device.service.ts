@@ -1,33 +1,36 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
-import { registerAfterCommitHook, WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
-import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
+import { registerAfterCommitHook } from '@walnut-server/db'
 import { WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 
 import { omit } from 'lodash'
-import { ClientSession } from 'mongoose'
+import { Brackets } from 'typeorm'
 import { DeviceTypeConst, IDeviceTypeConst } from '@/common/dto/shared.dto'
+import { ILIKE_ESCAPE_REGEX } from '@/common/repository/pg-list.builder'
 import { AppMonitorUserRepositoryService } from '@/modules/app/monitor/user/repo/user.repo.service'
 import { SharedIpService } from '@/modules/shared/ip/ip.service'
 import { AppTechCacheDeviceService } from '@/modules/techniques/cache/service/cache.device'
 import { SysUserDeviceSharedService } from '../user_device/shared/user_device.shared.service'
 import { SysDeviceBasicRepository } from './device.basic.repository'
 import { SysDeviceDTOInitialRequest, SysDeviceDTOListRequest } from './dto/device.dto'
+import { SysDeviceEntity } from './entity/device.entity'
 import { SysDeviceRepositoryService } from './repo/device.repo.service'
-import { ISysDeviceDocument, ISysDeviceModel } from './schema/device.schema'
 
 const botPattern = /bot|crawl|slurp|spider/i
 const tabletPattern = /Tablet|iPad/i
 const mobilePattern = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i
 
+/**
+ * B6 迁移：Mongo model → PG。`dbSession` → `em`（纯透传）；
+ * initial 的 findOneAndUpdate(upsert) 改「按业务键 device_id 查到即整体覆盖、否则插入」，
+ * 冲突路径（并发重复插入）由 uq_device_id 拒绝并进 catch，对齐 Mongo E11000 路径。
+ */
 @Injectable()
 export class SysDeviceService {
   private readonly logger = new Logger(SysDeviceService.name)
 
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SYS_DEVICE)
-    private readonly DeviceModel: ISysDeviceModel,
-
     private readonly cacheDeviceService: AppTechCacheDeviceService,
 
     private readonly deviceBasicRepo: SysDeviceBasicRepository,
@@ -66,41 +69,40 @@ export class SysDeviceService {
   /**
    * @description initial device - optimized version
    */
-  async initial(req: IWalnutAdminExpressRequest, payload: SysDeviceDTOInitialRequest, dbSession: ClientSession) {
+  async initial(req: IWalnutAdminExpressRequest, payload: SysDeviceDTOInitialRequest, em: EntityManager) {
     try {
       const deviceId = this.deviceRepoService.getDeviceIdByFingerprint(req.fingerprint)
       const locationInfo = await this.sharedIpService.getLocationInfoFromFreeAPI(req.realIp)
 
-      const deviceData: Partial<ISysDeviceDocument> = {
+      const location = {
+        country: locationInfo.country,
+        region: locationInfo.region,
+        city: locationInfo.city,
+      }
+
+      // $set 语义的整体覆盖集（Mongo 版 deviceData 原样字段集，sr/vp/geo 拍平为 PG 列）
+      const deviceData: Partial<SysDeviceEntity> = {
         deviceName: payload.deviceName,
         private: payload.private,
         deviceId,
-        sr: payload.sr,
-        vp: payload.vp,
+        srHeight: payload.sr?.height ?? null,
+        srWidth: payload.sr?.width ?? null,
+        vpHeight: payload.vp?.height ?? null,
+        vpWidth: payload.vp?.width ?? null,
         deviceInfo: {
           ...payload.deviceInfo,
           os: req.os,
           browser: req.browser,
           type: this.getDeviceTypeByUA(req.userAgent?.ua as string, payload.sr.height),
         },
-        hardwareInfo: payload.hardwareInfo,
-        geoLocation: {
-          type: 'Point',
-          coordinates: [locationInfo.longitude!, locationInfo.latitude!],
-        },
-        locationInfo: {
-          country: locationInfo.country,
-          region: locationInfo.region,
-          city: locationInfo.city,
-        },
+        hardwareInfo: (payload.hardwareInfo ?? null) as unknown as Record<string, unknown> | null,
+        geoLongitude: locationInfo.longitude!,
+        geoLatitude: locationInfo.latitude!,
+        locationInfo: location,
         locationHistory: [
           {
             ip: req.realIp,
-            location: {
-              country: locationInfo.country,
-              region: locationInfo.region,
-              city: locationInfo.city,
-            },
+            location,
             timestamp: AppDayjs().valueOf(),
           },
         ],
@@ -109,17 +111,17 @@ export class SysDeviceService {
         active: true,
       }
 
-      // 使用 upsert 一次性完成创建或更新
-      const result = await this.DeviceModel.findOneAndUpdate(
-        { deviceId },
-        { $set: deviceData },
-        {
-          upsert: true,
-          returnDocument: 'after',
-          session: dbSession,
-          setDefaultsOnInsert: true,
-        },
-      ).lean()
+      const repository = em.getRepository(SysDeviceEntity)
+
+      // upsert：按业务键 device_id 查到即整体覆盖（$set + returnDocument: 'after'），否则插入
+      let result = await repository.findOne({ where: { deviceId } })
+      if (result) {
+        Object.assign(result, deviceData)
+        result = await repository.save(result)
+      }
+      else {
+        result = await repository.save(repository.create(deviceData))
+      }
 
       registerAfterCommitHook(async () => {
         await this.cacheDeviceService.setSysDeviceCache(result)
@@ -138,51 +140,42 @@ export class SysDeviceService {
 
   /**
    * @description read device by id
+   * （PG 版 readById 查无即抛 DataNotFound，Mongo 版的 null 检查由基类承接）
    */
   async read(id: string) {
-    const read = await this.DeviceModel.findById(id)
-
-    if (!read) {
-      throw new WalnutAdminExceptionDataNotFound()
-    }
-
-    return read
+    return this.deviceBasicRepo.readById(id)
   }
 
   /**
    * @description list
+   * （Mongo 版 location 过滤是 $expr + $regexMatch('i') 打在 locationInfo 三个子字段上 →
+   * PG 侧 jsonb 提取 + ILIKE，字面量转义同 pg-list.builder）
    */
   async list(params: SysDeviceDTOListRequest) {
     const location = params.query.location ?? null
 
     const cleanParams = omit(params, ['query.location']) as SysDeviceDTOListRequest
 
-    if (location === null)
+    if (location === null) {
       return this.deviceBasicRepo.list(cleanParams)
+    }
 
-    return this.deviceBasicRepo.list(cleanParams, [
-      {
-        $match: {
-          $expr: {
-            $or: [
-              { $regexMatch: { input: '$locationInfo.country', regex: location, options: 'i' } },
-              { $regexMatch: { input: '$locationInfo.region', regex: location, options: 'i' } },
-              { $regexMatch: { input: '$locationInfo.city', regex: location, options: 'i' } },
-            ],
-          },
-        },
-      },
-    ])
+    const escaped = String(location).replace(ILIKE_ESCAPE_REGEX, c => `\\${c}`)
+
+    return this.deviceBasicRepo.list(cleanParams, (qb) => {
+      qb.andWhere(new Brackets((b) => {
+        b.orWhere(`entity.location_info->>'country' ILIKE :location`, { location: `%${escaped}%` })
+        b.orWhere(`entity.location_info->>'region' ILIKE :location`, { location: `%${escaped}%` })
+        b.orWhere(`entity.location_info->>'city' ILIKE :location`, { location: `%${escaped}%` })
+      }))
+    })
   }
 
   /**
    * @description get current active user by device id
    */
   async getCurrentActiveUser(id: string) {
-    const target = await this.DeviceModel.findById(id)
-    if (!target) {
-      throw new WalnutAdminExceptionDataNotFound()
-    }
+    const target = await this.deviceBasicRepo.readById(id)
     return this.appMonitorUserRepoService.findActiveUserByDeviceId(target.deviceId)
   }
 
@@ -190,21 +183,16 @@ export class SysDeviceService {
    * @description get history users by device id
    */
   async getHistoryUsersByDeviceId(id: string) {
-    const target = await this.DeviceModel.findById(id)
-    if (!target) {
-      throw new WalnutAdminExceptionDataNotFound()
-    }
+    const target = await this.deviceBasicRepo.readById(id)
     return this.userDeviceSharedService.getAllUsersByDeviceId(target.deviceId)
   }
 
   /**
    * @description lock device by id
+   * （Mongo 版原样：只置内存标志并写缓存，不落库 —— 语义照旧保留，不趁机"修正"）
    */
   async lock(id: string) {
-    const target = await this.DeviceModel.findById(id)
-    if (!target) {
-      throw new WalnutAdminExceptionDataNotFound()
-    }
+    const target = await this.deviceBasicRepo.readById(id)
     target.locked = true
     await this.cacheDeviceService.setSysDeviceCache(target)
     return true
@@ -214,10 +202,7 @@ export class SysDeviceService {
    * @description unlock device by id
    */
   async unlock(id: string) {
-    const target = await this.DeviceModel.findById(id)
-    if (!target) {
-      throw new WalnutAdminExceptionDataNotFound()
-    }
+    const target = await this.deviceBasicRepo.readById(id)
     target.locked = false
     await this.cacheDeviceService.setSysDeviceCache(target)
     return true
@@ -227,10 +212,7 @@ export class SysDeviceService {
    * @description ban device by id
    */
   async ban(id: string) {
-    const target = await this.DeviceModel.findById(id)
-    if (!target) {
-      throw new WalnutAdminExceptionDataNotFound()
-    }
+    const target = await this.deviceBasicRepo.readById(id)
     target.banned = true
     await this.cacheDeviceService.setSysDeviceCache(target)
     return true
@@ -240,10 +222,7 @@ export class SysDeviceService {
    * @description unban device by id
    */
   async unban(id: string) {
-    const target = await this.DeviceModel.findById(id)
-    if (!target) {
-      throw new WalnutAdminExceptionDataNotFound()
-    }
+    const target = await this.deviceBasicRepo.readById(id)
     target.banned = false
     await this.cacheDeviceService.setSysDeviceCache(target)
     return true

@@ -1,9 +1,13 @@
-import { IntersectionType } from '@nestjs/swagger'
+import { ApiProperty, IntersectionType } from '@nestjs/swagger'
 import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
+import { Expose } from 'class-transformer'
+import { IsOptional } from 'class-validator'
 import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@/common/dto/list.dto'
 import { SharedLngLatDTO, SharedLocationDTO, SharedTimeDTO } from '@/common/dto/shared.dto'
 import { SysUserDTOSafe } from '../../user/dto/user.dto'
+import { SysDeviceEntity } from '../entity/device.entity'
 import { SysDeviceModel } from '../schema/device.schema'
 
 export class SysDeviceDTO extends SysDeviceModel {
@@ -11,9 +15,18 @@ export class SysDeviceDTO extends SysDeviceModel {
     super()
     Object.assign(this, partial)
   }
+
+  // PG 主键 id（uuid，phase2 4.8）：B1 模板 —— @Expose 供响应序列化与
+  // RealPickType/RealPartialType 的键枚举；入参不从这里进（主键只走路由参数的
+  // uuid pipe），IsOptional 仅为 list 查询可选过滤
+  @Expose()
+  @IsOptional()
+  @ApiProperty({ type: String, required: false })
+  @WalnutAdminDecoratorValidatorUuid({ nullable: true })
+  id?: string
 }
 
-export class SysDeviceDTOSafe extends RealOmitType(SysDeviceDTO, [] as const) {
+export class SysDeviceDTOSafe extends RealOmitType(SysDeviceDTO, ['_id'] as const) {
   constructor(partial?: Partial<SysDeviceDTOSafe>) {
     super()
     Object.assign(this, partial)
@@ -25,6 +38,25 @@ export class SysDeviceDTOSafe extends RealOmitType(SysDeviceDTO, [] as const) {
     },
   })
   location: string
+}
+
+/**
+ * B6：sys_device 的 sr / vp / geoLocation 已拍平为数值列（phase2 4.8），实体即 POJO；
+ * 出参组装回 Mongo 版的嵌套对象形态（前端无感，menu meta 拍平组装的同款手法）。
+ */
+export function assembleSysDevice(entity: SysDeviceEntity) {
+  return {
+    ...entity,
+    sr: entity.srHeight === null && entity.srWidth === null
+      ? undefined
+      : { height: entity.srHeight, width: entity.srWidth },
+    vp: entity.vpHeight === null && entity.vpWidth === null
+      ? undefined
+      : { height: entity.vpHeight, width: entity.vpWidth },
+    geoLocation: entity.geoLongitude === null && entity.geoLatitude === null
+      ? undefined
+      : { type: 'Point', coordinates: [entity.geoLongitude, entity.geoLatitude] },
+  }
 }
 
 // initial
@@ -63,7 +95,7 @@ export class SysDeviceDTOListRequest extends CreateWalnutAdminRequestListDTO(
 ) { }
 
 export class SysDeviceDTOListResponse extends CreateWalnutAdminResponseListDTO(
-  RealPickType(RealPartialType(SysDeviceDTOSafe), ['_id', 'active', 'banned', 'locked', 'deviceId', 'riskScore', 'deviceName', 'sr', 'hardwareInfo', 'deviceInfo', 'locationInfo'] as const),
+  RealPickType(RealPartialType(SysDeviceDTOSafe), ['id', 'active', 'banned', 'locked', 'deviceId', 'riskScore', 'deviceName', 'sr', 'hardwareInfo', 'deviceInfo', 'locationInfo'] as const),
 ) { }
 
 // read

@@ -1,21 +1,21 @@
 import { Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 import { SysUserDeviceSharedModule } from '../user_device/shared/user_device.shared.module'
 import { SysDeviceBasicRepository } from './device.basic.repository'
 import { SysDeviceController } from './device.controller'
 import { SysDeviceService } from './device.service'
 import { SysDeviceSettingService } from './device.setting.service'
+import { SysDeviceEntity } from './entity/device.entity'
 import { SysDeviceRepositoryModule } from './repo/device.repo.module'
-import { SysDeviceSchema } from './schema/device.schema'
 import { SysDeviceSharedModule } from './shared/device.shared.module'
 
+/**
+ * B6 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态，不另建 pg.module）。
+ */
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [{ name: WalnutDBModelName.SYS_DEVICE, schema: SysDeviceSchema }],
-      WalnutDBConnectionName,
-    ),
+    TypeOrmModule.forFeature([SysDeviceEntity], WalnutPGConnectionName),
     SysUserDeviceSharedModule,
     SysDeviceSharedModule,
     SysDeviceRepositoryModule,

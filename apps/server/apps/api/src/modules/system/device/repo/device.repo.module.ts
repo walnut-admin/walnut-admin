@@ -1,16 +1,16 @@
 import { Global, Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
-import { SysDeviceSchema } from '../schema/device.schema'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
+import { SysDeviceEntity } from '../entity/device.entity'
 import { SysDeviceRepositoryService } from './device.repo.service'
 
+/**
+ * B6 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态）。
+ */
 @Global()
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [{ name: WalnutDBModelName.SYS_DEVICE, schema: SysDeviceSchema }],
-      WalnutDBConnectionName,
-    ),
+    TypeOrmModule.forFeature([SysDeviceEntity], WalnutPGConnectionName),
   ],
   controllers: [],
   providers: [SysDeviceRepositoryService],

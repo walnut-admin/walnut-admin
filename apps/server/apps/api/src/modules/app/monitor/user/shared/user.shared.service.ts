@@ -61,12 +61,11 @@ export class AppMonitorUserSharedService {
           i.deviceId,
         )
 
-        if (!monitorData)
+        if (!monitorData) {
           return false
+        }
 
-        monitorData.auth = false
-        monitorData.userId = null
-        await monitorData.save()
+        await this.appMonitorUserRepo.updateAuthState(monitorData)
 
         return true
       }),

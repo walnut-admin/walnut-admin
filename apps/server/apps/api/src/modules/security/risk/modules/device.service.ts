@@ -105,7 +105,7 @@ export class SecurityRiskDeviceService {
       return null
     }
 
-    const daysSinceCreated = this.deviceRepoService.getDeviceCreatedDays(device.createdAt as Date)
+    const daysSinceCreated = this.deviceRepoService.getDeviceCreatedDays(device.createdAt)
 
     if (daysSinceCreated < this.configService.thresholds.device.newDeviceDays) {
       score += this.configService.getWeight(WalnutAdminConstRiskFactor.DEVICE_NEW)

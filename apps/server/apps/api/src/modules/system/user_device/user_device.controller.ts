@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Put } from 
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { plainToInstance } from 'class-transformer'
 
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
@@ -17,6 +18,10 @@ const Permissions = {
   UNLOCK: 'system:user:device:unlock',
 } as const
 
+/**
+ * B6 迁移（controller 层）：数据面 PG 写走 `ctx.em`；doSignout / user_lock preference
+ * 的 Mongo 写腿仍需 `ctx.dbSession`（B7 归一），双句柄并传。
+ */
 @Controller('system/user/device')
 @ApiTags('system/user/device')
 export class SysUserDeviceController {
@@ -34,7 +39,7 @@ export class SysUserDeviceController {
     @WalnutAdminDecoratorDeviceId() deviceId: string,
   ) {
     const list = await this.userDeviceService.getCurrentUserDeviceList(user.userId, deviceId)
-    return new SysUserDeviceListDTO({
+    return plainToInstance(SysUserDeviceListDTO, {
       data: list,
       total: list.length,
     })
@@ -69,7 +74,7 @@ export class SysUserDeviceController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Param('deviceId') deviceId: string,
   ) {
-    await this.userDeviceService.forceQuitUserDevice(user.userId, deviceId, ctx.dbSession!)
+    await this.userDeviceService.forceQuitUserDevice(user.userId, deviceId, ctx.em, ctx.dbSession!)
     return true
   }
 
@@ -86,7 +91,7 @@ export class SysUserDeviceController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Param('deviceId') deviceId: string,
   ) {
-    await this.userDeviceService.lockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, ctx.dbSession!)
+    await this.userDeviceService.lockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, ctx.em, ctx.dbSession!)
     return true
   }
 
@@ -104,7 +109,7 @@ export class SysUserDeviceController {
     @Param('deviceId') deviceId: string,
     @Body() body: SysUserLockUnLockDto,
   ) {
-    await this.userDeviceService.unlockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, body.lockPwdHash!, ctx.dbSession!)
+    await this.userDeviceService.unlockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, body.lockPwdHash!, ctx.em, ctx.dbSession!)
     return true
   }
 }

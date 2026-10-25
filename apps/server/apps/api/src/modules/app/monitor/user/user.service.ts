@@ -1,18 +1,23 @@
+import type { ClientSession } from 'mongoose'
+import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutDBCollectionName, WalnutDBVirtualName } from '@walnut-server/db'
 
-import { buildListPipelineFromRequest } from '@walnut-server/utils/listAggregate'
 import { isNil } from 'lodash'
-import { ClientSession, PipelineStage } from 'mongoose'
 import { AuthRefreshSharedService } from '@/modules/auth/modules/refresh/shared/refresh.shared.service'
 import { AuthSignoutService } from '@/modules/auth/modules/signout/signout.service'
+import { SysDeviceRepositoryService } from '@/modules/system/device/repo/device.repo.service'
 import { SysDeviceSharedService } from '@/modules/system/device/shared/device.shared.service'
 import { SysUserDeviceRepositoryService } from '@/modules/system/user_device/repo/user_device.repo.service'
 import { AppMonitorUserDTO, AppMonitorUserDTOListRequest } from './dto/user.dto'
 import { AppMonitorUserRepositoryService } from './repo/user.repo.service'
-import { IAppMonitorUserDocument } from './schema/user.schema'
 import { AppMonitorUserBasicRepository } from './user.basic.repository'
 
+/**
+ * B6 迁移：monitor 列表聚合（$lookup device/user + matchConditions）改 basic repo 的
+ * JOIN 版 `list()`；populate（read 的 device/user、updateState 的联动手腿）改按业务键
+ * 应用层装回。事务句柄 `dbSession` → `em`；doSignout 的 refresh 写腿仍在 Mongo（B7），
+ * forceQuit 双句柄并传（PG 读 monitor 走 em，Mongo revoke RT 走 dbSession）。
+ */
 @Injectable()
 export class AppMonitorUserService {
   private readonly logger = new Logger(AppMonitorUserService.name)
@@ -23,6 +28,7 @@ export class AppMonitorUserService {
 
     private readonly authRefreshSharedService: AuthRefreshSharedService,
     private readonly deviceSharedService: SysDeviceSharedService,
+    private readonly deviceRepoService: SysDeviceRepositoryService,
 
     private readonly appMonitorUserRepoService: AppMonitorUserRepositoryService,
     private readonly signoutService: AuthSignoutService,
@@ -34,18 +40,18 @@ export class AppMonitorUserService {
   async updateState(
     deviceId: string,
     dto: Partial<AppMonitorUserDTO>,
-    dbSession: ClientSession,
+    em: EntityManager,
   ) {
     if (dto.auth === false) {
       dto.userId = null
     }
 
-    // update doc
+    // update doc（nil 值剔除原样保留 —— 含 auth:false 时 userId 被置 null 后被剔除的基线行为）
     const doc = await this.appMonitorUserRepoService.findOneAndUpdate(
-      { visitorId: dto.visitorId },
+      { visitorId: dto.visitorId! },
       { deviceId, ...Object.fromEntries(Object.entries(dto).filter(([_, v]) => !isNil(v))) },
-      { upsert: true, returnDocument: 'after' },
-      dbSession,
+      { upsert: true },
+      em,
     )
 
     if (!doc) {
@@ -54,10 +60,10 @@ export class AppMonitorUserService {
     }
 
     // update user device last active at
-    await this.sysUserDeviceRepo.updateUserDeviceLastActiveAt(deviceId, doc.userId?.toString(), dbSession)
+    await this.sysUserDeviceRepo.updateUserDeviceLastActiveAt(deviceId, doc.userId?.toString(), em)
 
     // update device active status
-    await this.deviceSharedService.updateDeviceActive(deviceId, !doc.left, dbSession)
+    await this.deviceSharedService.updateDeviceActive(deviceId, !doc.left, em)
 
     return true
   }
@@ -65,8 +71,8 @@ export class AppMonitorUserService {
   /**
    * @description force quit through monitorId
    */
-  async forceQuitByMonitorId(id: string, dbSession: ClientSession) {
-    const appMonitor = await this.appMonitorUserRepoService.findByMonitorId(id, dbSession)
+  async forceQuitByMonitorId(id: string, em: EntityManager, dbSession: ClientSession) {
+    const appMonitor = await this.appMonitorUserRepoService.findByMonitorId(id, em)
 
     if (appMonitor === null) {
       this.logger.warn(`monitor user not found: ${id}`)
@@ -74,12 +80,12 @@ export class AppMonitorUserService {
     }
 
     return this.signoutService.doSignout(
-      appMonitor.userId?.toString() as string,
+      appMonitor.userId as string,
       {
         trigger: 'admin-kick',
-        deviceId: appMonitor?.deviceId,
-        fingerprint: appMonitor?.visitorId,
-        isOnline: !appMonitor?.left,
+        deviceId: appMonitor.deviceId as string,
+        fingerprint: appMonitor.visitorId,
+        isOnline: !appMonitor.left,
       },
       dbSession,
     )
@@ -96,7 +102,7 @@ export class AppMonitorUserService {
         `Device reconnect detected revoked token - user: ${userId}, device: ${deviceId}, reason: ${revokeReason}`,
       )
 
-      // �?只返回状态，不触�?doSignout
+      // 只返回状态，不触发 doSignout
       return {
         shouldForceQuit: true,
         revokeReason,
@@ -110,96 +116,28 @@ export class AppMonitorUserService {
 
   /**
    * @description CRUD read
+   * （Mongo 版 populate：device（deviceId/deviceName/deviceInfo/locationInfo/ip）与
+   * user（_id/userName）→ PG 侧 device 直接按业务键取行；user 查 sys_user 同源表，
+   * ETL 前为空数据窗口（phase3-plan §5））
    */
   async read(id: string) {
-    return (await this.appMonitorUserBasicRepo.readById(id)).populate([{ path: WalnutDBVirtualName.DEVICE, select: 'deviceId deviceName deviceInfo locationInfo ip' }, { path: WalnutDBVirtualName.USER, select: '_id userName' }])
+    const monitor = await this.appMonitorUserBasicRepo.readById(id)
+
+    const populated_device = monitor.deviceId !== null
+      ? await this.deviceRepoService.findDeviceByDeviceId(monitor.deviceId)
+      : null
+    const populated_user = monitor.userId !== null
+      ? await this.appMonitorUserRepoService.findUserBriefById(monitor.userId)
+      : null
+
+    return { ...monitor, populated_device, populated_user }
   }
 
   /**
    * @description monitor list, support device/user info and filter
+   * （Mongo 版 $lookup + matchConditions 聚合 → basic repo 的 JOIN 版 list）
    */
   async list(params: AppMonitorUserDTOListRequest) {
-  // 1. 构建 lookup 阶段
-    const lookupStages: PipelineStage[] = [
-    // Device lookup
-      {
-        $lookup: {
-          from: WalnutDBCollectionName.DEVICE,
-          let: { deviceIdLocal: '$deviceId' },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$deviceId', '$$deviceIdLocal'] } } },
-            {
-              $project: {
-                '_id': 0,
-                'deviceInfo.os': 1,
-                'deviceInfo.browser': 1,
-                'deviceInfo.type': 1,
-                'ip': 1,
-                'locationInfo.country': 1,
-              },
-            },
-          ],
-          as: 'populated_device',
-        },
-      },
-      {
-        $addFields: {
-          populated_device: { $arrayElemAt: ['$populated_device', 0] },
-        },
-      },
-
-      // User lookup
-      {
-        $lookup: {
-          from: WalnutDBCollectionName.USER,
-          let: { userIdLocal: '$userId' },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$_id', '$$userIdLocal'] } } },
-            { $project: { _id: 0, userName: 1 } },
-          ],
-          as: 'populated_user',
-        },
-      },
-      {
-        $addFields: {
-          populated_user: { $arrayElemAt: ['$populated_user', 0] },
-        },
-      },
-    ]
-
-    // 2. 准备基于 lookup 结果�?Match Conditions
-    // 这部分逻辑保持不变，依然很有必�?
-    const matchConditions: Record<string, any> = {}
-    const { ip, country, os, browser, userName } = params.query
-    if (ip)
-      matchConditions['populated_device.ip'] = { $regex: ip, $options: 'i' }
-    if (!isNil(country))
-      matchConditions['populated_device.locationInfo.country'] = { $regex: country, $options: 'i' }
-    if (!isNil(os))
-      matchConditions['populated_device.deviceInfo.os'] = { $regex: os, $options: 'i' }
-    if (!isNil(browser))
-      matchConditions['populated_device.deviceInfo.browser'] = { $regex: browser, $options: 'i' }
-    if (!isNil(userName))
-      matchConditions['populated_user.userName'] = { $regex: userName, $options: 'i' }
-
-    // 3. 组装 Extra Pipeline
-    // �?Lookup 和后续的 Match 组合在一�?
-    const extraPipeline: PipelineStage[] = [
-      ...lookupStages,
-      ...(Object.keys(matchConditions).length > 0 ? [{ $match: matchConditions }] : []),
-    ]
-
-    // 4. 使用统一工具生成完整 Pipeline
-    // 注意：这�?sortAfter 应该�?true，因为排序通常是在 populate 之后进行
-    const pipeline = buildListPipelineFromRequest(params, extraPipeline, true)
-
-    // 5. 执行
-    const [result] = await this.appMonitorUserBasicRepo.DBModel.aggregate<{
-      data: IAppMonitorUserDocument[]
-      total: number
-    }>(pipeline)
-
-    // 6. 返回
-    return result
+    return this.appMonitorUserBasicRepo.list(params)
   }
 }

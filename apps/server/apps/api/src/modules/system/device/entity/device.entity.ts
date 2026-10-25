@@ -95,3 +95,28 @@ export class SysDeviceEntity {
   @UpdateDateColumn({ type: 'timestamptz', name: 'updated_at' })
   updatedAt: Date
 }
+
+/**
+ * `getLocationString()` 的 PG 等价物（原为 Mongo document method；PG 实体是 POJO，
+ * 跨模块消费（user_device 列表的 location 出参）改走本纯函数，逻辑逐句对照原方法）。
+ */
+export function getDeviceLocationString(device: Pick<SysDeviceEntity, 'locationInfo'>): string {
+  const loc = device.locationInfo
+  if (loc === null) {
+    return 'Unknown'
+  }
+
+  const country = loc.country as string | undefined
+  const region = loc.region as string | undefined
+  const city = loc.city as string | undefined
+
+  if (region === city) {
+    return `${country} ${region}`
+  }
+
+  return [
+    country,
+    region,
+    city,
+  ].filter(Boolean).join(' ')
+}

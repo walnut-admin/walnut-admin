@@ -25,6 +25,11 @@ interface IAppMonitorUserMethods { }
 
 interface IAppMonitorUserStatics { }
 
+/**
+ * B6 起本 schema 不再注册进 Mongoose（模型注册随迁移摘除），仅作为 DTO 链的
+ * 校验/swagger 元数据基座保留；@Prop / virtual 不再有运行时语义。
+ * userId 的 uuid 校验在 DTO 子类重声明（同 B1 模板）；deviceId 保持字符串业务键。
+ */
 @Schema({
   collection: WalnutDBCollectionName.APP_MONITOR_USER,
   versionKey: false,
@@ -44,6 +49,8 @@ export class AppMonitorUserModel extends RealPickType(WalnutAdminCommonBasicMode
   @Prop({ type: String, required: true, unique: true, index: true })
   visitorId: string
 
+  // B6：PG 侧 user_id 是可空 uuid 松引用（phase2 4.21）；属性 TS 类型随列型放开为
+  // string（uuid 校验在 DTO 子类重声明接管）
   @WalnutAdminDecoratorFieldMongoId({
     swaggerOptions: {
       title: 'user id after auth',
@@ -56,7 +63,7 @@ export class AppMonitorUserModel extends RealPickType(WalnutAdminCommonBasicMode
     type: Types.ObjectId,
     ref: WalnutDBModelName.SYS_USER,
   })
-  userId: Types.ObjectId | null
+  userId: string | null
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: { title: 'device id' },

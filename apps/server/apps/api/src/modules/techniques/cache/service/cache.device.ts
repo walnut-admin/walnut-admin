@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
-import { ISysDeviceDocument } from '@/modules/system/device/schema/device.schema'
 import { AppTechCacheService } from '../cache.service'
 
 interface DeviceCache {
@@ -8,6 +7,18 @@ interface DeviceCache {
   banned: boolean
   active: boolean
   currentIp: string
+}
+
+/**
+ * 写缓存只消费这几个字段 —— B6 起设备侧是 PG 实体（POJO），入参收成最小结构形状，
+ * Mongo document 与 PG entity 都天然满足，techniques 层不反向依赖 device 模块内部类型。
+ */
+interface IDeviceCacheSource {
+  deviceId: string
+  locked: boolean
+  banned: boolean
+  active: boolean
+  ip: string | null
 }
 
 @Injectable()
@@ -23,13 +34,15 @@ export class AppTechCacheDeviceService {
   /**
    * @description set system device cache
    */
-  async setSysDeviceCache(device: ISysDeviceDocument) {
+  async setSysDeviceCache(device: IDeviceCacheSource) {
     const cacheKey = this.getSysDeviceCacheKey(device.deviceId)
     const payload: DeviceCache = {
       locked: device.locked,
       banned: device.banned,
       active: device.active,
-      currentIp: device.ip,
+      // Mongo 版即如此（列本可空、缓存类型标 string）：维持原类型契约与 guard 的
+      // truthy 判空行为，这里只做签名适配
+      currentIp: device.ip as string,
     }
     await this.cacheService.set(cacheKey, payload, {
       t: WalnutAdminConstAppCacheType.SYSTEM,

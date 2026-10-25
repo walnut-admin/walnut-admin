@@ -30,12 +30,13 @@ export class AuthMfaPostVerificationService {
     deviceId: string,
     dbSession: ClientSession,
   ) {
-    // update user device trusted status (in transaction)
+    // update user device trusted status
+    // （B6：user_device 已迁 PG —— 写腿走 PG，MFA 端点事务里的 Mongo session 只再供
+    // refresh 侧使用；签名适配，逻辑不动）
     await this.sysUserDeviceSharedService.updateTrustedStatusForUserDevice(
       userId,
       deviceId,
       trusted,
-      dbSession,
     )
 
     // set temporary cache for guard use (out of transaction)
