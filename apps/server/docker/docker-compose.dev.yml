@@ -48,21 +48,54 @@ services:
     ports:
       - 27037:27017
 
+  postgres:
+    restart: always
+    container_name: dev-single-postgres
+    # postgres 19 尚未 GA（官方镜像只有 19rc1，latest 为 18.x），19 GA 镜像发布后升 tag
+    image: docker.io/library/postgres:18-alpine
+    environment:
+      - POSTGRES_USER=walnut
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=walnut_pg
+    ports:
+      - 5432:5432
+    volumes:
+      # postgres 18+ 官方镜像的挂载点是 /var/lib/postgresql（不再是 /var/lib/postgresql/data）
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U walnut -d walnut_pg']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
     restart: always
     container_name: dev-single-redis
-    image: docker.io/bitnami/redis:latest
-    environment:
-      - ALLOW_EMPTY_PASSWORD=no
-      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
-      - REDIS_PASSWORD=123456
+    # bitnami/redis 免费镜像已冻结迁入 bitnamilegacy，换 Docker 官方镜像；
+    # bitnami 卷内是 /bitnami/redis/data 目录结构，与官方镜像的 /data 不兼容，故换新卷名 ——
+    # redis 里只有缓存/会话数据，可弃
+    image: docker.io/library/redis:8-alpine
+    # 密码与 env-local 的 APP_REDIS_PASS 一致；FLUSHDB/FLUSHALL 重命名为空串即禁用
+    # （等价 bitnami 的 REDIS_DISABLE_COMMANDS）
+    command:
+      - redis-server
+      - --requirepass
+      - '123456'
+      - --rename-command
+      - FLUSHDB
+      - ''
+      - --rename-command
+      - FLUSHALL
+      - ''
     ports:
       - 6379:6379
     volumes:
-      - redis_data:/bitnami/redis/data
+      - redis_official_data:/data
 
 volumes:
   mongodb_master_data:
     driver: local
-  redis_data:
+  redis_official_data:
+    driver: local
+  postgres_data:
     driver: local

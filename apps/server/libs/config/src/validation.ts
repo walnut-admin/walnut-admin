@@ -73,6 +73,22 @@ class EnvironmentVariables {
   @IsString()
   DATABASE_PASS: string
 
+  /* postgres database relatives */
+  @IsString()
+  DATABASE_PG_HOST: string
+
+  @IsNumber()
+  DATABASE_PG_PORT: number
+
+  @IsString()
+  DATABASE_PG_USER: string
+
+  @IsString()
+  DATABASE_PG_PASS: string
+
+  @IsString()
+  DATABASE_PG_NAME: string
+
   /* auth github */
   @IsString()
   AUTH_GITHUB_CLIENTID: string

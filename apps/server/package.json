@@ -67,6 +67,7 @@
     "@nestjs/swagger": "catalog:",
     "@nestjs/terminus": "catalog:",
     "@nestjs/throttler": "catalog:",
+    "@nestjs/typeorm": "catalog:",
     "@nestjs/websockets": "catalog:",
     "@scalar/nestjs-api-reference": "catalog:",
     "@serenity-kit/opaque": "catalog:",
@@ -107,6 +108,7 @@
     "passport-jwt": "catalog:",
     "passport-local": "catalog:",
     "passport-oauth2": "catalog:",
+    "pg": "catalog:",
     "qrcode": "catalog:",
     "raw-body": "catalog:",
     "redis": "catalog:",
@@ -118,6 +120,7 @@
     "systeminformation": "catalog:",
     "tencentcloud-sdk-nodejs": "catalog:",
     "tinyglobby": "catalog:",
+    "typeorm": "catalog:",
     "ua-parser-js": "catalog:",
     "winston": "catalog:",
     "winston-daily-rotate-file": "catalog:"

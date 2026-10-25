@@ -6,18 +6,22 @@ import {
   HttpHealthIndicator,
   MemoryHealthIndicator,
   MongooseHealthIndicator,
+  TypeOrmHealthIndicator,
 } from '@nestjs/terminus'
+import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 
-import { WalnutDBInjectConnection } from '@walnut-server/db'
+import { WalnutDBInjectConnection, WalnutPGConnectionName } from '@walnut-server/db'
 import { Role } from '@walnut/contract'
 import { Connection } from 'mongoose'
+import { DataSource } from 'typeorm'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
 
 const Permissions = {
   NETWORK: 'app:health:network',
   DB: 'app:health:database',
+  PG: 'app:health:postgres',
   MH: 'app:health:memory-heap',
   MR: 'app:health:memory-rss',
   DISK: 'app:health:disk',
@@ -29,8 +33,10 @@ const Permissions = {
 export class AppTechHealthController {
   constructor(
     @WalnutDBInjectConnection() private readonly databaseConnection: Connection,
+    @InjectDataSource(WalnutPGConnectionName) private readonly pgDataSource: DataSource,
     private readonly http: HttpHealthIndicator,
     private readonly mongoose: MongooseHealthIndicator,
+    private readonly typeorm: TypeOrmHealthIndicator,
     private readonly memory: MemoryHealthIndicator,
     private readonly disk: DiskHealthIndicator,
   ) {}
@@ -48,6 +54,15 @@ export class AppTechHealthController {
   async checkDatabase() {
     return this.mongoose.pingCheck('database', {
       connection: this.databaseConnection,
+    })
+  }
+
+  @Get('postgres')
+  @WalnutAdminDecoratorHasPermission(Permissions.PG)
+  @HealthCheck()
+  async checkPostgres() {
+    return this.typeorm.pingCheck('postgres', {
+      connection: this.pgDataSource,
     })
   }
 

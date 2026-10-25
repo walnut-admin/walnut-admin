@@ -36,6 +36,12 @@ declare global {
       DATABASE_USER: string
       DATABASE_PASS: string
 
+      DATABASE_PG_HOST: string
+      DATABASE_PG_PORT: string
+      DATABASE_PG_USER: string
+      DATABASE_PG_PASS: string
+      DATABASE_PG_NAME: string
+
       AUTH_GITHUB_CLIENTID: string
       AUTH_GITHUB_CLIENTSECRET: string
       AUTH_GITHUB_CALLBACK: string
