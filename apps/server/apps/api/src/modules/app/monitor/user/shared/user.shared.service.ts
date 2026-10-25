@@ -1,11 +1,16 @@
 import { Injectable } from '@nestjs/common'
 import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
-import { IAuthRefreshTokenDocument } from '@/modules/auth/modules/refresh/schema/refresh.schema'
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import { WalnutAdminSocketEvents } from '@/socket/socket.const'
 // Note: IWalnutAdminSocketEvents is now a global type from @walnut-server/types
 import { SocketService } from '@/socket/socket.service'
 import { AppMonitorUserRepositoryService } from '../repo/user.repo.service'
+
+/** B7b 迁移：refresh 行从 Mongo 文档换成 PG 实体（cron 只消费 userId / deviceId 两个键） */
+interface IExpiredRefreshTokenLike {
+  userId: string
+  deviceId: string
+}
 
 @Injectable()
 export class AppMonitorUserSharedService {
@@ -53,11 +58,11 @@ export class AppMonitorUserSharedService {
    * @description change the auth state based on refresh token expire time
    * used for bull task
    */
-  async updateAuthStateForCronJob(expiredTarget: IAuthRefreshTokenDocument[]) {
+  async updateAuthStateForCronJob(expiredTarget: IExpiredRefreshTokenLike[]) {
     const res = await Promise.allSettled(
       expiredTarget.map(async (i) => {
         const monitorData = await this.appMonitorUserRepo.findByUserIdAndDeviceId(
-          i.userId.toString(),
+          i.userId,
           i.deviceId,
         )
 

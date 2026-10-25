@@ -5,7 +5,6 @@ import * as opaque from '@serenity-kit/opaque'
 import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
 import { isNil } from 'lodash'
-import { ClientSession } from 'mongoose'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
 import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
 import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
@@ -110,9 +109,9 @@ export class AuthOpaqueCoreService {
   /**
    * Finalize the login process and generate authentication tokens
    * This is called after successful OPAQUE validation to issue JWT tokens
-   * （refresh 写腿仍在 Mongo —— dbSession 保留，7c 归一）
+   * （B7b 归一：refresh 写腿迁 PG —— 事务句柄改 em，controller 传 ctx.em）
    */
-  async finishLogin(payload: IWalnutAdminAccessTokenPayload, deviceId: string, dbSession: ClientSession) {
+  async finishLogin(payload: IWalnutAdminAccessTokenPayload, deviceId: string, em?: EntityManager) {
     try {
       // Retrieve the session key established during OPAQUE validation
       const sessionKey = await this.opaqueCacheService.getOpaqueSessionKeyCache(payload.userName, deviceId)
@@ -125,7 +124,7 @@ export class AuthOpaqueCoreService {
       return await this.authSharedService.generateAuthTokens(
         payload,
         deviceId,
-        dbSession,
+        em,
         sessionKey,
       )
     }

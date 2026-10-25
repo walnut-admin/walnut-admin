@@ -1,4 +1,3 @@
-import type { ClientSession } from 'mongoose'
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { IWalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
@@ -13,6 +12,11 @@ import { AppTechCryptoService } from '@/modules/techniques/crypto/crypto.service
 import { AuthSessionService } from '../../session/session.service'
 import { AuthRefreshRepositoryService } from '../repo/refresh.repo.service'
 
+/**
+ * B7b 迁移：refresh 表写腿迁 PG —— B7a 的双句柄并传（em + dbSession）归一为单
+ * `em?: EntityManager`（缺省连接级 manager）。刷新轮换（getNewAccessToken：revoke
+ * 旧令牌 + rotate 新令牌 + user/role 读腿）自此在同一个 PG 事务里提交/回滚。
+ */
 @Injectable()
 export class AuthRefreshSharedService {
   private readonly RT_ENCRYPTION_KEY = 'crypto.rtKey'
@@ -46,7 +50,9 @@ export class AuthRefreshSharedService {
     }
     return {
       revoked: target.revoked,
-      revokeReason: target.revokeReason,
+      // 列值域 = WalnutAdminConstRevokeRTType（CHECK 约束），收窄回 const 联合供
+      // forceQuitConfig 索引（socket.gateway）
+      revokeReason: target.revokeReason as IWalnutAdminConstRevokeRTType | null,
     }
   }
 
@@ -64,17 +70,17 @@ export class AuthRefreshSharedService {
   /**
    * @description revoke refresh token for user device
    */
-  async revokeRTForUserDevice(userId: string, deviceId: string, dbSession: ClientSession, revokeReason?: IWalnutAdminConstRevokeRTType) {
-    return this.authRefreshRepo.updateRevokedAndReason(userId, deviceId, true, dbSession, revokeReason)
+  async revokeRTForUserDevice(userId: string, deviceId: string, em?: EntityManager, revokeReason?: IWalnutAdminConstRevokeRTType) {
+    return this.authRefreshRepo.updateRevokedAndReason(userId, deviceId, true, em, revokeReason)
   }
 
   /**
    * @description revoke refresh token for user
    */
-  async revokeRTForUser(userId: string, dbSession: ClientSession, revokeReason?: IWalnutAdminConstRevokeRTType) {
-    const allAuthRefreshRecords = await this.authRefreshRepo.findAllRTForUser(userId, dbSession)
+  async revokeRTForUser(userId: string, em?: EntityManager, revokeReason?: IWalnutAdminConstRevokeRTType) {
+    const allAuthRefreshRecords = await this.authRefreshRepo.findAllRTForUser(userId, em)
     for (const record of allAuthRefreshRecords) {
-      await this.authRefreshRepo.updateRevokedAndReason(userId, record.deviceId, true, dbSession, revokeReason)
+      await this.authRefreshRepo.updateRevokedAndReason(userId, record.deviceId, true, em, revokeReason)
     }
   }
 
@@ -100,12 +106,12 @@ export class AuthRefreshSharedService {
   async isCurrentUserInThisDeviceHasSignIn(
     userId: string,
     deviceId: string,
-    dbSession: ClientSession,
+    em?: EntityManager,
   ) {
     const target = await this.authRefreshRepo.findByDeviceIdAndUserId(
       deviceId,
       userId,
-      dbSession,
+      em,
     )
     if (!target)
       return false
@@ -115,8 +121,8 @@ export class AuthRefreshSharedService {
   /**
    * @description update refresh token
    */
-  private async updateRefreshToken(jti: string, sessionId: string, userId: string, dbSession: ClientSession) {
-    const oldDocument = await this.authRefreshRepo.findByJti(jti, dbSession)
+  private async updateRefreshToken(jti: string, sessionId: string, userId: string, em?: EntityManager) {
+    const oldDocument = await this.authRefreshRepo.findByJti(jti, em)
     if (!oldDocument)
       return
 
@@ -131,7 +137,7 @@ export class AuthRefreshSharedService {
           .toDate(),
         encryptedToken,
       },
-      dbSession,
+      em,
     )
   }
 
@@ -142,9 +148,9 @@ export class AuthRefreshSharedService {
     userId: string,
     deviceId: string,
     sessionId: string,
-    dbSession: ClientSession,
+    em?: EntityManager,
   ) {
-    if (await this.isCurrentUserInThisDeviceHasSignIn(userId, deviceId, dbSession)) {
+    if (await this.isCurrentUserInThisDeviceHasSignIn(userId, deviceId, em)) {
       throw new WalnutAdminExceptionDuplicateSignIn()
     }
 
@@ -171,7 +177,7 @@ export class AuthRefreshSharedService {
           encryptedToken,
           revoked: false,
         },
-        dbSession,
+        em,
       )
 
       return oldDocument.jti
@@ -189,7 +195,7 @@ export class AuthRefreshSharedService {
           userId,
           expiredAt,
         },
-        dbSession,
+        em,
       )
 
       return jti
@@ -199,12 +205,12 @@ export class AuthRefreshSharedService {
   /**
    * @description refresh access token and refresh token together
    *
-   * B7a 签名适配：refresh 表写腿仍在 Mongo（dbSession，7c 归一）；user 读腿 +
-   * roles populate 已迁 PG（em = ctx.em）—— 双句柄并传。
+   * B7b 归一：refresh 表（含轮换写腿）与 user/role 读腿同为 PG —— 单 em 单事务，
+   * revoke（过期兜底）与 rotate 同回滚。
    */
-  async getNewAccessToken(jti: string, deviceId: string, sessionId: string, em: EntityManager, dbSession: ClientSession) {
+  async getNewAccessToken(jti: string, deviceId: string, sessionId: string, em?: EntityManager) {
     // Step 1 - get refresh token record
-    const record = await this.authRefreshRepo.findByJti(jti, dbSession)
+    const record = await this.authRefreshRepo.findByJti(jti, em)
 
     // no record
     if (!record) {
@@ -225,16 +231,15 @@ export class AuthRefreshSharedService {
     // manually revoke it
     if (AppDayjs(record.expiredAt).isBefore(AppDayjs())) {
       await this.revokeRTForUserDevice(
-        record.userId.toString(),
-        record.deviceId.toString(),
-        dbSession,
+        record.userId,
+        record.deviceId,
+        em,
       )
       throw new WalnutAdminExceptionRefreshTokenExpired()
     }
 
-    // Step 2 - get user with user id（B7a：user 已迁 PG；refresh 行仍是 Mongo 文档，
-    // userId 字段取 `.toString()` 归一成字符串直传 —— 7c 归一后随 refresh 迁移收掉）
-    const user = await this.sysUserRepoService.findUserByUserId(record.userId.toString(), em)
+    // Step 2 - get user with user id
+    const user = await this.sysUserRepoService.findUserByUserId(record.userId, em)
     if (!user) {
       throw new WalnutAdminExceptionRefreshTokenExpired()
     }
@@ -246,10 +251,8 @@ export class AuthRefreshSharedService {
     await this.sysUserSharedService.checkUserAndRoleStatus(populatedUser)
 
     // Step 3.5 - check user device trusted status
-    // （B6：user_device 已迁 PG —— 事务里的 Mongo session 不再传入，读走 PG 连接级；
-    // 签名适配，逻辑不动）
     const isTrusted = await this.sysUserDeviceSharedService.getUserDeviceTrusted(
-      record.userId.toString(),
+      record.userId,
       record.deviceId,
     )
 
@@ -257,18 +260,18 @@ export class AuthRefreshSharedService {
     const tokenPayload = await this.tokenService.getJwtAccessTokenPayload(populatedUser, { isTrusted })
 
     // Step 5 - update refresh token as well
-    await this.updateRefreshToken(jti, sessionId, record.userId.toString(), dbSession)
+    await this.updateRefreshToken(jti, sessionId, record.userId, em)
 
     // Step 6 - touch auth session ttl
     await this.authSessionService.touchAuthSessionTTL(
-      record.userId.toString(),
+      record.userId,
       record.deviceId,
       sessionId,
     )
 
     // Step 7 - touch MFA verified cache TTL
     await this.cacheMfaService.touchVerifiedCache(
-      record.userId.toString(),
+      record.userId,
       record.deviceId,
     )
 

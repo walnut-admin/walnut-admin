@@ -117,7 +117,8 @@ export class AuthOpaqueUserController {
     @Request() req: IWalnutAdminExpressRequest,
     @Body() _dto: AuthOpaqueFinishSignInDTO,
   ) {
-    const { accessToken, refreshTokenJti, authSessionKey } = await this.authOpaqueCoreService.finishLogin(user, deviceId, ctx.dbSession!)
+    // B7b 归一：refresh 写腿迁 PG —— 单 em
+    const { accessToken, refreshTokenJti, authSessionKey } = await this.authOpaqueCoreService.finishLogin(user, deviceId, ctx.em)
 
     // set refresh token jti to cookie
     this.authCookieService.setRTJtiCookie(req, refreshTokenJti)
@@ -201,9 +202,8 @@ export class AuthOpaqueUserController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: AuthOpaqueFinishChangePasswordDTO,
   ) {
-    // B7a 跨引擎窗口：signout 的 refresh 写腿仍走 ctx.dbSession 到 Mongo，
-    // identity 写腿已迁 PG 走 ctx.em —— 7c 归一
-    await this.signoutService.doSignout(user.userId, { trigger: 'security-policy', revokeReason: 'updatePass' }, ctx.dbSession!)
+    // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em
+    await this.signoutService.doSignout(user.userId, { trigger: 'security-policy', revokeReason: 'updatePass' }, ctx.em)
 
     return this.authOpaqueCoreService.finishChangePassword(
       user.userName,

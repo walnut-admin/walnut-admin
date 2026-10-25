@@ -95,14 +95,13 @@ export class SysUserMfaWebauthnController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: SysUserMfaWebauthnAuthenticateVerifyDTO,
   ) {
-    // B7a 跨引擎窗口双句柄：user 读腿（PG）走 ctx.em，mfa 表写腿（Mongo）走 ctx.dbSession —— 7b 归一
+    // B7b 归一：mfa 表写腿迁 PG —— 双句柄收成单 em
     const newAccessToken = await this.userMfaWebauthnService.verifyAuthentication(
       jti,
       deviceId,
       user,
       dto,
       ctx.em,
-      ctx.dbSession!,
     )
     return new AuthSuccessDTO({ accessToken: newAccessToken })
   }

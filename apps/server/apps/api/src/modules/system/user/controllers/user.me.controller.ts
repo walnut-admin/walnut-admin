@@ -48,7 +48,8 @@ export class SysUserMeController {
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutDBSession() ctx: WalnutTxContext,
   ) {
-    return this.userMeService.getSecurityTab2Status(user.userId, ctx.dbSession!)
+    // B7b 归一：mfa 状态读腿迁 PG —— 单 em
+    return this.userMeService.getSecurityTab2Status(user.userId, ctx.em)
   }
 
   @Get('profile')

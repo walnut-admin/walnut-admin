@@ -46,7 +46,7 @@ export class OAuthGiteeService {
    * B7a 签名适配：user/identity/oauth 三条数据腿全部迁 PG。本流程从 passport
    * strategy（guard 阶段）发起，早于拦截器事务 —— `request.txContext` 尚不存在，
    * 故沿用 Mongo 版「自管事务」的形态换成 PG QueryRunner（签名不变，strategy 零改动）；
-   * refresh 写腿在 controller 的 generateAuthTokens（ctx.dbSession，7c 归一）。
+   * refresh 写腿在 controller 的 generateAuthTokens（ctx.em，B7b 起 PG）。
    */
   async validateIdentity(
     giteeUserId: string,

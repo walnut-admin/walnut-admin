@@ -6,9 +6,10 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColum
  * - device_id 是对 sys_device.device_id 的**松引用**（Q5 定案：MFA 凭据不应随设备行删除
  *   而级联消失），不建 FK，仅保留 text 列。
  * - webauthn_credential_id 按 Q2 定案补 partial unique（凭据 id 全局唯一，可空列 → WHERE NOT NULL）。
- * - webauthn_counter 用 bigint（签名计数器语义上无上限）。注意：pg 驱动对 int8 默认返回
- *   string（防精度丢失），接线批次如需 number 语义在此列加 transformer。
- * - totp/webauthn 公私钥密文列对齐 schema 的 select: false，同 identity 的处理口径。
+ * - webauthn_counter 用 bigint（签名计数器语义上无上限）；pg 驱动对 int8 默认返回 string，
+ *   这里挂 number transformer（webauthn 校验库的 counter 形参是 number）。
+ * - 四个密文列对齐 schema 的 select: false（B7b 接线时补上，同 identity 的处理口径）：
+ *   默认查询不出，取值走仓库的显式 addSelect 通道。
  */
 @Index('idx_user_mfa_user', ['userId'])
 @Entity({ name: 'sys_user_mfa' })
@@ -30,31 +31,40 @@ export class SysUserMfaEntity {
   @Column({ type: 'text', name: 'name' })
   name: string
 
-  // TOTP 专用密文
-  @Column({ type: 'text', name: 'totp_secret_ciphertext', nullable: true })
+  // TOTP 专用密文（schema select: false → 实体同款）
+  @Column({ type: 'text', name: 'totp_secret_ciphertext', nullable: true, select: false })
   totpSecretCiphertext: string | null
 
   @Index('uq_user_mfa_credential', { unique: true, where: '"webauthn_credential_id" IS NOT NULL' })
   @Column({ type: 'text', name: 'webauthn_credential_id', nullable: true })
   webauthnCredentialId: string | null
 
-  // WebAuthn 公钥
-  @Column({ type: 'text', name: 'webauthn_public_key', nullable: true })
+  // WebAuthn 公钥（schema select: false → 实体同款）
+  @Column({ type: 'text', name: 'webauthn_public_key', nullable: true, select: false })
   webauthnPublicKey: string | null
 
-  @Column({ type: 'bigint', name: 'webauthn_counter', default: 0 })
+  // int8 → number（驱动默认返 string；counter 参与 webauthn 防重放比较，须为 number）
+  @Column({
+    type: 'bigint',
+    name: 'webauthn_counter',
+    default: 0,
+    transformer: {
+      from: (value: string | null): number => (value === null ? 0 : Number(value)),
+      to: (value: number): number => value,
+    },
+  })
   webauthnCounter: number
 
   // 数组元素 CHECK（IN usb/ble/nfc/internal/hybrid）在 migration，用数组包含谓词实现
   @Column({ type: 'text', name: 'webauthn_transports', array: true, default: () => '\'{}\'' })
   webauthnTransports: string[]
 
-  // SMS 专用密文
-  @Column({ type: 'text', name: 'phone_number_ciphertext', nullable: true })
+  // SMS 专用密文（schema select: false → 实体同款）
+  @Column({ type: 'text', name: 'phone_number_ciphertext', nullable: true, select: false })
   phoneNumberCiphertext: string | null
 
-  // 备用码密文
-  @Column({ type: 'text', name: 'backup_codes_ciphertext', array: true, default: () => '\'{}\'' })
+  // 备用码密文（schema select: false → 实体同款）
+  @Column({ type: 'text', name: 'backup_codes_ciphertext', array: true, default: () => '\'{}\'', select: false })
   backupCodesCiphertext: string[]
 
   @Column({ type: 'boolean', name: 'status', default: true })

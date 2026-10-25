@@ -1,17 +1,23 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
-import { ClientSession, Types } from 'mongoose'
+import { ValueOf } from 'easy-fns-ts'
 
 import { SysUserDeviceRepositoryService } from '../user_device/repo/user_device.repo.service'
 import { SysUserLockDoLockDto, SysUserLockPreferenceDTO, SysUserLockUnLockDto } from './dto/user_lock.dto'
-import { ISysUserLockModel, LockModeConst } from './schema/user_lock.schema'
+import { SysUserLockRepositoryService } from './repo/user_lock.repo.service'
+import { LockModeConst } from './schema/user_lock.schema'
 import { SysUserLockSharedService } from './shared/user_lock.shared.service'
 
+type ILockModeConst = ValueOf<typeof LockModeConst>
+
+/**
+ * B7b 迁移：Mongo model 直持 → SysUserLockRepositoryService（PG）。
+ * 方法签名 `dbSession: ClientSession` → `em?: EntityManager`，纯透传。
+ */
 @Injectable()
 export class SysUserLockService {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SYS_USER_LOCK)
-    private readonly SysUserLockModel: ISysUserLockModel,
+    private readonly userLockRepo: SysUserLockRepositoryService,
 
     private readonly userDeviceRepo: SysUserDeviceRepositoryService,
     private readonly userLockSharedService: SysUserLockSharedService,
@@ -32,7 +38,7 @@ export class SysUserLockService {
    * @description check lock status for guard
    */
   async getLockForGuard(userId: string, deviceId: string) {
-    const pref = await this.SysUserLockModel.findOne({ userId }).lean()
+    const pref = await this.userLockRepo.findUserLockPreByUserId(userId)
     const isCrossDevice = pref?.lockCrossDevice ?? false
 
     const isLocked = isCrossDevice
@@ -49,12 +55,8 @@ export class SysUserLockService {
    * @description get lock status
    */
   async getLockStatusForUser(userId: string, deviceId: string): Promise<SysUserLockPreferenceDTO> {
-    const objId = new Types.ObjectId(userId)
-
     // get lock preference
-    const lockPreferences = await this.SysUserLockModel.findOne({
-      userId: objId,
-    })
+    const lockPreferences = await this.userLockRepo.findUserLockPreByUserId(userId)
 
     // return default lock preference if not found
     if (!lockPreferences) {
@@ -67,7 +69,9 @@ export class SysUserLockService {
       const anyDeviceLocked = await this.userDeviceRepo.isAnyDeviceLockedForUser(userId)
       return {
         locked: anyDeviceLocked,
-        ...lockPreferences.toObject(),
+        ...lockPreferences,
+        // 实体列是 varchar（CHECK 枚举在 migration），DTO 侧收窄回 const 联合
+        lockMode: lockPreferences.lockMode as ILockModeConst,
       }
     }
     else {
@@ -75,7 +79,8 @@ export class SysUserLockService {
       const deviceLocked = await this.userDeviceRepo.isDeviceLockedForUser(userId, deviceId)
       return {
         locked: deviceLocked,
-        ...lockPreferences.toObject(),
+        ...lockPreferences,
+        lockMode: lockPreferences.lockMode as ILockModeConst,
       }
     }
   }
@@ -83,14 +88,14 @@ export class SysUserLockService {
   /**
    * @description lock user account
    */
-  async lock(userId: string, deviceId: string, fingerprint: string, { lockRoute }: SysUserLockDoLockDto, dbSession: ClientSession) {
-    return this.userLockSharedService.lockUserDevice(userId, deviceId, fingerprint, lockRoute!, dbSession)
+  async lock(userId: string, deviceId: string, fingerprint: string, { lockRoute }: SysUserLockDoLockDto, em?: EntityManager) {
+    return this.userLockSharedService.lockUserDevice(userId, deviceId, fingerprint, lockRoute!, em)
   }
 
   /**
    * @description unlock user account, if lockMode is security, then check password
    */
-  async unlock(userId: string, deviceId: string, fingerprint: string, { lockPwdHash }: SysUserLockUnLockDto, dbSession: ClientSession) {
-    return this.userLockSharedService.unLockUserDevice(userId, deviceId, fingerprint, lockPwdHash!, dbSession)
+  async unlock(userId: string, deviceId: string, fingerprint: string, { lockPwdHash }: SysUserLockUnLockDto, em?: EntityManager) {
+    return this.userLockSharedService.unLockUserDevice(userId, deviceId, fingerprint, lockPwdHash!, em)
   }
 }

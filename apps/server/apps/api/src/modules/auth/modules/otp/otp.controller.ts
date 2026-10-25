@@ -73,7 +73,7 @@ export class OtpController {
       payload.identifier,
       user,
       deviceId,
-      ctx.dbSession!,
+      ctx.em,
     )
 
     // Mark identity as verified after successful OTP validation

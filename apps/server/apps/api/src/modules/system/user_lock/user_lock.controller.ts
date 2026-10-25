@@ -43,7 +43,7 @@ export class SysUserLockController {
     @Request() req: IWalnutAdminExpressRequest,
     @Body() payload: SysUserLockDoLockDto,
   ) {
-    return this.lockService.lock(user.userId, deviceId, req.fingerprint, payload, ctx.dbSession!)
+    return this.lockService.lock(user.userId, deviceId, req.fingerprint, payload, ctx.em)
   }
 
   @Patch('unlock')
@@ -61,6 +61,6 @@ export class SysUserLockController {
     @Request() req: IWalnutAdminExpressRequest,
     @Body() payload: SysUserLockUnLockDto,
   ) {
-    return this.lockService.unlock(user.userId, deviceId, req.fingerprint, payload, ctx.dbSession!)
+    return this.lockService.unlock(user.userId, deviceId, req.fingerprint, payload, ctx.em)
   }
 }

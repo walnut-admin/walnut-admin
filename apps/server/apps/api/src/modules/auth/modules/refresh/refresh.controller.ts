@@ -49,8 +49,8 @@ export class AuthRefreshController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
   ) {
-    // B7a 跨引擎窗口双句柄：refresh 表写腿（Mongo）走 ctx.dbSession，user 读腿（PG）走 ctx.em —— 7c 归一
-    const newAccessToken = await this.authRefreshSharedService.getNewAccessToken(jti, deviceId, req.RT.sid, ctx.em, ctx.dbSession!)
+    // B7b 归一：refresh 表写腿迁 PG —— 双句柄收成单 em（轮换事务全 PG）
+    const newAccessToken = await this.authRefreshSharedService.getNewAccessToken(jti, deviceId, req.RT.sid, ctx.em)
 
     // set refresh token jti to cookie
     this.authCookieService.setRTJtiCookie(req, jti)

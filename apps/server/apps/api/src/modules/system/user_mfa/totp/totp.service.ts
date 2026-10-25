@@ -1,13 +1,12 @@
 import type { EntityManager } from 'typeorm'
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { registerAfterCommitHook, WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
+import { registerAfterCommitHook } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions'
 import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 
 import { isNil } from 'lodash'
-import { ClientSession, Types } from 'mongoose'
 import { generateSecret, generateURI, verify } from 'otplib'
 import * as QRCode from 'qrcode'
 import { AuthMfaPostVerificationService } from '@/modules/auth/modules/mfa/mfa.post.service'
@@ -15,9 +14,19 @@ import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache
 import { AppTechCryptoService } from '@/modules/techniques/crypto/crypto.service'
 import { SysUserRepositoryService } from '../../user/repo/user.repo.service'
 import { SysUserMfaHelperService } from '../mfa.shared.service'
-import { ISysUserMfaModel } from '../schema/user_mfa.schema'
+import { SysUserMfaRepositoryService } from '../repo/user_mfa.repo.service'
 import { SysUserMfaBindTotpDTO, SysUserMfaDeviceVerifyTotpDTO } from './totp.dto'
 
+/**
+ * B7b 迁移：Mongo model 直持 → SysUserMfaRepositoryService（PG）。
+ *
+ * - 9 处 `new Types.ObjectId(userId)` 全部摘除，uuid 直传（phase3-plan §4 B7 项）；
+ * - 事务句柄 `dbSession: ClientSession` → `em?: EntityManager`（B7a 的 verify 双句柄
+ *   归一为单 em —— mfa 表写腿与 user 读腿同为 PG）；
+ * - **备用码并入 totp 行**（phase2 4.12 定案）：不再创建独立 `type: 'backup_codes'` 行
+ *   （PG CHECK 只放行 totp/webauthn），绑定时把 hash 后的备用码写进 totp 行的
+ *   backup_codes_ciphertext 列；verifyBackupCode / unbindTotp 同步按 totp 行读写。
+ */
 @Injectable()
 export class SysUserMfaTotpService {
   private readonly MFA_ENCRYPTION_KEY = 'crypto.mfaKey'
@@ -25,8 +34,7 @@ export class SysUserMfaTotpService {
   private issuer: string
 
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SYS_USER_MFA)
-    private readonly sysUserMfaModel: ISysUserMfaModel,
+    private readonly sysUserMfaRepo: SysUserMfaRepositoryService,
 
     private readonly configService: ConfigService,
 
@@ -43,19 +51,14 @@ export class SysUserMfaTotpService {
   /**
    * generate TOTP secret and QR code
    */
-  async generateTotp(userId: string, deviceId: string, dbSession: ClientSession) {
-    // B7a 签名适配：user 读腿迁 PG —— 不再传 Mongo session（连接级读，7b 归一）
-    const user = await this.userRepo.findUserByUserId(userId)
+  async generateTotp(userId: string, deviceId: string, em?: EntityManager) {
+    const user = await this.userRepo.findUserByUserId(userId, em)
 
     if (!user) {
       throw new WalnutAdminExceptionDataNotFound()
     }
 
-    const existingDevice = await this.sysUserMfaModel.findOne({
-      userId: new Types.ObjectId(userId),
-      type: 'totp',
-      status: true,
-    }).session(dbSession)
+    const existingDevice = await this.sysUserMfaRepo.findActiveTotpByUserId(userId, em)
 
     if (existingDevice) {
       throw new WalnutAdminExceptionDataExists()
@@ -99,7 +102,7 @@ export class SysUserMfaTotpService {
   /**
    * verify and bind TOTP device
    */
-  async bindTotp(userId: string, deviceId: string, dto: SysUserMfaBindTotpDTO, dbSession: ClientSession) {
+  async bindTotp(userId: string, deviceId: string, dto: SysUserMfaBindTotpDTO, em?: EntityManager) {
     const [cachedUserId, cachedDeviceId] = dto.tempTotpId.split(',')
 
     if (cachedUserId !== userId || cachedDeviceId !== deviceId) {
@@ -107,11 +110,7 @@ export class SysUserMfaTotpService {
     }
 
     // check if TOTP device already bound
-    const existingTotp = await this.sysUserMfaModel.findOne({
-      userId: new Types.ObjectId(userId),
-      type: 'totp',
-      deviceId,
-    }).session(dbSession)
+    const existingTotp = await this.sysUserMfaRepo.findTotpByUserIdAndDeviceId(userId, deviceId, em)
 
     if (existingTotp) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.mfa.totp.alreadyBound' })
@@ -144,33 +143,25 @@ export class SysUserMfaTotpService {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.verifyCodeError' })
     }
 
-    // NOTICE: create with session, first param need to be an array
-    await this.sysUserMfaModel.create([{
-      userId: new Types.ObjectId(userId),
+    // generate backup codes
+    const backupCodes = this.sysUserMfaDeviceHelperService.generateBackupCodes(10)
+
+    // create totp record：密文 + hash 后的备用码同一行落库（phase2 4.12 定案，
+    // 备用码不再是独立 backup_codes 行）
+    await this.sysUserMfaRepo.createMfa({
+      userId,
       type: 'totp',
       deviceId,
       name: dto.name,
       totpSecretCiphertext: encryptedSecret,
-      status: true,
-      lastUsedAt: new Date(),
-    }], { session: dbSession })
-
-    // generate backup codes
-    const backupCodes = this.sysUserMfaDeviceHelperService.generateBackupCodes(10)
-
-    // save backup codes（using hash storage, irreversible）
-    await this.sysUserMfaModel.create([{
-      userId: new Types.ObjectId(userId),
-      type: 'backup_codes',
-      deviceId,
-      name: 'BackupCodes',
       backupCodesCiphertext: backupCodes.map(code =>
         this.cryptoService.hash(code), // hash backup code
       ),
       status: true,
-    }], { session: dbSession })
+      lastUsedAt: new Date(),
+    }, em)
 
-    // after session committed, delete cache
+    // after commit, delete cache
     registerAfterCommitHook(async () => {
       await this.cacheMfaService.delTotpCache(userId, deviceId)
     })
@@ -182,19 +173,12 @@ export class SysUserMfaTotpService {
 
   /**
    * verify TOTP
-   * （B7a 签名适配：user 读腿迁 PG —— 双句柄并传，em = ctx.em）
+   * （B7b 归一：mfa 表写腿迁 PG —— B7a 的双句柄（em + dbSession）收成单 em）
    */
-  async verifyTotp(jti: string, deviceId: string, user: IWalnutAdminAccessTokenPayload, dto: SysUserMfaDeviceVerifyTotpDTO, em: EntityManager, dbSession: ClientSession) {
-    const totpDevice = await this.sysUserMfaModel
-      .findOne({
-        userId: new Types.ObjectId(user.userId),
-        type: 'totp',
-        status: true,
-      })
-      .select('+totpSecretCiphertext')
-      .session(dbSession)
+  async verifyTotp(jti: string, deviceId: string, user: IWalnutAdminAccessTokenPayload, dto: SysUserMfaDeviceVerifyTotpDTO, em?: EntityManager) {
+    const totpDevice = await this.sysUserMfaRepo.findTotpWithSecretByUserId(user.userId, em)
 
-    if (!totpDevice) {
+    if (!totpDevice || totpDevice.totpSecretCiphertext === null) {
       throw new WalnutAdminExceptionDataNotFound()
     }
 
@@ -219,11 +203,11 @@ export class SysUserMfaTotpService {
 
     // update last used time
     totpDevice.lastUsedAt = new Date()
-    await totpDevice.save({ session: dbSession })
+    await this.sysUserMfaRepo.saveMfa(totpDevice, em)
 
     // post verification
-    // B7a 签名适配：user 读腿（PG）与 mfa 写腿（Mongo）双句柄并传
-    return this.authMfaPostVerificationService.handlePostVerification(dto.trusted, jti, user.sid!, user.userId, deviceId, em, dbSession)
+    // B7b 归一：post verification 全链 PG —— 单 em 透传
+    return this.authMfaPostVerificationService.handlePostVerification(dto.trusted, jti, user.sid!, user.userId, deviceId, em)
   }
 
   /**
@@ -237,16 +221,10 @@ export class SysUserMfaTotpService {
       throw new BadRequestException('备用码格式错误')
     }
 
-    // 查找备用码设备
-    const backupDevice = await this.sysUserMfaModel
-      .findOne({
-        userId: new Types.ObjectId(userId),
-        type: 'backup_codes',
-        status: true,
-      })
-      .select('+backupCodesCiphertext')
+    // 查找 totp 行（备用码并入 totp 行的 backup_codes_ciphertext 列，phase2 4.12 定案）
+    const totpDevice = await this.sysUserMfaRepo.findTotpWithBackupCodesByUserId(userId)
 
-    if (!backupDevice) {
+    if (!totpDevice) {
       throw new WalnutAdminExceptionDataNotFound()
     }
 
@@ -254,61 +232,44 @@ export class SysUserMfaTotpService {
     const hashedInput = this.cryptoService.hash(formattedCode)
 
     // find matching backup code
-    const index = backupDevice.backupCodesCiphertext.indexOf(hashedInput)
+    const index = totpDevice.backupCodesCiphertext.indexOf(hashedInput)
 
     if (index === -1) {
       throw new UnauthorizedException('备用码错误或已使用')
     }
 
     // remove used backup code
-    backupDevice.backupCodesCiphertext.splice(index, 1)
+    totpDevice.backupCodesCiphertext.splice(index, 1)
 
     // if all backup codes used, disable device
-    if (backupDevice.backupCodesCiphertext.length === 0) {
-      backupDevice.status = false
+    if (totpDevice.backupCodesCiphertext.length === 0) {
+      totpDevice.status = false
     }
 
-    await backupDevice.save()
+    await this.sysUserMfaRepo.saveMfa(totpDevice)
 
     return {
       success: true,
-      remainingCodes: backupDevice.backupCodesCiphertext.length,
+      remainingCodes: totpDevice.backupCodesCiphertext.length,
     }
   }
 
   /**
    * TODO 伪需求 不存在解绑 只存在禁用和重新绑定
-   *  unbind TOTP device
+   *  unbind TOTP device（备用码随 totp 行同删，无第二行）
    */
-  async unbindTotp(userId: string, dbSession: ClientSession) {
-    const result = await this.sysUserMfaModel.deleteOne({
-      userId: new Types.ObjectId(userId),
-      type: 'totp',
-    }).session(dbSession)
+  async unbindTotp(userId: string, em?: EntityManager) {
+    const deletedCount = await this.sysUserMfaRepo.deleteByUserIdAndType(userId, 'totp', em)
 
-    if (result.deletedCount === 0) {
-      throw new WalnutAdminExceptionDataNotFound()
-    }
-
-    const backupResult = await this.sysUserMfaModel.deleteOne({
-      userId: new Types.ObjectId(userId),
-      type: 'backup_codes',
-    }).session(dbSession)
-
-    if (backupResult.deletedCount === 0) {
+    if (deletedCount === 0) {
       throw new WalnutAdminExceptionDataNotFound()
     }
 
     return true
   }
 
-  async updateStatus(userId: string, status: boolean, dbSession: ClientSession) {
-    const result = await this.sysUserMfaModel.findOneAndUpdate({
-      userId: new Types.ObjectId(userId),
-      type: 'totp',
-    }, {
-      status,
-    }).session(dbSession)
+  async updateStatus(userId: string, status: boolean, em?: EntityManager) {
+    const result = await this.sysUserMfaRepo.updateStatusByUserIdAndType(userId, 'totp', status, em)
 
     if (!result) {
       throw new WalnutAdminExceptionDataNotFound()

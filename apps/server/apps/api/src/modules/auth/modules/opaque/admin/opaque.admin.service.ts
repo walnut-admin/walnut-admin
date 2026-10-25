@@ -1,4 +1,3 @@
-import type { ClientSession } from 'mongoose'
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
@@ -12,8 +11,7 @@ import { AuthOpaqueFinishChangePasswordForAdminDTO, AuthOpaqueStartChangePasswor
  * OPAQUE (Oblivious Pseudorandom Function) authentication service
  * Implements password-authenticated key exchange protocol that never exposes passwords to the server
  *
- * B7a 签名适配：user/identity 腿迁 PG（em = ctx.em）；signout 的 refresh 写腿仍在
- * Mongo（dbSession = ctx.dbSession）—— 双句柄并传，7c 归一。
+ * B7b 归一：signout 的 refresh 写腿迁 PG —— 双句柄（em + dbSession）收成单 em。
  */
 @Injectable()
 export class AuthOpaqueAdminService {
@@ -36,7 +34,7 @@ export class AuthOpaqueAdminService {
     return this.authOpaqueCoreService.startChangePassword(user.userName!, dto.start)
   }
 
-  async finishChangePassword(dto: AuthOpaqueFinishChangePasswordForAdminDTO, em: EntityManager, dbSession: ClientSession) {
+  async finishChangePassword(dto: AuthOpaqueFinishChangePasswordForAdminDTO, em: EntityManager) {
     const user = await this.userRepo.findUserByUserId(dto.id)
 
     if (!user) {
@@ -45,7 +43,7 @@ export class AuthOpaqueAdminService {
 
     await this.authOpaqueCoreService.finishChangePassword(user.userName!, dto.finish, em)
 
-    await this.signoutService.doSignout(user.id, { trigger: 'security-policy', revokeReason: 'updatePass' }, dbSession)
+    await this.signoutService.doSignout(user.id, { trigger: 'security-policy', revokeReason: 'updatePass' }, em)
 
     return true
   }

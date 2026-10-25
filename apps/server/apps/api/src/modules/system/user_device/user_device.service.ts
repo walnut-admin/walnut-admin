@@ -1,4 +1,3 @@
-import type { ClientSession } from 'mongoose'
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
@@ -12,7 +11,8 @@ import { SysUserDeviceRepositoryService } from './repo/user_device.repo.service'
 /**
  * B6 迁移：populate 链（user_device → device → monitor_user）两表均已迁 PG，改为按
  * 业务键 device_id 应用层装回（对照 Mongo 版 populate 出参字段，形态不变）；事务句柄
- * `dbSession` → `em`。doSignout 的 refresh 写腿仍在 Mongo（B7），同一事务里双句柄并传。
+ * `dbSession` → `em`。B7b 归一：doSignout 的 refresh 写腿亦迁 PG —— forceQuit /
+ * lock / unlock 的双句柄收成单 em。
  */
 @Injectable()
 export class SysUserDeviceService {
@@ -67,7 +67,7 @@ export class SysUserDeviceService {
   /**
    * @description force quit user device
    */
-  async forceQuitUserDevice(userId: string, deviceId: string, em: EntityManager, dbSession: ClientSession) {
+  async forceQuitUserDevice(userId: string, deviceId: string, em?: EntityManager) {
     const monitorUser = await this.appMonitorUserRepo.findByUserIdAndDeviceId(userId, deviceId, em)
     if (!monitorUser) {
       throw new WalnutAdminExceptionDataNotFound()
@@ -76,7 +76,7 @@ export class SysUserDeviceService {
     await this.signoutService.doSignout(
       userId,
       { trigger: 'user-kick-other', deviceId, fingerprint: monitorUser.visitorId, isOnline: !monitorUser.left },
-      dbSession,
+      em,
     )
     return true
   }
@@ -84,22 +84,22 @@ export class SysUserDeviceService {
   /**
    * @description lock user device
    */
-  async lockUserDeviceWithUserIdAndDeviceId(userId: string, deviceId: string, em: EntityManager, dbSession: ClientSession) {
+  async lockUserDeviceWithUserIdAndDeviceId(userId: string, deviceId: string, em?: EntityManager) {
     const monitorUser = await this.appMonitorUserRepo.findByUserIdAndDeviceId(userId, deviceId)
     if (!monitorUser) {
       throw new WalnutAdminExceptionDataNotFound()
     }
-    return this.userLockSharedService.lockUserDevice(userId, deviceId, monitorUser.visitorId, {}, dbSession, em)
+    return this.userLockSharedService.lockUserDevice(userId, deviceId, monitorUser.visitorId, {}, em)
   }
 
   /**
    * @description unlock user device
    */
-  async unlockUserDeviceWithUserIdAndDeviceId(userId: string, deviceId: string, lockHashPwd: string, em: EntityManager, dbSession: ClientSession) {
+  async unlockUserDeviceWithUserIdAndDeviceId(userId: string, deviceId: string, lockHashPwd: string, em?: EntityManager) {
     const monitorUser = await this.appMonitorUserRepo.findByUserIdAndDeviceId(userId, deviceId)
     if (!monitorUser) {
       throw new WalnutAdminExceptionDataNotFound()
     }
-    return this.userLockSharedService.unLockUserDevice(userId, deviceId, monitorUser.visitorId, lockHashPwd, dbSession, em)
+    return this.userLockSharedService.unLockUserDevice(userId, deviceId, monitorUser.visitorId, lockHashPwd, em)
   }
 }

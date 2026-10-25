@@ -19,8 +19,8 @@ const Permissions = {
 } as const
 
 /**
- * B6 迁移（controller 层）：数据面 PG 写走 `ctx.em`；doSignout / user_lock preference
- * 的 Mongo 写腿仍需 `ctx.dbSession`（B7 归一），双句柄并传。
+ * B6 迁移（controller 层）：数据面 PG 写走 `ctx.em`。B7b 归一：doSignout /
+ * user_lock preference 的写腿亦迁 PG —— 双句柄收成单 `ctx.em`。
  */
 @Controller('system/user/device')
 @ApiTags('system/user/device')
@@ -74,7 +74,7 @@ export class SysUserDeviceController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Param('deviceId') deviceId: string,
   ) {
-    await this.userDeviceService.forceQuitUserDevice(user.userId, deviceId, ctx.em, ctx.dbSession!)
+    await this.userDeviceService.forceQuitUserDevice(user.userId, deviceId, ctx.em)
     return true
   }
 
@@ -91,7 +91,7 @@ export class SysUserDeviceController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Param('deviceId') deviceId: string,
   ) {
-    await this.userDeviceService.lockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, ctx.em, ctx.dbSession!)
+    await this.userDeviceService.lockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, ctx.em)
     return true
   }
 
@@ -109,7 +109,7 @@ export class SysUserDeviceController {
     @Param('deviceId') deviceId: string,
     @Body() body: SysUserLockUnLockDto,
   ) {
-    await this.userDeviceService.unlockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, body.lockPwdHash!, ctx.em, ctx.dbSession!)
+    await this.userDeviceService.unlockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, body.lockPwdHash!, ctx.em)
     return true
   }
 }

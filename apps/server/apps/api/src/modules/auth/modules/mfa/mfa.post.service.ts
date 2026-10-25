@@ -1,4 +1,3 @@
-import type { ClientSession } from 'mongoose'
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { registerAfterCommitHook } from '@walnut-server/db'
@@ -21,8 +20,7 @@ export class AuthMfaPostVerificationService {
    * @param sessionId - session id
    * @param userId - user id
    * @param deviceId - device id
-   * @param em - PG 事务句柄（user 读腿，B7a）
-   * @param dbSession - Mongo 事务句柄（refresh 写腿，7c 归一）
+   * @param em - PG 事务句柄（B7b 归一：user/refresh 写腿同为 PG，单句柄）
    */
   async handlePostVerification(
     trusted: boolean,
@@ -30,12 +28,9 @@ export class AuthMfaPostVerificationService {
     sessionId: string,
     userId: string,
     deviceId: string,
-    em: EntityManager,
-    dbSession: ClientSession,
+    em?: EntityManager,
   ) {
     // update user device trusted status
-    // （B6：user_device 已迁 PG —— 写腿走 PG，MFA 端点事务里的 Mongo session 只再供
-    // refresh 侧使用；签名适配，逻辑不动）
     await this.sysUserDeviceSharedService.updateTrustedStatusForUserDevice(
       userId,
       deviceId,
@@ -47,7 +42,7 @@ export class AuthMfaPostVerificationService {
       await this.cacheMfaService.setVerifiedCache(userId, deviceId)
     })
 
-    const newAccessToken = await this.authRefreshSharedService.getNewAccessToken(jti, deviceId, sessionId, em, dbSession)
+    const newAccessToken = await this.authRefreshSharedService.getNewAccessToken(jti, deviceId, sessionId, em)
 
     return newAccessToken
   }

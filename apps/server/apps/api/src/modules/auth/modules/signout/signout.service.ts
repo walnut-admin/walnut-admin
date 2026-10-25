@@ -1,4 +1,4 @@
-import type { ClientSession } from 'mongoose'
+import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { registerAfterCommitHook } from '@walnut-server/db'
@@ -11,6 +11,10 @@ import { AuthSessionService } from '../session/session.service'
 
 // Note: Signout payload types are now defined in types.d.ts using declare global
 
+/**
+ * B7b 归一：revoke RT 的 refresh 写腿迁 PG —— `dbSession: ClientSession` 改为
+ * `em?: EntityManager`（事务句柄由调用方传入 ctx.em）。
+ */
 @Injectable()
 export class AuthSignoutService {
   private readonly logger = new Logger(AuthSignoutService.name)
@@ -27,19 +31,19 @@ export class AuthSignoutService {
   /**
    * Execute logout operation
    */
-  async doSignout(userId: string, payload: IWalnutAdminSignoutPayload, dbSession: ClientSession) {
+  async doSignout(userId: string, payload: IWalnutAdminSignoutPayload, em?: EntityManager) {
     switch (payload.trigger) {
       case 'user-logout':
-        await this.handleUserLogout(userId, payload, dbSession)
+        await this.handleUserLogout(userId, payload, em)
         break
       case 'user-kick-other':
-        await this.handleUserKickOther(userId, payload, dbSession)
+        await this.handleUserKickOther(userId, payload, em)
         break
       case 'admin-kick':
-        await this.handleAdminKick(userId, payload, dbSession)
+        await this.handleAdminKick(userId, payload, em)
         break
       case 'security-policy':
-        await this.handleSecurityPolicy(userId, payload, dbSession)
+        await this.handleSecurityPolicy(userId, payload, em)
         break
     }
   }
@@ -51,12 +55,12 @@ export class AuthSignoutService {
   private async handleUserLogout(
     userId: string,
     payload: IWalnutAdminUserLogoutPayload,
-    dbSession: ClientSession,
+    em?: EntityManager,
   ) {
     const { deviceId, sid, ip } = payload
 
     // 撤销 refresh token
-    await this.authRefreshSharedService.revokeRTForUserDevice(userId, deviceId, dbSession)
+    await this.authRefreshSharedService.revokeRTForUserDevice(userId, deviceId, em)
 
     // 事务提交后清理缓�?
     registerAfterCommitHook(async () => {
@@ -73,12 +77,12 @@ export class AuthSignoutService {
   private async handleUserKickOther(
     userId: string,
     payload: IWalnutAdminUserKickOtherPayload,
-    dbSession: ClientSession,
+    em?: EntityManager,
   ) {
     const { deviceId, fingerprint, isOnline } = payload
 
-    // revoke RT �?更新revoke reason
-    await this.authRefreshSharedService.revokeRTForUserDevice(userId, deviceId, dbSession, WalnutAdminConstRevokeRTType.userKickOther)
+    // revoke RT + 更新revoke reason
+    await this.authRefreshSharedService.revokeRTForUserDevice(userId, deviceId, em, WalnutAdminConstRevokeRTType.userKickOther)
     this.logger.log(`User kick other - revoked RT for offline device: ${deviceId}`)
 
     // 在线设备：发 socket 通知（使用用户踢其他设备的提示）
@@ -96,12 +100,12 @@ export class AuthSignoutService {
   private async handleAdminKick(
     userId: string,
     payload: IWalnutAdminAdminKickPayload,
-    dbSession: ClientSession,
+    em?: EntityManager,
   ) {
     const { deviceId, fingerprint, revokeReason, isOnline } = payload
 
     // 离线设备：只 revoke RT
-    await this.authRefreshSharedService.revokeRTForUserDevice(userId, deviceId, dbSession, revokeReason)
+    await this.authRefreshSharedService.revokeRTForUserDevice(userId, deviceId, em, revokeReason)
     this.logger.log(`Admin kick - revoked RT for offline device: ${deviceId}`)
 
     if (isOnline) {
@@ -119,12 +123,12 @@ export class AuthSignoutService {
   private async handleSecurityPolicy(
     userId: string,
     payload: IWalnutAdminSecurityPolicyPayload,
-    dbSession: ClientSession,
+    em?: EntityManager,
   ) {
     const { revokeReason } = payload
 
-    // revoke 所有设备的 RT 并记�?revoke 原因
-    await this.authRefreshSharedService.revokeRTForUser(userId, dbSession, revokeReason)
+    // revoke 所有设备的 RT 并记录 revoke 原因
+    await this.authRefreshSharedService.revokeRTForUser(userId, em, revokeReason)
 
     // 事务提交后通知在线设备
     registerAfterCommitHook(async () => {

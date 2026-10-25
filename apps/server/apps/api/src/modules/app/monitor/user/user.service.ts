@@ -1,4 +1,3 @@
-import type { ClientSession } from 'mongoose'
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 
@@ -15,8 +14,8 @@ import { AppMonitorUserBasicRepository } from './user.basic.repository'
 /**
  * B6 迁移：monitor 列表聚合（$lookup device/user + matchConditions）改 basic repo 的
  * JOIN 版 `list()`；populate（read 的 device/user、updateState 的联动手腿）改按业务键
- * 应用层装回。事务句柄 `dbSession` → `em`；doSignout 的 refresh 写腿仍在 Mongo（B7），
- * forceQuit 双句柄并传（PG 读 monitor 走 em，Mongo revoke RT 走 dbSession）。
+ * 应用层装回。事务句柄 `dbSession` → `em`。B7b 归一：doSignout 的 refresh 写腿亦迁
+ * PG —— forceQuit 的双句柄收成单 em。
  */
 @Injectable()
 export class AppMonitorUserService {
@@ -70,8 +69,9 @@ export class AppMonitorUserService {
 
   /**
    * @description force quit through monitorId
+   * （B7b 归一：doSignout 的 refresh 写腿迁 PG —— 双句柄收成单 em）
    */
-  async forceQuitByMonitorId(id: string, em: EntityManager, dbSession: ClientSession) {
+  async forceQuitByMonitorId(id: string, em?: EntityManager) {
     const appMonitor = await this.appMonitorUserRepoService.findByMonitorId(id, em)
 
     if (appMonitor === null) {
@@ -87,7 +87,7 @@ export class AppMonitorUserService {
         fingerprint: appMonitor.visitorId,
         isOnline: !appMonitor.left,
       },
-      dbSession,
+      em,
     )
   }
 

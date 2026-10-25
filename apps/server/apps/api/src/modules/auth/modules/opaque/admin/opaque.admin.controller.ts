@@ -55,8 +55,8 @@ export class AuthOpaqueAdminController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: AuthOpaqueFinishChangePasswordForAdminDTO,
   ) {
-    // B7a 跨引擎窗口双句柄：identity 腿（PG）走 ctx.em，signout 的 refresh 腿（Mongo）走 ctx.dbSession
-    return this.authOpaqueAdminService.finishChangePassword(dto, ctx.em, ctx.dbSession!)
+    // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em
+    return this.authOpaqueAdminService.finishChangePassword(dto, ctx.em)
   }
 
   @Post('password/clear')

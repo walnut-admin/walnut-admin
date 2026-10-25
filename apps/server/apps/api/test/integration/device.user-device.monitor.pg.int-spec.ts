@@ -1,10 +1,8 @@
 import type { INestApplication } from '@nestjs/common'
-import type { Model } from 'mongoose'
 import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 
-import { DBTransactionHooksStore, WalnutDBModelName } from '@walnut-server/db'
-import { Types } from 'mongoose'
+import { DBTransactionHooksStore } from '@walnut-server/db'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AppMonitorUserRepositoryService } from '@/modules/app/monitor/user/repo/user.repo.service'
 import { AppMonitorUserBasicRepository } from '@/modules/app/monitor/user/user.basic.repository'
@@ -14,11 +12,11 @@ import { SysDeviceService } from '@/modules/system/device/device.service'
 import { SysDeviceRepositoryService } from '@/modules/system/device/repo/device.repo.service'
 import { SysUserDeviceRepositoryService } from '@/modules/system/user_device/repo/user_device.repo.service'
 import { SysUserDeviceService } from '@/modules/system/user_device/user_device.service'
-import { createIntegrationApp, getWalnutConnection, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 
 /**
- * B6 设备三角用例（phase2 4.8/4.9/4.21 / phase3-plan §1 B6，on real PG + Mongo）：
+ * B6 设备三角用例（phase2 4.8/4.9/4.21 / phase3-plan §1 B6，on real PG）：
  * - device：按业务键 device_id 注册（initial upsert 覆盖写 + uq_device_id）、
  *   ipHistory/locationHistory 追加与 5 条截断语义、列表 location 过滤（jsonb ILIKE）、
  *   按业务键删除；IP 一律用私网段（ip.service 对本机 IP 确定性返回 LOCAL，不发外网请求）；
@@ -26,8 +24,8 @@ import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
  *   (user_id, device_id) UNIQUE、设备删除 CASCADE、锁状态批量翻转、
  *   updateUserDeviceLastActiveAt 的基线（含 isNil 反转分支的原始行为）；
  * - monitor_user：visitorId upsert、left 过滤、populated user（sys_user 同源表）、
- *   forceQuit 链路（PG 读行 + doSignout；refresh 写腿仍在 Mongo —— B6~B7 跨引擎窗口，
- *   本用例同时钉住「uuid userId 不写 Mongo refresh」的现状）、JOIN 版列表。
+ *   forceQuit 链路（PG 读行 + doSignout；B7b 起 refresh revoke 写腿同为 PG，
+ *   同库断言 revoked）、JOIN 版列表。
  */
 
 const LOCAL_LOCATION = { country: 'LOCAL', region: 'LOCAL', city: 'LOCAL' }
@@ -35,7 +33,6 @@ const LOCAL_LOCATION = { country: 'LOCAL', region: 'LOCAL', city: 'LOCAL' }
 describe('B6 device / user_device / monitor_user (on real PG)', () => {
   let app: INestApplication
   let pgDataSource: DataSource
-  let mongoConnection: ReturnType<typeof getWalnutConnection>
 
   let deviceBasicRepo: SysDeviceBasicRepository
   let deviceRepoService: SysDeviceRepositoryService
@@ -50,7 +47,6 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
   const unique = (prefix: string) => `${prefix}-${seed}`
 
   let pgUserId = ''
-  let mongoRefreshModel: Model<Record<string, unknown>>
 
   async function countPg(table: string, where: string, params: unknown[]) {
     const rows: Array<{ c: number }> = await pgDataSource.query(
@@ -83,7 +79,6 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
   beforeAll(async () => {
     app = await createIntegrationApp()
     pgDataSource = getWalnutPgDataSource(app)
-    mongoConnection = getWalnutConnection(app)
     expect(pgDataSource.options.database).toBe(INTEGRATION_DATABASE_NAME)
 
     deviceBasicRepo = app.get(SysDeviceBasicRepository)
@@ -100,8 +95,6 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       [unique('b6-user')],
     )
     pgUserId = userRows[0].id
-
-    mongoRefreshModel = mongoConnection.models[WalnutDBModelName.AUTH_REFRESH_TOKEN] as Model<Record<string, unknown>>
   })
 
   afterAll(async () => {
@@ -412,59 +405,51 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
 
   describe('forceQuit 链路', () => {
     it('monitor 不存在 → false（PG 侧短路）', async () => {
-      const session = await mongoConnection.startSession()
-      const result = await monitorUserService.forceQuitByMonitorId(randomUUID(), pgDataSource.manager, session)
+      const result = await monitorUserService.forceQuitByMonitorId(randomUUID(), pgDataSource.manager)
       expect(result).toBe(false)
     })
 
-    it('forceQuitByMonitorId：PG 读行 + doSignout 完成；refresh 写腿仍在 Mongo，uuid userId 不落 Mongo（B6~B7 窗口现状）', async () => {
+    it('forceQuitByMonitorId：PG 读行 + doSignout，refresh revoke 写腿同为 PG（B7b 归一）', async () => {
       const deviceKey = unique('b6-fq-device')
       await deviceBasicRepo.create({ deviceName: unique('b6-fq-name'), deviceId: deviceKey, deviceInfo: {}, ipHistory: [] })
 
       const jti = unique('b6-fq-jti')
-      await mongoRefreshModel.create({
-        jti,
-        userId: new Types.ObjectId(),
-        deviceId: deviceKey,
-        encryptedToken: 'enc',
-        expiredAt: new Date(Date.now() + 3600_000),
-      } as never)
+      // refresh 行已迁 PG（B7b）：双 FK —— user_id → sys_user、device_id → sys_device(device_id)
+      await pgDataSource.query(
+        'INSERT INTO auth_refresh_token (jti, user_id, device_id, encrypted_token, expired_at) VALUES ($1, $2, $3, $4, $5)',
+        [jti, pgUserId, deviceKey, 'enc', new Date(Date.now() + 3600_000).toISOString()],
+      )
 
       const monitor = await monitorBasicRepo.create({
         visitorId: unique('b6-fq-visitor'),
         deviceId: deviceKey,
-        // userId 置空：迁移窗口内 monitor 行只可能是匿名态（uuid 由 ETL/B7 引入）
-        userId: null,
-        auth: false,
+        userId: pgUserId,
+        auth: true,
         // left=true → isOnline=false → forceQuit 只走 revoke 腿、不发 socket
         left: true,
       })
 
-      const session = await mongoConnection.startSession()
-      const result = await monitorUserService.forceQuitByMonitorId(monitor.id, pgDataSource.manager, session)
-      await session.endSession()
+      const result = await monitorUserService.forceQuitByMonitorId(monitor.id, pgDataSource.manager)
 
-      // doSignout(admin-kick) 正常完成（返回 void；revoke 在 Mongo 按 ObjectId 查
-      // userId=null 生成的一次性 id → 不命中、不抛）
+      // doSignout(admin-kick) 正常完成（返回 void）
       expect(result).toBeUndefined()
 
-      // B6~B7 跨引擎窗口：refresh 行保持未撤销（B7 refresh 迁 PG 后归一）
-      const refreshRow = await (mongoRefreshModel as unknown as { findOne: (f: object) => Promise<{ jti: string, revoked: boolean } | null> }).findOne({ jti })
-      expect(refreshRow).not.toBeNull()
-      expect(refreshRow!.revoked).toBe(false)
+      // B7b 归一：revoke 落 PG 同一行（原 B6~B7 跨引擎窗口的「不落 Mongo」现状断言随之退役）
+      const rows: Array<{ revoked: boolean }> = await pgDataSource.query(
+        'SELECT revoked FROM auth_refresh_token WHERE jti = $1',
+        [jti],
+      )
+      expect(rows[0].revoked).toBe(true)
 
       await monitorBasicRepo.deleteRealById(monitor.id)
     })
 
     it('user_device.forceQuitUserDevice：无 monitor 行 → DataNotFound', async () => {
-      const session = await mongoConnection.startSession()
       await expect(userDeviceService.forceQuitUserDevice(
         pgUserId,
         unique('b6-fq-nobody'),
         pgDataSource.manager,
-        session,
       )).rejects.toThrow()
-      await session.endSession()
     })
   })
 

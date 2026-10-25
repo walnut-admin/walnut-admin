@@ -34,7 +34,7 @@
 | B4 | app_setting + app_key + shared_area（递归 CTE + CYCLE 兜底） | ✅ |
 | B5 | sys_menu（meta 拍平组装出参）+ sys_role + sys_role_menu；产出 defaultRole uuid 订正脚本 | ✅ |
 | B6 | sys_device + sys_user_device + app_monitor_user（双向环同批） | ✅ |
-| B7 | SCC-A 账户团九表（user/identity/oauth/lock/mfa/preference/device/refresh + auth 全系 + security） | ◐ **B7a ✅**（user/identity/oauth + auth 系签名适配 + review 挂单三项；7b=lock/mfa/preference/refresh、7c=auth 全链 + security 归一） |
+| B7 | SCC-A 账户团九表（user/identity/oauth/lock/mfa/preference/device/refresh + auth 全系 + security） | ◐ **B7a ✅ B7b ✅**（7a=user/identity/oauth + auth 系签名适配 + review 挂单三项；7b=lock/mfa/preference/refresh 全 PG + 消费方单 em 归一；7c=auth 全链 + security 归一） |
 | B8 | sys_log_operate + sys_log_auth + techniques/event（fire-and-forget 旁路） | |
 | B9 | sys_deleted 收尾：恢复注册表装配、recover/recoverMine PG 化、Mongo 侧下线 | |
 | B10 | 终批清理（摘 MongooseModule、Mongo int-spec、双轨残留；与 Phase 5 合并执行） | |
@@ -77,6 +77,14 @@
   ipHistory 追加截断 / visitorId upsert / forceQuit 链路 / JOIN 版列表）。
 - B7a 交付 `user.identity.oauth.pg.int-spec`（junction 组装 / defaultRole v5 uuid 链路 /
   identity 复合唯一 23505 + value select:false 通道 / oauth bind upsert + 外部账号唯一）。
+- B7b 交付 `user.lock.pg.int-spec`（hash 写入路径首插/更新全覆盖 + upsert 缺省列 +
+  shared lock 联动 user_device）、`user.mfa.pg.int-spec`（uq_user_mfa_credential partial
+  23505 + 密文列 select:false 通道 + bigint counter transformer + backup_codes 并入 totp 行
+  + 聚合 GROUP BY + CASCADE）、`auth.refresh-token.pg.int-spec`（索引对齐 / 轮换事务原子性
+  [revoke+rotate 同回滚] / generateRefreshToken uuidv7 + DuplicateSignIn / 设备业务键 FK
+  CASCADE）；`user-preference.upsert.int-spec` 改写 PG（upsert 幂等三态 + jsonb orUpdate +
+  bind 幂等）。B6 的 forceQuit 跨引擎用例段（refresh 写腿走 Mongo 的现状断言）随本批改写为
+  同库 revoked 断言。
 - B9/B10：删 Mongo 段 global-setup 与 Mongo int-spec。
 
 ## 4. ID 使用点清查（改造归属）
@@ -91,7 +99,7 @@
 | error.process.ts | B1 ✅（uuid 直传，删除 ObjectId 包装） |
 | monitor/user.repo.service | B6 ✅（`new ObjectId` → uuid 直传；user_device.repo 同批完成） |
 | user.crud / user.shared（defaultRole 消费点） | B7a ✅（uuid 直用；safe id 常量补 v5 双形态） |
-| user_identity（B7a ✅）/ user_oauth（B7a ✅）/ user_lock / user_mfa / totp / webauthn / user_preference / refresh.repo | B7a ✅（identity/oauth）；其余 7b/7c |
+| user_identity（B7a ✅）/ user_oauth（B7a ✅）/ user_lock（B7b ✅）/ user_mfa（B7b ✅，totp+webauthn+backup_codes 并行）/ user_preference（B7b ✅）/ refresh.repo（B7b ✅） | B7a ✅（identity/oauth）；B7b ✅（lock/mfa/preference/refresh） |
 | log.operate.decorator / log.auth.shared.service | B8 |
 | deleted.service recover 链路 | B9 |
 
@@ -117,16 +125,18 @@
    本就为空），故 B5~B7a 期间登录后的权限/路由生成走 PG 空数据，`getCorePermissions` 的
    root 分支需要 PG 里存在根菜单。集成测试以 PG fixture 直建覆盖该链路；运行时行为在
    B7a（user 迁移 + 订正脚本落地）后归一。**token 里 roleIds/currentRole 现为 uuid**
-   （B7a 起 getJwtAccessTokenPayload 吃 PG 实体 + junction 组装），7c 前登录态两条腿
-   （user/role 查询、refresh 表）跨引擎由双引擎拦截器统一提交。
+   （B7a 起 getJwtAccessTokenPayload 吃 PG 实体 + junction 组装）。**B7b 后登录态两条腿
+   （user/role 查询、refresh 表）同为 PG**，刷新轮换 / mfa verify / signout 的 revoke
+   单 em 单事务；7c 只收 auth 策略内部与 security。
 4. **设备三角跨引擎 user 引用**（B6~B7）：`sys_user_device.user_id`（FK → sys_user）与
    `app_monitor_user.user_id`（松引用）是 uuid 列，B7a 前 token 里的 userId 是
    ObjectId hex —— 登录绑设备（bindDeviceForUser）、auth 访客的 monitor state（DTO 已换
    IsUUID，hex 请求 400）、user 维度的锁定 / forceQuit 读写会以 22P02 / FK 拒绝呈现；
    device.initial 与匿名 monitor state（无 userId）不受影响。B7a 后 token userId 即
-   PG uuid，该窗口**归一**；refresh 表（Mongo）里的存量行 userId 仍是 hex，
-   `getNewAccessToken` 读到旧行时 `findUserByUserId(hex)` 落空 → RefreshTokenExpired
-   （用户重新登录自愈），7c 随 refresh 迁移 ETL 后彻底消失。populate user 读腿查 PG
+   PG uuid，该窗口**归一**；**B7b 后 refresh 读写走 PG** —— Mongo 侧存量 refresh 行
+   不再被读到（userId 仍是 hex 的旧行留在 Mongo，随 Phase 4 ETL 评估是否搬移），
+   已登录会话首次刷新令牌时 `findByJti` 落空 → RefreshTokenExpired（用户重新登录自愈，
+   与 B7a 前提的旧行 hex 落空路径同一自愈形态）。populate user 读腿查 PG
    sys_user 同源表（role B5 的 usersCount 同款手法）。
 5. 审计旁路本就是 fire-and-forget 最终一致，不新增风险。
 
@@ -164,3 +174,23 @@
   deletedBy populate 改查 PG sys_user 同源表；Mongo 窗口内 hex deletedBy → null（§5.1）。
 - **identity value 的 select:false**：实体列 `select: false` 对齐 schema；取密文走
   repo 的 `getValueByUserIdTypeAndPurpose` 显式 addSelect 通道（登录/敏感校验路径）。
+
+### B7b 追加
+
+- **backup_codes 并入 totp 行**：Mongo 侧备用码是独立 `type: 'backup_codes'` 行，PG 的
+  CHECK（type IN totp/webauthn，varchar(8)）容不下该值 —— 按 phase2 4.12 的 16 列设计合并：
+  bindTotp 把 hash 后的备用码写进 totp 行 `backup_codes_ciphertext`，verifyBackupCode /
+  unbindTotp 按 totp 行读写（备用码与 totp 凭据同生灭）。附带如实记录：上游 bindTotp 存的
+  是 `cryptoService.hash`（无 salt → 每次随机盐）产物，verifyBackupCode 的 indexOf 恒 miss
+  （TODO: use backup code to recover 未实现）—— 行为原样迁移不修，int-spec 钉现状。
+- **schema pre('save') hash 迁 repo 写入路径**：lockPwdHash 的 bcrypt 加盐移到
+  `SysUserLockRepositoryService.insertOrUpdateUserLockPre`（本仓库唯一写路径，写入全覆盖；
+  不带密码的写入不动既有 hash），schema 钩子摘除。
+- **B0 过渡文件 refresh.pg.module 摘除**：实体注册 + purge job 并入 AuthRefreshModule
+  （B1 接线形态），task.module 不再单引。
+- **mfa 密文列 select:false 补齐 + counter transformer**：B0 实体骨架漏了 select:false，
+  接线时补上（totpSecret/webauthnPublicKey/phoneNumber/backupCodes 四列，identity 同口径）；
+  webauthn_counter 挂 int8→number transformer（驱动默认返 string，webauthn 校验库要 number）。
+- **verify 双句柄收单 em**：mfa/totp/webauthn verify、refresh 轮换（getNewAccessToken）、
+  signout 链（auth.service/opaque/google/otp 等仅签名适配）、generateAuthTokens、
+  user_device forceQuit/lock/unlock 全部单 `em`；7c 只剩 auth 策略内部与 security 的收口。

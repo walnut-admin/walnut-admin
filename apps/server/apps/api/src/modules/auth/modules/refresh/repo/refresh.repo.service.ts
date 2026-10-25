@@ -1,24 +1,41 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
+import { InjectDataSource } from '@nestjs/typeorm'
 import { IWalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
-import { ClientSession, Types } from 'mongoose'
+import { WalnutPGConnectionName } from '@walnut-server/db'
+import { DataSource, LessThan } from 'typeorm'
 
-import { IAuthRefreshTokenDocument, IAuthRefreshTokenModel } from '../schema/refresh.schema'
+import { AuthRefreshTokenEntity } from '../entity/refresh-token.entity'
 
+/**
+ * B7b 迁移：Mongo model → PG 命名连接 DataSource（B2/B6/B7a 同款形态）。
+ *
+ * - 事务句柄 `dbSession?: ClientSession` → `em?: EntityManager`（缺省连接级 manager）；
+ * - :20 / :34 / :126 三处 `new Types.ObjectId(userId)` 全部摘除，uuid 直传
+ *   （phase3-plan §4 B7 项 —— userId 列本就是 uuid，refresh 轮换事务随之全 PG 化）；
+ * - findExpiredTokens 走 idx_rt_expired (expired_at) 索引，判据列与实体/purge job 一致；
+ * - deviceId 是业务键（FK → sys_device.device_id，Q5 定案），引用与查询一律按业务键。
+ */
 @Injectable()
 export class AuthRefreshRepositoryService {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.AUTH_REFRESH_TOKEN)
-    private readonly AuthRefreshTokenModel: IAuthRefreshTokenModel,
+    @InjectDataSource(WalnutPGConnectionName)
+    private readonly dataSource: DataSource,
   ) {}
+
+  private getManager(em?: EntityManager) {
+    return em ?? this.dataSource.manager
+  }
+
+  private getRepository(em?: EntityManager) {
+    return this.getManager(em).getRepository(AuthRefreshTokenEntity)
+  }
 
   /**
    * @description find all refresh token for user
    */
-  async findAllRTForUser(userId: string, dbSession?: ClientSession) {
-    return this.AuthRefreshTokenModel.find({
-      userId: new Types.ObjectId(userId),
-    }).session(dbSession!)
+  async findAllRTForUser(userId: string, em?: EntityManager) {
+    return this.getRepository(em).find({ where: { userId } })
   }
 
   /**
@@ -27,32 +44,27 @@ export class AuthRefreshRepositoryService {
   async findByDeviceIdAndUserId(
     deviceId: string,
     userId: string,
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
-    return this.AuthRefreshTokenModel.findOne({
-      deviceId,
-      userId: new Types.ObjectId(userId),
-    }).session(dbSession!)
+    return this.getRepository(em).findOne({
+      where: { deviceId, userId },
+    })
   }
 
   /**
    * @description find refresh token by jti
    */
-  async findByJti(jti: string, dbSession?: ClientSession) {
-    const query = this.AuthRefreshTokenModel.findOne({ jti })
-
-    if (dbSession) {
-      query.session(dbSession)
-    }
-
-    return query
+  async findByJti(jti: string, em?: EntityManager) {
+    return this.getRepository(em).findOne({ where: { jti } })
   }
 
   /**
-   * @description find expired refresh tokens
+   * @description find expired refresh tokens（expired_at < now，idx_rt_expired 通道）
    */
   async findExpiredTokens(now: Date) {
-    return this.AuthRefreshTokenModel.find({ expiredAt: { $lt: now } })
+    return this.getRepository().find({
+      where: { expiredAt: LessThan(now) },
+    })
   }
 
   /**
@@ -62,10 +74,10 @@ export class AuthRefreshRepositoryService {
     userId: string,
     deviceId: string,
     revoked: boolean,
-    dbSession: ClientSession,
+    em?: EntityManager,
     revokeReason?: IWalnutAdminConstRevokeRTType,
   ) {
-    const target = await this.findByDeviceIdAndUserId(deviceId, userId, dbSession)
+    const target = await this.findByDeviceIdAndUserId(deviceId, userId, em)
     if (!target)
       return false
 
@@ -73,7 +85,7 @@ export class AuthRefreshRepositoryService {
     if (revokeReason) {
       target.revokeReason = revokeReason
     }
-    await target.save({ session: dbSession })
+    await this.getRepository(em).save(target)
     return true
   }
 
@@ -81,13 +93,13 @@ export class AuthRefreshRepositoryService {
    * @description update token data (expiredAt, encryptedToken, revoked)
    */
   async saveRefreshTokenDoc(
-    document: IAuthRefreshTokenDocument,
+    document: AuthRefreshTokenEntity,
     data: {
       expiredAt?: Date
       encryptedToken?: string
       revoked?: boolean
     },
-    dbSession?: ClientSession,
+    em?: EntityManager,
   ) {
     if (data.expiredAt !== undefined) {
       document.expiredAt = data.expiredAt
@@ -99,12 +111,12 @@ export class AuthRefreshRepositoryService {
       document.revoked = data.revoked
     }
 
-    await document.save({ session: dbSession })
+    await this.getRepository(em).save(document)
     return document
   }
 
   /**
-   * @description create new refresh token
+   * @description create new refresh token（PK 缺省由 DB 端 uuidv7() 生成，save 后回带 id）
    */
   async create(
     data: {
@@ -114,21 +126,9 @@ export class AuthRefreshRepositoryService {
       userId: string
       expiredAt: Date
     },
-    dbSession: ClientSession,
+    em?: EntityManager,
   ) {
-    // NOTICE: create with session, first param need to be an array
-    const [doc] = await this.AuthRefreshTokenModel.create(
-      [
-        {
-          jti: data.jti,
-          deviceId: data.deviceId,
-          encryptedToken: data.encryptedToken,
-          userId: new Types.ObjectId(data.userId),
-          expiredAt: data.expiredAt,
-        },
-      ],
-      { session: dbSession },
-    )
-    return doc
+    const repository = this.getRepository(em)
+    return repository.save(repository.create(data))
   }
 }

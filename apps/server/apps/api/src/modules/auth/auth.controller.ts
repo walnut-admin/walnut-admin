@@ -58,7 +58,8 @@ export class AuthController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
   ) {
-    await this.authService.signout(user, deviceId, req.realIp, ctx.dbSession!)
+    // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em
+    await this.authService.signout(user, deviceId, req.realIp, ctx.em)
     // clear refresh token in cookie
     this.cookieService.clearCookie(req, [{ key: WalnutAdminConstCookieKeys.RT_JTI }])
     return true

@@ -1,17 +1,14 @@
 import { Global, Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
-import { SysUserMfaSchema } from '../schema/user_mfa.schema'
 import { SysUserMfaRepositoryService } from './user_mfa.repo.service'
 
+/**
+ * B7b 迁移：Mongo forFeature 摘除（实体注册在 SysUserMfaModule 的 PG forFeature 里）。
+ * 模块保持 @Global —— auth mfa / task cron / user.me 消费方经它注入
+ * SysUserMfaRepositoryService。
+ */
 @Global()
 @Module({
-  imports: [
-    MongooseModule.forFeature(
-      [{ name: WalnutDBModelName.SYS_USER_MFA, schema: SysUserMfaSchema }],
-      WalnutDBConnectionName,
-    ),
-  ],
+  imports: [],
   controllers: [],
   providers: [SysUserMfaRepositoryService],
   exports: [SysUserMfaRepositoryService],

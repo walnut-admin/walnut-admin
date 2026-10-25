@@ -80,7 +80,8 @@ export class AppMonitorUserController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return this.monitorUserService.forceQuitByMonitorId(id, ctx.em, ctx.dbSession!)
+    // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em
+    return this.monitorUserService.forceQuitByMonitorId(id, ctx.em)
   }
 
   @Post('state')

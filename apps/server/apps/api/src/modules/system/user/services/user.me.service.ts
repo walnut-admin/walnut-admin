@@ -1,4 +1,4 @@
-import type { ClientSession } from 'mongoose'
+import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { IWalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { SysUserMfaSharedService } from '../../user_mfa/shared/user_mfa.shared.service'
@@ -31,9 +31,9 @@ export class SysUserMeService {
     return this.sysUserRepoService.findUserByIdAndUpdate(userId, payload)
   }
 
-  // mfa 侧 7b 迁移前仍走 Mongo session（ctx.dbSession），本方法只透传
-  async getSecurityTab2Status(userId: string, dbSession: ClientSession) {
-    return this.sysUserMfaSharedService.getUserMfaTotalStatus(userId, dbSession)
+  // B7b 签名适配：mfa 侧迁 PG —— 事务句柄改 em，本方法只透传
+  async getSecurityTab2Status(userId: string, em?: EntityManager) {
+    return this.sysUserMfaSharedService.getUserMfaTotalStatus(userId, em)
   }
 
   /**

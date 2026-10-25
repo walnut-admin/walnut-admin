@@ -1,10 +1,14 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
-import { ClientSession } from 'mongoose'
 import { AppTokenService } from '@/modules/shared/token/token.service'
 import { SysUserDeviceSharedService } from '@/modules/system/user_device/shared/user_device.shared.service'
 import { AuthRefreshSharedService } from '../refresh/shared/refresh.shared.service'
 import { AuthSessionService } from '../session/session.service'
 
+/**
+ * B7b 归一：refresh 写腿（generateRefreshToken）迁 PG —— 事务句柄
+ * `dbSession: ClientSession` → `em?: EntityManager`（controller 传 ctx.em）。
+ */
 @Injectable()
 export class AuthSharedService {
   private readonly logger = new Logger(AuthSharedService.name)
@@ -19,7 +23,7 @@ export class AuthSharedService {
   /**
    * @description generate auth tokens, return accessToken and refreshToken
    */
-  async generateAuthTokens(payload: IWalnutAdminAccessTokenPayload, deviceId: string, dbSession: ClientSession, sessionKey?: string) {
+  async generateAuthTokens(payload: IWalnutAdminAccessTokenPayload, deviceId: string, em?: EntityManager, sessionKey?: string) {
     // 1. create auth session
     const { sessionId, authSessionKey } = await this.authSessionService.createAuthSession(payload.userId, deviceId, sessionKey)
 
@@ -30,7 +34,7 @@ export class AuthSharedService {
     this.logger.log(`Access Token created`)
 
     // 3. generate refresh token jti with sid
-    const refreshTokenJti = await this.authRefreshSharedService.generateRefreshToken(payload.userId, deviceId, sessionId, dbSession)
+    const refreshTokenJti = await this.authRefreshSharedService.generateRefreshToken(payload.userId, deviceId, sessionId, em)
     this.logger.log(`Refresh Token JTI created, refreshTokenJti: ${refreshTokenJti}`)
 
     // 4. bind current device to user

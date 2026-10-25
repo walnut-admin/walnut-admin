@@ -1,22 +1,13 @@
 import { Global, Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
-import { SysUserLockSchema } from '../schema/user_lock.schema'
 import { SysUserLockRepositoryService } from './user_lock.repo.service'
 
+/**
+ * B7b 迁移：Mongo forFeature 摘除（实体注册在 SysUserLockModule 的 PG forFeature 里）。
+ * 模块保持 @Global —— user_device / guard 链消费方经它注入 SysUserLockRepositoryService。
+ */
 @Global()
 @Module({
-  imports: [
-    MongooseModule.forFeature(
-      [
-        {
-          name: WalnutDBModelName.SYS_USER_LOCK,
-          schema: SysUserLockSchema,
-        },
-      ],
-      WalnutDBConnectionName,
-    ),
-  ],
+  imports: [],
   controllers: [],
   providers: [SysUserLockRepositoryService],
   exports: [SysUserLockRepositoryService],

@@ -1,4 +1,4 @@
-import type { ClientSession } from 'mongoose'
+import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 
 import { ConfigService } from '@nestjs/config'
@@ -16,10 +16,10 @@ export class AuthService {
   ) { }
 
   /**
-   * @description sign out
+   * @description sign out（B7b 签名适配：refresh 写腿迁 PG —— dbSession → em）
    */
-  async signout(payload: IWalnutAdminAccessTokenPayload, deviceId: string, ip: string, dbSession: ClientSession) {
-    return this.signoutService.doSignout(payload.userId, { trigger: 'user-logout', deviceId, ip, sid: payload.sid! }, dbSession)
+  async signout(payload: IWalnutAdminAccessTokenPayload, deviceId: string, ip: string, em?: EntityManager) {
+    return this.signoutService.doSignout(payload.userId, { trigger: 'user-logout', deviceId, ip, sid: payload.sid! }, em)
   }
 
   /**

@@ -1,7 +1,8 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutDBInjectConnection } from '@walnut-server/db'
 import { LocaleType } from '@walnut/contract'
-import { ClientSession, Connection } from 'mongoose'
+import { Connection } from 'mongoose'
 import { SharedWelcomeService } from '@/modules/shared/welcome/welcome.service'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
 import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
@@ -57,8 +58,9 @@ export class AuthGoogleService {
     // }
   }
 
-  async authWithGoogleFedCM(payload: IWalnutAdminAccessTokenPayload, deviceId: string, dbSession: ClientSession) {
+  // B7b 签名适配：refresh 写腿迁 PG —— dbSession → em
+  async authWithGoogleFedCM(payload: IWalnutAdminAccessTokenPayload, deviceId: string, em?: EntityManager) {
     // generate tokens
-    return this.authSharedService.generateAuthTokens(payload, deviceId, dbSession)
+    return this.authSharedService.generateAuthTokens(payload, deviceId, em)
   }
 }

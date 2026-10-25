@@ -1,5 +1,5 @@
 import type { LocaleType } from '@walnut/contract'
-import type { ClientSession } from 'mongoose'
+import type { EntityManager } from 'typeorm'
 import type { IOtpType } from './const/otp.const'
 
 import { Injectable, Logger } from '@nestjs/common'
@@ -41,7 +41,7 @@ export class OtpService {
    * B7a 签名适配：user/identity 两条数据腿全部迁 PG。本流程从 passport strategy
    * （guard 阶段）发起，早于拦截器事务 —— `request.txContext` 尚不存在，故沿用
    * Mongo 版「自管事务」的形态换成 PG QueryRunner（签名不变，strategy 零改动）；
-   * refresh 写腿在 authWithOtp 的 generateAuthTokens（ctx.dbSession，7c 归一）。
+   * refresh 写腿在 authWithOtp 的 generateAuthTokens（ctx.em，B7b 起 PG）。
    */
   async validateIdentity(
     type: IOtpType,
@@ -133,17 +133,17 @@ export class OtpService {
   }
 
   /**
-   * Authenticate with OTP and generate tokens（refresh 写腿仍在 Mongo，7c 归一）
+   * Authenticate with OTP and generate tokens（B7b 签名适配：refresh 写腿迁 PG —— dbSession → em）
    */
   async authWithOtp(
     type: IOtpType,
     identifier: string,
     payload: IWalnutAdminAccessTokenPayload,
     deviceId: string,
-    dbSession: ClientSession,
+    em?: EntityManager,
   ) {
     try {
-      return await this.authSharedService.generateAuthTokens(payload, deviceId, dbSession)
+      return await this.authSharedService.generateAuthTokens(payload, deviceId, em)
     }
     finally {
       // Remove verify code

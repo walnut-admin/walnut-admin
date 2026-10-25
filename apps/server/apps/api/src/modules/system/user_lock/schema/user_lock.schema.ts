@@ -10,7 +10,6 @@ import {
 } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPartialType } from '@walnut-server/utils/dto'
-import { genSalt, hash } from 'bcryptjs'
 import { Recordable, ValueOf } from 'easy-fns-ts'
 import { HydratedDocument, Model, Types } from 'mongoose'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
@@ -148,10 +147,6 @@ export class SysUserLockModel extends WalnutAdminCommonBasicModel {
 
 export const SysUserLockSchema = SchemaFactory.createForClass(SysUserLockModel)
 
-SysUserLockSchema.pre('save', async function () {
-  const userLock = this
-  if (userLock.lockPwdHash && userLock.isModified('lockPwdHash')) {
-    const salt = await genSalt()
-    userLock.lockPwdHash = await hash(userLock.lockPwdHash, salt)
-  }
-})
+// B7b 迁移注记：原此处的 pre('save') bcrypt hash 钩子已迁到 PG 仓库的写入路径
+// （SysUserLockRepositoryService.insertOrUpdateUserLockPre，写入路径全覆盖）；
+// 本 schema 仅承载 DTO 校验/swagger 元数据（模型注册已摘除，钩子不再有执行时机）。

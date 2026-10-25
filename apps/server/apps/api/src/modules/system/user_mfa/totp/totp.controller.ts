@@ -40,7 +40,7 @@ export class SysUserMfaTotpController {
     @WalnutAdminDecoratorDeviceId() deviceId: string,
     @WalnutDBSession() ctx: WalnutTxContext,
   ) {
-    const res = await this.userMfaTotpService.generateTotp(user.userId, deviceId, ctx.dbSession!)
+    const res = await this.userMfaTotpService.generateTotp(user.userId, deviceId, ctx.em)
     return new SysUserMfaGenerateTotpResponseDTO(res)
   }
 
@@ -57,7 +57,7 @@ export class SysUserMfaTotpController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: SysUserMfaBindTotpDTO,
   ) {
-    const res = await this.userMfaTotpService.bindTotp(user.userId, deviceId, dto, ctx.dbSession!)
+    const res = await this.userMfaTotpService.bindTotp(user.userId, deviceId, dto, ctx.em)
     return new SysUserMfaBindTotpResponseDTO(res)
   }
 
@@ -69,7 +69,7 @@ export class SysUserMfaTotpController {
     primitive: 'boolean',
   })
   async unbindDevice(@WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload, @WalnutDBSession() ctx: WalnutTxContext) {
-    return this.userMfaTotpService.unbindTotp(user.userId, ctx.dbSession!)
+    return this.userMfaTotpService.unbindTotp(user.userId, ctx.em)
   }
 
   @Post('verify')
@@ -86,8 +86,8 @@ export class SysUserMfaTotpController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: SysUserMfaDeviceVerifyTotpDTO,
   ) {
-    // B7a 跨引擎窗口双句柄：user 读腿（PG）走 ctx.em，mfa 表写腿（Mongo）走 ctx.dbSession —— 7b 归一
-    const newAccessToken = await this.userMfaTotpService.verifyTotp(jti, deviceId, user, dto, ctx.em, ctx.dbSession!)
+    // B7b 归一：mfa 表写腿迁 PG —— 双句柄收成单 em
+    const newAccessToken = await this.userMfaTotpService.verifyTotp(jti, deviceId, user, dto, ctx.em)
     return new AuthSuccessDTO({ accessToken: newAccessToken })
   }
 
@@ -104,6 +104,6 @@ export class SysUserMfaTotpController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: SysUserMfaUpdateStatusDTO,
   ) {
-    return this.userMfaTotpService.updateStatus(user.userId, dto.status, ctx.dbSession!)
+    return this.userMfaTotpService.updateStatus(user.userId, dto.status, ctx.em)
   }
 }

@@ -33,7 +33,7 @@ export class AuthMfaController {
     @WalnutAdminDecoratorDeviceId() deviceId: string,
     @WalnutDBSession() ctx: WalnutTxContext,
   ) {
-    const res = await this.authMfaService.getMfaStatus(user.userId, deviceId, ctx.dbSession!)
+    const res = await this.authMfaService.getMfaStatus(user.userId, deviceId, ctx.em)
     return res.map(item => new AuthMfaStatusDTO(item))
   }
 
@@ -52,9 +52,8 @@ export class AuthMfaController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Body() dto: AuthMfaVerifyDTO,
   ) {
-    // B7a 跨引擎窗口双句柄：user.mfaSetup 写腿（PG）走 ctx.em，
-    // mfa 状态读腿 + post verification（Mongo）走 ctx.dbSession —— 7b/7c 归一
-    const newAccessToken = await this.authMfaService.verifyMfaStatus(jti, dto, user.userId, user.sid!, deviceId, ctx.em, ctx.dbSession!)
+    // B7b 归一：mfa 状态读腿 / user.mfaSetup 写腿 / post verification 全为 PG —— 单 em
+    const newAccessToken = await this.authMfaService.verifyMfaStatus(jti, dto, user.userId, user.sid!, deviceId, ctx.em)
     return new AuthSuccessDTO({ accessToken: newAccessToken })
   }
 }
