@@ -340,6 +340,8 @@ describe('B7c auth login chain (on real PG)', () => {
 
       const user = await userRepo.findUserByUserName(userName, pgDataSource.manager)
       expect(user).toBeNull()
+      // identity 腿同样必须被回滚清空（不能只看 user 腿；opaque 的 value_hash 即 registrationRecord）
+      expect(await countPg('sys_user_identity', 'value_hash = $1', [registrationRecord])).toBe(0)
     })
 
     it('重复注册：finishRegister 对已存在 userName 拒绝（写入前置查重，DataExists）', async () => {

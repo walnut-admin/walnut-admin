@@ -109,7 +109,10 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     const oldExpiredAt = new Date(Date.now() + 3600_000)
     await insertToken(jti, 'b7-rt-device-live', oldExpiredAt)
 
-    const newAT = await refreshShared.getNewAccessToken(jti, 'b7-rt-device-live', 'session-1', pgDataSource.manager)
+    // 生产路径在 @WalnutDBTransaction 内轮换——这里也用真实事务，
+    // 让轮换读腿的悲观写锁（并发重放拦截）真正被走到
+    const newAT = await pgDataSource.transaction(async em =>
+      refreshShared.getNewAccessToken(jti, 'b7-rt-device-live', 'session-1', em))
 
     // AT 可解码且带同一 sid / userId
     const payload = await tokenService.decodeAccessToken(newAT)

@@ -53,9 +53,18 @@ export class AuthRefreshRepositoryService {
 
   /**
    * @description find refresh token by jti
+   *
+   * 轮换读腿（事务内）必须传 `{ lock: true }` 持悲观写锁：PG READ COMMITTED 下无锁时
+   * 同一 jti 的并发重放会双双读到未撤销行并都 rotate 成功（Mongo 时代靠事务写冲突
+   * abort 一方拦住），悲观锁保住这个重放拦截口。非事务的解密校验读不锁。
    */
-  async findByJti(jti: string, em?: EntityManager) {
-    return this.getRepository(em).findOne({ where: { jti } })
+  async findByJti(jti: string, em?: EntityManager, options?: { lock?: boolean }) {
+    // 悲观锁只在活跃事务里有意义：生产轮换路径恒在 @WalnutDBTransaction 内；
+    // 非事务上下文（连接级 manager）无法提供并发保护，退化为普通读
+    const lock = options?.lock && em?.queryRunner?.isTransactionActive
+      ? { mode: 'pessimistic_write' as const }
+      : undefined
+    return this.getRepository(em).findOne({ where: { jti }, ...(lock ? { lock } : {}) })
   }
 
   /**

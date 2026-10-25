@@ -122,7 +122,7 @@ export class AuthRefreshSharedService {
    * @description update refresh token
    */
   private async updateRefreshToken(jti: string, sessionId: string, userId: string, em?: EntityManager) {
-    const oldDocument = await this.authRefreshRepo.findByJti(jti, em)
+    const oldDocument = await this.authRefreshRepo.findByJti(jti, em, { lock: true })
     if (!oldDocument)
       return
 
@@ -209,8 +209,8 @@ export class AuthRefreshSharedService {
    * revoke（过期兜底）与 rotate 同回滚。
    */
   async getNewAccessToken(jti: string, deviceId: string, sessionId: string, em?: EntityManager) {
-    // Step 1 - get refresh token record
-    const record = await this.authRefreshRepo.findByJti(jti, em)
+    // Step 1 - get refresh token record（事务内轮换读腿，持悲观写锁拦截并发重放）
+    const record = await this.authRefreshRepo.findByJti(jti, em, { lock: true })
 
     // no record
     if (!record) {
