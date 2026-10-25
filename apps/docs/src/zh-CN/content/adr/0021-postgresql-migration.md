@@ -69,7 +69,7 @@ class UserController {
 - 数据库镜像改用 Docker 官方 `library/postgres`；
 - `bitnami/redis` 同受冻结影响，随本批一并迁离 Bitnami（改用 Docker 官方镜像）；
 - 改造范围覆盖 `deploy/docker-compose.yml`（生产）与 `apps/server/docker/docker-compose.dev.yml`
-  （开发）两处 compose。
+  （开发）两处 compose。分两期落地：开发侧随基础设施先行，生产侧随切换阶段一并处理。
 
 ## Decision 5: 回收站是业务功能，完整保留
 
