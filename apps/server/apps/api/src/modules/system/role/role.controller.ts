@@ -1,8 +1,10 @@
 import { Body, Controller } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
-import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
+
+import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
+import { plainToInstance } from 'class-transformer'
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 
@@ -32,6 +34,12 @@ const { WalnutAdminDecoratorCreate, WalnutAdminDecoratorRead, WalnutAdminDecorat
     DTO: SysRoleDTOSafe,
   })
 
+/**
+ * B5 迁移模板（controller 层，B1 同款）：路由参数 ParamMongoId → uuid 参数装饰器；
+ * `.toObject()` 移除，统一 plainToInstance(DTO, entity)。create/update 加
+ * @WalnutDBTransaction —— menus 拆 junction 后角色行与关联行必须同事务（Mongo 版
+ * 单文档原子，PG 版靠 em 贯通）。
+ */
 @Controller('system/role')
 @ApiTags('system/role')
 export class SysRoleController {
@@ -39,34 +47,34 @@ export class SysRoleController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
-  async create(@Body() payload: SysRoleDTOCreateRequest) {
-    return new SysRoleDTOCreateResponse(
-      (await this.roleService.create(payload)).toObject(),
-    )
+  @WalnutDBTransaction()
+  async create(
+    @WalnutDBSession() ctx: WalnutTxContext,
+    @Body() payload: SysRoleDTOCreateRequest,
+  ) {
+    return plainToInstance(SysRoleDTOCreateResponse, await this.roleService.create(payload, ctx.em))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
-  async read(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new SysRoleDTOReadResponse(
-      (await this.roleService.read(id)).toObject(),
-    )
+  async read(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(SysRoleDTOReadResponse, await this.roleService.read(id))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.UPDATE)
   @WalnutAdminDecoratorUpdate()
+  @WalnutDBTransaction()
   async update(
-    @WalnutAdminDecoratorParamMongoId() id: string,
+    @WalnutDBSession() ctx: WalnutTxContext,
     @Body() payload: SysRoleDTOUpdateRequest,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return new SysRoleDTOUpdateResponse(
-      (await this.roleService.update(id, payload)).toObject(),
-    )
+    return plainToInstance(SysRoleDTOUpdateResponse, await this.roleService.update(id, payload, ctx.em))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: SysRoleDTOListRequest) {
-    return new SysRoleDTOListResponse(await this.roleService.list(payload))
+    return plainToInstance(SysRoleDTOListResponse, await this.roleService.list(payload))
   }
 }

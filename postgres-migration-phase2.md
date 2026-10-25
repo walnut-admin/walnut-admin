@@ -152,9 +152,14 @@ MongoDB 侧 24 个集合全部 1:1 映射为表；数组字段（`sys_user.roles
 
 派生规则：
 
-- **一个全库统一 namespace**（UUID 常量，取值在 Phase 4 定稿并写进 `@walnut-server/const`，如 `WALNUT_ADMIN_ETL_NAMESPACE`）。不用每集合独立 namespace：ObjectId 本身全局唯一（时戳 + 随机），单一 namespace 无碰撞风险，还使「同一个 hex 在任何集合里都映射到同一个 uuid」，排查跨集合引用时不需要知道来源集合。
+- **一个全库统一 namespace**（UUID 常量）。不用每集合独立 namespace：ObjectId 本身全局唯一（时戳 + 随机），单一 namespace 无碰撞风险，还使「同一个 hex 在任何集合里都映射到同一个 uuid」，排查跨集合引用时不需要知道来源集合。
+  **取值定稿（2026-10-25，B5）**：`WALNUT_ADMIN_ETL_NAMESPACE = 'c1882c14-e4d4-4f2b-b728-346db51c312e'`，
+  常量的**唯一真源**是 `packages/tooling/scripts/src/db/uuid5.ts`（本文件只写引用，不写第二份字面值以外的语义；
+  该文件同时是 v5 派生函数的唯一实现，ETL / seed / 订正脚本共用）。**永不可改**——改了等于全部存量 id 换世界。
 - name = 原 24 位 hex 字符串本体。
 - 实现放共享工具（`@walnut-server/utils` 或 ETL 模块内），seed 重建与 ETL 共用同一函数——保证「本地 / demo / CI 由 seed 重建出的 id 彼此一致」，demo 环境的 id 稳定可引用。
+  （勘误 2026-10-25：实现最终落在工具链 `@walnut/scripts` 的 `src/db/uuid5.ts`——server 侧无需在运行时派生 id，
+  B5 的 root 角色守卫已改用等价判据；ETL / seed 与订正脚本都在工具链侧消费同一实现。）
 
 ### 3.3 主键类型与默认值
 

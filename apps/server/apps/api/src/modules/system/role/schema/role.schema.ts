@@ -78,7 +78,9 @@ export class SysRoleModel extends WalnutAdminCommonBasicModel {
       unique: true,
     },
   ])
-  menus: Types.ObjectId[]
+  // B5：menus 随 PG 关联表 sys_role_menu 放开为 uuid 数组（phase2 4.2；IsMongoId 约束
+  // 在 DTO 子类用 uuid 校验整体替换，见 dto/role.dto.ts）
+  menus: string[]
 
   @WalnutAdminDecoratorFieldBoolean({
     default: true,

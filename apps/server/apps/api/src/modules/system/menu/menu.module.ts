@@ -1,20 +1,20 @@
 import { Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 import { SysLocaleSharedModule } from '../locale/shared/locale.shared.module'
+import { SysMenuEntity } from './entity/menu.entity'
 import { SysMenuBasicRepository } from './menu.basic.repository'
 import { SysMenuController } from './menu.controller'
 import { SysMenuService } from './menu.service'
 import { SysMenuRepositoryModule } from './repo/menu.repo.module'
-import { SysMenuSchema } from './schema/menu.schema'
 import { SysMenuSharedModule } from './shared/menu.shared.module'
 
+/**
+ * B5 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态，不另建 pg.module）。
+ */
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [{ name: WalnutDBModelName.SYS_MENU, schema: SysMenuSchema }],
-      WalnutDBConnectionName,
-    ),
+    TypeOrmModule.forFeature([SysMenuEntity], WalnutPGConnectionName),
     SysMenuRepositoryModule,
     SysMenuSharedModule,
     SysLocaleSharedModule,

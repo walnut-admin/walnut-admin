@@ -32,7 +32,7 @@
 | B2 | sys_lang + sys_locale（FK 同批；i18n 聚合 SQL 重写） | ✅ |
 | B3 | dictType + dictData（FK 同批） | ✅ |
 | B4 | app_setting + app_key + shared_area（递归 CTE + CYCLE 兜底） | ✅ |
-| B5 | sys_menu（meta 拍平组装出参）+ sys_role + sys_role_menu；产出 defaultRole uuid 订正脚本 | |
+| B5 | sys_menu（meta 拍平组装出参）+ sys_role + sys_role_menu；产出 defaultRole uuid 订正脚本 | ✅ |
 | B6 | sys_device + sys_user_device + app_monitor_user（双向环同批） | |
 | B7 | SCC-A 账户团九表（user/identity/oauth/lock/mfa/preference/device/refresh + auth 全系 + security） | |
 | B8 | sys_log_operate + sys_log_auth + techniques/event（fire-and-forget 旁路） | |
@@ -83,7 +83,7 @@
 | listAggregate.ts:70-71（ObjectId 转换分支） | B0 ✅（PG 版）|
 | base.repository deletedBy / deleted.repo createSoftDelete | B0 ✅ |
 | locale.pipe、lang.repo.service | B2 ✅（pipe 换 uuid 校验；lang.repo 两条聚合 SQL 重写） |
-| role.repo.service `$in` | B5 |
+| role.repo.service `$in` | B5 ✅（`In(uuid[])`；junction populate 同批） |
 | error.process.ts | B1 ✅（uuid 直传，删除 ObjectId 包装） |
 | monitor/user.repo.service | B6 |
 | user.crud / user.shared（defaultRole 消费点） | B7（前置：B5 订正脚本落地） |
@@ -96,9 +96,20 @@
 1. **回收站双源**（B1~B9）：已迁模块软删写 PG `sys_deleted`，未迁写 Mongo；回收站列表/恢复
    在 B9 前是 Mongo 版，看不到 PG 侧删除。缓解：B0 注册表骨架 + 迁移期口径「回收站只管未迁
    模块」。B9 归一。
-2. **setting_value 内嵌 id**（B4~B7）：`app.default.role` 值须在 B7 切换前重写为 role 的 v5 uuid；
-   B5 产出订正脚本，B7 验收前置检查。
-3. 审计旁路本就是 fire-and-forget 最终一致，不新增风险。
+2. **setting_value 内嵌 id**（B4~B7）：`app.default.role` 值须在 B7 切换前重写为 role 的 v5 uuid。
+   B5 已产出订正脚本：`packages/tooling/scripts/src/db/fix-setting-default-role.ts`
+   （bin `walnut-fix-setting-default-role`，根目录 `pnpm db:fix-default-role`；从仓库根运行，
+   `--dry-run` 只看不写，`--env-file / --pg-db / --db / --uri / --key` 可覆盖默认连接口径）。
+   幂等：值已是 uuid → no-op；hex → 校验其在 Mongo `sys_role` 存量 `_id` 中存在后重写为
+   v5（namespace 见 `packages/tooling/scripts/src/db/uuid5.ts`，phase2 §3.3 回写引用）；
+   脏值拒绝改写。E2E 见 `apps/server/apps/api/test/integration/pg.fix-default-role.int-spec.ts`
+   （集成库实跑脚本断言重写 + 幂等重跑 no-op + 脏值 exit 1）。**运行时机：B7 开工前对目标库跑一次并核对。**
+3. **权限链路跨引擎**（B5~B7）：menu/role 已迁 PG，但 user 仍在 Mongo —— token 里的
+   roleIds/currentRole 还是 ObjectId hex，`In(uuid[])` 查不到行（ETL 前的 PG 侧 sys_role
+   本就为空），故 B5~B7 期间登录后的权限/路由生成走 PG 空数据，`getCorePermissions` 的
+   root 分支需要 PG 里存在根菜单。集成测试以 PG fixture 直建覆盖该链路；运行时行为在
+   B7（user 迁移 + 订正脚本落地）后归一。
+4. 审计旁路本就是 fire-and-forget 最终一致，不新增风险。
 
 ## 6. 岔路决策记录（自主执行期间按推荐项走）
 

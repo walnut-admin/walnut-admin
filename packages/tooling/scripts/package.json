@@ -26,6 +26,7 @@
     "walnut-check-workflow-shell": "./bin/check-workflow-shell.ts",
     "walnut-db-export": "./bin/db-export.ts",
     "walnut-db-seed": "./bin/db-seed.ts",
+    "walnut-fix-setting-default-role": "./bin/fix-setting-default-role.ts",
     "walnut-lint-emoji": "./bin/check-emoji.ts",
     "walnut-lint-workflows": "./bin/lint-workflows.ts",
     "walnut-pack-seed": "./bin/pack-seed.ts",
@@ -48,10 +49,12 @@
     "@dotenvx/dotenvx": "catalog:",
     "@serenity-kit/opaque": "catalog:",
     "mongodb": "catalog:",
+    "pg": "catalog:",
     "typescript": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/pg": "catalog:",
     "@walnut/tsconfig": "workspace:*",
     "@walnut/vitest-config": "workspace:*",
     "eslint": "catalog:",

@@ -1,4 +1,4 @@
-import type { ClientSession } from 'mongoose'
+import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { IWalnutAdminConstAppPermissionType, WalnutAdminConstAppPermissionType } from '@walnut-server/const/app/permission'
 import { Role, RoleType } from '@walnut/contract'
@@ -7,8 +7,9 @@ import { arrToTree, filterTree, formatTree, orderTree, TreeNodeItem } from 'easy
 import { isNil, omit, pick } from 'lodash'
 import { AppTechCachePermissionsService } from '@/modules/techniques/cache/service/cache.permissions'
 import { SysRoleSharedService } from '../../role/shared/role.shared.service'
+import { assembleSysMenu, ISysMenuAssembled } from '../dto/menu.dto'
+import { SysMenuEntity } from '../entity/menu.entity'
 import { SysMenuRepositoryService } from '../repo/menu.repo.service'
-import { ISysMenuDocument, SysMenuModel } from '../schema/menu.schema'
 // Note: Menu types (IMenuTreeItem, IVueRouteItem, ILayoutTabsItem, IIframeListItem) are now global
 
 @Injectable()
@@ -108,17 +109,18 @@ export class SysMenuSharedService {
     const { menus, roleNames } = await this.roleSharedService.getCoreMenus(user)
 
     // root/visitor has all permissions
-    const menuArr = ([Role.ROOT, Role.VISITOR] as RoleType[]).includes(roleNames[0])
+    const menuArr: (SysMenuEntity | null | ISysMenuAssembled)[] = ([Role.ROOT, Role.VISITOR] as RoleType[]).includes(roleNames[0])
       ? await this.sysMenuRepoService.findAllMenus()
       : [
           await this.sysMenuRepoService.findRootMenu(),
           ...menus,
         ]
 
-    const processedMenuArr = menuArr
-      .filter(i => i !== null)
-      .map(i => i.toObject<ISysMenuDocument>({ flattenObjectIds: true }))
-      .filter(Boolean)
+    // B5：实体（拍平列）→ meta 组装回对象的 POJO（assembleSysMenu 幂等，role populate
+    // 侧已组装的行重复调用结果不变）；PG 实体即 POJO，无需 toObject
+    const processedMenuArr: ISysMenuAssembled[] = menuArr
+      .filter((i): i is SysMenuEntity | ISysMenuAssembled => i !== null)
+      .map(i => assembleSysMenu(i))
 
     const processors = {
       [WalnutAdminConstAppPermissionType.STRINGS]: () => ({
@@ -159,19 +161,19 @@ export class SysMenuSharedService {
   }
 
   // get current user permission strings
-  private getStrings(data: ISysMenuDocument[]) {
+  private getStrings(data: ISysMenuAssembled[]) {
     return data.filter(i => Boolean(i.meta?.permission)).map(i => i.meta?.permission)
   }
 
   // get current user menu tree
-  private getMenuTree(data: SysMenuModel[]): TreeNodeItem<IMenuTreeItem>[] {
+  private getMenuTree(data: ISysMenuAssembled[]): TreeNodeItem<IMenuTreeItem>[] {
     // item that is not type ELEMENT
     const inputPayload = data.filter(
       i => i.type !== MenuType.ELEMENT,
     )
 
-    // build tree
-    const treeMenu = arrToTree(inputPayload, { id: '_id' })
+    // build tree（B5：Mongo 版以 _id 建树，PG 版主键是 id）
+    const treeMenu = arrToTree(inputPayload, { id: 'id', pid: 'pid' })
 
     // order tree
     const treeOrdered = orderTree(treeMenu, (a, b) => a.meta.order - b.meta.order)
@@ -205,20 +207,20 @@ export class SysMenuSharedService {
   }
 
   // get current user route tree
-  private getRouteTree(data: SysMenuModel[]) {
+  private getRouteTree(data: ISysMenuAssembled[]) {
     // item that is not type ELEMENT
     const inputPayload = data.filter(
       i => i.type !== MenuType.ELEMENT,
     )
 
-    // build tree
-    const treeMenu = arrToTree(inputPayload, { id: '_id' })
+    // build tree（B5：_id → id）
+    const treeMenu = arrToTree(inputPayload, { id: 'id', pid: 'pid' })
 
     // order tree
-    const treeOrdered = orderTree(treeMenu, (a, b) => a.meta.order - b.meta.order, { id: '_id' })
+    const treeOrdered = orderTree(treeMenu, (a, b) => a.meta.order - b.meta.order, { id: 'id' })
 
     // format tree to vue route structure
-    const formattedTree = formatTree<SysMenuModel, IVueRouteItem>(treeOrdered, (node) => {
+    const formattedTree = formatTree<ISysMenuAssembled, IVueRouteItem>(treeOrdered, (node) => {
       const n = node.children?.length === 0 ? omit(node, 'children') : node
 
       return {
@@ -228,13 +230,13 @@ export class SysMenuSharedService {
           ...pick(n, ['title', 'type', 'icon']),
         },
       }
-    }, { id: '_id' })
+    }, { id: 'id' })
 
     return formattedTree
   }
 
   // get tabs data
-  private getLayoutTabs(data: SysMenuModel[]) {
+  private getLayoutTabs(data: ISysMenuAssembled[]) {
     return data
       .filter(i => i.type === MenuType.MENU && i.meta?.affix)
       .sort((a, b) => b.meta?.order - a.meta?.order)
@@ -248,7 +250,7 @@ export class SysMenuSharedService {
   }
 
   // get iframe list
-  private getIframeList(data: SysMenuModel[]) {
+  private getIframeList(data: ISysMenuAssembled[]) {
     return data.filter(i => i.meta?.ternal === MenuTernal.INTERNAL && !!i.meta?.url)
       .map(i => ({
         name: i.name,
@@ -259,19 +261,25 @@ export class SysMenuSharedService {
 
   /**
    * @description get full menu tree (for controller)
+   *
+   * 菜单树形态对照 Mongo 版：单次全量查询 + 内存建树（克制实现，不逐层懒加载）；
+   * 查无菜单时 fullTree[0] 为 undefined —— 与 Mongo 版一致交给上层报错，不加兜底改语义。
    */
-  async getMenuTreeAndTreeWithoutTypeElement(dbSession?: ClientSession) {
-    const allMenus = await this.sysMenuRepoService.findAllMenus(dbSession)
+  async getMenuTreeAndTreeWithoutTypeElement(em?: EntityManager) {
+    const allMenus = await this.sysMenuRepoService.findAllMenus(em)
 
-    const rawMenus: SysMenuModel[] = allMenus.map(i => i.toObject({ flattenObjectIds: true }))
+    const rawMenus: ISysMenuAssembled[] = allMenus.map(i => assembleSysMenu(i))
 
-    // also remove empty children
-    const fullTree = formatTree(orderTree(
-      arrToTree(rawMenus, { id: '_id' }),
-      (a, b) => Number(a.meta?.order) - Number(b.meta?.order),
-    ), (node: TreeNodeItem<SysMenuModel>) => {
-      return node.children?.length === 0 ? omit(node, 'children') : node
-    })
+    // also remove empty children（R 与 T 同型显式标注：omit 掉 children 的行仍是同型节点）
+    const fullTree = formatTree<TreeNodeItem<ISysMenuAssembled>, TreeNodeItem<ISysMenuAssembled>>(
+      orderTree(
+        arrToTree(rawMenus, { id: 'id', pid: 'pid' }),
+        (a, b) => Number(a.meta?.order) - Number(b.meta?.order),
+      ),
+      (node) => {
+        return node.children?.length === 0 ? omit(node, 'children') : node
+      },
+    )
 
     // used for parent node select
     const treeWithoutTypeElement = filterTree(fullTree, node => node.type !== MenuType.ELEMENT)

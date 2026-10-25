@@ -10,9 +10,12 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColum
  *   ON DELETE RESTRICT（Q6 定案：防误删静默扩面，子树处理在应用层），DDL 在 migration。
  * - idx_menu_pid 是 partial index（WHERE pid IS NOT NULL），实体与 migration 两侧同形。
  */
-@Index('uq_menu_name', { unique: true, where: '"name" IS NOT NULL' })
+// partial unique（WHERE name IS NOT NULL）—— TypeORM 1.x 的 Index(name, options)
+// 类级形态不带列会踩运行时坑（options 被当列函数），列显式给出
+@Index('uq_menu_name', ['name'], { unique: true, where: '"name" IS NOT NULL' })
 @Index('idx_menu_pid', ['pid'], { where: '"pid" IS NOT NULL' })
-@Index('idx_menu_status_sort_order', ['status', 'sortOrder'])
+// 属性名是 order（列名 sort_order，ORDER 是保留字改名）—— Index 数组用属性名
+@Index('idx_menu_status_sort_order', ['status', 'order'])
 @Entity({ name: 'sys_menu' })
 export class SysMenuEntity {
   @PrimaryColumn({ type: 'uuid', name: 'id', default: () => 'gen_random_uuid()' })

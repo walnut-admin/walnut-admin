@@ -1,8 +1,8 @@
-import type { ClientSession } from 'mongoose'
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { SysLocaleSharedService } from '../locale/shared/locale.shared.service'
 import {
+  flattenSysMenuMeta,
   SysMenuDTOCreateRequest,
   SysMenuDTOListRequest,
   SysMenuDTOUpdateRequest,
@@ -28,7 +28,8 @@ export class SysMenuService {
   // base CRUD
   async create(dto: SysMenuDTOCreateRequest) {
     // TODO remove all cache auth data when menu changed
-    return this.menuBasicRepo.create(dto)
+    // meta 对象 → 19 个拍平列（B5；meta 缺省时零列，DB 默认值兜底）
+    return this.menuBasicRepo.create(flattenSysMenuMeta(dto))
   }
 
   async read(id: string) {
@@ -37,17 +38,21 @@ export class SysMenuService {
 
   async update(id: string, dto: SysMenuDTOUpdateRequest) {
     // TODO remove all cache auth data when menu changed
-    return this.menuBasicRepo.update(id, dto)
+    // meta 给 出时 19 列全量产出（未给键回填 schema 默认值），对齐 Mongo 版整体替换
+    // meta 子文档的语义；meta 未给 时 meta 列原样不动
+    return this.menuBasicRepo.update(id, flattenSysMenuMeta(dto))
   }
 
   /**
-   * B2 迁移接线：locale 已迁 PG，级联删 locale 需要事务内的 PG 句柄 em —— menu 本体
-   * 仍是 Mongo（B5），两个句柄并存透传，事务语义不变。
+   * B5 迁移：menu 本体已迁 PG，级联删 locale 也是 PG —— 单一 em 句柄贯通
+   * （软删 menu + sys_deleted 快照 + 级联 locale 同一事务）。
+   * title 为空的菜单没有对应 locale（key 非空列），跳过级联与 Mongo 版
+   * 「按 undefined 键删除命中 0 行」的行为等价。
    */
-  async delete(id: string, userId: string, cascade: number, dbSession: ClientSession, em?: EntityManager) {
-    const deletedMenu = await this.menuBasicRepo.deleteSoftById(id, userId, dbSession)
+  async delete(id: string, userId: string, cascade: number, em?: EntityManager) {
+    const deletedMenu = await this.menuBasicRepo.deleteSoftById(id, userId, em)
 
-    if (cascade === 1) {
+    if (cascade === 1 && deletedMenu.title !== null) {
       // delete all locales with deleted menu title
       await this.localeSharedService.deleteByKey(deletedMenu.title, userId, em)
     }

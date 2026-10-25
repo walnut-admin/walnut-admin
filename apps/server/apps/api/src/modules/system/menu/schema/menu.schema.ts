@@ -252,7 +252,9 @@ export class SysMenuModel extends WalnutAdminCommonBasicModel {
     },
   })
   @Prop({ type: Types.ObjectId, required: true })
-  pid: Types.ObjectId | string
+  // B5：pid 随 PG 列型放开为可空 uuid（根节点 pid=NULL，phase2 4.3；IsMongoId 约束在
+  // DTO 子类用 uuid 校验整体替换，见 dto/menu.dto.ts）
+  pid: string | null
 
   @WalnutAdminDecoratorFieldEnum(() => MenuType, {
     default: MenuType.CATALOG,

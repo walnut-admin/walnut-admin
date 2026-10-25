@@ -1,15 +1,19 @@
 import { Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 import { SharedScopeResolverModule } from '@/modules/shared/scopeResolver/scope-resolver.module'
-import { SysRoleSchema } from '../schema/role.schema'
+import { SysRoleMenuEntity } from '../entity/role-menu.entity'
+import { SysRoleEntity } from '../entity/role.entity'
 import { SysRoleSharedService } from './role.shared.service'
 
+/**
+ * B5 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态）。
+ */
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [{ name: WalnutDBModelName.SYS_ROLE, schema: SysRoleSchema }],
-      WalnutDBConnectionName,
+    TypeOrmModule.forFeature(
+      [SysRoleEntity, SysRoleMenuEntity],
+      WalnutPGConnectionName,
     ),
     SharedScopeResolverModule,
   ],

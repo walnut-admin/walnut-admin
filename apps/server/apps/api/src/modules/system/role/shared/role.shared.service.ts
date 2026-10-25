@@ -1,8 +1,8 @@
+import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { RoleType } from '@walnut/contract'
 import { uniqBy } from 'lodash'
-import { ClientSession } from 'mongoose'
 
 import { SharedScopeResolverService } from '@/modules/shared/scopeResolver/scope-resolver.service'
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
@@ -25,24 +25,25 @@ export class SysRoleSharedService {
   /**
    * @description get roles with populated menus
    */
-  async getRolesWithPopulatedMenus(roleIds: string[], dbSession?: ClientSession) {
-    return this.roleRepoService.findRolesWithPopulatedMenus(roleIds, dbSession)
+  async getRolesWithPopulatedMenus(roleIds: string[], em?: EntityManager) {
+    return this.roleRepoService.findRolesWithPopulatedMenus(roleIds, em)
   }
 
   /**
    * @description get core menus for user (involves cache and scope resolver)
    */
-  async getCoreMenus(user: IWalnutAdminAccessTokenPayload, dbSession?: ClientSession) {
+  async getCoreMenus(user: IWalnutAdminAccessTokenPayload, em?: EntityManager) {
     const functionalRole = await this.cacheAppSettingsService.getFunctionalRole()
 
     const effectiveRoleMode = this.scopeResolverService.resolve(functionalRole, user)
 
     const payload = effectiveRoleMode === WalnutAdminConstRoleMode.COMBINE ? user.roleIds : [user.currentRole]
 
-    const roles = await this.getRolesWithPopulatedMenus(payload, dbSession)
+    const roles = await this.getRolesWithPopulatedMenus(payload, em)
 
     const allMenus = roles.map(i => i.populated_menusList).flat()
-    const uniMenus = uniqBy(allMenus, '_id')
+    // B5：主键 _id → id（PG uuid；多角色菜单去重的键随迁移换形）
+    const uniMenus = uniqBy(allMenus, 'id')
 
     return {
       roleNames: roles.map(i => i.roleName) as RoleType[],
