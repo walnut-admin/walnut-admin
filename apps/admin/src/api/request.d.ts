@@ -147,7 +147,8 @@ export namespace IRequestPayload {
       }
     }
     export namespace Deleted {
-      export type Recover = Pick<IModels.Base, '_id'> & Pick<IModels.SystemDeleted, 'deletedId'>
+      // B9 起 sys_deleted 迁 PG：主键响应契约 `_id` → `id`（uuid）
+      export type Recover = Pick<IModels.SystemDeleted, 'id' | 'deletedId'>
     }
 
     export namespace Deivce {

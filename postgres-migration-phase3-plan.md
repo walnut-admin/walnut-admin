@@ -36,7 +36,7 @@
 | B6 | sys_device + sys_user_device + app_monitor_user（双向环同批） | ✅ |
 | B7 | SCC-A 账户团九表（user/identity/oauth/lock/mfa/preference/device/refresh + auth 全系 + security） | ◐ **B7a ✅ B7b ✅ B7c ✅**（7a=user/identity/oauth + auth 系签名适配 + review 挂单三项；7b=lock/mfa/preference/refresh 全 PG + 消费方单 em 归一；7c=auth 全链 + security 收口 + 登录全链 int-spec，SCC-A 九表全部 PG） |
 | B8 | sys_log_operate + sys_log_auth + techniques/event（fire-and-forget 旁路） | ✅ |
-| B9 | sys_deleted 收尾：恢复注册表装配、recover/recoverMine PG 化、Mongo 侧下线 | |
+| B9 | sys_deleted 收尾：恢复注册表装配、recover/recoverMine PG 化、Mongo 侧下线 | ✅ |
 | B10 | 终批清理（摘 MongooseModule、Mongo int-spec、双轨残留；与 Phase 5 合并执行） | |
 
 ## 2. 三层改造模板（B1 确立，后续批次照抄）
@@ -77,6 +77,13 @@
   ipHistory 追加截断 / visitorId upsert / forceQuit 链路 / JOIN 版列表）。
 - B7a 交付 `user.identity.oauth.pg.int-spec`（junction 组装 / defaultRole v5 uuid 链路 /
   identity 复合唯一 23505 + value select:false 通道 / oauth bind upsert + 外部账号唯一）。
+- B9 交付 `deleted.recycle.pg.int-spec`（回收站全链对账基准：3 集合软删同通道 → 列表
+  populated_user / content jsonb ::text 模糊 → read → recover 跨 3 集合注册表路由
+  （原行回来且 uuid / 时间戳形态正确）→ recoverMine 属主语义 + 双键定位 → 全量回滚
+  无残留（第一步成功第二步唯一约束冲突 force-rollback）→ 未注册 modelName 受控错误 →
+  彻底删除）；`log.bypass.pg.int-spec` 的 logOperateId 现状钉解锁为真实事件链路断言
+  （DELETE / DELETE_MANY 回填 + 未命中不抛错）。注意 deleteSoftById 的返回值是业务行
+  快照（id 即 deletedId），回收站定位键是 sys_deleted 行自身的 id。
 - B7b 交付 `user.lock.pg.int-spec`（hash 写入路径首插/更新全覆盖 + upsert 缺省列 +
   shared lock 联动 user_device）、`user.mfa.pg.int-spec`（uq_user_mfa_credential partial
   23505 + 密文列 select:false 通道 + bigint counter transformer + backup_codes 并入 totp 行
@@ -105,15 +112,16 @@
 | user.crud / user.shared（defaultRole 消费点） | B7a ✅（uuid 直用；safe id 常量补 v5 双形态） |
 | user_identity（B7a ✅）/ user_oauth（B7a ✅）/ user_lock（B7b ✅）/ user_mfa（B7b ✅，totp+webauthn+backup_codes 并行）/ user_preference（B7b ✅）/ refresh.repo（B7b ✅） | B7a ✅（identity/oauth）；B7b ✅（lock/mfa/preference/refresh） |
 | log.operate.decorator / log.auth.shared.service | B8 ✅（:104 / :109 的 `new ObjectId` 摘除，uuid 直传；匿名/登录失败为 NULL） |
-| deleted.service recover 链路 | B9 |
+| deleted.service recover 链路 | B9 ✅（`restoreSnapshotContent` 随 jsonb 快照形态退役；恢复走注册表，uuid 直存直取） |
 
 ## 5. 残留窗口（如实写进风险评估）
 
 1. **回收站双源**（B1~B9）：已迁模块软删写 PG `sys_deleted`，未迁写 Mongo；回收站列表/恢复
    在 B9 前是 Mongo 版，看不到 PG 侧删除。缓解：B0 注册表骨架 + 迁移期口径「回收站只管未迁
-   模块」。B9 归一。（B7a 附带：deleted.service read 的 deletedBy populate 随 SYS_USER
-   Mongo 注册摘除改查 PG 同源表 —— Mongo 窗口内 hex deletedBy 查不到 → populated_user
-   null，B9 归一。）
+   模块」。**B9 已归一**：recover/recoverMine 走恢复注册表 + PG 事务，列表/读取 populate
+   deletedBy 查 PG 同源表（B7a 过渡态的 hex→null 分支摘除）；Mongo 版删除链路
+   （deleted 的 Mongo forFeature、SysDeletedRepoService、Mongo 基类仓库、listAggregate
+   聚合）随批删除 —— 全仓业务表零 Mongo 写腿。
 2. **setting_value 内嵌 id**（B4~B7）：`app.default.role` 值须在 B7 切换前重写为 role 的 v5 uuid。
    B5 已产出订正脚本：`packages/tooling/scripts/src/db/fix-setting-default-role.ts`
    （bin `walnut-fix-setting-default-role`，根目录 `pnpm db:fix-default-role`；从仓库根运行，
@@ -272,10 +280,10 @@
   requestData/responseData 的 TS 注解随列型放开为 `Recordable | null`。
 - **匿名请求的 userId**：Mongo 时代 `new Types.ObjectId(undefined)` 会生成随机
   ObjectId（脏数据），PG 侧不复刻 —— userId 直传 token uuid、匿名/登录失败为 NULL。
-- **techniques/event 零代码改动（B9 边界登记）**：event.service 只转发
-  SysDeletedRepoService（仍 Mongo 版），本批不动；logOperateId 自本批起为 uuid，
-  Mongo 版 `updateDeletedWithLogOperateId` 的 ObjectId 包装遇 uuid 必炸 —— 挂单
-  B9（连同 recover 侧 PG 通道归一），int-spec 以现状钉住该炸点。
+- **techniques/event 零代码改动（B9 边界登记，B9 已收口）**：event.service 只转发
+  SysDeletedRepoService，本批（B8）不动；logOperateId 自本批起为 uuid，
+  Mongo 版 `updateDeletedWithLogOperateId` 的 ObjectId 包装遇 uuid 必炸 —— B9 已把
+  监听侧切到 `SysDeletedPgRepoService`（uuid 直等更新）并解锁 int-spec 现状钉。
 - **int-spec**：`log.bypass.pg.int-spec.ts` —— 真实拦截器/guard + 假 ExecutionContext
   驱动（pg.transaction 同口径）；tap 异步写最终一致断言用 `vi.waitFor` 轮询（不 sleep
   硬等）；guard 失败链路连带 failedLogin risk 收集（真实 Redis，键 afterAll 精确清理）；
@@ -284,5 +292,5 @@
 - **parse 摸底（只读探针）**：对本地 `walnut-admin-nestjs.sys_log_operate` 跑过 ——
   0 行（开发库无存量），成功率 N/A（0/0）；ETL 侧照 Q7 口径执行（parse 入 jsonb、
   失败原文入 raw_*）即可，无存量风险。
-- **dbSession 残留面更新**：仅剩 B9（sys_deleted recover 链）与 B0 的
-  tx-context/tx.interceptor 类型定义。
+- **dbSession 残留面更新**：仅剩 B0 的 tx-context / tx.interceptor 类型定义
+  （B9 已收掉 sys_deleted recover 链的最后一处业务消费；B8 的日志旁路本就不收事务句柄）。

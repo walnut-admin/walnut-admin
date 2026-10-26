@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { Reflector } from '@nestjs/core'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { WalnutAdminConstAppEvent } from '@walnut-server/const/app/event'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
@@ -17,7 +18,7 @@ import { WalnutAdminDecoratorOperateLog, WalnutAdminInterceptorRequestOperateLog
 import { WalnutAdminGuardAuth } from '@/guard/auth.guard'
 import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { SharedIpService } from '@/modules/shared/ip/ip.service'
-import { SysDeletedRepoService } from '@/modules/system/deleted/repo/deleted.repo.service'
+import { SysDeletedEntity } from '@/modules/system/deleted/entity/deleted.entity'
 import { SysLogAuthEntity } from '@/modules/system/logs/auth/entity/log-auth.entity'
 import { SysLogAuthSharedService } from '@/modules/system/logs/auth/shared/log.auth.shared.service'
 import { SysLogOperateEntity } from '@/modules/system/logs/operate/entity/log-operate.entity'
@@ -35,13 +36,14 @@ import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
  * - 认证日志 guard 失败触发链路（真实 WalnutAdminGuardAuth.handleRequest →
  *   SysLogAuthSharedService.recordAuth → PG 落库 + failedLogin risk 收集）与
  *   decorator 成功链路（userId uuid 直传 —— :109 ObjectId 点的 B8 裁定）；
- * - logOperateId 回填链路的 B9 前现状钉（SysDeletedRepoService 仍是 Mongo 版，
- *   ObjectId 包装遇 uuid 必炸 —— B9 收口后随批改写本段）。
+ * - logOperateId 回填链路（B9 收口后解锁改写）：真实 EventEmitter2 事件 →
+ *   AppTechEventService 监听 → SysDeletedPgRepoService 按 deletedId uuid 直等
+ *   更新 sys_deleted（未命中行不抛错、只记日志 —— 旁路吞错语义）。
  *
  * 驱动方式与 pg.transaction.int-spec 同口径：直接实例化真实拦截器/guard
  * （依赖取自全量 AppModule），假 ExecutionContext 驱动 —— 验证本体而非复刻。
- * 故意只用 CREATE/UPDATE action，不发 DELETE 事件（DELETE 的事件监听侧在 B9 前
- * 是挂单，见 §5 残留窗口与文末现状钉）。
+ * 故意只用 CREATE/UPDATE action 的拦截器用例（DELETE 事件的回填链路在文末
+ * 独立用例以真实事件驱动）。
  */
 describe('log bypass (fire-and-forget) on real PG', () => {
   let app: INestApplication
@@ -339,14 +341,73 @@ describe('log bypass (fire-and-forget) on real PG', () => {
     })
   })
 
-  it('logOperateId 回填：B9 前现状钉 —— Mongo 版 deleted.service 的 ObjectId 包装遇 uuid 必炸', async () => {
-    const deletedRepoService = app.get(SysDeletedRepoService)
+  it('logOperateId 回填：真实事件链路 —— LOG_OPERATE_DELETE 按 deletedId uuid 直等更新 sys_deleted', async () => {
+    const deletedId = randomUUID()
+    const logOperateId = randomUUID()
 
-    // B8 起 logOperateId / deletedId 都是 PG uuid；监听侧仍是 Mongo 版
-    // `new Types.ObjectId(...)` 包装 → 对 uuid 直接抛（B9 收口后本段随批改写）
-    await expect(deletedRepoService.updateDeletedWithLogOperateId({
+    await pgDataSource.manager.insert(SysDeletedEntity, {
+      id: randomUUID(),
+      content: { spec: deletedId },
+      modelName: 'SpecModel',
+      collectionName: 'spec_collection',
+      deletedId,
+      deletedBy: randomUUID(),
+      logOperateId: null,
+      deletedAt: new Date(),
+    })
+
+    // 真实 EventEmitter2 → AppTechEventService（@OnEvent 监听侧，与线上一致）
+    app.get(EventEmitter2).emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, { logOperateId, deletedId })
+
+    await vi.waitFor(
+      async () => {
+        const row = await pgDataSource.manager.findOne(SysDeletedEntity, { where: { deletedId } })
+        expect(row?.logOperateId).toBe(logOperateId)
+      },
+      { timeout: 10_000, interval: 100 },
+    )
+  })
+
+  it('logOperateId 回填：LOG_OPERATE_DELETE_MANY 按 idSeparator 拆分逐个回填', async () => {
+    const deletedIds = [randomUUID(), randomUUID()]
+    const logOperateId = randomUUID()
+
+    for (const deletedId of deletedIds) {
+      await pgDataSource.manager.insert(SysDeletedEntity, {
+        id: randomUUID(),
+        content: { spec: deletedId },
+        modelName: 'SpecModel',
+        collectionName: 'spec_collection',
+        deletedId,
+        deletedBy: randomUUID(),
+        logOperateId: null,
+        deletedAt: new Date(),
+      })
+    }
+
+    app.get(EventEmitter2).emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE_MANY, {
+      logOperateId,
+      deletedIds: deletedIds.join(','),
+    })
+
+    await vi.waitFor(
+      async () => {
+        const rows = await pgDataSource.manager.find(SysDeletedEntity, { where: { deletedId: deletedIds[0] } })
+        expect(rows[0]?.logOperateId).toBe(logOperateId)
+
+        const rows2 = await pgDataSource.manager.find(SysDeletedEntity, { where: { deletedId: deletedIds[1] } })
+        expect(rows2[0]?.logOperateId).toBe(logOperateId)
+      },
+      { timeout: 10_000, interval: 100 },
+    )
+  })
+
+  it('logOperateId 回填：deletedId 未命中 → 不抛错只记日志（旁路吞错语义）', async () => {
+    // 未命中任何行（update affected 0 → 返回 null），事件监听侧不得外抛；
+    // emitAsync 以监听器返回值数组 resolve，这里只钉「不 reject」
+    await expect(app.get(EventEmitter2).emitAsync(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, {
       logOperateId: randomUUID(),
       deletedId: randomUUID(),
-    })).rejects.toThrow()
+    })).resolves.toBeDefined()
   })
 })

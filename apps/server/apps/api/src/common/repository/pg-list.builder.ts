@@ -1,4 +1,3 @@
-import type { IListRequestParams } from '@walnut-server/utils/listAggregate'
 import type { ObjectLiteral, SelectQueryBuilder } from 'typeorm'
 import type { IWalnutAdminRequestList } from '../dto/list.dto'
 import { isEmpty, isNaN, isNil, isObject } from 'lodash'
@@ -29,6 +28,21 @@ import { isEmpty, isNaN, isNil, isObject } from 'lodash'
 
 // B2 起导出共用：locale.repo.service 的聚合重写（phase2 5.2）走同一套字面量转义口径
 export const ILIKE_ESCAPE_REGEX = /[\\%_]/g
+
+/**
+ * Server-side list request params.
+ * Shape mirrors @walnut/contract BaseListParams but uses Partial<T> for query
+ * (backend accepts subset fields) and is compatible with runtime DTO factories.
+ * Cannot be a direct type alias due to class-transformer DTO structural differences.
+ *
+ * B9 起本文件是唯一定义点（原 `@walnut-server/utils/listAggregate` 随 Mongo 版
+ * 基类仓库退役，接口随唯一消费方迁入）。
+ */
+export interface IListRequestParams<T> {
+  query?: Partial<T>
+  sort?: Array<{ field: string, order: 'ascend' | 'descend' | false, priority?: number }>
+  page?: { page: number, pageSize: number }
+}
 
 export interface IWalnutPgListQueryOptions {
   /** 列过滤：{ 属性名, 值 }；值形态决定谓词（见文件头注释） */

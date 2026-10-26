@@ -9,8 +9,9 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
-import { WalnutAdminDecoratorParamMongoId, WalnutAdminDecoratorParamMongoIds } from '@walnut-server/decorators/params'
+import { WalnutAdminDecoratorParamUuid, WalnutAdminDecoratorParamUuids } from '@walnut-server/decorators/params'
 import { Role } from '@walnut/contract'
+import { plainToInstance } from 'class-transformer'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
@@ -48,24 +49,22 @@ export class SysDeletedController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
-  async read(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new SystemDeletedDTOReadResponse(
-      (await this.deletedService.read(id)).toObject(),
-    )
+  async read(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(SystemDeletedDTOReadResponse, await this.deletedService.read(id))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE_MANY)
   @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER, Role.ADMIN], WalnutAdminConstDecoratorRoleMode.OR)
   @WalnutAdminDecoratorDeleteMany()
-  async deleteMany(@WalnutAdminDecoratorParamMongoIds() ids: string[]) {
+  async deleteMany(@WalnutAdminDecoratorParamUuids() ids: string[]) {
     const deleted = await this.deletedService.deleteRealMany(ids)
-    return deleted.map(i => new SystemDeletedDTODeleteResponse(i.toObject()))
+    return deleted.map(i => plainToInstance(SystemDeletedDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: SystemDeletedDTOListRequest) {
-    return new SystemDeletedDTOListResponse(await this.deletedService.list(payload))
+    return plainToInstance(SystemDeletedDTOListResponse, await this.deletedService.list(payload))
   }
 
   @Post('me/recover')
@@ -77,7 +76,7 @@ export class SysDeletedController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Body() payload: SysDeletedDTORecoverRequest,
   ) {
-    return this.deletedService.recoverMine(payload, user.userId, ctx.dbSession!)
+    return this.deletedService.recoverMine(payload, user.userId, ctx.em)
   }
 
   @Post('recover')
@@ -94,6 +93,6 @@ export class SysDeletedController {
     @WalnutDBSession() ctx: WalnutTxContext,
     @Body() payload: SysDeletedDTORecoverRequest,
   ) {
-    return this.deletedService.recover(payload, ctx.dbSession!)
+    return this.deletedService.recover(payload, ctx.em)
   }
 }

@@ -1,24 +1,17 @@
 import { Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
 
 import { SysDeletedBasicRepository } from './deleted.basic.repository'
 import { SysDeletedController } from './deleted.controller'
 import { SysDeletedService } from './deleted.service'
 import { SysDeletedRepoModule } from './repo/deleted.repo.module'
-import { SysDeletedSchema } from './schema/deleted.schema'
 
+/**
+ * B9 起 sys_deleted 单轨 PG：实体经 @Global 的 SysDeletedRepoModule 注册
+ * （TypeOrmModule.forFeature，autoLoadEntities 通道），Mongo forFeature 随
+ * Mongo 版删除链路下线一并摘除。
+ */
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [
-        {
-          name: WalnutDBModelName.SYS_DELETED,
-          schema: SysDeletedSchema,
-        },
-      ],
-      WalnutDBConnectionName,
-    ),
     SysDeletedRepoModule,
   ],
   controllers: [SysDeletedController],

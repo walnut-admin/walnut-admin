@@ -218,8 +218,10 @@ export namespace IModels {
   }
 
   // system delete
-  export interface SystemDeleted extends Omit<Base, 'updatedAt'> {
-    content?: string
+  export interface SystemDeleted extends Omit<Base, 'updatedAt' | '_id'> {
+    // B9 起 sys_deleted 迁 PG：主键响应契约 `_id` → `id`（uuid），content 为 jsonb 对象
+    id?: string
+    content?: Recordable
     modelName?: string
     collectionName?: string
     deletedId?: string

@@ -20,7 +20,7 @@
  * `--fix` 可直接剔除（含相邻空格），所以存量一条命令清干净。
  */
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import process from 'node:process'
 import { findEmoji, stripEmoji } from '../lib/emoji.ts'
@@ -92,13 +92,20 @@ export function isStrictDoc(file: string): boolean {
   return DOC_BUDGETS.some(b => b.file === file)
 }
 
-/** 被跟踪的文本文件清单（只取有注释语法的那些；`git ls-files` 天然排除 gitignore 掉的东西） */
+/**
+ * 被跟踪的文本文件清单（只取有注释语法的那些；`git ls-files` 天然排除 gitignore 掉的东西）。
+ *
+ * `git ls-files` 读的是**索引**——批量改造进行中（删了文件还没提交）时，索引里仍有
+ * 已从工作区消失的路径，readFileSync 会 ENOENT 崩掉（工具自报「这不是检出违规」）。
+ * 这里按磁盘存在性过滤，让门禁在未提交的删除状态下照常可跑。
+ */
 export function listCandidateFiles(repoRoot: string): string[] {
   const outText = execFileSync('git', ['ls-files', '-z'], { cwd: repoRoot, encoding: 'utf8' })
   return outText
     .split('\0')
     .filter(Boolean)
     .filter(f => isStrictDoc(f) || syntaxOf(f) !== 'none')
+    .filter(f => existsSync(join(repoRoot, f)))
     .sort()
 }
 

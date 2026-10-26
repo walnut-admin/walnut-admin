@@ -1,16 +1,39 @@
-import type { EntityManager } from 'typeorm'
+import type { EntityManager, EntityTarget, ObjectLiteral } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 
+import { WalnutDBModelName } from '@walnut-server/db'
+import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
+import { AppErrorEntity } from '@/modules/app/error/entity/error.entity'
+import { AppKeyEntity } from '@/modules/app/key/entity/key.entity'
+import { AppMonitorUserEntity } from '@/modules/app/monitor/user/entity/monitor-user.entity'
+import { AppSettingEntity } from '@/modules/app/setting/entity/setting.entity'
+import { AuthRefreshTokenEntity } from '@/modules/auth/modules/refresh/entity/refresh-token.entity'
+import { SharedAreaEntity } from '@/modules/shared/area/entity/area.entity'
+import { SysDeviceEntity } from '@/modules/system/device/entity/device.entity'
+import { SysDictDataEntity } from '@/modules/system/dict/dictData/entity/dict-data.entity'
+import { SysDictTypeEntity } from '@/modules/system/dict/dictType/entity/dict-type.entity'
+import { SysLangEntity } from '@/modules/system/lang/entity/lang.entity'
+import { SysLocaleEntity } from '@/modules/system/locale/entity/locale.entity'
+import { SysLogAuthEntity } from '@/modules/system/logs/auth/entity/log-auth.entity'
+import { SysLogOperateEntity } from '@/modules/system/logs/operate/entity/log-operate.entity'
+import { SysMenuEntity } from '@/modules/system/menu/entity/menu.entity'
+import { SysRoleEntity } from '@/modules/system/role/entity/role.entity'
+import { SysUserEntity } from '@/modules/system/user/entity/user.entity'
+import { SysUserDeviceEntity } from '@/modules/system/user_device/entity/user-device.entity'
+import { SysUserIdentityEntity } from '@/modules/system/user_identity/entity/user-identity.entity'
+import { SysUserLockEntity } from '@/modules/system/user_lock/entity/user-lock.entity'
+import { SysUserMfaEntity } from '@/modules/system/user_mfa/entity/user-mfa.entity'
+import { SysUserOauthEntity } from '@/modules/system/user_oauth/entity/user-oauth.entity'
+import { SysUserPreferenceEntity } from '@/modules/system/user_preference/entity/user-preference.entity'
+
 /**
- * PG 回收站恢复器注册表（phase2 5.3 定案的「显式注册表」骨架）。
+ * PG 回收站恢复器注册表（phase2 5.3 定案的「显式注册表」，B9 装配完成）。
  *
  * Mongo 版恢复走 `db.model(modelName)` 运行时动态模型（来什么存什么）；PG 有强
  * schema，快照 jsonb → 实体的列级映射必须显式，因此恢复路由收口为
- * `modelName → IWalnutPgSnapshotRecoverer` 的注册表：每个迁 PG 的模块在装配期把
- * 自己的恢复器注册进来（B0b 只交付注册表本身，业务模块的恢复器随各自迁移批次落地，
- * Mongo 版 `deleted.service.ts` 的恢复路径本批不动）。
- *
- * 注册表是空表启动 —— `recover` 时查无恢复器即抛错，替代动态模型的「默默失败」。
+ * `modelName → IWalnutPgSnapshotRecoverer` 的注册表。恢复器本体是通用工厂的产物
+ * （实体类型即注册，无需每模块手写恢复逻辑）；23 张已迁业务表在构造期统一装配，
+ * 未注册 modelName 的快照在 recover 时抛受控错误，替代动态模型的「默默失败」。
  */
 export interface IWalnutPgSnapshotRecoverer {
   /**
@@ -22,11 +45,69 @@ export interface IWalnutPgSnapshotRecoverer {
   recover: (content: Record<string, unknown>, em: EntityManager) => Promise<unknown>
 }
 
+/**
+ * 通用快照恢复器工厂：`entityTarget` 即注册。快照 content 是 jsonb 直存对象
+ * （B0 起新形态，无 Mongo 时代 stringify 的 ObjectId 还原包袱），恢复语义就是
+ * 「按目标实体把快照行原样插回」—— 含原 uuid 主键与 created_at / updated_at
+ * 时间戳列（insert() 对显式赋值的列原样落库，仅 undefined 才走列默认值，故
+ * uuidv7/gen_random_uuid 与 CreateDate/UpdateDate 的默认值通道都不会被触发）。
+ * 引用完整性（FK / 唯一约束）由数据库在插入时把关，违反即抛错走受控恢复失败。
+ */
+export function createWalnutPgSnapshotRecoverer<T extends ObjectLiteral>(entityTarget: EntityTarget<T>): IWalnutPgSnapshotRecoverer {
+  return {
+    recover: async (content: Record<string, unknown>, em: EntityManager) => {
+      await em.getRepository(entityTarget).insert(content as never)
+    },
+  }
+}
+
+/**
+ * 恢复注册清单：modelName（`WalnutDBModelName`，软删快照的路由键）→ 目标实体。
+ * 覆盖全部 23 张已迁业务表 —— 其中 lock/mfa/preference/user_device/refresh_token
+ * 等无软删写路径的表一并注册（注册无害，兜住任何来源的历史快照）；
+ * junction 表（sys_role_menu / sys_user_role）随主行 CASCADE 生灭，不进回收站，
+ * 不注册。
+ */
+const WALNUT_PG_RECOVERABLE_COLLECTIONS: ReadonlyArray<{ modelName: string, entityTarget: EntityTarget<ObjectLiteral> }> = [
+  { modelName: WalnutDBModelName.SYS_ROLE, entityTarget: SysRoleEntity },
+  { modelName: WalnutDBModelName.SYS_USER, entityTarget: SysUserEntity },
+  { modelName: WalnutDBModelName.SYS_USER_OAUTH, entityTarget: SysUserOauthEntity },
+  { modelName: WalnutDBModelName.SYS_USER_PREFERENCE, entityTarget: SysUserPreferenceEntity },
+  { modelName: WalnutDBModelName.SYS_USER_LOCK, entityTarget: SysUserLockEntity },
+  { modelName: WalnutDBModelName.SYS_USER_DEVICE, entityTarget: SysUserDeviceEntity },
+  { modelName: WalnutDBModelName.SYS_USER_MFA, entityTarget: SysUserMfaEntity },
+  { modelName: WalnutDBModelName.SYS_USER_IDENTITY, entityTarget: SysUserIdentityEntity },
+  { modelName: WalnutDBModelName.SYS_MENU, entityTarget: SysMenuEntity },
+  { modelName: WalnutDBModelName.SYS_LANG, entityTarget: SysLangEntity },
+  { modelName: WalnutDBModelName.SYS_LOCALE, entityTarget: SysLocaleEntity },
+  { modelName: WalnutDBModelName.SYS_DEVICE, entityTarget: SysDeviceEntity },
+  { modelName: WalnutDBModelName.SYS_LOG_AUTH, entityTarget: SysLogAuthEntity },
+  { modelName: WalnutDBModelName.SYS_LOG_OPERATE, entityTarget: SysLogOperateEntity },
+  { modelName: WalnutDBModelName.SYS_DICT_DATA, entityTarget: SysDictDataEntity },
+  { modelName: WalnutDBModelName.SYS_DICT_TYPE, entityTarget: SysDictTypeEntity },
+  { modelName: WalnutDBModelName.SHARED_AREA, entityTarget: SharedAreaEntity },
+  { modelName: WalnutDBModelName.APP_DEMO, entityTarget: AppDemoEntity },
+  { modelName: WalnutDBModelName.APP_MONITOR_USER, entityTarget: AppMonitorUserEntity },
+  { modelName: WalnutDBModelName.APP_SETTING, entityTarget: AppSettingEntity },
+  { modelName: WalnutDBModelName.APP_ERROR, entityTarget: AppErrorEntity },
+  { modelName: WalnutDBModelName.APP_KEY, entityTarget: AppKeyEntity },
+  { modelName: WalnutDBModelName.AUTH_REFRESH_TOKEN, entityTarget: AuthRefreshTokenEntity },
+]
+
 @Injectable()
 export class SysDeletedPgRecoverRegistry {
   private readonly logger = new Logger(SysDeletedPgRecoverRegistry.name)
 
   private readonly recoverers = new Map<string, IWalnutPgSnapshotRecoverer>()
+
+  constructor() {
+    // 装配期统一注册（通用工厂覆盖全部已迁集合）。后续某集合需要特殊恢复逻辑时，
+    // 把它从清单挪出、在此单独 `register` —— 清单与手工注册同报名字会抛重复注册错，
+    // 装配期即红，不会静默走错恢复器
+    for (const { modelName, entityTarget } of WALNUT_PG_RECOVERABLE_COLLECTIONS) {
+      this.register(modelName, createWalnutPgSnapshotRecoverer(entityTarget))
+    }
+  }
 
   /**
    * @description 模块装配期注册恢复器；同名重复注册是装配错误，直接抛错而非静默覆盖

@@ -125,8 +125,8 @@ export class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor 
         if (action === WalnutAdminConstDecoratorLogOperateAction.DELETE) {
           const id = request.params[WalnutAdminConstAppConfig.deleteField] as string
           if (id) {
-            // B9 边界：logOperateId 自 B8 起是 PG uuid；监听侧 SysDeletedRepoService
-            // 仍是 Mongo 版（deleted.service 里回填挂单在 B9，见 phase3-plan §5）
+            // B9 收口：logOperateId / deletedId 均为 PG uuid，监听侧直等更新
+            // sys_deleted（SysDeletedPgRepoService，uuid 直等）
             this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, { logOperateId: operateLog.id, deletedId: id })
           }
           else {
@@ -137,7 +137,7 @@ export class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor 
         if (action === WalnutAdminConstDecoratorLogOperateAction.DELETE_MANY) {
           const ids = request.params[WalnutAdminConstAppConfig.deleteManyField] as string
           if (ids) {
-            // B9 边界：同上（logOperateId 已是 uuid）
+            // B9 收口：同上
             this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE_MANY, { logOperateId: operateLog.id, deletedIds: ids })
           }
           else {

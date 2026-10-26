@@ -10,10 +10,12 @@ import { IWalnutAdminRequestList } from '../dto/list.dto'
 import { applyPgListQuery, buildPgListQueryOptions, executePgListQuery } from './pg-list.builder'
 
 /**
- * PostgreSQL 版公共基类仓库 —— 与 Mongo 版 `WalnutAdminCommonBasicRepository`
- * 并存，公共方法面（create / readById / update / updateByField / deleteSoftById /
- * deleteRealById / *_Many / deleteSoftManyByCondition / list）一一对齐，迁移批次
- * 把 repo 从 Mongo 版切到本基类时业务 service 的调用面不需要动。
+ * PostgreSQL 版公共基类仓库 —— B9 起**唯一**基类（Mongo 版
+ * `WalnutAdminCommonBasicRepository` 随 sys_deleted 双轨收口删除，历史形态见
+ * git 存档），公共方法面（create / readById / update / updateByField /
+ * deleteSoftById / deleteRealById / *_Many / deleteSoftManyByCondition / list）
+ * 与 Mongo 版一一对齐，迁移批次把 repo 从 Mongo 版切到本基类时业务 service 的
+ * 调用面不需要动。
  *
  * 与 Mongo 版的关键差异：
  * - 事务句柄是 `EntityManager`（取自 `WalnutTxContext.em`），不是 ClientSession；

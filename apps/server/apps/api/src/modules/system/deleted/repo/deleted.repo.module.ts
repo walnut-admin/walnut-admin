@@ -1,29 +1,22 @@
 import { Global, Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { WalnutDBConnectionName, WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 import { SysDeletedEntity } from '../entity/deleted.entity'
-import { SysDeletedSchema } from '../schema/deleted.schema'
 import { SysDeletedPgRepoService } from './deleted.repo.pg.service'
-import { SysDeletedRepoService } from './deleted.repo.service'
 import { SysDeletedPgRecoverRegistry } from './recover-registry'
 
+/**
+ * @Global 回收站通道：PG 软删仓库（pg-base.repository 的 deleteSoftById 依赖）+
+ * 恢复注册表（modelName → 恢复器，B9 装配完成）。Mongo 版 SysDeletedRepoService
+ * 及其 forFeature 已随 B9 双轨收口下线。
+ */
 @Global()
 @Module({
   imports: [
-    MongooseModule.forFeature(
-      [
-        {
-          name: WalnutDBModelName.SYS_DELETED,
-          schema: SysDeletedSchema,
-        },
-      ],
-      WalnutDBConnectionName,
-    ),
     // PG 版软删仓库的实体注册（autoLoadEntities 通道）
     TypeOrmModule.forFeature([SysDeletedEntity], WalnutPGConnectionName),
   ],
-  providers: [SysDeletedRepoService, SysDeletedPgRepoService, SysDeletedPgRecoverRegistry],
-  exports: [SysDeletedRepoService, SysDeletedPgRepoService, SysDeletedPgRecoverRegistry],
+  providers: [SysDeletedPgRepoService, SysDeletedPgRecoverRegistry],
+  exports: [SysDeletedPgRepoService, SysDeletedPgRecoverRegistry],
 })
 export class SysDeletedRepoModule {}

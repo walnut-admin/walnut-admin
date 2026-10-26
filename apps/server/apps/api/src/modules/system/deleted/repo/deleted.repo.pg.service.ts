@@ -1,6 +1,7 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
+import { WalnutAdminConstAppConfig } from '@walnut-server/const/app/config'
 import { WalnutPGConnectionName } from '@walnut-server/db'
 
 import { DataSource } from 'typeorm'
@@ -22,11 +23,13 @@ export interface ISysDeletedPgCreatePayload {
 }
 
 /**
- * PostgreSQL 版回收站仓库（对应 Mongo 版 `SysDeletedRepoService`，两者并存）。
+ * PostgreSQL 版回收站仓库（对应 Mongo 版 `SysDeletedRepoService`，B9 起唯一版本）。
  *
- * 只服务 PG 软删路径（`pg-base.repository.ts` 的 deleteSoftById）；Mongo 版本批不动，
- * 回收站读取 / 恢复的 Mongo 逻辑收编在 B9。`em` 传自 `WalnutTxContext.em` 时，
- * 快照写入与原行删除同事务；缺省走连接级 manager（非事务路径）。
+ * 服务 PG 软删路径（`pg-base.repository.ts` 的 deleteSoftById）与操作日志的
+ * logOperateId 回填旁路；恢复 / 回收站读腿的编排收在 `SysDeletedService` +
+ * `recover-registry.ts`。`em` 传自 `WalnutTxContext.em` 时，快照写入与原行删除
+ * 同事务；缺省走连接级 manager（非事务路径）—— logOperateId 回填沿用旁路语义，
+ * 刻意不收事务句柄（B8 同款裁定）。
  */
 @Injectable()
 export class SysDeletedPgRepoService {
@@ -56,5 +59,42 @@ export class SysDeletedPgRepoService {
     })
 
     return repository.save(created)
+  }
+
+  // bind the log operate id for the deleted document（uuid 直等更新 —— Mongo 版的
+  // `new Types.ObjectId` 包装随双轨退役；未命中返回 null，与 Mongo 版一致）
+  async updateDeletedWithLogOperateId(payload: { logOperateId: string, deletedId: string }) {
+    const repository = this.getRepository()
+
+    const res = await repository.update(
+      { deletedId: payload.deletedId },
+      { logOperateId: payload.logOperateId },
+    )
+
+    // affected 为 null/undefined 视作未命中（驱动缺省形态一并收口）
+    if ((res.affected ?? 0) === 0) {
+      this.logger.log('Log Operate Id Update Failed, no deleted document found')
+      return null
+    }
+
+    return repository.findOne({ where: { deletedId: payload.deletedId } })
+  }
+
+  // same as above, but mulitple
+  async updateDeletedManyWithLogOperateId(payload: { logOperateId: string, deletedIds: string }) {
+    const deletedIdArr = payload.deletedIds.split(WalnutAdminConstAppConfig.idSeparator)
+
+    const res: SysDeletedEntity[] = []
+    for (const id of deletedIdArr) {
+      const deleted = await this.updateDeletedWithLogOperateId({ deletedId: id, logOperateId: payload.logOperateId })
+      if (deleted) {
+        res.push(deleted)
+      }
+    }
+    return res
+  }
+
+  private getRepository() {
+    return this.dataSource.manager.getRepository(SysDeletedEntity)
   }
 }

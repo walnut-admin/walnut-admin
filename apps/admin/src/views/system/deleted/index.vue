@@ -17,7 +17,8 @@ defineOptions({
 const localeKey = 'deleted'
 // auth key
 const authKey = 'deleted'
-const keyField = '_id'
+// B9 起 sys_deleted 迁 PG：主键响应契约 `_id` → `id`（uuid）
+const keyField = 'id'
 
 const { t } = useAppI18n()
 
@@ -240,7 +241,7 @@ const [
               icon: 'mdi:backup-restore',
             },
             async onPresetClick(rowData) {
-              await recoverAPI({ _id: rowData._id, deletedId: rowData.deletedId })
+              await recoverAPI({ id: rowData.id!, deletedId: rowData.deletedId! })
               useAppMsgSuccess()
               await onApiList()
             },

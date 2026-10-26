@@ -1,38 +1,44 @@
-import { Injectable, Logger } from '@nestjs/common'
-import { WalnutDBCollectionName, WalnutDBInjectModel, WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
+import type { EntityManager } from 'typeorm'
+import { Injectable } from '@nestjs/common'
+import { WalnutDBVirtualName } from '@walnut-server/db'
 
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
-
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
-import { Recordable } from 'easy-fns-ts'
-import { ClientSession, isObjectIdOrHexString, Types } from 'mongoose'
 import { SysUserRepositoryService } from '../user/repo/user.repo.service'
 import { SysDeletedBasicRepository } from './deleted.basic.repository'
 import { SysDeletedDTORecoverRequest, SystemDeletedDTOListRequest } from './dto/deleted.dto'
-import { ISysDeletedModel } from './schema/deleted.schema'
+import { SysDeletedEntity } from './entity/deleted.entity'
+import { SysDeletedPgRecoverRegistry } from './repo/recover-registry'
 
+/**
+ * 回收站服务（B9 起 PG 单轨）：软删写入在 `SysDeletedPgRepoService.createSoftDelete`
+ * （pg-base.repository 的 deleteSoftById 统一走它），本服务承接读腿与恢复编排 ——
+ *
+ * - 恢复按 `modelName` 路由到 `SysDeletedPgRecoverRegistry`（B0 注册表，B9 装配），
+ *   替代 Mongo 版 `db.model(modelName)` 的运行时动态模型；未注册 modelName 抛受控
+ *   错误。快照 content 是 jsonb 对象，恢复 = 原表 insert 快照行 + 删除 sys_deleted
+ *   行，两步写同一 `em` 事务（recover 端点由 WalnutTxInterceptor 统一 commit/rollback，
+ *   任何一步抛错全量回滚、无残留）。
+ * - Mongo 版的 `restoreSnapshotContent`（ObjectId hex 逐字段还原）随双轨退役：
+ *   B0 起快照即 PG 形态，uuid 引用直存直取，无需还原（phase2 §5.3，sys_deleted
+ *   本地存量为 0 已在 Phase 2 定案）。
+ */
 @Injectable()
 export class SysDeletedService {
-  private readonly logger = new Logger(SysDeletedService.name)
-
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SYS_DELETED)
-    private readonly SysDeletedModel: ISysDeletedModel,
-
     private readonly deletedBasicRepo: SysDeletedBasicRepository,
     private readonly sysUserRepoService: SysUserRepositoryService,
+    private readonly recoverRegistry: SysDeletedPgRecoverRegistry,
   ) { }
 
   async read(id: string) {
     const doc = await this.deletedBasicRepo.readById(id)
 
-    // B7a：user 已迁 PG，Mongo 侧 SYS_USER 模型注册随之摘除 —— populate 读腿改查
-    // PG sys_user 同源表（B5 usersCount 同款手法）。Mongo 窗口内 hex deletedBy 在
-    // PG 侧查不到 → populated_user null（B9 归一）
-    const deletedBy = doc.deletedBy?.toString() ?? ''
-    const user = isObjectIdOrHexString(deletedBy) ? null : await this.sysUserRepoService.findUserByUserId(deletedBy)
+    // B9 归一：deletedBy 全量是 PG uuid（软删写入自 B0 起走 SysDeletedPgRepoService），
+    // Mongo 窗口的 hex 分支（B7a 过渡态）摘除 —— populate 直查 PG sys_user 同源表
+    const user = await this.sysUserRepoService.findUserByUserId(doc.deletedBy)
 
-    return Object.assign(doc.toObject(), {
+    return Object.assign(doc, {
       [WalnutDBVirtualName.USER]: user ? { id: user.id, userName: user.userName } : null,
     })
   }
@@ -42,106 +48,72 @@ export class SysDeletedService {
   }
 
   async list(payload: SystemDeletedDTOListRequest) {
-    return this.deletedBasicRepo.list(payload, [
-      {
-        $lookup: {
-          from: WalnutDBCollectionName.USER,
-          localField: 'deletedBy',
-          foreignField: '_id',
-          as: WalnutDBVirtualName.USER,
-          pipeline: [
-            {
-              $project: {
-                userName: 1,
-              },
-            },
-          ],
-        },
-      },
-      { $unwind: { path: `$${WalnutDBVirtualName.USER}`, preserveNullAndEmptyArrays: true } },
-    ])
+    return this.deletedBasicRepo.list(payload)
   }
 
   // recover for me
-  async recoverMine(payload: SysDeletedDTORecoverRequest, userId: string, dbSession: ClientSession) {
-    const { _id, deletedId } = payload
+  async recoverMine(payload: SysDeletedDTORecoverRequest, userId: string, em: EntityManager) {
+    const { id, deletedId } = payload
 
-    // find the deleted target
-    const deleted = await this.SysDeletedModel.findOne({
-      _id,
-      deletedId: new Types.ObjectId(deletedId),
-    }).session(dbSession)
+    // find the deleted target（id + deletedId 双键定位，命中不了即 DataNotFound ——
+    // 与 Mongo 版 findOne 双条件语义一致）
+    const deleted = await this.deletedBasicRepo.findByIdAndDeletedId(id, deletedId, em)
 
     if (!deleted) {
       throw new WalnutAdminExceptionDataNotFound()
     }
 
-    if (deleted.deletedBy.toString() !== userId) {
+    if (deleted.deletedBy !== userId) {
       throw new WalnutAdminExceptionBadRequest()
     }
 
-    const targetModel = this.SysDeletedModel.db.model(deleted.modelName)
-
-    try {
-      // recover to original collection
-      // NOTICE: mongoose 9 的 create 单文档签名不收 options（第二参被当待建文档、session 被静默丢弃），带 session 必须传数组
-      await targetModel.create([this.restoreSnapshotContent(deleted.content)], { session: dbSession })
-    }
-    catch (e) {
-      throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.delete.recoverFail', _devMsg: e as string })
-    }
-
-    // delete from delete collection
-    await this.SysDeletedModel.findByIdAndDelete(deleted._id).session(dbSession)
+    await this.recoverSnapshot(deleted, em)
 
     return true
   }
 
   // recover for manage
-  async recover(payload: SysDeletedDTORecoverRequest, dbSession: ClientSession) {
-    const { _id, deletedId } = payload
+  async recover(payload: SysDeletedDTORecoverRequest, em: EntityManager) {
+    const { id, deletedId } = payload
 
     // find the deleted target
-    const deleted = await this.SysDeletedModel.findById(_id).session(dbSession)
+    const deleted = await this.deletedBasicRepo.readById(id, em)
 
-    if (!deleted) {
-      throw new WalnutAdminExceptionDataNotFound()
-    }
-
-    if (deleted.deletedId.toString() !== deletedId.toString()) {
+    if (deleted.deletedId !== deletedId) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.delete.recoverFail', _devMsg: 'DeletedId Not Matched' })
     }
 
-    const TargetModel = this.SysDeletedModel.db.model(deleted.modelName)
-
-    try {
-      // recover to original collection
-      // NOTICE: mongoose 9 的 create 单文档签名不收 options（第二参被当待建文档、session 被静默丢弃），带 session 必须传数组
-      await TargetModel.create([this.restoreSnapshotContent(deleted.content)], { session: dbSession })
-    }
-    catch (e) {
-      throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.delete.recoverFail', _devMsg: e as string })
-    }
-
-    // delete from delete collection
-    await this.SysDeletedModel.findByIdAndDelete(deleted._id).session(dbSession)
+    await this.recoverSnapshot(deleted, em)
 
     return true
   }
 
   /**
-   * 快照 content（JSON 序列化产物）还原成待恢复文档。两条恢复路径（recover / recoverMine）
-   * 必须走同一转换，语义是「恢复出的文档与被删时一致」：
-   * - ObjectId 落进快照是 hex 字符串，恢复时转回 `Types.ObjectId`；
-   * - 目标 schema 的 `@Prop({ type: Types.ObjectId })` 运行时是 Mixed（不 cast），写入什么存什么，
-   *   不在这里显式转换的话 hex 字符串会原样入库。
+   * 恢复编排（两条恢复路径共用）：注册表路由 → 原表 insert 快照行 → 删除 sys_deleted
+   * 行。注册器插入抛错（如唯一约束冲突 / FK 未满足）包装成受控 recoverFail 外抛，
+   * 事务由拦截器统一回滚；仅恢复器调用包 try/catch，sys_deleted 删除失败原样上抛
+   * （与 Mongo 版一致）。
    */
-  private restoreSnapshotContent(content: string): Recordable {
-    return Object.fromEntries(Object.entries(JSON.parse(content) as Recordable).map(([k, v]) => {
-      if (isObjectIdOrHexString(v)) {
-        return [k, new Types.ObjectId(`${v}`)]
-      }
-      return [k, v]
-    }))
+  private async recoverSnapshot(deleted: SysDeletedEntity, em: EntityManager) {
+    const recoverer = this.recoverRegistry.get(deleted.modelName)
+
+    if (!recoverer) {
+      // 替代 Mongo 版 `db.model(unknown)` 的 MissingSchemaError（未受控 500）
+      throw new WalnutAdminExceptionBadRequest({
+        errMsg: 'business.system.delete.recoverFail',
+        _devMsg: `no recoverer registered for model "${deleted.modelName}"`,
+      })
+    }
+
+    try {
+      // recover to original collection（快照 jsonb 对象直插，含原 uuid 与时间戳）
+      await recoverer.recover(deleted.content, em)
+    }
+    catch (e) {
+      throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.delete.recoverFail', _devMsg: e instanceof Error ? e.message : String(e) })
+    }
+
+    // delete from delete collection（同一 em → 与上一步同事务）
+    await this.deletedBasicRepo.deleteRealById(deleted.id, em)
   }
 }
