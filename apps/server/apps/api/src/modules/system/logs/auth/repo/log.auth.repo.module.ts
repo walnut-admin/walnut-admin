@@ -1,17 +1,14 @@
 import { Global, Module } from '@nestjs/common'
-import { MongooseModule } from '@nestjs/mongoose'
-import { WalnutDBConnectionName, WalnutDBModelName } from '@walnut-server/db'
-import { SysLogAuthSchema } from '../schema/log.auth.schema'
 import { SysLogAuthRepoService } from './log.auth.repo.service'
 
+/**
+ * B8 迁移：Mongo forFeature 摘除（实体注册在 SysLogAuthModule 的 PG forFeature 里，
+ * B7b refresh.repo 同款形态）。模块保持 @Global —— auth log decorator / shared service
+ * / auth guard 消费方经它注入 SysLogAuthRepoService。
+ */
 @Global()
 @Module({
-  imports: [
-    MongooseModule.forFeature(
-      [{ name: WalnutDBModelName.SYS_LOG_AUTH, schema: SysLogAuthSchema }],
-      WalnutDBConnectionName,
-    ),
-  ],
+  imports: [],
   controllers: [],
   providers: [SysLogAuthRepoService],
   exports: [SysLogAuthRepoService],

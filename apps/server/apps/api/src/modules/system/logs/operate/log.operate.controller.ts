@@ -3,13 +3,14 @@ import { ApiParam, ApiTags } from '@nestjs/swagger'
 
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import {
-  WalnutAdminDecoratorParamMongoId,
+  WalnutAdminDecoratorParamUuid,
 } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { plainToInstance } from 'class-transformer'
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { JwtAccessGuard } from '@/modules/auth/modules/jwt/jwt-access.guard'
-import { SysDeviceDTOReadResponse } from '../../device/dto/device.dto'
+import { assembleSysDevice, SysDeviceDTOReadResponse } from '../../device/dto/device.dto'
 import {
   SysLogOperateDTO,
   SysLogOperateDTOListRequest,
@@ -35,6 +36,12 @@ const { WalnutAdminDecoratorRead, WalnutAdminDecoratorList }
     },
   })
 
+/**
+ * B8 迁移（controller 层，B1 模板）：路由参数 ParamMongoId → uuid 参数装饰器；
+ * `.toObject()` 移除（PG 实体即 POJO），响应组装统一 `plainToInstance(DTO, entity)`；
+ * 设备行经 assembleSysDevice 组装回 Mongo 版嵌套形态（sr/vp/geoLocation 拍平列还原，
+ * B6 device read 同款）。
+ */
 @Controller('system/log/operate')
 @ApiTags('system/log/operate')
 @UseGuards(JwtAccessGuard)
@@ -54,9 +61,13 @@ export class SysLogOperateController {
     description: 'get log operate device',
     DTO: SysDeviceDTOReadResponse,
   })
-  async getDevice(@WalnutAdminDecoratorParamMongoId() id: string) {
+  async getDevice(@WalnutAdminDecoratorParamUuid() id: string) {
     const device = await this.logOperateService.getDeviceByLogOperateId(id)
-    return new SysDeviceDTOReadResponse(device.toObject())
+
+    return plainToInstance(
+      SysDeviceDTOReadResponse,
+      device ? assembleSysDevice(device) : null,
+    )
   }
 
   @Get(':id/snapshot')
@@ -72,24 +83,27 @@ export class SysLogOperateController {
     description: 'get log operate snapshot after & before',
     DTO: SysLogOperateDTOSnapshotResponse,
   })
-  async getSnapshot(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new SysLogOperateDTOSnapshotResponse(
-      (await this.logOperateService.getSnapshot(id)).toObject(),
+  async getSnapshot(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(
+      SysLogOperateDTOSnapshotResponse,
+      await this.logOperateService.getSnapshot(id),
     )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
-  async read(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new SysLogOperateDTOReadResponse(
-      (await this.logOperateService.read(id)).toObject(),
+  async read(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(
+      SysLogOperateDTOReadResponse,
+      await this.logOperateService.read(id),
     )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: SysLogOperateDTOListRequest) {
-    return new SysLogOperateDTOListResponse(
+    return plainToInstance(
+      SysLogOperateDTOListResponse,
       await this.logOperateService.list(payload),
     )
   }

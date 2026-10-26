@@ -146,16 +146,20 @@ export class SysLogOperateModel extends RealPickType(WalnutAdminCommonBasicModel
       title: 'requset data, stringified',
     },
   })
+  // B8 迁 PG（phase2 4.16 / Q7 定案）：列收 jsonb，应用新增直写对象（不再 stringify）；
+  // parse 失败原文落同表 raw_request_data text 旁路列。schema 仅作 DTO 元数据基座保留，
+  // TS 注解随列型放开为对象（@Prop 不再有运行时语义）；列可空，注解带 null
   @Prop({ type: String, default: null })
-  requestData: string
+  requestData: Recordable | null
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'response data, stringified',
     },
   })
+  // B8 迁 PG：同 requestData（jsonb 列 + raw_response_data 旁路）
   @Prop({ type: String, default: null })
-  responseData: string
+  responseData: Recordable | null
 
   @WalnutAdminDecoratorFieldNumber({
     swaggerOptions: {
@@ -168,12 +172,16 @@ export class SysLogOperateModel extends RealPickType(WalnutAdminCommonBasicModel
   @WalnutAdminDecoratorFieldMongoId({
     swaggerOptions: { title: 'operater user id' },
   })
+  // B8 迁 PG（phase2 4.16）：user_id 松引用收 uuid，列可空 —— uuid 校验在 DTO 子类
+  // 重声明接管（log.operate.dto.ts 模板），TS 注解随列型放开带 null；本 schema 的
+  // Mongo 装饰器仅作为 DTO 元数据基座保留（模型注册已随迁移从 log.operate.module
+  // 摘除，@Prop 不再有运行时语义）
   @Prop({
     type: Types.ObjectId,
     ref: WalnutDBModelName.SYS_USER,
     required: true,
   })
-  userId: Types.ObjectId | string
+  userId: Types.ObjectId | string | null
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {

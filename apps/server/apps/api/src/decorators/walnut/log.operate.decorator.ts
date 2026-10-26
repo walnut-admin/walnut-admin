@@ -13,12 +13,12 @@ import { WalnutAdminExceptionHandler } from '@walnut-server/exceptions/handler'
 import { maskSensitiveFields } from '@walnut-server/utils/mask'
 import { WalnutAdminResponseSuccess } from '@walnut-server/utils/response'
 import { Recordable } from 'easy-fns-ts'
-import { Types } from 'mongoose'
 import { I18nContext } from 'nestjs-i18n'
 import { Observable } from 'rxjs'
 import { tap } from 'rxjs/operators'
 import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { SharedIpService } from '@/modules/shared/ip/ip.service'
+import { toWalnutPgJsonbPayload } from '@/modules/system/logs/operate/log.operate.jsonb'
 import { SysLogOperateRepoService } from '@/modules/system/logs/operate/repo/log.operate.repo.service'
 import { getWalnutAdminCookie } from './cookie.decorator'
 
@@ -26,8 +26,9 @@ const WalnutAdminConstDecoratorLogOperateTitleMetadataKey = Symbol('WALNUT_ADMIN
 const WalnutAdminConstDecoratorLogOperateActionMetadataKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_METADATA_KEY_LOG_OPERATE_ACTION')
 const WalnutAdminConstDecoratorLogOperateTypeMetadataKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_METADATA_KEY_LOG_OPERATE_TYPE')
 
+// B8：导出供 int-spec 驱动真实拦截器本体（auth 侧拦截器本就是导出形态，对齐）
 @Injectable()
-class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor {
+export class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor {
   private readonly logger = new Logger(WalnutAdminInterceptorRequestOperateLog.name)
 
   constructor(
@@ -77,6 +78,13 @@ class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor {
         const snapshotBefore = this.alsRequestService.get('snapshotBefore') as Recordable
         const snapshotAfter = this.alsRequestService.get('snapshotAfter') as Recordable
 
+        // B8（phase2 4.16 / Q7 定案）：request/response 数据直写 jsonb 列（不再 stringify），
+        // 序列化失败原文落 raw_* 旁路列 —— 行不因序列化失败整体丢失
+        const requestPayload = toWalnutPgJsonbPayload(request?.body ?? {})
+        const responsePayload = toWalnutPgJsonbPayload(
+          Object.assign(resData, { msg: translatedMsg }),
+        )
+
         const operateLog = await this.logOperateRepoService.create({
           title,
           actionType: action,
@@ -87,10 +95,10 @@ class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor {
 
           statusCode: response.statusCode,
 
-          requestData: JSON.stringify(request?.body ?? {}),
-          responseData: JSON.stringify(
-            Object.assign(resData, { msg: translatedMsg }),
-          ),
+          requestData: requestPayload.data,
+          rawRequestData: requestPayload.raw,
+          responseData: responsePayload.data,
+          rawResponseData: responsePayload.raw,
           correspondingMS,
 
           os: request.os,
@@ -101,7 +109,10 @@ class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor {
 
           deviceId: getWalnutAdminCookie(request, WalnutAdminConstCookieKeys.DEVICE_ID),
 
-          userId: new Types.ObjectId(request.user?.userId),
+          // B8（phase3-plan §4）：user_id 松引用列是 uuid，B7a 起 token 里的 userId
+          // 即 PG uuid —— 直传；匿名请求为 null（Mongo 时代
+          // `new Types.ObjectId(undefined)` 生成随机 ObjectId，属脏数据，不复刻）
+          userId: request.user?.userId ?? null,
           userName: request.user?.userName as string,
 
           invokingMethod: `${className}.${handlerName}`,
@@ -114,7 +125,9 @@ class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor {
         if (action === WalnutAdminConstDecoratorLogOperateAction.DELETE) {
           const id = request.params[WalnutAdminConstAppConfig.deleteField] as string
           if (id) {
-            this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, { logOperateId: operateLog._id.toString(), deletedId: id })
+            // B9 边界：logOperateId 自 B8 起是 PG uuid；监听侧 SysDeletedRepoService
+            // 仍是 Mongo 版（deleted.service 里回填挂单在 B9，见 phase3-plan §5）
+            this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, { logOperateId: operateLog.id, deletedId: id })
           }
           else {
             this.logger.warn(`${className}.${handlerName} - ${WalnutAdminConstAppConfig.deleteField} do not exists on request params`)
@@ -124,7 +137,8 @@ class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor {
         if (action === WalnutAdminConstDecoratorLogOperateAction.DELETE_MANY) {
           const ids = request.params[WalnutAdminConstAppConfig.deleteManyField] as string
           if (ids) {
-            this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE_MANY, { logOperateId: operateLog._id.toString(), deletedIds: ids })
+            // B9 边界：同上（logOperateId 已是 uuid）
+            this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE_MANY, { logOperateId: operateLog.id, deletedIds: ids })
           }
           else {
             this.logger.warn(`${className}.${handlerName} - ${WalnutAdminConstAppConfig.deleteManyField} do not exists on request params`)

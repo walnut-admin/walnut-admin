@@ -5,9 +5,10 @@ import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/d
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 
 import {
-  WalnutAdminDecoratorParamMongoId,
-  WalnutAdminDecoratorParamMongoIds,
+  WalnutAdminDecoratorParamUuid,
+  WalnutAdminDecoratorParamUuids,
 } from '@walnut-server/decorators/params'
+import { plainToInstance } from 'class-transformer'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
@@ -33,6 +34,11 @@ const { WalnutAdminDecoratorDelete, WalnutAdminDecoratorDeleteMany, WalnutAdminD
     DTO: SysLogAuthDTO,
   })
 
+/**
+ * B8 迁移（controller 层，B1 模板）：路由参数 ParamMongoId(s) → uuid 参数装饰器；
+ * 事务句柄 `ctx.dbSession` → `ctx.em`（PG 单引擎，B7b 归一口径）；`.toObject()` 移除，
+ * 响应组装统一 `plainToInstance(DTO, entity)`。
+ */
 @Controller('system/log/auth')
 @ApiTags('system/log/auth')
 @UseGuards(JwtAccessGuard)
@@ -45,10 +51,11 @@ export class SysLogAuthController {
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutDBSession() ctx: WalnutTxContext,
-    @WalnutAdminDecoratorParamMongoId() id: string,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return new SysLogAuthDTODeleteResponse(
-      (await this.logAuthService.delete(id, user.userId, ctx.dbSession!)).toObject(),
+    return plainToInstance(
+      SysLogAuthDTODeleteResponse,
+      await this.logAuthService.delete(id, user.userId, ctx.em),
     )
   }
 
@@ -58,17 +65,18 @@ export class SysLogAuthController {
   async deleteMany(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutDBSession() ctx: WalnutTxContext,
-    @WalnutAdminDecoratorParamMongoIds() ids: string[],
+    @WalnutAdminDecoratorParamUuids() ids: string[],
   ) {
-    const deleted = await this.logAuthService.deleteMany(ids, user.userId, ctx.dbSession!)
+    const deleted = await this.logAuthService.deleteMany(ids, user.userId, ctx.em)
 
-    return deleted.map(i => new SysLogAuthDTODeleteResponse(i.toObject()))
+    return deleted.map(i => plainToInstance(SysLogAuthDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: SysLogAuthDTOListRequest) {
-    return new SysLogAuthDTOListResponse(
+    return plainToInstance(
+      SysLogAuthDTOListResponse,
       await this.logAuthService.list(payload),
     )
   }

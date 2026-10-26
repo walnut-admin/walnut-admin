@@ -548,7 +548,12 @@ const UP_SECTIONS: string[][] = [
       id uuid NOT NULL DEFAULT uuidv7(),
       title text NOT NULL,
       action_type varchar(16) NOT NULL,
-      operation varchar(32) NOT NULL,
+      -- B8 勘误（蓝图与现实冲突的裁定，见 phase3-plan §6 B8 追加）：文档写 NOT NULL，
+      -- 但 crud 装饰器（create/update/delete 全量写面）从不传 operateType，运行时
+      -- operation 恒 undefined —— Mongo 侧 schema default: null 本就容 null，
+      -- NOT NULL 会让 fire-and-forget 把大多数日志行静默丢掉。收 NULL（PG CHECK
+      -- 对 NULL 放行，显式写入值仍受 CHECK 约束）
+      operation varchar(32) NULL,
       method varchar(8) NULL,
       url text NULL,
       http_version text NULL,

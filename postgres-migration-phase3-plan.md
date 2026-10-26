@@ -35,7 +35,7 @@
 | B5 | sys_menu（meta 拍平组装出参）+ sys_role + sys_role_menu；产出 defaultRole uuid 订正脚本 | ✅ |
 | B6 | sys_device + sys_user_device + app_monitor_user（双向环同批） | ✅ |
 | B7 | SCC-A 账户团九表（user/identity/oauth/lock/mfa/preference/device/refresh + auth 全系 + security） | ◐ **B7a ✅ B7b ✅ B7c ✅**（7a=user/identity/oauth + auth 系签名适配 + review 挂单三项；7b=lock/mfa/preference/refresh 全 PG + 消费方单 em 归一；7c=auth 全链 + security 收口 + 登录全链 int-spec，SCC-A 九表全部 PG） |
-| B8 | sys_log_operate + sys_log_auth + techniques/event（fire-and-forget 旁路） | |
+| B8 | sys_log_operate + sys_log_auth + techniques/event（fire-and-forget 旁路） | ✅ |
 | B9 | sys_deleted 收尾：恢复注册表装配、recover/recoverMine PG 化、Mongo 侧下线 | |
 | B10 | 终批清理（摘 MongooseModule、Mongo int-spec、双轨残留；与 Phase 5 合并执行） | |
 
@@ -104,7 +104,7 @@
 | monitor/user.repo.service | B6 ✅（`new ObjectId` → uuid 直传；user_device.repo 同批完成） |
 | user.crud / user.shared（defaultRole 消费点） | B7a ✅（uuid 直用；safe id 常量补 v5 双形态） |
 | user_identity（B7a ✅）/ user_oauth（B7a ✅）/ user_lock（B7b ✅）/ user_mfa（B7b ✅，totp+webauthn+backup_codes 并行）/ user_preference（B7b ✅）/ refresh.repo（B7b ✅） | B7a ✅（identity/oauth）；B7b ✅（lock/mfa/preference/refresh） |
-| log.operate.decorator / log.auth.shared.service | B8 |
+| log.operate.decorator / log.auth.shared.service | B8 ✅（:104 / :109 的 `new ObjectId` 摘除，uuid 直传；匿名/登录失败为 NULL） |
 | deleted.service recover 链路 | B9 |
 
 ## 5. 残留窗口（如实写进风险评估）
@@ -250,3 +250,39 @@
 - **双引擎窗口收尾后的 dbSession 残留面**：仅剩 B8（log.operate/log.auth）、
   B9（sys_deleted recover 链）与 B0 的 tx-context/tx.interceptor 类型定义；
   auth 链与 security 内零残留。
+
+### B8 追加
+
+- **operation 列 NOT NULL 勘误（蓝图与现实冲突的裁定）**：phase2 4.16 写 NOT NULL，但
+  `WalnutCrudDecorators`（create/update/delete 全量写面，15 个 controller）从不传
+  operateType，运行时 operation 恒 undefined —— Mongo 侧 schema `default: null` 本就
+  容 null，NOT NULL 会让 fire-and-forget 把大多数日志行静默丢掉。InitSchema 收
+  `operation varchar(32) NULL`（PG CHECK 对 NULL 放行，显式写入值仍受 CHECK 约束），
+  entity/DTO 同步；int-spec 钉 NULL 现状。
+- **旁路形态原样保留**：两个 repo service 刻意**不收事务句柄**（em/session 都不收，
+  B7b refresh.repo 同款 @Global 形态），连接级 manager 的独立隐式事务即旁路语义；
+  decorator tap 的吞错（catch + logger.error）与 `void` 发射原样保留。log_auth 的
+  delete/deleteMany 是管理端事务端点，照模板走 `ctx.em`（非旁路）。
+- **jsonb + raw_* 旁路**：request/response 数据直写 jsonb（`toWalnutPgJsonbPayload`
+  做 stringify → parse 往返校验），序列化失败（循环引用 / BigInt）jsonb 列置空、
+  原文尽力文本化落 `raw_request_data` / `raw_response_data`；纯函数带单元 spec，
+  int-spec 走真实拦截器覆盖端到端。
+- **字段名钉相**：实体属性保持 Mongo 字段名 `correspondingMS`（列仍 corresponding_ms）
+  —— plainToInstance 按源属性名拷贝，属性名错位会让出参丢字段；schema 侧
+  requestData/responseData 的 TS 注解随列型放开为 `Recordable | null`。
+- **匿名请求的 userId**：Mongo 时代 `new Types.ObjectId(undefined)` 会生成随机
+  ObjectId（脏数据），PG 侧不复刻 —— userId 直传 token uuid、匿名/登录失败为 NULL。
+- **techniques/event 零代码改动（B9 边界登记）**：event.service 只转发
+  SysDeletedRepoService（仍 Mongo 版），本批不动；logOperateId 自本批起为 uuid，
+  Mongo 版 `updateDeletedWithLogOperateId` 的 ObjectId 包装遇 uuid 必炸 —— 挂单
+  B9（连同 recover 侧 PG 通道归一），int-spec 以现状钉住该炸点。
+- **int-spec**：`log.bypass.pg.int-spec.ts` —— 真实拦截器/guard + 假 ExecutionContext
+  驱动（pg.transaction 同口径）；tap 异步写最终一致断言用 `vi.waitFor` 轮询（不 sleep
+  硬等）；guard 失败链路连带 failedLogin risk 收集（真实 Redis，键 afterAll 精确清理）；
+  i18n 用 `I18nContext.createAsync` 包真上下文。注意：metadata 载体是方法函数本身，
+  测试提取时不能 `.bind()`（会产生新函数丢 reflect metadata）。
+- **parse 摸底（只读探针）**：对本地 `walnut-admin-nestjs.sys_log_operate` 跑过 ——
+  0 行（开发库无存量），成功率 N/A（0/0）；ETL 侧照 Q7 口径执行（parse 入 jsonb、
+  失败原文入 raw_*）即可，无存量风险。
+- **dbSession 残留面更新**：仅剩 B9（sys_deleted recover 链）与 B0 的
+  tx-context/tx.interceptor 类型定义。

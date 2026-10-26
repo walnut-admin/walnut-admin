@@ -1,18 +1,23 @@
+import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
-import { WalnutAdminCommonBasicRepository } from '@/common/repository/base.repository'
+import { InjectDataSource } from '@nestjs/typeorm'
+import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
-import {
-  ISysLogOperateDocument,
-  ISysLogOperateModel,
-} from './schema/log.operate.schema'
+import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
+import { SysLogOperateEntity } from './entity/log-operate.entity'
 
+/**
+ * B8 迁移（repo 层，B1 模板）：类名与文件名保持不变（DI token 不动 → service 零改动），
+ * 基类从 Mongo 版 `WalnutAdminCommonBasicRepository` 换成 PG 版。
+ *
+ * 追加型审计大表：本模块无软删端点，list/readById 走基类默认实现即可。
+ */
 @Injectable()
-export class SysLogOperateBasicRepository extends WalnutAdminCommonBasicRepository<ISysLogOperateDocument> {
+export class SysLogOperateBasicRepository extends WalnutAdminCommonPgBaseRepository<SysLogOperateEntity> {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SYS_LOG_OPERATE)
-    readonly dbModel: ISysLogOperateModel,
+    @InjectDataSource(WalnutPGConnectionName)
+    dataSource: DataSource,
   ) {
-    super(dbModel)
+    super(SysLogOperateEntity, WalnutDBModelName.SYS_LOG_OPERATE, dataSource)
   }
 }

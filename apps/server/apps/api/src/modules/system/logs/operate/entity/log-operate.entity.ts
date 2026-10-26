@@ -29,9 +29,11 @@ export class SysLogOperateEntity {
   @Column({ type: 'varchar', length: 16, name: 'action_type' })
   actionType: string
 
-  // 取值 = WalnutAdminConstDecoratorLogOperateType（<module>.<operation>），CHECK 以 const 为准在 migration
-  @Column({ type: 'varchar', length: 32, name: 'operation' })
-  operation: string
+  // 取值 = WalnutAdminConstDecoratorLogOperateType（<module>.<operation>），CHECK 以 const 为准在
+  // migration；B8 勘误：列收 NULL —— crud 装饰器全量写面不传 operateType，运行时恒 undefined
+  // （Mongo schema `default: null` 本就容 null，phase3-plan §6 B8 追加）
+  @Column({ type: 'varchar', length: 32, name: 'operation', nullable: true })
+  operation: string | null
 
   // CHECK (IN ('GET','POST','PUT','PATCH','DELETE','OPTIONS','HEAD')) 在 migration
   @Column({ type: 'varchar', length: 8, name: 'method', nullable: true })
@@ -70,8 +72,11 @@ export class SysLogOperateEntity {
   @Column({ type: 'text', name: 'raw_response_data', nullable: true })
   rawResponseData: string | null
 
+  // B8：属性名保持 Mongo 字段 `correspondingMS`（列名仍 corresponding_ms）——
+  // DTO 链以 schema 属性名为元数据基座、前端按 `correspondingMS` 读取，
+  // plainToInstance 按源属性名拷贝，实体属性名错位会让出参丢字段
   @Column({ type: 'integer', name: 'corresponding_ms', nullable: true })
-  correspondingMs: number | null
+  correspondingMS: number | null
 
   // 松引用
   @Index('idx_log_operate_user')

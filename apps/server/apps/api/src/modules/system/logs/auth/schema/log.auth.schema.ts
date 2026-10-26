@@ -80,6 +80,9 @@ export class SysLogAuthModel extends RealPickType(WalnutAdminCommonBasicModel, [
       title: 'user id when auth',
     },
   })
+  // B8 迁 PG（phase2 4.15）：user_id 松引用收 uuid —— uuid 校验在 DTO 子类重声明接管
+  // （log.auth.dto.ts 模板），本 schema 的 Mongo 装饰器仅作为 DTO 元数据基座保留
+  // （模型注册已随迁移从 log.auth.module 摘除，@Prop 不再有运行时语义）
   @Prop({
     type: Types.ObjectId,
     ref: WalnutDBModelName.SYS_USER,
