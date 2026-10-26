@@ -5,68 +5,9 @@ import type { I18nContext } from 'nestjs-i18n'
 import { HttpException, HttpStatus } from '@nestjs/common'
 import { WalnutAdminResponseException } from '@walnut-server/utils/response'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
-import { mongo, MongooseError } from 'mongoose'
 
 export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I18nContext): IWalnutAdminResponseBase {
-  // ========== 1. MongoDB Driver Errors (mongo.MongoError) ==========
-  // 这一层主要捕获底层的驱动错误，比如连接断开、重复键等
-  if (e instanceof mongo.MongoError) {
-    // 11000: Unique constraint violated (Duplicate Key)
-    if (e.code === 11000) {
-      return WalnutAdminResponseException(
-        {
-          errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_EXISTS,
-          _devMsg: e.message,
-          requestId,
-        },
-      )
-    }
-
-    return WalnutAdminResponseException(
-      {
-        errCode: WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR_DATABASE,
-        _devMsg: e.message,
-        requestId,
-      },
-    )
-  }
-
-  // ========== 2. Mongoose Errors (MongooseError) ==========
-  // 这一层捕获 Mongoose 特有的逻辑错误，如类型转换失败、Schema校验失败
-  if (e instanceof MongooseError) {
-    // CastError: 类型转换失败，最常见的是传了无效的 ID (ObjectId)
-    if (e.name === 'CastError') {
-      return WalnutAdminResponseException(
-        {
-          errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST_INVALID_ID,
-          _devMsg: e.message,
-          requestId,
-        },
-      )
-    }
-
-    // ValidationError: Schema 校验失败
-    if (e.name === 'ValidationError') {
-      return WalnutAdminResponseException(
-        {
-          errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR,
-          _devMsg: e.message,
-          requestId,
-        },
-      )
-    }
-
-    // 其他 Mongoose 错误 (如 VersionError, ObjectParameterError 等)
-    return WalnutAdminResponseException(
-      {
-        errCode: WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR_DATABASE,
-        _devMsg: e.message,
-        requestId,
-      },
-    )
-  }
-
-  // ========== 3. HttpException (NestJS Built-in or Custom) ==========
+  // ========== 1. HttpException (NestJS Built-in or Custom) ==========
   if (e instanceof HttpException) {
     const status = e.getStatus()
     const response = e.getResponse()
@@ -128,7 +69,7 @@ export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I
     )
   }
 
-  // ========== 4. TypeError (Runtime Error) ==========
+  // ========== 2. TypeError (Runtime Error) ==========
   if (e instanceof TypeError) {
     return WalnutAdminResponseException(
       {
@@ -139,7 +80,7 @@ export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I
     )
   }
 
-  // ========== 5. Fallback ==========
+  // ========== 3. Fallback ==========
   return WalnutAdminResponseException(
     {
       errCode: WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR,

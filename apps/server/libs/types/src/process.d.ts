@@ -18,8 +18,6 @@ declare global {
       APP_I18N_FALLBACK: string
 
       APP_NAME: string
-      SERVER_NAME: string
-
       APP_REDIS_HOST: string
       APP_REDIS_PORT: string
       APP_REDIS_PASS: string
@@ -27,14 +25,6 @@ declare global {
       APP_COOKIE_SECRET: string
       APP_SESSION_SECRET: string
 
-      DATABASE_PRIMARY: string
-      DATABASE_SECONDARY: string
-      DATABASE_ARBITER: string
-      DATABASE_REPLICASET: string
-      DATABASE_NAME: string
-      DATABASE_SOURCE: string
-      DATABASE_USER: string
-      DATABASE_PASS: string
 
       DATABASE_PG_HOST: string
       DATABASE_PG_PORT: string

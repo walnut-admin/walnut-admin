@@ -35,9 +35,6 @@ class EnvironmentVariables {
   @IsString()
   APP_NAME: string
 
-  @IsString()
-  SERVER_NAME: string
-
   /* redis */
   @IsString()
   APP_REDIS_HOST: string
@@ -47,31 +44,6 @@ class EnvironmentVariables {
 
   @IsString()
   APP_REDIS_PASS: string
-
-  /* mongo database relatives */
-  @IsString()
-  DATABASE_PRIMARY: string
-
-  @IsString()
-  DATABASE_SECONDARY: string
-
-  @IsString()
-  DATABASE_ARBITER: string
-
-  @IsString()
-  DATABASE_REPLICASET: string
-
-  @IsString()
-  DATABASE_NAME: string
-
-  @IsString()
-  DATABASE_SOURCE: string
-
-  @IsString()
-  DATABASE_USER: string
-
-  @IsString()
-  DATABASE_PASS: string
 
   /* postgres database relatives */
   @IsString()

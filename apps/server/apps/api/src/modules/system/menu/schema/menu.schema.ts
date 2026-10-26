@@ -1,27 +1,17 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { WalnutDBCollectionName } from '@walnut-server/db'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldEnum,
-  WalnutAdminDecoratorFieldMongoId,
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
+
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
-
 import { RealPartialType } from '@walnut-server/utils/dto'
+
 import { CacheKeyStrategy, MenuTernal, MenuType } from '@walnut/contract/menu'
+import { Expose } from 'class-transformer'
 import { Recordable } from 'easy-fns-ts'
-import { HydratedDocument, Model, Types } from 'mongoose'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-
-export type ISysMenuDocument = HydratedDocument<SysMenuModel & ISysMenuMethods>
-
-export type ISysMenuModel = Model<ISysMenuDocument> & ISysMenuStatics
-
-export interface ISysMenuMethods { }
-
-export interface ISysMenuStatics { }
 
 export class SysMenuModelMeta {
   @WalnutAdminDecoratorFieldNumber({
@@ -32,7 +22,6 @@ export class SysMenuModelMeta {
     },
     validateOptions: { int: true },
   })
-  @Prop({ type: Number, default: null })
   order: number
 
   @WalnutAdminDecoratorFieldEnum(() => MenuTernal, {
@@ -43,11 +32,6 @@ export class SysMenuModelMeta {
         'internal => no jump, iframe inside page. external => jump url, need to confirm',
       example: MenuTernal.NONE,
     },
-  })
-  @Prop({
-    type: () => MenuTernal,
-    enum: [...Object.values(MenuTernal)],
-    default: MenuTernal.NONE,
   })
   ternal: typeof MenuTernal[keyof typeof MenuTernal]
 
@@ -61,7 +45,6 @@ export class SysMenuModelMeta {
       url: true,
     },
   })
-  @Prop({ type: String, default: null })
   url: string
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -72,7 +55,6 @@ export class SysMenuModelMeta {
         'false => will be filtered in front end. set this false when need to hide a page like detail which not necessary in menu and tabs',
     },
   })
-  @Prop({ type: Boolean, default: true })
   show: boolean
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -82,7 +64,6 @@ export class SysMenuModelMeta {
       description: 'true => will be cached in keep-alive',
     },
   })
-  @Prop({ type: Boolean, default: false })
   cache: boolean
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -92,7 +73,6 @@ export class SysMenuModelMeta {
       description: 'false => will not be retrieved from database',
     },
   })
-  @Prop({ type: Boolean, default: true })
   status: boolean
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -102,7 +82,6 @@ export class SysMenuModelMeta {
       description: 'true => tab will be affixed in left/right',
     },
   })
-  @Prop({ type: Boolean, default: false })
   affix: boolean
 
   @WalnutAdminDecoratorFieldString({
@@ -112,7 +91,6 @@ export class SysMenuModelMeta {
       description: 'permission string, mostly like *:*:*',
     },
   })
-  @Prop({ type: String, default: null })
   permission: string
 
   @WalnutAdminDecoratorFieldString({
@@ -123,7 +101,6 @@ export class SysMenuModelMeta {
         'used for show=false page, tell front end to active which menu when show=false page is opened',
     },
   })
-  @Prop({ type: String, default: null })
   menuActiveName: string
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -134,7 +111,6 @@ export class SysMenuModelMeta {
         'mostly used with `menuActiveName`, true => no new tab for show=false page',
     },
   })
-  @Prop({ type: Boolean, default: false })
   menuActiveSameTab: boolean
 
   @WalnutAdminDecoratorFieldString({
@@ -145,7 +121,6 @@ export class SysMenuModelMeta {
         'menu badge, normally red dot or a number or a ???character',
     },
   })
-  @Prop({ type: String, default: null })
   badge: string
 
   @WalnutAdminDecoratorFieldString({
@@ -156,7 +131,6 @@ export class SysMenuModelMeta {
         'show different icon when menu is activited, icon show follow iconify and unocss rules',
     },
   })
-  @Prop({ type: String, default: null })
   activeIcon: string
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -166,7 +140,6 @@ export class SysMenuModelMeta {
       description: 'true => remember scroll postion for the user',
     },
   })
-  @Prop({ type: Boolean, default: false })
   position: boolean
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -177,7 +150,6 @@ export class SysMenuModelMeta {
         'true => will show a leave confirm message modal to make sure ready to leave current page',
     },
   })
-  @Prop({ type: Boolean, default: false })
   leaveTip: boolean
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -186,7 +158,6 @@ export class SysMenuModelMeta {
       title: 'browser url masking, including path/params/query',
     },
   })
-  @Prop({ type: Boolean, default: false })
   maskUrl: boolean
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -197,17 +168,12 @@ export class SysMenuModelMeta {
         'true => will hijack refresh token in front end',
     },
   })
-  @Prop({ type: Boolean, default: false })
   hijackRefresh: boolean
 
   @WalnutAdminDecoratorFieldObject(Object, {
     validateOptions: {
       any: true,
     },
-  })
-  @Prop({
-    _id: false,
-    type: Object,
   })
   watermark: Recordable
 
@@ -219,7 +185,6 @@ export class SysMenuModelMeta {
         'used for vue transition name',
     },
   })
-  @Prop({ type: String, default: 'fade' })
   transition: string
 
   @WalnutAdminDecoratorFieldEnum(() => CacheKeyStrategy, {
@@ -231,27 +196,11 @@ export class SysMenuModelMeta {
       example: CacheKeyStrategy.NAME,
     },
   })
-  @Prop({
-    type: () => CacheKeyStrategy,
-    enum: [...Object.values(CacheKeyStrategy)],
-    default: null,
-  })
   cacheKeyStrategy: typeof CacheKeyStrategy[keyof typeof CacheKeyStrategy]
 }
 
-@Schema({
-  collection: WalnutDBCollectionName.MENU,
-  versionKey: false,
-  timestamps: true,
-})
 export class SysMenuModel extends WalnutAdminCommonBasicModel {
-  @WalnutAdminDecoratorFieldMongoId({
-    swaggerOptions: {
-      title: 'parent node menu id',
-      description: 'root node menu id is not changeable',
-    },
-  })
-  @Prop({ type: Types.ObjectId, required: true })
+  @Expose()
   // B5：pid 随 PG 列型放开为可空 uuid（根节点 pid=NULL，phase2 4.3；IsMongoId 约束在
   // DTO 子类用 uuid 校验整体替换，见 dto/menu.dto.ts）
   pid: string | null
@@ -265,11 +214,6 @@ export class SysMenuModel extends WalnutAdminCommonBasicModel {
       example: MenuType.CATALOG,
     },
   })
-  @Prop({
-    type: () => MenuType,
-    enum: [...Object.values(MenuType)],
-    default: MenuType.CATALOG,
-  })
   type: typeof MenuType[keyof typeof MenuType]
 
   @WalnutAdminDecoratorFieldString({
@@ -279,7 +223,6 @@ export class SysMenuModel extends WalnutAdminCommonBasicModel {
       description: 'used for vue router path',
     },
   })
-  @Prop({ type: String, default: null })
   path: string
 
   @WalnutAdminDecoratorFieldString({
@@ -288,15 +231,6 @@ export class SysMenuModel extends WalnutAdminCommonBasicModel {
       title: 'route name',
       description:
         'used for vue router name, should be unique, also used for keep-alive flags',
-    },
-  })
-  @Prop({
-    type: String,
-    default: null,
-    // https://stackoverflow.com/a/47413794
-    index: {
-      unique: true,
-      partialFilterExpression: { name: { $type: 'string' } },
     },
   })
   name: string
@@ -308,7 +242,6 @@ export class SysMenuModel extends WalnutAdminCommonBasicModel {
       description: 'used for vue router to find target file path',
     },
   })
-  @Prop({ type: String, default: null })
   component: string
 
   @WalnutAdminDecoratorFieldString({
@@ -318,7 +251,6 @@ export class SysMenuModel extends WalnutAdminCommonBasicModel {
       description: 'used for route page title, mostly is i18n format',
     },
   })
-  @Prop({ type: String, default: null })
   title: string
 
   @WalnutAdminDecoratorFieldString({
@@ -328,7 +260,6 @@ export class SysMenuModel extends WalnutAdminCommonBasicModel {
       description: 'used for route icon, shown in menus and tabs',
     },
   })
-  @Prop({ type: String, default: null })
   icon: string
 
   @WalnutAdminDecoratorFieldObject(RealPartialType(SysMenuModelMeta), {
@@ -336,8 +267,5 @@ export class SysMenuModel extends WalnutAdminCommonBasicModel {
       title: 'menu meta data, lots of fields',
     },
   })
-  @Prop({ type: SysMenuModelMeta, _id: false })
   meta: SysMenuModelMeta
 }
-
-export const SysMenuSchema = SchemaFactory.createForClass(SysMenuModel)

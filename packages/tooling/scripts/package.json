@@ -24,16 +24,10 @@
     "walnut-check-source-secrets": "./bin/check-source-secrets.ts",
     "walnut-check-turbo-cache": "./bin/check-turbo-cache.ts",
     "walnut-check-workflow-shell": "./bin/check-workflow-shell.ts",
-    "walnut-db-etl": "./bin/db-etl.ts",
-    "walnut-db-export": "./bin/db-export.ts",
     "walnut-db-export-pg": "./bin/db-export-pg.ts",
-    "walnut-db-seed": "./bin/db-seed.ts",
     "walnut-db-seed-pg": "./bin/db-seed-pg.ts",
-    "walnut-db-verify-etl": "./bin/db-verify-etl.ts",
-    "walnut-fix-setting-default-role": "./bin/fix-setting-default-role.ts",
     "walnut-lint-emoji": "./bin/check-emoji.ts",
     "walnut-lint-workflows": "./bin/lint-workflows.ts",
-    "walnut-pack-seed": "./bin/pack-seed.ts",
     "walnut-prepush": "./bin/prepush.ts",
     "walnut-setup-env": "./bin/setup-env.ts",
     "walnut-smoke-dist": "./bin/smoke-dist.ts"
@@ -52,7 +46,6 @@
   "dependencies": {
     "@dotenvx/dotenvx": "catalog:",
     "@serenity-kit/opaque": "catalog:",
-    "mongodb": "catalog:",
     "pg": "catalog:",
     "typescript": "catalog:"
   },

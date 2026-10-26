@@ -1,40 +1,17 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { IWalnutAdminConstDecoratorLogAuthType, WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 
-import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldDate,
   WalnutAdminDecoratorFieldEnum,
-  WalnutAdminDecoratorFieldMongoId,
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
+
 import { RealPickType } from '@walnut-server/utils/dto'
-import { HydratedDocument, Model, Types } from 'mongoose'
+import { Expose } from 'class-transformer'
 
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-import { addVirtualDeviceThroughDeviceId, IVirtualDevice } from '@/common/model/virtual/device'
 
-export type ISysLogAuthDocument = HydratedDocument<
-  SysLogAuthModel & ISysLogAuthMethods & IVirtualDevice
->
-
-export type ISysLogAuthModel = Model<ISysLogAuthDocument> & ISysLogAuthStatics
-
-interface ISysLogAuthMethods { }
-
-interface ISysLogAuthStatics { }
-
-@Schema({
-  collection: WalnutDBCollectionName.LOG_AUTH,
-  versionKey: false,
-  timestamps: {
-    createdAt: 'authenticatedAt',
-    updatedAt: false,
-  },
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-})
 export class SysLogAuthModel extends RealPickType(WalnutAdminCommonBasicModel, ['_id'] as const) {
   @WalnutAdminDecoratorFieldString({
     default: null,
@@ -45,7 +22,6 @@ export class SysLogAuthModel extends RealPickType(WalnutAdminCommonBasicModel, [
       ip: true,
     },
   })
-  @Prop({ type: String, default: null })
   ip: string
 
   @WalnutAdminDecoratorFieldString({
@@ -54,7 +30,6 @@ export class SysLogAuthModel extends RealPickType(WalnutAdminCommonBasicModel, [
       title: 'location when auth',
     },
   })
-  @Prop({ type: String, default: null })
   location: string | null
 
   @WalnutAdminDecoratorFieldString({
@@ -63,7 +38,6 @@ export class SysLogAuthModel extends RealPickType(WalnutAdminCommonBasicModel, [
       title: 'operating system when auth',
     },
   })
-  @Prop({ type: String, default: null })
   os: string
 
   @WalnutAdminDecoratorFieldString({
@@ -72,22 +46,13 @@ export class SysLogAuthModel extends RealPickType(WalnutAdminCommonBasicModel, [
       title: 'browser when auth',
     },
   })
-  @Prop({ type: String, default: null })
   browser: string
 
-  @WalnutAdminDecoratorFieldMongoId({
-    swaggerOptions: {
-      title: 'user id when auth',
-    },
-  })
+  @Expose()
   // B8 迁 PG（phase2 4.15）：user_id 松引用收 uuid —— uuid 校验在 DTO 子类重声明接管
   // （log.auth.dto.ts 模板），本 schema 的 Mongo 装饰器仅作为 DTO 元数据基座保留
   // （模型注册已随迁移从 log.auth.module 摘除，@Prop 不再有运行时语义）
-  @Prop({
-    type: Types.ObjectId,
-    ref: WalnutDBModelName.SYS_USER,
-  })
-  userId: Types.ObjectId | string | null
+  userId: string | null
 
   @WalnutAdminDecoratorFieldString({
     default: null,
@@ -95,7 +60,6 @@ export class SysLogAuthModel extends RealPickType(WalnutAdminCommonBasicModel, [
       title: 'user name when auth',
     },
   })
-  @Prop({ type: String, default: null })
   userName: string | null
 
   @WalnutAdminDecoratorFieldString({
@@ -104,7 +68,6 @@ export class SysLogAuthModel extends RealPickType(WalnutAdminCommonBasicModel, [
       title: 'identifier when auth, e.g. email, phone number',
     },
   })
-  @Prop({ type: String, default: null })
   identifier: string
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -113,7 +76,6 @@ export class SysLogAuthModel extends RealPickType(WalnutAdminCommonBasicModel, [
       title: 'auth success or not',
     },
   })
-  @Prop({ type: Boolean, default: false })
   success: boolean
 
   @WalnutAdminDecoratorFieldString({
@@ -122,7 +84,6 @@ export class SysLogAuthModel extends RealPickType(WalnutAdminCommonBasicModel, [
       title: 'messages returned when auth',
     },
   })
-  @Prop({ type: String, default: null })
   msg: string
 
   @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstDecoratorLogAuthType, {
@@ -132,20 +93,10 @@ export class SysLogAuthModel extends RealPickType(WalnutAdminCommonBasicModel, [
       example: WalnutAdminConstDecoratorLogAuthType.OPAQUE,
     },
   })
-  @Prop({
-    type: () => WalnutAdminConstDecoratorLogAuthType,
-    enum: [...Object.values(WalnutAdminConstDecoratorLogAuthType)],
-    default: null,
-  })
   type: IWalnutAdminConstDecoratorLogAuthType
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: { title: 'authenticate device id' },
-  })
-  @Prop({
-    type: String,
-    ref: WalnutDBModelName.SYS_DEVICE,
-    required: true,
   })
   deviceId: string
 
@@ -155,11 +106,5 @@ export class SysLogAuthModel extends RealPickType(WalnutAdminCommonBasicModel, [
       required: false,
     },
   })
-  @Prop({ type: Date })
   authenticatedAt?: Date
 }
-
-export const SysLogAuthSchema = SchemaFactory.createForClass(SysLogAuthModel)
-
-// Virtual
-addVirtualDeviceThroughDeviceId(SysLogAuthSchema)

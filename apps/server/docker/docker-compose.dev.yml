@@ -1,58 +1,4 @@
 services:
-  dev-mongodb-primary:
-    image: docker.io/bitnami/mongodb:latest
-    restart: always
-    container_name: dev-mongodb-primary
-    environment:
-      - MONGODB_ADVERTISED_HOSTNAME=dev-mongodb-primary
-      - MONGODB_REPLICA_SET_MODE=primary
-      - MONGODB_ROOT_USER=root
-      - MONGODB_ROOT_PASSWORD=123456
-      - MONGODB_REPLICA_SET_KEY=replicaset
-    volumes:
-      - 'mongodb_master_data:/bitnami/mongodb'
-    ports:
-      - 27017:27017
-
-  dev-mongodb-secondary:
-    image: docker.io/bitnami/mongodb:latest
-    restart: always
-    container_name: dev-mongodb-secondary
-    depends_on:
-      - dev-mongodb-primary
-    environment:
-      - MONGODB_REPLICA_SET_MODE=secondary
-      # 副本集成员地址「容器名:端口」要同时被容器网络内（docker DNS）与宿主侧
-      # （hosts→127.0.0.1）解析可达：让 mongod 容器内直接监听映射端口，内外同构
-      - MONGODB_PORT_NUMBER=27027
-      - MONGODB_ADVERTISED_HOSTNAME=dev-mongodb-secondary:27027
-      - MONGODB_INITIAL_PRIMARY_HOST=dev-mongodb-primary
-      - MONGODB_INITIAL_PRIMARY_ROOT_USER=root
-      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=123456
-      - MONGODB_REPLICA_SET_KEY=replicaset
-      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
-    ports:
-      - 27027:27027
-
-  dev-mongodb-arbiter:
-    image: docker.io/bitnami/mongodb:latest
-    restart: always
-    container_name: dev-mongodb-arbiter
-    depends_on:
-      - dev-mongodb-primary
-    environment:
-      - MONGODB_REPLICA_SET_MODE=arbiter
-      # 同 secondary：容器内监听映射端口，成员地址内外同构
-      - MONGODB_PORT_NUMBER=27037
-      - MONGODB_ADVERTISED_HOSTNAME=dev-mongodb-arbiter:27037
-      - MONGODB_INITIAL_PRIMARY_HOST=dev-mongodb-primary
-      - MONGODB_INITIAL_PRIMARY_ROOT_USER=root
-      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=123456
-      - MONGODB_REPLICA_SET_KEY=replicaset
-      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
-    ports:
-      - 27037:27037
-
   postgres:
     restart: always
     container_name: dev-single-postgres
@@ -98,8 +44,6 @@ services:
       - redis_official_data:/data
 
 volumes:
-  mongodb_master_data:
-    driver: local
   redis_official_data:
     driver: local
   postgres_data:

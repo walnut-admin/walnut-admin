@@ -1,4 +1,3 @@
-import { Prop } from '@nestjs/mongoose'
 import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPartialType } from '@walnut-server/utils/dto'
@@ -24,7 +23,6 @@ export class SharedLngLatDTO {
       title: 'longitude',
     },
   })
-  @Prop({ type: Number, max: 180, min: -180 })
   longitude: number
 
   @WalnutAdminDecoratorFieldNumber({
@@ -36,7 +34,6 @@ export class SharedLngLatDTO {
       title: 'latitude',
     },
   })
-  @Prop({ type: Number, max: 90, min: -90 })
   latitude: number
 }
 
@@ -47,7 +44,6 @@ export class SharedHeightWidthDTO {
       description: 'screen height in pixels',
     },
   })
-  @Prop({ type: Number, required: true })
   height: number
 
   @WalnutAdminDecoratorFieldNumber({
@@ -56,7 +52,6 @@ export class SharedHeightWidthDTO {
       description: 'screen width in pixels',
     },
   })
-  @Prop({ type: Number, required: true })
   width: number
 }
 
@@ -66,7 +61,6 @@ export class SharedGeoPointDTO {
       title: 'geo point type',
     },
   })
-  @Prop({ type: String, default: 'Point', enum: ['Point'], required: true })
   type: string
 
   @WalnutAdminDecoratorFieldNumber({
@@ -81,7 +75,6 @@ export class SharedGeoPointDTO {
       description: 'longitude and latitude, in order of [longitude, latitude]',
     },
   })
-  @Prop([{ type: Number, required: true }])
   coordinates: number[]
 }
 
@@ -91,7 +84,6 @@ export class SharedUserAgentDTO {
       title: 'operating system',
     },
   })
-  @Prop({ type: String })
   os: string
 
   @WalnutAdminDecoratorFieldString({
@@ -99,7 +91,6 @@ export class SharedUserAgentDTO {
       title: 'browser',
     },
   })
-  @Prop({ type: String })
   browser: string
 
   @WalnutAdminDecoratorFieldEnum(() => DeviceTypeConst, {
@@ -109,11 +100,6 @@ export class SharedUserAgentDTO {
       example: DeviceTypeConst.BOT,
     },
   })
-  @Prop({
-    type: () => DeviceTypeConst,
-    enum: [...Object.values(DeviceTypeConst)],
-    default: DeviceTypeConst.BOT,
-  })
   type: IDeviceTypeConst
 
   @WalnutAdminDecoratorFieldString({
@@ -121,7 +107,6 @@ export class SharedUserAgentDTO {
       title: 'net work type, get from `navigator.connection.effectiveType`',
     },
   })
-  @Prop({ type: String })
   netType: string
 
   @WalnutAdminDecoratorFieldString({
@@ -129,7 +114,6 @@ export class SharedUserAgentDTO {
       title: 'platform, get from `navigator.platform`',
     },
   })
-  @Prop({ type: String })
   platform: string
 
   @WalnutAdminDecoratorFieldString({
@@ -137,7 +121,6 @@ export class SharedUserAgentDTO {
       title: 'Internet Service Provider, get from `https://api.ip.sb/geoip`',
     },
   })
-  @Prop({ type: String })
   isp: string
 }
 
@@ -147,7 +130,6 @@ export class SharedHardwareDTO {
       title: 'cpu cores',
     },
   })
-  @Prop({ type: Number })
   cpuCores: number
 
   @WalnutAdminDecoratorFieldNumber({
@@ -156,7 +138,6 @@ export class SharedHardwareDTO {
       description: 'memory in GB',
     },
   })
-  @Prop({ type: Number })
   memory: number
 
   @WalnutAdminDecoratorFieldString({
@@ -164,7 +145,6 @@ export class SharedHardwareDTO {
       title: 'gpu',
     },
   })
-  @Prop({ type: String })
   gpu: string
 }
 
@@ -174,7 +154,6 @@ export class SharedLocationDTO {
       title: 'country',
     },
   })
-  @Prop({ type: String })
   country: string
 
   @WalnutAdminDecoratorFieldString({
@@ -182,7 +161,6 @@ export class SharedLocationDTO {
       title: 'region',
     },
   })
-  @Prop({ type: String })
   region: string
 
   @WalnutAdminDecoratorFieldString({
@@ -190,7 +168,6 @@ export class SharedLocationDTO {
       title: 'city',
     },
   })
-  @Prop({ type: String })
   city: string
 }
 
@@ -202,7 +179,6 @@ export class SharedTimeDTO {
     },
   })
   @IsOptional({})
-  @Prop({ type: Date })
   lastActiveAt: Date
 }
 
@@ -212,7 +188,6 @@ export class SharedIpLocationHistoryDTO {
       title: 'IP address',
     },
   })
-  @Prop({ type: String, required: true })
   ip: string
 
   @WalnutAdminDecoratorFieldObject(RealPartialType(SharedLocationDTO), {
@@ -220,7 +195,6 @@ export class SharedIpLocationHistoryDTO {
       title: 'location information',
     },
   })
-  @Prop({ type: SharedLocationDTO, _id: false })
   location: SharedLocationDTO
 
   @WalnutAdminDecoratorFieldNumber({
@@ -228,6 +202,5 @@ export class SharedIpLocationHistoryDTO {
       title: 'timestamp when this IP was recorded',
     },
   })
-  @Prop({ type: Number, required: true })
   timestamp: number
 }

@@ -7,7 +7,6 @@
  * - **junction 拆分**：roles/menus 数组 → 关联表行、去重保序；
  * - **Q7 / Q4 专项**：stringify 列 parse + raw 旁路、setting_value 的 role hex 专项重写。
  */
-import { ObjectId } from 'mongodb'
 import { describe, expect, it } from 'vitest'
 import {
   arrOr,
@@ -36,12 +35,12 @@ const CTX = { roleHexes: new Set([VISITOR_ROLE_HEX, OTHER_ROLE_HEX]) }
 const TS = '2020-11-24T13:54:44.222Z'
 
 function baseDoc(extra: Record<string, unknown> = {}): Record<string, unknown> {
-  return { _id: new ObjectId('5fbd10a430391c1438ef8aa0'), createdAt: new Date(TS), updatedAt: new Date(TS), ...extra }
+  return { _id: '5fbd10a430391c1438ef8aa0', createdAt: new Date(TS), updatedAt: new Date(TS), ...extra }
 }
 
 describe('标量归一', () => {
-  it('refUuid：ObjectId 实例与 hex 字符串等价；uuid 直通（export 回灌）；小写归一', () => {
-    expect(refUuid(new ObjectId(VISITOR_ROLE_HEX), 'f')).toBe(VISITOR_ROLE_UUID)
+  it('refUuid：hex 字符串 → v5 派生；uuid 直通（export 回灌）；小写归一', () => {
+    expect(refUuid(VISITOR_ROLE_HEX, 'f')).toBe(VISITOR_ROLE_UUID)
     expect(refUuid(VISITOR_ROLE_HEX, 'f')).toBe(VISITOR_ROLE_UUID)
     expect(refUuid(VISITOR_ROLE_UUID, 'f')).toBe(VISITOR_ROLE_UUID)
     expect(refUuid(VISITOR_ROLE_UUID.toUpperCase(), 'f')).toBe(VISITOR_ROLE_UUID)
@@ -226,7 +225,7 @@ describe('逐表映射抽查（拍平 / 缺省 / 特殊列）', () => {
     expect(row.cache_key_strategy).toBeNull()
 
     const full = ETL_MAPPERS.sys_menu(baseDoc({
-      pid: new ObjectId(VISITOR_ROLE_HEX),
+      pid: VISITOR_ROLE_HEX,
       meta: { order: 3, ternal: 'external', url: 'https://x', show: false, cache: true, status: true, affix: true, permission: '*:*:*', menuActiveName: 'n', menuActiveSameTab: true, badge: 'b', activeIcon: 'i', position: true, leaveTip: true, maskUrl: true, hijackRefresh: true, watermark: { content: 'w' }, transition: 'fade', cacheKeyStrategy: 'name' },
     }), CTX)
     expect(full.row.pid).toBe(VISITOR_ROLE_UUID)

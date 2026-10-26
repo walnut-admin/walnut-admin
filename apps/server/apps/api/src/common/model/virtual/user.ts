@@ -1,24 +1,10 @@
-import { WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
-import { Schema } from 'mongoose'
 import { SysUserDTOSafe } from '@/modules/system/user/dto/user.dto'
-import { ISysUserDocument } from '@/modules/system/user/schema/user.schema'
-import { addVirtual } from '../virtual'
 
-export function addVirtualUserThroughUserId(schema: Schema, localeField: string = 'userId') {
-  return addVirtual(schema, {
-    virtualPath: WalnutDBVirtualName.USER,
-    ref: WalnutDBModelName.SYS_USER,
-    localField: localeField,
-    foreignField: '_id',
-    justOne: true,
-  })
-}
-
-export interface IVirtualUser {
-  populated_user?: ISysUserDocument | null
-}
-
+/**
+ * populate 出参（Phase 5a 起 mongoose virtual 已摘除；键名 `populated_user` 沿用
+ * `WalnutDBVirtualName.USER`，回收站 read 直查 PG sys_user 同源表后按此键挂载）。
+ */
 export class WalnutAdminVirtualUserDTO {
   constructor(partial: Partial<WalnutAdminVirtualUserDTO>) {
     Object.assign(this, partial)
@@ -29,5 +15,5 @@ export class WalnutAdminVirtualUserDTO {
       title: 'virtual user',
     },
   })
-  populated_user?: ISysUserDocument | null
+  populated_user?: SysUserDTOSafe | null
 }

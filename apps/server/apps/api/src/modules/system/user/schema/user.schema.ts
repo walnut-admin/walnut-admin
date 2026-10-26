@@ -1,27 +1,16 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
 import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role'
-import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
+
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldEnum,
-  WalnutAdminDecoratorFieldMongoId,
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
+import { Expose } from 'class-transformer'
 
 import { ValueOf } from 'easy-fns-ts'
 
-import { HydratedDocument, Model, Types } from 'mongoose'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-import { addVirtualRolesCount, addVirtualRolesList, IVirtualRolesCount, IVirtualRolesList } from '@/common/model/virtual/role'
-
-export type ISysUserDocument = HydratedDocument<SysUserModel & ISysUserMethods & IVirtualRolesList & IVirtualRolesCount>
-
-export type ISysUserModel = Model<ISysUserDocument> & ISysUserStatics
-
-interface ISysUserMethods { }
-
-interface ISysUserStatics { }
 
 export const SysUserGenderConst = {
   UNKNOWN: 0,
@@ -32,28 +21,12 @@ export const SysUserGenderConst = {
 
 export type SysUserGenderConstType = ValueOf<typeof SysUserGenderConst>
 
-@Schema({
-  collection: WalnutDBCollectionName.USER,
-  versionKey: false,
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-})
 export class SysUserModel extends WalnutAdminCommonBasicModel {
   @WalnutAdminDecoratorFieldString({
     default: null,
     swaggerOptions: {
       title: 'user name',
       description: 'should be unique, used for normal password sign in',
-    },
-  })
-  @Prop({
-    type: String,
-    default: null,
-    // https://stackoverflow.com/a/47413794
-    index: {
-      unique: true,
-      partialFilterExpression: { userName: { $type: 'string' } },
     },
   })
   userName: string
@@ -65,7 +38,6 @@ export class SysUserModel extends WalnutAdminCommonBasicModel {
       description: 'feel free to change',
     },
   })
-  @Prop({ type: String, default: null })
   nickName: string
 
   @WalnutAdminDecoratorFieldNumber({
@@ -76,10 +48,6 @@ export class SysUserModel extends WalnutAdminCommonBasicModel {
     },
     validateOptions: { int: true, positive: true },
   })
-  @Prop({
-    type: Number,
-    default: null,
-  })
   age: number
 
   @WalnutAdminDecoratorFieldEnum(() => SysUserGenderConst, {
@@ -89,11 +57,6 @@ export class SysUserModel extends WalnutAdminCommonBasicModel {
       description: 'follow GB standard, go internet it',
       example: SysUserGenderConst.UNDESCRIBED,
     },
-  })
-  @Prop({
-    type: () => SysUserGenderConst,
-    enum: [...Object.values(SysUserGenderConst)],
-    default: SysUserGenderConst.UNDESCRIBED,
   })
   gender: SysUserGenderConstType
 
@@ -106,7 +69,6 @@ export class SysUserModel extends WalnutAdminCommonBasicModel {
     // TODO add oss prefix
     transformOptions: {},
   })
-  @Prop({ type: String, default: null })
   avatar: string
 
   @WalnutAdminDecoratorFieldString({
@@ -117,7 +79,6 @@ export class SysUserModel extends WalnutAdminCommonBasicModel {
     },
     validateOptions: {},
   })
-  @Prop({ type: String, default: null })
   description: string
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -128,28 +89,11 @@ export class SysUserModel extends WalnutAdminCommonBasicModel {
         'false => user cannot sign in anymore, also should ban tokens as well',
     },
   })
-  @Prop({ type: Boolean, default: true })
   status: boolean
 
-  @WalnutAdminDecoratorFieldMongoId({
-    swaggerOptions: {
-      title: 'role id array',
-      description: 'one user can have multiple roles',
-    },
-    isArray: true,
-    arrayOptions: {
-      unique: true,
-    },
-  })
+  @Expose()
   // B7a：roles 随 PG 关联表 sys_user_role 放开为 uuid 数组（phase2 4.1；IsMongoId 约束
   // 由 DTO 子类重声明替换为 uuid，B5 role.schema.menus 同款处理）
-  @Prop([
-    {
-      type: Types.ObjectId,
-      ref: WalnutDBModelName.SYS_ROLE,
-      unique: true,
-    },
-  ])
   roles: string[]
 
   @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstRoleMode, {
@@ -160,23 +104,9 @@ export class SysUserModel extends WalnutAdminCommonBasicModel {
       example: WalnutAdminConstRoleMode.SWITCH,
     },
   })
-  @Prop({
-    type: () => WalnutAdminConstRoleMode,
-    enum: [...Object.values(WalnutAdminConstRoleMode)],
-    default: WalnutAdminConstRoleMode.SWITCH,
-  })
   roleMode: IWalnutAdminConstRoleMode
 
-  @WalnutAdminDecoratorFieldMongoId({
-    swaggerOptions: {
-      title: 'role id',
-      description: `user's current role id`,
-    },
-  })
-  @Prop({
-    type: Types.ObjectId,
-    ref: WalnutDBModelName.SYS_ROLE,
-  })
+  @Expose()
   // B7a：随 PG 列 current_role_id（uuid，可空）放开类型注解
   currentRole: string | null
 
@@ -188,12 +118,5 @@ export class SysUserModel extends WalnutAdminCommonBasicModel {
         'true => user has setup MFA',
     },
   })
-  @Prop({ type: Boolean, default: false })
   mfaSetup: boolean
 }
-
-export const SysUserSchema = SchemaFactory.createForClass(SysUserModel)
-
-// Virtual
-addVirtualRolesList(SysUserSchema)
-addVirtualRolesCount(SysUserSchema)

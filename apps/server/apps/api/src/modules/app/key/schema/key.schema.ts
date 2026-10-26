@@ -1,10 +1,7 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { WalnutDBCollectionName } from '@walnut-server/db'
 import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPartialType } from '@walnut-server/utils/dto'
 import { ValueOf } from 'easy-fns-ts'
-import { HydratedDocument, Model } from 'mongoose'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 
 export const AppKeyTypeConst = {
@@ -91,21 +88,6 @@ class AppKeyMetaTypeRaw {
 
 export class AppKeyMetaType extends RealPartialType(AppKeyMetaTypeRaw) { }
 
-export type IAppKeyDocument = HydratedDocument<AppKeyModel & IAppKeyMethods>
-
-export type IAppKeyModel = Model<IAppKeyDocument> & IAppKeyStatics
-
-export interface IAppKeyMethods {}
-
-export interface IAppKeyStatics { }
-
-@Schema({
-  collection: WalnutDBCollectionName.APP_KEY,
-  versionKey: false,
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-})
 export class AppKeyModel extends WalnutAdminCommonBasicModel {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
@@ -114,7 +96,6 @@ export class AppKeyModel extends WalnutAdminCommonBasicModel {
       description: 'app key',
     },
   })
-  @Prop({ type: String, unique: true, required: true })
   key: string
 
   @WalnutAdminDecoratorFieldEnum(() => AppKeyTypeConst, {
@@ -123,7 +104,6 @@ export class AppKeyModel extends WalnutAdminCommonBasicModel {
       example: AppKeyTypeConst.RSA_PAIR,
     },
   })
-  @Prop({ type: String, enum: AppKeyTypeConst, required: true })
   type: AppKeyTypeConstType
 
   @WalnutAdminDecoratorFieldNumber({
@@ -131,7 +111,6 @@ export class AppKeyModel extends WalnutAdminCommonBasicModel {
       title: 'timestamp as version',
     },
   })
-  @Prop({ type: Number, required: true })
   version: number
 
   @WalnutAdminDecoratorFieldEnum(() => AppKeyStatusConst, {
@@ -140,7 +119,6 @@ export class AppKeyModel extends WalnutAdminCommonBasicModel {
       example: AppKeyStatusConst.ACTIVE,
     },
   })
-  @Prop({ type: String, enum: AppKeyStatusConst, required: true, default: AppKeyStatusConst.ACTIVE })
   status: AppKeyStatusConstType
 
   @WalnutAdminDecoratorFieldDate({
@@ -148,7 +126,6 @@ export class AppKeyModel extends WalnutAdminCommonBasicModel {
       title: 'valid start',
     },
   })
-  @Prop({ type: Date, required: true })
   validStart: Date
 
   @WalnutAdminDecoratorFieldDate({
@@ -157,7 +134,6 @@ export class AppKeyModel extends WalnutAdminCommonBasicModel {
       title: 'valid end',
     },
   })
-  @Prop({ type: Date, default: null })
   validEnd: Date
 
   @WalnutAdminDecoratorFieldDate({
@@ -166,7 +142,6 @@ export class AppKeyModel extends WalnutAdminCommonBasicModel {
       title: 'rotate after',
     },
   })
-  @Prop({ type: Date, default: null })
   rotateAfter: Date
 
   @WalnutAdminDecoratorFieldObject(AppKeyMetaType, {
@@ -175,19 +150,5 @@ export class AppKeyModel extends WalnutAdminCommonBasicModel {
       title: 'app key meta',
     },
   })
-  @Prop({
-    _id: false,
-    type: {
-      publicKeyPem: String,
-      privateKeyPem: String,
-      keyB64: String,
-      ivB64: String,
-      secret: String,
-      bits: Number,
-      cipher: String,
-    },
-  })
   meta: InstanceType<typeof AppKeyMetaType>
 }
-
-export const AppKeySchema = SchemaFactory.createForClass(AppKeyModel)

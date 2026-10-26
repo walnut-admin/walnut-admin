@@ -28,7 +28,6 @@
  *   `app_error.payload` 的字符串成员 parse 入 jsonb；parse 失败本列 NULL、原文落 `raw_*` 旁路，
  *   零丢失。
  */
-import type { ObjectId } from 'mongodb'
 import { ViolationError } from '../lib/errors.ts'
 import { deriveUuidFromObjectId, isObjectIdHex, UUID_RE } from './uuid5.ts'
 
@@ -53,12 +52,13 @@ export type CollectionMapper = (doc: Record<string, unknown>, ctx: EtlMapContext
 // 标量归一
 // ---------------------------------------------------------------------------
 
-/** ObjectId 实例 / 24 位 hex / 已是 uuid（export-pg 回灌通道）→ uuid；空值抛 */
+/**
+ * ObjectId 实例 / 24 位 hex / 已是 uuid（export-pg 回灌通道）→ uuid；空值抛
+ *  （Phase 5a 起 mongodb 驱动已摘除，源值只会是 24 位 hex 字符串或 uuid）
+ */
 export function refUuid(value: unknown, field: string): string {
   if (value === null || value === undefined)
     throw new ViolationError(`引用列 ${field} 拿到了空值 —— NOT NULL 引用不允许兜底`)
-  if (isObjectIdValue(value))
-    return deriveUuidFromObjectId(objectIdHex(value))
   if (typeof value === 'string') {
     if (isObjectIdHex(value))
       return deriveUuidFromObjectId(value)
@@ -73,15 +73,6 @@ export function refUuidOrNull(value: unknown, field: string): string | null {
   if (value === null || value === undefined)
     return null
   return refUuid(value, field)
-}
-
-function isObjectIdValue(value: unknown): value is ObjectId {
-  return typeof value === 'object' && value !== null
-    && (value as { _bsontype?: unknown })._bsontype === 'ObjectId'
-}
-
-function objectIdHex(value: ObjectId): string {
-  return value.toHexString()
 }
 
 export function strOrNull(value: unknown): string | null {
@@ -903,12 +894,6 @@ export function preparePgParam(table: string, col: string, value: unknown): unkn
     return JSON.stringify(value)
   return value
 }
-
-/** 全部业务表（24 集合 + 2 junction）—— `--fresh` 的 TRUNCATE 清单与对账清单 */
-export const ALL_BUSINESS_TABLES: readonly string[] = [
-  ...ETL_COLLECTION_ORDER,
-  ...Object.keys(JUNCTION_CONFLICT_TARGETS),
-]
 
 /**
  * sys_menu 的装载序整理：pid 自引用 FK 要求**父行先于子行**入库，而 Mongo 的自然序

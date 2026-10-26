@@ -278,9 +278,6 @@ catalogs:
     '@nestjs/jwt':
       specifier: 11.0.2
       version: 11.0.2
-    '@nestjs/mongoose':
-      specifier: 11.0.4
-      version: 11.0.4
     '@nestjs/passport':
       specifier: 11.0.5
       version: 11.0.5
@@ -638,15 +635,6 @@ catalogs:
     mockjs:
       specifier: 1.1.0
       version: 1.1.0
-    mongodb:
-      specifier: 7.1.1
-      version: 7.1.1
-    mongoose:
-      specifier: 9.3.3
-      version: 9.3.3
-    mongoose-execution-time:
-      specifier: 1.1.1
-      version: 1.1.1
     murlock:
       specifier: 4.4.0
       version: 4.4.0
@@ -1425,9 +1413,6 @@ importers:
       '@nestjs/jwt':
         specifier: 'catalog:'
         version: 11.0.2(@nestjs/common@11.1.17(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))
-      '@nestjs/mongoose':
-        specifier: 'catalog:'
-        version: 11.0.4(@nestjs/common@11.1.17(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.17)(mongoose@9.3.3(socks@2.8.9))(rxjs@7.8.2)
       '@nestjs/passport':
         specifier: 'catalog:'
         version: 11.0.5(@nestjs/common@11.1.17(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(passport@0.7.0)
@@ -1536,12 +1521,6 @@ importers:
       mathjs:
         specifier: 'catalog:'
         version: 15.1.1
-      mongoose:
-        specifier: 'catalog:'
-        version: 9.3.3(socks@2.8.9)
-      mongoose-execution-time:
-        specifier: 'catalog:'
-        version: 1.1.1
       murlock:
         specifier: 'catalog:'
         version: 4.4.0(@nestjs/common@11.1.17(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/core@11.1.17)
@@ -2036,9 +2015,6 @@ importers:
       '@serenity-kit/opaque':
         specifier: 'catalog:'
         version: 1.1.0
-      mongodb:
-        specifier: 'catalog:'
-        version: 7.1.1(socks@2.8.9)
       pg:
         specifier: 'catalog:'
         version: 8.23.1
@@ -11382,9 +11358,6 @@ packages:
       socks:
         optional: true
 
-  mongoose-execution-time@1.1.1:
-    resolution: {integrity: sha512-1/kp7Gp/HlV2whQvulKTjpKFFYVv1yHfZGJIZiWu05pyWjuKaE3oMaEz59ZgchS5iRDXh6aTzCIKzmlpp+aQ4A==}
-
   mongoose@9.3.3:
     resolution: {integrity: sha512-sfv5LOIPWeN5o/281kp4Rx9ZnuXb0g8CtvBTi7trYQs2PYYx8LWXegXxG3ar7VEns1o+d4h9LI/Dtc7dTTyYmA==}
     engines: {node: '>=20.19.0'}
@@ -17980,6 +17953,7 @@ snapshots:
   '@mongodb-js/saslprep@1.4.13':
     dependencies:
       sparse-bitfield: 3.0.3
+    optional: true
 
   '@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4':
     optional: true
@@ -18246,6 +18220,7 @@ snapshots:
       '@nestjs/core': 11.1.17(@nestjs/common@11.1.17(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(@nestjs/platform-express@11.1.17)(@nestjs/websockets@11.1.17)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       mongoose: 9.3.3(socks@2.8.9)
       rxjs: 7.8.2
+    optional: true
 
   '@nestjs/passport@11.0.5(@nestjs/common@11.1.17(class-transformer@0.5.1)(class-validator@0.15.1)(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@5.5.0))(passport@0.7.0)':
     dependencies:
@@ -19931,11 +19906,13 @@ snapshots:
 
   '@types/web-bluetooth@0.0.21': {}
 
-  '@types/webidl-conversions@7.0.3': {}
+  '@types/webidl-conversions@7.0.3':
+    optional: true
 
   '@types/whatwg-url@13.0.0':
     dependencies:
       '@types/webidl-conversions': 7.0.3
+    optional: true
 
   '@types/ws@8.18.1':
     dependencies:
@@ -21378,7 +21355,8 @@ snapshots:
       node-releases: 2.0.51
       update-browserslist-db: 1.2.3(browserslist@4.28.7)
 
-  bson@7.3.1: {}
+  bson@7.3.1:
+    optional: true
 
   buffer-equal-constant-time@1.0.1: {}
 
@@ -24669,7 +24647,8 @@ snapshots:
       jwa: 2.0.1
       safe-buffer: 5.2.1
 
-  kareem@3.2.0: {}
+  kareem@3.2.0:
+    optional: true
 
   katex@0.16.47:
     dependencies:
@@ -25290,7 +25269,8 @@ snapshots:
 
   memoize-one@6.0.0: {}
 
-  memory-pager@1.5.0: {}
+  memory-pager@1.5.0:
+    optional: true
 
   mensch@0.3.4:
     optional: true
@@ -26144,6 +26124,7 @@ snapshots:
     dependencies:
       '@types/whatwg-url': 13.0.0
       whatwg-url: 14.2.0
+    optional: true
 
   mongodb@7.1.1(socks@2.8.9):
     dependencies:
@@ -26152,8 +26133,7 @@ snapshots:
       mongodb-connection-string-url: 7.0.2
     optionalDependencies:
       socks: 2.8.9
-
-  mongoose-execution-time@1.1.1: {}
+    optional: true
 
   mongoose@9.3.3(socks@2.8.9):
     dependencies:
@@ -26171,6 +26151,7 @@ snapshots:
       - mongodb-client-encryption
       - snappy
       - socks
+    optional: true
 
   morgan@1.11.0(supports-color@5.5.0):
     dependencies:
@@ -26182,9 +26163,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  mpath@0.9.0: {}
+  mpath@0.9.0:
+    optional: true
 
-  mquery@6.0.0: {}
+  mquery@6.0.0:
+    optional: true
 
   mri@1.2.0: {}
 
@@ -28077,7 +28060,8 @@ snapshots:
       side-channel-map: 1.0.1
       side-channel-weakmap: 1.0.2
 
-  sift@17.1.3: {}
+  sift@17.1.3:
+    optional: true
 
   siginfo@2.0.0: {}
 
@@ -28221,6 +28205,7 @@ snapshots:
   sparse-bitfield@3.0.3:
     dependencies:
       memory-pager: 1.5.0
+    optional: true
 
   spdx-correct@3.2.0:
     dependencies:
@@ -28709,6 +28694,7 @@ snapshots:
   tr46@5.1.1:
     dependencies:
       punycode: 2.3.1
+    optional: true
 
   tr46@6.0.0:
     dependencies:
@@ -29719,7 +29705,8 @@ snapshots:
 
   webidl-conversions@3.0.1: {}
 
-  webidl-conversions@7.0.0: {}
+  webidl-conversions@7.0.0:
+    optional: true
 
   webidl-conversions@8.0.1: {}
 
@@ -29790,6 +29777,7 @@ snapshots:
     dependencies:
       tr46: 5.1.1
       webidl-conversions: 7.0.0
+    optional: true
 
   whatwg-url@16.0.1(@noble/hashes@2.2.0):
     dependencies:

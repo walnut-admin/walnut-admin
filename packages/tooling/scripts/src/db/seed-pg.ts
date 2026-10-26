@@ -3,17 +3,16 @@ import type { EtlMapContext } from './etl-map.ts'
  * `db:seed:pg` —— 把 `apps/server/db/seed/` 的初始化数据播种进 **PostgreSQL**（PG 化的 seed 通道，
  * CI / 部署接线用；Phase 5 起 deploy.yml 调它）。
  *
- * ## 与 `db:seed`（Mongo 版）的关系
+ * ## 与旧 `db:seed`（Mongo 版，Phase 5a 已退役）的关系
  *
  * 源真源不变：还是仓里那 8 个 Extended JSON 文件（`$oid` / `$date` 保持原样）。本脚本走
  * `etl-map.ts` 同一条映射（`$oid` → uuid v5、`$date` → timestamptz、meta 拍平、junction 拆分），
  * 保证「seed 重建出的 PG」与「ETL 搬出来的 PG」id 逐行一致（phase2 §3.2 定稿的初衷）。
- * Mongo 侧旧脚本本批保留不动（Phase 5 清理）。
  *
  * ## 幂等
  *
  * 按 id upsert：已存在的行整行刷新为 seed 值（`ON CONFLICT (id) DO UPDATE`）——仓是 seed 集合的
- * 唯一真源，重放必须收敛到 seed 形态。junction 行 `DO NOTHING`（与 Mongo seed「不删库里多出来的
+ * 唯一真源，重放必须收敛到 seed 形态。junction 行 `DO NOTHING`（与旧 seed「不删库里多出来的
  * 文档」同口径：只补缺，不回收）。app_key 与 admin 口令凭证沿用「缺了才造」的守卫。
  */
 import { existsSync, readFileSync } from 'node:fs'
@@ -26,10 +25,56 @@ import { buildPasswordIdentity, verifyPasswordIdentity } from './admin-credentia
 import { generateAppKeys } from './app-keys.ts'
 import { parseCollectionFile } from './ejson.ts'
 import { ETL_COLLECTION_ORDER, ETL_MAPPERS, JUNCTION_CONFLICT_TARGETS, preparePgParam, sortMenuRowsByDepth } from './etl-map.ts'
-import { splitDanglingJunctionRows } from './etl-mongo-to-pg.ts'
 import { resolvePgTarget } from './pg-conn.ts'
 import { listSeedCollections, resolvePath, SEED_DIR } from './seed.ts'
 import { isObjectIdHex } from './uuid5.ts'
+
+/**
+ * junction 表 → 引用列与父表（悬空引用过滤用；两侧都有 FK）。原在 etl-mongo-to-pg.ts，
+ *  Phase 5a 随 Mongo ETL 通道退役收编到本文件（唯一消费方）。
+ */
+export const JUNCTION_REFS: Record<string, Record<string, string>> = {
+  sys_user_role: { user_id: 'sys_user', role_id: 'sys_role' },
+  sys_role_menu: { role_id: 'sys_role', menu_id: 'sys_menu' },
+}
+
+/**
+ * junction 悬空引用过滤。旧 Mongo 存量无 FK，可能存在指向**已被删除**父行的授权行；
+ * PG 的 FK 装不进这些行 —— 丢弃并明示上报（不静默、不造假行）。seed 文件自洽时不会发生，
+ * 这里是最后防线。返回合法行与被丢弃行（含原因），调用方负责打印。
+ */
+export async function splitDanglingJunctionRows(
+  pg: Client,
+  table: string,
+  rows: readonly Record<string, unknown>[],
+): Promise<{ valid: Record<string, unknown>[], dangling: { row: Record<string, unknown>, reason: string }[] }> {
+  const refs = JUNCTION_REFS[table]
+  if (refs === undefined)
+    throw new ViolationError(`表 ${table} 不在 junction 引用注册表里`)
+  if (rows.length === 0)
+    return { valid: [], dangling: [] }
+
+  const existingByCol = new Map<string, Set<string>>()
+  for (const col of Object.keys(refs)) {
+    const parentTable = refs[col]
+    const ids = await pg.query<{ id: string }>(`SELECT id FROM ${parentTable}`)
+    existingByCol.set(col, new Set(ids.rows.map(r => r.id)))
+  }
+
+  const valid: Record<string, unknown>[] = []
+  const dangling: { row: Record<string, unknown>, reason: string }[] = []
+  for (const row of rows) {
+    const missing = Object.keys(refs).filter((col) => {
+      const ids = existingByCol.get(col)
+      return ids !== undefined && !ids.has(String(row[col]))
+    })
+    if (missing.length > 0)
+      dangling.push({ row, reason: missing.map(col => `${col}=${String(row[col])} 在 ${refs[col]} 里不存在`).join('; ') })
+    else
+      valid.push(row)
+  }
+  return { valid, dangling }
+}
 
 export interface SeedPgOptions {
   seedDir: string

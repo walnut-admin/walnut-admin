@@ -1,22 +1,10 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
-import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldMongoId } from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum } from '@walnut-server/decorators/field'
+
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { Locale, LocaleType } from '@walnut/contract'
+import { Expose } from 'class-transformer'
 import { ValueOf } from 'easy-fns-ts'
-import { HydratedDocument, Model, Types } from 'mongoose'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-
-export type ISysUserPreferenceDocument = HydratedDocument<
-  SysUserPreferenceModel & ISysUserPreferenceMethods
->
-
-export type ISysUserPreferenceModel = Model<ISysUserPreferenceDocument>
-  & ISysUserPreferenceStatics
-
-export interface ISysUserPreferenceMethods {}
-
-export interface ISysUserPreferenceStatics {}
 
 export const fontSizeConst = {
   10: 10,
@@ -59,25 +47,9 @@ export const layoutModeConst = {
 export type ILayoutModeConst
   = ValueOf<typeof layoutModeConst>
 
-@Schema({
-  collection: WalnutDBCollectionName.USER_PREFERENCE,
-  versionKey: false,
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-})
 export class SysUserPreferenceModel extends WalnutAdminCommonBasicModel {
-  @WalnutAdminDecoratorFieldMongoId({
-    swaggerOptions: {
-      title: 'user id',
-    },
-  })
-  @Prop({
-    type: Types.ObjectId,
-    ref: WalnutDBModelName.SYS_USER,
-    required: true,
-  })
-  userId: Types.ObjectId | string
+  @Expose()
+  userId: string
 
   @WalnutAdminDecoratorFieldEnum(() => fontSizeConst, {
     default: fontSizeConst[14],
@@ -85,11 +57,6 @@ export class SysUserPreferenceModel extends WalnutAdminCommonBasicModel {
       title: 'font size',
       example: fontSizeConst[14],
     },
-  })
-  @Prop({
-    type: () => fontSizeConst,
-    enum: [...Object.values(fontSizeConst)],
-    default: fontSizeConst[14],
   })
   fontSize: IFontSizeConst
 
@@ -99,7 +66,6 @@ export class SysUserPreferenceModel extends WalnutAdminCommonBasicModel {
       title: 'dark mode?',
     },
   })
-  @Prop({ type: Boolean, default: false })
   dark: boolean
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -108,7 +74,6 @@ export class SysUserPreferenceModel extends WalnutAdminCommonBasicModel {
       title: 'reduced motion?',
     },
   })
-  @Prop({ type: Boolean, default: false })
   reducedMotion: boolean
 
   @WalnutAdminDecoratorFieldEnum(() => colorModeConst, {
@@ -117,11 +82,6 @@ export class SysUserPreferenceModel extends WalnutAdminCommonBasicModel {
       title: 'Color Vision Deficiency',
       example: colorModeConst.DEFAULT,
     },
-  })
-  @Prop({
-    type: () => colorModeConst,
-    enum: [...Object.values(colorModeConst)],
-    default: colorModeConst.DEFAULT,
   })
   colorMode: IColorModeConst
 
@@ -132,11 +92,6 @@ export class SysUserPreferenceModel extends WalnutAdminCommonBasicModel {
       example: CVDConst.DEFAULT,
     },
   })
-  @Prop({
-    type: () => CVDConst,
-    enum: [...Object.values(CVDConst)],
-    default: null,
-  })
   CVD: ICVDConst
 
   @WalnutAdminDecoratorFieldEnum(() => Locale, {
@@ -146,11 +101,6 @@ export class SysUserPreferenceModel extends WalnutAdminCommonBasicModel {
       example: Locale.zh_CN,
     },
   })
-  @Prop({
-    type: () => Locale,
-    enum: [...Object.values(Locale)],
-    default: Locale.zh_CN,
-  })
   locale: LocaleType
 
   @WalnutAdminDecoratorFieldEnum(() => layoutModeConst, {
@@ -159,11 +109,6 @@ export class SysUserPreferenceModel extends WalnutAdminCommonBasicModel {
       title: 'layout mode',
       example: layoutModeConst.LEFT_MENU,
     },
-  })
-  @Prop({
-    type: () => layoutModeConst,
-    enum: [...Object.values(layoutModeConst)],
-    default: layoutModeConst.LEFT_MENU,
   })
   layoutMode: ILayoutModeConst
 
@@ -176,12 +121,5 @@ export class SysUserPreferenceModel extends WalnutAdminCommonBasicModel {
       any: true,
     },
   })
-  @Prop({
-    _id: false,
-    default: {},
-    type: Object,
-  })
   layout: object
 }
-
-export const SysUserPreferenceSchema = SchemaFactory.createForClass(SysUserPreferenceModel)

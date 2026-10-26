@@ -1,6 +1,5 @@
 import type { Recordable } from 'easy-fns-ts'
 import type { Request, Response } from 'express'
-import type { ClientSession } from 'mongoose'
 import type { IResult } from 'ua-parser-js'
 import type { LocaleType } from '@walnut/contract'
 import type { WalnutTxContext } from '@walnut-server/db'
@@ -81,14 +80,8 @@ declare global {
     identifier?: string
 
     /**
-     * @description Used with `@WalnutDBTransaction` and `@WalnutDBSession` to get mongodb transaction
-     */
-    mongooseSession?: ClientSession
-
-    /**
      * @description Used with `@WalnutDBTransaction` and `@WalnutDBSession` to get the
-     * dual-engine transaction context (PG EntityManager + Mongo ClientSession).
-     * Populated by WalnutTxInterceptor (tx.interceptor.ts).
+     * transaction context (PG EntityManager). Populated by WalnutTxInterceptor (tx.interceptor.ts).
      */
     txContext?: WalnutTxContext
 

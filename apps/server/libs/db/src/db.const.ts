@@ -1,37 +1,10 @@
-export const WalnutDBConnectionName = 'WalnutPrimaryConnectionDatabase'
-
-export const WalnutDBCollectionName = {
-  ROLE: 'sys_role',
-  USER: 'sys_user',
-  USER_OAUTH: 'sys_user_oauth',
-  USER_PREFERENCE: 'sys_user_preference',
-  USER_LOCK: 'sys_user_lock',
-  USER_DEVICE: 'sys_user_device',
-  USER_MFA: 'sys_user_mfa',
-  USER_IDENTITY: 'sys_user_identity',
-  MENU: 'sys_menu',
-  LANG: 'sys_lang',
-  LOCALE: 'sys_locale',
-  DELETED: 'sys_deleted',
-  DEVICE: 'sys_device',
-
-  LOG_OPERATE: 'sys_log_operate',
-  LOG_AUTH: 'sys_log_auth',
-
-  DICT_TYPE: 'sys_dict_type',
-  DICT_DATA: 'sys_dict_data',
-
-  SHARED_AREA: 'shared_area',
-
-  APP_SETTING: 'app_setting',
-  APP_DEMO: 'app_demo',
-  APP_MONITOR_USER: 'app_monitor_user',
-  APP_ERROR: 'app_error',
-  APP_KEY: 'app_key',
-
-  AUTH_REFRESH_TOKEN: 'auth_refresh_token',
-} as const
-
+/**
+ * 模型名常量 —— 迁移后仍被 PG 通道消费：
+ * - PG 版仓库骨架以它作软删快照的 `modelName` 路由键（pg-base.repository）；
+ * - 回收站恢复注册表以它把快照路由回目标实体（recover-registry.ts）。
+ * （`WalnutDBConnectionName` / `WalnutDBCollectionName` 是 Mongo 连接与集合的名字，
+ * Phase 5a 随 MongoDB 基础设施一并摘除。）
+ */
 export const WalnutDBModelName = {
   SYS_DELETED: 'SysDeletedModel',
 
@@ -65,6 +38,7 @@ export const WalnutDBModelName = {
   AUTH_REFRESH_TOKEN: 'AuthRefreshTokenModel',
 } as const
 
+/** populate 出参键（回收站 read 的 populated_user 等；PG 通道沿用同一键名） */
 export const WalnutDBVirtualName = {
   USER: 'populated_user',
   ROLES_LIST: 'populated_roles_list',

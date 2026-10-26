@@ -2,7 +2,6 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as process from 'node:process'
 
-import { connect, connection } from 'mongoose'
 import { DataSource } from 'typeorm'
 
 import { INTEGRATION_DATABASE_NAME } from './integration.const'
@@ -10,12 +9,11 @@ import { INTEGRATION_DATABASE_NAME } from './integration.const'
 /**
  * vitest globalSetup（跑在主进程，不加载 Nest DI 容器）：
  *
- * - Mongo：开跑前 drop 一次集成库 —— 清掉上次异常退出残留的脏数据（demoString 等
- *   unique 索引会挡住重跑），保证幂等；
- * - PG：对独立集成库（同一 PG 实例、同名 `walnut-admin-integration`，与 Mongo 集成库
- *   互不冲突）**编程式**跑 migration —— 每轮先 drop 再 run；并额外做一轮
- *   「undo 全部 → drop → 重跑」验证 migration 可逆（等价 CI 里 `migration:run` +
- *   `migration:revert` 双向验证，phase2 第 6 节）。teardown 对称 drop。
+ * PG：对独立集成库（同一 PG 实例、`walnut-admin-integration`）**编程式**跑 migration ——
+ * 每轮先 drop 再 run；并额外做一轮「undo 全部 → drop → 重跑」验证 migration 可逆
+ * （等价 CI 里 `migration:run` + `migration:revert` 双向验证，phase2 第 6 节）。
+ * teardown 对称 drop。
+ * （Mongo 集成库的 drop 腿已随 Phase 5a 摘除 MongoDB 一并移除。）
  *
  * 读写 env 直接解析 `env-local/.env.development`：主进程没有 ConfigModule，
  * 不能依赖 dotenvx 之外的东西（也不引入新依赖）。
@@ -36,34 +34,6 @@ function readEnvLocal(key: string): string {
   }
 
   return line.slice(key.length + 1).trim()
-}
-
-async function dropIntegrationDatabase(): Promise<void> {
-  const user = readEnvLocal('DATABASE_USER')
-  const pass = readEnvLocal('DATABASE_PASS')
-  const primary = readEnvLocal('DATABASE_PRIMARY')
-  const secondary = readEnvLocal('DATABASE_SECONDARY')
-  const arbiter = readEnvLocal('DATABASE_ARBITER')
-  const replicaSet = readEnvLocal('DATABASE_REPLICASET')
-  const authSource = readEnvLocal('DATABASE_SOURCE')
-
-  const uri = `mongodb://${user}:${pass}@${primary},${secondary},${arbiter}`
-
-  await connect(uri, {
-    dbName: INTEGRATION_DATABASE_NAME,
-    authSource,
-    replicaSet,
-  })
-
-  // 双保险：连上的不是集成库就立刻断开并失败，绝不 drop 任何别的库
-  const dbName = connection.db?.databaseName
-  if (dbName !== INTEGRATION_DATABASE_NAME) {
-    await connection.close()
-    throw new Error(`[integration globalSetup] expected dbName "${INTEGRATION_DATABASE_NAME}", got "${dbName}" — refusing to drop`)
-  }
-
-  await connection.dropDatabase()
-  await connection.close()
 }
 
 /** migration 目录：与 data-source.cli.ts 同源（migration 属于应用部署物，跟 api app 走） */
@@ -180,10 +150,8 @@ async function teardownPgIntegrationDatabase(): Promise<void> {
 }
 
 export default async function globalIntegrationSetup(): Promise<() => Promise<void>> {
-  await dropIntegrationDatabase()
   await setupPgIntegrationDatabase()
   return async () => {
-    await dropIntegrationDatabase()
     await teardownPgIntegrationDatabase()
   }
 }

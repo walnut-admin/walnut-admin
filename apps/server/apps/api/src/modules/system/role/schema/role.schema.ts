@@ -1,34 +1,14 @@
-import { Prop, Schema, SchemaFactory, Virtual } from '@nestjs/mongoose'
-import { WalnutDBCollectionName, WalnutDBModelName } from '@walnut-server/db'
 import {
   WalnutAdminDecoratorFieldBoolean,
-  WalnutAdminDecoratorFieldMongoId,
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldObject,
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
-
-import { HydratedDocument, Model, Types } from 'mongoose'
+import { Expose } from 'class-transformer'
 
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { SysMenuDTOSafe } from '../../menu/dto/menu.dto'
-import { ISysMenuDocument } from '../../menu/schema/menu.schema'
 
-export type ISysRoleDocument = HydratedDocument<SysRoleModel & ISysRoleMethods>
-
-export type ISysRoleModel = Model<ISysRoleDocument> & ISysRoleStatics
-
-export interface ISysRoleMethods {}
-
-export interface ISysRoleStatics {}
-
-@Schema({
-  collection: WalnutDBCollectionName.ROLE,
-  versionKey: false,
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-})
 export class SysRoleModel extends WalnutAdminCommonBasicModel {
   @WalnutAdminDecoratorFieldString({
     default: null,
@@ -37,7 +17,6 @@ export class SysRoleModel extends WalnutAdminCommonBasicModel {
       description: 'unique string',
     },
   })
-  @Prop({ type: String, default: null, unique: true })
   roleName: string
 
   @WalnutAdminDecoratorFieldString({
@@ -47,7 +26,6 @@ export class SysRoleModel extends WalnutAdminCommonBasicModel {
       description: 'short describe',
     },
   })
-  @Prop({ type: String, default: null })
   description: string
 
   @WalnutAdminDecoratorFieldNumber({
@@ -58,28 +36,12 @@ export class SysRoleModel extends WalnutAdminCommonBasicModel {
     },
     validateOptions: { int: true },
   })
-  @Prop({ type: Number, default: null })
   order: number
 
-  @WalnutAdminDecoratorFieldMongoId({
-    swaggerOptions: {
-      title: 'menu id array',
-      description: 'ref to menu model',
-    },
-    isArray: true,
-    arrayOptions: {
-      unique: true,
-    },
-  })
-  @Prop([
-    {
-      type: Types.ObjectId,
-      ref: WalnutDBModelName.SYS_MENU,
-      unique: true,
-    },
-  ])
+  @Expose()
   // B5：menus 随 PG 关联表 sys_role_menu 放开为 uuid 数组（phase2 4.2；IsMongoId 约束
-  // 在 DTO 子类用 uuid 校验整体替换，见 dto/role.dto.ts）
+  // 在 DTO 子类用 uuid 校验整体替换，见 dto/role.dto.ts）。schema 只承载 Expose 序列化
+  // 元数据（Phase 5a 起 mongo id 装饰已随 mongoose 摘除）。
   menus: string[]
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -90,21 +52,12 @@ export class SysRoleModel extends WalnutAdminCommonBasicModel {
         'false => users wont retrieve current role menus(permissions)',
     },
   })
-  @Prop({ type: Boolean, default: true })
   status: boolean
 
   // virtual
   @WalnutAdminDecoratorFieldNumber({
     swaggerOptions: {
       title: `current role's user count`,
-    },
-  })
-  @Virtual({
-    options: {
-      ref: WalnutDBModelName.SYS_USER,
-      localField: '_id',
-      foreignField: 'roles',
-      count: true,
     },
   })
   populated_usersCount: number
@@ -115,15 +68,5 @@ export class SysRoleModel extends WalnutAdminCommonBasicModel {
       title: 'populated menus list',
     },
   })
-  @Virtual({
-    options: {
-      ref: WalnutDBModelName.SYS_MENU,
-      localField: 'menus',
-      foreignField: '_id',
-      match: { 'meta.status': true },
-    },
-  })
-  populated_menusList: ISysMenuDocument[]
+  populated_menusList: SysMenuDTOSafe[]
 }
-
-export const SysRoleSchema = SchemaFactory.createForClass(SysRoleModel)

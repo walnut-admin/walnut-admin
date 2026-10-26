@@ -123,15 +123,15 @@
    （deleted 的 Mongo forFeature、SysDeletedRepoService、Mongo 基类仓库、listAggregate
    聚合）随批删除 —— 全仓业务表零 Mongo 写腿。
 2. **setting_value 内嵌 id**（B4~B7）：`app.default.role` 值须在 B7 切换前重写为 role 的 v5 uuid。
-   B5 已产出订正脚本：`packages/tooling/scripts/src/db/fix-setting-default-role.ts`
-   （bin `walnut-fix-setting-default-role`，根目录 `pnpm db:fix-default-role`；从仓库根运行，
-   `--dry-run` 只看不写，`--env-file / --pg-db / --db / --uri / --key` 可覆盖默认连接口径）。
+   B5 产出的订正脚本（bin `walnut-fix-setting-default-role`，根目录 `pnpm db:fix-default-role`；
+   `--dry-run` 只看不写，`--env-file / --pg-db / --db / --uri / --key` 可覆盖默认连接口径）
    幂等：值已是 uuid → no-op；hex → 校验其在 Mongo `sys_role` 存量 `_id` 中存在后重写为
    v5（namespace 见 `packages/tooling/scripts/src/db/uuid5.ts`，phase2 §3.3 回写引用）；
-   脏值拒绝改写。E2E 见 `apps/server/apps/api/test/integration/pg.fix-default-role.int-spec.ts`
-   （集成库实跑脚本断言重写 + 幂等重跑 no-op + 脏值 exit 1）。**运行时机：B7 开工前对目标库跑一次并核对。**
+   脏值拒绝改写。**运行时机：B7 开工前对目标库跑一次并核对。**
    B7a 后消费侧已全量 uuid 语义（crud/shared 直用 + cache.appSettings 兜底常量改 v5 uuid，
    见 §6）—— 对目标库跑订正脚本是**运行时前置**，代码侧不再有 hex 分支。
+   **Phase 5a 已退役**：hex 白名单依赖 Mongo 存量读取，MongoDB 摘除后失去数据源；
+   存量订正已随 ETL 完成（脚本退役，其 E2E int-spec 一并删除）。
 3. **权限链路跨引擎**（B5~B7a）：menu/role 已迁 PG，user 在 B7a 前仍在 Mongo —— token 里的
    roleIds/currentRole 是 ObjectId hex，`In(uuid[])` 查不到行（ETL 前的 PG 侧 sys_role
    本就为空），故 B5~B7a 期间登录后的权限/路由生成走 PG 空数据，`getCorePermissions` 的

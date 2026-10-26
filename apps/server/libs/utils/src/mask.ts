@@ -1,6 +1,5 @@
 import type { Recordable } from 'easy-fns-ts'
 import { cloneDeep, isNil } from 'lodash'
-import { isObjectIdOrHexString } from 'mongoose'
 import { regexMap } from './regex'
 
 const DEFAULT_SENSITIVE_KEYS = [
@@ -70,11 +69,8 @@ export function maskSensitiveFields<T extends Record<string, any>>(obj: T, extra
       return target
     }
 
-    // Handle MongoDB ObjectId - convert to string to avoid exposing internal buffer
-    // ObjectId has _bsontype='ObjectId' and toHexString() method
-    if (isObjectIdOrHexString(target) && typeof target.toHexString === 'function') {
-      return target.toString() as unknown as Recordable
-    }
+    // （历史注记：MongoDB ObjectId 实例的 toString 特判已随 Phase 5a 摘除 mongoose 一并移除
+    // —— 全仓不再产生 ObjectId 实例，id 一律是 uuid 字符串，走下方的通用键遍历即可。）
 
     const result: Recordable = {}
 

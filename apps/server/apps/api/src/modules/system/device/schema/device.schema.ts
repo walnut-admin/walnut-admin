@@ -1,5 +1,3 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose'
-import { WalnutDBCollectionName } from '@walnut-server/db'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldNumber,
@@ -7,43 +5,21 @@ import {
 } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPartialType } from '@walnut-server/utils/dto'
-import { HydratedDocument, Model } from 'mongoose'
 import { SharedGeoPointDTO, SharedHardwareDTO, SharedHeightWidthDTO, SharedIpLocationHistoryDTO, SharedLocationDTO, SharedUserAgentDTO } from '@/common/dto/shared.dto'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-import { addVirtualMonitorUserThroughDeviceId, IVirtualMonitorUser } from '@/common/model/virtual/monitorUser'
 
 /**
- * B6 起本 schema 不再注册进 Mongoose（模型注册随迁移从 device.module / repo.module
- * 摘除），仅作为 DTO 链的校验/swagger 元数据基座保留；@Prop / virtual 不再有运行时
- * 语义。PG 实体见 ../entity/device.entity.ts（phase2 4.8）。
+ * Phase 5a 起本 schema 去除全部 mongoose 装饰（@Schema/@Prop/@Virtual 与模型注册
+ * 早已随迁移摘除），仅作为 DTO 链的校验/swagger 元数据基座保留。
+ * PG 实体见 ../entity/device.entity.ts（phase2 4.8）。
  */
-export type ISysDeviceDocument = HydratedDocument<
-  SysDeviceModel & ISysDeviceMethods & IVirtualMonitorUser
->
 
-export type ISysDeviceModel = Model<ISysDeviceDocument>
-  & ISysDeviceStatics
-
-interface ISysDeviceMethods {
-  getLocationString: () => string
-}
-
-interface ISysDeviceStatics { }
-
-@Schema({
-  collection: WalnutDBCollectionName.DEVICE,
-  versionKey: false,
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true },
-})
 export class SysDeviceModel extends WalnutAdminCommonBasicModel {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'device name, normally cannot change',
     },
   })
-  @Prop({ type: String, required: true, unique: true })
   deviceName: string
 
   @WalnutAdminDecoratorFieldString({
@@ -51,7 +27,6 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       title: 'device id, also maybe known as fingerprint for client',
     },
   })
-  @Prop({ type: String, required: true, unique: true, index: true })
   deviceId: string
 
   @WalnutAdminDecoratorFieldObject(RealPartialType(SharedUserAgentDTO), {
@@ -60,7 +35,6 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       required: true,
     },
   })
-  @Prop({ type: SharedUserAgentDTO, _id: false, required: true })
   deviceInfo: SharedUserAgentDTO
 
   @WalnutAdminDecoratorFieldObject(RealPartialType(SharedHardwareDTO), {
@@ -68,7 +42,6 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       title: 'hardware information',
     },
   })
-  @Prop({ type: SharedHardwareDTO, _id: false })
   hardwareInfo: SharedHardwareDTO
 
   @WalnutAdminDecoratorFieldObject(RealPartialType(SharedLocationDTO), {
@@ -76,7 +49,6 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       title: 'location information',
     },
   })
-  @Prop({ type: SharedLocationDTO, _id: false })
   locationInfo: SharedLocationDTO
 
   @WalnutAdminDecoratorFieldObject(SharedIpLocationHistoryDTO, {
@@ -89,23 +61,11 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       description: 'Stores up to 5 recent IP-location pairs',
     },
   })
-  @Prop({
-    type: [SharedIpLocationHistoryDTO],
-    _id: false,
-    default: [],
-  })
   locationHistory: SharedIpLocationHistoryDTO[]
 
   @WalnutAdminDecoratorFieldObject(SharedHeightWidthDTO, {
     swaggerOptions: {
       title: 'screen resolution',
-    },
-  })
-  @Prop({
-    _id: false,
-    type: {
-      height: Number,
-      width: Number,
     },
   })
   sr: { height: number, width: number }
@@ -115,13 +75,6 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       title: 'view port',
     },
   })
-  @Prop({
-    _id: false,
-    type: {
-      height: Number,
-      width: Number,
-    },
-  })
   vp: { height: number, width: number }
 
   @WalnutAdminDecoratorFieldString({
@@ -129,7 +82,6 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       title: 'ip address',
     },
   })
-  @Prop({ type: String, default: null })
   ip: string
 
   @WalnutAdminDecoratorFieldString({
@@ -144,7 +96,6 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       required: true,
     },
   })
-  @Prop({ type: [String], required: true })
   ipHistory: string[]
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -153,7 +104,6 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       title: 'device active status',
     },
   })
-  @Prop({ type: Boolean, default: false })
   active: boolean
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -162,7 +112,6 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       title: 'device lock status',
     },
   })
-  @Prop({ type: Boolean, default: false })
   locked: boolean
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -171,7 +120,6 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       title: 'device ban status',
     },
   })
-  @Prop({ type: Boolean, default: false })
   banned: boolean
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -180,7 +128,6 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       title: 'device private/incognito',
     },
   })
-  @Prop({ type: Boolean, default: false })
   private: boolean
 
   @WalnutAdminDecoratorFieldObject(RealPartialType(SharedGeoPointDTO), {
@@ -188,7 +135,6 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       title: 'geo location, longitude and latitude',
     },
   })
-  @Prop({ type: SharedGeoPointDTO, _id: false })
   geoLocation: SharedGeoPointDTO
 
   @WalnutAdminDecoratorFieldNumber({
@@ -196,29 +142,5 @@ export class SysDeviceModel extends WalnutAdminCommonBasicModel {
       title: 'device risk score',
     },
   })
-  @Prop({ type: Number, default: 0, min: 0, max: 100 })
   riskScore: number
-}
-
-export const SysDeviceSchema
-  = SchemaFactory.createForClass(SysDeviceModel)
-
-// Virtual
-addVirtualMonitorUserThroughDeviceId(SysDeviceSchema)
-
-// TODO methods demo usage
-SysDeviceSchema.methods.getLocationString = function (): string {
-  const thisDevice = this as SysDeviceModel
-  const loc = thisDevice.locationInfo
-  if (loc === null)
-    return 'Unknown'
-
-  if (loc.region === loc.city)
-    return `${loc.country} ${loc.region}`
-
-  return [
-    loc.country,
-    loc.region,
-    loc.city,
-  ].filter(Boolean).join(' ')
 }

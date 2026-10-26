@@ -1,12 +1,6 @@
-import { Prop } from '@nestjs/mongoose'
-import {
-  WalnutAdminDecoratorFieldDate,
-  WalnutAdminDecoratorFieldMongoId,
-} from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorFieldDate } from '@walnut-server/decorators/field'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
-
-import { Types } from 'mongoose'
 
 // HINT
 // Since TypeScript does not store metadata about generics or interfaces,
@@ -19,22 +13,15 @@ import { Types } from 'mongoose'
 // i.e. remember to import { CreateUserDto }
 // instead of  import { CreateUserDto }
 
+/**
+ * DTO 元数据基座（Phase 5a 起无 mongoose 装饰）：`_id` 随 PG 迁移退役为响应兼容字段
+ * （PG 实体以 `id`（uuid）为唯一标识，Safe 层 DTO 一律 omit `_id`），仅保留
+ * Expose 序列化元数据；createdAt/updatedAt 供响应序列化继承。
+ */
 export class WalnutAdminCommonBasicModel {
-  @WalnutAdminDecoratorFieldMongoId({
-    swaggerOptions: {
-      title: 'default mongoDB id',
-      description: '在入参时是可选并且被剔除了的，因为常规都会通过param去传Id',
-      required: false,
-    },
-    transformOptions: {
-      res: {
-        toString: true,
-      },
-    },
-  })
+  @Expose()
   @IsOptional({})
-  @Expose({})
-  _id: Types.ObjectId | string
+  _id?: string
 
   @WalnutAdminDecoratorFieldDate({
     swaggerOptions: {
@@ -47,7 +34,6 @@ export class WalnutAdminCommonBasicModel {
   })
   @IsOptional({})
   @Expose({})
-  @Prop({ type: Date })
   createdAt?: Date
 
   @WalnutAdminDecoratorFieldDate({
@@ -60,6 +46,5 @@ export class WalnutAdminCommonBasicModel {
   })
   @IsOptional({})
   @Expose({})
-  @Prop({ type: Date })
   updatedAt?: Date
 }
