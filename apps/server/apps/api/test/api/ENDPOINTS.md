@@ -1,8 +1,10 @@
-# API 端点全景测绘（API 回归验证 A 段）
+# API 端点全景测绘（API 回归验证 A 段 + B 段）
 
 > 全部 controller 的「模块 → 端点 → 方法/路径 → 守卫 → 请求形态」矩阵，后续 API 级测试批次的清单。
 > 路径均相对 `/{APP_API_PREFIX}/v{APP_API_VERSION}`（本地开发 env 为 `/w/v1`，下同省略）。
 > 来源：`apps/api/src/**/*.controller.ts` 静态扫描 + 逐文件核对（2026-10-25，分支 refactor/postgres-migration）。
+> B 段（2026-10-26）：§1 app 系 + §4 shared/area + §6 health + §7 根 controller 全部落地
+> `*.api-spec.ts`（8 份新文件、45 用例），登记见各表格「API 级测试策略」列与文末「B 段补记」。
 
 ## 全局守卫链（每个请求都要穿过，除非端点带 Free 装饰器）
 
@@ -52,18 +54,20 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | demo | DELETE `/app/demo/:id` | 同上+事务 | `app:demo:delete` | 路由 uuid | **试点**：软删 |
 | demo | DELETE `/app/demo/deleteMany/:ids` | 同上+事务 | `app:demo:delete` | 逗号 uuid | **试点** |
 | demo | POST `/app/demo/list` | 同上 | `app:demo:list` | `{query,sort,page}` | **试点**：过滤/分页 |
-| error | GET `/app/error/:code` | Sign 链 | `app:error:test` | 路由错误码 | 触发指定异常（错误通道冒烟） |
-| key | GET `/app/key/current/:type` | Sign 链 | （无 @HasPermission → guard 放行） | type∈RSA_PAIR/AES_KEY_URL | 已有 int-spec 覆盖 service 层；API 级低优先 |
-| key | POST `/app/key/init` | 同上 | 无 | — | 同上（二钻 40001） |
-| key | POST `/app/key/rotate/:type` | 同上+事务 | 无 | — | 同上 |
-| logger | POST `/app/logger/list`（CRUD list） | Sign 链 | `app:logger:list` | list 形态 | 低优先（读日志文件） |
-| logger | GET `/app/logger/:logType/:fileName` | Sign 链 | `app:logger:read` | 路由参数 | 低优先 |
-| monitor/cache | CRUD（read 按 `key`、delete 按 `key`、list、`DELETE /app/monitor/cache/clear`） | Sign 链 + `@HasRole([root,developer])` | `app:monitorCache:*` | key/uuid | 需真实 Redis 键；中优先 |
-| monitor/server | GET `/app/monitor/server/{cpu,mem,os,sys,disk,battery,time,network}` | Sign 链 | `app:monitorServer:*` | — | 只读冒烟，中优先 |
-| monitor/user | CRUD list/read + DELETE `force-quit/:id` + POST `state`（Sign/Jwt/Cap/DeviceFree，socket 在线状态上报） | Sign 链 | `app:monitorUser:*` | list/uuid；state 为匿名 | force-quit 有副作用；中优先 |
-| setting | GET `/app/setting/public` | Lock/Sign/Jwt/Cap/Device 全 Free | 无 | — | 匿名可访问，冒烟 |
-| setting | GET `/app/setting/private` | LockFree | 无（需 JWT） | — | 登录态冒烟 |
-| setting | CRUD + POST `cache/refresh` | Sign 链 | `app:setting:*` | setting DTO | 中优先（写设置影响全局，需快照还原） |
+| error | GET `/app/error/:code` | Sign 链 | `app:error:test` | 路由错误码 | **B 段已测**（error.api-spec.ts）：40000/40103/40300/50000 四个 ErrorMap 异常与 contract 码对齐的 code 断言 body.code；枚举外 code → 40099。
+  已知历史错位（非迁移回归，未断言）：ErrorMap 的 40112-40117 挂的异常类与 contract 错误码错位（如 40112 挂 CapInteractionRequired，真实码 40116） |
+| key | GET `/app/key/current/:type` | Sign 链 | （无 @HasPermission → guard 放行） | type∈RSA_PAIR/AES_KEY_URL | **B 段已测**（key.api-spec.ts）：current 返回 version 最大 ACTIVE 行的 meta；与 app.key.int-spec 双向隔离的数据自洽法（自插高 version 目标行 + afterAll 还原/清空） |
+| key | POST `/app/key/init` | 同上 | 无 | — | **B 段已测**：AES_KEY_URL 空表落首条 v1 ACTIVE；二钻 40001。注意 init 不选 JWT_AT——`generateNewKeyByType` 无该分支，恒 20000 且不落行、二钻不可达 |
+| key | POST `/app/key/rotate/:type` | 同上+事务 | 无 | — | **B 段已测**：旧行 DEPRECATED + 新行 version+1 ACTIVE 事务两腿齐落，current 随轮转换人 |
+| logger | POST `/app/logger/list`（CRUD list） | Sign 链 | `app:logger:list` | list 形态 | **B 段已测**（logger.api-spec.ts）：fileName/logType 过滤 + 无命中空列表；用例自建自清 `logs/{application,error}/api-spec-*.log`（cwd=apps/server） |
+| logger | GET `/app/logger/:logType/:fileName` | Sign 链 | `app:logger:read` | 路由参数 | **B 段已测**：第 1 页命中写入行、越界页空内容、不存在文件 → 受控 50000（ENOENT 兜底）；fileSize 出参是 `@TransformSizeToKB` 字符串 |
+| monitor/cache | CRUD（read 按 `key`、delete 按 `key`、list、`DELETE /app/monitor/cache/clear`） | Sign 链 + `@HasRole([root,developer])` | `app:monitorCache:*` | key/uuid | **B 段已测**（monitor.api-spec.ts）：真实 Redis 键（shared 类型）set→read/list/delete→clear；read 出参恒 `{}`（`void await get` 钉现状）；delete 是 fire-and-forget（断言轮询等落键）；clear 只清非 built-in/auth/system 类型（AUTH 的 MFA verified 键幸存），故 clear 用例放文件最后 |
+| monitor/server | GET `/app/monitor/server/{cpu,mem,os,sys,disk,battery,time,network}` | Sign 链 | `app:monitorServer:*` | — | **B 段已测**：八个只读端点形状冒烟；mem 出参是 `@TransformSizeToGB` 字符串（`x.xx GB`）；无电池主机 battery 字段可空 |
+| monitor/user | CRUD list/read + DELETE `force-quit/:id` + POST `state`（Sign/Jwt/Cap/DeviceFree，socket 在线状态上报） | Sign 链 | `app:monitorUser:*` | list/uuid；state 为匿名 | **B 段已测**（monitor-user.api-spec.ts）：state 匿名上报 upsert（auth=false 置空 userId）+ list/read populated + force-quit 撤销 RT 落库（revoked）+ read 40401 + force-quit 无行 20000+false + 非法 uuid 40002。
+  **注意**：state 端点的受控错误路径（40099 等）不能进回归——路径尾缀 `/state` 命中 BLPath shouldSkip 后缀表，全局异常过滤器提前 return 不落响应，请求静默悬挂（前迁移时代遗留缺陷，非迁移回归，见文末 B 段补记） |
+| setting | GET `/app/setting/public` | Lock/Sign/Jwt/Cap/Device 全 Free | 无 | — | **B 段已测**（setting.api-spec.ts）：匿名 unsigned 可达，auth/frontend 全布尔形状 |
+| setting | GET `/app/setting/private` | LockFree | 无（需 JWT） | — | **B 段已测**：登录态 20000（maskUrl 等四组形状）；匿名 40101 |
+| setting | CRUD + POST `cache/refresh` | Sign 链 | `app:setting:*` | setting DTO | **B 段已测**：CRUD 全闭环 + cache/refresh 后 `getAppSettings()` 可读到本轮自建 key（写设置全局生效路径）；自建 `api-spec-*` 行、afterEach/afterAll 删行后重 extract 还原 `APP:SETTING` 缓存，不动 seed 行 |
 
 ## 2. auth 模块（`modules/auth/`）
 
@@ -101,7 +105,8 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | 端点 | 方法/路径 | 守卫 | 权限点 | 请求形态 | API 级测试策略 |
 |---|---|---|---|---|---|
 | ali | GET `/shared/ali/sts` | Sign 链 | `app:shared:ali:sts` | — | 需阿里云 vendor key（env 有则冒烟，否则 5xxxx） |
-| area | GET `/shared/area/children`、`/shared/area/feedback` | Sign 链 | `system:area:*` | query（父级行政区划） | 只读冒烟；需 seed/自建 area 行 |
+| area | GET `/shared/area/children`、`/shared/area/feedback` | Sign 链 | `system:area:*` | query（父级行政区划） | **B 段已测**（area.api-spec.ts）：集成库 shared_area 为空表，自建 95→9501→950102 三级行（与 int-spec 的 91/77 数据集无交集）；children 冷态回源 + 层级缓存（SHARED:AREA:*，跑前清跑后清）+ feedback 单码/多码回显树（depth/isLeaf）+ 匿名 40101 + 缺 codes 40099。
+  **迁移回归已修**（repo.findChildrenByPcode 投影普通对象，对齐 Mongo `.lean()`）：原 TypeORM find 返回无 @Expose 实体，被全局 ClassSerializer（excludeExtraneousValues）在 HTTP 出站剥成 `[{}]`——缓存未命中的冷路径整层丢字段（热路径因 Redis JSON 往返侥幸幸存，service 层 int-spec 不可见），详见 area.api-spec.ts 头注 |
 
 ## 5. system 模块（`modules/system/`）
 
@@ -133,13 +138,14 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 
 | 端点 | 方法/路径 | 守卫 | 权限点 | 请求形态 | API 级测试策略 |
 |---|---|---|---|---|---|
-| health | GET `/app/health/{network,postgres,memory-heap,memory-rss,disk}` | Sign 链 | `app:health:*` | — | 只读冒烟（postgres 端点直接验 PG 连通，迁移回归相关，优先级高） |
+| health | GET `/app/health/{network,postgres,memory-heap,memory-rss,disk}` | Sign 链 | `app:health:*` | — | **B 段已测**（health.api-spec.ts）：postgres 断言 up（迁移回归直接验证）；memory-heap/rss/disk 断言受控二值（20000 + indicator status up/down——本仓库 terminus 不抛 503；或超阈兜底 50000）。出参形状实测只有 indicator 键、无 `{status,info,details}` 外壳。network 外连 baidu.com，外部依赖不进回归（只登记不测） |
 
 ## 7. 根 controller（`src/app/`）
 
 | 端点 | 方法/路径 | 守卫 | 权限点 | 请求形态 | API 级测试策略 |
 |---|---|---|---|---|---|
-| app | GET `/`（DeviceFree+JwtFree）、`/auth`、`/deps` | 其余全局链仍跑 | 无 | — | `/deps` 返回 PG/Redis 连通状态，迁移回归相关，冒烟 |
+| app | GET `/`（DeviceFree+JwtFree）、`/auth`、`/deps` | 其余全局链仍跑 | 无 | — | **B 段已测**（health.api-spec.ts）：`/` 匿名单因子签名可达 + 缺签名头 40112；`/auth`、`/deps` 登录态 20000 / 匿名 40101。
+  **勘误**：`/deps` 返回的是 package.json 依赖清单（`getPkgDeps`），不是 PG/Redis 连通状态——原记录与本表来源核对时不符，已按实现修正 |
 
 ---
 
@@ -152,3 +158,26 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 - **A 段试点**：`app/demo`（标准 CRUD 模板）+ `system/lang` + `system/locale`（含公开 message 端点、批量数组 create、按 key 删除三种非标形态）——
   三份 `*.api-spec.ts` 已落地 `test/api/` 并入 `pnpm test:integration`（23 用例，describe 级握手+登录一次）。
   lang public 端点（`@WalnutAdminDecoratorCache`）已钉现状：命中后 1h TTL 内不回源，lang CRUD 不主动失效该键。
+
+## B 段补记（2026-10-26）
+
+- **新增 8 份 spec、45 用例**：`setting / error / key / monitor(cache+server) / logger / monitor-user / health(含根 controller) / area`。
+  通用约定沿用 A 段：describe 级握手+登录一次（root 短路权限）、afterEach/afterAll 自建自清（PG 行 + `WALNUT_CACHE_*` 键）、断言 `body.code` 契约。
+- **迁移回归修复（1 处）**：`shared/area` children/feedback 的缓存未命中冷路径曾整层丢字段——B4 把 Mongo `.lean()`
+  普通对象换成无 `@Expose` 的 PG 实体实例，全局 ClassSerializerInterceptor（excludeExtraneousValues: true）出站剥成
+  `[{}]`（热路径因 Redis JSON 往返侥幸幸存，service 层 int-spec 不可见）。已在 `repo.findChildrenByPcode`
+  最小修复（投影回 `{name, code, pcode}`，对齐 Mongo lean 版），`area.tree.int-spec` 的行形态断言同步更新。
+- **前迁移遗留缺陷（登记，未修）**：`SharedBLPathService.shouldSkip` 的后缀表含 `'/state'`，全局异常过滤器
+  （`WalnutAdminFilterExceptionAll`）对尾缀 `/state` 的请求**提前 return 不落响应**——`POST /app/monitor/user/state`
+  等路径上任何异常（含 40099 受控错误）都会让请求静默悬挂。非迁移回归（该逻辑自 monorepo merge 起未变），
+  修复属独立缺陷处理，monitor-user spec 只避开该路径的错误断言。
+- **其他钉现状（非回归，断言固化）**：`monitor/cache read` 出参恒 `{}`；cache delete 是 fire-and-forget（响应先于
+  DEL 落 Redis）；`logger list` 的 fileSize 是 `x.xx KB` 字符串、`monitor/server mem` 是 `x.xx GB` 字符串；terminus
+  健康检查出参无 `{status,info,details}` 外壳、超阈不抛 503 而是返回 `status:'down'`；error controller ErrorMap 的
+  40112-40117 异常类与 contract 错误码错位（选了无错位的 40000/40103/40300/50000 断言）。
+- **测试基建口径**：`anon()` 在 `setAuth()` 之后签的是双因子（无 Authorization 头），对 JwtFree+Sign 生效的路由
+  （如 `GET /`）会 40112——匿名断言需先 `setAuth(null)` 回单因子；外部依赖端点（`/app/health/network` 外连
+  baidu.com）不进回归。
+- **测试基建修复（1 处）**：helpers `cleanupFixedCacheKeys` 原样 `redis.del` 逻辑键，漏加
+  `AppTechCacheService` 落键时的 `WALNUT_CACHE_` 前缀——DEL 恒为静默 no-op（A 段 lang spec 的清场因此一直
+  未生效，只是缓存内容确定才没暴露）。已修为删除前补前缀，area 层级缓存（跨轮共享）的跨 suite 污染随之消除。

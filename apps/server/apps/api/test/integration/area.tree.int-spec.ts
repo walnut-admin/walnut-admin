@@ -197,9 +197,11 @@ describe('B4 shared_area tree (recursive CTE + CYCLE, on real PG)', () => {
     const children = await areaService.getChildrenByPcodeWithCache('91')
 
     expect(children.map(i => i.code)).toEqual(['9101', '9102'])
-    // TypeORM find 恒带 PK（identity map 需要）：行形态 = Mongo 投影 + uuid 主键
-    // （B1 起「PG 响应以 id 为唯一标识」既定口径，消费方按 code/name/pcode 取用不受影响）
-    expect(Object.keys(children[0]).sort()).toEqual(['code', 'id', 'name', 'pcode'])
+    // 行形态 = Mongo `.lean()` 投影（仅 name/code/pcode，不带主键）—— B 段 API 回归
+    // 勘误：原 TypeORM find 实体实例会被全局 ClassSerializer（excludeExtraneousValues）
+    // 在 HTTP 出站剥成 `{}`（冷路径整层丢字段，见 api/area.api-spec），repo 已改为
+    // 投影普通对象，此处同步钉住三字段形态
+    expect(Object.keys(children[0]).sort()).toEqual(['code', 'name', 'pcode'])
 
     // 同参数二次调用走缓存，出参一致
     const again = await areaService.getChildrenByPcodeWithCache('91')
@@ -211,14 +213,16 @@ describe('B4 shared_area tree (recursive CTE + CYCLE, on real PG)', () => {
 
     const tree = await areaService.feedback('910101001') as IAreaNode[]
 
-    // 根是省、逐级向下到目标所在街道层；同级兄弟齐全
-    expect(tree).toHaveLength(1)
-    const province = tree[0]
-    expect(province.code).toBe('91')
+    // 根是省、逐级向下到目标所在街道层；同级兄弟齐全。
+    // feedback 按「同层整层收集」——B 段起 api 级 area spec 可能并存自己的省级行
+    // （集成库同库共享、文件执行顺序不保证），根断言按 code 定位 91，不锁数组长度
+    expect(tree.length).toBeGreaterThanOrEqual(1)
+    const province = tree.find(i => i.code === '91')!
+    expect(province).toBeDefined()
     expect(province.depth).toBe(0)
     expect(province.isLeaf).toBe(false)
 
-    const city = province.children[0]
+    const city = province.children.find(i => i.code === '9101')!
     expect(city.code).toBe('9101')
     expect(city.isLeaf).toBe(false)
 
@@ -226,7 +230,7 @@ describe('B4 shared_area tree (recursive CTE + CYCLE, on real PG)', () => {
     expect(district.isLeaf).toBe(false)
 
     // 最深返回层级（街道层）isLeaf 一致为 true（feedback 场景按最深层判定）
-    const street = district.children[0]
+    const street = district.children.find(i => i.code === '910101001')!
     expect(street.code).toBe('910101001')
     expect(street.isLeaf).toBe(true)
     expect(street.depth).toBe(3)

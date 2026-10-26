@@ -214,13 +214,18 @@ export class WalnutApiClient {
     }
   }
 
-  /** 清掉无 seed 片段的固定缓存键（响应缓存装饰器跨轮共享，lang/locale spec 用） */
+  /**
+   * 清掉无 seed 片段的固定缓存键（响应缓存装饰器跨轮共享，lang/locale/area spec 用）。
+   * 入参是逻辑键（与 hasWalnutCacheKey 同口径）；AppTechCacheService 落 Redis 时统一加
+   * `WALNUT_CACHE_` 前缀，这里删除前必须补上，否则 DEL 是静默 no-op（B 段 area spec 抓出：
+   * 层级缓存跨轮残留会让相邻 suite 的 feedback 拿到串台数据）。
+   */
   async cleanupFixedCacheKeys(...keys: string[]): Promise<void> {
     if (keys.length === 0) {
       return
     }
     const redis = this.app.get(AppTechRedisService).getClient()
-    await redis.del(keys)
+    await redis.del(keys.map(key => (key.startsWith('WALNUT_CACHE') ? key : `WALNUT_CACHE_${key}`)))
   }
 
   /** 断言用：WALNUT_CACHE_<key> 是否存在（响应缓存路径验证） */

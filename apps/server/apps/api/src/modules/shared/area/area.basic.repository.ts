@@ -70,13 +70,21 @@ export class SharedAreaBasicRepository extends WalnutAdminCommonPgBaseRepository
   }
 
   /**
-   * @description 按 pcode 查一层子节点（对齐 Mongo 版 find({pcode}).select(...)；输出
-   * 确定性排序 ORDER BY code，对应 phase2 5.1 日常路径 SQL）
+   * @description 按 pcode 查一层子节点（对齐 Mongo 版 find({pcode}).select('-_id name code pcode').lean()；
+   * 输出确定性排序 ORDER BY code，对应 phase2 5.1 日常路径 SQL）
+   *
+   * B 段 API 回归修复（HTTP 全链 spec 抓出的迁移回归）：Mongo 版走 `.lean()` 返回普通
+   * 对象，PG 版 `find()` 返回实体实例 —— 全局 ClassSerializerInterceptor
+   * （excludeExtraneousValues: true）会把无 @Expose 的实体剥成 `{}`，缓存未命中的冷路径
+   * 经 controller 出站时整层丢字段（热路径因 Redis JSON 往返侥幸幸存，故 service 层
+   * int-spec 不可见）。这里投影回 `{ name, code, pcode }` 普通对象，与 Mongo lean 版
+   * 逐字段对齐（本就不带 uuid 主键，见 ISharedAreaTreeNode 注释）。
    */
   public async findChildrenByPcode(pcode: string, em?: EntityManager): Promise<SharedAreaEntity[]> {
-    return this.getManager(em)
+    const rows = await this.getManager(em)
       .getRepository(SharedAreaEntity)
       .find({ where: { pcode }, select: { name: true, code: true, pcode: true }, order: { code: 'ASC' } })
+    return rows.map(({ name, code, pcode: parentPcode }) => ({ name, code, pcode: parentPcode }) as SharedAreaEntity)
   }
 
   /**
