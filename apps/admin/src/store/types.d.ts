@@ -77,8 +77,9 @@ export namespace IStoreApp {
 
   /**
    * App lock state
+   * 锁屏偏好是客户端本地状态：初始为默认值、尚未持有服务端行主键，故剔除 id
    */
-  export interface Lock extends IResponseData.System.User.LockStatus {
+  export interface Lock extends Omit<IResponseData.System.User.LockStatus, 'id'> {
     loading: boolean
     enable: boolean
   }

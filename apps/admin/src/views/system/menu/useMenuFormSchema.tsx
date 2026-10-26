@@ -31,7 +31,7 @@ export function useMenuFormSchema(
       treeData.value
       && findPath<IAppSystemMenuForm>(
         treeData.value,
-        n => n._id === formData.value.pid,
+        n => n.id === formData.value.pid,
       ),
   )
 
@@ -77,7 +77,7 @@ export function useMenuFormSchema(
       componentProp: {
         treeSelectProps: {
           options: treeData ?? [],
-          keyField: '_id',
+          keyField: 'id',
           labelField: 'title',
         },
       },

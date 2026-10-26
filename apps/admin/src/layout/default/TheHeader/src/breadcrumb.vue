@@ -41,6 +41,8 @@ const getChildren = computed((): TreeNodeItem<IModels.SystemMenu>[] | undefined 
   // handle menuActiveName
   if (currentRoute.value.meta.menuActiveName) {
     matched?.push({
+      // 由当前路由合成的虚拟面包屑节点，不经服务端 —— id 置空占位
+      id: '',
       name: currentRoute.value.name as string,
       path: currentRoute.value.path,
       meta: {
@@ -95,7 +97,7 @@ async function onDropdownSelect(key: string) {
         v-if="appStoreSettingDev.getBreadcrumbShow"
         :id="appStoreSettingDev.getBreadcrumbId" :separator="appStoreSettingDev.getBreadcrumbSeparator"
       >
-        <n-breadcrumb-item v-for="item in getChildren" :key="item._id">
+        <n-breadcrumb-item v-for="item in getChildren" :key="item.id">
           <n-config-provider
             v-if="userStorePreference.getBreadcrumbShowDropdown"
             :theme="getTheme"

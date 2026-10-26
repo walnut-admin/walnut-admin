@@ -17,7 +17,7 @@ const useAppStoreUserProfileInside = defineStore(StoreKeys.USER_PROFILE, {
 
   getters: {
     getUserId(state) {
-      return state.profile._id
+      return state.profile.id
     },
 
     getUserName(state) {

@@ -29,8 +29,9 @@ export function getUserProfileAPI() {
 
 /**
  * @description update profile
+ * 载荷不含主键（me/profile 按 token 定位当前用户），对齐 server SysUserMeDTOUpdateProfileRequest
  */
-export function updateProfileAPI(data: IModels.SystemUser) {
+export function updateProfileAPI(data: Partial<IModels.SystemUser>) {
   return AppAxios.put<boolean>({
     url: systemUserMe.UPDATE_PROFILE,
     data,

@@ -23,7 +23,7 @@ defineOptions({
   name: 'Menu',
 })
 
-const keyField = '_id'
+const keyField = 'id'
 
 const { t } = useAppI18n()
 

@@ -11,7 +11,7 @@ defineOptions({
 
 // locale unique key
 const key = 'lang'
-const keyField = '_id'
+const keyField = 'id'
 
 const [
   register,
@@ -103,7 +103,7 @@ const [
         onClick: async (p) => {
           await useAppRouterPush({
             name: 'Locale',
-            query: { langId: p._id },
+            query: { langId: p.id },
           })
         },
       },

@@ -36,7 +36,7 @@ export function createBeforeEachGuard(router: Router) {
 
     // Get user info
     const userStoreProfile = useAppStoreUserProfile()
-    if (isNil(userStoreProfile.profile?._id)) {
+    if (isNil(userStoreProfile.profile?.id)) {
       // fetch profile
       await userStoreProfile.getProfile()
       // LINK https://router.vuejs.org/guide/advanced/dynamic-routing.html#adding-routes-inside-navigation-guards

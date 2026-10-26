@@ -21,7 +21,7 @@ const typeId = useRouterParam('id')
 // locale unique key
 const localeKey = 'dictData'
 const authKey = 'dict:data'
-const keyField = '_id'
+const keyField = 'id'
 
 async function onBack() {
   await useAppRouterPush({ name: 'Dict', replace: true })

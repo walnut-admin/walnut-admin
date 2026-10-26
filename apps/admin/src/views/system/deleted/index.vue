@@ -22,7 +22,7 @@ const keyField = 'id'
 
 const { t } = useAppI18n()
 
-const logOperateFormData = ref<IModels.SystemLogOperate>({})
+const logOperateFormData = ref<IModels.SystemLogOperate>({} as IModels.SystemLogOperate)
 
 const [registerLogOperate, { onOpen }] = useForm<IModels.SystemLogOperate>({
   localeUniqueKey: 'log.operate',
@@ -45,7 +45,7 @@ const [registerLogOperate, { onOpen }] = useForm<IModels.SystemLogOperate>({
     autoFocus: false,
     actionType: 'detail',
     onNo() {
-      logOperateFormData.value = {}
+      logOperateFormData.value = {} as IModels.SystemLogOperate
     },
   },
 

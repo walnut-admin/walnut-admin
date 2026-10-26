@@ -14,7 +14,7 @@ defineOptions({
 
 // locale unique key
 const key = 'role'
-const keyField = '_id'
+const keyField = 'id'
 
 const { getLeftMenu } = useMenuTree()
 

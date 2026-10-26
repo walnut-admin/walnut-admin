@@ -23,7 +23,7 @@ const auths = {
 const localeKey = 'log.operate'
 // auth key
 const authKey = 'log:operate'
-const keyField = '_id'
+const keyField = 'id'
 
 const showMerge = ref(false)
 const mergeLoading = ref(false)
@@ -45,7 +45,7 @@ function toSnapshotText(value: Recordable | undefined): string {
   return typeof value === 'string' ? value : JSON.stringify(value, null, 2)
 }
 
-const deviceData = ref<IModels.SystemDevice>({})
+const deviceData = ref<IModels.SystemDevice>({} as IModels.SystemDevice)
 
 const [registerDevice, { onOpen }] = useForm<IModels.SystemDevice>({
   dialogPreset: 'modal',
@@ -334,7 +334,7 @@ const [
           async onClick() {
             try {
               const formData = onGetFormData()
-              const device = await getLogOperateDeviceAPI(formData.value._id!)
+              const device = await getLogOperateDeviceAPI(formData.value.id)
               deviceData.value = device
               onOpen()
             }
@@ -357,7 +357,7 @@ const [
             mergeLoading.value = true
             try {
               const formData = onGetFormData()
-              const snapshot = await getLogOperateSnapshotAPI(formData.value._id!)
+              const snapshot = await getLogOperateSnapshotAPI(formData.value.id)
               mergeData.value = {
                 snapshotBefore: toSnapshotText(snapshot.snapshotBefore),
                 snapshotAfter: toSnapshotText(snapshot.snapshotAfter),

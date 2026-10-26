@@ -24,7 +24,7 @@ export declare namespace WCrud {
      * @default false
      * @description strict create/update form data based on schema item
      * some fields from read endpoint is useless in update endpoint, will cause params error
-     * set true to pick fields that are declared in form schema, also concat with _id by default
+     * set true to pick fields that are declared in form schema, also concat with id by default
      */
     strictFormData?: boolean
 
@@ -72,7 +72,7 @@ export declare namespace WCrud {
       onGetActionType: () => Ref<IActionType>
       onApiList: () => Promise<void>
       onGetApiListParams: () => Ref<BaseListParams<T>>
-      onSetDefaultQueryFormData: (newQueryFormData: NullableRecord<T>) => void
+      onSetDefaultQueryFormData: (newQueryFormData: Partial<NullableRecord<T>>) => void
     }
   }
 

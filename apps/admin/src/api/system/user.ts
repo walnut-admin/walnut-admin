@@ -17,7 +17,7 @@ const systemUser = {
 /**
  * @description clear password
  */
-export function clearPasswordAPI(data: { _id: string }) {
+export function clearPasswordAPI(data: { id: string }) {
   return AppAxios.post<boolean>({
     url: systemUser.CLEAR_PASSWORD,
     data,

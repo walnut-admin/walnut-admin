@@ -16,7 +16,7 @@ const { t } = useAppI18n()
 // locale unique key
 const localeKey = 'dictType'
 const authKey = 'dict:type'
-const keyField = '_id'
+const keyField = 'id'
 
 const [
   register,

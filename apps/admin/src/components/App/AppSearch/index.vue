@@ -159,7 +159,7 @@ useEventListener('keydown', (e) => {
               <WScrollbar ref="scrollbarRef" height="30vh">
                 <n-list-item
                   v-for="(item, idx) in getFilteredResults"
-                  :key="item._id"
+                  :key="item.id"
                   class="group cursor-pointer rounded-lg px-2 py-1"
                   :style="{
                     background: idx === activeIndex ? getTheme.common.primaryColor : '',

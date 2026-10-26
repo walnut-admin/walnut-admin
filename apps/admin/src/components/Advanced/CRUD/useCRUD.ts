@@ -29,7 +29,7 @@ export function useCRUD<T extends IModels.Base>(props: WCrud.Hooks.UseCRUD.Props
     onGetActionType: () => wCrudRef.value!.onGetActionType(),
     onApiList: async () => await wCrudRef.value!.onApiList(),
     onGetApiListParams: () => wCrudRef.value!.onGetApiListParams(),
-    onSetDefaultQueryFormData: (newQueryFormData: NullableRecord<T>) => wCrudRef.value!.onSetDefaultQueryFormData(newQueryFormData),
+    onSetDefaultQueryFormData: (newQueryFormData: Partial<NullableRecord<T>>) => wCrudRef.value!.onSetDefaultQueryFormData(newQueryFormData),
   }
 
   return [register, methods]

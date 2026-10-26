@@ -22,7 +22,7 @@ const { stateRef: formData } = useState({
   roleId: userStoreProfile.getCurrentRole,
 })
 
-const getCurrentRoleName = computed(() => userStoreProfile.getRoleList?.find(i => i._id === formData.value.roleId)?.roleName)
+const getCurrentRoleName = computed(() => userStoreProfile.getRoleList?.find(i => i.id === formData.value.roleId)?.roleName)
 
 const [register, { onOpen }] = useForm<typeof formData.value>({
   showFeedback: false,
@@ -70,7 +70,7 @@ const [register, { onOpen }] = useForm<typeof formData.value>({
         path: 'roleId',
       },
       componentProp: {
-        options: userStoreProfile.getRoleList?.map(i => ({ label: i.roleName!, value: i._id! })),
+        options: userStoreProfile.getRoleList?.map(i => ({ label: i.roleName!, value: i.id })),
       },
     },
   ],

@@ -13,7 +13,7 @@ defineOptions({
 // locale unique key
 const localeKey = 'app.monitor.user'
 const authKey = 'user'
-const keyField = '_id'
+const keyField = 'id'
 
 const { t } = useAppI18n()
 

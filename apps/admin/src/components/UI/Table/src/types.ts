@@ -69,9 +69,9 @@ export declare namespace WTable {
       onGetApiListParams: () => Ref<BaseListParams<T>>
 
       /**
-       * @description set default query form data
+       * @description set default query form data (partial, merge into current)
        */
-      onSetDefaultQueryFormData: (newQueryFormData: NullableRecord<T>) => void
+      onSetDefaultQueryFormData: (newQueryFormData: Partial<NullableRecord<T>>) => void
     }
 
     interface WTableInst<T> extends Partial<NDataTableInst>, ExtendInst<T> { }

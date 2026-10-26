@@ -4,7 +4,8 @@ import type { ValueOfAppConstCacheKeyStrategy, ValueOfAppConstLockMode, ValueOfA
 
 export namespace IModels {
   export interface Base {
-    _id?: string
+    // PG 主键（uuid）：Safe DTO 统一响应 `id`，Mongo `_id` 已不存在（phase2 B1-B9）
+    id: string
     createdAt?: Date
     updatedAt?: Date
   }
@@ -218,9 +219,8 @@ export namespace IModels {
   }
 
   // system delete
-  export interface SystemDeleted extends Omit<Base, 'updatedAt' | '_id'> {
-    // B9 起 sys_deleted 迁 PG：主键响应契约 `_id` → `id`（uuid），content 为 jsonb 对象
-    id?: string
+  export interface SystemDeleted extends Omit<Base, 'updatedAt'> {
+    // B9 起 sys_deleted 迁 PG：主键 `id`（uuid，继承 Base），content 为 jsonb 对象
     content?: Recordable
     modelName?: string
     collectionName?: string

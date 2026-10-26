@@ -11,7 +11,7 @@ defineOptions({
 const localeKey = 'log.auth'
 // auth key
 const authKey = 'log:auth'
-const keyField = '_id'
+const keyField = 'id'
 
 const [register, {
   onDeleteManyConfirm,

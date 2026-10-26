@@ -7,7 +7,9 @@ import { AppAxios } from '@/utils/axios'
 export type BaseAPIType<T extends IModels.Base> = InstanceType<typeof BaseAPI<T>>
 
 function omitUnnecessaryFields<T extends IModels.Base>(data: T) {
-  return omit(data, ['_id', 'createdAt', 'updatedAt'])
+  // PG 化后主键是 id（uuid）：create 不带 id（服务端生成），update 的 id 只走 URL 参数，
+  // body 一律剔除（服务端 Safe DTO 的 RealPickType 也不收 id）
+  return omit(data, ['id', 'createdAt', 'updatedAt'])
 }
 
 export class BaseAPI<T extends IModels.Base> {
@@ -45,7 +47,7 @@ export class BaseAPI<T extends IModels.Base> {
   update(data: T) {
     return AppAxios.put<T>(
       {
-        url: `${this.baseAPI}/${data._id}`,
+        url: `${this.baseAPI}/${data.id}`,
         data: omitUnnecessaryFields<T>(data),
       },
     )

@@ -15,7 +15,7 @@ const emits = defineEmits<{ change: [cropperUrl: string], success: [newAvatar: s
 const { t } = useAppI18n()
 
 const userStoreProfile = useAppStoreUserProfile()
-const userId = userStoreProfile.profile._id!
+const userId = userStoreProfile.profile.id!
 
 const show = ref(false)
 const loading = ref(false)

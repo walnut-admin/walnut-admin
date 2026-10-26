@@ -14,7 +14,7 @@ defineOptions({
 // locale unique key
 const localeKey = 'appSetting'
 const authKey = 'app:setting'
-const keyField = '_id'
+const keyField = 'id'
 
 const { t } = useAppI18n()
 

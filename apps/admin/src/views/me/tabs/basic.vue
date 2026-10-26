@@ -23,14 +23,14 @@ const appStoreAdapter = useAppStoreAdapter()
 const avatarUploadRef = useTemplateRef<WAvatarUploadInst>('avatarUploadRef')
 const formData = ref<IModels.SystemUser>({
   ...pick(userStoreProfile.profile, [
-    '_id',
+    'id',
     'userName',
     'nickName',
     'description',
     'gender',
     'avatar',
   ]),
-})
+} as IModels.SystemUser)
 
 const loading = ref(false)
 const tempAvatar = ref()
@@ -113,7 +113,7 @@ const [register, { validate }] = useForm<typeof formData.value>({
             if (!isAvatarUploadSuccess)
               return
 
-            await updateProfileAPI(omit(formData.value, ['_id']))
+            await updateProfileAPI(omit(formData.value, ['id']))
             useAppMsgSuccess()
             await userStoreProfile.getProfile()
           }

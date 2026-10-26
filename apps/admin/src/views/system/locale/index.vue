@@ -19,7 +19,7 @@ const langId = useRouterQuery('langId')
 
 // locale unique key
 const key = 'locale'
-const keyField = '_id'
+const keyField = 'id'
 
 const langList = ref<OptionDataItem[]>([])
 onBeforeMount(async () => {

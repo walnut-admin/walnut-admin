@@ -238,7 +238,7 @@ const [registerDetailForm, { onOpen: onOpenDetailModal, onClose: onCloseDetailMo
           if (confirmed) {
             submitLoading.value = true
             try {
-              await (!detailFormData.value?.locked ? lockDeviceAPI : unlockDeviceAPI)(detailFormData.value?._id as string)
+              await (!detailFormData.value?.locked ? lockDeviceAPI : unlockDeviceAPI)(detailFormData.value?.id as string)
               useAppMsgSuccess()
               onCloseDetailModal()
               onApiList()
@@ -260,7 +260,7 @@ const [registerDetailForm, { onOpen: onOpenDetailModal, onClose: onCloseDetailMo
           if (confirmed) {
             submitLoading.value = true
             try {
-              await (!detailFormData.value?.banned ? banDeviceAPI : unbanDeviceAPI)(detailFormData.value?._id as string)
+              await (!detailFormData.value?.banned ? banDeviceAPI : unbanDeviceAPI)(detailFormData.value?.id as string)
               useAppMsgSuccess()
               onCloseDetailModal()
               onApiList()
@@ -279,7 +279,7 @@ const [registerDetailForm, { onOpen: onOpenDetailModal, onClose: onCloseDetailMo
         disabled: computed(() => !detailFormData.value?.active),
         async onClick() {
           try {
-            const res = await getDeviceCurrentActiveUserAPI(detailFormData.value?._id as string)
+            const res = await getDeviceCurrentActiveUserAPI(detailFormData.value?.id as string)
             currentActiveUserFormData.value = res
             onOpenCurrentActiveUserModal()
           }
@@ -298,7 +298,7 @@ const [registerDetailForm, { onOpen: onOpenDetailModal, onClose: onCloseDetailMo
         async onClick() {
           historyLoading.value = true
           try {
-            const res = await getDeviceHistoryUsersAPI(detailFormData.value?._id as string)
+            const res = await getDeviceHistoryUsersAPI(detailFormData.value?.id as string)
             historyData.value = res
             historyShow.value = true
           }
@@ -473,7 +473,7 @@ onMounted(() => {
     >
       <DeviceCard
         v-for="device in data"
-        :key="device._id"
+        :key="device.id"
         :device="device"
         :detail-button-auth="auths.READ"
         @detail="onDetail"
@@ -517,7 +517,7 @@ onMounted(() => {
           bordered
           striped
           :single-line="false"
-          :row-key="(row: any) => row._id"
+          :row-key="(row: any) => row.id"
         />
       </WModal>
     </WAppAuthorize>

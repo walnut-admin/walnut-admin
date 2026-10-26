@@ -21,7 +21,7 @@ const userStoreAuth = useAppStoreUserAuth()
 
 // locale unique key
 const key = 'user'
-const keyField = '_id'
+const keyField = 'id'
 
 const { stateRef: updatePasswordFormData, resetState: resetPasswordFormData } = useState({ userId: '', userName: '', newPassword: '' })
 
@@ -256,7 +256,7 @@ const [
               const { confirmed } = await useAppConfirm(t('app.base.pass.clear.confirm', { userName: rowData.userName }))
 
               if (confirmed) {
-                const res = await clearPasswordAPI({ _id: rowData[keyField]! })
+                const res = await clearPasswordAPI({ id: rowData[keyField]! })
 
                 if (res) {
                   useAppMsgSuccess()
