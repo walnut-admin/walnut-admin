@@ -1,6 +1,6 @@
 # Phase 2：关系模型设计（MongoDB → PostgreSQL）
 
-**Status:** 评审中（工作文档，评审通过后归档位置另定）
+**Status:** 已完成（2026-10-25 全部拍板并定稿；实施已随 `refactor/postgres-migration` 落地，收尾摘要见 ADR 0021 的 Implementation 小节）
 **Date:** 2026-10-25
 **上游决策:** ADR-0021（TypeORM 1.x / UUID 主键 / 事务装饰器 API 不变 / 回收站完整保留 / 本地+seed 为数据基准 / PG 18-alpine）
 **Phase 3 输入:** 本文的逐表映射与约束清单；**Phase 4 输入:** 第 7 节 ETL 接口约定。
@@ -9,7 +9,7 @@
 
 - **2026-10-25 初稿完成 review，修订完毕**：1 P0（sys_menu.pid 改可空）、2 P1（数组 `unique` 误声明勘误 + ETL 预检、总览 FK 口径对齐推荐）、3 P2（uuidv7 取舍记录、递归 CTE 环保护、role_name 收紧预检）、3 P3（locale 索引计数对齐、排序边界明示、递归 CTE 措辞勘正），全部已合入正文。
 - **2026-10-25 全部拍板**：维护者对第 8 节 12 个开放问题逐条定案，结论已合入正文对应小节（含计数回调：log_operate / app_error 增 raw_* 旁路列、app_setting 增 created_by 列、auth_refresh_token.device_id 建 FK），第 8 节转为拍板结果存档形态。
-- **当前状态：已全部拍板，定稿待最终批准。**
+- **当前状态：已完成**（原「已全部拍板，定稿待最终批准」的口径作废 —— 实施已落地）。
 
 范围：24 个 Mongoose 集合 → PostgreSQL 表结构（列 / 类型 / NULL / 默认 / 唯一 / FK / 索引）。
 非目标：TypeORM 实体代码（Phase 3）、ETL 实现（Phase 4）。

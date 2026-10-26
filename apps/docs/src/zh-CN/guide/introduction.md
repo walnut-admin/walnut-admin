@@ -25,7 +25,7 @@
 
 - <WBaseLink preset="ts">TypeScript</WBaseLink>
 - [nestjs]
-- [mongodb]
+- [postgresql]
 - [Redis]
 
 ## 代码
@@ -54,6 +54,6 @@
 [walnut-admin]: https://github.com/walnut-admin
 [walnut-admin-client]: https://github.com/walnut-admin/walnut-admin-client
 [walnut-admin-server]: https://github.com/walnut-admin/walnut-admin-server
-[mongodb]: https://www.mongodb.com/
+[postgresql]: https://www.postgresql.org/
 [Redis]: https://redis.io/
 [nestjs]: https://nestjs.com/

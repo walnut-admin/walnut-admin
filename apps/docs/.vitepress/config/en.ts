@@ -62,7 +62,7 @@ const nav: DefaultTheme.NavItem[] = [
       },
       {
         text: 'Database',
-        link: '/backend/mongodb',
+        link: '/backend/postgresql',
       },
     ],
   },
@@ -265,7 +265,7 @@ const sidebar: DefaultTheme.Sidebar = {
           },
           {
             text: 'Database',
-            link: '/backend/mongodb',
+            link: '/backend/postgresql',
           },
         ],
       },

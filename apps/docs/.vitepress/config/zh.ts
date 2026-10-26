@@ -67,7 +67,7 @@ const backendContent = [
   },
   {
     text: '数据库与初始化数据',
-    link: '/content/backend/mongodb',
+    link: '/content/backend/postgresql',
   },
   // 「后端规范」一簇：原 apps/server/AGENTS.md 的参考部分（2026-09-23 拆分）。
   // 每篇都在 AGENTS.md 的「先看哪份」表里有对应的 repo 相对路径。
@@ -80,7 +80,7 @@ const backendContent = [
     link: '/content/backend/dto',
   },
   {
-    text: 'MongoDB 事务',
+    text: 'PostgreSQL 事务',
     link: '/content/backend/transactions',
   },
   {

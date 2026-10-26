@@ -7,10 +7,11 @@
 
 后端自脚手架时代起建立在 Mongoose 之上：以 schema 文件数为准共 24 个集合；事务经
 `@WalnutDBTransaction()` 拦截器开启 `ClientSession` 挂到请求上，业务层用 `@WalnutDBSession()`
-取出后**逐层显式传参**给仓库层（机制见 [MongoDB 事务](../backend/transactions.md)）；seed 数据是
+取出后**逐层显式传参**给仓库层（机制见 [PostgreSQL 事务](../backend/transactions.md) —— 该页
+当时记录的是 Mongo session 实现，已随实施改写为 PG 版本）；seed 数据是
 保留 Extended JSON（`$oid` / `$date`）的 JSON 文件；跑起来的最低要求是 MongoDB **副本集** ——
-本地开发也得 `rs.initiate()` 起一个单节点副本集（见
-[数据库与初始化数据](../backend/mongodb.md)）。
+本地开发也得 `rs.initiate()` 起一个单节点副本集（迁移前状态；对应页面已改写为
+[数据库与初始化数据](../backend/postgresql.md)）。
 
 推动整体迁移的是两件叠加的事：
 
@@ -122,12 +123,36 @@ class UserController {
      等价查询并逐字段对账结果。
   5. **测试 / CI / seed 工具链重建**：seed / export / 形态校验 / 打包这条初始化数据链路都按
      Extended JSON 与 Mongo 语义实现，随库重建；CI 里的 MongoDB 服务容器同步换成 PostgreSQL。
-- **文档连带**：[数据库与初始化数据](../backend/mongodb.md) 与
-  [MongoDB 事务](../backend/transactions.md) 描述的是迁移前现状，随实施推进改写为 PostgreSQL
-  版本（纳入实施清单，不在本 ADR 内展开）。
+- **文档连带**：[数据库与初始化数据](../backend/postgresql.md)（原 mongodb.md）与
+  [PostgreSQL 事务](../backend/transactions.md)（原 MongoDB 事务）已随实施改写为 PostgreSQL 版本，
+  mongoimport / 副本集时代的口径以本 ADR 与 git 存档为准。
 
 ## Related
 
-- [数据库与初始化数据](../backend/mongodb.md) —— 迁移前 MongoDB 的运行要求（副本集）与 seed 链路。
-- [MongoDB 事务](../backend/transactions.md) —— `@WalnutDBTransaction()` 的现有实现机制，
-  本决策保持其 API 不变。
+- [数据库与初始化数据](../backend/postgresql.md) —— PG 时代的连接配置、seed / export 链路与
+  ETL 归档说明。
+- [PostgreSQL 事务](../backend/transactions.md) —— `@WalnutDBTransaction()` 的现行实现机制
+  （QueryRunner 语义与悲观锁要点），本决策保持其 API 不变。
+
+## Implementation
+
+实施已完成（2026-10-25，分支 `refactor/postgres-migration`），分期概要：
+
+- **Phase 2**：逐表映射与约束清单定稿（仓库根 `postgres-migration-phase2.md`，已全部拍板）。
+- **Phase 3（B0-B9）**：TypeORM 实体与 `WalnutAdminCommonPgBaseRepository` 基类、uuid 三件套
+  （pipe / validator / 参数装饰器）、回收站 PG 通道（jsonb 快照 + 恢复注册表）、事务拦截器
+  收窄为 PG 单引擎（QueryRunner 语义）、lang i18n 聚合管道的 SQL 重写。
+- **Phase 4（ETL）**：本地存量一次性搬入 PG，行 id 由 ObjectId 经 uuid v5 派生，与 seed 重建
+  路径逐行一致；线上按 Decision 6 不迁。
+- **Phase 5**：Mongo 依赖与双引擎代码摘除、前端 uuid 适配、seed / export 通道 PG 化
+  （`db:seed:pg` / `db:export:pg`）、生产编排与部署工作流换 `postgres:18-alpine` + 官方 redis、
+  文档面（本页与后端各篇）改写。
+
+与原决策的三处演进（均在 Phase 2 评审 / 实施中拍板）：
+
+1. **行政区划的 code / pcode 列放宽为 varchar(12)**：原判 9 位上限装不下 12 位村/居委会级编码，
+   以 ETL 实测分布为准修正（父子关系仍不建 FK，应用层校验兜底）；
+2. **`sys_log_operate.operation` 允许 NULL**：查询类操作没有业务操作对象，沿 Mongo 时代
+   `default: null` 的容 null 语义，而不是 Phase 2 草案的 NOT NULL；
+3. **ETL 通道一次性退役**：Mongo 读取端与打包入口随 Phase 5a 删除，映射规则收编进 `db:seed:pg`
+   （同一份 `etl-map.ts`），归档说明并入数据库文档。

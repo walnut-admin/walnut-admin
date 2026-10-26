@@ -29,7 +29,7 @@ API_PROBE_PATH="${API_PROBE_PATH:-/w/v1/static/images/demo.png}"
 
 # 后端起不来时的典型特征。保守取值：宁可漏报也不误报，
 # 漏报还有 healthcheck 与 --wait 兜底，误报会让部署白白失败。
-FATAL_RE='Nest can.t resolve|MODULE_NOT_FOUND|Cannot find module|EADDRINUSE|UnhandledPromiseRejection|MongoServerError|MongooseError|ECONNREFUSED|FATAL|SyntaxError|ReferenceError'
+FATAL_RE='Nest can.t resolve|MODULE_NOT_FOUND|Cannot find module|EADDRINUSE|UnhandledPromiseRejection|ECONNREFUSED|FATAL|SyntaxError|ReferenceError'
 # 后端启动成功标记：apps/server/apps/api/src/main.ts 中 app.listen() 之后的 console.log
 READY_RE='APP is running in'
 

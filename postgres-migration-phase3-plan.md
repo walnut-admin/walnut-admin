@@ -3,6 +3,9 @@
 > 真源文档：`postgres-migration-phase2.md`（表结构）与 ADR 0021（决策）。
 > 本文件是 Phase 3 的执行蓝图（2026-10-25 调研定稿），供各迁移批次 Agent 引用。
 > B0 已交付（fc0d51c）；本文件随批次推进更新勾选状态。
+>
+> **状态：已完成（2026-10-25）。** B0-B9 逐批验收通过；B10（终批清理）与 Phase 5 合并执行完毕
+> —— Mongo 依赖与双轨代码已全部摘除，收尾摘要在 ADR 0021 的 Implementation 小节。
 
 ## 0. 已锚定的机制（B0 交付，勿再发明）
 
@@ -37,7 +40,7 @@
 | B7 | SCC-A 账户团九表（user/identity/oauth/lock/mfa/preference/device/refresh + auth 全系 + security） | ◐ **B7a ✅ B7b ✅ B7c ✅**（7a=user/identity/oauth + auth 系签名适配 + review 挂单三项；7b=lock/mfa/preference/refresh 全 PG + 消费方单 em 归一；7c=auth 全链 + security 收口 + 登录全链 int-spec，SCC-A 九表全部 PG） |
 | B8 | sys_log_operate + sys_log_auth + techniques/event（fire-and-forget 旁路） | ✅ |
 | B9 | sys_deleted 收尾：恢复注册表装配、recover/recoverMine PG 化、Mongo 侧下线 | ✅ |
-| B10 | 终批清理（摘 MongooseModule、Mongo int-spec、双轨残留；与 Phase 5 合并执行） | |
+| B10 | 终批清理（摘 MongooseModule、Mongo int-spec、双轨残留；与 Phase 5 合并执行） | ✅（与 Phase 5 合并执行完毕） |
 
 ## 2. 三层改造模板（B1 确立，后续批次照抄）
 

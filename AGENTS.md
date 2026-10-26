@@ -16,7 +16,7 @@
 | 目录 | 包 | 技术栈 |
 |------|----|--------|
 | `apps/admin/` | `@walnut/admin` | Vue 3 + Vite 8 + Naive UI + UnoCSS（前端 SPA，默认端口 3100） |
-| `apps/server/` | `@walnut/server` | NestJS 11 + SWC + Mongoose + Redis（**自有内部 Nest monorepo**） |
+| `apps/server/` | `@walnut/server` | NestJS 11 + SWC + TypeORM + PostgreSQL + Redis（**自有内部 Nest monorepo**） |
 | `apps/docs/` | `@walnut/docs` | VitePress 文档站（端口 8886） |
 
 Node >= 24.13.0 ｜ pnpm >= 12.0.0 ｜ TypeScript 6.0.3 ｜ Turbo 2.11.2
@@ -25,7 +25,7 @@ Node >= 24.13.0 ｜ pnpm >= 12.0.0 ｜ TypeScript 6.0.3 ｜ Turbo 2.11.2
 
 ```
 apps/admin   @walnut/admin    Vue3 + Vite 8 + Naive UI + UnoCSS（前端 SPA）
-apps/server  @walnut/server   NestJS 11 + SWC + Mongoose + Redis（后端，内部 Nest monorepo）
+apps/server  @walnut/server   NestJS 11 + SWC + TypeORM + PostgreSQL + Redis（后端，内部 Nest monorepo）
 apps/docs    @walnut/docs     VitePress 文档站
 packages/platform-any/   contract · types · utils-core     ← 平台无关（CJS 双模构建 / 纯类型 / 纯工具 @walnut/utils）
 packages/platform-web/   client · http · ui               ← 浏览器/Vue（源码直消费，不构建）
@@ -66,7 +66,7 @@ packages/tooling/        tsconfig · eslint-config · commitlint-config · vites
 
 ```bash
 pnpm install          # 安装（pnpm 专用，由 packageManager 字段 + corepack 强制）
-pnpm dev              # 前端 + 后端（前端 3100；后端需 MongoDB replica set + Redis）
+pnpm dev              # 前端 + 后端（前端 3100；后端需 PostgreSQL + Redis）
 pnpm dev:server       # 只起后端（从根经 turbo 跑，cwd 是 apps/server）
 pnpm dev:docs         # 文档站（http://localhost:8886）
 pnpm build            # 全量构建（packages → apps）
@@ -98,6 +98,9 @@ pnpm knip             # 死代码检测（**当前是红的且有意维持**，�
   上下文不允许出现在 step/job 的 `if` 里，否则整个 workflow 会被判为 `Invalid workflow file`
   （启动即失败、0 个 job）。
 - 后端必须从 `apps/server/` 目录运行（ConfigModule 用 `process.cwd()` 定位 env）。
+- 数据库连接在后端 env 的 `DATABASE_PG_*` 一组（host/port/user/pass/name，与工具链的 seed/export
+  通道同源）：`pnpm db:seed:pg` 播初始化数据、`pnpm db:export:pg` 反向导出，
+  口径见 [`apps/docs/src/zh-CN/content/backend/postgresql.md`](./apps/docs/src/zh-CN/content/backend/postgresql.md)。
 
 ## 关键纪律
 
@@ -122,4 +125,4 @@ pnpm knip             # 死代码检测（**当前是红的且有意维持**，�
 ## 资源
 
 - 演示：https://www.walnut-admin.com ｜ 文档：https://walnut-admin-doc.netlify.app
-- Vue 3 · Naive UI · UnoCSS · Vite · NestJS · Mongoose · Redis
+- Vue 3 · Naive UI · UnoCSS · Vite · NestJS · TypeORM · PostgreSQL · Redis

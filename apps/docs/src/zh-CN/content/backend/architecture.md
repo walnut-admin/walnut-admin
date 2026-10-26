@@ -2,11 +2,11 @@
 
 > 本文是后端常驻指引 `apps/server/AGENTS.md` 的**参考部分**。改后端代码前请先读那份 ——
 > Repository 三模式、DTO 的两条硬规矩、Guard 执行顺序都在那里；本文补齐它放不下的目录结构、
-> 模块骨架与 Model 注入细节。
+> 模块骨架与 Entity 注册细节。
 
 ## 应用与内部库
 
-后端是 **NestJS 11 + SWC + Mongoose**，形态是**内部 Nest CLI monorepo**，不是 pnpm workspace 包：
+后端是 **NestJS 11 + SWC + PostgreSQL（TypeORM）**，形态是**内部 Nest CLI monorepo**，不是 pnpm workspace 包：
 
 - `apps/api/src/` —— Nest CLI 的 app：应用入口（`main.ts`）与全部业务源码
 - `libs/*/src` —— 内部库，经 tsconfig `paths` 以 `@walnut-server/*` 解析，与 app 一起由 SWC 编译
@@ -27,7 +27,7 @@ apps/api/src/                          # Nest CLI 的 app，入口 main.ts
 │   ├── crud/                          # CRUD 装饰器工厂 WalnutCrudDecorators
 │   └── walnut/                        # 权限 / 角色 / 上下文 / 缓存 / 操作日志等
 ├── guard/                             # 全局 Guard（IP、Security、Device、Risk、Cap、MFA、Sign、Lock）
-├── common/                            # 共享 DTO、Model 基类、Repository 基类
+├── common/                            # 共享 DTO、响应模型基座、PG 仓库基类
 ├── i18n/                              # 国际化（zh_CN、en_US）
 ├── interceptors/                      # 请求 / 响应拦截器
 ├── middleware/                        # 中间件
@@ -39,7 +39,7 @@ libs/*/src/                            # 内部库，经 tsconfig paths 以 @wal
 ├── config/                            # 环境配置
 ├── const/                             # 常量（权限、DB 名等）
 ├── context/                           # AsyncLocalStorage 请求上下文
-├── db/                                # 数据库模块：连接、Model 注入、事务拦截器
+├── db/                                # 数据库模块：PG 连接、实体注册、事务拦截器
 ├── decorators/                        # 可复用的字段 / 参数 / 查询 / 校验 / Swagger 装饰器
 ├── exceptions/                        # 自定义异常
 ├── pipes/                             # 管道
@@ -69,7 +69,7 @@ module-name/
 ├── module-name.service.ts             # 业务逻辑（与 controller 1:1）
 ├── module-name.basic.repository.ts    # 基础 CRUD（继承基类）
 ├── dto/module-name.dto.ts             # 数据传输对象
-├── schema/module-name.schema.ts       # Mongoose schema
+├── entity/module-name.entity.ts       # TypeORM 实体
 ├── repo/                              # 跨模块数据访问（可选，@Global）
 │   ├── module-name.repo.module.ts
 │   └── module-name.repo.service.ts
@@ -79,31 +79,58 @@ module-name/
 ```
 
 这两个可选层的取舍规则见 `apps/server/AGENTS.md` 的「三种 Repository 模式」一节 ——
-**controller 级的 `*.service.ts` 不许直接注入或使用 Model**，所有数据访问都要穿过 Repository 层。
+**controller 级的 `*.service.ts` 不许直接触达数据层**，所有数据访问都要穿过 Repository 层。
 
-## Model 注入
+## Entity 注册与仓库注入
 
-Model 一律经 `@walnut-server/db` 的 `WalnutDBInjectModel` 注入，名字取同包的 `WalnutDBModelName` 常量。
-下面是标准形态（原文见 `apps/server/apps/api/src/modules/app/demo/demo.basic.repository.ts`，
-新模块照抄即可）：
+实体经 `TypeOrmModule.forFeature` 在模块里注册（连接名必须显式给 `WalnutPGConnectionName`，
+`autoLoadEntities` 通道装载实体，**不另建 xxx.pg.module 文件**）；仓库继承 PG 基类
+`WalnutAdminCommonPgBaseRepository`，注入 `@InjectDataSource(WalnutPGConnectionName)` 的
+`DataSource` 并连同 `EntityTarget` 传给 super，名字标签取 `@walnut-server/db` 的
+`WalnutDBModelName` 常量。下面是标准形态（原文见
+`apps/server/apps/api/src/modules/app/demo/demo.basic.repository.ts`，新模块照抄即可）：
 
 ```typescript
+import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
-import { WalnutAdminCommonBasicRepository } from '@/common/repository/base.repository'
+import { InjectDataSource } from '@nestjs/typeorm'
+import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
-import { IAppDemoDocument, IAppDemoModel } from './schema/demo.schema'
+import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
+import { AppDemoEntity } from './entity/demo.entity'
 
 @Injectable()
-export class AppDemoBasicRepository extends WalnutAdminCommonBasicRepository<IAppDemoDocument> {
+export class AppDemoBasicRepository extends WalnutAdminCommonPgBaseRepository<AppDemoEntity> {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.APP_DEMO)
-    readonly dbModel: IAppDemoModel,
+    @InjectDataSource(WalnutPGConnectionName)
+    dataSource: DataSource,
   ) {
-    super(dbModel)
+    super(AppDemoEntity, WalnutDBModelName.APP_DEMO, dataSource)
   }
 }
 ```
 
-**不要**直接用 `@nestjs/mongoose` 的 `@InjectModel`，也不要拿 `Model.name` 当注入 token ——
-那会绕过 `WalnutDBConnectionName` 这条连接约束。
+模块侧的接线（同模块 `demo.module.ts` 原文）：
+
+```typescript
+import { Module } from '@nestjs/common'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
+
+import { SysDeletedModule } from '@/modules/system/deleted/deleted.module'
+import { AppDemoEntity } from './entity/demo.entity'
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([AppDemoEntity], WalnutPGConnectionName),
+    SysDeletedModule,
+  ],
+  controllers: [AppDemoController],
+  providers: [AppDemoBasicRepository, AppDemoService],
+  exports: [AppDemoService],
+})
+export class AppDemoModule {}
+```
+
+**不要**省略连接名（那会落到 TypeORM 的默认连接），也不要在 controller 级 `*.service.ts` 里
+自己注入 `DataSource` 触达数据 —— 那会绕过 Repository 三模式的分层约束。

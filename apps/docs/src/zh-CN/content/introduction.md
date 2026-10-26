@@ -44,7 +44,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 Turborepo + pnpm w
 ### 后端
 
 - [NestJS](https://nestjs.com/) — 服务端框架
-- [MongoDB](https://www.mongodb.com/) + [Mongoose](https://mongoosejs.com/) — 数据库
+- [PostgreSQL](https://www.postgresql.org/) + [TypeORM](https://typeorm.io/) — 数据库
 - [Redis](https://redis.io/) — 缓存 + 队列
 - [SWC](https://swc.rs/) — 编译器
 

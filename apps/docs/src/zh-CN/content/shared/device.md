@@ -268,7 +268,7 @@ Device ID 是签名系统的核心锚点。签名相关的所有密钥（RSA 公
 |---------|------|-------|------|
 | Cookie | Device ID | 30天 | HTTP 请求自动携带 |
 | LocalStorage | Device ID | 30天 | 前端缓存，避免重复初始化 |
-| <WBaseLink preset="mongodb">MongoDB</WBaseLink> | 设备详细记录 | 永久 | 设备信息持久化 |
+| PostgreSQL | 设备详细记录 | 永久 | 设备信息持久化 |
 | <WBaseLink preset="redis">Redis</WBaseLink> | 设备状态缓存 | 无限期 | 高频读取场景 |
 
 ### 性能优化

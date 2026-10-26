@@ -15,7 +15,7 @@
 
 | 想看什么 | 去哪 |
 |----------|------|
-| **后端规范全文**（目录与模块骨架、Model 注入、DTO 全部示例、装饰器顺序、事务、环境配置、代码风格） | 文档站「后端」新增页（repo 相对路径，能直接打开）：`apps/docs/src/zh-CN/content/backend/architecture.md` · `dto.md` · `transactions.md` · `configuration.md` · `code-style.md` |
+| **后端规范全文**（目录与模块骨架、Entity 注册与仓库基类、DTO 全部示例、装饰器顺序、事务、环境配置、代码风格） | 文档站「后端」新增页（repo 相对路径，能直接打开）：`apps/docs/src/zh-CN/content/backend/architecture.md` · `dto.md` · `transactions.md` · `configuration.md` · `code-style.md` |
 | **三种 Repository 模式** —— 改后端代码前必读，最容易做错的一条 | 本文件下面「三种 Repository 模式」 |
 | **Guard 执行顺序** —— 动 controller 之前必读 | 本文件下面「Security Guard 执行顺序」 |
 | 全仓结构、命令、提交纪律 | 仓库根 [`AGENTS.md`](../../AGENTS.md) |
@@ -28,7 +28,7 @@
 
 ## 这个包是什么
 
-NestJS 11.x + TypeScript 6.0.3 + MongoDB（Mongoose）+ Redis + Bull 队列 —— 功能齐全的中后台后端模板。
+NestJS 11.x + TypeScript 6.0.3 + PostgreSQL（TypeORM）+ Redis + Bull 队列 —— 功能齐全的中后台后端模板。
 **内部 Nest CLI monorepo**，不是 pnpm workspace 包：
 
 - `apps/api/src/` —— app 的入口与源码（`modules/` `app/` `guard/` `decorators/` `common/` `i18n/` …）
@@ -74,7 +74,8 @@ pnpm test:e2e         # E2E（vitest.config.e2e.ts）
 - **Node.js >= 24.13.0**、**pnpm >= 12.0.0** —— 由 `packageManager` 字段 + corepack +
   `pnpm-workspace.yaml` 的 `engineStrict: true` 强制（旧的 `preinstall` 钩子在 2026-09-21 的
   pnpm 12 迁移里已移除）
-- **MongoDB 副本集**（事务必需；单节点副本集也行：`rs.initiate()`）
+- **PostgreSQL**（单节点即完整 ACID，事务不再对拓扑有要求；本地开发用
+  `apps/server/docker/docker-compose.dev.yml` 起库）
 - **Redis 7+**
 - 环境文件：`pnpm setup-env` 解密后落在 `apps/server/env-local/`（gitignored）
 
@@ -82,8 +83,8 @@ Swagger UI：`http://localhost:3000/api`
 
 ## 三种 Repository 模式
 
-| 模式 | 文件 | `@Global` | 业务逻辑 | dbSession | 用在哪 |
-|------|------|-----------|----------|-----------|--------|
+| 模式 | 文件 | `@Global` | 业务逻辑 | 事务句柄 `em` | 用在哪 |
+|------|------|-----------|----------|---------------|--------|
 | **Basic Repository** | `*.basic.repository.ts` | 否 | 无（纯 CRUD） | 经装饰器 | controller 的 CRUD |
 | **Repo Service** | `repo/*.repo.service.ts` | **是** | 无（简单 CRUD） | 最后一个可选参数 | 跨模块数据访问 |
 | **Shared Service** | `shared/*.shared.service.ts` | 否 | **有**（缓存、编排） | 最后一个可选参数 | 复杂业务逻辑 |
@@ -91,21 +92,24 @@ Swagger UI：`http://localhost:3000/api`
 ```
 Controller
     ↓
-Service（与 Controller 1:1，绝不直接使用 Model）
+Service（与 Controller 1:1，绝不直接触达数据层）
     ↓
 ├── Basic Repository（简单 CRUD）
 ├── Repo Service（跨模块数据访问）
 └── Shared Service（复杂业务逻辑）
     ↓
-Model（Mongoose）
+Entity（TypeORM）
 ```
 
-**硬规矩**：controller 级的 `*.service.ts` **不许**直接注入或使用 Model —— 所有数据访问必须穿过
-Repository / Repo Service / Shared Service 之一。
+**硬规矩**：controller 级的 `*.service.ts` **不许**直接做数据访问（自己注入 `DataSource` 拿
+Repository 也算）—— 所有数据访问必须穿过 Repository / Repo Service / Shared Service 之一。
 
-**Model 注入**用 `@WalnutDBInjectModel(WalnutDBModelName.X)`（两者都来自 `@walnut-server/db`），
-**不要**用 NestJS 原生的 `@InjectModel`；完整写法见
-`apps/docs/src/zh-CN/content/backend/architecture.md`。
+**实体注册**在模块 `imports` 里：`TypeOrmModule.forFeature([XxxEntity], WalnutPGConnectionName)`
+（`autoLoadEntities` 通道装载实体），**不另建 xxx.pg.module 文件**。仓库层注入
+`@InjectDataSource(WalnutPGConnectionName)` 的 `DataSource`，连同 `EntityTarget` 一起传给 PG 基类
+`WalnutAdminCommonPgBaseRepository`；连接名必须显式给 `WalnutPGConnectionName`，不要走 TypeORM
+的默认连接。事务内路径用 `@WalnutDBSession()` 取 `WalnutTxContext.em`（EntityManager）逐层透传。
+完整写法见 `apps/docs/src/zh-CN/content/backend/architecture.md`。
 
 ## CRUD 与 DTO：动手前必须知道的两条
 

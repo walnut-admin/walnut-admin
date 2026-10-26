@@ -77,48 +77,42 @@ cd /home/ubuntu/walnut-admin/deploy && docker compose pull && docker compose up 
 - 构建失败的补救：在该 run 上点 **Re-run all jobs**（同一个 tag，缓存命中后会快很多）
 - 镜像 tag = 发布 tag（如 `v1.2.3`）；TCR 上同时保留 `nginx:brotli` 稳定别名
 
-### 首次部署后注入参考数据（一次性，默认关闭）
+### 参考数据注入（每次部署自动跑）
 
 空库起来后界面能用，但**菜单是空的、界面显示 i18n key** —— 参考数据（菜单 / 字典 / 语言包 / 应用设置）
-还没进库。它随 Release 以发版资产的形式发布，注入由部署工作流里一个**默认关闭**的开关触发：
-
-```
-Actions → Deploy → Run workflow → 勾上 seed_reference_data → Run
-（或 release.yml 调 deploy 时传 seed_reference_data: true）
-```
+还没进库。它随 Release 以发版资产的形式发布，注入由部署工作流**每次部署自动执行**（没有开关 ——
+挂在开关上时"打 tag 自动部署"这条路永远不注入数据，线上库一直是空的，才撤掉的）。
 
 它做的事（`deploy.yml` 的 `Seed reference data on server` 一步）：
 
-1. 从该 tag 的 Release 下载 `walnut-admin-seed-<版本>.tar.gz`（由 `pnpm seed:pack` 打出）；
-2. `scp` 到服务器，解到部署目录下的 `seed-staging/`，再 `docker cp` 进 mongo 容器
-   （`mongoimport` 跑在容器里，看不到宿主路径）；
-3. **逐集合判**：集合**为空**就 `mongoimport --mode=insert` 整集插入；集合**非空**就**整集跳过**。
-4. 打印每个集合的条数 —— 那就是可复核的证据。
+1. 从该 tag 的 Release 下载 `walnut-admin-seed-<版本>.tar.gz`（CI 直接 tar 仓内 `apps/server/db/seed/`
+   打出）；
+2. `scp` 到服务器，解到部署目录下的 `seed-staging/`，与 seed 工具链一起 `docker cp` 进 **backend
+   容器**（容器里有 Node 24 与 pg 依赖，服务器宿主机上没有仓库和工具链）；
+3. 在容器里跑 `db:seed:pg`（与开发侧同一条命令）：**按 id upsert，库收敛到仓** —— 已存在的行整行
+   刷新为仓内值，junction 关联只补缺不回收，签名密钥缺 ACTIVE 才现造。幂等，重复跑安全。
+4. 在 postgres 容器里用 `psql` 打印每张参考表的行数 —— 那就是可复核的证据。
 
-**为什么不直接用 `--mode=upsert`**：upsert 是**整文档替换**，会把运维在后台改过的菜单名、应用设置
-覆盖回仓里的值。开发环境要的正是"库对齐到仓"（`pnpm db:seed` 的默认语义），**生产不要**。
-这里刻意不依赖 `mongoimport` 的重复键行为（`--stopOnError` 在版本间语义含糊、没法先试错），
-而是按集合空/非空决定 —— 判据确定，且非空集合**一个文档都不动**。
-
-**代价（明说）**：后续版本往**已有**集合里新增的行不会被这条路径带上去。那类增量走通道 1：
-`pnpm db:export` 拉回仓库 → `git diff` → PR 审 → 随发版走；或运维显式跑一次 `pnpm db:seed`（
-默认语义，会覆盖同 `_id` 的文档 —— 跑之前先 `--dry-run` 看一遍）。
+**语义变更（相对 mongoimport 时代，明说）**：旧通道"集合非空就整集跳过"，代价是后续版本新增的行
+永远到不了已有数据的库；现在收敛到仓，仓是唯一真源。**运维在后台改过的菜单名 / 设置，必须走回灌
+通道带进仓库**（`pnpm db:export:pg` 出差异 → PR 审 → 随发版走），否则下次部署会被冲掉。
 
 **在服务器上自己复核**（不用等 CI）：
 
 ```bash
 cd /home/ubuntu/walnut-admin/deploy
-# 参考数据是否就位（空库首跑后这些数字应当接近仓内条数：菜单 157 / 字典 169 / 语言包 1806 …）
-docker compose exec -T prod-mongodb-primary sh -c '
-  mongosh --quiet -u "$MONGODB_ROOT_USER" -p "$MONGODB_ROOT_PASSWORD" --authenticationDatabase admin \
-    "$MONGODB_DATABASE" --eval "db.getCollectionNames().sort().forEach(c => print(c.padEnd(18), db.getCollection(c).countDocuments()))"'
+# 参考数据是否就位（空库首跑后这些数字应当接近仓内条数）
+for t in app_setting sys_dict_data sys_dict_type sys_lang sys_locale sys_menu sys_role sys_user; do
+  printf '%-16s' "$t"
+  docker compose exec -T postgres sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -tA -c 'SELECT count(*) FROM $t'"
+done
 # 看应用是否已经能用（语言包不再返回 500）
 curl -sk -o /dev/null -w '%{http_code}\n' https://www.walnut-admin.com/api/system/locale/message/zh_CN
 ```
 
 **口令凭证不在这条路径上**：演示账号与第一个管理员的口令是 OPAQUE 注册记录，**绑定本环境的
 `AUTH_OPAQUE_SECRET`**，不能随仓库发布。它的建立是显式的一次性操作（见
-[`backend/mongodb.md`](../apps/docs/src/zh-CN/content/backend/mongodb.md) 的「哪些数据刻意不在仓库里」）。
+[`backend/postgresql.md`](../apps/docs/src/zh-CN/content/backend/postgresql.md) 的「哪些数据刻意不在仓库里」）。
 
 ### 部署后验证（post-verify）
 
@@ -129,7 +123,7 @@ curl -sk -o /dev/null -w '%{http_code}\n' https://www.walnut-admin.com/api/syste
 |--------|------|
 | 容器状态与重启次数 | 三个容器必须 `running` 且 `RestartCount=0`（`restart: always` 会把崩溃重启伪装成"一直 running"） |
 | 运行中的镜像 tag | `Config.Image` 必须以本次 `.env` 的 `IMG_TAG` 结尾（防"部署成功但没换镜像"） |
-| 后端日志 | 不得出现 `Nest can't resolve` / `MODULE_NOT_FOUND` / `EADDRINUSE` / `MongoServerError` / `ECONNREFUSED` 等；必须出现启动标记 `APP is running in`（来自 `apps/server/apps/api/src/main.ts`） |
+| 后端日志 | 不得出现 `Nest can't resolve` / `MODULE_NOT_FOUND` / `EADDRINUSE` / `ECONNREFUSED` 等；必须出现启动标记 `APP is running in`（来自 `apps/server/apps/api/src/main.ts`） |
 | 前端 / 入口 nginx 日志 | 不得出现 5xx |
 | 端到端 | 经公网域名 `--resolve` 指回本机：前端 `/` = 200，API `/w/v1/static/images/demo.png` = 200 |
 | 安全响应头 | **两个域名各取一次响应头**，`Strict-Transport-Security` / `X-Content-Type-Options` / `X-Frame-Options` / `Referrer-Policy` 必须都在（只比头名、不比取值）。它们写死在 `nginx/conf.d/` 里，而本机没有 Docker ⇒ 这是唯一验得到「头真的发出去了」的地方 |
@@ -227,6 +221,9 @@ docker exec walnut-nginx nginx -s reload
 
 ## 数据层说明
 
-- 卷名 `mongodb_master_data` / `redis_data` 与旧 compose 一致 → 数据无缝继承
-- MongoDB 三节点与 Redis 不再暴露公网端口（内部网络互访）
-- 备份：`docker exec prod-mongodb-primary mongodump ...`（按需）
+- 卷名 `postgres_data` / `redis_prod_data` 都是**新卷**：PG 是本次迁移新建的库；redis 换官方镜像后
+  卷内路径从 bitnami 的 `/bitnami/redis/data` 变成 `/data`，旧卷不兼容、内容只有缓存/会话，直接弃
+  （旧 `mongodb_master_data` 卷随迁移退役，数据已由 ETL 搬入 PG，确认不再需要后在服务器上手工删）
+- PostgreSQL 与 Redis 不暴露公网端口（compose 内部网络互访；backend 经服务名 `postgres` 连接）
+- 备份：`docker exec prod-postgres pg_dump -U walnut -d walnut_pg ...`（按需；账号与库名对齐 `.env` 的
+  `POSTGRES_USER` / `POSTGRES_DB`）
