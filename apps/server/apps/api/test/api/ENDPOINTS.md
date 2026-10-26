@@ -1,4 +1,4 @@
-# API 端点全景测绘（API 回归验证 A 段 + B 段 + C 段 + D 段）
+# API 端点全景测绘（API 回归验证 A 段 + B 段 + C 段 + D 段 + F 段）
 
 > 全部 controller 的「模块 → 端点 → 方法/路径 → 守卫 → 请求形态」矩阵，后续 API 级测试批次的清单。
 > 路径均相对 `/{APP_API_PREFIX}/v{APP_API_VERSION}`（本地开发 env 为 `/w/v1`，下同省略）。
@@ -10,6 +10,9 @@
 > D 段（2026-10-26）：§2 auth 会话链/opaque 管理端/otp、§3 security、§5 的 deleted/log_auth/log_operate、
 > §4 shared/ali 与外部 OAuth 错误路径全部落地 `*.api-spec.ts`（9 份新文件、46 用例），
 > 登记见各表格与文末「D 段补记」。
+> F 段（2026-10-26）：API 安全专项 —— guard/安全策略**拒绝矩阵**，`guard-matrix.api-spec.ts`
+> （29 用例：Sign/JWT/Device/CAP/MFA/Lock/IP/functional 全拒绝面 + 安全矩阵发现钉死）与
+> `throttle.api-spec.ts`（2 用例：device/initial 4/60s 连发 + 429 形态），见文末「F 段补记」与「安全矩阵发现」。
 
 ## 全局守卫链（每个请求都要穿过，除非端点带 Free 装饰器）
 
@@ -180,6 +183,81 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 - **D 段**：§2 auth 会话链（permissions/refresh/signout/keys）+ opaque 管理端/me 通道改密 + otp + §3 security
   （rsa/cap/sensitive）+ §4 shared/ali + 外部 OAuth 错误路径 + §5 的 deleted/log_auth/log_operate 共
   9 份 spec、46 用例已落地，基线 323 → 369。
+
+## F 段补记与安全矩阵发现（2026-10-26）
+
+- **新增 2 份 spec、31 用例**：`guard-matrix`（29）+ `throttle`（2）。基线 **373 → 404**（373 + 31）。
+  通用约定沿用：describe 级握手+登录一次、自建自清、断言 `body.code` 契约。测试基建新增：
+  api-client 暴露 `setCookie/dropCookie/getCookie`（cookie jar 直操，负路径构造）与
+  `handshakeAesKey`（手工构造「故意错误/重放」签名）。
+- **拒绝矩阵覆盖面**（guard × 场景 × 码，全部实测钉死）：
+  - **Sign**：body 篡改重放原签名 40112；X-Timestamp 漂移 -6min（窗口常量 5min）40112 且 nonce 未记录；
+    nonce 重放第二次 40112（一次性 nonce 存储 `SECURITY_SIGN_NONCE` TTL 5min 真实生效）；
+    X-Nonce 非 32hex 40112（格式校验先于签名比对）；缺 SIGN_TICKET + ticket 缓存清空 → guard
+    分布式锁路径**自动签发**放行（20000 + Set-Cookie，不拒）。
+  - **JWT**：AT 过期（-10s 签发）40101；换 secret 的 HS256 40101；`alg=none` 空签名段 40101；
+    payload.userId 不存在（正确签名）+ 双因子签名 → 40112（sign guard 查无会话）；删除
+    `AUTH:SESSIONS` 键（会话吊销）后旧 AT 双因子 40112 —— session 校验真实查缓存。
+  - **Device**：缺 DEVICE_ID 40605；篡改 DEVICE_ID（signed cookie 验签失败被 cookie-parser 丢弃）
+    40605；封禁闭环：第二设备 HTTP `PATCH :id/ban` → 本设备 40607 → HTTP `unban` → 恢复放行
+    （ban/unban 只写 SYS_DEVICE 缓存不落库，与 C 段口径一致）。
+  - **CAP**：risk 有评估（新设备 `DEVICE_NEW` critical 因子未处理）+ 缺 CAPJS_TOKEN → 40116；
+    `DEVICE_NEW` 处理后（shouldChallenge=false）缺 token → 40117（策略降级仍拒）；缓存清空 +
+    已消费 token（真验路径）→ 40117；重新 challenge/redeem 恢复 20000。
+  - **MFA**（已登录态）：mfa_setup=true + 未种设备 verified 缓存 → 40115（登录时 isTrusted=false →
+    payload.mfaVerified=false）；种缓存后 20000；mfa_setup=false → 40114（mfa.guard P5：未启用
+    MFA 的用户无法使用系统，钉现状）。settings 的 `app.auth.mfa` 键**不控制** mfa.guard
+    （只被 user_mfa.shared 的 methodsRequiredCount 消费）——登记于发现节。
+  - **Lock**：`PATCH /system/user/lock`（LockFree）真锁 → 全链端点 40118 → unlock → 恢复 20000
+    （探针必须用非 LockFree 端点，user_lock 自家 read/lock/unlock 全 LockFree 锁不住）。
+  - **IP**：临时黑名单（Redis `risk:ip_blacklist:<ip>`）→ 40603 → 移除后放行；永久黑名单
+    （APP:SETTING 缓存 `APP_GLOBAL_IP_BLACKLIST`）→ 40603；见发现节的 X-Forwarded-For 口径。
+  - **functional**：opaque login/start 关 `APP_AUTH_OPAQUE.authEnable` → 50301（guard 先于
+    passport 与 DTO 校验；与 D 段 google 对照不重复）。
+  - **Throttle**（独立文件）：`device/initial` 动态覆盖 limit=4/ttl=60s（`SysDeviceSettingService`
+    硬编码非 settings），内存存储按 app 实例隔离；引导期已耗 1 次 → 3 次压线通过 → 第 5 次
+    **HTTP 200 + body.code 42900**（原生 ThrottlerException 由异常过滤器统一 200 壳，钉现状）；
+    blockDuration 未被动态覆盖、仍是全局 ttl（10s）。
+- **测试踩坑（防复踩）**：
+  - SIGN_TICKET 自动签发用例**不可还原旧 ticket**——guard 已换新票（jar 自动捕获新值），把旧值
+    种回去 = cookie/缓存失配，后续所有签名请求 40112；
+  - cap.js 的 token 是**一次性**的（`validateToken` 成功即从 store 删除）——CAP guard 缓存一旦被清，
+    旧 cookie 永远过不了真验，复原必须重新 challenge/redeem；
+  - `sys_device.device_name` 有唯一约束 `uq_device_name`，重名 INSERT 撞 23505 后被
+    device.service.initial 的 catch-all 吞掉改抛 **40605**（误导性的「Unsupported Device」）；
+  - 重登同一用户+设备前必须先 signout，否则 login/finish 撞 40109 Duplicate Auth；登录链是
+    JwtFree+Sign 生效路由，登录态 jar 的双因子 anon() 必 40112，重登前须 `setAuth(null)`。
+
+## 安全矩阵发现（F 段实测登记，非迁移回归，未修）
+
+> 按「拒绝条件的真源是 guard 源码」纪律：行为与直觉/文档不符但属真实设计取舍的钉死断言；
+> 属缺陷/加固空间的逐条登记如下（均已在 spec 内用例或注释钉现状）。
+
+1. **sign guard 双因子失败会静默降级单因子**（`sign.guard.ts` computeDualFactorSignature）：
+   会话查无/派生失败时 fallback 到单因子验签。后果：**会话吊销对「自选签名模式的客户端」不设防** ——
+   合法客户端（双因子）被 40112 拦，但攻击者持「正确签名的伪造 AT + 设备 aesKey」显式发单因子
+   签名即可 20000 通过（含 payload.userId 不存在的 ghost AT；MFA guard 的 `mfaVerified` 是 AT
+   payload 自报字段，同样可伪造穿透）。建议方向：req.user 存在时派生失败应直接拒绝而非降级。
+2. **CAP token 与设备不绑定 + 校验结果缓存超长**：guard 验证缓存 `SECURITY_CAP_TOKEN:<deviceId>`
+   只存 boolean、**从不比对 token 值/设备绑定** —— 缓存窗口内把另一台设备的服务端签名 cookie
+   原样移植即可通过（spec 钉死）。叠加 `setCapTokenCache` 把 `getCapJSConfig().ttl`（毫秒，
+   默认 3,600,000）当秒传给缓存 → 实际 TTL ≈ 41 天而非 1 小时（cookie 本体 1h 过期，但服务端
+   信任窗口远超之）。建议方向：缓存键掺 token 指纹；TTL 单位修正。
+3. **security.guard 黑名单路径分支不可达**：`isBlacklistedPath` 用完整 `req.path`（含 `/w/v1`
+   前缀）对 `startsWith('/admin')` 等常量匹配 —— 所有真实路由都带 API 前缀，永不命中 40610；
+   而扫描器打的真实裸路径（`/admin`）不匹配任何路由 → 40400，guard 链根本不执行。
+   `addToPermanentBlackList` 的自动拉黑副作用因此是死代码。spec 以 `/w/v1/admin → 40400` 钉现状。
+4. **realIp 恒信任 X-Forwarded-For**：IpMiddleware 用 `@supercharge/request-ip`，首 header 优先、
+   不校验跳数（与 `app.set('trust proxy', true)` 双通道并存）。进程内实测可任意伪造 realIp ——
+   IP 黑名单（40603 可用伪造 IP 触发/绕过）与 Throttle tracker（`getTracker` 返回 realIp）的
+   IP 维度风控都可被请求头改写绕过。直连暴露时为真实缺陷；生产 nginx 覆盖 XFF 时可接受。
+5. **JWT 层不校验用户存在性/会话**：`jwt-access.strategy` 的 validate 原样返回 payload，
+   无 DB/缓存校验（与发现 1 叠加）。passport 层只保证「签名+未过期」，身份真实性完全下游化。
+6. **mfa.guard 强制所有已登录用户 mfaSetup=true**（40114 否则拒）：未启用 MFA 的用户无法使用
+   任何登录态端点 —— 属产品级强策略，钉现状；settings 无开关可关（`app.auth.mfa` 键与该 guard
+   无关），如需灰度只能改 AT payload 的 mfaSetup。
+7. **throttle 动态覆盖不覆盖 blockDuration**：`WalnutAdminGuardThrottler` 只覆盖 limit/ttl，
+   触发封禁后的 block 时长仍是全局 ttl（dev 10s）——连发攻击者在 block 窗口后每 10s 可再打 4 发。
 
 ## D 段补记（2026-10-26）
 

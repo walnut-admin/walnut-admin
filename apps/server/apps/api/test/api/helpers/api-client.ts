@@ -182,6 +182,30 @@ export class WalnutApiClient {
     this.auth = auth
   }
 
+  /**
+   * 【F 段 guard 矩阵】直接操纵 cookie jar：种篡改值 / 删指定 cookie（负路径用）。
+   * jar 里存的是服务端签发的 signed cookie 原值；种入篡改值后 cookie-parser 验签失败，
+   * 服务端 `req.signedCookies[key]` 为 false —— 与「cookie 缺失」同形的检出通路。
+   */
+  setCookie(key: string, value: string): void {
+    this.cookies.set(key, value)
+  }
+
+  /** 【F 段 guard 矩阵】从 jar 删除指定 cookie（负路径：缺 DEVICE_ID / CAPJS_TOKEN 等） */
+  dropCookie(key: string): void {
+    this.cookies.delete(key)
+  }
+
+  /** 【F 段 guard 矩阵】读 jar 当前值（删除/篡改前快照，用后还原） */
+  getCookie(key: string): string | undefined {
+    return this.cookies.get(key)
+  }
+
+  /** 【F 段 guard 矩阵】握手期协商的 aesKey（手工构造「故意错误/重放」签名时复用同一设备密钥） */
+  get handshakeAesKey(): string {
+    return this.aesKey
+  }
+
   getAuth(): WalnutAuthTokens | null {
     return this.auth
   }
