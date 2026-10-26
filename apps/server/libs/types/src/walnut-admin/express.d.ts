@@ -105,6 +105,12 @@ declare global {
      * @description refresh token
      */
     realRefreshToken: string
+
+    /**
+     * @description refresh token encrypted snapshot（JwtRefreshGuard 入口时刻的
+     * encrypted_token 库值）—— 仅 refresh 链路挂载，供轮换锁内重放比对（P0-1）
+     */
+    realRefreshTokenEncrypted?: string
   }
 
   interface IWalnutAdminExpressResponse extends Response { }

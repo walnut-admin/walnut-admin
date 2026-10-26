@@ -54,9 +54,13 @@ export class AuthRefreshRepositoryService {
   /**
    * @description find refresh token by jti
    *
-   * 轮换读腿（事务内）必须传 `{ lock: true }` 持悲观写锁：PG READ COMMITTED 下无锁时
-   * 同一 jti 的并发重放会双双读到未撤销行并都 rotate 成功（Mongo 时代靠事务写冲突
-   * abort 一方拦住），悲观锁保住这个重放拦截口。非事务的解密校验读不锁。
+   * 轮换读腿（事务内）必须传 `{ lock: true }` 持悲观写锁：轮换是同 jti 原地
+   * 「读-改-写」（encrypted_token/expired_at 覆盖、revoked 恒 false），锁把并发轮换
+   * 写腿串行化（防丢更新/双写）。注意锁本身**不构成重放拦截** —— 等锁的事务醒来读到
+   * 「未撤销、未过期、设备匹配」的新一轮行（Mongo 时代靠事务写冲突 abort 一方，PG 侧
+   * 无等价物，旧注释「悲观锁保住重放拦截口」与实际不符）；P0-1（2026-10-26）修复后
+   * 重放拦截由 `getNewAccessToken` 锁内「入口时刻 encrypted_token 快照 vs 库中当前值」
+   * 比对承担。非事务的解密校验读不锁。
    *
    * 迁移回归修复（API 回归 D 段 auth-session spec 抓出）：jti 为空（refresh 端点无
    * RT_JTI cookie 时 guard 直取 cookie 值传入）→ Mongo 版 findOne({jti: undefined})

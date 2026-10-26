@@ -44,7 +44,10 @@ export class AuthMfaPostVerificationService {
       await this.cacheMfaService.setVerifiedCache(userId, deviceId)
     })
 
-    const newAccessToken = await this.authRefreshSharedService.getNewAccessToken(jti, deviceId, sessionId, em)
+    // P0-1：presentedEncryptedToken 传 undefined —— MFA/TOTP/WebAuthn verify 端点不走
+    // JwtRefreshGuard，客户端只持 RT_JTI cookie、无入口密文快照可比。跳过呈献比对，
+    // 重放拦截由 refresh 端点承担（verify 链本身有 MFA verified 缓存 + 一次性凭证兜底）
+    const newAccessToken = await this.authRefreshSharedService.getNewAccessToken(jti, deviceId, sessionId, undefined, em)
 
     return newAccessToken
   }

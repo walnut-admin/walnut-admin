@@ -19,7 +19,9 @@ import { decryptAesKeyEnvelope } from './helpers/sign-handshake'
  *   删除后重查复现 —— 写路径可重入）；
  * - `POST /auth/refresh`：RT_JTI cookie → 新 AT（轮换是**同 jti 原地换锁**：同一行
  *   encrypted_token/expired_at 被替换、revoked 保持 false —— 钉实现现状，不存在
- *   「旧行 revoked + 新行」两行形态）；无 RT cookie 的干净设备 → 40102；
+ *   「旧行 revoked + 新行」两行形态；P0-1 已于 2026-10-26 修复：轮换锁内比对
+ *   「入口时刻 encrypted_token 快照 vs 库中当前值」，并发/旧快照重放 → 40102，见
+ *   concurrency.api-spec G1）；无 RT cookie 的干净设备 → 40102；
  * - `POST /auth/signout`：RT revoke + RT_JTI cookie 清除 + 提交后缓存清理
  *   （permissions / MFA verified 消失；AUTH:SESSIONS 键残留 —— delByPattern 在
  *   node-redis v5 下抛错，钉现状），旧 AT 再请求 → MFA verified 缓存已清，

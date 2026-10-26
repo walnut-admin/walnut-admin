@@ -15,6 +15,10 @@ import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-in
  * - refresh 轮换**事务原子性**（B7b 全 PG 单 em）：getNewAccessToken 的过期兜底腿
  *   （revoke）与轮换腿（rotate）在同一 PG 事务里 —— 过期行路径整体回滚后行原样、
  *   提交路径两腿同落；
+ * - P0-1（2026-10-26 修复）**呈献快照比对**：轮换锁内比对「入口时刻 encrypted_token
+ *   快照 vs 库中当前值」—— 顺序重放（持已轮换旧快照再换）受控 40102、持当前值合法
+ *   续期不受影响（并发竞态面由 concurrency.api-spec G1 五路并发钉）。比对不经过解密，
+ *   故本文件沿用 insertToken 的假密文即可（轮换写腿自身仍加密真实 RT JWT）；
  * - generateRefreshToken：新设备插入（PK 走 DB 端 uuidv7()）、同设备未撤销再签 →
  *   DuplicateSignIn；
  * - device_id 业务键 FK → sys_device(device_id) CASCADE（Q5 定案：设备删则令牌清）。
@@ -66,7 +70,7 @@ describe('B7b auth_refresh_token (on real PG)', () => {
 
     // refresh.device_id 是业务键 FK → sys_device(device_id)；每台设备一行 ——
     // revoke 腿按 (user_id, device_id) findOne，同设备多行会互相污染断言
-    for (const key of ['device-key', 'device-live', 'device-rb', 'device-rb2', 'device-commit']) {
+    for (const key of ['device-key', 'device-live', 'device-rb', 'device-rb2', 'device-commit', 'device-replay']) {
       await pgDataSource.query(
         'INSERT INTO sys_device (device_name, device_id, device_info, ip_history) VALUES ($1, $2, $3::jsonb, ARRAY[]::text[])',
         [unique(`b7-rt-${key}`), `b7-rt-${key}`, '{}'],
@@ -110,9 +114,10 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     await insertToken(jti, 'b7-rt-device-live', oldExpiredAt)
 
     // 生产路径在 @WalnutDBTransaction 内轮换——这里也用真实事务，
-    // 让轮换读腿的悲观写锁（并发重放拦截）真正被走到
+    // 让轮换读腿的悲观写锁（写腿串行化）与呈献快照比对真正被走到；
+    // 呈献快照 = 入口时刻的 encrypted_token 库值（guard 同款，P0-1）
     const newAT = await pgDataSource.transaction(async em =>
-      refreshShared.getNewAccessToken(jti, 'b7-rt-device-live', 'session-1', em))
+      refreshShared.getNewAccessToken(jti, 'b7-rt-device-live', 'session-1', `enc-${jti}`, em))
 
     // AT 可解码且带同一 sid / userId
     const payload = await tokenService.decodeAccessToken(newAT)
@@ -126,19 +131,50 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     expect(row.expired_at.getTime()).toBeGreaterThan(oldExpiredAt.getTime())
   })
 
+  it('P0-1 顺序重放拦截：轮换成功后用旧 encrypted_token 快照再轮换 → 40102；持当前值合法续期不受影响', async () => {
+    // HTTP 层无法构造此面：客户端只持 RT_JTI cookie，guard 每次入口从库里取「当前值」
+    // 作快照 —— 顺序重放只能在 service 层显式持旧快照构造（并发等价面见
+    // concurrency.api-spec G1 五路并发）。比对真源是密文快照而非 RT 原文：同 (jti, sid)
+    // 再签发的 JWT 在 iat 秒级粒度下会同秒字节全同，原文比对在竞态里会静默失效
+    const jti = unique('b7-rt-replay')
+    await insertToken(jti, 'b7-rt-device-replay', new Date(Date.now() + 3600_000))
+    const presentedSnapshot0 = `enc-${jti}`
+
+    // 第一次轮换：呈献快照与库中当前值一致 → 成功（轮换写腿覆盖为真实 RT 密文）
+    await pgDataSource.transaction(async em =>
+      refreshShared.getNewAccessToken(jti, 'b7-rt-device-replay', 'session-replay', presentedSnapshot0, em))
+    const afterFirst = await readToken(jti)
+    expect(afterFirst.encrypted_token).not.toBe(presentedSnapshot0)
+
+    // 旧快照（上一轮的库值）重放 → 锁内比对失配 → 受控 40102
+    await expect(pgDataSource.transaction(async em =>
+      refreshShared.getNewAccessToken(jti, 'b7-rt-device-replay', 'session-replay', presentedSnapshot0, em)))
+      .rejects
+      .toThrow(WalnutAdminExceptionRefreshTokenExpired)
+
+    // 重放无副作用：密文保持第一轮换后的值、未撤销（失败路径零写腿）
+    const afterReplay = await readToken(jti)
+    expect(afterReplay.encrypted_token).toBe(afterFirst.encrypted_token)
+    expect(afterReplay.revoked).toBe(false)
+
+    // 合法续期不受影响：持当前库值（= guard 入口同款快照）再轮换成功
+    await pgDataSource.transaction(async em =>
+      refreshShared.getNewAccessToken(jti, 'b7-rt-device-replay', 'session-replay', afterReplay.encrypted_token, em))
+  })
+
   it('过期行：getNewAccessToken 的 revoke 兜底腿 + rotate 在同一事务里可整体回滚', async () => {
     const jti = unique('b7-rt-expired')
     await insertToken(jti, 'b7-rt-device-rb', new Date(Date.now() - 3600_000))
 
     // 同事务里先撤第二台设备的行（revoke 腿），再走过期行的 revoke+throw 路径 ——
-    // 抛错令事务回滚，两腿都不落库
+    // 抛错令事务回滚，两腿都不落库（呈献快照持当前库值，比对通过后才走到过期腿）
     const jtiOther = unique('b7-rt-other')
     await insertToken(jtiOther, 'b7-rt-device-rb2', new Date(Date.now() + 3600_000))
 
     await expect(pgDataSource.transaction(async (em) => {
       await refreshShared.revokeRTForUserDevice(userId, 'b7-rt-device-rb2', em)
 
-      await expect(refreshShared.getNewAccessToken(jti, 'b7-rt-device-rb', 'session-2', em))
+      await expect(refreshShared.getNewAccessToken(jti, 'b7-rt-device-rb', 'session-2', `enc-${jti}`, em))
         .rejects
         .toThrow(WalnutAdminExceptionRefreshTokenExpired)
 
@@ -160,7 +196,7 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     const jti = unique('b7-rt-expired-commit')
     await insertToken(jti, 'b7-rt-device-commit', new Date(Date.now() - 60_000))
 
-    await expect(refreshShared.getNewAccessToken(jti, 'b7-rt-device-commit', 'session-3', pgDataSource.manager))
+    await expect(refreshShared.getNewAccessToken(jti, 'b7-rt-device-commit', 'session-3', `enc-${jti}`, pgDataSource.manager))
       .rejects
       .toThrow(WalnutAdminExceptionRefreshTokenExpired)
 

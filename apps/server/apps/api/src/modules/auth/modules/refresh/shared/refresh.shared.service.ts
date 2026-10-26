@@ -58,13 +58,23 @@ export class AuthRefreshSharedService {
 
   /**
    * @description find refresh token through jti
+   *
+   * P0-1（2026-10-26 修复）：返回**双值** —— `rawToken`（passport 验签用原文）与
+   * `encryptedToken`（入口时刻密文快照，轮换锁内重放比对用）。密文快照是重放判定
+   * 的真源而非原文比对：RT JWT 是同 (jti, sid) 的再签发，`iat` 秒级粒度下「同秒轮换」
+   * 会产出字节全同的新 token，原文比对在竞态里会静默失效；而 AES-GCM 每次 encryption
+   * 随机 IV，任何一次轮换后的密文必然不同 —— 逐字节判定无时序窗。
    */
-  async getTokenByJti(jti: string) {
+  async getTokenByJti(jti: string): Promise<{ rawToken: string, encryptedToken: string }> {
     const target = await this.authRefreshRepo.findByJti(jti)
     if (!target) {
       throw new WalnutAdminExceptionRefreshTokenExpired()
     }
-    return this.cryptoService.decrypt(target.encryptedToken, this.RT_ENCRYPTION_KEY)
+    return {
+      // decrypt 是同步方法（AES-GCM 单轮），无需 await
+      rawToken: this.cryptoService.decrypt(target.encryptedToken, this.RT_ENCRYPTION_KEY),
+      encryptedToken: target.encryptedToken,
+    }
   }
 
   /**
@@ -207,13 +217,38 @@ export class AuthRefreshSharedService {
    *
    * B7b 归一：refresh 表（含轮换写腿）与 user/role 读腿同为 PG —— 单 em 单事务，
    * revoke（过期兜底）与 rotate 同回滚。
+   *
+   * P0-1（2026-10-26 修复）：`presentedEncryptedToken` 是请求入口时刻的
+   * `encrypted_token` 快照（refresh 端点 = JwtRefreshGuard 查行时挂
+   * `request.realRefreshTokenEncrypted` 的值）。轮换持锁比对「入口快照 vs 库中当前值」：
+   * 首个胜者原地覆盖密文后，其余持旧快照的并发请求解锁后读到新密文、比对失配 →
+   * 受控 40102；「用已轮换旧快照顺序重放」同样被拦。AES-GCM 随机 IV 保证轮换后密文
+   * 必变（RT JWT 同秒再签发会字节全同，故不能比对原文，见 getTokenByJti 注释）。
+   * 拿不到快照的内部调用方（MFA/TOTP/WebAuthn post-verification，客户端只持 jti
+   * cookie、不走 JwtRefreshGuard）传 `undefined` 跳过比对，重放拦截由 refresh 端点承担。
    */
-  async getNewAccessToken(jti: string, deviceId: string, sessionId: string, em?: EntityManager) {
-    // Step 1 - get refresh token record（事务内轮换读腿，持悲观写锁拦截并发重放）
+  async getNewAccessToken(
+    jti: string,
+    deviceId: string,
+    sessionId: string,
+    presentedEncryptedToken: string | undefined,
+    em?: EntityManager,
+  ) {
+    // Step 1 - get refresh token record（事务内轮换读腿，持悲观写锁串行化轮换写腿；
+    // 重放拦截靠下面的呈献快照比对，见 P0-1）
     const record = await this.authRefreshRepo.findByJti(jti, em, { lock: true })
 
     // no record
     if (!record) {
+      throw new WalnutAdminExceptionRefreshTokenExpired()
+    }
+
+    // P0-1 呈献快照比对（锁内逐字节比字符串，无解密、零时序窗）：放在过期兜底腿
+    // 之前 —— 比对失配说明呈献的是旧轮次快照，直接受控拒绝，不触发本轮 revoke 副作用
+    if (
+      presentedEncryptedToken !== undefined
+      && record.encryptedToken !== presentedEncryptedToken
+    ) {
       throw new WalnutAdminExceptionRefreshTokenExpired()
     }
 

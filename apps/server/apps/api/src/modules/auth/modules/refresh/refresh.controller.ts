@@ -50,7 +50,15 @@ export class AuthRefreshController {
     @Req() req: IWalnutAdminExpressRequest,
   ) {
     // B7b 归一：refresh 表写腿迁 PG —— 双句柄收成单 em（轮换事务全 PG）
-    const newAccessToken = await this.authRefreshSharedService.getNewAccessToken(jti, deviceId, req.RT.sid, ctx.em)
+    // P0-1（2026-10-26 修复）：JwtRefreshGuard 已把入口时刻的 encrypted_token 快照挂
+    // `req.realRefreshTokenEncrypted` —— 传入轮换锁内做呈献比对，拦并发/顺序重放
+    const newAccessToken = await this.authRefreshSharedService.getNewAccessToken(
+      jti,
+      deviceId,
+      req.RT.sid,
+      req.realRefreshTokenEncrypted,
+      ctx.em,
+    )
 
     // set refresh token jti to cookie
     this.authCookieService.setRTJtiCookie(req, jti)

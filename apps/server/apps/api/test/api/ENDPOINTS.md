@@ -13,6 +13,12 @@
 > F 段（2026-10-26）：API 安全专项 —— guard/安全策略**拒绝矩阵**，`guard-matrix.api-spec.ts`
 > （29 用例：Sign/JWT/Device/CAP/MFA/Lock/IP/functional 全拒绝面 + 安全矩阵发现钉死）与
 > `throttle.api-spec.ts`（2 用例：device/initial 4/60s 连发 + 429 形态），见文末「F 段补记」与「安全矩阵发现」。
+> G+H 段（2026-10-26）：并发/锁专项 `concurrency.api-spec.ts`（6 用例）+ API 级事务回滚直测
+> `api-rollback.api-spec.ts`（3 用例）。
+>
+> **设计与行为缺陷清单已收编至 [DESIGN-ISSUES.md](./DESIGN-ISSUES.md)（P0/P1/P2/P3 分级，
+> 含位置/实测证据/建议修法）** —— 本文各段「钉现状」自此只作历史叙述、不再新增，
+> 新发现一律记 DESIGN-ISSUES.md。
 
 ## 全局守卫链（每个请求都要穿过，除非端点带 Free 装饰器）
 
@@ -96,6 +102,11 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | otp | POST `/auth/otp/send`、`verify` | JwtFree + Functional（settings 缺省放行） | 无 | `{type,identifier,...}` | **D 段已测**（otp.api-spec.ts）：缺省配置（OtpSettingService 兜底 sendEnable=0/authEnable=0）→ send/verify 各自 functional guard 50301 EndPointUnavailable（码缓存不落）；种 APP:SETTING 缓存开 email 后 send → 真码落 `AUTH:VERIFY_CODE:visitor:<identifier>`（邮件走 Bull 队列不真发）→ verify 错码 40000、对码换发令牌 + `__Host-RT_JTI` cookie + identity 标记 verified + 码缓存删除 + AUTH:SESSIONS 键落（换发会话可用性另以 security-tab2 探针双因子验证）；type 非法 40099。
   **注意**：JwtFree+Sign 生效路由对登录态 jar 的 anon() 双因子签名一律 40112 —— 闭环请求发在未登录独立客户端（helpers 新增 `overrideAppSettings` 缓存改写+还原） |
 | refresh | POST `/auth/refresh` | Lock/Sign/MFA/Jwt/Device 全 Free + `JwtRefreshGuard`（RT cookie） | 无 | — | **D 段已测**（auth-session.api-spec.ts）：RT cookie → 新 AT；轮换是**同 jti 原地换锁**（同一行 encrypted_token/expired_at 换新、revoked 恒 false——钉实现现状，无「旧行 revoked+新行」形态）；新 AT 与旧 AT 同 sid。
+  **P0-1 已修**（2026-10-26）：轮换锁内比对「入口时刻 encrypted_token 快照（guard 挂
+  `request.realRefreshTokenEncrypted`）vs 库中当前值」，失配 → 40102 —— 并发重放恰 1 路成功
+  （concurrency G1 五路：1×20000 + 4×40102）、已轮换旧快照顺序重放同被拦（refresh int-spec 重放
+  用例）；比对真源是密文快照而非 RT 原文（同秒再签的 JWT 字节全同，原文比对有系统性失效窗）；
+  MFA/TOTP/WebAuthn post-verification 无快照可比、跳过比对（DESIGN-ISSUES P0-1 取舍）。
   **迁移回归已修**（D 段唯一一处 src 改动）：无 RT cookie 时 guard 直取 cookie 值 undefined 传入 findByJti —— Mongo 版 findOne({jti: undefined}) 查无行 → 受控 40102；PG/TypeORM 把 undefined 当绑定参数下发 → pg 驱动 "bind parameters must not contain undefined" 未受控 50000。已在 `refresh.repo.service.findByJti` 按「查无此 jti」语义收 nil → null |
 | mfa | GET `/auth/mfa/status`、POST `/auth/mfa/verify` | MFAFree+LockFree | 无 | verify `{type,code}` | 高优先（MFA 闭环：绑定 totp → verify → 新 AT）—— verify 的 RT 轮换闭环已由 C 段 user-mfa spec（system/user/mfa/totp/verify）覆盖 |
 | google | POST `/auth/google`（勘误：callback 路由不存在——初版测绘把 strategy 层 callbackURL 误记为 HTTP 端点） | Jwt/Sign Free + Functional + `AuthGoogleGuard` | 无 | google id_token | **D 段已测**（external-oauth.api-spec.ts，错误路径专项）：functional 关闭 → 50301 拦在 passport guard 之前；开启 → garbage credential 走本地 JWKS 校验失败 40107（不发外网）。真实 Google id_token 回调不测（外部依赖） |
@@ -183,6 +194,8 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 - **D 段**：§2 auth 会话链（permissions/refresh/signout/keys）+ opaque 管理端/me 通道改密 + otp + §3 security
   （rsa/cap/sensitive）+ §4 shared/ali + 外部 OAuth 错误路径 + §5 的 deleted/log_auth/log_operate 共
   9 份 spec、46 用例已落地，基线 323 → 369。
+- **G+H 段**：并发/锁专项 + API 级事务回滚直测共 2 份 spec、9 用例已落地，基线 404 → 413；
+  设计问题清单收编至 [DESIGN-ISSUES.md](./DESIGN-ISSUES.md)（P0 × 5 ｜ P1 × 12 ｜ P2 × 8 ｜ P3 × 7）。
 
 ## F 段补记与安全矩阵发现（2026-10-26）
 
@@ -228,7 +241,31 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   - 重登同一用户+设备前必须先 signout，否则 login/finish 撞 40109 Duplicate Auth；登录链是
     JwtFree+Sign 生效路由，登录态 jar 的双因子 anon() 必 40112，重登前须 `setAuth(null)`。
 
+## G+H 段补记（2026-10-26）
+
+- **新增 2 份 spec、9 用例**：`concurrency`（6，真实并行 = 单测试内 Promise.all 多请求）+
+  `api-rollback`（3，HTTP 级事务回滚直测）。基线 **404 → 413**。
+- **实测结论（详见 DESIGN-ISSUES.md）**：
+  - **P0-1（已修 2026-10-26）**：原实测同一 RT_JTI 五路并发 refresh **全部成功** —— `findByJti`
+    的悲观锁只串行化轮换写腿（防丢更新），同 jti 原地换锁 + revoked 恒 false ⇒ 重放拦截实际
+    不存在（锁注释宣称与实际不符）。修法：`getNewAccessToken` 锁内比对「入口密文快照 vs 库中
+    当前值」，失配 40102 —— G1 断言同步改为「恰 1 路成功、其余 40102」并连跑 3 次稳定；
+  - **P1-1**：两路并发 rotate 同 type 产生**两条同 version ACTIVE**（读腿无锁、无部分唯一索引）；
+  - 无恙面：同名注册竞态（uq_user_name 恰一胜出）、同指纹 initial 竞态（uq_device_id 恰一行、
+    败者受控 40605）、preference 并发 upsert（按列回写四段齐落）、回收站并发 recover（恰一成功
+    一受控失败）—— 见 DESIGN-ISSUES.md「实测无恙面」表；
+  - 回滚传播 HTTP 级验证：role create 第二腿 FK 拒绝 → 主行+junction 零残留（23503 兜底 50000，
+    收编 P1-7）；recover 撞唯一键 → 40000 recoverFail + 快照行完好；after-commit 钩子
+    （device initial → SYS_DEVICE 缓存）在响应返回时已执行（零轮询断言）。
+- **测试基建口径**：并行请求共用同一 api-client 的 cookie jar 是安全的（refresh 响应回种的
+  RT_JTI 同值；签名请求各自现算 timestamp/nonce）；注册竞态用 service 级双事务直测
+  （HTTP 注册面因 P1-3 不可用）；device initial 的 Throttle 4/60s 按 spec 文件独立计数
+  （concurrency 文件 bootstrap 1 + 竞态 3 = 压线 4）。
+
 ## 安全矩阵发现（F 段实测登记，非迁移回归，未修）
+
+> 已收编至 [DESIGN-ISSUES.md](./DESIGN-ISSUES.md)（P0-2/3/4/5、P1-10/11、P2-1 七条），
+> 本节保留原始叙述，后续更新以 DESIGN-ISSUES.md 为准。
 
 > 按「拒绝条件的真源是 guard 源码」纪律：行为与直觉/文档不符但属真实设计取舍的钉死断言；
 > 属缺陷/加固空间的逐条登记如下（均已在 spec 内用例或注释钉现状）。
@@ -273,6 +310,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   "bind parameters must not contain undefined" 未受控 50000。已在 findByJti 按「查无此 jti」语义
   收 nil → null（两个调用方本就有 null 分支，轮换写腿行为不变）。
 - **钉现状（非迁移回归，断言固化，未修）**：
+  > 已收编 DESIGN-ISSUES.md（P1-2 / P1-8 / P0-1 / P1-7 同族 / P1-5）—— 本节为历史叙述。
   - `POST /auth/signout` 的会话键清理腿失效 —— revokeSession 走 `cacheService.delByPattern`，
     内部 `redis.del(数组)` 在 node-redis v5 的 rest-args 语义下抛错（C 段 user-device/monitor spec
     已登记同款），after-commit 钩子错误被 catch 吞掉 → AUTH:SESSIONS 键残留（permissions/MFA
@@ -305,7 +343,8 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   普通对象换成无 `@Expose` 的 PG 实体实例，全局 ClassSerializerInterceptor（excludeExtraneousValues: true）出站剥成
   `[{}]`（热路径因 Redis JSON 往返侥幸幸存，service 层 int-spec 不可见）。已在 `repo.findChildrenByPcode`
   最小修复（投影回 `{name, code, pcode}`，对齐 Mongo lean 版），`area.tree.int-spec` 的行形态断言同步更新。
-- **前迁移遗留缺陷（登记，未修）**：`SharedBLPathService.shouldSkip` 的后缀表含 `'/state'`，全局异常过滤器
+- **前迁移遗留缺陷（登记，未修）**：
+  > 已收编 DESIGN-ISSUES.md（P1-4）。`SharedBLPathService.shouldSkip` 的后缀表含 `'/state'`，全局异常过滤器
   （`WalnutAdminFilterExceptionAll`）对尾缀 `/state` 的请求**提前 return 不落响应**——`POST /app/monitor/user/state`
   等路径上任何异常（含 40099 受控错误）都会让请求静默悬挂。非迁移回归（该逻辑自 monorepo merge 起未变），
   修复属独立缺陷处理，monitor-user spec 只避开该路径的错误断言。
@@ -335,6 +374,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   都回填 schema 默认值，对齐 Mongo 版「meta 子文档整体替换 + 默认值」语义）。B5 的 service 层 int-spec
   传纯对象不可见——该类回归只有真实 HTTP 层能抓到。
 - **钉现状（非迁移回归，断言固化，未修）**：
+  > 已收编 DESIGN-ISSUES.md（P2-4 / P2-6 / P2-7）。
   - `system/dict/data` 无 deleteMany 路由（Permissions.DELETE_MANY 常量存在但装饰器未接线 → 40400）；
   - `system/user` create 用户名重复 → DB 23505 未映射受控异常，兜底 50000；
   - `system/user/identity` 的 `POST list` 恒 40099（空 DTO 类 × forbidUnknownValues）；bind 的
