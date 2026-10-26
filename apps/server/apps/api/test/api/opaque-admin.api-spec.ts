@@ -263,4 +263,19 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
     })
     expect(bodyOf(startRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_CREDENTIALS)
   })
+
+  it('login/client-error：上报恒 40103 InvalidCredential（E 段终审补漏）', async () => {
+    const res = await api.anon('POST', api.apiPath('/auth/opaque/user/login/client-error'), {
+      userName: fixtureTarget!.userName,
+      clientError: 'passwordError',
+    })
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_CREDENTIALS)
+
+    // clientError 枚举外 → 40099 校验拒绝
+    const badRes = await api.anon('POST', api.apiPath('/auth/opaque/user/login/client-error'), {
+      userName: fixtureTarget!.userName,
+      clientError: 'not-a-real-error',
+    })
+    expect(bodyOf(badRes).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+  })
 })

@@ -1,10 +1,12 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
+import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { generate } from 'otplib'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
+import { overrideAppSettings } from './helpers/app-settings'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
 import { createApiApp } from './helpers/create-api-app'
 
@@ -57,6 +59,15 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, fixture.userId)
     }
     await app.close()
+  })
+
+  it('auth/mfa/status（未绑定态）：两通道 enabled=false（E 段补漏）', async () => {
+    const res = await api.root('GET', api.apiPath('/auth/mfa/status'))
+    expectOk(res, 'auth mfa status unbound')
+
+    const data = bodyOf<Array<{ type: string, enabled: boolean }>>(res).data
+    expect(data.find(i => i.type === 'totp')?.enabled).toBe(false)
+    expect(data.find(i => i.type === 'webauthn')?.enabled).toBe(false)
   })
 
   it('totp generate → 真 secret + qrCode data URL + totpId=`userId,deviceId`', async () => {
@@ -146,6 +157,29 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
       [fixture!.userId, 'totp'],
     )
     expect(rows[0].last_used_at).not.toBeNull()
+  })
+
+  it('auth/mfa/status（绑定后）：totp enabled=true（E 段补漏）', async () => {
+    const res = await api.root('GET', api.apiPath('/auth/mfa/status'))
+    expectOk(res, 'auth mfa status bound')
+
+    const data = bodyOf<Array<{ type: string, enabled: boolean }>>(res).data
+    expect(data.find(i => i.type === 'totp')?.enabled).toBe(true)
+    expect(data.find(i => i.type === 'webauthn')?.enabled).toBe(false)
+  })
+
+  it('auth/mfa/verify：启用通道数不足 methodsRequiredCount → 40000 verifyFail（E 段补漏）', async () => {
+    // 此刻仅 totp 一个启用通道：把要求抬到 2 —— verifyMfaStatus 判 enabledCount >= requiredCount
+    const restore = await overrideAppSettings(app!, {
+      [WalnutAdminConstAppSettingKeys.APP_AUTH_MFA]: JSON.stringify({ methodsRequiredCount: 2 }),
+    })
+    try {
+      const res = await api.root('POST', api.apiPath('/auth/mfa/verify'), { trusted: false })
+      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+    }
+    finally {
+      await restore()
+    }
   })
 
   it('status 开关：false → true 落库；非活动 totp 不算 verified 通道（security-tab2 对拍）', async () => {
