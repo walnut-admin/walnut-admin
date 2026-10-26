@@ -1,0 +1,235 @@
+import type { NestExpressApplication } from '@nestjs/platform-express'
+import type { WalnutRootUserFixture } from './helpers/auth-login'
+import { randomUUID } from 'node:crypto'
+import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { SysUserIdentitySharedService } from '@/modules/system/user_identity/shared/user_identity.shared.service'
+import { AppTechRedisService } from '@/modules/techniques/cache/redis/redis.service'
+import { AppTechCacheVerifyCodeService } from '@/modules/techniques/cache/service/cache.verifyCode'
+import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
+import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
+import { createApiApp } from './helpers/create-api-app'
+import { solveCapChallenge } from './helpers/sign-handshake'
+
+/**
+ * D 段：`security` 系（真实 HTTP 全链）。sign 两步握手由 helpers（api-client 引导）
+ * 常态覆盖 —— 本文件补：
+ *
+ * - `GET /security/rsa/public-key`：Sign/Jwt/Cap 全 Free（Device guard 仍在）——
+ *   返回 app_key 表 current RSA_PAIR（version 最大 ACTIVE 行）的 meta.publicKeyPem；
+ *   用例自插高 version 目标行做数据自洽（与 app_key.int-spec / key.api-spec 双向隔离），
+ *   afterAll 清行还原；
+ * - `POST /security/cap/challenge` + `/redeem`：FreeResponse 无响应壳 —— challenge 回
+ *   cap.js `{challenge:{c,s,d},token,expires}`，redeem 本地 PoW 求解后 `{success:true,...}`
+ *   （helpers 的求解器再走一遍，钉 challenge/redeem 语义）；错解 → success:false；
+ * - `GET /security/sensitive/check` + `POST /security/sensitive/verify`：HTTP 级钉
+ *   B7c 已固化的 service 现状（非迁移回归，不修）：
+ *   ① 缺 security 身份的用户 → getUserAvailableMethods 对 phone security 读腿直接
+ *   DataNotFound（40401，而非跳过该方式）；
+ *   ② 造 security email 身份后 check 列出 password/sms/email、首选 password；
+ *   ③ verify email 通道对码 → 授权（sensitive_op:* 键）→ check 翻转 needsVerification=false；
+ *   ④ password 通道恒失败（identity value select 语义 + opaque record 无法解密比对）→ 40000；
+ *   ⑤ 错码 → 40000 且不授权。
+ */
+
+interface CapChallengeBody {
+  challenge: { c: number, s: number, d: number }
+  token: string
+  expires: number
+}
+
+/** 短轮询：sensitive_op 授权键出现/消失（grant 是同步写，轮询仅兜 fire-and-forget 时序） */
+async function pollUntil(fn: () => Promise<boolean>, timeoutMs = 5000): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  while (Date.now() < deadline) {
+    if (await fn()) {
+      return
+    }
+    await new Promise(resolve => setTimeout(resolve, 50))
+  }
+  expect(await fn()).toBe(true)
+}
+
+describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive check/verify（真实 HTTP 全链）', () => {
+  let app: NestExpressApplication
+  let api: WalnutApiClient
+
+  const seed8 = randomUUID().slice(0, 8)
+  let fixture: WalnutRootUserFixture | null = null
+  let securityEmail = ''
+  /** 自插的高 version RSA_PAIR 目标行（afterAll 清，还原 app_key 现场） */
+  const seededKeyIds: string[] = []
+  let verifyCodeService: AppTechCacheVerifyCodeService
+
+  beforeAll(async () => {
+    app = await createApiApp()
+    api = await WalnutApiClient.create(app)
+    verifyCodeService = app.get(AppTechCacheVerifyCodeService)
+
+    fixture = await registerRootUserFixture(app, api.pgDataSource, `security-${seed8}`)
+    securityEmail = `security-${seed8}@walnut.local`
+
+    const tokens = await performHttpOpaqueLogin(api, app, fixture)
+    api.setAuth(tokens)
+    await api.seedMfaVerifiedCache(fixture.userId)
+  })
+
+  afterAll(async () => {
+    if (api !== undefined && fixture !== null) {
+      // 自插 app_key 行清场（restore：清掉后 current 回到进入前的 max version 行）
+      for (const id of seededKeyIds) {
+        await api.pgDataSource.query('DELETE FROM app_key WHERE id = $1', [id])
+      }
+      // sensitive 授权键（裸 Redis 键，无 WALNUT_CACHE_ 前缀，逐键显式清）
+      const redis = app.get(AppTechRedisService).getClient()
+      await redis.del(`sensitive_op:${fixture.userId}:${api.deviceId}:basic`)
+      await api.pgDataSource.query('DELETE FROM sys_user_identity WHERE user_id = $1', [fixture.userId])
+      await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
+      await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
+      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
+      await api.cleanupWalnutCacheKeys(seed8, api.deviceId, fixture.userId, securityEmail)
+    }
+    await app.close()
+  })
+
+  it('rsa/public-key → 与 app_key 表 current RSA_PAIR 行（自插高 version）的 publicKeyPem 一致', async () => {
+    // 数据自洽：插一行 version 远高于现网 max 的 ACTIVE RSA_PAIR（PEM 用真实格式占位即可，
+    // 端点只回读 meta.publicKeyPem 字符串，不做密码学校验）
+    const maxRows: Array<{ max_version: number }> = await api.pgDataSource.query(
+      `SELECT COALESCE(MAX(version), 0) AS max_version FROM app_key WHERE type = 'RSA_PAIR'`,
+    )
+    const highVersion = Number(maxRows[0].max_version) + 1000
+    const publicKeyPem = `-----BEGIN PUBLIC KEY-----\nsecurity-spec-${seed8}\n-----END PUBLIC KEY-----`
+    const inserted: Array<{ id: string }> = await api.pgDataSource.query(
+      `INSERT INTO app_key (key, type, version, status, valid_start, meta)
+       VALUES ($1, 'RSA_PAIR', $2, 'ACTIVE', now(), $3::jsonb)
+       RETURNING id`,
+      [`security-spec-${seed8}`, highVersion, JSON.stringify({ publicKeyPem, privateKeyPem: 'unused' })],
+    )
+    seededKeyIds.push(inserted[0].id)
+
+    const res = await api.root('GET', api.apiPath('/security/rsa/public-key'))
+    expectOk(res, 'security rsa public-key')
+    expect(bodyOf<string>(res).data).toBe(publicKeyPem)
+  })
+
+  it('cap challenge/redeem → FreeResponse 无响应壳：challenge 形状 + 本地 PoW 对解 success:true', async () => {
+    const challengeRes = await api.anon('POST', api.apiPath('/security/cap/challenge'))
+    // FreeResponse：body 即 cap.js 形态（无 {code,data} 壳）
+    const challengeBody = challengeRes.body as CapChallengeBody
+    expect(challengeBody.challenge.c).toBeGreaterThan(0)
+    expect(challengeBody.challenge.s).toBeGreaterThan(0)
+    expect(challengeBody.challenge.d).toBeGreaterThan(0)
+    expect(typeof challengeBody.token).toBe('string')
+    expect(challengeBody.expires).toBeGreaterThan(Date.now())
+
+    const solutions = solveCapChallenge(challengeBody.challenge, challengeBody.token)
+    const redeemRes = await api.anon('POST', api.apiPath('/security/cap/redeem'), {
+      token: challengeBody.token,
+      solutions,
+    })
+    const redeemBody = redeemRes.body as { success?: boolean, token?: string, expires?: number }
+    expect(redeemBody.success).toBe(true)
+    expect(typeof redeemBody.token).toBe('string')
+    expect(redeemBody.expires).toBeGreaterThan(Date.now())
+  })
+
+  it('cap redeem 错解 → FreeResponse success:false', async () => {
+    const challengeRes = await api.anon('POST', api.apiPath('/security/cap/challenge'))
+    const challengeBody = challengeRes.body as CapChallengeBody
+
+    const redeemRes = await api.anon('POST', api.apiPath('/security/cap/redeem'), {
+      token: challengeBody.token,
+      solutions: challengeBody.challenge.c > 0 ? [999999] : [1],
+    })
+    const redeemBody = redeemRes.body as { success?: boolean, message?: string }
+    expect(redeemBody.success).toBe(false)
+  })
+
+  it('sensitive check（无 security 身份）→ 40401：getUserAvailableMethods 对 phone security 读腿直接抛 DataNotFound（钉现状）', async () => {
+    const res = await api.root('GET', api.apiPath('/security/sensitive/check?level=basic'))
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
+  })
+
+  it('造 security email/phone 身份后 check → needsVerification + availableMethods(password/sms/email) + 首选 password', async () => {
+    // getUserAvailableMethods 对缺失的 phone/email security 读腿直接抛 DataNotFound ——
+    // 正向 check 必须两腿齐造（B7c int-spec 同款 fixture）
+    const identityShared = app.get(SysUserIdentitySharedService)
+    await identityShared.createIdentity(fixture!.userId, 'emailAddress', 'security', securityEmail)
+    await identityShared.verifyIdentity(fixture!.userId, 'emailAddress', 'security')
+    await identityShared.createIdentity(fixture!.userId, 'phoneNumber', 'security', `138${seed8.replaceAll('-', '').slice(0, 8)}`)
+    await identityShared.verifyIdentity(fixture!.userId, 'phoneNumber', 'security')
+
+    const res = await api.root('GET', api.apiPath('/security/sensitive/check?level=basic'))
+    expectOk(res, 'sensitive check')
+
+    const data = bodyOf<{ needsVerification: boolean, availableMethods?: string[], preferredMethod?: string }>(res).data
+    expect(data.needsVerification).toBe(true)
+    expect(data.availableMethods).toContain('password')
+    expect(data.availableMethods).toContain('sms')
+    expect(data.availableMethods).toContain('email')
+    // mfa 校验未实现，恒不列（B7c 钉现状）
+    expect(data.availableMethods).not.toContain('mfa')
+    expect(data.preferredMethod).toBe('password')
+  })
+
+  it('sensitive verify：password 通道恒失败 → 40000（钉现状：opaque record 无法按明文比对）', async () => {
+    const res = await api.root('POST', api.apiPath('/security/sensitive/verify'), {
+      level: 'basic',
+      operationType: 'password_change',
+      method: 'password',
+      credential: fixture!.password,
+    })
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+
+    const redis = app.get(AppTechRedisService).getClient()
+    expect(await redis.exists(`sensitive_op:${fixture!.userId}:${api.deviceId}:basic`)).toBe(0)
+  })
+
+  it('sensitive verify email 错码 → 40000 且不授权', async () => {
+    await verifyCodeService.setVerifyCodeForAuthUserCache(fixture!.userId, securityEmail, 456789, 300)
+
+    const res = await api.root('POST', api.apiPath('/security/sensitive/verify'), {
+      level: 'basic',
+      operationType: 'password_change',
+      method: 'email',
+      credential: '111222',
+    })
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+
+    const redis = app.get(AppTechRedisService).getClient()
+    expect(await redis.exists(`sensitive_op:${fixture!.userId}:${api.deviceId}:basic`)).toBe(0)
+  })
+
+  it('sensitive verify email 对码 → true + 授权键落 Redis；check 翻转 needsVerification=false + remainingSeconds', async () => {
+    await verifyCodeService.setVerifyCodeForAuthUserCache(fixture!.userId, securityEmail, 778899, 300)
+
+    const res = await api.root('POST', api.apiPath('/security/sensitive/verify'), {
+      level: 'basic',
+      operationType: 'password_change',
+      method: 'email',
+      credential: '778899',
+    })
+    expectOk(res, 'sensitive verify')
+    expect(bodyOf<boolean>(res).data).toBe(true)
+
+    const redis = app.get(AppTechRedisService).getClient()
+    await pollUntil(async () => (await redis.exists(`sensitive_op:${fixture!.userId}:${api.deviceId}:basic`)) === 1)
+
+    const checkRes = await api.root('GET', api.apiPath('/security/sensitive/check?level=basic'))
+    expectOk(checkRes, 'sensitive check after grant')
+    const granted = bodyOf<{ needsVerification: boolean, remainingSeconds?: number }>(checkRes).data
+    expect(granted.needsVerification).toBe(false)
+    expect(granted.remainingSeconds).toBeGreaterThan(0)
+  })
+
+  it('sensitive verify 参数面：method 不在支持面（mfa 未实现）→ 40000 verifyMethodNotAllowed', async () => {
+    const res = await api.root('POST', api.apiPath('/security/sensitive/verify'), {
+      level: 'basic',
+      operationType: 'password_change',
+      method: 'mfa',
+      credential: '000000',
+    })
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+  })
+})

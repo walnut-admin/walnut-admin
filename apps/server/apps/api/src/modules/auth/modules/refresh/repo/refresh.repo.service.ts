@@ -57,8 +57,17 @@ export class AuthRefreshRepositoryService {
    * 轮换读腿（事务内）必须传 `{ lock: true }` 持悲观写锁：PG READ COMMITTED 下无锁时
    * 同一 jti 的并发重放会双双读到未撤销行并都 rotate 成功（Mongo 时代靠事务写冲突
    * abort 一方拦住），悲观锁保住这个重放拦截口。非事务的解密校验读不锁。
+   *
+   * 迁移回归修复（API 回归 D 段 auth-session spec 抓出）：jti 为空（refresh 端点无
+   * RT_JTI cookie 时 guard 直取 cookie 值传入）→ Mongo 版 findOne({jti: undefined})
+   * 查无行 → 受控 RefreshTokenExpired（40101）；PG/TypeORM 把 undefined 当绑定参数
+   * 下发 → pg 驱动 "bind parameters must not contain undefined" 未受控 50000。按
+   * 「查无此 jti」语义收 nil → null（两个调用方本就有 null 分支）。
    */
   async findByJti(jti: string, em?: EntityManager, options?: { lock?: boolean }) {
+    if (jti === undefined || jti === null || jti === '') {
+      return null
+    }
     // 悲观锁只在活跃事务里有意义：生产轮换路径恒在 @WalnutDBTransaction 内；
     // 非事务上下文（连接级 manager）无法提供并发保护，退化为普通读
     const lock = options?.lock && em?.queryRunner?.isTransactionActive

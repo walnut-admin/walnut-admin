@@ -1,4 +1,4 @@
-# API 端点全景测绘（API 回归验证 A 段 + B 段 + C 段）
+# API 端点全景测绘（API 回归验证 A 段 + B 段 + C 段 + D 段）
 
 > 全部 controller 的「模块 → 端点 → 方法/路径 → 守卫 → 请求形态」矩阵，后续 API 级测试批次的清单。
 > 路径均相对 `/{APP_API_PREFIX}/v{APP_API_VERSION}`（本地开发 env 为 `/w/v1`，下同省略）。
@@ -7,6 +7,9 @@
 > `*.api-spec.ts`（8 份新文件、45 用例），登记见各表格「API 级测试策略」列与文末「B 段补记」。
 > C 段（2026-10-26）：§5 system 模块除 lang/locale（A 段）与 deleted/logs（未在本段范围）外全部落地
 > `*.api-spec.ts`（11 份新文件、87 用例），登记见各表格与文末「C 段补记」。
+> D 段（2026-10-26）：§2 auth 会话链/opaque 管理端/otp、§3 security、§5 的 deleted/log_auth/log_operate、
+> §4 shared/ali 与外部 OAuth 错误路径全部落地 `*.api-spec.ts`（9 份新文件、46 用例），
+> 登记见各表格与文末「D 段补记」。
 
 ## 全局守卫链（每个请求都要穿过，除非端点带 Free 装饰器）
 
@@ -75,22 +78,26 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 
 | 端点 | 方法/路径 | 守卫 | 权限点 | 请求形态 | API 级测试策略 |
 |---|---|---|---|---|---|
-| 会话 | GET `/auth/permissions` | Sign 链 | 无 | — | **基座核心**：登录态拉权限（写权限缓存） |
-| 会话 | POST `/auth/signout` | SignFree+DeviceFree | 无 | — | 登出闭环（RT revoke + 清 cookie） |
-| 会话 | GET `/auth/keys` | Sign 链 | 无 | — | 响应体 RSA 加密字段（`EncryptResponse('B')`），需客户端私钥解密 |
+| 会话 | GET `/auth/permissions` | Sign 链 | 无 | — | **D 段已测**（auth-session.api-spec.ts）：root 权限树含自建 MENU 行（响应顶层是「首个根节点的 children」——单根无子级时顶层数组恒空，须造 CATALOG+MENU 两行）+ AUTH:PERMISSIONS 缓存键写入可复现 + 匿名 40101。
+  **空表边界钉现状**：sys_menu 空表时 indexMenuName 组装在 `permissionMenuTree[0].children` 上 TypeError → 50000（Mongo 时代同病，spec 靠自建菜单行绕开） |
+| 会话 | POST `/auth/signout` | SignFree+DeviceFree | 无 | — | **D 段已测**：RT 行原地 revoke + `__Host-RT_JTI` cookie Expires 归零 + after-commit 清 permissions/MFA verified 缓存（轮询）+ 旧 AT 再请求 40115（MFA verified 缓存已清，MFA guard 在 Sign guard 之前先拦）。
+  **钉现状（非迁移回归，登记）**：AUTH:SESSIONS 键残留 —— revokeSession 走 cacheService.delByPattern，内部 redis.del(数组) 在 node-redis v5 rest-args 语义下抛错（C 段 user-device/monitor spec 同款已知问题），钩子错误被 catch 吞掉 |
+| 会话 | GET `/auth/keys` | Sign 链 | 无 | — | **D 段已测**：响应 B 字段是 EncryptResponse 设备握手 RSA 信封（与 aes-key 握手第二步同格式），客户端私钥（api-client 新增 `clientRsaPrivateKeyPem`）解密还原 vendor.baidu 明文 |
 | opaque/user | POST `/auth/opaque/user/login/start` | JwtFree（Sign 生效：单因子） | 无 | `{userName,start}` | **基座核心**：真实 opaque 登录前半段。
   A 段试点抓出迁移回归并已修：handler 用 `@WalnutDBSession()` 取 ctx.em 但漏挂 `@WalnutDBTransaction()`，txContext 恒 undefined → 匿名调用必 500；已对齐 login/finish 形态补上事务装饰器 |
 | opaque/user | POST `/auth/opaque/user/login/finish` | JwtFree + `AuthOpaqueUserGuard`(passport-local userName/finish) | 无 | `{userName,finish}` | **基座核心**：签发 AT/sessionKey + RT cookie |
 | opaque/user | POST `/auth/opaque/user/login/client-error` | JwtFree | 无 | `{userName,clientError,...}` | 恒 40103，冒烟 |
 | opaque/user | POST `/auth/opaque/user/register/{start,finish}` | JwtFree（但 handler 读 `req.user.userName` —— 语义上是已登录用户补挂口令，新用户注册走 OTP） | 无 | opaque 消息 | 钉现状：匿名调用 500（handler 解引用 undefined）——登记为已知问题，不作为过据点 |
-| opaque/user | POST `/auth/opaque/user/change-password/{start,finish}` | Sign 链 | `me:auth:opaque:changePassword` | opaque 消息 | 中优先（真实改密 + 会话吊销） |
-| opaque/admin | POST `/auth/opaque/admin/password/update/{start,finish}`、`password/clear` | Sign 链 | `system:user:pass:update` / `clear` | `{id,...}` + opaque 消息 | 中优先（root 管理他人凭证） |
-| otp | POST `/auth/otp/send`、`verify` | JwtFree + Functional（settings 缺省放行） | 无 | `{type,identifier,...}` | send 不真发邮件（sendEnable=0）；verify 走 OtpGuard；中优先 |
-| refresh | POST `/auth/refresh` | Lock/Sign/MFA/Jwt/Device 全 Free + `JwtRefreshGuard`（RT cookie） | 无 | — | 刷新轮换闭环：RT cookie → 新 AT；高优先 |
-| mfa | GET `/auth/mfa/status`、POST `/auth/mfa/verify` | MFAFree+LockFree | 无 | verify `{type,code}` | 高优先（MFA 闭环：绑定 totp → verify → 新 AT） |
-| google | POST `/auth/google`、POST `/auth/google/callback` | Jwt/Sign Free + Functional + `AuthGoogleGuard` | 无 | google id_token | **外部依赖**：API 级只测 functional 关闭/参数缺失错误路径，或跳过 |
-| oauth/gitee | GET `/auth/oauth/gitee/url`、GET `/auth/oauth/gitee/callback` | Jwt Free + Functional（callback 另 SignFree + `OAuthGiteeGuard`） | 无 | query code | **外部依赖**：url 端点可测（构造跳转 URL）；callback 需真实 gitee code —— 错误路径/跳过 |
-| oauth/github | 同 gitee（`/auth/oauth/github/*`） | 同上 | 无 | query code | **外部依赖**：同 gitee |
+| opaque/user | POST `/auth/opaque/user/change-password/{start,finish}` | Sign 链 | `me:auth:opaque:changePassword` | opaque 消息 | **D 段已测**（opaque-admin.api-spec.ts）：me 通道真实 opaque 两步改密（服务级 finishRegistration 出 record）→ identity value/valueHash 整体替换 + security-policy 全设备 RT 吊销（revokeReason=updatePass）；旧密码客户端 finishLogin 失败、新密码 login/finish 换发成功 |
+| opaque/admin | POST `/auth/opaque/admin/password/update/{start,finish}`、`password/clear` | Sign 链 | `system:user:pass:update` / `clear` | `{id,...}` + opaque 消息 | **D 段已测**（opaque-admin.api-spec.ts）：root 给目标用户改密（按 user 主键 id 定位，真实 opaque 客户端两步）→ identity 替换 + 目标全设备 RT 吊销 + 不存在 id 40000；password/clear 删 password identity、幂等（无行再删恒 true）、清后 login/start 40103 |
+| otp | POST `/auth/otp/send`、`verify` | JwtFree + Functional（settings 缺省放行） | 无 | `{type,identifier,...}` | **D 段已测**（otp.api-spec.ts）：缺省配置（OtpSettingService 兜底 sendEnable=0/authEnable=0）→ send/verify 各自 functional guard 50301 EndPointUnavailable（码缓存不落）；种 APP:SETTING 缓存开 email 后 send → 真码落 `AUTH:VERIFY_CODE:visitor:<identifier>`（邮件走 Bull 队列不真发）→ verify 错码 40000、对码换发令牌 + `__Host-RT_JTI` cookie + identity 标记 verified + 码缓存删除 + AUTH:SESSIONS 键落（换发会话可用性另以 security-tab2 探针双因子验证）；type 非法 40099。
+  **注意**：JwtFree+Sign 生效路由对登录态 jar 的 anon() 双因子签名一律 40112 —— 闭环请求发在未登录独立客户端（helpers 新增 `overrideAppSettings` 缓存改写+还原） |
+| refresh | POST `/auth/refresh` | Lock/Sign/MFA/Jwt/Device 全 Free + `JwtRefreshGuard`（RT cookie） | 无 | — | **D 段已测**（auth-session.api-spec.ts）：RT cookie → 新 AT；轮换是**同 jti 原地换锁**（同一行 encrypted_token/expired_at 换新、revoked 恒 false——钉实现现状，无「旧行 revoked+新行」形态）；新 AT 与旧 AT 同 sid。
+  **迁移回归已修**（D 段唯一一处 src 改动）：无 RT cookie 时 guard 直取 cookie 值 undefined 传入 findByJti —— Mongo 版 findOne({jti: undefined}) 查无行 → 受控 40102；PG/TypeORM 把 undefined 当绑定参数下发 → pg 驱动 "bind parameters must not contain undefined" 未受控 50000。已在 `refresh.repo.service.findByJti` 按「查无此 jti」语义收 nil → null |
+| mfa | GET `/auth/mfa/status`、POST `/auth/mfa/verify` | MFAFree+LockFree | 无 | verify `{type,code}` | 高优先（MFA 闭环：绑定 totp → verify → 新 AT）—— verify 的 RT 轮换闭环已由 C 段 user-mfa spec（system/user/mfa/totp/verify）覆盖 |
+| google | POST `/auth/google`、POST `/auth/google/callback` | Jwt/Sign Free + Functional + `AuthGoogleGuard` | 无 | google id_token | **D 段已测**（external-oauth.api-spec.ts，错误路径专项）：functional 关闭 → 50301 拦在 passport guard 之前；开启 → garbage credential 走本地 JWKS 校验失败 40107（不发外网）。真实 Google id_token 回调不测（外部依赖） |
+| oauth/gitee | GET `/auth/oauth/gitee/url`、GET `/auth/oauth/gitee/callback` | Jwt Free + Functional（callback 另 SignFree + `OAuthGiteeGuard`） | 无 | query code | **D 段已测**（external-oauth.api-spec.ts）：functional 关闭 50301；开启 `/url` 构造跳转 URL 形态（authorize + client_id + redirect_uri 原样拼接不转义 + response_type + scope + state JSON{fp,lang}）；callback 缺 code → passport-oauth2 authorize 重定向腿 302（钉现状）。真实 gitee code 回调不测（外部依赖） |
+| oauth/github | 同 gitee（`/auth/oauth/github/*`） | 同上 | 无 | query code | **D 段已测**（external-oauth.api-spec.ts）：同 gitee 同构（scope=read:user user:email）。真实 github code 回调不测（外部依赖） |
 
 ## 3. security 模块（`modules/security/`）
 
@@ -98,15 +105,15 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 |---|---|---|---|---|---|
 | sign | POST `/security/sign/initial` | Sign/Cap/Jwt/Lock/Device/Ip 全 Free（Risk 仍跑） | 无 | `{rsaPubKey,force?}` | **基座核心**：握手第一步 |
 | sign | POST `/security/sign/aes-key` | 同上（响应 aesKey 经客户端 RSA 加密） | 无 | — | **基座核心**：握手第二步（客户端私钥解密） |
-| rsa | GET `/security/rsa/public-key` | Sign/Jwt/Cap Free | 无 | — | 服务端密钥（app_key 表），冒烟 |
-| cap | POST `/security/cap/challenge`、`/security/cap/redeem` | Cap/Jwt/Device/Lock Free（challenge/redeem 另 SignFree） | 无 | challenge/redeem payload | redeem 依赖 Cap.js 本地验证（`@cap.js/server` 本地算题，非外网）——可测；中优先 |
-| sensitive | GET `/security/sensitive/check`、POST `/security/sensitive/verify` | Sign 链（`SensitiveGuard` 方法级） | 无 | verify `{basic,action,type,code}` | 中优先（B7c 已钉 service 现状） |
+| rsa | GET `/security/rsa/public-key` | Sign/Jwt/Cap Free | 无 | — | **D 段已测**（security.api-spec.ts）：返回 app_key 表 current RSA_PAIR（version 最大 ACTIVE 行）meta.publicKeyPem —— 自插高 version 目标行做数据自洽（与 app_key.int-spec / key.api-spec 双向隔离，afterAll 清行还原） |
+| cap | POST `/security/cap/challenge`、`/security/cap/redeem` | Cap/Jwt/Device/Lock Free（challenge/redeem 另 SignFree） | 无 | challenge/redeem payload | **D 段已测**（security.api-spec.ts）：FreeResponse 无响应壳 —— challenge 回 cap.js `{challenge:{c,s,d},token,expires}`，redeem 本地 PoW 对解 success:true、错解 success:false（helpers 求解器与 api-client 引导期同源） |
+| sensitive | GET `/security/sensitive/check`、POST `/security/sensitive/verify` | Sign 链（`SensitiveGuard` 方法级） | 无 | verify `{basic,action,type,code}` | **D 段已测**（security.api-spec.ts，HTTP 级钉 B7c 已固化的 service 现状，非迁移回归不修）：① 缺 security 身份 → getUserAvailableMethods 对 phone/email security 读腿直接 DataNotFound 40401（而非跳过该方式）；② 造 security email+phone 身份后 check 列出 password/sms/email、mfa 恒不列、首选 password；③ verify password 通道恒失败 40000（opaque record 无法按明文比对）；④ email 错码 40000 不授权；⑤ 对码授权 sensitive_op:* 键 → check 翻转 needsVerification=false + remainingSeconds；⑥ mfa（未实现）→ 40000 verifyMethodNotAllowed |
 
 ## 4. shared 模块（`modules/shared/`）
 
 | 端点 | 方法/路径 | 守卫 | 权限点 | 请求形态 | API 级测试策略 |
 |---|---|---|---|---|---|
-| ali | GET `/shared/ali/sts` | Sign 链 | `app:shared:ali:sts` | — | 需阿里云 vendor key（env 有则冒烟，否则 5xxxx） |
+| ali | GET `/shared/ali/sts` | Sign 链 | `app:shared:ali:sts` | — | **D 段已测**（shared-ali.api-spec.ts）：实现是 env `vendor.ali.OSS` 凭证直连阿里云 STS assumeRole —— env 配了 key 就发真实外网请求，结果取决于外部服务（凭证有效性/网络），不可脚本稳定。钉两端受控形态：成功 → 20000 + 三敏感字段（accessKeyId/accessKeySecret/stsToken）为 EncryptResponse 握手 RSA 信封（客户端私钥可解）、region/bucket 与 env 一致；失败（凭证无效/网络不可达）→ SDK 异常未映射受控异常兜底 50000。两态断言 body.code ∈ {20000, 50000} |
 | area | GET `/shared/area/children`、`/shared/area/feedback` | Sign 链 | `system:area:*` | query（父级行政区划） | **B 段已测**（area.api-spec.ts）：集成库 shared_area 为空表，自建 95→9501→950102 三级行（与 int-spec 的 91/77 数据集无交集）；children 冷态回源 + 层级缓存（SHARED:AREA:*，跑前清跑后清）+ feedback 单码/多码回显树（depth/isLeaf）+ 匿名 40101 + 缺 codes 40099。
   **迁移回归已修**（repo.findChildrenByPcode 投影普通对象，对齐 Mongo `.lean()`）：原 TypeORM find 返回无 @Expose 实体，被全局 ClassSerializer（excludeExtraneousValues）在 HTTP 出站剥成 `[{}]`——缓存未命中的冷路径整层丢字段（热路径因 Redis JSON 往返侥幸幸存，service 层 int-spec 不可见），详见 area.api-spec.ts 头注 |
 
@@ -129,9 +136,11 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   用户名重复 → DB 23505 未映射受控异常，兜底 50000（钉现状） |
 | user/me | PUT `/system/user/me/profile`、GET `security-tab2`、GET `profile` | Sign 链 | `me:profile:update` 等 | — | **C 段已测**（user-me.api-spec.ts）：GET profile populated_roles_list、PUT profile 持久化 + 40099（缺必填/越枚举）、security-tab2 双通道形状（totp 行 SQL 直插对拍 verified/status 语义）、匿名 40101 |
 | device | POST `/system/device/initial`（Sign/Jwt/Cap/Device Free + Throttle）+ GET `:id/current-active-user`、`:id/history-users` + PATCH `:id/{lock,unlock,banned,unbanned}` + read/list | Sign 链 | `system:device:*`（AND 模式组合） | uuid + PATCH | **C 段已测**（device.api-spec.ts）：initial 同指纹幂等回同 deviceId（upsert 覆盖 deviceName）+ 新指纹新行（裸 supertest 发，避免 cookie jar 吃下第二台设备的 DEVICE_ID 重签导致 CAP 40116 串台；Throttle 4/60s 压线）+ read/list（`:id` 是行 uuid 非业务键；sr/vp 组装回嵌套；current-active-user 空态回 null 填充壳）+ lock/ban 只进 SYS_DEVICE 缓存不落库 → 锁/封期间同设备请求被 Device guard 40606/40607 拦死（连 unlock/unban 都到不了），端点间以缓存复位通道衔接 + history-users 恒空数组（populate 恒命中，「只回 populated_user 缺失行」语义反转，钉现状） |
-| deleted | read/list + `POST me/recover`、`POST recover`（recover 系另有 `@HasRole([root,developer,admin])`） | Sign 链 | `system:deleted:*` | uuid/ids | 后续批次（B9 回收站已有 int-spec） |
-| log/auth | CRUD delete/deleteMany/list（`@UseGuards(JwtAccessGuard)` 显式重复挂） | Sign 链 | `system:logAuth:*` | list | 后续批次 |
-| log/operate | GET `:id/device`、`:id/snapshot`、read、list | Sign 链 | `system:logOperate:*` | uuid | 后续批次 |
+| deleted | read/list + `POST me/recover`、`POST recover`（recover 系另有 `@HasRole([root,developer,admin])`） | Sign 链 | `system:deleted:*` | uuid/ids | **D 段已测**（deleted.api-spec.ts，B9 int-spec 已盖 service 层，此处 HTTP 层复刻核心三态）：demo create → HTTP delete 软删 → read（快照 content/modelName/deletedBy + populated_user toMatchObject——read 面带额外 null 键）/ list（content ::text 关键字过滤 + total，出参不带 content）→ recoverMine 属主恢复（原行回来 + sys_deleted 行同事务消失）→ 管理端 recover（root 短路 @HasRole）→ deletedId 不匹配两态（recoverMine 40401 双键定位不命中 / recover 40000 recoverFail）→ deleteMany（deleteReal）硬删快照、原表不回来。
+  **注意**：demoString 挂 IsUppercase（uuid 片段 hex 抬大写）；deletedBy 是 uuid 列不走模糊白名单，列表过滤走 content 关键字 |
+| log/auth | CRUD delete/deleteMany/list（`@UseGuards(JwtAccessGuard)` 显式重复挂） | Sign 链 | `system:logAuth:*` | list | **D 段已测**（log-auth.api-spec.ts）：日志行由真实登录链自然产生（beforeAll opaque HTTP 登录产成功行；未知 userName 的 login/start 产失败行——recordAuth fire-and-forget，断言轮询）→ list（deviceId 过滤 + type 数组过滤命中/空命中 + 分页）+ 行字段面（成功行 userId/userName/type=opaque、失败行 userId/userName 双 null、msg 为 i18n 文案）+ delete（软删 → sys_deleted 快照 SysLogAuthModel）+ deleteMany + 不存在 id 40401 |
+| log/operate | GET `:id/device`、`:id/snapshot`、read、list | Sign 链 | `system:logOperate:*` | uuid | **D 段已测**（log-operate.api-spec.ts）：日志行由 dictType create/update（CRUD 装饰器自带操作日志）自然产生，拦截器 `void insertToLogOperate` fire-and-forget 断言轮询 → list（deviceId 过滤 + 分页）+ 行字段面（title/actionType/method/statusCode/success/userId/os/browser/requestData jsonb）+ `:id/snapshot`（pg-base.update 的 ALS 快照两腿 before/after name 翻转）+ `:id/device`（deviceId 业务键反查 sys_device 组装回嵌套）+ read（Safe DTO 无快照列）+ 不存在 id 40401（read/snapshot 同型）。
+  **钉现状**：CRUD update 装饰器只传 title/action → operation 列恒 null |
 | user_device | GET `list`、PUT `update-name/:deviceId`、DELETE `force-quit/:deviceId`、PUT `lock/:deviceId`、`unlock/:deviceId` | Sign 链 | `system:userDevice:*` | — | **C 段已测**（user-device.api-spec.ts）：list（登录绑定行 current=true + deviceType/location 装回）+ update-name 持久化 + lock/unlock（建 sys_user_lock 偏好行、lockRoute 落 DB 默认空对象、cross_device 默认 true → 锁后 Lock guard 40118，端点间清 SECURITY_LOCK 缓存衔接）+ force-quit 撤 RT（revoked + userKickOther；updateRevokedAndReason 走 findOne 只撤第一行，钉现状）+ 无 monitor 行 40401 |
 | user_identity | POST `list`、GET `status/:purpose`、POST `check/bind`、DELETE `unbind`、PUT `update/status`、POST `send-code/verify`（均 `/:type/:purpose`） | Sign 链 | （me 自维度，多数无 @HasPermission） | — | **C 段已测**（user-identity.api-spec.ts）：OTP 真实闭环（check 发码进 AUTH:VERIFY_CODE 缓存 —— 邮件走 Bull 队列测试环境不真发；用例从缓存读回真码 bind）+ status 形态/maskedValue + unbind（有 password 兜底可解）+ value 被他人占用拦截（第二 root 用户对拍）。
   **钉现状（非迁移回归，未修）**：① `POST list` 恒 40099 —— list DTO 是空类，forbidUnknownValues 对无校验元数据类体恒抛，身份读腿走 status；② bind 的 setAsSecurity 未挂 IsOptional，缺字段 40099；③ `update`（rebind）经 HTTP 恒 40000 —— partial DTO 把未给键材料化成显式 null，服务端 `verified !== undefined` 判 null 也命中 useVerifyEndpoint 拦截，任何 body 到不了改值逻辑（未验证态由用例 SQL 制造后走 send-code/verify 闭环）；④ `update/status` → 40401 —— RequireSensitive 守卫的可用验证方式探测对缺失的 phoneNumber/security 身份直接 getIdentityOrThrow，DataNotFound 在守卫链上抛出，预期 40119 分支不可达 |
@@ -168,6 +177,47 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   lang public 端点（`@WalnutAdminDecoratorCache`）已钉现状：命中后 1h TTL 内不回源，lang CRUD 不主动失效该键。
 - **C 段**：§5 system 模块主体（dict/menu/role/user 系 + device 系 + me 系共 11 份 spec、87 用例）已落地，
   基线 236 → 323；未覆盖余量：`deleted`（回收站 read/list/recover）与 `logs`（logAuth/logOperate）两系。
+- **D 段**：§2 auth 会话链（permissions/refresh/signout/keys）+ opaque 管理端/me 通道改密 + otp + §3 security
+  （rsa/cap/sensitive）+ §4 shared/ali + 外部 OAuth 错误路径 + §5 的 deleted/log_auth/log_operate 共
+  9 份 spec、46 用例已落地，基线 323 → 369。
+
+## D 段补记（2026-10-26）
+
+- **新增 9 份 spec、46 用例**：`auth-session / opaque-admin / otp / security / external-oauth /
+  log-operate / log-auth / deleted / shared-ali`。基线 323 → 369，`pnpm test:integration` 连续两轮全绿。
+  通用约定沿用 A/B/C 段：describe 级握手+登录一次（root 短路权限）、afterEach/afterAll 自建自清、
+  fire-and-forget（操作日志/登录日志落库、after-commit 清缓存）断言一律短轮询、断言 `body.code` 契约。
+  测试基建新增：helpers `app-settings.ts`（APP:SETTING 缓存改写+原值还原，functional guard 系列
+  用）、api-client 暴露 `clientRsaPrivateKeyPem`（EncryptResponse 响应字段解密）。
+- **迁移回归修复（1 处，本段唯一 src 改动）**：`auth/refresh` 无 RT cookie 时 guard 把 undefined
+  jti 直传 `AuthRefreshRepositoryService.findByJti` —— Mongo 版 findOne({jti: undefined}) 查无行 →
+  受控 RefreshTokenExpired（40102）；PG/TypeORM 把 undefined 当绑定参数下发 → pg 驱动
+  "bind parameters must not contain undefined" 未受控 50000。已在 findByJti 按「查无此 jti」语义
+  收 nil → null（两个调用方本就有 null 分支，轮换写腿行为不变）。
+- **钉现状（非迁移回归，断言固化，未修）**：
+  - `POST /auth/signout` 的会话键清理腿失效 —— revokeSession 走 `cacheService.delByPattern`，
+    内部 `redis.del(数组)` 在 node-redis v5 的 rest-args 语义下抛错（C 段 user-device/monitor spec
+    已登记同款），after-commit 钩子错误被 catch 吞掉 → AUTH:SESSIONS 键残留（permissions/MFA
+    verified 两键正常消失）；旧 AT 再请求被 MFA guard 以 40115 先拦（MFA verified 缓存已清且
+    MFA guard 在 Sign guard 之前）；
+  - `GET /auth/permissions` 在 sys_menu 空表时 indexMenuName 组装 TypeError → 50000（Mongo 时代
+    同病，spec 靠自建 CATALOG+MENU 两行绕开；响应顶层是「首个根节点的 children」，单根无子级
+    时顶层数组恒空）；
+  - RT 刷新轮换是**同 jti 原地换锁**（同一行 encrypted_token/expired_at 换新、revoked 恒 false），
+    不存在「旧行 revoked + 新行」两行形态；
+  - CRUD update 装饰器不传 operateType → sys_log_operate.operation 列恒 null；
+  - `security/sensitive` 的 password 通道恒失败（identity value 无法按明文比对还原）与
+    getUserAvailableMethods 对缺失 security 身份直接 DataNotFound —— B7c service 层钉的现状在
+    HTTP 层同形（40401/40000）；
+  - gitee/github callback 缺 code → passport-oauth2 走 authorize 重定向腿（HTTP 302 Location），
+    钉现状；
+  - `/shared/ali/sts` 在 env 配有 vendor key 时发真实外网请求（STS assumeRole），结果取决于外部
+    服务 —— spec 断言受控两态（20000 信封形状 XOR 50000 兜底），真实 STS 成功率不进回归。
+- **JwtFree + Sign 生效路由的签名口径（D 段反复踩坑，通用口径）**：登录态客户端的 `anon()` 会签
+  双因子（无 Authorization 头）→ 服务端按单因子验 → 40112。所有匿名断言要么发在未登录独立客户端
+  （opaque-admin / otp / external-oauth 的做法），要么先 `setAuth(null)` 回单因子（log-auth 的做法）。
+- **外部依赖端点不进回归**：google fed_cm 真实 id_token、gitee/github 真实 code 回调（外部 IdP）——
+  已覆盖部分为纯本地错误路径（functional 开关 / 本地 JWKS 校验 / url 构造 / 缺 code 重定向腿）。
 
 ## B 段补记（2026-10-26）
 

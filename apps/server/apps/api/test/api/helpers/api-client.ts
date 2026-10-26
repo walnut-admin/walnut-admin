@@ -74,6 +74,15 @@ export class WalnutApiClient {
     return this._deviceId
   }
 
+  /**
+   * 握手期提交给服务端的客户端 RSA 私钥（PEM）—— `EncryptResponse` 端点（如
+   * `GET /auth/keys`、`GET /shared/ali/sts`）的响应加密字段用它走
+   * `decryptAesKeyEnvelope` 还原明文（与 aes-key 握手第二步同一信封格式）。
+   */
+  get clientRsaPrivateKeyPem(): string {
+    return this.rsaPrivateKey
+  }
+
   private get apiPrefix(): string {
     return this.configService.get<string>('app.api.prefix')!
   }
