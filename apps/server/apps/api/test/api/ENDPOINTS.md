@@ -1,10 +1,12 @@
-# API 端点全景测绘（API 回归验证 A 段 + B 段）
+# API 端点全景测绘（API 回归验证 A 段 + B 段 + C 段）
 
 > 全部 controller 的「模块 → 端点 → 方法/路径 → 守卫 → 请求形态」矩阵，后续 API 级测试批次的清单。
 > 路径均相对 `/{APP_API_PREFIX}/v{APP_API_VERSION}`（本地开发 env 为 `/w/v1`，下同省略）。
 > 来源：`apps/api/src/**/*.controller.ts` 静态扫描 + 逐文件核对（2026-10-25，分支 refactor/postgres-migration）。
 > B 段（2026-10-26）：§1 app 系 + §4 shared/area + §6 health + §7 根 controller 全部落地
 > `*.api-spec.ts`（8 份新文件、45 用例），登记见各表格「API 级测试策略」列与文末「B 段补记」。
+> C 段（2026-10-26）：§5 system 模块除 lang/locale（A 段）与 deleted/logs（未在本段范围）外全部落地
+> `*.api-spec.ts`（11 份新文件、87 用例），登记见各表格与文末「C 段补记」。
 
 ## 全局守卫链（每个请求都要穿过，除非端点带 Free 装饰器）
 
@@ -116,23 +118,29 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | locale | GET `/system/locale/message/:locale?cache=1` | Lock/Sign/Jwt/Cap/Device/Ip 全 Free | 无 | 路由 locale | **A 段试点已覆盖**：message 拉取 + 缓存开关。
   缓存语义已钉现状：locale create/delete 事务提交后全量刷新 message 缓存（runAfterCommit → extractLocaleMessagesIntoCacheForCronJob，会顺带写 `SYS_LANG_ID_LIST`）；绕过 HTTP 的 PG 直插不触发刷新，cache=1 读旧缓存、cache=0 回源 |
 | locale | POST `/system/locale`（数组批量 create）、`GET /:key`、`PUT /:id`、`DELETE /:key`、`DELETE /deleteMany/:keys`、`POST /list` | Sign 链 + 事务 | `system:locale:*` | 数组 `{langId,key,value[,oldKey]}` | **A 段试点**（创建/更新/删除走真实事务） |
-| dict/type | GET `/system/dict/type/s` + CRUD | Sign 链 | `system:dictType:*` | dict DTO | 后续批次 |
-| dict/data | CRUD | Sign 链 | `system:dictData:*` | dict DTO | 后续批次 |
-| menu | GET `/system/menu/tree` + CRUD（delete 带 `?cascade=` query） | Sign 链 | `system:menu:*` | menu DTO | 后续批次（权限数据源，配合角色菜单） |
-| role | CRUD 四件（无 deleteMany；无 delete） | Sign 链 | `system:role:*` | role DTO | 后续批次 |
-| user | CRUD + 状态管理 | Sign 链 | `system:user:*` | user DTO | 后续批次 |
-| user/me | PUT `/system/user/me/profile`、GET `security-tab2`、GET `profile` | Sign 链 | `me:profile:update` 等 | — | 后续批次（me 系不加权限串的读端点） |
-| device | POST `/system/device/initial`（Sign/Jwt/Cap/Device Free + Throttle）+ GET `:id/current-active-user`、`:id/history-users` + PATCH `:id/{lock,unlock,banned,unbanned}` + read/list | Sign 链 | `system:device:*`（AND 模式组合） | uuid + PATCH | 后续批次 |
+| dict/type | GET `/system/dict/type/s` + CRUD | Sign 链 | `system:dictType:*` | dict DTO | **C 段已测**（dict.api-spec.ts）：CRUD + list 附 `populated_dictDataCount` 计数子查询 + `s` 端点按 type 批量回启用 data（order 升序、未知 type 跳过）。
+  **FK 语义钉死**：dictType 的 HTTP delete 是「sys_deleted 快照 + 原行硬删」，data 腿由 DB 级 CASCADE（type_id FK）静默清掉且**不产生** data 的软删快照 |
+| dict/data | CRUD | Sign 链 | `system:dictData:*` | dict DTO | **C 段已测**：CRUD + 软删快照 + read 40401。
+  **无 deleteMany 路由**（Permissions.DELETE_MANY 常量存在但装饰器未接线 → 40400，钉现状）；update 的 DTO 字段全量必填（tagType 漏给 → 40099） |
+| menu | GET `/system/menu/tree` + CRUD（delete 带 `?cascade=` query） | Sign 链 | `system:menu:*` | menu DTO | **C 段已测**（menu.api-spec.ts）：meta 拍平出入参往返（19 列组装/回填默认值）+ pid 自引用建树 + `?_cascade=` 两态（=1 额外按 title 级联软删 locale，非删子菜单；pid FK RESTRICT）+ tree 形态（fullTree 只回首根 children、treeWithoutTypeElement 走完整根数组、空表 `fullTree[0].children` TypeError 50000 不进回归）。
+  **迁移回归已修**（C 段唯一一处 src 修复）：`flattenSysMenuMeta` 未给键判据原为 `=== undefined`，但 HTTP 入参经 ValidationPipe 深度实例化（meta 挂 @Type）后部分 meta 的未给键是**显式 null** → is_show 等非空列收到 NULL 撞 NOT NULL 约束，HTTP create/update 带部分 meta 必 50000；已改 `??`（null/undefined 都回填 schema 默认值，对齐 Mongo 子文档语义）。service 层 int-spec（B5 menu.role.pg）传的是纯对象不可见，只有 HTTP 层能抓到 |
+| role | CRUD 四件（无 deleteMany；无 delete） | Sign 链 | `system:role:*` | role DTO | **C 段已测**（role.api-spec.ts）：menus 赋值落 sys_role_menu junction（create 缺省=空数组、update 未给=junction 不动、给了=delete+insert 整组替换）+ read/list 的 populated_usersCount + root 守卫（create 拒 root/developer、update 拒 roleName=root 与根角色行）+ `findRolesWithPopulatedMenus` 形态（status 过滤 + populated_menusList 组装 meta） |
+| user | CRUD + 状态管理 | Sign 链 | `system:user:*` | user DTO | **C 段已测**（user.api-spec.ts）：create roles 必填（给 [] 时 junction 空 + currentRole 走 defaultRole 兜底）、safe role id 拦截、update 启停/roles 整组替换、delete 拒自己与 safe user、list 字段面裁剪 + `me/role/switch`（COMBINE 拒 40000）与 `me/roleMode/switch`（switchable↔combinable 落库、非法枚举 40099）+ opaque admin `password/clear`（删 password identity、幂等恒 true）。
+  用户名重复 → DB 23505 未映射受控异常，兜底 50000（钉现状） |
+| user/me | PUT `/system/user/me/profile`、GET `security-tab2`、GET `profile` | Sign 链 | `me:profile:update` 等 | — | **C 段已测**（user-me.api-spec.ts）：GET profile populated_roles_list、PUT profile 持久化 + 40099（缺必填/越枚举）、security-tab2 双通道形状（totp 行 SQL 直插对拍 verified/status 语义）、匿名 40101 |
+| device | POST `/system/device/initial`（Sign/Jwt/Cap/Device Free + Throttle）+ GET `:id/current-active-user`、`:id/history-users` + PATCH `:id/{lock,unlock,banned,unbanned}` + read/list | Sign 链 | `system:device:*`（AND 模式组合） | uuid + PATCH | **C 段已测**（device.api-spec.ts）：initial 同指纹幂等回同 deviceId（upsert 覆盖 deviceName）+ 新指纹新行（裸 supertest 发，避免 cookie jar 吃下第二台设备的 DEVICE_ID 重签导致 CAP 40116 串台；Throttle 4/60s 压线）+ read/list（`:id` 是行 uuid 非业务键；sr/vp 组装回嵌套；current-active-user 空态回 null 填充壳）+ lock/ban 只进 SYS_DEVICE 缓存不落库 → 锁/封期间同设备请求被 Device guard 40606/40607 拦死（连 unlock/unban 都到不了），端点间以缓存复位通道衔接 + history-users 恒空数组（populate 恒命中，「只回 populated_user 缺失行」语义反转，钉现状） |
 | deleted | read/list + `POST me/recover`、`POST recover`（recover 系另有 `@HasRole([root,developer,admin])`） | Sign 链 | `system:deleted:*` | uuid/ids | 后续批次（B9 回收站已有 int-spec） |
 | log/auth | CRUD delete/deleteMany/list（`@UseGuards(JwtAccessGuard)` 显式重复挂） | Sign 链 | `system:logAuth:*` | list | 后续批次 |
 | log/operate | GET `:id/device`、`:id/snapshot`、read、list | Sign 链 | `system:logOperate:*` | uuid | 后续批次 |
-| user_device | GET `list`、PUT `update-name/:deviceId`、DELETE `force-quit/:deviceId`、PUT `lock/:deviceId`、`unlock/:deviceId` | Sign 链 | `system:userDevice:*` | — | 后续批次 |
-| user_identity | POST `list`、GET `status/:purpose`、POST `check/bind`、DELETE `unbind`、PUT `update/status`、POST `send-code/verify`（均 `/:type/:purpose`） | Sign 链 | （me 自维度，多数无 @HasPermission） | — | 后续批次（B7c 覆盖 service 层） |
-| user_lock | GET `read` + PATCH（lock/unlock me） | LockFree | 无 | — | 后续批次 |
-| user_mfa/totp | POST `generate/bind/verify`、DELETE `unbind`、PUT `status`（status 端点挂权限 `system:user:mfa:totp:status`） | MFAFree+LockFree | 大多无 | totp payload | 后续批次（与 auth/mfa 组合闭环） |
-| user_mfa/webauthn | POST `register/{options,verify}`、`authenticate/{options,verify}` | MFAFree+LockFree | 无 | webauthn payload | **外部依赖**（浏览器 WebAuthn 凭证不可脚本伪造）：仅测 options 形状/错误路径 |
-| user_oauth | `@Controller('system/user/oauth')` 无方法（空壳） | — | — | — | 无端点，标注不测 |
-| user_preference | GET `read`（Lock/Sign/MFA/Device/Ip Free）+ PATCH `{basic,accessibility,theme,layout}` | Sign 链 | `me:preference:*` | — | 后续批次 |
+| user_device | GET `list`、PUT `update-name/:deviceId`、DELETE `force-quit/:deviceId`、PUT `lock/:deviceId`、`unlock/:deviceId` | Sign 链 | `system:userDevice:*` | — | **C 段已测**（user-device.api-spec.ts）：list（登录绑定行 current=true + deviceType/location 装回）+ update-name 持久化 + lock/unlock（建 sys_user_lock 偏好行、lockRoute 落 DB 默认空对象、cross_device 默认 true → 锁后 Lock guard 40118，端点间清 SECURITY_LOCK 缓存衔接）+ force-quit 撤 RT（revoked + userKickOther；updateRevokedAndReason 走 findOne 只撤第一行，钉现状）+ 无 monitor 行 40401 |
+| user_identity | POST `list`、GET `status/:purpose`、POST `check/bind`、DELETE `unbind`、PUT `update/status`、POST `send-code/verify`（均 `/:type/:purpose`） | Sign 链 | （me 自维度，多数无 @HasPermission） | — | **C 段已测**（user-identity.api-spec.ts）：OTP 真实闭环（check 发码进 AUTH:VERIFY_CODE 缓存 —— 邮件走 Bull 队列测试环境不真发；用例从缓存读回真码 bind）+ status 形态/maskedValue + unbind（有 password 兜底可解）+ value 被他人占用拦截（第二 root 用户对拍）。
+  **钉现状（非迁移回归，未修）**：① `POST list` 恒 40099 —— list DTO 是空类，forbidUnknownValues 对无校验元数据类体恒抛，身份读腿走 status；② bind 的 setAsSecurity 未挂 IsOptional，缺字段 40099；③ `update`（rebind）经 HTTP 恒 40000 —— partial DTO 把未给键材料化成显式 null，服务端 `verified !== undefined` 判 null 也命中 useVerifyEndpoint 拦截，任何 body 到不了改值逻辑（未验证态由用例 SQL 制造后走 send-code/verify 闭环）；④ `update/status` → 40401 —— RequireSensitive 守卫的可用验证方式探测对缺失的 phoneNumber/security 身份直接 getIdentityOrThrow，DataNotFound 在守卫链上抛出，预期 40119 分支不可达 |
+| user_lock | GET `read` + PATCH（lock/unlock me） | LockFree | 无 | — | **C 段已测**（user-lock.api-spec.ts）：两套默认值对拍（无偏好行 service 兜底 lockIdleSec=300/crossDevice=false；首次 lock 落行后 DB 默认 lockIdleSec=600/crossDevice=true → read 走跨设备腿）+ lock/unlock 落 sys_user_device.locked + 无偏好行 unlock 40401 |
+| user_mfa/totp | POST `generate/bind/verify`、DELETE `unbind`、PUT `status`（status 端点挂权限 `system:user:mfa:totp:status`） | MFAFree+LockFree | 大多无 | totp payload | **C 段已测**（user-mfa.api-spec.ts）：totp 真实闭环（generate 拿真 secret → otplib 同库客户端算码 → bind → verify RT 轮换取新 AT → status 开关 → unbind；备份码 10 枚 + secret/qrCode 形状；bind 后 generate 重入 40001）+ security-tab2 跨验。
+  bind 后 verify 的 RT 轮换会更新 RT_JTI cookie（客户端 jar 原样回传） |
+| user_mfa/webauthn | POST `register/{options,verify}`、`authenticate/{options,verify}` | MFAFree+LockFree | 无 | webauthn payload | **C 段已测**（user-mfa.api-spec.ts，仅形状/错误路径）：register/options 公钥选项形状（rp/user/challenge/alg/excludeCredentials）+ authenticate/options 无凭证 40400 + authenticate/verify 无 challenge 缓存 40000 + register/verify 带 garbage response（challenge 在 TTL 内）→ simplewebauthn 未受控异常兜底 50000。正向 register/verify 需浏览器凭证，不进回归 |
+| user_oauth | `@Controller('system/user/oauth')` 无方法（空壳） | — | — | — | 无端点，标注不测（C 段复核维持） |
+| user_preference | GET `read`（Lock/Sign/MFA/Device/Ip Free）+ PATCH `{basic,accessibility,theme,layout}` | Sign 链 | `me:preference:*` | — | **C 段已测**（user-preference.api-spec.ts）：read 默认形态（CVD 默认 'default'）+ 匿名同可达（JwtOptional）+ 四段 PATCH upsert（ON CONFLICT 只回写携带列，basic.locale 跨段不丢）→ read 断言持久化 + 40099（locale/fontSize 越枚举） |
 
 ## 6. techniques 模块（`modules/techniques/`）
 
@@ -158,6 +166,8 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 - **A 段试点**：`app/demo`（标准 CRUD 模板）+ `system/lang` + `system/locale`（含公开 message 端点、批量数组 create、按 key 删除三种非标形态）——
   三份 `*.api-spec.ts` 已落地 `test/api/` 并入 `pnpm test:integration`（23 用例，describe 级握手+登录一次）。
   lang public 端点（`@WalnutAdminDecoratorCache`）已钉现状：命中后 1h TTL 内不回源，lang CRUD 不主动失效该键。
+- **C 段**：§5 system 模块主体（dict/menu/role/user 系 + device 系 + me 系共 11 份 spec、87 用例）已落地，
+  基线 236 → 323；未覆盖余量：`deleted`（回收站 read/list/recover）与 `logs`（logAuth/logOperate）两系。
 
 ## B 段补记（2026-10-26）
 
@@ -181,3 +191,39 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 - **测试基建修复（1 处）**：helpers `cleanupFixedCacheKeys` 原样 `redis.del` 逻辑键，漏加
   `AppTechCacheService` 落键时的 `WALNUT_CACHE_` 前缀——DEL 恒为静默 no-op（A 段 lang spec 的清场因此一直
   未生效，只是缓存内容确定才没暴露）。已修为删除前补前缀，area 层级缓存（跨轮共享）的跨 suite 污染随之消除。
+
+## C 段补记（2026-10-26）
+
+- **新增 11 份 spec、87 用例**：`dict / menu / role / user / user-me / device / user-device /
+  user-identity / user-lock / user-mfa / user-preference`（`system/user/oauth` 空壳无端点不测；
+  `deleted` 与 `logs` 两系不在本段范围）。基线 236 → 323，`pnpm test:integration` 连续两轮全绿。
+  通用约定沿用 A/B 段：describe 级握手+登录一次（root 短路权限）、afterEach/afterAll 自建自清
+  （PG 行 + `WALNUT_CACHE_*` 固定键；锁/设备缓存键无 seed 片段，按逻辑键显式 DEL——`delByPattern`
+  在 node-redis v5 的 del rest-args 语义下会炸，用例一律逐键删）。
+- **迁移回归修复（1 处，本段唯一 src 改动）**：`system/menu` 的 `flattenSysMenuMeta`（dto/menu.dto.ts）
+  未给键判据原为 `=== undefined`；HTTP 入参经全局 ValidationPipe 的 plainToInstance 深度实例化
+  （meta 挂 @Type）后，**部分 meta 的未给键以显式 null 落在实例上** → is_show/cache/status 等非空拍平列
+  收到 NULL，带部分 meta 的 menu create/update 必撞 NOT NULL 约束（50000）。已改 `??`（null/undefined
+  都回填 schema 默认值，对齐 Mongo 版「meta 子文档整体替换 + 默认值」语义）。B5 的 service 层 int-spec
+  传纯对象不可见——该类回归只有真实 HTTP 层能抓到。
+- **钉现状（非迁移回归，断言固化，未修）**：
+  - `system/dict/data` 无 deleteMany 路由（Permissions.DELETE_MANY 常量存在但装饰器未接线 → 40400）；
+  - `system/user` create 用户名重复 → DB 23505 未映射受控异常，兜底 50000；
+  - `system/user/identity` 的 `POST list` 恒 40099（空 DTO 类 × forbidUnknownValues）；bind 的
+    setAsSecurity 未挂 IsOptional（缺字段 40099）；`update`（rebind）经 HTTP 恒 40000（partial DTO 把
+    未给键材料化成显式 null，服务端 `!== undefined` 判 null 也命中 useVerifyEndpoint 拦截）；
+    `update/status` 在守卫链上 40401（RequireSensitive 的可用验证方式探测对缺失的 phoneNumber/security
+    身份直接 getIdentityOrThrow，预期 40119 分支不可达）；
+  - `system/device` 的 lock/unlock/ban/unban 只写 SYS_DEVICE 缓存不落库；锁/封期间同设备后续请求被
+    Device guard 40606/40607 拦死（连 unlock/unban 都到不了）；`history-users` 恒空数组（「只回
+    populated_user 缺失行」的语义反转 + PG 侧 populate 恒命中）；current-active-user 空态回 null 填充壳
+    （`?? {}` 后经 plainToInstance 深度实例化）；
+  - `system/user/device` 的 force-quit 只撤「查到的第一行」RT（updateRevokedAndReason 走 findOne），
+    非同维度全部 RT；
+  - `system/menu` 的 tree 空表时 `fullTree[0].children` TypeError → 50000（不进回归）；fullTree 只回首根
+    （order 最小的根）的 children。
+- **测试基建口径补记**：多设备类用例的第二指纹 initial 必须走裸 supertest（客户端 cookie jar 吃下第二台
+  设备的 DEVICE_ID 重签后，后续请求带错配的 CAPJS_TOKEN 必 40116）；device initial 的 Throttle 是
+  4 次/60s（tracker=realIp），单文件 initial 调用总数要压在限额内；user-device 锁定会把
+  `SECURITY_LOCK:<userId>:global`（cross-device 默认 true）写进 Redis 且不随集成库 drop 清掉，
+  afterEach 必须显式清，否则同文件后续用例 40118。

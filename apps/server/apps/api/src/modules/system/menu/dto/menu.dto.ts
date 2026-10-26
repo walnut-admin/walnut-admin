@@ -83,6 +83,10 @@ export function assembleSysMenu<T extends SysMenuEntity>(entity: T): T & { meta:
  * @description 入参拆平：把 DTO 上的 `meta` 对象拆成 19 个拍平列属性。
  * meta 整体未给（undefined / null）时原样返回（不产生列 → DB 默认值，同 Mongo 缺省）；
  * 给了则 19 列全量产出（未给的键回填 schema 默认值，同 Mongo 子文档整体替换 + 默认值）。
+ * 「未给」的判据是 `== null` 而非仅 `=== undefined`：HTTP 入参经 ValidationPipe 的
+ * plainToInstance 深度实例化（meta 挂 @Type），部分 meta 的未给键会以**显式 null** 落在
+ * 实例上（C 段 menu.api-spec 抓出的迁移回归 —— 只判 undefined 时 is_show 等非空列收到
+ * NULL，INSERT 直接撞 NOT NULL 约束；Mongo 版子文档缺键即 schema 默认值，语义对齐）。
  */
 export function flattenSysMenuMeta<T extends { meta?: Partial<SysMenuModelMeta> | null }>(
   payload: T,
@@ -98,7 +102,9 @@ export function flattenSysMenuMeta<T extends { meta?: Partial<SysMenuModelMeta> 
 
   for (const [metaKey, columnKey, defaultValue] of SYS_MENU_META_FIELD_MAP) {
     const value = source[metaKey]
-    flattened[columnKey] = value === undefined ? defaultValue : value
+    // ?? 即「null/undefined 都算未给」—— HTTP 入参经 ValidationPipe 深度实例化后，
+    // 部分 meta 的未给键是显式 null（见方法注释的迁移回归记录）
+    flattened[columnKey] = value ?? defaultValue
   }
 
   return flattened as Omit<T, 'meta'> & Partial<SysMenuEntity>
