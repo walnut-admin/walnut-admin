@@ -27,7 +27,13 @@ export default defineWalnutVitestConfig({
   coverageInclude: false,
   plugins: [swc.vite(), tsconfigPaths()],
   test: {
-    include: ['apps/api/test/integration/**/*.int-spec.ts'],
+    // 基线 int-spec（service/repository 层）+ API 级回归 spec（真实 HTTP 全链，
+    // helpers/create-api-app 装配）。两类同库共享：fileParallelism:false 串行 +
+    // globalSetup 每轮 drop 重建，互相不可见脏数据。
+    include: [
+      'apps/api/test/integration/**/*.int-spec.ts',
+      'apps/api/test/api/**/*.api-spec.ts',
+    ],
     exclude: ['**/node_modules/**', '**/dist/**'],
     root: './',
     setupFiles: ['apps/api/test/integration/helpers/setup-env.ts'],

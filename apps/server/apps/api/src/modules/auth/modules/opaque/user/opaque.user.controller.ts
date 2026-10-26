@@ -42,6 +42,11 @@ export class AuthOpaqueUserController {
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'authEnable')
   @WalnutAdminGuardJwtFree()
+  // B7a 迁移回归修复（API 回归 A 段试点抓出）：handler 经 @WalnutDBSession 取 ctx.em
+  // （user/identity 读腿迁 PG 后的服务签名），但本路由漏挂事务拦截器 —— request.txContext
+  // 恒 undefined，匿名调用必 500（"Cannot read properties of undefined (reading 'em')"）。
+  // 对齐同文件 login/finish / register/finish 的既有形态补上。
+  @WalnutDBTransaction()
   @ApiWalnutOkResponse({
     description: 'Start login with userName and loginRequest',
     primitive: 'string',

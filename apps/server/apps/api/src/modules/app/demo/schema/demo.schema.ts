@@ -126,8 +126,12 @@ export class AppDemoModel extends WalnutAdminCommonBasicModel {
       description: 'this is description',
       example: 123,
     },
+    // 迁移回归修复（API 回归 A 段试点抓出）：precision: 4 是 Mongo 时代遗留
+    // （IsPrecisionRight 要求小数部分恰好 4 位），而 phase2 已把 demo_number 列定稿为
+    // integer —— 整数过不了校验、带小数过不了 PG 落库，create/update 无任何可用负载。
+    // 按列型定稿改为 int 校验（base-repo int-spec 同一口径）。
     validateOptions: {
-      precision: 4,
+      int: true,
     },
     transformOptions: {
       res: {

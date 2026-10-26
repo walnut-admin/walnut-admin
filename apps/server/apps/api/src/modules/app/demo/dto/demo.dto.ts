@@ -70,6 +70,9 @@ export class AppDemoDTOListResponse extends CreateWalnutAdminResponseListDTO(
 ) {}
 
 // create
+// （A 段试点补齐：phase2 4.20 把数组列定稿 NOT NULL 且「应用侧必须显式给值」，但
+// create/update 的 pick 漏了全部数组字段 —— HTTP create 必撞 demo_string_array NOT NULL，
+// 迁移回归由 API 回归抓出后按列型定稿补上；数组校验自带 minSize: 1，显式给值即非空）
 export class AppDemoDTOCreateRequest extends RealPickType(AppDemoDTOSafe, [
   'demoString',
   'demoPhoneNumber',
@@ -79,6 +82,12 @@ export class AppDemoDTOCreateRequest extends RealPickType(AppDemoDTOSafe, [
   'demoEnum',
   'demoMongoId',
   'demoObject',
+  'demoStringArray',
+  'demoNumberArray',
+  'demoBooleanArray',
+  'demoDateArray',
+  'demoEnumArray',
+  'demoMongoIdArray',
 ] as const) {}
 export class AppDemoDTOCreateResponse extends AppDemoDTOSafe {}
 
@@ -95,6 +104,12 @@ export class AppDemoDTOUpdateRequest extends RealPickType(AppDemoDTOSafe, [
   'demoEnum',
   'demoMongoId',
   'demoObject',
+  'demoStringArray',
+  'demoNumberArray',
+  'demoBooleanArray',
+  'demoDateArray',
+  'demoEnumArray',
+  'demoMongoIdArray',
 ] as const) {}
 export class AppDemoDTOUpdateResponse extends AppDemoDTOSafe {}
 
