@@ -496,12 +496,14 @@ virtual 两个 locale 计数 → 子查询改写，见 5.2。
 
 | 字段 | 列 | 类型 | NULL | 默认 | 说明 |
 |------|----|------|------|------|------|
-| code | code | varchar(9) | NO | — | UNIQUE（唯一索引即原 schema 声明）；位数 1/2/4/6/9 是形态判据 |
+| code | code | varchar(12) | NO | — | UNIQUE（唯一索引即原 schema 声明）；位数分布见下方勘误 |
 | name | name | text | NO | — | |
-| pcode | pcode | varchar(9) | NO | — | **不建 FK**（Q6 定案，总览 area FK=0 按此计）；父子完整性由应用层删除校验 + 7.3 孤儿/环检测兜底 |
+| pcode | pcode | varchar(12) | NO | — | **不建 FK**（Q6 定案，总览 area FK=0 按此计）；父子完整性由应用层删除校验 + 7.3 孤儿/环检测兜底 |
 
 索引：PK；`uq_area_code`；`idx_area_pcode (pcode)`（树查询主力索引）。
 
+> **勘误（2026-10-25，Phase 4 ETL 实测）**：本表 code/pcode 原判 varchar(9)（「位数 1/2/4/6/9」）。存量 66.3 万行的实测分布是 code 2/4/6/9/**12**（12 位村/居委会级 61.8 万行、占 93%），varchar(9) 装不下 ⇒ 放宽为 varchar(12)，migration / 实体同批修正；位数分布对账以 ETL 实测为准，不再按 9 位上限判形。
+>
 > **pcode FK 的形态说明（Q6 定案）**：顶层省份的 `pcode='0'` 是约定根值而非行引用（Mongo 侧本就无约束）。定案采 (i) 不建 FK——仅保留唯一约束 + pcode 索引，与现状语义完全一致；不为约束而篡改数据集（伪根行方案需 ETL 凭空造一行，弃用）。完整性由应用层删除校验（「有子节点不许删」现状已存在）+ 7.3 孤儿/环检测兜底。
 
 ### 4.19 app_setting（8 列）

@@ -57,9 +57,9 @@ const UP_SECTIONS: string[][] = [
     // phase2 4.18 shared_area（4 列 / 3 索引；timestamps: false，pcode 不建 FK —— Q6/Q12 定案）
     `CREATE TABLE shared_area (
       id uuid NOT NULL DEFAULT gen_random_uuid(),
-      code varchar(9) NOT NULL,
+      code varchar(12) NOT NULL,
       name text NOT NULL,
-      pcode varchar(9) NOT NULL,
+      pcode varchar(12) NOT NULL,
       CONSTRAINT pk_shared_area PRIMARY KEY (id)
     )`,
     'CREATE UNIQUE INDEX uq_area_code ON shared_area (code)',

@@ -13,6 +13,10 @@
 | `walnut-check-doc-refs` | `pnpm lint:docs-refs` | 校验**活文档正文**里引用的 workspace 包名与仓库路径是否真实存在 |
 | `walnut-setup-env` | `pnpm setup-env` / `pnpm encrypt-env` | dotenvx 加解密 `env-encrypted/` ↔ `env-local/` |
 | `walnut-check-git-hooks` | `pnpm hooks:check` | 断言 git 钩子由 lefthook 托管（防门禁静默消失） |
+| `walnut-db-etl` | `pnpm db:etl` | Mongo→PG 存量搬迁（Mongo 只读；`--fresh` 全量，默认增量幂等） |
+| `walnut-db-verify-etl` | `pnpm db:verify-etl` | ETL 三重对账（计数 / 抽样 / 聚合），有差异退出码非 0 |
+| `walnut-db-seed-pg` | `pnpm db:seed:pg` | 仓内 seed JSON → PG（按 id upsert，幂等可重放；CI/部署通道） |
+| `walnut-db-export-pg` | `pnpm db:export:pg` | PG → seed 形态 Extended JSON（uuid 口径，见下方「PG 导出口径」） |
 
 发版编排的 bin（`walnut-release`）在 [`@walnut/release`](../release/)。
 
@@ -91,9 +95,27 @@
 |------|------|
 | `setup-env.ts` | dotenvx 加解密；纯变换（`rebuildKeysFile` / `stripPublicKeyHeaderContent`）已导出以便单测 |
 
+### `src/db/` —— 数据通道（seed / 导出 / ETL / 对账）
+
+| 模块 | 职责 |
+|------|------|
+| `seed.ts` | `db:seed`（Mongo 播种）/ `db:export`（反向导出）的参数、连接、写入计划 |
+| `export-pg.ts` / `seed-pg.ts` | PG 版同两条通道（`db:export:pg` / `db:seed:pg`）；导出口径见下 |
+| `etl-map.ts` | **唯一映射层**：Mongo 文档 → PG 行（`$date`→timestamptz、`$oid`→uuid v5、menu.meta 拍平、junction 拆分、Q7 parse、Q4 setting_value 重写）。`db:etl` / `db:seed:pg` / `db:verify-etl` 三条通道共用 —— 对账成立的前提就是「同一份映射」 |
+| `etl-mongo-to-pg.ts` | `db:etl`（Mongo→PG 存量搬迁；Mongo **只读**）：增量幂等（v5 + `ON CONFLICT DO NOTHING`）/ `--fresh` 全量；shared_area 66 万行分批多行 INSERT（每批一个事务，~1.4 万行/秒） |
+| `verify-etl.ts` | `db:verify-etl` 三重对账（计数 / 抽样逐列 / 聚合）；任何差异 → 退出码 1 |
+| `uuid5.ts` | ObjectId hex → uuid v5 派生的**唯一真源**（namespace 常量也在这里，永不可改） |
+| `mongo-conn.ts` / `pg-conn.ts` | 连接解析（`DATABASE_*` / `DATABASE_PG_*`，与后端同一组 env 变量） |
+
+**PG 导出口径（`db:export:pg`）**：PG 主键是 uuid v5，**反解回 24 位 ObjectId hex 不可逆**。
+导出的 `_id` / 引用字段写 PG uuid 本体，`$date` 仍是 Extended JSON 包装 —— 该格式是
+「PG 生态回灌」用的快照（可被 `db:seed:pg --seed-dir <导出目录>` 原样吃回），
+**不追求与仓内 Mongo seed 文件逐字节一致**；仓内 seed 的唯一真源仍是
+`apps/server/db/seed/` + `db:export`（Mongo 版）。
+
 ## 两条硬约束
 
-1. **本包源码由 Node 原生执行**（八个 bin + 被 `@walnut/release` 的 bin 间接拉起）。
+1. **本包源码由 Node 原生执行**（全部 bin + 被 `@walnut/release` 的 bin 间接拉起）。
    因此它继承 `@walnut/tsconfig/ts.json`，受 **`erasableSyntaxOnly`** 约束：
    不许 `enum`、不许非 ambient `namespace`、不许构造函数参数属性。
    违反会在 `pnpm types:check` 当场报错，而不是等到运行时才炸。
