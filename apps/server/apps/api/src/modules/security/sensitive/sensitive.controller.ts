@@ -3,6 +3,7 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
@@ -10,6 +11,8 @@ import { getOperationStrategy } from './sensitive.config'
 import {
   IWalnutAdminConstSecurityLevel,
   IWalnutAdminConstSecuritySensitiveType,
+  WalnutAdminConstSecurityLevel,
+  WalnutAdminConstSecuritySensitiveType,
 } from './sensitive.const'
 import {
   SecuritySensitiveCheckResponseDTO,
@@ -32,8 +35,11 @@ export class SecuritySensitiveController {
   async checkVerificationStatus(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @Request() req: IWalnutAdminExpressRequest,
-    @Query('level') level: IWalnutAdminConstSecurityLevel,
-    @Query('type') operationType?: IWalnutAdminConstSecuritySensitiveType,
+    // level/type 枚举闸：裸 query 直进 getOperationStrategy 时，枚举外 level 会在
+    // SECURITY_LEVEL_STRATEGIES[level] 上解引用 undefined → TypeError 兜底 50000；
+    // 拦成受控 40099
+    @Query('level', new WalnutAdminPipeParamEnum(WalnutAdminConstSecurityLevel)) level: IWalnutAdminConstSecurityLevel,
+    @Query('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSecuritySensitiveType, { required: false })) operationType?: IWalnutAdminConstSecuritySensitiveType,
   ) {
     const deviceId = getWalnutAdminCookie(req, WalnutAdminConstCookieKeys.DEVICE_ID)
     const strategy = getOperationStrategy(level, operationType)

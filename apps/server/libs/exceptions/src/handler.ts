@@ -5,6 +5,7 @@ import type { I18nContext } from 'nestjs-i18n'
 import { HttpException, HttpStatus } from '@nestjs/common'
 import { WalnutAdminResponseException } from '@walnut-server/utils/response'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
+import { QueryFailedError } from 'typeorm'
 
 export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I18nContext): IWalnutAdminResponseBase {
   // ========== 1. HttpException (NestJS Built-in or Custom) ==========
@@ -69,7 +70,28 @@ export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I
     )
   }
 
-  // ========== 2. TypeError (Runtime Error) ==========
+  // ========== 2. QueryFailedError（TypeORM 驱动层）==========
+  // PG 23514 check_violation —— 字段值违反 CHECK 约束（枚举/数值域列收到越值）。
+  // 无映射时兜底 50000「服务器错误」；按 P1-7（23505/23503）的修法形态收敛为受控
+  // 40000，约束名进 _devMsg 供排查。CHECK 值集与 DTO/const 的三方一致性由
+  // dto-entity.drift.spec 的枚举守卫钉住。
+  if (e instanceof QueryFailedError) {
+    const driverError = e.driverError as { code?: string, constraint?: string, column?: string } | undefined
+
+    if (driverError?.code === '23514') {
+      const detail = [driverError.constraint, driverError.column]
+        .filter((field): field is string => field !== undefined)
+        .join(' / ')
+
+      return WalnutAdminResponseException({
+        errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST,
+        requestId,
+        _devMsg: `DB check constraint violated${detail.length > 0 ? `: ${detail}` : ''}`,
+      })
+    }
+  }
+
+  // ========== 3. TypeError (Runtime Error) ==========
   if (e instanceof TypeError) {
     return WalnutAdminResponseException(
       {
@@ -80,7 +102,7 @@ export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I
     )
   }
 
-  // ========== 3. Fallback ==========
+  // ========== 4. Fallback ==========
   return WalnutAdminResponseException(
     {
       errCode: WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR,

@@ -76,6 +76,16 @@ const RawBody = createParamDecorator(
 )
 
 // https://gist.github.com/josephdpurcell/9af97c36148673de596ecaa7e5eb6a0a
+//
+// 【有意设计，已登记 DESIGN-ISSUES.md P2-10】这里的 ValidationPipe **必须**局部放宽
+// 全局不变式（whitelist:false + skipMissingProperties:true），原因在本端点的 wire 形状：
+// create/update 的 body 是「翻译映射」而非 DTO 形状 —— `{ key, oldKey?, <langId-uuid>: 翻译值 }`，
+// 键名是运行时 lang uuid，永远不可能出现在静态 DTO 属性集里。全局 pipe 的
+// whitelist + forbidNonWhitelisted 会把这些 uuid 键剥掉/拒掉，批量翻译一个都到不了 service。
+// 校验并没有消失，而是**二段式后移**：① 本 pipe 只做 transform（保留 uuid 键、不按 DTO
+// 必填校验原始映射）；② LocalePayloadTransformPipe 把 uuid 键映射成
+// `[{ langId, key, value, oldKey }]` 数组；③ ParseArrayPipe 才对每个元素按
+// SysLocaleDTOCreateRequest 严格校验。放宽只覆盖第一段，wire 契约仍由第三段钉死。
 function TransformedLocaleBody() {
   return RawBody(
     // override global pipe

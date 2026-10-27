@@ -301,7 +301,11 @@ const UP_SECTIONS: string[][] = [
       CONSTRAINT fk_menu_pid FOREIGN KEY (pid) REFERENCES sys_menu (id) ON DELETE RESTRICT,
       CONSTRAINT ck_menu_type CHECK (type IN ('catalog', 'menu', 'element')),
       CONSTRAINT ck_menu_ternal CHECK (ternal IN ('none', 'internal', 'external')),
-      CONSTRAINT ck_menu_cache_key_strategy CHECK (cache_key_strategy IN ('name', 'path'))
+      -- custom 漏值修复（2026-10-27，枚举三方守卫 dto-entity.drift.spec 抓出）：contract
+      -- CacheKeyStrategy 与 admin 菜单表单（cacheKeyStrategyOptions）都有 custom，
+      -- CHECK 漏了它 → 合法 payload 撞 23514。以 const 为准补齐（存量库手工 ALTER，
+      -- 同 P0-1 的 dev 库口径）。
+      CONSTRAINT ck_menu_cache_key_strategy CHECK (cache_key_strategy IN ('name', 'path', 'custom'))
     )`,
     'CREATE UNIQUE INDEX uq_menu_name ON sys_menu (name) WHERE "name" IS NOT NULL',
     // partial index：根节点 pid 为 NULL，全量索引无意义（phase2 4.3）

@@ -10,6 +10,7 @@ import { ApiTags } from '@nestjs/swagger'
 
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
+import { WalnutAdminPipeCacheKey } from '@walnut-server/pipes'
 import { Role } from '@walnut/contract'
 import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
@@ -42,7 +43,9 @@ export class AppMonitorCacheController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead('key')
-  async read(@Param('key') key: string) {
+  // key 形态闸（长度上限 + 字符白名单，写入方形态见 @walnut-server/const/app/cache）：
+  // 缓存键原样进 Redis 命令语义面，拦任意串（受控 40099）
+  async read(@Param('key', new WalnutAdminPipeCacheKey()) key: string) {
     return {
       value: void await this.cacheService.get(key),
     }
@@ -63,7 +66,7 @@ export class AppMonitorCacheController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
   @WalnutAdminDecoratorDelete('key')
-  async deleteCache(@Param('key') key: string) {
+  async deleteCache(@Param('key', new WalnutAdminPipeCacheKey()) key: string) {
     return void this.cacheService.del(key)
   }
 

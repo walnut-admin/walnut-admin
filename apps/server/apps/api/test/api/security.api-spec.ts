@@ -151,6 +151,15 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
   })
 
+  it('sensitive check 枚举外 level/type → 40099（管道闸：修复前裸 query 直进 getOperationStrategy 解引用 undefined → 兜底 50000）', async () => {
+    const bogusLevel = await api.root('GET', api.apiPath('/security/sensitive/check?level=bogus'))
+    expect(bodyOf(bogusLevel).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+
+    // 可选 type 给了值也要过枚举（缺省不传仍放行 —— 下一用例的 level=basic 无 type 即该形态）
+    const bogusType = await api.root('GET', api.apiPath('/security/sensitive/check?level=basic&type=bogus'))
+    expect(bodyOf(bogusType).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+  })
+
   it('造 security email/phone 身份后 check → needsVerification + availableMethods(password/sms/email) + 首选 password', async () => {
     // getUserAvailableMethods 对缺失的 phone/email security 读腿直接抛 DataNotFound ——
     // 正向 check 必须两腿齐造（B7c int-spec 同款 fixture）

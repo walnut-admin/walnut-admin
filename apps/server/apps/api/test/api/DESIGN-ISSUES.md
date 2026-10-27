@@ -14,7 +14,8 @@
 > 「钉现状」用例属于 characterization test：修复对应问题时必须同步改断言，不是测试坏了。
 >
 > 统计：**P0 × 5（P0-1 已修：2026-10-26 快照比对 → 2026-10-27 revoke-and-insert 终态）｜
-> P1 × 12（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复）｜ P2 × 9 ｜ P3 × 7（共 33 条）**，末节附 G/H 段实测无恙面。
+> P1 × 12（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复；P1-4 已于 2026-10-27 修复）｜
+> P2 × 10 ｜ P3 × 8（共 35 条）**，末节附 G/H 段实测无恙面。
 
 ---
 
@@ -130,14 +131,18 @@
   测注册竞态。
 - **建议**：handler 改读 DTO.userName 并接 OTP 注册链，或显式去掉 JwtFree 明确登录语义。
 
-### P1-4 `/state` 后缀请求静默悬挂 —— 全局异常过滤器提前 return
+### P1-4 `/state` 后缀请求静默悬挂 —— 全局异常过滤器提前 return —— 【已修复 2026-10-27】
 
 - **位置**：`apps/api/src/modules/shared/BLPath`（`shouldSkip` 后缀表含 `'/state'`）×
   `WalnutAdminFilterExceptionAll`（对命中请求提前 return 不落响应）。
-- **现象**：`POST /app/monitor/user/state` 等路径上任何异常（含 40099 受控校验错误）都不落
+- **现象（修复前）**：`POST /app/monitor/user/state` 等路径上任何异常（含 40099 受控校验错误）都不落
   响应，请求悬挂至客户端超时。前迁移时代遗留，非迁移回归。
-- **实测证据**：`monitor-user.api-spec.ts`（B 段，错误断言刻意避开该路径）。
-- **建议**：过滤器去掉该提前 return，或摘除 '/state' 后缀表项。
+- **实测证据**：`monitor-user.api-spec.ts`（B 段，修复前错误断言刻意避开该路径）。
+- **修法（2026-10-27）**：`shouldSkip` 的语义本就是「不**观察**」（logger.middleware /
+  risk rate.service 用它跳日志与风控采集），异常过滤器把它误用成了「不**响应**」。
+  修复收窄语义：过滤器对 skip 名单只跳过 `logger.error` 与 `addErrorQueue`（favicon 类噪声
+  依旧不进错误库），统一异常壳的响应恒落盘；`/state`/`/heartbeat` 后缀表项保留（观察豁免
+  语义不变）。monitor-user spec 的绕行注释已摘除，`state 非法 body → 40099` 恢复为常规断言。
 
 ### P1-5 sensitive：password 通道恒失败 + 可用验证方式探测直接 DataNotFound
 
@@ -168,6 +173,10 @@
   role create junction FK 23503 同样 50000。客户端拿到的是「服务器错误」而非受控业务码。
 - **实测证据**：C 段 user spec 钉现状；`api-rollback.api-spec.ts` role create FK 用例。
 - **建议**：过滤器把 23505/23503 按约束名映射成受控 40000 族业务文案。
+- **进展（2026-10-27）**：同族第三个码 **23514 check_violation 已先行收敛** ——
+  `WalnutAdminExceptionHandler` 新增 QueryFailedError 分支（`driverError.code === '23514'`
+  → 受控 40000，约束名进 `_devMsg`），单测 `common/exceptions/exception-handler.spec.ts`
+  钉映射与 23505/23503 兜底现状双面。23505/23503 本体仍按本条建议挂单。
 
 ### P1-8 空表边界 TypeError → 50000（menu tree / auth permissions 同病）
 
@@ -295,6 +304,21 @@
   还是 GLOBAL/combinable（或 ETL 期把该设置行落成显式数据）；若维持现状，把
   「COMBINE 需显式配 `app.functional.role` scope=local 才生效」写进部署文档。
 
+### P2-10 locale body 管道局部放宽全局校验不变式 —— 有意设计，已登记（2026-10-27）
+
+- **位置**：`apps/api/src/modules/system/locale/locale.controller.ts`（`TransformedLocaleBody`
+  的 ValidationPipe：`whitelist: false` + `skipMissingProperties: true`）。
+- **现象**：该端点的请求管道**局部放宽**了全局 ValidationPipe 的 whitelist +
+  forbidNonWhitelisted + 全量必填三条不变式。
+- **裁决**：**有意设计，不改行为。** 理由在 wire 形状：create/update 的 body 是
+  `{ key, oldKey?, <langId-uuid>: 翻译值 }` 翻译映射，键名是运行时 lang uuid，永远不可能
+  出现在静态 DTO 属性集里 —— 全局 pipe 会把 uuid 键剥掉/拒掉，批量翻译一个都到不了
+  service。校验没有消失而是二段式后移：① 宽松 pipe 只做 transform（保留 uuid 键）；
+  ② `LocalePayloadTransformPipe` 把 uuid 键映射成 `[{ langId, key, value, oldKey }]`；
+  ③ `ParseArrayPipe` 才对每个元素按 `SysLocaleDTOCreateRequest` 严格校验。
+- **机械保障**：controller 内注释已把「为什么必须放宽」写透（2026-10-27 补全）；放宽只覆盖
+  第一段，wire 契约仍由第三段钉死 —— locale.api-spec 的批量 create/update 用例即回归面。
+
 ## P3 契约不一致
 
 ### P3-1 throttle 429 形态是 HTTP 200 + body.code 42900
@@ -338,6 +362,16 @@
 - **位置**：`system/role` controller —— 只有 CRUD 四件中的 create/read/update/list。
 - **实测证据**：C 段 role spec（文件头登记）。
 - **建议**：确认设计意图：补端点，或在 API 文档登记「角色不删」为明确约束。
+
+### P3-8 cap challenge/redeem 无响应壳 + OAuth SSE `@Res()` 直写 —— 确认设计内，已豁免（2026-10-27）
+
+- **位置**：① `security/cap` 的 `challenge` / `redeem`（`@WalnutAdminDecoratorFreeResponse()`，
+  全仓仅此两处）—— body 即 cap.js 协议形态 `{challenge,token,expires}` / `{success,...}`，
+  无 `{code,data}` 统一壳；② `auth/oauth` gitee/github 的 `sse` 端点（`@Res()` 直写
+  `IWalnutAdminExpressResponse`）—— SSE 流式响应必须绕过 Nest 拦截器管道。
+- **裁决**：**确认为设计内，已豁免，不修。** 前者是第三方 cap.js 协议对接（壳由协议定），
+  后者是 SSE 传输语义（拦截器包装会破坏流式分帧）。两者均不进统一壳契约，安全矩阵与
+  spec 断言按各自协议形态钉（security.api-spec D 段 / external-oauth.api-spec）。
 
 ---
 

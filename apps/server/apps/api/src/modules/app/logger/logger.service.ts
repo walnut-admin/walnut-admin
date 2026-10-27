@@ -5,6 +5,7 @@ import process from 'node:process'
 import readline from 'node:readline'
 import zlib from 'node:zlib'
 import { Injectable, Logger } from '@nestjs/common'
+import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 import { clamp, compact, isNil, orderBy } from 'lodash'
 import { glob } from 'tinyglobby'
 import { AppLoggerDTOListRequest, AppLoggerLogType } from './dto/logger.dto'
@@ -107,7 +108,19 @@ export class AppLoggerService {
   async read(filePath: string, page: number) {
     const cwd = process.cwd()
     const logDir = path.join(cwd, this.logFolder)
-    const content = await readLines(path.join(logDir, filePath), (page - 1) * 30, page * 30)
+    const target = path.join(logDir, filePath)
+
+    // 路径穿越防护（纵深第二道，第一道是 controller 的 logType 枚举 / fileName 白名单
+    // 管道）：normalize 后 resolve，必须仍落在 logDir 内，越界（`../` 类 payload）即受控 400
+    const resolvedTarget = path.resolve(target)
+    const resolvedLogDir = path.resolve(logDir)
+    if (!resolvedTarget.startsWith(`${resolvedLogDir}${path.sep}`)) {
+      throw new WalnutAdminExceptionRequestDataError(
+        `filePath escapes log directory: ${filePath}`,
+      )
+    }
+
+    const content = await readLines(resolvedTarget, (page - 1) * 30, page * 30)
     return {
       fileName: path.basename(filePath),
       fileContent: content,

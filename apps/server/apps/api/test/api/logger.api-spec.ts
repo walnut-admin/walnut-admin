@@ -4,8 +4,10 @@ import { randomUUID } from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import * as process from 'node:process'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { AppLoggerService } from '@/modules/app/logger/logger.service'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
 import { createApiApp } from './helpers/create-api-app'
@@ -151,6 +153,28 @@ describe('B 段：app/logger list + 文件读取（真实 HTTP 全链 + 真实�
   it('read → 不存在的文件 → 受控 50000（ENOENT 走兜底错误通道）', async () => {
     const res = await api.root('GET', api.apiPath(`/app/logger/application/no-such-${seed8}.log?page=1`))
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR)
+  })
+
+  it('read → logType 枚举外 → 受控 40099（ParamEnum 管道闸）', async () => {
+    const res = await api.root('GET', api.apiPath(`/app/logger/no-such-type/${fileName}?page=1`))
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+  })
+
+  it('read → fileName 路径穿越 payload（..%2F 打到 logs 目录外）→ 受控 40099（白名单管道第一道闸）', async () => {
+    const res = await api.root('GET', api.apiPath('/app/logger/application/..%2F..%2F..%2Fpackage.json?page=1'))
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+  })
+
+  it('service 层纵深：read 直接喂越界 filePath → 受控 400（resolve 包含性断言，修复前是裸 ENOENT/任意文件读）', async () => {
+    const service = app.get(AppLoggerService)
+
+    // 管道被绕过（内部调用方）时第二道闸兜底：越出 logs 根即受控异常，而非读任意文件
+    await expect(service.read('../package.json', 1)).rejects.toThrowError(WalnutAdminExceptionBadRequest)
+    await expect(service.read('application/../../../../package.json', 1)).rejects.toThrowError(WalnutAdminExceptionBadRequest)
+    // 合法路径不受影响
+    await seedLogFiles()
+    const ok = await service.read(`application/${fileName}`, 1)
+    expect(ok.fileName).toBe(fileName)
   })
 
   it('未登录 list → 40101', async () => {

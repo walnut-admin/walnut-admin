@@ -189,15 +189,19 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
   })
 
   it('边界：匿名 list → 40101（JWT guard 拦在 Sign 之前）', async () => {
-    // 注意：state 端点的「非法 body → 40099」错误路径不能进回归 —— 全局异常过滤器对
-    // 尾缀 /state 的请求提前 return（BLPath shouldSkip 后缀表含 '/state'），错误响应
-    // 永不落盘、请求静默悬挂（前迁移时代遗留缺陷，非迁移回归，已登记 ENDPOINTS.md；
-    // 修复前任何 /state 路径上的受控错误断言都会 60s 超时）
     const anonList = await api.anon('POST', api.apiPath('/app/monitor/user/list'), {
       query: {},
       sort: [],
       page: { page: 1, pageSize: 10 },
     })
     expect(bodyOf(anonList).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+  })
+
+  it('边界：state 非法 body → 40099（P1-4 已修：异常壳对 skip 路径照常落盘，不再静默悬挂）', async () => {
+    // 修复前：路径尾缀 /state 命中 BLPath shouldSkip 后缀表，全局异常过滤器提前
+    // return 不落响应，请求悬挂到客户端超时（旧注释为此把本断言整条避开）。
+    // 修复后（2026-10-27）：过滤器对 skip 名单只跳过「错误记录」，响应恒落盘。
+    const res = await api.anon('POST', api.apiPath('/app/monitor/user/state'), { visitorId: 123 })
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
   })
 })

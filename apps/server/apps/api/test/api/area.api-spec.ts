@@ -116,6 +116,11 @@ describe('B 段：shared/area children + feedback（真实 HTTP 全链 + 自建�
     expect(await api.hasWalnutCacheKey(WalnutAdminConstAppCacheKeys.SHARED_AREA_PROVINCE)).toBe(true)
   })
 
+  it('children?pcode 形态外 → 40099（行政区划码管道：≤12 位数字或 0，修复前任意串直进查询与缓存键）', async () => {
+    const res = await api.root('GET', api.apiPath('/shared/area/children?pcode=abc'))
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+  })
+
   it('children?pcode=95 → 本轮市行（隔离子树恰好一行）', async () => {
     const res = await api.root('GET', api.apiPath('/shared/area/children?pcode=95'))
     expectOk(res, 'area children city')

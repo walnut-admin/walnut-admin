@@ -89,6 +89,12 @@ describe('B 段：app/monitor/cache + monitor/server（真实 HTTP 全链 + 真�
     expect(bodyOf(res).data).toEqual({})
   })
 
+  it('cache read 键形态外 → 40099（键白名单管道：长度上限 + 字符集，修复前任意串直进 Redis 语义面）', async () => {
+    // %20 解码成空格 → 越出键字符白名单；其余负形态（超长/首字符符号）由管道单测钉
+    const res = await api.root('GET', api.apiPath('/app/monitor/cache/bad%20key'))
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+  })
+
   it('cache list → 按 key 子串过滤命中本轮键，type=shared', async () => {
     const res = await api.root('POST', api.apiPath('/app/monitor/cache/list'), {
       query: { key: `APISPEC:${seed8}` },

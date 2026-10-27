@@ -9,6 +9,7 @@ import { ApiQuery, ApiTags } from '@nestjs/swagger'
 
 import { WalnutAdminDecoratorQueryArray } from '@walnut-server/decorators/query'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { WalnutAdminPipeAreaPcode } from '@walnut-server/pipes'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { SharedAreaService } from './area.service'
 import { SharedAreaDTO } from './dto/area.dto'
@@ -30,7 +31,10 @@ export class SharedAreaController {
     description: 'lazy load cascader data with `pcode`',
     DTO: SharedAreaDTO,
   })
-  async getChildren(@Query('pcode') pcode: string) {
+  async getChildren(
+    // pcode 形态闸：行政区划码 varchar(12) / 顶层 '0' —— 白名单正则拦注入面（受控 40099）
+    @Query('pcode', new WalnutAdminPipeAreaPcode()) pcode: string,
+  ) {
     return this.areaService.getChildrenByPcodeWithCache(pcode)
   }
 

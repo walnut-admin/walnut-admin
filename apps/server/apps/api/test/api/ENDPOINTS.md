@@ -79,11 +79,10 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | key | POST `/app/key/init` | 同上 | 无 | — | **B 段已测**：AES_KEY_URL 空表落首条 v1 ACTIVE；二钻 40001。注意 init 不选 JWT_AT——`generateNewKeyByType` 无该分支，恒 20000 且不落行、二钻不可达 |
 | key | POST `/app/key/rotate/:type` | 同上+事务 | 无 | — | **B 段已测**：旧行 DEPRECATED + 新行 version+1 ACTIVE 事务两腿齐落，current 随轮转换人 |
 | logger | POST `/app/logger/list`（CRUD list） | Sign 链 | `app:logger:list` | list 形态 | **B 段已测**（logger.api-spec.ts）：fileName/logType 过滤 + 无命中空列表；用例自建自清 `logs/{application,error}/api-spec-*.log`（cwd=apps/server） |
-| logger | GET `/app/logger/:logType/:fileName` | Sign 链 | `app:logger:read` | 路由参数 | **B 段已测**：第 1 页命中写入行、越界页空内容、不存在文件 → 受控 50000（ENOENT 兜底）；fileSize 出参是 `@TransformSizeToKB` 字符串 |
+| logger | GET `/app/logger/:logType/:fileName` | Sign 链 | `app:logger:read` | 路由参数 | **B 段已测**：第 1 页命中写入行、越界页空内容、不存在文件 → 受控 50000（ENOENT 兜底）；logType 枚举外 / fileName 穿越 payload → 40099（ParamEnum + 白名单管道，2026-10-27 起；service 层另有 resolve 包含性断言纵深）；fileSize 出参是 `@TransformSizeToKB` 字符串 |
 | monitor/cache | CRUD（read 按 `key`、delete 按 `key`、list、`DELETE /app/monitor/cache/clear`） | Sign 链 + `@HasRole([root,developer])` | `app:monitorCache:*` | key/uuid | **B 段已测**（monitor.api-spec.ts）：真实 Redis 键（shared 类型）set→read/list/delete→clear；read 出参恒 `{}`（`void await get` 钉现状）；delete 是 fire-and-forget（断言轮询等落键）；clear 只清非 built-in/auth/system 类型（AUTH 的 MFA verified 键幸存），故 clear 用例放文件最后 |
 | monitor/server | GET `/app/monitor/server/{cpu,mem,os,sys,disk,battery,time,network}` | Sign 链 | `app:monitorServer:*` | — | **B 段已测**：八个只读端点形状冒烟；mem 出参是 `@TransformSizeToGB` 字符串（`x.xx GB`）；无电池主机 battery 字段可空 |
-| monitor/user | CRUD list/read + DELETE `force-quit/:id` + POST `state`（Sign/Jwt/Cap/DeviceFree，socket 在线状态上报） | Sign 链 | `app:monitorUser:*` | list/uuid；state 为匿名 | **B 段已测**（monitor-user.api-spec.ts）：state 匿名上报 upsert（auth=false 置空 userId）+ list/read populated + force-quit 撤销 RT 落库（revoked）+ read 40401 + force-quit 无行 20000+false + 非法 uuid 40002。
-  **注意**：state 端点的受控错误路径（40099 等）不能进回归——路径尾缀 `/state` 命中 BLPath shouldSkip 后缀表，全局异常过滤器提前 return 不落响应，请求静默悬挂（前迁移时代遗留缺陷，非迁移回归，见文末 B 段补记） |
+| monitor/user | CRUD list/read + DELETE `force-quit/:id` + POST `state`（Sign/Jwt/Cap/DeviceFree，socket 在线状态上报） | Sign 链 | `app:monitorUser:*` | list/uuid；state 为匿名 | **B 段已测**（monitor-user.api-spec.ts）：state 匿名上报 upsert（auth=false 置空 userId）+ list/read populated + force-quit 撤销 RT 落库（revoked）+ read 40401 + force-quit 无行 20000+false + 非法 uuid 40002 + state 非法 body 40099（P1-4 已修 2026-10-27：过滤器对 skip 名单只跳过错误记录、响应恒落盘，不再悬挂） |
 | setting | GET `/app/setting/public` | Lock/Sign/Jwt/Cap/Device 全 Free | 无 | — | **B 段已测**（setting.api-spec.ts）：匿名 unsigned 可达，auth/frontend 全布尔形状 |
 | setting | GET `/app/setting/private` | LockFree | 无（需 JWT） | — | **B 段已测**：登录态 20000（maskUrl 等四组形状）；匿名 40101 |
 | setting | CRUD + POST `cache/refresh` | Sign 链 | `app:setting:*` | setting DTO | **B 段已测**：CRUD 全闭环 + cache/refresh 后 `getAppSettings()` 可读到本轮自建 key（写设置全局生效路径）；自建 `api-spec-*` 行、afterEach/afterAll 删行后重 extract 还原 `APP:SETTING` 缓存，不动 seed 行 |
@@ -352,11 +351,11 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   普通对象换成无 `@Expose` 的 PG 实体实例，全局 ClassSerializerInterceptor（excludeExtraneousValues: true）出站剥成
   `[{}]`（热路径因 Redis JSON 往返侥幸幸存，service 层 int-spec 不可见）。已在 `repo.findChildrenByPcode`
   最小修复（投影回 `{name, code, pcode}`，对齐 Mongo lean 版），`area.tree.int-spec` 的行形态断言同步更新。
-- **前迁移遗留缺陷（登记，未修）**：
-  > 已收编 DESIGN-ISSUES.md（P1-4）。`SharedBLPathService.shouldSkip` 的后缀表含 `'/state'`，全局异常过滤器
-  （`WalnutAdminFilterExceptionAll`）对尾缀 `/state` 的请求**提前 return 不落响应**——`POST /app/monitor/user/state`
-  等路径上任何异常（含 40099 受控错误）都会让请求静默悬挂。非迁移回归（该逻辑自 monorepo merge 起未变），
-  修复属独立缺陷处理，monitor-user spec 只避开该路径的错误断言。
+- **前迁移遗留缺陷（已修，2026-10-27）**：
+  > 已收编 DESIGN-ISSUES.md（P1-4，已修复）。`SharedBLPathService.shouldSkip` 的后缀表含 `'/state'`，全局异常过滤器
+  （`WalnutAdminFilterExceptionAll`）原先对该名单**提前 return 不落响应**——`POST /app/monitor/user/state`
+  等路径上任何异常（含 40099 受控错误）都会让请求静默悬挂。修复把 skip 语义收窄为「不观察」（只跳错误日志与
+  错误入库），响应壳恒落盘；monitor-user spec 的 `state 非法 body → 40099` 断言已恢复为常规回归。
 - **其他钉现状（非回归，断言固化）**：`monitor/cache read` 出参恒 `{}`；cache delete 是 fire-and-forget（响应先于
   DEL 落 Redis）；`logger list` 的 fileSize 是 `x.xx KB` 字符串、`monitor/server mem` 是 `x.xx GB` 字符串；terminus
   健康检查出参无 `{status,info,details}` 外壳、超阈不抛 503 而是返回 `status:'down'`；error controller ErrorMap 的

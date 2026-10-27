@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Put } from 
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { WalnutAdminPipeDeviceId } from '@walnut-server/pipes'
 import { plainToInstance } from 'class-transformer'
 
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
@@ -54,7 +55,7 @@ export class SysUserDeviceController {
   })
   async updateUserDeviceName(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @Param('deviceId') deviceId: string,
+    @Param('deviceId', new WalnutAdminPipeDeviceId()) deviceId: string,
     @Body() body: SysUserDeviceUpdateNameDTO,
   ) {
     await this.userDeviceService.updateUserDeviceName(user.userId, deviceId, body.deviceName)
@@ -72,7 +73,7 @@ export class SysUserDeviceController {
   async forceQuitUserDevice(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutDBSession() ctx: WalnutTxContext,
-    @Param('deviceId') deviceId: string,
+    @Param('deviceId', new WalnutAdminPipeDeviceId()) deviceId: string,
   ) {
     await this.userDeviceService.forceQuitUserDevice(user.userId, deviceId, ctx.em)
     return true
@@ -89,7 +90,7 @@ export class SysUserDeviceController {
   async lockUserDevice(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutDBSession() ctx: WalnutTxContext,
-    @Param('deviceId') deviceId: string,
+    @Param('deviceId', new WalnutAdminPipeDeviceId()) deviceId: string,
   ) {
     await this.userDeviceService.lockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, ctx.em)
     return true
@@ -106,7 +107,7 @@ export class SysUserDeviceController {
   async unlockUserDevice(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutDBSession() ctx: WalnutTxContext,
-    @Param('deviceId') deviceId: string,
+    @Param('deviceId', new WalnutAdminPipeDeviceId()) deviceId: string,
     @Body() body: SysUserLockUnLockDto,
   ) {
     await this.userDeviceService.unlockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, body.lockPwdHash!, ctx.em)

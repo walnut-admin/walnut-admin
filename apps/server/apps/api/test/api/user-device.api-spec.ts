@@ -116,7 +116,6 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
     })
     expectOk(res, 'user device update-name')
     expect(bodyOf<boolean>(res).data).toBe(true)
-
     const rows: Array<{ device_name: string | null }> = await api.pgDataSource.query(
       'SELECT device_name FROM sys_user_device WHERE user_id = $1 AND device_id = $2',
       [fixture!.userId, api.deviceId],
@@ -125,6 +124,13 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
 
     const listRes = await api.root('GET', api.apiPath('/system/user/device/list'))
     expect(bodyOf<{ data: UserDeviceListItem[] }>(listRes).data.data[0].deviceName).toBe(newName)
+  })
+
+  it('update-name 非法 deviceId → 40099（device_id 形态管道：HMAC-SHA256 hex 64 位；四个 :deviceId 端点同管道，代表性钉一处）', async () => {
+    const res = await api.root('PUT', api.apiPath('/system/user/device/update-name/not-a-device-id'), {
+      deviceName: 'x',
+    })
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
   })
 
   it('lock/unlock → 落 sys_user_device.locked + 建 sys_user_lock 偏好行；锁定期间 Lock guard 40118', async () => {

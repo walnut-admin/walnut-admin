@@ -2,11 +2,12 @@ import { Body, Controller, DefaultValuePipe, Get, HttpCode, HttpStatus, Param, P
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
+import { WalnutAdminPipeLogFileName, WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { Role } from '@walnut/contract'
 import { WalnutAdminDecoratorList } from '@/decorators/crud/list'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
-import { AppLoggerDTO, AppLoggerDTOListRequest, AppLoggerDTOListResponse, AppLoggerLogTypeType } from './dto/logger.dto'
+import { AppLoggerDTO, AppLoggerDTOListRequest, AppLoggerDTOListResponse, AppLoggerLogType, AppLoggerLogTypeType } from './dto/logger.dto'
 import { AppLoggerService } from './logger.service'
 
 const Permissions = {
@@ -35,8 +36,11 @@ export class AppLoggerController {
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   async readFile(
-    @Param('logType') logType: AppLoggerLogTypeType,
-    @Param('fileName') fileName: string,
+    // logType 枚举闸（application/error）+ fileName 白名单形态闸：双管道把
+    // `..%2F..%2Fpackage.json` 类路径穿越 payload 拦在受控 40099（service 层另有
+    // resolve 包含性断言兜底 —— 见 AppLoggerService.read）
+    @Param('logType', new WalnutAdminPipeParamEnum(AppLoggerLogType)) logType: AppLoggerLogTypeType,
+    @Param('fileName', new WalnutAdminPipeLogFileName()) fileName: string,
     @Query('page', new ParseIntPipe({ optional: true }), new DefaultValuePipe(1)) page: number,
   ) {
     return this.appLoggerService.read(`${logType}/${fileName}`, page)
