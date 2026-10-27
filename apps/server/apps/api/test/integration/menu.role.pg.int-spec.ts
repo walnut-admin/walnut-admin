@@ -82,6 +82,9 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
   })
 
   describe('sys_menu：meta 拍平出入参', () => {
+    // B5-5 create 口径统一后 type 必填（SysMenuDTOCreateRequest 的 Pick 核，对齐
+    // rolePayload 的注释口径）：服务级用例载荷显式给 type —— 断言钉的 DB 默认值 /
+    // 唯一约束 / FK 行为均与 type 无关，特性化测试价值不变
     it('create：meta 对象拆 19 列落库（缺省键回填 schema 默认值），id 为 uuid', async () => {
       const created = await menuService.create({
         pid: null,
@@ -134,7 +137,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
     })
 
     it('create：meta 整体缺省 → 全列走 DB 默认值（对齐 Mongo meta 缺省）', async () => {
-      const created = await menuService.create({ name: uniqueName('b5-menu') })
+      const created = await menuService.create({ type: 'catalog', name: uniqueName('b5-menu') })
 
       expect(created.order).toBeNull()
       expect(created.ternal).toBe('none')
@@ -144,6 +147,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
 
     it('update：meta 给 出时整组替换（未给键回默认值）；meta 未给 时 meta 列不动', async () => {
       const created = await menuService.create({
+        type: 'catalog',
         name: uniqueName('b5-menu'),
         meta: { order: 1, cache: true } as IWalnutAdminMenuMeta,
       })
@@ -163,16 +167,16 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
     it('uq_menu_name（partial unique）：同 name 第二次插入拒绝；name 为 NULL 不受约束', async () => {
       const name = uniqueName('b5-uniq')
 
-      await menuService.create({ name })
-      await expect(menuService.create({ name })).rejects.toThrow()
+      await menuService.create({ type: 'catalog', name })
+      await expect(menuService.create({ type: 'catalog', name })).rejects.toThrow()
 
       // partial：name IS NULL 的行不进唯一索引，可多行
-      await menuService.create({ path: '/b5-null-1' })
-      await menuService.create({ path: '/b5-null-2' })
+      await menuService.create({ type: 'catalog', path: '/b5-null-1' })
+      await menuService.create({ type: 'catalog', path: '/b5-null-2' })
     })
 
     it('软删：sys_deleted 快照落 PG，行从 sys_menu 消失', async () => {
-      const created = await menuService.create({ name: uniqueName('b5-del') })
+      const created = await menuService.create({ type: 'catalog', name: uniqueName('b5-del') })
 
       const deleted = await menuService.delete(created.id, created.id, 0)
       expect(deleted.id).toBe(created.id)
@@ -189,14 +193,14 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
 
     it('pid 自引用 FK RESTRICT：存在子节点时删除父节点被拒（防误删静默扩面）', async () => {
       const parent = await menuService.create({ type: 'catalog', name: uniqueName('b5-parent') })
-      await menuService.create({ pid: parent.id, name: uniqueName('b5-child') })
+      await menuService.create({ type: 'catalog', pid: parent.id, name: uniqueName('b5-child') })
 
       await expect(menuService.delete(parent.id, parent.id, 0)).rejects.toThrow()
     })
 
     it('list：{ data, total } 出参 + 行可组装回 meta 形态', async () => {
       const name = uniqueName('b5-list')
-      await menuService.create({ name, meta: { order: 5 } as IWalnutAdminMenuMeta })
+      await menuService.create({ type: 'catalog', name, meta: { order: 5 } as IWalnutAdminMenuMeta })
 
       const res = await menuService.list({ query: { name } } as never)
       expect(res.total).toBe(1)
@@ -279,8 +283,8 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
 
   describe('sys_role：junction 写入与 populate', () => {
     it('create：menus 数组落 sys_role_menu 行；缺省 menus = 空数组', async () => {
-      const menuA = await menuService.create({ name: uniqueName('b5-role-menu') })
-      const menuB = await menuService.create({ name: uniqueName('b5-role-menu') })
+      const menuA = await menuService.create({ type: 'catalog', name: uniqueName('b5-role-menu') })
+      const menuB = await menuService.create({ type: 'catalog', name: uniqueName('b5-role-menu') })
 
       const created = await roleService.create(rolePayload({
         roleName: uniqueName('b5-role'),
@@ -308,8 +312,8 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
     })
 
     it('update：menus 整组替换（delete+insert 同事务）；未给 menus 时不动', async () => {
-      const menuA = await menuService.create({ name: uniqueName('b5-role-menu') })
-      const menuB = await menuService.create({ name: uniqueName('b5-role-menu') })
+      const menuA = await menuService.create({ type: 'catalog', name: uniqueName('b5-role-menu') })
+      const menuB = await menuService.create({ type: 'catalog', name: uniqueName('b5-role-menu') })
       const role = await roleService.create(rolePayload({ roleName: uniqueName('b5-role'), menus: [menuA.id] }))
 
       const updated = await roleService.update(role.id, {
@@ -375,10 +379,12 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
 
     it('populated_menusList：junction JOIN 组装 + match meta.status=true + meta 对象保真', async () => {
       const visible = await menuService.create({
+        type: 'catalog',
         name: uniqueName('b5-pop'),
         meta: { order: 2, permission: 'b5:pop:read' } as IWalnutAdminMenuMeta,
       })
       const hidden = await menuService.create({
+        type: 'catalog',
         name: uniqueName('b5-pop'),
         meta: { status: false } as IWalnutAdminMenuMeta,
       })

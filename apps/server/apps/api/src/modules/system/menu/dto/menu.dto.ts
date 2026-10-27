@@ -1,5 +1,5 @@
 import type { IWalnutAdminMenuMeta } from '@walnut/contract/menu'
-import { ApiProperty } from '@nestjs/swagger'
+import { ApiProperty, IntersectionType } from '@nestjs/swagger'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldEnum,
@@ -13,6 +13,7 @@ import { CacheKeyStrategy, MenuTernal, MenuType } from '@walnut/contract/menu'
 import { Expose, Type } from 'class-transformer'
 import { IsOptional, ValidateNested } from 'class-validator'
 import { Recordable } from 'easy-fns-ts'
+import { getMetadataArgsStorage } from 'typeorm'
 import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,
@@ -184,6 +185,10 @@ export class SysMenuMetaDTOBase implements IWalnutAdminMenuMeta {
   hijackRefresh: boolean
 
   @WalnutAdminDecoratorFieldObject(Object, {
+    // B5-5 默认值核对：entity watermark 是可空 jsonb（缺省即 NULL），装饰器此前漏标
+    // `default: null`（同组其余可空字段都标了）—— 以 entity 为准补齐（object 装饰器的
+    // default 只进 ApiProperty 展示语义，defaultTransform 未开时不参与运行时回填）
+    default: null,
     validateOptions: {
       any: true,
     },
@@ -303,28 +308,61 @@ export interface ISysMenuAssembled extends SysMenuEntity {
  *   `assembleSysMenu` 后再 plainToInstance。
  */
 
-/** meta 19 字段的三元组：[meta 键, 实体拍平列属性名, 默认值] */
-const SYS_MENU_META_FIELD_MAP = [
-  ['order', 'order', null],
-  ['ternal', 'ternal', 'none'],
-  ['url', 'url', null],
-  ['show', 'show', true],
-  ['cache', 'cache', false],
-  ['status', 'status', true],
-  ['affix', 'affix', false],
-  ['permission', 'permission', null],
-  ['menuActiveName', 'menuActiveName', null],
-  ['menuActiveSameTab', 'menuActiveSameTab', false],
-  ['badge', 'badge', null],
-  ['activeIcon', 'activeIcon', null],
-  ['position', 'position', false],
-  ['leaveTip', 'leaveTip', false],
-  ['maskUrl', 'maskUrl', false],
-  ['hijackRefresh', 'hijackRefresh', false],
-  ['watermark', 'watermark', null],
-  ['transition', 'transition', 'fade'],
-  ['cacheKeyStrategy', 'cacheKeyStrategy', null],
+/**
+ * meta 19 字段的二元组：[meta 键, 实体拍平列属性名]。
+ *
+ * B5-5 单源化：原三元组的第三元（默认值）删除 —— 回填默认值的**唯一数据源**是
+ * `SysMenuEntity` 各拍平列 `@Column({ default })` 的声明（含可空列的 NULL），运行时
+ * 从 TypeORM 装饰器元数据读取一次并缓存（见 `SYS_MENU_META_COLUMN_DEFAULTS`）。
+ * 由此三处默认值不再各写各的：entity @Column（真源）→ 运行时回填读它；DTO 装饰器
+ * `default`（Swagger/校验的展示源，与运行时回填解耦）；migration DDL（与 entity 同源
+ * 对齐）。三者漂移由 dto-entity 漂移守卫测试与 api-spec 回填值断言拦截。
+ */
+export const SYS_MENU_META_FIELD_MAP = [
+  ['order', 'order'],
+  ['ternal', 'ternal'],
+  ['url', 'url'],
+  ['show', 'show'],
+  ['cache', 'cache'],
+  ['status', 'status'],
+  ['affix', 'affix'],
+  ['permission', 'permission'],
+  ['menuActiveName', 'menuActiveName'],
+  ['menuActiveSameTab', 'menuActiveSameTab'],
+  ['badge', 'badge'],
+  ['activeIcon', 'activeIcon'],
+  ['position', 'position'],
+  ['leaveTip', 'leaveTip'],
+  ['maskUrl', 'maskUrl'],
+  ['hijackRefresh', 'hijackRefresh'],
+  ['watermark', 'watermark'],
+  ['transition', 'transition'],
+  ['cacheKeyStrategy', 'cacheKeyStrategy'],
 ] as const
+
+/**
+ * meta 拍平列默认值 —— 模块加载期从 SysMenuEntity 的 TypeORM 装饰器元数据解析一次
+ * （key 为实体属性名，与 FIELD_MAP 的 columnKey 同域）。
+ * - TypeORM metadata 里的 default 可能是 `() => value` 函数形式（如主键的
+ *   `gen_random_uuid()`），函数形式就地求值取回字面量；
+ * - 未声明 default 的可空列（order/url/permission/…），语义默认值为 NULL；
+ * - 映射键在 entity 上找不到列时装配即抛错（拍平列被改名/删除不许静默回退）。
+ */
+const SYS_MENU_META_COLUMN_DEFAULTS: Readonly<Record<string, unknown>> = (() => {
+  const columns = getMetadataArgsStorage().columns.filter(column => column.target === SysMenuEntity)
+  const defaultByProperty = new Map(columns.map(column => [column.propertyName, column.options.default as unknown]))
+
+  const entries: Array<[string, unknown]> = SYS_MENU_META_FIELD_MAP.map(([, columnKey]) => {
+    if (!defaultByProperty.has(columnKey)) {
+      throw new Error(`[menu.dto] SYS_MENU_META_FIELD_MAP column "${columnKey}" not found on SysMenuEntity`)
+    }
+
+    const def = defaultByProperty.get(columnKey)
+    return [columnKey, typeof def === 'function' ? (def as () => unknown)() : def ?? null]
+  })
+
+  return Object.fromEntries(entries)
+})()
 
 /**
  * @description 出参组装：从拍平列（实体或同形 POJO）组装回 meta 对象。
@@ -335,9 +373,9 @@ export function assembleSysMenuMeta(source: object): SysMenuMetaDTOBase {
   const record = source as Record<string, unknown>
   const meta = {} as Record<string, unknown>
 
-  for (const [metaKey, columnKey, defaultValue] of SYS_MENU_META_FIELD_MAP) {
+  for (const [metaKey, columnKey] of SYS_MENU_META_FIELD_MAP) {
     const value = record[columnKey]
-    meta[metaKey] = value === undefined ? defaultValue : value
+    meta[metaKey] = value === undefined ? SYS_MENU_META_COLUMN_DEFAULTS[columnKey] : value
   }
 
   return meta as unknown as SysMenuMetaDTOBase
@@ -373,11 +411,11 @@ export function flattenSysMenuMeta<T extends { meta?: Partial<SysMenuMetaDTOBase
   const source = meta as unknown as Record<string, unknown>
   const flattened: Record<string, unknown> = { ...rest }
 
-  for (const [metaKey, columnKey, defaultValue] of SYS_MENU_META_FIELD_MAP) {
+  for (const [metaKey, columnKey] of SYS_MENU_META_FIELD_MAP) {
     const value = source[metaKey]
     // ?? 即「null/undefined 都算未给」—— HTTP 入参经 ValidationPipe 深度实例化后，
     // 部分 meta 的未给键是显式 null（见方法注释的迁移回归记录）
-    flattened[columnKey] = value ?? defaultValue
+    flattened[columnKey] = value ?? SYS_MENU_META_COLUMN_DEFAULTS[columnKey]
   }
 
   return flattened as Omit<T, 'meta'> & Partial<SysMenuEntity>
@@ -468,15 +506,37 @@ export class SysMenuDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(SysMenuDTOSafe),
 ) {}
 
-// create
-export class SysMenuDTOCreateRequest extends RealPartialType(SysMenuDTOSafe) {}
+// create —— B5-5 口径统一（对齐 role/setting/dict 的 Intersection 形态、user 的
+// RealPickType 必填挑法）：必填集 = ['type']，依据 menu 业务消费实况（非照抄 user）——
+// - seed 157 行 **全部** 带 type（0 缺失）；树/路由/keepAlive/权限串管线逐行按 type 分流
+//   （menu.shared.service 的 ELEMENT 过滤、formatTree、keepAliveNames 全都直接读 type），
+//   无 type 的行在所有消费侧不可归类；
+// - 其余字段 create 均可选：element 行只有 type + pid + meta.permission（seed 实况，
+//   admin 表单对 element 隐藏 title/path/name/icon）；pid 可空（根节点 pid=NULL）；
+//   meta 整体可选（缺省零列、DB 默认值兜底 —— C 段 menu.api-spec 钉死的语义）。
+// RealPickType 是运行时白名单（ValidationPipe whitelist + forbidNonWhitelisted），必填核
+// 与可选余部 Intersection 合并，保证 create 白名单仍是全量可写字段。
+export class SysMenuDTOCreateRequest extends IntersectionType(
+  RealPickType(SysMenuDTOSafe, ['type'] as const),
+  RealPartialType(RealPickType(SysMenuDTOSafe, [
+    'pid',
+    'path',
+    'name',
+    'component',
+    'title',
+    'icon',
+    'meta',
+  ] as const)),
+) {}
 export class SysMenuDTOCreateResponse extends SysMenuDTOSafe {}
 
 // read
 export class SysMenuDTOReadResponse extends SysMenuDTOSafe {}
 
-// update
-export class SysMenuDTOUpdateRequest extends RealPartialType(SysMenuDTOSafe) {}
+// update —— Create 的整体可选形态（RealPartialType(Create)）：白名单同 Create
+// （id / createdAt / updatedAt 不进写路径，主键只走路由参数），全字段可选 ——
+// menu.api-spec 钉住的「只给 title/meta 部分更新」语义不变。
+export class SysMenuDTOUpdateRequest extends RealPartialType(SysMenuDTOCreateRequest) {}
 export class SysMenuDTOUpdateResponse extends SysMenuDTOSafe {}
 
 // delete

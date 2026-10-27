@@ -67,8 +67,11 @@ export function createWalnutPgSnapshotRecoverer<T extends ObjectLiteral>(entityT
  * 等无软删写路径的表一并注册（注册无害，兜住任何来源的历史快照）；
  * junction 表（sys_role_menu / sys_user_role）随主行 CASCADE 生灭，不进回收站，
  * 不注册。
+ *
+ * 导出仅供 dto-entity 漂移守卫测试消费（modelName → entity 注册的单源对账）；
+ * 运行时注册面仍收口在 `SysDeletedPgRecoverRegistry`。
  */
-const WALNUT_PG_RECOVERABLE_COLLECTIONS: ReadonlyArray<{ modelName: string, entityTarget: EntityTarget<ObjectLiteral> }> = [
+export const WALNUT_PG_RECOVERABLE_COLLECTIONS: ReadonlyArray<{ modelName: string, entityTarget: EntityTarget<ObjectLiteral> }> = [
   { modelName: WalnutDBModelName.SYS_ROLE, entityTarget: SysRoleEntity },
   { modelName: WalnutDBModelName.SYS_USER, entityTarget: SysUserEntity },
   { modelName: WalnutDBModelName.SYS_USER_OAUTH, entityTarget: SysUserOauthEntity },
