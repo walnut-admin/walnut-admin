@@ -8,7 +8,7 @@ import { DataSource } from 'typeorm'
 
 import { SysUserPreferenceDTOAccessibilityRequest, SysUserPreferenceDTOBasicRequest, SysUserPreferenceDTOLayoutRequest, SysUserPreferenceDTOThemeRequest, SysUserPreferenceResponseDTO } from '../dto/user_preference.dto'
 import { SysUserPreferenceEntity } from '../entity/user-preference.entity'
-import { colorModeConst, CVDConst, fontSizeConst, IColorModeConst, ICVDConst, ILayoutModeConst, layoutModeConst } from '../schema/user_preference.schema'
+import { colorModeConst, CVDConst, fontSizeConst, IColorModeConst, ICVDConst, ILayoutModeConst, layoutModeConst } from '../preference.const'
 
 type IFontSizeConst = ValueOf<typeof fontSizeConst>
 

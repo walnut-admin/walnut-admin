@@ -29,7 +29,7 @@ export class SysLogOperateService {
   /**
    * @description create operate log (controller: create)
    */
-  async create(dto: Omit<SysLogOperateDTO, '_id'>) {
+  async create(dto: SysLogOperateDTO) {
     return this.logOperateRepoService.create(dto)
   }
 

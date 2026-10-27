@@ -22,7 +22,7 @@ import {
   IWalnutAdminConstSysUserIdentityType,
   WalnutAdminConstSysUserIdentityPurpose,
   WalnutAdminConstSysUserIdentityType,
-} from './schema/user_identity.schema'
+} from './identity.const'
 import { SysUserIdentityService } from './user_identity.service'
 
 @Controller('system/user/identity')

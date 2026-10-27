@@ -1,5 +1,5 @@
 import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum } from '@walnut-server/decorators/field'
-import { IWalnutAdminConstSysUserMfaType, WalnutAdminConstSysUserMfaType } from '@/modules/system/user_mfa/schema/user_mfa.schema'
+import { IWalnutAdminConstSysUserMfaType, WalnutAdminConstSysUserMfaType } from '@/modules/system/user_mfa/mfa.const'
 
 export class AuthMfaVerifyDTO {
   @WalnutAdminDecoratorFieldBoolean({

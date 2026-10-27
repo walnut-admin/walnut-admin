@@ -7,12 +7,11 @@ import {
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
 
-import { RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 
-export class SysLogAuthModel extends RealPickType(WalnutAdminCommonBasicModel, ['_id'] as const) {
+export class SysLogAuthModel extends WalnutAdminCommonBasicModel {
   @WalnutAdminDecoratorFieldString({
     default: null,
     swaggerOptions: {

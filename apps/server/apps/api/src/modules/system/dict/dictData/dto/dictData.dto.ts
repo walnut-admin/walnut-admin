@@ -8,7 +8,8 @@ import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,
 } from '@/common/dto/list.dto'
-import { SysDictDataModel, SysDictDataTagTypeConst, SysDictDataTagTypeConstType } from '../schema/dictData.schema'
+import { SysDictDataTagTypeConst, SysDictDataTagTypeConstType } from '../dict-data.const'
+import { SysDictDataModel } from '../schema/dictData.schema'
 
 export class SysDictDataDTO extends SysDictDataModel {
   constructor(partial?: Partial<SysDictDataDTO>) {
@@ -37,11 +38,8 @@ export class SysDictDataDTO extends SysDictDataModel {
   declare typeId: string
 }
 
-// Safe 层剔除 Mongo 的 _id（B1 模板：PG 响应以 id 为唯一标识，_id 在 PG 实体上不存在）
-export class SysDictDataDTOSafe extends RealOmitType(
-  SysDictDataDTO,
-  ['_id'] as const,
-) {
+// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
+export class SysDictDataDTOSafe extends SysDictDataDTO {
   constructor(partial?: Partial<SysDictDataDTOSafe>) {
     super()
     Object.assign(this, partial)

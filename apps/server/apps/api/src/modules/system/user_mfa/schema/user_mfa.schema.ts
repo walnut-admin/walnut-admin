@@ -8,29 +8,8 @@ import {
 
 import { Expose } from 'class-transformer'
 
-import { ValueOf } from 'easy-fns-ts'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-
-export const WalnutAdminConstSysUserMfaType = [
-  'totp',
-  'webauthn',
-] as const
-
-export type IWalnutAdminConstSysUserMfaType = ValueOf<
-  typeof WalnutAdminConstSysUserMfaType
->
-
-export const WalnutAdminConstSysUserMfaWebauthnTransport = [
-  'usb',
-  'ble',
-  'nfc',
-  'internal',
-  'hybrid',
-] as const
-
-export type IWalnutAdminConstSysUserMfaWebauthnTransport = ValueOf<
-  typeof WalnutAdminConstSysUserMfaWebauthnTransport
->
+import { IWalnutAdminConstSysUserMfaType, IWalnutAdminConstSysUserMfaWebauthnTransport, WalnutAdminConstSysUserMfaType, WalnutAdminConstSysUserMfaWebauthnTransport } from '../mfa.const'
 
 export class SysUserMfaModel extends WalnutAdminCommonBasicModel {
   @Expose()

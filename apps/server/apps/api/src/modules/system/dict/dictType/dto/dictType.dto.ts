@@ -1,7 +1,7 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
-import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
+import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import {
@@ -28,11 +28,8 @@ export class SysDictTypeDTO extends SysDictTypeModel {
   id?: string
 }
 
-// Safe 层剔除 Mongo 的 _id（B1 模板：PG 响应以 id 为唯一标识，_id 在 PG 实体上不存在）
-export class SysDictTypeDTOSafe extends RealOmitType(
-  SysDictTypeDTO,
-  ['_id'] as const,
-) {
+// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
+export class SysDictTypeDTOSafe extends SysDictTypeDTO {
   constructor(partial?: Partial<SysDictTypeDTOSafe>) {
     super()
     Object.assign(this, partial)

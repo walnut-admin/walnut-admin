@@ -8,8 +8,6 @@ import { IWalnutAdminConstAppResponseCode, WalnutAdminConstAppResponseCode } fro
 import { Expose } from 'class-transformer'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 
-class WalnutAdminRequestHeaders {}
-
 class AppErrorPayload {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
@@ -33,7 +31,7 @@ class AppErrorPayload {
   query: string
 }
 
-export class AppErrorModel extends RealPickType(WalnutAdminCommonBasicModel, ['_id', 'createdAt'] as const) {
+export class AppErrorModel extends RealPickType(WalnutAdminCommonBasicModel, ['createdAt'] as const) {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'error message',
@@ -69,7 +67,7 @@ export class AppErrorModel extends RealPickType(WalnutAdminCommonBasicModel, ['_
   })
   method: IWalnutAdminConstAppHTTPMethods
 
-  @WalnutAdminDecoratorFieldObject(WalnutAdminRequestHeaders, {
+  @WalnutAdminDecoratorFieldObject(Object, {
     swaggerOptions: {
       title: 'request headers',
     },

@@ -1,4 +1,4 @@
-import type { Recordable, ValueOf } from 'easy-fns-ts'
+import type { Recordable } from 'easy-fns-ts'
 
 import {
   WalnutAdminDecoratorFieldBoolean,
@@ -10,24 +10,7 @@ import {
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { Expose } from 'class-transformer'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-
-// Identity type constants
-export const WalnutAdminConstSysUserIdentityType = {
-  PHONE_NUMBER: 'phoneNumber',
-  EMAIL_ADDRESS: 'emailAddress',
-  ID_CARD: 'idCard',
-  PASSWORD: 'password',
-} as const
-
-export type IWalnutAdminConstSysUserIdentityType = ValueOf<typeof WalnutAdminConstSysUserIdentityType>
-
-// Identity purpose constants
-export const WalnutAdminConstSysUserIdentityPurpose = {
-  LOGIN: 'login',
-  SECURITY: 'security',
-} as const
-
-export type IWalnutAdminConstSysUserIdentityPurpose = ValueOf<typeof WalnutAdminConstSysUserIdentityPurpose>
+import { IWalnutAdminConstSysUserIdentityPurpose, IWalnutAdminConstSysUserIdentityType, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType } from '../identity.const'
 
 export class SysUserIdentityModel extends WalnutAdminCommonBasicModel {
   @Expose()

@@ -4,8 +4,8 @@ import { ValueOf } from 'easy-fns-ts'
 
 import { SysUserDeviceRepositoryService } from '../user_device/repo/user_device.repo.service'
 import { SysUserLockDoLockDto, SysUserLockPreferenceDTO, SysUserLockUnLockDto } from './dto/user_lock.dto'
+import { LockModeConst } from './lock.const'
 import { SysUserLockRepositoryService } from './repo/user_lock.repo.service'
-import { LockModeConst } from './schema/user_lock.schema'
 import { SysUserLockSharedService } from './shared/user_lock.shared.service'
 
 type ILockModeConst = ValueOf<typeof LockModeConst>

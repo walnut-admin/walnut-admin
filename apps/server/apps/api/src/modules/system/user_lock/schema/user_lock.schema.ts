@@ -8,16 +8,9 @@ import {
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPartialType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { Recordable, ValueOf } from 'easy-fns-ts'
+import { Recordable } from 'easy-fns-ts'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-
-export const LockModeConst = {
-  DEFAULT: 'default',
-  IDLE: 'idle',
-  SECURITY: 'security',
-} as const
-
-type ILockModeConst = ValueOf<typeof LockModeConst>
+import { ILockModeConst, LockModeConst } from '../lock.const'
 
 class SysUserLockRouteRaw {
   @WalnutAdminDecoratorFieldString({

@@ -6,19 +6,9 @@ import {
 } from '@walnut-server/decorators/field'
 
 import { Expose } from 'class-transformer'
-import { ValueOf } from 'easy-fns-ts'
 
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-
-export const SysDictDataTagTypeConst = {
-  PRIMARY: 'primary',
-  INFO: 'info',
-  SUCCESS: 'success',
-  WARNING: 'warning',
-  ERROR: 'error',
-} as const
-
-export type SysDictDataTagTypeConstType = ValueOf<typeof SysDictDataTagTypeConst>
+import { SysDictDataTagTypeConst, SysDictDataTagTypeConstType } from '../dict-data.const'
 
 /**
  * B3 迁移后仅作为 DTO 元数据基座保留（模型注册已随迁移从 dictData.module /

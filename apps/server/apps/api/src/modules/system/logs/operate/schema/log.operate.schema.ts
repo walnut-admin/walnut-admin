@@ -10,13 +10,12 @@ import {
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
 
-import { RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { Recordable } from 'easy-fns-ts'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 
-export class SysLogOperateModel extends RealPickType(WalnutAdminCommonBasicModel, ['_id'] as const) {
+export class SysLogOperateModel extends WalnutAdminCommonBasicModel {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'operate title, developer customise',

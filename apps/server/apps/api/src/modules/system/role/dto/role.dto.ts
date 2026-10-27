@@ -41,8 +41,8 @@ export class SysRoleDTO extends SysRoleModel {
   declare menus: string[]
 }
 
-// Safe 层剔除 Mongo 的 _id（B1 模板：PG 响应以 id 为唯一标识，_id 在 PG 实体上不存在）
-export class SysRoleDTOSafe extends RealOmitType(SysRoleDTO, ['_id'] as const) {
+// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
+export class SysRoleDTOSafe extends SysRoleDTO {
   constructor(partial?: Partial<SysRoleDTOSafe>) {
     super()
     Object.assign(this, partial)

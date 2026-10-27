@@ -8,7 +8,7 @@ import { SysUserIdentityEntity } from '../entity/user-identity.entity'
 import {
   IWalnutAdminConstSysUserIdentityPurpose,
   IWalnutAdminConstSysUserIdentityType,
-} from '../schema/user_identity.schema'
+} from '../identity.const'
 
 /**
  * B7a 迁移：Mongo model → PG 命名连接 DataSource（跨模块消费的仓库服务直持 DataSource，

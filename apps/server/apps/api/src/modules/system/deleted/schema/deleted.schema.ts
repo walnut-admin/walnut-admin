@@ -3,13 +3,11 @@ import {
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
 
-import { RealPickType } from '@walnut-server/utils/dto'
-
 import { Expose } from 'class-transformer'
 import { Recordable } from 'easy-fns-ts'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 
-export class SysDeletedModel extends RealPickType(WalnutAdminCommonBasicModel, ['_id'] as const) {
+export class SysDeletedModel extends WalnutAdminCommonBasicModel {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'Deleted Stringify Content',

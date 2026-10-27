@@ -138,8 +138,8 @@ export class SysMenuDTO extends SysMenuModel {
   declare pid: string | null
 }
 
-// Safe 层剔除 Mongo 的 _id（B1 模板：PG 响应以 id 为唯一标识，_id 在 PG 实体上不存在）
-export class SysMenuDTOSafe extends RealOmitType(SysMenuDTO, ['_id'] as const) {
+// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
+export class SysMenuDTOSafe extends SysMenuDTO {
   constructor(partial?: Partial<SysMenuDTOSafe>) {
     super()
     Object.assign(this, partial)

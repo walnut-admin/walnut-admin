@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
-import { RealOmitType, RealPickType } from '@walnut-server/utils/dto'
+import { RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { AppKeyModel } from '../schema/key.schema'
@@ -20,8 +20,8 @@ export class AppKeyDTO extends AppKeyModel {
   id?: string
 }
 
-// Safe 层剔除 Mongo 的 _id（B1 模板：PG 响应以 id 为唯一标识，_id 在 PG 实体上不存在）
-export class AppKeyDTOSafe extends RealOmitType(AppKeyDTO, ['_id'] as const) {
+// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
+export class AppKeyDTOSafe extends AppKeyDTO {
   constructor(partial?: Partial<AppKeyDTOSafe>) {
     super()
     Object.assign(this, partial)

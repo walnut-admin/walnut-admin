@@ -40,14 +40,10 @@ export class SysLogAuthDTO extends SysLogAuthModel {
   declare userId: string | null
 }
 
-export class SysLogAuthDTOSafe extends RealOmitType(
-  SysLogAuthDTO,
-  // B1 模板：Safe 层剔除 Mongo `_id`（PG 响应以 id 为唯一标识）
-  ['_id'] as const,
-) {
+// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
+export class SysLogAuthDTOSafe extends SysLogAuthDTO {
   constructor(partial?: Partial<SysLogAuthDTOSafe>) {
-    super()
-    Object.assign(this, partial)
+    super(partial ?? {})
   }
 }
 

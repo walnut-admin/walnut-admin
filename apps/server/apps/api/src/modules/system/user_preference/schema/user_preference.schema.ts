@@ -3,49 +3,8 @@ import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum } from 
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { Locale, LocaleType } from '@walnut/contract'
 import { Expose } from 'class-transformer'
-import { ValueOf } from 'easy-fns-ts'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-
-export const fontSizeConst = {
-  10: 10,
-  12: 12,
-  14: 14,
-  16: 16,
-  20: 20,
-} as const
-
-type IFontSizeConst = ValueOf<typeof fontSizeConst>
-
-export const colorModeConst = {
-  DEFAULT: 'default',
-  CAFE: 'cafe',
-  CONTRAST: 'contrast',
-  GRAYSCALE: 'grayscale',
-  GRAYSCALE_INVERTED: 'grayscale-inverted',
-  INVERTED: 'inverted',
-} as const
-
-export type IColorModeConst
-  = ValueOf<typeof colorModeConst>
-
-export const CVDConst = {
-  DEFAULT: 'default',
-  PROTANOPIA: 'protanopia', // no red
-  DEUTERANOPIA: 'deuteranopia', // no green
-  TRITANOPIA: 'tritanopia', // no blue
-  ACHROMATOPIA: 'achromatopsia', // no color
-} as const
-
-export type ICVDConst
-  = ValueOf<typeof CVDConst>
-
-export const layoutModeConst = {
-  LEFT_MENU: 'left-menu',
-  TOP_MENU: 'top-menu',
-} as const
-
-export type ILayoutModeConst
-  = ValueOf<typeof layoutModeConst>
+import { colorModeConst, CVDConst, fontSizeConst, IColorModeConst, ICVDConst, IFontSizeConst, ILayoutModeConst, layoutModeConst } from '../preference.const'
 
 export class SysUserPreferenceModel extends WalnutAdminCommonBasicModel {
   @Expose()

@@ -1,25 +1,8 @@
 import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPartialType } from '@walnut-server/utils/dto'
-import { ValueOf } from 'easy-fns-ts'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-
-export const AppKeyTypeConst = {
-  RSA_PAIR: 'RSA_PAIR',
-  AES_KEY_URL: 'AES_KEY_URL',
-  JWT_AT: 'JWT_AT',
-  JWT_RT: 'JWT_RT',
-} as const
-
-export type AppKeyTypeConstType = ValueOf<typeof AppKeyTypeConst>
-
-export const AppKeyStatusConst = {
-  ACTIVE: 'ACTIVE',
-  DEPRECATED: 'DEPRECATED',
-  DISABLED: 'DISABLED',
-} as const
-
-export type AppKeyStatusConstType = ValueOf<typeof AppKeyStatusConst>
+import { AppKeyStatusConst, AppKeyStatusConstType, AppKeyTypeConst, AppKeyTypeConstType } from '../key.const'
 
 class AppKeyMetaTypeRaw {
   @WalnutAdminDecoratorFieldString({

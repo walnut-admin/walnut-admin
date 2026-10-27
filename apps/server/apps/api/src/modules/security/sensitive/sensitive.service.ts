@@ -13,7 +13,7 @@ import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.e
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
 import { OtpSharedService } from '@/modules/auth/modules/otp/shared/otp.shared.service'
-import { WalnutAdminConstSysUserIdentityPurpose } from '@/modules/system/user_identity/schema/user_identity.schema'
+import { WalnutAdminConstSysUserIdentityPurpose } from '@/modules/system/user_identity/identity.const'
 import { SysUserIdentitySharedService } from '@/modules/system/user_identity/shared/user_identity.shared.service'
 import { AppTechRedisService } from '@/modules/techniques/cache/redis/redis.service'
 

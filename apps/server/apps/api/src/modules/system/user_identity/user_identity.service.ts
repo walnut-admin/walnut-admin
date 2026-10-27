@@ -14,12 +14,12 @@ import {
   SysUserIdentityVerifyRequestDTO,
 } from './dto/user_identity.dto'
 import { SysUserIdentityEntity } from './entity/user-identity.entity'
-import { SysUserIdentityRepositoryService } from './repo/user_identity.repo.service'
 import {
   IWalnutAdminConstSysUserIdentityPurpose,
   IWalnutAdminConstSysUserIdentityType,
   WalnutAdminConstSysUserIdentityPurpose,
-} from './schema/user_identity.schema'
+} from './identity.const'
+import { SysUserIdentityRepositoryService } from './repo/user_identity.repo.service'
 import { SysUserIdentitySharedService } from './shared/user_identity.shared.service'
 import { SysUserIdentityBasicRepository } from './user_identity.basic.repository'
 

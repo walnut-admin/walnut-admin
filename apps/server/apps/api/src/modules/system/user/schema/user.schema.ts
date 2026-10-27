@@ -8,18 +8,9 @@ import {
 } from '@walnut-server/decorators/field'
 import { Expose } from 'class-transformer'
 
-import { ValueOf } from 'easy-fns-ts'
-
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 
-export const SysUserGenderConst = {
-  UNKNOWN: 0,
-  MALE: 1,
-  FEMALE: 2,
-  UNDESCRIBED: 9,
-} as const
-
-export type SysUserGenderConstType = ValueOf<typeof SysUserGenderConst>
+import { SysUserGenderConst, SysUserGenderConstType } from '../user.const'
 
 export class SysUserModel extends WalnutAdminCommonBasicModel {
   @WalnutAdminDecoratorFieldString({

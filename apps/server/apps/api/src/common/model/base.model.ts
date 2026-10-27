@@ -14,15 +14,11 @@ import { IsOptional } from 'class-validator'
 // instead of  import { CreateUserDto }
 
 /**
- * DTO 元数据基座（Phase 5a 起无 mongoose 装饰）：`_id` 随 PG 迁移退役为响应兼容字段
- * （PG 实体以 `id`（uuid）为唯一标识，Safe 层 DTO 一律 omit `_id`），仅保留
- * Expose 序列化元数据；createdAt/updatedAt 供响应序列化继承。
+ * DTO 元数据基座（Phase 5a 起无 mongoose 装饰）：Mongo 的 `_id` 已随 PG 迁移彻底退役
+ * （PG 实体以 `id`（uuid）为唯一标识，Safe 层不再需要 omit），仅保留 Expose 序列化
+ * 元数据；createdAt/updatedAt 供响应序列化继承。
  */
 export class WalnutAdminCommonBasicModel {
-  @Expose()
-  @IsOptional({})
-  _id?: string
-
   @WalnutAdminDecoratorFieldDate({
     swaggerOptions: {
       title: 'default createdAt',

@@ -11,7 +11,6 @@ import {
   ClassConstructor,
   plainToInstance,
 } from 'class-transformer'
-import { remove } from 'lodash'
 
 // request list page dto
 class WalnutAdminRequestListPageDTO {
@@ -46,11 +45,7 @@ class WalnutAdminRequestListPageDTO {
 
 // create request list dto based on target dto
 export function CreateWalnutAdminRequestListDTO<T>(dto: ClassConstructor<T>) {
-  const omitKeys = ['_id']
-  const keys = remove(
-    Object.keys(plainToInstance(dto as ClassConstructor<object>, {}, {})),
-    i => !omitKeys.includes(i),
-  )
+  const keys = Object.keys(plainToInstance(dto as ClassConstructor<object>, {}, {}))
 
   class SortDTO {
     @WalnutAdminDecoratorFieldString({

@@ -26,7 +26,7 @@ import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decora
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
 import { SecurityRiskFailedLoginService } from '@/modules/security/risk/modules/failedLogin.service'
-import { WalnutAdminConstSysUserIdentityType } from '@/modules/system/user_identity/schema/user_identity.schema'
+import { WalnutAdminConstSysUserIdentityType } from '@/modules/system/user_identity/identity.const'
 import { SysUserIdentitySharedService } from '@/modules/system/user_identity/shared/user_identity.shared.service'
 import { AppTechSseService } from '@/modules/techniques/sse/sse.service'
 import { AuthCookieService } from '../../cookie/cookie.service'

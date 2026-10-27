@@ -4,8 +4,8 @@
  */
 
 import type { ValueOf } from 'easy-fns-ts'
-import type { IWalnutAdminConstSysUserIdentityType } from '@/modules/system/user_identity/schema/user_identity.schema'
-import { WalnutAdminConstSysUserIdentityType } from '@/modules/system/user_identity/schema/user_identity.schema'
+import type { IWalnutAdminConstSysUserIdentityType } from '@/modules/system/user_identity/identity.const'
+import { WalnutAdminConstSysUserIdentityType } from '@/modules/system/user_identity/identity.const'
 
 export const otpType = {
   email: 'email',

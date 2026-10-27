@@ -28,7 +28,7 @@ export class SysLogOperateRepoService {
    * @description create operate log（旁路写；调用方自行吞错）
    */
   async create(
-    dto: Omit<SysLogOperateDTO, '_id'> & {
+    dto: SysLogOperateDTO & {
       // Q7 定案的 ETL 原文旁路列：request/response 序列化失败时 jsonb 列置空、原文落这里
       rawRequestData?: string | null
       rawResponseData?: string | null

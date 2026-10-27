@@ -4,7 +4,6 @@ import {
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
 
-import { RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 
@@ -14,7 +13,7 @@ import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
  * 校验/swagger 元数据基座保留；@Prop / virtual 不再有运行时语义。
  * userId 的 uuid 校验在 DTO 子类重声明（同 B1 模板）；deviceId 保持字符串业务键。
  */
-export class AppMonitorUserModel extends RealPickType(WalnutAdminCommonBasicModel, ['_id'] as const) {
+export class AppMonitorUserModel extends WalnutAdminCommonBasicModel {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'fingerprint for auth and no auth users',

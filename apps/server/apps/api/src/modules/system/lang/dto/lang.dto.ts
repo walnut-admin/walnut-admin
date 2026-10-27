@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger'
 import { WalnutAdminDecoratorFieldNumber } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
-import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
+import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import {
@@ -27,11 +27,10 @@ export class SysLangDTO extends SysLangModel {
   id?: string
 }
 
-// Safe 层剔除 Mongo 的 _id（B1 模板：PG 响应以 id 为唯一标识，_id 在 PG 实体上不存在）
-export class SysLangDTOSafe extends RealOmitType(SysLangDTO, ['_id'] as const) {
+// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
+export class SysLangDTOSafe extends SysLangDTO {
   constructor(partial?: Partial<SysLangDTOSafe>) {
-    super()
-    Object.assign(this, partial)
+    super(partial ?? {})
   }
 
   @WalnutAdminDecoratorFieldNumber({

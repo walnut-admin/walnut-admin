@@ -7,8 +7,8 @@ import { plainToInstance } from 'class-transformer'
 
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
 import { AppKeyDTOInit, AppKeyDTOSafe } from './dto/key.dto'
+import { AppKeyTypeConst, AppKeyTypeConstType } from './key.const'
 import { AppKeyService } from './key.service'
-import { AppKeyTypeConst, AppKeyTypeConstType } from './schema/key.schema'
 
 /**
  * B4 迁移（controller 层，模板同 demo）：事务句柄 `ctx.dbSession` → `ctx.em`；

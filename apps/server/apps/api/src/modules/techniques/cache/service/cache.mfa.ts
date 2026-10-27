@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { AppTokenService } from '@/modules/shared/token/token.service'
-import { IWalnutAdminConstSysUserMfaType } from '@/modules/system/user_mfa/schema/user_mfa.schema'
+import { IWalnutAdminConstSysUserMfaType } from '@/modules/system/user_mfa/mfa.const'
 import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 
 type WalnutAdminConstSysUserMfaWebauthnType = 'registration' | 'authentication'

@@ -27,7 +27,7 @@ export class SysLogAuthRepoService {
   /**
    * @description create auth log（旁路写；调用方自行吞错）
    */
-  async create(dto: Omit<SysLogAuthDTO, '_id'>) {
+  async create(dto: SysLogAuthDTO) {
     const repository = this.dataSource.manager.getRepository(SysLogAuthEntity)
     // 单对象 create 命中 TypeORM 的批量重载签名，显式收窄回单实体（基类 create 同款）
     const created = repository.create(dto as never) as unknown as SysLogAuthEntity

@@ -52,14 +52,10 @@ class SysDeletedDTO extends IntersectionType(SysDeletedModel, WalnutAdminVirtual
   declare logOperateId?: string | null
 }
 
-export class SysDeletedDTOSafe extends RealOmitType(
-  SysDeletedDTO,
-  // B1 模板：Safe 层剔除 Mongo `_id`（PG 响应以 id 为唯一标识）
-  ['_id'] as const,
-) {
+// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
+export class SysDeletedDTOSafe extends SysDeletedDTO {
   constructor(partial?: Partial<SysDeletedDTOSafe>) {
-    super()
-    Object.assign(this, partial)
+    super(partial ?? {})
   }
 }
 

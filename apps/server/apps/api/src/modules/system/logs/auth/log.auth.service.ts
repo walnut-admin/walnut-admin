@@ -25,7 +25,7 @@ export class SysLogAuthService {
   /**
    * @description create auth log (controller: create)
    */
-  async create(dto: Omit<SysLogAuthDTO, '_id'>) {
+  async create(dto: SysLogAuthDTO) {
     return this.logAuthRepoService.create(dto)
   }
 

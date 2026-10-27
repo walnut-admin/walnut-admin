@@ -8,7 +8,7 @@ import {
   colorModeConst,
   fontSizeConst,
   layoutModeConst,
-} from '@/modules/system/user_preference/schema/user_preference.schema'
+} from '@/modules/system/user_preference/preference.const'
 import { SysUserPreferenceService } from '@/modules/system/user_preference/services/user_preference.service'
 import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
 

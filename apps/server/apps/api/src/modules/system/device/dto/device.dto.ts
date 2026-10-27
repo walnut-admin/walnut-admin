@@ -1,7 +1,7 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
 import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
-import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
+import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@/common/dto/list.dto'
@@ -26,7 +26,8 @@ export class SysDeviceDTO extends SysDeviceModel {
   id?: string
 }
 
-export class SysDeviceDTOSafe extends RealOmitType(SysDeviceDTO, ['_id'] as const) {
+// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
+export class SysDeviceDTOSafe extends SysDeviceDTO {
   constructor(partial?: Partial<SysDeviceDTOSafe>) {
     super()
     Object.assign(this, partial)

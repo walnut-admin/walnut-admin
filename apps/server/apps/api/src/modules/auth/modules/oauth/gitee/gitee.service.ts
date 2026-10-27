@@ -10,11 +10,11 @@ import { DataSource } from 'typeorm'
 import { SharedWelcomeService } from '@/modules/shared/welcome/welcome.service'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
 import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
-import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
 import {
   WalnutAdminConstSysUserIdentityPurpose,
   WalnutAdminConstSysUserIdentityType,
-} from '@/modules/system/user_identity/schema/user_identity.schema'
+} from '@/modules/system/user_identity/identity.const'
+import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
 import { SysUserIdentitySharedService } from '@/modules/system/user_identity/shared/user_identity.shared.service'
 import { SysUserOAuthRepositoryService } from '@/modules/system/user_oauth/repo/user_oauth.repo.service'
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'

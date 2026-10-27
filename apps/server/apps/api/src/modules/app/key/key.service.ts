@@ -8,7 +8,7 @@ import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { AppKeyDTOSafe } from './dto/key.dto'
 import { AppKeyEntity } from './entity/key.entity'
 import { AppKeyBasicRepository } from './key.basic.repository'
-import { AppKeyTypeConst } from './schema/key.schema'
+import { AppKeyTypeConst } from './key.const'
 
 /**
  * B4 迁移（service 层）：Mongo model 直持 → AppKeyBasicRepository（PG），事务句柄

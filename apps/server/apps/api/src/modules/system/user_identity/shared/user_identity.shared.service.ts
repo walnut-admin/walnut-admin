@@ -12,11 +12,11 @@ import { SharedMaskService } from '@/modules/shared/mask/mask.service'
 import { AppTechCryptoService } from '@/modules/techniques/crypto/crypto.service'
 
 import { SysUserIdentityStatusResponseDTO } from '../dto/user_identity.dto'
-import { SysUserIdentityRepositoryService } from '../repo/user_identity.repo.service'
 import {
   IWalnutAdminConstSysUserIdentityPurpose,
   IWalnutAdminConstSysUserIdentityType,
-} from '../schema/user_identity.schema'
+} from '../identity.const'
+import { SysUserIdentityRepositoryService } from '../repo/user_identity.repo.service'
 
 /**
  * B7a 迁移：事务句柄 `dbSession?: ClientSession` → `em?: EntityManager`（纯透传给

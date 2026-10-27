@@ -41,10 +41,11 @@ export class SysLogOperateDTO extends SysLogOperateModel {
   declare userId: string | null
 }
 
+// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役后仅存名，
+// 快照列仍需对响应侧剔除
 export class SysLogOperateDTOSafe extends RealOmitType(
   SysLogOperateDTO,
-  // B1 模板：Safe 层剔除 Mongo `_id`（PG 响应以 id 为唯一标识）
-  ['snapshotBefore', 'snapshotAfter', '_id'] as const,
+  ['snapshotBefore', 'snapshotAfter'] as const,
 ) {
   constructor(partial?: Partial<SysLogOperateDTOSafe>) {
     super()

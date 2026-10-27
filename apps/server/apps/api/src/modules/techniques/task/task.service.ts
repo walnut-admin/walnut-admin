@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { WalnutAdminConstAppCronTaskNames } from '@walnut-server/const/app/task'
+import { AppKeyTypeConst } from '@/modules/app/key/key.const'
 import { AppKeyService } from '@/modules/app/key/key.service'
-import { AppKeyTypeConst } from '@/modules/app/key/schema/key.schema'
 
 import { AppMonitorUserSharedService } from '@/modules/app/monitor/user/shared/user.shared.service'
 
