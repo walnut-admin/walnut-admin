@@ -5,13 +5,14 @@ import {
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
-
 import { Expose } from 'class-transformer'
-
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { IWalnutAdminConstSysUserMfaType, IWalnutAdminConstSysUserMfaWebauthnTransport, WalnutAdminConstSysUserMfaType, WalnutAdminConstSysUserMfaWebauthnTransport } from '../mfa.const'
 
-export class SysUserMfaModel extends WalnutAdminCommonBasicModel {
+// 批 4 结构重构：schema/ 并入 dto/（原 schema/user_mfa.schema.ts 的 SysUserMfaModel
+// 改名 SysUserMfaDTOBase；本模块此前无 dto/ 目录，新建之，totp / webauthn 子目录的
+// dto 从这里取基座类），装饰器与字段本体零改动
+export class SysUserMfaDTOBase extends WalnutAdminCommonBasicModel {
   @Expose()
   userId: string
 
@@ -82,7 +83,7 @@ export class SysUserMfaModel extends WalnutAdminCommonBasicModel {
   })
   phoneNumberCiphertext: string
 
-  // 备用码专�?
+  // 备用码专用
   @WalnutAdminDecoratorFieldString({
     isArray: true,
     swaggerOptions: {

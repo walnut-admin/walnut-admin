@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common'
+import type { IWalnutAdminMenuMeta } from '@walnut/contract/menu'
 import type { DataSource } from 'typeorm'
-import type { SysMenuModelMeta } from '@/modules/system/menu/schema/menu.schema'
 
 import { randomUUID } from 'node:crypto'
 
@@ -91,7 +91,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
           order: 3,
           show: false,
           permission: 'b5:perm:create',
-        } as SysMenuModelMeta,
+        } as IWalnutAdminMenuMeta,
       })
 
       expect(created.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
@@ -145,10 +145,10 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
     it('update：meta 给 出时整组替换（未给键回默认值）；meta 未给 时 meta 列不动', async () => {
       const created = await menuService.create({
         name: uniqueName('b5-menu'),
-        meta: { order: 1, cache: true } as SysMenuModelMeta,
+        meta: { order: 1, cache: true } as IWalnutAdminMenuMeta,
       })
 
-      const updated = await menuService.update(created.id, { meta: { order: 9 } as SysMenuModelMeta })
+      const updated = await menuService.update(created.id, { meta: { order: 9 } as IWalnutAdminMenuMeta })
 
       // 整组替换：未给的 cache 回默认 false（对齐 Mongo 版 meta 子文档整体替换）
       expect(updated.order).toBe(9)
@@ -196,7 +196,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
 
     it('list：{ data, total } 出参 + 行可组装回 meta 形态', async () => {
       const name = uniqueName('b5-list')
-      await menuService.create({ name, meta: { order: 5 } as SysMenuModelMeta })
+      await menuService.create({ name, meta: { order: 5 } as IWalnutAdminMenuMeta })
 
       const res = await menuService.list({ query: { name } } as never)
       expect(res.total).toBe(1)
@@ -220,7 +220,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
         pid: treeRoot!.id,
         type: 'catalog',
         name: uniqueName('b5-tree-root'),
-        meta: { order: 1 } as SysMenuModelMeta,
+        meta: { order: 1 } as IWalnutAdminMenuMeta,
       })
 
       const menuChild = await menuService.create({
@@ -228,20 +228,20 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
         type: 'menu',
         name: uniqueName('b5-tree-menu'),
         title: 'b5.tree.menu',
-        meta: { order: 2 } as SysMenuModelMeta,
+        meta: { order: 2 } as IWalnutAdminMenuMeta,
       })
       const elementChild = await menuService.create({
         pid: branch.id,
         type: 'element',
         name: uniqueName('b5-tree-element'),
-        meta: { order: 0 } as SysMenuModelMeta,
+        meta: { order: 0 } as IWalnutAdminMenuMeta,
       })
       // order 乱序插入，验证 orderTree
       const menuChild2 = await menuService.create({
         pid: branch.id,
         type: 'menu',
         name: uniqueName('b5-tree-menu2'),
-        meta: { order: 1 } as SysMenuModelMeta,
+        meta: { order: 1 } as IWalnutAdminMenuMeta,
       })
 
       const res = await menuSharedService.getMenuTreeAndTreeWithoutTypeElement()
@@ -376,11 +376,11 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
     it('populated_menusList：junction JOIN 组装 + match meta.status=true + meta 对象保真', async () => {
       const visible = await menuService.create({
         name: uniqueName('b5-pop'),
-        meta: { order: 2, permission: 'b5:pop:read' } as SysMenuModelMeta,
+        meta: { order: 2, permission: 'b5:pop:read' } as IWalnutAdminMenuMeta,
       })
       const hidden = await menuService.create({
         name: uniqueName('b5-pop'),
-        meta: { status: false } as SysMenuModelMeta,
+        meta: { status: false } as IWalnutAdminMenuMeta,
       })
 
       const role = await roleService.create(rolePayload({
@@ -432,7 +432,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
           affix: true,
           ternal: 'internal',
           url: 'https://b5.example.com',
-        } as SysMenuModelMeta,
+        } as IWalnutAdminMenuMeta,
       })
 
       const role = await roleService.create(rolePayload({

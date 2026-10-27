@@ -7,9 +7,9 @@ import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPickType } from '@walnut-server/utils/dto'
 import { SysUserDeviceDTO } from '../../user_device/dto/user_device.dto'
-import { SysUserMfaModel } from '../schema/user_mfa.schema'
+import { SysUserMfaDTOBase } from '../dto/user_mfa.dto'
 
-export class SysUserMfaWebauthnRegisterOptionsDTO extends RealPickType(SysUserMfaModel, ['name'] as const) {}
+export class SysUserMfaWebauthnRegisterOptionsDTO extends RealPickType(SysUserMfaDTOBase, ['name'] as const) {}
 
 export class SysUserMfaWebauthnRegisterResponseDTO {
   constructor(partial: Partial<SysUserMfaWebauthnRegisterResponseDTO>) {
@@ -29,7 +29,7 @@ export class SysUserMfaWebauthnRegisterResponseDTO {
   deviceName: string
 }
 
-export class SysUserMfaWebauthnRegisterVerifyDTO extends RealPickType(SysUserMfaModel, ['name'] as const) {
+export class SysUserMfaWebauthnRegisterVerifyDTO extends RealPickType(SysUserMfaDTOBase, ['name'] as const) {
   @WalnutAdminDecoratorFieldObject(Object, {
     swaggerOptions: { description: 'WebAuthn 注册响应' },
     validateOptions: {

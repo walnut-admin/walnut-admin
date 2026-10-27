@@ -1,5 +1,10 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFieldEnum } from '@walnut-server/decorators/field'
+import {
+  WalnutAdminDecoratorFieldBoolean,
+  WalnutAdminDecoratorFieldEnum,
+  WalnutAdminDecoratorFieldNumber,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
@@ -8,10 +13,72 @@ import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,
 } from '@/common/dto/list.dto'
+import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { SysDictDataTagTypeConst, SysDictDataTagTypeConstType } from '../dict-data.const'
-import { SysDictDataModel } from '../schema/dictData.schema'
 
-export class SysDictDataDTO extends SysDictDataModel {
+// 批 4 结构重构：schema/ 并入 dto/（原 schema/dictData.schema.ts 的 SysDictDataModel
+// 改名 SysDictDataDTOBase），装饰器与字段本体零改动
+//
+// B3 迁移后基座仅作为 DTO 元数据保留（模型注册已随迁移从 dictData.module /
+// dictType.module 摘除，@Prop 不再有运行时语义）；PG 列型见 entity/dict-data.entity.ts。
+export class SysDictDataDTOBase extends WalnutAdminCommonBasicModel {
+  @Expose()
+  // B3：TS 类型随 PG 列型放开为 string（uuid FK，phase2 4.7），uuid 校验在 DTO 子类接管
+  typeId: string
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'dict data label',
+      required: true,
+    },
+  })
+  label: string
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'dict data value',
+      required: true,
+    },
+  })
+  value: string
+
+  @WalnutAdminDecoratorFieldNumber({
+    default: 0,
+    swaggerOptions: {
+      title: 'dict data order in array',
+    },
+    validateOptions: {
+      int: true,
+    },
+  })
+  order: number
+
+  @WalnutAdminDecoratorFieldBoolean({
+    default: true,
+    swaggerOptions: {
+      title: 'dict data status, false will not be extracted',
+    },
+  })
+  status: boolean
+
+  @WalnutAdminDecoratorFieldEnum(() => SysDictDataTagTypeConst, {
+    default: SysDictDataTagTypeConst.PRIMARY,
+    swaggerOptions: {
+      title: 'dict data render tag type, see more in naive ui tag',
+    },
+  })
+  tagType: SysDictDataTagTypeConstType
+
+  @WalnutAdminDecoratorFieldString({
+    default: null,
+    swaggerOptions: {
+      title: 'dict data description',
+    },
+  })
+  description: string
+}
+
+export class SysDictDataDTO extends SysDictDataDTOBase {
   constructor(partial?: Partial<SysDictDataDTO>) {
     super()
     Object.assign(this, partial)

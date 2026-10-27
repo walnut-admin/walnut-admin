@@ -2,8 +2,10 @@ import { IntersectionType } from '@nestjs/swagger'
 import { WalnutAdminDecoratorFieldObject, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 
 import { RealPickType } from '@walnut-server/utils/dto'
-import { SysMenuDTOSafe, SysMenuDTOTree } from '@/modules/system/menu/dto/menu.dto'
-import { SysMenuModelMeta } from '@/modules/system/menu/schema/menu.schema'
+// 批 4 结构重构：meta 基座类随 menu 的 schema/ 并入改名 SysMenuMetaDTOBase。
+// 这里是 IntersectionType/RealPickType 的**值**用法（mixin 工厂需要带装饰器的类），
+// 纯类型形走 @walnut/contract 的 IWalnutAdminMenuMeta，装饰器类只能从 menu.dto 引
+import { SysMenuDTOSafe, SysMenuDTOTree, SysMenuMetaDTOBase } from '@/modules/system/menu/dto/menu.dto'
 // Note: Menu types (IMenuTreeItem, IVueRouteItem, ILayoutTabsItem, IIframeListItem) are now global
 
 export class AuthSuccessDTO {
@@ -18,7 +20,7 @@ export class AuthSuccessDTO {
   sessionKey: string
 }
 
-class VueRouteMetaDTO extends IntersectionType(SysMenuModelMeta, RealPickType(SysMenuDTOSafe, ['type', 'title', 'icon'] as const)) {}
+class VueRouteMetaDTO extends IntersectionType(SysMenuMetaDTOBase, RealPickType(SysMenuDTOSafe, ['type', 'title', 'icon'] as const)) {}
 
 // route tree dto
 class AuthPermissionRouteTreeDTO extends RealPickType(SysMenuDTOSafe, ['name', 'path', 'component']) {
@@ -45,7 +47,7 @@ class AuthPermissionInternalIframeDTO extends IntersectionType(
   RealPickType(SysMenuDTOSafe, [
     'name',
   ] as const),
-  RealPickType(SysMenuModelMeta, [
+  RealPickType(SysMenuMetaDTOBase, [
     'url',
     'cache',
   ] as const),

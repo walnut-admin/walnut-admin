@@ -1,16 +1,159 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
+import {
+  WalnutAdminDecoratorFieldBoolean,
+  WalnutAdminDecoratorFieldNumber,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@/common/dto/list.dto'
-import { SharedLngLatDTO, SharedLocationDTO, SharedTimeDTO } from '@/common/dto/shared.dto'
+import { SharedGeoPointDTO, SharedHardwareDTO, SharedHeightWidthDTO, SharedIpLocationHistoryDTO, SharedLngLatDTO, SharedLocationDTO, SharedTimeDTO, SharedUserAgentDTO } from '@/common/dto/shared.dto'
+import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { SysUserDTOSafe } from '../../user/dto/user.dto'
 import { SysDeviceEntity } from '../entity/device.entity'
-import { SysDeviceModel } from '../schema/device.schema'
 
-export class SysDeviceDTO extends SysDeviceModel {
+// 批 4 结构重构：schema/ 并入 dto/（原 schema/device.schema.ts 的 SysDeviceModel
+// 改名 SysDeviceDTOBase），装饰器与字段本体零改动
+//
+// Phase 5a 起本基座去除全部 mongoose 装饰（@Schema/@Prop/@Virtual 与模型注册
+// 早已随迁移摘除），仅作为 DTO 链的校验/swagger 元数据基座保留。
+// PG 实体见 ../entity/device.entity.ts（phase2 4.8）。
+
+export class SysDeviceDTOBase extends WalnutAdminCommonBasicModel {
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'device name, normally cannot change',
+    },
+  })
+  deviceName: string
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'device id, also maybe known as fingerprint for client',
+    },
+  })
+  deviceId: string
+
+  @WalnutAdminDecoratorFieldObject(RealPartialType(SharedUserAgentDTO), {
+    swaggerOptions: {
+      title: 'device user agent information',
+      required: true,
+    },
+  })
+  deviceInfo: SharedUserAgentDTO
+
+  @WalnutAdminDecoratorFieldObject(RealPartialType(SharedHardwareDTO), {
+    swaggerOptions: {
+      title: 'hardware information',
+    },
+  })
+  hardwareInfo: SharedHardwareDTO
+
+  @WalnutAdminDecoratorFieldObject(RealPartialType(SharedLocationDTO), {
+    swaggerOptions: {
+      title: 'location information',
+    },
+  })
+  locationInfo: SharedLocationDTO
+
+  @WalnutAdminDecoratorFieldObject(SharedIpLocationHistoryDTO, {
+    isArray: true,
+    arrayOptions: {
+      maxSize: 5,
+    },
+    swaggerOptions: {
+      title: 'IP location history, synced with ipHistory',
+      description: 'Stores up to 5 recent IP-location pairs',
+    },
+  })
+  locationHistory: SharedIpLocationHistoryDTO[]
+
+  @WalnutAdminDecoratorFieldObject(SharedHeightWidthDTO, {
+    swaggerOptions: {
+      title: 'screen resolution',
+    },
+  })
+  sr: { height: number, width: number }
+
+  @WalnutAdminDecoratorFieldObject(SharedHeightWidthDTO, {
+    swaggerOptions: {
+      title: 'view port',
+    },
+  })
+  vp: { height: number, width: number }
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'ip address',
+    },
+  })
+  ip: string
+
+  @WalnutAdminDecoratorFieldString({
+    isArray: true,
+    arrayOptions: {
+      unique: true,
+      minSize: 1,
+      maxSize: 5,
+    },
+    swaggerOptions: {
+      title: 'ip address, with history support',
+      required: true,
+    },
+  })
+  ipHistory: string[]
+
+  @WalnutAdminDecoratorFieldBoolean({
+    default: false,
+    swaggerOptions: {
+      title: 'device active status',
+    },
+  })
+  active: boolean
+
+  @WalnutAdminDecoratorFieldBoolean({
+    default: false,
+    swaggerOptions: {
+      title: 'device lock status',
+    },
+  })
+  locked: boolean
+
+  @WalnutAdminDecoratorFieldBoolean({
+    default: false,
+    swaggerOptions: {
+      title: 'device ban status',
+    },
+  })
+  banned: boolean
+
+  @WalnutAdminDecoratorFieldBoolean({
+    default: false,
+    swaggerOptions: {
+      title: 'device private/incognito',
+    },
+  })
+  private: boolean
+
+  @WalnutAdminDecoratorFieldObject(RealPartialType(SharedGeoPointDTO), {
+    swaggerOptions: {
+      title: 'geo location, longitude and latitude',
+    },
+  })
+  geoLocation: SharedGeoPointDTO
+
+  @WalnutAdminDecoratorFieldNumber({
+    swaggerOptions: {
+      title: 'device risk score',
+    },
+  })
+  riskScore: number
+}
+
+export class SysDeviceDTO extends SysDeviceDTOBase {
   constructor(partial?: Partial<SysDeviceDTO>) {
     super()
     Object.assign(this, partial)

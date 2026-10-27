@@ -1,9 +1,9 @@
 import { WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { RealPickType } from '@walnut-server/utils/dto'
 import { SysUserDeviceDTO } from '../../user_device/dto/user_device.dto'
-import { SysUserMfaModel } from '../schema/user_mfa.schema'
+import { SysUserMfaDTOBase } from '../dto/user_mfa.dto'
 
-export class SysUserMfaDTO extends SysUserMfaModel {
+export class SysUserMfaDTO extends SysUserMfaDTOBase {
   constructor(partial?: Partial<SysUserMfaDTO>) {
     super()
     Object.assign(this, partial)
@@ -44,7 +44,7 @@ export class SysUserMfaGenerateTotpResponseDTO {
   account: string
 }
 
-export class SysUserMfaBindTotpDTO extends RealPickType(SysUserMfaModel, ['name'] as const) {
+export class SysUserMfaBindTotpDTO extends RealPickType(SysUserMfaDTOBase, ['name'] as const) {
   @WalnutAdminDecoratorFieldString({
     validateOptions: {
       maxLen: 6,

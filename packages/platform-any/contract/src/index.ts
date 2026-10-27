@@ -11,6 +11,7 @@ export { RequestHeaders } from './http'
 export { Locale, type LocaleType } from './i18n'
 
 export { CacheKeyStrategy, MenuTernal, MenuType } from './menu'
+export type { IWalnutAdminMenuMeta } from './menu'
 
 export {
   type BaseListParams,

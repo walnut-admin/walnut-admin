@@ -1,14 +1,111 @@
+import type { Recordable } from 'easy-fns-ts'
+
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldDate,
+  WalnutAdminDecoratorFieldEnum,
+  WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
+import { Expose } from 'class-transformer'
+import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { IdentitySendDTO, IdentityVerifyDTO } from '@/modules/auth/dto/identity.dto'
-import { SysUserIdentityModel } from '../schema/user_identity.schema'
+import { IWalnutAdminConstSysUserIdentityPurpose, IWalnutAdminConstSysUserIdentityType, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType } from '../identity.const'
 
-// Base DTO - extends Model with all fields
-export class SysUserIdentityDTO extends SysUserIdentityModel {
+// 批 4 结构重构：schema/ 并入 dto/（原 schema/user_identity.schema.ts 的
+// SysUserIdentityModel 改名 SysUserIdentityDTOBase），装饰器与字段本体零改动
+
+export class SysUserIdentityDTOBase extends WalnutAdminCommonBasicModel {
+  @Expose()
+  userId: string
+
+  @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstSysUserIdentityType, {
+    swaggerOptions: {
+      title: 'identity type',
+      description: 'phoneNumber / emailAddress / idCard / password',
+    },
+  })
+  type: IWalnutAdminConstSysUserIdentityType
+
+  @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstSysUserIdentityPurpose, {
+    swaggerOptions: {
+      title: 'identity purpose',
+      description: 'login => for sign in; security => for verification and notification',
+    },
+  })
+  purpose: IWalnutAdminConstSysUserIdentityPurpose
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'encrypted value',
+      description: 'AES-256-GCM encrypted value (phone/email/idCard/password)',
+    },
+  })
+  value: string
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'value hash',
+      description: 'HMAC-SHA256 hash for quick lookup without decryption',
+    },
+  })
+  valueHash: string
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'masked value',
+      description: 'masked value for display (e.g., +86****17304)',
+    },
+  })
+  maskedValue: string | null
+
+  @WalnutAdminDecoratorFieldBoolean({
+    default: false,
+    swaggerOptions: {
+      title: 'verified',
+      description: 'whether the identity has been verified',
+    },
+  })
+  verified: boolean
+
+  @WalnutAdminDecoratorFieldDate({
+    swaggerOptions: {
+      title: 'verified at',
+      description: 'verification timestamp',
+    },
+  })
+  verifiedAt: Date
+
+  @WalnutAdminDecoratorFieldBoolean({
+    default: true,
+    swaggerOptions: {
+      title: 'is primary',
+      description: 'whether this is the primary identity of this type',
+    },
+  })
+  isPrimary: boolean
+
+  @WalnutAdminDecoratorFieldBoolean({
+    default: true,
+    swaggerOptions: {
+      title: 'status',
+      description: 'enable/disable status',
+    },
+  })
+  status: boolean
+
+  @WalnutAdminDecoratorFieldObject(Object, {
+    swaggerOptions: {
+      title: 'metadata',
+      description: 'extended metadata JSON string for future use (e.g., real-name auth info)',
+    },
+  })
+  metadata: Recordable
+}
+
+// Base DTO - extends base with all fields
+export class SysUserIdentityDTO extends SysUserIdentityDTOBase {
   constructor(partial: Partial<SysUserIdentityDTO>) {
     super()
     Object.assign(this, partial)

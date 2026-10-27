@@ -1,4 +1,11 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
+import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role'
+import {
+  WalnutAdminDecoratorFieldBoolean,
+  WalnutAdminDecoratorFieldEnum,
+  WalnutAdminDecoratorFieldNumber,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
@@ -7,12 +14,115 @@ import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,
 } from '@/common/dto/list.dto'
+import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { WalnutAdminVirtualRolesCountDTO, WalnutAdminVirtualRolesListDTO } from '@/common/model/virtual/role'
-import { SysUserModel } from '../schema/user.schema'
+import { SysUserGenderConst, SysUserGenderConstType } from '../user.const'
+
+// 批 4 结构重构：schema/ 并入 dto/（原 schema/user.schema.ts 的 SysUserModel 改名
+// SysUserDTOBase），装饰器与字段本体零改动
+export class SysUserDTOBase extends WalnutAdminCommonBasicModel {
+  @WalnutAdminDecoratorFieldString({
+    default: null,
+    swaggerOptions: {
+      title: 'user name',
+      description: 'should be unique, used for normal password sign in',
+    },
+  })
+  userName: string
+
+  @WalnutAdminDecoratorFieldString({
+    default: null,
+    swaggerOptions: {
+      title: 'user nick name',
+      description: 'feel free to change',
+    },
+  })
+  nickName: string
+
+  @WalnutAdminDecoratorFieldNumber({
+    default: null,
+    swaggerOptions: {
+      title: 'age',
+      description: 'should be int and positive',
+    },
+    validateOptions: { int: true, positive: true },
+  })
+  age: number
+
+  @WalnutAdminDecoratorFieldEnum(() => SysUserGenderConst, {
+    default: SysUserGenderConst.UNDESCRIBED,
+    swaggerOptions: {
+      title: 'gender',
+      description: 'follow GB standard, go internet it',
+      example: SysUserGenderConst.UNDESCRIBED,
+    },
+  })
+  gender: SysUserGenderConstType
+
+  @WalnutAdminDecoratorFieldString({
+    default: null,
+    swaggerOptions: {
+      title: 'avatar',
+      description: 'maybe a transform in the future',
+    },
+    // TODO add oss prefix
+    transformOptions: {},
+  })
+  avatar: string
+
+  @WalnutAdminDecoratorFieldString({
+    default: null,
+    swaggerOptions: {
+      title: 'description',
+      description: 'feel free to change',
+    },
+    validateOptions: {},
+  })
+  description: string
+
+  @WalnutAdminDecoratorFieldBoolean({
+    default: true,
+    swaggerOptions: {
+      title: 'user status',
+      description:
+        'false => user cannot sign in anymore, also should ban tokens as well',
+    },
+  })
+  status: boolean
+
+  @Expose()
+  // B7a：roles 随 PG 关联表 sys_user_role 放开为 uuid 数组（phase2 4.1；IsMongoId 约束
+  // 由 DTO 子类重声明替换为 uuid，B5 role menus 同款处理）
+  roles: string[]
+
+  @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstRoleMode, {
+    default: WalnutAdminConstRoleMode.SWITCH,
+    swaggerOptions: {
+      title: 'role mode',
+      description: `switch => user can switch role freely; combine => user's role is combined by system, along with the permission, user would access all permission in the roles he has`,
+      example: WalnutAdminConstRoleMode.SWITCH,
+    },
+  })
+  roleMode: IWalnutAdminConstRoleMode
+
+  @Expose()
+  // B7a：随 PG 列 current_role_id（uuid，可空）放开类型注解
+  currentRole: string | null
+
+  @WalnutAdminDecoratorFieldBoolean({
+    default: false,
+    swaggerOptions: {
+      title: 'MFA setup',
+      description:
+        'true => user has setup MFA',
+    },
+  })
+  mfaSetup: boolean
+}
 
 // do not use when need to extend
 // use `SysUserDTOSafe` below to extend
-export class SysUserDTO extends IntersectionType(SysUserModel, WalnutAdminVirtualRolesCountDTO, WalnutAdminVirtualRolesListDTO) {
+export class SysUserDTO extends IntersectionType(SysUserDTOBase, WalnutAdminVirtualRolesCountDTO, WalnutAdminVirtualRolesListDTO) {
   constructor(partial?: Partial<SysUserDTO>) {
     super()
     Object.assign(this, partial)
@@ -30,7 +140,7 @@ export class SysUserDTO extends IntersectionType(SysUserModel, WalnutAdminVirtua
 
   // IsMongoId → IsUUID 模板（B1 确立）：在 DTO 子类重声明同名字段，class-validator
   // 按 propertyName+type 去重、子类约束整体替换继承的 IsMongoId。roles 原 ObjectId[]
-  // → junction 承接的 uuid 数组（数组内去重对齐 schema arrayOptions.unique）
+  // → junction 承接的 uuid 数组（数组内去重对齐基座 arrayOptions.unique 的业务语义）
   @Expose()
   @ApiProperty({
     type: String,

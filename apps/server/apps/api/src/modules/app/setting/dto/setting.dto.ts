@@ -1,6 +1,6 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
 import { IWalnutAdminConstAppSettingType, WalnutAdminConstAppSettingType } from '@walnut-server/const/app/setting'
-import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum } from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
@@ -10,9 +10,49 @@ import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,
 } from '@/common/dto/list.dto'
-import { AppSettingModel } from '../schema/setting.schema'
+import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 
-export class AppSettingDTO extends AppSettingModel {
+// 批 4 结构重构：schema/ 并入 dto/（原 schema/setting.schema.ts 的 AppSettingModel
+// 改名 AppSettingDTOBase），装饰器与字段本体零改动
+export class AppSettingDTOBase extends WalnutAdminCommonBasicModel {
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'setting name',
+    },
+  })
+  settingName: string
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'setting key',
+    },
+  })
+  settingKey: string
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'setting value',
+    },
+  })
+  settingValue: string
+
+  @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstAppSettingType, {
+    swaggerOptions: {
+      title: 'setting type',
+    },
+  })
+  settingType: IWalnutAdminConstAppSettingType
+
+  @WalnutAdminDecoratorFieldString({
+    default: null,
+    swaggerOptions: {
+      title: 'setting remark',
+    },
+  })
+  remark: string
+}
+
+export class AppSettingDTO extends AppSettingDTOBase {
   constructor(partial: Partial<AppSettingDTO>) {
     super()
     Object.assign(this, partial)

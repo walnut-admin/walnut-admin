@@ -1,14 +1,68 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFieldDate } from '@walnut-server/decorators/field'
+import {
+  WalnutAdminDecoratorFieldDate,
+  WalnutAdminDecoratorFieldString,
+} from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
+import { Recordable } from 'easy-fns-ts'
 import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@/common/dto/list.dto'
+import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { WalnutAdminVirtualUserDTO } from '@/common/model/virtual/user'
-import { SysDeletedModel } from '../schema/deleted.schema'
 
-class SysDeletedDTO extends IntersectionType(SysDeletedModel, WalnutAdminVirtualUserDTO) {
+// 批 4 结构重构：schema/ 并入 dto/（原 schema/deleted.schema.ts 的 SysDeletedModel
+// 改名 SysDeletedDTOBase），装饰器与字段本体零改动
+export class SysDeletedDTOBase extends WalnutAdminCommonBasicModel {
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'Deleted Stringify Content',
+      description: 'use `JSON.stringify` to store the deleted document',
+    },
+  })
+  // B9 迁 PG（phase2 4.17）：列收 jsonb，应用侧直存对象（不再 stringify）。
+  // 基座仅作 DTO 元数据保留，TS 注解随列型放开为对象（B8 同款，@Prop 无运行时语义）
+  content: Recordable
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'Deleted Document Model Name',
+      description: 'use `modelName` to ensure the right model',
+    },
+  })
+  modelName: string
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'Deleted Document Collection Name',
+      description: 'use `modelName` to recover, this field is only a record',
+    },
+  })
+  collectionName: string
+
+  @Expose()
+  // B9 迁 PG：uuid 列，注解随列型放开为 string（uuid 校验在 DTO 子类重声明）
+  deletedId: string
+
+  @WalnutAdminDecoratorFieldDate({
+    swaggerOptions: {
+      title: 'Deleted time',
+      description: 'which means `createdAt`',
+    },
+  })
+  deletedAt?: Date
+
+  @Expose()
+  // B9 迁 PG：uuid 松引用（Q3：删除者自己也可能被删，不建 FK），注解放开为 string
+  deletedBy: string
+
+  @Expose()
+  // B9 迁 PG：uuid 松引用可空（logOperateId 回填见 SysDeletedPgRepoService）
+  logOperateId?: string | null
+}
+
+class SysDeletedDTO extends IntersectionType(SysDeletedDTOBase, WalnutAdminVirtualUserDTO) {
   constructor(partial: Partial<SysDeletedDTO>) {
     super()
     Object.assign(this, partial)
