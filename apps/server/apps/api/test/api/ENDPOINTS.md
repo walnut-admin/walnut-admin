@@ -15,6 +15,9 @@
 > `throttle.api-spec.ts`（2 用例：device/initial 4/60s 连发 + 429 形态），见文末「F 段补记」与「安全矩阵发现」。
 > G+H 段（2026-10-26）：并发/锁专项 `concurrency.api-spec.ts`（6 用例）+ API 级事务回滚直测
 > `api-rollback.api-spec.ts`（3 用例）。
+> I 段（2026-10-27）：真实权限链路专项 `permission-chain.api-spec.ts`（7 用例：种子非 root 用户 →
+> 权限缓存写/读 → permission.guard 放行/40105 → 缓存读序 → SWITCH/COMBINE 对照 → root 短路对照），
+> 种子助手 `helpers/seed-permissions.ts`，登记见文末「I 段补记」。
 >
 > **设计与行为缺陷清单已收编至 [DESIGN-ISSUES.md](./DESIGN-ISSUES.md)（P0/P1/P2/P3 分级，
 > 含位置/实测证据/建议修法）** —— 本文各段「钉现状」自此只作历史叙述、不再新增，
@@ -40,7 +43,9 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 - **权限**（controller 方法级 `@HasPermission`，非全局 guard）：root 角色（COMBINE 首角色或 SWITCH 当前角色）短路放行
   （`permission.guard.ts`：`roleMode === 'combinable' && roleNames[0] === 'root'`，A 段试点已核实成立，
   登录态测试用户只需 PG fixture 造 `sys_role(role_name='root')` junction + `role_mode='combinable'`，免造菜单数据）；
-  其余角色查缓存 `AUTH_PERMISSIONS:<userId>:<deviceId>`（由 `GET /auth/permissions` 写入）。
+  其余角色查缓存 `AUTH_PERMISSIONS:<userId>:<deviceId>`（由 `GET /auth/permissions` 写入；键缺失直接 40105，
+  无懒重建 —— guard 只读缓存）。非 root 的真实链路（菜单→角色→用户→缓存写→读→精确匹配→40105）由
+  `permission-chain.api-spec.ts`（I 段）覆盖 —— 权限串推导依据与种子形态见文末「I 段补记」。
 - **响应形态**：一律 HTTP 200；成功 `body.code = 20000`，业务/校验错误 `body.code = 4xxxx/5xxxx`（`libs/exceptions`）。
   例外：`@WalnutAdminDecoratorFreeResponse()` 端点（如 cap challenge/redeem）body 无统一响应壳。
 - **API 级测试基建**（A 段落地，`test/api/helpers/`）：`create-api-app`（bootstrap 同形装配）→
@@ -89,7 +94,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 |---|---|---|---|---|---|
 | 会话 | GET `/auth/permissions` | Sign 链 | 无 | — | **D 段已测**（auth-session.api-spec.ts）：root 权限树含自建 MENU 行（响应顶层是「首个根节点的 children」——单根无子级时顶层数组恒空，须造 CATALOG+MENU 两行）+ AUTH:PERMISSIONS 缓存键写入可复现 + 匿名 40101。
   **空表边界钉现状**：sys_menu 空表时 indexMenuName 组装在 `permissionMenuTree[0].children` 上 TypeError → 50000（Mongo 时代同病，spec 靠自建菜单行绕开） |
-| 会话 | POST `/auth/signout` | SignFree+DeviceFree | 无 | — | **D 段已测**：RT 行原地 revoke + `__Host-RT_JTI` cookie Expires 归零 + after-commit 清 permissions/MFA verified 缓存（轮询）+ 旧 AT 再请求 40115（MFA verified 缓存已清，MFA guard 在 Sign guard 之前先拦）。
+| 会话 | POST `/auth/signout` | SignFree+DeviceFree | 无 | — | **D 段已测**：RT 行全量 revoke（revoke-and-insert 时代同维度多行，update where userId+deviceId 撤干净）+ `__Host-RT_JTI` cookie Expires 归零 + after-commit 清 permissions/MFA verified 缓存（轮询）+ 旧 AT 再请求 40115（MFA verified 缓存已清，MFA guard 在 Sign guard 之前先拦）。
   **钉现状（非迁移回归，登记）**：AUTH:SESSIONS 键残留 —— revokeSession 走 cacheService.delByPattern，内部 redis.del(数组) 在 node-redis v5 rest-args 语义下抛错（C 段 user-device/monitor spec 同款已知问题），钩子错误被 catch 吞掉 |
 | 会话 | GET `/auth/keys` | Sign 链 | 无 | — | **D 段已测**：响应 B 字段是 EncryptResponse 设备握手 RSA 信封（与 aes-key 握手第二步同格式），客户端私钥（api-client 新增 `clientRsaPrivateKeyPem`）解密还原 vendor.baidu 明文 |
 | opaque/user | POST `/auth/opaque/user/login/start` | JwtFree（Sign 生效：单因子） | 无 | `{userName,start}` | **基座核心**：真实 opaque 登录前半段。
@@ -101,12 +106,13 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | opaque/admin | POST `/auth/opaque/admin/password/update/{start,finish}`、`password/clear` | Sign 链 | `system:user:pass:update` / `clear` | `{id,...}` + opaque 消息 | **D 段已测**（opaque-admin.api-spec.ts）：root 给目标用户改密（按 user 主键 id 定位，真实 opaque 客户端两步）→ identity 替换 + 目标全设备 RT 吊销 + 不存在 id 40000；password/clear 删 password identity、幂等（无行再删恒 true）、清后 login/start 40103 |
 | otp | POST `/auth/otp/send`、`verify` | JwtFree + Functional（settings 缺省放行） | 无 | `{type,identifier,...}` | **D 段已测**（otp.api-spec.ts）：缺省配置（OtpSettingService 兜底 sendEnable=0/authEnable=0）→ send/verify 各自 functional guard 50301 EndPointUnavailable（码缓存不落）；种 APP:SETTING 缓存开 email 后 send → 真码落 `AUTH:VERIFY_CODE:visitor:<identifier>`（邮件走 Bull 队列不真发）→ verify 错码 40000、对码换发令牌 + `__Host-RT_JTI` cookie + identity 标记 verified + 码缓存删除 + AUTH:SESSIONS 键落（换发会话可用性另以 security-tab2 探针双因子验证）；type 非法 40099。
   **注意**：JwtFree+Sign 生效路由对登录态 jar 的 anon() 双因子签名一律 40112 —— 闭环请求发在未登录独立客户端（helpers 新增 `overrideAppSettings` 缓存改写+还原） |
-| refresh | POST `/auth/refresh` | Lock/Sign/MFA/Jwt/Device 全 Free + `JwtRefreshGuard`（RT cookie） | 无 | — | **D 段已测**（auth-session.api-spec.ts）：RT cookie → 新 AT；轮换是**同 jti 原地换锁**（同一行 encrypted_token/expired_at 换新、revoked 恒 false——钉实现现状，无「旧行 revoked+新行」形态）；新 AT 与旧 AT 同 sid。
-  **P0-1 已修**（2026-10-26）：轮换锁内比对「入口时刻 encrypted_token 快照（guard 挂
-  `request.realRefreshTokenEncrypted`）vs 库中当前值」，失配 → 40102 —— 并发重放恰 1 路成功
-  （concurrency G1 五路：1×20000 + 4×40102）、已轮换旧快照顺序重放同被拦（refresh int-spec 重放
-  用例）；比对真源是密文快照而非 RT 原文（同秒再签的 JWT 字节全同，原文比对有系统性失效窗）；
-  MFA/TOTP/WebAuthn post-verification 无快照可比、跳过比对（DESIGN-ISSUES P0-1 取舍）。
+| refresh | POST `/auth/refresh` | Lock/Sign/MFA/Jwt/Device 全 Free + `JwtRefreshGuard`（RT cookie） | 无 | — | **D 段已测**（auth-session.api-spec.ts）：RT cookie → 新 AT；轮换是 **revoke-and-insert**（2026-10-27 终态：旧行置 `revoked=true (reason=rotate)` + INSERT 新行，响应 Set-Cookie 回种新 jti；同维度多行为常态）；新 AT 与旧 AT 同 sid。
+  **P0-1 已修（两轮迭代）**：第一轮（2026-10-26）轮换锁内比对「入口时刻 encrypted_token 快照（guard 挂
+  `request.realRefreshTokenEncrypted`，已随终态方案摘除）vs 库中当前值」—— 只挡真正同时到达的请求，
+  错峰到达实测出过 2×20000，已被取代。终态（2026-10-27）revoke-and-insert：旧 jti 行级作废，重放/
+  错峰请求在 guard 撤销判定或轮换锁内撤销判定被拦，恰 1 路成功确定性成立（concurrency G1 五路连跑
+  3 次稳定）；HTTP 层顺序重放（旧 jti cookie 再 refresh）→ 40102（auth-session spec）。根因与取舍
+  见 DESIGN-ISSUES P0-1。
   **迁移回归已修**（D 段唯一一处 src 改动）：无 RT cookie 时 guard 直取 cookie 值 undefined 传入 findByJti —— Mongo 版 findOne({jti: undefined}) 查无行 → 受控 40102；PG/TypeORM 把 undefined 当绑定参数下发 → pg 驱动 "bind parameters must not contain undefined" 未受控 50000。已在 `refresh.repo.service.findByJti` 按「查无此 jti」语义收 nil → null |
 | mfa | GET `/auth/mfa/status`、POST `/auth/mfa/verify` | MFAFree+LockFree | 无 | verify `{type,code}` | 高优先（MFA 闭环：绑定 totp → verify → 新 AT）—— verify 的 RT 轮换闭环已由 C 段 user-mfa spec（system/user/mfa/totp/verify）覆盖 |
 | google | POST `/auth/google`（勘误：callback 路由不存在——初版测绘把 strategy 层 callbackURL 误记为 HTTP 端点） | Jwt/Sign Free + Functional + `AuthGoogleGuard` | 无 | google id_token | **D 段已测**（external-oauth.api-spec.ts，错误路径专项）：functional 关闭 → 50301 拦在 passport guard 之前；开启 → garbage credential 走本地 JWKS 校验失败 40107（不发外网）。真实 Google id_token 回调不测（外部依赖） |
@@ -196,6 +202,9 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   9 份 spec、46 用例已落地，基线 323 → 369。
 - **G+H 段**：并发/锁专项 + API 级事务回滚直测共 2 份 spec、9 用例已落地，基线 404 → 413；
   设计问题清单收编至 [DESIGN-ISSUES.md](./DESIGN-ISSUES.md)（P0 × 5 ｜ P1 × 12 ｜ P2 × 8 ｜ P3 × 7）。
+- **I 段**：真实权限链路专项（1 份 spec、7 用例 + 种子助手 `seed-permissions.ts`）已落地，
+  基线 414 → 421 —— 权限链路从 root 短路绕行改为真实链路覆盖；推导链实测结论与
+  COMBINE 默认失效登记见文末「I 段补记」与 DESIGN-ISSUES P2-9。
 
 ## F 段补记与安全矩阵发现（2026-10-26）
 
@@ -395,3 +404,37 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   4 次/60s（tracker=realIp），单文件 initial 调用总数要压在限额内；user-device 锁定会把
   `SECURITY_LOCK:<userId>:global`（cross-device 默认 true）写进 Redis 且不随集成库 drop 清掉，
   afterEach 必须显式清，否则同文件后续用例 40118。
+
+## I 段补记（2026-10-27）
+
+- **新增 1 份 spec、7 用例 + 种子助手 `helpers/seed-permissions.ts`**：`permission-chain.api-spec.ts`。
+  基线 414 → 421，`pnpm test:integration` 连续两轮全绿。权限链路自此从「root 短路绕行」改为真实
+  链路覆盖：种子（最小菜单树 + 角色 + 非 root 用户）由本 spec 的 beforeAll 调用、afterAll 按 seed
+  片段清理，**不进 globalSetup**（库级 drop/重建仍是 global-setup 的职责，业务数据零预置的既有
+  自清假设不被污染）。
+- **权限串的推导依据（读实现钉形，种子据此设计，非猜测）**：权限串 = `sys_menu.permission` 列
+  （meta 19 字段拍平列之一，`*:*:*` 形态直存）**一行一串** —— `getCorePermissions → getStrings`
+  的过滤判据只有 `Boolean(meta.permission)`；element 行不进菜单树（`getMenuTree` 按 type 过滤）
+  但进权限串，因此「N 个权限点 = N 根 element 行」。非 root 用户可用菜单 = 种子角色的
+  `populated_menusList`（sys_role_menu junction，`menu.status=true` 过滤）+ `findRootMenu()`
+  兜底的根行 —— 种子 CATALOG 根（pid=NULL）不挂 junction，挂了反而与 findRootMenu 的返回值重复
+  出现在 menuArr 里。
+- **实测结论（全部断言钉进 spec）**：
+  - `GET /auth/permissions` 是权限缓存的唯一写入口（`AUTH:PERMISSIONS:<userId>:<deviceId>`，
+    root 也写）；permission.guard 对非 root **只读缓存** —— 键缺失直接 40105（无懒重建），
+    命中后 `includes()` 全串精确匹配。「缓存缺失 40105」与「缓存命中但串不在 40105」两条拒绝
+    路径分用例钉死；「清缓存 → 放行端点转 40105 → 重拉恢复放行」闭环成立。
+  - 真实链路未抓出迁移回归：授予 → 放行、未授予 → 40105、写路径可重入，均与读码预期一致。
+  - **COMBINE 默认失效（已登记 DESIGN-ISSUES P2-9，未修）**：`app.functional.role` 缺省是
+    `scope: GLOBAL / globalValue: switchable`，scopeResolver 在 GLOBAL 分支恒返回 globalValue ——
+    用户行 `role_mode='combinable'` 被忽略，非 root 链路恒取 `[currentRole]` 单角色菜单。
+    spec 把 `APP:SETTING` 缓存的该键改写为 LOCAL scope 后观察两态（COMBINE 合并 junction 双角色 /
+    SWITCH 只看 current_role），finally 还原现场。
+  - root 短路对照：root 用户全程不拉 `/auth/permissions`（权限缓存键不存在）同端点仍 20000 ——
+    短路判据（AT payload `roleMode==='combinable' && roleNames[0]==='root'`）不经过缓存链路。
+- **测试基建口径**：
+  - 同一客户端给同一用户二次 opaque 登录前必须先 `POST /auth/signout`（真实撤本设备 RT）——
+    login/finish 的 duplicate 判据是 `(userId, deviceId)` 存在未撤销 RT 行，否则 40109
+    （`refresh.shared.service.generateRefreshToken`）；且重登前 `setAuth(null)` 回单因子签名
+    （D 段口径：登录态 anon() 签双因子无 Authorization 头 → 40112）。
+  - `demoString` 出参被 DTO 折成小写（A 段已钉），断言比较前 `toUpperCase()`。

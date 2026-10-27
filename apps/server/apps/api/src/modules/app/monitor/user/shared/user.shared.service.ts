@@ -38,7 +38,9 @@ export class AppMonitorUserSharedService {
     const forceQuitConfig = await this.cacheAppSettingsService.getForceQuitConfig()
 
     this.socketService.sendToUserRoom(userId, visitorId, WalnutAdminSocketEvents.FORCE_QUIT, {
-      strategy: forceQuitConfig[revokeReason || WalnutAdminConstRevokeRTType.forceQuitOnline],
+      // 'rotate' 是 RT 轮换行标记（revoke-and-insert，2026-10-27），不是 force-quit 触发因，
+      // 不会从踢人链路传入 —— 索引面收窄回 12 个触发因
+      strategy: forceQuitConfig[(revokeReason as Exclude<IWalnutAdminConstRevokeRTType, 'rotate'>) || WalnutAdminConstRevokeRTType.forceQuitOnline],
     })
   }
 

@@ -1,3 +1,4 @@
+import type { IWalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import process from 'node:process'
 
 import { Logger } from '@nestjs/common'
@@ -96,9 +97,10 @@ implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
       const result = await this.monitorUserService.handleSocketInitForceQuit(userId, deviceId)
 
       if (result.shouldForceQuit && result.revokeReason) {
-      // 获取对应的退出策�?
+      // 获取对应的退出策略（'rotate' 是 RT 轮换行标记，非 force-quit 触发因，不可能成为
+      // 「最新撤销行」的原因 —— 新插入的现役行永远比 rotate 旧行新；类型面收窄）
         const forceQuitConfig = await this.cacheAppSettingsService.getForceQuitConfig()
-        const strategy = forceQuitConfig[result.revokeReason]
+        const strategy = forceQuitConfig[result.revokeReason as Exclude<IWalnutAdminConstRevokeRTType, 'rotate'>]
 
         // �?只通知当前 socket，不触发新的踢人流程
         client.emit(WalnutAdminSocketEvents.FORCE_QUIT, { strategy })

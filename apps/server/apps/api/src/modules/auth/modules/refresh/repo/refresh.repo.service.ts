@@ -40,6 +40,11 @@ export class AuthRefreshRepositoryService {
 
   /**
    * @description find refresh token by device id and user id
+   *
+   * revoke-and-insert（2026-10-27）后同 (user, device) 维度是多行（历轮 revoked 旧行 +
+   * 恰一行未撤销现役行），无 order 的 findOne 取行不确定 —— 恒按 created_at 取最新一行，
+   * 让「登录复签 revive」「撤销判据」等调用方稳定落在最近一轮。判「设备是否活会话」
+   * 不要用本方法（会命中 revoked 旧行），用 findActiveByDeviceIdAndUserId。
    */
   async findByDeviceIdAndUserId(
     deviceId: string,
@@ -48,19 +53,39 @@ export class AuthRefreshRepositoryService {
   ) {
     return this.getRepository(em).findOne({
       where: { deviceId, userId },
+      order: { createdAt: 'DESC' },
+    })
+  }
+
+  /**
+   * @description find the active (non-revoked) refresh token by device id and user id
+   *
+   * revoke-and-insert 后「未撤销行恒恰一行」，但必须显式筛 `revoked=false` 才保证
+   * 取到它（裸 findOne 在多行下取行不确定）—— duplicate sign-in 判据与 monitor 的
+   * 撤销判据都走这里。
+   */
+  async findActiveByDeviceIdAndUserId(
+    deviceId: string,
+    userId: string,
+    em?: EntityManager,
+  ) {
+    return this.getRepository(em).findOne({
+      where: { deviceId, userId, revoked: false },
+      order: { createdAt: 'DESC' },
     })
   }
 
   /**
    * @description find refresh token by jti
    *
-   * 轮换读腿（事务内）必须传 `{ lock: true }` 持悲观写锁：轮换是同 jti 原地
-   * 「读-改-写」（encrypted_token/expired_at 覆盖、revoked 恒 false），锁把并发轮换
-   * 写腿串行化（防丢更新/双写）。注意锁本身**不构成重放拦截** —— 等锁的事务醒来读到
-   * 「未撤销、未过期、设备匹配」的新一轮行（Mongo 时代靠事务写冲突 abort 一方，PG 侧
-   * 无等价物，旧注释「悲观锁保住重放拦截口」与实际不符）；P0-1（2026-10-26）修复后
-   * 重放拦截由 `getNewAccessToken` 锁内「入口时刻 encrypted_token 快照 vs 库中当前值」
-   * 比对承担。非事务的解密校验读不锁。
+   * 轮换读腿（事务内）必须传 `{ lock: true }` 持悲观写锁：revoke-and-insert 轮换
+   * （2026-10-27）是「读校验 + 旧行置撤销 + INSERT 新行」的复合写，锁把这组写串行化
+   * —— 防两个并发轮换事务各插一行（双现役行破坏「未撤销行恒恰一行」不变量）。
+   * 锁本身**不构成重放拦截**，它只保证等锁者醒来读到的是胜者提交后的旧行（已
+   * `revoked=true`）→ 被调用方 getNewAccessToken 的撤销判定拦下；guard 入口的
+   * getTokenByJti（非事务、不锁）同样按撤销行拒绝 —— 重放窗口由行级撤销根治，
+   * 与上一轮的入口密文快照比对方案（P0-1，已被本方案取代）无关。非事务的解密
+   * 校验读不锁。
    *
    * 迁移回归修复（API 回归 D 段 auth-session spec 抓出）：jti 为空（refresh 端点无
    * RT_JTI cookie 时 guard 直取 cookie 值传入）→ Mongo 版 findOne({jti: undefined})
@@ -90,7 +115,13 @@ export class AuthRefreshRepositoryService {
   }
 
   /**
-   * @description update revoked status
+   * @description update revoked status（P1-9 修复：全量撤销）
+   *
+   * revoke-and-insert（2026-10-27）后同 (user, device) 维度恒多行（历轮 rotate 旧行 +
+   * 现役行），撤销必须一次撤干净 —— 原 findOne 只撤「查到的第一行」，force-quit 会把
+   * 最新现役行留在场外继续换发（P1-9 钉现状用例已同步改为全量撤销形态）。revokeReason
+   * 仅在显式传入时覆盖（不传则保留各行原 reason —— 如 rotate 旧行的撤销原因不被
+   * signout 的无理由撤销抹掉）。
    */
   async updateRevokedAndReason(
     userId: string,
@@ -99,20 +130,18 @@ export class AuthRefreshRepositoryService {
     em?: EntityManager,
     revokeReason?: IWalnutAdminConstRevokeRTType,
   ) {
-    const target = await this.findByDeviceIdAndUserId(deviceId, userId, em)
-    if (!target)
-      return false
-
-    target.revoked = revoked
-    if (revokeReason) {
-      target.revokeReason = revokeReason
-    }
-    await this.getRepository(em).save(target)
-    return true
+    const result = await this.getRepository(em).update(
+      { userId, deviceId },
+      {
+        revoked,
+        ...(revokeReason !== undefined ? { revokeReason } : {}),
+      },
+    )
+    return (result.affected ?? 0) > 0
   }
 
   /**
-   * @description update token data (expiredAt, encryptedToken, revoked)
+   * @description update token data (expiredAt, encryptedToken, revoked, revokeReason)
    */
   async saveRefreshTokenDoc(
     document: AuthRefreshTokenEntity,
@@ -120,6 +149,7 @@ export class AuthRefreshRepositoryService {
       expiredAt?: Date
       encryptedToken?: string
       revoked?: boolean
+      revokeReason?: IWalnutAdminConstRevokeRTType
     },
     em?: EntityManager,
   ) {
@@ -131,6 +161,9 @@ export class AuthRefreshRepositoryService {
     }
     if (data.revoked !== undefined) {
       document.revoked = data.revoked
+    }
+    if (data.revokeReason !== undefined) {
+      document.revokeReason = data.revokeReason
     }
 
     await this.getRepository(em).save(document)

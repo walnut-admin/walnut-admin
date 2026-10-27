@@ -25,6 +25,8 @@ export const WalnutAdminConstAppSettingForceQuitStrategy = {
 export type IWalnutAdminConstAppSettingForceQuitStrategy = ValueOf<typeof WalnutAdminConstAppSettingForceQuitStrategy>
 
 export const WalnutAdminConstRevokeRTType = {
+  // RT 轮换（revoke-and-insert，2026-10-27）：旧 jti 行轮换即撤销的唯一非安全类原因
+  rotate: 'rotate',
   updatePass: 'updatePass',
   resetPass: 'resetPass',
   updateEmail: 'updateEmail',

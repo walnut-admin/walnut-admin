@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
 
+import { AuthCookieModule } from '@/modules/auth/modules/cookie/cookie.module'
 import { AuthMfaModule } from '@/modules/auth/modules/mfa/mfa.module'
 import { SysUserSharedModule } from '../user/shared/user.shared.module'
 import { SysUserMfaEntity } from './entity/user-mfa.entity'
@@ -19,6 +20,9 @@ import { SysUserMfaWebauthnService } from './webauthn/webauthn.service'
     TypeOrmModule.forFeature([SysUserMfaEntity], WalnutPGConnectionName),
     SysUserSharedModule,
     AuthMfaModule,
+    // AuthCookieModule：totp / webauthn verify 轮换 RT 后回种 RT_JTI cookie
+    // （revoke-and-insert，2026-10-27 —— 旧 jti 行已撤销，不回种新 jti 会话即断）
+    AuthCookieModule,
   ],
   controllers: [SysUserMfaTotpController, SysUserMfaWebauthnController],
   providers: [SysUserMfaTotpService, SysUserMfaWebauthnService, SysUserMfaHelperService],

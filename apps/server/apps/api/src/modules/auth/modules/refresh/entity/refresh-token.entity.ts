@@ -36,7 +36,7 @@ export class AuthRefreshTokenEntity {
   @Column({ type: 'boolean', name: 'revoked', default: false })
   revoked: boolean
 
-  // 取值 = WalnutAdminConstRevokeRTType（12 个值），CHECK 在 migration；可空 = 未撤销
+  // 取值 = WalnutAdminConstRevokeRTType（含 RT 轮换的 'rotate'），CHECK 在 migration；可空 = 未撤销
   @Column({ type: 'varchar', length: 24, name: 'revoke_reason', nullable: true })
   revokeReason: string | null
 

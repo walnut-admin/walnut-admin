@@ -13,13 +13,14 @@
 > 每条四要素：**位置**（源码）、**现象**、**实测证据**（spec + 用例）、**建议**（一句话）。
 > 「钉现状」用例属于 characterization test：修复对应问题时必须同步改断言，不是测试坏了。
 >
-> 统计：**P0 × 5（P0-1 已于 2026-10-26 修复）｜ P1 × 12 ｜ P2 × 8 ｜ P3 × 7（共 32 条）**，末节附 G/H 段实测无恙面。
+> 统计：**P0 × 5（P0-1 已修：2026-10-26 快照比对 → 2026-10-27 revoke-and-insert 终态）｜
+> P1 × 12（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复）｜ P2 × 9 ｜ P3 × 7（共 33 条）**，末节附 G/H 段实测无恙面。
 
 ---
 
 ## P0 安全
 
-### P0-1 RT 重放实际无拦截 —— 悲观锁没有挡住并发重放（G 段实测，新收编）—— 【已修复 2026-10-26】
+### P0-1 RT 重放实际无拦截 —— 悲观锁没有挡住并发重放（G 段实测，新收编）—— 【已修复：2026-10-26 快照比对 → 2026-10-27 revoke-and-insert 终态】
 
 - **位置**：`apps/api/src/modules/auth/modules/refresh/` —— `shared/refresh.shared.service.ts`
   （`getNewAccessToken` / `updateRefreshToken`）、`repo/refresh.repo.service.ts`（`findByJti` 悲观锁，
@@ -31,20 +32,29 @@
   「事务写冲突 abort 一方」在 PG 侧没有等价物。
 - **实测证据**：`concurrency.api-spec.ts` G1 —— 修复前同一 RT_JTI 五路并发 `POST /auth/refresh`
   **全部 20000**、`auth_refresh_token` 仍单行未撤销；**修复后恰 1 路 20000、其余 40102**，
-  单行密文恰轮换一次（G1 连跑 3 次稳定）。
-- **修法（一句话）**：保留原地换锁，`getNewAccessToken` 新增 `presentedEncryptedToken` 参数，在持锁
-  事务内比对「入口时刻 `encrypted_token` 快照（= JwtRefreshGuard 查行时挂
-  `request.realRefreshTokenEncrypted` 的库值）」与「库中当前值」，失配 → 受控 40102（与「查无此
-  jti」同语义，不新造错误码）—— 首个胜者覆盖密文后，其余持旧快照的并发请求与「用已轮换旧快照
-  的顺序重放」一并被拦（顺带堵上两代引擎都存在的顺序重放弱点，见 refresh int-spec 重放用例）。
-- **取舍**：比对真源是**密文快照**而非任务初稿设想的 RT 原文解密比对 —— 实测钉过：RT JWT 是同
-  (jti, sid) 的再签发，`iat` 秒级粒度下「同秒轮换」产出字节全同的新 token（紧随登录的 G1 竞态
-  五路全过、int-spec 重放用例旧原文被放行），原文比对存在系统性失效窗；而 AES-GCM 每次 encryption
-  随机 IV，任何一次轮换后密文必然不同，逐字节比对无时序窗且锁内零解密。拿不到快照的调用方
-  （MFA/TOTP/WebAuthn 的 `handlePostVerification` —— 客户端只持 RT_JTI cookie、不走
-  JwtRefreshGuard）显式传 `undefined` 跳过比对，重放拦截由 refresh 端点承担（verify 链自身有
-  MFA verified 缓存 + 一次性凭证兜底）；`findByJti` 锁注释同步改为实际语义（锁 = 串行化轮换写腿，
-  防重放靠呈献快照比对）。
+  旧行 revoked（reason=rotate）+ 新行未撤销（G1 连跑 3 次稳定）；顺序重放
+  （旧 jti cookie 再 refresh）在 HTTP 层直接 40102（auth-session spec）。
+- **第一轮修法（2026-10-26，已被取代）**：保留原地换锁，`getNewAccessToken` 新增
+  `presentedEncryptedToken` 参数，锁内比对「入口时刻 `encrypted_token` 快照（guard 查行时挂
+  `request.realRefreshTokenEncrypted`）与库中当前值」，失配 → 40102。**被取代的原因（G1 实测）**：
+  快照比对只挡**真正同时到达**的请求 —— 两个请求错峰到达（第二个在胜者提交后才进 guard）时，
+  入口各自读到「当前最新密文」，比对通过、双双合法轮换（实测出过 2×20000）；且密文快照拿不到的
+  调用方（MFA/TOTP/WebAuthn verify，客户端只持 jti cookie、不走 JwtRefreshGuard）只能跳过比对，
+  重放面在 verify 链上始终敞开。根因：客户端 cookie 只存一个 uuid、无 bearer secret，
+  **原地轮换永远作废不了它** —— 行不撤销，旧 jti 就永远可用。
+- **终态修法（2026-10-27，revoke-and-insert）**：轮换改为「锁内 `findByJti(jti, em, { lock: true })`
+  读旧行 → 校验未撤销未过期 → 旧行置 `revoked=true (reason=rotate)` → INSERT 新行（新 jti、同
+  user/device、新密文、新过期时间）→ 返回 `{ accessToken, jti: 新jti }`」。旧 jti 行级一次性：
+  重放/错峰迟到请求无论何时到达都被撤销判定拦下（guard 入口 `getTokenByJti` 拒撤销行是第一道闸，
+  轮换锁内读到撤销行是第二道闸）—— G1 恰 1 路 20000 由时序假设升级为**确定性成立**；cookie 由
+  四个轮换端点（refresh / auth/mfa/verify / totp/verify / webauthn authenticate/verify）用新 jti
+  回种。`WalnutAdminConstRevokeRTType` 新增 `rotate`，初始迁移 CHECK 同步（dev 库手工 ALTER）。
+- **取舍**：第一轮的密文快照比对（AES-GCM 随机 IV、逐字节判定无时序窗、锁内零解密）本身正确，
+  输在治标 —— 它假设「入口读到的就是当前值」，错峰即失效。revoke-and-insert 治本：不依赖任何
+  「同时到达」假设，旧行只要被轮换过就永久不可用；代价是同 (user, device) 维度从单行变多行
+  （顺带把 P1-9「findOne 只撤第一行」从潜伏缺陷变成必现安全洞，同批修复）。
+  `findByJti` 锁注释同步改为实际语义（锁 = 串行化「读校验+撤销+插入」，防并发双插；
+  重放拦截靠行级撤销）。
 
 ### P0-2 sign guard 双因子失败静默降级单因子（F 段发现 1）
 
@@ -168,14 +178,17 @@
 - **实测证据**：C 段 menu spec + D 段 auth-session spec（均靠自建 CATALOG+MENU 行绕开）。
 - **建议**：组装前判空，回空树/空 children。
 
-### P1-9 force-quit 只撤「查到的第一行」RT
+### P1-9 force-quit 只撤「查到的第一行」RT —— 【已修复 2026-10-27（revoke-and-insert 配套）】
 
 - **位置**：`apps/api/src/modules/auth/modules/refresh/repo/refresh.repo.service.ts`
   （`updateRevokedAndReason` 走 `findByDeviceIdAndUserId` 的 `findOne`）——
   `app/monitor/user` 与 `system/user/device` 两个 force-quit 端点共用。
-- **现象**：同 user+device 维度存在多行 RT 时只撤第一行，其余仍可换发。
-- **实测证据**：C 段 user-device spec（钉现状）。
-- **建议**：改 `update ... where userId+deviceId` 全量撤销。
+- **现象（修复前）**：同 user+device 维度存在多行 RT 时只撤第一行，其余仍可换发。
+- **实测证据**：C 段 user-device spec（原钉现状用例已同步改为全量撤销形态）。
+- **修法**：改 `update ... where userId+deviceId` 全量撤销。revoke-and-insert（P0-1 终态）
+  让同维度多行成为常态（历轮 rotate 旧行 + 恰一行现役行），本缺陷从潜伏变成必现安全洞
+  （force-quit 后最新现役行仍在场外可换发），随 P0-1 同批修复；`revokeReason` 仅显式传入时
+  覆盖（signout 的无理由撤销不抹掉 rotate 旧行的历史 reason）。
 
 ### P1-10 throttle 动态覆盖不覆盖 blockDuration（F 段发现 7）
 
@@ -260,6 +273,28 @@
 - **实测证据**：C 段 dict spec。
 - **建议**：级联软删（data 也进回收站），或登记「字典数据不进回收站」为明确取舍。
 
+### P2-9 零配置部署下 COMBINE 用户的「多角色合并」实际不生效（I 段实测，新收编）
+
+- **位置**：`apps/api/src/modules/techniques/cache/service/cache.appSettings.ts`
+  （`defaultFunctionalRole`：`{ scope: GLOBAL, globalValue: 'switchable', localKey: 'roleMode' }`）
+  + `apps/api/src/modules/shared/scopeResolver/scope-resolver.service.ts`（`resolve`：scope GLOBAL
+  恒返回 `globalValue`，`target[localKey]` 只在 LOCAL 分支被读）→
+  `system/role/shared/role.shared.service.ts getCoreMenus`（`payload = effective === COMBINE ?
+  user.roleIds : [user.currentRole]`）。
+- **现象**：`app_setting` 无 `app.functional.role` 行（集成库 migrations 只建结构，零配置部署同态）
+  时 effective roleMode 恒 `switchable` —— 用户行上的 `role_mode='combinable'` 被完全忽略，
+  `getCoreMenus` 只取 `[currentRole]` 单角色的菜单/权限串。与 `permission.guard` 的 root 短路
+  （直接读 AT payload 的 roleMode/roleNames）不对称：COMBINE 用户的非 current 角色权限静默不可用，
+  无任何报错。只有管理员显式把 `app.functional.role` 配成 `scope: 'local'` 后，用户自身
+  roleMode 才参与判定。
+- **实测证据**：`permission-chain.api-spec.ts` SWITCH/COMBINE 对照用例 —— 同一用户
+  （junction 双角色、current_role 指主角色）：默认设置下 `GET /auth/permissions` 只含主角色
+  权限串；把 `APP:SETTING` 缓存的 `app.functional.role` 改写为 LOCAL scope 后 COMBINE 腿
+  合并双角色、role_mode 改 switchable 重登后回落单角色（三态断言全绿）。
+- **建议**：属产品/架构决策，不在迁移批修复 —— 确认零配置默认应为 GLOBAL/switchable
+  还是 GLOBAL/combinable（或 ETL 期把该设置行落成显式数据）；若维持现状，把
+  「COMBINE 需显式配 `app.functional.role` scope=local 才生效」写进部署文档。
+
 ## P3 契约不一致
 
 ### P3-1 throttle 429 形态是 HTTP 200 + body.code 42900
@@ -309,11 +344,11 @@
 ## G/H 段实测无恙面（并发与回滚的正面结论）
 
 > 以下竞态面**实测守住**，对应的钉现状用例在修复 P0-1 / P1-1 时须同步复核
-> （P0-1 已修，G1 断言已同步改为修复后形态）。
+> （P0-1 已修，2026-10-27 二次重构为 revoke-and-insert，G1 断言已同步改为终态形态）。
 
 | 竞态面 | 实测结论 | 证据 |
 |---|---|---|
-| RT 并发重放（同一 jti 五路 refresh） | 【已修面，原 P0-1】轮换锁内比对「入口密文快照 vs 当前库值」：恰 1 路成功（持当前快照的胜者）、其余受控 40102，单行密文恰轮换一次（连跑 3 次稳定）；顺序重放（持已轮换旧快照）同被拦 | `concurrency.api-spec.ts` G1 + `auth.refresh-token.pg.int-spec.ts` 重放用例 |
+| RT 并发重放（同一 jti 五路 refresh） | 【已修面，原 P0-1】revoke-and-insert：轮换 = 旧行置撤销（reason=rotate）+ INSERT 新行，旧 jti 行级作废 —— 恰 1 路成功、其余受控 40102 **确定性成立**（败者 guard 层或锁内读到撤销行；连跑 3 次稳定）；顺序重放（旧 jti cookie 再 refresh）在 guard 层直接 40102 | `concurrency.api-spec.ts` G1 + `auth.refresh-token.pg.int-spec.ts` 重放用例 + `auth-session.api-spec.ts` HTTP 重放用例 |
 | 同名注册并发（service 级 finishRegister 双事务） | `uq_user_name` 恰一胜出；败者受控（预检 DataExists / 23505 收敛 InvalidCredential），user/identity/junction 恰一行 | `concurrency.api-spec.ts` G2 |
 | 同指纹并发 device/initial | 「查到即覆盖/否则插入」在 `uq_device_id` 上决出唯一胜者，败者受控 40605，库里恰一行，无 50000 | `concurrency.api-spec.ts` G3 |
 | 同 user 四段并发 preference PATCH | `ON CONFLICT (user_id) DO UPDATE` 按列回写：单语句 upsert 行锁自然串行，四段齐落、无死锁无丢段 | `concurrency.api-spec.ts` G4 |

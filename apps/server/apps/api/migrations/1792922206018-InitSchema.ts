@@ -617,7 +617,7 @@ const UP_SECTIONS: string[][] = [
       CONSTRAINT pk_auth_refresh_token PRIMARY KEY (id),
       CONSTRAINT fk_rt_user FOREIGN KEY (user_id) REFERENCES sys_user (id) ON DELETE CASCADE,
       CONSTRAINT fk_rt_device FOREIGN KEY (device_id) REFERENCES sys_device (device_id) ON DELETE CASCADE,
-      CONSTRAINT ck_refresh_token_revoke_reason CHECK (revoke_reason IN ('updatePass', 'resetPass', 'updateEmail', 'updatePhoneNumber', 'forceQuitOnline', 'forceQuitOffline', 'currentRoleBanned', 'currentUserBanned', 'deviceBanned', 'deviceHighRisk', 'versionUpgrade', 'userKickOther'))
+      CONSTRAINT ck_refresh_token_revoke_reason CHECK (revoke_reason IN ('rotate', 'updatePass', 'resetPass', 'updateEmail', 'updatePhoneNumber', 'forceQuitOnline', 'forceQuitOffline', 'currentRoleBanned', 'currentUserBanned', 'deviceBanned', 'deviceHighRisk', 'versionUpgrade', 'userKickOther'))
     )`,
     'CREATE UNIQUE INDEX uq_jti ON auth_refresh_token (jti)',
     'CREATE INDEX idx_rt_user ON auth_refresh_token (user_id)',

@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common'
+import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
@@ -7,6 +7,7 @@ import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminDecor
 import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
 import { WalnutAdminGuardMFAFree } from '@/guard/mfa.guard'
 import { AuthSuccessDTO } from '@/modules/auth/dto/auth.dto'
+import { AuthCookieService } from '@/modules/auth/modules/cookie/cookie.service'
 import {
   SysUserMfaWebauthnAuthenticateOptionsDTO,
   SysUserMfaWebauthnAuthenticateVerifyDTO,
@@ -23,6 +24,7 @@ import { SysUserMfaWebauthnService } from './webauthn.service'
 export class SysUserMfaWebauthnController {
   constructor(
     private readonly userMfaWebauthnService: SysUserMfaWebauthnService,
+    private readonly authCookieService: AuthCookieService,
   ) {}
 
   @Post('register/options')
@@ -93,16 +95,20 @@ export class SysUserMfaWebauthnController {
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
     @WalnutDBSession() ctx: WalnutTxContext,
+    @Req() req: IWalnutAdminExpressRequest,
     @Body() dto: SysUserMfaWebauthnAuthenticateVerifyDTO,
   ) {
     // B7b 归一：mfa 表写腿迁 PG —— 双句柄收成单 em
-    const newAccessToken = await this.userMfaWebauthnService.verifyAuthentication(
+    // revoke-and-insert（2026-10-27）：verify 轮换 RT —— 新 jti 回种 cookie，
+    // 否则客户端旧 jti 已撤销、下次 refresh 必 40102
+    const { accessToken, jti: newJti } = await this.userMfaWebauthnService.verifyAuthentication(
       jti,
       deviceId,
       user,
       dto,
       ctx.em,
     )
-    return new AuthSuccessDTO({ accessToken: newAccessToken })
+    this.authCookieService.setRTJtiCookie(req, newJti)
+    return new AuthSuccessDTO({ accessToken })
   }
 }

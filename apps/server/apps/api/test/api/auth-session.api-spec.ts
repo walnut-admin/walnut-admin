@@ -5,6 +5,7 @@ import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
@@ -17,11 +18,10 @@ import { decryptAesKeyEnvelope } from './helpers/sign-handshake'
  *
  * - `GET /auth/permissions`：登录态拉权限 + 权限缓存写入（AUTH:PERMISSIONS 键出现，
  *   删除后重查复现 —— 写路径可重入）；
- * - `POST /auth/refresh`：RT_JTI cookie → 新 AT（轮换是**同 jti 原地换锁**：同一行
- *   encrypted_token/expired_at 被替换、revoked 保持 false —— 钉实现现状，不存在
- *   「旧行 revoked + 新行」两行形态；P0-1 已于 2026-10-26 修复：轮换锁内比对
- *   「入口时刻 encrypted_token 快照 vs 库中当前值」，并发/旧快照重放 → 40102，见
- *   concurrency.api-spec G1）；无 RT cookie 的干净设备 → 40102；
+ * - `POST /auth/refresh`：RT_JTI cookie → 新 AT（轮换是 **revoke-and-insert**：旧行置
+ *   `revoked=true (reason=rotate)` + INSERT 新行、响应 Set-Cookie 回种新 jti —— 2026-10-27
+ *   取代「同 jti 原地换锁」；旧行 jti 一切后续请求（重放/错峰）被 guard 层撤销判定拦下
+ *   40102，见 concurrency.api-spec G1）；无 RT cookie 的干净设备 → 40102；
  * - `POST /auth/signout`：RT revoke + RT_JTI cookie 清除 + 提交后缓存清理
  *   （permissions / MFA verified 消失；AUTH:SESSIONS 键残留 —— delByPattern 在
  *   node-redis v5 下抛错，钉现状），旧 AT 再请求 → MFA verified 缓存已清，
@@ -64,6 +64,17 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
   return JSON.parse(Buffer.from(payloadPart, 'base64url').toString('utf8')) as Record<string, unknown>
 }
 
+/** 解 Set-Cookie 里的 signed RT_JTI 值：`__Host-RT_JTI=s%3A<jti>.<sig>` → `<jti>`（jti 为 nanoid，不含 `.`） */
+function decodeSignedJti(setCookies: string[] | undefined): string | null {
+  const raw = setCookies?.find(c => c.startsWith('__Host-RT_JTI=')) ?? null
+  if (raw === null) {
+    return null
+  }
+  // res.cookie 对值做 encodeURIComponent（`s:` → `s%3A`），先解码再剥签名前缀/后缀
+  const value = decodeURIComponent(raw.split(';')[0].slice('__Host-RT_JTI='.length))
+  return value.replace(/^s:/, '').replace(/\.[^.]+$/, '')
+}
+
 describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 全链）', () => {
   let app: NestExpressApplication
   let api: WalnutApiClient
@@ -75,6 +86,8 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
   let fixture: WalnutRootUserFixture | null = null
   const menuIds: string[] = []
   let vendorBaiduPlain = ''
+  /** refresh 用例留存下来的轮换前 signed RT_JTI cookie（顺序重放用例复用，签名绑定旧 jti） */
+  let replayCookie = ''
 
   beforeAll(async () => {
     app = await createApiApp()
@@ -174,7 +187,7 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
     expect(decrypted).toBe(vendorBaiduPlain)
   })
 
-  it('refresh → 20000 新 AT；RT 轮换是同 jti 原地换锁（encrypted_token/expired_at 换新，revoked 恒 false）', async () => {
+  it('refresh → 20000 新 AT；RT 轮换是 revoke-and-insert（旧行 revoked=rotate + 新行 + Set-Cookie 回种新 jti）', async () => {
     const rowsBefore: Array<{ jti: string, encrypted_token: string, expired_at: Date, revoked: boolean }>
       = await api.pgDataSource.query(
         'SELECT jti, encrypted_token, expired_at, revoked FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
@@ -183,6 +196,10 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
     expect(rowsBefore).toHaveLength(1)
     const before = rowsBefore[0]
     expect(before.revoked).toBe(false)
+
+    // 留存轮换前的 signed RT_JTI cookie（签名绑定 jti 值，无法事后伪造）—— 顺序重放用例复用
+    replayCookie = api.getCookie(WalnutAdminConstCookieKeys.RT_JTI)!
+    expect(replayCookie).toBeTruthy()
 
     const res = await api.anon('POST', api.apiPath('/auth/refresh'))
     expectOk(res, 'auth refresh')
@@ -194,22 +211,68 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
     const newPayload = decodeJwtPayload(newAT)
     expect(newPayload.sid).toBe(decodeJwtPayload(api.getAuth()!.accessToken).sid)
 
-    const rowsAfter: Array<{ jti: string, encrypted_token: string, expired_at: Date, revoked: boolean }>
+    // 轮换后行级形态：旧行 revoked（reason=rotate）+ 新行未撤销，恰两行
+    const rowsAfter: Array<{ jti: string, encrypted_token: string, expired_at: Date, revoked: boolean, revoke_reason: string | null }>
       = await api.pgDataSource.query(
-        'SELECT jti, encrypted_token, expired_at, revoked FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
+        'SELECT jti, encrypted_token, expired_at, revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2 ORDER BY created_at ASC',
         [fixture!.userId, api.deviceId],
       )
-    expect(rowsAfter).toHaveLength(1)
-    const after = rowsAfter[0]
-    // 原地换锁：jti 不变、密文换新、过期时间前移、保持未撤销
-    expect(after.jti).toBe(before.jti)
-    expect(after.encrypted_token).not.toBe(before.encrypted_token)
-    expect(after.expired_at.getTime()).toBeGreaterThanOrEqual(before.expired_at.getTime())
-    expect(after.revoked).toBe(false)
+    expect(rowsAfter).toHaveLength(2)
+    const [oldRow, newRow] = rowsAfter
+    expect(oldRow.jti).toBe(before.jti)
+    expect(oldRow.revoked).toBe(true)
+    expect(oldRow.revoke_reason).toBe('rotate')
+    expect(oldRow.encrypted_token).toBe(before.encrypted_token)
+    expect(newRow.jti).not.toBe(before.jti)
+    expect(newRow.revoked).toBe(false)
+    expect(newRow.encrypted_token).not.toBe(before.encrypted_token)
+    expect(newRow.expired_at.getTime()).toBeGreaterThanOrEqual(before.expired_at.getTime())
+
+    // 响应 Set-Cookie 回种的 jti == 新行 jti（客户端下次 refresh 必须拿得到现役行）
+    const cookieJti = decodeSignedJti(res.headers['set-cookie'] as unknown as string[] | undefined)
+    expect(cookieJti).toBe(newRow.jti)
 
     // 旧 AT 同会话仍可用（双因子签名依赖的会话键未变）
     const probe = await api.root('GET', api.apiPath('/auth/permissions'))
     expectOk(probe, 'permissions after refresh with old AT')
+  })
+
+  it('顺序重放：持轮换前旧 jti cookie 再 refresh → 40102（guard 层拒撤销行）；jar 还原后现役 jti 仍可续期', async () => {
+    // 前置自证：库里该会话旧行（revoked=rotate）+ 新行各恰一行；jar 当前是新 jti
+    const revokedRows: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2 AND revoked = true',
+      [fixture!.userId, api.deviceId],
+    )
+    expect(revokedRows[0].c).toBe(1)
+
+    // 留存现役新 jti 的 signed cookie（重放后还原 jar 用）
+    const currentCookie = api.getCookie(WalnutAdminConstCookieKeys.RT_JTI)!
+    expect(currentCookie).toBeTruthy()
+
+    // 种回轮换前留存的 signed cookie（签名绑定旧 jti，合法通过 cookie-parser 验签）
+    api.setCookie(WalnutAdminConstCookieKeys.RT_JTI, replayCookie)
+    const replay = await api.anon('POST', api.apiPath('/auth/refresh'))
+    expect(bodyOf(replay).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED)
+
+    // 重放无副作用：仍恰两行（无第三次插入）
+    const rows: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
+      [fixture!.userId, api.deviceId],
+    )
+    expect(rows[0].c).toBe(2)
+
+    // jar 还原为现役新 jti 的 signed cookie，续期正常（第三轮：旧行再撤、再插新行）
+    api.setCookie(WalnutAdminConstCookieKeys.RT_JTI, currentCookie)
+    const res = await api.anon('POST', api.apiPath('/auth/refresh'))
+    expectOk(res, 'auth refresh after replay')
+    const rowsAfter: Array<{ revoked: boolean, c: number }> = await api.pgDataSource.query(
+      'SELECT revoked, count(*)::int AS c FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2 GROUP BY revoked ORDER BY revoked ASC',
+      [fixture!.userId, api.deviceId],
+    )
+    expect(rowsAfter).toEqual([
+      { revoked: false, c: 1 },
+      { revoked: true, c: 2 },
+    ])
   })
 
   it('refresh 无 RT cookie（干净设备）→ 40102 RefreshTokenExpired', async () => {
@@ -244,13 +307,17 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
     expect(rtCookie).toBeTruthy()
     expect(rtCookie!).toMatch(/Expires=Thu, 01 Jan 1970/)
 
-    // RT 行 revoke（同 jti 原地置 revoked）
-    const rows: Array<{ revoked: boolean, revoke_reason: string | null }> = await api.pgDataSource.query(
-      'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
-      [fixture!.userId, api.deviceId],
-    )
-    expect(rows).toHaveLength(1)
-    expect(rows[0].revoked).toBe(true)
+    // RT 行 revoke（revoke-and-insert 时代同维度多行：历轮 rotate 旧行 + 轮换后的现役行，
+    // signout 全量撤销；本用例前序已轮换两轮 → 3 行全 revoked）
+    const rows: Array<{ revoked: boolean, revoke_reason: string | null }>
+      = await api.pgDataSource.query(
+        'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
+        [fixture!.userId, api.deviceId],
+      )
+    expect(rows.length).toBe(3)
+    expect(rows.every(r => r.revoked)).toBe(true)
+    // signout 的撤销不带 reason —— 只覆盖 revoked 列，rotate 旧行的历史 reason 保留
+    expect(rows.filter(r => r.revoke_reason === 'rotate')).toHaveLength(2)
 
     // 会话系缓存清理（after-commit 钩子，轮询兜时序）—— permissions / MFA verified 两键消失
     await expectKeyGone(api, keysToClear[0])

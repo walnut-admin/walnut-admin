@@ -676,8 +676,9 @@ describe('B7c auth login chain (on real PG)', () => {
     it('totp 通道：verifyMfaStatus → user.mfaSetup + user_device.trusted 写腿与 refresh 轮换同 em', async () => {
       const { userId, deviceId, jti } = await seedMfaUserChannel('totp')
 
-      // handlePostVerification 走 registerAfterCommitHook（strict）—— ALS 钩子通道内执行
-      const newAT = await runInHookStore(async () =>
+      // handlePostVerification 走 registerAfterCommitHook（strict）—— ALS 钩子通道内执行；
+      // revoke-and-insert（2026-10-27）：返回 { accessToken, jti } —— jti 是新 RT 行
+      const { accessToken: newAT, jti: newJti } = await runInHookStore(async () =>
         mfaService.verifyMfaStatus(jti, { trusted: true }, userId, 'sid-mfa-totp', deviceId, pgDataSource.manager))
 
       const decoded = await tokenService.decodeAccessToken(newAT)
@@ -686,10 +687,15 @@ describe('B7c auth login chain (on real PG)', () => {
       const user = await userRepo.findUserByUserId(userId, pgDataSource.manager)
       expect(user!.mfaSetup).toBe(true)
 
-      // B7c 收口：trusted 写腿在 verify 事务的同一 em 上（轮换后行仍未撤销）
+      // B7c 收口：trusted 写腿在 verify 事务的同一 em 上
       const deviceRow = await readUserDevice(userId, deviceId)
       expect(deviceRow.trusted).toBe(true)
-      expect((await readRefreshRow(jti)).revoked).toBe(false)
+
+      // 轮换行级形态（revoke-and-insert）：旧 jti 行撤销（reason=rotate）+ 新行未撤销
+      const oldRow = await readRefreshRow(jti)
+      expect(oldRow.revoked).toBe(true)
+      expect(oldRow.revoke_reason).toBe(WalnutAdminConstRevokeRTType.rotate)
+      expect((await readRefreshRow(newJti)).revoked).toBe(false)
     })
 
     it('webauthn 通道：同链路（sys_user_mfa webauthn 行 + device 维度判据）', async () => {
@@ -698,12 +704,16 @@ describe('B7c auth login chain (on real PG)', () => {
       const status = await mfaService.getMfaStatus(userId, deviceId, pgDataSource.manager)
       expect(status.find(i => i.type === 'webauthn')?.enabled).toBe(true)
 
-      const newAT = await runInHookStore(async () =>
+      const { accessToken: newAT, jti: newJti } = await runInHookStore(async () =>
         mfaService.verifyMfaStatus(jti, { trusted: true }, userId, 'sid-mfa-webauthn', deviceId, pgDataSource.manager))
       expect((await tokenService.decodeAccessToken(newAT))?.userId).toBe(userId)
       expect((await userRepo.findUserByUserId(userId, pgDataSource.manager))!.mfaSetup).toBe(true)
       expect((await readUserDevice(userId, deviceId)).trusted).toBe(true)
-      expect((await readRefreshRow(jti)).revoked).toBe(false)
+
+      // 轮换行级形态：旧 jti 撤销（rotate）+ 新行未撤销
+      expect((await readRefreshRow(jti)).revoked).toBe(true)
+      expect((await readRefreshRow(jti)).revoke_reason).toBe(WalnutAdminConstRevokeRTType.rotate)
+      expect((await readRefreshRow(newJti)).revoked).toBe(false)
     })
 
     it('未验证（无 verified 缓存）→ verifyMfaStatus 拒绝（BadRequest）且不写 mfaSetup', async () => {

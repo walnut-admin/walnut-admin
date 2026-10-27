@@ -1,6 +1,6 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { IWalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
+import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { WalnutAdminExceptionDuplicateSignIn, WalnutAdminExceptionRefreshTokenExpired } from '@walnut-server/exceptions/business/auth'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { AppTokenService } from '@/modules/shared/token/token.service'
@@ -10,6 +10,7 @@ import { SysUserDeviceSharedService } from '@/modules/system/user_device/shared/
 import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
 import { AppTechCryptoService } from '@/modules/techniques/crypto/crypto.service'
 import { AuthSessionService } from '../../session/session.service'
+import { AuthRefreshTokenEntity } from '../entity/refresh-token.entity'
 import { AuthRefreshRepositoryService } from '../repo/refresh.repo.service'
 
 /**
@@ -36,45 +37,46 @@ export class AuthRefreshSharedService {
 
   /**
    * @description check refresh token revoked by deviceId & userId
+   *
+   * revoke-and-insert 后同维度多行：判「撤销」= 无未撤销现役行（恰一行语义，显式筛
+   * revoked=false）；revokeReason 取最近一轮撤销行的值（无行 = 未登录/已清理，同样
+   * 判撤销、reason 为 null —— 与单行时代的「查无行 → revoked」语义一致）。
    */
   async getTokenRevokedByDeviceIdAndUserId(deviceId: string, userId: string) {
-    const target = await this.authRefreshRepo.findByDeviceIdAndUserId(
+    const active = await this.authRefreshRepo.findActiveByDeviceIdAndUserId(
       deviceId,
       userId,
     )
-    if (!target) {
+    if (active) {
       return {
-        revoked: true,
+        revoked: false,
         revokeReason: null,
       }
     }
+    const lastRevoked = await this.authRefreshRepo.findByDeviceIdAndUserId(deviceId, userId)
     return {
-      revoked: target.revoked,
+      revoked: true,
       // 列值域 = WalnutAdminConstRevokeRTType（CHECK 约束），收窄回 const 联合供
       // forceQuitConfig 索引（socket.gateway）
-      revokeReason: target.revokeReason as IWalnutAdminConstRevokeRTType | null,
+      revokeReason: (lastRevoked?.revokeReason ?? null) as IWalnutAdminConstRevokeRTType | null,
     }
   }
 
   /**
    * @description find refresh token through jti
    *
-   * P0-1（2026-10-26 修复）：返回**双值** —— `rawToken`（passport 验签用原文）与
-   * `encryptedToken`（入口时刻密文快照，轮换锁内重放比对用）。密文快照是重放判定
-   * 的真源而非原文比对：RT JWT 是同 (jti, sid) 的再签发，`iat` 秒级粒度下「同秒轮换」
-   * 会产出字节全同的新 token，原文比对在竞态里会静默失效；而 AES-GCM 每次 encryption
-   * 随机 IV，任何一次轮换后的密文必然不同 —— 逐字节判定无时序窗。
+   * guard 入口校验腿（非事务、不锁）：查无**或已撤销** → 40102。撤销判定是
+   * revoke-and-insert 轮换（2026-10-27）的重放拦截第一道闸 —— 旧行轮换即置
+   * `revoked=true (reason=rotate)`，旧 jti 的任何后续请求（重放/错峰迟到）在 guard
+   * 层就死，不再进入轮换事务。锁与重放判定的职责下沉到轮换事务（见 getNewAccessToken）。
    */
-  async getTokenByJti(jti: string): Promise<{ rawToken: string, encryptedToken: string }> {
+  async getTokenByJti(jti: string): Promise<string> {
     const target = await this.authRefreshRepo.findByJti(jti)
-    if (!target) {
+    if (!target || target.revoked) {
       throw new WalnutAdminExceptionRefreshTokenExpired()
     }
-    return {
-      // decrypt 是同步方法（AES-GCM 单轮），无需 await
-      rawToken: this.cryptoService.decrypt(target.encryptedToken, this.RT_ENCRYPTION_KEY),
-      encryptedToken: target.encryptedToken,
-    }
+    // decrypt 是同步方法（AES-GCM 单轮），无需 await
+    return this.cryptoService.decrypt(target.encryptedToken, this.RT_ENCRYPTION_KEY)
   }
 
   /**
@@ -86,11 +88,15 @@ export class AuthRefreshSharedService {
 
   /**
    * @description revoke refresh token for user
+   *
+   * revoke-and-insert 后同设备多行 —— 按设备去重后逐设备全量撤销（撤销本身按
+   * (user, device) 整维度生效，见 updateRevokedAndReason），避免每行重复 update。
    */
   async revokeRTForUser(userId: string, em?: EntityManager, revokeReason?: IWalnutAdminConstRevokeRTType) {
     const allAuthRefreshRecords = await this.authRefreshRepo.findAllRTForUser(userId, em)
-    for (const record of allAuthRefreshRecords) {
-      await this.authRefreshRepo.updateRevokedAndReason(userId, record.deviceId, true, em, revokeReason)
+    const deviceIds = [...new Set(allAuthRefreshRecords.map(record => record.deviceId))]
+    for (const deviceId of deviceIds) {
+      await this.authRefreshRepo.updateRevokedAndReason(userId, deviceId, true, em, revokeReason)
     }
   }
 
@@ -112,43 +118,66 @@ export class AuthRefreshSharedService {
 
   /**
    * @description used to ban unlimited signin
+   *
+   * duplicate sign-in 判据按「未撤销现役行」存在性：revoke-and-insert 后同维度恒多行
+   * （历轮 revoked 旧行），裸 findOne 取行不确定 —— 必须显式筛 revoked=false，否则
+   * 命中旧行会误放行重复登录。轮换不变量「未撤销行恒恰一行」保证该判据恒自洽。
    */
   async isCurrentUserInThisDeviceHasSignIn(
     userId: string,
     deviceId: string,
     em?: EntityManager,
   ) {
-    const target = await this.authRefreshRepo.findByDeviceIdAndUserId(
+    const active = await this.authRefreshRepo.findActiveByDeviceIdAndUserId(
       deviceId,
       userId,
       em,
     )
-    if (!target)
-      return false
-    return !target.revoked
+    return active !== null
   }
 
   /**
-   * @description update refresh token
+   * @description rotate refresh token —— revoke-and-insert（2026-10-27，取代同 jti 原地换锁）
+   *
+   * 旧行置 `revoked=true (reason=rotate)`，再 INSERT 新行（新 jti、同 user/device、
+   * 新 encrypted_token、新 expired_at），返回新 jti 供调用方回种 RT_JTI cookie。
+   * 原地换锁时代 cookie 里的 jti 永远作废不了（无 bearer secret、行却一直未撤销），
+   * 重放拦截只能靠入口密文快照比对（P0-1，已废弃）；行级撤销后旧 jti 天然一次性，
+   * 快照机制随之摘除。
    */
-  private async updateRefreshToken(jti: string, sessionId: string, userId: string, em?: EntityManager) {
-    const oldDocument = await this.authRefreshRepo.findByJti(jti, em, { lock: true })
-    if (!oldDocument)
-      return
-
-    const refreshToken = await this.tokenService.generateJwtRefreshToken(jti, sessionId)
-    const encryptedToken = this.cryptoService.encrypt(refreshToken, this.RT_ENCRYPTION_KEY)
-
+  private async updateRefreshToken(
+    oldDocument: AuthRefreshTokenEntity,
+    sessionId: string,
+    em?: EntityManager,
+  ): Promise<string> {
+    // revoke 腿先行：旧 jti 自此一次性（同事务内 findByJti 仍可见，提交后对外即死）
     await this.authRefreshRepo.saveRefreshTokenDoc(
       oldDocument,
       {
-        expiredAt: AppDayjs()
-          .add(this.tokenService.getRefreshTokenExpireSeconds(), 'seconds')
-          .toDate(),
-        encryptedToken,
+        revoked: true,
+        revokeReason: WalnutAdminConstRevokeRTType.rotate,
       },
       em,
     )
+
+    const newJti = await this.tokenService.generateJTI()
+    const refreshToken = await this.tokenService.generateJwtRefreshToken(newJti, sessionId)
+    const encryptedToken = this.cryptoService.encrypt(refreshToken, this.RT_ENCRYPTION_KEY)
+
+    await this.authRefreshRepo.create(
+      {
+        jti: newJti,
+        deviceId: oldDocument.deviceId,
+        encryptedToken,
+        userId: oldDocument.userId,
+        expiredAt: AppDayjs()
+          .add(this.tokenService.getRefreshTokenExpireSeconds(), 'seconds')
+          .toDate(),
+      },
+      em,
+    )
+
+    return newJti
   }
 
   /**
@@ -218,24 +247,25 @@ export class AuthRefreshSharedService {
    * B7b 归一：refresh 表（含轮换写腿）与 user/role 读腿同为 PG —— 单 em 单事务，
    * revoke（过期兜底）与 rotate 同回滚。
    *
-   * P0-1（2026-10-26 修复）：`presentedEncryptedToken` 是请求入口时刻的
-   * `encrypted_token` 快照（refresh 端点 = JwtRefreshGuard 查行时挂
-   * `request.realRefreshTokenEncrypted` 的值）。轮换持锁比对「入口快照 vs 库中当前值」：
-   * 首个胜者原地覆盖密文后，其余持旧快照的并发请求解锁后读到新密文、比对失配 →
-   * 受控 40102；「用已轮换旧快照顺序重放」同样被拦。AES-GCM 随机 IV 保证轮换后密文
-   * 必变（RT JWT 同秒再签发会字节全同，故不能比对原文，见 getTokenByJti 注释）。
-   * 拿不到快照的内部调用方（MFA/TOTP/WebAuthn post-verification，客户端只持 jti
-   * cookie、不走 JwtRefreshGuard）传 `undefined` 跳过比对，重放拦截由 refresh 端点承担。
+   * revoke-and-insert（2026-10-27，第三次迭代，取代 P0-1 的入口密文快照比对）：
+   * 锁内 `findByJti(jti, em, { lock: true })` 读旧行并校验后，旧行置撤销（reason=rotate）、
+   * INSERT 新行 —— 轮换后的旧 jti 在行级永久作废，重放/错峰请求无论何时到达都被
+   * 「已撤销」判定拦下（guard 层 getTokenByJti 第一道闸 + 此处锁内读到的撤销行第二道闸）。
+   * G1 并发实测驱动：悲观锁只串行化「读校验+撤销+插入」这组写（防并发双插/丢更新），
+   * 等锁者醒来读到的是已撤销的旧行 → 受控 40102，恰 1 路成功变为确定性成立
+   * （快照比对只挡真正同时到达的请求，错峰到达在入口各读最新快照后都能合法轮换，
+   * 实测出过 2×20000，故废弃）。返回 `{ accessToken, jti }` —— jti 是新行 jti，
+   * 调用方（refresh / mfa / totp / webauthn 四个 HTTP 端点）必须用它回种 RT_JTI cookie，
+   * 否则客户端下次 refresh 拿旧 jti 必 40102。
    */
   async getNewAccessToken(
     jti: string,
     deviceId: string,
     sessionId: string,
-    presentedEncryptedToken: string | undefined,
     em?: EntityManager,
-  ) {
-    // Step 1 - get refresh token record（事务内轮换读腿，持悲观写锁串行化轮换写腿；
-    // 重放拦截靠下面的呈献快照比对，见 P0-1）
+  ): Promise<{ accessToken: string, jti: string }> {
+    // Step 1 - get refresh token record（事务内轮换读腿，持悲观写锁串行化「读校验+
+    // 撤销+插入」整组写腿；重放拦截靠行级撤销 —— 等锁者读到的旧行必已 revoked）
     const record = await this.authRefreshRepo.findByJti(jti, em, { lock: true })
 
     // no record
@@ -243,16 +273,7 @@ export class AuthRefreshSharedService {
       throw new WalnutAdminExceptionRefreshTokenExpired()
     }
 
-    // P0-1 呈献快照比对（锁内逐字节比字符串，无解密、零时序窗）：放在过期兜底腿
-    // 之前 —— 比对失配说明呈献的是旧轮次快照，直接受控拒绝，不触发本轮 revoke 副作用
-    if (
-      presentedEncryptedToken !== undefined
-      && record.encryptedToken !== presentedEncryptedToken
-    ) {
-      throw new WalnutAdminExceptionRefreshTokenExpired()
-    }
-
-    // token revoked
+    // token revoked（并发/顺序重放：胜者已把旧行置撤销，等锁者读到撤销行在此被拦）
     if (record.revoked) {
       throw new WalnutAdminExceptionRefreshTokenExpired()
     }
@@ -294,8 +315,8 @@ export class AuthRefreshSharedService {
     // Step 4 - construct access token payload
     const tokenPayload = await this.tokenService.getJwtAccessTokenPayload(populatedUser, { isTrusted })
 
-    // Step 5 - update refresh token as well
-    await this.updateRefreshToken(jti, sessionId, record.userId, em)
+    // Step 5 - rotate refresh token（旧行撤销 + 新行插入，同事务；拿新 jti 回种 cookie）
+    const newJti = await this.updateRefreshToken(record, sessionId, em)
 
     // Step 6 - touch auth session ttl
     await this.authSessionService.touchAuthSessionTTL(
@@ -310,9 +331,9 @@ export class AuthRefreshSharedService {
       record.deviceId,
     )
 
-    const newAT = await this.tokenService.generateJwtAccessToken({ ...tokenPayload, sid: sessionId })
+    const accessToken = await this.tokenService.generateJwtAccessToken({ ...tokenPayload, sid: sessionId })
 
-    // return access token
-    return newAT
+    // return access token + new jti（调用方据此回种 RT_JTI cookie）
+    return { accessToken, jti: newJti }
   }
 }

@@ -23,16 +23,14 @@ export class JwtRefreshGuard extends AuthGuard(
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<IWalnutAdminExpressRequest>()
 
-    const { rawToken, encryptedToken } = await this.authRefreshSharedService.getTokenByJti(
+    // 查无或已撤销（revoke-and-insert 轮换后的旧行）→ 40102：重放/错峰迟到请求在
+    // guard 层即死，不进轮换事务
+    const rawToken = await this.authRefreshSharedService.getTokenByJti(
       getWalnutAdminCookie(request, WalnutAdminConstCookieKeys.RT_JTI),
     )
 
-    // put the real refresh token in request
+    // put the real refresh token in request（passport 策略从这取值验签）
     request.realRefreshToken = rawToken
-    // P0-1（2026-10-26 修复）：入口时刻的 encrypted_token 快照 —— 轮换锁内的重放
-    // 比对真源（AES-GCM 随机 IV，任何轮换后密文必变；RT 原文同秒再签会字节全同，
-    // 不能作判定依据，见 getTokenByJti 注释）
-    request.realRefreshTokenEncrypted = encryptedToken
 
     return super.canActivate(context) as Promise<boolean>
   }

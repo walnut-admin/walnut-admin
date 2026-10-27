@@ -2,6 +2,7 @@ import type { INestApplication } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 
+import { WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { WalnutAdminExceptionRefreshTokenExpired } from '@walnut-server/exceptions/business/auth'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AuthRefreshRepositoryService } from '@/modules/auth/modules/refresh/repo/refresh.repo.service'
@@ -15,10 +16,10 @@ import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-in
  * - refresh 轮换**事务原子性**（B7b 全 PG 单 em）：getNewAccessToken 的过期兜底腿
  *   （revoke）与轮换腿（rotate）在同一 PG 事务里 —— 过期行路径整体回滚后行原样、
  *   提交路径两腿同落；
- * - P0-1（2026-10-26 修复）**呈献快照比对**：轮换锁内比对「入口时刻 encrypted_token
- *   快照 vs 库中当前值」—— 顺序重放（持已轮换旧快照再换）受控 40102、持当前值合法
- *   续期不受影响（并发竞态面由 concurrency.api-spec G1 五路并发钉）。比对不经过解密，
- *   故本文件沿用 insertToken 的假密文即可（轮换写腿自身仍加密真实 RT JWT）；
+ * - **revoke-and-insert 轮换**（2026-10-27，取代 P0-1 的入口密文快照比对）：轮换 =
+ *   旧行置 `revoked=true (reason=rotate)` + INSERT 新行（新 jti / 新密文 / 新过期时间）
+ *   —— 旧行 jti 一切后续 getNewAccessToken（顺序重放）受控 40102；行级撤销让「恰
+ *   1 路成功」在并发下确定性成立（并发面由 concurrency.api-spec G1 五路并发钉）；
  * - generateRefreshToken：新设备插入（PK 走 DB 端 uuidv7()）、同设备未撤销再签 →
  *   DuplicateSignIn；
  * - device_id 业务键 FK → sys_device(device_id) CASCADE（Q5 定案：设备删则令牌清）。
@@ -46,9 +47,9 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     )
   }
 
-  async function readToken(jti: string): Promise<{ revoked: boolean, encrypted_token: string, expired_at: Date }> {
-    const rows: Array<{ revoked: boolean, encrypted_token: string, expired_at: Date }> = await pgDataSource.query(
-      'SELECT revoked, encrypted_token, expired_at FROM auth_refresh_token WHERE jti = $1',
+  async function readToken(jti: string): Promise<{ revoked: boolean, revoke_reason: string | null, encrypted_token: string, expired_at: Date }> {
+    const rows: Array<{ revoked: boolean, revoke_reason: string | null, encrypted_token: string, expired_at: Date }> = await pgDataSource.query(
+      'SELECT revoked, revoke_reason, encrypted_token, expired_at FROM auth_refresh_token WHERE jti = $1',
       [jti],
     )
     return rows[0]
@@ -108,58 +109,78 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     expect(names).toContain('idx_rt_expired')
   })
 
-  it('getNewAccessToken 活跃行：轮换（encrypted_token/expired_at 更新）并签出新 AT', async () => {
+  it('getNewAccessToken 活跃行：revoke-and-insert 轮换（旧行 revoked=rotate + 新行未撤销）并签出新 AT', async () => {
     const jti = unique('b7-rt-live')
     const oldExpiredAt = new Date(Date.now() + 3600_000)
     await insertToken(jti, 'b7-rt-device-live', oldExpiredAt)
 
     // 生产路径在 @WalnutDBTransaction 内轮换——这里也用真实事务，
-    // 让轮换读腿的悲观写锁（写腿串行化）与呈献快照比对真正被走到；
-    // 呈献快照 = 入口时刻的 encrypted_token 库值（guard 同款，P0-1）
-    const newAT = await pgDataSource.transaction(async em =>
-      refreshShared.getNewAccessToken(jti, 'b7-rt-device-live', 'session-1', `enc-${jti}`, em))
+    // 让轮换读腿的悲观写锁（串行化「读校验+撤销+插入」）真正被走到
+    const { accessToken: newAT, jti: newJti } = await pgDataSource.transaction(async em =>
+      refreshShared.getNewAccessToken(jti, 'b7-rt-device-live', 'session-1', em))
+
+    // 新 jti 与旧行不同（行级撤销后 cookie 必须换新）
+    expect(newJti).toBeTruthy()
+    expect(newJti).not.toBe(jti)
 
     // AT 可解码且带同一 sid / userId
     const payload = await tokenService.decodeAccessToken(newAT)
     expect(payload?.sid).toBe('session-1')
     expect(payload?.userId).toBe(userId)
 
-    // 轮换落库：密文换了、过期时间延长、未撤销
-    const row = await readToken(jti)
-    expect(row.revoked).toBe(false)
-    expect(row.encrypted_token).not.toBe(`enc-${jti}`)
-    expect(row.expired_at.getTime()).toBeGreaterThan(oldExpiredAt.getTime())
+    // 旧行：已撤销（reason=rotate），密文/过期时间原样（revoke-and-insert 不改旧行其余列）
+    const oldRow = await readToken(jti)
+    expect(oldRow.revoked).toBe(true)
+    expect(oldRow.revoke_reason).toBe(WalnutAdminConstRevokeRTType.rotate)
+    expect(oldRow.encrypted_token).toBe(`enc-${jti}`)
+
+    // 新行：未撤销、密文是新签 RT 的密文、过期时间延长
+    const newRowRows: Array<{ jti: string, revoked: boolean, encrypted_token: string, expired_at: Date, user_id: string, device_id: string }>
+      = await pgDataSource.query(
+        'SELECT jti, revoked, encrypted_token, expired_at, user_id, device_id FROM auth_refresh_token WHERE jti = $1',
+        [newJti],
+      )
+    expect(newRowRows).toHaveLength(1)
+    const newRow = newRowRows[0]
+    expect(newRow.revoked).toBe(false)
+    expect(newRow.encrypted_token).not.toBe(`enc-${jti}`)
+    expect(newRow.expired_at.getTime()).toBeGreaterThan(oldExpiredAt.getTime())
+    // 新行同 user / device（会话延续，只有令牌换轮）
+    expect(newRow.user_id).toBe(userId)
+    expect(newRow.device_id).toBe('b7-rt-device-live')
   })
 
-  it('P0-1 顺序重放拦截：轮换成功后用旧 encrypted_token 快照再轮换 → 40102；持当前值合法续期不受影响', async () => {
-    // HTTP 层无法构造此面：客户端只持 RT_JTI cookie，guard 每次入口从库里取「当前值」
-    // 作快照 —— 顺序重放只能在 service 层显式持旧快照构造（并发等价面见
-    // concurrency.api-spec G1 五路并发）。比对真源是密文快照而非 RT 原文：同 (jti, sid)
-    // 再签发的 JWT 在 iat 秒级粒度下会同秒字节全同，原文比对在竞态里会静默失效
+  it('revoke-and-insert 顺序重放：轮换成功后旧行 jti 再 getNewAccessToken → 40102（行级撤销拦截）', async () => {
+    // HTTP 层等价面：客户端 cookie 里的 jti 在轮换后被换新，旧 jti 重放等价于
+    // 「持已撤销行再换」—— service 层直测旧行 jti 的后续轮换即死
     const jti = unique('b7-rt-replay')
     await insertToken(jti, 'b7-rt-device-replay', new Date(Date.now() + 3600_000))
-    const presentedSnapshot0 = `enc-${jti}`
 
-    // 第一次轮换：呈献快照与库中当前值一致 → 成功（轮换写腿覆盖为真实 RT 密文）
-    await pgDataSource.transaction(async em =>
-      refreshShared.getNewAccessToken(jti, 'b7-rt-device-replay', 'session-replay', presentedSnapshot0, em))
-    const afterFirst = await readToken(jti)
-    expect(afterFirst.encrypted_token).not.toBe(presentedSnapshot0)
+    // 第一次轮换：旧行撤销 + 新行插入
+    const { jti: newJti } = await pgDataSource.transaction(async em =>
+      refreshShared.getNewAccessToken(jti, 'b7-rt-device-replay', 'session-replay', em))
+    expect(newJti).not.toBe(jti)
 
-    // 旧快照（上一轮的库值）重放 → 锁内比对失配 → 受控 40102
+    const oldRow = await readToken(jti)
+    expect(oldRow.revoked).toBe(true)
+
+    // 旧行 jti 再轮换（顺序重放）→ 锁内读到撤销行 → 受控 40102
     await expect(pgDataSource.transaction(async em =>
-      refreshShared.getNewAccessToken(jti, 'b7-rt-device-replay', 'session-replay', presentedSnapshot0, em)))
+      refreshShared.getNewAccessToken(jti, 'b7-rt-device-replay', 'session-replay', em)))
       .rejects
       .toThrow(WalnutAdminExceptionRefreshTokenExpired)
 
-    // 重放无副作用：密文保持第一轮换后的值、未撤销（失败路径零写腿）
-    const afterReplay = await readToken(jti)
-    expect(afterReplay.encrypted_token).toBe(afterFirst.encrypted_token)
-    expect(afterReplay.revoked).toBe(false)
+    // 重放无副作用：旧行保持撤销、新行未被波及（无第三次插入）
+    const rows: Array<{ c: number }> = await pgDataSource.query(
+      'SELECT count(*)::int AS c FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
+      [userId, 'b7-rt-device-replay'],
+    )
+    expect(rows[0].c).toBe(2)
 
-    // 合法续期不受影响：持当前库值（= guard 入口同款快照）再轮换成功
-    await pgDataSource.transaction(async em =>
-      refreshShared.getNewAccessToken(jti, 'b7-rt-device-replay', 'session-replay', afterReplay.encrypted_token, em))
+    // 现役行（新 jti）合法续期不受影响：再轮换一次成功、产生第三个 jti
+    const second = await pgDataSource.transaction(async em =>
+      refreshShared.getNewAccessToken(newJti, 'b7-rt-device-replay', 'session-replay', em))
+    expect(second.jti).not.toBe(newJti)
   })
 
   it('过期行：getNewAccessToken 的 revoke 兜底腿 + rotate 在同一事务里可整体回滚', async () => {
@@ -167,14 +188,14 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     await insertToken(jti, 'b7-rt-device-rb', new Date(Date.now() - 3600_000))
 
     // 同事务里先撤第二台设备的行（revoke 腿），再走过期行的 revoke+throw 路径 ——
-    // 抛错令事务回滚，两腿都不落库（呈献快照持当前库值，比对通过后才走到过期腿）
+    // 抛错令事务回滚，两腿都不落库（过期判定先于轮换腿，无新行插入）
     const jtiOther = unique('b7-rt-other')
     await insertToken(jtiOther, 'b7-rt-device-rb2', new Date(Date.now() + 3600_000))
 
     await expect(pgDataSource.transaction(async (em) => {
       await refreshShared.revokeRTForUserDevice(userId, 'b7-rt-device-rb2', em)
 
-      await expect(refreshShared.getNewAccessToken(jti, 'b7-rt-device-rb', 'session-2', `enc-${jti}`, em))
+      await expect(refreshShared.getNewAccessToken(jti, 'b7-rt-device-rb', 'session-2', em))
         .rejects
         .toThrow(WalnutAdminExceptionRefreshTokenExpired)
 
@@ -182,10 +203,15 @@ describe('B7b auth_refresh_token (on real PG)', () => {
       throw new Error('force-rollback')
     })).rejects.toThrow('force-rollback')
 
-    // 过期行原样：未撤销、密文未轮换
+    // 过期行原样：未撤销、密文未轮换、无新行（轮换腿未执行）
     const expiredRow = await readToken(jti)
     expect(expiredRow.revoked).toBe(false)
     expect(expiredRow.encrypted_token).toBe(`enc-${jti}`)
+    const rows: Array<{ c: number }> = await pgDataSource.query(
+      'SELECT count(*)::int AS c FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
+      [userId, 'b7-rt-device-rb'],
+    )
+    expect(rows[0].c).toBe(1)
 
     // revoke 腿同样被回滚
     const otherRow = await readToken(jtiOther)
@@ -196,7 +222,7 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     const jti = unique('b7-rt-expired-commit')
     await insertToken(jti, 'b7-rt-device-commit', new Date(Date.now() - 60_000))
 
-    await expect(refreshShared.getNewAccessToken(jti, 'b7-rt-device-commit', 'session-3', `enc-${jti}`, pgDataSource.manager))
+    await expect(refreshShared.getNewAccessToken(jti, 'b7-rt-device-commit', 'session-3', pgDataSource.manager))
       .rejects
       .toThrow(WalnutAdminExceptionRefreshTokenExpired)
 

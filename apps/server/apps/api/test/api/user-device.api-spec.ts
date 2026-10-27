@@ -21,8 +21,8 @@ import { createApiApp } from './helpers/create-api-app'
  * - lock 落 sys_user_device.locked + 建 sys_user_lock 偏好行（空 lockRoute jsonb 默认）；
  *   unlock 无偏好行 → 40401；unlock 不带 lockPwdHash 时跳过密码比对；
  * - force-quit（user-kick-other 语义）撤 RT：revoke 落 revoked + revoke_reason
- *   （WalnutAdminConstRevokeRTType.userKickOther）；注意 updateRevokedAndReason 走
- *   findOne —— 同维度多行 RT 只撤查到的第一行（钉现状）。
+ *   （WalnutAdminConstRevokeRTType.userKickOther）；updateRevokedAndReason 全量撤销
+ *   （P1-9 已修：update ... where userId+deviceId，同维度多行 RT 撤干净）。
  */
 
 interface UserDeviceListItem {
@@ -203,12 +203,13 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
       [fixture!.userId, api.deviceId],
     )
     expect(rtRows.length).toBe(2)
-    // 钉现状：updateRevokedAndReason 走 findByDeviceIdAndUserId（findOne）——
-    // force-quit 只撤「查到的第一行」，不是该维度全部 RT
+    // P1-9 已修（revoke-and-insert 配套，2026-10-27）：updateRevokedAndReason 改
+    // update ... where userId+deviceId 全量撤销 —— 同维度多行 RT 踢完必须全部 revoked
+    // （旧钉现状：findOne 只撤「查到的第一行」，其余行仍可换发）
     const revokedRows = rtRows.filter(r => r.revoked)
-    expect(revokedRows).toHaveLength(1)
+    expect(revokedRows).toHaveLength(2)
     // WalnutAdminConstRevokeRTType.userKickOther
-    expect(revokedRows[0].revoke_reason).toBe('userKickOther')
+    expect(revokedRows.every(r => r.revoke_reason === 'userKickOther')).toBe(true)
   })
 
   it('边界：force-quit 无 monitor 行 → 40401', async () => {

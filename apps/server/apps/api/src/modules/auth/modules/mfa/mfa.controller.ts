@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
@@ -7,6 +7,7 @@ import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminDecor
 import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
 import { WalnutAdminGuardMFAFree } from '@/guard/mfa.guard'
 import { AuthSuccessDTO } from '../../dto/auth.dto'
+import { AuthCookieService } from '../cookie/cookie.service'
 import { AuthMfaStatusDTO, AuthMfaVerifyDTO } from './mfa.dto'
 import { AuthMfaService } from './mfa.service'
 
@@ -17,6 +18,7 @@ import { AuthMfaService } from './mfa.service'
 export class AuthMfaController {
   constructor(
     private readonly authMfaService: AuthMfaService,
+    private readonly authCookieService: AuthCookieService,
   ) { }
 
   @Get('status')
@@ -50,10 +52,14 @@ export class AuthMfaController {
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
     @WalnutDBSession() ctx: WalnutTxContext,
+    @Req() req: IWalnutAdminExpressRequest,
     @Body() dto: AuthMfaVerifyDTO,
   ) {
     // B7b 归一：mfa 状态读腿 / user.mfaSetup 写腿 / post verification 全为 PG —— 单 em
-    const newAccessToken = await this.authMfaService.verifyMfaStatus(jti, dto, user.userId, user.sid!, deviceId, ctx.em)
-    return new AuthSuccessDTO({ accessToken: newAccessToken })
+    // revoke-and-insert（2026-10-27）：verify 链轮换 RT —— 新 jti 必须回种 cookie
+    // （原地换锁时代旧 jti 恒有效所以本端点从不需要设 cookie，该侥幸随行级撤销终止）
+    const { accessToken, jti: newJti } = await this.authMfaService.verifyMfaStatus(jti, dto, user.userId, user.sid!, deviceId, ctx.em)
+    this.authCookieService.setRTJtiCookie(req, newJti)
+    return new AuthSuccessDTO({ accessToken })
   }
 }

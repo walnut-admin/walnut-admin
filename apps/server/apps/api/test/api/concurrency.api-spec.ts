@@ -26,9 +26,10 @@ import { WALNUT_TEST_USER_AGENT } from './helpers/sign-handshake'
  *
  * 实测结论先记（各用例内有详细注释，条目收编于 DESIGN-ISSUES.md）：
  * - G1 RT 重放：悲观锁挡不住并发重放（P0-1：轮换是同 jti 原地换锁，等锁事务读到的
- *   永远是「新的一轮未撤销行」）—— **2026-10-26 已修**：getNewAccessToken 锁内比对
- *   「入口时刻 encrypted_token 快照 vs 库中当前值」（AES-GCM 随机 IV，轮换后密文必变；
- *   RT 原文同秒再签会字节全同，不能作判定依据），恰 1 路成功、其余 40102；
+ *   永远是「新的一轮未撤销行」）—— **2026-10-27 二次重构为 revoke-and-insert**：轮换 =
+ *   旧行置撤销（reason=rotate）+ INSERT 新行，旧行 jti 行级作废，恰 1 路 20000 由
+ *   「入口快照比对」（2026-10-26 首修，只挡真正同时到达的请求、错峰实测出过 2×20000）
+ *   升级为**确定性成立**（败者要么 guard 层读到撤销行、要么锁内读到撤销行）；
  * - G6 key rotate：读腿无锁（getCurrentActiveKey 无 FOR UPDATE、无 (type, version) 唯一索引），
  *   两路并发 rotate 产生两条同 version ACTIVE（P1-1）。
  *
@@ -125,8 +126,8 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     return row
   }
 
-  it('G1 同一 RT_JTI 五路并发 refresh —— 恰 1 路成功（持当前快照的胜者）、其余 40102（P0-1 已修）', async () => {
-    // 前置：登录链已落恰好一行 RT（行 jti 是明文 uuid；cookie 值带签名前缀不宜反解，
+  it('G1 同一 RT_JTI 五路并发 refresh —— 恰 1 路成功、其余 40102（revoke-and-insert，确定性）', async () => {
+    // 前置：登录链已落恰好一行 RT（行 jti 是明文 nanoid；cookie 值带签名前缀不宜反解，
     // 按 user+device 定位行 —— auth-session spec 同口径）
     expect(api.getCookie(WalnutAdminConstCookieKeys.RT_JTI)).toBeTruthy()
 
@@ -140,9 +141,9 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     const jti = before[0].jti
 
     // 五路并发重放同一 RT cookie（refresh 全 Free + JwtRefreshGuard，unsigned 直发即可；
-    // 共用同一客户端的 cookie jar 无碍 —— 所有请求携带同一 jti，响应回种的也是同值）。
-    // 每路的「呈献快照」= JwtRefreshGuard 入口时刻的 encrypted_token 库值（guard 先于
-    // 轮换事务执行，五路都在胜者提交前读到同一轮密文）。
+    // 共用同一客户端的 cookie jar 无碍 —— 只有胜者回种新 jti，败者 40102 不带 Set-Cookie）。
+    // 胜者把旧行置撤销后，败者无论走到哪道闸都被拦：guard 入口 getTokenByJti 读到撤销行，
+    // 或轮换事务锁内 findByJti 读到撤销行（锁只串行化「读校验+撤销+插入」）。
     const N = 5
     const responses = await Promise.all(
       Array.from({ length: N }, async () => api.unsigned('POST', api.apiPath('/auth/refresh'))),
@@ -152,27 +153,35 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     // 底线：无未受控错误（全 2xxxx/4xxxx）
     expect(codes.filter(code => code >= 50000)).toEqual([])
 
-    // 【P0-1 已修（2026-10-26）】getNewAccessToken 在轮换锁内比对「入口时刻
-    // encrypted_token 快照 vs 库中当前值」：恰 1 路胜出（其快照与库值一致），原地覆盖
-    // 密文后，其余四路解锁读到新密文、比对失配 → 受控 40102 RefreshTokenExpired
-    // （与「查无此 jti」同语义，不新造错误码）。比对真源是密文快照而非 RT 原文 ——
-    // 同 (jti, sid) 再签发的 JWT 在 iat 秒级粒度下会同秒字节全同（实测钉过：原文比对
-    // 版本在紧随登录的竞态里五路全过）。对照历史：修复前此断言为「五路全部 20000」
-    // （悲观锁只串行化轮换写腿防丢更新，等锁事务读到的永远是新一轮未撤销行 ——
-    // Mongo 时代的「事务写冲突 abort 一方」在 PG 侧没有等价物，重放拦截实际不存在）。
+    // 【revoke-and-insert（2026-10-27）】恰 1 路胜出、其余受控 40102 —— 行级撤销后
+    // 确定性成立（对照历史：原地换锁时代五路全 20000；快照比对时代 1×20000 但依赖
+    // 「五路在胜者提交前读到同一密文」的时序假设，错峰到达实测出过 2×20000）。
     expect(codes.filter(code => code === WalnutAdminConstAppResponseCode.SUCCESS)).toHaveLength(1)
     expect(codes.filter(code => code !== WalnutAdminConstAppResponseCode.SUCCESS))
       .toEqual(Array.from({ length: N - 1 }).fill(WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED))
 
-    // 行形态自洽：仍恰一行、未撤销、密文被轮换过（恰一次 —— 胜者的原地覆盖）
-    const after: Array<{ jti: string, encrypted_token: string, revoked: boolean }>
+    // 行形态自洽：该会话恰两行 —— 旧行 revoked（reason=rotate）+ 新行未撤销（密文换新）
+    const after: Array<{ jti: string, encrypted_token: string, revoked: boolean, revoke_reason: string | null }>
       = await api.pgDataSource.query(
-        'SELECT jti, encrypted_token, revoked FROM auth_refresh_token WHERE jti = $1',
-        [jti],
+        'SELECT jti, encrypted_token, revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2 ORDER BY created_at ASC',
+        [fixture!.userId, api.deviceId],
       )
-    expect(after).toHaveLength(1)
-    expect(after[0].revoked).toBe(false)
-    expect(after[0].encrypted_token).not.toBe(before[0].encrypted_token)
+    expect(after).toHaveLength(2)
+    expect(after[0].jti).toBe(jti)
+    expect(after[0].revoked).toBe(true)
+    expect(after[0].revoke_reason).toBe('rotate')
+    expect(after[0].encrypted_token).toBe(before[0].encrypted_token)
+    expect(after[1].jti).not.toBe(jti)
+    expect(after[1].revoked).toBe(false)
+    expect(after[1].encrypted_token).not.toBe(before[0].encrypted_token)
+
+    // 胜者回种 cookie 的新 jti == 新行 jti（jar 被唯一一个成功响应的 Set-Cookie 更新；
+    // signed cookie 值经 encodeURIComponent（`s:` → `s%3A`）且形如 s:<jti>.<sig>，
+    // jti 为 nanoid 不含 `.`，解码后剥前缀/签名比对）
+    const cookieJti = decodeURIComponent(api.getCookie(WalnutAdminConstCookieKeys.RT_JTI)!)
+      .replace(/^s:/, '')
+      .replace(/\.[^.]+$/, '')
+    expect(cookieJti).toBe(after[1].jti)
   })
 
   it('G2 同名注册两路并发（service 级 finishRegister，注明）—— uq_user_name 恰一胜出、库里恰一行', async () => {
