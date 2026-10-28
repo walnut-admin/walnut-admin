@@ -1,5 +1,5 @@
 /**
- * `src/db/etl-map.ts` 的用例 —— ETL / seed:pg / verify-etl 三条通道共用的映射层。
+ * `src/db/seed-map.ts` 的用例 —— ETL / seed:pg / verify-etl 三条通道共用的映射层。
  *
  * 对账的正确性完全押在「同一份文档映射出同一行」上，所以用例盯四件事：
  * - **类型映射**：`$date`→timestamptz（Date）、数值/布尔缺省补齐、数组列、jsonb 原样；
@@ -11,8 +11,6 @@ import { describe, expect, it } from 'vitest'
 import {
   arrOr,
   dedupeKeepOrder,
-  ETL_COLLECTION_ORDER,
-  ETL_MAPPERS,
   mapErrorPayload,
   mapSettingValue,
   parseStringifiedJson,
@@ -20,9 +18,11 @@ import {
   refUuidOrNull,
   reqStr,
   reqTs,
+  SEED_COLLECTION_ORDER,
+  SEED_MAPPERS,
   sortMenuRowsByDepth,
   tsOrNull,
-} from '../etl-map.ts'
+} from '../seed-map.ts'
 import { deriveUuidFromObjectId } from '../uuid5.ts'
 
 /** 两个真实存量 id（与 uuid5.test.ts 同源向量，交叉钉住派生一致性） */
@@ -162,7 +162,7 @@ describe('q4：app_setting.setting_value 重写', () => {
 
 describe('junction 拆分', () => {
   it('sys_user.roles → sys_user_role 行；currentRole → current_role_id v5', () => {
-    const mapped = ETL_MAPPERS.sys_user(baseDoc({
+    const mapped = SEED_MAPPERS.sys_user(baseDoc({
       userName: 'visitor',
       roles: [VISITOR_ROLE_HEX, VISITOR_ROLE_HEX, OTHER_ROLE_HEX],
       currentRole: VISITOR_ROLE_HEX,
@@ -186,25 +186,25 @@ describe('junction 拆分', () => {
 
   it('sys_role.menus → sys_role_menu 行；role_name 为 null 抛（7.3 预检口径）', () => {
     const menuHex = '5fc8e3cd0144eb274c1c9780'
-    const mapped = ETL_MAPPERS.sys_role(baseDoc({ roleName: 'visitor', menus: [menuHex] }), CTX)
+    const mapped = SEED_MAPPERS.sys_role(baseDoc({ roleName: 'visitor', menus: [menuHex] }), CTX)
     expect(mapped.junction?.table).toBe('sys_role_menu')
     expect(mapped.junction?.rows).toEqual([
       { role_id: mapped.row.id, menu_id: deriveUuidFromObjectId(menuHex) },
     ])
-    expect(() => ETL_MAPPERS.sys_role(baseDoc({ roleName: null }), CTX)).toThrow()
+    expect(() => SEED_MAPPERS.sys_role(baseDoc({ roleName: null }), CTX)).toThrow()
   })
 
   it('roles / menus 键缺失 → junction 零行（不抛）', () => {
-    const user = ETL_MAPPERS.sys_user(baseDoc({ userName: 'x' }), CTX)
+    const user = SEED_MAPPERS.sys_user(baseDoc({ userName: 'x' }), CTX)
     expect(user.junction?.rows).toEqual([])
-    const role = ETL_MAPPERS.sys_role(baseDoc({ roleName: 'x' }), CTX)
+    const role = SEED_MAPPERS.sys_role(baseDoc({ roleName: 'x' }), CTX)
     expect(role.junction?.rows).toEqual([])
   })
 })
 
 describe('逐表映射抽查（拍平 / 缺省 / 特殊列）', () => {
   it('sys_menu：meta 拍平 19 列；根节点缺 pid → NULL；meta 缺键按 schema 缺省', () => {
-    const mapped = ETL_MAPPERS.sys_menu(baseDoc({ type: 'catalog', title: 'app.base.root' }), CTX)
+    const mapped = SEED_MAPPERS.sys_menu(baseDoc({ type: 'catalog', title: 'app.base.root' }), CTX)
     const row = mapped.row
     expect(row.pid).toBeNull()
     expect(row.type).toBe('catalog')
@@ -224,7 +224,7 @@ describe('逐表映射抽查（拍平 / 缺省 / 特殊列）', () => {
     expect(row.watermark).toBeNull()
     expect(row.cache_key_strategy).toBeNull()
 
-    const full = ETL_MAPPERS.sys_menu(baseDoc({
+    const full = SEED_MAPPERS.sys_menu(baseDoc({
       pid: VISITOR_ROLE_HEX,
       meta: { order: 3, ternal: 'external', url: 'https://x', show: false, cache: true, status: true, affix: true, permission: '*:*:*', menuActiveName: 'n', menuActiveSameTab: true, badge: 'b', activeIcon: 'i', position: true, leaveTip: true, maskUrl: true, hijackRefresh: true, watermark: { content: 'w' }, transition: 'fade', cacheKeyStrategy: 'name' },
     }), CTX)
@@ -237,7 +237,7 @@ describe('逐表映射抽查（拍平 / 缺省 / 特殊列）', () => {
   })
 
   it('sys_device：sr/vp/geo 拍平、GeoJSON coordinates 取 [经,纬]、数组列缺省', () => {
-    const mapped = ETL_MAPPERS.sys_device(baseDoc({
+    const mapped = SEED_MAPPERS.sys_device(baseDoc({
       deviceName: 'D1',
       deviceId: 'fp',
       deviceInfo: { os: 'Windows 10' },
@@ -257,18 +257,18 @@ describe('逐表映射抽查（拍平 / 缺省 / 特殊列）', () => {
   })
 
   it('sys_locale / sys_dict_data：引用列 v5、required 抛、tag_type 缺省', () => {
-    const locale = ETL_MAPPERS.sys_locale(baseDoc({ langId: VISITOR_ROLE_HEX, key: 'app.base.yes', value: 'Yes' }), CTX)
+    const locale = SEED_MAPPERS.sys_locale(baseDoc({ langId: VISITOR_ROLE_HEX, key: 'app.base.yes', value: 'Yes' }), CTX)
     expect(locale.row.lang_id).toBe(VISITOR_ROLE_UUID)
-    expect(() => ETL_MAPPERS.sys_locale(baseDoc({ langId: null, key: 'k' }), CTX)).toThrow()
+    expect(() => SEED_MAPPERS.sys_locale(baseDoc({ langId: null, key: 'k' }), CTX)).toThrow()
 
-    const data = ETL_MAPPERS.sys_dict_data(baseDoc({ typeId: VISITOR_ROLE_HEX, label: 'l', value: 'v' }), CTX)
+    const data = SEED_MAPPERS.sys_dict_data(baseDoc({ typeId: VISITOR_ROLE_HEX, label: 'l', value: 'v' }), CTX)
     expect(data.row.sort_order).toBe(0)
     expect(data.row.tag_type).toBe('primary')
-    expect(() => ETL_MAPPERS.sys_dict_data(baseDoc({ typeId: VISITOR_ROLE_HEX, label: null, value: 'v' }), CTX)).toThrow()
+    expect(() => SEED_MAPPERS.sys_dict_data(baseDoc({ typeId: VISITOR_ROLE_HEX, label: null, value: 'v' }), CTX)).toThrow()
   })
 
   it('sys_log_operate：requestData/responseData 走 Q7；success 三态；operated_at 兜底 createdAt', () => {
-    const mapped = ETL_MAPPERS.sys_log_operate(baseDoc({
+    const mapped = SEED_MAPPERS.sys_log_operate(baseDoc({
       title: 't',
       actionType: 'UPDATE',
       requestData: '{"a":1}',
@@ -290,11 +290,11 @@ describe('逐表映射抽查（拍平 / 缺省 / 特殊列）', () => {
   })
 
   it('sys_log_operate：snapshot 的坏字符串 fail-closed 抛（无旁路列）', () => {
-    expect(() => ETL_MAPPERS.sys_log_operate(baseDoc({ title: 't', actionType: 'UPDATE', snapshotBefore: '{bad' }), CTX)).toThrow()
+    expect(() => SEED_MAPPERS.sys_log_operate(baseDoc({ title: 't', actionType: 'UPDATE', snapshotBefore: '{bad' }), CTX)).toThrow()
   })
 
   it('app_monitor_user：left → is_left；focus 缺省 true（源 schema 口径）；改名时间列', () => {
-    const mapped = ETL_MAPPERS.app_monitor_user(baseDoc({
+    const mapped = SEED_MAPPERS.app_monitor_user(baseDoc({
       visitorId: 'fp',
       left: true,
       firstVisitAt: new Date(TS),
@@ -306,20 +306,20 @@ describe('逐表映射抽查（拍平 / 缺省 / 特殊列）', () => {
   })
 
   it('app_error：headers 缺省 {}；created_at 必有（无 updated_at）', () => {
-    const mapped = ETL_MAPPERS.app_error(baseDoc({}), CTX)
+    const mapped = SEED_MAPPERS.app_error(baseDoc({}), CTX)
     expect(mapped.row.headers).toEqual({})
     expect(mapped.row).toHaveProperty('created_at')
     expect(mapped.row).not.toHaveProperty('updated_at')
   })
 
   it('shared_area：无时间列；code/name/pcode 必填', () => {
-    const mapped = ETL_MAPPERS.shared_area(baseDoc({ code: '110000', name: '北京', pcode: '0' }), CTX)
+    const mapped = SEED_MAPPERS.shared_area(baseDoc({ code: '110000', name: '北京', pcode: '0' }), CTX)
     expect(Object.keys(mapped.row).sort()).toEqual(['code', 'id', 'name', 'pcode'])
-    expect(() => ETL_MAPPERS.shared_area(baseDoc({ code: '110000', name: 'x' }), CTX)).toThrow()
+    expect(() => SEED_MAPPERS.shared_area(baseDoc({ code: '110000', name: 'x' }), CTX)).toThrow()
   })
 
   it('app_setting：created_by 松引用 v5；setting_value 专项重写走通', () => {
-    const mapped = ETL_MAPPERS.app_setting(baseDoc({
+    const mapped = SEED_MAPPERS.app_setting(baseDoc({
       settingName: '应用默认 - 角色',
       settingKey: 'app.default.role',
       settingValue: VISITOR_ROLE_HEX,
@@ -333,8 +333,8 @@ describe('逐表映射抽查（拍平 / 缺省 / 特殊列）', () => {
 
 describe('注册表形态', () => {
   it('24 个集合全注册，装载顺序父表在前（FK 依赖）', () => {
-    expect(ETL_COLLECTION_ORDER).toHaveLength(24)
-    const indexOf = (name: string) => ETL_COLLECTION_ORDER.indexOf(name)
+    expect(SEED_COLLECTION_ORDER).toHaveLength(24)
+    const indexOf = (name: string) => SEED_COLLECTION_ORDER.indexOf(name)
     expect(indexOf('sys_lang')).toBeLessThan(indexOf('sys_locale'))
     expect(indexOf('sys_dict_type')).toBeLessThan(indexOf('sys_dict_data'))
     // sys_role_menu 挂 menu、sys_user_role 挂 role ⇒ menu → role → user

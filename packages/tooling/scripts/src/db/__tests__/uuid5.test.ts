@@ -11,7 +11,7 @@ import {
   deriveUuidFromObjectId,
   isObjectIdHex,
   uuidV5,
-  WALNUT_ADMIN_ETL_NAMESPACE,
+  WALNUT_ADMIN_UUID_NAMESPACE,
 } from '../uuid5.ts'
 
 /** RFC 4122 附录 B / Python 文档的公开向量：uuid5(NAMESPACE_DNS, 'python.org') */
@@ -24,21 +24,21 @@ describe('uuidV5（RFC 4122 §4.3）', () => {
   })
 
   it('确定性：同输入恒同输出（ETL 重跑 / 双跑对拍的前提）', () => {
-    const first = uuidV5('68635668a1f084bfd66da715', WALNUT_ADMIN_ETL_NAMESPACE)
-    const second = uuidV5('68635668a1f084bfd66da715', WALNUT_ADMIN_ETL_NAMESPACE)
+    const first = uuidV5('68635668a1f084bfd66da715', WALNUT_ADMIN_UUID_NAMESPACE)
+    const second = uuidV5('68635668a1f084bfd66da715', WALNUT_ADMIN_UUID_NAMESPACE)
 
     expect(first).toBe(second)
   })
 
   it('namespace 隔离：同一 name 在不同 namespace 下得到不同 uuid', () => {
-    const a = uuidV5('5fb27aee3a30b717d8078eb5', WALNUT_ADMIN_ETL_NAMESPACE)
+    const a = uuidV5('5fb27aee3a30b717d8078eb5', WALNUT_ADMIN_UUID_NAMESPACE)
     const b = uuidV5('5fb27aee3a30b717d8078eb5', RFC_NAMESPACE_DNS)
 
     expect(a).not.toBe(b)
   })
 
   it('形态契约：version 位 5、variant 位 RFC4122、全小写规范格式', () => {
-    const uuid = uuidV5('5fb27aee3a30b717d8078eb5', WALNUT_ADMIN_ETL_NAMESPACE)
+    const uuid = uuidV5('5fb27aee3a30b717d8078eb5', WALNUT_ADMIN_UUID_NAMESPACE)
 
     expect(uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
     expect(uuid[14]).toBe('5')

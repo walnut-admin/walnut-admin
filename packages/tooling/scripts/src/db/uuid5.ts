@@ -26,7 +26,7 @@ import { createHash } from 'node:crypto'
  * 2026-10-25 B5 定稿：随机生成一次后**硬编码进版本管理**——此后所有环境（本地 / demo /
  * CI / 生产 ETL）的存量 id 派生都必须用它，**永不可改**（改了等于全部 id 换世界）。
  */
-export const WALNUT_ADMIN_ETL_NAMESPACE = 'c1882c14-e4d4-4f2b-b728-346db51c312e'
+export const WALNUT_ADMIN_UUID_NAMESPACE = 'c1882c14-e4d4-4f2b-b728-346db51c312e'
 
 /** 24 位 ObjectId hex（Mongo 侧存量 id 的本体形态） */
 const OBJECT_ID_HEX_RE = /^[0-9a-f]{24}$/
@@ -73,7 +73,7 @@ export function uuidV5(name: string, namespace: string): string {
  * @description ETL / seed 通道的派生入口：统一 namespace + ObjectId hex 本体作 name。
  * 输入不是 24 位 hex 时直接抛（ETL 侧该类输入属于数据错误，不许静默换值）。
  */
-export function deriveUuidFromObjectId(hex: string, namespace: string = WALNUT_ADMIN_ETL_NAMESPACE): string {
+export function deriveUuidFromObjectId(hex: string, namespace: string = WALNUT_ADMIN_UUID_NAMESPACE): string {
   if (!isObjectIdHex(hex)) {
     throw new Error(`deriveUuidFromObjectId 需要 24 位 ObjectId hex，收到：${hex}`)
   }

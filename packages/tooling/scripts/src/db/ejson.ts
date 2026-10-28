@@ -10,7 +10,7 @@
  *    的机器上，人肉导入照样能用（老文档描述的就是那条路）。
  *
  * 只认这两个形状，别的一律原样返回。Phase 5a 起 mongodb 驱动已从工具链摘除：
- * `$oid` 解析为 **24 位 hex 字符串**（uuid5 派生与 ETL 映射都直接吃 hex，见 `etl-map.ts`
+ * `$oid` 解析为 **24 位 hex 字符串**（uuid5 派生与 ETL 映射都直接吃 hex，见 `seed-map.ts`
  * 的 `refUuid`），写出侧只处理 `$date`（PG 回灌的 `_id` 是 uuid 本体，不再是 ObjectId）。
  */
 /** 形状判定：恰好只有 `$oid` / `$date` 一个键的对象才算包装 */

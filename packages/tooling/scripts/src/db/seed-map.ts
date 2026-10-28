@@ -32,7 +32,7 @@ import { ViolationError } from '../lib/errors.ts'
 import { deriveUuidFromObjectId, isObjectIdHex, UUID_RE } from './uuid5.ts'
 
 /** 映射上下文：setting_value 重写需要知道哪些 hex 是存量 role id（来自 Mongo sys_role） */
-export interface EtlMapContext {
+export interface SeedMapContext {
   roleHexes: ReadonlySet<string>
 }
 
@@ -46,7 +46,7 @@ export interface MappedDoc {
   junction?: { table: string, rows: Record<string, unknown>[] }
 }
 
-export type CollectionMapper = (doc: Record<string, unknown>, ctx: EtlMapContext) => MappedDoc
+export type CollectionMapper = (doc: Record<string, unknown>, ctx: SeedMapContext) => MappedDoc
 
 // ---------------------------------------------------------------------------
 // 标量归一
@@ -246,7 +246,7 @@ function remapStringifiedPayload(text: string): ErrorPayloadMapping {
  * - JSON 文本 → 递归找**恰好是存量 role hex** 的字符串值替换为 v5；非 role 的 hex 与
  *   jsonb 里的历史串一律不动。parse 失败（如 `"0"`、`"[]"` 外的杂值）→ 原样返回。
  */
-export function mapSettingValue(value: unknown, ctx: EtlMapContext): string {
+export function mapSettingValue(value: unknown, ctx: SeedMapContext): string {
   const text = reqStr(value, 'app_setting.setting_value')
   if (UUID_RE.test(text))
     return text
@@ -266,7 +266,7 @@ export function mapSettingValue(value: unknown, ctx: EtlMapContext): string {
   }
 }
 
-function rewriteEmbeddedRoleHex(node: unknown, ctx: EtlMapContext): unknown {
+function rewriteEmbeddedRoleHex(node: unknown, ctx: SeedMapContext): unknown {
   if (typeof node === 'string') {
     if (isObjectIdHex(node) && ctx.roleHexes.has(node))
       return deriveUuidFromObjectId(node)
@@ -693,7 +693,7 @@ function mapSharedArea(doc: Record<string, unknown>): MappedDoc {
   }
 }
 
-function mapAppSetting(doc: Record<string, unknown>, ctx: EtlMapContext): MappedDoc {
+function mapAppSetting(doc: Record<string, unknown>, ctx: SeedMapContext): MappedDoc {
   return {
     table: 'app_setting',
     row: {
@@ -827,7 +827,7 @@ function sub(value: unknown, field: string): Record<string, unknown> | null {
  * menu→role→user（role junction 挂 menu、user junction 挂 role）、device→user_device、
  * user→identity/…）。
  */
-export const ETL_MAPPERS: Record<string, CollectionMapper> = {
+export const SEED_MAPPERS: Record<string, CollectionMapper> = {
   sys_lang: mapSysLang,
   sys_locale: mapSysLocale,
   sys_dict_type: mapSysDictType,
@@ -854,8 +854,8 @@ export const ETL_MAPPERS: Record<string, CollectionMapper> = {
   auth_refresh_token: mapAuthRefreshToken,
 }
 
-/** 集合装载顺序（同 ETL_MAPPERS 的键序，显式列出供对账与 truncate 复用） */
-export const ETL_COLLECTION_ORDER: readonly string[] = Object.keys(ETL_MAPPERS)
+/** 集合装载顺序（同 SEED_MAPPERS 的键序，显式列出供对账与 truncate 复用） */
+export const SEED_COLLECTION_ORDER: readonly string[] = Object.keys(SEED_MAPPERS)
 
 /** junction 表 → 复合冲突目标（ON CONFLICT 子句用；业务表统一 `(id)`） */
 export const JUNCTION_CONFLICT_TARGETS: Record<string, string> = {

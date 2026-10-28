@@ -80,9 +80,12 @@ Swagger 缺口：@nestjs/swagger 仍无官方 zod→OpenAPI 一等支持——�
 | L2 | **listAggregate sort 收紧** | 各列表 DTO 的 sort 白名单收敛到有索引支撑的列集；高频模糊字段按需补 trgm GIN（全库仅 sys_locale.key 一个）。`{query,sort,page}` 契约本身不动（前端 table 组件长在上面） | S~M/实体 | 渐进型 |
 | L3 | **appSettings 读取小手术** | `getSetting` 每调用 `JSON.parse` 整对象且每请求都过 functional.guard——进程内 memo + 写后失效（复用现有 after-commit 钩子时序）；LISTEN/NOTIFY 多实例失效列可选后续 | S | 随时可做 |
 
-另：ETL 工具链（tooling/scripts/src/db 的 etl-map/ejson/uuid5/seed-pg/export-pg）的
-**退役时机未定义**——是一个「该有 ADR 而没有」的真空：保留（作为 Mongo 备份再灌通道）还是
-封存退役，需要拍板。
+ETL 工具链处置（2026-10-28 已落地，正名而非封存）：核实发现 etl-map/uuid5 是 seed-pg/
+export-pg 的**活依赖**（同一映射层），「封存」不成立；已正名——`etl-map.ts → seed-map.ts`
+（导出符号 EtlMap*→SeedMap*、ETL_*→SEED_*）、`WALNUT_ADMIN_ETL_NAMESPACE →
+WALNUT_ADMIN_UUID_NAMESPACE`（值不变，v5 派生确定性不受影响）；ETL 驱动脚本与
+db:etl/db:verify-etl 通道早在 5a 已删。现状：`seed-map/ejson/uuid5/seed-pg/export-pg`
+是纯 seed 通道组件，无 ADR 真空残留。
 
 ### 4.2 明确不动（含理由）
 
@@ -109,8 +112,7 @@ cap/SSE 无壳面登记（P2-10 / P3-8，DESIGN-ISSUES 现 35 条）。
 ## 5. 决策待办（需要维护者拍板）
 
 1. **NestJS 12 升级窗口**：建议 1-2 个月内独立分支执行（前置清单见 §2）。
-2. **OpenAPI codegen 第一期**：是否启动（方案见 §3，低风险）。
-3. **ETL 工具链去留**：保留为再灌通道 or 封存退役（建议：保留 seed-pg/export-pg，
-   封存 etl-map/ejson/uuid5 为 archived 目录或直接删除——Mongo 备份已无再灌场景后即失效）。
+2. **OpenAPI codegen 第一期**：✅ 本轮执行中（方案见 §3）。
+3. **ETL 工具链去留**：✅ 已落地（2026-10-28）——正名而非封存（见 §4.1 末），seed 通道组件保留。
 4. **L1 命名清理窗口**：✅ 已于 2026-10-28 执行（在 sys_deleted 存量为 0 的窗口内完成，见 §4.1 L1 执行记录）。
 5. ~~admin 闲置 zod 依赖~~：勘误消除——zod 在 admin 构建配置真实使用（见 §1 勘误），不处置。

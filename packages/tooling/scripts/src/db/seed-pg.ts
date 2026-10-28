@@ -1,4 +1,4 @@
-import type { EtlMapContext } from './etl-map.ts'
+import type { SeedMapContext } from './seed-map.ts'
 /**
  * `db:seed:pg` —— 把 `apps/server/db/seed/` 的初始化数据播种进 **PostgreSQL**（PG 化的 seed 通道，
  * CI / 部署接线用；Phase 5 起 deploy.yml 调它）。
@@ -6,7 +6,7 @@ import type { EtlMapContext } from './etl-map.ts'
  * ## 与旧 `db:seed`（Mongo 版，Phase 5a 已退役）的关系
  *
  * 源真源不变：还是仓里那 8 个 Extended JSON 文件（`$oid` / `$date` 保持原样）。本脚本走
- * `etl-map.ts` 同一条映射（`$oid` → uuid v5、`$date` → timestamptz、meta 拍平、junction 拆分），
+ * `seed-map.ts` 同一条映射（`$oid` → uuid v5、`$date` → timestamptz、meta 拍平、junction 拆分），
  * 保证「seed 重建出的 PG」与「ETL 搬出来的 PG」id 逐行一致（phase2 §3.2 定稿的初衷）。
  *
  * ## 幂等
@@ -24,8 +24,8 @@ import { line, out } from '../lib/log.ts'
 import { buildPasswordIdentity, verifyPasswordIdentity } from './admin-credential.ts'
 import { generateAppKeys } from './app-keys.ts'
 import { parseCollectionFile } from './ejson.ts'
-import { ETL_COLLECTION_ORDER, ETL_MAPPERS, JUNCTION_CONFLICT_TARGETS, preparePgParam, sortMenuRowsByDepth } from './etl-map.ts'
 import { resolvePgTarget } from './pg-conn.ts'
+import { JUNCTION_CONFLICT_TARGETS, preparePgParam, SEED_COLLECTION_ORDER, SEED_MAPPERS, sortMenuRowsByDepth } from './seed-map.ts'
 import { listSeedCollections, resolvePath, SEED_DIR } from './seed.ts'
 import { isObjectIdHex } from './uuid5.ts'
 
@@ -137,15 +137,15 @@ export function resolveSeedCollections(seedDir: string, only?: readonly string[]
   if (!existsSync(seedDir))
     throw new PreconditionError(`找不到 seed 目录：${seedDir}`)
   const files = listSeedCollections(seedDir)
-  const unknown = only?.filter(name => !ETL_COLLECTION_ORDER.includes(name) || !files.includes(name)) ?? []
+  const unknown = only?.filter(name => !SEED_COLLECTION_ORDER.includes(name) || !files.includes(name)) ?? []
   if (unknown.length > 0)
     throw new PreconditionError(`--only 里的集合不在 seed 目录或不认识：${unknown.join(', ')}`)
-  const picked = files.filter(name => ETL_COLLECTION_ORDER.includes(name) && (only === undefined || only.includes(name)))
+  const picked = files.filter(name => SEED_COLLECTION_ORDER.includes(name) && (only === undefined || only.includes(name)))
   if (picked.length === 0)
     throw new PreconditionError(`seed 目录里没有可播的集合（${seedDir}）`)
   return picked
     .map(name => ({ name, file: join(seedDir, `${name}.json`) }))
-    .sort((a, b) => ETL_COLLECTION_ORDER.indexOf(a.name) - ETL_COLLECTION_ORDER.indexOf(b.name))
+    .sort((a, b) => SEED_COLLECTION_ORDER.indexOf(a.name) - SEED_COLLECTION_ORDER.indexOf(b.name))
 }
 
 /**
@@ -154,7 +154,7 @@ export function resolveSeedCollections(seedDir: string, only?: readonly string[]
  */
 export function buildUpsertSql(table: string, cols: readonly string[], rowCount: number): string {
   const conflict = JUNCTION_CONFLICT_TARGETS[table]
-  if (conflict === undefined && !ETL_COLLECTION_ORDER.includes(table))
+  if (conflict === undefined && !SEED_COLLECTION_ORDER.includes(table))
     throw new ViolationError(`表 ${table} 既不是已注册集合也不是 junction 表 —— 拒绝构造 UPSERT`)
   const colList = cols.map(c => `"${c}"`).join(', ')
   const rows: string[] = []
@@ -176,8 +176,8 @@ export interface SeedPgCollectionStats {
 }
 
 /** 播一个集合：读文件 → 映射 → upsert（单条多行语句；行数远小于 PG 参数上限） */
-export async function seedPgCollection(pg: Client, name: string, file: string, ctx: EtlMapContext, dryRun: boolean): Promise<SeedPgCollectionStats> {
-  const mapper = ETL_MAPPERS[name]
+export async function seedPgCollection(pg: Client, name: string, file: string, ctx: SeedMapContext, dryRun: boolean): Promise<SeedPgCollectionStats> {
+  const mapper = SEED_MAPPERS[name]
   const docs = parseCollectionFile(readFileSync(file, 'utf8'))
   const rows: Record<string, unknown>[] = []
   const junctionRows: Record<string, unknown>[] = []
@@ -363,7 +363,7 @@ function readOpaqueSecret(repoRoot: string, envFileOverride: string): string {
  */
 export function buildSeedContext(
   collections: readonly { name: string, file: string }[],
-): EtlMapContext {
+): SeedMapContext {
   const roleEntry = collections.find(entry => entry.name === 'sys_role')
   const roleHexes = new Set<string>()
   if (roleEntry !== undefined) {
