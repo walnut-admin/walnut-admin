@@ -173,8 +173,12 @@ export class SysUserDTOSafe extends SysUserDTO {
 }
 
 // list
+// L2 sort 白名单：admin user 列表排 status/createdAt/updatedAt（views/system/user
+// 三个 preset 列，updatedAt 为 defaultSortOrder descend）。createdAt 有
+// idx_user_created_at DESC；status 无索引但 admin 在用 → 保留，见报告建议补索引
 export class SysUserDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPartialType(SysUserDTOSafe),
+  { sortOnlyIn: ['status', 'createdAt', 'updatedAt'] },
 ) {}
 
 export class SysUserDTOListResponse extends CreateWalnutAdminResponseListDTO(

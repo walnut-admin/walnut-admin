@@ -333,8 +333,12 @@ export class AppDemoDTOSafe extends AppDemoDTO {
 }
 
 // list
+// L2 sort 白名单：createdAt/updatedAt 恒可排（基座时间列）；admin demo 列表页无任何
+// sorter（views/app/demo），只吃 builder 默认 createdAt DESC。demoNumber 等其余列无
+// 索引支撑也无业务排序诉求，剔除（demoString 虽有 uq_demo_string，但纯拍脑袋可排，同剔）
 export class AppDemoDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPartialType(AppDemoDTOSafe),
+  { sortOnlyIn: ['createdAt', 'updatedAt'] },
 ) {}
 
 export class AppDemoDTOListResponse extends CreateWalnutAdminResponseListDTO(

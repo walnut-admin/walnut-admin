@@ -126,8 +126,13 @@ class SysDictDataDTOSafeRequest extends RealPartialType(RealOmitType(SysDictData
 }
 
 // list
+// L2 sort 白名单：admin dict 详情页排 order/status/createdAt/updatedAt
+// （views/system/dict/detail.vue 四个 preset 列）。order → sort_order，有
+// idx_dict_data_type_order (type_id, sort_order) 支撑（详情列表恒带 typeId 过滤）；
+// status 无索引但 admin 在用 → 保留，见报告建议补索引
 export class SysDictDataDTOListRequest extends CreateWalnutAdminRequestListDTO(
   SysDictDataDTOSafeRequest,
+  { sortOnlyIn: ['order', 'status', 'createdAt', 'updatedAt'] },
 ) { }
 
 export class SysDictDataDTOListResponse extends CreateWalnutAdminResponseListDTO(

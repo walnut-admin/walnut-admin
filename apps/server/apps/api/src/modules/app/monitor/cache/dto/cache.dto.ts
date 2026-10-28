@@ -54,8 +54,12 @@ export class AppMonitorCacheDTO {
 }
 
 // list
+// L2 sort 白名单：Redis 缓存监控是内存列表（cache.service.list 的 lodash orderBy），
+// 无 filesort 之虞，白名单对齐 admin 实际可排的五列（views/app/monitor/cache）；
+// type 无 sorter 不收
 export class AppMonitorCacheDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPartialType(AppMonitorCacheDTO),
+  { sortOnlyIn: ['key', 'valueBytes', 'expire', 'startTime', 'expireTime'] },
 ) {}
 
 export class AppMonitorCacheDTOListResponse extends CreateWalnutAdminResponseListDTO(

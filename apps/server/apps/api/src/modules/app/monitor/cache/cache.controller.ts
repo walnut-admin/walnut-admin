@@ -17,6 +17,7 @@ import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermis
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
 import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
+import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import {
   AppMonitorCacheDTO,
   AppMonitorCacheDTOListRequest,
@@ -39,7 +40,10 @@ const { WalnutAdminDecoratorRead, WalnutAdminDecoratorList, WalnutAdminDecorator
 @ApiTags('app/monitor/cache')
 @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 export class AppMonitorCacheController {
-  constructor(private readonly cacheService: AppTechCacheService) { }
+  constructor(
+    private readonly cacheService: AppTechCacheService,
+    private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
+  ) { }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead('key')
@@ -67,7 +71,13 @@ export class AppMonitorCacheController {
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
   @WalnutAdminDecoratorDelete('key')
   async deleteCache(@Param('key', new WalnutAdminPipeCacheKey()) key: string) {
-    return void this.cacheService.del(key)
+    const res = void this.cacheService.del(key)
+
+    // L3 防御性失效：这里绕过 setAppSettings 直删 Redis，若删的恰是 APP:SETTING，
+    // appSettings 的进程内 memo 不会自愈 —— 无条件清一次（重建只是一次 Redis GET）
+    this.cacheAppSettingsService.invalidateMemoForExternalCacheRemoval()
+
+    return res
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)

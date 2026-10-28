@@ -12,18 +12,67 @@ export class AppTechCacheAppSettingsService {
 
   constructor(private readonly cacheService: AppTechCacheService) { }
 
+  // ── L3 进程内 memo ────────────────────────────────────────────────────────
+  // APP:SETTING 是「写极稀疏、读极高频」的配置小表缓存：functional.guard 每请求
+  // getAppSettings、各 get*Config 每次调用都走 Redis GET + JSON.parse。这里加两层
+  // 进程内 memo：
+  // - appSettingsMemo：整表 { settingKey → settingValue } 原始映射（getAppSettings 出参），
+  //   省掉每请求的 Redis GET；
+  // - settingMemo：getSetting 解析后的每 key 值，省掉重复 JSON.parse。
+  //
+  // 一致性边界（重要）：
+  // 1. 失效点是 setAppSettings —— 全部写路径（setting create/update →
+  //    extractAppSettingIntoCache、cache/refresh 端点、updateAppSettingByKey 的
+  //    runAfterCommit 刷新、启动期 task.service 预热）都收口到它，写后即清 memo，
+  //    同进程后续读立即见新值；monitor 端点的按 key 删除亦接了失效（见
+  //    AppMonitorCacheController.deleteCache）。
+  // 2. 单实例部署下语义安全；**多实例下其他实例的写不会失效本进程 memo**（无
+  //    Redis keyspace 通知，LISTEN/NOTIFY 为 roadmap 记录的可选后续），其他实例
+  //    写完 setting 后本进程最长要等到本进程下一次 setAppSettings 才回正。当前
+  //    部署形态是单实例，此边界可接受，扩多实例前必须先补跨实例失效。
+  // 3. Redis 侧被外部直接删 key（监控台手工删 APP:SETTING 等）同样进不了失效 ——
+  //    memo 只信自己的写通道。null 结果不入 memo（Redis 清空/未预热可自愈）。
+  private appSettingsMemo: typeof WalnutAdminConstAppSettingKeys | null = null
+  private readonly settingMemo = new Map<IWalnutAdminConstAppSettingKeys, unknown>()
+
+  private invalidateAppSettingsMemo() {
+    this.appSettingsMemo = null
+    this.settingMemo.clear()
+  }
+
+  /**
+   * 供「绕过 setAppSettings 直删 Redis」的外部通道做防御性失效（当前消费方：
+   * 监控台按 key 删缓存）。无条件清 memo，重建成本只是一次 Redis GET。
+   */
+  public invalidateMemoForExternalCacheRemoval() {
+    this.invalidateAppSettingsMemo()
+  }
+
   async setAppSettings(value: any, opt: IWalnutAdminCacheOptions) {
     await this.cacheService.set(
       WalnutAdminConstAppCacheKeys.APP_SETTING,
       value,
       opt,
     )
+    // 写路径统一收口在这里 → 写后失效进程内 memo（同进程读立即见新值）
+    this.invalidateAppSettingsMemo()
   }
 
   async getAppSettings() {
+    // memo 命中：纯内存返回（引用共享 —— 消费方均为只读取值，无写回方）
+    if (this.appSettingsMemo !== null) {
+      return this.appSettingsMemo
+    }
+
     const cached = await this.cacheService.get<typeof WalnutAdminConstAppSettingKeys>(
       WalnutAdminConstAppCacheKeys.APP_SETTING,
     )
+
+    // null 不入 memo：Redis 未预热/被清空时保持「回源自愈」的既有行为
+    if (cached !== null && cached !== undefined) {
+      this.appSettingsMemo = cached
+    }
+
     return cached!
   }
 
@@ -31,9 +80,17 @@ export class AppTechCacheAppSettingsService {
     key: IWalnutAdminConstAppSettingKeys,
     defaultValue: T,
   ): Promise<T> {
+    // 解析结果 memo 命中（成功解析过的 key 才会进 Map，用 has 而非 undefined 哨兵 ——
+    // 值本身合法地可能是 null）
+    if (this.settingMemo.has(key)) {
+      return this.settingMemo.get(key) as T
+    }
+
     try {
       const appSetting = await this.getAppSettings()
-      return JSON.parse(appSetting[key as keyof typeof appSetting]) as T
+      const parsed = JSON.parse(appSetting[key as keyof typeof appSetting]) as T
+      this.settingMemo.set(key, parsed)
+      return parsed
     }
     catch (error) {
       this.logger.error(error)

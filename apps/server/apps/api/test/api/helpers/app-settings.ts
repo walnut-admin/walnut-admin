@@ -38,8 +38,11 @@ export async function overrideAppSettings(
 
   return async () => {
     if (original === null) {
-      // 原现场缓存缺失：删键回到缺失态（AppTechCacheService.del 自带 WALNUT_CACHE_ 前缀）
+      // 原现场缓存缺失：删键回到缺失态（AppTechCacheService.del 自带 WALNUT_CACHE_ 前缀）。
+      // L3：这里是绕过 setAppSettings 的直删通道，必须同步失效 appSettings 的进程内
+      // memo，否则本进程后续 getAppSettings 会读到 restore 前的旧映射（guard 误关功能）
       await app.get(AppTechCacheService).del(WalnutAdminConstAppCacheKeys.APP_SETTING)
+      app.get(AppTechCacheAppSettingsService).invalidateMemoForExternalCacheRemoval()
     }
     else {
       await service.setAppSettings(original, { t: WalnutAdminConstAppCacheType.BUILT_IN })

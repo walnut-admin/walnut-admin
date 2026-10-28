@@ -92,8 +92,13 @@ export class SysLocaleDTOSafe extends SysLocaleDTO {
 }
 
 // list
+// L2 sort 白名单：与 locale.repo.service aggregateList 的 SORT_ALIAS_MAP 对齐
+// （key/process/createdAt/updatedAt 可落 SQL ORDER BY）；admin locale 列表排 key +
+// process（defaultSortOrder descend）。key 有 idx_locale_key（btree+gin trgm）；
+// id 在 SORT_MAP 里只是 key 的别名，admin 不用，不收
 export class SysLocaleDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPartialType(SysLocaleDTOSafe),
+  { sortOnlyIn: ['key', 'process', 'createdAt', 'updatedAt'] },
 ) {}
 
 export class SysLocaleDTOListResponse extends CreateWalnutAdminResponseListDTO(

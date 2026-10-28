@@ -498,8 +498,12 @@ export class SysMenuDTOTreeResponse {
 }
 
 // list
+// L2 sort 白名单：admin menu 是树表格、无 server sorter，业务排序列是 order
+// （树内兄弟序，idx_menu_status_sort_order (status, sort_order) 复合索引支撑，
+// status 为索引首列一并收录）；createdAt 承接 builder 默认排序
 export class SysMenuDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPartialType(SysMenuDTOSafe),
+  { sortOnlyIn: ['order', 'status', 'createdAt', 'updatedAt'] },
 ) {}
 
 export class SysMenuDTOListResponse extends CreateWalnutAdminResponseListDTO(

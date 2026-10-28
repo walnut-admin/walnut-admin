@@ -294,7 +294,13 @@ class SysLogOperateDTOSafeRequest extends RealPartialType(RealOmitType(SysLogOpe
 }
 
 // list
-export class SysLogOperateDTOListRequest extends CreateWalnutAdminRequestListDTO(SysLogOperateDTOSafeRequest) { }
+// L2 sort 白名单：admin 操作日志排 title/actionType/operation/method/userName/
+// success/operatedAt（views/system/log/operate 七列 sorter，operatedAt 为
+// defaultSortOrder descend，有 idx_log_operate_at DESC）；其余列无索引但 admin 在用
+// → 保留，见报告建议补索引。实体只有 operated_at 一个时间列，无 createdAt/updatedAt
+export class SysLogOperateDTOListRequest extends CreateWalnutAdminRequestListDTO(SysLogOperateDTOSafeRequest, {
+  sortOnlyIn: ['title', 'actionType', 'operation', 'method', 'userName', 'success', 'operatedAt'],
+}) { }
 
 export class SysLogOperateDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(SysLogOperateDTOSafe),

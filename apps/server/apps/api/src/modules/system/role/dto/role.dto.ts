@@ -130,8 +130,13 @@ export class SysRoleDTOSafeWithoutMenus extends RealOmitType(SysRoleDTOSafe, [
 }
 
 // list
+// L2 sort 白名单：admin role 列表排 roleName/order/status/createdAt/updatedAt
+// （views/system/role 五列全带 sorter，order 为 defaultSortOrder ascend）。
+// roleName 有 uq_role_name、createdAt 有 idx_role_created_at DESC；order/status 无
+// 索引但 admin 在用 → 保留，见报告建议补索引
 export class SysRoleDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPartialType(SysRoleDTOSafe),
+  { sortOnlyIn: ['roleName', 'order', 'status', 'createdAt', 'updatedAt'] },
 ) {}
 
 export class SysRoleDTOListResponse extends CreateWalnutAdminResponseListDTO(

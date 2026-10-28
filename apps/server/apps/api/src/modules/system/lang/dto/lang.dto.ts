@@ -110,8 +110,12 @@ export class SysLangDTOSafe extends SysLangDTO {
 }
 
 // list
+// L2 sort 白名单：admin lang 列表排 order（defaultSortOrder ascend）/status/
+// createdAt/updatedAt（views/system/lang 四个 preset 列）。order → sort_order 列，
+// sys_lang 无独立业务索引（仅 uq_lang）——admin 在用，保留，见报告建议补索引
 export class SysLangDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPartialType(SysLangDTOSafe),
+  { sortOnlyIn: ['order', 'status', 'createdAt', 'updatedAt'] },
 ) { }
 
 export class SysLangDTOListResponse extends CreateWalnutAdminResponseListDTO(

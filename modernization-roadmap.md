@@ -21,8 +21,10 @@
 - 未来 bump 时的验证清单：`types:check` 先红装饰器签名 → 全量 431 测试 →
   定点回归四处（40099 白名单报错形状 / undefined 材料化 / IsOptional 双跳过 / RealPickType 派生）。
 - zod 重审触发条件：① 升 NestJS 12 后 @nestjs/swagger 出一等 zod→OpenAPI 支持；
-  ② admin 决定引入前端运行时校验并要求前后端 schema 同源。另：admin 的 `zod: catalog:`
-  依赖当前零引用，属闲置（处置待定：删或注明用途）。
+  ② admin 决定引入前端运行时校验并要求前后端 schema 同源。
+  （勘误 2026-10-28：早前「admin 的 zod 依赖零引用属闲置」记载有误——zod 在
+  `apps/admin/build/vite/config/shared.ts` 用于 VITE_PROXY 环境变量校验，已在
+  devDependencies，非闲置、不处置。initial 调研只扫了 src/ 漏了 build/。）
 
 ## 2. NestJS 12：已 GA，不建议现在升，开独立窗口（1-2 个月内）
 
@@ -111,4 +113,4 @@ cap/SSE 无壳面登记（P2-10 / P3-8，DESIGN-ISSUES 现 35 条）。
 3. **ETL 工具链去留**：保留为再灌通道 or 封存退役（建议：保留 seed-pg/export-pg，
    封存 etl-map/ejson/uuid5 为 archived 目录或直接删除——Mongo 备份已无再灌场景后即失效）。
 4. **L1 命名清理窗口**：✅ 已于 2026-10-28 执行（在 sys_deleted 存量为 0 的窗口内完成，见 §4.1 L1 执行记录）。
-5. **admin 闲置 zod 依赖**：删除或注明用途。
+5. ~~admin 闲置 zod 依赖~~：勘误消除——zod 在 admin 构建配置真实使用（见 §1 勘误），不处置。

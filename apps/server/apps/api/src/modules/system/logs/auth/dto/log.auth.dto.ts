@@ -173,7 +173,13 @@ class SysLogAuthDTOSafeRequest extends RealPartialType(RealOmitType(SysLogAuthDT
 }
 
 // list
-export class SysLogAuthDTOListRequest extends CreateWalnutAdminRequestListDTO(SysLogAuthDTOSafeRequest) { }
+// L2 sort 白名单：admin 登录日志排 userName/success/type/authenticatedAt
+// （views/system/log/auth 四列 sorter，authenticatedAt 为 defaultSortOrder descend，
+// 有 idx_log_auth_at DESC）；userName/success/type 无索引但 admin 在用 → 保留，
+// 见报告建议补索引。实体只有 authenticated_at 一个时间列，无 createdAt/updatedAt
+export class SysLogAuthDTOListRequest extends CreateWalnutAdminRequestListDTO(SysLogAuthDTOSafeRequest, {
+  sortOnlyIn: ['userName', 'success', 'type', 'authenticatedAt'],
+}) { }
 
 export class SysLogAuthDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(SysLogAuthDTOSafe),

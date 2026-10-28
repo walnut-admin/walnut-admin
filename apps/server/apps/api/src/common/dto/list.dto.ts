@@ -43,15 +43,33 @@ class WalnutAdminRequestListPageDTO {
   readonly pageSize: number
 }
 
+export interface IWalnutAdminRequestListDTOOptions {
+  /**
+   * L2 sort 白名单收敛：`sort[].field` 的显式白名单 = 「有索引支撑的列 ∪ 业务上
+   * 确实会排序的列」。缺省（不传）仍是 DTO 全部属性 —— 保守兼容存量调用。
+   *
+   * 生效边界（L2 时点的现状，改动前先读）：全局 ValidationPipe 对 list DTO 的
+   * `sort` 数组**不做嵌套校验**（validateOptions.required: false → Allow，无
+   * ValidateNested），本白名单当前是「swagger 契约声明 + 未来开启嵌套校验时的闸」；
+   * 查询层的真正防御收敛在 pg-list.builder（只收实体列）与各模块自定义 SQL 的
+   * SORT 映射。因此收紧这里不会 400 掉任何存量请求，只会让契约面与实际可排序面一致。
+   */
+  sortOnlyIn?: readonly string[]
+}
+
 // create request list dto based on target dto
-export function CreateWalnutAdminRequestListDTO<T>(dto: ClassConstructor<T>) {
-  const keys = Object.keys(plainToInstance(dto as ClassConstructor<object>, {}, {}))
+export function CreateWalnutAdminRequestListDTO<T>(
+  dto: ClassConstructor<T>,
+  options?: IWalnutAdminRequestListDTOOptions,
+) {
+  const keys = options?.sortOnlyIn
+    ?? Object.keys(plainToInstance(dto as ClassConstructor<object>, {}, {}))
 
   class SortDTO {
     @WalnutAdminDecoratorFieldString({
       swaggerOptions: { title: 'sort field name' },
       validateOptions: {
-        onlyIn: keys,
+        onlyIn: [...keys],
       },
     })
     readonly field: string

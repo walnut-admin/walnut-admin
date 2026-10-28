@@ -87,8 +87,12 @@ class AppSettingDTOSafeRequest extends RealPartialType(RealOmitType(AppSettingDT
 }
 
 // list
+// L2 sort 白名单：admin setting 列表只排 createdAt/updatedAt（views/app/setting 的
+// WTablePresetCreatedAt/UpdatedAtColumn）；settingKey 有 uq_setting_key 但无业务排序
+// 诉求，不收。app_setting 无 created_at 索引 → 见报告建议补索引
 export class AppSettingDTOListRequest extends CreateWalnutAdminRequestListDTO(
   AppSettingDTOSafeRequest,
+  { sortOnlyIn: ['createdAt', 'updatedAt'] },
 ) {}
 
 export class AppSettingDTOListResponse extends CreateWalnutAdminResponseListDTO(

@@ -126,8 +126,14 @@ class SysDeletedDTOSafeRequest extends RealPartialType(RealOmitType(SysDeletedDT
 }
 
 // list
+// L2 sort 白名单：admin 回收站排 modelName/collectionName/deletedAt（defaultSortOrder
+// descend）。modelName 有 idx_deleted_model_at (model_name, deleted_at DESC) 首列
+// 支撑、deletedAt 为同索引第二列；collectionName 无索引但 admin 在用 → 保留，见报告
+// 建议补索引。实体无 created_at/updated_at（deletedAt 才是「入桶时间」）；admin 的
+// user.userName 列服务端本就不支持排序（JOIN 别名未接 sort 通道），不收
 export class SystemDeletedDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPartialType(SysDeletedDTOSafeRequest),
+  { sortOnlyIn: ['modelName', 'collectionName', 'deletedAt'] },
 ) {}
 
 export class SystemDeletedDTOListResponse extends CreateWalnutAdminResponseListDTO(

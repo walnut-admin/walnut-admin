@@ -96,8 +96,12 @@ export class SysDictTypeDTOSafe extends SysDictTypeDTO {
 }
 
 // list
+// L2 sort 白名单：admin dict 列表排 status/createdAt/updatedAt（views/system/dict
+// index.vue 三个 preset 列）。createdAt 有 idx_dict_type_created_at DESC；status 无
+// 索引但 admin 在用 → 保留，见报告建议补索引
 export class SysDictTypeDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPartialType(SysDictTypeDTOSafe),
+  { sortOnlyIn: ['status', 'createdAt', 'updatedAt'] },
 ) { }
 
 export class SysDictTypeDTOListResponse extends CreateWalnutAdminResponseListDTO(

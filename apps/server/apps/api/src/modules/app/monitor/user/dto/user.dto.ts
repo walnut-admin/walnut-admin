@@ -141,7 +141,11 @@ class AppMonitorUserDTORequest extends IntersectionType(
 }
 
 // list
-export class AppMonitorUserDTOListRequest extends CreateWalnutAdminRequestListDTO(AppMonitorUserDTORequest) { }
+// L2 sort 白名单：monitor 实体没有 createdAt/updatedAt（first_visit_at / last_active_at
+// 才是创建/更新列），排除基座同名假列；firstVisitAt 有 api-spec 断言（monitor-user
+// api-spec firstVisitAt ascend），lastActiveAt 是 admin 列表默认排序
+// （views/app/monitor/user defaultSortOrder descend；无索引 → 见报告建议补索引）
+export class AppMonitorUserDTOListRequest extends CreateWalnutAdminRequestListDTO(AppMonitorUserDTORequest, { sortOnlyIn: ['firstVisitAt', 'lastActiveAt'] }) { }
 
 export class AppMonitorUserDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(AppMonitorUserDTO),

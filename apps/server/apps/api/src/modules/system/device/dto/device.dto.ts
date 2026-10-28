@@ -234,8 +234,12 @@ export class SysDeviceDTOInitialResponse extends IntersectionType(SharedLocation
 }
 
 // list
+// L2 sort 白名单：admin device 卡片列表以 active/locked/banned 优先级降序排
+// （views/system/device useState 初始 sort）；createdAt 有 idx_device_created_at
+// DESC。active/locked/banned 无索引但 admin 在用 → 保留，见报告建议补索引
 export class SysDeviceDTOListRequest extends CreateWalnutAdminRequestListDTO(
   RealPartialType(SysDeviceDTOSafe),
+  { sortOnlyIn: ['active', 'locked', 'banned', 'createdAt', 'updatedAt'] },
 ) { }
 
 export class SysDeviceDTOListResponse extends CreateWalnutAdminResponseListDTO(
