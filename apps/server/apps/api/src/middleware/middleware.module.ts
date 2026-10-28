@@ -2,6 +2,7 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 
 import { I18nMiddleware } from 'nestjs-i18n'
 
+import { BlacklistPathMiddleware } from './src/blacklist-path.middleware'
 import { CompressionMiddleware } from './src/compression.middleware'
 import { CookieParserMiddleware } from './src/cookieParser.middleware'
 import { CorsMiddleware } from './src/cors.middleware'
@@ -35,6 +36,9 @@ export class AppMiddlewareModule implements NestModule {
 
         IpMiddleware,
         UserAgentMiddleware,
+        // P1-11：未命中路由的请求不执行 guard 链 —— 黑名单路径检查落在中间件
+        // （依赖 IpMiddleware 的 realIp 与 UserAgentMiddleware 的 isPostman）
+        BlacklistPathMiddleware,
 
         XSSMiddleware,
         CSPMiddleware,

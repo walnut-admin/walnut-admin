@@ -6,7 +6,7 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
-import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
+import { WalnutAdminDecoratorParamUuid, WalnutAdminDecoratorParamUuids } from '@walnut-server/decorators/params'
 import { plainToInstance } from 'class-transformer'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
@@ -39,6 +39,7 @@ const {
   WalnutAdminDecoratorRead,
   WalnutAdminDecoratorUpdate,
   WalnutAdminDecoratorDelete,
+  WalnutAdminDecoratorDeleteMany,
   WalnutAdminDecoratorList,
 } = WalnutCrudDecorators({
   title: WalnutAdminConstDecoratorLogOperateTitle.DICT_DATA,
@@ -88,6 +89,21 @@ export class SysDictDataController {
       SysDictDataDTODeleteResponse,
       await this.dictDataService.delete(id, user.userId, ctx.em),
     )
+  }
+
+  // P1-12 修复（2026-10-28）：Permissions.DELETE_MANY 常量原已存在但装饰器未接线，
+  // 路由 40400；补挂 deleteMany（逐行软删 + locale 级联软删，与单删同语义）。
+  @WalnutAdminDecoratorHasPermission(Permissions.DELETE_MANY)
+  @WalnutAdminDecoratorDeleteMany()
+  @WalnutTx()
+  async deleteMany(
+    @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
+    @WalnutTxSession() ctx: WalnutTxContext,
+    @WalnutAdminDecoratorParamUuids() ids: string[],
+  ) {
+    const deleted = await this.dictDataService.deleteMany(ids, user.userId, ctx.em)
+
+    return deleted.map(i => plainToInstance(SysDictDataDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)

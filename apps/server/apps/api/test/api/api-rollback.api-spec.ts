@@ -25,8 +25,8 @@ import { WALNUT_TEST_USER_AGENT } from './helpers/sign-handshake'
  *   registerAfterCommitHook —— 拦截器在 commit 后、响应 flush 前同步跑钩子，因此
  *   「响应返回的那一刻缓存必须已落」是钩子时序的端到端证明（零轮询）；
  * - demo create 同 payload 重复（23505）**不作回滚面**：create 无 @WalnutTx、
- *   单语句插入无第二腿可回滚（撞 uq_demo_phone_number → 兜底 50000，与 system/user
- *   create 同款已钉现状，不重复布防）。
+ *   单语句插入无第二腿可回滚（撞 uq_demo_phone_number → P1-7 后同样收敛为 40000，
+ *   与 system/user create 同款，不重复布防）。
  *
  * Throttle 预算：device/initial 4 次/60s —— 本文件 bootstrap 1 次 + after-commit 用例
  * 1 次 = 2 次，安全。
@@ -105,7 +105,7 @@ describe('H1：API 级事务回滚直测（真实 HTTP 触发中途失败 → �
     const ghostMenuId = randomUUID()
 
     // @WalnutTx：第一腿 sys_role insert 成功 → 第二腿 sys_role_menu insert
-    // 撞 fk_role_menu_menu（23503）→ 整体回滚。23503 未映射受控异常 → 兜底 50000
+    // 撞 fk_role_menu_menu（23503）→ 整体回滚。P1-7 修复后 23503 映射为受控 40000
     const res = await api.root('POST', api.apiPath('/system/role'), {
       roleName,
       description: `rollback probe ${seed8}`,
@@ -113,7 +113,7 @@ describe('H1：API 级事务回滚直测（真实 HTTP 触发中途失败 → �
       status: true,
       menus: [ghostMenuId],
     })
-    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR)
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
     // 库零残留：主行不在（junction 随 CASCADE 更不可能有）
     const roleRows: Array<{ c: number }> = await api.pgDataSource.query(

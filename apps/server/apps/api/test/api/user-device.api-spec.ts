@@ -59,7 +59,7 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
     if (fixture !== null) {
       await api.pgDataSource.query('UPDATE sys_user_device SET locked = false WHERE user_id = $1', [fixture.userId])
       // SECURITY_LOCK 缓存（lock 默认 cross-device → 全局键）不随库清，显式清防 40118 残留
-      // （delByPattern 走 node-redis v5 的 del rest-args 语义会炸 —— 按已知键逐个删）
+      // （P1-2 已修 delByPattern；这里按已知键逐个删仍是更直接的清场方式）
       const cacheService = app.get(AppTechCacheService)
       const lockKeys = WalnutAdminConstAppCacheKeys.SECURITY_LOCK
       await cacheService.del(`${lockKeys}:${fixture.userId}:global`)

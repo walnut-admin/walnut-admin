@@ -157,11 +157,11 @@ export class WalnutAdminGuardCap implements CanActivate {
    * 验证 CAP Token（带缓存+分布式锁+Double-check�?
    */
   private async validateCapToken(capToken: string, deviceId: string): Promise<boolean> {
-    // 1. 快速路径：检查缓�?
-    const cachedResult = await this.cacheCapService.getCapTokenCache(deviceId)
+    // 1. 快速路径：检查缓存（缓存键 = deviceId + token 指纹，跨设备移植的 token 不命中）
+    const cachedResult = await this.cacheCapService.getCapTokenCache(deviceId, capToken)
 
     if (cachedResult !== null) {
-      this.logger.debug(`CAP token cache hit: ${capToken}`)
+      this.logger.debug(`CAP token cache hit: ${deviceId}`)
       return cachedResult
     }
 
@@ -181,7 +181,7 @@ export class WalnutAdminGuardCap implements CanActivate {
         3000, // 3s 锁超?
         async () => {
           // Double-check 缓存
-          const cachedResult = await this.cacheCapService.getCapTokenCache(deviceId)
+          const cachedResult = await this.cacheCapService.getCapTokenCache(deviceId, capToken)
 
           if (cachedResult !== null) {
             this.logger.debug(`CAP token double-check cache hit: ${deviceId}`)
@@ -213,8 +213,8 @@ export class WalnutAdminGuardCap implements CanActivate {
         throw new WalnutAdminExceptionYouAreBot()
       }
 
-      // 缓存验证结果
-      await this.cacheCapService.setCapTokenCache(deviceId)
+      // 缓存验证结果（键绑定本轮通过校验的 token 指纹）
+      await this.cacheCapService.setCapTokenCache(deviceId, capToken)
 
       this.logger.log(`CAP verification successful: ${deviceId}`)
       return true

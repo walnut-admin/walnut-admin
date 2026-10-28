@@ -154,6 +154,12 @@ export class SecuritySensitiveService {
   /**
    * Get user's available verification methods based on security identity
    * Queries security purpose identities, not login purpose
+   *
+   * P1-5 修复（2026-10-28）：
+   * - **摘除 password 通道** —— identity 的 value 是 opaque registration record，无法按
+   *   明文口令比对还原（修复前该方式恒 verify 失败却仍出现在可用列表里）；
+   * - 探测腿改容错：缺失某类 security 身份时**跳过该方式**（不用 getIdentityOrThrow），
+   *   有其余可用方式即可正常进入 40119 验证流程，不会整条探测腿 40401。
    */
   async getUserAvailableMethods(
     userId: string,
@@ -162,36 +168,25 @@ export class SecuritySensitiveService {
     const methods: IWalnutAdminConstVerifyMethod[] = []
     const securityPurpose = WalnutAdminConstSysUserIdentityPurpose.SECURITY
 
-    // Check password (login purpose for password, as there's no security password)
-    const passwordIdentity = await this.userIdentitySharedService.getIdentityOrThrow(
-      userId,
-      'password',
-      'login',
-      undefined,
-    )
-    if (passwordIdentity.status && supportedMethods.includes(WalnutAdminConstVerifyMethod.PASSWORD)) {
-      methods.push(WalnutAdminConstVerifyMethod.PASSWORD)
-    }
-
     // Check phone (security purpose)
-    const phoneIdentity = await this.userIdentitySharedService.getIdentityOrThrow(
+    const phoneIdentity = await this.userIdentitySharedService.findIdentity(
       userId,
       'phoneNumber',
       securityPurpose,
       undefined,
     )
-    if (phoneIdentity.verified && phoneIdentity.status && supportedMethods.includes(WalnutAdminConstVerifyMethod.SMS)) {
+    if (phoneIdentity?.verified && phoneIdentity.status && supportedMethods.includes(WalnutAdminConstVerifyMethod.SMS)) {
       methods.push(WalnutAdminConstVerifyMethod.SMS)
     }
 
     // Check email (security purpose)
-    const emailIdentity = await this.userIdentitySharedService.getIdentityOrThrow(
+    const emailIdentity = await this.userIdentitySharedService.findIdentity(
       userId,
       'emailAddress',
       securityPurpose,
       undefined,
     )
-    if (emailIdentity.verified && emailIdentity.status && supportedMethods.includes(WalnutAdminConstVerifyMethod.EMAIL)) {
+    if (emailIdentity?.verified && emailIdentity.status && supportedMethods.includes(WalnutAdminConstVerifyMethod.EMAIL)) {
       methods.push(WalnutAdminConstVerifyMethod.EMAIL)
     }
 
@@ -234,26 +229,13 @@ export class SecuritySensitiveService {
 
   /**
    * Verify password
+   *
+   * P1-5：password 方式已从可用列表摘除（value 是 opaque record，无法明文比对）——
+   * 分支保留以维持 switch 穷举形态，但恒返回 false（正常路径在
+   * verifyAndGrantPermission 的 availableMethods 闸就已被 40000 拦下）。
    */
-  private async verifyPassword(userId: string, password: string): Promise<boolean> {
-    try {
-      // Get password identity
-      const passwordIdentity = await this.userIdentitySharedService.getIdentityOrThrow(
-        userId,
-        'password',
-        'login',
-        undefined,
-      )
-
-      // Decrypt stored password
-      const decryptedPassword = this.userIdentitySharedService.decryptValue(passwordIdentity.value)
-
-      // Compare passwords
-      return decryptedPassword === password
-    }
-    catch {
-      return false
-    }
+  private async verifyPassword(_userId: string, _password: string): Promise<boolean> {
+    return false
   }
 
   /**

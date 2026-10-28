@@ -22,13 +22,12 @@ import { solveCapChallenge } from './helpers/sign-handshake'
  * - `POST /security/cap/challenge` + `/redeem`：FreeResponse 无响应壳 —— challenge 回
  *   cap.js `{challenge:{c,s,d},token,expires}`，redeem 本地 PoW 求解后 `{success:true,...}`
  *   （helpers 的求解器再走一遍，钉 challenge/redeem 语义）；错解 → success:false；
- * - `GET /security/sensitive/check` + `POST /security/sensitive/verify`：HTTP 级钉
- *   B7c 已固化的 service 现状（非迁移回归，不修）：
- *   ① 缺 security 身份的用户 → getUserAvailableMethods 对 phone security 读腿直接
- *   DataNotFound（40401，而非跳过该方式）；
- *   ② 造 security email 身份后 check 列出 password/sms/email、首选 password；
+ * - `GET /security/sensitive/check` + `POST /security/sensitive/verify`（P1-5 修复面）：
+ *   ① 缺 security 身份的用户 → 探测腿容错跳过（不再 40401），无任何可用方式 → 受控
+ *   40000（business.auth.noVerifyMethodAvailable）；
+ *   ② 造 security email/phone 身份后 check 列出 sms/email（password 通道已摘除）、首选 sms；
  *   ③ verify email 通道对码 → 授权（sensitive_op:* 键）→ check 翻转 needsVerification=false；
- *   ④ password 通道恒失败（identity value select 语义 + opaque record 无法解密比对）→ 40000；
+ *   ④ password 通道不可用（已从 availableMethods 摘除）→ 40000 verifyMethodNotAllowed；
  *   ⑤ 错码 → 40000 且不授权。
  */
 
@@ -146,9 +145,10 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
     expect(redeemBody.success).toBe(false)
   })
 
-  it('sensitive check（无 security 身份）→ 40401：getUserAvailableMethods 对 phone security 读腿直接抛 DataNotFound（钉现状）', async () => {
+  it('sensitive check（无 security 身份）→ 40000（P1-5：探测腿容错跳过，无可用方式走受控 noVerifyMethodAvailable）', async () => {
     const res = await api.root('GET', api.apiPath('/security/sensitive/check?level=basic'))
-    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+    expect((bodyOf(res) as unknown as { _devMsg?: string })._devMsg).toBe('business.auth.noVerifyMethodAvailable')
   })
 
   it('sensitive check 枚举外 level/type → 40099（管道闸：修复前裸 query 直进 getOperationStrategy 解引用 undefined → 兜底 50000）', async () => {
@@ -160,9 +160,8 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
     expect(bodyOf(bogusType).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
   })
 
-  it('造 security email/phone 身份后 check → needsVerification + availableMethods(password/sms/email) + 首选 password', async () => {
-    // getUserAvailableMethods 对缺失的 phone/email security 读腿直接抛 DataNotFound ——
-    // 正向 check 必须两腿齐造（B7c int-spec 同款 fixture）
+  it('造 security email/phone 身份后 check → needsVerification + availableMethods(sms/email，password 已摘除) + 首选 sms', async () => {
+    // 探测腿容错后单腿即可（email 一处）；phone 一并造出以覆盖 SMS 方式的列表
     const identityShared = app.get(SysUserIdentitySharedService)
     await identityShared.createIdentity(fixture!.userId, 'emailAddress', 'security', securityEmail)
     await identityShared.verifyIdentity(fixture!.userId, 'emailAddress', 'security')
@@ -174,15 +173,16 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
 
     const data = bodyOf<{ needsVerification: boolean, availableMethods?: string[], preferredMethod?: string }>(res).data
     expect(data.needsVerification).toBe(true)
-    expect(data.availableMethods).toContain('password')
+    // P1-5：password 通道摘除（identity value 是 opaque record，无法明文比对）
+    expect(data.availableMethods).not.toContain('password')
     expect(data.availableMethods).toContain('sms')
     expect(data.availableMethods).toContain('email')
     // mfa 校验未实现，恒不列（B7c 钉现状）
     expect(data.availableMethods).not.toContain('mfa')
-    expect(data.preferredMethod).toBe('password')
+    expect(data.preferredMethod).toBe('sms')
   })
 
-  it('sensitive verify：password 通道恒失败 → 40000（钉现状：opaque record 无法按明文比对）', async () => {
+  it('sensitive verify：password 通道不可用 → 40000（P1-5：已从可用方式摘除，闸口 verifyMethodNotAllowed）', async () => {
     const res = await api.root('POST', api.apiPath('/security/sensitive/verify'), {
       level: 'basic',
       operationType: 'password_change',
@@ -190,6 +190,7 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
       credential: fixture!.password,
     })
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+    expect((bodyOf(res) as unknown as { _devMsg?: string })._devMsg).toBe('business.auth.verifyMethodNotAllowed')
 
     const redis = app.get(AppTechRedisService).getClient()
     expect(await redis.exists(`sensitive_op:${fixture!.userId}:${api.deviceId}:basic`)).toBe(0)

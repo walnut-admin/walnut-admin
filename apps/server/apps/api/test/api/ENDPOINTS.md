@@ -238,7 +238,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   - **Throttle**（独立文件）：`device/initial` 动态覆盖 limit=4/ttl=60s（`SysDeviceSettingService`
     硬编码非 settings），内存存储按 app 实例隔离；引导期已耗 1 次 → 3 次压线通过 → 第 5 次
     **HTTP 200 + body.code 42900**（原生 ThrottlerException 由异常过滤器统一 200 壳，钉现状）；
-    blockDuration 未被动态覆盖、仍是全局 ttl（10s）。
+    blockDuration 已随 P1-10（2026-10-28）同步动态覆盖（60s，Retry-After ≥30 断言）。
 - **测试踩坑（防复踩）**：
   - SIGN_TICKET 自动签发用例**不可还原旧 ticket**——guard 已换新票（jar 自动捕获新值），把旧值
     种回去 = cookie/缓存失配，后续所有签名请求 40112；
@@ -258,50 +258,52 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
     的悲观锁只串行化轮换写腿（防丢更新），同 jti 原地换锁 + revoked 恒 false ⇒ 重放拦截实际
     不存在（锁注释宣称与实际不符）。修法：`getNewAccessToken` 锁内比对「入口密文快照 vs 库中
     当前值」，失配 40102 —— G1 断言同步改为「恰 1 路成功、其余 40102」并连跑 3 次稳定；
-  - **P1-1**：两路并发 rotate 同 type 产生**两条同 version ACTIVE**（读腿无锁、无部分唯一索引）；
+  - **P1-1（已修 2026-10-28）**：两路并发 rotate 同 type 曾产生两条同 version ACTIVE（读腿
+    无锁）—— 修复为读腿事务内 FOR UPDATE，G6 断言改为「恰一条 ACTIVE、败者受控 40401」；
   - 无恙面：同名注册竞态（uq_user_name 恰一胜出）、同指纹 initial 竞态（uq_device_id 恰一行、
     败者受控 40605）、preference 并发 upsert（按列回写四段齐落）、回收站并发 recover（恰一成功
     一受控失败）—— 见 DESIGN-ISSUES.md「实测无恙面」表；
-  - 回滚传播 HTTP 级验证：role create 第二腿 FK 拒绝 → 主行+junction 零残留（23503 兜底 50000，
-    收编 P1-7）；recover 撞唯一键 → 40000 recoverFail + 快照行完好；after-commit 钩子
+  - 回滚传播 HTTP 级验证：role create 第二腿 FK 拒绝 → 主行+junction 零残留（23503 已随 P1-7
+    映射为受控 40000）；recover 撞唯一键 → 40000 recoverFail + 快照行完好；after-commit 钩子
     （device initial → SYS_DEVICE 缓存）在响应返回时已执行（零轮询断言）。
 - **测试基建口径**：并行请求共用同一 api-client 的 cookie jar 是安全的（refresh 响应回种的
   RT_JTI 同值；签名请求各自现算 timestamp/nonce）；注册竞态用 service 级双事务直测
-  （HTTP 注册面因 P1-3 不可用）；device initial 的 Throttle 4/60s 按 spec 文件独立计数
-  （concurrency 文件 bootstrap 1 + 竞态 3 = 压线 4）。
+  （P1-3 修复后 HTTP register 面语义为「已登录补挂口令」，新用户注册走 OTP 链）；
+  device initial 的 Throttle 4/60s 按 spec 文件独立计数（concurrency 文件 bootstrap 1 +
+  竞态 3 = 压线 4）。
 
-## 安全矩阵发现（F 段实测登记，非迁移回归，未修）
+## 安全矩阵发现（F 段实测登记，2026-10-28 批 1 全部处置）
 
-> 已收编至 [DESIGN-ISSUES.md](./DESIGN-ISSUES.md)（P0-2/3/4/5、P1-10/11、P2-1 七条），
-> 本节保留原始叙述，后续更新以 DESIGN-ISSUES.md 为准。
+> 已收编至 [DESIGN-ISSUES.md](./DESIGN-ISSUES.md)（P0-2/3/4 已修复、P0-5 登记为部署强约束、
+> P1-10/11 已修复、P2-1 保持现状），本节保留原始叙述，后续更新以 DESIGN-ISSUES.md 为准。
 
 > 按「拒绝条件的真源是 guard 源码」纪律：行为与直觉/文档不符但属真实设计取舍的钉死断言；
 > 属缺陷/加固空间的逐条登记如下（均已在 spec 内用例或注释钉现状）。
 
-1. **sign guard 双因子失败会静默降级单因子**（`sign.guard.ts` computeDualFactorSignature）：
+1. **【已修复 2026-10-28】** **sign guard 双因子失败会静默降级单因子**（`sign.guard.ts` computeDualFactorSignature）：
    会话查无/派生失败时 fallback 到单因子验签。后果：**会话吊销对「自选签名模式的客户端」不设防** ——
    合法客户端（双因子）被 40112 拦，但攻击者持「正确签名的伪造 AT + 设备 aesKey」显式发单因子
    签名即可 20000 通过（含 payload.userId 不存在的 ghost AT；MFA guard 的 `mfaVerified` 是 AT
    payload 自报字段，同样可伪造穿透）。建议方向：req.user 存在时派生失败应直接拒绝而非降级。
-2. **CAP token 与设备不绑定 + 校验结果缓存超长**：guard 验证缓存 `SECURITY_CAP_TOKEN:<deviceId>`
+2. **【已修复 2026-10-28】** **CAP token 与设备不绑定 + 校验结果缓存超长**：guard 验证缓存 `SECURITY_CAP_TOKEN:<deviceId>`
    只存 boolean、**从不比对 token 值/设备绑定** —— 缓存窗口内把另一台设备的服务端签名 cookie
    原样移植即可通过（spec 钉死）。叠加 `setCapTokenCache` 把 `getCapJSConfig().ttl`（毫秒，
    默认 3,600,000）当秒传给缓存 → 实际 TTL ≈ 41 天而非 1 小时（cookie 本体 1h 过期，但服务端
    信任窗口远超之）。建议方向：缓存键掺 token 指纹；TTL 单位修正。
-3. **security.guard 黑名单路径分支不可达**：`isBlacklistedPath` 用完整 `req.path`（含 `/w/v1`
+3. **【已修复 2026-10-28】** **security.guard 黑名单路径分支不可达**：`isBlacklistedPath` 用完整 `req.path`（含 `/w/v1`
    前缀）对 `startsWith('/admin')` 等常量匹配 —— 所有真实路由都带 API 前缀，永不命中 40610；
    而扫描器打的真实裸路径（`/admin`）不匹配任何路由 → 40400，guard 链根本不执行。
    `addToPermanentBlackList` 的自动拉黑副作用因此是死代码。spec 以 `/w/v1/admin → 40400` 钉现状。
-4. **realIp 恒信任 X-Forwarded-For**：IpMiddleware 用 `@supercharge/request-ip`，首 header 优先、
+4. **【登记为部署强约束 2026-10-28，代码不改】** **realIp 恒信任 X-Forwarded-For**：IpMiddleware 用 `@supercharge/request-ip`，首 header 优先、
    不校验跳数（与 `app.set('trust proxy', true)` 双通道并存）。进程内实测可任意伪造 realIp ——
    IP 黑名单（40603 可用伪造 IP 触发/绕过）与 Throttle tracker（`getTracker` 返回 realIp）的
    IP 维度风控都可被请求头改写绕过。直连暴露时为真实缺陷；生产 nginx 覆盖 XFF 时可接受。
-5. **JWT 层不校验用户存在性/会话**：`jwt-access.strategy` 的 validate 原样返回 payload，
+5. **【已修复 2026-10-28】** **JWT 层不校验用户存在性/会话**：`jwt-access.strategy` 的 validate 原样返回 payload，
    无 DB/缓存校验（与发现 1 叠加）。passport 层只保证「签名+未过期」，身份真实性完全下游化。
 6. **mfa.guard 强制所有已登录用户 mfaSetup=true**（40114 否则拒）：未启用 MFA 的用户无法使用
    任何登录态端点 —— 属产品级强策略，钉现状；settings 无开关可关（`app.auth.mfa` 键与该 guard
    无关），如需灰度只能改 AT payload 的 mfaSetup。
-7. **throttle 动态覆盖不覆盖 blockDuration**：`WalnutAdminGuardThrottler` 只覆盖 limit/ttl，
+7. **【已修复 2026-10-28】** **throttle 动态覆盖不覆盖 blockDuration**：`WalnutAdminGuardThrottler` 只覆盖 limit/ttl，
    触发封禁后的 block 时长仍是全局 ttl（dev 10s）——连发攻击者在 block 窗口后每 10s 可再打 4 发。
 
 ## D 段补记（2026-10-26）
@@ -317,22 +319,19 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   受控 RefreshTokenExpired（40102）；PG/TypeORM 把 undefined 当绑定参数下发 → pg 驱动
   "bind parameters must not contain undefined" 未受控 50000。已在 findByJti 按「查无此 jti」语义
   收 nil → null（两个调用方本就有 null 分支，轮换写腿行为不变）。
-- **钉现状（非迁移回归，断言固化，未修）**：
+- **钉现状（非迁移回归，断言固化；2026-10-28 批 1 处置）**：
   > 已收编 DESIGN-ISSUES.md（P1-2 / P1-8 / P0-1 / P1-7 同族 / P1-5）—— 本节为历史叙述。
-  - `POST /auth/signout` 的会话键清理腿失效 —— revokeSession 走 `cacheService.delByPattern`，
-    内部 `redis.del(数组)` 在 node-redis v5 的 rest-args 语义下抛错（C 段 user-device/monitor spec
-    已登记同款），after-commit 钩子错误被 catch 吞掉 → AUTH:SESSIONS 键残留（permissions/MFA
-    verified 两键正常消失）；旧 AT 再请求被 MFA guard 以 40115 先拦（MFA verified 缓存已清且
-    MFA guard 在 Sign guard 之前）；
-  - `GET /auth/permissions` 在 sys_menu 空表时 indexMenuName 组装 TypeError → 50000（Mongo 时代
-    同病，spec 靠自建 CATALOG+MENU 两行绕开；响应顶层是「首个根节点的 children」，单根无子级
-    时顶层数组恒空）；
-  - RT 刷新轮换是**同 jti 原地换锁**（同一行 encrypted_token/expired_at 换新、revoked 恒 false），
-    不存在「旧行 revoked + 新行」两行形态；
+  - `POST /auth/signout` 的会话键清理腿曾失效（delByPattern 弄丢 scanIterator 批次 →
+    after-commit 钩子吞错 → AUTH:SESSIONS 残留）—— **P1-2 已修 2026-10-28**：三键全清；
+    旧 AT 再请求现在由 P0-4 的 JWT 会话校验先拦 40101（修复前是 MFA guard 40115）；
+  - `GET /auth/permissions` 在 sys_menu 空表时曾 TypeError → 50000 —— **P1-8 已修 2026-10-28**
+    （受控空树；spec 仍造 CATALOG+MENU 两行以断言「首根 children」树形状）；
+  - RT 刷新轮换是**同 jti 原地换锁**（P0-1 第一轮修法）—— 已是历史：2026-10-27 起为
+    revoke-and-insert（旧行 revoked + 新行两行形态，见 DESIGN-ISSUES P0-1 终态）；
   - CRUD update 装饰器不传 operateType → sys_log_operate.operation 列恒 null；
-  - `security/sensitive` 的 password 通道恒失败（identity value 无法按明文比对还原）与
-    getUserAvailableMethods 对缺失 security 身份直接 DataNotFound —— B7c service 层钉的现状在
-    HTTP 层同形（40401/40000）；
+  - `security/sensitive` 的 password 通道恒失败 + getUserAvailableMethods 缺失身份直接
+    DataNotFound —— **P1-5 已修 2026-10-28**（password 摘除；探测腿容错；无可用方式 →
+    40000 noVerifyMethodAvailable）；
   - gitee/github callback 缺 code → passport-oauth2 走 authorize 重定向腿（HTTP 302 Location），
     钉现状；
   - `/shared/ali/sts` 在 env 配有 vendor key 时发真实外网请求（STS assumeRole），结果取决于外部
@@ -383,21 +382,20 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   传纯对象不可见——该类回归只有真实 HTTP 层能抓到。
 - **钉现状（非迁移回归，断言固化，未修）**：
   > 已收编 DESIGN-ISSUES.md（P2-4 / P2-6 / P2-7）。
-  - `system/dict/data` 无 deleteMany 路由（Permissions.DELETE_MANY 常量存在但装饰器未接线 → 40400）；
-  - `system/user` create 用户名重复 → DB 23505 未映射受控异常，兜底 50000；
-  - `system/user/identity` 的 `POST list` 恒 40099（空 DTO 类 × forbidUnknownValues）；bind 的
-    setAsSecurity 未挂 IsOptional（缺字段 40099）；`update`（rebind）经 HTTP 恒 40000（partial DTO 把
-    未给键材料化成显式 null，服务端 `!== undefined` 判 null 也命中 useVerifyEndpoint 拦截）；
-    `update/status` 在守卫链上 40401（RequireSensitive 的可用验证方式探测对缺失的 phoneNumber/security
-    身份直接 getIdentityOrThrow，预期 40119 分支不可达）；
+  - 【已修 2026-10-28，P1-12】`system/dict/data` 曾有 DELETE_MANY 常量但装饰器未接线（40400）——
+    现补挂 deleteMany（逐行软删 + locale 级联）；
+  - 【已修 2026-10-28，P1-7】`system/user` create 用户名重复的 23505 由兜底 50000 收敛为 40000；
+  - 【已修 2026-10-28，P1-5/P1-6】`system/user/identity`：`POST list` 的空 DTO 补 @Allow（20000）；
+    bind 的 setAsSecurity 补 IsOptional（缺省 false）；update 的 null 判据改 `!= null`（HTTP 可
+    改值，回 verified=false）；`update/status` 的探测腿容错（有 email security 身份 → 40119 可达）；
   - `system/device` 的 lock/unlock/ban/unban 只写 SYS_DEVICE 缓存不落库；锁/封期间同设备后续请求被
     Device guard 40606/40607 拦死（连 unlock/unban 都到不了）；`history-users` 恒空数组（「只回
     user 缺失行」的语义反转 + PG 侧 populate 恒命中）；current-active-user 空态回 null 填充壳
     （`?? {}` 后经 plainToInstance 深度实例化）；
   - `system/user/device` 的 force-quit 只撤「查到的第一行」RT（updateRevokedAndReason 走 findOne），
     非同维度全部 RT；
-  - `system/menu` 的 tree 空表时 `fullTree[0].children` TypeError → 50000（不进回归）；fullTree 只回首根
-    （order 最小的根）的 children。
+  - `system/menu` 的 tree 空表时曾 `fullTree[0].children` TypeError → 50000 —— 【已修 2026-10-28，
+    P1-8】受控空树（单测覆盖）；fullTree 只回首根（order 最小的根）的 children。
 - **测试基建口径补记**：多设备类用例的第二指纹 initial 必须走裸 supertest（客户端 cookie jar 吃下第二台
   设备的 DEVICE_ID 重签后，后续请求带错配的 CAPJS_TOKEN 必 40116）；device initial 的 Throttle 是
   4 次/60s（tracker=realIp），单文件 initial 调用总数要压在限额内；user-device 锁定会把

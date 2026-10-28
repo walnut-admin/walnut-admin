@@ -14,12 +14,14 @@ import { createApiApp } from './helpers/create-api-app'
  * AUTH:VERIFY_CODE 缓存，用例从真实缓存通道读回）/ unbind / update / verify /
  * send-code / update-status。
  *
- * 钉现状（非迁移回归，登记 ENDPOINTS.md）：
- * - `POST list` 恒 40099 —— list DTO 是空类（SysUserIdentityListDTO），全局 ValidationPipe
- *   的 forbidUnknownValues 对无校验元数据的类体恒抛 "an unknown value..."，带不带 body
- *   都一样 —— 该端点经 HTTP 不可用（身份读腿走 status 端点）；
- * - bind 的 setAsSecurity 未挂 IsOptional：body 缺该字段 → 40099（"should not be empty"），
- *   swagger 的 default:false 不豁免校验。
+ * P1-6 修复面（2026-10-28）：
+ * - `POST list` 空 DTO 在 forbidUnknownValues 下曾恒 40099（"an unknown value..."）——
+ *   DTO 补 @Allow 校验元数据后 20000（带不带 body 均可）；
+ * - bind 的 setAsSecurity 补 IsOptional：缺字段按默认 false 落库（不再 40099）；
+ * - update（rebind）的 null 判据改 `!= null`：partial DTO 未给键材料化成显式 null，
+ *   旧 `!== undefined` 判据把 null 当「给了值」→ verified 分支恒拦 useVerifyEndpoint；
+ * - update-status 的守卫探测腿改容错（缺失身份跳过）：无 phone security 身份不再 40401，
+ *   有 email security 身份即可正常抛 40119（SensitiveVerificationFailed）。
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -99,7 +101,7 @@ describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）�
     expect(String(code)).toMatch(/^\d{4,8}$/)
   })
 
-  it('bind：错码 → 40000 verifyCodeError（不成行）；缺 setAsSecurity → 40099；对码 → security 身份同落', async () => {
+  it('bind：错码 → 40000（不成行）；缺 setAsSecurity 走默认 false；解绑后带 setAsSecurity 重绑 → security 身份同落', async () => {
     const email = emailOf('bind')
     // 上一用例已 check 过，缓存里有真码；这里故意错 —— bind 失败不成行
     const badBind = await api.root('POST', api.apiPath('/system/user/identity/bind/emailAddress/login'), {
@@ -115,14 +117,30 @@ describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）�
     })
     expectOk(recheck, 'identity recheck after failed bind')
 
-    // 缺 setAsSecurity：IsBoolean+IsNotEmpty 且无 IsOptional → 40099（钉现状）
+    // P1-6② 修复：缺 setAsSecurity 由 IsOptional 放行，默认 false → 正常绑定、不落 security 行
     const missingFlag = await api.root('POST', api.apiPath('/system/user/identity/bind/emailAddress/login'), {
       identifier: email,
       verifyCode: String(await verifyCodeService.getVerifyCodeForAuthUserCache(fixture!.userId, email)),
     })
-    expect(bodyOf(missingFlag).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expectOk(missingFlag, 'identity bind without setAsSecurity')
+    expect(bodyOf<boolean>(missingFlag).data).toBe(true)
 
-    // 把真码拿出来走正常 bind
+    const noSecurityRows: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
+      [fixture!.userId, 'emailAddress', 'security'],
+    )
+    expect(noSecurityRows[0].c).toBe(0)
+
+    // 解绑后重走 check→bind，验证 setAsSecurity=true 的 security 身份同落（后续 update-status
+    // 用例依赖该 security 身份进入 40119 验证流程）
+    const unbindRes = await api.root('DELETE', api.apiPath('/system/user/identity/unbind/emailAddress/login'))
+    expectOk(unbindRes, 'identity unbind before rebind')
+
+    const recheck2 = await api.root('POST', api.apiPath('/system/user/identity/check/emailAddress/login'), {
+      identifier: email,
+    })
+    expectOk(recheck2, 'identity recheck before rebind with security')
+
     const bindRes = await api.root('POST', api.apiPath('/system/user/identity/bind/emailAddress/login'), {
       identifier: email,
       verifyCode: String(await verifyCodeService.getVerifyCodeForAuthUserCache(fixture!.userId, email)),
@@ -163,13 +181,17 @@ describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）�
     expect(rows[0].id).toMatch(UUID_RE)
   })
 
-  it('POST list 恒 40099（空 DTO × forbidUnknownValues，钉现状不修）', async () => {
+  it('POST list → 20000（P1-6①：DTO 补 @Allow 校验元数据，不再被 forbidUnknownValues 误伤）', async () => {
     const withBody = await api.root('POST', api.apiPath('/system/user/identity/list'), {})
-    expect(bodyOf(withBody).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect((bodyOf(withBody) as unknown as { _devMsg?: string })._devMsg).toContain('unknown value')
+    expectOk(withBody, 'identity list with body')
+    // 行实体无 @Expose，全局 ClassSerializerInterceptor（excludeExtraneousValues）会把行字段
+    // 剥成 {} —— 本用例只钉「端点可达且 total 计数真实」（行形态属 P3 文档层缺口，另行排期）
+    const list = bodyOf<{ data: unknown[], total: number }>(withBody).data
+    expect(Array.isArray(list.data)).toBe(true)
+    expect(list.total).toBeGreaterThanOrEqual(1)
 
     const noBody = await api.root('POST', api.apiPath('/system/user/identity/list'))
-    expect(bodyOf(noBody).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expectOk(noBody, 'identity list without body')
   })
 
   it('value 已被他人占用 → 另一用户 check 40000 identityAlreadyUsed；bind 同样拦', async () => {
@@ -188,33 +210,40 @@ describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）�
     expect(bodyOf(bindRes).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
   })
 
-  it('update（rebind）经 HTTP 恒 40000（钉现状不修）', async () => {
+  it('update（rebind）→ 20000 改值并回 verified=false（P1-6③：null 判据改 != null）；显式 verified=true 仍 40000', async () => {
     const newEmail = emailOf('bind2')
-    // update DTO 是 partial 类，ValidationPipe 把未给键以显式 null 材料化 —— 服务端
-    // `verified !== undefined` 判 null 也命中 → useVerifyEndpoint 拦截，任何 body 都到不了
-    // 改值逻辑（带 verified 更是显式拒绝）。改值走 verify 端点的链路由下例用 SQL 制造
-    // 未验证态后覆盖。
+    // P1-6③ 修复：partial DTO 未给键材料化成显式 null，旧 `!== undefined` 把 null 当「给了值」
+    // → verified 分支恒拦 useVerifyEndpoint。改 `!= null` 后 `{value}` 可到改值逻辑。
     const valueOnly = await api.root('PUT', api.apiPath('/system/user/identity/update/emailAddress/login'), {
       value: newEmail,
     })
-    expect(bodyOf(valueOnly).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
-    expect((bodyOf(valueOnly) as unknown as { _devMsg?: string })._devMsg).toBe('business.auth.useVerifyEndpoint')
-
-    const withVerified = await api.root('PUT', api.apiPath('/system/user/identity/update/emailAddress/login'), {
-      value: newEmail,
-      verified: true,
-    })
-    expect(bodyOf(withVerified).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+    expectOk(valueOnly, 'identity update value only')
+    expect(bodyOf<boolean>(valueOnly).data).toBe(true)
 
     const rows: Array<{ value: string | null, verified: boolean }> = await api.pgDataSource.query(
       'SELECT value, verified FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
       [fixture!.userId, 'emailAddress', 'login'],
     )
-    expect(rows[0].verified).toBe(true)
+    expect(rows[0].verified).toBe(false)
+
+    // 显式 verified=true 仍走 useVerifyEndpoint 拒绝（另一新值，避免先撞 identityAlreadyUsed）
+    const withVerified = await api.root('PUT', api.apiPath('/system/user/identity/update/emailAddress/login'), {
+      value: emailOf('bind3'),
+      verified: true,
+    })
+    expect(bodyOf(withVerified).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+    expect((bodyOf(withVerified) as unknown as { _devMsg?: string })._devMsg).toBe('business.auth.useVerifyEndpoint')
+
+    // 值仍停在 bind2（withVerified 请求未落改值）
+    const rowsAfter: Array<{ value: string | null, verified: boolean }> = await api.pgDataSource.query(
+      'SELECT value, verified FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
+      [fixture!.userId, 'emailAddress', 'login'],
+    )
+    expect(rowsAfter[0].verified).toBe(false)
   })
 
-  it('send-code/verify 闭环：未验证态（SQL 制造）→ 码进缓存 → 错码 40000 → 对码 verified=true', async () => {
-    // update 端点经 HTTP 不可用（上例钉现状）—— 未验证态按真实列语义 SQL 制造
+  it('send-code/verify 闭环：未验证态（上例 update 已回 false）→ 码进缓存 → 错码 40000 → 对码 verified=true', async () => {
+    // 上例 update 已把行置 verified=false；这里再按真实列语义确认一次（幂等）
     await api.pgDataSource.query(
       'UPDATE sys_user_identity SET verified = false, verified_at = NULL WHERE user_id = $1 AND type = $2 AND purpose = $3',
       [fixture!.userId, 'emailAddress', 'login'],
@@ -223,8 +252,8 @@ describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）�
     const sendRes = await api.root('POST', api.apiPath('/system/user/identity/send-code/emailAddress/login'))
     expectOk(sendRes, 'identity send-code')
 
-    // send-code 解密的是行上现值（原始 identifier）
-    const code = await verifyCodeService.getVerifyCodeForAuthUserCache(fixture!.userId, emailOf('bind'))
+    // send-code 解密的是行上现值（上例 update 后的新 identifier）
+    const code = await verifyCodeService.getVerifyCodeForAuthUserCache(fixture!.userId, emailOf('bind2'))
     expect(code).not.toBeNull()
 
     const badVerify = await api.root('POST', api.apiPath('/system/user/identity/verify/emailAddress/login'), {
@@ -244,13 +273,14 @@ describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）�
     expect(rows[0].verified).toBe(true)
   })
 
-  it('update-status → 40401（钉现状）：守卫的可用验证方式探测对缺失身份直接抛 DataNotFound', async () => {
-    // phoneNumber/security 身份直接 getIdentityOrThrow → DataNotFound 在守卫链上抛出，
-    // 预期的 40119（UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED）分支不可达
+  it('update-status → 40119（P1-5/P1-6④：探测腿容错跳过缺失身份，email security 身份使验证流程可达）', async () => {
+    // phoneNumber/security 身份缺失 → 探测腿跳过（不再 getIdentityOrThrow → 40401）；
+    // password 通道已摘除；email security 身份在 → availableMethods=[email] →
+    // SensitiveOperationGuard 抛 40119（SensitiveVerificationFailed），前端据此走验证流程。
     const res = await api.root('PUT', api.apiPath('/system/user/identity/status/emailAddress/login'), {
       status: false,
     })
-    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED)
   })
 
   it('unbind → 删行；status 回未绑定；再 unbind → 40401', async () => {

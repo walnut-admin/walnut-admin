@@ -193,6 +193,22 @@ export class SysUserIdentitySharedService {
 
   // ============ Helper methods for simplifying service layer ============
 
+  // Get identity by userId, type, purpose - returns null when absent（探测类读腿用，
+  // 不抛 DataNotFound：P1-5 起「可用验证方式」探测对缺失身份跳过而非 40401）
+  async findIdentity(
+    userId: string,
+    type: IWalnutAdminConstSysUserIdentityType,
+    purpose: IWalnutAdminConstSysUserIdentityPurpose,
+    em?: EntityManager,
+  ) {
+    return this.userIdentityRepoService.findByUserIdTypeAndPurpose(
+      userId,
+      type,
+      purpose,
+      em,
+    )
+  }
+
   // Get identity by userId, type, purpose - throws if not found
   async getIdentityOrThrow(
     userId: string,

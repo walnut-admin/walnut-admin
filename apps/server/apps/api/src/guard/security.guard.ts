@@ -4,35 +4,46 @@ import {
   Injectable,
   Logger,
 } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { WalnutAdminExceptionBlackListPathDetected, WalnutAdminExceptionBotDetected, WalnutAdminExceptionSuspiciousRequest, WalnutAdminExceptionUserAgentBrowserNotAcceptable, WalnutAdminExceptionUserAgentNotAcceptable, WalnutAdminExceptionUserAgentOSNotAcceptable } from '@walnut-server/exceptions/base/406'
 import { isNil } from 'lodash'
 import { SharedIpService } from '@/modules/shared/ip/ip.service'
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 
+// permanent blacklist paths (common malicious scan paths)
+// 与 BlacklistPathMiddleware 共用（guard 只覆盖已路由请求；未命中路由的扫描路径
+// 不执行 guard 链，见 P1-11 的中间件兜底）
+export const WALNUT_ADMIN_PERMANENT_BLACKLIST_PATHS = [
+  '/admin',
+  '/phpmyadmin',
+  '/wp-admin',
+  '/wp-login',
+  '/.env',
+  '/.git',
+  '/config',
+  '/backup',
+  '/console',
+  '/actuator',
+  '/api/v1/admin',
+  '/manager',
+  '/webadmin',
+] as const
+
+export function isWalnutAdminBlacklistedPath(path: string): boolean {
+  const normalizedPath = path.toLowerCase()
+  return WALNUT_ADMIN_PERMANENT_BLACKLIST_PATHS.some(blacklisted =>
+    normalizedPath.startsWith(blacklisted.toLowerCase()),
+  )
+}
+
 @Injectable()
 export class WalnutAdminGuardSecurity implements CanActivate {
   private readonly logger = new Logger(WalnutAdminGuardSecurity.name)
 
-  // permanent blacklist paths (common malicious scan paths)
-  private readonly PERMANENT_BLACKLIST_PATHS = [
-    '/admin',
-    '/phpmyadmin',
-    '/wp-admin',
-    '/wp-login',
-    '/.env',
-    '/.git',
-    '/config',
-    '/backup',
-    '/console',
-    '/actuator',
-    '/api/v1/admin',
-    '/manager',
-    '/webadmin',
-  ]
-
   constructor(
     private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
     private readonly sharedIpService: SharedIpService,
+    private readonly configService: ConfigService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -48,7 +59,9 @@ export class WalnutAdminGuardSecurity implements CanActivate {
     }
 
     // 1. check permanent blacklist paths
-    if (this.isBlacklistedPath(req.path)) {
+    // P1-11 修复（2026-10-28）：req.path 带 `/{prefix}/v{version}`，旧实现拿裸常量
+    // `startsWith('/admin')` 匹配永不命中。匹配前按 sign guard 同口径 strip API 前缀。
+    if (this.isBlacklistedPath(this.stripApiPrefix(req.path))) {
       // add to permanent blacklist
       await this.sharedIpService.addToPermanentBlackList(req.realIp)
       throw new WalnutAdminExceptionBlackListPathDetected()
@@ -90,13 +103,20 @@ export class WalnutAdminGuardSecurity implements CanActivate {
   }
 
   /**
+   * @description strip `/{prefix}/v{version}` —— 与 sign guard buildSignRaw 的路径
+   * 规范化同口径（黑名单常量是裸路径）
+   */
+  private stripApiPrefix(path: string): string {
+    const APIPrefix = this.configService.get<string>('app.api.prefix')!
+    const APIVersion = this.configService.get<string>('app.api.version')!
+    return path.replace(new RegExp(`^/${APIPrefix}/v${APIVersion}`), '') || '/'
+  }
+
+  /**
    * @description check if path is blacklisted
    */
   private isBlacklistedPath(path: string): boolean {
-    const normalizedPath = path.toLowerCase()
-    return this.PERMANENT_BLACKLIST_PATHS.some(blacklisted =>
-      normalizedPath.startsWith(blacklisted.toLowerCase()),
-    )
+    return isWalnutAdminBlacklistedPath(path)
   }
 
   /**

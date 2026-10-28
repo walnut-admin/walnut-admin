@@ -30,8 +30,8 @@ import { WALNUT_TEST_USER_AGENT } from './helpers/sign-handshake'
  *   旧行置撤销（reason=rotate）+ INSERT 新行，旧行 jti 行级作废，恰 1 路 20000 由
  *   「入口快照比对」（2026-10-26 首修，只挡真正同时到达的请求、错峰实测出过 2×20000）
  *   升级为**确定性成立**（败者要么 guard 层读到撤销行、要么锁内读到撤销行）；
- * - G6 key rotate：读腿无锁（getCurrentActiveKey 无 FOR UPDATE、无 (type, version) 唯一索引），
- *   两路并发 rotate 产生两条同 version ACTIVE（P1-1）。
+ * - G6 key rotate：P1-1 已修（2026-10-28）—— 读腿在事务内 FOR UPDATE，两路并发 rotate
+ *   由行锁串行化，恰一条 ACTIVE、败者受控 40401（修复前读腿无锁产生两条同 version ACTIVE）。
  *
  * Throttle 预算：device/initial 是 4 次/60s（tracker=realIp，存储按 app 实例隔离）——
  * 本文件 bootstrap 1 次 + G3 竞态 3 次 = 恰好 4 次，压线不超。
@@ -185,9 +185,11 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
   })
 
   it('G2 同名注册两路并发（service 级 finishRegister，注明）—— uq_user_name 恰一胜出、库里恰一行', async () => {
-    // HTTP 注册面不进本用例：opaque register 端点匿名调用 500（handler 读 req.user.userName，
-    // ENDPOINTS 已登记），新用户注册无可用 HTTP 通道 —— 并发面下沉到 service 层直测
-    // （finishRegister 即真实写腿：user + junction + password identity 三腿同事务）。
+    // HTTP 注册面仍不进本用例：P1-3 修复（2026-10-28）后 opaque register 端点去掉 JwtFree，
+    // 语义明确为「已登录用户补挂口令」（匿名调用由全局 JWT 层 40101 受控拒绝，不再是
+    // handler 解引用 req.user 的 50000），新用户注册走 OTP 链、无本端点的注册面 ——
+    // 并发面继续下沉到 service 层直测（finishRegister 即真实写腿：user + junction +
+    // password identity 三腿同事务）。
     const configService = app.get(ConfigService)
     const opaqueCore = app.get(AuthOpaqueCoreService)
     const appName = configService.get<string>('app.name')!
@@ -378,7 +380,7 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     deletedDemoIds.pop()
   })
 
-  it('G6 同 type 两路并发 rotate —— 【钉现状】读腿无锁产生两条同 version ACTIVE（P1-1）', async () => {
+  it('G6 同 type 两路并发 rotate —— 恰一条 ACTIVE、败者受控 40401（P1-1：读腿事务内 FOR UPDATE）', async () => {
     // 自插高 version 目标行（key.api-spec 同款自洽法）：rotate 命中 version 最大 ACTIVE 行
     const repo = api.pgDataSource.getRepository(AppKeyEntity)
     const maxRows: Array<{ max_version: string }> = await api.pgDataSource.query(
@@ -398,33 +400,33 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     // DEPRECATED）会让后续 app.key.int-spec 的 initFirst 撞 DataExists（跨文件实测抓过）
     createdKeyIds.push(seeded.id)
 
-    // 两路并发 rotate（@WalnutTx 各自事务）：读腿 getCurrentActiveKey 无
-    // FOR UPDATE、表上也无 (type, version) 唯一索引/ACTIVE 部分唯一索引。
-    // 时序：两路读腿都在对方提交前完成（Promise.all 同拍入站，读 ~1ms；RSA-2048 keygen
-    // 数十 ms 起步，commit 远在后）⇒ 两路都读到同一条种子行、各存一条 version+1。
+    // 两路并发 rotate（@WalnutTx 各自事务）：P1-1 修复后 getCurrentActiveKey 在事务内
+    // FOR UPDATE —— 胜者锁行、置种子行 DEPRECATED、插 version+1 后提交；败者的
+    // SELECT ... FOR UPDATE 等锁恢复后在 READ COMMITTED 下重判 WHERE（status 已非
+    // ACTIVE）→ 读不到当前行 → 受控 40401（NotFound），不再双插同 version ACTIVE。
     const [r1, r2] = await Promise.all([
       api.root('POST', api.apiPath('/app/key/rotate/RSA_PAIR')),
       api.root('POST', api.apiPath('/app/key/rotate/RSA_PAIR')),
     ])
-    expectOk(r1, 'key rotate #1')
-    expectOk(r2, 'key rotate #2')
-    const first = bodyOf<{ id: string, version: number }>(r1).data
-    const second = bodyOf<{ id: string, version: number }>(r2).data
-    expect(first.id).not.toBe(second.id)
-    createdKeyIds.push(first.id, second.id)
+    const codes = [bodyOf(r1).code, bodyOf(r2).code].sort((a, b) => a - b)
+    expect(codes[0]).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
+    // rotate 的「当前 ACTIVE 行不存在」是 WalnutAdminExceptionNotFound（40400）
+    expect(codes[1]).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND)
 
-    // 【实测钉现状，DESIGN-ISSUES P1-1】两条同 version ACTIVE 并存 —— 竞态双插无任何
-    // 约束/锁兜底（uq_key 只挡 key 串同毫秒，挡不住 version 撞车）。对照组注释：若
-    // 读腿持锁或有 ACTIVE 部分唯一索引，此处应为恰一条且败者受控失败。
-    // 附带自洽：种子行已被两路先后置 DEPRECATED；current 语义退化为「同 version 任取」。
-    expect(first.version).toBe(seededKeyVersion + 1)
-    expect(second.version).toBe(seededKeyVersion + 1)
+    const winnerRes = bodyOf(r1).code === WalnutAdminConstAppResponseCode.SUCCESS ? r1 : r2
+    const winner = bodyOf<{ id: string, version: number }>(winnerRes).data
+    expect(winner.version).toBe(seededKeyVersion + 1)
+    createdKeyIds.push(winner.id)
 
-    const actives: Array<{ id: string }> = await api.pgDataSource.query(
-      `SELECT id FROM app_key WHERE type = 'RSA_PAIR' AND status = 'ACTIVE' AND version = $1`,
+    // 竞态轮次恰一条 ACTIVE（version = seeded+1；seed 行已被胜者置 DEPRECATED）。
+    // 按 version 圈定本轮的竞态面 —— 集成库可能残留其他历史 ACTIVE 行（app.key.int-spec
+    // 不清理 app_key），不影响「同轮不得双插」的判据。
+    const actives: Array<{ id: string, version: number, status: string }> = await api.pgDataSource.query(
+      `SELECT id, version, status FROM app_key WHERE type = 'RSA_PAIR' AND status = 'ACTIVE' AND version = $1`,
       [seededKeyVersion + 1],
     )
-    expect(actives).toHaveLength(2)
+    expect(actives).toHaveLength(1)
+    expect(actives[0].id).toBe(winner.id)
 
     const seededRow = await repo.findOne({ where: { id: seeded.id } })
     expect(seededRow?.status).toBe('DEPRECATED')

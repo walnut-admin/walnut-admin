@@ -272,11 +272,12 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     expectOk(clearAgain, 'opaque admin clearPassword again')
   })
 
-  it('create 用户名重复 → DB 23505 未映射为受控异常，经全局过滤器兜底 50000（钉现状）', async () => {
+  it('create 用户名重复 → DB 23505 映射为受控 40000（P1-7：不再兜底 50000）', async () => {
     await createUser('DUP', [])
     const duplicate = await api.root('POST', api.apiPath('/system/user'), userPayload('DUP', []))
-    // 响应形态不变（HTTP 200 + 业务码壳），QueryFailedError 走 handler 兜底 INTERNAL_SERVER_ERROR
+    // 响应形态不变（HTTP 200 + 业务码壳），handler 把 23505 收敛为 BAD_REQUEST，约束名进 _devMsg
     expect(duplicate.status).toBe(200)
-    expect(bodyOf(duplicate).code).toBe(WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR)
+    expect(bodyOf(duplicate).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+    expect((bodyOf(duplicate) as unknown as { _devMsg?: string })._devMsg).toContain('uq_user_name')
   })
 })

@@ -181,18 +181,20 @@ export class AppTechCacheService {
 
     this.logger.log(`[CacheDelPattern] | Starting deletion for pattern: ${pattern}`)
 
-    // 使用 scanIterator 并进行分批处理，避免内存爆炸
+    // P1-2 修复（2026-10-28）：node-redis v5 的 scanIterator **按批产出 `string[]`**
+    // （含空批），旧实现 `Array.isArray(key) ? key[0] : key` 既丢批内其余键、又把空批
+    // 变成 `undefined` 混进删除数组 —— 最终 `del` 抛 "must be of type string" 被
+    // after-commit 钩子吞掉，会话键因此残留。这里摊平批次并用 unlink 展开删除。
     const batch: string[] = []
     for await (const key of this.redis.scanIterator({
       MATCH: cachePattern,
       COUNT: this.BATCH_SIZE,
     })) {
-      // scanIterator 有时可能返回数组（取决于驱动版本或配置），通常返回 string
-      const keyStr = Array.isArray(key) ? key[0] : key
-      batch.push(keyStr)
+      const keysOfBatch = Array.isArray(key) ? key : [key]
+      batch.push(...keysOfBatch.filter((item): item is string => typeof item === 'string'))
 
       if (batch.length >= this.BATCH_SIZE) {
-        await this.redis.del(batch)
+        await this.redis.unlink(batch)
         this.logger.debug(`[CacheDelPattern] | Batch deleted ${batch.length} keys`)
         matchedKeys.push(...batch)
         batch.length = 0 // 清空 batch
@@ -201,7 +203,7 @@ export class AppTechCacheService {
 
     // 处理剩余�?
     if (batch.length > 0) {
-      await this.redis.del(batch)
+      await this.redis.unlink(batch)
       matchedKeys.push(...batch)
     }
 
@@ -398,7 +400,10 @@ export class AppTechCacheService {
     let deletedCount = 0
     for (let i = 0; i < keys.length; i += this.BATCH_SIZE) {
       const batch = keys.slice(i, i + this.BATCH_SIZE)
-      const count = await this.redis.del(batch)
+      // node-redis v5：DEL/UNLINK 收「单键或键数组」，空数组会撞 rest-args 编码
+      if (batch.length === 0)
+        continue
+      const count = await this.redis.unlink(batch)
       deletedCount += count
     }
     return deletedCount

@@ -398,12 +398,14 @@ export class WalnutAdminGuardSign implements CanActivate {
     )
 
     if (!derivedSignKey) {
-      // Session 已过期或被吊销，降级为单因子模�?
-      this.logger.warn(
-        `Sign guard: session not found, fallback to single-factor mode `
+      // P0-2 修复（2026-10-28）：req.user 存在时双因子派生失败**直接拒绝**，不再降级单因子。
+      // 降级曾让「正确签名的伪造 AT + 设备 aesKey + 显式单因子签名」绕过会话绑定
+      // （会话吊销对自选签名模式的客户端不设防）；未登录请求仍走单因子（登录/握手端点）。
+      this.logger.error(
+        `Sign guard: session not found for authenticated request, rejecting `
         + `(user=${userId}, device=${deviceId}, session=${sessionId})`,
       )
-      return this.computeSingleFactorSignature(raw, aesKey)
+      throw new WalnutAdminExceptionInvalidSignature()
     }
 
     // 2. 使用派生密钥计算 HMAC

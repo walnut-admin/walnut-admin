@@ -10,7 +10,6 @@ import { WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { DBTransactionHooksStore } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
-import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 import { WalnutAdminExceptionInvalidCredential, WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AuthMfaService } from '@/modules/auth/modules/mfa/mfa.service'
@@ -753,21 +752,20 @@ describe('B7c auth login chain (on real PG)', () => {
       await identityShared.verifyIdentity(userId, 'phoneNumber', 'security', pgDataSource.manager)
     })
 
-    it('可用方式列举：password（login）+ sms/email（security verified）；mfa 未实现不列', async () => {
+    it('可用方式列举：password 已摘除（P1-5：opaque record 无法明文比对）+ sms/email（security verified）；mfa 未实现不列', async () => {
       const methods = await sensitiveService.getUserAvailableMethods(userId, ['password', 'sms', 'email', 'mfa'])
-      expect(methods).toContain('password')
+      expect(methods).not.toContain('password')
       expect(methods).toContain('email')
       expect(methods).toContain('sms')
       expect(methods).not.toContain('mfa')
     })
 
-    it('钉现状（上游缺陷）：缺 phone security identity 的用户 → getUserAvailableMethods 直接抛 DataNotFound（而非跳过该方式）', async () => {
+    it('缺 phone security identity 的用户 → 探测容错跳过该方式返回空集（P1-5 修复：不再 DataNotFound）', async () => {
       const bareUser = await seedUser(unique('b7c-sens-bare'))
       await identityShared.createIdentity(bareUser, 'password', 'login', 'whatever', pgDataSource.manager)
 
-      await expect(sensitiveService.getUserAvailableMethods(bareUser, ['password', 'sms', 'email']))
-        .rejects
-        .toThrow(WalnutAdminExceptionDataNotFound)
+      const methods = await sensitiveService.getUserAvailableMethods(bareUser, ['password', 'sms', 'email'])
+      expect(methods).toEqual([])
     })
 
     it('email OTP 通道：verify → grant → Redis 授权生命周期（remaining/extend/revoke）', async () => {

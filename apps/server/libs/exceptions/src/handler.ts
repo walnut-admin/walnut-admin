@@ -71,10 +71,11 @@ export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I
   }
 
   // ========== 2. QueryFailedError（TypeORM 驱动层）==========
-  // PG 23514 check_violation —— 字段值违反 CHECK 约束（枚举/数值域列收到越值）。
-  // 无映射时兜底 50000「服务器错误」；按 P1-7（23505/23503）的修法形态收敛为受控
-  // 40000，约束名进 _devMsg 供排查。CHECK 值集与 DTO/const 的三方一致性由
-  // dto-entity.drift.spec 的枚举守卫钉住。
+  // PG 约束类错误统一收敛为受控 40000（约束名进 _devMsg 供排查），无映射时兜底 50000：
+  // - 23514 check_violation：字段值违反 CHECK（枚举/数值域列收到越值），2026-10-27 先行收敛；
+  // - 23505 unique_violation：唯一键冲突（如 uq_user_name / uq_dict_type），P1-7 修复；
+  // - 23503 foreign_key_violation：外键引用不存在（如 role create 的 junction 腿），P1-7 修复。
+  // CHECK 值集与 DTO/const 的三方一致性由 dto-entity.drift.spec 的枚举守卫钉住。
   if (e instanceof QueryFailedError) {
     const driverError = e.driverError as { code?: string, constraint?: string, column?: string } | undefined
 
@@ -87,6 +88,16 @@ export function WalnutAdminExceptionHandler(e: Error, requestId: string, i18n: I
         errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST,
         requestId,
         _devMsg: `DB check constraint violated${detail.length > 0 ? `: ${detail}` : ''}`,
+      })
+    }
+
+    if (driverError?.code === '23505' || driverError?.code === '23503') {
+      const constraint = driverError.constraint
+
+      return WalnutAdminResponseException({
+        errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST,
+        requestId,
+        _devMsg: `DB ${driverError.code === '23505' ? 'unique' : 'foreign key'} constraint violated${constraint !== undefined ? `: ${constraint}` : ''}`,
       })
     }
   }

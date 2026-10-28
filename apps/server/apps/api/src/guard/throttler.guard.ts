@@ -37,7 +37,10 @@ export class WalnutAdminGuardThrottler extends ThrottlerGuard {
   async handleRequest(requestProps: ThrottlerRequest) {
     const { context } = requestProps
 
-    let { limit, ttl } = requestProps
+    // P1-10 修复（2026-10-28）：Throttler 6.x 的 blockDuration 在 canActivate 里默认取
+    // throttler.ttl（全局 10s）。动态覆盖只改 ttl 时封禁窗口仍是全局值 —— 连发攻击者
+    // block 过后每 10s 又能再打 4 发。这里把 blockDuration 与动态 ttl 同步覆盖。
+    let { limit, ttl, blockDuration } = requestProps
 
     const TargetService = this.reflector.getAllAndOverride<Type<IWalnutAdminThrottleConfigProvider>>(
       THROTTLE_SERVICE_KEY,
@@ -59,10 +62,11 @@ export class WalnutAdminGuardThrottler extends ThrottlerGuard {
 
         if (Number.isFinite(dynamicTtl)) {
           ttl = dynamicTtl * 1000
+          blockDuration = ttl
         }
 
         this.logger.debug(
-          `[Throttle Override] ${TargetService.name} ?limit=${limit}, ttl=${ttl}`,
+          `[Throttle Override] ${TargetService.name} ?limit=${limit}, ttl=${ttl}, blockDuration=${blockDuration}`,
         )
       }
     }
@@ -71,6 +75,7 @@ export class WalnutAdminGuardThrottler extends ThrottlerGuard {
       ...requestProps,
       limit,
       ttl,
+      blockDuration,
     })
   }
 }

@@ -9,8 +9,8 @@ import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-
 import { createApiApp } from './helpers/create-api-app'
 
 /**
- * C 段：`system/dict/type` + `system/dict/data` —— 标准 CRUD（dictData **无** deleteMany
- * 路由，Permissions.DELETE_MANY 常量存在但装饰器未接线 → 40400 钉现状）
+ * C 段：`system/dict/type` + `system/dict/data` —— 标准 CRUD（P1-12 修复后 dictData
+ * 的 deleteMany 路由已接线：逐行软删 + locale 级联，与单删同语义）
  * + `GET /system/dict/type/s?types=a,b`（按业务键 type 批量取启用 dictData）。
  *
  * FK 语义（真实断言）：sys_dict_data.type_id → sys_dict_type ON DELETE CASCADE（migration
@@ -282,7 +282,7 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     collect.dataIds = collect.dataIds.filter(id => id !== data.id)
   })
 
-  it('dictData 无 deleteMany 路由（Permissions.DELETE_MANY 常量未接线）→ 40400 钉现状', async () => {
+  it('dictData deleteMany → 行级软删两行 + 各落 sys_deleted 快照（P1-12 接线）', async () => {
     const type = await createDictType('M1')
     const a = await createDictData(type.id, 'M1a')
     const b = await createDictData(type.id, 'M1b')
@@ -301,10 +301,28 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
       expect(bodyOf<DictDataRow>(res).data.order).toBe(2)
     }
 
-    // deleteMany：controller 只解构了 Create/Read/Update/Delete/List，deleteMany 装饰器
-    // 没接 —— 路由不存在（B 段 demo/monitor 的 deleteMany 形态不适用于 dictData）
     const deleteManyRes = await api.root('DELETE', api.apiPath(`/system/dict/data/deleteMany/${a.id},${b.id}`))
-    expect(bodyOf(deleteManyRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND)
+    expectOk(deleteManyRes, 'dict data deleteMany')
+    const deleted = bodyOf<DictDataRow[]>(deleteManyRes).data
+    expect(deleted.map(row => row.id).sort()).toEqual([a.id, b.id].sort())
+
+    // 原行硬删 + 每个 id 各一条软删快照
+    const leftRows: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM sys_dict_data WHERE id = ANY($1::uuid[])',
+      [[a.id, b.id]],
+    )
+    expect(leftRows[0].c).toBe(0)
+
+    const snapshots: Array<{ deleted_id: string, model_name: string }> = await api.pgDataSource.query(
+      'SELECT deleted_id, model_name FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])',
+      [[a.id, b.id]],
+    )
+    expect(snapshots).toHaveLength(2)
+    expect(snapshots.every(s => s.model_name === WalnutModelName.SYS_DICT_DATA)).toBe(true)
+
+    // 读腿 40401（两行都不在了）
+    const readRes = await api.root('GET', api.apiPath(`/system/dict/data/${a.id}`))
+    expect(bodyOf(readRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
   })
 
   it('FK 语义：删 type → data 行被 DB CASCADE 硬删，且不产生 data 的软删快照', async () => {

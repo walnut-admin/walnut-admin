@@ -9,6 +9,7 @@ import {
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
+import { Allow, IsOptional } from 'class-validator'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { IdentitySendDTO, IdentityVerifyDTO } from '@/modules/auth/dto/identity.dto'
 import { IWalnutAdminConstSysUserIdentityPurpose, IWalnutAdminConstSysUserIdentityType, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType } from '../identity.const'
@@ -140,7 +141,13 @@ export class SysUserIdentityUpdateDTO extends RealPartialType(SysUserIdentityCre
 }
 
 // DTO for list request
-export class SysUserIdentityListDTO {}
+// P1-6① 修复（2026-10-28）：空类在全局 forbidUnknownValues 下恒被判定为 "unknown value"
+// （40099），端点经 HTTP 不可用。@Allow 提供可判定的校验元数据（不约束任何键），
+// 列表读腿本来也不消费任何过滤字段（userId 由 token 注入）。
+export class SysUserIdentityListDTO {
+  @Allow()
+  readonly _marker?: never
+}
 
 // DTO for identity status item
 class SysUserIdentityStatusOTPItemDTO extends RealPickType(SysUserIdentityDTO, ['maskedValue', 'verified', 'status'] as const) {
@@ -211,6 +218,8 @@ export class SysUserIdentityBindRequestDTO extends IdentityVerifyDTO {
     Object.assign(this, partial)
   }
 
+  // P1-6② 修复：缺省视为 false（swagger default 不参与校验，未挂 IsOptional 时缺字段 40099）
+  @IsOptional()
   @WalnutAdminDecoratorFieldBoolean({
     default: false,
     swaggerOptions: { description: 'whether to also set as security identity' },

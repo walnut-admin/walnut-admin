@@ -4,8 +4,9 @@ import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { QueryFailedError } from 'typeorm'
 import { describe, expect, it } from 'vitest'
 
-// 瑕疵修复（2026-10-27）配套单测：全局异常处理器把 PG 23514 check_violation 收敛为
-// 受控 40000（对照 P1-7 的 23505/23503 修法形态 —— 那两个码仍未映射，属钉现状对照面）。
+// 配套单测：全局异常处理器把 PG 约束类错误收敛为受控 40000 ——
+// 23514 check_violation（2026-10-27）+ 23505 unique_violation / 23503 foreign_key_violation
+// （P1-7，2026-10-28 修复；修复前兜底 50000），约束名进 _devMsg。
 
 const i18nStub = { t: (message: string) => message } as unknown as I18nContext
 
@@ -27,11 +28,18 @@ describe('exception handler：WalnutAdminExceptionHandler 的 PG 错误码映射
     expect(response.code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
   })
 
-  it('23505/23503 仍走兜底 50000（P1-7 钉现状，不在本批范围）', () => {
-    for (const code of ['23505', '23503']) {
-      const response = WalnutAdminExceptionHandler(pgError(code, 'uq_user_name'), 'req-1', i18nStub) as unknown as { code: number }
-      expect(response.code).toBe(WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR)
-    }
+  // 注：_devMsg 仅在 dev 环境（isDev）落响应壳，单测的 NODE_ENV=test 下不可见 ——
+  // 约束名断言落在 HTTP 级 spec（user.api-spec 的 uq_user_name）
+  it('23505 unique_violation → 受控 40000（P1-7：修复前兜底 50000）', () => {
+    const response = WalnutAdminExceptionHandler(pgError('23505', 'uq_user_name'), 'req-1', i18nStub) as unknown as { code: number }
+
+    expect(response.code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+  })
+
+  it('23503 foreign_key_violation → 受控 40000（P1-7：修复前兜底 50000）', () => {
+    const response = WalnutAdminExceptionHandler(pgError('23503', 'fk_role_menu_menu'), 'req-1', i18nStub) as unknown as { code: number }
+
+    expect(response.code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
   })
 
   it('无 driverError / 非 23514 的 QueryFailedError 仍兜底 50000', () => {

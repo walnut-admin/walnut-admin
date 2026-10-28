@@ -23,15 +23,16 @@ import { decryptAesKeyEnvelope } from './helpers/sign-handshake'
  *   取代「同 jti 原地换锁」；旧行 jti 一切后续请求（重放/错峰）被 guard 层撤销判定拦下
  *   40102，见 concurrency.api-spec G1）；无 RT cookie 的干净设备 → 40102；
  * - `POST /auth/signout`：RT revoke + RT_JTI cookie 清除 + 提交后缓存清理
- *   （permissions / MFA verified 消失；AUTH:SESSIONS 键残留 —— delByPattern 在
- *   node-redis v5 下抛错，钉现状），旧 AT 再请求 → MFA verified 缓存已清，
- *   MFA guard（在 Sign guard 之前）先拦 40115；
+ *   （permissions / MFA verified / AUTH:SESSIONS 三键全消失 —— P1-2 修复后
+ *   delByPattern 正确摊平 scanIterator 批次并用 unlink 展开删除），旧 AT 再请求 →
+ *   P0-4 的 JWT validate 查会话键先拦 40101（会话键已被 signout 清掉；修复前残留时
+ *   是 MFA guard 40115）；
  * - `GET /auth/keys`：响应体 `EncryptResponse('B')` —— B 字段是走设备握手 RSA 公钥
  *   加密的信封（与 aes-key 握手第二步同格式），客户端私钥解密还原 vendor.baidu 明文。
  *
- * 集成库 sys_menu 空表会让 getCorePermissions(ALL) 的 indexMenuName 组装在
- * `permissionMenuTree[0].children` 上 TypeError（50000，Mongo 时代同病，空数据边界）——
- * beforeAll 造 CATALOG 根 + MENU 子级两行（响应顶层是首根的 children），afterAll 清行还现场。
+ * P1-8 修复后 sys_menu 空表不再让 getCorePermissions(ALL) 的 indexMenuName 组装 TypeError
+ * （受控空树；单测见 menu.shared.service.spec）。本文件仍造 CATALOG 根 + MENU 子级两行，
+ * 因为「响应顶层是首根的 children」的树形状断言需要子节点；afterAll 清行还现场。
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -319,19 +320,19 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
     // signout 的撤销不带 reason —— 只覆盖 revoked 列，rotate 旧行的历史 reason 保留
     expect(rows.filter(r => r.revoke_reason === 'rotate')).toHaveLength(2)
 
-    // 会话系缓存清理（after-commit 钩子，轮询兜时序）—— permissions / MFA verified 两键消失
+    // 会话系缓存清理（after-commit 钩子，轮询兜时序）—— P1-2 修复后三键全部消失
     await expectKeyGone(api, keysToClear[0])
     await expectKeyGone(api, keysToClear[1])
-    // 钉现状（非迁移回归，登记 ENDPOINTS.md）：AUTH:SESSIONS 键残留 —— revokeSession 走
-    // cacheService.delByPattern，其内部 redis.del(batch数组) 在 node-redis v5 的 rest-args
-    // 语义下抛错（C 段 user-device/monitor spec 同款已知问题），钩子错误被 catch 吞掉
-    expect(await api.hasWalnutCacheKey(keysToClear[2])).toBe(true)
+    // P1-2 修复（2026-10-28）：delByPattern 正确摊平 scanIterator 的批次数组（v5 按批
+    // 产出 string[]，旧实现取 key[0] 且把空批变成 undefined → del 抛错被钩子吞掉），
+    // AUTH:SESSIONS 键不再残留
+    await expectKeyGone(api, keysToClear[2])
   })
 
-  it('signout 后旧 AT 请求 → 40115（MFA verified 缓存已清：MFA guard 在 Sign guard 之前先拦）', async () => {
+  it('signout 后旧 AT 请求 → 40101（P0-4：JWT validate 查会话键，signout 已清 AUTH:SESSIONS）', async () => {
     const res = await api.root('GET', api.apiPath('/auth/permissions'))
-    // 旧 AT 的 JWT 本身仍有效；但 signout 清了 MFA verified 缓存 —— 全局链顺序
-    // JWT → MFA → Sign，MFA verify failed（40115）先于签名降级（40112）命中
-    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_MFA_VERIFY_FAILED)
+    // 旧 AT 的签名/有效期仍通过，但会话键已被 signout 清理 —— JWT validate 先于 MFA/Sign
+    // 拒绝（修复前会话键残留，是 MFA guard 的 40115 先拦）
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
   })
 })

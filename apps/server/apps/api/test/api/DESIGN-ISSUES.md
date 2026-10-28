@@ -13,8 +13,10 @@
 > 每条四要素：**位置**（源码）、**现象**、**实测证据**（spec + 用例）、**建议**（一句话）。
 > 「钉现状」用例属于 characterization test：修复对应问题时必须同步改断言，不是测试坏了。
 >
-> 统计：**P0 × 5（P0-1 已修：2026-10-26 快照比对 → 2026-10-27 revoke-and-insert 终态）｜
-> P1 × 12（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复；P1-4 已于 2026-10-27 修复）｜
+> 统计：**P0 × 5（P0-1 已修：2026-10-26 快照比对 → 2026-10-27 revoke-and-insert 终态；
+> P0-2 / P0-3 / P0-4 已于 2026-10-28 修复（批 1）；P0-5 登记为部署强约束、代码不改）｜
+> P1 × 12（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复；P1-4 已于 2026-10-27 修复；
+> P1-1 / P1-2 / P1-3 / P1-5 / P1-6 / P1-7 / P1-8 / P1-10 / P1-11 / P1-12 已于 2026-10-28 修复（批 1））｜
 > P2 × 10 ｜ P3 × 16（P3-9 已于 2026-10-28 随 OpenAPI codegen 二期修复；共 43 条）**，
 > 末节附 G/H 段实测无恙面。
 
@@ -58,7 +60,7 @@
   `findByJti` 锁注释同步改为实际语义（锁 = 串行化「读校验+撤销+插入」，防并发双插；
   重放拦截靠行级撤销）。
 
-### P0-2 sign guard 双因子失败静默降级单因子（F 段发现 1）
+### P0-2 sign guard 双因子失败静默降级单因子（F 段发现 1）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/guard/sign.guard.ts`（`computeDualFactorSignature` 失败 fallback）。
 - **现象**：会话查无/HKDF 派生失败时回落单因子验签 —— 合法客户端（双因子）被 40112 拦，
@@ -68,8 +70,13 @@
 - **实测证据**：`guard-matrix.api-spec.ts` —— 删除 `AUTH:SESSIONS` 键后旧 AT 双因子 40112
   （拦截者是 sign guard，非 JWT）；F 段发现 1 的对照面。
 - **建议**：`req.user` 存在时双因子派生失败应直接拒绝而非降级。
+- **修法（2026-10-28，批 1）**：`sign.guard.ts` 的 `computeDualFactorSignature` 删除
+  fallback —— 派生失败直接抛 `WalnutAdminExceptionInvalidSignature`（40112）；未登录
+  请求仍走单因子（登录/握手端点不受影响）。guard-matrix 的 ghost AT 用例已从「钉现状
+  20000」翻转为拒绝；注意 P0-4 同时修复后，ghost AT 在 JWT 层先被 40101 拦下（sign 层
+  40112 是会话中途失效时的第二道闸）。
 
-### P0-3 CAP 校验缓存与设备/token 不绑定 + TTL 单位错误（F 段发现 2）
+### P0-3 CAP 校验缓存与设备/token 不绑定 + TTL 单位错误（F 段发现 2）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/guard/cap.guard.ts`（`validateCapToken` 只按 deviceId 查 boolean 缓存）+
   `apps/api/src/modules/techniques/cache/service/cache.cap.ts`（`setCapTokenCache` 把
@@ -78,8 +85,13 @@
   实际信任窗口 ≈ 41 天而非 1h（cookie 本体 1h 过期但服务端不信 cookie 信 TTL）。
 - **实测证据**：`guard-matrix.api-spec.ts` CAP 组用例（F 段实测钉死）。
 - **建议**：缓存键掺 token 指纹（值绑定设备）；TTL 单位除以 1000 修正。
+- **修法（2026-10-28，批 1）**：`cache.cap.ts` 的缓存键改为
+  `SECURITY_CAP_TOKEN:<deviceId>:<sha256(token) 前 16 hex>`，读写接口都吃原始 token
+  现算指纹；`delCapTokenCache(deviceId)` 按 `<deviceId>:*` pattern 全清。TTL 改为
+  `Math.max(1, Math.ceil(config.ttl / 1000))`（毫秒 → 秒）。guard-matrix 的「跨设备移植
+  cookie」用例从 20000 翻转为 40117（本设备缓存不命中 → cap.js 真验失败）。
 
-### P0-4 JWT 层不校验用户存在性/会话（F 段发现 5）
+### P0-4 JWT 层不校验用户存在性/会话（F 段发现 5）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/auth/modules/jwt/`（`jwt-access.strategy` 的 `validate`
   原样返回 payload，无 DB/缓存校验）。
@@ -88,8 +100,15 @@
 - **实测证据**：`guard-matrix.api-spec.ts` JWT 组（`payload.userId` 不存在的正确签名 AT
   过 JWT 层，40112 来自 sign guard）。
 - **建议**：`validate` 至少查 `AUTH:SESSIONS` 会话键；或明确接受现状并移除下游重复校验的幻觉。
+- **修法（2026-10-28，批 1）**：`JwtAccessTokenStrategy` 开启 `passReqToCallback`，`validate`
+  用 `AuthSessionService.getAuthSessionKeyHash(userId, deviceId, sid)` 查会话键
+  （`AUTH:SESSIONS:<userId>:<deviceId>:<sessionId>`，与 sign guard 同源键构造；deviceId 取
+  DEVICE_ID signed cookie）；查无 → `WalnutAdminExceptionAccessTokenExpired`（40101）。
+  每请求一次 Redis GET。落点说明：ghost AT / 删会话键后的旧 AT 现在都先被 JWT 层 40101
+  拦下（不再由 sign guard 40112 首拦）；sign guard 的双因子失败 40112 保留为会话中途失效
+  的第二道闸。
 
-### P0-5 realIp 恒信任 X-Forwarded-For（F 段发现 4）
+### P0-5 realIp 恒信任 X-Forwarded-For（F 段发现 4）—— 【已登记 2026-10-28：部署强约束，代码不改】
 
 - **位置**：IP 中间件（`@supercharge/request-ip`，首 header 优先、不校验跳数）与
   `app.set('trust proxy', true)` 双通道并存。
@@ -98,10 +117,15 @@
   真实缺陷；生产 nginx 覆盖 XFF 时可接受。
 - **实测证据**：`guard-matrix.api-spec.ts` IP 组（临时/永久黑名单两态）。
 - **建议**：部署口径强约束（nginx 覆盖 XFF）或改 `trust proxy` 跳数配置。
+- **裁决（2026-10-28，批 1）**：**登记为部署强约束，代码不改** —— 生产 nginx 必须覆盖
+  X-Forwarded-For / X-Real-IP（`proxy_set_header X-Forwarded-For $remote_addr;`
+  `proxy_set_header X-Real-IP $remote_addr;`，**不得用 `$proxy_add_x_forwarded_for`**，
+  追加会把客户端伪造值留在首位）。`deploy/nginx/conf.d/{api,frontend}.conf` 已按此口径
+  修改并在原位注释；guard-matrix IP 组保留「非黑名单伪造 IP 直通」用例作为现状锚。
 
 ## P1 行为缺陷
 
-### P1-1 key rotate 并发产生两条 ACTIVE —— 读腿无锁且无唯一索引兜底（G 段实测，新收编）
+### P1-1 key rotate 并发产生两条 ACTIVE —— 读腿无锁且无唯一索引兜底（G 段实测，新收编）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/app/key/key.service.ts`（`rotate`）+
   `key.basic.repository.ts`（`getCurrentActiveKey` 无 `FOR UPDATE`）+ InitSchema（`app_key`
@@ -112,8 +136,13 @@
 - **实测证据**：`concurrency.api-spec.ts` G6 —— 两条同 version ACTIVE + 种子行 DEPRECATED。
 - **建议**：读腿事务内 `FOR UPDATE`，或加 `(type) WHERE status = 'ACTIVE'` 部分唯一索引
   （败者受控失败）。
+- **修法（2026-10-28，批 1）**：选**锁方案**（不加索引；dev 库无需 ALTER）——
+  `key.basic.repository.getCurrentActiveKey` 增 `lock?: boolean`，`rotate` 传 true →
+  事务内 `FOR UPDATE` 锁当前 ACTIVE 行；HTTP rotate 本就带 `@WalnutTx` 的 ctx.em，cron
+  腿由 `rotateForCronJob` 的 `transactional` 包裹。concurrency G6 断言改为「恰一条
+  version+1 的 ACTIVE、败者受控 40401（锁恢复后重判 WHERE 读不到 ACTIVE 行）」。
 
-### P1-2 会话键批量清理失效 —— `delByPattern` 内部 `redis.del(数组)` 撞 node-redis v5 rest-args
+### P1-2 会话键批量清理失效 —— `delByPattern` 内部 `redis.del(数组)` 撞 node-redis v5 rest-args —— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/techniques/cache/cache.service.ts`（`delByPattern`）；
   消费方：`auth/modules/signout`、`system/user_device`、`app/monitor`。
@@ -121,8 +150,15 @@
   catch 吞掉 → `AUTH:SESSIONS` 键残留（permissions / MFA verified 两键正常消失）。
 - **实测证据**：`auth-session.api-spec.ts` signout 用例（钉现状断言）+ C 段 user-device/monitor spec。
 - **建议**：批量删改 `del(...keys)` 展开或 `unlink(keys)` 数组形态（一处修复三处受益）。
+- **修法（2026-10-28，批 1，实测根因订正）**：真正的失效点不是 `del(数组)` 签名（v5.11 收
+  「单键或键数组」），而是 `scanIterator` **按批产出 `string[]`**：旧实现
+  `Array.isArray(key) ? key[0] : key` 丢弃批内其余键、并把空批变成 `undefined` 混进删除
+  数组 → `del` 抛 "must be of type string" 被 after-commit 钩子吞掉。`cache.service.delByPattern`
+  改为摊平批次（`push(...keysOfBatch.filter(string))`）+ `unlink(数组)`；
+  `deleteKeysInBatch` 同步用 `unlink(数组)` 并跳过空批。auth-session signout 的
+  「AUTH:SESSIONS 残留」钉现状翻转为「键已清」。
 
-### P1-3 opaque register 端点匿名调用 500 —— 新用户注册无 HTTP 通道
+### P1-3 opaque register 端点匿名调用 500 —— 新用户注册无 HTTP 通道 —— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/auth/modules/opaque/user/opaque.user.controller.ts`
   （`register/start`、`register/finish` 的 handler 读 `req.user.userName`）。
@@ -131,6 +167,10 @@
 - **实测证据**：ENDPOINTS.md §2 登记；`concurrency.api-spec.ts` G2 因此只能下沉 service 层
   测注册竞态。
 - **建议**：handler 改读 DTO.userName 并接 OTP 注册链，或显式去掉 JwtFree 明确登录语义。
+- **修法（2026-10-28，批 1）**：选**去掉 JwtFree**（register/start、register/finish 两处）——
+  端点语义明确为「已登录用户补挂口令」（handler 读 req.user 不变）；匿名调用由全局 JWT
+  层 40101 受控拒绝，不再 50000。新用户注册走 OTP 链（concurrency G2 注释与 ENDPOINTS
+  同步写明）。
 
 ### P1-4 `/state` 后缀请求静默悬挂 —— 全局异常过滤器提前 return —— 【已修复 2026-10-27】
 
@@ -145,7 +185,7 @@
   依旧不进错误库），统一异常壳的响应恒落盘；`/state`/`/heartbeat` 后缀表项保留（观察豁免
   语义不变）。monitor-user spec 的绕行注释已摘除，`state 非法 body → 40099` 恢复为常规断言。
 
-### P1-5 sensitive：password 通道恒失败 + 可用验证方式探测直接 DataNotFound
+### P1-5 sensitive：password 通道恒失败 + 可用验证方式探测直接 DataNotFound —— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/security/sensitive/`（verify 的 password 比对腿、
   `getUserAvailableMethods`）。
@@ -153,8 +193,15 @@
   ② 缺 security 身份时探测腿直接 40401（而非跳过该方式列出其余可用方式），预期 40119 分支不可达。
 - **实测证据**：`security.api-spec.ts` D 段（B7c service 层现状在 HTTP 层同形）。
 - **建议**：password 通道接 opaque challenge 或摘除该方式；探测改容错跳过缺失身份。
+- **修法（2026-10-28，批 1）**：`getUserAvailableMethods` 不再返回 password（identity value
+  是 opaque registration record，无法明文比对）；phone/email 探测腿改用新增的
+  `SysUserIdentitySharedService.findIdentity`（缺失身份返回 null）容错跳过，不再
+  `getIdentityOrThrow` → 40401。`verify` 的 password 分支保留但恒 false（正常路径在
+  `verifyAndGrantPermission` 的 availableMethods 闸就 40000 verifyMethodNotAllowed）。
+  security spec 的钉现状断言改写：无 security 身份 → 40000 noVerifyMethodAvailable；
+  正例列表只剩 sms/email、首选 sms。
 
-### P1-6 user_identity HTTP 面四缺陷簇（DTO/守卫）
+### P1-6 user_identity HTTP 面四缺陷簇（DTO/守卫）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/system/user_identity/`（dto + controller）+
   `apps/api/src/guard/sensitive.guard.ts`（RequireSensitive 探测）。
@@ -166,20 +213,29 @@
 - **实测证据**：`user-identity.api-spec.ts` C 段（①②③④ 全部钉现状）。
 - **建议**：① list DTO 补查询字段或对该路由豁免 forbidUnknownValues；② 补 IsOptional；
   ③④ 判据改 `!= null` 并把探测腿改容错。
+- **修法（2026-10-28，批 1）**：① `SysUserIdentityListDTO` 加 `@Allow()` 标记属性（提供
+  可判定校验元数据，不约束任何键）；② bind 的 `setAsSecurity` 补 `@IsOptional()`（缺省
+  false）；③ update 的 value/verified/status 三个判据全部改 `!= null`；④ 探测腿容错
+  （随 P1-5）。user-identity spec 四条钉现状逐一翻转：list 20000 / 缺 setAsSecurity 正常
+  绑定 / update 20000 改值回 verified=false / update-status 40119。
 
-### P1-7 唯一键/FK 冲突未映射受控异常 → 兜底 50000
+### P1-7 唯一键/FK 冲突未映射受控异常 → 兜底 50000 —— 【已修复 2026-10-28】
 
 - **位置**：全局异常过滤器（`libs/exceptions` + 过滤器兜底）—— 23505/23503 无映射。
 - **现象**：`system/user` create 同名、`app/demo` create 同手机号 → 23505 兜底 50000；
   role create junction FK 23503 同样 50000。客户端拿到的是「服务器错误」而非受控业务码。
 - **实测证据**：C 段 user spec 钉现状；`api-rollback.api-spec.ts` role create FK 用例。
 - **建议**：过滤器把 23505/23503 按约束名映射成受控 40000 族业务文案。
+- **修法（2026-10-28，批 1）**：`WalnutAdminExceptionHandler` 的 QueryFailedError 分支在
+  23514 之外补 23505 / 23503 —— 统一受控 40000，约束名进 `_devMsg`。单测
+  `exception-handler.spec` 双码断言；user create 同名 23505 与 api-rollback role FK 23503
+  的 50000 钉现状翻转为 40000。
 - **进展（2026-10-27）**：同族第三个码 **23514 check_violation 已先行收敛** ——
   `WalnutAdminExceptionHandler` 新增 QueryFailedError 分支（`driverError.code === '23514'`
   → 受控 40000，约束名进 `_devMsg`），单测 `common/exceptions/exception-handler.spec.ts`
   钉映射与 23505/23503 兜底现状双面。23505/23503 本体仍按本条建议挂单。
 
-### P1-8 空表边界 TypeError → 50000（menu tree / auth permissions 同病）
+### P1-8 空表边界 TypeError → 50000（menu tree / auth permissions 同病）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/system/menu`（`fullTree[0].children` 组装）+
   `apps/api/src/modules/auth/modules/session`（`permissionMenuTree[0].children` 的
@@ -187,6 +243,10 @@
 - **现象**：`sys_menu` 空表时两处都在 `[0]` 上解引用 → TypeError → 50000（Mongo 时代同病）。
 - **实测证据**：C 段 menu spec + D 段 auth-session spec（均靠自建 CATALOG+MENU 行绕开）。
 - **建议**：组装前判空，回空树/空 children。
+- **修法（2026-10-28，批 1）**：`menu.shared.service` 两处 —— `indexMenuName` 组装改
+  `permissionMenuTree[0]?.children?.[0]`，`getIndexMenuName` 入参可空且空节点回 ''；
+  `getMenuTreeAndTreeWithoutTypeElement` 的 `fullTree[0]?.children ?? []`。新增单测
+  `menu.shared.service.spec` 覆盖空表两条出口（受控空树/空 indexMenuName）。
 
 ### P1-9 force-quit 只撤「查到的第一行」RT —— 【已修复 2026-10-27（revoke-and-insert 配套）】
 
@@ -200,15 +260,19 @@
   （force-quit 后最新现役行仍在场外可换发），随 P0-1 同批修复；`revokeReason` 仅显式传入时
   覆盖（signout 的无理由撤销不抹掉 rotate 旧行的历史 reason）。
 
-### P1-10 throttle 动态覆盖不覆盖 blockDuration（F 段发现 7）
+### P1-10 throttle 动态覆盖不覆盖 blockDuration（F 段发现 7）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/guard/throttler.guard.ts`（`WalnutAdminGuardThrottler` 只覆盖 limit/ttl）。
 - **现象**：触发封禁后的 block 时长仍是全局 ttl（dev 10s）—— 连发攻击者在 block 窗口后
   每 10s 可再打 4 发。
 - **实测证据**：`throttle.api-spec.ts`（device/initial 4/60s 连发 + 429 形态）。
 - **建议**：动态覆盖补 blockDuration，或显式设置独立全局值。
+- **修法（2026-10-28，批 1）**：`WalnutAdminGuardThrottler.handleRequest` 解构
+  `blockDuration`，动态 ttl 生效时同步 `blockDuration = ttl`（`@nestjs/throttler` 6.5.0
+  的 blockDuration 在 canActivate 默认取全局 ttl）。throttle spec 断言 429 响应的
+  `Retry-After ≥ 30`（秒），与修复前 ≈10 区分。
 
-### P1-11 security.guard 黑名单路径分支不可达 —— 自动拉黑死代码（F 段发现 3）
+### P1-11 security.guard 黑名单路径分支不可达 —— 自动拉黑死代码（F 段发现 3）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/guard/security.guard.ts`（`isBlacklistedPath` 用含 `/w/v1` 前缀的
   `req.path` 对 `startsWith('/admin')` 等裸常量匹配）。
@@ -216,14 +280,26 @@
   40400，guard 链根本不执行；`addToPermanentBlackList` 的自动拉黑副作用是死代码。
 - **实测证据**：`guard-matrix.api-spec.ts`（`/w/v1/admin → 40400` 钉现状）。
 - **建议**：匹配前 strip API 前缀（对齐 sign guard 的路径规范化口径）。
+- **修法（2026-10-28，批 1，含现实冲突订正）**：guard 内按 sign guard 同口径 strip
+  `/{prefix}/v{version}`；但**未命中路由的请求不执行 guard 链**（Nest not-found handler
+  直接 404），单改 guard 无法让 `/w/v1/admin` 命中 —— 故新增
+  `BlacklistPathMiddleware`（`forRoutes('*')`，用 `req.originalUrl` 取完整路径：
+  Nest 11 的通配中间件会把匹配段从 req.url 剥掉）承载同一判定（黑名单常量与判定函数
+  从 security.guard 导出复用），命中 → `addToPermanentBlackList(realIp)` + 40610。
+  guard-matrix 的 `/w/v1/admin → 40400` 钉现状翻转为 40610（用独立伪造 IP 承载拉黑
+  副作用，用后移除）。
 
-### P1-12 dict/data 无 deleteMany 路由 —— 常量在、装饰器未接线
+### P1-12 dict/data 无 deleteMany 路由 —— 常量在、装饰器未接线 —— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/system/dict/dictData`（`Permissions.DELETE_MANY` 常量存在
   但对应装饰器未挂）。
 - **现象**：`DELETE /system/dict/data/deleteMany/:ids` → 40400。
 - **实测证据**：C 段 dict spec。
 - **建议**：补挂 deleteMany 装饰器，或删除死常量明确不提供。
+- **修法（2026-10-28，批 1）**：controller 补 `@WalnutAdminDecoratorDeleteMany()` +
+  `Permissions.DELETE_MANY`，service 补 `deleteMany`（`deleteSoftByIdMany` 逐行软删 +
+  按 label 级联软删 locale，与单删同语义）。dict spec 的 40400 钉现状改为正常批量删
+  （两行各落快照、读腿 40401）。
 
 ## P2 语义怪异
 

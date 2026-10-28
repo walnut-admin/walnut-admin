@@ -1677,6 +1677,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/dict/data/deleteMany/{ids}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** 根据 ids (逗号分割)删除 字典数据 */
+        delete: operations["SysDictDataController_deleteMany"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/system/dict/data/list": {
         parameters: {
             query?: never;
@@ -10289,6 +10306,41 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description 根据 id 删除 字典数据 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysDictDataDTOSafe"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysDictDataController_deleteMany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 字典数据 ids 字符串，逗号分割 */
+                ids: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 根据 ids (逗号分割)删除 字典数据 */
             200: {
                 headers: {
                     [name: string]: unknown;

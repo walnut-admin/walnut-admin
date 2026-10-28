@@ -141,7 +141,10 @@ export class SysMenuSharedService {
         const affixedTabs = this.getLayoutTabs(processedMenuArr)
         const permissionMenuTree = this.getMenuTree(processedMenuArr)
         const permissionRoutes = this.getRouteTree(processedMenuArr)
-        const indexMenuName = this.getIndexMenuName(permissionMenuTree[0].children![0])
+        // P1-8 修复（2026-10-28）：sys_menu 空表时 permissionMenuTree 为空数组 ——
+        // 旧写法 `[0].children![0]` 在 undefined 上解引用 → TypeError → 50000。
+        // 空树回空 indexMenuName（受控空形态）。
+        const indexMenuName = this.getIndexMenuName(permissionMenuTree[0]?.children?.[0])
         const internalIframeList = this.getIframeList(processedMenuArr)
 
         return {
@@ -184,26 +187,28 @@ export class SysMenuSharedService {
     return formattedTree
   }
 
-  // get index menu name
-  private getIndexMenuName(node: IMenuTreeItem) {
+  // get index menu name（P1-8：空树/空节点回 ''，调用方不再依赖非空断言）
+  private getIndexMenuName(node?: IMenuTreeItem): string {
     if (isNil(node)) {
       return ''
     }
 
     // menu root
     if (node.type === MenuType.MENU) {
-      return node.name
+      return node.name ?? ''
     }
 
     // catelog root
     if (node.type === MenuType.CATALOG && node.children && node.children.length) {
       for (const child of node.children) {
-        const menuName = this.getIndexMenuName(child) as string
+        const menuName = this.getIndexMenuName(child)
         if (menuName) {
           return menuName
         }
       }
     }
+
+    return ''
   }
 
   // get current user route tree
@@ -263,7 +268,8 @@ export class SysMenuSharedService {
    * @description get full menu tree (for controller)
    *
    * 菜单树形态对照 Mongo 版：单次全量查询 + 内存建树（克制实现，不逐层懒加载）；
-   * 查无菜单时 fullTree[0] 为 undefined —— 与 Mongo 版一致交给上层报错，不加兜底改语义。
+   * P1-8 修复（2026-10-28）：查无菜单时 fullTree[0] 为 undefined —— 旧实现直接解引用
+   * `fullTree[0].children` → TypeError → 50000；改为受控空树（fullTree 回 []）。
    */
   async getMenuTreeAndTreeWithoutTypeElement(em?: EntityManager) {
     const allMenus = await this.sysMenuRepoService.findAllMenus(em)
@@ -292,7 +298,7 @@ export class SysMenuSharedService {
       }))
 
     return {
-      fullTree: fullTree[0].children,
+      fullTree: fullTree[0]?.children ?? [],
       treeWithoutTypeElement,
       menuActiveNamesOptions,
     }

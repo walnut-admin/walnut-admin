@@ -41,6 +41,8 @@ import { buildSignRaw, computeSingleFactorSign, generateNonce, solveCapChallenge
 const BANNED_IP_TEMP = '203.0.113.77'
 const BANNED_IP_PERMANENT = '203.0.113.78'
 const ALLOWED_PROBE_IP = '203.0.113.79'
+/** 黑名单路径用例的承载 IP（自动拉黑副作用落在它身上，用后显式移除） */
+const BANNED_IP_SCAN_PROBE = '203.0.113.80'
 
 describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路径专项）', () => {
   let app: NestExpressApplication
@@ -328,7 +330,7 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       }
     })
 
-    it('AT payload userId 不存在（正确签名）+ 双因子签名 → 40112（sign guard 查无会话降级单因子，与客户端双因子失配）', async () => {
+    it('AT payload userId 不存在（正确签名）+ 双因子签名 → 40101（P0-4：JWT validate 查会话键，ghost user 无会话被 JWT 层先拦）', async () => {
       const jwtService = app.get(JwtService)
       const accessSecret = app.get(ConfigService).get<string>('jwt.access.secret')!
       const ghost = {
@@ -342,14 +344,14 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       api.setAuth({ ...tokens1!, accessToken: ghostAt })
       try {
         const res = await api.root('GET', api.apiPath('/system/user/lock/read'))
-        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE)
+        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
       }
       finally {
         api.setAuth(tokens1)
       }
     })
 
-    it('【安全矩阵发现】同 ghost AT + 单因子签名 → 20000（deriveApiSignKey 失败降级单因子：会话吊销/用户存在性对「自选签名模式的客户端」不设防）', async () => {
+    it('ghost AT + 单因子签名 → 40101 拒绝（P0-2/P0-4 双保险：JWT 层会话键查无先拒，sign guard 不再降级单因子）', async () => {
       const jwtService = app.get(JwtService)
       const accessSecret = app.get(ConfigService).get<string>('jwt.access.secret')!
       const ghost = {
@@ -369,24 +371,27 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
           ...singleFactorHeaders({ method: 'GET', url: api.apiPath('/system/user/lock/read') }),
         },
       )
-      // 服务端：req.user 存在 → 双因子派生 → 会话查无 → **降级单因子** → 与客户端单因子签名匹配 → 放行。
-      // 合法客户端「忘改签名模式」被 40112 拦（见上一用例），但攻击者客户端显式发单因子即可绕过
-      // 会话绑定 —— 双因子的会话吊销能力仅对诚客户端生效。
-      expectOk(res, 'ghost AT with single-factor sign')
+      // 修复前：req.user 存在 → 双因子派生失败 → 降级单因子 → 攻击者显式单因子签名 20000 通过。
+      // 修复后：JWT validate 先查 AUTH:SESSIONS（ghost user 查无）→ 40101；即便 sessions 键
+      // 存在但 sign 层派生失败，sign guard 也直接 40112 拒绝（不再回落单因子）。
+      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
     })
 
-    it('会话吊销（删 AUTH:SESSIONS 键）后旧 AT 双因子签名 → 40112（session 校验真实查缓存；随后重登恢复）', async () => {
+    it('会话吊销（删 AUTH:SESSIONS 键）后旧 AT 双因子签名 → JWT 层 40101（P0-4；随后 SQL 撤 RT 重登恢复）', async () => {
       const jwtService = app.get(JwtService)
       const { sid } = jwtService.decode<WalnutClientAtPayload>(tokens1!.accessToken)
       await api.cleanupWalnutCacheKeys(sid)
 
       const res = await api.root('GET', api.apiPath('/system/user/lock/read'))
-      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE)
+      // P0-4 修复后：JWT validate 查会话键先于 sign guard → 40101（修复前由 sign guard 40112）
+      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
 
-      // 旧会话键已删不可复原 —— signout 撤销本会话 RT（否则重登撞 40109 Duplicate Auth），
-      // 换新会话供后续 describe 使用。注意 D 段口径：登录链是 JwtFree+Sign 生效路由，
-      // 登录态 jar 的 anon() 双因子签名必 40112，必须先 setAuth(null) 回单因子再走 login 链。
-      await api.root('POST', api.apiPath('/auth/signout'))
+      // 旧会话键已删、旧 AT 已不可用于任何登录态端点（含 signout）—— 直接 SQL 撤销本用户
+      // 未撤销的 RT（否则重登撞 40109 Duplicate Auth），再走登录链换新会话。
+      await api.pgDataSource.query(
+        'UPDATE auth_refresh_token SET revoked = true WHERE user_id = $1 AND revoked = false',
+        [fixture1!.userId],
+      )
       api.setAuth(null)
       tokens1 = await performHttpOpaqueLogin(api, app, fixture1!)
       api.setAuth(tokens1)
@@ -407,16 +412,17 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       }
     })
 
-    it('【安全矩阵发现】验证缓存命中期间移植另一台设备的签名 token cookie → 20000（guard 只按 deviceId 查 boolean 缓存，token 值/设备绑定不比对）', async () => {
-      // apiB 的 CAPJS_TOKEN 是同一服务端签名的**有效签名 cookie**（跨设备移植后 cookie-parser 验签通过），
-      // 但 guard 的缓存快路径只按本设备 deviceId 查 boolean，从不比对 token 值与设备的绑定 —— 窃取的
-      // token cookie 在缓存窗口内完全可移植（且缓存 TTL 见 ENDPOINTS 发现节：实际远超 token 有效期）
+    it('跨设备移植另一台设备的签名 token cookie → 40117 拒绝（P0-3：缓存键掺 token 指纹，本设备缓存不命中；真验时该 token 已被 cap.js 消费）', async () => {
+      // P0-3 修复后：guard 的缓存键 = SECURITY_CAP_TOKEN:<deviceId>:sha256(token)[:16]，
+      // 拿 apiB 的 token 到本设备（A）查询不命中 → 走 cap.js 真验 —— B 的 token 在 B 登录
+      // 链上已被消费（validateToken 成功即从 store 删除）→ 验签失败 → shouldChallenge=false
+      // 的策略降级面 40117。（修复前只按 deviceId 查 boolean，移植即 20000 放行。）
       const stolen = apiB!.getCookie(WalnutAdminConstCookieKeys.CAPJS_TOKEN)!
       const saved = api.getCookie(WalnutAdminConstCookieKeys.CAPJS_TOKEN)!
       api.setCookie(WalnutAdminConstCookieKeys.CAPJS_TOKEN, stolen)
       try {
         const res = await api.root('GET', api.apiPath('/system/user/lock/read'))
-        expectOk(res, 'stolen cross-device cap token with warm cache')
+        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_REFRESH_REQUIRED)
       }
       finally {
         api.setCookie(WalnutAdminConstCookieKeys.CAPJS_TOKEN, saved)
@@ -617,17 +623,25 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       expectOk(res, 'spoofed ip passthrough')
     })
 
-    it('【安全矩阵发现】security.guard 黑名单路径分支不可达：/w/v1/admin → 40400 而非 40610（前缀化路由永不命中 startsWith(/admin)，未路由路径根本不进 guard）', async () => {
-      const res = await api.unsigned(
-        'GET',
-        api.apiPath('/admin'),
-        undefined,
-        singleFactorHeaders({ method: 'GET', url: api.apiPath('/admin') }),
-      )
-      // 黑名单路径检查用完整 req.path（含 /w/v1 前缀）做 startsWith('/admin') —— 所有真实路由都带
-      // API 前缀，永不命中；而扫描器打的真实裸路径（/admin）不匹配任何路由 → 404，guard 链不执行。
-      // addToPermanentBlackList 的自动拉黑副作用因此不可达。
-      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND)
+    it('黑名单路径命中：/w/v1/admin → 40610 + 自动永久拉黑（P1-11：strip API 前缀 + 中间件兜底未命中路由）', async () => {
+      // 用独立伪造 IP 承载拉黑副作用（避免把 127.0.0.1 拉进永久黑名单污染后续用例）。
+      // 未命中路由的请求不执行 guard 链 → 检查落在 BlacklistPathMiddleware（forRoutes('*')），
+      // strip `/w/v1` 后按裸常量匹配 `/admin` → 拉黑 realIp + 40610。
+      try {
+        const res = await api.unsigned(
+          'GET',
+          api.apiPath('/admin'),
+          undefined,
+          {
+            'x-forwarded-for': BANNED_IP_SCAN_PROBE,
+            ...singleFactorHeaders({ method: 'GET', url: api.apiPath('/admin') }),
+          },
+        )
+        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_BLACK_LIST_PATH_DETECTED)
+      }
+      finally {
+        await app.get(SharedIpService).removeFromPermanentBlackList(BANNED_IP_SCAN_PROBE)
+      }
     })
   })
 

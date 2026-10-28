@@ -69,9 +69,16 @@ describe('F 段：Throttle —— device/initial 4 次/60s（动态覆盖 + 内�
     expect(createdDeviceIds).toHaveLength(3)
   })
 
-  it('第 5 次 → 42900（HTTP 200 壳 + TOO_MANY_REQUESTS：异常过滤器统一 200，钉现状）', async () => {
+  it('第 5 次 → 42900（HTTP 200 壳）+ Retry-After 反映动态 blockDuration（P1-10）', async () => {
     const res = await deviceInitial(`throttle-${seed8}-over`)
     expect(res.status).toBe(200)
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.TOO_MANY_REQUESTS)
+
+    // P1-10：动态覆盖把 blockDuration 同步为动态 ttl（60s）。ThrottlerStorage 的
+    // timeToBlockExpire 以秒回填 Retry-After —— 修复前 blockDuration 仍是全局 ttl（10s），
+    // 此处会 ≈10；修复后 ≈60。断言 ≥30 区分两态（封禁窗口远大于 10s）。
+    const retryAfter = Number(res.headers['retry-after'])
+    expect(Number.isFinite(retryAfter)).toBe(true)
+    expect(retryAfter).toBeGreaterThanOrEqual(30)
   })
 })

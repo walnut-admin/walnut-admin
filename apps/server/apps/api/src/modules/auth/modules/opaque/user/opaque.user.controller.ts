@@ -134,7 +134,9 @@ export class AuthOpaqueUserController {
   @Post('register/start')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'register')
-  @WalnutAdminGuardJwtFree()
+  // P1-3 修复（2026-10-28）：register 端点的语义是「已登录用户补挂口令」（handler 读
+  // req.user.userName）。原先挂 JwtFree 让匿名调用解引用 req.user → 未受控 50000；
+  // 摘掉 JwtFree 后由全局 JWT 生效：未登录 40101 受控拒绝，登录态行为不变。
   @ApiWalnutOkResponse({
     description: 'Start register with userName and registrationRequest',
     primitive: 'string',
@@ -149,7 +151,7 @@ export class AuthOpaqueUserController {
   @Post('register/finish')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'register')
-  @WalnutAdminGuardJwtFree()
+  // P1-3：同 register/start —— 登录态路由（未登录由全局 JWT 层 40101）
   @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Finish register with userName and registrationFinish',

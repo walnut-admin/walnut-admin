@@ -117,8 +117,9 @@ export class AppKeyService {
    * @description rotate app key
    */
   async rotate(type: AppKeyDTOSafe['type'], em?: EntityManager) {
-    // 1. find current and deprecate
-    const current = await this.appKeyBasicRepo.getCurrentActiveKey(type, em)
+    // 1. find current and deprecate（P1-1：事务内 FOR UPDATE，两路并发 rotate 由行锁串行化；
+    // HTTP 侧 rotate 恒带 @WalnutTx 的 ctx.em，cron 侧由 rotateForCronJob 包 transactional）
+    const current = await this.appKeyBasicRepo.getCurrentActiveKey(type, em, true)
     if (!current) {
       throw new WalnutAdminExceptionNotFound()
     }

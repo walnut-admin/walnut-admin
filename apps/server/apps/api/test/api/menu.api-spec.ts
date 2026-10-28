@@ -20,11 +20,11 @@ import { createApiApp } from './helpers/create-api-app'
  *   两种行为都是「软删 menu 本行（sys_deleted 快照 + 原行硬删）」，cascade=1 **额外**按
  *   title 级联软删 locale 行（menu.service.delete → localeSharedService.deleteByKey）；
  *   不是删子菜单（pid 自引用 FK 是 ON DELETE RESTRICT，防误删扩面在 DB 层兜底）。
- * - menu.tree 形态钉现状：`fullTree` 取的是 **首根节点**（order 最小的 pid=NULL 行）的
+ * - menu.tree 形态：`fullTree` 取的是 **首根节点**（order 最小的 pid=NULL 行）的
  *   children —— 集成库无 seed 菜单，本 spec 自建唯一根（order 给负值保证排最前）后树里
- *   只有子节点；`treeWithoutTypeElement` 走完整根数组，根节点在内。空表直接 GET tree 会在
- *   `fullTree[0].children` 上抛 TypeError（50000）—— 与 Mongo 版「交给上层报错」一致，
- *   不测该路径，用例顺序保证先建菜单。
+ *   只有子节点；`treeWithoutTypeElement` 走完整根数组，根节点在内。P1-8 修复后空表
+ *   GET tree 回受控空树（fullTree=[]），不再 `fullTree[0].children` TypeError → 50000
+ *   （空表形态由 menu.shared.service.spec 单测覆盖，集成层用例顺序仍先建菜单）。
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

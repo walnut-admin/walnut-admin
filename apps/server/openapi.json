@@ -4521,6 +4521,60 @@
         ]
       }
     },
+    "/system/dict/data/deleteMany/{ids}": {
+      "delete": {
+        "operationId": "SysDictDataController_deleteMany",
+        "parameters": [
+          {
+            "name": "ids",
+            "required": true,
+            "in": "path",
+            "description": "字典数据 ids 字符串，逗号分割",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "根据 ids (逗号分割)删除 字典数据",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysDictDataDTOSafe"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "根据 ids (逗号分割)删除 字典数据",
+        "tags": [
+          "system/dict/data"
+        ]
+      }
+    },
     "/system/dict/data/list": {
       "post": {
         "operationId": "SysDictDataController_list",

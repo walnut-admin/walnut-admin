@@ -214,7 +214,10 @@ export class SysUserIdentityService {
 
     const updatePayload: Partial<SysUserIdentityEntity> = {}
 
-    if (value !== undefined) {
+    // P1-6③ 修复（2026-10-28）：判据从 `!== undefined` 改 `!= null` —— partial DTO 经
+    // 全局 ValidationPipe 深度实例化后，未给键以**显式 null** 落实例；旧判据把 null 当
+    // 「给了值」→ verified 分支恒命中 useVerifyEndpoint，任何 body 都到不了改值逻辑。
+    if (value != null) {
       // Check if new value is already used by another user
       await this.identitySharedService.assertValueNotExists(type, purpose, value, em)
 
@@ -227,12 +230,12 @@ export class SysUserIdentityService {
       updatePayload.verifiedAt = null
     }
 
-    if (verified !== undefined) {
+    if (verified != null) {
       // Can only set verified through verify() endpoint with code verification
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.useVerifyEndpoint' })
     }
 
-    if (status !== undefined) {
+    if (status != null) {
       updatePayload.status = status
     }
 
