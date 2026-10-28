@@ -13,14 +13,18 @@
 > 每条四要素：**位置**（源码）、**现象**、**实测证据**（spec + 用例）、**建议**（一句话）。
 > 「钉现状」用例属于 characterization test：修复对应问题时必须同步改断言，不是测试坏了。
 >
-> 统计：**P0 × 5（P0-1 已修：2026-10-26 快照比对 → 2026-10-27 revoke-and-insert 终态；
-> P0-2 / P0-3 / P0-4 已于 2026-10-28 修复（批 1）；P0-5 登记为部署强约束、代码不改）｜
-> P1 × 12（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复；P1-4 已于 2026-10-27 修复；
-> P1-1 / P1-2 / P1-3 / P1-5 / P1-6 / P1-7 / P1-8 / P1-10 / P1-11 / P1-12 已于 2026-10-28 修复（批 1））｜
-> P2 × 10（批 2：P2-1 确认为安全立场设计；P2-2 ~ P2-9 已于 2026-10-28 修复；P2-10 已登记）｜
-> P3 × 16（P3-2 / P3-3 / P3-5 已于 2026-10-28 修复；P3-1 / P3-4 / P3-6 / P3-7 同日裁决登记；
-> P3-8 已豁免；P3-9 随 OpenAPI codegen 二期修复；P3-10 ~ P3-16 为 codegen 二期挂单）**，
-> 末节附 G/H 段实测无恙面。
+> 统计：**P0 × 6（P0-1 已修：2026-10-26 快照比对 → 2026-10-27 revoke-and-insert 终态；
+> P0-2 / P0-3 / P0-4 已于 2026-10-28 修复（批 1）；P0-5 登记为部署强约束、代码不改；P0-6 为文档大轮次 D 段新登记）｜
+> P1 × 19（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复；P1-4 已于 2026-10-27 修复；
+> P1-1 / P1-2 / P1-3 / P1-5 / P1-6 / P1-7 / P1-8 / P1-10 / P1-11 / P1-12 已于 2026-10-28 修复（批 1）；
+> P1-13 ~ P1-17 为文档大轮次 A 段（2026-10-28）新登记；P1-18 / P1-19 为 B 段新登记，待修）｜
+> P2 × 31（批 2：P2-1 确认为安全立场设计；P2-2 ~ P2-9 已于 2026-10-28 修复；P2-10 已登记；
+> P2-11 ~ P2-15 为文档大轮次 A 段新登记；P2-16 ~ P2-20 为 B 段新登记；
+> P2-21 ~ P2-29 为文档大轮次 C 段新登记；P2-30 / P2-31 为 D 段新登记）｜
+> P3 × 30（P3-2 / P3-3 / P3-5 已于 2026-10-28 修复；P3-1 / P3-4 / P3-6 / P3-7 同日裁决登记；
+> P3-8 已豁免；P3-9 随 OpenAPI codegen 二期修复；P3-10 ~ P3-16 为 codegen 二期挂单；
+> P3-17 为文档复审新登记；P3-18 ~ P3-20 为 B 段新登记；
+> P3-21 ~ P3-24 为 C 段新登记；P3-25 ~ P3-30 为 D 段新登记）**，末节附 G/H 段实测无恙面。
 
 ---
 
@@ -124,6 +128,21 @@
   `proxy_set_header X-Real-IP $remote_addr;`，**不得用 `$proxy_add_x_forwarded_for`**，
   追加会把客户端伪造值留在首位）。`deploy/nginx/conf.d/{api,frontend}.conf` 已按此口径
   修改并在原位注释；guard-matrix IP 组保留「非黑名单伪造 IP 直通」用例作为现状锚。
+
+### P0-6 app/key/current 无授权读取服务器私钥与 AES 密钥（文档大轮次 D 段，新登记）
+
+- **位置**：`apps/api/src/modules/app/key/key.controller.ts` 的 `@Get('current/:type')`
+  （无 `@HasPermission`、无 `@WalnutAdminDecoratorHasRole`）+ `key.service.ts` 的
+  `getCurrent`（RSA_PAIR 返回 `publicKeyPem` + `privateKeyPem`，AES_KEY_URL 返回 `keyB64`）。
+- **现象**：该端点只走默认全局守卫链，**任何已登录用户（含 visitor）**都能读取服务端 RSA
+  私钥与 AES 密钥材料。RSA 私钥正是 `@WalnutAdminDecoratorDecryptRequest` 请求解密所用的
+  当前私钥；`GET /security/rsa/public-key` 才是只暴露公钥的公开端点。同 controller 的
+  init / rotate 都挂了 root 角色，唯独 current 没有，权限面自相矛盾。
+- **实测证据**：`key.api-spec.ts` 的 current 用例断言 `data.privateKeyPem` 含
+  `BEGIN PRIVATE KEY`（响应确实带私钥）；`ENDPOINTS.md` §1 该行也注明「无 @HasPermission
+  → guard 放行」。root 短路让现有回归只以 root 调用，未暴露普通用户的读取面。
+- **建议**：current 挂 `@WalnutAdminDecoratorHasRole([root, developer], OR)`；更稳妥的做法是
+  拆公开视图，只返回 `publicKeyPem`，私钥与 `keyB64` 永不出 HTTP。
 
 ## P1 行为缺陷
 
@@ -303,6 +322,121 @@
   按 label 级联软删 locale，与单删同语义）。dict spec 的 40400 钉现状改为正常批量删
   （两行各落快照、读腿 40401）。
 
+### P1-13 风险层「阻塞」整条腿不可达 —— 推荐恒 shouldBlock=false + guard 自吞异常（文档大轮次 A 段，新登记）
+
+- **位置**：`apps/api/src/modules/security/risk/risk.service.ts`（`generateRecommendation`）+
+  `apps/api/src/guard/risk.guard.ts`（`canActivate` 的 try/catch）。
+- **现象**：`generateRecommendation` 的所有返回分支都把 `shouldBlock` 写死为 `false`
+  （crash 场景也只有 `shouldChallenge: true`）；risk.guard 在 `try` 内 `throw
+  WalnutAdminExceptionRiskTooHigh`，但同一函数的 `catch` 对所有异常 `return true` ——
+  连自己刚抛的控制流异常也被吞掉。结果是 **40666 RiskTooHigh 当前不可达**，风险层只剩
+  CAP 挑战，没有阻塞腿；评估过程任何异常也按「优雅降级」放行。
+- **实测证据**：本次文档复审读码钉死；`guard-matrix.api-spec.ts` 只钉 CAP 的 40116/40117
+  拒绝面，全仓无用例断言 40666。
+- **建议**：`generateRecommendation` 按 level 给出 `shouldBlock`（或明确删除该字段，别保留
+  「看似有阻塞」的契约）；`catch` 只吞未知异常，`HttpException` 原样 rethrow。
+
+### P1-14 opaque register 端点在登录态恒 40001 —— P1-3 只摘 JwtFree，服务层仍是「新用户注册」
+
+- **位置**：`apps/api/src/modules/auth/modules/opaque/user/opaque.user.controller.ts`
+  （`register/start`、`register/finish` 读 `req.user.userName`）+
+  `apps/api/src/modules/auth/modules/opaque/core/opaque.core.service.ts`
+  （`startRegister` / `finishRegister` 首步 `findUserByUserName` 查重）。
+- **现象**：端点语义被 P1-3 定为「已登录用户补挂口令」，但服务层仍按「新用户注册」实现：
+  `startRegister` 查到同名用户即抛 40001 DataExists，`finishRegister` 还要新建用户。
+  已登录用户的 `userName` **必然**已存在，因此这两个端点对登录态调用**恒 40001**，
+  「补挂口令」不可达；加上 register 端点已摘 JwtFree，匿名也进不来 —— 该族端点整体没有
+  可用路径。新用户注册实际只能走 OTP 链。
+- **实测证据**：本次读码钉死；P1-3 修复记录只描述守卫层改动，ENDPOINTS §2 仍注明 handler
+  读 `req.user.userName`。
+- **建议**：改为「按当前 `userId` upsert password identity」（不查重、不建用户），或明确
+  下线该族端点；不要把它接回新用户注册语义（与 OTP 链重复）。
+
+### P1-15 AUTH:PERMISSIONS 缓存 TTL 放大 1000 倍 —— 秒级 setEx 收到「秒 × 1000」
+
+- **位置**：`apps/api/src/modules/techniques/cache/service/cache.permissions.ts`
+  （`setPermissions` 的 `ttl: atTtl * 1000`）。
+- **现象**：`AppTechCacheService.set` 的 `ttl` 单位是**秒**（`cache.service.ts` 直接
+  `redis.setEx(cacheKey, ttl, ...)`，日志 `TTL: Ns`；cap 的 P0-3 修复注释也明确
+  「set 收秒」）。权限缓存却把 `getAccessTokenExpireSeconds()` 再乘 1000 —— AT 若 30 分钟，
+  缓存实际驻留约 20.8 天。权限撤销/角色切换后，`permission.guard` 读到的旧权限串会长期
+  不失效；只有重新拉 `GET /auth/permissions` 覆盖或 signout 删除才更新。
+- **实测证据**：本次读码钉死；同族 `cache.sign.ts`、`cache.mfa.ts` 都直接传秒，唯
+  permissions 多乘 1000。
+- **建议**：去掉 `* 1000`（与 AT 同寿命或更短）；补一条 TTL 数量级断言，防回归。
+
+### P1-16 OTP 发送端点动态限流配置不生效 —— 元数据键 Symbol 与字符串错位
+
+- **位置**：`apps/api/src/modules/auth/modules/otp/guard/otp.decorator.ts`
+  （`SetMetadata(OTP_THROTTLE_SERVICE_KEY, ...)`，键是 `Symbol(...)`）+
+  `apps/api/src/modules/auth/modules/otp/guard/otp-throttle.guard.ts`
+  （`getAllAndOverride('OTP_THROTTLE_SERVICE', ...)`，字符串键）。
+- **现象**：两处键永不相等，`TargetService` 恒 `undefined`，`OtpSettingService` 的
+  `sendLimit` / `sendTtl` 从未被读取；OTP send 实际一直用全局 throttle 的 limit/ttl。
+  该 guard 的 `handleRequest` 也不覆盖 `blockDuration`（与 P1-10 同型问题，只是在动态配置
+  失效时一并不可见）。
+- **实测证据**：本次读码钉死；`throttle.api-spec.ts` 只覆盖 `device/initial` 的
+  `WalnutAdminGuardThrottler`，没有 OTP send 的限流用例。
+- **建议**：抽一个共享 key 常量（或像 `WalnutAdminDecoratorThrottle` 一样导出 Symbol）；
+  同步补 `blockDuration`；补 OTP send 压线用例。
+
+### P1-17 Google 登录每次自动新建用户 —— 邮箱复用分支被注释，且不落 user_identity
+
+- **位置**：`apps/api/src/modules/auth/modules/google/google.service.ts`
+  （`validateGoogle`）。
+- **现象**：函数无条件调用
+  `getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser({}, deviceId)` ——
+  「按邮箱查既有用户」与「按邮箱自动注册」的分支整体被注释。任何通过本地 JWKS 校验的
+  Google id_token 都会**新建一个 sys_user**（并每次发送欢迎邮件），既不查重也不写
+  `user_identity` / `user_oauth`。同一 Google 账号重复登录得到不同 `userId`，数据与角色
+  绑定无法延续；也意味着该 provider 可被用来无限造用户。
+- **实测证据**：本次读码钉死；`external-oauth.api-spec.ts` 只覆盖错误路径（functional
+  关闭、garbage credential 本地校验失败），未走成功登录。
+- **建议**：恢复「email identity 查重 + user_oauth 绑定」逻辑（对齐 gitee/github 的
+  `validateIdentity`），或在该 provider 未完成前显式关闭/下线。
+
+### P1-18 `current_role_id` 与 `sys_user_role` junction 脱钩 —— SWITCH 用户可沿用已移出角色的权限（文档大轮次 B 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/user/user.basic.repository.ts`（`update` 的
+  `replaceRoles` 只整组替换 junction）+ `apps/api/src/modules/system/user/services/user.crud.service.ts`
+  （create 的 `roles: []` 仍把 `currentRole` 落 `defaultRole`）+
+  `apps/api/src/modules/system/user/shared/user.shared.service.ts`（`checkUserAndRoleStatus`
+  的 switch 分支：当前角色不在 `roles_list` 时只记日志继续）+
+  `apps/api/src/modules/system/role/shared/role.shared.service.ts`（`getCoreMenus` 对
+  SWITCH 直接取 `[user.currentRole]`）。
+- **现象**：`sys_user_role` 与 `sys_user.current_role_id` 之间没有联合约束。管理端
+  `PUT /system/user/:id` 用 `roles` 整组替换 junction 时，既不重置也不校验
+  `current_role_id`；create 给 `roles: []` 时 junction 为空但 `current_role_id` 指向
+  `defaultRole`（user.api-spec 文件头已钉现状）。登录时 `checkUserAndRoleStatus` 找不到
+  当前角色只写日志；`getCoreMenus` 的 SWITCH 分支仍按这个 `currentRole` 直接查角色与菜单。
+  结果是：用户被移出角色 A（junction 里只剩 B）后重新登录，AT 的 `currentRole` 仍是 A，
+  权限链路继续按 A 取权限串 —— 只要 B 是启用角色，登录就会放行。
+- **实测证据**：本次读码钉死；`user.api-spec.ts` 的 create 用例钉住「junction 空 +
+  currentRole 走 defaultRole」；`permission-chain.api-spec.ts` 只覆盖 junction 与
+  currentRole 一致的种子用户，未覆盖替换后的脱钩形态。
+- **建议**：update roles 时校验 `current_role_id` 仍在新集合内（否则重置为 `roles[0]`），
+  `getCoreMenus` 的 SWITCH 分支加 membership 判据；或补 `(current_role_id, user_id)`
+  指向 junction 的约束（成本较高，至少先在写路径收敛）。
+
+### P1-19 user create / update 的 junction 写入没有事务 —— 主行与角色绑定可半成功（文档大轮次 B 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/user/controllers/user.controller.ts`
+  （create / update 均无 `@WalnutTx`）+ `apps/api/src/modules/system/user/user.basic.repository.ts`
+  （`create` / `update` 先 `super.create` / `super.update` 写主行，再 `replaceRoles` 做
+  delete + insert；em 缺省时走连接级 manager）+ `user.crud.service.ts`（service 不接 em）。
+- **现象**：user 的 HTTP create / update 不是事务：主行 save、junction delete、junction
+  insert 各自自动提交。create 时 junction 插入失败（如 roles 里含不存在角色的 uuid，
+  FK 23503 → 受控 40000）会留下「主行已提交、无任何角色绑定」的脏用户，重试 create 又撞
+  `uq_user_name`；update 时 insert 失败会留下 junction 已被 delete 清空的状态 ——
+  `roles` 整组替换退化为「权限被清空 + 请求返回失败」，且并发登录可能读到中间态
+  （`roles_list` 为空 → 40104 族）。对照：role 的 create/update 已挂 `@WalnutTx`，
+  `SysUserRepositoryService.createUser`（自动注册路径）也自起事务，唯独管理端 user 写路径没有。
+- **实测证据**：本次读码钉死；`api-rollback.api-spec.ts` 的 rollback 用例只覆盖 role
+  create 的 FK 腿，user create 的 junction FK 腿未覆盖；user.api-spec 的 safe role 拦截
+  在 service 层前置，走不到 FK。
+- **建议**：user create / update 补 `@WalnutTx()` 并让 service 透传 `ctx.em`（与 role
+  同款），让主行 + junction 同事务提交/回滚。
+
 ## P2 语义怪异
 
 ### P2-1 mfa.guard 强制所有已登录用户 mfaSetup=true，无开关（F 段发现 6）—— 【确认为安全立场设计 2026-10-28】
@@ -441,6 +575,328 @@
   ③ `ParseArrayPipe` 才对每个元素按 `SysLocaleDTOCreateRequest` 严格校验。
 - **机械保障**：controller 内注释已把「为什么必须放宽」写透（2026-10-27 补全）；放宽只覆盖
   第一段，wire 契约仍由第三段钉死 —— locale.api-spec 的批量 create/update 用例即回归面。
+
+### P2-11 签名 nonce 去重非原子（GET 后 SET）（文档大轮次 A 段，新登记）
+
+- **位置**：`apps/api/src/guard/sign.guard.ts`（`validateAndRecordNonce`）+
+  `apps/api/src/modules/techniques/cache/service/cache.sign.ts`（`setNonceCache` 普通 SET）。
+- **现象**：先 `getNonceCache` 判空、再 `setNonceCache`，不是 `SET NX EX`。两个携带相同
+  `timestamp + nonce + body` 的并发请求可同时通过「未使用」检查并各自写入，nonce 的
+  一次性语义只在串行到达时成立。源码注释本身已写「建议使用 Redis NX 操作保证原子性」。
+- **实测证据**：本次读码钉死；`guard-matrix.api-spec.ts` 的 nonce 重放用例是顺序第二次
+  请求（40112），不覆盖并发。
+- **建议**：`set` 改为 SET NX EX 并以写入结果判重（或 Lua 原子脚本）；失败仍映射 40112。
+
+### P2-12 踢下线只撤 RT，不清会话/权限/MFA 缓存 —— AT 到期前仍可用
+
+- **位置**：`apps/api/src/modules/auth/modules/signout/signout.service.ts`
+  （`handleUserKickOther` / `handleAdminKick`，对照 `handleUserLogout` 的
+  `clearDeviceCache`）。
+- **现象**：`user-kick-other` 与 `admin-kick` 只 `revokeRTForUserDevice` + 在线设备
+  socket 通知，**不清** `AUTH:SESSIONS` / `AUTH:PERMISSIONS` / `AUTH:MFA:VERIFIED`。
+  P0-4 之后 JWT 层的会话键校验仍能通过，因此被踢设备的 AT 在到期前继续可用；离线设备的
+  设计口径是「下次打开页面由前端 socket 初始化触发 signout」，服务端没有强撤。
+- **实测证据**：本次读码钉死；user-device / monitor force-quit 用例只断言 RT 行
+  `revoked=true`，未断言 AT 失效。
+- **建议**：踢人时按设备清三键（sessionId 可用 `AUTH:SESSIONS:<user>:<device>:*` pattern），
+  或给 AT 增加会话版本/黑名单；若维持现状，应在文档与前端契约里写明「AT 有效期内不保证
+  立即失效」。
+
+### P2-13 OAuth state 未签名 + SSE 按客户端自报 fingerprint 投递
+
+- **位置**：`apps/api/src/modules/auth/modules/oauth/gitee/gitee.controller.ts` 与
+  `.../github/github.controller.ts`（`getOAuthURL` / `sse`）。
+- **现象**：`state` 是 `JSON.stringify({ fp, lang })` 原文拼进授权 URL，无服务端签名、
+  无一次性存储、不绑定发起会话；`GET .../sse/:fp` 允许任何持有设备 cookie 的客户端订阅
+  任意 `fp` 频道，回调成功后 `accessToken/sessionKey` 就发到该频道。可构造登录 CSRF
+  （攻击者取自己的授权 URL 诱导受害者完成 IdP 登录，令牌投递到攻击者订阅的频道）。
+  令牌与受害者 `deviceId` 绑定，跨设备直接使用受限，但「把受害者登入攻击者账号」成立。
+- **实测证据**：本次读码钉死；`external-oauth.api-spec.ts` 只覆盖 URL 拼装形态与缺 code。
+- **建议**：`state` 改为服务端签发的一次性 nonce（Redis 关联 device/session），SSE 频道
+  绑定发起时的设备；回调校验 state 后再投递。
+
+### P2-14 并发 login/finish 的 Duplicate Auth 判据是「读后写」
+
+- **位置**：`apps/api/src/modules/auth/modules/refresh/shared/refresh.shared.service.ts`
+  （`generateRefreshToken` / `isCurrentUserInThisDeviceHasSignIn`）+
+  `refresh.repo.service.ts`（`findActiveByDeviceIdAndUserId`）。
+- **现象**：登录时先查「同 (user, device) 是否已有未撤销 RT 行」，无行则取最新历史行复签
+  同一 jti。两个并发 `login/finish` 都能通过判据：各自创建 `sid`/sessionKey，各自把
+  `encrypted_token` 写进同一行，后写覆盖前写 —— 两个响应都 20000，但只有后写者的
+  sessionKey 与 RT 行匹配，另一客户端下次 refresh 后双因子签名失配（40112）。
+  表上无 `(user_id, device_id) WHERE revoked = false` 唯一索引兜底。
+- **实测证据**：本次读码钉死；`concurrency.api-spec.ts` G2 覆盖的是同名注册竞态，不是
+  同 user+device 重复登录。
+- **建议**：登录事务内加 `(user, device)` 维度的锁/`FOR UPDATE`，或加部分唯一索引让并发
+  败者受控（40109）。
+
+### P2-15 永久 IP 黑名单写腿在零配置下静默 no-op —— 依赖 `app.global.ipBlackList` 行预先存在
+
+- **位置**：`apps/api/src/modules/shared/ip/ip.service.ts`（`addToPermanentBlackList`）→
+  `apps/api/src/modules/app/setting/repo/setting.repo.service.ts`
+  （`updateAppSettingByKey`：`findOne` 查无行时直接跳过 save）。
+- **现象**：黑名单路径命中时（`BlacklistPathMiddleware` / `security.guard`）会调用
+  `addToPermanentBlackList(realIp)`；但该写腿先 `findAppSettingByKey`，无行则拼出 `[ip]`
+  再交给 `updateAppSettingByKey` —— 后者对不存在的 key **静默不写**。只跑 migration、
+  未 seed `app.global.ipBlackList` 的部署（零配置）因此永远不会真正积累永久黑名单，
+  扫描器每次只拿到 40610，IP 不被记住。读取腿 `getPermanentBlackList` 对缺失键走
+  JSON.parse 异常兜底 `[]`，不报错，问题完全静默。
+- **实测证据**：本次读码钉死；guard-matrix 的永久黑名单用例通过直接改造 `APP:SETTING`
+  缓存构造，未覆盖「无 setting 行」的自愈路径。
+- **建议**：`addToPermanentBlackList` 在行缺失时走 insert（或首次写入前 seed 该键）；
+  顺带把读改写放进事务/锁，避免并发拉黑丢更新。
+
+### P2-16 角色 / 菜单 / 用户切换都不失效 AUTH:PERMISSIONS —— 权限撤销没有服务端通道（B 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/menu/menu.service.ts`（create / update / delete
+  三处 `TODO remove all cache auth data when menu changed`）+
+  `apps/api/src/modules/system/role/role.service.ts`（menus 整组替换后无失效）+
+  `apps/api/src/modules/system/user/shared/user.shared.service.ts`（`switchRole` /
+  `switchRoleMode` 只写库）。
+- **现象**：`AUTH:PERMISSIONS` 的唯一写入口是 `GET /auth/permissions`，唯一主动删除点是
+  signout 的 `clearDeviceCache`（P2-12 已登记踢人不清）。角色授权整组替换、菜单
+  `meta.permission` 改动或删除、角色停用、用户切换角色/角色模式都不清除或重算缓存；
+  `permission.guard` 只读缓存且无懒重建。叠加 P1-15 的 TTL 放大，权限撤销在缓存层面
+  可驻留约 1000 倍 AT 时长。缓存键按 `(userId, deviceId)` 分布，服务端当前没有
+  「按角色反查用户 → 批量清键」的通道。
+- **实测证据**：本次读码钉死；`menu.service.ts` 三处 TODO 注释；
+  `grep delPermissions` 只有 signout 一处消费（`menu.shared.service` 自身除外）。
+- **建议**：角色 / 菜单写路径的 after-commit 里按 `sys_user_role` / `sys_role_menu`
+  反查受影响的 userId，批量删除其 `AUTH:PERMISSIONS:*`（或落一个「权限版本号」进 AT）；
+  `me/role/switch` 与 `me/roleMode/switch` 至少清本设备键。
+
+### P2-17 lang 与 locale 的缓存刷新不对称 —— 新语言写翻译被白名单缓存挡下（B 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/lang/lang.service.ts`
+  （`triggerPublicListCacheRefresh` 只删 `SYS_LANG_LIST_PUBLIC`）+
+  `apps/api/src/modules/system/locale/shared/locale.shared.service.ts`
+  （`SYS_LANG_ID_LIST` 只在 `extractLocaleMessagesIntoCacheForCronJob` 写）+
+  `apps/api/src/modules/system/locale/locale.validate.ts`。
+- **现象**：`SYS_LANG_ID_LIST` 是 locale 入参的白名单缓存，只有 locale 的
+  create/update/delete/deleteMany 触发的全量刷新会写它。`POST /system/lang` 新建语言后
+  该列表仍是旧的：紧接着给新 langId 写翻译，`LocaleLangIdValidate` 命中旧缓存 →
+  `Invalid of langId`（40099），直到某次不依赖新 langId 的 locale 变更/删除触发刷新
+  （缓存键完全缺失时校验反而放行）。`PUT /system/lang/:id` 改 `lang` 代号也不会重算
+  `SYS_LOCALE_MESSAGES`：旧代号的消息缓存继续存在、新代号要等 locale 变更后才进缓存。
+- **实测证据**：本次读码钉死；A 段 locale API spec 只覆盖「已有 langId + 已有缓存」的
+  批量创建/缓存语义，未覆盖新建 lang 后的首次翻译。
+- **建议**：lang create/update 也调 `extractLangIdsIntoCache`（或直接复用
+  `extractLocaleMessagesIntoCacheForCronJob`），与 locale 的 after-commit 通道对齐。
+
+### P2-18 软删恢复不恢复 junction —— 恢复菜单丢全部角色授权、恢复用户无法登录（B 段，新登记）
+
+- **位置**：`apps/api/src/common/repository/pg-base.repository.ts`（`deleteSoftById`：
+  只快照主行，随后硬删原行）+ `apps/api/src/modules/system/deleted/deleted.service.ts`
+  （`recoverSnapshot` 只按快照插回主行）+ phase2 §4.1 / §4.2 的 junction FK CASCADE。
+- **现象**：`sys_user_role` / `sys_role_menu` 没有独立软删通道，主行硬删时由 FK CASCADE
+  静默清空，且 junction 不在 `sys_deleted.content` 里。从回收站恢复菜单后，所有角色对该
+  菜单的授权为空；恢复用户后 `roles_list` 为空，`checkUserAndRoleStatus` 直接
+  40104 族拒绝登录。恢复动作本身成功（20000），不提示授权丢失。
+- **实测证据**：本次读码 + phase2 DDL 钉死；`deleted.api-spec.ts` 只用 `app/demo` 行
+  覆盖恢复三态，没有 user/menu 的 junction 面。
+- **建议**：把 junction 纳入快照/恢复注册器（先恢复主行再重放 junction），或在恢复端点
+  显式返回「关联授权未恢复」并把该行为登记为取舍。
+
+### P2-19 effective roleMode 只作用于权限计算 —— 零配置下 switchRole 对所有用户恒 40000（B 段，新登记）
+
+- **位置**：`apps/api/src/modules/techniques/cache/service/cache.appSettings.ts`
+  （P2-9 后 `defaultFunctionalRole` = GLOBAL/combinable）+
+  `apps/api/src/modules/system/user/shared/user.shared.service.ts`（`switchRole` 用
+  effectiveRoleMode 判 COMBINE）+ `apps/api/src/modules/shared/token/token.service.ts`
+  （AT payload 的 `roleMode` 取用户行）+ `apps/api/src/guard/permission.guard.ts`
+  （root/visitor 短路按 payload 的行值）。
+- **现象**：零配置部署的 effective roleMode 恒为 combinable，`switchRole` 因此对**所有**
+  用户返回 40000，即使其 `sys_user.role_mode` 仍是 `switchable`；而前端角色切换入口、
+  权限守卫的 root/visitor 判据都按行值工作（AT payload 里也是行值）。
+  `roleMode/switch` 改行值也不会改变 effective —— 用户可把行切成 switchable 后依旧
+  无法切换角色。`user.api-spec.ts` 的「切到 switchable 后不在 junction 的角色拒」用例
+  拿到的 40000 实际来自 effective=COMBINE，而非 membership 判据，掩盖了这层差异。
+- **实测证据**：本次读码 + `user.api-spec.ts` L180-197；`permission-chain.api-spec.ts`
+  的 LOCAL scope 对照用例证明 effective 只在显式配 LOCAL 后才跟随行值。
+- **建议**：明确产品口径 —— 要么 `switchRole` 也按行值判（与 payload/守卫一致），要么
+  前端在 effective=GLOBAL/combinable 时隐藏角色切换并登记「零配置不支持切换」；
+  补一条零配置下 switchable 用户 switchRole 的用例。
+
+### P2-20 菜单树与字典批量读端点没有权限点 —— 任何登录用户可读全量目录（B 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/menu/menu.controller.ts` 的 `@Get('tree')`
+  （只有 `@ApiWalnutOkResponse`，无 `@HasPermission`）+
+  `apps/api/src/modules/system/dict/dictType/dictType.controller.ts` 的 `@Get('s')`。
+- **现象**：两个 GET 只走默认全局守卫链，不触发方法级权限守卫：任何已登录用户
+  （包括 switchable 的 visitor）都能读到全量菜单树（含隐藏菜单与 `status=false` 的行，
+  `tree` 用的是 `findAllMenus`）以及全部启用字典数据。`ENDPOINTS.md` §5 把 menu 行登记在
+  `system:menu:*`、dict 行登记在 `system:dictType:*` 之下，与代码不符；字典 `s` 被前端
+  公共消费可能是刻意豁免，但没有 Free / 豁免登记。
+- **实测证据**：本次读码钉死；`permission-chain.api-spec.ts` 只覆盖 `app/demo` 的
+  权限点拒绝面，未覆盖这两个端点。
+- **建议**：`menu/tree` 挂 `system:menu:list`（或 read）；dict `s` 若确为登录用户的公共
+  字典通道，显式写进契约（或加 `@HasPermission` 的 OR 白名单），不要靠「没挂装饰器」实现。
+
+### P2-21 device 锁/封的读改写与 guard 回填竞态 —— 状态位可丢更新、缓存可被旧快照覆盖（C 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/device/device.service.ts`（`updateLockOrBanStatus`）+
+  `device/repo/device.repo.service.ts`（`findDeviceByDeviceIdAndUpdate`：`findOne` →
+  `Object.assign` → `save`）+ `guard/device.guard.ts`（缓存 miss 回源分支）。
+- **现象**：两个层面。
+  1. 状态位更新是 read-modify-write，没有行锁也不是原子 `UPDATE`；并发 `lock` 与 `ban`
+     各自读到旧行再整行 `save`，后写者会覆盖前者的状态位（丢更新）。
+  2. guard 缓存 miss 时读到 `dbDevice` 后先 `setSysDeviceCache(dbDevice)` 再判定；若同一
+     窗口内管理端 PATCH 提交并 after-commit 写入新缓存，guard 的旧快照会把新缓存覆盖回去。
+     `SYS_DEVICE` 缓存没有 TTL（`setSysDeviceCache` 不传 ttl），DB 的 `locked/banned` 会被
+     长期遮蔽，直到下一次缓存 miss 才回源。
+- **实测证据**：本次读码钉死；C 段 `device.api-spec.ts` 只覆盖顺序 lock/ban 与「清缓存后
+  guard 回源」，不覆盖两个写请求/「回填与双写」交错。
+- **建议**：状态位改原子 `UPDATE ... SET locked/banned = ... RETURNING *`（或事务内
+  `FOR UPDATE`）；guard 回填前重新读库或用版本列比较，缓存加 TTL 作为兜底。
+
+### P2-22 恢复用户不恢复账户外围 —— identity / oauth / device / lock / mfa / preference 全丢（C 段，新登记）
+
+- **位置**：`apps/api/src/common/repository/pg-base.repository.ts`（`deleteSoftById` 只快照
+  主行）+ `apps/api/src/modules/system/deleted/deleted.service.ts`（`recoverSnapshot` 只插
+  主行）+ phase2 §4.9 ~ §4.14 的 `FK user_id CASCADE`。
+- **现象**：删除用户时 `sys_user_identity` / `sys_user_oauth` / `sys_user_device` /
+  `sys_user_lock` / `sys_user_mfa` / `sys_user_preference` 由 FK CASCADE 硬删且不进
+  `sys_deleted`。恢复用户只插回 `sys_user` 主行：没有 password/OTP 身份（无法登录）、
+  没有 MFA 凭据（`mfaSetup` 与运行时判据脱钩）、没有偏好行。恢复端点返回成功，不提示
+  外围丢失。这是 P2-18（junction 不恢复）在账户侧的同族问题。
+- **实测证据**：本次读码 + phase2 DDL 钉死；`deleted.api-spec.ts` 只用 `app/demo` 行
+  覆盖恢复三态，没有 user 的外围面。
+- **建议**：恢复用户时在同一事务内把六张外围表按 `user_id` 纳入快照/重放，或在恢复端点
+  显式返回「外围数据未恢复」并把该行为登记为取舍。
+
+### P2-23 恢复不联动级联软删的 locale 行 —— menu `_cascade=1` / dictData 删除后的翻译不回来（C 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/menu/menu.service.ts`（删除时按 `title` 软删 locale）+
+  `apps/api/src/modules/system/dict/dictData/dictData.service.ts`（按 `label` 软删 locale）+
+  `deleted.service.ts`（`recoverSnapshot` 只插主行）。
+- **现象**：menu 删除带 `_cascade=1`、dictData 单删/批量删都会把对应 locale 翻译行软删进
+  `sys_deleted`（各自快照 `SYS_LOCALE`），但恢复 menu / dictData 时只插回主行，翻译行仍留在
+  回收站。前端随后按 key 取不到翻译，显示原始 key。两种级联的「正向」都有测试断言，
+  「反向恢复」没有。
+- **实测证据**：本次读码；`menu.api-spec.ts` 与 `dict.api-spec.ts` 只断言删除时的级联软删
+  与快照存在，未覆盖恢复后的翻译面。
+- **建议**：恢复主行时按同一 key 反查回收站并一并恢复 locale 行（同事务），或在恢复响应里
+  返回级联副作用清单。
+
+### P2-24 MFA 就绪判据两套 —— cron 按行数跨设备计数，运行时按类型 + 当前设备（C 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/user_mfa/shared/user_mfa.shared.service.ts`
+  （`getCurrentUserMfaSetupStatus` 的 webauthn 腿按 `(userId, deviceId)`；`getIsCurrentUserMfaVerified`
+  用 `enabledCount >= methodsRequiredCount`）+
+  `updateMfaSetupStatusForCronJob`（`aggregateMfaStats` 按 `(userId, type)` 统计**全部设备**的
+  启用行数）+ `apps/api/src/modules/auth/modules/mfa/mfa.service.ts`。
+- **现象**：`methodsRequiredCount=2` 时，用户在设备 A、B 各注册一个 webauthn，cron 的
+  `deviceCount=2` 会把 `sys_user.mfa_setup` 置 true；但在设备 A 调 `/auth/mfa/verify` 时
+  `getCurrentUserMfaSetupStatus` 只看到 A 的 webauthn（totp 未启用）→ `enabledCount=1` →
+  `verified=false` → 40000。反向地，`PUT totp/status=false` 后 cron 未跑之前
+  `sys_user.mfa_setup` 仍是 true，mfa.guard 继续要求 MFA。两套判据在跨设备/停用时给出
+  不一致结论。
+- **实测证据**：本次读码；C 段 `user-mfa.api-spec.ts` 用单设备 totp 闭环，未覆盖多设备
+  webauthn 与停用后的窗口。
+- **建议**：统一判据维度（cron 也按 `userId + deviceId` 重算，或运行时改成按用户维度只看
+  类型集合），并补多设备与停用窗口的用例。
+
+### P2-25 identity 敏感操作面不一致 —— `update` 可绕过 status 的敏感守卫，`unbind` 无校验（C 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/user_identity/user_identity.controller.ts`
+  （只有 `PUT status/:type/:purpose` 挂 `@WalnutAdminGuardRequireSensitive`；
+  `PUT update/:type/:purpose` 与 `DELETE unbind/:type/:purpose` 没有）+
+  `user_identity.service.ts`（`update` 的 `status` 直接落库；`assertCanUnbind` 把 `password`
+  排除在「至少保留一种登录方式」检查之外）。
+- **现象**：
+  1. `PUT update` 的 DTO 含 `status`，可绕过敏感操作直接关闭登录/安全身份（status 端点
+     要求 `account_critical` 验证）。
+  2. `unbind` 没有任何敏感校验；`type='password'` 时跳过 keep-one 检查，只有 password 一种
+     登录方式的用户可以解绑 password，导致账号无任何可用登录方式。
+- **实测证据**：本次读码；`user-identity.api-spec.ts` 覆盖 status 端点与 unbind 的
+  「有 password 兜底可解」，未覆盖绕过路径与仅密码用户。
+- **建议**：`update` 禁止携带 `status`（或同挂敏感守卫）；`unbind` 挂敏感守卫并把
+  password 纳入 keep-one 判据。
+
+### P2-26 锁屏 security 模式无写入通道 —— `lockPwdHash` / `lockMode` 不可设置，unlock 缺省即跳过密码校验（C 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/user_lock/dto/user_lock.dto.ts`
+  （`SysUserLockDoLockDto` 只 pick `lockRoute`）+ `user_lock.service.ts`（`lock` 只传
+  `lockRoute`）+ `shared/user_lock.shared.service.ts`（`unLockUserDevice` 仅当 `lockPwdHash`
+  非空才 `compareLockPwdHash`）。
+- **现象**：仓库写入路径 `insertOrUpdateUserLockPre` 支持 bcrypt hash，但 HTTP 没有任何端点
+  写入 `lockPwdHash` / `lockMode` / `lockSecuritySec`；同时 unlock 的 `lockPwdHash` 是可选，
+  缺省直接跳过比对。因此 `lockMode=security` 无法通过 API 进入，锁屏密码校验实际不可达。
+- **实测证据**：本次读码；`user-lock.api-spec.ts` 覆盖 lock/unlock 与两套默认值，没有
+  security 模式用例（因为无法构造）。
+- **建议**：补锁屏偏好更新端点（挂敏感守卫）并让 security 模式强制带密码；或把该模式从
+  DTO/枚举/read 响应中移除并登记为未实现。
+
+### P2-27 appSettings 进程内 memo 的失效覆盖面 —— 多实例与外部删键都失效不到（C 段，新登记）
+
+- **位置**：`apps/api/src/modules/techniques/cache/service/cache.appSettings.ts`
+  （`appSettingsMemo` / `settingMemo`）。
+- **现象**：memo 只在本地 `setAppSettings` 时清空；多实例部署下其他实例写 setting 不会失效
+  本进程 memo，本进程最长要等到下一次本地写才回正。绕过服务直删 Redis 键（非监控台删缓存
+  端点）也不会失效；代码注释自述当前依赖单实例部署，但该边界没有进 DESIGN-ISSUES。
+- **实测证据**：本次读码 + 源码注释；无多实例环境可实测。
+- **建议**：扩多实例前补 Redis pub/sub 或 keyspace 通知失效；短期给 memo 加短 TTL 并在
+  部署文档写明单实例前提。
+
+### P2-28 定时任务没有分布式锁，且启动期同步跑全量任务（C 段，新登记）
+
+- **位置**：`apps/api/src/modules/techniques/task/task.service.ts`（六个 `@Cron`）+
+  `task.module.ts`（`onModuleInit` 依次调用六个任务）+
+  `apps/api/src/modules/auth/modules/refresh/repo/refresh.pg.purge.service.ts`（每小时 purge）。
+- **现象**：`@Cron` 是进程内的，没有分布式锁或执行标记；多实例部署时每个实例都会各跑一遍
+  全量配置/语言重算、RT 标记、key 轮换、设备清理与 MFA 重算。每次启动 `onModuleInit` 还会
+  同步执行一遍（含 `rotateAppKey` 与设备清理），启动耗时与副作用随数据量增长。
+  幂等性依赖各任务自身的 upsert/条件判断；`updateDeviceActiveStatusForCronJob` 在 dev 下
+  直接返回全零，开发环境不会执行设备清理。
+- **实测证据**：本次读码；无多实例环境可实测。
+- **建议**：引入 Redis 分布式锁（`murlock` 或 `SET NX` + 过期）或 job 注册表；启动期只保留
+  settings/locale 预热，把 rotate / 清理挪出同步执行路径。
+
+### P2-29 `logOperateId` 回填是异步旁路 —— 可能早于事务提交，且按 `deletedId` 覆盖历史快照（C 段，新登记）
+
+- **位置**：`apps/api/src/decorators/walnut/log.operate.decorator.ts`（DELETE / DELETE_MANY
+  成功后 `eventEmitter.emit`）+ `apps/api/src/modules/techniques/event/event.service.ts`
+  （`@OnEvent(..., { async: true })`）+ `deleted/repo/deleted.repo.pg.service.ts`
+  （`updateDeletedWithLogOperateId` 按 `deletedId` 更新）。
+- **现象**：
+  1. 事件在日志行插入后立即发出，但业务事务（`@WalnutTx`）的提交时机不保证更早；监听器
+     用连接级 manager 更新 `sys_deleted`，早到时 `affected=0`，只记一条日志，关联永久丢失。
+  2. 更新条件是 `{ deletedId }`，同一行被软删多次（恢复后再删）时，所有历史快照的
+     `log_operate_id` 都会被最新日志覆盖，旧快照的操作日志关联被改写。
+- **实测证据**：本次读码；D 段 `log-operate.api-spec.ts` 只断言日志行与快照两腿，
+  没有断言 `sys_deleted.log_operate_id` 的回填。
+- **建议**：在 after-commit 钩子里发事件（或把本次快照的 `sys_deleted.id` 带进事件、
+  按主键更新），失败时重试并记录。
+
+### P2-30 key 轮转没有重叠窗口 —— 旧公钥密文在 rotate 后不可解，且 current 不校验 validEnd（D 段，新登记）
+
+- **位置**：`apps/api/src/modules/app/key/key.service.ts`（`rotate` / `rotateForCronJob`）+
+  `apps/api/src/modules/security/rsa/rsa.service.ts`（`getCurrentRsaPrivateKey`）+
+  `apps/api/src/interceptors/request/decrypt.interceptor.ts`。
+- **现象**：rotate 在事务内把旧行置 `DEPRECATED` 并插入新 ACTIVE 行；请求解密只读
+  「version 最大的 ACTIVE 行」的私钥。轮转瞬间用旧公钥加密、尚未到达的请求密文，在新私钥下
+  解密失败并映射 **40011**。当前没有 grace 窗口、没有按 key version 回退解密。
+  另一面：`getCurrentActiveKey` 只按 `type + status=ACTIVE + version DESC` 取行，**不校验
+  `validEnd`** —— 已过期但 cron 尚未轮转的 key 仍被当作当前 key 使用。
+- **实测证据**：本次读码钉死；`key.api-spec.ts` 只覆盖 current 投影与 rotate 两腿的数据形态，
+  没有「轮转前后同一密文」的用例；`DecryptRequest` 的生产消费方也未被轮转用例覆盖。
+- **建议**：轮转保留短时重叠窗口（按 `version` 记录可解密的旧私钥，或延迟 DEPRECATED 生效），
+  或在 rotate 前等待在途请求排空；`getCurrent` 对 `validEnd` 过期给出明确语义（自动轮转 /
+  受控 503），不要静默继续用过期 key。
+
+### P2-31 monitor/state 的 auth=false 不清 userId —— 在线监控残留上次登录用户（D 段，新登记）
+
+- **位置**：`apps/api/src/modules/app/monitor/user/user.service.ts`（`updateState`：
+  `if (dto.auth === false) dto.userId = null`，随后 `Object.entries(...).filter(([_, v]) => !isNil(v))`
+  又把 null 丢掉）+ `app/monitor/user/shared/user.shared.service.ts`（02:00 cron 的
+  `updateAuthState` 才会把 `auth=false` 且 `user_id=null` 落库）。
+- **现象**：已存在的 monitor 行收到 `auth=false` 上报时，`user_id` 不会被清空；列表 / read 仍按
+  `user_id` 装回上一个登录用户，在线监控显示「已登出但仍是某人」的脏状态，最长持续到下一次
+  cron（每 2 小时）。新插入的行走 insert 缺省列，不受影响。
+- **实测证据**：本次读码钉死；`monitor-user.api-spec.ts` 覆盖 upsert、auth 字段与 force-quit，
+  未覆盖「登录 → 登出上报 → user_id 应为 null」。
+- **建议**：`auth=false` 时显式 `SET user_id = NULL`（不要走 nil 过滤），或把清零写进同一
+  update 语句；补一条登出上报的断言。
 
 ## P3 契约不一致
 
@@ -615,6 +1071,181 @@
   （admin 不消费该字段，走 `GET /system/dict/type/s` 的 `WithDictDataResponse` 数组形态）。
 - **实测证据**：`dictType.basic.repository.ts` 的 list 行接口仅 `& { dictDataCount: number }`。
 - **建议**：摘除或改可选（Mongo 时代虚拟残留；顺带核对 `dictDataCount` 的 required 标记是否属实）。
+
+### P3-17 ENDPOINTS.md 的 sensitive verify 请求形态与 DTO 不符（文档大轮次 A 段，新登记）
+
+- **位置**：`apps/api/test/api/ENDPOINTS.md` §3 `security/sensitive` 行 vs
+  `apps/api/src/modules/security/sensitive/sensitive.dto.ts`
+  （`SecuritySensitiveVerifyRequestDTO`）。
+- **现象**：ENDPOINTS 把 verify 请求登记为 `{basic,action,type,code}`，实际 DTO 是
+  `{level, operationType?, method, credential}`（`security.api-spec.ts` 用例也按后者发）。
+  另外 check 用 query `type`、verify 用 body `operationType`，同一概念两个名字。
+- **实测证据**：本次文档复审读码 + `security.api-spec.ts` 的 verify 用例字段。
+- **建议**：修正 ENDPOINTS 行；若允许破坏性改动，统一 check/verify 的参数命名。
+
+### P3-18 多根菜单部署下树被截断 —— fullTree / permissionMenuTree 只取第一个根（B 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/menu/shared/menu.shared.service.ts`
+  （`getMenuTreeAndTreeWithoutTypeElement` 的 `fullTree[0]?.children`；`getCorePermissions`
+  的 `permissionMenuTree[0]?.children`）+ `apps/api/src/modules/system/menu/repo/menu.repo.service.ts`
+  （`findRootMenu` 用 `findOne`，`findAllMenus` 无 ORDER BY）。
+- **现象**：`sys_menu` 若有多个 `pid IS NULL` 的根，`GET /system/menu/tree` 的 `fullTree`
+  与 `/auth/permissions` 的 `permissionMenuTree` 都只返回「某一个根」的 children ——
+  其余根整棵不可见，且选中哪个根由 `findOne` / 无排序查询决定。同一次响应里
+  `treeWithoutTypeElement` 反而保留全部根（口径不一致）。P3-4 已把「单根 + children」
+  定为前端契约，但 DDL 与服务层都没有保证单根（无根节点唯一性约束）。
+- **实测证据**：本次读码钉死；C 段 `menu.api-spec.ts` 与 I 段 `permission-chain.api-spec.ts`
+  的种子都只有一个根，无法触发。
+- **建议**：要么把单根做成显式约束（迁移断言 / create 时校验根节点唯一），要么
+  `fullTree` 返回完整根数组并同步前端契约与 P3-4 的裁决。
+
+### P3-19 ENDPOINTS.md 把 me/profile 的权限点登记为 `me:profile:update`，代码是 `system:user:updateProfile`（B 段，新登记）
+
+- **位置**：`apps/api/test/api/ENDPOINTS.md` §5 user/me 行 vs
+  `apps/api/src/modules/system/user/controllers/user.me.controller.ts` 的
+  `Permissions.UPDATE_PROFILE = 'system:user:updateProfile'`。
+- **现象**：文档与代码的权限串不一致；`user-me.api-spec.ts` 用 root 调用（权限守卫 root
+  短路），差异不会暴露。若前端菜单 seed 按文档串配置，非 root 用户改资料会 40105。
+- **实测证据**：本次读码 + 全仓 grep：`me:profile:update` 只出现在 ENDPOINTS.md。
+- **建议**：修正 ENDPOINTS 行；若确定统一到 `me:` 前缀，则同步改 controller 与菜单 seed。
+
+### P3-20 locale 映射 body 无任何 langId 键时直落 service —— TypeError 兜底 50000（B 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/locale/locale.pipe.ts`
+  （只保留 uuid 键，无匹配键时产出 `[]`）+ `locale.controller.ts` 的 `ParseArrayPipe`
+  （空数组不校验任何 item）+ `locale.service.ts` 的 `create` / `update`
+  （`payload[0].key` / `payload[0].oldKey` 解引用）。
+- **现象**：`POST /system/locale` 或 `PUT /system/locale/:id` 的 body 若为 `{}`、或只含
+  `key` 而不含任何 `<langId>: value`，二段式管道第三段对空数组直接放行，service 在
+  `payload[0]` 上解引用 → TypeError → 全局兜底 50000，而不是受控 40099。
+- **实测证据**：本次读码钉死；A 段 `locale.api-spec.ts` 只覆盖正常映射 body 与缓存语义。
+- **建议**：`LocalePayloadTransformPipe` 产出空数组时直接
+  `WalnutAdminExceptionRequestDataError`（40099 族），或 controller 入口判空。
+
+### P3-21 deleted 的 `system:deleted:recover:mine` 常量未接线 —— `me/recover` 复用管理端权限点（C 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/deleted/deleted.controller.ts` 的 `Permissions`
+  （`RECOVER_MINE: 'system:deleted:recover:mine'` 声明后未使用；`me/recover` 挂的是
+  `Permissions.RECOVER`）。
+- **现象**：`POST /system/deleted/me/recover` 与 `POST /system/deleted/recover` 使用同一个
+  权限点 `system:deleted:recover`；前者只靠「无 `@HasRole` + 属主校验」区分。`RECOVER_MINE`
+  是死常量，`ENDPOINTS.md` 的「recover 系另有 `@HasRole`」表述也没有区分两个端点。
+- **实测证据**：本次读码；`deleted.api-spec.ts` 用 root 短路，未覆盖非管理员的权限差异。
+- **建议**：给 `me/recover` 接线独立权限点（并授予所有登录角色），或删除常量并把
+  「两路径同权限点」写进契约。
+
+### P3-22 `GET /app/health/disk` 硬编码 Windows 路径 `C:/`（C 段，新登记）
+
+- **位置**：`apps/api/src/modules/techniques/health/health.controller.ts` 的
+  `checkStorage('disk', { thresholdPercent: 0.75, path: 'C:/' })`。
+- **现象**：非 Windows 部署（容器 / Linux）没有 `C:/`，`DiskHealthIndicator` 抛错，经全局
+  异常过滤器兜底为 HTTP 200 + `body.code = 50000`，磁盘健康检查恒失败。
+- **实测证据**：本次读码；B 段 `health.api-spec.ts` 在 Windows 开发机运行，未覆盖 Linux。
+- **建议**：路径取自 env 或按 `process.platform` 选根路径（Linux 用 `/`），并补平台分支。
+
+### P3-23 MFA 备用码校验无 HTTP 通道 + 裸 Nest 异常；SMS 密文列无写入路径（C 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/user_mfa/totp/totp.service.ts`
+  （`verifyBackupCode` 无 controller 路由；抛 `BadRequestException` / `UnauthorizedException`）+
+  `user_mfa/entity/user-mfa.entity.ts` 的 `phone_number_ciphertext`（selector 有、写入点无）。
+- **现象**：备用码在 bind 时生成并返回一次，但唯一的校验方法 `verifyBackupCode` 没有对外
+  端点，属于不可达服务代码；其异常是裸 Nest 异常，若未来接线会绕过统一错误码。SMS MFA 的
+  密文列、`webauthnTransports` 的写入也未实现。
+- **实测证据**：本次读码；C 段 `user-mfa.api-spec.ts` 覆盖 totp 主闭环与备用码形状，未覆盖
+  备用码登录路径（无端点）。
+- **建议**：补备用码校验端点（接入同一 post-verification 与错误码体系），或删除死代码；
+  未实现的列在实体注释里标注「预留」。
+
+### P3-24 `log_operate.action_type` 的 const 与 DB CHECK 不一致（C 段，新登记）
+
+- **位置**：`@walnut-server/const/decorator/logOperate` 的 `WalnutAdminConstDecoratorLogOperateAction`
+  + `apps/api/src/modules/system/logs/operate/entity/log-operate.entity.ts` 的列注释
+  （CHECK 只含 `OTHER/CREATE/UPDATE/DELETE/DELETE_MANY/IMPORT/EXPORT/CLEAR`）。
+- **现象**：const 里另有 `REFRESH` / `AUTH`；若以这两个 action 写日志，会撞 CHECK
+  （23514），经全局兜底成为 50000。当前装饰器调用点未使用这两个值，属潜在契约缺口。
+- **实测证据**：本次读码 + 实体注释（迁移时已记录「待维护者定夺」），DESIGN-ISSUES 未登记。
+- **建议**：把两值纳入 migration 的 CHECK（若确需记录刷新/认证类操作），或从 const 删除并
+  在装饰器类型上收窄。
+
+- **D 段复核（2026-10-28）**：当前 migration 的 `ck_log_operate_action_type` **已包含**
+  `REFRESH` / `AUTH`（共 10 个值），本条「撞 23514」的前提不成立；需要修的是实体注释
+  与 phase2 小节的值域说明，见 P3-25。
+
+### P3-25 实体注释与 migration 的 CHECK 取值域漂移（menu cache_key_strategy / log_operate action_type）（D 段，新登记）
+
+- **位置**：`apps/api/src/modules/system/menu/entity/menu.entity.ts` 的
+  `cache_key_strategy` 注释（写 `('name','path')`）；`apps/api/src/modules/system/logs/operate/entity/log-operate.entity.ts`
+  的 `action_type` 注释（写 8 个值）；对照
+  `apps/api/migrations/1792922206018-InitSchema.ts` 的 `ck_menu_cache_key_strategy`
+  / `ck_log_operate_action_type`。
+- **现象**：migration 的 menu CHECK 已含 `custom`（2026-10-27 枚举三方守卫抓出后补齐），
+  log_operate 的 action CHECK 已含 `REFRESH` / `AUTH`（10 个值）；两处实体注释仍是旧值域。
+  P3-24 依据实体注释推断「REFRESH/AUTH 会撞 23514」，在当前 migration 上不成立，会给维护者
+  错误的排期依据。
+- **实测证据**：本次读码逐项对照 migration；`ck_log_operate_action_type` 的 IN 列表第 583 行、
+  `ck_menu_cache_key_strategy` 的 IN 列表第 308 行。
+- **建议**：以 migration 为准更新两处实体注释，并把 P3-24 标记为「前提不成立 / 仅剩注释同步」；
+  后续把实体注释纳入 lint（或直接从 migration 生成取值域说明），避免再漂。
+
+### P3-26 setting 没有 delete / deleteMany 端点，但登记为 CRUD（D 段，新登记）
+
+- **位置**：`apps/api/src/modules/app/setting/setting.controller.ts`（只挂
+  `WalnutAdminDecoratorCreate/Read/Update/List` + `POST cache/refresh`）对照
+  `ENDPOINTS.md` §1 的「CRUD + POST cache/refresh」。
+- **现象**：`DELETE /app/setting/:id` 与 `deleteMany` 都不存在；配置行只能新增/修改。直接改库
+  删除行不会触发 `APP:SETTING` 刷新，配置键会在缓存里残留到下一次全量重算。前端按「标准 CRUD」
+  消费会得到 40400（路由不存在）。
+- **实测证据**：本次读码；`setting.api-spec.ts` 的 CRUD 闭环只覆盖 create/read/update/list。
+- **建议**：要么补 delete / deleteMany（并挂 after-commit 刷新），要么把 ENDPOINTS 与前端契约
+  改成「配置不删」的明确取舍；二者选一，不要维持「文档说 CRUD、代码只有四分之三」的现状。
+
+### P3-27 JWT_AT / JWT_RT 没有生产写入点 —— DTO 声称的「启动自举」不存在（D 段，新登记）
+
+- **位置**：`apps/api/src/modules/app/key/dto/key.dto.ts`（`AppKeyInitTypeNotSystemManagedConstraint`
+  的提示语「bootstrapped by the system at startup」）+ `key.const.ts` 的 `JWT_AT` / `JWT_RT`
+  + 全仓 grep。
+- **现象**：两类 key 只出现在枚举、CHECK 与 DTO 拒绝分支；没有启动期写入 `app_key` 的代码，
+  也没有消费 `app_key` 中 JWT 行的签名路径（JWT 实际读 env `jwt.access.secret` /
+  `jwt.refresh.secret`）。因此 DTO 的拒绝文案描述了一个不存在的自举机制，维护者按提示去找
+  启动代码会扑空。
+- **实测证据**：本次全仓 grep `JWT_AT` / `JWT_RT`：除实体/常量/DTO/测试外无生产消费方；
+  `key.api-spec.ts` 的 JWT_AT 用例只断言 40099 与行数不变。
+- **建议**：删除两个枚举值（连同 CHECK）或真正实现启动自举并在文档写明密钥来源；不要把
+  「系统管理」写成一句无法验证的注释。
+
+### P3-28 shared_area 的递归 CTE 能力未接线 —— 无端点、无调用方（D 段，新登记）
+
+- **位置**：`apps/api/src/modules/shared/area/area.basic.repository.ts` 的
+  `findSubtreeByCode` / `assembleSubtree`。
+- **现象**：整子树 / 限深查询（递归 CTE + `CYCLE` 环保护）已实现，但 `SharedAreaService` 与
+  controller 都没有调用；对外只有 children（单层）与 feedback（向上收集同级）两个端点。
+  phase2 §5.1 设计的「整树一次性拉取」在 HTTP 面不可达，属预留能力或死代码。
+- **实测证据**：本次读码 + 全仓 grep：两个方法只在本文件与 service 头注出现。
+- **建议**：补一个子树端点（可带 maxDepth），或明确标注「预留，未接线」并在 knip/清理批次
+  决定去留；不要让读者以为线上有整树能力。
+
+### P3-29 monitor/server 八个端点各自执行宿主机探测 —— 无缓存 / 无合并 / 无限流（D 段，新登记）
+
+- **位置**：`apps/api/src/modules/app/monitor/server/server.controller.ts` +
+  `server.service.ts`。
+- **现象**：cpu / mem / os / sys / disk / battery / time / network 每个请求各调一次
+  `systeminformation`（部分方法会 spawn 系统命令）；没有短 TTL 缓存、没有聚合端点、没有
+  throttle。管理台监控页按固定间隔轮询八个端点时，宿主机探测次数是请求数的 8 倍。
+- **实测证据**：本次读码；`monitor.api-spec.ts` 只做八端点形状冒烟，没有并发/频率面。
+- **建议**：加一个聚合端点（一次采集返回八项）或 5–10 秒 TTL 缓存；至少给该 controller 挂
+  throttle，避免监控页轮询变成对宿主机的压力源。
+
+### P3-30 app_monitor_user 列表默认排序 lastActiveAt 无索引（D 段，新登记）
+
+- **位置**：`apps/api/src/modules/app/monitor/user/dto/user.dto.ts` 的 list 白名单
+  （`lastActiveAt` 是 admin 列表默认排序）+ `apps/api/migrations/1792922206018-InitSchema.ts`
+  的 `app_monitor_user` 索引（只有 `uq_monitor_visitor` / `idx_monitor_device` /
+  `idx_monitor_user`）。
+- **现象**：monitor 行随访客增长（每个匿名访客一行），默认列表按 `last_active_at DESC` 排序
+  没有索引支撑，量级上来后走内存 Sort；phase2 §4.21 的索引清单也没有这一列。
+- **实测证据**：本次读码 + DDL 对照；DTO 注释已自述「无索引 → 见报告建议补索引」。
+- **建议**：补 `idx_monitor_last_active (last_active_at DESC)`，或把默认排序改成有索引的
+  `first_visit_at` 并同步前端默认排序。
 
 ---
 

@@ -91,6 +91,36 @@ const backendContent = [
     text: '代码风格',
     link: '/content/backend/code-style',
   },
+  // 「模块设计」一簇：按域拆分的模块设计文档（2026-10-28 文档大轮次产出）。
+  // 接口表/关键流程/已知行为注记；测试规划追踪仍在 apps/server/apps/api/test/api/。
+  {
+    text: '数据模型与表设计',
+    link: '/content/backend/schema',
+  },
+  {
+    text: '认证与令牌',
+    link: '/content/backend/modules/auth',
+  },
+  {
+    text: 'Guard 链与安全',
+    link: '/content/backend/modules/security',
+  },
+  {
+    text: '用户 · 角色 · 菜单 · 字典 · 国际化',
+    link: '/content/backend/modules/system-core',
+  },
+  {
+    text: '设备 · 身份 · 锁 · MFA · 偏好',
+    link: '/content/backend/modules/system-account',
+  },
+  {
+    text: '回收站 · 日志 · 缓存 · 任务',
+    link: '/content/backend/modules/system-data',
+  },
+  {
+    text: '应用族与共享',
+    link: '/content/backend/modules/app-shared',
+  },
 ]
 
 const nav: DefaultTheme.NavItem[] = [
