@@ -125,6 +125,7 @@ export class SysDeviceController {
   @Patch(':id/lock')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission([Permissions.READ, Permissions.LOCK], 'and')
+  @WalnutTx()
   @ApiParam({
     name: 'id',
     type: String,
@@ -140,13 +141,17 @@ export class SysDeviceController {
     action: WalnutAdminConstDecoratorLogOperateAction.UPDATE,
     operateType: WalnutAdminConstDecoratorLogOperateType.DEVICE_LOCK,
   })
-  async lock(@WalnutAdminDecoratorParamUuid() id: string) {
-    return this.deviceService.lock(id)
+  async lock(
+    @WalnutTxSession() ctx: WalnutTxContext,
+    @WalnutAdminDecoratorParamUuid() id: string,
+  ) {
+    return this.deviceService.lock(id, ctx.em)
   }
 
   @Patch(':id/unlock')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission([Permissions.READ, Permissions.UNLOCK], 'and')
+  @WalnutTx()
   @ApiParam({
     name: 'id',
     type: String,
@@ -162,13 +167,17 @@ export class SysDeviceController {
     action: WalnutAdminConstDecoratorLogOperateAction.UPDATE,
     operateType: WalnutAdminConstDecoratorLogOperateType.DEVICE_UNLOCK,
   })
-  async unlock(@WalnutAdminDecoratorParamUuid() id: string) {
-    return this.deviceService.unlock(id)
+  async unlock(
+    @WalnutTxSession() ctx: WalnutTxContext,
+    @WalnutAdminDecoratorParamUuid() id: string,
+  ) {
+    return this.deviceService.unlock(id, ctx.em)
   }
 
   @Patch(':id/ban')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission([Permissions.READ, Permissions.BANNED], 'and')
+  @WalnutTx()
   @ApiParam({
     name: 'id',
     type: String,
@@ -184,13 +193,17 @@ export class SysDeviceController {
     action: WalnutAdminConstDecoratorLogOperateAction.UPDATE,
     operateType: WalnutAdminConstDecoratorLogOperateType.DEVICE_BAN,
   })
-  async ban(@WalnutAdminDecoratorParamUuid() id: string) {
-    return this.deviceService.ban(id)
+  async ban(
+    @WalnutTxSession() ctx: WalnutTxContext,
+    @WalnutAdminDecoratorParamUuid() id: string,
+  ) {
+    return this.deviceService.ban(id, ctx.em)
   }
 
   @Patch(':id/unban')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission([Permissions.READ, Permissions.UNBANNED], 'and')
+  @WalnutTx()
   @ApiParam({
     name: 'id',
     type: String,
@@ -206,8 +219,11 @@ export class SysDeviceController {
     action: WalnutAdminConstDecoratorLogOperateAction.UPDATE,
     operateType: WalnutAdminConstDecoratorLogOperateType.DEVICE_UNBAN,
   })
-  async unban(@WalnutAdminDecoratorParamUuid() id: string) {
-    return this.deviceService.unban(id)
+  async unban(
+    @WalnutTxSession() ctx: WalnutTxContext,
+    @WalnutAdminDecoratorParamUuid() id: string,
+  ) {
+    return this.deviceService.unban(id, ctx.em)
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)

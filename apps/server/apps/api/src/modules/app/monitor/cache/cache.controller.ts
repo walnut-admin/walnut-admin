@@ -50,8 +50,10 @@ export class AppMonitorCacheController {
   // key 形态闸（长度上限 + 字符白名单，写入方形态见 @walnut-server/const/app/cache）：
   // 缓存键原样进 Redis 命令语义面，拦任意串（受控 40099）
   async read(@Param('key', new WalnutAdminPipeCacheKey()) key: string) {
+    // P2-4：旧实现 `{ value: void await get(key) }` 把 await 的结果 void 掉 → 恒 undefined，
+    // 响应体永远是 `{}`。补 await 后 value 即缓存真实值（缺失键为 null）。
     return {
-      value: void await this.cacheService.get(key),
+      value: await this.cacheService.get<unknown>(key),
     }
   }
 
@@ -71,6 +73,10 @@ export class AppMonitorCacheController {
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
   @WalnutAdminDecoratorDelete('key')
   async deleteCache(@Param('key', new WalnutAdminPipeCacheKey()) key: string) {
+    // P2-4 契约：delete 是 **fire-and-forget** —— 响应先于 Redis DEL 落盘，data 恒为空
+    // （`void` 表达式值为 undefined，序列化后无 data）。客户端不得把 20000 当作「键已
+    // 消失」的同步保证；需要确认删除请随后 GET read（键缺失回 value: null）。该语义由
+    // monitor.api-spec 的「响应后键消失（轮询）」用例钉住。
     const res = void this.cacheService.del(key)
 
     // L3 防御性失效：这里绕过 setAppSettings 直删 Redis，若删的恰是 APP:SETTING，

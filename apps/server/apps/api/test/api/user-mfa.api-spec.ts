@@ -17,7 +17,8 @@ import { createApiApp } from './helpers/create-api-app'
  * 客户端用 otplib（与服务同库同版本）现算 6 位码 → bind → verify（RT 轮换取新 AT）→
  * status 开关 → unbind。webauthn：浏览器凭证不可脚本伪造 —— register/options 断言
  * 公钥选项形状，authenticate/options 无凭证 40400，authenticate/verify 无 challenge
- * 缓存 40000（register/verify 无 challenge 缓存同路径）。
+ * 缓存 40000（register/verify 无 challenge 缓存同路径）；带 challenge 但 malformed
+ * response 由 P3-5 包装为受控 40000（2026-10-28 起不再 50000）。
  */
 
 const DATA_URL_RE = /^data:image\/png;base64,/
@@ -254,8 +255,8 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
       response: {},
     })
     // 上例 register/options 的 challenge 还在 30s TTL 内 → 过了 nil 检查，malformed
-    // response 在 simplewebauthn 校验里抛未受控异常 → 50000 兜底（钉现状）
-    expect(bodyOf(regNoChallenge).code).toBe(WalnutAdminConstAppResponseCode.INTERNAL_SERVER_ERROR)
+    // response 在 simplewebauthn 校验里抛异常 —— P3-5 包装后受控 40000（不再 50000）
+    expect(bodyOf(regNoChallenge).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
   })
 
   it('边界：totp bind 缺字段 → 40099（code 6 位数字串约束）', async () => {

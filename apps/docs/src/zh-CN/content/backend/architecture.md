@@ -58,6 +58,13 @@ libs/*/src/                            # 内部库，经 tsconfig paths 以 @wal
 | `system/` | 系统管理（user、role、menu、device、logs、dict） |
 | `techniques/` | 基础设施（cache、queue、logger、SSE、socket） |
 
+### 认证与 MFA 强制口径
+
+`mfa.guard` 对所有已登录、非 visitor 用户强制 `mfaSetup=true`（登录时固化进 AT payload），
+未启用 MFA 的用户一律 `40114` 拒绝 —— 这是**安全立场设计，没有灰度开关**。settings 里的
+`app.auth.mfa.methodsRequiredCount` 只调节单次验证需要几路通道，不会取消强制
+（裁决记录见 `apps/server/apps/api/test/api/DESIGN-ISSUES.md` 的 P2-1）。
+
 ## 模块骨架
 
 新建模块时按下表的骨架铺开（`optional` 的两层只有真有跨模块需求时才建）：

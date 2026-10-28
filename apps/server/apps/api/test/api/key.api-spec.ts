@@ -19,7 +19,8 @@ import { createApiApp } from './helpers/create-api-app'
  *   既有行（int-spec 留下的 v1/v2）不动；
  * - init 选 AES_KEY_URL 走「清空该类型 → init 落首条 → 二钻 40001」闭环，afterAll 清空
  *   AES 行（int-spec 的 initFirst(AES) 同样要求空表，两个方向都安全）。
- * - init 不选 JWT_AT：generateNewKeyByType 无该分支 → 恒 20000 且不落行，二钻不可达。
+ * - init JWT_AT（P2-6 修复后）：DTO 层拒绝（40099）—— JWT_AT 由系统启动自举，不走
+ *   init；旧行为「恒 20000 且不落行」已翻转。
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -165,6 +166,20 @@ describe('B 段：app/key current/init/rotate（真实 HTTP 全链 + rotate 事�
 
     const secondRes = await api.root('POST', api.apiPath('/app/key/init'), { type: 'AES_KEY_URL' })
     expect(bodyOf(secondRes).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_EXISTS)
+  })
+
+  it('init（JWT_AT）→ DTO 层受控拒绝 40099，不落行（系统启动自举，不走 init）', async () => {
+    const beforeRows: Array<{ c: number }> = await api.pgDataSource.query(
+      `SELECT count(*)::int AS c FROM app_key WHERE type = 'JWT_AT'`,
+    )
+
+    const res = await api.root('POST', api.apiPath('/app/key/init'), { type: 'JWT_AT' })
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+
+    const afterRows: Array<{ c: number }> = await api.pgDataSource.query(
+      `SELECT count(*)::int AS c FROM app_key WHERE type = 'JWT_AT'`,
+    )
+    expect(afterRows[0].c).toBe(beforeRows[0].c)
   })
 
   it('current/:type 枚举外 type → 40099；未登录 current → 40101', async () => {

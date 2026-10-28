@@ -19,8 +19,8 @@ import { createApiApp } from './helpers/create-api-app'
  * - 开启态：gitee/github `/url` 端点 → 构造出的跳转 URL（authorize 地址 + client_id +
  *   redirect_uri + response_type + scope + state JSON{fp,lang}）；POST /auth/google 带
  *   garbage credential → 本地 JWKS 校验失败 → 40107（不发外网）；
- * - callback 缺 code：gitee → passport-oauth2 对无 code 请求走 authorize 重定向腿
- *   （302 Location，钉现状）；
+ * - callback 缺 code：P3-3 修复后（2026-10-28）guard 前置校验 → 受控 40000（HTTP 200
+ *   统一壳），不再走 passport-oauth2 的 302 authorize 重定向腿；
  *
  * 全部端点 JwtFree（部分 SignFree）：登录态 jar 会污染单因子签名 —— 断言一律发在
  * 未登录的独立客户端上。
@@ -140,25 +140,27 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_OAUTH_FAILED)
   })
 
-  it('callback 缺 code：gitee → 302 authorize 重定向腿（passport-oauth2 对无 code 请求的行为，钉现状）', async () => {
+  it('callback 缺 code：gitee → 受控 40000（P3-3：guard 前置校验，不再 302）', async () => {
     await restoreSettings!()
     restoreSettings = await overrideAppSettings(app, {
       'app.auth.gitee': JSON.stringify({ authEnable: 1 }),
     })
 
     const res = await anonClient.anon('GET', anonClient.apiPath('/auth/oauth/gitee/callback'))
-    expect(res.status).toBe(302)
-    expect(res.headers.location).toContain(GITEE_AUTHORIZE_URL)
+    expect(res.status).toBe(200)
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+    expect(res.headers.location).toBeUndefined()
   })
 
-  it('callback 缺 code：github → 同构 302 authorize 重定向腿', async () => {
+  it('callback 缺 code：github → 同构受控 40000', async () => {
     await restoreSettings!()
     restoreSettings = await overrideAppSettings(app, {
       'app.auth.github': JSON.stringify({ authEnable: 1 }),
     })
 
     const res = await anonClient.anon('GET', anonClient.apiPath('/auth/oauth/github/callback'))
-    expect(res.status).toBe(302)
-    expect(res.headers.location).toContain(GITHUB_AUTHORIZE_URL)
+    expect(res.status).toBe(200)
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+    expect(res.headers.location).toBeUndefined()
   })
 })

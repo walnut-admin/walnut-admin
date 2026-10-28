@@ -80,13 +80,17 @@ describe('B 段：app/monitor/cache + monitor/server（真实 HTTP 全链 + 真�
     await app.close()
   })
 
-  it('cache read → 20000（真实键可点读；响应 value 恒为空对象 —— 钉现状）', async () => {
+  it('cache read → 20000，value 是缓存真实值（P2-4 补 await）；缺失键 value=null', async () => {
     await cacheService.set(cacheKeyA, { hello: 'walnut' }, { t: WalnutAdminConstAppCacheType.SHARED, ttl: 3600 })
 
     const res = await api.root('GET', api.apiPath(`/app/monitor/cache/${cacheKeyA}`))
     expectOk(res, 'monitor cache read')
-    // controller 返回 { value: void await get(key) } —— value 是 undefined，JSON 序列化后 data 为 {}
-    expect(bodyOf(res).data).toEqual({})
+    // controller 返回 { value: await get(key) }
+    expect(bodyOf<{ value: unknown }>(res).data).toEqual({ value: { hello: 'walnut' } })
+
+    const missing = await api.root('GET', api.apiPath(`/app/monitor/cache/MONITOR:APISPEC:${seed8}:NONE`))
+    expectOk(missing, 'monitor cache read missing key')
+    expect(bodyOf<{ value: unknown }>(missing).data).toEqual({ value: null })
   })
 
   it('cache read 键形态外 → 40099（键白名单管道：长度上限 + 字符集，修复前任意串直进 Redis 语义面）', async () => {

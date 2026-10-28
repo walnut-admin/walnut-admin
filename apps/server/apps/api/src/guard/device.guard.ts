@@ -60,12 +60,30 @@ export class WalnutAdminGuardDevice implements CanActivate {
 
     const cachedDevice = await this.cacheDeviceService.getSysDeviceCache(deviceId)
 
-    if (!cachedDevice) {
-      this.logger.warn(`Device not found in cache: ${deviceId}`)
-      throw new WalnutAdminExceptionDeviceNotAcceptable()
+    // P2-2：缓存 miss 时回源库（sys_device.locked / banned 是落库真值），命中后回填
+    // 缓存再走同一判定链 —— 缓存被清空/过期不再等价于「设备不存在」，也不放行。
+    let deviceState = cachedDevice
+
+    if (!deviceState) {
+      const dbDevice = await this.deviceRepo.findDeviceByDeviceId(deviceId)
+
+      if (!dbDevice) {
+        this.logger.warn(`Device not found in cache or database: ${deviceId}`)
+        throw new WalnutAdminExceptionDeviceNotAcceptable()
+      }
+
+      this.logger.debug(`Device cache miss, hydrated from database: ${deviceId}`)
+      await this.cacheDeviceService.setSysDeviceCache(dbDevice)
+
+      deviceState = {
+        locked: dbDevice.locked,
+        banned: dbDevice.banned,
+        active: dbDevice.active,
+        currentIp: dbDevice.ip as string,
+      }
     }
 
-    if (cachedDevice.currentIp && request.realIp && cachedDevice.currentIp !== request.realIp) {
+    if (deviceState.currentIp && request.realIp && deviceState.currentIp !== request.realIp) {
       this.logger.warn(`Device IP changed: ${deviceId}`)
       const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:DEVICE:IP_CHANGE:${deviceId}`
       await this.murLockService.runWithLock(
@@ -81,12 +99,12 @@ export class WalnutAdminGuardDevice implements CanActivate {
       )
     }
 
-    if (cachedDevice.banned) {
+    if (deviceState.banned) {
       this.logger.warn(`Device banned: ${deviceId}`)
       throw new WalnutAdminExceptionDeviceBanned()
     }
 
-    if (cachedDevice.locked) {
+    if (deviceState.locked) {
       this.logger.warn(`Device locked: ${deviceId}`)
       throw new WalnutAdminExceptionDeviceLocked()
     }

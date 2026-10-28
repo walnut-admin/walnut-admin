@@ -102,12 +102,16 @@ export class AppErrorController {
       40109: WalnutAdminExceptionDuplicateSignIn,
       40110: WalnutAdminExceptionSignoutFailed,
       40111: WalnutAdminExceptionYouAreBot,
-      40112: WalnutAdminExceptionCapInteractionRequired,
-      40113: WalnutAdminExceptionCapRefreshRequired,
-      40114: WalnutAdminExceptionInvalidSignature,
-      40115: WalnutAdminExceptionExpiredSignature,
-      40116: WalnutAdminExceptionMfaRequired,
-      40117: WalnutAdminExceptionMfaVerifyFailed,
+      // P2-7：40112-40117 曾整体错位（40112 挂 CapInteractionRequired 等）——
+      // 按 contract response-code + 各 guard 真实抛码逐个对齐：
+      // 40112 InvalidSignature / 40113 ExpiredSignature / 40114 MfaRequired /
+      // 40115 MfaVerifyFailed / 40116 CapInteractionRequired / 40117 CapRefreshRequired
+      40112: WalnutAdminExceptionInvalidSignature,
+      40113: WalnutAdminExceptionExpiredSignature,
+      40114: WalnutAdminExceptionMfaRequired,
+      40115: WalnutAdminExceptionMfaVerifyFailed,
+      40116: WalnutAdminExceptionCapInteractionRequired,
+      40117: WalnutAdminExceptionCapRefreshRequired,
       40118: WalnutAdminExceptionUserLocked,
       40119: WalnutAdminExceptionSensitiveVerificationFailed,
       40300: WalnutAdminExceptionForbidden,

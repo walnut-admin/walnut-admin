@@ -1,11 +1,13 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
-import { registerAfterCommitHook } from '@walnut-server/db'
+import { registerAfterCommitHook, runAfterCommit } from '@walnut-server/db'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
+import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 import { WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 
 import { omit } from 'lodash'
-import { Brackets } from 'typeorm'
+import { Brackets, QueryFailedError } from 'typeorm'
 import { DeviceTypeConst, IDeviceTypeConst } from '@/common/dto/shared.dto'
 import { ILIKE_ESCAPE_REGEX } from '@/common/repository/pg-list.builder'
 import { AppMonitorUserRepositoryService } from '@/modules/app/monitor/user/repo/user.repo.service'
@@ -134,6 +136,15 @@ export class SysDeviceService {
     }
     catch (err) {
       this.logger.error(err)
+
+      // P3-2：重名 device_name 撞 uq_device_name（23505）在 catch-all 之前单列 ——
+      // 客户端配置里设备名可复用时，这是「数据冲突」而非「设备不受支持」，受控 40000
+      if (err instanceof QueryFailedError && (err.driverError as { code?: string })?.code === '23505') {
+        throw new WalnutAdminExceptionBadRequest({
+          _devMsg: 'device_name already exists (uq_device_name)',
+        })
+      }
+
       throw new WalnutAdminExceptionDeviceNotAcceptable()
     }
   }
@@ -188,43 +199,57 @@ export class SysDeviceService {
   }
 
   /**
-   * @description lock device by id
-   * （Mongo 版原样：只置内存标志并写缓存，不落库 —— 语义照旧保留，不趁机"修正"）
+   * @description 更新设备锁/封标志（DB 为真源，事务提交后再双写 SYS_DEVICE 缓存）
+   *
+   * P2-2 修复（2026-10-28）：Mongo 版只置内存标志 + 写缓存、不落库 —— Redis 清空/
+   * 过期即失效。sys_device 本就有 locked / banned 列（phase2 4.8），改为同事务更新
+   * DB + after-commit 缓存双写；Device guard 缓存 miss 时回源库（见 device.guard）。
    */
-  async lock(id: string) {
-    const target = await this.deviceBasicRepo.readById(id)
-    target.locked = true
-    await this.cacheDeviceService.setSysDeviceCache(target)
+  private async updateLockOrBanStatus(
+    id: string,
+    patch: Pick<Partial<SysDeviceEntity>, 'locked' | 'banned'>,
+    em?: EntityManager,
+  ) {
+    const target = await this.deviceBasicRepo.readById(id, em)
+
+    const updated = await this.deviceRepoService.findDeviceByDeviceIdAndUpdate(target.deviceId, patch, em)
+    if (!updated) {
+      // 行在本事务内被并发删除（readById 已通过）：按既有读腿语义回 40401
+      throw new WalnutAdminExceptionDataNotFound()
+    }
+
+    await runAfterCommit(async () => {
+      await this.cacheDeviceService.setSysDeviceCache(updated)
+    })
+
     return true
+  }
+
+  /**
+   * @description lock device by id
+   */
+  async lock(id: string, em?: EntityManager) {
+    return this.updateLockOrBanStatus(id, { locked: true }, em)
   }
 
   /**
    * @description unlock device by id
    */
-  async unlock(id: string) {
-    const target = await this.deviceBasicRepo.readById(id)
-    target.locked = false
-    await this.cacheDeviceService.setSysDeviceCache(target)
-    return true
+  async unlock(id: string, em?: EntityManager) {
+    return this.updateLockOrBanStatus(id, { locked: false }, em)
   }
 
   /**
    * @description ban device by id
    */
-  async ban(id: string) {
-    const target = await this.deviceBasicRepo.readById(id)
-    target.banned = true
-    await this.cacheDeviceService.setSysDeviceCache(target)
-    return true
+  async ban(id: string, em?: EntityManager) {
+    return this.updateLockOrBanStatus(id, { banned: true }, em)
   }
 
   /**
    * @description unban device by id
    */
-  async unban(id: string) {
-    const target = await this.deviceBasicRepo.readById(id)
-    target.banned = false
-    await this.cacheDeviceService.setSysDeviceCache(target)
-    return true
+  async unban(id: string, em?: EntityManager) {
+    return this.updateLockOrBanStatus(id, { banned: false }, em)
   }
 }

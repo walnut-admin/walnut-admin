@@ -1,9 +1,11 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
+import { WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import supertest from 'supertest'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { SysDeviceService } from '@/modules/system/device/device.service'
 import { AppTechCacheDeviceService } from '@/modules/techniques/cache/service/cache.device'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
@@ -15,15 +17,16 @@ import { WALNUT_TEST_USER_AGENT } from './helpers/sign-handshake'
  * + read/list + `GET :id/current-active-user`、`GET :id/history-users` + PATCH
  * lock/unlock/ban/unban 四件。
  *
- * 关键现状（钉死，不"修正"）：
+ * 关键现状（P2-2 / P2-3 / P3-2 修复后，2026-10-28）：
  * - initial 按 X-Fingerprint 派生业务键 device_id 幂等 upsert —— 同指纹重复 initial 回
- *   同一 deviceId（覆盖更新路径），新指纹产出新行；
- * - lock/unlock/ban/unban **只写内存标志 + SYS_DEVICE 缓存，不落库**（Mongo 版原样）——
- *   断言走 AppTechCacheDeviceService.getSysDeviceCache；且锁/封只进缓存 → 同设备的后续
- *   请求被 Device guard 40606/40607 拦死（连 unlock/unban 都到不了）—— 端点间用缓存
- *   复位通道衔接（等价另一台设备解锁后的缓存态），unlock/unban 本身仍走真实 HTTP；
- * - history-users 语义反转（只放行 user 缺失的行）：PG 侧 user_id FK NOT NULL
- *   且 populate 恒命中 → 恒空数组；
+ *   同一 deviceId（覆盖更新路径），新指纹产出新行；重名 device_name 撞 `uq_device_name`
+ *   （23505）在 catch-all 之前单列受控 40000，其余异常仍走 40605；
+ * - lock/unlock/ban/unban **落库 + 缓存双写**（sys_device.locked / banned，同事务更新，
+ *   after-commit 写 SYS_DEVICE 缓存）；Device guard 缓存 miss 时回源库 —— 清缓存后
+ *   锁/封状态仍生效（40606/40607）。锁/封期间同设备请求被 guard 拦死（连 unlock/unban
+ *   都到不了），端点间仍以缓存复位通道衔接；
+ * - history-users 返回 sys_user_device 的绑定用户（绑定即 upsert、无解绑删除通道，
+ *   表内行即绑定历史），按 lastActiveAt 降序；
  * - Throttle 是 4 次/60s（tracker=realIp），本文件 initial 总调用数压在限额内。
  */
 
@@ -52,6 +55,8 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
 
   /** 本轮产生的额外设备（bootstrap 的 api.deviceId 由 afterAll 统一清） */
   let extraDeviceRowId = ''
+  /** history-users 用例补的第二用户（afterEach 清） */
+  let extraHistoryUserId = ''
   /** bootstrap 设备的行主键（read/current-active-user/history-users/lock 系的 :id 都是行 uuid） */
   let bootstrapDeviceRowId = ''
 
@@ -76,6 +81,11 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     if (extraDeviceRowId !== '') {
       await api.pgDataSource.query('DELETE FROM sys_device WHERE id = $1', [extraDeviceRowId])
       extraDeviceRowId = ''
+    }
+    if (extraHistoryUserId !== '') {
+      await api.pgDataSource.query('DELETE FROM sys_user_device WHERE user_id = $1', [extraHistoryUserId])
+      await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [extraHistoryUserId])
+      extraHistoryUserId = ''
     }
   })
 
@@ -182,19 +192,62 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     expect(user.userName).toBe(fixture!.userName)
   })
 
-  it('history-users → 恒空数组（PG 侧 populate 恒命中，「只回 user 缺失行」的语义反转）', async () => {
+  it('history-users → 返回绑定本设备的用户（sys_user_device 即绑定历史），按 lastActiveAt 降序', async () => {
+    // 登录链路已为 fixture 用户写入一条 sys_user_device 绑定行；再补第二用户，
+    // 证明「历史用户」不是单用户回显
+    extraHistoryUserId = randomUUID()
     await api.pgDataSource.query(
-      `INSERT INTO app_monitor_user (visitor_id, user_id, device_id, auth, focus, is_left)
-       VALUES ($1, $2, $3, true, true, false)`,
-      [`dev-spec-vis-h-${seed8}`, fixture!.userId, api.deviceId],
+      'INSERT INTO sys_user (id, user_name, nick_name) VALUES ($1, $2, $3)',
+      [extraHistoryUserId, `dev-spec-history-${seed8}`, 'History User'],
+    )
+    await api.pgDataSource.query(
+      `INSERT INTO sys_user_device (user_id, device_id, device_name, last_active_at)
+       VALUES ($1, $2, $3, now())
+       ON CONFLICT (user_id, device_id) DO UPDATE SET last_active_at = EXCLUDED.last_active_at`,
+      [extraHistoryUserId, api.deviceId, `dev-spec-history-${seed8}`],
+    )
+    // fixture 用户的绑定行把 lastActiveAt 压到 1 小时前，让排序可判
+    await api.pgDataSource.query(
+      `UPDATE sys_user_device SET last_active_at = now() - interval '1 hour'
+       WHERE user_id = $1 AND device_id = $2`,
+      [fixture!.userId, api.deviceId],
     )
 
     const res = await api.root('GET', api.apiPath(`/system/device/${bootstrapDeviceRowId}/history-users`))
     expectOk(res, 'history users')
-    expect(bodyOf<unknown[]>(res).data).toEqual([])
+    const rows = bodyOf<Array<{ id: string, userName: string | null, lastActiveAt: string | null }>>(res).data
+    expect(rows.map(row => row.id)).toEqual([extraHistoryUserId, fixture!.userId])
+    expect(rows[0].userName).toBe(`dev-spec-history-${seed8}`)
+    expect(rows[1].userName).toBe(fixture!.userName)
   })
 
-  it('PATCH lock → SYS_DEVICE 缓存翻转（不落库）；锁死期间同设备请求被 Device guard 40606 拦死', async () => {
+  it('initial 重名 device_name（23505）→ 受控 40000，不再被 catch-all 吞成 40605', async () => {
+    // 新指纹 + 已存在的 deviceName（test 1 重放后的名字）→ INSERT 撞 uq_device_name
+    const raw = await supertest(app.getHttpServer())
+      .post(api.apiPath('/system/device/initial'))
+      .set('user-agent', WALNUT_TEST_USER_AGENT)
+      .set('X-Fingerprint', `dev-spec-dup-${seed8}`)
+      .send({
+        deviceName: `dev-spec-replay-${seed8}`,
+        deviceInfo: {},
+        hardwareInfo: {},
+        sr: { height: 1080, width: 1920 },
+        vp: { height: 900, width: 1600 },
+        private: false,
+      })
+
+    expect((raw.body as { code: number }).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+
+    // 对照：非 23505 的异常仍走 catch-all → 40605（直接打到 service 层，绕过 DTO）
+    const deviceService = app.get(SysDeviceService)
+    await expect(deviceService.initial(
+      {} as IWalnutAdminExpressRequest,
+      {} as never,
+      api.pgDataSource.manager,
+    )).rejects.toBeInstanceOf(WalnutAdminExceptionDeviceNotAcceptable)
+  })
+
+  it('PATCH lock → DB locked=true + 缓存双写；清缓存后锁状态由 guard 回源库仍 40606', async () => {
     const cacheDeviceService = app.get(AppTechCacheDeviceService)
 
     const lockRes = await api.root('PATCH', api.apiPath(`/system/device/${bootstrapDeviceRowId}/lock`))
@@ -202,22 +255,28 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     expect(bodyOf<boolean>(lockRes).data).toBe(true)
     expect((await cacheDeviceService.getSysDeviceCache(api.deviceId))?.locked).toBe(true)
 
-    // 锁定只进缓存 → 同设备的后续请求（非 Free 端点）被 Device guard 40606 拦下
-    const blockedRes = await api.root('GET', api.apiPath(`/system/device/${bootstrapDeviceRowId}`))
-    expect(bodyOf(blockedRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED)
-
-    // DB 行不动（锁状态只进缓存）
+    // P2-2：锁状态落库（不再是只写缓存的临时态）
     const dbRows: Array<{ locked: boolean }> = await api.pgDataSource.query(
       'SELECT locked FROM sys_device WHERE device_id = $1',
       [api.deviceId],
     )
-    expect(dbRows[0].locked).toBe(false)
+    expect(dbRows[0].locked).toBe(true)
+
+    // 清缓存 → 同设备后续请求触发 guard 回源库：仍 40606，且缓存被回填
+    await cacheDeviceService.delSysDeviceCache(api.deviceId)
+    expect(await cacheDeviceService.getSysDeviceCache(api.deviceId)).toBeNull()
+
+    const blockedRes = await api.root('GET', api.apiPath(`/system/device/${bootstrapDeviceRowId}`))
+    expect(bodyOf(blockedRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED)
+
+    const refilled = await cacheDeviceService.getSysDeviceCache(api.deviceId)
+    expect(refilled?.locked).toBe(true)
   })
 
-  it('PATCH unlock → true（锁死状态先经缓存通道复位）+ read 恢复可用', async () => {
+  it('PATCH unlock → true + DB/缓存双清 + read 恢复可用', async () => {
     const cacheDeviceService = app.get(AppTechCacheDeviceService)
     // 上例锁死后同设备直达 unlock 也被 40606 拦 —— 走真实语义的复位通道（等价「另一台
-    // 设备/管理通道解锁」后的缓存态），unlock 端点本身仍走真实 HTTP
+    // 设备/管理通道解锁」后的缓存态），unlock 端点本身仍走真实 HTTP 并把库改回 false
     const cached = await cacheDeviceService.getSysDeviceCache(api.deviceId)
     await cacheDeviceService.setSysDeviceCache({
       deviceId: api.deviceId,
@@ -232,22 +291,36 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     expect(bodyOf<boolean>(unlockRes).data).toBe(true)
     expect((await cacheDeviceService.getSysDeviceCache(api.deviceId))?.locked).toBe(false)
 
+    const dbRows: Array<{ locked: boolean }> = await api.pgDataSource.query(
+      'SELECT locked FROM sys_device WHERE device_id = $1',
+      [api.deviceId],
+    )
+    expect(dbRows[0].locked).toBe(false)
+
     const readRes = await api.root('GET', api.apiPath(`/system/device/${bootstrapDeviceRowId}`))
     expectOk(readRes, 'device read after unlock')
   })
 
-  it('PATCH ban → SYS_DEVICE 缓存翻转；封禁期间同设备请求 40607', async () => {
+  it('PATCH ban → DB banned=true + 缓存双写；清缓存后封禁仍 40607', async () => {
     const cacheDeviceService = app.get(AppTechCacheDeviceService)
 
     const banRes = await api.root('PATCH', api.apiPath(`/system/device/${bootstrapDeviceRowId}/ban`))
     expectOk(banRes, 'device ban')
     expect((await cacheDeviceService.getSysDeviceCache(api.deviceId))?.banned).toBe(true)
 
+    const dbRows: Array<{ banned: boolean }> = await api.pgDataSource.query(
+      'SELECT banned FROM sys_device WHERE device_id = $1',
+      [api.deviceId],
+    )
+    expect(dbRows[0].banned).toBe(true)
+
+    await cacheDeviceService.delSysDeviceCache(api.deviceId)
     const blockedRes = await api.root('GET', api.apiPath(`/system/device/${bootstrapDeviceRowId}`))
     expect(bodyOf(blockedRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED)
+    expect((await cacheDeviceService.getSysDeviceCache(api.deviceId))?.banned).toBe(true)
   })
 
-  it('PATCH unban → true + 缓存复位 + read 恢复可用', async () => {
+  it('PATCH unban → true + DB/缓存双清 + read 恢复可用', async () => {
     const cacheDeviceService = app.get(AppTechCacheDeviceService)
     const cached = await cacheDeviceService.getSysDeviceCache(api.deviceId)
     await cacheDeviceService.setSysDeviceCache({
@@ -261,6 +334,12 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     const unbanRes = await api.root('PATCH', api.apiPath(`/system/device/${bootstrapDeviceRowId}/unban`))
     expectOk(unbanRes, 'device unban')
     expect((await cacheDeviceService.getSysDeviceCache(api.deviceId))?.banned).toBe(false)
+
+    const dbRows: Array<{ banned: boolean }> = await api.pgDataSource.query(
+      'SELECT banned FROM sys_device WHERE device_id = $1',
+      [api.deviceId],
+    )
+    expect(dbRows[0].banned).toBe(false)
 
     const readRes = await api.root('GET', api.apiPath(`/system/device/${bootstrapDeviceRowId}`))
     expectOk(readRes, 'device read after unban')

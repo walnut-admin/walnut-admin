@@ -30,7 +30,16 @@ export class SysDictTypeService {
     return this.dictTypeBasicRepo.update(id, dto)
   }
 
+  /**
+   * @description delete dict type
+   *
+   * P2-8 修复（2026-10-28）：旧实现只把 type 行做成 sys_deleted 快照后硬删，关联的
+   * dictData 由 `fk_dict_data_type ON DELETE CASCADE` 静默清掉 —— 数据行直接消失、
+   * 不进回收站。现在同事务内先逐行软删 dictData（每行各落一条 `SYS_DICT_DATA`
+   * 快照），再软删 type 行；随后 type 的硬删不再有 data 行可级联。
+   */
   async delete(id: string, userId: string, em: EntityManager) {
+    await this.dictDataBasicRepo.deleteSoftManyByCondition({ typeId: id }, userId, em)
     return this.dictTypeBasicRepo.deleteSoftById(id, userId, em)
   }
 

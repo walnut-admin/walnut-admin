@@ -257,7 +257,7 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     expect(junctions[0].c).toBeGreaterThanOrEqual(1)
   })
 
-  it('G3 同一指纹三路并发 device/initial —— 恰一行落库，冲突侧受控 40605（无 50000）', async () => {
+  it('G3 同一指纹三路并发 device/initial —— 恰一行落库，冲突侧受控 40000（P3-2：23505 单列映射，无 50000）', async () => {
     const fingerprint = `conc-dev-${seed8}`
     const deviceName = `conc-dev-${seed8}`
     const payload = {
@@ -284,9 +284,9 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     // 底线：无未受控错误；且至少一路成功
     expect(codes.filter(code => code >= 50000)).toEqual([])
     expect(codes).toContain(WalnutAdminConstAppResponseCode.SUCCESS)
-    // 失败侧全部是 catch-all 的 40605（不是别的码）
+    // 失败侧全部是 23505 单列映射的 40000（P3-2 修复前是 catch-all 的 40605）
     expect(codes.every(code => code === WalnutAdminConstAppResponseCode.SUCCESS
-      || code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED)).toBe(true)
+      || code === WalnutAdminConstAppResponseCode.BAD_REQUEST)).toBe(true)
 
     // 成功侧回同一 deviceId；库恰一行
     const deviceIds = responses

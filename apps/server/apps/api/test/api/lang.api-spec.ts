@@ -13,9 +13,9 @@ import { createApiApp } from './helpers/create-api-app'
  * 全 Free 公开端点（@WalnutAdminDecoratorCache 响应缓存路径，键
  * `WALNUT_CACHE_SYSTEM:LANGUAGE:PUBLIC_LIST`）。
  *
- * 缓存语义（钉现状）：public 端点命中后 1h TTL 内不再回源，lang CRUD 不主动失效该键
- * —— 因此用例顺序为「先拉 public（写缓存）→ 断言缓存键存在 → CRUD 不回看 public」，
- * 创建后的 public 响应只断言形态不断言内容（TTL 内可能返回缓存旧值）。
+ * 缓存语义（P2-5 修复后，2026-10-28）：public 端点首次回源后 1h TTL，lang
+ * create/update 挂 after-commit 失效（runAfterCommit 通道，对齐 locale 的全量刷新
+ * 形态）—— CRUD 返回后下一次 public 请求立见新值。
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -154,6 +154,41 @@ describe('A 段试点：system/lang CRUD + public 响应缓存（真实 HTTP 全
     const list = bodyOf<LangListData>(listRes).data
     expect(list.total).toBe(1)
     expect(list.data[0].lang).toBe(langCodeA)
+  })
+
+  it('CRUD 后 public 端点立见新值（P2-5：create/update 挂 after-commit 缓存失效）', async () => {
+    // 先拉一次 public 写缓存（冷态由 afterEach 的 cleanupFixedCacheKeys 保证）
+    const beforeRes = await api.unsigned('GET', api.apiPath('/system/lang/list/public'))
+    expectOk(beforeRes, 'lang list public before CRUD')
+    expect(bodyOf<LangRow[]>(beforeRes).data.some(row => row.lang === langCodeB)).toBe(false)
+    expect(await api.hasWalnutCacheKey(publicCacheKey)).toBe(true)
+
+    const createRes = await api.root('POST', api.apiPath('/system/lang'), {
+      lang: langCodeB,
+      description: `api-spec lang cache ${seed8}`,
+      order: 2,
+      status: true,
+    })
+    expectOk(createRes, 'lang create for cache refresh')
+    const created = bodyOf<LangRow>(createRes).data
+
+    // create 提交后缓存已失效 → 下一次 public 回源，命中新行
+    const afterCreateRes = await api.unsigned('GET', api.apiPath('/system/lang/list/public'))
+    expectOk(afterCreateRes, 'lang list public after create')
+    expect(bodyOf<LangRow[]>(afterCreateRes).data.some(row => row.lang === langCodeB)).toBe(true)
+
+    const updateRes = await api.root('PUT', api.apiPath(`/system/lang/${created.id}`), {
+      lang: langCodeB,
+      description: `api-spec lang cache updated ${seed8}`,
+      order: 2,
+      status: false,
+    })
+    expectOk(updateRes, 'lang update for cache refresh')
+
+    // update 提交后同样失效 → 新行已停用，public 不再包含
+    const afterUpdateRes = await api.unsigned('GET', api.apiPath('/system/lang/list/public'))
+    expectOk(afterUpdateRes, 'lang list public after update')
+    expect(bodyOf<LangRow[]>(afterUpdateRes).data.some(row => row.lang === langCodeB)).toBe(false)
   })
 
   it('校验失败 → 40099（未知字段 forbidNonWhitelisted）', async () => {

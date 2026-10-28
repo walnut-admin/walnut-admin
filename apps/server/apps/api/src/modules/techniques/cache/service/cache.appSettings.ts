@@ -260,7 +260,11 @@ export class AppTechCacheAppSettingsService {
 
   private readonly defaultFunctionalRole: IWalnutAdminConstAppSettingFunctionalRoleKeys<IWalnutAdminConstRoleMode> = {
     scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
-    globalValue: WalnutAdminConstRoleMode.SWITCH,
+    // P2-9（2026-10-28）：零配置默认从 switchable 改为 combinable —— GLOBAL scope 下
+    // scopeResolver 恒取 globalValue，旧默认让用户行上的 role_mode='combinable' 被完全
+    // 无视（COMBINE 用户的非 current 角色权限静默不可用）。改为 combinable 后，默认部署
+    // 即合并用户全部角色；scope 语义不变（LOCAL 分支仍读用户自身 roleMode）。
+    globalValue: WalnutAdminConstRoleMode.COMBINE,
     localKey: 'roleMode',
     // B7a：visitor role 的 v5 uuid（ETL namespace 派生自原 hex 5fb27aee3a30b717d8078eb5，
     // 派生规则见 packages/tooling/scripts/src/db/uuid5.ts；B5 订正脚本把 setting 值统一成

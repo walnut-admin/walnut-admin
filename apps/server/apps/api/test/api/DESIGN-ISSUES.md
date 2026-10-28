@@ -17,7 +17,9 @@
 > P0-2 / P0-3 / P0-4 已于 2026-10-28 修复（批 1）；P0-5 登记为部署强约束、代码不改）｜
 > P1 × 12（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复；P1-4 已于 2026-10-27 修复；
 > P1-1 / P1-2 / P1-3 / P1-5 / P1-6 / P1-7 / P1-8 / P1-10 / P1-11 / P1-12 已于 2026-10-28 修复（批 1））｜
-> P2 × 10 ｜ P3 × 16（P3-9 已于 2026-10-28 随 OpenAPI codegen 二期修复；共 43 条）**，
+> P2 × 10（批 2：P2-1 确认为安全立场设计；P2-2 ~ P2-9 已于 2026-10-28 修复；P2-10 已登记）｜
+> P3 × 16（P3-2 / P3-3 / P3-5 已于 2026-10-28 修复；P3-1 / P3-4 / P3-6 / P3-7 同日裁决登记；
+> P3-8 已豁免；P3-9 随 OpenAPI codegen 二期修复；P3-10 ~ P3-16 为 codegen 二期挂单）**，
 > 末节附 G/H 段实测无恙面。
 
 ---
@@ -303,63 +305,100 @@
 
 ## P2 语义怪异
 
-### P2-1 mfa.guard 强制所有已登录用户 mfaSetup=true，无开关（F 段发现 6）
+### P2-1 mfa.guard 强制所有已登录用户 mfaSetup=true，无开关（F 段发现 6）—— 【确认为安全立场设计 2026-10-28】
 
 - **位置**：`apps/api/src/guard/mfa.guard.ts`（未 setup → 40114 拒）。settings 的
   `app.auth.mfa` 键**不控制**该 guard（只被 `user_mfa.shared` 的 methodsRequiredCount 消费）。
 - **实测证据**：`guard-matrix.api-spec.ts` MFA 组。
 - **建议**：如需灰度只能改 AT payload 的 mfaSetup 口径 —— 产品决策项。
+- **裁决（2026-10-28，批 2）**：**确认为安全立场设计** —— 所有已登录用户强制
+  `mfaSetup=true`，无灰度开关。理由：MFA 是登录后的第二因子强制项，灰度开关会让
+  未绑定用户获得「无第二因子」的降级面；`app.auth.mfa.methodsRequiredCount` 只调节
+  通道数，不取消强制。`backend/architecture.md` 的 Guard 链说明已同步写明。
 
-### P2-2 device lock/ban 只写缓存不落库
+### P2-2 device lock/ban 只写缓存不落库 —— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/system/device/device.service.ts`（lock/unlock/ban/unban）。
 - **现象**：Redis 清空/过期即失效；且锁/封期间同设备后续请求被 Device guard 40606/40607
   拦死（连 unlock/unban 都到不了），端点间只能以缓存复位通道衔接。
 - **实测证据**：C 段 device spec。
 - **建议**：落库 + 缓存双写（或明确登记为「临时封禁」取舍并写入文档）。
+- **修法（2026-10-28，批 2）**：`sys_device` 本就有 `locked` / `banned` 列（phase2 4.8），
+  四端点改为 `@WalnutTx()` 事务内更新 DB 行 + `runAfterCommit` 写 `SYS_DEVICE` 缓存
+  （DB 为真源，缓存 miss 可自愈）。`device.guard.ts` 缓存 miss 时回源
+  `SysDeviceRepositoryService.findDeviceByDeviceId`：查无仍 40605，命中则回填缓存再走
+  同一 banned/locked 判定 —— 清空 Redis 不再等价于「设备不存在」或放行。device spec
+  断言翻转：lock/ban 后 DB 行翻转；清缓存后同设备请求仍 40606/40607 且缓存被回填。
 
-### P2-3 history-users 恒空数组 —— 「只回 user 缺失行」语义反转
+### P2-3 history-users 恒空数组 —— 「只回 user 缺失行」语义反转 —— 【已修复 2026-10-28】
 
 - **位置**：`device.service.getHistoryUsersByDeviceId` →
   `user_device.shared.getAllUsersByDeviceId`（PG 侧 populate 恒命中 → 缺失行恒无）。
 - **实测证据**：C 段 device spec。
 - **建议**：按 sys_user_device 绑定历史返回，或下线该端点。
+- **数据事实（决定修法）**：`sys_user_device` **没有** removedAt / 解绑标记列；绑定是
+  `ON CONFLICT (user_id, device_id) DO UPDATE` 幂等 upsert，全仓无 unbind/delete 通道
+  （只有 user 被删时的 FK CASCADE）—— 表内现存行就是该设备的全部绑定历史，无需下线。
+- **修法（2026-10-28，批 2）**：`getAllUsersByDeviceId` 的过滤从「user 缺失」翻转为
+  「user 存在」，返回绑定行上的 `{id, userName, nickName, lastActiveAt}`（repo 已按
+  lastActiveAt DESC 排序）。device spec 的「恒空数组」钉现状改为「登录绑定用户 +
+  第二用户两条历史，顺序可判」。
 
-### P2-4 monitor/cache read 出参恒 `{}` + delete fire-and-forget
+### P2-4 monitor/cache read 出参恒 `{}` + delete fire-and-forget —— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/app/monitor`（read 腿 `void await get`；delete 先响应后 DEL）。
 - **实测证据**：`monitor.api-spec.ts` B 段（delete 靠轮询断言）。
 - **建议**：read 补 await；delete 明确 fire-and-forget 语义并写入响应契约。
+- **修法（2026-10-28，批 2）**：read 改为 `{ value: await cacheService.get(key) }`（真实值，
+  缺失键 null）；delete 保留 fire-and-forget（`void del`，data 恒空）并在 controller 内
+  写透「响应先于 DEL、客户端需以 read 复核」的契约（spec 的轮询钉现状保留）。
 
-### P2-5 lang public 响应缓存无失效通道
+### P2-5 lang public 响应缓存无失效通道 —— 【已修复 2026-10-28】
 
 - **位置**：`@WalnutAdminDecoratorCache` 的 lang public 端点（1h TTL）× lang CRUD 不主动失效
   （locale 有 runAfterCommit 全量刷新通道，lang 没有）。
 - **实测证据**：A 段 lang spec。
 - **建议**：lang CRUD 挂对齐 locale 的 after-commit 失效。
+- **修法（2026-10-28，批 2）**：`SysLangService` 注入 `AppTechCacheService`，create/update
+  成功后经 `runAfterCommit` 删除 `SYS_LANG_LIST_PUBLIC`（locale 的刷新通道同款钩子；无事务
+  上下文的 CRUD 路径内联 await，保证响应返回前已失效）。lang spec 新增「CRUD 后 public
+  立见新值」用例：create 后新 lang 出现、update status=false 后从 public 消失。
 
-### P2-6 key init 的 JWT_AT 分支不可达
+### P2-6 key init 的 JWT_AT 分支不可达 —— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/app/key/key.service.ts`（`generateNewKeyByType` 无 JWT_AT
   分支 → init JWT_AT 恒 20000 且不落行，二钻 40001 不可达）。
 - **实测证据**：`key.api-spec.ts` B 段。
 - **建议**：补 JWT_AT 生成分支，或 DTO 层拦 JWT_AT。
+- **修法（2026-10-28，批 2）**：选 **DTO 层拦** —— `AppKeyDTOInit` 重声明 `type`，挂
+  `@IsEnum + @IsNotEmpty + @Validate(AppKeyInitTypeNotSystemManagedConstraint)`，JWT_AT
+  直接校验失败（40000 族受控 40099，不再假成功 20000）。JWT_AT 由系统启动自举，不走
+  HTTP init。key spec 的「init JWT_AT 恒 20000 且不落行」钉现状翻转：40099 + 行数不变。
 
-### P2-7 error controller ErrorMap 的 40112-40117 异常类与 contract 错误码错位
+### P2-7 error controller ErrorMap 的 40112-40117 异常类与 contract 错误码错位 —— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/app/error`（ErrorMap，如 40112 挂 CapInteractionRequired，
   真实码 40116）。
 - **实测证据**：`error.api-spec.ts` B 段（选了无错位的 40000/40103/40300/50000 断言绕开）。
 - **建议**：对齐映射（注意牵动 guard 真实错误码 40116/40117 的语义归属）。
+- **修法（2026-10-28，批 2）**：以 contract response-code 与各 guard 实际抛码为准逐个对齐
+  40112-40117：40112 InvalidSignature / 40113 ExpiredSignature / 40114 MfaRequired /
+  40115 MfaVerifyFailed / 40116 CapInteractionRequired / 40117 CapRefreshRequired。
+  error spec 从「4 个代表码」改为 **ErrorMap 全项**断言（46 个 code 逐一 `body.code === code`）。
 
-### P2-8 dictType HTTP delete 的 data 腿由 DB CASCADE 静默清掉且不产生软删快照
+### P2-8 dictType HTTP delete 的 data 腿由 DB CASCADE 静默清掉且不产生软删快照 —— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/system/dict/dictType`（delete = 快照 + 原行硬删；data 腿
   `fk_dict_data_type` CASCADE，无 data 快照）。
 - **实测证据**：C 段 dict spec。
 - **建议**：级联软删（data 也进回收站），或登记「字典数据不进回收站」为明确取舍。
+- **修法（2026-10-28，批 2）**：`SysDictTypeService.delete` 在同一 em 事务内先
+  `dictDataBasicRepo.deleteSoftManyByCondition({ typeId }, userId, em)`（逐行落
+  `SYS_DICT_DATA` 快照并删原行），再快照 + 硬删 type 行 —— DB CASCADE 已无行可清。
+  dict spec 的「CASCADE 硬删不产生任何 data 快照」钉现状翻转为「3 条快照（type 1 + data 2）
+  且先恢复 type、再恢复 data 后可读」。
 
-### P2-9 零配置部署下 COMBINE 用户的「多角色合并」实际不生效（I 段实测，新收编）
+### P2-9 零配置部署下 COMBINE 用户的「多角色合并」实际不生效（I 段实测，新收编）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/techniques/cache/service/cache.appSettings.ts`
   （`defaultFunctionalRole`：`{ scope: GLOBAL, globalValue: 'switchable', localKey: 'roleMode' }`）
@@ -380,6 +419,13 @@
 - **建议**：属产品/架构决策，不在迁移批修复 —— 确认零配置默认应为 GLOBAL/switchable
   还是 GLOBAL/combinable（或 ETL 期把该设置行落成显式数据）；若维持现状，把
   「COMBINE 需显式配 `app.functional.role` scope=local 才生效」写进部署文档。
+- **修法（2026-10-28，批 2）**：**已修复：默认改 combinable** —— `defaultFunctionalRole`
+  的 `globalValue` 由 `SWITCH` 改为 `COMBINE`，零配置部署下权限合并用户全部角色（用户
+  `role_mode` 不再被无视）；scope 语义不变（GLOBAL 恒 globalValue，LOCAL 仍读用户
+  roleMode）。seed-pg/ETL 不落该行（默认即所需；仓内 `db/seed/app_setting.json` 的显式
+  switchable 行是 demo 数据的显式配置，不属零配置路径）。admin 侧无改动（合并发生在
+  服务端）。permission-chain spec 新增默认腿断言（GLOBAL 下 COMBINE 用户合并双角色），
+  LOCAL scope 对照用例保持不变。
 
 ### P2-10 locale body 管道局部放宽全局校验不变式 —— 有意设计，已登记（2026-10-27）
 
@@ -398,47 +444,73 @@
 
 ## P3 契约不一致
 
-### P3-1 throttle 429 形态是 HTTP 200 + body.code 42900
+### P3-1 throttle 429 形态是 HTTP 200 + body.code 42900 —— 【裁决：接受 2026-10-28】
 
 - **位置**：全局异常过滤器统一 200 壳的副作用 —— 429 语义仅存于业务码。
 - **实测证据**：`throttle.api-spec.ts`。
 - **建议**：接受现状并写入前端契约，或为 ThrottlerException 例外放行 HTTP 429。
+- **裁决（2026-10-28，批 2）**：**接受现状（HTTP 200 + body.code 42900）并写入前端契约** ——
+  不放行原生 HTTP 429（统一响应壳是全站契约，单点例外会破坏前端响应拦截器的唯一分支）。
+  `ENDPOINTS.md` 的 throttle/device initial 行已补「前端消费事实契约」说明。
 
-### P3-2 device initial 重名 device_name（23505）被 catch-all 吞掉 → 误导性 40605
+### P3-2 device initial 重名 device_name（23505）被 catch-all 吞掉 → 误导性 40605 —— 【已修复 2026-10-28】
 
 - **位置**：`device.service.initial` 的 catch-all（一切异常改抛 NOT_ACCEPTABLE_DEVICE_UNSUPPORTED）。
 - **实测证据**：F 段补记「测试踩坑」。
 - **建议**：catch 内单列 23505 → 受控 40000。
+- **修法（2026-10-28，批 2）**：catch-all 之前单判 `QueryFailedError` 且
+  `driverError.code === '23505'` → `WalnutAdminExceptionBadRequest`（40000，
+  约束名进 `_devMsg`）；其余异常仍走 40605。device spec 新增「重名 device_name → 40000」
+  用例与「service 层空请求 → 40605」对照。
 
-### P3-3 gitee/github callback 缺 code → passport-oauth2 authorize 重定向腿（302）
+### P3-3 gitee/github callback 缺 code → passport-oauth2 authorize 重定向腿（302）—— 【已修复 2026-10-28】
 
 - **位置**：`auth/modules/oauth` callback 端点（无受控错误壳）。
 - **实测证据**：`external-oauth.api-spec.ts` D 段。
 - **建议**：controller 前置 code 校验，缺码直接受控 40000。
+- **修法（2026-10-28，批 2）**：在 `OAuthGiteeGuard` / `OAuthGitHubGuard` 的
+  `canActivate` 前置校验 `req.query.code`（guard 先于 controller，@UseGuards 之前无法在
+  handler 里拦），缺失/空串直接 `WalnutAdminExceptionBadRequest`（40000）。external-oauth
+  spec 的两条 302 钉现状翻转为 HTTP 200 + body.code 40000（无 Location）。
 
-### P3-4 `/auth/permissions` 顶层是「首个根节点的 children」—— 单根无子级时顶层数组恒空
+### P3-4 `/auth/permissions` 顶层是「首个根节点的 children」—— 单根无子级时顶层数组恒空 —— 【裁决：接受 2026-10-28】
 
 - **位置**：`auth/modules/session`（permissions 组装）。
 - **实测证据**：`auth-session.api-spec.ts` D 段。
 - **建议**：返回完整根数组，或把「单根 + children」约定写进前端契约。
+- **裁决（2026-10-28，批 2）**：**接受现状并把「单根 + children」写进前端契约** ——
+  `permissionMenuTree` 顶层 = 首个根节点的 children（admin 侧菜单渲染即按此消费）；
+  改返回完整根数组会牵动前端菜单树装配，收益不足。`ENDPOINTS.md` 的
+  `GET /auth/permissions` 行已补前端消费契约说明。
 
-### P3-5 webauthn register/verify 带 garbage response → 未受控异常兜底 50000
+### P3-5 webauthn register/verify 带 garbage response → 未受控异常兜底 50000 —— 【已修复 2026-10-28】
 
 - **位置**：`system/user/mfa` webauthn verify（simplewebauthn 异常未包装）。
 - **实测证据**：`user-mfa.api-spec.ts` C 段。
 - **建议**：包装成受控 40000。
+- **修法（2026-10-28，批 2）**：`verifyRegistrationResponse` / `verifyAuthenticationResponse`
+  两处调用包 try/catch → `WalnutAdminExceptionBadRequest({ errMsg:
+  'business.auth.mfa.verifyFail', _devMsg: 原始 message })`。user-mfa spec 的
+  「malformed response → 50000」钉现状翻转为 40000。
 
-### P3-6 `/shared/ali/sts` 在 env 配有 vendor key 时发真实外网请求
+### P3-6 `/shared/ali/sts` 在 env 配有 vendor key 时发真实外网请求 —— 【裁决：登记 2026-10-28】
 
 - **位置**：`shared/ali`（STS assumeRole 直连阿里云）—— 结果取决于外部服务，不可脚本稳定。
 - **实测证据**：`shared-ali.api-spec.ts` D 段（受控两态断言：20000 信封 XOR 50000 兜底）。
 - **建议**：STS 客户端注入化（测试可替换），或加 dry-run 开关。
+- **裁决（2026-10-28，批 2）**：**登记为已知测试边界，客户端注入化延后** —— 现有 spec
+  的双态断言已覆盖「不崩」；注入化需要给 @alicloud SDK 包一层 provider，收益是测试确定性、
+  成本是生产接线改动，排到独立批次。
 
-### P3-7 role 无 delete / deleteMany 端点（CRUD 四件缺二）
+### P3-7 role 无 delete / deleteMany 端点（CRUD 四件缺二）—— 【裁决：登记 2026-10-28（角色不删）】
 
 - **位置**：`system/role` controller —— 只有 CRUD 四件中的 create/read/update/list。
 - **实测证据**：C 段 role spec（文件头登记）。
 - **建议**：确认设计意图：补端点，或在 API 文档登记「角色不删」为明确约束。
+- **裁决（2026-10-28，批 2）**：**「角色不删」是明确设计约束** —— role 是权限链的稳定
+  引用（sys_user_role / sys_role_menu / current_role_id 多处关联），不提供 delete /
+  deleteMany；停用走 update status，解绑走 junction 调整。`ENDPOINTS.md` 的 role 行同步
+  标注该约束。
 
 ### P3-8 cap challenge/redeem 无响应壳 + OAuth SSE `@Res()` 直写 —— 确认设计内，已豁免（2026-10-27）
 

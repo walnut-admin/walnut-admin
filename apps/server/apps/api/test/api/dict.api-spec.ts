@@ -13,10 +13,10 @@ import { createApiApp } from './helpers/create-api-app'
  * 的 deleteMany 路由已接线：逐行软删 + locale 级联，与单删同语义）
  * + `GET /system/dict/type/s?types=a,b`（按业务键 type 批量取启用 dictData）。
  *
- * FK 语义（真实断言）：sys_dict_data.type_id → sys_dict_type ON DELETE CASCADE（migration
- * DDL）。dictType 的 HTTP delete 是「sys_deleted 快照 + 原行硬删」（pg-base.repository
- * deleteSoftById），因此删 type 时数据腿由 **DB 级 CASCADE** 静默清掉 —— sys_dict_data
- * 行直接消失、且**不产生** dictData 的 sys_deleted 快照（应用层 deleteMany 才会写快照）。
+ * FK 语义（P2-8 修复后，2026-10-28）：sys_dict_data.type_id → sys_dict_type ON DELETE
+ * CASCADE 仍在（migration DDL），但 dictType 的 HTTP delete 改为**同事务级联软删**：
+ * 先逐行把关联 dictData 做成 sys_deleted 快照（modelName=SYS_DICT_DATA）并删原行，
+ * 再快照 + 硬删 type 行 —— data 行不再被 DB CASCADE 静默清掉，回收站可恢复。
  *
  * dictData 自己的 HTTP delete 除了软删本行，还会按 label 级联软删 locale 行
  * （dictData.service.delete → localeSharedService.deleteByKey）—— 本轮 label 用唯一
@@ -325,33 +325,62 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     expect(bodyOf(readRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
   })
 
-  it('FK 语义：删 type → data 行被 DB CASCADE 硬删，且不产生 data 的软删快照', async () => {
+  it('dictType delete → 关联 dictData 逐行进回收站（P2-8），type/data 快照齐备且可 recover', async () => {
     const type = await createDictType('FK1')
     const a = await createDictData(type.id, 'FK1a')
     const b = await createDictData(type.id, 'FK1b')
 
     const deleteRes = await api.root('DELETE', api.apiPath(`/system/dict/type/${type.id}`))
-    expectOk(deleteRes, 'dict type delete (FK case)')
+    expectOk(deleteRes, 'dict type delete (cascade soft delete)')
     collect.typeIds = collect.typeIds.filter(id => id !== type.id)
 
-    // data 行随 FK CASCADE 消失
+    // 原表行（type + 两条 data）全部消失
     const leftData: Array<{ c: number }> = await api.pgDataSource.query(
       'SELECT count(*)::int AS c FROM sys_dict_data WHERE id = ANY($1::uuid[])',
       [[a.id, b.id]],
     )
     expect(leftData[0].c).toBe(0)
 
-    // sys_deleted 只有 type 的快照行 —— CASCADE 是 DB 级，不走应用层软删
-    const snapshots: Array<{ model_name: string }> = await api.pgDataSource.query(
-      'SELECT model_name FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])',
+    const leftType: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM sys_dict_type WHERE id = $1',
+      [type.id],
+    )
+    expect(leftType[0].c).toBe(0)
+
+    // 快照 3 条：type 1 + data 2（data 的 modelName 是 SYS_DICT_DATA）
+    const snapshots: Array<{ id: string, deleted_id: string, model_name: string }> = await api.pgDataSource.query(
+      'SELECT id, deleted_id, model_name FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])',
       [[type.id, a.id, b.id]],
     )
-    expect(snapshots).toHaveLength(1)
-    expect(snapshots[0].model_name).toBe(WalnutModelName.SYS_DICT_TYPE)
+    expect(snapshots).toHaveLength(3)
+    expect(snapshots.filter(row => row.model_name === WalnutModelName.SYS_DICT_TYPE)).toHaveLength(1)
+    expect(snapshots.filter(row => row.model_name === WalnutModelName.SYS_DICT_DATA)).toHaveLength(2)
 
-    collect.typeIds = []
+    // 可 recover：先恢复 type（data 的 FK 依赖），再恢复一条 data
+    const typeSnapshot = snapshots.find(row => row.model_name === WalnutModelName.SYS_DICT_TYPE)!
+    const dataSnapshot = snapshots.find(row => row.deleted_id === a.id)!
+
+    const recoverType = await api.root('POST', api.apiPath('/system/deleted/recover'), {
+      id: typeSnapshot.id,
+      deletedId: type.id,
+    })
+    expectOk(recoverType, 'recover dict type')
+    const recoverData = await api.root('POST', api.apiPath('/system/deleted/recover'), {
+      id: dataSnapshot.id,
+      deletedId: a.id,
+    })
+    expectOk(recoverData, 'recover dict data')
+
+    const backType = await api.root('GET', api.apiPath(`/system/dict/type/${type.id}`))
+    expectOk(backType, 'dict type recovered')
+    const backData = await api.root('GET', api.apiPath(`/system/dict/data/${a.id}`))
+    expectOk(backData, 'dict data recovered')
+    expect(bodyOf<DictDataRow>(backData).data.typeId).toBe(type.id)
+
+    // 恢复出的行由 afterEach 按 collected ids 清；b 的快照留在 sys_deleted 由 afterEach 清
+    collect.typeIds.push(type.id)
     collect.typeKeys = collect.typeKeys.filter(key => key !== `${typePrefix}-FK1`)
-    collect.dataIds = []
+    collect.typeKeys.push(`${typePrefix}-FK1`)
   })
 
   it('校验失败 → 40099（缺必填 / typeId 非 uuid / 未知字段）', async () => {

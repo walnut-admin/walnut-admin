@@ -31,7 +31,8 @@
 IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) → JWT → Risk(后) → CAP(后) → MFA → Sign(HMAC) → Lock
 ```
 
-- **Device**：要求签名 cookie `__Host-DEVICE_ID` 且设备行在缓存（`SYS_DEVICE:<id>`）；`DeviceFree` 跳过。
+- **Device**：要求签名 cookie `__Host-DEVICE_ID` 且设备行在缓存（`SYS_DEVICE:<id>`）；缓存
+  miss 时回源 `sys_device`（locked/banned 落库真值）并回填缓存，查无才 40605；`DeviceFree` 跳过。
 - **JWT**：`Authorization: Bearer <AT>`；`JwtFree` 跳过（未登录时 `req.user` 为空）。
 - **Sign**：HMAC-SHA256；未登录单因子（key=握手 aesKey），已登录双因子
   （key=HKDF(sha256(sessionKey 的 sha256), salt=aesKey, info=appSettings.cryptoHKDF.API_SIGN)）。
@@ -73,14 +74,13 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | demo | DELETE `/app/demo/:id` | 同上+事务 | `app:demo:delete` | 路由 uuid | **试点**：软删 |
 | demo | DELETE `/app/demo/deleteMany/:ids` | 同上+事务 | `app:demo:delete` | 逗号 uuid | **试点** |
 | demo | POST `/app/demo/list` | 同上 | `app:demo:list` | `{query,sort,page}` | **试点**：过滤/分页 |
-| error | GET `/app/error/:code` | Sign 链 | `app:error:test` | 路由错误码 | **B 段已测**（error.api-spec.ts）：40000/40103/40300/50000 四个 ErrorMap 异常与 contract 码对齐的 code 断言 body.code；枚举外 code → 40099。
-  已知历史错位（非迁移回归，未断言）：ErrorMap 的 40112-40117 挂的异常类与 contract 错误码错位（如 40112 挂 CapInteractionRequired，真实码 40116） |
+| error | GET `/app/error/:code` | Sign 链 | `app:error:test` | 路由错误码 | **B 段已测**（error.api-spec.ts）：P2-7 已修（2026-10-28）—— ErrorMap 的 40112-40117 与 contract 错误码逐个对齐，spec 对 **ErrorMap 全项**（46 code）断言 body.code 即路由 code；枚举外 code → 40099。 |
 | key | GET `/app/key/current/:type` | Sign 链 | （无 @HasPermission → guard 放行） | type∈RSA_PAIR/AES_KEY_URL | **B 段已测**（key.api-spec.ts）：current 返回 version 最大 ACTIVE 行的 meta；与 app.key.int-spec 双向隔离的数据自洽法（自插高 version 目标行 + afterAll 还原/清空） |
-| key | POST `/app/key/init` | 同上 | 无 | — | **B 段已测**：AES_KEY_URL 空表落首条 v1 ACTIVE；二钻 40001。注意 init 不选 JWT_AT——`generateNewKeyByType` 无该分支，恒 20000 且不落行、二钻不可达 |
+| key | POST `/app/key/init` | 同上 | 无 | — | **B 段已测**：AES_KEY_URL 空表落首条 v1 ACTIVE；二钻 40001。P2-6 已修（2026-10-28）：JWT_AT 在 DTO 层被拒（40099，系统启动自举，不走 init），不再假成功 20000 |
 | key | POST `/app/key/rotate/:type` | 同上+事务 | 无 | — | **B 段已测**：旧行 DEPRECATED + 新行 version+1 ACTIVE 事务两腿齐落，current 随轮转换人 |
 | logger | POST `/app/logger/list`（CRUD list） | Sign 链 | `app:logger:list` | list 形态 | **B 段已测**（logger.api-spec.ts）：fileName/logType 过滤 + 无命中空列表；用例自建自清 `logs/{application,error}/api-spec-*.log`（cwd=apps/server） |
 | logger | GET `/app/logger/:logType/:fileName` | Sign 链 | `app:logger:read` | 路由参数 | **B 段已测**：第 1 页命中写入行、越界页空内容、不存在文件 → 受控 50000（ENOENT 兜底）；logType 枚举外 / fileName 穿越 payload → 40099（ParamEnum + 白名单管道，2026-10-27 起；service 层另有 resolve 包含性断言纵深）；fileSize 出参是 `@TransformSizeToKB` 字符串 |
-| monitor/cache | CRUD（read 按 `key`、delete 按 `key`、list、`DELETE /app/monitor/cache/clear`） | Sign 链 + `@HasRole([root,developer])` | `app:monitorCache:*` | key/uuid | **B 段已测**（monitor.api-spec.ts）：真实 Redis 键（shared 类型）set→read/list/delete→clear；read 出参恒 `{}`（`void await get` 钉现状）；delete 是 fire-and-forget（断言轮询等落键）；clear 只清非 built-in/auth/system 类型（AUTH 的 MFA verified 键幸存），故 clear 用例放文件最后 |
+| monitor/cache | CRUD（read 按 `key`、delete 按 `key`、list、`DELETE /app/monitor/cache/clear`） | Sign 链 + `@HasRole([root,developer])` | `app:monitorCache:*` | key/uuid | **B 段已测**（monitor.api-spec.ts）：真实 Redis 键（shared 类型）set→read/list/delete→clear；read 出参是真实缓存值 `{value}`（P2-4 已修 2026-10-28，缺失键 value=null）；delete 仍是 fire-and-forget（响应先于 DEL，data 恒空，客户端以 read 复核；断言轮询保留）；clear 只清非 built-in/auth/system 类型（AUTH 的 MFA verified 键幸存），故 clear 用例放文件最后 |
 | monitor/server | GET `/app/monitor/server/{cpu,mem,os,sys,disk,battery,time,network}` | Sign 链 | `app:monitorServer:*` | — | **B 段已测**：八个只读端点形状冒烟；mem 出参是 `@TransformSizeToGB` 字符串（`x.xx GB`）；无电池主机 battery 字段可空 |
 | monitor/user | CRUD list/read + DELETE `force-quit/:id` + POST `state`（Sign/Jwt/Cap/DeviceFree，socket 在线状态上报） | Sign 链 | `app:monitorUser:*` | list/uuid；state 为匿名 | **B 段已测**（monitor-user.api-spec.ts）：state 匿名上报 upsert（auth=false 置空 userId）+ list/read populated + force-quit 撤销 RT 落库（revoked）+ read 40401 + force-quit 无行 20000+false + 非法 uuid 40002 + state 非法 body 40099（P1-4 已修 2026-10-27：过滤器对 skip 名单只跳过错误记录、响应恒落盘，不再悬挂） |
 | setting | GET `/app/setting/public` | Lock/Sign/Jwt/Cap/Device 全 Free | 无 | — | **B 段已测**（setting.api-spec.ts）：匿名 unsigned 可达，auth/frontend 全布尔形状 |
@@ -92,6 +92,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | 端点 | 方法/路径 | 守卫 | 权限点 | 请求形态 | API 级测试策略 |
 |---|---|---|---|---|---|
 | 会话 | GET `/auth/permissions` | Sign 链 | 无 | — | **D 段已测**（auth-session.api-spec.ts）：root 权限树含自建 MENU 行（响应顶层是「首个根节点的 children」——单根无子级时顶层数组恒空，须造 CATALOG+MENU 两行）+ AUTH:PERMISSIONS 缓存键写入可复现 + 匿名 40101。
+  **前端消费契约（P3-4 裁决 2026-10-28）**：`permissionMenuTree` 恒为「首个根节点的 children」数组（不是完整根数组）；单根无子级时为空数组，admin 菜单/首页装配按此形状消费，服务端不改形。
   **空表边界钉现状**：sys_menu 空表时 indexMenuName 组装在 `permissionMenuTree[0].children` 上 TypeError → 50000（Mongo 时代同病，spec 靠自建菜单行绕开） |
 | 会话 | POST `/auth/signout` | SignFree+DeviceFree | 无 | — | **D 段已测**：RT 行全量 revoke（revoke-and-insert 时代同维度多行，update where userId+deviceId 撤干净）+ `__Host-RT_JTI` cookie Expires 归零 + after-commit 清 permissions/MFA verified 缓存（轮询）+ 旧 AT 再请求 40115（MFA verified 缓存已清，MFA guard 在 Sign guard 之前先拦）。
   **钉现状（非迁移回归，登记）**：AUTH:SESSIONS 键残留 —— revokeSession 走 cacheService.delByPattern，内部 redis.del(数组) 在 node-redis v5 rest-args 语义下抛错（C 段 user-device/monitor spec 同款已知问题），钩子错误被 catch 吞掉 |
@@ -115,8 +116,8 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   **迁移回归已修**（D 段唯一一处 src 改动）：无 RT cookie 时 guard 直取 cookie 值 undefined 传入 findByJti —— Mongo 版 findOne({jti: undefined}) 查无行 → 受控 40102；PG/TypeORM 把 undefined 当绑定参数下发 → pg 驱动 "bind parameters must not contain undefined" 未受控 50000。已在 `refresh.repo.service.findByJti` 按「查无此 jti」语义收 nil → null |
 | mfa | GET `/auth/mfa/status`、POST `/auth/mfa/verify` | MFAFree+LockFree | 无 | verify `{type,code}` | 高优先（MFA 闭环：绑定 totp → verify → 新 AT）—— verify 的 RT 轮换闭环已由 C 段 user-mfa spec（system/user/mfa/totp/verify）覆盖 |
 | google | POST `/auth/google`（勘误：callback 路由不存在——初版测绘把 strategy 层 callbackURL 误记为 HTTP 端点） | Jwt/Sign Free + Functional + `AuthGoogleGuard` | 无 | google id_token | **D 段已测**（external-oauth.api-spec.ts，错误路径专项）：functional 关闭 → 50301 拦在 passport guard 之前；开启 → garbage credential 走本地 JWKS 校验失败 40107（不发外网）。真实 Google id_token 回调不测（外部依赖） |
-| oauth/gitee | GET `/auth/oauth/gitee/url`、GET `/auth/oauth/gitee/callback` | Jwt Free + Functional（callback 另 SignFree + `OAuthGiteeGuard`） | 无 | query code | **D 段已测**（external-oauth.api-spec.ts）：functional 关闭 50301；开启 `/url` 构造跳转 URL 形态（authorize + client_id + redirect_uri 原样拼接不转义 + response_type + scope + state JSON{fp,lang}）；callback 缺 code → passport-oauth2 authorize 重定向腿 302（钉现状）。真实 gitee code 回调不测（外部依赖） |
-| oauth/github | 同 gitee（`/auth/oauth/github/*`） | 同上 | 无 | query code | **D 段已测**（external-oauth.api-spec.ts）：同 gitee 同构（scope=read:user user:email）。真实 github code 回调不测（外部依赖） |
+| oauth/gitee | GET `/auth/oauth/gitee/url`、GET `/auth/oauth/gitee/callback` | Jwt Free + Functional（callback 另 SignFree + `OAuthGiteeGuard`） | 无 | query code | **D 段已测**（external-oauth.api-spec.ts）：functional 关闭 50301；开启 `/url` 构造跳转 URL 形态（authorize + client_id + redirect_uri 原样拼接不转义 + response_type + scope + state JSON{fp,lang}）；callback 缺 code → **受控 40000**（P3-3 已修 2026-10-28：guard 前置校验，不再 302）。真实 gitee code 回调不测（外部依赖） |
+| oauth/github | 同 gitee（`/auth/oauth/github/*`） | 同上 | 无 | query code | **D 段已测**（external-oauth.api-spec.ts）：同 gitee 同构（scope=read:user user:email）；callback 缺 code 同 P3-3 → 受控 40000。真实 github code 回调不测（外部依赖） |
 
 ## 3. security 模块（`modules/security/`）
 
@@ -140,21 +141,22 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 
 | 端点 | 方法/路径 | 守卫 | 权限点 | 请求形态 | API 级测试策略 |
 |---|---|---|---|---|---|
-| lang | CRUD 四件（无 delete）+ GET `/system/lang/list/public` | CRUD：Sign 链；public：Lock/Sign/Jwt/Cap/Device 全 Free + 响应缓存 | `system:lang:*` | `{lang,description,order,status}` | **A 段试点**：CRUD + public 端点（缓存装饰器路径） |
+| lang | CRUD 四件（无 delete）+ GET `/system/lang/list/public` | CRUD：Sign 链；public：Lock/Sign/Jwt/Cap/Device 全 Free + 响应缓存 | `system:lang:*` | `{lang,description,order,status}` | **A 段试点**：CRUD + public 端点（缓存装饰器路径）；P2-5 已修（2026-10-28）：create/update 经 after-commit 失效 `SYS_LANG_LIST_PUBLIC`，响应返回后 public 立见新值 |
 | locale | GET `/system/locale/message/:locale?cache=1` | Lock/Sign/Jwt/Cap/Device/Ip 全 Free | 无 | 路由 locale | **A 段试点已覆盖**：message 拉取 + 缓存开关。
   缓存语义已钉现状：locale create/delete 事务提交后全量刷新 message 缓存（runAfterCommit → extractLocaleMessagesIntoCacheForCronJob，会顺带写 `SYS_LANG_ID_LIST`）；绕过 HTTP 的 PG 直插不触发刷新，cache=1 读旧缓存、cache=0 回源 |
 | locale | POST `/system/locale`（数组批量 create）、`GET /:key`、`PUT /:id`、`DELETE /:key`、`DELETE /deleteMany/:keys`、`POST /list` | Sign 链 + 事务 | `system:locale:*` | 数组 `{langId,key,value[,oldKey]}` | **A 段试点**（创建/更新/删除走真实事务） |
 | dict/type | GET `/system/dict/type/s` + CRUD | Sign 链 | `system:dictType:*` | dict DTO | **C 段已测**（dict.api-spec.ts）：CRUD + list 附 `dictDataCount` 计数子查询 + `s` 端点按 type 批量回启用 data（order 升序、未知 type 跳过）。
-  **FK 语义钉死**：dictType 的 HTTP delete 是「sys_deleted 快照 + 原行硬删」，data 腿由 DB 级 CASCADE（type_id FK）静默清掉且**不产生** data 的软删快照 |
+  **级联软删（P2-8 已修 2026-10-28）**：dictType 的 HTTP delete 在同一事务内先逐行软删关联 dictData（各落 `SYS_DICT_DATA` 快照），再快照 + 硬删 type 行 —— DB CASCADE 无行可清，回收站可先恢复 type 再恢复 data |
 | dict/data | CRUD | Sign 链 | `system:dictData:*` | dict DTO | **C 段已测**：CRUD + 软删快照 + read 40401。
   **无 deleteMany 路由**（Permissions.DELETE_MANY 常量存在但装饰器未接线 → 40400，钉现状）；update 的 DTO 字段全量必填（tagType 漏给 → 40099） |
 | menu | GET `/system/menu/tree` + CRUD（delete 带 `?cascade=` query） | Sign 链 | `system:menu:*` | menu DTO | **C 段已测**（menu.api-spec.ts）：meta 拍平出入参往返（19 列组装/回填默认值）+ pid 自引用建树 + `?_cascade=` 两态（=1 额外按 title 级联软删 locale，非删子菜单；pid FK RESTRICT）+ tree 形态（fullTree 只回首根 children、treeWithoutTypeElement 走完整根数组、空表 `fullTree[0].children` TypeError 50000 不进回归）。
   **迁移回归已修**（C 段唯一一处 src 修复）：`flattenSysMenuMeta` 未给键判据原为 `=== undefined`，但 HTTP 入参经 ValidationPipe 深度实例化（meta 挂 @Type）后部分 meta 的未给键是**显式 null** → is_show 等非空列收到 NULL 撞 NOT NULL 约束，HTTP create/update 带部分 meta 必 50000；已改 `??`（null/undefined 都回填 schema 默认值，对齐 Mongo 子文档语义）。service 层 int-spec（B5 menu.role.pg）传的是纯对象不可见，只有 HTTP 层能抓到 |
-| role | CRUD 四件（无 deleteMany；无 delete） | Sign 链 | `system:role:*` | role DTO | **C 段已测**（role.api-spec.ts）：menus 赋值落 sys_role_menu junction（create 缺省=空数组、update 未给=junction 不动、给了=delete+insert 整组替换）+ read/list 的 usersCount + root 守卫（create 拒 root/developer、update 拒 roleName=root 与根角色行）+ `findRolesWithPopulatedMenus` 形态（status 过滤 + menusList 组装 meta） |
+| role | CRUD 四件（无 deleteMany；无 delete —— **P3-7 裁决「角色不删」是明确设计约束**，停用走 update status） | Sign 链 | `system:role:*` | role DTO | **C 段已测**（role.api-spec.ts）：menus 赋值落 sys_role_menu junction（create 缺省=空数组、update 未给=junction 不动、给了=delete+insert 整组替换）+ read/list 的 usersCount + root 守卫（create 拒 root/developer、update 拒 roleName=root 与根角色行）+ `findRolesWithPopulatedMenus` 形态（status 过滤 + menusList 组装 meta） |
 | user | CRUD + 状态管理 | Sign 链 | `system:user:*` | user DTO | **C 段已测**（user.api-spec.ts）：create roles 必填（给 [] 时 junction 空 + currentRole 走 defaultRole 兜底）、safe role id 拦截、update 启停/roles 整组替换、delete 拒自己与 safe user、list 字段面裁剪 + `me/role/switch`（COMBINE 拒 40000）与 `me/roleMode/switch`（switchable↔combinable 落库、非法枚举 40099）+ opaque admin `password/clear`（删 password identity、幂等恒 true）。
   用户名重复 → DB 23505 未映射受控异常，兜底 50000（钉现状） |
 | user/me | PUT `/system/user/me/profile`、GET `security-tab2`、GET `profile` | Sign 链 | `me:profile:update` 等 | — | **C 段已测**（user-me.api-spec.ts）：GET profile roles_list、PUT profile 持久化 + 40099（缺必填/越枚举）、security-tab2 双通道形状（totp 行 SQL 直插对拍 verified/status 语义）、匿名 40101 |
-| device | POST `/system/device/initial`（Sign/Jwt/Cap/Device Free + Throttle）+ GET `:id/current-active-user`、`:id/history-users` + PATCH `:id/{lock,unlock,banned,unbanned}` + read/list | Sign 链 | `system:device:*`（AND 模式组合） | uuid + PATCH | **C 段已测**（device.api-spec.ts）：initial 同指纹幂等回同 deviceId（upsert 覆盖 deviceName）+ 新指纹新行（裸 supertest 发，避免 cookie jar 吃下第二台设备的 DEVICE_ID 重签导致 CAP 40116 串台；Throttle 4/60s 压线）+ read/list（`:id` 是行 uuid 非业务键；sr/vp 组装回嵌套；current-active-user 空态回 null 填充壳）+ lock/ban 只进 SYS_DEVICE 缓存不落库 → 锁/封期间同设备请求被 Device guard 40606/40607 拦死（连 unlock/unban 都到不了），端点间以缓存复位通道衔接 + history-users 恒空数组（populate 恒命中，「只回 user 缺失行」语义反转，钉现状） |
+| device | POST `/system/device/initial`（Sign/Jwt/Cap/Device Free + Throttle）+ GET `:id/current-active-user`、`:id/history-users` + PATCH `:id/{lock,unlock,ban,unban}` + read/list | Sign 链 | `system:device:*`（AND 模式组合） | uuid + PATCH | **C 段已测**（device.api-spec.ts）：initial 同指纹幂等回同 deviceId（upsert 覆盖 deviceName）+ 新指纹新行（裸 supertest 发，避免 cookie jar 吃下第二台设备的 DEVICE_ID 重签导致 CAP 40116 串台；Throttle 4/60s 压线）+ 重名 device_name（23505）→ 受控 40000（P3-2 已修 2026-10-28，其余异常仍 40605）+ read/list（`:id` 是行 uuid 非业务键；sr/vp 组装回嵌套；current-active-user 空态回 null 填充壳）+ lock/unlock/ban/unban **落库 + 缓存双写**（P2-2 已修 2026-10-28：DB 为真源，清缓存后 guard 回源库、锁/封仍 40606/40607）+ history-users 返回绑定用户（P2-3 已修 2026-10-28：sys_user_device 行即绑定历史，按 lastActiveAt 降序）。
+  **Throttle 前端契约（P3-1 裁决 2026-10-28）**：超限响应是 **HTTP 200 + body.code 42900**（统一响应壳），不是原生 HTTP 429 —— 前端限流提示按 body.code 分支，`Retry-After` 头仍给出剩余秒数 |
 | deleted | read/list + `POST me/recover`、`POST recover`（recover 系另有 `@HasRole([root,developer,admin])`） | Sign 链 | `system:deleted:*` | uuid/ids | **D 段已测**（deleted.api-spec.ts，B9 int-spec 已盖 service 层，此处 HTTP 层复刻核心三态）：demo create → HTTP delete 软删 → read（快照 content/modelName/deletedBy + user toMatchObject——read 面带额外 null 键）/ list（content ::text 关键字过滤 + total，出参不带 content）→ recoverMine 属主恢复（原行回来 + sys_deleted 行同事务消失）→ 管理端 recover（root 短路 @HasRole）→ deletedId 不匹配两态（recoverMine 40401 双键定位不命中 / recover 40000 recoverFail）→ deleteMany（deleteReal）硬删快照、原表不回来。
   **注意**：demoString 挂 IsUppercase（uuid 片段 hex 抬大写）；deletedBy 是 uuid 列不走模糊白名单，列表过滤走 content 关键字 |
 | log/auth | CRUD delete/deleteMany/list（`@UseGuards(JwtAccessGuard)` 显式重复挂） | Sign 链 | `system:logAuth:*` | list | **D 段已测**（log-auth.api-spec.ts）：日志行由真实登录链自然产生（beforeAll opaque HTTP 登录产成功行；未知 userName 的 login/start 产失败行——recordAuth fire-and-forget，断言轮询）→ list（deviceId 过滤 + type 数组过滤命中/空命中 + 分页）+ 行字段面（成功行 userId/userName/type=opaque、失败行 userId/userName 双 null、msg 为 i18n 文案）+ delete（软删 → sys_deleted 快照 SysLogAuthModel）+ deleteMany + 不存在 id 40401 |
@@ -166,7 +168,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | user_lock | GET `read` + PATCH（lock/unlock me） | LockFree | 无 | — | **C 段已测**（user-lock.api-spec.ts）：两套默认值对拍（无偏好行 service 兜底 lockIdleSec=300/crossDevice=false；首次 lock 落行后 DB 默认 lockIdleSec=600/crossDevice=true → read 走跨设备腿）+ lock/unlock 落 sys_user_device.locked + 无偏好行 unlock 40401 |
 | user_mfa/totp | POST `generate/bind/verify`、DELETE `unbind`、PUT `status`（status 端点挂权限 `system:user:mfa:totp:status`） | MFAFree+LockFree | 大多无 | totp payload | **C 段已测**（user-mfa.api-spec.ts）：totp 真实闭环（generate 拿真 secret → otplib 同库客户端算码 → bind → verify RT 轮换取新 AT → status 开关 → unbind；备份码 10 枚 + secret/qrCode 形状；bind 后 generate 重入 40001）+ security-tab2 跨验。
   bind 后 verify 的 RT 轮换会更新 RT_JTI cookie（客户端 jar 原样回传） |
-| user_mfa/webauthn | POST `register/{options,verify}`、`authenticate/{options,verify}` | MFAFree+LockFree | 无 | webauthn payload | **C 段已测**（user-mfa.api-spec.ts，仅形状/错误路径）：register/options 公钥选项形状（rp/user/challenge/alg/excludeCredentials）+ authenticate/options 无凭证 40400 + authenticate/verify 无 challenge 缓存 40000 + register/verify 带 garbage response（challenge 在 TTL 内）→ simplewebauthn 未受控异常兜底 50000。正向 register/verify 需浏览器凭证，不进回归 |
+| user_mfa/webauthn | POST `register/{options,verify}`、`authenticate/{options,verify}` | MFAFree+LockFree | 无 | webauthn payload | **C 段已测**（user-mfa.api-spec.ts，仅形状/错误路径）：register/options 公钥选项形状（rp/user/challenge/alg/excludeCredentials）+ authenticate/options 无凭证 40400 + authenticate/verify 无 challenge 缓存 40000 + register/verify 带 garbage response（challenge 在 TTL 内）→ **受控 40000**（P3-5 已修 2026-10-28：simplewebauthn 异常统一包装）。正向 register/verify 需浏览器凭证，不进回归 |
 | user_oauth | `@Controller('system/user/oauth')` 无方法（空壳） | — | — | — | 无端点，标注不测（C 段复核维持） |
 | user_preference | GET `read`（Lock/Sign/MFA/Device/Ip Free）+ PATCH `{basic,accessibility,theme,layout}` | Sign 链 | `me:preference:*` | — | **C 段已测**（user-preference.api-spec.ts）：read 默认形态（CVD 默认 'default'）+ 匿名同可达（JwtOptional）+ 四段 PATCH upsert（ON CONFLICT 只回写携带列，basic.locale 跨段不丢）→ read 断言持久化 + 40099（locale/fontSize 越枚举） |
 
@@ -193,7 +195,8 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 - **外部依赖端点**（API 级只测错误路径或跳过）：google / gitee / github 的 callback（真实 OAuth code 不可脚本获得）、webauthn register/authenticate verify（浏览器凭证）。
 - **A 段试点**：`app/demo`（标准 CRUD 模板）+ `system/lang` + `system/locale`（含公开 message 端点、批量数组 create、按 key 删除三种非标形态）——
   三份 `*.api-spec.ts` 已落地 `test/api/` 并入 `pnpm test:integration`（23 用例，describe 级握手+登录一次）。
-  lang public 端点（`@WalnutAdminDecoratorCache`）已钉现状：命中后 1h TTL 内不回源，lang CRUD 不主动失效该键。
+  lang public 端点（`@WalnutAdminDecoratorCache`）的失效通道已补（P2-5 已修 2026-10-28：
+  lang create/update 经 after-commit 删缓存键，响应返回后立见新值）。
 - **C 段**：§5 system 模块主体（dict/menu/role/user 系 + device 系 + me 系共 11 份 spec、87 用例）已落地，
   基线 236 → 323；未覆盖余量：`deleted`（回收站 read/list/recover）与 `logs`（logAuth/logOperate）两系。
 - **D 段**：§2 auth 会话链（permissions/refresh/signout/keys）+ opaque 管理端/me 通道改密 + otp + §3 security
@@ -221,7 +224,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
     `AUTH:SESSIONS` 键（会话吊销）后旧 AT 双因子 40112 —— session 校验真实查缓存。
   - **Device**：缺 DEVICE_ID 40605；篡改 DEVICE_ID（signed cookie 验签失败被 cookie-parser 丢弃）
     40605；封禁闭环：第二设备 HTTP `PATCH :id/ban` → 本设备 40607 → HTTP `unban` → 恢复放行
-    （ban/unban 只写 SYS_DEVICE 缓存不落库，与 C 段口径一致）。
+    （P2-2 已修 2026-10-28：ban/unban 落库 + 缓存双写，原「只写缓存」口径作废）。
   - **CAP**：risk 有评估（新设备 `DEVICE_NEW` critical 因子未处理）+ 缺 CAPJS_TOKEN → 40116；
     `DEVICE_NEW` 处理后（shouldChallenge=false）缺 token → 40117（策略降级仍拒）；缓存清空 +
     已消费 token（真验路径）→ 40117；重新 challenge/redeem 恢复 20000。
@@ -237,15 +240,17 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
     passport 与 DTO 校验；与 D 段 google 对照不重复）。
   - **Throttle**（独立文件）：`device/initial` 动态覆盖 limit=4/ttl=60s（`SysDeviceSettingService`
     硬编码非 settings），内存存储按 app 实例隔离；引导期已耗 1 次 → 3 次压线通过 → 第 5 次
-    **HTTP 200 + body.code 42900**（原生 ThrottlerException 由异常过滤器统一 200 壳，钉现状）；
-    blockDuration 已随 P1-10（2026-10-28）同步动态覆盖（60s，Retry-After ≥30 断言）。
+    **HTTP 200 + body.code 42900**（原生 ThrottlerException 由异常过滤器统一 200 壳；P3-1 裁决
+    2026-10-28 接受该形态并写入前端契约）；blockDuration 已随 P1-10（2026-10-28）同步动态覆盖
+    （60s，Retry-After ≥30 断言）。
 - **测试踩坑（防复踩）**：
   - SIGN_TICKET 自动签发用例**不可还原旧 ticket**——guard 已换新票（jar 自动捕获新值），把旧值
     种回去 = cookie/缓存失配，后续所有签名请求 40112；
   - cap.js 的 token 是**一次性**的（`validateToken` 成功即从 store 删除）——CAP guard 缓存一旦被清，
     旧 cookie 永远过不了真验，复原必须重新 challenge/redeem；
-  - `sys_device.device_name` 有唯一约束 `uq_device_name`，重名 INSERT 撞 23505 后被
-    device.service.initial 的 catch-all 吞掉改抛 **40605**（误导性的「Unsupported Device」）；
+  - `sys_device.device_name` 有唯一约束 `uq_device_name`，重名 INSERT 撞 23505 ——
+    P3-2 已修（2026-10-28）：initial 的 catch 在 catch-all 之前单列 23505 → 受控 40000
+    （其余异常仍 40605「Unsupported Device」）；
   - 重登同一用户+设备前必须先 signout，否则 login/finish 撞 40109 Duplicate Auth；登录链是
     JwtFree+Sign 生效路由，登录态 jar 的双因子 anon() 必 40112，重登前须 `setAuth(null)`。
 
@@ -332,8 +337,8 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   - `security/sensitive` 的 password 通道恒失败 + getUserAvailableMethods 缺失身份直接
     DataNotFound —— **P1-5 已修 2026-10-28**（password 摘除；探测腿容错；无可用方式 →
     40000 noVerifyMethodAvailable）；
-  - gitee/github callback 缺 code → passport-oauth2 走 authorize 重定向腿（HTTP 302 Location），
-    钉现状；
+  - gitee/github callback 缺 code 曾走 passport-oauth2 authorize 重定向腿（HTTP 302 Location）——
+    **P3-3 已修 2026-10-28**：guard 前置校验 → 受控 40000；
   - `/shared/ali/sts` 在 env 配有 vendor key 时发真实外网请求（STS assumeRole），结果取决于外部
     服务 —— spec 断言受控两态（20000 信封形状 XOR 50000 兜底），真实 STS 成功率不进回归。
 - **JwtFree + Sign 生效路由的签名口径（D 段反复踩坑，通用口径）**：登录态客户端的 `anon()` 会签
@@ -355,10 +360,12 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   （`WalnutAdminFilterExceptionAll`）原先对该名单**提前 return 不落响应**——`POST /app/monitor/user/state`
   等路径上任何异常（含 40099 受控错误）都会让请求静默悬挂。修复把 skip 语义收窄为「不观察」（只跳错误日志与
   错误入库），响应壳恒落盘；monitor-user spec 的 `state 非法 body → 40099` 断言已恢复为常规回归。
-- **其他钉现状（非回归，断言固化）**：`monitor/cache read` 出参恒 `{}`；cache delete 是 fire-and-forget（响应先于
-  DEL 落 Redis）；`logger list` 的 fileSize 是 `x.xx KB` 字符串、`monitor/server mem` 是 `x.xx GB` 字符串；terminus
-  健康检查出参无 `{status,info,details}` 外壳、超阈不抛 503 而是返回 `status:'down'`；error controller ErrorMap 的
-  40112-40117 异常类与 contract 错误码错位（选了无错位的 40000/40103/40300/50000 断言）。
+- **其他钉现状（非回归，断言固化；2026-10-28 批 2 已处置 P2-4/P2-7）**：`monitor/cache read` 已补
+  await（返回真实 value，P2-4 已修）；cache delete 仍是 fire-and-forget（响应先于 DEL 落 Redis，
+  契约见 controller 注释）；`logger list` 的 fileSize 是 `x.xx KB` 字符串、`monitor/server mem` 是
+  `x.xx GB` 字符串；terminus 健康检查出参无 `{status,info,details}` 外壳、超阈不抛 503 而是返回
+  `status:'down'`；error controller ErrorMap 的 40112-40117 已与 contract 错误码对齐（P2-7 已修，
+  spec 全项断言）。
 - **测试基建口径**：`anon()` 在 `setAuth()` 之后签的是双因子（无 Authorization 头），对 JwtFree+Sign 生效的路由
   （如 `GET /`）会 40112——匿名断言需先 `setAuth(null)` 回单因子；外部依赖端点（`/app/health/network` 外连
   baidu.com）不进回归。
@@ -388,10 +395,10 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   - 【已修 2026-10-28，P1-5/P1-6】`system/user/identity`：`POST list` 的空 DTO 补 @Allow（20000）；
     bind 的 setAsSecurity 补 IsOptional（缺省 false）；update 的 null 判据改 `!= null`（HTTP 可
     改值，回 verified=false）；`update/status` 的探测腿容错（有 email security 身份 → 40119 可达）；
-  - `system/device` 的 lock/unlock/ban/unban 只写 SYS_DEVICE 缓存不落库；锁/封期间同设备后续请求被
-    Device guard 40606/40607 拦死（连 unlock/unban 都到不了）；`history-users` 恒空数组（「只回
-    user 缺失行」的语义反转 + PG 侧 populate 恒命中）；current-active-user 空态回 null 填充壳
-    （`?? {}` 后经 plainToInstance 深度实例化）；
+  - `system/device` 的 lock/unlock/ban/unban 曾只写 SYS_DEVICE 缓存不落库 —— **P2-2 已修
+    2026-10-28**（DB 事务更新 + after-commit 双写，guard 缓存 miss 回源库）；`history-users`
+    曾恒空数组（「只回 user 缺失行」的语义反转）—— **P2-3 已修**（返回绑定用户）；
+    current-active-user 空态回 null 填充壳（`?? {}` 后经 plainToInstance 深度实例化）；
   - `system/user/device` 的 force-quit 只撤「查到的第一行」RT（updateRevokedAndReason 走 findOne），
     非同维度全部 RT；
   - `system/menu` 的 tree 空表时曾 `fullTree[0].children` TypeError → 50000 —— 【已修 2026-10-28，
@@ -422,11 +429,11 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
     命中后 `includes()` 全串精确匹配。「缓存缺失 40105」与「缓存命中但串不在 40105」两条拒绝
     路径分用例钉死；「清缓存 → 放行端点转 40105 → 重拉恢复放行」闭环成立。
   - 真实链路未抓出迁移回归：授予 → 放行、未授予 → 40105、写路径可重入，均与读码预期一致。
-  - **COMBINE 默认失效（已登记 DESIGN-ISSUES P2-9，未修）**：`app.functional.role` 缺省是
+  - **COMBINE 默认失效（P2-9 已修 2026-10-28）**：`app.functional.role` 缺省曾为
     `scope: GLOBAL / globalValue: switchable`，scopeResolver 在 GLOBAL 分支恒返回 globalValue ——
     用户行 `role_mode='combinable'` 被忽略，非 root 链路恒取 `[currentRole]` 单角色菜单。
-    spec 把 `APP:SETTING` 缓存的该键改写为 LOCAL scope 后观察两态（COMBINE 合并 junction 双角色 /
-    SWITCH 只看 current_role），finally 还原现场。
+    现默认改 GLOBAL/combinable（零配置即合并全部角色），spec 既有 LOCAL scope 对照用例保留
+    （验证 LOCAL 下仍看用户自身 role_mode），另加默认腿断言。
   - root 短路对照：root 用户全程不拉 `/auth/permissions`（权限缓存键不存在）同端点仍 20000 ——
     短路判据（AT payload `roleMode==='combinable' && roleNames[0]==='root'`）不经过缓存链路。
 - **测试基建口径**：

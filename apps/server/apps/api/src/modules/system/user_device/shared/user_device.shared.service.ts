@@ -43,13 +43,17 @@ export class SysUserDeviceSharedService {
 
   /**
    * @description get all users by device id
-   * （基线语义原样保留：Mongo 版这个 filter 只放行 user 缺失的行 —— 看似
-   * 反转、实为现状行为，PG 侧只把判等键从 _id 换成 id，不做"修正"）
+   *
+   * P2-3 修复（2026-10-28）：sys_user_device 没有解绑标记、绑定也不删行（bind 是
+   * `ON CONFLICT DO UPDATE` 幂等 upsert，全仓无 unbind/delete 通道）—— 表里现存行
+   * 就是该设备的**全部绑定历史**。旧实现在 Mongo 时代只放行 user populate 缺失的行
+   * （悬空引用），PG 侧 populate 恒命中 → 恒空数组；现在改为返回绑定行上的真实用户，
+   * 按 lastActiveAt 降序（repo 查询序）。
    */
   async getAllUsersByDeviceId(deviceId: string) {
     const docs = await this.userDeviceRepo.findAllUserInCurrentDevice(deviceId)
     return docs
-      .filter(i => isNil(i.user?.id))
+      .filter(i => !isNil(i.user?.id))
       .map(i => ({
         ...(i.user ?? {}),
         lastActiveAt: i.lastActiveAt,

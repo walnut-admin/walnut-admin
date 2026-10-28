@@ -125,7 +125,18 @@ export class SysUserMfaWebauthnService {
       requireUserVerification: false,
     }
 
-    const verification = await verifyRegistrationResponse(opts)
+    // P3-5：simplewebauthn 对 malformed response 抛未受控异常（兜底 50000）——
+    // 统一包装成受控 40000（verifyFail），原始错误进 _devMsg 供排查
+    let verification: Awaited<ReturnType<typeof verifyRegistrationResponse>>
+    try {
+      verification = await verifyRegistrationResponse(opts)
+    }
+    catch (err) {
+      throw new WalnutAdminExceptionBadRequest({
+        errMsg: 'business.auth.mfa.verifyFail',
+        _devMsg: err instanceof Error ? err.message : String(err),
+      })
+    }
 
     if (isNil(verification.verified) || isNil(verification.registrationInfo)) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.mfa.verifyFail' })
@@ -243,7 +254,17 @@ export class SysUserMfaWebauthnService {
       requireUserVerification: false,
     }
 
-    const verification = await verifyAuthenticationResponse(opts)
+    // P3-5：同 register/verify —— simplewebauthn 异常包装成受控 40000
+    let verification: Awaited<ReturnType<typeof verifyAuthenticationResponse>>
+    try {
+      verification = await verifyAuthenticationResponse(opts)
+    }
+    catch (err) {
+      throw new WalnutAdminExceptionBadRequest({
+        errMsg: 'business.auth.mfa.verifyFail',
+        _devMsg: err instanceof Error ? err.message : String(err),
+      })
+    }
 
     if (!verification.verified) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.mfa.verifyFail' })

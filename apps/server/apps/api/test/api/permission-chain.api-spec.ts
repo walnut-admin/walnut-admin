@@ -24,8 +24,9 @@ import { cleanupPermissionChainSeed, seedPermissionChainUser } from './helpers/s
  * 链路依据（读实现钉形）：`getCorePermissions` 从角色 menusList 的 permission
  * 列推导权限串并写入 `AUTH:PERMISSIONS:<userId>:<deviceId>`（GET /auth/permissions 时）；
  * permission.guard 对非 root 用户**只读缓存**（缺失即 40105，无懒重建），命中后全串精确匹配。
- * effective roleMode 默认（app_setting 空表 → scope GLOBAL）恒 switchable，只看 current_role；
- * SWITCH/COMBINE 对照用例经 `app.functional.role` 设置改 LOCAL scope 后观察两态。
+ * P2-9（2026-10-28）：零配置默认（app_setting 空表 → scope GLOBAL）的 globalValue 已从
+ * switchable 改为 **combinable** —— COMBINE 用户默认即合并全部角色；SWITCH/COMBINE 对照
+ * 用例仍经 `app.functional.role` 改 LOCAL scope，验证「LOCAL 下看用户自身 role_mode」不变。
  */
 
 interface PermissionsData {
@@ -238,10 +239,19 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     expectOk(allowedRes, 'demo list after cache restore')
   })
 
-  it('SWITCH/COMBINE 对照：settings LOCAL scope 下 COMBINE 合并双角色、SWITCH 只看 current_role', async () => {
+  it('默认 GLOBAL/combinable：零配置下 COMBINE 用户合并双角色（P2-9）', async () => {
     const fixture = seed2Fixture!
-    // 集成库 app_setting 空表 → 默认 GLOBAL/switchable 恒单角色；改写 APP:SETTING 缓存为
-    // LOCAL scope 才能让用户自身 roleMode 参与 effective 判定（scopeResolver 读 localKey）
+    // 集成库 app_setting 空表 = 零配置部署同态：scope GLOBAL + 默认 globalValue combinable
+    // → effective roleMode 取 combinable，user2 的 roleIds 双角色菜单合并（list + read）
+    const res = await user2.root('GET', user2.apiPath('/auth/permissions'))
+    expectOk(res, 'auth permissions (default combinable)')
+    const strings = bodyOf<PermissionsData>(res).data.permissionStrings
+    expect(strings).toEqual(expect.arrayContaining([...fixture.grantedPermissions, ...fixture.secondRolePermissions]))
+  })
+
+  it('SWITCH/COMBINE 对照（LOCAL scope）：COMBINE 合并双角色、SWITCH 只看 current_role', async () => {
+    const fixture = seed2Fixture!
+    // scope 语义不变：显式改 LOCAL 后 scopeResolver 读用户自身 roleMode（localKey）
     const restore = await overrideAppSettings(app, {
       [WalnutAdminConstAppSettingKeys.APP_FUNCTIONAL_ROLE]: JSON.stringify({
         scope: 'local',

@@ -4,7 +4,7 @@ import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
+import { IsEnum, IsNotEmpty, IsOptional, Validate, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { AppKeyStatusConst, AppKeyStatusConstType, AppKeyTypeConst, AppKeyTypeConstType } from '../key.const'
 
@@ -167,9 +167,33 @@ export class AppKeyDTOSafe extends AppKeyDTO {
   }
 }
 
+/**
+ * P2-6：JWT_AT 由系统启动自举（token 服务持有），不走 HTTP init ——
+ * `generateNewKeyByType` 无该分支，旧行为是「恒 20000 且不落行」（假成功）。这里在
+ * DTO 校验层直接拒绝（40000 族受控错误 40099），避免客户端把 20000 当成功。
+ */
+@ValidatorConstraint({ name: 'AppKeyInitTypeNotSystemManaged', async: false })
+class AppKeyInitTypeNotSystemManagedConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown) {
+    return value !== AppKeyTypeConst.JWT_AT
+  }
+
+  defaultMessage() {
+    return 'JWT_AT is bootstrapped by the system at startup and cannot be initialized through this endpoint'
+  }
+}
+
 export class AppKeyDTOInit extends RealPickType(AppKeyDTOSafe, ['type'] as const) {
   constructor(partial: Partial<AppKeyDTOInit>) {
     super()
     Object.assign(this, partial)
   }
+
+  // 子类重声明同名字段（demo.dto 模板：class-validator 按 propertyName+type 去重，
+  // 子类约束整体替换继承的枚举校验）—— 枚举约束与 JWT_AT 排除一起挂上；swagger /
+  // @Expose 元数据沿用基座（不重挂 ApiProperty，避免生成物无谓的 schema 形状变化）
+  @IsEnum(AppKeyTypeConst)
+  @IsNotEmpty()
+  @Validate(AppKeyInitTypeNotSystemManagedConstraint)
+  declare type: AppKeyTypeConstType
 }
