@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm'
 
 /**
- * sys_user —— MongoDB `sys_user` 集合的 PostgreSQL 实体（postgres-migration-phase2.md 4.1）。
+ * sys_user —— MongoDB `sys_user` 集合的 PostgreSQL 实体（docs/plans/postgres-migration-phase2.md 4.1）。
  *
  * - 列名全部显式 `@Column({ name })`，与 phase2 文档逐列对齐，**不注册全局 SnakeNamingStrategy**
  *   （order/show/left 这类保留字改名 `sort_order` / `is_show` / `is_left` 策略表达不了，

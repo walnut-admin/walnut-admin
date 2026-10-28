@@ -13,7 +13,7 @@
  *
  * ## 映射依据
  *
- * `postgres-migration-phase2.md` §4 逐表清单 + 各 PG 实体（`apps/api/src/modules` 下各 `entity/`）。
+ * `docs/plans/postgres-migration-phase2.md` §4 逐表清单 + 各 PG 实体（`apps/api/src/modules` 下各 `entity/`）。
  * 改任何一行映射，先对文档/实体，再改这里，最后跑 `src/db/__tests__/etl-map.test.ts`。
  *
  * ## 口径要点（容易写错的三条）

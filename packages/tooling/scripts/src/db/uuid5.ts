@@ -16,7 +16,7 @@
  * - sha1(namespace_bytes || name) → 截 16 字节 → 置 version=5、variant=RFC4122。
  *
  * 实现零依赖（node:crypto sha1），与 RFC 4122 §4.3 的算法逐句对齐；namespace 常量
- * 以本文件为唯一来源（postgres-migration-phase2.md §3.3 回写引用，改这里必须同步文档）。
+ * 以本文件为唯一来源（docs/plans/postgres-migration-phase2.md §3.3 回写引用，改这里必须同步文档）。
  */
 import { Buffer } from 'node:buffer'
 import { createHash } from 'node:crypto'
