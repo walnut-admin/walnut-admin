@@ -15,7 +15,8 @@
 >
 > 统计：**P0 × 5（P0-1 已修：2026-10-26 快照比对 → 2026-10-27 revoke-and-insert 终态）｜
 > P1 × 12（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复；P1-4 已于 2026-10-27 修复）｜
-> P2 × 10 ｜ P3 × 8（共 35 条）**，末节附 G/H 段实测无恙面。
+> P2 × 10 ｜ P3 × 16（P3-9 已于 2026-10-28 随 OpenAPI codegen 二期修复；共 43 条）**，
+> 末节附 G/H 段实测无恙面。
 
 ---
 
@@ -372,6 +373,100 @@
 - **裁决**：**确认为设计内，已豁免，不修。** 前者是第三方 cap.js 协议对接（壳由协议定），
   后者是 SSE 传输语义（拦截器包装会破坏流式分帧）。两者均不进统一壳契约，安全矩阵与
   spec 断言按各自协议形态钉（security.api-spec D 段 / external-oauth.api-spec）。
+
+> 以下 P3-9 ~ P3-16 为 OpenAPI codegen 二期（2026-10-28，admin 全模块切换生成类型）批量
+> 核对 openapi.json 与真实 wire 时发现——生成类型暴露的是 **swagger 文档层** 的缺口，
+> wire 行为本身有 430 测试锚定、零变化；admin 侧已按 wire 事实在 `@walnut/api-types`
+> 别名层兜底（`process` 补声明 / read 端点手写响应形状），server 修复另行排期。
+
+### P3-9 `/system/user/lock/read` swagger 谎报 `primitive: 'boolean'` —— 【已修复：2026-10-28 装饰器 DTO 化】
+
+- **位置**：`system/user_lock/user_lock.controller.ts` `@Get('read')`。
+- **现象**：`@ApiWalnutOkResponse({ primitive: 'boolean' })` 但处理器实际
+  `return new SysUserLockPreferenceDTO(res)` —— 文档层 data 是 boolean，wire 是
+  `{locked, lockRoute, lockMode, lockIdleSec, lockSecuritySec, lockCrossDevice}` 对象。
+  admin 的锁屏状态类型因此无法从生成类型推导。
+- **实测证据**：`user-lock.api-spec.ts` 断言对象形态（`locked`/`lock_cross_device` 等）；
+  openapi.json `GET /system/user/lock/read` 曾是 `data: boolean`。
+- **修法（2026-10-28，codegen 二期例外流程）**：装饰器改 `DTO: SysUserLockPreferenceDTO`
+  并重新 export/generate —— 只动 swagger 元数据，wire 零变化（断言不受影响）。
+
+### P3-10 lang / locale list 行的 `process` 未入 swagger
+
+- **位置**：① `system/lang/lang.basic.repository.ts`（PG list 覆写注入 `process`，`SysLangDTO`
+  无该字段声明）；② `system/locale/dto/locale.dto.ts`（`process` 声明在子类
+  `SysLocaleDTOSafe`，但 `SysLocaleDTOListResponse` 经 RealPickType 归并回 `SysLocaleDTO[]`，
+  生成 schema 丢失）。
+- **现象**：wire 上 list 行真实携带 `process`（admin 列表的「翻译进度」列直接消费），
+  生成类型无声明。
+- **实测证据**：`lang.basic.repository.ts` L88 `process: (localesFinishedCount / localesTotalCount) * 100`；
+  生成 `SysLangDTO` / `SysLocaleDTO` schema 均无 process。
+- **建议**：① `SysLangDTO` 补 `@Expose() process?: number`（或 list 专用行 DTO）；
+  ② locale 的 ListResponse 改用含 process 的行 DTO。admin 已在别名层补 `process?: number` 兜底。
+
+### P3-11 `GET /system/device/{id}/history-users` 装饰漏 `isArray`
+
+- **位置**：`system/device/device.controller.ts` `@Get(':id/history-users')`。
+- **现象**：`@ApiWalnutOkResponse({ DTO: SysDeviceDTOHistoryUsersResponse })` 未带
+  `isArray: true`，openapi 文档 data 是单对象；处理器 `plainToInstance(..., 数组)` 实返数组。
+- **实测证据**：admin `getDeviceHistoryUsersAPI` 直接 `.map` 消费（device/index.vue 历史用户表）。
+- **建议**：装饰器补 `isArray: true`，重新 export/generate 即可（admin 已按数组消费）。
+
+### P3-12 `GET /system/user/me/security-tab2` `DTO: null` 实返对象
+
+- **位置**：`system/user/controllers/user.me.controller.ts` `@Get('security-tab2')`
+  （装饰与端点均自带 `// TODO should remove`）。
+- **现象**：openapi 文档 `data: null`，实际返回 `{totp: {status, verified}, webauthn: {status, verified}}`
+  （admin `IResponseData.Me.Security.Tab2Status` 手写兜底中）。
+- **实测证据**：admin me/security tab2 直接消费该形状（`userMeService.getSecurityTab2Status`）。
+- **建议**：端点既标记待移除，二选一：补一个 tab2 状态 DTO 的 `@ApiWalnutOkResponse`，或按 TODO 下线端点。
+
+### P3-13 `SysUserPreferenceDTOAccessibilityRequest.fontSize` 枚举生成 `never`
+
+- **位置**：`system/user_preference/dto/user_preference.dto.ts` +
+  `preference.const.ts` 的 `fontSizeConst`（数字自映射对象 `{10: 10, ...}`）。
+- **现象**：`WalnutAdminDecoratorFieldEnum(() => fontSizeConst)` 把整个对象直传
+  `ApiProperty({ enum })`，swagger 产出的 enum 形态无法被解析为 number 枚举，
+  openapi-typescript 生成 `fontSize: never` —— 该 schema 整体不可用作消费类型
+  （admin 用户偏好响应只能保留手写形状）。
+- **实测证据**：生成 `schema.d.ts` `fontSize: never`（`@enum {number}`）。
+- **建议**：`fontSizeConst` 改数组（或 FieldEnum 侧传 `Object.values(...)`），注意
+  `WADVE` 校验器同源消费需一并核对。
+
+### P3-14 logger / monitor-cache 行无 `id`，两个 read 端点无 schema
+
+- **位置**：① `app/logger`（list 行 = `AppLoggerDTO`，无 id；`read` 手工返回
+  `{fileName, filePath, fileContent: string[]}` 无任何 swagger 装饰）；②
+  `app/monitor/cache`（list 行 = `AppMonitorCacheDTO`，无 id；`read` 手工返回 `{value}`）。
+- **现象**：admin `BaseAPI<T extends { id: string }>` 下这两个模块的行类型被迫带
+  约束性虚构 `id`（CRUD 实际用 `filePath` / `key` 做 rowKey）；read 端点响应与 list 行
+  不同形且无 schema，admin 只能手写。
+- **实测证据**：`logger.service.read` / `cache.controller.read` 返回字面量；
+  `views/app/logger/index.vue` `keyField = 'filePath'`、`views/app/monitor/cache/index.vue`
+  `keyField = 'key'`。
+- **建议**：给 read 端点补专用响应 DTO（顺带修 `dictData` 同类的「手工返回无文档」面）；
+  id 虚构可在 server 决定是否给两表真实主键后再摘。
+
+### P3-15 `AppMonitorUserDTO.userId` 标必填 `string`，wire 上未登录访客为 `null`
+
+- **位置**：`app/monitor/user/dto/user.dto.ts`（`@Expose() userId: string` 无可空标记）。
+- **现象**：生成类型 `userId: string`（ListResponse 行内必填）；实体列可空，未登录访客
+  监控行 userId 为 null。admin `/state` 上报也直接发 `userId: null`。
+- **实测证据**：admin `useMonitor.ts` `sendUserMonitorBeacon({ userId: null, auth: false })`；
+  生成 `AppMonitorUserDTO.userId: string`。
+- **建议**：DTO 侧声明可空（`userId?: string | null` 形态的装饰），swagger 同步；
+  admin 已按 `userId?: string | null` 兜底。
+
+### P3-16 `SysDictTypeDTOSafe.dictData` 声明为必填单对象，PG list 行不材料化
+
+- **位置**：`system/dict/dictType/dto/dictType.dto.ts`（`dictData?: SysDictDataDTOPopulatedDictData`
+  虚拟字段 + 生成 schema 标为 required）+ `dictType.basic.repository.ts`（PG list 只注入
+  `dictDataCount`）。
+- **现象**：Mongo 版 `$lookup` 曾材料化 dictData；PG 迁移后 list 行只有
+  `dictDataCount`，`dictData` 恒缺失 —— 生成类型却声明必填的单对象，与 wire 不符
+  （admin 不消费该字段，走 `GET /system/dict/type/s` 的 `WithDictDataResponse` 数组形态）。
+- **实测证据**：`dictType.basic.repository.ts` 的 list 行接口仅 `& { dictDataCount: number }`。
+- **建议**：摘除或改可选（Mongo 时代虚拟残留；顺带核对 `dictDataCount` 的 required 标记是否属实）。
 
 ---
 

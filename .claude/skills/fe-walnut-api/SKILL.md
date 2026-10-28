@@ -13,7 +13,7 @@ paths:
 1. CRUD 资源**必须**扩展 `BaseAPI<T>`，**禁止**裸写 axios 请求
 2. 导出 API **必须**是单例实例（`export const xxxAPI = new XxxAPI()`）
 3. 错误处理在**组件层**，**禁止**在 API 层吞异常或弹 toast
-4. 请求/响应类型**必须**在 `api/models.d.ts` / `api/request.d.ts` / `api/response.d.ts` 中定义
+4. 请求/响应类型真源是 `@walnut/api-types` 的生成别名（server openapi.json 产出；models.d.ts 已于 codegen 二期退役）；无法从生成类型推导的形状放 `api/request.d.ts` / `api/response.d.ts`
 5. 文件上传**必须**用 `FormData` + `multipart/form-data` header
 
 ## 关键约定
@@ -24,9 +24,8 @@ paths:
   ```
   api/
   ├── base.ts           # BaseAPI 基类
-  ├── models.d.ts       # 模型类型（IModels 命名空间）
   ├── request.d.ts      # 请求类型（IRequestPayload 命名空间）
-  ├── response.d.ts     # 响应类型（IResponse 命名空间）
+  ├── response.d.ts     # 不可推导的响应形状（IResponseData 命名空间，已收缩）
   ├── auth/             # 认证相关
   ├── system/           # 系统管理相关
   └── app/              # 应用相关

@@ -1,7 +1,6 @@
 <script lang="tsx" setup>
+import type { MeSecurityTab1Status, SystemUserIdentityType } from '@walnut/api-types'
 import type { DropdownOption } from 'naive-ui'
-import type { IModels } from '@/api/models'
-import type { IResponseData } from '@/api/response'
 import { onBeforeMount, ref, useTemplateRef } from 'vue'
 import { getSecurityTab1StatusAPI2, sendCodeForVerifyAPI, unBindUserIdentityAPI, updateUserIdentityStatusAPI } from '@/api/system/user_identity'
 // TODO 111
@@ -11,6 +10,7 @@ import { useAppMsgSuccess } from '@/hooks/component/useMessage'
 import { useAppI18n } from '@/locales/index'
 import { useAppStoreUserProfile } from '@/store/modules/user/user-profile'
 import WMeTabSecurityTab1Opaque from './opaque.vue'
+
 import WMeTabSecurityTab1OTP from './otp.vue'
 
 defineOptions({
@@ -23,13 +23,13 @@ const userStoreProfile = useAppStoreUserProfile()
 
 const opaqueRef = useTemplateRef('opaqueRef')
 const optRef = useTemplateRef('optRef')
-const status = ref<Partial<IResponseData.Me.Security.Tab1Status>>({})
+const status = ref<Partial<MeSecurityTab1Status>>({})
 
 function onSetPassword() {
   opaqueRef.value?.onOpen()
 }
 
-function getIconType(item?: IResponseData.Me.Security.Tab1Status['phoneNumber']) {
+function getIconType(item?: MeSecurityTab1Status['phoneNumber']) {
   if (item?.bound && item?.verified)
     return 'info'
   if (item?.bound && !item?.verified)
@@ -37,7 +37,7 @@ function getIconType(item?: IResponseData.Me.Security.Tab1Status['phoneNumber'])
   return 'default'
 }
 
-function getDescription(item: IResponseData.Me.Security.Tab1Status['phoneNumber'], type: IModels.ISystemUserIdentityType) {
+function getDescription(item: MeSecurityTab1Status['phoneNumber'], type: SystemUserIdentityType) {
   if (!item?.bound) {
     if (type === 'phoneNumber') {
       return t('security.phone.desc')
@@ -56,25 +56,25 @@ function getDescription(item: IResponseData.Me.Security.Tab1Status['phoneNumber'
   return value + t('security.otp.verified')
 }
 
-async function onBind(type: IModels.ISystemUserIdentityType) {
+async function onBind(type: SystemUserIdentityType) {
   const res = await getSecurityTab1StatusAPI2('security')
   const securityBound = res[type].bound && res[type].verified
   optRef.value?.onOpen(type, securityBound, res[type].maskedValue)
 }
 
-async function onUnbind(type: IModels.ISystemUserIdentityType) {
+async function onUnbind(type: SystemUserIdentityType) {
   await unBindUserIdentityAPI(type, 'login')
   useAppMsgSuccess()
   await onInit()
 }
 
-async function onChange(type: IModels.ISystemUserIdentityType) {
+async function onChange(type: SystemUserIdentityType) {
   const res = await getSecurityTab1StatusAPI2('security')
   const securityBound = res[type].bound && res[type].verified
   optRef.value?.onOpen(type, securityBound, res[type].maskedValue)
 }
 
-async function onVerify(type: IModels.ISystemUserIdentityType) {
+async function onVerify(type: SystemUserIdentityType) {
   await sendCodeForVerifyAPI(type, 'login')
   optRef.value?.onOpenVerifyModal(type)
 }
@@ -84,7 +84,7 @@ async function onInit() {
   status.value = Object.assign(status.value, res)
 }
 
-function dropdownOptions(type: IModels.ISystemUserIdentityType): DropdownOption[] {
+function dropdownOptions(type: SystemUserIdentityType): DropdownOption[] {
   return [
     {
       label: status.value[type]?.status ? t('dict.status.false') : t('dict.status.true'),
@@ -113,7 +113,7 @@ function dropdownOptions(type: IModels.ISystemUserIdentityType): DropdownOption[
   ]
 }
 
-async function onDropdownSelect(key: number, type: IModels.ISystemUserIdentityType) {
+async function onDropdownSelect(key: number, type: SystemUserIdentityType) {
   if (key === 0) {
     const { confirmed } = await useAppConfirm(t('app.base.confirm'), { maskClosable: false })
     if (confirmed) {

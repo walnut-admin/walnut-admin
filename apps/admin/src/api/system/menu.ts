@@ -1,5 +1,4 @@
-import type { SystemMenu } from '@walnut/api-types'
-import type { IResponseData } from '../response'
+import type { SystemMenu, SystemMenuTreeResponse } from '@walnut/api-types'
 import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
@@ -13,7 +12,7 @@ export const menuAPI = new BaseAPI<SystemMenu>({
 
 // get tree data for menu page
 export function getMenuTreeAPI() {
-  return AppAxios.get<IResponseData.System.Menu.Tree>(
+  return AppAxios.get<SystemMenuTreeResponse>(
     {
       url: SystemEndpointRoutes.MENU_TREE,
     },

@@ -1,9 +1,10 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { AppMonitorUser } from '@walnut/api-types'
 import { computed } from 'vue'
 import { forceQuitAPI, monitorUserAPI } from '@/api/app/monitor/user'
 import { useCRUD } from '@/components/Advanced/CRUD'
 import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+
 import { useAppI18n } from '@/locales/index'
 
 defineOptions({
@@ -17,7 +18,7 @@ const keyField = 'id'
 
 const { t } = useAppI18n()
 
-const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMonitorUser>({
+const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<AppMonitorUser>({
   baseAPI: monitorUserAPI,
 
   tableProps: {
@@ -500,7 +501,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.AppMonitorUser} -->
+    <!-- @vue-generic {AppMonitorUser} -->
     <WCRUD @hook="register" />
   </div>
 </template>

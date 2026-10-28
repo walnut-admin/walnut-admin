@@ -1,8 +1,8 @@
 <script lang="ts" setup>
+import type { SharedArea } from '@walnut/api-types'
 import type { TreeNodeItem } from 'easy-fns-ts'
 import type { CascaderOption } from 'naive-ui'
 import type { ICompBusinessAreaCascaderProps } from '.'
-import type { IModels } from '@/api/models'
 import { onBeforeMount, ref } from 'vue'
 import {
   getAreaChildrenByPcodeAPI,
@@ -17,7 +17,7 @@ const { depth = 4, showPath = true, multiple = false } = defineProps<ICompBusine
 
 const value = defineModel<string | string[] | null>('value', { required: true })
 
-const options = ref<TreeNodeItem<IModels.SharedArea>[]>([])
+const options = ref<TreeNodeItem<SharedArea>[]>([])
 
 async function onLoad(option: CascaderOption) {
   const res = await getAreaChildrenByPcodeAPI(option.code as string)

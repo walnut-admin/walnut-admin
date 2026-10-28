@@ -6914,6 +6914,37 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        SysUserLockPreferenceDTO: {
+            /**
+             * locked?
+             * @default false
+             */
+            locked: boolean;
+            /** user lock route */
+            lockRoute: components["schemas"]["SysUserLockRouteType"];
+            /**
+             * lock mode, default, idle, security
+             * @default default
+             * @example default
+             * @enum {string}
+             */
+            lockMode: "default" | "idle" | "security";
+            /**
+             * lock idle seconds
+             * @default 600
+             */
+            lockIdleSec: number;
+            /**
+             * lock security seconds
+             * @default 60
+             */
+            lockSecuritySec: number;
+            /**
+             * lock cross device?
+             * @default true
+             */
+            lockCrossDevice: boolean;
+        };
         SysUserLockDoLockDto: {
             /** user lock route */
             lockRoute?: components["schemas"]["SysUserLockRouteType"];
@@ -11787,7 +11818,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: boolean;
+                        data?: components["schemas"]["SysUserLockPreferenceDTO"];
                         /**
                          * @description response code, see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000

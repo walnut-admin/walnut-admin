@@ -1,10 +1,11 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { AppSettings } from '@walnut/api-types'
 import { computed } from 'vue'
 import { appSettingAPI, refreshAppSettingsCacheAPI } from '@/api/app/setting'
 import { useCRUD } from '@/components/Advanced/CRUD'
 import { WTablePresetCreatedAtColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
 import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+
 import { useAppI18n } from '@/locales/index'
 
 defineOptions({
@@ -21,7 +22,7 @@ const { t } = useAppI18n()
 const [
   register,
   { onOpenCreateForm, onApiList, onReadAndOpenUpdateForm, onGetActionType },
-] = useCRUD<IModels.AppSettings>({
+] = useCRUD<AppSettings>({
   baseAPI: appSettingAPI,
 
   tableProps: {
@@ -272,7 +273,7 @@ const [
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.AppSettings} -->
+    <!-- @vue-generic {AppSettings} -->
     <WCRUD @hook="register" />
   </div>
 </template>

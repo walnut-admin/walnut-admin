@@ -1,4 +1,4 @@
-import type { IModels } from '../models'
+import type { SystemDevice, SystemDeviceHistoryUser, SystemUser } from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
 import type { IResponseData } from '../response'
 import { getCPUCoreCount, getGPUArchitecture, getIsInIncognitoMode, getMemoryGB } from '@walnut/client/browser/shared'
@@ -7,13 +7,13 @@ import { useAppStoreFingerprint } from '@/store/modules/app/app-fingerprint'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
-export const deviceAPI = new BaseAPI<IModels.SystemDevice>({
+export const deviceAPI = new BaseAPI<SystemDevice>({
   model: 'system',
   section: 'device',
 })
 
 export function getDeviceCurrentActiveUserAPI(id: string) {
-  return AppAxios.get<IResponseData.System.Device.CurrentActiveUser>(
+  return AppAxios.get<SystemUser>(
     {
       url: `/system/device/${id}/current-active-user`,
     },
@@ -21,7 +21,7 @@ export function getDeviceCurrentActiveUserAPI(id: string) {
 }
 
 export function getDeviceHistoryUsersAPI(id: string) {
-  return AppAxios.get<IResponseData.System.Device.HistoryUsers>(
+  return AppAxios.get<SystemDeviceHistoryUser[]>(
     {
       url: `/system/device/${id}/history-users`,
     },

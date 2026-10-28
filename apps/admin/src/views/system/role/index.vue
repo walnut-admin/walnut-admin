@@ -1,11 +1,12 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { SystemMenu, SystemRole } from '@walnut/api-types'
 import { computed } from 'vue'
 import { roleAPI } from '@/api/system/role'
 import { useCRUD } from '@/components/Advanced/CRUD'
 import { WTablePresetCreatedAtColumn, WTablePresetOrderColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
 import { AppConstRoles } from '@/const/app'
 import { AppConstMenuType } from '@/const/menu'
+
 import { useMenuTree } from './useMenuTree'
 
 defineOptions({
@@ -26,7 +27,7 @@ const [
     onGetActionType,
     onApiList,
   },
-] = useCRUD<IModels.SystemRole>({
+] = useCRUD<SystemRole>({
   baseAPI: roleAPI,
 
   strictFormData: true,
@@ -244,7 +245,7 @@ const [
             labelField: 'title',
             renderLabel: ({ option }) =>
               option.type === AppConstMenuType.ELEMENT
-                ? ((option as unknown as IModels.SystemMenu).meta.permission as string)
+                ? ((option as unknown as SystemMenu).meta.permission as string)
                 : (option.title as string),
           },
         },
@@ -256,7 +257,7 @@ const [
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.SystemRole} -->
+    <!-- @vue-generic {SystemRole} -->
     <WCRUD @hook="register" />
   </div>
 </template>

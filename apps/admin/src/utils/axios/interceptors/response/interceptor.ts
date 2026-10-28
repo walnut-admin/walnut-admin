@@ -1,6 +1,5 @@
 import type { ResponseBase } from '@walnut/contract'
 import type { AxiosResponse } from 'axios'
-import type { IModels } from '@/api/models'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { removeCurrentPageRequests } from '@walnut/http/adapters/cancel'
 import { get, isArray, set } from 'lodash-es'
@@ -19,7 +18,7 @@ import { SingletonPromiseSign } from './sign'
 
 const userStoreAuth = useAppStoreUserAuth()
 
-export async function responseInterceptors(res: AxiosResponse<ResponseBase<IModels.Base>, any>) {
+export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id: string }>, any>) {
   // code below is custom code in `axios.response.data`
   const { code, data, msg, meta } = res.data
 

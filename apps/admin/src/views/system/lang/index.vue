@@ -1,8 +1,9 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { SystemLang } from '@walnut/api-types'
 import { langAPI } from '@/api/system/lang'
 import { useCRUD } from '@/components/Advanced/CRUD'
 import { WTablePresetCreatedAtColumn, WTablePresetOrderColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
+
 import { useAppRouterPush } from '@/router/index'
 
 defineOptions({
@@ -19,7 +20,7 @@ const [
     onOpenCreateForm,
     onReadAndOpenUpdateForm,
   },
-] = useCRUD<IModels.SystemLang>({
+] = useCRUD<SystemLang>({
   baseAPI: langAPI,
 
   safeForm: true,
@@ -221,7 +222,7 @@ const [
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.SystemLang} -->
+    <!-- @vue-generic {SystemLang} -->
     <WCRUD @hook="register" />
   </div>
 </template>

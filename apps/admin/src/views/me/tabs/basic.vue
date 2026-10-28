@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { SystemUser } from '@walnut/api-types'
 import type { WAvatarUploadInst } from '@/components/Business/AvatarUpload'
 import { omit, pick } from 'lodash-es'
 import { computed, ref, useTemplateRef } from 'vue'
@@ -9,6 +9,7 @@ import { useAppMsgSuccess } from '@/hooks/component/useMessage'
 import { useAppI18n } from '@/locales/index'
 import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
 import { useAppStoreUserProfile } from '@/store/modules/user/user-profile'
+
 import WAvatar from '../components/avatar.vue'
 
 defineOptions({
@@ -21,7 +22,7 @@ const userStoreProfile = useAppStoreUserProfile()
 const appStoreAdapter = useAppStoreAdapter()
 
 const avatarUploadRef = useTemplateRef<WAvatarUploadInst>('avatarUploadRef')
-const formData = ref<IModels.SystemUser>({
+const formData = ref<SystemUser>({
   ...pick(userStoreProfile.profile, [
     'id',
     'userName',
@@ -30,7 +31,7 @@ const formData = ref<IModels.SystemUser>({
     'gender',
     'avatar',
   ]),
-} as IModels.SystemUser)
+} as SystemUser)
 
 const loading = ref(false)
 const tempAvatar = ref()

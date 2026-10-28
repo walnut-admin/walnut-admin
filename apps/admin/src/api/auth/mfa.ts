@@ -1,3 +1,4 @@
+import type { AuthMfaAvailableMethod, AuthMfaTotpBind, AuthMfaTotpGenerate, AuthTokenPayload } from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
 import type { IResponseData } from '../response'
 import { AppAxios } from '@/utils/axios'
@@ -22,7 +23,7 @@ const mfaAPI = {
  * @description get mfa status
  */
 export function authMfaStatusAPI() {
-  return AppAxios.get<IResponseData.Auth.MFA.AvailableMethods>({
+  return AppAxios.get<AuthMfaAvailableMethod[]>({
     url: mfaAPI.status,
   })
 }
@@ -31,7 +32,7 @@ export function authMfaStatusAPI() {
  * @description verify mfa status
  */
 export function authMfaVerifyAPI(trusted: boolean) {
-  return AppAxios.post<IResponseData.Auth.TokenPayload>({
+  return AppAxios.post<AuthTokenPayload>({
     url: mfaAPI.verify,
     data: {
       trusted,
@@ -43,7 +44,7 @@ export function authMfaVerifyAPI(trusted: boolean) {
  * @description generate totp
  */
 export function authMfaTotpGenerateAPI(data: IRequestPayload.Auth.MFA.Totp.Generate) {
-  return AppAxios.post<IResponseData.Auth.MFA.Totp.Generate>({
+  return AppAxios.post<AuthMfaTotpGenerate>({
     url: mfaAPI.totpGenerate,
     data,
   })
@@ -53,7 +54,7 @@ export function authMfaTotpGenerateAPI(data: IRequestPayload.Auth.MFA.Totp.Gener
  * @description verify totp
  */
 export function authMfaTotpVerifyAPI(data: IRequestPayload.Auth.MFA.Totp.Verify) {
-  return AppAxios.post<IResponseData.Auth.TokenPayload>({
+  return AppAxios.post<AuthTokenPayload>({
     url: mfaAPI.totpVerified,
     data,
   })
@@ -63,7 +64,7 @@ export function authMfaTotpVerifyAPI(data: IRequestPayload.Auth.MFA.Totp.Verify)
  * @description bind totp
  */
 export function authMfaTotpBindAPI(data: IRequestPayload.Auth.MFA.Totp.Bind) {
-  return AppAxios.post<IResponseData.Auth.MFA.Totp.Bind>({
+  return AppAxios.post<AuthMfaTotpBind>({
     url: mfaAPI.totpBind,
     data,
   })
@@ -123,7 +124,7 @@ export function authMfaWebauthnAuthenticateOptionsAPI() {
  * @description verify webauthn authenticate
  */
 export function authMfaWebauthnAuthenticateVerifyAPI(data: IRequestPayload.Auth.MFA.Webauthn.AuthenticateVerify) {
-  return AppAxios.post<IResponseData.Auth.TokenPayload>({
+  return AppAxios.post<AuthTokenPayload>({
     url: mfaAPI.webauthnAuthenticateVerify,
     data,
   })

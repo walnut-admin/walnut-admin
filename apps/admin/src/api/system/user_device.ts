@@ -1,6 +1,6 @@
+import type { SystemUserDeviceListItem } from '@walnut/api-types'
 import type { BaseListResponse } from '@walnut/contract'
 import type { IRequestPayload } from '../request'
-import type { IResponseData } from '../response'
 import { AppAxios } from '@/utils/axios'
 
 const systemUserDevice = {
@@ -15,7 +15,7 @@ const systemUserDevice = {
  * @description list user's devices
  */
 export function listUserDevicesAPI() {
-  return AppAxios.get<BaseListResponse<IResponseData.System.UserDevice.List>>({
+  return AppAxios.get<BaseListResponse<SystemUserDeviceListItem>>({
     url: systemUserDevice.LIST,
   })
 }

@@ -1,11 +1,12 @@
 <script lang="ts" setup>
+import type { SystemDevice, SystemLogOperate } from '@walnut/api-types'
 import type { Recordable } from 'easy-fns-ts'
-import type { IModels } from '@/api/models'
 import { computed, ref } from 'vue'
 import { getLogOperateDeviceAPI, getLogOperateSnapshotAPI, logOperateAPI } from '@/api/system/log'
 import { useCRUD } from '@/components/Advanced/CRUD'
 import { useForm } from '@/components/UI/Form'
 import { useAppI18n } from '@/locales/index'
+
 import { logOperateFormSchema } from './schema'
 
 defineOptions({
@@ -33,7 +34,7 @@ const mergeData = ref<{
 }>({})
 
 /**
- * 后端的快照是**对象**（`IResponseData.System.LogOperate.Snapshot` 里是 `Recordable`，服务端就是
+ * 后端的快照是**对象**（`SystemLogOperateSnapshot` 里是 `Recordable`，服务端就是
  * `cloneDeep` 出来的文档），而 `WCodeMirrorMerge` 要的是**文本**。这里统一序列化 —— 顺带修掉一处
  * 一直没被发现的运行时错配：以前那句 `mergeData.value = snapshot` 把对象塞给了文本 prop。
  * （类型上之所以一直没报，是因为 `response.d.ts` 里 `Recordable` **忘了 import**、被 `skipLibCheck`
@@ -45,9 +46,9 @@ function toSnapshotText(value: Recordable | undefined): string {
   return typeof value === 'string' ? value : JSON.stringify(value, null, 2)
 }
 
-const deviceData = ref<IModels.SystemDevice>({} as IModels.SystemDevice)
+const deviceData = ref<SystemDevice>({} as SystemDevice)
 
-const [registerDevice, { onOpen }] = useForm<IModels.SystemDevice>({
+const [registerDevice, { onOpen }] = useForm<SystemDevice>({
   dialogPreset: 'modal',
   baseRules: false,
   labelWidth: 120,
@@ -99,7 +100,7 @@ const [
     onGetApiListParams,
     onGetFormData,
   },
-] = useCRUD<IModels.SystemLogOperate>({
+] = useCRUD<SystemLogOperate>({
   baseAPI: logOperateAPI,
 
   tableProps: {
@@ -379,7 +380,7 @@ const [
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.SystemLogOperate} -->
+    <!-- @vue-generic {SystemLogOperate} -->
     <WCRUD @hook="register" />
 
     <WAppAuthorize :value="auths.getSnapshot">
@@ -397,7 +398,7 @@ const [
     </WAppAuthorize>
 
     <WAppAuthorize :value="auths.getDevice">
-      <!-- @vue-generic {IModels.SystemDevice} -->
+      <!-- @vue-generic {SystemDevice} -->
       <WForm :model="deviceData" @hook="registerDevice" />
     </WAppAuthorize>
   </div>

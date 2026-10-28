@@ -1,9 +1,9 @@
-import type { IModels } from '../models'
+import type { SystemUser } from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
-export const userAPI = new BaseAPI<IModels.SystemUser>({
+export const userAPI = new BaseAPI<SystemUser>({
   model: 'system',
   section: 'user',
 })

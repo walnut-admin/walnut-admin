@@ -1,4 +1,4 @@
-import type { IModels } from '../models'
+import type { AppSettings } from '@walnut/api-types'
 import type { IResponseData } from '../response'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
@@ -9,7 +9,7 @@ const appSetting = {
   REFRESH_CACHE: '/app/setting/cache/refresh',
 } as const
 
-export const appSettingAPI = new BaseAPI<IModels.AppSettings>({
+export const appSettingAPI = new BaseAPI<AppSettings>({
   model: 'app',
   section: 'setting',
 })

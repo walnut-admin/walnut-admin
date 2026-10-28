@@ -1,7 +1,7 @@
 <script lang="ts" setup>
+import type { SystemDevice, SystemDeviceHistoryUser, SystemUser } from '@walnut/api-types'
 import type { BaseListParams } from '@walnut/http/types'
 import type { DataTableColumn } from 'naive-ui'
-import type { IModels } from '@/api/models'
 import type { WForm } from '@/components/UI/Form'
 import { useState } from '@walnut/client/hooks/core/useState'
 import { computed, onMounted, ref } from 'vue'
@@ -12,6 +12,7 @@ import { useAppConfirm } from '@/hooks/component/useConfirm'
 import { useAppMsgSuccess } from '@/hooks/component/useMessage'
 import { useAppI18n } from '@/locales/index'
 import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+
 import DeviceCard from './card.vue'
 
 defineOptions({
@@ -31,22 +32,22 @@ const auths = {
 const { t } = useAppI18n()
 const appStoreAdapter = useAppStoreAdapter()
 
-const data = ref<IModels.SystemDevice[]>([])
+const data = ref<SystemDevice[]>([])
 const total = ref(0)
 const loading = ref(false)
 const {
   stateRef: listParams,
   resetState: resetListParams,
   commit: commitParams,
-} = useState<BaseListParams<IModels.SystemDevice>>({
-  query: {} as IModels.SystemDevice,
+} = useState<BaseListParams<SystemDevice>>({
+  query: {} as SystemDevice,
   sort: [{ field: 'active', order: 'descend', priority: 9 }, { field: 'locked', order: 'descend', priority: 8 }, { field: 'banned', order: 'descend', priority: 7 }],
   page: {
     page: 1,
     pageSize: 8,
   },
 })
-const querySchemas: WForm.Schema.Item<IModels.SystemDevice>[] = [
+const querySchemas: WForm.Schema.Item<SystemDevice>[] = [
   {
     type: 'Base:Input',
     formProp: {
@@ -85,7 +86,7 @@ listParams.value.query = Object.assign(listParams.value.query!, defaultQuery)
 
 commitParams()
 
-const [register] = useForm<IModels.SystemDevice>({
+const [register] = useForm<SystemDevice>({
   span: 6,
   showFeedback: false,
   labelWidth: 100,
@@ -133,8 +134,8 @@ async function onReset({ done }: WForm.Params.Dialog.FinishLoading) {
   }
 }
 
-const currentActiveUserFormData = ref<IModels.SystemUser>()
-const [registerCurrentActiveUserForm, { onOpen: onOpenCurrentActiveUserModal }] = useForm<IModels.SystemUser>({
+const currentActiveUserFormData = ref<SystemUser>()
+const [registerCurrentActiveUserForm, { onOpen: onOpenCurrentActiveUserModal }] = useForm<SystemUser>({
   dialogPreset: 'modal',
   baseRules: false,
   labelWidth: 120,
@@ -179,7 +180,7 @@ const [registerCurrentActiveUserForm, { onOpen: onOpenCurrentActiveUserModal }] 
 
 const historyShow = ref(false)
 const historyLoading = ref(false)
-const historyData = ref<IModels.SystemUser[]>([])
+const historyData = ref<SystemDeviceHistoryUser[]>([])
 const historyColumns: DataTableColumn[] = [
   {
     key: 'userName',
@@ -204,9 +205,9 @@ const historyColumns: DataTableColumn[] = [
   },
 ]
 
-const detailFormData = ref<IModels.SystemDevice>()
+const detailFormData = ref<SystemDevice>()
 const submitLoading = ref(false)
-const [registerDetailForm, { onOpen: onOpenDetailModal, onClose: onCloseDetailModal }] = useForm<IModels.SystemDevice>({
+const [registerDetailForm, { onOpen: onOpenDetailModal, onClose: onCloseDetailModal }] = useForm<SystemDevice>({
   dialogPreset: 'drawer',
   baseRules: false,
   labelWidth: 120,

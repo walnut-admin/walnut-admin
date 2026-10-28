@@ -1,10 +1,10 @@
+import type { SystemLocale } from '@walnut/api-types'
 import type { Recordable } from 'easy-fns-ts'
-import type { IModels } from '../models'
 import type { ValueOfAppConstLocale } from '@/const/app'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
-export const localeAPI = new BaseAPI<IModels.SystemLocale>({
+export const localeAPI = new BaseAPI<SystemLocale>({
   model: 'system',
   section: 'locale',
 })

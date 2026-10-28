@@ -1,5 +1,5 @@
+import type { AuthTokenPayload } from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
-import type { IResponseData } from '../response'
 import { AppAxios } from '@/utils/axios'
 
 const authOpaque = {
@@ -24,7 +24,7 @@ export function opaqueLoginStartAPI(data: IRequestPayload.Auth.Opaque.Login.Star
  * @description opaque login finish
  */
 export function opaqueLoginFinishAPI(data: IRequestPayload.Auth.Opaque.Login.Finish) {
-  return AppAxios.post<IResponseData.Auth.TokenPayload>({
+  return AppAxios.post<AuthTokenPayload>({
     url: authOpaque.LOGIN_FINISH,
     data,
   })

@@ -1,5 +1,5 @@
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/browser'
-import type { IModels } from './models'
+import type { SystemDeleted, SystemDevice, SystemUser, SystemUserIdentityPurpose, SystemUserIdentityType } from '@walnut/api-types'
 
 export namespace IRequestPayload {
   export namespace App {}
@@ -96,11 +96,11 @@ export namespace IRequestPayload {
         }
       }
       export namespace Login {
-        export interface Start extends Pick<IModels.SystemUser, 'userName'>, Opaque.Register.Start {}
+        export interface Start extends Pick<SystemUser, 'userName'>, Opaque.Register.Start {}
 
-        export interface Finish extends Pick<IModels.SystemUser, 'userName'>, Opaque.Register.Finish {}
+        export interface Finish extends Pick<SystemUser, 'userName'>, Opaque.Register.Finish {}
 
-        export interface ClientError extends Pick<IModels.SystemUser, 'userName'> {
+        export interface ClientError extends Pick<SystemUser, 'userName'> {
           clientError: 'passwordError' | 'serverStaticKeyMismatch'
         }
       }
@@ -125,24 +125,24 @@ export namespace IRequestPayload {
 
     export namespace UserIdentity {
       export interface Status {
-        type: IModels.ISystemUserIdentityType
-        purpose: IModels.ISystemUserIdentityPurpose
+        type: SystemUserIdentityType
+        purpose: SystemUserIdentityPurpose
         status: boolean
       }
       export interface Verify {
-        type: IModels.ISystemUserIdentityType
-        purpose: IModels.ISystemUserIdentityPurpose
+        type: SystemUserIdentityType
+        purpose: SystemUserIdentityPurpose
         verifyCode: string
       }
       export interface Check {
-        type: IModels.ISystemUserIdentityType
-        purpose: IModels.ISystemUserIdentityPurpose
+        type: SystemUserIdentityType
+        purpose: SystemUserIdentityPurpose
         identifier: string
       }
 
       export interface Bind {
-        type: IModels.ISystemUserIdentityType
-        purpose: IModels.ISystemUserIdentityPurpose
+        type: SystemUserIdentityType
+        purpose: SystemUserIdentityPurpose
         identifier: string
         verifyCode: string
         setAsSecurity: boolean
@@ -150,12 +150,12 @@ export namespace IRequestPayload {
     }
     export namespace Deleted {
       // B9 起 sys_deleted 迁 PG：主键响应契约 `_id` → `id`（uuid）
-      export type Recover = Pick<IModels.SystemDeleted, 'id' | 'deletedId'>
+      export type Recover = Pick<SystemDeleted, 'id' | 'deletedId'>
     }
 
     export namespace Deivce {
       // initial 注册请求不含主键（id 由服务端生成），字段对齐 server SysDeviceDTOInitialRequest
-      export type Initial = Omit<IModels.SystemDevice, 'id'>
+      export type Initial = Omit<SystemDevice, 'id'>
     }
 
     export namespace UserDevice {

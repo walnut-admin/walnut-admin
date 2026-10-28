@@ -37,7 +37,8 @@
 
   核实：**「留存」已做，「菜单内嵌」没做**。留存：`router/guard/afterEach.ts` 把带 query 的
   跳转记进 tab，`store/modules/app/app-tab.ts` 存取，点 tab 时 `useTabsActions.ts` 还原。
-  内嵌：`api/models.d.ts` 的 `SystemMenuMeta` **没有 `query` 字段**，而且侧边菜单点击时
+  内嵌：`@walnut/api-types` 的生成 `SystemMenu`（server `SysMenuDTOSafe`）**没有 `query` 字段**，
+  而且侧边菜单点击时
   `TheAside/src/menu.vue` 是**刻意** `omit(targetTab, 'query')` 的 —— 要做得先定这是不是
   有意为之。**另注**：本文件第 6 条提到的 `queryEnhanced` / `paramsEnhanced` 两个词今天
   只存在于本文件（实现已改叫 `router/guard/modules/encrypt/{querys,params}.ts`）。

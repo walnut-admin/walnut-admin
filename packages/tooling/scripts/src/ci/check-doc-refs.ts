@@ -82,8 +82,6 @@ export const ALLOWED_MISSING_PATHS: Record<string, string> = {
   // 「提及某路径**正是因为**它不存在」是合法写法，机械检查分辨不了，只能豁免：
   // 两处原文分别是「根 `scripts/` 目录已不存在」与「根 `scripts/` 目录不存在，根 scripts 只经 bin 调用」。
   'scripts/': '根 scripts/ 目录已取消（拆进 packages/tooling/）；引用处在说它不存在',
-  // 规划中（roadmap「新增 …生成包」条目）：包建出来之后应从本清单删掉
-  'packages/platform-web/api-types': '规划中（modernization-roadmap 的 openapi-typescript 生成包，尚不存在）',
 }
 
 /**

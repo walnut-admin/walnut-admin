@@ -1,3 +1,4 @@
+import type { AuthTokenPayload } from '@walnut/api-types'
 import type { IResponseData } from './response'
 import { AppAxios } from '@/utils/axios'
 
@@ -21,7 +22,7 @@ export function signoutAPI() {
  * @description Refresh accessToken use refreshToken
  */
 export function refreshTokenAPI() {
-  return AppAxios.post<IResponseData.Auth.TokenPayload>({
+  return AppAxios.post<AuthTokenPayload>({
     url: Auth.REFRESH_TOKEN,
   })
 }

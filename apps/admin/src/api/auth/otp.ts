@@ -1,5 +1,5 @@
+import type { AuthTokenPayload } from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
-import type { IResponseData } from '../response'
 import { AppAxios } from '@/utils/axios'
 
 const authOTP = {
@@ -11,7 +11,7 @@ const authOTP = {
  * @description auth with otp
  */
 export function verifyWithOTPAPI(data: IRequestPayload.Auth.OTP.Verify) {
-  return AppAxios.post<IResponseData.Auth.TokenPayload>({
+  return AppAxios.post<AuthTokenPayload>({
     url: authOTP.AUTH_OTP_VERIFY,
     data,
   })

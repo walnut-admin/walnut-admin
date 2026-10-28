@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { SystemDeleted, SystemLogOperate } from '@walnut/api-types'
 import { computed, ref } from 'vue'
 import { deletedAPI, recoverAPI } from '@/api/system/deleted'
 import { logOperateAPI } from '@/api/system/log'
@@ -7,6 +7,7 @@ import { useCRUD } from '@/components/Advanced/CRUD'
 import { useForm } from '@/components/UI/Form'
 import { useAppMsgSuccess, useAppMsgWarning } from '@/hooks/component/useMessage'
 import { useAppI18n } from '@/locales/index'
+
 import { logOperateFormSchema } from '../log/operate/schema'
 
 defineOptions({
@@ -22,9 +23,9 @@ const keyField = 'id'
 
 const { t } = useAppI18n()
 
-const logOperateFormData = ref<IModels.SystemLogOperate>({} as IModels.SystemLogOperate)
+const logOperateFormData = ref<SystemLogOperate>({} as SystemLogOperate)
 
-const [registerLogOperate, { onOpen }] = useForm<IModels.SystemLogOperate>({
+const [registerLogOperate, { onOpen }] = useForm<SystemLogOperate>({
   localeUniqueKey: 'log.operate',
   localeWithTable: true,
   dialogPreset: 'drawer',
@@ -45,7 +46,7 @@ const [registerLogOperate, { onOpen }] = useForm<IModels.SystemLogOperate>({
     autoFocus: false,
     actionType: 'detail',
     onNo() {
-      logOperateFormData.value = {} as IModels.SystemLogOperate
+      logOperateFormData.value = {} as SystemLogOperate
     },
   },
 
@@ -60,7 +61,7 @@ const [
     onApiList,
     onGetApiListParams,
   },
-] = useCRUD<IModels.SystemDeleted>({
+] = useCRUD<SystemDeleted>({
   baseAPI: deletedAPI,
 
   tableProps: {
@@ -364,10 +365,10 @@ const [
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.SystemDeleted} -->
+    <!-- @vue-generic {SystemDeleted} -->
     <WCRUD @hook="register" />
 
-    <!-- @vue-generic {IModels.SystemLogOperate} -->
+    <!-- @vue-generic {SystemLogOperate} -->
     <WForm :model="logOperateFormData" @hook="registerLogOperate" />
   </div>
 </template>

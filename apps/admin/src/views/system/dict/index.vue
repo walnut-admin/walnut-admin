@@ -1,10 +1,11 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { SystemDictType } from '@walnut/api-types'
 import { computed } from 'vue'
 import { dictTypeAPI } from '@/api/system/dict'
 import { useCRUD } from '@/components/Advanced/CRUD'
 import { WTablePresetCreatedAtColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
 import { useAppI18n } from '@/locales/index'
+
 import { useAppRouterPush } from '@/router/index'
 
 defineOptions({
@@ -27,7 +28,7 @@ const [
     onGetFormData,
     onApiList,
   },
-] = useCRUD<IModels.SystemDictType>({
+] = useCRUD<SystemDictType>({
   baseAPI: dictTypeAPI,
 
   safeForm: true,
@@ -275,7 +276,7 @@ const [
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.SystemDictType} -->
+    <!-- @vue-generic {SystemDictType} -->
     <WCRUD @hook="register" />
   </div>
 </template>

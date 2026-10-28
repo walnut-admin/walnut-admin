@@ -19,9 +19,11 @@ export class SysUserLockController {
   @Get('read')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminGuardLockFree()
+  // OpenAPI codegen 二期（2026-10-28）：原 `primitive: 'boolean'` 与真实返回（对象）
+  // 不符，admin 的锁屏状态类型无法从生成类型推导 —— 装饰器改为真实 DTO（wire 零变化）
   @ApiWalnutOkResponse({
     description: 'Get current user lock status',
-    primitive: 'boolean',
+    DTO: SysUserLockPreferenceDTO,
   })
   async get(@WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload, @WalnutAdminDecoratorDeviceId() deviceId: string) {
     const res = await this.lockService.getLockStatusForUser(user?.userId, deviceId)

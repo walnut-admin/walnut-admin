@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { SystemDictData } from '@walnut/api-types'
 import { computed } from 'vue'
 import { dictDataAPI } from '@/api/system/dict'
 import { useCRUD } from '@/components/Advanced/CRUD'
@@ -7,6 +7,7 @@ import { WTablePresetCreatedAtColumn, WTablePresetOrderColumn, WTablePresetStatu
 import { useRouterParam } from '@/hooks/web/useRouterParam'
 import { useRouterQuery } from '@/hooks/web/useRouterQuery'
 import { useAppI18n } from '@/locales/index'
+
 import { useAppRouterPush } from '@/router/index'
 
 defineOptions({
@@ -37,7 +38,7 @@ const [
     onDeleteConfirm,
     onGetFormData,
   },
-] = useCRUD<IModels.SystemDictData>({
+] = useCRUD<SystemDictData>({
   baseAPI: dictDataAPI,
 
   safeForm: true,
@@ -348,7 +349,7 @@ const [
     <n-card>
       <n-page-header v-if="title" :title="$t(title)" @back="onBack" />
     </n-card>
-    <!-- @vue-generic {IModels.SystemDictData} -->
+    <!-- @vue-generic {SystemDictData} -->
     <WCRUD @hook="register" />
   </div>
 </template>

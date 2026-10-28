@@ -1,10 +1,10 @@
-import type { IModels } from '../models'
+import type { SystemLang } from '@walnut/api-types'
 import type { IResponseData } from '../response'
 import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
-export const langAPI = new BaseAPI<IModels.SystemLang>({
+export const langAPI = new BaseAPI<SystemLang>({
   model: 'system',
   section: 'lang',
 })

@@ -1,7 +1,7 @@
-import type { IModels } from '../models'
+import type { SystemRole } from '@walnut/api-types'
 import { BaseAPI } from '../base'
 
-export const roleAPI = new BaseAPI<IModels.SystemRole>({
+export const roleAPI = new BaseAPI<SystemRole>({
   model: 'system',
   section: 'role',
 })

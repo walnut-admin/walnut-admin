@@ -1,10 +1,9 @@
 import type { BaseListParams, BaseListResponse } from '@walnut/contract'
 import type { StringOrNumber } from 'easy-fns-ts'
-import type { IModels } from './models'
 import { omit } from 'lodash-es'
 import { AppAxios } from '@/utils/axios'
 
-export type BaseAPIType<T extends IModels.Base> = InstanceType<typeof BaseAPI<T>>
+export type BaseAPIType<T extends { id: string }> = InstanceType<typeof BaseAPI<T>>
 
 function omitUnnecessaryFields<T extends { id?: string }>(data: T) {
   // PG 化后主键是 id（uuid）：create 不带 id（服务端生成），update 的 id 只走 URL 参数，
@@ -13,10 +12,9 @@ function omitUnnecessaryFields<T extends { id?: string }>(data: T) {
 }
 
 /**
- * 泛型约束从 `IModels.Base` 松绑为 `{ id: string }`：menu 一期开始直接消费
- * `@walnut/api-types` 的生成类型（`createdAt` 是 string、`pid` 可空 —— 与手写
- * IModels.Base 的 Date/必填形态不同），松绑后手写镜像与生成真源可并存，
- * 其余模块二期逐个切换。
+ * 泛型约束为 `{ id: string }`：全模块（codegen 二期起）直接消费
+ * `@walnut/api-types` 的生成别名（`createdAt` 是 string、`pid` 可空 —— 与旧手写
+ * IModels.Base 的 Date/必填形态不同），手写镜像 models.d.ts 已退役。
  */
 export class BaseAPI<T extends { id: string }> {
   private readonly baseAPI: string

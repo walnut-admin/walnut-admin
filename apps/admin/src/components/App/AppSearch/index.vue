@@ -1,7 +1,7 @@
 <script lang="ts" setup>
+import type { SystemMenu } from '@walnut/api-types'
 import type { TreeNodeItem } from 'easy-fns-ts'
 import type { InputInst } from 'naive-ui'
-import type { IModels } from '@/api/models'
 import type { ICompExtraScrollbarInst } from '@/components/Extra/Scrollbar'
 import { useEventListener } from '@vueuse/core'
 import Fuse from 'fuse.js'
@@ -11,6 +11,7 @@ import { getTheme } from '@/App/src/naive/src/theme'
 import { AppConstMenuType } from '@/const/menu'
 import { useAppI18n } from '@/locales/index'
 import { useAppRouterPush } from '@/router/index'
+
 import { useAppStoreMenu } from '@/store/modules/app/app-menu'
 
 defineOptions({
@@ -29,7 +30,7 @@ const inputRef = useTemplateRef<InputInst>('inputRef')
 const appStoreMenu = useAppStoreMenu()
 
 function treeToArrWithDesc(
-  tree: TreeNodeItem<IModels.SystemMenu>[],
+  tree: TreeNodeItem<SystemMenu>[],
   result: any[] = [],
   parents: string[] = [],
 ) {
@@ -71,7 +72,7 @@ const getFilteredResults = computed(() => {
     .map(r => r.item)
 })
 
-async function onSelect(item: IModels.SystemMenu) {
+async function onSelect(item: SystemMenu) {
   modalShow.value = false
   searchQuery.value = ''
   await useAppRouterPush({ name: item.name })

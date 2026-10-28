@@ -1,4 +1,4 @@
-import type { IModels } from '../models'
+import type { SystemUser } from '@walnut/api-types'
 import type { IResponseData } from '../response'
 import { AppAxios } from '@/utils/axios'
 
@@ -22,7 +22,7 @@ export function switchRoleAPI(roleId: string) {
  * @description Signin user detail info api
  */
 export function getUserProfileAPI() {
-  return AppAxios.get<IResponseData.Auth.Profile>({
+  return AppAxios.get<SystemUser>({
     url: systemUserMe.GET_PROFILE,
   })
 }
@@ -31,7 +31,7 @@ export function getUserProfileAPI() {
  * @description update profile
  * 载荷不含主键（me/profile 按 token 定位当前用户），对齐 server SysUserMeDTOUpdateProfileRequest
  */
-export function updateProfileAPI(data: Partial<IModels.SystemUser>) {
+export function updateProfileAPI(data: Partial<SystemUser>) {
   return AppAxios.put<boolean>({
     url: systemUserMe.UPDATE_PROFILE,
     data,

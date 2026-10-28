@@ -94,7 +94,8 @@ const useAppStoreSettingScopeInside = defineStore(StoreKeys.SETTING_SCOPE, {
           return state.transition.value
 
         if (state.transition.mode === AppConstBasicMode.SCOPE) {
-          return route?.meta?.transition ?? state.transition.value
+          // 生成 meta 把 transition 放宽为 string；前端路由写入面恒为 AppConstTransitionName 联合
+          return (route?.meta?.transition as ValueOfAppConstTransitionName | undefined) ?? state.transition.value
         }
       }
     },

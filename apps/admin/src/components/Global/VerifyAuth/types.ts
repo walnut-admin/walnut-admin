@@ -1,9 +1,8 @@
+import type { SystemUserIdentityPurpose } from '@walnut/api-types'
 /**
  * Secondary Authentication Types
  * Unified secondary authentication for sensitive operations
  */
-
-import type { IModels } from '@/api/models'
 
 /**
  * Supported authentication method types
@@ -56,7 +55,7 @@ export interface VerifyAuthOptions {
   /** Whether to show "trust this device" checkbox - defaults to true */
   showTrusted?: boolean
   /** Purpose for the API calls ('login' | 'security') - defaults to 'security' */
-  purpose?: IModels.ISystemUserIdentityPurpose
+  purpose?: SystemUserIdentityPurpose
   /** Whether to show "set as security" option (for bind mode) - defaults to false */
   showSetAsSecurity?: boolean
 }

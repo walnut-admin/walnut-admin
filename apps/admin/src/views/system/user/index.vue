@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { SystemUser } from '@walnut/api-types'
 import { useState } from '@walnut/client/hooks/core/useState'
 import { computed } from 'vue'
 import { clearPasswordAPI, userAPI } from '@/api/system/user'
@@ -10,6 +10,7 @@ import { AppConstRoles } from '@/const/app'
 import { useAppConfirm } from '@/hooks/component/useConfirm'
 import { useAppMsgSuccess } from '@/hooks/component/useMessage'
 import { useAppI18n } from '@/locales/index'
+
 import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 
 defineOptions({
@@ -76,7 +77,7 @@ const [
     onDeleteManyConfirm,
     onApiList,
   },
-] = useCRUD<IModels.SystemUser>({
+] = useCRUD<SystemUser>({
   baseAPI: userAPI,
 
   strictFormData: true,
@@ -347,7 +348,7 @@ async function onYes(_: any, done: () => void) {
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.SystemUser} -->
+    <!-- @vue-generic {SystemUser} -->
     <WCRUD @hook="register" />
 
     <WForm :model="updatePasswordFormData" @hook="registerUpdatePassword" />

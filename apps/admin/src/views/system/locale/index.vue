@@ -1,12 +1,13 @@
 <script lang="tsx" setup>
+import type { SystemLocale } from '@walnut/api-types'
 import type { OptionDataItem } from 'easy-fns-ts'
-import type { IModels } from '@/api/models'
 import type { WForm } from '@/components/UI/Form'
 import { onActivated, onBeforeMount, onMounted, ref, watch } from 'vue'
 import { localeAPI } from '@/api/system/locale'
 import { useCRUD } from '@/components/Advanced/CRUD'
 import { WTablePresetCreatedAtColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
 import { useRouterQuery } from '@/hooks/web/useRouterQuery'
+
 import { useAppStoreLocale } from '@/store/modules/app/app-locale'
 
 defineOptions({
@@ -37,7 +38,7 @@ const [
     onApiList,
     onSetDefaultQueryFormData,
   },
-] = useCRUD<IModels.SystemLocale>({
+] = useCRUD<SystemLocale>({
   baseAPI: localeAPI,
 
   safeForm: true,
@@ -228,7 +229,7 @@ const [
     labelWidth: 120,
     xGap: 0,
     // @ts-expect-error create/update form schemas
-    schemas: computed<WForm.Schema.Item<IModels.SystemLocale>[]>(() => [
+    schemas: computed<WForm.Schema.Item<SystemLocale>[]>(() => [
       {
         type: 'Base:Input',
         formProp: {
@@ -240,10 +241,10 @@ const [
         },
       },
 
-      ...langList.value.map<WForm.Schema.Item<IModels.SystemLocale>>(i => ({
+      ...langList.value.map<WForm.Schema.Item<SystemLocale>>(i => ({
         type: 'Base:Input',
         formProp: {
-          path: i.value as keyof IModels.SystemLocale,
+          path: i.value as keyof SystemLocale,
           label: i.label,
           locale: false,
           rule: false,
@@ -280,7 +281,7 @@ onActivated(() => {
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.SystemLocale} -->
+    <!-- @vue-generic {SystemLocale} -->
     <WCRUD @hook="register" />
   </div>
 </template>

@@ -1,7 +1,8 @@
-import type { IModels } from '@/api/models'
+import type { SystemLogOperate } from '@walnut/api-types'
+
 import type { WForm } from '@/components/UI/Form'
 
-export const logOperateFormSchema: WForm.Schema.Item<IModels.SystemLogOperate>[] = [
+export const logOperateFormSchema: WForm.Schema.Item<SystemLogOperate>[] = [
   {
     type: 'Base:Input',
     formProp: {

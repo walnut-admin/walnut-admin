@@ -4,17 +4,16 @@ import type { IActionType } from '@walnut/types/universal'
 import type { NullableRecord, StringOrNumber } from 'easy-fns-ts'
 import type { ComputedRef, Ref } from 'vue'
 import type { BaseAPIType } from '@/api/base'
-import type { IModels } from '@/api/models'
 import type { WForm } from '@/components/UI/Form'
 import type { WTable } from '@/components/UI/Table'
 
 export declare namespace WCrud {
-  type SetProps<T extends IModels.Base> = (p: Partial<Props<T>>) => void
+  type SetProps<T extends { id: string }> = (p: Partial<Props<T>>) => void
 
   /**
    * @description Props
    */
-  interface Props<T extends IModels.Base> {
+  interface Props<T extends { id: string }> {
     baseAPI?: BaseAPIType<T>
     onBeforeRequest?: (data: T) => T
     tableProps?: Omit<WTable.Props<T>, 'apiProps'>
@@ -54,7 +53,7 @@ export declare namespace WCrud {
   /**
    * @description Emits
    */
-  interface Emits<T extends IModels.Base> {
+  interface Emits<T extends { id: string }> {
     hook: [inst: Inst.WCrudInst<T>]
   }
 
@@ -62,7 +61,7 @@ export declare namespace WCrud {
    * @description Inst
    */
   namespace Inst {
-    interface WCrudInst<T extends IModels.Base> {
+    interface WCrudInst<T extends { id: string }> {
       setProps: SetProps<T>
       onOpenCreateForm: (generateDefaultFormData?: boolean) => void
       onReadAndOpenUpdateForm: (id: StringOrNumber) => Promise<void>
@@ -81,11 +80,11 @@ export declare namespace WCrud {
    */
   namespace Hooks {
     namespace UseCRUD {
-      type Props<T extends IModels.Base> = WCrud.Props<T> | ComputedRef<WCrud.Props<T>> | IDeepMaybeRef<WCrud.Props<T>>
+      type Props<T extends { id: string }> = WCrud.Props<T> | ComputedRef<WCrud.Props<T>> | IDeepMaybeRef<WCrud.Props<T>>
 
-      type Methods<T extends IModels.Base> = Omit<Inst.WCrudInst<T>, 'setProps'>
+      type Methods<T extends { id: string }> = Omit<Inst.WCrudInst<T>, 'setProps'>
 
-      type ReturnType<T extends IModels.Base> = [
+      type ReturnType<T extends { id: string }> = [
         (instance: Inst.WCrudInst<T>) => void,
         Methods<T>,
       ]

@@ -6863,7 +6863,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "boolean"
+                          "$ref": "#/components/schemas/SysUserLockPreferenceDTO"
                         },
                         "code": {
                           "type": "number",
@@ -14982,6 +14982,58 @@
             "additionalProperties": true
           }
         }
+      },
+      "SysUserLockPreferenceDTO": {
+        "type": "object",
+        "properties": {
+          "locked": {
+            "type": "boolean",
+            "default": false,
+            "title": "locked?"
+          },
+          "lockRoute": {
+            "title": "user lock route",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysUserLockRouteType"
+              }
+            ]
+          },
+          "lockMode": {
+            "type": "string",
+            "enum": [
+              "default",
+              "idle",
+              "security"
+            ],
+            "default": "default",
+            "title": "lock mode, default, idle, security",
+            "example": "default"
+          },
+          "lockIdleSec": {
+            "type": "number",
+            "default": 600,
+            "title": "lock idle seconds"
+          },
+          "lockSecuritySec": {
+            "type": "number",
+            "default": 60,
+            "title": "lock security seconds"
+          },
+          "lockCrossDevice": {
+            "type": "boolean",
+            "default": true,
+            "title": "lock cross device?"
+          }
+        },
+        "required": [
+          "locked",
+          "lockRoute",
+          "lockMode",
+          "lockIdleSec",
+          "lockSecuritySec",
+          "lockCrossDevice"
+        ]
       },
       "SysUserLockDoLockDto": {
         "type": "object",

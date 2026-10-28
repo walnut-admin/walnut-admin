@@ -1,6 +1,5 @@
-import type { IModels } from '../models'
+import type { MeSecurityTab1Status, SystemUserIdentityPurpose, SystemUserIdentityType } from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
-import type { IResponseData } from '../response'
 import { AppAxios } from '@/utils/axios'
 
 const systemUserIdentity = {
@@ -16,8 +15,8 @@ const systemUserIdentity = {
 /**
  * @description get user center security tab 1 status
  */
-export function getSecurityTab1StatusAPI2(purpose: IModels.ISystemUserIdentityPurpose) {
-  return AppAxios.get<IResponseData.Me.Security.Tab1Status>({
+export function getSecurityTab1StatusAPI2(purpose: SystemUserIdentityPurpose) {
+  return AppAxios.get<MeSecurityTab1Status>({
     url: `${systemUserIdentity.GET_SECURITY_TAB_1_STATUS}/${purpose}`,
   })
 }
@@ -51,7 +50,7 @@ export function bindUserIdentityAPI(data: IRequestPayload.System.UserIdentity.Bi
 /**
  * @description unbind user identity
  */
-export function unBindUserIdentityAPI(type: IModels.ISystemUserIdentityType, purpose: IModels.ISystemUserIdentityPurpose) {
+export function unBindUserIdentityAPI(type: SystemUserIdentityType, purpose: SystemUserIdentityPurpose) {
   return AppAxios.delete<boolean>({
     url: `${systemUserIdentity.UNBIND}/${type}/${purpose}`,
   })
@@ -60,7 +59,7 @@ export function unBindUserIdentityAPI(type: IModels.ISystemUserIdentityType, pur
 /**
   @description send code with otp
  */
-export function sendCodeForVerifyAPI(type: IModels.ISystemUserIdentityType, purpose: IModels.ISystemUserIdentityPurpose) {
+export function sendCodeForVerifyAPI(type: SystemUserIdentityType, purpose: SystemUserIdentityPurpose) {
   return AppAxios.post<boolean>({
     url: `${systemUserIdentity.SEND_CODE}/${type}/${purpose}`,
   })

@@ -1,8 +1,7 @@
-<script lang="ts" setup generic="T extends IModels.Base">
+<script lang="ts" setup generic="T extends { id: string }">
 import type { IActionType } from '@walnut/types/universal'
 import type { StringOrNumber } from 'easy-fns-ts'
 import type { WCrud } from './types'
-import type { IModels } from '@/api/models'
 import type { WForm } from '@/components/UI/Form'
 import type { WTable } from '@/components/UI/Table'
 import { useProps } from '@walnut/client/hooks/core/useProps'

@@ -1,4 +1,4 @@
-import type { IModels } from '@/api/models'
+import type { SystemUser } from '@walnut/api-types'
 import type { IStoreUser } from '@/store/types'
 import { upperFirst } from 'easy-fns-ts'
 import { defineStore } from 'pinia'
@@ -54,7 +54,7 @@ const useAppStoreUserProfileInside = defineStore(StoreKeys.USER_PROFILE, {
   },
 
   actions: {
-    setProfile(payload: Partial<IModels.SystemUser>) {
+    setProfile(payload: Partial<SystemUser>) {
       this.profile = payload
     },
 

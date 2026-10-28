@@ -1,8 +1,8 @@
-import type { IModels } from '@/api/models'
+import type { AppMonitorUser } from '@walnut/api-types'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../../base'
 
-export const monitorUserAPI = new BaseAPI<IModels.AppMonitorUser>({
+export const monitorUserAPI = new BaseAPI<AppMonitorUser>({
   model: 'app',
   section: 'monitor/user',
 })

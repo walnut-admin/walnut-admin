@@ -51,7 +51,7 @@ Swagger 缺口：@nestjs/swagger 仍无官方 zod→OpenAPI 一等支持——�
 ③ Joi 确认。然后独立分支一次锁步升 12，全量 431 测试 + 构建 + socket/bull 冒烟。
 预估 1-1.5 人日，拆两个 PR（前置整理 / 锁步升级）。
 
-## 3. 接口类型共享：OpenAPI codegen（待启动，即原「批 6」）
+## 3. 接口类型共享：OpenAPI codegen（✅ 两期均已落地）
 
 **推荐方案（2026-10-27 调研定稿）**：server 补 swagger.json 导出（现只有 Scalar UI 无裸 JSON，
 `documentFactory` 已现成）→ 新增 `packages/platform-web/api-types` 生成包
@@ -64,8 +64,14 @@ Swagger 缺口：@nestjs/swagger 仍无官方 zod→OpenAPI 一等支持——�
 - **contract 包定位不变**：只放两端运行时共享物（枚举 / response code / Routes / Socket 事件 /
   跨端纯类型如 `IWalnutAdminMenuMeta`）；接口级入参出参类型 100% 可从 swagger 派生，
   **不进 contract**（手写进 contract 等于把镜像漂移升级到包级别）。
-- 分期：第一期导出脚本 + 生成包 + 修 3 处漂移 + menu 模块走通全链；
-  第二期全模块替换 + IResponseData 退役 + prepush 加一致性门禁。
+- 分期执行记录：第一期（2026-10-28）导出脚本 + 生成包 + 镜像漂移止血 + menu 全链；
+  **第二期（2026-10-28）全模块替换落地** —— `api-types/src/index.ts` 按模块铺齐生成别名
+  （命名对齐原 IModels.X，逐名平移），admin 57 个引用文件全部改 import 生成别名，
+  `models.d.ts` 删除、`response.d.ts` 收缩到只剩不可推导形状（server 无 schema 的端点 /
+  生成过松的 WebAuthn options / 变换层形状），CRUD 组件 `BaseAPIType` 约束同步切
+  `{ id: string }`。server 侧唯一改动：lock/read 装饰器从谎报的 `primitive: 'boolean'`
+  改为真实 `DTO: SysUserLockPreferenceDTO`（wire 零变化）；其余 swagger 缺口
+  （process/isArray/fontSize never/id 虚构等 8 条）登记 DESIGN-ISSUES P3-9~P3-16。
 
 ## 4. 遗留架构清单（Mongo 时代设计在 PG 下的适应性审计，2026-10-27）
 
@@ -112,7 +118,7 @@ cap/SSE 无壳面登记（P2-10 / P3-8，DESIGN-ISSUES 现 35 条）。
 ## 5. 决策待办（需要维护者拍板）
 
 1. **NestJS 12 升级窗口**：建议 1-2 个月内独立分支执行（前置清单见 §2）。
-2. **OpenAPI codegen 第一期**：✅ 已落地（2026-10-28）——导出脚本 + @walnut/api-types 生成包 + 镜像漂移止血 + menu 全链；二期（全模块替换 IModels/IResponseData 退役）待排期。
+2. **OpenAPI codegen**：✅ 一期已落地（2026-10-28）——导出脚本 + @walnut/api-types 生成包 + 镜像漂移止血 + menu 全链；✅ 二期已落地（2026-10-28）——全模块替换 IModels + models.d.ts 退役 + IResponseData 收缩（见 §3 执行记录）。
 3. **ETL 工具链去留**：✅ 已落地（2026-10-28）——正名而非封存（见 §4.1 末），seed 通道组件保留。
 4. **L1 命名清理窗口**：✅ 已于 2026-10-28 执行（在 sys_deleted 存量为 0 的窗口内完成，见 §4.1 L1 执行记录）。
 5. ~~admin 闲置 zod 依赖~~：勘误消除——zod 在 admin 构建配置真实使用（见 §1 勘误），不处置。

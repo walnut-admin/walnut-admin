@@ -3,7 +3,6 @@ import type { SystemMenu } from '@walnut/api-types'
 import type { IActionType } from '@walnut/types/universal'
 import type { StringOrNumber } from 'easy-fns-ts'
 import type { IAppSystemMenuForm } from './types'
-import type { IModels } from '@/api/models'
 import type { WForm } from '@/components/UI/Form'
 import { objectToPaths, pathsToObject } from '@walnut/client/browser/shared'
 import { useState } from '@walnut/client/hooks/core/useState'
@@ -69,7 +68,7 @@ commit()
 const { getLeftMenu, getTreeSelect, onInit, menuActiveNamesOptions }
   = useMenuTree()
 
-const [registerTree] = useTree<IModels.SystemMenu>({
+const [registerTree] = useTree<SystemMenu>({
   presetPrefixIcon: true,
   presetContextMenu: true,
   deletable: true,
@@ -131,7 +130,7 @@ const [registerTree] = useTree<IModels.SystemMenu>({
 
     filter: (pattern, node) => {
       const text = node.type === AppConstMenuType.ELEMENT
-        ? ((node as unknown as IModels.SystemMenu).meta.permission as string)
+        ? ((node as unknown as SystemMenu).meta.permission as string)
         : (node.title as string)
 
       if (text && (text as string).toLowerCase().includes(pattern)) {
@@ -143,7 +142,7 @@ const [registerTree] = useTree<IModels.SystemMenu>({
 
     renderLabel: ({ option }) =>
       option.type === AppConstMenuType.ELEMENT
-        ? ((option as unknown as IModels.SystemMenu).meta.permission as string)
+        ? ((option as unknown as SystemMenu).meta.permission as string)
         : (option.title as string),
   },
 })
@@ -244,7 +243,7 @@ async function onUpdateTreeValue(v?: StringOrNumber | StringOrNumber[]) {
         }"
       >
         <template #default>
-          <!-- @vue-generic {IModels.SystemMenu} -->
+          <!-- @vue-generic {SystemMenu} -->
           <WTree v-model:value="targetTreeItem" @hook="registerTree" @update:value="onUpdateTreeValue" />
         </template>
       </n-card>
