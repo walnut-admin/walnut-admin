@@ -22,7 +22,6 @@ import {
   SysMenuDTOListResponse,
   SysMenuDTOReadResponse,
   SysMenuDTOSafe,
-  SysMenuDTOTree,
   SysMenuDTOTreeResponse,
   SysMenuDTOUpdateRequest,
   SysMenuDTOUpdateResponse,
@@ -64,7 +63,10 @@ export class SysMenuController {
   @HttpCode(HttpStatus.OK)
   @ApiWalnutOkResponse({
     description: 'return full menu tree and tree without type element',
-    DTO: SysMenuDTOTree,
+    // 响应真身是 SysMenuDTOTreeResponse（fullTree / treeWithoutTypeElement /
+    // menuActiveNamesOptions），此前文档只挂了单节点 SysMenuDTOTree —— OpenAPI
+    // codegen 一期修正（响应 DTO 三字段补齐 ApiProperty 后可完整反射）
+    DTO: SysMenuDTOTreeResponse,
   })
   async getTree() {
     const res = await this.menuService.getMenuTreeAndTreeWithoutTypeElement()

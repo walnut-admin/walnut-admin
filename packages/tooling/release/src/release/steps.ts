@@ -98,6 +98,10 @@ const RELEASE_BATTERY: BatteryStep[] = [
   // 同上。初始化数据（apps/server/db/seed）的形态：私钥/凭证进仓、未裁剪账号被发布、引用被改坏
   // —— 这三种失效都不会报错，只会让装出来的环境少一块或空掉侧边栏。
   { id: 'seed', label: '初始化数据形态（必需集合 / 禁入集合 / 体积 / 凭据形状 / 引用完整性）', argv: ['lint:seed'] },
+  // 同上（prepush 第 seed 位之后的那段）。OpenAPI 一致性：server DTO ↔ openapi.json ↔
+  // @walnut/api-types 生成物三者锁步。要引导 AppModule（PG/Redis 在线）—— 发版机与
+  // 本地 prepush 同一套环境，能跑；CI 没有数据库服务，故 gate-wiring 的 CI 侧走豁免表。
+  { id: 'openapi', label: 'OpenAPI 一致性（导出 → 生成 → git diff）', argv: ['openapi:check'] },
   // 同上。手写的 `.d.ts` 关掉 `skipLibCheck` 查一遍 —— 那些文件里的错平时会静默退化成 any。
   { id: 'dts', label: '手写 .d.ts 检查（关掉 skipLibCheck）', argv: ['lint:dts'] },
   // 同上。turbo.json 写错一个产物目录/依赖边不会报错，只会让 turbo 报 FULL TURBO 却少跑或少产出；

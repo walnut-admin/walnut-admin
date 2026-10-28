@@ -130,6 +130,8 @@ export namespace IModels {
     locked?: boolean
     banned?: boolean
     riskScore?: number
+    // 组装后形态（GeoJSON Point，Safe DTO 由 device.service 组装），entity 真源是
+    // geoLongitude / geoLatitude 两列
     geoLocation?: {
       type: 'Point'
       coordinates: [number, number]
@@ -161,6 +163,8 @@ export namespace IModels {
     key?: string
     value?: string
     process?: number
+    // 请求侧专用：update 时告诉 server 被改前的 key（locale pipe/service 读它做改名迁移），
+    // entity 无此列 —— 响应侧不存在
     oldKey?: string
   }
 
@@ -189,7 +193,7 @@ export namespace IModels {
     actionType?: string
     method?: string
     url?: string
-    heepVersion?: string
+    httpVersion?: string
     statusCode?: number
     requestData?: string
     responseData?: string

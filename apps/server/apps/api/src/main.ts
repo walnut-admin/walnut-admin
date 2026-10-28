@@ -1,7 +1,6 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { ValidationError } from 'class-validator'
 import { join } from 'node:path'
-import process from 'node:process'
 import {
   ClassSerializerInterceptor,
   ValidationPipe,
@@ -9,7 +8,7 @@ import {
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory, Reflector } from '@nestjs/core'
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { SwaggerModule } from '@nestjs/swagger'
 import { apiReference } from '@scalar/nestjs-api-reference'
 import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 
@@ -17,6 +16,7 @@ import { getAllConstraints } from '@walnut-server/utils/response'
 
 import { useContainer } from 'class-validator'
 import { AppModule } from './app/app.module'
+import { buildSwaggerDocumentOptions } from './common/swagger/swagger.options'
 import { WalnutAdminLogger } from './modules/techniques/logger'
 import { SocketIoAdapter } from './socket/socket.adapter'
 
@@ -115,13 +115,8 @@ async function bootstrap() {
 
   // api document
   const openapiPrefix = 'api'
-  const options = new DocumentBuilder()
-    .setTitle('NestJS Walnut Admin App')
-    .setDescription('Document of API details')
-    // https://docs.npmjs.com/cli/v10/using-npm/scripts
-    .setVersion(process.env.npm_package_version!)
-    .addBearerAuth()
-    .build()
+  // options 的唯一来源在 common/swagger/swagger.options.ts（与离线导出 openapi.json 同源）
+  const options = buildSwaggerDocumentOptions()
 
   const documentFactory = () => SwaggerModule.createDocument(app, options)
 

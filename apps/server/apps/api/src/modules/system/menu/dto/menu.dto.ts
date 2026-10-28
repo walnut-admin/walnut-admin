@@ -468,9 +468,13 @@ export class SysMenuDTOTree extends RealOmitType(SysMenuDTOSafe, [
     Object.assign(this, partial)
   }
 
+  // 自引用 children 同样只有 class-transformer 元数据 —— swagger 反射不到，文档里树节点
+  // 退化成无 children 的单节点（openapi-typescript 生成的前端 SystemMenuTree 也跟着缺）。
+  // 补 ApiProperty（纯文档元数据）让递归 children 进 schema
   @Expose()
   @Type(() => SysMenuDTOTree)
   @ValidateNested({ each: true })
+  @ApiProperty({ type: () => [SysMenuDTOTree], required: false })
   children?: SysMenuDTOTree[]
 }
 
@@ -481,19 +485,27 @@ export class SysMenuDTOTreeResponse {
     Object.assign(this, partial)
   }
 
+  // 三个字段此前只有 @Expose/@Type（class-transformer 元数据）—— swagger 的 schema
+  // 反射读不到它们，导致 /system/menu/tree 的响应文档退化成单节点 SysMenuDTOTree。
+  // 补 ApiProperty（纯文档元数据，无运行时语义）让 tree 响应按真实形态进 openapi.json，
+  // 前端生成的 SystemMenuTree 别名才有完整的 { fullTree, treeWithoutTypeElement,
+  // menuActiveNamesOptions } 载荷可推导。
   @Expose()
   @Type(() => SysMenuDTOTree)
   @ValidateNested({ each: true })
+  @ApiProperty({ type: () => [SysMenuDTOTree] })
   fullTree: SysMenuDTOTree[]
 
   @Expose()
   @Type(() => SysMenuDTOTree)
   @ValidateNested({ each: true })
+  @ApiProperty({ type: () => [SysMenuDTOTree] })
   treeWithoutTypeElement: SysMenuDTOTree[]
 
   @Expose()
   @Type(() => MenuActiveNameItem)
   @ValidateNested({ each: true })
+  @ApiProperty({ type: () => [MenuActiveNameItem] })
   menuActiveNamesOptions: { name: string, title: string }[]
 }
 

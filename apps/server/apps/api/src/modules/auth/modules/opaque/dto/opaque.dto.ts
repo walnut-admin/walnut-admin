@@ -1,4 +1,4 @@
-import { IntersectionType } from '@nestjs/swagger'
+import { ApiProperty, IntersectionType } from '@nestjs/swagger'
 import { WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealPickType } from '@walnut-server/utils/dto'
@@ -52,9 +52,11 @@ export class AuthOpaqueFinishChangePasswordDTO extends AuthOpaqueFinishDTO {}
 
 // B7a：管理端按 user 主键定位 —— PG 侧唯一标识是 id（uuid），_id 随 Safe 层剔除。
 // id 是这三个 DTO 的唯一定位键，不用 SysUserDTO 上「list 查询可选过滤」的可选声明，
-// 在此按必填 uuid 重声明
+// 在此按必填 uuid 重声明。ApiProperty 纯文档元数据：没有它 swagger 反射出的三个
+// ForAdmin DTO 全是空 schema（openapi-typescript 生成 Record<string, never> 废类型）
 class AuthOpaqueAdminUserIdDTO {
   @WalnutAdminDecoratorValidatorUuid()
+  @ApiProperty({ type: String, format: 'uuid', title: 'user id (uuid)' })
   id: string
 }
 

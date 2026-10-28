@@ -10,6 +10,12 @@ export function WalnutAdminDecoratorFieldObject(
   obj: ClassConstructor<any>,
   options: IWADObjOpt,
 ): PropertyDecorator {
+  // 松散对象（obj === Object，即 Recordable 类字段）：swagger 若只拿到无 properties 的
+  // { type: object }，openapi-typescript 会生成 `Record<string, never>` 废类型（任何取值
+  // 都不可用）。补 additionalProperties: true 让生成形态成为可用的 Record<string, unknown>；
+  // 显式传了 properties / additionalProperties 的调用方不受影响（见 swaggerOptions 展开）。
+  const looseObjectDefaults = obj === Object ? { additionalProperties: true } : {}
+
   const decorators = [
     // used for list request payload sort field key
     Expose(),
@@ -20,6 +26,7 @@ export function WalnutAdminDecoratorFieldObject(
   decorators.unshift(
     ApiProperty({
       type: () => obj,
+      ...looseObjectDefaults,
       default: options?.default,
       isArray: options?.isArray,
       maxItems: options?.arrayOptions?.maxSize,

@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { SystemMenu } from '@walnut/api-types'
 import type { IActionType } from '@walnut/types/universal'
 import type { StringOrNumber } from 'easy-fns-ts'
 import type { IAppSystemMenuForm } from './types'
@@ -193,7 +194,8 @@ const [register, { validate, restoreValidation }] = useForm<IAppSystemMenuForm>(
               loading.value = true
 
               try {
-                await menuAPI[actionType.value](pathsToObject<typeof formData.value, IModels.SystemMenu>(formData.value))
+                // 泛型实参是 menuAPI 的生成真源 SystemMenu（@walnut/api-types），不是手写镜像
+                await menuAPI[actionType.value](pathsToObject<typeof formData.value, SystemMenu>(formData.value))
                 useAppMsgSuccess()
                 await onInit()
               }

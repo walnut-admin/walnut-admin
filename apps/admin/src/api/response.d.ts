@@ -1,4 +1,5 @@
 import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser'
+import type { SystemMenu, SystemMenuTree } from '@walnut/api-types'
 import type { Recordable, TreeNodeItem } from 'easy-fns-ts'
 import type { RouteRecordRaw } from 'vue-router'
 import type { IModels } from './models'
@@ -225,10 +226,16 @@ export namespace IResponseData {
     }
 
     export namespace Menu {
+      /**
+       * `/system/menu/tree` 响应 —— 真源是 @walnut/api-types 的生成别名
+       * （server SysMenuDTOTree / SysMenuDTOSafe，自带递归 children）。
+       * Auth.Permissions.permissionMenuTree 的 wire 真源是 auth 模块 IMenuTreeItem，
+       * 形态不同，留二期单独别名。
+       */
       export interface Tree {
-        fullTree: TreeNodeItem<IModels.SystemMenu>[]
-        treeWithoutTypeElement: TreeNodeItem<IModels.SystemMenu>[]
-        menuActiveNamesOptions: Pick<IModels.SystemMenu, 'title' | 'name'>[]
+        fullTree: SystemMenuTree[]
+        treeWithoutTypeElement: SystemMenuTree[]
+        menuActiveNamesOptions: Pick<SystemMenu, 'title' | 'name'>[]
       }
     }
 
