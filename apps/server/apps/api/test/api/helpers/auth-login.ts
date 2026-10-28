@@ -8,18 +8,19 @@ import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { Role } from '@walnut/contract'
 
 import { AuthOpaqueCoreService } from '@/modules/auth/modules/opaque/core/opaque.core.service'
+import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
 
 import { bodyOf } from './api-client'
 
 /**
  * 真实 opaque 注册/登录助手（API 级测试）。
  *
- * 注册**不走 HTTP**：`/auth/opaque/user/register/{start,finish}` 的 handler 读
- * `req.user.userName`（语义是已登录用户补挂口令），匿名调用 500 —— 已在 ENDPOINTS.md
- * 登记为已知问题。因此注册走服务真实 crypto 栈（B7c `auth.login-chain.pg.int-spec.ts`
- * 同款客户端 fixture：@serenity-kit/opaque 的 client 流程，identifiers 双端一致，
- * serverSetup/app.name 与服务同源配置），由 `AuthOpaqueCoreService.finishRegister`
- * 落 user + password identity 两腿。
+ * 注册**不走 HTTP**：`/auth/opaque/user/register/{start,finish}` 的语义是已登录用户
+ * 补挂口令（P1-14，2026-10-28：按 userId upsert password identity，不建用户）；测试
+ * fixture 需要造新用户，因此走服务真实写腿：`SysUserSharedService.createForAuthUser`
+ * 落 user + junction，再 `AuthOpaqueCoreService.finishRegister(userId, record)` 补挂
+ * password identity（@serenity-kit/opaque 客户端流程，identifiers 双端一致，
+ * serverSetup/app.name 与服务同源配置）。
  *
  * 登录**走 HTTP**：`POST /auth/opaque/user/login/start`（单因子签名）→ 客户端
  * `finishLogin` → `POST /auth/opaque/user/login/finish`（passport-local strategy 消费
@@ -52,6 +53,7 @@ export async function registerRootUserFixture(
 ): Promise<WalnutRootUserFixture> {
   const configService = app.get(ConfigService)
   const opaqueCore = app.get(AuthOpaqueCoreService)
+  const userShared = app.get(SysUserSharedService)
 
   const userName = `${userNamePrefix}-${randomUUID().slice(0, 8)}`
   const password = `Pwd-${randomUUID().slice(0, 12)}#42`
@@ -67,22 +69,16 @@ export async function registerRootUserFixture(
     identifiers: { client: userName, server: appName },
   })
 
-  // finishRegister 落 user + password identity 两腿（createForAuthUser 会给 junction 写
-  // visitor 兜底 role uuid —— 先确保该行存在，FK 才不炸）
+  // createForAuthUser 会给 junction 写 visitor 兜底 role uuid —— 先确保该行存在，FK 才不炸；
+  // 随后 finishRegister 按新 userId 补挂 password identity（P1-14 语义：不建用户）
   await pgDataSource.query(
     'INSERT INTO sys_role (id, role_name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING',
     [WALNUT_DEFAULT_VISITOR_ROLE_UUID, `${userNamePrefix}-visitor-${randomUUID().slice(0, 8)}`],
   )
-  await opaqueCore.finishRegister(userName, registrationRecord, pgDataSource.manager)
+  const newUser = await userShared.createForAuthUser({ userName }, pgDataSource.manager)
+  await opaqueCore.finishRegister(newUser.id, registrationRecord, pgDataSource.manager)
 
-  const userRows: Array<{ id: string }> = await pgDataSource.query(
-    'SELECT id FROM sys_user WHERE user_name = $1',
-    [userName],
-  )
-  if (userRows.length === 0) {
-    throw new Error(`[auth-login] registerRootUserFixture: user row not found for ${userName}`)
-  }
-  const userId = userRows[0].id
+  const userId = newUser.id
 
   // —— root 角色（COMBINE 首角色短路）+ MFA setup（mfa.guard P5 看登录时固化的 AT payload）——
   // role_name 有唯一索引：上一轮异常退出可能残留 'root' 行，幂等复用（调用方 afterAll 按 id 清）

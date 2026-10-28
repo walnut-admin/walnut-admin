@@ -22,14 +22,8 @@ class AppKeyMetaTypeRaw {
   })
   publicKeyPem?: string
 
-  @WalnutAdminDecoratorFieldString({
-    swaggerOptions: {
-      title: 'RSA Private Key (PEM)',
-      description: 'PEM-formatted RSA private key for decryption or signature generation.',
-      example: '-----BEGIN PRIVATE KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAASCQ...\n-----END PRIVATE KEY-----',
-    },
-  })
-  privateKeyPem?: string
+  // P0-6（2026-10-28）：私钥永不出 HTTP —— 实体 meta 仍保留 privateKeyPem（服务端
+  // 请求解密走实体通道），但 DTO 层不再声明该字段，init/rotate/current 响应统一剔除。
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {

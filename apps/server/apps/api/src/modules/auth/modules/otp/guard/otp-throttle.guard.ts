@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModuleOptions, ThrottlerStorage } from '@nestj
 import { isNil } from 'lodash'
 import { otpType } from '../const/otp.const'
 import { OtpVerifyDTO } from '../dto/otp.dto'
+import { OTP_THROTTLE_SERVICE_KEY } from './otp-throttle.const'
 
 // Note: IWalnutAdminOtpThrottleConfigProvider interface has been moved to @walnut-server/types/walnut-admin/guard.d.ts
 // as IWalnutAdminOtpThrottleConfigProvider
@@ -38,11 +39,13 @@ export class OtpThrottleGuard extends ThrottlerGuard {
     const { context } = requestProps
     const request = context.switchToHttp().getRequest<IWalnutAdminExpressRequest>()
 
-    let { limit, ttl } = requestProps
+    // P1-16：动态 ttl 同步覆盖 blockDuration（与 WalnutAdminGuardThrottler 的 P1-10
+    // 修复同口径）—— 否则封禁窗口仍是全局 ttl，600s 的 sendTtl 只约束计数窗不约束封禁。
+    let { limit, ttl, blockDuration } = requestProps
 
-    // Get the service from metadata (key defined in decorator)
+    // Get the service from metadata (shared symbol exported by otp.decorator)
     const TargetService = this.reflector.getAllAndOverride<Type<IWalnutAdminOtpThrottleConfigProvider>>(
-      'OTP_THROTTLE_SERVICE',
+      OTP_THROTTLE_SERVICE_KEY,
       [context.getHandler(), context.getClass()],
     )
 
@@ -67,9 +70,10 @@ export class OtpThrottleGuard extends ThrottlerGuard {
 
             if (Number.isFinite(dynamicTtl)) {
               ttl = dynamicTtl * 1000 // Convert to milliseconds
+              blockDuration = ttl
             }
 
-            this.logger.debug(`[OTP Throttle] ${type} ?limit=${limit}, ttl=${ttl}`)
+            this.logger.debug(`[OTP Throttle] ${type} ?limit=${limit}, ttl=${ttl}, blockDuration=${blockDuration}`)
           }
           catch (error) {
             this.logger.error(`Failed to get throttle config for ${type}:`, error)
@@ -82,6 +86,7 @@ export class OtpThrottleGuard extends ThrottlerGuard {
       ...requestProps,
       limit,
       ttl,
+      blockDuration,
     })
   }
 }

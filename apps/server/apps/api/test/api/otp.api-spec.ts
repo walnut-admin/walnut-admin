@@ -115,6 +115,44 @@ describe('D 段：auth/otp send+verify（functional 开关 + OtpGuard 真实闭�
     expect(String(code)).toMatch(/^\d{6}$/)
   })
 
+  it('P1-16：send 动态限流真实生效（sendLimit=2 / sendTtl=600）—— 前两次 20000、第三次 42900 且 Retry-After 反映动态 blockDuration', async () => {
+    // 还原上一用例的 sendLimit=5，改用 2 次窗口（tracker = identifier:ip，换 identifier 清零）
+    await restoreSettings!()
+    restoreSettings = await overrideAppSettings(app, {
+      [OTP_EMAIL_SETTING_KEY]: JSON.stringify({
+        authEnable: 1,
+        sendEnable: 1,
+        verifyFigure: 6,
+        verifyTtl: 300,
+        sendLimit: 2,
+        sendTtl: 600,
+      }),
+    })
+
+    const limitedIdentifier = `otp-limit-${seed8}@example.com`
+
+    for (let i = 0; i < 2; i++) {
+      const res = await anonClient.anon('POST', anonClient.apiPath('/auth/otp/send'), {
+        type: 'email',
+        identifier: limitedIdentifier,
+      })
+      expectOk(res, `otp send #${i + 1} under dynamic limit`)
+    }
+
+    const third = await anonClient.anon('POST', anonClient.apiPath('/auth/otp/send'), {
+      type: 'email',
+      identifier: limitedIdentifier,
+    })
+    expect(third.status).toBe(200)
+    expect(bodyOf(third).code).toBe(WalnutAdminConstAppResponseCode.TOO_MANY_REQUESTS)
+
+    // 动态 sendTtl=600s 同步进 blockDuration —— 修复前元数据键错位时这里走全局 10s 窗口，
+    // 且 blockDuration 仍是全局 ttl；断言 ≥30s 区分两态。
+    const retryAfter = Number(third.headers['retry-after'])
+    expect(Number.isFinite(retryAfter)).toBe(true)
+    expect(retryAfter).toBeGreaterThanOrEqual(30)
+  })
+
   it('verify 错码 → 40000 verifyCodeError（OtpGuard passport 链上抛）', async () => {
     const res = await anonClient.anon('POST', anonClient.apiPath('/auth/otp/verify'), {
       type: 'email',

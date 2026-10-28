@@ -213,13 +213,16 @@ export class SecurityRiskService {
   }): Promise<IWalnutAdminComprehensiveRiskResult['recommendation']> {
     const { level, stage, preAuth, postAuth, challengeParams } = params
 
+    // 产品口径（P1-13，2026-10-28）：「风险只触发 CAP 升级，不做阻塞」——
+    // 旧实现所有分支都写 shouldBlock:false（阻塞腿本就不可达），该字段已从类型与
+    // 返回面整体摘除，风险层只输出挑战/记录建议。
+
     // 1. Check unhandled critical factors that require verification
     const unhandledCritical = await this.getUnhandledCriticalFactors(stage, preAuth, postAuth, challengeParams)
 
     if (unhandledCritical.length > 0) {
       this.logger.warn(`Unhandled critical factors: [${unhandledCritical.join(', ')}]`)
       return {
-        shouldBlock: false,
         shouldChallenge: true,
         shouldLog: true,
         reason: 'CRITICAL_FACTORS_REQUIRE_VERIFICATION',
@@ -229,14 +232,14 @@ export class SecurityRiskService {
 
     // 2. Check risk level and return appropriate recommendation
     if (level === WalnutAdminConstRiskLevel.CRITICAL || level === WalnutAdminConstRiskLevel.HIGH) {
-      return { shouldBlock: false, shouldChallenge: true, shouldLog: true, reason: `HIGH_RISK(${params.score})` }
+      return { shouldChallenge: true, shouldLog: true, reason: `HIGH_RISK(${params.score})` }
     }
 
     if (level === WalnutAdminConstRiskLevel.MEDIUM) {
-      return { shouldBlock: false, shouldChallenge: false, shouldLog: true, reason: `MEDIUM_RISK(${params.score})` }
+      return { shouldChallenge: false, shouldLog: true, reason: `MEDIUM_RISK(${params.score})` }
     }
 
-    return { shouldBlock: false, shouldChallenge: false, shouldLog: false, reason: 'LOW_RISK' }
+    return { shouldChallenge: false, shouldLog: false, reason: 'LOW_RISK' }
   }
 
   private async getUnhandledCriticalFactors(

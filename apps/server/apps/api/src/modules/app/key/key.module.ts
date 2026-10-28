@@ -5,6 +5,7 @@ import { WalnutPGConnectionName } from '@walnut-server/db'
 import { AppKeyEntity } from './entity/key.entity'
 import { AppKeyBasicRepository } from './key.basic.repository'
 import { AppKeyController } from './key.controller'
+import { AppKeyCurrentGuard } from './key.current.guard'
 import { AppKeyService } from './key.service'
 
 /**
@@ -17,7 +18,7 @@ import { AppKeyService } from './key.service'
     TypeOrmModule.forFeature([AppKeyEntity], WalnutPGConnectionName),
   ],
   controllers: [AppKeyController],
-  providers: [AppKeyBasicRepository, AppKeyService],
+  providers: [AppKeyBasicRepository, AppKeyService, AppKeyCurrentGuard],
   exports: [AppKeyService],
 })
 export class AppKeyModule {}

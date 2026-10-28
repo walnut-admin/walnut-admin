@@ -56,7 +56,11 @@ export class AppKeyService {
 
       this.logger.log(`type: ${type} new key generated ${newKey.key}`)
 
-      return newKey
+      // P0-6 纵深防御：返回副本显式剔除私钥（DB 实体保留全量 meta 供服务端解密），
+      // 不把「响应无私钥」单点押在全局序列化策略上
+      const publicMeta: Record<string, unknown> = { ...newKey.meta }
+      delete publicMeta.privateKeyPem
+      return { ...newKey, meta: publicMeta }
     }
 
     if (type === AppKeyTypeConst.AES_KEY_URL) {
@@ -93,13 +97,16 @@ export class AppKeyService {
 
   /**
    * @description get current app key by type
+   *
+   * P0-6（2026-10-28）：HTTP 视图永不下发 RSA 私钥 —— 私钥只留在实体 meta 里，内部
+   * 消费方（security/rsa 请求解密）走 `getCurrentActiveKey` 的实体通道；本方法的返回值
+   * 只含公开面（RSA publicKeyPem / AES keyB64，后者是前端 URL 掩码所需的客户端分发密钥）。
    */
   async getCurrent(type: AppKeyDTOSafe['type']): Promise<AppKeyDTOSafe['meta']> {
     if (type === AppKeyTypeConst.RSA_PAIR) {
       const res = await this.getCurrentActiveKey(type)
       return {
         publicKeyPem: res?.meta?.publicKeyPem,
-        privateKeyPem: res?.meta?.privateKeyPem,
       }
     }
 

@@ -128,21 +128,21 @@ cap/SSE 无壳面登记（P2-10 / P3-8，DESIGN-ISSUES 现 35 条）。
 > 文档撰写复审新发现 38 条（DESIGN-ISSUES P0-6、P1-13~19、P2-11~31、P3-17~30）。
 > 本节记录拍板结果；未列入者维持 DESIGN-ISSUES 登记，按 backlog 排期。
 
-| 簇 | 条目 | 决策 |
-|---|---|---|
-| 安全急修 | P0-6 key 私钥暴露 | **修**：current/:type 加权限，响应永不下发私钥（前端只需公钥） |
-| 安全急修 | P1-15 权限缓存 TTL×1000 | **修**：TTL 单位修正 |
-| 安全急修 | P1-16 OTP 动态限流失效 | **修**：元数据键修正 |
-| 产品口径 | P1-13 risk 阻塞失效 | **口径定为「风险只触发 CAP」**：摘除 shouldBlock 幻觉字段，guard 吞异常修正 |
-| 产品口径 | P1-14 opaque register | **语义定为「已登录用户补挂口令」**：按 userId upsert password identity，不再按用户名查重 |
-| 产品口径 | P1-17 Google 登录重复建用户 | **端点暂时关闭**（Functional 开关默认关）；补全（写 identity/oauth、同邮箱复用）为后续功能开发 |
-| 会话安全 | P2-13 OAuth state 无签名无一次性 | **修**：state 补签名 + 一次性校验，堵登录 CSRF |
-| 会话安全 | P2-15 永久黑名单零配置不积累 | **修**：seed 落 `app.global.ipBlackList` 显式默认行 |
-| 会话安全 | P2-12 踢下线后 AT 残留 | **修**：force-quit/kick 链路补会话与权限缓存清扫（配合 P0-4 会话校验，AT 立即失效） |
-| 数据一致性 | P1-18 角色脱钩权限残留 | **修**：roles 变更同步校正 current_role_id 并失效权限缓存 |
-| 数据一致性 | P1-19 user create/update 无事务 | **修**：补 @WalnutTx（对齐 role 写路径） |
-| 数据一致性 | P2-16 角色/菜单变更不清权限缓存 | **修**：变更失效 `AUTH:PERMISSIONS` |
-| 数据一致性 | P2-18 恢复用户不恢复外围 | **修**：恢复联动 identity/preference 等外围数据 |
+| 簇 | 条目 | 决策 | 状态 |
+|---|---|---|---|
+| 安全急修 | P0-6 key 私钥暴露 | **修**：current/:type 加权限，响应永不下发私钥（前端只需公钥） | ✅ 已实施 2026-10-28 |
+| 安全急修 | P1-15 权限缓存 TTL×1000 | **修**：TTL 单位修正 | ✅ 已实施 2026-10-28 |
+| 安全急修 | P1-16 OTP 动态限流失效 | **修**：元数据键修正 | ✅ 已实施 2026-10-28 |
+| 产品口径 | P1-13 risk 阻塞失效 | **口径定为「风险只触发 CAP」**：摘除 shouldBlock 幻觉字段，guard 吞异常修正 | ✅ 已实施 2026-10-28 |
+| 产品口径 | P1-14 opaque register | **语义定为「已登录用户补挂口令」**：按 userId upsert password identity，不再按用户名查重 | ✅ 已实施 2026-10-28 |
+| 产品口径 | P1-17 Google 登录重复建用户 | **端点暂时关闭**（Functional 开关默认关）；补全（写 identity/oauth、同邮箱复用）为后续功能开发 | ✅ 已实施 2026-10-28 |
+| 会话安全 | P2-13 OAuth state 无签名无一次性 | **修**：state 补签名 + 一次性校验，堵登录 CSRF | 待实施 |
+| 会话安全 | P2-15 永久黑名单零配置不积累 | **修**：seed 落 `app.global.ipBlackList` 显式默认行 | 待实施 |
+| 会话安全 | P2-12 踢下线后 AT 残留 | **修**：force-quit/kick 链路补会话与权限缓存清扫（配合 P0-4 会话校验，AT 立即失效） | 待实施 |
+| 数据一致性 | P1-18 角色脱钩权限残留 | **修**：roles 变更同步校正 current_role_id 并失效权限缓存 | 待实施 |
+| 数据一致性 | P1-19 user create/update 无事务 | **修**：补 @WalnutTx（对齐 role 写路径） | 待实施 |
+| 数据一致性 | P2-16 角色/菜单变更不清权限缓存 | **修**：变更失效 `AUTH:PERMISSIONS` | 待实施 |
+| 数据一致性 | P2-18 恢复用户不恢复外围 | **修**：恢复联动 identity/preference 等外围数据 | 待实施 |
 
 其余新发现（P2-11 nonce 并发窗、P2-14 并发 login 判据、P2-17 lang 缓存不对称、P2-20 菜单树无权限、
 P2-21~29、P3-17~30 等）**维持登记、按 backlog 排期**，本轮不修。

@@ -39,6 +39,8 @@ export class AppTechCachePermissionsService {
       `set permissions cache, userId: ${user.userId}, permissions count: ${permissions.length}`,
     )
 
+    // P1-15（2026-10-28）：set 的 ttl 单位是秒（cache.service 直接 redis.setEx），
+    // 旧实现 `atTtl * 1000` 让 30 分钟的 AT 权限缓存实际驻留 ~20.8 天。与 AT 同寿命。
     const atTtl = this.tokenService.getAccessTokenExpireSeconds()
 
     // set permissions into cache
@@ -46,7 +48,7 @@ export class AppTechCachePermissionsService {
       this.getPermissionCacheKey(user.userId, deviceId),
       permissions,
       {
-        ttl: atTtl * 1000,
+        ttl: atTtl,
         t: WalnutAdminConstAppCacheType.AUTH,
       },
     )

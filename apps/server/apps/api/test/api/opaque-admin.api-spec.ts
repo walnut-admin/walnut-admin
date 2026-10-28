@@ -1,4 +1,5 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
+import type { WalnutAuthTokens } from './helpers/api-client'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
@@ -76,6 +77,8 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
   let apiTarget: WalnutApiClient
   let fixture: WalnutRootUserFixture | null = null
   let fixtureTarget: WalnutRootUserFixture | null = null
+  /** 主 fixture 的登录令牌（后续用例会 setAuth(null) 发匿名请求，register 用例需恢复） */
+  let mainTokens: WalnutAuthTokens | null = null
 
   const seed8 = randomUUID().slice(0, 8)
   /** 目标用户当前密码（me → P1；admin 改 → P2） */
@@ -91,6 +94,7 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
     targetPassword = fixtureTarget.password
 
     const tokens = await performHttpOpaqueLogin(api, app, fixture)
+    mainTokens = tokens
     api.setAuth(tokens)
     await api.seedMfaVerifiedCache(fixture.userId)
 
@@ -277,5 +281,63 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
       clientError: 'not-a-real-error',
     })
     expect(bodyOf(badRes).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+  })
+
+  it('P1-14：register/{start,finish} 为已登录补挂口令（按 userId upsert 替换，不再恒 40001）；匿名仍 40101', async () => {
+    // 前序用例做过 setAuth(null)（匿名负路径）—— 恢复主 fixture 的登录态（会话未撤销）
+    api.setAuth(mainTokens)
+
+    const identityBefore = await readPasswordIdentity(fixture!.userId)
+    expect(identityBefore).not.toBeNull()
+
+    const appName = app.get(ConfigService).get<string>('app.name')!
+
+    async function registerPassword(newPassword: string): Promise<string> {
+      const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password: newPassword })
+      const startRes = await api.root('POST', api.apiPath('/auth/opaque/user/register/start'), {
+        start: registrationRequest,
+      })
+      expectOk(startRes, 'register start (logged-in)')
+      const registrationResponse = bodyOf<string>(startRes).data
+
+      const { registrationRecord } = opaque.client.finishRegistration({
+        clientRegistrationState,
+        registrationResponse,
+        password: newPassword,
+        identifiers: { client: fixture!.userName, server: appName },
+      })
+      const finishRes = await api.root('POST', api.apiPath('/auth/opaque/user/register/finish'), {
+        finish: registrationRecord,
+      })
+      expectOk(finishRes, 'register finish (logged-in)')
+      expect(bodyOf<boolean>(finishRes).data).toBe(true)
+      return registrationRecord
+    }
+
+    // 首次补挂：identity 从 fixture 口令替换为本次 record（value/valueHash 逐字节换新）
+    const firstRecord = await registerPassword(`Reg-${randomUUID().slice(0, 12)}#55`)
+    const identityAfterFirst = await readPasswordIdentity(fixture!.userId)
+    expect(identityAfterFirst!.value).toBe(firstRecord)
+    expect(identityAfterFirst!.value_hash).toBe(firstRecord)
+    expect(identityAfterFirst!.value_hash).not.toBe(identityBefore!.value_hash)
+
+    // 再次补挂：幂等路径 —— 仍 20000 true 且再替换（修复前恒 40001 DataExists）
+    const secondRecord = await registerPassword(`Reg2-${randomUUID().slice(0, 12)}#66`)
+    const identityAfterSecond = await readPasswordIdentity(fixture!.userId)
+    expect(identityAfterSecond!.value).toBe(secondRecord)
+    expect(identityAfterSecond!.value_hash).toBe(secondRecord)
+    expect(
+      await api.pgDataSource.query(
+        'SELECT count(*)::int AS c FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
+        [fixture!.userId, 'password', 'login'],
+      ),
+    ).toEqual([{ c: 1 }])
+
+    // 匿名仍 40101（端点不再是 JwtFree；P1-3 语义保持）
+    api.setAuth(null)
+    const anonStart = await api.anon('POST', api.apiPath('/auth/opaque/user/register/start'), {
+      start: 'garbage',
+    })
+    expect(bodyOf(anonStart).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
   })
 })

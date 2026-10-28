@@ -2,11 +2,9 @@ import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import * as opaque from '@serenity-kit/opaque'
-import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
 import { isNil } from 'lodash'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
-import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
 import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
 import { AppTechCacheOpaqueService } from '@/modules/techniques/cache/service/cache.opaque'
 import { AuthSharedService } from '../../shared/shared.service'
@@ -42,7 +40,6 @@ export class AuthOpaqueCoreService {
   constructor(
     private readonly opaqueCacheService: AppTechCacheOpaqueService,
 
-    private readonly sysUserSharedService: SysUserSharedService,
     private readonly configService: ConfigService,
     private readonly authSharedService: AuthSharedService,
     private readonly userRepo: SysUserRepositoryService,
@@ -135,15 +132,12 @@ export class AuthOpaqueCoreService {
   }
 
   /**
-   * Start user registration process
+   * Start user registration process（P1-14：语义 = 已登录用户补挂/替换口令）
+   *
+   * 不再做 userName 存在性检查 —— 登录态用户的 userName 必然存在，旧「新用户注册」
+   * 查重让端点恒 40001。注册响应只依赖 userName 作为 OPAQUE identifier，不落库。
    */
   async startRegister(userName: string, registrationRequest: string) {
-    // 检查用户名是否已存�?
-    const existingUser = await this.userRepo.findUserByUserName(userName)
-    if (existingUser) {
-      throw new WalnutAdminExceptionDataExists()
-    }
-
     try {
       const { registrationResponse } = opaque.server.createRegistrationResponse({
         userIdentifier: userName,
@@ -160,30 +154,20 @@ export class AuthOpaqueCoreService {
   }
 
   /**
-   * Finish user registration process
-   * （B7a 签名适配：user/identity 写腿迁 PG —— em 取 ctx.em，两腿同事务；
-   * Mongo 版此处本就没传 session，接线后反而获得了事务原子性）
+   * Finish user registration process（P1-14，2026-10-28）
+   *
+   * 按当前登录用户的 `userId` **upsert** password identity：存在即替换 value/valueHash
+   * （补挂口令的同义操作），不存在则建 —— 不再按 userName 查重抛 DataExists，也不新建用户。
+   * 并发补挂由 `(user_id, type, purpose)` 唯一索引 + ON CONFLICT 原子收敛。
    */
   async finishRegister(
-    userName: string,
+    userId: string,
     newPassword: string,
     em?: EntityManager,
   ) {
-    // 再次检查（防止并发�?
-    const existingUser = await this.userRepo.findUserByUserName(userName)
-    if (existingUser) {
-      throw new WalnutAdminExceptionDataExists()
-    }
-
     try {
-      // 创建新用户（不设�?password
-      const newUser = await this.sysUserSharedService.createForAuthUser({
-        userName,
-      }, em)
-
-      // �?user_identity 表中创建密码凭证
-      await this.userIdentityRepo.createIdentity({
-        userId: newUser.id,
+      await this.userIdentityRepo.upsertIdentity({
+        userId,
         type: 'password',
         purpose: 'login',
         value: newPassword,
@@ -194,12 +178,12 @@ export class AuthOpaqueCoreService {
         metadata: {},
       }, em)
 
-      this.logger.log(`User registered successfully: ${userName}`)
+      this.logger.log(`Password credential upserted for userId: ${userId}`)
 
       return true
     }
     catch (error) {
-      this.logger.error(`OPAQUE registration finish failed, userName: ${userName}`, error)
+      this.logger.error(`OPAQUE registration finish failed, userId: ${userId}`, error)
       throw new WalnutAdminExceptionInvalidCredential()
     }
   }

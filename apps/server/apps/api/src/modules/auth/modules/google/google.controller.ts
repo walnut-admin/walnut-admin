@@ -20,7 +20,14 @@ import { AuthGoogleService } from './google.service'
 @ApiTags('auth/google')
 @WalnutAdminGuardJwtFree()
 @WalnutAdminGuardSignFree()
-@WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOAuthGoogleKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_GOOGLE, 'authEnable')
+// P1-17（2026-10-28）：Google 登录暂时关闭 —— 未配置（settings 缺失）即 50301，
+// 需在 app.auth.google 显式 authEnable=1 才开放。补全（email 复用 + user_identity /
+// user_oauth 绑定）前不恢复默认放行。
+@WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOAuthGoogleKeys>(
+  WalnutAdminConstAppSettingKeys.APP_AUTH_GOOGLE,
+  'authEnable',
+  { defaultClosed: true },
+)
 export class AuthGoogleController {
   private readonly logger = new Logger(AuthGoogleController.name)
 

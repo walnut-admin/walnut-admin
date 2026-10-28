@@ -8,6 +8,7 @@ import * as opaque from '@serenity-kit/opaque'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 
 import { AuthOpaqueCoreService } from '@/modules/auth/modules/opaque/core/opaque.core.service'
+import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
 
 import { WALNUT_DEFAULT_VISITOR_ROLE_UUID } from './auth-login'
 
@@ -88,6 +89,7 @@ export async function seedPermissionChainUser(
 ): Promise<SeedPermissionChainFixture> {
   const configService = app.get(ConfigService)
   const opaqueCore = app.get(AuthOpaqueCoreService)
+  const userShared = app.get(SysUserSharedService)
 
   const seedMark = randomUUID().slice(0, 8)
   const userName = `${options.userNamePrefix}-${seedMark}`
@@ -95,7 +97,8 @@ export async function seedPermissionChainUser(
   const roleMode = options.roleMode ?? WalnutAdminConstRoleMode.COMBINE
 
   // —— opaque 真实注册链（registerRootUserFixture 同款：identifiers 双端一致，
-  //    serverSetup/app.name 与服务同源配置；finishRegister 落 user + password identity）——
+  //    serverSetup/app.name 与服务同源配置；createForAuthUser 落 user，finishRegister
+  //    按 P1-14 语义补挂 password identity）——
   const appName = configService.get<string>('app.name')!
   const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password })
   const registrationResponse = await opaqueCore.startRegister(userName, registrationRequest)
@@ -111,16 +114,10 @@ export async function seedPermissionChainUser(
     'INSERT INTO sys_role (id, role_name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING',
     [WALNUT_DEFAULT_VISITOR_ROLE_UUID, `${options.userNamePrefix}-visitor-${seedMark}`],
   )
-  await opaqueCore.finishRegister(userName, registrationRecord, pgDataSource.manager)
+  const newUser = await userShared.createForAuthUser({ userName }, pgDataSource.manager)
+  await opaqueCore.finishRegister(newUser.id, registrationRecord, pgDataSource.manager)
 
-  const userRows: Array<{ id: string }> = await pgDataSource.query(
-    'SELECT id FROM sys_user WHERE user_name = $1',
-    [userName],
-  )
-  if (userRows.length === 0) {
-    throw new Error(`[seed-permissions] user row not found for ${userName}`)
-  }
-  const userId = userRows[0].id
+  const userId = newUser.id
 
   // —— 最小菜单树：CATALOG 根（pid=NULL，不挂 junction，非 root 链路由 findRootMenu 兜底）
   //    + 每个权限点一根 element 子行（permission 列 = 权限串，一行一串）——

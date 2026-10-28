@@ -14,10 +14,11 @@
 > 「钉现状」用例属于 characterization test：修复对应问题时必须同步改断言，不是测试坏了。
 >
 > 统计：**P0 × 6（P0-1 已修：2026-10-26 快照比对 → 2026-10-27 revoke-and-insert 终态；
-> P0-2 / P0-3 / P0-4 已于 2026-10-28 修复（批 1）；P0-5 登记为部署强约束、代码不改；P0-6 为文档大轮次 D 段新登记）｜
+> P0-2 / P0-3 / P0-4 已于 2026-10-28 修复（批 1）；P0-5 登记为部署强约束、代码不改；
+> P0-6 已于 2026-10-28 修复（批 A，roadmap §6））｜
 > P1 × 19（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复；P1-4 已于 2026-10-27 修复；
 > P1-1 / P1-2 / P1-3 / P1-5 / P1-6 / P1-7 / P1-8 / P1-10 / P1-11 / P1-12 已于 2026-10-28 修复（批 1）；
-> P1-13 ~ P1-17 为文档大轮次 A 段（2026-10-28）新登记；P1-18 / P1-19 为 B 段新登记，待修）｜
+> P1-13 ~ P1-17 已于 2026-10-28 修复（批 A/B，roadmap §6）；P1-18 / P1-19 为 B 段新登记，待修）｜
 > P2 × 31（批 2：P2-1 确认为安全立场设计；P2-2 ~ P2-9 已于 2026-10-28 修复；P2-10 已登记；
 > P2-11 ~ P2-15 为文档大轮次 A 段新登记；P2-16 ~ P2-20 为 B 段新登记；
 > P2-21 ~ P2-29 为文档大轮次 C 段新登记；P2-30 / P2-31 为 D 段新登记）｜
@@ -129,7 +130,7 @@
   追加会把客户端伪造值留在首位）。`deploy/nginx/conf.d/{api,frontend}.conf` 已按此口径
   修改并在原位注释；guard-matrix IP 组保留「非黑名单伪造 IP 直通」用例作为现状锚。
 
-### P0-6 app/key/current 无授权读取服务器私钥与 AES 密钥（文档大轮次 D 段，新登记）
+### P0-6 app/key/current 无授权读取服务器私钥与 AES 密钥（文档大轮次 D 段）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/app/key/key.controller.ts` 的 `@Get('current/:type')`
   （无 `@HasPermission`、无 `@WalnutAdminDecoratorHasRole`）+ `key.service.ts` 的
@@ -143,6 +144,18 @@
   → guard 放行」。root 短路让现有回归只以 root 调用，未暴露普通用户的读取面。
 - **建议**：current 挂 `@WalnutAdminDecoratorHasRole([root, developer], OR)`；更稳妥的做法是
   拆公开视图，只返回 `publicKeyPem`，私钥与 `keyB64` 永不出 HTTP。
+- **修法（2026-10-28，批 A，决策见 roadmap §6）**：
+  ① **私钥永不出 HTTP**：`AppKeyMetaTypeRaw` 删除 `privateKeyPem` 字段（init/rotate 的
+  AppKeyDTOSafe 序列化同样剔除）；`key.service.getCurrent` 只组装公开面（RSA
+  `publicKeyPem` / AES `keyB64`）；服务端请求解密改走 `getCurrentActiveKey` 的实体 meta
+  通道（`security/rsa` 同步改线）。
+  ② **RSA 视图加管理权限**：新增 `AppKeyCurrentGuard`（继承 permission.guard 判定）只对
+  `type=RSA_PAIR` 校验 `app:key:read`，非 root 未授予 → 40105；`AES_KEY_URL` 保持登录
+  可读 —— 它是 admin 前端 URL 掩码的**客户端分发密钥**（`apps/admin` 路由守卫全局按需
+  拉取，非 root 用户同样触发），且不是私钥材料；admin 对 `privateKeyPem` 零消费（grep
+  确认：仅 `keyB64` 用于 URL 掩码，RSA 公钥走公开端点 `/security/rsa/public-key`）。
+  ③ 测试：key.api-spec 断言 current/rotate 响应无 `privateKeyPem` + DB 实体仍持有私钥；
+  permission-chain spec 断言非 root 无权限用户 RSA 视图 40105、AES 视图 20000。
 
 ## P1 行为缺陷
 
@@ -322,7 +335,7 @@
   按 label 级联软删 locale，与单删同语义）。dict spec 的 40400 钉现状改为正常批量删
   （两行各落快照、读腿 40401）。
 
-### P1-13 风险层「阻塞」整条腿不可达 —— 推荐恒 shouldBlock=false + guard 自吞异常（文档大轮次 A 段，新登记）
+### P1-13 风险层「阻塞」整条腿不可达 —— 推荐恒 shouldBlock=false + guard 自吞异常（文档大轮次 A 段）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/security/risk/risk.service.ts`（`generateRecommendation`）+
   `apps/api/src/guard/risk.guard.ts`（`canActivate` 的 try/catch）。
@@ -335,8 +348,17 @@
   拒绝面，全仓无用例断言 40666。
 - **建议**：`generateRecommendation` 按 level 给出 `shouldBlock`（或明确删除该字段，别保留
   「看似有阻塞」的契约）；`catch` 只吞未知异常，`HttpException` 原样 rethrow。
+- **修法（2026-10-28，批 B，决策见 roadmap §6）**：口径定为**「风险只触发 CAP 升级，
+  不做阻塞」**。①`recommendation` 的 `shouldBlock` 字段从类型（`types.d.ts`）与全部返回
+  分支摘除，risk.guard 的两处 `if (shouldBlock) throw RiskTooHigh` 消费点同步删除 ——
+  风险结果只写 `request.risk` 供 CAP guard 消费（40116/40117 腿不变）。②risk.guard 的
+  `catch` 改为 `HttpException` 原样 rethrow（受控异常直通全局过滤器，40666 若由受控路径
+  抛出可达）、未知异常仍优雅降级。③测试：新增 `risk.service.spec.ts`（CRITICAL/MEDIUM/
+  LOW 三档推荐均无 shouldBlock、高风险 shouldChallenge=true）与 `risk.guard.spec.ts`
+  （RiskTooHigh 不被 catch 吞、未知异常降级放行）。产品口径下正常高风险走 CAP 升级，
+  **40666 不再是请求拒绝路径**（本项测试按代码现实断言 CAP 腿，非拒绝）。
 
-### P1-14 opaque register 端点在登录态恒 40001 —— P1-3 只摘 JwtFree，服务层仍是「新用户注册」
+### P1-14 opaque register 端点在登录态恒 40001 —— P1-3 只摘 JwtFree，服务层仍是「新用户注册」（文档大轮次 A 段）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/auth/modules/opaque/user/opaque.user.controller.ts`
   （`register/start`、`register/finish` 读 `req.user.userName`）+
@@ -351,8 +373,18 @@
   读 `req.user.userName`。
 - **建议**：改为「按当前 `userId` upsert password identity」（不查重、不建用户），或明确
   下线该族端点；不要把它接回新用户注册语义（与 OTP 链重复）。
+- **修法（2026-10-28，批 B，决策见 roadmap §6）**：语义定为**「已登录用户补挂口令」**。
+  ①`AuthOpaqueCoreService.startRegister` 删除 `findUserByUserName` 查重；`finishRegister`
+  签名改为 `(userId, registrationRecord, em)`，按 `userId` **upsert** password identity
+  （存在即替换 value/valueHash，不存在则建），不建用户、不再抛 DataExists；controller
+  传入 `req.user.userId`。②repo 新增 `upsertIdentity`（`ON CONFLICT (user_id,type,purpose)`，
+  并发补挂原子收敛）。③测试：opaque-admin spec 补「登录态 register start/finish →
+  identity 替换、再次补挂仍成功、匿名仍 40101」；concurrency G2 改为「同一用户两路并发
+  补挂口令 → 两路皆成功、identity 恰一行」；auth.login-chain int-spec 的注册三例改为
+  「补挂 / identity 腿回滚 / 重复补挂 upsert 替换」，新用户由 `createForAuthUser` +
+  `finishRegister` 两腿构造（新用户注册仍走 OTP 链）。
 
-### P1-15 AUTH:PERMISSIONS 缓存 TTL 放大 1000 倍 —— 秒级 setEx 收到「秒 × 1000」
+### P1-15 AUTH:PERMISSIONS 缓存 TTL 放大 1000 倍 —— 秒级 setEx 收到「秒 × 1000」（文档大轮次 A 段）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/techniques/cache/service/cache.permissions.ts`
   （`setPermissions` 的 `ttl: atTtl * 1000`）。
@@ -364,8 +396,12 @@
 - **实测证据**：本次读码钉死；同族 `cache.sign.ts`、`cache.mfa.ts` 都直接传秒，唯
   permissions 多乘 1000。
 - **建议**：去掉 `* 1000`（与 AT 同寿命或更短）；补一条 TTL 数量级断言，防回归。
+- **修法（2026-10-28，批 A，决策见 roadmap §6）**：`cache.permissions.ts` 的
+  `setPermissions` 改为 `ttl: atTtl`（秒直传，与 AT 同寿命）。测试：permission-chain
+  spec 的 `GET /auth/permissions` 用例读 Redis 实际 TTL，断言落在 `jwt.access.expire`
+  秒数量级（> atTtl-60 且 ≤ atTtl；修复前为 atTtl×1000）。
 
-### P1-16 OTP 发送端点动态限流配置不生效 —— 元数据键 Symbol 与字符串错位
+### P1-16 OTP 发送端点动态限流配置不生效 —— 元数据键 Symbol 与字符串错位（文档大轮次 A 段）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/auth/modules/otp/guard/otp.decorator.ts`
   （`SetMetadata(OTP_THROTTLE_SERVICE_KEY, ...)`，键是 `Symbol(...)`）+
@@ -379,8 +415,14 @@
   `WalnutAdminGuardThrottler`，没有 OTP send 的限流用例。
 - **建议**：抽一个共享 key 常量（或像 `WalnutAdminDecoratorThrottle` 一样导出 Symbol）；
   同步补 `blockDuration`；补 OTP send 压线用例。
+- **修法（2026-10-28，批 A，决策见 roadmap §6）**：新增共享常量
+  `guard/otp-throttle.const.ts` 的 `OTP_THROTTLE_SERVICE_KEY`（Symbol），decorator 写键与
+  guard 读键同源（避开 decorator↔guard 循环 import）；`handleRequest` 解构
+  `blockDuration` 并在动态 ttl 生效时同步覆盖。测试：otp.api-spec 以
+  `sendLimit=2 / sendTtl=600` 连发三次 —— 前两次 20000、第三次 42900，`Retry-After ≥ 30`
+  证明动态 ttl 进入 blockDuration（修复前元数据键错位、走全局 10s/120 配额）。
 
-### P1-17 Google 登录每次自动新建用户 —— 邮箱复用分支被注释，且不落 user_identity
+### P1-17 Google 登录每次自动新建用户 —— 邮箱复用分支被注释，且不落 user_identity（文档大轮次 A 段）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/auth/modules/google/google.service.ts`
   （`validateGoogle`）。
@@ -394,6 +436,13 @@
   关闭、garbage credential 本地校验失败），未走成功登录。
 - **建议**：恢复「email identity 查重 + user_oauth 绑定」逻辑（对齐 gitee/github 的
   `validateIdentity`），或在该 provider 未完成前显式关闭/下线。
+- **修法（2026-10-28，批 B，决策见 roadmap §6）**：选**端点暂时关闭**。
+  ①`@WalnutAdminDecoratorFunctionalGuard` 新增 `{ defaultClosed: true }` 选项（元数据
+  `DEFAULT_CLOSED`）：settings 缓存/键缺失时不再缺省放行而抛 50301；Google 控制器挂上该
+  选项。②`validateGoogle` 的建用户逻辑不动 —— 「同邮箱复用 + user_identity/user_oauth
+  绑定」补全登记为后续功能开发（恢复前保持 50301）。③测试：external-oauth spec 首例
+  「零配置 → 50301」，原「functional 关闭态」与「开启态 garbage → 40107」用例保留
+  （显式 authEnable=1 才进入 JWKS 校验腿）。
 
 ### P1-18 `current_role_id` 与 `sys_user_role` junction 脱钩 —— SWITCH 用户可沿用已移出角色的权限（文档大轮次 B 段，新登记）
 

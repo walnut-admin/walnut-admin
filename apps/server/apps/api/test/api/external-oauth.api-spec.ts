@@ -16,6 +16,9 @@ import { createApiApp } from './helpers/create-api-app'
  * - functional 开关关闭态（APP:SETTING 显式种 authEnable:0）：POST /auth/google、
  *   GET /auth/oauth/{gitee,github}/url → 50300 EndPointUnavailable（class 级 functional
  *   guard 在 passport guard 之前拦死）；
+ * - P1-17（2026-10-28）：Google 端点 defaultClosed —— APP:SETTING 零配置（缓存缺失）时
+ *   POST /auth/google 直接 50301（gitee/github 保持缺省放行）；开启态（authEnable=1）
+ *   才进入本地 JWKS 校验腿；
  * - 开启态：gitee/github `/url` 端点 → 构造出的跳转 URL（authorize 地址 + client_id +
  *   redirect_uri + response_type + scope + state JSON{fp,lang}）；POST /auth/google 带
  *   garbage credential → 本地 JWKS 校验失败 → 40107（不发外网）；
@@ -62,6 +65,13 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, anonClient.deviceId, fixture.userId)
     }
     await app.close()
+  })
+
+  it('P1-17 零配置默认关闭：APP:SETTING 无 app.auth.google → POST /auth/google 50301（functional guard defaultClosed）', async () => {
+    // 不写任何 settings：通用 functional 口径是缺省放行，Google 控制器用 defaultClosed
+    // 显式要求 authEnable=1 —— 缺失即 EndPointUnavailable，先于 passport/JWKS 校验。
+    const res = await anonClient.anon('POST', anonClient.apiPath('/auth/google'), { credential: 'garbage' })
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.SERVICE_UNAVAILABLE_ENDPOINT_DOWN)
   })
 
   it('functional 关闭态：google/gitee/github 三系入口全被 50301 拦在 passport guard 之前', async () => {

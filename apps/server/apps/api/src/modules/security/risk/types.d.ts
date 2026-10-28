@@ -178,7 +178,6 @@ declare global {
     overallLevel: IWalnutAdminConstRiskLevel
     allFactors: string[]
     recommendation: {
-      shouldBlock: boolean
       shouldChallenge: boolean
       shouldLog: boolean
       reason: string

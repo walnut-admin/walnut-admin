@@ -9,7 +9,6 @@ import { WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { DBTransactionHooksStore } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
-import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
 import { WalnutAdminExceptionInvalidCredential, WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AuthMfaService } from '@/modules/auth/modules/mfa/mfa.service'
@@ -44,8 +43,10 @@ import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-in
  * B7c 登录全链用例（phase3-plan §1 B7c，on real PG）—— auth 链 + security 收口后的
  * 端到端对账基准：
  *
- * - **登录/注册事务九表原子性（B7 核心验收）**：
- *   注册（opaque finishRegister：user + password identity 两腿挂调用方 em，回滚同清）；
+ * - **登录/注册事务原子性（B7 核心验收）**：
+ *   P1-14（2026-10-28）后 register 端点语义为「已登录用户补挂口令」——
+ *   `finishRegister(userId, record)` 只 upsert password identity（单腿，挂调用方 em）；
+ *   新用户由 `createForAuthUser` 建立（测试 fixture 走同一真实写腿）；
  *   登录（generateAuthTokens：refresh + user_device 联动腿同 em —— B7c 把
  *   bindDeviceForUser 收进事务后，登录事务内不再有事务外写腿）；
  * - opaque 全链（真实 crypto 栈：客户端 fixture 按服务真实用法走
@@ -201,6 +202,18 @@ describe('B7c auth login chain (on real PG)', () => {
     return registrationRecord
   }
 
+  /**
+   * P1-14 fixture：新用户注册 = createForAuthUser 建 user + finishRegister 补挂 password
+   * identity（register 端点本身只做补挂，不再建用户）。
+   */
+  async function registerOpaqueUser(userName: string, password: string) {
+    const registrationRecord = await clientRegister(userName, password)
+    const user = await userShared.createForAuthUser({ userName }, pgDataSource.manager)
+    createdUserIds.push(user.id)
+    await opaqueCore.finishRegister(user.id, registrationRecord, pgDataSource.manager)
+    return user
+  }
+
   /** OPAQUE 客户端侧登录前半段：startLogin + 服务端 startLogin → 客户端 finishLogin */
   async function clientLoginFinishRequest(userName: string, password: string, deviceId: string) {
     const appName = configService.get<string>('app.name')!
@@ -307,60 +320,58 @@ describe('B7c auth login chain (on real PG)', () => {
     await app.close()
   })
 
-  describe('opaque 注册/登录（真实 crypto 栈，B7 核心验收：注册两腿同事务）', () => {
+  describe('opaque 补挂口令/登录（真实 crypto 栈，B7 核心验收：identity 腿事务）', () => {
     const password = `pwd-${seed.slice(0, 8)}-42`
 
-    it('finishRegister：user + password identity 两腿同事务提交（value 存注册记录本体，maskedValue 兜底）', async () => {
+    it('finishRegister：按 userId 补挂 password identity（value 存注册记录本体，maskedValue 兜底）', async () => {
       const userName = unique('b7c-opaque-reg')
       const registrationRecord = await clientRegister(userName, password)
+      const user = await userShared.createForAuthUser({ userName }, pgDataSource.manager)
+      createdUserIds.push(user.id)
 
-      await opaqueCore.finishRegister(userName, registrationRecord, pgDataSource.manager)
+      await opaqueCore.finishRegister(user.id, registrationRecord, pgDataSource.manager)
 
-      const user = await userRepo.findUserByUserName(userName, pgDataSource.manager)
-      expect(user).toBeTruthy()
-      createdUserIds.push(user!.id)
-
-      const identity = await readIdentity(user!.id, 'password', 'login')
+      const identity = await readIdentity(user.id, 'password', 'login')
       expect(identity).toBeTruthy()
       expect(identity.value_hash).toBe(registrationRecord)
       expect(identity.masked_value).toBe('********')
       expect(identity.verified).toBe(true)
     })
 
-    it('注册原子性：finishRegister 两腿挂调用方 em —— 事务整体回滚则两腿同清', async () => {
+    it('补挂原子性：finishRegister 的 identity 腿挂调用方 em —— 事务整体回滚则 identity 同清', async () => {
       const userName = unique('b7c-opaque-rb')
       const registrationRecord = await clientRegister(userName, password)
+      const user = await userShared.createForAuthUser({ userName }, pgDataSource.manager)
+      createdUserIds.push(user.id)
 
       await expect(pgDataSource.transaction(async (em) => {
-        await opaqueCore.finishRegister(userName, registrationRecord, em)
-        // 两腿都已执行 —— 主动抛出触发整体回滚
+        await opaqueCore.finishRegister(user.id, registrationRecord, em)
+        // identity 腿已执行 —— 主动抛出触发整体回滚
         throw new Error('force-rollback')
       })).rejects.toThrow('force-rollback')
 
-      const user = await userRepo.findUserByUserName(userName, pgDataSource.manager)
-      expect(user).toBeNull()
-      // identity 腿同样必须被回滚清空（不能只看 user 腿；opaque 的 value_hash 即 registrationRecord）
+      // identity 腿必须被回滚清空（opaque 的 value_hash 即 registrationRecord）
       expect(await countPg('sys_user_identity', 'value_hash = $1', [registrationRecord])).toBe(0)
     })
 
-    it('重复注册：finishRegister 对已存在 userName 拒绝（写入前置查重，DataExists）', async () => {
+    it('重复补挂：finishRegister 对同一 userId upsert 替换 value/valueHash（不再 DataExists）', async () => {
       const userName = unique('b7c-opaque-dup')
-      const registrationRecord = await clientRegister(userName, password)
-      await opaqueCore.finishRegister(userName, registrationRecord, pgDataSource.manager)
-      const user = await userRepo.findUserByUserName(userName, pgDataSource.manager)
-      createdUserIds.push(user!.id)
+      const firstRecord = await clientRegister(userName, password)
+      const user = await userShared.createForAuthUser({ userName }, pgDataSource.manager)
+      createdUserIds.push(user.id)
+      await opaqueCore.finishRegister(user.id, firstRecord, pgDataSource.manager)
 
-      await expect(opaqueCore.finishRegister(userName, registrationRecord, pgDataSource.manager))
-        .rejects
-        .toThrow(WalnutAdminExceptionDataExists)
+      const secondRecord = await clientRegister(userName, `${password}-next`)
+      await expect(opaqueCore.finishRegister(user.id, secondRecord, pgDataSource.manager)).resolves.toBe(true)
+
+      const identity = await readIdentity(user.id, 'password', 'login')
+      expect(identity.value_hash).toBe(secondRecord)
+      expect(await countPg('sys_user_identity', 'user_id = $1 AND type = $2 AND purpose = $3', [user.id, 'password', 'login'])).toBe(1)
     })
 
     it('登录全链：startLogin → validateOpaqueUser（strategy 体）→ finishLogin 签发三件套 + refresh/device 同事务落库', async () => {
       const userName = unique('b7c-opaque-login')
-      const registrationRecord = await clientRegister(userName, password)
-      await opaqueCore.finishRegister(userName, registrationRecord, pgDataSource.manager)
-      const user = await userRepo.findUserByUserName(userName, pgDataSource.manager)
-      createdUserIds.push(user!.id)
+      const user = await registerOpaqueUser(userName, password)
 
       const deviceId = unique('b7c-opaque-login-dev')
       await seedDevice(deviceId)
@@ -369,23 +380,23 @@ describe('B7c auth login chain (on real PG)', () => {
 
       // strategy（guard 阶段）的 validate 体：完成 OPAQUE 校验并缓存 sessionKey
       const payload = await opaqueUser.validateOpaqueUser(userName, finishLoginRequest, deviceId)
-      expect(payload.userId).toBe(user!.id)
+      expect(payload.userId).toBe(user.id)
       expect(payload.userName).toBe(userName)
 
       // handler 阶段：finishLogin 签发（session + AT + RT + device bind，单 em）
       const { accessToken, refreshTokenJti, authSessionKey } = await opaqueCore.finishLogin(payload, deviceId, pgDataSource.manager)
 
       const decoded = await tokenService.decodeAccessToken(accessToken)
-      expect(decoded?.userId).toBe(user!.id)
+      expect(decoded?.userId).toBe(user.id)
       expect(decoded?.sid).toBeTruthy()
 
       const rtRow = await readRefreshRow(refreshTokenJti)
-      expect(rtRow.user_id).toBe(user!.id)
+      expect(rtRow.user_id).toBe(user.id)
       expect(rtRow.device_id).toBe(deviceId)
       expect(rtRow.revoked).toBe(false)
 
       // B7c 收口：登录事务里 refresh 与设备绑定联动腿同落（同一 em）
-      const deviceRow = await readUserDevice(user!.id, deviceId)
+      const deviceRow = await readUserDevice(user.id, deviceId)
       expect(deviceRow).toBeTruthy()
       expect(deviceRow.trusted).toBe(false)
 
@@ -394,10 +405,7 @@ describe('B7c auth login chain (on real PG)', () => {
 
     it('错误 finishLoginRequest：validateOpaqueUser 拒绝（InvalidCredential）', async () => {
       const userName = unique('b7c-opaque-bad')
-      const registrationRecord = await clientRegister(userName, password)
-      await opaqueCore.finishRegister(userName, registrationRecord, pgDataSource.manager)
-      const user = await userRepo.findUserByUserName(userName, pgDataSource.manager)
-      createdUserIds.push(user!.id)
+      await registerOpaqueUser(userName, password)
 
       const deviceId = unique('b7c-opaque-bad-dev')
       await seedDevice(deviceId)

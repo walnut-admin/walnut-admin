@@ -268,6 +268,12 @@ export class WalnutApiClient {
     return value !== null
   }
 
+  /** 断言用：WALNUT_CACHE_<key> 剩余 TTL（秒；-1 永不过期 / -2 键不存在） */
+  async getWalnutCacheTtl(key: string): Promise<number> {
+    const redis = this.app.get(AppTechRedisService).getClient()
+    return redis.ttl(key.startsWith('WALNUT_CACHE') ? key : `WALNUT_CACHE_${key}`)
+  }
+
   get pgDataSource(): DataSource {
     return this.app.get<DataSource>(getDataSourceToken(WalnutPGConnectionName))
   }

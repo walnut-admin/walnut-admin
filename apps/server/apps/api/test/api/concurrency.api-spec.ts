@@ -4,13 +4,12 @@ import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
 import * as opaque from '@serenity-kit/opaque'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
-import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import supertest from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AppKeyEntity } from '@/modules/app/key/entity/key.entity'
 import { AuthOpaqueCoreService } from '@/modules/auth/modules/opaque/core/opaque.core.service'
+import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
 import { AppTechCacheDeviceService } from '@/modules/techniques/cache/service/cache.device'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { performHttpOpaqueLogin, registerRootUserFixture, WALNUT_DEFAULT_VISITOR_ROLE_UUID } from './helpers/auth-login'
@@ -184,14 +183,14 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     expect(cookieJti).toBe(after[1].jti)
   })
 
-  it('G2 同名注册两路并发（service 级 finishRegister，注明）—— uq_user_name 恰一胜出、库里恰一行', async () => {
-    // HTTP 注册面仍不进本用例：P1-3 修复（2026-10-28）后 opaque register 端点去掉 JwtFree，
-    // 语义明确为「已登录用户补挂口令」（匿名调用由全局 JWT 层 40101 受控拒绝，不再是
-    // handler 解引用 req.user 的 50000），新用户注册走 OTP 链、无本端点的注册面 ——
-    // 并发面继续下沉到 service 层直测（finishRegister 即真实写腿：user + junction +
-    // password identity 三腿同事务）。
+  it('G2 同一用户两路并发补挂口令（service 级 finishRegister upsert）—— 两路皆成功、identity 恰一行', async () => {
+    // P1-14（2026-10-28）：register 语义定为「已登录用户补挂口令」—— 服务层按 userId
+    // upsert password identity（不再按 userName 查重、不建用户）。新用户注册走 OTP 链，
+    // 本端点没有注册面。并发写腿由 uq_identity(user_id,type,purpose) + ON CONFLICT
+    // 原子收敛：两路都成功，库中恰一行（旧 UQ 竞态用例随语义变更退役）。
     const configService = app.get(ConfigService)
     const opaqueCore = app.get(AuthOpaqueCoreService)
+    const userShared = app.get(SysUserSharedService)
     const appName = configService.get<string>('app.name')!
     const userName = `conc-reg-${seed8}`
 
@@ -201,13 +200,15 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
       [WALNUT_DEFAULT_VISITOR_ROLE_UUID, `conc-reg-visitor-${seed8}`],
     )
 
+    // 目标用户（真实 createForAuthUser 写腿；随后两路并发补挂同一 password identity）
+    const targetUser = await userShared.createForAuthUser({ userName }, api.pgDataSource.manager)
+    raceUserId = targetUser.id
+
     // 两份真实 opaque registration record（串行备料，竞态只在写腿）
     async function makeRecord(): Promise<string> {
       const password = `Pwd-${randomUUID().slice(0, 12)}#42`
       const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password })
-      const registrationResponse = await opaqueCore.startRegister(`${userName}-${randomUUID().slice(0, 4)}`, registrationRequest)
-      // startRegister 的存在性预检打在「带随机后缀的探针名」上，避免两份 record 备料互相挤；
-      // finishRegister 用真实同名落库（写腿预检 + uq_user_name 才是竞态判据）
+      const registrationResponse = await opaqueCore.startRegister(userName, registrationRequest)
       const { registrationRecord } = opaque.client.finishRegistration({
         clientRegistrationState,
         registrationResponse,
@@ -219,42 +220,26 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     const [recordA, recordB] = [await makeRecord(), await makeRecord()]
 
     // 两路并发：各自独立 PG 事务（与拦截器 @WalnutTx 的 queryRunner 事务同构）
-    const results = await Promise.allSettled([
-      api.pgDataSource.transaction(async em => opaqueCore.finishRegister(userName, recordA, em)),
-      api.pgDataSource.transaction(async em => opaqueCore.finishRegister(userName, recordB, em)),
+    const results = await Promise.all([
+      api.pgDataSource.transaction(async em => opaqueCore.finishRegister(raceUserId, recordA, em)),
+      api.pgDataSource.transaction(async em => opaqueCore.finishRegister(raceUserId, recordB, em)),
     ])
+    expect(results).toEqual([true, true])
 
-    const fulfilled = results.filter((r): r is PromiseFulfilledResult<boolean> => r.status === 'fulfilled')
-    const rejected = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
-    expect(fulfilled).toHaveLength(1)
-    expect(rejected).toHaveLength(1)
-
-    // 失败侧受控：预检 DataExists（40001）或 23505 收敛后的 InvalidCredential（40103）——
-    // 均非未映射 50000（若拿到裸 QueryFailedError 即为回归）
-    const reason: unknown = rejected[0].reason
-    expect(
-      reason instanceof WalnutAdminExceptionDataExists || reason instanceof WalnutAdminExceptionInvalidCredential,
-    ).toBe(true)
-
-    // 库里恰一行 user + 恰一条 password identity + 恰一条 junction（败者事务零残留）
+    // 库里恰一行 user + 恰一条 password identity（value_hash 是其中一份 record，逐字节）
     const users: Array<{ id: string }> = await api.pgDataSource.query(
       'SELECT id FROM sys_user WHERE user_name = $1',
       [userName],
     )
     expect(users).toHaveLength(1)
-    raceUserId = users[0].id
+    expect(users[0].id).toBe(raceUserId)
 
-    const identities: Array<{ c: number }> = await api.pgDataSource.query(
-      'SELECT count(*)::int AS c FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
+    const identities: Array<{ c: number, value_hash: string }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c, min(value_hash) AS value_hash FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
       [raceUserId, 'password', 'login'],
     )
     expect(identities[0].c).toBe(1)
-
-    const junctions: Array<{ c: number }> = await api.pgDataSource.query(
-      'SELECT count(*)::int AS c FROM sys_user_role WHERE user_id = $1',
-      [raceUserId],
-    )
-    expect(junctions[0].c).toBeGreaterThanOrEqual(1)
+    expect([recordA, recordB]).toContain(identities[0].value_hash)
   })
 
   it('G3 同一指纹三路并发 device/initial —— 恰一行落库，冲突侧受控 40000（P3-2：23505 单列映射，无 50000）', async () => {

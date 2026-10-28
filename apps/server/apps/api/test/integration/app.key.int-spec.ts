@@ -22,8 +22,9 @@ import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
  *   未到期不转、到期才转、转完当期换人；
  * - getCurrentActiveKey：version 最大的 ACTIVE 行（idx_app_key_status 过滤 + version 排序）。
  *
- * 消费方兼容锚点：security/rsa 只读 getCurrent('RSA_PAIR') 的 PEM 对、techniques/task
- * 只调 rotateForCronJob —— 两者出参/行为面本套用例即守卫。
+ * 消费方兼容锚点：security/rsa 的请求解密走 getCurrentActiveKey 的实体 meta（P0-6 后
+ * getCurrent 只出公钥）、techniques/task 只调 rotateForCronJob —— 两者出参/行为面本套
+ * 用例即守卫。
  */
 describe('B4 app_key (on real PG)', () => {
   let app: INestApplication
@@ -52,13 +53,24 @@ describe('B4 app_key (on real PG)', () => {
     expect(created!.version).toBe(1)
     expect(created!.status).toBe('ACTIVE')
     expect(created!.meta!.publicKeyPem).toContain('BEGIN PUBLIC KEY')
-    expect(created!.meta!.privateKeyPem).toContain('BEGIN PRIVATE KEY')
+    // P0-6 纵深防御：返回副本源码级剔除私钥（不依赖序列化器单防线）
+    expect(created!.meta).not.toHaveProperty('privateKeyPem')
     expect(created!.validEnd!.getTime()).toBeGreaterThan(Date.now())
 
-    // 消费方只读面：getCurrent 出参形态（PEM 对）
+    // DB 实体仍保留全量 meta（服务端解密通道）
+    const row: Array<{ meta: { privateKeyPem?: string } }> = await pgDataSource.query(
+      'SELECT meta FROM app_key WHERE id = $1',
+      [created!.id],
+    )
+    expect(row[0].meta.privateKeyPem).toContain('BEGIN PRIVATE KEY')
+
+    // 消费方只读面：getCurrent 出参形态（P0-6：HTTP 视图只含公钥，私钥留实体通道）
     const current = await keyService.getCurrent(AppKeyTypeConst.RSA_PAIR)
     expect(current.publicKeyPem).toBe(created!.meta!.publicKeyPem)
-    expect(current.privateKeyPem).toBe(created!.meta!.privateKeyPem)
+    expect(current).not.toHaveProperty('privateKeyPem')
+    // 实体通道：initFirst 返回的是公开副本（P0-6 纵深防御），DB 实体仍持有自己的私钥
+    expect((await keyService.getCurrentActiveKey(AppKeyTypeConst.RSA_PAIR))!.meta!.privateKeyPem)
+      .toContain('BEGIN PRIVATE KEY')
   })
 
   it('唯一键语义：同类型 initFirst 二钻抛 DataExists；uq_key 由 DB 约束兜底', async () => {

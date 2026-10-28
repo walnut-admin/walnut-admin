@@ -137,6 +137,8 @@ export class AuthOpaqueUserController {
   // P1-3 修复（2026-10-28）：register 端点的语义是「已登录用户补挂口令」（handler 读
   // req.user.userName）。原先挂 JwtFree 让匿名调用解引用 req.user → 未受控 50000；
   // 摘掉 JwtFree 后由全局 JWT 生效：未登录 40101 受控拒绝，登录态行为不变。
+  // P1-14（2026-10-28）：服务层改为按 req.user.userId upsert password identity ——
+  // 不再按 userName 查重抛 DataExists（登录态 userName 必然存在 → 旧实现恒 40001）。
   @ApiWalnutOkResponse({
     description: 'Start register with userName and registrationRequest',
     primitive: 'string',
@@ -152,6 +154,7 @@ export class AuthOpaqueUserController {
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'register')
   // P1-3：同 register/start —— 登录态路由（未登录由全局 JWT 层 40101）
+  // P1-14：finish 按 user.userId 补挂/替换 password identity（不建用户、不查重）
   @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Finish register with userName and registrationFinish',
@@ -165,7 +168,7 @@ export class AuthOpaqueUserController {
     // B7a 签名适配：user/identity 写腿迁 PG —— 传 ctx.em（该端点本就挂了
     // @WalnutTx，接线后注册两腿获得事务原子性）
     return this.authOpaqueCoreService.finishRegister(
-      user.userName,
+      user.userId,
       dto.finish,
       ctx.em,
     )

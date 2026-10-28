@@ -1,5 +1,6 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, SetMetadata, UseGuards } from '@nestjs/common'
 import { ApiParam, ApiTags } from '@nestjs/swagger'
+import { WalnutAdminConstDecoratorPermissionMetadataKey } from '@walnut-server/const/decorator/permissions'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { Role } from '@walnut/contract'
@@ -8,7 +9,13 @@ import { plainToInstance } from 'class-transformer'
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
 import { AppKeyDTOInit, AppKeyDTOSafe } from './dto/key.dto'
 import { AppKeyTypeConst, AppKeyTypeConstType } from './key.const'
+import { AppKeyCurrentGuard } from './key.current.guard'
 import { AppKeyService } from './key.service'
+
+/** P0-6：key 管理面读权限点（root 短路；只在 RSA_PAIR 视图上生效，见 AppKeyCurrentGuard） */
+const Permissions = {
+  READ: 'app:key:read',
+} as const
 
 /**
  * B4 迁移（controller 层，模板同 demo）：事务句柄 `ctx.dbSession` → `ctx.em`；
@@ -22,6 +29,8 @@ export class AppKeyController {
   @Get('current/:type')
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'type', description: 'key type enum', enum: AppKeyTypeConst })
+  @UseGuards(AppKeyCurrentGuard)
+  @SetMetadata(WalnutAdminConstDecoratorPermissionMetadataKey.PERMISSION, Permissions.READ)
   async getCurrent(
     @Param('type', new WalnutAdminPipeParamEnum(AppKeyTypeConst))
     type: AppKeyTypeConstType,

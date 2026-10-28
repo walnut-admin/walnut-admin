@@ -2,6 +2,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import type { SeedPermissionChainFixture } from './helpers/seed-permissions'
 import { randomUUID } from 'node:crypto'
+import { ConfigService } from '@nestjs/config'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
@@ -181,6 +182,13 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
 
     // 权限缓存键写入（guard 消费的就是这条通道）
     expect(await user.hasWalnutCacheKey(permissionCacheKey(fixture, user))).toBe(true)
+
+    // P1-15（2026-10-28）：缓存 TTL 与 AT 有效期同量级（修复前 atTtl*1000，30 分钟 AT
+    // 会变成 ~20.8 天）。Redis TTL 为整秒，读回最多比写入值小几秒。
+    const atTtl = app.get(ConfigService).get<number>('jwt.access.expire')!
+    const cacheTtl = await user.getWalnutCacheTtl(permissionCacheKey(fixture, user))
+    expect(cacheTtl).toBeGreaterThan(atTtl - 60)
+    expect(cacheTtl).toBeLessThanOrEqual(atTtl)
   })
 
   it('放行路径：授予的权限点端点 20000（list 过滤命中 + read 回读一致）', async () => {
@@ -291,6 +299,18 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     finally {
       await restore()
     }
+  })
+
+  it('P0-6：key current/RSA_PAIR 需 app:key:read（未授予 → 40105）；AES_KEY_URL 登录即可读且不带私钥', async () => {
+    // RSA 视图：管理面权限点，种子用户只授予 app:demo:list/read → 缓存命中但全串不匹配
+    const rsaRes = await user.root('GET', user.apiPath('/app/key/current/RSA_PAIR'))
+    expect(bodyOf(rsaRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_NO_PERMISSION)
+
+    // AES 视图：admin 前端 URL 掩码的客户端分发密钥，任一登录态用户可读（无额外权限点）；
+    // 空表时 data 为空对象 —— 只断言放行与「永不下发私钥」
+    const aesRes = await user.root('GET', user.apiPath('/app/key/current/AES_KEY_URL'))
+    expectOk(aesRes, 'key current aes (seeded non-root user)')
+    expect(bodyOf(aesRes).data).not.toHaveProperty('privateKeyPem')
   })
 
   it('root 对照：root 用户同端点 20000 且无权限缓存键（roleNames[0] 短路，不经缓存链路）', async () => {

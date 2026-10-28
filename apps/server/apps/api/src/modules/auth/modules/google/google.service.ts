@@ -24,6 +24,10 @@ export class AuthGoogleService {
 
   /**
    * @description validate user phone number
+   *
+   * P1-17（2026-10-28）：本 provider 尚未补全「同邮箱复用 + user_identity/user_oauth
+   * 绑定」，端点已用 functional defaultClosed 暂时关闭（零配置 50301）。恢复计划：
+   * 对齐 gitee/github 的 validateIdentity 语义后再移除控制器上的 defaultClosed。
    */
   async validateGoogle(
     emailAddress: string,

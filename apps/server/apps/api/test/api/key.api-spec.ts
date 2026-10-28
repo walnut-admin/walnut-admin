@@ -21,6 +21,9 @@ import { createApiApp } from './helpers/create-api-app'
  *   AES 行（int-spec 的 initFirst(AES) 同样要求空表，两个方向都安全）。
  * - init JWT_AT（P2-6 修复后）：DTO 层拒绝（40099）—— JWT_AT 由系统启动自举，不走
  *   init；旧行为「恒 20000 且不落行」已翻转。
+ * - P0-6（2026-10-28）：current/RSA_PAIR 挂 `app:key:read`（非 root 未授予 → 40105，
+ *   见 permission-chain spec），响应永不含 privateKeyPem；AES_KEY_URL 保持登录可读
+ *   （admin 前端 URL 掩码的客户端分发密钥）。
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -30,7 +33,6 @@ interface KeyMeta {
   privateKeyPem?: string
   keyB64?: string
 }
-
 interface KeyRow {
   id: string
   key?: string
@@ -111,13 +113,17 @@ describe('B 段：app/key current/init/rotate（真实 HTTP 全链 + rotate 事�
     await app.close()
   })
 
-  it('current/RSA_PAIR → 20000，返回当前 ACTIVE（version 最大）行的 PEM 对', async () => {
+  it('current/RSA_PAIR → 20000，只返回当前 ACTIVE（version 最大）行的公钥（P0-6：私钥永不出参）', async () => {
     const res = await api.root('GET', api.apiPath('/app/key/current/RSA_PAIR'))
     expectOk(res, 'key current rsa')
 
     const data = bodyOf<KeyMeta>(res).data
     expect(data.publicKeyPem).toBe(seededPublicKeyPem)
-    expect(data.privateKeyPem).toContain('BEGIN PRIVATE KEY')
+    expect(data).not.toHaveProperty('privateKeyPem')
+
+    // 服务端内部通道仍持有私钥（security/rsa 请求解密走实体 meta）
+    const row = await api.pgDataSource.getRepository(AppKeyEntity).findOne({ where: { id: seededRsa!.id } })
+    expect(row?.meta?.privateKeyPem).toContain('BEGIN PRIVATE KEY')
   })
 
   it('current/AES_KEY_URL → 20000（keyB64 形状；空表时 data 为空对象）', async () => {
@@ -137,6 +143,8 @@ describe('B 段：app/key current/init/rotate（真实 HTTP 全链 + rotate 事�
     expect(created.status).toBe('ACTIVE')
     expect(created.meta?.publicKeyPem).toBeTruthy()
     expect(created.meta?.publicKeyPem).not.toBe(seededPublicKeyPem)
+    // P0-6：init/rotate 响应同样剔除私钥（实体通道仍落库，见下方 DB 读腿）
+    expect(created.meta).not.toHaveProperty('privateKeyPem')
     createdIds.push(created.id)
 
     const repo = api.pgDataSource.getRepository(AppKeyEntity)

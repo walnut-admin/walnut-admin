@@ -4,9 +4,11 @@ import { applyDecorators, SetMetadata, UseGuards, UseInterceptors } from '@nestj
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutAdminConstDecoratorLogAuthMetadataKey, WalnutAdminInterceptorRequestAuthLog } from '@/decorators/walnut/log.auth.decorator'
 import { OtpFunctionalGuard, OtpSendFunctionalGuard } from './otp-functional.guard'
+import { OTP_THROTTLE_SERVICE_KEY } from './otp-throttle.const'
 import { OtpThrottleGuard } from './otp-throttle.guard'
 
-const OTP_THROTTLE_SERVICE_KEY = Symbol('OTP_THROTTLE_SERVICE_KEY')
+// P1-16（2026-10-28）：元数据键与 guard 共享（otp-throttle.const.ts）—— 旧实现 decorator
+// 写 Symbol、guard 读字符串，动态 sendLimit/sendTtl 从未生效。
 
 /**
  * Decorator to enable functional guard for OTP auth endpoint

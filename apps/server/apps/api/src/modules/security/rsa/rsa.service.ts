@@ -1,15 +1,13 @@
 import { Buffer } from 'node:buffer'
-import { constants, createCipheriv, createDecipheriv, generateKeyPairSync, privateDecrypt, publicEncrypt, randomBytes } from 'node:crypto'
+import { constants, createCipheriv, createDecipheriv, privateDecrypt, publicEncrypt, randomBytes } from 'node:crypto'
 
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { WalnutAdminExceptionRsaDecryptFailed } from '@walnut-server/exceptions/business/rsa'
 import { AppKeyService } from '@/modules/app/key/key.service'
 import { AppTechCacheRsaService } from '@/modules/techniques/cache/service/cache.rsa'
 
 @Injectable()
 export class SecurityRsaService {
-  private readonly logger = new Logger(SecurityRsaService.name)
-
   constructor(
     private readonly cacheRsaService: AppTechCacheRsaService,
     private readonly appKeyService: AppKeyService,
@@ -21,8 +19,9 @@ export class SecurityRsaService {
   }
 
   async getCurrentRsaPrivateKey() {
-    const target = await this.appKeyService.getCurrent('RSA_PAIR')
-    return target.privateKeyPem
+    // P0-6（2026-10-28）：getCurrent 的 HTTP 视图已剔除私钥 —— 内部解密走实体通道
+    const target = await this.appKeyService.getCurrentActiveKey('RSA_PAIR')
+    return target?.meta?.privateKeyPem
   }
 
   /**
@@ -107,17 +106,5 @@ export class SecurityRsaService {
     catch {
       throw new WalnutAdminExceptionRsaDecryptFailed()
     }
-  }
-
-  rotate() {
-    const version = Date.now().toString()
-    const pair = generateKeyPairSync('rsa', {
-      modulusLength: 2048,
-      publicKeyEncoding: { type: 'spki', format: 'pem' },
-      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
-    })
-
-    this.logger.log(`RSA key rotated: ${version}`)
-    return { ...pair, version }
   }
 }

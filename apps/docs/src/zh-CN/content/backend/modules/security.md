@@ -80,12 +80,16 @@ type })`）：要求已登录；Redis 键 `sensitive_op:<userId>:<deviceId>:<lev
 成功后才写授权键。
 
 **functional 守卫**（`WalnutAdminGuardFunctional`，经
-`@WalnutAdminDecoratorFunctionalGuard(KEY, detailKey?)`）：读 `APP:SETTING`，键缺失或
-detail 缺失时**放行**，值 `!= 1` 时 50301。这是「零配置默认开启、显式关闭才拦」的语义。
+`@WalnutAdminDecoratorFunctionalGuard(KEY, detailKey?, options?)`）：读 `APP:SETTING`，
+键缺失或 detail 缺失时**放行**，值 `!= 1` 时 50301。这是「零配置默认开启、显式关闭才拦」
+的语义。P1-17 起支持 `{ defaultClosed: true }`：键/detail 缺失即 50301（Google 登录
+暂时关闭用的就是这条 opt-in 语义）。
 
 **throttle** 不是全局 Guard，只在挂了 `@WalnutAdminDecoratorThrottle(...)` 的端点生效
 （CAP challenge/redeem、`system/device/initial`、OTP send）。tracker 默认取 `realIp`；
 OTP 的 tracker 是 `identifier:ip`。动态覆盖只改该端点的 limit/ttl，P1-10 起同步覆盖
+`blockDuration`；P1-16（2026-10-28）修正了 OTP 的元数据键（装饰器 Symbol ↔ 守卫字符串
+错位），`OtpSettingService.sendLimit/sendTtl` 自此真实生效，且动态 ttl 同步进
 `blockDuration`。超限响应是 **HTTP 200 + `body.code = 42900`**（P3-1 裁决），`Retry-After`
 头给出剩余秒数。
 
@@ -197,10 +201,10 @@ User 0.2、UserDevice 0.3。
 
 - critical factor 未处理时，推荐直接是 `shouldChallenge: true`；然后 HIGH/CRITICAL → 挑战，
   MEDIUM → 只记录，LOW → 无动作。
-- **现状（P1-13，已登记）**：`generateRecommendation` 的所有分支都把 `shouldBlock` 写死为
-  false；且 `risk.guard` 的 `throw new WalnutAdminExceptionRiskTooHigh()` 位于自身 `try` 内，
-  会被同一函数的 `catch { return true }` 吞掉。风险层的「阻塞」腿当前整条不可达，
-  只剩 CAP 挑战。评估过程任何异常也按 graceful degradation 放行。
+- **口径（P1-13，已修复，2026-10-28）：风险只触发 CAP 升级，不做阻塞**。
+  `recommendation` 不再含 `shouldBlock`（旧实现恒 false 的幻觉字段已从类型与消费点摘除），
+  risk.guard 只写 `request.risk` 供 CAP guard 消费；其 catch 只吞未知异常，受控
+  `HttpException`（如 40666 RiskTooHigh）原样放行到全局异常过滤器。
 - 失败登录计数：键 `risk:failed_login:<identifier>:<deviceId>`（Redis Hash，TTL 15 分钟），
   计数达到 **5** 次即调 `SharedIpService.addToTemporaryBlacklist`，临时封 IP 30 分钟。
 - 频率阈值（每分钟）：IP 120、设备 120、用户 120；另有一条 IP 5 分钟 400。超出按对数曲线
@@ -257,8 +261,9 @@ User 0.2、UserDevice 0.3。
   `app.auth.mfa` 只影响敏感操作的方式数，不影响该 guard。
 - **P3-1（裁决接受）**：429 语义只存在于 body.code，不放行原生 HTTP 429。
 - **P3-8（豁免）**：CAP challenge/redeem 与 OAuth SSE 不走统一响应壳，属于协议/传输语义。
-- **P1-13（新登记）**：风险层的 `shouldBlock` 恒 false；且 risk guard 自己吞掉
-  `RiskTooHigh` 异常 —— 40666 当前不可达，风险只能触发 CAP 挑战。
+- **P1-13（已修复，2026-10-28）**：风险层口径定为「只触发 CAP 升级、不做阻塞」——
+  `shouldBlock` 字段摘除；risk.guard 不再自行拒绝请求，受控异常不再被自身 catch 吞掉
+  （40666 若未来由受控路径抛出可直达全局过滤器）。
 - **P1-15（新登记）**：`AUTH:PERMISSIONS` 缓存 TTL 被写成 `AT 秒数 * 1000`，权限撤销/角色
   调整在缓存层面可驻留约 1000 倍 AT 时长；permission.guard 只读该缓存。
 - **P1-16（新登记）**：OTP 发送端点的动态限流不生效 —— 装饰器写元数据的键是 Symbol，

@@ -1,6 +1,5 @@
-import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common'
+import { CanActivate, ExecutionContext, HttpException, Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { WalnutAdminExceptionRiskTooHigh } from '@walnut-server/exceptions/base/406'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { Recordable } from 'easy-fns-ts'
 import { isNil } from 'lodash'
@@ -79,10 +78,9 @@ export class WalnutAdminGuardRisk implements CanActivate {
           evaluationDuration: AppDayjs().valueOf() - startTime,
         }
 
-        // 检查是否需要阻塞请�?
-        if (comprehensive?.recommendation.shouldBlock) {
-          throw new WalnutAdminExceptionRiskTooHigh()
-        }
+        // P1-13（2026-10-28，产品口径「风险只触发 CAP 升级，不做阻塞」）：阻塞腿
+        // 已随 recommendation.shouldBlock 一并摘除 —— 风险结果由 CAP guard 消费
+        // （shouldChallenge → 40116/40117），本 guard 不再自行拒绝请求。
 
         this.logger.debug(
           `Pre Auth risk evaluation completed - Score: ${comprehensive.overallScore}, `
@@ -130,10 +128,7 @@ export class WalnutAdminGuardRisk implements CanActivate {
         evaluationDuration: AppDayjs().valueOf() - startTime,
       }
 
-      // 检查是否需要阻塞请�?
-      if (comprehensive?.recommendation.shouldBlock) {
-        throw new WalnutAdminExceptionRiskTooHigh()
-      }
+      // P1-13：同 Pre Auth —— 风险只由 CAP guard 升级验证，不做阻塞
 
       this.logger.debug(
         `Post Auth risk evaluation completed - Score: ${comprehensive.overallScore}, `
@@ -143,6 +138,12 @@ export class WalnutAdminGuardRisk implements CanActivate {
       return true
     }
     catch (error) {
+      // P1-13：受控 HTTP 异常（如未来接入的 RiskTooHigh 40666）必须放行到全局异常
+      // 过滤器，不能被「优雅降级」吞成 20000；未知异常仍按降级放行。
+      if (error instanceof HttpException) {
+        throw error
+      }
+
       // 评估失败时降级：不拦截，继续
       this.logger.error(error)
       return true

@@ -273,7 +273,8 @@ socket 初始化时由前端主动 signout」）。AT 到期前的窗口仍可�
 三个 provider 的开关都读 `APP:SETTING` 的 `app.auth.{google,gitee,github}.authEnable`，
 经 `@WalnutAdminDecoratorFunctionalGuard` 在业务前拦截：
 
-- 缓存里没有该键 → 放行（零配置可用的既有语义）；
+- 缓存里没有该键 → 放行（零配置可用的既有语义）；**Google 例外（P1-17）**：控制器用
+  `{ defaultClosed: true }` 显式要求 `authEnable === 1`，settings 缺失即 **50301**；
 - 值不为 `1` → **50301 EndPointUnavailable**，且发生在 passport guard 之前。
 
 ### 4.2 Google（FedCM）
@@ -283,9 +284,11 @@ socket 初始化时由前端主动 signout」）。AT 到期前的窗口仍可�
   `apps/api/src/public/json/google-jwk.json` 里取公钥，`jose.jwtVerify` 校验
   `issuer`（`https://accounts.google.com` / `accounts.google.com`）与 `audience`
   （`auth.google.clientId`）；失败一律 **40107 OAuth Failed**，不发外网请求。
-- 当前实现（P1-17，已登记）：`AuthGoogleService.validateGoogle` 的「按邮箱查既有用户」
-  分支被注释掉，函数**无条件**调用 `getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser`；
-  每次有效 Google 登录都会新建一个用户，不复用既有账号、也不写 `user_identity`。
+- **P1-17（已修复，2026-10-28，端点暂时关闭）**：`AuthGoogleService.validateGoogle` 的
+  「按邮箱查既有用户」分支仍被注释，每次有效登录会新建用户且不写 `user_identity` /
+  `user_oauth`。处置 = **端点暂时关闭**（functional `defaultClosed`，settings 缺失即
+  50301）；补全（email 复用 + identity/oauth 绑定）作为后续功能开发，恢复前不要改成
+  缺省放行。
 - 本地 JWKS 是静态快照：Google 轮换签名密钥后需要更新该文件，否则新 kid 的 id_token 全 40107。
 
 ### 4.3 gitee / github（授权码 + SSE）
@@ -319,14 +322,14 @@ socket 初始化时由前端主动 signout」）。AT 到期前的窗口仍可�
 | POST `/auth/opaque/user/login/start` | JwtFree + Functional(`authEnable`) | 无 | `{ userName, start }` → base64 `loginResponse` |
 | POST `/auth/opaque/user/login/finish` | JwtFree + Functional + `AuthOpaqueUserGuard` | 无 | `{ userName, finish }` → `{ accessToken, sessionKey }` + RT cookie |
 | POST `/auth/opaque/user/login/client-error` | JwtFree | 无 | `{ userName, clientError }` → 恒 40103 |
-| POST `/auth/opaque/user/register/start` | JWT 生效（无 Free） | 无 | `{ start }` → string；已登录现状恒 40001（P1-14） |
-| POST `/auth/opaque/user/register/finish` | JWT 生效 + `@WalnutTx()` | 无 | `{ finish }` → boolean；已登录现状恒 40001（P1-14） |
+| POST `/auth/opaque/user/register/start` | JWT 生效（无 Free） | 无 | `{ start }` → string；已登录补挂口令（P1-14：不再按 userName 查重） |
+| POST `/auth/opaque/user/register/finish` | JWT 生效 + `@WalnutTx()` | 无 | `{ finish }` → boolean；按 `userId` upsert password identity（存在替换 / 不存在建） |
 | POST `/auth/opaque/user/change-password/start` | Functional(`change`) | `me:auth:opaque:changePassword` | `{ start }` → string |
 | POST `/auth/opaque/user/change-password/finish` | Functional(`change`) + `@WalnutTx()` + 操作日志 | `me:auth:opaque:changePassword` | `{ finish }` → boolean；全设备撤 RT（reason=`updatePass`） |
 | POST `/auth/opaque/admin/password/update/start` | 全链 | `system:user:pass:update` | `{ id, start }` → string |
 | POST `/auth/opaque/admin/password/update/finish` | `@WalnutTx()` + 操作日志 | `system:user:pass:update` | `{ id, finish }` → boolean；目标用户全设备撤 RT |
 | POST `/auth/opaque/admin/password/clear` | `@WalnutTx()` + 操作日志 | `system:user:pass:clear` | `{ id }` → boolean（幂等；删 password identity） |
-| POST `/auth/otp/send` | JwtFree + Sign + Functional(`authEnable`) + Functional(`sendEnable`) + OTP 限流 | 无 | `{ type, identifier }` → boolean；关闭 50301 |
+| POST `/auth/otp/send` | JwtFree + Sign + Functional(`authEnable`) + Functional(`sendEnable`) + OTP 限流（P1-16 起动态 `sendLimit`/`sendTtl` 生效且同步 blockDuration） | 无 | `{ type, identifier }` → boolean；关闭 50301 |
 | POST `/auth/otp/verify` | JwtFree + Sign + Functional(`authEnable`) + `OtpGuard` + AuthLog + `@WalnutTx()` | 无 | `{ type, identifier, verifyCode }` → `{ accessToken, sessionKey }` + RT cookie |
 | POST `/auth/refresh` | Lock/Sign/MFA/JWT/Device 全 Free + `JwtRefreshGuard` + `@WalnutTx()` | 无 | RT cookie → `{ accessToken }` + 新 RT cookie |
 | GET `/auth/mfa/status` | MFAFree + LockFree + `@WalnutTx()` | 无 | — → `[{ enabled, type }]` |
@@ -353,8 +356,10 @@ socket 初始化时由前端主动 signout」）。AT 到期前的窗口仍可�
   查 `AUTH:SESSIONS`，查无 40101。会话吊销的拦截层级因此是「JWT 先于 sign」。
 - **P0-3（已修复）**：CAP 校验缓存键掺 token 指纹，TTL 按毫秒转秒。
 - **P1-1 / P1-9（已修复）**：key rotate 读腿加锁；RT 撤销按 `(userId, deviceId)` 全量。
-- **P1-3（已修复）**：opaque register 端点摘掉 JwtFree，匿名调用 40101；但服务层仍是
-  「新用户注册」语义（查重即 40001），已登录用户调用恒失败（P1-14，新登记）。
+- **P1-3 / P1-14（已修复，2026-10-28）**：opaque register 端点摘掉 JwtFree（匿名 40101）；
+  服务层改为按 `req.user.userId` **upsert** password identity（存在即替换 value/valueHash，
+  不存在则建），不再按 userName 查重抛 40001、不建用户 —— 语义明确为「已登录用户补挂
+  口令」；新用户注册走 OTP 链。
 - **P2-1（设计立场）**：所有已登录非 visitor 用户强制 `mfaSetup=true`，无灰度开关；
   settings 的 `app.auth.mfa` 不控制该 guard。
 - **P2-9（已修复）**：`app.functional.role` 缺省为 GLOBAL/combinable，零配置下 COMBINE
@@ -362,12 +367,11 @@ socket 初始化时由前端主动 signout」）。AT 到期前的窗口仍可�
 - **P3-4（裁决接受）**：`/auth/permissions` 的 `permissionMenuTree` 顶层是「首个根节点的
   children」，单根无子级时为空数组；前端菜单装配按此形状消费。
 - **P3-5（已修复）**：webauthn verify 的 simplewebauthn 异常已包装为受控 40000。
-- **P1-14（新登记）**：`opaque/user/register/{start,finish}` 在当前登录态下恒 40001
-  （服务层先查同名用户，登录用户必然存在）；新用户注册走 OTP。
-- **P1-15（新登记）**：`AUTH:PERMISSIONS` 缓存 TTL 被写成 `AT 秒数 * 1000`（实际约 1000 倍），
-  权限变更后旧权限串会长时间驻留，直到 `/auth/permissions` 重新写入或 signout 删除。
-- **P1-17（新登记）**：Google 登录当前每次自动新建用户（邮箱复用分支被注释），且不落
-  `user_identity`；同一 Google 账号重复登录会得到不同 `userId`。
+- **P1-15（已修复，2026-10-28）**：`AUTH:PERMISSIONS` 缓存 TTL 与 AT 有效期同秒数
+  （修复前写成 `AT 秒数 * 1000`，30 分钟 AT 实际驻留 ~20.8 天）；permission-chain spec
+  断言缓存 TTL 落在 AT 秒数量级。
+- **P1-17（已修复，2026-10-28）**：Google 端点以 functional `defaultClosed` 暂时关闭
+  （零配置 → 50301）；「同邮箱复用 + user_identity/user_oauth 绑定」补全作为后续功能开发。
 - **P2-12（新登记）**：`user-kick-other` / `admin-kick` 只撤 RT，不清会话/权限/MFA 缓存；
   AT 到期前仍可用，在线设备依赖 socket 通知后自行 signout。
 - **P2-13（新登记）**：OAuth `state` 未签名且无一次性校验，SSE 频道按客户端自报 `fp` 订阅。

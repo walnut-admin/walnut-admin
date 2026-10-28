@@ -1,4 +1,4 @@
-import type { EntityManager } from 'typeorm'
+import type { EntityManager, QueryDeepPartialEntity } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
@@ -92,6 +92,31 @@ export class SysUserIdentityRepositoryService {
   ) {
     const repository = this.getRepository(em)
     return repository.save(repository.create(payload))
+  }
+
+  /**
+   * Upsert identity by (userId, type, purpose)（P1-14，2026-10-28）
+   *
+   * 用 `ON CONFLICT (user_id, type, purpose)` 原子收敛「补挂口令」：存在即替换
+   * value/valueHash（及 verified 等写面），不存在则建。并发补挂不会撞 23505 ——
+   * 唯一约束 uq_identity 见实体/迁移。
+   */
+  async upsertIdentity(
+    payload: Partial<SysUserIdentityEntity> & {
+      userId: string
+      type: IWalnutAdminConstSysUserIdentityType
+      purpose: IWalnutAdminConstSysUserIdentityPurpose
+    },
+    em?: EntityManager,
+  ) {
+    const repository = this.getRepository(em)
+
+    await repository.upsert(payload as QueryDeepPartialEntity<SysUserIdentityEntity>, {
+      conflictPaths: ['userId', 'type', 'purpose'],
+      skipUpdateIfNoValuesChanged: false,
+    })
+
+    return this.findByUserIdTypeAndPurpose(payload.userId, payload.type, payload.purpose, em)
   }
 
   // Update identity by userId, type and purpose（returnDocument: 'after' 语义，未命中 null）

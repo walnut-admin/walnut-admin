@@ -33,10 +33,20 @@ export class WalnutAdminGuardFunctional implements CanActivate {
       [context.getHandler(), context.getClass()],
     )
 
+    // P1-17：未配置态语义 —— 默认放行（历史口径）；显式 defaultClosed 的端点要求
+    // settings 存在且值为 1，缺失即 50301（Google 登录暂时关闭）。
+    const defaultClosed = this.reflector.getAllAndOverride<boolean>(
+      WalnutAdminConstDecoratorFunctionalMetadataKey.DEFAULT_CLOSED,
+      [context.getHandler(), context.getClass()],
+    ) === true
+
     const settingCache = await this.cacheAppSettingsService.getAppSettings()
 
     if (settingCache === null || !Reflect.has(settingCache, mainKey)) {
       this.logger.log(`Cache missing..., key: ${mainKey}`)
+      if (defaultClosed) {
+        throw new WalnutAdminExceptionEndPointUnavailable()
+      }
       return true
     }
 
@@ -46,6 +56,9 @@ export class WalnutAdminGuardFunctional implements CanActivate {
 
       if (parsedMainData[detailKey] === undefined) {
         this.logger.log(`Cache missing..., key: ${mainKey}, detailKey: ${detailKey}`)
+        if (defaultClosed) {
+          throw new WalnutAdminExceptionEndPointUnavailable()
+        }
         return true
       }
 
