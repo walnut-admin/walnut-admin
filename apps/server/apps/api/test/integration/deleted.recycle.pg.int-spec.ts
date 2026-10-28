@@ -21,7 +21,7 @@ import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
  * B9 —— 回收站全链对账基准（sys_deleted 收口 PG 单轨）：
  *
  * - 软删[PG]（经 3 个不同业务 repo 的 deleteSoftById，证明写入侧同一 sys_deleted 通道）；
- * - 列表/读取（populated_user JOIN、content jsonb ::text 模糊、total）；
+ * - 列表/读取（user JOIN、content jsonb ::text 模糊、total）；
  * - recover / recoverMine（恢复注册表按 modelName 路由 —— 跨 3 个集合证明路由正确；
  *   原行回来且 uuid / created_at / updated_at 形态正确；sys_deleted 行同事务删除）；
  * - 事务语义（恢复过程抛错 → 全量回滚无残留 —— 第一步恢复成功、第二步唯一约束冲突，
@@ -128,7 +128,7 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
     }
   }
 
-  it('全链正路径：软删[PG] → 列表（populated_user / content ::text / total）→ read → recover 跨 3 集合（注册表路由）', async () => {
+  it('全链正路径：软删[PG] → 列表（user / content ::text / total）→ read → recover 跨 3 集合（注册表路由）', async () => {
     const user = await insertFixtureUser()
 
     // --- 软删（三个不同集合，写入侧同一 PG 通道）---
@@ -145,7 +145,7 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
     expect(await pgDataSource.manager.count(AppDemoEntity, { where: { id: demo.id } })).toBe(0)
 
     const snapshots = await pgDataSource.manager.find(SysDeletedEntity, { where: { deletedBy: user.id } })
-    expect(new Set(snapshots.map(i => i.modelName))).toEqual(new Set(['AppDemoModel', 'AppErrorModel', 'AppKeyModel']))
+    expect(new Set(snapshots.map(i => i.modelName))).toEqual(new Set(['AppDemo', 'AppError', 'AppKey']))
     for (const snapshot of snapshots) {
       expect(typeof snapshot.content).toBe('object')
       expect(snapshot.deletedAt).toBeInstanceOf(Date)
@@ -156,13 +156,13 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
     const errorSnapshot = snapshotOf(error.id)
     const keySnapshot = snapshotOf(key.id)
 
-    // --- 列表：populated_user JOIN + total ---
+    // --- 列表：user JOIN + total ---
     const list = await deletedService.list({
       query: { deletedBy: user.id },
     } as never)
     expect(list.total).toBe(3)
     for (const row of list.data) {
-      expect(row.populated_user).toEqual({ id: user.id, userName: user.userName })
+      expect(row.user).toEqual({ id: user.id, userName: user.userName })
     }
 
     // content 是 jsonb：模糊搜索走 ::text cast（命中 demo 快照一条）
@@ -172,12 +172,12 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
     expect(byContent.total).toBe(1)
     expect(byContent.data[0]?.deletedId).toBe(demo.id)
 
-    // --- read：populated_user 闭环（B7a 过渡态的 hex→null 分支已随 B9 摘除）---
+    // --- read：user 闭环（B7a 过渡态的 hex→null 分支已随 B9 摘除）---
     const read = await deletedService.read(demoSnapshot.id)
     expect(read.id).toBe(demoSnapshot.id)
     expect(read.deletedId).toBe(demo.id)
     expect(read.content).toEqual(expect.objectContaining({ demoString: demo.demoString }))
-    expect(read.populated_user).toEqual({ id: user.id, userName: user.userName })
+    expect(read.user).toEqual({ id: user.id, userName: user.userName })
 
     // --- recover 跨 3 集合：注册表按 modelName 路由，原行回来且 uuid/时间戳形态正确 ---
     await withTx(async (em) => {

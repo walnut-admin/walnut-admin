@@ -8,7 +8,7 @@ import { WalnutAdminConstAppSettingType, WalnutAdminConstRevokeRTType } from '@w
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
-import { WalnutDBModelName } from '@walnut-server/db'
+import { WalnutModelName } from '@walnut-server/db'
 import { CacheKeyStrategy, MenuTernal, MenuType } from '@walnut/contract/menu'
 import { plainToInstance } from 'class-transformer'
 import { getMetadataStorage, validateSync } from 'class-validator'
@@ -106,7 +106,7 @@ interface IDtoEntityDriftCase {
   dtoBase: ClassConstructor<object>
   /** 对应 PG 实体类 */
   entity: ClassConstructor<object>
-  /** 软删快照路由键（WalnutDBModelName） */
+  /** 软删快照路由键（WalnutModelName） */
   modelName: string
   /**
    * 字段白名单：DTO 有而 entity 无对应列的**已知派生字段**。
@@ -117,13 +117,13 @@ interface IDtoEntityDriftCase {
 }
 
 const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
-  { dtoBase: AppDemoDTOBase, entity: AppDemoEntity, modelName: WalnutDBModelName.APP_DEMO },
-  { dtoBase: AppErrorDTOBase, entity: AppErrorEntity, modelName: WalnutDBModelName.APP_ERROR },
-  { dtoBase: AppKeyDTOBase, entity: AppKeyEntity, modelName: WalnutDBModelName.APP_KEY },
+  { dtoBase: AppDemoDTOBase, entity: AppDemoEntity, modelName: WalnutModelName.APP_DEMO },
+  { dtoBase: AppErrorDTOBase, entity: AppErrorEntity, modelName: WalnutModelName.APP_ERROR },
+  { dtoBase: AppKeyDTOBase, entity: AppKeyEntity, modelName: WalnutModelName.APP_KEY },
   {
     dtoBase: AppMonitorUserDTOBase,
     entity: AppMonitorUserEntity,
-    modelName: WalnutDBModelName.APP_MONITOR_USER,
+    modelName: WalnutModelName.APP_MONITOR_USER,
     allowlist: [
       // entity 时间列按语义改名：first_visit_at / last_active_at（monitor-user.entity
       // CreateDate/UpdateDateColumn 改名映射）；DTO 沿用 Mongo 版 wire 字段名
@@ -131,11 +131,11 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
       ['updatedAt', 'entity 时间列改名 last_active_at（monitor-user.entity），DTO 保留 Mongo 版 wire 名'],
     ],
   },
-  { dtoBase: AppSettingDTOBase, entity: AppSettingEntity, modelName: WalnutDBModelName.APP_SETTING },
+  { dtoBase: AppSettingDTOBase, entity: AppSettingEntity, modelName: WalnutModelName.APP_SETTING },
   {
     dtoBase: SharedAreaDTOBase,
     entity: SharedAreaEntity,
-    modelName: WalnutDBModelName.SHARED_AREA,
+    modelName: WalnutModelName.SHARED_AREA,
     allowlist: [
       // area.entity Q12 定案 timestamps: false 不补审计列（补了全是 ETL 当刻时间）；
       // createdAt/updatedAt 是 DTO 基座继承的展示字段
@@ -146,7 +146,7 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
   {
     dtoBase: SysDeletedDTOBase,
     entity: SysDeletedEntity,
-    modelName: WalnutDBModelName.SYS_DELETED,
+    modelName: WalnutModelName.SYS_DELETED,
     allowlist: [
       // 快照表的行时间列是 deleted_at（deleted.entity 注释：原 createdAt 改名）；
       // createdAt/updatedAt 是 DTO 基座继承的展示字段
@@ -157,7 +157,7 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
   {
     dtoBase: SysDeviceDTOBase,
     entity: SysDeviceEntity,
-    modelName: WalnutDBModelName.SYS_DEVICE,
+    modelName: WalnutModelName.SYS_DEVICE,
     allowlist: [
       // device.entity 注释：sr / vp / geo 已从 jsonb 拆成数值列（sr_height/sr_width/
       // vp_height/vp_width/geo_longitude/geo_latitude）；DTO 保留 Mongo 版嵌套形状，
@@ -167,32 +167,32 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
       ['geoLocation', '组装字段：entity 拍平列 geo_longitude/geo_latitude 重建的 GeoPoint（device.dto helper）'],
     ],
   },
-  { dtoBase: SysDictDataDTOBase, entity: SysDictDataEntity, modelName: WalnutDBModelName.SYS_DICT_DATA },
+  { dtoBase: SysDictDataDTOBase, entity: SysDictDataEntity, modelName: WalnutModelName.SYS_DICT_DATA },
   {
     dtoBase: SysDictTypeDTOBase,
     entity: SysDictTypeEntity,
-    modelName: WalnutDBModelName.SYS_DICT_TYPE,
+    modelName: WalnutModelName.SYS_DICT_TYPE,
     allowlist: [
       // populate 派生出参（Mongo 版 $lookup 出参字段名沿用）：dict_data 一对多 JOIN 计数
-      ['populated_dictData', 'populate 派生出参：dictData 关联 JOIN 组装（WalnutDBVirtualName 同族）'],
-      ['populated_dictDataCount', 'populate 派生出参：dictData 关联计数子查询'],
+      ['dictData', 'populate 派生出参：dictData 关联 JOIN 组装（WalnutVirtualName 同族）'],
+      ['dictDataCount', 'populate 派生出参：dictData 关联计数子查询'],
     ],
   },
   {
     dtoBase: SysLangDTOBase,
     entity: SysLangEntity,
-    modelName: WalnutDBModelName.SYS_LANG,
+    modelName: WalnutModelName.SYS_LANG,
     allowlist: [
       // populate 派生出参：locale 翻译进度（总数/已完成数），Mongo 版 $lookup 出参字段名沿用
-      ['populated_localesTotalCount', 'populate 派生出参：locale 总数计数子查询'],
-      ['populated_localesFinishedCount', 'populate 派生出参：locale 已完成计数子查询'],
+      ['localesTotalCount', 'populate 派生出参：locale 总数计数子查询'],
+      ['localesFinishedCount', 'populate 派生出参：locale 已完成计数子查询'],
     ],
   },
-  { dtoBase: SysLocaleDTOBase, entity: SysLocaleEntity, modelName: WalnutDBModelName.SYS_LOCALE },
+  { dtoBase: SysLocaleDTOBase, entity: SysLocaleEntity, modelName: WalnutModelName.SYS_LOCALE },
   {
     dtoBase: SysLogAuthDTOBase,
     entity: SysLogAuthEntity,
-    modelName: WalnutDBModelName.SYS_LOG_AUTH,
+    modelName: WalnutModelName.SYS_LOG_AUTH,
     allowlist: [
       // entity 时间列改名 authenticated_at（log-auth.entity 注释：原 createdAt 改名）
       ['createdAt', 'entity 时间列改名 authenticated_at（log-auth.entity），DTO 保留 Mongo 版 wire 名'],
@@ -202,7 +202,7 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
   {
     dtoBase: SysLogOperateDTOBase,
     entity: SysLogOperateEntity,
-    modelName: WalnutDBModelName.SYS_LOG_OPERATE,
+    modelName: WalnutModelName.SYS_LOG_OPERATE,
     allowlist: [
       // entity 时间列改名 operated_at（log-operate.entity CreateDateColumn 改名映射）
       ['createdAt', 'entity 时间列改名 operated_at（log-operate.entity），DTO 保留 Mongo 版 wire 名'],
@@ -212,7 +212,7 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
   {
     dtoBase: SysMenuDTOBase,
     entity: SysMenuEntity,
-    modelName: WalnutDBModelName.SYS_MENU,
+    modelName: WalnutModelName.SYS_MENU,
     allowlist: [
       // meta 组装字段：19 个拍平列的出入参组装形态（flattenSysMenuMeta /
       // assembleSysMenuMeta，menu.dto.ts B5 迁移注释）—— entity 刻意无 meta 列（Q1 定案拍平）
@@ -221,35 +221,36 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
   },
   // SysMenuMetaDTOBase 是 meta 19 字段的元数据基座，字段全部落在 SysMenuEntity 拍平列上
   // （同一实体的第二张「投影面」，modelName 与 SysMenuDTOBase 同为 SYS_MENU）
-  { dtoBase: SysMenuMetaDTOBase, entity: SysMenuEntity, modelName: WalnutDBModelName.SYS_MENU },
+  { dtoBase: SysMenuMetaDTOBase, entity: SysMenuEntity, modelName: WalnutModelName.SYS_MENU },
   {
     dtoBase: SysRoleDTOBase,
     entity: SysRoleEntity,
-    modelName: WalnutDBModelName.SYS_ROLE,
+    modelName: WalnutModelName.SYS_ROLE,
     allowlist: [
       // role junction：原 menus: ObjectId[] 拆关联表 sys_role_menu（B5），DTO 保留同名
-      // 出入参字段；populated_* 是 junction JOIN 的出参字段（Mongo 版 $lookup 名沿用）
+      // 出入参字段；usersCount / menusList 是 junction JOIN 的出参字段（L1 起去掉
+      // Mongo 版 $lookup 出参名上的 populate 前缀）
       ['menus', 'junction sys_role_menu 派生的 uuid 数组（B5 迁移，entity 无列）'],
-      ['populated_usersCount', 'populate 派生出参：usersCount 关联计数子查询'],
-      ['populated_menusList', 'populate 派生出参：menus junction JOIN 组装（match meta.status）'],
+      ['usersCount', 'populate 派生出参：usersCount 关联计数子查询'],
+      ['menusList', 'populate 派生出参：menus junction JOIN 组装（match meta.status）'],
     ],
   },
   {
     dtoBase: SysUserDTOBase,
     entity: SysUserEntity,
-    modelName: WalnutDBModelName.SYS_USER,
+    modelName: WalnutModelName.SYS_USER,
     allowlist: [
       // user.entity.ts 注释：原 roles: ObjectId[] 已拆关联表 sys_user_role（junction 承接
       // 的 uuid 数组），DTO 保留同名出入参字段 —— junction 派生，无列
       ['roles', 'junction sys_user_role 派生的 uuid 数组（user.entity 注释：原 roles 拆关联表）'],
     ],
   },
-  { dtoBase: SysUserDeviceDTOBase, entity: SysUserDeviceEntity, modelName: WalnutDBModelName.SYS_USER_DEVICE },
-  { dtoBase: SysUserIdentityDTOBase, entity: SysUserIdentityEntity, modelName: WalnutDBModelName.SYS_USER_IDENTITY },
-  { dtoBase: SysUserLockDTOBase, entity: SysUserLockEntity, modelName: WalnutDBModelName.SYS_USER_LOCK },
-  { dtoBase: SysUserMfaDTOBase, entity: SysUserMfaEntity, modelName: WalnutDBModelName.SYS_USER_MFA },
-  { dtoBase: SysUserOAuthDTOBase, entity: SysUserOauthEntity, modelName: WalnutDBModelName.SYS_USER_OAUTH },
-  { dtoBase: SysUserPreferenceDTOBase, entity: SysUserPreferenceEntity, modelName: WalnutDBModelName.SYS_USER_PREFERENCE },
+  { dtoBase: SysUserDeviceDTOBase, entity: SysUserDeviceEntity, modelName: WalnutModelName.SYS_USER_DEVICE },
+  { dtoBase: SysUserIdentityDTOBase, entity: SysUserIdentityEntity, modelName: WalnutModelName.SYS_USER_IDENTITY },
+  { dtoBase: SysUserLockDTOBase, entity: SysUserLockEntity, modelName: WalnutModelName.SYS_USER_LOCK },
+  { dtoBase: SysUserMfaDTOBase, entity: SysUserMfaEntity, modelName: WalnutModelName.SYS_USER_MFA },
+  { dtoBase: SysUserOAuthDTOBase, entity: SysUserOauthEntity, modelName: WalnutModelName.SYS_USER_OAUTH },
+  { dtoBase: SysUserPreferenceDTOBase, entity: SysUserPreferenceEntity, modelName: WalnutModelName.SYS_USER_PREFERENCE },
 ]
 
 // ─── reflection 工具 ─────────────────────────────────────────────────────────────
@@ -388,7 +389,7 @@ describe('dto ↔ entity 漂移守卫（纯 reflection，防同一形状写两�
     // recover-registry 对账：除快照表本体外，登记的 modelName 都可恢复且实体同源
     const registry = new Map(WALNUT_PG_RECOVERABLE_COLLECTIONS.map(entry => [entry.modelName, entry.entityTarget]))
     for (const { modelName, entity } of DTO_ENTITY_CASES) {
-      if (modelName === WalnutDBModelName.SYS_DELETED) {
+      if (modelName === WalnutModelName.SYS_DELETED) {
         // sys_deleted 是快照表本体，不进回收站（recover-registry 注释）
         expect(registry.has(modelName)).toBe(false)
         continue

@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, HttpCode, HttpStatus, Post, Put, Req } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
@@ -32,7 +32,7 @@ export class SysUserMfaTotpController {
 
   @Post('generate')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'generate TOTP secret and QR code',
     DTO: SysUserMfaGenerateTotpResponseDTO,
@@ -40,7 +40,7 @@ export class SysUserMfaTotpController {
   async generateTotp(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
   ) {
     const res = await this.userMfaTotpService.generateTotp(user.userId, deviceId, ctx.em)
     return new SysUserMfaGenerateTotpResponseDTO(res)
@@ -48,7 +48,7 @@ export class SysUserMfaTotpController {
 
   @Post('bind')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'bind TOTP device',
     DTO: SysUserMfaBindTotpResponseDTO,
@@ -56,7 +56,7 @@ export class SysUserMfaTotpController {
   async bindTotp(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() dto: SysUserMfaBindTotpDTO,
   ) {
     const res = await this.userMfaTotpService.bindTotp(user.userId, deviceId, dto, ctx.em)
@@ -65,18 +65,18 @@ export class SysUserMfaTotpController {
 
   @Delete('unbind')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'unbind TOTP device',
     primitive: 'boolean',
   })
-  async unbindDevice(@WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload, @WalnutDBSession() ctx: WalnutTxContext) {
+  async unbindDevice(@WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload, @WalnutTxSession() ctx: WalnutTxContext) {
     return this.userMfaTotpService.unbindTotp(user.userId, ctx.em)
   }
 
   @Post('verify')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'verify TOTP',
     DTO: AuthSuccessDTO,
@@ -85,7 +85,7 @@ export class SysUserMfaTotpController {
     @WalnutAdminDecoratorJti() jti: string,
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
     @Body() dto: SysUserMfaDeviceVerifyTotpDTO,
   ) {
@@ -100,14 +100,14 @@ export class SysUserMfaTotpController {
   @Put('status')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(PERMISSIONS_USER_MFA_TOTOP.UPDATE_STATUS)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'update TOTP device status',
     primitive: 'boolean',
   })
   async updateStatus(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() dto: SysUserMfaUpdateStatusDTO,
   ) {
     return this.userMfaTotpService.updateStatus(user.userId, dto.status, ctx.em)

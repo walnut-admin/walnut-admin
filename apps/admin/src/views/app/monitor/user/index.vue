@@ -146,7 +146,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       },
 
       {
-        key: 'populated_device.ip',
+        key: 'device.ip',
         width: 160,
         title: 'ip',
         ellipsis: {
@@ -154,13 +154,13 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
         },
       },
       {
-        key: 'populated_device.locationInfo.country',
+        key: 'device.locationInfo.country',
         width: 120,
         title: 'country',
       },
 
       {
-        key: 'populated_device.deviceInfo.browser',
+        key: 'device.deviceInfo.browser',
         width: 160,
         title: 'browser',
         ellipsis: {
@@ -169,7 +169,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       },
 
       {
-        key: 'populated_device.deviceInfo.os',
+        key: 'device.deviceInfo.os',
         title: 'os',
         width: 160,
         ellipsis: {
@@ -189,7 +189,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       },
 
       {
-        key: 'populated_user.userName',
+        key: 'user.userName',
         title: 'userName',
         width: 100,
       },
@@ -357,7 +357,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_user.userName',
+          path: 'user.userName',
           label: 'userName',
         },
         descriptionProp: {
@@ -376,7 +376,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.ip',
+          path: 'device.ip',
           label: 'ip',
         },
         descriptionProp: {
@@ -386,7 +386,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceName',
+          path: 'device.deviceName',
           label: 'deviceName',
         },
         descriptionProp: {
@@ -396,7 +396,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceInfo.type',
+          path: 'device.deviceInfo.type',
           label: 'deviceType',
         },
         descriptionProp: {
@@ -406,7 +406,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceInfo.os',
+          path: 'device.deviceInfo.os',
           label: 'os',
         },
         descriptionProp: {
@@ -416,7 +416,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceInfo.browser',
+          path: 'device.deviceInfo.browser',
           label: 'browser',
         },
         descriptionProp: {
@@ -426,7 +426,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceInfo.isp',
+          path: 'device.deviceInfo.isp',
           label: 'isp',
         },
         descriptionProp: {
@@ -436,7 +436,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceInfo.platform',
+          path: 'device.deviceInfo.platform',
           label: 'platform',
         },
         descriptionProp: {
@@ -446,7 +446,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceInfo.netType',
+          path: 'device.deviceInfo.netType',
           label: 'netType',
         },
         descriptionProp: {
@@ -457,7 +457,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.locationInfo.country',
+          path: 'device.locationInfo.country',
           label: 'country',
         },
         descriptionProp: {
@@ -467,7 +467,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.locationInfo.city',
+          path: 'device.locationInfo.city',
           label: 'city',
         },
         descriptionProp: {

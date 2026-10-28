@@ -216,7 +216,7 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     }
     const [recordA, recordB] = [await makeRecord(), await makeRecord()]
 
-    // 两路并发：各自独立 PG 事务（与拦截器 @WalnutDBTransaction 的 queryRunner 事务同构）
+    // 两路并发：各自独立 PG 事务（与拦截器 @WalnutTx 的 queryRunner 事务同构）
     const results = await Promise.allSettled([
       api.pgDataSource.transaction(async em => opaqueCore.finishRegister(userName, recordA, em)),
       api.pgDataSource.transaction(async em => opaqueCore.finishRegister(userName, recordB, em)),
@@ -398,7 +398,7 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     // DEPRECATED）会让后续 app.key.int-spec 的 initFirst 撞 DataExists（跨文件实测抓过）
     createdKeyIds.push(seeded.id)
 
-    // 两路并发 rotate（@WalnutDBTransaction 各自事务）：读腿 getCurrentActiveKey 无
+    // 两路并发 rotate（@WalnutTx 各自事务）：读腿 getCurrentActiveKey 无
     // FOR UPDATE、表上也无 (type, version) 唯一索引/ACTIVE 部分唯一索引。
     // 时序：两路读腿都在对方提交前完成（Promise.all 同拍入站，读 ~1ms；RSA-2048 keygen
     // 数十 ms 起步，commit 远在后）⇒ 两路都读到同一条种子行、各存一条 version+1。

@@ -13,4 +13,4 @@ import { WalnutPGModule } from './pg.module'
   providers: [],
   exports: [],
 })
-export class WalnutDBModule {}
+export class WalnutModule {}

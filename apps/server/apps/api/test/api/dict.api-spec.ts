@@ -1,7 +1,7 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
-import { WalnutDBModelName } from '@walnut-server/db'
+import { WalnutModelName } from '@walnut-server/db'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
@@ -31,8 +31,8 @@ interface DictTypeRow {
   name?: string
   status?: boolean
   description?: string | null
-  populated_dictDataCount?: number
-  populated_dictData?: unknown
+  dictDataCount?: number
+  dictData?: unknown
 }
 
 interface DictDataRow {
@@ -161,7 +161,7 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     expect(row.description).toBe('dict type R1')
   })
 
-  it('dictType update → 修改持久化；list 按 type 过滤 + populated_dictDataCount 计数', async () => {
+  it('dictType update → 修改持久化；list 按 type 过滤 + dictDataCount 计数', async () => {
     const created = await createDictType('U1')
     await createDictType('U2')
 
@@ -186,10 +186,10 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     expectOk(listRes, 'dict type list')
     const list = bodyOf<DictTypeListData>(listRes).data
     expect(list.total).toBe(1)
-    expect(list.data[0].populated_dictDataCount).toBe(2)
+    expect(list.data[0].dictDataCount).toBe(2)
 
     // list 出参不带关联数据本体（计数列才是 Mongo 版 $size 的对齐物）
-    expect(list.data[0].populated_dictData).toBeUndefined()
+    expect(list.data[0].dictData).toBeUndefined()
   })
 
   it('GET /system/dict/type/s?types=… → 按 type 批量回启用 data（order 升序）；未知 type 跳过', async () => {
@@ -277,7 +277,7 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
       [data.id],
     )
     expect(snapshots).toHaveLength(1)
-    expect(snapshots[0].model_name).toBe(WalnutDBModelName.SYS_DICT_DATA)
+    expect(snapshots[0].model_name).toBe(WalnutModelName.SYS_DICT_DATA)
 
     collect.dataIds = collect.dataIds.filter(id => id !== data.id)
   })
@@ -329,7 +329,7 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
       [[type.id, a.id, b.id]],
     )
     expect(snapshots).toHaveLength(1)
-    expect(snapshots[0].model_name).toBe(WalnutDBModelName.SYS_DICT_TYPE)
+    expect(snapshots[0].model_name).toBe(WalnutModelName.SYS_DICT_TYPE)
 
     collect.typeIds = []
     collect.typeKeys = collect.typeKeys.filter(key => key !== `${typePrefix}-FK1`)

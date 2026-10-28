@@ -7,7 +7,7 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti } from '@/decorators/walnut/user.decorator'
@@ -36,7 +36,7 @@ export class AuthRefreshController {
   @WalnutAdminGuardMFAFree()
   @WalnutAdminGuardJwtFree()
   @WalnutAdminGuardDeviceFree()
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description:
       'Use jti to get new accessToken & refresh token',
@@ -46,7 +46,7 @@ export class AuthRefreshController {
   async refreshAccessTokenByRefreshToken(
     @WalnutAdminDecoratorJti() jti: string,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
   ) {
     // B7b 归一：refresh 表写腿迁 PG —— 双句柄收成单 em（轮换事务全 PG）

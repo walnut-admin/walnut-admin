@@ -1,6 +1,6 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
@@ -85,7 +85,7 @@ export class SysUserMfaWebauthnController {
 
   @Post('authenticate/verify')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'verify WebAuthn authentication',
     DTO: AuthSuccessDTO,
@@ -94,7 +94,7 @@ export class SysUserMfaWebauthnController {
     @WalnutAdminDecoratorJti() jti: string,
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
     @Body() dto: SysUserMfaWebauthnAuthenticateVerifyDTO,
   ) {

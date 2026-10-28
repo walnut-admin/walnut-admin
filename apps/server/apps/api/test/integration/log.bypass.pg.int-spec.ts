@@ -209,7 +209,7 @@ describe('log bypass (fire-and-forget) on real PG', () => {
       expect(row.responseData).toEqual(
         expect.objectContaining({ data: { spec: 'ok' }, requestId: request.id }),
       )
-      expect(typeof row.correspondingMS).toBe('number')
+      expect(typeof row.durationMs).toBe('number')
       // userId 松引用：B7a 起 token 即 PG uuid，直传（Mongo 时代的 ObjectId 包装已摘）
       expect(row.userId).toBe(userId)
       expect(row.userName).toBe('spec-user')

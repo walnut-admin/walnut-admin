@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Put } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminPipeDeviceId } from '@walnut-server/pipes'
 import { plainToInstance } from 'class-transformer'
@@ -65,14 +65,14 @@ export class SysUserDeviceController {
   @Delete('force-quit/:deviceId')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.FORCE_QUIT)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'force quit user device',
     primitive: 'boolean',
   })
   async forceQuitUserDevice(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Param('deviceId', new WalnutAdminPipeDeviceId()) deviceId: string,
   ) {
     await this.userDeviceService.forceQuitUserDevice(user.userId, deviceId, ctx.em)
@@ -82,14 +82,14 @@ export class SysUserDeviceController {
   @Put('lock/:deviceId')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.LOCK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'lock user device',
     primitive: 'boolean',
   })
   async lockUserDevice(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Param('deviceId', new WalnutAdminPipeDeviceId()) deviceId: string,
   ) {
     await this.userDeviceService.lockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, ctx.em)
@@ -99,14 +99,14 @@ export class SysUserDeviceController {
   @Put('unlock/:deviceId')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.UNLOCK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'unlock user device',
     primitive: 'boolean',
   })
   async unlockUserDevice(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Param('deviceId', new WalnutAdminPipeDeviceId()) deviceId: string,
     @Body() body: SysUserLockUnLockDto,
   ) {

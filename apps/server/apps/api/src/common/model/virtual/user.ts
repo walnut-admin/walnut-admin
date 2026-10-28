@@ -2,8 +2,8 @@ import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field
 import { SysUserDTOSafe } from '@/modules/system/user/dto/user.dto'
 
 /**
- * populate 出参（Phase 5a 起 mongoose virtual 已摘除；键名 `populated_user` 沿用
- * `WalnutDBVirtualName.USER`，回收站 read 直查 PG sys_user 同源表后按此键挂载）。
+ * populate 出参（Phase 5a 起 mongoose virtual 已摘除；键名 `user` 沿用
+ * `WalnutVirtualName.USER`，回收站 read 直查 PG sys_user 同源表后按此键挂载）。
  */
 export class WalnutAdminVirtualUserDTO {
   constructor(partial: Partial<WalnutAdminVirtualUserDTO>) {
@@ -15,5 +15,5 @@ export class WalnutAdminVirtualUserDTO {
       title: 'virtual user',
     },
   })
-  populated_user?: SysUserDTOSafe | null
+  user?: SysUserDTOSafe | null
 }

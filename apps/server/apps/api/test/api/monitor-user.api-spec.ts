@@ -9,7 +9,7 @@ import { createApiApp } from './helpers/create-api-app'
 
 /**
  * B 段：`app/monitor/user` —— CRUD list/read + `POST state`（Sign/Jwt/Cap/Device 全
- * Free 的匿名上报，deviceId 取签名 cookie）+ `DELETE force-quit/:id`（@WalnutDBTransaction，
+ * Free 的匿名上报，deviceId 取签名 cookie）+ `DELETE force-quit/:id`（@WalnutTx，
  * admin-kick 撤销该用户该设备的 refresh token；socket 未装配时 sendToRoom 走 `socket?.`
  * 空安全，在线踢下线在测试环境为 no-op）。
  *
@@ -27,8 +27,8 @@ interface MonitorRow {
   auth?: boolean
   left?: boolean
   currentRouter?: string | null
-  populated_device?: { deviceId?: string, deviceName?: string } | null
-  populated_user?: { id?: string, userName?: string | null } | null
+  device?: { deviceId?: string, deviceName?: string } | null
+  user?: { id?: string, userName?: string | null } | null
 }
 
 describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全链）', () => {
@@ -109,7 +109,7 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     expect(rows[0].current_router).toBe('/dashboard')
   })
 
-  it('read → 20000，populated_device / populated_user 按 ID 装回', async () => {
+  it('read → 20000，device / user 按 ID 装回', async () => {
     monitorIdA = await createOnlineMonitorA()
 
     const res = await api.root('GET', api.apiPath(`/app/monitor/user/${monitorIdA}`))
@@ -117,9 +117,9 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
 
     const row = bodyOf<MonitorRow>(res).data
     expect(row.visitorId).toBe(visitorA)
-    expect(row.populated_device?.deviceId).toBe(api.deviceId)
-    expect(row.populated_user?.id).toBe(fixture!.userId)
-    expect(row.populated_user?.userName).toBe(fixture!.userName)
+    expect(row.device?.deviceId).toBe(api.deviceId)
+    expect(row.user?.id).toBe(fixture!.userId)
+    expect(row.user?.userName).toBe(fixture!.userName)
   })
 
   it('list → visitorId 过滤命中；匿名访客行（auth=false）userId 置空', async () => {

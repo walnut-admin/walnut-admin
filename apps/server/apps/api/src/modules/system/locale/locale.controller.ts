@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamArray } from '@walnut-server/decorators/params'
 
 import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
@@ -140,9 +140,9 @@ export class SysLocaleController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
-  @WalnutDBTransaction()
+  @WalnutTx()
   async create(
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @TransformedLocaleBody() payload: SysLocaleDTOCreateRequest[],
   ) {
     const res = await this.localeService.create(payload, ctx.em)
@@ -157,9 +157,9 @@ export class SysLocaleController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.UPDATE)
   @WalnutAdminDecoratorUpdate()
-  @WalnutDBTransaction()
+  @WalnutTx()
   async update(
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @TransformedLocaleBody() payload: SysLocaleDTOUpdateRequest[],
   ) {
     const res = await this.localeService.update(payload, ctx.em)
@@ -168,10 +168,10 @@ export class SysLocaleController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
   @WalnutAdminDecoratorDelete('key')
-  @WalnutDBTransaction()
+  @WalnutTx()
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Param('key') key: string,
   ) {
     const res = await this.localeService.deleteByKey(key, user.userId, ctx.em)
@@ -180,10 +180,10 @@ export class SysLocaleController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE_MANY)
   @WalnutAdminDecoratorDeleteMany('keys')
-  @WalnutDBTransaction()
+  @WalnutTx()
   async deleteMany(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamArray({ fieldName: 'keys' }) keys: string[],
   ) {
     const res = await this.localeService.deleteManyByKey(keys, user.userId, ctx.em)

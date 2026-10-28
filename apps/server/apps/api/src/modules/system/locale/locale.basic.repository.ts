@@ -1,7 +1,7 @@
 import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import { SysLocaleEntity } from './entity/locale.entity'
@@ -15,6 +15,6 @@ export class SysLocaleBasicRepository extends WalnutAdminCommonPgBaseRepository<
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(SysLocaleEntity, WalnutDBModelName.SYS_LOCALE, dataSource)
+    super(SysLocaleEntity, WalnutModelName.SYS_LOCALE, dataSource)
   }
 }

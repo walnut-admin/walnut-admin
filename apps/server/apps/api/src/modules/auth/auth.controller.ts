@@ -10,7 +10,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
 
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
@@ -47,7 +47,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @WalnutAdminGuardSignFree()
   @WalnutAdminGuardDeviceFree()
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Signout, remove refresh token in db',
     primitive: 'boolean',
@@ -55,7 +55,7 @@ export class AuthController {
   async signout(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
   ) {
     // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em

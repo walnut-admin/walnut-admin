@@ -2,7 +2,7 @@ import { Body, Controller } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { plainToInstance } from 'class-transformer'
 import { WalnutCrudDecorators } from '@/decorators/crud'
@@ -37,7 +37,7 @@ const { WalnutAdminDecoratorCreate, WalnutAdminDecoratorRead, WalnutAdminDecorat
 /**
  * B5 迁移模板（controller 层，B1 同款）：路由参数 ParamMongoId → uuid 参数装饰器；
  * `.toObject()` 移除，统一 plainToInstance(DTO, entity)。create/update 加
- * @WalnutDBTransaction —— menus 拆 junction 后角色行与关联行必须同事务（Mongo 版
+ * @WalnutTx —— menus 拆 junction 后角色行与关联行必须同事务（Mongo 版
  * 单文档原子，PG 版靠 em 贯通）。
  */
 @Controller('system/role')
@@ -47,9 +47,9 @@ export class SysRoleController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
-  @WalnutDBTransaction()
+  @WalnutTx()
   async create(
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() payload: SysRoleDTOCreateRequest,
   ) {
     return plainToInstance(SysRoleDTOCreateResponse, await this.roleService.create(payload, ctx.em))
@@ -63,9 +63,9 @@ export class SysRoleController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.UPDATE)
   @WalnutAdminDecoratorUpdate()
-  @WalnutDBTransaction()
+  @WalnutTx()
   async update(
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() payload: SysRoleDTOUpdateRequest,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {

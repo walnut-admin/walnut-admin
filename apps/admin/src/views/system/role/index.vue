@@ -112,7 +112,7 @@ const [
       },
 
       {
-        key: 'populated_usersCount',
+        key: 'usersCount',
         width: 120,
       },
 

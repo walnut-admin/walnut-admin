@@ -122,7 +122,7 @@ export class SysLogOperateDTOBase extends WalnutAdminCommonBasicModel {
       title: 'responsed milliseconds',
     },
   })
-  correspondingMS: number
+  durationMs: number
 
   @Expose()
   // B8 迁 PG（phase2 4.16）：user_id 松引用收 uuid，列可空 —— uuid 校验在 DTO 子类

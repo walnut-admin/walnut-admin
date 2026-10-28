@@ -21,7 +21,7 @@ import { SysDictDataDTOPopulatedDictData } from '../../dictData/dto/dictData.dto
 //
 // B3 迁移后基座仅作为 DTO 元数据保留（模型注册已随迁移从 dictType.module 摘除，
 // @Prop/@Virtual 不再有运行时语义）；PG 列型见 entity/dict-type.entity.ts，
-// populated_dictData / populated_dictDataCount 两个 virtual 在 PG 侧改为相关子查询
+// dictData / dictDataCount 两个 virtual 在 PG 侧改为相关子查询
 // （dictType.basic.repository 的 list 覆写 / getByType 的两次取数）。
 export class SysDictTypeDTOBase extends WalnutAdminCommonBasicModel {
   @WalnutAdminDecoratorFieldString({
@@ -60,14 +60,14 @@ export class SysDictTypeDTOBase extends WalnutAdminCommonBasicModel {
       title: 'populated dict data',
     },
   })
-  populated_dictData?: SysDictDataDTOPopulatedDictData
+  dictData?: SysDictDataDTOPopulatedDictData
 
   @WalnutAdminDecoratorFieldNumber({
     swaggerOptions: {
       title: `populated dict data count`,
     },
   })
-  populated_dictDataCount?: number
+  dictDataCount?: number
 }
 
 export class SysDictTypeDTO extends SysDictTypeDTOBase {

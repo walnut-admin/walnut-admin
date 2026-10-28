@@ -1,7 +1,7 @@
 import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import { SysLogOperateEntity } from './entity/log-operate.entity'
@@ -18,6 +18,6 @@ export class SysLogOperateBasicRepository extends WalnutAdminCommonPgBaseReposit
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(SysLogOperateEntity, WalnutDBModelName.SYS_LOG_OPERATE, dataSource)
+    super(SysLogOperateEntity, WalnutModelName.SYS_LOG_OPERATE, dataSource)
   }
 }

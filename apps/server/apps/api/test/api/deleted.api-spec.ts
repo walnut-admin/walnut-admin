@@ -1,7 +1,7 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
-import { WalnutDBModelName } from '@walnut-server/db'
+import { WalnutModelName } from '@walnut-server/db'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
@@ -13,7 +13,7 @@ import { createApiApp } from './helpers/create-api-app'
  * 本文件 HTTP 层复刻核心三态）：
  *
  * - 造数据（app/demo 标准.create）→ HTTP delete（软删进 sys_deleted）→
- *   read（快照 content + populated_user）/ list（content ::text 模糊过滤 + 分页）；
+ *   read（快照 content + user）/ list（content ::text 模糊过滤 + 分页）；
  * - `POST me/recover`：属主语义闭环（root 恢复自己删的行 → 原行回来 + sys_deleted 行消失）；
  *   错误路径：deletedId 不匹配 → 40401（id+deletedId 双键定位不命中）；
  * - `POST recover`（管理端 @HasRole 三角色，root 短路放行）：再造 → 管理端恢复；
@@ -35,7 +35,7 @@ interface DeletedRow {
   modelName?: string
   deletedBy?: string
   content?: Record<string, unknown>
-  populated_user?: { id: string, userName: string | null } | null
+  user?: { id: string, userName: string | null } | null
 }
 
 interface DeletedListData {
@@ -128,7 +128,7 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
     return hit!
   }
 
-  it('造数据 → 软删 → read：快照 content/modelName + populated_user；list content 模糊过滤命中', async () => {
+  it('造数据 → 软删 → read：快照 content/modelName + user；list content 模糊过滤命中', async () => {
     const demo = await createDemo('R1')
     await deleteDemoViaHttp(demo.id)
 
@@ -144,11 +144,11 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
     const read = bodyOf<DeletedRow>(readRes).data
     expect(read.id).toBe(snapshot.id)
     expect(read.deletedId).toBe(demo.id)
-    expect(read.modelName).toBe(WalnutDBModelName.APP_DEMO)
+    expect(read.modelName).toBe(WalnutModelName.APP_DEMO)
     expect(read.deletedBy).toBe(fixture!.userId)
     expect((read.content as { demoString?: string }).demoString)
       .toBe(demo.demoString!.toUpperCase()) // 快照按存储原样带回（demoString 入库大写；create 响应面是大小写宽松的，A 段 list 断言同样 toUpperCase 对拍）
-    expect(read.populated_user).toMatchObject({ id: fixture!.userId, userName: fixture!.userName })
+    expect(read.user).toMatchObject({ id: fixture!.userId, userName: fixture!.userName })
 
     // list：content ::text 关键字过滤（本组唯一标记）+ 分页
     const listRes = await api.root('POST', api.apiPath('/system/deleted/list'), {

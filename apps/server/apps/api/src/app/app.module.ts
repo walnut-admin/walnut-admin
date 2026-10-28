@@ -3,7 +3,7 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 
 import { WalnutConfigModule } from '@walnut-server/config'
 import { WalnutContextModule } from '@walnut-server/context'
-import { WalnutDBModule } from '@walnut-server/db'
+import { WalnutModule } from '@walnut-server/db'
 
 import { WalnutAdminGuardIP } from '@/guard/ip.guard'
 import { WalnutAdminGuardSecurity } from '@/guard/security.guard'
@@ -43,7 +43,7 @@ import { AppService } from './app.service'
     AppI18nModule,
 
     // Database
-    WalnutDBModule,
+    WalnutModule,
 
     AppTechModule,
 

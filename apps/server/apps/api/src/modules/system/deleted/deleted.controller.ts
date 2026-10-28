@@ -8,7 +8,7 @@ import {
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid, WalnutAdminDecoratorParamUuids } from '@walnut-server/decorators/params'
 import { Role } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
@@ -70,10 +70,10 @@ export class SysDeletedController {
   @Post('me/recover')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.RECOVER)
-  @WalnutDBTransaction()
+  @WalnutTx()
   async recoverMine(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() payload: SysDeletedDTORecoverRequest,
   ) {
     return this.deletedService.recoverMine(payload, user.userId, ctx.em)
@@ -83,14 +83,14 @@ export class SysDeletedController {
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.RECOVER)
   @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER, Role.ADMIN], WalnutAdminConstDecoratorRoleMode.OR)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @WalnutAdminDecoratorOperateLog({
     title: WalnutAdminConstDecoratorLogOperateTitle.DELETED,
     action: WalnutAdminConstDecoratorLogOperateAction.UPDATE,
     operateType: WalnutAdminConstDecoratorLogOperateType.DELETED_RECOVER,
   })
   async recover(
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() payload: SysDeletedDTORecoverRequest,
   ) {
     return this.deletedService.recover(payload, ctx.em)

@@ -87,14 +87,14 @@ module-name/
 `autoLoadEntities` 通道装载实体，**不另建 xxx.pg.module 文件**）；仓库继承 PG 基类
 `WalnutAdminCommonPgBaseRepository`，注入 `@InjectDataSource(WalnutPGConnectionName)` 的
 `DataSource` 并连同 `EntityTarget` 传给 super，名字标签取 `@walnut-server/db` 的
-`WalnutDBModelName` 常量。下面是标准形态（原文见
+`WalnutModelName` 常量。下面是标准形态（原文见
 `apps/server/apps/api/src/modules/app/demo/demo.basic.repository.ts`，新模块照抄即可）：
 
 ```typescript
 import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import { AppDemoEntity } from './entity/demo.entity'
@@ -105,7 +105,7 @@ export class AppDemoBasicRepository extends WalnutAdminCommonPgBaseRepository<Ap
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(AppDemoEntity, WalnutDBModelName.APP_DEMO, dataSource)
+    super(AppDemoEntity, WalnutModelName.APP_DEMO, dataSource)
   }
 }
 ```

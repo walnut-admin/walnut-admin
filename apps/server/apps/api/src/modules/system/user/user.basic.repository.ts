@@ -3,7 +3,7 @@ import type { IWalnutAdminRequestList } from '@/common/dto/list.dto'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import {
   applyPgListQuery,
@@ -21,11 +21,11 @@ export interface ISysUserWithRoles extends SysUserEntity {
 }
 
 /**
- * user 列表行：实体列 + Mongo 版 $lookup/$size 注入的 populated_roles_count
+ * user 列表行：实体列 + Mongo 版 $lookup/$size 注入的 roles_count
  * （sys_user_role junction 计数；对照 Mongo 版 list 的 $addFields）
  */
 export interface ISysUserListRow extends SysUserEntity {
-  populated_roles_count: number
+  roles_count: number
 }
 
 /**
@@ -36,7 +36,7 @@ export interface ISysUserListRow extends SysUserEntity {
  * - update：dto.roles 未给 时 junction 原样不动（对齐 Mongo 版逐字段赋值语义）；给了则
  *   整组替换（delete + insert，同 em 即同一事务，对齐 Mongo $set 整组覆盖）。
  * 响应行的 roles 以 uuid 数组并回（字段名与 Mongo 版一致，元素从 ObjectId hex 变 uuid）。
- * populated_roles_list / populated_roles_count 的组装在 SysUserRepositoryService
+ * roles_list / roles_count 的组装在 SysUserRepositoryService
  * （跨模块读腿同走一个入口，见 repo/user.repo.service.ts）。
  */
 @Injectable()
@@ -45,7 +45,7 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(SysUserEntity, WalnutDBModelName.SYS_USER, dataSource)
+    super(SysUserEntity, WalnutModelName.SYS_USER, dataSource)
   }
 
   public async create(dto: Partial<SysUserEntity> & { roles?: string[] }, em?: EntityManager): Promise<ISysUserWithRoles> {
@@ -96,7 +96,7 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
         .select('count(*)::int')
         .from(SysUserRoleEntity, 'user_role')
         .where('user_role.user_id = entity.id')
-    }, 'populated_roles_count')
+    }, 'roles_count')
 
     qb.addSelect(`COUNT(*) OVER()`, WALNUT_PG_LIST_TOTAL_ALIAS)
 
@@ -110,7 +110,7 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
       const row = raw[index] as Record<string, unknown> | undefined
 
       return Object.assign(entity, {
-        populated_roles_count: Number(row?.populated_roles_count ?? 0),
+        roles_count: Number(row?.roles_count ?? 0),
       })
     })
 

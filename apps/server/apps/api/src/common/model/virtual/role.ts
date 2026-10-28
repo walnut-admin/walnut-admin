@@ -3,7 +3,7 @@ import { SysRoleDTOSafe } from '@/modules/system/role/dto/role.dto'
 
 /**
  * populate 出参（Phase 5a 起 mongoose virtual 已摘除；role 列表/计数由 PG 通道组装，
- * 键名沿用 `WalnutDBVirtualName` 的 `populated_roles_list` / `populated_roles_count`）。
+ * 键名沿用 `WalnutVirtualName` 的 `roles_list` / `roles_count`）。
  */
 export class WalnutAdminVirtualRolesListDTO {
   constructor(partial: Partial<WalnutAdminVirtualRolesListDTO>) {
@@ -16,7 +16,7 @@ export class WalnutAdminVirtualRolesListDTO {
       title: 'virtual roles list',
     },
   })
-  populated_roles_list?: SysRoleDTOSafe[] | null
+  roles_list?: SysRoleDTOSafe[] | null
 }
 
 export class WalnutAdminVirtualRolesCountDTO {
@@ -29,5 +29,5 @@ export class WalnutAdminVirtualRolesCountDTO {
       title: 'virtual roles count',
     },
   })
-  populated_roles_count?: number | null
+  roles_count?: number | null
 }

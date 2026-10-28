@@ -1,7 +1,7 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
-import { WalnutDBModelName } from '@walnut-server/db'
+import { WalnutModelName } from '@walnut-server/db'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
@@ -213,7 +213,7 @@ describe('A 段试点：app/demo 标准 CRUD（真实 HTTP 全链）', () => {
         [id],
       )
     expect(deletedRows).toHaveLength(1)
-    expect(deletedRows[0].model_name).toBe(WalnutDBModelName.APP_DEMO)
+    expect(deletedRows[0].model_name).toBe(WalnutModelName.APP_DEMO)
     expect(deletedRows[0].deleted_by).toBe(userId)
   })
 

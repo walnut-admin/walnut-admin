@@ -34,23 +34,23 @@ export class SysUserDeviceService {
     const list = await this.userDeviceRepo.findAllDevicesForCurrentUser(userId)
 
     const res = await Promise.all(list.map(async (item) => {
-      const populated_device = await this.deviceRepoService.findDeviceByDeviceId(item.deviceId)
-      const populated_monitor_user = populated_device
+      const device = await this.deviceRepoService.findDeviceByDeviceId(item.deviceId)
+      const monitorUser = device
         ? await this.appMonitorUserRepo.findFirstByDeviceId(item.deviceId)
         : null
 
-      return { item, populated_device, populated_monitor_user }
+      return { item, device, monitorUser }
     }))
 
-    const promises = await Promise.all(res.map(async ({ item, populated_device, populated_monitor_user }) => ({
+    const promises = await Promise.all(res.map(async ({ item, device, monitorUser }) => ({
       deviceId: item?.deviceId,
       deviceName: item?.deviceName,
       locked: item?.locked,
       lastActiveAt: item?.lastActiveAt,
-      deviceType: (populated_device?.deviceInfo?.type as string) ?? undefined,
+      deviceType: (device?.deviceInfo?.type as string) ?? undefined,
       current: item?.deviceId === deviceId,
-      auth: (populated_monitor_user?.auth as boolean) ?? undefined,
-      location: populated_device ? getDeviceLocationString(populated_device) : undefined,
+      auth: (monitorUser?.auth as boolean) ?? undefined,
+      location: device ? getDeviceLocationString(device) : undefined,
     })))
 
     return promises.sort((a, b) => (b.lastActiveAt?.getTime() ?? 0) - (a.lastActiveAt?.getTime() ?? 0))

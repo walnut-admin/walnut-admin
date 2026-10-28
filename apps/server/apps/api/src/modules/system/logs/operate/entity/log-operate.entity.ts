@@ -72,11 +72,12 @@ export class SysLogOperateEntity {
   @Column({ type: 'text', name: 'raw_response_data', nullable: true })
   rawResponseData: string | null
 
-  // B8：属性名保持 Mongo 字段 `correspondingMS`（列名仍 corresponding_ms）——
-  // DTO 链以 schema 属性名为元数据基座、前端按 `correspondingMS` 读取，
+  // L1 de-Mongo 命名：属性名与列名解耦 —— 列名 corresponding_ms 保留（@Column name
+  // 映射，零迁移），属性名改 `durationMs`（语义即耗时毫秒，写入点 log.operate.decorator
+  // 同步）；DTO 链以 schema 属性名为元数据基座、前端按 `durationMs` 读取，
   // plainToInstance 按源属性名拷贝，实体属性名错位会让出参丢字段
   @Column({ type: 'integer', name: 'corresponding_ms', nullable: true })
-  correspondingMS: number | null
+  durationMs: number | null
 
   // 松引用
   @Index('idx_log_operate_user')

@@ -74,7 +74,7 @@ Swagger 缺口：@nestjs/swagger 仍无官方 zod→OpenAPI 一等支持——�
 
 | # | 项 | 内容 | 成本 | 窗口性 |
 |---|---|---|---|---|
-| L1 | **de-Mongo 命名清理打包 PR** | `populated_*` 键名（两端同步，约 8 个 admin 文件 + 15 个测试文件 + 漂移守卫）；`correspondingMS` 顺路；`WalnutDBTransaction/Session` → `WalnutTx*`、`WalnutDBModelName` 族改名。**关键窗口：modelName 的值（'SysUserModel' 等）已写进 sys_deleted 快照行——趁本地存量为 0 现在改名最便宜，拖久成本上升** | M | ★ 时间窗口型 |
+| L1 | **de-Mongo 命名清理打包 PR**（✅ 已执行 2026-10-28） | `populated_*` 键名（两端同步，约 8 个 admin 文件 + 15 个测试文件 + 漂移守卫）；`correspondingMS` 顺路；`WalnutDBTransaction/Session` → `WalnutTx*`、`WalnutDBModelName` 族改名。**关键窗口：modelName 的值（'SysUserModel' 等）已写进 sys_deleted 快照行——趁本地存量为 0 现在改名最便宜，拖久成本上升**（执行记录：全族 `populated_*` 去 populate 前缀、`WalnutDBModelName`→`WalnutModelName` 且 24 值去 Model 后缀、`WalnutTx`/`WalnutTxSession`、`correspondingMS`→`durationMs` 列名不动） | M | ★ 时间窗口型 |
 | L2 | **listAggregate sort 收紧** | 各列表 DTO 的 sort 白名单收敛到有索引支撑的列集；高频模糊字段按需补 trgm GIN（全库仅 sys_locale.key 一个）。`{query,sort,page}` 契约本身不动（前端 table 组件长在上面） | S~M/实体 | 渐进型 |
 | L3 | **appSettings 读取小手术** | `getSetting` 每调用 `JSON.parse` 整对象且每请求都过 functional.guard——进程内 memo + 写后失效（复用现有 after-commit 钩子时序）；LISTEN/NOTIFY 多实例失效列可选后续 | S | 随时可做 |
 
@@ -93,8 +93,8 @@ Swagger 缺口：@nestjs/swagger 仍无官方 zod→OpenAPI 一等支持——�
 | murlock/Redis 锁主体 | 4 处中 3 处保护跨实例 Redis 状态机（sign 票据 / failedLogin 恰好一次 / lock guard），PG advisory lock 反而让锁与被保护状态分居两系统。唯一可收敛：device.guard 的 IP 写改单条幂等 UPDATE（S，低优） |
 | shared_area 不上 ltree | 真实查询形态是逐级下钻（pcode 等值），btree 已最优；整子树拉取任何索引都救不了；CTE+CYCLE 正确且有环保护。未来出现前缀搜索需求再评估 |
 | socket/bull/mailer 周边 | rg 证实零 Mongo 耦合 |
-| `correspondingMS` 单字段 | 已有书面决策（B8），admin 在读，单字段改名收益≈0（若做 L1 顺路） |
-| @WalnutDBTransaction 命名 | 纯命名层，并入 L1 打包，不单独立项 |
+| `correspondingMS` 单字段 | 已有书面决策（B8），admin 在读，单字段改名收益≈0；✅ 已随 L1（2026-10-28）顺路改 `durationMs`（列名 `corresponding_ms` 不动，零迁移） |
+| @WalnutDBTransaction 命名 | 纯命名层；✅ 已随 L1（2026-10-28）改为 `WalnutTx` / `WalnutTxSession` |
 
 ### 4.3 已完成的相关修复（本次，13a593e）
 
@@ -110,5 +110,5 @@ cap/SSE 无壳面登记（P2-10 / P3-8，DESIGN-ISSUES 现 35 条）。
 2. **OpenAPI codegen 第一期**：是否启动（方案见 §3，低风险）。
 3. **ETL 工具链去留**：保留为再灌通道 or 封存退役（建议：保留 seed-pg/export-pg，
    封存 etl-map/ejson/uuid5 为 archived 目录或直接删除——Mongo 备份已无再灌场景后即失效）。
-4. **L1 命名清理窗口**：建议下一个功能迭代前执行（依赖 sys_deleted 存量为 0 的窗口）。
+4. **L1 命名清理窗口**：✅ 已于 2026-10-28 执行（在 sys_deleted 存量为 0 的窗口内完成，见 §4.1 L1 执行记录）。
 5. **admin 闲置 zod 依赖**：删除或注明用途。

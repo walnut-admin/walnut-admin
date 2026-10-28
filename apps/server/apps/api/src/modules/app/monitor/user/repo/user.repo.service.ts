@@ -127,7 +127,7 @@ export class AppMonitorUserRepositoryService {
   }
 
   /**
-   * @description 按行 id 查 sys_user 简要字段（read 的 populated_user 出参）
+   * @description 按行 id 查 sys_user 简要字段（read 的 user 出参）
    */
   async findUserBriefById(userId: string, em?: EntityManager) {
     const user = await this.getManager(em)

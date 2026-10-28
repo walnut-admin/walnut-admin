@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Request } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
@@ -48,14 +48,14 @@ export class SysUserIdentityController {
 
   @Get('status/:purpose')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Get current user identity status',
     DTO: SysUserIdentityStatusResponseDTO,
   })
   async getStatus(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose))
     purpose: IWalnutAdminConstSysUserIdentityPurpose,
   ) {
@@ -81,14 +81,14 @@ export class SysUserIdentityController {
 
   @Post('bind/:type/:purpose')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Bind identity (step 2: verify code and create)',
     primitive: 'boolean',
   })
   async bind(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityBindRequestDTO,
@@ -99,14 +99,14 @@ export class SysUserIdentityController {
 
   @Delete('unbind/:type/:purpose')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Unbind identity',
     primitive: 'boolean',
   })
   async unbind(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
   ) {
@@ -116,14 +116,14 @@ export class SysUserIdentityController {
 
   @Put('update/:type/:purpose')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Update identity (rebind)',
     primitive: 'boolean',
   })
   async update(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityUpdateDTO,
@@ -134,7 +134,7 @@ export class SysUserIdentityController {
 
   @Post('send-code/:type/:purpose')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Send verification code to existing unverified identity',
     primitive: 'boolean',
@@ -151,14 +151,14 @@ export class SysUserIdentityController {
 
   @Post('verify/:type/:purpose')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Verify identity',
     primitive: 'boolean',
   })
   async verify(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityVerifyRequestDTO,
@@ -169,7 +169,7 @@ export class SysUserIdentityController {
 
   @Put('status/:type/:purpose')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Update identity status (enable/disable)',
     primitive: 'boolean',
@@ -181,7 +181,7 @@ export class SysUserIdentityController {
   })
   async updateStatus(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Param('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityType)) type: IWalnutAdminConstSysUserIdentityType,
     @Param('purpose', new WalnutAdminPipeParamEnum(WalnutAdminConstSysUserIdentityPurpose)) purpose: IWalnutAdminConstSysUserIdentityPurpose,
     @Body() dto: SysUserIdentityStatusRequestDTO,

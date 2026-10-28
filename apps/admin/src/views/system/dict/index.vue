@@ -143,7 +143,7 @@ const [
       },
 
       {
-        key: 'populated_dictDataCount',
+        key: 'dictDataCount',
         width: 100,
       },
 

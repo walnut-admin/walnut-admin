@@ -1,20 +1,20 @@
 # @walnut-server/db
 
-MongoDB/Mongoose database module for the application. Provides connection configuration with replica set support, a transaction interceptor with post-commit hooks, custom injection decorators, and constants for all 22 collection names, model names, and virtual populate names.
+PostgreSQL (TypeORM) database module for the application. Provides the PG connection module, a request-scoped transaction interceptor with post-commit hooks, transaction decorators, and the model / virtual-populate name constants consumed across the API (soft-delete snapshot routing and recover registry included).
 
 ## Exports
 
 | Export | Type | Description |
 |--------|------|-------------|
-| `WalnutDBModule` | NestJS Module | Configures `MongooseModule.forRootAsync` with the primary connection |
-| `WalnutDBConnectionName` | `string` | Primary connection name constant: `'WalnutPrimaryConnectionDatabase'` |
-| `WalnutDBCollectionName` | `const` object | 22 MongoDB collection name constants (e.g., `SYS_USER: 'sys_user'`) |
-| `WalnutDBModelName` | `const` object | 22 Mongoose model name constants (e.g., `SYS_USER: 'SysUserModel'`) |
-| `WalnutDBVirtualName` | `const` object | 7 virtual populate name constants (e.g., `USER: 'populated_user'`) |
-| `WalnutDBInjectModel(name)` | Decorator function | `InjectModel` bound to the primary connection |
-| `WalnutDBInjectConnection()` | Decorator function | `InjectConnection` bound to the primary connection |
-| `WalnutDBTransaction()` | Method decorator | Applies `TransactionInterceptor` to start/commit/abort a Mongoose session |
-| `WalnutDBSession` | Param decorator | Extracts `request.mongooseSession` as controller method parameter |
+| `WalnutModule` | NestJS Module | DB assembly module (imports `WalnutPGModule`; Phase 5a 起 PG 单引擎) |
+| `WalnutPGModule` | NestJS Module | Configures TypeORM for the PG datasource (`autoLoadEntities`) |
+| `WalnutPGConnectionName` | `string` | PG connection name constant: `'WalnutPGConnection'` |
+| `WalnutModelName` | `const` object | 24 model name constants used as the soft-delete snapshot `modelName` routing key (e.g., `SYS_USER: 'SysUser'`) |
+| `WalnutVirtualName` | `const` object | 6 virtual populate wire-key constants (e.g., `USER: 'user'`, `ROLES_LIST: 'roles_list'`) |
+| `WalnutTx()` | Method decorator | Applies `WalnutTxInterceptor` — starts the PG transaction (QueryRunner) and commits/rolls it back around the handler |
+| `WalnutTxSession` | Param decorator | Extracts `request.txContext` (`WalnutTxContext`) as a controller method parameter |
+| `WalnutTxContext` | Interface | `{ em: EntityManager }` — the in-transaction EntityManager all data paths must use |
+| `WalnutTxInterceptor` | Interceptor | Starts a PG transaction via `createQueryRunner()`, commits on success, rolls back on error, then runs post-commit hooks from `DBTransactionHooksStore` |
 | `registerAfterCommitHook(hook)` | Function | Registers a post-commit hook (strict — throws if no transaction context) |
 | `runAfterCommit(hook)` | Function | Registers a post-commit hook (lenient — runs inline if no transaction) |
 
@@ -22,66 +22,57 @@ MongoDB/Mongoose database module for the application. Provides connection config
 
 | File | Purpose |
 |------|---------|
-| `src/db.module.ts` | Module definition — imports `MongooseModule.forRootAsync` using `WalnutDBConfigService` |
-| `src/db.service.ts` | `WalnutDBConfigService` implementing `MongooseOptionsFactory`. Builds the MongoDB URI from config (`user:pass@primary,secondary,arbiter`), sets `dbName`, `authSource`, `replicaSet`, and registers `logExecutionTime` plugin on every connection. |
-| `src/db.const.ts` | All constant definitions: connection name, 22 collection names, 22 model names, 7 virtual populate names |
-| `src/db.decorator.ts` | Custom decorators: `InjectModel`/`InjectConnection` wrappers bound to the primary connection, `@WalnutDBTransaction()` composite decorator, `@WalnutDBSession()` param decorator |
-| `src/transaction.interceptor.ts` | `TransactionInterceptor` — starts a Mongoose `ClientSession`, runs the handler, commits on success or aborts on error. Executes post-commit hooks from `DBTransactionHooksStore`. |
+| `src/db.module.ts` | `WalnutModule` — DB assembly (only `WalnutPGModule` since Phase 5a) |
+| `src/pg.module.ts` | `WalnutPGModule` — TypeORM root datasource configuration via `WalnutPGConfigService` |
+| `src/pg.service.ts` | `WalnutPGConfigService` implementing `TypeOrmOptionsFactory` (reads the `DATABASE_PG_*` env group) |
+| `src/pg.const.ts` | `WalnutPGConnectionName` |
+| `src/db.const.ts` | `WalnutModelName` (24 model names) and `WalnutVirtualName` (6 virtual populate keys) |
+| `src/db.decorator.ts` | `@WalnutTx()` composite method decorator and `@WalnutTxSession()` param decorator |
+| `src/tx.interceptor.ts` | `WalnutTxInterceptor` — QueryRunner-based PG transaction, commit/rollback + post-commit hooks |
+| `src/tx-context.ts` | `WalnutTxContext` (`{ em }`), mounted on `request.txContext` |
 | `src/db.hook.ts` | `DBTransactionHooksStore` (AsyncLocalStorage). `registerAfterCommitHook()` for strict usage (must have a transaction), `runAfterCommit()` for lenient usage (runs inline if no transaction context). |
-
-### Collection & Model Constants
-
-The module defines 22 collections across these domains:
-
-| Domain | Collections |
-|--------|-------------|
-| System | `sys_role`, `sys_user`, `sys_user_oauth`, `sys_user_preference`, `sys_user_lock`, `sys_user_device`, `sys_user_mfa`, `sys_user_identity`, `sys_menu`, `sys_lang`, `sys_locale`, `sys_deleted`, `sys_device` |
-| Logs | `sys_log_operate`, `sys_log_auth` |
-| Dictionary | `sys_dict_type`, `sys_dict_data` |
-| Shared | `shared_area` |
-| App | `app_setting`, `app_demo`, `app_monitor_user`, `app_error`, `app_key` |
-| Auth | `auth_refresh_token` |
 
 ## Usage
 
 ```typescript
 // 1. Import in root AppModule
-import { WalnutDBModule } from '@walnut-server/db'
+import { WalnutModule } from '@walnut-server/db'
 
 @Module({
-  imports: [WalnutDBModule],
+  imports: [WalnutModule],
 })
 export class AppModule {}
 
-// 2. Inject models using the wrapper decorator
-import { WalnutDBInjectModel, WalnutDBModelName } from '@walnut-server/db'
+// 2. PG repositories take the EntityTarget + model name and the PG datasource
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
 @Injectable()
-export class UserBasicRepository {
+export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<SysUserEntity> {
   constructor(
-    @WalnutDBInjectModel(WalnutDBModelName.SYS_USER)
-    readonly dbModel: IUserModel,
-  ) {}
+    @InjectDataSource(WalnutPGConnectionName)
+    dataSource: DataSource,
+  ) {
+    super(SysUserEntity, WalnutModelName.SYS_USER, dataSource)
+  }
 }
 
-// 3. Use transaction decorator on controller methods
-import { WalnutDBTransaction, WalnutDBSession } from '@walnut-server/db'
+// 3. Use the transaction decorator on controller methods
+import { WalnutTx, WalnutTxSession } from '@walnut-server/db'
 
 @Post()
-@WalnutDBTransaction()
-async create(@Body() dto: CreateDTO, @WalnutDBSession() session: ClientSession) {
-  return this.service.create(dto, session)
+@WalnutTx()
+async create(@Body() dto: CreateDTO, @WalnutTxSession() ctx: WalnutTxContext) {
+  return this.service.create(dto, ctx.em)
 }
 
 // 4. Post-commit hooks in service layer
 import { runAfterCommit } from '@walnut-server/db'
 
-async create(dto: CreateDTO) {
-  const user = new this.userModel(dto)
-  await user.save({ session: dbSession })
+async create(dto: CreateDTO, em: EntityManager) {
+  const user = await this.repository.create(dto, em)
 
   await runAfterCommit(async () => {
-    await this.cacheService.invalidateUserCache(user._id)
+    await this.cacheService.invalidateUserCache(user.id)
   })
 
   return user
@@ -91,12 +82,10 @@ async create(dto: CreateDTO) {
 ## Dependencies
 
 - **Internal**: None (self-contained, uses self-imports for constants and decorators)
-- **External**: `@nestjs/mongoose`, `@nestjs/config`, `mongoose` (including `mongoose-execution-time` plugin)
+- **External**: `@nestjs/typeorm`, `typeorm`
 
 ## Notes
 
-- MongoDB **must** run in replica set mode for transactions to work
-- The connection URI is built from `database.user`, `database.pass`, `database.primary`, `database.secondary`, and `database.arbiter` config values
-- `WalnutDBConfigService` depends on `ConfigService` from `@nestjs/config` being available (satisfied by importing `@walnut-server/config`'s global `WalnutConfigModule`)
-- Model injection should use `WalnutDBInjectModel` (from this lib) rather than raw `@InjectModel` — this ensures the correct connection name is used
+- All writes inside a transaction must go through `ctx.em`（`WalnutTxContext.em`）— the interceptor commits/rolls back that single EntityManager
+- `deleteSoftById` writes the soft-delete snapshot into `sys_deleted` with `modelName` from `WalnutModelName`（回收站恢复按它路由回目标实体）
 - `runAfterCommit()` is the recommended function for most use cases — it safely degrades to inline execution when no transaction context exists

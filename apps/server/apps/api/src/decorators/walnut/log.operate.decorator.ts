@@ -69,7 +69,7 @@ export class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor 
       success: boolean,
     ) => {
       try {
-        const correspondingMS = Date.now() - now
+        const durationMs = Date.now() - now
 
         const location = await this.sharedIpService.getLocationFromBaidu(request.realIp) as string
 
@@ -99,7 +99,7 @@ export class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor 
           rawRequestData: requestPayload.raw,
           responseData: responsePayload.data,
           rawResponseData: responsePayload.raw,
-          correspondingMS,
+          durationMs,
 
           os: request.os,
           browser: request.browser,

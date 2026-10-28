@@ -3,7 +3,7 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstAppSettingAuthOAuthGoogleKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
 import { WalnutAdminDecoratorFunctionalGuard } from '@/decorators/walnut/functional.decorator'
@@ -31,7 +31,7 @@ export class AuthGoogleController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Auth with google fed_cm',
     DTO: AuthSuccessDTO,
@@ -41,7 +41,7 @@ export class AuthGoogleController {
   async login(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
   ) {
     // B7b 归一：refresh 写腿迁 PG —— 单 em

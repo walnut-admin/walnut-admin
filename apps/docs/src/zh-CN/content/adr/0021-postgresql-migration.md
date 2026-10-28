@@ -6,7 +6,7 @@
 ## Context
 
 后端自脚手架时代起建立在 Mongoose 之上：以 schema 文件数为准共 24 个集合；事务经
-`@WalnutDBTransaction()` 拦截器开启 `ClientSession` 挂到请求上，业务层用 `@WalnutDBSession()`
+`@WalnutTx()` 拦截器开启 `ClientSession` 挂到请求上，业务层用 `@WalnutTxSession()`
 取出后**逐层显式传参**给仓库层（机制见 [PostgreSQL 事务](../backend/transactions.md) —— 该页
 当时记录的是 Mongo session 实现，已随实施改写为 PG 版本）；seed 数据是
 保留 Extended JSON（`$oid` / `$date`）的 JSON 文件；跑起来的最低要求是 MongoDB **副本集** ——
@@ -48,12 +48,12 @@
 
 ## Decision 3: 事务装饰器 API 不变，内部换 PG 实现
 
-`@WalnutDBTransaction()` 对业务层**保持原样**：装饰器照挂、session 参数装饰器照用，拦截器内部
+`@WalnutTx()` 对业务层**保持原样**：装饰器照挂、session 参数装饰器照用，拦截器内部
 改为开启 PostgreSQL 事务。业务代码不需要感知存储换了：
 
 ```typescript
 class UserController {
-  @WalnutDBTransaction()
+  @WalnutTx()
   async create(@Body() dto: UserCreateDTO) {
     return this.service.create(dto)
   }
@@ -131,7 +131,7 @@ class UserController {
 
 - [数据库与初始化数据](../backend/postgresql.md) —— PG 时代的连接配置、seed / export 链路与
   ETL 归档说明。
-- [PostgreSQL 事务](../backend/transactions.md) —— `@WalnutDBTransaction()` 的现行实现机制
+- [PostgreSQL 事务](../backend/transactions.md) —— `@WalnutTx()` 的现行实现机制
   （QueryRunner 语义与悲观锁要点），本决策保持其 API 不变。
 
 ## Implementation

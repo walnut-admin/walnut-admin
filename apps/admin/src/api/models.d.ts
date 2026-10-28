@@ -71,7 +71,7 @@ export namespace IModels {
     roleMode?: 'switchable' | 'combinable'
     currentRole?: string
 
-    populated_roles_list?: SystemRole[]
+    roles_list?: SystemRole[]
   }
 
   // system user identity
@@ -202,7 +202,7 @@ export namespace IModels {
     browser?: string
     success?: boolean
     location?: string
-    correspondingMS?: number
+    durationMs?: number
   }
 
   // system signin log
@@ -229,7 +229,7 @@ export namespace IModels {
     deletedBy?: string
     logOperateId?: string
 
-    populated_user?: SystemUser
+    user?: SystemUser
   }
 
   // app setting
@@ -291,8 +291,8 @@ export namespace IModels {
     firstVisitAt?: Date
     lastActiveAt?: Date
 
-    populated_device?: SystemDevice
-    populated_user?: SystemUser
+    device?: SystemDevice
+    user?: SystemUser
   }
 
   // shared area

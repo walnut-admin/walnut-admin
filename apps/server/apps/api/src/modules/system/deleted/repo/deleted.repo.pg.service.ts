@@ -10,7 +10,7 @@ import { SysDeletedEntity } from '../entity/deleted.entity'
 export interface ISysDeletedPgCreatePayload {
   /** 被删文档快照（jsonb 直存对象，原 stringify text 已升级，phase2 5.3） */
   content: Record<string, unknown>
-  /** 恢复路由键，取 `WalnutDBModelName` 模型名 */
+  /** 恢复路由键，取 `WalnutModelName` 模型名 */
   modelName: string
   /** 纯记录字段：PG 表名 */
   collectionName: string

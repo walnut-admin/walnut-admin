@@ -17,7 +17,7 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstAppSettingAuthOAuthGitHubKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { LocaleType } from '@walnut/contract'
 
 import { I18n, I18nContext } from 'nestjs-i18n'
@@ -78,7 +78,7 @@ export class OAuthGithubController {
 
   @Get('callback')
   @WalnutAdminGuardSignFree()
-  @WalnutDBTransaction()
+  @WalnutTx()
   @WalnutAdminDecoratorAuthLog(WalnutAdminConstDecoratorLogAuthType.OAUTH_GITHUB)
   @Render('template/oauth/done')
   @UseGuards(OAuthGitHubGuard)
@@ -87,7 +87,7 @@ export class OAuthGithubController {
   async callback(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
     @Query('state') payload: string,
     @I18n() i18n: I18nContext,

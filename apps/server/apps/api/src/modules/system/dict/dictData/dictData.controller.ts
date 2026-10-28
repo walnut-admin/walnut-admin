@@ -5,7 +5,7 @@ import {
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { plainToInstance } from 'class-transformer'
 
@@ -78,10 +78,10 @@ export class SysDictDataController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
   @WalnutAdminDecoratorDelete()
-  @WalnutDBTransaction()
+  @WalnutTx()
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
     return plainToInstance(

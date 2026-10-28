@@ -15,7 +15,7 @@ import { SysUserBasicRepository } from './user.basic.repository'
 
 /**
  * B7a 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态，不另建 pg.module）。
- * sys_user_role 关联表一并注册 —— junction 读写与 role 侧 populated_usersCount 计数
+ * sys_user_role 关联表一并注册 —— junction 读写与 role 侧 usersCount 计数
  * 子查询都走实体引用。
  */
 @Module({

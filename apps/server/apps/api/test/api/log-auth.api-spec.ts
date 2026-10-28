@@ -80,7 +80,7 @@ describe('D 段：system/log/auth list/delete/deleteMany（真实登录链自然
       // 软删日志产生的回收站快照一并清（deleted_id = 被删日志行 id）
       const deletedIds: Array<{ deleted_id: string }> = await api.pgDataSource.query(
         'SELECT deleted_id FROM sys_deleted WHERE model_name = $1 AND content::text LIKE $2',
-        ['SysLogAuthModel', `%${seed8}%`],
+        ['SysLogAuth', `%${seed8}%`],
       )
       if (deletedIds.length > 0) {
         await api.pgDataSource.query(
@@ -193,7 +193,7 @@ describe('D 段：system/log/auth list/delete/deleteMany（真实登录链自然
     // 软删快照在回收站
     const snapshotRows: Array<{ c: number }> = await api.pgDataSource.query(
       'SELECT count(*)::int AS c FROM sys_deleted WHERE deleted_id = $1 AND model_name = $2',
-      [failRow.id, 'SysLogAuthModel'],
+      [failRow.id, 'SysLogAuth'],
     )
     expect(snapshotRows[0].c).toBe(1)
 

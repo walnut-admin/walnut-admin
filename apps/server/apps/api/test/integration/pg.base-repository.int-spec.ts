@@ -3,7 +3,7 @@ import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource, TypeOrmModule } from '@nestjs/typeorm'
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -25,7 +25,7 @@ class AppDemoPgRepository extends WalnutAdminCommonPgBaseRepository<AppDemoEntit
   constructor(
     @InjectDataSource(WalnutPGConnectionName) dataSource: DataSource,
   ) {
-    super(AppDemoEntity, WalnutDBModelName.APP_DEMO, dataSource)
+    super(AppDemoEntity, WalnutModelName.APP_DEMO, dataSource)
   }
 }
 
@@ -117,7 +117,7 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     // sys_deleted：一条快照（SysDeletedEntity 已由 deleted.repo.module 注册）
     const snapshot = await pgDataSource.manager.findOne(SysDeletedEntity, { where: { deletedId: created.id } })
     expect(snapshot).not.toBeNull()
-    expect(snapshot!.modelName).toBe(WalnutDBModelName.APP_DEMO)
+    expect(snapshot!.modelName).toBe(WalnutModelName.APP_DEMO)
     expect(snapshot!.collectionName).toBe('app_demo')
     expect(snapshot!.deletedId).toBe(created.id)
     expect(snapshot!.deletedBy).toBe(userId)

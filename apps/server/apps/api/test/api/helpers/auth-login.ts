@@ -103,7 +103,7 @@ export async function registerRootUserFixture(
     'INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)',
     [userId, roleId],
   )
-  // 短路判据是 roleNames[0] === 'root'（COMBINE 模式取 populated_roles_list 首位）——
+  // 短路判据是 roleNames[0] === 'root'（COMBINE 模式取 roles_list 首位）——
   // finishRegister 已经挂了 visitor 兜底 junction 且排在前，只留 root 并把 current_role_id
   // 一并对齐，AT payload 才是 { roleMode: 'combinable', roleNames: ['root'] }
   await pgDataSource.query(

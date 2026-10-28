@@ -1,7 +1,7 @@
 export * from './db.const'
 export * from './db.decorator'
 export * from './db.hook'
-export { WalnutDBModule } from './db.module'
+export { WalnutModule } from './db.module'
 export * from './pg.const'
 export { WalnutPGModule } from './pg.module'
 export * from './tx-context'

@@ -3,7 +3,7 @@ import type { IWalnutAdminRequestList } from '@/common/dto/list.dto'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import {
   applyPgListQuery,
@@ -14,10 +14,10 @@ import { SysDictDataEntity } from '../dictData/entity/dict-data.entity'
 import { SysDictTypeEntity } from './entity/dict-type.entity'
 
 /**
- * dict type 列表行：实体列 + Mongo 版 customPipeline 注入的 populated_dictDataCount。
+ * dict type 列表行：实体列 + Mongo 版 customPipeline 注入的 dictDataCount。
  */
 export interface ISysDictTypeListRow extends SysDictTypeEntity {
-  populated_dictDataCount: number
+  dictDataCount: number
 }
 
 /**
@@ -31,7 +31,7 @@ export class SysDictTypeBasicRepository extends WalnutAdminCommonPgBaseRepositor
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(SysDictTypeEntity, WalnutDBModelName.SYS_DICT_TYPE, dataSource)
+    super(SysDictTypeEntity, WalnutModelName.SYS_DICT_TYPE, dataSource)
   }
 
   /**
@@ -53,7 +53,7 @@ export class SysDictTypeBasicRepository extends WalnutAdminCommonPgBaseRepositor
         .select('count(*)::int')
         .from(SysDictDataEntity, 'dict_data')
         .where('dict_data.typeId = entity.id')
-    }, 'populated_dict_data_count')
+    }, 'dict_data_count')
 
     qb.addSelect(`COUNT(*) OVER()`, WALNUT_PG_LIST_TOTAL_ALIAS)
 
@@ -67,7 +67,7 @@ export class SysDictTypeBasicRepository extends WalnutAdminCommonPgBaseRepositor
       const row = raw[index] as Record<string, unknown> | undefined
 
       return Object.assign(entity, {
-        populated_dictDataCount: Number(row?.populated_dict_data_count ?? 0),
+        dictDataCount: Number(row?.dict_data_count ?? 0),
       })
     })
 

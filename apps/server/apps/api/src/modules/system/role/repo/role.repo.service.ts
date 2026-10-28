@@ -19,12 +19,12 @@ export interface ISysRolePopulatedRow extends SysRoleEntity {
 
 /** role 行 + junction 读出的 menus + sys_user_role 计数（Mongo 版 read 的 populate 形态） */
 export interface ISysRoleWithUsersCount extends ISysRolePopulatedRow {
-  populated_usersCount: number
+  usersCount: number
 }
 
-/** role 行 + menus + populated_menusList（Mongo 版 populate virtual 的形态；菜单已组装回 meta） */
+/** role 行 + menus + menusList（Mongo 版 populate virtual 的形态；菜单已组装回 meta） */
 export interface ISysRoleWithPopulatedMenus extends ISysRolePopulatedRow {
-  populated_menusList: ISysMenuAssembled[]
+  menusList: ISysMenuAssembled[]
 }
 
 /**
@@ -34,7 +34,7 @@ export interface ISysRoleWithPopulatedMenus extends ISysRolePopulatedRow {
  * NO business logic - only data access.
  *
  * B5 迁移：Mongo model → PG 命名连接 DataSource。$in 批查改 In(uuid[])（phase3-plan §4）；
- * populated_menusList（match meta.status=true）改 junction JOIN 组装，逐 role 查询的
+ * menusList（match meta.status=true）改 junction JOIN 组装，逐 role 查询的
  * 形态与 Mongo 版 populate 循环一致。
  */
 @Injectable()
@@ -71,8 +71,8 @@ export class SysRoleRepoService {
   }
 
   /**
-   * @description find role by id with populated_usersCount + menus
-   * （对齐 Mongo 版 readById().populate('populated_usersCount') 的读出形态）
+   * @description find role by id with usersCount + menus
+   * （对齐 Mongo 版 readById().populate('usersCount') 的读出形态）
    */
   async findByIdWithUsersCount(id: string, em?: EntityManager): Promise<ISysRoleWithUsersCount> {
     const qb = this.getManager(em)
@@ -84,7 +84,7 @@ export class SysRoleRepoService {
           .select('count(*)::int')
           .from(SysUserRoleEntity, 'user_role')
           .where('user_role.role_id = role.id')
-      }, 'populated_users_count')
+      }, 'users_count')
       .where('role.id = :id', { id })
 
     const { raw, entities } = await qb.getRawAndEntities()
@@ -98,7 +98,7 @@ export class SysRoleRepoService {
 
     return Object.assign(role, {
       menus: await this.findMenuIdsByRoleId(id, em),
-      populated_usersCount: Number(row.populated_users_count ?? 0),
+      usersCount: Number(row.users_count ?? 0),
     })
   }
 
@@ -106,7 +106,7 @@ export class SysRoleRepoService {
    * @description find roles by ids with populated menus
    *
    * 对齐 Mongo 版语义：先按 ids 批查、过滤 status=true 的角色，再逐 role populate
-   * populated_menusList（match meta.status=true → menu.status = true）。菜单行组装回
+   * menusList（match meta.status=true → menu.status = true）。菜单行组装回
    * meta 对象（ISysMenuAssembled），供 menu.shared 的路由/权限链路直接消费。
    */
   async findRolesWithPopulatedMenus(roleIds: string[], em?: EntityManager): Promise<ISysRoleWithPopulatedMenus[]> {
@@ -124,7 +124,7 @@ export class SysRoleRepoService {
 
       populatedRoles.push(Object.assign(role, {
         menus: await this.findMenuIdsByRoleId(role.id, em),
-        populated_menusList: menus.map(i => assembleSysMenu(i)),
+        menusList: menus.map(i => assembleSysMenu(i)),
       }))
     }
 

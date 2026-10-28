@@ -1,7 +1,7 @@
 import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import { SysMenuEntity } from './entity/menu.entity'
@@ -18,6 +18,6 @@ export class SysMenuBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(SysMenuEntity, WalnutDBModelName.SYS_MENU, dataSource)
+    super(SysMenuEntity, WalnutModelName.SYS_MENU, dataSource)
   }
 }

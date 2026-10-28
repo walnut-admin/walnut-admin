@@ -14,7 +14,7 @@ import { WalnutPGConnectionName } from './pg.const'
 import { WalnutTxContext } from './tx-context'
 
 /**
- * 事务拦截器 —— `@WalnutDBTransaction()` 的执行体（PG 单引擎，Phase 5a 起）。
+ * 事务拦截器 —— `@WalnutTx()` 的执行体（PG 单引擎，Phase 5a 起）。
  *
  * PG 走 **QueryRunner** 方式（createQueryRunner + startTransaction），不用
  * `DataSource.transaction()` 回调式 —— 后者把事务生命周期锁在回调作用域里，无法

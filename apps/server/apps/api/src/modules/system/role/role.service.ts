@@ -39,7 +39,7 @@ export class SysRoleService {
   /**
    * @description read role by id (controller: read)
    *
-   * B5：populated_usersCount 由 sys_user_role 计数子查询承接（Mongo 版 count virtual），
+   * B5：usersCount 由 sys_user_role 计数子查询承接（Mongo 版 count virtual），
    * menus 由 junction 读出（uuid 数组）。
    */
   async read(id: string) {
@@ -70,7 +70,7 @@ export class SysRoleService {
   /**
    * @description list roles (controller: list)
    *
-   * B5：populated_usersCount 改 junction 计数子查询（role.basic.repository list 覆写，
+   * B5：usersCount 改 junction 计数子查询（role.basic.repository list 覆写，
    * 对齐 Mongo 版 $lookup + $size 出参字段）。
    */
   async list(params: SysRoleDTOListRequest) {

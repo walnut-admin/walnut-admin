@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Put } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
@@ -39,14 +39,14 @@ export class SysUserMeController {
   // TODO should remove
   @Get('security-tab2')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'get security tab2 status',
     DTO: null,
   })
   async getSecurityTab2Status(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
   ) {
     // B7b 归一：mfa 状态读腿迁 PG —— 单 em
     return this.userMeService.getSecurityTab2Status(user.userId, ctx.em)

@@ -24,8 +24,8 @@ import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
  * - uq_menu_name（partial unique）同名校验；pid 自引用 FK 的 RESTRICT 语义；
  * - 菜单树：单次全量查询 + 内存建树（对照 Mongo 版口径），children/meta/order 形态不变；
  * - sys_role：menus 数组 → sys_role_menu junction（create/update 整组替换）、
- *   uq_role_name、根角色更新拦截、populated_menusList JOIN（match meta.status=true）、
- *   findByIds 的 In(uuid[])、populated_usersCount 计数子查询；
+ *   uq_role_name、根角色更新拦截、menusList JOIN（match meta.status=true）、
+ *   findByIds 的 In(uuid[])、usersCount 计数子查询；
  * - 权限链路（getCorePermissions）：junction populate → meta 组装 → 路由/权限出参形态。
  */
 
@@ -186,7 +186,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
 
       const snapshot = await pgDataSource.query<Array<{ c: number }>>(
         'SELECT count(*)::int AS c FROM sys_deleted WHERE model_name = $1 AND deleted_id = $2',
-        ['SysMenuModel', created.id],
+        ['SysMenu', created.id],
       )
       expect(snapshot[0].c).toBe(1)
     })
@@ -348,12 +348,12 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
       expect(stillOne[0].c).toBe(1)
     })
 
-    it('read：populated_usersCount 计数子查询 + menus 读出', async () => {
+    it('read：usersCount 计数子查询 + menus 读出', async () => {
       const role = await roleBasicRepo.create({ roleName: uniqueName('b5-role') })
 
       const read = await roleService.read(role.id)
       // B5~B7 残留窗口：user 侧未迁，junction 恒空 → 计数 0（见 phase3-plan §5）
-      expect(read.populated_usersCount).toBe(0)
+      expect(read.usersCount).toBe(0)
       expect(read.menus).toEqual([])
 
       await expect(roleService.read(randomUUID())).rejects.toThrow()
@@ -377,7 +377,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
       expect(found.map(i => i.id).sort()).toEqual([a.id, b.id].sort())
     })
 
-    it('populated_menusList：junction JOIN 组装 + match meta.status=true + meta 对象保真', async () => {
+    it('menusList：junction JOIN 组装 + match meta.status=true + meta 对象保真', async () => {
       const visible = await menuService.create({
         type: 'catalog',
         name: uniqueName('b5-pop'),
@@ -401,8 +401,8 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
       expect(roles[0].menus.sort()).toEqual([visible.id, hidden.id].sort())
 
       // match { 'meta.status': true } → status=false 的菜单不进 populate
-      expect(roles[0].populated_menusList).toHaveLength(1)
-      const menu = roles[0].populated_menusList[0]
+      expect(roles[0].menusList).toHaveLength(1)
+      const menu = roles[0].menusList[0]
       expect(menu.id).toBe(visible.id)
       // meta 组装回对象且逐字段保真
       expect(menu.meta.permission).toBe('b5:pop:read')
@@ -410,13 +410,13 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
       expect(menu.meta.transition).toBe('fade')
     })
 
-    it('list：populated_usersCount 并回列表行（Mongo 版 $lookup/$size 出参字段）', async () => {
+    it('list：usersCount 并回列表行（Mongo 版 $lookup/$size 出参字段）', async () => {
       const roleName = uniqueName('b5-role-list')
       await roleService.create(rolePayload({ roleName }))
 
       const res = await roleService.list({ query: { roleName } } as never)
       expect(res.total).toBe(1)
-      expect(res.data[0].populated_usersCount).toBe(0)
+      expect(res.data[0].usersCount).toBe(0)
     })
   })
 

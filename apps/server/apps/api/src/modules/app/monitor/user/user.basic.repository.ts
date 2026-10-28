@@ -2,7 +2,7 @@ import type { DataSource, EntityManager, SelectQueryBuilder } from 'typeorm'
 import type { IWalnutAdminRequestList } from '@/common/dto/list.dto'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import {
@@ -13,14 +13,14 @@ import {
 } from '@/common/repository/pg-list.builder'
 import { AppMonitorUserEntity } from './entity/monitor-user.entity'
 
-/** monitor 列表行：实体列 + Mongo 版 $lookup 注入的 populated_device / populated_user */
+/** monitor 列表行：实体列 + Mongo 版 $lookup 注入的 device / user */
 export interface IAppMonitorUserListRow extends AppMonitorUserEntity {
-  populated_device: {
+  device: {
     deviceInfo: { os: unknown, browser: unknown, type: unknown }
     ip: string | null
     locationInfo: { country: unknown }
   } | null
-  populated_user: { id: string, userName: string | null } | null
+  user: { id: string, userName: string | null } | null
 }
 
 /**
@@ -28,7 +28,7 @@ export interface IAppMonitorUserListRow extends AppMonitorUserEntity {
  *
  * Mongo 版 list 的 $lookup（device 按 deviceId 业务键、user 按 userId）在这里以
  * LEFT JOIN 承接（均无行放大：device_id 全表唯一、user 侧 PK 对一），出参组装回
- * populated_device / populated_user 形态；matchConditions 里落在 populate 字段上的
+ * device / user 形态；matchConditions 里落在 populate 字段上的
  * （ip/country/os/browser/userName）转为 JOIN 别名上的 ILIKE（$regex 'i' 等价）。
  */
 @Injectable()
@@ -37,7 +37,7 @@ export class AppMonitorUserBasicRepository extends WalnutAdminCommonPgBaseReposi
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(AppMonitorUserEntity, WalnutDBModelName.APP_MONITOR_USER, dataSource)
+    super(AppMonitorUserEntity, WalnutModelName.APP_MONITOR_USER, dataSource)
   }
 
   public async list<T>(
@@ -69,14 +69,14 @@ export class AppMonitorUserBasicRepository extends WalnutAdminCommonPgBaseReposi
     ilike('monitor_user.user_name', 'monitorUserName', query.userName)
 
     // populate 出参列（别名与实体列错开；device.id 作 JOIN 命中标记），同趟带出 total 窗口列
-    qb.addSelect('device.id', 'populated_device_id')
-    qb.addSelect('device.ip', 'populated_device_ip')
-    qb.addSelect(`device.device_info->>'os'`, 'populated_device_os')
-    qb.addSelect(`device.device_info->>'browser'`, 'populated_device_browser')
-    qb.addSelect(`device.device_info->>'type'`, 'populated_device_type')
-    qb.addSelect(`device.location_info->>'country'`, 'populated_device_country')
-    qb.addSelect('monitor_user.id', 'populated_user_id')
-    qb.addSelect('monitor_user.user_name', 'populated_user_user_name')
+    qb.addSelect('device.id', 'virtual_device_id')
+    qb.addSelect('device.ip', 'virtual_device_ip')
+    qb.addSelect(`device.device_info->>'os'`, 'virtual_device_os')
+    qb.addSelect(`device.device_info->>'browser'`, 'virtual_device_browser')
+    qb.addSelect(`device.device_info->>'type'`, 'virtual_device_type')
+    qb.addSelect(`device.location_info->>'country'`, 'virtual_device_country')
+    qb.addSelect('monitor_user.id', 'virtual_user_id')
+    qb.addSelect('monitor_user.user_name', 'virtual_user_name')
     qb.addSelect(`COUNT(*) OVER()`, WALNUT_PG_LIST_TOTAL_ALIAS)
 
     const { raw, entities } = await qb.getRawAndEntities()
@@ -87,26 +87,26 @@ export class AppMonitorUserBasicRepository extends WalnutAdminCommonPgBaseReposi
     const data = entities.map((entity, index) => {
       const row = raw[index] as Record<string, unknown> | undefined
 
-      const populatedDeviceId = row?.populated_device_id as string | undefined
-      const populatedUserId = row?.populated_user_id as string | undefined
+      const populatedDeviceId = row?.virtual_device_id as string | undefined
+      const populatedUserId = row?.virtual_user_id as string | undefined
 
-      const populated_device = populatedDeviceId != null
+      const device = populatedDeviceId != null
         ? {
             deviceInfo: {
-              os: row?.populated_device_os ?? null,
-              browser: row?.populated_device_browser ?? null,
-              type: row?.populated_device_type ?? null,
+              os: row?.virtual_device_os ?? null,
+              browser: row?.virtual_device_browser ?? null,
+              type: row?.virtual_device_type ?? null,
             },
-            ip: (row?.populated_device_ip as string | null) ?? null,
-            locationInfo: { country: row?.populated_device_country ?? null },
+            ip: (row?.virtual_device_ip as string | null) ?? null,
+            locationInfo: { country: row?.virtual_device_country ?? null },
           }
         : null
 
-      const populated_user = populatedUserId != null
-        ? { id: populatedUserId, userName: (row?.populated_user_user_name as string | null) ?? null }
+      const user = populatedUserId != null
+        ? { id: populatedUserId, userName: (row?.virtual_user_name as string | null) ?? null }
         : null
 
-      return Object.assign(entity, { populated_device, populated_user })
+      return Object.assign(entity, { device, user })
     })
 
     return { data, total }

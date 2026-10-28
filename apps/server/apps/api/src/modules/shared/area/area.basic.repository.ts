@@ -1,7 +1,7 @@
 import type { DataSource, EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import { SharedAreaEntity } from './entity/area.entity'
@@ -55,7 +55,7 @@ export class SharedAreaBasicRepository extends WalnutAdminCommonPgBaseRepository
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(SharedAreaEntity, WalnutDBModelName.SHARED_AREA, dataSource)
+    super(SharedAreaEntity, WalnutModelName.SHARED_AREA, dataSource)
   }
 
   /**

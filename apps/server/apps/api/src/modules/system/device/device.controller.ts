@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, Req } from '@
 import { ApiParam, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { plainToInstance } from 'class-transformer'
@@ -59,10 +59,10 @@ export class SysDeviceController {
   @WalnutAdminGuardJwtFree()
   @WalnutAdminGuardCapFree()
   @WalnutAdminGuardDeviceFree()
-  @WalnutDBTransaction()
+  @WalnutTx()
   @WalnutAdminDecoratorThrottle(SysDeviceSettingService)
   async initial(
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
     @Body() payload: SysDeviceDTOInitialRequest,
   ) {

@@ -20,14 +20,14 @@ paths:
 5. `@UseGuards(...)`（可选）
 6. CRUD 装饰器（如有）
 7. Guard 豁免（`@WalnutAdminGuardJwtFree` 等）
-8. `@WalnutDBTransaction()`（如涉及事务）
+8. `@WalnutTx()`（如涉及事务）
 9. Swagger（`@ApiParam` / `@ApiQuery` / `@ApiWalnutOkResponse`）
 10. 功能装饰器（`@WalnutAdminDecoratorOperateLog` 等）
 
 参数装饰器从左到右：
 1. `@WalnutAdminDecoratorUser()`
 2. `@WalnutAdminDecoratorDeviceId()`
-3. `@WalnutDBSession()`
+3. `@WalnutTxSession()`
 4. `@WalnutAdminDecoratorParamMongoId()`
 5. `@Req` / `@Param` / `@Query` / `@Body`
 6. `@Ip` / `@I18n`
@@ -43,7 +43,7 @@ return new XxxResponseDTO(result)
 
 原始类型返回用 `@ApiWalnutOkResponse({ primitive: 'boolean' })` 配合 `return true`。
 
-### 3. Delete 操作必须加 `@WalnutDBTransaction()`
+### 3. Delete 操作必须加 `@WalnutTx()`
 
 ### 4. Service 方法规则
 

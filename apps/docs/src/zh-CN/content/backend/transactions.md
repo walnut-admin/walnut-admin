@@ -11,14 +11,14 @@ class UserController {
     operateLog: { title: 'User' },
     swagger: { DTO: UserDTO },
   })
-  @WalnutDBTransaction()
+  @WalnutTx()
   async create(@Body() dto: UserCreateDTO) {
     return this.service.create(dto)
   }
 }
 ```
 
-- `@WalnutDBTransaction()` 来自 `@walnut-server/db`，它挂的是 `WalnutTxInterceptor`：请求进来
+- `@WalnutTx()` 来自 `@walnut-server/db`，它挂的是 `WalnutTxInterceptor`：请求进来
   `createQueryRunner()` + `startTransaction()`，正常返回则 `commitTransaction()`（随后
   `release()` 并统一执行 after-commit 钩子），抛错则 `rollbackTransaction()` + `release()`、
   原始错误透传。
@@ -26,7 +26,7 @@ class UserController {
   生命周期锁在回调作用域里，无法与拦截器的 commit / release 解耦，也无法把事务内的
   EntityManager 交出去给业务层。
 - 装饰器顺序里它排在第 7 位（Guard Free 之后、Swagger 之前），完整顺序见 [DTO 与装饰器](./dto.md)。
-- 事务上下文经 `@WalnutDBSession()` 参数装饰器取出，它读的是 `request.txContext`，
+- 事务上下文经 `@WalnutTxSession()` 参数装饰器取出，它读的是 `request.txContext`，
   形状是 `WalnutTxContext = { em: EntityManager }`。
 
 ## 在 service 里用 em
@@ -76,9 +76,9 @@ class SysUserService {
 
 | 旧名字 | 现在用什么 |
 |--------|-----------|
-| `@WalnutAdminDecoratorMongoDBTransaction()` | `@WalnutDBTransaction()` |
-| `@WalnutAdminDecoratorMongoDBSession()` | `@WalnutDBSession()`（返回 `WalnutTxContext`，事务句柄取 `.em`） |
-| `getWalnutAdminDBSession()` | 控制器 `@WalnutDBSession()` 取出来后作为参数传给 service |
+| `@WalnutAdminDecoratorMongoDBTransaction()` | `@WalnutTx()` |
+| `@WalnutAdminDecoratorMongoDBSession()` | `@WalnutTxSession()`（返回 `WalnutTxContext`，事务句柄取 `.em`） |
+| `getWalnutAdminDBSession()` | 控制器 `@WalnutTxSession()` 取出来后作为参数传给 service |
 | `runAfterTransaction()` | `runAfterCommit()` / `registerAfterCommitHook()` |
 | `dbSession: ClientSession`（mongoose 句柄） | `em?: EntityManager`（typeorm 句柄） |
 | `request.mongooseSession` | `request.txContext` |

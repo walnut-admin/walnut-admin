@@ -97,7 +97,7 @@ export class AuthRefreshRepositoryService {
     if (jti === undefined || jti === null || jti === '') {
       return null
     }
-    // 悲观锁只在活跃事务里有意义：生产轮换路径恒在 @WalnutDBTransaction 内；
+    // 悲观锁只在活跃事务里有意义：生产轮换路径恒在 @WalnutTx 内；
     // 非事务上下文（连接级 manager）无法提供并发保护，退化为普通读
     const lock = options?.lock && em?.queryRunner?.isTransactionActive
       ? { mode: 'pessimistic_write' as const }

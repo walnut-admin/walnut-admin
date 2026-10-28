@@ -1,6 +1,6 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { WalnutDBVirtualName } from '@walnut-server/db'
+import { WalnutVirtualName } from '@walnut-server/db'
 
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
@@ -39,7 +39,7 @@ export class SysDeletedService {
     const user = await this.sysUserRepoService.findUserByUserId(doc.deletedBy)
 
     return Object.assign(doc, {
-      [WalnutDBVirtualName.USER]: user ? { id: user.id, userName: user.userName } : null,
+      [WalnutVirtualName.USER]: user ? { id: user.id, userName: user.userName } : null,
     })
   }
 

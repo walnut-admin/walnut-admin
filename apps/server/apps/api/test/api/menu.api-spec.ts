@@ -2,7 +2,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
-import { WalnutDBModelName } from '@walnut-server/db'
+import { WalnutModelName } from '@walnut-server/db'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
@@ -308,7 +308,7 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
       [created.id],
     )
     expect(snapshots).toHaveLength(1)
-    expect(snapshots[0].model_name).toBe(WalnutDBModelName.SYS_MENU)
+    expect(snapshots[0].model_name).toBe(WalnutModelName.SYS_MENU)
   })
 
   it('delete _cascade=1 → 菜单软删 + 同 title 的 locale 行级联软删', async () => {

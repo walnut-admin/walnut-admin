@@ -19,7 +19,7 @@ import { WALNUT_DEFAULT_VISITOR_ROLE_UUID } from './auth-login'
  *   `*:*:*` 形态），**一行一串**，过滤判据仅 `Boolean(meta.permission)`（element 行不进菜单树
  *   但进权限串）；因此「两个权限点」= 两根 element 菜单行，而不是一行的两个字段。
  * - `role.shared.service.ts getCoreMenus` —— 非 root 用户可用菜单 = 角色的
- *   `populated_menusList`（sys_role_menu junction，`menu.status=true` 过滤）；effective
+ *   `menusList`（sys_role_menu junction，`menu.status=true` 过滤）；effective
  *   roleMode 由 `app.functional.role` 设置经 scopeResolver 决定 —— 集成库 app_setting 空表时
  *   走默认值（scope GLOBAL / globalValue switchable）→ **恒取 `[currentRole]` 单角色**；
  *   scope LOCAL 时才回落用户自身 roleMode（SWITCH/COMBINE 对照用例据此改写 APP:SETTING 缓存）。

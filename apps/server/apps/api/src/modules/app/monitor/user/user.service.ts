@@ -123,14 +123,14 @@ export class AppMonitorUserService {
   async read(id: string) {
     const monitor = await this.appMonitorUserBasicRepo.readById(id)
 
-    const populated_device = monitor.deviceId !== null
+    const device = monitor.deviceId !== null
       ? await this.deviceRepoService.findDeviceByDeviceId(monitor.deviceId)
       : null
-    const populated_user = monitor.userId !== null
+    const user = monitor.userId !== null
       ? await this.appMonitorUserRepoService.findUserBriefById(monitor.userId)
       : null
 
-    return { ...monitor, populated_device, populated_user }
+    return { ...monitor, device, user }
   }
 
   /**

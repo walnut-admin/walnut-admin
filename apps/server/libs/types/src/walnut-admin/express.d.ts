@@ -80,7 +80,7 @@ declare global {
     identifier?: string
 
     /**
-     * @description Used with `@WalnutDBTransaction` and `@WalnutDBSession` to get the
+     * @description Used with `@WalnutTx` and `@WalnutTxSession` to get the
      * transaction context (PG EntityManager). Populated by WalnutTxInterceptor (tx.interceptor.ts).
      */
     txContext?: WalnutTxContext

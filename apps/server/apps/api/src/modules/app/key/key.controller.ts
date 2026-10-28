@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common'
 import { ApiParam, ApiTags } from '@nestjs/swagger'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { Role } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
@@ -40,10 +40,10 @@ export class AppKeyController {
   @Post('rotate/:type')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasRole(Role.ROOT)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiParam({ name: 'type', description: 'key type enum', enum: AppKeyTypeConst })
   async rotate(
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Param('type', new WalnutAdminPipeParamEnum(AppKeyTypeConst))
     type: AppKeyTypeConstType,
   ) {

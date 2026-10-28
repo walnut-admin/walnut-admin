@@ -10,7 +10,7 @@ import {
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { plainToInstance } from 'class-transformer'
 
@@ -70,14 +70,14 @@ export class AppMonitorUserController {
   @Delete('force-quit/:id')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.FORCE_QUIT)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @WalnutAdminDecoratorOperateLog({
     title: WalnutAdminConstDecoratorLogOperateTitle.APP_MONITOR_USER,
     action: WalnutAdminConstDecoratorLogOperateAction.DELETE,
     operateType: WalnutAdminConstDecoratorLogOperateType.APP_MONITOR_USER_FORCE_QUIT,
   })
   async forceQuit(
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
     // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em
@@ -90,10 +90,10 @@ export class AppMonitorUserController {
   @WalnutAdminGuardJwtFree()
   @WalnutAdminGuardCapFree()
   @WalnutAdminGuardDeviceFree()
-  @WalnutDBTransaction()
+  @WalnutTx()
   async monitor(
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() data: AppMonitorUserDTOUpdateState,
   ) {
     return this.monitorUserService.updateState(deviceId, data, ctx.em)

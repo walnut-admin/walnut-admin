@@ -1,7 +1,7 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
-import { WalnutDBModelName } from '@walnut-server/db'
+import { WalnutModelName } from '@walnut-server/db'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
@@ -32,8 +32,8 @@ interface UserRow {
   status?: boolean
   roles?: string[]
   currentRole?: string | null
-  populated_roles_count?: number
-  populated_roles_list?: Array<{ id: string, roleName?: string }>
+  roles_count?: number
+  roles_list?: Array<{ id: string, roleName?: string }>
 }
 
 describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword（真实 HTTP 全链）', () => {
@@ -104,7 +104,7 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     await app.close()
   })
 
-  it('create 带 roles → junction 落行 + currentRole 首角色；read 回 populated_roles_list', async () => {
+  it('create 带 roles → junction 落行 + currentRole 首角色；read 回 roles_list', async () => {
     const created = await createUser('R1', [bizRoleId])
     expect(created.id).toMatch(UUID_RE)
     expect(created.roles).toEqual([bizRoleId])
@@ -114,10 +114,10 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     expectOk(readRes, 'user read')
     const row = bodyOf<UserRow>(readRes).data
     expect(row.userName).toBe(`${userPrefix}-R1`)
-    // read 出参不带 roles 数组（那是 create/update 响应的回显）—— 读腿是 populated_roles_list
+    // read 出参不带 roles 数组（那是 create/update 响应的回显）—— 读腿是 roles_list
     expect(row.roles).toBeUndefined()
-    expect(row.populated_roles_count).toBe(1)
-    expect(row.populated_roles_list?.[0]?.id).toBe(bizRoleId)
+    expect(row.roles_count).toBe(1)
+    expect(row.roles_list?.[0]?.id).toBe(bizRoleId)
   })
 
   it('create roles=[] → junction 空 + currentRole 走 defaultRole 兜底（现状语义）', async () => {
@@ -128,7 +128,7 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
 
     const readRes = await api.root('GET', api.apiPath(`/system/user/${created.id}`))
     const row = bodyOf<UserRow>(readRes).data
-    expect(row.populated_roles_count).toBe(0)
+    expect(row.roles_count).toBe(0)
     expect(row.currentRole).toBe(WALNUT_DEFAULT_VISITOR_ROLE_UUID)
   })
 
@@ -147,7 +147,7 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     const readRes = await api.root('GET', api.apiPath(`/system/user/${created.id}`))
     const row = bodyOf<UserRow>(readRes).data
     expect(row.status).toBe(false)
-    expect(row.populated_roles_count).toBe(0)
+    expect(row.roles_count).toBe(0)
 
     // 再启回来 + 换角色
     const enableRes = await api.root('PUT', api.apiPath(`/system/user/${created.id}`), {
@@ -159,7 +159,7 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     expect(bodyOf<UserRow>(enableRes).data.status).toBe(true)
   })
 
-  it('list → userName 过滤 + populated_roles_count（list 出参裁剪字段面）', async () => {
+  it('list → userName 过滤 + roles_count（list 出参裁剪字段面）', async () => {
     await createUser('L1', [bizRoleId])
 
     const listRes = await api.root('POST', api.apiPath('/system/user/list'), {
@@ -171,10 +171,10 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     const list = bodyOf<{ data: UserRow[], total: number }>(listRes).data
     expect(list.total).toBe(1)
     expect(list.data[0].userName).toBe(`${userPrefix}-L1`)
-    expect(list.data[0].populated_roles_count).toBe(1)
-    // SysUserDTOListResponse 只 pick id/userName/nickName/status/createdAt/updatedAt/populated_roles_count
+    expect(list.data[0].roles_count).toBe(1)
+    // SysUserDTOListResponse 只 pick id/userName/nickName/status/createdAt/updatedAt/roles_count
     expect(list.data[0].roles).toBeUndefined()
-    expect(list.data[0].populated_roles_list).toBeUndefined()
+    expect(list.data[0].roles_list).toBeUndefined()
   })
 
   it('me/role/switch：COMBINE 模式拒（40000）；角色不在 junction 也拒', async () => {
@@ -231,7 +231,7 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
       [victim.id],
     )
     expect(snapshots).toHaveLength(1)
-    expect(snapshots[0].model_name).toBe(WalnutDBModelName.SYS_USER)
+    expect(snapshots[0].model_name).toBe(WalnutModelName.SYS_USER)
   })
 
   it('create roles 含 safe role id → 40000；缺 roles → 40099', async () => {

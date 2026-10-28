@@ -1,7 +1,7 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
@@ -41,7 +41,7 @@ export class AuthOpaqueAdminController {
   @WalnutAdminDecoratorHasPermission(
     WalnutAdminConstPermissionOpaqueAdmin.PASSWORD_UPDATE,
   )
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Finish password change with new registration record',
     primitive: 'boolean',
@@ -52,7 +52,7 @@ export class AuthOpaqueAdminController {
     operateType: WalnutAdminConstDecoratorLogOperateType.USER_UPDATE_PASSWORD,
   })
   async changePasswordFinish(
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() dto: AuthOpaqueFinishChangePasswordForAdminDTO,
   ) {
     // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em
@@ -64,7 +64,7 @@ export class AuthOpaqueAdminController {
   @WalnutAdminDecoratorHasPermission(
     WalnutAdminConstPermissionOpaqueAdmin.PASSWORD_CLEAR,
   )
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Clear password for user',
     primitive: 'boolean',
@@ -75,7 +75,7 @@ export class AuthOpaqueAdminController {
     operateType: WalnutAdminConstDecoratorLogOperateType.USER_CLEAR_PASSWORD,
   })
   async clearPasswordFinish(
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() dto: AuthOpaqueClearPasswordForAdminDTO,
   ) {
     // B7a 签名适配：identity 腿迁 PG —— 传 ctx.em

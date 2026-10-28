@@ -63,14 +63,14 @@ export class SysLangDTOBase extends WalnutAdminCommonBasicModel {
       title: `current lang's locales total count`,
     },
   })
-  populated_localesTotalCount: number
+  localesTotalCount: number
 
   @WalnutAdminDecoratorFieldNumber({
     swaggerOptions: {
       title: `current lang's locales finished count`,
     },
   })
-  populated_localesFinishedCount: number
+  localesFinishedCount: number
 }
 
 export class SysLangDTO extends SysLangDTOBase {

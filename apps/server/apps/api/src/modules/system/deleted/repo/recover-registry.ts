@@ -1,7 +1,7 @@
 import type { EntityManager, EntityTarget, ObjectLiteral } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 
-import { WalnutDBModelName } from '@walnut-server/db'
+import { WalnutModelName } from '@walnut-server/db'
 import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
 import { AppErrorEntity } from '@/modules/app/error/entity/error.entity'
 import { AppKeyEntity } from '@/modules/app/key/entity/key.entity'
@@ -62,7 +62,7 @@ export function createWalnutPgSnapshotRecoverer<T extends ObjectLiteral>(entityT
 }
 
 /**
- * 恢复注册清单：modelName（`WalnutDBModelName`，软删快照的路由键）→ 目标实体。
+ * 恢复注册清单：modelName（`WalnutModelName`，软删快照的路由键）→ 目标实体。
  * 覆盖全部 23 张已迁业务表 —— 其中 lock/mfa/preference/user_device/refresh_token
  * 等无软删写路径的表一并注册（注册无害，兜住任何来源的历史快照）；
  * junction 表（sys_role_menu / sys_user_role）随主行 CASCADE 生灭，不进回收站，
@@ -72,29 +72,29 @@ export function createWalnutPgSnapshotRecoverer<T extends ObjectLiteral>(entityT
  * 运行时注册面仍收口在 `SysDeletedPgRecoverRegistry`。
  */
 export const WALNUT_PG_RECOVERABLE_COLLECTIONS: ReadonlyArray<{ modelName: string, entityTarget: EntityTarget<ObjectLiteral> }> = [
-  { modelName: WalnutDBModelName.SYS_ROLE, entityTarget: SysRoleEntity },
-  { modelName: WalnutDBModelName.SYS_USER, entityTarget: SysUserEntity },
-  { modelName: WalnutDBModelName.SYS_USER_OAUTH, entityTarget: SysUserOauthEntity },
-  { modelName: WalnutDBModelName.SYS_USER_PREFERENCE, entityTarget: SysUserPreferenceEntity },
-  { modelName: WalnutDBModelName.SYS_USER_LOCK, entityTarget: SysUserLockEntity },
-  { modelName: WalnutDBModelName.SYS_USER_DEVICE, entityTarget: SysUserDeviceEntity },
-  { modelName: WalnutDBModelName.SYS_USER_MFA, entityTarget: SysUserMfaEntity },
-  { modelName: WalnutDBModelName.SYS_USER_IDENTITY, entityTarget: SysUserIdentityEntity },
-  { modelName: WalnutDBModelName.SYS_MENU, entityTarget: SysMenuEntity },
-  { modelName: WalnutDBModelName.SYS_LANG, entityTarget: SysLangEntity },
-  { modelName: WalnutDBModelName.SYS_LOCALE, entityTarget: SysLocaleEntity },
-  { modelName: WalnutDBModelName.SYS_DEVICE, entityTarget: SysDeviceEntity },
-  { modelName: WalnutDBModelName.SYS_LOG_AUTH, entityTarget: SysLogAuthEntity },
-  { modelName: WalnutDBModelName.SYS_LOG_OPERATE, entityTarget: SysLogOperateEntity },
-  { modelName: WalnutDBModelName.SYS_DICT_DATA, entityTarget: SysDictDataEntity },
-  { modelName: WalnutDBModelName.SYS_DICT_TYPE, entityTarget: SysDictTypeEntity },
-  { modelName: WalnutDBModelName.SHARED_AREA, entityTarget: SharedAreaEntity },
-  { modelName: WalnutDBModelName.APP_DEMO, entityTarget: AppDemoEntity },
-  { modelName: WalnutDBModelName.APP_MONITOR_USER, entityTarget: AppMonitorUserEntity },
-  { modelName: WalnutDBModelName.APP_SETTING, entityTarget: AppSettingEntity },
-  { modelName: WalnutDBModelName.APP_ERROR, entityTarget: AppErrorEntity },
-  { modelName: WalnutDBModelName.APP_KEY, entityTarget: AppKeyEntity },
-  { modelName: WalnutDBModelName.AUTH_REFRESH_TOKEN, entityTarget: AuthRefreshTokenEntity },
+  { modelName: WalnutModelName.SYS_ROLE, entityTarget: SysRoleEntity },
+  { modelName: WalnutModelName.SYS_USER, entityTarget: SysUserEntity },
+  { modelName: WalnutModelName.SYS_USER_OAUTH, entityTarget: SysUserOauthEntity },
+  { modelName: WalnutModelName.SYS_USER_PREFERENCE, entityTarget: SysUserPreferenceEntity },
+  { modelName: WalnutModelName.SYS_USER_LOCK, entityTarget: SysUserLockEntity },
+  { modelName: WalnutModelName.SYS_USER_DEVICE, entityTarget: SysUserDeviceEntity },
+  { modelName: WalnutModelName.SYS_USER_MFA, entityTarget: SysUserMfaEntity },
+  { modelName: WalnutModelName.SYS_USER_IDENTITY, entityTarget: SysUserIdentityEntity },
+  { modelName: WalnutModelName.SYS_MENU, entityTarget: SysMenuEntity },
+  { modelName: WalnutModelName.SYS_LANG, entityTarget: SysLangEntity },
+  { modelName: WalnutModelName.SYS_LOCALE, entityTarget: SysLocaleEntity },
+  { modelName: WalnutModelName.SYS_DEVICE, entityTarget: SysDeviceEntity },
+  { modelName: WalnutModelName.SYS_LOG_AUTH, entityTarget: SysLogAuthEntity },
+  { modelName: WalnutModelName.SYS_LOG_OPERATE, entityTarget: SysLogOperateEntity },
+  { modelName: WalnutModelName.SYS_DICT_DATA, entityTarget: SysDictDataEntity },
+  { modelName: WalnutModelName.SYS_DICT_TYPE, entityTarget: SysDictTypeEntity },
+  { modelName: WalnutModelName.SHARED_AREA, entityTarget: SharedAreaEntity },
+  { modelName: WalnutModelName.APP_DEMO, entityTarget: AppDemoEntity },
+  { modelName: WalnutModelName.APP_MONITOR_USER, entityTarget: AppMonitorUserEntity },
+  { modelName: WalnutModelName.APP_SETTING, entityTarget: AppSettingEntity },
+  { modelName: WalnutModelName.APP_ERROR, entityTarget: AppErrorEntity },
+  { modelName: WalnutModelName.APP_KEY, entityTarget: AppKeyEntity },
+  { modelName: WalnutModelName.AUTH_REFRESH_TOKEN, entityTarget: AuthRefreshTokenEntity },
 ]
 
 @Injectable()

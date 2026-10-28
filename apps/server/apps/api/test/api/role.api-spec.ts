@@ -12,7 +12,7 @@ import { createApiApp } from './helpers/create-api-app'
  * C 段：`system/role` —— CRUD 四件（无 delete / deleteMany 端点）+ menus 赋值落
  * sys_role_menu junction（create 缺省=空数组、update 未给=junction 不动、给了=整组替换）
  * + root 角色守卫（create 拒 root/developer、update 拒 roleName==='root' 与根角色行）
- * + `findRolesWithPopulatedMenus` 权限链路形态（status 过滤 + populated_menusList 组装）。
+ * + `findRolesWithPopulatedMenus` 权限链路形态（status 过滤 + menusList 组装）。
  *
  * root 守卫判据（B5 迁移口径）：PG 侧根角色按 role_name 全库唯一判定（'root' 行），
  * create/update 双层拦；本 spec 的 fixture root 角色行正好当「真实根角色」靶子。
@@ -27,8 +27,8 @@ interface RoleRow {
   order?: number | null
   status?: boolean
   menus?: string[]
-  populated_usersCount?: number
-  populated_menusList?: MenuRow[]
+  usersCount?: number
+  menusList?: MenuRow[]
 }
 
 interface MenuRow {
@@ -56,7 +56,7 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
   const collect = {
     roleIds: [] as string[],
     menuIds: [] as string[],
-    /** 经 HTTP 建出的 junction 之外的用户行（populated_usersCount 用例） */
+    /** 经 HTTP 建出的 junction 之外的用户行（usersCount 用例） */
     userIds: [] as string[],
   }
 
@@ -127,7 +127,7 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
     await app.close()
   })
 
-  it('create 缺省 menus → 空数组 + junction 无行；read 回 populated_usersCount=0', async () => {
+  it('create 缺省 menus → 空数组 + junction 无行；read 回 usersCount=0', async () => {
     const created = await createRole('R1')
     expect(created.id).toMatch(UUID_RE)
     expect(created.menus).toEqual([])
@@ -137,7 +137,7 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
     const row = bodyOf<RoleRow>(readRes).data
     expect(row.roleName).toBe(`${rolePrefix}-R1`)
     expect(row.menus).toEqual([])
-    expect(row.populated_usersCount).toBe(0)
+    expect(row.usersCount).toBe(0)
   })
 
   it('create 带 menus → junction 落行；update 未给 menus → junction 不动；给了 → 整组替换', async () => {
@@ -186,7 +186,7 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
     expect(junctionRows.map(r => r.menu_id)).toEqual([menuB.id])
   })
 
-  it('list → roleName 过滤 + populated_usersCount 计数（junction 子查询）+ 出参不带 menus', async () => {
+  it('list → roleName 过滤 + usersCount 计数（junction 子查询）+ 出参不带 menus', async () => {
     const role = await createRole('L1')
 
     // 造一个挂到该角色的用户（junction 行 → 计数 1）
@@ -209,7 +209,7 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
     expectOk(listRes, 'role list')
     const list = bodyOf<RoleListData>(listRes).data
     expect(list.total).toBe(1)
-    expect(list.data[0].populated_usersCount).toBe(1)
+    expect(list.data[0].usersCount).toBe(1)
     // list 出参类型是 SysRoleDTOSafeWithoutMenus
     expect(list.data[0].menus).toBeUndefined()
   })
@@ -251,10 +251,10 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
     expect(bodyOf(updateRootRow).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
   })
 
-  it('findRolesWithPopulatedMenus 权限链路形态：status 过滤角色 + populated_menusList 组装 meta', async () => {
+  it('findRolesWithPopulatedMenus 权限链路形态：status 过滤角色 + menusList 组装 meta', async () => {
     const menuOn = await createMenuViaHttp('PA')
     const menuOff = await createMenuViaHttp('PB')
-    // menuOff 停用（match meta.status=true 的 populate 语义 → 不进 populated_menusList）
+    // menuOff 停用（match meta.status=true 的 populate 语义 → 不进 menusList）
     await api.root('PUT', api.apiPath(`/system/menu/${menuOff.id}`), {
       name: `${menuPrefix}-PB`,
       title: `menu.title.${seed8}.PB`,
@@ -277,11 +277,11 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
     expect(populated.map(r => r.id)).toEqual([roleOn.id])
     const row = populated[0]
     expect(row.menus?.sort()).toEqual([menuOn.id, menuOff.id].sort())
-    // 只有启用菜单进 populated_menusList，且组装回 meta 对象
-    expect(row.populated_menusList).toHaveLength(1)
-    expect(row.populated_menusList[0].id).toBe(menuOn.id)
-    expect(row.populated_menusList[0].meta?.order).toBe(1)
-    expect(row.populated_menusList[0].title).toBe(`menu.title.${seed8}.PA`)
+    // 只有启用菜单进 menusList，且组装回 meta 对象
+    expect(row.menusList).toHaveLength(1)
+    expect(row.menusList[0].id).toBe(menuOn.id)
+    expect(row.menusList[0].meta?.order).toBe(1)
+    expect(row.menusList[0].title).toBe(`menu.title.${seed8}.PA`)
   })
 
   it('read 不存在的 uuid → 40401；create 缺 roleName → 40099', async () => {

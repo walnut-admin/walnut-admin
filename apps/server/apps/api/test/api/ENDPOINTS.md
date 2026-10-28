@@ -97,7 +97,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   **钉现状（非迁移回归，登记）**：AUTH:SESSIONS 键残留 —— revokeSession 走 cacheService.delByPattern，内部 redis.del(数组) 在 node-redis v5 rest-args 语义下抛错（C 段 user-device/monitor spec 同款已知问题），钩子错误被 catch 吞掉 |
 | 会话 | GET `/auth/keys` | Sign 链 | 无 | — | **D 段已测**：响应 B 字段是 EncryptResponse 设备握手 RSA 信封（与 aes-key 握手第二步同格式），客户端私钥（api-client 新增 `clientRsaPrivateKeyPem`）解密还原 vendor.baidu 明文 |
 | opaque/user | POST `/auth/opaque/user/login/start` | JwtFree（Sign 生效：单因子） | 无 | `{userName,start}` | **基座核心**：真实 opaque 登录前半段。
-  A 段试点抓出迁移回归并已修：handler 用 `@WalnutDBSession()` 取 ctx.em 但漏挂 `@WalnutDBTransaction()`，txContext 恒 undefined → 匿名调用必 500；已对齐 login/finish 形态补上事务装饰器 |
+  A 段试点抓出迁移回归并已修：handler 用 `@WalnutTxSession()` 取 ctx.em 但漏挂 `@WalnutTx()`，txContext 恒 undefined → 匿名调用必 500；已对齐 login/finish 形态补上事务装饰器 |
 | opaque/user | POST `/auth/opaque/user/login/finish` | JwtFree + `AuthOpaqueUserGuard`(passport-local userName/finish) | 无 | `{userName,finish}` | **基座核心**：签发 AT/sessionKey + RT cookie |
 | opaque/user | POST `/auth/opaque/user/login/client-error` | JwtFree | 无 | `{userName,clientError(枚举)}` | **E 段终审补测**（opaque-admin.api-spec.ts）：上报恒 40103 InvalidCredential（含失败 log_auth 落库）；clientError 枚举外 → 40099 校验拒绝 |
 | opaque/user | POST `/auth/opaque/user/register/{start,finish}` | JwtFree（但 handler 读 `req.user.userName` —— 语义上是已登录用户补挂口令，新用户注册走 OTP） | 无 | opaque 消息 | 钉现状：匿名调用 500（handler 解引用 undefined）——登记为已知问题，不作为过据点 |
@@ -144,18 +144,18 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | locale | GET `/system/locale/message/:locale?cache=1` | Lock/Sign/Jwt/Cap/Device/Ip 全 Free | 无 | 路由 locale | **A 段试点已覆盖**：message 拉取 + 缓存开关。
   缓存语义已钉现状：locale create/delete 事务提交后全量刷新 message 缓存（runAfterCommit → extractLocaleMessagesIntoCacheForCronJob，会顺带写 `SYS_LANG_ID_LIST`）；绕过 HTTP 的 PG 直插不触发刷新，cache=1 读旧缓存、cache=0 回源 |
 | locale | POST `/system/locale`（数组批量 create）、`GET /:key`、`PUT /:id`、`DELETE /:key`、`DELETE /deleteMany/:keys`、`POST /list` | Sign 链 + 事务 | `system:locale:*` | 数组 `{langId,key,value[,oldKey]}` | **A 段试点**（创建/更新/删除走真实事务） |
-| dict/type | GET `/system/dict/type/s` + CRUD | Sign 链 | `system:dictType:*` | dict DTO | **C 段已测**（dict.api-spec.ts）：CRUD + list 附 `populated_dictDataCount` 计数子查询 + `s` 端点按 type 批量回启用 data（order 升序、未知 type 跳过）。
+| dict/type | GET `/system/dict/type/s` + CRUD | Sign 链 | `system:dictType:*` | dict DTO | **C 段已测**（dict.api-spec.ts）：CRUD + list 附 `dictDataCount` 计数子查询 + `s` 端点按 type 批量回启用 data（order 升序、未知 type 跳过）。
   **FK 语义钉死**：dictType 的 HTTP delete 是「sys_deleted 快照 + 原行硬删」，data 腿由 DB 级 CASCADE（type_id FK）静默清掉且**不产生** data 的软删快照 |
 | dict/data | CRUD | Sign 链 | `system:dictData:*` | dict DTO | **C 段已测**：CRUD + 软删快照 + read 40401。
   **无 deleteMany 路由**（Permissions.DELETE_MANY 常量存在但装饰器未接线 → 40400，钉现状）；update 的 DTO 字段全量必填（tagType 漏给 → 40099） |
 | menu | GET `/system/menu/tree` + CRUD（delete 带 `?cascade=` query） | Sign 链 | `system:menu:*` | menu DTO | **C 段已测**（menu.api-spec.ts）：meta 拍平出入参往返（19 列组装/回填默认值）+ pid 自引用建树 + `?_cascade=` 两态（=1 额外按 title 级联软删 locale，非删子菜单；pid FK RESTRICT）+ tree 形态（fullTree 只回首根 children、treeWithoutTypeElement 走完整根数组、空表 `fullTree[0].children` TypeError 50000 不进回归）。
   **迁移回归已修**（C 段唯一一处 src 修复）：`flattenSysMenuMeta` 未给键判据原为 `=== undefined`，但 HTTP 入参经 ValidationPipe 深度实例化（meta 挂 @Type）后部分 meta 的未给键是**显式 null** → is_show 等非空列收到 NULL 撞 NOT NULL 约束，HTTP create/update 带部分 meta 必 50000；已改 `??`（null/undefined 都回填 schema 默认值，对齐 Mongo 子文档语义）。service 层 int-spec（B5 menu.role.pg）传的是纯对象不可见，只有 HTTP 层能抓到 |
-| role | CRUD 四件（无 deleteMany；无 delete） | Sign 链 | `system:role:*` | role DTO | **C 段已测**（role.api-spec.ts）：menus 赋值落 sys_role_menu junction（create 缺省=空数组、update 未给=junction 不动、给了=delete+insert 整组替换）+ read/list 的 populated_usersCount + root 守卫（create 拒 root/developer、update 拒 roleName=root 与根角色行）+ `findRolesWithPopulatedMenus` 形态（status 过滤 + populated_menusList 组装 meta） |
+| role | CRUD 四件（无 deleteMany；无 delete） | Sign 链 | `system:role:*` | role DTO | **C 段已测**（role.api-spec.ts）：menus 赋值落 sys_role_menu junction（create 缺省=空数组、update 未给=junction 不动、给了=delete+insert 整组替换）+ read/list 的 usersCount + root 守卫（create 拒 root/developer、update 拒 roleName=root 与根角色行）+ `findRolesWithPopulatedMenus` 形态（status 过滤 + menusList 组装 meta） |
 | user | CRUD + 状态管理 | Sign 链 | `system:user:*` | user DTO | **C 段已测**（user.api-spec.ts）：create roles 必填（给 [] 时 junction 空 + currentRole 走 defaultRole 兜底）、safe role id 拦截、update 启停/roles 整组替换、delete 拒自己与 safe user、list 字段面裁剪 + `me/role/switch`（COMBINE 拒 40000）与 `me/roleMode/switch`（switchable↔combinable 落库、非法枚举 40099）+ opaque admin `password/clear`（删 password identity、幂等恒 true）。
   用户名重复 → DB 23505 未映射受控异常，兜底 50000（钉现状） |
-| user/me | PUT `/system/user/me/profile`、GET `security-tab2`、GET `profile` | Sign 链 | `me:profile:update` 等 | — | **C 段已测**（user-me.api-spec.ts）：GET profile populated_roles_list、PUT profile 持久化 + 40099（缺必填/越枚举）、security-tab2 双通道形状（totp 行 SQL 直插对拍 verified/status 语义）、匿名 40101 |
-| device | POST `/system/device/initial`（Sign/Jwt/Cap/Device Free + Throttle）+ GET `:id/current-active-user`、`:id/history-users` + PATCH `:id/{lock,unlock,banned,unbanned}` + read/list | Sign 链 | `system:device:*`（AND 模式组合） | uuid + PATCH | **C 段已测**（device.api-spec.ts）：initial 同指纹幂等回同 deviceId（upsert 覆盖 deviceName）+ 新指纹新行（裸 supertest 发，避免 cookie jar 吃下第二台设备的 DEVICE_ID 重签导致 CAP 40116 串台；Throttle 4/60s 压线）+ read/list（`:id` 是行 uuid 非业务键；sr/vp 组装回嵌套；current-active-user 空态回 null 填充壳）+ lock/ban 只进 SYS_DEVICE 缓存不落库 → 锁/封期间同设备请求被 Device guard 40606/40607 拦死（连 unlock/unban 都到不了），端点间以缓存复位通道衔接 + history-users 恒空数组（populate 恒命中，「只回 populated_user 缺失行」语义反转，钉现状） |
-| deleted | read/list + `POST me/recover`、`POST recover`（recover 系另有 `@HasRole([root,developer,admin])`） | Sign 链 | `system:deleted:*` | uuid/ids | **D 段已测**（deleted.api-spec.ts，B9 int-spec 已盖 service 层，此处 HTTP 层复刻核心三态）：demo create → HTTP delete 软删 → read（快照 content/modelName/deletedBy + populated_user toMatchObject——read 面带额外 null 键）/ list（content ::text 关键字过滤 + total，出参不带 content）→ recoverMine 属主恢复（原行回来 + sys_deleted 行同事务消失）→ 管理端 recover（root 短路 @HasRole）→ deletedId 不匹配两态（recoverMine 40401 双键定位不命中 / recover 40000 recoverFail）→ deleteMany（deleteReal）硬删快照、原表不回来。
+| user/me | PUT `/system/user/me/profile`、GET `security-tab2`、GET `profile` | Sign 链 | `me:profile:update` 等 | — | **C 段已测**（user-me.api-spec.ts）：GET profile roles_list、PUT profile 持久化 + 40099（缺必填/越枚举）、security-tab2 双通道形状（totp 行 SQL 直插对拍 verified/status 语义）、匿名 40101 |
+| device | POST `/system/device/initial`（Sign/Jwt/Cap/Device Free + Throttle）+ GET `:id/current-active-user`、`:id/history-users` + PATCH `:id/{lock,unlock,banned,unbanned}` + read/list | Sign 链 | `system:device:*`（AND 模式组合） | uuid + PATCH | **C 段已测**（device.api-spec.ts）：initial 同指纹幂等回同 deviceId（upsert 覆盖 deviceName）+ 新指纹新行（裸 supertest 发，避免 cookie jar 吃下第二台设备的 DEVICE_ID 重签导致 CAP 40116 串台；Throttle 4/60s 压线）+ read/list（`:id` 是行 uuid 非业务键；sr/vp 组装回嵌套；current-active-user 空态回 null 填充壳）+ lock/ban 只进 SYS_DEVICE 缓存不落库 → 锁/封期间同设备请求被 Device guard 40606/40607 拦死（连 unlock/unban 都到不了），端点间以缓存复位通道衔接 + history-users 恒空数组（populate 恒命中，「只回 user 缺失行」语义反转，钉现状） |
+| deleted | read/list + `POST me/recover`、`POST recover`（recover 系另有 `@HasRole([root,developer,admin])`） | Sign 链 | `system:deleted:*` | uuid/ids | **D 段已测**（deleted.api-spec.ts，B9 int-spec 已盖 service 层，此处 HTTP 层复刻核心三态）：demo create → HTTP delete 软删 → read（快照 content/modelName/deletedBy + user toMatchObject——read 面带额外 null 键）/ list（content ::text 关键字过滤 + total，出参不带 content）→ recoverMine 属主恢复（原行回来 + sys_deleted 行同事务消失）→ 管理端 recover（root 短路 @HasRole）→ deletedId 不匹配两态（recoverMine 40401 双键定位不命中 / recover 40000 recoverFail）→ deleteMany（deleteReal）硬删快照、原表不回来。
   **注意**：demoString 挂 IsUppercase（uuid 片段 hex 抬大写）；deletedBy 是 uuid 列不走模糊白名单，列表过滤走 content 关键字 |
 | log/auth | CRUD delete/deleteMany/list（`@UseGuards(JwtAccessGuard)` 显式重复挂） | Sign 链 | `system:logAuth:*` | list | **D 段已测**（log-auth.api-spec.ts）：日志行由真实登录链自然产生（beforeAll opaque HTTP 登录产成功行；未知 userName 的 login/start 产失败行——recordAuth fire-and-forget，断言轮询）→ list（deviceId 过滤 + type 数组过滤命中/空命中 + 分页）+ 行字段面（成功行 userId/userName/type=opaque、失败行 userId/userName 双 null、msg 为 i18n 文案）+ delete（软删 → sys_deleted 快照 SysLogAuthModel）+ deleteMany + 不存在 id 40401 |
 | log/operate | GET `:id/device`、`:id/snapshot`、read、list | Sign 链 | `system:logOperate:*` | uuid | **D 段已测**（log-operate.api-spec.ts）：日志行由 dictType create/update（CRUD 装饰器自带操作日志）自然产生，拦截器 `void insertToLogOperate` fire-and-forget 断言轮询 → list（deviceId 过滤 + 分页）+ 行字段面（title/actionType/method/statusCode/success/userId/os/browser/requestData jsonb）+ `:id/snapshot`（pg-base.update 的 ALS 快照两腿 before/after name 翻转）+ `:id/device`（deviceId 业务键反查 sys_device 组装回嵌套）+ read（Safe DTO 无快照列）+ 不存在 id 40401（read/snapshot 同型）。
@@ -392,7 +392,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
     身份直接 getIdentityOrThrow，预期 40119 分支不可达）；
   - `system/device` 的 lock/unlock/ban/unban 只写 SYS_DEVICE 缓存不落库；锁/封期间同设备后续请求被
     Device guard 40606/40607 拦死（连 unlock/unban 都到不了）；`history-users` 恒空数组（「只回
-    populated_user 缺失行」的语义反转 + PG 侧 populate 恒命中）；current-active-user 空态回 null 填充壳
+    user 缺失行」的语义反转 + PG 侧 populate 恒命中）；current-active-user 空态回 null 填充壳
     （`?? {}` 后经 plainToInstance 深度实例化）；
   - `system/user/device` 的 force-quit 只撤「查到的第一行」RT（updateRevokedAndReason 走 findOne），
     非同维度全部 RT；
@@ -415,7 +415,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   （meta 19 字段拍平列之一，`*:*:*` 形态直存）**一行一串** —— `getCorePermissions → getStrings`
   的过滤判据只有 `Boolean(meta.permission)`；element 行不进菜单树（`getMenuTree` 按 type 过滤）
   但进权限串，因此「N 个权限点 = N 根 element 行」。非 root 用户可用菜单 = 种子角色的
-  `populated_menusList`（sys_role_menu junction，`menu.status=true` 过滤）+ `findRootMenu()`
+  `menusList`（sys_role_menu junction，`menu.status=true` 过滤）+ `findRootMenu()`
   兜底的根行 —— 种子 CATALOG 根（pid=NULL）不挂 junction，挂了反而与 findRootMenu 的返回值重复
   出现在 menuArr 里。
 - **实测结论（全部断言钉进 spec）**：

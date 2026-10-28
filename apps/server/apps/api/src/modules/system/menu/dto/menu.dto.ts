@@ -290,7 +290,7 @@ export class SysMenuDTOBase extends WalnutAdminCommonBasicModel {
 
 /**
  * 组装后的菜单行 —— Mongo 版 `.toObject({ flattenObjectIds: true })` 出参的 PG 等价形态
- * （拍平列 + meta 对象；主键 id，不再有 _id）。菜单树 / 路由 / role populated_menusList
+ * （拍平列 + meta 对象；主键 id，不再有 _id）。菜单树 / 路由 / role menusList
  * 的消费侧统一用它标注。
  */
 export interface ISysMenuAssembled extends SysMenuEntity {

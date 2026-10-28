@@ -241,7 +241,7 @@
 - **实测证据**：C 段 device spec。
 - **建议**：落库 + 缓存双写（或明确登记为「临时封禁」取舍并写入文档）。
 
-### P2-3 history-users 恒空数组 —— 「只回 populated_user 缺失行」语义反转
+### P2-3 history-users 恒空数组 —— 「只回 user 缺失行」语义反转
 
 - **位置**：`device.service.getHistoryUsersByDeviceId` →
   `user_device.shared.getAllUsersByDeviceId`（PG 侧 populate 恒命中 → 缺失行恒无）。

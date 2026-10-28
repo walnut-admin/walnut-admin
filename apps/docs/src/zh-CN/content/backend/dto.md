@@ -151,7 +151,7 @@ export class UserDTO {
 4. 功能性 Guard（`@WalnutAdminDecoratorFunctionalGuard`）
 5. CRUD 装饰器（`@WalnutAdminDecoratorList`、`@WalnutAdminDecoratorCreate`、`@WalnutAdminDecoratorRead`、`@WalnutAdminDecoratorUpdate`、`@WalnutAdminDecoratorDelete`、`@WalnutAdminDecoratorDeleteMany`）
 6. Guard Free（`@WalnutAdminGuardJwtOptional`、`@WalnutAdminGuardLockFree`、`@WalnutAdminGuardSignFree`、`@WalnutAdminGuardMFAFree`、`@WalnutAdminGuardJwtFree`、`@WalnutAdminGuardCapFree`、`@WalnutAdminGuardDeviceFree`、`@WalnutAdminGuardIpFree`）
-7. 事务（`@WalnutDBTransaction`，见 [PostgreSQL 事务](./transactions.md)）
+7. 事务（`@WalnutTx`，见 [PostgreSQL 事务](./transactions.md)）
 8. Swagger（`@ApiExtraModels`、`@ApiParam`、`@ApiQuery`、`@ApiBody`、`@ApiWalnutOkResponse`、`@ApiOkResponse`）
 9. 功能性（`@WalnutAdminDecoratorFreeResponse`、`@WalnutAdminDecoratorCache`、`@WalnutAdminDecoratorAuthLog`、`@WalnutAdminDecoratorOperateLog`、`@WalnutAdminDecoratorThrottle`、`@WalnutAdminDecoratorDevOnly`、`@Render`）
 10. `@UseGuards`（**在最后**，不是「Guard 那一条」的位置）
@@ -162,7 +162,7 @@ export class UserDTO {
 
 1. 上下文（`@WalnutAdminDecoratorJti`、`@WalnutAdminDecoratorUser`）
 2. 设备（`@WalnutAdminDecoratorDeviceId`）
-3. 会话（`@WalnutDBSession`）
+3. 会话（`@WalnutTxSession`）
 4. Cookie（`@WalnutAdminDecoratorCookie`）
 5. 路径参数（`@WalnutAdminDecoratorParamUuid`、`@WalnutAdminDecoratorParamUuids`）
 6. 标准（`@Req`、`@Request`、`@Res`、`@Response`、`@Param`、`@Query`、`@Body`、`@Headers`）

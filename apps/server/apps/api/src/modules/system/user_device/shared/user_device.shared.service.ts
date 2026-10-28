@@ -43,15 +43,15 @@ export class SysUserDeviceSharedService {
 
   /**
    * @description get all users by device id
-   * （基线语义原样保留：Mongo 版这个 filter 只放行 populated_user 缺失的行 —— 看似
+   * （基线语义原样保留：Mongo 版这个 filter 只放行 user 缺失的行 —— 看似
    * 反转、实为现状行为，PG 侧只把判等键从 _id 换成 id，不做"修正"）
    */
   async getAllUsersByDeviceId(deviceId: string) {
     const docs = await this.userDeviceRepo.findAllUserInCurrentDevice(deviceId)
     return docs
-      .filter(i => isNil(i.populated_user?.id))
+      .filter(i => isNil(i.user?.id))
       .map(i => ({
-        ...(i.populated_user ?? {}),
+        ...(i.user ?? {}),
         lastActiveAt: i.lastActiveAt,
       }))
   }

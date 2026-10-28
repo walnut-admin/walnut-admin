@@ -62,7 +62,7 @@ export class SysLogOperateService {
    * @description get device by log operate id (controller: getDeviceByLogOperateId)
    *
    * 松引用反查：deviceId 是业务键（sys_device.device_id 全表唯一，Q5 定案），
-   * 找不到设备行返回 null（Mongo 版 populated_device 为 null 时 controller 侧
+   * 找不到设备行返回 null（Mongo 版 device 为 null 时 controller 侧
    * `.toObject()` 直接 TypeError 500，这里收敛为受控空值）。
    */
   async getDeviceByLogOperateId(id: string) {

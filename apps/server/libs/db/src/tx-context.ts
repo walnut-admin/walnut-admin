@@ -1,7 +1,7 @@
 import type { EntityManager } from 'typeorm'
 
 /**
- * 事务上下文 —— `@WalnutDBTransaction()` + `@WalnutDBSession()` 的统一产物，挂在
+ * 事务上下文 —— `@WalnutTx()` + `@WalnutTxSession()` 的统一产物，挂在
  * `request.txContext` 上：
  *
  * `em`：PG 事务内 EntityManager（QueryRunner.manager），所有数据路径用它读写，

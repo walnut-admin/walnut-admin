@@ -1,7 +1,7 @@
 import type { DataSource, EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import { SysDictDataEntity } from './entity/dict-data.entity'
@@ -15,7 +15,7 @@ export class SysDictDataBasicRepository extends WalnutAdminCommonPgBaseRepositor
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(SysDictDataEntity, WalnutDBModelName.SYS_DICT_DATA, dataSource)
+    super(SysDictDataEntity, WalnutModelName.SYS_DICT_DATA, dataSource)
   }
 
   /**

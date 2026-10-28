@@ -41,7 +41,7 @@ const useAppStoreUserProfileInside = defineStore(StoreKeys.USER_PROFILE, {
     },
 
     getRoleList(state) {
-      return state.profile.populated_roles_list
+      return state.profile.roles_list
     },
 
     getCurrentRole(state) {

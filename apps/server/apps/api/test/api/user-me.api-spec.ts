@@ -22,8 +22,8 @@ interface ProfileRow {
   description?: string | null
   gender?: number
   avatar?: string | null
-  populated_roles_count?: number
-  populated_roles_list?: Array<{ id: string, roleName?: string }>
+  roles_count?: number
+  roles_list?: Array<{ id: string, roleName?: string }>
 }
 
 interface SecurityTab2 {
@@ -60,15 +60,15 @@ describe('C 段：system/user/me profile + security-tab2（真实 HTTP 全链）
     await app.close()
   })
 
-  it('GET profile → 20000，root 身份 + populated_roles_list（junction 读腿）', async () => {
+  it('GET profile → 20000，root 身份 + roles_list（junction 读腿）', async () => {
     const res = await api.root('GET', api.apiPath('/system/user/me/profile'))
     expectOk(res, 'me profile get')
 
     const row = bodyOf<ProfileRow>(res).data
     expect(row.id).toBe(fixture!.userId)
     expect(row.userName).toBe(fixture!.userName)
-    expect(row.populated_roles_count).toBe(1)
-    expect(row.populated_roles_list?.[0]?.roleName).toBe('root')
+    expect(row.roles_count).toBe(1)
+    expect(row.roles_list?.[0]?.roleName).toBe('root')
   })
 
   it('PUT profile → 修改 nickName/description/gender 持久化；GET 回读一致', async () => {

@@ -20,7 +20,7 @@ import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 /**
  * B7a 账户团第一段用例（phase2 4.1/4.10/4.13 / phase3-plan §1 B7a，on real PG）：
  * - sys_user：roles 数组 → sys_user_role junction（create 缺省 = defaultRole、update
- *   整组替换、未给不动）、populated_roles_list / populated_roles_count junction 组装、
+ *   整组替换、未给不动）、roles_list / roles_count junction 组装、
  *   uq_user_name partial unique、列表 { data, total } + 计数、软删快照 + junction CASCADE；
  * - defaultRole 链路：role fixture 以 v5 uuid（ETL namespace 派生，独立参考实现与
  *   工具链 uuid5.ts 互为对拍）显式建行，`app.default.role` setting 走缓存直设 ——
@@ -160,7 +160,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
         const populated = await userRepoService.attachPopulatedRoles(authCreated)
         expect(populated.roles).toEqual([roleUuid])
         expect(populated.currentRole).toBe(roleUuid)
-        expect(populated.populated_roles_list.map(i => i.id)).toEqual([roleUuid])
+        expect(populated.roles_list.map(i => i.id)).toEqual([roleUuid])
       }
       finally {
         await cacheAppSettingsService.setAppSettings(settingSnapshot ?? {}, { t: WalnutAdminConstAppCacheType.BUILT_IN })
@@ -178,7 +178,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       await insertPgUser()
     })
 
-    it('read：populated_roles_list / populated_roles_count junction 组装', async () => {
+    it('read：roles_list / roles_count junction 组装', async () => {
       const created = await userCrudService.create({
         userName: uniqueName('b7a-read'),
         status: true,
@@ -186,16 +186,16 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       })
 
       const read = await userCrudService.read(created.id)
-      expect(read.populated_roles_list).toHaveLength(2)
-      expect(read.populated_roles_list.map(i => i.id).sort()).toEqual([roleAId, roleBId].sort())
-      expect(read.populated_roles_list[0].roleName).toBeTruthy()
-      expect(read.populated_roles_count).toBe(2)
+      expect(read.roles_list).toHaveLength(2)
+      expect(read.roles_list.map(i => i.id).sort()).toEqual([roleAId, roleBId].sort())
+      expect(read.roles_list[0].roleName).toBeTruthy()
+      expect(read.roles_count).toBe(2)
 
       await expect(userCrudService.read(randomUUID())).rejects.toThrow()
 
       // me.profile 同一条组装链路
       const profile = await userMeService.getUserProfile(created.id)
-      expect(profile!.populated_roles_list.map(i => i.id).sort()).toEqual([roleAId, roleBId].sort())
+      expect(profile!.roles_list.map(i => i.id).sort()).toEqual([roleAId, roleBId].sort())
     })
 
     it('update：roles 整组替换；未给 roles 时 junction 不动', async () => {
@@ -211,14 +211,14 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       expect(await countPg('sys_user_role', 'user_id = $1', [created.id])).toBe(1)
     })
 
-    it('list：{ data, total } 出参 + populated_roles_count 并回 + userName 过滤', async () => {
+    it('list：{ data, total } 出参 + roles_count 并回 + userName 过滤', async () => {
       const userName = uniqueName('b7a-list')
       const created = await userBasicRepo.create({ userName, roles: [roleAId] })
 
       const res = await userCrudService.list({ query: { userName }, page: { page: 1, pageSize: 10 } } as never)
       expect(res.total).toBe(1)
       expect(res.data[0].id).toBe(created.id)
-      expect(res.data[0].populated_roles_count).toBe(1)
+      expect(res.data[0].roles_count).toBe(1)
 
       const miss = await userCrudService.list({ query: { userName: 'atlantis-b7a' }, page: { page: 1, pageSize: 10 } } as never)
       expect(miss.total).toBe(0)
@@ -236,7 +236,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
 
       const deletedRows: Array<{ c: number }> = await pgDataSource.query(
         'SELECT count(*)::int AS c FROM sys_deleted WHERE model_name = $1 AND deleted_id = $2',
-        ['SysUserModel', created.id],
+        ['SysUser', created.id],
       )
       expect(deletedRows[0].c).toBe(1)
     })

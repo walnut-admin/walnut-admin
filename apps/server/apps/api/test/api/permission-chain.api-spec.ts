@@ -21,7 +21,7 @@ import { cleanupPermissionChainSeed, seedPermissionChainUser } from './helpers/s
  * demo.controller Permissions 常量）：授予串挂 element 菜单 junction 到种子角色，
  * 未授予串不建任何行 —— 断言「缓存里有/没有」与「端点放行/40105」双向对齐。
  *
- * 链路依据（读实现钉形）：`getCorePermissions` 从角色 populated_menusList 的 permission
+ * 链路依据（读实现钉形）：`getCorePermissions` 从角色 menusList 的 permission
  * 列推导权限串并写入 `AUTH:PERMISSIONS:<userId>:<deviceId>`（GET /auth/permissions 时）；
  * permission.guard 对非 root 用户**只读缓存**（缺失即 40105，无懒重建），命中后全串精确匹配。
  * effective roleMode 默认（app_setting 空表 → scope GLOBAL）恒 switchable，只看 current_role；

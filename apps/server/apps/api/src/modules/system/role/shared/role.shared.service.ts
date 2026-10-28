@@ -41,7 +41,7 @@ export class SysRoleSharedService {
 
     const roles = await this.getRolesWithPopulatedMenus(payload, em)
 
-    const allMenus = roles.map(i => i.populated_menusList).flat()
+    const allMenus = roles.map(i => i.menusList).flat()
     // B5：主键 _id → id（PG uuid；多角色菜单去重的键随迁移换形）
     const uniMenus = uniqBy(allMenus, 'id')
 

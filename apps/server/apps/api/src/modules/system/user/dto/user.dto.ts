@@ -178,7 +178,7 @@ export class SysUserDTOListRequest extends CreateWalnutAdminRequestListDTO(
 ) {}
 
 export class SysUserDTOListResponse extends CreateWalnutAdminResponseListDTO(
-  RealPickType(RealPartialType(SysUserDTOSafe), ['id', 'userName', 'nickName', 'status', 'createdAt', 'updatedAt', 'populated_roles_count'] as const),
+  RealPickType(RealPartialType(SysUserDTOSafe), ['id', 'userName', 'nickName', 'status', 'createdAt', 'updatedAt', 'roles_count'] as const),
 ) {
   constructor(partial?: Partial<SysUserDTOListResponse>) {
     super()

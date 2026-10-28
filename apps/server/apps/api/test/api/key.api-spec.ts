@@ -11,7 +11,7 @@ import { createApiApp } from './helpers/create-api-app'
 /**
  * B 段：`app/key` 三端点（current/init/rotate）—— service 层已有 int-spec 覆盖
  * （app.key.int-spec.ts），这里补 API 级 HTTP 全链（JWT 守卫 + HasRole(root) + 路由
- * 参数枚举 pipe + rotate 的 @WalnutDBTransaction 事务拦截器）。
+ * 参数枚举 pipe + rotate 的 @WalnutTx 事务拦截器）。
  *
  * 数据自洽口径（与 int-spec 双向隔离）：文件执行顺序不保证，因此 ——
  * - rotate 目标不赌现网行：beforeAll 自插一行高 version 的 ACTIVE RSA_PAIR（getCurrentActiveKey

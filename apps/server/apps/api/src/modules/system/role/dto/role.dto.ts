@@ -70,7 +70,7 @@ export class SysRoleDTOBase extends WalnutAdminCommonBasicModel {
       title: `current role's user count`,
     },
   })
-  populated_usersCount: number
+  usersCount: number
 
   @WalnutAdminDecoratorFieldObject(SysMenuDTOSafe, {
     isArray: true,
@@ -78,7 +78,7 @@ export class SysRoleDTOBase extends WalnutAdminCommonBasicModel {
       title: 'populated menus list',
     },
   })
-  populated_menusList: SysMenuDTOSafe[]
+  menusList: SysMenuDTOSafe[]
 }
 
 export class SysRoleDTO extends SysRoleDTOBase {

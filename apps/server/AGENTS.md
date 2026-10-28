@@ -108,7 +108,7 @@ Repository 也算）—— 所有数据访问必须穿过 Repository / Repo Serv
 （`autoLoadEntities` 通道装载实体），**不另建 xxx.pg.module 文件**。仓库层注入
 `@InjectDataSource(WalnutPGConnectionName)` 的 `DataSource`，连同 `EntityTarget` 一起传给 PG 基类
 `WalnutAdminCommonPgBaseRepository`；连接名必须显式给 `WalnutPGConnectionName`，不要走 TypeORM
-的默认连接。事务内路径用 `@WalnutDBSession()` 取 `WalnutTxContext.em`（EntityManager）逐层透传。
+的默认连接。事务内路径用 `@WalnutTxSession()` 取 `WalnutTxContext.em`（EntityManager）逐层透传。
 完整写法见 `apps/docs/src/zh-CN/content/backend/architecture.md`。
 
 ## CRUD 与 DTO：动手前必须知道的两条

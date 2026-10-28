@@ -16,15 +16,15 @@ import { WALNUT_TEST_USER_AGENT } from './helpers/sign-handshake'
  * HTTP 请求的回滚传播**：handler 抛错 → catchError → rollbackTransaction → 原始错误
  * 透传给全局异常过滤器 → 统一 200 壳错误码。
  *
- * - role create（@WalnutDBTransaction，主行 + junction 两腿）：menus 给不存在 menuId →
+ * - role create（@WalnutTx，主行 + junction 两腿）：menus 给不存在 menuId →
  *   FK 23503 在第二腿拒绝 → 主行 + junction 全无残留；
- * - recover（@WalnutDBTransaction，原表 insert + 快照行 delete 两腿）：快照与现网行撞
+ * - recover（@WalnutTx，原表 insert + 快照行 delete 两腿）：快照与现网行撞
  *   唯一键 → 40000 recoverFail → 快照行仍在、原集合零新增（B9 int-spec 的 service 级
  *   force-rollback 在 HTTP 层的同构验证）；
  * - after-commit 钩子的 API 级验证：device initial 的 SYS_DEVICE 缓存写入挂在
  *   registerAfterCommitHook —— 拦截器在 commit 后、响应 flush 前同步跑钩子，因此
  *   「响应返回的那一刻缓存必须已落」是钩子时序的端到端证明（零轮询）；
- * - demo create 同 payload 重复（23505）**不作回滚面**：create 无 @WalnutDBTransaction、
+ * - demo create 同 payload 重复（23505）**不作回滚面**：create 无 @WalnutTx、
  *   单语句插入无第二腿可回滚（撞 uq_demo_phone_number → 兜底 50000，与 system/user
  *   create 同款已钉现状，不重复布防）。
  *
@@ -104,7 +104,7 @@ describe('H1：API 级事务回滚直测（真实 HTTP 触发中途失败 → �
     const roleName = `rb-role-${seed8}`
     const ghostMenuId = randomUUID()
 
-    // @WalnutDBTransaction：第一腿 sys_role insert 成功 → 第二腿 sys_role_menu insert
+    // @WalnutTx：第一腿 sys_role insert 成功 → 第二腿 sys_role_menu insert
     // 撞 fk_role_menu_menu（23503）→ 整体回滚。23503 未映射受控异常 → 兜底 50000
     const res = await api.root('POST', api.apiPath('/system/role'), {
       roleName,

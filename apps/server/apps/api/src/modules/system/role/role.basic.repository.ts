@@ -3,7 +3,7 @@ import type { IWalnutAdminRequestList } from '@/common/dto/list.dto'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import {
   applyPgListQuery,
@@ -15,11 +15,11 @@ import { SysRoleMenuEntity } from './entity/role-menu.entity'
 import { SysRoleEntity } from './entity/role.entity'
 
 /**
- * role 列表行：实体列 + Mongo 版 $lookup/$size 注入的 populated_usersCount
+ * role 列表行：实体列 + Mongo 版 $lookup/$size 注入的 usersCount
  * （sys_user_role 关联表计数；B7a 起 junction 实体已注册，子查询走实体引用）。
  */
 export interface ISysRoleListRow extends SysRoleEntity {
-  populated_usersCount: number
+  usersCount: number
 }
 
 /**
@@ -37,7 +37,7 @@ export class SysRoleBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(SysRoleEntity, WalnutDBModelName.SYS_ROLE, dataSource)
+    super(SysRoleEntity, WalnutModelName.SYS_ROLE, dataSource)
   }
 
   public async create(dto: Partial<SysRoleEntity> & { menus?: string[] }, em?: EntityManager): Promise<SysRoleEntity & { menus: string[] }> {
@@ -87,7 +87,7 @@ export class SysRoleBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
         .select('count(*)::int')
         .from(SysUserRoleEntity, 'user_role')
         .where('user_role.role_id = entity.id')
-    }, 'populated_users_count')
+    }, 'users_count')
 
     qb.addSelect(`COUNT(*) OVER()`, WALNUT_PG_LIST_TOTAL_ALIAS)
 
@@ -101,7 +101,7 @@ export class SysRoleBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
       const row = raw[index] as Record<string, unknown> | undefined
 
       return Object.assign(entity, {
-        populated_usersCount: Number(row?.populated_users_count ?? 0),
+        usersCount: Number(row?.users_count ?? 0),
       })
     })
 

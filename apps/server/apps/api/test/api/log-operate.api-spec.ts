@@ -31,7 +31,7 @@ interface LogOperateRow {
   statusCode?: number
   requestData?: Record<string, unknown>
   responseData?: Record<string, unknown>
-  correspondingMS?: number
+  durationMs?: number
   operation?: string | null
   userId?: string | null
   userName?: string | null
@@ -138,7 +138,7 @@ describe('D 段：system/log/operate list/read/snapshot/device（真实写操作
     expect(updateRow.userId).toBe(fixture!.userId)
     expect(updateRow.userName).toBe(fixture!.userName)
     expect(updateRow.deviceId).toBe(api.deviceId)
-    expect(typeof updateRow.correspondingMS).toBe('number')
+    expect(typeof updateRow.durationMs).toBe('number')
     expect(updateRow.os).toMatch(/^Windows/)
     expect(updateRow.browser).toMatch(/^Chrome/)
     expect(updateRow.requestData).toMatchObject({ name: `dict-${marker}-updated` })

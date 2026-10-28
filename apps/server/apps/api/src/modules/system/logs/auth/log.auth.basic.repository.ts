@@ -1,7 +1,7 @@
 import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import { SysLogAuthEntity } from './entity/log-auth.entity'
@@ -17,6 +17,6 @@ export class SysLogAuthBasicRepository extends WalnutAdminCommonPgBaseRepository
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(SysLogAuthEntity, WalnutDBModelName.SYS_LOG_AUTH, dataSource)
+    super(SysLogAuthEntity, WalnutModelName.SYS_LOG_AUTH, dataSource)
   }
 }

@@ -22,7 +22,7 @@ import { WALNUT_TEST_USER_AGENT } from './helpers/sign-handshake'
  *   断言走 AppTechCacheDeviceService.getSysDeviceCache；且锁/封只进缓存 → 同设备的后续
  *   请求被 Device guard 40606/40607 拦死（连 unlock/unban 都到不了）—— 端点间用缓存
  *   复位通道衔接（等价另一台设备解锁后的缓存态），unlock/unban 本身仍走真实 HTTP；
- * - history-users 语义反转（只放行 populated_user 缺失的行）：PG 侧 user_id FK NOT NULL
+ * - history-users 语义反转（只放行 user 缺失的行）：PG 侧 user_id FK NOT NULL
  *   且 populate 恒命中 → 恒空数组；
  * - Throttle 是 4 次/60s（tracker=realIp），本文件 initial 总调用数压在限额内。
  */
@@ -182,7 +182,7 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     expect(user.userName).toBe(fixture!.userName)
   })
 
-  it('history-users → 恒空数组（PG 侧 populate 恒命中，「只回 populated_user 缺失行」的语义反转）', async () => {
+  it('history-users → 恒空数组（PG 侧 populate 恒命中，「只回 user 缺失行」的语义反转）', async () => {
     await api.pgDataSource.query(
       `INSERT INTO app_monitor_user (visitor_id, user_id, device_id, auth, focus, is_left)
        VALUES ($1, $2, $3, true, true, false)`,

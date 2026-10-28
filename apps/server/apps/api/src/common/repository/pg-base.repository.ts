@@ -23,7 +23,7 @@ import { applyPgListQuery, buildPgListQueryOptions, executePgListQuery } from '.
  * - PK 约定：所有 B0a 实体的主键属性都是 `id: string`（uuid，DB 默认值生成 ——
  *   插入时不传 id 即走 `gen_random_uuid()` / `uuidv7()`）。
  * - deleteSoftById 的快照 content 直接存对象（jsonb），不再 JSON.stringify；
- *   modelName 沿用 `WalnutDBModelName` 的模型名（恢复注册表的路由键，phase2 5.3），
+ *   modelName 沿用 `WalnutModelName` 的模型名（恢复注册表的路由键，phase2 5.3），
  *   collectionName 取实体元数据的表名。
  *
  * 泛型约束与用法：子类持有 `@InjectDataSource(WalnutPGConnectionName)` 的

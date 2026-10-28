@@ -3,7 +3,7 @@ import type { IWalnutAdminRequestList } from '@/common/dto/list.dto'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import {
   applyPgListQuery,
@@ -15,11 +15,11 @@ import { SysLangEntity } from './entity/lang.entity'
 
 /**
  * lang 列表行：实体列 + Mongo 版 customPipeline 注入的三个加工字段
- * （populated_localesTotalCount / populated_localesFinishedCount / process）。
+ * （localesTotalCount / localesFinishedCount / process）。
  */
 export interface ISysLangListRow extends SysLangEntity {
-  populated_localesTotalCount: number
-  populated_localesFinishedCount: number
+  localesTotalCount: number
+  localesFinishedCount: number
   process: number
 }
 
@@ -35,7 +35,7 @@ export class SysLangBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(SysLangEntity, WalnutDBModelName.SYS_LANG, dataSource)
+    super(SysLangEntity, WalnutModelName.SYS_LANG, dataSource)
   }
 
   /**
@@ -60,14 +60,14 @@ export class SysLangBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
         .select('count(*)::int')
         .from(SysLocaleEntity, 'total_locale')
         .where('total_locale.langId = entity.id')
-    }, 'populated_locales_total_count')
+    }, 'locales_total_count')
 
     qb.addSelect((sub) => {
       return sub
         .select('count(*)::int')
         .from(SysLocaleEntity, 'finished_locale')
         .where('finished_locale.langId = entity.id AND finished_locale.value IS NOT NULL')
-    }, 'populated_locales_finished_count')
+    }, 'locales_finished_count')
 
     qb.addSelect(`COUNT(*) OVER()`, WALNUT_PG_LIST_TOTAL_ALIAS)
 
@@ -79,13 +79,13 @@ export class SysLangBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     // 无 JOIN 单表查询，raw 与 entities 逐行对齐；加工列不在实体映射里，按行并回
     const data = entities.map((entity, index) => {
       const row = raw[index] as Record<string, unknown> | undefined
-      const populated_localesTotalCount = Number(row?.populated_locales_total_count ?? 0)
-      const populated_localesFinishedCount = Number(row?.populated_locales_finished_count ?? 0)
+      const localesTotalCount = Number(row?.locales_total_count ?? 0)
+      const localesFinishedCount = Number(row?.locales_finished_count ?? 0)
 
       return Object.assign(entity, {
-        populated_localesTotalCount,
-        populated_localesFinishedCount,
-        process: (populated_localesFinishedCount / populated_localesTotalCount) * 100,
+        localesTotalCount,
+        localesFinishedCount,
+        process: (localesFinishedCount / localesTotalCount) * 100,
       })
     })
 

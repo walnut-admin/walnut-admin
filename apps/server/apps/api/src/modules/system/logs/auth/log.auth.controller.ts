@@ -2,7 +2,7 @@ import { Body, Controller, UseGuards } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 
 import {
   WalnutAdminDecoratorParamUuid,
@@ -47,10 +47,10 @@ export class SysLogAuthController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
   @WalnutAdminDecoratorDelete()
-  @WalnutDBTransaction()
+  @WalnutTx()
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
     return plainToInstance(
@@ -61,10 +61,10 @@ export class SysLogAuthController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE_MANY)
   @WalnutAdminDecoratorDeleteMany()
-  @WalnutDBTransaction()
+  @WalnutTx()
   async deleteMany(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamUuids() ids: string[],
   ) {
     const deleted = await this.logAuthService.deleteMany(ids, user.userId, ctx.em)

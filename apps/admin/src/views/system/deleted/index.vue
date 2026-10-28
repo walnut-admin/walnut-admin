@@ -194,7 +194,7 @@ const [
       },
 
       {
-        key: 'populated_user.userName',
+        key: 'user.userName',
         title: 'table.deleted.deletedBy',
         locale: false,
         width: 120,
@@ -310,7 +310,7 @@ const [
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_user.userName',
+          path: 'user.userName',
           label: computed(() => t('table.deleted.deletedBy')),
           locale: false,
         },

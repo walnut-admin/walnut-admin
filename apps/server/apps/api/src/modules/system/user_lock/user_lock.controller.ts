@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Request } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
@@ -31,7 +31,7 @@ export class SysUserLockController {
   @Patch()
   @HttpCode(HttpStatus.OK)
   @WalnutAdminGuardLockFree()
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Lock current user account',
     primitive: 'boolean',
@@ -39,7 +39,7 @@ export class SysUserLockController {
   async lock(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
     @Body() payload: SysUserLockDoLockDto,
   ) {
@@ -49,7 +49,7 @@ export class SysUserLockController {
   @Patch('unlock')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminGuardLockFree()
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Unlock current user account',
     primitive: 'boolean',
@@ -57,7 +57,7 @@ export class SysUserLockController {
   async unlock(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
     @Body() payload: SysUserLockUnLockDto,
   ) {

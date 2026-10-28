@@ -4,7 +4,7 @@ import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstAppSettingAuthOpaqueKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
 
@@ -42,18 +42,18 @@ export class AuthOpaqueUserController {
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'authEnable')
   @WalnutAdminGuardJwtFree()
-  // B7a 迁移回归修复（API 回归 A 段试点抓出）：handler 经 @WalnutDBSession 取 ctx.em
+  // B7a 迁移回归修复（API 回归 A 段试点抓出）：handler 经 @WalnutTxSession 取 ctx.em
   // （user/identity 读腿迁 PG 后的服务签名），但本路由漏挂事务拦截器 —— request.txContext
   // 恒 undefined，匿名调用必 500（"Cannot read properties of undefined (reading 'em')"）。
   // 对齐同文件 login/finish / register/finish 的既有形态补上。
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Start login with userName and loginRequest',
     primitive: 'string',
   })
   async startLogin(
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
     @Body() dto: AuthOpaqueStartSignInDTO,
   ) {
@@ -108,7 +108,7 @@ export class AuthOpaqueUserController {
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'authEnable')
   @WalnutAdminGuardJwtFree()
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Finish login with userName and finish',
     DTO: AuthSuccessDTO,
@@ -118,7 +118,7 @@ export class AuthOpaqueUserController {
   async finishLogin(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
     @Body() _dto: AuthOpaqueFinishSignInDTO,
   ) {
@@ -150,18 +150,18 @@ export class AuthOpaqueUserController {
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'register')
   @WalnutAdminGuardJwtFree()
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Finish register with userName and registrationFinish',
     primitive: 'boolean',
   })
   async finishRegister(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() dto: AuthOpaqueFinishSignUpDTO,
   ) {
     // B7a 签名适配：user/identity 写腿迁 PG —— 传 ctx.em（该端点本就挂了
-    // @WalnutDBTransaction，接线后注册两腿获得事务原子性）
+    // @WalnutTx，接线后注册两腿获得事务原子性）
     return this.authOpaqueCoreService.finishRegister(
       user.userName,
       dto.finish,
@@ -192,7 +192,7 @@ export class AuthOpaqueUserController {
     WalnutAdminConstPermissionOpaque.CHANGE_PASSWORD,
   )
   @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'change')
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Finish password change with new registration record',
     primitive: 'boolean',
@@ -204,7 +204,7 @@ export class AuthOpaqueUserController {
   })
   async changePasswordFinish(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() dto: AuthOpaqueFinishChangePasswordDTO,
   ) {
     // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em

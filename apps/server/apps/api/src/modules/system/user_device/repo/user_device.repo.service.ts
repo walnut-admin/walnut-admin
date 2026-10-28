@@ -20,7 +20,7 @@ export interface IUserDevicePopulatedUser {
  * - **deviceId 是业务键**（Q5 定案）：本表 device_id 存的是 sys_device.device_id
  *   （字符串业务键，FK → sys_device(device_id)），全部引用与校验按业务键走，不是行 id；
  * - user_id 是 PG uuid（FK → sys_user(id)）：B7 user 迁移 + ETL 前为空数据窗口
- *   （phase3-plan §5），populated_user 一律查 PG 侧 sys_user 同源表；
+ *   （phase3-plan §5），user 一律查 PG 侧 sys_user 同源表；
  * - 事务句柄 `dbSession?: ClientSession` → `em?: EntityManager`（缺省连接级 manager）。
  */
 @Injectable()
@@ -130,7 +130,7 @@ export class SysUserDeviceRepositoryService {
   /**
    * @description find all devices by device id with populated user
    * （Mongo 版 populate(USER, select userName nickName) → PG 侧按 user_id 批查 sys_user
-   * 同源表并回 populated_user；B7 注册 SysUserEntity 后可换实体 JOIN）
+   * 同源表并回 user；B7 注册 SysUserEntity 后可换实体 JOIN）
    */
   async findAllUserInCurrentDevice(deviceId: string, em?: EntityManager) {
     const rows = await this.getRepository(em).find({
@@ -153,8 +153,8 @@ export class SysUserDeviceRepositoryService {
     }
 
     return rows.map((row) => {
-      const populated_user = users.find(u => u.id === row.userId) ?? null
-      return Object.assign(row, { populated_user })
+      const user = users.find(u => u.id === row.userId) ?? null
+      return Object.assign(row, { user })
     })
   }
 

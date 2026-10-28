@@ -9,13 +9,13 @@ import { SysUserRoleEntity } from '../entity/user-role.entity'
 import { SysUserEntity } from '../entity/user.entity'
 
 /**
- * user 行 + Mongo 版 populate virtual 的读出形态（populated_roles_list 为 PG sys_role
- * 行数组；populated_roles_count 与之同步组装 —— 对照 Mongo 版 `user.populate(ROLES_LIST)`
+ * user 行 + Mongo 版 populate virtual 的读出形态（roles_list 为 PG sys_role
+ * 行数组；roles_count 与之同步组装 —— 对照 Mongo 版 `user.populate(ROLES_LIST)`
  * + virtual 注入）
  */
 export interface ISysUserPopulated extends SysUserEntity {
-  populated_roles_list: SysRoleEntity[]
-  populated_roles_count: number
+  roles_list: SysRoleEntity[]
+  roles_count: number
 }
 
 /**
@@ -25,7 +25,7 @@ export interface ISysUserPopulated extends SysUserEntity {
  * - 方法面与 Mongo 版一一对齐，事务句柄 `dbSession?: ClientSession` → `em?: EntityManager`
  *   （缺省连接级 manager）；auth 系消费方在 B7c 归一前传 `ctx.em`；
  * - `new Types.ObjectId(userId)` 包装全部摘除（phase3-plan §4 B7 项）：uuid 直传；
- * - populated_roles_list：Mongo 版 populate virtual → sys_user_role junction JOIN
+ * - roles_list：Mongo 版 populate virtual → sys_user_role junction JOIN
  *   （phase2 4.1；Mongo 版读出的是 sys_role 文档数组，PG 侧为 sys_role 行数组，字段同名）。
  */
 @Injectable()
@@ -126,15 +126,15 @@ export class SysUserRepositoryService {
   }
 
   /**
-   * @description 给 user 行组装 populated_roles_list / populated_roles_count
+   * @description 给 user 行组装 roles_list / roles_count
    * （对照 Mongo 版 `user.populate({ path: ROLES_LIST })` 的读出形态）
    */
   async attachPopulatedRoles<T extends SysUserEntity>(user: T, em?: EntityManager): Promise<T & ISysUserPopulated> {
     const roles = await this.populatedRolesList(user.id, em)
 
     return Object.assign(user, {
-      populated_roles_list: roles,
-      populated_roles_count: roles.length,
+      roles_list: roles,
+      roles_count: roles.length,
     })
   }
 }

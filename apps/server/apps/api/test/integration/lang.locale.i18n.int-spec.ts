@@ -112,16 +112,16 @@ describe('B2 lang/locale i18n aggregation rewrite (on real PG)', () => {
     expect(result).toBeDefined()
     expect(result!.id).toBe(lang.id)
     expect(result!.lang).toBe(lang.lang)
-    expect(result!.populated_localesTotalCount).toBe(2)
-    expect(result!.populated_localesFinishedCount).toBe(1)
+    expect(result!.localesTotalCount).toBe(2)
+    expect(result!.localesFinishedCount).toBe(1)
   })
 
   it('findByIdWithLocaleCounts：零 locale 的 lang 计数为 0/0；查无此 lang 返回 undefined', async () => {
     const emptyLang = await createLangWithLocales({ locales: [] })
 
     const empty = await langRepoService.findByIdWithLocaleCounts(emptyLang.id)
-    expect(empty!.populated_localesTotalCount).toBe(0)
-    expect(empty!.populated_localesFinishedCount).toBe(0)
+    expect(empty!.localesTotalCount).toBe(0)
+    expect(empty!.localesFinishedCount).toBe(0)
 
     const missing = await langRepoService.findByIdWithLocaleCounts(randomUUID())
     expect(missing).toBeUndefined()
@@ -194,8 +194,8 @@ describe('B2 lang/locale i18n aggregation rewrite (on real PG)', () => {
 
     const row = result.data[0] as never as Record<string, unknown>
     expect(row.id).toBe(lang.id)
-    expect(row.populated_localesTotalCount).toBe(2)
-    expect(row.populated_localesFinishedCount).toBe(1)
+    expect(row.localesTotalCount).toBe(2)
+    expect(row.localesFinishedCount).toBe(1)
     expect(row.process).toBe(50)
   })
 

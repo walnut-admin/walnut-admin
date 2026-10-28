@@ -1,7 +1,7 @@
 import { Body, Controller } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
-import { WalnutDBSession, WalnutDBTransaction, WalnutTxContext } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import {
   WalnutAdminDecoratorParamUuid,
   WalnutAdminDecoratorParamUuids,
@@ -79,10 +79,10 @@ export class AppDemoController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
   @WalnutAdminDecoratorDelete()
-  @WalnutDBTransaction()
+  @WalnutTx()
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
     return plainToInstance(
@@ -93,10 +93,10 @@ export class AppDemoController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
   @WalnutAdminDecoratorDeleteMany()
-  @WalnutDBTransaction()
+  @WalnutTx()
   async deleteMany(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() ctx: WalnutTxContext,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamUuids() ids: string[],
   ) {
     const deleted = await this.demoService.deleteMany(ids, user.userId, ctx.em)

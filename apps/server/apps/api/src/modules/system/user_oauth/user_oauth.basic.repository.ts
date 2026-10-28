@@ -2,7 +2,7 @@ import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 
 import { SysUserOauthEntity } from './entity/user-oauth.entity'
@@ -17,6 +17,6 @@ export class SysUserOAuthBasicRepository extends WalnutAdminCommonPgBaseReposito
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(SysUserOauthEntity, WalnutDBModelName.SYS_USER_OAUTH, dataSource)
+    super(SysUserOauthEntity, WalnutModelName.SYS_USER_OAUTH, dataSource)
   }
 }

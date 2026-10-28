@@ -39,13 +39,13 @@ export class SysLangRepoService {
           .select('count(*)::int')
           .from(SysLocaleEntity, 'total_locale')
           .where('total_locale.langId = lang.id')
-      }, 'populated_locales_total_count')
+      }, 'locales_total_count')
       .addSelect((sub) => {
         return sub
           .select('count(*)::int')
           .from(SysLocaleEntity, 'finished_locale')
           .where('finished_locale.langId = lang.id AND finished_locale.value IS NOT NULL')
-      }, 'populated_locales_finished_count')
+      }, 'locales_finished_count')
       .where('lang.id = :id', { id })
 
     const { raw, entities } = await qb.getRawAndEntities()
@@ -59,8 +59,8 @@ export class SysLangRepoService {
     const row = raw[0] as Record<string, unknown>
 
     return Object.assign(entity, {
-      populated_localesTotalCount: Number(row.populated_locales_total_count ?? 0),
-      populated_localesFinishedCount: Number(row.populated_locales_finished_count ?? 0),
+      localesTotalCount: Number(row.locales_total_count ?? 0),
+      localesFinishedCount: Number(row.locales_finished_count ?? 0),
     })
   }
 

@@ -454,7 +454,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
   })
 
   describe('monitor 列表：JOIN 版 $lookup', () => {
-    it('populated_device / populated_user 形态 + populate 字段过滤（os/ip/userName）', async () => {
+    it('device / user 形态 + populate 字段过滤（os/ip/userName）', async () => {
       const deviceKey = unique('b6-list-device')
       await deviceBasicRepo.create({
         deviceName: unique('b6-list-name'),
@@ -474,7 +474,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
         currentRouter: '/about',
       })
 
-      // os 命中：authedVisitor 行带上 populated_device / populated_user
+      // os 命中：authedVisitor 行带上 device / user
       const res = await monitorUserService.list({
         query: { os: 'win' },
         page: { page: 1, pageSize: 10 },
@@ -482,12 +482,12 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
 
       const row = res.data.find(i => i.visitorId === authedVisitor)
       expect(row).toBeDefined()
-      expect(row!.populated_device).toMatchObject({
+      expect(row!.device).toMatchObject({
         deviceInfo: { os: 'windows', browser: 'chrome', type: 'desktop' },
         ip: '9.9.9.9',
         locationInfo: { country: 'China' },
       })
-      expect(row!.populated_user).toMatchObject({ id: pgUserId, userName: unique('b6-user') })
+      expect(row!.user).toMatchObject({ id: pgUserId, userName: unique('b6-user') })
 
       // userName 过滤（$lookup user 上的 $regex → JOIN ILIKE）
       const byUser = await monitorUserService.list({

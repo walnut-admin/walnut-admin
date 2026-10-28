@@ -1,7 +1,7 @@
 import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutDBModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import { AppErrorEntity } from './entity/error.entity'
@@ -17,6 +17,6 @@ export class AppErrorBasicRepository extends WalnutAdminCommonPgBaseRepository<A
     @InjectDataSource(WalnutPGConnectionName)
     dataSource: DataSource,
   ) {
-    super(AppErrorEntity, WalnutDBModelName.APP_ERROR, dataSource)
+    super(AppErrorEntity, WalnutModelName.APP_ERROR, dataSource)
   }
 }

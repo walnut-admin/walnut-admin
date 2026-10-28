@@ -41,7 +41,7 @@ export class SysUserSharedService {
     // B5 订正脚本落地后 functionalRole.defaultRole 是 role 的 v5 uuid（phase3-plan §5
     // 残留窗口 2）—— PG 侧按 uuid 语义直用，不再有 ObjectId 包装
     return this.sysUserRepoService.createUser({
-      ...omit(payload, ['populated_roles_list']),
+      ...omit(payload, ['roles_list']),
       userName: payload.userName ?? `user_${randomBytes(4).toString('hex').slice(2, 8)}`,
       roles: [functionalRole.defaultRole],
       currentRole: functionalRole.defaultRole,
@@ -53,7 +53,7 @@ export class SysUserSharedService {
    * @description check user status, include role status, throw exception if banned
    */
   async checkUserAndRoleStatus(user: SysUserEntity & Partial<ISysUserPopulated>) {
-    const { populated_roles_list, status, currentRole, roleMode } = user
+    const { roles_list, status, currentRole, roleMode } = user
 
     // user banned to signin
     if (!status) {
@@ -62,7 +62,7 @@ export class SysUserSharedService {
 
     // if no role is populated
     // this means all role bind to this user has been banned
-    if (populated_roles_list?.length === 0) {
+    if (roles_list?.length === 0) {
       throw new WalnutAdminExceptionUserBannedToSignin()
     }
 
@@ -70,21 +70,21 @@ export class SysUserSharedService {
     if (roleMode === WalnutAdminConstRoleMode.COMBINE) {
       // role combine mode
       // if no role has true status, also banned to sign in
-      if (!populated_roles_list?.some(i => i.status)) {
+      if (!roles_list?.some(i => i.status)) {
         throw new WalnutAdminExceptionUserBannedToSignin()
       }
     }
 
     // switch
     if (roleMode === WalnutAdminConstRoleMode.SWITCH) {
-      const currentRoleFromList = populated_roles_list?.find(i => i.id === currentRole)
+      const currentRoleFromList = roles_list?.find(i => i.id === currentRole)
       if (currentRoleFromList) {
         if (!currentRoleFromList.status) {
           throw new WalnutAdminExceptionUserBannedToSignin()
         }
       }
       else {
-        this.logger.log('Cannot find current role in `populated_roles_list` which should not happen')
+        this.logger.log('Cannot find current role in `roles_list` which should not happen')
         this.logger.log('This case should not happen, some logic is wrong, need to check')
       }
     }
