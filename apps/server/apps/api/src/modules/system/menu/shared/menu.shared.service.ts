@@ -45,6 +45,15 @@ export class SysMenuSharedService {
   }
 
   /**
+   * @description 全量失效权限缓存（P2-16：菜单写路径 —— 菜单行的 permission/status/
+   * 删除会影响「角色 → 菜单 → 权限串」的所有用户。按 menu 维度反查不可行，权限缓存
+   * 又能由客户端重拉 `/auth/permissions` 重建，所以这里明确取舍为全清前缀）。
+   */
+  async clearAllPermissionsCache() {
+    await this.cachePermissionsService.delAllPermissions()
+  }
+
+  /**
    * @description get current user authorized permission strings
    */
   async getCorePermissionStrings(user: IWalnutAdminAccessTokenPayload) {
@@ -99,8 +108,10 @@ export class SysMenuSharedService {
   }>
 
   /**
-   * @description Since roleIds is written in token, so if admin changed some user's role,
-   * this user need to signout and re-signin to gain new permitted menus
+   * @description P1-18 根修（2026-10-28）：roleIds 虽写在 AT payload（登录快照），
+   * `getCoreMenus` 会先按 `sys_user_role` 实时 membership 过滤 —— 管理端改了角色后，
+   * 重新拉 `/auth/permissions` 即按新绑定计算，无需重新登录；恢复用户（junction 未恢复）
+   * 的权限为空。
    */
   async getCorePermissions(
     user: IWalnutAdminAccessTokenPayload,

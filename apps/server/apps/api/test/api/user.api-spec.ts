@@ -11,10 +11,8 @@ import { createApiApp } from './helpers/create-api-app'
 /**
  * C 段：`system/user` CRUD + 状态管理 + `me/role*` 切换语义 + opaque admin clearPassword。
  *
- * - create 的 roles 必填（DTO IsUUID+IsNotEmpty 无 IsOptional）；给 [] 时 junction 空且
- *   currentRole 走 functionalRole.defaultRole（visitor v5 uuid 兜底，B5 订正口径）——
- *   注意 currentRole 落的是 defaultRole 而 junction 无该行，这是现状语义（缺省角色行
- *   不自动建 junction）；给 [roleId] 时 junction + currentRole 同步。
+ * - create 的 roles 必填（DTO IsUUID+IsNotEmpty 无 IsOptional）；P1-18 起显式 `roles: []`
+ *   得 junction 空 + currentRole=null（与 update 口径对齐；roles 未给才走 defaultRole 兜底）。
  * - safe role id 守卫：create roles 里出现 root/developer 的 v5 uuid → 40000。
  * - 状态管理按 controller 实际端点：CRUD update 的 status 翻转（启停）；
  *   `PATCH /system/user/me/role/switch/:roleId`（COMBINE 模式拒 → 40000）与
@@ -120,19 +118,26 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     expect(row.roles_list?.[0]?.id).toBe(bizRoleId)
   })
 
-  it('create roles=[] → junction 空 + currentRole 走 defaultRole 兜底（现状语义）', async () => {
+  it('create roles=[]（显式空）→ junction 空 + currentRole=null（P1-18：与 update 口径对齐，不再落 defaultRole）', async () => {
     const created = await createUser('D1', [])
 
     expect(created.roles).toEqual([])
-    expect(created.currentRole).toBe(WALNUT_DEFAULT_VISITOR_ROLE_UUID)
+    expect(created.currentRole).toBeNull()
 
     const readRes = await api.root('GET', api.apiPath(`/system/user/${created.id}`))
     const row = bodyOf<UserRow>(readRes).data
     expect(row.roles_count).toBe(0)
-    expect(row.currentRole).toBe(WALNUT_DEFAULT_VISITOR_ROLE_UUID)
+    expect(row.currentRole).toBeNull()
+
+    // DB 列同步为 NULL（current_role_id 可空 = 无当前角色）
+    const rows: Array<{ current_role_id: string | null }> = await api.pgDataSource.query(
+      'SELECT current_role_id FROM sys_user WHERE id = $1',
+      [created.id],
+    )
+    expect(rows[0].current_role_id).toBeNull()
   })
 
-  it('update → status 翻转（启停）+ roles 整组替换持久化', async () => {
+  it('update → status 翻转（启停）+ roles 整组替换持久化；roles=[] 时 currentRole 归空（P1-18）', async () => {
     const created = await createUser('U1', [bizRoleId])
 
     const updateRes = await api.root('PUT', api.apiPath(`/system/user/${created.id}`), {
@@ -143,11 +148,15 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     expectOk(updateRes, 'user update disable')
     const updated = bodyOf<UserRow>(updateRes).data
     expect(updated.status).toBe(false)
+    // P1-18（2026-10-28）：roles 整组替换后 current_role_id 不在新集合 → 归空
+    // （旧现状：junction 已空但 currentRole 仍指向已移出的角色）
+    expect(updated.currentRole).toBeNull()
 
     const readRes = await api.root('GET', api.apiPath(`/system/user/${created.id}`))
     const row = bodyOf<UserRow>(readRes).data
     expect(row.status).toBe(false)
     expect(row.roles_count).toBe(0)
+    expect(row.currentRole).toBeNull()
 
     // 再启回来 + 换角色
     const enableRes = await api.root('PUT', api.apiPath(`/system/user/${created.id}`), {
@@ -157,6 +166,27 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     })
     expectOk(enableRes, 'user update enable')
     expect(bodyOf<UserRow>(enableRes).data.status).toBe(true)
+    expect(bodyOf<UserRow>(enableRes).data.currentRole).toBe(bizRoleId)
+  })
+
+  it('P1-18：移除 current 角色后 currentRole 重置为新集合首角色（不再沿用已移出角色）', async () => {
+    const created = await createUser('CUR', [bizRoleId])
+    expect(created.currentRole).toBe(bizRoleId)
+
+    // 换成 visitor 角色（fixture beforeAll 已确保该行存在）—— current 角色被移出
+    const updateRes = await api.root('PUT', api.apiPath(`/system/user/${created.id}`), {
+      userName: `${userPrefix}-CUR`,
+      status: true,
+      roles: [WALNUT_DEFAULT_VISITOR_ROLE_UUID],
+    })
+    expectOk(updateRes, 'user update replace current role')
+    expect(bodyOf<UserRow>(updateRes).data.currentRole).toBe(WALNUT_DEFAULT_VISITOR_ROLE_UUID)
+
+    const rows: Array<{ current_role_id: string | null }> = await api.pgDataSource.query(
+      'SELECT current_role_id FROM sys_user WHERE id = $1',
+      [created.id],
+    )
+    expect(rows[0].current_role_id).toBe(WALNUT_DEFAULT_VISITOR_ROLE_UUID)
   })
 
   it('list → userName 过滤 + roles_count（list 出参裁剪字段面）', async () => {

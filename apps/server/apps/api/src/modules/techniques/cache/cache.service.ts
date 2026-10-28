@@ -151,6 +151,25 @@ export class AppTechCacheService {
   }
 
   /**
+   * Delete cache by key and return how many keys were actually removed.
+   *
+   * 一次性消费语义（P2-13 OAuth state nonce）专用：`del` 返回旧值（不存在时也为
+   * null，无法区分「删了」与「本来就没有」），消费方需要 Redis DEL 的计数做
+   * 「先到先得」判定。键前缀与 `del` 同源。
+   */
+  public async delAndCount(key: string): Promise<number> {
+    try {
+      return await this.redis.del(getWalnutAdminCacheKey(key))
+    }
+    catch (error) {
+      // F5：Redis 异常不向上抛 —— 消费方（OAuth state 一次性校验）把 0 当作
+      // 「消费失败」走受控 40000，而不是 50000 未受控兜底。
+      this.logger.error(`[CacheDelAndCount] failed: ${getWalnutAdminCacheKey(key)}`, error)
+      return 0
+    }
+  }
+
+  /**
    * Delete cache by key
    */
   public async del<T = any>(key: string): Promise<T | null> {

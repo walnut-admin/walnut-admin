@@ -69,14 +69,18 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 1. **登录时固化 AT payload**。`AppTokenService.getJwtAccessTokenPayload`
    （`modules/shared/token/token.service.ts`）从 `sys_user` 行 + `sys_user_role` 读出的
    `roles_list` 组装：`roleIds`、`roleNames`、`currentRole`、`currentRoleName`、
-   `roleMode`、`mfaSetup`、`mfaVerified`。**角色分配与 role_mode 在 AT 有效期内不会自动更新**，
-   `menu.shared.service.ts` 的注释写明「改了用户角色需要 signout 再 signin」。
+   `roleMode`、`mfaSetup`、`mfaVerified`。**角色分配与 role_mode 在 AT 有效期内不会自动更新**
+   （payload 是登录时快照；F1 起权限计算不信任它，见第 3 步）。
 2. **客户端拉 `GET /auth/permissions`**。`AuthController.getPermission` →
    `AuthService.getAuthPermissions` → `SysMenuSharedService.getPermissions(user, deviceId)`。
 3. **权限计算**。`getCorePermissions(user, ALL)` → `SysRoleSharedService.getCoreMenus`：
    - 读 `APP:SETTING` 的 `app.functional.role`，经 `SharedScopeResolverService.resolve`
      得到 **effective roleMode**（见 §2.2）；
-   - `payload = effective === combinable ? user.roleIds : [user.currentRole]`；
+   - **P1-18 根修（F1）**：先按 `user.userId` 从 `sys_user_role` 现查实际绑定
+     （`findRoleIdsByUserId`，按 role_id 排序），把 payload 过滤到 membership 内：
+     COMBINE 取 `user.roleIds ∩ 实际绑定`；SWITCH 的 `currentRole` 仍在绑定集才用它，
+     否则回退绑定集首角色，绑定为空 → 空 payload。旧 AT 重拉不会复活被移除角色，
+     恢复用户（junction 未恢复）后权限为空；
    - `findRolesWithPopulatedMenus`：先按 id 批查、**过滤 role.status=true**，再逐个角色
      JOIN `sys_role_menu` 取菜单并**过滤 menu.status=true**，菜单行经 `assembleSysMenu`
      组装回 meta 对象；多角色菜单按 `id` 去重（`uniqBy`）。
@@ -133,7 +137,7 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 
 | 模式 | 权限计算（`getCoreMenus`） | 登录态校验（`checkUserAndRoleStatus`） |
 |---|---|---|
-| `switchable` | 只取 `currentRole` 一个角色 | 当前角色必须在 `roles_list` 里且 `status=true`；找不到当前角色只记日志、不拦截 |
+| `switchable` | 只取 `currentRole` 一个角色（且先按 junction 实际绑定过滤） | 当前角色必须在 `roles_list` 里且 `status=true`；找不到当前角色只记日志、不拦截（权限计算侧已由 P1-18 根修按 membership 过滤，脱钩行不会沿用旧角色） |
 | `combinable` | 取 `roleIds` 全部角色并集 | `roles_list` 非空且至少一个角色 `status=true` |
 
 - `roleIds` / `roleNames` 顺序来自 `findByIds`（`WHERE id IN (...)`，**无 ORDER BY**），
@@ -147,15 +151,22 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 |---|---|---|
 | `GET /auth/permissions` | 覆盖写入（唯一写入口） | `menu.shared.service.ts getPermissions` |
 | `POST /auth/signout`（user-logout） | 删除本设备键 | `signout.service.ts clearDeviceCache` |
-| `user-kick-other` / `admin-kick` | **不清**（只撤 RT） | P2-12 |
-| 角色 `update`（menus 整组替换） | **不清** | P2-16 |
-| 菜单 create / update / delete | **不清**（三处 `TODO remove all cache auth data when menu changed` 仍在） | P2-16 |
-| `me/role/switch`、`me/roleMode/switch` | **不清**（客户端需重新拉权限） | P2-16 |
-| 自然过期 | TTL = AT 秒数 × 1000（约 1000 倍） | P1-15 |
+| `user-kick-other` / `admin-kick` | 删除目标设备三键（会话 / 权限 / MFA） | P2-12 已修复 |
+| 角色 `update`（menus 整组替换 / status 翻转） | **删除该角色全部用户的键**（`sys_user_role` 反查 → `AUTH:PERMISSIONS:<user>:*`） | P2-16 已修复 |
+| 菜单 create | **不清**（新菜单未挂角色，既有权限串不变） | F3 收窄 |
+| 菜单 update | **仅 permission / status 真变化时全量清** | F3 收窄 |
+| 菜单 delete | **全量删除 `AUTH:PERMISSIONS:*`** | P2-16 已修复 |
+| 用户 `update`（roles 整组替换） | **删除该用户全部设备的键** | P1-18 已修复 |
+| `me/role/switch`、`me/roleMode/switch` | **不清**（AT payload 固化角色集，客户端需重新登录 + 重拉权限） | P2-16 维持登记 |
+| 自然过期 | TTL = AT 有效期秒数 | P1-15 已修复 |
 
-所以「撤销一个权限」在缓存层面的完整链路是：改角色菜单 → 客户端重新
-`GET /auth/permissions`（覆盖缓存）→ 或 signout（删除缓存）→ 或有新登录/会话变更。
-没有服务端主动按用户/角色批量失效的通道。
+写在前面：P2-16 / P1-18 修复后，「撤销一个权限」有了服务端主动通道 —— 角色授权、角色
+状态、菜单、用户角色集变更都会在事务提交后删对应缓存；客户端下一次受保护请求会因缓存
+缺失得到 40105（guard 无懒重建），重拉 `GET /auth/permissions` 即按新授权重建。
+菜单维度的失效是**全量清**（影响面覆盖所有用户，按菜单反查不现实，权限缓存可重拉 ——
+明确取舍），且只在 delete 或 update 命中 permission/status 时触发（F3：create 与改标题/
+图标/排序不清）。用户切换角色/角色模式仍维持「切换后需重新登录」的既有契约（AT payload
+的 currentRole 在登录时固化），不在本轮失效范围内。
 
 ## 3. 用户生命周期
 
@@ -165,14 +176,13 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 
 - DTO 白名单是 `userName` / `status` / `roles` 三件，`roles` **必填**（uuid 数组，数组内去重）。
 - `SysUserCrudService.create` 先用 `WalnutAdminConstSafeRoleId` 拦截 root / developer 角色的
-  v5 uuid（40000），再补默认值：
-  - `roles: dto.roles ?? [functionalRole.defaultRole]`；
-  - `currentRole: dto.roles?.[0] ?? functionalRole.defaultRole`。
-- 用户行与 `sys_user_role` junction 由 `SysUserBasicRepository.create` 连续写入，
-  但 HTTP create **没有** `@WalnutTx`：主行 save、junction delete、junction insert
-  是连接级 manager 上的三段独立自动提交语句（P1-19）。
-  `roles: []` 时 junction 为空，但 `current_role_id` 仍落 `defaultRole` —— 现状是
-  「缺省角色不自动建 junction」，两者可以脱钩（P1-18）。
+  v5 uuid（40000），再补默认值（F1 起与 update 口径一致）：
+  - `roles` 未给（undefined）→ `[functionalRole.defaultRole]`，`currentRole=defaultRole`；
+  - 显式 `roles: []` → junction 空 + `currentRole=null`（不再落 defaultRole 造成脱钩）；
+  - 给了角色集 → junction 按集合写，`currentRole=roles[0]`。
+- 用户行与 `sys_user_role` junction 由 `SysUserBasicRepository.create` 连续写入，HTTP
+  create 挂 `@WalnutTx`（P1-19 已修复）：主行 save、junction delete、junction insert 在
+  同一事务，任何一腿失败整体回滚（不再留下「主行已提交、无角色绑定」的脏用户）。
 - 接口不接受 `roleMode`，新行的 `role_mode` 走 DB 默认 `switchable`。
 - 用户名重复由 DB `uq_user_name` 报 23505，经全局异常处理器收敛为受控 40000（P1-7）。
 
@@ -192,9 +202,10 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 `PUT /system/user/:id` 的白名单仍是 `userName` / `status` / `roles`：
 
 - `roles` **未给** → junction 原样不动；**给了**（含 `[]`）→ `delete + insert` 整组替换。
-  该端点没有 `@WalnutTx`：用户行 save、junction delete、junction insert 各自自动提交，
-  insert 失败时用户行已改、junction 可能只剩空集（P1-19）。替换**不会**同步
-  `current_role_id`，也不会校验当前角色仍在新集合里（P1-18）。
+  端点挂 `@WalnutTx`（P1-19 已修复）：用户行 save、junction 替换、current_role 校正同一
+  事务，任何一腿失败整体回滚。P1-18 修法：替换后若 `current_role_id` 不在新集合，重置为
+  新集合首角色（空集合 → null），并 after-commit 失效该用户全部设备的
+  `AUTH:PERMISSIONS:*` 缓存。
 - `status=false` 只改行；登录准入由 `checkUserAndRoleStatus` 拒绝（40104 族）。
   AT 已签发的会话不会因此立即失效。
 - `role_mode` 与 `current_role_id` 不作为管理端 update 字段，只能走 `me` 的两个 switch 端点。
@@ -204,9 +215,12 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 `DELETE /system/user/:id`：
 
 - 拒绝删除自己（`id === user.userId`）与 safe user id（root / developer 的 v5 uuid），均 40000。
-- 其余用户走软删：`sys_deleted` 快照 + 硬删原行。硬删触发 `sys_user_role` /
-  `sys_user_device` 等 FK CASCADE，junction 不进快照；从回收站恢复后 `roles_list` 为空，
-  该用户无法登录（P2-18）。
+- 其余用户走软删：`sys_deleted` 快照 + 硬删原行。P2-18 修复（2026-10-28）后，主行删除
+  前会给 identity / preference / user_device / mfa / lock 五张外围表逐行落快照，恢复时
+  由 `sys_user` 组合恢复器联动重放；`sys_user_role` junction 仍不进快照，从回收站恢复后
+  `roles_list` 为空：旧 AT 的权限按空 membership 计算（P1-18 根修），重新登录被
+  `checkUserAndRoleStatus` 拒绝（opaque finish 链收敛为 40103），需管理员重新分配角色
+  （P2-18 维持登记的部分）。
 
 ### 3.5 自助资料与角色切换
 
@@ -238,8 +252,10 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 3. `combinable`：没有任何启用角色 → 40104 族；
 4. `switchable`：当前角色在 `roles_list` 中时必须启用；**不在列表中只写日志并继续**。
 
-第 4 条的宽松处理与 §2.1 的 `getCoreMenus` 组合起来，会让「current_role 已不在 junction」
-的用户继续以旧角色取权限（P1-18）。
+第 4 条的宽松处理与 §2.1 的 `getCoreMenus` 组合起来：P1-18 根修后，权限计算**先**按
+`sys_user_role` 实际绑定过滤 payload —— current_role 脱钩（库外写入、恢复用户）时回退绑定集
+首角色或空权限，不会沿用已移出角色。管理端 `PUT /system/user/:id` 的角色整组替换同时校正
+`current_role_id`（不在新集合 → 新集合首角色 / 空集合 → null），写路径也不再产生脱钩行。
 
 ## 4. 菜单
 
@@ -514,28 +530,30 @@ dictData 的单删 / 批量删（P1-12 已补 deleteMany 路由）除了快照 +
   children」；单根无子级时为空数组，前端菜单装配按此形状消费。
 - **P3-7（裁决接受）**：「角色不删」是明确设计约束，停用走 update status、解绑走 junction。
 - **P1-12（已修复）**：dictData 的 deleteMany 装饰器已接线。
-- **P1-15（新登记）**：`AUTH:PERMISSIONS` 的 TTL 被写成 AT 秒数 × 1000，权限变更后的
-  旧权限串可长期驻留，直到 `/auth/permissions` 覆盖或 signout 删除。
-- **P1-18（B 段新登记）**：`current_role_id` 与 `sys_user_role` junction 无一致性约束。
-  user update 整组替换 roles 时既不重置也不校验 `current_role_id`；SWITCH 模式下
-  `getCoreMenus` 直接按 `currentRole` 取角色权限，`checkUserAndRoleStatus` 对「当前角色
-  不在 junction」只记日志继续 —— junction 非空时，被移出角色的用户仍沿用旧角色权限。
-  create 的 `roles: []` 也会留下「`current_role_id` 指向 junction 外角色」的形态。
-- **P1-19（B 段新登记）**：user 的 create / update 没有 `@WalnutTx`，主行与 junction
-  的写入是三段独立自动提交语句。create 在 junction 插入失败时留下「有用户行、无角色
-  绑定」的脏行（重试还撞用户名唯一）；update 在 junction 插入失败时留下被清空的角色
-  集合。对照 role 的 create / update 已挂 `@WalnutTx`。
-- **P2-16（B 段新登记）**：角色菜单分配、菜单 create/update/delete、switchRole /
-  switchRoleMode 都不会失效 `AUTH:PERMISSIONS`；`menu.service.ts` 的三处
-  `TODO remove all cache auth data when menu changed` 仍在。服务端没有按角色/用户批量
-  失效的通道，权限撤销只能靠客户端重拉或 signout。
+- **P1-15（已修复）**：`AUTH:PERMISSIONS` 的 TTL 与 AT 有效期同秒数（修复前误乘 1000）。
+- **P1-18（已修复，2026-10-28）**：根修 —— `getCoreMenus` 先按 AT userId 从
+  `sys_user_role` 现查实际绑定，把 payload 的 roleIds/currentRole 过滤到 membership 内
+  （COMBINE 交集；SWITCH current 失效回退绑定集首角色，空则空）—— 旧 AT 重拉不复活被移除
+  角色，恢复用户后权限为空。写路径：update roles 后校正 `current_role_id`（不在新集合 →
+  首角色；空 → null）并失效该用户全部设备缓存；create 与 update 口径对齐（显式
+  `roles: []` → currentRole=null，roles 未给才 defaultRole，见 §3.1）。
+- **P1-19（已修复，2026-10-28）**：user create / update 挂 `@WalnutTx`，主行 + junction +
+  current_role 校正同事务；junction 腿失败整体回滚（api-rollback spec 双用例：
+  roles=[有效, 不存在]）。
+- **P2-16（已修复，2026-10-28）**：角色 update（menus / status）按 `sys_user_role` 反查
+  用户并清其全部设备权限缓存；菜单失效按 F3 收窄 —— delete 全量清，update 仅
+  permission/status 真变化时清，create 不清。`me/role/switch`、`me/roleMode/switch`
+  仍维持「切换后需重新登录」的契约（P2-16 剩余面）。
 - **P2-17（B 段新登记）**：lang 与 locale 的缓存刷新不对称。`SYS_LANG_ID_LIST` 只在
   locale 变更触发的全量刷新里写入：新建 lang 后立即给它写翻译，会因白名单缓存里没有新
   langId 而 40099，直到某次 locale 变更/删除触发刷新；lang update 改语言代号也不重算
   `SYS_LOCALE_MESSAGES`。
-- **P2-18（B 段新登记）**：软删恢复不恢复 junction。menu / user 等行删除时 junction 由
-  FK CASCADE 清掉且不进 `sys_deleted` 快照；恢复菜单后角色授权为空、恢复用户后
-  `roles_list` 为空（无法登录），需要重新授权。
+- **P2-18（已修复：用户外围联动；junction 部分仍登记）**：软删恢复不恢复 junction。
+  menu / user 等行删除时 junction 由 FK CASCADE 清掉且不进 `sys_deleted` 快照；恢复菜单后
+  角色授权为空、恢复用户后 `roles_list` 为空，权限按空 membership 计算（P1-18 根修）、
+  重新登录被拒（需重新授权）。2026-10-28 批 D 已给用户删除补 identity/preference/
+  user_device/mfa/lock 五表快照并在恢复时联动重放；回收站 read/deleteMany 的 content
+  在 DTO 层遮蔽凭据密文（F2）；junction 快照方案仍未落地。
 - **P2-19（B 段新登记）**：effective roleMode 与 AT payload / 守卫判据两层不一致。
   零配置默认（GLOBAL/combinable）下 `switchRole` 对**所有用户**恒 40000（effective 是
   combinable），而 payload 里的 `roleMode` 仍是用户行的 `switchable`，守卫的 root/visitor

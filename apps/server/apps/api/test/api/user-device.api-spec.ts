@@ -1,7 +1,7 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
-import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
+import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
@@ -23,6 +23,9 @@ import { createApiApp } from './helpers/create-api-app'
  * - force-quit（user-kick-other 语义）撤 RT：revoke 落 revoked + revoke_reason
  *   （WalnutAdminConstRevokeRTType.userKickOther）；updateRevokedAndReason 全量撤销
  *   （P1-9 已修：update ... where userId+deviceId，同维度多行 RT 撤干净）。
+ * - P2-12（2026-10-28）：踢人不再只撤 RT —— 事务提交后按设备清 `AUTH:SESSIONS` /
+ *   `AUTH:PERMISSIONS` / `AUTH:MFA:VERIFIED`（P0-4 的 JWT 会话校验让被踢设备的 AT
+ *   立即 40101，而不只是 RT 不可换发）。
  */
 
 interface UserDeviceListItem {
@@ -43,12 +46,14 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
   const seed8 = randomUUID().slice(0, 8)
   const visitorId = `ud-spec-vis-${seed8}`
   let fixture: WalnutRootUserFixture | null = null
+  /** force-quit 用例的“第二设备”（同用户）—— 踢它不影响本文件的 api 客户端 */
+  let victim: WalnutApiClient | null = null
 
-  async function insertMonitorRow() {
+  async function insertMonitorRow(deviceId: string = api.deviceId) {
     await api.pgDataSource.query(
       `INSERT INTO app_monitor_user (visitor_id, user_id, device_id, auth, focus, is_left)
        VALUES ($1, $2, $3, true, true, false)`,
-      [visitorId, fixture!.userId, api.deviceId],
+      [visitorId, fixture!.userId, deviceId],
     )
   }
 
@@ -64,6 +69,14 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
       const lockKeys = WalnutAdminConstAppCacheKeys.SECURITY_LOCK
       await cacheService.del(`${lockKeys}:${fixture.userId}:global`)
       await cacheService.del(`${lockKeys}:${fixture.userId}:${api.deviceId}`)
+
+      if (victim !== null) {
+        await api.pgDataSource.query('DELETE FROM sys_user_device WHERE user_id = $1 AND device_id = $2', [fixture.userId, victim.deviceId])
+        await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [victim.deviceId])
+        await cacheService.del(`${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${fixture.userId}:${victim.deviceId}`)
+        await cacheService.del(`${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${fixture.userId}:${victim.deviceId}`)
+        victim = null
+      }
     }
   }
 
@@ -188,25 +201,43 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
     expect(bodyOf<{ data: UserDeviceListItem[] }>(listRes).data.data[0].locked).toBe(false)
   })
 
-  it('force-quit → 撤该用户该设备全部 RT（revoked + userKickOther 落库）', async () => {
-    await insertMonitorRow()
+  it('force-quit → 撤该用户该设备全部 RT；P2-12：旧 AT 立即 40101 + 会话/权限/MFA 缓存全清', async () => {
+    // 第二设备真实登录（同一 fixture 用户）—— 踢它，api 客户端不受影响
+    victim = await WalnutApiClient.create(app)
+    const victimTokens = await performHttpOpaqueLogin(victim, app, fixture!)
+    victim.setAuth(victimTokens)
 
-    // 自插两行未撤销 RT（登录期 RT 可能被前序用例的清场删掉），踢完必须全部 revoked
+    await insertMonitorRow(victim.deviceId)
+
+    // 登录期 RT 行先清掉，只留本用例自插的两行（踢完必须全部 revoked）
+    await api.pgDataSource.query(
+      'DELETE FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
+      [fixture!.userId, victim.deviceId],
+    )
     for (let i = 0; i < 2; i++) {
       await api.pgDataSource.query(
         `INSERT INTO auth_refresh_token (jti, user_id, device_id, encrypted_token, expired_at)
          VALUES ($1, $2, $3, 'ud-spec-rt', NOW() + INTERVAL '1 day')`,
-        [randomUUID(), fixture!.userId, api.deviceId],
+        [randomUUID(), fixture!.userId, victim.deviceId],
       )
     }
 
-    const res = await api.root('DELETE', api.apiPath(`/system/user/device/force-quit/${api.deviceId}`))
+    // 预置被踢设备的权限 / MFA 缓存（清扫前必须存在，否则断言是空转）
+    const cacheService = app.get(AppTechCacheService)
+    const permissionKey = `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${fixture!.userId}:${victim.deviceId}`
+    const mfaKey = `${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${fixture!.userId}:${victim.deviceId}`
+    await cacheService.set(permissionKey, ['system:user:device:list'], { t: WalnutAdminConstAppCacheType.AUTH, ttl: 600 })
+    await victim.seedMfaVerifiedCache(fixture!.userId)
+    expect(await api.hasWalnutCacheKey(permissionKey)).toBe(true)
+    expect(await api.hasWalnutCacheKey(mfaKey)).toBe(true)
+
+    const res = await api.root('DELETE', api.apiPath(`/system/user/device/force-quit/${victim.deviceId}`))
     expectOk(res, 'user device force-quit')
     expect(bodyOf<boolean>(res).data).toBe(true)
 
     const rtRows: Array<{ revoked: boolean, revoke_reason: string | null }> = await api.pgDataSource.query(
       'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
-      [fixture!.userId, api.deviceId],
+      [fixture!.userId, victim.deviceId],
     )
     expect(rtRows.length).toBe(2)
     // P1-9 已修（revoke-and-insert 配套，2026-10-27）：updateRevokedAndReason 改
@@ -216,6 +247,15 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
     expect(revokedRows).toHaveLength(2)
     // WalnutAdminConstRevokeRTType.userKickOther
     expect(revokedRows.every(r => r.revoke_reason === 'userKickOther')).toBe(true)
+
+    // P2-12 翻转：此前只断言 RT revoked —— 会话键仍在，AT 到期前继续可用。
+    // 现在 JWT validate（P0-4）查会话键，被踢设备的旧 AT 必须立即 40101。
+    const victimAfterKick = await victim.root('GET', victim.apiPath('/system/user/device/list'))
+    expect(bodyOf(victimAfterKick).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+
+    // 权限 / MFA verified 缓存同事务后清扫
+    expect(await api.hasWalnutCacheKey(permissionKey)).toBe(false)
+    expect(await api.hasWalnutCacheKey(mfaKey)).toBe(false)
   })
 
   it('边界：force-quit 无 monitor 行 → 40401', async () => {

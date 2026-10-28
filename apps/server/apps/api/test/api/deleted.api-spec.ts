@@ -55,6 +55,8 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
   const demoIds: string[] = []
   /** 清场兜底：按 deletedId 清 sys_deleted */
   const deletedDemoIds: string[] = []
+  /** P2-18 用例自建的 user 行（恢复后仍在，afterAll 直删） */
+  const recoveredUserIds: string[] = []
 
   beforeAll(async () => {
     app = await createApiApp()
@@ -74,6 +76,10 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
       }
       if (demoIds.length > 0) {
         await api.pgDataSource.query('DELETE FROM app_demo WHERE id = ANY($1::uuid[])', [demoIds])
+      }
+      if (recoveredUserIds.length > 0) {
+        await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content ->> \'userId\' = ANY($1::text[])', [recoveredUserIds])
+        await api.pgDataSource.query('DELETE FROM sys_user WHERE id = ANY($1::uuid[])', [recoveredUserIds])
       }
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
@@ -250,5 +256,89 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
     const goneRes = await api.root('GET', api.apiPath(`/app/demo/${demo.id}`))
     expect(bodyOf(goneRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
     deletedDemoIds.pop()
+  })
+
+  it('P2-18：删用户 → 外围行（identity/preference）同事务进快照；recover 用户 → 联动恢复', async () => {
+    const userName = `deleted-user-${seed8}`
+    const createRes = await api.root('POST', api.apiPath('/system/user'), {
+      userName,
+      status: true,
+      roles: [],
+    })
+    expectOk(createRes, 'user create for recover')
+    const created = bodyOf<{ id: string }>(createRes).data
+    recoveredUserIds.push(created.id)
+
+    // 外围行：口令 identity（value 是 select:false 密文列，快照必须带出）+ 偏好行
+    await api.pgDataSource.query(
+      `INSERT INTO sys_user_identity (user_id, type, purpose, value, value_hash, masked_value)
+       VALUES ($1, 'password', 'login', 'cipher-value-p2-18', $2, '***')`,
+      [created.id, `hash-${seed8}`],
+    )
+    await api.pgDataSource.query('INSERT INTO sys_user_preference (user_id) VALUES ($1)', [created.id])
+
+    const delRes = await api.root('DELETE', api.apiPath(`/system/user/${created.id}`))
+    expectOk(delRes, 'user soft delete')
+
+    // 修复前：只有 SysUser 一份快照（外围行被 FK CASCADE 静默带走）。现在主行删除前
+    // 已给外围行各落一份快照。
+    const snapshotRows: Array<{ id: string, model_name: string }> = await api.pgDataSource.query(
+      `SELECT id, model_name FROM sys_deleted
+       WHERE deleted_id = $1::uuid OR content ->> 'userId' = $1::text
+       ORDER BY model_name`,
+      [created.id],
+    )
+    const models = snapshotRows.map(row => row.model_name)
+    expect(models).toEqual(expect.arrayContaining(['SysUser', 'SysUserIdentity', 'SysUserPreference']))
+
+    const userSnapshot = snapshotRows.find(row => row.model_name === 'SysUser')
+    expect(userSnapshot).toBeTruthy()
+
+    // F2：回收站 read 出参对凭据密文脱敏（identity.value / MFA 四列 → `***`），
+    // 但恢复走实体读取 sys_deleted.content，密文本身不受影响（恢复后断言）
+    const identitySnapshot = snapshotRows.find(row => row.model_name === 'SysUserIdentity')
+    expect(identitySnapshot).toBeTruthy()
+    const identityReadRes = await api.root('GET', api.apiPath(`/system/deleted/${identitySnapshot!.id}`))
+    expectOk(identityReadRes, 'deleted read (identity snapshot)')
+    const identitySnapshotContent = bodyOf<{ content: Record<string, unknown> }>(identityReadRes).data.content
+    expect(identitySnapshotContent.value).toBe('***')
+    // 非密文字段原样（定位/可读性不受影响）
+    expect(identitySnapshotContent.type).toBe('password')
+    expect(identitySnapshotContent.purpose).toBe('login')
+
+    const recoverRes = await api.root('POST', api.apiPath('/system/deleted/recover'), {
+      id: userSnapshot!.id,
+      deletedId: created.id,
+    })
+    expectOk(recoverRes, 'user recover with peripherals')
+
+    // 主行回来
+    const userRows: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM sys_user WHERE id = $1',
+      [created.id],
+    )
+    expect(userRows[0].c).toBe(1)
+
+    // 外围行联动恢复（identity 的密文 value 完整带回 —— 登录凭据可用）
+    const identityRows: Array<{ value: string, masked_value: string }> = await api.pgDataSource.query(
+      'SELECT value, masked_value FROM sys_user_identity WHERE user_id = $1',
+      [created.id],
+    )
+    expect(identityRows).toHaveLength(1)
+    expect(identityRows[0].value).toBe('cipher-value-p2-18')
+    expect(identityRows[0].masked_value).toBe('***')
+
+    const preferenceRows: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM sys_user_preference WHERE user_id = $1',
+      [created.id],
+    )
+    expect(preferenceRows[0].c).toBe(1)
+
+    // 外围快照已消费（不再留在回收站）
+    const remainRows: Array<{ c: number }> = await api.pgDataSource.query(
+      `SELECT count(*)::int AS c FROM sys_deleted WHERE content ->> 'userId' = $1`,
+      [created.id],
+    )
+    expect(remainRows[0].c).toBe(0)
   })
 })

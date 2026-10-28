@@ -262,9 +262,10 @@ guard 的 40115 首拦）。
 | `admin-kick` | 管理端 `force-quit` | 同上，reason 由调用方给 | socket 通知 |
 | `security-policy` | 改密/清密、密码重置链 | 该用户**所有设备**的 RT（`revokeRTForUser`） | 事务提交后批量 socket 通知 |
 
-注意现状：`user-kick-other` / `admin-kick` **只撤 RT 并通知在线设备**，不清
-`AUTH:SESSIONS`、`AUTH:PERMISSIONS`、`AUTH:MFA:VERIFIED`（离线设备的处理口径是「下次打开页面
-socket 初始化时由前端主动 signout」）。AT 到期前的窗口仍可通过 JWT 层校验（P2-12，已登记）。
+P2-12 修复后（2026-10-28）：`user-kick-other` / `admin-kick` 在撤 RT + socket 通知之外，
+事务提交后按设备清 `AUTH:SESSIONS` / `AUTH:PERMISSIONS` / `AUTH:MFA:VERIFIED` 三键。
+配合 JWT validate 的会话键校验，被踢设备的旧 AT 立即 40101（不再有「AT 到期前仍可用」的
+窗口）。
 
 ## 4. 外部 OAuth
 
@@ -295,8 +296,8 @@ socket 初始化时由前端主动 signout」）。AT 到期前的窗口仍可�
 
 | 端点 | 守卫 | 行为 |
 |---|---|---|
-| `GET /auth/oauth/{gitee,github}/url` | JwtFree + Functional；签名生效 | 返回 IdP 授权 URL：`state` 是原样拼接的 `JSON.stringify({ fp, lang })`（不 URL 编码） |
-| `GET /auth/oauth/{gitee,github}/callback` | JwtFree + SignFree + Functional + `OAuth{Gitee,GitHub}Guard` + `@WalnutTx()` + AuthLog + `@Render('template/oauth/done')` | 缺 `code` → **40000**（P3-3 的 guard 前置校验）；成功则签发令牌并把 `accessToken/sessionKey` 投递到 SSE |
+| `GET /auth/oauth/{gitee,github}/url` | JwtFree + Functional；签名生效 | 返回 IdP 授权 URL：`state = base64url(JSON{fp,lang,nonce}) + "." + HMAC-SHA256`（P2-13，签名密钥复用 `app.session.secret`；nonce + 发起 deviceId 落 Redis `AUTH:OAUTH_STATE:<nonce>`，10 分钟 TTL） |
+| `GET /auth/oauth/{gitee,github}/callback` | JwtFree + SignFree + Functional + `OAuth{Gitee,GitHub}Guard` + `@WalnutTx()` + AuthLog + `@Render('template/oauth/done')` | guard 在换 code 前验 state：缺 `code` / 验签失败 / 重放 / 跨设备 → **40000**（受控壳，不进入外部 token 交换）；成功则签发令牌并把 `accessToken/sessionKey` 投递到 SSE |
 | `GET /auth/oauth/{gitee,github}/sse/:fp` | JwtFree + SignFree；Device 等其余全局守卫仍生效 | `@Sse` + `@Res()` 直写流，不属于统一响应壳（P3-8 豁免） |
 
 - 回调成功后先 `generateAuthTokens`（同 §2.4 的装配，事务内），再把回调用户（gitee/github
@@ -305,9 +306,12 @@ socket 初始化时由前端主动 signout」）。AT 到期前的窗口仍可�
   `oauth/{provider}/{fp}` 频道发 `{ success, message, data }`：`event` 为 `token:gitee`
   或 `token:github`，`data` 携带 `accessToken` 与 `sessionKey`。
 - 失败同样走 SSE：`{ success: false, message: <i18n 文案>, data: {} }`，并异步记失败登录风险。
-- `state` 的 `fp` 完全由客户端自报，SSE 频道按 `fp` 订阅；服务端不做一次性校验（P2-13，已登记）。
-- 外部边界：真实 IdP 的 `code` 交换与回调需要外部网络与有效应用配置，API 回归只覆盖
-  「functional 关闭 50301 / 缺 code 40000 / `/url` 拼装形态 / 本地校验失败」这些纯本地路径。
+- P2-13 修复后（2026-10-28）：`state` 由服务端签发（HMAC 签名 + 一次性 nonce + deviceId
+  绑定），callback guard 先验签再换 code；SSE 频道按 `fp` 订阅的客户端侧信任边界不变
+  （`fp` 只从已验签的 state 取得），但跨设备/重放/篡改的登录 CSRF 形态全部被拒。
+- 外部边界：真实 IdP 的 `code` 交换与回调需要外部网络与有效应用配置，API 回归覆盖
+  「functional 关闭 50301 / 缺 code 40000 / state 篡改·重放·跨设备 40000 / `/url` 拼装形态 /
+  本地校验失败」这些纯本地路径。
 
 ## 5. 接口表
 
@@ -372,8 +376,9 @@ socket 初始化时由前端主动 signout」）。AT 到期前的窗口仍可�
   断言缓存 TTL 落在 AT 秒数量级。
 - **P1-17（已修复，2026-10-28）**：Google 端点以 functional `defaultClosed` 暂时关闭
   （零配置 → 50301）；「同邮箱复用 + user_identity/user_oauth 绑定」补全作为后续功能开发。
-- **P2-12（新登记）**：`user-kick-other` / `admin-kick` 只撤 RT，不清会话/权限/MFA 缓存；
-  AT 到期前仍可用，在线设备依赖 socket 通知后自行 signout。
-- **P2-13（新登记）**：OAuth `state` 未签名且无一次性校验，SSE 频道按客户端自报 `fp` 订阅。
+- **P2-12（已修复，2026-10-28）**：`user-kick-other` / `admin-kick` 撤 RT 之外，事务提交后
+  按设备清会话/权限/MFA verified 三键；配合 P0-4 的 JWT 会话校验，旧 AT 立即 40101。
+- **P2-13（已修复，2026-10-28）**：OAuth `state` 改为签名 + 一次性 nonce + deviceId 绑定，
+  callback guard 在换 code 前校验；篡改 / 重放 / 跨设备一律受控 40000。
 - **P2-14（新登记）**：并发 `login/finish` 的 Duplicate Auth 判据是「读后写」，无锁/无唯一
   索引兜底；两个并发登录都可能返回成功，RT 行被后写者覆盖，仅一个会话实际存活。

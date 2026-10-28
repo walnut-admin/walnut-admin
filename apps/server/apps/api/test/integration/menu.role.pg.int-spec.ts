@@ -452,19 +452,35 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
         currentRole: role.id,
       } as IWalnutAdminAccessTokenPayload
 
-      const res = await menuSharedService.getCorePermissions(user, WalnutAdminConstAppPermissionType.ALL)
+      // P1-18 根修（F1）：权限计算按 sys_user_role 实时 membership 过滤 payload ——
+      // 这里必须落真实 junction 行，否则角色的菜单会被当成「已移出」滤掉。
+      await pgDataSource.query(
+        `INSERT INTO sys_user (id, user_name, role_mode, current_role_id) VALUES ($1, $2, 'combinable', $3)`,
+        [user.userId, uniqueName('b5-perm-user'), role.id],
+      )
+      await pgDataSource.query(
+        'INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)',
+        [user.userId, role.id],
+      )
 
-      expect(res.permissionStrings).toContain('b5:core:read')
-      expect(res.keepAliveNames).toContain(permMenu.name)
-      expect(res.affixedTabs.map(i => i.name)).toContain(permMenu.name)
-      expect(res.internalIframeList).toEqual([
-        { name: permMenu.name, url: 'https://b5.example.com', cache: true },
-      ])
+      try {
+        const res = await menuSharedService.getCorePermissions(user, WalnutAdminConstAppPermissionType.ALL)
 
-      // 路由树节点 meta 形态（拍平列组装 + title/type/icon 并入 meta）
-      const routeNode = JSON.stringify(res.permissionRouteTree)
-      expect(routeNode).toContain(permMenu.name)
-      expect(routeNode).toContain('"ternal":"internal"')
+        expect(res.permissionStrings).toContain('b5:core:read')
+        expect(res.keepAliveNames).toContain(permMenu.name)
+        expect(res.affixedTabs.map(i => i.name)).toContain(permMenu.name)
+        expect(res.internalIframeList).toEqual([
+          { name: permMenu.name, url: 'https://b5.example.com', cache: true },
+        ])
+
+        // 路由树节点 meta 形态（拍平列组装 + title/type/icon 并入 meta）
+        const routeNode = JSON.stringify(res.permissionRouteTree)
+        expect(routeNode).toContain(permMenu.name)
+        expect(routeNode).toContain('"ternal":"internal"')
+      }
+      finally {
+        await pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [user.userId])
+      }
     })
   })
 })

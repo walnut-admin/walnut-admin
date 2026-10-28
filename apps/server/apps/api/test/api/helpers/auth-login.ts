@@ -115,15 +115,20 @@ export async function registerRootUserFixture(
 }
 
 /**
- * HTTP 真实 opaque 登录：login/start → 客户端 finishLogin → login/finish。
- * 请求都由 api-client 的 anon() 发出（单因子签名 + 引导期拿到的 cookie）。
- * 成功后调用方需把返回的 tokens `api.setAuth()`，并按需 `api.seedMfaVerifiedCache(userId)`。
+ * HTTP 真实 opaque 登录（不抛业务错误版）：login/start → 客户端 finishLogin →
+ * login/finish，只返回最终业务码（供「登录被受控拒绝」类用例断言，如恢复用户后
+ * roles_list 为空 → 40104）。客户端侧协议错误仍抛（那是 fixture 问题，不是业务面）。
  */
-export async function performHttpOpaqueLogin(
+export interface WalnutOpaqueLoginAttempt {
+  code: number
+  data: { accessToken: string, sessionKey: string } | null
+}
+
+export async function attemptHttpOpaqueLogin(
   api: WalnutApiClient,
   app: NestExpressApplication,
   fixture: { userName: string, password: string, userId: string },
-): Promise<WalnutAuthTokens> {
+): Promise<WalnutOpaqueLoginAttempt> {
   const configService = app.get(ConfigService)
   const appName = configService.get<string>('app.name')!
 
@@ -133,13 +138,16 @@ export async function performHttpOpaqueLogin(
     userName: fixture.userName,
     start: startLoginRequest,
   })
-  expectLoginOk(bodyOf(startRes), 'login/start')
-  const loginResponse = bodyOf<string>(startRes).data
+  const startBody = bodyOf<string>(startRes)
+
+  if (startBody.code !== 20000) {
+    return { code: startBody.code, data: null }
+  }
 
   // 2. 客户端 finishLogin
   const loginResult = opaque.client.finishLogin({
     clientLoginState,
-    loginResponse,
+    loginResponse: startBody.data,
     password: fixture.password,
     identifiers: { client: fixture.userName, server: appName },
   })
@@ -153,19 +161,35 @@ export async function performHttpOpaqueLogin(
     userName: fixture.userName,
     finish: loginResult.finishLoginRequest,
   })
-  expectLoginOk(bodyOf(finishRes), 'login/finish')
+  const finishBody = bodyOf<{ accessToken: string, sessionKey: string }>(finishRes)
 
-  const data = bodyOf<{ accessToken: string, sessionKey: string }>(finishRes).data
+  if (finishBody.code !== 20000 || finishBody.data === undefined) {
+    return { code: finishBody.code, data: null }
+  }
+
+  return { code: finishBody.code, data: finishBody.data }
+}
+
+/**
+ * HTTP 真实 opaque 登录：login/start → 客户端 finishLogin → login/finish。
+ * 请求都由 api-client 的 anon() 发出（单因子签名 + 引导期拿到的 cookie）。
+ * 成功后调用方需把返回的 tokens `api.setAuth()`，并按需 `api.seedMfaVerifiedCache(userId)`。
+ */
+export async function performHttpOpaqueLogin(
+  api: WalnutApiClient,
+  app: NestExpressApplication,
+  fixture: { userName: string, password: string, userId: string },
+): Promise<WalnutAuthTokens> {
+  const attempt = await attemptHttpOpaqueLogin(api, app, fixture)
+
+  if (attempt.code !== 20000 || attempt.data === null) {
+    throw new Error(`[auth-login] login failed: code=${attempt.code}`)
+  }
+
   return {
     userId: fixture.userId,
     userName: fixture.userName,
-    accessToken: data.accessToken,
-    sessionKey: data.sessionKey,
-  }
-}
-
-function expectLoginOk(body: { code?: number }, what: string): void {
-  if (body.code !== 20000) {
-    throw new Error(`[auth-login] ${what} failed: body=${JSON.stringify(body)}`)
+    accessToken: attempt.data.accessToken,
+    sessionKey: attempt.data.sessionKey,
   }
 }

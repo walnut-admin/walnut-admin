@@ -442,3 +442,46 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
     （`refresh.shared.service.generateRefreshToken`）；且重登前 `setAuth(null)` 回单因子签名
     （D 段口径：登录态 anon() 签双因子无 Authorization 头 → 40112）。
   - `demoString` 出参被 DTO 折成小写（A 段已钉），断言比较前 `toUpperCase()`。
+
+## C+D 批复审修复补记（2026-10-28）
+
+> 决策见 `docs/plans/modernization-roadmap.md` §6；问题条目与完整修法见 `DESIGN-ISSUES.md`。
+> 本节只记**行为修订**与对应的 spec 翻转，供后续读端点时对照。
+
+- **P2-12 踢下线清缓存**：`system/user/device` 与 `app/monitor/user` 的 force-quit
+  （user-kick-other / admin-kick）在撤 RT 之外，事务提交后按设备清 `AUTH:SESSIONS` /
+  `AUTH:PERMISSIONS` / `AUTH:MFA:VERIFIED`。user-device / monitor-user spec 的 force-quit
+  用例改为第二设备真实验证：旧 AT 立即 40101（此前只断言 RT `revoked=true`），三键全清。
+- **P2-13 OAuth state**：gitee/github `/url` 的 `state` 从明文 `JSON{fp,lang}` 改为
+  `base64url(JSON{fp,lang,nonce}) + "." + HMAC-SHA256`，nonce 与发起 deviceId 落 Redis
+  `AUTH:OAUTH_STATE:<nonce>`（10 分钟 TTL）。callback guard 在换 code 前验签 + 设备绑定 +
+  DEL 一次性消费，失败一律受控 40000。external-oauth spec 覆盖 state 形态翻转、篡改 /
+  重放 / 跨设备拒绝、service 层合法签发-消费闭环。
+- **P2-15 永久黑名单锚点**：`app.global.ipBlackList` 显式默认行在
+  `apps/server/db/seed/app_setting.json`（`"[]"`），`check-seed` 新增必需键机械核对
+  （缺行 / 非法 JSON / 非数组三种反例）。集成库仍只跑 migrations，不 seed。
+- **P1-18 current_role 校正 + F1 根修**：`PUT /system/user/:id` 的 roles 整组替换后，若
+  `current_role_id` 不在新集合 → 重置为新集合首角色（空集合 → null）；create 与 update
+  口径对齐（显式 `roles: []` → currentRole=null，roles 未给才 defaultRole）。根修：
+  `getCoreMenus` 先按 AT userId 从 `sys_user_role` 现查实际绑定，把 payload 的
+  roleIds/currentRole 过滤到 membership 内（COMBINE 交集；SWITCH current 失效回退绑定集
+  首角色，空则空）—— 旧 AT 重拉不复活被移除角色，恢复用户后权限为空。
+  user spec：create `roles: []` 的 currentRole 翻转（defaultRole → null）+ 新增「移除
+  current 角色」用例；permission-chain spec 新增「改 roles → 缓存消失（未重拉 40105）→
+  重登后权限串按新角色」+ F1 两条（旧 AT 重拉 / 恢复用户后重登 40103 受控）。
+- **P1-19 user 写路径事务**：`POST /system/user`、`PUT /system/user/:id` 挂 `@WalnutTx`，
+  主行 + junction + current_role 校正同事务。api-rollback spec 新增 create/update 两条
+  回滚用例（roles=[有效, 不存在] 命中 junction FK → 40000，主行零残留 / status 与既有
+  junction 不半提交）。
+- **P2-16 角色/菜单失效权限缓存**：`PUT /system/role/:id` 的 menus / status 变更按
+  `sys_user_role` 反查用户并清其全部设备权限缓存；菜单失效按 F3 收窄 —— delete 全量清，
+  update 仅在 permission/status 真变化时清，create 不清。permission-chain spec 新增
+  「改角色 menus → 缓存键消失 + 守卫 40105 + 重拉空授权」；menu spec 用哨兵键断言
+  create/普通 update 保留、permission 变更清空。
+- **P2-18 恢复用户联动外围**：删除用户时在硬删前给 identity / preference / user_device /
+  mfa / lock 五表逐行落快照；`sys_user` 恢复器改为组合恢复器（主行 + 按 `userId` 重放外围
+  快照，同 deletedId 取最新；device/mfa/lock 失败 savepoint 跳过）。deleted spec 新增
+  「user + password identity + preference → 删 → recover → 联动恢复、密文完整、快照消费」；
+  F2：回收站 read/deleteMany 的 content 在 DTO 层遮蔽 identity `value` / MFA 四列密文
+  （`***`），恢复走实体不受影响。`sys_user_role` / `sys_role_menu` junction 仍不进快照
+  （登记保留）。

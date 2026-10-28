@@ -57,4 +57,24 @@ export class AppTechCachePermissionsService {
   async delPermissions(token: string, deviceId: string) {
     await this.cacheService.del(this.getPermissionCacheKey(token, deviceId))
   }
+
+  /**
+   * @description 失效某用户**全部设备**的权限缓存（P1-18 / P2-16：角色整组替换、
+   * 当前角色校正、角色授权/状态变更 —— 缓存键按 `<userId>:<deviceId>` 分布，
+   * 服务端没有反查设备的通道，按 pattern 一次清干净）。
+   */
+  async delPermissionsForUser(userId: string) {
+    const deleted = await this.cacheService.delByPattern(`${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${userId}:*`)
+    this.logger.debug(`del permissions cache for user ${userId}, keys=${deleted.length}`)
+  }
+
+  /**
+   * @description 全量失效权限缓存（菜单维度变更：permission 列/菜单删除影响所有角色与
+   * 用户，反查代价与正确性都不划算 —— 权限缓存可由客户端重新拉取 `/auth/permissions`
+   * 重建，全清是明确取舍）。
+   */
+  async delAllPermissions() {
+    const deleted = await this.cacheService.delByPattern(`${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:*`)
+    this.logger.debug(`del all permissions cache, keys=${deleted.length}`)
+  }
 }

@@ -18,10 +18,14 @@
 > P0-6 已于 2026-10-28 修复（批 A，roadmap §6））｜
 > P1 × 19（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复；P1-4 已于 2026-10-27 修复；
 > P1-1 / P1-2 / P1-3 / P1-5 / P1-6 / P1-7 / P1-8 / P1-10 / P1-11 / P1-12 已于 2026-10-28 修复（批 1）；
-> P1-13 ~ P1-17 已于 2026-10-28 修复（批 A/B，roadmap §6）；P1-18 / P1-19 为 B 段新登记，待修）｜
-> P2 × 31（批 2：P2-1 确认为安全立场设计；P2-2 ~ P2-9 已于 2026-10-28 修复；P2-10 已登记；
-> P2-11 ~ P2-15 为文档大轮次 A 段新登记；P2-16 ~ P2-20 为 B 段新登记；
-> P2-21 ~ P2-29 为文档大轮次 C 段新登记；P2-30 / P2-31 为 D 段新登记）｜
+> P1-13 ~ P1-17 已于 2026-10-28 修复（批 A/B，roadmap §6）；
+> P1-18 / P1-19 已于 2026-10-28 修复（批 D，roadmap §6））｜
+> P2 × 32（批 2：P2-1 确认为安全立场设计；P2-2 ~ P2-9 已于 2026-10-28 修复；P2-10 已登记；
+> P2-11 ~ P2-15 为文档大轮次 A 段新登记，P2-12 / P2-13 / P2-15 已于 2026-10-28 修复（批 C，roadmap §6）；
+> P2-16 ~ P2-20 为 B 段新登记，P2-16 / P2-18 已于 2026-10-28 修复（批 D，roadmap §6；P2-18 的
+> junction 部分仍登记；P2-22 用户外围条目随其覆盖，剩 oauth 一面）；
+> P2-21 ~ P2-29 为文档大轮次 C 段新登记；P2-30 / P2-31 为 D 段新登记；
+> P2-32 为 C+D 批复审新登记（2026-10-28，登记不修））｜
 > P3 × 30（P3-2 / P3-3 / P3-5 已于 2026-10-28 修复；P3-1 / P3-4 / P3-6 / P3-7 同日裁决登记；
 > P3-8 已豁免；P3-9 随 OpenAPI codegen 二期修复；P3-10 ~ P3-16 为 codegen 二期挂单；
 > P3-17 为文档复审新登记；P3-18 ~ P3-20 为 B 段新登记；
@@ -444,7 +448,7 @@
   「零配置 → 50301」，原「functional 关闭态」与「开启态 garbage → 40107」用例保留
   （显式 authEnable=1 才进入 JWKS 校验腿）。
 
-### P1-18 `current_role_id` 与 `sys_user_role` junction 脱钩 —— SWITCH 用户可沿用已移出角色的权限（文档大轮次 B 段，新登记）
+### P1-18 `current_role_id` 与 `sys_user_role` junction 脱钩 —— SWITCH 用户可沿用已移出角色的权限（文档大轮次 B 段，新登记）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/system/user/user.basic.repository.ts`（`update` 的
   `replaceRoles` 只整组替换 junction）+ `apps/api/src/modules/system/user/services/user.crud.service.ts`
@@ -466,8 +470,26 @@
 - **建议**：update roles 时校验 `current_role_id` 仍在新集合内（否则重置为 `roles[0]`），
   `getCoreMenus` 的 SWITCH 分支加 membership 判据；或补 `(current_role_id, user_id)`
   指向 junction 的约束（成本较高，至少先在写路径收敛）。
+- **修法（2026-10-28，批 D）**：**根修已落地**（2026-10-28 复审回炉 F1）—— 权限计算不再
+  信任 AT payload 自报，`SysRoleSharedService.getCoreMenus` 先按 AT `userId` 从
+  `sys_user_role` 现查实际绑定，把 `roleIds` / `currentRole` 过滤到 membership 内：
+  COMBINE 取交集，SWITCH 的 `currentRole` 不在绑定集 → 回退绑定集首角色（按 role_id 排序），
+  绑定为空 → 空权限。因此旧 AT 重拉 `/auth/permissions` 不会复活被移除角色，恢复用户
+  （junction 未恢复）后权限为空（login 由 `checkUserAndRoleStatus` 的 roles_list 空校验
+  拒绝，opaque finish 链收敛为 40103 受控）；root/visitor 的 guard 短路读 payload，不受影响。
+  写路径同步收敛：`SysUserBasicRepository.update` 在 roles 整组替换时校正
+  `current_role_id`（不在新集合 → 新集合首角色；空集合 → null）；`SysUserCrudService.create`
+  与 update 口径对齐 —— **显式 `roles: []` 得 junction 空 + currentRole=null**，只有 roles
+  未给（undefined）才走 defaultRole 兜底。`SysUserCrudService.update` 在 roles 变更后经
+  `runAfterCommit` 调 `AppTechCachePermissionsService.delPermissionsForUser`，按
+  `AUTH:PERMISSIONS:<user>:*` 清该用户全部设备缓存。
+  user.api-spec 翻转：create `roles: []` 的 currentRole 由 defaultRole 改为 null；update
+  `roles: []` 后响应/DB 均 null；新增「移除 current 角色 → 重置为新集合首角色」。
+  permission-chain spec 新增：admin 改 roles → DB current 校正 + 缓存键消失（未重拉即
+  40105）+ 重登后权限串只剩新角色；**F1 两条**：「旧 AT 重拉不含被移除角色」「恢复用户后
+  旧 AT 权限为空 + 重新登录 40104 受控」。
 
-### P1-19 user create / update 的 junction 写入没有事务 —— 主行与角色绑定可半成功（文档大轮次 B 段，新登记）
+### P1-19 user create / update 的 junction 写入没有事务 —— 主行与角色绑定可半成功（文档大轮次 B 段，新登记）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/system/user/controllers/user.controller.ts`
   （create / update 均无 `@WalnutTx`）+ `apps/api/src/modules/system/user/user.basic.repository.ts`
@@ -485,6 +507,12 @@
   在 service 层前置，走不到 FK。
 - **建议**：user create / update 补 `@WalnutTx()` 并让 service 透传 `ctx.em`（与 role
   同款），让主行 + junction 同事务提交/回滚。
+- **修法（2026-10-28，批 D）**：`SysUserController.create/update` 挂 `@WalnutTx()` 并注入
+  `@WalnutTxSession() ctx`，`SysUserCrudService.create/update` 透传 `ctx.em`（与
+  role.controller 同款）。主行 save、junction delete + insert、current_role 校正全部在
+  同一事务；任何一腿失败（FK 23503 等）整体回滚 → 受控 40000。api-rollback spec 新增
+  两条 HTTP 级用例：create 带不存在角色 → 40000 且 `sys_user` 零残留（无脏用户）；
+  update 同时改 status + 带不存在角色 → 40000 且 status 未被半提交。
 
 ## P2 语义怪异
 
@@ -636,7 +664,7 @@
   请求（40112），不覆盖并发。
 - **建议**：`set` 改为 SET NX EX 并以写入结果判重（或 Lua 原子脚本）；失败仍映射 40112。
 
-### P2-12 踢下线只撤 RT，不清会话/权限/MFA 缓存 —— AT 到期前仍可用
+### P2-12 踢下线只撤 RT，不清会话/权限/MFA 缓存 —— AT 到期前仍可用 —— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/auth/modules/signout/signout.service.ts`
   （`handleUserKickOther` / `handleAdminKick`，对照 `handleUserLogout` 的
@@ -650,8 +678,16 @@
 - **建议**：踢人时按设备清三键（sessionId 可用 `AUTH:SESSIONS:<user>:<device>:*` pattern），
   或给 AT 增加会话版本/黑名单；若维持现状，应在文档与前端契约里写明「AT 有效期内不保证
   立即失效」。
+- **修法（2026-10-28，批 C）**：`signout.service` 的 `handleUserKickOther` /
+  `handleAdminKick` 在 RT 撤销 + socket 通知之后挂 `runAfterCommit`，按设备清三键
+  （新私有方法 `clearKickedDeviceCache`，与 signout 的 `clearDeviceCache` 同款口径）：
+  `AUTH:SESSIONS:<user>:<device>:*`（`revokeSession(userId, deviceId)`）、
+  `AUTH:PERMISSIONS:<user>:<device>`、`AUTH:MFA:VERIFIED:<user>:<device>`。
+  配合 P0-4 的 JWT validate 会话键校验，被踢设备的旧 AT **立即** 40101。
+  user-device / monitor-user 的 force-quit 用例改为第二设备真实验证（旧 AT 40101 +
+  三键全清），此前只断言 RT `revoked=true`。
 
-### P2-13 OAuth state 未签名 + SSE 按客户端自报 fingerprint 投递
+### P2-13 OAuth state 未签名 + SSE 按客户端自报 fingerprint 投递 —— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/auth/modules/oauth/gitee/gitee.controller.ts` 与
   `.../github/github.controller.ts`（`getOAuthURL` / `sse`）。
@@ -663,6 +699,15 @@
 - **实测证据**：本次读码钉死；`external-oauth.api-spec.ts` 只覆盖 URL 拼装形态与缺 code。
 - **建议**：`state` 改为服务端签发的一次性 nonce（Redis 关联 device/session），SSE 频道
   绑定发起时的设备；回调校验 state 后再投递。
+- **修法（2026-10-28，批 C）**：新增公共 `OAuthStateService`（`oauth/shared/`，gitee/github
+  对称消费）。`/url` 签发 `state = base64url(JSON{fp,lang,nonce}) + "." + HMAC-SHA256`
+  （签名密钥复用既有 `app.session.secret` 通道），nonce + 发起请求的 **deviceId** 落 Redis
+  `AUTH:OAUTH_STATE:<nonce>`（10 分钟 TTL）。callback 的 guard 在换 code **之前**验签
+  （时序安全比较）→ 校验 deviceId 绑定 → `DEL` 计数 = 1 才消费（并发重放只有一个赢家），
+  任何失败走既有受控 40000（不进入外部 token 交换，302/Render 流程不动）。跨设备 state
+  （登录 CSRF 的攻击形态）因 deviceId 不匹配直接被拒。external-oauth spec 覆盖：state 形态
+  翻转（不再是明文 JSON）、篡改 / 重放 / 跨设备受控拒、service 层合法签发-消费闭环。
+  SSE 频道本身的订阅面未收紧（P2-13 建议的第二半），本轮以 state 的设备绑定堵住 CSRF 主路径。
 
 ### P2-14 并发 login/finish 的 Duplicate Auth 判据是「读后写」
 
@@ -679,7 +724,7 @@
 - **建议**：登录事务内加 `(user, device)` 维度的锁/`FOR UPDATE`，或加部分唯一索引让并发
   败者受控（40109）。
 
-### P2-15 永久 IP 黑名单写腿在零配置下静默 no-op —— 依赖 `app.global.ipBlackList` 行预先存在
+### P2-15 永久 IP 黑名单写腿在零配置下静默 no-op —— 依赖 `app.global.ipBlackList` 行预先存在 —— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/shared/ip/ip.service.ts`（`addToPermanentBlackList`）→
   `apps/api/src/modules/app/setting/repo/setting.repo.service.ts`
@@ -694,8 +739,16 @@
   缓存构造，未覆盖「无 setting 行」的自愈路径。
 - **建议**：`addToPermanentBlackList` 在行缺失时走 insert（或首次写入前 seed 该键）；
   顺带把读改写放进事务/锁，避免并发拉黑丢更新。
+- **修法（2026-10-28，批 C）**：按 roadmap §6 拍板走 **seed 显式默认行**。核对结论：
+  `apps/server/db/seed/app_setting.json` 已含 `app.global.ipBlackList`（`settingValue: "[]"`，
+  `$oid`/`$date` Extended JSON 形态，与既有条目同款），`db:seed:pg` 的映射会将其写入
+  `setting_value` text 列 —— 写腿锚点在 seed 通道已落实，`addToPermanentBlackList` 不改。
+  为防止未来再导出/裁剪时该行被静默丢掉，`packages/tooling/scripts/src/ci/check-seed.ts`
+  新增机械判据 `REQUIRED_APP_SETTING_KEYS`（key 必须存在 + settingValue 可解析为 JSON
+  字符串数组），反例用例覆盖缺行 / 非法 JSON / 非数组三种形态。集成库 globalSetup 仍只跑
+  migrations、不 seed —— guard-matrix 的永久黑名单用例继续用 settings 缓存注入，不需要改。
 
-### P2-16 角色 / 菜单 / 用户切换都不失效 AUTH:PERMISSIONS —— 权限撤销没有服务端通道（B 段，新登记）
+### P2-16 角色 / 菜单 / 用户切换都不失效 AUTH:PERMISSIONS —— 权限撤销没有服务端通道（B 段，新登记）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/system/menu/menu.service.ts`（create / update / delete
   三处 `TODO remove all cache auth data when menu changed`）+
@@ -713,6 +766,18 @@
 - **建议**：角色 / 菜单写路径的 after-commit 里按 `sys_user_role` / `sys_role_menu`
   反查受影响的 userId，批量删除其 `AUTH:PERMISSIONS:*`（或落一个「权限版本号」进 AT）；
   `me/role/switch` 与 `me/roleMode/switch` 至少清本设备键。
+- **修法（2026-10-28，批 D）**：两条失效通道。
+  ①**角色维度**（反查用户）：`SysRoleService.update` 在 `menus` 整组替换或 `status` 翻转时，
+  先按 `sys_user_role` 反查该角色全部 userId（`SysRoleRepoService.findUserIdsByRoleId`），
+  after-commit 逐个 `delPermissionsForUser`（清该用户全部设备的 `AUTH:PERMISSIONS:<user>:*`）。
+  ②**菜单维度**（全量清）：`menu.service` 的 create / update / delete 统一
+  `runAfterCommit → SysMenuSharedService.clearAllPermissionsCache`（`AUTH:PERMISSIONS:*`
+  前缀全删）。取舍写明：菜单 permission 变更影响所有「角色 → 菜单」链条用户，按 menu 反查
+  不现实；权限缓存是客户端可重拉 `/auth/permissions` 重建的派生数据，全清代价可接受。
+  `me/role/switch` 与 `me/roleMode/switch` 本轮不动 —— AT payload 的 roleIds/currentRole
+  在登录时固化，仅清缓存会让用户在重登前持续 40105（现有契约就是「切换后需重新登录」），
+  等前端契约与 AT 版本化方案落地再一并处理。测试：permission-chain 新增「改角色 menus →
+  缓存键立即消失、守卫 40105、重拉反映新授权」；menu spec 用哨兵键断言菜单 update 清全量前缀。
 
 ### P2-17 lang 与 locale 的缓存刷新不对称 —— 新语言写翻译被白名单缓存挡下（B 段，新登记）
 
@@ -732,7 +797,7 @@
 - **建议**：lang create/update 也调 `extractLangIdsIntoCache`（或直接复用
   `extractLocaleMessagesIntoCacheForCronJob`），与 locale 的 after-commit 通道对齐。
 
-### P2-18 软删恢复不恢复 junction —— 恢复菜单丢全部角色授权、恢复用户无法登录（B 段，新登记）
+### P2-18 软删恢复不恢复 junction —— 恢复菜单丢全部角色授权、恢复用户无法登录（B 段，新登记）—— 【已修复 2026-10-28（用户外围联动；junction 部分维持登记）】
 
 - **位置**：`apps/api/src/common/repository/pg-base.repository.ts`（`deleteSoftById`：
   只快照主行，随后硬删原行）+ `apps/api/src/modules/system/deleted/deleted.service.ts`
@@ -745,6 +810,28 @@
   覆盖恢复三态，没有 user/menu 的 junction 面。
 - **建议**：把 junction 纳入快照/恢复注册器（先恢复主行再重放 junction），或在恢复端点
   显式返回「关联授权未恢复」并把该行为登记为取舍。
+- **修法（2026-10-28，批 D）**：按 roadmap §6 的裁定修**用户侧外围**（identity /
+  preference / device / mfa / lock），junction 部分维持登记。
+  ①删除侧：`SysUserBasicRepository.deleteSoftById` 在主行快照/硬删之前，先给五张外围表逐行
+  落 `sys_deleted` 快照（identity 的 `value`、mfa 的四个密文列是 `select: false`，用
+  addSelect 显式带出，否则恢复后凭据不可用）；同一 em 事务，回滚不留快照。
+  ②恢复侧：`sys_user` 从通用恢复器改为组合恢复器（`deleted/repo/user.recoverer.ts`）：
+  插回主行 → 按 `content->>'userId'` 找回外围快照（同 deletedId 只取最新）逐行重放并删快照；
+  identity/preference 失败整体回滚，device/mfa/lock 失败用 savepoint 跳过（外部行可能已
+  单独清理），不阻断用户本体恢复。恢复注册清单仍含 SYS_USER（漂移守卫对账不变）。
+  ③测试：deleted spec 新增「造 user + password identity + preference → 删用户（多份快照）→
+  recover user → 主行/外围行联动恢复、identity 密文完整、外围快照已消费」。
+  ④F2（同批复审）：回收站 read / deleteMany 的响应会带 `content`（list 已 omit），
+  快照里的 identity `value` / MFA 四列密文在 **DTO 层**遮蔽为 `***`
+  （`maskDeletedSnapshotContent`，恢复走实体读取 jsonb，不受影响）；deleted spec 断言
+  read 出参密文已遮蔽、非密文字段原样、恢复后 DB 密文完整。
+  ⑤**取舍说明**：部分恢复（外围快照缺失或 device 腿 savepoint 跳过）不改失败语义 ——
+  缺 MFA 行的用户由 `mfa.guard` fail-closed 拦住（无安全降级）；可用性缺口 = 需重新绑定
+  MFA / 重新分配角色。
+  ⑥**仍登记**：`sys_user_role` junction 与 `sys_role_menu` junction 不进快照 —— 恢复用户
+  后 roles_list 仍为空（需管理员重新分配角色），恢复菜单后角色授权仍需重挂。这是「junction
+  无独立软删通道」的结构性取舍，与 P2-22（账户外围，已随本修基本覆盖，oauth 绑定仍不恢复）/
+  P2-23（locale 级联）同族，留待 junction 快照方案统一处理。
 
 ### P2-19 effective roleMode 只作用于权限计算 —— 零配置下 switchRole 对所有用户恒 40000（B 段，新登记）
 
@@ -812,6 +899,10 @@
   覆盖恢复三态，没有 user 的外围面。
 - **建议**：恢复用户时在同一事务内把六张外围表按 `user_id` 纳入快照/重放，或在恢复端点
   显式返回「外围数据未恢复」并把该行为登记为取舍。
+- **修法进度（2026-10-28，批 D）**：用户删除/恢复链路已随 P2-18 修法覆盖
+  identity / preference / device / lock / mfa 五张表（删除前快照 + 恢复时按 userId 重放）；
+  **`sys_user_oauth` 绑定仍未纳入**（OAuth 绑定在恢复后需重新授权）—— 本条目保留登记，
+  仅剩 oauth 一面。
 
 ### P2-23 恢复不联动级联软删的 locale 行 —— menu `_cascade=1` / dictData 删除后的翻译不回来（C 段，新登记）
 
@@ -946,6 +1037,24 @@
   未覆盖「登录 → 登出上报 → user_id 应为 null」。
 - **建议**：`auth=false` 时显式 `SET user_id = NULL`（不要走 nil 过滤），或把清零写进同一
   update 语句；补一条登出上报的断言。
+
+### P2-32 `handleSecurityPolicy`（改密/敏感操作）只撤 RT 不清 AUTH:SESSIONS —— 旧 AT 有效至过期（C+D 批复审新登记，2026-10-28）
+
+- **位置**：`apps/api/src/modules/auth/modules/signout/signout.service.ts`
+  （`handleSecurityPolicy`：`revokeRTForUser` + socket 通知）+
+  `apps/api/src/modules/auth/modules/opaque/admin/opaque.admin.service.ts` /
+  `opaque/user/opaque.user.controller.ts`（改密、密码清理等敏感操作统一走该 trigger）。
+- **现象**：P2-12 修好后，`user-kick-other` / `admin-kick` 会按设备清会话三键，但
+  `security-policy` 分支只撤该用户全部 RT 并通知在线设备，**不清** `AUTH:SESSIONS` /
+  `AUTH:PERMISSIONS` / `AUTH:MFA:VERIFIED`。P0-4 起 JWT validate 只认会话键是否存在 ——
+  改密后旧 AT 仍在 `AUTH:SESSIONS` 有效期内可用，直到过期（或用户主动 signout）。
+  「改密即全端下线」的产品语义因此只兑现了 RT 面（无法换发），未兑现 AT 面。
+- **实测证据**：本次读码钉死；`opaque-admin.api-spec.ts` / `user-me` 等只断言撤 RT，
+  未断言旧 AT 立即失效（P2-12 的 force-quit 双设备用例只覆盖 kick 分支）。
+- **建议**：复用 P2-12 的清扫手法 —— `handleSecurityPolicy` 在 after-commit 里按用户维度
+  `revokeSession(userId)`（无 deviceId 即全设备）+ 按 `AUTH:PERMISSIONS:<user>:*` /
+  `AUTH:MFA:VERIFIED:<user>:*` 前缀清缓存；补「改密后旧 AT 40101」用例。本轮**登记不修**
+  （与 P2-12 同族，手法可复用，排独立批次）。
 
 ## P3 契约不一致
 

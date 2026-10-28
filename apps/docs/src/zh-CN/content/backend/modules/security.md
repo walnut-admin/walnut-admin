@@ -270,9 +270,10 @@ User 0.2、UserDevice 0.3。
   `OtpThrottleGuard` 用字符串 `'OTP_THROTTLE_SERVICE'` 读取，永远取不到 provider，
   实际退回全局 throttle 配置。
 - **P2-11（新登记）**：nonce 去重是「先查后写」，非 `SET NX`；并发同 nonce 存在重放窗口。
-- **P2-15（新登记）**：永久 IP 黑名单的写腿依赖 `app.global.ipBlackList` setting 行已存在；
-  零配置部署下 `updateAppSettingByKey` 对缺失键静默不写，自动拉黑不会真正积累。
-- **P2-12（新登记）**：踢下线类操作只撤 RT，不清 `AUTH:SESSIONS` / `AUTH:PERMISSIONS` /
-  `AUTH:MFA:VERIFIED`；AT 到期前仍可通过 JWT 层。
+- **P2-15（已修复，2026-10-28）**：永久 IP 黑名单的锚点行 `app.global.ipBlackList` 由 seed
+  显式落盘（`apps/server/db/seed/app_setting.json`，值与读腿同为 JSON 字符串数组），
+  `check-seed` 新增机械判据防止未来再导出时丢行。
+- **P2-12（已修复，2026-10-28）**：踢下线（force-quit / admin-kick）在撤 RT 之外，事务
+  提交后按设备清 `AUTH:SESSIONS` / `AUTH:PERMISSIONS` / `AUTH:MFA:VERIFIED`；旧 AT 立即失效。
 - **P3-17（新登记）**：`ENDPOINTS.md` 把 `security/sensitive/verify` 的请求登记为
   `{basic,action,type,code}`，与 DTO 实际字段 `{level,operationType,method,credential}` 不符。

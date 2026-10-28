@@ -58,8 +58,11 @@ sys_user_device 1 ── 1 当前用户的锁屏状态  (locked 列；与 sys_de
 - `sys_user_device.locked` 是**用户-设备的锁屏状态**；`sys_device.locked` 是**设备级管理锁**，
   两者由不同守卫判定（Device guard 40606 / Lock guard 40118），互不联动。
 - 用户删除时上述五张 `user_id` 子表（以及本文未展开的 `sys_user_oauth`）由 FK CASCADE
-  清空且不进 `sys_deleted` 快照；设备删除时 `sys_user_device` 同理。恢复只插回主行，
-  关联数据不回来（P2-18、P2-22）。
+  清空；P2-18 修复后 `sys_user` 删除会在主行硬删**之前**给 identity / preference /
+  user_device / mfa / lock 五表逐行落 `sys_deleted` 快照，恢复用户时由组合恢复器按
+  `content->>'userId'` 重放（oauth 绑定仍不恢复）。设备删除时 `sys_user_device` 同理
+  级联清空；菜单 / 角色的 junction（`sys_role_menu` / `sys_user_role`）仍不进快照
+  （P2-18 维持登记的部分）。
 
 ## 2. 设备体系
 
@@ -146,9 +149,9 @@ sys_user_device 1 ── 1 当前用户的锁屏状态  (locked 列；与 sys_de
 
 - lock 端点的 body 只有 `lockRoute`（可空），**不接受** `lockMode` / `lockPwdHash` /
   `lockCrossDevice`；因此 user_device 的 lock 与 me 的 lock 走同一条共享服务，语义一致。
-- force-quit 的 `user-kick-other` **只撤 RT 并通知在线设备**，不清 `AUTH:SESSIONS` /
-  `AUTH:PERMISSIONS` / `AUTH:MFA:VERIFIED`（P2-12）：AT 到期前仍可通过 JWT 层，
-  离线设备依赖下次打开页面时前端主动 signout。
+- force-quit 的 `user-kick-other` 在撤 RT + socket 通知之外，事务提交后按设备清
+  `AUTH:SESSIONS` / `AUTH:PERMISSIONS` / `AUTH:MFA:VERIFIED`（P2-12 已修复，2026-10-28）：
+  配合 JWT validate 的会话键校验，被踢设备的旧 AT 立即 40101。
 - 锁屏不撤 RT：锁屏是「会话仍有效、界面被遮」的语义，由 Lock guard 在 API 层拦 40118，
   解锁后用同一 AT 继续。
 
@@ -459,14 +462,16 @@ MFA 成立判据有两套：`/auth/mfa/verify` 与 cron 用「类型数 + 已绑
 - **P1-5（已修复）**：sensitive 的 password 通道摘除；可用方式探测改为容错。
 - **P1-6（已修复）**：identity 的 `POST list` 空 DTO、bind 的 `setAsSecurity` 缺省、
   `update` 的 null 判据、`update/status` 的探测腿四簇已处理。
-- **P2-12**：force-quit 只撤 RT，不清会话/权限/MFA 缓存；AT 到期前仍可用。
+- **P2-12（已修复，2026-10-28）**：force-quit / admin-kick 撤 RT 之外，事务提交后按设备清
+  会话 / 权限 / MFA verified 三键，旧 AT 立即失效。
 - **P2-21（C 段新登记）**：device 的 lock/ban 是 read-modify-write，无行锁；并发两把状态位
   会丢更新。Device guard 缓存 miss 时用「读库时的整行快照」回填缓存，若与 lock/ban 的
   after-commit 双写交错，旧快照会覆盖新缓存，DB 的 locked/banned 在缓存无 TTL 的情况下
   可被长期遮蔽（只有下一次缓存 miss 才回源）。
-- **P2-22（C 段新登记）**：删除用户只快照 `sys_user` 主行；identity / oauth / user_device /
-  lock / mfa / preference 由 FK CASCADE 清空且不进 `sys_deleted`。恢复用户后没有登录身份、
-  没有 MFA、没有偏好，实际不可登录（P2-18 的账户外围同类）。
+- **P2-22（C 段新登记；用户外围已随 P2-18 修复覆盖）**：删除用户只快照 `sys_user` 主行；
+  identity / oauth / user_device / lock / mfa / preference 由 FK CASCADE 清空且不进
+  `sys_deleted`。P2-18 修复（2026-10-28）后 identity / preference / user_device / mfa /
+  lock 五表已在删除前快照、恢复时重放；**只剩 `sys_user_oauth` 绑定不恢复**。
 - **P2-24（C 段新登记）**：MFA 成立判据两套。`/auth/mfa/verify` 与 cron 用「类型数 +
   已绑定行数」（webauthn 跨设备计数），运行时 `getCurrentUserMfaSetupStatus` 的 webauthn
   腿只认当前设备；跨设备登记多个 webauthn 时可能 cron 判 true、verify 判 false。

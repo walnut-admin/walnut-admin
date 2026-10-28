@@ -53,6 +53,10 @@ const {
  * B7a 迁移（controller 层，B1 模板）：ParamMongoId → uuid 参数装饰器；事务句柄
  * `ctx.dbSession` → `ctx.em`（WalnutTxContext 双引擎上下文，已迁侧取 em）；
  * 响应组装 `.toObject()` 移除（PG 实体即 POJO），统一 plainToInstance(DTO, entity)。
+ *
+ * P1-19（2026-10-28）：create / update 补 @WalnutTx —— 主行 + sys_user_role junction
+ * 两腿必须原子（此前 junction 失败会留下「主行已提交、无角色绑定」的脏用户，
+ * update 同理可半成功）。对照 role.controller 的写路径形态。
  */
 @Controller('system/user')
 @ApiTags('system/user')
@@ -65,8 +69,12 @@ export class SysUserController {
     Permissions.CREATE,
   )
   @WalnutAdminDecoratorCreate()
-  async create(@Body() payload: SysUserDTOCreateRequest) {
-    return plainToInstance(SysUserDTOCreateResponse, await this.userCrudService.create(payload))
+  @WalnutTx()
+  async create(
+    @WalnutTxSession() ctx: WalnutTxContext,
+    @Body() payload: SysUserDTOCreateRequest,
+  ) {
+    return plainToInstance(SysUserDTOCreateResponse, await this.userCrudService.create(payload, ctx.em))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
@@ -79,11 +87,13 @@ export class SysUserController {
     Permissions.UPDATE,
   )
   @WalnutAdminDecoratorUpdate()
+  @WalnutTx()
   async update(
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() payload: SysUserDTOUpdateRequest,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return plainToInstance(SysUserDTOUpdateResponse, await this.userCrudService.update(id, payload))
+    return plainToInstance(SysUserDTOUpdateResponse, await this.userCrudService.update(id, payload, ctx.em))
   }
 
   @WalnutAdminDecoratorHasPermission(

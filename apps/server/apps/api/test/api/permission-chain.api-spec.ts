@@ -9,7 +9,7 @@ import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { overrideAppSettings } from './helpers/app-settings'
-import { performHttpOpaqueLogin, registerRootUserFixture, WALNUT_DEFAULT_VISITOR_ROLE_UUID } from './helpers/auth-login'
+import { attemptHttpOpaqueLogin, performHttpOpaqueLogin, registerRootUserFixture, WALNUT_DEFAULT_VISITOR_ROLE_UUID } from './helpers/auth-login'
 import { createApiApp } from './helpers/create-api-app'
 import { cleanupPermissionChainSeed, seedPermissionChainUser } from './helpers/seed-permissions'
 
@@ -49,11 +49,14 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
   let user: WalnutApiClient
   /** SWITCH/COMBINE 对照用户客户端（主角色 list、第二角色 read） */
   let user2: WalnutApiClient
+  /** F1 专用用户客户端（移除角色 / 删除恢复的旧 AT 重拉断言） */
+  let user3: WalnutApiClient
 
   const seed8 = randomUUID().slice(0, 8)
   let rootFixture: WalnutRootUserFixture | null = null
   let seedFixture: SeedPermissionChainFixture | null = null
   let seed2Fixture: SeedPermissionChainFixture | null = null
+  let seed3Fixture: SeedPermissionChainFixture | null = null
 
   /** demoString 挂 IsUppercase：分组前缀全大写（uuid hex 抬大写） */
   const demoGroup = `PERMCHAIN-${seed8.toUpperCase()}`
@@ -116,6 +119,17 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     user2.setAuth(user2Tokens)
     await user2.seedMfaVerifiedCache(seed2Fixture.userId)
 
+    // F1 专用用户（主角色 list+read）——「移除角色后旧 AT 重拉」「删除恢复后权限受控」两条
+    seed3Fixture = await seedPermissionChainUser(app, admin.pgDataSource, {
+      userNamePrefix: `permchain-u3-${seed8}`,
+      roleMode: WalnutAdminConstRoleMode.COMBINE,
+      grantedPermissions: ['app:demo:list', 'app:demo:read'],
+    })
+    user3 = await WalnutApiClient.create(app)
+    const user3Tokens = await performHttpOpaqueLogin(user3, app, seed3Fixture)
+    user3.setAuth(user3Tokens)
+    await user3.seedMfaVerifiedCache(seed3Fixture.userId)
+
     // demo 行（read/delete 的靶子，root 唯一写入口）
     const createRes = await admin.root('POST', admin.apiPath('/app/demo'), demoPayload(`${demoGroup}-ROW`))
     expectOk(createRes, 'demo create (admin)')
@@ -133,8 +147,8 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
       await admin.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [rootFixture.roleId])
       await cleanupPermissionChainSeed(
         admin,
-        [seedFixture, seed2Fixture].filter((i): i is SeedPermissionChainFixture => i !== null),
-        [admin.deviceId, user?.deviceId, user2?.deviceId].filter((i): i is string => typeof i === 'string'),
+        [seedFixture, seed2Fixture, seed3Fixture].filter((i): i is SeedPermissionChainFixture => i !== null),
+        [admin.deviceId, user?.deviceId, user2?.deviceId, user3?.deviceId].filter((i): i is string => typeof i === 'string'),
       )
     }
     await app.close()
@@ -311,6 +325,187 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     const aesRes = await user.root('GET', user.apiPath('/app/key/current/AES_KEY_URL'))
     expectOk(aesRes, 'key current aes (seeded non-root user)')
     expect(bodyOf(aesRes).data).not.toHaveProperty('privateKeyPem')
+  })
+
+  it('P2-16：admin 改角色 menus → 该角色用户的 AUTH:PERMISSIONS 立即失效（守卫拒绝直到重拉）', async () => {
+    const fixture = seedFixture!
+    // 前置：缓存已写（GET /auth/permissions 是唯一写入口）
+    const pull = await user.root('GET', user.apiPath('/auth/permissions'))
+    expectOk(pull, 'auth permissions before role menu change')
+    expect(await user.hasWalnutCacheKey(permissionCacheKey(fixture, user))).toBe(true)
+
+    const roleRows: Array<{ role_name: string, description: string | null, sort_order: number | null, status: boolean }>
+      = await admin.pgDataSource.query(
+        'SELECT role_name, description, sort_order, status FROM sys_role WHERE id = $1',
+        [fixture.mainRoleId],
+      )
+
+    // 角色授权整组替换：menus: []（该角色的用户权限串全部消失）；update DTO 的
+    // roleName/description/order/status 是必填（非 partial），按现值回填
+    const updateRes = await admin.root('PUT', admin.apiPath(`/system/role/${fixture.mainRoleId}`), {
+      roleName: roleRows[0].role_name,
+      description: roleRows[0].description ?? 'seed role',
+      order: roleRows[0].sort_order ?? 1,
+      status: roleRows[0].status,
+      menus: [],
+    })
+    expectOk(updateRes, 'role menus replaced')
+
+    // P2-16 翻转：此前缓存不清 —— 守卫继续沿旧权限串放行。现在 after-commit 反查
+    // sys_user_role 并清该用户全部设备键，下一次受保护请求立即 40105。
+    expect(await user.hasWalnutCacheKey(permissionCacheKey(fixture, user))).toBe(false)
+
+    const deniedRes = await user.root('POST', user.apiPath('/app/demo/list'), {
+      query: { demoString: demoGroup },
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    })
+    expect(bodyOf(deniedRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_NO_PERMISSION)
+
+    // 重拉即反映新授权（空菜单 → 空权限串）
+    const rePull = await user.root('GET', user.apiPath('/auth/permissions'))
+    expectOk(rePull, 'auth permissions after role menu change')
+    expect(bodyOf<PermissionsData>(rePull).data.permissionStrings).toEqual([])
+  })
+
+  it('P1-18：admin 移除用户 current 角色 → current_role 校正 + 权限缓存失效；重登后按新角色计算', async () => {
+    const fixture = seed2Fixture!
+
+    // 前置：缓存已写（当前角色集 = main + second 合并）
+    const pull = await user2.root('GET', user2.apiPath('/auth/permissions'))
+    expectOk(pull, 'auth permissions before user roles change')
+    expect(await user2.hasWalnutCacheKey(permissionCacheKey(fixture, user2))).toBe(true)
+
+    // admin 整组替换 roles = [secondRole]（current 角色 main 被移出）
+    const updateRes = await admin.root('PUT', admin.apiPath(`/system/user/${fixture.userId}`), {
+      userName: fixture.userName,
+      status: true,
+      roles: [fixture.secondRoleId],
+    })
+    expectOk(updateRes, 'user roles replaced by admin')
+
+    // P1-18：current_role_id 同步校正为新集合首角色
+    const updated = bodyOf<{ currentRole: string | null }>(updateRes).data
+    expect(updated.currentRole).toBe(fixture.secondRoleId)
+    const userRows: Array<{ current_role_id: string | null }> = await admin.pgDataSource.query(
+      'SELECT current_role_id FROM sys_user WHERE id = $1',
+      [fixture.userId],
+    )
+    expect(userRows[0].current_role_id).toBe(fixture.secondRoleId)
+
+    // 权限缓存立即失效（不再沿旧角色集放行 list）
+    expect(await user2.hasWalnutCacheKey(permissionCacheKey(fixture, user2))).toBe(false)
+    const deniedRes = await user2.root('POST', user2.apiPath('/app/demo/list'), {
+      query: { demoString: demoGroup },
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    })
+    expect(bodyOf(deniedRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_NO_PERMISSION)
+
+    // AT payload 的角色集在登录时固化 —— 重登后按新 junction 组装，权限串只剩 second
+    await user2.root('POST', user2.apiPath('/auth/signout'))
+    user2.setAuth(null)
+    const relogin = await performHttpOpaqueLogin(user2, app, fixture)
+    user2.setAuth(relogin)
+    await user2.seedMfaVerifiedCache(fixture.userId)
+
+    const rePull = await user2.root('GET', user2.apiPath('/auth/permissions'))
+    expectOk(rePull, 'auth permissions after re-login')
+    expect([...bodyOf<PermissionsData>(rePull).data.permissionStrings].sort())
+      .toEqual([...fixture.secondRolePermissions].sort())
+
+    // second 角色授予的 read 放行、list（已随 main 移出）拒绝
+    const readRes = await user2.root('GET', user2.apiPath(`/app/demo/${demoId}`))
+    expectOk(readRes, 'demo read after role replacement')
+    const listAfter = await user2.root('POST', user2.apiPath('/app/demo/list'), {
+      query: { demoString: demoGroup },
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    })
+    expect(bodyOf(listAfter).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_NO_PERMISSION)
+  })
+
+  it('F1：admin 移除角色后旧 AT 重拉权限 —— 按 junction 实际绑定计算，不再含被移除角色', async () => {
+    const fixture = seed3Fixture!
+
+    // 前置：旧 AT 拉过一次，缓存里有 main 角色的 list/read（且 AT payload 自报的
+    // roleIds/currentRole 也是 main —— 登录时快照）
+    const pull = await user3.root('GET', user3.apiPath('/auth/permissions'))
+    expectOk(pull, 'auth permissions before role removal (user3)')
+    expect([...bodyOf<PermissionsData>(pull).data.permissionStrings].sort())
+      .toEqual([...fixture.grantedPermissions].sort())
+
+    // admin 移除全部角色（junction 清空），不重新登录 —— 旧 AT 仍是登录时快照
+    const updateRes = await admin.root('PUT', admin.apiPath(`/system/user/${fixture.userId}`), {
+      userName: fixture.userName,
+      status: true,
+      roles: [],
+    })
+    expectOk(updateRes, 'user roles cleared (user3)')
+
+    // F1 根修：getCoreMenus 先查 sys_user_role 实时 membership，payload 被过滤为空 ——
+    // 旧 AT 重拉不得复活 main 角色的权限（修复前会继续返回 list/read）
+    const rePull = await user3.root('GET', user3.apiPath('/auth/permissions'))
+    expectOk(rePull, 'auth permissions after role removal (user3, old AT)')
+    expect(bodyOf<PermissionsData>(rePull).data.permissionStrings).toEqual([])
+  })
+
+  it('F1：恢复用户（junction 未恢复）—— 旧 AT 权限为空、重新登录 40103 受控拒绝', async () => {
+    const fixture = seed3Fixture!
+
+    // 先恢复角色绑定，让「删除 → 恢复」有可丢失的授权
+    const restoreRoles = await admin.root('PUT', admin.apiPath(`/system/user/${fixture.userId}`), {
+      userName: fixture.userName,
+      status: true,
+      roles: [fixture.mainRoleId],
+    })
+    expectOk(restoreRoles, 'user roles restored (user3)')
+    const prePull = await user3.root('GET', user3.apiPath('/auth/permissions'))
+    expectOk(prePull, 'auth permissions before delete (user3)')
+    expect(bodyOf<PermissionsData>(prePull).data.permissionStrings).toContain('app:demo:list')
+
+    // 删除用户（软删快照：主行 + identity；junction 由 FK CASCADE 清空且不进快照）
+    const deleteRes = await admin.root('DELETE', admin.apiPath(`/system/user/${fixture.userId}`))
+    expectOk(deleteRes, 'user soft delete (user3)')
+
+    const snapshotRows: Array<{ id: string }> = await admin.pgDataSource.query(
+      'SELECT id FROM sys_deleted WHERE deleted_id = $1 AND model_name = \'SysUser\'',
+      [fixture.userId],
+    )
+    expect(snapshotRows).toHaveLength(1)
+
+    // 恢复用户：P2-18 联动恢复 identity，但 junction 不恢复（P2-18 维持登记的部分）
+    const recoverRes = await admin.root('POST', admin.apiPath('/system/deleted/recover'), {
+      id: snapshotRows[0].id,
+      deletedId: fixture.userId,
+    })
+    expectOk(recoverRes, 'user recover (user3)')
+
+    const junctionRows: Array<{ c: number }> = await admin.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM sys_user_role WHERE user_id = $1',
+      [fixture.userId],
+    )
+    expect(junctionRows[0].c).toBe(0)
+
+    // F1：旧 AT 重拉 —— 权限计算以空 membership 为准，不得沿用旧角色
+    const rePull = await user3.root('GET', user3.apiPath('/auth/permissions'))
+    expectOk(rePull, 'auth permissions after recover (user3, old AT)')
+    expect(bodyOf<PermissionsData>(rePull).data.permissionStrings).toEqual([])
+
+    // 重新登录：roles_list 为空 → checkUserAndRoleStatus 拒绝；opaque 的 finish 链
+    // （validateOpaqueUser 的 try/catch）把状态校验失败统一收敛为 40103（受控，不是 20000）。
+    // 登录请求必须回单因子签名（登录态 anon() 无 Authorization 头会 40112）
+    user3.setAuth(null)
+
+    // 前置自检：P2-18 的 identity 联动恢复在场（否则 40103 会掩盖「roles 为空」的判据）
+    const identityRows: Array<{ c: number }> = await admin.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM sys_user_identity WHERE user_id = $1 AND type = \'password\' AND purpose = \'login\'',
+      [fixture.userId],
+    )
+    expect(identityRows[0].c).toBe(1)
+
+    const loginAttempt = await attemptHttpOpaqueLogin(user3, app, fixture)
+    expect(loginAttempt.code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_CREDENTIALS)
   })
 
   it('root 对照：root 用户同端点 20000 且无权限缓存键（roleNames[0] 短路，不经缓存链路）', async () => {

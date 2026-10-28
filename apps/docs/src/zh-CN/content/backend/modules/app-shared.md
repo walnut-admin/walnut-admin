@@ -218,9 +218,10 @@ monitor 由三个互不依赖的子 controller 组成。
 原来的 `user_id`，在线监控会继续显示上次登录用户，直到 02:00 的 `updateAuthStateForCronJob`
 把它置空（P2-31）。新插入的行没有该字段，默认 null，不受影响。
 
-force-quit 只撤该 `(userId, deviceId)` 的全部 RT（P1-9 已修为全量撤销）并向在线设备发
-`FORCE_QUIT` socket 事件；**不清** `AUTH:SESSIONS` / `AUTH:PERMISSIONS` / `AUTH:MFA:VERIFIED`，
-被踢设备的 AT 在到期前仍可通过 JWT 层（P2-12）。monitor 行不存在时返回 `false`（不是 404）；
+force-quit 撤该 `(userId, deviceId)` 的全部 RT（P1-9 已修为全量撤销）并向在线设备发
+`FORCE_QUIT` socket 事件；P2-12 修复后（2026-10-28）事务提交后还按设备清
+`AUTH:SESSIONS` / `AUTH:PERMISSIONS` / `AUTH:MFA:VERIFIED` 三键 —— 配合 JWT validate 的
+会话键校验，被踢设备的旧 AT 立即 40101。monitor 行不存在时返回 `false`（不是 404）；
 非法 uuid 由参数管道拒绝 40002。
 
 列表默认排序是 `lastActiveAt`（admin 列表），但 `app_monitor_user` 的索引只有

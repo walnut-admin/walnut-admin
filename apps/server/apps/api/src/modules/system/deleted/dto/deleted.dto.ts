@@ -5,12 +5,52 @@ import {
 } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
-import { Expose } from 'class-transformer'
+import { Expose, Transform } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { Recordable } from 'easy-fns-ts'
 import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@/common/dto/list.dto'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { WalnutAdminVirtualUserDTO } from '@/common/model/virtual/user'
+
+/**
+ * 回收站快照的出参脱敏键（F2，2026-10-28）。
+ *
+ * P2-18 修复后，用户删除会把 `sys_user_identity` / `sys_user_mfa` 整行快照进
+ * `sys_deleted.content` —— 其中 `value`（口令/身份密文）、`totpSecretCiphertext`、
+ * `webauthnPublicKey`、`phoneNumberCiphertext`、`backupCodesCiphertext` 是凭据材料。
+ * 回收站 read / deleteMany 的响应会带 `content`（list 已 omit），必须在 DTO 层遮蔽；
+ * 恢复走实体读取 `sys_deleted.content`，不经过 DTO，密文不受影响。
+ */
+export const WALNUT_DELETED_MASKED_CONTENT_KEYS = [
+  'value',
+  'totpSecretCiphertext',
+  'webauthnPublicKey',
+  'phoneNumberCiphertext',
+  'backupCodesCiphertext',
+] as const
+
+/** 对快照 content 做浅层脱敏：命中敏感键且有值 → 替换为 `***`（不改原对象） */
+export function maskDeletedSnapshotContent(content: Recordable | null | undefined): Recordable | null | undefined {
+  if (content === null || content === undefined || typeof content !== 'object' || Array.isArray(content)) {
+    return content
+  }
+
+  let masked: Recordable | null = null
+  for (const key of WALNUT_DELETED_MASKED_CONTENT_KEYS) {
+    if (!Object.hasOwn(content, key)) {
+      continue
+    }
+
+    if (content[key] === null || content[key] === undefined) {
+      continue
+    }
+
+    masked ??= { ...content }
+    masked[key] = '***'
+  }
+
+  return masked ?? content
+}
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/deleted.schema.ts 的 SysDeletedModel
 // 改名 SysDeletedDTOBase），装饰器与字段本体零改动
@@ -23,6 +63,8 @@ export class SysDeletedDTOBase extends WalnutAdminCommonBasicModel {
   })
   // B9 迁 PG（phase2 4.17）：列收 jsonb，应用侧直存对象（不再 stringify）。
   // 基座仅作 DTO 元数据保留，TS 注解随列型放开为对象（B8 同款，@Prop 无运行时语义）
+  // F2：出参脱敏（identity / mfa 密文列 → `***`）；恢复链路不经过 DTO，不受影响
+  @Transform(({ value }) => maskDeletedSnapshotContent(value as Recordable))
   content: Recordable
 
   @WalnutAdminDecoratorFieldString({

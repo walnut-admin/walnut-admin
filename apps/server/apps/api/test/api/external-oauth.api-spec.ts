@@ -1,9 +1,11 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
+import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { OAuthStateService } from '@/modules/auth/modules/oauth/shared/oauth-state.service'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { overrideAppSettings } from './helpers/app-settings'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
@@ -20,8 +22,13 @@ import { createApiApp } from './helpers/create-api-app'
  *   POST /auth/google 直接 50301（gitee/github 保持缺省放行）；开启态（authEnable=1）
  *   才进入本地 JWKS 校验腿；
  * - 开启态：gitee/github `/url` 端点 → 构造出的跳转 URL（authorize 地址 + client_id +
- *   redirect_uri + response_type + scope + state JSON{fp,lang}）；POST /auth/google 带
- *   garbage credential → 本地 JWKS 校验失败 → 40107（不发外网）；
+ *   redirect_uri + response_type + scope + 签名 state）；
+ * - P2-13（2026-10-28）：state 不再是明文 JSON —— `base64url(JSON{fp,lang,nonce})` +
+ *   `.` + HMAC-SHA256 签名；callback 在换 code 前验签 + 绑 deviceId + Redis DEL 一次性
+ *   消费（篡改 / 重放 / 跨设备一律受控 40000）。合法 state 的签发-消费闭环在 service
+ *   层直测（真实 callback 需要外部 IdP，不进回归）；
+ * - 开启态：POST /auth/google 带 garbage credential → 本地 JWKS 校验失败 → 40107
+ *   （不发外网）；
  * - callback 缺 code：P3-3 修复后（2026-10-28）guard 前置校验 → 受控 40000（HTTP 200
  *   统一壳），不再走 passport-oauth2 的 302 authorize 重定向腿；
  *
@@ -37,6 +44,8 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
   let api: WalnutApiClient
   /** OAuth 断言专用未登录客户端（这些端点全部 JwtFree） */
   let anonClient: WalnutApiClient
+  /** 第二设备：跨设备重放 / CSRF 的设备绑定断言用 */
+  let otherClient: WalnutApiClient
 
   const seed8 = randomUUID().slice(0, 8)
   let fixture: WalnutRootUserFixture | null = null
@@ -46,6 +55,7 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
     app = await createApiApp()
     api = await WalnutApiClient.create(app)
     anonClient = await WalnutApiClient.create(app)
+    otherClient = await WalnutApiClient.create(app)
 
     fixture = await registerRootUserFixture(app, api.pgDataSource, `oauth-${seed8}`)
 
@@ -61,8 +71,8 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
       }
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
-      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [[api.deviceId, anonClient.deviceId]])
-      await api.cleanupWalnutCacheKeys(seed8, api.deviceId, anonClient.deviceId, fixture.userId)
+      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [[api.deviceId, anonClient.deviceId, otherClient.deviceId]])
+      await api.cleanupWalnutCacheKeys(seed8, api.deviceId, anonClient.deviceId, otherClient.deviceId, fixture.userId)
     }
     await app.close()
   })
@@ -109,13 +119,19 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
     expect(url).toContain('response_type=code')
     expect(url).toContain('scope=user_info%20emails')
 
-    // state 是 JSON.stringify({fp, lang})（未做 URL 转义，原样拼在尾部）
+    // P2-13：state = base64url(JSON{fp,lang,nonce}) + '.' + HMAC 签名（不再是明文 JSON）
     const stateRaw = url.split('&state=')[1]
     expect(stateRaw).toBeTruthy()
-    const state = JSON.parse(stateRaw) as { fp?: string, lang?: string }
+    expect(stateRaw.startsWith('{')).toBe(false)
+    const [encodedPayload, signature] = stateRaw.split('.')
+    expect(encodedPayload).toBeTruthy()
+    expect(signature).toBeTruthy()
+    const state = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as { fp?: string, lang?: string, nonce?: string }
     expect(typeof state.fp).toBe('string')
     expect((state.fp as string).length).toBeGreaterThan(0)
     expect(typeof state.lang).toBe('string')
+    // nonce 一次性凭据：32 位 hex
+    expect(state.nonce).toMatch(/^[0-9a-f]{32}$/)
   })
 
   it('开启态 github /url → 同构跳转 URL（scope=read:user user:email）', async () => {
@@ -134,8 +150,118 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
     expect(url).toContain('scope=read:user%20user:email')
 
     const stateRaw = url.split('&state=')[1]
-    const state = JSON.parse(stateRaw) as { fp?: string }
+    expect(stateRaw).toBeTruthy()
+    const [encodedPayload, signature] = stateRaw.split('.')
+    expect(encodedPayload).toBeTruthy()
+    expect(signature).toBeTruthy()
+    const state = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as { fp?: string, nonce?: string }
     expect(typeof state.fp).toBe('string')
+    expect(state.nonce).toMatch(/^[0-9a-f]{32}$/)
+  })
+
+  it('P2-13 合法 state 签发-消费闭环：service 层一次成功、二次重放返回 null', async () => {
+    const service = app.get(OAuthStateService)
+    const state = await service.issueState('fp-valid-flow', 'zh_CN', anonClient.deviceId)
+
+    const first = await service.consumeState(state, anonClient.deviceId)
+    expect(first?.fp).toBe('fp-valid-flow')
+    expect(first?.lang).toBe('zh_CN')
+
+    // 同一 state 第二次消费 → null（Redis DEL 计数只有一次 = 1）
+    expect(await service.consumeState(state, anonClient.deviceId)).toBeNull()
+  })
+
+  it('F5：oauth state 服务显式拒绝空 fp / deviceId（不依赖 null == null 的伪绑定）', async () => {
+    const service = app.get(OAuthStateService)
+
+    await expect(service.issueState('', 'zh_CN', anonClient.deviceId)).rejects.toBeTruthy()
+    await expect(service.issueState('fp-f5', 'zh_CN', '')).rejects.toBeTruthy()
+
+    // 空 deviceId 消费一律拒绝（即使 state 本身合法）
+    const state = await service.issueState('fp-f5', 'zh_CN', anonClient.deviceId)
+    expect(await service.consumeState(state, '')).toBeNull()
+  })
+
+  it('P2-13 篡改 state 签名 → callback 受控 40000（不进入 token 交换）', async () => {
+    await restoreSettings!()
+    restoreSettings = await overrideAppSettings(app, {
+      'app.auth.gitee': JSON.stringify({ authEnable: 1 }),
+    })
+
+    const urlRes = await anonClient.anon('GET', anonClient.apiPath('/auth/oauth/gitee/url'))
+    const stateRaw = bodyOf<string>(urlRes).data.split('&state=')[1]
+    const last = stateRaw.slice(-1)
+    const tampered = `${stateRaw.slice(0, -1)}${last === 'A' ? 'B' : 'A'}`
+
+    const res = await anonClient.anon(
+      'GET',
+      anonClient.apiPath(`/auth/oauth/gitee/callback?code=fake-code&state=${tampered}`),
+    )
+    expect(res.status).toBe(200)
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+    expect(res.headers.location).toBeUndefined()
+
+    // 篡改被拒不影响原始 state（验签失败在消费之前）
+    const service = app.get(OAuthStateService)
+    expect(await service.consumeState(stateRaw, anonClient.deviceId)).not.toBeNull()
+  })
+
+  it('P2-13 重放已消费 state → callback 受控 40000', async () => {
+    await restoreSettings!()
+    restoreSettings = await overrideAppSettings(app, {
+      'app.auth.gitee': JSON.stringify({ authEnable: 1 }),
+    })
+
+    const urlRes = await anonClient.anon('GET', anonClient.apiPath('/auth/oauth/gitee/url'))
+    const stateRaw = bodyOf<string>(urlRes).data.split('&state=')[1]
+
+    // 模拟合法 callback 已消费过该 state
+    const service = app.get(OAuthStateService)
+    expect(await service.consumeState(stateRaw, anonClient.deviceId)).not.toBeNull()
+
+    const res = await anonClient.anon(
+      'GET',
+      anonClient.apiPath(`/auth/oauth/gitee/callback?code=fake-code&state=${stateRaw}`),
+    )
+    expect(res.status).toBe(200)
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+  })
+
+  it('P2-13 跨设备完成授权（登录 CSRF）→ callback 受控 40000', async () => {
+    await restoreSettings!()
+    restoreSettings = await overrideAppSettings(app, {
+      'app.auth.gitee': JSON.stringify({ authEnable: 1 }),
+    })
+
+    // 攻击者设备发起 /url 拿 state，受害者设备打开 callback → deviceId 不匹配
+    const urlRes = await anonClient.anon('GET', anonClient.apiPath('/auth/oauth/gitee/url'))
+    const stateRaw = bodyOf<string>(urlRes).data.split('&state=')[1]
+
+    const res = await otherClient.anon(
+      'GET',
+      otherClient.apiPath(`/auth/oauth/gitee/callback?code=fake-code&state=${stateRaw}`),
+    )
+    expect(res.status).toBe(200)
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+  })
+
+  it('P2-13 github 同构：篡改 state → 受控 40000', async () => {
+    await restoreSettings!()
+    restoreSettings = await overrideAppSettings(app, {
+      'app.auth.github': JSON.stringify({ authEnable: 1 }),
+    })
+
+    const urlRes = await anonClient.anon('GET', anonClient.apiPath('/auth/oauth/github/url'))
+    const stateRaw = bodyOf<string>(urlRes).data.split('&state=')[1]
+    const last = stateRaw.slice(-1)
+    const tampered = `${stateRaw.slice(0, -1)}${last === 'A' ? 'B' : 'A'}`
+
+    const res = await anonClient.anon(
+      'GET',
+      anonClient.apiPath(`/auth/oauth/github/callback?code=fake-code&state=${tampered}`),
+    )
+    expect(res.status).toBe(200)
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
   })
 
   it('开启态 google fed_cm：garbage credential → 40107（本地 JWKS 校验失败，不发外网）', async () => {

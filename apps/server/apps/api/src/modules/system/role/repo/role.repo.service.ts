@@ -71,6 +71,32 @@ export class SysRoleRepoService {
   }
 
   /**
+   * @description 某角色当前绑定的全部 userId（P2-16 权限缓存失效的反查腿：
+   * sys_user_role 按 role_id 点查，角色用户量级小，逐用户 pattern 清即可）
+   */
+  async findUserIdsByRoleId(roleId: string, em?: EntityManager): Promise<string[]> {
+    const rows = await this.getManager(em).getRepository(SysUserRoleEntity).find({
+      where: { roleId },
+      select: { userId: true },
+    })
+    return rows.map(i => i.userId)
+  }
+
+  /**
+   * @description 某用户当前实际绑定的 roleId 列表（P1-18 根修：权限计算以
+   * `sys_user_role` 的实时 membership 为准，不信任 AT payload 自报的 roleIds /
+   * currentRole；按 role_id 排序保证「首角色」回退确定）。
+   */
+  async findRoleIdsByUserId(userId: string, em?: EntityManager): Promise<string[]> {
+    const rows = await this.getManager(em).getRepository(SysUserRoleEntity).find({
+      where: { userId },
+      select: { roleId: true },
+      order: { roleId: 'ASC' },
+    })
+    return rows.map(i => i.roleId)
+  }
+
+  /**
    * @description find role by id with usersCount + menus
    * （对齐 Mongo 版 readById().populate('usersCount') 的读出形态）
    */

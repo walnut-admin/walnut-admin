@@ -1,10 +1,11 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
-import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
+import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { WalnutModelName } from '@walnut-server/db'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
 import { createApiApp } from './helpers/create-api-app'
@@ -237,10 +238,27 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     expect(option?.title).toBe(`menu.title.${seed8}.T2`)
   })
 
-  it('update 给 meta → 19 列整体替换（缺省键回默认值）；不给 meta → meta 列原样不动', async () => {
+  it('update 给 meta → 19 列整体替换（缺省键回默认值）；不给 meta → meta 列原样不动；F3：仅权限相关列变化才清权限缓存', async () => {
     const created = await createMenu('U1', { meta: { order: 5, show: false, cache: true } })
 
-    // 只给 order：show/cache 被整体替换回默认值（对齐 Mongo meta 子文档整体替换）
+    // F3（2026-10-28）：菜单写路径不再无条件全清 AUTH:PERMISSIONS:* —— create 不清，
+    // update 仅在 permission / status 真变化时清。预置哨兵键验证三种 update 形态。
+    const cacheService = app.get(AppTechCacheService)
+    const sentinelKey = `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:sentinel-${seed8}:device-sentinel`
+    await cacheService.set(sentinelKey, ['system:menu:list'], { t: WalnutAdminConstAppCacheType.AUTH, ttl: 600 })
+    expect(await api.hasWalnutCacheKey(sentinelKey)).toBe(true)
+
+    // create 不失效（新菜单未挂角色，既有权限串不变）
+    const createdForSentinel = await createMenu('U2')
+    expect(await api.hasWalnutCacheKey(sentinelKey)).toBe(true)
+    await api.root('DELETE', api.apiPath(`/system/menu/${createdForSentinel.id}`))
+    expect(await api.hasWalnutCacheKey(sentinelKey)).toBe(false)
+
+    // 重建哨兵后跑 update 三态
+    await cacheService.set(sentinelKey, ['system:menu:list'], { t: WalnutAdminConstAppCacheType.AUTH, ttl: 600 })
+
+    // 只给 order：show/cache 被整体替换回默认值（对齐 Mongo meta 子文档整体替换）；
+    // permission/status 未变 → 权限缓存保留
     const updateRes = await api.root('PUT', api.apiPath(`/system/menu/${created.id}`), {
       title: `menu.title.${seed8}.U1-b`,
       meta: { order: 6 },
@@ -251,8 +269,9 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     expect(row.meta?.order).toBe(6)
     expect(row.meta?.show).toBe(true)
     expect(row.meta?.cache).toBe(false)
+    expect(await api.hasWalnutCacheKey(sentinelKey)).toBe(true)
 
-    // 不给 meta：只有顶层字段变，meta 列保持上一轮的值
+    // 不给 meta：只有顶层字段变，meta 列保持上一轮的值 → 仍不失效
     const update2 = await api.root('PUT', api.apiPath(`/system/menu/${created.id}`), {
       title: `menu.title.${seed8}.U1-c`,
       icon: 'mdi:updated',
@@ -262,6 +281,15 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     expect(row.icon).toBe('mdi:updated')
     expect(row.meta?.order).toBe(6)
     expect(row.meta?.show).toBe(true)
+    expect(await api.hasWalnutCacheKey(sentinelKey)).toBe(true)
+
+    // permission 真变化 → 全量清（哨兵消失）
+    const update3 = await api.root('PUT', api.apiPath(`/system/menu/${created.id}`), {
+      meta: { order: 6, permission: `system:menu:probe-${seed8}` },
+    })
+    expectOk(update3, 'menu update with permission change')
+    expect(bodyOf<MenuRow>(update3).data.meta?.permission).toBe(`system:menu:probe-${seed8}`)
+    expect(await api.hasWalnutCacheKey(sentinelKey)).toBe(false)
   })
 
   it('list → 按 name 过滤 + 出参组装 meta', async () => {

@@ -1,8 +1,10 @@
 import type { EntityManager } from 'typeorm'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
+import { runAfterCommit } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
 import { Role } from '@walnut/contract'
+import { AppTechCachePermissionsService } from '@/modules/techniques/cache/service/cache.permissions'
 
 import {
   SysRoleDTOCreateRequest,
@@ -20,9 +22,12 @@ import { SysRoleBasicRepository } from './role.basic.repository'
  */
 @Injectable()
 export class SysRoleService {
+  private readonly logger = new Logger(SysRoleService.name)
+
   constructor(
     private readonly roleBasicRepo: SysRoleBasicRepository,
     private readonly roleRepoService: SysRoleRepoService,
+    private readonly cachePermissionsService: AppTechCachePermissionsService,
   ) {}
 
   /**
@@ -48,6 +53,10 @@ export class SysRoleService {
 
   /**
    * @description update role (controller: update)
+   *
+   * P2-16（2026-10-28）：授权整组替换（menus）或启停（status）会改变该角色下用户的
+   * 权限串 —— 写腿成功后按 `sys_user_role` 反查受影响 userId，事务提交后逐个失效
+   * `AUTH:PERMISSIONS:<user>:*`（permission.guard 只读缓存，取消权限必须走服务端通道）。
    */
   async update(id: string, dto: SysRoleDTOUpdateRequest, em?: EntityManager) {
     // cannot update root role
@@ -64,7 +73,24 @@ export class SysRoleService {
       throw new WalnutAdminExceptionBadRequest()
     }
 
-    return this.roleBasicRepo.update(id, dto, em)
+    const permissionsAffected = dto.menus !== undefined
+      || (dto.status !== undefined && role !== null && dto.status !== role.status)
+    const affectedUserIds = permissionsAffected
+      ? await this.roleRepoService.findUserIdsByRoleId(id, em)
+      : []
+
+    const updated = await this.roleBasicRepo.update(id, dto, em)
+
+    if (affectedUserIds.length > 0) {
+      await runAfterCommit(async () => {
+        for (const userId of affectedUserIds) {
+          await this.cachePermissionsService.delPermissionsForUser(userId)
+        }
+        this.logger.debug(`role ${id} change invalidated permission cache for ${affectedUserIds.length} user(s)`)
+      })
+    }
+
+    return updated
   }
 
   /**

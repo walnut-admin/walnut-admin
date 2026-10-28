@@ -1,8 +1,10 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
+import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
 import { createApiApp } from './helpers/create-api-app'
@@ -15,6 +17,10 @@ import { createApiApp } from './helpers/create-api-app'
  *
  * 在线状态自建自清：state 端点 upsert `app_monitor_user`（visitor_id 唯一）；force-quit
  * 前手插一行 auth_refresh_token（user+device 维度），踢完断言 revoked 落库。
+ *
+ * P2-12（2026-10-28）：force-quit（admin-kick）在撤 RT 之外，事务提交后按设备清
+ * `AUTH:SESSIONS` / `AUTH:PERMISSIONS` / `AUTH:MFA:VERIFIED` —— 配合 P0-4 的 JWT
+ * 会话校验，被踢设备的旧 AT 立即 40101（本文件用第二设备真实验证）。
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -41,11 +47,22 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
   const visitorB = `vis-${seed8}-b`
   let fixture: WalnutRootUserFixture | null = null
   let monitorIdA = ''
+  /** force-quit 用例的“第二设备”（同用户）—— 被 admin-kick 后断言 AT 立即失效 */
+  let victim: WalnutApiClient | null = null
 
   async function deleteMonitorRows() {
     await api.pgDataSource.query('DELETE FROM app_monitor_user WHERE visitor_id LIKE $1', [`vis-${seed8}%`])
     if (fixture !== null) {
       await api.pgDataSource.query('DELETE FROM auth_refresh_token WHERE user_id = $1', [fixture.userId])
+
+      if (victim !== null) {
+        const cacheService = app.get(AppTechCacheService)
+        await api.pgDataSource.query('DELETE FROM sys_user_device WHERE user_id = $1 AND device_id = $2', [fixture.userId, victim.deviceId])
+        await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [victim.deviceId])
+        await cacheService.del(`${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${fixture.userId}:${victim.deviceId}`)
+        await cacheService.del(`${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${fixture.userId}:${victim.deviceId}`)
+        victim = null
+      }
     }
   }
 
@@ -76,8 +93,8 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     await app.close()
   })
 
-  async function createOnlineMonitorA(): Promise<string> {
-    const res = await api.anon('POST', api.apiPath('/app/monitor/user/state'), {
+  async function createOnlineMonitorA(client: WalnutApiClient = api): Promise<string> {
+    const res = await client.anon('POST', client.apiPath('/app/monitor/user/state'), {
       visitorId: visitorA,
       auth: true,
       userId: fixture!.userId,
@@ -153,25 +170,51 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     expect(bRows[0].user_id).toBeNull()
   })
 
-  it('force-quit → 20000，admin-kick 撤销该用户该设备 RT（revoked 落库）', async () => {
-    monitorIdA = await createOnlineMonitorA()
+  it('force-quit → 20000，admin-kick 撤销 RT；P2-12：旧 AT 立即 40101 + 设备缓存全清', async () => {
+    // 第二设备真实登录（同一 fixture 用户）—— 被 admin-kick 的靶子
+    victim = await WalnutApiClient.create(app)
+    const victimTokens = await performHttpOpaqueLogin(victim, app, fixture!)
+    victim.setAuth(victimTokens)
+
+    // monitor 行绑定受害者设备（state 端点的 deviceId 取调用方 cookie）
+    monitorIdA = await createOnlineMonitorA(victim)
 
     // 造一行未撤销的 refresh token（user+device 维度），踢完必须 revoked=true
     await api.pgDataSource.query(
+      'DELETE FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
+      [fixture!.userId, victim.deviceId],
+    )
+    await api.pgDataSource.query(
       `INSERT INTO auth_refresh_token (jti, user_id, device_id, encrypted_token, expired_at)
        VALUES ($1, $2, $3, 'apispec-rt', NOW() + INTERVAL '1 day')`,
-      [randomUUID(), fixture!.userId, api.deviceId],
+      [randomUUID(), fixture!.userId, victim.deviceId],
     )
+
+    // 预置权限 / MFA verified 缓存（清扫前必须存在）
+    const cacheService = app.get(AppTechCacheService)
+    const permissionKey = `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${fixture!.userId}:${victim.deviceId}`
+    const mfaKey = `${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${fixture!.userId}:${victim.deviceId}`
+    await cacheService.set(permissionKey, ['app:monitor:user:list'], { t: WalnutAdminConstAppCacheType.AUTH, ttl: 600 })
+    await victim.seedMfaVerifiedCache(fixture!.userId)
+    expect(await api.hasWalnutCacheKey(permissionKey)).toBe(true)
+    expect(await api.hasWalnutCacheKey(mfaKey)).toBe(true)
 
     const res = await api.root('DELETE', api.apiPath(`/app/monitor/user/force-quit/${monitorIdA}`))
     expectOk(res, 'monitor user force-quit')
 
     const rtRows: Array<{ revoked: boolean, revoke_reason: string | null }> = await api.pgDataSource.query(
       'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
-      [fixture!.userId, api.deviceId],
+      [fixture!.userId, victim.deviceId],
     )
     expect(rtRows).toHaveLength(1)
     expect(rtRows[0].revoked).toBe(true)
+
+    // P2-12 翻转：旧 AT 立即失效（JWT validate 查会话键，P0-4）
+    const victimAfterKick = await victim.root('GET', victim.apiPath('/system/user/device/list'))
+    expect(bodyOf(victimAfterKick).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+
+    expect(await api.hasWalnutCacheKey(permissionKey)).toBe(false)
+    expect(await api.hasWalnutCacheKey(mfaKey)).toBe(false)
   })
 
   it('边界：read 不存在 uuid → 40401', async () => {

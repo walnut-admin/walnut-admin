@@ -136,13 +136,13 @@ cap/SSE 无壳面登记（P2-10 / P3-8，DESIGN-ISSUES 现 35 条）。
 | 产品口径 | P1-13 risk 阻塞失效 | **口径定为「风险只触发 CAP」**：摘除 shouldBlock 幻觉字段，guard 吞异常修正 | ✅ 已实施 2026-10-28 |
 | 产品口径 | P1-14 opaque register | **语义定为「已登录用户补挂口令」**：按 userId upsert password identity，不再按用户名查重 | ✅ 已实施 2026-10-28 |
 | 产品口径 | P1-17 Google 登录重复建用户 | **端点暂时关闭**（Functional 开关默认关）；补全（写 identity/oauth、同邮箱复用）为后续功能开发 | ✅ 已实施 2026-10-28 |
-| 会话安全 | P2-13 OAuth state 无签名无一次性 | **修**：state 补签名 + 一次性校验，堵登录 CSRF | 待实施 |
-| 会话安全 | P2-15 永久黑名单零配置不积累 | **修**：seed 落 `app.global.ipBlackList` 显式默认行 | 待实施 |
-| 会话安全 | P2-12 踢下线后 AT 残留 | **修**：force-quit/kick 链路补会话与权限缓存清扫（配合 P0-4 会话校验，AT 立即失效） | 待实施 |
-| 数据一致性 | P1-18 角色脱钩权限残留 | **修**：roles 变更同步校正 current_role_id 并失效权限缓存 | 待实施 |
-| 数据一致性 | P1-19 user create/update 无事务 | **修**：补 @WalnutTx（对齐 role 写路径） | 待实施 |
-| 数据一致性 | P2-16 角色/菜单变更不清权限缓存 | **修**：变更失效 `AUTH:PERMISSIONS` | 待实施 |
-| 数据一致性 | P2-18 恢复用户不恢复外围 | **修**：恢复联动 identity/preference 等外围数据 | 待实施 |
+| 会话安全 | P2-13 OAuth state 无签名无一次性 | **修**：state 补签名 + 一次性校验，堵登录 CSRF | ✅ 已实施 2026-10-28（批 C） |
+| 会话安全 | P2-15 永久黑名单零配置不积累 | **修**：seed 落 `app.global.ipBlackList` 显式默认行 | ✅ 已实施 2026-10-28（批 C：seed 行已在 + check-seed 机械核对） |
+| 会话安全 | P2-12 踢下线后 AT 残留 | **修**：force-quit/kick 链路补会话与权限缓存清扫（配合 P0-4 会话校验，AT 立即失效） | ✅ 已实施 2026-10-28（批 C） |
+| 数据一致性 | P1-18 角色脱钩权限残留 | **修**：roles 变更同步校正 current_role_id 并失效权限缓存 | ✅ 已实施 2026-10-28（批 D） |
+| 数据一致性 | P1-19 user create/update 无事务 | **修**：补 @WalnutTx（对齐 role 写路径） | ✅ 已实施 2026-10-28（批 D） |
+| 数据一致性 | P2-16 角色/菜单变更不清权限缓存 | **修**：变更失效 `AUTH:PERMISSIONS` | ✅ 已实施 2026-10-28（批 D） |
+| 数据一致性 | P2-18 恢复用户不恢复外围 | **修**：恢复联动 identity/preference 等外围数据 | ✅ 已实施 2026-10-28（批 D：五张外围表联动；junction 仍登记） |
 
 其余新发现（P2-11 nonce 并发窗、P2-14 并发 login 判据、P2-17 lang 缓存不对称、P2-20 菜单树无权限、
-P2-21~29、P3-17~30 等）**维持登记、按 backlog 排期**，本轮不修。
+P2-21~29、P2-32 security-policy 不清会话、P3-17~30 等）**维持登记、按 backlog 排期**，本轮不修。

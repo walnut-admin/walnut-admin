@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer'
 import {
   Controller,
   Get,
@@ -32,6 +33,7 @@ import { AppTechSseService } from '@/modules/techniques/sse/sse.service'
 import { AuthCookieService } from '../../cookie/cookie.service'
 import { WalnutAdminGuardJwtFree } from '../../jwt/jwt-access.guard'
 import { AuthSharedService } from '../../shared/shared.service'
+import { OAuthStateService } from '../shared/oauth-state.service'
 import { OAuthGitHubGuard } from './github.guard'
 import { OAuthGitHubScope } from './github.strategy'
 
@@ -49,6 +51,7 @@ export class OAuthGithubController {
     private readonly authCookieService: AuthCookieService,
     private readonly failedLoginRiskService: SecurityRiskFailedLoginService,
     private readonly userIdentitySharedService: SysUserIdentitySharedService,
+    private readonly oauthStateService: OAuthStateService,
   ) { }
 
   private readonly oauthUrl = 'https://github.com/login/oauth/authorize'
@@ -65,15 +68,22 @@ export class OAuthGithubController {
     return `oauth/github/${fp}`
   }
 
-  private getOAuthURL(fp: string, lang: LocaleType) {
-    const payload = JSON.stringify({ fp, lang })
+  /**
+   * P2-13（2026-10-28）：state = `base64url(JSON{fp,lang,nonce}).HMAC-SHA256`，nonce
+   * 与服务端会话密钥签名一并落 Redis（10 分钟 TTL），并且绑定发起请求的 deviceId。
+   */
+  private async getOAuthURL(fp: string, lang: LocaleType, deviceId: string) {
+    const state = await this.oauthStateService.issueState(fp, lang, deviceId)
     return `${this.oauthUrl}?client_id=${this.clientId}&redirect_uri=${this.callbackURL
-    }&response_type=code&scope=${OAuthGitHubScope.join('%20')}&state=${payload}`
+    }&response_type=code&scope=${OAuthGitHubScope.join('%20')}&state=${state}`
   }
 
   @Get('url')
-  async OAuth(@Req() req: IWalnutAdminExpressRequest) {
-    return this.getOAuthURL(req.fingerprint, req.language)
+  async OAuth(
+    @WalnutAdminDecoratorDeviceId() deviceId: string,
+    @Req() req: IWalnutAdminExpressRequest,
+  ) {
+    return this.getOAuthURL(req.fingerprint, req.language, deviceId)
   }
 
   @Get('callback')
@@ -95,9 +105,10 @@ export class OAuthGithubController {
     let fingerprint: string
     let lang: LocaleType
 
-    // safe parse state
+    // safe parse state（guard 已验签并消费 nonce；这里只取 base64url payload 的 fp/lang）
     try {
-      const parsed = JSON.parse(payload) as { fp: string, lang: LocaleType }
+      const encodedPayload = payload.split('.')[0]
+      const parsed = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as { fp: string, lang: LocaleType }
       fingerprint = parsed.fp
       lang = parsed.lang || i18n.lang
     }

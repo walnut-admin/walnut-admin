@@ -25,6 +25,7 @@ import { SysUserLockEntity } from '@/modules/system/user_lock/entity/user-lock.e
 import { SysUserMfaEntity } from '@/modules/system/user_mfa/entity/user-mfa.entity'
 import { SysUserOauthEntity } from '@/modules/system/user_oauth/entity/user-oauth.entity'
 import { SysUserPreferenceEntity } from '@/modules/system/user_preference/entity/user-preference.entity'
+import { createWalnutUserSnapshotRecoverer } from './user.recoverer'
 
 /**
  * PG 回收站恢复器注册表（phase2 5.3 定案的「显式注册表」，B9 装配完成）。
@@ -106,8 +107,18 @@ export class SysDeletedPgRecoverRegistry {
   constructor() {
     // 装配期统一注册（通用工厂覆盖全部已迁集合）。后续某集合需要特殊恢复逻辑时，
     // 把它从清单挪出、在此单独 `register` —— 清单与手工注册同报名字会抛重复注册错，
-    // 装配期即红，不会静默走错恢复器
+    // 装配期即红，不会静默走错恢复器。
+    //
+    // P2-18（2026-10-28）：sys_user 是首个特殊恢复器 —— 通用工厂只插回主行，而外围表
+    // （identity/preference/device/mfa/lock）的 FK 是 CASCADE，删除时被静默带走；
+    // 组合恢复器会把同 userId 的外围快照一并重放。清单仍保留 SYS_USER 条目
+    // （dto-entity 漂移守卫按清单对账 modelName → entity）。
     for (const { modelName, entityTarget } of WALNUT_PG_RECOVERABLE_COLLECTIONS) {
+      if (modelName === WalnutModelName.SYS_USER) {
+        this.register(modelName, createWalnutUserSnapshotRecoverer())
+        continue
+      }
+
       this.register(modelName, createWalnutPgSnapshotRecoverer(entityTarget))
     }
   }

@@ -183,6 +183,92 @@ describe('H1：API 级事务回滚直测（真实 HTTP 触发中途失败 → �
     expect(recoveredRows[0].c).toBe(0)
   })
 
+  it('P1-19 user create：junction 腿 FK 失败（roles=[有效角色, 不存在角色]）→ 40000 且主行零残留', async () => {
+    const userName = `rb-user-${seed8}-bad`
+    // 首角色必须有效：create 的 currentRole 落 roles[0]（F1 后显式 [] 为 null）；
+    // 若首角色就是 ghost，失败会发生在主行 current_role_id FK、而不是 junction 腿。
+    const roleRows: Array<{ id: string }> = await api.pgDataSource.query(
+      'INSERT INTO sys_role (role_name) VALUES ($1) RETURNING id',
+      [`rb-user-role-${seed8}`],
+    )
+    const validRoleId = roleRows[0].id
+
+    try {
+      // 修复前 create 无 @WalnutTx：主行 save 已自动提交、junction insert 才撞
+      // fk_user_role_role（23503）→ 留下「有用户行、role 绑定半空」的脏用户。
+      // 现在主行 + junction 同事务，junction 腿失败整体回滚。
+      const res = await api.root('POST', api.apiPath('/system/user'), {
+        userName,
+        status: true,
+        roles: [validRoleId, randomUUID()],
+      })
+      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+
+      const userRows: Array<{ c: number }> = await api.pgDataSource.query(
+        'SELECT count(*)::int AS c FROM sys_user WHERE user_name = $1',
+        [userName],
+      )
+      expect(userRows[0].c).toBe(0)
+      const snapshotRows: Array<{ c: number }> = await api.pgDataSource.query(
+        'SELECT count(*)::int AS c FROM sys_deleted WHERE content ->> \'userName\' = $1',
+        [userName],
+      )
+      expect(snapshotRows[0].c).toBe(0)
+    }
+    finally {
+      await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [validRoleId])
+    }
+  })
+
+  it('P1-19 user update：junction 腿失败 → 40000，主行字段（status）与既有 junction 均未被半提交', async () => {
+    const userName = `rb-user-${seed8}-keep`
+    const roleRows: Array<{ id: string }> = await api.pgDataSource.query(
+      'INSERT INTO sys_role (role_name) VALUES ($1) RETURNING id',
+      [`rb-user-role-keep-${seed8}`],
+    )
+    const validRoleId = roleRows[0].id
+
+    try {
+      const createRes = await api.root('POST', api.apiPath('/system/user'), {
+        userName,
+        status: true,
+        roles: [validRoleId],
+      })
+      expectOk(createRes, 'user create for update rollback')
+      const created = bodyOf<{ id: string }>(createRes).data
+
+      // status:false（主行腿）+ roles=[有效, 不存在]（junction 腿：先 delete 再 insert，
+      // insert 的 ghost role_id 撞 fk_user_role_role）—— 修复前主行 update 会先自动提交，
+      // status 被改掉且 junction 已被 delete 清空。现在同事务整体回滚。
+      const res = await api.root('PUT', api.apiPath(`/system/user/${created.id}`), {
+        userName,
+        status: false,
+        roles: [validRoleId, randomUUID()],
+      })
+      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+
+      const rows: Array<{ status: boolean, current_role_id: string | null }> = await api.pgDataSource.query(
+        'SELECT status, current_role_id FROM sys_user WHERE id = $1',
+        [created.id],
+      )
+      expect(rows).toHaveLength(1)
+      expect(rows[0].status).toBe(true)
+      expect(rows[0].current_role_id).toBe(validRoleId)
+
+      // junction 仍是替换前的有效绑定（delete 腿也被回滚）
+      const junctionRows: Array<{ role_id: string }> = await api.pgDataSource.query(
+        'SELECT role_id FROM sys_user_role WHERE user_id = $1',
+        [created.id],
+      )
+      expect(junctionRows.map(row => row.role_id)).toEqual([validRoleId])
+
+      await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [created.id])
+    }
+    finally {
+      await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [validRoleId])
+    }
+  })
+
   it('after-commit 钩子的 API 级验证：device initial 响应返回时 SYS_DEVICE 缓存已刷新（零轮询）', async () => {
     // 钩子挂在 registerAfterCommitHook（device.service.initial）——拦截器顺序为
     // commit → release → 钩子 → 响应 emit，因此「响应在手」即「钩子已跑完」。

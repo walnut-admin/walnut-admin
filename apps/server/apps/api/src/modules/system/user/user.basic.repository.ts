@@ -1,4 +1,4 @@
-import type { DataSource, EntityManager, SelectQueryBuilder } from 'typeorm'
+import type { DataSource, EntityManager, EntityTarget, ObjectLiteral, SelectQueryBuilder } from 'typeorm'
 import type { IWalnutAdminRequestList } from '@/common/dto/list.dto'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
@@ -10,6 +10,11 @@ import {
   buildPgListQueryOptions,
   WALNUT_PG_LIST_TOTAL_ALIAS,
 } from '@/common/repository/pg-list.builder'
+import { SysUserDeviceEntity } from '../user_device/entity/user-device.entity'
+import { SysUserIdentityEntity } from '../user_identity/entity/user-identity.entity'
+import { SysUserLockEntity } from '../user_lock/entity/user-lock.entity'
+import { SysUserMfaEntity } from '../user_mfa/entity/user-mfa.entity'
+import { SysUserPreferenceEntity } from '../user_preference/entity/user-preference.entity'
 import { SysUserRoleEntity } from './entity/user-role.entity'
 import { SysUserEntity } from './entity/user.entity'
 
@@ -65,6 +70,17 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     em?: EntityManager,
   ): Promise<SysUserEntity & { roles?: string[] }> {
     const { roles, ...userData } = dto
+
+    if (roles !== undefined) {
+      // P1-18（2026-10-28）：junction 整组替换后 current_role_id 必须仍在新集合内。
+      // 旧现状只替换 junction，被移出的角色仍留在 current_role_id（SWITCH 用户登录后
+      // 继续按已移出的角色取权限）。这里与 AT payload 的组装口径对齐：current 失效 →
+      // 新集合首角色；空集合 → null（列可空 = 无当前角色）。
+      const current = await this.readById(id, em)
+      if (current.currentRole === null || !roles.includes(current.currentRole)) {
+        (userData as Partial<SysUserEntity>).currentRole = roles[0] ?? null
+      }
+    }
 
     const updated = await super.update(id, userData, em)
 
@@ -130,5 +146,75 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     if (roleIds.length > 0) {
       await repository.insert(roleIds.map(roleId => ({ userId, roleId })))
     }
+  }
+
+  /**
+   * P2-18（2026-10-28）：删除用户时先给**外围行**各落一份回收站快照。
+   *
+   * 为什么必须在这里做：外围表（identity / preference / user_device / mfa / lock）的
+   * FK 全部 `ON DELETE CASCADE`，主行一删就被静默带走，而软删快照此前只存主行 ——
+   * 恢复用户后没有口令 identity（无法登录）、没有偏好（前端布局丢失）。快照与主行
+   * 删除同一 em（controller 有 @WalnutTx），回滚时快照一并回滚。
+   *
+   * 注意 identity / mfa 的密文列是 `select: false`，必须显式 addSelect，否则快照缺列，
+   * 恢复时 NOT NULL 违约、或密文丢失导致凭据不可用。
+   */
+  private async snapshotPeripheralRows(userId: string, deletedBy: string, em?: EntityManager) {
+    const manager = this.getManager(em)
+
+    const snapshotRows = async <T extends ObjectLiteral>(modelName: string, entityTarget: EntityTarget<T>, rows: T[]) => {
+      if (rows.length === 0) {
+        return
+      }
+
+      const collectionName = this.dataSource.getMetadata(entityTarget).tableName
+      for (const row of rows) {
+        await this.deletedRepoService.createSoftDelete({
+          content: { ...row },
+          modelName,
+          collectionName,
+          deletedId: (row as T & { id: string }).id,
+          deletedBy,
+        }, em)
+      }
+    }
+
+    const identities = await manager.getRepository(SysUserIdentityEntity)
+      .createQueryBuilder('entity')
+      .addSelect('entity.value')
+      .where('entity.userId = :userId', { userId })
+      .getMany()
+
+    const preferences = await manager.getRepository(SysUserPreferenceEntity).find({ where: { userId } })
+
+    const userDevices = await manager.getRepository(SysUserDeviceEntity).find({ where: { userId } })
+
+    const mfaRows = await manager.getRepository(SysUserMfaEntity)
+      .createQueryBuilder('entity')
+      .addSelect([
+        'entity.totpSecretCiphertext',
+        'entity.webauthnPublicKey',
+        'entity.phoneNumberCiphertext',
+        'entity.backupCodesCiphertext',
+      ])
+      .where('entity.userId = :userId', { userId })
+      .getMany()
+
+    const locks = await manager.getRepository(SysUserLockEntity).find({ where: { userId } })
+
+    await snapshotRows(WalnutModelName.SYS_USER_IDENTITY, SysUserIdentityEntity, identities)
+    await snapshotRows(WalnutModelName.SYS_USER_PREFERENCE, SysUserPreferenceEntity, preferences)
+    await snapshotRows(WalnutModelName.SYS_USER_DEVICE, SysUserDeviceEntity, userDevices)
+    await snapshotRows(WalnutModelName.SYS_USER_MFA, SysUserMfaEntity, mfaRows)
+    await snapshotRows(WalnutModelName.SYS_USER_LOCK, SysUserLockEntity, locks)
+  }
+
+  /**
+   * @description 软删用户：外围行快照（identity/preference/device/mfa/lock）→ 主行快照 +
+   * 硬删（FK CASCADE 带走外围行）。恢复侧由自定义 user recoverer 重放快照（P2-18）。
+   */
+  public async deleteSoftById(id: string, userId: string, em?: EntityManager): Promise<SysUserEntity> {
+    await this.snapshotPeripheralRows(id, userId, em)
+    return super.deleteSoftById(id, userId, em)
   }
 }
