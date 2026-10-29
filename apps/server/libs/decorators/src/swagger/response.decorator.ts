@@ -1,4 +1,4 @@
-import type { ReferenceObject, SchemaObject } from '@nestjs/swagger/dist/interfaces/open-api-spec.interface'
+import type { ReferenceObject, SchemaObject } from '@nestjs/swagger'
 import { applyDecorators } from '@nestjs/common'
 import { ApiExtraModels, ApiOkResponse, ApiOperation, getSchemaPath } from '@nestjs/swagger'
 import { WalnutAdminSwaggerResponseSuccessSchemeData } from './ok.response'

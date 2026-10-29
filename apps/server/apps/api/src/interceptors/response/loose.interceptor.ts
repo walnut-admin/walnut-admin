@@ -10,7 +10,8 @@ import { map, Observable } from 'rxjs'
 // will return fields that are not defined in the target dto
 @Injectable()
 export class WalnutAdminInterceptorResponseLooseSerializer extends ClassSerializerInterceptor {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  // Nest 12 起基类 intercept 返回 Promise<Observable>，覆盖签名必须一致
+  async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<any>> {
     return next.handle().pipe(
       map((res: PlainLiteralObject | PlainLiteralObject[]) =>
         this.serialize(res, {

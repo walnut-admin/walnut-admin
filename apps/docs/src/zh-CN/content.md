@@ -11,7 +11,7 @@
 :::
 
 - 技术栈 `tech stack`
-    - <WBaseLink preset="nestjs">NestJS 11.x</WBaseLink> + <WBaseLink preset="swc">swc</WBaseLink> 构建，比tsc快10倍的开发体验！
+    - <WBaseLink preset="nestjs">NestJS 12.x</WBaseLink> + <WBaseLink preset="swc">swc</WBaseLink> 构建，比tsc快10倍的开发体验！
     - <WBaseLink preset="express">express</WBaseLink> 基于express的app应用，原有概念完全继承，方便上手！
     - [TypeORM](https://typeorm.io/) + [PostgreSQL](https://www.postgresql.org/)，严谨的关系型数据库支持，同时支持事务回滚！
     - <WBaseLink preset="nestjs-i18n">nestjs-i18n</WBaseLink> 接口返回信息也可以做国际化处理！

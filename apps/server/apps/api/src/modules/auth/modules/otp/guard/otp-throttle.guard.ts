@@ -16,7 +16,8 @@ import { OTP_THROTTLE_SERVICE_KEY } from './otp-throttle.const'
  */
 @Injectable()
 export class OtpThrottleGuard extends ThrottlerGuard {
-  private readonly logger = new Logger(OtpThrottleGuard.name)
+  // @nestjs/throttler 6.7 起基类声明 protected logger（Nest 12 类型检查要求可见性一致）
+  protected readonly logger = new Logger(OtpThrottleGuard.name)
 
   constructor(
     options: ThrottlerModuleOptions,

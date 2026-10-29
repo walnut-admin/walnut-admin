@@ -25,7 +25,7 @@
 walnut-admin/
 ├── apps/
 │   ├── admin/     @walnut/admin    — Vue3 SPA + Vite 8 + Naive UI + UnoCSS
-│   ├── server/    @walnut/server   — NestJS 11 + SWC + Mongoose + Redis（内部 Nest monorepo）
+│   ├── server/    @walnut/server   — NestJS 12 + SWC + Mongoose + Redis（内部 Nest monorepo）
 │   └── docs/      @walnut/docs     — VitePress 文档站
 ├── packages/
 │   ├── platform-any/                — 平台无关（CJS 双模构建 / 纯类型 / 纯工具）

@@ -19,7 +19,8 @@ export function WalnutAdminDecoratorThrottle(service: Type<IWalnutAdminThrottleC
 
 @Injectable()
 export class WalnutAdminGuardThrottler extends ThrottlerGuard {
-  private readonly logger = new Logger(WalnutAdminGuardThrottler.name)
+  // @nestjs/throttler 6.7 起基类声明 protected logger（Nest 12 类型检查要求可见性一致）
+  protected readonly logger = new Logger(WalnutAdminGuardThrottler.name)
 
   constructor(
     options: ThrottlerModuleOptions,

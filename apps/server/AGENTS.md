@@ -28,7 +28,7 @@
 
 ## 这个包是什么
 
-NestJS 11.x + TypeScript 6.0.3 + PostgreSQL（TypeORM）+ Redis + Bull 队列 —— 功能齐全的中后台后端模板。
+NestJS 12.x + TypeScript 6.0.3 + PostgreSQL（TypeORM）+ Redis + Bull 队列 —— 功能齐全的中后台后端模板。
 **内部 Nest CLI monorepo**，不是 pnpm workspace 包：
 
 - `apps/api/src/` —— app 的入口与源码（`modules/` `app/` `guard/` `decorators/` `common/` `i18n/` …）

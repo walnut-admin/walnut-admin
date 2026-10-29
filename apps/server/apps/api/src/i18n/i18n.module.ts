@@ -15,6 +15,9 @@ import {
 @Module({
   imports: [
     I18nModule.forRootAsync({
+      // nestjs-i18n 的 I18nAsyncOptions 继承 Pick<ModuleMetadata, 'imports'>，
+      // Nest 12 下该别名解析退化后 imports 变必填 —— 显式给空数组
+      imports: [],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         fallbackLanguage: configService.get('app.i18n.fallback') as string,

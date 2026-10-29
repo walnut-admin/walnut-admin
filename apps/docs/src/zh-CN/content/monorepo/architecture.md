@@ -25,7 +25,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | 死代码检测 | Knip 6.29（**当前是红的且有意维持**，见 [Knip](./knip.md)） |
 | Git Hooks | lefthook（`lefthook.yml`）+ lint-staged |
 | 前端框架 | Vue 3 + Vite 8 + Naive UI + UnoCSS |
-| 后端框架 | NestJS 11 + SWC + Mongoose + Redis |
+| 后端框架 | NestJS 12 + SWC + Mongoose + Redis |
 | 文档引擎 | VitePress 1.6 |
 | Node 要求 | >= 24.13.0 |
 

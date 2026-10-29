@@ -10,6 +10,8 @@ import { AppMailerService } from './mailer.service'
 @Module({
   imports: [
     MailerModule.forRootAsync({
+      // MailerAsyncOptions 继承 Pick<ModuleMetadata, 'imports'>，Nest 12 下变成必填
+      imports: [],
       useClass: AppMailerConfigService,
     }),
 

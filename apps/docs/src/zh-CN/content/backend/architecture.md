@@ -6,7 +6,7 @@
 
 ## 应用与内部库
 
-后端是 **NestJS 11 + SWC + PostgreSQL（TypeORM）**，形态是**内部 Nest CLI monorepo**，不是 pnpm workspace 包：
+后端是 **NestJS 12 + SWC + PostgreSQL（TypeORM）**，形态是**内部 Nest CLI monorepo**，不是 pnpm workspace 包：
 
 - `apps/api/src/` —— Nest CLI 的 app：应用入口（`main.ts`）与全部业务源码
 - `libs/*/src` —— 内部库，经 tsconfig `paths` 以 `@walnut-server/*` 解析，与 app 一起由 SWC 编译

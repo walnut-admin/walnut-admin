@@ -1,6 +1,6 @@
 # `@walnut/server` — Walnut Admin 后端
 
-NestJS 11 + SWC + Mongoose + Redis。**内部 Nest CLI monorepo**：`apps/api/` 与 `libs/` 不是 pnpm
+NestJS 12 + SWC + Mongoose + Redis。**内部 Nest CLI monorepo**：`apps/api/` 与 `libs/` 不是 pnpm
 workspace 包，靠 `apps/server/tsconfig.json` 的 paths（`@walnut-server/*`）解析，与 app 一起由 SWC 编译。
 
 > 为什么不做成 workspace 包：见 [ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md)

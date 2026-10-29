@@ -26,7 +26,7 @@
   `apps/admin/build/vite/config/shared.ts` 用于 VITE_PROXY 环境变量校验，已在
   devDependencies，非闲置、不处置。initial 调研只扫了 src/ 漏了 build/。）
 
-## 2. NestJS 12：已 GA，不建议现在升，开独立窗口（1-2 个月内）
+## 2. NestJS 12：✅ 已升级（2026-10-29，12.3.2）
 
 **事实（2026-10-27 核验）**：v12 正式版 2026-08-28 发布（Trilon 公告），npm latest 12.3.2；
 v11 仍在维护（11.2.8，2026-10-23）。**Standard Schema 是加法不是替换**：
@@ -35,21 +35,53 @@ class-validator 通道完整保留；配套 `StandardSchemaSerializerInterceptor
 `@nestjs/config` 的 validationSchema 也接受 Standard Schema（Joi 用户需升 Joi 18）。
 Swagger 缺口：@nestjs/swagger 仍无官方 zod→OpenAPI 一等支持——这是本仓不迁 zod 的最实际理由。
 
-**升级破坏面 × 本仓对照**：大半已被现有技术栈天然扫掉（Node 24 ✓、TS 6 ✓、SWC 非 webpack ✓、
-无 GraphQL/NATS ✓、@nestjs/typeorm 已 12 ✓、rxjs 7.8 ✓）。真实工作量：
+**升级执行记录（2026-10-29，分支 refactor/postgres-migration）**：
 
-| 项 | 说明 |
-|---|---|
-| @nestjs/* 全家锁步升 12.x | catalog 里 15 个包一次升（含 swagger/terminus/config/schedule/throttler 等）；@nestjs/typeorm 12.0.2 已就绪不用动 |
-| Terminus 旧 API 移除 | 继承 `HealthIndicator` 改注入 `HealthIndicatorService`——可在 v11 上提前改（v11 后期已支持） |
-| Node engines 上调 | CLI/schematics 要求 ≥24.15，engines 与 CI 镜像同步 |
-| 自定义管道签名细化 + 生命周期钩子按层调用 | `libs/pipes` 小改；靠 431 测试兜底 |
-| @nestjs/config + Joi | 确认 env 校验是否用 Joi（是则升 Joi 18 或 `libraryOptions`） |
-| 第三方 peer 核对 | mailer / i18n / winston / scalar 等 `pnpm why` 逐个过 |
-
-**前置条件清单（可在 v11 上先行）**：① Terminus 指示器改写；② engines 上调；
-③ Joi 确认。然后独立分支一次锁步升 12，全量 431 测试 + 构建 + socket/bull 冒烟。
-预估 1-1.5 人日，拆两个 PR（前置整理 / 锁步升级）。
+- **catalog 锁步**：common / core / platform-express / platform-socket.io / websockets / testing → 12.3.2；
+  swagger 12.0.5、terminus 12.1.0、config 12.0.1、jwt 12.0.3、passport 12.0.0、cache-manager 12.0.2、
+  event-emitter 12.0.1、schedule 12.0.2、bull 12.0.0、axios 12.0.1、cli 12.0.11、schematics 12.0.12；
+  throttler 停留在 6.7.1（上游无 12 major，peer 已覆盖 ^12）；@nestjs/typeorm 12.0.2 不动；
+  nest-winston 1.10.2 → 2.0.0（peer 覆盖 common ^11 || ^12）。全仓 17 个 package.json 的 engines
+  同步上调 `node >=24.15.0`（schematics 12 要求 ^24.15.0）。
+- **适配器轴零改动**：保留 platform-express，不引入 platform-node（Express 5.2.1 → 5.3.0 是小版本）；
+  main.ts 的 trust proxy / hbs `@Render` / `useStaticAssets` / Scalar mount / SSE 全保持。
+  Nest 12 全家改为 **ESM-only**（`"type": "module"`），CJS 应用靠 Node 24 的 `require(esm)` 承载，
+  本仓不迁 ESM、SWC 仍产 CJS（构建与运行均验证通过）。
+- **Terminus**：本仓没有继承 `HealthIndicator` 的自定义指示器；四个内建指示器（http/typeorm/memory/disk）
+  在 12.1.0 仍以类导出且方法签名不变 → `health.controller.ts` **零改动**。Terminus 12 的
+  `HealthCheckService` 错误语义（抛错 → 500、仅返回 down → 503）不影响本仓端点——它们直接返回指示器结果，
+  不经过该服务。
+- **编译期适配 9 处（全部类型层，wire 零变化）**：
+  ① `@nestjs/swagger` 12 的 exports map 只开 `.` / `./plugin`，三处 `dist/interfaces/*` 深导入改包根
+  （`EnumAllowedTypes` 未公开导出，由 `ApiPropertyOptions['enum']` 反推）；
+  ② `ClassSerializerInterceptor.intercept` 返回类型变为 `Promise<Observable>` → loose.interceptor 加 async；
+  ③ ThrottlerGuard 6.7 基类新增 `protected logger` → 两个自建 guard 的 `private logger` 改 protected；
+  ④ `IoAdapter.createIOServer` 第二参变可选 → socket.adapter 改为合并 options（行为不变）；
+  ⑤⑥ nestjs-i18n 与 @nestjs-modules/mailer 的 `*AsyncOptions`（`Pick<ModuleMetadata,'imports'>`）
+  在 Nest 12 类型图下 imports 变必填 → 各补 `imports: []`；
+  ⑦ socket.io 4.8.3 → 4.8.4（platform-socket.io 12 依赖 4.8.4，不锁步会出现两份类型）；
+  ⑧ `@nestjs/swagger` 的 `SchemaObject` / `ReferenceObject` 改包根导入；
+  ⑨ 上述 socket/guard 相关的类型收口（`options as ServerOptions`、返回类型显式 `Server`）。
+- **上游缺陷 1 条（已在 pnpm-workspace.yaml 兜底）**：`@nestjs/platform-express@12.3.2` 的 ESM 产物
+  `multer/multer.utils.js` 静态 import `rxjs`，但 package.json 的 dependencies / peerDependencies 均未声明；
+  `hoist: false` 下从该包位置解析失败，启动即 `Cannot find package 'rxjs'` → 用 `packageExtensions`
+  给它补 `rxjs: '*'` peer（pnpm 会把工作区 rxjs 链进同一虚拟存储目录）。
+- **第三方 peer 结论**：`@nestjs-modules/mailer` 2.3.4（core >=7 / terminus >=10）、`nestjs-i18n` 10.6.0
+  （core/common `*`）、`@scalar/nestjs-api-reference` 1.1.5（无 peer）、`@socket.io/admin-ui`（仅 socket.io）、
+  `bull` 4.16.5 全部兼容。唯一残余告警：terminus 的可选 peer `@nestjs/mongoose@11.0.4` 自身 peer 只到
+  Nest 11——本仓不使用 mongoose、该 opt-in 集成不装载，按 `strictPeerDependencies: false` 既有口径接受。
+- **行为差异登记**：
+  - 运行时无行为差异（生命周期钩子「按层级调用」在本仓无顺序依赖——`onModuleInit` 只有
+    AppTechTaskModule 与 Redis 两处；`@Optional` 仓内零使用；健康检查/限流/队列/会话链路
+    全量集成测试 485 例通过，socket.io（Gateway 启在配置端口 + `hello` 订阅）与 bull 队列
+    （BullModule 初始化 + task 六条 cron 任务 onModuleInit 全跑）启动日志级冒烟通过）。
+  - **openapi 产物有 schema 级增量（非注释级）**：Terminus 12 的 `@HealthCheck` 现在会给端点
+    补 200/503 响应文档（`@nestjs/swagger` 存在时），openapi.json 5 个健康端点各 +~220 行、
+    schema.d.ts 同步 +660 行；属上游文档化增强，wire 不变，生成物已重导出。
+  - **偶发**：首轮全量集成曾出现 `concurrency.api-spec` G6（key rotate 并发）一次失败
+    （`expected 3 to be 1003`）；该文件单独复跑与随后两轮全量均通过，未见稳定复现——
+    登记为测试时序敏感观察项（该用例本身断言并发时序），非编译期问题、未修。
+- **Joi**：本仓 env 校验是 class-validator（`libs/config/src/validation.ts`），不涉及 Joi，无动作。
 
 ## 3. 接口类型共享：OpenAPI codegen（✅ 一期 / 二期 / 收尾批均已落地）
 
@@ -136,7 +168,7 @@ cap/SSE 无壳面登记（P2-10 / P3-8，DESIGN-ISSUES 现 35 条）。
 
 ## 5. 决策待办（需要维护者拍板）
 
-1. **NestJS 12 升级窗口**：建议 1-2 个月内独立分支执行（前置清单见 §2）。
+1. ~~NestJS 12 升级窗口~~：✅ 已于 2026-10-29 执行（12.3.2，见 §2 执行记录）。
 2. **OpenAPI codegen**：✅ 一期已落地（2026-10-28）——导出脚本 + @walnut/api-types 生成包 + 镜像漂移止血 + menu 全链；✅ 二期已落地（2026-10-28）——全模块替换 IModels + models.d.ts 退役 + IResponseData 收缩；✅ 收尾批已落地（2026-10-29）——无 schema 端点补文档化 + WebAuthn options typed DTO + 不可推导形状迁 `frontend-shapes.ts`，`IResponseData` 清零（见 §3 执行记录）。
 3. **ETL 工具链去留**：✅ 已落地（2026-10-28）——正名而非封存（见 §4.1 末），seed 通道组件保留。
 4. **L1 命名清理窗口**：✅ 已于 2026-10-28 执行（在 sys_deleted 存量为 0 的窗口内完成，见 §4.1 L1 执行记录）。

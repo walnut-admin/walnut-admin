@@ -16,7 +16,7 @@
 | 目录 | 包 | 技术栈 |
 |------|----|--------|
 | `apps/admin/` | `@walnut/admin` | Vue 3 + Vite 8 + Naive UI + UnoCSS（前端 SPA，默认端口 3100） |
-| `apps/server/` | `@walnut/server` | NestJS 11 + SWC + TypeORM + PostgreSQL + Redis（**自有内部 Nest monorepo**） |
+| `apps/server/` | `@walnut/server` | NestJS 12 + SWC + TypeORM + PostgreSQL + Redis（**自有内部 Nest monorepo**） |
 | `apps/docs/` | `@walnut/docs` | VitePress 文档站（端口 8886） |
 
 Node >= 24.13.0 ｜ pnpm >= 12.0.0 ｜ TypeScript 6.0.3 ｜ Turbo 2.11.2
@@ -25,7 +25,7 @@ Node >= 24.13.0 ｜ pnpm >= 12.0.0 ｜ TypeScript 6.0.3 ｜ Turbo 2.11.2
 
 ```
 apps/admin   @walnut/admin    Vue3 + Vite 8 + Naive UI + UnoCSS（前端 SPA）
-apps/server  @walnut/server   NestJS 11 + SWC + TypeORM + PostgreSQL + Redis（后端，内部 Nest monorepo）
+apps/server  @walnut/server   NestJS 12 + SWC + TypeORM + PostgreSQL + Redis（后端，内部 Nest monorepo）
 apps/docs    @walnut/docs     VitePress 文档站
 packages/platform-any/   contract · types · utils-core     ← 平台无关（CJS 双模构建 / 纯类型 / 纯工具 @walnut/utils）
 packages/platform-web/   client · http · ui               ← 浏览器/Vue（源码直消费，不构建）
