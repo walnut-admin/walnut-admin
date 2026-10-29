@@ -79,8 +79,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
 
   afterAll(async () => {
     // 本 spec 与 API 级 spec 共享集成库：造的 b5-* 菜单/角色若不清理，残留根节点会让
-    // 后续 spec 的 findRootMenu 选中错根（P3-18 的顺序敏感面；auth-session / menu
-    // 的「首根 children」断言因此依赖文件执行顺序）。子行先删（pid FK RESTRICT）。
+    // 后续 spec 的取根结果多一根（P3-18 的顺序敏感面）。子行先删（pid FK RESTRICT）。
     await pgDataSource.query(
       'DELETE FROM sys_menu WHERE pid IS NOT NULL AND (name LIKE $1 OR path LIKE $2 OR title LIKE $3)',
       ['b5-%', '/b5-%', 'b5.%'],
@@ -227,13 +226,13 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
 
   describe('sys_menu：菜单树（单次全量查询 + 内存建树）', () => {
     it('children 按 meta.order 组装、meta 结构保真、ELEMENT 不进 treeWithoutTypeElement', async () => {
-      // 树出口是 fullTree[0].children（生产形态：唯一合成根），所以测试子树挂在
-      // findRootMenu() 返回的那个根下（同款入口，返回哪个根都确定可达）
-      const treeRoot = await menuRepoService.findRootMenu()
-      expect(treeRoot).not.toBeNull()
+      // 树出口是「全部根的 children 拼接」（P3-18；单根生产形态即根下第一层），
+      // 测试子树挂在任一根下都确定可达 —— 取 order 最小的根（findAllRootMenus 已排序）
+      const treeRoot = (await menuRepoService.findAllRootMenus())[0]
+      expect(treeRoot).toBeDefined()
 
       const branch = await menuService.create({
-        pid: treeRoot!.id,
+        pid: treeRoot.id,
         type: 'catalog',
         name: uniqueName('b5-tree-root'),
         meta: { order: 1 } as IWalnutAdminMenuMeta,
@@ -434,13 +433,12 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
 
   describe('权限链路：getCorePermissions（junction populate → meta 组装 → 出参形态）', () => {
     it('permissionStrings / keepAliveNames / affixedTabs / internalIframeList / 路由 meta 形态', async () => {
-      // 权限树的出口是 [根菜单].children —— permMenu 挂在 findRootMenu() 的根下，
-      // 与 getCorePermissions 内部的取根入口一致，树形断言确定可达
-      const treeRoot = await menuRepoService.findRootMenu()
-      expect(treeRoot).not.toBeNull()
+      // 权限树出口是「全部根的 children 拼接」（P3-18）—— permMenu 挂在任一根下都确定可达
+      const treeRoot = (await menuRepoService.findAllRootMenus())[0]
+      expect(treeRoot).toBeDefined()
 
       const permMenu = await menuService.create({
-        pid: treeRoot!.id,
+        pid: treeRoot.id,
         type: 'menu',
         name: uniqueName('b5-perm'),
         meta: {

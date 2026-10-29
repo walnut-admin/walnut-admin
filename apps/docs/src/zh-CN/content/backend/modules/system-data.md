@@ -67,7 +67,7 @@ PG 有强 schema，快照 jsonb 不能像 Mongo 一样 `db.model(modelName)` 动
 
 | 维度 | `POST /system/deleted/recover` | `POST /system/deleted/me/recover` |
 |---|---|---|
-| 权限点 | `system:deleted:recover` | `system:deleted:recover`（`RECOVER_MINE` 常量未接线，P3-21） |
+| 权限点 | `system:deleted:recover` | `system:deleted:recover:mine`（2026-10-28 接线，P3-21） |
 | 角色 | `@HasRole([root, developer, admin], OR)` | 无 |
 | 定位 | 按 `id` 读快照，再比对 `deletedId`；不匹配 → 40000 `recoverFail` | 按 `(id, deletedId)` 双键 `findOne`；命中不了 → 40401 |
 | 属主 | 不校验 | `deleted.deletedBy !== userId` → 40000 |
@@ -116,9 +116,10 @@ PG 有强 schema，快照 jsonb 不能像 Mongo 一样 `db.model(modelName)` 动
 - `userId` / `deviceId` 是松引用；匿名请求 `userId=null`。`userName` 是快照列。
 - `operation` 列只由显式 `@WalnutAdminDecoratorOperateLog({ operateType })` 写入；
   CRUD 装饰器只传 `title` / `action`，所以 CRUD 行的 `operation` 恒 NULL（ENDPOINTS §5 钉现状）。
-- `title` 在 PG 收紧为 NOT NULL（Q10-a），`action_type` 的 CHECK 只含
-  `OTHER/CREATE/UPDATE/DELETE/DELETE_MANY/IMPORT/EXPORT/CLEAR`；const 里另有
-  `REFRESH` / `AUTH`（P3-24）。
+- `title` 在 PG 收紧为 NOT NULL（Q10-a），`action_type` 的 CHECK 含 **10 个值**
+  `OTHER/CREATE/UPDATE/DELETE/DELETE_MANY/IMPORT/EXPORT/CLEAR/REFRESH/AUTH`
+  （与 `WalnutAdminConstDecoratorLogOperateAction` 一致；D 段复核 2026-10-28 修正，
+  原「只含 8 值、另有 REFRESH/AUTH 待定夺」的记述已过时，见 P3-24/P3-25）。
 - `logOperateId` 回填：DELETE / DELETE_MANY 成功后 `eventEmitter.emit(LOG_OPERATE_DELETE...)`，
   `AppTechEventService` 异步监听，按 `deletedId` 更新 `sys_deleted.log_operate_id`。
   该更新走连接级 manager（刻意不收事务句柄）。已知两个边界：事件发出与业务事务提交的
@@ -269,7 +270,7 @@ WHERE expired_at < now()`（物理回收，与上面「标记 revoked」的任�
 | GET `/system/deleted/:id` | 全链 | `system:deleted:read` | 行 uuid → 快照行 + `user: { id, userName }`（含 `content`） |
 | POST `/system/deleted/list` | 全链 | `system:deleted:list` | list DTO（`content` 走 `content::text` ILIKE）→ 行 + `user`（不含 `content`） |
 | DELETE `/system/deleted/deleteMany/:ids` | 全链 + `@HasRole([root, developer, admin], OR)` | `system:deleted:deleteMany` | 逗号分隔 uuid → 硬删的 `sys_deleted` 行数组 |
-| POST `/system/deleted/me/recover` | 全链 + `@WalnutTx()` | `system:deleted:recover` | `{ id, deletedId }` → `true`；属主不符 40000 |
+| POST `/system/deleted/me/recover` | 全链 + `@WalnutTx()` | `system:deleted:recover:mine` | `{ id, deletedId }` → `true`；属主不符 40000 |
 | POST `/system/deleted/recover` | 全链 + `@HasRole([root, developer, admin], OR)` + `@WalnutTx()` + 操作日志 | `system:deleted:recover` | `{ id, deletedId }` → `true`；`deletedId` 不匹配 40000 `recoverFail` |
 
 `deleted` 没有单行 delete、create、update 端点。list 的 `sortOnlyIn` 为
@@ -332,8 +333,11 @@ cache / event / queue / task 没有 HTTP 端点；cache 的只读/删除面在 `
 - **P2-29（C 段新登记）**：`logOperateId` 回填是异步旁路。事件发出与业务事务提交的先后
   不保证，早到会更新 0 行且只记日志；按 `deletedId` 更新会命中同一行的历史快照，
   重复软删同一行时旧快照的 `log_operate_id` 被覆盖。
-- **P3-21（C 段新登记）**：`system:deleted:recover:mine` 常量已声明但未接线，
-  `POST me/recover` 复用 `system:deleted:recover`。
-- **P3-22（C 段新登记）**：`GET /app/health/disk` 硬编码 `C:/`，非 Windows 部署恒失败。
-- **P3-24（C 段新登记）**：`log_operate.action_type` 的 DB CHECK 只含 8 个值，而 const 里
-  另有 `REFRESH` / `AUTH`，两者不一致（实体注释已记录，待定夺）。
+- **P3-21（C 段新登记）—— 已修复 2026-10-28**：`system:deleted:recover:mine` 已接线，
+  `POST me/recover` 不再复用管理端 `system:deleted:recover`；seed 菜单行本就带该 element，
+  按角色勾选即可授权（seed 内无角色持有旧管理权限点，接线不破坏既有恢复能力）。
+- **P3-22（C 段新登记）—— 已修复 2026-10-28**：`GET /app/health/disk` 的检查路径改按
+  `process.platform` 取根（Windows `C:/`、类 Unix `/`），非 Windows 部署不再恒失败。
+- **P3-24（C 段新登记）—— 前提不成立 / 已收口**：`log_operate.action_type` 的 DB CHECK
+  在 D 段复核时已含 **10 个值**（`...CLEAR/REFRESH/AUTH`，与 const 一致）；本轮只同步了
+  实体注释与本节值域说明，不再有「撞 23514」缺口。

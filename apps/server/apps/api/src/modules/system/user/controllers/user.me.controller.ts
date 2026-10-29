@@ -10,7 +10,7 @@ import { plainToInstance } from 'class-transformer'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { SysUserDTOSafe } from '../dto/user.dto'
-import { SysUserMeDTOUpdateProfileRequest } from '../dto/user.me.dto'
+import { SysUserMeDTOUpdateProfileRequest, SysUserMeSecurityTab2ResponseDTO } from '../dto/user.me.dto'
 import { SysUserMeService } from '../services/user.me.service'
 
 const Permissions = {
@@ -42,7 +42,7 @@ export class SysUserMeController {
   @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'get security tab2 status',
-    DTO: null,
+    DTO: SysUserMeSecurityTab2ResponseDTO,
   })
   async getSecurityTab2Status(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,

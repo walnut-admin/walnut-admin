@@ -21,9 +21,9 @@ import { createApiApp } from './helpers/create-api-app'
  *   两种行为都是「软删 menu 本行（sys_deleted 快照 + 原行硬删）」，cascade=1 **额外**按
  *   title 级联软删 locale 行（menu.service.delete → localeSharedService.deleteByKey）；
  *   不是删子菜单（pid 自引用 FK 是 ON DELETE RESTRICT，防误删扩面在 DB 层兜底）。
- * - menu.tree 形态：`fullTree` 取的是 **首根节点**（order 最小的 pid=NULL 行）的
- *   children —— 集成库无 seed 菜单，本 spec 自建唯一根（order 给负值保证排最前）后树里
- *   只有子节点；`treeWithoutTypeElement` 走完整根数组，根节点在内。P1-8 修复后空表
+ * - menu.tree 形态（P3-18）：`fullTree` 是 **全部根节点 children 的拼接**（单根部署与旧
+ *   「首根 children」wire 完全一致；多根部署不再截断）。集成库无 seed 菜单，本 spec 自建
+ *   根后树里只含子节点；`treeWithoutTypeElement` 走完整根数组，根节点在内。P1-8 修复后空表
  *   GET tree 回受控空树（fullTree=[]），不再 `fullTree[0].children` TypeError → 50000
  *   （空表形态由 menu.shared.service.spec 单测覆盖，集成层用例顺序仍先建菜单）。
  */
@@ -80,8 +80,8 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
 
   /**
    * 本轮经 createMenu 建过的行 id：update 腿只传 meta 时顶层 name/title 会被清空，
-   * 按 LIKE 的清理会漏掉（残留根节点 → 后续 spec 的 findRootMenu 选错根，P3-18 的
-   * 顺序敏感面）。按 id 兜底删除，不依赖字段还带着前缀。
+   * 按 LIKE 的清理会漏掉（残留根节点 → 后续 spec 的取根结果多一根，P3-18 的顺序敏感面）。
+   * 按 id 兜底删除，不依赖字段还带着前缀。
    */
   const createdMenuIds: string[] = []
 
@@ -228,7 +228,7 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     expect(row.meta?.hijackRefresh).toBe(false)
   })
 
-  it('pid 自引用：子菜单挂父 pid → tree 建出父子层级（fullTree 只回首根 children、treeWithoutTypeElement 含根）', async () => {
+  it('pid 自引用：子菜单挂父 pid → tree 建出父子层级（fullTree 回根 children、treeWithoutTypeElement 含根）', async () => {
     const parent = await createMenu('T1', { type: 'catalog', meta: { order: -100 } })
     const child = await createMenu('T2', { pid: parent.id, meta: { order: 1 } })
 
@@ -236,7 +236,7 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     expectOk(treeRes, 'menu tree')
     const tree = bodyOf<TreeResponse>(treeRes).data
 
-    // 本 spec 的根是当前 order 最小的根节点 → fullTree = 它的 children，只含子节点
+    // 根节点不进 fullTree（顶层 = 根下第一层），子节点在
     expect(findNode(tree.fullTree, `${namePrefix}-T1`)).toBeNull()
     const childNode = findNode(tree.fullTree, `${namePrefix}-T2`)
     expect(childNode).not.toBeNull()
@@ -251,6 +251,28 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     // menuActiveNamesOptions 收 type=menu 的 name/title
     const option = tree.menuActiveNamesOptions.find(i => i.name === `${namePrefix}-T2`)
     expect(option?.title).toBe(`menu.title.${seed8}.T2`)
+  })
+
+  it('P3-18：多根部署 → fullTree 拼接全部根的 children（不再只取首根）', async () => {
+    // 双根：两个 pid=NULL 的 catalog，各挂一个不同 order 的菜单子行
+    const rootA = await createMenu('RA', { type: 'catalog', meta: { order: -200 } })
+    const rootB = await createMenu('RB', { type: 'catalog', meta: { order: -190 } })
+    const childA = await createMenu('CA', { pid: rootA.id, meta: { order: 2 } })
+    const childB = await createMenu('CB', { pid: rootB.id, meta: { order: 1 } })
+
+    const treeRes = await api.root('GET', api.apiPath('/system/menu/tree'))
+    expectOk(treeRes, 'menu tree (multi-root)')
+    const tree = bodyOf<TreeResponse>(treeRes).data
+
+    // 两根的子节点都在顶层（旧实现只返回首根 RA 的 children，CB 整棵不可见）
+    expect(findNode(tree.fullTree, `${namePrefix}-CA`)?.id).toBe(childA.id)
+    expect(findNode(tree.fullTree, `${namePrefix}-CB`)?.id).toBe(childB.id)
+    // 根节点本身仍不进 fullTree（与单根形态的层级契约一致）
+    expect(findNode(tree.fullTree, `${namePrefix}-RA`)).toBeNull()
+    expect(findNode(tree.fullTree, `${namePrefix}-RB`)).toBeNull()
+    // treeWithoutTypeElement 仍含两根
+    expect(findNode(tree.treeWithoutTypeElement, `${namePrefix}-RA`)?.id).toBe(rootA.id)
+    expect(findNode(tree.treeWithoutTypeElement, `${namePrefix}-RB`)?.id).toBe(rootB.id)
   })
 
   it('update 给 meta → 19 列整体替换（缺省键回默认值）；不给 meta → meta 列原样不动；F3：仅权限相关列变化才清权限缓存', async () => {

@@ -32,8 +32,8 @@ import { WALNUT_DEFAULT_VISITOR_ROLE_UUID } from './auth-login'
  * - 菜单：一根 pid=NULL 的 CATALOG 根（`getCorePermissions(ALL)` 在 sys_menu 无根行时
  *   `permissionMenuTree[0].children` TypeError → 50000，见 ENDPOINTS.md D 段补记 —— 根行必须种）
  *   + 每个权限点一根 element 子行（permission 列即权限串，不进菜单树只进权限串）；
- *   根行**不挂 junction** —— 非 root 链路里它由 `findRootMenu()` 兜底进入 menuArr，
- *   挂了反而和 findRootMenu 的返回值重复。
+ *   根行**不挂 junction** —— 非 root 链路里它由 `findAllRootMenus()` 兜底进入 menuArr，
+ *   挂了反而和 findAllRootMenus 的返回值重复。
  * - 角色：role_status 默认 true 的普通角色（COMBINE 值读 `WalnutAdminConstRoleMode.COMBINE`，
  *   junction 三态与 role.api-spec C 段同款直插 sys_role_menu）；可选第二角色承载
  *   `secondRolePermissions`（SWITCH 对照用：junction 挂用户但不挂 current_role_id）。
@@ -119,7 +119,7 @@ export async function seedPermissionChainUser(
 
   const userId = newUser.id
 
-  // —— 最小菜单树：CATALOG 根（pid=NULL，不挂 junction，非 root 链路由 findRootMenu 兜底）
+  // —— 最小菜单树：CATALOG 根（pid=NULL，不挂 junction，非 root 链路由 findAllRootMenus 兜底）
   //    + 每个权限点一根 element 子行（permission 列 = 权限串，一行一串）——
   const rootMenuRows: Array<{ id: string }> = await pgDataSource.query(
     `INSERT INTO sys_menu (pid, type, path, name, title, sort_order)

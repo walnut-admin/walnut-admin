@@ -1,5 +1,6 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
+import type { SeedPermissionChainFixture } from './helpers/seed-permissions'
 import { randomUUID } from 'node:crypto'
 import { WalnutModelName } from '@walnut-server/db'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
@@ -7,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
 import { createApiApp } from './helpers/create-api-app'
+import { cleanupPermissionChainSeed, seedPermissionChainUser } from './helpers/seed-permissions'
 
 /**
  * D 段：`system/deleted` 回收站（真实 HTTP 全链，B9 int-spec 已覆盖 service 层，
@@ -18,6 +20,8 @@ import { createApiApp } from './helpers/create-api-app'
  *   错误路径：deletedId 不匹配 → 40401（id+deletedId 双键定位不命中）；
  * - `POST recover`（管理端 @HasRole 三角色，root 短路放行）：再造 → 管理端恢复；
  *   错误路径：deletedId 不匹配 → 40000 recoverFail；
+ * - P3-21：`me/recover` 挂 `system:deleted:recover:mine`（与管理端 `system:deleted:recover`
+ *   解耦）—— 非 root 双用户用例：只有 recover:mine 者可恢复自己删的行、只有管理端权限者 40105；
  * - `DELETE deleteMany/:ids`（deleteReal）：快照行硬删，原表不回来。
  *
  * 列表过滤用 content 关键字（jsonb ::text ILIKE，唯一 demoString 片段）—— deletedBy
@@ -57,6 +61,12 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
   const deletedDemoIds: string[] = []
   /** P2-18 用例自建的 user 行（恢复后仍在，afterAll 直删） */
   const recoveredUserIds: string[] = []
+  /** P3-21：只持有 recover:mine 的非 root 用户（可恢复自己删的行） */
+  let mineUser: WalnutApiClient | null = null
+  let mineFixture: SeedPermissionChainFixture | null = null
+  /** P3-21：只持有管理端 recover 的非 root 用户（me/recover 应被拒） */
+  let manageOnlyUser: WalnutApiClient | null = null
+  let manageOnlyFixture: SeedPermissionChainFixture | null = null
 
   beforeAll(async () => {
     app = await createApiApp()
@@ -67,6 +77,27 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
     const tokens = await performHttpOpaqueLogin(api, app, fixture)
     api.setAuth(tokens)
     await api.seedMfaVerifiedCache(fixture.userId)
+
+    // P3-21 权限面：两个非 root 用户，权限点互斥（junction 走 seed helper 的真实角色链）
+    mineFixture = await seedPermissionChainUser(app, api.pgDataSource, {
+      userNamePrefix: `deleted-mine-${seed8}`,
+      grantedPermissions: ['app:demo:create', 'app:demo:delete', 'system:deleted:recover:mine'],
+    })
+    mineUser = await WalnutApiClient.create(app)
+    const mineTokens = await performHttpOpaqueLogin(mineUser, app, mineFixture)
+    mineUser.setAuth(mineTokens)
+    await mineUser.seedMfaVerifiedCache(mineFixture.userId)
+    expectOk(await mineUser.root('GET', mineUser.apiPath('/auth/permissions')), 'mine user permissions cache')
+
+    manageOnlyFixture = await seedPermissionChainUser(app, api.pgDataSource, {
+      userNamePrefix: `deleted-manage-${seed8}`,
+      grantedPermissions: ['system:deleted:recover'],
+    })
+    manageOnlyUser = await WalnutApiClient.create(app)
+    const manageOnlyTokens = await performHttpOpaqueLogin(manageOnlyUser, app, manageOnlyFixture)
+    manageOnlyUser.setAuth(manageOnlyTokens)
+    await manageOnlyUser.seedMfaVerifiedCache(manageOnlyFixture.userId)
+    expectOk(await manageOnlyUser.root('GET', manageOnlyUser.apiPath('/auth/permissions')), 'manage-only user permissions cache')
   })
 
   afterAll(async () => {
@@ -85,6 +116,13 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, fixture.userId)
+
+      // P3-21 种子用户（user / role / element 菜单 / 权限缓存 + 设备行）
+      const seedFixtures = [mineFixture, manageOnlyFixture].filter((i): i is SeedPermissionChainFixture => i !== null)
+      const seedDevices = [mineUser?.deviceId, manageOnlyUser?.deviceId].filter((i): i is string => typeof i === 'string')
+      if (seedFixtures.length > 0) {
+        await cleanupPermissionChainSeed(api, seedFixtures, seedDevices)
+      }
     }
     await app.close()
   })
@@ -212,6 +250,50 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
       [snapshot.id],
     )
     expect(remainRows[0].c).toBe(1)
+  })
+
+  it('P3-21：me/recover 走 system:deleted:recover:mine —— 非 root 只有 recover:mine 可恢复自己删的行，只有管理端 recover 被拒 40105', async () => {
+    // 用户 A（recover:mine）：自己建、自己删 → 快照 deletedBy = A（属主语义闭环）
+    const createdRes = await mineUser!.root('POST', mineUser!.apiPath('/app/demo'), demoPayload('P21'))
+    expectOk(createdRes, 'demo create by mine user')
+    const demo = bodyOf<DemoRow>(createdRes).data
+    demoIds.push(demo.id)
+
+    const delRes = await mineUser!.root('DELETE', mineUser!.apiPath(`/app/demo/${demo.id}`))
+    expectOk(delRes, 'demo delete by mine user')
+    deletedDemoIds.push(demo.id)
+
+    const snapshotRows: Array<{ id: string }> = await api.pgDataSource.query(
+      'SELECT id FROM sys_deleted WHERE deleted_id = $1',
+      [demo.id],
+    )
+    expect(snapshotRows).toHaveLength(1)
+    const snapshotId = snapshotRows[0].id
+
+    // 用户 B（只有管理端 system:deleted:recover）→ 新权限点不命中，40105（权限点已解耦）
+    const deniedRes = await manageOnlyUser!.root('POST', manageOnlyUser!.apiPath('/system/deleted/me/recover'), {
+      id: snapshotId,
+      deletedId: demo.id,
+    })
+    expect(bodyOf(deniedRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_NO_PERMISSION)
+
+    // 用户 A → recover:mine 命中，属主恢复成功
+    const okRes = await mineUser!.root('POST', mineUser!.apiPath('/system/deleted/me/recover'), {
+      id: snapshotId,
+      deletedId: demo.id,
+    })
+    expectOk(okRes, 'deleted recoverMine with dedicated permission')
+    expect(bodyOf<boolean>(okRes).data).toBe(true)
+    deletedDemoIds.pop()
+
+    // 原行回来 + 快照行消失
+    const backRes = await api.root('GET', api.apiPath(`/app/demo/${demo.id}`))
+    expectOk(backRes, 'demo recovered by mine user')
+    const remainRows: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM sys_deleted WHERE id = $1',
+      [snapshotId],
+    )
+    expect(remainRows[0].c).toBe(0)
   })
 
   it('recover（管理端）→ 恢复成功；deletedId 不匹配 → 40000 recoverFail', async () => {

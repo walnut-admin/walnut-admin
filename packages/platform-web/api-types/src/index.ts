@@ -88,8 +88,7 @@ export type SystemDevice = components['schemas']['SysDeviceDTOSafe'] & { id: str
 
 /**
  * `GET /system/device/{id}/history-users` 行形态（userName/nickName/id/lastActiveAt 摘要）。
- * server 装饰漏 `isArray`（openapi 文档写成单对象，实际返回数组）—— 已登记 DESIGN-ISSUES，
- * 消费侧自行包数组。
+ * P3-11 已补 `isArray: true`：端点响应 data 在生成 schema 里就是本类型的数组。
  */
 export type SystemDeviceHistoryUser = components['schemas']['SysDeviceDTOHistoryUsersResponse'] & { id: string }
 
@@ -101,13 +100,14 @@ export type SystemDeviceHistoryUser = components['schemas']['SysDeviceDTOHistory
 export type SystemDeviceInitialResponse = components['schemas']['SysDeviceDTOInitialResponse']
 
 // ---------------------------------------------------------------- system lang / locale
-// 注：lang/locale 的 list 行在 wire 上真实携带 process（server lang.basic.repository PG list
-// 覆写注入 / SysLocaleDTOSafe 携带但 swagger 把 ListResponse 归并到无 process 的 SysLocaleDTO），
-// 生成 schema 缺声明 —— 这里按 wire 事实补上，server 侧缺口登记 DESIGN-ISSUES。
+// list 行的 process 已由 server 文档化（P3-10：声明在 SysLangDTO / SysLocaleDTO 基类，
+// required: false）—— 生成 schema 自带该键，不再手工补声明。lang 的 process 可空
+// （零 locale 时 finished / total 在 JS 侧为 NaN，JSON 序列化为 null）；locale 的
+// process 是 0..1 小数（admin 列表 × 100 展示）。
 
-export type SystemLang = components['schemas']['SysLangDTO'] & { id: string, process?: number }
+export type SystemLang = components['schemas']['SysLangDTO'] & { id: string }
 
-export type SystemLocale = components['schemas']['SysLocaleDTO'] & { id: string, process?: number }
+export type SystemLocale = components['schemas']['SysLocaleDTO'] & { id: string }
 
 /** `GET /system/lang/list/public` 行形态（order / lang / description 三列 raw 投影）。 */
 export type SystemLangPublicListItem = components['schemas']['SysLangDTOListPublicResponse']
@@ -213,6 +213,12 @@ export type AuthMfaTotpBind = components['schemas']['SysUserMfaBindTotpResponseD
  * 注意 server 字段名是 `lastChanged`（旧手写镜像曾写 `lastChangedAt`，属镜像漂移，已纠正）。
  */
 export type MeSecurityTab1Status = components['schemas']['SysUserIdentityStatusResponseDTO']
+
+/**
+ * `GET /system/user/me/security-tab2` 响应（totp / webauthn 两种 MFA 的总状态）。
+ * P3-12 已补 server DTO（`SysUserMeSecurityTab2ResponseDTO`），不再走手写兜底形状。
+ */
+export type MeSecurityTab2Status = components['schemas']['SysUserMeSecurityTab2ResponseDTO']
 
 /** `GET /auth/keys` 响应（`B` 是百度 AK 的 RSA 信封字符串）。 */
 export type AuthSecretKeys = components['schemas']['AuthSecretKeysResponseDTO']

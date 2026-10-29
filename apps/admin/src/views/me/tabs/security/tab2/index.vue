@@ -1,6 +1,6 @@
 <script lang="tsx" setup>
+import type { MeSecurityTab2Status } from '@walnut/api-types'
 import type { DropdownOption } from 'naive-ui'
-import type { MeSecurityTab2Status } from '@/api/types/frontend-shapes'
 import { computed, onBeforeMount, ref } from 'vue'
 import { authMfaTotpUpdateStatusAPI } from '@/api/auth/mfa'
 import { getSecurityTab2StatusAPI } from '@/api/system/user_me'

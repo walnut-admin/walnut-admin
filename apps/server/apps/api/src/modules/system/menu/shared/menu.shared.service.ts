@@ -129,10 +129,12 @@ export class SysMenuSharedService {
     const { menus, roleNames } = await this.roleSharedService.getCoreMenus(user)
 
     // root/visitor has all permissions
+    // P3-18：非 root 路径也取**全部根**（此前 findRootMenu 只取一根，多根部署下
+    // 其他根下的授权菜单在 arrToTree 里成为孤儿子树被丢弃）
     const menuArr: (SysMenuEntity | null | ISysMenuAssembled)[] = ([Role.ROOT, Role.VISITOR] as RoleType[]).includes(roleNames[0])
       ? await this.sysMenuRepoService.findAllMenus()
       : [
-          await this.sysMenuRepoService.findRootMenu(),
+          ...await this.sysMenuRepoService.findAllRootMenus(),
           ...menus,
         ]
 
@@ -161,16 +163,20 @@ export class SysMenuSharedService {
         const affixedTabs = this.getLayoutTabs(processedMenuArr)
         const permissionMenuTree = this.getMenuTree(processedMenuArr)
         const permissionRoutes = this.getRouteTree(processedMenuArr)
+        // P3-18：多根部署下顶层 = 全部根的 children 拼接（单根形态与旧 wire 完全一致，
+        // 根节点本身仍不进菜单树/路由树 —— 与 admin 菜单渲染的「根 → children」契约对齐）。
+        const permissionMenuTopLevel = permissionMenuTree.flatMap(root => root.children ?? [])
+        const permissionRouteTopLevel = permissionRoutes.flatMap(root => root.children ?? [])
         // P1-8 修复（2026-10-28）：sys_menu 空表时 permissionMenuTree 为空数组 ——
         // 旧写法 `[0].children![0]` 在 undefined 上解引用 → TypeError → 50000。
         // 空树回空 indexMenuName（受控空形态）。
-        const indexMenuName = this.getIndexMenuName(permissionMenuTree[0]?.children?.[0])
+        const indexMenuName = this.getIndexMenuName(permissionMenuTopLevel[0])
         const internalIframeList = this.getIframeList(processedMenuArr)
 
         return {
           permissionStrings,
-          permissionMenuTree: permissionMenuTree[0]?.children ?? [],
-          permissionRouteTree: permissionRoutes[0]?.children ?? [],
+          permissionMenuTree: permissionMenuTopLevel,
+          permissionRouteTree: permissionRouteTopLevel,
           keepAliveNames,
           affixedTabs,
           indexMenuName,
@@ -288,8 +294,10 @@ export class SysMenuSharedService {
    * @description get full menu tree (for controller)
    *
    * 菜单树形态对照 Mongo 版：单次全量查询 + 内存建树（克制实现，不逐层懒加载）；
-   * P1-8 修复（2026-10-28）：查无菜单时 fullTree[0] 为 undefined —— 旧实现直接解引用
-   * `fullTree[0].children` → TypeError → 50000；改为受控空树（fullTree 回 []）。
+   * P1-8 修复（2026-10-28）：查无菜单时 fullTree 为空 —— 旧实现直接解引用
+   * `fullTree[0].children` → TypeError → 50000；改为受控空树。
+   * P3-18：多根部署下 fullTree = 全部根的 children 拼接（单根形态与旧 wire 一致；
+   * 根节点本身仍不进 fullTree —— 台账树/角色授权的数据结构以「根下第一层」为顶层）。
    */
   async getMenuTreeAndTreeWithoutTypeElement(em?: EntityManager) {
     const allMenus = await this.sysMenuRepoService.findAllMenus(em)
@@ -318,7 +326,7 @@ export class SysMenuSharedService {
       }))
 
     return {
-      fullTree: fullTree[0]?.children ?? [],
+      fullTree: fullTree.flatMap(root => root.children ?? []),
       treeWithoutTypeElement,
       menuActiveNamesOptions,
     }

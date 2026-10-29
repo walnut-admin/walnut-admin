@@ -486,8 +486,8 @@ MFA 成立判据有两套：`/auth/mfa/verify` 与 cron 用「类型数 + 已绑
 - **P2-26（C 段新登记）**：lock 的 `lockPwdHash` / `lockMode=security` 没有 HTTP 写入通道
   （lock body 只收 `lockRoute`），unlock 的 `lockPwdHash` 缺省即跳过比对，security 锁屏
   密码校验实际不可达。
-- **P3-21（C 段新登记）**：deleted 的 `system:deleted:recover:mine` 常量已声明但未接线，
-  `POST me/recover` 复用 `system:deleted:recover`。
+- **P3-21（C 段新登记）—— 已修复 2026-10-28**：`system:deleted:recover:mine` 已接线，
+  `POST me/recover` 与 `POST recover` 权限点解耦（后者仍带 `@HasRole` 管理角色闸）。
 - **P3-23（已修复，2026-10-29）**：备用码改为「确定性哈希（固定域 + userId）→ AES-GCM
   逐项加密」存储；校验复用 `totp/verify`（TOTP 优先、备用码回落、命中即消费、一次性），
   错误统一 40000；spec 覆盖正确码 20000→二次 40000、错误码、TOTP 优先、列表递减。

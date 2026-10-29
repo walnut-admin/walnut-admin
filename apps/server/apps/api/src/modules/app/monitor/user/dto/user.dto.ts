@@ -110,11 +110,14 @@ export class AppMonitorUserDTO extends IntersectionType(AppMonitorUserDTOBase, W
   id?: string
 
   // IsMongoId → IsUUID 模板（B1 确立）：PG 侧 user_id 是可空 uuid 松引用（phase2 4.21），
-  // 子类重声明整体替换继承的 IsMongoId 约束
+  // 子类重声明整体替换继承的 IsMongoId 约束。
+  // P3-15：未登录访客行 user_id 为 NULL（wire 上 userId: null），swagger 必须同步
+  // optional + nullable —— 此前只写 default: null，生成类型是必填 string，与事实不符。
   @Expose()
   @ApiProperty({
     type: String,
-    default: null,
+    required: false,
+    nullable: true,
     example: '0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c',
   })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })

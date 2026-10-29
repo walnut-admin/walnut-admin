@@ -440,11 +440,14 @@ indicator 自身抛异常（如 `disk` 路径不存在）才走全局兜底 5000
   设备登记是 app 族所有签名请求的入口，这条规则影响整条链。
 - **P3-6（裁决登记）**：`/shared/ali/sts` 在 env 配了 key 时发真实外网请求，测试只断言受控两态；
   STS 客户端注入化延后。
-- **P3-14（codegen 二期挂单）**：logger / monitor-cache 的行没有 `id`，两个 read 端点也没有
-  swagger schema；前端以 `filePath` / `key` 作 rowKey。
-- **P3-22（C 段新登记）**：health/disk 硬编码 `C:/`，Linux/容器部署磁盘检查恒失败。
-- **P3-26（D 段新登记）**：setting 没有 delete / deleteMany 端点，但 ENDPOINTS §1 记为
-  「CRUD + cache/refresh」；配置行只能改不能删，直接改库也不会触发 `APP:SETTING` 刷新。
+- **P3-14（read schema 已补，2026-10-29；余 list 行 id 观察）**：logger / monitor-cache 的
+  list 行没有 `id`（前端以 `filePath` / `key` 作 rowKey）；两个 read 端点已补专用响应
+  DTO（`AppLoggerReadResponseDTO` / `AppMonitorCacheReadResponseDTO`）。
+- **P3-22（已修复 2026-10-29）**：health/disk 的检查路径改按平台取根（Windows `C:/`、
+  类 Unix `/`），Linux/容器部署不再恒失败。
+- **P3-26（裁决 2026-10-29：配置不删）**：setting 没有 delete / deleteMany 端点，配置行只能
+  新增/修改；直接改库也不会触发 `APP:SETTING` 刷新。前端契约已写入
+  `apps/admin/src/api/types/frontend-shapes.ts`（不提供删除入口）。
 - **P3-27（D 段新登记）**：`JWT_AT` / `JWT_RT` 只有枚举与 CHECK，没有生产写入点；DTO 注释所称
   「系统启动自举」在代码中不存在，JWT 实际用 env secret。
 - **P3-28（D 段新登记）**：`shared_area` 的递归 CTE（`findSubtreeByCode` / `assembleSubtree`）

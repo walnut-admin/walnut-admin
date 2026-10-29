@@ -88,17 +88,17 @@ export class SysLangDTO extends SysLangDTOBase {
   @ApiProperty({ type: String, required: false })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
   id?: string
-}
 
-// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
-export class SysLangDTOSafe extends SysLangDTO {
-  constructor(partial?: Partial<SysLangDTOSafe>) {
-    super(partial ?? {})
-  }
-
+  // 列表行加工列（P3-10）：lang.basic.repository 的 PG list 覆写注入
+  // finished / total * 100；wire 上只出现在 list 行。零 locale 的 lang 在 JS 侧
+  // 除法得 NaN，JSON 序列化为 null —— 故 nullable。声明在基类而非 Safe 层：
+  // CRUD list 装饰器用 SysLangDTO 作为 data items 的文档真源（Safe 层不进 schema）。
   @WalnutAdminDecoratorFieldNumber({
     swaggerOptions: {
+      required: false,
+      nullable: true,
       title: 'translate process',
+      description: 'percentage (0-100); null when the lang has zero locales (NaN → null)',
     },
     transformOptions: {
       res: {
@@ -106,7 +106,14 @@ export class SysLangDTOSafe extends SysLangDTO {
       },
     },
   })
-  process: number
+  process?: number | null
+}
+
+// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
+export class SysLangDTOSafe extends SysLangDTO {
+  constructor(partial?: Partial<SysLangDTOSafe>) {
+    super(partial ?? {})
+  }
 }
 
 // list

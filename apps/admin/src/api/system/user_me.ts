@@ -1,5 +1,4 @@
-import type { SystemUser } from '@walnut/api-types'
-import type { MeSecurityTab2Status } from '../types/frontend-shapes'
+import type { MeSecurityTab2Status, SystemUser } from '@walnut/api-types'
 import { AppAxios } from '@/utils/axios'
 
 const systemUserMe = {

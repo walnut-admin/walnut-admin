@@ -1,3 +1,4 @@
+import process from 'node:process'
 import { Controller, Get } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import {
@@ -23,6 +24,15 @@ const Permissions = {
   MR: 'app:health:memory-rss',
   DISK: 'app:health:disk',
 } as const
+
+/**
+ * 磁盘健康检查的根路径（P3-22）：Windows 检查系统盘 `C:/`，类 Unix（容器 / Linux /
+ * macOS）检查 `/`。此前硬编码 `C:/`，非 Windows 部署上 DiskHealthIndicator 直接抛错，
+ * 经全局兜底成 50000 —— 磁盘检查恒失败。导出供单测钉住两个平台分支。
+ */
+export function getDiskHealthCheckPath(platform: NodeJS.Platform = process.platform): string {
+  return platform === 'win32' ? 'C:/' : '/'
+}
 
 @Controller('app/health')
 @ApiTags('app/health')
@@ -75,7 +85,7 @@ export class AppTechHealthController {
     return this.disk.checkStorage('disk', {
       // The used disk storage should not exceed 75% of the full disk size
       thresholdPercent: 0.75,
-      path: 'C:/',
+      path: getDiskHealthCheckPath(),
     })
   }
 }

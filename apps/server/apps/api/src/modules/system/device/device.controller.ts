@@ -121,6 +121,9 @@ export class SysDeviceController {
   @ApiWalnutOkResponse({
     description: 'get history users of current device',
     DTO: SysDeviceDTOHistoryUsersResponse,
+    // P3-11：处理器 plainToInstance 的是数组（历史活跃用户列表），装饰漏 isArray 会把
+    // openapi data 写成单对象；wire 零变化（admin getDeviceHistoryUsersAPI 已按数组消费）
+    isArray: true,
   })
   async getHistoryUsers(@WalnutAdminDecoratorParamUuid() id: string) {
     return plainToInstance(SysDeviceDTOHistoryUsersResponse, await this.deviceService.getHistoryUsersByDeviceId(id))

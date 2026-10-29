@@ -2,14 +2,16 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
 } from '@nestjs/common'
-import { ApiTags } from '@nestjs/swagger'
+import { ApiParam, ApiTags } from '@nestjs/swagger'
 
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminPipeCacheKey } from '@walnut-server/pipes'
 import { Role } from '@walnut/contract'
 import { WalnutCrudDecorators } from '@/decorators/crud'
@@ -22,6 +24,7 @@ import {
   AppMonitorCacheDTO,
   AppMonitorCacheDTOListRequest,
   AppMonitorCacheDTOListResponse,
+  AppMonitorCacheReadResponseDTO,
 } from './dto/cache.dto'
 
 const Permissions = {
@@ -31,7 +34,7 @@ const Permissions = {
   CLEAR: 'app:monitor:cache:clear',
 } as const
 
-const { WalnutAdminDecoratorRead, WalnutAdminDecoratorList, WalnutAdminDecoratorDelete } = WalnutCrudDecorators({
+const { WalnutAdminDecoratorList, WalnutAdminDecoratorDelete } = WalnutCrudDecorators({
   title: WalnutAdminConstDecoratorLogOperateTitle.APP_CACHE,
   DTO: AppMonitorCacheDTO,
 })
@@ -45,10 +48,23 @@ export class AppMonitorCacheController {
     private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
   ) { }
 
+  @Get(':key')
+  @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
-  @WalnutAdminDecoratorRead('key')
+  @ApiParam({
+    name: 'key',
+    type: String,
+    required: true,
+    description: '应用缓存 key',
+  })
+  @ApiWalnutOkResponse({
+    description: '根据 key 查询 应用缓存',
+    DTO: AppMonitorCacheReadResponseDTO,
+  })
   // key 形态闸（长度上限 + 字符白名单，写入方形态见 @walnut-server/const/app/cache）：
-  // 缓存键原样进 Redis 命令语义面，拦任意串（受控 40099）
+  // 缓存键原样进 Redis 命令语义面，拦任意串（受控 40099）。
+  // P3-14：read 响应是 `{ value }`（非 list 行），CRUD read 装饰器会复用行 DTO，
+  // 这里改为显式 Get + 专用响应 DTO（同 logger read 手法），wire 零变化。
   async read(@Param('key', new WalnutAdminPipeCacheKey()) key: string) {
     // P2-4：旧实现 `{ value: void await get(key) }` 把 await 的结果 void 掉 → 恒 undefined，
     // 响应体永远是 `{}`。补 await 后 value 即缓存真实值（缺失键为 null）。

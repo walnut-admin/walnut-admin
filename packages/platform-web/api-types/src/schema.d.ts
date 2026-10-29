@@ -3197,11 +3197,8 @@ export interface components {
             /** virtual device */
             device: components["schemas"]["SysDeviceDTOSafe"];
             id?: string;
-            /**
-             * @default null
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            userId: string;
+            /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
+            userId?: string | null;
         };
         AppMonitorUserDTOListResponse: {
             /** list response data */
@@ -3258,11 +3255,8 @@ export interface components {
             /** virtual device */
             device?: components["schemas"]["SysDeviceDTOSafe"];
             id?: string;
-            /**
-             * @default null
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            userId: string;
+            /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
+            userId?: string | null;
             /** country */
             country?: string;
             /** operating system */
@@ -3366,11 +3360,8 @@ export interface components {
             left: boolean;
             /** current page router */
             currentRouter?: string;
-            /**
-             * @default null
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            userId: string;
+            /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
+            userId?: string | null;
         };
         SysMenuDTOTree: {
             /**
@@ -4513,6 +4504,15 @@ export interface components {
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             deletedId: string;
         };
+        AppMonitorCacheReadResponseDTO: {
+            /**
+             * cache value
+             * @description cached value (raw JSON payload); null when the key is missing
+             */
+            value: (string | number | boolean | {
+                [key: string]: unknown;
+            } | unknown[]) | null;
+        };
         AppMonitorCacheDTO: {
             /** cache key */
             key: string;
@@ -5224,6 +5224,11 @@ export interface components {
             /** current lang's locales finished count */
             localesFinishedCount: number;
             id?: string;
+            /**
+             * translate process
+             * @description percentage (0-100); null when the lang has zero locales (NaN → null)
+             */
+            process?: number | null;
         };
         SysLangDTOCreateRequest: {
             /** language short */
@@ -5298,8 +5303,11 @@ export interface components {
             /** current lang's locales finished count */
             localesFinishedCount?: number;
             id?: string;
-            /** translate process */
-            process?: number;
+            /**
+             * translate process
+             * @description percentage (0-100); null when the lang has zero locales (NaN → null)
+             */
+            process?: number | null;
         };
         SysLangDTOListRequest: {
             /**
@@ -5376,6 +5384,11 @@ export interface components {
             id?: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             langId: string;
+            /**
+             * translate process
+             * @description fraction (0-1) of finished translations for the key (admin displays × 100)
+             */
+            process?: number;
         };
         SysLocaleDTOListResponse: {
             /** list response data */
@@ -5403,7 +5416,10 @@ export interface components {
             id?: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             langId?: string;
-            /** translate process */
+            /**
+             * translate process
+             * @description fraction (0-1) of finished translations for the key (admin displays × 100)
+             */
             process?: number;
         };
         SysLocaleDTOListRequest: {
@@ -5497,9 +5513,9 @@ export interface components {
             /** description */
             description: string;
             /** populated dict data */
-            dictData: components["schemas"]["SysDictDataDTOPopulatedDictData"];
+            dictData?: components["schemas"]["SysDictDataDTOPopulatedDictData"];
             /** populated dict data count */
-            dictDataCount: number;
+            dictDataCount?: number;
             id?: string;
         };
         SysDictTypeDTOCreateRequest: {
@@ -6837,6 +6853,18 @@ export interface components {
              */
             description: string;
         };
+        SysUserMeSecurityTab2MethodDTO: {
+            /** whether the mfa method is enabled */
+            status: boolean;
+            /** whether the mfa method is verified (bound) */
+            verified: boolean;
+        };
+        SysUserMeSecurityTab2ResponseDTO: {
+            /** totp status */
+            totp: components["schemas"]["SysUserMeSecurityTab2MethodDTO"];
+            /** webauthn status */
+            webauthn: components["schemas"]["SysUserMeSecurityTab2MethodDTO"];
+        };
         SysUserDeviceListItemDTO: {
             /**
              * device name, user can change this freely
@@ -7324,7 +7352,7 @@ export interface components {
              * @example 14
              * @enum {number}
              */
-            fontSize: never;
+            fontSize: 10 | 12 | 14 | 16 | 20;
             /**
              * reduced motion?
              * @default false
@@ -9092,7 +9120,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: components["schemas"]["AppMonitorCacheDTO"];
+                        data?: components["schemas"]["AppMonitorCacheReadResponseDTO"];
                         /**
                          * @description response code, see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -9832,7 +9860,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: components["schemas"]["SysDeviceDTOHistoryUsersResponse"];
+                        data?: components["schemas"]["SysDeviceDTOHistoryUsersResponse"][];
                         /**
                          * @description response code, see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -11789,7 +11817,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: null;
+                        data?: components["schemas"]["SysUserMeSecurityTab2ResponseDTO"];
                         /**
                          * @description response code, see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000

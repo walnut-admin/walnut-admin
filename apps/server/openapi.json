@@ -2305,7 +2305,7 @@
                     {
                       "properties": {
                         "data": {
-                          "$ref": "#/components/schemas/AppMonitorCacheDTO"
+                          "$ref": "#/components/schemas/AppMonitorCacheReadResponseDTO"
                         },
                         "code": {
                           "type": "number",
@@ -3401,7 +3401,10 @@
                     {
                       "properties": {
                         "data": {
-                          "$ref": "#/components/schemas/SysDeviceDTOHistoryUsersResponse"
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SysDeviceDTOHistoryUsersResponse"
+                          }
                         },
                         "code": {
                           "type": "number",
@@ -6497,7 +6500,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "null"
+                          "$ref": "#/components/schemas/SysUserMeSecurityTab2ResponseDTO"
                         },
                         "code": {
                           "type": "number",
@@ -9226,7 +9229,7 @@
           },
           "userId": {
             "type": "string",
-            "default": null,
+            "nullable": true,
             "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
           }
         },
@@ -9238,8 +9241,7 @@
           "left",
           "currentRouter",
           "user",
-          "device",
-          "userId"
+          "device"
         ]
       },
       "AppMonitorUserDTOListResponse": {
@@ -9335,7 +9337,7 @@
           },
           "userId": {
             "type": "string",
-            "default": null,
+            "nullable": true,
             "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
           },
           "country": {
@@ -9504,7 +9506,7 @@
           },
           "userId": {
             "type": "string",
-            "default": null,
+            "nullable": true,
             "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
           }
         }
@@ -11376,6 +11378,38 @@
           "deletedId"
         ]
       },
+      "AppMonitorCacheReadResponseDTO": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "title": "cache value",
+            "description": "cached value (raw JSON payload); null when the key is missing",
+            "nullable": true,
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "object",
+                "additionalProperties": true
+              },
+              {
+                "type": "array",
+                "items": {}
+              }
+            ]
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
       "AppMonitorCacheDTO": {
         "type": "object",
         "properties": {
@@ -12777,6 +12811,12 @@
           },
           "id": {
             "type": "string"
+          },
+          "process": {
+            "type": "number",
+            "nullable": true,
+            "title": "translate process",
+            "description": "percentage (0-100); null when the lang has zero locales (NaN → null)"
           }
         },
         "required": [
@@ -12915,7 +12955,9 @@
           },
           "process": {
             "type": "number",
-            "title": "translate process"
+            "nullable": true,
+            "title": "translate process",
+            "description": "percentage (0-100); null when the lang has zero locales (NaN → null)"
           }
         }
       },
@@ -13034,6 +13076,11 @@
           "langId": {
             "type": "string",
             "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "process": {
+            "type": "number",
+            "title": "translate process",
+            "description": "fraction (0-1) of finished translations for the key (admin displays × 100)"
           }
         },
         "required": [
@@ -13094,7 +13141,8 @@
           },
           "process": {
             "type": "number",
-            "title": "translate process"
+            "title": "translate process",
+            "description": "fraction (0-1) of finished translations for the key (admin displays × 100)"
           }
         }
       },
@@ -13275,9 +13323,7 @@
           "name",
           "type",
           "status",
-          "description",
-          "dictData",
-          "dictDataCount"
+          "description"
         ]
       },
       "SysDictTypeDTOCreateRequest": {
@@ -15462,6 +15508,48 @@
           "nickName"
         ]
       },
+      "SysUserMeSecurityTab2MethodDTO": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "boolean",
+            "title": "whether the mfa method is enabled"
+          },
+          "verified": {
+            "type": "boolean",
+            "title": "whether the mfa method is verified (bound)"
+          }
+        },
+        "required": [
+          "status",
+          "verified"
+        ]
+      },
+      "SysUserMeSecurityTab2ResponseDTO": {
+        "type": "object",
+        "properties": {
+          "totp": {
+            "title": "totp status",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysUserMeSecurityTab2MethodDTO"
+              }
+            ]
+          },
+          "webauthn": {
+            "title": "webauthn status",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysUserMeSecurityTab2MethodDTO"
+              }
+            ]
+          }
+        },
+        "required": [
+          "totp",
+          "webauthn"
+        ]
+      },
       "SysUserDeviceListItemDTO": {
         "type": "object",
         "properties": {
@@ -16443,7 +16531,13 @@
         "properties": {
           "fontSize": {
             "type": "number",
-            "enum": [],
+            "enum": [
+              10,
+              12,
+              14,
+              16,
+              20
+            ],
             "default": 14,
             "title": "font size",
             "example": 14

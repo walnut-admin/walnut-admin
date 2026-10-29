@@ -13,7 +13,7 @@ import { SysMenuEntity } from '../entity/menu.entity'
  * NO business logic - only data access.
  *
  * B5 迁移：Mongo model → PG 命名连接 DataSource，查询语义逐一对齐 Mongo 版
- * （findAllMenus 全量、findRootMenu 取 pid 为空的根、findMenusByIds $in → In）。
+ * （findAllMenus 全量、findAllRootMenus 取全部 pid 为空的根、findMenusByIds $in → In）。
  * 菜单树组装（children）对照 Mongo 版口径：**单次全量查询 + 内存建树**，不做
  * 逐层懒加载（phase3-plan §1 B5「克制实现」，同 area 批口径）。
  */
@@ -41,11 +41,17 @@ export class SysMenuRepositoryService {
   }
 
   /**
-   * @description find root menu (pid is null —— 根节点 pid=NULL，phase2 4.3；
-   * 对齐 Mongo 版 findOne({ pid: undefined }))
+   * @description find all root menus（P3-18：DDL 没有「单根」唯一性约束，多根部署下
+   * 非 root 用户的 permission tree 需要全部根才能把授权菜单挂回各自根节点）。
+   * 排序按 meta.order（列 sort_order）+ createdAt，保证多根拼接顺序确定。
+   *
+   * 旧 `findRootMenu`（findOne）随 P3-18 退役：单根口径会把其他根的子树整棵丢弃。
    */
-  async findRootMenu(em?: EntityManager) {
-    return this.getRepository(em).findOne({ where: { pid: IsNull() } })
+  async findAllRootMenus(em?: EntityManager) {
+    return this.getRepository(em).find({
+      where: { pid: IsNull() },
+      order: { order: 'ASC', createdAt: 'ASC' },
+    })
   }
 
   /**

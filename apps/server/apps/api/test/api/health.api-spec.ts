@@ -16,6 +16,9 @@ import { createApiApp } from './helpers/create-api-app'
  *   达标 20000（出参 `{ <endpoint>: { status: 'up' } }`）或超阈 50000（terminus 503 被
  *   异常过滤器兜底映射 50000，非 50300 —— 钉现状）。出参形状按本仓库 terminus 版本实测：
  *   只有 indicator 键，无 `{ status, info, details }` 外壳。
+ * - P3-22：disk 检查路径按 `process.platform` 取根（Windows `C:/`、类 Unix `/`），
+ *   spec 在 Windows 开发机与 Linux CI 上跑的都是存在路径，不再有「非 Windows 恒 50000」
+ *   的失败面；平台分支由 `health.controller.spec.ts` 单测钉死。
  * - network 端点外连 baidu.com，外部依赖不进回归（ENDPOINTS.md §6 登记）。
  * - 根 controller：`/`（DeviceFree+JwtFree，Sign 仍生效）匿名可达；`/auth`（仅
  *   DeviceFree）与 `/deps` 登录态才可达。注意 `anon()` 在 `setAuth()` 之后签的是双因子

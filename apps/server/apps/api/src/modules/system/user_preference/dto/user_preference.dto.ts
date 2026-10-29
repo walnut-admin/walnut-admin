@@ -7,7 +7,7 @@ import { RealPickType } from '@walnut-server/utils/dto'
 import { Locale, LocaleType } from '@walnut/contract'
 import { Expose } from 'class-transformer'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-import { colorModeConst, CVDConst, fontSizeConst, IColorModeConst, ICVDConst, IFontSizeConst, ILayoutModeConst, layoutModeConst } from '../preference.const'
+import { colorModeConst, CVDConst, fontSizeConst, fontSizeValues, IColorModeConst, ICVDConst, IFontSizeConst, ILayoutModeConst, layoutModeConst } from '../preference.const'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/user_preference.schema.ts 的
 // SysUserPreferenceModel 改名 SysUserPreferenceDTOBase），装饰器与字段本体零改动
@@ -15,7 +15,9 @@ export class SysUserPreferenceDTOBase extends WalnutAdminCommonBasicModel {
   @Expose()
   userId: string
 
-  @WalnutAdminDecoratorFieldEnum(() => fontSizeConst, {
+  // P3-13：enum 源用值数组（fontSizeValues），数字键对象直传会产出空 enum
+  // → openapi-typescript 生成 `fontSize: never`
+  @WalnutAdminDecoratorFieldEnum(() => fontSizeValues, {
     default: fontSizeConst[14],
     swaggerOptions: {
       title: 'font size',

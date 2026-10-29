@@ -29,10 +29,14 @@
 > junction 部分仍登记；P2-22 用户外围条目随其覆盖，剩 oauth 一面）；P2-20 已于 2026-10-29 修复；
 > P2-21 ~ P2-29 为文档大轮次 C 段新登记；P2-30 / P2-31 为 D 段新登记；
 > P2-32 为 C+D 批复审新登记（2026-10-28），已于 2026-10-29 修复）｜
-> P3 × 34（P3-2 / P3-3 / P3-5 已于 2026-10-28 修复；P3-1 / P3-4 / P3-6 / P3-7 同日裁决登记；
-> P3-8 已豁免；P3-9 随 OpenAPI codegen 二期修复；P3-10 ~ P3-16 为 codegen 二期挂单；
-> P3-17 为文档复审新登记；P3-18 ~ P3-20 为 B 段新登记；
-> P3-21 ~ P3-24 为 C 段新登记（P3-23 已于 2026-10-29 修复）；P3-25 ~ P3-30 为 D 段新登记；
+> P3 × 34（P3-2 / P3-3 / P3-5 已于 2026-10-28 修复；P3-1 / P3-4 / P3-6 / P3-7 同日裁决登记，
+> 2026-10-29 契约写入 admin `api/types/frontend-shapes.ts`；
+> P3-8 已豁免；P3-9 随 OpenAPI codegen 二期修复；P3-10 ~ P3-16 为 codegen 二期挂单，
+> 2026-10-29 文档债批次收口（P3-14 仅剩 list 行虚构 id 观察）；
+> P3-17 为文档复审新登记；P3-18 ~ P3-20 为 B 段新登记，2026-10-29 修复；
+> P3-21 ~ P3-24 为 C 段新登记（P3-21 / P3-22 于 2026-10-29 修复；P3-23 已于 2026-10-29 修复；
+> P3-24 前提不成立、注释已同步）；P3-25 ~ P3-30 为 D 段新登记（P3-25 / P3-26 于 2026-10-29
+> 收口：前者同步实体注释，后者契约写入前端文档）；
 > P3-31 ~ P3-34 为 guard 分支覆盖补齐批新登记（P3-32 已于 2026-10-29 修复））**，末节附 G/H 段实测无恙面。
 
 ---
@@ -758,6 +762,7 @@
   同 user+device 重复登录。
 - **建议**：登录事务内加 `(user, device)` 维度的锁/`FOR UPDATE`，或加部分唯一索引让并发
   败者受控（40109）。
+- 【部署口径 2026-10-28：单实例部署，本条降级为 backlog 观察】
 
 ### P2-15 永久 IP 黑名单写腿在零配置下静默 no-op —— 依赖 `app.global.ipBlackList` 行预先存在 —— 【已修复 2026-10-28】
 
@@ -930,6 +935,7 @@
   guard 回源」，不覆盖两个写请求/「回填与双写」交错。
 - **建议**：状态位改原子 `UPDATE ... SET locked/banned = ... RETURNING *`（或事务内
   `FOR UPDATE`）；guard 回填前重新读库或用版本列比较，缓存加 TTL 作为兜底。
+- 【部署口径 2026-10-28：单实例部署，本条降级为 backlog 观察】
 
 ### P2-22 恢复用户不恢复账户外围 —— identity / oauth / device / lock / mfa / preference 全丢（C 段，新登记）
 
@@ -1023,6 +1029,8 @@
 - **实测证据**：本次读码 + 源码注释；无多实例环境可实测。
 - **建议**：扩多实例前补 Redis pub/sub 或 keyspace 通知失效；短期给 memo 加短 TTL 并在
   部署文档写明单实例前提。
+- 【部署口径 2026-10-28：单实例部署，本条降级为 backlog 观察】（memo 的进程内边界注释保持，
+  扩多实例前仍需按上方建议处理）
 
 ### P2-28 定时任务没有分布式锁，且启动期同步跑全量任务（C 段，新登记）
 
@@ -1037,6 +1045,7 @@
 - **实测证据**：本次读码；无多实例环境可实测。
 - **建议**：引入 Redis 分布式锁（`murlock` 或 `SET NX` + 过期）或 job 注册表；启动期只保留
   settings/locale 预热，把 rotate / 清理挪出同步执行路径。
+- 【部署口径 2026-10-28：单实例部署，本条降级为 backlog 观察】
 
 ### P2-29 `logOperateId` 回填是异步旁路 —— 可能早于事务提交，且按 `deletedId` 覆盖历史快照（C 段，新登记）
 
@@ -1069,6 +1078,7 @@
 - **建议**：轮转保留短时重叠窗口（按 `version` 记录可解密的旧私钥，或延迟 DEPRECATED 生效），
   或在 rotate 前等待在途请求排空；`getCurrent` 对 `validEnd` 过期给出明确语义（自动轮转 /
   受控 503），不要静默继续用过期 key。
+- 【部署口径 2026-10-28：单实例部署，本条降级为 backlog 观察】
 
 ### P2-31 monitor/state 的 auth=false 不清 userId —— 在线监控残留上次登录用户（D 段，新登记）
 
@@ -1121,6 +1131,8 @@
 - **裁决（2026-10-28，批 2）**：**接受现状（HTTP 200 + body.code 42900）并写入前端契约** ——
   不放行原生 HTTP 429（统一响应壳是全站契约，单点例外会破坏前端响应拦截器的唯一分支）。
   `ENDPOINTS.md` 的 throttle/device initial 行已补「前端消费事实契约」说明。
+- **已写入前端契约文档（2026-10-29）**：`apps/admin/src/api/types/frontend-shapes.ts`
+  的「前端消费契约」第 1 条（前端限流分支只认 `body.code === 42900`，`Retry-After` 给剩余秒数）。
 
 ### P3-2 device initial 重名 device_name（23505）被 catch-all 吞掉 → 误导性 40605 —— 【已修复 2026-10-28】
 
@@ -1151,6 +1163,9 @@
   `permissionMenuTree` 顶层 = 首个根节点的 children（admin 侧菜单渲染即按此消费）；
   改返回完整根数组会牵动前端菜单树装配，收益不足。`ENDPOINTS.md` 的
   `GET /auth/permissions` 行已补前端消费契约说明。
+- **已写入前端契约文档（2026-10-29）**：`apps/admin/src/api/types/frontend-shapes.ts`
+  的「前端消费契约」第 2 条 —— 单根部署顶层 = 首根 children、无子级时顶层数组恒空；
+  P3-18 修复后多根 = 全部根 children 按根序拼接（单根 wire 不变）。
 
 ### P3-5 webauthn register/verify 带 garbage response → 未受控异常兜底 50000 —— 【已修复 2026-10-28】
 
@@ -1180,6 +1195,8 @@
   引用（sys_user_role / sys_role_menu / current_role_id 多处关联），不提供 delete /
   deleteMany；停用走 update status，解绑走 junction 调整。`ENDPOINTS.md` 的 role 行同步
   标注该约束。
+- **已写入前端契约文档（2026-10-29）**：`apps/admin/src/api/types/frontend-shapes.ts`
+  的「前端消费契约」第 3 条（前端不得渲染角色删除入口）。
 
 ### P3-8 cap challenge/redeem 无响应壳 + OAuth SSE `@Res()` 直写 —— 确认设计内，已豁免（2026-10-27）
 
@@ -1198,8 +1215,14 @@
 >
 > **收尾批（2026-10-29）进展**：P3-14 的 logger `read` 响应 schema 已补
 > （`AppLoggerReadResponseDTO`）；P3-12（security-tab2 `data:null`）与 P3-13
-> （fontSize never）维持登记，admin 侧已迁到 `api/types/frontend-shapes.ts` 逐条注明
-> 「前端变换层/消费形状」。
+> （fontSize never）当时维持登记（后于同日的文档债批次收口，见下段），admin 侧已迁到
+> `api/types/frontend-shapes.ts` 逐条注明「前端变换层/消费形状」。
+>
+> **文档债批次（2026-10-29）**：P3-10（process 入 schema）、P3-11（isArray）、P3-12
+> （security-tab2 DTO）、P3-13（fontSize 值数组）、P3-14 剩余（monitor-cache read schema）、
+> P3-15（userId optional/nullable）、P3-16（dictData/dictDataCount optional）全部收口；
+> openapi 重新 export + generate，admin 消费侧随生成类型适配（`MeSecurityTab2Status`
+> 改由 `@walnut/api-types` 提供、lang/locale 别名去掉手写 process）。
 
 ### P3-9 `/system/user/lock/read` swagger 谎报 `primitive: 'boolean'` —— 【已修复：2026-10-28 装饰器 DTO 化】
 
@@ -1213,7 +1236,7 @@
 - **修法（2026-10-28，codegen 二期例外流程）**：装饰器改 `DTO: SysUserLockPreferenceDTO`
   并重新 export/generate —— 只动 swagger 元数据，wire 零变化（断言不受影响）。
 
-### P3-10 lang / locale list 行的 `process` 未入 swagger
+### P3-10 lang / locale list 行的 `process` 未入 swagger —— 【已修复 2026-10-29】
 
 - **位置**：① `system/lang/lang.basic.repository.ts`（PG list 覆写注入 `process`，`SysLangDTO`
   无该字段声明）；② `system/locale/dto/locale.dto.ts`（`process` 声明在子类
@@ -1225,16 +1248,26 @@
   生成 `SysLangDTO` / `SysLocaleDTO` schema 均无 process。
 - **建议**：① `SysLangDTO` 补 `@Expose() process?: number`（或 list 专用行 DTO）；
   ② locale 的 ListResponse 改用含 process 的行 DTO。admin 已在别名层补 `process?: number` 兜底。
+- **修法（2026-10-29，文档债批次）**：`process` 声明从 Safe 子类上移到
+  `SysLangDTO` / `SysLocaleDTO` 基类（CRUD list 装饰器的 data items 文档真源就是基类），
+  统一 `required: false`；lang 额外 `nullable: true`（零 locale 时 `finished / total`
+  在 JS 侧为 NaN → JSON 序列化 `null`），locale 为 0..1 小数。openapi 重新
+  export/generate 后生成类型：`SysLangDTO.process?: number | null`、
+  `SysLocaleDTO.process?: number`；admin 的 `SystemLang` / `SystemLocale` 别名去掉手写
+  `& { process?: number }`（改为完全由生成 schema 提供）。wire 零变化。
 
-### P3-11 `GET /system/device/{id}/history-users` 装饰漏 `isArray`
+### P3-11 `GET /system/device/{id}/history-users` 装饰漏 `isArray` —— 【已修复 2026-10-29】
 
 - **位置**：`system/device/device.controller.ts` `@Get(':id/history-users')`。
 - **现象**：`@ApiWalnutOkResponse({ DTO: SysDeviceDTOHistoryUsersResponse })` 未带
   `isArray: true`，openapi 文档 data 是单对象；处理器 `plainToInstance(..., 数组)` 实返数组。
 - **实测证据**：admin `getDeviceHistoryUsersAPI` 直接 `.map` 消费（device/index.vue 历史用户表）。
 - **建议**：装饰器补 `isArray: true`，重新 export/generate 即可（admin 已按数组消费）。
+- **修法（2026-10-29，文档债批次）**：装饰器补 `isArray: true` —— openapi data 变数组
+  （`items: SysDeviceDTOHistoryUsersResponse`），生成侧路径响应类型同步；wire 零变化，
+  admin 消费点无需改。
 
-### P3-12 `GET /system/user/me/security-tab2` `DTO: null` 实返对象
+### P3-12 `GET /system/user/me/security-tab2` `DTO: null` 实返对象 —— 【已修复 2026-10-29】
 
 - **位置**：`system/user/controllers/user.me.controller.ts` `@Get('security-tab2')`
   （装饰与端点均自带 `// TODO should remove`）。
@@ -1242,8 +1275,13 @@
   （admin `api/types/frontend-shapes.ts` 的 `MeSecurityTab2Status` 兜底中，收尾批原样保留）。
 - **实测证据**：admin me/security tab2 直接消费该形状（`userMeService.getSecurityTab2Status`）。
 - **建议**：端点既标记待移除，二选一：补一个 tab2 状态 DTO 的 `@ApiWalnutOkResponse`，或按 TODO 下线端点。
+- **修法（2026-10-29，文档债批次）**：按实现形状补 `SysUserMeSecurityTab2ResponseDTO`
+  （`totp` / `webauthn` 各为 `SysUserMeSecurityTab2MethodDTO{status,verified}`），装饰器
+  `DTO` 指向它；端点保留 `// TODO should remove`，wire 不变。admin 的
+  `MeSecurityTab2Status` 从手写兜底迁到 `@walnut/api-types` 生成别名，`frontend-shapes.ts`
+  删除该条（剩余 5 条按统一格式注释）。
 
-### P3-13 `SysUserPreferenceDTOAccessibilityRequest.fontSize` 枚举生成 `never`
+### P3-13 `SysUserPreferenceDTOAccessibilityRequest.fontSize` 枚举生成 `never` —— 【已修复 2026-10-29】
 
 - **位置**：`system/user_preference/dto/user_preference.dto.ts` +
   `preference.const.ts` 的 `fontSizeConst`（数字自映射对象 `{10: 10, ...}`）。
@@ -1254,12 +1292,18 @@
 - **实测证据**：生成 `schema.d.ts` `fontSize: never`（`@enum {number}`）。
 - **建议**：`fontSizeConst` 改数组（或 FieldEnum 侧传 `Object.values(...)`），注意
   `WADVE` 校验器同源消费需一并核对。
+- **修法（2026-10-29，文档债批次）**：`preference.const.ts` 新增 `fontSizeValues =
+  Object.values(fontSizeConst)`，DTO 的 enum 源改 `() => fontSizeValues`；`IsEnum` 对数组
+  取 `Object.values` 语义不变（校验值集与 `fontSizeConst` 同源），CHECK 漂移守卫仍以
+  `fontSizeConst` 为值集真源。生成类型 `fontSize: 10 | 12 | 14 | 16 | 20`
+  （openapi `enum: [10,12,14,16,20]`）。
 
-### P3-14 logger / monitor-cache 行无 `id`，两个 read 端点无 schema —— 【logger read 已补：2026-10-29】
+### P3-14 logger / monitor-cache 行无 `id`，两个 read 端点无 schema —— 【read schema 已补：2026-10-29】
 
 > 收尾批已给 `GET /app/logger/:logType/:fileName` 补 `AppLoggerReadResponseDTO`
-> （wire 零变化，admin 改用生成别名）。**剩余未决**：两个 list 行的 `id` 虚构、
-> `app/monitor/cache` 的 read 响应仍无 schema（返回 `{value}`）。
+> （wire 零变化，admin 改用生成别名）；文档债批次又给 `GET /app/monitor/cache/{key}`
+> 补 `AppMonitorCacheReadResponseDTO`（`{ value }`，value 为任意 JSON、缺失键 null）。
+> **剩余观察**：两个 list 行的 `id` 虚构（等 server 决定是否给两表真实主键后再摘）。
 
 - **位置**：① `app/logger`（list 行 = `AppLoggerDTO`，无 id；`read` 手工返回
   `{fileName, filePath, fileContent: string[]}` 无任何 swagger 装饰）；②
@@ -1272,8 +1316,14 @@
   `keyField = 'key'`。
 - **建议**：给 read 端点补专用响应 DTO（顺带修 `dictData` 同类的「手工返回无文档」面）；
   id 虚构可在 server 决定是否给两表真实主键后再摘。
+- **修法（2026-10-29，文档债批次）**：cache read 改为显式 `@Get(':key')` +
+  `@ApiWalnutOkResponse({ DTO: AppMonitorCacheReadResponseDTO })` + `@ApiParam`（同 logger
+  read 手法，不再复用 CRUD read 的行 DTO）；`value` 用 `oneOf`（string/number/boolean/
+  object/array + nullable）表达任意 JSON，生成 `value: string | number | boolean |
+  { [key: string]: unknown } | unknown[] | null`。wire 零变化；admin 缓存详情抽屉仍按
+  `{ value }` 消费。
 
-### P3-15 `AppMonitorUserDTO.userId` 标必填 `string`，wire 上未登录访客为 `null`
+### P3-15 `AppMonitorUserDTO.userId` 标必填 `string`，wire 上未登录访客为 `null` —— 【已修复 2026-10-29】
 
 - **位置**：`app/monitor/user/dto/user.dto.ts`（`@Expose() userId: string` 无可空标记）。
 - **现象**：生成类型 `userId: string`（ListResponse 行内必填）；实体列可空，未登录访客
@@ -1282,8 +1332,11 @@
   生成 `AppMonitorUserDTO.userId: string`。
 - **建议**：DTO 侧声明可空（`userId?: string | null` 形态的装饰），swagger 同步；
   admin 已按 `userId?: string | null` 兜底。
+- **修法（2026-10-29，文档债批次）**：子类重声明的 `@ApiProperty` 补
+  `required: false, nullable: true` → 生成 `userId?: string | null` 且移出 required；
+  wire 零变化（monitor-user spec 的匿名访客 `userId` 为 null 断言不动）。
 
-### P3-16 `SysDictTypeDTOSafe.dictData` 声明为必填单对象，PG list 行不材料化
+### P3-16 `SysDictTypeDTOSafe.dictData` 声明为必填单对象，PG list 行不材料化 —— 【已修复 2026-10-29】
 
 - **位置**：`system/dict/dictType/dto/dictType.dto.ts`（`dictData?: SysDictDataDTOPopulatedDictData`
   虚拟字段 + 生成 schema 标为 required）+ `dictType.basic.repository.ts`（PG list 只注入
@@ -1293,6 +1346,10 @@
   （admin 不消费该字段，走 `GET /system/dict/type/s` 的 `WithDictDataResponse` 数组形态）。
 - **实测证据**：`dictType.basic.repository.ts` 的 list 行接口仅 `& { dictDataCount: number }`。
 - **建议**：摘除或改可选（Mongo 时代虚拟残留；顺带核对 `dictDataCount` 的 required 标记是否属实）。
+- **修法（2026-10-29，文档债批次）**：两个 virtual 字段都改 `required: false` —— 核对结论是
+  `dictDataCount` 同样只在 list 行注入（read/create/update 两条腿都不带），required 也不属实。
+  生成 `SysDictTypeDTOSafe.dictData?` / `dictDataCount?`；`SysDictTypeDTOWithDictDataResponse`
+  的数组形态（admin 实际取数路径）不受影响，admin 侧零改动。
 
 ### P3-17 ENDPOINTS.md 的 sensitive verify 请求形态与 DTO 不符（文档大轮次 A 段，新登记）
 
@@ -1305,7 +1362,7 @@
 - **实测证据**：本次文档复审读码 + `security.api-spec.ts` 的 verify 用例字段。
 - **建议**：修正 ENDPOINTS 行；若允许破坏性改动，统一 check/verify 的参数命名。
 
-### P3-18 多根菜单部署下树被截断 —— fullTree / permissionMenuTree 只取第一个根（B 段，新登记）
+### P3-18 多根菜单部署下树被截断 —— fullTree / permissionMenuTree 只取第一个根（B 段，新登记）—— 【已修复 2026-10-29】
 
 - **位置**：`apps/api/src/modules/system/menu/shared/menu.shared.service.ts`
   （`getMenuTreeAndTreeWithoutTypeElement` 的 `fullTree[0]?.children`；`getCorePermissions`
@@ -1320,6 +1377,16 @@
   的种子都只有一个根，无法触发。
 - **建议**：要么把单根做成显式约束（迁移断言 / create 时校验根节点唯一），要么
   `fullTree` 返回完整根数组并同步前端契约与 P3-4 的裁决。
+- **修法（2026-10-29，B 段）**：选「顶层 = 全部根 children 按根序拼接」—— `fullTree` /
+  `permissionMenuTree` / `permissionRouteTree` 三处都改成 `flatMap(root => root.children ?? [])`。
+  单根部署（seed 形态）与旧 wire 完全一致（顶层仍是首根 children），多根时不再截断；
+  根节点本身仍不进这些树（与 admin 菜单渲染的层级契约一致，`treeWithoutTypeElement`
+  继续保留全部根供父节点选择）。repo 层 `findRootMenu`（findOne）退役，新增
+  `findAllRootMenus`（按 `order` + `createdAt` 排序，保证拼接顺序确定）；
+  `getCorePermissions` 非 root 路径同样取全部根（否则其他根下的授权菜单会成为孤儿被丢）。
+  测试：`menu.api-spec.ts` 新增双根用例（两根各挂子菜单 → 两个子节点都在 fullTree，
+  两根都不在；treeWithoutTypeElement 含两根）；int-spec 的两处取根入口同步改
+  `findAllRootMenus()[0]`。
 
 ### P3-19 ENDPOINTS.md 把 me/profile 的权限点登记为 `me:profile:update`，代码是 `system:user:updateProfile`（B 段，新登记）
 
@@ -1331,7 +1398,7 @@
 - **实测证据**：本次读码 + 全仓 grep：`me:profile:update` 只出现在 ENDPOINTS.md。
 - **建议**：修正 ENDPOINTS 行；若确定统一到 `me:` 前缀，则同步改 controller 与菜单 seed。
 
-### P3-20 locale 映射 body 无任何 langId 键时直落 service —— TypeError 兜底 50000（B 段，新登记）
+### P3-20 locale 映射 body 无任何 langId 键时直落 service —— TypeError 兜底 50000（B 段，新登记）—— 【已修复 2026-10-29】
 
 - **位置**：`apps/api/src/modules/system/locale/locale.pipe.ts`
   （只保留 uuid 键，无匹配键时产出 `[]`）+ `locale.controller.ts` 的 `ParseArrayPipe`
@@ -1343,8 +1410,12 @@
 - **实测证据**：本次读码钉死；A 段 `locale.api-spec.ts` 只覆盖正常映射 body 与缓存语义。
 - **建议**：`LocalePayloadTransformPipe` 产出空数组时直接
   `WalnutAdminExceptionRequestDataError`（40099 族），或 controller 入口判空。
+- **修法（2026-10-29，B 段）**：pipe 在产出空数组时抛
+  `WalnutAdminExceptionRequestDataError`（40099），校验层语义 = 「一次提交至少一个翻译键」。
+  `locale.api-spec.ts` 新增用例：`{}` / 只有 key / PUT 同形态三种请求都返回 40099，
+  且不落任何行（此前是 50000）。
 
-### P3-21 deleted 的 `system:deleted:recover:mine` 常量未接线 —— `me/recover` 复用管理端权限点（C 段，新登记）
+### P3-21 deleted 的 `system:deleted:recover:mine` 常量未接线 —— `me/recover` 复用管理端权限点（C 段，新登记）—— 【已修复 2026-10-29】
 
 - **位置**：`apps/api/src/modules/system/deleted/deleted.controller.ts` 的 `Permissions`
   （`RECOVER_MINE: 'system:deleted:recover:mine'` 声明后未使用；`me/recover` 挂的是
@@ -1355,8 +1426,19 @@
 - **实测证据**：本次读码；`deleted.api-spec.ts` 用 root 短路，未覆盖非管理员的权限差异。
 - **建议**：给 `me/recover` 接线独立权限点（并授予所有登录角色），或删除常量并把
   「两路径同权限点」写进契约。
+- **修法（2026-10-29，B 段，选「接线」）**：`me/recover` 改挂 `Permissions.RECOVER_MINE`
+  （`system:deleted:recover:mine`）。**影响评估**：seed 的 `sys_menu.json` 已含该
+  element 行（`system:deleted:recover:mine`，与 `system:deleted:recover` 并列），角色在
+  管理台勾选即可授权；seed 角色里没有任何角色持有旧的管理端 `system:deleted:recover`
+  （admin/developer 的菜单集都不含 deleted 权限点），root 走 guard 短路 —— 因此
+  **不破坏任何既有用户的恢复能力**，只是把「恢复自己的数据」从管理权限点里解耦出来。
+  运行期若有人此前手动给普通角色授过 `system:deleted:recover`，需补授
+  `system:deleted:recover:mine` 才能继续用 me/recover（管理端 recover 仍需前者 +
+  `@HasRole`）。测试：`deleted.api-spec.ts` 新增非 root 双用户用例 —— 只有
+  `recover:mine` 的用户能恢复自己删的行；只有管理端 `recover` 的用户打 me/recover
+  得 40105（新权限点确实在判定）。`ENDPOINTS.md` / system-data / system-account 同步。
 
-### P3-22 `GET /app/health/disk` 硬编码 Windows 路径 `C:/`（C 段，新登记）
+### P3-22 `GET /app/health/disk` 硬编码 Windows 路径 `C:/`（C 段，新登记）—— 【已修复 2026-10-29】
 
 - **位置**：`apps/api/src/modules/techniques/health/health.controller.ts` 的
   `checkStorage('disk', { thresholdPercent: 0.75, path: 'C:/' })`。
@@ -1364,6 +1446,10 @@
   异常过滤器兜底为 HTTP 200 + `body.code = 50000`，磁盘健康检查恒失败。
 - **实测证据**：本次读码；B 段 `health.api-spec.ts` 在 Windows 开发机运行，未覆盖 Linux。
 - **建议**：路径取自 env 或按 `process.platform` 选根路径（Linux 用 `/`），并补平台分支。
+- **修法（2026-10-29，B 段）**：新增 `getDiskHealthCheckPath(platform = process.platform)` ——
+  win32 → `C:/`，其余平台 → `/`；controller 用它填 `checkStorage.path`。单测
+  `health.controller.spec.ts` 钉住两个分支；`health.api-spec.ts` 的 disk 用例保持
+  「受控二值」（宿主水位 75%），注释同步平台口径。行为对称：各平台都检查系统盘根。
 
 ### P3-23 MFA 备用码校验无 HTTP 通道 + 裸 Nest 异常；SMS 密文列无写入路径（C 段）—— 【已修复 2026-10-29】
 
@@ -1398,7 +1484,7 @@
   错误备用码 40000 / TOTP 码仍成功 / `cardinality(backup_codes_ciphertext)` 9→8 递减」；
   `user.mfa.pg.int-spec.ts` 的旧「恒 miss」用例翻转为确定性哈希 + 可解密比对 + 旧项不可解密。
 
-### P3-24 `log_operate.action_type` 的 const 与 DB CHECK 不一致（C 段，新登记）
+### P3-24 `log_operate.action_type` 的 const 与 DB CHECK 不一致（C 段，新登记）—— 【前提不成立 / 已收口 2026-10-29】
 
 - **位置**：`@walnut-server/const/decorator/logOperate` 的 `WalnutAdminConstDecoratorLogOperateAction`
   + `apps/api/src/modules/system/logs/operate/entity/log-operate.entity.ts` 的列注释
@@ -1412,8 +1498,11 @@
 - **D 段复核（2026-10-28）**：当前 migration 的 `ck_log_operate_action_type` **已包含**
   `REFRESH` / `AUTH`（共 10 个值），本条「撞 23514」的前提不成立；需要修的是实体注释
   与 phase2 小节的值域说明，见 P3-25。
+- **收口（2026-10-29，文档债批次）**：核实 migration CHECK 与 const 已一致（10 值），
+  const 不改；实体头注的「暂按 8 值、待定夺」与列注释的 8 值列表已同步为 10 值，
+  `system-data.md` 的「待定夺」标注同步修正。本条不再有代码待办。
 
-### P3-25 实体注释与 migration 的 CHECK 取值域漂移（menu cache_key_strategy / log_operate action_type）（D 段，新登记）
+### P3-25 实体注释与 migration 的 CHECK 取值域漂移（menu cache_key_strategy / log_operate action_type）（D 段，新登记）—— 【已修复 2026-10-29】
 
 - **位置**：`apps/api/src/modules/system/menu/entity/menu.entity.ts` 的
   `cache_key_strategy` 注释（写 `('name','path')`）；`apps/api/src/modules/system/logs/operate/entity/log-operate.entity.ts`
@@ -1428,8 +1517,11 @@
   `ck_menu_cache_key_strategy` 的 IN 列表第 308 行。
 - **建议**：以 migration 为准更新两处实体注释，并把 P3-24 标记为「前提不成立 / 仅剩注释同步」；
   后续把实体注释纳入 lint（或直接从 migration 生成取值域说明），避免再漂。
+- **修法（2026-10-29，文档债批次）**：menu 实体注释改 `('name','path','custom')`；
+  log_operate 实体头注与列注释同步 10 值；`system-data.md` 值域说明同步。取值域真源
+  仍由 `dto-entity.drift.spec.ts` 的三方守卫（const ↔ migration CHECK ↔ DTO IsEnum）机械钉住。
 
-### P3-26 setting 没有 delete / deleteMany 端点，但登记为 CRUD（D 段，新登记）
+### P3-26 setting 没有 delete / deleteMany 端点，但登记为 CRUD（D 段，新登记）—— 【裁决：配置不删 2026-10-29，契约已写入前端文档】
 
 - **位置**：`apps/api/src/modules/app/setting/setting.controller.ts`（只挂
   `WalnutAdminDecoratorCreate/Read/Update/List` + `POST cache/refresh`）对照
@@ -1440,6 +1532,10 @@
 - **实测证据**：本次读码；`setting.api-spec.ts` 的 CRUD 闭环只覆盖 create/read/update/list。
 - **建议**：要么补 delete / deleteMany（并挂 after-commit 刷新），要么把 ENDPOINTS 与前端契约
   改成「配置不删」的明确取舍；二者选一，不要维持「文档说 CRUD、代码只有四分之三」的现状。
+- **裁决（2026-10-29，文档债批次）**：选「**配置不删**」—— 配置键是运行时行为开关（删行
+  不走缓存刷新通道，会让 `APP:SETTING` 残留到下一次全量重算），且 setting 行由 seed / 管理
+  端维护，删除语义不可取。契约写在 `apps/admin/src/api/types/frontend-shapes.ts` 的
+  「前端消费契约」段（前端不渲染删除入口）；ENDPOINTS 行沿用「配置不删」表述。
 
 ### P3-27 JWT_AT / JWT_RT 没有生产写入点 —— DTO 声称的「启动自举」不存在（D 段，新登记）
 

@@ -1,3 +1,4 @@
+import { ApiProperty } from '@nestjs/swagger'
 import { IWalnutAdminConstAppCacheType, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import {
   WalnutAdminDecoratorFieldDate,
@@ -65,3 +66,28 @@ export class AppMonitorCacheDTOListRequest extends CreateWalnutAdminRequestListD
 export class AppMonitorCacheDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(AppMonitorCacheDTO),
 ) {}
+
+/**
+ * `GET /app/monitor/cache/{key}` 响应（P3-14）—— cache.controller.read 手工组装的
+ * `{ value }`，与 list 行（AppMonitorCacheDTO）不同形。value 是 Redis 里 JSON.parse
+ * 出来的原值（string / number / boolean / object / array 皆可），缺失键为 null；
+ * swagger 只能声明「有一个任意 JSON 的 value 键」，生成侧为 unknown。
+ * 仅文档化，wire 不变。
+ */
+export class AppMonitorCacheReadResponseDTO {
+  // 任意 JSON：oneOf 显式列出标量/对象/数组（只写 type: Object 会把 string/number
+  // 等缓存值误标成对象；nullable 覆盖缺失键/JSON null）
+  @ApiProperty({
+    title: 'cache value',
+    description: 'cached value (raw JSON payload); null when the key is missing',
+    nullable: true,
+    oneOf: [
+      { type: 'string' },
+      { type: 'number' },
+      { type: 'boolean' },
+      { type: 'object', additionalProperties: true },
+      { type: 'array', items: {} },
+    ],
+  })
+  value: unknown
+}

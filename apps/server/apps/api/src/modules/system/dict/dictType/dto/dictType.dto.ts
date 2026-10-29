@@ -54,9 +54,12 @@ export class SysDictTypeDTOBase extends WalnutAdminCommonBasicModel {
   })
   description: string
 
-  // virtual
+  // virtual（P3-16）：PG list 行只注入 dictDataCount，dictData 恒缺失（Mongo 时代
+  // $lookup 的残留）；read / create / update 两条腿两个键都不带。swagger 一律
+  // optional —— 此前 dictData 被标成 required 的单对象，与 wire 相反。
   @WalnutAdminDecoratorFieldObject(SysDictDataDTOPopulatedDictData, {
     swaggerOptions: {
+      required: false,
       title: 'populated dict data',
     },
   })
@@ -64,6 +67,7 @@ export class SysDictTypeDTOBase extends WalnutAdminCommonBasicModel {
 
   @WalnutAdminDecoratorFieldNumber({
     swaggerOptions: {
+      required: false,
       title: `populated dict data count`,
     },
   })

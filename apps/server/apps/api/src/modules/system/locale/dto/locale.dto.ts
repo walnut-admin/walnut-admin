@@ -70,17 +70,16 @@ export class SysLocaleDTO extends SysLocaleDTOBase {
   })
   @WalnutAdminDecoratorValidatorUuid({ validate: LocaleLangIdValidate })
   declare langId: string
-}
 
-// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
-export class SysLocaleDTOSafe extends SysLocaleDTO {
-  constructor(partial?: Partial<SysLocaleDTOSafe>) {
-    super(partial ?? {})
-  }
-
+  // 列表分组行加工列（P3-10）：locale.repo.service.aggregateList 注入
+  // MAX(finished) / langsCount（0..1 小数，admin 列表乘 100 展示），wire 上只出现在
+  // list 行。声明在基类而非 Safe 层：CRUD list 装饰器用 SysLocaleDTO 作为 data items
+  // 的文档真源（Safe 层不进 schema）。
   @WalnutAdminDecoratorFieldNumber({
     swaggerOptions: {
+      required: false,
       title: 'translate process',
+      description: 'fraction (0-1) of finished translations for the key (admin displays × 100)',
     },
     transformOptions: {
       res: {
@@ -88,7 +87,14 @@ export class SysLocaleDTOSafe extends SysLocaleDTO {
       },
     },
   })
-  process: number
+  process?: number
+}
+
+// Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
+export class SysLocaleDTOSafe extends SysLocaleDTO {
+  constructor(partial?: Partial<SysLocaleDTOSafe>) {
+    super(partial ?? {})
+  }
 }
 
 // list

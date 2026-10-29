@@ -85,8 +85,8 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
      JOIN `sys_role_menu` 取菜单并**过滤 menu.status=true**，菜单行经 `assembleSysMenu`
      组装回 meta 对象；多角色菜单按 `id` 去重（`uniqBy`）。
 4. **root / visitor 短路**：若启用角色的**第一个** `roleName` 是 `root` 或 `visitor`，
-   改用 `findAllMenus()`（**全表，不筛 status**）；否则取 `findRootMenu()`
-   （`pid IS NULL`，`findOne`）加上角色授予的菜单。
+   改用 `findAllMenus()`（**全表，不筛 status**）；否则取 `findAllRootMenus()`
+   （`pid IS NULL`，按 `order` + `createdAt` 排序）加上角色授予的菜单。
 5. **产出四类结果**。`getStrings` 取 `meta.permission` 为真值的行（权限串原样，不做通配展开）；
    `getMenuTree` / `getRouteTree` 过滤掉 `type=element` 的行后按 `id/pid` 建树、按
    `meta.order` 排序；`keepAliveNames` 取 `type=menu` 且非 external 且 `meta.cache=true`
@@ -281,13 +281,13 @@ DTO 装饰器的 `default` 只服务 Swagger 展示。`meta` 的部分给 出按
 
 | 端点 / 消费方 | 形态 |
 |---|---|
-| `GET /system/menu/tree` | `{ fullTree, treeWithoutTypeElement, menuActiveNamesOptions }`：`fullTree` = 全部菜单建树后**第一个根节点的 children**（根自身不返回）；`treeWithoutTypeElement` 是同一棵全根树过滤掉 `type=element`；`menuActiveNamesOptions` 是 `type=menu` 行的 `{ name, title }` |
-| `GET /auth/permissions` 的 `permissionMenuTree` | 当前用户可见菜单建树后**首个根节点的 children**；`formatTree` 给非 CATALOG 节点补空 `children` |
+| `GET /system/menu/tree` | `{ fullTree, treeWithoutTypeElement, menuActiveNamesOptions }`：`fullTree` = 全部菜单建树后**全部根节点的 children 按根序拼接**（根自身不返回；单根部署即首根 children，P3-18）；`treeWithoutTypeElement` 是同一棵全根树过滤掉 `type=element`；`menuActiveNamesOptions` 是 `type=menu` 行的 `{ name, title }` |
+| `GET /auth/permissions` 的 `permissionMenuTree` | 当前用户可见菜单建树后**全部根节点的 children 拼接**（单根部署 = 首根 children；P3-18）；`formatTree` 给非 CATALOG 节点补空 `children` |
 | `permissionRouteTree` | 同上但输出 Vue 路由结构（`children` 为空时 omit）；`meta` 合并 `title/type/icon` 到顶层字段 |
 
-建树是「单次全量查询 + 内存 `arrToTree`」，不逐层懒加载。`fullTree[0]` / `permissionMenuTree[0]`
-的解引用在空表时已改为可选链（P1-8 已修：空表回 `[]`，`indexMenuName` 回 `''`）。
-代价是多根部署只有「某一个根」的子树可见（P3-18）。
+建树是「单次全量查询 + 内存 `arrToTree`」，不逐层懒加载。空表时回 `[]`，
+`indexMenuName` 回 `''`（P1-8 已修）。多根部署不再截断（P3-18 已修：
+`findAllRootMenus` 取全部根，顶层 = 各根 children 拼接）。
 
 ### 4.3 删除与级联
 
@@ -565,12 +565,11 @@ dictData 的单删 / 批量删（P1-12 已补 deleteMany 路由）除了快照 +
   字典通道（只回启用子集，非管理面）。普通非 root 用户仍可读全量菜单树（含 permission
   串）—— 菜单管理功能的必要输入，残余风险已在 DESIGN-ISSUES 登记。
   `ENDPOINTS.md` 的 dict 权限串同步更正为 `system:dict:type:*` / `system:dict:data:*`。
-- **P3-18（B 段新登记）**：多根菜单部署下树被截断。`GET /system/menu/tree` 的 `fullTree`
-  与 `/auth/permissions` 的 `permissionMenuTree` 都只取「第一个根节点的 children」，
-  `findRootMenu` 是 `findOne`、`findAllMenus` 无 ORDER BY；其余根整棵不可见（P3-4 已把
-  单根 + children 定为前端契约，但没有机械约束保证单根）。
+- **P3-18（B 段新登记）—— 已修复 2026-10-29**：`fullTree` / `permissionMenuTree` /
+  `permissionRouteTree` 改为「全部根 children 拼接」（单根 wire 不变），repo 新增
+  `findAllRootMenus`（按 order + createdAt 排序）；双根用例见 `menu.api-spec.ts`。
 - **P3-19（B 段新登记）**：`ENDPOINTS.md` 把 `PUT /system/user/me/profile` 的权限点
   登记为 `me:profile:update`，实际 controller 常量是 `system:user:updateProfile`。
-- **P3-20（B 段新登记）**：locale 的映射 body 若不含任何 langId uuid 键（如 `{}`），
-  二段式管道的第三段对空数组不报错，service 里 `payload[0].key` 解引用 →
-  TypeError → 50000，而非受控 40099。
+- **P3-20（B 段新登记）—— 已修复 2026-10-29**：locale 的映射 body 若不含任何 langId uuid
+  键（如 `{}`），`LocalePayloadTransformPipe` 现在直接抛受控 40099（此前空数组落 service
+  → TypeError → 50000）。

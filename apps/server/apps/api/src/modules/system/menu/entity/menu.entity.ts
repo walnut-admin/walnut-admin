@@ -105,7 +105,8 @@ export class SysMenuEntity {
   @Column({ type: 'varchar', length: 32, name: 'transition', default: 'fade' })
   transition: string
 
-  // CHECK (IN ('name','path')) 在 migration；可空 = 未配置
+  // CHECK (IN ('name','path','custom')) 在 migration；可空 = 未配置
+  // （P3-25：custom 于 2026-10-27 由枚举三方守卫补齐，注释此前漏列）
   @Column({ type: 'varchar', length: 8, name: 'cache_key_strategy', nullable: true })
   cacheKeyStrategy: string | null
 

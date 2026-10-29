@@ -124,6 +124,29 @@ describe('A 段试点：system/locale 非标 CRUD + message 缓存开关（真�
     expect(bodyOf(second).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_EXISTS)
   })
 
+  it('P3-20：body 无任何 langId 键 → 受控 40099（不再 TypeError 兜底 50000）', async () => {
+    // 空对象与「只有 key、没有任何 <langId>: value」两种形态都在
+    // LocalePayloadTransformPipe 产出空数组 → 校验层受控 40099（service 不再收到空数组）
+    for (const payload of [{}, { key: keyOf('no-lang') }]) {
+      const res = await api.root('POST', api.apiPath('/system/locale'), payload)
+      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    }
+
+    // update 走同一条两段式管道，同样受控（oldKey 定位前就拦下）
+    const updateRes = await api.root('PUT', api.apiPath(`/system/locale/${langIdZh}`), {
+      key: keyOf('no-lang'),
+      oldKey: keyOf('no-lang'),
+    })
+    expect(bodyOf(updateRes).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+
+    // 未落任何行
+    const rows: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM sys_locale WHERE key = $1',
+      [keyOf('no-lang')],
+    )
+    expect(rows[0].c).toBe(0)
+  })
+
   it('GET /:key → { [langId]: value, key } 形态', async () => {
     const createRes = await api.root('POST', api.apiPath('/system/locale'), {
       key: keyOf('k2'),

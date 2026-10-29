@@ -12,8 +12,9 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn } from 'typeorm'
  *   1. operation 列文档写 varchar(16)，但同时注明「取值 = WalnutAdminConstDecoratorLogOperateType，
  *      migration 时以 const 为准生成」—— const 最长值 'auth.opaque.changePassword'（25 字符）
  *      超出 16，故按 const 口径放宽为 varchar(32)；
- *   2. action_type 的 CHECK 文档列了 8 个值，const 实际还有 REFRESH / AUTH —— CHECK 暂按文档
- *      8 值落地，const 差异已在报告中登记，待维护者定夺。
+ *   2. action_type 的 CHECK 文档列了 8 个值，const 实际有 10 个（含 REFRESH / AUTH）——
+ *      D 段复核（2026-10-28）确认 migration 的 CHECK 已按 const 全量 10 值落地，本条注释
+ *      原先「暂按 8 值、待定夺」的记述已过时（见 P3-24 / P3-25）。
  */
 @Index('idx_log_operate_at', ['operatedAt'])
 @Entity({ name: 'sys_log_operate' })
@@ -25,7 +26,8 @@ export class SysLogOperateEntity {
   @Column({ type: 'text', name: 'title' })
   title: string
 
-  // CHECK (IN ('OTHER','CREATE','UPDATE','DELETE','DELETE_MANY','IMPORT','EXPORT','CLEAR')) 在 migration
+  // CHECK (IN ('OTHER','CREATE','UPDATE','DELETE','DELETE_MANY','IMPORT','EXPORT','CLEAR','REFRESH','AUTH')) 在 migration
+  // （D 段复核 2026-10-28：migration 的 ck_log_operate_action_type 已是 10 值，与 const 一致）
   @Column({ type: 'varchar', length: 16, name: 'action_type' })
   actionType: string
 

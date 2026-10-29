@@ -69,7 +69,11 @@ export class SysDeletedController {
 
   @Post('me/recover')
   @HttpCode(HttpStatus.OK)
-  @WalnutAdminDecoratorHasPermission(Permissions.RECOVER)
+  // P3-21：接线独立权限点（与管理端 recover 解耦）—— 授予该权限点的角色只能恢复
+  // 自己删的行（属主校验在 service），不再复用管理端 `system:deleted:recover`。
+  // root 仍按 permission.guard 的短路放行；菜单 seed 里 `system:deleted:recover:mine`
+  // element 行本就存在，按角色在管理台勾选即可授权。
+  @WalnutAdminDecoratorHasPermission(Permissions.RECOVER_MINE)
   @WalnutTx()
   async recoverMine(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
