@@ -10,6 +10,7 @@ import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
 import { plainToInstance } from 'class-transformer'
 
@@ -27,6 +28,7 @@ import {
   SysLangDTO,
   SysLangDTOCreateRequest,
   SysLangDTOCreateResponse,
+  SysLangDTOListPublicResponse,
   SysLangDTOListRequest,
   SysLangDTOListResponse,
   SysLangDTOReadResponse,
@@ -92,6 +94,11 @@ export class SysLangController {
   @WalnutAdminGuardJwtFree()
   @WalnutAdminGuardCapFree()
   @WalnutAdminGuardDeviceFree()
+  @ApiWalnutOkResponse({
+    description: 'get public language list',
+    DTO: SysLangDTOListPublicResponse,
+    isArray: true,
+  })
   @WalnutAdminDecoratorCache({ key: WalnutAdminConstAppCacheKeys.SYS_LANG_LIST_PUBLIC })
   async listPublic() {
     return this.langService.listPublic()

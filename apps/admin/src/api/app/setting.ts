@@ -1,5 +1,5 @@
 import type { AppSettings } from '@walnut/api-types'
-import type { IResponseData } from '../response'
+import type { AppSettingPrivate, AppSettingPublic } from '../types/frontend-shapes'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
@@ -18,7 +18,7 @@ export const appSettingAPI = new BaseAPI<AppSettings>({
  * @description get public settings
  */
 export function getPublicSettingsAPI() {
-  return AppAxios.get<IResponseData.App.SettingPublic>({
+  return AppAxios.get<AppSettingPublic>({
     url: appSetting.PUBLIC,
     _cancelOnRouteChange: false,
   })
@@ -28,7 +28,7 @@ export function getPublicSettingsAPI() {
  * @description get private settings
  */
 export function getPrivateSettingsAPI() {
-  return AppAxios.get<IResponseData.App.SettingPrivate>({
+  return AppAxios.get<AppSettingPrivate>({
     url: appSetting.PRIVATE,
   })
 }

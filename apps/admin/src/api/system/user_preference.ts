@@ -1,11 +1,11 @@
-import type { IResponseData } from '../response'
+import type { SystemUserPreference } from '../types/frontend-shapes'
 import type { IStoreUser } from '@/store/types'
 import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 
 // get user preference
 export function getPreferenceAPI() {
-  return AppAxios.get<IResponseData.System.User.Preference>(
+  return AppAxios.get<SystemUserPreference>(
     {
       url: SystemEndpointRoutes.USER_PREFERENCE_READ,
     },

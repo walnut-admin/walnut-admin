@@ -10,7 +10,7 @@ import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@/common/dto/list.dto'
-import { SharedGeoPointDTO, SharedHardwareDTO, SharedHeightWidthDTO, SharedIpLocationHistoryDTO, SharedLngLatDTO, SharedLocationDTO, SharedTimeDTO, SharedUserAgentDTO } from '@/common/dto/shared.dto'
+import { SharedGeoPointDTO, SharedHardwareDTO, SharedHeightWidthDTO, SharedIpLocationHistoryDTO, SharedLocationDTO, SharedTimeDTO, SharedUserAgentDTO } from '@/common/dto/shared.dto'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { SysUserDTOSafe } from '../../user/dto/user.dto'
 import { SysDeviceEntity } from '../entity/device.entity'
@@ -212,25 +212,47 @@ export class SysDeviceDTOInitialRequest extends RealPickType(SysDeviceDTOSafe, [
 }
 
 // initial
-export class SysDeviceDTOInitialResponse extends IntersectionType(SharedLocationDTO, SharedLngLatDTO, RealPickType(SysDeviceDTOSafe, ['deviceId'] as const)) {
+/**
+ * `POST /system/device/initial` 响应 —— 设备注册回显的公开面（wire 事实）：
+ * `deviceId` 恒有；经纬度 / countryCode 来自 IP 定位，本地 IP（无定位数据）时缺省。
+ * 旧版 IntersectionType 声明了从未下发的 country/region/city/timezone，与 wire 不符；
+ * 本类只作 swagger 文档，构造入参与序列化字段集与旧实现一致。
+ */
+export class SysDeviceDTOInitialResponse {
   constructor(partial?: Partial<SysDeviceDTOInitialResponse>) {
-    super()
     Object.assign(this, partial)
   }
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
-      title: 'country code',
+      title: 'device id, also maybe known as fingerprint for client',
     },
   })
-  countryCode: string
+  deviceId: string
+
+  @WalnutAdminDecoratorFieldNumber({
+    swaggerOptions: {
+      title: 'longitude',
+      required: false,
+    },
+  })
+  longitude?: number
+
+  @WalnutAdminDecoratorFieldNumber({
+    swaggerOptions: {
+      title: 'latitude',
+      required: false,
+    },
+  })
+  latitude?: number
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
-      title: 'timezone',
+      title: 'country code',
+      required: false,
     },
   })
-  timezone: string
+  countryCode?: string
 }
 
 // list

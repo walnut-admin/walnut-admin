@@ -122,6 +122,35 @@ export class SysLangDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(SysLangDTOSafe),
 ) { }
 
+/**
+ * `GET /system/lang/list/public` 行形态 —— repo `findPublic()` 的三列 raw 投影
+ * （order / lang / description），无 id / status / 计数列。仅文档化，wire 不变。
+ */
+export class SysLangDTOListPublicResponse {
+  @WalnutAdminDecoratorFieldNumber({
+    default: null,
+    swaggerOptions: {
+      title: 'language order',
+      description: 'should be int',
+    },
+  })
+  order: number
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'language short',
+    },
+  })
+  lang: LocaleType
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'language describe',
+    },
+  })
+  description: string
+}
+
 // create
 export class SysLangDTOCreateRequest extends RealPickType(SysLangDTOSafe, [
   'lang',

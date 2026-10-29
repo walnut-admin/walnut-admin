@@ -1,5 +1,5 @@
+import type { AppBackendDeps } from '@walnut/api-types'
 import type { AxiosRequestConfig } from 'axios'
-import type { IResponseData } from './response'
 import { AppRoutes, AuthRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 
@@ -22,7 +22,7 @@ export function HelloWithTokenAPI(config: AxiosRequestConfig<string, string>) {
 }
 
 export function BackendDepsAPI() {
-  return AppAxios.get<IResponseData.BackendDeps>(
+  return AppAxios.get<AppBackendDeps>(
     {
       url: AppRoutes.DEPS,
     },

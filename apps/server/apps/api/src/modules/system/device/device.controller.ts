@@ -60,6 +60,10 @@ export class SysDeviceController {
   @WalnutAdminGuardCapFree()
   @WalnutAdminGuardDeviceFree()
   @WalnutTx()
+  @ApiWalnutOkResponse({
+    description: 'initialize current device (echo deviceId + derived geo ip fields)',
+    DTO: SysDeviceDTOInitialResponse,
+  })
   @WalnutAdminDecoratorThrottle(SysDeviceSettingService)
   async initial(
     @WalnutTxSession() ctx: WalnutTxContext,

@@ -84,7 +84,7 @@ guard 链与方法级权限守卫见 [安全与 guard 链](./security.md)；已�
 
 | 端点 | 行为 |
 |---|---|
-| `GET /app/key/current/:type` | 取该 type 中 `status='ACTIVE'` 且 `version` 最大的一行，返回其 `meta` 投影 |
+| `GET /app/key/current/:type` | 取该 type 中 `status='ACTIVE'` 且 `version` 最大的一行，返回其**公开面**投影：`RSA_PAIR → { publicKeyPem }`、`AES_KEY_URL → { keyB64 }`（P0-6：私钥永不出 HTTP，内部解密走实体通道） |
 | `POST /app/key/init` | 该 type 没有任何行时创建 v1；任一行存在 → 40001 DataExists |
 | `POST /app/key/rotate/:type` | 事务内锁当前 ACTIVE 行 → 置 `DEPRECATED` → 插入 `version+1` 的 ACTIVE 行 |
 
@@ -105,9 +105,10 @@ init / rotate 挂 `@WalnutAdminDecoratorHasRole(Role.ROOT)`；rotate 还挂 `@Wa
   将无法用新私钥解开，直接 40011。当前没有「重叠窗口 / 按 version 回退解密」的机制（P2-30）。
 - `getCurrentActiveKey` 只按 `type + status=ACTIVE + version DESC` 取行，**不校验 `validEnd`**：
   过期但尚未轮转的 key 仍是「当前 key」，直到 cron 下一次执行或手动 rotate。
-- `GET /app/key/current/:type` **没有** `@HasPermission` / `@HasRole`，任何已登录用户都能读到
-  `RSA_PAIR` 的 `privateKeyPem` 与 `AES_KEY_URL` 的 `keyB64`（P0-6，D 段新登记）。这是密钥材料
-  外泄面，不是「公开公钥」端点；真正只暴露公钥的是 `GET /security/rsa/public-key`。
+- `GET /app/key/current/:type`（P0-6 已修，2026-10-28）：`RSA_PAIR` 视图挂 `app:key:read`
+  （`AppKeyCurrentGuard`，root 短路），`AES_KEY_URL` 视图保持登录可读（admin URL 掩码的客户端
+  分发密钥）。响应经 `plainToInstance(AppKeyDTOSafe)` + service 侧显式剔除，**永不包含
+  `privateKeyPem`** —— 只下发 `publicKeyPem` / `keyB64` 公开面。
 - `JWT_AT` / `JWT_RT` 只存在于枚举与 CHECK：DTO 层拒绝 `init JWT_AT`（P2-6，40099），注释称
   「系统启动自举」，但全仓没有生产写入点，JWT 签名实际使用 env 的 `jwt.*.secret`（P3-27）。
 
@@ -368,7 +369,7 @@ indicator 自身抛异常（如 `disk` 路径不存在）才走全局兜底 5000
 | DELETE `/app/demo/deleteMany/:ids` | 全链 + `@WalnutTx()` | `app:demo:delete` | 逗号 uuid → 快照行数组 |
 | POST `/app/demo/list` | 全链 | `app:demo:list` | list DTO → 行数组 + total |
 | GET `/app/error/:code` | DevOnly + 类级 root/developer（OR） | `app:error:test` | 枚举 code → 抛对应异常；枚举外 40099 |
-| GET `/app/key/current/:type` | 全链 | **无**（P0-6） | type 枚举 → `meta` 投影（RSA 含私钥） |
+| GET `/app/key/current/:type` | 全链 | RSA_PAIR: `app:key:read`；AES_KEY_URL: 登录即可读 | type 枚举 → 公开面（`{ publicKeyPem }` / `{ keyB64 }`，P0-6 私钥永不下发） |
 | POST `/app/key/init` | 全链 + root 角色 | 无 | `{ type }` → 新 key 行；已存在 40001；JWT_AT 40099 |
 | POST `/app/key/rotate/:type` | 全链 + root 角色 + `@WalnutTx()` | 无 | type 枚举 → 新 ACTIVE key 行 |
 | POST `/app/logger/list` | 全链 + 类级 admin/developer（OR） | `app:logger:list` | `{ query: { fileName, logType }, page }` → 文件行 + total |

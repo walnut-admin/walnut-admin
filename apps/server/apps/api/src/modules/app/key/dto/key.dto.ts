@@ -162,6 +162,33 @@ export class AppKeyDTOSafe extends AppKeyDTO {
 }
 
 /**
+ * `GET /app/key/current/:type` 响应 —— key 的公开面（wire 按 type 二选一）：
+ * - `RSA_PAIR` → `{ publicKeyPem }`（私钥永不下发，P0-6）
+ * - `AES_KEY_URL` → `{ keyB64 }`（前端 URL 掩码的客户端分发密钥）
+ *
+ * 两个字段都是 optional：swagger 无法按路由参数分叉 schema，这里以并集形态文档化。
+ */
+export class AppKeyCurrentResponseDTO {
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'RSA public key (PEM)',
+      description: 'Only present when type is RSA_PAIR. PEM-formatted RSA public key used for request decryption.',
+      required: false,
+    },
+  })
+  publicKeyPem?: string
+
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'Symmetric key (Base64)',
+      description: 'Only present when type is AES_KEY_URL. Base64-encoded AES key used by the client for URL masking.',
+      required: false,
+    },
+  })
+  keyB64?: string
+}
+
+/**
  * P2-6：JWT_AT 由系统启动自举（token 服务持有），不走 HTTP init ——
  * `generateNewKeyByType` 无该分支，旧行为是「恒 20000 且不落行」（假成功）。这里在
  * DTO 校验层直接拒绝（40000 族受控错误 40099），避免客户端把 20000 当成功。

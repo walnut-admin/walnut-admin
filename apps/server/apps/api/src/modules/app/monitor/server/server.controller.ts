@@ -6,6 +6,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { Role } from '@walnut/contract'
 
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
@@ -44,6 +45,10 @@ export class AppMonitorServerController {
   @Get('cpu')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.CPU)
+  @ApiWalnutOkResponse({
+    description: 'get server CPU info (systeminformation subset)',
+    DTO: AppMonitorServerDTOCPU,
+  })
   async getCpu() {
     return new AppMonitorServerDTOCPU(await this.monitorServerService.cpu())
   }
@@ -51,6 +56,10 @@ export class AppMonitorServerController {
   @Get('mem')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.MEM)
+  @ApiWalnutOkResponse({
+    description: 'get server memory info (systeminformation subset)',
+    DTO: AppMonitorServerDTOMem,
+  })
   async getMem() {
     return new AppMonitorServerDTOMem(await this.monitorServerService.memory())
   }
@@ -58,6 +67,10 @@ export class AppMonitorServerController {
   @Get('os')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.OS)
+  @ApiWalnutOkResponse({
+    description: 'get server OS info (systeminformation subset)',
+    DTO: AppMonitorServerDTOOS,
+  })
   async getOS() {
     return new AppMonitorServerDTOOS(await this.monitorServerService.os())
   }
@@ -65,6 +78,10 @@ export class AppMonitorServerController {
   @Get('sys')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.SYS)
+  @ApiWalnutOkResponse({
+    description: 'get server system info (systeminformation subset)',
+    DTO: AppMonitorServerDTOSystem,
+  })
   async getSys() {
     return new AppMonitorServerDTOSystem(
       await this.monitorServerService.system(),
@@ -74,6 +91,11 @@ export class AppMonitorServerController {
   @Get('disk')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.DISK)
+  @ApiWalnutOkResponse({
+    description: 'get server disk layout (systeminformation subset)',
+    DTO: AppMonitorServerDTODisk,
+    isArray: true,
+  })
   async getDisk() {
     return (await this.monitorServerService.disk()).map(
       i => new AppMonitorServerDTODisk(i),
@@ -83,6 +105,10 @@ export class AppMonitorServerController {
   @Get('battery')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.BATTERY)
+  @ApiWalnutOkResponse({
+    description: 'get server battery info (systeminformation subset)',
+    DTO: AppMonitorServerDTOBattery,
+  })
   async getBattery() {
     return new AppMonitorServerDTOBattery(
       await this.monitorServerService.battery(),
@@ -92,6 +118,10 @@ export class AppMonitorServerController {
   @Get('time')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.TIME)
+  @ApiWalnutOkResponse({
+    description: 'get server time info (systeminformation subset)',
+    DTO: AppMonitorServerDTOTime,
+  })
   async getTime() {
     return new AppMonitorServerDTOTime(await this.monitorServerService.time())
   }
@@ -99,6 +129,10 @@ export class AppMonitorServerController {
   @Get('network')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.NETWORK)
+  @ApiWalnutOkResponse({
+    description: 'get server network info (systeminformation subset)',
+    DTO: AppMonitorServerDTONetwork,
+  })
   async getNetwork() {
     return new AppMonitorServerDTONetwork(
       await this.monitorServerService.network(),

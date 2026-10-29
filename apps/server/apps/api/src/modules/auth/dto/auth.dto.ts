@@ -120,3 +120,18 @@ export class AuthCorePermissionsDTO {
   })
   internalIframeList: IIframeListItem[]
 }
+
+/**
+ * `GET /auth/keys` 响应 —— 当前仅百度 AK 一个字段。`B` 经
+ * `@WalnutAdminDecoratorEncryptResponse('B')` 替换为**握手 RSA 信封字符串**
+ * （客户端私钥解密还原 vendor.baidu 明文）。仅文档化，wire 不变。
+ */
+export class AuthSecretKeysResponseDTO {
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'Baidu AK',
+      description: 'RSA envelope payload string (decrypt with the client private key from the sign handshake)',
+    },
+  })
+  B: string
+}

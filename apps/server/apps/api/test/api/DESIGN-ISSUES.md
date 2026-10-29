@@ -1140,6 +1140,11 @@
 > 核对 openapi.json 与真实 wire 时发现——生成类型暴露的是 **swagger 文档层** 的缺口，
 > wire 行为本身有 430 测试锚定、零变化；admin 侧已按 wire 事实在 `@walnut/api-types`
 > 别名层兜底（`process` 补声明 / read 端点手写响应形状），server 修复另行排期。
+>
+> **收尾批（2026-10-29）进展**：P3-14 的 logger `read` 响应 schema 已补
+> （`AppLoggerReadResponseDTO`）；P3-12（security-tab2 `data:null`）与 P3-13
+> （fontSize never）维持登记，admin 侧已迁到 `api/types/frontend-shapes.ts` 逐条注明
+> 「前端变换层/消费形状」。
 
 ### P3-9 `/system/user/lock/read` swagger 谎报 `primitive: 'boolean'` —— 【已修复：2026-10-28 装饰器 DTO 化】
 
@@ -1179,7 +1184,7 @@
 - **位置**：`system/user/controllers/user.me.controller.ts` `@Get('security-tab2')`
   （装饰与端点均自带 `// TODO should remove`）。
 - **现象**：openapi 文档 `data: null`，实际返回 `{totp: {status, verified}, webauthn: {status, verified}}`
-  （admin `IResponseData.Me.Security.Tab2Status` 手写兜底中）。
+  （admin `api/types/frontend-shapes.ts` 的 `MeSecurityTab2Status` 兜底中，收尾批原样保留）。
 - **实测证据**：admin me/security tab2 直接消费该形状（`userMeService.getSecurityTab2Status`）。
 - **建议**：端点既标记待移除，二选一：补一个 tab2 状态 DTO 的 `@ApiWalnutOkResponse`，或按 TODO 下线端点。
 
@@ -1190,12 +1195,16 @@
 - **现象**：`WalnutAdminDecoratorFieldEnum(() => fontSizeConst)` 把整个对象直传
   `ApiProperty({ enum })`，swagger 产出的 enum 形态无法被解析为 number 枚举，
   openapi-typescript 生成 `fontSize: never` —— 该 schema 整体不可用作消费类型
-  （admin 用户偏好响应只能保留手写形状）。
+  （admin 用户偏好响应只能保留消费形状：`api/types/frontend-shapes.ts` 的 `SystemUserPreference`）。
 - **实测证据**：生成 `schema.d.ts` `fontSize: never`（`@enum {number}`）。
 - **建议**：`fontSizeConst` 改数组（或 FieldEnum 侧传 `Object.values(...)`），注意
   `WADVE` 校验器同源消费需一并核对。
 
-### P3-14 logger / monitor-cache 行无 `id`，两个 read 端点无 schema
+### P3-14 logger / monitor-cache 行无 `id`，两个 read 端点无 schema —— 【logger read 已补：2026-10-29】
+
+> 收尾批已给 `GET /app/logger/:logType/:fileName` 补 `AppLoggerReadResponseDTO`
+> （wire 零变化，admin 改用生成别名）。**剩余未决**：两个 list 行的 `id` 虚构、
+> `app/monitor/cache` 的 read 响应仍无 schema（返回 `{value}`）。
 
 - **位置**：① `app/logger`（list 行 = `AppLoggerDTO`，无 id；`read` 手工返回
   `{fileName, filePath, fileContent: string[]}` 无任何 swagger 装饰）；②

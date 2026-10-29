@@ -19,7 +19,7 @@ import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
 import { WalnutAdminDecoratorEncryptResponse } from '../../decorators/walnut/crypto.decorator'
 import { AppTechCookieService } from '../techniques/cookie/cookie.service'
 import { AuthService } from './auth.service'
-import { AuthCorePermissionsDTO } from './dto/auth.dto'
+import { AuthCorePermissionsDTO, AuthSecretKeysResponseDTO } from './dto/auth.dto'
 
 @Controller('auth')
 @ApiTags('auth')
@@ -66,9 +66,12 @@ export class AuthController {
   }
 
   // TODO change controller
-  // TODO dto
   @Get('keys')
   @HttpCode(HttpStatus.OK)
+  @ApiWalnutOkResponse({
+    description: 'get secret keys (B is an RSA envelope payload string)',
+    DTO: AuthSecretKeysResponseDTO,
+  })
   @WalnutAdminDecoratorEncryptResponse('B')
   async getSecretKeys() {
     return this.authService.getSecretKeys()

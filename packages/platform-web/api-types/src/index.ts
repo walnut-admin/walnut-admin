@@ -93,8 +93,12 @@ export type SystemDevice = components['schemas']['SysDeviceDTOSafe'] & { id: str
  */
 export type SystemDeviceHistoryUser = components['schemas']['SysDeviceDTOHistoryUsersResponse'] & { id: string }
 
-/** `POST /system/device/initial` 响应（server 回显注册后的设备 Safe 形态）。 */
-export type SystemDeviceInitialResponse = SystemDevice
+/**
+ * `POST /system/device/initial` 响应 —— 设备注册回显的公开面（codegen 收尾批校正）：
+ * `deviceId` 恒有，经纬度 / countryCode 来自 IP 定位（本地 IP 时缺省），旧别名曾错指
+ * 全量 `SystemDevice`（Safe 形态），与实际 wire 不符。
+ */
+export type SystemDeviceInitialResponse = components['schemas']['SysDeviceDTOInitialResponse']
 
 // ---------------------------------------------------------------- system lang / locale
 // 注：lang/locale 的 list 行在 wire 上真实携带 process（server lang.basic.repository PG list
@@ -104,6 +108,9 @@ export type SystemDeviceInitialResponse = SystemDevice
 export type SystemLang = components['schemas']['SysLangDTO'] & { id: string, process?: number }
 
 export type SystemLocale = components['schemas']['SysLocaleDTO'] & { id: string, process?: number }
+
+/** `GET /system/lang/list/public` 行形态（order / lang / description 三列 raw 投影）。 */
+export type SystemLangPublicListItem = components['schemas']['SysLangDTOListPublicResponse']
 
 // ---------------------------------------------------------------- system dict
 
@@ -150,9 +157,42 @@ export type AppMonitorCache = components['schemas']['AppMonitorCacheDTO'] & { id
 
 export type AppMonitorUser = components['schemas']['AppMonitorUserDTO'] & { id: string }
 
+/** `GET /app/logger/{logType}/{fileName}?page=n` 响应（30 行/页，与 list 行不同形）。 */
+export type AppLoggerReadResponse = components['schemas']['AppLoggerReadResponseDTO']
+
+/** `GET /deps` 响应（server package.json 的 dependencies / devDependencies）。 */
+export type AppBackendDeps = components['schemas']['AppBackendDepsResponseDTO']
+
+/**
+ * `GET /app/key/current/{type}` 响应 —— 按 type 二选一：RSA_PAIR 只含 `publicKeyPem`，
+ * AES_KEY_URL 只含 `keyB64`（swagger 无法按路由参数分叉，两个字段在生成侧都是 optional）。
+ */
+export type AppKeyCurrent = components['schemas']['AppKeyCurrentResponseDTO']
+
+// app monitor/server 八个端点（systeminformation 子集，server DTO 逐字段投影）
+
+export type AppMonitorServerCpu = components['schemas']['AppMonitorServerDTOCPU']
+
+export type AppMonitorServerMem = components['schemas']['AppMonitorServerDTOMem']
+
+export type AppMonitorServerOs = components['schemas']['AppMonitorServerDTOOS']
+
+export type AppMonitorServerSystem = components['schemas']['AppMonitorServerDTOSystem']
+
+export type AppMonitorServerDisk = components['schemas']['AppMonitorServerDTODisk']
+
+export type AppMonitorServerBattery = components['schemas']['AppMonitorServerDTOBattery']
+
+export type AppMonitorServerTime = components['schemas']['AppMonitorServerDTOTime']
+
+export type AppMonitorServerNetwork = components['schemas']['AppMonitorServerDTONetwork']
+
 // ---------------------------------------------------------------- shared
 
 export type SharedArea = components['schemas']['SharedAreaDTO']
+
+/** `GET /shared/ali/sts` 响应（三敏感字段是 RSA 信封字符串）。 */
+export type SharedAliStsToken = components['schemas']['SharedAliOSSDTO']
 
 // ---------------------------------------------------------------- auth / me
 
@@ -173,3 +213,25 @@ export type AuthMfaTotpBind = components['schemas']['SysUserMfaBindTotpResponseD
  * 注意 server 字段名是 `lastChanged`（旧手写镜像曾写 `lastChangedAt`，属镜像漂移，已纠正）。
  */
 export type MeSecurityTab1Status = components['schemas']['SysUserIdentityStatusResponseDTO']
+
+/** `GET /auth/keys` 响应（`B` 是百度 AK 的 RSA 信封字符串）。 */
+export type AuthSecretKeys = components['schemas']['AuthSecretKeysResponseDTO']
+
+/** `POST /security/sign/aes-key` 响应（`aesKey` 是 RSA 信封字符串 + hkdfInfo）。 */
+export type SecuritySignAesKey = components['schemas']['SecuritySignSessionKeyResponseDTO']
+
+// ---------------------------------------------------------------- auth / mfa webauthn
+
+/**
+ * `POST /system/user/mfa/webauthn/register/options` 响应。`options` 的生成形态按
+ * @simplewebauthn/server 的 PublicKeyCredentialCreationOptionsJSON 逐字段文档化，
+ * 与 @simplewebauthn/browser 的 `startRegistration({ optionsJSON })` 入参结构等价。
+ */
+export type AuthMfaWebauthnRegisterOptions = components['schemas']['SysUserMfaWebauthnRegisterResponseDTO']
+
+/**
+ * `POST /system/user/mfa/webauthn/authenticate/options` 响应。`options` 的生成形态按
+ * @simplewebauthn/server 的 PublicKeyCredentialRequestOptionsJSON 逐字段文档化，
+ * 与 @simplewebauthn/browser 的 `startAuthentication({ optionsJSON })` 入参结构等价。
+ */
+export type AuthMfaWebauthnAuthenticateOptions = components['schemas']['SysUserMfaWebauthnAuthenticateOptionsDTO']

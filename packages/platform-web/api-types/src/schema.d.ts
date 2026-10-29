@@ -43,6 +43,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get backend package.json dependencies */
         get: operations["AppController_getPkgDeps"];
         put?: never;
         post?: never;
@@ -139,6 +140,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get current app key public face (publicKeyPem for RSA_PAIR / keyB64 for AES_KEY_URL) */
         get: operations["AppKeyController_getCurrent"];
         put?: never;
         post?: never;
@@ -286,6 +288,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get secret keys (B is an RSA envelope payload string) */
         get: operations["AuthController_getSecretKeys"];
         put?: never;
         post?: never;
@@ -704,6 +707,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** get security sign session AES key (aesKey is an RSA envelope payload string) */
         post: operations["SecuritySignController_getAesKey"];
         delete?: never;
         options?: never;
@@ -1000,6 +1004,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get server CPU info (systeminformation subset) */
         get: operations["AppMonitorServerController_getCpu"];
         put?: never;
         post?: never;
@@ -1016,6 +1021,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get server memory info (systeminformation subset) */
         get: operations["AppMonitorServerController_getMem"];
         put?: never;
         post?: never;
@@ -1032,6 +1038,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get server OS info (systeminformation subset) */
         get: operations["AppMonitorServerController_getOS"];
         put?: never;
         post?: never;
@@ -1048,6 +1055,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get server system info (systeminformation subset) */
         get: operations["AppMonitorServerController_getSys"];
         put?: never;
         post?: never;
@@ -1064,6 +1072,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get server disk layout (systeminformation subset) */
         get: operations["AppMonitorServerController_getDisk"];
         put?: never;
         post?: never;
@@ -1080,6 +1089,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get server battery info (systeminformation subset) */
         get: operations["AppMonitorServerController_getBattery"];
         put?: never;
         post?: never;
@@ -1096,6 +1106,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get server time info (systeminformation subset) */
         get: operations["AppMonitorServerController_getTime"];
         put?: never;
         post?: never;
@@ -1112,6 +1123,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get server network info (systeminformation subset) */
         get: operations["AppMonitorServerController_getNetwork"];
         put?: never;
         post?: never;
@@ -1244,6 +1256,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** read log file content (30 lines per page) */
         get: operations["AppLoggerController_readFile"];
         put?: never;
         post?: never;
@@ -1262,6 +1275,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** initialize current device (echo deviceId + derived geo ip fields) */
         post: operations["SysDeviceController_initial"];
         delete?: never;
         options?: never;
@@ -1462,6 +1476,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get public language list */
         get: operations["SysLangController_listPublic"];
         put?: never;
         post?: never;
@@ -2602,6 +2617,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get Ali OSS STS token (accessKeyId/accessKeySecret/stsToken are RSA envelope payload strings) */
         get: operations["SharedAliController_getSTSToken"];
         put?: never;
         post?: never;
@@ -2649,6 +2665,34 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AppBackendDepsResponseDTO: {
+            /**
+             * package.json dependencies
+             * @description dependency name -> version range
+             */
+            dependencies: {
+                [key: string]: string;
+            };
+            /**
+             * package.json devDependencies
+             * @description dev dependency name -> version range
+             */
+            devDependencies: {
+                [key: string]: string;
+            };
+        };
+        AppKeyCurrentResponseDTO: {
+            /**
+             * RSA public key (PEM)
+             * @description Only present when type is RSA_PAIR. PEM-formatted RSA public key used for request decryption.
+             */
+            publicKeyPem?: string;
+            /**
+             * Symmetric key (Base64)
+             * @description Only present when type is AES_KEY_URL. Base64-encoded AES key used by the client for URL masking.
+             */
+            keyB64?: string;
+        };
         AppKeyDTOInit: {
             /**
              * app key type
@@ -3583,6 +3627,13 @@ export interface components {
             /** internal iframe list current user has */
             internalIframeList: components["schemas"]["AuthPermissionInternalIframeDTO"][];
         };
+        AuthSecretKeysResponseDTO: {
+            /**
+             * Baidu AK
+             * @description RSA envelope payload string (decrypt with the client private key from the sign handshake)
+             */
+            B: string;
+        };
         AuthSuccessDTO: {
             accessToken: string;
             sessionKey: string;
@@ -3702,6 +3753,12 @@ export interface components {
              * @default false
              */
             force: boolean;
+        };
+        SecuritySignSessionKeyResponseDTO: {
+            /** @description encrypted aes key payload string (RSA envelope of the session AES key; decrypt with the client private key from the sign handshake) */
+            aesKey: string;
+            /** @description hkdf info */
+            hkdfInfo: string;
         };
         SecuritySensitiveVerifyRequestDTO: {
             /**
@@ -4539,6 +4596,86 @@ export interface components {
              */
             page: components["schemas"]["WalnutAdminRequestListPageDTO"];
         };
+        AppMonitorServerDTOCPU: {
+            /** @description number of logical CPU cores */
+            cores: number;
+            /** @description CPU brand string */
+            brand: string;
+            /** @description CPU speed in GHz (wire: formatted string) */
+            speed: number;
+            /** @description CPU manufacturer */
+            manufacturer: string;
+        };
+        AppMonitorServerDTOMem: {
+            /** @description total memory in GB (wire: formatted string) */
+            total: number;
+            /** @description free memory in GB (wire: formatted string) */
+            free: number;
+            /** @description used memory in GB (wire: formatted string) */
+            used: number;
+            /** @description available memory in GB (wire: formatted string) */
+            available: number;
+        };
+        AppMonitorServerDTOOS: {
+            /** @description OS hostname */
+            hostname: string;
+            /** @description OS architecture */
+            arch: string;
+            /** @description OS distribution */
+            distro: string;
+            /** @description OS platform */
+            platform: string;
+        };
+        AppMonitorServerDTOSystem: {
+            /** @description hardware manufacturer */
+            manufacturer: string;
+            /** @description hardware model */
+            model: string;
+            /** @description hardware version */
+            version: string;
+            /** @description hardware UUID */
+            uuid: string;
+        };
+        AppMonitorServerDTODisk: {
+            /** @description disk name */
+            name: string;
+            /** @description disk size in GB (wire: formatted string) */
+            size: number;
+            /** @description disk device */
+            device: string;
+            /** @description disk type */
+            type: string;
+        };
+        AppMonitorServerDTOBattery: {
+            /** @description battery voltage (wire: formatted string) */
+            voltage: number;
+            /** @description designed capacity in mWh (wire: formatted string) */
+            designedCapacity: number;
+            /** @description current capacity in mWh (wire: formatted string) */
+            currentCapacity: number;
+            /** @description battery percent (wire: formatted string) */
+            percent: number;
+        };
+        AppMonitorServerDTOTime: {
+            /** @description current time (wire: `YYYY-MM-DD HH:mm:ss` string) */
+            current: number;
+            /** @description uptime in hours (wire: formatted string) */
+            uptime: number;
+            /** @description timezone */
+            timezone: string;
+            /** @description timezone name */
+            timezoneName: string;
+        };
+        AppMonitorServerDTONetwork: {
+            /** @description network interface name */
+            iface: string;
+            /** @description IPv4 address */
+            ip4: string;
+            /** @description MAC address */
+            mac: string;
+            /** @description network speed (wire: formatted string) */
+            netSpeed: number;
+        };
         AppSettingDTOPublicAuthOpaque: {
             /** opaque auth enable */
             enable: boolean;
@@ -4796,6 +4933,24 @@ export interface components {
              *     }
              */
             page: components["schemas"]["WalnutAdminRequestListPageDTO"];
+        };
+        AppLoggerReadResponseDTO: {
+            /** log file name */
+            fileName: string;
+            /** log lines of current page (30 lines per page) */
+            fileContent: string[];
+            /** log file path relative to the logs folder */
+            filePath: string;
+        };
+        SysDeviceDTOInitialResponse: {
+            /** device id, also maybe known as fingerprint for client */
+            deviceId: string;
+            /** longitude */
+            longitude?: number;
+            /** latitude */
+            latitude?: number;
+            /** country code */
+            countryCode?: string;
         };
         SysDeviceDTOInitialRequest: {
             /** device name, normally cannot change */
@@ -5188,6 +5343,18 @@ export interface components {
              *     }
              */
             page: components["schemas"]["WalnutAdminRequestListPageDTO"];
+        };
+        SysLangDTOListPublicResponse: {
+            /**
+             * language order
+             * @description should be int
+             * @default null
+             */
+            order: number;
+            /** language short */
+            lang: string;
+            /** language describe */
+            description: string;
         };
         SysLocaleDTO: {
             /**
@@ -7001,11 +7168,97 @@ export interface components {
             /** status */
             status: boolean;
         };
+        SysUserMfaWebauthnRpEntityDTO: {
+            /** @description Relying Party name */
+            name: string;
+            /** @description Relying Party id (domain) */
+            id?: string;
+        };
+        SysUserMfaWebauthnUserEntityDTO: {
+            /** @description user handle (base64url) */
+            id: string;
+            /** @description user name */
+            name: string;
+            /** @description user display name */
+            displayName: string;
+        };
+        SysUserMfaWebauthnPubKeyCredParamDTO: {
+            /** @description COSE algorithm identifier */
+            alg: number;
+            /**
+             * @description credential type
+             * @enum {string}
+             */
+            type: "public-key";
+        };
+        SysUserMfaWebauthnCredentialDescriptorDTO: {
+            /** @description credential id (base64url) */
+            id: string;
+            /**
+             * @description credential type
+             * @enum {string}
+             */
+            type: "public-key";
+            /** @description authenticator transports */
+            transports?: ("ble" | "cable" | "hybrid" | "internal" | "nfc" | "smart-card" | "usb")[];
+        };
+        SysUserMfaWebauthnAuthenticatorSelectionDTO: {
+            /**
+             * @description authenticator attachment
+             * @enum {string}
+             */
+            authenticatorAttachment?: "cross-platform" | "platform";
+            /** @description require resident key */
+            requireResidentKey?: boolean;
+            /**
+             * @description resident key requirement
+             * @enum {string}
+             */
+            residentKey?: "discouraged" | "preferred" | "required";
+            /**
+             * @description user verification requirement
+             * @enum {string}
+             */
+            userVerification?: "discouraged" | "preferred" | "required";
+        };
+        SysUserMfaWebauthnExtensionInputsDTO: {
+            /** @description appid extension input */
+            appid?: string;
+            /** @description credProps extension input */
+            credProps?: boolean;
+            /** @description hmacCreateSecret extension input */
+            hmacCreateSecret?: boolean;
+            /** @description minPinLength extension input */
+            minPinLength?: boolean;
+        };
+        SysUserMfaWebauthnCreationOptionsDTO: {
+            /** @description cryptographic challenge (base64url) */
+            challenge: string;
+            /** @description relying party entity */
+            rp: components["schemas"]["SysUserMfaWebauthnRpEntityDTO"];
+            /** @description user entity */
+            user: components["schemas"]["SysUserMfaWebauthnUserEntityDTO"];
+            /** @description acceptable public key algorithms */
+            pubKeyCredParams: components["schemas"]["SysUserMfaWebauthnPubKeyCredParamDTO"][];
+            /** @description timeout in ms */
+            timeout?: number;
+            /**
+             * @description attestation conveyance preference
+             * @enum {string}
+             */
+            attestation?: "direct" | "enterprise" | "indirect" | "none";
+            /** @description credentials already registered by the user */
+            excludeCredentials?: components["schemas"]["SysUserMfaWebauthnCredentialDescriptorDTO"][];
+            /** @description authenticator selection criteria */
+            authenticatorSelection?: components["schemas"]["SysUserMfaWebauthnAuthenticatorSelectionDTO"];
+            /** @description client extension inputs */
+            extensions?: components["schemas"]["SysUserMfaWebauthnExtensionInputsDTO"];
+            /** @description authenticator hints */
+            hints?: ("hybrid" | "security-key" | "client-device")[];
+        };
         SysUserMfaWebauthnRegisterResponseDTO: {
             /** @description WebAuthn Register Options */
-            options: {
-                [key: string]: unknown;
-            };
+            options: components["schemas"]["SysUserMfaWebauthnCreationOptionsDTO"];
             /** @description WebAuthn Device Name */
             deviceName: string;
         };
@@ -7021,11 +7274,28 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        SysUserMfaWebauthnRequestOptionsDTO: {
+            /** @description cryptographic challenge (base64url) */
+            challenge: string;
+            /** @description timeout in ms */
+            timeout?: number;
+            /** @description relying party id (domain) */
+            rpId?: string;
+            /** @description credentials the client may use */
+            allowCredentials?: components["schemas"]["SysUserMfaWebauthnCredentialDescriptorDTO"][];
+            /**
+             * @description user verification requirement
+             * @enum {string}
+             */
+            userVerification?: "discouraged" | "preferred" | "required";
+            /** @description client extension inputs */
+            extensions?: components["schemas"]["SysUserMfaWebauthnExtensionInputsDTO"];
+            /** @description authenticator hints */
+            hints?: ("hybrid" | "security-key" | "client-device")[];
+        };
         SysUserMfaWebauthnAuthenticateOptionsDTO: {
             /** @description WebAuthn Authenticate Options */
-            options: {
-                [key: string]: unknown;
-            };
+            options: components["schemas"]["SysUserMfaWebauthnRequestOptionsDTO"];
         };
         SysUserMfaWebauthnAuthenticateVerifyDTO: {
             /**
@@ -7108,6 +7378,16 @@ export interface components {
             /** layout preference */
             layout: components["schemas"]["SysUserPreferenceDTOLayoutRequest"];
         };
+        SharedAliOSSDTO: {
+            /** @description RSA envelope payload string of the STS access key id (decrypt with the client private key) */
+            accessKeyId: string;
+            /** @description RSA envelope payload string of the STS access key secret (decrypt with the client private key) */
+            accessKeySecret: string;
+            /** @description RSA envelope payload string of the STS session token (decrypt with the client private key) */
+            stsToken: string;
+            region: string;
+            bucket: string;
+        };
         SharedAreaDTO: {
             /**
              * default createdAt
@@ -7184,11 +7464,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get backend package.json dependencies */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppBackendDepsResponseDTO"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -7289,11 +7584,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get current app key public face (publicKeyPem for RSA_PAIR / keyB64 for AES_KEY_URL) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppKeyCurrentResponseDTO"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -7524,11 +7834,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get secret keys (B is an RSA envelope payload string) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AuthSecretKeysResponseDTO"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -8253,11 +8578,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get security sign session AES key (aesKey is an RSA envelope payload string) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SecuritySignSessionKeyResponseDTO"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -8867,11 +9207,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get server CPU info (systeminformation subset) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppMonitorServerDTOCPU"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -8884,11 +9239,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get server memory info (systeminformation subset) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppMonitorServerDTOMem"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -8901,11 +9271,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get server OS info (systeminformation subset) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppMonitorServerDTOOS"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -8918,11 +9303,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get server system info (systeminformation subset) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppMonitorServerDTOSystem"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -8935,11 +9335,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get server disk layout (systeminformation subset) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppMonitorServerDTODisk"][];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -8952,11 +9367,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get server battery info (systeminformation subset) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppMonitorServerDTOBattery"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -8969,11 +9399,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get server time info (systeminformation subset) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppMonitorServerDTOTime"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -8986,11 +9431,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get server network info (systeminformation subset) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppMonitorServerDTONetwork"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -9259,11 +9719,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description read log file content (30 lines per page) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppLoggerReadResponseDTO"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -9280,11 +9755,26 @@ export interface operations {
             };
         };
         responses: {
+            /** @description initialize current device (echo deviceId + derived geo ip fields) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysDeviceDTOInitialResponse"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -9728,11 +10218,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get public language list */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysLangDTOListPublicResponse"][];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -12455,11 +12960,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get Ali OSS STS token (accessKeyId/accessKeySecret/stsToken are RSA envelope payload strings) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SharedAliOSSDTO"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };

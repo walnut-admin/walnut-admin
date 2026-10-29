@@ -1,5 +1,5 @@
 import type { SystemUser } from '@walnut/api-types'
-import type { IResponseData } from '../response'
+import type { MeSecurityTab2Status } from '../types/frontend-shapes'
 import { AppAxios } from '@/utils/axios'
 
 const systemUserMe = {
@@ -42,7 +42,7 @@ export function updateProfileAPI(data: Partial<SystemUser>) {
  * @description get user center security tab 2 status
  */
 export function getSecurityTab2StatusAPI() {
-  return AppAxios.get<IResponseData.Me.Security.Tab2Status>({
+  return AppAxios.get<MeSecurityTab2Status>({
     url: systemUserMe.GET_SECURITY_TAB_2_STATUS,
   })
 }

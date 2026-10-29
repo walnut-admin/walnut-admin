@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { IResponseData } from '@/api/response'
+import type { MeSecurityTab3Status } from '@/api/types/frontend-shapes'
 import { onBeforeMount, ref, useTemplateRef } from 'vue'
 import { useAppMsgWarning } from '@/hooks/component/useMessage'
 import { useAppI18n } from '@/locales/index'
@@ -14,7 +14,7 @@ const { t } = useAppI18n()
 
 const deviceModal = useTemplateRef('deviceModal')
 
-const _status = ref<IResponseData.Me.Security.Tab3Status>({})
+const _status = ref<MeSecurityTab3Status>({})
 
 async function onClick(index: number) {
   if (index === 1) {

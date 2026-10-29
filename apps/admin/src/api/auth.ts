@@ -1,5 +1,5 @@
-import type { AuthTokenPayload } from '@walnut/api-types'
-import type { IResponseData } from './response'
+import type { AuthSecretKeys, AuthTokenPayload } from '@walnut/api-types'
+import type { AuthPermissions } from './types/frontend-shapes'
 import { AppAxios } from '@/utils/axios'
 
 const Auth = {
@@ -31,7 +31,7 @@ export function refreshTokenAPI() {
  * @description Signin user permissions api
  */
 export function getPermissionsAPI() {
-  return AppAxios.get<IResponseData.Auth.Permissions>({
+  return AppAxios.get<AuthPermissions>({
     url: Auth.PERMISSION,
   })
 }
@@ -40,7 +40,7 @@ export function getPermissionsAPI() {
  * @description get baidu ak from backend
  */
 export function getBaiduKeyAPI() {
-  return AppAxios.get<IResponseData.Auth.Keys>(
+  return AppAxios.get<AuthSecretKeys>(
     {
       url: Auth.KEYS,
       _autoDecryptResponseData: ['B'],

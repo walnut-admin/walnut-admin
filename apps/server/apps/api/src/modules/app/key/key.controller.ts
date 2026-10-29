@@ -2,12 +2,13 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, SetMetadata, 
 import { ApiParam, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorPermissionMetadataKey } from '@walnut-server/const/decorator/permissions'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { Role } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
-import { AppKeyDTOInit, AppKeyDTOSafe } from './dto/key.dto'
+import { AppKeyCurrentResponseDTO, AppKeyDTOInit, AppKeyDTOSafe } from './dto/key.dto'
 import { AppKeyTypeConst, AppKeyTypeConstType } from './key.const'
 import { AppKeyCurrentGuard } from './key.current.guard'
 import { AppKeyService } from './key.service'
@@ -29,6 +30,10 @@ export class AppKeyController {
   @Get('current/:type')
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'type', description: 'key type enum', enum: AppKeyTypeConst })
+  @ApiWalnutOkResponse({
+    description: 'get current app key public face (publicKeyPem for RSA_PAIR / keyB64 for AES_KEY_URL)',
+    DTO: AppKeyCurrentResponseDTO,
+  })
   @UseGuards(AppKeyCurrentGuard)
   @SetMetadata(WalnutAdminConstDecoratorPermissionMetadataKey.PERMISSION, Permissions.READ)
   async getCurrent(

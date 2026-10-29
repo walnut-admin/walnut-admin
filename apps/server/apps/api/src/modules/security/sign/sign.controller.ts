@@ -1,5 +1,6 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorEncryptResponse } from '@/decorators/walnut/crypto.decorator'
 import { WalnutAdminDecoratorDeviceId } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardCapFree } from '@/guard/cap.guard'
@@ -35,6 +36,10 @@ export class SecuritySignController {
 
   @Post('aes-key')
   @HttpCode(HttpStatus.OK)
+  @ApiWalnutOkResponse({
+    description: 'get security sign session AES key (aesKey is an RSA envelope payload string)',
+    DTO: SecuritySignSessionKeyResponseDTO,
+  })
   @WalnutAdminDecoratorEncryptResponse<SecuritySignSessionKeyResponseDTO>('aesKey')
   async getAesKey(
     @WalnutAdminDecoratorDeviceId() deviceId: string,

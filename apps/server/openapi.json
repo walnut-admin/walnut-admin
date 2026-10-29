@@ -35,9 +35,39 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get backend package.json dependencies",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AppBackendDepsResponseDTO"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get backend package.json dependencies",
         "tags": [
           "App"
         ]
@@ -135,9 +165,39 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get current app key public face (publicKeyPem for RSA_PAIR / keyB64 for AES_KEY_URL)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AppKeyCurrentResponseDTO"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get current app key public face (publicKeyPem for RSA_PAIR / keyB64 for AES_KEY_URL)",
         "tags": [
           "app/key"
         ]
@@ -462,9 +522,39 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get secret keys (B is an RSA envelope payload string)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AuthSecretKeysResponseDTO"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get secret keys (B is an RSA envelope payload string)",
         "tags": [
           "auth"
         ]
@@ -1471,9 +1561,39 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get security sign session AES key (aesKey is an RSA envelope payload string)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SecuritySignSessionKeyResponseDTO"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get security sign session AES key (aesKey is an RSA envelope payload string)",
         "tags": [
           "security/sign"
         ]
@@ -2357,9 +2477,39 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get server CPU info (systeminformation subset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AppMonitorServerDTOCPU"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get server CPU info (systeminformation subset)",
         "tags": [
           "AppMonitorServer"
         ]
@@ -2371,9 +2521,39 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get server memory info (systeminformation subset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AppMonitorServerDTOMem"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get server memory info (systeminformation subset)",
         "tags": [
           "AppMonitorServer"
         ]
@@ -2385,9 +2565,39 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get server OS info (systeminformation subset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AppMonitorServerDTOOS"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get server OS info (systeminformation subset)",
         "tags": [
           "AppMonitorServer"
         ]
@@ -2399,9 +2609,39 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get server system info (systeminformation subset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AppMonitorServerDTOSystem"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get server system info (systeminformation subset)",
         "tags": [
           "AppMonitorServer"
         ]
@@ -2413,9 +2653,42 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get server disk layout (systeminformation subset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AppMonitorServerDTODisk"
+                          }
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get server disk layout (systeminformation subset)",
         "tags": [
           "AppMonitorServer"
         ]
@@ -2427,9 +2700,39 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get server battery info (systeminformation subset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AppMonitorServerDTOBattery"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get server battery info (systeminformation subset)",
         "tags": [
           "AppMonitorServer"
         ]
@@ -2441,9 +2744,39 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get server time info (systeminformation subset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AppMonitorServerDTOTime"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get server time info (systeminformation subset)",
         "tags": [
           "AppMonitorServer"
         ]
@@ -2455,9 +2788,39 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get server network info (systeminformation subset)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AppMonitorServerDTONetwork"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get server network info (systeminformation subset)",
         "tags": [
           "AppMonitorServer"
         ]
@@ -2868,9 +3231,39 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "read log file content (30 lines per page)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/AppLoggerReadResponseDTO"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "read log file content (30 lines per page)",
         "tags": [
           "app/logger"
         ]
@@ -2892,9 +3285,39 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "initialize current device (echo deviceId + derived geo ip fields)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysDeviceDTOInitialResponse"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "initialize current device (echo deviceId + derived geo ip fields)",
         "tags": [
           "system/device"
         ]
@@ -3594,9 +4017,42 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get public language list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SysLangDTOListPublicResponse"
+                          }
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get public language list",
         "tags": [
           "system/lang"
         ]
@@ -7777,9 +8233,39 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "get Ali OSS STS token (accessKeyId/accessKeySecret/stsToken are RSA envelope payload strings)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SharedAliOSSDTO"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
+        "summary": "get Ali OSS STS token (accessKeyId/accessKeySecret/stsToken are RSA envelope payload strings)",
         "tags": [
           "shared/ali"
         ]
@@ -7910,6 +8396,46 @@
       }
     },
     "schemas": {
+      "AppBackendDepsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "dependencies": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "package.json dependencies",
+            "description": "dependency name -> version range"
+          },
+          "devDependencies": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "package.json devDependencies",
+            "description": "dev dependency name -> version range"
+          }
+        },
+        "required": [
+          "dependencies",
+          "devDependencies"
+        ]
+      },
+      "AppKeyCurrentResponseDTO": {
+        "type": "object",
+        "properties": {
+          "publicKeyPem": {
+            "type": "string",
+            "title": "RSA public key (PEM)",
+            "description": "Only present when type is RSA_PAIR. PEM-formatted RSA public key used for request decryption."
+          },
+          "keyB64": {
+            "type": "string",
+            "title": "Symmetric key (Base64)",
+            "description": "Only present when type is AES_KEY_URL. Base64-encoded AES key used by the client for URL masking."
+          }
+        }
+      },
       "AppKeyDTOInit": {
         "type": "object",
         "properties": {
@@ -9386,6 +9912,19 @@
           "internalIframeList"
         ]
       },
+      "AuthSecretKeysResponseDTO": {
+        "type": "object",
+        "properties": {
+          "B": {
+            "type": "string",
+            "title": "Baidu AK",
+            "description": "RSA envelope payload string (decrypt with the client private key from the sign handshake)"
+          }
+        },
+        "required": [
+          "B"
+        ]
+      },
       "AuthSuccessDTO": {
         "type": "object",
         "properties": {
@@ -9655,6 +10194,23 @@
         "required": [
           "rsaPubKey",
           "force"
+        ]
+      },
+      "SecuritySignSessionKeyResponseDTO": {
+        "type": "object",
+        "properties": {
+          "aesKey": {
+            "type": "string",
+            "description": "encrypted aes key payload string (RSA envelope of the session AES key; decrypt with the client private key from the sign handshake)"
+          },
+          "hkdfInfo": {
+            "type": "string",
+            "description": "hkdf info"
+          }
+        },
+        "required": [
+          "aesKey",
+          "hkdfInfo"
         ]
       },
       "SecuritySensitiveVerifyRequestDTO": {
@@ -10982,6 +11538,222 @@
           "page"
         ]
       },
+      "AppMonitorServerDTOCPU": {
+        "type": "object",
+        "properties": {
+          "cores": {
+            "type": "number",
+            "description": "number of logical CPU cores"
+          },
+          "brand": {
+            "type": "string",
+            "description": "CPU brand string"
+          },
+          "speed": {
+            "type": "number",
+            "description": "CPU speed in GHz (wire: formatted string)"
+          },
+          "manufacturer": {
+            "type": "string",
+            "description": "CPU manufacturer"
+          }
+        },
+        "required": [
+          "cores",
+          "brand",
+          "speed",
+          "manufacturer"
+        ]
+      },
+      "AppMonitorServerDTOMem": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "total memory in GB (wire: formatted string)"
+          },
+          "free": {
+            "type": "number",
+            "description": "free memory in GB (wire: formatted string)"
+          },
+          "used": {
+            "type": "number",
+            "description": "used memory in GB (wire: formatted string)"
+          },
+          "available": {
+            "type": "number",
+            "description": "available memory in GB (wire: formatted string)"
+          }
+        },
+        "required": [
+          "total",
+          "free",
+          "used",
+          "available"
+        ]
+      },
+      "AppMonitorServerDTOOS": {
+        "type": "object",
+        "properties": {
+          "hostname": {
+            "type": "string",
+            "description": "OS hostname"
+          },
+          "arch": {
+            "type": "string",
+            "description": "OS architecture"
+          },
+          "distro": {
+            "type": "string",
+            "description": "OS distribution"
+          },
+          "platform": {
+            "type": "string",
+            "description": "OS platform"
+          }
+        },
+        "required": [
+          "hostname",
+          "arch",
+          "distro",
+          "platform"
+        ]
+      },
+      "AppMonitorServerDTOSystem": {
+        "type": "object",
+        "properties": {
+          "manufacturer": {
+            "type": "string",
+            "description": "hardware manufacturer"
+          },
+          "model": {
+            "type": "string",
+            "description": "hardware model"
+          },
+          "version": {
+            "type": "string",
+            "description": "hardware version"
+          },
+          "uuid": {
+            "type": "string",
+            "description": "hardware UUID"
+          }
+        },
+        "required": [
+          "manufacturer",
+          "model",
+          "version",
+          "uuid"
+        ]
+      },
+      "AppMonitorServerDTODisk": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "disk name"
+          },
+          "size": {
+            "type": "number",
+            "description": "disk size in GB (wire: formatted string)"
+          },
+          "device": {
+            "type": "string",
+            "description": "disk device"
+          },
+          "type": {
+            "type": "string",
+            "description": "disk type"
+          }
+        },
+        "required": [
+          "name",
+          "size",
+          "device",
+          "type"
+        ]
+      },
+      "AppMonitorServerDTOBattery": {
+        "type": "object",
+        "properties": {
+          "voltage": {
+            "type": "number",
+            "description": "battery voltage (wire: formatted string)"
+          },
+          "designedCapacity": {
+            "type": "number",
+            "description": "designed capacity in mWh (wire: formatted string)"
+          },
+          "currentCapacity": {
+            "type": "number",
+            "description": "current capacity in mWh (wire: formatted string)"
+          },
+          "percent": {
+            "type": "number",
+            "description": "battery percent (wire: formatted string)"
+          }
+        },
+        "required": [
+          "voltage",
+          "designedCapacity",
+          "currentCapacity",
+          "percent"
+        ]
+      },
+      "AppMonitorServerDTOTime": {
+        "type": "object",
+        "properties": {
+          "current": {
+            "type": "number",
+            "description": "current time (wire: `YYYY-MM-DD HH:mm:ss` string)"
+          },
+          "uptime": {
+            "type": "number",
+            "description": "uptime in hours (wire: formatted string)"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "timezone"
+          },
+          "timezoneName": {
+            "type": "string",
+            "description": "timezone name"
+          }
+        },
+        "required": [
+          "current",
+          "uptime",
+          "timezone",
+          "timezoneName"
+        ]
+      },
+      "AppMonitorServerDTONetwork": {
+        "type": "object",
+        "properties": {
+          "iface": {
+            "type": "string",
+            "description": "network interface name"
+          },
+          "ip4": {
+            "type": "string",
+            "description": "IPv4 address"
+          },
+          "mac": {
+            "type": "string",
+            "description": "MAC address"
+          },
+          "netSpeed": {
+            "type": "number",
+            "description": "network speed (wire: formatted string)"
+          }
+        },
+        "required": [
+          "iface",
+          "ip4",
+          "mac",
+          "netSpeed"
+        ]
+      },
       "AppSettingDTOPublicAuthOpaque": {
         "type": "object",
         "properties": {
@@ -11491,6 +12263,55 @@
           "query",
           "sort",
           "page"
+        ]
+      },
+      "AppLoggerReadResponseDTO": {
+        "type": "object",
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "title": "log file name"
+          },
+          "fileContent": {
+            "title": "log lines of current page (30 lines per page)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "filePath": {
+            "type": "string",
+            "title": "log file path relative to the logs folder"
+          }
+        },
+        "required": [
+          "fileName",
+          "fileContent",
+          "filePath"
+        ]
+      },
+      "SysDeviceDTOInitialResponse": {
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "title": "device id, also maybe known as fingerprint for client"
+          },
+          "longitude": {
+            "type": "number",
+            "title": "longitude"
+          },
+          "latitude": {
+            "type": "number",
+            "title": "latitude"
+          },
+          "countryCode": {
+            "type": "string",
+            "title": "country code"
+          }
+        },
+        "required": [
+          "deviceId"
         ]
       },
       "SysDeviceDTOInitialRequest": {
@@ -12158,6 +12979,30 @@
           "query",
           "sort",
           "page"
+        ]
+      },
+      "SysLangDTOListPublicResponse": {
+        "type": "object",
+        "properties": {
+          "order": {
+            "type": "number",
+            "default": null,
+            "title": "language order",
+            "description": "should be int"
+          },
+          "lang": {
+            "type": "string",
+            "title": "language short"
+          },
+          "description": {
+            "type": "string",
+            "title": "language describe"
+          }
+        },
+        "required": [
+          "order",
+          "lang",
+          "description"
         ]
       },
       "SysLocaleDTO": {
@@ -15196,13 +16041,253 @@
           "status"
         ]
       },
+      "SysUserMfaWebauthnRpEntityDTO": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Relying Party name"
+          },
+          "id": {
+            "type": "string",
+            "description": "Relying Party id (domain)"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "SysUserMfaWebauthnUserEntityDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "user handle (base64url)"
+          },
+          "name": {
+            "type": "string",
+            "description": "user name"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "user display name"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "displayName"
+        ]
+      },
+      "SysUserMfaWebauthnPubKeyCredParamDTO": {
+        "type": "object",
+        "properties": {
+          "alg": {
+            "type": "number",
+            "description": "COSE algorithm identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "public-key"
+            ],
+            "description": "credential type"
+          }
+        },
+        "required": [
+          "alg",
+          "type"
+        ]
+      },
+      "SysUserMfaWebauthnCredentialDescriptorDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "credential id (base64url)"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "public-key"
+            ],
+            "description": "credential type"
+          },
+          "transports": {
+            "type": "array",
+            "description": "authenticator transports",
+            "items": {
+              "type": "string",
+              "enum": [
+                "ble",
+                "cable",
+                "hybrid",
+                "internal",
+                "nfc",
+                "smart-card",
+                "usb"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "type"
+        ]
+      },
+      "SysUserMfaWebauthnAuthenticatorSelectionDTO": {
+        "type": "object",
+        "properties": {
+          "authenticatorAttachment": {
+            "type": "string",
+            "enum": [
+              "cross-platform",
+              "platform"
+            ],
+            "description": "authenticator attachment"
+          },
+          "requireResidentKey": {
+            "type": "boolean",
+            "description": "require resident key"
+          },
+          "residentKey": {
+            "type": "string",
+            "enum": [
+              "discouraged",
+              "preferred",
+              "required"
+            ],
+            "description": "resident key requirement"
+          },
+          "userVerification": {
+            "type": "string",
+            "enum": [
+              "discouraged",
+              "preferred",
+              "required"
+            ],
+            "description": "user verification requirement"
+          }
+        }
+      },
+      "SysUserMfaWebauthnExtensionInputsDTO": {
+        "type": "object",
+        "properties": {
+          "appid": {
+            "type": "string",
+            "description": "appid extension input"
+          },
+          "credProps": {
+            "type": "boolean",
+            "description": "credProps extension input"
+          },
+          "hmacCreateSecret": {
+            "type": "boolean",
+            "description": "hmacCreateSecret extension input"
+          },
+          "minPinLength": {
+            "type": "boolean",
+            "description": "minPinLength extension input"
+          }
+        }
+      },
+      "SysUserMfaWebauthnCreationOptionsDTO": {
+        "type": "object",
+        "properties": {
+          "challenge": {
+            "type": "string",
+            "description": "cryptographic challenge (base64url)"
+          },
+          "rp": {
+            "description": "relying party entity",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysUserMfaWebauthnRpEntityDTO"
+              }
+            ]
+          },
+          "user": {
+            "description": "user entity",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysUserMfaWebauthnUserEntityDTO"
+              }
+            ]
+          },
+          "pubKeyCredParams": {
+            "description": "acceptable public key algorithms",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SysUserMfaWebauthnPubKeyCredParamDTO"
+            }
+          },
+          "timeout": {
+            "type": "number",
+            "description": "timeout in ms"
+          },
+          "attestation": {
+            "type": "string",
+            "enum": [
+              "direct",
+              "enterprise",
+              "indirect",
+              "none"
+            ],
+            "description": "attestation conveyance preference"
+          },
+          "excludeCredentials": {
+            "description": "credentials already registered by the user",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SysUserMfaWebauthnCredentialDescriptorDTO"
+            }
+          },
+          "authenticatorSelection": {
+            "description": "authenticator selection criteria",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysUserMfaWebauthnAuthenticatorSelectionDTO"
+              }
+            ]
+          },
+          "extensions": {
+            "description": "client extension inputs",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysUserMfaWebauthnExtensionInputsDTO"
+              }
+            ]
+          },
+          "hints": {
+            "type": "array",
+            "description": "authenticator hints",
+            "items": {
+              "type": "string",
+              "enum": [
+                "hybrid",
+                "security-key",
+                "client-device"
+              ]
+            }
+          }
+        },
+        "required": [
+          "challenge",
+          "rp",
+          "user",
+          "pubKeyCredParams"
+        ]
+      },
       "SysUserMfaWebauthnRegisterResponseDTO": {
         "type": "object",
         "properties": {
           "options": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "WebAuthn Register Options"
+            "description": "WebAuthn Register Options",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysUserMfaWebauthnCreationOptionsDTO"
+              }
+            ]
           },
           "deviceName": {
             "type": "string",
@@ -15244,13 +16329,72 @@
           "response"
         ]
       },
+      "SysUserMfaWebauthnRequestOptionsDTO": {
+        "type": "object",
+        "properties": {
+          "challenge": {
+            "type": "string",
+            "description": "cryptographic challenge (base64url)"
+          },
+          "timeout": {
+            "type": "number",
+            "description": "timeout in ms"
+          },
+          "rpId": {
+            "type": "string",
+            "description": "relying party id (domain)"
+          },
+          "allowCredentials": {
+            "description": "credentials the client may use",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SysUserMfaWebauthnCredentialDescriptorDTO"
+            }
+          },
+          "userVerification": {
+            "type": "string",
+            "enum": [
+              "discouraged",
+              "preferred",
+              "required"
+            ],
+            "description": "user verification requirement"
+          },
+          "extensions": {
+            "description": "client extension inputs",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysUserMfaWebauthnExtensionInputsDTO"
+              }
+            ]
+          },
+          "hints": {
+            "type": "array",
+            "description": "authenticator hints",
+            "items": {
+              "type": "string",
+              "enum": [
+                "hybrid",
+                "security-key",
+                "client-device"
+              ]
+            }
+          }
+        },
+        "required": [
+          "challenge"
+        ]
+      },
       "SysUserMfaWebauthnAuthenticateOptionsDTO": {
         "type": "object",
         "properties": {
           "options": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "WebAuthn Authenticate Options"
+            "description": "WebAuthn Authenticate Options",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysUserMfaWebauthnRequestOptionsDTO"
+              }
+            ]
           }
         },
         "required": [
@@ -15423,6 +16567,36 @@
           "accessibility",
           "theme",
           "layout"
+        ]
+      },
+      "SharedAliOSSDTO": {
+        "type": "object",
+        "properties": {
+          "accessKeyId": {
+            "type": "string",
+            "description": "RSA envelope payload string of the STS access key id (decrypt with the client private key)"
+          },
+          "accessKeySecret": {
+            "type": "string",
+            "description": "RSA envelope payload string of the STS access key secret (decrypt with the client private key)"
+          },
+          "stsToken": {
+            "type": "string",
+            "description": "RSA envelope payload string of the STS session token (decrypt with the client private key)"
+          },
+          "region": {
+            "type": "string"
+          },
+          "bucket": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accessKeyId",
+          "accessKeySecret",
+          "stsToken",
+          "region",
+          "bucket"
         ]
       },
       "SharedAreaDTO": {

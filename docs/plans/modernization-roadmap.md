@@ -51,7 +51,7 @@ Swagger 缺口：@nestjs/swagger 仍无官方 zod→OpenAPI 一等支持——�
 ③ Joi 确认。然后独立分支一次锁步升 12，全量 431 测试 + 构建 + socket/bull 冒烟。
 预估 1-1.5 人日，拆两个 PR（前置整理 / 锁步升级）。
 
-## 3. 接口类型共享：OpenAPI codegen（✅ 两期均已落地）
+## 3. 接口类型共享：OpenAPI codegen（✅ 一期 / 二期 / 收尾批均已落地）
 
 **推荐方案（2026-10-27 调研定稿）**：server 补 swagger.json 导出（现只有 Scalar UI 无裸 JSON，
 `documentFactory` 已现成）→ 新增 `packages/platform-web/api-types` 生成包
@@ -72,6 +72,25 @@ Swagger 缺口：@nestjs/swagger 仍无官方 zod→OpenAPI 一等支持——�
   `{ id: string }`。server 侧唯一改动：lock/read 装饰器从谎报的 `primitive: 'boolean'`
   改为真实 `DTO: SysUserLockPreferenceDTO`（wire 零变化）；其余 swagger 缺口
   （process/isArray/fontSize never/id 虚构等 8 条）登记 DESIGN-ISSUES P3-9~P3-16。
+
+- **收尾批（2026-10-29，admin 侧 `IResponseData` 清零）**：
+  ① **无 schema 端点补文档化（wire 零变化）** —— `/app/monitor/server/*` 八个端点
+  （`AppMonitorServerDTO*` 只文档化 service 逐字段投影的 systeminformation 子集）、
+  `/deps`（`AppBackendDepsResponseDTO`，`additionalProperties: { type: 'string' }`）、
+  `/app/key/current/:type`（`AppKeyCurrentResponseDTO`，publicKeyPem / keyB64 双形态
+  optional）、`/security/sign/aes-key`（信封字符串标注）、`/system/lang/list/public`
+  （`SysLangDTOListPublicResponse[]`）、`/system/device/initial`
+  （`SysDeviceDTOInitialResponse` 按 wire 收窄）、`/app/logger/:logType/:fileName`
+  （`AppLoggerReadResponseDTO`）、`/shared/ali/sts`（三敏感字段信封标注）、
+  `/auth/keys`（`AuthSecretKeysResponseDTO` —— 收尾批核对时发现的第 9 个无 schema 端点）。
+  ② **WebAuthn options** —— server 侧按 @simplewebauthn 的
+  `PublicKeyCredentialCreationOptionsJSON` / `RequestOptionsJSON` 逐字段建 DTO
+  （字符串枚举 inline 收窄，`options` 刻意不挂 `@Type` 保持 wire 原样透传），admin 生成
+  类型可直接喂 `startRegistration` / `startAuthentication`。
+  ③ **不可推导形状迁出** —— `Auth.Permissions`（RouteRecordRaw/TreeNodeItem 变换层）、
+  `SettingPublic/Private`（Partial store 消费）、`SecurityTab2/3`（server `data:null`）、
+  `User.Preference`（fontSize never）迁入 `apps/admin/src/api/types/frontend-shapes.ts`
+  并逐条注明「真源=消费组件」，`api/response.d.ts` 删除。
 
 ## 4. 遗留架构清单（Mongo 时代设计在 PG 下的适应性审计，2026-10-27）
 
@@ -118,7 +137,7 @@ cap/SSE 无壳面登记（P2-10 / P3-8，DESIGN-ISSUES 现 35 条）。
 ## 5. 决策待办（需要维护者拍板）
 
 1. **NestJS 12 升级窗口**：建议 1-2 个月内独立分支执行（前置清单见 §2）。
-2. **OpenAPI codegen**：✅ 一期已落地（2026-10-28）——导出脚本 + @walnut/api-types 生成包 + 镜像漂移止血 + menu 全链；✅ 二期已落地（2026-10-28）——全模块替换 IModels + models.d.ts 退役 + IResponseData 收缩（见 §3 执行记录）。
+2. **OpenAPI codegen**：✅ 一期已落地（2026-10-28）——导出脚本 + @walnut/api-types 生成包 + 镜像漂移止血 + menu 全链；✅ 二期已落地（2026-10-28）——全模块替换 IModels + models.d.ts 退役 + IResponseData 收缩；✅ 收尾批已落地（2026-10-29）——无 schema 端点补文档化 + WebAuthn options typed DTO + 不可推导形状迁 `frontend-shapes.ts`，`IResponseData` 清零（见 §3 执行记录）。
 3. **ETL 工具链去留**：✅ 已落地（2026-10-28）——正名而非封存（见 §4.1 末），seed 通道组件保留。
 4. **L1 命名清理窗口**：✅ 已于 2026-10-28 执行（在 sys_deleted 存量为 0 的窗口内完成，见 §4.1 L1 执行记录）。
 5. ~~admin 闲置 zod 依赖~~：勘误消除——zod 在 admin 构建配置真实使用（见 §1 勘误），不处置。

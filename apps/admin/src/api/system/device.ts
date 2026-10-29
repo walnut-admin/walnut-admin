@@ -1,6 +1,5 @@
-import type { SystemDevice, SystemDeviceHistoryUser, SystemUser } from '@walnut/api-types'
+import type { SystemDevice, SystemDeviceHistoryUser, SystemDeviceInitialResponse, SystemUser } from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
-import type { IResponseData } from '../response'
 import { getCPUCoreCount, getGPUArchitecture, getIsInIncognitoMode, getMemoryGB } from '@walnut/client/browser/shared'
 import { SystemEndpointRoutes } from '@walnut/contract'
 import { useAppStoreFingerprint } from '@/store/modules/app/app-fingerprint'
@@ -67,7 +66,7 @@ export async function initialDeviceAPI() {
   const appStoreFingerprint = useAppStoreFingerprint()
   const isPrivate = await getIsInIncognitoMode()
 
-  return AppAxios.post<IResponseData.System.Device.Initial>({
+  return AppAxios.post<SystemDeviceInitialResponse>({
     url: SystemEndpointRoutes.DEVICE_INITIAL,
     data: {
       deviceName: appStoreFingerprint.getDeviceNameFromFingerprint,

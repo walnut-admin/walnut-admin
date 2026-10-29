@@ -1,6 +1,5 @@
-import type { AuthMfaAvailableMethod, AuthMfaTotpBind, AuthMfaTotpGenerate, AuthTokenPayload } from '@walnut/api-types'
+import type { AuthMfaAvailableMethod, AuthMfaTotpBind, AuthMfaTotpGenerate, AuthMfaWebauthnAuthenticateOptions, AuthMfaWebauthnRegisterOptions, AuthTokenPayload } from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
-import type { IResponseData } from '../response'
 import { AppAxios } from '@/utils/axios'
 
 const mfaAPI = {
@@ -95,7 +94,7 @@ export function authMfaTotpUpdateStatusAPI(status: boolean) {
  * @description get webauthn register options
  */
 export function authMfaWebauthnRegisterOptionsAPI(data: IRequestPayload.Auth.MFA.Webauthn.RegisterOptions) {
-  return AppAxios.post<IResponseData.Auth.MFA.Webauthn.RegisterOptions>({
+  return AppAxios.post<AuthMfaWebauthnRegisterOptions>({
     url: mfaAPI.webauthnRegisterOptions,
     data,
   })
@@ -115,7 +114,7 @@ export function authMfaWebauthnRegisterVerifyAPI(data: IRequestPayload.Auth.MFA.
  * @description get webauthn authenticate options
  */
 export function authMfaWebauthnAuthenticateOptionsAPI() {
-  return AppAxios.post<IResponseData.Auth.MFA.Webauthn.AuthenticateOptions>({
+  return AppAxios.post<AuthMfaWebauthnAuthenticateOptions>({
     url: mfaAPI.webauthnAuthenticateOptions,
   })
 }

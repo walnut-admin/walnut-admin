@@ -1,4 +1,4 @@
-import type { IResponseData } from '../response'
+import type { SecuritySignAesKey } from '@walnut/api-types'
 import { SecurityRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 
@@ -19,7 +19,7 @@ export async function signInitialAPI(rsaPubKey: string, force = false) {
  * @description sign aes key
  */
 export async function signAesKeyAPI() {
-  return await AppAxios.post<IResponseData.Security.Sign.AesKey>({
+  return await AppAxios.post<SecuritySignAesKey>({
     url: SecurityRoutes.SIGN_AES_KEY,
     _autoDecryptResponseData: ['aesKey'],
   })
