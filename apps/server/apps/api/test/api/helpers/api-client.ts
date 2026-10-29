@@ -210,12 +210,12 @@ export class WalnutApiClient {
     return this.auth
   }
 
-  /** 已登录请求（双因子签名 + Authorization） */
-  async root(method: WalnutHttpMethod, url: string, body?: unknown): Promise<SuperTestResponse> {
+  /** 已登录请求（双因子签名 + Authorization）；extraHeaders 供 guard 矩阵定制请求头（如 XFF） */
+  async root(method: WalnutHttpMethod, url: string, body?: unknown, extraHeaders: Record<string, string> = {}): Promise<SuperTestResponse> {
     if (this.auth === null) {
       throw new Error('[api-client] root() requires setAuth() first')
     }
-    return this.execute({ method, url, body, sign: true, headers: { Authorization: `Bearer ${this.auth.accessToken}` } })
+    return this.execute({ method, url, body, sign: true, headers: { Authorization: `Bearer ${this.auth.accessToken}`, ...extraHeaders } })
   }
 
   /** 匿名请求（单因子签名，无 Authorization） */

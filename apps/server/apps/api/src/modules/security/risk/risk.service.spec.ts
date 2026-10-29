@@ -8,6 +8,7 @@ import { SecurityRiskService } from './risk.service'
  */
 
 const CRITICAL_RESULT = { score: 1, level: 'CRITICAL', factors: [] }
+const HIGH_RESULT = { score: 0.7, level: 'HIGH', factors: [] }
 const MEDIUM_RESULT = { score: 0.5, level: 'MEDIUM', factors: [] }
 const LOW_RESULT = { score: 0, level: 'LOW', factors: [] }
 
@@ -64,6 +65,15 @@ async function recommendFor(result: typeof CRITICAL_RESULT) {
 describe('risk service：推荐口径只含 CAP 升级，无阻塞字段（P1-13）', () => {
   it('critical → shouldChallenge=true / shouldLog=true，且不含 shouldBlock 字段', async () => {
     const recommendation = await recommendFor(CRITICAL_RESULT)
+
+    expect(recommendation.shouldChallenge).toBe(true)
+    expect(recommendation.shouldLog).toBe(true)
+    expect(recommendation.reason).toContain('HIGH_RISK')
+    expect(recommendation).not.toHaveProperty('shouldBlock')
+  })
+
+  it('high（0.7，阈值 0.6 ≤ x < 0.8）→ shouldChallenge=true / reason HIGH_RISK（G11 补 HIGH 层）', async () => {
+    const recommendation = await recommendFor(HIGH_RESULT)
 
     expect(recommendation.shouldChallenge).toBe(true)
     expect(recommendation.shouldLog).toBe(true)

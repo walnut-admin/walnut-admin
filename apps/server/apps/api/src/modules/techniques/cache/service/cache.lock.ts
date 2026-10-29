@@ -55,7 +55,11 @@ export class AppTechCacheLockService {
    * @param deviceId 设备ID
    * @returns 是否锁定
    */
-  async checkIsLocked(userId: string, deviceId: string): Promise<boolean> {
+  // P1-20 修复（2026-10-29）：两键都缺失时返回 **null**（语义 = 缓存未命中），不再
+  // 折叠成 false。锁守卫以 `!== null` 判定缓存命中、miss 时回源 DB；旧实现恒返回
+  // boolean 让 DB 回源分支成为死代码 —— Redis 清空/淘汰后锁定状态被静默当作
+  // 「未锁定」放行。返回值类型随之放宽为 boolean | null。
+  async checkIsLocked(userId: string, deviceId: string): Promise<boolean | null> {
     // 1. 检查全局锁定状�?
     const globalKey = LOCK_KEY_GLOBAL(userId)
     const globalLocked = await this.cache.get<boolean>(globalKey)
@@ -63,10 +67,9 @@ export class AppTechCacheLockService {
       return globalLocked
     }
 
-    // 2. 检查单设备锁定状�?
+    // 2. 检查单设备锁定状�?（null = 两键都未命中，交守卫回源 DB）
     const deviceKey = LOCK_KEY_DEVICE(userId, deviceId)
-    const deviceLocked = await this.cache.get<boolean>(deviceKey)
-    return deviceLocked ?? false
+    return this.cache.get<boolean>(deviceKey)
   }
 
   /**

@@ -386,32 +386,43 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     createdKeyIds.push(seeded.id)
 
     // 两路并发 rotate（@WalnutTx 各自事务）：P1-1 修复后 getCurrentActiveKey 在事务内
-    // FOR UPDATE —— 胜者锁行、置种子行 DEPRECATED、插 version+1 后提交；败者的
-    // SELECT ... FOR UPDATE 等锁恢复后在 READ COMMITTED 下重判 WHERE（status 已非
-    // ACTIVE）→ 读不到当前行 → 受控 40401（NotFound），不再双插同 version ACTIVE。
+    // FOR UPDATE。两种合法时序：
+    // ① 真正重叠 —— 胜者锁行、置种子行 DEPRECATED、插 version+1 后提交；败者等锁恢复后
+    //    在 READ COMMITTED 下重判 WHERE（status 已非 ACTIVE）→ 40400（NotFound）；
+    // ② 事件循环把两路串行化 —— 第二路看到的是新 ACTIVE 行，会合法地再轮换一次（version+2）。
+    // 两者都不允许出现「同 version 双 ACTIVE」—— 这才是 P1-1 的回归判据（修复前两路
+    // 各插一条 version+1 ACTIVE）。
     const [r1, r2] = await Promise.all([
       api.root('POST', api.apiPath('/app/key/rotate/RSA_PAIR')),
       api.root('POST', api.apiPath('/app/key/rotate/RSA_PAIR')),
     ])
     const codes = [bodyOf(r1).code, bodyOf(r2).code].sort((a, b) => a - b)
     expect(codes[0]).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
-    // rotate 的「当前 ACTIVE 行不存在」是 WalnutAdminExceptionNotFound（40400）
-    expect(codes[1]).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND)
+    expect([WalnutAdminConstAppResponseCode.SUCCESS, WalnutAdminConstAppResponseCode.NOT_FOUND]).toContain(codes[1])
 
-    const winnerRes = bodyOf(r1).code === WalnutAdminConstAppResponseCode.SUCCESS ? r1 : r2
-    const winner = bodyOf<{ id: string, version: number }>(winnerRes).data
-    expect(winner.version).toBe(seededKeyVersion + 1)
-    createdKeyIds.push(winner.id)
+    const successResults = [r1, r2]
+      .filter(res => bodyOf(res).code === WalnutAdminConstAppResponseCode.SUCCESS)
+      .map(res => bodyOf<{ id: string, version: number }>(res).data)
+      .sort((a, b) => a.version - b.version)
+    expect(successResults[0].version).toBe(seededKeyVersion + 1)
+    if (successResults.length === 2) {
+      expect(successResults[1].version).toBe(seededKeyVersion + 2)
+    }
+    for (const row of successResults) {
+      createdKeyIds.push(row.id)
+    }
 
-    // 竞态轮次恰一条 ACTIVE（version = seeded+1；seed 行已被胜者置 DEPRECATED）。
-    // 按 version 圈定本轮的竞态面 —— 集成库可能残留其他历史 ACTIVE 行（app.key.int-spec
-    // 不清理 app_key），不影响「同轮不得双插」的判据。
+    // 竞态轮次按成功的 version 圈定 ACTIVE 行（集成库可能残留其他历史 ACTIVE 行，
+    // 不影响「同轮不得双插」的判据）：每个 version 恰一条 ACTIVE，条数 = 成功路数，
+    // 且 set(version) 无重复 —— 修复前此处会是同 version 两条。
+    const successVersions = successResults.map(row => row.version)
     const actives: Array<{ id: string, version: number, status: string }> = await api.pgDataSource.query(
-      `SELECT id, version, status FROM app_key WHERE type = 'RSA_PAIR' AND status = 'ACTIVE' AND version = $1`,
-      [seededKeyVersion + 1],
+      `SELECT id, version, status FROM app_key WHERE type = 'RSA_PAIR' AND status = 'ACTIVE' AND version = ANY($1::int[])`,
+      [successVersions],
     )
-    expect(actives).toHaveLength(1)
-    expect(actives[0].id).toBe(winner.id)
+    expect(actives).toHaveLength(successResults.length)
+    expect(actives.map(row => row.id).sort()).toEqual(successResults.map(row => row.id).sort())
+    expect(new Set(actives.map(row => row.version)).size).toBe(actives.length)
 
     const seededRow = await repo.findOne({ where: { id: seeded.id } })
     expect(seededRow?.status).toBe('DEPRECATED')

@@ -2,6 +2,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutAuthTokens } from './helpers/api-client'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import type { SeedPermissionChainFixture } from './helpers/seed-permissions'
+import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
@@ -608,6 +609,41 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     expect(bodyOf<DemoListData>(listRes).data.total).toBe(1)
 
     // root 全程未拉过 /auth/permissions —— 权限缓存键不存在仍放行，短路判据实钉
+    const rootCacheKey = `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${rootFixture!.userId}:${admin.deviceId}`
+    expect(await admin.hasWalnutCacheKey(rootCacheKey)).toBe(false)
+  })
+
+  it('G10 root SWITCH 短路：role_mode=switchable 重登 → 受控端点 20000 且仍无权限缓存键', async () => {
+    // permission.guard 有两条 root 短路：COMBINE + roleNames[0]===root（上一条用例）、
+    // SWITCH + currentRoleName===root（本用例）。后者必须重登换 AT payload（roleMode 登录时固化）。
+    await admin.pgDataSource.query(
+      'UPDATE sys_user SET role_mode = $2 WHERE id = $1',
+      [rootFixture!.userId, WalnutAdminConstRoleMode.SWITCH],
+    )
+
+    const signoutRes = await admin.root('POST', admin.apiPath('/auth/signout'))
+    expectOk(signoutRes, 'root signout before switch re-login')
+    admin.setAuth(null)
+    const switchRootTokens = await performHttpOpaqueLogin(admin, app, rootFixture!)
+    admin.setAuth(switchRootTokens)
+    await admin.seedMfaVerifiedCache(rootFixture!.userId)
+
+    // AT payload 自洽：switchable + currentRoleName=root
+    const payload = JSON.parse(Buffer.from(switchRootTokens.accessToken.split('.')[1], 'base64url').toString('utf8')) as {
+      roleMode: string
+      currentRoleName: string
+    }
+    expect(payload.roleMode).toBe(WalnutAdminConstRoleMode.SWITCH)
+    expect(payload.currentRoleName).toBe(Role.ROOT)
+
+    const listRes = await admin.root('POST', admin.apiPath('/app/demo/list'), {
+      query: { demoString: demoGroup },
+      sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
+      page: { page: 1, pageSize: 10 },
+    })
+    expectOk(listRes, 'demo list (root switch short-circuit)')
+    expect(bodyOf<DemoListData>(listRes).data.total).toBe(1)
+
     const rootCacheKey = `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${rootFixture!.userId}:${admin.deviceId}`
     expect(await admin.hasWalnutCacheKey(rootCacheKey)).toBe(false)
   })

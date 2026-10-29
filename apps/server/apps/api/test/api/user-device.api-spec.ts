@@ -181,7 +181,13 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
     const blockedRes = await api.root('GET', api.apiPath('/system/user/device/list'))
     expect(bodyOf(blockedRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCOUNT_LOCKED)
 
-    // 复位锁缓存（等价另一通道解锁后的缓存态），unlock 端点本身仍走真实 HTTP
+    // 复位锁定现场（等价「另一通道」已把 DB 与缓存都解锁）：P1-20 修复后删缓存不再
+    // 等于解锁 —— 锁守卫 miss 会回源 sys_user_device.locked，仍 40118。因此这里同时把
+    // DB 行置回未锁，再走真实 HTTP unlock 端点（端点对未锁状态幂等）。
+    await api.pgDataSource.query(
+      'UPDATE sys_user_device SET locked = false WHERE user_id = $1 AND device_id = $2',
+      [fixture!.userId, api.deviceId],
+    )
     const lockKeys = WalnutAdminConstAppCacheKeys.SECURITY_LOCK
     const cacheService = app.get(AppTechCacheService)
     await cacheService.del(`${lockKeys}:${fixture!.userId}:global`)

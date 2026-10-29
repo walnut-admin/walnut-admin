@@ -81,7 +81,12 @@ export class WalnutAdminGuardRole implements CanActivate {
         }
         else {
           // switch && and
-          this.logger.log('This case should not happen, role `and` decorator and role mode `switch` should not exist in same time')
+          // P3-32 修复（2026-10-29）：旧实现只打日志、canNext 保持默认 true —— 误配
+          // （数组角色 + 默认 mode='and' + switchable 用户）会静默放行任意角色，是安全
+          // 陷阱。当前全部数组调用方都显式传 'or'（device/log.operate），修复零破坏；
+          // 未来误配由 40106 受控拒绝，不再放行。
+          this.logger.error('Role `and` decorator and role mode `switch` cannot be used together')
+          throw new WalnutAdminExceptionNoAccessRolePermission()
         }
       }
 

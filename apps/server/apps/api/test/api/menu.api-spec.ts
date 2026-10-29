@@ -78,6 +78,13 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
   const namePrefix = `apispec${seed8}`
   let fixture: WalnutRootUserFixture | null = null
 
+  /**
+   * 本轮经 createMenu 建过的行 id：update 腿只传 meta 时顶层 name/title 会被清空，
+   * 按 LIKE 的清理会漏掉（残留根节点 → 后续 spec 的 findRootMenu 选错根，P3-18 的
+   * 顺序敏感面）。按 id 兜底删除，不依赖字段还带着前缀。
+   */
+  const createdMenuIds: string[] = []
+
   /** locale 级联用例的载体行（lang 直插 + locale 走 HTTP） */
   let localeLangId = ''
   const localeKeyOf = (title: string) => title
@@ -99,7 +106,9 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
   async function createMenu(tag: string, overrides: Record<string, unknown> = {}): Promise<MenuRow> {
     const res = await api.root('POST', api.apiPath('/system/menu'), menuPayload(tag, overrides))
     expectOk(res, `menu create ${tag}`)
-    return bodyOf<MenuRow>(res).data
+    const row = bodyOf<MenuRow>(res).data
+    createdMenuIds.push(row.id)
+    return row
   }
 
   /** 递归找树里的节点（拿 name 对齐，name 本轮唯一） */
@@ -141,6 +150,12 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
 
   /** pid 自引用 FK 是 ON DELETE RESTRICT：先删子行（pid 非空）再删根行 */
   async function cleanupMenuRows() {
+    // 按 id 兜底（update 只传 meta 时 name/title 被清空，LIKE 匹配不到）
+    if (createdMenuIds.length > 0) {
+      await api.pgDataSource.query('DELETE FROM sys_menu WHERE pid = ANY($1::uuid[])', [createdMenuIds])
+      await api.pgDataSource.query('DELETE FROM sys_menu WHERE id = ANY($1::uuid[])', [createdMenuIds])
+      createdMenuIds.length = 0
+    }
     await api.pgDataSource.query(
       'DELETE FROM sys_menu WHERE pid IS NOT NULL AND (name LIKE $1 OR title LIKE $2)',
       [`${namePrefix}%`, `menu.title.${seed8}%`],

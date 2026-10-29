@@ -28,7 +28,7 @@ IP -> Security -> Device -> Risk(前) -> CAP(前) -> JWT -> Risk(后) -> CAP(后
 | 8 | `WalnutAdminGuardCap`（后） | 与 #5 同一实现；已有 userId 时把 critical factor 标记为用户-设备维度 | 40116 / 40117 | `@WalnutAdminGuardCapFree()` |
 | 9 | `WalnutAdminGuardMFA` | 已登录用户的 `mfaSetup` 强制与设备级 MFA 可信缓存 | 40114 / 40115 | `@WalnutAdminGuardMFAFree()` |
 | 10 | `WalnutAdminGuardSign` | HMAC 签名验签（未登录单因子 / 已登录双因子） | 40112 / 40113 | `@WalnutAdminGuardSignFree()` |
-| 11 | `WalnutAdminGuardLock` | 用户-设备锁定状态（缓存缺失回源 DB） | 40118 | `@WalnutAdminGuardLockFree()` |
+| 11 | `WalnutAdminGuardLock` | 用户-设备锁定状态（两个缓存键都缺失时回源 DB；P1-20 修复了旧实现把 miss 折叠成「未锁定」的洞） | 40118 | `@WalnutAdminGuardLockFree()` |
 
 顺序的隐含约束（改装配顺序前必须逐条核对）：
 
@@ -70,7 +70,13 @@ mode = 'and')` 挂载：
 
 **角色守卫** `WalnutAdminGuardRole`（`@WalnutAdminDecoratorHasRole`）只读 AT payload 的
 `roleNames` / `currentRoleName`，不走缓存；root 短路与 visitor 拒绝同上。数组 `and` 模式仅在
-COMBINE 下真正判定，`switchable + and` 的组合在代码里是「不应出现」分支。
+COMBINE 下真正判定；`switchable + and` 是误配组合 —— P3-32（2026-10-29）起直接抛 40106，
+不再只打日志静默放行（全仓数组调用方都显式传 `or`，零破坏）。
+
+**visitor 拒绝守卫** `WalnutAdminGuardVisitorDeny`（`@WalnutAdminDecoratorVisitorDeny`）：
+方法级守卫，`switchable + currentRoleName=visitor` → 40105；未登录放行（交 JWT 守卫）。
+当前挂在 `GET /system/menu/tree`（P2-20：菜单树含隐藏行与权限串，visitor 无导航需求 ——
+导航来自 `/auth/permissions`）。
 
 **敏感操作守卫** `WalnutAdminGuardSensitive`（`@WalnutAdminGuardRequireSensitive({ level,
 type })`）：要求已登录；Redis 键 `sensitive_op:<userId>:<deviceId>:<level>` 存在即放行
@@ -155,7 +161,8 @@ METHOD|PATH(去 /{prefix}/v{version})|扁平静态body排序串|timestamp=<ms>|n
   `ceil(config.ttl / 1000)` 秒（P0-3 修复后：与设备 + token 双重绑定，毫秒转秒）。
   缓存未命中时在 `APP:MURLOCK:CAP:<deviceId>` 锁内调 `AppCapJS.validateToken` 真验。
 - 真验失败时 `performCapVerification` 内部抛 40111 但被自身 catch 吞掉，最终返回 false，
-  客户端看到的是 40116/40117，而不是 40111。
+  客户端看到的是 40116/40117，而不是 40111（死分支现状登记为 P3-31；改 rethrow 或删除
+  属前端错误码契约决策）。
 - 校验通过后 `SecurityRiskChallengeStateService.markChallengeHandled` 把本次
   `criticalFactors` 标记为已处理：键形如
   `risk:challenge:<scope>:<值...>:<factor>`（scope 由 factor 前缀决定：device / user-device /

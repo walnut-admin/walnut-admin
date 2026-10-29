@@ -127,7 +127,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | sign | POST `/security/sign/aes-key` | 同上（响应 aesKey 经客户端 RSA 加密） | 无 | — | **基座核心**：握手第二步（客户端私钥解密）。**swagger 收尾批**（2026-10-29）补 `SecuritySignSessionKeyResponseDTO`（aesKey 文档标注为 RSA 信封字符串） |
 | rsa | GET `/security/rsa/public-key` | Sign/Jwt/Cap Free | 无 | — | **D 段已测**（security.api-spec.ts）：返回 app_key 表 current RSA_PAIR（version 最大 ACTIVE 行）meta.publicKeyPem —— 自插高 version 目标行做数据自洽（与 app_key.int-spec / key.api-spec 双向隔离，afterAll 清行还原） |
 | cap | POST `/security/cap/challenge`、`/security/cap/redeem` | Cap/Jwt/Device/Lock Free（challenge/redeem 另 SignFree） | 无 | challenge/redeem payload | **D 段已测**（security.api-spec.ts）：FreeResponse 无响应壳 —— challenge 回 cap.js `{challenge:{c,s,d},token,expires}`，redeem 本地 PoW 对解 success:true、错解 success:false（helpers 求解器与 api-client 引导期同源） |
-| sensitive | GET `/security/sensitive/check`、POST `/security/sensitive/verify` | Sign 链（`SensitiveGuard` 方法级） | 无 | verify `{basic,action,type,code}` | **D 段已测**（security.api-spec.ts，HTTP 级钉 B7c 已固化的 service 现状，非迁移回归不修）：① 缺 security 身份 → getUserAvailableMethods 对 phone/email security 读腿直接 DataNotFound 40401（而非跳过该方式）；② 造 security email+phone 身份后 check 列出 password/sms/email、mfa 恒不列、首选 password；③ verify password 通道恒失败 40000（opaque record 无法按明文比对）；④ email 错码 40000 不授权；⑤ 对码授权 sensitive_op:* 键 → check 翻转 needsVerification=false + remainingSeconds；⑥ mfa（未实现）→ 40000 verifyMethodNotAllowed |
+| sensitive | GET `/security/sensitive/check`、POST `/security/sensitive/verify` | Sign 链（`SensitiveGuard` 方法级） | 无 | verify `{level,operationType?,method,credential}`（P3-17 订正） | **D 段已测**（security.api-spec.ts）：P1-5 修复后 —— ① 缺 security 身份探测腿容错跳过，无可用方式 → 40000 noVerifyMethodAvailable；② 造 email/phone security 身份后 check 列 sms/email（password 已摘除、mfa 未实现不列）、首选 sms；③ email 错码 40000 不授权、对码授权 basic 键；④ password/mfa 通道 → 40000 verifyMethodNotAllowed。**K 段 G6 补**：basic 授权不放行 account_critical（40119），verify account_critical 后 `PUT identity status` 20000 且 status 落库 |
 
 ## 4. shared 模块（`modules/shared/`）
 
@@ -492,3 +492,46 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   F2：回收站 read/deleteMany 的 content 在 DTO 层遮蔽 identity `value` / MFA 四列密文
   （`***`），恢复走实体不受影响。`sys_user_role` / `sys_role_menu` junction 仍不进快照
   （登记保留）。
+
+## K 段补记（guard 分支覆盖补齐批，2026-10-29）
+
+> 覆盖审计的 G1-G15 落地记录。G15（permission.guard 数组权限无 mode 的放行面）**跳过**：
+> 全仓数组调用方都显式传 mode、无 HTTP 可达路径 —— 已在 DESIGN-ISSUES P3-33 纯登记，不写
+> 无法触发的用例。其余逐条对应 spec / 用例 / 断言码如下。
+
+- **G1 Security guard 拒绝面**（guard-matrix「Security guard」组）：UA 缺失 40604（裸
+  supertest 无 user-agent 头）、bot UA 40608、可疑 UA 40609；`APP:SETTING` 收紧 OS 白名单
+  → 40601、收紧浏览器白名单 → 40602。目标端点 `security/rsa/public-key`（无 Free 标记）。
+- **G2 JWT 跨设备 AT 重放**（guard-matrix JWT 组）：B 的 DEVICE_ID cookie + A 的 AT →
+  40101（`AUTH:SESSIONS:<user>:<deviceB>:<sidA>` 查无）。校验序 JWT 先于 Sign，故不是
+  40112；若会话键存在而双因子派生失配，第二道闸才是 40112。
+- **G3/G4 sign.guard 单测**（`sign.guard.spec.ts`）：缺 X-Sign 40112、时间戳非数字 40112、
+  ticket cookie↔缓存不一致 40112、AES 缓存缺失 40113、timingSafeCompare 长度不等 40112；
+  已登录 + `deriveApiSignKey → null` → 40112（P0-2 不降级），未登录不调用派生腿。
+- **G5 Lock 冷缓存 + 跨设备**（guard-matrix Lock 组）：lock 后删 SECURITY_LOCK 两键 →
+  回源 DB 仍 40118 且全局缓存回填（**P1-20**：`checkIsLocked` 修前把双 miss 折叠为 false，
+  冷缓存实际放行）；A 设备锁 → B 设备客户端探针 40118（默认跨设备锁）。
+- **G6 Sensitive 按 level 授权**（security.api-spec）：basic 授权键存在时打
+  `RequireSensitive(account_critical)` 的 `PUT /system/user/identity/.../status` → 40119；
+  verify account_critical 对码后同端点 20000 且 identity.status 落库。
+- **G7 functional 细分**（guard-matrix functional 组）：google `app.auth.google={}`
+  （defaultClosed + detailKey 缺失）→ 50301；opaque `authEnable=1 + register=0` →
+  register/start 50301；`authEnable=1 + change=0` → change-password/start 50301。
+- **G8 Device IP 变化回写**（guard-matrix Device 组）：已登录请求换 XFF（127.0.0.2）→
+  `sys_device.ip` 回写且 updated_at 变化；同 IP 再请求不再写库（updated_at 不变）；
+  用例末尾无 XFF 请求把 IP 还原。
+- **G9 CAP 真验失败**（`cap.guard.spec.ts`）：`AppCapJS.validateToken → success=false` +
+  缓存 miss：shouldChallenge=true → 40116、false → 40117；并钉 P3-31 现状（40111 被自吞，
+  外部不可达）。
+- **G10 Permission SWITCH root 短路**（permission-chain spec）：root `role_mode` 改
+  switchable + signout 重登 → AT payload `{roleMode:'switchable', currentRoleName:'root'}`
+  → `/app/demo/list` 20000 且无 AUTH:PERMISSIONS 键（与 COMBINE 对照用例成对）。
+- **G11 Risk HIGH 层**（risk.service.spec）：0.7 分（0.6 ≤ x < 0.8）→ shouldChallenge=true /
+  理由 HIGH_RISK，无 shouldBlock。
+- **G12 MFA payload mfaVerified 短路**（guard-matrix MFA 组）：服务端密钥重签同会话 AT
+  并置 mfaVerified=true、设备级 verified 缓存显式清空 → 20000（mfa.guard P6 只信 AT payload）。
+- **G13 CAP throttle 桶**（`cap-throttle.api-spec.ts`，独立文件）：challenge 桶 4/60s
+  （与 device/initial 桶独立）；引导耗 1 次 → 3 次压线成功 → 第 5 次 42900 + Retry-After ≥30。
+- **G14 IpFree + 黑名单**（guard-matrix IP 组）：临时拉黑 IP 打非 IpFree 端点
+  `security/rsa/public-key` → 40603；同 IP 打 IpFree 的 `security/sign/initial` → 20000
+  （现状钉死：IpFree 显式放弃 IP 维度风控，属设计内取舍）。

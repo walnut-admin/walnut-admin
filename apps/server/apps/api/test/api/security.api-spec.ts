@@ -82,6 +82,7 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
       // sensitive 授权键（裸 Redis 键，无 WALNUT_CACHE_ 前缀，逐键显式清）
       const redis = app.get(AppTechRedisService).getClient()
       await redis.del(`sensitive_op:${fixture.userId}:${api.deviceId}:basic`)
+      await redis.del(`sensitive_op:${fixture.userId}:${api.deviceId}:account_critical`)
       await api.pgDataSource.query('DELETE FROM sys_user_identity WHERE user_id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
@@ -241,5 +242,43 @@ describe('D 段：security rsa/public-key + cap challenge/redeem + sensitive che
       credential: '000000',
     })
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+  })
+
+  it('G6 授权按 level 生效：basic 已授权不放行 account_critical；verify account_critical 后受控端点 20000', async () => {
+    const redis = app.get(AppTechRedisService).getClient()
+    const criticalKey = `sensitive_op:${fixture!.userId}:${api.deviceId}:account_critical`
+
+    // 前置：本文件前面的用例只在 basic 级授权；account_critical 键不存在
+    expect(await redis.exists(criticalKey)).toBe(0)
+
+    // ① level 隔离：basic 的授权键不能让 account_critical 守卫放行 —— 40119 且 meta 带可验证面
+    //    （identity status 的 operationType=email_status_toggle 策略覆盖为 EMAIL 通道）
+    const denied = await api.root('PUT', api.apiPath('/system/user/identity/status/emailAddress/security'), {
+      status: false,
+    })
+    expect(bodyOf(denied).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED)
+
+    // ② verify account_critical（email 对码）→ 授权键落在 account_critical 级
+    await verifyCodeService.setVerifyCodeForAuthUserCache(fixture!.userId, securityEmail, 667788, 300)
+    const verifyRes = await api.root('POST', api.apiPath('/security/sensitive/verify'), {
+      level: 'account_critical',
+      operationType: 'email_status_toggle',
+      method: 'email',
+      credential: '667788',
+    })
+    expectOk(verifyRes, 'sensitive verify account_critical')
+    await pollUntil(async () => (await redis.exists(criticalKey)) === 1)
+
+    // ③ 回打挂 RequireSensitive(account_critical) 的端点 → 20000，且业务腿真实执行（status=false 落库）
+    const okRes = await api.root('PUT', api.apiPath('/system/user/identity/status/emailAddress/security'), {
+      status: false,
+    })
+    expectOk(okRes, 'identity status with account_critical grant')
+
+    const identityRows: Array<{ status: boolean }> = await api.pgDataSource.query(
+      'SELECT status FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
+      [fixture!.userId, 'emailAddress', 'security'],
+    )
+    expect(identityRows[0].status).toBe(false)
   })
 })

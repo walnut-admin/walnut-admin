@@ -17,10 +17,11 @@
 > P0-2 / P0-3 / P0-4 已于 2026-10-28 修复（批 1）；P0-5 登记为部署强约束、代码不改
 > （2026-10-29 复核 deploy conf 已覆盖，补齐 /socket/ 与静态入口）；P0-6 已于 2026-10-28
 > 修复（批 A，roadmap §6））｜
-> P1 × 19（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复；P1-4 已于 2026-10-27 修复；
+> P1 × 20（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复；P1-4 已于 2026-10-27 修复；
 > P1-1 / P1-2 / P1-3 / P1-5 / P1-6 / P1-7 / P1-8 / P1-10 / P1-11 / P1-12 已于 2026-10-28 修复（批 1）；
 > P1-13 ~ P1-17 已于 2026-10-28 修复（批 A/B，roadmap §6）；
-> P1-18 / P1-19 已于 2026-10-28 修复（批 D，roadmap §6））｜
+> P1-18 / P1-19 已于 2026-10-28 修复（批 D，roadmap §6）；
+> P1-20 为 guard 分支覆盖补齐批实测新登记，已于 2026-10-29 修复）｜
 > P2 × 32（批 2：P2-1 确认为安全立场设计；P2-2 ~ P2-9 已于 2026-10-28 修复；P2-10 已登记；
 > P2-11 ~ P2-15 为文档大轮次 A 段新登记，P2-12 / P2-13 / P2-15 已于 2026-10-28 修复（批 C，roadmap §6）；
 > P2-11 已于 2026-10-29 修复（第一梯队）；
@@ -28,10 +29,11 @@
 > junction 部分仍登记；P2-22 用户外围条目随其覆盖，剩 oauth 一面）；P2-20 已于 2026-10-29 修复；
 > P2-21 ~ P2-29 为文档大轮次 C 段新登记；P2-30 / P2-31 为 D 段新登记；
 > P2-32 为 C+D 批复审新登记（2026-10-28），已于 2026-10-29 修复）｜
-> P3 × 30（P3-2 / P3-3 / P3-5 已于 2026-10-28 修复；P3-1 / P3-4 / P3-6 / P3-7 同日裁决登记；
+> P3 × 34（P3-2 / P3-3 / P3-5 已于 2026-10-28 修复；P3-1 / P3-4 / P3-6 / P3-7 同日裁决登记；
 > P3-8 已豁免；P3-9 随 OpenAPI codegen 二期修复；P3-10 ~ P3-16 为 codegen 二期挂单；
 > P3-17 为文档复审新登记；P3-18 ~ P3-20 为 B 段新登记；
-> P3-21 ~ P3-24 为 C 段新登记（P3-23 已于 2026-10-29 修复）；P3-25 ~ P3-30 为 D 段新登记）**，末节附 G/H 段实测无恙面。
+> P3-21 ~ P3-24 为 C 段新登记（P3-23 已于 2026-10-29 修复）；P3-25 ~ P3-30 为 D 段新登记；
+> P3-31 ~ P3-34 为 guard 分支覆盖补齐批新登记（P3-32 已于 2026-10-29 修复））**，末节附 G/H 段实测无恙面。
 
 ---
 
@@ -185,7 +187,10 @@
   `key.basic.repository.getCurrentActiveKey` 增 `lock?: boolean`，`rotate` 传 true →
   事务内 `FOR UPDATE` 锁当前 ACTIVE 行；HTTP rotate 本就带 `@WalnutTx` 的 ctx.em，cron
   腿由 `rotateForCronJob` 的 `transactional` 包裹。concurrency G6 断言改为「恰一条
-  version+1 的 ACTIVE、败者受控 40401（锁恢复后重判 WHERE 读不到 ACTIVE 行）」。
+  version+1 的 ACTIVE、败者受控 40401（锁恢复后重判 WHERE 读不到 ACTIVE 行）」；
+  **2026-10-29 补注**：两路请求也可能被事件循环完全串行化（第二路看到新 ACTIVE 行、
+  合法轮换出 version+2）—— G6 接受「40400 或串行第二次成功」两种时序，回归判据统一为
+  「同 version 不得双 ACTIVE」（修复前双路各插一条 version+1 正是该判据的失败形态）。
 
 ### P1-2 会话键批量清理失效 —— `delByPattern` 内部 `redis.del(数组)` 撞 node-redis v5 rest-args —— 【已修复 2026-10-28】
 
@@ -520,6 +525,24 @@
   同一事务；任何一腿失败（FK 23503 等）整体回滚 → 受控 40000。api-rollback spec 新增
   两条 HTTP 级用例：create 带不存在角色 → 40000 且 `sys_user` 零残留（无脏用户）；
   update 同时改 status + 带不存在角色 → 40000 且 status 未被半提交。
+
+### P1-20 锁守卫冷缓存放行 —— `checkIsLocked` 双 miss 折叠成 false，DB 回源分支不可达（guard 覆盖补齐批实测，新登记）—— 【已修复 2026-10-29】
+
+- **位置**：`apps/api/src/modules/techniques/cache/service/cache.lock.ts`
+  （`checkIsLocked`）+ `apps/api/src/guard/lock.guard.ts`（Step 4/5 的 `!== null` 判命中）。
+- **现象**：`checkIsLocked` 先查全局键、再查设备键，两键都缺失时 `deviceLocked ?? false`
+  **折叠成 false**；而锁守卫以 `cachedLockStatus !== null` 判定「缓存命中」—— 缓存未命中
+  被当成「未锁定」直接放行，Step 5 的分布式锁 + `getLockForGuard` DB 回源 + 缓存回填
+  整段是死代码。Redis 清空 / 淘汰 / 未预热时，已锁定用户凭旧 AT 继续访问全链端点
+  （与 P2-2 设备锁/封「缓存 miss 回源 DB」的口径相反）。
+- **实测证据**：`guard-matrix.api-spec.ts` G5 冷缓存用例 —— 修复前 lock 后删
+  `SECURITY_LOCK:<user>:global` 再打非 LockFree 端点 → 20000（放行）；修复后 40118，
+  且回源后全局锁缓存被回填。
+- **建议**：双 miss 返回 `null`（语义 = 缓存未命中），把 DB 回源腿恢复为活路径。
+- **修法（2026-10-29）**：`checkIsLocked` 返回类型改 `Promise<boolean | null>`，设备键
+  直接返回 `cache.get`（null 即 miss）；全局键命中仍优先。锁守卫既有 double-check /
+  `getLockForGuard` / `setDeviceLockCache` 逻辑零改动即恢复生效。G5 两条用例：
+  冷缓存回源 40118（并断言全局键回填）、A 设备跨设备锁 → B 设备探针 40118。
 
 ## P2 语义怪异
 
@@ -1465,6 +1488,56 @@
 - **实测证据**：本次读码 + DDL 对照；DTO 注释已自述「无索引 → 见报告建议补索引」。
 - **建议**：补 `idx_monitor_last_active (last_active_at DESC)`，或把默认排序改成有索引的
   `first_visit_at` 并同步前端默认排序。
+
+### P3-31 cap.guard 的 40111 YouAreBot 是死分支 —— 自抛自吞（guard 分支覆盖补齐批，新登记）
+
+- **位置**：`apps/api/src/guard/cap.guard.ts` 的 `performCapVerification`。
+- **现象**：`AppCapJS.validateToken` 返回 `success=false` 时函数内抛
+  `WalnutAdminExceptionYouAreBot`（40111），但同一 `try` 的 `catch` 把所有异常吞掉并
+  `return false` —— 调用方（`canActivate`）随后按 `shouldChallenge` 改抛 40116/40117。
+  **40111 永远到不了客户端**（error.controller 的 ErrorMap 还给它挂了异常类）。
+- **实测证据**：`cap.guard.spec.ts` G9 —— mock `success=false` 后只能观察到 40116/40117，
+  专门断言「不是 YouAreBot」；HTTP 级 guard-matrix CAP 组也只见过 40116/40117。
+- **建议（裁决项，需契约确认）**：二选一 —— ① `catch` 对自身业务异常 rethrow（40111 真正
+  可达，前端已有 40111 文案）；② 删除 40111 分支与 `error.controller` 映射，把「验证失败
+  统一走刷新/交互」写进契约。**本轮不修**：改错误面属于客户端契约变更，须与前端共同拍板。
+
+### P3-32 roles.guard 的 AND + SWITCH 组合静默放行 —— 安全陷阱（guard 分支覆盖补齐批，新登记）—— 【已修复 2026-10-29】
+
+- **位置**：`apps/api/src/guard/roles.guard.ts`（数组 `and` 分支的 `else`）。
+- **现象**：`@WalnutAdminDecoratorHasRole([a, b])` 默认 `mode='and'`；当用户 `roleMode`
+  是 `switchable` 时，旧代码只 `logger.log('This case should not happen...')` 然后
+  **`canNext` 保持默认 true → 直接放行**。任何未来误配（数组 + 默认 and）都会对
+  switchable 用户开放任意角色端点，且日志级别是 log 不是 warn/error。
+- **实测证据**：`roles.guard.spec.ts` —— switchable + 数组 + and 的用例（修复前
+  resolves true，修复后 40106）。
+- **修法（2026-10-29）**：该分支改 `logger.error` + 抛
+  `WalnutAdminExceptionNoAccessRolePermission`（40106）。零破坏依据：全仓数组调用方
+  （`device.controller` / `log.operate.controller`）都显式传 `'or'`，`and` 只在 COMBINE
+  下参与判定；单测同时覆盖 or/combinable/visitor 对照。
+
+### P3-33 permission.guard 数组权限缺 mode 时静默放行（guard 分支覆盖补齐批，新登记）
+
+- **位置**：`apps/api/src/guard/permission.guard.ts`（数组分支只处理 `AND`/`OR` 两个
+  枚举值，二者都不是时 `canNext` 保持 true）。
+- **现象**：若通过 `SetMetadata` 直接写数组权限、又不写 `PERMISSION_MODE`，守卫会把
+  「没有模式」当放行 —— 与 roles.guard 已修的同类陷阱同构。当前无触发面：全仓数组
+  调用方（`device.controller` 6 处、`log.operate.controller` 2 处）全部显式传 `'and'`；
+  `key.controller` 的 `app:key:read` 是**字符串**（`AppKeyCurrentGuard` 复用同一守卫）。
+- **实测证据**：本次全仓 grep（数组调用点均带显式 mode）+ 读码；无 HTTP 可达路径。
+- **建议**：与 P3-32 同口径 —— 数组分支遇到未知/缺失 mode 直接抛 40105（或默认按 `and`
+  判定），不保留「未判定即放行」。本轮**纯登记**（无调用方受影响，避免无谓行为变更）。
+
+### P3-34 device.guard 的 `active` 字段从未参与判定（guard 分支覆盖补齐批，观察项登记）
+
+- **位置**：`apps/api/src/guard/device.guard.ts`（缓存/DB 两条腿都读 `active`，但只用
+  `banned` / `locked` 判定）+ `cache.device.ts` 的 `DeviceCache.active`。
+- **现象**：`sys_device.active` 只被设备初始化的 `active=true`、cron 清理
+  （`updateDeviceActiveStatusForCronJob`）与读接口消费，**准入链不检查它** —— 停用设备
+  仍可通过 guard（除非同时 locked/banned），字段语义与「设备准入」脱钩。
+- **实测证据**：本次读码；guard-matrix 的 Device 组只覆盖 banned/locked/缺失/篡改。
+- **建议**：确认产品口径 —— 要么 guard 对 `active=false` 返回 40605/40606 族受控拒绝，
+  要么在实体/文档注明「active 只用于统计与清理，不是准入位」。本轮仅登记。
 
 ---
 

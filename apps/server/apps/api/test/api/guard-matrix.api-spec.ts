@@ -9,11 +9,13 @@ import { JwtService } from '@nestjs/jwt'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
+import supertest from 'supertest'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { SharedIpService } from '@/modules/shared/ip/ip.service'
 import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 import { AppTechCacheCapService } from '@/modules/techniques/cache/service/cache.cap'
 import { AppTechCacheDeviceService } from '@/modules/techniques/cache/service/cache.device'
+import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { overrideAppSettings } from './helpers/app-settings'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
@@ -55,6 +57,10 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
   let fixture2: WalnutRootUserFixture | null = null
   let fixture3: WalnutRootUserFixture | null = null
   let tokens1: WalnutAuthTokens | null = null
+  /** 第二设备（同 fixture1）登录令牌 —— G2 跨设备重放与 G5 跨设备锁定共用 */
+  let tokensB1: WalnutAuthTokens | null = null
+  /** fixture2 的登录令牌（G12：mfaVerified 自报短路；登录时 isTrusted=false） */
+  let tokens2: WalnutAuthTokens | null = null
   /** 主客户端设备行的 PG 主键（device ban/unban 的 :id 是行 uuid） */
   let deviceARowId = ''
   /** sign guard 的路径规范化正则（strip `/{prefix}/v{version}`，与 buildSignRaw 同口径） */
@@ -270,6 +276,66 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
   })
 
   // ============================================================
+  // G1：Security guard 拒绝面（UA 存在性 / bot / suspicious / OS·浏览器白名单）
+  // 用裸 supertest 精确控制 User-Agent（api-client 恒带真实浏览器 UA）；目标端点
+  // security/rsa/public-key 无 Free 标记，Security guard 是第一个会拒绝的关卡。
+  // ============================================================
+  describe('Security guard：UA 缺失 / bot / suspicious / OS·浏览器白名单（G1）', () => {
+    const probePath = '/security/rsa/public-key'
+
+    it('UA 缺失（裸请求无 user-agent 头）→ 40604 UserAgentNotAcceptable', async () => {
+      const res = await supertest(app.getHttpServer()).get(api.apiPath(probePath))
+      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_USER_AGENT_UNSUPPORTED)
+    })
+
+    it('bot UA（isbot 命中）→ 40608 BotDetected', async () => {
+      const res = await supertest(app.getHttpServer())
+        .get(api.apiPath(probePath))
+        .set('user-agent', 'Googlebot/2.1 (+http://www.google.com/bot.html)')
+      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_BOT_DETECTED)
+    })
+
+    it('suspicious UA（无 os/browser 可解析且非 bot）→ 40609 SuspiciousRequest', async () => {
+      // isbot 对未知的自定义短串判定不稳定（'x' / 'Foo/1.2.3' 会被当 bot → 40608），
+      // 这里用 isbot=false 且 UAParser 解析不出 os/browser 的串，命中 suspicious 分支
+      const res = await supertest(app.getHttpServer())
+        .get(api.apiPath(probePath))
+        .set('user-agent', 'MyApp/1.0 (compatible; test-client)')
+      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_SUSPICIOUS_REQUEST)
+    })
+
+    it('OS 白名单收紧（只留 Plan9）→ 真实浏览器 UA 40601 UserAgentOSNotAcceptable', async () => {
+      const restore = await overrideAppSettings(app, {
+        [WalnutAdminConstAppSettingKeys.APP_GLOBAL_OS_WHITELIST]: JSON.stringify(['Plan9']),
+      })
+      try {
+        const res = await supertest(app.getHttpServer())
+          .get(api.apiPath(probePath))
+          .set('user-agent', WALNUT_TEST_USER_AGENT)
+        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_OS_UNSUPPORTED)
+      }
+      finally {
+        await restore()
+      }
+    })
+
+    it('浏览器白名单收紧（只留 Lynx）→ 真实浏览器 UA 40602 UserAgentBrowserNotAcceptable', async () => {
+      const restore = await overrideAppSettings(app, {
+        [WalnutAdminConstAppSettingKeys.APP_GLOBAL_BROWSER_WHITELIST]: JSON.stringify(['Lynx']),
+      })
+      try {
+        const res = await supertest(app.getHttpServer())
+          .get(api.apiPath(probePath))
+          .set('user-agent', WALNUT_TEST_USER_AGENT)
+        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_BROWSER_UNSUPPORTED)
+      }
+      finally {
+        await restore()
+      }
+    })
+  })
+
+  // ============================================================
   // 登录基线 + JWT 生命周期 + CAP case-B + Device + MFA + Lock + IP + functional
   // ============================================================
   describe('登录基线 / JWT 生命周期（会话与算法篡改拒绝面）', () => {
@@ -281,8 +347,8 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
 
       // 第二设备客户端：同 root fixture 登录（设备封禁闭环的解封通道）
       apiB = await WalnutApiClient.create(app)
-      const tokensB = await performHttpOpaqueLogin(apiB, app, fixture1)
-      apiB.setAuth(tokensB)
+      tokensB1 = await performHttpOpaqueLogin(apiB, app, fixture1)
+      apiB.setAuth(tokensB1)
       await apiB.seedMfaVerifiedCache(fixture1.userId)
 
       const rows: Array<{ id: string }> = await api.pgDataSource.query(
@@ -388,6 +454,21 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       // 修复后：JWT validate 先查 AUTH:SESSIONS（ghost user 查无）→ 40101；即便 sessions 键
       // 存在但 sign 层派生失败，sign guard 也直接 40112 拒绝（不再回落单因子）。
       expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    })
+
+    it('G2 跨设备 AT 重放：B 的 DEVICE_ID cookie + A 的 AT → 40101（会话键 user+deviceB 查无；JWT 先于 Sign）', async () => {
+      // A/B 是同一 user 的两台设备、各自会话。把 A 的 AT 放进 B 的 cookie jar：
+      // JWT validate 用「B 的 deviceId + A 的 sid」查 AUTH:SESSIONS → 查无 → 40101。
+      // 校验序：JWT（全局 #6）先于 Sign（#10）—— 即便 B 的 aesKey 与 A 的 AT 组合出
+      // 合法双因子签名也到不了 Sign；若会话键存在而签名密钥失配，第二道闸才是 40112。
+      apiB!.setAuth(tokens1)
+      try {
+        const res = await apiB!.root('GET', apiB!.apiPath('/system/user/lock/read'))
+        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+      }
+      finally {
+        apiB!.setAuth(tokensB1)
+      }
     })
 
     it('会话吊销（删 AUTH:SESSIONS 键）后旧 AT 双因子签名 → JWT 层 40101（P0-4；随后 SQL 撤 RT 重登恢复）', async () => {
@@ -498,6 +579,53 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       const restored = await api.root('GET', api.apiPath('/system/user/lock/read'))
       expectOk(restored, 'device A restored after unban')
     })
+
+    it('G8 设备 IP 变化回写：XFF 换 IP → 放行且 sys_device.ip 落新值；同 IP 再请求不重复写（updated_at 不变）', async () => {
+      // 127.0.0.2 是本机回环段（is-localhost-ip → LOCAL），不触发外网地理 API，用例确定性
+      const newIp = '127.0.0.2'
+
+      const rowsBefore: Array<{ ip: string | null, updated_at: Date }> = await api.pgDataSource.query(
+        'SELECT ip, updated_at FROM sys_device WHERE device_id = $1',
+        [api.deviceId],
+      )
+
+      const first = await api.root(
+        'GET',
+        api.apiPath('/system/user/lock/read'),
+        undefined,
+        { 'x-forwarded-for': newIp },
+      )
+      expectOk(first, 'ip change request')
+
+      const rowsAfter: Array<{ ip: string | null, updated_at: Date }> = await api.pgDataSource.query(
+        'SELECT ip, updated_at FROM sys_device WHERE device_id = $1',
+        [api.deviceId],
+      )
+      expect(rowsAfter[0].ip).toBe(newIp)
+      expect(new Date(rowsAfter[0].updated_at).toISOString()).not.toBe(new Date(rowsBefore[0].updated_at).toISOString())
+
+      // 同 IP 第二次：guard 读到缓存 currentIp 已等于 realIp（updateIpAndLocation 提交后
+      // 回填缓存）→ 不再写库，updated_at 与 ip 均保持不变
+      await new Promise(resolve => setTimeout(resolve, 20))
+      const second = await api.root(
+        'GET',
+        api.apiPath('/system/user/lock/read'),
+        undefined,
+        { 'x-forwarded-for': newIp },
+      )
+      expectOk(second, 'same ip request')
+
+      const rowsAgain: Array<{ ip: string | null, updated_at: Date }> = await api.pgDataSource.query(
+        'SELECT ip, updated_at FROM sys_device WHERE device_id = $1',
+        [api.deviceId],
+      )
+      expect(rowsAgain[0].ip).toBe(newIp)
+      expect(new Date(rowsAgain[0].updated_at).toISOString()).toBe(new Date(rowsAfter[0].updated_at).toISOString())
+
+      // 还原：无 XFF 的下一次请求把 IP 写回真实回环地址，避免污染后续用例的缓存/行状态
+      const restoreRes = await api.root('GET', api.apiPath('/system/user/lock/read'))
+      expectOk(restoreRes, 'ip restore')
+    })
   })
 
   describe('MFA guard 强制态（已登录）', () => {
@@ -512,7 +640,7 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       fixture2 = await registerRootUserFixture(app, api.pgDataSource, `gmx2-${seed8}`)
       // 登录链是 JwtFree+Sign 生效路由：登录态 jar 的双因子签名必 40112，先回单因子
       api.setAuth(null)
-      const tokens2 = await performHttpOpaqueLogin(api, app, fixture2)
+      tokens2 = await performHttpOpaqueLogin(api, app, fixture2)
       api.setAuth(tokens2)
 
       const res = await api.root('GET', api.apiPath('/system/user/lock/read'))
@@ -523,6 +651,28 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       await api.seedMfaVerifiedCache(fixture2!.userId)
       const res = await api.root('GET', api.apiPath('/system/user/lock/read'))
       expectOk(res, 'mfa verified via device cache')
+    })
+
+    it('G12 payload mfaVerified=true 短路：服务端签发带该字段的 AT + 无设备缓存 → 20000', async () => {
+      // 登录时 isTrusted=false → 正常 AT 的 mfaVerified=false；这里用服务端密钥重签
+      // 同一会话的 payload（sid 不变 → JWT 会话键仍命中），只翻 mfaVerified 位，
+      // 证明 mfa.guard 的 P6 短路只信 AT payload，与设备级 verified 缓存解耦。
+      const jwtService = app.get(JwtService)
+      const accessSecret = app.get(ConfigService).get<string>('jwt.access.secret')!
+
+      const cacheMfa = app.get(AppTechCacheMfaService)
+      await cacheMfa.delVerifiedCache(fixture2!.userId, api.deviceId)
+      expect(await cacheMfa.getVerifiedCache(fixture2!.userId, api.deviceId)).toBeNull()
+
+      const { iat: _iat, exp: _exp, ...payload } = jwtService.decode<Record<string, unknown>>(tokens2!.accessToken)
+      const trustedAt = await jwtService.signAsync(
+        { ...payload, mfaVerified: true },
+        { secret: accessSecret, expiresIn: '5m' },
+      )
+
+      api.setAuth({ ...tokens2!, accessToken: trustedAt })
+      const res = await api.root('GET', api.apiPath('/system/user/lock/read'))
+      expectOk(res, 'mfaVerified payload shortcut')
     })
 
     it('mfa_setup=false 用户 → 40114 MfaRequired（mfa.guard P5：未启用 MFA 的用户无法使用系统）', async () => {
@@ -567,6 +717,43 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
 
       const restored = await api.root('GET', api.apiPath('/system/user/me/profile'))
       expectOk(restored, 'lock guard restored')
+    })
+
+    async function clearLockCache() {
+      const cacheService = app.get(AppTechCacheService)
+      const lockKeys = WalnutAdminConstAppCacheKeys.SECURITY_LOCK
+      await cacheService.del(`${lockKeys}:${fixture1!.userId}:global`)
+      await cacheService.del(`${lockKeys}:${fixture1!.userId}:${api.deviceId}`)
+    }
+
+    it('G5 冷缓存：lock 后显式删 SECURITY_LOCK 键 → 缓存 miss 回源 DB 仍 40118（P1-20）', async () => {
+      const lockRes = await api.root('PATCH', api.apiPath('/system/user/lock'), { lockRoute: { name: `g5-cold-${seed8}` } })
+      expectOk(lockRes, 'lock for cold cache probe')
+
+      await clearLockCache()
+
+      const blocked = await api.root('GET', api.apiPath('/system/user/me/profile'))
+      expect(bodyOf(blocked).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCOUNT_LOCKED)
+
+      // 回源 DB（lockCrossDevice 默认 true → 全局键）后缓存被回填
+      const cached = await app.get(AppTechCacheService).get<boolean>(
+        `${WalnutAdminConstAppCacheKeys.SECURITY_LOCK}:${fixture1!.userId}:global`,
+      )
+      expect(cached).toBe(true)
+
+      const unlockRes = await api.root('PATCH', api.apiPath('/system/user/lock/unlock'), {})
+      expectOk(unlockRes, 'unlock after cold cache probe')
+    })
+
+    it('G5 跨设备：A 设备锁（默认 lockCrossDevice=true）→ B 设备客户端探针 40118', async () => {
+      const lockRes = await api.root('PATCH', api.apiPath('/system/user/lock'), { lockRoute: { name: `g5-cross-${seed8}` } })
+      expectOk(lockRes, 'lock device A')
+
+      const blocked = await apiB!.root('GET', apiB!.apiPath('/system/user/me/profile'))
+      expect(bodyOf(blocked).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCOUNT_LOCKED)
+
+      const unlockRes = await api.root('PATCH', api.apiPath('/system/user/lock/unlock'), {})
+      expectOk(unlockRes, 'unlock device A')
     })
   })
 
@@ -636,6 +823,33 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       expectOk(res, 'spoofed ip passthrough')
     })
 
+    it('G14 IpFree 端点旁路黑名单：已拉黑 IP 打 /security/sign/initial → 20000（IP guard 跳过）；对照非 IpFree 端点 40603', async () => {
+      // 现状钉死：IpFree 是端点上显式放弃 IP 维度风控的语义（security/sign/* 整组），
+      // 黑名单 IP 仍可调用该组端点 —— 属设计内取舍，用例只锚定「跳过发生在 IP guard」。
+      const ipService = app.get(SharedIpService)
+      await ipService.addToTemporaryBlacklist(BANNED_IP_TEMP, 'GUARD_MATRIX_G14')
+      try {
+        const contrast = await api.unsigned(
+          'GET',
+          api.apiPath('/security/rsa/public-key'),
+          undefined,
+          { 'x-forwarded-for': BANNED_IP_TEMP },
+        )
+        expect(bodyOf(contrast).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED)
+
+        const bypass = await api.unsigned(
+          'POST',
+          api.apiPath('/security/sign/initial'),
+          { rsaPubKey: `g14-probe-${seed8}`, force: false },
+          { 'x-forwarded-for': BANNED_IP_TEMP },
+        )
+        expectOk(bypass, 'ip-free endpoint bypasses blacklist')
+      }
+      finally {
+        await ipService.removeFromTemporaryBlacklist(BANNED_IP_TEMP)
+      }
+    })
+
     it('黑名单路径命中：/w/v1/admin → 40610 + 自动永久拉黑（P1-11：strip API 前缀 + 中间件兜底未命中路由）', async () => {
       // 用独立伪造 IP 承载拉黑副作用（避免把 127.0.0.1 拉进永久黑名单污染后续用例）。
       // 未命中路由的请求不执行 guard 链 → 检查落在 BlacklistPathMiddleware（forRoutes('*')），
@@ -674,6 +888,48 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       finally {
         await restore()
         api.setAuth(tokens1)
+      }
+    })
+
+    it('G7 defaultClosed + detailKey 缺失：google settings={} → 50301（区别于零配置缓存缺失）', async () => {
+      // P1-17 的 defaultClosed 有两层缺失语义：① 整表/主键缺失（D 段已测）；② 主键存在但
+      // detailKey（authEnable）缺失 —— 本用例补 ②：JSON 空对象经 getAppSettings 命中后
+      // parsedMainData.authEnable === undefined → defaultClosed 分支 50301。
+      const restore = await overrideAppSettings(app, {
+        [WalnutAdminConstAppSettingKeys.APP_AUTH_GOOGLE]: JSON.stringify({}),
+      })
+      try {
+        const res = await api.unsigned('POST', api.apiPath('/auth/google'))
+        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.SERVICE_UNAVAILABLE_ENDPOINT_DOWN)
+      }
+      finally {
+        await restore()
+      }
+    })
+
+    it('G7 opaque 子开关：authEnable=1 + register=0 → register/start 50301（主开关开、子开关关）', async () => {
+      const restore = await overrideAppSettings(app, {
+        [WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE]: JSON.stringify({ authEnable: 1, register: 0 }),
+      })
+      try {
+        const res = await api.root('POST', api.apiPath('/auth/opaque/user/register/start'), { start: 'g7-probe' })
+        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.SERVICE_UNAVAILABLE_ENDPOINT_DOWN)
+      }
+      finally {
+        await restore()
+      }
+    })
+
+    it('G7 opaque 子开关：authEnable=1 + change=0 → change-password/start 50301', async () => {
+      const restore = await overrideAppSettings(app, {
+        [WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE]: JSON.stringify({ authEnable: 1, change: 0 }),
+      })
+      try {
+        const res = await api.root('POST', api.apiPath('/auth/opaque/user/change-password/start'), { start: 'g7-probe' })
+        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.SERVICE_UNAVAILABLE_ENDPOINT_DOWN)
+      }
+      finally {
+        await restore()
       }
     })
   })

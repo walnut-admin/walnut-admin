@@ -78,6 +78,18 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
   })
 
   afterAll(async () => {
+    // 本 spec 与 API 级 spec 共享集成库：造的 b5-* 菜单/角色若不清理，残留根节点会让
+    // 后续 spec 的 findRootMenu 选中错根（P3-18 的顺序敏感面；auth-session / menu
+    // 的「首根 children」断言因此依赖文件执行顺序）。子行先删（pid FK RESTRICT）。
+    await pgDataSource.query(
+      'DELETE FROM sys_menu WHERE pid IS NOT NULL AND (name LIKE $1 OR path LIKE $2 OR title LIKE $3)',
+      ['b5-%', '/b5-%', 'b5.%'],
+    )
+    await pgDataSource.query(
+      'DELETE FROM sys_menu WHERE name LIKE $1 OR path LIKE $2 OR title LIKE $3',
+      ['b5-%', '/b5-%', 'b5.%'],
+    )
+    await pgDataSource.query('DELETE FROM sys_role WHERE role_name LIKE $1', ['b5-role%'])
     await app.close()
   })
 

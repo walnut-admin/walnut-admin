@@ -219,7 +219,12 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
         [fixture!.userId, api.deviceId],
       )
     expect(rowsAfter).toHaveLength(2)
-    const [oldRow, newRow] = rowsAfter
+    // 不依赖 created_at 排序（同毫秒/时区/时钟源都可能让两行并列——实测跑批里出现过
+    // 顺序颠倒）；按轮换前的 jti 身份取旧行，另一行即新行。
+    const oldRow = rowsAfter.find(row => row.jti === before.jti)!
+    const newRow = rowsAfter.find(row => row.jti !== before.jti)!
+    expect(oldRow).toBeDefined()
+    expect(newRow).toBeDefined()
     expect(oldRow.jti).toBe(before.jti)
     expect(oldRow.revoked).toBe(true)
     expect(oldRow.revoke_reason).toBe('rotate')
