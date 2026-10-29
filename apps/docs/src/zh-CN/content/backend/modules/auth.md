@@ -260,12 +260,16 @@ guard 的 40115 首拦）。
 | `user-logout` | `POST /auth/signout` | 本 `(user, device)` 全部 RT + 三类缓存 | 无 |
 | `user-kick-other` | `DELETE /system/user/device/force-quit/:deviceId` 等自助踢人 | 目标 `(user, device)` 全部 RT（reason=`userKickOther`） | socket 通知 |
 | `admin-kick` | 管理端 `force-quit` | 同上，reason 由调用方给 | socket 通知 |
-| `security-policy` | 改密/清密、密码重置链 | 该用户**所有设备**的 RT（`revokeRTForUser`） | 事务提交后批量 socket 通知 |
+| `security-policy` | 改密/清密、密码重置链 | 该用户**所有设备**的 RT（`revokeRTForUser`）+ 全设备清 `AUTH:SESSIONS` / `AUTH:PERMISSIONS:<user>:*` / `AUTH:MFA:VERIFIED:<user>:*`（P2-32） | 事务提交后批量 socket 通知 |
 
 P2-12 修复后（2026-10-28）：`user-kick-other` / `admin-kick` 在撤 RT + socket 通知之外，
 事务提交后按设备清 `AUTH:SESSIONS` / `AUTH:PERMISSIONS` / `AUTH:MFA:VERIFIED` 三键。
 配合 JWT validate 的会话键校验，被踢设备的旧 AT 立即 40101（不再有「AT 到期前仍可用」的
 窗口）。
+
+P2-32 修复后（2026-10-29）：`security-policy`（改密/敏感操作）在 after-commit 同样清三键，
+但作用域是**该用户全部设备**（`revokeSession(userId)` 不带 deviceId + 两个 `<user>:*`
+前缀清）。双设备用例实测：改密后两台设备的旧 AT 均立即 40101，三键逐个核对已清。
 
 ## 4. 外部 OAuth
 
@@ -382,3 +386,5 @@ P2-12 修复后（2026-10-28）：`user-kick-other` / `admin-kick` 在撤 RT + s
   callback guard 在换 code 前校验；篡改 / 重放 / 跨设备一律受控 40000。
 - **P2-14（新登记）**：并发 `login/finish` 的 Duplicate Auth 判据是「读后写」，无锁/无唯一
   索引兜底；两个并发登录都可能返回成功，RT 行被后写者覆盖，仅一个会话实际存活。
+- **P2-32（已修复，2026-10-29）**：`security-policy`（改密/清密）在 all-device 撤 RT 之外，
+  after-commit 清全设备会话/权限/MFA verified 三键；双设备用例断言旧 AT 均立即 40101。

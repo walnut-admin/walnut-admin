@@ -3,6 +3,7 @@ import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { SysUserMfaHelperService } from '@/modules/system/user_mfa/mfa.shared.service'
 import { SysUserMfaRepositoryService } from '@/modules/system/user_mfa/repo/user_mfa.repo.service'
 import { SysUserMfaTotpService } from '@/modules/system/user_mfa/totp/totp.service'
 import { AppTechCryptoService } from '@/modules/techniques/crypto/crypto.service'
@@ -14,8 +15,8 @@ import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-in
  *   唯一索引（partial WHERE NOT NULL）；device_id 松引用（Q5：不建 FK，未知设备键可插）；
  * - 密文列 select:false：默认查询不出，WithSecret / WithBackupCodes 专用通道取回
  *   （对齐 identity 的处理口径）；
- * - **备用码并入 totp 行**（phase2 4.12 定案）：verifyBackupCode 按 totp 行读写
- *   backup_codes_ciphertext，用尽即禁用；
+ * - **备用码并入 totp 行**（phase2 4.12 定案）：确定性哈希（域+userId）再 AES-GCM
+ *   逐项加密后写 backup_codes_ciphertext，用尽即禁用（P3-23，2026-10-29）；
  * - webauthn_counter bigint 列 number transformer（int8 驱动返 string）；
  * - aggregateMfaStats 的 GROUP BY（cron 数据源：type ∈ {totp, webauthn} 且 status）；
  * - 随 user 删除 CASCADE。
@@ -27,6 +28,7 @@ describe('B7b user_mfa (on real PG)', () => {
   let mfaRepo: SysUserMfaRepositoryService
   let totpService: SysUserMfaTotpService
   let cryptoService: AppTechCryptoService
+  let mfaHelper: SysUserMfaHelperService
 
   const seed = randomUUID()
 
@@ -53,6 +55,7 @@ describe('B7b user_mfa (on real PG)', () => {
     mfaRepo = app.get(SysUserMfaRepositoryService)
     totpService = app.get(SysUserMfaTotpService)
     cryptoService = app.get(AppTechCryptoService)
+    mfaHelper = app.get(SysUserMfaHelperService)
   })
 
   afterAll(async () => {
@@ -144,29 +147,48 @@ describe('B7b user_mfa (on real PG)', () => {
     expect(updated!.lastUsedAt).not.toBeNull()
   })
 
-  it('verifyBackupCode：hash 带随机盐（上游现状）→ 查找必 miss 抛 Unauthorized；消耗/禁用机制由写路径承接', async () => {
+  it('P3-23 备用码：确定性哈希（域+userId）+ AES-GCM 逐项加密存储；旧随机盐 HMAC 不可解密（存量失效）', async () => {
     const userId = await seedUser()
+    const otherUserId = await seedUser()
+    const formatted = 'ABCD-EFGH-JKLM'
+    const other = 'NPQR-STUV-WXYZ'
 
-    const storedCodes = [cryptoService.hash('ABCD-EFGH-JKLM'), cryptoService.hash('NPQR-STUV-WXYZ')]
+    // 确定性：同用户同码恒等；跨用户同码不同（userId 参与域）
+    const hashA = mfaHelper.hashBackupCode(userId, formatted)
+    expect(mfaHelper.hashBackupCode(userId, formatted)).toBe(hashA)
+    expect(mfaHelper.hashBackupCode(otherUserId, formatted)).not.toBe(hashA)
+    expect(mfaHelper.verifyBackupCodeHash(userId, formatted, hashA)).toBe(true)
+    expect(mfaHelper.verifyBackupCodeHash(userId, other, hashA)).toBe(false)
+
+    // 存储侧 = 确定性哈希再 AES-GCM 加密（列表逐项加密，列仍是 backup_codes_ciphertext）
+    const storedCodes = [
+      cryptoService.encrypt(hashA, 'crypto.mfaKey'),
+      cryptoService.encrypt(mfaHelper.hashBackupCode(userId, other), 'crypto.mfaKey'),
+    ]
     await mfaRepo.createMfa({
       userId,
       type: 'totp',
       deviceId: 'd-backup',
       name: 'totp',
+      totpSecretCiphertext: cryptoService.encrypt('JBSWY3DPEHPK3PXP', 'crypto.mfaKey'),
       backupCodesCiphertext: storedCodes,
       status: true,
     })
 
-    // 上游 bindTotp 用 cryptoService.hash（无 salt → 每次随机盐）存备用码，
-    // verifyBackupCode 用新盐 hash 用户输入后 indexOf —— 恒 miss（Mongo 版同款行为，
-    // TODO: use backup code to recover 未实现）。本用例钉住该现状不退化。
-    await expect(totpService.verifyBackupCode(userId, 'ABCD-EFGH-JKLM')).rejects.toThrow('备用码错误或已使用')
+    // verify 回落通道一次取回 secret + 备用码列表（select:false 例外）
+    const row = await mfaRepo.findTotpWithSecretAndBackupCodesByUserId(userId)
+    expect(row!.totpSecretCiphertext).not.toBeNull()
+    expect(row!.backupCodesCiphertext).toHaveLength(2)
 
-    // 格式不合法 → BadRequest（进不了查找）
-    await expect(totpService.verifyBackupCode(userId, 'ZZ')).rejects.toThrow('备用码格式错误')
+    const decrypted = cryptoService.decrypt(row!.backupCodesCiphertext[0], 'crypto.mfaKey')
+    expect(mfaHelper.verifyBackupCodeHash(userId, formatted, decrypted)).toBe(true)
 
-    // 消耗 + 用尽禁用的写路径（verifyBackupCode 命中后的机制，repo + 实体直改承接）：
-    const row = await mfaRepo.findTotpWithBackupCodesByUserId(userId)
+    // 旧方案（cryptoService.hash，随机盐 HMAC）的存量项无法按本方案解密 —— 消费侧跳过，
+    // 只能 unbind 后重新 bind 获得可用备用码（DESIGN-ISSUES P3-23 已登记）
+    const legacyHash = cryptoService.hash(formatted)
+    expect(() => cryptoService.decrypt(legacyHash, 'crypto.mfaKey')).toThrow()
+
+    // 消耗 + 用尽禁用的写路径（verify 消费后的机制，repo + 实体直改承接）：
     row!.backupCodesCiphertext.splice(0, 1)
     await mfaRepo.saveMfa(row!)
 

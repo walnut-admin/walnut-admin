@@ -127,7 +127,8 @@ METHOD|PATH(去 /{prefix}/v{version})|扁平静态body排序串|timestamp=<ms>|n
 - `X-Timestamp` 与服务端时间差超过 **5 分钟**（300000 ms）→ 40112。
 - `X-Nonce` 必须是 **32 位十六进制**，否则 40112（格式校验先于签名比对）。
 - nonce 记 `SECURITY:SIGN:NONCE:<nonce>`，TTL 300 秒；重复 → 40112。
-  现状是「先 GET 再 SET」，不是 `SET NX`（P2-11 已登记），并发同 nonce 存在窄窗口。
+  P2-11 修复后（2026-10-29）：写入是单命令 `SET NX EX`（`AppTechCacheService.setIfAbsent`），
+  写入失败即视为重复 —— 并发同 nonce 只有一路通过，不再有 GET 后 SET 的窄窗口。
 - nonce 在签名比对**之前**写入：签名错误的请求也会消耗自己的 nonce。
 - `SIGN_TICKET`：
   - 缓存 `SECURITY:SIGN:TICKET:<deviceId>` 存在且 cookie 存在但不相等 → 40112；
@@ -223,6 +224,9 @@ User 0.2、UserDevice 0.3。
 
   **不得使用 `$proxy_add_x_forwarded_for`**（它会把客户端伪造值留在首位）。直连暴露时
   客户端可任意伪造 `realIp`，黑名单与限流都可被绕过或嫁祸。
+  2026-10-29 复核：`deploy/nginx/conf.d/api.conf` 的 `/`、`frontend.conf` 的 `/api/`、
+  `/socket/` 与静态 `location /` 全部为覆盖式（`$remote_addr`）并带 `X-Real-IP`；新增任何
+  后端入口都必须照此写。
 - 永久黑名单存在 `APP:SETTING` 的 `app.global.ipBlackList`（JSON 数组），写入走 setting
   repo 并触发配置缓存刷新；临时黑名单是 Redis `risk:ip_blacklist:<normalizedIp>`，
   TTL 1800 秒，IPv6 的冒号会替换为下划线，本地 IP 统一 `127.0.0.1`。
@@ -269,7 +273,8 @@ User 0.2、UserDevice 0.3。
 - **P1-16（新登记）**：OTP 发送端点的动态限流不生效 —— 装饰器写元数据的键是 Symbol，
   `OtpThrottleGuard` 用字符串 `'OTP_THROTTLE_SERVICE'` 读取，永远取不到 provider，
   实际退回全局 throttle 配置。
-- **P2-11（新登记）**：nonce 去重是「先查后写」，非 `SET NX`；并发同 nonce 存在重放窗口。
+- **P2-11（已修复，2026-10-29）**：nonce 去重改为单命令 `SET NX EX`，并发同 nonce 恰一通过
+  （guard-matrix 新增 `Promise.all` 双请求用例）。
 - **P2-15（已修复，2026-10-28）**：永久 IP 黑名单的锚点行 `app.global.ipBlackList` 由 seed
   显式落盘（`apps/server/db/seed/app_setting.json`，值与读腿同为 JSON 字符串数组），
   `check-seed` 新增机械判据防止未来再导出时丢行。

@@ -45,6 +45,15 @@ export class SysMenuSharedService {
   }
 
   /**
+   * @description 失效某用户**全部设备**的权限缓存
+   * （P2-32：改密/敏感操作全设备下线 —— 缓存键按 `<userId>:<deviceId>` 分布，
+   * 服务端没有反查设备的通道，按前缀一次清干净）
+   */
+  async clearUserPermissionsCache(userId: string) {
+    await this.cachePermissionsService.delPermissionsForUser(userId)
+  }
+
+  /**
    * @description 全量失效权限缓存（P2-16：菜单写路径 —— 菜单行的 permission/status/
    * 删除会影响「角色 → 菜单 → 权限串」的所有用户。按 menu 维度反查不可行，权限缓存
    * 又能由客户端重拉 `/auth/permissions` 重建，所以这里明确取舍为全清前缀）。

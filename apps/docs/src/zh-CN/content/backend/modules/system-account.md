@@ -294,9 +294,10 @@ Lock guard（`guard/lock.guard.ts`）的顺序：LockFree → 无 `req.user` 放
 
 | 方法 | 用途 | 带回的密文列 |
 |---|---|---|
-| `findTotpWithSecretByUserId` | TOTP verify | `totpSecretCiphertext`（且 `status=true`） |
+| `findTotpWithSecretByUserId` | TOTP verify（旧通道，保留） | `totpSecretCiphertext`（且 `status=true`） |
+| `findTotpWithSecretAndBackupCodesByUserId` | TOTP + 备用码回落 verify（P3-23） | `totpSecretCiphertext` + `backupCodesCiphertext`（且 `status=true`；可选 `FOR UPDATE` 行锁） |
 | `findWebauthnWithPublicKeyByUserIdAndCredentialId` | WebAuthn authenticate/verify | `webauthnPublicKey`（且 `status=true`） |
-| `findTotpWithBackupCodesByUserId` | 备用码校验 | `backupCodesCiphertext` |
+| `findTotpWithBackupCodesByUserId` | 备用码列表读取 | `backupCodesCiphertext` |
 | 其余 `findTotpByUserId` / `findWebauthnBy*` | 状态、查重、列表 | 无（密文列不查） |
 
 响应面不序列化实体：`user/me/security-tab2` 只回 `{ status, verified }`；
@@ -309,14 +310,17 @@ Lock guard（`guard/lock.guard.ts`）的顺序：LockFree → 无 `req.user` 放
 | 步骤 | 端点 | 关键行为 |
 |---|---|---|
 | 生成 | `POST /system/user/mfa/totp/generate` | 已有**启用中**的 totp 行 → 40001 DataExists；`otplib.generateSecret` + `generateURI` + QR dataURL；secret 加密后写 `AUTH:MFA:TOTP:<userId>:<deviceId>`（TTL 30 秒）；返回 `{ totpId: "<userId>,<deviceId>", secret, qrCode, account }` |
-| 绑定 | `POST /system/user/mfa/totp/bind` | body `{ name, code, tempTotpId }`；`tempTotpId` 必须与 token 的 `userId,deviceId` 一致；查重按 `(userId, deviceId, type=totp)`（**不看 status**）；从缓存取加密 secret，`otplib.verify`（`epochTolerance: 30`，即 ±30 秒）；成功后生成 10 枚备用码（明文返回一次，`hash(code)` 后写入同一 totp 行的 `backup_codes_ciphertext`）；事务提交后删缓存 |
-| 验证 | `POST /system/user/mfa/totp/verify` | body `{ trusted, code }`；取启用中的 totp 行与 secret，验码；更新 `lastUsedAt`；调 `AuthMfaPostVerificationService.handlePostVerification`：写 `sys_user_device.trusted`、事务后写 `AUTH:MFA:VERIFIED`、轮换 RT 并回种新 `RT_JTI` cookie |
+| 绑定 | `POST /system/user/mfa/totp/bind` | body `{ name, code, tempTotpId }`；`tempTotpId` 必须与 token 的 `userId,deviceId` 一致；查重按 `(userId, deviceId, type=totp)`（**不看 status**）；从缓存取加密 secret，`otplib.verify`（`epochTolerance: 30`，即 ±30 秒）；成功后生成 10 枚备用码（明文返回一次，`SHA-256(固定域:userId:code)` 确定性哈希再逐项 AES-GCM 加密，写入同一 totp 行的 `backup_codes_ciphertext`）；事务提交后删缓存 |
+| 验证 | `POST /system/user/mfa/totp/verify` | body `{ trusted, code }`：6 位数字先走 TOTP；失败（或非 6 位数字）回落备用码（逐项解密哈希 + 常量时间比对，命中即移除；列表空置 `status=false`）。两条成功路径同形态：更新 `lastUsedAt` → `AuthMfaPostVerificationService.handlePostVerification`（写 `sys_user_device.trusted`、事务后写 `AUTH:MFA:VERIFIED`、轮换 RT 并回种新 `RT_JTI` cookie）。全失败统一 40000 `business.auth.verifyCodeError` |
 | 启停 | `PUT /system/user/mfa/totp/status` | 权限点 `system:user:mfa:totp:updateStatus`；按 `(userId, type=totp)` 改 `status`，无行 40401 |
 | 解绑 | `DELETE /system/user/mfa/totp/unbind` | 按 `(userId, type=totp)` 物理删除整行；备用码随行同删（没有独立 backup_codes 行）；删除 0 行 40401 |
 
 备用码并入 totp 行是 phase2 §4.12 的定案：PG 的 `type` CHECK 只放行 totp/webauthn，
-`varchar(8)` 也容不下 `backup_codes`。`verifyBackupCode` 服务方法仍在，但**没有 controller
-路由**（P3-23）；`phone_number_ciphertext` 同样没有写入路径（SMS MFA 未实现）。
+`varchar(8)` 也容不下 `backup_codes`。P3-23 修复后（2026-10-29）备用码校验**复用**
+`POST /system/user/mfa/totp/verify`（无新路由），旧 `verifyBackupCode` 私有化为
+`consumeBackupCode`；`phone_number_ciphertext` 仍无写入路径（SMS MFA 未实现，实体注释
+标注预留）。**存量绑定注意**：旧实现用随机盐 `cryptoService.hash` 存备用码，校验时必然
+miss；这类行无法迁移，**已绑定用户需 `unbind` 后重新 `bind`** 才能获得可用备用码。
 
 `generate` 用「启用中的 totp 行」判重，`bind` 用「任意 totp 行」判重：`PUT status=false`
 后再次 generate 会成功并缓存新 secret，但 bind 必定 40000 `alreadyBound`，必须解绑后重绑。
@@ -484,6 +488,8 @@ MFA 成立判据有两套：`/auth/mfa/verify` 与 cron 用「类型数 + 已绑
   密码校验实际不可达。
 - **P3-21（C 段新登记）**：deleted 的 `system:deleted:recover:mine` 常量已声明但未接线，
   `POST me/recover` 复用 `system:deleted:recover`。
-- **P3-23（C 段新登记）**：MFA 备用码校验 `verifyBackupCode` 没有 controller 路由，
-  且使用裸 `BadRequestException` / `UnauthorizedException`；`phone_number_ciphertext`
-  列没有写入路径（SMS MFA 未实现）。
+- **P3-23（已修复，2026-10-29）**：备用码改为「确定性哈希（固定域 + userId）→ AES-GCM
+  逐项加密」存储；校验复用 `totp/verify`（TOTP 优先、备用码回落、命中即消费、一次性），
+  错误统一 40000；spec 覆盖正确码 20000→二次 40000、错误码、TOTP 优先、列表递减。
+  旧随机盐 HMAC 存量不可迁移 —— **需 unbind 后重新 bind**。`phone_number_ciphertext`
+  仅登记确认「预留、无写入路径」，SMS MFA 未实现。

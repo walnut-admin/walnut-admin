@@ -246,7 +246,7 @@ export class WalnutAdminGuardSign implements CanActivate {
   }
 
   /**
-   * 验证并记�?Nonce
+   * 验证并记录 Nonce（P2-11，2026-10-29：SET NX EX 原子判重）
    */
   private async validateAndRecordNonce(nonce: string) {
     // 验证格式
@@ -255,15 +255,13 @@ export class WalnutAdminGuardSign implements CanActivate {
       throw new WalnutAdminExceptionInvalidSignature()
     }
 
-    // 检查是否已使用
-    const nonceCache = await this.cacheSignService.getNonceCache(nonce)
-    if (!isNil(nonceCache)) {
+    // 原子写入：写入失败 = 该 nonce 已被消费（含并发同 nonce 的后到者）
+    const recorded = await this.cacheSignService.setNonceCache(nonce)
+
+    if (!recorded) {
       this.logger.error(`Sign guard: duplicate nonce detected: ${nonce}`)
       throw new WalnutAdminExceptionInvalidSignature()
     }
-
-    // 记录 Nonce（建议使�?Redis NX 操作保证原子性）
-    await this.cacheSignService.setNonceCache(nonce)
   }
 
   /**

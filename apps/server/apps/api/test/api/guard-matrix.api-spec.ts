@@ -230,6 +230,19 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       expect(bodyOf(replay).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE)
     })
 
+    it('nonce 并发：同一 nonce 双请求并发 → 恰一通过（SET NX EX 原子判重，P2-11）', async () => {
+      const headers = singleFactorHeaders({ method: 'GET', url: api.apiPath('/') })
+
+      const [a, b] = await Promise.all([
+        api.unsigned('GET', api.apiPath('/'), undefined, headers),
+        api.unsigned('GET', api.apiPath('/'), undefined, headers),
+      ])
+
+      const codes = [bodyOf(a).code, bodyOf(b).code]
+      expect(codes.filter(code => code === WalnutAdminConstAppResponseCode.SUCCESS)).toHaveLength(1)
+      expect(codes.filter(code => code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE)).toHaveLength(1)
+    })
+
     it('X-Nonce 格式非法（非 32hex；签名按该非法 nonce 现算仍拒）→ 40112（格式校验先于签名比对）', async () => {
       const res = await api.unsigned(
         'GET',

@@ -1,5 +1,12 @@
+import { Buffer } from 'node:buffer'
 import * as crypto from 'node:crypto'
 import { Injectable } from '@nestjs/common'
+
+/**
+ * 备用码哈希的固定域（P3-23，2026-10-29）：确定性哈希才能与用户输入比对 ——
+ * 域串 + userId 一起参与摘要，防跨用户彩虹表；域串版本化，未来换算法时可识别存量。
+ */
+const BACKUP_CODE_HASH_DOMAIN = 'walnut-admin/mfa/backup-code/v1'
 
 /**
  * MFA 辅助工具服务
@@ -55,12 +62,42 @@ export class SysUserMfaHelperService {
   }
 
   /**
-   * 验证备用码格�?
+   * 验证备用码格式
    * @param code 用户输入的备用码
    */
   validateBackupCodeFormat(code: string): boolean {
     const clean = code.replace(/[^A-Z0-9]/gi, '')
-    // 标准格式�?2个字符（3�?x 4字符�?
+    // 标准格式：12 个字符（3 段 x 4 字符）
     return clean.length === 12
+  }
+
+  /**
+   * 备用码确定性哈希（P3-23，2026-10-29）。
+   *
+   * 旧实现 `cryptoService.hash(code)` 每次生成随机盐 —— 校验时用新盐重算，必然 miss，
+   * 备用码从来不可用。这里改为固定域 + userId 的 SHA-256（确定性），绑定用户维度，
+   * 跨用户的相同备用码不会得到相同摘要。存储侧仍由调用方对哈希再加密。
+   */
+  hashBackupCode(userId: string, formattedCode: string): string {
+    return crypto
+      .createHash('sha256')
+      .update(`${BACKUP_CODE_HASH_DOMAIN}:${userId}:${formattedCode}`, 'utf8')
+      .digest('hex')
+  }
+
+  /**
+   * 常量时间比对备用码哈希（防时序侧信道）
+   */
+  verifyBackupCodeHash(userId: string, formattedCode: string, storedHash: string): boolean {
+    const computed = this.hashBackupCode(userId, formattedCode)
+
+    if (computed.length !== storedHash.length) {
+      return false
+    }
+
+    return crypto.timingSafeEqual(
+      Buffer.from(computed, 'utf8'),
+      Buffer.from(storedHash, 'utf8'),
+    )
   }
 }

@@ -3,7 +3,9 @@ import type { WalnutAuthTokens } from './helpers/api-client'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
+import { JwtService } from '@nestjs/jwt'
 import * as opaque from '@serenity-kit/opaque'
+import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
@@ -75,10 +77,14 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
   let api: WalnutApiClient
   /** 目标用户（管理端操作对象）+ 自有客户端（me 通道改密载体） */
   let apiTarget: WalnutApiClient
+  /** 目标用户的第二设备（P2-32：改密后旧 AT 在**另一台设备**上也必须立即 40101） */
+  let apiTarget2: WalnutApiClient
   let fixture: WalnutRootUserFixture | null = null
   let fixtureTarget: WalnutRootUserFixture | null = null
   /** 主 fixture 的登录令牌（后续用例会 setAuth(null) 发匿名请求，register 用例需恢复） */
   let mainTokens: WalnutAuthTokens | null = null
+  /** 目标用户第二设备的令牌（sessionId 断言用；改密后不再有效） */
+  let targetTokens2: WalnutAuthTokens | null = null
 
   const seed8 = randomUUID().slice(0, 8)
   /** 目标用户当前密码（me → P1；admin 改 → P2） */
@@ -102,6 +108,12 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
     const tokensTarget = await performHttpOpaqueLogin(apiTarget, app, fixtureTarget)
     apiTarget.setAuth(tokensTarget)
     await apiTarget.seedMfaVerifiedCache(fixtureTarget.userId)
+
+    // 第二设备（P2-32 的全设备语义验证）
+    apiTarget2 = await WalnutApiClient.create(app)
+    targetTokens2 = await performHttpOpaqueLogin(apiTarget2, app, fixtureTarget)
+    apiTarget2.setAuth(targetTokens2)
+    await apiTarget2.seedMfaVerifiedCache(fixtureTarget.userId)
   })
 
   afterAll(async () => {
@@ -109,8 +121,9 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
       await api.pgDataSource.query('DELETE FROM sys_user_identity WHERE user_id = $1', [fixtureTarget.userId])
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = ANY($1::uuid[])', [[fixture.userId, fixtureTarget.userId]])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
-      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [[api.deviceId, apiTarget.deviceId]])
-      await api.cleanupWalnutCacheKeys(seed8, api.deviceId, apiTarget.deviceId, fixture.userId, fixtureTarget.userId)
+      const deviceIds = [api.deviceId, apiTarget?.deviceId, apiTarget2?.deviceId].filter((id): id is string => typeof id === 'string' && id !== '')
+      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [deviceIds])
+      await api.cleanupWalnutCacheKeys(seed8, ...deviceIds, fixture.userId, fixtureTarget.userId)
     }
     await app.close()
   })
@@ -123,9 +136,32 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
     return rows[0] ?? null
   }
 
-  it('me 通道 change-password：start → finish（真实 opaque 两步）→ identity 替换 + 全设备 RT 吊销（updatePass）', async () => {
+  it('me 通道 change-password：start → finish（真实 opaque 两步）→ identity 替换 + 全设备 RT/会话/缓存清（updatePass）', async () => {
     const identityBefore = await readPasswordIdentity(fixtureTarget!.userId)
     expect(identityBefore).not.toBeNull()
+
+    // P2-32 前置：两台目标设备各写一份权限缓存（session/MFA 键在登录 + seed 时已存在），
+    // 改密后才能断言「三键全清」而不只是「旧 AT 40101」。
+    expectOk(await apiTarget.root('GET', apiTarget.apiPath('/auth/permissions')), 'target device1 permissions prime')
+    expectOk(await apiTarget2.root('GET', apiTarget2.apiPath('/auth/permissions')), 'target device2 permissions prime')
+
+    const device1Sid = app.get(JwtService).decode<{ sid: string }>(apiTarget.getAuth()!.accessToken).sid
+    const device2Sid = app.get(JwtService).decode<{ sid: string }>(targetTokens2!.accessToken).sid
+
+    const cacheKeysOf = (deviceId: string, sid: string) => ({
+      session: `${WalnutAdminConstAppCacheKeys.AUTH_SESSIONS}:${fixtureTarget!.userId}:${deviceId}:${sid}`,
+      permission: `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${fixtureTarget!.userId}:${deviceId}`,
+      mfa: `${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${fixtureTarget!.userId}:${deviceId}`,
+    })
+    const device1Keys = cacheKeysOf(apiTarget.deviceId, device1Sid)
+    const device2Keys = cacheKeysOf(apiTarget2.deviceId, device2Sid)
+    expect(await apiTarget.hasWalnutCacheKey(device1Keys.session)).toBe(true)
+    expect(await apiTarget.hasWalnutCacheKey(device1Keys.permission)).toBe(true)
+    expect(await apiTarget.hasWalnutCacheKey(device1Keys.mfa)).toBe(true)
+    expect(await apiTarget2.hasWalnutCacheKey(device2Keys.session)).toBe(true)
+    expect(await apiTarget2.hasWalnutCacheKey(device2Keys.permission)).toBe(true)
+    expect(await apiTarget2.hasWalnutCacheKey(device2Keys.mfa)).toBe(true)
+
     // step 1 —— 客户端为新密码起注册流，服务端出 registrationResponse
     const newPassword = `New-${randomUUID().slice(0, 12)}#73`
     const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password: newPassword })
@@ -159,11 +195,26 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
       'SELECT revoked, revoke_reason FROM auth_refresh_token WHERE user_id = $1',
       [fixtureTarget!.userId],
     )
-    expect(rtRows.length).toBeGreaterThanOrEqual(1)
+    expect(rtRows.length).toBeGreaterThanOrEqual(2)
     for (const row of rtRows) {
       expect(row.revoked).toBe(true)
       expect(row.revoke_reason).toBe('updatePass')
     }
+
+    // P2-32：改密是全设备下线 —— 旧 AT 在**第二台设备**上也立即 40101（会话键已清），
+    // 发起改密的设备同样失效。
+    const staleSecond = await apiTarget2.root('GET', apiTarget2.apiPath('/auth/permissions'))
+    expect(bodyOf(staleSecond).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+    const staleFirst = await apiTarget.root('GET', apiTarget.apiPath('/auth/permissions'))
+    expect(bodyOf(staleFirst).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+
+    // 三键全清（session / permissions / MFA verified，按设备逐个核对）
+    expect(await apiTarget.hasWalnutCacheKey(device1Keys.session)).toBe(false)
+    expect(await apiTarget.hasWalnutCacheKey(device1Keys.permission)).toBe(false)
+    expect(await apiTarget.hasWalnutCacheKey(device1Keys.mfa)).toBe(false)
+    expect(await apiTarget2.hasWalnutCacheKey(device2Keys.session)).toBe(false)
+    expect(await apiTarget2.hasWalnutCacheKey(device2Keys.permission)).toBe(false)
+    expect(await apiTarget2.hasWalnutCacheKey(device2Keys.mfa)).toBe(false)
 
     targetPassword = newPassword
   })

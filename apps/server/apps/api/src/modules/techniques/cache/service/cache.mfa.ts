@@ -37,6 +37,15 @@ export class AppTechCacheMfaService {
   }
 
   /**
+   * @description 按用户清全部设备的 MFA verified 缓存
+   * （P2-32：改密/敏感操作全设备下线 —— 设备清单不可反查，按 `<userId>:*` 前缀清）
+   */
+  async delVerifiedCacheForUser(userId: string) {
+    const deleted = await this.cacheService.delByPattern(`${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${userId}:*`)
+    this.logger.debug(`Delete MFA verified cache for user ${userId}, keys=${deleted.length}`)
+  }
+
+  /**
    * @description get user MFA verified cache
    */
   async getVerifiedCache(userId: string, deviceId: string) {

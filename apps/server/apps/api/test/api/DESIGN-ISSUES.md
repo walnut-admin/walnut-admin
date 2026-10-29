@@ -14,22 +14,24 @@
 > 「钉现状」用例属于 characterization test：修复对应问题时必须同步改断言，不是测试坏了。
 >
 > 统计：**P0 × 6（P0-1 已修：2026-10-26 快照比对 → 2026-10-27 revoke-and-insert 终态；
-> P0-2 / P0-3 / P0-4 已于 2026-10-28 修复（批 1）；P0-5 登记为部署强约束、代码不改；
-> P0-6 已于 2026-10-28 修复（批 A，roadmap §6））｜
+> P0-2 / P0-3 / P0-4 已于 2026-10-28 修复（批 1）；P0-5 登记为部署强约束、代码不改
+> （2026-10-29 复核 deploy conf 已覆盖，补齐 /socket/ 与静态入口）；P0-6 已于 2026-10-28
+> 修复（批 A，roadmap §6））｜
 > P1 × 19（P1-9 已于 2026-10-27 随 revoke-and-insert 配套修复；P1-4 已于 2026-10-27 修复；
 > P1-1 / P1-2 / P1-3 / P1-5 / P1-6 / P1-7 / P1-8 / P1-10 / P1-11 / P1-12 已于 2026-10-28 修复（批 1）；
 > P1-13 ~ P1-17 已于 2026-10-28 修复（批 A/B，roadmap §6）；
 > P1-18 / P1-19 已于 2026-10-28 修复（批 D，roadmap §6））｜
 > P2 × 32（批 2：P2-1 确认为安全立场设计；P2-2 ~ P2-9 已于 2026-10-28 修复；P2-10 已登记；
 > P2-11 ~ P2-15 为文档大轮次 A 段新登记，P2-12 / P2-13 / P2-15 已于 2026-10-28 修复（批 C，roadmap §6）；
+> P2-11 已于 2026-10-29 修复（第一梯队）；
 > P2-16 ~ P2-20 为 B 段新登记，P2-16 / P2-18 已于 2026-10-28 修复（批 D，roadmap §6；P2-18 的
-> junction 部分仍登记；P2-22 用户外围条目随其覆盖，剩 oauth 一面）；
+> junction 部分仍登记；P2-22 用户外围条目随其覆盖，剩 oauth 一面）；P2-20 已于 2026-10-29 修复；
 > P2-21 ~ P2-29 为文档大轮次 C 段新登记；P2-30 / P2-31 为 D 段新登记；
-> P2-32 为 C+D 批复审新登记（2026-10-28，登记不修））｜
+> P2-32 为 C+D 批复审新登记（2026-10-28），已于 2026-10-29 修复）｜
 > P3 × 30（P3-2 / P3-3 / P3-5 已于 2026-10-28 修复；P3-1 / P3-4 / P3-6 / P3-7 同日裁决登记；
 > P3-8 已豁免；P3-9 随 OpenAPI codegen 二期修复；P3-10 ~ P3-16 为 codegen 二期挂单；
 > P3-17 为文档复审新登记；P3-18 ~ P3-20 为 B 段新登记；
-> P3-21 ~ P3-24 为 C 段新登记；P3-25 ~ P3-30 为 D 段新登记）**，末节附 G/H 段实测无恙面。
+> P3-21 ~ P3-24 为 C 段新登记（P3-23 已于 2026-10-29 修复）；P3-25 ~ P3-30 为 D 段新登记）**，末节附 G/H 段实测无恙面。
 
 ---
 
@@ -133,6 +135,11 @@
   `proxy_set_header X-Real-IP $remote_addr;`，**不得用 `$proxy_add_x_forwarded_for`**，
   追加会把客户端伪造值留在首位）。`deploy/nginx/conf.d/{api,frontend}.conf` 已按此口径
   修改并在原位注释；guard-matrix IP 组保留「非黑名单伪造 IP 直通」用例作为现状锚。
+- **复核（2026-10-29，第一梯队）**：入口配置逐条核对已落地 —— `api.conf` 的 `/`、
+  `frontend.conf` 的 `/api/` 均为覆盖式 XFF + X-Real-IP；本轮补齐 `frontend.conf` 的
+  `/socket/`（原先只有 XFF，缺 X-Real-IP）与静态 `location /`（`$proxy_add_x_forwarded_for`
+  → `$remote_addr`，与入口口径统一），并在原位注释写明 P0-5 依据。代码侧仍不做跳数校验，
+  强约束不变：**任何新增后端入口都必须覆盖这两个头**。
 
 ### P0-6 app/key/current 无授权读取服务器私钥与 AES 密钥（文档大轮次 D 段）—— 【已修复 2026-10-28】
 
@@ -653,7 +660,7 @@
 - **机械保障**：controller 内注释已把「为什么必须放宽」写透（2026-10-27 补全）；放宽只覆盖
   第一段，wire 契约仍由第三段钉死 —— locale.api-spec 的批量 create/update 用例即回归面。
 
-### P2-11 签名 nonce 去重非原子（GET 后 SET）（文档大轮次 A 段，新登记）
+### P2-11 签名 nonce 去重非原子（GET 后 SET）（文档大轮次 A 段）—— 【已修复 2026-10-29】
 
 - **位置**：`apps/api/src/guard/sign.guard.ts`（`validateAndRecordNonce`）+
   `apps/api/src/modules/techniques/cache/service/cache.sign.ts`（`setNonceCache` 普通 SET）。
@@ -663,6 +670,11 @@
 - **实测证据**：本次读码钉死；`guard-matrix.api-spec.ts` 的 nonce 重放用例是顺序第二次
   请求（40112），不覆盖并发。
 - **建议**：`set` 改为 SET NX EX 并以写入结果判重（或 Lua 原子脚本）；失败仍映射 40112。
+- **修法（2026-10-29，第一梯队）**：`AppTechCacheService.setIfAbsent` 新增单命令
+  `SET NX EX`（保留 cache 信封序列化），`cache.sign.setNonceCache` 返回写入结果；
+  `sign.guard.validateAndRecordNonce` 直接以结果判重（false → 40112），不再 GET。
+  guard-matrix 保留顺序重放用例，并新增 `Promise.all` 同 nonce 双请求用例：
+  **恰一 20000、一 40112**。
 
 ### P2-12 踢下线只撤 RT，不清会话/权限/MFA 缓存 —— AT 到期前仍可用 —— 【已修复 2026-10-28】
 
@@ -853,7 +865,7 @@
   前端在 effective=GLOBAL/combinable 时隐藏角色切换并登记「零配置不支持切换」；
   补一条零配置下 switchable 用户 switchRole 的用例。
 
-### P2-20 菜单树与字典批量读端点没有权限点 —— 任何登录用户可读全量目录（B 段，新登记）
+### P2-20 菜单树与字典批量读端点没有权限点 —— 任何登录用户可读全量目录（B 段）—— 【已修复 2026-10-29】
 
 - **位置**：`apps/api/src/modules/system/menu/menu.controller.ts` 的 `@Get('tree')`
   （只有 `@ApiWalnutOkResponse`，无 `@HasPermission`）+
@@ -867,6 +879,17 @@
   权限点拒绝面，未覆盖这两个端点。
 - **建议**：`menu/tree` 挂 `system:menu:list`（或 read）；dict `s` 若确为登录用户的公共
   字典通道，显式写进契约（或加 `@HasPermission` 的 OR 白名单），不要靠「没挂装饰器」实现。
+- **修法（2026-10-29，第一梯队）**：先读 admin 消费面 —— `GET /system/menu/tree` 只被
+  `views/system/{menu,role}/useMenuTree` 消费（菜单管理/角色授权两个管理视图），**不是**
+  全局导航数据源（导航来自 `/auth/permissions` 按角色下发），因此不破坏普通用户导航。
+  选型为 **visitor 显式拒绝**：新增 `WalnutAdminGuardVisitorDeny`（`roleMode=switchable`
+  且 `currentRoleName=visitor` → 40105），挂在 `menu/tree` 上。不挂 `system:menu:*`
+  的原因：普通非 root 用户可能被授予菜单管理权，挂权限点会挡住管理视图；且
+  permission.guard 的 visitor 白名单本身放行 `:list`/`:read`，挡不住 visitor。
+  `dict/type/s` **登记为登录即可读的公共字典通道**（只回启用行/启用 data，非管理面），
+  不加权限点；`ENDPOINTS.md` 与 system-core 模块文档同步写明。
+  已知残余：普通非 root 用户仍可读全量菜单树（含 permission 串）—— 菜单管理视图的
+  功能需要，接受；彻底的按权限剥离属后续评估。
 
 ### P2-21 device 锁/封的读改写与 guard 回填竞态 —— 状态位可丢更新、缓存可被旧快照覆盖（C 段，新登记）
 
@@ -1038,7 +1061,7 @@
 - **建议**：`auth=false` 时显式 `SET user_id = NULL`（不要走 nil 过滤），或把清零写进同一
   update 语句；补一条登出上报的断言。
 
-### P2-32 `handleSecurityPolicy`（改密/敏感操作）只撤 RT 不清 AUTH:SESSIONS —— 旧 AT 有效至过期（C+D 批复审新登记，2026-10-28）
+### P2-32 `handleSecurityPolicy`（改密/敏感操作）只撤 RT 不清 AUTH:SESSIONS —— 旧 AT 有效至过期（C+D 批复审新登记，2026-10-28）—— 【已修复 2026-10-29】
 
 - **位置**：`apps/api/src/modules/auth/modules/signout/signout.service.ts`
   （`handleSecurityPolicy`：`revokeRTForUser` + socket 通知）+
@@ -1055,6 +1078,15 @@
   `revokeSession(userId)`（无 deviceId 即全设备）+ 按 `AUTH:PERMISSIONS:<user>:*` /
   `AUTH:MFA:VERIFIED:<user>:*` 前缀清缓存；补「改密后旧 AT 40101」用例。本轮**登记不修**
   （与 P2-12 同族，手法可复用，排独立批次）。
+- **修法（2026-10-29，第一梯队）**：`handleSecurityPolicy` 在 `runAfterCommit` 内并行清
+  全设备三键 —— `AuthSessionService.revokeSession(userId)`（无 deviceId = 全设备）、
+  `SysMenuSharedService.clearUserPermissionsCache(userId)`（新增，包装
+  `delPermissionsForUser` 的 `<user>:*` 前缀清）、
+  `AppTechCacheMfaService.delVerifiedCacheForUser(userId)`（新增，同前缀）。
+  `opaque-admin.api-spec.ts` 的 me 改密用例改为**双设备真实验证**：目标用户第二设备
+  登录 + 预写权限缓存 → 改密后**两台**设备旧 AT 均 40101，且两设备
+  session/permissions/MFA verified 三键逐个核对已清、全部 RT 行 revoked。
+  管理端 update 与 clear 走同一 trigger，同样受益。
 
 ## P3 契约不一致
 
@@ -1310,7 +1342,7 @@
 - **实测证据**：本次读码；B 段 `health.api-spec.ts` 在 Windows 开发机运行，未覆盖 Linux。
 - **建议**：路径取自 env 或按 `process.platform` 选根路径（Linux 用 `/`），并补平台分支。
 
-### P3-23 MFA 备用码校验无 HTTP 通道 + 裸 Nest 异常；SMS 密文列无写入路径（C 段，新登记）
+### P3-23 MFA 备用码校验无 HTTP 通道 + 裸 Nest 异常；SMS 密文列无写入路径（C 段）—— 【已修复 2026-10-29】
 
 - **位置**：`apps/api/src/modules/system/user_mfa/totp/totp.service.ts`
   （`verifyBackupCode` 无 controller 路由；抛 `BadRequestException` / `UnauthorizedException`）+
@@ -1322,6 +1354,26 @@
   备用码登录路径（无端点）。
 - **建议**：补备用码校验端点（接入同一 post-verification 与错误码体系），或删除死代码；
   未实现的列在实体注释里标注「预留」。
+- **修法（2026-10-29，第一梯队）**：
+  ① **存储改为确定性哈希**：`SysUserMfaHelperService.hashBackupCode` =
+  `SHA-256('walnut-admin/mfa/backup-code/v1:<userId>:<formattedCode>')`（固定域 + userId，
+  防跨用户彩虹表）；bind 时每个哈希再 `cryptoService.encrypt`（AES-GCM，mfa key）后写入
+  `backup_codes_ciphertext text[]` —— 列表仍逐项加密。旧实现 `cryptoService.hash`（随机盐）
+  校验时必然 miss，备用码从来不可用。
+  ② **校验通道复用 `POST /system/user/mfa/totp/verify`**：6 位数字先走 TOTP；失败（或非
+  6 位数字）回落备用码 —— 逐项解密出确定性哈希、常量时间比对，命中即从列表 splice（一次性；
+  列表空则 `status=false`），响应与 TOTP 成功同形态（同一 post-verification：RT 轮换 +
+  新 AT）。`SysUserMfaDeviceVerifyTotpDTO.code` 从「6 位数字串」放宽为 6–20 字符串。
+  verify 读取 secret+备用码一次完成并带 `FOR UPDATE` 行锁（并发同码只消费一次）；错误统一
+  `WalnutAdminExceptionBadRequest('business.auth.verifyCodeError')`（40000），不再抛裸
+  Nest 异常。
+  ③ **存量处理**：旧随机盐 HMAC 无法解密 → 消费侧跳过；**已绑定用户需 unbind 后重新 bind
+  才能获得可用备用码**（本地/线上无存量绑定，零成本）。
+  ④ **SMS 密文列**：`phone_number_ciphertext` 只登记确认「预留、无写入路径」，本轮不实现；
+  实体注释已标预留。
+  测试：`user-mfa.api-spec.ts` 新增「正确备用码 verify 成功且一次性（第二次同码 40000）/
+  错误备用码 40000 / TOTP 码仍成功 / `cardinality(backup_codes_ciphertext)` 9→8 递减」；
+  `user.mfa.pg.int-spec.ts` 的旧「恒 miss」用例翻转为确定性哈希 + 可解密比对 + 旧项不可解密。
 
 ### P3-24 `log_operate.action_type` 的 const 与 DB CHECK 不一致（C 段，新登记）
 

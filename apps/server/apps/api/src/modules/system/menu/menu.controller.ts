@@ -13,6 +13,7 @@ import { WalnutCrudDecorators } from '@/decorators/crud'
 
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
+import { WalnutAdminDecoratorVisitorDeny } from '@/guard/visitor.guard'
 import {
   assembleSysMenu,
   SysMenuDTOCreateRequest,
@@ -68,6 +69,11 @@ export class SysMenuController {
     // codegen 一期修正（响应 DTO 三字段补齐 ApiProperty 后可完整反射）
     DTO: SysMenuDTOTreeResponse,
   })
+  // P2-20（2026-10-29）：菜单树含全量菜单行与 permission 权限串 —— visitor 显式拒绝。
+  // 不挂 system:menu:* 的原因：tree 是菜单管理/角色授权视图的数据源（useMenuTree），
+  // 普通非 root 用户可能被授予菜单管理权；permission guard 的 visitor 白名单又恰好
+  // 放行 :list/:read，挡不住 visitor。导航数据走 /auth/permissions，不受本守卫影响。
+  @WalnutAdminDecoratorVisitorDeny()
   async getTree() {
     const res = await this.menuService.getMenuTreeAndTreeWithoutTypeElement()
     // 节点行是组装后的 POJO（拍平列 + meta），经 @Type 元数据转成 SysMenuDTOTree 链

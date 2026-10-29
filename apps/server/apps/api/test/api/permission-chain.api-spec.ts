@@ -1,10 +1,12 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
+import type { WalnutAuthTokens } from './helpers/api-client'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import type { SeedPermissionChainFixture } from './helpers/seed-permissions'
 import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
+import { Role } from '@walnut/contract'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
@@ -51,12 +53,19 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
   let user2: WalnutApiClient
   /** F1 专用用户客户端（移除角色 / 删除恢复的旧 AT 重拉断言） */
   let user3: WalnutApiClient
+  /** root 登录令牌（visitor 复用 admin 设备登录，测试时临时切换 auth） */
+  let rootTokens: WalnutAuthTokens | null = null
+  /** P2-20 visitor 的登录令牌 */
+  let visitorTokens: WalnutAuthTokens | null = null
 
   const seed8 = randomUUID().slice(0, 8)
   let rootFixture: WalnutRootUserFixture | null = null
   let seedFixture: SeedPermissionChainFixture | null = null
   let seed2Fixture: SeedPermissionChainFixture | null = null
   let seed3Fixture: SeedPermissionChainFixture | null = null
+  let seedVisitorFixture: SeedPermissionChainFixture | null = null
+  /** 本 spec 现建的 visitor 角色（既有行复用时不删） */
+  let createdVisitorRoleId: string | null = null
 
   /** demoString 挂 IsUppercase：分组前缀全大写（uuid hex 抬大写） */
   const demoGroup = `PERMCHAIN-${seed8.toUpperCase()}`
@@ -91,7 +100,7 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     // root 对照用户（既有 fixture 手法）
     admin = await WalnutApiClient.create(app)
     rootFixture = await registerRootUserFixture(app, admin.pgDataSource, `permchain-root-${seed8}`)
-    const rootTokens = await performHttpOpaqueLogin(admin, app, rootFixture)
+    rootTokens = await performHttpOpaqueLogin(admin, app, rootFixture)
     admin.setAuth(rootTokens)
     await admin.seedMfaVerifiedCache(rootFixture.userId)
 
@@ -130,6 +139,54 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     user3.setAuth(user3Tokens)
     await user3.seedMfaVerifiedCache(seed3Fixture.userId)
 
+    // P2-20 visitor 用户：switchable + current_role 指向 role_name=visitor 的角色。
+    // role_name 全局唯一：已有该行则复用，没有则现建（afterAll 只删本 spec 建的那行）。
+    seedVisitorFixture = await seedPermissionChainUser(app, admin.pgDataSource, {
+      userNamePrefix: `permchain-visitor-${seed8}`,
+      roleMode: WalnutAdminConstRoleMode.SWITCH,
+      grantedPermissions: [],
+    })
+    const existingVisitorRows: Array<{ id: string }> = await admin.pgDataSource.query(
+      'SELECT id FROM sys_role WHERE role_name = $1',
+      [Role.VISITOR],
+    )
+    let visitorRoleId: string | null = existingVisitorRows[0]?.id ?? null
+    if (visitorRoleId === null) {
+      const insertedVisitorRows: Array<{ id: string }> = await admin.pgDataSource.query(
+        'INSERT INTO sys_role (role_name) VALUES ($1) ON CONFLICT (role_name) DO NOTHING RETURNING id',
+        [Role.VISITOR],
+      )
+      if (insertedVisitorRows.length > 0) {
+        visitorRoleId = insertedVisitorRows[0].id
+        createdVisitorRoleId = visitorRoleId
+      }
+      else {
+        const fallbackRows: Array<{ id: string }> = await admin.pgDataSource.query(
+          'SELECT id FROM sys_role WHERE role_name = $1',
+          [Role.VISITOR],
+        )
+        visitorRoleId = fallbackRows[0]?.id ?? null
+      }
+    }
+    expect(visitorRoleId).not.toBeNull()
+    await admin.pgDataSource.query(
+      'INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [seedVisitorFixture.userId, visitorRoleId],
+    )
+    await admin.pgDataSource.query(
+      'UPDATE sys_user SET current_role_id = $2 WHERE id = $1',
+      [seedVisitorFixture.userId, visitorRoleId],
+    )
+    // 复用 admin 的已握手设备做 visitor 登录（独立 WalnutApiClient 会再打一次
+    // device/initial —— 该端点 throttle 限 4 次/分钟，本 spec 已有 4 个客户端；
+    // 登录令牌单独保存，P2-20 用例期间临时切换 admin.setAuth）。
+    // 登录端点是 JwtFree：必须清掉 auth，否则 anon() 仍按双因子签名（服务端按单因子算）→ 40112。
+    admin.setAuth(null)
+    visitorTokens = await performHttpOpaqueLogin(admin, app, seedVisitorFixture)
+    admin.setAuth(visitorTokens)
+    await admin.seedMfaVerifiedCache(seedVisitorFixture.userId)
+    admin.setAuth(rootTokens)
+
     // demo 行（read/delete 的靶子，root 唯一写入口）
     const createRes = await admin.root('POST', admin.apiPath('/app/demo'), demoPayload(`${demoGroup}-ROW`))
     expectOk(createRes, 'demo create (admin)')
@@ -147,9 +204,12 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
       await admin.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [rootFixture.roleId])
       await cleanupPermissionChainSeed(
         admin,
-        [seedFixture, seed2Fixture, seed3Fixture].filter((i): i is SeedPermissionChainFixture => i !== null),
+        [seedFixture, seed2Fixture, seed3Fixture, seedVisitorFixture].filter((i): i is SeedPermissionChainFixture => i !== null),
         [admin.deviceId, user?.deviceId, user2?.deviceId, user3?.deviceId].filter((i): i is string => typeof i === 'string'),
       )
+      if (createdVisitorRoleId !== null) {
+        await admin.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [createdVisitorRoleId])
+      }
     }
     await app.close()
   })
@@ -203,6 +263,36 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     const cacheTtl = await user.getWalnutCacheTtl(permissionCacheKey(fixture, user))
     expect(cacheTtl).toBeGreaterThan(atTtl - 60)
     expect(cacheTtl).toBeLessThanOrEqual(atTtl)
+  })
+
+  it('P2-20：menu/tree visitor 显式 40105；非 root 用户放行；dict/type/s 登录即可读', async () => {
+    // visitor 复用 admin 设备（设备实例限流，见 beforeAll）：用例期间临时切 auth，
+    // 结束后必须恢复 root 令牌（后续用例仍以 admin 身份操作）。
+    admin.setAuth(visitorTokens)
+
+    try {
+      // visitor：全量菜单树（含 permission 串）对 visitor 关闭
+      const visitorTree = await admin.root('GET', admin.apiPath('/system/menu/tree'))
+      expect(bodyOf(visitorTree).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_NO_PERMISSION)
+
+      // dict/type/s：登录即可读启用字典（公共消费通道，显式登记为设计豁免；
+      // 列表本身只回启用行/启用 data，不是管理面数据）
+      const visitorDict = await admin.root('GET', admin.apiPath('/system/dict/type/s?types=p2-20-not-exist'))
+      expectOk(visitorDict, 'dict type s (visitor)')
+      expect(bodyOf<unknown[]>(visitorDict).data).toEqual([])
+    }
+    finally {
+      admin.setAuth(rootTokens)
+    }
+
+    // 普通非 root 用户：菜单管理/角色授权视图的数据源保持可用（选型：只拒绝 visitor，
+    // 不给 tree 挂 system:menu:* —— 那会挡住被授予菜单管理权的非 root 账号）
+    const userTree = await user.root('GET', user.apiPath('/system/menu/tree'))
+    expectOk(userTree, 'menu tree (seeded non-root user)')
+    expect(Array.isArray(bodyOf<{ fullTree: unknown[] }>(userTree).data.fullTree)).toBe(true)
+
+    const userDict = await user.root('GET', user.apiPath('/system/dict/type/s?types=p2-20-not-exist'))
+    expectOk(userDict, 'dict type s (seeded non-root user)')
   })
 
   it('放行路径：授予的权限点端点 20000（list 过滤命中 + read 回读一致）', async () => {

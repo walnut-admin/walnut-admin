@@ -473,7 +473,7 @@ dictData 的单删 / 批量删（P1-12 已补 deleteMany 路由）除了快照 +
 
 | 方法 / 路径 | 守卫链 | 权限点 | 请求 → 响应 |
 |---|---|---|---|
-| GET `/system/menu/tree` | 全链 | **无**（见 P2-20） | — → `{ fullTree, treeWithoutTypeElement, menuActiveNamesOptions }` |
+| GET `/system/menu/tree` | 全链 + **VisitorDeny**（P2-20） | **无权限点**；visitor → 40105 | — → `{ fullTree, treeWithoutTypeElement, menuActiveNamesOptions }` |
 | POST `/system/menu` | 全链 | `system:menu:create` | `{ type, pid?, path?, name?, component?, title?, icon?, meta? }` → 菜单行（meta 组装） |
 | GET `/system/menu/:id` | 全链 | `system:menu:read` | — → 菜单行（meta 组装） |
 | PUT `/system/menu/:id` | 全链 | `system:menu:update` | 同 create 全可选 → 菜单行 |
@@ -484,7 +484,7 @@ dictData 的单删 / 批量删（P1-12 已补 deleteMany 路由）除了快照 +
 
 | 方法 / 路径 | 守卫链 | 权限点 | 请求 → 响应 |
 |---|---|---|---|
-| GET `/system/dict/type/s?types=` | 全链 | **无**（见 P2-20） | query 数组 → `[{ type, name, dictData }]` |
+| GET `/system/dict/type/s?types=` | 全链 | **无**（登录即可读，P2-20 登记豁免） | query 数组 → `[{ type, name, dictData }]`（只回启用行/启用 data） |
 | POST `/system/dict/type` | 全链 | `system:dict:type:create` | `{ type, name, status, description? }` → type 行 |
 | GET `/system/dict/type/:id` | 全链 | `system:dict:type:read` | — → type 行 |
 | PUT `/system/dict/type/:id` | 全链 | `system:dict:type:update` | 同 create → type 行 |
@@ -558,9 +558,13 @@ dictData 的单删 / 批量删（P1-12 已补 deleteMany 路由）除了快照 +
   零配置默认（GLOBAL/combinable）下 `switchRole` 对**所有用户**恒 40000（effective 是
   combinable），而 payload 里的 `roleMode` 仍是用户行的 `switchable`，守卫的 root/visitor
   短路与前端角色切换入口都按行值工作；`roleMode/switch` 改行值也不会改变 effective。
-- **P2-20（B 段新登记）**：`GET /system/menu/tree` 与 `GET /system/dict/type/s` 没有挂
-  `@HasPermission`，任何已登录用户（含 visitor）都能读到全量菜单树与启用字典数据；
-  `ENDPOINTS.md` 把两行登记在 `system:menu:*` / `system:dictType:*` 之下，与代码不符。
+- **P2-20（已修复，2026-10-29）**：`GET /system/menu/tree` 选型为 **visitor 显式拒绝**
+  （`WalnutAdminGuardVisitorDeny` → 40105），不挂 `system:menu:*`（该端点是菜单管理/角色
+  授权视图的数据源，普通非 root 用户可能被授予管理权；而 permission.guard 的 visitor
+  白名单本就放行 `:list`/`:read`）。`GET /system/dict/type/s` 登记为**登录即可读**的公共
+  字典通道（只回启用子集，非管理面）。普通非 root 用户仍可读全量菜单树（含 permission
+  串）—— 菜单管理功能的必要输入，残余风险已在 DESIGN-ISSUES 登记。
+  `ENDPOINTS.md` 的 dict 权限串同步更正为 `system:dict:type:*` / `system:dict:data:*`。
 - **P3-18（B 段新登记）**：多根菜单部署下树被截断。`GET /system/menu/tree` 的 `fullTree`
   与 `/auth/permissions` 的 `permissionMenuTree` 都只取「第一个根节点的 children」，
   `findRootMenu` 是 `findOne`、`findAllMenus` 无 ORDER BY；其余根整棵不可见（P3-4 已把

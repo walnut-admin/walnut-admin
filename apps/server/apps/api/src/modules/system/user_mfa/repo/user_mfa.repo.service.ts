@@ -141,6 +141,27 @@ export class SysUserMfaRepositoryService {
   }
 
   /**
+   * @description find totp record with secret + backup codes by user id
+   * （select:false 例外通道；P3-23 的 verify 回落共用一次读取，可选行锁保证
+   * 同一备用码在并发校验下只被消费一次）
+   */
+  async findTotpWithSecretAndBackupCodesByUserId(userId: string, em?: EntityManager, lock = false) {
+    const queryBuilder = this.getManager(em)
+      .createQueryBuilder(SysUserMfaEntity, 'mfa')
+      .addSelect(['mfa.totpSecretCiphertext', 'mfa.backupCodesCiphertext'])
+      .where('mfa.userId = :userId', { userId })
+      .andWhere('mfa.type = :type', { type: 'totp' })
+      .andWhere('mfa.status = :status', { status: true })
+
+    // 悲观写锁只在事务内可用（verify 端点由 @WalnutTx 提供 em）
+    if (lock) {
+      queryBuilder.setLock('pessimistic_write')
+    }
+
+    return queryBuilder.getOne()
+  }
+
+  /**
    * @description create mfa record
    */
   async createMfa(payload: Partial<SysUserMfaEntity>, em?: EntityManager) {

@@ -1,5 +1,5 @@
 import type { EntityManager } from 'typeorm'
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { registerAfterCommitHook } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions'
@@ -13,6 +13,7 @@ import { AuthMfaPostVerificationService } from '@/modules/auth/modules/mfa/mfa.p
 import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
 import { AppTechCryptoService } from '@/modules/techniques/crypto/crypto.service'
 import { SysUserRepositoryService } from '../../user/repo/user.repo.service'
+import { SysUserMfaEntity } from '../entity/user-mfa.entity'
 import { SysUserMfaHelperService } from '../mfa.shared.service'
 import { SysUserMfaRepositoryService } from '../repo/user_mfa.repo.service'
 import { SysUserMfaBindTotpDTO, SysUserMfaDeviceVerifyTotpDTO } from './totp.dto'
@@ -147,7 +148,9 @@ export class SysUserMfaTotpService {
     const backupCodes = this.sysUserMfaDeviceHelperService.generateBackupCodes(10)
 
     // create totp record：密文 + hash 后的备用码同一行落库（phase2 4.12 定案，
-    // 备用码不再是独立 backup_codes 行）
+    // 备用码不再是独立 backup_codes 行）。
+    // P3-23（2026-10-29）：备用码改用确定性哈希（sha256(domain:userId:code)）后再逐项
+    // AES-GCM 加密存 array —— 旧实现的随机盐 hash 校验时必然 miss（备用码不可用）。
     await this.sysUserMfaRepo.createMfa({
       userId,
       type: 'totp',
@@ -155,7 +158,10 @@ export class SysUserMfaTotpService {
       name: dto.name,
       totpSecretCiphertext: encryptedSecret,
       backupCodesCiphertext: backupCodes.map(code =>
-        this.cryptoService.hash(code), // hash backup code
+        this.cryptoService.encrypt(
+          this.sysUserMfaDeviceHelperService.hashBackupCode(userId, code),
+          this.MFA_ENCRYPTION_KEY,
+        ),
       ),
       status: true,
       lastUsedAt: new Date(),
@@ -174,34 +180,52 @@ export class SysUserMfaTotpService {
   /**
    * verify TOTP
    * （B7b 归一：mfa 表写腿迁 PG —— B7a 的双句柄（em + dbSession）收成单 em）
+   *
+   * P3-23（2026-10-29）：复用本端点作为备用码校验通道 —— `code` 先按 TOTP 校验，
+   * 失败后回落备用码比对（命中即消费，一次性语义）；两者都不中统一 40000
+   * （`business.auth.verifyCodeError`），不再有裸 Nest 异常。命中备用码后的响应与
+   * TOTP 成功同形态（同一 post-verification，RT 轮换 + 新 AT）。
    */
   async verifyTotp(jti: string, deviceId: string, user: IWalnutAdminAccessTokenPayload, dto: SysUserMfaDeviceVerifyTotpDTO, em?: EntityManager) {
-    const totpDevice = await this.sysUserMfaRepo.findTotpWithSecretByUserId(user.userId, em)
+    // 同一事务内读 secret + 备用码列表并加行锁：并发用同一枚备用码时只有一路能消费
+    const totpDevice = await this.sysUserMfaRepo.findTotpWithSecretAndBackupCodesByUserId(user.userId, em, !isNil(em))
 
     if (!totpDevice || totpDevice.totpSecretCiphertext === null) {
       throw new WalnutAdminExceptionDataNotFound()
     }
 
-    // decrypt TOTP secret using crypto service
-    const secret = this.cryptoService.decrypt(
-      totpDevice.totpSecretCiphertext,
-      this.MFA_ENCRYPTION_KEY,
-    )
+    let verified = false
 
-    // verify TOTP code using v13 async API
-    const result = await verify({
-      strategy: 'totp',
-      secret,
-      token: dto.code,
-      // v13 uses epochTolerance instead of window
-      epochTolerance: 30,
-    })
+    // 6 位数字串才可能是 TOTP；备用码是 12 位字母数字（3x4），无需交给 otplib
+    if (/^\d{6}$/.test(dto.code)) {
+      // decrypt TOTP secret using crypto service
+      const secret = this.cryptoService.decrypt(
+        totpDevice.totpSecretCiphertext,
+        this.MFA_ENCRYPTION_KEY,
+      )
 
-    if (!result.valid) {
+      // verify TOTP code using v13 async API
+      const result = await verify({
+        strategy: 'totp',
+        secret,
+        token: dto.code,
+        // v13 uses epochTolerance instead of window
+        epochTolerance: 30,
+      })
+
+      verified = result.valid
+    }
+
+    // TOTP 未命中 → 回落备用码；命中即从列表删除（一次性）
+    if (!verified) {
+      verified = this.consumeBackupCode(totpDevice, user.userId, dto.code)
+    }
+
+    if (!verified) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.verifyCodeError' })
     }
 
-    // update last used time
+    // update last used time（TOTP 与备用码两条成功路径共用）
     totpDevice.lastUsedAt = new Date()
     await this.sysUserMfaRepo.saveMfa(totpDevice, em)
 
@@ -211,47 +235,50 @@ export class SysUserMfaTotpService {
   }
 
   /**
-   * TODO: use backup code to recover
+   * 校验并消费一枚备用码（P3-23）。
+   *
+   * 存储侧每项是 `AES-GCM(sha256(domain:userId:formattedCode))`；校验时逐项解密得到
+   * 确定性哈希再做常量时间比对。存量绑定（随机盐 HMAC，无法解密）会跳过 —— 它们是
+   * 坏数据，只能 unbind 后重新 bind 生成可用备用码（DESIGN-ISSUES P3-23 已登记）。
+   *
+   * @returns 是否命中并消费（命中时已从列表删除；列表清空则停用该 totp 行）
    */
-  async verifyBackupCode(userId: string, code: string) {
-    // format user input
+  private consumeBackupCode(totpDevice: SysUserMfaEntity, userId: string, code: string): boolean {
     const formattedCode = this.sysUserMfaDeviceHelperService.formatBackupCode(code)
 
     if (!this.sysUserMfaDeviceHelperService.validateBackupCodeFormat(formattedCode)) {
-      throw new BadRequestException('备用码格式错误')
+      return false
     }
 
-    // 查找 totp 行（备用码并入 totp 行的 backup_codes_ciphertext 列，phase2 4.12 定案）
-    const totpDevice = await this.sysUserMfaRepo.findTotpWithBackupCodesByUserId(userId)
+    const encryptedCodes = totpDevice.backupCodesCiphertext ?? []
 
-    if (!totpDevice) {
-      throw new WalnutAdminExceptionDataNotFound()
+    for (let index = 0; index < encryptedCodes.length; index++) {
+      let storedHash: string
+
+      try {
+        storedHash = this.cryptoService.decrypt(encryptedCodes[index], this.MFA_ENCRYPTION_KEY)
+      }
+      catch {
+        // 旧随机盐 HMAC（64 hex）不是本方案密文 —— 不可迁移，跳过
+        continue
+      }
+
+      if (!this.sysUserMfaDeviceHelperService.verifyBackupCodeHash(userId, formattedCode, storedHash)) {
+        continue
+      }
+
+      encryptedCodes.splice(index, 1)
+      totpDevice.backupCodesCiphertext = encryptedCodes
+
+      // 全部用完 → 停用 totp 行（原实现的语义保留）
+      if (encryptedCodes.length === 0) {
+        totpDevice.status = false
+      }
+
+      return true
     }
 
-    // hash user input backup code
-    const hashedInput = this.cryptoService.hash(formattedCode)
-
-    // find matching backup code
-    const index = totpDevice.backupCodesCiphertext.indexOf(hashedInput)
-
-    if (index === -1) {
-      throw new UnauthorizedException('备用码错误或已使用')
-    }
-
-    // remove used backup code
-    totpDevice.backupCodesCiphertext.splice(index, 1)
-
-    // if all backup codes used, disable device
-    if (totpDevice.backupCodesCiphertext.length === 0) {
-      totpDevice.status = false
-    }
-
-    await this.sysUserMfaRepo.saveMfa(totpDevice)
-
-    return {
-      success: true,
-      remainingCodes: totpDevice.backupCodesCiphertext.length,
-    }
+    return false
   }
 
   /**

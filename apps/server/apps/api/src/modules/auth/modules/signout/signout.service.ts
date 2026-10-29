@@ -147,9 +147,15 @@ export class AuthSignoutService {
   }
 
   /**
-   * 场景4: 敏感操作 - 踢所有设�?
-   * - revoke 所�?RT（包括离线设备）
+   * 场景4: 敏感操作（改密等）- 踢所有设备
+   * - revoke 所有 RT（包括离线设备）
+   * - 清全部设备的会话 / 权限 / MFA verified 三键（P2-32，2026-10-29）
    * - 通知在线设备（前端会主动调用退出接口）
+   *
+   * P2-32 的依据：P0-4 起 JWT validate 只认 `AUTH:SESSIONS` 会话键存在与否 ——
+   * 只撤 RT 的话旧 AT 在会话键 TTL 内继续可用，「改密即全端下线」只兑现了 RT 面。
+   * 改密语义是**全设备**，因此这里不传 deviceId（`revokeSession(userId)` 即全设备）
+   * 并按 `<userId>:*` 前缀清权限 / MFA 缓存。
    */
   private async handleSecurityPolicy(
     userId: string,
@@ -161,10 +167,15 @@ export class AuthSignoutService {
     // revoke 所有设备的 RT 并记录 revoke 原因
     await this.authRefreshSharedService.revokeRTForUser(userId, em, revokeReason)
 
-    // 事务提交后通知在线设备
-    registerAfterCommitHook(async () => {
+    // 事务提交后清全设备缓存 + 通知在线设备
+    await runAfterCommit(async () => {
+      await Promise.all([
+        this.authSessionService.revokeSession(userId),
+        this.sysMenuSharedService.clearUserPermissionsCache(userId),
+        this.cacheMfaService.delVerifiedCacheForUser(userId),
+      ])
       await this.appMonitorUserSharedService.forceQuitMonitorsBySocket(userId, revokeReason)
-      this.logger.log(`Security policy - revoked all RT and notified online devices for user: ${userId}`)
+      this.logger.log(`Security policy - revoked all RT and cleared all-device caches for user: ${userId}`)
     })
   }
 

@@ -39,6 +39,8 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
   /** generate 返回的真 secret（bind 后服务端缓存已删，客户端留着给 verify 算码） */
   let totpSecret = ''
   let tempTotpId = ''
+  /** bind 响应里只明文返回一次的备用码（P3-23：verify 回落通道用） */
+  let backupCodes: string[] = []
 
   beforeAll(async () => {
     app = await createApiApp()
@@ -108,7 +110,7 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
       tempTotpId,
     })
     expectOk(bindRes, 'totp bind')
-    const backupCodes = bodyOf<{ backupCodes: string[] }>(bindRes).data.backupCodes
+    backupCodes = bodyOf<{ backupCodes: string[] }>(bindRes).data.backupCodes
     expect(backupCodes).toHaveLength(10)
     for (const code of backupCodes) {
       expect(code).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/)
@@ -158,6 +160,58 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
       [fixture!.userId, 'totp'],
     )
     expect(rows[0].last_used_at).not.toBeNull()
+  })
+
+  it('备用码（P3-23）：错误码 40000；正确码走 verify 成功且一次性；TOTP 仍优先；列表递减', async () => {
+    async function remainingCodes(): Promise<number> {
+      const rows: Array<{ c: number }> = await api.pgDataSource.query(
+        'SELECT cardinality(backup_codes_ciphertext)::int AS c FROM sys_user_mfa WHERE user_id = $1 AND type = $2',
+        [fixture!.userId, 'totp'],
+      )
+      return rows[0].c
+    }
+
+    expect(await remainingCodes()).toBe(10)
+
+    // 错误备用码（格式合法但不在列表）→ 统一 40000
+    const wrong = await api.root('POST', api.apiPath('/system/user/mfa/totp/verify'), {
+      code: 'AAAA-BBBB-CCCC',
+      trusted: false,
+    })
+    expect(bodyOf(wrong).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+
+    // 正确备用码 → 与 TOTP 成功同形态（新 AT）
+    const usedCode = backupCodes[0]
+    const backupVerify = await api.root('POST', api.apiPath('/system/user/mfa/totp/verify'), {
+      code: usedCode,
+      trusted: false,
+    })
+    expectOk(backupVerify, 'backup code verify')
+    expect(typeof bodyOf<{ accessToken: string }>(backupVerify).data.accessToken).toBe('string')
+    expect(await remainingCodes()).toBe(9)
+
+    // 一次性：同一枚码第二次 → 40000
+    const replay = await api.root('POST', api.apiPath('/system/user/mfa/totp/verify'), {
+      code: usedCode,
+      trusted: false,
+    })
+    expect(bodyOf(replay).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+
+    // TOTP 码仍优先成功
+    const totpToken = await generate({ strategy: 'totp', secret: totpSecret })
+    const totpVerify = await api.root('POST', api.apiPath('/system/user/mfa/totp/verify'), {
+      code: totpToken,
+      trusted: false,
+    })
+    expectOk(totpVerify, 'totp verify after backup code')
+
+    // 再消费一枚 → 列表继续递减
+    const second = await api.root('POST', api.apiPath('/system/user/mfa/totp/verify'), {
+      code: backupCodes[1],
+      trusted: false,
+    })
+    expectOk(second, 'second backup code verify')
+    expect(await remainingCodes()).toBe(8)
   })
 
   it('auth/mfa/status（绑定后）：totp enabled=true（E 段补漏）', async () => {

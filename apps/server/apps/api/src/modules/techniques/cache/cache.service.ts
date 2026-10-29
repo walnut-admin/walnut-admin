@@ -103,6 +103,40 @@ export class AppTechCacheService {
   }
 
   /**
+   * Set cache only when the key does not exist — single-command `SET NX EX`.
+   *
+   * P2-11（2026-10-29）：一次性语义（sign nonce）不能「GET 后 SET」两步做 ——
+   * 并发同键会双双通过。这里把「判存在 + 写入」压成 Redis 单命令，返回 null 即已存在。
+   *
+   * @returns true = 本次写入成功（键原本不存在）；false = 键已被占用
+   */
+  public async setIfAbsent<T = any>(
+    key: string,
+    value: T,
+    options: IWalnutAdminCacheOptions,
+  ): Promise<boolean> {
+    const cacheKey = getWalnutAdminCacheKey(key)
+
+    const ttl = (options?.ttl) ?? 0
+    const val: WalnutAdminCacheContent<T> = {
+      v: value,
+      ttl,
+      start: options?.start ?? Date.now(),
+      t: options.t,
+    }
+
+    const serialized = JSON.stringify(val)
+
+    const result = ttl > 0
+      ? await this.redis.set(cacheKey, serialized, { NX: true, EX: ttl })
+      : await this.redis.set(cacheKey, serialized, { NX: true })
+
+    this.logger.debug(`[CacheSetNx] | Key: ${cacheKey}, written: ${result !== null}`)
+
+    return result !== null
+  }
+
+  /**
    * Get cache value
    */
   public async get<T = any>(key: string): Promise<T | null> {

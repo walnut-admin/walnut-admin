@@ -81,10 +81,11 @@ export class SysUserMfaBindTotpResponseDTO {
 
 export class SysUserMfaDeviceVerifyTotpDTO extends RealPickType(SysUserDeviceDTO, ['trusted'] as const) {
   @WalnutAdminDecoratorFieldString({
+    // P3-23（2026-10-29）：同一端点兼收 TOTP（6 位数字）与备用码（12 位字母数字，
+    // 可带分隔符 → 最长 14 字符）—— 通道由 service 先 TOTP 后备用码回落判定。
     validateOptions: {
-      maxLen: 6,
+      maxLen: 20,
       minLen: 6,
-      numberString: true,
     },
     swaggerOptions: {
       title: 'code',
