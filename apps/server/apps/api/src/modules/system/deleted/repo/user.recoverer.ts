@@ -7,16 +7,18 @@ import { SysUserDeviceEntity } from '@/modules/system/user_device/entity/user-de
 import { SysUserIdentityEntity } from '@/modules/system/user_identity/entity/user-identity.entity'
 import { SysUserLockEntity } from '@/modules/system/user_lock/entity/user-lock.entity'
 import { SysUserMfaEntity } from '@/modules/system/user_mfa/entity/user-mfa.entity'
+import { SysUserOauthEntity } from '@/modules/system/user_oauth/entity/user-oauth.entity'
 import { SysUserPreferenceEntity } from '@/modules/system/user_preference/entity/user-preference.entity'
 import { SysDeletedEntity } from '../entity/deleted.entity'
 
 /**
- * 用户恢复时的外围行重放清单（P2-18，2026-10-28）。
+ * 用户恢复时的外围行重放清单（P2-18，2026-10-28；P2-22 补 oauth，2026-10-29）。
  *
  * 删除侧（`SysUserBasicRepository.deleteSoftById`）在主行删除前给这些表逐行落快照；
  * 恢复侧按同一顺序插回（identity/preference 先于 device/mfa/lock，均以 user 主行为 FK 锚）。
- * `optional` 的语义：FK 依赖的外部行（device 行）可能已被独立清理 —— 插入失败只告警
- * 并保留该快照在回收站，不阻断用户本体恢复。
+ * `optional` 的语义：FK/唯一约束依赖的外部行可能已被独立清理或重新绑定 —— 插入失败只
+ * 告警并保留该快照在回收站，不阻断用户本体恢复（oauth 的 `uq_oauth` 同属此列：同一
+ * 外部账号可能已被其他用户重新绑定）。
  */
 export const WALNUT_USER_PERIPHERAL_RECOVERABLES: ReadonlyArray<{
   modelName: string
@@ -28,6 +30,7 @@ export const WALNUT_USER_PERIPHERAL_RECOVERABLES: ReadonlyArray<{
   { modelName: WalnutModelName.SYS_USER_DEVICE, entityTarget: SysUserDeviceEntity, optional: true },
   { modelName: WalnutModelName.SYS_USER_MFA, entityTarget: SysUserMfaEntity, optional: true },
   { modelName: WalnutModelName.SYS_USER_LOCK, entityTarget: SysUserLockEntity, optional: true },
+  { modelName: WalnutModelName.SYS_USER_OAUTH, entityTarget: SysUserOauthEntity, optional: true },
 ]
 
 /**

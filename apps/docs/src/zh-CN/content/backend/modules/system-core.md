@@ -130,8 +130,9 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 的 SWITCH/COMBINE 对照用例即按这个手法切换）。
 
 > 注意 effective roleMode 与 AT payload 的 `roleMode` 是**两层判据**：payload 里的是
-> `sys_user.role_mode` 列（登录时快照），权限守卫的 root/visitor 短路读的是它；
-> 菜单与权限串的合并读的是 effective 值。两层在默认部署下可以不一致，后果见 P2-19。
+> `sys_user.role_mode` 列（登录时快照），权限守卫的 root/visitor 短路与
+> `me/role/switch` 的准入都读行值；菜单与权限串的合并读的是 effective 值。两层在默认
+> 部署下可以不一致（P2-19 已修 switchRole 一侧：它不再被 effective 值卡死）。
 
 ### 2.3 SWITCH 与 COMBINE
 
@@ -142,8 +143,11 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 
 - `roleIds` / `roleNames` 顺序来自 `findByIds`（`WHERE id IN (...)`，**无 ORDER BY**），
   root/visitor 短路依赖 `roleNames[0]`，因此多角色用户是否命中短路取决于数据库返回顺序。
-- `switchRole` 的准入判据是 **effective** roleMode（必须为 switchable），而不是 AT payload
-  的 `roleMode`；`switchRoleMode` 只写 `sys_user.role_mode`，不校验 effective 值。
+- `switchRole` 的准入判据是用户行值 `sys_user.role_mode`（P2-19，2026-10-29 起）：行值为
+  `combinable` 拒 40000，`switchable` 且目标角色在 junction 内即可切换 —— 与 AT payload、
+  permission guard 的 root/visitor 短路同源。旧实现按 **effective** roleMode 判，零配置
+  部署（GLOBAL/combinable）下对**所有**用户恒 40000。`switchRoleMode` 只写
+  `sys_user.role_mode`，不校验 effective 值。
 
 ### 2.4 缓存失效的覆盖面
 
@@ -216,8 +220,9 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 
 - 拒绝删除自己（`id === user.userId`）与 safe user id（root / developer 的 v5 uuid），均 40000。
 - 其余用户走软删：`sys_deleted` 快照 + 硬删原行。P2-18 修复（2026-10-28）后，主行删除
-  前会给 identity / preference / user_device / mfa / lock 五张外围表逐行落快照，恢复时
-  由 `sys_user` 组合恢复器联动重放；`sys_user_role` junction 仍不进快照，从回收站恢复后
+  前会给 identity / preference / user_device / mfa / lock 五张外围表逐行落快照；P2-22
+  （2026-10-29）把 `sys_user_oauth` 绑定纳入同一快照/重放通道。恢复时由 `sys_user`
+  组合恢复器联动重放；`sys_user_role` junction 仍不进快照，从回收站恢复后
   `roles_list` 为空：旧 AT 的权限按空 membership 计算（P1-18 根修），重新登录被
   `checkUserAndRoleStatus` 拒绝（opaque finish 链收敛为 40103），需管理员重新分配角色
   （P2-18 维持登记的部分）。
@@ -229,7 +234,7 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 | `GET /system/user/me/profile` | 当前用户行 + `roles_list` |
 | `PUT /system/user/me/profile` | 白名单 `userName` / `nickName` 必填，`avatar` / `description` / `gender` 可选；持久化到用户行 |
 | `GET /system/user/me/security-tab2` | TOTP / WebAuthn 两通道的 `{ status, verified }` 形状（端点自带 `TODO should remove`） |
-| `PATCH /system/user/me/role/switch/:roleId` | effective roleMode 必须为 switchable，否则 40000；`roleId` 必须在用户 junction 中；写 `current_role_id` |
+| `PATCH /system/user/me/role/switch/:roleId` | 行值 `role_mode` 必须为 switchable，否则 40000（P2-19）；`roleId` 必须在用户 junction 中；写 `current_role_id` |
 | `PATCH /system/user/me/roleMode/switch/:roleMode` | 枚举管道只收 `switchable` / `combinable`；写 `sys_user.role_mode` |
 
 两个 switch 端点都只改库，不回发新 AT；前端需按响应注释重新获取访问令牌并重拉权限。
@@ -300,7 +305,8 @@ DTO 装饰器的 `default` 只服务 Swagger 展示。`meta` 的部分给 出按
 3. **级联不删子菜单**：`pid` 自引用 FK 是 `ON DELETE RESTRICT`，父节点仍有子节点时硬删撞
    23503，经全局异常处理器收敛为受控 40000（P1-7）。
 4. 硬删菜单会触发 `sys_role_menu` 的 FK CASCADE —— 所有角色的该菜单授权静默消失；
-   从回收站恢复菜单不会恢复授权（P2-18）。
+   从回收站恢复菜单不会恢复授权（P2-18）。P2-23（2026-10-29）起恢复菜单会按同 `title`
+   联动重放第 2 步级联软删的 locale 快照（翻译回来；授权仍不恢复）。
 
 ## 5. 角色
 
@@ -383,8 +389,11 @@ locale 的 create / update / delete / deleteMany 都调用
 也走同一个方法，因此同样会刷新。
 
 `SYS_LANG_ID_LIST` 是 locale 入参校验的白名单：`LocaleLangIdValidate` 读缓存，
-**缓存缺失或为空时直接放行**；命中时要求 `langId` 在列表内。lang 的 create / update
-不会刷新这个列表，也不会重算 `SYS_LOCALE_MESSAGES`（P2-17）。
+**缓存缺失或为空时直接放行**；命中时要求 `langId` 在列表内。P2-17（2026-10-29）起
+lang 的 create / update 与 locale 走同一刷新通道：after-commit 里先删
+`SYS_LANG_LIST_PUBLIC`，再调用 `extractLocaleMessagesIntoCacheForCronJob` 全量重算
+`SYS_LANG_ID_LIST` 与 `SYS_LOCALE_MESSAGES`；`lang` 代号被改掉时额外清旧代号的
+messages 键。这样新建语言后可以立即写翻译（不再被旧白名单挡成 40099）。
 
 ### 6.5 翻译映射端点的二段式校验
 
@@ -428,11 +437,15 @@ dictType 的 `DELETE`（P2-8 已修，2026-10-28），同一 em 事务内：
    `SYS_DICT_DATA` 快照）；
 2. 再快照 + 硬删 type 行（`deleteSoftById`）。
 
-DB 的 `fk_dict_data_type ON DELETE CASCADE` 因此没有行可清。回收站恢复要先恢复 type
-再恢复 data（data 行有 `type_id` FK）。
+DB 的 `fk_dict_data_type ON DELETE CASCADE` 因此没有行可清。P2-23（2026-10-29）起
+`sys_dict_type` 的恢复器是组合恢复器：插回 type 行后按 `content->>'typeId'` 重放关联
+dictData 快照（再按各自 `label` 重放 locale 快照），不必再逐条手动恢复 data。
 
 dictData 的单删 / 批量删（P1-12 已补 deleteMany 路由）除了快照 + 硬删原行，还按
 `label` 作为 locale `key` 软删对应翻译行（同一 em），并触发 locale 缓存全量刷新。
+P2-23 起 dictData 的恢复器按 `label` 重放被级联软删的 locale 快照；menu 的恢复器按同
+`title` 重放 `_cascade=1` 删除的 locale 快照（关联快照重放是 best-effort，失败留存
+快照并告警，不阻断主行恢复）。
 
 ### 7.3 缓存
 
@@ -501,9 +514,9 @@ dictData 的单删 / 批量删（P1-12 已补 deleteMany 路由）除了快照 +
 
 | 方法 / 路径 | 守卫链 | 权限点 | 请求 → 响应 |
 |---|---|---|---|
-| POST `/system/lang` | 全链 | `system:lang:create` | `{ lang, description, order, status }` → lang 行；失效 `SYS_LANG_LIST_PUBLIC` |
+| POST `/system/lang` | 全链 | `system:lang:create` | `{ lang, description, order, status }` → lang 行；after-commit 失效 `SYS_LANG_LIST_PUBLIC` 并重算 `SYS_LANG_ID_LIST` / `SYS_LOCALE_MESSAGES`（P2-17） |
 | GET `/system/lang/:id` | 全链 | `system:lang:read` | — → lang 行 + locale 计数 |
-| PUT `/system/lang/:id` | 全链 | `system:lang:update` | 同 create → lang 行；失效 `SYS_LANG_LIST_PUBLIC` |
+| PUT `/system/lang/:id` | 全链 | `system:lang:update` | 同 create → lang 行；同款缓存重算，`lang` 代号变更时额外清旧代号 messages 键（P2-17） |
 | POST `/system/lang/list` | 全链 | `system:lang:list` | list DTO → 行 + locale 计数 + `process` |
 | GET `/system/lang/list/public` | Lock/Sign/Jwt/Cap/Device Free + 响应缓存 | 无 | — → `[{ order, lang, description }]` |
 | GET `/system/locale/message/:locale?cache=` | Lock/Sign/Jwt/Cap/Device/Ip Free | 无 | `cache` 缺省 1 → `{ key: value }`；未知语言回退 `en_US` |
@@ -526,6 +539,14 @@ dictData 的单删 / 批量删（P1-12 已补 deleteMany 路由）除了快照 +
 - **P2-10（有意设计）**：locale 翻译映射端点的宽松 ValidationPipe 是 wire 形状决定的，
   校验后移到 `LocaleParseArrayPipe`，不改行为。
 - **P2-5（已修复）**：lang CRUD 经 after-commit 失效 `SYS_LANG_LIST_PUBLIC`。
+- **P2-17（已修复，2026-10-29）**：lang create/update 同时重算 `SYS_LANG_ID_LIST` 与
+  `SYS_LOCALE_MESSAGES`（改代号时清旧代号键）—— 新建语言后可立即写翻译。
+- **P2-19（已修复，2026-10-29）**：`switchRole` 准入改按用户行值 `role_mode`，零配置下
+  switchable 用户可在 junction 内的多角色间切换。
+- **P2-22（已修复，2026-10-29）**：恢复用户时联动恢复 `sys_user_oauth` 绑定（快照按
+  userId 重放；唯一约束冲突时跳过该行并告警，不阻断用户本体恢复）。
+- **P2-23（已修复，2026-10-29）**：恢复 menu / dictData / dictType 时联动恢复级联软删的
+  locale 行（dictType 另连同 dictData 快照一并重放）。
 - **P3-4（裁决接受）**：`/auth/permissions` 的 `permissionMenuTree` 顶层是「首个根节点的
   children」；单根无子级时为空数组，前端菜单装配按此形状消费。
 - **P3-7（裁决接受）**：「角色不删」是明确设计约束，停用走 update status、解绑走 junction。

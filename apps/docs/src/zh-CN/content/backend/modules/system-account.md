@@ -57,10 +57,11 @@ sys_user_device 1 ── 1 当前用户的锁屏状态  (locked 列；与 sys_de
 - `sys_user_mfa.device_id` 刻意**不建 FK**：MFA 凭据不应随设备行删除而级联消失。
 - `sys_user_device.locked` 是**用户-设备的锁屏状态**；`sys_device.locked` 是**设备级管理锁**，
   两者由不同守卫判定（Device guard 40606 / Lock guard 40118），互不联动。
-- 用户删除时上述五张 `user_id` 子表（以及本文未展开的 `sys_user_oauth`）由 FK CASCADE
-  清空；P2-18 修复后 `sys_user` 删除会在主行硬删**之前**给 identity / preference /
+- 用户删除时上述五张 `user_id` 子表（以及 `sys_user_oauth`）由 FK CASCADE 清空；
+  P2-18 修复后 `sys_user` 删除会在主行硬删**之前**给 identity / preference /
   user_device / mfa / lock 五表逐行落 `sys_deleted` 快照，恢复用户时由组合恢复器按
-  `content->>'userId'` 重放（oauth 绑定仍不恢复）。设备删除时 `sys_user_device` 同理
+  `content->>'userId'` 重放。P2-22（2026-10-29）起 `sys_user_oauth` 也进同一快照/重放
+  通道（`uq_oauth` 冲突时跳过该行并告警，不阻断用户本体恢复）。设备删除时 `sys_user_device` 同理
   级联清空；菜单 / 角色的 junction（`sys_role_menu` / `sys_user_role`）仍不进快照
   （P2-18 维持登记的部分）。
 
@@ -180,8 +181,11 @@ sys_user_device 1 ── 1 当前用户的锁屏状态  (locked 列；与 sys_de
 
 ### 3.2 OTP 绑定验证闭环
 
-所有端点都在 `/system/user/identity` 下，按 token 的 `userId` 自维度操作；只有
-`PUT status/:type/:purpose` 挂敏感操作守卫，其余端点**没有** `@HasPermission`。
+所有端点都在 `/system/user/identity` 下，按 token 的 `userId` 自维度操作，其余端点
+**没有** `@HasPermission`。敏感操作守卫（`account_critical`）挂在三处（P2-25，
+2026-10-29）：`PUT status/:type/:purpose`（`email_status_toggle`）与
+`PUT update/:type/:purpose` / `DELETE unbind/:type/:purpose`（`identity_manage`，
+支持 email/sms 两种安全身份验证）。
 
 | 步骤 | 端点 | 行为 |
 |---|---|---|
@@ -191,11 +195,13 @@ sys_user_device 1 ── 1 当前用户的锁屏状态  (locked 列；与 sys_de
 | 3 重发码 | `POST /send-code/:type/:purpose` | 对**已存在**的身份解密 `value` 取 identifier，再发码（用于未验证态的补验证） |
 | 4 补验证 | `POST /verify/:type/:purpose` | 校验码通过后把 `verified=true`；这是唯一允许把 `verified` 置真的 HTTP 通道 |
 | 5 改值（rebind） | `PUT update/:type/:purpose` | 给 `value` 时查重、重算密文/hash/mask，并强制 `verified=false`、`verifiedAt=null`；给 `verified` 一律 40000 `useVerifyEndpoint`；给 `status` 直接落库 |
-| 6 解绑 | `DELETE /unbind/:type/:purpose` | 硬删该身份（不进回收站）。非 password 的 login 身份删除前检查「还有其他已验证且启用的 login 方式，或存在 password」，否则 40000 `unbindAtLeastOneLoginMethodRequired` |
+| 6 解绑 | `DELETE /unbind/:type/:purpose` | 硬删该身份（不进回收站）。所有 login purpose 身份（**含 password**，P2-25）删除前检查「还有其他已验证且启用的 login 方式，或存在另一种 password」，否则 40000 `unbindAtLeastOneLoginMethodRequired` |
 | 7 启停 | `PUT status/:type/:purpose` | 敏感操作 `account_critical` / `email_status_toggle`（`allowChoose`）；通过后才写 `status` |
 
-注意 `PUT update` 与 `PUT status` 都可改 `status`，但只有后者挂敏感守卫；`unbind` 也不挂
-守卫。这条不一致登记为 P2-25。
+`PUT update` 与 `PUT status` 都可改 `status`，且 `update`（rebind）与 `unbind` 现在都挂
+与 `status` 同级的敏感守卫（P2-25 已修，2026-10-29）：未授权调用返回 40119，前端据
+`meta.availableMethods` 走验证流程；`unbind` 的 keep-one 判据同时把 password 纳入
+（仅口令用户不能把唯一登录方式解绑掉）。
 
 ### 3.3 敏感操作授权：challenge → verify → Redis 生命周期
 
@@ -256,7 +262,8 @@ P1-5（已修，2026-10-28）后：
 |---|---|---|
 | `GET /system/user/lock/read` | LockFree | 无偏好行 → service 默认形态；有行且 `lockCrossDevice=true` → `locked = 任意 user_device 行 locked`；否则只看当前设备行 |
 | `PATCH /system/user/lock` | LockFree + `@WalnutTx()` | upsert 偏好（只写 `lockRoute`），再置锁 |
-| `PATCH /system/user/lock/unlock` | LockFree + `@WalnutTx()` | 偏好行缺失 → 40401；`lockPwdHash` 非空时 bcrypt 比对，失败 40000；再解锁 |
+| `PATCH /system/user/lock/unlock` | LockFree + `@WalnutTx()` | 偏好行缺失 → 40401；`lockMode=security` 时密码必填（缺失 40000 `pwdRequired`），给了密码即 bcrypt 比对（失败 40000）；再解锁 |
+| `PATCH /system/user/lock/preference` | 登录态（**非** LockFree）+ `@WalnutTx()` | 写 `lockMode` / `lockIdleSec` / `lockSecuritySec` / `lockCrossDevice` / `lockPwdHash`（明文，仓库侧 bcrypt）；`lockMode=security` 且既无新密码也无旧 hash → 40000；只改偏好不改 `locked`（P2-26） |
 
 置锁/解锁的公共腿 `lockUserDeviceMainLogic`：
 
@@ -272,16 +279,23 @@ Lock guard（`guard/lock.guard.ts`）的顺序：LockFree → 无 `req.user` 放
 锁内 double-check 后调 `SysUserLockService.getLockForGuard` 回源 DB（按偏好行的
 `lockCrossDevice` 选「任意设备」或「本设备」），回填缓存；锁定 → **40118**。
 
-### 4.3 密码与 security 模式的现状
+### 4.3 偏好写入通道与 security 模式
 
-`injectOrUpdateUserLockPre` 的写入路径支持 `lockPwdHash`（bcrypt 加盐），但 **HTTP 没有任何
-端点写入该列**：`SysUserLockDoLockDto` 只收 `lockRoute`，read DTO 只读，user_device 的 lock
-同样只传 `lockRoute`。因此：
+P2-26（2026-10-29）起新增 `PATCH /system/user/lock/preference`（登录态、非 LockFree、
+`@WalnutTx()`）：入参 `lockPwdHash`（**明文**，仓库写入路径
+`insertOrUpdateUserLockPre` 负责 bcrypt 加盐）、`lockMode`、`lockIdleSec`、
+`lockSecuritySec`、`lockCrossDevice`。`lockMode=security` 时本次必须带密码或库里已有
+hash，否则 40000（`business.system.user.unLock.pwdRequired`）。端点只写偏好，不改任何
+设备的 `locked` 状态。
 
-- `lockMode=security` / `lockSecuritySec` 虽然可读，无法通过 API 设置；
-- unlock 的 `lockPwdHash` 是可选字段，缺省时直接跳过比对 —— 锁屏密码校验实际不可达。
+unlock 语义随之收紧：`lockMode=security` 时 `lockPwdHash` 必填，缺失或比对失败均
+40000；非 security 模式仍只在给了密码时比对。`PATCH /system/user/lock` 的 body 仍只有
+`lockRoute`（置锁动作不写偏好）。端点不挂 LockFree 的原因：锁定期间不允许通过偏好端点
+关掉 security 模式绕过锁屏密码。
 
-登记为 P2-26。
+> 与 DESIGN-ISSUES 建议的差异：条目建议「挂敏感守卫」，实现未挂 —— 该守卫的可验证方式
+> 面（password/sms/mfa）在仅密码用户上不可用（P1-5 已摘除 password 通道），会让端点对
+> 零配置用户恒 40000；锁屏密码本身就是解锁验证的凭据。
 
 ## 5. MFA（user_mfa）
 
@@ -342,7 +356,7 @@ user_mfa/webauthn 行）。
 | 端点 | 是否校验第二因子 | 职责 |
 |---|---|---|
 | `GET /auth/mfa/status` | 否 | 当前用户/当前设备可用的方法：`[{ type: totp, enabled }, { type: webauthn, enabled }]`；totp 按用户、webauthn 按当前设备 |
-| `POST /auth/mfa/verify` | **否**（只查已绑定记录） | body `{ trusted }`；用 `methodsRequiredCount` 计算 `enabledCount >= required`，满足后写 `sys_user.mfa_setup=true`、设备 trusted、`AUTH:MFA:VERIFIED`，并轮换 RT |
+| `POST /auth/mfa/verify` | **否**（只查已绑定记录） | body `{ trusted }`；用 `methodsRequiredCount` 与**用户维度已启用的类型数**（跨设备按 type 去重）比较，满足后写 `sys_user.mfa_setup=true`、设备 trusted、`AUTH:MFA:VERIFIED`，并轮换 RT |
 | `POST /system/user/mfa/totp/verify` | 是（TOTP 码） | 验码成功后同一 post-verification |
 | `POST /system/user/mfa/webauthn/authenticate/verify` | 是（WebAuthn 断言） | 验签成功后同一 post-verification |
 
@@ -350,9 +364,11 @@ user_mfa/webauthn 行）。
 校验在 system 模块的两个通道。两条链最终都落到同一 `handlePostVerification`（trusted 落库、
 `AUTH:MFA:VERIFIED`、RT revoke-and-insert、回种新 jti cookie）。
 
-MFA 成立判据有两套：`/auth/mfa/verify` 与 cron 用「类型数 + 已绑定行数」，
-`getCurrentUserMfaSetupStatus` 的 webauthn 腿只看**当前设备**；跨设备登记多个 webauthn
-时两者可能给出不同结论（P2-24）。
+MFA 成立判据已统一（P2-24，2026-10-29）：`getIsCurrentUserMfaVerified` 与 cron 的
+`updateMfaSetupStatusForCronJob` 都按**用户 + 类型集合**计算
+（`COUNT(DISTINCT type)`，totp / webauthn 各算一种，`status=true`），跨设备登记多个
+webauthn 只算一种。`getCurrentUserMfaSetupStatus` 仍是「当前设备可用方法」的展示腿
+（totp 按用户、webauthn 按当前设备），不参与就绪判定。
 
 ## 6. 偏好（user_preference）
 
@@ -410,8 +426,8 @@ MFA 成立判据有两套：`/auth/mfa/verify` 与 cron 用「类型数 + 已绑
 | GET `/system/user/identity/status/:purpose` | 全链 + `@WalnutTx()` | 无 | purpose 枚举 → `{ password, phoneNumber, emailAddress }` |
 | POST `/system/user/identity/check/:type/:purpose` | 全链 | 无 | `{ identifier }` → `true`（发码） |
 | POST `/system/user/identity/bind/:type/:purpose` | 全链 + `@WalnutTx()` | 无 | `{ identifier, verifyCode, setAsSecurity? }` → `true` |
-| DELETE `/system/user/identity/unbind/:type/:purpose` | 全链 + `@WalnutTx()` | 无 | — → `true`（硬删） |
-| PUT `/system/user/identity/update/:type/:purpose` | 全链 + `@WalnutTx()` | 无 | 身份行部分字段 → `true` |
+| DELETE `/system/user/identity/unbind/:type/:purpose` | 全链 + `@WalnutTx()` + Sensitive(`account_critical` / `identity_manage`) | 无 | — → `true`（硬删） |
+| PUT `/system/user/identity/update/:type/:purpose` | 全链 + `@WalnutTx()` + Sensitive(`account_critical` / `identity_manage`) | 无 | 身份行部分字段 → `true` |
 | POST `/system/user/identity/send-code/:type/:purpose` | 全链 + `@WalnutTx()` | 无 | — → `true` |
 | POST `/system/user/identity/verify/:type/:purpose` | 全链 + `@WalnutTx()` | 无 | `{ verifyCode }` → `true` |
 | PUT `/system/user/identity/status/:type/:purpose` | 全链 + `@WalnutTx()` + Sensitive(`account_critical`) | 无 | `{ status }` → `true` |
@@ -424,10 +440,12 @@ MFA 成立判据有两套：`/auth/mfa/verify` 与 cron 用「类型数 + 已绑
 |---|---|---|---|
 | GET `/system/user/lock/read` | LockFree | 无 | — → `{ locked, lockRoute, lockCrossDevice, lockMode, lockIdleSec, lockSecuritySec }` |
 | PATCH `/system/user/lock` | LockFree + `@WalnutTx()` | 无 | `{ lockRoute? }` → `true` |
-| PATCH `/system/user/lock/unlock` | LockFree + `@WalnutTx()` | 无 | `{ lockPwdHash? }` → `true`（偏好行缺失 40401） |
+| PATCH `/system/user/lock/unlock` | LockFree + `@WalnutTx()` | 无 | `{ lockPwdHash? }` → `true`（偏好行缺失 40401；security 模式密码必填） |
+| PATCH `/system/user/lock/preference` | 全链（**非** LockFree）+ `@WalnutTx()` | 无 | `{ lockMode?, lockPwdHash?, lockIdleSec?, lockSecuritySec?, lockCrossDevice? }` → `true` |
 
-三个端点都是 LockFree，因此**不能**用它们验证 Lock guard；验证锁定态必须用非 LockFree
-端点（如 `GET /auth/permissions`）。
+read / lock / unlock 三个端点是 LockFree，因此**不能**用它们验证 Lock guard；验证锁定态
+必须用非 LockFree 端点（如 `GET /auth/permissions`）。`preference` 刻意不 LockFree：
+锁定期间不能免密关掉 security 模式。
 
 ### 7.5 user_mfa
 
@@ -472,20 +490,19 @@ MFA 成立判据有两套：`/auth/mfa/verify` 与 cron 用「类型数 + 已绑
   会丢更新。Device guard 缓存 miss 时用「读库时的整行快照」回填缓存，若与 lock/ban 的
   after-commit 双写交错，旧快照会覆盖新缓存，DB 的 locked/banned 在缓存无 TTL 的情况下
   可被长期遮蔽（只有下一次缓存 miss 才回源）。
-- **P2-22（C 段新登记；用户外围已随 P2-18 修复覆盖）**：删除用户只快照 `sys_user` 主行；
-  identity / oauth / user_device / lock / mfa / preference 由 FK CASCADE 清空且不进
-  `sys_deleted`。P2-18 修复（2026-10-28）后 identity / preference / user_device / mfa /
-  lock 五表已在删除前快照、恢复时重放；**只剩 `sys_user_oauth` 绑定不恢复**。
-- **P2-24（C 段新登记）**：MFA 成立判据两套。`/auth/mfa/verify` 与 cron 用「类型数 +
-  已绑定行数」（webauthn 跨设备计数），运行时 `getCurrentUserMfaSetupStatus` 的 webauthn
-  腿只认当前设备；跨设备登记多个 webauthn 时可能 cron 判 true、verify 判 false。
-- **P2-25（C 段新登记）**：identity 敏感操作面不一致。只有 `PUT status/:type/:purpose` 挂
-  `RequireSensitive`；`PUT update` 可携带 `status` 直接改启停，`unbind` 无敏感校验。
-  另外 unbind 的「至少保留一种登录方式」检查把 password 排除在外：仅剩 password 的用户
-  可以解绑 password，导致无任何登录方式。
-- **P2-26（C 段新登记）**：lock 的 `lockPwdHash` / `lockMode=security` 没有 HTTP 写入通道
-  （lock body 只收 `lockRoute`），unlock 的 `lockPwdHash` 缺省即跳过比对，security 锁屏
-  密码校验实际不可达。
+- **P2-22（已修复，2026-10-29）**：删除用户只快照 `sys_user` 主行的问题随 P2-18 覆盖
+  identity / preference / user_device / mfa / lock 五表；本批把 `sys_user_oauth` 绑定也
+  纳入删除前快照与恢复时重放（唯一约束冲突跳过并告警）。
+- **P2-24（已修复，2026-10-29）**：MFA 成立判据统一为「用户 + 类型集合」——
+  `getIsCurrentUserMfaVerified` 与 cron 都用 `COUNT(DISTINCT type)`（跨设备去重），
+  `getCurrentUserMfaSetupStatus` 只作当前设备可用方法展示。
+- **P2-25（已修复，2026-10-29）**：`PUT update` 与 `DELETE unbind` 挂
+  `account_critical` 敏感守卫（`identity_manage`，email/sms 可选），未授权返回 40119；
+  `update` 不再能绕过 status 的守卫。unbind 的 keep-one 判据把 password 纳入 ——
+  仅口令用户解绑 password 也 40000，不再产生无登录方式的账号。
+- **P2-26（已修复，2026-10-29）**：新增 `PATCH /system/user/lock/preference` 写
+  `lockMode` / `lockPwdHash` / 空闲与跨设备配置（明文入参、仓库侧 bcrypt）；
+  `lockMode=security` 写入需密码，unlock 时密码必填并比对。
 - **P3-21（C 段新登记）—— 已修复 2026-10-28**：`system:deleted:recover:mine` 已接线，
   `POST me/recover` 与 `POST recover` 权限点解耦（后者仍带 `@HasRole` 管理角色闸）。
 - **P3-23（已修复，2026-10-29）**：备用码改为「确定性哈希（固定域 + userId）→ AES-GCM

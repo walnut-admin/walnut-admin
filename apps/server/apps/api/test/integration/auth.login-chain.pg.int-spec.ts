@@ -653,8 +653,9 @@ describe('B7c auth login chain (on real PG)', () => {
     /**
      * MFA verify 链路 fixture：
      * - sys_user_mfa 行（type=totp / webauthn，device_id 松引用任意键）；
-     * - verified 判据走 cacheMfaService.setVerifiedCache（getIsCurrentUserMfaVerified 读
-     *   getCurrentUserMfaSetupStatus 的 enabled 计数 + methodsRequiredCount 缺省 1）；
+     * - verified 判据走 cacheMfaService.setVerifiedCache（P2-24 起 getIsCurrentUserMfaVerified
+     *   按用户维度统计已启用 MFA **类型数**，与 methodsRequiredCount（缺省 1）比较；
+     *   getCurrentUserMfaSetupStatus 仍按当前设备返回可用方法列表）；
      * - handlePostVerification 需要 (jti, device) 的有效 refresh 行（getNewAccessToken 轮换腿）。
      */
     async function seedMfaUserChannel(type: 'totp' | 'webauthn') {

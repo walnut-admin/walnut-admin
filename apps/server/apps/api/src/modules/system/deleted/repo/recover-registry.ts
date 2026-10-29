@@ -25,6 +25,11 @@ import { SysUserLockEntity } from '@/modules/system/user_lock/entity/user-lock.e
 import { SysUserMfaEntity } from '@/modules/system/user_mfa/entity/user-mfa.entity'
 import { SysUserOauthEntity } from '@/modules/system/user_oauth/entity/user-oauth.entity'
 import { SysUserPreferenceEntity } from '@/modules/system/user_preference/entity/user-preference.entity'
+import {
+  createWalnutDictDataSnapshotRecoverer,
+  createWalnutDictTypeSnapshotRecoverer,
+  createWalnutMenuSnapshotRecoverer,
+} from './locale-cascade.recoverer'
 import { createWalnutUserSnapshotRecoverer } from './user.recoverer'
 
 /**
@@ -109,17 +114,22 @@ export class SysDeletedPgRecoverRegistry {
     // 把它从清单挪出、在此单独 `register` —— 清单与手工注册同报名字会抛重复注册错，
     // 装配期即红，不会静默走错恢复器。
     //
-    // P2-18（2026-10-28）：sys_user 是首个特殊恢复器 —— 通用工厂只插回主行，而外围表
-    // （identity/preference/device/mfa/lock）的 FK 是 CASCADE，删除时被静默带走；
-    // 组合恢复器会把同 userId 的外围快照一并重放。清单仍保留 SYS_USER 条目
-    // （dto-entity 漂移守卫按清单对账 modelName → entity）。
-    for (const { modelName, entityTarget } of WALNUT_PG_RECOVERABLE_COLLECTIONS) {
-      if (modelName === WalnutModelName.SYS_USER) {
-        this.register(modelName, createWalnutUserSnapshotRecoverer())
-        continue
-      }
+    // 特殊恢复器（组合重放关联快照）：
+    // - P2-18（2026-10-28）：sys_user —— 外围表（identity/preference/device/mfa/lock）的
+    //   FK 是 CASCADE，删除时被静默带走，恢复时按 userId 重放（P2-22 追加 oauth）；
+    // - P2-23（2026-10-29）：menu / dictData / dictType —— 级联软删的 locale 行（以及
+    //   dictType 下的 dictData 行）同样只留在回收站，恢复主行时按 title/label/typeId 重放。
+    // 清单仍保留这些 modelName 条目（dto-entity 漂移守卫按清单对账 modelName → entity）。
+    const specialRecoverers = new Map<string, IWalnutPgSnapshotRecoverer>([
+      [WalnutModelName.SYS_USER, createWalnutUserSnapshotRecoverer()],
+      [WalnutModelName.SYS_MENU, createWalnutMenuSnapshotRecoverer()],
+      [WalnutModelName.SYS_DICT_DATA, createWalnutDictDataSnapshotRecoverer()],
+      [WalnutModelName.SYS_DICT_TYPE, createWalnutDictTypeSnapshotRecoverer()],
+    ])
 
-      this.register(modelName, createWalnutPgSnapshotRecoverer(entityTarget))
+    for (const { modelName, entityTarget } of WALNUT_PG_RECOVERABLE_COLLECTIONS) {
+      const special = specialRecoverers.get(modelName)
+      this.register(modelName, special ?? createWalnutPgSnapshotRecoverer(entityTarget))
     }
   }
 

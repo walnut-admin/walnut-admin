@@ -340,7 +340,7 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
     deletedDemoIds.pop()
   })
 
-  it('P2-18：删用户 → 外围行（identity/preference）同事务进快照；recover 用户 → 联动恢复', async () => {
+  it('P2-18 / P2-22：删用户 → 外围行（identity/preference/oauth）同事务进快照；recover 用户 → 联动恢复', async () => {
     const userName = `deleted-user-${seed8}`
     const createRes = await api.root('POST', api.apiPath('/system/user'), {
       userName,
@@ -358,6 +358,12 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
       [created.id, `hash-${seed8}`],
     )
     await api.pgDataSource.query('INSERT INTO sys_user_preference (user_id) VALUES ($1)', [created.id])
+    // P2-22：OAuth 绑定（(provider, provider_id) 复合唯一，外部账号只绑一个用户）
+    const providerId = `github-${seed8}`
+    await api.pgDataSource.query(
+      'INSERT INTO sys_user_oauth (user_id, provider, provider_id, status) VALUES ($1, \'github\', $2, true)',
+      [created.id, providerId],
+    )
 
     const delRes = await api.root('DELETE', api.apiPath(`/system/user/${created.id}`))
     expectOk(delRes, 'user soft delete')
@@ -371,7 +377,7 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
       [created.id],
     )
     const models = snapshotRows.map(row => row.model_name)
-    expect(models).toEqual(expect.arrayContaining(['SysUser', 'SysUserIdentity', 'SysUserPreference']))
+    expect(models).toEqual(expect.arrayContaining(['SysUser', 'SysUserIdentity', 'SysUserPreference', 'SysUserOAuth']))
 
     const userSnapshot = snapshotRows.find(row => row.model_name === 'SysUser')
     expect(userSnapshot).toBeTruthy()
@@ -415,6 +421,16 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
       [created.id],
     )
     expect(preferenceRows[0].c).toBe(1)
+
+    // P2-22：oauth 绑定联动恢复（provider / providerId 原样）
+    const oauthRows: Array<{ provider: string, provider_id: string, status: boolean }> = await api.pgDataSource.query(
+      'SELECT provider, provider_id, status FROM sys_user_oauth WHERE user_id = $1',
+      [created.id],
+    )
+    expect(oauthRows).toHaveLength(1)
+    expect(oauthRows[0].provider).toBe('github')
+    expect(oauthRows[0].provider_id).toBe(providerId)
+    expect(oauthRows[0].status).toBe(true)
 
     // 外围快照已消费（不再留在回收站）
     const remainRows: Array<{ c: number }> = await api.pgDataSource.query(

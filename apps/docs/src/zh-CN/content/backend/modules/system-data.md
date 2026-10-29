@@ -56,6 +56,12 @@ PG 有强 schema，快照 jsonb 不能像 Mongo 一样 `db.model(modelName)` 动
 - 注册清单 `WALNUT_PG_RECOVERABLE_COLLECTIONS` 覆盖已迁业务表；lock / mfa / preference /
   user_device / refresh_token 等**没有软删写路径**的表也一并注册（注册无害，兜住任何来源的
   历史快照）。
+- **组合恢复器**（关联快照一并重放，best-effort + savepoint 隔离）：
+  `sys_user`（P2-18/P2-22：按 `content->>'userId'` 重放 identity / preference /
+  user_device / mfa / lock / oauth 快照）、`sys_menu`（P2-23：按 `title` 重放 locale）、
+  `sys_dict_data`（P2-23：按 `label` 重放 locale）、`sys_dict_type`（P2-8/P2-23：按
+  `typeId` 重放 dictData，再按各自 `label` 重放 locale）。关联行插入失败只告警并保留其
+  快照，不阻断主行恢复。
 - **junction 表不注册**：`sys_role_menu` / `sys_user_role` 随主行 FK CASCADE 生灭，
   不进回收站（P2-18）。
 - 未注册的 `modelName` 在恢复时抛受控 40000 `recoverFail`（替代 Mongo 版动态模型的
@@ -80,14 +86,16 @@ PG 有强 schema，快照 jsonb 不能像 Mongo 一样 `db.model(modelName)` 动
 
 | 删除动作 | 同事务内的附加动作 | 恢复时的行为 |
 |---|---|---|
-| `DELETE /system/menu/:id?_cascade=1` | `title` 非空时按 `title` 作为 locale `key` 软删该菜单的全部翻译行（`SysLocaleService.deleteByKey`）；子菜单不删（`pid` FK RESTRICT，撞 23503 → 40000） | 只恢复菜单行；locale 翻译行仍留在回收站（P2-23） |
-| `DELETE /system/dict/type/:id` | 先按 `type_id` 逐行软删 dictData（各落一条 `SYS_DICT_DATA` 快照），再快照 + 硬删 type 行（P2-8 已修） | 只恢复 type 行；data 行需手工先恢复（data 有 `type_id` FK，顺序不能反） |
-| `DELETE /system/dict/data/:id` / `deleteMany` | 按 `label` 作为 locale `key` 软删翻译行，并触发 locale 缓存全量刷新 | 只恢复 data 行；locale 行仍留在回收站（P2-23） |
-| `DELETE /system/user/:id` | 无附加软删；`sys_user_role` / `sys_user_identity` / `sys_user_device` / `sys_user_lock` / `sys_user_mfa` / `sys_user_preference` / `sys_user_oauth` 由 FK CASCADE 硬删且不进快照 | 只恢复用户主行；`roles_list` 为空（P2-18），账户外围全部缺失（P2-22） |
+| `DELETE /system/menu/:id?_cascade=1` | `title` 非空时按 `title` 作为 locale `key` 软删该菜单的全部翻译行（`SysLocaleService.deleteByKey`）；子菜单不删（`pid` FK RESTRICT，撞 23503 → 40000） | 恢复菜单行时按同 `title` 重放 locale 快照（P2-23，2026-10-29）；角色授权仍不恢复（P2-18） |
+| `DELETE /system/dict/type/:id` | 先按 `type_id` 逐行软删 dictData（各落一条 `SYS_DICT_DATA` 快照），再快照 + 硬删 type 行（P2-8 已修） | 恢复 type 行时按 `typeId` 联动重放 data 快照，再按各自 `label` 重放 locale（P2-23）；不必手工逐条恢复 data |
+| `DELETE /system/dict/data/:id` / `deleteMany` | 按 `label` 作为 locale `key` 软删翻译行，并触发 locale 缓存全量刷新 | 恢复 data 行时按同 `label` 重放 locale 快照（P2-23） |
+| `DELETE /system/user/:id` | 主行删除前先给 identity / preference / user_device / mfa / lock / oauth 六表逐行落快照（P2-18/P2-22）；`sys_user_role` 不落快照，其余外围行随后由 FK CASCADE 硬删 | 主行 + 六表外围快照联动恢复；`roles_list` 仍为空（P2-18 junction 面维持登记） |
 | 设备行删除（`deleteNonMonitorUserDevice`，cron 路径） | `sys_user_device` 由 device_id FK CASCADE；设备行是硬删、不写快照 | 不走回收站 |
 
-结论：**回收站只保证主行可回，级联软删的行与 FK CASCADE 的行都要单独处理**。P2-8 解决的是
-「dictData 被 DB CASCADE 静默清掉」；恢复侧的联动仍是空白（P2-23）。
+结论：**回收站对主行 + 已落快照的关联行负责**。P2-8 解决「dictData 被 DB CASCADE 静默
+清掉」，P2-22/P2-23 补齐恢复侧联动（用户外围六表、menu/dictData/dictType 的 locale 与
+dictData 快照）；junction（`sys_user_role` / `sys_role_menu`）与设备行仍是明确取舍 —— 不
+进回收站，恢复主行后需重新授权/绑定。
 
 ### 1.5 并发实测（G5）
 
@@ -120,11 +128,12 @@ PG 有强 schema，快照 jsonb 不能像 Mongo 一样 `db.model(modelName)` 动
   `OTHER/CREATE/UPDATE/DELETE/DELETE_MANY/IMPORT/EXPORT/CLEAR/REFRESH/AUTH`
   （与 `WalnutAdminConstDecoratorLogOperateAction` 一致；D 段复核 2026-10-28 修正，
   原「只含 8 值、另有 REFRESH/AUTH 待定夺」的记述已过时，见 P3-24/P3-25）。
-- `logOperateId` 回填：DELETE / DELETE_MANY 成功后 `eventEmitter.emit(LOG_OPERATE_DELETE...)`，
+- `logOperateId` 回填：DELETE / DELETE_MANY 成功后经 `runAfterCommit` 在业务事务**提交后**
+  `eventEmitter.emit(LOG_OPERATE_DELETE...)`（P2-29，2026-10-29；无事务上下文时内联执行），
   `AppTechEventService` 异步监听，按 `deletedId` 更新 `sys_deleted.log_operate_id`。
-  该更新走连接级 manager（刻意不收事务句柄）。已知两个边界：事件发出与业务事务提交的
-  先后不保证（早到则更新 0 行、只记日志），以及按 `deletedId` 会命中同一行的历史快照
-  （重复软删时旧快照的关联被覆盖）——P2-29。
+  该更新走连接级 manager（刻意不收事务句柄），条件是
+  `deleted_id = ? AND log_operate_id IS NULL` —— 重复软删留下的历史快照已关联的日志不再
+  被新日志覆盖（P2-29 第二面）。
 
 读面（`SysLogOperateService`）：`read` / `list` 用 `SysLogOperateDTOSafe` 剔除
 `snapshotBefore` / `snapshotAfter`；`GET :id/snapshot` 单独返回这两列；
@@ -317,22 +326,21 @@ cache / event / queue / task 没有 HTTP 端点；cache 的只读/删除面在 `
 - **P1-2（已修复）**：`delByPattern` 改为 SCAN 分批 + `unlink`，node-redis v5 的批次数组
   不再丢键。
 - **P1-15**：`AUTH:PERMISSIONS` 的 TTL 是 AT 秒数 × 1000，权限变更后旧权限串长期驻留。
-- **P2-17**：lang 与 locale 的缓存刷新不对称（`SYS_LANG_ID_LIST` 只在 locale 变更触发的
-  全量刷新里写入）。
+- **P2-17（已修复，2026-10-29）**：lang create/update 与 locale 共用刷新通道（重算
+  `SYS_LANG_ID_LIST` / `SYS_LOCALE_MESSAGES`）。
 - **P2-18**：软删恢复不恢复 junction；恢复菜单丢全部角色授权、恢复用户无法登录。
-- **P2-22（C 段新登记）**：恢复用户不恢复账户外围（identity / oauth / device / lock /
-  mfa / preference 由 FK CASCADE 清空且不进快照）。
-- **P2-23（C 段新登记）**：恢复不联动级联软删的 locale 行。menu `_cascade=1` 与 dictData
-  删除都会把翻译行软删进回收站，但恢复主行不会恢复它们。
+- **P2-22（已修复，2026-10-29）**：用户外围六表（identity / oauth / device / lock / mfa /
+  preference）都进删除前快照与恢复重放。
+- **P2-23（已修复，2026-10-29）**：menu / dictData / dictType 的组合恢复器会重放级联
+  软删的 locale 行（dictType 连同 dictData 快照）。
 - **P2-27（C 段新登记）**：appSettings 的进程内 memo 失效覆盖面只到本进程：多实例部署下
   其他实例写 setting 不会失效本进程 memo；绕过服务直删 Redis 键也不会（只有监控台删缓存
   端点接了防御性失效）。
 - **P2-28（C 段新登记）**：六个 `@Cron` 任务没有分布式锁，多实例会各跑一遍；
   `onModuleInit` 还会在每次启动时同步跑一遍（含 key 轮换与设备清理）。幂等性依赖任务自身
   的 upsert / 条件判断，`updateDeviceActiveStatusForCronJob` 在 dev 下直接 no-op。
-- **P2-29（C 段新登记）**：`logOperateId` 回填是异步旁路。事件发出与业务事务提交的先后
-  不保证，早到会更新 0 行且只记日志；按 `deletedId` 更新会命中同一行的历史快照，
-  重复软删同一行时旧快照的 `log_operate_id` 被覆盖。
+- **P2-29（已修复，2026-10-29）**：`logOperateId` 回填事件改走 `runAfterCommit`（提交后
+  才发），更新条件补 `log_operate_id IS NULL` —— 不再早到丢关联、不再覆盖历史快照。
 - **P3-21（C 段新登记）—— 已修复 2026-10-28**：`system:deleted:recover:mine` 已接线，
   `POST me/recover` 不再复用管理端 `system:deleted:recover`；seed 菜单行本就带该 element，
   按角色勾选即可授权（seed 内无角色持有旧管理权限点，接线不破坏既有恢复能力）。

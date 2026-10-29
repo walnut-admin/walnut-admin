@@ -30,7 +30,8 @@ export class AuthMfaService {
    * if user has enabled mfa, return same result as sign in
    */
   async verifyMfaStatus(jti: string, dto: AuthMfaVerifyDTO, userId: string, sessionId: string, deviceId: string, em?: EntityManager) {
-    const verified = await this.sysUserMfaDeviceSharedService.getIsCurrentUserMfaVerified(userId, deviceId, em)
+    // P2-24：就绪判据是用户维度（类型集合跨设备去重），deviceId 只用于后续 post-verification
+    const verified = await this.sysUserMfaDeviceSharedService.getIsCurrentUserMfaVerified(userId, em)
 
     if (!verified) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.mfa.verifyFail' })

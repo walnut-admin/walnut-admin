@@ -401,6 +401,51 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     expect(localeSnapshots[0].c).toBe(1)
   })
 
+  it('P2-23：_cascade=1 删除后从回收站恢复菜单 → locale 行联动恢复', async () => {
+    const created = await createMenu('C2')
+    const key = localeKeyOf(`menu.title.${seed8}.C2`)
+
+    const createLocaleRes = await api.root('POST', api.apiPath('/system/locale'), {
+      key,
+      [localeLangId]: 'v-cascade-recover',
+    })
+    expectOk(createLocaleRes, 'locale create for cascade recover')
+
+    const deleteRes = await api.root('DELETE', api.apiPath(`/system/menu/${created.id}?_cascade=1`))
+    expectOk(deleteRes, 'menu delete cascade=1 before recover')
+
+    const [menuSnapshot]: Array<{ id: string }> = await api.pgDataSource.query(
+      'SELECT id FROM sys_deleted WHERE deleted_id = $1 AND model_name = $2',
+      [created.id, WalnutModelName.SYS_MENU],
+    )
+    expect(menuSnapshot).toBeTruthy()
+
+    const recoverRes = await api.root('POST', api.apiPath('/system/deleted/recover'), {
+      id: menuSnapshot.id,
+      deletedId: created.id,
+    })
+    expectOk(recoverRes, 'menu recover with cascade locale')
+
+    // 菜单本体回来
+    const backMenuRes = await api.root('GET', api.apiPath(`/system/menu/${created.id}`))
+    expectOk(backMenuRes, 'menu recovered')
+
+    // P2-23：级联软删的 locale 行随菜单恢复一起回来（旧实现只插回主行，翻译留在回收站）
+    const localeRows: Array<{ value: string }> = await api.pgDataSource.query(
+      'SELECT value FROM sys_locale WHERE key = $1',
+      [key],
+    )
+    expect(localeRows).toHaveLength(1)
+    expect(localeRows[0].value).toBe('v-cascade-recover')
+
+    // locale 快照已消费（不再留在回收站）
+    const remainSnapshots: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM sys_deleted WHERE content ->> \'key\' = $1',
+      [key],
+    )
+    expect(remainSnapshots[0].c).toBe(0)
+  })
+
   it('校验失败 → 40099（pid 非 uuid / 非法 type 枚举 / 未知字段）', async () => {
     const badPid = await api.root('POST', api.apiPath('/system/menu'), menuPayload('V1', { pid: 'not-a-uuid' }))
     expect(bodyOf(badPid).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)

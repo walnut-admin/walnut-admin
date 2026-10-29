@@ -9,6 +9,7 @@ import { WalnutAdminSocketEvents } from '@/socket/socket.const'
 import { SocketService } from '@/socket/socket.service'
 import { SysUserDeviceRepositoryService } from '../../user_device/repo/user_device.repo.service'
 import { SysUserLockEntity } from '../entity/user-lock.entity'
+import { LockModeConst } from '../lock.const'
 import { SysUserLockRepositoryService } from '../repo/user_lock.repo.service'
 
 @Injectable()
@@ -65,9 +66,21 @@ export class SysUserLockSharedService {
       throw new WalnutAdminExceptionDataNotFound()
     }
 
+    // P2-26（2026-10-29）：lockMode=security 时解锁密码必填 —— 旧实现 lockPwdHash 可选，
+    // 缺省直接跳过比对，security 模式的「密码解锁」语义形同虚设。
+    const isSecurityMode = lockPreference.lockMode === LockModeConst.SECURITY
+    const hasPwd = lockPwdHash !== undefined && lockPwdHash !== null && lockPwdHash !== ''
+    if (isSecurityMode && !hasPwd) {
+      throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.user.unLock.pwdRequired' })
+    }
+
     // check lock password hash
-    if (lockPwdHash) {
-      const isLockPwdValid = await this.userLockRepo.compareLockPwdHash(lockPwdHash, lockPreference.lockPwdHash!)
+    if (hasPwd) {
+      if (lockPreference.lockPwdHash === null || lockPreference.lockPwdHash === '') {
+        throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.user.unLock.pwdErr' })
+      }
+
+      const isLockPwdValid = await this.userLockRepo.compareLockPwdHash(lockPwdHash, lockPreference.lockPwdHash)
       if (!isLockPwdValid) {
         throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.user.unLock.pwdErr' })
       }

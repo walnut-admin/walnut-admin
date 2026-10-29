@@ -2,7 +2,8 @@ import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { AppTechRedisService } from '@/modules/techniques/cache/redis/redis.service'
 import { AppTechCacheVerifyCodeService } from '@/modules/techniques/cache/service/cache.verifyCode'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
@@ -44,6 +45,25 @@ describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）�
   const emailOf = (tag: string) => `identity-${seed8}-${tag}@example.com`
   let verifyCodeService: AppTechCacheVerifyCodeService
 
+  /**
+   * P2-25：update/unbind 挂 account_critical 敏感守卫后，成功路径需先拿到与 status 端点
+   * 同级的授权键（`sensitive_op:<userId>:<deviceId>:<level>`，裸 Redis 键）；每个用例
+   * 结束统一撤销，避免授权泄漏把后续 40119 用例放行。
+   */
+  function sensitivePermissionKey(): string {
+    return `sensitive_op:${fixture!.userId}:${api.deviceId}:account_critical`
+  }
+
+  async function grantSensitivePermission(): Promise<void> {
+    const redis = app.get(AppTechRedisService).getClient()
+    await redis.setEx(sensitivePermissionKey(), 900, JSON.stringify({ operationType: 'identity_manage', expiresAt: Date.now() + 900_000 }))
+  }
+
+  async function revokeSensitivePermission(): Promise<void> {
+    const redis = app.get(AppTechRedisService).getClient()
+    await redis.del(sensitivePermissionKey())
+  }
+
   beforeAll(async () => {
     app = await createApiApp()
     api = await WalnutApiClient.create(app)
@@ -61,6 +81,10 @@ describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）�
     const tokensB = await performHttpOpaqueLogin(apiB, app, fixtureB)
     apiB.setAuth(tokensB)
     await apiB.seedMfaVerifiedCache(fixtureB.userId)
+  })
+
+  afterEach(async () => {
+    await revokeSensitivePermission()
   })
 
   afterAll(async () => {
@@ -86,6 +110,22 @@ describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）�
     const statusSecurity = await api.root('GET', api.apiPath('/system/user/identity/status/security'))
     expectOk(statusSecurity, 'identity status security')
     expect(bodyOf<IdentityStatus>(statusSecurity).data.emailAddress.bound).toBe(false)
+  })
+
+  it('P2-25：仅口令一种登录方式时解绑 password → 40000（keep-one 判据不再豁免 password）', async () => {
+    // fixture 此刻只有 opaque 注册落的 password/login 身份（email 尚未绑定）
+    await grantSensitivePermission()
+
+    const res = await api.root('DELETE', api.apiPath('/system/user/identity/unbind/password/login'))
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+    expect((bodyOf(res) as unknown as { _devMsg?: string })._devMsg).toBe('business.auth.unbindAtLeastOneLoginMethodRequired')
+
+    // 行未被删除
+    const rows: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
+      [fixture!.userId, 'password', 'login'],
+    )
+    expect(rows[0].c).toBe(1)
   })
 
   it('check → 20000 + 验证码落 AUTH:VERIFY_CODE 缓存（邮件任务进队列不真发）', async () => {
@@ -132,7 +172,9 @@ describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）�
     expect(noSecurityRows[0].c).toBe(0)
 
     // 解绑后重走 check→bind，验证 setAsSecurity=true 的 security 身份同落（后续 update-status
-    // 用例依赖该 security 身份进入 40119 验证流程）
+    // 用例依赖该 security 身份进入 40119 验证流程）。P2-25：unbind 需 account_critical
+    // 敏感授权（此处直接预置授权键；无授权的 40119 面由独立用例覆盖）。
+    await grantSensitivePermission()
     const unbindRes = await api.root('DELETE', api.apiPath('/system/user/identity/unbind/emailAddress/login'))
     expectOk(unbindRes, 'identity unbind before rebind')
 
@@ -210,8 +252,28 @@ describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）�
     expect(bodyOf(bindRes).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
   })
 
-  it('update（rebind）→ 20000 改值并回 verified=false（P1-6③：null 判据改 != null）；显式 verified=true 仍 40000', async () => {
+  it('P2-25：update / unbind 未授权 → 40119（敏感守卫与 status 同级）', async () => {
+    // 无授权键：两条路径都在守卫层被拦（40119），不进入 service
+    const updateRes = await api.root('PUT', api.apiPath('/system/user/identity/update/emailAddress/login'), {
+      value: emailOf('unauthorized'),
+    })
+    expect(bodyOf(updateRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED)
+
+    const unbindRes = await api.root('DELETE', api.apiPath('/system/user/identity/unbind/emailAddress/login'))
+    expect(bodyOf(unbindRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED)
+
+    // 身份行未被改动（update 的 value 仍是上例绑定的值）
+    const rows: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
+      [fixture!.userId, 'emailAddress', 'login'],
+    )
+    expect(rows[0].c).toBe(1)
+  })
+
+  it('update（rebind）→ 20000 改值并回 verified=false（P1-6③：null 判据改 != null；P2-25 需敏感授权）', async () => {
     const newEmail = emailOf('bind2')
+    await grantSensitivePermission()
+
     // P1-6③ 修复：partial DTO 未给键材料化成显式 null，旧 `!== undefined` 把 null 当「给了值」
     // → verified 分支恒拦 useVerifyEndpoint。改 `!= null` 后 `{value}` 可到改值逻辑。
     const valueOnly = await api.root('PUT', api.apiPath('/system/user/identity/update/emailAddress/login'), {
@@ -283,7 +345,8 @@ describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）�
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED)
   })
 
-  it('unbind → 删行；status 回未绑定；再 unbind → 40401', async () => {
+  it('unbind → 删行；status 回未绑定；再 unbind → 40401（P2-25 需敏感授权）', async () => {
+    await grantSensitivePermission()
     const unbindRes = await api.root('DELETE', api.apiPath('/system/user/identity/unbind/emailAddress/login'))
     expectOk(unbindRes, 'identity unbind login')
 

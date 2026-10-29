@@ -170,6 +170,38 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     expect(bRows[0].user_id).toBeNull()
   })
 
+  it('P2-31：已登录访客上报 auth=false → user_id 清空（旧实现残留上次登录用户）', async () => {
+    monitorIdA = await createOnlineMonitorA()
+
+    // 前置：该行确实绑定了用户
+    const bindRows: Array<{ user_id: string | null }> = await api.pgDataSource.query(
+      'SELECT user_id FROM app_monitor_user WHERE visitor_id = $1',
+      [visitorA],
+    )
+    expect(bindRows[0].user_id).toBe(fixture!.userId)
+
+    // 登出上报：auth=false 且不带 userId —— P2-31 前 null 被 nil 过滤丢弃，user_id 残留
+    const stateOff = await api.anon('POST', api.apiPath('/app/monitor/user/state'), {
+      visitorId: visitorA,
+      auth: false,
+      focus: false,
+      left: false,
+    })
+    expectOk(stateOff, 'monitor user state auth=false')
+
+    const rows: Array<{ user_id: string | null, auth: boolean }> = await api.pgDataSource.query(
+      'SELECT user_id, auth FROM app_monitor_user WHERE visitor_id = $1',
+      [visitorA],
+    )
+    expect(rows[0].auth).toBe(false)
+    expect(rows[0].user_id).toBeNull()
+
+    // read 不再按 user_id 装回上次登录用户
+    const readRes = await api.root('GET', api.apiPath(`/app/monitor/user/${monitorIdA}`))
+    expectOk(readRes, 'monitor user read after signout')
+    expect(bodyOf<MonitorRow>(readRes).data.user).toBeNull()
+  })
+
   it('force-quit → 20000，admin-kick 撤销 RT；P2-12：旧 AT 立即 40101 + 设备缓存全清', async () => {
     // 第二设备真实登录（同一 fixture 用户）—— 被 admin-kick 的靶子
     victim = await WalnutApiClient.create(app)

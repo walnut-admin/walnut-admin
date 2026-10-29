@@ -238,7 +238,7 @@ guard 的 40115 首拦）。
 | 端点 | 守卫 | 行为 |
 |---|---|---|
 | `GET /auth/mfa/status` | MFAFree + LockFree | 返回 `[{ enabled, type }]`：当前用户/设备可用的 MFA 方法状态 |
-| `POST /auth/mfa/verify` | MFAFree + LockFree + `@WalnutTx()` | body `{ trusted }`；校验 `sys_user_mfa` 已绑定，未绑定 → 40000 `business.auth.mfa.verifyFail`；随后把 `sys_user.mfa_setup` 置 true、把 `sys_user_device.trusted` 写成客户端传入值、事务后写 `AUTH:MFA:VERIFIED`，并轮换 RT（新 jti cookie） |
+| `POST /auth/mfa/verify` | MFAFree + LockFree + `@WalnutTx()` | body `{ trusted }`；按**用户维度已启用的 MFA 类型数**（`COUNT(DISTINCT type)`，跨设备去重；P2-24）与 `methodsRequiredCount` 比较，不足 → 40000 `business.auth.mfa.verifyFail`；随后把 `sys_user.mfa_setup` 置 true、把 `sys_user_device.trusted` 写成客户端传入值、事务后写 `AUTH:MFA:VERIFIED`，并轮换 RT（新 jti cookie） |
 
 真正的第二因子校验发生在系统模块的两个通道，它们同样挂 MFAFree + LockFree，并在成功后
 调用同一轮换：

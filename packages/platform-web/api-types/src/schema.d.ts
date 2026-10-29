@@ -2338,6 +2338,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/user/lock/preference": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update current user lock preference */
+        patch: operations["SysUserLockController_updatePreference"];
+        trace?: never;
+    };
     "/system/user/lock": {
         parameters: {
             query?: never;
@@ -3768,7 +3785,7 @@ export interface components {
              * operation type
              * @enum {string}
              */
-            operationType: "password_change" | "email_change" | "email_bind" | "email_status_toggle" | "phone_change" | "phone_bind" | "phone_status_toggle";
+            operationType: "password_change" | "email_change" | "email_bind" | "email_status_toggle" | "phone_change" | "phone_bind" | "phone_status_toggle" | "identity_manage";
         };
         DemoObject: {
             /**
@@ -7134,6 +7151,35 @@ export interface components {
             locked: boolean;
             /** user lock route */
             lockRoute: components["schemas"]["SysUserLockRouteType"];
+            /**
+             * lock mode, default, idle, security
+             * @default default
+             * @example default
+             * @enum {string}
+             */
+            lockMode: "default" | "idle" | "security";
+            /**
+             * lock idle seconds
+             * @default 600
+             */
+            lockIdleSec: number;
+            /**
+             * lock security seconds
+             * @default 60
+             */
+            lockSecuritySec: number;
+            /**
+             * lock cross device?
+             * @default true
+             */
+            lockCrossDevice: boolean;
+        };
+        SysUserLockPreferenceUpdateDto: {
+            /**
+             * lock password hash
+             * @default null
+             */
+            lockPwdHash: string;
             /**
              * lock mode, default, idle, security
              * @default default
@@ -12404,6 +12450,42 @@ export interface operations {
                 content: {
                     "application/json": {
                         data?: components["schemas"]["SysUserLockPreferenceDTO"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysUserLockController_updatePreference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SysUserLockPreferenceUpdateDto"];
+            };
+        };
+        responses: {
+            /** @description Update current user lock preference */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: boolean;
                         /**
                          * @description response code, see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000

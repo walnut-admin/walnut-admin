@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
 import { createApiApp } from './helpers/create-api-app'
@@ -16,6 +17,10 @@ import { createApiApp } from './helpers/create-api-app'
  * 缓存语义（P2-5 修复后，2026-10-28）：public 端点首次回源后 1h TTL，lang
  * create/update 挂 after-commit 失效（runAfterCommit 通道，对齐 locale 的全量刷新
  * 形态）—— CRUD 返回后下一次 public 请求立见新值。
+ *
+ * P2-17（2026-10-29）：lang create/update 除 public 缓存外还重算 `SYS_LANG_ID_LIST`
+ * （locale 入参白名单）与全部 `SYS_LOCALE_MESSAGES` —— 新建语言后可立即写翻译，
+ * 改代号时旧代号的 messages 键被清除。
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -44,6 +49,8 @@ describe('A 段试点：system/lang CRUD + public 响应缓存（真实 HTTP 全
   let userId = ''
 
   const publicCacheKey = WalnutAdminConstAppCacheKeys.SYS_LANG_LIST_PUBLIC
+  const localeMessagesKey = (code: string) =>
+    `${WalnutAdminConstAppCacheKeys.SYS_LOCALE_MESSAGES}:${code.replace('-', '_').toUpperCase()}`
 
   beforeAll(async () => {
     app = await createApiApp()
@@ -61,8 +68,15 @@ describe('A 段试点：system/lang CRUD + public 响应缓存（真实 HTTP 全
   })
 
   afterEach(async () => {
+    // P2-17：lang create/update 会重算 SYS_LANG_ID_LIST 与全部语言的 SYS_LOCALE_MESSAGES
+    // （locale 行随 lang 行 FK CASCADE 清理）；消息缓存键名是大写代号，逐键显式清
     await api.pgDataSource.query('DELETE FROM sys_lang WHERE lang = ANY($1::text[])', [[langCodeA, langCodeB]])
-    await api.cleanupFixedCacheKeys(publicCacheKey)
+    await api.cleanupFixedCacheKeys(
+      publicCacheKey,
+      WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST,
+      localeMessagesKey(langCodeA),
+      localeMessagesKey(langCodeB),
+    )
   })
 
   afterAll(async () => {
@@ -189,6 +203,81 @@ describe('A 段试点：system/lang CRUD + public 响应缓存（真实 HTTP 全
     const afterUpdateRes = await api.unsigned('GET', api.apiPath('/system/lang/list/public'))
     expectOk(afterUpdateRes, 'lang list public after update')
     expect(bodyOf<LangRow[]>(afterUpdateRes).data.some(row => row.lang === langCodeB)).toBe(false)
+  })
+
+  it('P2-17：新建语言后立刻写翻译不再 40099（SYS_LANG_ID_LIST 随 lang create 重算）', async () => {
+    // 先给 lang A 写一条翻译：locale 的全量刷新会把 A 的 id 写进白名单缓存（非空起点）
+    const createARes = await api.root('POST', api.apiPath('/system/lang'), {
+      lang: langCodeA,
+      description: `api-spec lang p2-17 ${seed8}`,
+      order: 1,
+      status: true,
+    })
+    expectOk(createARes, 'lang A create')
+    const langIdA = bodyOf<LangRow>(createARes).data.id
+
+    const keyA = `lang-spec.${seed8}.p217a`
+    const localeARes = await api.root('POST', api.apiPath('/system/locale'), {
+      key: keyA,
+      [langIdA]: 'v-a',
+    })
+    expectOk(localeARes, 'locale create for lang A')
+    expect(await api.hasWalnutCacheKey(WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST)).toBe(true)
+
+    // 新建 lang B 后**立即**写翻译：修复前白名单还是 [A]，B 的 id 被 40099 拒绝
+    const createBRes = await api.root('POST', api.apiPath('/system/lang'), {
+      lang: langCodeB,
+      description: `api-spec lang p2-17 b ${seed8}`,
+      order: 2,
+      status: true,
+    })
+    expectOk(createBRes, 'lang B create')
+    const langIdB = bodyOf<LangRow>(createBRes).data.id
+
+    const keyB = `lang-spec.${seed8}.p217b`
+    const localeBRes = await api.root('POST', api.apiPath('/system/locale'), {
+      key: keyB,
+      [langIdB]: 'v-b',
+    })
+    expectOk(localeBRes, 'locale create for new lang B')
+
+    const readRes = await api.root('GET', api.apiPath(`/system/locale/${keyB}`))
+    expectOk(readRes, 'locale read for new lang B')
+    expect(bodyOf<Record<string, string>>(readRes).data[langIdB]).toBe('v-b')
+  })
+
+  it('P2-17：改 lang 代号 → 旧代号 SYS_LOCALE_MESSAGES 键清除、新代号重算含翻译', async () => {
+    const key = `lang-spec.${seed8}.p217rename`
+    const createRes = await api.root('POST', api.apiPath('/system/lang'), {
+      lang: langCodeA,
+      description: `api-spec lang rename ${seed8}`,
+      order: 1,
+      status: true,
+    })
+    expectOk(createRes, 'lang create for rename')
+    const id = bodyOf<LangRow>(createRes).data.id
+
+    const localeRes = await api.root('POST', api.apiPath('/system/locale'), {
+      key,
+      [id]: 'v-rename',
+    })
+    expectOk(localeRes, 'locale create before rename')
+    expect(await api.hasWalnutCacheKey(localeMessagesKey(langCodeA))).toBe(true)
+
+    const updateRes = await api.root('PUT', api.apiPath(`/system/lang/${id}`), {
+      lang: langCodeB,
+      description: `api-spec lang rename ${seed8}`,
+      order: 1,
+      status: true,
+    })
+    expectOk(updateRes, 'lang rename')
+
+    // 旧代号的 messages 缓存被清（否则旧键永不更新），新代号缓存已重算且含翻译
+    expect(await api.hasWalnutCacheKey(localeMessagesKey(langCodeA))).toBe(false)
+
+    const cacheService = app.get(AppTechCacheService)
+    const newMessages = await cacheService.get<Record<string, string | null>>(localeMessagesKey(langCodeB))
+    expect(newMessages?.[key]).toBe('v-rename')
   })
 
   it('校验失败 → 40099（未知字段 forbidNonWhitelisted）', async () => {

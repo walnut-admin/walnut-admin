@@ -104,6 +104,14 @@ export class SysUserIdentityController {
     description: 'Unbind identity',
     primitive: 'boolean',
   })
+  // P2-25（2026-10-29）：unbind 没有 bind 的 OTP 码校验，旧实现可无验证地移除登录/安全
+  // 身份（password 还跳过 keep-one 判据）。与 status 同级挂 account_critical 敏感守卫：
+  // 已验证的安全邮箱/手机可完成验证，缺可用方式时受控 40000（noVerifyMethodAvailable）。
+  @WalnutAdminGuardRequireSensitive({
+    level: 'account_critical',
+    type: 'identity_manage',
+    allowChoose: true,
+  })
   async unbind(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutTxSession() ctx: WalnutTxContext,
@@ -120,6 +128,13 @@ export class SysUserIdentityController {
   @ApiWalnutOkResponse({
     description: 'Update identity (rebind)',
     primitive: 'boolean',
+  })
+  // P2-25（2026-10-29）：update 的 DTO 含 status —— 旧实现可绕过 status 端点的敏感守卫
+  // 直接关闭登录/安全身份。rebind 与 status 同属身份管理面，统一挂 account_critical。
+  @WalnutAdminGuardRequireSensitive({
+    level: 'account_critical',
+    type: 'identity_manage',
+    allowChoose: true,
   })
   async update(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,

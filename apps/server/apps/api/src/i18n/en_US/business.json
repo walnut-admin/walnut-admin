@@ -8,7 +8,8 @@
         },
         "user": {
             "unLock": {
-                "pwdErr": "Unlock Password Error."
+                "pwdErr": "Unlock Password Error.",
+                "pwdRequired": "Security lock mode is enabled; unlock password is required."
             }
         }
     },

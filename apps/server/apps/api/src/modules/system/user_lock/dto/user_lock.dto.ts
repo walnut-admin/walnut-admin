@@ -110,6 +110,16 @@ export class SysUserLockDoLockDto extends RealPartialType(RealPickType(SysUserLo
 
 export class SysUserLockUnLockDto extends RealPartialType(RealPickType(SysUserLockDto, ['lockPwdHash'] as const)) {}
 
+/**
+ * P2-26（2026-10-29）：锁屏偏好写入通道（`PATCH /system/user/lock/preference`）。
+ *
+ * 旧实现没有任何端点写 `lockMode` / `lockPwdHash` / `lockCrossDevice` /
+ * `lockIdleSec` / `lockSecuritySec`，security 模式不可达。`lockPwdHash` 字段沿用
+ * DTO 既有命名，入参是**明文**，仓库写入路径 `insertOrUpdateUserLockPre` 负责
+ * bcrypt 加盐（P1-10 收口后的同款 hash 路径）；响应不回显该列。
+ */
+export class SysUserLockPreferenceUpdateDto extends RealPartialType(RealPickType(SysUserLockDto, ['lockPwdHash', 'lockMode', 'lockIdleSec', 'lockSecuritySec', 'lockCrossDevice'] as const)) {}
+
 export class SysUserLockPreferenceDTO extends IntersectionType(RealPickType(SysUserDeviceDTO, ['locked'] as const), RealPickType(SysUserLockDto, ['lockRoute', 'lockCrossDevice', 'lockMode', 'lockIdleSec', 'lockSecuritySec'] as const)) {
   constructor(partial?: Partial<SysUserLockPreferenceDTO>) {
     super()

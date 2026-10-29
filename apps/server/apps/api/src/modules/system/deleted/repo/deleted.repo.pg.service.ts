@@ -63,21 +63,29 @@ export class SysDeletedPgRepoService {
 
   // bind the log operate id for the deleted document（uuid 直等更新 —— Mongo 版的
   // `new Types.ObjectId` 包装随双轨退役；未命中返回 null，与 Mongo 版一致）
+  //
+  // P2-29（2026-10-29）：更新条件补 `log_operate_id IS NULL` —— 同一行被软删多次
+  // （恢复后再删）会在 sys_deleted 留下多份历史快照，按 deletedId 无条件更新会把
+  // 旧快照的日志关联改写成最新一条。只回填「还没关联过」的快照。
   async updateDeletedWithLogOperateId(payload: { logOperateId: string, deletedId: string }) {
     const repository = this.getRepository()
 
-    const res = await repository.update(
-      { deletedId: payload.deletedId },
-      { logOperateId: payload.logOperateId },
-    )
+    const res = await repository.createQueryBuilder()
+      .update(SysDeletedEntity)
+      .set({ logOperateId: payload.logOperateId })
+      .where('deleted_id = :deletedId', { deletedId: payload.deletedId })
+      .andWhere('log_operate_id IS NULL')
+      .execute()
 
     // affected 为 null/undefined 视作未命中（驱动缺省形态一并收口）
     if ((res.affected ?? 0) === 0) {
-      this.logger.log('Log Operate Id Update Failed, no deleted document found')
+      this.logger.log('Log Operate Id Update Failed, no unbound deleted document found')
       return null
     }
 
-    return repository.findOne({ where: { deletedId: payload.deletedId } })
+    return repository.findOne({
+      where: { deletedId: payload.deletedId, logOperateId: payload.logOperateId },
+    })
   }
 
   // same as above, but mulitple

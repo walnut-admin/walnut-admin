@@ -208,22 +208,44 @@ export class SysUserMfaRepositoryService {
   }
 
   /**
-   * @description aggregate mfa stats for cron job
-   * （Mongo `$group` → GROUP BY；返回行数即用户数，deviceCount 转回 number）
+   * @description aggregate mfa stats for cron job（P2-24，2026-10-29）
+   *
+   * 判据维度是**用户 + 类型集合**，不是「启用行数」：同一用户在两台设备各注册一个
+   * webauthn 仍然只满足一种 MFA 类型（totp 未启用），旧 `COUNT(*)` 会把行数当方法数
+   * 误判为已完成。`COUNT(DISTINCT type)` 与运行时就绪判据
+   * （`countEnabledMfaTypesByUserId`）同源。
    */
-  async aggregateMfaStats(em?: EntityManager) {
+  async aggregateMfaTypeStats(em?: EntityManager) {
     const rows = await this.getManager(em)
       .createQueryBuilder(SysUserMfaEntity, 'mfa')
       .select('mfa.userId', 'userId')
-      .addSelect('COUNT(*)', 'deviceCount')
+      .addSelect('COUNT(DISTINCT mfa.type)', 'typeCount')
       .where('mfa.type IN (:...types)', { types: ['totp', 'webauthn'] })
       .andWhere('mfa.status = :status', { status: true })
       .groupBy('mfa.userId')
-      .getRawMany<{ userId: string, deviceCount: string }>()
+      .getRawMany<{ userId: string, typeCount: string }>()
 
     return rows.map(row => ({
       userId: row.userId,
-      deviceCount: Number(row.deviceCount),
+      typeCount: Number(row.typeCount),
     }))
+  }
+
+  /**
+   * @description 用户维度已启用的 MFA 类型数（跨设备去重；P2-24 单一就绪判据）
+   *
+   * 与 `aggregateMfaTypeStats` 同一口径：totp / webauthn 各算一种，只统计 `status=true`
+   * 的行，同一类型在多少台设备上注册都只计 1。
+   */
+  async countEnabledMfaTypesByUserId(userId: string, em?: EntityManager) {
+    const row = await this.getManager(em)
+      .createQueryBuilder(SysUserMfaEntity, 'mfa')
+      .select('COUNT(DISTINCT mfa.type)', 'typeCount')
+      .where('mfa.userId = :userId', { userId })
+      .andWhere('mfa.type IN (:...types)', { types: ['totp', 'webauthn'] })
+      .andWhere('mfa.status = :status', { status: true })
+      .getRawOne<{ typeCount: string }>()
+
+    return Number(row?.typeCount ?? 0)
   }
 }

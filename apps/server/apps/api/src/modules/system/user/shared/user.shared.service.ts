@@ -6,7 +6,6 @@ import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.e
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 import { WalnutAdminExceptionUserBannedToSignin } from '@walnut-server/exceptions/business/auth'
 import { omit } from 'lodash'
-import { SharedScopeResolverService } from '@/modules/shared/scopeResolver/scope-resolver.service'
 import { AppTokenService } from '@/modules/shared/token/token.service'
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import { SysUserDeviceSharedService } from '../../user_device/shared/user_device.shared.service'
@@ -20,7 +19,6 @@ export class SysUserSharedService {
 
   constructor(
     private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
-    private readonly scopeResolverService: SharedScopeResolverService,
     private readonly tokenService: AppTokenService,
     private readonly sysUserDeviceSharedService: SysUserDeviceSharedService,
     private readonly sysUserRepoService: SysUserRepositoryService,
@@ -92,6 +90,15 @@ export class SysUserSharedService {
 
   /**
    * @description user change role
+   *
+   * P2-19（2026-10-29）：准入判据从 **effective** roleMode 改为用户行值 `role_mode`。
+   *
+   * effective 值只在 `app.functional.role` 显式配 LOCAL scope 时才跟随行值；零配置
+   * 部署（GLOBAL/combinable）下它恒为 COMBINE，旧判据因此对所有用户恒 40000 ——
+   * 而 AT payload、permission guard 的 root/visitor 短路都按行值工作，前端角色切换
+   * 入口也随之失效。switchRole 是「用户在自己的 junction 角色间切换」，与权限合并
+   * 的计算口径无关：行值 switchable + 目标角色在 junction 内即允许，与 token/guard
+   * 的判据对齐（`switchRoleMode` 只写行值，本判据下发即生效）。
    */
   async switchRole(userId: string, roleId: string) {
     const user = await this.sysUserRepoService.findUserByUserId(userId)
@@ -100,11 +107,7 @@ export class SysUserSharedService {
       throw new WalnutAdminExceptionDataNotFound()
     }
 
-    const functionalRole = await this.cacheAppSettingsService.getFunctionalRole()
-
-    const effectiveRoleMode = this.scopeResolverService.resolve(functionalRole, user)
-
-    if (effectiveRoleMode === WalnutAdminConstRoleMode.COMBINE) {
+    if (user.roleMode === WalnutAdminConstRoleMode.COMBINE) {
       throw new WalnutAdminExceptionBadRequest()
     }
 

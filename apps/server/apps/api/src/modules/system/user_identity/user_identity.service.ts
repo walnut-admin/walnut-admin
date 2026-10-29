@@ -167,7 +167,10 @@ export class SysUserIdentityService {
     const existing = await this.identitySharedService.getIdentityOrThrow(userId, type, purpose, em)
 
     // Cannot unbind if it's the only verified login method
-    if (type !== 'password' && purpose === 'login') {
+    //
+    // P2-25（2026-10-29）：password 不再豁免 keep-one 判据 —— 旧实现把 password 排除在外，
+    // 只有口令一种登录方式的用户可以把口令解绑掉，账号再无任何可用登录方式。
+    if (purpose === 'login') {
       await this.assertCanUnbind(userId, type, em)
     }
 
@@ -190,11 +193,12 @@ export class SysUserIdentityService {
         && i.status,
     )
 
-    // Also check if user has password set
-    const hasPassword = allIdentities.some(i => i.type === 'password' && i.status)
+    // Also check if user has another password set（当前解绑的就是 password 时不算兜底）
+    const hasOtherPassword = type !== 'password'
+      && allIdentities.some(i => i.type === 'password' && i.status)
 
     // If no other verified login methods and no password, deny unbind
-    if (otherVerifiedLoginMethods.length === 0 && !hasPassword) {
+    if (otherVerifiedLoginMethods.length === 0 && !hasOtherPassword) {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.auth.unbindAtLeastOneLoginMethodRequired' })
     }
   }

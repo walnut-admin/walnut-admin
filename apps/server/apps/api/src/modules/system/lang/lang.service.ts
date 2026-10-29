@@ -1,7 +1,9 @@
+import type { LocaleType } from '@walnut/contract'
 import { Injectable } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { runAfterCommit } from '@walnut-server/db'
 import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
+import { SysLocaleSharedService } from '../locale/shared/locale.shared.service'
 import {
   SysLangDTOCreateRequest,
   SysLangDTOListRequest,
@@ -21,21 +23,32 @@ export class SysLangService {
   constructor(
     private readonly langBasicRepo: SysLangBasicRepository,
     private readonly langRepoService: SysLangRepoService,
+    private readonly localeSharedService: SysLocaleSharedService,
     private readonly cacheService: AppTechCacheService,
   ) {}
 
   /**
-   * P2-5：lang 变更后失效 public 响应缓存（对齐 locale 的 runAfterCommit 全量刷新通道）。
+   * P2-5 / P2-17：lang 变更后失效 public 响应缓存，并与 locale 的刷新通道对齐。
    *
-   * public 端点经 `@WalnutAdminDecoratorCache` 缓存 `SYS_LANG_LIST_PUBLIC`（1h TTL），
-   * 失效必须挂在事务提交后 —— 事务回滚时缓存保持原值，提交后下次 public 请求回源
-   * 重建缓存，立见新值。
+   * - `SYS_LANG_LIST_PUBLIC`：public 端点经 `@WalnutAdminDecoratorCache` 缓存（1h TTL）；
+   * - `SYS_LANG_ID_LIST` + `SYS_LOCALE_MESSAGES`：`SYS_LANG_ID_LIST` 是 locale 入参的
+   *   白名单，只有 locale 侧的全量刷新会写它 —— 新建语言后不刷新的话，紧接着给新
+   *   langId 写翻译会被旧白名单挡成 `Invalid of langId`（40099）。直接复用同一全量
+   *   刷新入口，两个缓存键与语言代号集合一起重算。
+   *
+   * 失效必须挂在事务提交后 —— 事务回滚时缓存保持原值，提交后下次读取回源重建。
+   * 无事务上下文的 CRUD 路径由 runAfterCommit 内联执行（await 保证响应返回前已完成）。
    */
-  private async triggerPublicListCacheRefresh() {
-    // 无事务上下文的 CRUD 路径由 runAfterCommit 内联执行（await 保证响应返回前已失效；
-    // 未来若挂 @WalnutTx，钩子自动推迟到提交后由事务拦截器统一执行）
+  private async triggerCacheRefresh(oldLang?: string) {
     await runAfterCommit(async () => {
       await this.cacheService.del(WalnutAdminConstAppCacheKeys.SYS_LANG_LIST_PUBLIC)
+
+      // lang 代号被改掉时，旧代号的 SYS_LOCALE_MESSAGES 键不会被 findAll 覆盖到 —— 显式清
+      if (oldLang !== undefined) {
+        await this.localeSharedService.invalidateLocaleMessagesCache(oldLang as LocaleType)
+      }
+
+      await this.localeSharedService.extractLocaleMessagesIntoCacheForCronJob()
     })
   }
 
@@ -44,7 +57,7 @@ export class SysLangService {
    */
   async create(dto: SysLangDTOCreateRequest) {
     const created = await this.langBasicRepo.create(dto)
-    await this.triggerPublicListCacheRefresh()
+    await this.triggerCacheRefresh()
     return created
   }
 
@@ -59,8 +72,12 @@ export class SysLangService {
    * @description update lang (controller: update)
    */
   async update(id: string, dto: SysLangDTOUpdateRequest) {
+    // 先读旧行：lang 代号可改，旧代号的 SYS_LOCALE_MESSAGES 缓存需要显式失效
+    const current = await this.langBasicRepo.readById(id)
     const updated = await this.langBasicRepo.update(id, dto)
-    await this.triggerPublicListCacheRefresh()
+    await this.triggerCacheRefresh(
+      current.lang !== updated.lang ? current.lang : undefined,
+    )
     return updated
   }
 

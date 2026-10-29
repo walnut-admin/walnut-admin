@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { SysUserMfaHelperService } from '@/modules/system/user_mfa/mfa.shared.service'
 import { SysUserMfaRepositoryService } from '@/modules/system/user_mfa/repo/user_mfa.repo.service'
+import { SysUserMfaSharedService } from '@/modules/system/user_mfa/shared/user_mfa.shared.service'
 import { SysUserMfaTotpService } from '@/modules/system/user_mfa/totp/totp.service'
 import { AppTechCryptoService } from '@/modules/techniques/crypto/crypto.service'
 import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
@@ -18,7 +19,9 @@ import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-in
  * - **备用码并入 totp 行**（phase2 4.12 定案）：确定性哈希（域+userId）再 AES-GCM
  *   逐项加密后写 backup_codes_ciphertext，用尽即禁用（P3-23，2026-10-29）；
  * - webauthn_counter bigint 列 number transformer（int8 驱动返 string）；
- * - aggregateMfaStats 的 GROUP BY（cron 数据源：type ∈ {totp, webauthn} 且 status）；
+ * - aggregateMfaTypeStats 的 GROUP BY（cron 数据源：type ∈ {totp, webauthn} 且 status；
+ *   P2-24 起按用户维度统计**类型数**，跨设备同类型只算一种）；
+ * - 就绪判据单一化（P2-24）：cron 与 `getIsCurrentUserMfaVerified` 同源；
  * - 随 user 删除 CASCADE。
  */
 describe('B7b user_mfa (on real PG)', () => {
@@ -220,7 +223,7 @@ describe('B7b user_mfa (on real PG)', () => {
     await expect(totpService.unbindTotp(userId)).rejects.toThrow()
   })
 
-  it('aggregateMfaStats：GROUP BY 只统计 status=true 的 totp/webauthn 行', async () => {
+  it('aggregateMfaTypeStats：GROUP BY 只统计 status=true 的 totp/webauthn 类型（同类型多设备只算一种）', async () => {
     const userA = await seedUser()
     await seedUser() // userB：无 mfa 行，不进聚合
 
@@ -229,11 +232,63 @@ describe('B7b user_mfa (on real PG)', () => {
     // 排除项：禁用行不参与计数
     await mfaRepo.createMfa({ userId: userA, type: 'totp', deviceId: 's3', name: 't-off', status: false })
 
-    const stats = await mfaRepo.aggregateMfaStats()
+    const stats = await mfaRepo.aggregateMfaTypeStats()
     const statA = stats.find(s => s.userId === userA)
     expect(statA).toBeDefined()
-    expect(typeof statA!.deviceCount).toBe('number')
-    expect(statA!.deviceCount).toBe(2)
+    expect(typeof statA!.typeCount).toBe('number')
+    // P2-24：类型数而非行数 —— totp + webauthn 两种（设备数 2 恰好同值，另由下一用例
+    // 用「两台设备同类型」钉死差异）
+    expect(statA!.typeCount).toBe(2)
+  })
+
+  it('P2-24：跨设备同类型只算一种 —— 两台设备各一个 webauthn → 运行时与 cron 同源判据', async () => {
+    const userId = await seedUser()
+    await mfaRepo.createMfa({
+      userId,
+      type: 'webauthn',
+      deviceId: 'p2-24-dev-a',
+      name: 'w-a',
+      webauthnCredentialId: `cred-a-${seed}`,
+      status: true,
+    })
+    await mfaRepo.createMfa({
+      userId,
+      type: 'webauthn',
+      deviceId: 'p2-24-dev-b',
+      name: 'w-b',
+      webauthnCredentialId: `cred-b-${seed}`,
+      status: true,
+    })
+
+    const stats = await mfaRepo.aggregateMfaTypeStats()
+    expect(stats.find(s => s.userId === userId)?.typeCount).toBe(1)
+    expect(await mfaRepo.countEnabledMfaTypesByUserId(userId)).toBe(1)
+
+    const mfaShared = app.get(SysUserMfaSharedService)
+
+    // 运行时就绪判据：用户维度类型数 >= methodsRequiredCount（默认 1）—— 不再因
+    // 「当前设备没有 webauthn」而恒 false
+    expect(await mfaShared.getIsCurrentUserMfaVerified(userId)).toBe(true)
+
+    // cron 与运行时同源：typeCount=1 → mfa_setup=true（旧实现按 deviceCount=2 判的是
+    // 「正好也 true」，差异由下一段停用后回落 + 类型数断言共同钉死）
+    await mfaShared.updateMfaSetupStatusForCronJob()
+    const rows: Array<{ mfa_setup: boolean }> = await pgDataSource.query(
+      'SELECT mfa_setup FROM sys_user WHERE id = $1',
+      [userId],
+    )
+    expect(rows[0].mfa_setup).toBe(true)
+
+    // 停用全部行 → 两条判据同时回落（旧实现的「cron 未跑之前 mfa_setup 仍 true」窗口消失）
+    await pgDataSource.query('UPDATE sys_user_mfa SET status = false WHERE user_id = $1', [userId])
+    expect(await mfaShared.getIsCurrentUserMfaVerified(userId)).toBe(false)
+    await mfaShared.updateMfaSetupStatusForCronJob()
+
+    const afterRows: Array<{ mfa_setup: boolean }> = await pgDataSource.query(
+      'SELECT mfa_setup FROM sys_user WHERE id = $1',
+      [userId],
+    )
+    expect(afterRows[0].mfa_setup).toBe(false)
   })
 
   it('随 user 删除 CASCADE（fk_user_mfa_user）', async () => {

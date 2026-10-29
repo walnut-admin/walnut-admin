@@ -31,6 +31,16 @@ export class SysLocaleSharedService {
   }
 
   /**
+   * P2-17（2026-10-29）：lang 代号变更时清掉旧代号的 `SYS_LOCALE_MESSAGES` 键。
+   *
+   * `extractLocaleMessagesIntoCacheForCronJob` 只会写「当前存在的 lang 代号」，
+   * 被改掉的旧代号不会出现在 `findAll()` 里 —— 不显式删就会留下永不更新的旧消息缓存。
+   */
+  async invalidateLocaleMessagesCache(lang: LocaleType) {
+    await this.cacheService.del(this.getCacheKeys(lang))
+  }
+
+  /**
    * @description extract lang ids to cache which is used for locale request validate
    *
    * B2 迁移：缓存值从 ObjectId 十六进制串改为 lang 的 uuid（消费方 locale.validate 同步改），

@@ -25,6 +25,10 @@ export const WalnutAdminConstSecuritySensitiveType = {
   PHONE_CHANGE: 'phone_change',
   PHONE_BIND: 'phone_bind',
   PHONE_STATUS_TOGGLE: 'phone_status_toggle',
+  // P2-25（2026-10-29）：identity update（rebind）/ unbind 的敏感操作面 —— 身份类型是
+  // 路由参数（emailAddress / phoneNumber），验证方式需覆盖两种安全身份，故单列一个
+  // operation（override 见 SECURITY_LEVEL_STRATEGIES）
+  IDENTITY_MANAGE: 'identity_manage',
 } as const
 
 export type IWalnutAdminConstSecuritySensitiveType = ValueOf<typeof WalnutAdminConstSecuritySensitiveType>

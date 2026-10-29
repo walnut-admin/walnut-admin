@@ -1,9 +1,10 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { ValueOf } from 'easy-fns-ts'
 
 import { SysUserDeviceRepositoryService } from '../user_device/repo/user_device.repo.service'
-import { SysUserLockDoLockDto, SysUserLockPreferenceDTO, SysUserLockUnLockDto } from './dto/user_lock.dto'
+import { SysUserLockDoLockDto, SysUserLockPreferenceDTO, SysUserLockPreferenceUpdateDto, SysUserLockUnLockDto } from './dto/user_lock.dto'
 import { LockModeConst } from './lock.const'
 import { SysUserLockRepositoryService } from './repo/user_lock.repo.service'
 import { SysUserLockSharedService } from './shared/user_lock.shared.service'
@@ -83,6 +84,29 @@ export class SysUserLockService {
         lockMode: lockPreferences.lockMode as ILockModeConst,
       }
     }
+  }
+
+  /**
+   * @description 更新锁屏偏好（P2-26，2026-10-29）
+   *
+   * - `lockMode=security` 必须带锁屏密码：本次 payload 带 `lockPwdHash`（明文）或库里
+   *   已有 hash 均可，二者都没有 → 40000（`business.system.user.unLock.pwdRequired`）；
+   * - `lockPwdHash` 的 bcrypt 只发生在仓库写入路径（`insertOrUpdateUserLockPre`）；
+   * - 只写偏好，不改任何设备的 `locked` 状态（置锁/解锁仍走 lock/unlock）。
+   */
+  async updatePreference(userId: string, dto: SysUserLockPreferenceUpdateDto, em?: EntityManager) {
+    const existing = await this.userLockRepo.findUserLockPreByUserId(userId, em)
+
+    const hasSubmittedPwd = dto.lockPwdHash !== undefined && dto.lockPwdHash !== null && dto.lockPwdHash !== ''
+    const hasStoredPwd = existing?.lockPwdHash !== undefined && existing?.lockPwdHash !== null && existing.lockPwdHash !== ''
+
+    if (dto.lockMode === LockModeConst.SECURITY && !hasSubmittedPwd && !hasStoredPwd) {
+      throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.user.unLock.pwdRequired' })
+    }
+
+    await this.userLockRepo.insertOrUpdateUserLockPre(userId, dto, em)
+
+    return true
   }
 
   /**

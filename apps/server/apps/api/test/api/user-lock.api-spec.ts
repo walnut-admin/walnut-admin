@@ -138,6 +138,105 @@ describe('C 段：system/user/lock read + lock/unlock me（真实 HTTP 全链）
     expect(deviceRows[0].locked).toBe(false)
   })
 
+  it('P2-26：偏好写入通道 —— security 模式必须带密码；bcrypt 落库且 read 回 lockMode', async () => {
+    // 无密码（库里也没有旧 hash）→ 40000 pwdRequired
+    const noPwd = await api.root('PATCH', api.apiPath('/system/user/lock/preference'), {
+      lockMode: 'security',
+    })
+    expect(bodyOf(noPwd).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+
+    const prefRes = await api.root('PATCH', api.apiPath('/system/user/lock/preference'), {
+      lockMode: 'security',
+      lockPwdHash: 'pin-123456',
+      lockCrossDevice: true,
+      lockIdleSec: 120,
+      lockSecuritySec: 30,
+    })
+    expectOk(prefRes, 'lock preference update (security)')
+    expect(bodyOf<boolean>(prefRes).data).toBe(true)
+
+    const prefRows: Array<{ lock_mode: string, lock_pwd_hash: string, lock_idle_sec: number, lock_security_sec: number, lock_cross_device: boolean }> = await api.pgDataSource.query(
+      'SELECT lock_mode, lock_pwd_hash, lock_idle_sec, lock_security_sec, lock_cross_device FROM sys_user_lock WHERE user_id = $1',
+      [fixture!.userId],
+    )
+    expect(prefRows[0].lock_mode).toBe('security')
+    // P1-10/P1-19 的同款 bcrypt 写入路径：入参明文，落库是 bcrypt hash
+    expect(prefRows[0].lock_pwd_hash).not.toBe('pin-123456')
+    expect(prefRows[0].lock_pwd_hash).toMatch(/^\$2[aby]\$/)
+    expect(prefRows[0].lock_idle_sec).toBe(120)
+    expect(prefRows[0].lock_security_sec).toBe(30)
+    expect(prefRows[0].lock_cross_device).toBe(true)
+
+    const readRes = await api.root('GET', api.apiPath('/system/user/lock/read'))
+    expect(bodyOf<LockStatus>(readRes).data.lockMode).toBe('security')
+  })
+
+  it('P2-26：security 模式跨设备解锁必须带密码（缺省/错密 40000，对密成功）', async () => {
+    // 第二设备（同 fixture 用户）真实登录：跨设备锁定会同时锁住两台设备
+    const apiB = await WalnutApiClient.create(app)
+    const tokensB = await performHttpOpaqueLogin(apiB, app, fixture!)
+    apiB.setAuth(tokensB)
+    await apiB.seedMfaVerifiedCache(fixture!.userId)
+
+    try {
+      // 偏好：security + 密码 + 跨设备
+      const prefRes = await api.root('PATCH', api.apiPath('/system/user/lock/preference'), {
+        lockMode: 'security',
+        lockPwdHash: 'pin-abcdef',
+        lockCrossDevice: true,
+      })
+      expectOk(prefRes, 'lock preference security cross-device')
+
+      // 设备 A 置锁 → 跨设备腿锁住全部 user_device 行
+      const lockRes = await api.root('PATCH', api.apiPath('/system/user/lock'), {
+        lockRoute: { name: `lock-security-${seed8}` },
+      })
+      expectOk(lockRes, 'lock security mode')
+
+      // 设备 B 解锁：缺密码 → 40000（旧实现缺省直接跳过密码比对）
+      const noPwd = await apiB.root('PATCH', apiB.apiPath('/system/user/lock/unlock'), {})
+      expect(bodyOf(noPwd).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+
+      // 错密码 → 40000；设备仍锁定
+      const wrongPwd = await apiB.root('PATCH', apiB.apiPath('/system/user/lock/unlock'), {
+        lockPwdHash: 'pin-wrong',
+      })
+      expect(bodyOf(wrongPwd).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+
+      const stillLocked: Array<{ locked: boolean }> = await api.pgDataSource.query(
+        'SELECT locked FROM sys_user_device WHERE user_id = $1',
+        [fixture!.userId],
+      )
+      expect(stillLocked.every(row => row.locked)).toBe(true)
+
+      // 对密码 → 解锁成功（全部设备）
+      const unlockRes = await apiB.root('PATCH', apiB.apiPath('/system/user/lock/unlock'), {
+        lockPwdHash: 'pin-abcdef',
+      })
+      expectOk(unlockRes, 'unlock with correct password')
+      expect(bodyOf<boolean>(unlockRes).data).toBe(true)
+
+      const unlocked: Array<{ locked: boolean }> = await api.pgDataSource.query(
+        'SELECT locked FROM sys_user_device WHERE user_id = $1',
+        [fixture!.userId],
+      )
+      expect(unlocked.every(row => row.locked === false)).toBe(true)
+    }
+    finally {
+      // 第二设备的 user_device / device 行与锁缓存清理（afterEach 只清本客户端设备键）
+      await api.pgDataSource.query(
+        'DELETE FROM sys_user_device WHERE user_id = $1 AND device_id = $2',
+        [fixture!.userId, apiB.deviceId],
+      )
+      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [apiB.deviceId])
+      const cacheService = app.get(AppTechCacheService)
+      await cacheService.del(`${WalnutAdminConstAppCacheKeys.SECURITY_LOCK}:${fixture!.userId}:${apiB.deviceId}`)
+      // 只按第二设备 id 清缓存键：按 fixture.userId / seed 片段清会连带删掉设备 A 的
+      // AUTH:SESSIONS 键，后续用例全部 40101
+      await apiB.cleanupWalnutCacheKeys(apiB.deviceId)
+    }
+  })
+
   it('边界：无偏好行时 unlock → 40401（偏好行存在性检查）', async () => {
     const res = await api.root('PATCH', api.apiPath('/system/user/lock/unlock'), {})
     expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)

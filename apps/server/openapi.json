@@ -7406,6 +7406,60 @@
         ]
       }
     },
+    "/system/user/lock/preference": {
+      "patch": {
+        "operationId": "SysUserLockController_updatePreference",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysUserLockPreferenceUpdateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update current user lock preference",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "boolean"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "Update current user lock preference",
+        "tags": [
+          "system/user/lock"
+        ]
+      }
+    },
     "/system/user/lock": {
       "patch": {
         "operationId": "SysUserLockController_lock",
@@ -10251,7 +10305,8 @@
               "email_status_toggle",
               "phone_change",
               "phone_bind",
-              "phone_status_toggle"
+              "phone_status_toggle",
+              "identity_manage"
             ],
             "title": "operation type"
           }
@@ -16021,6 +16076,42 @@
           "lockSecuritySec",
           "lockCrossDevice"
         ]
+      },
+      "SysUserLockPreferenceUpdateDto": {
+        "type": "object",
+        "properties": {
+          "lockPwdHash": {
+            "type": "string",
+            "default": null,
+            "title": "lock password hash"
+          },
+          "lockMode": {
+            "type": "string",
+            "enum": [
+              "default",
+              "idle",
+              "security"
+            ],
+            "default": "default",
+            "title": "lock mode, default, idle, security",
+            "example": "default"
+          },
+          "lockIdleSec": {
+            "type": "number",
+            "default": 600,
+            "title": "lock idle seconds"
+          },
+          "lockSecuritySec": {
+            "type": "number",
+            "default": 60,
+            "title": "lock security seconds"
+          },
+          "lockCrossDevice": {
+            "type": "boolean",
+            "default": true,
+            "title": "lock cross device?"
+          }
+        }
       },
       "SysUserLockDoLockDto": {
         "type": "object",

@@ -7,6 +7,7 @@ import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstAppEvent } from '@walnut-server/const/app/event'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
+import { DBTransactionHooksStore } from '@walnut-server/db'
 
 import { I18nContext, I18nService } from 'nestjs-i18n'
 import { from, lastValueFrom, throwError } from 'rxjs'
@@ -163,6 +164,12 @@ describe('log bypass (fire-and-forget) on real PG', () => {
       action: WalnutAdminConstDecoratorLogOperateAction.CREATE,
     })
     handleSpecCreate() {}
+
+    @WalnutAdminDecoratorOperateLog({
+      title: WalnutAdminConstDecoratorLogOperateTitle.APP_DEMO,
+      action: WalnutAdminConstDecoratorLogOperateAction.DELETE,
+    })
+    handleSpecDelete() {}
   }
 
   class SpecAuthTarget {
@@ -174,6 +181,8 @@ describe('log bypass (fire-and-forget) on real PG', () => {
   // 不能 .bind()（会产生新函数、丢掉 reflect metadata），局部豁免 ts/unbound-method
   // eslint-disable-next-line ts/unbound-method
   const specOperateHandler = SpecOperateTarget.prototype.handleSpecCreate
+  // eslint-disable-next-line ts/unbound-method
+  const specOperateDeleteHandler = SpecOperateTarget.prototype.handleSpecDelete
   // eslint-disable-next-line ts/unbound-method
   const specAuthHandler = SpecAuthTarget.prototype.handleSpecAuth
 
@@ -339,6 +348,105 @@ describe('log bypass (fire-and-forget) on real PG', () => {
       expect(row.type).toBe(WalnutAdminConstDecoratorLogAuthType.OPAQUE)
       expect(row.msg).toBe(String(new I18nContext('zh_CN', i18nService).t('response.20000')))
     })
+  })
+
+  it('P2-29：删除回填事件推迟到事务提交后（runAfterCommit 钩子，拦截器 tap 不再立即 emit）', async () => {
+    const deletedId = randomUUID()
+    /** 拦截器真实落到 sys_log_operate 的行 id（事件 payload 的 logOperateId） */
+    let expectedLogOperateId = ''
+
+    await pgDataSource.manager.insert(SysDeletedEntity, {
+      id: randomUUID(),
+      content: { spec: deletedId },
+      modelName: 'SpecModel',
+      collectionName: 'spec_collection',
+      deletedId,
+      deletedBy: randomUUID(),
+      logOperateId: null,
+      deletedAt: new Date(),
+    })
+
+    const hooks: Array<() => Promise<void>> = []
+
+    await DBTransactionHooksStore.run(hooks, async () => {
+      await runSpec(async () => {
+        const { request } = makeFakeRequest({
+          params: { id: deletedId },
+          body: {},
+        })
+
+        const result$ = operateInterceptor.intercept(
+          makeOperateContext(request, specOperateDeleteHandler),
+          { handle: () => from(Promise.resolve({ spec: 'ok' })) } as CallHandler,
+        )
+        await lastValueFrom(result$)
+
+        // 日志行异步落库（fire-and-forget）—— 等它出现，同时等 runAfterCommit 把事件压入钩子队列
+        const logRow = await waitForLogRow(SysLogOperateEntity, { url: request.url as string })
+        expectedLogOperateId = logRow.id
+
+        await vi.waitFor(() => {
+          expect(hooks.length).toBe(1)
+        }, { timeout: 10_000, interval: 50 })
+
+        // 事务尚未提交（钩子未执行）：sys_deleted 的 logOperateId 必须仍为 null
+        const beforeCommit = await pgDataSource.manager.findOne(SysDeletedEntity, { where: { deletedId } })
+        expect(beforeCommit?.logOperateId).toBeNull()
+      })
+    })
+
+    // 模拟事务拦截器的提交后阶段：执行钩子 → 事件发出 → 监听侧回填
+    for (const hook of hooks) {
+      await hook()
+    }
+
+    await vi.waitFor(
+      async () => {
+        const row = await pgDataSource.manager.findOne(SysDeletedEntity, { where: { deletedId } })
+        expect(row?.logOperateId).toBe(expectedLogOperateId)
+      },
+      { timeout: 10_000, interval: 100 },
+    )
+  })
+
+  it('P2-29：已有 logOperateId 的历史快照不被新日志覆盖', async () => {
+    const deletedId = randomUUID()
+    const historicalLogOperateId = randomUUID()
+    const latestLogOperateId = randomUUID()
+
+    // 历史快照（已关联日志）+ 当前快照（未关联）—— 同一被删行的两次软删
+    await pgDataSource.manager.insert(SysDeletedEntity, {
+      id: randomUUID(),
+      content: { spec: deletedId },
+      modelName: 'SpecModel',
+      collectionName: 'spec_collection',
+      deletedId,
+      deletedBy: randomUUID(),
+      logOperateId: historicalLogOperateId,
+      deletedAt: new Date(Date.now() - 60_000),
+    })
+    await pgDataSource.manager.insert(SysDeletedEntity, {
+      id: randomUUID(),
+      content: { spec: deletedId },
+      modelName: 'SpecModel',
+      collectionName: 'spec_collection',
+      deletedId,
+      deletedBy: randomUUID(),
+      logOperateId: null,
+      deletedAt: new Date(),
+    })
+
+    app.get(EventEmitter2).emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, { logOperateId: latestLogOperateId, deletedId })
+
+    await vi.waitFor(
+      async () => {
+        const rows = await pgDataSource.manager.find(SysDeletedEntity, { where: { deletedId }, order: { deletedAt: 'ASC' } })
+        expect(rows).toHaveLength(2)
+        expect(rows[0].logOperateId).toBe(historicalLogOperateId)
+        expect(rows[1].logOperateId).toBe(latestLogOperateId)
+      },
+      { timeout: 10_000, interval: 100 },
+    )
   })
 
   it('logOperateId 回填：真实事件链路 —— LOG_OPERATE_DELETE 按 deletedId uuid 直等更新 sys_deleted', async () => {

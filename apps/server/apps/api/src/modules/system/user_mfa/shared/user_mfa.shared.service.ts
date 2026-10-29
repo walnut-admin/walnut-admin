@@ -53,15 +53,23 @@ export class SysUserMfaSharedService {
 
   /**
    * @description check if current user MFA is verified
+   *
+   * P2-24（2026-10-29）：判据统一为**用户 + 类型集合**，与
+   * `updateMfaSetupStatusForCronJob` 同源（`sys_user.mfa_setup` 也是用户级标志）。
+   *
+   * 旧实现走 `getCurrentUserMfaSetupStatus` 的「类型 + 当前设备」：webauthn 按
+   * `(userId, deviceId)` 计数，用户在设备 A、B 各注册一个 webauthn 时 cron 把
+   * `mfa_setup` 置 true，但设备 A 上 verify 只看到 1 种 → 恒 40000（登录后死锁）。
+   * 这里跨设备按类型去重：任一设备注册的 webauthn 都算该用户具备 webauthn 方法。
+   * `getCurrentUserMfaSetupStatus` 仍保留设备维度（前端「本设备可用方法」展示用）。
    */
-  async getIsCurrentUserMfaVerified(userId: string, deviceId: string, em?: EntityManager) {
+  async getIsCurrentUserMfaVerified(userId: string, em?: EntityManager) {
     const mfaConfig = await this.cacheAppSettingsService.getAuthMfaConfig()
     const requiredCount = mfaConfig.methodsRequiredCount
 
-    const results = await this.getCurrentUserMfaSetupStatus(userId, deviceId, em)
-    const enabledCount = results.filter(record => record.enabled).length
+    const enabledTypeCount = await this.sysUserMfaRepoService.countEnabledMfaTypesByUserId(userId, em)
 
-    return enabledCount >= requiredCount
+    return enabledTypeCount >= requiredCount
   }
 
   /**
@@ -113,8 +121,8 @@ export class SysUserMfaSharedService {
       const mfaConfig = await this.cacheAppSettingsService.getAuthMfaConfig()
       const requiredCount = mfaConfig.methodsRequiredCount
 
-      // 2. Aggregate and count MFA devices per user
-      const userMfaStats = await this.sysUserMfaRepoService.aggregateMfaStats()
+      // 2. Aggregate enabled MFA **types** per user（P2-24：跨设备按类型去重，与运行时同源）
+      const userMfaStats = await this.sysUserMfaRepoService.aggregateMfaTypeStats()
 
       this.logger.log(`Found ${userMfaStats.length} users with MFA devices`)
 
@@ -123,7 +131,7 @@ export class SysUserMfaSharedService {
       let unverifiedCount = 0
 
       for (const stat of userMfaStats) {
-        const shouldBeVerified = stat.deviceCount >= requiredCount
+        const shouldBeVerified = stat.typeCount >= requiredCount
 
         await this.sysUserRepoService.findUserByIdAndUpdate(
           stat.userId,

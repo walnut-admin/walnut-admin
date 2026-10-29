@@ -207,8 +207,8 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     expect(list.data[0].roles_list).toBeUndefined()
   })
 
-  it('me/role/switch：COMBINE 模式拒（40000）；角色不在 junction 也拒', async () => {
-    // fixture 是 combinable：root 短路模式，switch 直接拒
+  it('me/role/switch：行值 COMBINE 拒（40000）；零配置下 switchable + junction 双角色可切（P2-19）', async () => {
+    // fixture 行值 combinable：switch 直接拒
     const combineSwitch = await api.root('PATCH', api.apiPath(`/system/user/me/role/switch/${bizRoleId}`))
     expect(bodyOf(combineSwitch).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
 
@@ -224,6 +224,31 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
       [fixture!.userId],
     )
     expect(roleModeRows[0].role_mode).toBe('switchable')
+
+    // P2-19（2026-10-29）：零配置部署（effective=GLOBAL/combinable）下行值 switchable +
+    // 目标角色在 junction 内必须可切 —— 旧实现按 effective 判，恒 40000。
+    await api.pgDataSource.query(
+      'INSERT INTO sys_user_role (user_id, role_id) VALUES ($1, $2)',
+      [fixture!.userId, bizRoleId],
+    )
+
+    const switchRes = await api.root('PATCH', api.apiPath(`/system/user/me/role/switch/${bizRoleId}`))
+    expectOk(switchRes, 'switchRole to second junction role (zero-config)')
+
+    const switchedRows: Array<{ current_role_id: string }> = await api.pgDataSource.query(
+      'SELECT current_role_id FROM sys_user WHERE id = $1',
+      [fixture!.userId],
+    )
+    expect(switchedRows[0].current_role_id).toBe(bizRoleId)
+
+    // 切回原角色 + 清掉临时 junction 行（后续用例仍以单角色 fixture 为前提）
+    const backRes = await api.root('PATCH', api.apiPath(`/system/user/me/role/switch/${fixture!.roleId}`))
+    expectOk(backRes, 'switchRole back to root role')
+
+    await api.pgDataSource.query(
+      'DELETE FROM sys_user_role WHERE user_id = $1 AND role_id = $2',
+      [fixture!.userId, bizRoleId],
+    )
   })
 
   it('me/roleMode/switch：switchable → combinable 落库，非法枚举 → 40002', async () => {

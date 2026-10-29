@@ -6,7 +6,7 @@ import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.
 
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
-import { SysUserLockDoLockDto, SysUserLockPreferenceDTO, SysUserLockUnLockDto } from './dto/user_lock.dto'
+import { SysUserLockDoLockDto, SysUserLockPreferenceDTO, SysUserLockPreferenceUpdateDto, SysUserLockUnLockDto } from './dto/user_lock.dto'
 import { SysUserLockService } from './user_lock.service'
 
 @Controller('system/user/lock')
@@ -28,6 +28,29 @@ export class SysUserLockController {
   async get(@WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload, @WalnutAdminDecoratorDeviceId() deviceId: string) {
     const res = await this.lockService.getLockStatusForUser(user?.userId, deviceId)
     return new SysUserLockPreferenceDTO(res)
+  }
+
+  /**
+   * P2-26（2026-10-29）：锁屏偏好写入通道 —— `lockMode` / `lockIdleSec` /
+   * `lockSecuritySec` / `lockCrossDevice` / `lockPwdHash`（明文，仓库侧 bcrypt）。
+   *
+   * 刻意**不挂 LockFree**（与 lock/unlock 的形态差异，报告已说明）：偏好是登录态下的
+   * 设置项，锁定期间不允许通过本端点关掉 security 模式绕过锁屏密码 —— LockFree 会
+   * 把「锁定 → 改偏好」变成免密旁路。
+   */
+  @Patch('preference')
+  @HttpCode(HttpStatus.OK)
+  @WalnutTx()
+  @ApiWalnutOkResponse({
+    description: 'Update current user lock preference',
+    primitive: 'boolean',
+  })
+  async updatePreference(
+    @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
+    @WalnutTxSession() ctx: WalnutTxContext,
+    @Body() payload: SysUserLockPreferenceUpdateDto,
+  ) {
+    return this.lockService.updatePreference(user.userId, payload, ctx.em)
   }
 
   @Patch()

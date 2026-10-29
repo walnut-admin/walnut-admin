@@ -60,6 +60,13 @@ export const SECURITY_LEVEL_STRATEGIES: Record<
           WalnutAdminConstVerifyMethod.MFA,
         ],
       },
+      // P2-25：identity update/unbind 可作用于邮箱或手机号 —— 任一安全身份已绑定即可验证
+      [WalnutAdminConstSecuritySensitiveType.IDENTITY_MANAGE]: {
+        supportedMethods: [
+          WalnutAdminConstVerifyMethod.EMAIL,
+          WalnutAdminConstVerifyMethod.SMS,
+        ],
+      },
     },
   },
 

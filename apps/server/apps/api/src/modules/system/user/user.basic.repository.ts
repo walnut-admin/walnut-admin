@@ -14,6 +14,7 @@ import { SysUserDeviceEntity } from '../user_device/entity/user-device.entity'
 import { SysUserIdentityEntity } from '../user_identity/entity/user-identity.entity'
 import { SysUserLockEntity } from '../user_lock/entity/user-lock.entity'
 import { SysUserMfaEntity } from '../user_mfa/entity/user-mfa.entity'
+import { SysUserOauthEntity } from '../user_oauth/entity/user-oauth.entity'
 import { SysUserPreferenceEntity } from '../user_preference/entity/user-preference.entity'
 import { SysUserRoleEntity } from './entity/user-role.entity'
 import { SysUserEntity } from './entity/user.entity'
@@ -149,9 +150,9 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
   }
 
   /**
-   * P2-18（2026-10-28）：删除用户时先给**外围行**各落一份回收站快照。
+   * P2-18 / P2-22（2026-10-28 / 2026-10-29）：删除用户时先给**外围行**各落一份回收站快照。
    *
-   * 为什么必须在这里做：外围表（identity / preference / user_device / mfa / lock）的
+   * 为什么必须在这里做：外围表（identity / oauth / preference / user_device / mfa / lock）的
    * FK 全部 `ON DELETE CASCADE`，主行一删就被静默带走，而软删快照此前只存主行 ——
    * 恢复用户后没有口令 identity（无法登录）、没有偏好（前端布局丢失）。快照与主行
    * 删除同一 em（controller 有 @WalnutTx），回滚时快照一并回滚。
@@ -202,16 +203,21 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
 
     const locks = await manager.getRepository(SysUserLockEntity).find({ where: { userId } })
 
+    // P2-22（2026-10-29）：oauth 绑定列无 select:false 密文，默认列集即完整快照
+    const oauths = await manager.getRepository(SysUserOauthEntity).find({ where: { userId } })
+
     await snapshotRows(WalnutModelName.SYS_USER_IDENTITY, SysUserIdentityEntity, identities)
     await snapshotRows(WalnutModelName.SYS_USER_PREFERENCE, SysUserPreferenceEntity, preferences)
     await snapshotRows(WalnutModelName.SYS_USER_DEVICE, SysUserDeviceEntity, userDevices)
     await snapshotRows(WalnutModelName.SYS_USER_MFA, SysUserMfaEntity, mfaRows)
     await snapshotRows(WalnutModelName.SYS_USER_LOCK, SysUserLockEntity, locks)
+    await snapshotRows(WalnutModelName.SYS_USER_OAUTH, SysUserOauthEntity, oauths)
   }
 
   /**
-   * @description 软删用户：外围行快照（identity/preference/device/mfa/lock）→ 主行快照 +
-   * 硬删（FK CASCADE 带走外围行）。恢复侧由自定义 user recoverer 重放快照（P2-18）。
+   * @description 软删用户：外围行快照（identity/oauth/preference/device/mfa/lock）→ 主行
+   * 快照 + 硬删（FK CASCADE 带走外围行）。恢复侧由自定义 user recoverer 重放快照
+   * （P2-18 / P2-22）。
    */
   public async deleteSoftById(id: string, userId: string, em?: EntityManager): Promise<SysUserEntity> {
     await this.snapshotPeripheralRows(id, userId, em)

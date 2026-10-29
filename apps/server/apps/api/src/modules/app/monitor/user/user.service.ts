@@ -41,14 +41,21 @@ export class AppMonitorUserService {
     dto: Partial<AppMonitorUserDTO>,
     em: EntityManager,
   ) {
-    if (dto.auth === false) {
-      dto.userId = null
+    // P2-31（2026-10-29）：auth=false 的清零必须绕开下面的 nil 过滤 —— 旧实现先把
+    // dto.userId 置 null 再按 `!isNil` 过滤，null 被丢掉，已存在的行继续挂着上次登录
+    // 的用户（在线监控显示「已登出但仍是某人」，最长持续到 02:00 cron）。这里单独
+    // 记一个显式清零标志，在 payload 里显式写入 null（列可空）。
+    const clearUserId = dto.auth === false
+
+    const updatePayload = Object.fromEntries(Object.entries(dto).filter(([_, v]) => !isNil(v)))
+    if (clearUserId) {
+      updatePayload.userId = null
     }
 
-    // update doc（nil 值剔除原样保留 —— 含 auth:false 时 userId 被置 null 后被剔除的基线行为）
+    // update doc（nil 值剔除；auth=false 的 userId 清零在上面显式补回）
     const doc = await this.appMonitorUserRepoService.findOneAndUpdate(
       { visitorId: dto.visitorId! },
-      { deviceId, ...Object.fromEntries(Object.entries(dto).filter(([_, v]) => !isNil(v))) },
+      { deviceId, ...updatePayload },
       { upsert: true },
       em,
     )

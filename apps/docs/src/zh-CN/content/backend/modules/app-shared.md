@@ -214,10 +214,10 @@ monitor 由三个互不依赖的子 controller 组成。
 | `POST /app/monitor/user/state` | Sign / JWT / CAP / Device 全 Free；Lock 等其余守卫仍生效 | 匿名上报：按 `visitor_id` upsert，联动 `sys_user_device.last_active_at` 与设备 active 状态 |
 | `DELETE /app/monitor/user/force-quit/:id` | 全链 + `app:monitor:user:forceQuit` + `@WalnutTx()` | 按 monitor 行 id 找 `(userId, deviceId)`，走 `AuthSignoutService.doSignout(trigger='admin-kick')` |
 
-`state` 的语义细节：`auth === false` 时先把 `userId` 置 null，但随后「剔除 nil 值」的
-`Object.entries(...).filter(!isNil)` 又会把 null 丢掉 —— 对**已存在**的行，`auth=false` 不会清掉
-原来的 `user_id`，在线监控会继续显示上次登录用户，直到 02:00 的 `updateAuthStateForCronJob`
-把它置空（P2-31）。新插入的行没有该字段，默认 null，不受影响。
+`state` 的语义细节：`auth === false` 时 `updateState` 在按 nil 过滤构造 payload 之后**显式**
+补 `userId: null`（P2-31 已修，2026-10-29）—— 已存在的行会被清空 `user_id`，在线监控不再
+残留上次登录用户；新插入的行同样落 null。02:00 的 `updateAuthStateForCronJob` 仍负责按
+过期 RT 做同样的清零（幂等兜底）。
 
 force-quit 撤该 `(userId, deviceId)` 的全部 RT（P1-9 已修为全量撤销）并向在线设备发
 `FORCE_QUIT` socket 事件；P2-12 修复后（2026-10-28）事务提交后还按设备清
@@ -429,8 +429,8 @@ indicator 自身抛异常（如 `disk` 路径不存在）才走全局兜底 5000
 - **P2-30（D 段新登记）**：key 轮转没有重叠窗口与旧密文回退。`rotate` 把旧行置 DEPRECATED 后，
   `DecryptRequest` 只能拿当前 ACTIVE 私钥解密；轮转瞬间在途的旧公钥密文 40011。同时
   `getCurrentActiveKey` 不校验 `validEnd`，过期未轮转的 key 仍被当作当前 key。
-- **P2-31（D 段新登记）**：`POST /app/monitor/user/state` 在 `auth=false` 时把 `userId` 置 null
-  又被 nil 过滤丢掉，已存在的行不会清空 `user_id`，在线监控会显示上次登录用户直到 cron。
+- **P2-31（已修复，2026-10-29）**：`POST /app/monitor/user/state` 的 `auth=false` 清零改在
+  nil 过滤之后显式写入 `userId: null`，已存在的行即时清空 `user_id`。
 - **P2-4（已修复）**：monitor/cache read 已 `await` 真实值（缺失键 null）；delete 仍是
   fire-and-forget，响应先于 DEL，契约写在 controller 注释与 spec 里。
 - **P2-6（已修复）**：`POST /app/key/init` 的 `JWT_AT` 在 DTO 层被 40099 拒绝，不再假成功。

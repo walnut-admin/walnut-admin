@@ -6,7 +6,7 @@
 >
 > **本文件只保留开放条目**（未修复且未豁免）。已修复、已豁免与裁决确认的条目全文在
 > [`DESIGN-ISSUES-ARCHIVE.md`](./DESIGN-ISSUES-ARCHIVE.md)：条目号永久保留，测试断言/提交信息中
-> 对旧条目号的引用不受影响。部分修复但仍有残余面的条目（P2-18 / P2-22 / P3-14）继续留在本文件，
+> 对旧条目号的引用不受影响。部分修复但仍有残余面的条目（P2-18 / P3-14）继续留在本文件，
 > 标题或正文注明剩余面。
 >
 > **分级口径**：
@@ -18,7 +18,7 @@
 > 每条四要素：**位置**（源码）、**现象**、**实测证据**（spec + 用例）、**建议**（一句话）。
 > 「钉现状」用例属于 characterization test：修复对应问题时必须同步改断言，不是测试坏了。
 >
-> **统计：开放 25 条（P0 × 0 / P1 × 0 / P2 × 15 / P3 × 10）**。新条目编号顺延到已用最大号之后
+> **统计：开放 16 条（P0 × 0 / P1 × 0 / P2 × 6 / P3 × 10）**。新条目编号顺延到已用最大号之后
 > （当前最大 P3-34，下一个 P3-35），不复用归档里的编号。
 
 ---
@@ -48,24 +48,6 @@
 - **建议**：登录事务内加 `(user, device)` 维度的锁/`FOR UPDATE`，或加部分唯一索引让并发
   败者受控（40109）。
 - 【部署口径 2026-10-28：单实例部署，本条降级为 backlog 观察】
-
-### P2-17 lang 与 locale 的缓存刷新不对称 —— 新语言写翻译被白名单缓存挡下（B 段，新登记）
-
-- **位置**：`apps/api/src/modules/system/lang/lang.service.ts`
-  （`triggerPublicListCacheRefresh` 只删 `SYS_LANG_LIST_PUBLIC`）+
-  `apps/api/src/modules/system/locale/shared/locale.shared.service.ts`
-  （`SYS_LANG_ID_LIST` 只在 `extractLocaleMessagesIntoCacheForCronJob` 写）+
-  `apps/api/src/modules/system/locale/locale.validate.ts`。
-- **现象**：`SYS_LANG_ID_LIST` 是 locale 入参的白名单缓存，只有 locale 的
-  create/update/delete/deleteMany 触发的全量刷新会写它。`POST /system/lang` 新建语言后
-  该列表仍是旧的：紧接着给新 langId 写翻译，`LocaleLangIdValidate` 命中旧缓存 →
-  `Invalid of langId`（40099），直到某次不依赖新 langId 的 locale 变更/删除触发刷新
-  （缓存键完全缺失时校验反而放行）。`PUT /system/lang/:id` 改 `lang` 代号也不会重算
-  `SYS_LOCALE_MESSAGES`：旧代号的消息缓存继续存在、新代号要等 locale 变更后才进缓存。
-- **实测证据**：本次读码钉死；A 段 locale API spec 只覆盖「已有 langId + 已有缓存」的
-  批量创建/缓存语义，未覆盖新建 lang 后的首次翻译。
-- **建议**：lang create/update 也调 `extractLangIdsIntoCache`（或直接复用
-  `extractLocaleMessagesIntoCacheForCronJob`），与 locale 的 after-commit 通道对齐。
 
 ### P2-18 软删恢复不恢复 junction —— 恢复菜单丢全部角色授权、恢复用户无法登录（B 段，新登记）—— 【部分修复 2026-10-28（用户外围联动；junction 部分维持登记）】
 
@@ -100,28 +82,8 @@
   MFA / 重新分配角色。
   ⑥**仍登记**：`sys_user_role` junction 与 `sys_role_menu` junction 不进快照 —— 恢复用户
   后 roles_list 仍为空（需管理员重新分配角色），恢复菜单后角色授权仍需重挂。这是「junction
-  无独立软删通道」的结构性取舍，与 P2-22（账户外围，已随本修基本覆盖，oauth 绑定仍不恢复）/
-  P2-23（locale 级联）同族，留待 junction 快照方案统一处理。
-
-### P2-19 effective roleMode 只作用于权限计算 —— 零配置下 switchRole 对所有用户恒 40000（B 段，新登记）
-
-- **位置**：`apps/api/src/modules/techniques/cache/service/cache.appSettings.ts`
-  （P2-9 后 `defaultFunctionalRole` = GLOBAL/combinable）+
-  `apps/api/src/modules/system/user/shared/user.shared.service.ts`（`switchRole` 用
-  effectiveRoleMode 判 COMBINE）+ `apps/api/src/modules/shared/token/token.service.ts`
-  （AT payload 的 `roleMode` 取用户行）+ `apps/api/src/guard/permission.guard.ts`
-  （root/visitor 短路按 payload 的行值）。
-- **现象**：零配置部署的 effective roleMode 恒为 combinable，`switchRole` 因此对**所有**
-  用户返回 40000，即使其 `sys_user.role_mode` 仍是 `switchable`；而前端角色切换入口、
-  权限守卫的 root/visitor 判据都按行值工作（AT payload 里也是行值）。
-  `roleMode/switch` 改行值也不会改变 effective —— 用户可把行切成 switchable 后依旧
-  无法切换角色。`user.api-spec.ts` 的「切到 switchable 后不在 junction 的角色拒」用例
-  拿到的 40000 实际来自 effective=COMBINE，而非 membership 判据，掩盖了这层差异。
-- **实测证据**：本次读码 + `user.api-spec.ts` L180-197；`permission-chain.api-spec.ts`
-  的 LOCAL scope 对照用例证明 effective 只在显式配 LOCAL 后才跟随行值。
-- **建议**：明确产品口径 —— 要么 `switchRole` 也按行值判（与 payload/守卫一致），要么
-  前端在 effective=GLOBAL/combinable 时隐藏角色切换并登记「零配置不支持切换」；
-  补一条零配置下 switchable 用户 switchRole 的用例。
+  无独立软删通道」的结构性取舍；同族的 P2-22（账户外围，含 oauth）与 P2-23（locale 级联）
+  已于 2026-10-29 修复，junction 快照方案仍留待统一处理。
 
 ### P2-21 device 锁/封的读改写与 guard 回填竞态 —— 状态位可丢更新、缓存可被旧快照覆盖（C 段，新登记）
 
@@ -140,88 +102,6 @@
 - **建议**：状态位改原子 `UPDATE ... SET locked/banned = ... RETURNING *`（或事务内
   `FOR UPDATE`）；guard 回填前重新读库或用版本列比较，缓存加 TTL 作为兜底。
 - 【部署口径 2026-10-28：单实例部署，本条降级为 backlog 观察】
-
-### P2-22 恢复用户不恢复账户外围 —— identity / oauth / device / lock / mfa / preference 全丢（C 段，新登记）
-
-- **位置**：`apps/api/src/common/repository/pg-base.repository.ts`（`deleteSoftById` 只快照
-  主行）+ `apps/api/src/modules/system/deleted/deleted.service.ts`（`recoverSnapshot` 只插
-  主行）+ phase2 §4.9 ~ §4.14 的 `FK user_id CASCADE`。
-- **现象**：删除用户时 `sys_user_identity` / `sys_user_oauth` / `sys_user_device` /
-  `sys_user_lock` / `sys_user_mfa` / `sys_user_preference` 由 FK CASCADE 硬删且不进
-  `sys_deleted`。恢复用户只插回 `sys_user` 主行：没有 password/OTP 身份（无法登录）、
-  没有 MFA 凭据（`mfaSetup` 与运行时判据脱钩）、没有偏好行。恢复端点返回成功，不提示
-  外围丢失。这是 P2-18（junction 不恢复）在账户侧的同族问题。
-- **实测证据**：本次读码 + phase2 DDL 钉死；`deleted.api-spec.ts` 只用 `app/demo` 行
-  覆盖恢复三态，没有 user 的外围面。
-- **建议**：恢复用户时在同一事务内把六张外围表按 `user_id` 纳入快照/重放，或在恢复端点
-  显式返回「外围数据未恢复」并把该行为登记为取舍。
-- **修法进度（2026-10-28，批 D）**：用户删除/恢复链路已随 P2-18 修法覆盖
-  identity / preference / device / lock / mfa 五张表（删除前快照 + 恢复时按 userId 重放）；
-  **`sys_user_oauth` 绑定仍未纳入**（OAuth 绑定在恢复后需重新授权）—— 本条目保留登记，
-  仅剩 oauth 一面。
-
-### P2-23 恢复不联动级联软删的 locale 行 —— menu `_cascade=1` / dictData 删除后的翻译不回来（C 段，新登记）
-
-- **位置**：`apps/api/src/modules/system/menu/menu.service.ts`（删除时按 `title` 软删 locale）+
-  `apps/api/src/modules/system/dict/dictData/dictData.service.ts`（按 `label` 软删 locale）+
-  `deleted.service.ts`（`recoverSnapshot` 只插主行）。
-- **现象**：menu 删除带 `_cascade=1`、dictData 单删/批量删都会把对应 locale 翻译行软删进
-  `sys_deleted`（各自快照 `SYS_LOCALE`），但恢复 menu / dictData 时只插回主行，翻译行仍留在
-  回收站。前端随后按 key 取不到翻译，显示原始 key。两种级联的「正向」都有测试断言，
-  「反向恢复」没有。
-- **实测证据**：本次读码；`menu.api-spec.ts` 与 `dict.api-spec.ts` 只断言删除时的级联软删
-  与快照存在，未覆盖恢复后的翻译面。
-- **建议**：恢复主行时按同一 key 反查回收站并一并恢复 locale 行（同事务），或在恢复响应里
-  返回级联副作用清单。
-
-### P2-24 MFA 就绪判据两套 —— cron 按行数跨设备计数，运行时按类型 + 当前设备（C 段，新登记）
-
-- **位置**：`apps/api/src/modules/system/user_mfa/shared/user_mfa.shared.service.ts`
-  （`getCurrentUserMfaSetupStatus` 的 webauthn 腿按 `(userId, deviceId)`；`getIsCurrentUserMfaVerified`
-  用 `enabledCount >= methodsRequiredCount`）+
-  `updateMfaSetupStatusForCronJob`（`aggregateMfaStats` 按 `(userId, type)` 统计**全部设备**的
-  启用行数）+ `apps/api/src/modules/auth/modules/mfa/mfa.service.ts`。
-- **现象**：`methodsRequiredCount=2` 时，用户在设备 A、B 各注册一个 webauthn，cron 的
-  `deviceCount=2` 会把 `sys_user.mfa_setup` 置 true；但在设备 A 调 `/auth/mfa/verify` 时
-  `getCurrentUserMfaSetupStatus` 只看到 A 的 webauthn（totp 未启用）→ `enabledCount=1` →
-  `verified=false` → 40000。反向地，`PUT totp/status=false` 后 cron 未跑之前
-  `sys_user.mfa_setup` 仍是 true，mfa.guard 继续要求 MFA。两套判据在跨设备/停用时给出
-  不一致结论。
-- **实测证据**：本次读码；C 段 `user-mfa.api-spec.ts` 用单设备 totp 闭环，未覆盖多设备
-  webauthn 与停用后的窗口。
-- **建议**：统一判据维度（cron 也按 `userId + deviceId` 重算，或运行时改成按用户维度只看
-  类型集合），并补多设备与停用窗口的用例。
-
-### P2-25 identity 敏感操作面不一致 —— `update` 可绕过 status 的敏感守卫，`unbind` 无校验（C 段，新登记）
-
-- **位置**：`apps/api/src/modules/system/user_identity/user_identity.controller.ts`
-  （只有 `PUT status/:type/:purpose` 挂 `@WalnutAdminGuardRequireSensitive`；
-  `PUT update/:type/:purpose` 与 `DELETE unbind/:type/:purpose` 没有）+
-  `user_identity.service.ts`（`update` 的 `status` 直接落库；`assertCanUnbind` 把 `password`
-  排除在「至少保留一种登录方式」检查之外）。
-- **现象**：
-  1. `PUT update` 的 DTO 含 `status`，可绕过敏感操作直接关闭登录/安全身份（status 端点
-     要求 `account_critical` 验证）。
-  2. `unbind` 没有任何敏感校验；`type='password'` 时跳过 keep-one 检查，只有 password 一种
-     登录方式的用户可以解绑 password，导致账号无任何可用登录方式。
-- **实测证据**：本次读码；`user-identity.api-spec.ts` 覆盖 status 端点与 unbind 的
-  「有 password 兜底可解」，未覆盖绕过路径与仅密码用户。
-- **建议**：`update` 禁止携带 `status`（或同挂敏感守卫）；`unbind` 挂敏感守卫并把
-  password 纳入 keep-one 判据。
-
-### P2-26 锁屏 security 模式无写入通道 —— `lockPwdHash` / `lockMode` 不可设置，unlock 缺省即跳过密码校验（C 段，新登记）
-
-- **位置**：`apps/api/src/modules/system/user_lock/dto/user_lock.dto.ts`
-  （`SysUserLockDoLockDto` 只 pick `lockRoute`）+ `user_lock.service.ts`（`lock` 只传
-  `lockRoute`）+ `shared/user_lock.shared.service.ts`（`unLockUserDevice` 仅当 `lockPwdHash`
-  非空才 `compareLockPwdHash`）。
-- **现象**：仓库写入路径 `insertOrUpdateUserLockPre` 支持 bcrypt hash，但 HTTP 没有任何端点
-  写入 `lockPwdHash` / `lockMode` / `lockSecuritySec`；同时 unlock 的 `lockPwdHash` 是可选，
-  缺省直接跳过比对。因此 `lockMode=security` 无法通过 API 进入，锁屏密码校验实际不可达。
-- **实测证据**：本次读码；`user-lock.api-spec.ts` 覆盖 lock/unlock 与两套默认值，没有
-  security 模式用例（因为无法构造）。
-- **建议**：补锁屏偏好更新端点（挂敏感守卫）并让 security 模式强制带密码；或把该模式从
-  DTO/枚举/read 响应中移除并登记为未实现。
 
 ### P2-27 appSettings 进程内 memo 的失效覆盖面 —— 多实例与外部删键都失效不到（C 段，新登记）
 
@@ -251,22 +131,6 @@
   settings/locale 预热，把 rotate / 清理挪出同步执行路径。
 - 【部署口径 2026-10-28：单实例部署，本条降级为 backlog 观察】
 
-### P2-29 `logOperateId` 回填是异步旁路 —— 可能早于事务提交，且按 `deletedId` 覆盖历史快照（C 段，新登记）
-
-- **位置**：`apps/api/src/decorators/walnut/log.operate.decorator.ts`（DELETE / DELETE_MANY
-  成功后 `eventEmitter.emit`）+ `apps/api/src/modules/techniques/event/event.service.ts`
-  （`@OnEvent(..., { async: true })`）+ `deleted/repo/deleted.repo.pg.service.ts`
-  （`updateDeletedWithLogOperateId` 按 `deletedId` 更新）。
-- **现象**：
-  1. 事件在日志行插入后立即发出，但业务事务（`@WalnutTx`）的提交时机不保证更早；监听器
-     用连接级 manager 更新 `sys_deleted`，早到时 `affected=0`，只记一条日志，关联永久丢失。
-  2. 更新条件是 `{ deletedId }`，同一行被软删多次（恢复后再删）时，所有历史快照的
-     `log_operate_id` 都会被最新日志覆盖，旧快照的操作日志关联被改写。
-- **实测证据**：本次读码；D 段 `log-operate.api-spec.ts` 只断言日志行与快照两腿，
-  没有断言 `sys_deleted.log_operate_id` 的回填。
-- **建议**：在 after-commit 钩子里发事件（或把本次快照的 `sys_deleted.id` 带进事件、
-  按主键更新），失败时重试并记录。
-
 ### P2-30 key 轮转没有重叠窗口 —— 旧公钥密文在 rotate 后不可解，且 current 不校验 validEnd（D 段，新登记）
 
 - **位置**：`apps/api/src/modules/app/key/key.service.ts`（`rotate` / `rotateForCronJob`）+
@@ -283,20 +147,6 @@
   或在 rotate 前等待在途请求排空；`getCurrent` 对 `validEnd` 过期给出明确语义（自动轮转 /
   受控 503），不要静默继续用过期 key。
 - 【部署口径 2026-10-28：单实例部署，本条降级为 backlog 观察】
-
-### P2-31 monitor/state 的 auth=false 不清 userId —— 在线监控残留上次登录用户（D 段，新登记）
-
-- **位置**：`apps/api/src/modules/app/monitor/user/user.service.ts`（`updateState`：
-  `if (dto.auth === false) dto.userId = null`，随后 `Object.entries(...).filter(([_, v]) => !isNil(v))`
-  又把 null 丢掉）+ `app/monitor/user/shared/user.shared.service.ts`（02:00 cron 的
-  `updateAuthState` 才会把 `auth=false` 且 `user_id=null` 落库）。
-- **现象**：已存在的 monitor 行收到 `auth=false` 上报时，`user_id` 不会被清空；列表 / read 仍按
-  `user_id` 装回上一个登录用户，在线监控显示「已登出但仍是某人」的脏状态，最长持续到下一次
-  cron（每 2 小时）。新插入的行走 insert 缺省列，不受影响。
-- **实测证据**：本次读码钉死；`monitor-user.api-spec.ts` 覆盖 upsert、auth 字段与 force-quit，
-  未覆盖「登录 → 登出上报 → user_id 应为 null」。
-- **建议**：`auth=false` 时显式 `SET user_id = NULL`（不要走 nil 过滤），或把清零写进同一
-  update 语句；补一条登出上报的断言。
 
 ## P3 契约不一致
 

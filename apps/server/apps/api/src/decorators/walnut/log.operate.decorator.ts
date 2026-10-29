@@ -7,6 +7,7 @@ import { WalnutAdminConstAppEvent } from '@walnut-server/const/app/event'
 
 import { IWalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
 import { IWalnutAdminConstDecoratorLogOperateAction, IWalnutAdminConstDecoratorLogOperateType, WalnutAdminConstDecoratorLogOperateAction } from '@walnut-server/const/decorator/logOperate'
+import { runAfterCommit } from '@walnut-server/db'
 
 import { translateResponseMessage } from '@walnut-server/exceptions/exception.filter'
 import { WalnutAdminExceptionHandler } from '@walnut-server/exceptions/handler'
@@ -126,8 +127,15 @@ export class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor 
           const id = request.params[WalnutAdminConstAppConfig.deleteField] as string
           if (id) {
             // B9 收口：logOperateId / deletedId 均为 PG uuid，监听侧直等更新
-            // sys_deleted（SysDeletedPgRepoService，uuid 直等）
-            this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, { logOperateId: operateLog.id, deletedId: id })
+            // sys_deleted（SysDeletedPgRepoService，uuid 直等）。
+            //
+            // P2-29（2026-10-29）：回填事件必须等业务事务提交后再发 —— 本拦截器的 tap
+            // 执行时机早于外层 `@WalnutTx()` 的 commit，旧实现「立即 emit」会让监听侧
+            // 在事务未提交时按 deletedId 更新（affected=0，关联永久丢失）。runAfterCommit
+            // 在有事务上下文时推迟到提交后、无事务上下文时内联执行（对齐 P2-12 手法）。
+            await runAfterCommit(async () => {
+              this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE, { logOperateId: operateLog.id, deletedId: id })
+            })
           }
           else {
             this.logger.warn(`${className}.${handlerName} - ${WalnutAdminConstAppConfig.deleteField} do not exists on request params`)
@@ -137,8 +145,10 @@ export class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor 
         if (action === WalnutAdminConstDecoratorLogOperateAction.DELETE_MANY) {
           const ids = request.params[WalnutAdminConstAppConfig.deleteManyField] as string
           if (ids) {
-            // B9 收口：同上
-            this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE_MANY, { logOperateId: operateLog.id, deletedIds: ids })
+            // B9 收口：同上（P2-29 同款 after-commit 推迟）
+            await runAfterCommit(async () => {
+              this.eventEmitter.emit(WalnutAdminConstAppEvent.LOG_OPERATE_DELETE_MANY, { logOperateId: operateLog.id, deletedIds: ids })
+            })
           }
           else {
             this.logger.warn(`${className}.${handlerName} - ${WalnutAdminConstAppConfig.deleteManyField} do not exists on request params`)

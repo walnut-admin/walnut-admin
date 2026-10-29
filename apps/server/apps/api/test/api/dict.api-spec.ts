@@ -1,6 +1,7 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
+import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutModelName } from '@walnut-server/db'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
@@ -64,6 +65,9 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
   const seed8 = randomUUID().slice(0, 8)
   /** dict type 业务键（uq_dict_type 唯一索引）：本轮行统一前缀，afterEach 按 LIKE 清 */
   const typePrefix = `api-spec-${seed8}`
+  /** P2-23 级联恢复用例的 locale 载体（lang 直插 + locale 行直插） */
+  const localePrefix = `dict-label-${seed8}`
+  let localeLangId = ''
   let fixture: WalnutRootUserFixture | null = null
 
   /** 本轮创建的行 id（PG 硬删行按 id 清；软删快照按 deleted_id 清） */
@@ -120,6 +124,13 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     const tokens = await performHttpOpaqueLogin(api, app, fixture)
     api.setAuth(tokens)
     await api.seedMfaVerifiedCache(fixture.userId)
+
+    // P2-23 级联恢复用例的 locale 载体：lang 行直插（locale 级联只按 key 软删，不校验 lang）
+    const langRows: Array<{ id: string }> = await api.pgDataSource.query(
+      'INSERT INTO sys_lang (lang, description, "sort_order", status) VALUES ($1, $2, 1, true) RETURNING id',
+      [`d${seed8}`, `dict-spec ${seed8}`],
+    )
+    localeLangId = langRows[0].id
   })
 
   afterEach(async () => {
@@ -131,6 +142,9 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     if (touchedIds.length > 0) {
       await api.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [touchedIds])
     }
+    // P2-23：级联软删/恢复过的 locale 行与快照（按 key 前缀清）
+    await api.pgDataSource.query('DELETE FROM sys_locale WHERE key LIKE $1', [`${localePrefix}%`])
+    await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content ->> \'key\' LIKE $1', [`${localePrefix}%`])
     collect.typeIds = []
     collect.typeKeys = []
     collect.dataIds = []
@@ -139,10 +153,17 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
   afterAll(async () => {
     if (api !== undefined && fixture !== null) {
       await api.pgDataSource.query('DELETE FROM sys_dict_type WHERE type LIKE $1', [`${typePrefix}%`])
+      await api.pgDataSource.query('DELETE FROM sys_locale WHERE key LIKE $1', [`${localePrefix}%`])
+      await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content ->> \'key\' LIKE $1', [`${localePrefix}%`])
+      if (localeLangId !== '') {
+        await api.pgDataSource.query('DELETE FROM sys_lang WHERE id = $1', [localeLangId])
+      }
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, fixture.userId)
+      // locale 级联会触发全量消息缓存刷新（键名是大写 lang 代号，seed 片段不匹配）
+      await api.cleanupFixedCacheKeys(`${WalnutAdminConstAppCacheKeys.SYS_LOCALE_MESSAGES}:D${seed8.toUpperCase()}`)
     }
     await app.close()
   })
@@ -325,7 +346,7 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     expect(bodyOf(readRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
   })
 
-  it('dictType delete → 关联 dictData 逐行进回收站（P2-8），type/data 快照齐备且可 recover', async () => {
+  it('dictType delete → 关联 dictData 逐行进回收站（P2-8）；recover type 联动恢复 data（P2-23 组合恢复器）', async () => {
     const type = await createDictType('FK1')
     const a = await createDictData(type.id, 'FK1a')
     const b = await createDictData(type.id, 'FK1b')
@@ -356,7 +377,8 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     expect(snapshots.filter(row => row.model_name === WalnutModelName.SYS_DICT_TYPE)).toHaveLength(1)
     expect(snapshots.filter(row => row.model_name === WalnutModelName.SYS_DICT_DATA)).toHaveLength(2)
 
-    // 可 recover：先恢复 type（data 的 FK 依赖），再恢复一条 data
+    // P2-23（2026-10-29）：恢复 type 即联动重放 dictData（P2-8 快照）—— 旧语义是
+    // 「先恢复 type，再逐条手动恢复 data」；现在 type 恢复器是组合恢复器。
     const typeSnapshot = snapshots.find(row => row.model_name === WalnutModelName.SYS_DICT_TYPE)!
     const dataSnapshot = snapshots.find(row => row.deleted_id === a.id)!
 
@@ -364,23 +386,71 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
       id: typeSnapshot.id,
       deletedId: type.id,
     })
-    expectOk(recoverType, 'recover dict type')
-    const recoverData = await api.root('POST', api.apiPath('/system/deleted/recover'), {
-      id: dataSnapshot.id,
-      deletedId: a.id,
-    })
-    expectOk(recoverData, 'recover dict data')
+    expectOk(recoverType, 'recover dict type with cascades')
 
     const backType = await api.root('GET', api.apiPath(`/system/dict/type/${type.id}`))
     expectOk(backType, 'dict type recovered')
-    const backData = await api.root('GET', api.apiPath(`/system/dict/data/${a.id}`))
-    expectOk(backData, 'dict data recovered')
-    expect(bodyOf<DictDataRow>(backData).data.typeId).toBe(type.id)
 
-    // 恢复出的行由 afterEach 按 collected ids 清；b 的快照留在 sys_deleted 由 afterEach 清
+    // 两条 data 行自动回来
+    for (const row of [a, b]) {
+      const backData = await api.root('GET', api.apiPath(`/system/dict/data/${row.id}`))
+      expectOk(backData, `dict data ${row.label} recovered`)
+      expect(bodyOf<DictDataRow>(backData).data.typeId).toBe(type.id)
+    }
+
+    // data 快照已被组合恢复器消费：再手动恢复同一条 → 40401
+    const redecover = await api.root('POST', api.apiPath('/system/deleted/recover'), {
+      id: dataSnapshot.id,
+      deletedId: a.id,
+    })
+    expect(bodyOf(redecover).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
+
+    // 恢复出的行由 afterEach 按 collected ids 清
     collect.typeIds.push(type.id)
     collect.typeKeys = collect.typeKeys.filter(key => key !== `${typePrefix}-FK1`)
     collect.typeKeys.push(`${typePrefix}-FK1`)
+  })
+
+  it('P2-23：dictData 单删后从回收站恢复 → 按 label 级联恢复的 locale 行同回', async () => {
+    const type = await createDictType('C2')
+    const data = await createDictData(type.id, 'C2a')
+
+    await api.pgDataSource.query(
+      'INSERT INTO sys_locale (key, lang_id, value) VALUES ($1, $2, $3)',
+      [data.label, localeLangId, 'v-dict-recover'],
+    )
+
+    const deleteRes = await api.root('DELETE', api.apiPath(`/system/dict/data/${data.id}`))
+    expectOk(deleteRes, 'dict data delete with locale cascade')
+    collect.dataIds = collect.dataIds.filter(id => id !== data.id)
+
+    const [dataSnapshot]: Array<{ id: string }> = await api.pgDataSource.query(
+      'SELECT id FROM sys_deleted WHERE deleted_id = $1 AND model_name = $2',
+      [data.id, WalnutModelName.SYS_DICT_DATA],
+    )
+    expect(dataSnapshot).toBeTruthy()
+
+    const recoverRes = await api.root('POST', api.apiPath('/system/deleted/recover'), {
+      id: dataSnapshot.id,
+      deletedId: data.id,
+    })
+    expectOk(recoverRes, 'dict data recover with locale')
+
+    const backData = await api.root('GET', api.apiPath(`/system/dict/data/${data.id}`))
+    expectOk(backData, 'dict data recovered')
+
+    const backLocale: Array<{ value: string }> = await api.pgDataSource.query(
+      'SELECT value FROM sys_locale WHERE key = $1',
+      [data.label],
+    )
+    expect(backLocale).toHaveLength(1)
+    expect(backLocale[0].value).toBe('v-dict-recover')
+
+    const remainSnapshots: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM sys_deleted WHERE content ->> \'key\' = $1',
+      [data.label],
+    )
+    expect(remainSnapshots[0].c).toBe(0)
   })
 
   it('校验失败 → 40099（缺必填 / typeId 非 uuid / 未知字段）', async () => {
