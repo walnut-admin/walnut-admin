@@ -11067,6 +11067,7 @@
           },
           "deptIds": {
             "default": [],
+            "maxItems": 200,
             "example": [
               "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
             ],
@@ -18514,6 +18515,7 @@
           },
           "deptIds": {
             "default": [],
+            "maxItems": 200,
             "example": [
               "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
             ],
@@ -18583,6 +18585,7 @@
           },
           "deptIds": {
             "default": [],
+            "maxItems": 200,
             "example": [
               "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
             ],
@@ -18698,6 +18701,7 @@
           },
           "deptIds": {
             "default": [],
+            "maxItems": 200,
             "example": [
               "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
             ],

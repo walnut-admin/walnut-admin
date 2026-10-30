@@ -1,6 +1,8 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
+import type { Recordable } from 'easy-fns-ts'
 import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { randomUUID } from 'node:crypto'
+import { WalnutAdminConstDataScope } from '@walnut-server/const/app/dataScope'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { SysRoleRepoService } from '@/modules/system/role/repo/role.repo.service'
@@ -26,7 +28,9 @@ interface RoleRow {
   description?: string | null
   order?: number | null
   status?: boolean
+  dataScope?: number
   menus?: string[]
+  deptIds?: string[]
   usersCount?: number
   menusList?: MenuRow[]
 }
@@ -51,6 +55,8 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
   /** role_name 全库唯一：本轮行统一前缀 */
   const rolePrefix = `api-spec-role-${seed8}`
   const menuPrefix = `apispec${seed8}`
+  /** 批 7 / L6：部门清单上限用例的部门行前缀（dept_code 全库唯一） */
+  const deptPrefix = `apispec-dept-${seed8}`
   let fixture: WalnutRootUserFixture | null = null
 
   const collect = {
@@ -93,6 +99,55 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
     return row
   }
 
+  /** 批 7 / L6：直插部门行（200 条走 HTTP 太慢；FK 只要求 dept 存在） */
+  async function insertBulkDepts(count: number): Promise<string[]> {
+    const rows: Array<{ id: string }> = await api.pgDataSource.query(
+      `INSERT INTO sys_dept (dept_code, dept_name)
+       SELECT $1 || '-bulk-' || g, $2 || ' ' || g
+         FROM generate_series(1, $3) AS g
+       RETURNING id`,
+      [deptPrefix, 'api spec bulk dept', count],
+    )
+    return rows.map(row => row.id)
+  }
+
+  async function insertDept(tag: string): Promise<string> {
+    const rows: Array<{ id: string }> = await api.pgDataSource.query(
+      'INSERT INTO sys_dept (dept_code, dept_name) VALUES ($1, $2) RETURNING id',
+      [`${deptPrefix}-${tag}`, `api spec dept ${tag}`],
+    )
+    return rows[0].id
+  }
+
+  /**
+   * 批 7 / L7：role:update 的操作日志由拦截器 fire-and-forget 落库 —— 轮询
+   * sys_log_operate 的最新行，断言 before/after 快照（比 HTTP list 更直接；
+   * 快照列本就不出现在 list/read 出参里，只能走 snapshot 端点或 DB）。
+   */
+  async function waitForRoleUpdateSnapshot(roleId: string): Promise<{ before: Recordable, after: Recordable }> {
+    const deadline = Date.now() + 8000
+    let seen = 0
+    while (Date.now() < deadline) {
+      const rows: Array<{ snapshot_before: Recordable | null, snapshot_after: Recordable | null }>
+        = await api.pgDataSource.query(
+          `SELECT snapshot_before, snapshot_after
+             FROM sys_log_operate
+            WHERE invoking_method = 'SysRoleController.update'
+              AND url LIKE $1
+            ORDER BY operated_at DESC
+            LIMIT 1`,
+          [`%${roleId}`],
+        )
+      seen = rows.length
+      const row = rows[0]
+      if (row !== undefined && row.snapshot_before !== null && row.snapshot_after !== null) {
+        return { before: row.snapshot_before, after: row.snapshot_after }
+      }
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+    throw new Error(`[role-api-spec] role:update log snapshot not found for ${roleId} (rows=${seen})`)
+  }
+
   beforeAll(async () => {
     app = await createApiApp()
     api = await WalnutApiClient.create(app)
@@ -110,6 +165,8 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
     await api.pgDataSource.query('DELETE FROM sys_role WHERE id = ANY($1::uuid[])', [collect.roleIds])
     await api.pgDataSource.query('DELETE FROM sys_role WHERE role_name LIKE $1', [`${rolePrefix}%`])
     await api.pgDataSource.query('DELETE FROM sys_menu WHERE name LIKE $1', [`${menuPrefix}%`])
+    // 批 7 / L6：部门行在角色（junction）删除后清，FK 不挡
+    await api.pgDataSource.query('DELETE FROM sys_dept WHERE dept_code LIKE $1', [`${deptPrefix}%`])
     collect.roleIds = []
     collect.menuIds = []
     collect.userIds = []
@@ -121,6 +178,7 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE role_name LIKE $1', [`${rolePrefix}%`])
       await api.pgDataSource.query('DELETE FROM sys_menu WHERE name LIKE $1', [`${menuPrefix}%`])
+      await api.pgDataSource.query('DELETE FROM sys_dept WHERE dept_code LIKE $1', [`${deptPrefix}%`])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, fixture.userId)
     }
@@ -282,6 +340,82 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
     expect(row.menusList[0].id).toBe(menuOn.id)
     expect(row.menusList[0].meta?.order).toBe(1)
     expect(row.menusList[0].title).toBe(`menu.title.${seed8}.PA`)
+  })
+
+  it('批 7 / L6：deptIds 上限 200 —— 200 个真实部门放行、201 → 40099（整体替换语义不破）', async () => {
+    const bulkIds = await insertBulkDepts(200)
+    const role = await createRole('D1')
+
+    const update200 = await api.root('PUT', api.apiPath(`/system/role/${role.id}`), {
+      ...rolePayload('D1'),
+      dataScope: WalnutAdminConstDataScope.CUSTOM,
+      deptIds: bulkIds,
+    })
+    expectOk(update200, 'role update 200 deptIds')
+    expect(bodyOf<RoleRow>(update200).data.deptIds).toHaveLength(200)
+
+    // 201 = 200 真实 + 1 随机：DTO 层 arrayMaxSize 拦下（40099），不进入写腿
+    const update201 = await api.root('PUT', api.apiPath(`/system/role/${role.id}`), {
+      ...rolePayload('D1'),
+      dataScope: WalnutAdminConstDataScope.CUSTOM,
+      deptIds: [...bulkIds, randomUUID()],
+    })
+    expect(bodyOf(update201).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+
+    // 被拦的请求没有半提交：清单仍是 200（整组替换只在通过校验后发生）
+    const readRes = await api.root('GET', api.apiPath(`/system/role/${role.id}`))
+    expectOk(readRes, 'role read after 201 rejected')
+    expect(bodyOf<RoleRow>(readRes).data.deptIds).toHaveLength(200)
+  })
+
+  it('批 7 / L7：role:update 操作日志快照含 dataScope/status/deptIds/menus 的 before → after', async () => {
+    const menuA = await createMenuViaHttp('SA')
+    const menuB = await createMenuViaHttp('SB')
+    const deptA = await insertDept('sa')
+    const deptB = await insertDept('sb')
+
+    const createRes = await api.root('POST', api.apiPath('/system/role'), {
+      roleName: `${rolePrefix}-A1`,
+      description: 'audit before',
+      order: 1,
+      status: true,
+      dataScope: WalnutAdminConstDataScope.CUSTOM,
+      deptIds: [deptA],
+      menus: [menuA.id],
+    })
+    expectOk(createRes, 'role create (audit producer)')
+    const role = bodyOf<RoleRow>(createRes).data
+    collect.roleIds.push(role.id)
+
+    const updateRes = await api.root('PUT', api.apiPath(`/system/role/${role.id}`), {
+      roleName: `${rolePrefix}-A1`,
+      description: 'audit after',
+      order: 2,
+      status: false,
+      dataScope: WalnutAdminConstDataScope.DEPT,
+      deptIds: [deptB],
+      menus: [menuB.id],
+    })
+    expectOk(updateRes, 'role update (audit producer)')
+
+    const { before, after } = await waitForRoleUpdateSnapshot(role.id)
+
+    // 四个授权敏感面：before 是提交前的值与清单，after 是提交后的值与清单
+    expect(before).toMatchObject({
+      dataScope: WalnutAdminConstDataScope.CUSTOM,
+      status: true,
+      deptIds: [deptA],
+      menus: [menuA.id],
+    })
+    expect(after).toMatchObject({
+      dataScope: WalnutAdminConstDataScope.DEPT,
+      status: false,
+      deptIds: [deptB],
+      menus: [menuB.id],
+    })
+    // 行字段的既有审计面仍在（合并而非覆盖基类快照）
+    expect(before.roleName).toBe(`${rolePrefix}-A1`)
+    expect(after.description).toBe('audit after')
   })
 
   it('read 不存在的 uuid → 40401；create 缺 roleName → 40099', async () => {

@@ -121,7 +121,10 @@ export class SysRoleDTO extends SysRoleDTOBase {
   // IsMongoId → IsUUID 模板（B1 确立）：menus 原为 ObjectId[]，PG 侧是
   // sys_role_menu 关联表的 menu_id uuid 集合（写入与读出都保持 uuid 数组形态，
   // 响应字段名与 Mongo 版一致）。unique 对齐 Mongo 版数组的业务入参语义
-  // （junction 复合 PK 去重，phase2 4.2 勘误不保留 multikey 语义）
+  // （junction 复合 PK 去重，phase2 4.2 勘误不保留 multikey 语义）。
+  // 批 7 / L6 评估：menus **不设数量上限** —— 菜单授权是「全量勾选」的常见场景，
+  // 上限会随菜单规模增长从「拦脏数据」变成业务限制；deptIds 的 200 只针对部门清单
+  // 的量级（部门树远小于菜单全集）。
   @Expose()
   @ApiProperty({
     type: String,
@@ -133,15 +136,20 @@ export class SysRoleDTO extends SysRoleDTOBase {
   declare menus: string[]
 
   // CUSTOM 部门清单（sys_role_dept.dept_id uuid 集合）：与 menus 同款重声明 +
-  // 数组内去重（复合 PK 兜底，DTO 层先拦输入重复）
+  // 数组内去重（复合 PK 兜底，DTO 层先拦输入重复）。
+  // 批 7 / L6：数量上限 200（remediation-plan §10 第 3 条拍板）—— 部门树量级内足够，
+  // 只拦脏数据/误传，不做业务限制。超限走全局 ValidationPipe 的既有 40099 通道
+  // （class-validator 默认消息，仓库校验消息本来就不走 i18n），http 元数据补
+  // maxItems 供 openapi 消费（与 demo.dto 的 maxItems/maxSize 同款口径）。
   @Expose()
   @ApiProperty({
     type: String,
     isArray: true,
     default: [],
+    maxItems: 200,
     example: ['0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c'],
   })
-  @WalnutAdminDecoratorValidatorUuid(undefined, true, { unique: true })
+  @WalnutAdminDecoratorValidatorUuid(undefined, true, { unique: true, maxSize: 200 })
   declare deptIds: string[]
 }
 

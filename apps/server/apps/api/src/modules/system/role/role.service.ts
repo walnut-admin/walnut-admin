@@ -1,10 +1,12 @@
 import type { EntityManager } from 'typeorm'
+import type { IRoleAuthorizationAuditSnapshot } from './role.audit'
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstDataScope } from '@walnut-server/const/app/dataScope'
 import { runAfterCommit } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
 import { Role } from '@walnut/contract'
+import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { AppTechCachePermissionsService } from '@/modules/techniques/cache/service/cache.permissions'
 import { DataScopeService } from '../data-scope/data-scope.service'
 import {
@@ -13,6 +15,7 @@ import {
   SysRoleDTOUpdateRequest,
 } from './dto/role.dto'
 import { SysRoleRepoService } from './repo/role.repo.service'
+import { buildRoleAuthorizationAuditAfter, buildRoleAuthorizationAuditSnapshot } from './role.audit'
 import { SysRoleBasicRepository } from './role.basic.repository'
 
 /**
@@ -30,6 +33,7 @@ export class SysRoleService {
     private readonly roleRepoService: SysRoleRepoService,
     private readonly cachePermissionsService: AppTechCachePermissionsService,
     private readonly dataScopeService: DataScopeService,
+    private readonly alsRequestService: ALSRequestService,
   ) {}
 
   /**
@@ -75,6 +79,18 @@ export class SysRoleService {
       throw new WalnutAdminExceptionBadRequest()
     }
 
+    // 批 7 / L7（P3-35 收口）：授权敏感面的 before 快照。角色行（dataScope/status）由
+    // 基类 update 写进 ALS 快照，menus/deptIds 在 junction —— 必须在写腿之前读出，
+    // 否则拿到的是替换后的清单。查无此 id 时不读 junction，交给 repo.update 抛
+    // DataNotFound（对齐既有路径）。
+    const authorizationBefore = role === null
+      ? null
+      : buildRoleAuthorizationAuditSnapshot(
+          role,
+          await this.roleRepoService.findDeptIdsByRoleId(id, em),
+          await this.roleRepoService.findMenuIdsByRoleId(id, em),
+        )
+
     const permissionsAffected = dto.menus !== undefined
       || (dto.status !== undefined && role !== null && dto.status !== role.status)
 
@@ -97,6 +113,16 @@ export class SysRoleService {
       : []
 
     const updated = await this.roleBasicRepo.update(id, dto, em)
+
+    // 批 7 / L7（P3-35 收口）：把 menus/deptIds 并入操作日志的 ALS 快照（行快照由
+    // 基类写入，这里合并而不覆盖）。四个授权敏感面 dataScope/status/deptIds/menus
+    // 因此在 sys_log_operate 的 snapshot diff 里可见 before → after。
+    if (authorizationBefore !== null) {
+      this.attachAuthorizationAuditSnapshot(
+        authorizationBefore,
+        buildRoleAuthorizationAuditAfter(updated, authorizationBefore, dto),
+      )
+    }
 
     if (affectedUserIds.length > 0) {
       await runAfterCommit(async () => {
@@ -127,5 +153,30 @@ export class SysRoleService {
    */
   async list(params: SysRoleDTOListRequest) {
     return this.roleBasicRepo.list(params)
+  }
+
+  /**
+   * 把授权敏感面并入操作日志的 ALS 快照（`WalnutAdminInterceptorRequestOperateLog`
+   * 读取后落 `sys_log_operate.snapshot_before / snapshot_after`）。
+   *
+   * 基类 `WalnutAdminCommonPgBaseRepository.update` 已写入整行快照；这里**合并**而不是
+   * 覆盖，保留行字段的既有审计面，只补 junction 两腿。无 ALS 上下文（直接调用 service
+   * 的测试 / 内部任务）直接跳过，不制造噪声告警。
+   */
+  private attachAuthorizationAuditSnapshot(
+    before: IRoleAuthorizationAuditSnapshot,
+    after: IRoleAuthorizationAuditSnapshot,
+  ) {
+    if (!this.alsRequestService.hasActiveContext()) {
+      return
+    }
+
+    const merge = (key: 'snapshotBefore' | 'snapshotAfter', audit: IRoleAuthorizationAuditSnapshot) => {
+      const existing = this.alsRequestService.get(key) ?? {}
+      this.alsRequestService.set(key, Object.assign({}, existing, audit))
+    }
+
+    merge('snapshotBefore', before)
+    merge('snapshotAfter', after)
   }
 }

@@ -9,7 +9,7 @@
 > 归档保留修复细节与实测证据，供审计与防回归参考；全文细节亦可查 git 历史。
 > 开放条目只在主文件维护，新条目一律记入主文件（编号顺延）。
 >
-> 归档统计：**77 条（P0 × 6 / P1 × 20 / P2 × 26 / P3 × 25）**。
+> 归档统计：**78 条（P0 × 6 / P1 × 20 / P2 × 26 / P3 × 26）**。
 > 分级口径与每条四要素约定见主文件头部。
 
 ---
@@ -1380,6 +1380,37 @@
   `WalnutAdminExceptionNoAccessRolePermission`（40106）。零破坏依据：全仓数组调用方
   （`device.controller` / `log.operate.controller`）都显式传 `'or'`，`and` 只在 COMBINE
   下参与判定；单测同时覆盖 or/combinable/visitor 对照。
+
+### P3-35 role:update 持有者可把任意角色 dataScope 改成 ALL（数据权限复审，产品决策项）—— 【已收口 2026-10-31：裁决不拦截 + 批 7 审计快照】
+
+- **位置**：`apps/api/src/modules/system/role/role.controller.ts`（`system:role:update`
+  功能权限）+ `apps/api/src/modules/system/role/role.service.ts`（update 只拦 root
+  角色名，不拦 dataScope 的目标值与操作者关系）。
+- **现象**：持有 `system:role:update` 的非 root 管理员可以修改任意非 root 角色的
+  `dataScope`（含改成 1=ALL），也可以改**自己所在角色**的 dataScope —— 等于把行级
+  可见面自我扩权到全量；现有保护只有「root 角色不可改」。
+- **实测证据**：本次读码；`data-scope.api-spec.ts` 的「角色 dataScope 修改后缓存失效」
+  用例由 root 执行，没有非 root 自我扩权路径的断言。
+- **建议（产品决策）**：dataScope 修改限定 root（或 `@HasRole(root)`）；或至少禁止
+  修改自己所在角色的 dataScope。二选一后再补 API 级负路径用例。本轮仅登记。
+- **裁决（2026-10-31 维护者拍板）**：**不拦截** —— dataScope 修改跟随功能权限位，
+  持 `system:role:update` 的管理员可改，root 天然全量；信任语义 = 把 `role:update`
+  授予谁，等于授予谁行级范围授予权。批 7 以操作日志 before→after 快照收口审计可见性
+  （至少 dataScope / deptIds / menus / status）。见
+  `docs/plans/data-scope-remediation-plan.md` §5.2。
+- **修法（2026-10-31，批 7 / L7）**：
+  ① **审计快照**：`SysRoleService.update` 在写腿之前读出 `sys_role_dept` /
+  `sys_role_menu` 清单，按四个授权敏感面（dataScope / status / deptIds / menus）组装
+  before→after（`role.audit.ts` 纯函数，数组排序归一），并入基类行快照后写入
+  `sys_log_operate.snapshot_before / snapshot_after`（沿用
+  `WalnutAdminInterceptorRequestOperateLog` 既有列语义，不新增第二套日志机制）。
+  `snapshot_before/after` 是本仓操作日志的既有快照列，admin 的「比较」抽屉直接消费。
+  ② **不拦截语义不变**：controller 权限位与 service 的 root 守卫零改动 —— 本条只补
+  可审计性，不改变谁能改的范围。
+  ③ **测试**：`role.audit.spec.ts` 覆盖无变更 / 有变更 / 部分字段（只给 deptIds）/
+  junction 顺序归一；`role.api-spec.ts` 走真实 HTTP 改 dataScope+status+deptIds+menus
+  后轮询 `sys_log_operate`，断言四个面的 before→after 与行字段快照仍在；单元测试另钉
+  deptIds 200 上限（批 7 / L6）。
 
 ### P3-36 app.functional.role 设置变更不失效 AUTH:DATA_SCOPE（数据权限复审，缓存残留）—— 【已修复 2026-10-30，批 4 epoch 方案】
 

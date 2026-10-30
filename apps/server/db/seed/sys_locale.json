@@ -29342,5 +29342,37 @@
     "updatedAt": {
       "$date": "2026-10-30T02:00:00.000Z"
     }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00300000000000000a1"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "table.role.deptIds.nonLeafConfirm",
+    "value": "Data scope CUSTOM does not include child departments - only the checked departments themselves are in scope. {count} checked department(s) have children. Submit anyway?",
+    "createdAt": {
+      "$date": "2026-10-30T12:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T12:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00300000000000000b1"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "table.role.deptIds.nonLeafConfirm",
+    "value": "数据权限「自定义」不包含子部门，仅勾选的部门本身在范围内。已勾选的部门中有 {count} 个包含子部门，仍要提交吗？",
+    "createdAt": {
+      "$date": "2026-10-30T12:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T12:00:00.000Z"
+    }
   }
 ]
