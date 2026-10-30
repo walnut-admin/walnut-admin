@@ -96,7 +96,29 @@ const getFormProps = computed((): WForm.Props<T> => ({
     closeConfirm: getIsFormModified.value,
 
     // create/update confirm
-    onYes: async (apiHandler) => {
+    onYes: async (apiHandler, done) => {
+      // 提交前钩子（如角色表单的 CUSTOM 非叶子部门确认）：返回 false 中止本次提交，
+      // 只复位 loading、不关抽屉 —— 用户取消确认后仍可继续修改表单。
+      const beforeSubmit = getProps.value.onBeforeFormSubmit
+      if (beforeSubmit) {
+        let canSubmit = false
+        try {
+          canSubmit = await beforeSubmit({
+            formData: getFormData.value,
+            actionType: actionType.value,
+          })
+        }
+        catch (error) {
+          done({ closeModal: false })
+          throw error
+        }
+
+        if (!canSubmit) {
+          done({ closeModal: false })
+          return
+        }
+      }
+
       await apiHandler(
         // Form API Solution 1
         getBaseApi.value[actionType.value].bind(getBaseApi.value),

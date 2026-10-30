@@ -20,6 +20,13 @@ export declare namespace WCrud {
     formProps?: Partial<WForm.Props<T>>
 
     /**
+     * @description create/update form submit gate. Return `false` to abort the submit
+     * (the dialog stays open, e.g. after a "are you sure" confirm was rejected).
+     * Runs after form validation and before the API call.
+     */
+    onBeforeFormSubmit?: (payload: { formData: T, actionType: IActionType }) => boolean | Promise<boolean>
+
+    /**
      * @default false
      * @description strict create/update form data based on schema item
      * some fields from read endpoint is useless in update endpoint, will cause params error

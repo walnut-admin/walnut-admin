@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-import type { SystemMenu, SystemRole } from '@walnut/api-types'
+import type { SystemDeptTree, SystemMenu, SystemRole } from '@walnut/api-types'
+import type { IActionType } from '@walnut/types/universal'
 import { DataScope } from '@walnut/contract'
 import { computed } from 'vue'
 import { roleAPI } from '@/api/system/role'
@@ -7,6 +8,7 @@ import { useCRUD } from '@/components/Advanced/CRUD'
 import { WTablePresetCreatedAtColumn, WTablePresetOrderColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
 import { AppConstRoles } from '@/const/app'
 import { AppConstMenuType } from '@/const/menu'
+import { useAppConfirm } from '@/hooks/component/useConfirm'
 import { useDeptTree } from '@/hooks/core/useDeptTree'
 import { useAppI18n } from '@/locales'
 
@@ -26,6 +28,58 @@ const { getLeftMenu } = useMenuTree()
 // 数据权限二期批 2：CUSTOM(2) 档位的部门勾选树
 const { getDeptTree } = useDeptTree()
 
+/**
+ * 有子部门的部门 id 集合（批 7 / L6 的叶子判定）。useDeptTree 的树数据由后端按
+ * parentId 聚合而来，children 非空即非叶子 —— 不另查 `dept/children`，避免多打请求。
+ */
+function collectNonLeafDeptIds(tree: SystemDeptTree[]): Set<string> {
+  const nonLeaf = new Set<string>()
+
+  const walk = (nodes: SystemDeptTree[]): void => {
+    for (const node of nodes) {
+      const children = node.children ?? []
+
+      if (children.length > 0 && node.id !== undefined) {
+        nonLeaf.add(node.id)
+      }
+
+      walk(children)
+    }
+  }
+
+  walk(tree)
+  return nonLeaf
+}
+
+/**
+ * CUSTOM 档位提交前的防呆确认（批 7 / L6）：勾选清单里**存在非叶子部门**时，明示
+ * 「CUSTOM 不含子部门、仅勾选的部门本身」。语义不变（不递归），只防「勾父部门以为
+ * 含子部门」的误解；取消则中止提交、表单保持打开。
+ */
+async function onBeforeFormSubmit({ formData, actionType }: { formData: SystemRole, actionType: IActionType }) {
+  if (actionType !== 'create' && actionType !== 'update') {
+    return true
+  }
+
+  if (formData.dataScope !== DataScope.CUSTOM) {
+    return true
+  }
+
+  const deptIds = formData.deptIds ?? []
+  if (deptIds.length === 0) {
+    return true
+  }
+
+  const nonLeaf = collectNonLeafDeptIds(getDeptTree.value)
+  const count = deptIds.filter(id => nonLeaf.has(id)).length
+  if (count === 0) {
+    return true
+  }
+
+  const { confirmed } = await useAppConfirm(t('table.role.deptIds.nonLeafConfirm', { count }))
+  return confirmed
+}
+
 const [
   register,
   {
@@ -38,6 +92,9 @@ const [
   baseAPI: roleAPI,
 
   strictFormData: true,
+
+  // 批 7 / L6：CUSTOM 勾选含非叶子部门时先确认「不含子部门，仅勾选的部门本身」
+  onBeforeFormSubmit,
 
   safeForm: true,
   safeFormFeedback: true,
