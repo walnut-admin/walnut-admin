@@ -1,7 +1,7 @@
 # 数据权限遗留整改实施计划（批 4-7）
 
 > 状态：**批 4/5/6 已实施**（`9071cda`；`4f7baba`+`73e0d9c`+`38edbdb`；批 6 随本文档
-> 同批提交），**批 7 实施中**。每批独立提交 + review + 全量回归四件套，见 §6。
+> 同批提交），**批 7 已实施**（随收尾提交落地）。每批独立提交 + review + 全量回归四件套，见 §6。
 > 前置均已落地：一期 c9b7694、二期批 1 afc8cde、批 2 f90bcd5、三期 RLS（含 F1-F5
 > fail-closed 化）11df28d。本计划是 `data-scope-phase2-3-plan.md` 的续篇：只收口遗留
 > 缺口，**不做架构重写**（理由见 §0）。
@@ -173,14 +173,22 @@ repo 调用/请求」（ALL 档同样走 RLS 隐式事务路径，连接形态�
 
 ## 5. 批 7：体验与审计（feat(server) + feat(admin)）
 
-### 5.1 L6：CUSTOM 清单上限与防呆
+### 5.1 L6：CUSTOM 清单上限与防呆（已实施，2026-10-31）
 
-- `role.dto.ts`：`deptIds` 加 `ArrayMaxSize(200)`，超限 422 + 文案；menus 是否同限一并
-  评估（同形数组，超出属脏数据面）。
+- `role.dto.ts`：`deptIds` 加 `maxSize 200 + unique`（复用 `WalnutAdminDecoratorValidatorUuid`
+  的 arrayOptions 通道），`@ApiProperty` 显式 `maxItems: 200`（本仓无 Swagger CLI
+  plugin，ArrayMaxSize 不自动进 openapi）。**超限落地为 40099**（本仓无 422 语义：
+  全局 ValidationPipe 抛 `WalnutAdminExceptionRequestDataError`，异常过滤器恒 HTTP
+  200 + body.code；校验消息无 i18n 先例，未为新文案发明机制）。
+- **menus 评估结论：不设限**——菜单授权是「全量勾选」常态（seed 已 172 条，200 只剩
+  余量会从拦脏数据变成业务限制），且 menu_id 有 FK 兜底；结论已固化进 DTO 注释与单测
+  （menus 201 放行）。
 - admin 角色表单：CUSTOM 提交时若清单含**非叶子部门**，弹确认框明示「不含子部门，仅勾选
-  的部门本身」（不递归语义不变，只防误解）；叶子判定用前端已有 dept tree 数据。
-- i18n：确认文案与 422 文案补 `sys_locale` seed（zh-CN/en 双份，经既有下发通道）。
-- **单元**：DTO 校验分支；**接口**：超限 422、200 恰好放行；**功能**：表单交互走
+  的部门本身」（不递归语义不变，只防误解）；叶子判定用前端 dept tree 的 children 聚合；
+  经由新增的通用 CRUD 提交前钩子 `onBeforeFormSubmit`（返回 false 中止且抽屉不关）。
+- i18n：确认文案 `table.role.deptIds.nonLeafConfirm` 补 `sys_locale` seed（zh-CN/en
+  双份，`{count}` 插值，经既有下发通道）。
+- **单元**：DTO 校验分支；**接口**：超限 40099、200 恰好放行；**功能**：表单交互走
   types:check + 手动验收清单（写入 PR 描述）。
 
 ### 5.2 L7：role:update 审计前后值（P3-35 的落点）
@@ -229,7 +237,7 @@ repo 调用/请求」（ALL 档同样走 RLS 隐式事务路径，连接形态�
 | epoch 引入每请求多一跳 Redis | 读路径本来就查描述符，多一次 GET 体量小；如实测显著，再议 pipeline 合并（不做本地缓存） |
 | contract 常量换源触发快照/引用连锁 | 快照 diff 属预期；admin/server 同批换源，types:check 全绿才算过 |
 | spike 阈值触发预案导致范围膨胀 | 预案只立项不进本计划批次；实测数值回填后即收口 |
-| 审计快照泄露敏感字段到日志 | 只记允许列（dataScope/deptIds/menus/status），deptIds 超 20 截断计数显示 |
+| 审计快照泄露敏感字段到日志 | 只记允许列（dataScope/deptIds/menus/status）；完整数组不截断（deptIds 已限 200、menus 当前约 172 条规模可控；截断会让被截变更不可见，与审计目标冲突，见 role.audit.ts 注释） |
 
 ## 9. 明确不做（有据，防范围蠕变）
 
