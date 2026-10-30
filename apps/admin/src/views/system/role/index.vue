@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { SystemMenu, SystemRole } from '@walnut/api-types'
+import { DataScope } from '@walnut/contract'
 import { computed } from 'vue'
 import { roleAPI } from '@/api/system/role'
 import { useCRUD } from '@/components/Advanced/CRUD'
@@ -215,28 +216,28 @@ const [
         },
       },
       {
-        // 数据权限二期六档（docs/plans/data-scope-phase2-3-plan.md §1.1）：
-        // 1=ALL 2=CUSTOM(部门清单) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF。
-        // 值集与后端 WalnutAdminConstDataScope 同源；CUSTOM 的部门清单即下方 deptIds。
+        // 数据权限二期六档：数值与语义真源在 @walnut/contract 的 DataScope
+        // （1=ALL 2=CUSTOM 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF）。
+        // CUSTOM 的部门清单即下方 deptIds；CUSTOM 不递归子树、DEPT_AND_CHILD 含自身。
         type: 'Base:Select',
         formProp: {
           path: 'dataScope',
           labelHelpMessage: true,
         },
         componentProp: {
-          defaultValue: 1,
+          defaultValue: DataScope.ALL,
           options: [
-            { label: t('table.role.dataScope.all'), value: 1 },
-            { label: t('table.role.dataScope.custom'), value: 2 },
-            { label: t('table.role.dataScope.dept'), value: 3 },
-            { label: t('table.role.dataScope.deptAndChild'), value: 4 },
-            { label: t('table.role.dataScope.self'), value: 5 },
-            { label: t('table.role.dataScope.deptOrSelf'), value: 6 },
+            { label: t('table.role.dataScope.all'), value: DataScope.ALL },
+            { label: t('table.role.dataScope.custom'), value: DataScope.CUSTOM },
+            { label: t('table.role.dataScope.dept'), value: DataScope.DEPT },
+            { label: t('table.role.dataScope.deptAndChild'), value: DataScope.DEPT_AND_CHILD },
+            { label: t('table.role.dataScope.self'), value: DataScope.SELF },
+            { label: t('table.role.dataScope.deptOrSelf'), value: DataScope.DEPT_OR_SELF },
           ],
         },
       },
       {
-        // CUSTOM(2) 的部门清单：只在选中 CUSTOM 时显示（visibleProp.vIf 读 formData）。
+        // CUSTOM 档位的部门清单：只在选中 CUSTOM 时显示（visibleProp.vIf 读 formData）。
         // 提交到角色 create/update 的 deptIds，后端整组替换 sys_role_dept junction。
         // 非 CUSTOM 时该 schema 仍参与 strictFormData 的字段收集，但值保持上次勾选
         // （后端对非 CUSTOM 角色无执行语义，切回 CUSTOM 时可直接复用）。
@@ -246,7 +247,7 @@ const [
           labelHelpMessage: true,
         },
         visibleProp: {
-          vIf: ({ formData }) => (formData as { dataScope?: number }).dataScope === 2,
+          vIf: ({ formData }) => (formData as { dataScope?: number }).dataScope === DataScope.CUSTOM,
         },
         componentProp: {
           multiple: true,
