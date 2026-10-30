@@ -9,30 +9,40 @@ import { SharedScopeResolverService } from '@/modules/shared/scopeResolver/scope
 import { AppTokenService } from '@/modules/shared/token/token.service'
 import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
+import { SysDeptBasicRepository } from '../dept/dept.basic.repository'
 import { SysRoleRepoService } from '../role/repo/role.repo.service'
 import { SysUserRepositoryService } from '../user/repo/user.repo.service'
 import { resolveWalnutDataScopeDescriptor } from './data-scope.resolver'
 
 /**
- * 数据权限解析服务（docs/plans/data-scope-design.md §4 设计要点 1 / 6）。
+ * 数据权限解析服务（docs/plans/data-scope-design.md §4 设计要点 1 / 6；
+ * 部门维度见 docs/plans/data-scope-phase2-3-plan.md §1.1）。
  *
  * 职责：
- * 1. **解析**：按用户 junction 角色的实时值（user.role_mode / current_role_id +
- *    sys_user_role + sys_role.data_scope）产出描述符 —— 不信任 AT payload 的角色快照
- *    （P1-18 的同一个教训：角色移除后旧 AT 仍在有效期内）；
+ * 1. **解析**：按用户 junction 角色的实时值（user.role_mode / current_role_id /
+ *    user.dept_id + sys_user_role + sys_role.data_scope + sys_role_dept）产出描述符 ——
+ *    不信任 AT payload 的角色快照（P1-18 的同一个教训：角色移除后旧 AT 仍在有效期内）；
+ *    部门子树（DEPT_AND_CHILD / DEPT_OR_SELF）在需要时经递归 CTE 预解析；
  * 2. **缓存**：`AUTH:DATA_SCOPE:<userId>`（不带 deviceId —— 角色不随设备变），
  *    TTL 与访问令牌同寿命（与 AUTH:PERMISSIONS 同口径）；
- * 3. **失效**：三个写入口 + 两个用户自助入口（见下），对照 AUTH:PERMISSIONS 的失效纪律。
+ * 3. **失效**：写入口清单见下。
  *
  * 失效点清单（改这些写路径时必须同步调本服务的 invalidate*）：
- * - 角色 dataScope / status 修改 → `invalidateForRole(roleId)`（role.service.update）
- * - 用户角色整组替换（sys_user_role 变更）→ `invalidateForUserRoleChanges(userId, 前后角色并集)`
- *   （user.crud.update）—— **必须按角色维度再失效一遍**：CUSTOM 的 userIds 是角色成员
- *   快照，成员变更会影响同角色其他成员的可见集；
- * - 用户删除（junction 级联）→ `invalidateForUserRoleChanges(userId, 删除前角色集)`
- *   （user.crud.delete）；
- * - 用户恢复（junction 快照回放）→ `invalidateForRecoveredUser(userId)`（deleted.service.recover*）；
- * - 用户切换当前角色 / 角色模式 → `invalidateForUser(userId)`（user.shared.switchRole/switchRoleMode）
+ * - 角色 dataScope / status 修改 → `invalidateForRole(roleId)`（role.service.update）；
+ * - `sys_role_dept`（CUSTOM 部门清单）变更 → `invalidateForRoleDeptChange(roleId)`
+ *   —— 影响的是**该角色成员**（他们的描述符里带着这份清单）；批 1 无写端点，
+ *   批 2 的角色部门树保存路径接线；
+ * - 部门移动 / 删除 → `invalidateForDeptMove(deptId, oldAncestorIds)` /
+ *   `invalidateForDeptIds(deptIds)` —— 移动影响旧/新祖先链与子树内用户，
+ *   删除影响子树内用户（dept.service update/delete）；
+ * - 用户角色整组替换 → `invalidateForUser(userId)`（user.crud.update）；
+ * - 用户部门变更 → `invalidateForUser(userId)`（user.crud.update 的 deptId 分支）；
+ * - 用户删除（junction 级联）/ 恢复 / 切换当前角色 / 角色模式 → `invalidateForUser`
+ *   （user.crud.delete / deleted.service.recover* / user.shared.switchRole*）。
+ *
+ * 二期语义演进（重要）：CUSTOM 从「角色成员 userIds 快照」改为「部门清单」后，
+ * **角色成员变化不再影响同角色其他成员**（清单与成员无关）；原先为此设计的
+ * `invalidateForUserRoleChanges` / `invalidateForRecoveredUser` 已删除。
  * 角色删除端点当前不存在（role controller 只有 create/read/update/list）；未来新增删除
  * 通道时必须先按 roleId 反查成员再 `invalidateForUsers`，否则被删角色的描述符会驻留
  * 到 TTL 到期。
@@ -50,6 +60,7 @@ export class DataScopeService {
     private readonly tokenService: AppTokenService,
     private readonly userRepoService: SysUserRepositoryService,
     private readonly roleRepoService: SysRoleRepoService,
+    private readonly deptBasicRepo: SysDeptBasicRepository,
   ) {}
 
   private getCacheKey(userId: string): string {
@@ -94,7 +105,7 @@ export class DataScopeService {
     const user = await this.userRepoService.findUserByUserId(userId, em)
 
     if (user === null || user === undefined) {
-      return { mode: WalnutAdminConstDataScopeMode.CUSTOM, userIds: [] }
+      return { mode: WalnutAdminConstDataScopeMode.CUSTOM, deptIds: [] }
     }
 
     const orderedRoleIds = await this.roleRepoService.findRoleIdsByUserId(userId, em)
@@ -114,32 +125,49 @@ export class DataScopeService {
       roleMode: user.roleMode,
     })
 
-    // root 恒 ALL：无需再查 CUSTOM 成员
+    // root 恒 ALL：无需再查 CUSTOM 部门清单 / 部门子树
     const hasRoot = roleSnapshots.some(role => role.status && role.roleName === Role.ROOT)
 
-    const customMemberIds: Record<string, string[]> = {}
+    const activeDeptRoles = roleSnapshots.filter(role => role.status
+      && role.roleName !== Role.ROOT
+      && role.roleName !== Role.VISITOR)
+
+    const userDeptId = user.deptId ?? null
+
+    // 子树只在 DEPT_AND_CHILD / DEPT_OR_SELF 出现且用户有部门时查询（一次 CTE 覆盖全部角色）
+    const needsSubtree = userDeptId !== null && !hasRoot && activeDeptRoles.some(role =>
+      role.dataScope === WalnutAdminConstDataScope.DEPT_AND_CHILD
+      || role.dataScope === WalnutAdminConstDataScope.DEPT_OR_SELF)
+
+    const userDeptSubtreeIds = needsSubtree
+      ? await this.deptBasicRepo.findDeptIdsInSubtree(userDeptId, em)
+      : []
+
+    const customDeptIds: Record<string, string[]> = {}
     if (!hasRoot) {
-      for (const role of roleSnapshots) {
-        if (role.status && role.dataScope === WalnutAdminConstDataScope.CUSTOM && role.roleName !== Role.VISITOR) {
-          customMemberIds[role.id] = await this.roleRepoService.findUserIdsByRoleId(role.id, em)
+      for (const role of activeDeptRoles) {
+        if (role.dataScope === WalnutAdminConstDataScope.CUSTOM) {
+          customDeptIds[role.id] = await this.roleRepoService.findDeptIdsByRoleId(role.id, em)
         }
       }
     }
 
     const input: IWalnutAdminDataScopeResolveInput = {
       userId,
+      userDeptId,
+      userDeptSubtreeIds,
       roleMode: effectiveRoleMode,
       currentRoleId: user.currentRole,
       orderedRoleIds,
       roles: roleSnapshots,
-      customMemberIds,
+      customDeptIds,
     }
 
     return resolveWalnutDataScopeDescriptor(input)
   }
 
   /**
-   * 失效单个用户（用户角色变更 / 当前角色切换 / 角色模式切换 / 删除 / 恢复）
+   * 失效单个用户（用户角色变更 / 部门变更 / 当前角色切换 / 角色模式切换 / 删除 / 恢复）
    */
   async invalidateForUser(userId: string): Promise<void> {
     await this.cacheService.del(this.getCacheKey(userId))
@@ -161,53 +189,48 @@ export class DataScopeService {
   }
 
   /**
-   * 查用户当前绑定的角色 id（调用方在**写之前**取旧集合，写后取新集合，两者并起来
-   * 才是「受影响角色集」）。
+   * `sys_role_dept` 变更：该角色成员的 CUSTOM 部门清单变了，按角色维度失效。
+   * （批 2 的角色部门树保存路径调用；当前无写端点。）
    */
-  async resolveRoleIdsForUser(userId: string, em?: EntityManager): Promise<string[]> {
-    return this.roleRepoService.findRoleIdsByUserId(userId, em)
+  async invalidateForRoleDeptChange(roleId: string, em?: EntityManager): Promise<void> {
+    await this.invalidateForRole(roleId, em)
   }
 
   /**
-   * 用户角色绑定变更：失效该用户 + **受影响角色的全部成员**。
+   * 部门移动（parent 变更）后的失效。
    *
-   * 为什么不能只失效用户自己（P1 复审）：CUSTOM 的 userIds 是「角色成员快照」——
-   * B 被移出角色 R 后，R 的其他成员 C 的缓存里仍带着 B，C 会继续看到 B 的行，
-   * 最长一个 AT TTL。角色成员集变了，所有成员的描述符都必须重算。
+   * 只失效「被移动子树内的用户」是不够的：移动不改变子树内用户自己的 subtree，
+   * 真正变化的是**祖先链**用户的 DEPT_AND_CHILD（旧祖先失去该子树、新祖先获得）。
+   * 因此这里失效三组：被移动子树 + 新祖先链 + 调用方捕获的旧祖先链。
    *
-   * @param userId 发生角色变更的用户
-   * @param affectedRoleIds 变更前 ∪ 变更后的角色 id（由调用方收集）
+   * @param deptId 被移动的部门
+   * @param oldAncestorDeptIds 移动**前**的祖先链（服务层在 update 前取好；缺省视为无）
+   * @param em 可选事务句柄（只读查询用）
    */
-  async invalidateForUserRoleChanges(userId: string, affectedRoleIds: readonly string[]): Promise<void> {
-    const uniqueRoleIds = [...new Set(affectedRoleIds)]
+  async invalidateForDeptMove(
+    deptId: string,
+    oldAncestorDeptIds: readonly string[] = [],
+    em?: EntityManager,
+  ): Promise<void> {
+    const [subtreeIds, ancestorIds] = await Promise.all([
+      this.deptBasicRepo.findDeptIdsInSubtree(deptId, em),
+      this.deptBasicRepo.findAncestorDeptIds(deptId, em),
+    ])
 
-    // 只有 CUSTOM 角色的成员清单会随 membership 变化而改变（SELF/ALL 与成员无关；
-    // root/visitor 是契约角色，列值不参与解析）。不按此过滤会让默认 visitor 角色
-    // 的每次建号都去反查/清空全部游客缓存。
-    const roles = uniqueRoleIds.length > 0
-      ? await this.roleRepoService.findByIds(uniqueRoleIds)
-      : []
+    await this.invalidateForDeptIds([...subtreeIds, ...ancestorIds, ...oldAncestorDeptIds], em)
+  }
 
-    const customRoleIds = roles
-      .filter(role => role.dataScope === WalnutAdminConstDataScope.CUSTOM
-        && role.roleName !== Role.ROOT
-        && role.roleName !== Role.VISITOR)
-      .map(role => role.id)
-
-    for (const roleId of customRoleIds) {
-      await this.invalidateForRole(roleId)
+  /**
+   * 部门删除：调用方在**删除前**取子树 id，事务提交后用本方法失效子树内用户。
+   * （删除后 CTE 已查不到该子树，所以不能复用 invalidateForDeptMove。）
+   */
+  async invalidateForDeptIds(deptIds: readonly string[], em?: EntityManager): Promise<void> {
+    const ids = [...new Set(deptIds.filter(id => typeof id === 'string' && id !== ''))]
+    if (ids.length === 0) {
+      return
     }
 
-    await this.invalidateForUser(userId)
-  }
-
-  /**
-   * 用户恢复（junction 快照回放）：按**恢复后**实际绑定的角色失效成员 + 用户本身。
-   * 当前 user recoverer 不恢复 junction（DESIGN-ISSUES P2-18 残余），这里仍按实时
-   * 绑定取集合 —— 未来 junction 恢复落地时无需再改本方法。
-   */
-  async invalidateForRecoveredUser(userId: string): Promise<void> {
-    const roleIds = await this.resolveRoleIdsForUser(userId)
-    await this.invalidateForUserRoleChanges(userId, roleIds)
+    const userIds = await this.userRepoService.findUserIdsByDeptIds(ids, em)
+    await this.invalidateForUsers(userIds)
   }
 }

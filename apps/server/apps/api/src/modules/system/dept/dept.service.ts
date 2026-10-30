@@ -1,8 +1,10 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
+import { runAfterCommit } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
 
+import { DataScopeService } from '../data-scope/data-scope.service'
 import { SysDeptBasicRepository } from './dept.basic.repository'
 import { SysDeptDTOCreateRequest, SysDeptDTOListRequest, SysDeptDTOUpdateRequest } from './dto/dept.dto'
 import { SysDeptEntity } from './entity/dept.entity'
@@ -23,7 +25,10 @@ type DeptTreeNode<T> = T & { children: DeptTreeNode<T>[] }
  */
 @Injectable()
 export class SysDeptService {
-  constructor(private readonly deptBasicRepo: SysDeptBasicRepository) {}
+  constructor(
+    private readonly deptBasicRepo: SysDeptBasicRepository,
+    private readonly dataScopeService: DataScopeService,
+  ) {}
 
   /**
    * @description create dept (controller: create)
@@ -87,7 +92,22 @@ export class SysDeptService {
       payload.sortOrder = dto.sortOrder
     }
 
-    return this.deptBasicRepo.update(id, payload, em)
+    // 数据权限二期批 1：部门移动（parent_id 变更）改变旧/新祖先链的子树 ——
+    // 旧祖先链必须在 update 前取（update 之后 parent_id 已指向新父）。
+    // 旧父节点本身也必须进集合（findAncestorDeptIds 不含自身，而旧父的子树已丢节点）。
+    const oldAncestorIds = parentId !== current.parentId && current.parentId !== null
+      ? [current.parentId, ...(await this.deptBasicRepo.findAncestorDeptIds(current.parentId, em))]
+      : []
+
+    const updated = await this.deptBasicRepo.update(id, payload, em)
+
+    if (parentId !== current.parentId) {
+      await runAfterCommit(async () => {
+        await this.dataScopeService.invalidateForDeptMove(id, oldAncestorIds)
+      })
+    }
+
+    return updated
   }
 
   /**
@@ -104,7 +124,16 @@ export class SysDeptService {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.dept.hasEmployees' })
     }
 
-    return this.deptBasicRepo.deleteSoftById(id, userId, em)
+    // 数据权限二期批 1：删除后 CTE 已查不到该子树，必须在删除前取 id 集合
+    const subtreeIds = await this.deptBasicRepo.findDeptIdsInSubtree(id, em)
+
+    const deleted = await this.deptBasicRepo.deleteSoftById(id, userId, em)
+
+    await runAfterCommit(async () => {
+      await this.dataScopeService.invalidateForDeptIds(subtreeIds)
+    })
+
+    return deleted
   }
 
   /**

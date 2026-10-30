@@ -23,7 +23,7 @@ import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
  * - CRUD 全链路（create 回带 DB 默认 uuid / readById / update）；
  * - deleteSoftById 写 sys_deleted（content jsonb 直存对象 + deletedAt 显式赋值）；
  * - list 走 PG 版列表构建器（分页 / ILIKE 模糊 / total / 排序 / 通配符字面量）；
- * - 数据权限一期（app_demo 已注册）：SELF / CUSTOM / ALL 的行级过滤，
+ * - 数据权限（app_demo 已注册）：SELF / ALL / 默认拒绝的行级过滤，
  *   read/update/delete 越权 = 404，无上下文 fail-closed。
  *
  * 数据权限上下文：直接调仓库的用例必须显式进入系统通道（`als.runAsSystem`）——
@@ -212,12 +212,12 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     expect(sorted.data.map(i => i.demoNumber)).toEqual([3, 2, 1])
   })
 
-  describe('数据权限一期（app_demo.created_by）', () => {
+  describe('数据权限（app_demo.created_by：SELF / ALL / 默认拒绝）', () => {
     const userA = randomUUID()
     const userB = randomUUID()
     const selfScope: IWalnutAdminDataScopeDescriptor = { mode: WalnutAdminConstDataScopeMode.SELF }
     const allScope: IWalnutAdminDataScopeDescriptor = { mode: WalnutAdminConstDataScopeMode.ALL }
-    const denyScope: IWalnutAdminDataScopeDescriptor = { mode: WalnutAdminConstDataScopeMode.CUSTOM, userIds: [] }
+    const denyScope: IWalnutAdminDataScopeDescriptor = { mode: WalnutAdminConstDataScopeMode.CUSTOM, deptIds: [] }
 
     it('SELF：list 只见本人行；read/update/updateByField/delete 越权 = 404', async () => {
       const group = randomUUID().slice(0, 8)
@@ -310,7 +310,7 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
       expect(listAll.total).toBe(2)
     })
 
-    it('CUSTOM 空集（无角色/默认拒绝）：list 0 行，readById 404', async () => {
+    it('默认拒绝（无角色 / 空清单）：list 0 行，readById 404', async () => {
       const row = await createOwned(userA, `int-pg-scope-deny-${randomUUID().slice(0, 8)}`)
 
       const list = await asUser(userA, denyScope, async () => repo.list({ query: { id: row.id } } as never))

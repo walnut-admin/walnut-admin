@@ -129,6 +129,36 @@ export class SysDeptBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
   }
 
   /**
+   * @description 以 id 为根的子树 dept id 集合（含自身）—— 数据权限 DEPT_AND_CHILD /
+   * DEPT_OR_SELF 的取数入口（复用 findSubtreeById 的递归 CTE + CYCLE 兜底）
+   */
+  public async findDeptIdsInSubtree(id: string, em?: EntityManager): Promise<string[]> {
+    const rows = await this.findSubtreeById(id, undefined, em)
+    return [...new Set(rows.map(row => row.id))]
+  }
+
+  /**
+   * @description 祖先链 dept id（自 parent 向上到根，不含自身；CYCLE 环保护）——
+   * 部门移动后的缓存失效反查：祖先链用户的 DEPT_AND_CHILD 子树发生了变化
+   * （子树内用户自己的 subtree 不变，真正受影响的是祖先侧）。
+   */
+  public async findAncestorDeptIds(id: string, em?: EntityManager): Promise<string[]> {
+    const sql = `WITH RECURSIVE ancestors AS (
+        SELECT d.id, d.parent_id
+        FROM sys_dept d
+        WHERE d.id = $1
+        UNION ALL
+        SELECT d.id, d.parent_id
+        FROM sys_dept d
+        JOIN ancestors a ON d.id = a.parent_id
+      ) CYCLE id SET is_cycle USING path
+      SELECT id FROM ancestors WHERE id <> $1`
+
+    const raw = await this.getManager(em).query<Array<{ id: string }>>(sql, [id])
+    return [...new Set(raw.map(row => row.id))]
+  }
+
+  /**
    * @description 有子部门计数（删除前置校验用；FK RESTRICT 是最后防线）
    */
   public async countChildren(id: string, em?: EntityManager): Promise<number> {

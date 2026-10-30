@@ -3175,11 +3175,11 @@ export interface components {
             status: boolean;
             /**
              * role data scope
-             * @description 1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)
+             * @description 1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF
              * @default 1
              * @enum {number}
              */
-            dataScope: 1 | 2 | 3;
+            dataScope: 1 | 2 | 3 | 4 | 5 | 6;
             /** current role's user count */
             usersCount: number;
             /** populated menus list */
@@ -3264,6 +3264,13 @@ export interface components {
              * @default false
              */
             mfaSetup: boolean;
+            /**
+             * dept id
+             * @description owning dept for department-scoped data permissions; null => no dept
+             * @default null
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            deptId: string | null;
             /** virtual roles count */
             roles_count: number;
             /** virtual roles list */
@@ -5305,6 +5312,13 @@ export interface components {
              * @default false
              */
             mfaSetup: boolean;
+            /**
+             * dept id
+             * @description owning dept for department-scoped data permissions; null => no dept
+             * @default null
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            deptId: string | null;
             /** virtual roles count */
             roles_count: number;
             /** virtual roles list */
@@ -7531,11 +7545,11 @@ export interface components {
             menus: string[];
             /**
              * role data scope
-             * @description 1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)
+             * @description 1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF
              * @default 1
              * @enum {number}
              */
-            dataScope: 1 | 2 | 3;
+            dataScope: 1 | 2 | 3 | 4 | 5 | 6;
         };
         SysRoleDTOUpdateRequest: {
             /**
@@ -7571,11 +7585,11 @@ export interface components {
             menus: string[];
             /**
              * role data scope
-             * @description 1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)
+             * @description 1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF
              * @default 1
              * @enum {number}
              */
-            dataScope: 1 | 2 | 3;
+            dataScope: 1 | 2 | 3 | 4 | 5 | 6;
         };
         SysRoleDTOSafeListResponse: {
             /** list response data */
@@ -7622,11 +7636,11 @@ export interface components {
             status: boolean;
             /**
              * role data scope
-             * @description 1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)
+             * @description 1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF
              * @default 1
              * @enum {number}
              */
-            dataScope: 1 | 2 | 3;
+            dataScope: 1 | 2 | 3 | 4 | 5 | 6;
             /** current role's user count */
             usersCount?: number;
             /** populated menus list */
@@ -7724,6 +7738,13 @@ export interface components {
              *     ]
              */
             roles: string[];
+            /**
+             * dept id
+             * @description owning dept for department-scoped data permissions; null => no dept
+             * @default null
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            deptId: string | null;
         };
         SysUserDTOSafeListResponse: {
             /** list response data */
@@ -7802,6 +7823,13 @@ export interface components {
              * @default false
              */
             mfaSetup: boolean;
+            /**
+             * dept id
+             * @description owning dept for department-scoped data permissions; null => no dept
+             * @default null
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            deptId: string | null;
             /** virtual roles count */
             roles_count?: number;
             /** virtual roles list */

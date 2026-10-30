@@ -93,10 +93,9 @@ export class SysDeletedService {
   }
 
   /**
-   * 数据权限一期：恢复用户时 junction（角色绑定）可能随快照回放 —— 该用户重新获得
-   * 角色后，**同 CUSTOM 角色的其他成员**的成员快照也要重算；这里按恢复后的实时绑定
-   * 走 `invalidateForRecoveredUser`（用户键 + 受影响角色成员）。删除时已清过，这里
-   * 兜底 TTL 内「删除 → 立即恢复」的窗口。
+   * 数据权限二期：恢复用户时按实时绑定重算其描述符。CUSTOM 改为部门清单后，恢复
+   * **不再影响同角色其他成员**（原先的成员快照失效腿随语义演进去除）；删除时已清过，
+   * 这里兜底 TTL 内「删除 → 立即恢复」的窗口。
    */
   private async invalidateRecoveredDataScope(deleted: SysDeletedEntity) {
     if (deleted.modelName !== WalnutModelName.SYS_USER) {
@@ -109,7 +108,7 @@ export class SysDeletedService {
     }
 
     await runAfterCommit(async () => {
-      await this.dataScopeService.invalidateForRecoveredUser(recoveredUserId)
+      await this.dataScopeService.invalidateForUser(recoveredUserId)
     })
   }
 

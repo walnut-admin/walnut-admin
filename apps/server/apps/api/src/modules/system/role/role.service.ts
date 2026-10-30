@@ -77,7 +77,7 @@ export class SysRoleService {
     const permissionsAffected = dto.menus !== undefined
       || (dto.status !== undefined && role !== null && dto.status !== role.status)
 
-    // 数据权限一期：dataScope 或 status（停用角色不参与 scope 解析）变化都会
+    // 数据权限：dataScope 或 status（停用角色不参与 scope 解析）变化都会
     // 改变成员的行级可见面 —— 与权限缓存同一反查腿失效 `AUTH:DATA_SCOPE:<userId>`。
     const dataScopeAffected = (dto.dataScope !== undefined && role !== null && dto.dataScope !== role.dataScope)
       || (dto.status !== undefined && role !== null && dto.status !== role.status)

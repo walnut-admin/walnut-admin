@@ -59,6 +59,13 @@ export class SysUserEntity {
   @Column({ type: 'boolean', name: 'mfa_setup', default: false })
   mfaSetup: boolean
 
+  // 所属部门（数据权限二期批 1，docs/plans/data-scope-phase2-3-plan.md §1.1）：
+  // 可空（用户可不属于任何部门；DEPT 档位对 NULL 默认拒绝），FK→sys_dept ON DELETE
+  // RESTRICT 与 partial index idx_user_dept 的 DDL 在 migration。
+  @Index('idx_user_dept', { where: '"dept_id" IS NOT NULL' })
+  @Column({ type: 'uuid', name: 'dept_id', nullable: true })
+  deptId: string | null
+
   // 原 roles: ObjectId[] 拆为关联表 sys_user_role（见 user-role.entity.ts）
 
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })

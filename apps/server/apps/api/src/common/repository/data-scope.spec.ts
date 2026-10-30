@@ -6,7 +6,7 @@ import { readdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { WalnutAdminConstDataScope, WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
-import { getMetadataArgsStorage, IsNull } from 'typeorm'
+import { getMetadataArgsStorage, In, IsNull } from 'typeorm'
 import { beforeAll, describe, expect, it } from 'vitest'
 import {
   buildWalnutDataScopeFindWhere,
@@ -114,13 +114,16 @@ describe('数据权限注册表（注册 = 强制过滤；未注册 = 显式豁�
     expect(registered.filter(entity => exempt.includes(entity))).toEqual([])
   })
 
-  it('注册的 scopeColumn 是实体真实列（属性名口径，TypeORM 负责列名映射）', () => {
+  it('注册的 scopeColumn / deptColumn 是实体真实列（属性名口径，TypeORM 负责列名映射）', () => {
     const problems: string[] = []
 
     for (const config of WALNUT_DATA_SCOPE_ENTITIES) {
       const props = entityPropertyNames(config.entity)
       if (!props.has(config.scopeColumn)) {
         problems.push(`${entityTableName(config.entity)}.${config.scopeColumn} 不是实体属性`)
+      }
+      if (config.deptColumn !== undefined && !props.has(config.deptColumn)) {
+        problems.push(`${entityTableName(config.entity)}.${config.deptColumn}（deptColumn）不是实体属性`)
       }
       if (config.note.trim() === '') {
         problems.push(`${entityTableName(config.entity)} 缺少注册理由`)
@@ -138,7 +141,7 @@ describe('数据权限注册表（注册 = 强制过滤；未注册 = 显式豁�
     expect(missing).toEqual([])
   })
 
-  it('一期注册清单快照（改清单必须同步本 spec 与文档）', () => {
+  it('二期注册清单快照（改清单必须同步本 spec 与文档）', () => {
     const names = WALNUT_DATA_SCOPE_ENTITIES.map(config => entityTableName(config.entity)).sort()
 
     expect(names).toEqual([
@@ -163,12 +166,17 @@ describe('数据权限注册表（注册 = 强制过滤；未注册 = 显式豁�
 })
 
 describe('数据权限谓词（决策层 → 执行层单点）', () => {
+  // app_demo：只有 owner 列（批 1 尚无 dept 列）—— 部门系档位对它必须默认拒绝
   const config = WALNUT_DATA_SCOPE_ENTITIES.find(item => entityTableName(item.entity) === 'app_demo')!
+  // sys_employee：owner + dept 列（批 1 的部门端到端靶表）
+  const deptConfig = WALNUT_DATA_SCOPE_ENTITIES.find(item => entityTableName(item.entity) === 'sys_employee')!
   const anonymousConfig: IWalnutAdminDataScopeEntityConfig = {
     ...config,
     allowAnonymous: true,
   }
   const userId = '11111111-1111-4111-8111-111111111111'
+  const deptA = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  const deptChild = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
 
   it('aLL → 不注入谓词（null）', () => {
     expect(buildWalnutDataScopeSqlPredicate(config, { mode: WalnutAdminConstDataScopeMode.ALL }, userId, 'entity'))
@@ -208,42 +216,123 @@ describe('数据权限谓词（决策层 → 执行层单点）', () => {
     expect(where).toHaveLength(2)
   })
 
-  it('cUSTOM → owner IN (:...userIds)（去重）', () => {
+  it('dEPT → dept 列 IN (:...deptIds)（去重）', () => {
     const predicate = buildWalnutDataScopeSqlPredicate(
-      config,
-      { mode: WalnutAdminConstDataScopeMode.CUSTOM, userIds: [userId, userId, 'other'] },
+      deptConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [deptA, deptA, ''] },
       userId,
       'entity',
     )
 
-    expect(predicate?.clause).toBe('entity.createdBy IN (:...walnut_data_scope_users)')
-    expect(predicate?.params.walnut_data_scope_users).toEqual([userId, 'other'])
+    expect(predicate).toEqual({
+      clause: 'entity.deptId IN (:...walnut_data_scope_depts)',
+      params: { walnut_data_scope_depts: [deptA] },
+    })
+
+    expect(buildWalnutDataScopeFindWhere(deptConfig, { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [deptA] }, userId))
+      .toEqual([{ deptId: In([deptA]) }])
   })
 
-  it('cUSTOM + allowAnonymous → IN 或 IS NULL', () => {
-    const predicate = buildWalnutDataScopeSqlPredicate(
-      anonymousConfig,
-      { mode: WalnutAdminConstDataScopeMode.CUSTOM, userIds: [userId] },
-      userId,
-      'entity',
-    )
+  it('dEPT_AND_CHILD / cUSTOM → 同一部门谓词（子树/清单已在解析器展开）', () => {
+    for (const mode of [WalnutAdminConstDataScopeMode.DEPT_AND_CHILD, WalnutAdminConstDataScopeMode.CUSTOM]) {
+      const predicate = buildWalnutDataScopeSqlPredicate(
+        deptConfig,
+        { mode, deptIds: [deptA, deptChild] },
+        userId,
+        'entity',
+      )
 
-    expect(predicate?.clause).toBe('(entity.createdBy IN (:...walnut_data_scope_users) OR entity.createdBy IS NULL)')
+      expect(predicate?.clause).toBe('entity.deptId IN (:...walnut_data_scope_depts)')
+      expect(predicate?.params.walnut_data_scope_depts).toEqual([deptA, deptChild])
+    }
   })
 
-  it('cUSTOM 空集 → 恒假（默认拒绝，不猜 ALL）', () => {
+  it('部门系档位 + 空集 → 恒假（默认拒绝，不猜 ALL）', () => {
+    for (const mode of [
+      WalnutAdminConstDataScopeMode.DEPT,
+      WalnutAdminConstDataScopeMode.DEPT_AND_CHILD,
+      WalnutAdminConstDataScopeMode.CUSTOM,
+    ]) {
+      expect(buildWalnutDataScopeSqlPredicate(deptConfig, { mode, deptIds: [] }, userId, 'entity'))
+        .toEqual({ clause: '1 = 0', params: {} })
+      expect(buildWalnutDataScopeFindWhere(deptConfig, { mode, deptIds: [] }, userId))
+        .toBe('deny')
+    }
+  })
+
+  it('部门系档位 + 实体无 dept 列 → 恒假（app_demo 批 1 fail-closed）', () => {
     expect(buildWalnutDataScopeSqlPredicate(
       config,
-      { mode: WalnutAdminConstDataScopeMode.CUSTOM, userIds: [] },
+      { mode: WalnutAdminConstDataScopeMode.CUSTOM, deptIds: [deptA] },
       userId,
       'entity',
     )).toEqual({ clause: '1 = 0', params: {} })
 
     expect(buildWalnutDataScopeFindWhere(
       config,
-      { mode: WalnutAdminConstDataScopeMode.CUSTOM, userIds: [] },
+      { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [deptA] },
       userId,
     )).toBe('deny')
+  })
+
+  it('dEPT_OR_SELF → owner = user OR dept IN deptIds', () => {
+    const predicate = buildWalnutDataScopeSqlPredicate(
+      deptConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT_OR_SELF, deptIds: [deptA] },
+      userId,
+      'entity',
+    )
+
+    expect(predicate).toEqual({
+      clause: '(entity.userId = :walnut_data_scope_user OR entity.deptId IN (:...walnut_data_scope_depts))',
+      params: {
+        walnut_data_scope_user: userId,
+        walnut_data_scope_depts: [deptA],
+      },
+    })
+
+    expect(buildWalnutDataScopeFindWhere(
+      deptConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT_OR_SELF, deptIds: [deptA] },
+      userId,
+    )).toEqual([{ userId }, { deptId: In([deptA]) }])
+  })
+
+  it('dEPT_OR_SELF + 显式 userIds → owner IN (:...userIds)（并集语义）', () => {
+    const predicate = buildWalnutDataScopeSqlPredicate(
+      deptConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT_OR_SELF, deptIds: [deptA], userIds: [userId, 'other'] },
+      userId,
+      'entity',
+    )
+
+    expect(predicate?.clause).toBe('(entity.userId IN (:...walnut_data_scope_users) OR entity.deptId IN (:...walnut_data_scope_depts))')
+    expect(predicate?.params.walnut_data_scope_users).toEqual([userId, 'other'])
+  })
+
+  it('dEPT_OR_SELF + 无 dept 列 → 退化为仅 SELF（不泄露）', () => {
+    const predicate = buildWalnutDataScopeSqlPredicate(
+      config,
+      { mode: WalnutAdminConstDataScopeMode.DEPT_OR_SELF, deptIds: [deptA] },
+      userId,
+      'entity',
+    )
+
+    expect(predicate).toEqual({
+      clause: '(entity.createdBy = :walnut_data_scope_user)',
+      params: { walnut_data_scope_user: userId },
+    })
+  })
+
+  it('dEPT_OR_SELF + allowAnonymous → 并上 owner IS NULL', () => {
+    const predicate = buildWalnutDataScopeSqlPredicate(
+      { ...deptConfig, allowAnonymous: true },
+      { mode: WalnutAdminConstDataScopeMode.DEPT_OR_SELF, deptIds: [deptA] },
+      userId,
+      'entity',
+    )
+
+    expect(predicate?.clause).toBe('(entity.userId = :walnut_data_scope_user OR entity.deptId IN (:...walnut_data_scope_depts) OR entity.userId IS NULL)')
   })
 
   it('merge：业务条件与每个 scope 分支做 AND（OR 数组展开）', () => {
@@ -264,11 +353,15 @@ describe('数据权限谓词（决策层 → 执行层单点）', () => {
     expect(mergeWalnutDataScopeFindWhere({}, 'deny')).toBe('deny')
   })
 
-  it('toWalnutDataScopeMode：1/2/3 映射，非法值 null', () => {
+  it('toWalnutDataScopeMode：1..6 映射，非法值 null', () => {
     expect(toWalnutDataScopeMode(WalnutAdminConstDataScope.ALL)).toBe(WalnutAdminConstDataScopeMode.ALL)
-    expect(toWalnutDataScopeMode(WalnutAdminConstDataScope.SELF)).toBe(WalnutAdminConstDataScopeMode.SELF)
     expect(toWalnutDataScopeMode(WalnutAdminConstDataScope.CUSTOM)).toBe(WalnutAdminConstDataScopeMode.CUSTOM)
+    expect(toWalnutDataScopeMode(WalnutAdminConstDataScope.DEPT)).toBe(WalnutAdminConstDataScopeMode.DEPT)
+    expect(toWalnutDataScopeMode(WalnutAdminConstDataScope.DEPT_AND_CHILD)).toBe(WalnutAdminConstDataScopeMode.DEPT_AND_CHILD)
+    expect(toWalnutDataScopeMode(WalnutAdminConstDataScope.SELF)).toBe(WalnutAdminConstDataScopeMode.SELF)
+    expect(toWalnutDataScopeMode(WalnutAdminConstDataScope.DEPT_OR_SELF)).toBe(WalnutAdminConstDataScopeMode.DEPT_OR_SELF)
     expect(toWalnutDataScopeMode(0)).toBeNull()
+    expect(toWalnutDataScopeMode(7)).toBeNull()
     expect(toWalnutDataScopeMode(null)).toBeNull()
   })
 })

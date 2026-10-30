@@ -85,6 +85,12 @@ JWT Guard → ALS 拦截器种入 { user, dataScope } → controller → service
 
 ### 二期（可选）：RLS 作 RESTRICTIVE 硬上限 + 部门维度
 
+> **部门维度（批 1）已实施（2026-10-30）**：`sys_user.dept_id`、`sys_role_dept`、
+> `sys_role.data_scope` 六档（1 ALL / 2 CUSTOM 部门清单 / 3 DEPT / 4 DEPT_AND_CHILD /
+> 5 SELF / 6 DEPT_OR_SELF）与解析器/谓词扩展已落地；RLS 硬上限仍属三期。
+> 详见 `docs/plans/data-scope-phase2-3-plan.md` §1.1 与
+> `migrations/1793340000000-DataScopePhase2Dept.ts`。
+
 - 引入 `sys_dept` / `sys_user.dept_id` / `sys_role_dept` / `sys_role.data_scope smallint`
   （1 ALL / 2 CUSTOM / 3 DEPT / 4 DEPT_AND_CHILD / 5 SELF / 6 DEPT_OR_SELF，对齐若依语义）；
   子树查询用 `WITH RECURSIVE`（不照搬 ancestors 逗号串）。
@@ -127,8 +133,8 @@ JWT Guard → ALS 拦截器种入 { user, dataScope } → controller → service
   用户删除/恢复/新建（同口径）、switchRole/switchRoleMode。
 - 与计划的差异（实现时定夺，均已写进代码注释）：
   1. **CUSTOM 的成员列表**：一期没有独立的「自定义清单」表，取 `sys_user_role` 的角色
-     成员（COMBINE 为各 CUSTOM 角色成员并集；SWITCH 为当前角色成员）。二期做部门维度时
-     再引入 `sys_role_dept`/显式用户清单，只改解析器。
+     成员（COMBINE 为各 CUSTOM 角色成员并集；SWITCH 为当前角色成员）。二期批 1 已按计划
+     改为 `sys_role_dept` 部门清单（角色成员语义废除），只改了解析器与谓词。
   2. **visitor 回填 SELF**：permission.guard 对 visitor 放行所有 `:list`/`:read`，若落到
      默认 ALL，注册表业务表（用户/日志等）会对游客全量可读；游客无业务行，SELF 等价空集。
   3. **sys_employee 不自动填 owner**：`user_id` 是「一号一职工」的业务绑定（partial

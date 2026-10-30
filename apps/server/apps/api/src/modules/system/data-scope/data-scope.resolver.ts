@@ -5,14 +5,24 @@ import { Role } from '@walnut/contract'
 import { toWalnutDataScopeMode } from '@/common/repository/data-scope'
 
 /**
- * 数据权限**解析器**（纯函数）—— 输入 = 用户 junction 角色快照 + 各角色 dataScope，
- * 输出 = 描述符。决策层不碰 DB/缓存，可完整单测（docs/plans/data-scope-design.md
- * §4 设计要点 1 / §7「残余过滤条件接口」：未来接 OPA/策略引擎只换这一层）。
+ * 数据权限**解析器**（纯函数）—— 输入 = 用户 junction 角色快照 + 各角色 dataScope +
+ * 已解析的部门维度（用户 dept、dept 子树、CUSTOM 部门清单），输出 = 描述符。
+ * 决策层不碰 DB/缓存，可完整单测（docs/plans/data-scope-design.md §4 设计要点 1 /
+ * §7「残余过滤条件接口」：未来接 OPA/策略引擎只换这一层）。
  *
- * 语义（沿用 roleMode）：
+ * 六档语义（docs/plans/data-scope-phase2-3-plan.md §1.1）：
+ * - ALL：全量；
+ * - CUSTOM：`sys_role_dept` 的部门清单（不递归子树；空清单默认拒绝）；
+ * - DEPT：`[user.deptId]`（dept 为 NULL → 空集默认拒绝）；
+ * - DEPT_AND_CHILD：用户部门 subtree（含自身；由服务层递归 CTE 预解析后传入）；
+ * - SELF：本人；
+ * - DEPT_OR_SELF：subtree ∪ 本人（描述符同时携带 deptIds 与 userIds）。
+ *
+ * 多角色语义（沿用 roleMode）：
  * - root 恒 ALL（COMBINE 下任一角色为 root；SWITCH 下 currentRole 为 root）；
- * - COMBINE：所有启用角色的档位取**并集最宽** —— 任一 ALL → ALL；否则把 SELF 的
- *   「本人」与 CUSTOM 的成员清单并起来 → CUSTOM；只有 SELF → SELF；
+ * - COMBINE：deptIds 取**并集**；任一 ALL → ALL；任一 SELF（含 DEPT_OR_SELF）→
+ *   结果保留本人腿（DEPT_OR_SELF）；纯部门档位并集按 DEPT 描述（deptIds 已展开，
+ *   执行层对 DEPT/DEPT_AND_CHILD/CUSTOM 是同一谓词）；
  * - SWITCH：只看 currentRole（失效时回退 junction 首角色，与 getCoreMenus 同口径）；
  * - 无启用角色 / 非法档位 → 默认拒绝（CUSTOM 空集 → SQL 恒假）。
  *
@@ -27,13 +37,20 @@ export interface IWalnutAdminDataScopeRoleSnapshot {
   roleName: string
   /** 停用角色不参与数据权限（与权限计算过滤 status 同口径） */
   status: boolean
-  /** `sys_role.data_scope` 原始 smallint（1/2/3） */
+  /** `sys_role.data_scope` 原始 smallint（1..6） */
   dataScope: number
 }
 
 export interface IWalnutAdminDataScopeResolveInput {
-  /** 当前用户（SELF 的本人；CUSTOM 结果恒包含他） */
+  /** 当前用户（SELF 的本人；部门系档位并集的本人腿） */
   userId: string
+  /** 用户所属部门（`sys_user.dept_id`；NULL = 无部门，DEPT 系档位默认拒绝） */
+  userDeptId: string | null
+  /**
+   * 用户部门的**子树 id**（含自身，递归 CTE 预解析）。DEPT_AND_CHILD / DEPT_OR_SELF 用；
+   * 缺省按空集（默认拒绝），service 在需要时才查库。
+   */
+  userDeptSubtreeIds?: string[]
   /**
    * effective roleMode（`SharedScopeResolverService.resolve(functionalRole, user)` 的
    * 结果，与 getCoreMenus 同口径 —— GLOBAL 配置下恒 switchable）。
@@ -45,17 +62,25 @@ export interface IWalnutAdminDataScopeResolveInput {
   orderedRoleIds: string[]
   /** 全部绑定角色（status/dataScope 是真值） */
   roles: IWalnutAdminDataScopeRoleSnapshot[]
-  /** roleId → 该角色绑定的 userIds（只有 CUSTOM 角色需要；缺省按空集） */
-  customMemberIds?: Record<string, string[]>
+  /** roleId → `sys_role_dept` 的 dept id 清单（只有 CUSTOM 角色需要；缺省按空集） */
+  customDeptIds?: Record<string, string[]>
 }
 
 export const WALNUT_DATA_SCOPE_DENY: IWalnutAdminDataScopeDescriptor = {
   mode: WalnutAdminConstDataScopeMode.CUSTOM,
-  userIds: [],
+  deptIds: [],
 }
 
-function uniqueIds(ids: string[]): string[] {
-  return [...new Set(ids.filter(id => typeof id === 'string' && id !== ''))]
+function uniqueIds(ids: readonly (string | undefined)[] | undefined): string[] {
+  return [...new Set((ids ?? []).filter((id): id is string => typeof id === 'string' && id !== ''))]
+}
+
+/** 单角色解析所需的部门上下文（全部由 service 预解析；缺省 = 无部门） */
+export interface IWalnutAdminDataScopeSingleRoleContext {
+  userId: string
+  userDeptId: string | null
+  userDeptSubtreeIds?: string[]
+  customDeptIds?: string[]
 }
 
 /**
@@ -64,6 +89,7 @@ function uniqueIds(ids: string[]): string[] {
  */
 export function resolveSingleRoleDataScope(
   role: IWalnutAdminDataScopeRoleSnapshot,
+  context?: Partial<IWalnutAdminDataScopeSingleRoleContext>,
 ): IWalnutAdminDataScopeDescriptor {
   if (role.roleName === Role.ROOT) {
     return { mode: WalnutAdminConstDataScopeMode.ALL }
@@ -80,7 +106,37 @@ export function resolveSingleRoleDataScope(
     return WALNUT_DATA_SCOPE_DENY
   }
 
-  return { mode }
+  const userDeptId = context?.userDeptId ?? null
+  const subtreeIds = uniqueIds(context?.userDeptSubtreeIds)
+
+  switch (mode) {
+    case WalnutAdminConstDataScopeMode.ALL:
+      return { mode }
+
+    case WalnutAdminConstDataScopeMode.SELF:
+      return { mode }
+
+    case WalnutAdminConstDataScopeMode.CUSTOM:
+      // CUSTOM = sys_role_dept 部门清单（不递归子树）；空清单 → 默认拒绝
+      return { mode, deptIds: uniqueIds(context?.customDeptIds) }
+
+    case WalnutAdminConstDataScopeMode.DEPT:
+      return { mode, deptIds: userDeptId === null ? [] : [userDeptId] }
+
+    case WalnutAdminConstDataScopeMode.DEPT_AND_CHILD:
+      // dept 为 NULL → 空集（subtree 由 service 预解析，缺省也不猜）
+      return { mode, deptIds: userDeptId === null ? [] : subtreeIds }
+
+    case WalnutAdminConstDataScopeMode.DEPT_OR_SELF:
+      return {
+        mode,
+        deptIds: userDeptId === null ? [] : subtreeIds,
+        userIds: uniqueIds([context?.userId]),
+      }
+
+    default:
+      return WALNUT_DATA_SCOPE_DENY
+  }
 }
 
 export function resolveWalnutDataScopeDescriptor(
@@ -101,6 +157,13 @@ export function resolveWalnutDataScopeDescriptor(
     return WALNUT_DATA_SCOPE_DENY
   }
 
+  const resolveSingle = (role: IWalnutAdminDataScopeRoleSnapshot) => resolveSingleRoleDataScope(role, {
+    userId: input.userId,
+    userDeptId: input.userDeptId,
+    userDeptSubtreeIds: input.userDeptSubtreeIds,
+    customDeptIds: input.customDeptIds?.[role.id] ?? [],
+  })
+
   if (input.roleMode === WalnutAdminConstRoleMode.COMBINE) {
     // 任一 root → ALL（root 是超级角色，junction 里存在即全量）
     if (orderedActiveRoles.some(role => role.roleName === Role.ROOT)) {
@@ -108,51 +171,52 @@ export function resolveWalnutDataScopeDescriptor(
     }
 
     // 最宽优先：任一角色 ALL → ALL
-    if (orderedActiveRoles.some(role => resolveSingleRoleDataScope(role).mode === WalnutAdminConstDataScopeMode.ALL)) {
+    if (orderedActiveRoles.some(role => resolveSingle(role).mode === WalnutAdminConstDataScopeMode.ALL)) {
       return { mode: WalnutAdminConstDataScopeMode.ALL }
     }
 
-    const userIds = new Set<string>([input.userId])
-    let hasCustom = false
+    const deptIds = new Set<string>()
+    let hasSelfLeg = false
 
     for (const role of orderedActiveRoles) {
-      const single = resolveSingleRoleDataScope(role)
+      const single = resolveSingle(role)
 
-      if (single.mode === WalnutAdminConstDataScopeMode.CUSTOM) {
-        hasCustom = true
-        for (const memberId of input.customMemberIds?.[role.id] ?? []) {
-          userIds.add(memberId)
-        }
+      if (single.mode === WalnutAdminConstDataScopeMode.SELF) {
+        hasSelfLeg = true
+        continue
+      }
+
+      if (single.mode === WalnutAdminConstDataScopeMode.DEPT_OR_SELF) {
+        hasSelfLeg = true
+      }
+
+      for (const deptId of single.deptIds ?? []) {
+        deptIds.add(deptId)
       }
     }
 
-    if (hasCustom) {
+    if (deptIds.size === 0) {
+      // 没有任何部门面：要么是 SELF，要么是全员空集（CUSTOM 空清单 / 无部门）
+      return hasSelfLeg
+        ? { mode: WalnutAdminConstDataScopeMode.SELF }
+        : { ...WALNUT_DATA_SCOPE_DENY, deptIds: [] }
+    }
+
+    if (hasSelfLeg) {
       return {
-        mode: WalnutAdminConstDataScopeMode.CUSTOM,
-        userIds: uniqueIds([...userIds]),
+        mode: WalnutAdminConstDataScopeMode.DEPT_OR_SELF,
+        deptIds: [...deptIds],
+        userIds: [input.userId],
       }
     }
 
-    return { mode: WalnutAdminConstDataScopeMode.SELF }
+    // 纯部门档位并集：deptIds 已展开，来源档位不再影响执行谓词
+    return { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [...deptIds] }
   }
 
   // SWITCH（以及未知 roleMode 的保守分支）：只看 currentRole，失效回退首角色
   const currentRole = orderedActiveRoles.find(role => role.id === input.currentRoleId)
     ?? orderedActiveRoles[0]
 
-  const single = resolveSingleRoleDataScope(currentRole)
-
-  if (single.mode === WalnutAdminConstDataScopeMode.CUSTOM) {
-    const userIds = uniqueIds([
-      input.userId,
-      ...(input.customMemberIds?.[currentRole.id] ?? []),
-    ])
-
-    return {
-      mode: WalnutAdminConstDataScopeMode.CUSTOM,
-      userIds: userIds.length > 0 ? userIds : [],
-    }
-  }
-
-  return single
+  return resolveSingle(currentRole)
 }

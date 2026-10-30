@@ -9,6 +9,7 @@ import { In } from 'typeorm'
 import { assembleSysMenu } from '../../menu/dto/menu.dto'
 import { SysMenuEntity } from '../../menu/entity/menu.entity'
 import { SysUserRoleEntity } from '../../user/entity/user-role.entity'
+import { SysRoleDeptEntity } from '../entity/role-dept.entity'
 import { SysRoleMenuEntity } from '../entity/role-menu.entity'
 import { SysRoleEntity } from '../entity/role.entity'
 
@@ -97,6 +98,18 @@ export class SysRoleRepoService {
   }
 
   /**
+   * @description 某角色 CUSTOM 档位的部门清单（sys_role_dept → dept_id 数组；
+   * 数据权限二期批 1，解析器的 CUSTOM 分支）
+   */
+  async findDeptIdsByRoleId(roleId: string, em?: EntityManager): Promise<string[]> {
+    const rows = await this.getRoleDeptRepository(em).find({
+      where: { roleId },
+      select: { deptId: true },
+    })
+    return rows.map(i => i.deptId)
+  }
+
+  /**
    * @description find role by id with usersCount + menus
    * （对齐 Mongo 版 readById().populate('usersCount') 的读出形态）
    */
@@ -180,6 +193,10 @@ export class SysRoleRepoService {
 
   private getRoleMenuRepository(em?: EntityManager) {
     return this.getManager(em).getRepository(SysRoleMenuEntity)
+  }
+
+  private getRoleDeptRepository(em?: EntityManager) {
+    return this.getManager(em).getRepository(SysRoleDeptEntity)
   }
 
   private getMenuRepository(em?: EntityManager) {

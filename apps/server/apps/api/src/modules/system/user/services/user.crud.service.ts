@@ -40,21 +40,11 @@ export class SysUserCrudService {
     const roles = dto.roles === undefined ? [functionalRole.defaultRole] : dto.roles
 
     // defaultRole 经 B5 订正脚本后是 v5 uuid（phase3-plan §5 残留窗口 2），直用不再包装
-    const created = await this.sysUserBasicRepo.create({
+    return this.sysUserBasicRepo.create({
       ...dto,
       roles,
       currentRole: roles[0] ?? null,
     }, em)
-
-    // 数据权限复审（P1 对称面）：新用户加入 CUSTOM 角色 R 时，R 的其他成员的
-    // 成员快照需要重算 —— 与 update/delete 同口径按角色失效。
-    if (roles.length > 0) {
-      await runAfterCommit(async () => {
-        await this.dataScopeService.invalidateForUserRoleChanges(created.id, roles)
-      })
-    }
-
-    return created
   }
 
   async read(id: string, em?: EntityManager) {
@@ -68,24 +58,19 @@ export class SysUserCrudService {
    * 旧权限串（permission.guard 只读缓存）必须立即作废 —— 按 `AUTH:PERMISSIONS:<user>:*`
    * 一次清掉该用户全部设备（deviceId 维度由缓存键自带，无需枚举）。
    *
-   * 数据权限复审（P1）：`sys_user_role` 变更不只影响该用户 —— CUSTOM 的 userIds 是
-   * 「角色成员快照」，B 被移出/加入角色 R 时 R 的其他成员也会看到错误的集合。因此
-   * 写前取旧角色集、写后与新角色集合并，逐角色调 `invalidateForRole`（角色成员反查 +
-   * 逐用户清缓存），最后再清用户自己。
+   * 数据权限二期（2026-10-30）：CUSTOM 从「角色成员快照」改为「sys_role_dept 部门清单」，
+   * 所以角色成员变化**只影响该用户本人**（不再按角色失效同角色其他成员）；
+   * 用户部门（deptId）变更同理只影响本人。
    */
   async update(id: string, dto: SysUserDTOUpdateRequest, em?: EntityManager) {
-    const rolesBefore = dto.roles !== undefined
-      ? await this.dataScopeService.resolveRoleIdsForUser(id, em)
-      : []
-
     const updated = await this.sysUserBasicRepo.update(id, dto, em)
 
-    if (dto.roles !== undefined) {
-      const affectedRoleIds = [...rolesBefore, ...(dto.roles ?? [])]
-
+    if (dto.roles !== undefined || dto.deptId !== undefined) {
       await runAfterCommit(async () => {
-        await this.cachePermissionsService.delPermissionsForUser(id)
-        await this.dataScopeService.invalidateForUserRoleChanges(id, affectedRoleIds)
+        if (dto.roles !== undefined) {
+          await this.cachePermissionsService.delPermissionsForUser(id)
+        }
+        await this.dataScopeService.invalidateForUser(id)
       })
     }
 
@@ -103,13 +88,12 @@ export class SysUserCrudService {
       throw new WalnutAdminExceptionBadRequest()
     }
 
-    // 删除前取角色集：junction 随主行 CASCADE 后已查不到
-    const rolesBefore = await this.dataScopeService.resolveRoleIdsForUser(id, em)
     const deleted = await this.sysUserBasicRepo.deleteSoftById(id, userId, em)
 
-    // junction 随主行 CASCADE：该用户与同角色其他成员的 CUSTOM 成员快照都要失效
+    // junction 随主行 CASCADE；删除后清掉本人 + 任何残留缓存（角色成员快照语义已废除，
+    // 同角色其他成员不再受影响）
     await runAfterCommit(async () => {
-      await this.dataScopeService.invalidateForUserRoleChanges(id, rolesBefore)
+      await this.dataScopeService.invalidateForUser(id)
     })
 
     return deleted

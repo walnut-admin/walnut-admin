@@ -60,10 +60,13 @@ export interface SeedPermissionChainOptions {
   /** 第二角色承载的权限串（junction 挂用户、不挂 current —— SWITCH/COMBINE 对照用） */
   secondRolePermissions?: string[]
   /**
-   * 主角色的数据权限档位（`sys_role.data_scope`，一期 1=ALL 2=SELF 3=CUSTOM）。
+   * 主角色的数据权限档位（`sys_role.data_scope`，二期六档：
+   * 1=ALL 2=CUSTOM 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF）。
    * 缺省 1：既有用例都是「非 root 管理员能看全部业务数据」的语义，不能被数据权限改变。
    */
   dataScope?: number
+  /** 用户所属部门（`sys_user.dept_id`；数据权限二期批 1 的 DEPT 系档位输入） */
+  deptId?: string | null
 }
 
 export interface SeedPermissionChainFixture {
@@ -199,8 +202,8 @@ export async function seedPermissionChainUser(
     [userId, keepRoleIds],
   )
   await pgDataSource.query(
-    'UPDATE sys_user SET mfa_setup = true, role_mode = $2, current_role_id = $3 WHERE id = $1',
-    [userId, roleMode, mainRoleId],
+    'UPDATE sys_user SET mfa_setup = true, role_mode = $2, current_role_id = $3, dept_id = $4 WHERE id = $1',
+    [userId, roleMode, mainRoleId, options.deptId ?? null],
   )
 
   return {

@@ -3,7 +3,7 @@ import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
-import { DataSource } from 'typeorm'
+import { DataSource, In } from 'typeorm'
 import { SysRoleEntity } from '../../role/entity/role.entity'
 import { SysUserDTO } from '../dto/user.dto'
 import { SysUserRoleEntity } from '../entity/user-role.entity'
@@ -59,6 +59,22 @@ export class SysUserRepositoryService {
    */
   async findUserByUserName(userName: string, em?: EntityManager) {
     return this.getManager(em).getRepository(SysUserEntity).findOne({ where: { userName } })
+  }
+
+  /**
+   * @description 某部门集合下的全部 userId（数据权限二期批 1：部门移动/删除时的
+   * 缓存失效反查腿 —— dept.service 经 DataScopeService.invalidateForDept* 调用）
+   */
+  async findUserIdsByDeptIds(deptIds: string[], em?: EntityManager): Promise<string[]> {
+    if (deptIds.length === 0) {
+      return []
+    }
+
+    const rows = await this.getManager(em).getRepository(SysUserEntity).find({
+      where: { deptId: In(deptIds) },
+      select: { id: true },
+    })
+    return rows.map(i => i.id)
   }
 
   /**

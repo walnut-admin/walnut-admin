@@ -10,8 +10,8 @@ import { DataScopeService } from './data-scope.service'
 /**
  * DataScopeService 的缓存/失效纪律（无 Nest、无 DB —— 全部替身）。
  *
- * 覆盖：缓存命中不打库、正负结果都缓存、invalidateForUser/ForUsers/ForRole 的
- * 失效键、角色成员反查、CUSTOM 成员并集。
+ * 覆盖：缓存命中不打库、正负结果都缓存、dept_id / 子树 / CUSTOM 清单的读取契约、
+ * 角色成员反查失效、角色部门清单变更失效、部门移动/删除的子树失效。
  */
 
 interface FakeRole {
@@ -19,6 +19,13 @@ interface FakeRole {
   roleName: string
   status: boolean
   dataScope: number
+}
+
+interface FakeUser {
+  id: string
+  roleMode: string
+  currentRole: string | null
+  deptId: string | null
 }
 
 class FakeCache {
@@ -40,10 +47,16 @@ class FakeCache {
 }
 
 class FakeUserRepo {
-  users = new Map<string, { id: string, roleMode: string, currentRole: string | null }>()
+  users = new Map<string, FakeUser>()
 
   async findUserByUserId(userId: string) {
     return this.users.get(userId) ?? null
+  }
+
+  async findUserIdsByDeptIds(deptIds: string[]) {
+    return [...this.users.values()]
+      .filter(user => user.deptId !== null && deptIds.includes(user.deptId))
+      .map(user => user.id)
   }
 }
 
@@ -51,8 +64,10 @@ class FakeRoleRepo {
   orderedRoleIds = new Map<string, string[]>()
   roles = new Map<string, FakeRole>()
   members = new Map<string, string[]>()
+  deptsByRole = new Map<string, string[]>()
   findByIdsCalls = 0
   findUserIdsCalls = 0
+  findDeptIdsCalls = 0
 
   async findRoleIdsByUserId(userId: string) {
     return this.orderedRoleIds.get(userId) ?? []
@@ -67,22 +82,56 @@ class FakeRoleRepo {
     this.findUserIdsCalls += 1
     return this.members.get(roleId) ?? []
   }
+
+  async findDeptIdsByRoleId(roleId: string) {
+    this.findDeptIdsCalls += 1
+    return this.deptsByRole.get(roleId) ?? []
+  }
+
+  async findRoleIdsByDeptIds(deptIds: string[]) {
+    return [...this.deptsByRole.entries()]
+      .filter(([, depts]) => depts.some(deptId => deptIds.includes(deptId)))
+      .map(([roleId]) => roleId)
+  }
+}
+
+class FakeDeptRepo {
+  subtrees = new Map<string, string[]>()
+  ancestors = new Map<string, string[]>()
+  subtreeCalls = 0
+  ancestorCalls = 0
+
+  async findDeptIdsInSubtree(deptId: string) {
+    this.subtreeCalls += 1
+    return this.subtrees.get(deptId) ?? []
+  }
+
+  async findAncestorDeptIds(deptId: string) {
+    this.ancestorCalls += 1
+    return this.ancestors.get(deptId) ?? []
+  }
 }
 
 const USER = '11111111-1111-4111-8111-111111111111'
 const USER_B = '22222222-2222-4222-8222-222222222222'
+const USER_C = '33333333-3333-4333-8333-333333333333'
 
-const functionalRole: IWalnutAdminConstAppSettingFunctionalRoleKeys<IWalnutAdminConstRoleMode> = {
-  scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
-  globalValue: WalnutAdminConstRoleMode.SWITCH,
-  localKey: 'roleMode',
-  defaultRole: 'default-role',
-}
+const DEPT_A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const DEPT_CHILD = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+const DEPT_B = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
 
-function createService() {
+function createService(roleMode: IWalnutAdminConstRoleMode = WalnutAdminConstRoleMode.SWITCH) {
   const cache = new FakeCache()
   const userRepo = new FakeUserRepo()
   const roleRepo = new FakeRoleRepo()
+  const deptRepo = new FakeDeptRepo()
+
+  const functionalRole: IWalnutAdminConstAppSettingFunctionalRoleKeys<IWalnutAdminConstRoleMode> = {
+    scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
+    globalValue: roleMode,
+    localKey: 'roleMode',
+    defaultRole: 'default-role',
+  }
 
   const service = new DataScopeService(
     cache as never,
@@ -91,11 +140,12 @@ function createService() {
     { getAccessTokenExpireSeconds: () => 1800 } as never,
     userRepo as never,
     roleRepo as never,
+    deptRepo as never,
   )
 
-  userRepo.users.set(USER, { id: USER, roleMode: WalnutAdminConstRoleMode.SWITCH, currentRole: 'role-self' })
+  userRepo.users.set(USER, { id: USER, roleMode: WalnutAdminConstRoleMode.SWITCH, currentRole: 'role-self', deptId: DEPT_A })
 
-  return { service, cache, userRepo, roleRepo }
+  return { service, cache, userRepo, roleRepo, deptRepo }
 }
 
 describe('data-scope service 解析与缓存', () => {
@@ -117,23 +167,104 @@ describe('data-scope service 解析与缓存', () => {
     expect(ctx.roleRepo.findByIdsCalls).toBe(1)
   })
 
-  it('custom 角色 → CUSTOM（本人 ∪ 角色成员）；成员清单只查一次', async () => {
-    ctx.userRepo.users.set(USER, { id: USER, roleMode: WalnutAdminConstRoleMode.SWITCH, currentRole: 'role-custom' })
+  it('dept 角色 → 读 user.dept_id（不查子树）', async () => {
+    ctx.userRepo.users.set(USER, { id: USER, roleMode: WalnutAdminConstRoleMode.SWITCH, currentRole: 'role-dept', deptId: DEPT_B })
+    ctx.roleRepo.orderedRoleIds.set(USER, ['role-dept'])
+    ctx.roleRepo.roles.set('role-dept', { id: 'role-dept', roleName: 'dept', status: true, dataScope: WalnutAdminConstDataScope.DEPT })
+
+    expect(await ctx.service.resolveForUser(USER)).toEqual({
+      mode: WalnutAdminConstDataScopeMode.DEPT,
+      deptIds: [DEPT_B],
+    })
+    expect(ctx.deptRepo.subtreeCalls).toBe(0)
+    expect(ctx.roleRepo.findDeptIdsCalls).toBe(0)
+  })
+
+  it('dept 角色 + 用户无部门 → 空集（默认拒绝）', async () => {
+    ctx.userRepo.users.set(USER, { id: USER, roleMode: WalnutAdminConstRoleMode.SWITCH, currentRole: 'role-dept', deptId: null })
+    ctx.roleRepo.orderedRoleIds.set(USER, ['role-dept'])
+    ctx.roleRepo.roles.set('role-dept', { id: 'role-dept', roleName: 'dept', status: true, dataScope: WalnutAdminConstDataScope.DEPT })
+
+    expect(await ctx.service.resolveForUser(USER)).toEqual({
+      mode: WalnutAdminConstDataScopeMode.DEPT,
+      deptIds: [],
+    })
+    expect(ctx.deptRepo.subtreeCalls).toBe(0)
+  })
+
+  it('dept_and_child → 递归子树只查一次（多角色复用）', async () => {
+    const combineCtx = createService(WalnutAdminConstRoleMode.COMBINE)
+    combineCtx.userRepo.users.set(USER, { id: USER, roleMode: WalnutAdminConstRoleMode.COMBINE, currentRole: 'role-child', deptId: DEPT_A })
+    combineCtx.deptRepo.subtrees.set(DEPT_A, [DEPT_A, DEPT_CHILD])
+    combineCtx.roleRepo.orderedRoleIds.set(USER, ['role-child', 'role-child-2'])
+    combineCtx.roleRepo.roles.set('role-child', { id: 'role-child', roleName: 'child', status: true, dataScope: WalnutAdminConstDataScope.DEPT_AND_CHILD })
+    combineCtx.roleRepo.roles.set('role-child-2', { id: 'role-child-2', roleName: 'child2', status: true, dataScope: WalnutAdminConstDataScope.DEPT_OR_SELF })
+
+    const descriptor = await combineCtx.service.resolveForUser(USER)
+
+    expect(descriptor.mode).toBe(WalnutAdminConstDataScopeMode.DEPT_OR_SELF)
+    expect(new Set(descriptor.deptIds)).toEqual(new Set([DEPT_A, DEPT_CHILD]))
+    expect(descriptor.userIds).toEqual([USER])
+    expect(combineCtx.deptRepo.subtreeCalls).toBe(1)
+  })
+
+  it('dept_or_self → 子树 + 本人腿', async () => {
+    ctx.userRepo.users.set(USER, { id: USER, roleMode: WalnutAdminConstRoleMode.SWITCH, currentRole: 'role-or-self', deptId: DEPT_A })
+    ctx.deptRepo.subtrees.set(DEPT_A, [DEPT_A])
+    ctx.roleRepo.orderedRoleIds.set(USER, ['role-or-self'])
+    ctx.roleRepo.roles.set('role-or-self', { id: 'role-or-self', roleName: 'or-self', status: true, dataScope: WalnutAdminConstDataScope.DEPT_OR_SELF })
+
+    expect(await ctx.service.resolveForUser(USER)).toEqual({
+      mode: WalnutAdminConstDataScopeMode.DEPT_OR_SELF,
+      deptIds: [DEPT_A],
+      userIds: [USER],
+    })
+  })
+
+  it('custom 角色 → 读 sys_role_dept 部门清单（角色成员不参与）', async () => {
+    ctx.userRepo.users.set(USER, { id: USER, roleMode: WalnutAdminConstRoleMode.SWITCH, currentRole: 'role-custom', deptId: DEPT_A })
     ctx.roleRepo.orderedRoleIds.set(USER, ['role-custom'])
     ctx.roleRepo.roles.set('role-custom', { id: 'role-custom', roleName: 'b', status: true, dataScope: WalnutAdminConstDataScope.CUSTOM })
     ctx.roleRepo.members.set('role-custom', [USER_B])
+    ctx.roleRepo.deptsByRole.set('role-custom', [DEPT_A, DEPT_B])
 
     const descriptor = await ctx.service.resolveForUser(USER)
 
-    expect(descriptor.mode).toBe(WalnutAdminConstDataScopeMode.CUSTOM)
-    expect(new Set(descriptor.userIds)).toEqual(new Set([USER, USER_B]))
-    expect(ctx.roleRepo.findUserIdsCalls).toBe(1)
+    expect(descriptor).toEqual({
+      mode: WalnutAdminConstDataScopeMode.CUSTOM,
+      deptIds: [DEPT_A, DEPT_B],
+    })
+    expect(ctx.roleRepo.findDeptIdsCalls).toBe(1)
+    // CUSTOM 不再取角色成员清单
+    expect(ctx.roleRepo.findUserIdsCalls).toBe(0)
+  })
+
+  it('custom 空清单 → 默认拒绝', async () => {
+    ctx.userRepo.users.set(USER, { id: USER, roleMode: WalnutAdminConstRoleMode.SWITCH, currentRole: 'role-custom', deptId: DEPT_A })
+    ctx.roleRepo.orderedRoleIds.set(USER, ['role-custom'])
+    ctx.roleRepo.roles.set('role-custom', { id: 'role-custom', roleName: 'b', status: true, dataScope: WalnutAdminConstDataScope.CUSTOM })
+
+    expect(await ctx.service.resolveForUser(USER)).toEqual({
+      mode: WalnutAdminConstDataScopeMode.CUSTOM,
+      deptIds: [],
+    })
+  })
+
+  it('root 角色短路：不查子树 / 不查 CUSTOM 清单', async () => {
+    ctx.userRepo.users.set(USER, { id: USER, roleMode: WalnutAdminConstRoleMode.COMBINE, currentRole: 'role-root', deptId: DEPT_A })
+    ctx.roleRepo.orderedRoleIds.set(USER, ['role-root', 'role-custom'])
+    ctx.roleRepo.roles.set('role-root', { id: 'role-root', roleName: 'root', status: true, dataScope: WalnutAdminConstDataScope.ALL })
+    ctx.roleRepo.roles.set('role-custom', { id: 'role-custom', roleName: 'c', status: true, dataScope: WalnutAdminConstDataScope.CUSTOM })
+
+    expect(await ctx.service.resolveForUser(USER)).toEqual({ mode: WalnutAdminConstDataScopeMode.ALL })
+    expect(ctx.deptRepo.subtreeCalls).toBe(0)
+    expect(ctx.roleRepo.findDeptIdsCalls).toBe(0)
   })
 
   it('无角色 → 默认拒绝，并且负结果也缓存', async () => {
     const descriptor = await ctx.service.resolveForUser(USER)
 
-    expect(descriptor).toEqual({ mode: WalnutAdminConstDataScopeMode.CUSTOM, userIds: [] })
+    expect(descriptor).toEqual({ mode: WalnutAdminConstDataScopeMode.CUSTOM, deptIds: [] })
     expect(ctx.cache.store.get(`AUTH:DATA_SCOPE:${USER}`)).toEqual(descriptor)
   })
 
@@ -141,7 +272,7 @@ describe('data-scope service 解析与缓存', () => {
     ctx.userRepo.users.clear()
 
     expect(await ctx.service.resolveForUser(USER))
-      .toEqual({ mode: WalnutAdminConstDataScopeMode.CUSTOM, userIds: [] })
+      .toEqual({ mode: WalnutAdminConstDataScopeMode.CUSTOM, deptIds: [] })
   })
 
   it('invalidateForUser 只清该用户键，下一次解析重新打库', async () => {
@@ -169,6 +300,48 @@ describe('data-scope service 解析与缓存', () => {
     ]))
   })
 
+  it('invalidateForRoleDeptChange：CUSTOM 清单变更只失效该角色成员', async () => {
+    ctx.roleRepo.members.set('role-custom', [USER, USER_B])
+
+    await ctx.service.invalidateForRoleDeptChange('role-custom')
+
+    expect(ctx.cache.deleted).toEqual(expect.arrayContaining([
+      `AUTH:DATA_SCOPE:${USER}`,
+      `AUTH:DATA_SCOPE:${USER_B}`,
+    ]))
+    expect(ctx.roleRepo.findDeptIdsCalls).toBe(0)
+  })
+
+  it('invalidateForDeptMove：子树 + 新祖先链 + 旧祖先链的用户全部失效', async () => {
+    const userAncestor = '44444444-4444-4444-8444-444444444444'
+    const userOldAncestor = '55555555-5555-4555-8555-555555555555'
+    ctx.userRepo.users.set(USER_B, { id: USER_B, roleMode: WalnutAdminConstRoleMode.SWITCH, currentRole: null, deptId: DEPT_CHILD })
+    ctx.userRepo.users.set(userAncestor, { id: userAncestor, roleMode: WalnutAdminConstRoleMode.SWITCH, currentRole: null, deptId: DEPT_A })
+    ctx.userRepo.users.set(userOldAncestor, { id: userOldAncestor, roleMode: WalnutAdminConstRoleMode.SWITCH, currentRole: null, deptId: DEPT_B })
+    ctx.userRepo.users.set(USER_C, { id: USER_C, roleMode: WalnutAdminConstRoleMode.SWITCH, currentRole: null, deptId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd' })
+
+    ctx.deptRepo.subtrees.set(DEPT_CHILD, [DEPT_CHILD])
+    ctx.deptRepo.ancestors.set(DEPT_CHILD, [DEPT_A])
+
+    await ctx.service.invalidateForDeptMove(DEPT_CHILD, [DEPT_B])
+
+    expect(ctx.cache.deleted).toEqual(expect.arrayContaining([
+      `AUTH:DATA_SCOPE:${USER_B}`,
+      `AUTH:DATA_SCOPE:${userAncestor}`,
+      `AUTH:DATA_SCOPE:${userOldAncestor}`,
+    ]))
+    expect(ctx.cache.deleted).not.toContain(`AUTH:DATA_SCOPE:${USER_C}`)
+  })
+
+  it('invalidateForDeptIds：去重 + 空集合不查库', async () => {
+    await ctx.service.invalidateForDeptIds([])
+    expect(ctx.cache.deleted).toEqual([])
+
+    ctx.deptRepo.subtrees.set(DEPT_A, [DEPT_A])
+    await ctx.service.invalidateForDeptIds([DEPT_A, DEPT_A])
+    expect(ctx.cache.deleted).toEqual([`AUTH:DATA_SCOPE:${USER}`])
+  })
+
   it('invalidateForUsers 去重', async () => {
     await ctx.service.invalidateForUsers([USER, USER, USER_B])
 
@@ -176,42 +349,5 @@ describe('data-scope service 解析与缓存', () => {
       `AUTH:DATA_SCOPE:${USER}`,
       `AUTH:DATA_SCOPE:${USER_B}`,
     ])
-  })
-
-  it('invalidateForUserRoleChanges：只失效 CUSTOM 角色的其他成员 + 用户自己（P1）', async () => {
-    // B 被移出 role-custom；C 仍在该角色，其缓存里的成员快照包含 B
-    const userC = '33333333-3333-4333-8333-333333333333'
-    const userD = '44444444-4444-4444-8444-444444444444'
-
-    ctx.roleRepo.roles.set('role-custom', { id: 'role-custom', roleName: 'custom', status: true, dataScope: WalnutAdminConstDataScope.CUSTOM })
-    ctx.roleRepo.roles.set('role-self', { id: 'role-self', roleName: 'self', status: true, dataScope: WalnutAdminConstDataScope.SELF })
-    ctx.roleRepo.members.set('role-custom', [USER_B, userC])
-    ctx.roleRepo.members.set('role-self', [USER_B, userD])
-
-    await ctx.service.invalidateForUserRoleChanges(USER_B, ['role-custom', 'role-self', 'role-custom'])
-
-    expect(ctx.cache.deleted).toEqual(expect.arrayContaining([
-      `AUTH:DATA_SCOPE:${USER_B}`,
-      `AUTH:DATA_SCOPE:${userC}`,
-    ]))
-    // SELF 角色的成员快照不随 membership 变化 → 不反查、不误伤其他成员
-    expect(ctx.cache.deleted).not.toContain(`AUTH:DATA_SCOPE:${userD}`)
-    expect(ctx.roleRepo.findUserIdsCalls).toBe(1)
-    // 角色 id 先去重再查
-    expect(ctx.roleRepo.findByIdsCalls).toBe(1)
-  })
-
-  it('invalidateForRecoveredUser：按恢复后实时角色集失效 CUSTOM 成员 + 用户', async () => {
-    const userC = '33333333-3333-4333-8333-333333333333'
-    ctx.roleRepo.orderedRoleIds.set(USER_B, ['role-custom'])
-    ctx.roleRepo.roles.set('role-custom', { id: 'role-custom', roleName: 'custom', status: true, dataScope: WalnutAdminConstDataScope.CUSTOM })
-    ctx.roleRepo.members.set('role-custom', [USER_B, userC])
-
-    await ctx.service.invalidateForRecoveredUser(USER_B)
-
-    expect(ctx.cache.deleted).toEqual(expect.arrayContaining([
-      `AUTH:DATA_SCOPE:${USER_B}`,
-      `AUTH:DATA_SCOPE:${userC}`,
-    ]))
   })
 })

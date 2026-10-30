@@ -3,7 +3,6 @@ import type { WalnutRootUserFixture } from './helpers/auth-login'
 import type { SeedPermissionChainFixture } from './helpers/seed-permissions'
 import { randomUUID } from 'node:crypto'
 import { WalnutAdminConstDataScope } from '@walnut-server/const/app/dataScope'
-import { WalnutModelName } from '@walnut-server/db'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
@@ -12,17 +11,24 @@ import { createApiApp } from './helpers/create-api-app'
 import { cleanupPermissionChainSeed, seedPermissionChainUser } from './helpers/seed-permissions'
 
 /**
- * 数据权限一期 API 级用例（docs/plans/data-scope-design.md §4）。
+ * 数据权限 API 级用例（docs/plans/data-scope-phase2-3-plan.md §1.1 的语义翻转面 +
+ * docs/plans/data-scope-design.md §4）。
  *
- * 模板示范表 app_demo 走真实 HTTP 全链：非 root 用户的 SELF / CUSTOM / ALL 行级
- * 可见面、越权 read/update/delete 一律 404（不泄露行存在性）、create 自动回填
- * owner、角色 dataScope 修改后的缓存失效。
+ * 模板示范表 app_demo 走真实 HTTP 全链：非 root 用户的 SELF / ALL 行级可见面、
+ * 越权 read/update/delete 一律 404（不泄露行存在性）、create 自动回填 owner、
+ * 角色 dataScope 修改后的缓存失效。
  *
- * fixture 形态：三个非 root 用户（A/B 的 SELF、C 的 CUSTOM）+ 一个只作为 CUSTOM
- * 成员、不登录的裸用户（member）；root 用于全量对照。
+ * **二期语义翻转（本 spec 的重点）**：CUSTOM 从「角色成员 userIds」改为「sys_role_dept
+ * 部门清单」。`app_demo` 在批 1 还没有 dept 列 —— 部门系档位对它必须 fail-closed
+ * （空集 → SQL 恒假），包括 CUSTOM 用户自己的行。角色成员变化也不再影响同角色其他用户
+ * （成员快照语义已废除）。部门维度的端到端可见面在 `data-scope.dept.api-spec.ts`
+ * 用 sys_employee 作靶表验证。
+ *
+ * fixture 形态：三个非 root 用户（A/B 的 SELF、C 的 CUSTOM）+ 一个只作为 C 角色成员、
+ * 不登录的裸用户（member，用于证明「成员身份不再授予可见面」）；root 用于全量对照。
  * **每个用户一个独立 device/client**：auth 链禁止同一设备重复登录（40109）。
  * 集成库默认 `app.functional.role` 为空 → effective roleMode = COMBINE；A/B/C 都只有
- * 一个有效角色，COMBINE 与单角色等价（C 的 CUSTOM 成员 = 绑定到该角色的用户）。
+ * 一个有效角色，COMBINE 与单角色等价。
  */
 
 const DEMO_PERMISSIONS = [
@@ -62,7 +68,7 @@ function demoPayload(demoString: string) {
   }
 }
 
-describe('数据权限一期：app_demo 行级 scope（SELF / CUSTOM / ALL + 越权 404）', () => {
+describe('数据权限二期：app_demo 行级 scope（SELF / ALL / 部门系默认拒绝 + 越权 404）', () => {
   let app: NestExpressApplication
 
   const seed = randomUUID()
@@ -163,7 +169,8 @@ describe('数据权限一期：app_demo 行级 scope（SELF / CUSTOM / ALL + 越
       dataScope: WalnutAdminConstDataScope.CUSTOM,
     })
 
-    // CUSTOM 成员：只作为角色成员存在（不登录），证明成员清单 ≠ 当前用户自己
+    // 角色成员：只作为角色成员存在（不登录）—— 二期 CUSTOM 改为部门清单后，
+    // 成员身份不再带来任何可见面（语义翻转的对照物）
     const memberRows: Array<{ id: string }> = await rootApi.pgDataSource.query(
       'INSERT INTO sys_user (user_name) VALUES ($1) RETURNING id',
       [`ds-member-${seed8}`],
@@ -263,16 +270,20 @@ describe('数据权限一期：app_demo 行级 scope（SELF / CUSTOM / ALL + 越
     expectOk(updateA, 'A update own')
   })
 
-  it('custom：C 可见「本人 + 角色成员」的行；A/B 的行不可见', async () => {
+  it('cUSTOM（部门清单）：app_demo 批 1 无 dept 列 → 默认拒绝，本人与角色成员的行都不可见', async () => {
     const list = await listDemo(apiC, 20)
 
-    expect(new Set(list.data.map(row => row.id))).toEqual(new Set([rowC, rowMember]))
+    // 部门系档位在无 dept 列的实体上 fail-closed：CUSTOM 不再按角色成员授予可见面，
+    // 连 C 自己创建的行也不可见（RuoYi 语义：CUSTOM 只看清单部门）
+    expect(list.data).toEqual([])
+    expect(list.total).toBe(0)
 
-    // C 可读成员的行（CUSTOM 授权范围）
+    const readC = await apiC.root('GET', apiC.apiPath(`/app/demo/${rowC}`))
+    expect(bodyOf(readC).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
+
     const readMember = await apiC.root('GET', apiC.apiPath(`/app/demo/${rowMember}`))
-    expectOk(readMember, 'C read member row')
+    expect(bodyOf(readMember).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
 
-    // A 的行仍不可见
     const readA = await apiC.root('GET', apiC.apiPath(`/app/demo/${rowA}`))
     expect(bodyOf(readA).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
   })
@@ -310,59 +321,22 @@ describe('数据权限一期：app_demo 行级 scope（SELF / CUSTOM / ALL + 越
     expect(new Set(list.data.map(row => row.id))).toEqual(new Set([rowA, rowB, rowC, rowMember]))
   })
 
-  it('P1：B 被移出 CUSTOM 角色后，同角色成员 C 立即看不到 B 的行', async () => {
-    // B 加入 C 的 CUSTOM 角色（root 走 user:update → 触发角色成员失效）
+  it('二期翻转：角色成员变化不再影响 CUSTOM 成员的可见面（成员快照语义已废除）', async () => {
+    // B 加入 C 的角色（root 走 user:update；权限缓存仍会按 P1-18 失效）
     await updateUserRoles(rootApi, userB, [userB.mainRoleId, userC.mainRoleId])
-    // roles 变更同时清了 B 的权限缓存（P1-18），重新拉一次
     await primePermissions(apiB)
 
-    // C 的 CUSTOM 成员集现在包含 B：缓存必须已失效并重算，立即可见 B 的行
-    const listWithB = await listDemo(apiC, 20)
-    expect(listWithB.data.map(row => row.id)).toEqual(expect.arrayContaining([rowB, rowC, rowMember]))
+    // C 的 CUSTOM 只认 sys_role_dept 部门清单，成员集变化不改变任何可见面
+    expect((await listDemo(apiC, 20)).data).toEqual([])
 
-    // B 移出 C 的角色：C 的缓存（成员快照含 B）必须被角色维度失效
+    // B 移出后同理；B 自己仍是 SELF
     await updateUserRoles(rootApi, userB, [userB.mainRoleId])
     await primePermissions(apiB)
 
-    const listAfterRemove = await listDemo(apiC, 20)
-    expect(listAfterRemove.data.map(row => row.id)).not.toContain(rowB)
+    expect((await listDemo(apiC, 20)).data).toEqual([])
 
-    // B 自己回到 SELF
     const listB = await listDemo(apiB, 20)
     expect(listB.data.map(row => row.id)).toEqual([rowB])
-  })
-
-  it('P1：删除 CUSTOM 角色成员后其余成员立即看不到其行；恢复不复活 stale 成员快照', async () => {
-    // 前置：C 当前看得见 member 的行（成员仍在角色里）
-    expect((await listDemo(apiC, 20)).data.map(row => row.id)).toContain(rowMember)
-
-    // root 删除 member（junction 随主行 CASCADE）→ C 的成员快照必须失效
-    const deleteRes = await rootApi.root('DELETE', rootApi.apiPath(`/system/user/${memberId}`))
-    expectOk(deleteRes, 'root delete member user')
-
-    expect((await listDemo(apiC, 20)).data.map(row => row.id)).not.toContain(rowMember)
-
-    // 恢复 member：user recoverer 不恢复 junction（P2-18 残余），角色成员仍不含他
-    const deletedRows: Array<{ id: string }> = await rootApi.pgDataSource.query(
-      'SELECT id FROM sys_deleted WHERE deleted_id = $1 AND model_name = $2',
-      [memberId, WalnutModelName.SYS_USER],
-    )
-    expect(deletedRows).toHaveLength(1)
-
-    const recoverRes = await rootApi.root('POST', rootApi.apiPath('/system/deleted/recover'), {
-      id: deletedRows[0].id,
-      deletedId: memberId,
-    })
-    expectOk(recoverRes, 'root recover member user')
-
-    const restored: Array<{ id: string }> = await rootApi.pgDataSource.query(
-      'SELECT id FROM sys_user WHERE id = $1',
-      [memberId],
-    )
-    expect(restored).toHaveLength(1)
-
-    // 恢复后失效腿不引入 stale 成员快照：C 仍看不到 member 的行
-    expect((await listDemo(apiC, 20)).data.map(row => row.id)).not.toContain(rowMember)
   })
 
   it('角色接口回读 dataScope（Safe 出参含新字段）', async () => {

@@ -66,7 +66,8 @@ export class SysRoleDTOBase extends WalnutAdminCommonBasicModel {
   })
   status: boolean
 
-  // 数据权限一期（docs/plans/data-scope-design.md §4）：1=ALL 2=SELF 3=CUSTOM。
+  // 数据权限二期六档（docs/plans/data-scope-phase2-3-plan.md §1.1）：
+  // 1=ALL 2=CUSTOM(部门清单) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF。
   // 值集与实体列/migration CHECK 同源（WalnutAdminConstDataScope）；默认 1（ALL）
   // 与 DDL DEFAULT 对齐 —— 未显式配置的角色保持既有可见面。
   @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstDataScope, {
@@ -74,7 +75,7 @@ export class SysRoleDTOBase extends WalnutAdminCommonBasicModel {
     swaggerOptions: {
       title: 'role data scope',
       description:
-        '1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)',
+        '1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF',
     },
   })
   dataScope: number
@@ -184,7 +185,7 @@ export class SysRoleDTOUpdateRequest extends IntersectionType(
     'status',
   ] as const),
   RealPartialType(RealPickType(SysRoleDTOSafe, ['menus'] as const)),
-  // dataScope 可省略（语义：不修改）；显式传 1/2/3 才触发失效与重算
+  // dataScope 可省略（语义：不修改）；显式传 1..6 才触发失效与重算
   RealPartialType(RealPickType(SysRoleDTOSafe, ['dataScope'] as const)),
 ) {}
 export class SysRoleDTOUpdateResponse extends SysRoleDTOSafe {}

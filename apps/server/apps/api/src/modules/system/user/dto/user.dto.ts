@@ -118,6 +118,21 @@ export class SysUserDTOBase extends WalnutAdminCommonBasicModel {
     },
   })
   mfaSetup: boolean
+
+  // 所属部门（数据权限二期批 1）：写 sys_user.dept_id，DEPT/DEPT_AND_CHILD 的解析输入。
+  // 只在 update 白名单里可选提供（批 2 admin 用户表单接选择器）；create 暂不开放。
+  @WalnutAdminDecoratorFieldString({
+    default: null,
+    validateOptions: { nullable: true },
+    swaggerOptions: {
+      title: 'dept id',
+      description: 'owning dept for department-scoped data permissions; null => no dept',
+      nullable: true,
+      example: '0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c',
+    },
+  })
+  @WalnutAdminDecoratorValidatorUuid({ nullable: true })
+  deptId: string | null
 }
 
 // do not use when need to extend
@@ -202,11 +217,15 @@ export class SysUserDTOCreateResponse extends SysUserDTOSafe {}
 export class SysUserDTOReadResponse extends SysUserDTOSafe {}
 
 // update
-export class SysUserDTOUpdateRequest extends RealPickType(SysUserDTOSafe, [
-  'userName',
-  'status',
-  'roles',
-] as const) {}
+export class SysUserDTOUpdateRequest extends IntersectionType(
+  RealPickType(SysUserDTOSafe, [
+    'userName',
+    'status',
+    'roles',
+  ] as const),
+  // 部门可省略（语义：不修改）；显式给值（含 null）才触发数据权限缓存失效
+  RealPartialType(RealPickType(SysUserDTOSafe, ['deptId'] as const)),
+) {}
 export class SysUserDTOUpdateResponse extends SysUserDTOSafe {}
 
 // delete
