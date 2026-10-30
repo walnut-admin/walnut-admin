@@ -366,9 +366,11 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
   })
 
   it('G6 同 type 两路并发 rotate —— 恰一条 ACTIVE、败者受控 40401（P1-1：读腿事务内 FOR UPDATE）', async () => {
-    // 自插高 version 目标行（key.api-spec 同款自洽法）：rotate 命中 version 最大 ACTIVE 行
-    const repo = api.pgDataSource.getRepository(AppKeyEntity)
-    const maxRows: Array<{ max_version: string }> = await api.pgDataSource.query(
+    // 自插高 version 目标行（key.api-spec 同款自洽法）：rotate 命中 version 最大 ACTIVE 行。
+    // app_key 是 RLS 豁免表 → 用应用连接造种子（与应用事务同一角色/可见性；管理连接是
+    // 独立池，并发轮换用例里曾观察到种子行来不及被事务看到）
+    const repo = api.appDataSource.getRepository(AppKeyEntity)
+    const maxRows: Array<{ max_version: string }> = await api.appDataSource.query(
       `SELECT COALESCE(MAX(version), 0) AS max_version FROM app_key WHERE type = 'RSA_PAIR'`,
     )
     seededKeyVersion = Number(maxRows[0].max_version) + 1000

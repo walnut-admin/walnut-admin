@@ -2,7 +2,7 @@ import type { EntityManager } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutPGConnectionName, withWalnutSystemManager } from '@walnut-server/db'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
 import { DataSource } from 'typeorm'
@@ -133,28 +133,32 @@ export class SysUserDeviceRepositoryService {
    * 同源表并回 user；B7 注册 SysUserEntity 后可换实体 JOIN）
    */
   async findAllUserInCurrentDevice(deviceId: string, em?: EntityManager) {
-    const rows = await this.getRepository(em).find({
-      where: { deviceId },
-      order: { lastActiveAt: 'DESC' },
-    })
+    // 数据权限三期：设备视角的用户补全（sys_user 已注册 RLS）；无 em 时走 system 事务，
+    // 与 RLS 之前的“系统读腿”语义一致（设备管理端不看部门天花板）。
+    return withWalnutSystemManager(this.dataSource, em, async (manager) => {
+      const rows = await manager.getRepository(SysUserDeviceEntity).find({
+        where: { deviceId },
+        order: { lastActiveAt: 'DESC' },
+      })
 
-    const userIds = [...new Set(rows.map(r => r.userId))]
-    let users: IUserDevicePopulatedUser[] = []
-    if (userIds.length > 0) {
-      const rawUsers = await this.getManager(em)
-        .createQueryBuilder()
-        .select('u.id', 'id')
-        .addSelect('u.user_name', 'userName')
-        .addSelect('u.nick_name', 'nickName')
-        .from('sys_user', 'u')
-        .where('u.id IN (:...userIds)', { userIds })
-        .getRawMany<{ id: string, userName: string | null, nickName: string | null }>()
-      users = rawUsers
-    }
+      const userIds = [...new Set(rows.map(r => r.userId))]
+      let users: IUserDevicePopulatedUser[] = []
+      if (userIds.length > 0) {
+        const rawUsers = await manager
+          .createQueryBuilder()
+          .select('u.id', 'id')
+          .addSelect('u.user_name', 'userName')
+          .addSelect('u.nick_name', 'nickName')
+          .from('sys_user', 'u')
+          .where('u.id IN (:...userIds)', { userIds })
+          .getRawMany<{ id: string, userName: string | null, nickName: string | null }>()
+        users = rawUsers
+      }
 
-    return rows.map((row) => {
-      const user = users.find(u => u.id === row.userId) ?? null
-      return Object.assign(row, { user })
+      return rows.map((row) => {
+        const user = users.find(u => u.id === row.userId) ?? null
+        return Object.assign(row, { user })
+      })
     })
   }
 

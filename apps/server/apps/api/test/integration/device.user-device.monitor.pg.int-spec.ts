@@ -13,7 +13,7 @@ import { SysDeviceService } from '@/modules/system/device/device.service'
 import { SysDeviceRepositoryService } from '@/modules/system/device/repo/device.repo.service'
 import { SysUserDeviceRepositoryService } from '@/modules/system/user_device/repo/user_device.repo.service'
 import { SysUserDeviceService } from '@/modules/system/user_device/user_device.service'
-import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 
 /**
@@ -86,7 +86,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
 
   beforeAll(async () => {
     app = await createIntegrationApp()
-    pgDataSource = getWalnutPgDataSource(app)
+    pgDataSource = getWalnutPgAdminDataSource(app)
     expect(pgDataSource.options.database).toBe(INTEGRATION_DATABASE_NAME)
 
     deviceBasicRepo = app.get(SysDeviceBasicRepository)

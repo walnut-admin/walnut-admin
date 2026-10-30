@@ -1,11 +1,16 @@
 import type { DynamicModule, INestApplication, Provider, Type } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
+import type { PostgresDataSourceOptions } from 'typeorm/driver/postgres/PostgresDataSourceOptions'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import * as process from 'node:process'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Test } from '@nestjs/testing'
 import { getDataSourceToken } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
 
 import { createCache } from 'cache-manager'
+import { DataSource as TypeOrmDataSource } from 'typeorm'
 import { AppModule } from '@/app/app.module'
 
 import { INTEGRATION_DATABASE_NAME } from './integration.const'
@@ -43,8 +48,88 @@ export async function createIntegrationApp(
   await app.init()
 
   ensureIntegrationPgDatabase(app)
+  await initWalnutPgAdminDataSource(app)
 
   return app
+}
+
+/**
+ * 测试专用**管理通道** DataSource（`DATABASE_PG_USER`：superuser / BYPASSRLS）。
+ *
+ * 数据权限三期把 RLS 缺省改成 `anonymous`（fail-closed），运行时 `walnut_app` 的
+ * 池级直连注册表会被拒绝。测试 fixture / 清理属于「运维通道」（与迁移、db:export
+ * 同一类），不应该伪装成请求内的 system 通道，因此统一走管理角色连接：
+ * - HTTP 请求仍由应用自身以 `walnut_app` 连接（RLS 正常生效）；
+ * - fixture/断言用管理连接（天然绕 RLS），不改变被测代码；
+ * - RLS 专项测试仍显式用应用连接 + `set_config` 验证拦截。
+ *
+ * 复用应用 DataSource 的实体元数据（autoLoadEntities 装载的实体不在 options 里），
+ * 保证 `manager.insert(Entity, ...)` 这类测试写法可直接用。
+ */
+const adminDataSources = new WeakMap<INestApplication, DataSource>()
+
+/** 与 globalSetup / data-source.cli 同源：直接读 env-local（不走 process.env，避免 turbo 环境声明耦合） */
+function readEnvLocalValue(key: string): string {
+  const envPath = resolve(process.cwd(), 'env-local', '.env.development')
+  const line = readFileSync(envPath, 'utf-8')
+    .split(/\r?\n/)
+    .find(l => l.startsWith(`${key}=`))
+
+  if (line === undefined) {
+    throw new Error(`[integration] missing ${key} in ${envPath}`)
+  }
+
+  return line.slice(key.length + 1).trim()
+}
+
+export async function initWalnutPgAdminDataSource(app: INestApplication): Promise<DataSource> {
+  const appDataSource = getWalnutPgDataSource(app)
+  const adminUser = readEnvLocalValue('DATABASE_PG_USER')
+  const adminPass = readEnvLocalValue('DATABASE_PG_PASS')
+
+  const appOptions = appDataSource.options as PostgresDataSourceOptions
+
+  const admin = new TypeOrmDataSource({
+    type: 'postgres',
+    host: appOptions.host,
+    port: appOptions.port,
+    database: appOptions.database,
+    username: adminUser,
+    password: adminPass,
+    entities: appDataSource.entityMetadatas.map(meta => meta.target) as never,
+    synchronize: false,
+    migrations: [],
+    logging: ['error'],
+  })
+
+  await admin.initialize()
+
+  // fail-fast：管理连接必须指向集成库（与 ensureIntegrationPgDatabase 同口径）
+  const [dbRow] = await admin.query<Array<{ db: string }>>('SELECT current_database() AS db')
+  if (dbRow?.db !== INTEGRATION_DATABASE_NAME) {
+    await admin.destroy()
+    throw new Error(`[integration] admin connection points to "${dbRow?.db}", expected "${INTEGRATION_DATABASE_NAME}"`)
+  }
+
+  adminDataSources.set(app, admin)
+
+  // 管理连接不在 Nest 生命周期里，挂到 app.close 上统一释放
+  const originalClose = app.close.bind(app)
+  app.close = async () => {
+    await admin.destroy().catch(() => undefined)
+    return originalClose()
+  }
+
+  return admin
+}
+
+/** 测试 fixture/清理用的管理连接（未初始化时抛错，避免静默回退到 app 连接） */
+export function getWalnutPgAdminDataSource(app: INestApplication): DataSource {
+  const admin = adminDataSources.get(app)
+  if (admin === undefined) {
+    throw new Error('[integration] admin pg data source not initialized')
+  }
+  return admin
 }
 
 /**

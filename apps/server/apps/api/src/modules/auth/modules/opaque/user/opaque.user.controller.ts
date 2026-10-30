@@ -8,6 +8,7 @@ import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
 
+import { WalnutAdminDecoratorDataScopeSystemChannel } from '@/decorators/walnut/dataScope.decorator'
 import { WalnutAdminDecoratorFunctionalGuard } from '@/decorators/walnut/functional.decorator'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
@@ -42,15 +43,12 @@ export class AuthOpaqueUserController {
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOpaqueKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_OPAQUE, 'authEnable')
   @WalnutAdminGuardJwtFree()
-  // B7a 迁移回归修复（API 回归 A 段试点抓出）：handler 经 @WalnutTxSession 取 ctx.em
-  // （user/identity 读腿迁 PG 后的服务签名），但本路由漏挂事务拦截器 —— request.txContext
-  // 恒 undefined，匿名调用必 500（"Cannot read properties of undefined (reading 'em')"）。
-  // 对齐同文件 login/finish / register/finish 的既有形态补上。
   @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Start login with userName and loginRequest',
     primitive: 'string',
   })
+  @WalnutAdminDecoratorDataScopeSystemChannel()
   async startLogin(
     @WalnutAdminDecoratorDeviceId() deviceId: string,
     @WalnutTxSession() ctx: WalnutTxContext,
@@ -115,6 +113,7 @@ export class AuthOpaqueUserController {
   })
   @WalnutAdminDecoratorAuthLog(WalnutAdminConstDecoratorLogAuthType.OPAQUE)
   @UseGuards(AuthOpaqueUserGuard)
+  @WalnutAdminDecoratorDataScopeSystemChannel()
   async finishLogin(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,

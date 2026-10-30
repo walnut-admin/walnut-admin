@@ -15,7 +15,7 @@ import { SysUserBasicRepository } from '@/modules/system/user/user.basic.reposit
 import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
 import { SysUserOAuthRepositoryService } from '@/modules/system/user_oauth/repo/user_oauth.repo.service'
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
-import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 
 /**
@@ -89,7 +89,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
 
   beforeAll(async () => {
     app = await createIntegrationApp()
-    pgDataSource = getWalnutPgDataSource(app)
+    pgDataSource = getWalnutPgAdminDataSource(app)
     expect(pgDataSource.options.database).toBe(INTEGRATION_DATABASE_NAME)
 
     userCrudService = app.get(SysUserCrudService)

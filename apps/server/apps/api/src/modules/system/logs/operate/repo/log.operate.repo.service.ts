@@ -2,7 +2,7 @@
 import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutPGConnectionName } from '@walnut-server/db'
+import { runInWalnutSystemTransaction, WalnutPGConnectionName } from '@walnut-server/db'
 
 import { SysLogOperateDTO } from '../dto/log.operate.dto'
 import { SysLogOperateEntity } from '../entity/log-operate.entity'
@@ -35,9 +35,12 @@ export class SysLogOperateRepoService {
       rawResponseData?: string | null
     },
   ) {
-    const repository = this.dataSource.manager.getRepository(SysLogOperateEntity)
-    // 单对象 create 命中 TypeORM 的批量重载签名，显式收窄回单实体（基类 create 同款）
-    const created = repository.create(dto as never) as unknown as SysLogOperateEntity
-    return repository.save(created)
+    // 数据权限三期：sys_log_operate 缺省 anonymous —— 旁路写必须显式 system 事务
+    return runInWalnutSystemTransaction(this.dataSource, async (manager) => {
+      const repository = manager.getRepository(SysLogOperateEntity)
+      // 单对象 create 命中 TypeORM 的批量重载签名，显式收窄回单实体（基类 create 同款）
+      const created = repository.create(dto as never) as unknown as SysLogOperateEntity
+      return repository.save(created)
+    })
   }
 }

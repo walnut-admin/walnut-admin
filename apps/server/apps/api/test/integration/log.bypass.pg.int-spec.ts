@@ -25,7 +25,7 @@ import { SysLogAuthSharedService } from '@/modules/system/logs/auth/shared/log.a
 import { SysLogOperateEntity } from '@/modules/system/logs/operate/entity/log-operate.entity'
 import { SysLogOperateRepoService } from '@/modules/system/logs/operate/repo/log.operate.repo.service'
 import { AppTechRedisService } from '@/modules/techniques/cache/redis/redis.service'
-import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 
 /**
@@ -124,7 +124,7 @@ describe('log bypass (fire-and-forget) on real PG', () => {
 
   beforeAll(async () => {
     app = await createIntegrationApp()
-    pgDataSource = getWalnutPgDataSource(app)
+    pgDataSource = getWalnutPgAdminDataSource(app)
 
     // 守卫自检：PG 指向集成库
     expect(pgDataSource.options.database).toBe(INTEGRATION_DATABASE_NAME)

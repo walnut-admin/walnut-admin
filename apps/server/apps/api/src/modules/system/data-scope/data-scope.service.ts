@@ -68,6 +68,46 @@ export class DataScopeService {
     return `${WalnutAdminConstAppCacheKeys.AUTH_DATA_SCOPE}:${userId}`
   }
 
+  /** 账号自己的部门（仅 RLS 的 sys_user / sys_employee WITH CHECK 使用） */
+  private getUserDeptCacheKey(userId: string): string {
+    return `${WalnutAdminConstAppCacheKeys.AUTH_DATA_SCOPE}:dept:${userId}`
+  }
+
+  /**
+   * 解析当前用户账号的部门（`sys_user.dept_id`），缓存口径与描述符一致。
+   *
+   * 为什么单独一条腿：描述符是「可见明细」（SELF 不携带 deptIds），而 RLS 的
+   * sys_user / sys_employee WITH CHECK 需要知道「本人当前部门」才能区分
+   * 「自助更新但没改部门」与「把 dept_id 改到天花板外」。空值缓存成空串（区分
+   * 「无部门」与缓存 miss）。
+   */
+  async resolveUserDeptId(userId: string, em?: EntityManager): Promise<string | null> {
+    const cached = await this.cacheService.get<string>(this.getUserDeptCacheKey(userId))
+
+    if (cached !== null && cached !== undefined) {
+      return cached === '' ? null : cached
+    }
+
+    const user = await this.userRepoService.findUserByUserId(userId, em)
+    const deptId = user?.deptId ?? null
+
+    try {
+      await this.cacheService.set(
+        this.getUserDeptCacheKey(userId),
+        deptId ?? '',
+        {
+          ttl: this.tokenService.getAccessTokenExpireSeconds(),
+          t: WalnutAdminConstAppCacheType.AUTH,
+        },
+      )
+    }
+    catch (error) {
+      this.logger.warn(`write data scope user dept cache failed for user ${userId}`, error)
+    }
+
+    return deptId
+  }
+
   /**
    * 解析某用户的数据权限描述符（缓存优先）。
    *
@@ -171,7 +211,10 @@ export class DataScopeService {
    * 失效单个用户（用户角色变更 / 部门变更 / 当前角色切换 / 角色模式切换 / 删除 / 恢复）
    */
   async invalidateForUser(userId: string): Promise<void> {
-    await this.cacheService.del(this.getCacheKey(userId))
+    await Promise.all([
+      this.cacheService.del(this.getCacheKey(userId)),
+      this.cacheService.del(this.getUserDeptCacheKey(userId)),
+    ])
   }
 
   async invalidateForUsers(userIds: string[]): Promise<void> {

@@ -102,39 +102,43 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     _customize?: (qb: SelectQueryBuilder<SysUserEntity>) => void,
     em?: EntityManager,
   ): Promise<{ data: ISysUserListRow[], total: number }> {
-    const qb = this.getManager(em)
-      .createQueryBuilder(SysUserEntity, 'entity')
+    // 数据权限三期：注册实体的读路径必须进事务（withScopedManager 负责自动事务 +
+    // RLS set_config），覆写 list 与基类同口径。
+    return this.withScopedManager(em, async (manager) => {
+      const qb = manager
+        .createQueryBuilder(SysUserEntity, 'entity')
 
-    applyPgListQuery(qb, 'entity', buildPgListQueryOptions<T>(params))
+      applyPgListQuery(qb, 'entity', buildPgListQueryOptions<T>(params))
 
-    // 数据权限：sys_user 已注册（SELF = 本人账号行），覆写 list 必须显式注入
-    this.applyDataScope(qb, 'entity')
+      // 数据权限：sys_user 已注册（SELF = 本人账号行），覆写 list 必须显式注入
+      this.applyDataScope(qb, 'entity')
 
-    // 对齐 Mongo 版 $lookup(sys_role) + $size：junction 计数子查询
-    qb.addSelect((sub) => {
-      return sub
-        .select('count(*)::int')
-        .from(SysUserRoleEntity, 'user_role')
-        .where('user_role.user_id = entity.id')
-    }, 'roles_count')
+      // 对齐 Mongo 版 $lookup(sys_role) + $size：junction 计数子查询
+      qb.addSelect((sub) => {
+        return sub
+          .select('count(*)::int')
+          .from(SysUserRoleEntity, 'user_role')
+          .where('user_role.user_id = entity.id')
+      }, 'roles_count')
 
-    qb.addSelect(`COUNT(*) OVER()`, WALNUT_PG_LIST_TOTAL_ALIAS)
+      qb.addSelect(`COUNT(*) OVER()`, WALNUT_PG_LIST_TOTAL_ALIAS)
 
-    const { raw, entities } = await qb.getRawAndEntities()
+      const { raw, entities } = await qb.getRawAndEntities()
 
-    const firstRaw = raw[0] as Record<string, unknown> | undefined
-    const total = Number(firstRaw?.[WALNUT_PG_LIST_TOTAL_ALIAS] ?? 0)
+      const firstRaw = raw[0] as Record<string, unknown> | undefined
+      const total = Number(firstRaw?.[WALNUT_PG_LIST_TOTAL_ALIAS] ?? 0)
 
-    // 无 JOIN 单表查询，raw 与 entities 逐行对齐；计数列不在实体映射里，按行并回
-    const data = entities.map((entity, index) => {
-      const row = raw[index] as Record<string, unknown> | undefined
+      // 无 JOIN 单表查询，raw 与 entities 逐行对齐；计数列不在实体映射里，按行并回
+      const data = entities.map((entity, index) => {
+        const row = raw[index] as Record<string, unknown> | undefined
 
-      return Object.assign(entity, {
-        roles_count: Number(row?.roles_count ?? 0),
+        return Object.assign(entity, {
+          roles_count: Number(row?.roles_count ?? 0),
+        })
       })
-    })
 
-    return { data, total }
+      return { data, total }
+    }, { readOnly: true })
   }
 
   /**

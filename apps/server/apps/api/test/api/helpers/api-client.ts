@@ -9,6 +9,7 @@ import supertest from 'supertest'
 import { AppTechRedisService } from '@/modules/techniques/cache/redis/redis.service'
 import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
 
+import { getWalnutPgAdminDataSource } from '../../integration/helpers/create-integration-app'
 import {
   buildSignRaw,
   computeDualFactorSign,
@@ -274,7 +275,20 @@ export class WalnutApiClient {
     return redis.ttl(key.startsWith('WALNUT_CACHE') ? key : `WALNUT_CACHE_${key}`)
   }
 
+  /**
+   * 测试 fixture / 清理用的 **管理通道** DataSource（DATABASE_PG_USER，天然绕 RLS）。
+   * 运行时应用仍以 walnut_app 连接，RLS 在 HTTP 路径上正常生效；需要验证 RLS 的
+   * 专项用例请直接用 `getWalnutPgDataSource(app)`。
+   */
   get pgDataSource(): DataSource {
+    return getWalnutPgAdminDataSource(this.app)
+  }
+
+  /**
+   * 应用连接（walnut_app）—— 只给**豁免表** fixture 用（如 app_key 并发轮换的种子行，
+   * 需要与应用事务走同一角色/可见性）；注册表 fixture 一律用 `pgDataSource`（管理通道）。
+   */
+  get appDataSource(): DataSource {
     return this.app.get<DataSource>(getDataSourceToken(WalnutPGConnectionName))
   }
 

@@ -16,6 +16,7 @@ import { plainToInstance } from 'class-transformer'
 
 import { WalnutCrudDecorators } from '@/decorators/crud'
 
+import { WalnutAdminDecoratorDataScopeSystemChannel } from '@/decorators/walnut/dataScope.decorator'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
 import { WalnutAdminDecoratorDeviceId } from '@/decorators/walnut/user.decorator'
@@ -91,6 +92,8 @@ export class AppMonitorUserController {
   @WalnutAdminGuardCapFree()
   @WalnutAdminGuardDeviceFree()
   @WalnutTx()
+  // 数据权限三期：在线监控心跳是匿名系统通道（无 ALS 描述符也要写 app_monitor_user）
+  @WalnutAdminDecoratorDataScopeSystemChannel()
   async monitor(
     @WalnutAdminDecoratorDeviceId() deviceId: string,
     @WalnutTxSession() ctx: WalnutTxContext,

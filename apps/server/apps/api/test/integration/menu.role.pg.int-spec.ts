@@ -14,7 +14,7 @@ import { SysMenuSharedService } from '@/modules/system/menu/shared/menu.shared.s
 import { SysRoleRepoService } from '@/modules/system/role/repo/role.repo.service'
 import { SysRoleBasicRepository } from '@/modules/system/role/role.basic.repository'
 import { SysRoleService } from '@/modules/system/role/role.service'
-import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 
 /**
@@ -66,7 +66,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
 
   beforeAll(async () => {
     app = await createIntegrationApp()
-    pgDataSource = getWalnutPgDataSource(app)
+    pgDataSource = getWalnutPgAdminDataSource(app)
     expect(pgDataSource.options.database).toBe(INTEGRATION_DATABASE_NAME)
 
     menuService = app.get(SysMenuService)

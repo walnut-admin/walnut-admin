@@ -2,7 +2,7 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutPGConnectionName, withWalnutSystemManager } from '@walnut-server/db'
 import { DataSource } from 'typeorm'
 import { AppMonitorUserEntity } from '../entity/monitor-user.entity'
 
@@ -25,12 +25,13 @@ export class AppMonitorUserRepositoryService {
     private readonly dataSource: DataSource,
   ) {}
 
-  private getManager(em?: EntityManager) {
-    return em ?? this.dataSource.manager
-  }
-
-  private getRepository(em?: EntityManager) {
-    return this.getManager(em).getRepository(AppMonitorUserEntity)
+  /**
+   * 数据权限三期：app_monitor_user / sys_user 都已注册 RLS（缺省 anonymous）。
+   * 在线监控的 state/心跳/force-quit 走 socket 与守卫旁路（无请求事务），必须显式
+   * system 事务；管理端 list/read 走基类仓库（scoped），不受这里影响。
+   */
+  private async withSystemManager<T>(em: EntityManager | undefined, fn: (manager: EntityManager) => Promise<T>) {
+    return withWalnutSystemManager(this.dataSource, em, fn)
   }
 
   /**
@@ -45,35 +46,39 @@ export class AppMonitorUserRepositoryService {
     options: { upsert: boolean },
     em?: EntityManager,
   ) {
-    const repository = this.getRepository(em)
+    return this.withSystemManager(em, async (manager) => {
+      const repository = manager.getRepository(AppMonitorUserEntity)
 
-    const target = await repository.findOne({ where: filter })
+      const target = await repository.findOne({ where: filter })
 
-    if (!target) {
-      if (!options.upsert) {
-        return null
+      if (!target) {
+        if (!options.upsert) {
+          return null
+        }
+
+        await repository.insert({ ...filter, ...update })
+        return repository.findOne({ where: filter })
       }
 
-      await repository.insert({ ...filter, ...update })
-      return repository.findOne({ where: filter })
-    }
-
-    Object.assign(target, update)
-    return repository.save(target)
+      Object.assign(target, update)
+      return repository.save(target)
+    })
   }
 
   /**
    * @description find monitor by monitor user document id
    */
   async findByMonitorId(id: string, em?: EntityManager) {
-    return this.getRepository(em).findOne({ where: { id } })
+    return this.withSystemManager(em, async manager =>
+      manager.getRepository(AppMonitorUserEntity).findOne({ where: { id } }))
   }
 
   /**
    * @description find active monitor by device id (not left)
    */
   async findActiveByDeviceId(deviceId: string) {
-    return this.getRepository().findOne({ where: { left: false, deviceId } })
+    return this.withSystemManager(undefined, async manager =>
+      manager.getRepository(AppMonitorUserEntity).findOne({ where: { left: false, deviceId } }))
   }
 
   /**
@@ -81,35 +86,41 @@ export class AppMonitorUserRepositoryService {
    * justOne 的"任取一行"语义，不筛 left）
    */
   async findFirstByDeviceId(deviceId: string, em?: EntityManager) {
-    return this.getRepository(em).findOne({ where: { deviceId } })
+    return this.withSystemManager(em, async manager =>
+      manager.getRepository(AppMonitorUserEntity).findOne({ where: { deviceId } }))
   }
 
   /**
    * @description delete monitor by device id
    */
   async delMonitorByDeviceId(deviceId: string) {
-    const target = await this.getRepository().findOne({ where: { deviceId } })
-    if (!target) {
-      return null
-    }
+    return this.withSystemManager(undefined, async (manager) => {
+      const repository = manager.getRepository(AppMonitorUserEntity)
+      const target = await repository.findOne({ where: { deviceId } })
+      if (!target) {
+        return null
+      }
 
-    const snapshot = { ...target }
-    await this.getRepository().remove(target)
-    return snapshot
+      const snapshot = { ...target }
+      await repository.remove(target)
+      return snapshot
+    })
   }
 
   /**
    * @description find all monitors by user id
    */
   async findAllByUserId(userId: string) {
-    return this.getRepository().find({ where: { userId } })
+    return this.withSystemManager(undefined, async manager =>
+      manager.getRepository(AppMonitorUserEntity).find({ where: { userId } }))
   }
 
   /**
    * @description find monitor by user id and device id
    */
   async findByUserIdAndDeviceId(userId: string, deviceId: string, em?: EntityManager) {
-    return this.getRepository(em).findOne({ where: { userId, deviceId } })
+    return this.withSystemManager(em, async manager =>
+      manager.getRepository(AppMonitorUserEntity).findOne({ where: { userId, deviceId } }))
   }
 
   /**
@@ -118,33 +129,38 @@ export class AppMonitorUserRepositoryService {
    * 同源表；B7 注册 SysUserEntity 后换实体 JOIN）
    */
   async findActiveUserByDeviceId(deviceId: string) {
-    const monitorData = await this.getRepository().findOne({ where: { left: false, deviceId } })
+    return this.withSystemManager(undefined, async (manager) => {
+      const monitorData = await manager.getRepository(AppMonitorUserEntity)
+        .findOne({ where: { left: false, deviceId } })
 
-    if (monitorData === null || monitorData.userId === null) {
-      return null
-    }
+      if (monitorData === null || monitorData.userId === null) {
+        return null
+      }
 
-    return this.findUserBriefById(monitorData.userId)
+      return this.findUserBriefById(monitorData.userId, manager)
+    })
   }
 
   /**
    * @description 按行 id 查 sys_user 简要字段（read 的 user 出参）
    */
   async findUserBriefById(userId: string, em?: EntityManager) {
-    const user = await this.getManager(em)
-      .createQueryBuilder()
-      .select('u.id', 'id')
-      .addSelect('u.user_name', 'userName')
-      .addSelect('u.nick_name', 'nickName')
-      .from('sys_user', 'u')
-      .where('u.id = :userId', { userId })
-      .getRawOne<{ id: string, userName: string | null, nickName: string | null }>()
+    return this.withSystemManager(em, async (manager) => {
+      const user = await manager
+        .createQueryBuilder()
+        .select('u.id', 'id')
+        .addSelect('u.user_name', 'userName')
+        .addSelect('u.nick_name', 'nickName')
+        .from('sys_user', 'u')
+        .where('u.id = :userId', { userId })
+        .getRawOne<{ id: string, userName: string | null, nickName: string | null }>()
 
-    if (!user) {
-      return null
-    }
+      if (!user) {
+        return null
+      }
 
-    return user
+      return user
+    })
   }
 
   /**
@@ -152,9 +168,10 @@ export class AppMonitorUserRepositoryService {
    * `monitorData.save()`）
    */
   async updateAuthState(monitor: AppMonitorUserEntity, em?: EntityManager) {
-    const repository = this.getRepository(em)
-    monitor.auth = false
-    monitor.userId = null
-    return repository.save(monitor)
+    return this.withSystemManager(em, async (manager) => {
+      monitor.auth = false
+      monitor.userId = null
+      return manager.getRepository(AppMonitorUserEntity).save(monitor)
+    })
   }
 }

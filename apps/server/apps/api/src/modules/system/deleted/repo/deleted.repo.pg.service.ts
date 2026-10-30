@@ -3,7 +3,8 @@ import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutAdminConstAppConfig } from '@walnut-server/const/app/config'
-import { WalnutPGConnectionName } from '@walnut-server/db'
+import { runInWalnutSystemTransaction, WalnutPGConnectionName, withWalnutSystemManager } from '@walnut-server/db'
+import { WalnutAdminExceptionInternalServerError } from '@walnut-server/exceptions/base.exception'
 
 import { DataSource } from 'typeorm'
 import { SysDeletedEntity } from '../entity/deleted.entity'
@@ -45,21 +46,23 @@ export class SysDeletedPgRepoService {
    * @description create soft delete record
    */
   async createSoftDelete(payload: ISysDeletedPgCreatePayload, em?: EntityManager) {
-    const manager = em ?? this.dataSource.manager
-    const repository = manager.getRepository(SysDeletedEntity)
+    // 数据权限三期：sys_deleted 缺省 anonymous —— 无 em（系统写腿）时走 system 事务
+    return withWalnutSystemManager(this.dataSource, em, async (manager) => {
+      const repository = manager.getRepository(SysDeletedEntity)
 
-    // deleted_at 是普通列（B0a 实体注释：是否赋值由软删路径显式决定），这里即软删时刻
-    const created = repository.create({
-      content: payload.content,
-      modelName: payload.modelName,
-      collectionName: payload.collectionName,
-      deletedId: payload.deletedId,
-      deletedBy: payload.deletedBy,
-      logOperateId: payload.logOperateId ?? null,
-      deletedAt: new Date(),
+      // deleted_at 是普通列（B0a 实体注释：是否赋值由软删路径显式决定），这里即软删时刻
+      const created = repository.create({
+        content: payload.content,
+        modelName: payload.modelName,
+        collectionName: payload.collectionName,
+        deletedId: payload.deletedId,
+        deletedBy: payload.deletedBy,
+        logOperateId: payload.logOperateId ?? null,
+        deletedAt: new Date(),
+      })
+
+      return repository.save(created)
     })
-
-    return repository.save(created)
   }
 
   // bind the log operate id for the deleted document（uuid 直等更新 —— Mongo 版的
@@ -69,23 +72,30 @@ export class SysDeletedPgRepoService {
   // （恢复后再删）会在 sys_deleted 留下多份历史快照，按 deletedId 无条件更新会把
   // 旧快照的日志关联改写成最新一条。只回填「还没关联过」的快照。
   async updateDeletedWithLogOperateId(payload: { logOperateId: string, deletedId: string }) {
-    const repository = this.getRepository()
+    // 数据权限三期：sys_deleted 缺省 anonymous —— 事件旁路写必须显式 system 事务。
+    // P2-6 + P3-9 合并：这条回填是「一条删除日志 ↔ 一份快照」的一对一关联，
+    // 恰好命中 1 行才是正确形态；0 行（快照不存在/已被关联）或多行（条件写坏）
+    // 都是数据一致性问题，直接抛 500，不再静默吞掉。
+    return runInWalnutSystemTransaction(this.dataSource, async (manager) => {
+      const repository = manager.getRepository(SysDeletedEntity)
 
-    const res = await repository.createQueryBuilder()
-      .update(SysDeletedEntity)
-      .set({ logOperateId: payload.logOperateId })
-      .where('deleted_id = :deletedId', { deletedId: payload.deletedId })
-      .andWhere('log_operate_id IS NULL')
-      .execute()
+      const res = await repository.createQueryBuilder()
+        .update(SysDeletedEntity)
+        .set({ logOperateId: payload.logOperateId })
+        .where('deleted_id = :deletedId', { deletedId: payload.deletedId })
+        .andWhere('log_operate_id IS NULL')
+        .execute()
 
-    // affected 为 null/undefined 视作未命中（驱动缺省形态一并收口）
-    if ((res.affected ?? 0) === 0) {
-      this.logger.log('Log Operate Id Update Failed, no unbound deleted document found')
-      return null
-    }
+      const affected = res.affected ?? 0
+      if (affected !== 1) {
+        throw new WalnutAdminExceptionInternalServerError({
+          _devMsg: `updateDeletedWithLogOperateId expected affected=1, got ${affected} (deletedId=${payload.deletedId})`,
+        })
+      }
 
-    return repository.findOne({
-      where: { deletedId: payload.deletedId, logOperateId: payload.logOperateId },
+      return repository.findOne({
+        where: { deletedId: payload.deletedId, logOperateId: payload.logOperateId },
+      })
     })
   }
 
@@ -101,9 +111,5 @@ export class SysDeletedPgRepoService {
       }
     }
     return res
-  }
-
-  private getRepository() {
-    return this.dataSource.manager.getRepository(SysDeletedEntity)
   }
 }

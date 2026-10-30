@@ -9,6 +9,9 @@ import { DataSource } from 'typeorm'
  *
  * 与运行时 `WalnutPGConfigService`（libs/db/src/pg.service.ts）的**同源约定**：
  * - 连接四要素读同一组 `DATABASE_PG_*` 环境变量；
+ * - **但角色不同**（数据权限三期）：本文件是迁移/管理通道，必须用 `DATABASE_PG_USER`
+ *   （DDL 需要建表/建角色权限）；运行时走 `DATABASE_PG_APP_USER`（NOSUPERUSER
+ *   NOBYPASSRLS，受 RLS 约束）。两通道分离是 RLS 生效的前提，不要把这里切到 app 角色；
  * - `synchronize: false` 同样硬编码（phase2 第 6 节：schema 演进一律走迁移，不给开口子）；
  * - `entities: []`：B0a 子批实体只建不注册，后续批次接线时在此补全（autoLoadEntities 是
  *   Nest 运行时机制，CLI 数据源必须显式列出）。

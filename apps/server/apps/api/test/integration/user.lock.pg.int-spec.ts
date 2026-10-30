@@ -9,7 +9,7 @@ import { SysUserDeviceRepositoryService } from '@/modules/system/user_device/rep
 import { SysUserLockRepositoryService } from '@/modules/system/user_lock/repo/user_lock.repo.service'
 import { SysUserLockSharedService } from '@/modules/system/user_lock/shared/user_lock.shared.service'
 import { SysUserLockService } from '@/modules/system/user_lock/user_lock.service'
-import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 
 /**
  * B7b user_lock 用例（phase2 4.11 / phase3-plan §1 B7b，on real PG）：
@@ -60,7 +60,7 @@ describe('B7b user_lock (on real PG)', () => {
 
   beforeAll(async () => {
     app = await createIntegrationApp()
-    pgDataSource = getWalnutPgDataSource(app)
+    pgDataSource = getWalnutPgAdminDataSource(app)
 
     lockRepo = app.get(SysUserLockRepositoryService)
     lockService = app.get(SysUserLockService)

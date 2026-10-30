@@ -1,6 +1,9 @@
 import type { CallHandler, ExecutionContext, NestInterceptor } from '@nestjs/common'
 import { Injectable } from '@nestjs/common'
+import { Reflector } from '@nestjs/core'
 import { Observable } from 'rxjs'
+import { buildWalnutDataScopeRlsSettings } from '@/common/repository/data-scope.rls'
+import { WALNUT_DATA_SCOPE_SYSTEM_CHANNEL_METADATA_KEY } from '@/decorators/walnut/dataScope.decorator'
 import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { DataScopeService } from '@/modules/system/data-scope/data-scope.service'
 
@@ -23,6 +26,7 @@ export class ALSRequestInterceptor implements NestInterceptor {
   constructor(
     private readonly asyncContext: ALSRequestService,
     private readonly dataScopeService: DataScopeService,
+    private readonly reflector: Reflector,
   ) {}
 
   async intercept(context: ExecutionContext, next: CallHandler<any>) {
@@ -35,9 +39,27 @@ export class ALSRequestInterceptor implements NestInterceptor {
     const userId = request?.user?.userId
     const hasUser = typeof userId === 'string' && userId !== ''
 
-    const dataScope = hasUser
-      ? await this.dataScopeService.resolveForUser(userId)
-      : undefined
+    const [dataScope, userDeptId] = hasUser
+      ? await Promise.all([
+          this.dataScopeService.resolveForUser(userId),
+          this.dataScopeService.resolveUserDeptId(userId),
+        ])
+      : [undefined, undefined]
+
+    // 数据权限三期：把描述符翻译成事务级 RLS 设置，挂到 request 上供
+    // WalnutTxInterceptor 在 startTransaction 后写入（基类自动事务直接读 ALS）。
+    // 无描述符的处理器分两类：显式标记的登录链/心跳系统通道 → system（放行）；
+    // 其余匿名请求 → anonymous（策略拒绝）。已登录请求永远按描述符，标记不降级。
+    const systemChannel = this.reflector.getAllAndOverride<boolean>(
+      WALNUT_DATA_SCOPE_SYSTEM_CHANNEL_METADATA_KEY,
+      [context.getHandler(), context.getClass()],
+    ) === true
+
+    const rlsSettings = buildWalnutDataScopeRlsSettings(dataScope, userId, { systemChannel, userDeptId })
+
+    if (request !== undefined) {
+      request.dataScopeRls = rlsSettings
+    }
 
     return new Observable((subscriber) => {
       this.asyncContext.run(() => {
@@ -48,6 +70,9 @@ export class ALSRequestInterceptor implements NestInterceptor {
             this.asyncContext.set('dataScope', dataScope)
           }
         }
+
+        // 基类自动事务从 ALS 直接取同一份设置（含 userDeptId），避免二次推导
+        this.asyncContext.set('rlsSettings', rlsSettings)
 
         next.handle().subscribe(subscriber)
       })

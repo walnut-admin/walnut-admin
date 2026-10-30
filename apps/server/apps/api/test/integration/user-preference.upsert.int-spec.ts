@@ -10,7 +10,7 @@ import {
   layoutModeConst,
 } from '@/modules/system/user_preference/preference.const'
 import { SysUserPreferenceService } from '@/modules/system/user_preference/services/user_preference.service'
-import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 
 /**
  * B7b 改写（原 Mongo 版 characterization 退役，行为基准已在 git 历史存档）：
@@ -45,7 +45,7 @@ describe('SysUserPreferenceService upsert (on real PG)', () => {
 
   beforeAll(async () => {
     app = await createIntegrationApp()
-    pgDataSource = getWalnutPgDataSource(app)
+    pgDataSource = getWalnutPgAdminDataSource(app)
     service = app.get(SysUserPreferenceService)
   })
 

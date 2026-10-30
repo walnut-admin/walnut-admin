@@ -37,7 +37,7 @@ import { AppTechRedisService } from '@/modules/techniques/cache/redis/redis.serv
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
 import { AppTechCacheVerifyCodeService } from '@/modules/techniques/cache/service/cache.verifyCode'
-import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 
 /**
  * B7c 登录全链用例（phase3-plan §1 B7c，on real PG）—— auth 链 + security 收口后的
@@ -244,7 +244,7 @@ describe('B7c auth login chain (on real PG)', () => {
 
   beforeAll(async () => {
     app = await createIntegrationApp()
-    pgDataSource = getWalnutPgDataSource(app)
+    pgDataSource = getWalnutPgAdminDataSource(app)
     configService = app.get(ConfigService)
 
     opaqueCore = app.get(AuthOpaqueCoreService)

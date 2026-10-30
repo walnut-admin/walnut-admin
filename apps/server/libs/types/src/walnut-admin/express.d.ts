@@ -2,7 +2,7 @@ import type { Recordable } from 'easy-fns-ts'
 import type { Request, Response } from 'express'
 import type { IResult } from 'ua-parser-js'
 import type { LocaleType } from '@walnut/contract'
-import type { WalnutTxContext } from '@walnut-server/db'
+import type { IWalnutAdminDataScopeRlsSettings, WalnutTxContext } from '@walnut-server/db'
 
 declare global {
   namespace Express {
@@ -84,6 +84,14 @@ declare global {
      * transaction context (PG EntityManager). Populated by WalnutTxInterceptor (tx.interceptor.ts).
      */
     txContext?: WalnutTxContext
+
+    /**
+     * @description 数据权限三期（RLS）的事务级设置 —— ALSRequestInterceptor（全局）
+     * 按请求计算出模式 / 用户 / 部门天花板后挂到这里；WalnutTxInterceptor 在
+     * `startTransaction()` 之后用 `set_config(..., true)` 写进事务，供 RESTRICTIVE
+     * 策略 `app.data_scope_*()` 读取。
+     */
+    dataScopeRls?: IWalnutAdminDataScopeRlsSettings
 
     /**
      * @description Used with `@WalnutAdminDecoratorDecryptRequest` to get decrypted request body

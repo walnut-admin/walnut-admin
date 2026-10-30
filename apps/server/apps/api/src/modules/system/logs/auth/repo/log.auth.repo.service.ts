@@ -2,7 +2,7 @@
 import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutPGConnectionName } from '@walnut-server/db'
+import { runInWalnutSystemTransaction, WalnutPGConnectionName } from '@walnut-server/db'
 
 import { SysLogAuthDTO } from '../dto/log.auth.dto'
 import { SysLogAuthEntity } from '../entity/log-auth.entity'
@@ -29,9 +29,12 @@ export class SysLogAuthRepoService {
    * @description create auth log（旁路写；调用方自行吞错）
    */
   async create(dto: SysLogAuthDTO) {
-    const repository = this.dataSource.manager.getRepository(SysLogAuthEntity)
-    // 单对象 create 命中 TypeORM 的批量重载签名，显式收窄回单实体（基类 create 同款）
-    const created = repository.create(dto as never) as unknown as SysLogAuthEntity
-    return repository.save(created)
+    // 数据权限三期：sys_log_auth 缺省 anonymous —— 旁路写必须显式 system 事务
+    return runInWalnutSystemTransaction(this.dataSource, async (manager) => {
+      const repository = manager.getRepository(SysLogAuthEntity)
+      // 单对象 create 命中 TypeORM 的批量重载签名，显式收窄回单实体（基类 create 同款）
+      const created = repository.create(dto as never) as unknown as SysLogAuthEntity
+      return repository.save(created)
+    })
   }
 }

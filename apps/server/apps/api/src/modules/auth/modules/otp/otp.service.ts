@@ -4,7 +4,7 @@ import type { IOtpType } from './const/otp.const'
 
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutPGConnectionName } from '@walnut-server/db'
+import { applyWalnutDataScopeRlsSettings, WALNUT_DATA_SCOPE_RLS_MODE, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
 import { DataSource } from 'typeorm'
 import { SharedWelcomeService } from '@/modules/shared/welcome/welcome.service'
@@ -53,6 +53,13 @@ export class OtpService {
     const queryRunner = this.pgDataSource.createQueryRunner()
     await queryRunner.connect()
     await queryRunner.startTransaction()
+    // 数据权限三期：自管事务不在 @WalnutTx 拦截器里，必须显式 system 设置
+    // （登录链无请求用户；sys_user 的 fail-closed 策略会拒绝写入）
+    await applyWalnutDataScopeRlsSettings(queryRunner.manager, {
+      mode: WALNUT_DATA_SCOPE_RLS_MODE.SYSTEM,
+      userId: '',
+      deptIds: [],
+    })
 
     try {
       // Generate hash for lookup

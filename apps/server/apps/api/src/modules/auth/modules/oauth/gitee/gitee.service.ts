@@ -1,7 +1,7 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutPGConnectionName } from '@walnut-server/db'
+import { applyWalnutDataScopeRlsSettings, WALNUT_DATA_SCOPE_RLS_MODE, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
 import { WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
@@ -60,6 +60,12 @@ export class OAuthGiteeService {
     const queryRunner = this.pgDataSource.createQueryRunner()
     await queryRunner.connect()
     await queryRunner.startTransaction()
+    // 数据权限三期：自管事务显式 system（登录链无请求用户）
+    await applyWalnutDataScopeRlsSettings(queryRunner.manager, {
+      mode: WALNUT_DATA_SCOPE_RLS_MODE.SYSTEM,
+      userId: '',
+      deptIds: [],
+    })
 
     try {
       let result: IWalnutAdminAccessTokenPayload

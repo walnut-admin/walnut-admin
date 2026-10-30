@@ -1,3 +1,4 @@
+import type { IWalnutAdminDataScopeRlsSettings } from '@walnut-server/db'
 import type { IWalnutAdminDataScopeDescriptor } from '@/common/repository/data-scope'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { Injectable, Logger } from '@nestjs/common'
@@ -14,6 +15,12 @@ interface RequestContext {
    * 缺失 = 没有可用的数据权限上下文；基类对已注册实体 fail-closed（抛错）。
    */
   dataScope?: IWalnutAdminDataScopeDescriptor
+  /**
+   * 事务级 RLS 设置（ALSRequestInterceptor 按同一份描述符 + 账号部门计算）。
+   * 基类自动事务直接使用它，保证 `request.dataScopeRls`（@WalnutTx 通道）与
+   * 自动事务写出的 GUC 完全一致。
+   */
+  rlsSettings?: IWalnutAdminDataScopeRlsSettings
   /** 系统通道标记（runAsSystem；仅用于调试/审计，不影响谓词） */
   systemTask?: boolean
 }

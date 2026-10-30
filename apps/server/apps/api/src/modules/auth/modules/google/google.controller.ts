@@ -6,6 +6,7 @@ import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decor
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
+import { WalnutAdminDecoratorDataScopeSystemChannel } from '@/decorators/walnut/dataScope.decorator'
 import { WalnutAdminDecoratorFunctionalGuard } from '@/decorators/walnut/functional.decorator'
 import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
@@ -28,6 +29,8 @@ import { AuthGoogleService } from './google.service'
   'authEnable',
   { defaultClosed: true },
 )
+// 数据权限三期：登录链系统通道（匿名进入，按用户名/oauth 绑定读写 sys_user）
+@WalnutAdminDecoratorDataScopeSystemChannel()
 export class AuthGoogleController {
   private readonly logger = new Logger(AuthGoogleController.name)
 

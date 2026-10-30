@@ -9,6 +9,7 @@ import { InjectDataSource } from '@nestjs/typeorm'
 import { catchError, concatMap, Observable } from 'rxjs'
 
 import { DataSource } from 'typeorm'
+import { applyWalnutDataScopeRlsSettings, WALNUT_DATA_SCOPE_RLS_MODE } from './data-scope-rls'
 import { DBTransactionHooksStore } from './db.hook'
 import { WalnutPGConnectionName } from './pg.const'
 import { WalnutTxContext } from './tx-context'
@@ -47,6 +48,15 @@ export class WalnutTxInterceptor implements NestInterceptor {
     try {
       await queryRunner.connect()
       await queryRunner.startTransaction()
+
+      // 数据权限三期：RLS 设置必须写在与查询同连接同事务上（set_config local = true）。
+      // ALSRequestInterceptor（全局，先于本拦截器执行）已把当前请求的 RLS 设置挂到
+      // request.dataScopeRls；缺失（理论不可达）按 system 兜底 —— 未设置时策略也是 system，
+      // 显式写出来是为了让连接上的状态永远可预期。
+      await applyWalnutDataScopeRlsSettings(
+        queryRunner.manager,
+        request.dataScopeRls ?? { mode: WALNUT_DATA_SCOPE_RLS_MODE.SYSTEM, userId: '', deptIds: [] },
+      )
     }
     catch (e) {
       await queryRunner.release().catch(() => undefined)
@@ -76,16 +86,22 @@ export class WalnutTxInterceptor implements NestInterceptor {
             pgReleased = true
           }
 
-          // execute post-commit hooks (sync)
-          for (const hook of hooks) {
-            try {
-              await hook()
-              this.logger.log('[POST-COMMIT] after commit')
+          // execute post-commit hooks —— **在事务 ALS 上下文之外**执行。
+          // 数据权限三期：hook 内若调用已注册实体的基类仓库（很常见：缓存失效反查、
+          // 恢复后联动），基类会探测到「外层事务上下文存在但没有 em」并抛
+          // DataScopeTransactionRequired（500）。此时事务已提交、runner 已释放，
+          // 正确语义是 hook 走自己的自动事务/系统读腿，所以这里显式 exit。
+          await DBTransactionHooksStore.exit(async () => {
+            for (const hook of hooks) {
+              try {
+                await hook()
+                this.logger.log('[POST-COMMIT] after commit')
+              }
+              catch (e) {
+                this.logger.error(e)
+              }
             }
-            catch (e) {
-              this.logger.error(e)
-            }
-          }
+          })
 
           return value
         }),

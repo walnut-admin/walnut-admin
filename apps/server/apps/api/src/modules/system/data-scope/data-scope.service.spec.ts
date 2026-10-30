@@ -339,7 +339,11 @@ describe('data-scope service 解析与缓存', () => {
 
     ctx.deptRepo.subtrees.set(DEPT_A, [DEPT_A])
     await ctx.service.invalidateForDeptIds([DEPT_A, DEPT_A])
-    expect(ctx.cache.deleted).toEqual([`AUTH:DATA_SCOPE:${USER}`])
+    // 数据权限三期：账号部门（RLS WITH CHECK 腿）的缓存键随描述符一起失效
+    expect(ctx.cache.deleted).toEqual([
+      `AUTH:DATA_SCOPE:${USER}`,
+      `AUTH:DATA_SCOPE:dept:${USER}`,
+    ])
   })
 
   it('invalidateForUsers 去重', async () => {
@@ -347,7 +351,9 @@ describe('data-scope service 解析与缓存', () => {
 
     expect(ctx.cache.deleted).toEqual([
       `AUTH:DATA_SCOPE:${USER}`,
+      `AUTH:DATA_SCOPE:dept:${USER}`,
       `AUTH:DATA_SCOPE:${USER_B}`,
+      `AUTH:DATA_SCOPE:dept:${USER_B}`,
     ])
   })
 })

@@ -6,7 +6,7 @@ import { SchedulerRegistry } from '@nestjs/schedule'
 import { WalnutAdminConstAppCronTaskNames } from '@walnut-server/const/app/task'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AuthRefreshTokenPgPurgeService } from '@/modules/auth/modules/refresh/repo/refresh.pg.purge.service'
-import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 
 /**
  * PG 版过期 refresh token purge job（phase2 第 6 节 Q10-b）：
@@ -44,7 +44,7 @@ describe('AuthRefreshTokenPgPurgeService (on real PG)', () => {
 
   beforeAll(async () => {
     app = await createIntegrationApp()
-    pgDataSource = getWalnutPgDataSource(app)
+    pgDataSource = getWalnutPgAdminDataSource(app)
     purgeService = app.get(AuthRefreshTokenPgPurgeService)
 
     // FK 依赖：auth_refresh_token.user_id → sys_user、device_id → sys_device(device_id)

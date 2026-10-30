@@ -2,7 +2,7 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutPGConnectionName, withWalnutSystemManager } from '@walnut-server/db'
 import { DataSource, In } from 'typeorm'
 import { SysRoleEntity } from '../../role/entity/role.entity'
 import { SysUserDTO } from '../dto/user.dto'
@@ -36,29 +36,37 @@ export class SysUserRepositoryService {
     private readonly dataSource: DataSource,
   ) { }
 
-  private getManager(em?: EntityManager) {
-    return em ?? this.dataSource.manager
+  /**
+   * 数据权限三期：sys_user 已注册 RLS（缺省 anonymous）。系统读腿在无 em 时必须
+   * 开一条 system 事务（登录链 / guard / 缓存失效反查都不在请求事务里）；带 em
+   * 的调用沿用调用方事务（会计入当前用户天花板）。
+   */
+  private async withSystemManager<T>(em: EntityManager | undefined, fn: (manager: EntityManager) => Promise<T>) {
+    return withWalnutSystemManager(this.dataSource, em, fn)
   }
 
   /**
    * @description find all users
    */
   async findAllUsers(em?: EntityManager) {
-    return this.getManager(em).getRepository(SysUserEntity).find()
+    return this.withSystemManager(em, async manager =>
+      manager.getRepository(SysUserEntity).find())
   }
 
   /**
    * @description find user by user id
    */
   async findUserByUserId(userId: string, em?: EntityManager) {
-    return this.getManager(em).getRepository(SysUserEntity).findOne({ where: { id: userId } })
+    return this.withSystemManager(em, async manager =>
+      manager.getRepository(SysUserEntity).findOne({ where: { id: userId } }))
   }
 
   /**
    * @description find user by user name
    */
   async findUserByUserName(userName: string, em?: EntityManager) {
-    return this.getManager(em).getRepository(SysUserEntity).findOne({ where: { userName } })
+    return this.withSystemManager(em, async manager =>
+      manager.getRepository(SysUserEntity).findOne({ where: { userName } }))
   }
 
   /**
@@ -70,38 +78,43 @@ export class SysUserRepositoryService {
       return []
     }
 
-    const rows = await this.getManager(em).getRepository(SysUserEntity).find({
-      where: { deptId: In(deptIds) },
-      select: { id: true },
+    return this.withSystemManager(em, async (manager) => {
+      const rows = await manager.getRepository(SysUserEntity).find({
+        where: { deptId: In(deptIds) },
+        select: { id: true },
+      })
+      return rows.map(i => i.id)
     })
-    return rows.map(i => i.id)
   }
 
   /**
    * @description find user by id and update（returnDocument: 'after' 语义：返回更新后行）
    */
   async findUserByIdAndUpdate(id: string, update: Partial<SysUserEntity>, em?: EntityManager) {
-    const repository = this.getManager(em).getRepository(SysUserEntity)
+    return this.withSystemManager(em, async (manager) => {
+      const repository = manager.getRepository(SysUserEntity)
 
-    const target = await repository.findOne({ where: { id } })
-    if (!target) {
-      return null
-    }
-
-    Object.entries(update).forEach(([k, v]) => {
-      if (k !== 'id') {
-        (target as unknown as Record<string, unknown>)[k] = v
+      const target = await repository.findOne({ where: { id } })
+      if (!target) {
+        return null
       }
-    })
 
-    return repository.save(target)
+      Object.entries(update).forEach(([k, v]) => {
+        if (k !== 'id') {
+          (target as unknown as Record<string, unknown>)[k] = v
+        }
+      })
+
+      return repository.save(target)
+    })
   }
 
   /**
    * @description check user existence by payload, return user if existed, otherwise return null
    */
   async checkUserExistence(payload: Partial<SysUserDTO>, em?: EntityManager) {
-    return this.getManager(em).getRepository(SysUserEntity).findOne({ where: payload as never })
+    return this.withSystemManager(em, async manager =>
+      manager.getRepository(SysUserEntity).findOne({ where: payload as never }))
   }
 
   /**
@@ -126,7 +139,9 @@ export class SysUserRepositoryService {
       return Object.assign(created, { roles: finalRoles })
     }
 
-    return em ? run(em) : this.dataSource.transaction(run)
+    // 无 em 时必须是 system 事务（不是裸 dataSource.transaction）：事务里要有
+    // set_config，否则 sys_user 的 INSERT 会撞 fail-closed 策略。
+    return this.withSystemManager(em, run)
   }
 
   /**
@@ -135,7 +150,8 @@ export class SysUserRepositoryService {
    * （user.shared.checkUserAndRoleStatus）。
    */
   async populatedRolesList(userId: string, em?: EntityManager): Promise<SysRoleEntity[]> {
-    return this.getManager(em)
+    // sys_role / sys_user_role 都是 RLS 豁免表（junction 与全局配置），池级 manager 安全
+    return (em ?? this.dataSource.manager)
       .createQueryBuilder(SysRoleEntity, 'role')
       .innerJoin(SysUserRoleEntity, 'user_role', 'user_role.roleId = role.id')
       .where('user_role.userId = :userId', { userId })

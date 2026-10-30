@@ -15,7 +15,7 @@ import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { SysDeletedService } from '@/modules/system/deleted/deleted.service'
 import { SysDeletedEntity } from '@/modules/system/deleted/entity/deleted.entity'
 import { SysUserEntity } from '@/modules/system/user/entity/user.entity'
-import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 
 /**
@@ -91,7 +91,7 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
   beforeAll(async () => {
     // 全量 AppModule：demo/error/key 的实体与 PG 仓库、deleted 模块（含恢复注册表）齐备
     app = await createIntegrationApp()
-    pgDataSource = getWalnutPgDataSource(app)
+    pgDataSource = getWalnutPgAdminDataSource(app)
 
     expect(pgDataSource.options.database).toBe(INTEGRATION_DATABASE_NAME)
 

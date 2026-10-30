@@ -13,6 +13,7 @@ import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decor
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
+import { WalnutAdminDecoratorDataScopeSystemChannel } from '@/decorators/walnut/dataScope.decorator'
 import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { SysUserIdentitySharedService } from '@/modules/system/user_identity/shared/user_identity.shared.service'
@@ -30,6 +31,8 @@ import { OtpSettingService } from './otp.setting.service'
 @ApiTags('auth/otp')
 @WalnutAdminGuardJwtFree()
 @OtpDecoratorFunctionalGuard()
+// 数据权限三期：登录链系统通道（匿名进入，按用户名/凭据读 sys_user）
+@WalnutAdminDecoratorDataScopeSystemChannel()
 export class OtpController {
   constructor(
     private readonly otpService: OtpService,

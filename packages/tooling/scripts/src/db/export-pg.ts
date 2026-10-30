@@ -245,6 +245,18 @@ export async function main(): Promise<void> {
   const pg = new Client(target)
   await pg.connect()
   try {
+    // 数据权限三期：导出必须完整。本通道走管理角色（DATABASE_PG_USER），正常是
+    // superuser / BYPASSRLS；若误配成普通角色，`SET row_security = off` 会让 PG 对
+    // 启用 RLS 的表**直接报错**（而不是静默少行）—— 刻意选“响亮失败”，不降级。
+    const roleInfo = (await pg.query(
+      'SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user',
+    )).rows[0] as { rolsuper: boolean, rolbypassrls: boolean } | undefined
+
+    if (roleInfo !== undefined && !roleInfo.rolsuper && !roleInfo.rolbypassrls) {
+      out('警告：导出角色既非 superuser 也无 BYPASSRLS —— 依赖 SET row_security = off 的报错保护')
+    }
+    await pg.query('SET row_security = off')
+
     // junction 预取：sys_user.roles / sys_role.menus 反向拼数组
     const userRoles = (await pg.query('SELECT user_id, role_id FROM sys_user_role')).rows
     const roleMenus = (await pg.query('SELECT role_id, menu_id FROM sys_role_menu')).rows

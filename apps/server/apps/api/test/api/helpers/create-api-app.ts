@@ -12,7 +12,12 @@ import { createCache } from 'cache-manager'
 import { useContainer } from 'class-validator'
 
 import { AppModule } from '@/app/app.module'
-import { ensureIntegrationPgDatabase, getWalnutPgDataSource } from '../../integration/helpers/create-integration-app'
+import {
+  ensureIntegrationPgDatabase,
+  getWalnutPgAdminDataSource,
+  getWalnutPgDataSource,
+  initWalnutPgAdminDataSource,
+} from '../../integration/helpers/create-integration-app'
 
 /**
  * API 级测试装配：与 `integration/helpers/create-integration-app` 同源的完整 AppModule 装配
@@ -89,11 +94,12 @@ export async function createApiApp(extraProviders: Provider[] = []): Promise<Nes
   await app.init()
 
   ensureIntegrationPgDatabase(app)
+  await initWalnutPgAdminDataSource(app)
 
   return app
 }
 
-export { getWalnutPgDataSource }
+export { getWalnutPgAdminDataSource, getWalnutPgDataSource }
 
 /** API 前缀内的路径拼接：`/{prefix}/v{version}/system/lang` 之类由这里统一生产 */
 export function apiPath(configService: ConfigService, url: string): string {

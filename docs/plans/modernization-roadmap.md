@@ -218,3 +218,20 @@ P2-21~29、P2-32 security-policy 不清会话、P3-17~30 等）**维持登记、
   SELF-CUSTOM-ALL 与越权 404 用例。
 
 二期（部门维度 + RLS RESTRICTIVE 硬上限）按 §4 二期清单另行排期。
+
+### 6.2 数据权限三期（RLS RESTRICTIVE，2026-10-30 实施完成）
+
+- 七张注册表 `ENABLE + FORCE ROW LEVEL SECURITY`；每表一条 PERMISSIVE 基线 +
+  一条 RESTRICTIVE 天花板（`app.data_scope_*()` STABLE 函数读事务级 GUC）。
+- 运行时连接切 `walnut_app`（NOSUPERUSER NOBYPASSRLS）；`DATABASE_PG_APP_USER/PASS`
+  **显式必填**（缺失启动报错，禁止回退管理角色）。
+- 事务级注入：`@WalnutTx` 拦截器在 `startTransaction` 后写 GUC；基类仓库对注册实体
+  无 em 时自动事务；系统读腿（登录链 / guard / 日志旁写 / 心跳）显式走 system 事务。
+
+**部署注意（生产必读）**：
+
+- `walnut_app` 必须**预建**并配置强密码（与 `DATABASE_PG_APP_USER/PASS` 一致）：
+  迁移里的 `CREATE ROLE` 只是本地/集成库引导，角色已存在时跳过、不会覆盖生产密码。
+- 管理通道 `DATABASE_PG_USER`（迁移 / `db:export:pg` / seed / 测试 fixture）必须是
+  superuser 或 BYPASSRLS，否则 RLS 表（FORCE）会被默认拒绝。
+- 生产 / 预发 env-encrypted 必须含 `DATABASE_PG_APP_*`；缺失时应用启动即报错。

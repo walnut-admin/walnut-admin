@@ -22,6 +22,7 @@ import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { LocaleType } from '@walnut/contract'
 
 import { I18n, I18nContext } from 'nestjs-i18n'
+import { WalnutAdminDecoratorDataScopeSystemChannel } from '@/decorators/walnut/dataScope.decorator'
 import { WalnutAdminDecoratorFunctionalGuard } from '@/decorators/walnut/functional.decorator'
 import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
@@ -41,6 +42,8 @@ import { OAuthGitHubScope } from './github.strategy'
 @ApiTags('auth/oauth/github')
 @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOAuthGitHubKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_GITHUB, 'authEnable')
 @WalnutAdminGuardJwtFree()
+// 数据权限三期：登录链系统通道（匿名进入，按 oauth 绑定读写 sys_user）
+@WalnutAdminDecoratorDataScopeSystemChannel()
 export class OAuthGithubController {
   private readonly logger = new Logger(OAuthGithubController.name)
 

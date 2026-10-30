@@ -7,7 +7,7 @@ import { from, lastValueFrom, throwError } from 'rxjs'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
-import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgAdminDataSource, getWalnutPgDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 
 /**
@@ -27,7 +27,10 @@ import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
  */
 describe('WalnutTxInterceptor single-engine transaction semantics (on real PG)', () => {
   let app: INestApplication
+  /** 应用连接（walnut_app）：拦截器与事务句柄必须走它，RLS 才会真实生效 */
   let pgDataSource: DataSource
+  /** 管理连接：事务外对账（应用连接池级无 GUC，fail-closed 下看不到行） */
+  let adminPgDataSource: DataSource
 
   function pgInsertPayload(demoString: string, demoPhoneNumber: string) {
     // NOT NULL 无 DB 默认的数组列必须显式给值（phase2 4.20，含 demo_uuid_array）
@@ -71,6 +74,7 @@ describe('WalnutTxInterceptor single-engine transaction semantics (on real PG)',
     // AppDemoEntity 已随 demo.module 迁 PG 注册（B1 起），这里直接用全量 AppModule
     app = await createIntegrationApp()
     pgDataSource = getWalnutPgDataSource(app)
+    adminPgDataSource = getWalnutPgAdminDataSource(app)
 
     // 守卫自检：指向集成库
     expect(pgDataSource.options.database).toBe(INTEGRATION_DATABASE_NAME)
@@ -85,7 +89,8 @@ describe('WalnutTxInterceptor single-engine transaction semantics (on real PG)',
   }
 
   async function countPg(demoString: string) {
-    return pgDataSource.manager.count(AppDemoEntity, { where: { demoString } })
+    // 管理通道读（应用连接池级无事务设置 → fail-closed 0 行）
+    return adminPgDataSource.manager.count(AppDemoEntity, { where: { demoString } })
   }
 
   function uniqueString() {

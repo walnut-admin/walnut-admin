@@ -8,7 +8,7 @@ import { SysUserMfaRepositoryService } from '@/modules/system/user_mfa/repo/user
 import { SysUserMfaSharedService } from '@/modules/system/user_mfa/shared/user_mfa.shared.service'
 import { SysUserMfaTotpService } from '@/modules/system/user_mfa/totp/totp.service'
 import { AppTechCryptoService } from '@/modules/techniques/crypto/crypto.service'
-import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 
 /**
  * B7b user_mfa 用例（phase2 4.12 / phase3-plan §1 B7b，on real PG）：
@@ -53,7 +53,7 @@ describe('B7b user_mfa (on real PG)', () => {
 
   beforeAll(async () => {
     app = await createIntegrationApp()
-    pgDataSource = getWalnutPgDataSource(app)
+    pgDataSource = getWalnutPgAdminDataSource(app)
 
     mfaRepo = app.get(SysUserMfaRepositoryService)
     totpService = app.get(SysUserMfaTotpService)

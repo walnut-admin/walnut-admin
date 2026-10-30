@@ -61,6 +61,17 @@ class EnvironmentVariables {
   @IsString()
   DATABASE_PG_NAME: string
 
+  /**
+   * 数据权限三期：运行时连接角色（NOSUPERUSER NOBYPASSRLS，受 RLS 约束）。
+   * **显式必填**（不允许回退管理角色 —— 回退会让 RLS 静默失效）。缺失时
+   * `validateConfig` 会给出指向 `pnpm setup-env` 与迁移的明确报错。
+   */
+  @IsString()
+  DATABASE_PG_APP_USER: string
+
+  @IsString()
+  DATABASE_PG_APP_PASS: string
+
   /* auth github */
   @IsString()
   AUTH_GITHUB_CLIENTID: string
@@ -208,6 +219,19 @@ class EnvironmentVariables {
 }
 
 export function validateConfig(config: Record<string, unknown>) {
+  // 数据权限三期：运行时角色必须显式配置 —— 回退管理角色会让 RLS 静默失效。
+  // 提前给出可执行的报错（类校验器的通用文案只列字段名，不指向修复步骤）。
+  const appUser = config.DATABASE_PG_APP_USER
+  const appPass = config.DATABASE_PG_APP_PASS
+
+  if (typeof appUser !== 'string' || appUser === '' || typeof appPass !== 'string' || appPass === '') {
+    throw new Error(
+      '[config] 缺少 DATABASE_PG_APP_USER / DATABASE_PG_APP_PASS（数据权限三期 RLS 运行时角色）。'
+      + '请先执行 `pnpm setup-env` 解密 env-local；确认迁移 1793360000000-DataScopePhase3Rls '
+      + '已创建 walnut_app 角色，或按部署文档预建该角色并配置强密码。',
+    )
+  }
+
   const validatedConfig = plainToClass(EnvironmentVariables, config, {
     enableImplicitConversion: true,
   })

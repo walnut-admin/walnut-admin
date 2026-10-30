@@ -14,7 +14,7 @@ import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.r
 import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
 import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { SysDeletedEntity } from '@/modules/system/deleted/entity/deleted.entity'
-import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 
 /**
@@ -95,7 +95,7 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
       [AppDemoPgRepository],
     )
     repo = app.get(AppDemoPgRepository)
-    pgDataSource = getWalnutPgDataSource(app)
+    pgDataSource = getWalnutPgAdminDataSource(app)
     als = app.get(ALSRequestService)
 
     expect(pgDataSource.options.database).toBe(INTEGRATION_DATABASE_NAME)

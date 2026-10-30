@@ -1,7 +1,7 @@
 import type { DataSource, EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutModelName, WalnutPGConnectionName, withWalnutSystemManager } from '@walnut-server/db'
 import { IsNull } from 'typeorm'
 
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
@@ -170,7 +170,8 @@ export class SysDeptBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
    * dept/post 模块（模块图单向无环），所以这里反向计数走实体仓库而非注入 employee 模块。
    */
   public async countEmployees(deptId: string, em?: EntityManager): Promise<number> {
-    // eslint-disable-next-line no-restricted-syntax -- 删除前置计数必须全库口径（scoped 计数会把「其他用户创建的职工」漏掉，FK RESTRICT 兜底会退化成未受控错误）
-    return this.getManager(em).getRepository(SysEmployeeEntity).count({ where: { deptId } })
+    return withWalnutSystemManager(this.dataSource, em, async manager =>
+      // eslint-disable-next-line no-restricted-syntax -- 删除前置计数必须全库口径（见上方注释）；这里已显式走 system 事务
+      manager.getRepository(SysEmployeeEntity).count({ where: { deptId } }))
   }
 }

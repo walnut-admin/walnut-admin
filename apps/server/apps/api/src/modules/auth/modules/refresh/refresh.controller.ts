@@ -10,6 +10,7 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
+import { WalnutAdminDecoratorDataScopeSystemChannel } from '@/decorators/walnut/dataScope.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti } from '@/decorators/walnut/user.decorator'
 import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'
 import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
@@ -23,6 +24,8 @@ import { AuthRefreshSharedService } from './shared/refresh.shared.service'
 
 @Controller('auth/refresh')
 @ApiTags('auth/refresh')
+// 数据权限三期：刷新链系统通道（无 AT，按 refresh token 读 sys_user）
+@WalnutAdminDecoratorDataScopeSystemChannel()
 export class AuthRefreshController {
   constructor(
     private readonly authRefreshSharedService: AuthRefreshSharedService,

@@ -1,3 +1,4 @@
+export * from './data-scope-rls'
 export * from './db.const'
 export * from './db.decorator'
 export * from './db.hook'

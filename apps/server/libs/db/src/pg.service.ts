@@ -26,6 +26,9 @@ export class WalnutPGConfigService implements TypeOrmOptionsFactory {
       synchronize: false,
       autoLoadEntities: true,
 
+      // 数据权限三期：运行时连接角色（pg.config 已优先取 DATABASE_PG_APP_USER/PASS）。
+      // 迁移/管理通道仍走 DATABASE_PG_USER/PASS（data-source.cli.ts 与
+      // 集成测试 globalSetup 独立读取），两个通道分离后 RLS 才真正生效。
       host: this.configService.get<string>('pg.host'),
       port: this.configService.get<number>('pg.port'),
       username: this.configService.get<string>('pg.user'),

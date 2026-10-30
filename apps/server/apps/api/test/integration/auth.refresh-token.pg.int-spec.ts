@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AuthRefreshRepositoryService } from '@/modules/auth/modules/refresh/repo/refresh.repo.service'
 import { AuthRefreshSharedService } from '@/modules/auth/modules/refresh/shared/refresh.shared.service'
 import { AppTokenService } from '@/modules/shared/token/token.service'
-import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
+import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 
 /**
  * B7b auth_refresh_token 用例（phase2 4.24 / phase3-plan §1 B7b，on real PG）：
@@ -57,7 +57,7 @@ describe('B7b auth_refresh_token (on real PG)', () => {
 
   beforeAll(async () => {
     app = await createIntegrationApp()
-    pgDataSource = getWalnutPgDataSource(app)
+    pgDataSource = getWalnutPgAdminDataSource(app)
 
     refreshRepo = app.get(AuthRefreshRepositoryService)
     refreshShared = app.get(AuthRefreshSharedService)

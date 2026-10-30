@@ -137,7 +137,7 @@ export class SysDeletedService {
       throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.delete.recoverFail', _devMsg: e instanceof Error ? e.message : String(e) })
     }
 
-    // delete from delete collection（同一 em → 与上一步同事务）
-    await this.deletedBasicRepo.deleteRealById(deleted.id, em)
+    // delete from delete collection（同一 em → 与上一步同事务）；P3-9：断言恰好命中 1 行
+    await this.deletedBasicRepo.deleteRealById(deleted.id, em, { assertAffected: true })
   }
 }
