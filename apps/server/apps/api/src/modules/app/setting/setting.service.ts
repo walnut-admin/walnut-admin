@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
+import { runAfterCommit } from '@walnut-server/db'
 
+import { DataScopeService, isWalnutDataScopeSettingKey } from '@/modules/system/data-scope/data-scope.service'
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 
 import {
@@ -23,14 +25,35 @@ export class AppSettingService {
     private readonly settingBasicRepo: AppSettingBasicRepository,
     private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
     private readonly settingRepoService: AppSettingRepositoryService,
+    private readonly dataScopeService: DataScopeService,
   ) {}
+
+  /**
+   * 写通道收口（批 4 / L2，关闭 DESIGN-ISSUES P3-36）：重提取 APP:SETTING + 按需
+   * bump 数据权限 epoch，两者同包在 `runAfterCommit` 里 —— 事务内推迟到提交后
+   * （无事务时就地执行），且 bump 一定发生在新设置进缓存之后（新世代的首个描述符
+   * 计算必须读到新设置；同进程 APP:SETTING memo 已在 setAppSettings 里清掉）。
+   *
+   * `app.functional.role` 判定吃 before/after 两个 key：改名**离开**该键同样要 bump
+   * （effective roleMode 会回落到默认值）。方向只会失效，多 bump 无害。
+   */
+  private async refreshSettingsAndBumpEpochIfNeeded(
+    ...settingKeys: Array<string | null | undefined>
+  ): Promise<void> {
+    await runAfterCommit(async () => {
+      await this.settingRepoService.extractAppSettingIntoCache()
+
+      if (settingKeys.some(isWalnutDataScopeSettingKey)) {
+        await this.dataScopeService.bumpEpoch()
+      }
+    })
+  }
 
   // base CRUD
   async create(dto: AppSettingDTOCreateRequest) {
     const created = await this.settingBasicRepo.create(dto)
 
-    // re-extract app setting after create
-    await this.settingRepoService.extractAppSettingIntoCache()
+    await this.refreshSettingsAndBumpEpochIfNeeded(dto.settingKey)
 
     return created
   }
@@ -40,10 +63,12 @@ export class AppSettingService {
   }
 
   async update(id: string, dto: AppSettingDTOUpdateRequest) {
+    // 改名离开 app.functional.role 也要 bump —— 更新前读旧 key（app_setting 是低写小表，
+    // 多一次点查可接受；repo 的 update 内部读不回传 before）
+    const before = await this.settingBasicRepo.readById(id)
     const updated = await this.settingBasicRepo.update(id, dto)
 
-    // re-extract app setting after update
-    await this.settingRepoService.extractAppSettingIntoCache()
+    await this.refreshSettingsAndBumpEpochIfNeeded(before.settingKey, dto.settingKey)
 
     return updated
   }

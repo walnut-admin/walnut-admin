@@ -13,6 +13,7 @@ import {
   buildWalnutDataScopeSqlPredicate,
   getWalnutDataScopeEntityConfig,
   mergeWalnutDataScopeFindWhere,
+  resolveWalnutDataScopeDeptUpdate,
   toWalnutDataScopeMode,
   WALNUT_DATA_SCOPE_ENTITIES,
   WALNUT_DATA_SCOPE_EXEMPT_ENTITIES,
@@ -164,7 +165,30 @@ describe('数据权限注册表（注册 = 强制过滤；未注册 = 显式豁�
     // 二期批 2：行级部门归属列入注册 + create 双回填开启
     expect(demoConfig?.deptColumn).toBe('deptId')
     expect(demoConfig?.fillDeptOnCreate).toBe(true)
+    // 批 4 / L1：行级归属由 create 派生 → update 一律 strip
+    expect(demoConfig?.deptUpdatePolicy).toBe('strip')
+    // 其余含 deptColumn 的注册实体走缺省 validate（未显式登记）
+    const employeeConfig = WALNUT_DATA_SCOPE_ENTITIES
+      .find(config => entityTableName(config.entity) === 'sys_employee')
+    expect(employeeConfig?.deptColumn).toBe('deptId')
+    expect(employeeConfig?.deptUpdatePolicy).toBeUndefined()
     expect(getWalnutDataScopeEntityConfig(WALNUT_DATA_SCOPE_EXEMPT_ENTITIES[0].entity)).toBeUndefined()
+  })
+
+  it('deptUpdatePolicy 全量映射 + 不变量（strip ⇒ 有 deptColumn）', () => {
+    const byTable = new Map(WALNUT_DATA_SCOPE_ENTITIES.map(config => [entityTableName(config.entity), config]))
+
+    // 全量策略映射：唯一 strip 是 app_demo；sys_user / sys_employee 走缺省 validate
+    expect(byTable.get('app_demo')?.deptUpdatePolicy).toBe('strip')
+    expect(byTable.get('sys_user')?.deptColumn).toBe('deptId')
+    expect(byTable.get('sys_user')?.deptUpdatePolicy ?? 'validate').toBe('validate')
+    expect(byTable.get('sys_employee')?.deptColumn).toBe('deptId')
+    expect(byTable.get('sys_employee')?.deptUpdatePolicy ?? 'validate').toBe('validate')
+
+    // 不变量：strip 不能出现在没有 deptColumn 的注册项上（剔除一个不存在的列是配置错误）
+    expect(WALNUT_DATA_SCOPE_ENTITIES
+      .filter(config => config.deptUpdatePolicy === 'strip' && config.deptColumn === undefined))
+      .toEqual([])
   })
 })
 
@@ -368,5 +392,163 @@ describe('数据权限谓词（决策层 → 执行层单点）', () => {
     expect(toWalnutDataScopeMode(0)).toBeNull()
     expect(toWalnutDataScopeMode(7)).toBeNull()
     expect(toWalnutDataScopeMode(null)).toBeNull()
+  })
+})
+
+describe('数据权限 dept 列的 update 决策（批 4 / L1）', () => {
+  // validate（缺省）与 strip 两形态都用 app_demo 的注册项派生
+  const demoConfig = WALNUT_DATA_SCOPE_ENTITIES.find(item => entityTableName(item.entity) === 'app_demo')!
+  const validateConfig: IWalnutAdminDataScopeEntityConfig = { ...demoConfig, deptUpdatePolicy: undefined }
+  const stripConfig: IWalnutAdminDataScopeEntityConfig = { ...demoConfig, deptUpdatePolicy: 'strip' }
+  const noDeptConfig: IWalnutAdminDataScopeEntityConfig = { ...validateConfig, deptColumn: undefined }
+  const deptA = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  const deptChild = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+  const deptB = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'
+
+  it('aLL → 不限制（validate 下越界值也放行）', () => {
+    expect(resolveWalnutDataScopeDeptUpdate(
+      validateConfig,
+      { mode: WalnutAdminConstDataScopeMode.ALL },
+      { deptId: deptB },
+      deptA,
+    )).toBe('allow')
+  })
+
+  it('无 deptColumn → 不涉及（strip 配置也不剔除）', () => {
+    expect(resolveWalnutDataScopeDeptUpdate(
+      { ...noDeptConfig, deptUpdatePolicy: 'strip' },
+      { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [deptA] },
+      { deptId: deptB },
+      deptA,
+    )).toBe('allow')
+  })
+
+  it('strip → 一律剔除（与档位无关，ALL 也剔除）', () => {
+    expect(resolveWalnutDataScopeDeptUpdate(
+      stripConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [deptA] },
+      { deptId: deptB },
+      deptA,
+    )).toBe('strip')
+
+    expect(resolveWalnutDataScopeDeptUpdate(
+      stripConfig,
+      { mode: WalnutAdminConstDataScopeMode.ALL },
+      { deptId: deptA },
+      deptA,
+    )).toBe('strip')
+  })
+
+  it('validate：DTO 未给出 → 放行', () => {
+    expect(resolveWalnutDataScopeDeptUpdate(
+      validateConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [deptA] },
+      {},
+      deptA,
+    )).toBe('allow')
+  })
+
+  it('validate：显式 undefined 等同于未给出 → 放行', () => {
+    expect(resolveWalnutDataScopeDeptUpdate(
+      validateConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [deptA] },
+      { deptId: undefined },
+      deptA,
+    )).toBe('allow')
+  })
+
+  it('validate：值未变化 → 放行（含 null === null）', () => {
+    expect(resolveWalnutDataScopeDeptUpdate(
+      validateConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [deptA] },
+      { deptId: deptA },
+      deptA,
+    )).toBe('allow')
+
+    expect(resolveWalnutDataScopeDeptUpdate(
+      validateConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [deptA] },
+      { deptId: null },
+      null,
+    )).toBe('allow')
+  })
+
+  it('validate：界内新值 → 放行（DEPT_AND_CHILD 可在子树内移动）', () => {
+    expect(resolveWalnutDataScopeDeptUpdate(
+      validateConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT_AND_CHILD, deptIds: [deptA, deptChild] },
+      { deptId: deptChild },
+      deptA,
+    )).toBe('allow')
+  })
+
+  it('validate：越界新值 → 拒绝（含空串 / null / 非字符串）', () => {
+    for (const next of [deptB, '', null, 42]) {
+      expect(resolveWalnutDataScopeDeptUpdate(
+        validateConfig,
+        { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [deptA] },
+        { deptId: next },
+        deptA,
+      )).toBe('deny')
+    }
+  })
+
+  it('validate：显式 null（清空部门）→ 拒绝（与 RLS WITH CHECK 对非本人行同口径）', () => {
+    expect(resolveWalnutDataScopeDeptUpdate(
+      validateConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT_AND_CHILD, deptIds: [deptA, deptChild] },
+      { deptId: null },
+      deptA,
+    )).toBe('deny')
+  })
+
+  it('uuid 大小写不敏感：新值 / 描述符 / 原值比较前统一小写', () => {
+    const upperA = deptA.toUpperCase()
+
+    // 大写新值落在小写 deptIds 内 → 允许
+    expect(resolveWalnutDataScopeDeptUpdate(
+      validateConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT_AND_CHILD, deptIds: [deptA, deptChild] },
+      { deptId: upperA },
+      deptB,
+    )).toBe('allow')
+
+    // 大写新值与原值同 UUID → 视为未变化
+    expect(resolveWalnutDataScopeDeptUpdate(
+      validateConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [deptA] },
+      { deptId: upperA },
+      deptA,
+    )).toBe('allow')
+
+    // 描述符大写、DTO 小写 → 仍允许；界外大写 → 拒绝
+    expect(resolveWalnutDataScopeDeptUpdate(
+      validateConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [upperA] },
+      { deptId: deptA },
+      deptB,
+    )).toBe('allow')
+    expect(resolveWalnutDataScopeDeptUpdate(
+      validateConfig,
+      { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [deptA] },
+      { deptId: deptB.toUpperCase() },
+      deptA,
+    )).toBe('deny')
+  })
+
+  it('validate：SELF（无 deptIds）改部门 → 拒绝', () => {
+    expect(resolveWalnutDataScopeDeptUpdate(
+      validateConfig,
+      { mode: WalnutAdminConstDataScopeMode.SELF },
+      { deptId: deptChild },
+      deptA,
+    )).toBe('deny')
+  })
+
+  it('validate：DEPT_OR_SELF 只认部门腿（子树外 → 拒绝）', () => {
+    const descriptor = { mode: WalnutAdminConstDataScopeMode.DEPT_OR_SELF, deptIds: [deptA], userIds: ['u'] }
+
+    expect(resolveWalnutDataScopeDeptUpdate(validateConfig, descriptor, { deptId: deptA }, deptB)).toBe('allow')
+    expect(resolveWalnutDataScopeDeptUpdate(validateConfig, descriptor, { deptId: deptB }, deptA)).toBe('deny')
   })
 })

@@ -2,7 +2,7 @@ import type { EntityManager } from 'typeorm'
 import type { IWalnutAdminDataScopeResolveInput, IWalnutAdminDataScopeRoleSnapshot } from './data-scope.resolver'
 import type { IWalnutAdminDataScopeDescriptor } from '@/common/repository/data-scope'
 import { Injectable, Logger } from '@nestjs/common'
-import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstDataScope, WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
 import { Role } from '@walnut/contract'
 import { SharedScopeResolverService } from '@/modules/shared/scopeResolver/scope-resolver.service'
@@ -15,6 +15,15 @@ import { SysUserRepositoryService } from '../user/repo/user.repo.service'
 import { resolveWalnutDataScopeDescriptor } from './data-scope.resolver'
 
 /**
+ * `app.functional.role` 是 effective roleMode 的来源（GLOBAL 取 globalValue / LOCAL 取
+ * user.roleMode）。写设置时用本判定决定是否 bump 数据权限 epoch；create/update 与
+ * `updateAppSettingByKey` 两条写通道共用，避免只按「新 key」判定漏掉改名离开的场景。
+ */
+export function isWalnutDataScopeSettingKey(settingKey: string | null | undefined): boolean {
+  return settingKey === WalnutAdminConstAppSettingKeys.APP_FUNCTIONAL_ROLE
+}
+
+/**
  * 数据权限解析服务（docs/plans/data-scope-design.md §4 设计要点 1 / 6；
  * 部门维度见 docs/plans/data-scope-phase2-3-plan.md §1.1）。
  *
@@ -23,8 +32,9 @@ import { resolveWalnutDataScopeDescriptor } from './data-scope.resolver'
  *    user.dept_id + sys_user_role + sys_role.data_scope + sys_role_dept）产出描述符 ——
  *    不信任 AT payload 的角色快照（P1-18 的同一个教训：角色移除后旧 AT 仍在有效期内）；
  *    部门子树（DEPT_AND_CHILD / DEPT_OR_SELF）在需要时经递归 CTE 预解析；
- * 2. **缓存**：`AUTH:DATA_SCOPE:<userId>`（不带 deviceId —— 角色不随设备变），
- *    TTL 与访问令牌同寿命（与 AUTH:PERMISSIONS 同口径）；
+ * 2. **缓存**：`AUTH:DATA_SCOPE:<epoch>:<userId>`（不带 deviceId —— 角色不随设备变；
+ *    epoch 是全局世代，见 `bumpEpoch`），TTL 与访问令牌同寿命（与 AUTH:PERMISSIONS
+ *    同口径）；`AUTH:DATA_SCOPE:dept:<userId>`（账号部门，RLS WITH CHECK 用）不参与世代。
  * 3. **失效**：写入口清单见下。
  *
  * 失效点清单（改这些写路径时必须同步调本服务的 invalidate*）：
@@ -39,7 +49,14 @@ import { resolveWalnutDataScopeDescriptor } from './data-scope.resolver'
  * - 用户角色整组替换 → `invalidateForUser(userId)`（user.crud.update）；
  * - 用户部门变更 → `invalidateForUser(userId)`（user.crud.update 的 deptId 分支）；
  * - 用户删除（junction 级联）/ 恢复 / 切换当前角色 / 角色模式 → `invalidateForUser`
- *   （user.crud.delete / deleted.service.recover* / user.shared.switchRole*）。
+ *   （user.crud.delete / deleted.service.recover* / user.shared.switchRole*）；
+ * - `app.functional.role` 设置变更（effective roleMode 来源）→ `bumpEpoch()`
+ *   （setting.service create/update，批 4 / L2，DESIGN-ISSUES P3-36）：全局世代 +1，
+ *   所有用户的旧描述符键自然孤儿化。
+ *
+ * 世代语义（重要）：上面的 `invalidate*` 删的都是**当前 epoch** 的键；`bumpEpoch()`
+ * 之后旧世代的键不再被读取，交给 TTL 自然回收（不做 SCAN 全量删除 —— 扫描成本与
+ * 原子性都差）。因此失效点清单同时包含「精确失效」与「全局世代」两类通道。
  *
  * 二期语义演进（重要）：CUSTOM 从「角色成员 userIds 快照」改为「部门清单」后，
  * **角色成员变化不再影响同角色其他成员**（清单与成员无关）；原先为此设计的
@@ -47,8 +64,6 @@ import { resolveWalnutDataScopeDescriptor } from './data-scope.resolver'
  * 角色删除端点当前不存在（role controller 只有 create/read/update/list）；未来新增删除
  * 通道时必须先按 roleId 反查成员再 `invalidateForUsers`，否则被删角色的描述符会驻留
  * 到 TTL 到期。
- * 已知残余面（DESIGN-ISSUES P3-36）：`app.functional.role`（effective roleMode 来源）
- * 变更不失效本缓存，残留最长一个 AT TTL —— 改 setting 的写路径目前不感知本服务。
  */
 @Injectable()
 export class DataScopeService {
@@ -64,8 +79,54 @@ export class DataScopeService {
     private readonly deptBasicRepo: SysDeptBasicRepository,
   ) {}
 
-  private getCacheKey(userId: string): string {
-    return `${WalnutAdminConstAppCacheKeys.AUTH_DATA_SCOPE}:${userId}`
+  /**
+   * 全局缓存世代（批 4 / L2，P3-36）。键落在 `WALNUT_CACHE_` 命名空间**之外**：
+   * 它必须是裸整数（INCR 语义），且不能被监控台的 clear / 按 key 删除重置为 0 ——
+   * 否则尚未过期的旧 epoch 描述符会复活。读路径 GET 不到按 0（不写）。
+   */
+  private getEpochCacheKey(): string {
+    return `${WalnutAdminConstAppCacheKeys.AUTH_DATA_SCOPE}:EPOCH`
+  }
+
+  /**
+   * 读全局世代；Redis 异常返回 null。null 表示**跳过描述符缓存**（调用方直接重算，
+   * 不读也不写）—— 不能回落 0：epoch 0 的旧键可能仍在 TTL 内，回落会把旧世代描述符
+   * 当成当前值。
+   */
+  private async tryGetEpoch(): Promise<number | null> {
+    try {
+      const raw = await this.cacheService.redis.get(this.getEpochCacheKey())
+      const epoch = raw === null ? 0 : Number.parseInt(raw, 10)
+      return Number.isFinite(epoch) && epoch >= 0 ? epoch : 0
+    }
+    catch (error) {
+      this.logger.warn('read data scope epoch failed, bypassing descriptor cache for this resolution', error)
+      return null
+    }
+  }
+
+  private buildCacheKey(epoch: number, userId: string): string {
+    return `${WalnutAdminConstAppCacheKeys.AUTH_DATA_SCOPE}:${epoch}:${userId}`
+  }
+
+  /**
+   * 全局失效入口：epoch + 1（INCR，O(1) 且天然并发安全）。
+   * 旧世代的描述符键自然孤儿化，由 TTL 回收 —— 不做 SCAN 全量删除。
+   *
+   * 失败只 warn 不向上抛：失效动作失败不应让设置写返回 500；代价是旧描述符残留
+   * 最长一个 AT TTL（下一次 bump 会一并孤儿化）。
+   *
+   * **单实例边界**：本方案依赖进程内 APP:SETTING memo 在写时同步清理（见
+   * `cache.appSettings.ts` 的一致性说明）—— 多实例部署下其他实例的 memo 不会随
+   * epoch bump 失效，扩多实例前需另行评估（与 P2-27 同一前置条件）。
+   */
+  async bumpEpoch(): Promise<void> {
+    try {
+      await this.cacheService.redis.incr(this.getEpochCacheKey())
+    }
+    catch (error) {
+      this.logger.warn('bump data scope epoch failed; stale descriptors may persist until TTL', error)
+    }
   }
 
   /** 账号自己的部门（仅 RLS 的 sys_user / sys_employee WITH CHECK 使用） */
@@ -115,7 +176,16 @@ export class DataScopeService {
    * （避免无角色用户每请求都打库）。
    */
   async resolveForUser(userId: string, em?: EntityManager): Promise<IWalnutAdminDataScopeDescriptor> {
-    const cached = await this.cacheService.get<IWalnutAdminDataScopeDescriptor>(this.getCacheKey(userId))
+    const epoch = await this.tryGetEpoch()
+
+    // epoch 不可读 → 跳过描述符缓存（不读不写）：宁可每次重算，也不把可能过期的
+    // 旧世代键当成当前值。
+    if (epoch === null) {
+      return this.computeForUser(userId, em)
+    }
+
+    const cacheKey = this.buildCacheKey(epoch, userId)
+    const cached = await this.cacheService.get<IWalnutAdminDataScopeDescriptor>(cacheKey)
 
     if (cached !== null && cached !== undefined) {
       return cached
@@ -125,7 +195,7 @@ export class DataScopeService {
 
     try {
       await this.cacheService.set(
-        this.getCacheKey(userId),
+        cacheKey,
         descriptor,
         {
           ttl: this.tokenService.getAccessTokenExpireSeconds(),
@@ -211,14 +281,27 @@ export class DataScopeService {
    * 失效单个用户（用户角色变更 / 部门变更 / 当前角色切换 / 角色模式切换 / 删除 / 恢复）
    */
   async invalidateForUser(userId: string): Promise<void> {
-    await Promise.all([
-      this.cacheService.del(this.getCacheKey(userId)),
-      this.cacheService.del(this.getUserDeptCacheKey(userId)),
-    ])
+    await this.invalidateForUsers([userId])
   }
 
+  /**
+   * 批量失效：epoch 只读一次（N 个用户不做 N 次 Redis 往返）。
+   * 只删当前世代的键；bumpEpoch 之后的旧键已不可达，等 TTL 回收。
+   * epoch 不可读时仍清账号部门键（描述符键已无法定位，交给 TTL）。
+   */
   async invalidateForUsers(userIds: string[]): Promise<void> {
-    await Promise.all([...new Set(userIds)].map(async userId => this.invalidateForUser(userId)))
+    const ids = [...new Set(userIds)]
+    if (ids.length === 0) {
+      return
+    }
+
+    const epoch = await this.tryGetEpoch()
+    const keys = ids.flatMap(userId => [
+      ...(epoch === null ? [] : [this.buildCacheKey(epoch, userId)]),
+      this.getUserDeptCacheKey(userId),
+    ])
+
+    await Promise.all(keys.map(async (key): Promise<unknown> => this.cacheService.del(key)))
   }
 
   /**

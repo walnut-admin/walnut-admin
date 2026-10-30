@@ -19,6 +19,7 @@ import {
   buildWalnutDataScopeFindWhere,
   getWalnutDataScopeEntityConfig,
   mergeWalnutDataScopeFindWhere,
+  resolveWalnutDataScopeDeptUpdate,
 } from './data-scope'
 import { buildWalnutDataScopeRlsSettings } from './data-scope.rls'
 import { applyPgListQuery, buildPgListQueryOptions, executePgListQuery } from './pg-list.builder'
@@ -229,6 +230,40 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
   }
 
   /**
+   * update / updateByField 的 dept 列决策（批 4 / L1，应用层纵深；RLS WITH CHECK 仍是
+   * 数据库侧兜底）：
+   * - `'strip'` → 返回要从 DTO 剔除的列名（app_demo 的归属创建后不可改）；
+   * - `'validate'` → 越界抛与越权 readById **同一款** `DataNotFound`（404，不泄露行存在性），
+   *   界内放行；值未给 / 未变化不拦截（职工调部门是合法业务流）。
+   *
+   * 原值取自调用方刚完成的 scoped 读（update 的 readById / updateByField 的 findOne），
+   * 不额外查库。
+   */
+  private resolveDeptUpdateColumn(current: Entity, dto: Partial<Entity>): string | undefined {
+    const config = this.getDataScopeEntityConfig()
+
+    if (config === undefined || config.deptColumn === undefined) {
+      return undefined
+    }
+
+    const { descriptor } = this.requireDataScopeContext()
+    const currentDeptId: unknown = current[config.deptColumn]
+
+    const decision = resolveWalnutDataScopeDeptUpdate(
+      config,
+      descriptor,
+      dto,
+      currentDeptId,
+    )
+
+    if (decision === 'deny') {
+      throw new WalnutAdminExceptionDataNotFound()
+    }
+
+    return decision === 'strip' ? config.deptColumn : undefined
+  }
+
+  /**
    * 给列表 QueryBuilder 追加数据权限谓词（`andWhere`，不可被 or 放宽）。
    * 基类 list 在 customize 之后调用；覆写 list 的模块（user / deleted / monitor）
    * 也必须显式调用本方法（applyPgListQuery 之后）。
@@ -326,14 +361,18 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
 
       const res = await this.readById(id, manager)
 
+      // 批 4：dept 列在快照之前决策 —— validate 越界按「查无此行」抛出，不落任何写意图
+      const deptColumn = this.resolveDeptUpdateColumn(res, dto)
+
       this.alsRequestService.set('snapshotBefore', cloneDeep(res))
 
       // P2 纵深防御：owner 列只由 create 当前用户回填，update 一律不接受（DTO 未来
-      // 误加 owner 字段也不能把行转让给别人）；sys_employee 的绑定列例外
+      // 误加 owner 字段也不能把行转让给别人）；sys_employee 的绑定列例外。
+      // dept 列：strip 策略与 owner 同通道剔除（app_demo 的归属创建后不可改）
       const ownerColumn = this.getProtectedOwnerColumn()
 
       Object.entries(dto).forEach(([k, v]) => {
-        if (k !== 'id' && k !== ownerColumn) {
+        if (k !== 'id' && k !== ownerColumn && k !== deptColumn) {
           (res as Record<string, unknown>)[k] = v
         }
       })
@@ -365,11 +404,14 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
         throw new WalnutAdminExceptionDataNotFound()
       }
 
+      // 批 4：同 update，dept 列按 strip / validate 策略处理（越界 = 404）
+      const deptColumn = this.resolveDeptUpdateColumn(res, dto)
+
       // P2 纵深防御：同 update，owner 列不接受外部赋值（sys_employee 绑定列例外）
       const ownerColumn = this.getProtectedOwnerColumn()
 
       Object.entries(dto).forEach(([k, v]) => {
-        if (k !== 'id' && k !== ownerColumn) {
+        if (k !== 'id' && k !== ownerColumn && k !== deptColumn) {
           (res as Record<string, unknown>)[k] = v
         }
       })

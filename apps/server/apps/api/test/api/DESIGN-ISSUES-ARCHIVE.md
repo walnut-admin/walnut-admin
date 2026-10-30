@@ -9,7 +9,7 @@
 > 归档保留修复细节与实测证据，供审计与防回归参考；全文细节亦可查 git 历史。
 > 开放条目只在主文件维护，新条目一律记入主文件（编号顺延）。
 >
-> 归档统计：**76 条（P0 × 6 / P1 × 20 / P2 × 26 / P3 × 24）**。
+> 归档统计：**77 条（P0 × 6 / P1 × 20 / P2 × 26 / P3 × 25）**。
 > 分级口径与每条四要素约定见主文件头部。
 
 ---
@@ -1380,6 +1380,40 @@
   `WalnutAdminExceptionNoAccessRolePermission`（40106）。零破坏依据：全仓数组调用方
   （`device.controller` / `log.operate.controller`）都显式传 `'or'`，`and` 只在 COMBINE
   下参与判定；单测同时覆盖 or/combinable/visitor 对照。
+
+### P3-36 app.functional.role 设置变更不失效 AUTH:DATA_SCOPE（数据权限复审，缓存残留）—— 【已修复 2026-10-30，批 4 epoch 方案】
+
+- **位置**：`apps/api/src/modules/system/data-scope/data-scope.service.ts`（缓存键
+  `AUTH:DATA_SCOPE`）+ `apps/api/src/modules/app/setting/repo/setting.repo.service.ts`
+  （`updateAppSettingByKey` / `extractAppSettingIntoCache`）。
+- **现象**：effective roleMode 来自 `app.functional.role` 设置（GLOBAL scope 取
+  `globalValue`、LOCAL 取用户行 `roleMode`）。修改该设置会改变 COMBINE/SWITCH 的解析
+  口径，但数据权限缓存的失效点只覆盖角色/用户写路径 —— 设置变更后旧描述符最长残留
+  一个 AT TTL（与权限缓存不同，这里没有菜单维度的全量清理）。
+- **实测证据**：本次读码；`data-scope.service.spec.ts` 的失效用例只覆盖角色/用户路径。
+- **建议**：设置写路径识别 `app.functional.role` 变更后全量清 `AUTH:DATA_SCOPE:*`
+  （或把 setting 版本号纳入缓存键）。本轮仅登记。
+- **修法（2026-10-30，批 4 / L2；计划 `docs/plans/data-scope-remediation-plan.md` §2.2）**：
+  ① **全局 epoch 取代 SCAN 清理**：缓存键 `AUTH:DATA_SCOPE:<userId>` →
+  `AUTH:DATA_SCOPE:<epoch>:<userId>`；epoch 计数器键 `AUTH:DATA_SCOPE:EPOCH`（裸整数，
+  在 `WALNUT_CACHE_` 命名空间之外 —— 不被监控台 clear / 按 key 删除重置，旧世代键不会
+  复活），GET 不到按 0（读路径不写），首个 bump 从 1 开始。
+  ② **写入口**：`DataScopeService.bumpEpoch()` 用 Redis INCR（O(1)、并发安全）；
+  `AppSettingService.create/update` 与 `AppSettingRepositoryService.updateAppSettingByKey`
+  识别 `app.functional.role`（update 比较 before/after 两个 key，改名离开也命中）后调用，
+  时机在 `extractAppSettingIntoCache` 之后（两者同包在 `runAfterCommit`，新世代首次计算
+  必须读到新设置）；多 bump 无害（方向只会失效）。bump 失败只 warn，不让设置写 500
+  （代价：旧描述符残留一个 TTL）。
+  ③ **既有 invalidate\* 不变**：它们删的是当前世代键；bump 后旧键自然孤儿化、TTL 回收，
+  不引入 SCAN 全量删除。批量入口（invalidateForUsers / invalidateForDeptIds）epoch 只读一次。
+  ④ 旧格式键（无 epoch 前缀）读必不命中，随 TTL 过期，无需迁移。
+  ⑤ **单实例边界**：本方案依赖进程内 APP:SETTING memo 在写时同步清理（见
+  `cache.appSettings.ts` 的一致性说明）—— 多实例部署下其他实例的 memo 不会随 epoch
+  bump 失效，扩多实例前需另行评估（与 P2-27 同一前置条件）。
+  测试：`data-scope.service.spec.ts` 新增「epoch 缺省 0 / bump 后新键生效旧键不命中 /
+  invalidate 只删当前世代键」；`data-scope-matrix.api-spec.ts` M10b 用 root 会话把
+  `app.functional.role` 从 COMBINE 切到 SWITCH 再切回，combo 用户（多角色）下一请求
+  可见集立即按新口径合并（无需重登）。
 
 ---
 

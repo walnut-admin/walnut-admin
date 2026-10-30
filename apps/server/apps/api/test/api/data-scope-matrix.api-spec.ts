@@ -5,10 +5,12 @@ import type { SeedPermissionChainFixture } from './helpers/seed-permissions'
 import { randomUUID } from 'node:crypto'
 import { ThrottlerStorage } from '@nestjs/throttler'
 import { WalnutAdminConstDataScope } from '@walnut-server/const/app/dataScope'
+import { WalnutAdminConstAppSettingScopeType } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { Role } from '@walnut/contract'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { DataScopeService } from '@/modules/system/data-scope/data-scope.service'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { attemptHttpOpaqueLogin, performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
 import { createApiApp } from './helpers/create-api-app'
@@ -53,6 +55,7 @@ const DEMO_PERMISSIONS = [
 interface DemoRow {
   id: string
   demoString?: string
+  deptId?: string | null
 }
 
 interface DemoListData {
@@ -403,39 +406,68 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
 
   afterAll(async () => {
     if (rootApi !== undefined) {
-      if (createdIds.length > 0) {
-        await rootApi.pgDataSource.query('DELETE FROM app_demo WHERE id = ANY($1::uuid[])', [createdIds])
-        await rootApi.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [createdIds])
+      // 清理阶段一律不抛：任何一步失败都不能让后续清理被跳过（残留由下一轮 globalSetup
+      // 的 drop 兜底，但同轮后续 spec 不能被脏数据/脏设置污染）。
+      const step = async (label: string, fn: () => Promise<unknown>) => {
+        try {
+          await fn()
+        }
+        catch (error) {
+          console.warn(`[data-scope-matrix] cleanup step failed: ${label}`, error)
+        }
       }
+
+      // M10b 的防御性收尾：设置行若因用例异常残留，会把 functional.role 带进后续 spec
+      await step('restore app.functional.role setting', async () => {
+        await rootApi.pgDataSource.query('DELETE FROM app_setting WHERE setting_key = $1', ['app.functional.role'])
+        await rootApi.root('POST', rootApi.apiPath('/app/setting/cache/refresh'))
+      })
+
+      await step('delete demo rows', async () => {
+        if (createdIds.length > 0) {
+          await rootApi.pgDataSource.query('DELETE FROM app_demo WHERE id = ANY($1::uuid[])', [createdIds])
+          await rootApi.pgDataSource.query('DELETE FROM sys_deleted WHERE deleted_id = ANY($1::uuid[])', [createdIds])
+        }
+      })
 
       // 职工先于部门（dept FK RESTRICT）；demo 行也先于部门（上面已删）
-      await rootApi.pgDataSource.query('DELETE FROM sys_employee WHERE employee_no LIKE $1', [`${employeePrefix}%`])
+      await step('delete employees', async () => {
+        await rootApi.pgDataSource.query('DELETE FROM sys_employee WHERE employee_no LIKE $1', [`${employeePrefix}%`])
+      })
 
-      await cleanupPermissionChainSeed(
-        rootApi,
-        allFixtures().map(item => item.fixture),
-        clients.map(client => client.deviceId),
-      )
+      await step('cleanup permission chain seed', async () => {
+        await cleanupPermissionChainSeed(
+          rootApi,
+          allFixtures().map(item => item.fixture),
+          clients.map(client => client.deviceId),
+        )
+      })
 
       // 部门树自底向上删（FK self RESTRICT）
-      await rootApi.pgDataSource.query('DELETE FROM sys_dept WHERE id = $1', [deptChild])
-      await rootApi.pgDataSource.query('DELETE FROM sys_dept WHERE id = ANY($1::uuid[])', [[deptA, deptB]])
+      await step('delete depts', async () => {
+        await rootApi.pgDataSource.query('DELETE FROM sys_dept WHERE id = $1', [deptChild])
+        await rootApi.pgDataSource.query('DELETE FROM sys_dept WHERE id = ANY($1::uuid[])', [[deptA, deptB]])
+      })
 
-      if (createdVisitorRoleId !== null) {
-        await rootApi.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [createdVisitorRoleId])
-      }
+      await step('delete visitor role', async () => {
+        if (createdVisitorRoleId !== null) {
+          await rootApi.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [createdVisitorRoleId])
+        }
+      })
 
-      if (rootFixture !== undefined) {
-        await rootApi.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [rootFixture.userId])
-        await rootApi.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [rootFixture.roleId])
-        await rootApi.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [clients.map(client => client.deviceId)])
-        await rootApi.cleanupWalnutCacheKeys(
-          seed8,
-          ...clients.map(client => client.deviceId),
-          rootFixture.userId,
-          ...allFixtures().map(item => item.fixture.userId),
-        )
-      }
+      await step('delete root fixture', async () => {
+        if (rootFixture !== undefined) {
+          await rootApi.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [rootFixture.userId])
+          await rootApi.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [rootFixture.roleId])
+          await rootApi.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1::text[])', [clients.map(client => client.deviceId)])
+          await rootApi.cleanupWalnutCacheKeys(
+            seed8,
+            ...clients.map(client => client.deviceId),
+            rootFixture.userId,
+            ...allFixtures().map(item => item.fixture.userId),
+          )
+        }
+      })
     }
 
     await app.close()
@@ -499,6 +531,30 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
       'DEPT user read own dept row',
     )
     expectOk(await updateDemoOwn(deptAManager.client, deptA1, 'M2-OWN'), 'DEPT user update own dept row')
+  })
+
+  it('M2b app_demo update 提交 deptId 被 strip：归属不变（含 root / 部门管理员两条通道）', async () => {
+    // deptA-manager 可见 deptA1，但 dept_id 是创建时派生的归属 —— update 不接受改
+    const deptRes = await deptAManager.client.root('PUT', deptAManager.client.apiPath(`/app/demo/${deptA1}`), {
+      ...demoPayload(`${group}-M2B`),
+      deptId: deptB,
+    })
+    expectOk(deptRes, 'DEPT user update with deptId is stripped')
+
+    const deptRead = await deptAManager.client.root('GET', deptAManager.client.apiPath(`/app/demo/${deptA1}`))
+    expectOk(deptRead, 'read after stripped update')
+    expect(bodyOf<DemoRow>(deptRead).data.deptId).toBe(deptA)
+
+    // strip 与档位无关：ALL（root）提交同样被剔除
+    const rootRes = await rootApi.root('PUT', rootApi.apiPath(`/app/demo/${deptA1}`), {
+      ...demoPayload(`${group}-M2B-ROOT`),
+      deptId: deptB,
+    })
+    expectOk(rootRes, 'root update with deptId is stripped')
+
+    const rootRead = await rootApi.root('GET', rootApi.apiPath(`/app/demo/${deptA1}`))
+    expectOk(rootRead, 'root read after stripped update')
+    expect(bodyOf<DemoRow>(rootRead).data.deptId).toBe(deptA)
   })
 
   it('M3 child-manager（DEPT_AND_CHILD）：deptA 3 行 + child 1 行；越权 deptB → 404', async () => {
@@ -615,5 +671,55 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
       deptIds: [deptA, deptB],
     })
     expect((await listDemo(custom.client)).total).toBe(4)
+  })
+
+  it('M10b app.functional.role 切换（COMBINE↔SWITCH）：下一请求按新 roleMode 合并，无需重登', async () => {
+    // 预置：combo（COMBINE）= DEPT deptB 腿 + SELF 腿 → 2 行
+    expect((await listDemo(combo.client)).total).toBe(2)
+
+    const functionalRoleValue = (roleMode: string) => JSON.stringify({
+      scope: WalnutAdminConstAppSettingScopeType.GLOBAL,
+      globalValue: roleMode,
+      localKey: 'roleMode',
+      // 本用例不消费 defaultRole；给主角色 uuid 保持形状完整
+      defaultRole: combo.fixture.mainRoleId,
+    })
+
+    // root 会话写 app.functional.role（create 走 setting.service → bumpEpoch）
+    const created = await rootApi.root('POST', rootApi.apiPath('/app/setting'), {
+      settingKey: 'app.functional.role',
+      settingName: 'functional role (data-scope matrix)',
+      settingValue: functionalRoleValue(WalnutAdminConstRoleMode.SWITCH),
+      settingType: 'functional',
+    })
+    expectOk(created, 'create app.functional.role setting')
+    const settingId = bodyOf<{ id: string }>(created).data.id
+
+    try {
+      // 同一个 AT / 同一设备：下一请求立即按 SWITCH 只看 currentRole（主角色 DEPT deptB）
+      const switched = await listDemo(combo.client)
+      expect(new Set(switched.data.map(row => row.id))).toEqual(new Set([deptB1]))
+      expect(switched.total).toBe(1)
+
+      // 切回 COMBINE → SELF 腿重新并入
+      const updated = await rootApi.root('PUT', rootApi.apiPath(`/app/setting/${settingId}`), {
+        settingKey: 'app.functional.role',
+        settingName: 'functional role (data-scope matrix)',
+        settingValue: functionalRoleValue(WalnutAdminConstRoleMode.COMBINE),
+        settingType: 'functional',
+      })
+      expectOk(updated, 'update app.functional.role back to COMBINE')
+
+      const combined = await listDemo(combo.client)
+      expect(new Set(combined.data.map(row => row.id))).toEqual(new Set([deptB1, comboRow]))
+      expect(combined.total).toBe(2)
+    }
+    finally {
+      // 集成库 app_setting 基线为空：删行 + 重提取，缓存回到「无该设置」的默认口径
+      await rootApi.pgDataSource.query('DELETE FROM app_setting WHERE id = $1', [settingId])
+      expectOk(await rootApi.root('POST', rootApi.apiPath('/app/setting/cache/refresh')), 'restore setting cache')
+      // 同时清掉 combo 的描述符缓存：本用例的 epoch 残留不应影响后续用例/文件的同用户断言
+      await app.get(DataScopeService).invalidateForUser(combo.fixture.userId)
+    }
   })
 })

@@ -19,7 +19,7 @@
 > 「钉现状」用例属于 characterization test：修复对应问题时必须同步改断言，不是测试坏了。
 >
 > **统计：开放 18 条（P0 × 0 / P1 × 0 / P2 × 6 / P3 × 12）**。新条目编号顺延到已用最大号之后
-> （当前最大 P3-36，下一个 P3-37），不复用归档里的编号。
+> （当前最大 P3-37，下一个 P3-38），不复用归档里的编号。
 
 ---
 
@@ -293,15 +293,19 @@
 - **建议（产品决策）**：dataScope 修改限定 root（或 `@HasRole(root)`）；或至少禁止
   修改自己所在角色的 dataScope。二选一后再补 API 级负路径用例。本轮仅登记。
 
-### P3-36 app.functional.role 设置变更不失效 AUTH:DATA_SCOPE（数据权限复审，缓存残留）
+### P3-37 `app.functional.role` 变更未失效 `AUTH:PERMISSIONS`（数据权限复审，缓存残留）
 
-- **位置**：`apps/api/src/modules/system/data-scope/data-scope.service.ts`（缓存键
-  `AUTH:DATA_SCOPE`）+ `apps/api/src/modules/app/setting/repo/setting.repo.service.ts`
-  （`updateAppSettingByKey` / `extractAppSettingIntoCache`）。
-- **现象**：effective roleMode 来自 `app.functional.role` 设置（GLOBAL scope 取
-  `globalValue`、LOCAL 取用户行 `roleMode`）。修改该设置会改变 COMBINE/SWITCH 的解析
-  口径，但数据权限缓存的失效点只覆盖角色/用户写路径 —— 设置变更后旧描述符最长残留
-  一个 AT TTL（与权限缓存不同，这里没有菜单维度的全量清理）。
-- **实测证据**：本次读码；`data-scope.service.spec.ts` 的失效用例只覆盖角色/用户路径。
-- **建议**：设置写路径识别 `app.functional.role` 变更后全量清 `AUTH:DATA_SCOPE:*`
-  （或把 setting 版本号纳入缓存键）。本轮仅登记。
+- **位置**：`apps/api/src/modules/system/role/shared/role.shared.service.ts`
+  （`getCoreMenus` 用 `app.functional.role` 经 `SharedScopeResolverService.resolve`
+  决定 effective roleMode）+ `apps/api/src/modules/techniques/cache/service/cache.permissions.ts`
+  （`AUTH:PERMISSIONS:<userId>:<deviceId>` 缓存键没有版本号维度）。
+- **现象**：`app.functional.role` 从 COMBINE 切到 SWITCH（或反向）时，数据权限描述符已由
+  批 4 的全局 epoch 失效，但 `AUTH:PERMISSIONS` 仍按旧 roleMode 计算，残留最长一个 AT TTL
+  —— 同一用户的菜单/权限串与数据可见面会短暂不一致。该面是既有行为，超出批 4 范围。
+- **实测证据**：`permission-chain.api-spec.ts` 的 SWITCH/COMBINE 对照用 `overrideAppSettings`
+  直接改 APP:SETTING 缓存并**重新登录/重拉权限**，未覆盖「设置变更后不重登的权限缓存残留」；
+  `data-scope-matrix.api-spec.ts` M10b 只断言数据面。
+- **建议**：与 P3-36 同方案 —— 设置写入口 bump 一个权限缓存世代（键纳入
+  `AUTH:PERMISSIONS:<epoch>:...`），或设置写路径按权限维度显式清全量
+  `AUTH:PERMISSIONS:*`；两条写通道（setting create/update 与 `updateAppSettingByKey`）
+  都要覆盖。本轮仅登记。

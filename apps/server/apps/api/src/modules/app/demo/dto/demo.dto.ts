@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger'
+import { ApiProperty, IntersectionType } from '@nestjs/swagger'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldDate,
@@ -280,6 +280,23 @@ export class AppDemoDTOBase extends WalnutAdminCommonBasicModel {
     o2: number
     o3: boolean
   }
+
+  // 行级部门归属（数据权限二期批 2 的冗余列；批 4 起 update 明确 strip）。
+  // create 白名单不含它 —— 归属只由基类 create 回填，不接受入参。
+  @WalnutAdminDecoratorFieldString({
+    default: null,
+    validateOptions: { nullable: true },
+    // 数据权限批 4 / B1：同 user.dto 的 deptId —— 未提交不能被物化成显式 null
+    transformOptions: { req: { booleanString: false } },
+    swaggerOptions: {
+      title: 'dept id',
+      description: 'owning dept for department-scoped data permissions; derived on create, update is stripped',
+      nullable: true,
+      example: '0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c',
+    },
+  })
+  @WalnutAdminDecoratorValidatorUuid({ nullable: true })
+  deptId: string | null
 }
 
 export class AppDemoDTO extends AppDemoDTOBase {
@@ -371,22 +388,27 @@ export class AppDemoDTOCreateResponse extends AppDemoDTOSafe {}
 export class AppDemoDTOReadResponse extends AppDemoDTOSafe {}
 
 // update
-export class AppDemoDTOUpdateRequest extends RealPickType(AppDemoDTOSafe, [
-  'demoString',
-  'demoPhoneNumber',
-  'demoNumber',
-  'demoBoolean',
-  'demoDate',
-  'demoEnum',
-  'demoMongoId',
-  'demoObject',
-  'demoStringArray',
-  'demoNumberArray',
-  'demoBooleanArray',
-  'demoDateArray',
-  'demoEnumArray',
-  'demoMongoIdArray',
-] as const) {}
+// deptId 在写白名单里刻意保留：基类的 `deptUpdatePolicy: 'strip'`（app_demo）负责
+// 把它从更新面剔除 —— 这条通道是「归属创建后不可改」的机械靶点，不是可写字段。
+export class AppDemoDTOUpdateRequest extends IntersectionType(
+  RealPickType(AppDemoDTOSafe, [
+    'demoString',
+    'demoPhoneNumber',
+    'demoNumber',
+    'demoBoolean',
+    'demoDate',
+    'demoEnum',
+    'demoMongoId',
+    'demoObject',
+    'demoStringArray',
+    'demoNumberArray',
+    'demoBooleanArray',
+    'demoDateArray',
+    'demoEnumArray',
+    'demoMongoIdArray',
+  ] as const),
+  RealPartialType(RealPickType(AppDemoDTOSafe, ['deptId'] as const)),
+) {}
 export class AppDemoDTOUpdateResponse extends AppDemoDTOSafe {}
 
 // delete

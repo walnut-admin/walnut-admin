@@ -124,6 +124,10 @@ export class SysUserDTOBase extends WalnutAdminCommonBasicModel {
   @WalnutAdminDecoratorFieldString({
     default: null,
     validateOptions: { nullable: true },
+    // 数据权限批 4 / B1：string 字段的 booleanString Transform 会把「未提交」物化成
+    // null（自有属性），使 update 无法区分「没给 deptId」与「显式清空部门」。这里
+    // 关掉入参方向的 transform —— 未提交保持属性缺失/undefined，显式 null 仍原样保留。
+    transformOptions: { req: { booleanString: false } },
     swaggerOptions: {
       title: 'dept id',
       description: 'owning dept for department-scoped data permissions; null => no dept',

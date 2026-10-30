@@ -31,6 +31,31 @@ interface FakeUser {
 class FakeCache {
   readonly store = new Map<string, unknown>()
   readonly deleted: string[] = []
+  /** epoch 计数器：裸整数（与真实实现一样在 WALNUT_CACHE_ 命名空间之外） */
+  readonly counters = new Map<string, number>()
+  /** 故障注入：epoch 读 / bump 抛错（覆盖 N1/N2 的降级分支） */
+  failEpochRead = false
+  failEpochBump = false
+  epochReads = 0
+
+  readonly redis = {
+    get: async (key: string): Promise<string | null> => {
+      this.epochReads += 1
+      if (this.failEpochRead) {
+        throw new Error('redis down')
+      }
+      const value = this.counters.get(key)
+      return value === undefined ? null : String(value)
+    },
+    incr: async (key: string): Promise<number> => {
+      if (this.failEpochBump) {
+        throw new Error('redis down')
+      }
+      const next = (this.counters.get(key) ?? 0) + 1
+      this.counters.set(key, next)
+      return next
+    },
+  }
 
   async get<T>(key: string): Promise<T | null> {
     return (this.store.get(key) as T | undefined) ?? null
@@ -161,7 +186,7 @@ describe('data-scope service 解析与缓存', () => {
 
     expect(await ctx.service.resolveForUser(USER)).toEqual({ mode: WalnutAdminConstDataScopeMode.SELF })
     expect(ctx.roleRepo.findByIdsCalls).toBe(1)
-    expect(ctx.cache.store.get(`AUTH:DATA_SCOPE:${USER}`)).toEqual({ mode: WalnutAdminConstDataScopeMode.SELF })
+    expect(ctx.cache.store.get(`AUTH:DATA_SCOPE:0:${USER}`)).toEqual({ mode: WalnutAdminConstDataScopeMode.SELF })
 
     expect(await ctx.service.resolveForUser(USER)).toEqual({ mode: WalnutAdminConstDataScopeMode.SELF })
     expect(ctx.roleRepo.findByIdsCalls).toBe(1)
@@ -265,7 +290,7 @@ describe('data-scope service 解析与缓存', () => {
     const descriptor = await ctx.service.resolveForUser(USER)
 
     expect(descriptor).toEqual({ mode: WalnutAdminConstDataScopeMode.CUSTOM, deptIds: [] })
-    expect(ctx.cache.store.get(`AUTH:DATA_SCOPE:${USER}`)).toEqual(descriptor)
+    expect(ctx.cache.store.get(`AUTH:DATA_SCOPE:0:${USER}`)).toEqual(descriptor)
   })
 
   it('用户不存在 → 默认拒绝', async () => {
@@ -283,7 +308,7 @@ describe('data-scope service 解析与缓存', () => {
     expect(ctx.roleRepo.findByIdsCalls).toBe(1)
 
     await ctx.service.invalidateForUser(USER)
-    expect(ctx.cache.deleted).toContain(`AUTH:DATA_SCOPE:${USER}`)
+    expect(ctx.cache.deleted).toContain(`AUTH:DATA_SCOPE:0:${USER}`)
 
     await ctx.service.resolveForUser(USER)
     expect(ctx.roleRepo.findByIdsCalls).toBe(2)
@@ -295,8 +320,8 @@ describe('data-scope service 解析与缓存', () => {
     await ctx.service.invalidateForRole('role-x')
 
     expect(ctx.cache.deleted).toEqual(expect.arrayContaining([
-      `AUTH:DATA_SCOPE:${USER}`,
-      `AUTH:DATA_SCOPE:${USER_B}`,
+      `AUTH:DATA_SCOPE:0:${USER}`,
+      `AUTH:DATA_SCOPE:0:${USER_B}`,
     ]))
   })
 
@@ -306,8 +331,8 @@ describe('data-scope service 解析与缓存', () => {
     await ctx.service.invalidateForRoleDeptChange('role-custom')
 
     expect(ctx.cache.deleted).toEqual(expect.arrayContaining([
-      `AUTH:DATA_SCOPE:${USER}`,
-      `AUTH:DATA_SCOPE:${USER_B}`,
+      `AUTH:DATA_SCOPE:0:${USER}`,
+      `AUTH:DATA_SCOPE:0:${USER_B}`,
     ]))
     expect(ctx.roleRepo.findDeptIdsCalls).toBe(0)
   })
@@ -326,11 +351,11 @@ describe('data-scope service 解析与缓存', () => {
     await ctx.service.invalidateForDeptMove(DEPT_CHILD, [DEPT_B])
 
     expect(ctx.cache.deleted).toEqual(expect.arrayContaining([
-      `AUTH:DATA_SCOPE:${USER_B}`,
-      `AUTH:DATA_SCOPE:${userAncestor}`,
-      `AUTH:DATA_SCOPE:${userOldAncestor}`,
+      `AUTH:DATA_SCOPE:0:${USER_B}`,
+      `AUTH:DATA_SCOPE:0:${userAncestor}`,
+      `AUTH:DATA_SCOPE:0:${userOldAncestor}`,
     ]))
-    expect(ctx.cache.deleted).not.toContain(`AUTH:DATA_SCOPE:${USER_C}`)
+    expect(ctx.cache.deleted).not.toContain(`AUTH:DATA_SCOPE:0:${USER_C}`)
   })
 
   it('invalidateForDeptIds：去重 + 空集合不查库', async () => {
@@ -341,7 +366,7 @@ describe('data-scope service 解析与缓存', () => {
     await ctx.service.invalidateForDeptIds([DEPT_A, DEPT_A])
     // 数据权限三期：账号部门（RLS WITH CHECK 腿）的缓存键随描述符一起失效
     expect(ctx.cache.deleted).toEqual([
-      `AUTH:DATA_SCOPE:${USER}`,
+      `AUTH:DATA_SCOPE:0:${USER}`,
       `AUTH:DATA_SCOPE:dept:${USER}`,
     ])
   })
@@ -350,9 +375,81 @@ describe('data-scope service 解析与缓存', () => {
     await ctx.service.invalidateForUsers([USER, USER, USER_B])
 
     expect(ctx.cache.deleted).toEqual([
-      `AUTH:DATA_SCOPE:${USER}`,
+      `AUTH:DATA_SCOPE:0:${USER}`,
       `AUTH:DATA_SCOPE:dept:${USER}`,
-      `AUTH:DATA_SCOPE:${USER_B}`,
+      `AUTH:DATA_SCOPE:0:${USER_B}`,
+      `AUTH:DATA_SCOPE:dept:${USER_B}`,
+    ])
+  })
+
+  it('epoch 缺省 0：描述符键带世代前缀，读路径不写 epoch 键', async () => {
+    ctx.roleRepo.orderedRoleIds.set(USER, ['role-self'])
+    ctx.roleRepo.roles.set('role-self', { id: 'role-self', roleName: 'a', status: true, dataScope: WalnutAdminConstDataScope.SELF })
+
+    await ctx.service.resolveForUser(USER)
+
+    expect(ctx.cache.store.get(`AUTH:DATA_SCOPE:0:${USER}`)).toEqual({ mode: WalnutAdminConstDataScopeMode.SELF })
+    // GET 不到按 0，但读路径不创建 epoch 计数器（首个 bump 才从 1 开始）
+    expect(ctx.cache.counters.size).toBe(0)
+  })
+
+  it('bumpEpoch：新世代键缺失即重算，旧世代键保留但不再被读', async () => {
+    ctx.roleRepo.orderedRoleIds.set(USER, ['role-self'])
+    ctx.roleRepo.roles.set('role-self', { id: 'role-self', roleName: 'a', status: true, dataScope: WalnutAdminConstDataScope.SELF })
+
+    expect(await ctx.service.resolveForUser(USER)).toEqual({ mode: WalnutAdminConstDataScopeMode.SELF })
+    expect(ctx.roleRepo.findByIdsCalls).toBe(1)
+
+    await ctx.service.bumpEpoch()
+    expect(ctx.cache.counters.get('AUTH:DATA_SCOPE:EPOCH')).toBe(1)
+
+    // 角色档位改成 ALL：若旧键仍命中，这里会继续返回 SELF
+    ctx.roleRepo.roles.set('role-self', { id: 'role-self', roleName: 'a', status: true, dataScope: WalnutAdminConstDataScope.ALL })
+
+    expect(await ctx.service.resolveForUser(USER)).toEqual({ mode: WalnutAdminConstDataScopeMode.ALL })
+    expect(ctx.roleRepo.findByIdsCalls).toBe(2)
+    expect(ctx.cache.store.get(`AUTH:DATA_SCOPE:1:${USER}`)).toEqual({ mode: WalnutAdminConstDataScopeMode.ALL })
+    // 旧世代键不删（等 TTL），只是不可达
+    expect(ctx.cache.store.get(`AUTH:DATA_SCOPE:0:${USER}`)).toEqual({ mode: WalnutAdminConstDataScopeMode.SELF })
+  })
+
+  it('bump 后 invalidateForUser 只删当前世代的键', async () => {
+    await ctx.service.bumpEpoch()
+
+    await ctx.service.invalidateForUser(USER)
+
+    expect(ctx.cache.deleted).toContain(`AUTH:DATA_SCOPE:1:${USER}`)
+    expect(ctx.cache.deleted).toContain(`AUTH:DATA_SCOPE:dept:${USER}`)
+    expect(ctx.cache.deleted).not.toContain(`AUTH:DATA_SCOPE:0:${USER}`)
+  })
+
+  it('epoch 读失败 → 跳过描述符缓存（不读也不写），每次请求重算', async () => {
+    ctx.roleRepo.orderedRoleIds.set(USER, ['role-self'])
+    ctx.roleRepo.roles.set('role-self', { id: 'role-self', roleName: 'a', status: true, dataScope: WalnutAdminConstDataScope.SELF })
+    ctx.cache.failEpochRead = true
+
+    expect(await ctx.service.resolveForUser(USER)).toEqual({ mode: WalnutAdminConstDataScopeMode.SELF })
+    expect(ctx.cache.store.size).toBe(0)
+
+    expect(await ctx.service.resolveForUser(USER)).toEqual({ mode: WalnutAdminConstDataScopeMode.SELF })
+    expect(ctx.roleRepo.findByIdsCalls).toBe(2)
+    expect(ctx.cache.store.size).toBe(0)
+  })
+
+  it('bumpEpoch 失败只 warn 不抛（设置写不因失效动作 500）', async () => {
+    ctx.cache.failEpochBump = true
+
+    await expect(ctx.service.bumpEpoch()).resolves.toBeUndefined()
+  })
+
+  it('invalidateForUsers 批量入口 epoch 只读一次', async () => {
+    await ctx.service.invalidateForUsers([USER, USER_B, USER])
+
+    expect(ctx.cache.epochReads).toBe(1)
+    expect(ctx.cache.deleted).toEqual([
+      `AUTH:DATA_SCOPE:0:${USER}`,
+      `AUTH:DATA_SCOPE:dept:${USER}`,
+      `AUTH:DATA_SCOPE:0:${USER_B}`,
       `AUTH:DATA_SCOPE:dept:${USER_B}`,
     ])
   })

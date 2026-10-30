@@ -4194,6 +4194,13 @@ export interface components {
              *     }
              */
             demoObject: components["schemas"]["DemoObject"];
+            /**
+             * dept id
+             * @description owning dept for department-scoped data permissions; derived on create, update is stripped
+             * @default null
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            deptId: string | null;
             id?: string;
             /**
              * @default null
@@ -4453,6 +4460,13 @@ export interface components {
              *     ]
              */
             demoMongoIdArray: string[];
+            /**
+             * dept id
+             * @description owning dept for department-scoped data permissions; derived on create, update is stripped
+             * @default null
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            deptId: string | null;
         };
         AppDemoDTOSafeListResponse: {
             /** list response data */
@@ -4582,6 +4596,13 @@ export interface components {
              *     }
              */
             demoObject: components["schemas"]["DemoObject"];
+            /**
+             * dept id
+             * @description owning dept for department-scoped data permissions; derived on create, update is stripped
+             * @default null
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            deptId: string | null;
             id?: string;
             /**
              * @default null

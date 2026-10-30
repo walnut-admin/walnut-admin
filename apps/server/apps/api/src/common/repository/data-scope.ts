@@ -114,6 +114,17 @@ export interface IWalnutAdminDataScopeEntityConfig<Entity extends ObjectLiteral 
    * 系统通道（ALL 且无用户）不回填。
    */
   fillDeptOnCreate?: boolean
+  /**
+   * update / updateByField 对 `deptColumn` 的处理策略，**缺省 `'validate'`**（fail-closed
+   * 取向：新注册实体漏配即按严格侧）：
+   *
+   * - `'validate'`：DTO 显式给出 deptColumn 且值有变化时，新值必须 ∈ 操作者描述符的
+   *   `deptIds`（ALL 豁免），越界按「查无此行」404 处理。与三期 RLS 的 WITH CHECK
+   *   部门腿同语义 —— 应用层前置校验，失败更快且不依赖数据库连接通道；
+   * - `'strip'`：deptColumn 从 update / updateByField 的 DTO 一律剔除（与 owner 列
+   *   同通道）。用于「行级归属由创建者派生、创建后不可改」的表（app_demo）。
+   */
+  deptUpdatePolicy?: 'validate' | 'strip'
   /** 注册理由（必填：注册即强制过滤，理由要能被下一个人看懂） */
   note: string
 }
@@ -130,7 +141,7 @@ export const WALNUT_DATA_SCOPE_ENTITIES: ReadonlyArray<IWalnutAdminDataScopeEnti
     scopeColumn: 'id',
     deptColumn: 'deptId',
     fillOwnerOnCreate: false,
-    note: 'sys_user：SELF = 本人账号行（id 即 owner）；部门系档位按 dept_id 过滤（DEPT 看本部门、DEPT_AND_CHILD 看子树）。create 不回填主键。',
+    note: 'sys_user：SELF = 本人账号行（id 即 owner）；部门系档位按 dept_id 过滤（DEPT 看本部门、DEPT_AND_CHILD 看子树）。create 不回填主键；update 的 dept_id 走 validate（显式改部门必须在操作者 deptIds 内，未给/未变化放行）。',
   },
   {
     entity: SysLogOperateEntity,
@@ -158,7 +169,9 @@ export const WALNUT_DATA_SCOPE_ENTITIES: ReadonlyArray<IWalnutAdminDataScopeEnti
     scopeColumn: 'createdBy',
     deptColumn: 'deptId',
     fillDeptOnCreate: true,
-    note: 'app_demo：示范 owner 列（created_by）+ 行级部门归属列（dept_id，二期批 2 方案 A 冗余列）。create 自动填当前用户与创建者职工部门（无职工行 → NULL = 仅 ALL 可见）；SELF 只看 owner，部门系档位只看 dept_id。',
+    // 行级归属（owner + dept）都由 create 派生；update 不接受改归属（批 4 / L1）
+    deptUpdatePolicy: 'strip',
+    note: 'app_demo：示范 owner 列（created_by）+ 行级部门归属列（dept_id，二期批 2 方案 A 冗余列）。create 自动填当前用户与创建者职工部门（无职工行 → NULL = 仅 ALL 可见）；SELF 只看 owner，部门系档位只看 dept_id。update 的 deptId 一律剔除（归属创建后不可改）。',
   },
   {
     entity: SysEmployeeEntity,
@@ -166,7 +179,7 @@ export const WALNUT_DATA_SCOPE_ENTITIES: ReadonlyArray<IWalnutAdminDataScopeEnti
     deptColumn: 'deptId',
     fillOwnerOnCreate: false,
     allowOwnerUpdate: true,
-    note: 'sys_employee：人事记录挂账号（uq_employee_user 一号一职工）。user_id 是绑定语义不是创建者，create 不回填；update 允许改（仅 bind-user/unbind-user 入口）。部门系档位按 dept_id 过滤（批 1 的端到端靶表）。',
+    note: 'sys_employee：人事记录挂账号（uq_employee_user 一号一职工）。user_id 是绑定语义不是创建者，create 不回填；update 允许改（仅 bind-user/unbind-user 入口）。部门系档位按 dept_id 过滤（批 1 的端到端靶表）；update 的 dept_id 走 validate（显式调部门须在操作者 deptIds 内，未给/未变化放行）。',
   },
 ]
 
@@ -390,6 +403,71 @@ export function buildWalnutDataScopeFindWhere<Entity extends ObjectLiteral>(
   }
 
   return [{ [config.deptColumn]: In(deptIds) } as FindOptionsWhere<Entity>]
+}
+
+/** update 路径对 deptColumn 的处理决策：放行 / 从 DTO 剔除 / 按越权拒绝（404） */
+export type IWalnutAdminDataScopeDeptUpdateDecision = 'allow' | 'strip' | 'deny'
+
+/**
+ * update / updateByField 的 deptColumn 决策（纯函数，与谓词构造同层）—— 批 4 / L1。
+ *
+ * 语义：
+ * - 实体无 deptColumn → 不涉及（allow）；
+ * - policy `strip` → strip（与操作者档位无关：归属由 create 派生，创建后不可改）；
+ * - policy `validate`（缺省）：ALL 豁免；DTO 未显式给出或值未变化 → allow；
+ *   否则新值必须 ∈ 描述符 `deptIds`（DEPT_OR_SELF 只认部门腿，SELF 的空集即拒绝）。
+ *   越界由调用方按 404 处理，与越权 readById 同口径（不泄露行存在性）。
+ *
+ * UUID 比较按小写归一化（PG 的 uuid 列不保留大小写，客户端可能传大写）。
+ *
+ * @param config 实体注册项（deptColumn + deptUpdatePolicy）
+ * @param descriptor 操作者描述符
+ * @param dto 提交的更新面（实体属性名口径，与基类 `Object.entries(dto)` 同一输入）
+ * @param currentDeptId 目标行当前的 deptColumn 值（调用方已在 scoped 读里拿到原行）
+ */
+export function resolveWalnutDataScopeDeptUpdate(
+  config: IWalnutAdminDataScopeEntityConfig,
+  descriptor: IWalnutAdminDataScopeDescriptor,
+  dto: Record<string, unknown>,
+  currentDeptId: unknown,
+): IWalnutAdminDataScopeDeptUpdateDecision {
+  const deptColumn = config.deptColumn
+
+  if (deptColumn === undefined) {
+    return 'allow'
+  }
+
+  if ((config.deptUpdatePolicy ?? 'validate') === 'strip') {
+    return 'strip'
+  }
+
+  if (descriptor.mode === WalnutAdminConstDataScopeMode.ALL) {
+    return 'allow'
+  }
+
+  // 「显式给出」按自有属性判定：三类 deptId 字段都关了入参 booleanString Transform
+  // （B1），未提交时属性缺失/undefined；显式 null 才表示清空部门。
+  if (!Object.hasOwn(dto, deptColumn)) {
+    return 'allow'
+  }
+
+  const normalizeDeptId = (value: unknown): string | null | undefined =>
+    value === undefined ? undefined : typeof value === 'string' ? value.toLowerCase() : null
+
+  const nextDeptId = normalizeDeptId(dto[deptColumn])
+  const current = normalizeDeptId(currentDeptId)
+
+  if (nextDeptId === undefined || nextDeptId === current) {
+    return 'allow'
+  }
+
+  const deptIds = new Set(
+    (descriptor.deptIds ?? [])
+      .filter((id): id is string => typeof id === 'string' && id !== '')
+      .map(id => id.toLowerCase()),
+  )
+
+  return nextDeptId !== null && deptIds.has(nextDeptId) ? 'allow' : 'deny'
 }
 
 /**

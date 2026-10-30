@@ -12810,6 +12810,14 @@
               }
             ]
           },
+          "deptId": {
+            "type": "string",
+            "default": null,
+            "title": "dept id",
+            "description": "owning dept for department-scoped data permissions; derived on create, update is stripped",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
           "id": {
             "type": "string"
           },
@@ -12844,6 +12852,7 @@
           "demoEnum",
           "demoEnumArray",
           "demoObject",
+          "deptId",
           "demoMongoId",
           "demoMongoIdArray"
         ]
@@ -13205,6 +13214,14 @@
             "items": {
               "type": "string"
             }
+          },
+          "deptId": {
+            "type": "string",
+            "default": null,
+            "title": "dept id",
+            "description": "owning dept for department-scoped data permissions; derived on create, update is stripped",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
           }
         },
         "required": [
@@ -13408,6 +13425,14 @@
                 "$ref": "#/components/schemas/DemoObject"
               }
             ]
+          },
+          "deptId": {
+            "type": "string",
+            "default": null,
+            "title": "dept id",
+            "description": "owning dept for department-scoped data permissions; derived on create, update is stripped",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
           },
           "id": {
             "type": "string"

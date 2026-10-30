@@ -35,6 +35,9 @@ const EMPLOYEE_PERMISSIONS = [
   'system:employee:update',
 ]
 
+/** B1 回归：非 ALL 管理员更新 sys_user 的 dept_id 语义（update 端点权限点） */
+const USER_UPDATE_PERMISSIONS = ['system:user:update']
+
 interface EmployeeRow {
   id: string
   employeeNo: string
@@ -97,6 +100,9 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
   let userOrSelf: UserFixture
   let userSolo: UserFixture
   let userNoDept: UserFixture
+  /** B1：DEPT 管理员（有 system:user:update）与其同部门的目标用户（dept_id 非空） */
+  let userDeptAAdmin: UserFixture
+  let userTarget: UserFixture
 
   const allFixtures = () => [
     userDeptA,
@@ -108,10 +114,12 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
     userOrSelf,
     userSolo,
     userNoDept,
+    userDeptAAdmin,
+    userTarget,
   ].filter(item => item !== undefined)
 
   async function createClient(): Promise<WalnutApiClient> {
-    // device/initial 上限 4 次/60s（按 IP）；本 spec 需要 9 个独立设备（每用户一个，
+    // device/initial 上限 4 次/60s（按 IP）；本 spec 需要 11 个独立设备（每用户一个，
     // auth 链禁止同设备重复登录）。ThrottlerStorageService 是 app 实例内的内存 Map
     // （按 app 隔离，不会波及其他 spec）—— 引导前清空计数（storage + 每键命中时间线
     // hitExpirations 都要清；只清 storage 时 prune 会把旧 hits 回填）。限流行为由
@@ -181,11 +189,12 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
     prefix: string,
     dataScope: number,
     deptId: string | null,
+    grantedPermissions: string[] = EMPLOYEE_PERMISSIONS,
   ): Promise<UserFixture> {
     const client = await createClient()
     const fixture = await seedPermissionChainUser(app, rootApi.pgDataSource, {
       userNamePrefix: prefix,
-      grantedPermissions: EMPLOYEE_PERMISSIONS,
+      grantedPermissions,
       dataScope,
       deptId,
     })
@@ -232,6 +241,9 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
     userOrSelf = await seedUser('dsd-or-self', WalnutAdminConstDataScope.DEPT_OR_SELF, deptA)
     userSolo = await seedUser('dsd-solo', WalnutAdminConstDataScope.SELF, deptA)
     userNoDept = await seedUser('dsd-no-dept', WalnutAdminConstDataScope.DEPT, null)
+    // B1 回归：DEPT 管理员（可更新用户）+ 同部门目标用户（dept_id = deptA 非空）
+    userDeptAAdmin = await seedUser('dsd-user-admin', WalnutAdminConstDataScope.DEPT, deptA, USER_UPDATE_PERMISSIONS)
+    userTarget = await seedUser('dsd-user-target', WalnutAdminConstDataScope.SELF, deptA)
 
     // CUSTOM 部门清单：deptA + deptB（不含 deptA-child）。必须在**登录前**写好 ——
     // 登录后的第一个已认证请求就会解析并缓存 AUTH:DATA_SCOPE（这里没有 HTTP 写入口
@@ -357,6 +369,119 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
 
     const updateOwn = await userDeptA.client.root('PUT', userDeptA.client.apiPath(`/system/employee/${empA1}`), employeePayload('a1', deptA))
     expectOk(updateOwn, 'DEPT user update own dept row')
+  })
+
+  it('DEPT 用户把可见行的 dept_id 改到天花板外 → 404（与越权 readById 同款，不泄露存在性）', async () => {
+    const before: Array<{ dept_id: string }> = await rootApi.pgDataSource.query(
+      'SELECT dept_id FROM sys_employee WHERE id = $1',
+      [empA1],
+    )
+    expect(before[0].dept_id).toBe(deptA)
+
+    // 行对 userDeptA 可见，但新 deptId 在描述符 deptIds 之外 → 应用层 404（RLS WITH CHECK 之前）
+    const outside = await userDeptA.client.root(
+      'PUT',
+      userDeptA.client.apiPath(`/system/employee/${empA1}`),
+      employeePayload('a1', deptB),
+    )
+    expect(bodyOf(outside).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
+
+    const after: Array<{ dept_id: string }> = await rootApi.pgDataSource.query(
+      'SELECT dept_id FROM sys_employee WHERE id = $1',
+      [empA1],
+    )
+    expect(after[0].dept_id).toBe(deptA)
+
+    // 值未变化（本部门）照常放行
+    expectOk(
+      await userDeptA.client.root('PUT', userDeptA.client.apiPath(`/system/employee/${empA1}`), employeePayload('a1', deptA)),
+      'unchanged dept still allowed',
+    )
+  })
+
+  it('DEPT_AND_CHILD 用户把可见行 dept_id 改到子树内：成功且可见性随部门迁移', async () => {
+    try {
+      expect((await listEmployees(userDeptA.client)).total).toBe(2)
+      expect((await listEmployees(userDeptChild.client)).total).toBe(1)
+
+      // childManager 的描述符 = deptA + deptA-child：把 empA1 从 deptA 移到 child 仍在界内
+      expectOk(
+        await userDeptChildManager.client.root(
+          'PUT',
+          userDeptChildManager.client.apiPath(`/system/employee/${empA1}`),
+          employeePayload('a1', deptChild),
+        ),
+        'move employee into subtree',
+      )
+
+      // 原部门用户列表失去该行、新部门用户列表获得该行（功能级可见性迁移）
+      const sourceAfter = await listEmployees(userDeptA.client)
+      expect(new Set(sourceAfter.data.map(row => row.id))).toEqual(new Set([empA2]))
+
+      const targetAfter = await listEmployees(userDeptChild.client)
+      expect(new Set(targetAfter.data.map(row => row.id))).toEqual(new Set([empChild1, empA1]))
+    }
+    finally {
+      // 断言失败也要把 empA1 移回 deptA（后续部门移动用例依赖该分布）
+      expectOk(
+        await userDeptChildManager.client.root(
+          'PUT',
+          userDeptChildManager.client.apiPath(`/system/employee/${empA1}`),
+          employeePayload('a1', deptA),
+        ),
+        'move employee back',
+      )
+    }
+  })
+
+  it('B1：非 ALL 更新 sys_user，未提交 deptId 放行且部门不变；显式 null → 404；原值 → 200', async () => {
+    const target = userTarget.fixture
+    const payload = {
+      userName: target.userName,
+      status: true,
+      roles: [target.mainRoleId],
+    }
+
+    const readDept = async () => {
+      const rows: Array<{ dept_id: string | null }> = await rootApi.pgDataSource.query(
+        'SELECT dept_id FROM sys_user WHERE id = $1',
+        [target.userId],
+      )
+      return rows[0].dept_id
+    }
+
+    expect(await readDept()).toBe(deptA)
+
+    // 1) body 不带 deptId：200 且 dept_id 不变（B1 前 class-transformer 会物化成 null → 404）
+    expectOk(
+      await userDeptAAdmin.client.root(
+        'PUT',
+        userDeptAAdmin.client.apiPath(`/system/user/${target.userId}`),
+        payload,
+      ),
+      'update user without deptId',
+    )
+    expect(await readDept()).toBe(deptA)
+
+    // 2) 显式 null（清空部门 = 移出操作者天花板）→ 40401，库值不变
+    const nullRes = await userDeptAAdmin.client.root(
+      'PUT',
+      userDeptAAdmin.client.apiPath(`/system/user/${target.userId}`),
+      { ...payload, deptId: null },
+    )
+    expect(bodyOf(nullRes).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
+    expect(await readDept()).toBe(deptA)
+
+    // 3) deptId 等于原值 → 200（值未变化放行）
+    expectOk(
+      await userDeptAAdmin.client.root(
+        'PUT',
+        userDeptAAdmin.client.apiPath(`/system/user/${target.userId}`),
+        { ...payload, deptId: deptA },
+      ),
+      'update user with unchanged deptId',
+    )
+    expect(await readDept()).toBe(deptA)
   })
 
   it('用户 dept 变更后缓存失效：下一请求按新部门过滤', async () => {

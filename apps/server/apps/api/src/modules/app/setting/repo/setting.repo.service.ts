@@ -5,6 +5,7 @@ import { WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { runAfterCommit, WalnutPGConnectionName } from '@walnut-server/db'
 import { DataSource } from 'typeorm'
 
+import { DataScopeService, isWalnutDataScopeSettingKey } from '@/modules/system/data-scope/data-scope.service'
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import { AppSettingEntity } from '../entity/setting.entity'
 
@@ -29,6 +30,8 @@ export class AppSettingRepositoryService {
     private readonly dataSource: DataSource,
 
     private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
+
+    private readonly dataScopeService: DataScopeService,
   ) {}
 
   private getManager(em?: EntityManager): EntityManager {
@@ -72,9 +75,15 @@ export class AppSettingRepositoryService {
       await repository.save(doc)
     }
 
-    // extract app setting into cache after transaction commit
+    // extract app setting into cache after transaction commit；写的是
+    // `app.functional.role`（effective roleMode 来源）时同步 bump 数据权限 epoch ——
+    // 与 AppSettingService 的 create/update 共用同一判定（批 4 / L2，P3-36）。
     await runAfterCommit(async () => {
       await this.extractAppSettingIntoCache()
+
+      if (doc && isWalnutDataScopeSettingKey(key)) {
+        await this.dataScopeService.bumpEpoch()
+      }
     })
   }
 }

@@ -40,6 +40,9 @@ export class SysEmployeeDTOBase extends WalnutAdminCommonBasicModel {
 
   // FK → sys_dept(id) RESTRICT：有职工的部门不许删
   @WalnutAdminDecoratorFieldString({
+    // 数据权限批 4 / B1：关掉入参 booleanString Transform —— 否则未提交/显式 null
+    // 都会被物化成自有属性，无法区分「未给」与「显式清空」（见 user.dto 同字段注释）
+    transformOptions: { req: { booleanString: false } },
     swaggerOptions: {
       title: 'dept id',
       example: '0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c',
