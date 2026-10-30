@@ -1,8 +1,7 @@
 # 数据权限二期三期实施计划
 
-> 状态：**待维护者批准**（批准后按批实施，每批独立提交 + review + 全量回归）。
-> 前置：一期已落地（ALL/SELF/CUSTOM 三档 + 基类注入 + 实体注册表 fail-closed，`c9b7694`）；
-> 组织地基已落地（sys_dept / sys_post / sys_employee，`349e0b9`）。
+> 状态：**已批准；批 1/2/3 已实施**（批 1 `afc8cde`、批 2 `f90bcd5`、批 3 三期 RLS `11df28d`）。
+> 前置：一期已落地（`c9b7694`）；组织地基已落地（`349e0b9`）。
 
 ## 0. 终态目标（验收口径）
 
@@ -109,9 +108,33 @@ solo×1、无主(NULL dept)×1
 
 ## 2. 三期：PostgreSQL RLS RESTRICTIVE 硬上限（批 3）
 
+> **实施摘要（批 3 已落地 `11df28d`；2026-10-31 补记）**
+> - **F1 fail-closed**：`app.data_scope_mode()` 缺省 `anonymous` —— 未在事务里显式
+>   `set_config` 的池级直连一律 0 行 / 写入拒绝；
+> - **九类显式 system 通道**：登录链自管事务、sys_user 系统读腿、日志旁写、监控系统腿、
+>   回收站快照、logOperateId 回填、组织前置校验、设备历史 JOIN、after-commit hook 隔离。
+>   请求内用 `@WalnutAdminDecoratorDataScopeSystemChannel()` 标记；无请求事务的路径经
+>   `runInWalnutSystemTransaction` 开独立 system 事务；
+> - **F3 WITH CHECK 部门腿**：sys_user / sys_employee 的本人行只有在 `dept_id` 未改变
+>   （等于账号当前部门）时才允许写入，新增 `app.data_scope_user_dept_id` GUC —— 防
+>   SELF/DEPT 用户改自家 dept 借部门角色横向扩权；部门腿仍放行部门管理员的正常改派；
+> - **F2 env 必填**：`DATABASE_PG_APP_USER/PASS` 缺失启动即报错，禁止回退管理角色；
+>   批 6 追加「stage / production 拒绝 dev 引导密码 `walnut_app_dev_only`」的防呆；
+> - **F4 recoverSnapshot 断言**：恢复链路删除 `sys_deleted` 快照行时断言恰好命中 1 行
+>   （事务内失败整体回滚，不再静默吞掉半恢复）；
+> - **F5 部署注意**：`walnut_app` 预建强密码角色、管理通道须 superuser 或 BYPASSRLS、
+>   生产 env-encrypted 必须含 `DATABASE_PG_APP_*`（细节见
+>   `modernization-roadmap.md` §6.2）。
+>
+> **实测坑**：RLS 的 RESTRICTIVE 策略**只做 AND、不能单独授予访问** —— 只有 RESTRICTIVE
+> 时默认拒绝（INSERT 全撞策略 / SELECT 0 行）。每张注册表必须另配一条 PERMISSIVE 基线
+> （`p_data_scope_access`）显式授予全表访问，真正的天花板再由 RESTRICTIVE
+> （`p_data_scope_ceiling`）收窄。
+
 ### 2.1 前置三件套（缺一不做 RLS）
 1. **请求级事务**：读路径全量进事务——`WalnutTxInterceptor` 扩展「无 @WalnutTx 时
-   自动开启只读事务」或强制所有注册实体端点挂 @WalnutTx（二选一，实施时按连接占用实测定）；
+   自动开启只读事务」或强制所有注册实体端点挂 @WalnutTx（二选一，实施时按连接占用实测定；
+   已由批 6 spike 实测，结论见 `data-scope-remediation-plan.md` §4.2）；
    同步删除 `getManager` 的池级回退（事务内 set_config 才有效）
 2. **专用角色**：`walnut_app`（NOSUPERUSER NOBYPASSRLS 非表 owner），迁移把表 owner
    转移或 GRANT 精确权限；TypeORM 连接串切 walnut_app

@@ -18,8 +18,8 @@
 > 每条四要素：**位置**（源码）、**现象**、**实测证据**（spec + 用例）、**建议**（一句话）。
 > 「钉现状」用例属于 characterization test：修复对应问题时必须同步改断言，不是测试坏了。
 >
-> **统计：开放 18 条（P0 × 0 / P1 × 0 / P2 × 6 / P3 × 12）**。新条目编号顺延到已用最大号之后
-> （当前最大 P3-37，下一个 P3-38），不复用归档里的编号。
+> **统计：开放 19 条（P0 × 0 / P1 × 0 / P2 × 6 / P3 × 13）**。新条目编号顺延到已用最大号之后
+> （当前最大 P3-38，下一个 P3-39），不复用归档里的编号。
 
 ---
 
@@ -292,6 +292,11 @@
   用例由 root 执行，没有非 root 自我扩权路径的断言。
 - **建议（产品决策）**：dataScope 修改限定 root（或 `@HasRole(root)`）；或至少禁止
   修改自己所在角色的 dataScope。二选一后再补 API 级负路径用例。本轮仅登记。
+- **处置（2026-10-31 维护者拍板）**：**不拦截** —— dataScope 修改跟随功能权限位，
+  持 `system:role:update` 的管理员可改，root 天然全量；信任语义 = 把 `role:update`
+  授予谁，等于授予谁行级范围授予权。批 7 以操作日志 before→after 快照收口审计可见性
+  （至少 dataScope / deptIds / menus / status）。见
+  `docs/plans/data-scope-remediation-plan.md` §5.2。
 
 ### P3-37 `app.functional.role` 变更未失效 `AUTH:PERMISSIONS`（数据权限复审，缓存残留）
 
@@ -309,3 +314,26 @@
   `AUTH:PERMISSIONS:<epoch>:...`），或设置写路径按权限维度显式清全量
   `AUTH:PERMISSIONS:*`；两条写通道（setting create/update 与 `updateAppSettingByKey`）
   都要覆盖。本轮仅登记。
+
+### P3-38 guard-matrix「非黑名单伪造 IP 直通 → 20000」用例全量连跑时间歇失败（全量集成观察，新登记）
+
+- **位置**：`apps/api/test/api/guard-matrix.api-spec.ts`（IP guard 组的
+  「【安全矩阵发现】非黑名单伪造 IP 直通 → 20000」用例）→
+  `apps/api/src/modules/security/risk/modules/location.service.ts`
+  （`evaluateLocationRisk` / `performLocationEvaluation`）→
+  `apps/api/src/modules/shared/ip/ip.service.ts`
+  （`getLocationInfoFromFreeAPI` 对外网 `api.ip.sb` 的请求失败即抛 50302
+  DependencyDown）。
+- **现象**：该用例预期待测请求直通（业务码 20000），在**全量集成连跑**中偶发拿到
+  HTTP 200 + 业务码 **50302**（Dependency Service Down）；单跑该文件 44/44 稳定通过。
+  链路：伪造 IP 是 TEST-NET-3 段（非本地地址）→ risk guard 的 location 评估走
+  `getLocationInfoFromFreeAPI` 真打外部 geoip API；风险结果按 IP 缓存在 Redis，
+  缓存命中时不触外网（所以单跑文件常绿），缓存未命中/被前序用例清掉时暴露对外网的依赖，
+  外网失败被 risk guard 按 HttpException 原样上抛（P1-13 的口径），请求拿到 50302。
+- **实测证据**：2026-10-31 凌晨全量集成 4 轮中出现 2 次，失败响应形如
+  `{"code":50302,"msg":"Dependency Service Down"}`；同文件单跑 44/44 通过。
+- **建议**：先排查该断言依赖的下游（IP guard / 限流 tracker 的 Redis 依赖、location
+  风险缓存）是**测试间状态污染**还是**真外网抖动**；无论哪种，都把用例做成确定性的 ——
+  预置该 IP 的 location 风险缓存，或 stub `SharedIpService.getLocationInfoFromFreeAPI`，
+  把「非黑名单 IP 直通」断言与被测的 IP 黑名单判定隔离开；不要让基础设施依赖失败让
+  钉现状用例抖动。
