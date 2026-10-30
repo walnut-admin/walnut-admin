@@ -116,3 +116,36 @@ JWT Guard → ALS 拦截器种入 { user, dataScope } → controller → service
 | 多角色 | 最宽授权 OR 拼接 | COMBINE 并集 / SWITCH 当前角色（沿用 roleMode） |
 | count 一致性 | list/count 双份拼接易漏 | `COUNT(*) OVER()` 单趟天然含 scope |
 | 行级强制 | 无（应用层） | 一期应用层 + 二期 RLS RESTRICTIVE 可选 |
+
+## 7. 生态深挖补遗（2026-10-29 第二轮调研）
+
+> 结论：一期「应用层 scope 注入 + 实体注册表 fail-closed」维持，且被 2026 证据加强。
+
+- **TypeORM 官方路线**：1.x 无行级过滤/全局 scope/RLS 特性；核心 issue #1601（global
+  filters）多年未实现，RLS 相关 #5857/#9464 停留在提案；1.1 没有 per-connection-checkout
+  钩子（`afterConnect` 只跑一次、subscriber 无 select 钩子）。应用层注入是唯一可控路线。
+- **多租户成熟实践**（nestjs-mtenant/TenancyJS/@nestm/tenant）：全部只解决 tenant_id
+  等值隔离，没有 ALL/SELF/CUSTOM 的现成实现；可借鉴三件机制——①请求上下文、②实体注册表、
+  ③ **fail-closed**（TenancyJS 无上下文直接 throw；@nestm/tenant 自带「应用角色非
+  superuser/BYPASSRLS」校验）。
+- **RLS 工程化**（Now-Next 在 TypeORM 1.1.2 + PG 17 的 6 写法 30 并发实测）：会话级
+  `set_config` 半数并发请求读到别家数据；裸 QueryRunner 不 reset 会泄漏；唯一安全且最快的
+  形态是「每请求 `dataSource.transaction()` + 事务 manager 的 repository」——
+  `@InjectRepository` 单例拿第二条连接，全 0 结果 + 30 并发连接池死锁。RLS subscriber
+  是伪命题（无 select 钩子、拿不到连接 checkout）。**二期 RLS 的准入门槛**：请求级事务/
+  UnitOfWork + 专用非 owner PG 角色 + FORCE RLS + 以该角色运行的集成测试，三者缺一不做。
+- **策略引擎**：OPA（CNCF graduated）的 Compile API / partial evaluation 是「策略决策 +
+  ORM 注入执行」的教科书形态；Cedar/OpenFGA 无面向 SQL 的残余条件输出（ListObjects 输出
+  对象 ID 集合需再拼 IN）；Permit.io 商业形态最接近但引入 SaaS/PDP。为三档 scope 引入
+  Rego + PDP 属过度设计；吸收其「残余过滤条件」思想——`ScopeDecision` 纯函数产出 where，
+  未来接 OPA 只换决策层不动执行层。
+- **NestJS 12**：Standard Schema/observe/CLI 重写均与数据权限无关；无官方数据权限原语。
+
+### 可吸收四机制（不引库）
+
+| 机制 | 来源 | 落法 |
+|---|---|---|
+| fail-closed 上下文 | TenancyJS | scope 上下文缺失直接抛错，不默认 ALL；实体未声明 scope 能力即拒查 |
+| 读写双通道 | nestjs-mtenant | 读：builder 注入 where；写：pg-base 的 save/update/delete 校验 owner 字段防篡改 |
+| 残余过滤条件接口 | OPA Compile API | `ScopeDecision` 纯函数产出，pg-list.builder 参数化执行；决策层/执行层分离 |
+| 显式 bypass + 审计 | RLS 生产实践 | ALL 与系统任务走独立入口并记审计，禁止业务 where 临时 `OR 1=1` |
