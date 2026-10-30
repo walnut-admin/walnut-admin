@@ -9,14 +9,17 @@ import { AppMonitorUserEntity } from '@/modules/app/monitor/user/entity/monitor-
 import { AppSettingEntity } from '@/modules/app/setting/entity/setting.entity'
 import { AuthRefreshTokenEntity } from '@/modules/auth/modules/refresh/entity/refresh-token.entity'
 import { SharedAreaEntity } from '@/modules/shared/area/entity/area.entity'
+import { SysDeptEntity } from '@/modules/system/dept/entity/dept.entity'
 import { SysDeviceEntity } from '@/modules/system/device/entity/device.entity'
 import { SysDictDataEntity } from '@/modules/system/dict/dictData/entity/dict-data.entity'
 import { SysDictTypeEntity } from '@/modules/system/dict/dictType/entity/dict-type.entity'
+import { SysEmployeeEntity } from '@/modules/system/employee/entity/employee.entity'
 import { SysLangEntity } from '@/modules/system/lang/entity/lang.entity'
 import { SysLocaleEntity } from '@/modules/system/locale/entity/locale.entity'
 import { SysLogAuthEntity } from '@/modules/system/logs/auth/entity/log-auth.entity'
 import { SysLogOperateEntity } from '@/modules/system/logs/operate/entity/log-operate.entity'
 import { SysMenuEntity } from '@/modules/system/menu/entity/menu.entity'
+import { SysPostEntity } from '@/modules/system/post/entity/post.entity'
 import { SysRoleEntity } from '@/modules/system/role/entity/role.entity'
 import { SysUserEntity } from '@/modules/system/user/entity/user.entity'
 import { SysUserDeviceEntity } from '@/modules/system/user_device/entity/user-device.entity'
@@ -87,6 +90,10 @@ export const WALNUT_PG_RECOVERABLE_COLLECTIONS: ReadonlyArray<{ modelName: strin
   { modelName: WalnutModelName.SYS_USER_MFA, entityTarget: SysUserMfaEntity },
   { modelName: WalnutModelName.SYS_USER_IDENTITY, entityTarget: SysUserIdentityEntity },
   { modelName: WalnutModelName.SYS_MENU, entityTarget: SysMenuEntity },
+  // 组织基础表（部门 / 岗位 / 职工）：都是软删写路径，快照按通用恢复器插回
+  { modelName: WalnutModelName.SYS_DEPT, entityTarget: SysDeptEntity },
+  { modelName: WalnutModelName.SYS_POST, entityTarget: SysPostEntity },
+  { modelName: WalnutModelName.SYS_EMPLOYEE, entityTarget: SysEmployeeEntity },
   { modelName: WalnutModelName.SYS_LANG, entityTarget: SysLangEntity },
   { modelName: WalnutModelName.SYS_LOCALE, entityTarget: SysLocaleEntity },
   { modelName: WalnutModelName.SYS_DEVICE, entityTarget: SysDeviceEntity },

@@ -21,6 +21,11 @@ export const WalnutModelName = {
   SYS_LOCALE: 'SysLocale',
   SYS_DEVICE: 'SysDevice',
 
+  // 组织基础表（部门 / 岗位 / 职工）—— 数据权限二期部门维度的地基
+  SYS_DEPT: 'SysDept',
+  SYS_POST: 'SysPost',
+  SYS_EMPLOYEE: 'SysEmployee',
+
   SYS_LOG_AUTH: 'SysLogAuth',
   SYS_LOG_OPERATE: 'SysLogOperate',
 

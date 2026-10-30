@@ -1725,6 +1725,247 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/system/dept/tree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** return full dept tree */
+        get: operations["SysDeptController_tree"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/dept/children": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** return direct children of one dept */
+        get: operations["SysDeptController_children"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/dept/{id}/subtree": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** return the subtree rooted at one dept (recursive CTE) */
+        get: operations["SysDeptController_subtree"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/dept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 添加 部门 */
+        post: operations["SysDeptController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/dept/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 根据 id 查询 部门 */
+        get: operations["SysDeptController_read"];
+        /** 修改 部门 */
+        put: operations["SysDeptController_update"];
+        post?: never;
+        /** 根据 id 删除 部门 */
+        delete: operations["SysDeptController_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/dept/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SysDeptController_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/post": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 添加 岗位 */
+        post: operations["SysPostController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/post/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 根据 id 查询 岗位 */
+        get: operations["SysPostController_read"];
+        /** 修改 岗位 */
+        put: operations["SysPostController_update"];
+        post?: never;
+        /** 根据 id 删除 岗位 */
+        delete: operations["SysPostController_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/post/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SysPostController_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/employee/{id}/bind-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** bind one login account to the employee (one account one employee) */
+        post: operations["SysEmployeeController_bindUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/employee/{id}/unbind-user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** unbind the login account from the employee (idempotent) */
+        post: operations["SysEmployeeController_unbindUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/employee": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 添加 职工 */
+        post: operations["SysEmployeeController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/employee/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 根据 id 查询 职工 */
+        get: operations["SysEmployeeController_read"];
+        /** 修改 职工 */
+        put: operations["SysEmployeeController_update"];
+        post?: never;
+        /** 根据 id 删除 职工 */
+        delete: operations["SysEmployeeController_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/employee/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SysEmployeeController_list"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/system/log/auth/{id}": {
         parameters: {
             query?: never;
@@ -5788,6 +6029,764 @@ export interface components {
              *     }
              */
             query: components["schemas"]["SysDictDataDTOSafeRequest"];
+            /**
+             * @default {}
+             * @example [
+             *       {
+             *         "field": "field1",
+             *         "order": "ascend",
+             *         "priority": 1
+             *       },
+             *       {
+             *         "field": "field2",
+             *         "order": "descend",
+             *         "priority": 2
+             *       },
+             *       {
+             *         "field": "field3",
+             *         "order": false,
+             *         "priority": 3
+             *       }
+             *     ]
+             */
+            sort: components["schemas"]["SortDTO"][];
+            /**
+             * @default {
+             *       "page": 1,
+             *       "pageSize": 10
+             *     }
+             * @example {
+             *       "page": 1,
+             *       "pageSize": 10
+             *     }
+             */
+            page: components["schemas"]["WalnutAdminRequestListPageDTO"];
+        };
+        SysDeptDTOTree: {
+            /**
+             * dept code
+             * @description unique business key
+             */
+            deptCode: string;
+            /** dept name */
+            deptName: string;
+            /**
+             * dept leader
+             * @default null
+             */
+            leader: string | null;
+            /**
+             * contact phone
+             * @default null
+             */
+            phone: string | null;
+            /**
+             * contact email
+             * @default null
+             */
+            email: string | null;
+            /**
+             * sort order
+             * @description sibling order inside the same parent, should be int
+             * @default 0
+             */
+            sortOrder: number;
+            /**
+             * dept status
+             * @description disabled => not selectable in new assignments, existing rows stay
+             * @default enabled
+             * @example enabled
+             * @enum {string}
+             */
+            status: "enabled" | "disabled";
+            id?: string;
+            children?: components["schemas"]["SysDeptDTOTree"][];
+        };
+        SysDeptDTOSafe: {
+            /**
+             * default createdAt
+             * Format: date-time
+             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            createdAt?: string;
+            /**
+             * default updatedAt
+             * Format: date-time
+             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            updatedAt?: string;
+            /**
+             * parent dept id
+             * @description null => root dept
+             * @default null
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            parentId: string | null;
+            /**
+             * dept code
+             * @description unique business key
+             */
+            deptCode: string;
+            /** dept name */
+            deptName: string;
+            /**
+             * dept leader
+             * @default null
+             */
+            leader: string | null;
+            /**
+             * contact phone
+             * @default null
+             */
+            phone: string | null;
+            /**
+             * contact email
+             * @default null
+             */
+            email: string | null;
+            /**
+             * sort order
+             * @description sibling order inside the same parent, should be int
+             * @default 0
+             */
+            sortOrder: number;
+            /**
+             * dept status
+             * @description disabled => not selectable in new assignments, existing rows stay
+             * @default enabled
+             * @example enabled
+             * @enum {string}
+             */
+            status: "enabled" | "disabled";
+            id?: string;
+        };
+        SysDeptDTOCreateRequest: {
+            /**
+             * dept code
+             * @description unique business key
+             */
+            deptCode: string;
+            /** dept name */
+            deptName: string;
+            /**
+             * dept status
+             * @description disabled => not selectable in new assignments, existing rows stay
+             * @default enabled
+             * @example enabled
+             * @enum {string}
+             */
+            status: "enabled" | "disabled";
+            /**
+             * parent dept id
+             * @description null => root dept
+             * @default null
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            parentId: string | null;
+            /**
+             * dept leader
+             * @default null
+             */
+            leader: string | null;
+            /**
+             * contact phone
+             * @default null
+             */
+            phone: string | null;
+            /**
+             * contact email
+             * @default null
+             */
+            email: string | null;
+            /**
+             * sort order
+             * @description sibling order inside the same parent, should be int
+             * @default 0
+             */
+            sortOrder: number;
+        };
+        SysDeptDTOUpdateRequest: {
+            /**
+             * dept code
+             * @description unique business key
+             */
+            deptCode: string;
+            /** dept name */
+            deptName: string;
+            /**
+             * dept status
+             * @description disabled => not selectable in new assignments, existing rows stay
+             * @default enabled
+             * @example enabled
+             * @enum {string}
+             */
+            status: "enabled" | "disabled";
+            /**
+             * parent dept id
+             * @description null => root dept
+             * @default null
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            parentId: string | null;
+            /**
+             * dept leader
+             * @default null
+             */
+            leader: string | null;
+            /**
+             * contact phone
+             * @default null
+             */
+            phone: string | null;
+            /**
+             * contact email
+             * @default null
+             */
+            email: string | null;
+            /**
+             * sort order
+             * @description sibling order inside the same parent, should be int
+             * @default 0
+             */
+            sortOrder: number;
+        };
+        SysDeptDTOSafeListResponse: {
+            /** list response data */
+            data: components["schemas"]["SysDeptDTOSafe"][];
+            /** list total count */
+            total: number;
+        };
+        SysDeptDTOSafePartial: {
+            /**
+             * default createdAt
+             * Format: date-time
+             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            createdAt?: string;
+            /**
+             * default updatedAt
+             * Format: date-time
+             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            updatedAt?: string;
+            /**
+             * parent dept id
+             * @description null => root dept
+             * @default null
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            parentId: string | null;
+            /**
+             * dept code
+             * @description unique business key
+             */
+            deptCode?: string;
+            /** dept name */
+            deptName?: string;
+            /**
+             * dept leader
+             * @default null
+             */
+            leader: string | null;
+            /**
+             * contact phone
+             * @default null
+             */
+            phone: string | null;
+            /**
+             * contact email
+             * @default null
+             */
+            email: string | null;
+            /**
+             * sort order
+             * @description sibling order inside the same parent, should be int
+             * @default 0
+             */
+            sortOrder: number;
+            /**
+             * dept status
+             * @description disabled => not selectable in new assignments, existing rows stay
+             * @default enabled
+             * @example enabled
+             * @enum {string}
+             */
+            status: "enabled" | "disabled";
+            id?: string;
+        };
+        SysDeptDTOListRequest: {
+            /**
+             * @default {}
+             * @example {
+             *       "field1": "this is a string",
+             *       "field2": false,
+             *       "field3": 123
+             *     }
+             */
+            query: components["schemas"]["SysDeptDTOSafePartial"];
+            /**
+             * @default {}
+             * @example [
+             *       {
+             *         "field": "field1",
+             *         "order": "ascend",
+             *         "priority": 1
+             *       },
+             *       {
+             *         "field": "field2",
+             *         "order": "descend",
+             *         "priority": 2
+             *       },
+             *       {
+             *         "field": "field3",
+             *         "order": false,
+             *         "priority": 3
+             *       }
+             *     ]
+             */
+            sort: components["schemas"]["SortDTO"][];
+            /**
+             * @default {
+             *       "page": 1,
+             *       "pageSize": 10
+             *     }
+             * @example {
+             *       "page": 1,
+             *       "pageSize": 10
+             *     }
+             */
+            page: components["schemas"]["WalnutAdminRequestListPageDTO"];
+        };
+        SysPostDTOSafe: {
+            /**
+             * default createdAt
+             * Format: date-time
+             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            createdAt?: string;
+            /**
+             * default updatedAt
+             * Format: date-time
+             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            updatedAt?: string;
+            /**
+             * post code
+             * @description unique business key
+             */
+            postCode: string;
+            /** post name */
+            postName: string;
+            /**
+             * sort order
+             * @description should be int
+             * @default 0
+             */
+            sortOrder: number;
+            /**
+             * post status
+             * @description disabled => not selectable in new assignments, existing rows stay
+             * @default enabled
+             * @example enabled
+             * @enum {string}
+             */
+            status: "enabled" | "disabled";
+            /**
+             * remark
+             * @default null
+             */
+            remark: string | null;
+            id?: string;
+        };
+        SysPostDTOCreateRequest: {
+            /**
+             * post code
+             * @description unique business key
+             */
+            postCode: string;
+            /** post name */
+            postName: string;
+            /**
+             * post status
+             * @description disabled => not selectable in new assignments, existing rows stay
+             * @default enabled
+             * @example enabled
+             * @enum {string}
+             */
+            status: "enabled" | "disabled";
+            /**
+             * sort order
+             * @description should be int
+             * @default 0
+             */
+            sortOrder: number;
+            /**
+             * remark
+             * @default null
+             */
+            remark: string | null;
+        };
+        SysPostDTOUpdateRequest: {
+            /**
+             * post code
+             * @description unique business key
+             */
+            postCode: string;
+            /** post name */
+            postName: string;
+            /**
+             * post status
+             * @description disabled => not selectable in new assignments, existing rows stay
+             * @default enabled
+             * @example enabled
+             * @enum {string}
+             */
+            status: "enabled" | "disabled";
+            /**
+             * sort order
+             * @description should be int
+             * @default 0
+             */
+            sortOrder: number;
+            /**
+             * remark
+             * @default null
+             */
+            remark: string | null;
+        };
+        SysPostDTOSafeListResponse: {
+            /** list response data */
+            data: components["schemas"]["SysPostDTOSafe"][];
+            /** list total count */
+            total: number;
+        };
+        SysPostDTOSafePartial: {
+            /**
+             * default createdAt
+             * Format: date-time
+             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            createdAt?: string;
+            /**
+             * default updatedAt
+             * Format: date-time
+             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            updatedAt?: string;
+            /**
+             * post code
+             * @description unique business key
+             */
+            postCode?: string;
+            /** post name */
+            postName?: string;
+            /**
+             * sort order
+             * @description should be int
+             * @default 0
+             */
+            sortOrder: number;
+            /**
+             * post status
+             * @description disabled => not selectable in new assignments, existing rows stay
+             * @default enabled
+             * @example enabled
+             * @enum {string}
+             */
+            status: "enabled" | "disabled";
+            /**
+             * remark
+             * @default null
+             */
+            remark: string | null;
+            id?: string;
+        };
+        SysPostDTOListRequest: {
+            /**
+             * @default {}
+             * @example {
+             *       "field1": "this is a string",
+             *       "field2": false,
+             *       "field3": 123
+             *     }
+             */
+            query: components["schemas"]["SysPostDTOSafePartial"];
+            /**
+             * @default {}
+             * @example [
+             *       {
+             *         "field": "field1",
+             *         "order": "ascend",
+             *         "priority": 1
+             *       },
+             *       {
+             *         "field": "field2",
+             *         "order": "descend",
+             *         "priority": 2
+             *       },
+             *       {
+             *         "field": "field3",
+             *         "order": false,
+             *         "priority": 3
+             *       }
+             *     ]
+             */
+            sort: components["schemas"]["SortDTO"][];
+            /**
+             * @default {
+             *       "page": 1,
+             *       "pageSize": 10
+             *     }
+             * @example {
+             *       "page": 1,
+             *       "pageSize": 10
+             *     }
+             */
+            page: components["schemas"]["WalnutAdminRequestListPageDTO"];
+        };
+        SysEmployeeDTOUpdateResponse: {
+            /**
+             * default createdAt
+             * Format: date-time
+             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            createdAt?: string;
+            /**
+             * default updatedAt
+             * Format: date-time
+             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            updatedAt?: string;
+            /**
+             * employee no
+             * @description unique business key, the payroll number
+             */
+            employeeNo: string;
+            /** employee name */
+            employeeName: string;
+            /**
+             * dept id
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            deptId: string;
+            /**
+             * post id
+             * @default null
+             */
+            postId: string | null;
+            /**
+             * bound user id
+             * @default null
+             */
+            userId: string | null;
+            /**
+             * entry date
+             * Format: date-time
+             * @example 2026-01-01 00:00:00
+             */
+            entryDate: string;
+            /**
+             * employee status
+             * @description probation / active / resigned; resigned does NOT delete or unbind the account
+             * @default active
+             * @example active
+             * @enum {string}
+             */
+            status: "probation" | "active" | "resigned";
+            id?: string;
+        };
+        SysEmployeeDTOBindUserRequest: {
+            /**
+             * user id
+             * @description sys_user primary key (uuid)
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            userId: string;
+        };
+        SysEmployeeDTOSafe: {
+            /**
+             * default createdAt
+             * Format: date-time
+             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            createdAt?: string;
+            /**
+             * default updatedAt
+             * Format: date-time
+             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            updatedAt?: string;
+            /**
+             * employee no
+             * @description unique business key, the payroll number
+             */
+            employeeNo: string;
+            /** employee name */
+            employeeName: string;
+            /**
+             * dept id
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            deptId: string;
+            /**
+             * post id
+             * @default null
+             */
+            postId: string | null;
+            /**
+             * bound user id
+             * @default null
+             */
+            userId: string | null;
+            /**
+             * entry date
+             * Format: date-time
+             * @example 2026-01-01 00:00:00
+             */
+            entryDate: string;
+            /**
+             * employee status
+             * @description probation / active / resigned; resigned does NOT delete or unbind the account
+             * @default active
+             * @example active
+             * @enum {string}
+             */
+            status: "probation" | "active" | "resigned";
+            id?: string;
+        };
+        SysEmployeeDTOCreateRequest: {
+            /**
+             * employee no
+             * @description unique business key, the payroll number
+             */
+            employeeNo: string;
+            /** employee name */
+            employeeName: string;
+            /**
+             * dept id
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            deptId: string;
+            /**
+             * entry date
+             * Format: date-time
+             * @example 2026-01-01 00:00:00
+             */
+            entryDate: string;
+            /**
+             * employee status
+             * @description probation / active / resigned; resigned does NOT delete or unbind the account
+             * @default active
+             * @example active
+             * @enum {string}
+             */
+            status: "probation" | "active" | "resigned";
+            /**
+             * post id
+             * @default null
+             */
+            postId: string | null;
+        };
+        SysEmployeeDTOUpdateRequest: {
+            /**
+             * employee no
+             * @description unique business key, the payroll number
+             */
+            employeeNo: string;
+            /** employee name */
+            employeeName: string;
+            /**
+             * dept id
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            deptId: string;
+            /**
+             * entry date
+             * Format: date-time
+             * @example 2026-01-01 00:00:00
+             */
+            entryDate: string;
+            /**
+             * employee status
+             * @description probation / active / resigned; resigned does NOT delete or unbind the account
+             * @default active
+             * @example active
+             * @enum {string}
+             */
+            status: "probation" | "active" | "resigned";
+            /**
+             * post id
+             * @default null
+             */
+            postId: string | null;
+        };
+        SysEmployeeDTOSafeListResponse: {
+            /** list response data */
+            data: components["schemas"]["SysEmployeeDTOSafe"][];
+            /** list total count */
+            total: number;
+        };
+        SysEmployeeDTOSafePartial: {
+            /**
+             * default createdAt
+             * Format: date-time
+             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            createdAt?: string;
+            /**
+             * default updatedAt
+             * Format: date-time
+             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            updatedAt?: string;
+            /**
+             * employee no
+             * @description unique business key, the payroll number
+             */
+            employeeNo?: string;
+            /** employee name */
+            employeeName?: string;
+            /**
+             * dept id
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            deptId?: string;
+            /**
+             * post id
+             * @default null
+             */
+            postId: string | null;
+            /**
+             * bound user id
+             * @default null
+             */
+            userId: string | null;
+            /**
+             * entry date
+             * Format: date-time
+             * @example 2026-01-01 00:00:00
+             */
+            entryDate?: string;
+            /**
+             * employee status
+             * @description probation / active / resigned; resigned does NOT delete or unbind the account
+             * @default active
+             * @example active
+             * @enum {string}
+             */
+            status: "probation" | "active" | "resigned";
+            id?: string;
+        };
+        SysEmployeeDTOListRequest: {
+            /**
+             * @default {}
+             * @example {
+             *       "field1": "this is a string",
+             *       "field2": false,
+             *       "field3": 123
+             *     }
+             */
+            query: components["schemas"]["SysEmployeeDTOSafePartial"];
             /**
              * @default {}
              * @example [
@@ -11619,6 +12618,730 @@ export interface operations {
                     "application/json": {
                         data?: (components["schemas"]["SysDictDataDTOSafeListResponse"] & {
                             data?: components["schemas"]["SysDictDataDTOSafe"][];
+                        })[];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysDeptController_tree: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description return full dept tree */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysDeptDTOTree"][];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysDeptController_children: {
+        parameters: {
+            query?: {
+                /** @description parent dept id, omitted => root level */
+                parentId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description return direct children of one dept */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysDeptDTOSafe"][];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysDeptController_subtree: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description return the subtree rooted at one dept (recursive CTE) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysDeptDTOTree"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysDeptController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SysDeptDTOCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description 添加 部门 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysDeptDTOSafe"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysDeptController_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 部门 id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 根据 id 查询 部门 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysDeptDTOSafe"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysDeptController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 部门 id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SysDeptDTOUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description 修改 部门 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysDeptDTOSafe"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysDeptController_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 部门 id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 根据 id 删除 部门 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysDeptDTOSafe"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysDeptController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SysDeptDTOListRequest"];
+            };
+        };
+        responses: {
+            /** @description 部门 列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: (components["schemas"]["SysDeptDTOSafeListResponse"] & {
+                            data?: components["schemas"]["SysDeptDTOSafe"][];
+                        })[];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysPostController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SysPostDTOCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description 添加 岗位 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysPostDTOSafe"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysPostController_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 岗位 id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 根据 id 查询 岗位 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysPostDTOSafe"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysPostController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 岗位 id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SysPostDTOUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description 修改 岗位 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysPostDTOSafe"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysPostController_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 岗位 id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 根据 id 删除 岗位 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysPostDTOSafe"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysPostController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SysPostDTOListRequest"];
+            };
+        };
+        responses: {
+            /** @description 岗位 列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: (components["schemas"]["SysPostDTOSafeListResponse"] & {
+                            data?: components["schemas"]["SysPostDTOSafe"][];
+                        })[];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysEmployeeController_bindUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description employee id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SysEmployeeDTOBindUserRequest"];
+            };
+        };
+        responses: {
+            /** @description bind one login account to the employee (one account one employee) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysEmployeeDTOUpdateResponse"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysEmployeeController_unbindUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description employee id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description unbind the login account from the employee (idempotent) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysEmployeeDTOUpdateResponse"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysEmployeeController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SysEmployeeDTOCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description 添加 职工 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysEmployeeDTOSafe"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysEmployeeController_read: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 职工 id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 根据 id 查询 职工 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysEmployeeDTOSafe"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysEmployeeController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 职工 id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SysEmployeeDTOUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description 修改 职工 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysEmployeeDTOSafe"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysEmployeeController_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description 职工 id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 根据 id 删除 职工 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SysEmployeeDTOSafe"];
+                        /**
+                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         */
+                        readonly code: number | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysEmployeeController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SysEmployeeDTOListRequest"];
+            };
+        };
+        responses: {
+            /** @description 职工 列表 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: (components["schemas"]["SysEmployeeDTOSafeListResponse"] & {
+                            data?: components["schemas"]["SysEmployeeDTOSafe"][];
                         })[];
                         /**
                          * @description response code, see `WalnutAdminConstAppResponseCode` for more details

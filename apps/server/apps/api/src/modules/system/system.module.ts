@@ -1,14 +1,17 @@
 import { Module } from '@nestjs/common'
 
 import { SysDeletedModule } from './deleted/deleted.module'
+import { SysDeptModule } from './dept/dept.module'
 import { SysDeviceModule } from './device/device.module'
 import { SysDictDataModule } from './dict/dictData/dictData.module'
 import { SysDictTypeModule } from './dict/dictType/dictType.module'
+import { SysEmployeeModule } from './employee/employee.module'
 import { SysLangModule } from './lang/lang.module'
 import { SysLocaleModule } from './locale/locale.module'
 import { SysLogAuthModule } from './logs/auth/log.auth.module'
 import { SysLogOperateModule } from './logs/operate/log.operate.module'
 import { SysMenuModule } from './menu/menu.module'
+import { SysPostModule } from './post/post.module'
 import { SysRoleModule } from './role/role.module'
 import { SysUserModule } from './user/user.module'
 import { SysUserDeviceModule } from './user_device/user_device.module'
@@ -28,6 +31,11 @@ import { SysUserPreferenceModule } from './user_preference/user_preference.modul
 
     SysDictTypeModule,
     SysDictDataModule,
+
+    // 组织基础表（部门 / 岗位 / 职工）—— 数据权限二期部门维度的地基
+    SysDeptModule,
+    SysPostModule,
+    SysEmployeeModule,
 
     SysLogAuthModule,
     SysLogOperateModule,

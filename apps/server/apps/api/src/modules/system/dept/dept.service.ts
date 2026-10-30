@@ -1,0 +1,209 @@
+import type { EntityManager } from 'typeorm'
+import { Injectable } from '@nestjs/common'
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
+import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
+
+import { SysDeptBasicRepository } from './dept.basic.repository'
+import { SysDeptDTOCreateRequest, SysDeptDTOListRequest, SysDeptDTOUpdateRequest } from './dto/dept.dto'
+import { SysDeptEntity } from './entity/dept.entity'
+
+/** children 数组形态的树节点（出参经 DTO 序列化，内部只关心 id/parentId/sortOrder） */
+type DeptTreeNode<T> = T & { children: DeptTreeNode<T>[] }
+
+/**
+ * 部门服务 —— CRUD + 树查询。
+ *
+ * 删除策略：**软删**（`deleteSoftById`，快照进 sys_deleted + 原行硬删），删除前做两道
+ * 业务前置校验并回受控错误：
+ * 1. 有子部门 → 不许删（子树处理在应用层，不做级联；FK `fk_dept_parent` RESTRICT 兜底）；
+ * 2. 有职工 → 不许删（FK `fk_employee_dept` RESTRICT 兜底）。
+ *
+ * 更新时防环：父节点不得是自身或自身后代（递归 CTE 取子树后判交）。数据层另有查询侧
+ * 的 `CYCLE` 环保护兜底 —— 前置校验负责「不制造环」，CYCLE 负责「历史脏数据查询不悬挂」。
+ */
+@Injectable()
+export class SysDeptService {
+  constructor(private readonly deptBasicRepo: SysDeptBasicRepository) {}
+
+  /**
+   * @description create dept (controller: create)
+   */
+  async create(dto: SysDeptDTOCreateRequest) {
+    await this.ensureCodeAvailable(dto.deptCode)
+
+    if (dto.parentId !== null && dto.parentId !== undefined) {
+      await this.ensureParentExists(dto.parentId)
+    }
+
+    return this.deptBasicRepo.create(dto)
+  }
+
+  /**
+   * @description read dept by id (controller: read)
+   */
+  async read(id: string) {
+    return this.deptBasicRepo.readById(id)
+  }
+
+  /**
+   * @description update dept (controller: update)
+   */
+  async update(id: string, dto: SysDeptDTOUpdateRequest, em?: EntityManager) {
+    const current = await this.deptBasicRepo.readById(id, em)
+
+    if (dto.deptCode !== current.deptCode) {
+      await this.ensureCodeAvailable(dto.deptCode, em)
+    }
+
+    // PUT 整体替换：parentId 缺省即 null（提升为根）；非 null 时做存在性 + 防环校验
+    const parentId = dto.parentId ?? null
+
+    if (parentId !== null) {
+      if (parentId === id) {
+        throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.dept.parentCycle' })
+      }
+
+      await this.ensureParentExists(parentId, em)
+
+      // 防环：目标父节点不得落在自身子树内（含自身，上面已单独拦）
+      const subtree = await this.deptBasicRepo.findSubtreeById(id, undefined, em)
+      if (subtree.some(row => row.id === parentId)) {
+        throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.dept.parentCycle' })
+      }
+    }
+
+    // 显式列映射（PUT 语义）：可空列缺省即清空；sortOrder 缺省保持原值（可排序字段的
+    // 「不传」没有业务含义，清成 0 只会让兄弟序意外漂移）
+    const payload: Partial<SysDeptEntity> = {
+      deptCode: dto.deptCode,
+      deptName: dto.deptName,
+      parentId,
+      leader: dto.leader ?? null,
+      phone: dto.phone ?? null,
+      email: dto.email ?? null,
+      status: dto.status,
+    }
+    if (typeof dto.sortOrder === 'number') {
+      payload.sortOrder = dto.sortOrder
+    }
+
+    return this.deptBasicRepo.update(id, payload, em)
+  }
+
+  /**
+   * @description delete dept (controller: delete) —— 软删进回收站
+   */
+  async delete(id: string, userId: string, em?: EntityManager) {
+    await this.deptBasicRepo.readById(id, em)
+
+    if (await this.deptBasicRepo.countChildren(id, em) > 0) {
+      throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.dept.hasChildren' })
+    }
+
+    if (await this.deptBasicRepo.countEmployees(id, em) > 0) {
+      throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.dept.hasEmployees' })
+    }
+
+    return this.deptBasicRepo.deleteSoftById(id, userId, em)
+  }
+
+  /**
+   * @description list depts (controller: list)
+   */
+  async list(params: SysDeptDTOListRequest) {
+    return this.deptBasicRepo.list(params)
+  }
+
+  /**
+   * @description full dept tree (controller: tree) —— 单次全量取数 + 内存建树
+   * （部门量级小，与菜单树同款克制实现；子树查询走递归 CTE，见 subtree）
+   */
+  async tree() {
+    const rows = await this.deptBasicRepo.findAllOrdered()
+    return this.buildTree(rows)
+  }
+
+  /**
+   * @description children of one parent (controller: children)；parentId 缺省 = 根层
+   */
+  async children(parentId: string | null) {
+    return this.deptBasicRepo.findChildrenByParentId(parentId)
+  }
+
+  /**
+   * @description subtree of one dept (controller: subtree) —— 递归 CTE + CYCLE，
+   * 出参是带 children 的树（根即目标部门）
+   */
+  async subtree(id: string, maxDepth?: number) {
+    await this.deptBasicRepo.readById(id)
+
+    const rows = await this.deptBasicRepo.findSubtreeById(id, { maxDepth })
+    return this.buildTree(rows)[0]
+  }
+
+  /**
+   * @description 部门编码重复 → 40001（DB 的 uq_dept_code 是最后防线）
+   */
+  private async ensureCodeAvailable(deptCode: string, em?: EntityManager) {
+    const existed = await this.deptBasicRepo.findByCode(deptCode, em)
+    if (existed !== null) {
+      throw new WalnutAdminExceptionDataExists()
+    }
+  }
+
+  private async ensureParentExists(parentId: string, em?: EntityManager) {
+    const parent = await this.deptBasicRepo.findById(parentId, em)
+    if (parent === null) {
+      throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.dept.parentNotFound' })
+    }
+  }
+
+  /**
+   * @description 邻接表行 → children 数组树。输入按 (sortOrder, createdAt) 预排序，
+   * 兄弟顺序随插入序保留；parentId 不在结果集内的节点（含父为 null）即森林的根。
+   * 环组件（成员互为父子）没有自然根，按首见提升为根并剪掉回边 —— CYCLE 兜底路径
+   * 保证输出可序列化、不丢行、不悬挂。
+   */
+  private buildTree<T extends { id: string, parentId: string | null }>(rows: T[]): DeptTreeNode<T>[] {
+    const nodes = new Map<string, DeptTreeNode<T>>()
+    for (const row of rows) {
+      if (!nodes.has(row.id)) {
+        nodes.set(row.id, { ...row, children: [] })
+      }
+    }
+
+    const roots: DeptTreeNode<T>[] = []
+    for (const node of nodes.values()) {
+      const parent = node.parentId === null ? undefined : nodes.get(node.parentId)
+      if (parent !== undefined) {
+        parent.children.push(node)
+      }
+      else {
+        roots.push(node)
+      }
+    }
+
+    // 环兜底：从根不可达的节点按首见提升，行走时剪掉指向已可达节点的回边
+    const reachable = new Set<string>()
+    const walk = (node: DeptTreeNode<T>) => {
+      reachable.add(node.id)
+      node.children = node.children.filter((child) => {
+        if (reachable.has(child.id)) {
+          return false
+        }
+        walk(child)
+        return true
+      })
+    }
+    roots.forEach(walk)
+
+    for (const node of nodes.values()) {
+      if (!reachable.has(node.id)) {
+        roots.push(node)
+        walk(node)
+      }
+    }
+
+    return roots
+  }
+}

@@ -6214,6 +6214,1157 @@
         ]
       }
     },
+    "/system/dept/tree": {
+      "get": {
+        "operationId": "SysDeptController_tree",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "return full dept tree",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SysDeptDTOTree"
+                          }
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "return full dept tree",
+        "tags": [
+          "system/dept"
+        ]
+      }
+    },
+    "/system/dept/children": {
+      "get": {
+        "operationId": "SysDeptController_children",
+        "parameters": [
+          {
+            "name": "parentId",
+            "required": false,
+            "in": "query",
+            "description": "parent dept id, omitted => root level",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "return direct children of one dept",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/SysDeptDTOSafe"
+                          }
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "return direct children of one dept",
+        "tags": [
+          "system/dept"
+        ]
+      }
+    },
+    "/system/dept/{id}/subtree": {
+      "get": {
+        "operationId": "SysDeptController_subtree",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "return the subtree rooted at one dept (recursive CTE)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysDeptDTOTree"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "return the subtree rooted at one dept (recursive CTE)",
+        "tags": [
+          "system/dept"
+        ]
+      }
+    },
+    "/system/dept": {
+      "post": {
+        "operationId": "SysDeptController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysDeptDTOCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "添加 部门",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysDeptDTOSafe"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "添加 部门",
+        "tags": [
+          "system/dept"
+        ]
+      }
+    },
+    "/system/dept/{id}": {
+      "get": {
+        "operationId": "SysDeptController_read",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "部门 id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "根据 id 查询 部门",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysDeptDTOSafe"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "根据 id 查询 部门",
+        "tags": [
+          "system/dept"
+        ]
+      },
+      "put": {
+        "operationId": "SysDeptController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "部门 id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysDeptDTOUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "修改 部门",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysDeptDTOSafe"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "修改 部门",
+        "tags": [
+          "system/dept"
+        ]
+      },
+      "delete": {
+        "operationId": "SysDeptController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "部门 id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "根据 id 删除 部门",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysDeptDTOSafe"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "根据 id 删除 部门",
+        "tags": [
+          "system/dept"
+        ]
+      }
+    },
+    "/system/dept/list": {
+      "post": {
+        "operationId": "SysDeptController_list",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysDeptDTOListRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "部门 列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/SysDeptDTOSafeListResponse"
+                              },
+                              {
+                                "properties": {
+                                  "data": {
+                                    "type": "array",
+                                    "items": {
+                                      "$ref": "#/components/schemas/SysDeptDTOSafe"
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "system/dept"
+        ]
+      }
+    },
+    "/system/post": {
+      "post": {
+        "operationId": "SysPostController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysPostDTOCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "添加 岗位",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysPostDTOSafe"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "添加 岗位",
+        "tags": [
+          "system/post"
+        ]
+      }
+    },
+    "/system/post/{id}": {
+      "get": {
+        "operationId": "SysPostController_read",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "岗位 id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "根据 id 查询 岗位",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysPostDTOSafe"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "根据 id 查询 岗位",
+        "tags": [
+          "system/post"
+        ]
+      },
+      "put": {
+        "operationId": "SysPostController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "岗位 id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysPostDTOUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "修改 岗位",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysPostDTOSafe"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "修改 岗位",
+        "tags": [
+          "system/post"
+        ]
+      },
+      "delete": {
+        "operationId": "SysPostController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "岗位 id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "根据 id 删除 岗位",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysPostDTOSafe"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "根据 id 删除 岗位",
+        "tags": [
+          "system/post"
+        ]
+      }
+    },
+    "/system/post/list": {
+      "post": {
+        "operationId": "SysPostController_list",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysPostDTOListRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "岗位 列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/SysPostDTOSafeListResponse"
+                              },
+                              {
+                                "properties": {
+                                  "data": {
+                                    "type": "array",
+                                    "items": {
+                                      "$ref": "#/components/schemas/SysPostDTOSafe"
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "system/post"
+        ]
+      }
+    },
+    "/system/employee/{id}/bind-user": {
+      "post": {
+        "operationId": "SysEmployeeController_bindUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "employee id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysEmployeeDTOBindUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "bind one login account to the employee (one account one employee)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysEmployeeDTOUpdateResponse"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "bind one login account to the employee (one account one employee)",
+        "tags": [
+          "system/employee"
+        ]
+      }
+    },
+    "/system/employee/{id}/unbind-user": {
+      "post": {
+        "operationId": "SysEmployeeController_unbindUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "employee id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "unbind the login account from the employee (idempotent)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysEmployeeDTOUpdateResponse"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "unbind the login account from the employee (idempotent)",
+        "tags": [
+          "system/employee"
+        ]
+      }
+    },
+    "/system/employee": {
+      "post": {
+        "operationId": "SysEmployeeController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysEmployeeDTOCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "添加 职工",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysEmployeeDTOSafe"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "添加 职工",
+        "tags": [
+          "system/employee"
+        ]
+      }
+    },
+    "/system/employee/{id}": {
+      "get": {
+        "operationId": "SysEmployeeController_read",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "职工 id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "根据 id 查询 职工",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysEmployeeDTOSafe"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "根据 id 查询 职工",
+        "tags": [
+          "system/employee"
+        ]
+      },
+      "put": {
+        "operationId": "SysEmployeeController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "职工 id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysEmployeeDTOUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "修改 职工",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysEmployeeDTOSafe"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "修改 职工",
+        "tags": [
+          "system/employee"
+        ]
+      },
+      "delete": {
+        "operationId": "SysEmployeeController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "职工 id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "根据 id 删除 职工",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "$ref": "#/components/schemas/SysEmployeeDTOSafe"
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "summary": "根据 id 删除 职工",
+        "tags": [
+          "system/employee"
+        ]
+      }
+    },
+    "/system/employee/list": {
+      "post": {
+        "operationId": "SysEmployeeController_list",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysEmployeeDTOListRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "职工 列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": {
+                            "allOf": [
+                              {
+                                "$ref": "#/components/schemas/SysEmployeeDTOSafeListResponse"
+                              },
+                              {
+                                "properties": {
+                                  "data": {
+                                    "type": "array",
+                                    "items": {
+                                      "$ref": "#/components/schemas/SysEmployeeDTOSafe"
+                                    }
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        },
+                        "code": {
+                          "type": "number",
+                          "default": 20000,
+                          "description": "response code, see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "system/employee"
+        ]
+      }
+    },
     "/system/log/auth/{id}": {
       "delete": {
         "operationId": "SysLogAuthController_delete",
@@ -14943,6 +16094,1116 @@
             "allOf": [
               {
                 "$ref": "#/components/schemas/SysDictDataDTOSafeRequest"
+              }
+            ]
+          },
+          "sort": {
+            "default": {},
+            "example": [
+              {
+                "field": "field1",
+                "order": "ascend",
+                "priority": 1
+              },
+              {
+                "field": "field2",
+                "order": "descend",
+                "priority": 2
+              },
+              {
+                "field": "field3",
+                "order": false,
+                "priority": 3
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SortDTO"
+            }
+          },
+          "page": {
+            "default": {
+              "page": 1,
+              "pageSize": 10
+            },
+            "example": {
+              "page": 1,
+              "pageSize": 10
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WalnutAdminRequestListPageDTO"
+              }
+            ]
+          }
+        },
+        "required": [
+          "query",
+          "sort",
+          "page"
+        ]
+      },
+      "SysDeptDTOTree": {
+        "type": "object",
+        "properties": {
+          "deptCode": {
+            "type": "string",
+            "title": "dept code",
+            "description": "unique business key"
+          },
+          "deptName": {
+            "type": "string",
+            "title": "dept name"
+          },
+          "leader": {
+            "type": "string",
+            "default": null,
+            "title": "dept leader",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "default": null,
+            "title": "contact phone",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "default": null,
+            "title": "contact email",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0,
+            "title": "sort order",
+            "description": "sibling order inside the same parent, should be int"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled",
+            "title": "dept status",
+            "description": "disabled => not selectable in new assignments, existing rows stay",
+            "example": "enabled"
+          },
+          "id": {
+            "type": "string"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SysDeptDTOTree"
+            }
+          }
+        },
+        "required": [
+          "deptCode",
+          "deptName",
+          "leader",
+          "phone",
+          "email",
+          "sortOrder",
+          "status"
+        ]
+      },
+      "SysDeptDTOSafe": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "parentId": {
+            "type": "string",
+            "default": null,
+            "title": "parent dept id",
+            "description": "null => root dept",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "deptCode": {
+            "type": "string",
+            "title": "dept code",
+            "description": "unique business key"
+          },
+          "deptName": {
+            "type": "string",
+            "title": "dept name"
+          },
+          "leader": {
+            "type": "string",
+            "default": null,
+            "title": "dept leader",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "default": null,
+            "title": "contact phone",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "default": null,
+            "title": "contact email",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0,
+            "title": "sort order",
+            "description": "sibling order inside the same parent, should be int"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled",
+            "title": "dept status",
+            "description": "disabled => not selectable in new assignments, existing rows stay",
+            "example": "enabled"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "parentId",
+          "deptCode",
+          "deptName",
+          "leader",
+          "phone",
+          "email",
+          "sortOrder",
+          "status"
+        ]
+      },
+      "SysDeptDTOCreateRequest": {
+        "type": "object",
+        "properties": {
+          "deptCode": {
+            "type": "string",
+            "title": "dept code",
+            "description": "unique business key"
+          },
+          "deptName": {
+            "type": "string",
+            "title": "dept name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled",
+            "title": "dept status",
+            "description": "disabled => not selectable in new assignments, existing rows stay",
+            "example": "enabled"
+          },
+          "parentId": {
+            "type": "string",
+            "default": null,
+            "title": "parent dept id",
+            "description": "null => root dept",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "leader": {
+            "type": "string",
+            "default": null,
+            "title": "dept leader",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "default": null,
+            "title": "contact phone",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "default": null,
+            "title": "contact email",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0,
+            "title": "sort order",
+            "description": "sibling order inside the same parent, should be int"
+          }
+        },
+        "required": [
+          "deptCode",
+          "deptName",
+          "status"
+        ]
+      },
+      "SysDeptDTOUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "deptCode": {
+            "type": "string",
+            "title": "dept code",
+            "description": "unique business key"
+          },
+          "deptName": {
+            "type": "string",
+            "title": "dept name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled",
+            "title": "dept status",
+            "description": "disabled => not selectable in new assignments, existing rows stay",
+            "example": "enabled"
+          },
+          "parentId": {
+            "type": "string",
+            "default": null,
+            "title": "parent dept id",
+            "description": "null => root dept",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "leader": {
+            "type": "string",
+            "default": null,
+            "title": "dept leader",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "default": null,
+            "title": "contact phone",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "default": null,
+            "title": "contact email",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0,
+            "title": "sort order",
+            "description": "sibling order inside the same parent, should be int"
+          }
+        },
+        "required": [
+          "deptCode",
+          "deptName",
+          "status"
+        ]
+      },
+      "SysDeptDTOSafeListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "title": "list response data",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SysDeptDTOSafe"
+            }
+          },
+          "total": {
+            "type": "number",
+            "title": "list total count"
+          }
+        },
+        "required": [
+          "data",
+          "total"
+        ]
+      },
+      "SysDeptDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "parentId": {
+            "type": "string",
+            "default": null,
+            "title": "parent dept id",
+            "description": "null => root dept",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "deptCode": {
+            "type": "string",
+            "title": "dept code",
+            "description": "unique business key"
+          },
+          "deptName": {
+            "type": "string",
+            "title": "dept name"
+          },
+          "leader": {
+            "type": "string",
+            "default": null,
+            "title": "dept leader",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "default": null,
+            "title": "contact phone",
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "default": null,
+            "title": "contact email",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0,
+            "title": "sort order",
+            "description": "sibling order inside the same parent, should be int"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled",
+            "title": "dept status",
+            "description": "disabled => not selectable in new assignments, existing rows stay",
+            "example": "enabled"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "SysDeptDTOListRequest": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "default": {},
+            "example": {
+              "field1": "this is a string",
+              "field2": false,
+              "field3": 123
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysDeptDTOSafePartial"
+              }
+            ]
+          },
+          "sort": {
+            "default": {},
+            "example": [
+              {
+                "field": "field1",
+                "order": "ascend",
+                "priority": 1
+              },
+              {
+                "field": "field2",
+                "order": "descend",
+                "priority": 2
+              },
+              {
+                "field": "field3",
+                "order": false,
+                "priority": 3
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SortDTO"
+            }
+          },
+          "page": {
+            "default": {
+              "page": 1,
+              "pageSize": 10
+            },
+            "example": {
+              "page": 1,
+              "pageSize": 10
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WalnutAdminRequestListPageDTO"
+              }
+            ]
+          }
+        },
+        "required": [
+          "query",
+          "sort",
+          "page"
+        ]
+      },
+      "SysPostDTOSafe": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "postCode": {
+            "type": "string",
+            "title": "post code",
+            "description": "unique business key"
+          },
+          "postName": {
+            "type": "string",
+            "title": "post name"
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0,
+            "title": "sort order",
+            "description": "should be int"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled",
+            "title": "post status",
+            "description": "disabled => not selectable in new assignments, existing rows stay",
+            "example": "enabled"
+          },
+          "remark": {
+            "type": "string",
+            "default": null,
+            "title": "remark",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "postCode",
+          "postName",
+          "sortOrder",
+          "status",
+          "remark"
+        ]
+      },
+      "SysPostDTOCreateRequest": {
+        "type": "object",
+        "properties": {
+          "postCode": {
+            "type": "string",
+            "title": "post code",
+            "description": "unique business key"
+          },
+          "postName": {
+            "type": "string",
+            "title": "post name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled",
+            "title": "post status",
+            "description": "disabled => not selectable in new assignments, existing rows stay",
+            "example": "enabled"
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0,
+            "title": "sort order",
+            "description": "should be int"
+          },
+          "remark": {
+            "type": "string",
+            "default": null,
+            "title": "remark",
+            "nullable": true
+          }
+        },
+        "required": [
+          "postCode",
+          "postName",
+          "status"
+        ]
+      },
+      "SysPostDTOUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "postCode": {
+            "type": "string",
+            "title": "post code",
+            "description": "unique business key"
+          },
+          "postName": {
+            "type": "string",
+            "title": "post name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled",
+            "title": "post status",
+            "description": "disabled => not selectable in new assignments, existing rows stay",
+            "example": "enabled"
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0,
+            "title": "sort order",
+            "description": "should be int"
+          },
+          "remark": {
+            "type": "string",
+            "default": null,
+            "title": "remark",
+            "nullable": true
+          }
+        },
+        "required": [
+          "postCode",
+          "postName",
+          "status"
+        ]
+      },
+      "SysPostDTOSafeListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "title": "list response data",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SysPostDTOSafe"
+            }
+          },
+          "total": {
+            "type": "number",
+            "title": "list total count"
+          }
+        },
+        "required": [
+          "data",
+          "total"
+        ]
+      },
+      "SysPostDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "postCode": {
+            "type": "string",
+            "title": "post code",
+            "description": "unique business key"
+          },
+          "postName": {
+            "type": "string",
+            "title": "post name"
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0,
+            "title": "sort order",
+            "description": "should be int"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ],
+            "default": "enabled",
+            "title": "post status",
+            "description": "disabled => not selectable in new assignments, existing rows stay",
+            "example": "enabled"
+          },
+          "remark": {
+            "type": "string",
+            "default": null,
+            "title": "remark",
+            "nullable": true
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "SysPostDTOListRequest": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "default": {},
+            "example": {
+              "field1": "this is a string",
+              "field2": false,
+              "field3": 123
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysPostDTOSafePartial"
+              }
+            ]
+          },
+          "sort": {
+            "default": {},
+            "example": [
+              {
+                "field": "field1",
+                "order": "ascend",
+                "priority": 1
+              },
+              {
+                "field": "field2",
+                "order": "descend",
+                "priority": 2
+              },
+              {
+                "field": "field3",
+                "order": false,
+                "priority": 3
+              }
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SortDTO"
+            }
+          },
+          "page": {
+            "default": {
+              "page": 1,
+              "pageSize": 10
+            },
+            "example": {
+              "page": 1,
+              "pageSize": 10
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WalnutAdminRequestListPageDTO"
+              }
+            ]
+          }
+        },
+        "required": [
+          "query",
+          "sort",
+          "page"
+        ]
+      },
+      "SysEmployeeDTOUpdateResponse": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "employeeNo": {
+            "type": "string",
+            "title": "employee no",
+            "description": "unique business key, the payroll number"
+          },
+          "employeeName": {
+            "type": "string",
+            "title": "employee name"
+          },
+          "deptId": {
+            "type": "string",
+            "title": "dept id",
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "postId": {
+            "type": "string",
+            "default": null,
+            "title": "post id",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "default": null,
+            "title": "bound user id",
+            "nullable": true
+          },
+          "entryDate": {
+            "format": "date-time",
+            "type": "string",
+            "title": "entry date",
+            "example": "2026-01-01 00:00:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "probation",
+              "active",
+              "resigned"
+            ],
+            "default": "active",
+            "title": "employee status",
+            "description": "probation / active / resigned; resigned does NOT delete or unbind the account",
+            "example": "active"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "employeeNo",
+          "employeeName",
+          "deptId",
+          "postId",
+          "userId",
+          "entryDate",
+          "status"
+        ]
+      },
+      "SysEmployeeDTOBindUserRequest": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "title": "user id",
+            "description": "sys_user primary key (uuid)",
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      },
+      "SysEmployeeDTOSafe": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "employeeNo": {
+            "type": "string",
+            "title": "employee no",
+            "description": "unique business key, the payroll number"
+          },
+          "employeeName": {
+            "type": "string",
+            "title": "employee name"
+          },
+          "deptId": {
+            "type": "string",
+            "title": "dept id",
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "postId": {
+            "type": "string",
+            "default": null,
+            "title": "post id",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "default": null,
+            "title": "bound user id",
+            "nullable": true
+          },
+          "entryDate": {
+            "format": "date-time",
+            "type": "string",
+            "title": "entry date",
+            "example": "2026-01-01 00:00:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "probation",
+              "active",
+              "resigned"
+            ],
+            "default": "active",
+            "title": "employee status",
+            "description": "probation / active / resigned; resigned does NOT delete or unbind the account",
+            "example": "active"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "employeeNo",
+          "employeeName",
+          "deptId",
+          "postId",
+          "userId",
+          "entryDate",
+          "status"
+        ]
+      },
+      "SysEmployeeDTOCreateRequest": {
+        "type": "object",
+        "properties": {
+          "employeeNo": {
+            "type": "string",
+            "title": "employee no",
+            "description": "unique business key, the payroll number"
+          },
+          "employeeName": {
+            "type": "string",
+            "title": "employee name"
+          },
+          "deptId": {
+            "type": "string",
+            "title": "dept id",
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "entryDate": {
+            "format": "date-time",
+            "type": "string",
+            "title": "entry date",
+            "example": "2026-01-01 00:00:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "probation",
+              "active",
+              "resigned"
+            ],
+            "default": "active",
+            "title": "employee status",
+            "description": "probation / active / resigned; resigned does NOT delete or unbind the account",
+            "example": "active"
+          },
+          "postId": {
+            "type": "string",
+            "default": null,
+            "title": "post id",
+            "nullable": true
+          }
+        },
+        "required": [
+          "employeeNo",
+          "employeeName",
+          "deptId",
+          "entryDate",
+          "status"
+        ]
+      },
+      "SysEmployeeDTOUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "employeeNo": {
+            "type": "string",
+            "title": "employee no",
+            "description": "unique business key, the payroll number"
+          },
+          "employeeName": {
+            "type": "string",
+            "title": "employee name"
+          },
+          "deptId": {
+            "type": "string",
+            "title": "dept id",
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "entryDate": {
+            "format": "date-time",
+            "type": "string",
+            "title": "entry date",
+            "example": "2026-01-01 00:00:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "probation",
+              "active",
+              "resigned"
+            ],
+            "default": "active",
+            "title": "employee status",
+            "description": "probation / active / resigned; resigned does NOT delete or unbind the account",
+            "example": "active"
+          },
+          "postId": {
+            "type": "string",
+            "default": null,
+            "title": "post id",
+            "nullable": true
+          }
+        },
+        "required": [
+          "employeeNo",
+          "employeeName",
+          "deptId",
+          "entryDate",
+          "status"
+        ]
+      },
+      "SysEmployeeDTOSafeListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "title": "list response data",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SysEmployeeDTOSafe"
+            }
+          },
+          "total": {
+            "type": "number",
+            "title": "list total count"
+          }
+        },
+        "required": [
+          "data",
+          "total"
+        ]
+      },
+      "SysEmployeeDTOSafePartial": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "employeeNo": {
+            "type": "string",
+            "title": "employee no",
+            "description": "unique business key, the payroll number"
+          },
+          "employeeName": {
+            "type": "string",
+            "title": "employee name"
+          },
+          "deptId": {
+            "type": "string",
+            "title": "dept id",
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "postId": {
+            "type": "string",
+            "default": null,
+            "title": "post id",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string",
+            "default": null,
+            "title": "bound user id",
+            "nullable": true
+          },
+          "entryDate": {
+            "format": "date-time",
+            "type": "string",
+            "title": "entry date",
+            "example": "2026-01-01 00:00:00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "probation",
+              "active",
+              "resigned"
+            ],
+            "default": "active",
+            "title": "employee status",
+            "description": "probation / active / resigned; resigned does NOT delete or unbind the account",
+            "example": "active"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "SysEmployeeDTOListRequest": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "default": {},
+            "example": {
+              "field1": "this is a string",
+              "field2": false,
+              "field3": 123
+            },
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SysEmployeeDTOSafePartial"
               }
             ]
           },

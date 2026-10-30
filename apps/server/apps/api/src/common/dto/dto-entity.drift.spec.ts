@@ -33,6 +33,8 @@ import { SharedAreaEntity } from '@/modules/shared/area/entity/area.entity'
 import { SysDeletedDTOBase } from '@/modules/system/deleted/dto/deleted.dto'
 import { SysDeletedEntity } from '@/modules/system/deleted/entity/deleted.entity'
 import { WALNUT_PG_RECOVERABLE_COLLECTIONS } from '@/modules/system/deleted/repo/recover-registry'
+import { SysDeptDTOBase } from '@/modules/system/dept/dto/dept.dto'
+import { SysDeptEntity } from '@/modules/system/dept/entity/dept.entity'
 import { SysDeviceDTOBase } from '@/modules/system/device/dto/device.dto'
 import { SysDeviceEntity } from '@/modules/system/device/entity/device.entity'
 import { SysDictDataTagTypeConst } from '@/modules/system/dict/dictData/dict-data.const'
@@ -40,6 +42,8 @@ import { SysDictDataDTOBase } from '@/modules/system/dict/dictData/dto/dictData.
 import { SysDictDataEntity } from '@/modules/system/dict/dictData/entity/dict-data.entity'
 import { SysDictTypeDTOBase } from '@/modules/system/dict/dictType/dto/dictType.dto'
 import { SysDictTypeEntity } from '@/modules/system/dict/dictType/entity/dict-type.entity'
+import { SysEmployeeDTOBase } from '@/modules/system/employee/dto/employee.dto'
+import { SysEmployeeEntity } from '@/modules/system/employee/entity/employee.entity'
 import { SysLangDTOBase } from '@/modules/system/lang/dto/lang.dto'
 import { SysLangEntity } from '@/modules/system/lang/entity/lang.entity'
 import { SysLocaleDTOBase } from '@/modules/system/locale/dto/locale.dto'
@@ -58,6 +62,8 @@ import {
   SysMenuMetaDTOBase,
 } from '@/modules/system/menu/dto/menu.dto'
 import { SysMenuEntity } from '@/modules/system/menu/entity/menu.entity'
+import { SysPostDTOBase } from '@/modules/system/post/dto/post.dto'
+import { SysPostEntity } from '@/modules/system/post/entity/post.entity'
 import { SysRoleDTOBase } from '@/modules/system/role/dto/role.dto'
 import { SysRoleEntity } from '@/modules/system/role/entity/role.entity'
 import { SysUserDTOBase } from '@/modules/system/user/dto/user.dto'
@@ -167,6 +173,9 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
       ['geoLocation', '组装字段：entity 拍平列 geo_longitude/geo_latitude 重建的 GeoPoint（device.dto helper）'],
     ],
   },
+  { dtoBase: SysDeptDTOBase, entity: SysDeptEntity, modelName: WalnutModelName.SYS_DEPT },
+  { dtoBase: SysEmployeeDTOBase, entity: SysEmployeeEntity, modelName: WalnutModelName.SYS_EMPLOYEE },
+  { dtoBase: SysPostDTOBase, entity: SysPostEntity, modelName: WalnutModelName.SYS_POST },
   { dtoBase: SysDictDataDTOBase, entity: SysDictDataEntity, modelName: WalnutModelName.SYS_DICT_DATA },
   {
     dtoBase: SysDictTypeDTOBase,
