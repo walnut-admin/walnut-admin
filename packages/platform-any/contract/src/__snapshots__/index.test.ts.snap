@@ -104,6 +104,17 @@ exports[`contract snapshots > cookie keys never change silently 1`] = `
 }
 `;
 
+exports[`contract snapshots > data scope tiers never change silently 1`] = `
+{
+  "ALL": 1,
+  "CUSTOM": 2,
+  "DEPT": 3,
+  "DEPT_AND_CHILD": 4,
+  "DEPT_OR_SELF": 6,
+  "SELF": 5,
+}
+`;
+
 exports[`contract snapshots > locale values never change silently 1`] = `
 {
   "en_US": "en_US",
@@ -137,6 +148,7 @@ exports[`contract snapshots > public API surface stays stable 1`] = `
   "AppRoutes",
   "AuthRoutes",
   "CacheKeyStrategy",
+  "DataScope",
   "Locale",
   "MenuTernal",
   "MenuType",

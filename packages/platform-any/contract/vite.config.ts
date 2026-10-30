@@ -6,6 +6,7 @@ const entries = {
   'index': resolve(__dirname, 'src/index.ts'),
   'cookie': resolve(__dirname, 'src/cookie.ts'),
   'crypto-wire': resolve(__dirname, 'src/crypto-wire.ts'),
+  'data-scope': resolve(__dirname, 'src/data-scope.ts'),
   'http': resolve(__dirname, 'src/http.ts'),
   'i18n': resolve(__dirname, 'src/i18n.ts'),
   'menu': resolve(__dirname, 'src/menu.ts'),

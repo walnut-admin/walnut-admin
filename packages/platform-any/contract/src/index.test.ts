@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { WalnutAdminConstCookieKeys } from './cookie'
 import { AES_GCM_WIRE } from './crypto-wire'
+import { DataScope } from './data-scope'
 import { RequestHeaders } from './http'
 import { Locale } from './i18n'
 import * as contract from './index'
@@ -33,6 +34,10 @@ describe('contract snapshots', () => {
 
   it('roles never change silently', () => {
     expect(Role).toMatchSnapshot()
+  })
+
+  it('data scope tiers never change silently', () => {
+    expect(DataScope).toMatchSnapshot()
   })
 
   it('cookie keys never change silently', () => {

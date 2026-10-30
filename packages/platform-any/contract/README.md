@@ -1,6 +1,6 @@
 # `@walnut/contract`
 
-> 前后端共享的**类型与常量契约** —— 错误码、响应信封、API 路由、分页、i18n / 菜单 / 角色枚举、JWT payload、socket 事件、cookie 与 token 键名，一个事实只有一个家。
+> 前后端共享的**类型与常量契约** —— 错误码、响应信封、API 路由、分页、i18n / 菜单 / 角色枚举、数据权限档位、JWT payload、socket 事件、cookie 与 token 键名，一个事实只有一个家。
 
 | | |
 |---|---|
@@ -16,7 +16,7 @@
 
 边界：
 
-- 只放**类型与常量** —— 没有函数、没有类。`dependencies` 里仅有 `easy-fns-ts`，且三处用法都是 `import type { ValueOf }`，实际零运行时依赖。
+- 只放**类型与常量** —— 没有函数、没有类。`dependencies` 里仅有 `easy-fns-ts`，且全部用法都是 `import type`（实际零运行时依赖）。
 - 服务端专属的东西**不进这里**：角色 ID 常量（`RootId` / `SafeUserId` 等）与 Cookie 的 `__Secure-` / `__Host-` 前缀逻辑留在 server（见 `src/cookie.ts` 的文件注释）。
 - 纯函数工具去 `@walnut/utils`，环境无关的类型体操去 `@walnut/types`。
 
@@ -40,6 +40,7 @@
 | `.` | 下列全部运行时值 + 类型 |
 | `./cookie` | `WalnutAdminConstCookieKeys`（`DEVICE_ID` / `CAPJS_TOKEN` / `RT_JTI` / `SIGN_TICKET`） |
 | `./crypto-wire` | `AES_GCM_WIRE`（`IV_LENGTH` / `TAG_LENGTH` / `MIN_PAYLOAD_LENGTH`） |
+| `./data-scope` | `DataScope`（六档数值 `ALL` / `CUSTOM` / `DEPT` / `DEPT_AND_CHILD` / `SELF` / `DEPT_OR_SELF`）/ `DataScopeKey` / `DataScopeType` |
 | `./http` | `RequestHeaders`（`X-Request-ID` / `X-Language` / `X-Sign` / `X-Fingerprint` …） |
 | `./i18n` | `Locale` / `LocaleType` |
 | `./menu` | `MenuType` / `MenuTernal` / `CacheKeyStrategy` |

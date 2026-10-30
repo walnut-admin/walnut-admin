@@ -6,6 +6,8 @@ export { WalnutAdminConstCookieKeys } from './cookie'
 
 export { AES_GCM_WIRE } from './crypto-wire'
 
+export { DataScope, type DataScopeKey, type DataScopeType } from './data-scope'
+
 export { RequestHeaders } from './http'
 
 export { Locale, type LocaleType } from './i18n'
