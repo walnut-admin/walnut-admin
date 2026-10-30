@@ -5,7 +5,7 @@ import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.e
 
 import { Role } from '@walnut/contract'
 import { AppTechCachePermissionsService } from '@/modules/techniques/cache/service/cache.permissions'
-
+import { DataScopeService } from '../data-scope/data-scope.service'
 import {
   SysRoleDTOCreateRequest,
   SysRoleDTOListRequest,
@@ -28,6 +28,7 @@ export class SysRoleService {
     private readonly roleBasicRepo: SysRoleBasicRepository,
     private readonly roleRepoService: SysRoleRepoService,
     private readonly cachePermissionsService: AppTechCachePermissionsService,
+    private readonly dataScopeService: DataScopeService,
   ) {}
 
   /**
@@ -75,7 +76,13 @@ export class SysRoleService {
 
     const permissionsAffected = dto.menus !== undefined
       || (dto.status !== undefined && role !== null && dto.status !== role.status)
-    const affectedUserIds = permissionsAffected
+
+    // 数据权限一期：dataScope 或 status（停用角色不参与 scope 解析）变化都会
+    // 改变成员的行级可见面 —— 与权限缓存同一反查腿失效 `AUTH:DATA_SCOPE:<userId>`。
+    const dataScopeAffected = (dto.dataScope !== undefined && role !== null && dto.dataScope !== role.dataScope)
+      || (dto.status !== undefined && role !== null && dto.status !== role.status)
+
+    const affectedUserIds = permissionsAffected || dataScopeAffected
       ? await this.roleRepoService.findUserIdsByRoleId(id, em)
       : []
 
@@ -83,10 +90,19 @@ export class SysRoleService {
 
     if (affectedUserIds.length > 0) {
       await runAfterCommit(async () => {
-        for (const userId of affectedUserIds) {
-          await this.cachePermissionsService.delPermissionsForUser(userId)
+        if (permissionsAffected) {
+          for (const userId of affectedUserIds) {
+            await this.cachePermissionsService.delPermissionsForUser(userId)
+          }
         }
-        this.logger.debug(`role ${id} change invalidated permission cache for ${affectedUserIds.length} user(s)`)
+
+        if (dataScopeAffected) {
+          await this.dataScopeService.invalidateForUsers(affectedUserIds)
+        }
+
+        this.logger.debug(
+          `role ${id} change invalidated permission cache (${permissionsAffected ? 'on' : 'off'}) / data scope (${dataScopeAffected ? 'on' : 'off'}) for ${affectedUserIds.length} user(s)`,
+        )
       })
     }
 

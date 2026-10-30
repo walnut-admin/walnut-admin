@@ -197,3 +197,24 @@ cap/SSE 无壳面登记（P2-10 / P3-8，DESIGN-ISSUES 现 35 条）。
 
 其余新发现（P2-11 nonce 并发窗、P2-14 并发 login 判据、P2-17 lang 缓存不对称、P2-20 菜单树无权限、
 P2-21~29、P2-32 security-policy 不清会话、P3-17~30 等）**维持登记、按 backlog 排期**，本轮不修。
+
+### 6.1 数据权限一期（2026-10-30 实施完成）
+
+方案与决策真源：`docs/plans/data-scope-design.md`（§4 推荐方案、§5 实施状态、§7 四机制）。
+
+落地要点：
+
+- `sys_role.data_scope`（1 ALL / 2 SELF / 3 CUSTOM；root=ALL、visitor=SELF）、
+  `app_demo.created_by` 示范 owner 列；迁移可逆，dev 库手工 ALTER 保数据。
+- 应用层 scope 收口到 `common/repository/pg-base.repository.ts`：list / readById /
+  updateByField / deleteSoft* / deleteSoftManyByCondition 全部注入参数化谓词；
+  create 自动填 owner；覆写 list 的三个模块显式调用。
+- 实体注册表 fail-closed（7 张业务表注册 + 其余逐条豁免）；ALS 拦截器种
+  `userId + dataScope`；`AUTH:DATA_SCOPE:<userId>` 缓存 + 五类失效点。
+- 机械守卫：注册表完整性单测（每张实体表必须分类）+ ESLint
+  `no-restricted-syntax`（已注册实体直连必须显式豁免）。
+- admin 角色表单新增 dataScope 选择器；OpenAPI/生成类型同步（`SysRoleDTOSafe.dataScope`）。
+- 测试：解析器矩阵 / 缓存失效 / 注册表守卫 / 基类注入（真 PG）/ demo 模块 API 级
+  SELF-CUSTOM-ALL 与越权 404 用例。
+
+二期（部门维度 + RLS RESTRICTIVE 硬上限）按 §4 二期清单另行排期。

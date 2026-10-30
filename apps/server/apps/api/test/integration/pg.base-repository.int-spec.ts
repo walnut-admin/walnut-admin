@@ -1,14 +1,18 @@
 import type { INestApplication } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
+import type { IWalnutAdminDataScopeDescriptor } from '@/common/repository/data-scope'
 import { randomUUID } from 'node:crypto'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource, TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
+import { WalnutAdminExceptionDataScopeContextMissing } from '@walnut-server/exceptions/business/auth'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
+import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { SysDeletedEntity } from '@/modules/system/deleted/entity/deleted.entity'
 import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
@@ -18,7 +22,12 @@ import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
  * 用 B0a 实体直接实例化基类（测试内联子类，业务模块尚未切 PG），验证 ——
  * - CRUD 全链路（create 回带 DB 默认 uuid / readById / update）；
  * - deleteSoftById 写 sys_deleted（content jsonb 直存对象 + deletedAt 显式赋值）；
- * - list 走 PG 版列表构建器（分页 / ILIKE 模糊 / total / 排序 / 通配符字面量）。
+ * - list 走 PG 版列表构建器（分页 / ILIKE 模糊 / total / 排序 / 通配符字面量）；
+ * - 数据权限一期（app_demo 已注册）：SELF / CUSTOM / ALL 的行级过滤，
+ *   read/update/delete 越权 = 404，无上下文 fail-closed。
+ *
+ * 数据权限上下文：直接调仓库的用例必须显式进入系统通道（`als.runAsSystem`）——
+ * 这正是生产侧 cron/脚本的准入形态（docs/plans/data-scope-design.md §7）。
  */
 @Injectable()
 class AppDemoPgRepository extends WalnutAdminCommonPgBaseRepository<AppDemoEntity> {
@@ -33,8 +42,24 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
   let app: INestApplication
   let repo: AppDemoPgRepository
   let pgDataSource: DataSource
+  let als: ALSRequestService
 
   const userId = randomUUID()
+
+  const asSystem = async <T>(fn: () => Promise<T>): Promise<T> => als.runAsSystem(fn)
+
+  const asUser = async <T>(
+    currentUserId: string,
+    descriptor: IWalnutAdminDataScopeDescriptor,
+    fn: () => Promise<T>,
+  ): Promise<T> => als.run(async () => {
+    als.set('userId', currentUserId)
+    als.set('dataScope', descriptor)
+    return fn()
+  })
+
+  /** 直接调仓库的用例统一走系统通道（否则已注册实体 fail-closed） */
+  const itSystem = (name: string, fn: () => Promise<void>) => it(name, async () => asSystem(fn))
 
   function uniqueDemoPayload(demoString?: string) {
     const seed = randomUUID()
@@ -55,6 +80,13 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     }
   }
 
+  async function createOwned(ownerId: string, demoString: string): Promise<AppDemoEntity> {
+    const created = await asSystem(async () => repo.create(uniqueDemoPayload(demoString)))
+    // 系统通道 create 不填 owner（没有用户）；测试直接改列造归属
+    await pgDataSource.query('UPDATE app_demo SET created_by = $1 WHERE id = $2', [ownerId, created.id])
+    return created
+  }
+
   beforeAll(async () => {
     // AppModule 已注册 SysDeletedEntity（deleted.repo.module 的 forFeature），
     // 这里只补 AppDemoEntity + 内联的 PG 版仓库子类
@@ -64,6 +96,7 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     )
     repo = app.get(AppDemoPgRepository)
     pgDataSource = getWalnutPgDataSource(app)
+    als = app.get(ALSRequestService)
 
     expect(pgDataSource.options.database).toBe(INTEGRATION_DATABASE_NAME)
   })
@@ -72,7 +105,7 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     await app.close()
   })
 
-  it('create → readById：PK 由 DB 默认值生成（uuid），timestamps 落库', async () => {
+  itSystem('create → readById：PK 由 DB 默认值生成（uuid），timestamps 落库', async () => {
     const payload = uniqueDemoPayload()
 
     const created = await repo.create(payload)
@@ -87,13 +120,13 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     expect(read.id).toBe(created.id)
   })
 
-  it('readById 不存在的 uuid → 抛 DataNotFound(404)', async () => {
+  itSystem('readById 不存在的 uuid → 抛 DataNotFound(404)', async () => {
     await expect(repo.readById(randomUUID()))
       .rejects
       .toThrow(WalnutAdminExceptionDataNotFound)
   })
 
-  it('update：字段修改并持久化', async () => {
+  itSystem('update：字段修改并持久化', async () => {
     const created = await repo.create(uniqueDemoPayload())
 
     // demo_number 是 integer（phase2 定稿；Mongo 侧 number 可存浮点的保真损耗属已批准设计）
@@ -104,7 +137,7 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     expect(read.demoNumber).toBe(42)
   })
 
-  it('deleteSoftById：原行消失 + sys_deleted 快照（jsonb 对象 / deletedAt / 模型名）', async () => {
+  itSystem('deleteSoftById：原行消失 + sys_deleted 快照（jsonb 对象 / deletedAt / 模型名）', async () => {
     const payload = uniqueDemoPayload()
     const created = await repo.create(payload)
 
@@ -126,7 +159,7 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     expect((snapshot!.content).demoString).toBe(payload.demoString)
   })
 
-  it('deleteRealById：真删且不产生快照', async () => {
+  itSystem('deleteRealById：真删且不产生快照', async () => {
     const created = await repo.create(uniqueDemoPayload())
     const snapshotsBefore = await pgDataSource.manager.count(SysDeletedEntity)
 
@@ -136,7 +169,7 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     expect(await pgDataSource.manager.count(SysDeletedEntity)).toBe(snapshotsBefore)
   })
 
-  it('list：分页、ILIKE 模糊过滤、total（COUNT(*) OVER() 单趟）、排序与通配符字面量', async () => {
+  itSystem('list：分页、ILIKE 模糊过滤、total（COUNT(*) OVER() 单趟）、排序与通配符字面量', async () => {
     const group = randomUUID().slice(0, 8)
     const created = []
     const names = [`int-pg-list-${group}-alpha`, `int-pg-list-${group}-beta`, `int-pg-list-${group}-gamma`]
@@ -177,5 +210,120 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
       sort: [{ field: 'demoNumber', order: 'descend' }],
     } as never)
     expect(sorted.data.map(i => i.demoNumber)).toEqual([3, 2, 1])
+  })
+
+  describe('数据权限一期（app_demo.created_by）', () => {
+    const userA = randomUUID()
+    const userB = randomUUID()
+    const selfScope: IWalnutAdminDataScopeDescriptor = { mode: WalnutAdminConstDataScopeMode.SELF }
+    const allScope: IWalnutAdminDataScopeDescriptor = { mode: WalnutAdminConstDataScopeMode.ALL }
+    const denyScope: IWalnutAdminDataScopeDescriptor = { mode: WalnutAdminConstDataScopeMode.CUSTOM, userIds: [] }
+
+    it('SELF：list 只见本人行；read/update/updateByField/delete 越权 = 404', async () => {
+      const group = randomUUID().slice(0, 8)
+      const rowA = await createOwned(userA, `int-pg-scope-${group}-a`)
+      const rowB = await createOwned(userB, `int-pg-scope-${group}-b`)
+
+      const listA = await asUser(userA, selfScope, async () => repo.list({
+        query: { demoString: group },
+      } as never))
+
+      expect(listA.total).toBe(1)
+      expect(listA.data[0].id).toBe(rowA.id)
+
+      await expect(asUser(userA, selfScope, async () => repo.readById(rowB.id)))
+        .rejects
+        .toThrow(WalnutAdminExceptionDataNotFound)
+
+      await expect(asUser(userA, selfScope, async () => repo.update(rowB.id, { demoNumber: 7 })))
+        .rejects
+        .toThrow(WalnutAdminExceptionDataNotFound)
+
+      await expect(asUser(userA, selfScope, async () => repo.updateByField({ id: rowB.id }, { demoNumber: 7 })))
+        .rejects
+        .toThrow(WalnutAdminExceptionDataNotFound)
+
+      await expect(asUser(userA, selfScope, async () => repo.deleteSoftById(rowB.id, userA)))
+        .rejects
+        .toThrow(WalnutAdminExceptionDataNotFound)
+
+      // 越权行未被改动/删除
+      const survivor = await asSystem(async () => repo.readById(rowB.id))
+      expect(survivor.demoNumber).not.toBe(7)
+
+      // 自己的行可见可改
+      const own = await asUser(userA, selfScope, async () => repo.readById(rowA.id))
+      expect(own.id).toBe(rowA.id)
+      const updated = await asUser(userA, selfScope, async () => repo.update(rowA.id, { demoNumber: 7 }))
+      expect(updated.demoNumber).toBe(7)
+    })
+
+    it('create：显式传入 owner 列也会被当前用户覆盖（P2 纵深防御）', async () => {
+      const group = randomUUID().slice(0, 8)
+
+      const created = await asUser(userA, selfScope, async () => repo.create({
+        ...uniqueDemoPayload(`int-pg-owner-${group}`),
+        createdBy: userB,
+      }))
+
+      expect(created.createdBy).toBe(userA)
+
+      const rows: Array<{ created_by: string }> = await pgDataSource.query(
+        'SELECT created_by FROM app_demo WHERE id = $1',
+        [created.id],
+      )
+      expect(rows[0].created_by).toBe(userA)
+    })
+
+    it('update / updateByField：owner 列不接受赋值（P2 纵深防御）', async () => {
+      const row = await createOwned(userA, `int-pg-owner-update-${randomUUID().slice(0, 8)}`)
+
+      const updated = await asUser(userA, selfScope, async () => repo.update(row.id, {
+        createdBy: userB,
+        demoNumber: 9,
+      }))
+      expect(updated.createdBy).toBe(userA)
+
+      const updatedByField = await asUser(userA, selfScope, async () => repo.updateByField(
+        { id: row.id },
+        { createdBy: userB, demoNumber: 10 },
+      ))
+      expect(updatedByField.createdBy).toBe(userA)
+
+      const rows: Array<{ created_by: string, demo_number: number }> = await pgDataSource.query(
+        'SELECT created_by, demo_number FROM app_demo WHERE id = $1',
+        [row.id],
+      )
+      expect(rows[0].created_by).toBe(userA)
+      expect(rows[0].demo_number).toBe(10)
+    })
+
+    it('ALL（root）：跨用户全量可见', async () => {
+      const group = randomUUID().slice(0, 8)
+      await createOwned(userA, `int-pg-scope-all-${group}-a`)
+      await createOwned(userB, `int-pg-scope-all-${group}-b`)
+
+      const listAll = await asUser(userA, allScope, async () => repo.list({
+        query: { demoString: group },
+      } as never))
+
+      expect(listAll.total).toBe(2)
+    })
+
+    it('CUSTOM 空集（无角色/默认拒绝）：list 0 行，readById 404', async () => {
+      const row = await createOwned(userA, `int-pg-scope-deny-${randomUUID().slice(0, 8)}`)
+
+      const list = await asUser(userA, denyScope, async () => repo.list({ query: { id: row.id } } as never))
+      expect(list.total).toBe(0)
+
+      await expect(asUser(userA, denyScope, async () => repo.readById(row.id)))
+        .rejects
+        .toThrow(WalnutAdminExceptionDataNotFound)
+    })
+
+    it('fail-closed：已注册实体在无 ALS 上下文时直接抛错（不默认 ALL）', async () => {
+      await expect(repo.list({} as never)).rejects.toThrow(WalnutAdminExceptionDataScopeContextMissing)
+      await expect(repo.create(uniqueDemoPayload())).rejects.toThrow(WalnutAdminExceptionDataScopeContextMissing)
+    })
   })
 })

@@ -26,6 +26,12 @@ export class SysRoleEntity {
   @Column({ type: 'boolean', name: 'status', default: true })
   status: boolean
 
+  // 数据权限一期（docs/plans/data-scope-design.md §4）：1=ALL 2=SELF 3=CUSTOM。
+  // 值集与 libs/const/src/app/dataScope.ts 同源；CHECK ck_role_data_scope 在 migration，
+  // DEFAULT 1 保证数据权限上线不缩小既有角色的可见面（root 由迁移显式回填 1）。
+  @Column({ type: 'smallint', name: 'data_scope', default: 1 })
+  dataScope: number
+
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt: Date
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- 登录日志是 fire-and-forget 旁路写（auth guard 内发起、吞错、不参与业务事务、且此时无 ALS 请求上下文）；读/删日志走 SysLogAuthBasicRepository（已注入数据权限）。 */
 import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'

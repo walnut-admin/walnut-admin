@@ -107,6 +107,9 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
 
     applyPgListQuery(qb, 'entity', buildPgListQueryOptions<T>(params))
 
+    // 数据权限：sys_user 已注册（SELF = 本人账号行），覆写 list 必须显式注入
+    this.applyDataScope(qb, 'entity')
+
     // 对齐 Mongo 版 $lookup(sys_role) + $size：junction 计数子查询
     qb.addSelect((sub) => {
       return sub
@@ -218,8 +221,13 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
    * @description 软删用户：外围行快照（identity/oauth/preference/device/mfa/lock）→ 主行
    * 快照 + 硬删（FK CASCADE 带走外围行）。恢复侧由自定义 user recoverer 重放快照
    * （P2-18 / P2-22）。
+   *
+   * 数据权限复审（P2）：先做一次 **scoped** `readById` —— 越权删除必须在写任何
+   * 外围快照之前失败，不能把安全性隐式寄托在 `@WalnutTx` 的回滚上（缺事务调用的
+   * 场景会留下不属于当前用户的外围快照）。
    */
   public async deleteSoftById(id: string, userId: string, em?: EntityManager): Promise<SysUserEntity> {
+    await this.readById(id, em)
     await this.snapshotPeripheralRows(id, userId, em)
     return super.deleteSoftById(id, userId, em)
   }

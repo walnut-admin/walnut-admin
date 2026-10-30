@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- 恢复器是系统通道：locale 级联恢复按快照重放原行，不做请求用户维度的行级过滤（与 user.recoverer 同口径）。 */
 import type { EntityManager, EntityTarget, ObjectLiteral } from 'typeorm'
 import type { IWalnutPgSnapshotRecoverer } from './recover-registry'
 import { Logger } from '@nestjs/common'

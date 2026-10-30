@@ -106,6 +106,39 @@ JWT Guard → ALS 拦截器种入 { user, dataScope } → controller → service
 - 收口：monitor user / setting / key 三处直连 repo
 - 新：drift 类单测（实体注册完整性）+ ESLint 规则（禁基类外 getRepository）
 
+### 实施状态（2026-10-30，一期已落地）
+
+- 迁移 `1793336000000-DataScopePhase1.ts`：`sys_role.data_scope smallint NOT NULL DEFAULT 1`
+  （CHECK 1/2/3；root 回填 1、visitor 回填 2 —— 见下）+ `app_demo.created_by`
+  （示范 owner 列，部分索引）。dev 库 `walnut_pg` 已按先例手工 ALTER 并登记 migrations 行。
+- 注册表（`apps/server/apps/api/src/common/repository/data-scope.ts`）7 张：
+  `sys_user`(id) / `sys_log_operate`(user_id) / `sys_log_auth`(user_id) /
+  `app_monitor_user`(user_id, allowAnonymous) / `sys_deleted`(deleted_by) /
+  `app_demo`(created_by) / `sys_employee`(user_id, 不自动填 owner)。其余实体逐条豁免
+  （全局共享 / 登录安全面 / 部门岗位二期 / junction）。
+- 基类注入：`list`（customize 之后）、`readById`、`updateByField`、`deleteSoft*`、
+  `deleteSoftManyByCondition`；`create` 对 `fillOwnerOnCreate !== false` 的注册实体回填
+  owner。覆写的 list（user / deleted / monitor）显式调用 `applyDataScope`。
+- ALS：拦截器解析 `DataScopeService.resolveForUser()` 并种入 `userId + dataScope`；
+  已注册实体缺上下文 fail-closed（403）。非 HTTP 通道用 `ALSRequestService.runAsSystem()`。
+- 解析/缓存：`AUTH:DATA_SCOPE:<userId>`（TTL 同 AT）；失效点 = 角色 dataScope/status
+  修改、用户角色替换（按**变更前后角色并集**逐 CUSTOM 角色反查成员 —— CUSTOM 的 userIds
+  是角色成员快照，被移出者的同角色成员也必须重算；SELF/ALL 与成员无关，不反查）、
+  用户删除/恢复/新建（同口径）、switchRole/switchRoleMode。
+- 与计划的差异（实现时定夺，均已写进代码注释）：
+  1. **CUSTOM 的成员列表**：一期没有独立的「自定义清单」表，取 `sys_user_role` 的角色
+     成员（COMBINE 为各 CUSTOM 角色成员并集；SWITCH 为当前角色成员）。二期做部门维度时
+     再引入 `sys_role_dept`/显式用户清单，只改解析器。
+  2. **visitor 回填 SELF**：permission.guard 对 visitor 放行所有 `:list`/`:read`，若落到
+     默认 ALL，注册表业务表（用户/日志等）会对游客全量可读；游客无业务行，SELF 等价空集。
+  3. **sys_employee 不自动填 owner**：`user_id` 是「一号一职工」的业务绑定（partial
+     unique），不是创建者；自动填会撞唯一约束。
+  4. **直连收口改为定向规则**：全仓 `.getRepository(` 调用面远多于四处（约 40 个文件，
+     多数是未注册系统表/仓库服务），全量禁止不可行。ESLint 规则只钉**已注册实体**的
+     直连（`no-restricted-syntax` 按实体类名匹配），系统通道逐文件/逐行显式豁免并写理由。
+  5. **sys_device 豁免**：该表无 `user_id` 列（归属在 `sys_user_device` 关联表），一期
+     登记豁免，设备维度随二期再设计。
+
 ## 6. 与 RuoYi 对照
 
 | 维度 | RuoYi | 本方案 |

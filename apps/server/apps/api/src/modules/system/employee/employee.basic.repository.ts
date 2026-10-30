@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- 职工模块的系统前置校验：工号/绑定账号的唯一性判断与账号存在性检查必须全库口径（数据权限过滤会让重复工号在 scoped 视图里"看不见"而漏拦）。 */
 import type { DataSource, EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'

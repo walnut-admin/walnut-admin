@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- 在线监控的系统通道：state/心跳/force-quit 走 socket 与守卫旁路（无 ALS 上下文），按 visitorId/deviceId 记账；面向管理端的 list/read 走 AppMonitorUserBasicRepository（已注入数据权限）。 */
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'

@@ -65,6 +65,14 @@ export class AppDemoEntity {
   @Column({ type: 'jsonb', name: 'demo_object', nullable: true })
   demoObject: IDemoObject | null
 
+  // 数据权限一期（docs/plans/data-scope-design.md §4）：示范 owner 列。
+  // 松引用 sys_user.id（不建 FK，对齐 phase2 审计列口径）；基类 create 对注册实体
+  // 自动填充（见 common/repository/data-scope.ts），SELF/CUSTOM 的过滤列即本列。
+  // 与 migration 的 partial index 同形（WHERE created_by IS NOT NULL），防未来 generate 漂移。
+  @Index('idx_demo_created_by', { where: '"created_by" IS NOT NULL' })
+  @Column({ type: 'uuid', name: 'created_by', nullable: true })
+  createdBy: string | null
+
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt: Date
 

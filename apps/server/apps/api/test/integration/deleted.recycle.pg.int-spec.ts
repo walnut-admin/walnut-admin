@@ -11,6 +11,7 @@ import { AppErrorEntity } from '@/modules/app/error/entity/error.entity'
 import { AppErrorBasicRepository } from '@/modules/app/error/error.basic.repository'
 import { AppKeyEntity } from '@/modules/app/key/entity/key.entity'
 import { AppKeyBasicRepository } from '@/modules/app/key/key.basic.repository'
+import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { SysDeletedService } from '@/modules/system/deleted/deleted.service'
 import { SysDeletedEntity } from '@/modules/system/deleted/entity/deleted.entity'
 import { SysUserEntity } from '@/modules/system/user/entity/user.entity'
@@ -39,6 +40,13 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
   let errorRepo: AppErrorBasicRepository
   let keyRepo: AppKeyBasicRepository
   let deletedService: SysDeletedService
+  let als: ALSRequestService
+
+  /**
+   * 数据权限一期：直接调基类仓库（app_demo / sys_deleted 已注册）必须显式进入
+   * 系统通道，否则 fail-closed（与生产 cron/脚本同一准入形态）。
+   */
+  const itSystem = (name: string, fn: () => Promise<void>) => it(name, async () => als.runAsSystem(fn))
 
   function uniqueDemoPayload(demoString?: string) {
     const seed = randomUUID()
@@ -91,6 +99,7 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
     errorRepo = app.get(AppErrorBasicRepository)
     keyRepo = app.get(AppKeyBasicRepository)
     deletedService = app.get(SysDeletedService)
+    als = app.get(ALSRequestService)
   })
 
   afterAll(async () => {
@@ -128,7 +137,7 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
     }
   }
 
-  it('全链正路径：软删[PG] → 列表（user / content ::text / total）→ read → recover 跨 3 集合（注册表路由）', async () => {
+  itSystem('全链正路径：软删[PG] → 列表（user / content ::text / total）→ read → recover 跨 3 集合（注册表路由）', async () => {
     const user = await insertFixtureUser()
 
     // --- 软删（三个不同集合，写入侧同一 PG 通道）---
@@ -212,7 +221,7 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
     await pgDataSource.manager.delete(SysUserEntity, { id: user.id })
   })
 
-  it('recover 全量回滚：第一步成功、第二步唯一约束冲突 → force-rollback 后无残留', async () => {
+  itSystem('recover 全量回滚：第一步成功、第二步唯一约束冲突 → force-rollback 后无残留', async () => {
     const first = await demoRepo.create(uniqueDemoPayload())
     const second = await demoRepo.create(uniqueDemoPayload())
 
@@ -249,7 +258,7 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
     await pgDataSource.manager.delete(AppDemoEntity, { id: collision.id })
   })
 
-  it('recoverMine：属主可恢复；非属主 BadRequest；id+deletedId 双键定位不命中 DataNotFound', async () => {
+  itSystem('recoverMine：属主可恢复；非属主 BadRequest；id+deletedId 双键定位不命中 DataNotFound', async () => {
     const owner = randomUUID()
     const mine = await demoRepo.create(uniqueDemoPayload())
     await demoRepo.deleteSoftById(mine.id, owner)
@@ -278,7 +287,7 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
     await pgDataSource.manager.delete(AppDemoEntity, { id: mine.id })
   })
 
-  it('未注册 modelName → 受控 recoverFail（不再复刻动态模型的 MissingSchemaError）', async () => {
+  itSystem('未注册 modelName → 受控 recoverFail（不再复刻动态模型的 MissingSchemaError）', async () => {
     const ghostId = randomUUID()
     await pgDataSource.manager.insert(SysDeletedEntity, {
       id: randomUUID(),
@@ -307,7 +316,7 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
     await deletedService.deleteRealMany([ghost.id])
   })
 
-  it('彻底删除 deleteRealMany：回收站行消失，原表不回来', async () => {
+  itSystem('彻底删除 deleteRealMany：回收站行消失，原表不回来', async () => {
     const row = await errorRepo.create(uniqueErrorPayload())
     await errorRepo.deleteSoftById(row.id, randomUUID())
     const snapshot = await pgDataSource.manager.findOneByOrFail(SysDeletedEntity, { deletedId: row.id })

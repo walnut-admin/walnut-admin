@@ -1,5 +1,5 @@
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
-import { WalnutAdminExceptionUnauthorized } from '../base.exception'
+import { WalnutAdminExceptionForbidden, WalnutAdminExceptionUnauthorized } from '../base.exception'
 
 export class WalnutAdminExceptionAccessTokenExpired extends WalnutAdminExceptionUnauthorized {
   constructor() {
@@ -150,6 +150,24 @@ export class WalnutAdminExceptionSensitiveVerificationFailed extends WalnutAdmin
     super({
       errCode: WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED,
       meta: payload?.meta,
+    })
+  }
+}
+
+/**
+ * 数据权限 fail-closed：已注册实体（含 owner 列的业务表）在没有 ALS 数据权限上下文
+ * 时拒绝查询 —— 对应 docs/plans/data-scope-design.md §7 的「fail-closed 上下文」
+ * 机制（TenancyJS 同款语义：不默认 ALL，直接抛错）。
+ *
+ * 触发面只有两类：① 请求内但拦截器没种入描述符（装配错误）；② 非 HTTP 通道
+ * （cron / 脚本 / 测试）直接走基类查询业务表 —— 后者必须显式用
+ * `ALSRequestService.runAsSystem()` 进入系统通道（等价 RLS 的 BYPASSRLS 角色）。
+ */
+export class WalnutAdminExceptionDataScopeContextMissing extends WalnutAdminExceptionForbidden {
+  constructor() {
+    super({
+      errCode: WalnutAdminConstAppResponseCode.FORBIDDEN,
+      errMsg: 'response.40300',
     })
   }
 }

@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- 回收站快照的系统写腿：createSoftDelete 由基类 deleteSoftById 调用（此时已按 scope 读过被删行），快照本身的 deletedBy 就是删除者；再套 scope 会把系统写入路径自身挡住（循环依赖）。 */
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'

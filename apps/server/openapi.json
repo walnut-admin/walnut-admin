@@ -11027,6 +11027,17 @@
             "title": "role status",
             "description": "false => users wont retrieve current role menus(permissions)"
           },
+          "dataScope": {
+            "type": "number",
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "default": 1,
+            "title": "role data scope",
+            "description": "1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)"
+          },
           "usersCount": {
             "type": "number",
             "title": "current role's user count"
@@ -11057,6 +11068,7 @@
           "description",
           "order",
           "status",
+          "dataScope",
           "usersCount",
           "menusList",
           "menus"
@@ -18428,6 +18440,17 @@
             "items": {
               "type": "string"
             }
+          },
+          "dataScope": {
+            "type": "number",
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "default": 1,
+            "title": "role data scope",
+            "description": "1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)"
           }
         },
         "required": [
@@ -18473,6 +18496,17 @@
             "items": {
               "type": "string"
             }
+          },
+          "dataScope": {
+            "type": "number",
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "default": 1,
+            "title": "role data scope",
+            "description": "1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)"
           }
         },
         "required": [
@@ -18540,6 +18574,17 @@
             "default": true,
             "title": "role status",
             "description": "false => users wont retrieve current role menus(permissions)"
+          },
+          "dataScope": {
+            "type": "number",
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "default": 1,
+            "title": "role data scope",
+            "description": "1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)"
           },
           "usersCount": {
             "type": "number",

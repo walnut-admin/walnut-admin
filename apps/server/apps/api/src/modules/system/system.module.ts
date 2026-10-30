@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 
+import { DataScopeModule } from './data-scope/data-scope.module'
 import { SysDeletedModule } from './deleted/deleted.module'
 import { SysDeptModule } from './dept/dept.module'
 import { SysDeviceModule } from './device/device.module'
@@ -23,6 +24,9 @@ import { SysUserPreferenceModule } from './user_preference/user_preference.modul
 
 @Module({
   imports: [
+    // 数据权限一期（@Global）：ALS 拦截器 + role/user 写路径的失效腿都从这里取
+    DataScopeModule,
+
     SysDeletedModule,
     SysDeviceModule,
 

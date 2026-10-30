@@ -1,6 +1,8 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
+import { WalnutAdminConstDataScope } from '@walnut-server/const/app/dataScope'
 import {
   WalnutAdminDecoratorFieldBoolean,
+  WalnutAdminDecoratorFieldEnum,
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldObject,
   WalnutAdminDecoratorFieldString,
@@ -63,6 +65,19 @@ export class SysRoleDTOBase extends WalnutAdminCommonBasicModel {
     },
   })
   status: boolean
+
+  // 数据权限一期（docs/plans/data-scope-design.md §4）：1=ALL 2=SELF 3=CUSTOM。
+  // 值集与实体列/migration CHECK 同源（WalnutAdminConstDataScope）；默认 1（ALL）
+  // 与 DDL DEFAULT 对齐 —— 未显式配置的角色保持既有可见面。
+  @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstDataScope, {
+    default: WalnutAdminConstDataScope.ALL,
+    swaggerOptions: {
+      title: 'role data scope',
+      description:
+        '1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)',
+    },
+  })
+  dataScope: number
 
   // virtual
   @WalnutAdminDecoratorFieldNumber({
@@ -152,6 +167,8 @@ export class SysRoleDTOCreateRequest extends IntersectionType(
     'status',
   ] as const),
   RealPartialType(RealPickType(SysRoleDTOSafe, ['menus'] as const)),
+  // dataScope 可省略（DDL DEFAULT 1 = ALL）：老客户端/脚本不传时保持既有可见面
+  RealPartialType(RealPickType(SysRoleDTOSafe, ['dataScope'] as const)),
 ) {}
 export class SysRoleDTOCreateResponse extends SysRoleDTOSafe {}
 
@@ -167,6 +184,8 @@ export class SysRoleDTOUpdateRequest extends IntersectionType(
     'status',
   ] as const),
   RealPartialType(RealPickType(SysRoleDTOSafe, ['menus'] as const)),
+  // dataScope 可省略（语义：不修改）；显式传 1/2/3 才触发失效与重算
+  RealPartialType(RealPickType(SysRoleDTOSafe, ['dataScope'] as const)),
 ) {}
 export class SysRoleDTOUpdateResponse extends SysRoleDTOSafe {}
 

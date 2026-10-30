@@ -59,6 +59,11 @@ export interface SeedPermissionChainOptions {
   deniedPermissions?: string[]
   /** 第二角色承载的权限串（junction 挂用户、不挂 current —— SWITCH/COMBINE 对照用） */
   secondRolePermissions?: string[]
+  /**
+   * 主角色的数据权限档位（`sys_role.data_scope`，一期 1=ALL 2=SELF 3=CUSTOM）。
+   * 缺省 1：既有用例都是「非 root 管理员能看全部业务数据」的语义，不能被数据权限改变。
+   */
+  dataScope?: number
 }
 
 export interface SeedPermissionChainFixture {
@@ -150,8 +155,8 @@ export async function seedPermissionChainUser(
 
   // —— 种子角色 + junction（role_name 全库唯一；status 默认 true —— populate 过滤条件）——
   const mainRoleRows: Array<{ id: string }> = await pgDataSource.query(
-    'INSERT INTO sys_role (role_name, description) VALUES ($1, $2) RETURNING id',
-    [`${options.userNamePrefix}-main-${seedMark}`, `seed main role ${seedMark}`],
+    'INSERT INTO sys_role (role_name, description, data_scope) VALUES ($1, $2, $3) RETURNING id',
+    [`${options.userNamePrefix}-main-${seedMark}`, `seed main role ${seedMark}`, options.dataScope ?? 1],
   )
   const mainRoleId = mainRoleRows[0].id
   for (const menuId of grantedMenuIds) {

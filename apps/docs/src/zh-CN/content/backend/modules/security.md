@@ -99,6 +99,55 @@ OTP 的 tracker 是 `identifier:ip`。动态覆盖只改该端点的 limit/ttl�
 `blockDuration`。超限响应是 **HTTP 200 + `body.code = 42900`**（P3-1 裁决），`Retry-After`
 头给出剩余秒数。
 
+### 1.3 数据权限（行级 scope）
+
+功能权限（上一节）决定「能不能调这个接口」，**数据权限**决定「这个接口能看到/改到哪些行」。
+一期方案与取舍见 `docs/plans/data-scope-design.md` §4（应用层 scope + 基类收口 +
+fail-closed 注册表；PG RLS 留作二期硬上限）。
+
+**执行链**：
+
+```
+JWT Guard（request.user）→ ALS 拦截器解析描述符 → handler → 基类仓库注入谓词
+```
+
+- `apps/server/apps/api/src/interceptors/request/als.interceptor.ts` 在请求进入 handler 前
+  调 `DataScopeService.resolveForUser()`，把 `userId` 与描述符种进 ALS；
+- `common/repository/pg-base.repository.ts` 的 `list`（在 `customize` 之后）、
+  `readById`、`updateByField`、`deleteSoft*` 统一 `andWhere` / scoped where 注入，
+  越权读/改/删一律 **40401**（不泄露行存在性）；`create` 对注册实体自动回填 owner
+  （如 `app_demo.created_by`）。
+
+**三档与多角色**（`sys_role.data_scope`，smallint）：
+
+| 值 | 模式 | 行级谓词 |
+|---|---|---|
+| 1 | ALL | 不注入（root 恒 ALL） |
+| 2 | SELF | `owner = 当前用户` |
+| 3 | CUSTOM | `owner IN (角色成员 userIds)`（一期成员来自 `sys_user_role`；部门维度二期） |
+
+多角色按 **effective roleMode**（`SharedScopeResolverService`，与权限计算同口径）：
+COMBINE 取各角色并集最宽；SWITCH 只看 currentRole；无启用角色 / 非法档位默认拒绝
+（恒假谓词）。`root` 契约角色恒 ALL；`visitor` 固定 SELF —— permission.guard 对
+visitor 放行所有 `:list` / `:read`，不能让它落到默认 ALL 读全量业务表。
+
+**注册表与 fail-closed**（`common/repository/data-scope.ts`）：
+
+- 注册 = 强制过滤（一期：`sys_user`、`sys_log_operate`、`sys_log_auth`、
+  `app_monitor_user`、`sys_deleted`、`app_demo`、`sys_employee`）；
+- 未注册 = 显式豁免，豁免清单逐条写理由（全局共享表、登录/安全面系统表、组织维度表）；
+- **fail-closed**：已注册实体在 ALS 里没有描述符时直接抛 403，绝不当 ALL。非 HTTP
+  通道（cron / 脚本 / 测试）必须显式 `ALSRequestService.runAsSystem()` 进入系统通道；
+- 机械守卫：注册表完整性单测（每张实体表必须注册或豁免）+ ESLint
+  `no-restricted-syntax`（已注册实体的 `.getRepository()` 直连必须显式豁免并写理由）。
+
+**缓存与失效**：`AUTH:DATA_SCOPE:<userId>`（不带 deviceId，TTL 与访问令牌同寿命）。
+失效点：角色 dataScope/status 修改（按角色成员反查）、用户角色整组替换（按**变更前后
+角色并集**逐 CUSTOM 角色反查成员 —— CUSTOM 的 userIds 是角色成员快照，成员变更会影响
+同角色其他成员；SELF/ALL 与成员无关，不反查）、用户新建 / 删除 / 恢复（同口径）、
+切换当前角色 / 角色模式。角色删除端点当前不存在；新增删除通道时必须先按 roleId
+反查成员再失效。
+
 ## 2. 签名体系
 
 ### 2.1 签名原文

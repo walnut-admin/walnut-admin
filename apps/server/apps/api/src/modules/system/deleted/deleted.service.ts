@@ -1,9 +1,10 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { WalnutVirtualName } from '@walnut-server/db'
+import { runAfterCommit, WalnutModelName, WalnutVirtualName } from '@walnut-server/db'
 
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
+import { DataScopeService } from '../data-scope/data-scope.service'
 import { SysUserRepositoryService } from '../user/repo/user.repo.service'
 import { SysDeletedBasicRepository } from './deleted.basic.repository'
 import { SysDeletedDTORecoverRequest, SystemDeletedDTOListRequest } from './dto/deleted.dto'
@@ -29,6 +30,7 @@ export class SysDeletedService {
     private readonly deletedBasicRepo: SysDeletedBasicRepository,
     private readonly sysUserRepoService: SysUserRepositoryService,
     private readonly recoverRegistry: SysDeletedPgRecoverRegistry,
+    private readonly dataScopeService: DataScopeService,
   ) { }
 
   async read(id: string) {
@@ -68,6 +70,7 @@ export class SysDeletedService {
     }
 
     await this.recoverSnapshot(deleted, em)
+    await this.invalidateRecoveredDataScope(deleted)
 
     return true
   }
@@ -84,8 +87,30 @@ export class SysDeletedService {
     }
 
     await this.recoverSnapshot(deleted, em)
+    await this.invalidateRecoveredDataScope(deleted)
 
     return true
+  }
+
+  /**
+   * 数据权限一期：恢复用户时 junction（角色绑定）可能随快照回放 —— 该用户重新获得
+   * 角色后，**同 CUSTOM 角色的其他成员**的成员快照也要重算；这里按恢复后的实时绑定
+   * 走 `invalidateForRecoveredUser`（用户键 + 受影响角色成员）。删除时已清过，这里
+   * 兜底 TTL 内「删除 → 立即恢复」的窗口。
+   */
+  private async invalidateRecoveredDataScope(deleted: SysDeletedEntity) {
+    if (deleted.modelName !== WalnutModelName.SYS_USER) {
+      return
+    }
+
+    const recoveredUserId = deleted.content.id
+    if (typeof recoveredUserId !== 'string' || recoveredUserId === '') {
+      return
+    }
+
+    await runAfterCommit(async () => {
+      await this.dataScopeService.invalidateForRecoveredUser(recoveredUserId)
+    })
   }
 
   /**

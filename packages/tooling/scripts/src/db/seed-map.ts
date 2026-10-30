@@ -380,6 +380,9 @@ function mapSysRole(doc: Record<string, unknown>): MappedDoc {
       description: strOrNull(doc.description),
       sort_order: numOrNull(doc.order),
       status: boolOr(doc.status, true),
+      // 数据权限一期：seed 文档可显式带 dataScope（visitor=2 SELF）；
+      // 缺省 1（ALL）与 DDL DEFAULT 对齐，保证既有数据面不被迁移缩小
+      data_scope: numOr(doc.dataScope, 1),
       ...commonTimestamps(doc),
     },
     junction: { table: 'sys_role_menu', rows: menus.map(menuId => ({ role_id: id, menu_id: menuId })) },

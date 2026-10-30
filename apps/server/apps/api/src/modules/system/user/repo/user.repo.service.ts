@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- 登录/鉴权系统通道：本服务是 user 的「系统读腿」（AT payload 组装、junction 实时 membership、角色切换校验、恢复），必须在无 ALS 上下文的 guard 链里直连库；行级数据权限只覆盖 HTTP 处理器内的基类仓库，见 common/repository/data-scope.ts 豁免清单。 */
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'

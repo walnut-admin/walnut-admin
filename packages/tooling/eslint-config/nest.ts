@@ -79,6 +79,23 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
     // 注释里不许有 emoji（纯文字）—— 三个预设共用，理由见 comment-rules.ts 顶部
     commentPolicyConfig(),
     {
+      // ── 数据权限：已注册实体必须经基类仓库访问（防直连绕过 scope）──────────────
+      // 一期注册清单（apps/api/src/common/repository/data-scope.ts）里的实体，
+      // 任何 `xxx.getRepository(SysUserEntity)` 形态的直连都绕过行级数据权限。
+      // 系统通道（登录链 user.repo / 日志旁写 / 恢复器 / monitor 会话记账）确实
+      // 需要直连，必须在该文件/该行显式 `eslint-disable-next-line no-restricted-syntax`
+      // 并写明理由 —— 这是「显式 bypass + 审计」的静态落点，不允许静默新增。
+      name: 'walnut/data-scope/direct-repository',
+      files: ['**/*.ts'],
+      ignores: ['**/common/repository/**'],
+      rules: {
+        'no-restricted-syntax': ['error', {
+          selector: 'CallExpression[callee.property.name=\'getRepository\'][arguments.0.name=/^(SysUserEntity|SysLogOperateEntity|SysLogAuthEntity|AppMonitorUserEntity|SysDeletedEntity|AppDemoEntity|SysEmployeeEntity)$/]',
+          message: '数据权限：已注册实体必须经 WalnutAdminCommonPgBaseRepository（common/repository）访问；系统通道请加 eslint-disable-next-line no-restricted-syntax 并写明理由。',
+        }],
+      },
+    },
+    {
       // ── 运行期配置模块：豁免 Turbo 的 env 声明检查 ────────────────────────────────
       // `libs/config/src/modules/*.config.ts` 是 `@nestjs/config` 的 `registerAs` 工厂，
       // 读的是**磁盘上的 `env-local/.env.*` 文件**（由 `pnpm setup-env` 解密而来），

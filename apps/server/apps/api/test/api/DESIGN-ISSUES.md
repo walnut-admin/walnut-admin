@@ -18,8 +18,8 @@
 > 每条四要素：**位置**（源码）、**现象**、**实测证据**（spec + 用例）、**建议**（一句话）。
 > 「钉现状」用例属于 characterization test：修复对应问题时必须同步改断言，不是测试坏了。
 >
-> **统计：开放 16 条（P0 × 0 / P1 × 0 / P2 × 6 / P3 × 10）**。新条目编号顺延到已用最大号之后
-> （当前最大 P3-34，下一个 P3-35），不复用归档里的编号。
+> **统计：开放 18 条（P0 × 0 / P1 × 0 / P2 × 6 / P3 × 12）**。新条目编号顺延到已用最大号之后
+> （当前最大 P3-36，下一个 P3-37），不复用归档里的编号。
 
 ---
 
@@ -279,3 +279,29 @@
 - **实测证据**：本次读码；guard-matrix 的 Device 组只覆盖 banned/locked/缺失/篡改。
 - **建议**：确认产品口径 —— 要么 guard 对 `active=false` 返回 40605/40606 族受控拒绝，
   要么在实体/文档注明「active 只用于统计与清理，不是准入位」。本轮仅登记。
+
+### P3-35 role:update 持有者可把任意角色 dataScope 改成 ALL（数据权限复审，产品决策项）
+
+- **位置**：`apps/api/src/modules/system/role/role.controller.ts`（`system:role:update`
+  功能权限）+ `apps/api/src/modules/system/role/role.service.ts`（update 只拦 root
+  角色名，不拦 dataScope 的目标值与操作者关系）。
+- **现象**：持有 `system:role:update` 的非 root 管理员可以修改任意非 root 角色的
+  `dataScope`（含改成 1=ALL），也可以改**自己所在角色**的 dataScope —— 等于把行级
+  可见面自我扩权到全量；现有保护只有「root 角色不可改」。
+- **实测证据**：本次读码；`data-scope.api-spec.ts` 的「角色 dataScope 修改后缓存失效」
+  用例由 root 执行，没有非 root 自我扩权路径的断言。
+- **建议（产品决策）**：dataScope 修改限定 root（或 `@HasRole(root)`）；或至少禁止
+  修改自己所在角色的 dataScope。二选一后再补 API 级负路径用例。本轮仅登记。
+
+### P3-36 app.functional.role 设置变更不失效 AUTH:DATA_SCOPE（数据权限复审，缓存残留）
+
+- **位置**：`apps/api/src/modules/system/data-scope/data-scope.service.ts`（缓存键
+  `AUTH:DATA_SCOPE`）+ `apps/api/src/modules/app/setting/repo/setting.repo.service.ts`
+  （`updateAppSettingByKey` / `extractAppSettingIntoCache`）。
+- **现象**：effective roleMode 来自 `app.functional.role` 设置（GLOBAL scope 取
+  `globalValue`、LOCAL 取用户行 `roleMode`）。修改该设置会改变 COMBINE/SWITCH 的解析
+  口径，但数据权限缓存的失效点只覆盖角色/用户写路径 —— 设置变更后旧描述符最长残留
+  一个 AT TTL（与权限缓存不同，这里没有菜单维度的全量清理）。
+- **实测证据**：本次读码；`data-scope.service.spec.ts` 的失效用例只覆盖角色/用户路径。
+- **建议**：设置写路径识别 `app.functional.role` 变更后全量清 `AUTH:DATA_SCOPE:*`
+  （或把 setting 版本号纳入缓存键）。本轮仅登记。

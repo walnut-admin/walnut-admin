@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- 操作日志是 fire-and-forget 旁路写（decorator tap 内发起、吞错、不参与业务事务）；读日志走 SysLogOperateBasicRepository（已注入数据权限）。 */
 import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'

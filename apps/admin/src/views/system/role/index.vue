@@ -6,12 +6,15 @@ import { useCRUD } from '@/components/Advanced/CRUD'
 import { WTablePresetCreatedAtColumn, WTablePresetOrderColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
 import { AppConstRoles } from '@/const/app'
 import { AppConstMenuType } from '@/const/menu'
+import { useAppI18n } from '@/locales'
 
 import { useMenuTree } from './useMenuTree'
 
 defineOptions({
   name: 'Role',
 })
+
+const { t } = useAppI18n()
 
 // locale unique key
 const key = 'role'
@@ -206,6 +209,24 @@ const [
         componentProp: {
           clearable: true,
           defaultValue: 0,
+        },
+      },
+      {
+        // 数据权限一期（data-scope-design.md §4）：1=ALL 2=SELF 3=CUSTOM。
+        // 值集与后端 WalnutAdminConstDataScope 同源；CUSTOM 的成员范围由后端按
+        // 角色绑定的用户解析（一期不做部门维度）。
+        type: 'Base:Select',
+        formProp: {
+          path: 'dataScope',
+          labelHelpMessage: true,
+        },
+        componentProp: {
+          defaultValue: 1,
+          options: [
+            { label: t('table.role.dataScope.all'), value: 1 },
+            { label: t('table.role.dataScope.self'), value: 2 },
+            { label: t('table.role.dataScope.custom'), value: 3 },
+          ],
         },
       },
       {

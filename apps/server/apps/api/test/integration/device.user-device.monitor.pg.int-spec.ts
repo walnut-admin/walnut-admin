@@ -7,6 +7,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AppMonitorUserRepositoryService } from '@/modules/app/monitor/user/repo/user.repo.service'
 import { AppMonitorUserBasicRepository } from '@/modules/app/monitor/user/user.basic.repository'
 import { AppMonitorUserService } from '@/modules/app/monitor/user/user.service'
+import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { SysDeviceBasicRepository } from '@/modules/system/device/device.basic.repository'
 import { SysDeviceService } from '@/modules/system/device/device.service'
 import { SysDeviceRepositoryService } from '@/modules/system/device/repo/device.repo.service'
@@ -42,6 +43,13 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
   let monitorBasicRepo: AppMonitorUserBasicRepository
   let monitorRepoService: AppMonitorUserRepositoryService
   let monitorUserService: AppMonitorUserService
+  let als: ALSRequestService
+
+  /**
+   * 数据权限一期：app_monitor_user 已注册（allowAnonymous），直接调
+   * AppMonitorUserBasicRepository 的用例必须显式进入系统通道。
+   */
+  const itSystem = (name: string, fn: () => Promise<void>) => it(name, async () => als.runAsSystem(fn))
 
   const seed = randomUUID()
   const unique = (prefix: string) => `${prefix}-${seed}`
@@ -89,6 +97,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
     monitorBasicRepo = app.get(AppMonitorUserBasicRepository)
     monitorRepoService = app.get(AppMonitorUserRepositoryService)
     monitorUserService = app.get(AppMonitorUserService)
+    als = app.get(ALSRequestService)
 
     const userRows: Array<{ id: string }> = await pgDataSource.query(
       'INSERT INTO sys_user (user_name) VALUES ($1) RETURNING id',
@@ -102,7 +111,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
   })
 
   describe('sys_device：注册（业务键 upsert）与唯一约束', () => {
-    it('initial：按业务键 device_id upsert —— 首次插入全字段落位（sr/vp/geo 拍平、locationHistory 种子）', async () => {
+    itSystem('initial：按业务键 device_id upsert —— 首次插入全字段落位（sr/vp/geo 拍平、locationHistory 种子）', async () => {
       const fingerprint = unique('fp-initial')
       const payload = {
         deviceName: unique('b6-device-initial'),
@@ -140,7 +149,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       expect(device!.riskScore).toBe(0)
     })
 
-    it('initial：同指纹二次注册 → 同一行整体覆盖（不新增）', async () => {
+    itSystem('initial：同指纹二次注册 → 同一行整体覆盖（不新增）', async () => {
       const fingerprint = unique('fp-initial')
 
       await runInHookStore(async () =>
@@ -171,7 +180,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       expect(device!.srHeight).toBe(1000)
     })
 
-    it('uq_device_id：业务键重复插入拒绝（对齐 Mongo unique）', async () => {
+    itSystem('uq_device_id：业务键重复插入拒绝（对齐 Mongo unique）', async () => {
       const deviceId = unique('b6-dup-device')
       await deviceBasicRepo.create({
         deviceName: unique('b6-dup-device-name'),
@@ -190,7 +199,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
   })
 
   describe('sys_device：ipHistory/locationHistory 追加语义', () => {
-    it('新 IP 追加（两列同索引同步）、旧 IP 原位替换、超过 5 条 shift 截断', async () => {
+    itSystem('新 IP 追加（两列同索引同步）、旧 IP 原位替换、超过 5 条 shift 截断', async () => {
       const deviceId = unique('b6-ip-device')
       await deviceBasicRepo.create({
         deviceName: unique('b6-ip-device-name'),
@@ -231,7 +240,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       await expect(deviceRepoService.updateIpAndLocation(unique('b6-ghost'), '10.0.0.7')).rejects.toThrow()
     })
 
-    it('list：location 过滤打在 location_info 三个子字段（ILIKE 字面量）', async () => {
+    itSystem('list：location 过滤打在 location_info 三个子字段（ILIKE 字面量）', async () => {
       const res = await deviceService.list({
         query: { location: 'local' },
         page: { page: 1, pageSize: 10 },
@@ -247,7 +256,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       expect(miss.total).toBe(0)
     })
 
-    it('deleteNonMonitorUserDevice：按业务键删除并返回快照', async () => {
+    itSystem('deleteNonMonitorUserDevice：按业务键删除并返回快照', async () => {
       const deviceId = unique('b6-del-device')
       await deviceBasicRepo.create({
         deviceName: unique('b6-del-device-name'),
@@ -269,7 +278,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
     let deviceAKey = ''
     let deviceBKey = ''
 
-    it('未知业务键插入拒绝；已知业务键插入成功；(user_id, device_id) UNIQUE', async () => {
+    itSystem('未知业务键插入拒绝；已知业务键插入成功；(user_id, device_id) UNIQUE', async () => {
       deviceAKey = unique('b6-ua-device')
       deviceBKey = unique('b6-ub-device')
       await deviceBasicRepo.create({ deviceName: unique('b6-ua-name'), deviceId: deviceAKey, deviceInfo: {}, ipHistory: [] })
@@ -298,7 +307,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       )).rejects.toThrow()
     })
 
-    it('updateLockStatusForAllDevices：$ne 语义批量翻转 + isAnyDeviceLockedForUser', async () => {
+    itSystem('updateLockStatusForAllDevices：$ne 语义批量翻转 + isAnyDeviceLockedForUser', async () => {
       expect(await userDeviceRepo.isAnyDeviceLockedForUser(pgUserId)).toBe(false)
 
       await userDeviceRepo.updateLockStatusForAllDevices(pgUserId, true)
@@ -310,7 +319,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       expect(await userDeviceRepo.isAnyDeviceLockedForUser(pgUserId)).toBe(false)
     })
 
-    it('updateUserDeviceLastActiveAt：基线语义（含 isNil 反转分支的原始行为）', async () => {
+    itSystem('updateUserDeviceLastActiveAt：基线语义（含 isNil 反转分支的原始行为）', async () => {
       const target = await userDeviceRepo.findByUserAndDevice(pgUserId, deviceAKey)
       expect(target).not.toBeNull()
       // 行刚建，lastActiveAt 尚未置值
@@ -328,7 +337,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       expect(updated!.lastActiveAt!.getTime()).toBeGreaterThan(0)
     })
 
-    it('删除设备 → user_device 行级联消失（ON DELETE CASCADE）', async () => {
+    itSystem('删除设备 → user_device 行级联消失（ON DELETE CASCADE）', async () => {
       await pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [deviceAKey])
 
       expect(await countPg('sys_device', 'device_id = $1', [deviceAKey])).toBe(0)
@@ -339,7 +348,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
   })
 
   describe('app_monitor_user：upsert、active 过滤、populated user', () => {
-    it('findOneAndUpdate：visitorId upsert（先插后改），DB 默认值落位', async () => {
+    itSystem('findOneAndUpdate：visitorId upsert（先插后改），DB 默认值落位', async () => {
       const visitorId = unique('b6-visitor-1')
       const deviceAKey = unique('b6-m-device')
 
@@ -368,7 +377,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       expect(await countPg('app_monitor_user', 'visitor_id = $1', [visitorId])).toBe(1)
     })
 
-    it('findActiveByDeviceId / findFirstByDeviceId：left 过滤差异', async () => {
+    itSystem('findActiveByDeviceId / findFirstByDeviceId：left 过滤差异', async () => {
       const deviceKey = unique('b6-left-device')
       await deviceBasicRepo.create({ deviceName: unique('b6-left-name'), deviceId: deviceKey, deviceInfo: {}, ipHistory: [] })
 
@@ -383,7 +392,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       expect(first).not.toBeNull()
     })
 
-    it('findActiveUserByDeviceId：user 松引用查 sys_user 同源表（ETL 前空数据窗口）', async () => {
+    itSystem('findActiveUserByDeviceId：user 松引用查 sys_user 同源表（ETL 前空数据窗口）', async () => {
       const deviceKey = unique('b6-pop-device')
       await deviceBasicRepo.create({ deviceName: unique('b6-pop-name'), deviceId: deviceKey, deviceInfo: {}, ipHistory: [] })
 
@@ -404,12 +413,12 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
   })
 
   describe('forceQuit 链路', () => {
-    it('monitor 不存在 → false（PG 侧短路）', async () => {
+    itSystem('monitor 不存在 → false（PG 侧短路）', async () => {
       const result = await monitorUserService.forceQuitByMonitorId(randomUUID(), pgDataSource.manager)
       expect(result).toBe(false)
     })
 
-    it('forceQuitByMonitorId：PG 读行 + doSignout，refresh revoke 写腿同为 PG（B7b 归一）', async () => {
+    itSystem('forceQuitByMonitorId：PG 读行 + doSignout，refresh revoke 写腿同为 PG（B7b 归一）', async () => {
       const deviceKey = unique('b6-fq-device')
       await deviceBasicRepo.create({ deviceName: unique('b6-fq-name'), deviceId: deviceKey, deviceInfo: {}, ipHistory: [] })
 
@@ -444,7 +453,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       await monitorBasicRepo.deleteRealById(monitor.id)
     })
 
-    it('user_device.forceQuitUserDevice：无 monitor 行 → DataNotFound', async () => {
+    itSystem('user_device.forceQuitUserDevice：无 monitor 行 → DataNotFound', async () => {
       await expect(userDeviceService.forceQuitUserDevice(
         pgUserId,
         unique('b6-fq-nobody'),
@@ -454,7 +463,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
   })
 
   describe('monitor 列表：JOIN 版 $lookup', () => {
-    it('device / user 形态 + populate 字段过滤（os/ip/userName）', async () => {
+    itSystem('device / user 形态 + populate 字段过滤（os/ip/userName）', async () => {
       const deviceKey = unique('b6-list-device')
       await deviceBasicRepo.create({
         deviceName: unique('b6-list-name'),

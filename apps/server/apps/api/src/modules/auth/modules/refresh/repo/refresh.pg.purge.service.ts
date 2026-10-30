@@ -21,6 +21,8 @@ export class AuthRefreshTokenPgPurgeService {
   private readonly logger = new Logger(AuthRefreshTokenPgPurgeService.name)
 
   constructor(
+    // 数据权限：auth_refresh_token 在注册表豁免清单（登录会话系统表）；
+    // 本 job 是纯系统任务（cron，无请求用户），按过期列物理回收。
     @InjectRepository(AuthRefreshTokenEntity, WalnutPGConnectionName)
     private readonly repository: Repository<AuthRefreshTokenEntity>,
   ) {}

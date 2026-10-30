@@ -8,6 +8,7 @@ import { WalnutAdminExceptionUserBannedToSignin } from '@walnut-server/exception
 import { omit } from 'lodash'
 import { AppTokenService } from '@/modules/shared/token/token.service'
 import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
+import { DataScopeService } from '../../data-scope/data-scope.service'
 import { SysUserDeviceSharedService } from '../../user_device/shared/user_device.shared.service'
 import { SysUserDTO } from '../dto/user.dto'
 import { SysUserEntity } from '../entity/user.entity'
@@ -22,6 +23,7 @@ export class SysUserSharedService {
     private readonly tokenService: AppTokenService,
     private readonly sysUserDeviceSharedService: SysUserDeviceSharedService,
     private readonly sysUserRepoService: SysUserRepositoryService,
+    private readonly dataScopeService: DataScopeService,
   ) { }
 
   /**
@@ -116,9 +118,15 @@ export class SysUserSharedService {
       throw new WalnutAdminExceptionBadRequest()
     }
 
-    return this.sysUserRepoService.findUserByIdAndUpdate(userId, {
+    const updated = await this.sysUserRepoService.findUserByIdAndUpdate(userId, {
       currentRole: roleId,
     })
+
+    // 数据权限一期：SWITCH 模式下 currentRole 直接决定描述符（缓存不带 deviceId），
+    // 切换后必须失效，否则最长一个 AT TTL 内仍按旧角色过滤
+    await this.dataScopeService.invalidateForUser(userId)
+
+    return updated
   }
 
   /**
@@ -131,7 +139,12 @@ export class SysUserSharedService {
       throw new WalnutAdminExceptionDataNotFound()
     }
 
-    return this.sysUserRepoService.findUserByIdAndUpdate(userId, { roleMode })
+    const updated = await this.sysUserRepoService.findUserByIdAndUpdate(userId, { roleMode })
+
+    // 数据权限一期：COMBINE/SWITCH 的解析口径随 roleMode 变化，缓存必须失效
+    await this.dataScopeService.invalidateForUser(userId)
+
+    return updated
   }
 
   /**

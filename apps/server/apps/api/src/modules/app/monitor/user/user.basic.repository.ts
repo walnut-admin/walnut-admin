@@ -52,6 +52,9 @@ export class AppMonitorUserBasicRepository extends WalnutAdminCommonPgBaseReposi
 
     applyPgListQuery(qb, 'entity', buildPgListQueryOptions<T>(params))
 
+    // 数据权限：app_monitor_user 已注册（allowAnonymous —— 匿名访客行共享）
+    this.applyDataScope(qb, 'entity')
+
     // Mongo 版 matchConditions：populate 字段上的 $regex('i') → JOIN 别名 ILIKE
     // （字面量转义同 pg-list.builder；非实体列被 applyPgListQuery 的白名单跳过，在此接管）
     const query = (params.query ?? {}) as Record<string, unknown>

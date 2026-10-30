@@ -42,6 +42,7 @@ export class AppKeyBasicRepository extends WalnutAdminCommonPgBaseRepository<App
     const pessimisticLock = lock && em?.queryRunner?.isTransactionActive
       ? { mode: 'pessimistic_write' as const }
       : undefined
+    // 数据权限：app_key 在豁免清单（系统级密钥配置），直连不构成 scope 绕过
     return this.getManager(em)
       .getRepository(AppKeyEntity)
       .findOne({

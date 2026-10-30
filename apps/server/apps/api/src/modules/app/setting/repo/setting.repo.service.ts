@@ -37,6 +37,8 @@ export class AppSettingRepositoryService {
 
   // extract all app setting into cache
   async extractAppSettingIntoCache() {
+    // 数据权限：app_setting 在注册表豁免清单（全局配置，所有用户同一份），
+    // 这里直连 repository 不构成 scope 绕过 —— 故不触发 no-restricted-syntax。
     const allAppSettings = await this.getManager().getRepository(AppSettingEntity).find()
 
     const dataToCache = Object.fromEntries(

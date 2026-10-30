@@ -5,6 +5,7 @@ import { createHash, randomUUID } from 'node:crypto'
 
 import { WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { SysRoleBasicRepository } from '@/modules/system/role/role.basic.repository'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
 import { SysUserCrudService } from '@/modules/system/user/services/user.crud.service'
@@ -60,6 +61,13 @@ describe('B7a user / identity / oauth (on real PG)', () => {
   let oauthRepoService: SysUserOAuthRepositoryService
   let roleBasicRepo: SysRoleBasicRepository
   let cacheAppSettingsService: AppTechCacheAppSettingsService
+  let als: ALSRequestService
+
+  /**
+   * 数据权限一期：sys_user 已注册（SELF = 本人），直接调 SysUserBasicRepository /
+   * 其消费者（crud/me service）的用例必须显式进入系统通道（等价系统任务）。
+   */
+  const itSystem = (name: string, fn: () => Promise<void>) => it(name, async () => als.runAsSystem(fn))
 
   const uniqueName = (prefix: string) => `${prefix}-${randomUUID().replaceAll('-', '').slice(0, 8)}`
 
@@ -93,6 +101,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
     oauthRepoService = app.get(SysUserOAuthRepositoryService)
     roleBasicRepo = app.get(SysRoleBasicRepository)
     cacheAppSettingsService = app.get(AppTechCacheAppSettingsService)
+    als = app.get(ALSRequestService)
   })
 
   afterAll(async () => {
@@ -108,7 +117,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       roleBId = (await roleBasicRepo.create({ roleName: uniqueName('b7a-role-b') })).id
     })
 
-    it('create：显式 roles 落 junction，currentRole 取首个角色', async () => {
+    itSystem('create：显式 roles 落 junction，currentRole 取首个角色', async () => {
       const created = await userCrudService.create({
         userName: uniqueName('b7a-user'),
         status: true,
@@ -122,7 +131,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       expect(await countPg('sys_user_role', 'user_id = $1', [created.id])).toBe(2)
     })
 
-    it('create：roles 缺省 → defaultRole（v5 uuid fixture + functional.role setting 直设）', async () => {
+    itSystem('create：roles 缺省 → defaultRole（v5 uuid fixture + functional.role setting 直设）', async () => {
       // ETL 语义造 role fixture：hex → v5 uuid 派生后以显式 id 建行
       const roleHex = randomUUID().replaceAll('-', '').slice(0, 24)
       const roleUuid = uuidV5Reference(roleHex, WALNUT_ADMIN_ETL_NAMESPACE)
@@ -167,7 +176,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       }
     })
 
-    it('uq_user_name partial unique：同名拒绝；NULL user_name 多行放行', async () => {
+    itSystem('uq_user_name partial unique：同名拒绝；NULL user_name 多行放行', async () => {
       const userName = uniqueName('b7a-uniq')
 
       await userBasicRepo.create({ userName })
@@ -178,7 +187,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       await insertPgUser()
     })
 
-    it('read：roles_list / roles_count junction 组装', async () => {
+    itSystem('read：roles_list / roles_count junction 组装', async () => {
       const created = await userCrudService.create({
         userName: uniqueName('b7a-read'),
         status: true,
@@ -198,7 +207,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       expect(profile!.roles_list.map(i => i.id).sort()).toEqual([roleAId, roleBId].sort())
     })
 
-    it('update：roles 整组替换；未给 roles 时 junction 不动', async () => {
+    itSystem('update：roles 整组替换；未给 roles 时 junction 不动', async () => {
       const created = await userBasicRepo.create({ userName: uniqueName('b7a-upd'), roles: [roleAId] })
 
       const updated = await userBasicRepo.update(created.id, { roles: [roleBId] })
@@ -211,7 +220,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       expect(await countPg('sys_user_role', 'user_id = $1', [created.id])).toBe(1)
     })
 
-    it('list：{ data, total } 出参 + roles_count 并回 + userName 过滤', async () => {
+    itSystem('list：{ data, total } 出参 + roles_count 并回 + userName 过滤', async () => {
       const userName = uniqueName('b7a-list')
       const created = await userBasicRepo.create({ userName, roles: [roleAId] })
 
@@ -224,7 +233,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       expect(miss.total).toBe(0)
     })
 
-    it('软删：sys_deleted 快照（modelName=SysUserModel）+ junction 行级联消失', async () => {
+    itSystem('软删：sys_deleted 快照（modelName=SysUserModel）+ junction 行级联消失', async () => {
       const created = await userBasicRepo.create({ userName: uniqueName('b7a-del'), roles: [roleAId] })
 
       // 操作者与被删者不能是同一人（cannot delete self）
@@ -241,7 +250,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       expect(deletedRows[0].c).toBe(1)
     })
 
-    it('identity 随 user 删除 CASCADE（FK → sys_user ON DELETE CASCADE）', async () => {
+    itSystem('identity 随 user 删除 CASCADE（FK → sys_user ON DELETE CASCADE）', async () => {
       const userId = await insertPgUser(uniqueName('b7a-cascade'))
       await identityRepoService.createIdentity({
         userId,
@@ -277,7 +286,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       userId = await insertPgUser(uniqueName('b7a-id-user'))
     })
 
-    it('createIdentity：DB 默认值落位（verified=false / status=true / isPrimary=true / metadata={}）', async () => {
+    itSystem('createIdentity：DB 默认值落位（verified=false / status=true / isPrimary=true / metadata={}）', async () => {
       const created = await identityRepoService.createIdentity(identityPayload())
 
       expect(created.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
@@ -288,7 +297,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       expect(created.metadata).toEqual({})
     })
 
-    it('uq_identity (user_id, type, purpose)：复合唯一冲突 23505（对照 Mongo schema.index）', async () => {
+    itSystem('uq_identity (user_id, type, purpose)：复合唯一冲突 23505（对照 Mongo schema.index）', async () => {
       // 独立 user + 独立 (type, purpose) 组合，避免与同 describe 其他用例的键相撞
       const payload = identityPayload({ type: 'phoneNumber' })
       await identityRepoService.createIdentity(payload)
@@ -304,7 +313,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       await identityRepoService.createIdentity({ ...payload, userId: otherUserId })
     })
 
-    it('value select:false：默认查询不出该列，专用通道取回', async () => {
+    itSystem('value select:false：默认查询不出该列，专用通道取回', async () => {
       const payload = identityPayload({ type: 'password' })
       const created = await identityRepoService.createIdentity(payload)
 
@@ -315,7 +324,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       expect(await identityRepoService.getValueByUserIdTypeAndPurpose(userId, 'password', 'login')).toBe('ciphertext')
     })
 
-    it('updateByUserIdTypeAndPurpose / deleteByUserIdTypeAndPurpose：命中即写、未命中 null', async () => {
+    itSystem('updateByUserIdTypeAndPurpose / deleteByUserIdTypeAndPurpose：命中即写、未命中 null', async () => {
       const payload = identityPayload({ type: 'idCard' })
       await identityRepoService.createIdentity(payload)
 
@@ -335,7 +344,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       expect(await identityRepoService.deleteByUserIdTypeAndPurpose(userId, 'idCard', 'login')).toBeNull()
     })
 
-    it('findByValueHash：(type, value_hash) 查找键命中、purpose 参与过滤', async () => {
+    itSystem('findByValueHash：(type, value_hash) 查找键命中、purpose 参与过滤', async () => {
       // 独立 user，键空间不与本 describe 其他用例相撞
       const owner = await insertPgUser(uniqueName('b7a-hash-user'))
       const hash = uniqueName('b7a-find-hash')
@@ -361,7 +370,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       otherUserId = await insertPgUser(uniqueName('b7a-oauth-user-2'))
     })
 
-    it('bindOAuthForUser：首绑插入；同 (user, provider) 重绑更新 providerId（同一行）', async () => {
+    itSystem('bindOAuthForUser：首绑插入；同 (user, provider) 重绑更新 providerId（同一行）', async () => {
       const bound = await oauthRepoService.bindOAuthForUser(userId, 'gitee', 'gp-1')
       expect(bound.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
       expect(bound.providerId).toBe('gp-1')
@@ -374,7 +383,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       expect(await countPg('sys_user_oauth', 'user_id = $1', [userId])).toBe(1)
     })
 
-    it('uq_oauth (provider, provider_id)：同一外部账号绑到第二个用户拒绝 23505', async () => {
+    itSystem('uq_oauth (provider, provider_id)：同一外部账号绑到第二个用户拒绝 23505', async () => {
       await expect(oauthRepoService.bindOAuthForUser(otherUserId, 'gitee', 'gp-2')).rejects.toMatchObject({ code: '23505' })
 
       // 其他 provider / 其他 providerId 不受影响
@@ -382,14 +391,14 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       expect(await countPg('sys_user_oauth', 'user_id = $1', [otherUserId])).toBe(1)
     })
 
-    it('findByProviderAndProviderId：provider + providerId 定位（登录查找路径）', async () => {
+    itSystem('findByProviderAndProviderId：provider + providerId 定位（登录查找路径）', async () => {
       const found = await oauthRepoService.findByProviderAndProviderId('gitee', 'gp-2')
       expect(found!.userId).toBe(userId)
 
       expect(await oauthRepoService.findByProviderAndProviderId('gitee', 'nobody')).toBeNull()
     })
 
-    it('existsByFields：模块内 service 的「存在即跳过」前置判断', async () => {
+    itSystem('existsByFields：模块内 service 的「存在即跳过」前置判断', async () => {
       const providerId = uniqueName('b7a-oauth-svc')
       await oauthRepoService.bindOAuthForUser(userId, 'github', providerId)
 

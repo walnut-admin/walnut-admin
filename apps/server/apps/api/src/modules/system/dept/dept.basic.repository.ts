@@ -140,6 +140,7 @@ export class SysDeptBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
    * dept/post 模块（模块图单向无环），所以这里反向计数走实体仓库而非注入 employee 模块。
    */
   public async countEmployees(deptId: string, em?: EntityManager): Promise<number> {
+    // eslint-disable-next-line no-restricted-syntax -- 删除前置计数必须全库口径（scoped 计数会把「其他用户创建的职工」漏掉，FK RESTRICT 兜底会退化成未受控错误）
     return this.getManager(em).getRepository(SysEmployeeEntity).count({ where: { deptId } })
   }
 }

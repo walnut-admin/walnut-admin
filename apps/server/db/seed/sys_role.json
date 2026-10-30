@@ -13,6 +13,7 @@
     "roleName": "visitor",
     "status": true,
     "order": 0,
+    "dataScope": 2,
     "menus": []
   },
   {
@@ -94,6 +95,7 @@
     "roleName": "root",
     "description": "根用户",
     "order": -999,
+    "dataScope": 1,
     "menus": [],
     "status": true,
     "createdAt": {

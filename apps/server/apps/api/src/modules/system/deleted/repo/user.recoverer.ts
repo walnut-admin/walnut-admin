@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- 恢复器是系统通道：按快照重放原行（含原 uuid），不面向请求用户做行级过滤；恢复后由 deleted.service 失效该用户的数据权限缓存。 */
 import type { EntityManager, EntityTarget, ObjectLiteral } from 'typeorm'
 import type { IWalnutPgSnapshotRecoverer } from './recover-registry'
 import { Logger } from '@nestjs/common'

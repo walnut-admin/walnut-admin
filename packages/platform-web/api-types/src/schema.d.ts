@@ -3173,6 +3173,13 @@ export interface components {
              * @default true
              */
             status: boolean;
+            /**
+             * role data scope
+             * @description 1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)
+             * @default 1
+             * @enum {number}
+             */
+            dataScope: 1 | 2 | 3;
             /** current role's user count */
             usersCount: number;
             /** populated menus list */
@@ -7522,6 +7529,13 @@ export interface components {
              *     ]
              */
             menus: string[];
+            /**
+             * role data scope
+             * @description 1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)
+             * @default 1
+             * @enum {number}
+             */
+            dataScope: 1 | 2 | 3;
         };
         SysRoleDTOUpdateRequest: {
             /**
@@ -7555,6 +7569,13 @@ export interface components {
              *     ]
              */
             menus: string[];
+            /**
+             * role data scope
+             * @description 1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)
+             * @default 1
+             * @enum {number}
+             */
+            dataScope: 1 | 2 | 3;
         };
         SysRoleDTOSafeListResponse: {
             /** list response data */
@@ -7599,6 +7620,13 @@ export interface components {
              * @default true
              */
             status: boolean;
+            /**
+             * role data scope
+             * @description 1=ALL 2=SELF 3=CUSTOM; CUSTOM resolves to the users bound to this role (phase 1)
+             * @default 1
+             * @enum {number}
+             */
+            dataScope: 1 | 2 | 3;
             /** current role's user count */
             usersCount?: number;
             /** populated menus list */

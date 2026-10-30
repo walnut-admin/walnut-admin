@@ -113,6 +113,7 @@ const REVERSE_MAPPERS: Record<string, ReverseMapper> = {
     order: row.sort_order,
     menus: junctionRows.filter(j => j.role_id === row.id).map(j => j.menu_id),
     status: row.status,
+    dataScope: row.data_scope,
     ...timestampsOf(row),
   }),
   sys_menu: (row) => {
