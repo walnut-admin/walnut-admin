@@ -240,6 +240,7 @@ const DTO_ENTITY_CASES: ReadonlyArray<IDtoEntityDriftCase> = [
       // 出入参字段；usersCount / menusList 是 junction JOIN 的出参字段（L1 起去掉
       // Mongo 版 $lookup 出参名上的 populate 前缀）
       ['menus', 'junction sys_role_menu 派生的 uuid 数组（B5 迁移，entity 无列）'],
+      ['deptIds', 'junction sys_role_dept 派生的 uuid 数组（二期批 2 CUSTOM 部门清单，entity 无列）'],
       ['usersCount', 'populate 派生出参：usersCount 关联计数子查询'],
       ['menusList', 'populate 派生出参：menus junction JOIN 组装（match meta.status）'],
     ],

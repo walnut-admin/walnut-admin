@@ -161,15 +161,20 @@ describe('数据权限注册表（注册 = 强制过滤；未注册 = 显式豁�
     )
 
     expect(demoConfig?.scopeColumn).toBe('createdBy')
+    // 二期批 2：行级部门归属列入注册 + create 双回填开启
+    expect(demoConfig?.deptColumn).toBe('deptId')
+    expect(demoConfig?.fillDeptOnCreate).toBe(true)
     expect(getWalnutDataScopeEntityConfig(WALNUT_DATA_SCOPE_EXEMPT_ENTITIES[0].entity)).toBeUndefined()
   })
 })
 
 describe('数据权限谓词（决策层 → 执行层单点）', () => {
-  // app_demo：只有 owner 列（批 1 尚无 dept 列）—— 部门系档位对它必须默认拒绝
+  // app_demo：owner + dept 列（二期批 2 起两个维度都在）
   const config = WALNUT_DATA_SCOPE_ENTITIES.find(item => entityTableName(item.entity) === 'app_demo')!
   // sys_employee：owner + dept 列（批 1 的部门端到端靶表）
   const deptConfig = WALNUT_DATA_SCOPE_ENTITIES.find(item => entityTableName(item.entity) === 'sys_employee')!
+  // 无 dept 列的注册实体形态（系统表类）：部门系档位默认拒绝 / 6 档退化为仅 SELF
+  const noDeptConfig: IWalnutAdminDataScopeEntityConfig = { ...config, deptColumn: undefined }
   const anonymousConfig: IWalnutAdminDataScopeEntityConfig = {
     ...config,
     allowAnonymous: true,
@@ -260,16 +265,16 @@ describe('数据权限谓词（决策层 → 执行层单点）', () => {
     }
   })
 
-  it('部门系档位 + 实体无 dept 列 → 恒假（app_demo 批 1 fail-closed）', () => {
+  it('部门系档位 + 实体无 dept 列 → 恒假（无部门维度的注册实体 fail-closed）', () => {
     expect(buildWalnutDataScopeSqlPredicate(
-      config,
+      noDeptConfig,
       { mode: WalnutAdminConstDataScopeMode.CUSTOM, deptIds: [deptA] },
       userId,
       'entity',
     )).toEqual({ clause: '1 = 0', params: {} })
 
     expect(buildWalnutDataScopeFindWhere(
-      config,
+      noDeptConfig,
       { mode: WalnutAdminConstDataScopeMode.DEPT, deptIds: [deptA] },
       userId,
     )).toBe('deny')
@@ -312,7 +317,7 @@ describe('数据权限谓词（决策层 → 执行层单点）', () => {
 
   it('dEPT_OR_SELF + 无 dept 列 → 退化为仅 SELF（不泄露）', () => {
     const predicate = buildWalnutDataScopeSqlPredicate(
-      config,
+      noDeptConfig,
       { mode: WalnutAdminConstDataScopeMode.DEPT_OR_SELF, deptIds: [deptA] },
       userId,
       'entity',

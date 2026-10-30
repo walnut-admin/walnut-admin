@@ -29,9 +29,10 @@ import { resolveWalnutDataScopeDescriptor } from './data-scope.resolver'
  *
  * 失效点清单（改这些写路径时必须同步调本服务的 invalidate*）：
  * - 角色 dataScope / status 修改 → `invalidateForRole(roleId)`（role.service.update）；
- * - `sys_role_dept`（CUSTOM 部门清单）变更 → `invalidateForRoleDeptChange(roleId)`
- *   —— 影响的是**该角色成员**（他们的描述符里带着这份清单）；批 1 无写端点，
- *   批 2 的角色部门树保存路径接线；
+ * - `sys_role_dept`（CUSTOM 部门清单）变更 → 影响的是**该角色成员**（他们的描述符
+ *   里带着这份清单）。批 2 的写入口是角色 update 的 `deptIds` 整组替换 ——
+ *   role.service 已在同一成员反查腿上并入 `invalidateForUsers`；`invalidateForRoleDeptChange`
+ *   保留给未来独立的部门清单写端点；
  * - 部门移动 / 删除 → `invalidateForDeptMove(deptId, oldAncestorIds)` /
  *   `invalidateForDeptIds(deptIds)` —— 移动影响旧/新祖先链与子树内用户，
  *   删除影响子树内用户（dept.service update/delete）；
@@ -190,7 +191,7 @@ export class DataScopeService {
 
   /**
    * `sys_role_dept` 变更：该角色成员的 CUSTOM 部门清单变了，按角色维度失效。
-   * （批 2 的角色部门树保存路径调用；当前无写端点。）
+   * （角色 update 的 deptIds 整组替换已并入现有成员反查腿；本方法供独立写端点复用。）
    */
   async invalidateForRoleDeptChange(roleId: string, em?: EntityManager): Promise<void> {
     await this.invalidateForRole(roleId, em)

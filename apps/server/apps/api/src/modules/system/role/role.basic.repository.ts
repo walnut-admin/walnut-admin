@@ -11,6 +11,7 @@ import {
   WALNUT_PG_LIST_TOTAL_ALIAS,
 } from '@/common/repository/pg-list.builder'
 import { SysUserRoleEntity } from '../user/entity/user-role.entity'
+import { SysRoleDeptEntity } from './entity/role-dept.entity'
 import { SysRoleMenuEntity } from './entity/role-menu.entity'
 import { SysRoleEntity } from './entity/role.entity'
 
@@ -30,6 +31,10 @@ export interface ISysRoleListRow extends SysRoleEntity {
  * - update：dto.menus 未给 时 junction 原样不动（对齐 Mongo 版逐字段赋值语义）；给了则
  *   整组替换（delete + insert，同 em 即同一事务，对齐 Mongo $set 整组覆盖）。
  * 响应行的 menus 以 uuid 数组并回（字段名与 Mongo 版一致，元素从 ObjectId hex 变 uuid）。
+ *
+ * 二期批 2：`deptIds`（CUSTOM 档位的 sys_role_dept 部门清单）与 menus 同一手法 ——
+ * create 缺省写空、update 未给不动 / 给了整组替换。清单对非 CUSTOM 角色无执行语义，
+ * 但**不主动清空**：档位切回 CUSTOM 时保留上次的勾选（RuoYi 同口径）。
  */
 @Injectable()
 export class SysRoleBasicRepository extends WalnutAdminCommonPgBaseRepository<SysRoleEntity> {
@@ -40,30 +45,39 @@ export class SysRoleBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     super(SysRoleEntity, WalnutModelName.SYS_ROLE, dataSource)
   }
 
-  public async create(dto: Partial<SysRoleEntity> & { menus?: string[] }, em?: EntityManager): Promise<SysRoleEntity & { menus: string[] }> {
-    const { menus, ...roleData } = dto
+  public async create(
+    dto: Partial<SysRoleEntity> & { menus?: string[], deptIds?: string[] },
+    em?: EntityManager,
+  ): Promise<SysRoleEntity & { menus: string[], deptIds: string[] }> {
+    const { menus, deptIds, ...roleData } = dto
 
     const created = await super.create(roleData, em)
     await this.replaceMenus(created.id, menus ?? [], em)
+    await this.replaceDepts(created.id, deptIds ?? [], em)
 
-    return Object.assign(created, { menus: menus ?? [] })
+    return Object.assign(created, { menus: menus ?? [], deptIds: deptIds ?? [] })
   }
 
   public async update(
     id: string,
-    dto: Partial<SysRoleEntity> & { menus?: string[] },
+    dto: Partial<SysRoleEntity> & { menus?: string[], deptIds?: string[] },
     em?: EntityManager,
-  ): Promise<SysRoleEntity & { menus?: string[] }> {
-    const { menus, ...roleData } = dto
+  ): Promise<SysRoleEntity & { menus?: string[], deptIds?: string[] }> {
+    const { menus, deptIds, ...roleData } = dto
 
     const updated = await super.update(id, roleData, em)
 
-    if (menus === undefined) {
-      return updated
+    if (menus !== undefined) {
+      await this.replaceMenus(id, menus, em)
+      Object.assign(updated, { menus })
     }
 
-    await this.replaceMenus(id, menus, em)
-    return Object.assign(updated, { menus })
+    if (deptIds !== undefined) {
+      await this.replaceDepts(id, deptIds, em)
+      Object.assign(updated, { deptIds })
+    }
+
+    return updated
   }
 
   /**
@@ -120,6 +134,21 @@ export class SysRoleBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
 
     if (menuIds.length > 0) {
       await repository.insert(menuIds.map(menuId => ({ roleId, menuId })))
+    }
+  }
+
+  /**
+   * CUSTOM 部门清单整组替换（sys_role_dept 复合 PK 去重；DTO 层 ArrayUnique 拦输入重复）。
+   * 与 replaceMenus 同事务语义 —— update 路径由 role.controller 的 @WalnutTx 保证。
+   */
+  private async replaceDepts(roleId: string, deptIds: string[], em?: EntityManager) {
+    const manager = this.getManager(em)
+    const repository = manager.getRepository(SysRoleDeptEntity)
+
+    await repository.delete({ roleId })
+
+    if (deptIds.length > 0) {
+      await repository.insert(deptIds.map(deptId => ({ roleId, deptId })))
     }
   }
 }

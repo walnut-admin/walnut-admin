@@ -120,7 +120,7 @@ export class SysUserDTOBase extends WalnutAdminCommonBasicModel {
   mfaSetup: boolean
 
   // 所属部门（数据权限二期批 1）：写 sys_user.dept_id，DEPT/DEPT_AND_CHILD 的解析输入。
-  // 只在 update 白名单里可选提供（批 2 admin 用户表单接选择器）；create 暂不开放。
+  // 批 2 起 create / update 都可选提供（admin 用户表单的部门树选择器）。
   @WalnutAdminDecoratorFieldString({
     default: null,
     validateOptions: { nullable: true },
@@ -206,11 +206,16 @@ export class SysUserDTOListResponse extends CreateWalnutAdminResponseListDTO(
 }
 
 // create
-export class SysUserDTOCreateRequest extends RealPickType(SysUserDTOSafe, [
-  'userName',
-  'status',
-  'roles',
-] as const) {}
+// 批 2：deptId 可选（admin 用户表单同一棵树选择器；create 直接写 sys_user.dept_id，
+// 便于建号即归部门 —— 与 update 的 deptId 分支同口径）
+export class SysUserDTOCreateRequest extends IntersectionType(
+  RealPickType(SysUserDTOSafe, [
+    'userName',
+    'status',
+    'roles',
+  ] as const),
+  RealPartialType(RealPickType(SysUserDTOSafe, ['deptId'] as const)),
+) {}
 export class SysUserDTOCreateResponse extends SysUserDTOSafe {}
 
 // read

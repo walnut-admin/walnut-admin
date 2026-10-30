@@ -116,8 +116,10 @@ JWT Guard（request.user）→ ALS 拦截器解析描述符 → handler → 基�
   调 `DataScopeService.resolveForUser()`，把 `userId` 与描述符种进 ALS；
 - `common/repository/pg-base.repository.ts` 的 `list`（在 `customize` 之后）、
   `readById`、`updateByField`、`deleteSoft*` 统一 `andWhere` / scoped where 注入，
-  越权读/改/删一律 **40401**（不泄露行存在性）；`create` 对注册实体自动回填 owner
-  （如 `app_demo.created_by`）。
+  越权读/改/删一律 **40401**（不泄露行存在性）；
+- `create` 对注册实体自动回填 owner（如 `app_demo.created_by`）；注册项显式开启
+  `fillDeptOnCreate` 时**同时回填行级部门归属**（`app_demo.dept_id` 取创建者的
+  `sys_employee.dept_id`，无职工行 → NULL）。归属列不接受 DTO 赋值，update 也会剔除。
 
 **六档与多角色**（`sys_role.data_scope`，smallint；二期批 1 起）：
 
@@ -133,7 +135,15 @@ JWT Guard（request.user）→ ALS 拦截器解析描述符 → handler → 基�
 部门子树由 `dept.basic.repository.findSubtreeById` 的递归 CTE（`CYCLE` 环保护）展开；
 注册表实体的 `deptColumn` 缺失时，2/3/4 档位默认拒绝（6 档位退化为仅 SELF，不泄露）。
 一期 → 二期的数值重映射（旧 2 SELF → 新 5、旧 3 CUSTOM → 新 2）在
-`migrations/1793340000000-DataScopePhase2Dept.ts`；**CUSTOM 的「角色成员」语义已废除**。
+`migrations/1793340000000-DataScopePhase2Dept.ts`；**CUSTOM 的「角色成员」语义已废除**，
+部门清单由 `sys_role_dept` 承载（角色 create/update 的 `deptIds` 整组替换，read 回显）。
+
+**行级部门归属（`app_demo` 示范）**：批 2 给 `app_demo` 加了 `dept_id uuid NULL`
+（FK → `sys_dept` RESTRICT + `idx_demo_dept` partial index）。部门系档位按该列过滤；
+NULL 行是「无部门归属」—— 只有 ALL 档位可见，SELF 仍可按 owner 看到自己创建的行，
+DEPT / DEPT_AND_CHILD / CUSTOM 不会包含它。admin 的角色表单把 CUSTOM 的部门清单
+做成部门树多选（`sys_role_dept`），用户表单把 `sys_user.dept_id` 做成部门树单选；
+两处数据源都是 `GET /system/dept/tree`。
 
 多角色按 **effective roleMode**（`SharedScopeResolverService`，与权限计算同口径）：
 COMBINE 取各角色部门集合的并集、任一 SELF 时结果保留本人腿（DEPT_OR_SELF）；SWITCH
@@ -151,6 +161,11 @@ COMBINE 取各角色部门集合的并集、任一 SELF 时结果保留本人腿
   通道（cron / 脚本 / 测试）必须显式 `ALSRequestService.runAsSystem()` 进入系统通道；
 - 机械守卫：注册表完整性单测（每张实体表必须注册或豁免）+ ESLint
   `no-restricted-syntax`（已注册实体的 `.getRepository()` 直连必须显式豁免并写理由）。
+
+**端到端矩阵**：`apps/server/apps/api/test/api/data-scope-matrix.api-spec.ts` 用
+`app_demo` 作为靶表覆盖 M1-M10 —— 六档可见集合、越权 read/update 404、create 双回填、
+多角色并集、visitor 仅本人、无角色登录被拒（空 roles_list 在 opaque 通道统一翻译为
+40103）、角色改档位 / 换清单 / 清空清单后下一请求立即生效。
 
 **缓存与失效**：`AUTH:DATA_SCOPE:<userId>`（不带 deviceId，TTL 与访问令牌同寿命）。
 失效点：角色 dataScope/status 修改（按角色成员反查）、`sys_role_dept` 部门清单变更

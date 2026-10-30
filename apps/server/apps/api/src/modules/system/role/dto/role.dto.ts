@@ -56,6 +56,11 @@ export class SysRoleDTOBase extends WalnutAdminCommonBasicModel {
   // 元数据（Phase 5a 起 mongo id 装饰已随 mongoose 摘除）。
   menus: string[]
 
+  // 数据权限二期批 2：CUSTOM(2) 档位的部门清单（sys_role_dept junction 派生的 uuid 数组）。
+  // create 缺省空、update 未给不动 / 给了整组替换（与 menus 同手法）；read 回显。
+  @Expose()
+  deptIds: string[]
+
   @WalnutAdminDecoratorFieldBoolean({
     default: true,
     swaggerOptions: {
@@ -126,6 +131,18 @@ export class SysRoleDTO extends SysRoleDTOBase {
   })
   @WalnutAdminDecoratorValidatorUuid(undefined, true, { unique: true })
   declare menus: string[]
+
+  // CUSTOM 部门清单（sys_role_dept.dept_id uuid 集合）：与 menus 同款重声明 +
+  // 数组内去重（复合 PK 兜底，DTO 层先拦输入重复）
+  @Expose()
+  @ApiProperty({
+    type: String,
+    isArray: true,
+    default: [],
+    example: ['0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c'],
+  })
+  @WalnutAdminDecoratorValidatorUuid(undefined, true, { unique: true })
+  declare deptIds: string[]
 }
 
 // Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
@@ -138,6 +155,7 @@ export class SysRoleDTOSafe extends SysRoleDTO {
 
 export class SysRoleDTOSafeWithoutMenus extends RealOmitType(SysRoleDTOSafe, [
   'menus',
+  'deptIds',
 ] as const) {
   constructor(partial: Partial<SysRoleDTOSafeWithoutMenus>) {
     super()
@@ -170,6 +188,8 @@ export class SysRoleDTOCreateRequest extends IntersectionType(
   RealPartialType(RealPickType(SysRoleDTOSafe, ['menus'] as const)),
   // dataScope 可省略（DDL DEFAULT 1 = ALL）：老客户端/脚本不传时保持既有可见面
   RealPartialType(RealPickType(SysRoleDTOSafe, ['dataScope'] as const)),
+  // CUSTOM 部门清单可省略（缺省 = 空清单 → 默认拒绝）；在 create 时直接落 junction
+  RealPartialType(RealPickType(SysRoleDTOSafe, ['deptIds'] as const)),
 ) {}
 export class SysRoleDTOCreateResponse extends SysRoleDTOSafe {}
 
@@ -187,6 +207,8 @@ export class SysRoleDTOUpdateRequest extends IntersectionType(
   RealPartialType(RealPickType(SysRoleDTOSafe, ['menus'] as const)),
   // dataScope 可省略（语义：不修改）；显式传 1..6 才触发失效与重算
   RealPartialType(RealPickType(SysRoleDTOSafe, ['dataScope'] as const)),
+  // deptIds 可省略（语义：junction 不动）；给了则整组替换并失效该角色成员的 scope 缓存
+  RealPartialType(RealPickType(SysRoleDTOSafe, ['deptIds'] as const)),
 ) {}
 export class SysRoleDTOUpdateResponse extends SysRoleDTOSafe {}
 

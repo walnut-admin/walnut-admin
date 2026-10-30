@@ -73,6 +73,13 @@ export class AppDemoEntity {
   @Column({ type: 'uuid', name: 'created_by', nullable: true })
   createdBy: string | null
 
+  // 数据权限二期批 2（docs/plans/data-scope-phase2-3-plan.md §1.2 方案 A）：行级部门归属。
+  // FK → sys_dept(id) ON DELETE RESTRICT 在 migration；基类 create 回填创建者的
+  // sys_employee.dept_id（无职工行 → NULL，仅 ALL 可见）。partial index 与 migration 同形。
+  @Index('idx_demo_dept', { where: '"dept_id" IS NOT NULL' })
+  @Column({ type: 'uuid', name: 'dept_id', nullable: true })
+  deptId: string | null
+
   @CreateDateColumn({ type: 'timestamptz', name: 'created_at' })
   createdAt: Date
 

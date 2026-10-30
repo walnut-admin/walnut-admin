@@ -19,10 +19,11 @@ import { cleanupPermissionChainSeed, seedPermissionChainUser } from './helpers/s
  * 角色 dataScope 修改后的缓存失效。
  *
  * **二期语义翻转（本 spec 的重点）**：CUSTOM 从「角色成员 userIds」改为「sys_role_dept
- * 部门清单」。`app_demo` 在批 1 还没有 dept 列 —— 部门系档位对它必须 fail-closed
- * （空集 → SQL 恒假），包括 CUSTOM 用户自己的行。角色成员变化也不再影响同角色其他用户
- * （成员快照语义已废除）。部门维度的端到端可见面在 `data-scope.dept.api-spec.ts`
- * 用 sys_employee 作靶表验证。
+ * 部门清单」。批 2 起 `app_demo` 已有 dept 列，但本 spec 的用户都没有职工行（create 回填
+ * dept = NULL），CUSTOM 的部门清单为空 → 部门系档位仍 fail-closed（空集 → SQL 恒假），
+ * 包括 CUSTOM 用户自己的行。角色成员变化也不再影响同角色其他用户（成员快照语义已废除）。
+ * 部门维度的端到端可见面：批 1 在 `data-scope.dept.api-spec.ts` 用 sys_employee 验证，
+ * 批 2 的 app_demo 全矩阵在 `data-scope-matrix.api-spec.ts`。
  *
  * fixture 形态：三个非 root 用户（A/B 的 SELF、C 的 CUSTOM）+ 一个只作为 C 角色成员、
  * 不登录的裸用户（member，用于证明「成员身份不再授予可见面」）；root 用于全量对照。
@@ -270,11 +271,11 @@ describe('数据权限二期：app_demo 行级 scope（SELF / ALL / 部门系默
     expectOk(updateA, 'A update own')
   })
 
-  it('cUSTOM（部门清单）：app_demo 批 1 无 dept 列 → 默认拒绝，本人与角色成员的行都不可见', async () => {
+  it('cUSTOM（部门清单为空）：默认拒绝，本人与角色成员的行都不可见', async () => {
     const list = await listDemo(apiC, 20)
 
-    // 部门系档位在无 dept 列的实体上 fail-closed：CUSTOM 不再按角色成员授予可见面，
-    // 连 C 自己创建的行也不可见（RuoYi 语义：CUSTOM 只看清单部门）
+    // 部门系档位在空清单上 fail-closed：CUSTOM 不按角色成员授予可见面，也不包含本人
+    // 创建的行（RuoYi 语义：CUSTOM 只看清单部门）
     expect(list.data).toEqual([])
     expect(list.total).toBe(0)
 

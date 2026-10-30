@@ -24,6 +24,10 @@ list 不出现。create 自动填所属部门/创建者。
 
 ## 1. 二期：部门维度（批 1 + 批 2）
 
+> **批 1 已实施**（`afc8cde`）。**批 2 已实施**（2026-10-30）：demo 部门列 +
+> create 双回填 + 角色/用户 admin 表单 + 六档 + M1-M10 矩阵
+> （`apps/server/apps/api/test/api/data-scope-matrix.api-spec.ts`）。
+
 ### 1.1 批 1：迁移与解析器扩展（纯后端）
 
 **迁移**（新迁移文件，不改 InitSchema）：
@@ -46,6 +50,14 @@ list 不出现。create 自动填所属部门/创建者。
 **单元测试**：解析器档位矩阵全分支 + 递归子树 + 缓存失效新点位。
 
 ### 1.2 批 2：demo 行部门归属 + admin + 测试矩阵（核心大批）
+
+> 状态：**已实施**（2026-10-30）。
+> - 迁移 `apps/server/apps/api/migrations/1793350000000-DataScopePhase2DemoDept.ts`
+>   （`app_demo.dept_id` + `idx_demo_dept`；walnut_pg 手工 ALTER 保数据）；
+> - create 双回填在基类仓库（`fillDeptOnCreate`，取创建者 `sys_employee.dept_id`）；
+> - 角色 create/update 接 `deptIds`（sys_role_dept 整组替换）、read 回显；
+> - admin 角色表单六档 + CUSTOM 部门树多选、用户表单部门树选择器；
+> - M1-M10 落地 `data-scope-matrix.api-spec.ts`。
 
 **demo 表的行级部门归属（关键设计，两案对比）**：
 

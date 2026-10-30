@@ -18,9 +18,13 @@ export interface ISysRolePopulatedRow extends SysRoleEntity {
   menus: string[]
 }
 
-/** role 行 + junction 读出的 menus + sys_user_role 计数（Mongo 版 read 的 populate 形态） */
+/**
+ * role 行 + junction 读出的 menus + sys_user_role 计数（Mongo 版 read 的 populate 形态）。
+ * 二期批 2：read 同时带回 CUSTOM 档位的 `sys_role_dept` 部门清单（deptIds）。
+ */
 export interface ISysRoleWithUsersCount extends ISysRolePopulatedRow {
   usersCount: number
+  deptIds: string[]
 }
 
 /** role 行 + menus + menusList（Mongo 版 populate virtual 的形态；菜单已组装回 meta） */
@@ -137,6 +141,8 @@ export class SysRoleRepoService {
 
     return Object.assign(role, {
       menus: await this.findMenuIdsByRoleId(id, em),
+      // 二期批 2：CUSTOM 档位的部门清单（角色编辑表单回显；非 CUSTOM 角色通常为空）
+      deptIds: await this.findDeptIdsByRoleId(id, em),
       usersCount: Number(row.users_count ?? 0),
     })
   }

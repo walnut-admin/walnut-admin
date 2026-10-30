@@ -11064,6 +11064,16 @@
             "items": {
               "type": "string"
             }
+          },
+          "deptIds": {
+            "default": [],
+            "example": [
+              "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -11074,7 +11084,8 @@
           "dataScope",
           "usersCount",
           "menusList",
-          "menus"
+          "menus",
+          "deptIds"
         ]
       },
       "SysUserDTOSafe": {
@@ -18475,6 +18486,16 @@
             "default": 1,
             "title": "role data scope",
             "description": "1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF"
+          },
+          "deptIds": {
+            "default": [],
+            "example": [
+              "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -18534,6 +18555,16 @@
             "default": 1,
             "title": "role data scope",
             "description": "1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF"
+          },
+          "deptIds": {
+            "default": [],
+            "example": [
+              "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -18639,6 +18670,16 @@
             "items": {
               "type": "string"
             }
+          },
+          "deptIds": {
+            "default": [],
+            "example": [
+              "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -18728,6 +18769,14 @@
             "items": {
               "type": "string"
             }
+          },
+          "deptId": {
+            "type": "string",
+            "default": null,
+            "title": "dept id",
+            "description": "owning dept for department-scoped data permissions; null => no dept",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
           }
         },
         "required": [

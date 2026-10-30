@@ -9,6 +9,7 @@ import { WTablePresetCreatedAtColumn, WTablePresetStatusColumn, WTablePresetUpda
 import { AppConstRoles } from '@/const/app'
 import { useAppConfirm } from '@/hooks/component/useConfirm'
 import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useDeptTree } from '@/hooks/core/useDeptTree'
 import { useAppI18n } from '@/locales/index'
 
 import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
@@ -19,6 +20,9 @@ defineOptions({
 
 const { t } = useAppI18n()
 const userStoreAuth = useAppStoreUserAuth()
+
+// 数据权限二期批 2：用户所属部门（sys_user.dept_id）
+const { getDeptTree } = useDeptTree()
 
 // locale unique key
 const key = 'user'
@@ -296,6 +300,26 @@ const [
         },
         componentProp: {
           clearable: true,
+        },
+      },
+
+      {
+        // 数据权限二期批 2：所属部门（DEPT / DEPT_AND_CHILD / DEPT_OR_SELF 的解析输入）。
+        // 可空（无部门 = DEPT 系档位默认拒绝，SELF 不受影响）。
+        type: 'Base:TreeSelect',
+        formProp: {
+          path: 'deptId',
+          labelHelpMessage: true,
+        },
+        componentProp: {
+          defaultValue: null,
+          treeSelectProps: {
+            options: getDeptTree as unknown as any[],
+            keyField: 'id',
+            labelField: 'deptName',
+            clearable: true,
+            placeholder: t('table.user.deptId.placeholder'),
+          },
         },
       },
 

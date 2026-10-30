@@ -51,6 +51,7 @@ import { SysUserPreferenceEntity } from '@/modules/system/user_preference/entity
  * - SELF：`scopeColumn = 当前 userId`；
  * - DEPT / DEPT_AND_CHILD / CUSTOM：`deptColumn IN (:...deptIds)`（解析器已把
  *   DEPT_AND_CHILD 展开为子树、CUSTOM 读 sys_role_dept）；空集/实体无 deptColumn → 恒假；
+ *   行级归属列由 create 回填（`fillDeptOnCreate`，取创建者的 sys_employee.dept_id）；
  * - DEPT_OR_SELF：`scopeColumn = 当前 userId OR deptColumn IN (:...deptIds)`（并集）。
  * `allowAnonymous` 的实体（在线监控）在 SELF / DEPT_OR_SELF 的 owner 腿上并上
  * `scopeColumn IS NULL`：未登录访客没有 owner，归为共享匿名行。
@@ -104,6 +105,15 @@ export interface IWalnutAdminDataScopeEntityConfig<Entity extends ObjectLiteral 
    * 时由当前用户回填。
    */
   allowOwnerUpdate?: boolean
+  /**
+   * create 时是否用当前用户的**所属部门**回填 `deptColumn`（默认 false）。
+   *
+   * 取数腿：当前用户 → `sys_employee.dept_id`（一号一职工；无职工行 → NULL = 无部门归属）。
+   * 与 owner 回填同一位置（基类 create），但语义不同 —— 只有「行级部门归属由创建者决定」
+   * 的示范/业务表才开启（app_demo）；sys_user / sys_employee 的 dept 列是业务字段，不能回填。
+   * 系统通道（ALL 且无用户）不回填。
+   */
+  fillDeptOnCreate?: boolean
   /** 注册理由（必填：注册即强制过滤，理由要能被下一个人看懂） */
   note: string
 }
@@ -146,7 +156,9 @@ export const WALNUT_DATA_SCOPE_ENTITIES: ReadonlyArray<IWalnutAdminDataScopeEnti
   {
     entity: AppDemoEntity,
     scopeColumn: 'createdBy',
-    note: 'app_demo：示范 owner 列（migration 新增 created_by）；create 自动填当前用户。批 1 尚无 dept 列 —— 部门系档位对它默认拒绝，批 2 加 dept 列后接入。',
+    deptColumn: 'deptId',
+    fillDeptOnCreate: true,
+    note: 'app_demo：示范 owner 列（created_by）+ 行级部门归属列（dept_id，二期批 2 方案 A 冗余列）。create 自动填当前用户与创建者职工部门（无职工行 → NULL = 仅 ALL 可见）；SELF 只看 owner，部门系档位只看 dept_id。',
   },
   {
     entity: SysEmployeeEntity,

@@ -28935,7 +28935,7 @@
       "$oid": "6190a3ab006f39bf8a155a3a"
     },
     "key": "table.role.dataScope.helpMsg",
-    "value": "1=All data; 2=Only self; 3=Custom — CUSTOM means rows owned by users bound to this role.",
+    "value": "1=All data; 2=Custom dept list; 3=Own dept; 4=Own dept & children; 5=Only self; 6=Own dept & children + self.",
     "createdAt": {
       "$date": "2026-10-30T02:00:00.000Z"
     },
@@ -28951,7 +28951,7 @@
       "$oid": "6190a410006f39bf8a155a46"
     },
     "key": "table.role.dataScope.helpMsg",
-    "value": "1=全部数据；2=仅本人；3=自定义（可见范围 = 绑定到本角色的用户所拥有的数据）",
+    "value": "1=全部数据；2=自定义部门清单；3=本部门；4=本部门及以下；5=仅本人；6=本部门及以下 + 本人",
     "createdAt": {
       "$date": "2026-10-30T02:00:00.000Z"
     },
@@ -29048,6 +29048,294 @@
     },
     "key": "table.role.dataScope.custom",
     "value": "自定义",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000a6"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "table.role.dataScope.dept",
+    "value": "Own Dept",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000a7"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "table.role.dataScope.dept",
+    "value": "本部门",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000a8"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "table.role.dataScope.deptAndChild",
+    "value": "Own Dept & Children",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000a9"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "table.role.dataScope.deptAndChild",
+    "value": "本部门及以下",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000aa"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "table.role.dataScope.deptOrSelf",
+    "value": "Own Dept & Children + Self",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000ab"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "table.role.dataScope.deptOrSelf",
+    "value": "本部门及以下 + 本人",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000ac"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "table.role.deptIds",
+    "value": "Custom Depts",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000ad"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "table.role.deptIds",
+    "value": "自定义部门",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000ae"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "table.role.deptIds.helpMsg",
+    "value": "Only effective when data scope is CUSTOM: rows whose dept is in the checked list are visible (no subtree recursion).",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000af"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "table.role.deptIds.helpMsg",
+    "value": "仅数据权限为「自定义」时生效：可见部门在勾选清单内的数据（不递归子部门）",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000b0"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "table.role.deptIds.placeholder",
+    "value": "Select departments",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000b1"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "table.role.deptIds.placeholder",
+    "value": "请选择部门",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000b2"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "table.user.deptId",
+    "value": "Department",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000b3"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "table.user.deptId",
+    "value": "所属部门",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000b4"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "table.user.deptId.helpMsg",
+    "value": "Input of data scope DEPT / DEPT_AND_CHILD / DEPT_OR_SELF. Empty => those scopes deny by default.",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000b5"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "table.user.deptId.helpMsg",
+    "value": "数据权限「本部门 / 本部门及以下 / 本部门及以下 + 本人」的解析输入；为空时这些档位默认拒绝",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000b6"
+    },
+    "langId": {
+      "$oid": "6190a3ab006f39bf8a155a3a"
+    },
+    "key": "table.user.deptId.placeholder",
+    "value": "Select department",
+    "createdAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T02:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "68f3a00200000000000000b7"
+    },
+    "langId": {
+      "$oid": "6190a410006f39bf8a155a46"
+    },
+    "key": "table.user.deptId.placeholder",
+    "value": "请选择部门",
     "createdAt": {
       "$date": "2026-10-30T02:00:00.000Z"
     },

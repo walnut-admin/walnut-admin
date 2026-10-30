@@ -45,6 +45,20 @@ export type SystemMenuTreeResponse = components['schemas']['SysMenuDTOTreeRespon
 
 export type SystemRole = components['schemas']['SysRoleDTOSafe'] & { id: string }
 
+// ---------------------------------------------------------------- system dept
+
+/**
+ * server `SysDeptDTOSafe`（dept 模块 Safe DTO）的生成别名 —— 部门平表行
+ * （数据权限二期批 2 起 admin 的部门树选择器消费）。
+ */
+export type SystemDept = components['schemas']['SysDeptDTOSafe'] & { id: string }
+
+/**
+ * `GET /system/dept/tree` 的树节点（server `SysDeptDTOTree` 自带递归 children），
+ * 可直接作为 `Base:TreeSelect` 的 options。
+ */
+export type SystemDeptTree = components['schemas']['SysDeptDTOTree']
+
 // ---------------------------------------------------------------- system user
 
 export type SystemUser = components['schemas']['SysUserDTOSafe'] & { id: string }

@@ -54,6 +54,7 @@ exports[`contract snapshots > api routes never change silently 1`] = `
   },
   "SystemEndpointRoutes": {
     "DELETED_RECOVER": "/system/deleted/recover",
+    "DEPT_TREE": "/system/dept/tree",
     "DEVICE_INITIAL": "/system/device/initial",
     "DICT_TYPE_S": "/system/dict/type/s",
     "LANG_LIST_PUBLIC": "/system/lang/list/public",

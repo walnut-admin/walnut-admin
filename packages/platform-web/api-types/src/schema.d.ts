@@ -3192,6 +3192,13 @@ export interface components {
              *     ]
              */
             menus: string[];
+            /**
+             * @default []
+             * @example [
+             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+             *     ]
+             */
+            deptIds: string[];
         };
         SysUserDTOSafe: {
             /**
@@ -7550,6 +7557,13 @@ export interface components {
              * @enum {number}
              */
             dataScope: 1 | 2 | 3 | 4 | 5 | 6;
+            /**
+             * @default []
+             * @example [
+             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+             *     ]
+             */
+            deptIds: string[];
         };
         SysRoleDTOUpdateRequest: {
             /**
@@ -7590,6 +7604,13 @@ export interface components {
              * @enum {number}
              */
             dataScope: 1 | 2 | 3 | 4 | 5 | 6;
+            /**
+             * @default []
+             * @example [
+             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+             *     ]
+             */
+            deptIds: string[];
         };
         SysRoleDTOSafeListResponse: {
             /** list response data */
@@ -7653,6 +7674,13 @@ export interface components {
              *     ]
              */
             menus: string[];
+            /**
+             * @default []
+             * @example [
+             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+             *     ]
+             */
+            deptIds: string[];
         };
         SysRoleDTOListRequest: {
             /**
@@ -7717,6 +7745,13 @@ export interface components {
              *     ]
              */
             roles: string[];
+            /**
+             * dept id
+             * @description owning dept for department-scoped data permissions; null => no dept
+             * @default null
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            deptId: string | null;
         };
         SysUserDTOUpdateRequest: {
             /**

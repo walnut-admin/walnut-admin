@@ -8,6 +8,7 @@ import { cloneDeep } from 'lodash'
 import { DataSource } from 'typeorm'
 import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { SysDeletedPgRepoService } from '@/modules/system/deleted/repo/deleted.repo.pg.service'
+import { SysEmployeeEntity } from '@/modules/system/employee/entity/employee.entity'
 import { IWalnutAdminRequestList } from '../dto/list.dto'
 import {
   applyWalnutDataScopePredicate,
@@ -158,22 +159,45 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
   }
 
   /**
+   * @description 取某账号的职工部门（create 的行级部门回填腿；无职工行 → null）
+   *
+   * 系统级只读查询：回填必须看到「创建者此刻的真实部门」，不受行级 scope 影响
+   * （此处位于 common/repository，ESLint 的直连守卫对本目录豁免）。
+   */
+  private async findOwnerDeptId(userId: string, em?: EntityManager): Promise<string | null> {
+    const employee = await this.getManager(em).getRepository(SysEmployeeEntity).findOne({
+      where: { userId },
+      select: { deptId: true },
+    })
+
+    return employee?.deptId ?? null
+  }
+
+  /**
    * @description create（PK 不传则由 DB 默认值生成，save 后回带 id）
    *
    * 注册实体 + `fillOwnerOnCreate !== false` 时**无条件**用当前用户覆盖 owner 列
    * （app_demo.created_by 等）：显式传入 owner 一律不尊重 —— DTO 白名单日后若误加
    * owner 列，也不能把行伪造成别人的。系统通道（ALL 且无用户）不回填。
+   *
+   * `fillDeptOnCreate`（二期批 2）：行级部门归属与 owner 一样由 create 决定 —— 取创建者
+   * 的 `sys_employee.dept_id`（无职工行 → NULL，仅 ALL 可见）。两处回填都发生在
+   * repository.create 之前，调用方 DTO 不需要（也不允许）携带这两个归属列。
    */
   public async create(dto: Partial<Entity>, em?: EntityManager): Promise<Entity> {
     const config = this.getDataScopeEntityConfig()
 
     if (config !== undefined) {
       const { userId } = this.requireDataScopeContext()
-      const shouldFill = config.fillOwnerOnCreate !== false && userId !== ''
+      const shouldFillOwner = config.fillOwnerOnCreate !== false && userId !== ''
 
-      if (shouldFill) {
+      if (shouldFillOwner) {
         // 不改调用方入参：浅拷贝后再覆盖 owner 列
         dto = { ...dto, [config.scopeColumn]: userId }
+      }
+
+      if (config.fillDeptOnCreate === true && config.deptColumn !== undefined && userId !== '') {
+        dto = { ...dto, [config.deptColumn]: await this.findOwnerDeptId(userId, em) }
       }
     }
 

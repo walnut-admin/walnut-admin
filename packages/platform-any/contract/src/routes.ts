@@ -56,6 +56,7 @@ export const SystemEndpointRoutes = {
   USER_PREFERENCE_LAYOUT: '/system/user/preference/layout',
   DEVICE_INITIAL: '/system/device/initial',
   MENU_TREE: '/system/menu/tree',
+  DEPT_TREE: '/system/dept/tree',
   LANG_LIST_PUBLIC: '/system/lang/list/public',
   LOCALE_MESSAGE: '/system/locale/message',
   DICT_TYPE_S: '/system/dict/type/s',

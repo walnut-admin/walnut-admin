@@ -6,6 +6,7 @@ import { useCRUD } from '@/components/Advanced/CRUD'
 import { WTablePresetCreatedAtColumn, WTablePresetOrderColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
 import { AppConstRoles } from '@/const/app'
 import { AppConstMenuType } from '@/const/menu'
+import { useDeptTree } from '@/hooks/core/useDeptTree'
 import { useAppI18n } from '@/locales'
 
 import { useMenuTree } from './useMenuTree'
@@ -21,6 +22,8 @@ const key = 'role'
 const keyField = 'id'
 
 const { getLeftMenu } = useMenuTree()
+// 数据权限二期批 2：CUSTOM(2) 档位的部门勾选树
+const { getDeptTree } = useDeptTree()
 
 const [
   register,
@@ -212,9 +215,9 @@ const [
         },
       },
       {
-        // 数据权限一期（data-scope-design.md §4）：1=ALL 2=SELF 3=CUSTOM。
-        // 值集与后端 WalnutAdminConstDataScope 同源；CUSTOM 的成员范围由后端按
-        // 角色绑定的用户解析（一期不做部门维度）。
+        // 数据权限二期六档（docs/plans/data-scope-phase2-3-plan.md §1.1）：
+        // 1=ALL 2=CUSTOM(部门清单) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF。
+        // 值集与后端 WalnutAdminConstDataScope 同源；CUSTOM 的部门清单即下方 deptIds。
         type: 'Base:Select',
         formProp: {
           path: 'dataScope',
@@ -224,9 +227,36 @@ const [
           defaultValue: 1,
           options: [
             { label: t('table.role.dataScope.all'), value: 1 },
-            { label: t('table.role.dataScope.self'), value: 2 },
-            { label: t('table.role.dataScope.custom'), value: 3 },
+            { label: t('table.role.dataScope.custom'), value: 2 },
+            { label: t('table.role.dataScope.dept'), value: 3 },
+            { label: t('table.role.dataScope.deptAndChild'), value: 4 },
+            { label: t('table.role.dataScope.self'), value: 5 },
+            { label: t('table.role.dataScope.deptOrSelf'), value: 6 },
           ],
+        },
+      },
+      {
+        // CUSTOM(2) 的部门清单：只在选中 CUSTOM 时显示（visibleProp.vIf 读 formData）。
+        // 提交到角色 create/update 的 deptIds，后端整组替换 sys_role_dept junction。
+        // 非 CUSTOM 时该 schema 仍参与 strictFormData 的字段收集，但值保持上次勾选
+        // （后端对非 CUSTOM 角色无执行语义，切回 CUSTOM 时可直接复用）。
+        type: 'Base:TreeSelect',
+        formProp: {
+          path: 'deptIds',
+          labelHelpMessage: true,
+        },
+        visibleProp: {
+          vIf: ({ formData }) => (formData as { dataScope?: number }).dataScope === 2,
+        },
+        componentProp: {
+          multiple: true,
+          defaultValue: [],
+          treeSelectProps: {
+            options: getDeptTree as unknown as any[],
+            keyField: 'id',
+            labelField: 'deptName',
+            placeholder: t('table.role.deptIds.placeholder'),
+          },
         },
       },
       {

@@ -1,5 +1,6 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
+import { WalnutAdminConstDataScope } from '@walnut-server/const/app/dataScope'
 import { runAfterCommit } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
@@ -79,10 +80,19 @@ export class SysRoleService {
 
     // 数据权限：dataScope 或 status（停用角色不参与 scope 解析）变化都会
     // 改变成员的行级可见面 —— 与权限缓存同一反查腿失效 `AUTH:DATA_SCOPE:<userId>`。
+    //
+    // 二期批 2：`sys_role_dept`（CUSTOM 部门清单）整组替换同样是数据权限输入 ——
+    // 只在「当前是 CUSTOM」或「本次改成 CUSTOM」时影响执行语义；清单变更也只影响该角色
+    // 成员的描述符（成员反查腿同 dataScope 失效）。
     const dataScopeAffected = (dto.dataScope !== undefined && role !== null && dto.dataScope !== role.dataScope)
       || (dto.status !== undefined && role !== null && dto.status !== role.status)
 
-    const affectedUserIds = permissionsAffected || dataScopeAffected
+    const deptScopeAffected = dto.deptIds !== undefined && (
+      role?.dataScope === WalnutAdminConstDataScope.CUSTOM
+      || dto.dataScope === WalnutAdminConstDataScope.CUSTOM
+    )
+
+    const affectedUserIds = permissionsAffected || dataScopeAffected || deptScopeAffected
       ? await this.roleRepoService.findUserIdsByRoleId(id, em)
       : []
 
@@ -96,12 +106,12 @@ export class SysRoleService {
           }
         }
 
-        if (dataScopeAffected) {
+        if (dataScopeAffected || deptScopeAffected) {
           await this.dataScopeService.invalidateForUsers(affectedUserIds)
         }
 
         this.logger.debug(
-          `role ${id} change invalidated permission cache (${permissionsAffected ? 'on' : 'off'}) / data scope (${dataScopeAffected ? 'on' : 'off'}) for ${affectedUserIds.length} user(s)`,
+          `role ${id} change invalidated permission cache (${permissionsAffected ? 'on' : 'off'}) / data scope (${dataScopeAffected || deptScopeAffected ? 'on' : 'off'}) for ${affectedUserIds.length} user(s)`,
         )
       })
     }
