@@ -1,5 +1,6 @@
 import * as process from 'node:process'
 import { registerAs } from '@nestjs/config'
+import { assertWalnutPgAppBootstrapPassword } from '../utils/pg-app-password'
 
 /**
  * PG 连接配置（数据权限三期拆双角色）。
@@ -23,6 +24,9 @@ export default registerAs('pg', () => {
       + '已创建 walnut_app 角色；生产环境按部署文档预建角色并配置强密码。',
     )
   }
+
+  // L5：dev 引导密码不得上 stage / production（与 validation.ts 的 F2 校验同一事实源）
+  assertWalnutPgAppBootstrapPassword(process.env.NODE_ENV, appPass)
 
   return {
     host: process.env.DATABASE_PG_HOST,

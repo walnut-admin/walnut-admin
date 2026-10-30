@@ -1,5 +1,6 @@
 import { plainToClass } from 'class-transformer'
 import { IsNumber, IsString, validateSync } from 'class-validator'
+import { assertWalnutPgAppBootstrapPassword } from './utils/pg-app-password'
 
 class EnvironmentVariables {
   @IsString()
@@ -231,6 +232,12 @@ export function validateConfig(config: Record<string, unknown>) {
       + '已创建 walnut_app 角色，或按部署文档预建该角色并配置强密码。',
     )
   }
+
+  // L5：dev 引导密码不得上 stage / production（缺失必填之外的第二道防呆）
+  assertWalnutPgAppBootstrapPassword(
+    typeof config.NODE_ENV === 'string' ? config.NODE_ENV : undefined,
+    appPass,
+  )
 
   const validatedConfig = plainToClass(EnvironmentVariables, config, {
     enableImplicitConversion: true,
