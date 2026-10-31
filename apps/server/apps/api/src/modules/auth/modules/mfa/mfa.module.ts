@@ -1,6 +1,5 @@
-import { Module } from '@nestjs/common'
-import { SysUserDeviceSharedModule } from '@/modules/system/user_device/shared/user_device.shared.module'
-import { SysUserMfaSharedModule } from '@/modules/system/user_mfa/shared/user_mfa.shared.module'
+import { Global, Module } from '@nestjs/common'
+import { SysUserDeviceSharedModule, SysUserMfaSharedModule, WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION } from '@walnut-server/identity'
 import { AuthCookieModule } from '../cookie/cookie.module'
 import { AuthRefreshSharedModule } from '../refresh/shared/refresh.shared.module'
 import { AuthSharedModule } from '../shared/shared.module'
@@ -8,10 +7,22 @@ import { AuthMfaController } from './mfa.controller'
 import { AuthMfaPostVerificationService } from './mfa.post.service'
 import { AuthMfaService } from './mfa.service'
 
+/**
+ * @Global：批 6 起 libs/identity 的 totp / webauthn verify 只认
+ * WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION 端口；本模块在 app 组合根绑定实现。
+ */
+@Global()
 @Module({
   imports: [AuthSharedModule, SysUserMfaSharedModule, AuthRefreshSharedModule, SysUserDeviceSharedModule, SysUserMfaSharedModule, AuthCookieModule],
   controllers: [AuthMfaController],
-  providers: [AuthMfaService, AuthMfaPostVerificationService],
-  exports: [AuthMfaService, AuthMfaPostVerificationService],
+  providers: [
+    AuthMfaService,
+    AuthMfaPostVerificationService,
+    {
+      provide: WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION,
+      useExisting: AuthMfaPostVerificationService,
+    },
+  ],
+  exports: [AuthMfaService, AuthMfaPostVerificationService, WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION],
 })
 export class AuthMfaModule {}

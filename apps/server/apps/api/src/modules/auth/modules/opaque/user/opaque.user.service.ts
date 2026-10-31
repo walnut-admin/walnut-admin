@@ -2,9 +2,8 @@ import { Injectable, Logger } from '@nestjs/common'
 import * as opaque from '@serenity-kit/opaque'
 import { AppTechCacheOpaqueService } from '@walnut-server/cache'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
+import { SysUserRepositoryService, SysUserSharedService } from '@walnut-server/identity'
 import { isNil } from 'lodash'
-import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
-import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
 import { AuthOpaqueCoreService } from '../core/opaque.core.service'
 
 /**

@@ -6,15 +6,9 @@ import { createHash, randomUUID } from 'node:crypto'
 import { ALSRequestService } from '@walnut-server/als'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import { SysUserBasicRepository, SysUserCrudService, SysUserIdentityRepositoryService, SysUserMeService, SysUserOAuthRepositoryService, SysUserRepositoryService, SysUserSharedService } from '@walnut-server/identity'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { SysRoleBasicRepository } from '@/modules/system/role/role.basic.repository'
-import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
-import { SysUserCrudService } from '@/modules/system/user/services/user.crud.service'
-import { SysUserMeService } from '@/modules/system/user/services/user.me.service'
-import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
-import { SysUserBasicRepository } from '@/modules/system/user/user.basic.repository'
-import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
-import { SysUserOAuthRepositoryService } from '@/modules/system/user_oauth/repo/user_oauth.repo.service'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 
@@ -159,7 +153,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
         const created = await userCrudService.create({
           userName: uniqueName('b7a-user-default'),
           status: true,
-        } as never)
+        })
 
         expect(created.roles).toEqual([roleUuid])
         expect(created.currentRole).toBe(roleUuid)

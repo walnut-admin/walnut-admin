@@ -7,8 +7,8 @@ import { ConfigService } from '@nestjs/config'
 import * as opaque from '@serenity-kit/opaque'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 
+import { SysUserSharedService } from '@walnut-server/identity'
 import { AuthOpaqueCoreService } from '@/modules/auth/modules/opaque/core/opaque.core.service'
-import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
 
 import { WALNUT_DEFAULT_VISITOR_ROLE_UUID } from './auth-login'
 

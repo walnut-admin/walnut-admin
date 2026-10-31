@@ -11,11 +11,10 @@ import { Injectable } from '@nestjs/common'
 import { AppTechRedisService } from '@walnut-server/cache'
 
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
+import { SysUserIdentitySharedService, WalnutAdminConstSysUserIdentityPurpose } from '@walnut-server/identity'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
 import { OtpSharedService } from '@/modules/auth/modules/otp/shared/otp.shared.service'
-import { WalnutAdminConstSysUserIdentityPurpose } from '@/modules/system/user_identity/identity.const'
-import { SysUserIdentitySharedService } from '@/modules/system/user_identity/shared/user_identity.shared.service'
 
 import { WalnutAdminConstVerifyMethod } from './sensitive.const'
 

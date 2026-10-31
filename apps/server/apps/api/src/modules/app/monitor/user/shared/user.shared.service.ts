@@ -1,3 +1,4 @@
+import type { IIdentityUserNotifier } from '@walnut-server/identity'
 import { Injectable } from '@nestjs/common'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
@@ -13,7 +14,8 @@ interface IExpiredRefreshTokenLike {
 }
 
 @Injectable()
-export class AppMonitorUserSharedService {
+/** 批 6：implements 是端口绑定的编译期守护（user_lock 只认端口）。 */
+export class AppMonitorUserSharedService implements IIdentityUserNotifier {
   constructor(
     private readonly appMonitorUserRepo: AppMonitorUserRepositoryService,
     private readonly socketService: SocketService,
@@ -29,6 +31,14 @@ export class AppMonitorUserSharedService {
     for (const monitor of authOnlineMonitors) {
       this.socketService.sendToUserRoom(userId, monitor.visitorId?.toString(), event, data)
     }
+  }
+
+  /**
+   * @description 批 6：身份内核的单设备 socket 通知端口实现（user_lock 的 lock/unlock）。
+   * 与 sendSocketEventToUserAllMonitors 共用同一 SocketService，行为不变。
+   */
+  sendSocketEventToUserDevice(userId: string, fingerprint: string, event: IWalnutAdminSocketEvents) {
+    this.socketService.sendToUserRoom(userId, fingerprint, event)
   }
 
   /**

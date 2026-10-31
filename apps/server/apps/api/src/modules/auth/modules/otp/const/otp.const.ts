@@ -3,9 +3,8 @@
  * One-Time Password authentication for Email and SMS
  */
 
-import type { ValueOf } from 'easy-fns-ts'
-import type { IWalnutAdminConstSysUserIdentityType } from '@/modules/system/user_identity/identity.const'
-import { WalnutAdminConstSysUserIdentityType } from '@/modules/system/user_identity/identity.const'
+import type { IOtpType as IIdentityOtpType, IWalnutAdminConstSysUserIdentityType } from '@walnut-server/identity'
+import { WalnutAdminConstSysUserIdentityType } from '@walnut-server/identity'
 
 export const otpType = {
   email: 'email',
@@ -15,7 +14,8 @@ export const otpType = {
 /**
  * OTP Type - distinguishes between email and SMS verification
  */
-export type IOtpType = ValueOf<typeof otpType>
+/** 批 6：类型真源随身份内核下沉；本别名保持 auth 侧既有 import 面。 */
+export type IOtpType = IIdentityOtpType
 
 /**
  * Passport strategy name for OTP authentication

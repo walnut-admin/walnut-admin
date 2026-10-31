@@ -5,10 +5,10 @@ import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
 import * as opaque from '@serenity-kit/opaque'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
-import { Role } from '@walnut/contract'
+import { SysUserSharedService } from '@walnut-server/identity'
 
+import { Role } from '@walnut/contract'
 import { AuthOpaqueCoreService } from '@/modules/auth/modules/opaque/core/opaque.core.service'
-import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
 
 import { bodyOf } from './api-client'
 

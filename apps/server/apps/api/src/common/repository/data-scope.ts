@@ -7,6 +7,7 @@ import type {
 } from '@walnut-server/repository'
 import type { EntityTarget, FindOptionsWhere, ObjectLiteral, SelectQueryBuilder } from 'typeorm'
 import { WalnutAdminConstDataScope, WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
+import { SysUserDeviceEntity, SysUserEntity, SysUserIdentityEntity, SysUserLockEntity, SysUserMfaEntity, SysUserOauthEntity, SysUserPreferenceEntity, SysUserRoleEntity } from '@walnut-server/identity'
 import { Role } from '@walnut/contract'
 import { In, IsNull } from 'typeorm'
 import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
@@ -31,14 +32,6 @@ import { SysPostEntity } from '@/modules/system/post/entity/post.entity'
 import { SysRoleDeptEntity } from '@/modules/system/role/entity/role-dept.entity'
 import { SysRoleMenuEntity } from '@/modules/system/role/entity/role-menu.entity'
 import { SysRoleEntity } from '@/modules/system/role/entity/role.entity'
-import { SysUserRoleEntity } from '@/modules/system/user/entity/user-role.entity'
-import { SysUserEntity } from '@/modules/system/user/entity/user.entity'
-import { SysUserDeviceEntity } from '@/modules/system/user_device/entity/user-device.entity'
-import { SysUserIdentityEntity } from '@/modules/system/user_identity/entity/user-identity.entity'
-import { SysUserLockEntity } from '@/modules/system/user_lock/entity/user-lock.entity'
-import { SysUserMfaEntity } from '@/modules/system/user_mfa/entity/user-mfa.entity'
-import { SysUserOauthEntity } from '@/modules/system/user_oauth/entity/user-oauth.entity'
-import { SysUserPreferenceEntity } from '@/modules/system/user_preference/entity/user-preference.entity'
 
 /**
  * 数据权限的**实体注册表**与谓词构造 —— 纯数据 + 纯函数，零 Nest/DB 依赖，

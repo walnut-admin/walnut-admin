@@ -41,7 +41,8 @@
           "libs/token/src",
           "libs/repository/src",
           "libs/rsa/src",
-          "libs/ip/src"
+          "libs/ip/src",
+          "libs/identity/src"
         ]
       }
     }
@@ -324,6 +325,15 @@
       "sourceRoot": "libs/ip/src",
       "compilerOptions": {
         "tsConfigPath": "libs/ip/tsconfig.lib.json"
+      }
+    },
+    "identity": {
+      "type": "library",
+      "root": "libs/identity",
+      "entryFile": "index",
+      "sourceRoot": "libs/identity/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/identity/tsconfig.lib.json"
       }
     }
   }

@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common'
-import { SysUserIdentityRepositoryModule } from '@/modules/system/user_identity/repo/user_identity.repo.module'
+import { SysUserIdentityRepositoryModule } from '@walnut-server/identity'
 import { SecurityRiskChallengeStateService } from './modules/challenge.service'
 import { SecurityRiskDeviceService } from './modules/device.service'
 import { SecurityRiskFailedLoginService } from './modules/failedLogin.service'

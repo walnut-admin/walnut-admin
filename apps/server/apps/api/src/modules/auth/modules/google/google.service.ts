@@ -1,9 +1,8 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
+import { SysUserRepositoryService, SysUserSharedService } from '@walnut-server/identity'
 import { LocaleType } from '@walnut/contract'
 import { SharedWelcomeService } from '@/modules/shared/welcome/welcome.service'
-import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
-import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
 import { AuthSharedService } from '../shared/shared.service'
 
 /**

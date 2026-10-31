@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
-import { SysUserDeviceSharedModule } from '../user_device/shared/user_device.shared.module'
+import { SysUserDeviceSharedModule } from '@walnut-server/identity'
 import { SysDeviceBasicRepository } from './device.basic.repository'
 import { SysDeviceController } from './device.controller'
 import { SysDeviceService } from './device.service'

@@ -23,11 +23,11 @@ MFA 守卫、Lock 守卫、敏感操作校验都直接依赖它们。
 | 模块 | 源码目录 | 职责 | 主表 |
 |---|---|---|---|
 | device | `modules/system/device/` | 匿名设备登记、设备档案、设备级 lock/ban、按设备反查当前/历史用户 | `sys_device` |
-| user_device | `modules/system/user_device/` | 用户与设备的绑定行、显示名、踢下线、锁屏入口（用户-设备维度） | `sys_user_device` |
-| user_identity | `modules/system/user_identity/` | 登录/安全身份（手机号、邮箱、口令、证件）的绑定、验证、启停 | `sys_user_identity` |
-| user_lock | `modules/system/user_lock/` | 锁屏偏好（方式、空闲秒数、跨设备）与 user_device.locked 的读写 | `sys_user_lock` |
-| user_mfa | `modules/system/user_mfa/` | TOTP / WebAuthn 凭据、备用码、MFA 状态与验证后的 RT 轮换 | `sys_user_mfa` |
-| user_preference | `modules/system/user_preference/` | 语言、可访问性、主题、布局四段界面偏好 | `sys_user_preference` |
+| user_device | `libs/identity/src/user_device/`（HTTP 面 `modules/system/identity/`） | 用户与设备的绑定行、显示名、踢下线、锁屏入口（用户-设备维度） | `sys_user_device` |
+| user_identity | `libs/identity/src/user_identity/`（HTTP 面 `modules/system/identity/`） | 登录/安全身份（手机号、邮箱、口令、证件）的绑定、验证、启停 | `sys_user_identity` |
+| user_lock | `libs/identity/src/user_lock/`（HTTP 面 `modules/system/identity/`） | 锁屏偏好（方式、空闲秒数、跨设备）与 user_device.locked 的读写 | `sys_user_lock` |
+| user_mfa | `libs/identity/src/user_mfa/`（HTTP 面 `modules/system/identity/`） | TOTP / WebAuthn 凭据、备用码、MFA 状态与验证后的 RT 轮换 | `sys_user_mfa` |
+| user_preference | `libs/identity/src/user_preference/`（HTTP 面 `modules/system/identity/`） | 语言、可访问性、主题、布局四段界面偏好 | `sys_user_preference` |
 
 所有表都带 `id`（uuid）/ `created_at` / `updated_at`（`sys_log_*` 与 `sys_deleted` 例外，
 见 [数据域](./system-data.md)）。软删统一走「写 `sys_deleted` 快照 + 硬删原行」，

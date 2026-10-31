@@ -4,9 +4,8 @@ import { ConfigService } from '@nestjs/config'
 import * as opaque from '@serenity-kit/opaque'
 import { AppTechCacheOpaqueService } from '@walnut-server/cache'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
+import { SysUserIdentityRepositoryService, SysUserRepositoryService } from '@walnut-server/identity'
 import { isNil } from 'lodash'
-import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
-import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
 import { AuthSharedService } from '../../shared/shared.service'
 
 /**

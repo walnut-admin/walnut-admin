@@ -1,16 +1,17 @@
 import type { IWalnutAdminDataScopeDescriptor } from '@walnut-server/db'
+import type { IIdentityDataScopeInvalidator } from '@walnut-server/identity'
 import type { EntityManager } from 'typeorm'
 import type { IWalnutAdminDataScopeResolveInput, IWalnutAdminDataScopeRoleSnapshot } from './data-scope.resolver'
 import { Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheAppSettingsService, AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstDataScope, WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
+import { SysUserRepositoryService } from '@walnut-server/identity'
 import { SharedScopeResolverService } from '@walnut-server/scope-resolver'
 import { AppTokenService } from '@walnut-server/token'
 import { Role } from '@walnut/contract'
 import { SysDeptBasicRepository } from '../dept/dept.basic.repository'
 import { SysRoleRepoService } from '../role/repo/role.repo.service'
-import { SysUserRepositoryService } from '../user/repo/user.repo.service'
 import { resolveWalnutDataScopeDescriptor } from './data-scope.resolver'
 
 /**
@@ -65,7 +66,12 @@ export function isWalnutDataScopeSettingKey(settingKey: string | null | undefine
  * 到 TTL 到期。
  */
 @Injectable()
-export class DataScopeService {
+/**
+ * 批 6：implements 是端口绑定的编译期守护 —— libs/identity 的 user 写路径
+ * （role 整组替换 / deptId 变更 / 删除 / 切角色）只认
+ * WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR 端口的 invalidateForUser。
+ */
+export class DataScopeService implements IIdentityDataScopeInvalidator {
   private readonly logger = new Logger(DataScopeService.name)
 
   constructor(

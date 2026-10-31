@@ -6,18 +6,10 @@ import { applyWalnutDataScopeRlsSettings, WALNUT_DATA_SCOPE_RLS_MODE, WalnutPGCo
 
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
+import { SysUserIdentityRepositoryService, SysUserIdentitySharedService, SysUserOAuthRepositoryService, SysUserRepositoryService, SysUserSharedService, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType } from '@walnut-server/identity'
 import { LocaleType } from '@walnut/contract'
 import { DataSource } from 'typeorm'
 import { SharedWelcomeService } from '@/modules/shared/welcome/welcome.service'
-import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
-import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
-import {
-  WalnutAdminConstSysUserIdentityPurpose,
-  WalnutAdminConstSysUserIdentityType,
-} from '@/modules/system/user_identity/identity.const'
-import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
-import { SysUserIdentitySharedService } from '@/modules/system/user_identity/shared/user_identity.shared.service'
-import { SysUserOAuthRepositoryService } from '@/modules/system/user_oauth/repo/user_oauth.repo.service'
 
 @Injectable()
 export class OAuthGiteeService {

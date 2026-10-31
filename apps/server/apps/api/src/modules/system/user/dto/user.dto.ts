@@ -1,12 +1,7 @@
 import { ApiProperty, IntersectionType } from '@nestjs/swagger'
-import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role'
-import {
-  WalnutAdminDecoratorFieldBoolean,
-  WalnutAdminDecoratorFieldEnum,
-  WalnutAdminDecoratorFieldNumber,
-  WalnutAdminDecoratorFieldString,
-} from '@walnut-server/decorators/field'
+
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
+import { SysUserDTOBase } from '@walnut-server/identity'
 import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,
@@ -14,131 +9,12 @@ import {
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
-import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { WalnutAdminVirtualRolesCountDTO, WalnutAdminVirtualRolesListDTO } from '@/common/model/virtual/role'
-import { SysUserGenderConst, SysUserGenderConstType } from '../user.const'
 
-// 批 4 结构重构：schema/ 并入 dto/（原 schema/user.schema.ts 的 SysUserModel 改名
-// SysUserDTOBase），装饰器与字段本体零改动
-export class SysUserDTOBase extends WalnutAdminCommonBasicModel {
-  @WalnutAdminDecoratorFieldString({
-    default: null,
-    swaggerOptions: {
-      title: 'user name',
-      description: 'should be unique, used for normal password sign in',
-    },
-  })
-  userName: string
-
-  @WalnutAdminDecoratorFieldString({
-    default: null,
-    swaggerOptions: {
-      title: 'user nick name',
-      description: 'feel free to change',
-    },
-  })
-  nickName: string
-
-  @WalnutAdminDecoratorFieldNumber({
-    default: null,
-    swaggerOptions: {
-      title: 'age',
-      description: 'should be int and positive',
-    },
-    validateOptions: { int: true, positive: true },
-  })
-  age: number
-
-  @WalnutAdminDecoratorFieldEnum(() => SysUserGenderConst, {
-    default: SysUserGenderConst.UNDESCRIBED,
-    swaggerOptions: {
-      title: 'gender',
-      description: 'follow GB standard, go internet it',
-      example: SysUserGenderConst.UNDESCRIBED,
-    },
-  })
-  gender: SysUserGenderConstType
-
-  @WalnutAdminDecoratorFieldString({
-    default: null,
-    swaggerOptions: {
-      title: 'avatar',
-      description: 'maybe a transform in the future',
-    },
-    // TODO add oss prefix
-    transformOptions: {},
-  })
-  avatar: string
-
-  @WalnutAdminDecoratorFieldString({
-    default: null,
-    swaggerOptions: {
-      title: 'description',
-      description: 'feel free to change',
-    },
-    validateOptions: {},
-  })
-  description: string
-
-  @WalnutAdminDecoratorFieldBoolean({
-    default: true,
-    swaggerOptions: {
-      title: 'user status',
-      description:
-        'false => user cannot sign in anymore, also should ban tokens as well',
-    },
-  })
-  status: boolean
-
-  @Expose()
-  // B7a：roles 随 PG 关联表 sys_user_role 放开为 uuid 数组（phase2 4.1；IsMongoId 约束
-  // 由 DTO 子类重声明替换为 uuid，B5 role menus 同款处理）
-  roles: string[]
-
-  @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstRoleMode, {
-    default: WalnutAdminConstRoleMode.SWITCH,
-    swaggerOptions: {
-      title: 'role mode',
-      description: `switch => user can switch role freely; combine => user's role is combined by system, along with the permission, user would access all permission in the roles he has`,
-      example: WalnutAdminConstRoleMode.SWITCH,
-    },
-  })
-  roleMode: IWalnutAdminConstRoleMode
-
-  @Expose()
-  // B7a：随 PG 列 current_role_id（uuid，可空）放开类型注解
-  currentRole: string | null
-
-  @WalnutAdminDecoratorFieldBoolean({
-    default: false,
-    swaggerOptions: {
-      title: 'MFA setup',
-      description:
-        'true => user has setup MFA',
-    },
-  })
-  mfaSetup: boolean
-
-  // 所属部门（数据权限二期批 1）：写 sys_user.dept_id，DEPT/DEPT_AND_CHILD 的解析输入。
-  // 批 2 起 create / update 都可选提供（admin 用户表单的部门树选择器）。
-  @WalnutAdminDecoratorFieldString({
-    default: null,
-    validateOptions: { nullable: true },
-    // 数据权限批 4 / B1：string 字段的 booleanString Transform 会把「未提交」物化成
-    // null（自有属性），使 update 无法区分「没给 deptId」与「显式清空部门」。这里
-    // 关掉入参方向的 transform —— 未提交保持属性缺失/undefined，显式 null 仍原样保留。
-    transformOptions: { req: { booleanString: false } },
-    swaggerOptions: {
-      title: 'dept id',
-      description: 'owning dept for department-scoped data permissions; null => no dept',
-      nullable: true,
-      example: '0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c',
-    },
-  })
-  @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  deptId: string | null
-}
-
+/**
+ * user 的字段基座随身份内核下沉 libs/identity（批 6）；本文件保留 wire 响应面
+ * （role 读模型组合），class 名与 schema 名不变。
+ */
 // do not use when need to extend
 // use `SysUserDTOSafe` below to extend
 export class SysUserDTO extends IntersectionType(SysUserDTOBase, WalnutAdminVirtualRolesCountDTO, WalnutAdminVirtualRolesListDTO) {

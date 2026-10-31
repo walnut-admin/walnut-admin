@@ -3,12 +3,9 @@ import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 
 import { DBTransactionHooksStore } from '@walnut-server/db'
+import { SysUserDeviceRepositoryService, SysUserLockRepositoryService, SysUserLockService, SysUserLockSharedService } from '@walnut-server/identity'
 import { compare } from 'bcryptjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { SysUserDeviceRepositoryService } from '@/modules/system/user_device/repo/user_device.repo.service'
-import { SysUserLockRepositoryService } from '@/modules/system/user_lock/repo/user_lock.repo.service'
-import { SysUserLockSharedService } from '@/modules/system/user_lock/shared/user_lock.shared.service'
-import { SysUserLockService } from '@/modules/system/user_lock/user_lock.service'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 
 /**

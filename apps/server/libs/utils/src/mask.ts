@@ -103,3 +103,38 @@ export function maskSensitiveFields<T extends Record<string, any>>(obj: T, extra
 
   return walk(cloned)
 }
+
+/**
+ * @description 身份标识展示掩码（user_identity 专用；libs 解耦批 6 随身份内核下沉）。
+ *
+ * 从 app 的 SharedMaskService.maskIdentityValue 逐句搬入：phoneNumber / emailAddress /
+ * idCard / password 四类，其余类型原样返回。SharedMaskService 侧改为单行委托，行为零变化。
+ */
+export function maskIdentityValue(type: string, value: string): string {
+  if (type === 'phoneNumber') {
+    const countryCode = value.startsWith('+') ? value.slice(0, value.length - 11) : ''
+    const mainNumber = countryCode ? value.slice(value.length - 11) : value
+    return `${countryCode}${mainNumber.slice(0, 3)}****${mainNumber.slice(-4)}`
+  }
+
+  if (type === 'emailAddress') {
+    const [local, domain] = value.split('@')
+    if (local.length <= 2) {
+      return `*@${domain}`
+    }
+    return `${local[0]}${'*'.repeat(local.length - 2)}${local.at(-1)}@${domain}`
+  }
+
+  if (type === 'idCard') {
+    if (value.length === 18) {
+      return `${value.slice(0, 6)}********${value.slice(-4)}`
+    }
+    return `${value.slice(0, 4)}****${value.slice(-4)}`
+  }
+
+  if (type === 'password') {
+    return '********'
+  }
+
+  return value
+}

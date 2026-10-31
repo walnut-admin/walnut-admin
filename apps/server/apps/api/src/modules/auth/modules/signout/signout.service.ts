@@ -1,3 +1,4 @@
+import type { IIdentitySignoutService } from '@walnut-server/identity'
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheMfaService } from '@walnut-server/cache'
@@ -16,7 +17,11 @@ import { AuthSessionService } from '../session/session.service'
  * `em?: EntityManager`（事务句柄由调用方传入 ctx.em）。
  */
 @Injectable()
-export class AuthSignoutService {
+/**
+ * 批 6：implements 是端口绑定的编译期守护。身份内核的 user_device.forceQuit 只经
+ * WALNUT_ADMIN_IDENTITY_SIGNOUT_SERVICE 调本服务的 user-kick-other 分支。
+ */
+export class AuthSignoutService implements IIdentitySignoutService {
   private readonly logger = new Logger(AuthSignoutService.name)
 
   constructor(

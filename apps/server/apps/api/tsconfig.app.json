@@ -32,7 +32,8 @@
         "../../libs/token/src/**/*",
         "../../libs/repository/src/**/*",
         "../../libs/rsa/src/**/*",
-        "../../libs/ip/src/**/*"
+        "../../libs/ip/src/**/*",
+        "../../libs/identity/src/**/*"
     ],
     "exclude": [
         "node_modules",

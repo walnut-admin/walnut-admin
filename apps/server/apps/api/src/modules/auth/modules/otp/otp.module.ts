@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common'
-import { SysUserIdentitySharedModule } from '@/modules/system/user_identity/shared/user_identity.shared.module'
+import { SysUserIdentitySharedModule } from '@walnut-server/identity'
 import { AuthSharedModule } from '../shared/shared.module'
 import { OtpFunctionalGuard, OtpSendFunctionalGuard } from './guard/otp-functional.guard'
 import { OtpThrottleGuard } from './guard/otp-throttle.guard'

@@ -230,7 +230,7 @@
 
 ### P1-6 user_identity HTTP 面四缺陷簇（DTO/守卫）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/system/user_identity/`（dto + controller）+
+- **位置**：`libs/identity/src/user_identity/`（dto + controller）+
   `apps/api/src/guard/sensitive.guard.ts`（RequireSensitive 探测）。
 - **现象**：① `POST list` 恒 40099（list DTO 是空类 × 全局 `forbidUnknownValues`）；
   ② bind 的 `setAsSecurity` 未挂 IsOptional（缺字段 40099）；③ `update`（rebind）经 HTTP 恒
@@ -439,10 +439,10 @@
 
 ### P1-18 `current_role_id` 与 `sys_user_role` junction 脱钩 —— SWITCH 用户可沿用已移出角色的权限（文档大轮次 B 段，新登记）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/system/user/user.basic.repository.ts`（`update` 的
-  `replaceRoles` 只整组替换 junction）+ `apps/api/src/modules/system/user/services/user.crud.service.ts`
+- **位置**：`libs/identity/src/user/user.basic.repository.ts`（`update` 的
+  `replaceRoles` 只整组替换 junction）+ `libs/identity/src/user/services/user.crud.service.ts`
   （create 的 `roles: []` 仍把 `currentRole` 落 `defaultRole`）+
-  `apps/api/src/modules/system/user/shared/user.shared.service.ts`（`checkUserAndRoleStatus`
+  `libs/identity/src/user/shared/user.shared.service.ts`（`checkUserAndRoleStatus`
   的 switch 分支：当前角色不在 `roles_list` 时只记日志继续）+
   `apps/api/src/modules/system/role/shared/role.shared.service.ts`（`getCoreMenus` 对
   SWITCH 直接取 `[user.currentRole]`）。
@@ -480,8 +480,8 @@
 
 ### P1-19 user create / update 的 junction 写入没有事务 —— 主行与角色绑定可半成功（文档大轮次 B 段，新登记）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/system/user/controllers/user.controller.ts`
-  （create / update 均无 `@WalnutTx`）+ `apps/api/src/modules/system/user/user.basic.repository.ts`
+- **位置**：`apps/api/src/modules/system/identity/user.controller.ts`
+  （create / update 均无 `@WalnutTx`）+ `libs/identity/src/user/user.basic.repository.ts`
   （`create` / `update` 先 `super.create` / `super.update` 写主行，再 `replaceRoles` 做
   delete + insert；em 缺省时走连接级 manager）+ `user.crud.service.ts`（service 不接 em）。
 - **现象**：user 的 HTTP create / update 不是事务：主行 save、junction delete、junction
@@ -750,7 +750,7 @@
 - **位置**：`apps/api/src/modules/system/menu/menu.service.ts`（create / update / delete
   三处 `TODO remove all cache auth data when menu changed`）+
   `apps/api/src/modules/system/role/role.service.ts`（menus 整组替换后无失效）+
-  `apps/api/src/modules/system/user/shared/user.shared.service.ts`（`switchRole` /
+  `libs/identity/src/user/shared/user.shared.service.ts`（`switchRole` /
   `switchRoleMode` 只写库）。
 - **现象**：`AUTH:PERMISSIONS` 的唯一写入口是 `GET /auth/permissions`，唯一主动删除点是
   signout 的 `clearDeviceCache`（P2-12 已登记踢人不清）。角色授权整组替换、菜单
@@ -800,7 +800,7 @@
 
 - **位置**：`apps/server/libs/cache/src/service/cache.appSettings.ts`
   （P2-9 后 `defaultFunctionalRole` = GLOBAL/combinable）+
-  `apps/api/src/modules/system/user/shared/user.shared.service.ts`（`switchRole` 用
+  `libs/identity/src/user/shared/user.shared.service.ts`（`switchRole` 用
   effectiveRoleMode 判 COMBINE）+ `apps/server/libs/token/src/token.service.ts`
   （AT payload 的 `roleMode` 取用户行）+ `apps/api/src/guard/permission.guard.ts`
   （root/visitor 短路按 payload 的行值）。
@@ -883,7 +883,7 @@
 
 ### P2-24 MFA 就绪判据两套 —— cron 按行数跨设备计数，运行时按类型 + 当前设备 —— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/modules/system/user_mfa/shared/user_mfa.shared.service.ts`
+- **位置**：`libs/identity/src/user_mfa/shared/user_mfa.shared.service.ts`
   （`getCurrentUserMfaSetupStatus` 的 webauthn 腿按 `(userId, deviceId)`；`getIsCurrentUserMfaVerified`
   用 `enabledCount >= methodsRequiredCount`）+
   `updateMfaSetupStatusForCronJob`（`aggregateMfaStats` 按 `(userId, type)` 统计**全部设备**的
@@ -903,7 +903,7 @@
 
 ### P2-25 identity 敏感操作面不一致 —— `update` 可绕过 status 的敏感守卫，`unbind` 无校验 —— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/modules/system/user_identity/user_identity.controller.ts`
+- **位置**：`apps/api/src/modules/system/identity/user_identity.controller.ts`
   （只有 `PUT status/:type/:purpose` 挂 `@WalnutAdminGuardRequireSensitive`；
   `PUT update/:type/:purpose` 与 `DELETE unbind/:type/:purpose` 没有）+
   `user_identity.service.ts`（`update` 的 `status` 直接落库；`assertCanUnbind` 把 `password`
@@ -922,7 +922,7 @@
 
 ### P2-26 锁屏 security 模式无写入通道 —— `lockPwdHash` / `lockMode` 不可设置，unlock 缺省即跳过密码校验 —— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/modules/system/user_lock/dto/user_lock.dto.ts`
+- **位置**：`libs/identity/src/user_lock/dto/user_lock.dto.ts`
   （`SysUserLockDoLockDto` 只 pick `lockRoute`）+ `user_lock.service.ts`（`lock` 只传
   `lockRoute`）+ `shared/user_lock.shared.service.ts`（`unLockUserDevice` 仅当 `lockPwdHash`
   非空才 `compareLockPwdHash`）。
@@ -1283,7 +1283,7 @@
 
 ### P3-23 MFA 备用码校验无 HTTP 通道 + 裸 Nest 异常；SMS 密文列无写入路径（C 段）—— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/modules/system/user_mfa/totp/totp.service.ts`
+- **位置**：`libs/identity/src/user_mfa/totp/totp.service.ts`
   （`verifyBackupCode` 无 controller 路由；抛 `BadRequestException` / `UnauthorizedException`）+
   `user_mfa/entity/user-mfa.entity.ts` 的 `phone_number_ciphertext`（selector 有、写入点无）。
 - **现象**：备用码在 bind 时生成并返回一次，但唯一的校验方法 `verifyBackupCode` 没有对外

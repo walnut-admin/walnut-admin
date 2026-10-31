@@ -1,16 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { WalnutAdminConstAppCronTaskNames } from '@walnut-server/const/app/task'
+import { SysUserDeviceSharedService, SysUserMfaSharedService } from '@walnut-server/identity'
+
 import { AppKeyTypeConst } from '@/modules/app/key/key.const'
+
 import { AppKeyService } from '@/modules/app/key/key.service'
-
 import { AppMonitorUserSharedService } from '@/modules/app/monitor/user/shared/user.shared.service'
-
 import { AppSettingRepositoryService } from '@/modules/app/setting/repo/setting.repo.service'
 import { AuthRefreshSharedService } from '@/modules/auth/modules/refresh/shared/refresh.shared.service'
 import { SysLocaleSharedService } from '@/modules/system/locale/shared/locale.shared.service'
-import { SysUserDeviceSharedService } from '@/modules/system/user_device/shared/user_device.shared.service'
-import { SysUserMfaSharedService } from '@/modules/system/user_mfa/shared/user_mfa.shared.service'
 
 @Injectable()
 export class AppTechTasksService {

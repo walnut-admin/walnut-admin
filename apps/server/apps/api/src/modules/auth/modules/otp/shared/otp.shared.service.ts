@@ -1,6 +1,7 @@
+import type { IIdentityOtpService } from '@walnut-server/identity'
 import type { LocaleType } from '@walnut/contract'
-import type { IOtpType } from '../const/otp.const'
 
+import type { IOtpType } from '../const/otp.const'
 import { Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheVerifyCodeService } from '@walnut-server/cache'
 import { AppMailerService } from '@walnut-server/mailer'
@@ -10,7 +11,8 @@ import { isNil } from 'lodash'
 import { OtpSettingService } from '../otp.setting.service'
 
 @Injectable()
-export class OtpSharedService {
+/** 批 6：implements 是端口绑定的编译期守护（libs/identity 只认端口）。 */
+export class OtpSharedService implements IIdentityOtpService {
   private readonly logger = new Logger(OtpSharedService.name)
 
   constructor(

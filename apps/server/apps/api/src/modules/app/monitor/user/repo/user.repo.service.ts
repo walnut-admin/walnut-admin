@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-syntax -- 在线监控的系统通道：state/心跳/force-quit 走 socket 与守卫旁路（无 ALS 上下文），按 visitorId/deviceId 记账；面向管理端的 list/read 走 AppMonitorUserBasicRepository（已注入数据权限）。 */
+import type { IIdentityMonitorRepository } from '@walnut-server/identity'
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
@@ -19,7 +20,8 @@ export interface IMonitorPopulatedUserBrief {
  * - 事务句柄 `dbSession?: ClientSession` → `em?: EntityManager`（缺省连接级 manager）。
  */
 @Injectable()
-export class AppMonitorUserRepositoryService {
+/** 批 6：implements 是端口绑定的编译期守护（user_device 只认端口）。 */
+export class AppMonitorUserRepositoryService implements IIdentityMonitorRepository {
   constructor(
     @InjectDataSource(WalnutPGConnectionName)
     private readonly dataSource: DataSource,

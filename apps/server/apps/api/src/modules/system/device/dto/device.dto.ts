@@ -11,7 +11,7 @@ import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-import { SysUserDTOSafe } from '../../user/dto/user.dto'
+import { SysUserDTOSafe } from '@/modules/system/user/dto/user.dto'
 import { SysDeviceEntity } from '../entity/device.entity'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/device.schema.ts 的 SysDeviceModel

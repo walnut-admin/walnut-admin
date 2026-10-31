@@ -13,10 +13,10 @@ import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decor
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
+import { SysUserIdentitySharedService } from '@walnut-server/identity'
 import { WalnutAdminDecoratorDataScopeSystemChannel } from '@/decorators/walnut/dataScope.decorator'
 import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { SysUserIdentitySharedService } from '@/modules/system/user_identity/shared/user_identity.shared.service'
 import { AuthSuccessDTO } from '../../dto/auth.dto'
 import { AuthCookieService } from '../cookie/cookie.service'
 import { WalnutAdminGuardJwtFree } from '../jwt/jwt-access.guard'

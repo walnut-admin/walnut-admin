@@ -1,12 +1,14 @@
+import type { IIdentityMfaPostVerification } from '@walnut-server/identity'
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { AppTechCacheMfaService } from '@walnut-server/cache'
 import { registerAfterCommitHook } from '@walnut-server/db'
-import { SysUserDeviceSharedService } from '@/modules/system/user_device/shared/user_device.shared.service'
+import { SysUserDeviceSharedService } from '@walnut-server/identity'
 import { AuthRefreshSharedService } from '../refresh/shared/refresh.shared.service'
 
 @Injectable()
-export class AuthMfaPostVerificationService {
+/** 批 6：implements 是端口绑定的编译期守护（libs/identity 只认端口）。 */
+export class AuthMfaPostVerificationService implements IIdentityMfaPostVerification {
   constructor(
     private readonly sysUserDeviceSharedService: SysUserDeviceSharedService,
     private readonly cacheMfaService: AppTechCacheMfaService,

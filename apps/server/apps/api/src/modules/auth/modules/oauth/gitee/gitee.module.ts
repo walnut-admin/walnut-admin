@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
+import { SysUserIdentitySharedModule } from '@walnut-server/identity'
 import { AppTechSseModule } from '@walnut-server/sse'
-import { SysUserIdentitySharedModule } from '@/modules/system/user_identity/shared/user_identity.shared.module'
 import { AuthSharedModule } from '../../shared/shared.module'
 import { OAuthStateModule } from '../shared/oauth-state.module'
 import { OAuthGiteeController } from './gitee.controller'

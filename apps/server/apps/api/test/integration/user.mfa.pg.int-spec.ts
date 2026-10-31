@@ -3,11 +3,8 @@ import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 
 import { AppTechCryptoService } from '@walnut-server/crypto'
+import { SysUserMfaHelperService, SysUserMfaRepositoryService, SysUserMfaSharedService, SysUserMfaTotpService } from '@walnut-server/identity'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { SysUserMfaHelperService } from '@/modules/system/user_mfa/mfa.shared.service'
-import { SysUserMfaRepositoryService } from '@/modules/system/user_mfa/repo/user_mfa.repo.service'
-import { SysUserMfaSharedService } from '@/modules/system/user_mfa/shared/user_mfa.shared.service'
-import { SysUserMfaTotpService } from '@/modules/system/user_mfa/totp/totp.service'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 
 /**

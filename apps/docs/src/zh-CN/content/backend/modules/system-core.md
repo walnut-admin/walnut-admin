@@ -20,7 +20,7 @@ dict / lang / locale 是三组互相独立的配置数据。
 
 | 模块 | 源码目录 | 职责 | 主表 |
 |---|---|---|---|
-| user | `modules/system/user/` | 用户行、角色绑定 junction、自助资料、角色/角色模式切换 | `sys_user` + `sys_user_role` |
+| user | `libs/identity/src/user/`（HTTP 面 `modules/system/identity/`） | 用户行、角色绑定 junction、自助资料、角色/角色模式切换 | `sys_user` + `sys_user_role` |
 | role | `modules/system/role/` | 角色行、菜单授权 junction、权限链路的角色侧入口 | `sys_role` + `sys_role_menu` |
 | menu | `modules/system/menu/` | 菜单/路由/元素权限行，meta 拍平列，权限串来源 | `sys_menu` |
 | dict | `modules/system/dict/` | 字典类型与字典数据（枚举值、标签 i18n key） | `sys_dict_type` + `sys_dict_data` |

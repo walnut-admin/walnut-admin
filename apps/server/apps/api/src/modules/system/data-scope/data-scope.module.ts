@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common'
+import { WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR } from '@walnut-server/identity'
 import { WALNUT_ADMIN_DATA_SCOPE_POLICY } from '@walnut-server/repository'
 import { SharedScopeResolverModule } from '@walnut-server/scope-resolver'
 import { SysDeptRepoModule } from '../dept/dept.repo.module'
@@ -30,7 +31,12 @@ import { DataScopeService } from './data-scope.service'
       provide: WALNUT_ADMIN_DATA_SCOPE_POLICY,
       useExisting: WalnutAdminDataScopePolicyService,
     },
+    // 批 6：身份内核的 user 写路径只认此端口（libs/identity 不 import 本服务）
+    {
+      provide: WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR,
+      useExisting: DataScopeService,
+    },
   ],
-  exports: [DataScopeService, WALNUT_ADMIN_DATA_SCOPE_POLICY],
+  exports: [DataScopeService, WALNUT_ADMIN_DATA_SCOPE_POLICY, WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR],
 })
 export class DataScopeModule {}

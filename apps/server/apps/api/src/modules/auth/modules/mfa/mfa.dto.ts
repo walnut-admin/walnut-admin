@@ -1,5 +1,4 @@
-import { IWalnutAdminConstSysUserMfaType, WalnutAdminConstSysUserMfaType } from '@walnut-server/const/app/mfa'
-import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum } from '@walnut-server/decorators/field'
+import { WalnutAdminDecoratorFieldBoolean } from '@walnut-server/decorators/field'
 
 export class AuthMfaVerifyDTO {
   @WalnutAdminDecoratorFieldBoolean({
@@ -10,22 +9,6 @@ export class AuthMfaVerifyDTO {
   trusted: boolean
 }
 
-export class AuthMfaStatusDTO {
-  constructor(partial: Partial<AuthMfaStatusDTO>) {
-    Object.assign(this, partial)
-  }
-
-  @WalnutAdminDecoratorFieldBoolean({
-    swaggerOptions: {
-      description: 'enabled or not',
-    },
-  })
-  enabled: boolean
-
-  @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstSysUserMfaType, {
-    swaggerOptions: {
-      description: 'mfa type',
-    },
-  })
-  type: IWalnutAdminConstSysUserMfaType
-}
+// 批 6：AuthMfaStatusDTO 随 MFA 状态读腿下沉 libs/identity（user_mfa 的 shared service
+// 返回该形状）；本文件 re-export 保持 auth 侧 import 面与 schema 名不变。
+export { AuthMfaStatusDTO } from '@walnut-server/identity'

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common'
+import { SysIdentityModule } from '@walnut-server/identity'
 
 import { DataScopeModule } from './data-scope/data-scope.module'
 import { SysDeletedModule } from './deleted/deleted.module'
@@ -7,6 +8,7 @@ import { SysDeviceModule } from './device/device.module'
 import { SysDictDataModule } from './dict/dictData/dictData.module'
 import { SysDictTypeModule } from './dict/dictType/dictType.module'
 import { SysEmployeeModule } from './employee/employee.module'
+import { SysIdentityHttpModule } from './identity/identity-http.module'
 import { SysLangModule } from './lang/lang.module'
 import { SysLocaleModule } from './locale/locale.module'
 import { SysLogAuthModule } from './logs/auth/log.auth.module'
@@ -14,13 +16,6 @@ import { SysLogOperateModule } from './logs/operate/log.operate.module'
 import { SysMenuModule } from './menu/menu.module'
 import { SysPostModule } from './post/post.module'
 import { SysRoleModule } from './role/role.module'
-import { SysUserModule } from './user/user.module'
-import { SysUserDeviceModule } from './user_device/user_device.module'
-import { SysUserIdentityModule } from './user_identity/user_identity.module'
-import { SysUserLockModule } from './user_lock/user_lock.module'
-import { SysUserMfaModule } from './user_mfa/user_mfa.module'
-import { SysUserOauthModule } from './user_oauth/user_oauth.module'
-import { SysUserPreferenceModule } from './user_preference/user_preference.module'
 
 @Module({
   imports: [
@@ -46,14 +41,14 @@ import { SysUserPreferenceModule } from './user_preference/user_preference.modul
 
     SysMenuModule,
     SysRoleModule,
-    SysUserModule,
-    SysUserDeviceModule,
-    SysUserIdentityModule,
-    SysUserLockModule,
-    SysUserMfaModule,
-    SysUserOauthModule,
-    SysUserPreferenceModule,
+
+    // 身份内核（libs/identity 聚合）+ HTTP 组合根（controller 依赖 app guard/decorator，
+    // 留 app 声明；库内只做服务/数据面）。批 6。
+    SysIdentityModule,
+    SysIdentityHttpModule,
   ],
-  exports: [SysUserLockModule],
+  // APP_GUARD（WalnutAdminGuardLock）从 AppModule 注入 SysUserLockService —— 保持
+  // 解耦前 SystemModule 对 lock 服务的可见面（聚合模块的 exports 全量透出）。
+  exports: [SysIdentityModule],
 })
 export class SystemModule {}

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common'
-import { SysUserIdentityRepositoryModule } from '@/modules/system/user_identity/repo/user_identity.repo.module'
+import { SysUserIdentityRepositoryModule } from '@walnut-server/identity'
 import { AuthSignoutModule } from '../../signout/signout.module'
 import { AuthOpaqueCoreModule } from '../core/opaque.core.module'
 import { AuthOpaqueAdminController } from './opaque.admin.controller'

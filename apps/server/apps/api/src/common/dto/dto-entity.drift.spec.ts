@@ -10,6 +10,10 @@ import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decor
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { WalnutModelName } from '@walnut-server/db'
+import { colorModeConst, CVDConst, DeviceLinkConst, fontSizeConst, layoutModeConst, LockModeConst, SysUserDeviceDTOBase, SysUserDeviceEntity, SysUserDTOBase, SysUserEntity, SysUserGenderConst, SysUserIdentityDTOBase, SysUserIdentityEntity, SysUserLockDTOBase, SysUserLockEntity, SysUserMfaDTOBase, SysUserMfaEntity, SysUserOAuthDTOBase, SysUserOauthEntity, SysUserPreferenceDTOBase, SysUserPreferenceEntity, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType, WalnutAdminConstSysUserOAuthProvider } from '@walnut-server/identity'
+
+// ─── 被守卫的 DTO 基座 ↔ 实体清单（全部模块逐一显式 import，映射见下方 DTO_ENTITY_CASES）───
+
 import { CacheKeyStrategy, MenuTernal, MenuType } from '@walnut/contract/menu'
 import { plainToInstance } from 'class-transformer'
 import { getMetadataStorage, validateSync } from 'class-validator'
@@ -17,9 +21,6 @@ import { getMetadataArgsStorage } from 'typeorm'
 import { describe, expect, it } from 'vitest'
 import { AppDemoDTOBase } from '@/modules/app/demo/dto/demo.dto'
 import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
-
-// ─── 被守卫的 DTO 基座 ↔ 实体清单（全部模块逐一显式 import，映射见下方 DTO_ENTITY_CASES）───
-
 import { AppErrorEntity } from '@/modules/app/error/entity/error.entity'
 import { AppErrorDTOBase } from '@/modules/app/error/error.dto'
 import { AppKeyDTOBase } from '@/modules/app/key/dto/key.dto'
@@ -67,24 +68,6 @@ import { SysPostDTOBase } from '@/modules/system/post/dto/post.dto'
 import { SysPostEntity } from '@/modules/system/post/entity/post.entity'
 import { SysRoleDTOBase } from '@/modules/system/role/dto/role.dto'
 import { SysRoleEntity } from '@/modules/system/role/entity/role.entity'
-import { SysUserDTOBase } from '@/modules/system/user/dto/user.dto'
-import { SysUserEntity } from '@/modules/system/user/entity/user.entity'
-import { SysUserGenderConst } from '@/modules/system/user/user.const'
-import { DeviceLinkConst, SysUserDeviceDTOBase } from '@/modules/system/user_device/dto/user_device.dto'
-import { SysUserDeviceEntity } from '@/modules/system/user_device/entity/user-device.entity'
-import { SysUserIdentityDTOBase } from '@/modules/system/user_identity/dto/user_identity.dto'
-import { SysUserIdentityEntity } from '@/modules/system/user_identity/entity/user-identity.entity'
-import { WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType } from '@/modules/system/user_identity/identity.const'
-import { SysUserLockDTOBase } from '@/modules/system/user_lock/dto/user_lock.dto'
-import { SysUserLockEntity } from '@/modules/system/user_lock/entity/user-lock.entity'
-import { LockModeConst } from '@/modules/system/user_lock/lock.const'
-import { SysUserMfaDTOBase } from '@/modules/system/user_mfa/dto/user_mfa.dto'
-import { SysUserMfaEntity } from '@/modules/system/user_mfa/entity/user-mfa.entity'
-import { SysUserOAuthDTOBase, WalnutAdminConstSysUserOAuthProvider } from '@/modules/system/user_oauth/dto/user_oauth.dto'
-import { SysUserOauthEntity } from '@/modules/system/user_oauth/entity/user-oauth.entity'
-import { SysUserPreferenceDTOBase } from '@/modules/system/user_preference/dto/user_preference.dto'
-import { SysUserPreferenceEntity } from '@/modules/system/user_preference/entity/user-preference.entity'
-import { colorModeConst, CVDConst, fontSizeConst, layoutModeConst } from '@/modules/system/user_preference/preference.const'
 
 /**
  * DTO ↔ Entity 漂移守卫（B5-5）—— 防「同一形状写两遍」的机械护栏，纯 reflection、零 DB。
@@ -313,13 +296,19 @@ function listDtoFiles(dir: string): string[] {
 
 async function globFoundDtoBaseNames(): Promise<Set<string>> {
   const found = new Set<string>()
-  const dtoDir = resolve(process.cwd(), 'apps/api/src/modules')
+  // 批 6：身份栈 DTO 随内核下沉 libs/identity —— 扫描面跟着走（app modules + lib）
+  const dtoDirs = [
+    resolve(process.cwd(), 'apps/api/src/modules'),
+    resolve(process.cwd(), 'libs/identity/src'),
+  ]
 
-  for (const file of listDtoFiles(dtoDir)) {
-    const namespace = await import(pathToFileURL(file).href) as Record<string, unknown>
-    for (const value of Object.values(namespace)) {
-      if (typeof value === 'function' && value.name.endsWith('DTOBase')) {
-        found.add(value.name)
+  for (const dtoDir of dtoDirs) {
+    for (const file of listDtoFiles(dtoDir)) {
+      const namespace = await import(pathToFileURL(file).href) as Record<string, unknown>
+      for (const value of Object.values(namespace)) {
+        if (typeof value === 'function' && value.name.endsWith('DTOBase')) {
+          found.add(value.name)
+        }
       }
     }
   }

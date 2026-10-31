@@ -10,9 +10,9 @@ import { AppTechCacheLockService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminExceptionUserLocked } from '@walnut-server/exceptions/business/auth'
+import { SysUserLockService } from '@walnut-server/identity'
 import { MurLockService } from 'murlock'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
-import { SysUserLockService } from '@/modules/system/user_lock/user_lock.service'
 
 const WalnutAdminConstDecoratorLockKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_LOCK_FREE')
 

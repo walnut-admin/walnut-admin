@@ -189,7 +189,7 @@
 ### P3-19 ENDPOINTS.md 把 me/profile 的权限点登记为 `me:profile:update`，代码是 `system:user:updateProfile`（B 段，新登记）
 
 - **位置**：`apps/api/test/api/ENDPOINTS.md` §5 user/me 行 vs
-  `apps/api/src/modules/system/user/controllers/user.me.controller.ts` 的
+  `apps/api/src/modules/system/identity/user.me.controller.ts` 的
   `Permissions.UPDATE_PROFILE = 'system:user:updateProfile'`。
 - **现象**：文档与代码的权限串不一致；`user-me.api-spec.ts` 用 root 调用（权限守卫 root
   短路），差异不会暴露。若前端菜单 seed 按文档串配置，非 root 用户改资料会 40105。

@@ -1,8 +1,7 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
-import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.service'
-import { SysUserMfaSharedService } from '@/modules/system/user_mfa/shared/user_mfa.shared.service'
+import { SysUserMfaSharedService, SysUserSharedService } from '@walnut-server/identity'
 import { AuthMfaVerifyDTO } from './mfa.dto'
 import { AuthMfaPostVerificationService } from './mfa.post.service'
 

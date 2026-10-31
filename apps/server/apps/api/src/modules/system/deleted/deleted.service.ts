@@ -4,8 +4,8 @@ import { runAfterCommit, WalnutModelName, WalnutVirtualName } from '@walnut-serv
 
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
+import { SysUserRepositoryService } from '@walnut-server/identity'
 import { DataScopeService } from '../data-scope/data-scope.service'
-import { SysUserRepositoryService } from '../user/repo/user.repo.service'
 import { SysDeletedBasicRepository } from './deleted.basic.repository'
 import { SysDeletedDTORecoverRequest, SystemDeletedDTOListRequest } from './dto/deleted.dto'
 import { SysDeletedEntity } from './entity/deleted.entity'

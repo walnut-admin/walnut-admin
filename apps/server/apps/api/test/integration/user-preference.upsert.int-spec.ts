@@ -2,14 +2,14 @@ import type { INestApplication } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 
-import { Locale } from '@walnut/contract'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   colorModeConst,
   fontSizeConst,
   layoutModeConst,
-} from '@/modules/system/user_preference/preference.const'
-import { SysUserPreferenceService } from '@/modules/system/user_preference/services/user_preference.service'
+  SysUserPreferenceService,
+} from '@walnut-server/identity'
+import { Locale } from '@walnut/contract'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 
 /**
