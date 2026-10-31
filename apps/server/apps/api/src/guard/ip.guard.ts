@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable, Logger, SetMetadata } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { WalnutAdminExceptionIPNotAcceptable } from '@walnut-server/exceptions/base/406'
-import { SharedIpService } from '@/modules/shared/ip/ip.service'
+import { SharedIpService } from '@walnut-server/ip'
 
 const WalnutAdminConstDecoratorIpFreeKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_IP_FREE')
 

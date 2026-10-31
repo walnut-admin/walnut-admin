@@ -51,7 +51,7 @@
 
 ### P2-18 软删恢复不恢复 junction —— 恢复菜单丢全部角色授权、恢复用户无法登录（B 段，新登记）—— 【部分修复 2026-10-28（用户外围联动；junction 部分维持登记）】
 
-- **位置**：`apps/api/src/common/repository/pg-base.repository.ts`（`deleteSoftById`：
+- **位置**：`libs/repository/src/pg-base.repository.ts`（`deleteSoftById`：
   只快照主行，随后硬删原行）+ `apps/api/src/modules/system/deleted/deleted.service.ts`
   （`recoverSnapshot` 只按快照插回主行）+ phase2 §4.1 / §4.2 的 junction FK CASCADE。
 - **现象**：`sys_user_role` / `sys_role_menu` 没有独立软删通道，主行硬删时由 FK CASCADE
@@ -134,7 +134,7 @@
 ### P2-30 key 轮转没有重叠窗口 —— 旧公钥密文在 rotate 后不可解，且 current 不校验 validEnd（D 段，新登记）
 
 - **位置**：`apps/api/src/modules/app/key/key.service.ts`（`rotate` / `rotateForCronJob`）+
-  `apps/api/src/modules/security/rsa/rsa.service.ts`（`getCurrentRsaPrivateKey`）+
+  `libs/rsa/src/rsa.service.ts`（`getCurrentRsaPrivateKey`）+
   `apps/api/src/interceptors/request/decrypt.interceptor.ts`。
 - **现象**：rotate 在事务内把旧行置 `DEPRECATED` 并插入新 ACTIVE 行；请求解密只读
   「version 最大的 ACTIVE 行」的私钥。轮转瞬间用旧公钥加密、尚未到达的请求密文，在新私钥下
@@ -303,7 +303,7 @@
   「【安全矩阵发现】非黑名单伪造 IP 直通 → 20000」用例）→
   `apps/api/src/modules/security/risk/modules/location.service.ts`
   （`evaluateLocationRisk` / `performLocationEvaluation`）→
-  `apps/api/src/modules/shared/ip/ip.service.ts`
+  `libs/ip/src/ip.service.ts`
   （`getLocationInfoFromFreeAPI` 对外网 `api.ip.sb` 的请求失败即抛 50302
   DependencyDown）。
 - **现象**：该用例预期待测请求直通（业务码 20000），在**全量集成连跑**中偶发拿到

@@ -29,7 +29,10 @@
         "../../libs/list/src/**/*",
         "../../libs/crud/src/**/*",
         "../../libs/scope-resolver/src/**/*",
-        "../../libs/token/src/**/*"
+        "../../libs/token/src/**/*",
+        "../../libs/repository/src/**/*",
+        "../../libs/rsa/src/**/*",
+        "../../libs/ip/src/**/*"
     ],
     "exclude": [
         "node_modules",

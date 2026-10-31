@@ -16,7 +16,7 @@ import { objectToPaths } from '@walnut-server/utils/general'
  *   ikm = SHA256(sessionKey 原始字节), salt = aesKey, info = hkdfInfo, len = 32)`，
  *   对照 `auth/modules/session/session.service.ts` 的 `deriveApiSignKey`（sessionKey
  *   从 login/finish 响应来，base64 编码；服务端只存 SHA256 hash，客户端持有原值）；
- * - 握手第二步的 aesKey 信封解密：对照 `modules/security/rsa/rsa.service.ts` 的
+ * - 握手第二步的 aesKey 信封解密：对照 `libs/rsa/src/rsa.service.ts` 的
  *   `encryptResponseValueWithClientRsaPubKey` —— 服务端用客户端 RSA 公钥（握手 initial
  *   提交的）包一层一次性 AES-256-GCM（key|iv|tag 60 字节 blob，RSA-OAEP-SHA256），
  *   客户端用配套私钥还原；

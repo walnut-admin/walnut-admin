@@ -9,12 +9,12 @@ import { Reflector } from '@nestjs/core'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 
 import { WalnutAdminConstDecoratorEncryptMetadataKey } from '@walnut-server/const/decorator/encrypt'
+import { SecurityRsaService } from '@walnut-server/rsa'
 import { Recordable } from 'easy-fns-ts'
 import { isNil, omit } from 'lodash'
 import { from, Observable } from 'rxjs'
 import { switchMap, tap } from 'rxjs/operators'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
-import { SecurityRsaService } from '@/modules/security/rsa/rsa.service'
 
 @Injectable()
 export class WalnutAdminInterceptorResponseEncrypt implements NestInterceptor {

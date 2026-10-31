@@ -12,7 +12,7 @@ import { DataScopeService } from '@/modules/system/data-scope/data-scope.service
  *
  * 时序：全局 guard 链 → 本拦截器 → handler。JWT guard 已把 `request.user` 挂上，
  * 这里解析数据权限描述符（Redis 缓存优先）并连同 userId 一起种进 ALS；基类仓库
- * （common/repository/pg-base.repository.ts）从 ALS 读 scope 注入行级谓词。
+ * （libs/repository/src/pg-base.repository.ts）从 ALS 读 scope 注入行级谓词。
  *
  * 为什么必须在拦截器而不是 guard：guard 先于拦截器执行，且登录链的前置查询
  * （sys_user/sys_device/user_device）不能带数据权限（否则断登录）。注册表因此只放

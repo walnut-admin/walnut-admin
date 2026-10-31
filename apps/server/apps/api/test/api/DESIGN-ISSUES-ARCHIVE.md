@@ -723,7 +723,7 @@
 
 ### P2-15 永久 IP 黑名单写腿在零配置下静默 no-op —— 依赖 `app.global.ipBlackList` 行预先存在 —— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/shared/ip/ip.service.ts`（`addToPermanentBlackList`）→
+- **位置**：`libs/ip/src/ip.service.ts`（`addToPermanentBlackList`）→
   `apps/api/src/modules/app/setting/repo/setting.repo.service.ts`
   （`updateAppSettingByKey`：`findOne` 查无行时直接跳过 save）。
 - **现象**：黑名单路径命中时（`BlacklistPathMiddleware` / `security.guard`）会调用
@@ -846,7 +846,7 @@
 
 ### P2-22 恢复用户不恢复账户外围 —— identity / oauth / device / lock / mfa / preference 全丢 —— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/common/repository/pg-base.repository.ts`（`deleteSoftById` 只快照
+- **位置**：`libs/repository/src/pg-base.repository.ts`（`deleteSoftById` 只快照
   主行）+ `apps/api/src/modules/system/deleted/deleted.service.ts`（`recoverSnapshot` 只插
   主行）+ phase2 §4.9 ~ §4.14 的 `FK user_id CASCADE`。
 - **现象**：删除用户时 `sys_user_identity` / `sys_user_oauth` / `sys_user_device` /

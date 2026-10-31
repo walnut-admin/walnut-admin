@@ -1,4 +1,10 @@
 import type { IWalnutAdminDataScopeDescriptor, IWalnutAdminDataScopeMode } from '@walnut-server/db'
+import type {
+  IWalnutAdminDataScopeDeptUpdateDecision,
+  IWalnutAdminDataScopeEntityConfig,
+  IWalnutAdminDataScopeSqlPredicate,
+  WalnutDataScopeFindWhere,
+} from '@walnut-server/repository'
 import type { EntityTarget, FindOptionsWhere, ObjectLiteral, SelectQueryBuilder } from 'typeorm'
 import { WalnutAdminConstDataScope, WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
 import { Role } from '@walnut/contract'
@@ -61,59 +67,16 @@ import { SysUserPreferenceEntity } from '@/modules/system/user_preference/entity
 // IWalnutAdminDataScopeMode / IWalnutAdminDataScopeDescriptor 已迁至 @walnut-server/db
 // （libs/db/src/data-scope-descriptor.ts，libs 解耦批 1）—— ALS 请求上下文、基类仓库、
 // RLS 设置三方的公共词汇跟着 db lib 走，这里只保留注册表与谓词计算。
-
-export interface IWalnutAdminDataScopeEntityConfig<Entity extends ObjectLiteral = ObjectLiteral> {
-  /** TypeORM 实体类（与基类 `entityTarget` 同一引用） */
-  entity: EntityTarget<Entity>
-  /**
-   * owner 列（**实体属性名**，不是数据库列名）—— QueryBuilder 与 FindOptions
-   * 都用属性名，TypeORM 负责列名映射。
-   */
-  scopeColumn: keyof Entity & string
-  /**
-   * 部门列（**实体属性名**）—— DEPT / DEPT_AND_CHILD / CUSTOM / DEPT_OR_SELF 的
-   * `deptColumn IN (:...deptIds)` 谓词列。未声明 = 该实体没有部门维度，部门系档位
-   * **默认拒绝**（DEPT_OR_SELF 例外：退化为仅 SELF，不泄露）。
-   */
-  deptColumn?: keyof Entity & string
-  /** SELF/CUSTOM 下是否把 owner 为 NULL 的行视为共享（在线监控的匿名访客行） */
-  allowAnonymous?: boolean
-  /**
-   * create 时是否用当前用户回填 owner 列（默认 true）。两种例外：
-   * - 主键即 owner（sys_user.id）：不能回填；
-   * - user_id 是**业务绑定**而非创建者（sys_employee）：回填会撞 uq_employee_user。
-   */
-  fillOwnerOnCreate?: boolean
-  /**
-   * update / updateByField 是否允许写 owner 列（默认 false = 一律剔除）。
-   *
-   * 唯一例外是 `sys_employee.user_id`：它是「职工 ↔ 账号」的业务绑定（由 bind-user /
-   * unbind-user 端点受控修改），不是创建者；其余注册实体的 owner 列只允许 create
-   * 时由当前用户回填。
-   */
-  allowOwnerUpdate?: boolean
-  /**
-   * create 时是否用当前用户的**所属部门**回填 `deptColumn`（默认 false）。
-   *
-   * 取数腿：当前用户 → `sys_employee.dept_id`（一号一职工；无职工行 → NULL = 无部门归属）。
-   * 与 owner 回填同一位置（基类 create），但语义不同 —— 只有「行级部门归属由创建者决定」
-   * 的示范/业务表才开启（app_demo）；sys_user / sys_employee 的 dept 列是业务字段，不能回填。
-   * 系统通道（ALL 且无用户）不回填。
-   */
-  fillDeptOnCreate?: boolean
-  /**
-   * update / updateByField 对 `deptColumn` 的处理策略，**缺省 `'validate'`**（fail-closed
-   * 取向：新注册实体漏配即按严格侧）：
-   *
-   * - `'validate'`：DTO 显式给出 deptColumn 且值有变化时，新值必须 ∈ 操作者描述符的
-   *   `deptIds`（ALL 豁免），越界按「查无此行」404 处理。与三期 RLS 的 WITH CHECK
-   *   部门腿同语义 —— 应用层前置校验，失败更快且不依赖数据库连接通道；
-   * - `'strip'`：deptColumn 从 update / updateByField 的 DTO 一律剔除（与 owner 列
-   *   同通道）。用于「行级归属由创建者派生、创建后不可改」的表（app_demo）。
-   */
-  deptUpdatePolicy?: 'validate' | 'strip'
-  /** 注册理由（必填：注册即强制过滤，理由要能被下一个人看懂） */
-  note: string
+//
+// 批 5：描述注册项/谓词/SQL 片段/更新决策的类型真源随基类下沉 @walnut-server/repository
+// （`IWalnutAdminDataScopeEntityConfig` 等）。基类经 WALNUT_ADMIN_DATA_SCOPE_POLICY 端口
+// 回调本文件的清单与纯函数 —— lib 不 import 本文件，实体清单也没有搬走（批 7 随域处理）。
+// 这里 re-export 保持 app 侧既有 import 面不变。
+export type {
+  IWalnutAdminDataScopeDeptUpdateDecision,
+  IWalnutAdminDataScopeEntityConfig,
+  IWalnutAdminDataScopeSqlPredicate,
+  WalnutDataScopeFindWhere,
 }
 
 /**
@@ -248,12 +211,6 @@ export function isWalnutDataScopeRegisteredEntity(entity: EntityTarget<ObjectLit
   return getWalnutDataScopeEntityConfig(entity) !== undefined
 }
 
-export interface IWalnutAdminDataScopeSqlPredicate {
-  /** 参数化 where 片段（不含 WHERE 关键字，调用方用 andWhere 追加） */
-  clause: string
-  params: Record<string, unknown>
-}
-
 /**
  * 构造 list/QueryBuilder 用的参数化谓词 —— 决策层（描述符）与执行层（SQL）的唯一
  * 衔接点。ALL 返回 null（不注入）；部门系档位在空集/实体无 deptColumn 时返回恒假
@@ -333,12 +290,6 @@ export function buildWalnutDataScopeSqlPredicate(
   }
 }
 
-/** FindOptionsWhere 形态的 scope 面：null = 不限制；'deny' = 默认拒绝 */
-export type WalnutDataScopeFindWhere<Entity extends ObjectLiteral>
-  = | FindOptionsWhere<Entity>[]
-    | 'deny'
-    | null
-
 /**
  * 构造 Repository.find/findOne 用的 scope where 数组（OR 关系）。
  * 与 `buildWalnutDataScopeSqlPredicate` 同源语义，供 readById / updateByField /
@@ -391,9 +342,6 @@ export function buildWalnutDataScopeFindWhere<Entity extends ObjectLiteral>(
 
   return [{ [config.deptColumn]: In(deptIds) } as FindOptionsWhere<Entity>]
 }
-
-/** update 路径对 deptColumn 的处理决策：放行 / 从 DTO 剔除 / 按越权拒绝（404） */
-export type IWalnutAdminDataScopeDeptUpdateDecision = 'allow' | 'strip' | 'deny'
 
 /**
  * update / updateByField 的 deptColumn 决策（纯函数，与谓词构造同层）—— 批 4 / L1。

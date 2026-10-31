@@ -2,10 +2,10 @@ import { Injectable, Logger } from '@nestjs/common'
 import { AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
+import { SharedIpService } from '@walnut-server/ip'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
 import { MurLockService } from 'murlock'
-import { SharedIpService } from '@/modules/shared/ip/ip.service'
 import { calcScoreAndLevel, SecurityRiskConfigService, WalnutAdminConstRiskFactor, WalnutAdminConstRiskType } from '../risk.config.service'
 
 /**

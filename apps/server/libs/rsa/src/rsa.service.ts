@@ -1,26 +1,34 @@
+import type { IWalnutAdminKeyStore } from './rsa.ports'
 import { Buffer } from 'node:buffer'
 import { constants, createCipheriv, createDecipheriv, privateDecrypt, publicEncrypt, randomBytes } from 'node:crypto'
 
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { AppTechCacheRsaService } from '@walnut-server/cache'
 import { WalnutAdminExceptionRsaDecryptFailed } from '@walnut-server/exceptions/business/rsa'
-import { AppKeyService } from '@/modules/app/key/key.service'
+import { WALNUT_ADMIN_KEY_STORE } from './rsa.ports'
 
+/**
+ * RSA 请求解密 / 响应加密（libs 解耦批 5 从 `modules/security/rsa/` 下沉）。
+ *
+ * 密钥材料来自 app 的 `AppKeyService`，经 `WALNUT_ADMIN_KEY_STORE` 端口注入
+ * （实现绑定在 @Global 的 AppKeyModule；`implements` 作编译期守护）。
+ */
 @Injectable()
 export class SecurityRsaService {
   constructor(
     private readonly cacheRsaService: AppTechCacheRsaService,
-    private readonly appKeyService: AppKeyService,
+    @Inject(WALNUT_ADMIN_KEY_STORE)
+    private readonly keyStore: IWalnutAdminKeyStore,
   ) {}
 
   async getCurrentRsaPublicKey() {
-    const target = await this.appKeyService.getCurrent('RSA_PAIR')
+    const target = await this.keyStore.getCurrent('RSA_PAIR')
     return target.publicKeyPem
   }
 
   async getCurrentRsaPrivateKey() {
     // P0-6（2026-10-28）：getCurrent 的 HTTP 视图已剔除私钥 —— 内部解密走实体通道
-    const target = await this.appKeyService.getCurrentActiveKey('RSA_PAIR')
+    const target = await this.keyStore.getCurrentActiveKey('RSA_PAIR')
     return target?.meta?.privateKeyPem
   }
 

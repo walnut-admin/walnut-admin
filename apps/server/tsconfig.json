@@ -175,6 +175,24 @@
       ],
       "@walnut-server/token/*": [
         "./libs/token/src/*"
+      ],
+      "@walnut-server/repository": [
+        "./libs/repository/src"
+      ],
+      "@walnut-server/repository/*": [
+        "./libs/repository/src/*"
+      ],
+      "@walnut-server/rsa": [
+        "./libs/rsa/src"
+      ],
+      "@walnut-server/rsa/*": [
+        "./libs/rsa/src/*"
+      ],
+      "@walnut-server/ip": [
+        "./libs/ip/src"
+      ],
+      "@walnut-server/ip/*": [
+        "./libs/ip/src/*"
       ]
     }
   }

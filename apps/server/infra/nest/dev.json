@@ -38,7 +38,10 @@
           "libs/list/src",
           "libs/crud/src",
           "libs/scope-resolver/src",
-          "libs/token/src"
+          "libs/token/src",
+          "libs/repository/src",
+          "libs/rsa/src",
+          "libs/ip/src"
         ]
       }
     }
@@ -295,6 +298,33 @@
       "sourceRoot": "libs/token/src",
       "compilerOptions": {
         "tsConfigPath": "libs/token/tsconfig.lib.json"
+      }
+    },
+    "repository": {
+      "type": "library",
+      "root": "libs/repository",
+      "entryFile": "index",
+      "sourceRoot": "libs/repository/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/repository/tsconfig.lib.json"
+      }
+    },
+    "rsa": {
+      "type": "library",
+      "root": "libs/rsa",
+      "entryFile": "index",
+      "sourceRoot": "libs/rsa/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/rsa/tsconfig.lib.json"
+      }
+    },
+    "ip": {
+      "type": "library",
+      "root": "libs/ip",
+      "entryFile": "index",
+      "sourceRoot": "libs/ip/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/ip/tsconfig.lib.json"
       }
     }
   }

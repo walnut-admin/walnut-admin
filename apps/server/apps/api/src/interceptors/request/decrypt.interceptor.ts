@@ -8,11 +8,11 @@ import {
 import { Reflector } from '@nestjs/core'
 import { WalnutAdminConstDecoratorEncryptMetadataKey } from '@walnut-server/const/decorator/encrypt'
 
+import { SecurityRsaService } from '@walnut-server/rsa'
 import { Recordable } from 'easy-fns-ts'
 import { isNil, omit } from 'lodash'
 import { Observable, throwError } from 'rxjs'
 import { catchError, tap } from 'rxjs/operators'
-import { SecurityRsaService } from '@/modules/security/rsa/rsa.service'
 
 @Injectable()
 export class WalnutAdminInterceptorRequestDecrypt implements NestInterceptor {

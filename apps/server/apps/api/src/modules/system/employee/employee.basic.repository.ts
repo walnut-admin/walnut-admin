@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutModelName, WalnutPGConnectionName, withWalnutSystemManager } from '@walnut-server/db'
 
-import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
+import { WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 import { SysUserEntity } from '../user/entity/user.entity'
 import { SysEmployeeEntity } from './entity/employee.entity'
 

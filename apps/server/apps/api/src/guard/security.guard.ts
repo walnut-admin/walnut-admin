@@ -7,8 +7,8 @@ import {
 import { ConfigService } from '@nestjs/config'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { WalnutAdminExceptionBlackListPathDetected, WalnutAdminExceptionBotDetected, WalnutAdminExceptionSuspiciousRequest, WalnutAdminExceptionUserAgentBrowserNotAcceptable, WalnutAdminExceptionUserAgentNotAcceptable, WalnutAdminExceptionUserAgentOSNotAcceptable } from '@walnut-server/exceptions/base/406'
+import { SharedIpService } from '@walnut-server/ip'
 import { isNil } from 'lodash'
-import { SharedIpService } from '@/modules/shared/ip/ip.service'
 
 // permanent blacklist paths (common malicious scan paths)
 // 与 BlacklistPathMiddleware 共用（guard 只覆盖已路由请求；未命中路由的扫描路径

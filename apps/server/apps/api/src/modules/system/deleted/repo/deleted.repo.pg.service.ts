@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-syntax -- 回收站快照的系统写腿：createSoftDelete 由基类 deleteSoftById 调用（此时已按 scope 读过被删行），快照本身的 deletedBy 就是删除者；再套 scope 会把系统写入路径自身挡住（循环依赖）。 */
+import type { ISoftDeleteStrategy, IWalnutAdminSoftDeletePayload } from '@walnut-server/repository'
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
@@ -9,32 +10,26 @@ import { WalnutAdminExceptionInternalServerError } from '@walnut-server/exceptio
 import { DataSource } from 'typeorm'
 import { SysDeletedEntity } from '../entity/deleted.entity'
 
-export interface ISysDeletedPgCreatePayload {
-  /** 被删文档快照（jsonb 直存对象，原 stringify text 已升级，phase2 5.3） */
-  content: Record<string, unknown>
-  /** 恢复路由键，取 `WalnutModelName` 模型名 */
-  modelName: string
-  /** 纯记录字段：PG 表名 */
-  collectionName: string
-  /** 被删行 uuid */
-  deletedId: string
-  /** 删除者 uuid（松引用直传） */
-  deletedBy: string
-  /** 松引用，可空 */
-  logOperateId?: string | null
-}
+/**
+ * 快照载荷类型真源随基类下沉 libs/repository（`IWalnutAdminSoftDeletePayload`）；
+ * 保留旧名别名，模块内注释与历史引用不必逐条改。
+ */
+export type ISysDeletedPgCreatePayload = IWalnutAdminSoftDeletePayload
 
 /**
  * PostgreSQL 版回收站仓库（对应 Mongo 版 `SysDeletedRepoService`，B9 起唯一版本）。
  *
- * 服务 PG 软删路径（`pg-base.repository.ts` 的 deleteSoftById）与操作日志的
+ * 服务 PG 软删路径（`@walnut-server/repository` 的 deleteSoftById）与操作日志的
  * logOperateId 回填旁路；恢复 / 回收站读腿的编排收在 `SysDeletedService` +
  * `recover-registry.ts`。`em` 传自 `WalnutTxContext.em` 时，快照写入与原行删除
  * 同事务；缺省走连接级 manager（非事务路径）—— logOperateId 回填沿用旁路语义，
  * 刻意不收事务句柄（B8 同款裁定）。
+ *
+ * libs 解耦批 5：`implements ISoftDeleteStrategy` 是端口绑定的编译期守护（基类仓库
+ * 在 lib 里只认该端口，方法改名/改签名这里立刻红）。
  */
 @Injectable()
-export class SysDeletedPgRepoService {
+export class SysDeletedPgRepoService implements ISoftDeleteStrategy {
   private readonly logger = new Logger(SysDeletedPgRepoService.name)
 
   constructor(

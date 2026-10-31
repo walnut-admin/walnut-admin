@@ -1,6 +1,7 @@
 import { ExecutionContext, Injectable, Logger } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { IWalnutAdminConstDecoratorLogAuthType, WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
+import { SharedIpService } from '@walnut-server/ip'
 import { isNil } from 'lodash'
 import { I18nContext } from 'nestjs-i18n'
 import { WalnutAdminConstDecoratorLogAuthMetadataKey } from '@/decorators/walnut/log.auth.decorator'
@@ -8,7 +9,6 @@ import { AuthOpaqueClientErrorDTO } from '@/modules/auth/modules/opaque/dto/opaq
 import { IOtpType } from '@/modules/auth/modules/otp/const/otp.const'
 import { OtpVerifyDTO } from '@/modules/auth/modules/otp/dto/otp.dto'
 import { SecurityRiskFailedLoginService } from '@/modules/security/risk/modules/failedLogin.service'
-import { SharedIpService } from '@/modules/shared/ip/ip.service'
 import { SysLogAuthRepoService } from '../repo/log.auth.repo.service'
 
 /**

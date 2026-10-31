@@ -29,7 +29,7 @@ dict / lang / locale 是三组互相独立的配置数据。
 
 所有表都带公共列 `id`（uuid）/ `created_at` / `updated_at`。删除统一走
 「写 `sys_deleted` 快照（content 为 jsonb 原行）+ 硬删原行」的软删语义，实现见
-`apps/server/apps/api/src/common/repository/pg-base.repository.ts` 的
+`apps/server/libs/repository/src/pg-base.repository.ts` 的
 `deleteSoftById` / `deleteSoftManyByCondition`。
 
 ### 1.2 表关系

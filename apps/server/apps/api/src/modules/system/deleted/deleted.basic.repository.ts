@@ -4,13 +4,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
-import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
-import {
-  applyPgListQuery,
-  buildPgListQueryOptions,
-  ILIKE_ESCAPE_REGEX,
-  WALNUT_PG_LIST_TOTAL_ALIAS,
-} from '@/common/repository/pg-list.builder'
+import { applyPgListQuery, buildPgListQueryOptions, ILIKE_ESCAPE_REGEX, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 import { SysDeletedEntity } from './entity/deleted.entity'
 
 /** 回收站列表行：实体列 + Mongo 版 $lookup 注入的 user（仅 userName 通道） */

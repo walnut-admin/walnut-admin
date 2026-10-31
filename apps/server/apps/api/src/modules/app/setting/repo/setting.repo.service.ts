@@ -1,3 +1,4 @@
+import type { IWalnutAdminBlacklistRepository } from '@walnut-server/ip'
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
@@ -22,9 +23,13 @@ import { AppSettingEntity } from '../entity/setting.entity'
  *   findOneAndUpdate：查无此 key 时静默无操作，不抛 NotFound）；缓存刷新经
  *   runAfterCommit —— 事务内调用则推迟到提交后（PG commit 后触发，链路不断），
  *   事务外调用就地执行。
+ *
+ * 批 5：`implements IWalnutAdminBlacklistRepository` 是 libs/ip 端口绑定的编译期守护 ——
+ * SharedIpService 的永久 IP 黑名单读写只依赖 findAppSettingByKey / updateAppSettingByKey
+ * 两个方法。绑定在 AppSettingsRepositoryModule（@Global）。
  */
 @Injectable()
-export class AppSettingRepositoryService {
+export class AppSettingRepositoryService implements IWalnutAdminBlacklistRepository {
   constructor(
     @InjectDataSource(WalnutPGConnectionName)
     private readonly dataSource: DataSource,

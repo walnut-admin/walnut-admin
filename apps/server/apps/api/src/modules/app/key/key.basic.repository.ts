@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
-import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
+import { WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 import { AppKeyEntity } from './entity/key.entity'
 
 /**

@@ -1,3 +1,4 @@
+import type { IWalnutAdminKeyStore } from '@walnut-server/rsa'
 import type { EntityManager } from 'typeorm'
 import { generateKeyPairSync, randomBytes } from 'node:crypto'
 import { Injectable, Logger } from '@nestjs/common'
@@ -16,9 +17,13 @@ import { AppKeyTypeConst } from './key.const'
  * - rotateForCronJob 的手动 Mongo session 事务改为 repo.transactional（DataSource.transaction，
  *   cron 无请求上下文；HTTP 侧 rotate 走 controller `ctx.em`，见 key.controller）；
  * - 原 create 按 dbSession 有无分叉的两条路径，PG 侧统一为 repo.create(payload, em)。
+ *
+ * 批 5：`implements IWalnutAdminKeyStore` 是 libs/rsa 端口绑定的编译期守护 ——
+ * SecurityRsaService 只依赖 getCurrent / getCurrentActiveKey 两个方法。绑定在
+ * AppKeyModule（@Global）。
  */
 @Injectable()
-export class AppKeyService {
+export class AppKeyService implements IWalnutAdminKeyStore {
   private readonly logger = new Logger(AppKeyService.name)
 
   constructor(

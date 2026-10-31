@@ -30,7 +30,7 @@
 
 | # | 等级 | 问题 | 证据 | 批次 |
 |---|---|---|---|---|
-| L1 | P0 | `deptColumn` 更新无应用层防护：基类 `getProtectedOwnerColumn` 只剔 owner 列；DEPT 档管理员可把可见行的 `dept_id` 改到自己天花板外（目前仅三期 RLS WITH CHECK 兜底，应用层自身不设防） | `apps/server/apps/api/src/common/repository/pg-base.repository.ts`（getProtectedOwnerColumn 与 update/updateByField 两处调用点） | 批 4 |
+| L1 | P0 | `deptColumn` 更新无应用层防护：基类 `getProtectedOwnerColumn` 只剔 owner 列；DEPT 档管理员可把可见行的 `dept_id` 改到自己天花板外（目前仅三期 RLS WITH CHECK 兜底，应用层自身不设防） | `apps/server/libs/repository/src/pg-base.repository.ts`（getProtectedOwnerColumn 与 update/updateByField 两处调用点） | 批 4 |
 | L2 | P0 | P3-36 缓存残留：`app.functional.role` 设置变更不失效 `AUTH:DATA_SCOPE`，旧描述符最长残留一个 AT TTL（service 自登记「已知残余面」） | `apps/server/apps/api/src/modules/system/data-scope/data-scope.service.ts` 头注释；`apps/server/apps/api/test/api/DESIGN-ISSUES.md` P3-36 | 批 4 |
 | L3 | P1 | 六档常量三处硬编码：`@walnut/contract` 无 data-scope 常量（违反「跨端常量只改 contract」纪律）；admin 表单 options 是 1-6 字面量；ESLint 实体正则与注册表是两份人肉同步的清单 | `packages/platform-any/contract/src/`（无 data-scope）、`apps/admin/src/views/system/role/index.vue`、`packages/tooling/eslint-config/nest.ts` | 批 5 |
 | L4 | P1 | 文档口径未收敛：phase2-3-plan 顶部仍「待维护者批准」、批 3 未标已实施；连接占用 spike 是计划自列的前置项，无实测记录 | `docs/plans/data-scope-phase2-3-plan.md` 头部与 §2.1/§5 | 批 6 |

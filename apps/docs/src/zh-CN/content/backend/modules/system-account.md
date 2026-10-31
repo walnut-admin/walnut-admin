@@ -31,7 +31,7 @@ MFA 守卫、Lock 守卫、敏感操作校验都直接依赖它们。
 
 所有表都带 `id`（uuid）/ `created_at` / `updated_at`（`sys_log_*` 与 `sys_deleted` 例外，
 见 [数据域](./system-data.md)）。软删统一走「写 `sys_deleted` 快照 + 硬删原行」，
-实现见 `apps/server/apps/api/src/common/repository/pg-base.repository.ts` 的
+实现见 `apps/server/libs/repository/src/pg-base.repository.ts` 的
 `deleteSoftById`。六个模块的表**没有软删 HTTP 通道**；回收站的恢复注册表仍统一注册了
 它们（含无软删路径的表），兜住任何来源的历史快照。
 

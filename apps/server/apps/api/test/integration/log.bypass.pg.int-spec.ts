@@ -12,14 +12,14 @@ import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decor
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { DBTransactionHooksStore } from '@walnut-server/db'
 
-import { I18nContext, I18nService } from 'nestjs-i18n'
+import { SharedIpService } from '@walnut-server/ip'
 
+import { I18nContext, I18nService } from 'nestjs-i18n'
 import { from, lastValueFrom, throwError } from 'rxjs'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { WalnutAdminDecoratorAuthLog, WalnutAdminInterceptorRequestAuthLog } from '@/decorators/walnut/log.auth.decorator'
 import { WalnutAdminDecoratorOperateLog, WalnutAdminInterceptorRequestOperateLog } from '@/decorators/walnut/log.operate.decorator'
 import { WalnutAdminGuardAuth } from '@/guard/auth.guard'
-import { SharedIpService } from '@/modules/shared/ip/ip.service'
 import { SysDeletedEntity } from '@/modules/system/deleted/entity/deleted.entity'
 import { SysLogAuthEntity } from '@/modules/system/logs/auth/entity/log-auth.entity'
 import { SysLogAuthSharedService } from '@/modules/system/logs/auth/shared/log.auth.shared.service'

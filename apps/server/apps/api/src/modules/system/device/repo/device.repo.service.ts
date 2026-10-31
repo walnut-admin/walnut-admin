@@ -6,10 +6,10 @@ import { AppTechCryptoService } from '@walnut-server/crypto'
 import { runAfterCommit, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminExceptionNotFound } from '@walnut-server/exceptions'
 
+import { SharedIpService } from '@walnut-server/ip'
 import { SharedLocationDTO } from '@walnut-server/list'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { DataSource } from 'typeorm'
-import { SharedIpService } from '@/modules/shared/ip/ip.service'
 import { SysDeviceEntity } from '../entity/device.entity'
 
 /**

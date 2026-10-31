@@ -18,7 +18,7 @@
 
 - 24 个 schema：`apps/server/apps/api/src/modules/**/schema/*.schema.ts`
 - 集合名 / virtual 名真源：`apps/server/libs/db/src/db.const.ts`
-- 列表查询模式：Mongo 版 `listAggregate`（`$match` 字符串转 `$regex` 模糊、默认 `createdAt desc` 排序、`$facet` 分页 + count；该文件已随 B9 双轨退役，PG 版等价物 `apps/server/apps/api/src/common/repository/pg-list.builder.ts`）
+- 列表查询模式：Mongo 版 `listAggregate`（`$match` 字符串转 `$regex` 模糊、默认 `createdAt desc` 排序、`$facet` 分页 + count；该文件已随 B9 双轨退役，PG 版等价物 `apps/server/libs/repository/src/pg-list.builder.ts`）
 - 代表性数据访问：`lang.repo.service.ts`（双 `$lookup` + `$arrayToObject`）、`area.service.ts`（按 `pcode` 查一层 + 应用层建树 + 缓存）、`deleted.service.ts` / `base.repository.ts`（快照软删：查原文档 → `JSON.stringify` 存 `sys_deleted` → 真删）
 - seed 实际形态：`apps/server/db/seed/*.json`（Extended JSON，含 schema 未声明的字段，见开放问题 Q4）
 

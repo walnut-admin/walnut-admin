@@ -10,15 +10,15 @@ import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 
 import { WalnutAdminExceptionDataScopeContextMissing } from '@walnut-server/exceptions/business/auth'
+import { WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
 import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
 import { SysDeletedEntity } from '@/modules/system/deleted/entity/deleted.entity'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 
 /**
- * PG 版公共基类仓库（apps/api/src/common/repository/pg-base.repository.ts）：
+ * PG 版公共基类仓库（apps/server/libs/repository/src/pg-base.repository.ts）：
  * 用 B0a 实体直接实例化基类（测试内联子类，业务模块尚未切 PG），验证 ——
  * - CRUD 全链路（create 回带 DB 默认 uuid / readById / update）；
  * - deleteSoftById 写 sys_deleted（content jsonb 直存对象 + deletedAt 显式赋值）；

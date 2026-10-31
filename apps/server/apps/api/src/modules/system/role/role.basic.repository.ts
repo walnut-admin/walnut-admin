@@ -4,12 +4,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
-import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
-import {
-  applyPgListQuery,
-  buildPgListQueryOptions,
-  WALNUT_PG_LIST_TOTAL_ALIAS,
-} from '@/common/repository/pg-list.builder'
+import { applyPgListQuery, buildPgListQueryOptions, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 import { SysUserRoleEntity } from '../user/entity/user-role.entity'
 import { SysRoleDeptEntity } from './entity/role-dept.entity'
 import { SysRoleMenuEntity } from './entity/role-menu.entity'

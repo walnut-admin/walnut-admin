@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
-import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
+import { WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 import { SharedAreaEntity } from './entity/area.entity'
 
 /** 递归 CTE 单行出参（含深度与环标记；raw 查询直出，不映射进实体） */

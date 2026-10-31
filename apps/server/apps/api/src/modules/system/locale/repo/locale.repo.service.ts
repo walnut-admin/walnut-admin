@@ -3,10 +3,10 @@ import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
-import { isNil } from 'lodash'
+import { buildPgListQueryOptions, ILIKE_ESCAPE_REGEX, WALNUT_PG_LIST_TOTAL_ALIAS } from '@walnut-server/repository'
 
+import { isNil } from 'lodash'
 import { DataSource } from 'typeorm'
-import { buildPgListQueryOptions, ILIKE_ESCAPE_REGEX, WALNUT_PG_LIST_TOTAL_ALIAS } from '@/common/repository/pg-list.builder'
 import { SysLocaleEntity } from '../entity/locale.entity'
 
 /** locale list 分组行（Mongo 版投影出参：_id=key 分组键、key、process、createdAt、updatedAt） */

@@ -1,5 +1,6 @@
 import type { EntityManager, EntityTarget, FindOptionsWhere, ObjectLiteral, SelectQueryBuilder } from 'typeorm'
-import type { IWalnutAdminDataScopeEntityConfig } from './data-scope'
+import type { IWalnutAdminDataScopeEntityConfig, IWalnutAdminDataScopePolicy } from './ports/data-scope.port'
+import type { ISoftDeleteStrategy } from './ports/soft-delete.port'
 import { Inject } from '@nestjs/common'
 import { ALSRequestService } from '@walnut-server/als'
 import { applyWalnutDataScopeRlsSettings, DBTransactionHooksStore, runInWalnutSystemTransaction } from '@walnut-server/db'
@@ -12,17 +13,9 @@ import {
 import { IWalnutAdminRequestList } from '@walnut-server/list'
 import { cloneDeep } from 'lodash'
 import { DataSource } from 'typeorm'
-import { SysDeletedPgRepoService } from '@/modules/system/deleted/repo/deleted.repo.pg.service'
-import { SysEmployeeEntity } from '@/modules/system/employee/entity/employee.entity'
-import {
-  applyWalnutDataScopePredicate,
-  buildWalnutDataScopeFindWhere,
-  getWalnutDataScopeEntityConfig,
-  mergeWalnutDataScopeFindWhere,
-  resolveWalnutDataScopeDeptUpdate,
-} from './data-scope'
-import { buildWalnutDataScopeRlsSettings } from './data-scope.rls'
 import { applyPgListQuery, buildPgListQueryOptions, executePgListQuery } from './pg-list.builder'
+import { WALNUT_ADMIN_DATA_SCOPE_POLICY } from './ports/data-scope.port'
+import { WALNUT_ADMIN_SOFT_DELETE_STRATEGY } from './ports/soft-delete.port'
 
 /**
  * PostgreSQL 版公共基类仓库 —— B9 起**唯一**基类（Mongo 版
@@ -45,13 +38,31 @@ import { applyPgListQuery, buildPgListQueryOptions, executePgListQuery } from '.
  * 泛型约束与用法：子类持有 `@InjectDataSource(WalnutPGConnectionName)` 的
  * DataSource 并连同 `EntityTarget` 传给 super；实体本身经 `TypeOrmModule.forFeature`
  * 注册（autoLoadEntities 通道），本基类只消费已注册的元数据。
+ *
+ * libs 解耦批 5：本文件从 `apps/api/src/common/repository/` 下沉到 `libs/repository`。
+ * 与 app 的两处耦合改为经端口注入（见 `ports/`）：软删快照策略（sys_deleted）与
+ * 数据权限策略（实体注册表 + 谓词/RLS 纯函数）。构造签名与全部公有方法签名不变。
  */
 export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLiteral> {
   @Inject(ALSRequestService)
   protected readonly alsRequestService: ALSRequestService
 
-  @Inject(SysDeletedPgRepoService)
-  readonly deletedRepoService: SysDeletedPgRepoService
+  /**
+   * 软删快照策略（app 的 `SysDeletedPgRepoService` 经端口注入，批 5 解耦）。
+   *
+   * 属性名保持 `deletedRepoService`：子类（`SysUserBasicRepository` 的外围行快照腿）
+   * 直接消费它，改名会扩大改动面。必需注入 —— 绑定缺失 = 启动期 DI 报错，与解耦前
+   * 直接注入 `SysDeletedPgRepoService` 的失败形态一致（见 soft-delete.port.ts）。
+   */
+  @Inject(WALNUT_ADMIN_SOFT_DELETE_STRATEGY)
+  readonly deletedRepoService: ISoftDeleteStrategy
+
+  /**
+   * 数据权限策略（app 的实体注册表 + 谓词/RLS 纯函数经端口注入，批 5 解耦）。
+   * 必需注入：绝不允许「缺绑定 = 空注册表 = 全部豁免」的 fail-open。
+   */
+  @Inject(WALNUT_ADMIN_DATA_SCOPE_POLICY)
+  private readonly dataScopePolicy: IWalnutAdminDataScopePolicy
 
   protected constructor(
     readonly entityTarget: EntityTarget<Entity>,
@@ -123,7 +134,7 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
     // 直接调仓库的测试/脚本没有这份设置时按描述符重算（userDeptId 为空）。
     const { descriptor, userId } = this.requireDataScopeContext()
     const settings = this.alsRequestService.get('rlsSettings')
-      ?? buildWalnutDataScopeRlsSettings(descriptor, userId)
+      ?? this.dataScopePolicy.buildRlsSettings(descriptor, userId)
 
     const queryRunner = this.dataSource.createQueryRunner()
     try {
@@ -161,7 +172,7 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
    */
   private getDataScopeEntityConfig(): IWalnutAdminDataScopeEntityConfig | undefined {
     const target = this.dataSource.getMetadata(this.entityTarget).target
-    return getWalnutDataScopeEntityConfig(target)
+    return this.dataScopePolicy.getEntityConfig(target)
   }
 
   /**
@@ -205,8 +216,8 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
     }
 
     const { descriptor, userId } = this.requireDataScopeContext()
-    const scopeWhere = buildWalnutDataScopeFindWhere<Entity>(config, descriptor, userId)
-    const merged = mergeWalnutDataScopeFindWhere(base, scopeWhere)
+    const scopeWhere = this.dataScopePolicy.buildFindWhere<Entity>(config, descriptor, userId)
+    const merged = this.dataScopePolicy.mergeFindWhere(base, scopeWhere)
 
     if (merged === 'deny') {
       return 'deny'
@@ -249,7 +260,7 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
     const { descriptor } = this.requireDataScopeContext()
     const currentDeptId: unknown = current[config.deptColumn]
 
-    const decision = resolveWalnutDataScopeDeptUpdate(
+    const decision = this.dataScopePolicy.resolveDeptUpdate(
       config,
       descriptor,
       dto,
@@ -276,22 +287,17 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
     }
 
     const { descriptor, userId } = this.requireDataScopeContext()
-    applyWalnutDataScopePredicate(qb, alias, config, descriptor, userId)
+    this.dataScopePolicy.applyPredicate(qb, alias, config, descriptor, userId)
   }
 
   /**
    * @description 取某账号的职工部门（create 的行级部门回填腿；无职工行 → null）
    *
-   * 系统级只读查询：回填必须看到「创建者此刻的真实部门」，不受行级 scope 影响
-   * （此处位于 common/repository，ESLint 的直连守卫对本目录豁免）。
+   * 具体查询在 app 的数据权限策略端口里（`sys_employee` 是 app 实体）：系统级只读
+   * 查询，回填必须看到「创建者此刻的真实部门」，不受行级 scope 影响。
    */
   private async findOwnerDeptId(userId: string, em?: EntityManager): Promise<string | null> {
-    const employee = await this.getManager(em).getRepository(SysEmployeeEntity).findOne({
-      where: { userId },
-      select: { deptId: true },
-    })
-
-    return employee?.deptId ?? null
+    return this.dataScopePolicy.findOwnerDeptId(userId, em)
   }
 
   /**

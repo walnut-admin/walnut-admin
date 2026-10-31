@@ -1,7 +1,8 @@
 import type { IWalnutAdminIpLocationResolver } from '@walnut-server/crud'
 import type { EntityManager } from 'typeorm'
+import type { IWalnutAdminBlacklistRepository } from './ip.ports'
 import { HttpService } from '@nestjs/axios'
-import { Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { AppTechCacheAppSettingsService, AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
@@ -12,7 +13,7 @@ import { Recordable } from 'easy-fns-ts'
 import isLocalhostIp from 'is-localhost-ip'
 import { isNil } from 'lodash'
 import { firstValueFrom } from 'rxjs'
-import { AppSettingRepositoryService } from '@/modules/app/setting/repo/setting.repo.service'
+import { WALNUT_ADMIN_BLACKLIST_REPOSITORY } from './ip.ports'
 
 interface ISharedIpLocation extends SharedLocationDTO {
   ip: string
@@ -23,8 +24,9 @@ interface ISharedIpLocation extends SharedLocationDTO {
   timezone?: string
 }
 
-// implements 是端口绑定的编译期守护（批 4）：操作日志拦截器在 libs/crud 里只依赖
-// IWalnutAdminIpLocationResolver，方法改名/改签名这里立刻红
+// implements 是端口绑定的编译期守护：操作日志拦截器在 libs/crud 里只依赖
+// IWalnutAdminIpLocationResolver（批 4），永久黑名单存储经 WALNUT_ADMIN_BLACKLIST_REPOSITORY
+// 由 app 的 AppSettingRepositoryService 提供（批 5）—— 任一方法改名/改签名，这里立刻红
 @Injectable()
 export class SharedIpService implements IWalnutAdminIpLocationResolver {
   private readonly logger = new Logger(SharedIpService.name)
@@ -34,7 +36,8 @@ export class SharedIpService implements IWalnutAdminIpLocationResolver {
     private readonly httpService: HttpService,
     private readonly redisService: AppTechRedisService,
     private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
-    private readonly appSettingRepo: AppSettingRepositoryService,
+    @Inject(WALNUT_ADMIN_BLACKLIST_REPOSITORY)
+    private readonly appSettingRepo: IWalnutAdminBlacklistRepository,
   ) {}
 
   private readonly ipTempBlackListRedisKey = 'risk:ip_blacklist'

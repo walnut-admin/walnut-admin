@@ -2,9 +2,9 @@ import type { DataSource, EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutModelName, WalnutPGConnectionName, withWalnutSystemManager } from '@walnut-server/db'
-import { IsNull } from 'typeorm'
+import { WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 
-import { WalnutAdminCommonPgBaseRepository } from '@/common/repository/pg-base.repository'
+import { IsNull } from 'typeorm'
 import { SysEmployeeEntity } from '../employee/entity/employee.entity'
 import { SysDeptEntity } from './entity/dept.entity'
 
