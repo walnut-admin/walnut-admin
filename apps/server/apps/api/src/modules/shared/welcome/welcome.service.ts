@@ -1,8 +1,8 @@
 import type { LocaleType } from '@walnut/contract'
 import type { IOtpType } from '@/modules/auth/modules/otp/const/otp.const'
 import { Injectable, Logger } from '@nestjs/common'
-import { AppMailerService } from '../mailer/mailer.service'
-import { AppSmsService } from '../sms/sms.service'
+import { AppMailerService } from '@walnut-server/mailer'
+import { AppSmsService } from '@walnut-server/sms'
 
 @Injectable()
 export class SharedWelcomeService {

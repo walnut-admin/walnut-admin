@@ -33,7 +33,12 @@ export class AppMailerConfigService implements MailerOptionsFactory {
       },
       // preview: true,
       template: {
-        dir: join(__dirname, '../../../views/template/mailer'),
+        // libs 解耦批 3：视图模板仍留在 apps/api/src/views（资源由 nest-cli 的 assets 拷到
+        // 产物根 apps/api/src/views，产物根按画像是 dist / dist-stage）。lib 产物在
+        // <产物根>/libs/mailer/src，故从这里回退到产物根再进 apps/api/src/views ——
+        // 与 main.ts 的 setBaseViewsDir 同源。注意：这是运行期路径字符串，编译期不可见，
+        // 挪动 views 或产物布局时这里只会运行期炸。
+        dir: join(__dirname, '../../../apps/api/src/views/template/mailer'),
         adapter: new HandlebarsAdapter(),
         options: {
           strict: true,

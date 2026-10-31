@@ -188,4 +188,13 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 五处注册面，�
     const pkg = readJson<IPackageJson>('package.json')
     expect(buildLibsScriptNames(pkg.scripts['build:libs'] ?? '')).toEqual(actualLibs)
   })
+
+  it('⑤ apps/api/tsconfig.app.json include ≡ 磁盘 libs（app 构建的 TS 程序要看见每个 lib）', () => {
+    const appTsconfig = readJson<{ include: string[] }>('apps/api/tsconfig.app.json')
+    const libIncludes = appTsconfig.include
+      .map(entry => /^\.\.\/\.\.\/libs\/([\w-]+)\/src\/\*\*\/\*$/.exec(entry)?.[1])
+      .filter((name): name is string => name !== undefined)
+      .sort()
+    expect(libIncludes).toEqual(actualLibs)
+  })
 })

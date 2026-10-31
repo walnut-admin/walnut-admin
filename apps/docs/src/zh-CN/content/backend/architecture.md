@@ -45,6 +45,8 @@ libs/*/src/                            # 内部库，经 tsconfig paths 以 @wal
 ├── pipes/                             # 管道
 ├── types/                             # 全局类型声明
 └── utils/                             # 工具函数（含 DTO 包装 RealPickType / RealPartialType）
+
+（ libs 解耦进行中：cache、throttle、mailer、sms、cookie、crypto、lock、queue、sse、blpath、als、delay 等已陆续抽入 libs/，完整清单以目录为准 —— 见 ADR 0007 与 libs 解耦计划 ）
 ```
 
 `modules/` 下按职责分六组：
@@ -54,9 +56,9 @@ libs/*/src/                            # 内部库，经 tsconfig paths 以 @wal
 | `app/` | 应用级模块（`demo`、`monitor`、`setting`） |
 | `auth/` | 认证（JWT、OAuth、MFA、OTP） |
 | `security/` | 安全（CAPTCHA、RSA、Sign、Risk） |
-| `shared/` | 共享服务（email、SMS、token） |
+| `shared/` | 共享服务（token、ip、area、mask、scopeResolver、welcome；email/SMS 已抽至 libs/mailer、libs/sms） |
 | `system/` | 系统管理（user、role、menu、device、logs、dict） |
-| `techniques/` | 基础设施（cache、queue、logger、SSE、socket） |
+| `techniques/` | 基础设施（task、event、health、logger；cache/queue/throttle/SSE 等已抽至 libs） |
 
 ### 认证与 MFA 强制口径
 

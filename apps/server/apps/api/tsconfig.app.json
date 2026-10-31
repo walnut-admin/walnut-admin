@@ -23,7 +23,9 @@
         "../../libs/queue/src/**/*",
         "../../libs/sse/src/**/*",
         "../../libs/cache/src/**/*",
-        "../../libs/throttle/src/**/*"
+        "../../libs/throttle/src/**/*",
+        "../../libs/mailer/src/**/*",
+        "../../libs/sms/src/**/*"
     ],
     "exclude": [
         "node_modules",

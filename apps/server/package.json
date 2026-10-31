@@ -22,7 +22,7 @@
   },
   "scripts": {
     "build": "cross-env NODE_ENV=production nest build api -c infra/nest/prod.json",
-    "build:libs": "concurrently \"nest build config\" \"nest build const\" \"nest build db\" \"nest build utils\" \"nest build types\" \"nest build decorators\" \"nest build pipes\" \"nest build exceptions\" \"nest build context\" \"nest build als\" \"nest build blpath\" \"nest build cookie\" \"nest build crypto\" \"nest build delay\" \"nest build lock\" \"nest build queue\" \"nest build sse\" \"nest build cache\" \"nest build throttle\"",
+    "build:libs": "concurrently \"nest build config\" \"nest build const\" \"nest build db\" \"nest build utils\" \"nest build types\" \"nest build decorators\" \"nest build pipes\" \"nest build exceptions\" \"nest build context\" \"nest build als\" \"nest build blpath\" \"nest build cookie\" \"nest build crypto\" \"nest build delay\" \"nest build lock\" \"nest build queue\" \"nest build sse\" \"nest build cache\" \"nest build throttle\" \"nest build mailer\" \"nest build sms\"",
     "build:stage": "cross-env NODE_ENV=stage nest build api -c infra/nest/stage.json",
     "dev": "cross-env NODE_ENV=development nest start api --watch -c infra/nest/dev.json",
     "start:debug": "nest start --debug --watch",

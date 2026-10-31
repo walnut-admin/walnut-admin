@@ -32,7 +32,9 @@
           "libs/queue/src",
           "libs/sse/src",
           "libs/cache/src",
-          "libs/throttle/src"
+          "libs/throttle/src",
+          "libs/mailer/src",
+          "libs/sms/src"
         ]
       }
     }
@@ -234,6 +236,24 @@
       "sourceRoot": "libs/throttle/src",
       "compilerOptions": {
         "tsConfigPath": "libs/throttle/tsconfig.lib.json"
+      }
+    },
+    "mailer": {
+      "type": "library",
+      "root": "libs/mailer",
+      "entryFile": "index",
+      "sourceRoot": "libs/mailer/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/mailer/tsconfig.lib.json"
+      }
+    },
+    "sms": {
+      "type": "library",
+      "root": "libs/sms",
+      "entryFile": "index",
+      "sourceRoot": "libs/sms/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/sms/tsconfig.lib.json"
       }
     }
   }

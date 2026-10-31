@@ -139,6 +139,18 @@
       ],
       "@walnut-server/throttle/*": [
         "./libs/throttle/src/*"
+      ],
+      "@walnut-server/mailer": [
+        "./libs/mailer/src"
+      ],
+      "@walnut-server/mailer/*": [
+        "./libs/mailer/src/*"
+      ],
+      "@walnut-server/sms": [
+        "./libs/sms/src"
+      ],
+      "@walnut-server/sms/*": [
+        "./libs/sms/src/*"
       ]
     }
   }

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 
-import { AppMailerModule } from '../mailer/mailer.module'
-import { AppSmsModule } from '../sms/sms.module'
+import { AppMailerModule } from '@walnut-server/mailer'
+import { AppSmsModule } from '@walnut-server/sms'
 import { SharedWelcomeService } from './welcome.service'
 
 @Module({

@@ -93,7 +93,7 @@ class VerificationService {
 把异常吞成 `{ success: false }` 会让 HTTP 状态码恒为 200，前端拿不到错误码，日志里也没有栈。
 
 > ⚠️ 这条**不是零例外**，但例外的判据很清晰：**翻译外部错误**。第三方 SDK、协议边界
-> （`security/opaque`、`shared/sms` 之类）抛出来的错误形态不受项目控制，那里需要 try-catch
+> （`security/opaque`、`@walnut-server/sms` 之类）抛出来的错误形态不受项目控制，那里需要 try-catch
 > 把它转成项目自己的异常类型。判据是「这个 catch 是不是在翻译外部错误」——
 > 如果只是「怕它炸」，那就是反例。
 

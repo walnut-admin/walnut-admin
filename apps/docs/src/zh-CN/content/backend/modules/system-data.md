@@ -218,8 +218,8 @@ dictData 快照）；junction（`sys_user_role` / `sys_role_menu`）与设备行
 | 队列 | 注册方 | 用途 |
 |---|---|---|
 | `ERROR` | `modules/app/error` | 错误上报异步落库 |
-| `EMAIL` | `modules/shared/mailer` | 验证码邮件、欢迎邮件 |
-| `PHONE` | `modules/shared/sms` | 验证码短信（阿里云） |
+| `EMAIL` | `@walnut-server/mailer` | 验证码邮件、欢迎邮件 |
+| `PHONE` | `@walnut-server/sms` | 验证码短信（阿里云） |
 
 OTP 发送侧对队列调用是 `void this.mailerService.sendVerifyCodeEmail(...)` /
 `void this.smsService.sendVerifyCodeTextMessage(...)`：**不 await**，响应先返回，码同时写
