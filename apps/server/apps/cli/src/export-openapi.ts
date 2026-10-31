@@ -6,9 +6,12 @@ import process from 'node:process'
 import { NestFactory } from '@nestjs/core'
 import { SwaggerModule } from '@nestjs/swagger'
 
-import { AppModule } from '../app/app.module'
-import { buildSwaggerDocumentOptions } from '../common/swagger/swagger.options'
-import { WalnutAdminLogger } from '../modules/techniques/logger'
+// cli 与 api 同属 `@walnut/server` workspace，且根 tsconfig 的 rootDir 覆盖整个
+// apps/server/ —— 组合根（AppModule）与 app 内部模块用相对路径直接取用（不新增
+// 别名：`@/*` 固定指向 apps/api/src，在 cli 里用会让「当前是谁的源码」失去语义）。
+import { AppModule } from '../../api/src/app/app.module'
+import { buildSwaggerDocumentOptions } from '../../api/src/common/swagger/swagger.options'
+import { WalnutAdminLogger } from '../../api/src/modules/techniques/logger'
 
 /**
  * 离线导出 OpenAPI 文档 → `apps/server/openapi.json`（check-in 仓库）。
@@ -21,9 +24,9 @@ import { WalnutAdminLogger } from '../modules/techniques/logger'
  *
  * ## 运行方式（为什么不是 `node` 直接跑 .ts）
  *
- * 经 `pnpm openapi:export`（package.json script）运行：`nest build api`（SWC，装饰器与
+ * 经 `pnpm openapi:export`（package.json script）运行：`nest build cli`（SWC，装饰器与
  * emitDecoratorMetadata 必须经转换 —— Node 24 原生类型剥离**不支持装饰器**，与
- * data-source.cli.ts 能裸跑的前提相反）→ `node dist/apps/api/src/database/export-openapi.js`。
+ * data-source.cli.ts 能裸跑的前提相反）→ `node dist/apps/cli/src/export-openapi.js`。
  * 本文件自身遵守 data-source.cli.ts 同款约定：**只应从 apps/server/ 目录运行**
  * （env 定位与产物路径都用 `process.cwd()`）。
  *

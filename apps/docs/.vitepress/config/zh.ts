@@ -315,6 +315,7 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: '0019 tsconfig 预设与无 .mjs', link: '/content/adr/0019-tsconfig-presets-and-no-mjs' },
         { text: '0020 移除 auto-import', link: '/content/adr/0020-remove-unplugin-auto-import' },
         { text: '0021 MongoDB 迁 PostgreSQL', link: '/content/adr/0021-postgresql-migration' },
+        { text: '0022 领域 lib 分层与组合根', link: '/content/adr/0022-backend-lib-layering-and-composition-roots' },
         { text: 'Zod vs class-validator 评估', link: '/content/adr/zod-evaluation' },
       ],
     },

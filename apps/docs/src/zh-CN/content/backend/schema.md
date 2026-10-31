@@ -209,7 +209,7 @@ ETL 装载后的孤儿/环检测兜底；递归 CTE 再以 `CYCLE` 子句做 SQL
 ## 4. migration 纪律
 
 - **`synchronize: false` 从第一天锁死**：运行时连接（`apps/server/libs/db/src/pg.service.ts`）与
-  CLI 数据源（`apps/api/src/database/data-source.cli.ts`）都硬编码，不给环境变量开口子。
+  CLI 数据源（`apps/cli/src/data-source.cli.ts`）都硬编码，不给环境变量开口子。
 - **`migrationsRun: false`**：应用启动不自动跑迁移；结构演进只经显式命令：
   `pnpm migration:run` / `pnpm migration:revert`（从 `apps/server/` 执行）。
 - **初始迁移是手写的**：`apps/api/migrations/1792922206018-InitSchema.ts`。`migration:generate`

@@ -44,7 +44,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | 可复用 UI 组件 | `@walnut/ui` | `packages/platform-web/ui/src/<Name>/{index.ts,index.vue}` | **只有「零 app 依赖 + 已被 ≥2 处复用」才迁**（判据见[架构待办](/content/monorepo/architecture-todo)的「`@walnut/ui` 剩余组件」），否则先留在 `apps/admin/src/components` |
 | 只属于 admin 的组件 / store / 页面 | `apps/admin` | `src/components/**`、`src/store/modules/**`、`src/views/**` | 组件一律 `index.ts`（导出）+ `index.vue`（实现）；API 函数以 `API` 结尾 |
 | 后端接口 | `apps/server` | `apps/api/src/modules/<domain>/` | 一模块一套 module / controller / service / basic.repository，规则见 `apps/server/AGENTS.md` |
-| 后端内部共享能力 | `apps/server/libs/<x>` | 新建 lib 或在既有 9 个里加 | 它们**不是** workspace 包，走 tsconfig `paths`，namespace `@walnut-server/*`（ADR 0007） |
+| 后端内部共享能力 | `apps/server/libs/<x>` | 按分层新建 lib，或加进既有层 | 它们**不是** workspace 包，走 tsconfig `paths`，namespace `@walnut-server/*`（ADR 0007）；分层与依赖方向见 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md) |
 | 一条仓库门禁 / 脚本 | `@walnut/scripts` | `src/ci/<name>.ts` + `bin/<name>.ts` | 新增门禁有**五步接线清单**，少一步就等于没接上 —— 见下 |
 | 共享配置预设（ESLint / tsconfig / Vitest / commitlint） | 对应的 `packages/tooling/<x>` | 已在册的 6 个包之一 | 新增第 7 个 tooling 包要同步单一 fixed 组、`versioning-config.test.ts`、以及一堆文档里的包清单 |
 | 一篇架构决策记录 | 文档站 `content/adr/` | `NNNN-<slug>.md` | 形态由 `pnpm lint:adr` 机械强制，形状约定见 [ADR 索引](../adr/index.md) |
@@ -117,8 +117,10 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 ├── apps/
 │   ├── admin/                       ← @walnut/admin（Vue3 SPA）
 │   ├── server/                      ← @walnut/server（NestJS API）
-│   │   ├── apps/api/                ← NestJS 应用入口
-│   │   └── libs/                    ← NestJS CLI monorepo（内层，9 个 lib）
+│   │   ├── apps/api/                ← NestJS 默认部署单元（HTTP + cron + Bull）
+│   │   ├── apps/worker/             ← 可选第二进程（cron + Bull，默认不启动）
+│   │   ├── apps/cli/                ← 工具入口（migration / openapi 导出）
+│   │   └── libs/                    ← NestJS CLI monorepo（内层，内部 lib 分五层）
 │   └── docs/                        ← @walnut/docs（VitePress 文档站）
 ├── packages/                        ← 共享库（按平台分组，ADR 0017）
 │   ├── platform-any/                ← 运行时无关
@@ -146,7 +148,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 
 **外层**（Turborepo 层面）：`apps/*` + `packages/platform-any/*` + `packages/platform-web/*` + `packages/tooling/*` 的 workspace 包，通过 pnpm workspace 协议（`workspace:*`）相互引用。
 
-**内层**（Server 内部）：`apps/server/libs/*` 下的 NestJS 内部库（基建 9 个 + libs 解耦持续抽入，完整清单以目录为准），通过 TypeScript `paths` 映射解析，不走 pnpm workspace。命名空间为 `@walnut-server/*`，与外层 `@walnut/*` 物理分离。
+**内层**（Server 内部）：`apps/server/libs/*` 下的 NestJS 内部库（按「基建 → 技术/装配 → identity 内核 → 领域域 → app-domain」分层；完整清单以目录为准），通过 TypeScript `paths` 映射解析，不走 pnpm workspace。命名空间为 `@walnut-server/*`，与外层 `@walnut/*` 物理分离。`apps/api` 是默认部署单元（组合根），`apps/worker` / `apps/cli` 是同一 workspace 内的可选组合入口，不是新服务 —— 见 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。
 
 ### 关键设计决策
 
@@ -204,7 +206,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 > [`vitest-config`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/vitest-config/README.md) ·
 > [`scripts`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/scripts/README.md) ·
 > [`release`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/release/README.md)；
-> 后端内部 lib 的逐库说明在 `apps/server/libs/<x>/README.md`。
+> 后端内部 lib 的逐库说明：9 个基建 lib 各有 `apps/server/libs/<x>/README.md`；其余领域 / 技术 lib 的说明在 `libs/<x>/src` 的文件头注释与 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。
 
 ### 消费方式
 
@@ -214,22 +216,27 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 
 ## 后端内部库体系
 
-Server 内部通过 NestJS CLI + SWC 管理内部库，命名空间 `@walnut-server/*`（基建 9 个如下；libs 解耦持续抽入的技术/领域 lib 完整清单以 `apps/server/libs/` 目录为准）：
+Server 内部通过 NestJS CLI + SWC 管理内部库，命名空间 `@walnut-server/*`。内部 lib 按**依赖方向**分五层（下层不知道上层，完整清单以 `apps/server/libs/` 目录为准）：
 
 ```
 apps/server/libs/
-├── config/       @walnut-server/config       — 环境配置 + 验证
-├── const/        @walnut-server/const        — 常量 + 错误码
-├── context/      @walnut-server/context      — ALS 上下文
-├── db/           @walnut-server/db           — PostgreSQL（TypeORM）+ 事务
-├── decorators/   @walnut-server/decorators   — 自定义装饰器体系
-├── exceptions/   @walnut-server/exceptions   — 异常 + 全局过滤器
-├── pipes/        @walnut-server/pipes        — 参数管道
-├── types/        @walnut-server/types        — 类型声明
-└── utils/        @walnut-server/utils        — 工具函数
+├── # 基建（9）
+│   config/  const/  context/  db/  decorators/  exceptions/  pipes/  types/  utils/
+├── # 技术 / 装配（20）
+│   als/  blpath/  cookie/  crypto/  delay/  lock/  queue/  sse/
+│   cache/  throttle/  mailer/  sms/  rsa/  ip/
+│   repository/  list/  crud/  scope-resolver/  token/  guards/
+├── # identity 内核（1）
+│   identity/
+├── # 领域域（3）
+│   system/  auth/  security/
+└── # app-domain（1）
+    app-domain/
 ```
 
-这些 lib 通过 `apps/server/tsconfig.json` 的 `paths` 映射解析，由 NestJS CLI + SWC 统一编译。它们**不参与** pnpm workspace，不通过 `package.json` `exports` 消费。为什么这样：[ADR 0007](../adr/0007-backend-libs-not-workspace.md)。
+这些 lib 通过 `apps/server/tsconfig.json` 的 `paths` 映射解析，由 NestJS CLI + SWC 统一编译。它们**不参与** pnpm workspace，不通过 `package.json` `exports` 消费。为什么这样：[ADR 0007](../adr/0007-backend-libs-not-workspace.md)；分层、组合根与端口注入反转：[ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。
+
+依赖方向由三条机械守卫守住：`apps/server/eslint.config.ts` 的 `libs-boundary`（lib 内禁止 `@/*` 与逃逸进 `apps/`）；`lib-registration.drift.spec.ts`（磁盘 ↔ paths ↔ nest-cli ↔ swcrc ↔ app tsconfig 五处注册面全等）；`dto-entity.drift.spec.ts` 与 `eslint-data-scope-entities.drift.spec.ts`（DTO/实体与数据范围清单对账）。
 
 ## 现状 / 待办 / 历史 的分工
 

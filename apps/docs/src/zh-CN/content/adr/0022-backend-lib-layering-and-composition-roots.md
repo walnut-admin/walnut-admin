@@ -1,0 +1,132 @@
+# ADR-0022: 后端领域 lib 分层与组合根形态
+
+**Date:** 2026-10-31
+**Status:** Accepted
+
+## Context
+
+`apps/server` 是 NestJS CLI 内部 monorepo（[ADR 0007](./0007-backend-libs-not-workspace.md)）。
+起点只有 9 个基建 lib（`config` / `const` / `context` / `db` / `decorators` / `exceptions` /
+`pipes` / `types` / `utils`），业务代码全部在 `apps/api/src/modules/**`，模块之间直接互相 import。
+
+2026-10 的「libs 解耦批 0-10」按依赖方向把业务模块逐层搬进 `libs/`：批 0 先立注册一致性门禁与
+libs 边界 lint，批 1-9 依次下沉基建、技术设施、共享能力、身份内核与各领域域，批 10 收官时
+共 **34 个内部 lib**，app 剩组合根、wire DTO 与依赖 app 侧能力（guard/wire DTO）的 controller。批次 0-9 回答「搬哪些、搬到哪」；批 10 回答
+三个形态问题：
+
+1. 分层怎么变成**机械可检查**的规则，而不是只写在文档里的意图；
+2. app 与「可部署入口」是什么关系（worker / cli 是不是新服务）；
+3. lib 需要 app 侧能力时如何反转依赖，而不 import app。
+
+## Decision 1: 34 个内部 lib 按五层组织，依赖只能单向
+
+分层以**依赖方向**为判据（下层不知道上层），不以目录名或业务重要度为判据：
+
+| 层 | lib | 说明 |
+|----|-----|------|
+| 基建（9） | `config` `const` `context` `db` `decorators` `exceptions` `pipes` `types` `utils` | 不依赖任何领域概念 |
+| 技术（19） | `als` `blpath` `cookie` `crypto` `delay` `lock` `queue` `sse` `cache` `throttle` `mailer` `sms` `rsa` `ip` `repository` `list` `crud` `scope-resolver` `token` | 技术设施（缓存 / 队列 / 加密 / 邮件短信 / IP）+ 跨域装配内核（仓储基座、列表、CRUD、数据范围、token） |
+| 装配（1） | `guards` | guard / decorator / interceptor 装配层 —— **位置在领域域之上**：它 import identity/system/auth/security 来装配安全链，是唯一的上层依赖下层例外标注（见下方「层间方向」） |
+| identity 内核（1） | `identity` | 用户身份栈（用户 / 设备 / MFA / OTP / session），被 system / auth / security 共同消费 |
+| 领域域（3） | `system` `auth` `security` | 各自的 service / repository / entity 与 shared 能力 |
+| app-domain（1） | `app-domain` | app / shared 域的数据面（demo / error / key / logger / monitor / setting / area / ali / mask） |
+
+三条机械守卫（守的是 **lib ↔ app 边界**与注册完备性；**lib 之间的层间方向目前靠约定与评审**，没有门禁 —— 这是已知欠账，不是已守事实）：
+
+- **ESLint `libs-boundary`**（`apps/server/eslint.config.ts`）：`libs/**` 禁止 `@/*`
+  （那是 `apps/api/src`）、禁止相对路径逃逸进 `apps/`、禁止 import 前端包；需要 app 能力时
+  用注入 token 反转依赖（见 Decision 3）。因此「lib 内零 `@/` 导入」是**编译前**就被拦下的，
+  不靠 review。
+- **`lib-registration.drift.spec.ts`**：磁盘 `libs/<name>` 与 `tsconfig.json` paths、
+  三份 `infra/nest/*.json` 的 filenames / projects、三份 `infra/swc/*.swcrc` paths、
+  `apps/api/tsconfig.app.json` include 五处注册面全等；application（api / cli / worker）不参与对账。
+- **`dto-entity.drift.spec.ts`** 与 **`eslint-data-scope-entities.drift.spec.ts`**：
+  DTO ↔ Entity 字段形状、数据范围实体清单 ↔ ESLint 规则文本，各自单向对账。
+
+## Alternatives considered
+
+- **保持 `apps/api/src/modules/**` 单目录，不抽内部 lib** —— 跨模块 import 没有边界可查，
+  「谁能依赖谁」只能靠约定；批 0-9 的拆分正是为了把这条约定变成 lint 与 drift spec。
+- **把内部 lib 提升为 pnpm workspace 包** —— 已在 [ADR 0007](./0007-backend-libs-not-workspace.md)
+  否决：CJS + `emitDecoratorMetadata` + SWC，不适合作 ESM workspace 包。
+- **每个领域域拆成独立服务（微服务）** —— 部署单元会从「一个后端镜像」变成 N 个，事务、鉴权、
+  配置共享都需重做；本仓的部署前提仍是单容器单体（见 Decision 2），微服务不在本轮范围。
+
+## Decision 2: app 是组合根（部署单元），worker / cli 是可选组合入口
+
+`apps/api` 仍是唯一默认部署单元：`AppModule` 按顺序装配 middleware / config / context / i18n /
+db / cron / 各域 HTTP 组合根 / guard 与 interceptor。`apps/worker` 与 `apps/cli` 不是新服务，
+而是**同一 workspace 内的其他组合入口**：
+
+- `apps/worker`：可选第二进程，`NestFactory.createApplicationContext(WorkerModule)`（无 HTTP 监听）
+  + `enableShutdownHooks`，承接 cron 与 Bull 消费；默认部署**不启动**它，api 单进程全功能不变。
+- `apps/cli`：纯工具入口（`data-source.cli.ts` 供 migration CLI，`export-openapi.ts` 供离线导出
+  OpenAPI），零运行时影响。
+
+前提是**单容器单体**：不做「每个 app 一个容器」的编排。worker 与 api 共用同一镜像、同一份
+`env-local`、同一套业务模块；需要独立伸缩时再讨论拆进程/拆服务，不在本决策内预支。
+
+两条实现约束：
+
+- worker / cli 作为 application 项目注册在三份 `infra/nest/{dev,prod,stage}.json`；由于当前
+  Nest CLI 的 SWC builder 把 `filenames` 当**全局**配置（项目级 `builder.options` 不生效），
+  `apps/cli/src` / `apps/worker/src` 进入全局 filenames。api 构建只用 `exclude` 挡掉 cli
+  （纯工具、不进镜像）；worker 入口随 api 构建一起产出 `dist/apps/worker`，这样默认镜像里
+  就带着「可选第二进程」的入口，Dockerfile 的 CMD 无需变化。
+- worker 通过相对路径 `../../api/src/app/app.module` 复用 `AppModule`（根 tsconfig 的
+  `rootDir` 覆盖整个 `apps/server/`）；不为 worker 新增 `@/*` 之外的第二套别名。
+
+## Decision 3: lib 需要 app 能力时，用注入 token 反转依赖
+
+方向固定为「app 提供实现，lib 声明端口」。lib 内只 import 自己声明的 token 类型，实现类由 app
+（组合根）在 `providers` 里绑定。当前全部 `WALNUT_ADMIN_*` 注入 token：
+
+- identity：`WALNUT_ADMIN_IDENTITY_USER_NOTIFIER` · `WALNUT_ADMIN_IDENTITY_DEVICE_SERVICE` ·
+  `WALNUT_ADMIN_IDENTITY_OTP_SERVICE` · `WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION` ·
+  `WALNUT_ADMIN_IDENTITY_SIGNOUT_SERVICE` · `WALNUT_ADMIN_IDENTITY_MONITOR_REPOSITORY` ·
+  `WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR`
+- auth / security：`WALNUT_ADMIN_AUTH_RISK_SERVICE` · `WALNUT_ADMIN_AUTH_MONITOR_SERVICE`
+- system：`WALNUT_ADMIN_SYSTEM_FAILED_LOGIN_RISK_COLLECTOR` ·
+  `WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER`
+- 共享能力：`WALNUT_ADMIN_BLACKLIST_REPOSITORY` · `WALNUT_ADMIN_DATA_SCOPE_POLICY` ·
+  `WALNUT_ADMIN_ERROR_REPORTER` · `WALNUT_ADMIN_IP_LOCATION_RESOLVER` · `WALNUT_ADMIN_KEY_STORE` ·
+  `WALNUT_ADMIN_OPERATE_LOG_WRITER` · `WALNUT_ADMIN_SOFT_DELETE_STRATEGY` · `WALNUT_ADMIN_TOKEN_TTL`
+
+新增一个反转点时，token 与端口接口一起放进**需要它**的 lib（而不是 app），app 侧只保留
+`{ provide: TOKEN, useClass/useExisting/useFactory }` 的绑定。
+
+## Decision 4: 两处顺序敏感的东西留在 app
+
+下沉只搬「数据面」，以下两类**故意留在 `apps/api/src`**：
+
+- **wire DTO**：`SysUserDTOSafe` 及其虚拟读模型（`WalnutAdminVirtualUserDTO` 等）参与 swagger
+  schema 的注册顺序；schema 键序决定 `openapi.json` 的字节形态，而 `openapi:check` 的
+  `git diff --exit-code` 是前端类型生成的真源。放进 lib 会同时造成 lib → app 反向依赖与 schema 顺序漂移。
+- **HTTP controller 跟随依赖落位**：依赖全 lib 的（app-domain 12 个 + system 域的 logs 等）随
+  数据面进 lib；依赖 app guard / wire DTO / passport mixin 的（39 个：身份栈、auth、security
+  的 HTTP 面与 monitor/user）留 app 的各 HTTP 组合模块声明。
+
+由此产生两处**交错点**（改动时必须保持）：
+
+1. `AppMonitorUserHttpModule` 由 `SocketModule` 首个 import，`/app/monitor/user/*` 在 openapi 里
+   排在 `/app/demo` 之前；
+2. `SysDeleted` 的 controller 排在 `AppDemoModule` 之后（`AppAppModule` 紧随 lib 的
+   `AppDemoModule` 引入），system 各子模块的 controller 声明顺序与解耦前一致。
+
+## Consequences
+
+- app 侧剩组合根、wire DTO 与依赖 app 能力的 controller；业务数据面在 34 个 lib 内。
+  lib ↔ app 边界由 ESLint + 三个 drift spec 机械守；**lib 之间的层间方向靠约定与评审**。
+- 默认部署形态不变：未设 `WORKER_STANDALONE` 时 api 行为与解耦前一致，`openapi.json` 零 diff
+  是每次改动的裁判；worker 是**可选**入口，`WORKER_STANDALONE=true` 时 api 让出 cron，
+  worker 的组合根承接（见 `apps/worker/README.md`）。
+- 新增内部 lib 的动作固定为「建目录 + 五处注册 + 边界 lint 通过」；漏任何一处 drift spec 会红。
+- 新增领域的能力默认拆成「lib 数据面 + app HTTP 组合根」两层；只有确认不触碰 wire DTO /
+  guard 装配时才考虑把 controller 也下沉。
+
+## Related
+
+- [ADR 0007](./0007-backend-libs-not-workspace.md)：内部 lib 不提升为 workspace 包
+- [ADR 0012](./0012-toolchain-divergence.md)：server 自有 tsconfig / SWC 工具链
+- [ADR 0013](./0013-barrel-exports-policy.md)：barrel 策略（lib 入口用显式具名 re-export）
+- [架构待办](../monorepo/architecture-todo.md) 的 A12：内部 lib 抽取计划（批 0-10 已执行完毕）

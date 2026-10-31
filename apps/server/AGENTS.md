@@ -19,7 +19,7 @@
 | **三种 Repository 模式** —— 改后端代码前必读，最容易做错的一条 | 本文件下面「三种 Repository 模式」 |
 | **Guard 执行顺序** —— 动 controller 之前必读 | 本文件下面「Security Guard 执行顺序」 |
 | 全仓结构、命令、提交纪律 | 仓库根 [`AGENTS.md`](../../AGENTS.md) |
-| 架构决策（为什么后端 lib 不提升为 workspace 包、为什么工具链与前端分叉） | [ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md) · [ADR 0012](../docs/src/zh-CN/content/adr/0012-toolchain-divergence.md) |
+| 架构决策（为什么后端 lib 不提升为 workspace 包、lib 分层与组合根、工具链分叉） | [ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md) · [ADR 0022](../docs/src/zh-CN/content/adr/0022-backend-lib-layering-and-composition-roots.md) · [ADR 0012](../docs/src/zh-CN/content/adr/0012-toolchain-divergence.md) |
 | 可复用的后端开发技能 | [`.claude/skills/`](../../.claude/skills/) 下 `be-*` 前缀（建模块 / 加字段 / 加接口 / 自查 / 评审） |
 
 > 更早的历史：本文件曾是一份 14 行的文档索引，指向从未进过仓库的 `./.agents/docs/`（14 条链接
@@ -31,11 +31,13 @@
 NestJS 12.x + TypeScript 6.0.3 + PostgreSQL（TypeORM）+ Redis + Bull 队列 —— 功能齐全的中后台后端模板。
 **内部 Nest CLI monorepo**，不是 pnpm workspace 包：
 
-- `apps/api/src/` —— app 的入口与源码（`modules/` `app/` `decorators/`〔仅剩 log.*〕`common/` `i18n/` …；guard / 大部分 decorator / interceptor 已在 `libs/guards`）
-- `libs/*/src` —— 内部库（完整清单以 `libs/` 目录为准；`{config,const,context,db,decorators,exceptions,pipes,types,utils}` 是基建底座），
+- `apps/api/src/` —— 默认部署单元（组合根）：HTTP 入口、`AppModule`、wire DTO 与 controller
+- `apps/worker/src/` · `apps/cli/src/` —— 可选组合入口（cron + Bull；migration / OpenAPI），默认部署不启动 worker
+- `libs/*/src` —— 内部库（按依赖方向分五层，完整清单以 `libs/` 目录为准），
   经 tsconfig `paths` 以 `@walnut-server/*` 解析，与 app 一起由 SWC 编译
 - 为什么这样：[ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md)
-  （CJS + NestJS 耦合 + SWC 编译，不适合当 ESM workspace 包）
+  （CJS + NestJS 耦合 + SWC 编译，不适合当 ESM workspace 包）· [ADR 0022](../docs/src/zh-CN/content/adr/0022-backend-lib-layering-and-composition-roots.md)
+  （分层、组合根、端口注入反转）
 
 **主要能力**：多认证方式（JWT、OAuth、WebAuthn、OPAQUE）、RBAC、MFA、实时通信（WebSocket/SSE）、i18n、
 完整的安全体系（IP / 设备 Guard、CAPTCHA、风险评估、XSS 防护）。

@@ -47,7 +47,9 @@
           "libs/auth/src",
           "libs/security/src",
           "libs/guards/src",
-          "libs/app-domain/src"
+          "libs/app-domain/src",
+          "apps/cli/src",
+          "apps/worker/src"
         ]
       }
     }
@@ -384,6 +386,45 @@
       "sourceRoot": "libs/app-domain/src",
       "compilerOptions": {
         "tsConfigPath": "libs/app-domain/tsconfig.lib.json"
+      }
+    },
+    "cli": {
+      "type": "application",
+      "root": "apps/cli",
+      "entryFile": "apps/cli/src/export-openapi",
+      "sourceRoot": "apps/cli/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/cli/tsconfig.app.stage.json",
+        "deleteOutDir": false,
+        "assets": [
+          {
+            "include": "../../api/src/i18n/**/*",
+            "outDir": "dist-stage",
+            "watchAssets": true
+          }
+        ]
+      }
+    },
+    "worker": {
+      "type": "application",
+      "root": "apps/worker",
+      "entryFile": "apps/worker/src/main",
+      "sourceRoot": "apps/worker/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/worker/tsconfig.app.stage.json",
+        "deleteOutDir": false,
+        "assets": [
+          {
+            "include": "../../api/src/i18n/**/*",
+            "outDir": "dist-stage",
+            "watchAssets": true
+          },
+          {
+            "include": "../../api/src/views/**/*",
+            "outDir": "dist-stage",
+            "watchAssets": true
+          }
+        ]
       }
     }
   }

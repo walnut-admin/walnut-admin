@@ -28,9 +28,9 @@ import { AppTechTaskModule } from './task/task.module'
     AppTechThrottlerModule,
   ],
   providers: [
-    // throttle guard 的注册留在 app 侧（libs 解耦批 2）：guard 文件仍在
-    // apps/api/src/guard（批 8 才搬），lib 禁止 import app。ThrottlerModule 是
-    // @Global 的，guard 依赖的 options/storage 由 @walnut-server/throttle 注册。
+    // throttle guard 的注册留在 app 侧：guard 类在 @walnut-server/guards（libs），
+    // APP_GUARD 的顺序装配属于组合根。ThrottlerModule 是 @Global 的，guard 依赖的
+    // options/storage 由 @walnut-server/throttle 注册。
     {
       provide: APP_GUARD,
       useClass: WalnutAdminGuardThrottler,

@@ -17,7 +17,8 @@ import { describe, expect, it } from 'vitest'
  * 注册面（全部必须与磁盘集合相等）：
  * ① `tsconfig.json` → `compilerOptions.paths` 的 `@walnut-server/<name>`（含 `/*` 变体）；
  * ② `infra/nest/{dev,prod,stage}.json` → `compilerOptions.builder.options.filenames` 的
- *    `libs/<name>/src`，以及 `projects` 里每个 lib 的标准形状；
+ *    `libs/<name>/src`，以及 `projects` 里每个 lib 的标准形状（application 项目 —— api /
+ *    cli / worker 这些组合入口 —— 不参与本守卫）；
  * ③ `infra/swc/{dev,prod,stage}.swcrc` → `jsc.paths` 的 `@walnut-server/<name>`（值指向
  *    `libs/<name>/src`）；
  * ④ `apps/api/tsconfig.app.json` → `include` 的 `../../libs/<name>/src` 全量 glob 条目（app
@@ -123,16 +124,25 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 五处注册面，�
         problems.push(`${configPath} filenames [${filenames.join(', ')}] ≠ 磁盘 [${actualLibs.join(', ')}]`)
       }
 
-      const projectNames = Object.keys(config.projects)
-        .filter(name => name !== 'api')
+      // application（api / cli / worker 组合入口）不参与 lib 对账，但必须存在且形状标准 ——
+      // 整段被删时门禁要红（批 10 评审补）
+      const projectNames = Object.entries(config.projects)
+        .filter(([, project]) => project.type !== 'application')
+        .map(([name]) => name)
         .sort()
       if (JSON.stringify(projectNames) !== JSON.stringify(actualLibs)) {
-        problems.push(`${configPath} projects（除 api）[${projectNames.join(', ')}] ≠ 磁盘 [${actualLibs.join(', ')}]`)
+        problems.push(`${configPath} projects（除 application）[${projectNames.join(', ')}] ≠ 磁盘 [${actualLibs.join(', ')}]`)
       }
 
       for (const [name, project] of Object.entries(config.projects)) {
-        if (name === 'api') {
-          expect(project.type, `${configPath} 的 api project 应为 application`).toBe('application')
+        if (project.type === 'application') {
+          // 组合入口（api / cli / worker）必须存在且 root 正确 —— 整段被删时门禁要红（批 10 评审补）
+          if (!['api', 'cli', 'worker'].includes(name)) {
+            problems.push(`${configPath} 出现未知 application project：${name}`)
+          }
+          if (project.root !== `apps/${name}` || project.sourceRoot !== `apps/${name}/src`) {
+            problems.push(`${configPath} projects.${name} 的 root/sourceRoot 应为 apps/${name}（/src）`)
+          }
           continue
         }
         if (project.type !== 'library') {

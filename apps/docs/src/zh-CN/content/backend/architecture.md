@@ -8,46 +8,57 @@
 
 后端是 **NestJS 12 + SWC + PostgreSQL（TypeORM）**，形态是**内部 Nest CLI monorepo**，不是 pnpm workspace 包：
 
-- `apps/api/src/` —— Nest CLI 的 app：应用入口（`main.ts`）与全部业务源码
-- `libs/*/src` —— 内部库，经 tsconfig `paths` 以 `@walnut-server/*` 解析，与 app 一起由 SWC 编译
+- `apps/api/src/` —— 默认部署单元（组合根）：HTTP 入口（`main.ts`）、`AppModule`、wire DTO 与 controller
+- `apps/worker/src/` —— 可选第二进程（cron + Bull 消费，无 HTTP 监听；默认不启动）
+- `apps/cli/src/` —— 工具入口（TypeORM migration 数据源、离线 OpenAPI 导出）
+- `libs/*/src` —— 内部库（分五层，完整清单以目录为准），经 tsconfig `paths` 以 `@walnut-server/*` 解析，与 app 一起由 SWC 编译
 
 **源码不在** `src/walnut/admin/com/app/` —— 那是三仓合并前的路径，已废弃。
 
 为什么这些 lib 不提升为 workspace 包（CJS + NestJS 耦合 + SWC 编译，不适合当 ESM workspace 包）：
 见 [ADR 0007 后端内部库不参与 workspace](../adr/0007-backend-libs-not-workspace.md)。
+分层、组合根与 worker/cli 的定位见 [ADR 0022 后端领域 lib 分层与组合根形态](../adr/0022-backend-lib-layering-and-composition-roots.md)。
 工具链为什么与前端分叉，见 [ADR 0012 前后端工具链分歧](../adr/0012-toolchain-divergence.md)。
 
 ## 目录结构
 
 ```
-apps/api/src/                          # Nest CLI 的 app，入口 main.ts
-├── app/                               # 根模块与根控制器（app.module.ts：全局 Guard 按序装配在这里）
+apps/api/src/                          # 默认部署单元，入口 main.ts
+├── app/                               # 根模块与根控制器（app.module.ts：全局 Guard 按序装配；
+│                                      #   schedule.composition.ts：cron 归属的条件组合）
 ├── modules/                           # 各域 HTTP 组合根 + wire DTO（见下表）
-├── decorators/                        # 仅剩 log.auth / log.operate（其余已抽至 libs/guards / libs/crud）
-├── guard/ · interceptors/             # 已抽至 libs/guards；app 只保留 APP_GUARD / APP_INTERCEPTOR 的顺序装配
-├── common/                            # 共享 DTO、响应模型基座、数据权限实体注册表（仓库基类已抽至 libs/repository）
+├── decorators/                        # 仅剩 log.auth / log.operate（其余在 libs/guards / libs/crud）
+├── common/                            # 共享 DTO、响应模型基座、数据权限实体注册表（仓库基类在 libs/repository）
 ├── i18n/                              # 国际化（zh_CN、en_US）
 ├── middleware/                        # 中间件
 ├── socket/                            # WebSocket 网关
 ├── public/ · views/                   # 静态资源与模板
 └── ...
 
-libs/*/src/                            # 内部库，经 tsconfig paths 以 @walnut-server/* 解析
-├── config/                            # 环境配置
-├── const/                             # 常量（权限、DB 名等）
-├── context/                           # AsyncLocalStorage 请求上下文
-├── db/                                # 数据库模块：PG 连接、实体注册、事务拦截器
-├── decorators/                        # 可复用的字段 / 参数 / 查询 / 校验 / Swagger 装饰器
-├── exceptions/                        # 自定义异常
-├── pipes/                             # 管道
-├── types/                             # 全局类型声明
-├── utils/                             # 工具函数（含 DTO 包装 RealPickType / RealPartialType）
-├── auth/                              # auth 域：jwt / refresh / otp / mfa / opaque / oauth / session / signout
-├── security/                          # security 域：cap / risk / sensitive / sign（rsa 独立）
-├── app-domain/                        # app / shared 域：demo / error / key / logger / monitor / setting + area / ali / mask
-└── guards/                            # guard / decorator / interceptor 装配层内核
+apps/worker/src/                       # 可选第二进程（同一镜像，默认部署不启动）
+├── main.ts                            # createApplicationContext（无 HTTP）+ enableShutdownHooks
+└── worker.module.ts                   # 组合根：AppModule + ScheduleModule（standalone 时）
 
-（ libs 解耦批 0-9 已完成：cache、throttle、mailer、sms、cookie、crypto、lock、queue、sse、blpath、als、delay、list、crud、token、scope-resolver、repository、rsa、ip、identity、system、auth、security、app-domain、guards 等已在 libs/，完整清单以目录为准 —— 见 ADR 0007 与 libs 解耦计划。app 侧只剩组合根与 wire DTO ）
+apps/cli/src/                          # 纯工具入口（零运行时影响）
+├── data-source.cli.ts                 # migration CLI 的 -d 数据源
+└── export-openapi.ts                  # 离线导出 openapi.json（openapi:export）
+
+libs/*/src/                            # 内部库，分五层，经 tsconfig paths 以 @walnut-server/* 解析
+├── # 基建（9）
+│   config/  const/  context/  db/  decorators/  exceptions/  pipes/  types/  utils/
+├── # 技术 / 装配（20）
+│   als/  blpath/  cookie/  crypto/  delay/  lock/  queue/  sse/
+│   cache/  throttle/  mailer/  sms/  rsa/  ip/
+│   repository/  list/  crud/  scope-resolver/  token/  guards/
+├── # identity 内核（1）
+│   identity/
+├── # 领域域（3）
+│   system/  auth/  security/
+└── # app-domain（1）
+    app-domain/
+
+（分层与依赖方向由 eslint.config.ts 的 libs-boundary + 三个 drift spec 机械守；app 侧只剩
+组合根、wire DTO 与 controller —— 见 ADR 0022）
 ```
 
 `modules/` 下按职责分六组（数据面都在 libs，controller / wire DTO 按依赖方向留 app）：
@@ -55,11 +66,11 @@ libs/*/src/                            # 内部库，经 tsconfig paths 以 @wal
 | 目录 | 放什么 |
 |------|--------|
 | `app/` | app 域组合根（`AppAppModule` + monitor 的 user HTTP 组合与 wire DTO）；demo / error / key / logger / monitor / setting 的数据面与其余 controller 在 `libs/app-domain` |
-| `auth/` | 认证 HTTP 组合根（9 个 controller + passport mixin guard）；数据面已抽至 `libs/auth` |
-| `security/` | 安全 HTTP 组合根（rsa / sign / cap / sensitive controller）；数据面已抽至 `libs/security`（rsa 独立为 `libs/rsa`） |
-| `shared/` | 只剩 `SharedModule` 聚合根；area / ali / mask 随批 9 进 `libs/app-domain/shared`，welcome 随 auth 域进 `libs/auth`，ip / token / scopeResolver 在 libs/ip、libs/token、libs/scope-resolver，email/SMS 在 libs/mailer、libs/sms |
-| `system/` | 系统管理（HTTP 组合根：role/menu/device/logs/dict 等 controller 与 user wire DTO；数据面已抽至 `libs/system`、身份栈已抽至 `libs/identity`） |
-| `techniques/` | 基础设施（task、event、health、logger；cache/queue/throttle/SSE 等已抽至 libs） |
+| `auth/` | 认证 HTTP 组合根（controller + passport mixin guard）；数据面在 `libs/auth` |
+| `security/` | 安全 HTTP 组合根（rsa / sign / cap / sensitive controller）；数据面在 `libs/security`（rsa 独立为 `libs/rsa`） |
+| `shared/` | 只剩 `SharedModule` 聚合根；area / ali / mask 在 `libs/app-domain/shared`，welcome 在 `libs/auth`，ip / token / scopeResolver 在 `libs/ip`、`libs/token`、`libs/scope-resolver`，email/SMS 在 `libs/mailer`、`libs/sms` |
+| `system/` | 系统管理（HTTP 组合根：role/menu/device/logs/dict 等 controller 与 user wire DTO；数据面在 `libs/system`、身份栈在 `libs/identity`） |
+| `techniques/` | 基础设施（task、event、health、logger；cache/queue/throttle/SSE 等在 libs） |
 
 ### 认证与 MFA 强制口径
 

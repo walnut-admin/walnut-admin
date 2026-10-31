@@ -18,6 +18,7 @@ import { AppTechModule } from '../modules/techniques/tech.module'
 import { SocketModule } from '../socket/socket.module'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
+import { AppScheduleModule } from './schedule.composition'
 
 @Module({
   imports: [
@@ -35,6 +36,9 @@ import { AppService } from './app.service'
 
     // Database
     WalnutModule,
+
+    // Cron 归属：默认在此注册 ScheduleModule；WORKER_STANDALONE=true 时让位给独立 worker
+    AppScheduleModule,
 
     AppTechModule,
 

@@ -10,7 +10,7 @@
  * 播种时现生成。
  *
  * 形状对齐的是**当前库里的真实文档**（2026-09-29 实测导出的 ACTIVE 第 6 版）与
- * `apps/server/apps/api/src/modules/app/key/schema/key.schema.ts`：
+ * `apps/server/libs/app-domain/src/key/dto/key.dto.ts`（原 schema/key.schema.ts 已并入 dto）：
  *
  * | 字段 | AES 那条 | RSA 那条 |
  * |------|----------|----------|

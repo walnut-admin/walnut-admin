@@ -48,3 +48,13 @@ The question: should they be promoted to pnpm workspace packages like `@walnut/c
 - Adding a new backend lib requires updating `apps/server/tsconfig.json` paths only
 - Backend-only constants live in `@walnut-server/const`; shared constants go to `@walnut/contract`
 - Backend-only utilities live in `@walnut-server/utils`; shared utilities go to `@walnut/utils`
+
+## 2026-10-31 追记
+
+「libs 解耦批 0-10」已完成：内部 lib 从 9 个基建扩散到 **34 个**（新增 identity / system / auth /
+security / app-domain 等域），`apps/api/src` 只剩组合根、wire DTO 与 controller。本 ADR 的结论
+（不提升为 workspace 包）不变，并且现在由 ESLint `libs-boundary` 与三个 drift spec 机械守；
+分层、组合根与端口注入反转的形态由 [ADR 0022](./0022-backend-lib-layering-and-composition-roots.md)
+记录。上文「Adding a new backend lib requires updating `apps/server/tsconfig.json` paths only」
+是按当时的语义写的：现在新增 lib 还要同步三份 `infra/nest/*.json` 与三份 `infra/swc/*.swcrc`，
+漏项由 `lib-registration.drift.spec.ts` 拦下。
