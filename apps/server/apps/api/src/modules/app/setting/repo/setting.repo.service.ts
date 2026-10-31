@@ -1,12 +1,12 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
+import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { runAfterCommit, WalnutPGConnectionName } from '@walnut-server/db'
-import { DataSource } from 'typeorm'
 
+import { DataSource } from 'typeorm'
 import { DataScopeService, isWalnutDataScopeSettingKey } from '@/modules/system/data-scope/data-scope.service'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import { AppSettingEntity } from '../entity/setting.entity'
 
 /**

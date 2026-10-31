@@ -1,10 +1,9 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
+import { AppTechCacheAppSettingsService, AppTechCachePermissionsService } from '@walnut-server/cache'
 import { WalnutAdminConstSafeRoleId, WalnutAdminConstSafeUserId } from '@walnut-server/const/role'
 import { runAfterCommit } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
-import { AppTechCachePermissionsService } from '@/modules/techniques/cache/service/cache.permissions'
 import { DataScopeService } from '../../data-scope/data-scope.service'
 import {
   SysUserDTOCreateRequest,

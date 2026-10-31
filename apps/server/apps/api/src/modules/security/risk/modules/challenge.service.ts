@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
+import { AppTechRedisService } from '@walnut-server/cache'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
-import { AppTechRedisService } from '@/modules/techniques/cache/redis/redis.service'
 import { SecurityRiskConfigService } from '../risk.config.service'
 
 export interface ChallengeParams {

@@ -2,9 +2,9 @@ import { Buffer } from 'node:buffer'
 import { constants, createCipheriv, createDecipheriv, privateDecrypt, publicEncrypt, randomBytes } from 'node:crypto'
 
 import { Injectable } from '@nestjs/common'
+import { AppTechCacheRsaService } from '@walnut-server/cache'
 import { WalnutAdminExceptionRsaDecryptFailed } from '@walnut-server/exceptions/business/rsa'
 import { AppKeyService } from '@/modules/app/key/key.service'
-import { AppTechCacheRsaService } from '@/modules/techniques/cache/service/cache.rsa'
 
 @Injectable()
 export class SecurityRsaService {

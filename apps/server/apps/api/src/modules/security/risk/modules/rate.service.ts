@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { SharedBLPathService } from '@walnut-server/blpath'
+import { AppTechRedisService } from '@walnut-server/cache'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
 import { SharedIpService } from '@/modules/shared/ip/ip.service'
-import { AppTechRedisService } from '@/modules/techniques/cache/redis/redis.service'
 import { calcScoreAndLevel, SecurityRiskConfigService, WalnutAdminConstRiskFactor, WalnutAdminConstRiskType } from '../risk.config.service'
 
 @Injectable()

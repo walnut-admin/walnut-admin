@@ -1,3 +1,4 @@
+import { IWalnutAdminConstSysUserMfaType, IWalnutAdminConstSysUserMfaWebauthnTransport, WalnutAdminConstSysUserMfaType, WalnutAdminConstSysUserMfaWebauthnTransport } from '@walnut-server/const/app/mfa'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldDate,
@@ -7,7 +8,6 @@ import {
 } from '@walnut-server/decorators/field'
 import { Expose } from 'class-transformer'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
-import { IWalnutAdminConstSysUserMfaType, IWalnutAdminConstSysUserMfaWebauthnTransport, WalnutAdminConstSysUserMfaType, WalnutAdminConstSysUserMfaWebauthnTransport } from '../mfa.const'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/user_mfa.schema.ts 的 SysUserMfaModel
 // 改名 SysUserMfaDTOBase；本模块此前无 dto/ 目录，新建之，totp / webauthn 子目录的

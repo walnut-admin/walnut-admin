@@ -1,11 +1,11 @@
 import { CanActivate, ExecutionContext, Injectable, Logger, SetMetadata } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
+import { AppTechCacheMfaService } from '@walnut-server/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { WalnutAdminExceptionMfaRequired, WalnutAdminExceptionMfaVerifyFailed } from '@walnut-server/exceptions/business/auth'
 import { Role } from '@walnut/contract'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
-import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
 
 const WalnutAdminConstDecoratorMFAKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_MFA_FREE')
 

@@ -105,7 +105,7 @@
 
 ### P2-27 appSettings 进程内 memo 的失效覆盖面 —— 多实例与外部删键都失效不到（C 段，新登记）
 
-- **位置**：`apps/api/src/modules/techniques/cache/service/cache.appSettings.ts`
+- **位置**：`apps/server/libs/cache/src/service/cache.appSettings.ts`
   （`appSettingsMemo` / `settingMemo`）。
 - **现象**：memo 只在本地 `setAppSettings` 时清空；多实例部署下其他实例写 setting 不会失效
   本进程 memo，本进程最长要等到下一次本地写才回正。绕过服务直删 Redis 键（非监控台删缓存
@@ -284,7 +284,7 @@
 
 - **位置**：`apps/api/src/modules/system/role/shared/role.shared.service.ts`
   （`getCoreMenus` 用 `app.functional.role` 经 `SharedScopeResolverService.resolve`
-  决定 effective roleMode）+ `apps/api/src/modules/techniques/cache/service/cache.permissions.ts`
+  决定 effective roleMode）+ `apps/server/libs/cache/src/service/cache.permissions.ts`
   （`AUTH:PERMISSIONS:<userId>:<deviceId>` 缓存键没有版本号维度）。
 - **现象**：`app.functional.role` 从 COMBINE 切到 SWITCH（或反向）时，数据权限描述符已由
   批 4 的全局 epoch 失效，但 `AUTH:PERMISSIONS` 仍按旧 roleMode 计算，残留最长一个 AT TTL

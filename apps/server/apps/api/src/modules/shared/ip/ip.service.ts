@@ -2,6 +2,7 @@ import type { EntityManager } from 'typeorm'
 import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { AppTechCacheAppSettingsService, AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminExceptionServiceUnavailableDependencyDown } from '@walnut-server/exceptions/base/503'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
@@ -11,8 +12,6 @@ import { isNil } from 'lodash'
 import { firstValueFrom } from 'rxjs'
 import { SharedLocationDTO } from '@/common/dto/shared.dto'
 import { AppSettingRepositoryService } from '@/modules/app/setting/repo/setting.repo.service'
-import { AppTechRedisService } from '@/modules/techniques/cache/redis/redis.service'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 
 interface ISharedIpLocation extends SharedLocationDTO {
   ip: string

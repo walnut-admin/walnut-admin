@@ -4,6 +4,7 @@ import { Buffer } from 'node:buffer'
 import { createHash, randomUUID } from 'node:crypto'
 
 import { ALSRequestService } from '@walnut-server/als'
+import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { SysRoleBasicRepository } from '@/modules/system/role/role.basic.repository'
@@ -14,7 +15,6 @@ import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.s
 import { SysUserBasicRepository } from '@/modules/system/user/user.basic.repository'
 import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
 import { SysUserOAuthRepositoryService } from '@/modules/system/user_oauth/repo/user_oauth.repo.service'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 

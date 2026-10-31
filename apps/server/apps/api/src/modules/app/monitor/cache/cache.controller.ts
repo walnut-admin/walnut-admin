@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common'
 import { ApiParam, ApiTags } from '@nestjs/swagger'
 
+import { AppTechCacheAppSettingsService, AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
@@ -18,8 +19,6 @@ import { WalnutCrudDecorators } from '@/decorators/crud'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
-import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import {
   AppMonitorCacheDTO,
   AppMonitorCacheDTOListRequest,

@@ -5,12 +5,12 @@ import {
   Logger,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
+import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { IWalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstDecoratorFunctionalMetadataKey } from '@walnut-server/const/decorator/functional'
-import { WalnutAdminExceptionEndPointUnavailable } from '@walnut-server/exceptions/business/app'
 
+import { WalnutAdminExceptionEndPointUnavailable } from '@walnut-server/exceptions/business/app'
 import { Recordable } from 'easy-fns-ts'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 
 @Injectable()
 export class WalnutAdminGuardFunctional implements CanActivate {

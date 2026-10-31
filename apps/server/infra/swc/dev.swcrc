@@ -49,7 +49,11 @@
       "@walnut-server/queue": ["libs/queue/src"],
       "@walnut-server/queue/*": ["libs/queue/src/*"],
       "@walnut-server/sse": ["libs/sse/src"],
-      "@walnut-server/sse/*": ["libs/sse/src/*"]
+      "@walnut-server/sse/*": ["libs/sse/src/*"],
+      "@walnut-server/cache": ["libs/cache/src"],
+      "@walnut-server/cache/*": ["libs/cache/src/*"],
+      "@walnut-server/throttle": ["libs/throttle/src"],
+      "@walnut-server/throttle/*": ["libs/throttle/src/*"]
     },
     "keepClassNames": true
   },

@@ -1,7 +1,7 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
+import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { AuthMfaStatusDTO } from '@/modules/auth/modules/mfa/mfa.dto'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import { SysUserRepositoryService } from '../../user/repo/user.repo.service'
 import { SysUserMfaRepositoryService } from '../repo/user_mfa.repo.service'
 

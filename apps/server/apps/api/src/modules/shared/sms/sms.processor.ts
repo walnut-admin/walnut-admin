@@ -1,13 +1,13 @@
 import { Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
+import { AppTechCacheVerifyCodeService } from '@walnut-server/cache'
 import { WalnutAdminConstAppProcess } from '@walnut-server/const/app/process'
 import { WalnutAdminConstAppQueue } from '@walnut-server/const/app/queue'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminCommonBasicProcessor } from '@walnut-server/queue'
 import { Job } from 'bull'
-import { isNil } from 'lodash'
 
-import { AppTechCacheVerifyCodeService } from '@/modules/techniques/cache/service/cache.verifyCode'
+import { isNil } from 'lodash'
 import { AliyunSmsService } from './aliyun/aliyun.sms.service'
 
 @Processor(WalnutAdminConstAppQueue.PHONE)

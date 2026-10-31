@@ -1,13 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common'
+import type { IWalnutAdminTokenTtl } from '../token-ttl.port'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
-import { AppTokenService } from '@/modules/shared/token/token.service'
 import { AppTechCacheService } from '../cache.service'
+import { WALNUT_ADMIN_TOKEN_TTL } from '../token-ttl.port'
 
 @Injectable()
 export class AppTechCacheSignService {
   private readonly logger = new Logger(AppTechCacheSignService.name)
 
-  constructor(private readonly cacheService: AppTechCacheService, private readonly tokenService: AppTokenService) {}
+  constructor(
+    private readonly cacheService: AppTechCacheService,
+    @Inject(WALNUT_ADMIN_TOKEN_TTL) private readonly tokenService: IWalnutAdminTokenTtl,
+  ) {}
 
   async setSignTicketCache(deviceId: string, payload: string) {
     this.logger.debug(`set sign ticket cache, deviceId: ${deviceId}, payload: ${payload}`)

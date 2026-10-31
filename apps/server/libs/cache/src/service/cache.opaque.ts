@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
-import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
+import { AppTechCacheService } from '../cache.service'
 
 @Injectable()
 export class AppTechCacheOpaqueService {

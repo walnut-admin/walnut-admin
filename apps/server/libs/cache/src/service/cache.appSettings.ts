@@ -4,7 +4,7 @@ import { IWalnutAdminConstAppSettingAuthEmailKeys, IWalnutAdminConstAppSettingAu
 
 import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { Recordable } from 'easy-fns-ts'
-import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
+import { AppTechCacheService } from '../cache.service'
 
 @Injectable()
 export class AppTechCacheAppSettingsService {

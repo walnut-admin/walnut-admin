@@ -2,11 +2,11 @@ import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import * as opaque from '@serenity-kit/opaque'
+import { AppTechCacheOpaqueService } from '@walnut-server/cache'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
 import { isNil } from 'lodash'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
 import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
-import { AppTechCacheOpaqueService } from '@/modules/techniques/cache/service/cache.opaque'
 import { AuthSharedService } from '../../shared/shared.service'
 
 /**

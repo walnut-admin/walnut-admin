@@ -1,9 +1,10 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
+import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { applyWalnutDataScopeRlsSettings, WALNUT_DATA_SCOPE_RLS_MODE, WalnutPGConnectionName } from '@walnut-server/db'
-import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
 import { LocaleType } from '@walnut/contract'
 import { DataSource } from 'typeorm'
@@ -17,7 +18,6 @@ import {
 import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
 import { SysUserIdentitySharedService } from '@/modules/system/user_identity/shared/user_identity.shared.service'
 import { SysUserOAuthRepositoryService } from '@/modules/system/user_oauth/repo/user_oauth.repo.service'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 
 @Injectable()
 export class OAuthGiteeService {

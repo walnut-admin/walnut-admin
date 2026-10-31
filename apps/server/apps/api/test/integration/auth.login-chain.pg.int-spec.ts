@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
 
 import * as opaque from '@serenity-kit/opaque'
+import { AppTechCacheAppSettingsService, AppTechCacheMfaService, AppTechCacheVerifyCodeService, AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { DBTransactionHooksStore } from '@walnut-server/db'
@@ -33,10 +34,6 @@ import { SysUserSharedService } from '@/modules/system/user/shared/user.shared.s
 import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
 import { SysUserIdentitySharedService } from '@/modules/system/user_identity/shared/user_identity.shared.service'
 import { SysUserOAuthRepositoryService } from '@/modules/system/user_oauth/repo/user_oauth.repo.service'
-import { AppTechRedisService } from '@/modules/techniques/cache/redis/redis.service'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
-import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
-import { AppTechCacheVerifyCodeService } from '@/modules/techniques/cache/service/cache.verifyCode'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 
 /**

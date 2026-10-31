@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common'
+import { AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { MurLockService } from 'murlock'
 import { SysUserRepositoryService } from '@/modules/system/user/repo/user.repo.service'
 import { SysUserIdentityRepositoryService } from '@/modules/system/user_identity/repo/user_identity.repo.service'
-import { AppTechRedisService } from '@/modules/techniques/cache/redis/redis.service'
 import {
   calcScoreAndLevel,
   SecurityRiskConfigService,

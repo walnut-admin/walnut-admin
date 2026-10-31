@@ -1,3 +1,4 @@
+import type { IWalnutAdminTokenTtl } from '@walnut-server/cache'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
@@ -7,8 +8,10 @@ import { nanoid } from 'nanoid'
 import { SysUserEntity } from '@/modules/system/user/entity/user.entity'
 import { ISysUserPopulated } from '@/modules/system/user/repo/user.repo.service'
 
+// implements 是端口绑定的编译期守护（对齐批 1 AppErrorService 的先例）：两个 TTL getter
+// 任一改名，这里立刻红，而不是等 useExisting 别名在运行期解析出 undefined
 @Injectable()
-export class AppTokenService {
+export class AppTokenService implements IWalnutAdminTokenTtl {
   private readonly logger = new Logger(AppTokenService.name)
 
   constructor(

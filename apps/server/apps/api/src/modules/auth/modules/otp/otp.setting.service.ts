@@ -1,7 +1,7 @@
 import type { IOtpType } from './const/otp.const'
 // Note: IWalnutAdminOtpThrottleConfigProvider has been moved to global IWalnutAdminOtpThrottleConfigProvider
 import { Injectable, Logger } from '@nestjs/common'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
+import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 
 @Injectable()
 export class OtpSettingService {

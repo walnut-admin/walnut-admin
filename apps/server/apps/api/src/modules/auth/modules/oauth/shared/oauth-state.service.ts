@@ -2,10 +2,10 @@ import { Buffer } from 'node:buffer'
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { LocaleType } from '@walnut/contract'
-import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 
 /**
  * OAuth `state` 的签发与一次性校验（P2-13，2026-10-28）。

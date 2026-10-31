@@ -1,8 +1,8 @@
 import type { LocaleType } from '@walnut/contract'
 import { Injectable } from '@nestjs/common'
+import { AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { runAfterCommit } from '@walnut-server/db'
-import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 import { SysLocaleSharedService } from '../locale/shared/locale.shared.service'
 import {
   SysLangDTOCreateRequest,

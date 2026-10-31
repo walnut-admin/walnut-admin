@@ -6,13 +6,13 @@ import {
   SetMetadata,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
+import { AppTechCacheLockService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminExceptionUserLocked } from '@walnut-server/exceptions/business/auth'
 import { MurLockService } from 'murlock'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { SysUserLockService } from '@/modules/system/user_lock/user_lock.service'
-import { AppTechCacheLockService } from '@/modules/techniques/cache/service/cache.lock'
 
 const WalnutAdminConstDecoratorLockKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_LOCK_FREE')
 

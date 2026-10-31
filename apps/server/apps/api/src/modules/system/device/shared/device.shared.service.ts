@@ -1,7 +1,7 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
+import { AppTechCacheDeviceService } from '@walnut-server/cache'
 import { runAfterCommit } from '@walnut-server/db'
-import { AppTechCacheDeviceService } from '@/modules/techniques/cache/service/cache.device'
 import { IDeviceLocationHistoryItem, SysDeviceEntity } from '../entity/device.entity'
 import { SysDeviceRepositoryService } from '../repo/device.repo.service'
 

@@ -1,9 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { Injectable, Logger } from '@nestjs/common'
+import { AppTechCacheAppSettingsService, AppTechCacheRsaService, AppTechCacheSignService } from '@walnut-server/cache'
 import { isNil } from 'lodash'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
-import { AppTechCacheRsaService } from '@/modules/techniques/cache/service/cache.rsa'
-import { AppTechCacheSignService } from '@/modules/techniques/cache/service/cache.sign'
 import { SecuritySignHandShakeRequestDTO } from './sign.dto'
 
 @Injectable()

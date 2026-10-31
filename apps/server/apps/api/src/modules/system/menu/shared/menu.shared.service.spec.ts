@@ -1,6 +1,6 @@
+import type { AppTechCachePermissionsService } from '@walnut-server/cache'
 import type { SysRoleSharedService } from '../../role/shared/role.shared.service'
 import type { SysMenuRepositoryService } from '../repo/menu.repo.service'
-import type { AppTechCachePermissionsService } from '@/modules/techniques/cache/service/cache.permissions'
 import { WalnutAdminConstAppPermissionType } from '@walnut-server/const/app/permission'
 import { describe, expect, it } from 'vitest'
 

@@ -4,10 +4,9 @@ import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
 import { getDataSourceToken } from '@nestjs/typeorm'
+import { AppTechCacheMfaService, AppTechRedisService } from '@walnut-server/cache'
 import { WalnutPGConnectionName } from '@walnut-server/db'
 import supertest from 'supertest'
-import { AppTechRedisService } from '@/modules/techniques/cache/redis/redis.service'
-import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
 
 import { getWalnutPgAdminDataSource } from '../../integration/helpers/create-integration-app'
 import {

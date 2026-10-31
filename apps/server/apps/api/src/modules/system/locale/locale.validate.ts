@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common'
+import { AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import {
   ValidationArguments,
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator'
-import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 
 @ValidatorConstraint({ name: 'LocaleLangIdValidate', async: true })
 @Injectable()

@@ -14,9 +14,9 @@ import {
 } from '@nestjs/websockets'
 import { instrument } from '@socket.io/admin-ui'
 
+import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { Namespace } from 'socket.io'
 import { AppMonitorUserService } from '@/modules/app/monitor/user/user.service'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import {
   ISocket,
   ISocketClientToServerEvents,

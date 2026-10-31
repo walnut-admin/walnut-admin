@@ -71,7 +71,7 @@
 ### P0-3 CAP 校验缓存与设备/token 不绑定 + TTL 单位错误（F 段发现 2）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/guard/cap.guard.ts`（`validateCapToken` 只按 deviceId 查 boolean 缓存）+
-  `apps/api/src/modules/techniques/cache/service/cache.cap.ts`（`setCapTokenCache` 把
+  `apps/server/libs/cache/src/service/cache.cap.ts`（`setCapTokenCache` 把
   `getCapJSConfig().ttl` 毫秒当秒传给缓存）。
 - **现象**：缓存窗口内把另一台设备的服务端签名 cookie 原样移植即可通过（token 值从不比对）；
   实际信任窗口 ≈ 41 天而非 1h（cookie 本体 1h 过期但服务端不信 cookie 信 TTL）。
@@ -171,7 +171,7 @@
 
 ### P1-2 会话键批量清理失效 —— `delByPattern` 内部 `redis.del(数组)` 撞 node-redis v5 rest-args —— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/techniques/cache/cache.service.ts`（`delByPattern`）；
+- **位置**：`apps/server/libs/cache/src/cache.service.ts`（`delByPattern`）；
   消费方：`auth/modules/signout`、`system/user_device`、`app/monitor`。
 - **现象**：`redis.del(keys[])` 在 node-redis v5 需要展开传参 —— 抛错后被 after-commit 钩子的
   catch 吞掉 → `AUTH:SESSIONS` 键残留（permissions / MFA verified 两键正常消失）。
@@ -201,7 +201,7 @@
 
 ### P1-4 `/state` 后缀请求静默悬挂 —— 全局异常过滤器提前 return —— 【已修复 2026-10-27】
 
-- **位置**：`apps/api/src/modules/shared/BLPath`（`shouldSkip` 后缀表含 `'/state'`）×
+- **位置**：`apps/server/libs/blpath/src/blpath.service.ts`（`shouldSkip` 后缀表含 `'/state'`）×
   `WalnutAdminFilterExceptionAll`（对命中请求提前 return 不落响应）。
 - **现象（修复前）**：`POST /app/monitor/user/state` 等路径上任何异常（含 40099 受控校验错误）都不落
   响应，请求悬挂至客户端超时。前迁移时代遗留，非迁移回归。
@@ -379,7 +379,7 @@
 
 ### P1-15 AUTH:PERMISSIONS 缓存 TTL 放大 1000 倍 —— 秒级 setEx 收到「秒 × 1000」（文档大轮次 A 段）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/techniques/cache/service/cache.permissions.ts`
+- **位置**：`apps/server/libs/cache/src/service/cache.permissions.ts`
   （`setPermissions` 的 `ttl: atTtl * 1000`）。
 - **现象**：`AppTechCacheService.set` 的 `ttl` 单位是**秒**（`cache.service.ts` 直接
   `redis.setEx(cacheKey, ttl, ...)`，日志 `TTL: Ns`；cap 的 P0-3 修复注释也明确
@@ -505,7 +505,7 @@
 
 ### P1-20 锁守卫冷缓存放行 —— `checkIsLocked` 双 miss 折叠成 false，DB 回源分支不可达（guard 覆盖补齐批实测，新登记）—— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/modules/techniques/cache/service/cache.lock.ts`
+- **位置**：`apps/server/libs/cache/src/service/cache.lock.ts`
   （`checkIsLocked`）+ `apps/api/src/guard/lock.guard.ts`（Step 4/5 的 `!== null` 判命中）。
 - **现象**：`checkIsLocked` 先查全局键、再查设备键，两键都缺失时 `deviceLocked ?? false`
   **折叠成 false**；而锁守卫以 `cachedLockStatus !== null` 判定「缓存命中」—— 缓存未命中
@@ -618,7 +618,7 @@
 
 ### P2-9 零配置部署下 COMBINE 用户的「多角色合并」实际不生效（I 段实测，新收编）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/techniques/cache/service/cache.appSettings.ts`
+- **位置**：`apps/server/libs/cache/src/service/cache.appSettings.ts`
   （`defaultFunctionalRole`：`{ scope: GLOBAL, globalValue: 'switchable', localKey: 'roleMode' }`）
   + `apps/api/src/modules/shared/scopeResolver/scope-resolver.service.ts`（`resolve`：scope GLOBAL
   恒返回 `globalValue`，`target[localKey]` 只在 LOCAL 分支被读）→
@@ -663,7 +663,7 @@
 ### P2-11 签名 nonce 去重非原子（GET 后 SET）（文档大轮次 A 段）—— 【已修复 2026-10-29】
 
 - **位置**：`apps/api/src/guard/sign.guard.ts`（`validateAndRecordNonce`）+
-  `apps/api/src/modules/techniques/cache/service/cache.sign.ts`（`setNonceCache` 普通 SET）。
+  `apps/server/libs/cache/src/service/cache.sign.ts`（`setNonceCache` 普通 SET）。
 - **现象**：先 `getNonceCache` 判空、再 `setNonceCache`，不是 `SET NX EX`。两个携带相同
   `timestamp + nonce + body` 的并发请求可同时通过「未使用」检查并各自写入，nonce 的
   一次性语义只在串行到达时成立。源码注释本身已写「建议使用 Redis NX 操作保证原子性」。
@@ -798,7 +798,7 @@
 
 ### P2-19 effective roleMode 只作用于权限计算 —— 零配置下 switchRole 对所有用户恒 40000 —— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/modules/techniques/cache/service/cache.appSettings.ts`
+- **位置**：`apps/server/libs/cache/src/service/cache.appSettings.ts`
   （P2-9 后 `defaultFunctionalRole` = GLOBAL/combinable）+
   `apps/api/src/modules/system/user/shared/user.shared.service.ts`（`switchRole` 用
   effectiveRoleMode 判 COMBINE）+ `apps/api/src/modules/shared/token/token.service.ts`

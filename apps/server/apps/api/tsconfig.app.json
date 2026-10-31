@@ -21,7 +21,9 @@
         "../../libs/delay/src/**/*",
         "../../libs/lock/src/**/*",
         "../../libs/queue/src/**/*",
-        "../../libs/sse/src/**/*"
+        "../../libs/sse/src/**/*",
+        "../../libs/cache/src/**/*",
+        "../../libs/throttle/src/**/*"
     ],
     "exclude": [
         "node_modules",

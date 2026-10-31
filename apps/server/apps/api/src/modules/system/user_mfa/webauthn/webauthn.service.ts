@@ -16,12 +16,12 @@ import {
   verifyRegistrationResponse,
 } from '@simplewebauthn/server'
 import { isoBase64URL } from '@simplewebauthn/server/helpers'
-import { AppTechCryptoService } from '@walnut-server/crypto'
+import { AppTechCacheMfaService } from '@walnut-server/cache'
 
+import { AppTechCryptoService } from '@walnut-server/crypto'
 import { WalnutAdminExceptionBadRequest, WalnutAdminExceptionNotFound } from '@walnut-server/exceptions/base.exception'
 import { isNil } from 'lodash'
 import { AuthMfaPostVerificationService } from '@/modules/auth/modules/mfa/mfa.post.service'
-import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
 import { SysUserMfaRepositoryService } from '../repo/user_mfa.repo.service'
 import { SysUserMfaWebauthnAuthenticateVerifyDTO } from './webauthn.dto'
 

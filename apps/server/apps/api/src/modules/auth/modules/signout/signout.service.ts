@@ -1,11 +1,11 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
+import { AppTechCacheMfaService } from '@walnut-server/cache'
 import { WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { registerAfterCommitHook, runAfterCommit } from '@walnut-server/db'
 import { AppMonitorUserSharedService } from '@/modules/app/monitor/user/shared/user.shared.service'
 import { SecurityRiskService } from '@/modules/security/risk/risk.service'
 import { SysMenuSharedService } from '@/modules/system/menu/shared/menu.shared.service'
-import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
 import { AuthRefreshSharedService } from '../refresh/shared/refresh.shared.service'
 import { AuthSessionService } from '../session/session.service'
 

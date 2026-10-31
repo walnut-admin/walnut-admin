@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common'
+import type { IWalnutAdminTokenTtl } from '../token-ttl.port'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { Role } from '@walnut/contract'
-import { AppTokenService } from '@/modules/shared/token/token.service'
-import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
+import { AppTechCacheService } from '../cache.service'
+import { WALNUT_ADMIN_TOKEN_TTL } from '../token-ttl.port'
 
 @Injectable()
 export class AppTechCachePermissionsService {
@@ -10,7 +11,7 @@ export class AppTechCachePermissionsService {
 
   constructor(
     private readonly cacheService: AppTechCacheService,
-    private readonly tokenService: AppTokenService,
+    @Inject(WALNUT_ADMIN_TOKEN_TTL) private readonly tokenService: IWalnutAdminTokenTtl,
   ) {}
 
   private getPermissionCacheKey(userId: string, deviceId: string) {

@@ -4,16 +4,17 @@ import { randomUUID } from 'node:crypto'
 import { Reflector } from '@nestjs/core'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { ALSRequestService } from '@walnut-server/als'
+import { AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstAppEvent } from '@walnut-server/const/app/event'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
-import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
+import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { DBTransactionHooksStore } from '@walnut-server/db'
+
 import { I18nContext, I18nService } from 'nestjs-i18n'
 
 import { from, lastValueFrom, throwError } from 'rxjs'
-
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { WalnutAdminDecoratorAuthLog, WalnutAdminInterceptorRequestAuthLog } from '@/decorators/walnut/log.auth.decorator'
 import { WalnutAdminDecoratorOperateLog, WalnutAdminInterceptorRequestOperateLog } from '@/decorators/walnut/log.operate.decorator'
@@ -24,7 +25,6 @@ import { SysLogAuthEntity } from '@/modules/system/logs/auth/entity/log-auth.ent
 import { SysLogAuthSharedService } from '@/modules/system/logs/auth/shared/log.auth.shared.service'
 import { SysLogOperateEntity } from '@/modules/system/logs/operate/entity/log-operate.entity'
 import { SysLogOperateRepoService } from '@/modules/system/logs/operate/repo/log.operate.repo.service'
-import { AppTechRedisService } from '@/modules/techniques/cache/redis/redis.service'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 

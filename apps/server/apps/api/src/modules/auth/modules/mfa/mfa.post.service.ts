@@ -1,8 +1,8 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
+import { AppTechCacheMfaService } from '@walnut-server/cache'
 import { registerAfterCommitHook } from '@walnut-server/db'
 import { SysUserDeviceSharedService } from '@/modules/system/user_device/shared/user_device.shared.service'
-import { AppTechCacheMfaService } from '@/modules/techniques/cache/service/cache.mfa'
 import { AuthRefreshSharedService } from '../refresh/shared/refresh.shared.service'
 
 @Injectable()

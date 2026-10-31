@@ -5,15 +5,15 @@ import {
   Logger,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
+import { AppTechCachePermissionsService } from '@walnut-server/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { IWalnutAdminConstDecoratorPermissionMode, WalnutAdminConstDecoratorPermissionMetadataKey, WalnutAdminConstDecoratorPermissionMode } from '@walnut-server/const/decorator/permissions'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { WalnutAdminExceptionNoAccessPermission } from '@walnut-server/exceptions/business/auth'
-import { Role } from '@walnut/contract'
 
+import { Role } from '@walnut/contract'
 import { isNil } from 'lodash'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
-import { AppTechCachePermissionsService } from '@/modules/techniques/cache/service/cache.permissions'
 
 @Injectable()
 export class WalnutAdminGuardPermission implements CanActivate {

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
+import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import { WalnutAdminSocketEvents } from '@/socket/socket.const'
 // Note: IWalnutAdminSocketEvents is now a global type from @walnut-server/types
 import { SocketService } from '@/socket/socket.service'

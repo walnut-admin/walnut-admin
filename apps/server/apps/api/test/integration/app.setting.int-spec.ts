@@ -2,12 +2,12 @@ import type { INestApplication } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 
+import { AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AppSettingRepositoryService } from '@/modules/app/setting/repo/setting.repo.service'
 import { AppSettingService } from '@/modules/app/setting/setting.service'
-import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 

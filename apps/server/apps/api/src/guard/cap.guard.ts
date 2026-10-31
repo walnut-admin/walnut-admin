@@ -6,6 +6,7 @@ import {
   SetMetadata,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
+import { AppTechCacheCapService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import {
@@ -18,7 +19,6 @@ import { MurLockService } from 'murlock'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { AppCapJS } from '@/modules/security/cap/cap.service'
 import { SecurityRiskChallengeStateService } from '@/modules/security/risk/modules/challenge.service'
-import { AppTechCacheCapService } from '@/modules/techniques/cache/service/cache.cap'
 
 const WalnutAdminConstDecoratorCapFreeKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_CAP_FREE')
 

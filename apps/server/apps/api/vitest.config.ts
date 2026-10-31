@@ -16,7 +16,8 @@ export default defineWalnutVitestConfig({
   test: {
     root: './',
     globals: true,
-    include: ['apps/api/src/**/*.spec.ts'],
+    // libs/** 也收：lib 解耦后 co-located 单测随源码进 libs（如 libs/cache 的 appSettings spec）
+    include: ['apps/api/src/**/*.spec.ts', 'libs/*/src/**/*.spec.ts'],
     exclude: ['**/node_modules/**', '**/dist/**'],
   },
 })

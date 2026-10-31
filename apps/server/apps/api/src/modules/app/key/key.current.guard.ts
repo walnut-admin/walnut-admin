@@ -2,8 +2,8 @@ import type { CanActivate, ExecutionContext } from '@nestjs/common'
 import { Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 
+import { AppTechCachePermissionsService } from '@walnut-server/cache'
 import { WalnutAdminGuardPermission } from '@/guard/permission.guard'
-import { AppTechCachePermissionsService } from '@/modules/techniques/cache/service/cache.permissions'
 import { AppKeyTypeConst } from './key.const'
 
 /**

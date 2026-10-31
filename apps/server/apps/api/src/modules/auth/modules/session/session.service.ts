@@ -6,11 +6,10 @@ import {
   timingSafeEqual,
 } from 'node:crypto'
 import { Injectable, Logger } from '@nestjs/common'
+import { AppTechCacheAppSettingsService, AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { isNil } from 'lodash'
 import { AppTokenService } from '@/modules/shared/token/token.service'
-import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 
 /**
  * Auth Session 存储结构

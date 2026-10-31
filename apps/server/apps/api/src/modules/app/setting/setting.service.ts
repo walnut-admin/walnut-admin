@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common'
+import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
-import { runAfterCommit } from '@walnut-server/db'
 
+import { runAfterCommit } from '@walnut-server/db'
 import { DataScopeService, isWalnutDataScopeSettingKey } from '@/modules/system/data-scope/data-scope.service'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 
 import {
   AppSettingDTOCreateRequest,

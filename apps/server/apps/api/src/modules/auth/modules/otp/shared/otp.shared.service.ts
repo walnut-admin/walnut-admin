@@ -2,12 +2,12 @@ import type { LocaleType } from '@walnut/contract'
 import type { IOtpType } from '../const/otp.const'
 
 import { Injectable, Logger } from '@nestjs/common'
+import { AppTechCacheVerifyCodeService } from '@walnut-server/cache'
 import { generateVerifyCode } from '@walnut-server/utils/general'
 import { isNil } from 'lodash'
 import { AppMailerService } from '@/modules/shared/mailer/mailer.service'
 import { AliyunSmsService } from '@/modules/shared/sms/aliyun/aliyun.sms.service'
 import { AppSmsService } from '@/modules/shared/sms/sms.service'
-import { AppTechCacheVerifyCodeService } from '@/modules/techniques/cache/service/cache.verifyCode'
 import { OtpSettingService } from '../otp.setting.service'
 
 @Injectable()

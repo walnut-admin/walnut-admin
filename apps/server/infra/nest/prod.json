@@ -30,7 +30,9 @@
           "libs/delay/src",
           "libs/lock/src",
           "libs/queue/src",
-          "libs/sse/src"
+          "libs/sse/src",
+          "libs/cache/src",
+          "libs/throttle/src"
         ]
       }
     }
@@ -214,6 +216,24 @@
       "sourceRoot": "libs/sse/src",
       "compilerOptions": {
         "tsConfigPath": "libs/sse/tsconfig.lib.json"
+      }
+    },
+    "cache": {
+      "type": "library",
+      "root": "libs/cache",
+      "entryFile": "index",
+      "sourceRoot": "libs/cache/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/cache/tsconfig.lib.json"
+      }
+    },
+    "throttle": {
+      "type": "library",
+      "root": "libs/throttle",
+      "entryFile": "index",
+      "sourceRoot": "libs/throttle/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/throttle/tsconfig.lib.json"
       }
     }
   }

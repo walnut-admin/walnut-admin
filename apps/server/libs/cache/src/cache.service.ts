@@ -1,17 +1,17 @@
+import type { IWalnutAdminCacheListRequest, IWalnutAdminCacheListRow } from './cache-list.types'
 import { Injectable, Logger } from '@nestjs/common'
 import { IWalnutAdminConstAppCacheType, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
-import { every, filter, get, isNil, orderBy, slice } from 'lodash'
 
+import { every, filter, get, isNil, orderBy, slice } from 'lodash'
 import sizeof from 'object-sizeof'
-import { AppMonitorCacheDTO, AppMonitorCacheDTOListRequest } from '@/modules/app/monitor/cache/dto/cache.dto'
 import { AppTechRedisService } from './redis/redis.service'
 
 interface WalnutAdminCacheContent<T = any> extends IWalnutAdminCacheOptions {
   v: T
 }
 
-// Note: IWalnutAdminCacheOptions is now defined globally in @walnut-server/types/walnut-admin/cache.d.ts
+// Note: IWalnutAdminCacheOptions is declared globally in this lib's types.d.ts
 
 // 辅助函数：去�?key 的前缀，用于显�?
 function getDisplayKey(fullKey: string): string {
@@ -32,7 +32,7 @@ function myPaginate<T>(array: T[], pageNum: number, pageSize: number) {
   return slice(array, startIndex, startIndex + pageSize)
 }
 
-function myFilter(array: AppMonitorCacheDTO[], conditions: Partial<AppMonitorCacheDTO>) {
+function myFilter(array: IWalnutAdminCacheListRow[], conditions: Partial<IWalnutAdminCacheListRow>) {
   return filter(array, (item) => {
     return every(conditions, (value, key) => {
       if (isNil(value)) {
@@ -464,15 +464,18 @@ export class AppTechCacheService {
 
   /**
    * List caches with pagination and filtering
+   *
+   * 入参/出参收结构类型（IWalnutAdminCacheListRequest / Row）：app 侧的
+   * AppMonitorCacheDTOListRequest 与 AppMonitorCacheDTO 逐字段同型，结构兼容。
    */
-  public async list(payload: AppMonitorCacheDTOListRequest) {
+  public async list(payload: IWalnutAdminCacheListRequest): Promise<{ data: IWalnutAdminCacheListRow[], total: number }> {
     const allCachedData = await this.getAllCacheData()
 
     const { sort, query, page } = payload
 
     this.logger.debug(`[CacheList] | Listing caches - Page: ${page.page}, PageSize: ${page.pageSize}`)
 
-    let cachedArrayData: AppMonitorCacheDTO[] = []
+    let cachedArrayData: IWalnutAdminCacheListRow[] = []
 
     // format into array
     Object.entries(allCachedData).forEach(([key, value]) => {

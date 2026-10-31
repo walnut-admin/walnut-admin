@@ -152,13 +152,13 @@ throw new WalnutAdminExceptionSensitiveVerificationFailed({ meta: { reason: 'pas
 
 ## Dependencies
 
-- **Internal**: `@walnut-server/const/app/responseCode` (for error codes), `@walnut-server/utils/response` (for response builder), `@walnut-server/utils/headers` (for custom headers)
+- **Internal**: `@walnut-server/const/app/responseCode` (for error codes), `@walnut-server/utils/response` (for response builder), `@walnut-server/utils/headers` (for custom headers), `@walnut-server/blpath` (SharedBLPathService)
 - **External**: `@nestjs/common`, `mongoose`
-- **App-level** (in the filter): `@/modules/app/error/error.service` (AppErrorService), `@/modules/shared/BLPath/BLPath.service` (SharedBLPathService), `nestjs-i18n` (I18nContext)
+- **App-level** (wired into the filter): `nestjs-i18n` (I18nContext); error reporting is injected through the `WALNUT_ADMIN_ERROR_REPORTER` port and bound to `@/modules/app/error/error.service` (AppErrorService) on the app side
 
 ## Notes
 
-- The global filter (`WalnutAdminFilterExceptionAll`) has **hard imports to app-level services** (`AppErrorService`, `SharedBLPathService`) — this creates a dependency from the lib back to the app, which would need to be resolved (via DI or interface abstraction) if this lib were ever published standalone
+- The global filter (`WalnutAdminFilterExceptionAll`) is **app-free** since libs 解耦批 1: `AppErrorService` is bound through the `WALNUT_ADMIN_ERROR_REPORTER` port (app provides the implementation) and `SharedBLPathService` comes from `@walnut-server/blpath`
 - All exceptions follow the pattern: extend a NestJS HTTP exception, pass a payload with `errCode` from `WalnutAdminConstAppResponseCode`
 - The response always uses HTTP 200 for client consumption — actual error status is communicated via the `errCode` field in the response body
 - Per CLAUDE.md conventions: avoid creating single-use dedicated exception classes in business code; use the generic base classes with inline `errMsg` instead

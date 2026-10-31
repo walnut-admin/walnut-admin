@@ -1,7 +1,6 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
+import { AppTechCacheAppSettingsService, AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
-import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 
 /**
  * APP:SETTING 缓存的测试期改写（functional guard 系列）：

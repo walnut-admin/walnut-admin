@@ -1,11 +1,11 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
+import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { RoleType } from '@walnut/contract'
-import { uniqBy } from 'lodash'
 
+import { uniqBy } from 'lodash'
 import { SharedScopeResolverService } from '@/modules/shared/scopeResolver/scope-resolver.service'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import { SysRoleRepoService } from '../repo/role.repo.service'
 
 /**

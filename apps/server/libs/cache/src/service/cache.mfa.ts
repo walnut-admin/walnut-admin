@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common'
+import type { IWalnutAdminConstSysUserMfaType } from '@walnut-server/const/app/mfa'
+import type { IWalnutAdminTokenTtl } from '../token-ttl.port'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
-import { AppTokenService } from '@/modules/shared/token/token.service'
-import { IWalnutAdminConstSysUserMfaType } from '@/modules/system/user_mfa/mfa.const'
-import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
+import { AppTechCacheService } from '../cache.service'
+import { WALNUT_ADMIN_TOKEN_TTL } from '../token-ttl.port'
 
 type WalnutAdminConstSysUserMfaWebauthnType = 'registration' | 'authentication'
 
@@ -12,7 +13,7 @@ export class AppTechCacheMfaService {
 
   constructor(
     private readonly cacheService: AppTechCacheService,
-    private readonly tokenService: AppTokenService,
+    @Inject(WALNUT_ADMIN_TOKEN_TTL) private readonly tokenService: IWalnutAdminTokenTtl,
   ) { }
 
   private readonly getVerifiedCacheKey = (userId: string, deviceId: string) => `${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${userId}:${deviceId}`
