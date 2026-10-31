@@ -4,6 +4,7 @@ import { APP_FILTER } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { WalnutAdminConstAppQueue } from '@walnut-server/const/app/queue'
 import { WalnutPGConnectionName } from '@walnut-server/db'
+import { WALNUT_ADMIN_ERROR_REPORTER } from '@walnut-server/exceptions'
 import { WalnutAdminFilterExceptionAll } from '@walnut-server/exceptions/exception.filter'
 import { AppErrorEntity } from './entity/error.entity'
 import { AppErrorBasicRepository } from './error.basic.repository'
@@ -28,6 +29,12 @@ import { AppErrorService } from './error.service'
     AppErrorBasicRepository,
     AppErrorService,
     AppErrorProcessor,
+    // 异常过滤器的错误入库端口绑定（libs 解耦批 1 的依赖反转：filter 在 lib 里，
+    // 错误入库在 app 里，经 WALNUT_ADMIN_ERROR_REPORTER 端口连接）
+    {
+      provide: WALNUT_ADMIN_ERROR_REPORTER,
+      useExisting: AppErrorService,
+    },
     {
       provide: APP_FILTER,
       useClass: WalnutAdminFilterExceptionAll,

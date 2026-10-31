@@ -1,11 +1,11 @@
 import type { NextFunction } from 'express'
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common'
+import { SharedBLPathService } from '@walnut-server/blpath'
 import { isProd } from '@walnut-server/config/utils/env'
 import { LoggerContextService } from '@walnut-server/context'
 import { maskSensitiveFields } from '@walnut-server/utils/mask'
 import { RequestHeaders } from '@walnut/contract/http'
 import { Recordable } from 'easy-fns-ts'
-import { SharedBLPathService } from '@/modules/shared/BLPath/BLPath.service'
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {

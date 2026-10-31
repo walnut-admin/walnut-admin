@@ -2,10 +2,10 @@ import type { NextFunction, RequestHandler } from 'express'
 import { Injectable, NestMiddleware } from '@nestjs/common'
 
 import { ConfigService } from '@nestjs/config'
-import cookieSession from 'cookie-session'
+import { defaultCookieOptions } from '@walnut-server/cookie'
 
+import cookieSession from 'cookie-session'
 import { AppTokenService } from '@/modules/shared/token/token.service'
-import { defaultCookieOptions } from '@/modules/techniques/cookie/cookie.service'
 
 @Injectable()
 export class SessionMiddleware implements NestMiddleware {

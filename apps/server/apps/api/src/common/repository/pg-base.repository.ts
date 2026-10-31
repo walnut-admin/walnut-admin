@@ -1,16 +1,16 @@
 import type { EntityManager, EntityTarget, FindOptionsWhere, ObjectLiteral, SelectQueryBuilder } from 'typeorm'
 import type { IWalnutAdminDataScopeEntityConfig } from './data-scope'
 import { Inject } from '@nestjs/common'
+import { ALSRequestService } from '@walnut-server/als'
 import { applyWalnutDataScopeRlsSettings, DBTransactionHooksStore, runInWalnutSystemTransaction } from '@walnut-server/db'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
+
 import {
   WalnutAdminExceptionDataScopeContextMissing,
   WalnutAdminExceptionDataScopeTransactionRequired,
 } from '@walnut-server/exceptions/business/auth'
-
 import { cloneDeep } from 'lodash'
 import { DataSource } from 'typeorm'
-import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { SysDeletedPgRepoService } from '@/modules/system/deleted/repo/deleted.repo.pg.service'
 import { SysEmployeeEntity } from '@/modules/system/employee/entity/employee.entity'
 import { IWalnutAdminRequestList } from '../dto/list.dto'

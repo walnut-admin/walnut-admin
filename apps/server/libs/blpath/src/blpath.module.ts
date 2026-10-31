@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common'
-import { SharedBLPathService } from './BLPath.service'
+import { SharedBLPathService } from './blpath.service'
 
 @Global()
 @Module({

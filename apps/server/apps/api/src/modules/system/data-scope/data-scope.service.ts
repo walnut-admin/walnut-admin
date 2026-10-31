@@ -1,6 +1,6 @@
+import type { IWalnutAdminDataScopeDescriptor } from '@walnut-server/db'
 import type { EntityManager } from 'typeorm'
 import type { IWalnutAdminDataScopeResolveInput, IWalnutAdminDataScopeRoleSnapshot } from './data-scope.resolver'
-import type { IWalnutAdminDataScopeDescriptor } from '@/common/repository/data-scope'
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstDataScope, WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'

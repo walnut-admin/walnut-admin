@@ -19,7 +19,9 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "composite": false,
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "paths": {
       "@/*": [
         "./apps/api/src/*"
@@ -77,6 +79,54 @@
       ],
       "@walnut-server/context/*": [
         "./libs/context/src/*"
+      ],
+      "@walnut-server/als": [
+        "./libs/als/src"
+      ],
+      "@walnut-server/als/*": [
+        "./libs/als/src/*"
+      ],
+      "@walnut-server/blpath": [
+        "./libs/blpath/src"
+      ],
+      "@walnut-server/blpath/*": [
+        "./libs/blpath/src/*"
+      ],
+      "@walnut-server/cookie": [
+        "./libs/cookie/src"
+      ],
+      "@walnut-server/cookie/*": [
+        "./libs/cookie/src/*"
+      ],
+      "@walnut-server/crypto": [
+        "./libs/crypto/src"
+      ],
+      "@walnut-server/crypto/*": [
+        "./libs/crypto/src/*"
+      ],
+      "@walnut-server/delay": [
+        "./libs/delay/src"
+      ],
+      "@walnut-server/delay/*": [
+        "./libs/delay/src/*"
+      ],
+      "@walnut-server/lock": [
+        "./libs/lock/src"
+      ],
+      "@walnut-server/lock/*": [
+        "./libs/lock/src/*"
+      ],
+      "@walnut-server/queue": [
+        "./libs/queue/src"
+      ],
+      "@walnut-server/queue/*": [
+        "./libs/queue/src/*"
+      ],
+      "@walnut-server/sse": [
+        "./libs/sse/src"
+      ],
+      "@walnut-server/sse/*": [
+        "./libs/sse/src/*"
       ]
     }
   }

@@ -1,5 +1,4 @@
-import type { IWalnutAdminDataScopeRlsSettings } from '@walnut-server/db'
-import type { IWalnutAdminDataScopeDescriptor } from '@/common/repository/data-scope'
+import type { IWalnutAdminDataScopeDescriptor, IWalnutAdminDataScopeRlsSettings } from '@walnut-server/db'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'

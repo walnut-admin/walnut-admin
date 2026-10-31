@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config'
 import { Reflector } from '@nestjs/core'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { AppTechCookieService } from '@walnut-server/cookie'
 import {
   WalnutAdminExceptionExpiredSignature,
   WalnutAdminExceptionInvalidSignature,
@@ -18,7 +19,6 @@ import { AuthSessionService } from '@/modules/auth/modules/session/session.servi
 import { AppTokenService } from '@/modules/shared/token/token.service'
 import { AppTechCacheRsaService } from '@/modules/techniques/cache/service/cache.rsa'
 import { AppTechCacheSignService } from '@/modules/techniques/cache/service/cache.sign'
-import { AppTechCookieService } from '@/modules/techniques/cookie/cookie.service'
 
 const WalnutAdminConstDecoratorSignFreeKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_SIGN_FREE')
 

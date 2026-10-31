@@ -3,17 +3,14 @@ import {
   Catch,
   ExceptionFilter,
   HttpStatus,
+  Inject,
   Logger,
 } from '@nestjs/common'
 
+import { SharedBLPathService } from '@walnut-server/blpath'
 import { setCustomHeaders } from '@walnut-server/utils/headers'
 import { I18nContext } from 'nestjs-i18n'
-// 临时豁免（libs 边界 lint 上线时的存量）：lib 反向依赖 app 的已知疤，批 1 解环时移除 ——
-// AppErrorService 经注入 token 反转、BLPath 抽成 @walnut-server/blpath。
-// eslint-disable-next-line no-restricted-imports
-import { AppErrorService } from '@/modules/app/error/error.service'
-// eslint-disable-next-line no-restricted-imports
-import { SharedBLPathService } from '@/modules/shared/BLPath/BLPath.service'
+import { IWalnutAdminErrorReporter, WALNUT_ADMIN_ERROR_REPORTER } from './error-reporter.port'
 import { WalnutAdminExceptionHandler } from './handler'
 
 export async function translateResponseMessage(res: IWalnutAdminResponseBase, i18n: I18nContext) {
@@ -25,8 +22,9 @@ export class WalnutAdminFilterExceptionAll implements ExceptionFilter {
   private readonly logger = new Logger(WalnutAdminFilterExceptionAll.name)
 
   constructor(
-    private readonly appErrorService: AppErrorService,
     private readonly sharedBLPathService: SharedBLPathService,
+    @Inject(WALNUT_ADMIN_ERROR_REPORTER)
+    private readonly errorReporter: IWalnutAdminErrorReporter,
   ) {}
 
   async catch(
@@ -60,7 +58,7 @@ export class WalnutAdminFilterExceptionAll implements ExceptionFilter {
     // insert error to db
     const responseData = Object.assign(walnutErrorResponse, { msg: translatedErrorMsg })
     if (!skipObservation) {
-      await this.appErrorService.addErrorQueue(request, responseData, HttpStatus.OK, exception)
+      await this.errorReporter.addErrorQueue(request, responseData, HttpStatus.OK, exception)
     }
 
     // set custom headers

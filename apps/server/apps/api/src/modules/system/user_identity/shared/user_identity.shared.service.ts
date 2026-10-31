@@ -3,13 +3,13 @@ import type { EntityManager } from 'typeorm'
 import type { IOtpType } from '@/modules/auth/modules/otp/const/otp.const'
 
 import { Injectable, Logger } from '@nestjs/common'
+import { AppTechCryptoService } from '@walnut-server/crypto'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
-import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 
+import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 import { isNil } from 'lodash'
 import { OtpSharedService } from '@/modules/auth/modules/otp/shared/otp.shared.service'
 import { SharedMaskService } from '@/modules/shared/mask/mask.service'
-import { AppTechCryptoService } from '@/modules/techniques/crypto/crypto.service'
 
 import { SysUserIdentityStatusResponseDTO } from '../dto/user_identity.dto'
 import {

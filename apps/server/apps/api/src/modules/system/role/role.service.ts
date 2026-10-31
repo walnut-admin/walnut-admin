@@ -1,12 +1,12 @@
 import type { EntityManager } from 'typeorm'
 import type { IRoleAuthorizationAuditSnapshot } from './role.audit'
 import { Injectable, Logger } from '@nestjs/common'
+import { ALSRequestService } from '@walnut-server/als'
 import { WalnutAdminConstDataScope } from '@walnut-server/const/app/dataScope'
 import { runAfterCommit } from '@walnut-server/db'
-import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
+import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { Role } from '@walnut/contract'
-import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { AppTechCachePermissionsService } from '@/modules/techniques/cache/service/cache.permissions'
 import { DataScopeService } from '../data-scope/data-scope.service'
 import {

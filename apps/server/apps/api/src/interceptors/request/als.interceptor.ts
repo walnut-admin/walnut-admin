@@ -1,10 +1,10 @@
 import type { CallHandler, ExecutionContext, NestInterceptor } from '@nestjs/common'
 import { Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
+import { ALSRequestService } from '@walnut-server/als'
 import { Observable } from 'rxjs'
 import { buildWalnutDataScopeRlsSettings } from '@/common/repository/data-scope.rls'
 import { WALNUT_DATA_SCOPE_SYSTEM_CHANNEL_METADATA_KEY } from '@/decorators/walnut/dataScope.decorator'
-import { ALSRequestService } from '@/modules/shared/als/request/request.service'
 import { DataScopeService } from '@/modules/system/data-scope/data-scope.service'
 
 /**

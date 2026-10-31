@@ -1,11 +1,12 @@
+import type { IWalnutAdminErrorReporter } from '@walnut-server/exceptions'
 import type { AppErrorEntity } from './entity/error.entity'
 import process from 'node:process'
 import { InjectQueue } from '@nestjs/bull'
 import { Injectable, Logger } from '@nestjs/common'
 import { IWalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
 import { WalnutAdminConstAppProcess } from '@walnut-server/const/app/process'
-import { WalnutAdminConstAppQueue } from '@walnut-server/const/app/queue'
 
+import { WalnutAdminConstAppQueue } from '@walnut-server/const/app/queue'
 import { IWalnutAdminConstAppResponseCode, WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { Queue } from 'bull'
 import { SharedMaskService } from '@/modules/shared/mask/mask.service'
@@ -13,7 +14,7 @@ import { AppErrorBasicRepository } from './error.basic.repository'
 import { AppErrorDTOSafe } from './error.dto'
 
 @Injectable()
-export class AppErrorService {
+export class AppErrorService implements IWalnutAdminErrorReporter {
   constructor(
     private readonly appErrorBasicRepo: AppErrorBasicRepository,
 

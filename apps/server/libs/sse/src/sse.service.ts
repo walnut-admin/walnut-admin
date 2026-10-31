@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common'
 import { Observable, Subject } from 'rxjs'
 
-// Note: IWalnutAdminSseClientData interface has been moved to @walnut-server/types/walnut-admin/sse.d.ts
-// as IWalnutAdminSseClientData
+// Note: IWalnutAdminSseClientData interface is declared ambient (declare global) in
+// this lib's types.d.ts
 
 @Injectable()
 export class AppTechSseService {

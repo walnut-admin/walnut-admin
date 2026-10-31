@@ -22,7 +22,15 @@
           "libs/decorators/src",
           "libs/pipes/src",
           "libs/exceptions/src",
-          "libs/context/src"
+          "libs/context/src",
+          "libs/als/src",
+          "libs/blpath/src",
+          "libs/cookie/src",
+          "libs/crypto/src",
+          "libs/delay/src",
+          "libs/lock/src",
+          "libs/queue/src",
+          "libs/sse/src"
         ]
       }
     }
@@ -134,6 +142,78 @@
       "sourceRoot": "libs/context/src",
       "compilerOptions": {
         "tsConfigPath": "libs/context/tsconfig.lib.json"
+      }
+    },
+    "als": {
+      "type": "library",
+      "root": "libs/als",
+      "entryFile": "index",
+      "sourceRoot": "libs/als/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/als/tsconfig.lib.json"
+      }
+    },
+    "blpath": {
+      "type": "library",
+      "root": "libs/blpath",
+      "entryFile": "index",
+      "sourceRoot": "libs/blpath/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/blpath/tsconfig.lib.json"
+      }
+    },
+    "cookie": {
+      "type": "library",
+      "root": "libs/cookie",
+      "entryFile": "index",
+      "sourceRoot": "libs/cookie/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/cookie/tsconfig.lib.json"
+      }
+    },
+    "crypto": {
+      "type": "library",
+      "root": "libs/crypto",
+      "entryFile": "index",
+      "sourceRoot": "libs/crypto/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/crypto/tsconfig.lib.json"
+      }
+    },
+    "delay": {
+      "type": "library",
+      "root": "libs/delay",
+      "entryFile": "index",
+      "sourceRoot": "libs/delay/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/delay/tsconfig.lib.json"
+      }
+    },
+    "lock": {
+      "type": "library",
+      "root": "libs/lock",
+      "entryFile": "index",
+      "sourceRoot": "libs/lock/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/lock/tsconfig.lib.json"
+      }
+    },
+    "queue": {
+      "type": "library",
+      "root": "libs/queue",
+      "entryFile": "index",
+      "sourceRoot": "libs/queue/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/queue/tsconfig.lib.json"
+      }
+    },
+    "sse": {
+      "type": "library",
+      "root": "libs/sse",
+      "entryFile": "index",
+      "sourceRoot": "libs/sse/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/sse/tsconfig.lib.json"
       }
     }
   }

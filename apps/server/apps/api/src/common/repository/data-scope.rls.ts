@@ -1,5 +1,4 @@
-import type { IWalnutAdminDataScopeRlsSettings } from '@walnut-server/db'
-import type { IWalnutAdminDataScopeDescriptor } from './data-scope'
+import type { IWalnutAdminDataScopeDescriptor, IWalnutAdminDataScopeRlsSettings } from '@walnut-server/db'
 import { WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
 import { WALNUT_DATA_SCOPE_RLS_MODE } from '@walnut-server/db'
 

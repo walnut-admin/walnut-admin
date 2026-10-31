@@ -1,4 +1,4 @@
-import type { IWalnutAdminDataScopeDescriptor } from '@/common/repository/data-scope'
+import type { IWalnutAdminDataScopeDescriptor } from '@walnut-server/db'
 import { WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { Role } from '@walnut/contract'

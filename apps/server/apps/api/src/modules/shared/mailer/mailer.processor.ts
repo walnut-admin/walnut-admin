@@ -5,10 +5,10 @@ import { WalnutAdminConstAppProcess } from '@walnut-server/const/app/process'
 import { WalnutAdminConstAppQueue } from '@walnut-server/const/app/queue'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
+import { WalnutAdminCommonBasicProcessor } from '@walnut-server/queue'
 import { Job } from 'bull'
 import { Recordable } from 'easy-fns-ts'
 import { I18nService } from 'nestjs-i18n'
-import { WalnutAdminCommonBasicProcessor } from '@/common/processor/base.processor'
 
 @Processor(WalnutAdminConstAppQueue.EMAIL)
 export class AppMailerProcessor extends WalnutAdminCommonBasicProcessor {

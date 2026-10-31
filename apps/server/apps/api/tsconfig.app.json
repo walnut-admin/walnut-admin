@@ -12,7 +12,16 @@
         "../../libs/types/src/**/*",
         "../../libs/decorators/src/**/*",
         "../../libs/pipes/src/**/*",
-        "../../libs/exceptions/src/**/*"
+        "../../libs/exceptions/src/**/*",
+        "../../libs/context/src/**/*",
+        "../../libs/als/src/**/*",
+        "../../libs/blpath/src/**/*",
+        "../../libs/cookie/src/**/*",
+        "../../libs/crypto/src/**/*",
+        "../../libs/delay/src/**/*",
+        "../../libs/lock/src/**/*",
+        "../../libs/queue/src/**/*",
+        "../../libs/sse/src/**/*"
     ],
     "exclude": [
         "node_modules",
