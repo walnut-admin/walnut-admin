@@ -1,5 +1,5 @@
+import type { IWalnutAdminRequestList } from '@walnut-server/list'
 import type { ObjectLiteral, SelectQueryBuilder } from 'typeorm'
-import type { IWalnutAdminRequestList } from '../dto/list.dto'
 import { isEmpty, isNaN, isNil, isObject } from 'lodash'
 
 /**

@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-syntax -- 操作日志是 fire-and-forget 旁路写（decorator tap 内发起、吞错、不参与业务事务）；读日志走 SysLogOperateBasicRepository（已注入数据权限）。 */
+import type { IWalnutAdminOperateLogWriter } from '@walnut-server/crud'
 import type { DataSource } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
@@ -18,8 +19,10 @@ import { SysLogOperateEntity } from '../entity/log-operate.entity'
  * （decorator tap 里发起、吞错），必须不参与业务请求的主事务；连接级 manager
  * 的独立隐式事务即旁路语义。
  */
+// implements 是端口绑定的编译期守护（批 4）：libs/crud 的操作日志拦截器只依赖
+// IWalnutAdminOperateLogWriter，create 签名漂移这里立刻红
 @Injectable()
-export class SysLogOperateRepoService {
+export class SysLogOperateRepoService implements IWalnutAdminOperateLogWriter {
   constructor(
     @InjectDataSource(WalnutPGConnectionName)
     private readonly dataSource: DataSource,

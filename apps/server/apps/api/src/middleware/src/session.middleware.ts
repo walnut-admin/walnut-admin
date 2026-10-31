@@ -4,8 +4,8 @@ import { Injectable, NestMiddleware } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { defaultCookieOptions } from '@walnut-server/cookie'
 
+import { AppTokenService } from '@walnut-server/token'
 import cookieSession from 'cookie-session'
-import { AppTokenService } from '@/modules/shared/token/token.service'
 
 @Injectable()
 export class SessionMiddleware implements NestMiddleware {

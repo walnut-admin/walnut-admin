@@ -12,7 +12,7 @@ import { remove } from 'lodash'
  * swagger 的 schema 键名取自 `class.name`，而 @nestjs/swagger 的 PartialType / PickType
  * 内部固定生成 `class PartialTypeClass` / `class PickTypeClass` —— 不改名的话**所有**
  * 派生类共用同一个 schema 键，文档里 N 个不同形态互相覆盖（导出 openapi.json 后由
- * openapi-typescript 生成类型时更会以错传错）。这里按 common/dto/list.dto.ts 的既有
+ * openapi-typescript 生成类型时更会以错传错）。这里按 `@walnut-server/list` 的既有
  * 先例（"dynamic change class name (swagger relies on this)"）改名，键名只进文档面，
  * 运行时行为（校验 / 转换 / 序列化）不读 class.name。
  */

@@ -8,7 +8,8 @@ import { describe, expect, it } from 'vitest'
  * 背景：`apps/server` 是 Nest CLI 内部 monorepo（ADR 0007），每个内部 lib 要在**多处配置里
  * 各登记一次**，且这些注册点互不联动 —— 漏一处不会让 `tsc` 报错，只会在**构建或运行期**炸
  * （SWC 的 `filenames` 漏了 → 产物里没有这个 lib，`@walnut-server/*` 运行时解析失败；
- * nest-cli `projects` 漏了 → `nest build <lib>` / `build:libs` 直接失败）。历史上
+ * nest-cli `projects` 漏了 → `nest build <lib>` 无 project 可用（本仓无根 nest-cli.json，
+ * 实测是静默 no-op）。历史上
  * `@walnut-server/context` 就漏了 nest-cli projects 注册（归档的 lib-extraction 计划交叉
  * 记录第 3 条），靠人肉记忆补不全，所以机械拦：
  *
@@ -19,9 +20,10 @@ import { describe, expect, it } from 'vitest'
  *    `libs/<name>/src`，以及 `projects` 里每个 lib 的标准形状；
  * ③ `infra/swc/{dev,prod,stage}.swcrc` → `jsc.paths` 的 `@walnut-server/<name>`（值指向
  *    `libs/<name>/src`）；
- * ④ 根 `package.json` → `scripts['build:libs']` 里的 `nest build <name>` 全集。
+ * ④ `apps/api/tsconfig.app.json` → `include` 的 `../../libs/<name>/src` 全量 glob 条目（app
+ *    构建的 TS 程序要看见每个 lib；build:libs 脚本因 no-op 已删除，不再作为注册面）。
  *
- * 纯 fs + 静态文本，零依赖装载。新增 lib 的动作就是「建目录 + 五处登记」，漏任何一处本文件红。
+ * 纯 fs + 静态文本，零依赖装载。新增 lib 的动作就是「建目录 + 四处登记」，漏任何一处本文件红。
  */
 
 // ─── 配置形状（只声明本文件真正读到的字段）────────────────────────────────────────
@@ -55,10 +57,6 @@ interface ISwcrcJson {
   }
 }
 
-interface IPackageJson {
-  scripts: Record<string, string>
-}
-
 // ─── 读取与解析工具 ───────────────────────────────────────────────────────────────
 
 /** vitest 从 apps/server 起（`test.root: './'`），与 dto-entity.drift.spec 的 cwd 口径一致 */
@@ -87,13 +85,6 @@ function aliasLibNames(paths: Record<string, string[]>): string[] {
       .filter(key => key.startsWith('@walnut-server/'))
       .map(key => key.replace(/^@walnut-server\//, '').replace(/\/\*$/, '')),
   )].sort()
-}
-
-/** `nest build <name>` 的名字全集（来自 build:libs 脚本文本） */
-function buildLibsScriptNames(script: string): string[] {
-  return [...script.matchAll(/nest build ([\w-]+)/g)]
-    .map(match => match[1])
-    .sort()
 }
 
 const NEST_CLI_CONFIGS = ['infra/nest/dev.json', 'infra/nest/prod.json', 'infra/nest/stage.json'] as const
@@ -184,12 +175,7 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 五处注册面，�
     expect(problems).toEqual([])
   })
 
-  it('④ package.json build:libs 的 nest build 全集 ≡ 磁盘 libs', () => {
-    const pkg = readJson<IPackageJson>('package.json')
-    expect(buildLibsScriptNames(pkg.scripts['build:libs'] ?? '')).toEqual(actualLibs)
-  })
-
-  it('⑤ apps/api/tsconfig.app.json include ≡ 磁盘 libs（app 构建的 TS 程序要看见每个 lib）', () => {
+  it('④ apps/api/tsconfig.app.json include ≡ 磁盘 libs（app 构建的 TS 程序要看见每个 lib）', () => {
     const appTsconfig = readJson<{ include: string[] }>('apps/api/tsconfig.app.json')
     const libIncludes = appTsconfig.include
       .map(entry => /^\.\.\/\.\.\/libs\/([\w-]+)\/src\/\*\*\/\*$/.exec(entry)?.[1])

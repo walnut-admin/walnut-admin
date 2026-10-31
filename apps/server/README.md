@@ -18,7 +18,7 @@ workspace 包，靠 `apps/server/tsconfig.json` 的 paths（`@walnut-server/*`�
 ```
 apps/server/
 ├── apps/api/src/     应用入口与源码（modules / guard / decorators / common / config / const …）
-├── libs/*/src        9 个内部库（config · const · context · db · decorators · exceptions · pipes · types · utils）
+├── libs/*/src        内部库（基建 config · const · context · db · decorators · exceptions · pipes · types · utils；解耦批持续抽入，清单以目录为准）
 ├── infra/nest/       nest-cli 构建配置（dev / stage / prod）
 ├── infra/swc/        SWC 编译配置
 ├── env-encrypted/    密文（随仓库提交，dotenvx；文件内注释即模板）

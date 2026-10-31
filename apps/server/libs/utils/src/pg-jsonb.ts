@@ -1,6 +1,9 @@
 /**
  * sys_log_operate 的 jsonb 写入形态归一（B8，phase2 4.16 / Q7 定案）。
  *
+ * 批 4：随操作日志拦截器迁入 `@walnut-server/utils`（原
+ * `apps/api/src/modules/system/logs/operate/log.operate.jsonb.ts`），实现零改动。
+ *
  * Mongo 时代 requestData / responseData 存 `JSON.stringify` 后的字符串；PG 侧两列
  * 收 jsonb，应用新增**直接写对象**。写前先做一轮 stringify → parse 往返：
  * - 往返成功 → `data` 带对象落 jsonb 列，`raw` 为 null；

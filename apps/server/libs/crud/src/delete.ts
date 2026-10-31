@@ -4,7 +4,7 @@ import { ApiParam } from '@nestjs/swagger'
 import { WalnutAdminConstAppConfig } from '@walnut-server/const/app/config'
 import { WalnutAdminConstDecoratorLogOperateAction } from '@walnut-server/const/decorator/logOperate'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
-import { WalnutAdminDecoratorOperateLog } from '../walnut/log.operate.decorator'
+import { WalnutAdminDecoratorOperateLog } from './operate-log/operate-log.decorator'
 
 export function WalnutAdminDecoratorDelete(options: IWalnutAdminCrudOptions, field: string = WalnutAdminConstAppConfig.deleteField) {
   const { operateLog, swagger } = options

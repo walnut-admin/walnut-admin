@@ -32,7 +32,7 @@ NestJS 12.x + TypeScript 6.0.3 + PostgreSQL（TypeORM）+ Redis + Bull 队列 �
 **内部 Nest CLI monorepo**，不是 pnpm workspace 包：
 
 - `apps/api/src/` —— app 的入口与源码（`modules/` `app/` `guard/` `decorators/` `common/` `i18n/` …）
-- `libs/*/src` —— 内部库 `{config,const,context,db,decorators,exceptions,pipes,types,utils}`，
+- `libs/*/src` —— 内部库（完整清单以 `libs/` 目录为准；`{config,const,context,db,decorators,exceptions,pipes,types,utils}` 是基建底座），
   经 tsconfig `paths` 以 `@walnut-server/*` 解析，与 app 一起由 SWC 编译
 - 为什么这样：[ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md)
   （CJS + NestJS 耦合 + SWC 编译，不适合当 ESM workspace 包）
@@ -119,7 +119,7 @@ Repository 也算）—— 所有数据访问必须穿过 Repository / Repo Serv
 2. **DTO 字段不写 `?` 与 `!`**：必填性只有一个真源 —— 字段装饰器的 `default`（可选字段写 `default: null`）。
    类型标记会造出第二个真源，两者必然漂移。
 
-CRUD 装饰器由 `WalnutCrudDecorators({ title, DTO })` 工厂生成（`@/decorators/crud`）；DTO 字段用
+CRUD 装饰器由 `WalnutCrudDecorators({ title, DTO })` 工厂生成（`@walnut-server/crud`）；DTO 字段用
 `@walnut-server/decorators/field` 的装饰器，不要裸写 class-validator。全部示例、以及**会被 ESLint 强制**
 的装饰器顺序，见 `apps/docs/src/zh-CN/content/backend/dto.md`。
 

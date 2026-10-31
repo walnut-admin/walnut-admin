@@ -4,11 +4,11 @@ import {
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
+import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@walnut-server/list'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose, Transform } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { Recordable } from 'easy-fns-ts'
-import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@/common/dto/list.dto'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { WalnutAdminVirtualUserDTO } from '@/common/model/virtual/user'
 

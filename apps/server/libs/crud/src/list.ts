@@ -2,7 +2,7 @@ import { applyDecorators, HttpCode, HttpStatus, Post } from '@nestjs/common'
 
 import { ApiExtraModels, ApiOkResponse, getSchemaPath } from '@nestjs/swagger'
 import { WalnutAdminSwaggerResponseSuccessSchemeData } from '@walnut-server/decorators/swagger'
-import { CreateWalnutAdminResponseListDTO } from '../../common/dto/list.dto'
+import { CreateWalnutAdminResponseListDTO } from '@walnut-server/list'
 
 export function WalnutAdminDecoratorList(options: IWalnutAdminCrudOptions) {
   const { operateLog, swagger } = options

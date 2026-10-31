@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { toWalnutPgJsonbPayload } from './log.operate.jsonb'
+import { toWalnutPgJsonbPayload } from './pg-jsonb'
 
 /**
  * sys_log_operate 的 jsonb 写入形态归一（B8，phase2 4.16 / Q7 定案）：
@@ -30,7 +30,7 @@ describe('toWalnutPgJsonbPayload', () => {
     const payload = toWalnutPgJsonbPayload(circular)
 
     expect(payload.data).toBeNull()
-    // 无法 stringify 的值只能 String() 化（如实降级，见 log.operate.jsonb.ts）
+    // 无法 stringify 的值只能 String() 化（如实降级，见 pg-jsonb.ts）
     expect(payload.raw).toBe('[object Object]')
   })
 

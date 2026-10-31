@@ -3,8 +3,8 @@ import type { IWalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { WalnutAdminConstDataScope, WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dataScope'
 import { WalnutAdminConstAppSettingScopeType } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
+import { SharedScopeResolverService } from '@walnut-server/scope-resolver'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { SharedScopeResolverService } from '@/modules/shared/scopeResolver/scope-resolver.service'
 import { DataScopeService } from './data-scope.service'
 
 /**

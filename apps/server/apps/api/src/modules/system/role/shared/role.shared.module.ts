@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
-import { SharedScopeResolverModule } from '@/modules/shared/scopeResolver/scope-resolver.module'
+import { SharedScopeResolverModule } from '@walnut-server/scope-resolver'
 import { SysRoleMenuEntity } from '../entity/role-menu.entity'
 import { SysRoleEntity } from '../entity/role.entity'
 import { SysRoleSharedService } from './role.shared.service'

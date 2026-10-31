@@ -9,11 +9,11 @@ import {
   WalnutAdminExceptionDataScopeContextMissing,
   WalnutAdminExceptionDataScopeTransactionRequired,
 } from '@walnut-server/exceptions/business/auth'
+import { IWalnutAdminRequestList } from '@walnut-server/list'
 import { cloneDeep } from 'lodash'
 import { DataSource } from 'typeorm'
 import { SysDeletedPgRepoService } from '@/modules/system/deleted/repo/deleted.repo.pg.service'
 import { SysEmployeeEntity } from '@/modules/system/employee/entity/employee.entity'
-import { IWalnutAdminRequestList } from '../dto/list.dto'
 import {
   applyWalnutDataScopePredicate,
   buildWalnutDataScopeFindWhere,

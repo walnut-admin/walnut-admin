@@ -5,11 +5,11 @@ import {
   WalnutAdminDecoratorFieldEnum,
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
+import { CreateWalnutAdminResponseListDTO } from '@walnut-server/list'
 import { RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { ValueOf } from 'easy-fns-ts'
-import { CreateWalnutAdminResponseListDTO } from '@/common/dto/list.dto'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { AppMonitorUserDTO } from '@/modules/app/monitor/user/dto/user.dto'
 

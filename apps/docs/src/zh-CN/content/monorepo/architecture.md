@@ -25,7 +25,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | 死代码检测 | Knip 6.29（**当前是红的且有意维持**，见 [Knip](./knip.md)） |
 | Git Hooks | lefthook（`lefthook.yml`）+ lint-staged |
 | 前端框架 | Vue 3 + Vite 8 + Naive UI + UnoCSS |
-| 后端框架 | NestJS 12 + SWC + Mongoose + Redis |
+| 后端框架 | NestJS 12 + SWC + PostgreSQL（TypeORM）+ Redis |
 | 文档引擎 | VitePress 1.6 |
 | Node 要求 | >= 24.13.0 |
 
@@ -146,7 +146,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 
 **外层**（Turborepo 层面）：`apps/*` + `packages/platform-any/*` + `packages/platform-web/*` + `packages/tooling/*` 的 workspace 包，通过 pnpm workspace 协议（`workspace:*`）相互引用。
 
-**内层**（Server 内部）：`apps/server/libs/*` 下的 9 个 NestJS 内部库，通过 TypeScript `paths` 映射解析，不走 pnpm workspace。命名空间为 `@walnut-server/*`，与外层 `@walnut/*` 物理分离。
+**内层**（Server 内部）：`apps/server/libs/*` 下的 NestJS 内部库（基建 9 个 + libs 解耦持续抽入，完整清单以目录为准），通过 TypeScript `paths` 映射解析，不走 pnpm workspace。命名空间为 `@walnut-server/*`，与外层 `@walnut/*` 物理分离。
 
 ### 关键设计决策
 
@@ -214,14 +214,14 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 
 ## 后端内部库体系
 
-Server 内部通过 NestJS CLI + SWC 管理 9 个内部库，命名空间 `@walnut-server/*`：
+Server 内部通过 NestJS CLI + SWC 管理内部库，命名空间 `@walnut-server/*`（基建 9 个如下；libs 解耦持续抽入的技术/领域 lib 完整清单以 `apps/server/libs/` 目录为准）：
 
 ```
 apps/server/libs/
 ├── config/       @walnut-server/config       — 环境配置 + 验证
 ├── const/        @walnut-server/const        — 常量 + 错误码
 ├── context/      @walnut-server/context      — ALS 上下文
-├── db/           @walnut-server/db           — Mongoose + 事务
+├── db/           @walnut-server/db           — PostgreSQL（TypeORM）+ 事务
 ├── decorators/   @walnut-server/decorators   — 自定义装饰器体系
 ├── exceptions/   @walnut-server/exceptions   — 异常 + 全局过滤器
 ├── pipes/        @walnut-server/pipes        — 参数管道

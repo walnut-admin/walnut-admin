@@ -3,13 +3,13 @@ import { IWalnutAdminConstAppSettingType, WalnutAdminConstAppSettingType } from 
 import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
-import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
-import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,
-} from '@/common/dto/list.dto'
+} from '@walnut-server/list'
+import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
+import { Expose } from 'class-transformer'
+import { IsOptional } from 'class-validator'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/setting.schema.ts 的 AppSettingModel

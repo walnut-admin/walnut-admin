@@ -8,14 +8,14 @@ import {
 } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
+import {
+  CreateWalnutAdminRequestListDTO,
+  CreateWalnutAdminResponseListDTO,
+} from '@walnut-server/list'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { ValueOf } from 'easy-fns-ts'
-import {
-  CreateWalnutAdminRequestListDTO,
-  CreateWalnutAdminResponseListDTO,
-} from '@/common/dto/list.dto'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/demo.schema.ts，改名的 DemoConst /

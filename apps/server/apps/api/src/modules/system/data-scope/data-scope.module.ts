@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common'
-import { SharedScopeResolverModule } from '@/modules/shared/scopeResolver/scope-resolver.module'
+import { SharedScopeResolverModule } from '@walnut-server/scope-resolver'
 import { SysDeptRepoModule } from '../dept/dept.repo.module'
 import { DataScopeService } from './data-scope.service'
 

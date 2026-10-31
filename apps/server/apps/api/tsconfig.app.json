@@ -25,7 +25,11 @@
         "../../libs/cache/src/**/*",
         "../../libs/throttle/src/**/*",
         "../../libs/mailer/src/**/*",
-        "../../libs/sms/src/**/*"
+        "../../libs/sms/src/**/*",
+        "../../libs/list/src/**/*",
+        "../../libs/crud/src/**/*",
+        "../../libs/scope-resolver/src/**/*",
+        "../../libs/token/src/**/*"
     ],
     "exclude": [
         "node_modules",

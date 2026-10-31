@@ -67,7 +67,7 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 ### 2.1 全链步骤
 
 1. **登录时固化 AT payload**。`AppTokenService.getJwtAccessTokenPayload`
-   （`modules/shared/token/token.service.ts`）从 `sys_user` 行 + `sys_user_role` 读出的
+   （`@walnut-server/token` 的 `token.service.ts`）从 `sys_user` 行 + `sys_user_role` 读出的
    `roles_list` 组装：`roleIds`、`roleNames`、`currentRole`、`currentRoleName`、
    `roleMode`、`mfaSetup`、`mfaVerified`。**角色分配与 role_mode 在 AT 有效期内不会自动更新**
    （payload 是登录时快照；F1 起权限计算不信任它，见第 3 步）。

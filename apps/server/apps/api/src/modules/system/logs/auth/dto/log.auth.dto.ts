@@ -7,13 +7,13 @@ import {
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
-import { RealOmitType, RealPartialType } from '@walnut-server/utils/dto'
-import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,
-} from '@/common/dto/list.dto'
+} from '@walnut-server/list'
+import { RealOmitType, RealPartialType } from '@walnut-server/utils/dto'
+import { Expose } from 'class-transformer'
+import { IsOptional } from 'class-validator'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/log.auth.schema.ts 的 SysLogAuthModel

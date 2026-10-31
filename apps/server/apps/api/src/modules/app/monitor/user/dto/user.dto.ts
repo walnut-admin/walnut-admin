@@ -5,14 +5,15 @@ import {
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
-import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
-import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,
-} from '@/common/dto/list.dto'
-import { SharedLocationDTO, SharedUserAgentDTO } from '@/common/dto/shared.dto'
+  SharedLocationDTO,
+  SharedUserAgentDTO,
+} from '@walnut-server/list'
+import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
+import { Expose } from 'class-transformer'
+import { IsOptional } from 'class-validator'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { WalnutAdminVirtualDeviceDTO } from '@/common/model/virtual/device'
 import { WalnutAdminVirtualUserDTO } from '@/common/model/virtual/user'

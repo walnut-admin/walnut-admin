@@ -1,3 +1,4 @@
+import type { IWalnutAdminIpLocationResolver } from '@walnut-server/crud'
 import type { EntityManager } from 'typeorm'
 import { HttpService } from '@nestjs/axios'
 import { Injectable, Logger } from '@nestjs/common'
@@ -5,12 +6,12 @@ import { ConfigService } from '@nestjs/config'
 import { AppTechCacheAppSettingsService, AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminExceptionServiceUnavailableDependencyDown } from '@walnut-server/exceptions/base/503'
+import { SharedLocationDTO } from '@walnut-server/list'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { Recordable } from 'easy-fns-ts'
 import isLocalhostIp from 'is-localhost-ip'
 import { isNil } from 'lodash'
 import { firstValueFrom } from 'rxjs'
-import { SharedLocationDTO } from '@/common/dto/shared.dto'
 import { AppSettingRepositoryService } from '@/modules/app/setting/repo/setting.repo.service'
 
 interface ISharedIpLocation extends SharedLocationDTO {
@@ -22,8 +23,10 @@ interface ISharedIpLocation extends SharedLocationDTO {
   timezone?: string
 }
 
+// implements 是端口绑定的编译期守护（批 4）：操作日志拦截器在 libs/crud 里只依赖
+// IWalnutAdminIpLocationResolver，方法改名/改签名这里立刻红
 @Injectable()
-export class SharedIpService {
+export class SharedIpService implements IWalnutAdminIpLocationResolver {
   private readonly logger = new Logger(SharedIpService.name)
 
   constructor(

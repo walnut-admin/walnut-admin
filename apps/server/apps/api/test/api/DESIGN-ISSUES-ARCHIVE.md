@@ -620,7 +620,7 @@
 
 - **位置**：`apps/server/libs/cache/src/service/cache.appSettings.ts`
   （`defaultFunctionalRole`：`{ scope: GLOBAL, globalValue: 'switchable', localKey: 'roleMode' }`）
-  + `apps/api/src/modules/shared/scopeResolver/scope-resolver.service.ts`（`resolve`：scope GLOBAL
+  + `apps/server/libs/scope-resolver/src/scope-resolver.service.ts`（`resolve`：scope GLOBAL
   恒返回 `globalValue`，`target[localKey]` 只在 LOCAL 分支被读）→
   `system/role/shared/role.shared.service.ts getCoreMenus`（`payload = effective === COMBINE ?
   user.roleIds : [user.currentRole]`）。
@@ -801,7 +801,7 @@
 - **位置**：`apps/server/libs/cache/src/service/cache.appSettings.ts`
   （P2-9 后 `defaultFunctionalRole` = GLOBAL/combinable）+
   `apps/api/src/modules/system/user/shared/user.shared.service.ts`（`switchRole` 用
-  effectiveRoleMode 判 COMBINE）+ `apps/api/src/modules/shared/token/token.service.ts`
+  effectiveRoleMode 判 COMBINE）+ `apps/server/libs/token/src/token.service.ts`
   （AT payload 的 `roleMode` 取用户行）+ `apps/api/src/guard/permission.guard.ts`
   （root/visitor 短路按 payload 的行值）。
 - **现象**：零配置部署的 effective roleMode 恒为 combinable，`switchRole` 因此对**所有**

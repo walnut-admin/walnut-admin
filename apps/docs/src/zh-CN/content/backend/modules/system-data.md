@@ -108,14 +108,14 @@ dictData 快照）；junction（`sys_user_role` / `sys_role_menu`）与设备行
 
 ### 2.1 log_operate（操作日志）
 
-写入由 `WalnutAdminInterceptorRequestOperateLog`（`decorators/walnut/log.operate.decorator.ts`）
+写入由 `WalnutAdminInterceptorRequestOperateLog`（`libs/crud/src/operate-log/operate-log.decorator.ts`）
 承担，只挂在带 `@WalnutAdminDecoratorOperateLog` 的 handler 上（CRUD 工厂会默认挂）。
 
 - 拦截器在 `next.handle().pipe(tap({ next, error }))` 里发起 `void insertToLogOperate(...)`：
   **fire-and-forget**，不阻塞响应，异常只 `logger.error`，不会影响业务结果。
 - 成功行：`statusCode` 取响应状态，`responseData` 是统一响应壳 + 翻译后的 `msg`；
   失败行：`success=false`，`responseData` 是 `WalnutAdminExceptionHandler` 的受控异常壳。
-- `requestData` / `responseData` 经 `toWalnutPgJsonbPayload`（`log.operate.jsonb.ts`）处理：
+- `requestData` / `responseData` 经 `toWalnutPgJsonbPayload`（`@walnut-server/utils` 的 `pg-jsonb.ts`）处理：
   stringify → parse 往返成功则写 jsonb 列；序列化失败（循环引用 / BigInt）则 jsonb 列置 NULL、
   原文尽力文本化写入 `raw_request_data` / `raw_response_data` text 旁路列（零丢失语义）。
 - `snapshotBefore` / `snapshotAfter` 来自 ALS（`ALSRequestService`）。目前只有

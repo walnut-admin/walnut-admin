@@ -11,13 +11,13 @@ import {
   WalnutAdminExceptionExpiredSignature,
   WalnutAdminExceptionInvalidSignature,
 } from '@walnut-server/exceptions/business/auth'
+import { AppTokenService } from '@walnut-server/token'
 import { objectToPaths } from '@walnut-server/utils/general'
 import { RequestHeaders } from '@walnut/contract/http'
 import { isNil } from 'lodash'
 import { MurLockService } from 'murlock'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
 import { AuthSessionService } from '@/modules/auth/modules/session/session.service'
-import { AppTokenService } from '@/modules/shared/token/token.service'
 
 const WalnutAdminConstDecoratorSignFreeKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_SIGN_FREE')
 

@@ -1,9 +1,9 @@
 import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { TransformSizeToKB } from '@walnut-server/decorators/transformer'
+import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@walnut-server/list'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { IsOptional } from 'class-validator'
 import { ValueOf } from 'easy-fns-ts'
-import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@/common/dto/list.dto'
 
 export const AppLoggerLogType = {
   APPLICATION: 'application',

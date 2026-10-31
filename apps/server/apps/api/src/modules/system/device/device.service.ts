@@ -6,10 +6,10 @@ import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.e
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 import { WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
 
+import { DeviceTypeConst, IDeviceTypeConst } from '@walnut-server/list'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { omit } from 'lodash'
 import { Brackets, QueryFailedError } from 'typeorm'
-import { DeviceTypeConst, IDeviceTypeConst } from '@/common/dto/shared.dto'
 import { ILIKE_ESCAPE_REGEX } from '@/common/repository/pg-list.builder'
 import { AppMonitorUserRepositoryService } from '@/modules/app/monitor/user/repo/user.repo.service'
 import { SharedIpService } from '@/modules/shared/ip/ip.service'

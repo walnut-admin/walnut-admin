@@ -8,8 +8,8 @@ import {
 import { Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheAppSettingsService, AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import { AppTokenService } from '@walnut-server/token'
 import { isNil } from 'lodash'
-import { AppTokenService } from '@/modules/shared/token/token.service'
 
 /**
  * Auth Session 存储结构

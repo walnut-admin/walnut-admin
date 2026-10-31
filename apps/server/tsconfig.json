@@ -151,6 +151,30 @@
       ],
       "@walnut-server/sms/*": [
         "./libs/sms/src/*"
+      ],
+      "@walnut-server/list": [
+        "./libs/list/src"
+      ],
+      "@walnut-server/list/*": [
+        "./libs/list/src/*"
+      ],
+      "@walnut-server/crud": [
+        "./libs/crud/src"
+      ],
+      "@walnut-server/crud/*": [
+        "./libs/crud/src/*"
+      ],
+      "@walnut-server/scope-resolver": [
+        "./libs/scope-resolver/src"
+      ],
+      "@walnut-server/scope-resolver/*": [
+        "./libs/scope-resolver/src/*"
+      ],
+      "@walnut-server/token": [
+        "./libs/token/src"
+      ],
+      "@walnut-server/token/*": [
+        "./libs/token/src/*"
       ]
     }
   }

@@ -41,7 +41,7 @@ packages/tooling/        tsconfig · eslint-config · commitlint-config · vites
 - 全仓共 **15 个 workspace 包**（3 app + 3 platform-any + 3 platform-web + 6 tooling），同属
   `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组 —— 组长必须恒等于「有 version 的包数」，
   由 `versioning-config.test.ts` 机械拦。
-- `apps/server/` 内部另有 **9 个 NestJS 内部库**
+- `apps/server/` 内部另有**一批 NestJS 内部库**（基建 9 个，libs 解耦持续抽入，完整清单以 `apps/server/libs/` 目录为准）
   （`libs/{config,const,context,db,decorators,exceptions,pipes,types,utils}`）—— 它们**不是**
   workspace 包，规则见包级指引。
 - `apps/admin/build/` 是前端的 Vite 构建配置（plugins / config / proxy），不是运行时源码。

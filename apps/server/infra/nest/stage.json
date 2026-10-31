@@ -34,7 +34,11 @@
           "libs/cache/src",
           "libs/throttle/src",
           "libs/mailer/src",
-          "libs/sms/src"
+          "libs/sms/src",
+          "libs/list/src",
+          "libs/crud/src",
+          "libs/scope-resolver/src",
+          "libs/token/src"
         ]
       }
     }
@@ -254,6 +258,42 @@
       "sourceRoot": "libs/sms/src",
       "compilerOptions": {
         "tsConfigPath": "libs/sms/tsconfig.lib.json"
+      }
+    },
+    "list": {
+      "type": "library",
+      "root": "libs/list",
+      "entryFile": "index",
+      "sourceRoot": "libs/list/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/list/tsconfig.lib.json"
+      }
+    },
+    "crud": {
+      "type": "library",
+      "root": "libs/crud",
+      "entryFile": "index",
+      "sourceRoot": "libs/crud/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/crud/tsconfig.lib.json"
+      }
+    },
+    "scope-resolver": {
+      "type": "library",
+      "root": "libs/scope-resolver",
+      "entryFile": "index",
+      "sourceRoot": "libs/scope-resolver/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/scope-resolver/tsconfig.lib.json"
+      }
+    },
+    "token": {
+      "type": "library",
+      "root": "libs/token",
+      "entryFile": "index",
+      "sourceRoot": "libs/token/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/token/tsconfig.lib.json"
       }
     }
   }

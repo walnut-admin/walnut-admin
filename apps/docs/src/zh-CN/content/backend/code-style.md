@@ -9,7 +9,7 @@
 
 ```typescript
 // ✅ 对 —— @/* 指 apps/api/src/*，@walnut-server/* 指 libs/*/src
-import { WalnutAdminDecoratorList } from '@/decorators/crud'
+import { WalnutAdminDecoratorList } from '@walnut-server/crud'
 import { RealPickType } from '@walnut-server/utils/dto'
 import { Something } from '@/modules/some/module'
 

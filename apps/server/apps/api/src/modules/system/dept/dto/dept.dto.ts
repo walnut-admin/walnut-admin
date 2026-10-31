@@ -5,13 +5,13 @@ import {
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/validator'
-import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
-import { Expose, Type } from 'class-transformer'
-import { IsOptional, ValidateNested } from 'class-validator'
 import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,
-} from '@/common/dto/list.dto'
+} from '@walnut-server/list'
+import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
+import { Expose, Type } from 'class-transformer'
+import { IsOptional, ValidateNested } from 'class-validator'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { ISysDeptStatus, SysDeptStatusConst } from '../dept.const'
 

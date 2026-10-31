@@ -8,7 +8,7 @@
 CRUD 装饰器由工厂函数生成，一个模块建一次：
 
 ```typescript
-import { WalnutCrudDecorators } from '@/decorators/crud'
+import { WalnutCrudDecorators } from '@walnut-server/crud'
 
 const {
   WalnutAdminDecoratorCreate,

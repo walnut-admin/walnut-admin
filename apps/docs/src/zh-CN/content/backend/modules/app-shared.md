@@ -287,7 +287,7 @@ list 行与 read 响应都没有 `id` 字段（P3-14），前端以 `filePath` �
 
 ### 2.2 token：JWT 的签发与载荷组装
 
-`AppTokenService`（`modules/shared/token/`）是 AT / RT 的唯一签发点，不提供 HTTP 端点：
+`AppTokenService`（`@walnut-server/token`）是 AT / RT 的唯一签发点，不提供 HTTP 端点：
 
 - `generateJwtAccessToken(payload)`：HS256，secret = `jwt.access.secret`，有效期
   `jwt.access.expire` 秒；

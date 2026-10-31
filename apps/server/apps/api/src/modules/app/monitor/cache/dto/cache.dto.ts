@@ -7,12 +7,12 @@ import {
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
 
-import { RealPartialType } from '@walnut-server/utils/dto'
-import { Dayjs } from 'dayjs'
 import {
   CreateWalnutAdminRequestListDTO,
   CreateWalnutAdminResponseListDTO,
-} from '@/common/dto/list.dto'
+} from '@walnut-server/list'
+import { RealPartialType } from '@walnut-server/utils/dto'
+import { Dayjs } from 'dayjs'
 
 export class AppMonitorCacheDTO {
   constructor(partial: Partial<AppMonitorCacheDTO>) {

@@ -11,7 +11,7 @@
 
 | 文档 | 类型 | 说明 | 归宿 |
 |------|------|------|------|
-| [2026-07-26 内部 lib 抽取建议](./2026-07-26-lib-extraction-recommendations.md) | 计划 | 从 `apps/api/src/{modules,common,decorators}` 向 `apps/server/libs/`（**内部 lib，不是 workspace 包**）抽取的 24 个候选、三档分级与推荐顺序 | ⏳ **未执行**，也无排期 → 结论仍有效，已登记为 [架构待办 A12](/content/monorepo/architecture-todo) |
+| [2026-07-26 内部 lib 抽取建议](./2026-07-26-lib-extraction-recommendations.md) | 计划 | 从 `apps/api/src/{modules,common,decorators}` 向 `apps/server/libs/`（**内部 lib，不是 workspace 包**）抽取的 24 个候选、三档分级与推荐顺序 | 🚧 分批执行中（批 0-4 已落地，批 5-9 未做）→ 结论仍有效，已登记为 [架构待办 A12](/content/monorepo/architecture-todo) |
 | [2026-08-08 全容器化部署设计](./2026-08-08-dockerized-deployment-design.md) | 设计 | 前端/后端/Nginx 全容器化 + TCR + compose 的目标架构 | 🔀 **部分取代**：CI 章节看 [CI/CD 与容器构建](/content/monorepo/ci-cd)；镜像仓库 / compose / 证书 / 服务器初始化仍以本篇为准 |
 | [2026-08-08 全容器化部署实施计划](./2026-08-08-dockerized-deployment-plan.md) | 计划 | 上述设计的 task-by-task 执行方案（含当时的本地验证与上线步骤） | ✅ **已执行**；操作细节已并入 [CI/CD 与容器构建](/content/monorepo/ci-cd) 与 `deploy/` |
 | [2026-09-21 CI/CD 重构实施记录](./2026-09-21-ci-cd-pipeline-plan.md) | 计划 | 修复 5 周静默失效的 CI + 拆分流水线 + 薄镜像 + bake 缓存 scope 的完整改动清单、验证结果、回退方式 | ✅ **已执行**；现行口径见 [CI/CD 与容器构建](/content/monorepo/ci-cd) |
@@ -28,7 +28,7 @@
 - ⚠️ **未闭环事项禁止只靠归档了事**：如果一篇里还有**开着的**待办，必须先把它们抽到
   [架构待办事项](/content/monorepo/architecture-todo) 或对应的现行文档，**才**能归档进这里。
   判据很直接 —— 归档区的读者不会去追一个「还在开着」的事项，那条待办就等于消失了。
-  （本表「归宿」列标 ⏳ 的那一篇就是按这条处理的：**未执行**，所以它同时登记在待办表里。）
+  （本表「归宿」列标 🚧 的那一篇就是按这条处理的：执行中状态与剩余范围登记在待办表里。）
 
 ### 怎么写
 

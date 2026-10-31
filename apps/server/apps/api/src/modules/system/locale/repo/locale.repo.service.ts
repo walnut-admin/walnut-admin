@@ -1,5 +1,5 @@
+import type { IWalnutAdminRequestList } from '@walnut-server/list'
 import type { EntityManager } from 'typeorm'
-import type { IWalnutAdminRequestList } from '@/common/dto/list.dto'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'

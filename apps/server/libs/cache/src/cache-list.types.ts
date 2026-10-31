@@ -7,7 +7,7 @@ import type { Dayjs } from 'dayjs'
  *
  * `cache.service.list` 原先直接 import app 的 `AppMonitorCacheDTO` /
  * `AppMonitorCacheDTOListRequest` —— lib → app 反向依赖。DTO 是 app 的 swagger 契约
- * 载体（依赖 `@walnut-server/decorators` 与 `apps/api/src/common/dto/list.dto`），不适合
+ * 载体（依赖 `@walnut-server/decorators` 与 `@walnut-server/list`），不适合
  * 搬进 lib；这里只留「list 实际消费的形状」，app 侧 DTO 结构上天然满足，controller 的
  * 传参与返回值无需改签名。
  */

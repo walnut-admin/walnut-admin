@@ -1,6 +1,6 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
-import { AppTokenService } from '@/modules/shared/token/token.service'
+import { AppTokenService } from '@walnut-server/token'
 import { SysUserDeviceSharedService } from '@/modules/system/user_device/shared/user_device.shared.service'
 import { AuthRefreshSharedService } from '../refresh/shared/refresh.shared.service'
 import { AuthSessionService } from '../session/session.service'
