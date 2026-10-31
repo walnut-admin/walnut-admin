@@ -85,6 +85,8 @@ config/husky/*
 apps/server/env-local/
 apps/server/logs/
 apps/server/dist/
+# 集成测试真实数据 dump（TEST_DATA=real 的 dump/restore 中间物，随跑随生成）
+apps/server/.tmp/
 
 # AI agent workspace (ZCode plans, scratch)
 .zcode/

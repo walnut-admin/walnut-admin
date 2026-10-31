@@ -37,14 +37,32 @@ import { decryptAesKeyEnvelope } from './helpers/sign-handshake'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+interface PermissionMenuNode {
+  name?: string
+  children?: PermissionMenuNode[]
+}
+
 interface PermissionsData {
   permissionStrings: string[]
-  permissionMenuTree: Array<{ name?: string, children?: unknown[] }>
+  permissionMenuTree: PermissionMenuNode[]
   permissionRouteTree: unknown[]
   keepAliveNames: string[]
   affixedTabs: unknown[]
   indexMenuName: string
   internalIframeList: unknown[]
+}
+
+/** indexMenuName 承诺的是「树首节点递归找到的第一个 MENU」，seed 层存在时首根可能是 seed 根 */
+function containsMenuName(nodes: PermissionMenuNode[], name: string): boolean {
+  for (const node of nodes) {
+    if (node.name === name) {
+      return true
+    }
+    if (node.children !== undefined && containsMenuName(node.children, name)) {
+      return true
+    }
+  }
+  return false
 }
 
 /** 短轮询断言：键在 timeoutMs 内消失（after-commit 清缓存链路，不赌时序） */
@@ -159,8 +177,11 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
     expect(Array.isArray(data.permissionRouteTree)).toBe(true)
     expect(Array.isArray(data.affixedTabs)).toBe(true)
     expect(Array.isArray(data.internalIframeList)).toBe(true)
-    // index menu name = 首根 children 首个 MENU 的 name
-    expect(data.indexMenuName).toBe(menuName)
+    // index menu name = 树首节点里递归找到的第一个 MENU。seed 层（integration globalSetup）
+    // 让「首根」可能是 seed 的 System 根，不能假设本轮菜单排第一；只钉「非空且确实来自树」。
+    expect(typeof data.indexMenuName).toBe('string')
+    expect(data.indexMenuName.length).toBeGreaterThan(0)
+    expect(containsMenuName(data.permissionMenuTree, data.indexMenuName)).toBe(true)
 
     // 权限缓存键（root 也写 —— setPermissions 对非 visitor 一律写）
     const permissionKey = `${WalnutAdminConstAppCacheKeys.AUTH_PERMISSIONS}:${fixture!.userId}:${api.deviceId}`

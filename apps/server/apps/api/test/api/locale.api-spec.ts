@@ -41,18 +41,32 @@ describe('A 段试点：system/locale 非标 CRUD + message 缓存开关（真�
   const seed8 = randomUUID().slice(0, 8)
   let langIdZh = ''
   let langIdOther = ''
+  /** seed 层已经带 zh_CN（integration globalSetup 灌入参考数据）——只删本 spec 自己建的行 */
+  let langIdZhCreated = false
+  let langIdOtherCreated = false
   let fixture: WalnutRootUserFixture | null = null
   let userId = ''
 
   const keyOf = (tag: string) => `api.spec.${seed8}.${tag}`
   const zhMessageCacheKey = `${WalnutAdminConstAppCacheKeys.SYS_LOCALE_MESSAGES}:ZH_CN`
 
-  async function seedLang(lang: string): Promise<string> {
+  /**
+   * seed-aware 的 lang fixture：seed 层已含 zh_CN 时复用其 id（不能直接 INSERT，
+   * uq_lang 会撞；也不能删它 —— 它挂着 1806 条 seed 语言包，FK CASCADE 会整组带走）。
+   */
+  async function seedLang(lang: string): Promise<{ id: string, created: boolean }> {
     const rows: Array<{ id: string }> = await api.pgDataSource.query(
-      'INSERT INTO sys_lang (lang, description, "sort_order", status) VALUES ($1, $2, 1, true) RETURNING id',
+      'INSERT INTO sys_lang (lang, description, "sort_order", status) VALUES ($1, $2, 1, true) ON CONFLICT (lang) DO NOTHING RETURNING id',
       [lang, `locale-spec ${seed8}`],
     )
-    return rows[0].id
+    if (rows.length > 0) {
+      return { id: rows[0].id, created: true }
+    }
+    const existing: Array<{ id: string }> = await api.pgDataSource.query(
+      'SELECT id FROM sys_lang WHERE lang = $1',
+      [lang],
+    )
+    return { id: existing[0].id, created: false }
   }
 
   beforeAll(async () => {
@@ -70,8 +84,12 @@ describe('A 段试点：system/locale 非标 CRUD + message 缓存开关（真�
     await api.seedMfaVerifiedCache(fixture.userId)
 
     // message 端点只认 contract Locale 枚举（zh_CN / en_US）——seed 真名 lang 才能全链打穿
-    langIdZh = await seedLang('zh_CN')
-    langIdOther = await seedLang(`x${seed8}`)
+    const zh = await seedLang('zh_CN')
+    langIdZh = zh.id
+    langIdZhCreated = zh.created
+    const other = await seedLang(`x${seed8}`)
+    langIdOther = other.id
+    langIdOtherCreated = other.created
   })
 
   afterEach(async () => {
@@ -86,8 +104,12 @@ describe('A 段试点：system/locale 非标 CRUD + message 缓存开关（真�
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
       await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
-      if (langIdZh !== '' && langIdOther !== '') {
-        await api.pgDataSource.query('DELETE FROM sys_lang WHERE id = ANY($1::uuid[])', [[langIdZh, langIdOther]])
+      const createdLangIds = [
+        ...(langIdZhCreated ? [langIdZh] : []),
+        ...(langIdOtherCreated ? [langIdOther] : []),
+      ]
+      if (createdLangIds.length > 0) {
+        await api.pgDataSource.query('DELETE FROM sys_lang WHERE id = ANY($1::uuid[])', [createdLangIds])
       }
       await api.cleanupFixedCacheKeys(zhMessageCacheKey, WalnutAdminConstAppCacheKeys.SYS_LANG_ID_LIST)
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, userId)

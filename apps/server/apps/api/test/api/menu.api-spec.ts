@@ -85,8 +85,9 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
    */
   const createdMenuIds: string[] = []
 
-  /** locale 级联用例的载体行（lang 直插 + locale 走 HTTP） */
+  /** locale 级联用例的载体行（lang 直插 + locale 走 HTTP；seed 层已含 zh_CN 时复用） */
   let localeLangId = ''
+  let localeLangCreated = false
   const localeKeyOf = (title: string) => title
   const zhMessageCacheKey = `${WalnutAdminConstAppCacheKeys.SYS_LOCALE_MESSAGES}:ZH_CN`
 
@@ -140,12 +141,24 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     api.setAuth(tokens)
     await api.seedMfaVerifiedCache(fixture.userId)
 
-    // locale 级联腿的载体：lang 行直插（LocaleLangIdValidate 对空缓存放行任意 uuid）
+    // locale 级联腿的载体：lang 行直插（LocaleLangIdValidate 对空缓存放行任意 uuid）。
+    // seed 层已带 zh_CN（uq_lang）——命中既有行时复用 id，且 afterAll 不能删它
+    // （删 lang 会 CASCADE 掉整组 seed 语言包）
     const langRows: Array<{ id: string }> = await api.pgDataSource.query(
-      'INSERT INTO sys_lang (lang, description, "sort_order", status) VALUES ($1, $2, 1, true) RETURNING id',
+      'INSERT INTO sys_lang (lang, description, "sort_order", status) VALUES ($1, $2, 1, true) ON CONFLICT (lang) DO NOTHING RETURNING id',
       ['zh_CN', `menu-spec ${seed8}`],
     )
-    localeLangId = langRows[0].id
+    if (langRows.length > 0) {
+      localeLangId = langRows[0].id
+      localeLangCreated = true
+    }
+    else {
+      const existing: Array<{ id: string }> = await api.pgDataSource.query(
+        'SELECT id FROM sys_lang WHERE lang = $1',
+        ['zh_CN'],
+      )
+      localeLangId = existing[0].id
+    }
   })
 
   /** pid 自引用 FK 是 ON DELETE RESTRICT：先删子行（pid 非空）再删根行 */
@@ -179,7 +192,7 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
       await cleanupMenuRows()
       await api.pgDataSource.query('DELETE FROM sys_locale WHERE key LIKE $1', [`menu.title.${seed8}%`])
       await api.pgDataSource.query('DELETE FROM sys_deleted WHERE content->>\'name\' LIKE $1', [`${namePrefix}%`])
-      if (localeLangId !== '') {
+      if (localeLangCreated && localeLangId !== '') {
         await api.pgDataSource.query('DELETE FROM sys_lang WHERE id = $1', [localeLangId])
       }
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])

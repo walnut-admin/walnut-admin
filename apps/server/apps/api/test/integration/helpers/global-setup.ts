@@ -5,6 +5,8 @@ import * as process from 'node:process'
 import { DataSource } from 'typeorm'
 
 import { INTEGRATION_DATABASE_NAME } from './integration.const'
+import { loadRealDataIntoIntegration } from './real-data'
+import { findRepoRoot, seedIntegrationDatabase } from './seed-layer'
 
 /**
  * vitest globalSetup（跑在主进程，不加载 Nest DI 容器）：
@@ -15,11 +17,20 @@ import { INTEGRATION_DATABASE_NAME } from './integration.const'
  * teardown 对称 drop。
  * （Mongo 集成库的 drop 腿已随 Phase 5a 摘除 MongoDB 一并移除。）
  *
+ * 结构建好后灌业务数据（两条互斥腿）：
+ * - 默认：seed 层（7 个参考数据集合，复用 `db:seed:pg` CLI 的映射；含幂等重放）；
+ * - `TEST_DATA=real`：dev 库全量 dump/restore（含 shared_area 66 万行），供只读
+ *   `real-data` suite 用。默认不开 —— seed 快、稳，且不会把部署配置带进零配置契约。
+ *
  * 读写 env 直接解析 `env-local/.env.development`：主进程没有 ConfigModule，
  * 不能依赖 dotenvx 之外的东西（也不引入新依赖）。
  */
+function envLocalPath(): string {
+  return path.resolve(process.cwd(), 'env-local', '.env.development')
+}
+
 function readEnvLocal(key: string): string {
-  const envPath = path.resolve(process.cwd(), 'env-local', '.env.development')
+  const envPath = envLocalPath()
 
   if (!fs.existsSync(envPath)) {
     throw new Error(`[integration globalSetup] env file not found: ${envPath} (run \`pnpm setup-env\` first)`)
@@ -131,6 +142,26 @@ async function setupPgIntegrationDatabase(): Promise<void> {
   const pass = readEnvLocal('DATABASE_PG_PASS')
 
   await runPgMigrationsRound(host, port, user, pass)
+
+  const repoRoot = findRepoRoot(process.cwd())
+  if (process.env.TEST_DATA === 'real') {
+    await loadRealDataIntoIntegration({
+      repoRoot,
+      host,
+      port,
+      adminUser: user,
+      adminPass: pass,
+      sourceDatabase: readEnvLocal('DATABASE_PG_NAME'),
+      targetDatabase: INTEGRATION_DATABASE_NAME,
+    })
+    return
+  }
+
+  await seedIntegrationDatabase({
+    repoRoot,
+    envFile: envLocalPath(),
+    database: INTEGRATION_DATABASE_NAME,
+  })
 }
 
 async function teardownPgIntegrationDatabase(): Promise<void> {

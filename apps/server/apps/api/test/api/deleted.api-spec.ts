@@ -8,6 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
 import { createApiApp } from './helpers/create-api-app'
+import { makeDemo, makeSeed8, makeUppercaseGroup } from './helpers/factories'
 import { cleanupPermissionChainSeed, seedPermissionChainUser } from './helpers/seed-permissions'
 
 /**
@@ -51,9 +52,9 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
   let app: NestExpressApplication
   let api: WalnutApiClient
 
-  const seed8 = randomUUID().slice(0, 8)
+  const seed8 = makeSeed8()
   // demoString 挂 IsUppercase：uuid 片段的 hex 字母整体抬大写（A 段试点同款口径）
-  const group = `API-DELETED-${seed8.toUpperCase()}`
+  const group = makeUppercaseGroup('API-DELETED', seed8)
   let fixture: WalnutRootUserFixture | null = null
   /** 全部 SQL 直删清场的 demo 行 id（含恢复出来的） */
   const demoIds: string[] = []
@@ -127,27 +128,8 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
     await app.close()
   })
 
-  function demoPayload(tag: string) {
-    return {
-      demoString: `${group}-${tag}`,
-      demoPhoneNumber: `138${randomUUID().replaceAll('-', '').slice(0, 8)}`,
-      demoNumber: 1,
-      demoBoolean: true,
-      demoDate: '2026-01-01T00:00:00.000Z',
-      demoEnum: 1,
-      demoMongoId: randomUUID(),
-      demoObject: { o1: 'OBJ', o2: 2, o3: false },
-      demoStringArray: ['1', 'a'],
-      demoNumberArray: [-1, 2],
-      demoBooleanArray: [true],
-      demoDateArray: ['2026-01-01T00:00:00.000Z'],
-      demoEnumArray: [1, 2],
-      demoMongoIdArray: [randomUUID()],
-    }
-  }
-
   async function createDemo(tag: string): Promise<DemoRow> {
-    const res = await api.root('POST', api.apiPath('/app/demo'), demoPayload(tag))
+    const res = await api.root('POST', api.apiPath('/app/demo'), makeDemo(`${group}-${tag}`))
     expectOk(res, `demo create ${tag}`)
     const row = bodyOf<DemoRow>(res).data
     demoIds.push(row.id)
@@ -254,7 +236,7 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
 
   it('P3-21：me/recover 走 system:deleted:recover:mine —— 非 root 只有 recover:mine 可恢复自己删的行，只有管理端 recover 被拒 40105', async () => {
     // 用户 A（recover:mine）：自己建、自己删 → 快照 deletedBy = A（属主语义闭环）
-    const createdRes = await mineUser!.root('POST', mineUser!.apiPath('/app/demo'), demoPayload('P21'))
+    const createdRes = await mineUser!.root('POST', mineUser!.apiPath('/app/demo'), makeDemo(`${group}-P21`))
     expectOk(createdRes, 'demo create by mine user')
     const demo = bodyOf<DemoRow>(createdRes).data
     demoIds.push(demo.id)

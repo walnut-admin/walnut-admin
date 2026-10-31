@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
 import { createApiApp } from './helpers/create-api-app'
+import { makeEmployee, makeEmployeePrefix, makeSeed8 } from './helpers/factories'
 
 /**
  * `system/employee` —— 职工模块（人事记录，真实 HTTP 全链）：
@@ -31,8 +32,8 @@ describe('组织基础表：system/employee CRUD + 绑定解绑 + 一号一职�
   let app: NestExpressApplication
   let api: WalnutApiClient
 
-  const seed8 = randomUUID().slice(0, 8)
-  const employeePrefix = `apispec-employee-${seed8}`
+  const seed8 = makeSeed8()
+  const employeePrefix = makeEmployeePrefix(seed8)
   const deptPrefix = `apispec-empdept-${seed8}`
   const postPrefix = `apispec-emppost-${seed8}`
   let fixture: WalnutRootUserFixture | null = null
@@ -41,15 +42,7 @@ describe('组织基础表：system/employee CRUD + 绑定解绑 + 一号一职�
   let postId = ''
 
   function employeePayload(tag: string, overrides: Record<string, unknown> = {}) {
-    return {
-      employeeNo: `${employeePrefix}-${tag}`,
-      employeeName: `职工 ${tag}`,
-      deptId,
-      postId,
-      entryDate: '2026-01-01T00:00:00.000Z',
-      status: 'active',
-      ...overrides,
-    }
+    return makeEmployee({ seed8, tag, deptId, postId, overrides })
   }
 
   async function createEmployee(tag: string, overrides: Record<string, unknown> = {}): Promise<EmployeeRow> {
@@ -127,15 +120,12 @@ describe('组织基础表：system/employee CRUD + 绑定解绑 + 一号一职�
     expect(read.postId).toBe(postId)
 
     // PUT 整体替换：必填核全量回填（缺省即 null，会被 IsNotEmpty 拦成 40099）
-    const updateRes = await api.root('PUT', api.apiPath(`/system/employee/${created.id}`), {
-      employeeNo: `${employeePrefix}-R1`,
+    const updateRes = await api.root('PUT', api.apiPath(`/system/employee/${created.id}`), employeePayload('R1', {
       employeeName: '职工 R1 改名',
-      deptId,
-      entryDate: '2026-01-01T00:00:00.000Z',
       // 未定岗：postId 显式置空（可空列）
       postId: null,
       status: 'probation',
-    })
+    }))
     expectOk(updateRes, 'employee update')
     const updated = bodyOf<EmployeeRow>(updateRes).data
     expect(updated.employeeName).toBe('职工 R1 改名')
@@ -159,14 +149,9 @@ describe('组织基础表：system/employee CRUD + 绑定解绑 + 一号一职�
     const dupCreate = await api.root('POST', api.apiPath('/system/employee'), employeePayload('U1'))
     expect(bodyOf(dupCreate).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_EXISTS)
 
-    const dupUpdate = await api.root('PUT', api.apiPath(`/system/employee/${another.id}`), {
+    const dupUpdate = await api.root('PUT', api.apiPath(`/system/employee/${another.id}`), employeePayload('U2', {
       employeeNo: `${employeePrefix}-U1`,
-      employeeName: '职工 U2',
-      deptId,
-      postId,
-      entryDate: '2026-01-01T00:00:00.000Z',
-      status: 'active',
-    })
+    }))
     expect(bodyOf(dupUpdate).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_EXISTS)
   })
 
@@ -209,14 +194,9 @@ describe('组织基础表：system/employee CRUD + 绑定解绑 + 一号一职�
     })
     expectOk(bindRes, 'employee bind for resign')
 
-    const resignRes = await api.root('PUT', api.apiPath(`/system/employee/${bound.id}`), {
-      employeeNo: `${employeePrefix}-S1`,
-      employeeName: '职工 S1',
-      deptId,
-      postId,
-      entryDate: '2026-01-01T00:00:00.000Z',
+    const resignRes = await api.root('PUT', api.apiPath(`/system/employee/${bound.id}`), employeePayload('S1', {
       status: 'resigned',
-    })
+    }))
     expectOk(resignRes, 'employee resign')
     expect(bodyOf<EmployeeRow>(resignRes).data.status).toBe('resigned')
     // 离职不自动解绑

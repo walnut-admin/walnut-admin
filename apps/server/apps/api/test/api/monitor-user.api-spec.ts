@@ -8,6 +8,7 @@ import { AppTechCacheService } from '@/modules/techniques/cache/cache.service'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
 import { createApiApp } from './helpers/create-api-app'
+import { makeMonitorState, makeMonitorVisitorId, makeSeed8 } from './helpers/factories'
 
 /**
  * B 段：`app/monitor/user` —— CRUD list/read + `POST state`（Sign/Jwt/Cap/Device 全
@@ -41,10 +42,10 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
   let app: NestExpressApplication
   let api: WalnutApiClient
 
-  const seed8 = randomUUID().slice(0, 8)
+  const seed8 = makeSeed8()
   /** 本轮两个访客（uq_monitor_visitor 唯一） */
-  const visitorA = `vis-${seed8}-a`
-  const visitorB = `vis-${seed8}-b`
+  const visitorA = makeMonitorVisitorId(seed8, 'a')
+  const visitorB = makeMonitorVisitorId(seed8, 'b')
   let fixture: WalnutRootUserFixture | null = null
   let monitorIdA = ''
   /** force-quit 用例的“第二设备”（同用户）—— 被 admin-kick 后断言 AT 立即失效 */
@@ -94,14 +95,13 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
   })
 
   async function createOnlineMonitorA(client: WalnutApiClient = api): Promise<string> {
-    const res = await client.anon('POST', client.apiPath('/app/monitor/user/state'), {
+    const res = await client.anon('POST', client.apiPath('/app/monitor/user/state'), makeMonitorState({
       visitorId: visitorA,
       auth: true,
       userId: fixture!.userId,
       focus: true,
-      left: false,
       currentRouter: '/dashboard',
-    })
+    }))
     expectOk(res, 'monitor user state A')
     const rows: Array<{ id: string }> = await api.pgDataSource.query(
       'SELECT id FROM app_monitor_user WHERE visitor_id = $1',
@@ -143,12 +143,10 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     monitorIdA = await createOnlineMonitorA()
 
     // 匿名访客 B：auth=false 走 userId 置 null 语义
-    const stateB = await api.anon('POST', api.apiPath('/app/monitor/user/state'), {
+    const stateB = await api.anon('POST', api.apiPath('/app/monitor/user/state'), makeMonitorState({
       visitorId: visitorB,
       auth: false,
-      focus: false,
-      left: false,
-    })
+    }))
     expectOk(stateB, 'monitor user state B')
 
     const listRes = await api.root('POST', api.apiPath('/app/monitor/user/list'), {
@@ -181,12 +179,10 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     expect(bindRows[0].user_id).toBe(fixture!.userId)
 
     // 登出上报：auth=false 且不带 userId —— P2-31 前 null 被 nil 过滤丢弃，user_id 残留
-    const stateOff = await api.anon('POST', api.apiPath('/app/monitor/user/state'), {
+    const stateOff = await api.anon('POST', api.apiPath('/app/monitor/user/state'), makeMonitorState({
       visitorId: visitorA,
       auth: false,
-      focus: false,
-      left: false,
-    })
+    }))
     expectOk(stateOff, 'monitor user state auth=false')
 
     const rows: Array<{ user_id: string | null, auth: boolean }> = await api.pgDataSource.query(
