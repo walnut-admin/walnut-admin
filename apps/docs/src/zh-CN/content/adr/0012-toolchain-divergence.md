@@ -159,7 +159,7 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 | `@walnut/scripts` | `tooling`, `platform-any` |
 | `@walnut/release` | `tooling`, `platform-any` |
 
-> 本表随包增删更新：上面的 15 行与工作区里的 15 个包一一对应。6 个 tooling 包的 workspace 级
+> 本表随包增删更新：上面的 16 行与工作区里的 16 个包一一对应。6 个 tooling 包的 workspace 级
 > `turbo.json` 都声明 `"tags": ["tooling", "platform-any"]`。
 > 历史沿革：`@walnut/commitlint-config` 与 `@walnut/release` 是 2026-08-08 之后加入的；`@walnut/release`
 > 2026-09-23 曾改名 `@walnut/tooling`（收编根 `scripts/`，见 [ADR 0018](/content/adr/0018-git-hooks-lefthook)），

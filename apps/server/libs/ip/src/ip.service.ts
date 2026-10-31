@@ -26,7 +26,7 @@ interface ISharedIpLocation extends SharedLocationDTO {
 
 // implements 是端口绑定的编译期守护：操作日志拦截器在 libs/crud 里只依赖
 // IWalnutAdminIpLocationResolver（批 4），永久黑名单存储经 WALNUT_ADMIN_BLACKLIST_REPOSITORY
-// 由 app 的 AppSettingRepositoryService 提供（批 5）—— 任一方法改名/改签名，这里立刻红
+// 由 libs/app-domain 的 AppSettingRepositoryService 提供（批 5）—— 任一方法改名/改签名，这里立刻红
 @Injectable()
 export class SharedIpService implements IWalnutAdminIpLocationResolver {
   private readonly logger = new Logger(SharedIpService.name)

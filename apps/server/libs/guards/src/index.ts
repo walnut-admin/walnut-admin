@@ -5,12 +5,11 @@
  * - `guards/`：16 个 guard（env / functional / throttler / visitor / roles / permission /
  *   auth / device / lock / mfa / capability / risk / sensitive / security / ip / sign）；
  * - `decorators/`：cookie / user / crypto / response / cache / dataScope / functional /
- *   hasPermission / hasRole；
+ *   hasPermission / hasRole / log.auth；
  * - `interceptors/`：ALS / success / loose / encrypt / decrypt。
  *
  * 不算本 lib 的：
- * - `log.auth.decorator` / `log.operate.decorator` 留 app（批 4/7 既定位置；前者用
- *   `SysLogAuthSharedService` 与 app 侧 auth log 拦截器装配）；
+ * - `log.operate.decorator` 留 app（批 4 既定 shim，另有 4+1 消费者）；
  * - passport mixin guard（Google / OAuth / Opaque / OTP / Refresh）与 11 个 APP_GUARD /
  *   2 个 APP_INTERCEPTOR 的**顺序**留在 app 组合根 —— 顺序是安全语义。
  *
@@ -24,6 +23,7 @@ export * from './decorators/dataScope.decorator'
 export * from './decorators/functional.decorator'
 export * from './decorators/hasPermission.decorator'
 export * from './decorators/hasRole.decorator'
+export * from './decorators/log.auth.decorator'
 export * from './decorators/response.decorator'
 export * from './decorators/user.decorator'
 

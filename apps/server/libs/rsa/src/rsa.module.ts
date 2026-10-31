@@ -6,8 +6,8 @@ import { SecurityRsaService } from './rsa.service'
  *
  * 保持 @Global（解耦前同款）：decrypt/encrypt 拦截器与 rsa.controller 都直接注入
  * `SecurityRsaService`。controller 留在 app（swagger 路由归属不变），由
- * `SecurityModule` 声明；密钥材料经 `WALNUT_ADMIN_KEY_STORE` 端口由 app 的
- * AppKeyModule（@Global）绑定。
+ * `SecurityModule` 声明；密钥材料经 `WALNUT_ADMIN_KEY_STORE` 端口由
+ * `libs/app-domain` 的 AppKeyModule（@Global）绑定。
  */
 @Global()
 @Module({

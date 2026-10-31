@@ -34,8 +34,8 @@ export class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor 
 
   constructor(
     private readonly reflector: Reflector,
-    // 批 4：两个 app 服务改为端口注入（实现在 app，经 SharedIpModule /
-    // SysLogOperateRepoModule 的 useExisting 绑定）
+    // 批 4：两个跨层服务改为端口注入（实现分别在 libs/ip / libs/system，
+    // 经 SharedIpModule / SysLogOperateRepoModule 的 useExisting 绑定）
     @Inject(WALNUT_ADMIN_OPERATE_LOG_WRITER)
     private readonly logOperateWriter: IWalnutAdminOperateLogWriter,
     private readonly eventEmitter: EventEmitter2,

@@ -48,6 +48,7 @@
     "dist",
     "test",
     "**/*spec.ts",
-    "../../api/src/**/*spec.ts"
+    "../../apps/api/src/**/*.spec.ts",
+    "../../libs/**/*.spec.ts"
   ]
 }

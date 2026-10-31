@@ -1,3 +1,6 @@
+/* eslint-disable ts/ban-ts-comment, ts/strict-boolean-expressions, ts/no-unsafe-argument, ts/no-unsafe-assignment, ts/no-unsafe-call, ts/no-unsafe-member-access, ts/no-unsafe-return --
+   passport-oauth2 自定义策略的 vendored 实现（原型继承写法 + 未类型化，随 GitHub 策略原样保留）。
+   只豁免类型类规则；no-restricted-imports 等分层规则对本文件仍然生效。 */
 // @ts-nocheck
 import OAuth2Strategy, { InternalOAuthError } from 'passport-oauth2'
 

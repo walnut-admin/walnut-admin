@@ -15,12 +15,13 @@
 ### 1.1 规模与来源
 
 MongoDB 侧的 24 个集合 1:1 映射为表，数组字段 `sys_user.roles` / `sys_role.menus` 拆成 2 张
-关联表，共 **26 张表：24 张主表 + 2 张 junction**。关联表没有独立业务语义，只有复合主键和
-两个 CASCADE 外键。
+关联表 —— InitSchema 的基线是 26 张表（24 张主表 + 2 张 junction）。关联表没有独立业务语义，
+只有复合主键和两个 CASCADE 外键。
 
-计数口径（phase2 §1，2026-10-25 定稿）与 InitSchema 一致：26 表、298 列、17 个 jsonb 列、
-17 个 FK。列数含 `id` 与时间列；索引数含 PK 与唯一索引。**数字随 migration 演进**，改表时以
-migration 为准，不要拿本篇当列清单。
+**表数 / 列数 / jsonb / FK 不以本篇为准，判据是 migration**：
+`pnpm exec typeorm migration:show -d ./apps/cli/src/data-source.cli.ts`（从 `apps/server/` 执行）
+列出全部已应用的 migration，`apps/api/migrations/1792922206018-InitSchema.ts` 与后续 migration
+的 DDL 是结构真源（当前快照 **30 张业务表**；数字随 migration 演进，改表时不要拿本篇当列清单）。
 
 ### 1.2 uuid 三通道
 
@@ -28,7 +29,7 @@ migration 为准，不要拿本篇当列清单。
 |---|---|---|
 | v5 存量 | ETL / seed 重建的全部既有行 | `deriveUuid(原 24 位 hex)`，全库统一 namespace，幂等可重跑 |
 | v7 新增 | `sys_log_auth` / `sys_log_operate` / `sys_deleted` / `auth_refresh_token` | 列默认 `uuidv7()`（时间有序，追加型大表写放大低） |
-| v4 新增 | 其余 22 张表 | 列默认 `gen_random_uuid()`（PG 13+ 内置） |
+| v4 新增 | 其余业务表 | 列默认 `gen_random_uuid()`（PG 13+ 内置） |
 
 - v5 的 namespace 常量与派生函数唯一真源在 `packages/tooling/scripts/src/db/uuid5.ts`，
   **永不可改**：改了等于全部存量 id 换世界。
@@ -237,8 +238,8 @@ ETL 装载后的孤儿/环检测兜底；递归 CTE 再以 `CYCLE` 子句做 SQL
 | `sys_log_operate` | 25（总览口径） | 25 | 25 | `pk_sys_log_operate`、`ck_log_operate_action_type` / `ck_log_operate_operation` / `ck_log_operate_method`、`idx_log_operate_at` / user / device 一致；**operation 的 NULL 性与长度有漂移**（见下） |
 | `app_key` | 11 | 11 | 11 | `pk_app_key`、`ck_app_key_type` / `ck_app_key_status`、`uq_key`、`idx_app_key_status` 一致；无 `(type, version)` 唯一 / ACTIVE 部分唯一，与 P1-1 的「锁方案」一致 |
 
-**结论：结构层面无漂移。** 26 张表、298 列、17 个 FK 与 phase2 总览一致
-（`sys_user_mfa` 的 `webauthn_counter bigint` 曾被脚本粗算漏掉，手工复核后计入）；抽样四张表的
+**结论：结构层面无漂移。** 表数 / 列数 / FK 数以 migration 与实体对账为准（本节抽样四张表；
+总览计数口径见 §1.1 的判据，当前快照 30 张业务表）；抽样四张表的
 约束名与索引名全部对得上。发现的是**注释/文档层面的滞后**：
 
 1. **`sys_menu.cache_key_strategy` 的 CHECK 取值域**：phase2 §4.3 写 `('name','path')`，实体

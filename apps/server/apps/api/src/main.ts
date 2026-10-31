@@ -130,6 +130,9 @@ async function bootstrap() {
 
   await app.listen(port)
 
+  // 容器/Docker stop 发 SIGTERM 时优雅关闭 PG / Redis / Bull 连接（worker/main.ts 同款）
+  app.enableShutdownHooks()
+
   console.log(`APP is running in ${env} mode on ${await app.getUrl()}`)
   console.log(
     `Swagger document is host on ${await app.getUrl()}/${openapiPrefix}`,

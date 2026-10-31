@@ -8,7 +8,7 @@ import { AuthMfaService } from './mfa.service'
 
 /**
  * @Global：批 6 起 libs/identity 的 totp / webauthn verify 只认
- * WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION 端口；本模块在 app 组合根绑定实现。
+ * WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION 端口；本模块（@Global）绑定实现。
  */
 @Global()
 @Module({

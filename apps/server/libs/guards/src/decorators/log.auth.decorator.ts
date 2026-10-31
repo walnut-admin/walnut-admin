@@ -6,8 +6,9 @@ import { SysLogAuthSharedService } from '@walnut-server/system'
 import { Observable } from 'rxjs'
 import { tap } from 'rxjs/operators'
 
-// 批 7：元数据键随 system logs/auth 下沉 libs/const（读方在 lib、写方在 app，
-// 同一个 Symbol 必须在更低层）；这里 re-export 保持 otp decorator 等既有 import 面。
+// 批 7：元数据键随 system logs/auth 下沉 libs/const（读方在 lib、写方在 app，同一个 Symbol
+// 必须在更低层）。V5：本 decorator 再下沉 libs/guards，消费方统一 import
+// `@walnut-server/guards`；re-export 保持元数据键的既有取用面。
 export { WalnutAdminConstDecoratorLogAuthMetadataKey }
 
 @Injectable()

@@ -33,7 +33,7 @@ NestJS 12.x + TypeScript 6.0.3 + PostgreSQL（TypeORM）+ Redis + Bull 队列 �
 
 - `apps/api/src/` —— 默认部署单元（组合根）：HTTP 入口、`AppModule`、wire DTO 与 controller
 - `apps/worker/src/` · `apps/cli/src/` —— 可选组合入口（cron + Bull；migration / OpenAPI），默认部署不启动 worker
-- `libs/*/src` —— 内部库（按依赖方向分五层，完整清单以 `libs/` 目录为准），
+- `libs/*/src` —— 内部库（按依赖方向分六层，完整清单以 `libs/` 目录为准），
   经 tsconfig `paths` 以 `@walnut-server/*` 解析，与 app 一起由 SWC 编译
 - 为什么这样：[ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md)
   （CJS + NestJS 耦合 + SWC 编译，不适合当 ESM workspace 包）· [ADR 0022](../docs/src/zh-CN/content/adr/0022-backend-lib-layering-and-composition-roots.md)
@@ -73,7 +73,7 @@ pnpm test:e2e         # E2E（vitest.config.e2e.ts）
 
 ## 跑起来需要什么
 
-- **Node.js >= 24.13.0**、**pnpm >= 12.0.0** —— 由 `packageManager` 字段 + corepack +
+- **Node.js >= 24.15.0**、**pnpm >= 12.0.0** —— 由 `packageManager` 字段 + corepack +
   `pnpm-workspace.yaml` 的 `engineStrict: true` 强制（旧的 `preinstall` 钩子在 2026-09-21 的
   pnpm 12 迁移里已移除）
 - **PostgreSQL**（单节点即完整 ACID，事务不再对拓扑有要求；本地开发用
@@ -81,7 +81,7 @@ pnpm test:e2e         # E2E（vitest.config.e2e.ts）
 - **Redis 7+**
 - 环境文件：`pnpm setup-env` 解密后落在 `apps/server/env-local/`（gitignored）
 
-Swagger UI：`http://localhost:3000/api`
+Scalar API Reference：`http://localhost:3000/api`
 
 ## 三种 Repository 模式
 
@@ -140,9 +140,10 @@ CRUD 装饰器由 `WalnutCrudDecorators({ title, DTO })` 工厂生成（`@walnut
 9. **MFA Guard** —— 多因素认证
 10. **Sign Guard** —— 请求签名校验（必须在 JWT Guard 之后：登录前后签名规则不同）
 11. **Lock Guard** —— 用户锁定状态（必须在 JWT Guard 之后）
+12. **Throttler Guard** —— 限流（来自 `tech.module.ts` 的 `APP_GUARD` 注册，排 Lock 之后）
 
-定义在 `apps/server/apps/api/src/app/app.module.ts`。注意该文件自己的注释：**controller 装饰器上的
-顺序是反的**（自下而上）。
+定义在 `apps/server/apps/api/src/app/app.module.ts`（第 12 位在 `techniques/tech.module.ts`）。
+注意该文件自己的注释：**controller 装饰器上的顺序是反的**（自下而上）。
 
 ## 环境变量：部署后不许改的 5 个
 
@@ -160,4 +161,4 @@ Vitest，配置在 `apps/server/apps/api/vitest.config.ts`（E2E 用 `vitest.con
 
 ## API 文档
 
-开发模式下 Swagger UI 在 `http://localhost:3000/api`。
+开发模式下 Scalar API Reference 在 `http://localhost:3000/api`。

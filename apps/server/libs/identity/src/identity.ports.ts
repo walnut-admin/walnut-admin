@@ -8,8 +8,10 @@ import type { EntityManager } from 'typeorm'
  * user_preference 七个身份栈模块原先直接 import auth（OTP / MFA post-verification /
  * signout）、app（在线监控 / socket / device 注册表）与 system（data-scope）的
  * 具体服务 —— 这正是 auth ↔ system 的最大一条环。本批把「内核需要的少量能力」
- * 收成窄接口，实现与绑定留在 app 的组合根（各 @Global 模块），依赖方向变为
- * app → kernel 单向。
+ * 收成窄接口；绑定跟随实现所在层 —— 多数落在 `libs/auth` / `libs/system` /
+ * `libs/app-domain` 各自的 @Global 模块，仅 socket 通知（USER_NOTIFIER）依赖
+ * app 专属能力而留在 app 的 `AppMonitorUserSharedModule`。依赖方向因此收敛为
+ * 「上层 lib / app → identity 内核」单向。
  *
  * 绑定缺失 = 启动期 DI 报错（必需注入），不会退化成静默跳过。
  */

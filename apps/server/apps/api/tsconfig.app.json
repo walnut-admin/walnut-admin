@@ -45,6 +45,7 @@
         "dist",
         "test",
         "**/*spec.ts",
-        "../../apps/cli/**/*"
+        "../../apps/cli/**/*",
+        "../../libs/**/*.spec.ts"
     ]
 }

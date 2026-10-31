@@ -22,9 +22,10 @@ import { AuthSignoutModule } from './modules/signout/signout.module'
  * `AuthModule` 完全一致（signout → menu shared → session → shared → refresh → otp →
  * google → opaque → mfa → gitee → github）—— Swagger 路径装配顺序不变。
  *
- * 说明：**controller 不在 lib 里**。auth 的 9 个 controller 依赖 app 的
- * log.auth decorator（批 4/7 既定位置）与 wire DTO（`SysUserDTOSafe`，swagger schema
- * 注册顺序留 app），放进 lib 会形成 lib → app 反向依赖。它们由 app 的
+ * 说明：**controller 不在 lib 里**。auth 的 9 个 controller 依赖 wire DTO
+ * （`SysUserDTOSafe`，swagger schema 注册顺序留 app）与 app 侧 guard 装配 ——
+ * log.auth decorator 已在 V5 下沉 `@walnut-server/guards`；放进 lib 仍会形成
+ * lib → app 反向依赖。它们由 app 的
  * `apps/api/src/modules/auth/auth-http.module.ts` 声明。
  *
  * `JwtAccessTokenStrategy` 与 `AuthService` 随域下沉；`JwtAccessGuard` 由 app

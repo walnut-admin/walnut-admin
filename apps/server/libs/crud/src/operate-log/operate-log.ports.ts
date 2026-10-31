@@ -5,13 +5,14 @@ import type { Recordable } from 'easy-fns-ts'
 /**
  * 操作日志拦截器的依赖端口（libs 解耦批 4）。
  *
- * 拦截器随 crud 装饰器抽入 libs 后，原先直接注入的两个 app 服务不能跨向引用，
+ * 拦截器随 crud 装饰器抽入 libs 后，原先直接注入的两个服务不能跨向引用，
  * 改为端口 + `useExisting` 绑定（批 1/2 的 AppErrorService / WALNUT_ADMIN_TOKEN_TTL 同款手法）：
- * - `WALNUT_ADMIN_IP_LOCATION_RESOLVER` ← app 的 SharedIpService（getLocationFromBaidu）
- * - `WALNUT_ADMIN_OPERATE_LOG_WRITER` ← app 的 SysLogOperateRepoService（create）
+ * - `WALNUT_ADMIN_IP_LOCATION_RESOLVER` ← `libs/ip` 的 SharedIpService（getLocationFromBaidu）
+ * - `WALNUT_ADMIN_OPERATE_LOG_WRITER` ← `libs/system` 的 SysLogOperateRepoService（create）
  *
- * app 侧以 `implements` 做编译期守护（任一方法改名/改签名立刻红，而不是等运行期
- * token 解析出 undefined）。绑定在 app 的 SharedIpModule 与 SysLogOperateRepoModule（均 @Global，useExisting）。
+ * 绑定跟随实现所在层：`SharedIpModule`（libs/ip）与 `SysLogOperateRepoModule`（libs/system）
+ * 均 @Global + useExisting。实现侧以 `implements` 做编译期守护（任一方法改名/改签名立刻红，
+ * 而不是等运行期 token 解析出 undefined）。
  */
 
 export const WALNUT_ADMIN_IP_LOCATION_RESOLVER = Symbol('WALNUT_ADMIN_IP_LOCATION_RESOLVER')

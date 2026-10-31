@@ -23,12 +23,12 @@ versioning:
   changelog:
     storage: registry        # changelog 由 git-cliff 写，pnpm 不落文件（避免同一版本两段）
   fixed:
-    -                           # 单一组：全部 15 个 workspace 包永远同版本
+    -                           # 单一组：全部 16 个 workspace 包永远同版本
       - '@walnut/admin'
-      # … 其余 14 个
+      # … 其余 15 个
 ```
 
-15 个包（`apps/*` 3 个 + `platform-any` 3 个 + `platform-web` 3 个 + `tooling` 6 个）**永远同一个版本号**，
+16 个包（`apps/*` 3 个 + `platform-any` 3 个 + `platform-web` 4 个 + `tooling` 6 个）**永远同一个版本号**，
 发布 tag `vX.Y.Z` 因此永远有唯一来源（取组内版本，基准是 `apps/admin`）。
 
 > `tooling` 那 6 个是 `@walnut/tsconfig` / `@walnut/eslint-config` / `@walnut/commitlint-config` /

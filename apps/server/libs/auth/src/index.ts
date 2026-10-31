@@ -3,15 +3,16 @@
  *
  * jwt / mfa / otp / refresh / oauth(gitee·github) / opaque / session / signout / cookie
  * 九个 auth 子目录与根 auth.service 的 module / service / strategy / DTO / 常量全量导出。
- * controller 不在 lib（依赖 app 的 log.auth decorator 与 `SysUserDTOSafe` wire DTO），
- * 由 app 的 `auth-http.module.ts` 声明；passport mixin guard（Google / OAuth / Opaque /
+ * controller 不在 lib（依赖 `SysUserDTOSafe` wire DTO，swagger schema 注册顺序留 app；
+ * log.auth decorator 已在 V5 下沉 `@walnut-server/guards`），由 app 的
+ * `auth-http.module.ts` 声明；passport mixin guard（Google / OAuth / Opaque /
  * OTP / Refresh）同样留 app —— 它们继承 `@walnut-server/guards` 的 AuthGuard mixin，
  * 放进本 lib 会让依赖方向变成 auth → guards 而 guards → auth（SignGuard 用
  * AuthSessionService），形成 lib 环。
  *
- * 反向依赖底线：本 lib 不 import 任何 `@/`（apps/api/src）路径。对 app / security 的
- * 两项能力（事后风险缓存清理、在线监控踢人）见 `auth.ports.ts`，实现与绑定留在
- * 组合根（SecurityRiskModule / AppMonitorUserSharedModule）。
+ * 反向依赖底线：本 lib 不 import 任何 `@/`（apps/api/src）路径。两处跨层能力
+ * （事后风险缓存清理、在线监控踢人）见 `auth.ports.ts`，绑定跟随实现所在层
+ * （libs/security 的 SecurityRiskModule / app 的 AppMonitorUserSharedModule）。
  */
 export * from './auth.module'
 export * from './auth.ports'

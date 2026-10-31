@@ -28,8 +28,12 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
         '**/node_modules/**',
         '**/dist/**',
         '**/public/js/**',
+        // ambient 声明文件（.d.ts）豁免：只有类型声明、没有可检查的语句，类型正确性由 tsc 承担。
         '**/*.d.ts',
-        '**/*/strategy.ts',
+        // 这里曾有一条 `**/*/strategy.ts`（本意是豁免 passport 的 strategy 文件），但 passport
+        // 的命名是 `*.strategy.ts`，该 pattern 实际只命中 `libs/const/src/app/strategy.ts`
+        // （业务常量）与两个 vendored OAuth strategy —— 等于给分层守卫切出一块盲区。
+        // 2026-10-31 移除；vendor 文件若报错，按 lint 结论最小修复，不再靠路径豁免。
         'playwright/**/*.ts',
         'scripts/**/*.ts',
       ],

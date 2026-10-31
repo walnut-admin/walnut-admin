@@ -8,7 +8,8 @@
  *
  * 反向依赖底线：本 lib 不 import 任何 `@/`（apps/api/src）路径。内核需要的外界能力
  * 见 `identity.ports.ts`（OTP / MFA post-verification / signout / 在线监控 / socket
- * 通知 / 设备注册表 / 数据权限失效），实现与绑定留在 app 的组合根。
+ * 通知 / 设备注册表 / 数据权限失效）；绑定跟随实现所在层（多数在各 lib 的 @Global
+ * 模块，socket 通知因 app 专属能力留在 app）。
  */
 export * from './identity.module'
 export * from './identity.ports'

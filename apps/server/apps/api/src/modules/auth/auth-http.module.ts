@@ -32,9 +32,10 @@ import { JwtRefreshGuard } from './modules/refresh/refresh.guard'
 /**
  * auth 域的 HTTP 组合根（libs 解耦批 8）。
  *
- * 为什么 controller 不在 libs/auth：它们依赖 app 的 `log.auth.decorator`（批 4/7
- * 既定位置）、guard / param decorator 层与 `SysUserDTOSafe` wire DTO（swagger schema
- * 注册顺序留 app）—— 放进 lib 会立刻形成 lib → app 反向依赖。与批 5 的 rsa、批 6 的
+ * 为什么 controller 不在 libs/auth：它们依赖 guard / param decorator 层与
+ * `SysUserDTOSafe` wire DTO（swagger schema 注册顺序留 app）—— 放进 lib 会立刻形成
+ * lib → app 反向依赖；认证日志装饰器（原 app 的 `log.auth.decorator`）已在 V5 下沉
+ * `@walnut-server/guards`。与批 5 的 rsa、批 6 的
  * identity http、批 7 的 system http 同款处置：数据面/服务下沉 lib，controller 留 app。
  *
  * 为什么 passport mixin guard 也留 app：它们继承 `@walnut-server/guards` 的

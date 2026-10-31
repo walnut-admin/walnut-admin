@@ -10,7 +10,7 @@ import { WALNUT_ADMIN_KEY_STORE } from './rsa.ports'
 /**
  * RSA 请求解密 / 响应加密（libs 解耦批 5 从 `modules/security/rsa/` 下沉）。
  *
- * 密钥材料来自 app 的 `AppKeyService`，经 `WALNUT_ADMIN_KEY_STORE` 端口注入
+ * 密钥材料来自 `libs/app-domain` 的 `AppKeyService`，经 `WALNUT_ADMIN_KEY_STORE` 端口注入
  * （实现绑定在 @Global 的 AppKeyModule；`implements` 作编译期守护）。
  */
 @Injectable()

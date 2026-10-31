@@ -1,5 +1,5 @@
 import type { ClassConstructor } from 'class-transformer'
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { AppDemoDTOBase, AppDemoEntity, AppErrorDTOBase, AppErrorEntity, AppKeyDTOBase, AppKeyEntity, AppKeyStatusConst, AppKeyTypeConst, AppMonitorUserDTOBase, AppMonitorUserEntity, AppSettingDTOBase, AppSettingEntity, SharedAreaDTOBase, SharedAreaEntity } from '@walnut-server/app-domain'
@@ -284,16 +284,27 @@ function listDtoFiles(dir: string): string[] {
   return found
 }
 
+/** 全 lib 的源码根（`libs/<lib>/src`）—— 新增 lib 自动纳入，不维护清单 */
+function listLibSrcDirs(): string[] {
+  const libsRoot = resolve(process.cwd(), 'libs')
+  return readdirSync(libsRoot, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => join(libsRoot, entry.name, 'src'))
+    .filter(srcDir => existsSync(srcDir))
+}
+
 async function globFoundDtoBaseNames(): Promise<Set<string>> {
   const found = new Set<string>()
   // 批 6：身份栈 DTO 随内核下沉 libs/identity；批 7：system 域 DTO 下沉 libs/system；
-  // 批 9：app / shared 域 DTO 下沉 libs/app-domain。扫描面跟着走（app modules +
-  // 三个 lib），漏扫 = 已登记的 DTOBase 被误报 stale。
+  // 批 9：app / shared 域 DTO 下沉 libs/app-domain。扫描面按**全 lib**取（`libs/<lib>/src`，
+  // 未来新 lib 自动纳入），再加 app 侧 modules —— 漏扫 = 已登记的 DTOBase 被误报 stale，
+  // 而新增 lib 里的未登记基座则免检。
+  // libs/auth 的 5 个 .dto.ts 只派生自 system 的 SysMenuMetaDTOBase / SysMenuDTOSafe
+  // （登录出参的投影面），不声明自己的 *DTOBase，故无需登记；若将来出现新的
+  // 字段基座，本扫描面会直接把它揪出来。
   const dtoDirs = [
     resolve(process.cwd(), 'apps/api/src/modules'),
-    resolve(process.cwd(), 'libs/identity/src'),
-    resolve(process.cwd(), 'libs/system/src'),
-    resolve(process.cwd(), 'libs/app-domain/src'),
+    ...listLibSrcDirs(),
   ]
 
   for (const dtoDir of dtoDirs) {

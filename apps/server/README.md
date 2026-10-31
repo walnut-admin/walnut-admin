@@ -9,7 +9,7 @@ workspace 包，靠 `apps/server/tsconfig.json` 的 paths（`@walnut-server/*`�
 | 想看什么 | 去哪 |
 |----------|------|
 | Agent 入口 / 导航 | [`AGENTS.md`](./AGENTS.md) |
-| 后端全部规矩（模块结构、三种 Repository 模式、DTO 与装饰器、Guard 顺序） | [`CLAUDE.md`](./CLAUDE.md) |
+| 后端全部规矩（模块结构、三种 Repository 模式、DTO 与装饰器、Guard 顺序） | [`AGENTS.md`](./AGENTS.md) |
 | 未整理的草稿待办（原 server 仓遗留，**不是**当前 backlog） | [`TODO.md`](./TODO.md) |
 | 当前架构 backlog | [架构待办事项](../docs/src/zh-CN/content/monorepo/architecture-todo.md) |
 
@@ -21,7 +21,7 @@ apps/server/
 ├── apps/api/migrations/  TypeORM 迁移（结构演进只经 migration:run）
 ├── apps/worker/src/  可选第二进程（cron + Bull，默认部署不启动；见 apps/worker/README.md）
 ├── apps/cli/src/     工具入口（migration 数据源 / OpenAPI 导出）
-├── libs/*/src        内部库（按依赖方向分五层，完整清单以目录为准；见 ADR 0022）
+├── libs/*/src        内部库（按依赖方向分六层，完整清单以目录为准；见 ADR 0022）
 ├── db/seed/          初始化数据（每个集合一个 JSON 数组，db:seed:pg 消费）
 ├── infra/nest/       nest-cli 构建配置（dev / stage / prod）
 ├── infra/swc/        SWC 编译配置
@@ -34,7 +34,7 @@ apps/server/
 
 ## 环境要求
 
-- Node.js >= 24.13.0
+- Node.js >= 24.15.0
 - **PostgreSQL**（单节点即完整 ACID；本地 compose 用 `postgres:18-alpine`）
 - **Redis 7+**（本地 compose 用 `redis:8-alpine`）
 

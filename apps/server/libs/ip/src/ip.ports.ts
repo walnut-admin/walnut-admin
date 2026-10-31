@@ -5,7 +5,8 @@ import type { EntityManager } from 'typeorm'
  *
  * 永久黑名单存在 app_setting（`app.global.ipBlacklist`），读写此前直连 app 的
  * `AppSettingRepositoryService`（lib → app 反向依赖）。端口只暴露 ip 服务实际用到的
- * 两个方法；实现由 app 在 `AppSettingsRepositoryModule`（@Global）用
+ * 两个方法；实现随 setting 域落在 `libs/app-domain`，由该 lib 的
+ * `AppSettingsRepositoryModule`（@Global）用
  * `{ provide: WALNUT_ADMIN_BLACKLIST_REPOSITORY, useExisting: AppSettingRepositoryService }`
  * 绑定，`AppSettingRepositoryService implements IWalnutAdminBlacklistRepository`
  * 作编译期守护。

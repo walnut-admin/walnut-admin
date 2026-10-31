@@ -9,9 +9,9 @@ import { SysDeviceSharedService } from './shared/device.shared.service'
  *
  * user_device（bind 取设备名 / 列表取 deviceInfo+locationInfo / cron 清理失效设备）
  * 原先直接 import app 的 SysDeviceRepositoryService / SysDeviceSharedService —— 内核
- * 只保留 `IIdentityDeviceService` 窄接口（5 个方法），本桥接类在 app 组合根完成委托。
+ * 只保留 `IIdentityDeviceService` 窄接口（5 个方法），本桥接类在 libs/system 内完成委托。
  *
- * 绑定在 SysDeviceSharedModule（@Global）：libs/identity 的模块无需 import app 模块。
+ * 绑定在 SysDeviceSharedModule（@Global）：libs/identity 的模块无需 import system 模块。
  */
 @Injectable()
 export class IdentityDeviceBridge implements IIdentityDeviceService {

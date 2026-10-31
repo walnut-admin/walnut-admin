@@ -13,9 +13,8 @@ import { AuthCookieService, AuthSuccessDTO, OtpIdentityTypeMap, OtpSendDTO, OtpS
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@walnut-server/guards'
+import { WalnutAdminDecoratorAuthLog, WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import { SysUserIdentitySharedService } from '@walnut-server/identity'
-import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
 import { OtpDecoratorFunctionalGuard, OtpDecoratorSendFunctionalGuard, OtpDecoratorThrottle } from './guard/otp.decorator'
 import { OtpGuard } from './otp.guard'
 

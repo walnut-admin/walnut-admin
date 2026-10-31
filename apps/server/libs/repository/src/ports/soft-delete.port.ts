@@ -3,9 +3,10 @@ import type { EntityManager } from 'typeorm'
 /**
  * 软删除策略端口（libs 解耦批 5 的依赖反转）。
  *
- * 基类仓库 `deleteSoftById` 在删除原行之前要往 `sys_deleted` 落一份快照 —— 这张表
- * 是 app 的领域实体（`SysDeletedPgRepoService` 的 `createSoftDelete`），libs/repository
- * 不能 import 它。端口只描述基类用到的**一个方法**与快照载荷形状；实现由 app 在
+ * 基类仓库 `deleteSoftById` 在删除原行之前要往 `sys_deleted` 落一份快照 —— 快照实体
+ * `SysDeletedEntity` 在本 lib，仓库服务（`SysDeletedPgRepoService` 的 `createSoftDelete`）
+ * 在 `libs/system`（域层；repository 不能反向 import 它）。端口只描述基类用到的
+ * **一个方法**与快照载荷形状；实现由 `libs/system` 的
  * `SysDeletedRepoModule`（@Global）用
  * `{ provide: WALNUT_ADMIN_SOFT_DELETE_STRATEGY, useExisting: SysDeletedPgRepoService }`
  * 绑定，`implements ISoftDeleteStrategy` 作编译期守护。

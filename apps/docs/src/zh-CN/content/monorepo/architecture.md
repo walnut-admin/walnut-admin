@@ -5,7 +5,7 @@
 
 ## 概述
 
-Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm workspaces** 管理 15 个包（3 个 app + 3 个 platform-any 包 + 3 个 platform-web 包 + 6 个 tooling 包）。项目从三个独立仓库合并而来，通过 pnpm catalog 统一依赖版本、Turborepo 编排任务、pnpm 原生 release management（`versioning.fixed` 单一组）管理版本号。
+Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm workspaces** 管理 16 个包（3 个 app + 3 个 platform-any 包 + 4 个 platform-web 包 + 6 个 tooling 包；包数以 `pnpm-workspace.yaml` 的 `packages` 字段为准）。项目从三个独立仓库合并而来，通过 pnpm catalog 统一依赖版本、Turborepo 编排任务、pnpm 原生 release management（`versioning.fixed` 单一组）管理版本号。
 
 - 仓库形态与包分组：[ADR 0017](../adr/0017-package-reorganization.md)
 - 版本策略：[ADR 0008](../adr/0008-unified-versioning-separate-deploy.md) / [ADR 0011](../adr/0011-dependency-governance-release.md)
@@ -27,7 +27,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | 前端框架 | Vue 3 + Vite 8 + Naive UI + UnoCSS |
 | 后端框架 | NestJS 12 + SWC + PostgreSQL（TypeORM）+ Redis |
 | 文档引擎 | VitePress 1.6 |
-| Node 要求 | >= 24.13.0 |
+| Node 要求 | >= 24.15.0 |
 
 ## 「我要加 X，该放哪」
 
@@ -120,7 +120,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 │   │   ├── apps/api/                ← NestJS 默认部署单元（HTTP + cron + Bull）
 │   │   ├── apps/worker/             ← 可选第二进程（cron + Bull，默认不启动）
 │   │   ├── apps/cli/                ← 工具入口（migration / openapi 导出）
-│   │   └── libs/                    ← NestJS CLI monorepo（内层，内部 lib 分五层）
+│   │   └── libs/                    ← NestJS CLI monorepo（内层，内部 lib 分六层）
 │   └── docs/                        ← @walnut/docs（VitePress 文档站）
 ├── packages/                        ← 共享库（按平台分组，ADR 0017）
 │   ├── platform-any/                ← 运行时无关
@@ -128,6 +128,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 │   │   ├── types/                   ← @walnut/types（类型声明）
 │   │   └── utils-core/              ← @walnut/utils（纯函数工具；目录名 ≠ 包名）
 │   ├── platform-web/                ← 浏览器 / Vue（纯源码，不构建）
+│   │   ├── api-types/               ← @walnut/api-types（由 openapi.json 生成）
 │   │   ├── client/                  ← @walnut/client
 │   │   ├── http/                    ← @walnut/http（原名 axios）
 │   │   └── ui/                      ← @walnut/ui
@@ -148,7 +149,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 
 **外层**（Turborepo 层面）：`apps/*` + `packages/platform-any/*` + `packages/platform-web/*` + `packages/tooling/*` 的 workspace 包，通过 pnpm workspace 协议（`workspace:*`）相互引用。
 
-**内层**（Server 内部）：`apps/server/libs/*` 下的 NestJS 内部库（按「基建 → 技术/装配 → identity 内核 → 领域域 → app-domain」分层；完整清单以目录为准），通过 TypeScript `paths` 映射解析，不走 pnpm workspace。命名空间为 `@walnut-server/*`，与外层 `@walnut/*` 物理分离。`apps/api` 是默认部署单元（组合根），`apps/worker` / `apps/cli` 是同一 workspace 内的可选组合入口，不是新服务 —— 见 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。
+**内层**（Server 内部）：`apps/server/libs/*` 下的 NestJS 内部库（按「基建 → 技术 → identity 内核 → 领域域 → 装配（guards）→ app-domain」六层；完整清单以目录为准），通过 TypeScript `paths` 映射解析，不走 pnpm workspace。命名空间为 `@walnut-server/*`，与外层 `@walnut/*` 物理分离。`apps/api` 是默认部署单元（组合根），`apps/worker` / `apps/cli` 是同一 workspace 内的可选组合入口，不是新服务 —— 见 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。
 
 ### 关键设计决策
 
@@ -216,20 +217,22 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 
 ## 后端内部库体系
 
-Server 内部通过 NestJS CLI + SWC 管理内部库，命名空间 `@walnut-server/*`。内部 lib 按**依赖方向**分五层（下层不知道上层，完整清单以 `apps/server/libs/` 目录为准）：
+Server 内部通过 NestJS CLI + SWC 管理内部库，命名空间 `@walnut-server/*`。内部 lib 按**依赖方向**分六层（下层不知道上层，完整清单以 `apps/server/libs/` 目录为准，分层表见 ADR 0022）：
 
 ```
 apps/server/libs/
 ├── # 基建（9）
 │   config/  const/  context/  db/  decorators/  exceptions/  pipes/  types/  utils/
-├── # 技术 / 装配（20）
+├── # 技术（19）
 │   als/  blpath/  cookie/  crypto/  delay/  lock/  queue/  sse/
 │   cache/  throttle/  mailer/  sms/  rsa/  ip/
-│   repository/  list/  crud/  scope-resolver/  token/  guards/
+│   repository/  list/  crud/  scope-resolver/  token/
 ├── # identity 内核（1）
 │   identity/
 ├── # 领域域（3）
 │   system/  auth/  security/
+├── # 装配（1）
+│   guards/
 └── # app-domain（1）
     app-domain/
 ```

@@ -5,6 +5,7 @@ import * as path from 'node:path'
 import process from 'node:process'
 import { NestFactory } from '@nestjs/core'
 import { SwaggerModule } from '@nestjs/swagger'
+import { waitForQueueConnectionsReady } from '@walnut-server/queue'
 
 // cli 与 api 同属 `@walnut/server` workspace，且根 tsconfig 的 rootDir 覆盖整个
 // apps/server/ —— 组合根（AppModule）与 app 内部模块用相对路径直接取用（不新增
@@ -60,6 +61,11 @@ async function exportOpenAPI(): Promise<OpenAPIObject> {
   await app.init()
 
   try {
+    // Bull processor 的 bclient / subscriber 是惰性连接，`app.init()` 返回时可能仍在
+    // 握手；紧接着 close 会触发 ioredis 未处理的 `Connection is closed.`（Node 24
+    // 默认 strict → 进程 1 退出、导出物不落盘）。先等连接就绪，关闭才走正常 quit。
+    await waitForQueueConnectionsReady(app)
+
     return SwaggerModule.createDocument(app, buildSwaggerDocumentOptions())
   }
   finally {

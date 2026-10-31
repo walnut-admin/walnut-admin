@@ -5,7 +5,7 @@
 > 其中 **`pnpm peers check` 红 核实后判定为已回退**，重新回到待办并升级到 P1。
 > 完成项的历史留在[执行记录](/content/archive/2026-09-24-architecture-ledger-history#执行记录)，细节见对应 ADR / 专题文档。
 
-**最后核实**：2026-09-23 ｜ 15 个 workspace 包 ｜ 全门禁绿（`prepush` 门禁表 14 段 / `lint` / `types:check` / `test` / `boundaries` / `syncpack` / `build` / `build:docs` / `lint:adr`）
+**最后核实**：2026-09-23 ｜ 16 个 workspace 包 ｜ 全门禁绿（`prepush` 门禁表 14 段 / `lint` / `types:check` / `test` / `boundaries` / `syncpack` / `build` / `build:docs` / `lint:adr`）
 
 ## 优先级总览
 
