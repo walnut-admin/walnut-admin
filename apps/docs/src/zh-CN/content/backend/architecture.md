@@ -11,7 +11,7 @@
 - `apps/api/src/` —— 默认部署单元（组合根）：HTTP 入口（`main.ts`）、`AppModule`、wire DTO 与 controller
 - `apps/worker/src/` —— 可选第二进程（cron + Bull 消费，无 HTTP 监听；默认不启动）
 - `apps/cli/src/` —— 工具入口（TypeORM migration 数据源、离线 OpenAPI 导出）
-- `libs/*/src` —— 内部库（分五层，完整清单以目录为准），经 tsconfig `paths` 以 `@walnut-server/*` 解析，与 app 一起由 SWC 编译
+- `libs/*/src` —— 内部库（分六层，完整清单以目录为准），经 tsconfig `paths` 以 `@walnut-server/*` 解析，与 app 一起由 SWC 编译
 
 **源码不在** `src/walnut/admin/com/app/` —— 那是三仓合并前的路径，已废弃。
 
@@ -43,13 +43,13 @@ apps/cli/src/                          # 纯工具入口（零运行时影响）
 ├── data-source.cli.ts                 # migration CLI 的 -d 数据源
 └── export-openapi.ts                  # 离线导出 openapi.json（openapi:export）
 
-libs/*/src/                            # 内部库，分五层，经 tsconfig paths 以 @walnut-server/* 解析
+libs/*/src/                            # 内部库，分六层，经 tsconfig paths 以 @walnut-server/* 解析
 ├── # 基建（9）
 │   config/  const/  context/  db/  decorators/  exceptions/  pipes/  types/  utils/
 ├── # 技术 / 装配（20）
 │   als/  blpath/  cookie/  crypto/  delay/  lock/  queue/  sse/
 │   cache/  throttle/  mailer/  sms/  rsa/  ip/
-│   repository/  list/  crud/  scope-resolver/  token/  guards/
+│   repository/  list/  crud/  scope-resolver/  token/  guards/  # guards 在依赖顺序上位于领域域之上
 ├── # identity 内核（1）
 │   identity/
 ├── # 领域域（3）
@@ -57,8 +57,8 @@ libs/*/src/                            # 内部库，分五层，经 tsconfig pa
 └── # app-domain（1）
     app-domain/
 
-（分层与依赖方向由 eslint.config.ts 的 libs-boundary + 三个 drift spec 机械守；app 侧只剩
-组合根、wire DTO 与 controller —— 见 ADR 0022）
+（分层与依赖方向由 eslint.config.ts 的 libs-boundary + 三个 drift spec 机械守；lib 之间另有
+按层 no-restricted-imports 分层规则；app 侧只剩组合根、wire DTO 与 controller —— 见 ADR 0022）
 ```
 
 `modules/` 下按职责分六组（数据面都在 libs，controller / wire DTO 按依赖方向留 app）：

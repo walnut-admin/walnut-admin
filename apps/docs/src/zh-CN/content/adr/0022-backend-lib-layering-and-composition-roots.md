@@ -18,7 +18,7 @@ libs 边界 lint，批 1-9 依次下沉基建、技术设施、共享能力、�
 2. app 与「可部署入口」是什么关系（worker / cli 是不是新服务）；
 3. lib 需要 app 侧能力时如何反转依赖，而不 import app。
 
-## Decision 1: 34 个内部 lib 按五层组织，依赖只能单向
+## Decision 1: 34 个内部 lib 按六层组织，依赖只能单向
 
 分层以**依赖方向**为判据（下层不知道上层），不以目录名或业务重要度为判据：
 
@@ -26,17 +26,22 @@ libs 边界 lint，批 1-9 依次下沉基建、技术设施、共享能力、�
 |----|-----|------|
 | 基建（9） | `config` `const` `context` `db` `decorators` `exceptions` `pipes` `types` `utils` | 不依赖任何领域概念 |
 | 技术（19） | `als` `blpath` `cookie` `crypto` `delay` `lock` `queue` `sse` `cache` `throttle` `mailer` `sms` `rsa` `ip` `repository` `list` `crud` `scope-resolver` `token` | 技术设施（缓存 / 队列 / 加密 / 邮件短信 / IP）+ 跨域装配内核（仓储基座、列表、CRUD、数据范围、token） |
-| 装配（1） | `guards` | guard / decorator / interceptor 装配层 —— **位置在领域域之上**：它 import identity/system/auth/security 来装配安全链，是唯一的上层依赖下层例外标注（见下方「层间方向」） |
 | identity 内核（1） | `identity` | 用户身份栈（用户 / 设备 / MFA / OTP / session），被 system / auth / security 共同消费 |
 | 领域域（3） | `system` `auth` `security` | 各自的 service / repository / entity 与 shared 能力 |
+| 装配（1） | `guards` | guard / decorator / interceptor 装配层 —— import identity / system / auth / security 来装配安全链；`app-domain` 再依赖 `guards` |
 | app-domain（1） | `app-domain` | app / shared 域的数据面（demo / error / key / logger / monitor / setting / area / ali / mask） |
 
-三条机械守卫（守的是 **lib ↔ app 边界**与注册完备性；**lib 之间的层间方向目前靠约定与评审**，没有门禁 —— 这是已知欠账，不是已守事实）：
+四条机械守卫（守的是 **lib ↔ app 边界、lib 之间的层间方向与注册完备性**；层间方向自本轮起由 ESLint 分层规则机械守，不再只是约定与评审）：
 
 - **ESLint `libs-boundary`**（`apps/server/eslint.config.ts`）：`libs/**` 禁止 `@/*`
   （那是 `apps/api/src`）、禁止相对路径逃逸进 `apps/`、禁止 import 前端包；需要 app 能力时
   用注入 token 反转依赖（见 Decision 3）。因此「lib 内零 `@/` 导入」是**编译前**就被拦下的，
   不靠 review。
+- **ESLint 分层规则**（同一文件，按层逐条配置）：依赖方向固定为
+  基建 → 技术 → identity → system → auth → security → guards → app-domain（箭头指向被依赖方：**上层 import 下层**，反向即违规）。每层用 `files` glob 圈定 `libs/<name>/**/*.ts`，并以 `no-restricted-imports` patterns
+  点名禁用上层的 `@walnut-server/<lib>`（根路径与 `/*` 子路径都禁）。唯一例外是 `exceptions`
+  允许 import `blpath`（skip 名单所需，blpath 零出边），由一条独立的 `infra-exceptions` 配置
+  精确放行；未登记进任何分层的 lib 走 fail-closed 配置，连 `@walnut-server/*` 一律禁止。
 - **`lib-registration.drift.spec.ts`**：磁盘 `libs/<name>` 与 `tsconfig.json` paths、
   三份 `infra/nest/*.json` 的 filenames / projects、三份 `infra/swc/*.swcrc` paths、
   `apps/api/tsconfig.app.json` include 五处注册面全等；application（api / cli / worker）不参与对账。
@@ -113,14 +118,52 @@ db / cron / 各域 HTTP 组合根 / guard 与 interceptor。`apps/worker` 与 `a
 2. `SysDeleted` 的 controller 排在 `AppDemoModule` 之后（`AppAppModule` 紧随 lib 的
    `AppDemoModule` 引入），system 各子模块的 controller 声明顺序与解耦前一致。
 
+### app 保留件清单
+
+下列件**故意留在 `apps/api/src`**，逐件理由：
+
+- **`app/`**（`app.module.ts` / `schedule.composition.ts` / `AppController` / `AppService`）：
+  `AppModule` 的 imports 顺序就是 middleware → config → context → i18n → db → cron → 各域
+  HTTP 组合根的装配顺序；`schedule.composition.ts` 用 `WORKER_STANDALONE` 做条件装配
+  （cron 归属在 api / worker 间切换），属于组合根语义；`AppController` / `AppService` 是根路由，
+  挂在组合根上而不是任何域里。
+- **`modules/app/`**：`AppAppModule` 的组合顺序（含「两处交错点」）与 monitor/user 的 HTTP 组合
+  —— 后者的 wire DTO 引 `SysUserDTOSafe`，必须与 wire DTO 同层，否则 lib → app 反向依赖。
+- **各域 `modules/{auth,security,system}/` 的 HTTP 组合根**：controller + wire DTO +
+  passport mixin guard 是 app 侧装配面；数据面已在 `libs/{auth,security,system,identity}`。
+  `modules/shared/` 只剩 `SharedModule` 聚合根（lib barrel 的组装，无 controller/DTO）。
+- **`modules/techniques/` 四件**：
+  - `event`：`EventEmitterModule.forRoot()` 是进程级注册；订阅方是 app 级适配器 —— 它监听
+    libs/crud 发出的删除事件并回写 `SysDeleted` 仓库，而 libs 只发事件常量，不反向依赖 app。
+  - `health`：Terminus 探针（network / PostgreSQL / heap / disk）是运行时可观测面，
+    不是业务域能力（当前 compose 的 healthcheck 探的是静态资源路由，未接 /app/health）。
+  - `logger`：`WalnutAdminLogger` 必须在 Nest DI 建立**之前**可用（引导期日志），
+    Winston 传输 / 轮转是进程级配置。
+  - `task`：`@Cron` 与 `onModuleInit` 横跨四域（app-domain / auth / identity / system），且 cron
+    归属由 `AppScheduleModule` 在 api / worker 间切换 —— 搬进 lib 等于让 lib 对「由谁组合、
+    以什么进程形态运行」表态。
+- **wire DTO**：`SysUserDTOSafe` 及其虚拟读模型参与 swagger schema 的注册顺序；schema 键序
+  决定 `openapi.json` 的字节形态，`openapi:check` 是裁判（见 Decision 4 正文）。
+- **`common/repository/` 的 data-scope 注册表 + policy**：横跨 app-domain / auth / identity /
+  system 四层实体（无 security —— 其表均不入回收站与行级清单）的行级数据权限唯一真源；
+  放进任何一个域都会造成域间反向依赖。
+- **`common/recoverable/app-recoverables.ts`**：app / auth / shared 三域恢复器的登记汇总，
+  只服务 `dto-entity.drift.spec` 的对账（运行期各域 module 调各自的登记 factory），属于跨域对账面。
+- **`i18n/` · `socket/` · `middleware/` · `public/` · `views/`**：进程级入口能力 —— i18n 是
+  全局语言解析、socket 是 WebSocket 网关装配、middleware 是 HTTP 管道工序，`public/` /
+  `views/` 是静态资产与模板。
+- **`common/swagger/`**：swagger 装配是 API 文档的进程级配置，随 wire DTO 一起留 app。
+
 ## Consequences
 
 - app 侧剩组合根、wire DTO 与依赖 app 能力的 controller；业务数据面在 34 个 lib 内。
-  lib ↔ app 边界由 ESLint + 三个 drift spec 机械守；**lib 之间的层间方向靠约定与评审**。
+  lib ↔ app 边界由 ESLint + 三个 drift spec 机械守；**lib 之间的层间方向由 ESLint 分层规则
+  机械守（本轮落地）**。
 - 默认部署形态不变：未设 `WORKER_STANDALONE` 时 api 行为与解耦前一致，`openapi.json` 零 diff
   是每次改动的裁判；worker 是**可选**入口，`WORKER_STANDALONE=true` 时 api 让出 cron，
   worker 的组合根承接（见 `apps/worker/README.md`）。
-- 新增内部 lib 的动作固定为「建目录 + 五处注册 + 边界 lint 通过」；漏任何一处 drift spec 会红。
+- 新增内部 lib 的动作固定为「建目录 + 五处注册 + 归入一个分层配置 + lint 通过」；漏任何一处
+  drift spec 会红（分层名单对账由第 ⑤ 面守）。
 - 新增领域的能力默认拆成「lib 数据面 + app HTTP 组合根」两层；只有确认不触碰 wire DTO /
   guard 装配时才考虑把 controller 也下沉。
 

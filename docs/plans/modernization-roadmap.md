@@ -206,7 +206,7 @@ P2-21~29、P2-32 security-policy 不清会话、P3-17~30 等）**维持登记、
 
 - `sys_role.data_scope`（1 ALL / 2 SELF / 3 CUSTOM；root=ALL、visitor=SELF）、
   `app_demo.created_by` 示范 owner 列；迁移可逆，dev 库手工 ALTER 保数据。
-- 应用层 scope 收口到 `common/repository/pg-base.repository.ts`：list / readById /
+- 应用层 scope 收口到 `libs/repository/src/pg-base.repository.ts`：list / readById /
   updateByField / deleteSoft* / deleteSoftManyByCondition 全部注入参数化谓词；
   create 自动填 owner；覆写 list 的三个模块显式调用。
 - 实体注册表 fail-closed（7 张业务表注册 + 其余逐条豁免）；ALS 拦截器种

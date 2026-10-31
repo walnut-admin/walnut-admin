@@ -46,6 +46,15 @@ publicHoistPattern:
   # 两条都是用「从 apps/server 编译产物出发走 require 图」扫出来的，不是猜的。
   - '@alicloud/tea-typescript'
   - debug
+  # express-csp-header@6.3.1 的 dist/index.d.ts 从 'express' 取 RequestHandler / Request /
+  # Response，但包没有声明 express / @types/express 依赖；hoist: false 下 .pnpm 的 realpath
+  # 解析不到，skipLibCheck 吞掉 d.ts 错误后 expressCspHeader 退化为 error 类型
+  # （csp.middleware.ts 的 ts/no-unsafe-call）。
+  - '@types/express'
+  # nest-winston@2.0.0 的 dist/winston.utilities.d.ts 从 'logform' 取 Format，但 logform
+  # 只是 winston 的依赖、不是 nest-winston 的依赖 ⇒ nestLike 返回 error 类型
+  # （logger/index.ts 的 ts/no-unsafe-argument）。
+  - logform
 
 # 拒绝"可信度下降"的版本：某包此前由可信发布者发布，现在只剩 provenance 或无可信证据时不安装。
 trustPolicy: no-downgrade

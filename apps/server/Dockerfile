@@ -25,7 +25,9 @@ COPY . .
 #   pnpm deploy 会把它一起拷进产物 —— 镜像里绝不允许有，compose 以 bind mount
 #   注入 ./env/.env.production（见 deploy/docker-compose.yml）。
 # - env-encrypted / .turbo / .vscode / docs / playwright / docker：构建期内容，运行不需要。
-RUN rm -rf /app/env-local /app/env-encrypted /app/.turbo /app/.vscode /app/docs /app/playwright /app/docker \
+# - .data：Cap.js 的运行态 token 存储（apps/server/.data/，gitignored）—— pnpm deploy 会把它
+#   拷进 staging 产物，镜像里没有意义（进程启动时自建）。
+RUN rm -rf /app/env-local /app/env-encrypted /app/.turbo /app/.vscode /app/docs /app/playwright /app/docker /app/.data \
     && mkdir -p /app/logs
 
 EXPOSE 3000

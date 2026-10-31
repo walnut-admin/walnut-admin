@@ -22,9 +22,12 @@ import { describe, expect, it } from 'vitest'
  * ③ `infra/swc/{dev,prod,stage}.swcrc` → `jsc.paths` 的 `@walnut-server/<name>`（值指向
  *    `libs/<name>/src`）；
  * ④ `apps/api/tsconfig.app.json` → `include` 的 `../../libs/<name>/src` 全量 glob 条目（app
- *    构建的 TS 程序要看见每个 lib；build:libs 脚本因 no-op 已删除，不再作为注册面）。
+ *    构建的 TS 程序要看见每个 lib；build:libs 脚本因 no-op 已删除，不再作为注册面）；
+ * ⑤ `eslint.config.ts` → `INFRA_LIBS` / `TECH_LIBS` / `DOMAIN_LIBS` / `TOP_LIBS` 四个分层名单
+ *    （守的是入边方向：新增 lib 必须归入一个分层，否则 lint 的 fail-closed 配置会拦它的出边，
+ *    但「有人把 lib 建在磁盘上却没进任何一层」这种反向遗漏只有本守卫能查）。
  *
- * 纯 fs + 静态文本，零依赖装载。新增 lib 的动作就是「建目录 + 四处登记」，漏任何一处本文件红。
+ * 纯 fs + 静态文本，零依赖装载。新增 lib 的动作就是「建目录 + 五处登记」，漏任何一处本文件红。
  */
 
 // ─── 配置形状（只声明本文件真正读到的字段）────────────────────────────────────────
@@ -192,5 +195,26 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 五处注册面，�
       .filter((name): name is string => name !== undefined)
       .sort()
     expect(libIncludes).toEqual(actualLibs)
+  })
+
+  it('⑤ eslint.config.ts 的四个分层名单并集 ≡ 磁盘 libs，且无重复', () => {
+    const configText = readServerFile('eslint.config.ts')
+    const layerLists = ['INFRA_LIBS', 'TECH_LIBS', 'DOMAIN_LIBS', 'TOP_LIBS'] as const
+
+    const collected: string[] = []
+    for (const listName of layerLists) {
+      // 名单必须是**单行字面量数组**：跨行或改成计算式会让本守卫读不到，直接 fail 而不是静默跳过。
+      const match = new RegExp(`const ${listName} = \\[([^\\]]*)\\]`).exec(configText)
+      if (!match) {
+        expect.fail(`eslint.config.ts 里找不到 ${listName} 的单行字面量数组（改名或改成跨行/计算式都会让本守卫失效）`)
+      }
+      const names = [...match[1].matchAll(/'([\w-]+)'/g)].map(literal => literal[1])
+      expect(names.length, `${listName} 不能为空`).toBeGreaterThan(0)
+      collected.push(...names)
+    }
+
+    const duplicates = collected.filter((name, index) => collected.indexOf(name) !== index)
+    expect(duplicates, '同一 lib 被登记进多个分层（或同一层里重复）').toEqual([])
+    expect([...new Set(collected)].sort(), 'eslint 分层名单并集').toEqual(actualLibs)
   })
 })
