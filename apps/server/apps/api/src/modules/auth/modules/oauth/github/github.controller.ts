@@ -15,27 +15,20 @@ import {
 import { ConfigService } from '@nestjs/config'
 import { ApiTags } from '@nestjs/swagger'
 
+import { AuthCookieService, AuthSharedService, OAuthGitHubScope, OAuthStateService, WalnutAdminGuardJwtFree } from '@walnut-server/auth'
+
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstAppSettingAuthOAuthGitHubKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
+import { WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorFunctionalGuard, WalnutAdminDecoratorUser, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 import { SysUserIdentitySharedService, WalnutAdminConstSysUserIdentityType } from '@walnut-server/identity'
-
+import { SecurityRiskFailedLoginService } from '@walnut-server/security/risk/modules/failedLogin.service'
 import { AppTechSseService } from '@walnut-server/sse'
 import { LocaleType } from '@walnut/contract'
 import { I18n, I18nContext } from 'nestjs-i18n'
-import { WalnutAdminDecoratorDataScopeSystemChannel } from '@/decorators/walnut/dataScope.decorator'
-import { WalnutAdminDecoratorFunctionalGuard } from '@/decorators/walnut/functional.decorator'
 import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { SecurityRiskFailedLoginService } from '@/modules/security/risk/modules/failedLogin.service'
-import { AuthCookieService } from '../../cookie/cookie.service'
-import { WalnutAdminGuardJwtFree } from '../../jwt/jwt-access.guard'
-import { AuthSharedService } from '../../shared/shared.service'
-import { OAuthStateService } from '../shared/oauth-state.service'
 import { OAuthGitHubGuard } from './github.guard'
-import { OAuthGitHubScope } from './github.strategy'
 
 @Controller('auth/oauth/github')
 @ApiTags('auth/oauth/github')

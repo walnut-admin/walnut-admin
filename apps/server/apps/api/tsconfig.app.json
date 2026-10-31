@@ -34,7 +34,10 @@
         "../../libs/rsa/src/**/*",
         "../../libs/ip/src/**/*",
         "../../libs/identity/src/**/*",
-        "../../libs/system/src/**/*"
+        "../../libs/system/src/**/*",
+        "../../libs/auth/src/**/*",
+        "../../libs/security/src/**/*",
+        "../../libs/guards/src/**/*"
     ],
     "exclude": [
         "node_modules",

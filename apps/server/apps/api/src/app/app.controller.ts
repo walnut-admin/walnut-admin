@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common'
+import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminGuardDeviceFree } from '../guard/device.guard'
-import { WalnutAdminGuardJwtFree } from '../modules/auth/modules/jwt/jwt-access.guard'
+import { WalnutAdminGuardDeviceFree } from '@walnut-server/guards'
 import { AppBackendDepsResponseDTO } from './app.dto'
 import { AppService } from './app.service'
 

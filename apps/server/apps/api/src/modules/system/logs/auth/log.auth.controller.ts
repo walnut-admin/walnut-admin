@@ -1,15 +1,17 @@
 import { Body, Controller, UseGuards } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
+import { JwtAccessGuard } from '@walnut-server/auth'
+
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
 import { WalnutCrudDecorators } from '@walnut-server/crud'
-
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
+
 import {
   WalnutAdminDecoratorParamUuid,
   WalnutAdminDecoratorParamUuids,
 } from '@walnut-server/decorators/params'
-
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import {
   SysLogAuthDTO,
   SysLogAuthDTODeleteResponse,
@@ -18,9 +20,6 @@ import {
   SysLogAuthService,
 } from '@walnut-server/system'
 import { plainToInstance } from 'class-transformer'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { JwtAccessGuard } from '@/modules/auth/modules/jwt/jwt-access.guard'
 
 const Permissions = {
   DELETE: 'system:log:auth:delete',

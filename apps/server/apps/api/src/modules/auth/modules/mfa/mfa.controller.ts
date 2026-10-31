@@ -1,15 +1,10 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
+import { AuthCookieService, AuthMfaService, AuthMfaStatusDTO, AuthMfaVerifyDTO, AuthSuccessDTO } from '@walnut-server/auth'
+
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
-import { WalnutAdminGuardMFAFree } from '@/guard/mfa.guard'
-import { AuthSuccessDTO } from '../../dto/auth.dto'
-import { AuthCookieService } from '../cookie/cookie.service'
-import { AuthMfaStatusDTO, AuthMfaVerifyDTO } from './mfa.dto'
-import { AuthMfaService } from './mfa.service'
+import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree } from '@walnut-server/guards'
 
 @Controller('auth/mfa')
 @ApiTags('auth/mfa')

@@ -12,10 +12,9 @@ import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 
 import { WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
 import { Role } from '@walnut/contract'
 import { DataSource } from 'typeorm'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
 
 const Permissions = {
   NETWORK: 'app:health:network',

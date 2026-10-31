@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
+import { AuthCookieModule } from '@walnut-server/auth'
 import { SysIdentityModule } from '@walnut-server/identity'
-import { AuthCookieModule } from '@/modules/auth/modules/cookie/cookie.module'
 import { SysUserMfaTotpController } from './mfa/totp.controller'
 import { SysUserMfaWebauthnController } from './mfa/webauthn.controller'
 import { SysUserController } from './user.controller'

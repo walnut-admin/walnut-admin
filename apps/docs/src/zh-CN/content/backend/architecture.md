@@ -23,13 +23,10 @@
 apps/api/src/                          # Nest CLI 的 app，入口 main.ts
 ├── app/                               # 根模块与根控制器（app.module.ts：全局 Guard 按序装配在这里）
 ├── modules/                           # 业务模块（见下表）
-├── decorators/                        # 应用级自定义装饰器
-│   ├── crud/                          # CRUD 装饰器工厂 WalnutCrudDecorators
-│   └── walnut/                        # 权限 / 角色 / 上下文 / 缓存 / 操作日志等
-├── guard/                             # 全局 Guard（IP、Security、Device、Risk、Cap、MFA、Sign、Lock）
+├── decorators/                        # 仅剩 log.auth / log.operate（其余已抽至 libs/guards / libs/crud）
+├── guard/ · interceptors/             # 已抽至 libs/guards；app 只保留 APP_GUARD / APP_INTERCEPTOR 的顺序装配
 ├── common/                            # 共享 DTO、响应模型基座、数据权限实体注册表（仓库基类已抽至 libs/repository）
 ├── i18n/                              # 国际化（zh_CN、en_US）
-├── interceptors/                      # 请求 / 响应拦截器
 ├── middleware/                        # 中间件
 ├── socket/                            # WebSocket 网关
 ├── public/ · views/                   # 静态资源与模板
@@ -44,9 +41,12 @@ libs/*/src/                            # 内部库，经 tsconfig paths 以 @wal
 ├── exceptions/                        # 自定义异常
 ├── pipes/                             # 管道
 ├── types/                             # 全局类型声明
-└── utils/                             # 工具函数（含 DTO 包装 RealPickType / RealPartialType）
+├── utils/                             # 工具函数（含 DTO 包装 RealPickType / RealPartialType）
+├── auth/                              # auth 域：jwt / refresh / otp / mfa / opaque / oauth / session / signout
+├── security/                          # security 域：cap / risk / sensitive / sign（rsa 独立）
+└── guards/                            # guard / decorator / interceptor 装配层内核
 
-（ libs 解耦进行中：cache、throttle、mailer、sms、cookie、crypto、lock、queue、sse、blpath、als、delay、list、crud、token、scope-resolver、repository、rsa、ip、identity、system 等已陆续抽入 libs/，完整清单以目录为准 —— 见 ADR 0007 与 libs 解耦计划 ）
+（ libs 解耦进行中：cache、throttle、mailer、sms、cookie、crypto、lock、queue、sse、blpath、als、delay、list、crud、token、scope-resolver、repository、rsa、ip、identity、system、auth、security、guards 等已陆续抽入 libs/，完整清单以目录为准 —— 见 ADR 0007 与 libs 解耦计划 ）
 ```
 
 `modules/` 下按职责分六组：
@@ -54,9 +54,9 @@ libs/*/src/                            # 内部库，经 tsconfig paths 以 @wal
 | 目录 | 放什么 |
 |------|--------|
 | `app/` | 应用级模块（`demo`、`monitor`、`setting`） |
-| `auth/` | 认证（JWT、OAuth、MFA、OTP） |
-| `security/` | 安全（CAPTCHA、RSA、Sign、Risk） |
-| `shared/` | 共享服务（area、mask、welcome；ip / token / scopeResolver 已抽至 libs/ip、libs/token、libs/scope-resolver，email/SMS 已抽至 libs/mailer、libs/sms） |
+| `auth/` | 认证 HTTP 组合根（9 个 controller + passport mixin guard）；数据面已抽至 `libs/auth` |
+| `security/` | 安全 HTTP 组合根（rsa / sign / cap / sensitive controller）；数据面已抽至 `libs/security`（rsa 独立为 `libs/rsa`） |
+| `shared/` | 共享服务（area、mask、ali；welcome 随 auth 域进 `libs/auth`；ip / token / scopeResolver 已抽至 libs/ip、libs/token、libs/scope-resolver，email/SMS 已抽至 libs/mailer、libs/sms） |
 | `system/` | 系统管理（HTTP 组合根：role/menu/device/logs/dict 等 controller 与 user wire DTO；数据面已抽至 `libs/system`、身份栈已抽至 `libs/identity`） |
 | `techniques/` | 基础设施（task、event、health、logger；cache/queue/throttle/SSE 等已抽至 libs） |
 

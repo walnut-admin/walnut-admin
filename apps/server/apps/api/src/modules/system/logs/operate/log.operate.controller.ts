@@ -1,16 +1,16 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, UseGuards } from '@nestjs/common'
 import { ApiParam, ApiTags } from '@nestjs/swagger'
 
+import { JwtAccessGuard } from '@walnut-server/auth'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { WalnutCrudDecorators } from '@walnut-server/crud'
 import {
   WalnutAdminDecoratorParamUuid,
 } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { WalnutAdminDecoratorHasPermission } from '@walnut-server/guards'
 import { assembleSysDevice, SysDeviceDTOReadResponse, SysLogOperateDTO, SysLogOperateDTOListRequest, SysLogOperateDTOListResponse, SysLogOperateDTOReadResponse, SysLogOperateDTOSnapshotResponse, SysLogOperateService } from '@walnut-server/system'
 import { plainToInstance } from 'class-transformer'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { JwtAccessGuard } from '@/modules/auth/modules/jwt/jwt-access.guard'
 
 const Permissions = {
   READ: 'system:log:operate:read',

@@ -1,16 +1,10 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Patch } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 
+import { WalnutAdminGuardJwtOptional } from '@walnut-server/auth'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser, WalnutAdminGuardDeviceFree, WalnutAdminGuardIpFree, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 import { SysUserPreferenceDTOAccessibilityRequest, SysUserPreferenceDTOBasicRequest, SysUserPreferenceDTOLayoutRequest, SysUserPreferenceDTOThemeRequest, SysUserPreferenceResponseDTO, SysUserPreferenceService } from '@walnut-server/identity'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'
-import { WalnutAdminGuardIpFree } from '@/guard/ip.guard'
-import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
-import { WalnutAdminGuardMFAFree } from '@/guard/mfa.guard'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { WalnutAdminGuardJwtOptional } from '@/modules/auth/modules/jwt/jwt-access.guard'
 
 const Permissions = {
   UPDATE_BASIC: 'system:user:preference:updateBasic',

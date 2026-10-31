@@ -1,12 +1,12 @@
 import type { ExecutionContext } from '@nestjs/common'
 import { Injectable } from '@nestjs/common'
+import { OAuthStateService } from '@walnut-server/auth'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstAppAuthStrategy } from '@walnut-server/const/app/strategy'
+import { getWalnutAdminCookie } from '@walnut-server/cookie'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
+import { WalnutAdminGuardAuth } from '@walnut-server/guards'
 import { isObservable, lastValueFrom } from 'rxjs'
-import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
-import { WalnutAdminGuardAuth } from '@/guard/auth.guard'
-import { OAuthStateService } from '../shared/oauth-state.service'
 
 @Injectable()
 export class OAuthGiteeGuard extends WalnutAdminGuardAuth(WalnutAdminConstAppAuthStrategy.OAUTH_GITEE) {

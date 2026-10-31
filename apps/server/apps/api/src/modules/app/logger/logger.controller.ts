@@ -4,10 +4,9 @@ import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/d
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 import { WalnutAdminDecoratorList } from '@walnut-server/crud'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
 import { WalnutAdminPipeLogFileName, WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { Role } from '@walnut/contract'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
 import { AppLoggerDTO, AppLoggerDTOListRequest, AppLoggerDTOListResponse, AppLoggerLogType, AppLoggerLogTypeType, AppLoggerReadResponseDTO } from './dto/logger.dto'
 import { AppLoggerService } from './logger.service'
 

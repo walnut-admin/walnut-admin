@@ -18,7 +18,7 @@
 
 ### P0-1 RT 重放实际无拦截 —— 悲观锁没有挡住并发重放（G 段实测，新收编）—— 【已修复：2026-10-26 快照比对 → 2026-10-27 revoke-and-insert 终态】
 
-- **位置**：`apps/api/src/modules/auth/modules/refresh/` —— `shared/refresh.shared.service.ts`
+- **位置**：`libs/auth/src/modules/refresh/` —— `shared/refresh.shared.service.ts`
   （`getNewAccessToken` / `updateRefreshToken`）、`repo/refresh.repo.service.ts`（`findByJti` 悲观锁，
   其注释宣称「悲观锁保住重放拦截口」）、`refresh.controller.ts`（`setRTJtiCookie` 原样回种同 jti）。
 - **现象（修复前）**：轮换是**同 jti 原地换锁**（`encrypted_token`/`expired_at` 换新、`revoked` 恒 false、
@@ -54,7 +54,7 @@
 
 ### P0-2 sign guard 双因子失败静默降级单因子（F 段发现 1）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/guard/sign.guard.ts`（`computeDualFactorSignature` 失败 fallback）。
+- **位置**：`libs/guards/src/guards/sign.guard.ts`（`computeDualFactorSignature` 失败 fallback）。
 - **现象**：会话查无/HKDF 派生失败时回落单因子验签 —— 合法客户端（双因子）被 40112 拦，
   攻击者持「正确签名的伪造 AT + 设备 aesKey」**显式发单因子签名即可通过**（含 payload.userId
   不存在的 ghost AT；`mfaVerified` 是 AT payload 自报字段，同样可伪造穿透）。
@@ -70,7 +70,7 @@
 
 ### P0-3 CAP 校验缓存与设备/token 不绑定 + TTL 单位错误（F 段发现 2）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/guard/cap.guard.ts`（`validateCapToken` 只按 deviceId 查 boolean 缓存）+
+- **位置**：`libs/guards/src/guards/cap.guard.ts`（`validateCapToken` 只按 deviceId 查 boolean 缓存）+
   `apps/server/libs/cache/src/service/cache.cap.ts`（`setCapTokenCache` 把
   `getCapJSConfig().ttl` 毫秒当秒传给缓存）。
 - **现象**：缓存窗口内把另一台设备的服务端签名 cookie 原样移植即可通过（token 值从不比对）；
@@ -85,7 +85,7 @@
 
 ### P0-4 JWT 层不校验用户存在性/会话（F 段发现 5）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/auth/modules/jwt/`（`jwt-access.strategy` 的 `validate`
+- **位置**：`libs/auth/src/modules/jwt/`（`jwt-access.strategy` 的 `validate`
   原样返回 payload，无 DB/缓存校验）。
 - **现象**：passport 层只保证「签名 + 未过期」，身份真实性完全下游化 —— 与 P0-2 叠加成
   完整的 ghost AT 穿透链（伪造签名 AT + 单因子签名 = 任意 userId）。
@@ -214,7 +214,7 @@
 
 ### P1-5 sensitive：password 通道恒失败 + 可用验证方式探测直接 DataNotFound —— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/security/sensitive/`（verify 的 password 比对腿、
+- **位置**：`libs/security/src/sensitive/`（verify 的 password 比对腿、
   `getUserAvailableMethods`）。
 - **现象**：① password 通道恒 40000（identity value 是 opaque record，无法按明文比对还原）；
   ② 缺 security 身份时探测腿直接 40401（而非跳过该方式列出其余可用方式），预期 40119 分支不可达。
@@ -231,7 +231,7 @@
 ### P1-6 user_identity HTTP 面四缺陷簇（DTO/守卫）—— 【已修复 2026-10-28】
 
 - **位置**：`libs/identity/src/user_identity/`（dto + controller）+
-  `apps/api/src/guard/sensitive.guard.ts`（RequireSensitive 探测）。
+  `libs/guards/src/guards/sensitive.guard.ts`（RequireSensitive 探测）。
 - **现象**：① `POST list` 恒 40099（list DTO 是空类 × 全局 `forbidUnknownValues`）；
   ② bind 的 `setAsSecurity` 未挂 IsOptional（缺字段 40099）；③ `update`（rebind）经 HTTP 恒
   40000（partial DTO 把未给键材料化成显式 null，服务端 `verified !== undefined` 判 null 也命中
@@ -265,7 +265,7 @@
 ### P1-8 空表边界 TypeError → 50000（menu tree / auth permissions 同病）—— 【已修复 2026-10-28】
 
 - **位置**：`apps/api/src/modules/system/menu`（`fullTree[0].children` 组装）+
-  `apps/api/src/modules/auth/modules/session`（`permissionMenuTree[0].children` 的
+  `libs/auth/src/modules/session`（`permissionMenuTree[0].children` 的
   indexMenuName 组装）。
 - **现象**：`sys_menu` 空表时两处都在 `[0]` 上解引用 → TypeError → 50000（Mongo 时代同病）。
 - **实测证据**：C 段 menu spec + D 段 auth-session spec（均靠自建 CATALOG+MENU 行绕开）。
@@ -277,7 +277,7 @@
 
 ### P1-9 force-quit 只撤「查到的第一行」RT —— 【已修复 2026-10-27（revoke-and-insert 配套）】
 
-- **位置**：`apps/api/src/modules/auth/modules/refresh/repo/refresh.repo.service.ts`
+- **位置**：`libs/auth/src/modules/refresh/repo/refresh.repo.service.ts`
   （`updateRevokedAndReason` 走 `findByDeviceIdAndUserId` 的 `findOne`）——
   `app/monitor/user` 与 `system/user/device` 两个 force-quit 端点共用。
 - **现象（修复前）**：同 user+device 维度存在多行 RT 时只撤第一行，其余仍可换发。
@@ -289,7 +289,7 @@
 
 ### P1-10 throttle 动态覆盖不覆盖 blockDuration（F 段发现 7）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/guard/throttler.guard.ts`（`WalnutAdminGuardThrottler` 只覆盖 limit/ttl）。
+- **位置**：`libs/guards/src/guards/throttler.guard.ts`（`WalnutAdminGuardThrottler` 只覆盖 limit/ttl）。
 - **现象**：触发封禁后的 block 时长仍是全局 ttl（dev 10s）—— 连发攻击者在 block 窗口后
   每 10s 可再打 4 发。
 - **实测证据**：`throttle.api-spec.ts`（device/initial 4/60s 连发 + 429 形态）。
@@ -301,7 +301,7 @@
 
 ### P1-11 security.guard 黑名单路径分支不可达 —— 自动拉黑死代码（F 段发现 3）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/guard/security.guard.ts`（`isBlacklistedPath` 用含 `/w/v1` 前缀的
+- **位置**：`libs/guards/src/guards/security.guard.ts`（`isBlacklistedPath` 用含 `/w/v1` 前缀的
   `req.path` 对 `startsWith('/admin')` 等裸常量匹配）。
 - **现象**：所有真实路由都带 API 前缀 → 40610 永不命中；扫描器打的裸路径不匹配任何路由 →
   40400，guard 链根本不执行；`addToPermanentBlackList` 的自动拉黑副作用是死代码。
@@ -330,8 +330,8 @@
 
 ### P1-13 风险层「阻塞」整条腿不可达 —— 推荐恒 shouldBlock=false + guard 自吞异常（文档大轮次 A 段）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/security/risk/risk.service.ts`（`generateRecommendation`）+
-  `apps/api/src/guard/risk.guard.ts`（`canActivate` 的 try/catch）。
+- **位置**：`libs/security/src/risk/risk.service.ts`（`generateRecommendation`）+
+  `libs/guards/src/guards/risk.guard.ts`（`canActivate` 的 try/catch）。
 - **现象**：`generateRecommendation` 的所有返回分支都把 `shouldBlock` 写死为 `false`
   （crash 场景也只有 `shouldChallenge: true`）；risk.guard 在 `try` 内 `throw
   WalnutAdminExceptionRiskTooHigh`，但同一函数的 `catch` 对所有异常 `return true` ——
@@ -355,7 +355,7 @@
 
 - **位置**：`apps/api/src/modules/auth/modules/opaque/user/opaque.user.controller.ts`
   （`register/start`、`register/finish` 读 `req.user.userName`）+
-  `apps/api/src/modules/auth/modules/opaque/core/opaque.core.service.ts`
+  `libs/auth/src/modules/opaque/core/opaque.core.service.ts`
   （`startRegister` / `finishRegister` 首步 `findUserByUserName` 查重）。
 - **现象**：端点语义被 P1-3 定为「已登录用户补挂口令」，但服务层仍按「新用户注册」实现：
   `startRegister` 查到同名用户即抛 40001 DataExists，`finishRegister` 还要新建用户。
@@ -398,7 +398,7 @@
 
 - **位置**：`apps/api/src/modules/auth/modules/otp/guard/otp.decorator.ts`
   （`SetMetadata(OTP_THROTTLE_SERVICE_KEY, ...)`，键是 `Symbol(...)`）+
-  `apps/api/src/modules/auth/modules/otp/guard/otp-throttle.guard.ts`
+  `libs/auth/src/modules/otp/guard/otp-throttle.guard.ts`
   （`getAllAndOverride('OTP_THROTTLE_SERVICE', ...)`，字符串键）。
 - **现象**：两处键永不相等，`TargetService` 恒 `undefined`，`OtpSettingService` 的
   `sendLimit` / `sendTtl` 从未被读取；OTP send 实际一直用全局 throttle 的 limit/ttl。
@@ -417,7 +417,7 @@
 
 ### P1-17 Google 登录每次自动新建用户 —— 邮箱复用分支被注释，且不落 user_identity（文档大轮次 A 段）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/auth/modules/google/google.service.ts`
+- **位置**：`libs/auth/src/modules/google/google.service.ts`
   （`validateGoogle`）。
 - **现象**：函数无条件调用
   `getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser({}, deviceId)` ——
@@ -506,7 +506,7 @@
 ### P1-20 锁守卫冷缓存放行 —— `checkIsLocked` 双 miss 折叠成 false，DB 回源分支不可达（guard 覆盖补齐批实测，新登记）—— 【已修复 2026-10-29】
 
 - **位置**：`apps/server/libs/cache/src/service/cache.lock.ts`
-  （`checkIsLocked`）+ `apps/api/src/guard/lock.guard.ts`（Step 4/5 的 `!== null` 判命中）。
+  （`checkIsLocked`）+ `libs/guards/src/guards/lock.guard.ts`（Step 4/5 的 `!== null` 判命中）。
 - **现象**：`checkIsLocked` 先查全局键、再查设备键，两键都缺失时 `deviceLocked ?? false`
   **折叠成 false**；而锁守卫以 `cachedLockStatus !== null` 判定「缓存命中」—— 缓存未命中
   被当成「未锁定」直接放行，Step 5 的分布式锁 + `getLockForGuard` DB 回源 + 缓存回填
@@ -525,7 +525,7 @@
 
 ### P2-1 mfa.guard 强制所有已登录用户 mfaSetup=true，无开关（F 段发现 6）—— 【确认为安全立场设计 2026-10-28】
 
-- **位置**：`apps/api/src/guard/mfa.guard.ts`（未 setup → 40114 拒）。settings 的
+- **位置**：`libs/guards/src/guards/mfa.guard.ts`（未 setup → 40114 拒）。settings 的
   `app.auth.mfa` 键**不控制**该 guard（只被 `user_mfa.shared` 的 methodsRequiredCount 消费）。
 - **实测证据**：`guard-matrix.api-spec.ts` MFA 组。
 - **建议**：如需灰度只能改 AT payload 的 mfaSetup 口径 —— 产品决策项。
@@ -662,7 +662,7 @@
 
 ### P2-11 签名 nonce 去重非原子（GET 后 SET）（文档大轮次 A 段）—— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/guard/sign.guard.ts`（`validateAndRecordNonce`）+
+- **位置**：`libs/guards/src/guards/sign.guard.ts`（`validateAndRecordNonce`）+
   `apps/server/libs/cache/src/service/cache.sign.ts`（`setNonceCache` 普通 SET）。
 - **现象**：先 `getNonceCache` 判空、再 `setNonceCache`，不是 `SET NX EX`。两个携带相同
   `timestamp + nonce + body` 的并发请求可同时通过「未使用」检查并各自写入，nonce 的
@@ -678,7 +678,7 @@
 
 ### P2-12 踢下线只撤 RT，不清会话/权限/MFA 缓存 —— AT 到期前仍可用 —— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/auth/modules/signout/signout.service.ts`
+- **位置**：`libs/auth/src/modules/signout/signout.service.ts`
   （`handleUserKickOther` / `handleAdminKick`，对照 `handleUserLogout` 的
   `clearDeviceCache`）。
 - **现象**：`user-kick-other` 与 `admin-kick` 只 `revokeRTForUserDevice` + 在线设备
@@ -802,7 +802,7 @@
   （P2-9 后 `defaultFunctionalRole` = GLOBAL/combinable）+
   `libs/identity/src/user/shared/user.shared.service.ts`（`switchRole` 用
   effectiveRoleMode 判 COMBINE）+ `apps/server/libs/token/src/token.service.ts`
-  （AT payload 的 `roleMode` 取用户行）+ `apps/api/src/guard/permission.guard.ts`
+  （AT payload 的 `roleMode` 取用户行）+ `libs/guards/src/guards/permission.guard.ts`
   （root/visitor 短路按 payload 的行值）。
 - **现象**：零配置部署的 effective roleMode 恒为 combinable，`switchRole` 因此对**所有**
   用户返回 40000，即使其 `sys_user.role_mode` 仍是 `switchable`；而前端角色切换入口、
@@ -887,7 +887,7 @@
   （`getCurrentUserMfaSetupStatus` 的 webauthn 腿按 `(userId, deviceId)`；`getIsCurrentUserMfaVerified`
   用 `enabledCount >= methodsRequiredCount`）+
   `updateMfaSetupStatusForCronJob`（`aggregateMfaStats` 按 `(userId, type)` 统计**全部设备**的
-  启用行数）+ `apps/api/src/modules/auth/modules/mfa/mfa.service.ts`。
+  启用行数）+ `libs/auth/src/modules/mfa/mfa.service.ts`。
 - **现象**：`methodsRequiredCount=2` 时，用户在设备 A、B 各注册一个 webauthn，cron 的
   `deviceCount=2` 会把 `sys_user.mfa_setup` 置 true；但在设备 A 调 `/auth/mfa/verify` 时
   `getCurrentUserMfaSetupStatus` 只看到 A 的 webauthn（totp 未启用）→ `enabledCount=1` →
@@ -972,9 +972,9 @@
 
 ### P2-32 `handleSecurityPolicy`（改密/敏感操作）只撤 RT 不清 AUTH:SESSIONS —— 旧 AT 有效至过期（C+D 批复审新登记，2026-10-28）—— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/modules/auth/modules/signout/signout.service.ts`
+- **位置**：`libs/auth/src/modules/signout/signout.service.ts`
   （`handleSecurityPolicy`：`revokeRTForUser` + socket 通知）+
-  `apps/api/src/modules/auth/modules/opaque/admin/opaque.admin.service.ts` /
+  `libs/auth/src/modules/opaque/admin/opaque.admin.service.ts` /
   `opaque/user/opaque.user.controller.ts`（改密、密码清理等敏感操作统一走该 trigger）。
 - **现象**：P2-12 修好后，`user-kick-other` / `admin-kick` 会按设备清会话三键，但
   `security-policy` 分支只撤该用户全部 RT 并通知在线设备，**不清** `AUTH:SESSIONS` /
@@ -1369,7 +1369,7 @@
 
 ### P3-32 roles.guard 的 AND + SWITCH 组合静默放行 —— 安全陷阱（guard 分支覆盖补齐批，新登记）—— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/guard/roles.guard.ts`（数组 `and` 分支的 `else`）。
+- **位置**：`libs/guards/src/guards/roles.guard.ts`（数组 `and` 分支的 `else`）。
 - **现象**：`@WalnutAdminDecoratorHasRole([a, b])` 默认 `mode='and'`；当用户 `roleMode`
   是 `switchable` 时，旧代码只 `logger.log('This case should not happen...')` 然后
   **`canNext` 保持默认 true → 直接放行**。任何未来误配（数组 + 默认 and）都会对

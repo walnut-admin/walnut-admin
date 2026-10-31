@@ -9,6 +9,8 @@ import { WalnutAdminDecoratorQueryDeleteCascade } from '@walnut-server/decorator
 
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser, WalnutAdminDecoratorVisitorDeny } from '@walnut-server/guards'
+
 import {
   assembleSysMenu,
   SysMenuDTOCreateRequest,
@@ -23,11 +25,7 @@ import {
   SysMenuDTOUpdateResponse,
   SysMenuService,
 } from '@walnut-server/system'
-
 import { plainToInstance } from 'class-transformer'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { WalnutAdminDecoratorVisitorDeny } from '@/guard/visitor.guard'
 
 const Permissions = {
   CREATE: 'system:menu:create',

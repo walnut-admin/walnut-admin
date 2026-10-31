@@ -5,6 +5,7 @@ import type {
   WalnutDataScopeFindWhere,
 } from '@walnut-server/repository'
 import type { EntityTarget, ObjectLiteral } from 'typeorm'
+import { AuthRefreshTokenEntity } from '@walnut-server/auth'
 import { SysUserDeviceEntity, SysUserEntity, SysUserIdentityEntity, SysUserLockEntity, SysUserMfaEntity, SysUserOauthEntity, SysUserPreferenceEntity, SysUserRoleEntity } from '@walnut-server/identity'
 import { SysDeletedEntity } from '@walnut-server/repository'
 import {
@@ -28,7 +29,6 @@ import { AppErrorEntity } from '@/modules/app/error/entity/error.entity'
 import { AppKeyEntity } from '@/modules/app/key/entity/key.entity'
 import { AppMonitorUserEntity } from '@/modules/app/monitor/user/entity/monitor-user.entity'
 import { AppSettingEntity } from '@/modules/app/setting/entity/setting.entity'
-import { AuthRefreshTokenEntity } from '@/modules/auth/modules/refresh/entity/refresh-token.entity'
 import { SharedAreaEntity } from '@/modules/shared/area/entity/area.entity'
 
 /**

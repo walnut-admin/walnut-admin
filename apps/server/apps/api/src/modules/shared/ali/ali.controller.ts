@@ -3,9 +3,7 @@ import { Controller, Get } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
-import { WalnutAdminDecoratorEncryptResponse } from '@/decorators/walnut/crypto.decorator'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
+import { WalnutAdminDecoratorEncryptResponse, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import { SharedAliOSSDTO } from './ali.dto'
 import { SharedAliService } from './ali.service'
 

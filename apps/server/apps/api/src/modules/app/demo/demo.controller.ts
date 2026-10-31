@@ -8,9 +8,8 @@ import {
   WalnutAdminDecoratorParamUuids,
 } from '@walnut-server/decorators/params'
 
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import { plainToInstance } from 'class-transformer'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { AppDemoService } from './demo.service'
 import {
   AppDemoDTOCreateRequest,

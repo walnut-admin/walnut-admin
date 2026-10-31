@@ -4,12 +4,11 @@ import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-ser
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import { SysUserMeService } from '@walnut-server/identity'
+
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { plainToInstance } from 'class-transformer'
-
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 import { SysUserDTOSafe } from '@/modules/system/user/dto/user.dto'
 import { SysUserMeDTOUpdateProfileRequest, SysUserMeSecurityTab2ResponseDTO } from '@/modules/system/user/dto/user.me.dto'
 

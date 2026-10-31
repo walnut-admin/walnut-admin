@@ -1,3 +1,4 @@
+import type { IAuthMonitorService } from '@walnut-server/auth'
 import type { IIdentityUserNotifier } from '@walnut-server/identity'
 import { Injectable } from '@nestjs/common'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
@@ -14,8 +15,11 @@ interface IExpiredRefreshTokenLike {
 }
 
 @Injectable()
-/** 批 6：implements 是端口绑定的编译期守护（user_lock 只认端口）。 */
-export class AppMonitorUserSharedService implements IIdentityUserNotifier {
+/**
+ * 批 6：implements IIdentityUserNotifier 是身份内核端口绑定的编译期守护（user_lock 只认端口）。
+ * 批 8：implements IAuthMonitorService 是 auth 登出链踢人端口的编译期守护。
+ */
+export class AppMonitorUserSharedService implements IIdentityUserNotifier, IAuthMonitorService {
   constructor(
     private readonly appMonitorUserRepo: AppMonitorUserRepositoryService,
     private readonly socketService: SocketService,

@@ -1,46 +1,17 @@
 import { Module } from '@nestjs/common'
+import { SysAuthModule } from '@walnut-server/auth'
+import { AuthHttpModule } from './auth-http.module'
 
-import { SysMenuSharedModule } from '@walnut-server/system'
-import { AuthController } from './auth.controller'
-import { AuthService } from './auth.service'
-import { AuthGoogleModule } from './modules/google/google.module'
-import { JwtAccessTokenStrategy } from './modules/jwt/jwt-access.strategy'
-import { AuthMfaModule } from './modules/mfa/mfa.module'
-import { OAuthGiteeModule } from './modules/oauth/gitee/gitee.module'
-import { OAuthGitHubModule } from './modules/oauth/github/github.module'
-import { AuthOpaqueModule } from './modules/opaque/opaque.module'
-import { OtpModule } from './modules/otp/otp.module'
-import { AuthRefreshModule } from './modules/refresh/refresh.module'
-import { AuthSessionModule } from './modules/session/session.module'
-import { AuthSharedModule } from './modules/shared/shared.module'
-import { AuthSignoutModule } from './modules/signout/signout.module'
-
-const strategies = [
-  // jwt
-  JwtAccessTokenStrategy,
-]
-
+/**
+ * auth 域组合根（libs 解耦批 8）。
+ *
+ * - 数据面在 libs：`SysAuthModule`（jwt / refresh / session / signout / shared / otp /
+ *   google / opaque / mfa / oauth / cookie 的 service + strategy + module）。
+ * - HTTP 组合根留 app：9 个 controller（依赖 log.auth decorator、`SysUserDTOSafe`
+ *   wire DTO 与 guard/decorator 层）与 6 个 passport mixin guard，由 `AuthHttpModule`
+ *   声明。模块装载顺序与解耦前一致，Swagger 路径顺序不变。
+ */
 @Module({
-  imports: [
-    AuthSignoutModule,
-
-    SysMenuSharedModule,
-    AuthSessionModule,
-    AuthSharedModule,
-
-    AuthRefreshModule,
-    OtpModule,
-    AuthGoogleModule,
-    AuthOpaqueModule,
-    AuthMfaModule,
-
-    // https://gitee.com/oauth/applications
-    OAuthGiteeModule,
-    // https://github.com/settings/developers
-    OAuthGitHubModule,
-  ],
-  controllers: [AuthController],
-  providers: [AuthService, ...strategies],
-  exports: [AuthService],
+  imports: [SysAuthModule, AuthHttpModule],
 })
 export class AuthModule {}

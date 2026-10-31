@@ -1,10 +1,10 @@
 import { applyDecorators, CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor, SetMetadata, UseInterceptors } from '@nestjs/common'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { IWalnutAdminConstDecoratorLogAuthType, WalnutAdminConstDecoratorLogAuthMetadataKey } from '@walnut-server/const/decorator/logAuth'
+import { getWalnutAdminCookie } from '@walnut-server/cookie'
 import { SysLogAuthSharedService } from '@walnut-server/system'
 import { Observable } from 'rxjs'
 import { tap } from 'rxjs/operators'
-import { getWalnutAdminCookie } from './cookie.decorator'
 
 // 批 7：元数据键随 system logs/auth 下沉 libs/const（读方在 lib、写方在 app，
 // 同一个 Symbol 必须在更低层）；这里 re-export 保持 otp decorator 等既有 import 面。

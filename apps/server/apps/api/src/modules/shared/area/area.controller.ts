@@ -9,8 +9,8 @@ import { ApiQuery, ApiTags } from '@nestjs/swagger'
 
 import { WalnutAdminDecoratorQueryArray } from '@walnut-server/decorators/query'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { WalnutAdminDecoratorHasPermission } from '@walnut-server/guards'
 import { WalnutAdminPipeAreaPcode } from '@walnut-server/pipes'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { SharedAreaService } from './area.service'
 import { SharedAreaDTO } from './dto/area.dto'
 

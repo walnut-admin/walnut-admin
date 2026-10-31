@@ -7,14 +7,14 @@ import { objectToPaths } from '@walnut-server/utils/general'
  * 签名握手与 HMAC 计算的**客户端侧复刻**（API 级测试助手）。
  *
  * 规则逐条对照服务端实现抄写，不 mock 服务端：
- * - 签名原文：`apps/api/src/guard/sign.guard.ts` 的 `buildSignRaw` ——
+ * - 签名原文：`apps/server/libs/guards/src/guards/sign.guard.ts` 的 `buildSignRaw` ——
  *   `METHOD|PATH(去API前缀)|扁平化body排序串|timestamp=xx|nonce=xx|ua=xx`；
  *   扁平化直接复用服务端同一纯函数 `objectToPaths`（@walnut-server/utils/general），
  *   保证双端对同一 body 产出逐字节一致的展开结果；
  * - 单因子 HMAC（未登录）：`HMAC-SHA256(raw, aesKey)`，key 为握手 base64url 串的 UTF-8 字节；
  * - 双因子 HMAC（已登录）：`sessionDerivedKey = HKDF-SHA256(
  *   ikm = SHA256(sessionKey 原始字节), salt = aesKey, info = hkdfInfo, len = 32)`，
- *   对照 `auth/modules/session/session.service.ts` 的 `deriveApiSignKey`（sessionKey
+ *   对照 `apps/server/libs/auth/src/modules/session/session.service.ts` 的 `deriveApiSignKey`（sessionKey
  *   从 login/finish 响应来，base64 编码；服务端只存 SHA256 hash，客户端持有原值）；
  * - 握手第二步的 aesKey 信封解密：对照 `libs/rsa/src/rsa.service.ts` 的
  *   `encryptResponseValueWithClientRsaPubKey` —— 服务端用客户端 RSA 公钥（握手 initial

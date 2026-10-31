@@ -6,6 +6,7 @@ import { WalnutCrudDecorators } from '@walnut-server/crud'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import {
   SysPostDTOCreateRequest,
   SysPostDTOCreateResponse,
@@ -19,8 +20,6 @@ import {
   SysPostService,
 } from '@walnut-server/system'
 import { plainToInstance } from 'class-transformer'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 
 const Permissions = {
   CREATE: 'system:post:create',

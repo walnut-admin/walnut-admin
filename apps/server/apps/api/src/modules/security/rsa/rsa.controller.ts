@@ -1,9 +1,8 @@
 import { Controller, Get } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
+import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
+import { WalnutAdminGuardCapFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 import { SecurityRsaService } from '@walnut-server/rsa'
-import { WalnutAdminGuardCapFree } from '@/guard/cap.guard'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { WalnutAdminGuardJwtFree } from '@/modules/auth/modules/jwt/jwt-access.guard'
 
 @Controller('security/rsa')
 @ApiTags('security/rsa')

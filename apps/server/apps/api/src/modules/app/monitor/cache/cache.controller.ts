@@ -14,10 +14,9 @@ import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLog
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 import { WalnutCrudDecorators } from '@walnut-server/crud'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
 import { WalnutAdminPipeCacheKey } from '@walnut-server/pipes'
 import { Role } from '@walnut/contract'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
 import {
   AppMonitorCacheDTO,

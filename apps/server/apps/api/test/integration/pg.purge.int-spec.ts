@@ -3,9 +3,9 @@ import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 
 import { SchedulerRegistry } from '@nestjs/schedule'
+import { AuthRefreshTokenPgPurgeService } from '@walnut-server/auth'
 import { WalnutAdminConstAppCronTaskNames } from '@walnut-server/const/app/task'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { AuthRefreshTokenPgPurgeService } from '@/modules/auth/modules/refresh/repo/refresh.pg.purge.service'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 
 /**

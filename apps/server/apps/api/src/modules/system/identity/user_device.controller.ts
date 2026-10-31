@@ -2,12 +2,11 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Put } from 
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { SysUserDeviceListDTO, SysUserDeviceService, SysUserDeviceUpdateNameDTO, SysUserLockUnLockDto } from '@walnut-server/identity'
+import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 
+import { SysUserDeviceListDTO, SysUserDeviceService, SysUserDeviceUpdateNameDTO, SysUserLockUnLockDto } from '@walnut-server/identity'
 import { WalnutAdminPipeDeviceId } from '@walnut-server/pipes'
 import { plainToInstance } from 'class-transformer'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 
 const Permissions = {
   LIST: 'system:user:device:list',

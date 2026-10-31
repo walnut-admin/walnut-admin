@@ -2,12 +2,11 @@ import type { INestApplication } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
 
+import { AuthRefreshRepositoryService, AuthRefreshSharedService } from '@walnut-server/auth'
 import { WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { WalnutAdminExceptionRefreshTokenExpired } from '@walnut-server/exceptions/business/auth'
 import { AppTokenService } from '@walnut-server/token'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { AuthRefreshRepositoryService } from '@/modules/auth/modules/refresh/repo/refresh.repo.service'
-import { AuthRefreshSharedService } from '@/modules/auth/modules/refresh/shared/refresh.shared.service'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 
 /**

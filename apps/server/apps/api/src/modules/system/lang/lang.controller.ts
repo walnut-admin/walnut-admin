@@ -6,13 +6,17 @@ import {
   HttpStatus,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
+import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
-import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 
+import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { WalnutCrudDecorators } from '@walnut-server/crud'
+
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+
+import { WalnutAdminDecoratorCache, WalnutAdminDecoratorHasPermission, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 
 import {
   SysLangDTO,
@@ -26,16 +30,7 @@ import {
   SysLangDTOUpdateResponse,
   SysLangService,
 } from '@walnut-server/system'
-
 import { plainToInstance } from 'class-transformer'
-
-import { WalnutAdminDecoratorCache } from '@/decorators/walnut/cache.decorator'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminGuardCapFree } from '@/guard/cap.guard'
-import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'
-import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { WalnutAdminGuardJwtFree } from '@/modules/auth/modules/jwt/jwt-access.guard'
 
 const Permissions = {
   CREATE: 'system:lang:create',

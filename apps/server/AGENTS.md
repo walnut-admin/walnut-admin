@@ -31,7 +31,7 @@
 NestJS 12.x + TypeScript 6.0.3 + PostgreSQL（TypeORM）+ Redis + Bull 队列 —— 功能齐全的中后台后端模板。
 **内部 Nest CLI monorepo**，不是 pnpm workspace 包：
 
-- `apps/api/src/` —— app 的入口与源码（`modules/` `app/` `guard/` `decorators/` `common/` `i18n/` …）
+- `apps/api/src/` —— app 的入口与源码（`modules/` `app/` `decorators/`〔仅剩 log.*〕`common/` `i18n/` …；guard / 大部分 decorator / interceptor 已在 `libs/guards`）
 - `libs/*/src` —— 内部库（完整清单以 `libs/` 目录为准；`{config,const,context,db,decorators,exceptions,pipes,types,utils}` 是基建底座），
   经 tsconfig `paths` 以 `@walnut-server/*` 解析，与 app 一起由 SWC 编译
 - 为什么这样：[ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md)

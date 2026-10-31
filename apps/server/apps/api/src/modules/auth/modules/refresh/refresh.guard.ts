@@ -1,12 +1,12 @@
 import { ExecutionContext, Injectable } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
 
+import { AuthRefreshSharedService } from '@walnut-server/auth'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstAppAuthStrategy } from '@walnut-server/const/app/strategy'
+import { getWalnutAdminCookie } from '@walnut-server/cookie'
 import { WalnutAdminExceptionRefreshTokenExpired } from '@walnut-server/exceptions/business/auth'
 import { isNil } from 'lodash'
-import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
-import { AuthRefreshSharedService } from './shared/refresh.shared.service'
 
 @Injectable()
 export class JwtRefreshGuard extends AuthGuard(

@@ -12,8 +12,9 @@ import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decor
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { DBTransactionHooksStore } from '@walnut-server/db'
 
-import { SharedIpService } from '@walnut-server/ip'
+import { WalnutAdminGuardAuth } from '@walnut-server/guards'
 
+import { SharedIpService } from '@walnut-server/ip'
 import { SysDeletedEntity } from '@walnut-server/repository'
 import { SysLogAuthEntity, SysLogAuthSharedService, SysLogOperateEntity, SysLogOperateRepoService } from '@walnut-server/system'
 import { I18nContext, I18nService } from 'nestjs-i18n'
@@ -21,7 +22,6 @@ import { from, lastValueFrom, throwError } from 'rxjs'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { WalnutAdminDecoratorAuthLog, WalnutAdminInterceptorRequestAuthLog } from '@/decorators/walnut/log.auth.decorator'
 import { WalnutAdminDecoratorOperateLog, WalnutAdminInterceptorRequestOperateLog } from '@/decorators/walnut/log.operate.decorator'
-import { WalnutAdminGuardAuth } from '@/guard/auth.guard'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 

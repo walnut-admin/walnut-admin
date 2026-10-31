@@ -1,15 +1,11 @@
 import { Body, Controller, Delete, HttpCode, HttpStatus, Post, Put, Req } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
+import { AuthCookieService, AuthSuccessDTO } from '@walnut-server/auth'
+
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-
+import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree } from '@walnut-server/guards'
 import { SysUserMfaBindTotpDTO, SysUserMfaBindTotpResponseDTO, SysUserMfaDeviceVerifyTotpDTO, SysUserMfaGenerateTotpResponseDTO, SysUserMfaTotpService, SysUserMfaUpdateStatusDTO } from '@walnut-server/identity'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
-import { WalnutAdminGuardMFAFree } from '@/guard/mfa.guard'
-import { AuthSuccessDTO } from '@/modules/auth/dto/auth.dto'
-import { AuthCookieService } from '@/modules/auth/modules/cookie/cookie.service'
 
 // TODO fulfill
 const PERMISSIONS_USER_MFA_TOTOP = {

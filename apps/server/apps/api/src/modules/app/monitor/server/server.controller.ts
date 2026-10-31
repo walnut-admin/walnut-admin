@@ -7,11 +7,9 @@ import {
 } from '@nestjs/common'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { Role } from '@walnut/contract'
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole, WalnutAdminInterceptorResponseLooseSerializer } from '@walnut-server/guards'
 
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
-import { WalnutAdminInterceptorResponseLooseSerializer } from '@/interceptors/response/loose.interceptor'
+import { Role } from '@walnut/contract'
 
 import {
   AppMonitorServerDTOBattery,

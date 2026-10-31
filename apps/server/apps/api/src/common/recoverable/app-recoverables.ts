@@ -1,10 +1,10 @@
 import type { WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
+import { registerAuthRefreshTokenRecoverable } from '@walnut-server/auth'
 import { registerAppDemoRecoverable } from '@/modules/app/demo/demo.recoverable'
 import { registerAppErrorRecoverable } from '@/modules/app/error/error.recoverable'
 import { registerAppKeyRecoverable } from '@/modules/app/key/key.recoverable'
 import { registerAppMonitorUserRecoverable } from '@/modules/app/monitor/user/monitor-user.recoverable'
 import { registerAppSettingRecoverable } from '@/modules/app/setting/setting.recoverable'
-import { registerAuthRefreshTokenRecoverable } from '@/modules/auth/modules/refresh/refresh.recoverable'
 import { registerSharedAreaRecoverable } from '@/modules/shared/area/area.recoverable'
 
 /**

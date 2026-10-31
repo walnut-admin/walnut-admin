@@ -1,11 +1,10 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 
+import { AuthRefreshSharedService, AuthSignoutService } from '@walnut-server/auth'
 import { SysUserDeviceRepositoryService } from '@walnut-server/identity'
 import { SysDeviceRepositoryService, SysDeviceSharedService } from '@walnut-server/system'
 import { isNil } from 'lodash'
-import { AuthRefreshSharedService } from '@/modules/auth/modules/refresh/shared/refresh.shared.service'
-import { AuthSignoutService } from '@/modules/auth/modules/signout/signout.service'
 import { AppMonitorUserDTO, AppMonitorUserDTOListRequest } from './dto/user.dto'
 import { AppMonitorUserRepositoryService } from './repo/user.repo.service'
 import { AppMonitorUserBasicRepository } from './user.basic.repository'

@@ -9,10 +9,9 @@ import { WalnutCrudDecorators } from '@walnut-server/crud'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid, WalnutAdminDecoratorParamUuids } from '@walnut-server/decorators/params'
 
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import { SysDictDataDTOCreateRequest, SysDictDataDTOCreateResponse, SysDictDataDTODeleteResponse, SysDictDataDTOListRequest, SysDictDataDTOListResponse, SysDictDataDTOReadResponse, SysDictDataDTOSafe, SysDictDataDTOUpdateRequest, SysDictDataDTOUpdateResponse, SysDictDataService } from '@walnut-server/system'
 import { plainToInstance } from 'class-transformer'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 
 const Permissions = {
   CREATE: 'system:dict:data:create',

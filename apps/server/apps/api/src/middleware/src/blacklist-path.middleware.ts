@@ -2,8 +2,8 @@ import type { NextFunction } from 'express'
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { WalnutAdminExceptionBlackListPathDetected } from '@walnut-server/exceptions/base/406'
+import { isWalnutAdminBlacklistedPath } from '@walnut-server/guards'
 import { SharedIpService } from '@walnut-server/ip'
-import { isWalnutAdminBlacklistedPath } from '@/guard/security.guard'
 
 /**
  * P1-11 修复（2026-10-28）：永久黑名单路径的自动拉黑。

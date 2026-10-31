@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 
 import { AppTechCachePermissionsService } from '@walnut-server/cache'
-import { WalnutAdminGuardPermission } from '@/guard/permission.guard'
+import { WalnutAdminGuardPermission } from '@walnut-server/guards'
 import { AppKeyTypeConst } from './key.const'
 
 /**

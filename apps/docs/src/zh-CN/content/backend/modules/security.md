@@ -112,7 +112,7 @@ fail-closed 注册表；PG RLS 留作三期硬上限），部门维度的实施�
 JWT Guard（request.user）→ ALS 拦截器解析描述符 → handler → 基类仓库注入谓词
 ```
 
-- `apps/server/apps/api/src/interceptors/request/als.interceptor.ts` 在请求进入 handler 前
+- `apps/server/libs/guards/src/interceptors/request/als.interceptor.ts` 在请求进入 handler 前
   调 `DataScopeService.resolveForUser()`，把 `userId` 与描述符种进 ALS；
 - `apps/server/libs/repository/src/pg-base.repository.ts` 的 `list`（在 `customize` 之后）、
   `readById`、`updateByField`、`deleteSoft*` 统一 `andWhere` / scoped where 注入，

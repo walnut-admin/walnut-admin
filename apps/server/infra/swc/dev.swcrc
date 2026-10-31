@@ -75,7 +75,13 @@
       "@walnut-server/identity": ["libs/identity/src"],
       "@walnut-server/identity/*": ["libs/identity/src/*"],
       "@walnut-server/system": ["libs/system/src"],
-      "@walnut-server/system/*": ["libs/system/src/*"]
+      "@walnut-server/system/*": ["libs/system/src/*"],
+      "@walnut-server/auth": ["libs/auth/src"],
+      "@walnut-server/auth/*": ["libs/auth/src/*"],
+      "@walnut-server/security": ["libs/security/src"],
+      "@walnut-server/security/*": ["libs/security/src/*"],
+      "@walnut-server/guards": ["libs/guards/src"],
+      "@walnut-server/guards/*": ["libs/guards/src/*"]
     },
     "keepClassNames": true
   },

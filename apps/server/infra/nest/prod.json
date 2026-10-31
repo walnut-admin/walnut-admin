@@ -43,7 +43,10 @@
           "libs/rsa/src",
           "libs/ip/src",
           "libs/identity/src",
-          "libs/system/src"
+          "libs/system/src",
+          "libs/auth/src",
+          "libs/security/src",
+          "libs/guards/src"
         ]
       }
     }
@@ -344,6 +347,33 @@
       "sourceRoot": "libs/system/src",
       "compilerOptions": {
         "tsConfigPath": "libs/system/tsconfig.lib.json"
+      }
+    },
+    "auth": {
+      "type": "library",
+      "root": "libs/auth",
+      "entryFile": "index",
+      "sourceRoot": "libs/auth/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/auth/tsconfig.lib.json"
+      }
+    },
+    "security": {
+      "type": "library",
+      "root": "libs/security",
+      "entryFile": "index",
+      "sourceRoot": "libs/security/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/security/tsconfig.lib.json"
+      }
+    },
+    "guards": {
+      "type": "library",
+      "root": "libs/guards",
+      "entryFile": "index",
+      "sourceRoot": "libs/guards/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/guards/tsconfig.lib.json"
       }
     }
   }

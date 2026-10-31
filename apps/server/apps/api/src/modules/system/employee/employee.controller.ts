@@ -7,6 +7,7 @@ import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import {
   SysEmployeeDTOBindUserRequest,
   SysEmployeeDTOCreateRequest,
@@ -21,8 +22,6 @@ import {
   SysEmployeeService,
 } from '@walnut-server/system'
 import { plainToInstance } from 'class-transformer'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
 
 const Permissions = {
   CREATE: 'system:employee:create',

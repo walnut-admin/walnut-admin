@@ -93,7 +93,7 @@ sys_user_device 1 ── 1 当前用户的锁屏状态  (locked 列；与 sys_de
 
 ### 2.2 Device guard：缓存读序与 P2-2 修复后的回源
 
-`apps/server/apps/api/src/guard/device.guard.ts` 的判定顺序：
+`apps/server/libs/guards/src/guards/device.guard.ts` 的判定顺序：
 
 1. `@WalnutAdminGuardDeviceFree()` → 放行；开发态 `req.isPostman` → 放行。
 2. 取签名 `DEVICE_ID` cookie；缺失 → **40605**。
@@ -276,7 +276,7 @@ P1-5（已修，2026-10-28）后：
   `SECURITY_LOCK:<userId>:<deviceId>`，**无 TTL**。二者不会同时存在，`checkIsLocked`
   先读全局、再读设备键。
 
-Lock guard（`guard/lock.guard.ts`）的顺序：LockFree → 无 `req.user` 放行（未登录）→
+Lock guard（`libs/guards/src/guards/lock.guard.ts`）的顺序：LockFree → 无 `req.user` 放行（未登录）→
 无 deviceId 放行 → 缓存命中即判 → 未命中在 `APP:MURLOCK:LOCK_GUARD:<userId>:<deviceId>`
 锁内 double-check 后调 `SysUserLockService.getLockForGuard` 回源 DB（按偏好行的
 `lockCrossDevice` 选「任意设备」或「本设备」），回填缓存；锁定 → **40118**。

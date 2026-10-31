@@ -99,7 +99,7 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
    `currentRoleName === 'visitor'` 时**跳过写入**。TTL 现状是
    `getAccessTokenExpireSeconds() * 1000`（P1-15：缓存服务收的是秒，实际放大约 1000 倍）。
 7. **权限守卫读缓存**。方法级 `WalnutAdminGuardPermission`
-   （`apps/server/apps/api/src/guard/permission.guard.ts`）：
+   （`apps/server/libs/guards/src/guards/permission.guard.ts`）：
    - 无权限元数据 → 告警放行；无 `req.user` → 40105；
    - root 短路：`roleMode=combinable && roleNames[0]='root'`，或
      `roleMode=switchable && currentRoleName='root'`；

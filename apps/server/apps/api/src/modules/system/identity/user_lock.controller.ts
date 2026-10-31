@@ -4,9 +4,8 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
+import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser, WalnutAdminGuardLockFree } from '@walnut-server/guards'
 import { SysUserLockDoLockDto, SysUserLockPreferenceDTO, SysUserLockPreferenceUpdateDto, SysUserLockService, SysUserLockUnLockDto } from '@walnut-server/identity'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
 
 @Controller('system/user/lock')
 @ApiTags('system/user/lock')

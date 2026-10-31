@@ -1,24 +1,13 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Request } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { getWalnutAdminCookie } from '@walnut-server/cookie'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 
-import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { getOperationStrategy } from './sensitive.config'
-import {
-  IWalnutAdminConstSecurityLevel,
-  IWalnutAdminConstSecuritySensitiveType,
-  WalnutAdminConstSecurityLevel,
-  WalnutAdminConstSecuritySensitiveType,
-} from './sensitive.const'
-import {
-  SecuritySensitiveCheckResponseDTO,
-  SecuritySensitiveVerifyRequestDTO,
-} from './sensitive.dto'
-import { SecuritySensitiveService } from './sensitive.service'
+import { WalnutAdminDecoratorUser } from '@walnut-server/guards'
+import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
+import { getOperationStrategy, IWalnutAdminConstSecurityLevel, IWalnutAdminConstSecuritySensitiveType, SecuritySensitiveCheckResponseDTO, SecuritySensitiveService, SecuritySensitiveVerifyRequestDTO, WalnutAdminConstSecurityLevel, WalnutAdminConstSecuritySensitiveType } from '@walnut-server/security'
 
 @Controller('security/sensitive')
 @ApiTags('security/sensitive')

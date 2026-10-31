@@ -4,11 +4,11 @@ import type { WalnutApiClient, WalnutAuthTokens } from './api-client'
 import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
 import * as opaque from '@serenity-kit/opaque'
+import { AuthOpaqueCoreService } from '@walnut-server/auth'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
-import { SysUserSharedService } from '@walnut-server/identity'
 
+import { SysUserSharedService } from '@walnut-server/identity'
 import { Role } from '@walnut/contract'
-import { AuthOpaqueCoreService } from '@/modules/auth/modules/opaque/core/opaque.core.service'
 
 import { bodyOf } from './api-client'
 

@@ -7,7 +7,9 @@ OPAQUE 口令登录、OTP 注册/登录、AT/RT 双令牌、登录后的轮换�
 已知缺陷的登记与裁决见
 `apps/server/apps/api/test/api/DESIGN-ISSUES.md`（下文以 `P?-?` 引用条目号）。
 
-源码入口：`apps/server/apps/api/src/modules/auth/`。接口矩阵的原始测绘在
+源码入口：数据面在 `apps/server/libs/auth/src/`（service / strategy / module），HTTP 面在
+`apps/server/apps/api/src/modules/auth/`（9 个 controller + passport mixin guard，`auth-http.module.ts`
+是组合根）。接口矩阵的原始测绘在
 `apps/server/apps/api/test/api/ENDPOINTS.md` §2。
 
 ## 1. 模块职责总览
@@ -17,19 +19,19 @@ OPAQUE 口令登录、OTP 注册/登录、AT/RT 双令牌、登录后的轮换�
 
 | 子模块 | 目录 | 职责 |
 |---|---|---|
-| jwt | `modules/auth/modules/jwt/` | AT 的 passport-jwt 策略与 `JwtAccessGuard`；`validate` 补查登录会话键（P0-4） |
-| refresh | `modules/auth/modules/refresh/` | RT 行存储、`JwtRefreshGuard`、轮换（revoke-and-insert）、过期清理任务 |
-| session | `modules/auth/modules/session/` | Redis 中的登录会话（sessionKey 哈希）与 API 签名子密钥派生 |
-| signout | `modules/auth/modules/signout/` | 四类登出触发：主动退出、踢其他设备、管理员踢人、安全策略全撤 |
-| opaque/core | `modules/auth/modules/opaque/core/` | OPAQUE 协议服务端：登录 start/finish、注册、改密；口令永不落库为明文 |
-| opaque/user | `modules/auth/modules/opaque/user/` | 用户自助端点：`login/start|finish`、`client-error`、`register/*`、`change-password/*` |
-| opaque/admin | `modules/auth/modules/opaque/admin/` | 管理员改密/清密（按 `sys_user.id` 定位） |
-| otp | `modules/auth/modules/otp/` | 邮箱/短信验证码：发送、校验、自动注册、一次性换发令牌 |
-| mfa | `modules/auth/modules/mfa/` | `auth/mfa/status|verify`：设备级 MFA 可信状态与 RT 轮换 |
-| google | `modules/auth/modules/google/` | Google FedCM id_token 校验（本地 JWKS）与登录 |
-| oauth/gitee · github | `modules/auth/modules/oauth/` | 授权码跳转、回调、SSE 投递令牌 |
-| cookie | `modules/auth/modules/cookie/` | `RT_JTI` 签名 cookie 的写入/清除 |
-| shared | `modules/auth/modules/shared/` | `generateAuthTokens`：会话 + AT + RT + 设备绑定的一次性装配 |
+| jwt | `libs/auth/src/modules/jwt/` | AT 的 passport-jwt 策略与 `JwtAccessGuard`；`validate` 补查登录会话键（P0-4） |
+| refresh | `libs/auth/src/modules/refresh/` | RT 行存储、`JwtRefreshGuard`、轮换（revoke-and-insert）、过期清理任务 |
+| session | `libs/auth/src/modules/session/` | Redis 中的登录会话（sessionKey 哈希）与 API 签名子密钥派生 |
+| signout | `libs/auth/src/modules/signout/` | 四类登出触发：主动退出、踢其他设备、管理员踢人、安全策略全撤 |
+| opaque/core | `libs/auth/src/modules/opaque/core/` | OPAQUE 协议服务端：登录 start/finish、注册、改密；口令永不落库为明文 |
+| opaque/user | `libs/auth/src/modules/opaque/user/` | 用户自助端点：`login/start|finish`、`client-error`、`register/*`、`change-password/*` |
+| opaque/admin | `libs/auth/src/modules/opaque/admin/` | 管理员改密/清密（按 `sys_user.id` 定位） |
+| otp | `libs/auth/src/modules/otp/` | 邮箱/短信验证码：发送、校验、自动注册、一次性换发令牌 |
+| mfa | `libs/auth/src/modules/mfa/` | `auth/mfa/status|verify`：设备级 MFA 可信状态与 RT 轮换 |
+| google | `libs/auth/src/modules/google/` | Google FedCM id_token 校验（本地 JWKS）与登录 |
+| oauth/gitee · github | `libs/auth/src/modules/oauth/` | 授权码跳转、回调、SSE 投递令牌 |
+| cookie | `libs/auth/src/modules/cookie/` | `RT_JTI` 签名 cookie 的写入/清除 |
+| shared | `libs/auth/src/modules/shared/` | `generateAuthTokens`：会话 + AT + RT + 设备绑定的一次性装配 |
 
 ## 2. 未登录链
 
@@ -286,7 +288,7 @@ P2-32 修复后（2026-10-29）：`security-policy`（改密/敏感操作）在 
 
 - `POST /auth/google`，body `{ credential }`（Google id_token）。
 - `AuthGoogleStrategy.verify`：从 id_token 头部取 `kid`，在**本地 JWKS 快照**
-  `apps/api/src/public/json/google-jwk.json` 里取公钥，`jose.jwtVerify` 校验
+  `apps/server/libs/auth/src/modules/google/google-jwk.ts`（编译期快照；公开静态副本仍在 `apps/server/apps/api/src/public/json/google-jwk.json`） 里取公钥，`jose.jwtVerify` 校验
   `issuer`（`https://accounts.google.com` / `accounts.google.com`）与 `audience`
   （`auth.google.clientId`）；失败一律 **40107 OAuth Failed**，不发外网请求。
 - **P1-17（已修复，2026-10-28，端点暂时关闭）**：`AuthGoogleService.validateGoogle` 的

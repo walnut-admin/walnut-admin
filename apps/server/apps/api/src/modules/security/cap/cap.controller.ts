@@ -1,15 +1,9 @@
 import { Solution } from '@cap.js/server'
 import { Body, Controller, HttpCode, HttpStatus, Post, Req } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutAdminDecoratorFreeResponse } from '@/decorators/walnut/response.decorator'
-import { WalnutAdminGuardCapFree } from '@/guard/cap.guard'
-import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'
-import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { WalnutAdminDecoratorThrottle } from '@/guard/throttler.guard'
-import { WalnutAdminGuardJwtFree } from '@/modules/auth/modules/jwt/jwt-access.guard'
-import { SecurityCapService } from './cap.service'
-import { SecurityCapSettingService } from './cap.setting.service'
+import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
+import { WalnutAdminDecoratorFreeResponse, WalnutAdminDecoratorThrottle, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { SecurityCapService, SecurityCapSettingService } from '@walnut-server/security'
 
 @Controller('security/cap')
 @ApiTags('security/cap')

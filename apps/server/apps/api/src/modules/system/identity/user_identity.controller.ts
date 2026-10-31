@@ -3,6 +3,8 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { WalnutAdminDecoratorUser, WalnutAdminGuardRequireSensitive } from '@walnut-server/guards'
+
 import {
   IWalnutAdminConstSysUserIdentityPurpose,
   IWalnutAdminConstSysUserIdentityType,
@@ -18,10 +20,7 @@ import {
   WalnutAdminConstSysUserIdentityPurpose,
   WalnutAdminConstSysUserIdentityType,
 } from '@walnut-server/identity'
-
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { WalnutAdminGuardRequireSensitive } from '@/guard/sensitive.guard'
 
 @Controller('system/user/identity')
 @ApiTags('system/user/identity')

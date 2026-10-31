@@ -35,7 +35,7 @@
 
 ### P2-14 并发 login/finish 的 Duplicate Auth 判据是「读后写」
 
-- **位置**：`apps/api/src/modules/auth/modules/refresh/shared/refresh.shared.service.ts`
+- **位置**：`libs/auth/src/modules/refresh/shared/refresh.shared.service.ts`
   （`generateRefreshToken` / `isCurrentUserInThisDeviceHasSignIn`）+
   `refresh.repo.service.ts`（`findActiveByDeviceIdAndUserId`）。
 - **现象**：登录时先查「同 (user, device) 是否已有未撤销 RT 行」，无行则取最新历史行复签
@@ -89,7 +89,7 @@
 
 - **位置**：`libs/system/src/device/device.service.ts`（`updateLockOrBanStatus`）+
   `device/repo/device.repo.service.ts`（`findDeviceByDeviceIdAndUpdate`：`findOne` →
-  `Object.assign` → `save`）+ `guard/device.guard.ts`（缓存 miss 回源分支）。
+  `Object.assign` → `save`）+ `libs/guards/src/guards/device.guard.ts`（缓存 miss 回源分支）。
 - **现象**：两个层面。
   1. 状态位更新是 read-modify-write，没有行锁也不是原子 `UPDATE`；并发 `lock` 与 `ban`
      各自读到旧行再整行 `save`，后写者会覆盖前者的状态位（丢更新）。
@@ -120,7 +120,7 @@
 
 - **位置**：`apps/api/src/modules/techniques/task/task.service.ts`（六个 `@Cron`）+
   `task.module.ts`（`onModuleInit` 依次调用六个任务）+
-  `apps/api/src/modules/auth/modules/refresh/repo/refresh.pg.purge.service.ts`（每小时 purge）。
+  `libs/auth/src/modules/refresh/repo/refresh.pg.purge.service.ts`（每小时 purge）。
 - **现象**：`@Cron` 是进程内的，没有分布式锁或执行标记；多实例部署时每个实例都会各跑一遍
   全量配置/语言重算、RT 标记、key 轮换、设备清理与 MFA 重算。每次启动 `onModuleInit` 还会
   同步执行一遍（含 `rotateAppKey` 与设备清理），启动耗时与副作用随数据量增长。
@@ -135,7 +135,7 @@
 
 - **位置**：`apps/api/src/modules/app/key/key.service.ts`（`rotate` / `rotateForCronJob`）+
   `libs/rsa/src/rsa.service.ts`（`getCurrentRsaPrivateKey`）+
-  `apps/api/src/interceptors/request/decrypt.interceptor.ts`。
+  `libs/guards/src/interceptors/request/decrypt.interceptor.ts`。
 - **现象**：rotate 在事务内把旧行置 `DEPRECATED` 并插入新 ACTIVE 行；请求解密只读
   「version 最大的 ACTIVE 行」的私钥。轮转瞬间用旧公钥加密、尚未到达的请求密文，在新私钥下
   解密失败并映射 **40011**。当前没有 grace 窗口、没有按 key version 回退解密。
@@ -178,7 +178,7 @@
 ### P3-17 ENDPOINTS.md 的 sensitive verify 请求形态与 DTO 不符（文档大轮次 A 段，新登记）
 
 - **位置**：`apps/api/test/api/ENDPOINTS.md` §3 `security/sensitive` 行 vs
-  `apps/api/src/modules/security/sensitive/sensitive.dto.ts`
+  `libs/security/src/sensitive/sensitive.dto.ts`
   （`SecuritySensitiveVerifyRequestDTO`）。
 - **现象**：ENDPOINTS 把 verify 请求登记为 `{basic,action,type,code}`，实际 DTO 是
   `{level, operationType?, method, credential}`（`security.api-spec.ts` 用例也按后者发）。
@@ -246,7 +246,7 @@
 
 ### P3-31 cap.guard 的 40111 YouAreBot 是死分支 —— 自抛自吞（guard 分支覆盖补齐批，新登记）
 
-- **位置**：`apps/api/src/guard/cap.guard.ts` 的 `performCapVerification`。
+- **位置**：`libs/guards/src/guards/cap.guard.ts` 的 `performCapVerification`。
 - **现象**：`AppCapJS.validateToken` 返回 `success=false` 时函数内抛
   `WalnutAdminExceptionYouAreBot`（40111），但同一 `try` 的 `catch` 把所有异常吞掉并
   `return false` —— 调用方（`canActivate`）随后按 `shouldChallenge` 改抛 40116/40117。
@@ -259,7 +259,7 @@
 
 ### P3-33 permission.guard 数组权限缺 mode 时静默放行（guard 分支覆盖补齐批，新登记）
 
-- **位置**：`apps/api/src/guard/permission.guard.ts`（数组分支只处理 `AND`/`OR` 两个
+- **位置**：`libs/guards/src/guards/permission.guard.ts`（数组分支只处理 `AND`/`OR` 两个
   枚举值，二者都不是时 `canNext` 保持 true）。
 - **现象**：若通过 `SetMetadata` 直接写数组权限、又不写 `PERMISSION_MODE`，守卫会把
   「没有模式」当放行 —— 与 roles.guard 已修的同类陷阱同构。当前无触发面：全仓数组
@@ -271,7 +271,7 @@
 
 ### P3-34 device.guard 的 `active` 字段从未参与判定（guard 分支覆盖补齐批，观察项登记）
 
-- **位置**：`apps/api/src/guard/device.guard.ts`（缓存/DB 两条腿都读 `active`，但只用
+- **位置**：`libs/guards/src/guards/device.guard.ts`（缓存/DB 两条腿都读 `active`，但只用
   `banned` / `locked` 判定）+ `cache.device.ts` 的 `DeviceCache.active`。
 - **现象**：`sys_device.active` 只被设备初始化的 `active=true`、cron 清理
   （`updateDeviceActiveStatusForCronJob`）与读接口消费，**准入链不检查它** —— 停用设备
@@ -301,7 +301,7 @@
 
 - **位置**：`apps/api/test/api/guard-matrix.api-spec.ts`（IP guard 组的
   「【安全矩阵发现】非黑名单伪造 IP 直通 → 20000」用例）→
-  `apps/api/src/modules/security/risk/modules/location.service.ts`
+  `libs/security/src/risk/modules/location.service.ts`
   （`evaluateLocationRisk` / `performLocationEvaluation`）→
   `libs/ip/src/ip.service.ts`
   （`getLocationInfoFromFreeAPI` 对外网 `api.ip.sb` 的请求失败即抛 50302
