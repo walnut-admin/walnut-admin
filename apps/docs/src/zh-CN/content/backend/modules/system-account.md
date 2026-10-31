@@ -179,7 +179,7 @@ sys_user_device 1 ── 1 当前用户的锁屏状态  (locked 列；与 sys_de
   默认查询不出，取值走仓库的显式 `addSelect` 通道。
 - `valueHash = HMAC-SHA256(value, crypto.userIdentitySalt)`，登录/查重按 `(type, value_hash)`
   走 `idx_identity_type_hash`，不需要解密全表。
-- `maskedValue` 由 `SharedMaskService.maskIdentityValue` 生成，用于展示。
+- `maskedValue` 由 `@walnut-server/utils/mask` 的 `maskIdentityValue` 生成（批 6 起；原 `SharedMaskService` 的委托壳已删），用于展示。
 
 ### 3.2 OTP 绑定验证闭环
 

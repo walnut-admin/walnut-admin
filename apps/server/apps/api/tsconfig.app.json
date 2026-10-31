@@ -37,7 +37,8 @@
         "../../libs/system/src/**/*",
         "../../libs/auth/src/**/*",
         "../../libs/security/src/**/*",
-        "../../libs/guards/src/**/*"
+        "../../libs/guards/src/**/*",
+        "../../libs/app-domain/src/**/*"
     ],
     "exclude": [
         "node_modules",

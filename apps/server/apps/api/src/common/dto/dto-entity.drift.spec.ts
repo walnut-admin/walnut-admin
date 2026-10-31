@@ -2,6 +2,7 @@ import type { ClassConstructor } from 'class-transformer'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { AppDemoDTOBase, AppDemoEntity, AppErrorDTOBase, AppErrorEntity, AppKeyDTOBase, AppKeyEntity, AppKeyStatusConst, AppKeyTypeConst, AppMonitorUserDTOBase, AppMonitorUserEntity, AppSettingDTOBase, AppSettingEntity, SharedAreaDTOBase, SharedAreaEntity } from '@walnut-server/app-domain'
 import { WalnutAdminConstAppEnv } from '@walnut-server/const/app/env'
 import { WalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
 import { WalnutAdminConstSysUserMfaType } from '@walnut-server/const/app/mfa'
@@ -10,10 +11,10 @@ import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decor
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { WalnutModelName } from '@walnut-server/db'
-import { colorModeConst, CVDConst, DeviceLinkConst, fontSizeConst, layoutModeConst, LockModeConst, registerIdentityRecoverables, SysUserDeviceDTOBase, SysUserDeviceEntity, SysUserDTOBase, SysUserEntity, SysUserGenderConst, SysUserIdentityDTOBase, SysUserIdentityEntity, SysUserLockDTOBase, SysUserLockEntity, SysUserMfaDTOBase, SysUserMfaEntity, SysUserOAuthDTOBase, SysUserOauthEntity, SysUserPreferenceDTOBase, SysUserPreferenceEntity, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType, WalnutAdminConstSysUserOAuthProvider } from '@walnut-server/identity'
 
 // ─── 被守卫的 DTO 基座 ↔ 实体清单（全部模块逐一显式 import，映射见下方 DTO_ENTITY_CASES）───
 
+import { colorModeConst, CVDConst, DeviceLinkConst, fontSizeConst, layoutModeConst, LockModeConst, registerIdentityRecoverables, SysUserDeviceDTOBase, SysUserDeviceEntity, SysUserDTOBase, SysUserEntity, SysUserGenderConst, SysUserIdentityDTOBase, SysUserIdentityEntity, SysUserLockDTOBase, SysUserLockEntity, SysUserMfaDTOBase, SysUserMfaEntity, SysUserOAuthDTOBase, SysUserOauthEntity, SysUserPreferenceDTOBase, SysUserPreferenceEntity, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType, WalnutAdminConstSysUserOAuthProvider } from '@walnut-server/identity'
 import { SysDeletedEntity, WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
 import {
   assembleSysMenuMeta,
@@ -55,19 +56,6 @@ import { getMetadataStorage, validateSync } from 'class-validator'
 import { getMetadataArgsStorage } from 'typeorm'
 import { describe, expect, it } from 'vitest'
 import { registerAppRecoverables } from '@/common/recoverable/app-recoverables'
-import { AppDemoDTOBase } from '@/modules/app/demo/dto/demo.dto'
-import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
-import { AppErrorEntity } from '@/modules/app/error/entity/error.entity'
-import { AppErrorDTOBase } from '@/modules/app/error/error.dto'
-import { AppKeyDTOBase } from '@/modules/app/key/dto/key.dto'
-import { AppKeyEntity } from '@/modules/app/key/entity/key.entity'
-import { AppKeyStatusConst, AppKeyTypeConst } from '@/modules/app/key/key.const'
-import { AppMonitorUserDTOBase } from '@/modules/app/monitor/user/dto/user.dto'
-import { AppMonitorUserEntity } from '@/modules/app/monitor/user/entity/monitor-user.entity'
-import { AppSettingDTOBase } from '@/modules/app/setting/dto/setting.dto'
-import { AppSettingEntity } from '@/modules/app/setting/entity/setting.entity'
-import { SharedAreaDTOBase } from '@/modules/shared/area/dto/area.dto'
-import { SharedAreaEntity } from '@/modules/shared/area/entity/area.entity'
 import { SysDeletedDTOBase } from '@/modules/system/deleted/dto/deleted.dto'
 
 /**
@@ -298,12 +286,14 @@ function listDtoFiles(dir: string): string[] {
 
 async function globFoundDtoBaseNames(): Promise<Set<string>> {
   const found = new Set<string>()
-  // 批 6：身份栈 DTO 随内核下沉 libs/identity；批 7：system 域 DTO 下沉 libs/system。
-  // 扫描面跟着走（app modules + 两个 lib），漏扫 = 已登记的 DTOBase 被误报 stale。
+  // 批 6：身份栈 DTO 随内核下沉 libs/identity；批 7：system 域 DTO 下沉 libs/system；
+  // 批 9：app / shared 域 DTO 下沉 libs/app-domain。扫描面跟着走（app modules +
+  // 三个 lib），漏扫 = 已登记的 DTOBase 被误报 stale。
   const dtoDirs = [
     resolve(process.cwd(), 'apps/api/src/modules'),
     resolve(process.cwd(), 'libs/identity/src'),
     resolve(process.cwd(), 'libs/system/src'),
+    resolve(process.cwd(), 'libs/app-domain/src'),
   ]
 
   for (const dtoDir of dtoDirs) {
@@ -483,7 +473,7 @@ interface IEnumSourceCase {
 
 const ENUM_SOURCE_CASES: ReadonlyArray<IEnumSourceCase> = [
   { constraintName: 'ck_app_setting_type', table: 'app_setting', column: 'setting_type', source: WalnutAdminConstAppSettingType },
-  { constraintName: 'ck_app_demo_enum', table: 'app_demo', column: 'demo_enum', source: null, inlineSourceDto: 'modules/app/demo/dto/demo.dto.ts（DemoConst 内联未导出）' },
+  { constraintName: 'ck_app_demo_enum', table: 'app_demo', column: 'demo_enum', source: null, inlineSourceDto: 'libs/app-domain/src/demo/dto/demo.dto.ts（DemoConst 内联未导出）' },
   { constraintName: 'ck_app_key_type', table: 'app_key', column: 'type', source: AppKeyTypeConst },
   { constraintName: 'ck_app_key_status', table: 'app_key', column: 'status', source: AppKeyStatusConst },
   { constraintName: 'ck_app_error_method', table: 'app_error', column: 'method', source: WalnutAdminConstAppHTTPMethods },

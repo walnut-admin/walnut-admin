@@ -122,7 +122,7 @@
 
 ### P0-6 app/key/current 无授权读取服务器私钥与 AES 密钥（文档大轮次 D 段）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/app/key/key.controller.ts` 的 `@Get('current/:type')`
+- **位置**：`libs/app-domain/src/key/key.controller.ts` 的 `@Get('current/:type')`
   （无 `@HasPermission`、无 `@WalnutAdminDecoratorHasRole`）+ `key.service.ts` 的
   `getCurrent`（RSA_PAIR 返回 `publicKeyPem` + `privateKeyPem`，AES_KEY_URL 返回 `keyB64`）。
 - **现象**：该端点只走默认全局守卫链，**任何已登录用户（含 visitor）**都能读取服务端 RSA
@@ -151,7 +151,7 @@
 
 ### P1-1 key rotate 并发产生两条 ACTIVE —— 读腿无锁且无唯一索引兜底（G 段实测，新收编）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/app/key/key.service.ts`（`rotate`）+
+- **位置**：`libs/app-domain/src/key/key.service.ts`（`rotate`）+
   `key.basic.repository.ts`（`getCurrentActiveKey` 无 `FOR UPDATE`）+ InitSchema（`app_key`
   无 `(type, version)` 唯一索引、无 `ACTIVE` 部分唯一索引；`uq_key` 只挡 key 串同毫秒）。
 - **现象**：两路并发 rotate 同 type：都在对方提交前读到同一条 current，各 deprecate 一次、
@@ -564,7 +564,7 @@
 
 ### P2-4 monitor/cache read 出参恒 `{}` + delete fire-and-forget —— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/app/monitor`（read 腿 `void await get`；delete 先响应后 DEL）。
+- **位置**：`libs/app-domain/src/monitor`（read 腿 `void await get`；delete 先响应后 DEL）。
 - **实测证据**：`monitor.api-spec.ts` B 段（delete 靠轮询断言）。
 - **建议**：read 补 await；delete 明确 fire-and-forget 语义并写入响应契约。
 - **修法（2026-10-28，批 2）**：read 改为 `{ value: await cacheService.get(key) }`（真实值，
@@ -584,7 +584,7 @@
 
 ### P2-6 key init 的 JWT_AT 分支不可达 —— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/app/key/key.service.ts`（`generateNewKeyByType` 无 JWT_AT
+- **位置**：`libs/app-domain/src/key/key.service.ts`（`generateNewKeyByType` 无 JWT_AT
   分支 → init JWT_AT 恒 20000 且不落行，二钻 40001 不可达）。
 - **实测证据**：`key.api-spec.ts` B 段。
 - **建议**：补 JWT_AT 生成分支，或 DTO 层拦 JWT_AT。
@@ -595,7 +595,7 @@
 
 ### P2-7 error controller ErrorMap 的 40112-40117 异常类与 contract 错误码错位 —— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/app/error`（ErrorMap，如 40112 挂 CapInteractionRequired，
+- **位置**：`libs/app-domain/src/error`（ErrorMap，如 40112 挂 CapInteractionRequired，
   真实码 40116）。
 - **实测证据**：`error.api-spec.ts` B 段（选了无错位的 40000/40103/40300/50000 断言绕开）。
 - **建议**：对齐映射（注意牵动 guard 真实错误码 40116/40117 的语义归属）。
@@ -724,7 +724,7 @@
 ### P2-15 永久 IP 黑名单写腿在零配置下静默 no-op —— 依赖 `app.global.ipBlackList` 行预先存在 —— 【已修复 2026-10-28】
 
 - **位置**：`libs/ip/src/ip.service.ts`（`addToPermanentBlackList`）→
-  `apps/api/src/modules/app/setting/repo/setting.repo.service.ts`
+  `libs/app-domain/src/setting/repo/setting.repo.service.ts`
   （`updateAppSettingByKey`：`findOne` 查无行时直接跳过 save）。
 - **现象**：黑名单路径命中时（`BlacklistPathMiddleware` / `security.guard`）会调用
   `addToPermanentBlackList(realIp)`；但该写腿先 `findAppSettingByKey`，无行则拼出 `[ip]`
@@ -956,7 +956,7 @@
 
 ### P2-31 monitor/state 的 auth=false 不清 userId —— 在线监控残留上次登录用户 —— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/modules/app/monitor/user/user.service.ts`（`updateState`：
+- **位置**：`libs/app-domain/src/monitor/user/user.service.ts`（`updateState`：
   `if (dto.auth === false) dto.userId = null`，随后 `Object.entries(...).filter(([_, v]) => !isNil(v))`
   又把 null 丢掉）+ `app/monitor/user/shared/user.shared.service.ts`（02:00 cron 的
   `updateAuthState` 才会把 `auth=false` 且 `user_id=null` 落库）。
@@ -1353,7 +1353,7 @@
 
 ### P3-26 setting 没有 delete / deleteMany 端点，但登记为 CRUD（D 段，新登记）—— 【裁决：配置不删 2026-10-29，契约已写入前端文档】
 
-- **位置**：`apps/api/src/modules/app/setting/setting.controller.ts`（只挂
+- **位置**：`libs/app-domain/src/setting/setting.controller.ts`（只挂
   `WalnutAdminDecoratorCreate/Read/Update/List` + `POST cache/refresh`）对照
   `ENDPOINTS.md` §1 的「CRUD + POST cache/refresh」。
 - **现象**：`DELETE /app/setting/:id` 与 `deleteMany` 都不存在；配置行只能新增/修改。直接改库
@@ -1415,7 +1415,7 @@
 ### P3-36 app.functional.role 设置变更不失效 AUTH:DATA_SCOPE（数据权限复审，缓存残留）—— 【已修复 2026-10-30，批 4 epoch 方案】
 
 - **位置**：`libs/system/src/data-scope/data-scope.service.ts`（缓存键
-  `AUTH:DATA_SCOPE`）+ `apps/api/src/modules/app/setting/repo/setting.repo.service.ts`
+  `AUTH:DATA_SCOPE`）+ `libs/app-domain/src/setting/repo/setting.repo.service.ts`
   （`updateAppSettingByKey` / `extractAppSettingIntoCache`）。
 - **现象**：effective roleMode 来自 `app.functional.role` 设置（GLOBAL scope 取
   `globalValue`、LOCAL 取用户行 `roleMode`）。修改该设置会改变 COMBINE/SWITCH 的解析

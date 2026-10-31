@@ -46,7 +46,8 @@
           "libs/system/src",
           "libs/auth/src",
           "libs/security/src",
-          "libs/guards/src"
+          "libs/guards/src",
+          "libs/app-domain/src"
         ]
       }
     }
@@ -375,6 +376,15 @@
       "sourceRoot": "libs/guards/src",
       "compilerOptions": {
         "tsConfigPath": "libs/guards/tsconfig.lib.json"
+      }
+    },
+    "app-domain": {
+      "type": "library",
+      "root": "libs/app-domain",
+      "entryFile": "index",
+      "sourceRoot": "libs/app-domain/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/app-domain/tsconfig.lib.json"
       }
     }
   }

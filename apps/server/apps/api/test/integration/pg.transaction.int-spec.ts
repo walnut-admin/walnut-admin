@@ -2,11 +2,11 @@ import type { CallHandler, ExecutionContext, INestApplication } from '@nestjs/co
 import type { WalnutTxContext } from '@walnut-server/db'
 import type { DataSource } from 'typeorm'
 import { randomUUID } from 'node:crypto'
+import { AppDemoEntity } from '@walnut-server/app-domain'
 import { registerAfterCommitHook, WalnutTxInterceptor } from '@walnut-server/db'
-import { from, lastValueFrom, throwError } from 'rxjs'
 
+import { from, lastValueFrom, throwError } from 'rxjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
 import { createIntegrationApp, getWalnutPgAdminDataSource, getWalnutPgDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 

@@ -154,7 +154,7 @@ throw new WalnutAdminExceptionSensitiveVerificationFailed({ meta: { reason: 'pas
 
 - **Internal**: `@walnut-server/const/app/responseCode` (for error codes), `@walnut-server/utils/response` (for response builder), `@walnut-server/utils/headers` (for custom headers), `@walnut-server/blpath` (SharedBLPathService)
 - **External**: `@nestjs/common`, `mongoose`
-- **App-level** (wired into the filter): `nestjs-i18n` (I18nContext); error reporting is injected through the `WALNUT_ADMIN_ERROR_REPORTER` port and bound to `@/modules/app/error/error.service` (AppErrorService) on the app side
+- **App-level** (wired into the filter): `nestjs-i18n` (I18nContext); error reporting is injected through the `WALNUT_ADMIN_ERROR_REPORTER` port and bound to `AppErrorService` in `libs/app-domain/src/error/error.service.ts` (since libs 解耦批 9 the implementation is itself a lib)
 
 ## Notes
 

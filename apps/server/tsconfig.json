@@ -223,6 +223,12 @@
       ],
       "@walnut-server/guards/*": [
         "./libs/guards/src/*"
+      ],
+      "@walnut-server/app-domain": [
+        "./libs/app-domain/src"
+      ],
+      "@walnut-server/app-domain/*": [
+        "./libs/app-domain/src/*"
       ]
     }
   }

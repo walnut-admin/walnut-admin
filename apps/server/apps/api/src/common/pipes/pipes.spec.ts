@@ -1,4 +1,5 @@
 import type { ArgumentMetadata } from '@nestjs/common'
+import { AppLoggerLogType } from '@walnut-server/app-domain'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import {
   WalnutAdminPipeAreaPcode,
@@ -9,7 +10,6 @@ import {
 } from '@walnut-server/pipes'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { describe, expect, it } from 'vitest'
-import { AppLoggerLogType } from '@/modules/app/logger/dto/logger.dto'
 
 // 瑕疵修复（2026-10-27）配套单测：裸 param/query 的格式约束管道族 + ParamEnum 的
 // optional 形态。管道正则的出处与理由见 libs/pipes/src/base/format.pipe.ts 各类注释。

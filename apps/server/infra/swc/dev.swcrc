@@ -81,7 +81,9 @@
       "@walnut-server/security": ["libs/security/src"],
       "@walnut-server/security/*": ["libs/security/src/*"],
       "@walnut-server/guards": ["libs/guards/src"],
-      "@walnut-server/guards/*": ["libs/guards/src/*"]
+      "@walnut-server/guards/*": ["libs/guards/src/*"],
+      "@walnut-server/app-domain": ["libs/app-domain/src"],
+      "@walnut-server/app-domain/*": ["libs/app-domain/src/*"]
     },
     "keepClassNames": true
   },

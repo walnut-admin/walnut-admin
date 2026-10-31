@@ -62,7 +62,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 
 ---
 
-## 1. app 模块（`modules/app/`）
+## 1. app 模块（`libs/app-domain/src/` + app 侧 `modules/app/monitor/user/` 组合根）
 
 | 端点 | 方法/路径 | 守卫 | 权限点 | 请求形态 | API 级测试策略 |
 |---|---|---|---|---|---|
@@ -130,7 +130,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | cap | POST `/security/cap/challenge`、`/security/cap/redeem` | Cap/Jwt/Device/Lock Free（challenge/redeem 另 SignFree） | 无 | challenge/redeem payload | **D 段已测**（security.api-spec.ts）：FreeResponse 无响应壳 —— challenge 回 cap.js `{challenge:{c,s,d},token,expires}`，redeem 本地 PoW 对解 success:true、错解 success:false（helpers 求解器与 api-client 引导期同源） |
 | sensitive | GET `/security/sensitive/check`、POST `/security/sensitive/verify` | Sign 链（`SensitiveGuard` 方法级） | 无 | verify `{level,operationType?,method,credential}`（P3-17 订正） | **D 段已测**（security.api-spec.ts）：P1-5 修复后 —— ① 缺 security 身份探测腿容错跳过，无可用方式 → 40000 noVerifyMethodAvailable；② 造 email/phone security 身份后 check 列 sms/email（password 已摘除、mfa 未实现不列）、首选 sms；③ email 错码 40000 不授权、对码授权 basic 键；④ password/mfa 通道 → 40000 verifyMethodNotAllowed。**K 段 G6 补**：basic 授权不放行 account_critical（40119），verify account_critical 后 `PUT identity status` 20000 且 status 落库。**P2-25 补**：operation 枚举新增 `identity_manage`（account_critical 覆盖 email/sms），供 identity update/unbind 使用 |
 
-## 4. shared 模块（`modules/shared/`）
+## 4. shared 模块（`libs/app-domain/src/shared/`）
 
 | 端点 | 方法/路径 | 守卫 | 权限点 | 请求形态 | API 级测试策略 |
 |---|---|---|---|---|---|

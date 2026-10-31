@@ -223,7 +223,7 @@ dictData 快照）；junction（`sys_user_role` / `sys_role_menu`）与设备行
 
 | 队列 | 注册方 | 用途 |
 |---|---|---|
-| `ERROR` | `modules/app/error` | 错误上报异步落库 |
+| `ERROR` | `libs/app-domain/src/error` | 错误上报异步落库 |
 | `EMAIL` | `@walnut-server/mailer` | 验证码邮件、欢迎邮件 |
 | `PHONE` | `@walnut-server/sms` | 验证码短信（阿里云） |
 
@@ -317,7 +317,7 @@ WHERE expired_at < now()`（物理回收，与上面「标记 revoked」的任�
 | GET `/app/health/memory-rss` | 同上 | `app:health:memory-rss` | — → indicator |
 | GET `/app/health/disk` | 同上 | `app:health:disk` | — → indicator |
 
-cache / event / queue / task 没有 HTTP 端点；cache 的只读/删除面在 `modules/app/monitor/cache`
+cache / event / queue / task 没有 HTTP 端点；cache 的只读/删除面在 `libs/app-domain/src/monitor/cache`
 （不在本篇范围）。
 
 ## 5. 已知行为注记

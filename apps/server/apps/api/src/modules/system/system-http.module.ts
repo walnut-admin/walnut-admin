@@ -26,7 +26,8 @@ import { SysRoleController } from './role/role.controller'
  * （device → lang → locale → dictType → dictData → dept → post → employee →
  * logAuth → logOperate → menu → role）。deleted 的 controller 单独放在
  * `deleted-http.module.ts` —— 解耦前它由 AppDemoModule import 的 SysDeletedModule 声明，
- * 路径排在 app/demo 之后，顺序不能丢。
+ * 路径排在 app/demo 之后；批 9 起由 app 的 `AppAppModule` 紧随 lib 的 `AppDemoModule`
+ * 引入，顺序不能丢。
  * 依赖的服务经 `SysSystemModule` 的 exports 可见（dept/post 的 service 已补导出）。
  */
 @Module({

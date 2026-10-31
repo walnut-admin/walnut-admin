@@ -1,14 +1,11 @@
 import type { INestApplication } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
-import { WalnutAdminExceptionNotFound } from '@walnut-server/exceptions/base.exception'
+import { AppKeyBasicRepository, AppKeyEntity, AppKeyService, AppKeyTypeConst } from '@walnut-server/app-domain'
 
+import { WalnutAdminExceptionNotFound } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { AppKeyEntity } from '@/modules/app/key/entity/key.entity'
-import { AppKeyBasicRepository } from '@/modules/app/key/key.basic.repository'
-import { AppKeyTypeConst } from '@/modules/app/key/key.const'
-import { AppKeyService } from '@/modules/app/key/key.service'
 import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 

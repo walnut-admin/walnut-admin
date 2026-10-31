@@ -5,6 +5,7 @@ import type {
   WalnutDataScopeFindWhere,
 } from '@walnut-server/repository'
 import type { EntityTarget, ObjectLiteral } from 'typeorm'
+import { AppDemoEntity, AppErrorEntity, AppKeyEntity, AppMonitorUserEntity, AppSettingEntity, SharedAreaEntity } from '@walnut-server/app-domain'
 import { AuthRefreshTokenEntity } from '@walnut-server/auth'
 import { SysUserDeviceEntity, SysUserEntity, SysUserIdentityEntity, SysUserLockEntity, SysUserMfaEntity, SysUserOauthEntity, SysUserPreferenceEntity, SysUserRoleEntity } from '@walnut-server/identity'
 import { SysDeletedEntity } from '@walnut-server/repository'
@@ -24,20 +25,16 @@ import {
   SysRoleEntity,
   SysRoleMenuEntity,
 } from '@walnut-server/system'
-import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
-import { AppErrorEntity } from '@/modules/app/error/entity/error.entity'
-import { AppKeyEntity } from '@/modules/app/key/entity/key.entity'
-import { AppMonitorUserEntity } from '@/modules/app/monitor/user/entity/monitor-user.entity'
-import { AppSettingEntity } from '@/modules/app/setting/entity/setting.entity'
-import { SharedAreaEntity } from '@/modules/shared/area/entity/area.entity'
 
 /**
  * 数据权限的**实体注册表**（app 侧，跨域实体清单的唯一真源）。
  *
  * 批 7：纯谓词函数已随 data-scope 模块下沉 `@walnut-server/system`
  * （`data-scope.predicates.ts`），本文件只保留实体清单 / 豁免清单 / 查表函数，
- * 并 re-export 谓词函数保持既有 import 面不变。清单横跨 app / auth / shared / identity
- * 四层实体，因此不能进 lib（lib 不 import app）；策略端口实现
+ * 并 re-export 谓词函数保持既有 import 面不变。批 9 起 app / shared 实体
+ * （demo / error / key / monitor-user / setting / area）在 `@walnut-server/app-domain`，
+ * 清单仍横跨 auth / identity / system / app-domain 四层实体，因此留 app
+ * （lib 不 import app）；策略端口实现
  * `common/repository/data-scope.policy.ts` 与本文件同层。
  *
  * 语义见 docs/plans/data-scope-design.md §4，§7「残余过滤条件接口」；

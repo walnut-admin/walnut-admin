@@ -1,12 +1,12 @@
 import type { IAuthMonitorService } from '@walnut-server/auth'
 import type { IIdentityUserNotifier } from '@walnut-server/identity'
 import { Injectable } from '@nestjs/common'
+import { AppMonitorUserRepositoryService } from '@walnut-server/app-domain'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { WalnutAdminSocketEvents } from '@/socket/socket.const'
 // Note: IWalnutAdminSocketEvents is now a global type from @walnut-server/types
 import { SocketService } from '@/socket/socket.service'
-import { AppMonitorUserRepositoryService } from '../repo/user.repo.service'
 
 /** B7b 迁移：refresh 行从 Mongo 文档换成 PG 实体（cron 只消费 userId / deviceId 两个键） */
 interface IExpiredRefreshTokenLike {

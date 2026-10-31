@@ -133,7 +133,7 @@
 
 ### P2-30 key 轮转没有重叠窗口 —— 旧公钥密文在 rotate 后不可解，且 current 不校验 validEnd（D 段，新登记）
 
-- **位置**：`apps/api/src/modules/app/key/key.service.ts`（`rotate` / `rotateForCronJob`）+
+- **位置**：`libs/app-domain/src/key/key.service.ts`（`rotate` / `rotateForCronJob`）+
   `libs/rsa/src/rsa.service.ts`（`getCurrentRsaPrivateKey`）+
   `libs/guards/src/interceptors/request/decrypt.interceptor.ts`。
 - **现象**：rotate 在事务内把旧行置 `DEPRECATED` 并插入新 ACTIVE 行；请求解密只读
@@ -198,7 +198,7 @@
 
 ### P3-27 JWT_AT / JWT_RT 没有生产写入点 —— DTO 声称的「启动自举」不存在（D 段，新登记）
 
-- **位置**：`apps/api/src/modules/app/key/dto/key.dto.ts`（`AppKeyInitTypeNotSystemManagedConstraint`
+- **位置**：`libs/app-domain/src/key/dto/key.dto.ts`（`AppKeyInitTypeNotSystemManagedConstraint`
   的提示语「bootstrapped by the system at startup」）+ `key.const.ts` 的 `JWT_AT` / `JWT_RT`
   + 全仓 grep。
 - **现象**：两类 key 只出现在枚举、CHECK 与 DTO 拒绝分支；没有启动期写入 `app_key` 的代码，
@@ -212,7 +212,7 @@
 
 ### P3-28 shared_area 的递归 CTE 能力未接线 —— 无端点、无调用方（D 段，新登记）
 
-- **位置**：`apps/api/src/modules/shared/area/area.basic.repository.ts` 的
+- **位置**：`libs/app-domain/src/shared/area/area.basic.repository.ts` 的
   `findSubtreeByCode` / `assembleSubtree`。
 - **现象**：整子树 / 限深查询（递归 CTE + `CYCLE` 环保护）已实现，但 `SharedAreaService` 与
   controller 都没有调用；对外只有 children（单层）与 feedback（向上收集同级）两个端点。
@@ -223,7 +223,7 @@
 
 ### P3-29 monitor/server 八个端点各自执行宿主机探测 —— 无缓存 / 无合并 / 无限流（D 段，新登记）
 
-- **位置**：`apps/api/src/modules/app/monitor/server/server.controller.ts` +
+- **位置**：`libs/app-domain/src/monitor/server/server.controller.ts` +
   `server.service.ts`。
 - **现象**：cpu / mem / os / sys / disk / battery / time / network 每个请求各调一次
   `systeminformation`（部分方法会 spawn 系统命令）；没有短 TTL 缓存、没有聚合端点、没有

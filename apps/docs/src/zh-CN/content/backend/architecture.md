@@ -22,7 +22,7 @@
 ```
 apps/api/src/                          # Nest CLI 的 app，入口 main.ts
 ├── app/                               # 根模块与根控制器（app.module.ts：全局 Guard 按序装配在这里）
-├── modules/                           # 业务模块（见下表）
+├── modules/                           # 各域 HTTP 组合根 + wire DTO（见下表）
 ├── decorators/                        # 仅剩 log.auth / log.operate（其余已抽至 libs/guards / libs/crud）
 ├── guard/ · interceptors/             # 已抽至 libs/guards；app 只保留 APP_GUARD / APP_INTERCEPTOR 的顺序装配
 ├── common/                            # 共享 DTO、响应模型基座、数据权限实体注册表（仓库基类已抽至 libs/repository）
@@ -44,19 +44,20 @@ libs/*/src/                            # 内部库，经 tsconfig paths 以 @wal
 ├── utils/                             # 工具函数（含 DTO 包装 RealPickType / RealPartialType）
 ├── auth/                              # auth 域：jwt / refresh / otp / mfa / opaque / oauth / session / signout
 ├── security/                          # security 域：cap / risk / sensitive / sign（rsa 独立）
+├── app-domain/                        # app / shared 域：demo / error / key / logger / monitor / setting + area / ali / mask
 └── guards/                            # guard / decorator / interceptor 装配层内核
 
-（ libs 解耦进行中：cache、throttle、mailer、sms、cookie、crypto、lock、queue、sse、blpath、als、delay、list、crud、token、scope-resolver、repository、rsa、ip、identity、system、auth、security、guards 等已陆续抽入 libs/，完整清单以目录为准 —— 见 ADR 0007 与 libs 解耦计划 ）
+（ libs 解耦批 0-9 已完成：cache、throttle、mailer、sms、cookie、crypto、lock、queue、sse、blpath、als、delay、list、crud、token、scope-resolver、repository、rsa、ip、identity、system、auth、security、app-domain、guards 等已在 libs/，完整清单以目录为准 —— 见 ADR 0007 与 libs 解耦计划。app 侧只剩组合根与 wire DTO ）
 ```
 
-`modules/` 下按职责分六组：
+`modules/` 下按职责分六组（数据面都在 libs，controller / wire DTO 按依赖方向留 app）：
 
 | 目录 | 放什么 |
 |------|--------|
-| `app/` | 应用级模块（`demo`、`monitor`、`setting`） |
+| `app/` | app 域组合根（`AppAppModule` + monitor 的 user HTTP 组合与 wire DTO）；demo / error / key / logger / monitor / setting 的数据面与其余 controller 在 `libs/app-domain` |
 | `auth/` | 认证 HTTP 组合根（9 个 controller + passport mixin guard）；数据面已抽至 `libs/auth` |
 | `security/` | 安全 HTTP 组合根（rsa / sign / cap / sensitive controller）；数据面已抽至 `libs/security`（rsa 独立为 `libs/rsa`） |
-| `shared/` | 共享服务（area、mask、ali；welcome 随 auth 域进 `libs/auth`；ip / token / scopeResolver 已抽至 libs/ip、libs/token、libs/scope-resolver，email/SMS 已抽至 libs/mailer、libs/sms） |
+| `shared/` | 只剩 `SharedModule` 聚合根；area / ali / mask 随批 9 进 `libs/app-domain/shared`，welcome 随 auth 域进 `libs/auth`，ip / token / scopeResolver 在 libs/ip、libs/token、libs/scope-resolver，email/SMS 在 libs/mailer、libs/sms |
 | `system/` | 系统管理（HTTP 组合根：role/menu/device/logs/dict 等 controller 与 user wire DTO；数据面已抽至 `libs/system`、身份栈已抽至 `libs/identity`） |
 | `techniques/` | 基础设施（task、event、health、logger；cache/queue/throttle/SSE 等已抽至 libs） |
 
@@ -97,7 +98,7 @@ module-name/
 `WalnutAdminCommonPgBaseRepository`，注入 `@InjectDataSource(WalnutPGConnectionName)` 的
 `DataSource` 并连同 `EntityTarget` 传给 super，名字标签取 `@walnut-server/db` 的
 `WalnutModelName` 常量。下面是标准形态（原文见
-`apps/server/apps/api/src/modules/app/demo/demo.basic.repository.ts`，新模块照抄即可）：
+`apps/server/libs/app-domain/src/demo/demo.basic.repository.ts`，新模块照抄即可）：
 
 ```typescript
 import type { DataSource } from 'typeorm'

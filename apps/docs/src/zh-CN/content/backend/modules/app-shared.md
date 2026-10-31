@@ -1,7 +1,7 @@
 # app 模块族与 shared（demo / error / key / setting / monitor / logger / area / ali）
 
-本篇覆盖三类「非业务主域」的后端代码：`modules/app/` 的应用级模块族（演示、错误通道、密钥、
-配置、监控、日志）、`modules/shared/` 的共享能力（行政区划、JWT 令牌、阿里云 STS），以及挂在
+本篇覆盖三类「非业务主域」的后端代码：`libs/app-domain/` 的应用级模块族（演示、错误通道、密钥、
+配置、监控、日志）、`libs/app-domain/shared/` 的共享能力（行政区划、JWT 令牌、阿里云 STS），以及挂在
 根路径与 `app/health` 上的基础端点。它们的共同点是**被其他模块消费**，自身不承载业务实体流程。
 
 本文写**当前实现**（PostgreSQL 迁移后）。token / 会话语义见 [认证全链](./auth.md)，
@@ -10,7 +10,7 @@ guard 链与方法级权限守卫见 [安全与 guard 链](./security.md)；已�
 表设计依据 `docs/plans/postgres-migration-phase2.md` 与 `apps/api/migrations/1792922206018-InitSchema.ts`，
 站内摘要见 [数据模型与表设计](../schema.md)。
 
-源码入口：`apps/server/apps/api/src/modules/app/`、`.../modules/shared/`、
+源码入口：`apps/server/libs/app-domain/src/`（批 9 前在 `.../modules/app/` 与 `.../modules/shared/`）与 monitor/user 的 app 侧组合根 `apps/api/src/modules/app/monitor/user/`（wire DTO + controller，swagger schema 顺序约束）、
 `.../app/app.controller.ts`、`.../modules/techniques/health/`。
 接口矩阵的原始测绘在 `apps/server/apps/api/test/api/ENDPOINTS.md` §1 / §4 / §6 / §7。
 
@@ -20,12 +20,12 @@ guard 链与方法级权限守卫见 [安全与 guard 链](./security.md)；已�
 
 | 子模块 | 源码目录 | 职责 | 主表 | 访问门槛 |
 |---|---|---|---|---|
-| demo | `modules/app/demo/` | 标准 CRUD 教学模板，全仓 CRUD 的参照实现 | `app_demo` | 全链 + `app:demo:*` |
-| error | `modules/app/error/` | 按错误码抛受控异常，联调错误通道 | `app_error`（错误落库由全局过滤器走队列） | DevOnly + root/developer + `app:error:test` |
-| key | `modules/app/key/` | RSA / AES 密钥的初始化、查询、轮转 | `app_key` | current 仅全链；init / rotate 另需 root |
-| setting | `modules/app/setting/` | 应用配置的公开面 / 私有面、CRUD、缓存刷新 | `app_setting` | public 五 Free；private LockFree；写路径 `app:setting:*` |
-| monitor | `modules/app/monitor/` | Redis 缓存管理、服务器指标、在线用户监控与踢人 | 无 / 无 / `app_monitor_user` | 各 controller 自定（见 §1.5） |
-| logger | `modules/app/logger/` | 读取运行日志文件（分页 / 类型过滤） | 无（文件系统） | admin/developer + `app:logger:*` |
+| demo | `libs/app-domain/src/demo/` | 标准 CRUD 教学模板，全仓 CRUD 的参照实现 | `app_demo` | 全链 + `app:demo:*` |
+| error | `libs/app-domain/src/error/` | 按错误码抛受控异常，联调错误通道 | `app_error`（错误落库由全局过滤器走队列） | DevOnly + root/developer + `app:error:test` |
+| key | `libs/app-domain/src/key/` | RSA / AES 密钥的初始化、查询、轮转 | `app_key` | current 仅全链；init / rotate 另需 root |
+| setting | `libs/app-domain/src/setting/` | 应用配置的公开面 / 私有面、CRUD、缓存刷新 | `app_setting` | public 五 Free；private LockFree；写路径 `app:setting:*` |
+| monitor | `libs/app-domain/src/monitor/` | Redis 缓存管理、服务器指标、在线用户监控与踢人 | 无 / 无 / `app_monitor_user` | 各 controller 自定（见 §1.5） |
+| logger | `libs/app-domain/src/logger/` | 读取运行日志文件（分页 / 类型过滤） | 无（文件系统） | admin/developer + `app:logger:*` |
 
 ### 1.1 demo：CRUD 装饰器形态的参照实现
 
@@ -247,8 +247,9 @@ list 行与 read 响应都没有 `id` 字段（P3-14），前端以 `filePath` �
 
 ## 2. shared
 
-`SharedModule` 装配 `token`、`ali`、`area`、ALS request、delay、BLPath、ip、mask 等能力。本篇只写
-有 HTTP 面或有跨模块契约的三块。
+`SharedModule`（app 的聚合根）装配 `token`、`ali`、`area`、ALS request、delay、BLPath、ip、mask
+等能力；批 9 起 `ali` / `area` / `mask` 的数据面在 `@walnut-server/app-domain/shared`，其余能力
+本来就在各自 lib。本篇只写有 HTTP 面或有跨模块契约的三块。
 
 ### 2.1 area：区划树的层级缓存与递归 CTE
 

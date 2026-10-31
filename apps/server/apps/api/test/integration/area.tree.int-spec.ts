@@ -1,13 +1,11 @@
 import type { INestApplication } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
+import { SharedAreaBasicRepository, SharedAreaEntity, SharedAreaService } from '@walnut-server/app-domain'
+
 import { AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
-
 import { In } from 'typeorm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { SharedAreaBasicRepository } from '@/modules/shared/area/area.basic.repository'
-import { SharedAreaService } from '@/modules/shared/area/area.service'
-import { SharedAreaEntity } from '@/modules/shared/area/entity/area.entity'
 import { createIntegrationApp, getWalnutPgDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 

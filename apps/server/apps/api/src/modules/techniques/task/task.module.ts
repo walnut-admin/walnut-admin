@@ -1,10 +1,10 @@
 import { Module, OnModuleInit } from '@nestjs/common'
 import { ScheduleModule } from '@nestjs/schedule'
-import { AuthRefreshSharedModule } from '@walnut-server/auth'
+import { AppKeyModule } from '@walnut-server/app-domain'
 
+import { AuthRefreshSharedModule } from '@walnut-server/auth'
 import { SysUserDeviceSharedModule, SysUserMfaSharedModule } from '@walnut-server/identity'
 import { SysLocaleSharedModule } from '@walnut-server/system'
-import { AppKeyModule } from '@/modules/app/key/key.module'
 import { AppMonitorUserSharedModule } from '@/modules/app/monitor/user/shared/user.shared.module'
 import { AppTechTasksService } from './task.service'
 

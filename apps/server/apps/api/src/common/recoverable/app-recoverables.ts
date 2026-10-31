@@ -1,14 +1,10 @@
 import type { WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
+import { registerAppDemoRecoverable, registerAppErrorRecoverable, registerAppKeyRecoverable, registerAppMonitorUserRecoverable, registerAppSettingRecoverable, registerSharedAreaRecoverable } from '@walnut-server/app-domain'
 import { registerAuthRefreshTokenRecoverable } from '@walnut-server/auth'
-import { registerAppDemoRecoverable } from '@/modules/app/demo/demo.recoverable'
-import { registerAppErrorRecoverable } from '@/modules/app/error/error.recoverable'
-import { registerAppKeyRecoverable } from '@/modules/app/key/key.recoverable'
-import { registerAppMonitorUserRecoverable } from '@/modules/app/monitor/user/monitor-user.recoverable'
-import { registerAppSettingRecoverable } from '@/modules/app/setting/setting.recoverable'
-import { registerSharedAreaRecoverable } from '@/modules/shared/area/area.recoverable'
 
 /**
- * app 侧三个域（app / auth / shared）的恢复器登记汇总（libs 解耦批 7）。
+ * app 侧三个域（app / auth / shared）的恢复器登记汇总（libs 解耦批 7；
+ * 批 9 起 app / shared 的实体与登记器都在 `@walnut-server/app-domain`）。
  *
  * 运行期由各域自己的 Nest module 调各自的 `registerXxxRecoverable`（薄 factory
  * provider）；本汇总函数只给 `dto-entity.drift.spec` 用 —— 它在纯注册表实例上重放
