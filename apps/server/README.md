@@ -64,9 +64,9 @@ API 文档（Scalar API Reference）：<http://localhost:3000/api>
 在 `apps/server/` 下运行：
 
 ```bash
-pnpm dev            # 开发（watch）
-pnpm build          # 生产构建
-pnpm build:stage    # stage 构建
+pnpm dev            # 开发（watch；静态资源随 assets 拷入 dist）
+pnpm build          # 生产构建（末尾校验 dist 的 i18n/public/views 资产）
+pnpm build:stage    # stage 构建（同上，dist-stage）
 pnpm start:prod     # 直接跑产物
 pnpm lint           # ESLint（fix: pnpm lint:fix）
 pnpm types:check    # tsc --noEmit --pretty

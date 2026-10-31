@@ -71,6 +71,27 @@ infra/
 | `public/**/*` | 静态文件（图片等） | `dist/apps/api/src/public` · `dist-stage/apps/api/src/public` |
 | `views/**/*` | 模板文件（邮件模板） | `dist/apps/api/src/views` · `dist-stage/apps/api/src/views` |
 
+### strip root 与 `assets[].outDir` 的关系
+
+Nest CLI 的 assets manager 把 **tsconfig 的 effective rootDir** 当 strip root：
+目标路径 = `outDir` + （源文件绝对路径去掉 strip root 后的剩余段）。这里有两个必须同时成立的约定：
+
+1. **`apps/server/tsconfig.json` 不写 `rootDir`**。api 的 tsconfig 覆盖 `apps/api/src` 与全部
+   `libs/*/src`，TypeScript 推断出的公共源目录是 `apps/server/`，与 SWC 的产物布局
+   （`dist/apps/api/src/...`、`dist/libs/*/src/...`）同根。曾显式写成仓库根（`../../`），
+   导致 assets 的剩余路径多出一段 `apps/server/apps/api/src` 前缀、拷进 `dist/apps/api/src/apps/server/...`：
+   HTTP 仍 200，但静态文件每次请求 ENOENT。worker / cli 的 tsconfig 各自把 `rootDir`
+   覆写为 `apps/server/`，与本约定一致。
+2. **api 的三条 `assets[].outDir` 是产物根（`dist` / `dist-stage`），不是 `dist/apps/api/src`**。
+   资源 glob 本身在 `apps/api/src` 下，strip 之后剩余段已含 `apps/api/src`；outDir 再写
+   `dist/apps/api/src` 会重复一层。
+
+`pnpm build` / `pnpm build:stage` 构建末尾会跑
+`node infra/scripts/verify-build-assets.ts <dist 根>` 机械核对
+`public/favicon.ico`、`public/images/demo.png`、`i18n/en_US/index.json`、
+`views/template/mailer/welcome.hbs` 是否落盘。**升级 Nest CLI 后先跑构建**：断言红了说明
+strip root / outDir 的契约变了，按上面两条重新对齐，而不是把断言删掉。
+
 ## 路径映射
 
 SWC 配置中的 `jsc.paths` 与 tsconfig.json 保持一致：
@@ -96,14 +117,18 @@ SWC 配置中的 `jsc.paths` 与 tsconfig.json 保持一致：
 ## 故障排查
 
 ### 1. 静态资源未复制
-检查 Nest CLI 配置中的 `assets` 配置，确保路径正确：
+先跑 `pnpm build`（末尾的 `verify-build-assets.ts` 会列出缺失清单）。检查 `assets` 的
+`include` 是否相对 `sourceRoot`、`outDir` 是否为产物根（`dist` / `dist-stage`）：
 ```json
 {
   "include": "i18n/**/*",
-  "outDir": "dist/apps/api/src",
+  "outDir": "dist",
   "watchAssets": true
 }
 ```
+若产物里出现 `apps/server/apps/api/src/...` 这样的嵌套目录，说明 strip root（effective
+rootDir）又跑回仓库根了 —— 去掉 `apps/server/tsconfig.json` 里的 `rootDir` 显式声明即可恢复
+推断（见上节「strip root 与 `assets[].outDir` 的关系」）。
 
 ### 2. 路径解析失败
 检查 SWC 配置中的 `jsc.paths` 是否与 tsconfig.json 一致。

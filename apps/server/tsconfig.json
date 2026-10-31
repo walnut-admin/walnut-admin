@@ -11,7 +11,6 @@
     "strictPropertyInitialization": false,
     "esModuleInterop": true,
     "target": "es2022",
-    "rootDir": "../../",
     "sourceMap": false,
     "outDir": "./dist",
     "incremental": true,

@@ -66,17 +66,17 @@
         "assets": [
           {
             "include": "i18n/**/*",
-            "outDir": "dist/apps/api/src",
+            "outDir": "dist",
             "watchAssets": false
           },
           {
             "include": "public/**/*",
-            "outDir": "dist/apps/api/src",
+            "outDir": "dist",
             "watchAssets": false
           },
           {
             "include": "views/**/*",
-            "outDir": "dist/apps/api/src",
+            "outDir": "dist",
             "watchAssets": false
           }
         ]
