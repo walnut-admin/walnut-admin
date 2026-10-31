@@ -8,7 +8,11 @@ import {
 
 import { setCustomHeaders } from '@walnut-server/utils/headers'
 import { I18nContext } from 'nestjs-i18n'
+// 临时豁免（libs 边界 lint 上线时的存量）：lib 反向依赖 app 的已知疤，批 1 解环时移除 ——
+// AppErrorService 经注入 token 反转、BLPath 抽成 @walnut-server/blpath。
+// eslint-disable-next-line no-restricted-imports
 import { AppErrorService } from '@/modules/app/error/error.service'
+// eslint-disable-next-line no-restricted-imports
 import { SharedBLPathService } from '@/modules/shared/BLPath/BLPath.service'
 import { WalnutAdminExceptionHandler } from './handler'
 
