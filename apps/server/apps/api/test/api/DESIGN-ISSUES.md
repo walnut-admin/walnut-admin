@@ -299,6 +299,10 @@
 
 ### P3-38 guard-matrix「非黑名单伪造 IP 直通 → 20000」用例全量连跑时间歇失败（全量集成观察，新登记）
 
+> **状态（2026-11-01，已确定性化）**：spec 的 beforeAll 预写 `risk:location:<ip>` 的 LOW
+> 结果覆盖全部 TEST-NET-3 探针 IP（afterAll 清理），根因是 api.ip.sb 对保留 IP 段返回
+> HTTP 400 → 50302；键构造与服务端同走 normalizeIp。连跑两轮整轮集成均稳定。
+
 - **位置**：`apps/api/test/api/guard-matrix.api-spec.ts`（IP guard 组的
   「【安全矩阵发现】非黑名单伪造 IP 直通 → 20000」用例）→
   `libs/security/src/risk/modules/location.service.ts`

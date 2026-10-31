@@ -6,10 +6,11 @@ import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
-import { AppTechCacheCapService, AppTechCacheDeviceService, AppTechCacheMfaService, AppTechCacheService } from '@walnut-server/cache'
+import { AppTechCacheCapService, AppTechCacheDeviceService, AppTechCacheMfaService, AppTechCacheService, AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { SharedIpService } from '@walnut-server/ip'
+import { SecurityRiskConfigService, WalnutAdminConstRiskLevel } from '@walnut-server/security'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import supertest from 'supertest'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
@@ -78,6 +79,16 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
     stripPrefixRegex = new RegExp(
       `^/${configService.get<string>('app.api.prefix')}/v${configService.get<string>('app.api.version')}`,
     )
+
+    // P3-38（测试确定性）：TEST-NET-3 是 RFC 5737 文档保留段，risk guard 的 location
+    // 评估会外连 `api.ip.sb/geoip`；该服务对保留 IP 段返回 HTTP 400 → 50302，与本文件
+    // 断言的「IP guard 放行伪造 IP」无关，曾使「非黑名单伪造 IP 直通」用例确定性失败。
+    // 修法：把 location 结果预写进它的**真实缓存通道**——SecurityRiskLocationService 读
+    // AppTechRedisService 的 `risk:location:<normalizedIp>`（不是 CACHE_MANAGER，内存
+    // cache 替换对这条链路无效），命中缓存即不再外连。覆盖会走到 location 评估的两个
+    // 探针 IP：.77（临时黑名单移除后的放行腿 / G14 sign-free 旁路）与 .79（直通用例）。
+    await seedLocationRiskCache(BANNED_IP_TEMP)
+    await seedLocationRiskCache(ALLOWED_PROBE_IP)
   })
 
   afterAll(async () => {
@@ -99,9 +110,41 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
         await api.cleanupWalnutCacheKeys(deviceId)
       }
       await app.get(SharedIpService).removeFromTemporaryBlacklist(BANNED_IP_TEMP).catch(() => undefined)
+      await clearLocationRiskCache(BANNED_IP_TEMP)
+      await clearLocationRiskCache(ALLOWED_PROBE_IP)
     }
     await app?.close()
   })
+
+  /**
+   * 预写 location 风控缓存（LOW）：键与形状对齐 SecurityRiskLocationService.getInfoKey /
+   * IWalnutAdminLocationRiskInfo，走 AppTechRedisService 直连（与生产同一缓存通道）。
+   */
+  async function seedLocationRiskCache(ip: string): Promise<void> {
+    const riskConfig = app.get(SecurityRiskConfigService)
+    const normalizedIp = await app.get(SharedIpService).normalizeIp(ip)
+    const key = `${riskConfig.redis.location}:${normalizedIp}`
+    const payload: IWalnutAdminLocationRiskInfo = {
+      ip,
+      location: {
+        ip,
+        country: 'LOCAL',
+        region: 'LOCAL',
+        city: 'LOCAL',
+      },
+      score: 0,
+      factors: [],
+      level: WalnutAdminConstRiskLevel.LOW,
+      evaluatedAt: Date.now(),
+    }
+    await app.get(AppTechRedisService).getClient().setEx(key, riskConfig.ttl.location, JSON.stringify(payload))
+  }
+
+  async function clearLocationRiskCache(ip: string): Promise<void> {
+    const normalizedIp = await app.get(SharedIpService).normalizeIp(ip)
+    const key = `${app.get(SecurityRiskConfigService).redis.location}:${normalizedIp}`
+    await app.get(AppTechRedisService).getClient().del(key)
+  }
 
   /** 解码主 AT payload 并剥离 iat/exp —— 带 exp 的 payload 再签会撞 jsonwebtoken 的 expiresIn 冲突 */
   function decodedAtPayload(): Record<string, unknown> {
@@ -808,6 +851,7 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
     })
 
     it('【安全矩阵发现】非黑名单伪造 IP 直通 → 20000（IP 维度风控/限流的 tracker 可被请求头改写）', async () => {
+      // location 风控缓存已由 describe 级 beforeAll 预写（P3-38），不会外连 api.ip.sb
       const res = await api.unsigned(
         'GET',
         api.apiPath('/'),

@@ -365,8 +365,20 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
     })
 
     it('根角色保护：更新 root 角色被拒（PG 侧按角色名等价判据）', async () => {
-      const rootRole = await roleBasicRepo.create({ roleName: 'root' })
-      await expect(roleService.update(rootRole.id, {
+      // seed 层自带 root 角色（role_name 全库唯一），不能裸插同名行 —— 幂等复用已有行
+      // （与 auth-login.registerRootUserFixture 同款 upsert 语义），断言仍钉 PG 侧根角色判据。
+      const rootRows: Array<{ id: string }> = await pgDataSource.query(
+        `WITH ins AS (
+           INSERT INTO sys_role (role_name) VALUES ('root')
+           ON CONFLICT (role_name) DO NOTHING
+           RETURNING id
+         )
+         SELECT id FROM ins
+         UNION ALL
+         SELECT id FROM sys_role WHERE role_name = 'root'
+         LIMIT 1`,
+      )
+      await expect(roleService.update(rootRows[0].id, {
         roleName: 'root',
         description: 'x',
         order: null as unknown as number,
