@@ -3,7 +3,7 @@ import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 
 import { runAfterCommit } from '@walnut-server/db'
-import { DataScopeService, isWalnutDataScopeSettingKey } from '@/modules/system/data-scope/data-scope.service'
+import { DataScopeService, isWalnutDataScopeSettingKey } from '@walnut-server/system'
 
 import {
   AppSettingDTOCreateRequest,

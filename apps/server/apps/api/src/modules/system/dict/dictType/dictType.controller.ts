@@ -9,23 +9,11 @@ import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { WalnutAdminDecoratorQueryArray } from '@walnut-server/decorators/query'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
-import { plainToInstance } from 'class-transformer'
+import { SysDictTypeDTOCreateRequest, SysDictTypeDTOCreateResponse, SysDictTypeDTODeleteResponse, SysDictTypeDTOListRequest, SysDictTypeDTOListResponse, SysDictTypeDTOReadResponse, SysDictTypeDTOSafe, SysDictTypeDTOUpdateRequest, SysDictTypeDTOUpdateResponse, SysDictTypeDTOWithDictDataResponse, SysDictTypeService } from '@walnut-server/system'
 
+import { plainToInstance } from 'class-transformer'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { SysDictTypeService } from './dictType.service'
-import {
-  SysDictTypeDTOCreateRequest,
-  SysDictTypeDTOCreateResponse,
-  SysDictTypeDTODeleteResponse,
-  SysDictTypeDTOListRequest,
-  SysDictTypeDTOListResponse,
-  SysDictTypeDTOReadResponse,
-  SysDictTypeDTOSafe,
-  SysDictTypeDTOUpdateRequest,
-  SysDictTypeDTOUpdateResponse,
-  SysDictTypeDTOWithDictDataResponse,
-} from './dto/dictType.dto'
 
 const Permissions = {
   CREATE: 'system:dict:type:create',

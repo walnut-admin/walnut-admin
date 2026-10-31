@@ -8,6 +8,7 @@ import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { assembleSysDevice, SysDeviceDTOInitialRequest, SysDeviceDTOInitialResponse, SysDeviceDTOListRequest, SysDeviceDTOListResponse, SysDeviceDTOReadResponse, SysDeviceDTOSafe, SysDeviceService, SysDeviceSettingService } from '@walnut-server/system'
 import { plainToInstance } from 'class-transformer'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
@@ -17,9 +18,7 @@ import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
 import { WalnutAdminDecoratorThrottle } from '@/guard/throttler.guard'
 import { WalnutAdminGuardJwtFree } from '@/modules/auth/modules/jwt/jwt-access.guard'
 import { SysUserDTOReadResponse } from '@/modules/system/user/dto/user.dto'
-import { SysDeviceService } from './device.service'
-import { SysDeviceSettingService } from './device.setting.service'
-import { assembleSysDevice, SysDeviceDTOHistoryUsersResponse, SysDeviceDTOInitialRequest, SysDeviceDTOInitialResponse, SysDeviceDTOListRequest, SysDeviceDTOListResponse, SysDeviceDTOReadResponse, SysDeviceDTOSafe } from './dto/device.dto'
+import { SysDeviceDTOHistoryUsersResponse } from './dto/device.history-users.dto'
 
 const Permissions = {
   READ: 'system:device:read',

@@ -1,0 +1,27 @@
+import { Module } from '@nestjs/common'
+import { TypeOrmModule } from '@nestjs/typeorm'
+import { WalnutPGConnectionName } from '@walnut-server/db'
+import { SysLogOperateModule } from '../operate/log.operate.module'
+import { SysLogAuthEntity } from './entity/log-auth.entity'
+
+import { SysLogAuthBasicRepository } from './log.auth.basic.repository'
+import { sysLogAuthRecoverableProvider } from './log.auth.recoverer'
+import { SysLogAuthService } from './log.auth.service'
+import { SysLogAuthRepoModule } from './repo/log.auth.repo.module'
+import { SysLogAuthSharedModule } from './shared/log.auth.shared.module'
+
+/**
+ * B8 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态，不另建 pg.module）。
+ */
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([SysLogAuthEntity], WalnutPGConnectionName),
+    SysLogOperateModule,
+    SysLogAuthRepoModule,
+    SysLogAuthSharedModule,
+  ],
+  controllers: [],
+  providers: [SysLogAuthBasicRepository, SysLogAuthService, sysLogAuthRecoverableProvider],
+  exports: [SysLogAuthService],
+})
+export class SysLogAuthModule {}

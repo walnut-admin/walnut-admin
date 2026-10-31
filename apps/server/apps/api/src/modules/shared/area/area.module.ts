@@ -4,6 +4,7 @@ import { WalnutPGConnectionName } from '@walnut-server/db'
 
 import { SharedAreaBasicRepository } from './area.basic.repository'
 import { SharedAreaController } from './area.controller'
+import { sharedAreaRecoverableProvider } from './area.recoverable'
 import { SharedAreaService } from './area.service'
 import { SharedAreaEntity } from './entity/area.entity'
 
@@ -16,7 +17,7 @@ import { SharedAreaEntity } from './entity/area.entity'
     TypeOrmModule.forFeature([SharedAreaEntity], WalnutPGConnectionName),
   ],
   controllers: [SharedAreaController],
-  providers: [SharedAreaBasicRepository, SharedAreaService],
+  providers: [SharedAreaBasicRepository, SharedAreaService, sharedAreaRecoverableProvider],
   exports: [SharedAreaService],
 })
 export class SharedAreaModule {}

@@ -318,7 +318,7 @@
 
 ### P1-12 dict/data 无 deleteMany 路由 —— 常量在、装饰器未接线 —— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/system/dict/dictData`（`Permissions.DELETE_MANY` 常量存在
+- **位置**：`libs/system/src/dict/dictData`（`Permissions.DELETE_MANY` 常量存在
   但对应装饰器未挂）。
 - **现象**：`DELETE /system/dict/data/deleteMany/:ids` → 40400。
 - **实测证据**：C 段 dict spec。
@@ -444,7 +444,7 @@
   （create 的 `roles: []` 仍把 `currentRole` 落 `defaultRole`）+
   `libs/identity/src/user/shared/user.shared.service.ts`（`checkUserAndRoleStatus`
   的 switch 分支：当前角色不在 `roles_list` 时只记日志继续）+
-  `apps/api/src/modules/system/role/shared/role.shared.service.ts`（`getCoreMenus` 对
+  `libs/system/src/role/shared/role.shared.service.ts`（`getCoreMenus` 对
   SWITCH 直接取 `[user.currentRole]`）。
 - **现象**：`sys_user_role` 与 `sys_user.current_role_id` 之间没有联合约束。管理端
   `PUT /system/user/:id` 用 `roles` 整组替换 junction 时，既不重置也不校验
@@ -536,7 +536,7 @@
 
 ### P2-2 device lock/ban 只写缓存不落库 —— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/system/device/device.service.ts`（lock/unlock/ban/unban）。
+- **位置**：`libs/system/src/device/device.service.ts`（lock/unlock/ban/unban）。
 - **现象**：Redis 清空/过期即失效；且锁/封期间同设备后续请求被 Device guard 40606/40607
   拦死（连 unlock/unban 都到不了），端点间只能以缓存复位通道衔接。
 - **实测证据**：C 段 device spec。
@@ -606,7 +606,7 @@
 
 ### P2-8 dictType HTTP delete 的 data 腿由 DB CASCADE 静默清掉且不产生软删快照 —— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/system/dict/dictType`（delete = 快照 + 原行硬删；data 腿
+- **位置**：`libs/system/src/dict/dictType`（delete = 快照 + 原行硬删；data 腿
   `fk_dict_data_type` CASCADE，无 data 快照）。
 - **实测证据**：C 段 dict spec。
 - **建议**：级联软删（data 也进回收站），或登记「字典数据不进回收站」为明确取舍。
@@ -747,9 +747,9 @@
 
 ### P2-16 角色 / 菜单 / 用户切换都不失效 AUTH:PERMISSIONS —— 权限撤销没有服务端通道（B 段，新登记）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/api/src/modules/system/menu/menu.service.ts`（create / update / delete
+- **位置**：`libs/system/src/menu/menu.service.ts`（create / update / delete
   三处 `TODO remove all cache auth data when menu changed`）+
-  `apps/api/src/modules/system/role/role.service.ts`（menus 整组替换后无失效）+
+  `libs/system/src/role/role.service.ts`（menus 整组替换后无失效）+
   `libs/identity/src/user/shared/user.shared.service.ts`（`switchRole` /
   `switchRoleMode` 只写库）。
 - **现象**：`AUTH:PERMISSIONS` 的唯一写入口是 `GET /auth/permissions`，唯一主动删除点是
@@ -778,11 +778,11 @@
 
 ### P2-17 lang 与 locale 的缓存刷新不对称 —— 新语言写翻译被白名单缓存挡下 —— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/modules/system/lang/lang.service.ts`
+- **位置**：`libs/system/src/lang/lang.service.ts`
   （`triggerPublicListCacheRefresh` 只删 `SYS_LANG_LIST_PUBLIC`）+
-  `apps/api/src/modules/system/locale/shared/locale.shared.service.ts`
+  `libs/system/src/locale/shared/locale.shared.service.ts`
   （`SYS_LANG_ID_LIST` 只在 `extractLocaleMessagesIntoCacheForCronJob` 写）+
-  `apps/api/src/modules/system/locale/locale.validate.ts`。
+  `libs/system/src/locale/locale.validate.ts`。
 - **现象**：`SYS_LANG_ID_LIST` 是 locale 入参的白名单缓存，只有 locale 的
   create/update/delete/deleteMany 触发的全量刷新会写它。`POST /system/lang` 新建语言后
   该列表仍是旧的：紧接着给新 langId 写翻译，`LocaleLangIdValidate` 命中旧缓存 →
@@ -847,7 +847,7 @@
 ### P2-22 恢复用户不恢复账户外围 —— identity / oauth / device / lock / mfa / preference 全丢 —— 【已修复 2026-10-29】
 
 - **位置**：`libs/repository/src/pg-base.repository.ts`（`deleteSoftById` 只快照
-  主行）+ `apps/api/src/modules/system/deleted/deleted.service.ts`（`recoverSnapshot` 只插
+  主行）+ `libs/system/src/deleted/deleted.service.ts`（`recoverSnapshot` 只插
   主行）+ phase2 §4.9 ~ §4.14 的 `FK user_id CASCADE`。
 - **现象**：删除用户时 `sys_user_identity` / `sys_user_oauth` / `sys_user_device` /
   `sys_user_lock` / `sys_user_mfa` / `sys_user_preference` 由 FK CASCADE 硬删且不进
@@ -867,8 +867,8 @@
 
 ### P2-23 恢复不联动级联软删的 locale 行 —— menu `_cascade=1` / dictData 删除后的翻译不回来 —— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/modules/system/menu/menu.service.ts`（删除时按 `title` 软删 locale）+
-  `apps/api/src/modules/system/dict/dictData/dictData.service.ts`（按 `label` 软删 locale）+
+- **位置**：`libs/system/src/menu/menu.service.ts`（删除时按 `title` 软删 locale）+
+  `libs/system/src/dict/dictData/dictData.service.ts`（按 `label` 软删 locale）+
   `deleted.service.ts`（`recoverSnapshot` 只插主行）。
 - **现象**：menu 删除带 `_cascade=1`、dictData 单删/批量删都会把对应 locale 翻译行软删进
   `sys_deleted`（各自快照 `SYS_LOCALE`），但恢复 menu / dictData 时只插回主行，翻译行仍留在
@@ -1204,9 +1204,9 @@
 
 ### P3-18 多根菜单部署下树被截断 —— fullTree / permissionMenuTree 只取第一个根（B 段，新登记）—— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/modules/system/menu/shared/menu.shared.service.ts`
+- **位置**：`libs/system/src/menu/shared/menu.shared.service.ts`
   （`getMenuTreeAndTreeWithoutTypeElement` 的 `fullTree[0]?.children`；`getCorePermissions`
-  的 `permissionMenuTree[0]?.children`）+ `apps/api/src/modules/system/menu/repo/menu.repo.service.ts`
+  的 `permissionMenuTree[0]?.children`）+ `libs/system/src/menu/repo/menu.repo.service.ts`
   （`findRootMenu` 用 `findOne`，`findAllMenus` 无 ORDER BY）。
 - **现象**：`sys_menu` 若有多个 `pid IS NULL` 的根，`GET /system/menu/tree` 的 `fullTree`
   与 `/auth/permissions` 的 `permissionMenuTree` 都只返回「某一个根」的 children ——
@@ -1230,7 +1230,7 @@
 
 ### P3-20 locale 映射 body 无任何 langId 键时直落 service —— TypeError 兜底 50000（B 段，新登记）—— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/modules/system/locale/locale.pipe.ts`
+- **位置**：`libs/system/src/locale/locale.pipe.ts`
   （只保留 uuid 键，无匹配键时产出 `[]`）+ `locale.controller.ts` 的 `ParseArrayPipe`
   （空数组不校验任何 item）+ `locale.service.ts` 的 `create` / `update`
   （`payload[0].key` / `payload[0].oldKey` 解引用）。
@@ -1317,7 +1317,7 @@
 ### P3-24 `log_operate.action_type` 的 const 与 DB CHECK 不一致（C 段，新登记）—— 【前提不成立 / 已收口 2026-10-29】
 
 - **位置**：`@walnut-server/const/decorator/logOperate` 的 `WalnutAdminConstDecoratorLogOperateAction`
-  + `apps/api/src/modules/system/logs/operate/entity/log-operate.entity.ts` 的列注释
+  + `libs/system/src/logs/operate/entity/log-operate.entity.ts` 的列注释
   （CHECK 只含 `OTHER/CREATE/UPDATE/DELETE/DELETE_MANY/IMPORT/EXPORT/CLEAR`）。
 - **现象**：const 里另有 `REFRESH` / `AUTH`；若以这两个 action 写日志，会撞 CHECK
   （23514），经全局兜底成为 50000。当前装饰器调用点未使用这两个值，属潜在契约缺口。
@@ -1334,8 +1334,8 @@
 
 ### P3-25 实体注释与 migration 的 CHECK 取值域漂移（menu cache_key_strategy / log_operate action_type）（D 段，新登记）—— 【已修复 2026-10-29】
 
-- **位置**：`apps/api/src/modules/system/menu/entity/menu.entity.ts` 的
-  `cache_key_strategy` 注释（写 `('name','path')`）；`apps/api/src/modules/system/logs/operate/entity/log-operate.entity.ts`
+- **位置**：`libs/system/src/menu/entity/menu.entity.ts` 的
+  `cache_key_strategy` 注释（写 `('name','path')`）；`libs/system/src/logs/operate/entity/log-operate.entity.ts`
   的 `action_type` 注释（写 8 个值）；对照
   `apps/api/migrations/1792922206018-InitSchema.ts` 的 `ck_menu_cache_key_strategy`
   / `ck_log_operate_action_type`。
@@ -1384,7 +1384,7 @@
 ### P3-35 role:update 持有者可把任意角色 dataScope 改成 ALL（数据权限复审，产品决策项）—— 【已收口 2026-10-31：裁决不拦截 + 批 7 审计快照】
 
 - **位置**：`apps/api/src/modules/system/role/role.controller.ts`（`system:role:update`
-  功能权限）+ `apps/api/src/modules/system/role/role.service.ts`（update 只拦 root
+  功能权限）+ `libs/system/src/role/role.service.ts`（update 只拦 root
   角色名，不拦 dataScope 的目标值与操作者关系）。
 - **现象**：持有 `system:role:update` 的非 root 管理员可以修改任意非 root 角色的
   `dataScope`（含改成 1=ALL），也可以改**自己所在角色**的 dataScope —— 等于把行级
@@ -1414,7 +1414,7 @@
 
 ### P3-36 app.functional.role 设置变更不失效 AUTH:DATA_SCOPE（数据权限复审，缓存残留）—— 【已修复 2026-10-30，批 4 epoch 方案】
 
-- **位置**：`apps/api/src/modules/system/data-scope/data-scope.service.ts`（缓存键
+- **位置**：`libs/system/src/data-scope/data-scope.service.ts`（缓存键
   `AUTH:DATA_SCOPE`）+ `apps/api/src/modules/app/setting/repo/setting.repo.service.ts`
   （`updateAppSettingByKey` / `extractAppSettingIntoCache`）。
 - **现象**：effective roleMode 来自 `app.functional.role` 设置（GLOBAL scope 取

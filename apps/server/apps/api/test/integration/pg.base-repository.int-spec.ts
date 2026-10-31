@@ -10,10 +10,9 @@ import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 
 import { WalnutAdminExceptionDataScopeContextMissing } from '@walnut-server/exceptions/business/auth'
-import { WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
+import { SysDeletedEntity, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
-import { SysDeletedEntity } from '@/modules/system/deleted/entity/deleted.entity'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 

@@ -2,7 +2,7 @@ import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 
 import { ConfigService } from '@nestjs/config'
-import { SysMenuSharedService } from '../system/menu/shared/menu.shared.service'
+import { SysMenuSharedService } from '@walnut-server/system'
 import { AuthSignoutService } from './modules/signout/signout.service'
 
 @Injectable()

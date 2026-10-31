@@ -10,17 +10,17 @@ import {
   WalnutAdminDecoratorParamUuids,
 } from '@walnut-server/decorators/params'
 
-import { plainToInstance } from 'class-transformer'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { JwtAccessGuard } from '@/modules/auth/modules/jwt/jwt-access.guard'
 import {
   SysLogAuthDTO,
   SysLogAuthDTODeleteResponse,
   SysLogAuthDTOListRequest,
   SysLogAuthDTOListResponse,
-} from './dto/log.auth.dto'
-import { SysLogAuthService } from './log.auth.service'
+  SysLogAuthService,
+} from '@walnut-server/system'
+import { plainToInstance } from 'class-transformer'
+import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
+import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
+import { JwtAccessGuard } from '@/modules/auth/modules/jwt/jwt-access.guard'
 
 const Permissions = {
   DELETE: 'system:log:auth:delete',

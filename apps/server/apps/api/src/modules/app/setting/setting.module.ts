@@ -7,6 +7,7 @@ import { AppSettingEntity } from './entity/setting.entity'
 import { AppSettingsRepositoryModule } from './repo/setting.repo.module'
 import { AppSettingBasicRepository } from './setting.basic.repository'
 import { AppSettingController } from './setting.controller'
+import { appSettingRecoverableProvider } from './setting.recoverable'
 import { AppSettingService } from './setting.service'
 
 /**
@@ -20,7 +21,7 @@ import { AppSettingService } from './setting.service'
     AppSettingsRepositoryModule,
   ],
   controllers: [AppSettingController],
-  providers: [AppSettingBasicRepository, AppSettingService],
+  providers: [AppSettingBasicRepository, AppSettingService, appSettingRecoverableProvider],
   exports: [AppSettingService],
 })
 export class AppSettingsModule {}

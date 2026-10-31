@@ -4,8 +4,8 @@ import {
   applyWalnutDataScopeRlsSettings,
   WALNUT_DATA_SCOPE_RLS_MODE,
 } from '@walnut-server/db'
+import { buildWalnutDataScopeRlsSettings } from '@walnut-server/system'
 import { describe, expect, it, vi } from 'vitest'
-import { buildWalnutDataScopeRlsSettings } from './data-scope.rls'
 
 /**
  * 描述符 → RLS 事务设置的纯函数（三期）。不变量：

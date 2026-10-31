@@ -2,10 +2,9 @@ import type { CallHandler, ExecutionContext, NestInterceptor } from '@nestjs/com
 import { Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { ALSRequestService } from '@walnut-server/als'
+import { buildWalnutDataScopeRlsSettings, DataScopeService } from '@walnut-server/system'
 import { Observable } from 'rxjs'
-import { buildWalnutDataScopeRlsSettings } from '@/common/repository/data-scope.rls'
 import { WALNUT_DATA_SCOPE_SYSTEM_CHANNEL_METADATA_KEY } from '@/decorators/walnut/dataScope.decorator'
-import { DataScopeService } from '@/modules/system/data-scope/data-scope.service'
 
 /**
  * 请求级 ALS 上下文（数据权限一期扩展）。

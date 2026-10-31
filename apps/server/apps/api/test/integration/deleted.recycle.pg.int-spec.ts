@@ -6,6 +6,8 @@ import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.e
 
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 import { SysUserEntity } from '@walnut-server/identity'
+import { SysDeletedEntity } from '@walnut-server/repository'
+import { SysDeletedService } from '@walnut-server/system'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { AppDemoBasicRepository } from '@/modules/app/demo/demo.basic.repository'
 import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
@@ -13,8 +15,6 @@ import { AppErrorEntity } from '@/modules/app/error/entity/error.entity'
 import { AppErrorBasicRepository } from '@/modules/app/error/error.basic.repository'
 import { AppKeyEntity } from '@/modules/app/key/entity/key.entity'
 import { AppKeyBasicRepository } from '@/modules/app/key/key.basic.repository'
-import { SysDeletedService } from '@/modules/system/deleted/deleted.service'
-import { SysDeletedEntity } from '@/modules/system/deleted/entity/deleted.entity'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 

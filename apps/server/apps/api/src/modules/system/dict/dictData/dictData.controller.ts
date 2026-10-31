@@ -9,21 +9,10 @@ import { WalnutCrudDecorators } from '@walnut-server/crud'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid, WalnutAdminDecoratorParamUuids } from '@walnut-server/decorators/params'
 
+import { SysDictDataDTOCreateRequest, SysDictDataDTOCreateResponse, SysDictDataDTODeleteResponse, SysDictDataDTOListRequest, SysDictDataDTOListResponse, SysDictDataDTOReadResponse, SysDictDataDTOSafe, SysDictDataDTOUpdateRequest, SysDictDataDTOUpdateResponse, SysDictDataService } from '@walnut-server/system'
 import { plainToInstance } from 'class-transformer'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { SysDictDataService } from './dictData.service'
-import {
-  SysDictDataDTOCreateRequest,
-  SysDictDataDTOCreateResponse,
-  SysDictDataDTODeleteResponse,
-  SysDictDataDTOListRequest,
-  SysDictDataDTOListResponse,
-  SysDictDataDTOReadResponse,
-  SysDictDataDTOSafe,
-  SysDictDataDTOUpdateRequest,
-  SysDictDataDTOUpdateResponse,
-} from './dto/dictData.dto'
 
 const Permissions = {
   CREATE: 'system:dict:data:create',

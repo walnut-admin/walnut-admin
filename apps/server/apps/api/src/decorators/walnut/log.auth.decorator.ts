@@ -1,12 +1,14 @@
 import { applyDecorators, CallHandler, ExecutionContext, Injectable, Logger, NestInterceptor, SetMetadata, UseInterceptors } from '@nestjs/common'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { IWalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
+import { IWalnutAdminConstDecoratorLogAuthType, WalnutAdminConstDecoratorLogAuthMetadataKey } from '@walnut-server/const/decorator/logAuth'
+import { SysLogAuthSharedService } from '@walnut-server/system'
 import { Observable } from 'rxjs'
 import { tap } from 'rxjs/operators'
-import { SysLogAuthSharedService } from '@/modules/system/logs/auth/shared/log.auth.shared.service'
 import { getWalnutAdminCookie } from './cookie.decorator'
 
-export const WalnutAdminConstDecoratorLogAuthMetadataKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_METADATA_KEY_LOG_AUTH')
+// 批 7：元数据键随 system logs/auth 下沉 libs/const（读方在 lib、写方在 app，
+// 同一个 Symbol 必须在更低层）；这里 re-export 保持 otp decorator 等既有 import 面。
+export { WalnutAdminConstDecoratorLogAuthMetadataKey }
 
 @Injectable()
 export class WalnutAdminInterceptorRequestAuthLog implements NestInterceptor {

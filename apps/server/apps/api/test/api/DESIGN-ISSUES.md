@@ -52,7 +52,7 @@
 ### P2-18 软删恢复不恢复 junction —— 恢复菜单丢全部角色授权、恢复用户无法登录（B 段，新登记）—— 【部分修复 2026-10-28（用户外围联动；junction 部分维持登记）】
 
 - **位置**：`libs/repository/src/pg-base.repository.ts`（`deleteSoftById`：
-  只快照主行，随后硬删原行）+ `apps/api/src/modules/system/deleted/deleted.service.ts`
+  只快照主行，随后硬删原行）+ `libs/system/src/deleted/deleted.service.ts`
   （`recoverSnapshot` 只按快照插回主行）+ phase2 §4.1 / §4.2 的 junction FK CASCADE。
 - **现象**：`sys_user_role` / `sys_role_menu` 没有独立软删通道，主行硬删时由 FK CASCADE
   静默清空，且 junction 不在 `sys_deleted.content` 里。从回收站恢复菜单后，所有角色对该
@@ -87,7 +87,7 @@
 
 ### P2-21 device 锁/封的读改写与 guard 回填竞态 —— 状态位可丢更新、缓存可被旧快照覆盖（C 段，新登记）
 
-- **位置**：`apps/api/src/modules/system/device/device.service.ts`（`updateLockOrBanStatus`）+
+- **位置**：`libs/system/src/device/device.service.ts`（`updateLockOrBanStatus`）+
   `device/repo/device.repo.service.ts`（`findDeviceByDeviceIdAndUpdate`：`findOne` →
   `Object.assign` → `save`）+ `guard/device.guard.ts`（缓存 miss 回源分支）。
 - **现象**：两个层面。
@@ -282,7 +282,7 @@
 
 ### P3-37 `app.functional.role` 变更未失效 `AUTH:PERMISSIONS`（数据权限复审，缓存残留）
 
-- **位置**：`apps/api/src/modules/system/role/shared/role.shared.service.ts`
+- **位置**：`libs/system/src/role/shared/role.shared.service.ts`
   （`getCoreMenus` 用 `app.functional.role` 经 `SharedScopeResolverService.resolve`
   决定 effective roleMode）+ `apps/server/libs/cache/src/service/cache.permissions.ts`
   （`AUTH:PERMISSIONS:<userId>:<deviceId>` 缓存键没有版本号维度）。

@@ -6,14 +6,8 @@ import { randomUUID } from 'node:crypto'
 
 import { WalnutAdminConstAppPermissionType } from '@walnut-server/const/app/permission'
 
+import { assembleSysMenuMeta, SysMenuRepositoryService, SysMenuService, SysMenuSharedService, SysRoleBasicRepository, SysRoleRepoService, SysRoleService } from '@walnut-server/system'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { assembleSysMenuMeta } from '@/modules/system/menu/dto/menu.dto'
-import { SysMenuService } from '@/modules/system/menu/menu.service'
-import { SysMenuRepositoryService } from '@/modules/system/menu/repo/menu.repo.service'
-import { SysMenuSharedService } from '@/modules/system/menu/shared/menu.shared.service'
-import { SysRoleRepoService } from '@/modules/system/role/repo/role.repo.service'
-import { SysRoleBasicRepository } from '@/modules/system/role/role.basic.repository'
-import { SysRoleService } from '@/modules/system/role/role.service'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
 

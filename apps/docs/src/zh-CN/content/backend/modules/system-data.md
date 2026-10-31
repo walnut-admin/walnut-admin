@@ -9,8 +9,9 @@ task / health）。前两者是业务表的旁路数据，后者是它们与整�
 `apps/server/apps/api/test/api/DESIGN-ISSUES.md`（下文以 `P?-?` 引用）。
 表设计依据 `docs/plans/postgres-migration-phase2.md` §4.15 ~ §4.17 与 §5.3。
 
-源码入口：`apps/server/apps/api/src/modules/system/deleted/`、
-`apps/server/apps/api/src/modules/system/logs/`、`apps/server/apps/api/src/modules/techniques/`。
+源码入口：`apps/server/libs/system/src/deleted/`、`apps/server/libs/system/src/logs/`、
+`apps/server/apps/api/src/modules/techniques/`（deleted / logs 的 controller 仍留 app 的
+`apps/server/apps/api/src/modules/system/`）。
 接口矩阵的原始测绘在 `apps/server/apps/api/test/api/ENDPOINTS.md` §5 与 §6。
 
 ## 1. 回收站（sys_deleted）
@@ -43,21 +44,26 @@ task / health）。前两者是业务表的旁路数据，后者是它们与整�
 | `deleteSoftManyByCondition` | 先 `find({ where })`，再逐行 `deleteSoftById`；命中 0 行回 `[]` |
 | `deleteRealById` / `deleteRealByIdMany` | 只硬删，不写快照 |
 
-### 1.2 恢复注册表
+### 1.2 恢复注册表（登记制）
 
 PG 有强 schema，快照 jsonb 不能像 Mongo 一样 `db.model(modelName)` 动态恢复。恢复路由收口为
-`apps/server/apps/api/src/modules/system/deleted/repo/recover-registry.ts` 的显式注册表：
-`modelName → IWalnutPgSnapshotRecoverer`，恢复器由
-`createWalnutPgSnapshotRecoverer(entityTarget)` 生成，实现就是
+`apps/server/libs/repository/src/recoverable.registry.ts` 的 `WalnutAdminRecoverableRegistry`：
+`modelName → 目标实体 + IWalnutAdminRecoverableRecoverer`，通用恢复器由
+`createWalnutAdminSnapshotRecoverer(entityTarget)` 生成，实现就是
 `em.getRepository(entityTarget).insert(content)`——按快照行原样插回，**含原 uuid 主键与
 `created_at` / `updated_at` 时间戳**（`insert()` 对显式赋值的列原样落库，只有 `undefined`
 才触发生成默认值）。
 
-- 注册清单 `WALNUT_PG_RECOVERABLE_COLLECTIONS` 覆盖已迁业务表；lock / mfa / preference /
-  user_device / refresh_token 等**没有软删写路径**的表也一并注册（注册无害，兜住任何来源的
-  历史快照）。
+- **登记制（批 7）**：注册表不再有全域静态清单。实体在哪个 lib/域就由哪个域在自己的 Nest
+  module 装配期登记（`registerXxxRecoverable` 薄 factory provider）——`libs/system` 的 12 个
+  子模块、`libs/identity` 的 7 张身份表、app / auth / shared 各域分别登记。回收站（deleted）
+  只消费 `WalnutAdminRecoverableRegistry`（@Global 提供），不再反向 import 任何域实体。
+- `dto-entity.drift.spec` 在纯注册表实例上重放各域的登记函数（与 Nest 装配同一份逻辑），
+  继续对账 `modelName → 实体` —— 漏登记即红。
+- 没有软删写路径的表（lock / mfa / preference / user_device / refresh_token 等）也一并
+  登记（注册无害，兜住任何来源的历史快照）。
 - **组合恢复器**（关联快照一并重放，best-effort + savepoint 隔离）：
-  `sys_user`（P2-18/P2-22：按 `content->>'userId'` 重放 identity / preference /
+  `sys_user`（libs/identity：P2-18/P2-22 按 `content->>'userId'` 重放 identity / preference /
   user_device / mfa / lock / oauth 快照）、`sys_menu`（P2-23：按 `title` 重放 locale）、
   `sys_dict_data`（P2-23：按 `label` 重放 locale）、`sys_dict_type`（P2-8/P2-23：按
   `typeId` 重放 dictData，再按各自 `label` 重放 locale）。关联行插入失败只告警并保留其

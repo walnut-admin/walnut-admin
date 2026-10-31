@@ -8,22 +8,10 @@ import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminExceptionInvalidID } from '@walnut-server/exceptions/base/400'
 
+import { SysDeptDTOCreateRequest, SysDeptDTOCreateResponse, SysDeptDTODeleteResponse, SysDeptDTOListRequest, SysDeptDTOListResponse, SysDeptDTOReadResponse, SysDeptDTOSafe, SysDeptDTOTree, SysDeptDTOUpdateRequest, SysDeptDTOUpdateResponse, SysDeptService } from '@walnut-server/system'
 import { plainToInstance } from 'class-transformer'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { SysDeptService } from './dept.service'
-import {
-  SysDeptDTOCreateRequest,
-  SysDeptDTOCreateResponse,
-  SysDeptDTODeleteResponse,
-  SysDeptDTOListRequest,
-  SysDeptDTOListResponse,
-  SysDeptDTOReadResponse,
-  SysDeptDTOSafe,
-  SysDeptDTOTree,
-  SysDeptDTOUpdateRequest,
-  SysDeptDTOUpdateResponse,
-} from './dto/dept.dto'
 
 const Permissions = {
   CREATE: 'system:dept:create',

@@ -199,6 +199,12 @@
       ],
       "@walnut-server/identity/*": [
         "./libs/identity/src/*"
+      ],
+      "@walnut-server/system": [
+        "./libs/system/src"
+      ],
+      "@walnut-server/system/*": [
+        "./libs/system/src/*"
       ]
     }
   }

@@ -14,16 +14,6 @@ import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
-import { plainToInstance } from 'class-transformer'
-import { WalnutAdminDecoratorCache } from '@/decorators/walnut/cache.decorator'
-
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-
-import { WalnutAdminGuardCapFree } from '@/guard/cap.guard'
-import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'
-import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { WalnutAdminGuardJwtFree } from '@/modules/auth/modules/jwt/jwt-access.guard'
 import {
   SysLangDTO,
   SysLangDTOCreateRequest,
@@ -34,8 +24,18 @@ import {
   SysLangDTOReadResponse,
   SysLangDTOUpdateRequest,
   SysLangDTOUpdateResponse,
-} from './dto/lang.dto'
-import { SysLangService } from './lang.service'
+  SysLangService,
+} from '@walnut-server/system'
+
+import { plainToInstance } from 'class-transformer'
+
+import { WalnutAdminDecoratorCache } from '@/decorators/walnut/cache.decorator'
+import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
+import { WalnutAdminGuardCapFree } from '@/guard/cap.guard'
+import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'
+import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
+import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
+import { WalnutAdminGuardJwtFree } from '@/modules/auth/modules/jwt/jwt-access.guard'
 
 const Permissions = {
   CREATE: 'system:lang:create',

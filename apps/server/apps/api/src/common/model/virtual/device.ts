@@ -1,5 +1,5 @@
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
-import { SysDeviceDTOSafe } from '@/modules/system/device/dto/device.dto'
+import { SysDeviceDTOSafe } from '@walnut-server/system'
 
 /**
  * populate 出参（Phase 5a 起 mongoose virtual 已摘除；键名 `device` 沿用

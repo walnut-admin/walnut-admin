@@ -11,7 +11,9 @@ MFA 守卫、Lock 守卫、敏感操作校验都直接依赖它们。
 `apps/server/apps/api/test/api/DESIGN-ISSUES.md`（下文以 `P?-?` 引用）。
 表设计依据 `docs/plans/postgres-migration-phase2.md` §4.8 ~ §4.14。
 
-源码入口：`apps/server/apps/api/src/modules/system/`。接口矩阵的原始测绘在
+源码入口：`apps/server/libs/identity/src/`（身份内核）与 `apps/server/libs/system/src/device/`
+（设备数据面）；controller 留 app 的 `apps/server/apps/api/src/modules/system/identity/` 与
+`.../device/`。接口矩阵的原始测绘在
 `apps/server/apps/api/test/api/ENDPOINTS.md` §5；实测锚点在 `apps/server/apps/api/test/api/`
 下的 `device` / `user-device` / `user-identity` / `user-lock` / `user-mfa` / `user-preference`
 五份 api-spec（`user-mfa` 一份覆盖 totp 与 webauthn）。
@@ -22,7 +24,7 @@ MFA 守卫、Lock 守卫、敏感操作校验都直接依赖它们。
 
 | 模块 | 源码目录 | 职责 | 主表 |
 |---|---|---|---|
-| device | `modules/system/device/` | 匿名设备登记、设备档案、设备级 lock/ban、按设备反查当前/历史用户 | `sys_device` |
+| device | `libs/system/src/device/`（HTTP 面 `modules/system/device/`） | 匿名设备登记、设备档案、设备级 lock/ban、按设备反查当前/历史用户 | `sys_device` |
 | user_device | `libs/identity/src/user_device/`（HTTP 面 `modules/system/identity/`） | 用户与设备的绑定行、显示名、踢下线、锁屏入口（用户-设备维度） | `sys_user_device` |
 | user_identity | `libs/identity/src/user_identity/`（HTTP 面 `modules/system/identity/`） | 登录/安全身份（手机号、邮箱、口令、证件）的绑定、验证、启停 | `sys_user_identity` |
 | user_lock | `libs/identity/src/user_lock/`（HTTP 面 `modules/system/identity/`） | 锁屏偏好（方式、空闲秒数、跨设备）与 user_device.locked 的读写 | `sys_user_lock` |

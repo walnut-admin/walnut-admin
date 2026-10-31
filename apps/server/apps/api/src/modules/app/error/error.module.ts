@@ -10,6 +10,7 @@ import { AppErrorEntity } from './entity/error.entity'
 import { AppErrorBasicRepository } from './error.basic.repository'
 import { AppErrorController } from './error.controller'
 import { AppErrorProcessor } from './error.process'
+import { appErrorRecoverableProvider } from './error.recoverable'
 import { AppErrorService } from './error.service'
 
 /**
@@ -25,21 +26,16 @@ import { AppErrorService } from './error.service'
     }),
   ],
   controllers: [AppErrorController],
-  providers: [
-    AppErrorBasicRepository,
-    AppErrorService,
-    AppErrorProcessor,
+  providers: [AppErrorBasicRepository, AppErrorService, AppErrorProcessor,
     // 异常过滤器的错误入库端口绑定（libs 解耦批 1 的依赖反转：filter 在 lib 里，
     // 错误入库在 app 里，经 WALNUT_ADMIN_ERROR_REPORTER 端口连接）
     {
       provide: WALNUT_ADMIN_ERROR_REPORTER,
       useExisting: AppErrorService,
-    },
-    {
+    }, {
       provide: APP_FILTER,
       useClass: WalnutAdminFilterExceptionAll,
-    },
-  ],
+    }, appErrorRecoverableProvider],
   exports: [AppErrorService],
 })
 export class AppErrorModule {}

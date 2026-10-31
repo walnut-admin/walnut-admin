@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common'
 import { SysUserIdentityRepositoryModule } from '@walnut-server/identity'
+import { WALNUT_ADMIN_SYSTEM_FAILED_LOGIN_RISK_COLLECTOR } from '@walnut-server/system'
 import { SecurityRiskChallengeStateService } from './modules/challenge.service'
 import { SecurityRiskDeviceService } from './modules/device.service'
 import { SecurityRiskFailedLoginService } from './modules/failedLogin.service'
@@ -30,7 +31,14 @@ const services = [
 @Global()
 @Module({
   imports: [SysUserIdentityRepositoryModule],
-  providers: services,
-  exports: services,
+  providers: [
+    ...services,
+    // 批 7：libs/system 的认证日志只认这个端口（失败登录风控在 security 域）
+    {
+      provide: WALNUT_ADMIN_SYSTEM_FAILED_LOGIN_RISK_COLLECTOR,
+      useExisting: SecurityRiskFailedLoginService,
+    },
+  ],
+  exports: [...services, WALNUT_ADMIN_SYSTEM_FAILED_LOGIN_RISK_COLLECTOR],
 })
 export class SecurityRiskModule {}

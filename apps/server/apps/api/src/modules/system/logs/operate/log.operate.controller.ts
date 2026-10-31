@@ -7,18 +7,10 @@ import {
   WalnutAdminDecoratorParamUuid,
 } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { assembleSysDevice, SysDeviceDTOReadResponse, SysLogOperateDTO, SysLogOperateDTOListRequest, SysLogOperateDTOListResponse, SysLogOperateDTOReadResponse, SysLogOperateDTOSnapshotResponse, SysLogOperateService } from '@walnut-server/system'
 import { plainToInstance } from 'class-transformer'
 import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 import { JwtAccessGuard } from '@/modules/auth/modules/jwt/jwt-access.guard'
-import { assembleSysDevice, SysDeviceDTOReadResponse } from '../../device/dto/device.dto'
-import {
-  SysLogOperateDTO,
-  SysLogOperateDTOListRequest,
-  SysLogOperateDTOListResponse,
-  SysLogOperateDTOReadResponse,
-  SysLogOperateDTOSnapshotResponse,
-} from './dto/log.operate.dto'
-import { SysLogOperateService } from './log.operate.service'
 
 const Permissions = {
   READ: 'system:log:operate:read',

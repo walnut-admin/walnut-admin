@@ -1,7 +1,7 @@
+import { SysEmployeeDTOUpdateRequest } from '@walnut-server/system'
 import { plainToInstance } from 'class-transformer'
 import { describe, expect, it } from 'vitest'
 import { AppDemoDTOUpdateRequest } from '@/modules/app/demo/dto/demo.dto'
-import { SysEmployeeDTOUpdateRequest } from '@/modules/system/employee/dto/employee.dto'
 import { SysUserDTOUpdateRequest } from '@/modules/system/user/dto/user.dto'
 
 /**

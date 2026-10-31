@@ -1,5 +1,5 @@
 import { WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field'
-import { SysRoleDTOSafe } from '@/modules/system/role/dto/role.dto'
+import { SysRoleDTOSafe } from '@walnut-server/system'
 
 /**
  * populate 出参（Phase 5a 起 mongoose virtual 已摘除；role 列表/计数由 PG 通道组装，

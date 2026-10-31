@@ -10,15 +10,51 @@ import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decor
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { WalnutModelName } from '@walnut-server/db'
-import { colorModeConst, CVDConst, DeviceLinkConst, fontSizeConst, layoutModeConst, LockModeConst, SysUserDeviceDTOBase, SysUserDeviceEntity, SysUserDTOBase, SysUserEntity, SysUserGenderConst, SysUserIdentityDTOBase, SysUserIdentityEntity, SysUserLockDTOBase, SysUserLockEntity, SysUserMfaDTOBase, SysUserMfaEntity, SysUserOAuthDTOBase, SysUserOauthEntity, SysUserPreferenceDTOBase, SysUserPreferenceEntity, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType, WalnutAdminConstSysUserOAuthProvider } from '@walnut-server/identity'
+import { colorModeConst, CVDConst, DeviceLinkConst, fontSizeConst, layoutModeConst, LockModeConst, registerIdentityRecoverables, SysUserDeviceDTOBase, SysUserDeviceEntity, SysUserDTOBase, SysUserEntity, SysUserGenderConst, SysUserIdentityDTOBase, SysUserIdentityEntity, SysUserLockDTOBase, SysUserLockEntity, SysUserMfaDTOBase, SysUserMfaEntity, SysUserOAuthDTOBase, SysUserOauthEntity, SysUserPreferenceDTOBase, SysUserPreferenceEntity, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType, WalnutAdminConstSysUserOAuthProvider } from '@walnut-server/identity'
 
 // ─── 被守卫的 DTO 基座 ↔ 实体清单（全部模块逐一显式 import，映射见下方 DTO_ENTITY_CASES）───
 
+import { SysDeletedEntity, WalnutAdminRecoverableRegistry } from '@walnut-server/repository'
+import {
+  assembleSysMenuMeta,
+  flattenSysMenuMeta,
+  registerSystemRecoverables,
+  SYS_MENU_META_FIELD_MAP,
+  SysDeptDTOBase,
+  SysDeptEntity,
+  SysDeviceDTOBase,
+  SysDeviceEntity,
+  SysDictDataDTOBase,
+  SysDictDataEntity,
+  SysDictDataTagTypeConst,
+  SysDictTypeDTOBase,
+  SysDictTypeEntity,
+  SysEmployeeDTOBase,
+  SysEmployeeEntity,
+  SysLangDTOBase,
+  SysLangEntity,
+  SysLocaleDTOBase,
+  SysLocaleEntity,
+  SysLogAuthDTOBase,
+  SysLogAuthEntity,
+  SysLogOperateDTOBase,
+  SysLogOperateEntity,
+  SysMenuDTOBase,
+  SysMenuDTOCreateRequest,
+  SysMenuDTOUpdateRequest,
+  SysMenuEntity,
+  SysMenuMetaDTOBase,
+  SysPostDTOBase,
+  SysPostEntity,
+  SysRoleDTOBase,
+  SysRoleEntity,
+} from '@walnut-server/system'
 import { CacheKeyStrategy, MenuTernal, MenuType } from '@walnut/contract/menu'
 import { plainToInstance } from 'class-transformer'
 import { getMetadataStorage, validateSync } from 'class-validator'
 import { getMetadataArgsStorage } from 'typeorm'
 import { describe, expect, it } from 'vitest'
+import { registerAppRecoverables } from '@/common/recoverable/app-recoverables'
 import { AppDemoDTOBase } from '@/modules/app/demo/dto/demo.dto'
 import { AppDemoEntity } from '@/modules/app/demo/entity/demo.entity'
 import { AppErrorEntity } from '@/modules/app/error/entity/error.entity'
@@ -33,41 +69,6 @@ import { AppSettingEntity } from '@/modules/app/setting/entity/setting.entity'
 import { SharedAreaDTOBase } from '@/modules/shared/area/dto/area.dto'
 import { SharedAreaEntity } from '@/modules/shared/area/entity/area.entity'
 import { SysDeletedDTOBase } from '@/modules/system/deleted/dto/deleted.dto'
-import { SysDeletedEntity } from '@/modules/system/deleted/entity/deleted.entity'
-import { WALNUT_PG_RECOVERABLE_COLLECTIONS } from '@/modules/system/deleted/repo/recover-registry'
-import { SysDeptDTOBase } from '@/modules/system/dept/dto/dept.dto'
-import { SysDeptEntity } from '@/modules/system/dept/entity/dept.entity'
-import { SysDeviceDTOBase } from '@/modules/system/device/dto/device.dto'
-import { SysDeviceEntity } from '@/modules/system/device/entity/device.entity'
-import { SysDictDataTagTypeConst } from '@/modules/system/dict/dictData/dict-data.const'
-import { SysDictDataDTOBase } from '@/modules/system/dict/dictData/dto/dictData.dto'
-import { SysDictDataEntity } from '@/modules/system/dict/dictData/entity/dict-data.entity'
-import { SysDictTypeDTOBase } from '@/modules/system/dict/dictType/dto/dictType.dto'
-import { SysDictTypeEntity } from '@/modules/system/dict/dictType/entity/dict-type.entity'
-import { SysEmployeeDTOBase } from '@/modules/system/employee/dto/employee.dto'
-import { SysEmployeeEntity } from '@/modules/system/employee/entity/employee.entity'
-import { SysLangDTOBase } from '@/modules/system/lang/dto/lang.dto'
-import { SysLangEntity } from '@/modules/system/lang/entity/lang.entity'
-import { SysLocaleDTOBase } from '@/modules/system/locale/dto/locale.dto'
-import { SysLocaleEntity } from '@/modules/system/locale/entity/locale.entity'
-import { SysLogAuthDTOBase } from '@/modules/system/logs/auth/dto/log.auth.dto'
-import { SysLogAuthEntity } from '@/modules/system/logs/auth/entity/log-auth.entity'
-import { SysLogOperateDTOBase } from '@/modules/system/logs/operate/dto/log.operate.dto'
-import { SysLogOperateEntity } from '@/modules/system/logs/operate/entity/log-operate.entity'
-import {
-  assembleSysMenuMeta,
-  flattenSysMenuMeta,
-  SYS_MENU_META_FIELD_MAP,
-  SysMenuDTOBase,
-  SysMenuDTOCreateRequest,
-  SysMenuDTOUpdateRequest,
-  SysMenuMetaDTOBase,
-} from '@/modules/system/menu/dto/menu.dto'
-import { SysMenuEntity } from '@/modules/system/menu/entity/menu.entity'
-import { SysPostDTOBase } from '@/modules/system/post/dto/post.dto'
-import { SysPostEntity } from '@/modules/system/post/entity/post.entity'
-import { SysRoleDTOBase } from '@/modules/system/role/dto/role.dto'
-import { SysRoleEntity } from '@/modules/system/role/entity/role.entity'
 
 /**
  * DTO ↔ Entity 漂移守卫（B5-5）—— 防「同一形状写两遍」的机械护栏，纯 reflection、零 DB。
@@ -81,7 +82,8 @@ import { SysRoleEntity } from '@/modules/system/role/entity/role.entity'
  *    （白名单逐条注释派生理由，不许静默扩）；
  * ② `SYS_MENU_META_FIELD_MAP` 的 columnKey 全部是 SysMenuEntity 的真实列；
  * ③ 注册完备：全仓 glob 出的每个 `*DTOBase` 都必须在下方清单里登记（modelName → entity），
- *    且 recover-registry 的 modelName → entityTarget 与本清单一致（SYS_DELETED 除外 ——
+ *    且登记制恢复注册表（各域 registerXxxRecoverable 的运行期内容）的 modelName → entity
+ *    与本清单一致（SYS_DELETED 除外 ——
  *    sys_deleted 是快照表本体，不进回收站）。
  *
  * 附：menu Create/Update 口径快照（B5-5 统一后的 wire 白名单与必填核，改口径先改这里）。
@@ -296,10 +298,12 @@ function listDtoFiles(dir: string): string[] {
 
 async function globFoundDtoBaseNames(): Promise<Set<string>> {
   const found = new Set<string>()
-  // 批 6：身份栈 DTO 随内核下沉 libs/identity —— 扫描面跟着走（app modules + lib）
+  // 批 6：身份栈 DTO 随内核下沉 libs/identity；批 7：system 域 DTO 下沉 libs/system。
+  // 扫描面跟着走（app modules + 两个 lib），漏扫 = 已登记的 DTOBase 被误报 stale。
   const dtoDirs = [
     resolve(process.cwd(), 'apps/api/src/modules'),
     resolve(process.cwd(), 'libs/identity/src'),
+    resolve(process.cwd(), 'libs/system/src'),
   ]
 
   for (const dtoDir of dtoDirs) {
@@ -373,7 +377,7 @@ describe('dto ↔ entity 漂移守卫（纯 reflection，防同一形状写两�
     }
   })
 
-  it('③ 注册完备：全仓 *DTOBase 都在清单里；modelName → entity 与 recover-registry 一致', async () => {
+  it('③ 注册完备：全仓 *DTOBase 都在清单里；modelName → entity 与恢复注册表一致', async () => {
     const found = await globFoundDtoBaseNames()
     const mapped = new Set(DTO_ENTITY_CASES.map(({ dtoBase }) => dtoBase.name))
 
@@ -385,16 +389,29 @@ describe('dto ↔ entity 漂移守卫（纯 reflection，防同一形状写两�
     // 同名 DTOBase 唯一（不存在一个基座登记两次）
     expect(DTO_ENTITY_CASES.length).toBe(mapped.size)
 
-    // recover-registry 对账：除快照表本体外，登记的 modelName 都可恢复且实体同源
-    const registry = new Map(WALNUT_PG_RECOVERABLE_COLLECTIONS.map(entry => [entry.modelName, entry.entityTarget]))
+    // 登记制对账（批 7）：在纯注册表实例上重放各域**运行期**的登记函数（system / identity /
+    // app+auth+shared），再按 modelName 对账 —— 不是静态扫源码，与 Nest 装配走同一份
+    // registerXxxRecoverable 逻辑。除快照表本体外，登记的 modelName 都可恢复且实体同源。
+    const recoverRegistry = new WalnutAdminRecoverableRegistry()
+    registerSystemRecoverables(recoverRegistry)
+    registerIdentityRecoverables(recoverRegistry)
+    registerAppRecoverables(recoverRegistry)
+
+    const registry = new Map(recoverRegistry.getAll().map(entry => [entry.modelName, entry.entityTarget]))
     for (const { modelName, entity } of DTO_ENTITY_CASES) {
       if (modelName === WalnutModelName.SYS_DELETED) {
-        // sys_deleted 是快照表本体，不进回收站（recover-registry 注释）
+        // sys_deleted 是快照表本体，不进回收站（SysDeletedRepoModule 注释）
         expect(registry.has(modelName)).toBe(false)
         continue
       }
       expect(registry.get(modelName), `${modelName} 未注册恢复器`).toBe(entity)
     }
+
+    // AUTH_REFRESH_TOKEN 无 DTOBase（auth 域无 wire DTO 面），进不了上方清单，
+    // 单独钉登记 —— 漏登记 = refresh token 从回收站永久无法恢复（批 7 评审补）。
+    // 残余风险：本对账走各域聚合登记函数，module 漏挂 provider 时这里仍绿；
+    // 该面由 openapi:export 全量启动的 26 条 registered 日志兜底（每批门禁必跑）。
+    expect(recoverRegistry.getEntry(WalnutModelName.AUTH_REFRESH_TOKEN), 'AUTH_REFRESH_TOKEN 未注册恢复器').toBeDefined()
   })
 })
 

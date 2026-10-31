@@ -47,8 +47,13 @@ function listEntityFiles(dir: string): string[] {
 let loadedEntityFiles = 0
 
 beforeAll(async () => {
-  const entityDir = resolve(process.cwd(), 'apps/api/src/modules')
-  const files = listEntityFiles(entityDir)
+  // 批 7：实体随 system 域下沉 libs（system / identity / repository 的 sys_deleted），
+  // 动态加载面跟着扩到 libs —— 注册完整性的 glob 必须看见全部实体表。
+  const entityDirs = [
+    resolve(process.cwd(), 'apps/api/src/modules'),
+    resolve(process.cwd(), 'libs'),
+  ]
+  const files = entityDirs.flatMap(dir => listEntityFiles(dir))
 
   // 动态 import（路径式）与 dto-entity drift spec 同款：commonjs tsconfig 下不能用
   // import.meta.glob；vitest 对绝对路径动态 import 走同一 transform 管道。

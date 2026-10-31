@@ -11,7 +11,7 @@ import type { EntityManager, EntityTarget, FindOptionsWhere, ObjectLiteral, Sele
  * 收成一个窄接口：注册表查询 + 五个纯函数（FindOptions 谓词 / 合并 / dept 更新决策 /
  * QueryBuilder 谓词 / RLS 设置）+ create 的行级部门回填取数腿。
  *
- * 实现由 app 在 `DataScopeModule`（@Global）里用
+ * 实现由 app 在 `WalnutAdminDataScopePolicyModule`（@Global）里用
  * `{ provide: WALNUT_ADMIN_DATA_SCOPE_POLICY, useExisting: WalnutAdminDataScopePolicyService }`
  * 绑定 —— 那层只做纯委托，实体清单与谓词语义**一行未搬**（批 7 随域处理）。
  *
@@ -95,7 +95,7 @@ export type WalnutDataScopeFindWhere<Entity extends ObjectLiteral>
 export type IWalnutAdminDataScopeDeptUpdateDecision = 'allow' | 'strip' | 'deny'
 
 /**
- * 基类仓库需要的数据权限能力（app 侧实现，见 DataScopeModule 的绑定）。
+ * 基类仓库需要的数据权限能力（app 侧实现，见 WalnutAdminDataScopePolicyModule 的绑定）。
  *
  * 全部方法都是纯委托：注册表查询指向 `data-scope.ts` 的实体清单，其余指向同文件的
  * 纯函数 / `data-scope.rls.ts` 的 RLS 设置构造器。接口签名与解耦前基类的直接调用

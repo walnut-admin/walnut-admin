@@ -4,6 +4,7 @@ import { WalnutPGConnectionName } from '@walnut-server/db'
 import { AuthCookieModule } from '../cookie/cookie.module'
 import { AuthRefreshTokenEntity } from './entity/refresh-token.entity'
 import { AuthRefreshController } from './refresh.controller'
+import { authRefreshTokenRecoverableProvider } from './refresh.recoverable'
 import { JwtRefreshTokenStrategy } from './refresh.strategy'
 import { AuthRefreshTokenPgPurgeService } from './repo/refresh.pg.purge.service'
 import { AuthRefreshRepositoryModule } from './repo/refresh.repo.module'
@@ -22,7 +23,7 @@ import { AuthRefreshSharedModule } from './shared/refresh.shared.module'
     AuthCookieModule,
   ],
   controllers: [AuthRefreshController],
-  providers: [JwtRefreshTokenStrategy, AuthRefreshTokenPgPurgeService],
+  providers: [JwtRefreshTokenStrategy, AuthRefreshTokenPgPurgeService, authRefreshTokenRecoverableProvider],
   exports: [AuthRefreshTokenPgPurgeService],
 })
 export class AuthRefreshModule { }

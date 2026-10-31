@@ -7,6 +7,7 @@ import { AppKeyEntity } from './entity/key.entity'
 import { AppKeyBasicRepository } from './key.basic.repository'
 import { AppKeyController } from './key.controller'
 import { AppKeyCurrentGuard } from './key.current.guard'
+import { appKeyRecoverableProvider } from './key.recoverable'
 import { AppKeyService } from './key.service'
 
 /**
@@ -24,15 +25,10 @@ import { AppKeyService } from './key.service'
     TypeOrmModule.forFeature([AppKeyEntity], WalnutPGConnectionName),
   ],
   controllers: [AppKeyController],
-  providers: [
-    AppKeyBasicRepository,
-    AppKeyService,
-    AppKeyCurrentGuard,
-    {
-      provide: WALNUT_ADMIN_KEY_STORE,
-      useExisting: AppKeyService,
-    },
-  ],
+  providers: [AppKeyBasicRepository, AppKeyService, AppKeyCurrentGuard, {
+    provide: WALNUT_ADMIN_KEY_STORE,
+    useExisting: AppKeyService,
+  }, appKeyRecoverableProvider],
   exports: [AppKeyService, WALNUT_ADMIN_KEY_STORE],
 })
 export class AppKeyModule {}

@@ -1,3 +1,4 @@
+import type { ISystemFailedLoginRiskPayload, IWalnutAdminSystemFailedLoginRiskCollector } from '@walnut-server/system'
 import { Injectable, Logger } from '@nestjs/common'
 import { AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
@@ -13,7 +14,7 @@ import { calcScoreAndLevel, SecurityRiskConfigService, WalnutAdminConstRiskFacto
  * Tracks failed login attempts and triggers IP blacklisting when thresholds are exceeded.
  */
 @Injectable()
-export class SecurityRiskFailedLoginService {
+export class SecurityRiskFailedLoginService implements IWalnutAdminSystemFailedLoginRiskCollector {
   private readonly logger = new Logger(SecurityRiskFailedLoginService.name)
 
   constructor(
@@ -36,7 +37,7 @@ export class SecurityRiskFailedLoginService {
    * Collect a failed login attempt and trigger IP blacklisting if threshold exceeded.
    * Uses MurLock to prevent race conditions when multiple failed logins occur simultaneously.
    */
-  async collect(payload: IWalnutAdminRecordFailedLoginPayload): Promise<number> {
+  async collect(payload: ISystemFailedLoginRiskPayload): Promise<number> {
     const { identifier, loginType, deviceId, ip, reason } = payload
 
     const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:RISK:FAILED_LOGIN:${deviceId}:${identifier ?? 'unknown'}`

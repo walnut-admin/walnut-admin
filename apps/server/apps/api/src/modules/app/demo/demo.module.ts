@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
 
-import { SysDeletedModule } from '@/modules/system/deleted/deleted.module'
+import { SysDeletedModule } from '@walnut-server/system'
+import { SysDeletedHttpModule } from '@/modules/system/deleted/deleted-http.module'
 import { AppDemoBasicRepository } from './demo.basic.repository'
 import { AppDemoController } from './demo.controller'
+import { appDemoRecoverableProvider } from './demo.recoverable'
 import { AppDemoService } from './demo.service'
 import { AppDemoEntity } from './entity/demo.entity'
 
@@ -18,9 +20,11 @@ import { AppDemoEntity } from './entity/demo.entity'
   imports: [
     TypeOrmModule.forFeature([AppDemoEntity], WalnutPGConnectionName),
     SysDeletedModule,
+    // 批 7：回收站 controller 留 app；由本模块引入以保持 Swagger 路径顺序
+    SysDeletedHttpModule,
   ],
   controllers: [AppDemoController],
-  providers: [AppDemoBasicRepository, AppDemoService],
+  providers: [AppDemoBasicRepository, AppDemoService, appDemoRecoverableProvider],
   exports: [AppDemoService],
 })
 export class AppDemoModule {}

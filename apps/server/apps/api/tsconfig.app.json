@@ -33,7 +33,8 @@
         "../../libs/repository/src/**/*",
         "../../libs/rsa/src/**/*",
         "../../libs/ip/src/**/*",
-        "../../libs/identity/src/**/*"
+        "../../libs/identity/src/**/*",
+        "../../libs/system/src/**/*"
     ],
     "exclude": [
         "node_modules",

@@ -5,9 +5,6 @@ import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/d
 import { WalnutCrudDecorators } from '@walnut-server/crud'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
-import { plainToInstance } from 'class-transformer'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-
 import {
   SysRoleDTOCreateRequest,
   SysRoleDTOCreateResponse,
@@ -17,9 +14,12 @@ import {
   SysRoleDTOSafe,
   SysRoleDTOUpdateRequest,
   SysRoleDTOUpdateResponse,
-} from './dto/role.dto'
+  SysRoleService,
+} from '@walnut-server/system'
 
-import { SysRoleService } from './role.service'
+import { plainToInstance } from 'class-transformer'
+
+import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
 
 const Permissions = {
   CREATE: 'system:role:create',

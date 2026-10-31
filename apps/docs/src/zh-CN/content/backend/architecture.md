@@ -46,7 +46,7 @@ libs/*/src/                            # 内部库，经 tsconfig paths 以 @wal
 ├── types/                             # 全局类型声明
 └── utils/                             # 工具函数（含 DTO 包装 RealPickType / RealPartialType）
 
-（ libs 解耦进行中：cache、throttle、mailer、sms、cookie、crypto、lock、queue、sse、blpath、als、delay、list、crud、token、scope-resolver、repository、rsa、ip 等已陆续抽入 libs/，完整清单以目录为准 —— 见 ADR 0007 与 libs 解耦计划 ）
+（ libs 解耦进行中：cache、throttle、mailer、sms、cookie、crypto、lock、queue、sse、blpath、als、delay、list、crud、token、scope-resolver、repository、rsa、ip、identity、system 等已陆续抽入 libs/，完整清单以目录为准 —— 见 ADR 0007 与 libs 解耦计划 ）
 ```
 
 `modules/` 下按职责分六组：
@@ -57,7 +57,7 @@ libs/*/src/                            # 内部库，经 tsconfig paths 以 @wal
 | `auth/` | 认证（JWT、OAuth、MFA、OTP） |
 | `security/` | 安全（CAPTCHA、RSA、Sign、Risk） |
 | `shared/` | 共享服务（area、mask、welcome；ip / token / scopeResolver 已抽至 libs/ip、libs/token、libs/scope-resolver，email/SMS 已抽至 libs/mailer、libs/sms） |
-| `system/` | 系统管理（user、role、menu、device、logs、dict） |
+| `system/` | 系统管理（HTTP 组合根：role/menu/device/logs/dict 等 controller 与 user wire DTO；数据面已抽至 `libs/system`、身份栈已抽至 `libs/identity`） |
 | `techniques/` | 基础设施（task、event、health、logger；cache/queue/throttle/SSE 等已抽至 libs） |
 
 ### 认证与 MFA 强制口径
@@ -126,7 +126,7 @@ import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
 
-import { SysDeletedModule } from '@/modules/system/deleted/deleted.module'
+import { SysDeletedModule } from '@walnut-server/system'
 import { AppDemoEntity } from './entity/demo.entity'
 
 @Module({

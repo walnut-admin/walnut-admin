@@ -1,7 +1,7 @@
 /**
  * 模型名常量 —— 迁移后仍被 PG 通道消费：
  * - PG 版仓库骨架以它作软删快照的 `modelName` 路由键（pg-base.repository）；
- * - 回收站恢复注册表以它把快照路由回目标实体（recover-registry.ts）。
+ * - 回收站恢复注册表以它把快照路由回目标实体（libs/repository 的 recoverable.registry）。
  * （`WalnutDBConnectionName` / `WalnutDBCollectionName` 是 Mongo 连接与集合的名字，
  * Phase 5a 随 MongoDB 基础设施一并摘除。）
  */

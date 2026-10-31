@@ -9,8 +9,8 @@ import {
 
 import { AuthGuard } from '@nestjs/passport'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { SysLogAuthSharedService } from '@walnut-server/system'
 import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
-import { SysLogAuthSharedService } from '@/modules/system/logs/auth/shared/log.auth.shared.service'
 
 /**
  * Walnut Admin Auth Guard (Mixin Factory)

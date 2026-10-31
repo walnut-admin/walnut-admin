@@ -1,3 +1,4 @@
+export { SysDeletedEntity } from './entities/deleted.entity'
 export { WalnutAdminCommonPgBaseRepository } from './pg-base.repository'
 export {
   applyPgListQuery,
@@ -21,3 +22,10 @@ export {
   type IWalnutAdminSoftDeletePayload,
   WALNUT_ADMIN_SOFT_DELETE_STRATEGY,
 } from './ports/soft-delete.port'
+export {
+  createWalnutAdminRecoverableRegistrar,
+  createWalnutAdminSnapshotRecoverer,
+  type IWalnutAdminRecoverableEntry,
+  type IWalnutAdminRecoverableRecoverer,
+  WalnutAdminRecoverableRegistry,
+} from './recoverable.registry'

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common'
+import { sysIdentityRecoverableRegistrarProvider } from './recoverable'
 import { SysUserModule } from './user/user.module'
 import { SysUserDeviceModule } from './user_device/user_device.module'
 import { SysUserIdentityModule } from './user_identity/user_identity.module'
@@ -38,5 +39,7 @@ import { SysUserPreferenceModule } from './user_preference/user_preference.modul
     SysUserOauthModule,
     SysUserPreferenceModule,
   ],
+  // 批 7：回收站恢复器登记（登记制 —— 回收站不再 import identity 实体清单）
+  providers: [sysIdentityRecoverableRegistrarProvider],
 })
 export class SysIdentityModule {}

@@ -10,7 +10,8 @@ dict / lang / locale 是三组互相独立的配置数据。
 已知缺陷的登记与裁决见 `apps/server/apps/api/test/api/DESIGN-ISSUES.md`（下文以 `P?-?` 引用）。
 表设计依据 `docs/plans/postgres-migration-phase2.md` §4.1 ~ §4.7。
 
-源码入口：`apps/server/apps/api/src/modules/system/`。接口矩阵的原始测绘在
+源码入口：`apps/server/libs/system/src/`（role / menu / dict / lang / locale）与
+`apps/server/apps/api/src/modules/system/`（controller 与 user 的 wire DTO）。接口矩阵的原始测绘在
 `apps/server/apps/api/test/api/ENDPOINTS.md` §5；权限链路的实测锚点在
 `apps/server/apps/api/test/api/permission-chain.api-spec.ts`。
 
@@ -21,11 +22,11 @@ dict / lang / locale 是三组互相独立的配置数据。
 | 模块 | 源码目录 | 职责 | 主表 |
 |---|---|---|---|
 | user | `libs/identity/src/user/`（HTTP 面 `modules/system/identity/`） | 用户行、角色绑定 junction、自助资料、角色/角色模式切换 | `sys_user` + `sys_user_role` |
-| role | `modules/system/role/` | 角色行、菜单授权 junction、权限链路的角色侧入口 | `sys_role` + `sys_role_menu` |
-| menu | `modules/system/menu/` | 菜单/路由/元素权限行，meta 拍平列，权限串来源 | `sys_menu` |
-| dict | `modules/system/dict/` | 字典类型与字典数据（枚举值、标签 i18n key） | `sys_dict_type` + `sys_dict_data` |
-| lang | `modules/system/lang/` | 语言条目（`en_US` / `zh_CN` 等）与公开语言列表 | `sys_lang` |
-| locale | `modules/system/locale/` | 某语言下 `key → value` 的翻译行与消息聚合 | `sys_locale` |
+| role | `libs/system/src/role/` | 角色行、菜单授权 junction、权限链路的角色侧入口 | `sys_role` + `sys_role_menu` |
+| menu | `libs/system/src/menu/` | 菜单/路由/元素权限行，meta 拍平列，权限串来源 | `sys_menu` |
+| dict | `libs/system/src/dict/` | 字典类型与字典数据（枚举值、标签 i18n key） | `sys_dict_type` + `sys_dict_data` |
+| lang | `libs/system/src/lang/` | 语言条目（`en_US` / `zh_CN` 等）与公开语言列表 | `sys_lang` |
+| locale | `libs/system/src/locale/` | 某语言下 `key → value` 的翻译行与消息聚合 | `sys_locale` |
 
 所有表都带公共列 `id`（uuid）/ `created_at` / `updated_at`。删除统一走
 「写 `sys_deleted` 快照（content 为 jsonb 原行）+ 硬删原行」的软删语义，实现见
@@ -270,7 +271,7 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 + 19 个 meta 拍平列。`meta` 不再以子文档存库（phase2 Q1 定案：`meta.status` 是角色
 populate 的过滤条件、`meta.order` 是排序键，拍平才能进约束与索引）。
 
-出入参的转换在 `modules/system/menu/dto/menu.dto.ts`：
+出入参的转换在 `libs/system/src/menu/dto/menu.dto.ts`：
 
 | 方向 | 函数 | 语义 |
 |---|---|---|

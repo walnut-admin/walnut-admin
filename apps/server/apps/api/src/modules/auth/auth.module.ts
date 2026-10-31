@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
 
-import { SysMenuSharedModule } from '../system/menu/shared/menu.shared.module'
+import { SysMenuSharedModule } from '@walnut-server/system'
 import { AuthController } from './auth.controller'
 import { AuthService } from './auth.service'
 import { AuthGoogleModule } from './modules/google/google.module'

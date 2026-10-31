@@ -12,6 +12,7 @@
  */
 export * from './identity.module'
 export * from './identity.ports'
+export * from './recoverable'
 
 export * from './shared/base.model'
 export * from './shared/device-location'

@@ -33,9 +33,9 @@ export interface IWalnutAdminSoftDeletePayload {
 }
 
 /**
- * 返回值刻意是 unknown：实体类（SysDeletedEntity）在 app 侧，lib 不反向 import；
- * 现状唯一调用方（基类软删路径）忽略返回值。将来若需要快照行，定义结构类型
- * 而不是放开成实体。
+ * 返回值刻意是 unknown：实体类（SysDeletedEntity，批 7 起在本 lib 的 entities/ 下）
+ * 不参与端口契约；现状唯一调用方（基类软删路径）忽略返回值。将来若需要快照行，
+ * 定义结构类型而不是放开成实体。
  */
 export interface ISoftDeleteStrategy {
   createSoftDelete: (payload: IWalnutAdminSoftDeletePayload, em?: EntityManager) => Promise<unknown>
