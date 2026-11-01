@@ -97,8 +97,7 @@ prepush 的「workflow 校验」段在本机是 SKIP（✓ 但 ≠ 通过）；�
   ```text
   deploy/nginx/deploy/nginx/Dockerfile
   ```
-- **lib-registration ①④ 不比值**：tsconfig alias 只比键集合、tsconfig.app 只查 include；
-  worker/cli 的 tsconfig include 与各 `tsconfig.lib.json` outDir 不在守卫面（当前值均正确）。
+- **lib-registration ④ 不比值**：tsconfig alias 的值断言已补（W4）；worker/cli 两份 tsconfig 的`include` 与各 `tsconfig.lib.json` outDir 仍不在守卫面（当前值均正确，新增 lib 时按 drift ⑤ 的名单对账兜底）。
 - **ADR 0022:87** 「当前全部 19 个 token」口径：另有 `WALNUT_ADMIN_OTP_STRATEGY`、
   `WALNUT_ADMIN_PERMANENT_BLACKLIST_PATHS` 等 JWT/OAuth/strategy 组注入常量不在清单（清单本身
   19/19 全部真实存在）。
