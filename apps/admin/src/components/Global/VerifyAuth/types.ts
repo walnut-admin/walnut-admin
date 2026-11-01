@@ -1,4 +1,5 @@
 import type { SystemUserIdentityPurpose } from '@walnut/api-types'
+import type { IWalnutAdminConstSysUserMfaType } from '@walnut/contract/mfa'
 /**
  * Secondary Authentication Types
  * Unified secondary authentication for sensitive operations
@@ -6,8 +7,9 @@ import type { SystemUserIdentityPurpose } from '@walnut/api-types'
 
 /**
  * Supported authentication method types
+ * （MFA 两档来自 @walnut/contract，前后端同一值集）
  */
-export type VerifyAuthMethodType = 'sms' | 'email' | 'totp' | 'webauthn'
+export type VerifyAuthMethodType = 'sms' | 'email' | IWalnutAdminConstSysUserMfaType
 
 /**
  * Flow mode - determines which flow to use

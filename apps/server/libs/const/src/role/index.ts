@@ -1,16 +1,10 @@
-import type { ValueOf } from 'easy-fns-ts'
-
 // Role enum — now imported directly from @walnut/contract by consumers
-// This file retains only server-local role constants (mode, IDs) not shared via contract
+// Role mode 的 wire 值集已上收 @walnut/contract/role；本文件只保留 server-only 的 safe id 常量
 
-export const WalnutAdminConstRoleMode = {
-  SWITCH: 'switchable',
-  COMBINE: 'combinable',
-} as const
-
-export type IWalnutAdminConstRoleMode = ValueOf<
-  typeof WalnutAdminConstRoleMode
->
+export {
+  type RoleModeType as IWalnutAdminConstRoleMode,
+  RoleMode as WalnutAdminConstRoleMode,
+} from '@walnut/contract/role'
 
 // Phase 5a（B10 挂单收口）：safe id 常量收敛为 **uuid 单形态** —— PG 主键即 ETL 派生的
 // v5 uuid（namespace 与派生规则见 packages/tooling/scripts/src/db/uuid5.ts），

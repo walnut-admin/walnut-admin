@@ -1,6 +1,8 @@
 <script lang="ts" setup>
+import type { IWalnutAdminSseClientData, IWalnutAdminSseEvents, IWalnutAdminSseOAuthPayload } from '@walnut/contract/sse'
 import type { Recordable } from 'easy-fns-ts'
 import { useEventListener } from '@vueuse/core'
+import { WalnutAdminSseEvents } from '@walnut/contract/sse'
 import { computed, onUnmounted } from 'vue'
 import { getGiteeURIAPI, getGitHubURIAPI } from '@/api/auth/third'
 import { useAppEnvProxy } from '@/hooks/app/useAppEnv'
@@ -24,6 +26,11 @@ const appStoreFingerprint = useAppStoreFingerprint()
 const { isReady, login } = useGoogleOneTap()
 
 let childWindow: Window | null
+
+const oauthSseEvents: Record<string, IWalnutAdminSseEvents | undefined> = {
+  gitee: WalnutAdminSseEvents.OAUTH_GITEE,
+  github: WalnutAdminSseEvents.OAUTH_GITHUB,
+}
 
 const iconArr = computed(() =>
   [
@@ -69,10 +76,10 @@ async function onOAuth(type: string) {
 
   eventSource.onmessage = async ({ data }) => {
     try {
-      const res = JSON.parse(data)
+      const res: IWalnutAdminSseClientData<IWalnutAdminSseOAuthPayload> = JSON.parse(data)
 
       if (res.success) {
-        if (res.data.event === `token:${type}`) {
+        if (res.data.event === oauthSseEvents[type]) {
           useAppMsgSuccess(t('app.oauth.success'))
           await userStoreAuth.ExecuteCoreFnAfterAuth(res.data.accessToken, res.data.sessionKey)
         }

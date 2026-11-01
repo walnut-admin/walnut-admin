@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { IWalnutAdminConstAppSettingKeys, WalnutAdminConstAppCacheKeys, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
-import { IWalnutAdminConstAppSettingAuthEmailKeys, IWalnutAdminConstAppSettingAuthOAuthGiteeKeys, IWalnutAdminConstAppSettingAuthOAuthGitHubKeys, IWalnutAdminConstAppSettingAuthOAuthGoogleKeys, IWalnutAdminConstAppSettingAuthOpaqueKeys, IWalnutAdminConstAppSettingAuthSmsKeys, IWalnutAdminConstAppSettingCapJSKeys, IWalnutAdminConstAppSettingCryptoHKDFKeys, IWalnutAdminConstAppSettingForceQuit, IWalnutAdminConstAppSettingFunctionalFrontendKeys, IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys, IWalnutAdminConstAppSettingFunctionalRoleKeys, IWalnutAdminConstAppSettingMfaKeys, WalnutAdminConstAppSettingScopeType } from '@walnut-server/const/app/setting'
+import { IWalnutAdminConstAppSettingAuthEmailKeys, IWalnutAdminConstAppSettingAuthOAuthGiteeKeys, IWalnutAdminConstAppSettingAuthOAuthGitHubKeys, IWalnutAdminConstAppSettingAuthOAuthGoogleKeys, IWalnutAdminConstAppSettingAuthOpaqueKeys, IWalnutAdminConstAppSettingAuthSmsKeys, IWalnutAdminConstAppSettingCapJSKeys, IWalnutAdminConstAppSettingCryptoHKDFKeys, IWalnutAdminConstAppSettingForceQuit, IWalnutAdminConstAppSettingFunctionalFrontendKeys, IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys, IWalnutAdminConstAppSettingFunctionalRoleKeys, IWalnutAdminConstAppSettingMfaKeys, WalnutAdminConstAppSettingForceQuitStrategy, WalnutAdminConstAppSettingScopeType } from '@walnut-server/const/app/setting'
 
 import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { Recordable } from 'easy-fns-ts'
@@ -153,18 +153,18 @@ export class AppTechCacheAppSettingsService {
   }
 
   private readonly defaultForceQuitConfig: IWalnutAdminConstAppSettingForceQuit = {
-    updatePass: 'FORCE_COUNTDOWN_MODAL',
-    resetPass: 'FORCE_COUNTDOWN_MODAL',
-    updateEmail: 'FORCE_COUNTDOWN_MODAL',
-    updatePhoneNumber: 'FORCE_COUNTDOWN_MODAL',
-    forceQuitOnline: 'FORCE_IMMEDIATE_SIGNOUT',
-    forceQuitOffline: 'FORCE_COUNTDOWN_MODAL',
-    currentRoleBanned: 'FORCE_IMMEDIATE_SIGNOUT',
-    currentUserBanned: 'FORCE_IMMEDIATE_SIGNOUT',
-    deviceBanned: 'FORCE_IMMEDIATE_SIGNOUT',
-    deviceHighRisk: 'FORCE_COUNTDOWN_MODAL',
-    versionUpgrade: 'MANUAL_COUNTDOWN_MODAL',
-    userKickOther: 'MANUAL_COUNTDOWN_MODAL',
+    updatePass: WalnutAdminConstAppSettingForceQuitStrategy.FORCE_COUNTDOWN_MODAL,
+    resetPass: WalnutAdminConstAppSettingForceQuitStrategy.FORCE_COUNTDOWN_MODAL,
+    updateEmail: WalnutAdminConstAppSettingForceQuitStrategy.FORCE_COUNTDOWN_MODAL,
+    updatePhoneNumber: WalnutAdminConstAppSettingForceQuitStrategy.FORCE_COUNTDOWN_MODAL,
+    forceQuitOnline: WalnutAdminConstAppSettingForceQuitStrategy.FORCE_IMMEDIATE_SIGNOUT,
+    forceQuitOffline: WalnutAdminConstAppSettingForceQuitStrategy.FORCE_COUNTDOWN_MODAL,
+    currentRoleBanned: WalnutAdminConstAppSettingForceQuitStrategy.FORCE_IMMEDIATE_SIGNOUT,
+    currentUserBanned: WalnutAdminConstAppSettingForceQuitStrategy.FORCE_IMMEDIATE_SIGNOUT,
+    deviceBanned: WalnutAdminConstAppSettingForceQuitStrategy.FORCE_IMMEDIATE_SIGNOUT,
+    deviceHighRisk: WalnutAdminConstAppSettingForceQuitStrategy.FORCE_COUNTDOWN_MODAL,
+    versionUpgrade: WalnutAdminConstAppSettingForceQuitStrategy.MANUAL_COUNTDOWN_MODAL,
+    userKickOther: WalnutAdminConstAppSettingForceQuitStrategy.MANUAL_COUNTDOWN_MODAL,
   }
 
   async getForceQuitConfig(): Promise<IWalnutAdminConstAppSettingForceQuit> {

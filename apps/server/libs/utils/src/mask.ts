@@ -24,6 +24,11 @@ const sensitiveRegexMap = {
   phone: /phone/i,
 }
 
+/**
+ * @description 邮箱展示掩码：local 段保留前 1-2 个字符、其余逐字符打 `*`，`@domain` 原样。
+ * local 段 ≤2 个字符时没有可掩部分，原样返回；`+` `.` `%` `-` 与字母数字同属保留前缀的
+ * 字符类，会占用保留位（如 `a+b@example.com` → `a+*@example.com`）。
+ */
 export function maskEmail(email: string): string {
   if (!email)
     return ''

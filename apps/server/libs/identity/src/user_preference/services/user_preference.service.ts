@@ -1,16 +1,14 @@
+import type { IFontSizeConst } from '@walnut/contract/preference'
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
 import { Locale, LocaleType } from '@walnut/contract'
-import { ValueOf } from 'easy-fns-ts'
 import { DataSource } from 'typeorm'
 
 import { SysUserPreferenceDTOAccessibilityRequest, SysUserPreferenceDTOBasicRequest, SysUserPreferenceDTOLayoutRequest, SysUserPreferenceDTOThemeRequest, SysUserPreferenceResponseDTO } from '../dto/user_preference.dto'
 import { SysUserPreferenceEntity } from '../entity/user-preference.entity'
 import { colorModeConst, CVDConst, fontSizeConst, IColorModeConst, ICVDConst, ILayoutModeConst, layoutModeConst } from '../preference.const'
-
-type IFontSizeConst = ValueOf<typeof fontSizeConst>
 
 /**
  * B7b 迁移：Mongo model 直持 → PG 命名连接 DataSource（本模块无独立仓库，

@@ -1,5 +1,6 @@
 import type { SystemUser } from '@walnut/api-types'
 import type { IStoreUser } from '@/store/types'
+import { RoleMode } from '@walnut/contract/role'
 import { upperFirst } from 'easy-fns-ts'
 import { defineStore } from 'pinia'
 import { getCurrentInstance } from 'vue'
@@ -49,7 +50,7 @@ const useAppStoreUserProfileInside = defineStore(StoreKeys.USER_PROFILE, {
     },
 
     getCurrentRoleModeIsSwitchable(state) {
-      return state.profile.roleMode === 'switchable'
+      return state.profile.roleMode === RoleMode.SWITCH
     },
   },
 

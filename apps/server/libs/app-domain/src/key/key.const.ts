@@ -1,18 +1,14 @@
 /**
  * App Key Module Constants
  * （自 schema/key.schema.ts 搬出：schema 只留 DTO 元数据类，业务常量归 const 文件）
+ *
+ * AppKeyTypeConst 的 wire 值集已上收 @walnut/contract/crypto-wire（rsa lib 不能反向
+ * import app-domain，且前端也按 URL 传同一组值）；本文件保留 server-only 的 status 常量。
  */
 
 import type { ValueOf } from 'easy-fns-ts'
 
-export const AppKeyTypeConst = {
-  RSA_PAIR: 'RSA_PAIR',
-  AES_KEY_URL: 'AES_KEY_URL',
-  JWT_AT: 'JWT_AT',
-  JWT_RT: 'JWT_RT',
-} as const
-
-export type AppKeyTypeConstType = ValueOf<typeof AppKeyTypeConst>
+export { AppKeyTypeConst, type AppKeyTypeConstType } from '@walnut/contract/crypto-wire'
 
 export const AppKeyStatusConst = {
   ACTIVE: 'ACTIVE',

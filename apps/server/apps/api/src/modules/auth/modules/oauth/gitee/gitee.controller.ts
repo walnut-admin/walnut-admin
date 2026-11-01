@@ -1,3 +1,4 @@
+import type { IWalnutAdminSseClientData, IWalnutAdminSseOAuthPayload } from '@walnut/contract/sse'
 import { Buffer } from 'node:buffer'
 import {
   Controller,
@@ -13,10 +14,10 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+
 import { ApiTags } from '@nestjs/swagger'
 
 import { AuthCookieService, AuthSharedService, OAuthGiteeScope, OAuthStateService, WalnutAdminGuardJwtFree } from '@walnut-server/auth'
-
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstAppSettingAuthOAuthGiteeKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
@@ -26,6 +27,7 @@ import { SysUserIdentitySharedService, WalnutAdminConstSysUserIdentityType } fro
 import { SecurityRiskFailedLoginService } from '@walnut-server/security/risk/modules/failedLogin.service'
 import { AppTechSseService } from '@walnut-server/sse'
 import { LocaleType } from '@walnut/contract'
+import { WalnutAdminSseEvents } from '@walnut/contract/sse'
 import { I18n, I18nContext } from 'nestjs-i18n'
 import { OAuthGiteeGuard } from './gitee.guard'
 
@@ -130,11 +132,11 @@ export class OAuthGiteeController {
       // Set refresh token jti to cookie
       this.authCookieService.setRTJtiCookie(req, refreshTokenJti)
 
-      const successPayload: IWalnutAdminSseClientData = {
+      const successPayload: IWalnutAdminSseClientData<IWalnutAdminSseOAuthPayload> = {
         success: true,
         message: 'success',
         data: {
-          event: 'token:gitee',
+          event: WalnutAdminSseEvents.OAUTH_GITEE,
           accessToken,
           sessionKey: authSessionKey,
         },
@@ -145,7 +147,7 @@ export class OAuthGiteeController {
     catch (exception) {
       const errMsg = exception instanceof Error ? exception.message : 'business.auth.authFailed'
       const translatedMsg: string = i18n.t(errMsg, { lang })
-      const errorPayload: IWalnutAdminSseClientData = {
+      const errorPayload: IWalnutAdminSseClientData<Record<string, never>> = {
         success: false,
         message: translatedMsg,
         data: {},

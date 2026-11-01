@@ -1,5 +1,7 @@
-import type { Recordable } from 'easy-fns-ts'
+import type { IWalnutAdminConstAppSettingForceQuitStrategy } from '@walnut/contract/setting'
+import type { IWalnutAdminSocketEventDataMap, IWalnutAdminSocketEvents } from '@walnut/contract/socket'
 import type { Socket } from 'socket.io-client'
+import { WalnutAdminConstAppSettingForceQuitStrategy as ForceQuitStrategy } from '@walnut/contract/setting'
 import { io } from 'socket.io-client'
 import { AppConstRequestHeaders } from '@/const/app'
 import { useAppEnvProxy } from '@/hooks/app/useAppEnv'
@@ -17,12 +19,12 @@ const path = useProxy ? ws[1] : ws[3]
 let socket: Socket | null = null
 
 // 事件处理器映射表
-const eventHandlers: Map<string, (payload: any) => void> = new Map()
+const eventHandlers: Map<IWalnutAdminSocketEvents, (payload: any) => void> = new Map()
 
 /**
  * 注册事件处理器（可以在 Vue 组件中调用）
  */
-export function registerSocketEvent(event: string, handler: (payload: any) => void) {
+export function registerSocketEvent(event: IWalnutAdminSocketEvents, handler: (payload: any) => void) {
   eventHandlers.set(event, handler)
 
   // 如果 socket 已经初始化，立即注册
@@ -34,7 +36,7 @@ export function registerSocketEvent(event: string, handler: (payload: any) => vo
 /**
  * 取消注册事件
  */
-export function unregisterSocketEvent(event: string) {
+export function unregisterSocketEvent(event: IWalnutAdminSocketEvents) {
   const handler = eventHandlers.get(event)
   if (handler && socket) {
     socket.off(event, handler)
@@ -71,17 +73,17 @@ export function setupSocket() {
   })
 
   // 注册 FORCE_QUIT 事件
-  socket.on(AppSocketEvents.FORCE_QUIT, async (payload: { strategy: string }) => {
+  socket.on(AppSocketEvents.FORCE_QUIT, async (payload: IWalnutAdminSocketEventDataMap['force:quit']) => {
     console.log('[Socket] FORCE_QUIT received:', payload.strategy)
 
-    const strategyMap: Recordable = {
-      FORCE_IMMEDIATE_SIGNOUT: async () => {
+    const strategyMap: Record<IWalnutAdminConstAppSettingForceQuitStrategy, () => Promise<void> | void> = {
+      [ForceQuitStrategy.FORCE_IMMEDIATE_SIGNOUT]: async () => {
         await useAppStoreUserAuth().Signout()
       },
-      FORCE_COUNTDOWN_MODAL: () => {
+      [ForceQuitStrategy.FORCE_COUNTDOWN_MODAL]: () => {
         useStoreCompForceQuit().onOpenForceQuitModal()
       },
-      MANUAL_COUNTDOWN_MODAL: () => {
+      [ForceQuitStrategy.MANUAL_COUNTDOWN_MODAL]: () => {
         useStoreCompForceQuit().onOpenForceQuitModal(true)
       },
     }

@@ -3,6 +3,7 @@
 exports[`contract snapshots > aes-gcm wire format constants never change silently 1`] = `
 {
   "IV_LENGTH": 12,
+  "KEY_LENGTH": 32,
   "MIN_PAYLOAD_LENGTH": 28,
   "TAG_LENGTH": 16,
 }
@@ -95,6 +96,15 @@ exports[`contract snapshots > api routes never change silently 1`] = `
 }
 `;
 
+exports[`contract snapshots > app key types never change silently 1`] = `
+{
+  "AES_KEY_URL": "AES_KEY_URL",
+  "JWT_AT": "JWT_AT",
+  "JWT_RT": "JWT_RT",
+  "RSA_PAIR": "RSA_PAIR",
+}
+`;
+
 exports[`contract snapshots > cookie keys never change silently 1`] = `
 {
   "CAPJS_TOKEN": "CAPJS_TOKEN",
@@ -112,6 +122,14 @@ exports[`contract snapshots > data scope tiers never change silently 1`] = `
   "DEPT_AND_CHILD": 4,
   "DEPT_OR_SELF": 6,
   "SELF": 5,
+}
+`;
+
+exports[`contract snapshots > force quit strategies never change silently 1`] = `
+{
+  "FORCE_COUNTDOWN_MODAL": "FORCE_COUNTDOWN_MODAL",
+  "FORCE_IMMEDIATE_SIGNOUT": "FORCE_IMMEDIATE_SIGNOUT",
+  "MANUAL_COUNTDOWN_MODAL": "MANUAL_COUNTDOWN_MODAL",
 }
 `;
 
@@ -142,28 +160,94 @@ exports[`contract snapshots > menu enums never change silently 1`] = `
 }
 `;
 
+exports[`contract snapshots > mfa methods and transports never change silently 1`] = `
+{
+  "WalnutAdminConstSysUserMfaType": [
+    "totp",
+    "webauthn",
+  ],
+  "WalnutAdminConstSysUserMfaWebauthnTransport": [
+    "usb",
+    "ble",
+    "nfc",
+    "internal",
+    "hybrid",
+  ],
+}
+`;
+
+exports[`contract snapshots > preference value sets never change silently 1`] = `
+{
+  "CVDConst": {
+    "ACHROMATOPIA": "achromatopsia",
+    "DEFAULT": "default",
+    "DEUTERANOPIA": "deuteranopia",
+    "PROTANOPIA": "protanopia",
+    "TRITANOPIA": "tritanopia",
+  },
+  "colorModeConst": {
+    "CAFE": "cafe",
+    "CONTRAST": "contrast",
+    "DEFAULT": "default",
+    "GRAYSCALE": "grayscale",
+    "GRAYSCALE_INVERTED": "grayscale-inverted",
+    "INVERTED": "inverted",
+  },
+  "fontSizeConst": {
+    "10": 10,
+    "12": 12,
+    "14": 14,
+    "16": 16,
+    "20": 20,
+  },
+  "fontSizeValues": [
+    10,
+    12,
+    14,
+    16,
+    20,
+  ],
+  "layoutModeConst": {
+    "LEFT_MENU": "left-menu",
+    "TOP_MENU": "top-menu",
+  },
+}
+`;
+
 exports[`contract snapshots > public API surface stays stable 1`] = `
 [
   "AES_GCM_WIRE",
+  "AppKeyTypeConst",
   "AppRoutes",
   "AuthRoutes",
+  "CVDConst",
   "CacheKeyStrategy",
   "DataScope",
   "Locale",
+  "LockModeConst",
   "MenuTernal",
   "MenuType",
   "RequestHeaders",
   "Role",
+  "RoleMode",
   "SecurityRoutes",
   "SharedRoutes",
   "SortOrderValues",
   "SystemEndpointRoutes",
   "SystemRoutes",
   "WalnutAdminConstAppResponseCode",
+  "WalnutAdminConstAppSettingForceQuitStrategy",
   "WalnutAdminConstAppTokenKey",
   "WalnutAdminConstCookieKeys",
+  "WalnutAdminConstSysUserMfaType",
+  "WalnutAdminConstSysUserMfaWebauthnTransport",
   "WalnutAdminSocketEvents",
   "WalnutAdminSocketRooms",
+  "WalnutAdminSseEvents",
+  "colorModeConst",
+  "fontSizeConst",
+  "fontSizeValues",
+  "layoutModeConst",
 ]
 `;
 
@@ -247,6 +331,13 @@ exports[`contract snapshots > response codes never change silently 1`] = `
 }
 `;
 
+exports[`contract snapshots > role modes never change silently 1`] = `
+{
+  "COMBINE": "combinable",
+  "SWITCH": "switchable",
+}
+`;
+
 exports[`contract snapshots > roles never change silently 1`] = `
 {
   "ADMIN": "admin",
@@ -276,9 +367,24 @@ exports[`contract snapshots > sort order values never change silently 1`] = `
 }
 `;
 
+exports[`contract snapshots > sse event names never change silently 1`] = `
+{
+  "OAUTH_GITEE": "token:gitee",
+  "OAUTH_GITHUB": "token:github",
+}
+`;
+
 exports[`contract snapshots > token keys never change silently 1`] = `
 {
   "ACCESS": "WALNUT_ACCESS_TOKEN",
   "REFRESH": "WALNUT_REFRESH_TOKEN",
+}
+`;
+
+exports[`contract snapshots > user lock modes never change silently 1`] = `
+{
+  "DEFAULT": "default",
+  "IDLE": "idle",
+  "SECURITY": "security",
 }
 `;

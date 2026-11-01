@@ -1,7 +1,9 @@
 import type { ValueOf } from 'easy-fns-ts'
 import { RequestHeaders as RequestHeadersContract } from '@walnut/contract/http'
 import { Locale as LocaleContract } from '@walnut/contract/i18n'
+import { colorModeConst, CVDConst, layoutModeConst } from '@walnut/contract/preference'
 import { Role } from '@walnut/contract/role'
+import { LockModeConst } from '@walnut/contract/user-lock'
 
 export const AppConstDevice = {
   MOBILE: 'mobile',
@@ -35,18 +37,12 @@ export const AppConstCollapseMode = {
 
 export type ValueOfAppConstCollapseMode = ValueOf<typeof AppConstCollapseMode>
 
-export const AppConstLayoutMode = {
-  LEFT_MENU: 'left-menu',
-  TOP_MENU: 'top-menu',
-} as const
+// 偏好 / 锁模式的 wire 值集已上收 @walnut/contract；同名 re-export 保住既有视图 import
+export const AppConstLayoutMode = layoutModeConst
 
 export type ValueOfAppConstLayoutMode = ValueOf<typeof AppConstLayoutMode>
 
-export const AppConstLockMode = {
-  DEFAULT: 'default',
-  SECURITY: 'security',
-  IDLE: 'idle',
-} as const
+export const AppConstLockMode = LockModeConst
 
 export type ValueOfAppConstLockMode = ValueOf<typeof AppConstLockMode>
 
@@ -57,24 +53,11 @@ export const AppConstBasicMode = {
 
 export type ValueOfAppConstBasicMode = ValueOf<typeof AppConstBasicMode>
 
-export const AppConstColorMode = {
-  DEFAULT: 'default',
-  CAFE: 'cafe',
-  CONTRAST: 'contrast',
-  GRAYSCALE: 'grayscale',
-  GRAYSCALE_INVERTED: 'grayscale-inverted',
-  INVERTED: 'inverted',
-} as const
+export const AppConstColorMode = colorModeConst
 
 export type ValueOfAppConstColorMode = ValueOf<typeof AppConstColorMode>
 
-export const AppConstCVD = {
-  DEFAULT: 'default',
-  PROTANOPIA: 'protanopia', // no red
-  DEUTERANOPIA: 'deuteranopia', // no green
-  TRITANOPIA: 'tritanopia', // no blue
-  ACHROMATOPIA: 'achromatopsia', // no color
-} as const
+export const AppConstCVD = CVDConst
 
 export type ValueOfAppCVD = ValueOf<typeof AppConstCVD>
 

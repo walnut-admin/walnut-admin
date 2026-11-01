@@ -39,19 +39,24 @@
 |------|------|
 | `.` | 下列全部运行时值 + 类型 |
 | `./cookie` | `WalnutAdminConstCookieKeys`（`DEVICE_ID` / `CAPJS_TOKEN` / `RT_JTI` / `SIGN_TICKET`） |
-| `./crypto-wire` | `AES_GCM_WIRE`（`IV_LENGTH` / `TAG_LENGTH` / `MIN_PAYLOAD_LENGTH`） |
+| `./crypto-wire` | `AES_GCM_WIRE`（`KEY_LENGTH` / `IV_LENGTH` / `TAG_LENGTH` / `MIN_PAYLOAD_LENGTH`）/ `AppKeyTypeConst`（`RSA_PAIR` / `AES_KEY_URL` / `JWT_AT` / `JWT_RT`） |
 | `./data-scope` | `DataScope`（六档数值 `ALL` / `CUSTOM` / `DEPT` / `DEPT_AND_CHILD` / `SELF` / `DEPT_OR_SELF`）/ `DataScopeKey` / `DataScopeType` |
 | `./http` | `RequestHeaders`（`X-Request-ID` / `X-Language` / `X-Sign` / `X-Fingerprint` …） |
 | `./i18n` | `Locale` / `LocaleType` |
 | `./menu` | `MenuType` / `MenuTernal` / `CacheKeyStrategy` |
+| `./mfa` | `WalnutAdminConstSysUserMfaType` / `WalnutAdminConstSysUserMfaWebauthnTransport`（+ 派生类型） |
 | `./pagination` | `SortOrder` / `SortOrderValues` / `SortParam` / `BaseSortParams` / `BasePageParams` / `BaseListParams` / `BaseListResponse` |
+| `./preference` | `fontSizeConst` / `fontSizeValues` / `colorModeConst` / `CVDConst` / `layoutModeConst`（+ 派生类型） |
 | `./response` | `ResponseBase<T>`（`code` / `msg` / `data`，外加可选 `requestId` / `meta` / `_devMsg`） |
 | `./response-code` | `WalnutAdminConstAppResponseCode` / `IWalnutAdminConstAppResponseCode` |
-| `./role` | `Role` / `RoleType` |
+| `./role` | `Role` / `RoleType` / `RoleMode`（`switchable` / `combinable`）/ `RoleModeType` |
 | `./routes` | `AuthRoutes` / `SystemRoutes` / `SystemEndpointRoutes` / `AppRoutes` / `SecurityRoutes` / `SharedRoutes` |
-| `./socket` | `WalnutAdminSocketEvents` / `WalnutAdminSocketRooms` |
+| `./setting` | `WalnutAdminConstAppSettingForceQuitStrategy`（三档策略）/ `IWalnutAdminConstAppSettingForceQuit` |
+| `./socket` | `WalnutAdminSocketEvents` / `WalnutAdminSocketRooms` / `IWalnutAdminSocketEvents` / `IWalnutAdminSocketEventDataMap` |
+| `./sse` | `WalnutAdminSseEvents`（`token:gitee` / `token:github`）/ `IWalnutAdminSseClientData` |
 | `./token` | `IWalnutAdminAccessTokenPayload` / `IWalnutAdminRefreshTokenPayload` / `IWalnutAdminTokenUser` |
 | `./token-key` | `WalnutAdminConstAppTokenKey`（`ACCESS` / `REFRESH`） |
+| `./user-lock` | `LockModeConst`（`default` / `idle` / `security`）/ `ILockModeConst` |
 
 ## 怎么用
 

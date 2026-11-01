@@ -1,4 +1,5 @@
 import type { SystemMenu, SystemMenuMeta, SystemUser, SystemUserLockStatus } from '@walnut/api-types'
+import type { IFontSizeConst } from '@walnut/contract/preference'
 import type { Nullable, OptionDataItem, Recordable, TreeNodeItem } from 'easy-fns-ts'
 import type { MessageReactive, NotificationPlacement, NotificationReactive, WatermarkProps } from 'naive-ui'
 import type { CSSProperties, Ref } from 'vue'
@@ -292,7 +293,8 @@ export namespace IStoreUser {
       locale: ValueOfAppConstLocale
     }
     export interface Accessibility {
-      fontSize: number
+      /** 字号值集与 @walnut/contract/preference 的 fontSizeValues 同源（server IsEnum + DB CHECK） */
+      fontSize: IFontSizeConst
       reducedMotion: boolean
       colorMode: ValueOfAppConstColorMode
       CVD: ValueOfAppCVD

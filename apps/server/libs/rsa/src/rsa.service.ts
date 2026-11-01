@@ -5,6 +5,7 @@ import { constants, createCipheriv, createDecipheriv, privateDecrypt, publicEncr
 import { Inject, Injectable } from '@nestjs/common'
 import { AppTechCacheRsaService } from '@walnut-server/cache'
 import { WalnutAdminExceptionRsaDecryptFailed } from '@walnut-server/exceptions/business/rsa'
+import { AES_GCM_WIRE, AppKeyTypeConst } from '@walnut/contract/crypto-wire'
 import { WALNUT_ADMIN_KEY_STORE } from './rsa.ports'
 
 /**
@@ -22,13 +23,13 @@ export class SecurityRsaService {
   ) {}
 
   async getCurrentRsaPublicKey() {
-    const target = await this.keyStore.getCurrent('RSA_PAIR')
+    const target = await this.keyStore.getCurrent(AppKeyTypeConst.RSA_PAIR)
     return target.publicKeyPem
   }
 
   async getCurrentRsaPrivateKey() {
     // P0-6（2026-10-28）：getCurrent 的 HTTP 视图已剔除私钥 —— 内部解密走实体通道
-    const target = await this.keyStore.getCurrentActiveKey('RSA_PAIR')
+    const target = await this.keyStore.getCurrentActiveKey(AppKeyTypeConst.RSA_PAIR)
     return target?.meta?.privateKeyPem
   }
 
@@ -40,8 +41,8 @@ export class SecurityRsaService {
     const clientRsaPubKey = await this.cacheRsaService.getRsaPubKeyCache(deviceId)
 
     // 2. Generate one-time AES-256-GCM key and IV
-    const aesKey = randomBytes(32)
-    const iv = randomBytes(12)
+    const aesKey = randomBytes(AES_GCM_WIRE.KEY_LENGTH)
+    const iv = randomBytes(AES_GCM_WIRE.IV_LENGTH)
 
     // 3. AES-GCM encrypt value
     const cipher = createCipheriv('aes-256-gcm', aesKey, iv)
@@ -49,7 +50,7 @@ export class SecurityRsaService {
       cipher.update(value, 'utf8'),
       cipher.final(),
     ])
-    const tag = cipher.getAuthTag() // 16 bytes
+    const tag = cipher.getAuthTag() // TAG_LENGTH bytes
 
     // 4. Concatenate key|iv|tag into a 60-byte blob and encrypt with RSA public key
     const keyBlob = Buffer.concat([aesKey, iv, tag])

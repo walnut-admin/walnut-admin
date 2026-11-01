@@ -2,6 +2,7 @@
 import type { Ref } from 'vue'
 import type { VerifyAuthMethod, VerifyAuthOptions } from '../types'
 import { useState } from '@walnut/client/hooks/core/useState'
+import { WalnutAdminConstSysUserMfaType } from '@walnut/contract/mfa'
 import { computed, inject, onMounted, ref } from 'vue'
 import { authMfaStatusAPI } from '@/api/auth/mfa'
 import { getSecurityTab1StatusAPI2 } from '@/api/system/user_identity'
@@ -29,6 +30,9 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useAppI18n()
+
+// MFA 方法名的单一真源是 @walnut/contract（server 侧同一数组做 enum 校验）
+const [mfaTotp, mfaWebauthn] = WalnutAdminConstSysUserMfaType
 
 const loading = inject<Ref<boolean>>('loading')!
 
@@ -86,20 +90,20 @@ async function onInit() {
         bound: !!(identityStatus.emailAddress?.bound && identityStatus.emailAddress?.verified),
       },
       {
-        type: 'totp',
+        type: mfaTotp,
         name: t('mfa.totp'),
         description: t('mfa.totp.desc'),
         icon: 'simple-icons:google',
-        enabled: !!(mfaStatus.find(m => m.type === 'totp')?.enabled),
-        bound: !!(mfaStatus.find(m => m.type === 'totp')?.enabled),
+        enabled: !!(mfaStatus.find(m => m.type === mfaTotp)?.enabled),
+        bound: !!(mfaStatus.find(m => m.type === mfaTotp)?.enabled),
       },
       {
-        type: 'webauthn',
+        type: mfaWebauthn,
         name: t('mfa.webauthn'),
         description: t('mfa.webauthn.desc'),
         icon: 'simple-icons:webauthn',
-        enabled: !!(mfaStatus.find(m => m.type === 'webauthn')?.enabled),
-        bound: !!(mfaStatus.find(m => m.type === 'webauthn')?.enabled),
+        enabled: !!(mfaStatus.find(m => m.type === mfaWebauthn)?.enabled),
+        bound: !!(mfaStatus.find(m => m.type === mfaWebauthn)?.enabled),
       },
     ]
 
