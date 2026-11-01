@@ -13,7 +13,7 @@ interface WalnutAdminCacheContent<T = any> extends IWalnutAdminCacheOptions {
 
 // Note: IWalnutAdminCacheOptions is declared globally in this lib's types.d.ts
 
-// 辅助函数：去�?key 的前缀，用于显�?
+// 辅助函数：去掉 key 的前缀，用于展示
 function getDisplayKey(fullKey: string): string {
   const cachePrefix = 'WALNUT_CACHE_'
   if (fullKey.startsWith(cachePrefix)) {
@@ -39,12 +39,12 @@ function myFilter(array: IWalnutAdminCacheListRow[], conditions: Partial<IWalnut
         return true
       }
 
-      // 处理数字类型的精确匹�?
+      // 处理数字类型的精确匹配
       if (typeof value === 'number') {
         return get(item, key) === value
       }
 
-      // 处理布尔类型的精确匹�?
+      // 处理布尔类型的精确匹配
       if (typeof value === 'boolean') {
         return get(item, key) === value
       }
@@ -61,7 +61,7 @@ function myFilter(array: IWalnutAdminCacheListRow[], conditions: Partial<IWalnut
 export class AppTechCacheService {
   private readonly logger = new Logger(AppTechCacheService.name)
 
-  // 批量获取的批次大�?
+  // 批量获取的批次大小
   private readonly BATCH_SIZE = 100
 
   constructor(
@@ -286,7 +286,7 @@ return redis.call('DEL', KEYS[1])`,
       }
     }
 
-    // 处理剩余�?
+    // 处理剩余的 key
     if (batch.length > 0) {
       await this.redis.unlink(batch)
       matchedKeys.push(...batch)
@@ -320,10 +320,10 @@ return redis.call('DEL', KEYS[1])`,
     }
 
     try {
-      // 解析并更�?ttl 字段
+      // 解析并更新 ttl 字段
       cached.ttl = ttl
 
-      // 使用 SET �?EXPIRE 的组合，或者直接用 SETEX
+      // 使用 SET 和 EXPIRE 的组合，或者直接用 SETEX
       const serialized = JSON.stringify(cached)
 
       if (ttl > 0) {
@@ -370,7 +370,7 @@ return redis.call('DEL', KEYS[1])`,
   }
 
   /**
-   * 获取所有缓存数�?(已优化：使用 MGET 批量获取)
+   * 获取所有缓存数据（已优化：使用 MGET 批量获取）
    */
   private async getAllCacheData(): Promise<{ [key: string]: WalnutAdminCacheContent }> {
     const allCaches: { [key: string]: WalnutAdminCacheContent } = {}
@@ -384,7 +384,7 @@ return redis.call('DEL', KEYS[1])`,
       MATCH: pattern,
       COUNT: this.BATCH_SIZE,
     })) {
-      // 1. 在获取阶段就过滤掉不需要的 Bull 队列键，减少后续 MGET 的压�?
+      // 1. 在获取阶段就过滤掉不需要的 Bull 队列键，减少后续 MGET 的压力
       if (key.includes('BULL')) {
         continue
       }
@@ -413,7 +413,7 @@ return redis.call('DEL', KEYS[1])`,
   }
 
   /**
-   * 辅助方法：批量获�?key 对应的值并填充�?result 对象�?
+   * 辅助方法：批量获取 key 对应的值并填充到 result 对象中
    */
   private async fillCacheData(
     keys: string[],
@@ -422,7 +422,7 @@ return redis.call('DEL', KEYS[1])`,
     if (keys.length === 0)
       return
 
-    // 使用 mget 一次性获取多个�?
+    // 使用 mget 一次性获取多个值
     const values = await this.redis.mGet(keys)
 
     for (let i = 0; i < keys.length; i++) {
@@ -435,7 +435,7 @@ return redis.call('DEL', KEYS[1])`,
         }
         catch (error) {
           this.logger.warn(`[CacheGetAllData] | Failed to parse key: ${k}`, error)
-          // 可以在这里选择删除损坏�?key: await this.redis.del(k)
+          // 可以在这里选择删除损坏的 key: await this.redis.del(k)
         }
       }
     }
@@ -465,7 +465,7 @@ return redis.call('DEL', KEYS[1])`,
       return false
     }
 
-    // 分批删除，避免一次性删除太多导�?Redis 阻塞
+    // 分批删除，避免一次性删除太多导致 Redis 阻塞
     const deletedCount = await this.deleteKeysInBatch(keysToDelete)
 
     this.logger.log(`[CacheClear] | Cleared ${deletedCount} cache entries`)
@@ -479,7 +479,7 @@ return redis.call('DEL', KEYS[1])`,
   }
 
   /**
-   * 辅助方法：分批删�?key
+   * 辅助方法：分批删除 key
    */
   private async deleteKeysInBatch(keys: string[]): Promise<number> {
     let deletedCount = 0
@@ -518,7 +518,7 @@ return redis.call('DEL', KEYS[1])`,
       const expireTime = !isNil(value.ttl) ? startTime.add(value.ttl, 'second') : null
 
       cachedArrayData.push({
-        // 使用去除前缀�?key，前端展示更友好
+        // 使用去除前缀后的 key，前端展示更友好
         key: getDisplayKey(key),
         valueBytes: sizeof(value.v),
         expire: !isNil(value.ttl) ? value.ttl : 0,

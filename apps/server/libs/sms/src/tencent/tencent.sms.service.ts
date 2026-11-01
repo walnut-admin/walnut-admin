@@ -1,7 +1,7 @@
 /**
- * @deprecated 腾讯云短信服�?- 已弃�?
+ * @deprecated 腾讯云短信服务 - 已弃用
  * 该文件仅作为代码留存，不再被任何模块引入
- * 阿里云短信服务已取代腾讯云短信服�?
+ * 阿里云短信服务已取代腾讯云短信服务
  */
 
 import type { ClientConfig } from 'tencentcloud-sdk-nodejs/tencentcloud/common/interface'

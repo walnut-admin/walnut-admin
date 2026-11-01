@@ -217,6 +217,10 @@ pnpm images:print                                                          # 只
 >
 > ⚠️ 产物目录曾把 `apps/server/env-local/`（解密后的明文密钥）一起拷进去 —— 镜像里绝不允许有，
 > CI 与 Dockerfile 都有剔除步骤；本地手工构建时请确认 `build/image/server/env-local` 不存在。
+>
+> ⚠️ **Windows 本地产物不能直接用于构建 Linux 镜像**：`pnpm deploy` 产物里的 `node_modules` 是
+> 符号链接，指向本机绝对路径 / pnpm store，打进 Linux 构建上下文后会全部失效。Linux 镜像的
+> staging 必须在 Linux（或 WSL）内执行 `pnpm deploy` 生成。
 
 ## 证书更新（一年一次）
 

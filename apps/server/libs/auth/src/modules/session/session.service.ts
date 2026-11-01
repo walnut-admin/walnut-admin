@@ -18,17 +18,17 @@ import { isNil } from 'lodash'
  */
 interface AuthSession {
   /**
-   * Session Key �?SHA-256 哈希值（32 字节 Buffer�?
+   * Session Key 的 SHA-256 哈希值（32 字节 Buffer）
    *
-   * 为什么存�?hash 而不是明文？
+   * 为什么存储 hash 而不是明文？
    * 1. 即使 Redis 被入侵，攻击者也无法恢复原始 session key
-   * 2. 符合 "密钥派生" 原则：高熵密�?-> 派生多个子密�?
+   * 2. 符合 "密钥派生" 原则：高熵密钥 -> 派生多个子密钥
    * 3. 使用 timingSafeEqual 防止时序攻击
    */
   authSessionKeyHash: Buffer
 
   /**
-   * 可选：会话元数�?
+   * 可选：会话元数据
    */
   createdAt?: number
   lastAccessAt?: number
@@ -37,13 +37,13 @@ interface AuthSession {
 /**
  * Auth Session 服务
  *
- * 职责�?
- * 1. 管理用户登录会话的生命周�?
- * 2. 存储和验�?Session Key（OPAQUE 协议产生的共享密钥）
- * 3. 派生用于 API 签名的子密钥（HKDF�?
- * 4. 提供会话吊销能力（主动踢下线 / 风控�?
+ * 职责：
+ * 1. 管理用户登录会话的生命周期
+ * 2. 存储和验证 Session Key（OPAQUE 协议产生的共享密钥）
+ * 3. 派生用于 API 签名的子密钥（HKDF）
+ * 4. 提供会话吊销能力（主动踢下线 / 风控）
  *
- * 安全设计�?
+ * 安全设计：
  * - Session Key 仅在创建时返回一次，后续只存储其 hash
  * - 使用 HKDF 派生子密钥，不同用途使用不同的 info 参数
  * - 使用 timingSafeEqual 防止时序攻击
@@ -55,7 +55,7 @@ export class AuthSessionService {
 
   /**
    * TODO remove
-   * HKDF 派生�?info 参数（用于不同目的的密钥派生�?
+   * HKDF 派生用的 info 参数（用于不同目的的密钥派生）
    */
   private readonly HKDF_INFO = {
     API_SIGN: Buffer.from('walnut-admin-api-sign-v1', 'utf8'),
@@ -75,9 +75,9 @@ export class AuthSessionService {
    *
    * 格式: auth:sessions:{userId}:{deviceId}:{sessionId}
    *
-   * 设计说明�?
-   * - 支持�?userId �?deviceId 批量删除（使�?pattern 匹配�?
-   * - sessionId 作为最细粒度的标识�?
+   * 设计说明：
+   * - 支持按 userId / deviceId 批量删除（使用 pattern 匹配）
+   * - sessionId 作为最细粒度的标识
    */
   private getCacheKey(userId: string, deviceId: string, sessionId: string): string {
     return `${WalnutAdminConstAppCacheKeys.AUTH_SESSIONS}:${userId}:${deviceId}:${sessionId}`
@@ -86,9 +86,9 @@ export class AuthSessionService {
   /**
    * 延长会话 TTL（保持会话活跃）
    *
-   * 使用场景�?
-   * - 每次 API Request通过签名验证后调�?
-   * - 确保活跃用户的会话不会过�?
+   * 使用场景：
+   * - 每次 API Request 通过签名验证后调用
+   * - 确保活跃用户的会话不会过期
    *
    * @param userId User ID
    * @param deviceId Device ID
@@ -113,16 +113,16 @@ export class AuthSessionService {
   /**
    * 创建登录会话
    *
-   * 使用场景�?
-   * - 用户登录成功后调用（OPAQUE login finish�?
-   * - 获得 OPAQUE 协议产生�?session key
+   * 使用场景：
+   * - 用户登录成功后调用（OPAQUE login finish）
+   * - 获得 OPAQUE 协议产生的 session key
    *
    * @param userId User ID
    * @param deviceId Device ID
    * @param sessionKeyMaterial Session Key 材料
-   *        - OPAQUE: login finish �?session key（string / Buffer�?
+   *        - OPAQUE: login finish 的 session key（string / Buffer）
    *        - 其他认证方式: randomBytes(32)
-   * @returns sessionId �?authSessionKey（�?仅返回一次）
+   * @returns sessionId 和原始 authSessionKey（注意仅返回一次）
    */
   async createAuthSession(
     userId: string,
@@ -130,15 +130,15 @@ export class AuthSessionService {
     sessionKeyMaterial: Buffer | string = randomBytes(32).toString('base64'),
   ): Promise<{
     sessionId: string
-    authSessionKey: Buffer // 仅返回一次，客户端需要妥善保?
+    authSessionKey: Buffer // 仅返回一次，客户端需要妥善保管
   }> {
     // 1. 生成随机 Session ID
     const sessionId = randomSessionId()
 
-    // 2. 规范�?Session Key �?Buffer
+    // 2. 规范化 Session Key 为 Buffer
     const authSessionKey = normalizeToBuffer(sessionKeyMaterial)
 
-    // 3. 计算 Session Key 的哈希值（存储�?Redis�?
+    // 3. 计算 Session Key 的哈希值（存储到 Redis）
     const authSessionKeyHash = hash(authSessionKey)
 
     // 4. 构建会话数据
@@ -148,7 +148,7 @@ export class AuthSessionService {
       lastAccessAt: Date.now(),
     }
 
-    // 5. 存储�?Cache
+    // 5. 存储到 Cache
     const ttl = this.tokenService.getRefreshTokenExpireSeconds()
 
     await this.cacheService.set(
@@ -164,7 +164,7 @@ export class AuthSessionService {
       `Auth session created: user=${userId}, device=${deviceId}, session=${sessionId}, ttl=${ttl}s`,
     )
 
-    // 6. 返回 sessionId 和原�?authSessionKey（�?仅此一次）
+    // 6. 返回 sessionId 和原始 authSessionKey（注意仅此一次）
     return {
       sessionId,
       authSessionKey, // 客户端需要存储此 key 用于后续签名
@@ -176,7 +176,7 @@ export class AuthSessionService {
    *
    * 内部使用：用于密钥派生和验证
    *
-   * @returns Session Key �?SHA-256 哈希值（Buffer�?
+   * @returns Session Key 的 SHA-256 哈希值（Buffer）
    */
   async getAuthSessionKeyHash(
     userId: string,
@@ -204,31 +204,31 @@ export class AuthSessionService {
   }
 
   /**
-   * 派生 API 签名密钥（HKDF�?
+   * 派生 API 签名密钥（HKDF）
    *
-   * 使用场景�?
-   * - Sign Guard 验证 HMAC 签名时调�?
-   * - 每次Request都会派生一次（性能开销小，HKDF 很快�?
+   * 使用场景：
+   * - Sign Guard 验证 HMAC 签名时调用
+   * - 每次 Request 都会派生一次（性能开销小，HKDF 很快）
    *
-   * 派生公式�?
+   * 派生公式：
    * signKey = HKDF-SHA256(
-   *   ikm = authSessionKeyHash,     // 输入密钥材料（session root�?
+   *   ikm = authSessionKeyHash,     // 输入密钥材料（session root）
    *   salt = aesKey,                  // 盐值（设备/页面的握手密钥）
-   *   info = 'walnut-admin-api-sign-v1', // 用途标�?
+   *   info = 'walnut-admin-api-sign-v1', // 用途标识
    *   length = 32                     // 输出长度
    * )
    *
-   * 为什么使�?HKDF�?
-   * 1. 从一个高熵密钥派生多个独立的子密�?
-   * 2. 不同�?salt �?info 产生完全不同的密�?
-   * 3. 即使一个子密钥泄露，也不会影响其他子密�?
-   * 4. 符合 NIST 推荐的密钥派生标�?
+   * 为什么使用 HKDF？
+   * 1. 从一个高熵密钥派生多个独立的子密钥
+   * 2. 不同的 salt 和 info 产生完全不同的密钥
+   * 3. 即使一个子密钥泄露，也不会影响其他子密钥
+   * 4. 符合 NIST 推荐的密钥派生标准
    *
    * @param userId User ID
    * @param deviceId Device ID
    * @param sessionId 会话 ID
-   * @param aesKey 客户端握手时协商�?AES 密钥（作�?salt�?
-   * @returns 派生的签名密钥（32 字节 Buffer�?
+   * @param aesKey 客户端握手时协商的 AES 密钥（作为 salt）
+   * @returns 派生的签名密钥（32 字节 Buffer）
    */
   async deriveApiSignKey(
     userId: string,
@@ -246,15 +246,15 @@ export class AuthSessionService {
         return null
       }
 
-      // 1.1 �?Cache 获取 Crypto HKDF 配置
+      // 1.1 从 Cache 获取 Crypto HKDF 配置
       const cryptoHKDFConfig = await this.appSettingCahceService.getCryptoHKDFInfo()
 
       // 2. 使用 HKDF 派生签名密钥
       const derivedKey = hkdfSync(
         'sha256',
-        Buffer.from(authSessionKeyHash), // IKM: session root?2 字节?
+        Buffer.from(authSessionKeyHash), // IKM: session root 密钥的前 2 字节
         Buffer.from(aesKey, 'utf8'), // salt: 设备握手密钥
-        Buffer.from(cryptoHKDFConfig.API_SIGN, 'utf8'), // info: 用途标?
+        Buffer.from(cryptoHKDFConfig.API_SIGN, 'utf8'), // info: 用途标识
         32, // length: 输出 32 字节
       )
 
@@ -273,11 +273,11 @@ export class AuthSessionService {
   /**
    * 验证 Session Key（可选功能）
    *
-   * 使用场景�?
-   * - 调试 / 高安全场�?
+   * 使用场景：
+   * - 调试 / 高安全场景
    * - 验证客户端持有的 session key 是否正确
    *
-   * 注意：使�?timingSafeEqual 防止时序攻击
+   * 注意：使用 timingSafeEqual 防止时序攻击
    *
    * @param userId User ID
    * @param deviceId Device ID
@@ -321,16 +321,16 @@ export class AuthSessionService {
   }
 
   /**
-   * 主动吊销会话（踢下线 / 风控�?
+   * 主动吊销会话（踢下线 / 风控）
    *
-   * 使用场景�?
+   * 使用场景：
    * 1. 用户主动登出
    * 2. 管理员强制踢下线
    * 3. 风控检测到异常行为
-   * 4. 密码修改后吊销所有会�?
+   * 4. 密码修改后吊销所有会话
    *
    * @param userId User ID
-   * @param deviceId Device ID（可选，不传则吊销该用户所有设备的会话�?
+   * @param deviceId Device ID（可选，不传则吊销该用户所有设备的会话）
    * @param sessionId 会话 ID（可选，不传则吊销该设备的所有会话）
    */
   async revokeSession(
@@ -349,7 +349,7 @@ export class AuthSessionService {
         )
       }
       else if (!isNil(deviceId)) {
-        // 吊销该设备的所有会�?
+        // 吊销该设备的所有会话
         pattern = this.getCacheKey(userId, deviceId, '*')
         this.logger.log(
           `Revoking all sessions for device: user=${userId}, device=${deviceId}`,
@@ -379,7 +379,7 @@ export class AuthSessionService {
  * ============================================================ */
 
 /**
- * 生成随机 Session ID�?2 位十六进制）
+ * 生成随机 Session ID（32 位十六进制）
  */
 function randomSessionId(): string {
   return randomBytes(16).toString('hex')
@@ -388,23 +388,23 @@ function randomSessionId(): string {
 /**
  * 计算 SHA-256 哈希
  *
- * 为什么使�?SHA-256�?
+ * 为什么使用 SHA-256？
  * 1. 单向函数，无法从 hash 恢复原始 key
- * 2. 固定长度输出�?2 字节），便于存储和比�?
- * 3. 广泛使用的标准哈希算�?
+ * 2. 固定长度输出（32 字节），便于存储和比较
+ * 3. 广泛使用的标准哈希算法
  */
 function hash(input: Buffer): Buffer {
   return createHash('sha256').update(input).digest()
 }
 
 /**
- * �?string �?Buffer 规范化为 Buffer
+ * 把 string 或 Buffer 规范化为 Buffer
  */
 function normalizeToBuffer(input: Buffer | string): Buffer {
   if (Buffer.isBuffer(input)) {
     return input
   }
 
-  // 假设 string �?base64 编码（OPAQUE 协议的标准输出）
+  // 假设 string 是 base64 编码（OPAQUE 协议的标准输出）
   return Buffer.from(input, 'base64')
 }

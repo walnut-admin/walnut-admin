@@ -16,9 +16,9 @@ export class AppTechCryptoService {
   /**
    * 加密文本
    * @param text 明文
-   * @param encryptKey 加密密钥配置名，指向环境变量或数据库中的 base64 格式字符�?
-   * @param aad 附加认证数据（可选），如租户ID、表名等，用于防跨租户重放攻�?
-   * @returns base64 编码的二进制数据（iv + ciphertext + authTag�?
+   * @param encryptKey 加密密钥配置名，指向环境变量或数据库中的 base64 格式字符串
+   * @param aad 附加认证数据（可选），如租户ID、表名等，用于防跨租户重放攻击
+   * @returns base64 编码的二进制数据（iv + ciphertext + authTag）
    */
   encrypt(text: string, encryptKey: string, aad?: string): string {
     const envKey = this.configService.get(encryptKey) as string
@@ -29,7 +29,7 @@ export class AppTechCryptoService {
     const iv = crypto.randomBytes(this.IV_LENGTH)
     const cipher = crypto.createCipheriv(this.algorithm, key, iv)
 
-    // 如果提供�?AAD，添加到认证数据�?
+    // 如果提供了 AAD，添加到认证数据中
     if (!isNil(aad)) {
       cipher.setAAD(Buffer.from(aad, 'utf8'))
     }
@@ -49,8 +49,8 @@ export class AppTechCryptoService {
 
   /**
    * 解密文本
-   * @param encryptedText base64 编码的密�?
-   * @param encryptKey 加密密钥配置�?
+   * @param encryptedText base64 编码的密文
+   * @param encryptKey 加密密钥配置名
    * @param aad 附加认证数据（必须与加密时一致）
    */
   decrypt(encryptedText: string, encryptKey: string, aad?: string): string {
@@ -87,10 +87,10 @@ export class AppTechCryptoService {
   }
 
   /**
-   * 生成 HMAC 哈希（用于不可逆数据，�?deviceId、fingerprint�?
+   * 生成 HMAC 哈希（用于不可逆数据，如 deviceId、fingerprint）
    * @param text 原始数据
-   * @param salt 盐值（可选，默认生成�?
-   * @param encoding 输出编码格式，默�?hex
+   * @param salt 盐值（可选，默认生成）
+   * @param encoding 输出编码格式，默认 hex
    */
   hash(
     text: string,
@@ -124,8 +124,8 @@ export class AppTechCryptoService {
   }
 
   /**
-   * 生成设备指纹哈希（专用方法，更语义化�?
-   * @param fingerprint 设备指纹（如硬件序列号、MAC地址等拼接后的字符串�?
+   * 生成设备指纹哈希（专用方法，更语义化）
+   * @param fingerprint 设备指纹（如硬件序列号、MAC地址等拼接后的字符串）
    */
   hashDeviceFingerprint(
     fingerprint: string,
@@ -138,8 +138,8 @@ export class AppTechCryptoService {
   }
 
   /**
-   * 生成密钥（用于初始化环境变量�?
-   * 示例：生�?AES-256 密钥�?2 字节�?
+   * 生成密钥（用于初始化环境变量）
+   * 示例：生成 AES-256 密钥（32 字节）
    */
   generateKey(): string {
     return crypto.randomBytes(32).toString('base64')

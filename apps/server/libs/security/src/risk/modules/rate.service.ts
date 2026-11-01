@@ -84,7 +84,7 @@ export class SecurityRiskRateService {
     deviceId?: string,
     userId?: string,
   ): Promise<IWalnutAdminRiskEvaluationResult<IWalnutAdminRateRiskInfo>> {
-    // 并行检查三个维�?
+    // 并行检查三个维度
     const [ipCheckResult, deviceCheckResult, userCheckResult] = await Promise.all([
       this.checkIpRate(ip),
       !isNil(deviceId) ? this.checkDeviceRate(deviceId) : null,
@@ -219,8 +219,8 @@ export class SecurityRiskRateService {
     const excess = ratio - 1.0
 
     // Use logarithmic curve: score = min(log2(excess + 1) * 0.5, 1.0)
-    // excess = 1.0 (ratio = 2.0) �?score = 0.5
-    // excess = 3.0 (ratio = 4.0) �?score = 1.0
+    // excess = 1.0 (ratio = 2.0) → score = 0.5
+    // excess = 3.0 (ratio = 4.0) → score = 1.0
     const score = Math.min(Math.log2(excess + 1) * 0.5, 1.0)
 
     return score

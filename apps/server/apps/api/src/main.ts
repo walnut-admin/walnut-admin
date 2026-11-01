@@ -114,7 +114,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       forbidUnknownValues: true,
       transformOptions: {
-        // 入参 �?填充 undefined，设置为false可以过滤�?
+        // 入参不填充 undefined，设为 false 可以过滤掉未设置字段
         exposeUnsetFields: false,
       },
       exceptionFactory: (errors: ValidationError[]) =>

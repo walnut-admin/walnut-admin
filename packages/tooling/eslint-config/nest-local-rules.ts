@@ -1,7 +1,11 @@
 import type { Rule } from 'eslint'
+import { dirname, relative, resolve } from 'node:path'
 
 /**
- * 本地 ESLint 规则：强制 NestJS 装饰器与参数的书写顺序。
+ * 本地 ESLint 规则集（nest 预设专用）：
+ * - `sort-nestjs-decorators`：强制 NestJS 装饰器与参数的书写顺序；
+ * - `no-cross-lib-relative-import`：禁止 `libs/<name>/` 内用相对路径（import 或 re-export）逃逸到
+ *   另一个 lib（分层 no-restricted-imports 只匹配 `@walnut-server/*` 别名，相对路径是它的盲区）。
  *
  * 为什么自带类型而不是沿用无类型 JS：本文件是 `nest.ts` 预设的一部分，预设与它都在
  * `@walnut/eslint-config` 里，而该包现在要过 `tsc --noEmit`（此前它的 types:check 是 `echo` 空跑）。
@@ -46,6 +50,37 @@ interface RuleOptionsLike {
   methodOrder?: string[]
   paramOrder?: string[]
   classOrder?: string[]
+}
+
+/** 带 `source` 的语句节点（`import ... from` / `export ... from`；无 source 的 export 为 null / 缺省） */
+interface SourceLike {
+  source?: { value?: unknown } | null
+}
+
+/** 路径统一成 posix 形态（Windows 反斜杠与 POSIX 斜杠在规则里只在比较时才一致） */
+function toPosixPath(value: string): string {
+  return value.replace(/\\/g, '/')
+}
+
+/**
+ * 文件所属内部 lib 根的绝对 posix 路径；不在 `<cwd>/libs/<name>/` 下时返回 null。
+ *
+ * 必须锚定 `resolve(cwd, 'libs')` 前缀，而不是在整条路径里找**第一个** `libs/<name>/`：
+ * 检出目录自身的祖先目录若含 `libs/<name>`（如 `D:/libs/checkout/apps/server/...`），
+ * 后者会把祖先误认成 lib 根，此后所有跨 lib 相对路径都落在「假 lib 根」之内而 fail-open。
+ *
+ * 导出仅供单测覆盖祖先目录场景（RuleTester 无法指定 `context.cwd`）。
+ */
+export function resolveLibRoot(cwd: string, filename: string): string | null {
+  const libsRoot = toPosixPath(resolve(cwd, 'libs'))
+  const absolute = toPosixPath(resolve(cwd, toPosixPath(filename)))
+
+  const rest = absolute.startsWith(`${libsRoot}/`) ? absolute.slice(libsRoot.length + 1) : ''
+  const libName = rest.split('/')[0]
+  if (!libName)
+    return null
+
+  return `${libsRoot}/${libName}`
 }
 
 /** 方法装饰器顺序 */
@@ -287,6 +322,75 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
               },
             })
           },
+        }
+      },
+    },
+
+    /**
+     * lib 内相对路径禁止跨 lib 逃逸（`import` 与 re-export 两类依赖边）。
+     *
+     * 判据：文件名落在 `<cwd>/libs/<name>/` 下时，`./` / `../` 开头的 import / export source
+     * 解析出的绝对路径必须仍在该 lib 根内；`libs/` 之外（apps/**）不适用（create 直接返回空监听）。
+     *
+     * 为什么需要：分层门禁的 `no-restricted-imports` 只认识 `@walnut-server/*` 别名，
+     * `import '../../system/src/system.module'` 与 `export * from '../../identity/src/index'`
+     * 都能绕过整张方向表而不报错。
+     *
+     * ESLint 10 已移除 `context.getFilename()`，这里用 `context.filename`（相对 `context.cwd`
+     * 解析，CLI 传绝对路径时 resolve 是恒等变换）。
+     */
+    'no-cross-lib-relative-import': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description: 'Disallow relative imports / re-exports that escape the current internal lib (libs/<name>)',
+        },
+        schema: [],
+        messages: {
+          crossLib: '相对路径已逃出当前 lib：{{source}} 解析到 {{target}}。跨 lib 依赖请用 @walnut-server/* 别名，让分层门禁可见。',
+        },
+      },
+
+      create(context) {
+        const libRoot = resolveLibRoot(context.cwd, context.filename)
+        if (libRoot === null)
+          return {}
+
+        const fileDir = dirname(resolve(context.cwd, toPosixPath(context.filename)))
+
+        /** source 是相对路径且解析后逃出 lib 根时返回该边（否则 null） */
+        function findEscapedSource(node: SourceLike): { source: string, target: string } | null {
+          const source = node.source?.value
+          if (typeof source !== 'string')
+            return null
+          if (!source.startsWith('./') && !source.startsWith('../'))
+            return null
+
+          const target = toPosixPath(resolve(fileDir, source))
+          if (target === libRoot || target.startsWith(`${libRoot}/`))
+            return null
+
+          return { source, target: `./${relative(context.cwd, target).replace(/\\/g, '/')}` }
+        }
+
+        /** ImportDeclaration / ExportNamedDeclaration / ExportAllDeclaration 共用（无 source 的 export 跳过） */
+        function checkSource(node: SourceLike): void {
+          const escaped = findEscapedSource(node)
+          if (escaped === null)
+            return
+
+          context.report({
+            // ESTree 的节点类型没有本规则需要的 TS-ESLint 扩展，且这里只是把真实节点交给报告器定位
+            node: node as never,
+            messageId: 'crossLib',
+            data: escaped,
+          })
+        }
+
+        return {
+          ImportDeclaration: checkSource,
+          ExportNamedDeclaration: checkSource,
+          ExportAllDeclaration: checkSource,
         }
       },
     },

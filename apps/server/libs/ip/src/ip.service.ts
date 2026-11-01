@@ -60,11 +60,11 @@ export class SharedIpService implements IWalnutAdminIpLocationResolver {
   }
 
   /**
-   * 标准�?IP address
+   * 标准化 IP address
    *
-   * �?IP address中的冒号替换为下划线，方便作�?Redis key 使用
+   * 将 IP address 中的冒号替换为下划线，方便作为 Redis key 使用
    * - 本地 IP 统一返回 '127.0.0.1'
-   * - 其他 IP 直接将冒号替换为下划�?
+   * - 其他 IP 直接将冒号替换为下划线
    */
   async normalizeIp(rawIp?: string | null) {
     if (isNil(rawIp)) {
@@ -72,13 +72,13 @@ export class SharedIpService implements IWalnutAdminIpLocationResolver {
     }
 
     try {
-      // 如果是本�?IP，统一返回 127.0.0.1
+      // 如果是本地 IP，统一返回 127.0.0.1
       const isLocal = await this.getIsLocalLocation(rawIp)
       if (isLocal) {
         return '127.0.0.1'
       }
 
-      // 将冒号替换为下划�?
+      // 将冒号替换为下划线
       return rawIp.replace(/:/g, '_')
     }
     catch {
@@ -184,7 +184,7 @@ export class SharedIpService implements IWalnutAdminIpLocationResolver {
   }
 
   /**
-   * 获取 IP 位置信息（实际实�?- 使用免费 API�?
+   * 获取 IP 位置信息（实际实现 - 使用免费 API）
    */
   async getLocationInfoFromFreeAPI(ip: string): Promise<ISharedIpLocation> {
     const isLocal = await this.getIsLocalLocation(ip)
@@ -230,7 +230,7 @@ export class SharedIpService implements IWalnutAdminIpLocationResolver {
    */
   async getLocationFromBaidu(ip: string): Promise<string | null> {
     const isLocal = await this.getIsLocalLocation(ip)
-    // 如果是本�?IP，直接返回本地位�?
+    // 如果是本地 IP，直接返回本地位置
     if (isLocal) {
       return 'LOCAL'
     }

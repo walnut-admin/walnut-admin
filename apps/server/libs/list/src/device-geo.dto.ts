@@ -1,3 +1,10 @@
+/**
+ * 设备定位相关 DTO（设备类型 / 经纬度 / 屏幕尺寸 / UA / 硬件 / IP 归属地）。
+ *
+ * 供设备 / IP 定位相关数据面消费，与列表分页无关。历史文件名是 `shared.dto.ts`（命名漂移，
+ * 容易误以为属于列表共享契约），本批只改文件名与引用路径，类名保持不变（类名属于
+ * API 面）。
+ */
 import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPartialType } from '@walnut-server/utils/dto'

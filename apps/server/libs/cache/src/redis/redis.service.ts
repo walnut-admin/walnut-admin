@@ -37,7 +37,7 @@ export class AppTechRedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * 根据 pattern 批量删除 key（使�?SCAN，安全）
+   * 根据 pattern 批量删除 key（使用 SCAN，安全）
    */
   async delByPattern(
     pattern: string,
@@ -58,7 +58,7 @@ export class AppTechRedisService implements OnModuleInit, OnModuleDestroy {
       }
     }
 
-    // 清理剩余�?
+    // 清理剩余的 key
     if (pipeline.length > 0) {
       deleted += await this.client.del(pipeline)
     }

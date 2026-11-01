@@ -93,7 +93,7 @@ implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
     await client.join(WalnutAdminSocketRooms.USER(userId, fingerprint))
 
     try {
-      // �?检查是否需要强制退�?
+      // 先检查是否需要强制退出
       const result = await this.monitorUserService.handleSocketInitForceQuit(userId, deviceId)
 
       if (result.shouldForceQuit && result.revokeReason) {
@@ -102,7 +102,7 @@ implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
         const forceQuitConfig = await this.cacheAppSettingsService.getForceQuitConfig()
         const strategy = forceQuitConfig[result.revokeReason as Exclude<IWalnutAdminConstRevokeRTType, 'rotate'>]
 
-        // �?只通知当前 socket，不触发新的踢人流程
+        // 只通知当前 socket，不触发新的踢人流程
         client.emit(WalnutAdminSocketEvents.FORCE_QUIT, { strategy })
 
         this.logger.log(
@@ -123,7 +123,7 @@ implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('hello')
   onHello(@MessageBody() data: string) {
     this.logger.log(data)
-    // 这个事件不在类型定义中，如果需要类型安全，应该添加�?ISocketServerToClientEvents
+    // 这个事件不在类型定义中，如果需要类型安全，应该加到 ISocketServerToClientEvents
     this.server.emit('onMessage' as any, { msg: 'Hello world', content: data })
   }
 }

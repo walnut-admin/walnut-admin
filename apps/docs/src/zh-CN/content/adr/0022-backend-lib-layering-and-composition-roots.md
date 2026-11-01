@@ -31,7 +31,7 @@ libs 边界 lint，批 1-9 依次下沉基建、技术设施、共享能力、�
 | 装配（1） | `guards` | guard / decorator / interceptor 装配层 —— import identity / system / auth / security 来装配安全链；`app-domain` 再依赖 `guards` |
 | app-domain（1） | `app-domain` | app / shared 域的数据面（demo / error / key / logger / monitor / setting / area / ali / mask） |
 
-四条机械守卫（守的是 **lib ↔ app 边界、lib 之间的层间方向与注册完备性**；层间方向自本轮起由 ESLint 分层规则机械守，不再只是约定与评审）：
+五条机械守卫（守的是 **lib ↔ app 边界、lib 之间的层间方向与注册完备性**；层间方向自本轮起由 ESLint 分层规则机械守，不再只是约定与评审）：
 
 - **ESLint `libs-boundary`**（`apps/server/eslint.config.ts`）：`libs/**` 禁止 `@/*`
   （那是 `apps/api/src`）、禁止相对路径逃逸进 `apps/`、禁止 import 前端包；需要 app 能力时
@@ -42,10 +42,23 @@ libs 边界 lint，批 1-9 依次下沉基建、技术设施、共享能力、�
   点名禁用上层的 `@walnut-server/<lib>`（根路径与 `/*` 子路径都禁）。唯一例外是 `exceptions`
   允许 import `blpath`（skip 名单所需，blpath 零出边），由一条独立的 `infra-exceptions` 配置
   精确放行；未登记进任何分层的 lib 走 fail-closed 配置，连 `@walnut-server/*` 一律禁止。
+  `exceptions` 单独成一条 `infra-exceptions` 配置（libs 数组只含它自己），因此每个 lib 恰好
+  登记进一个 layer。ambient 声明文件（`.d.ts`，无运行时 import）豁免分层规则。**已知盲区**：
+  `.d.ts` 里的 type-only 跨层依赖不在机器守卫内（tsc 只校验可解析、不校验方向），靠评审把关；
+  当前 `.d.ts` 的内部 import 全部向下合法。
+- **ESLint libs 守卫**（同一文件的 `libs/**` 段）：相对路径跨 lib 逃逸 ——
+  `import '../../system/src/...'` 与 `export ... from '../../identity/src'` —— 由本地规则
+  `local/no-cross-lib-relative-import` 拦截（上面的分层规则只认识 `@walnut-server/*` 别名，
+  相对路径是它的盲区）；动态 `import()` **零豁免**：source 可以是模板串 / 拼接 / 变量，静态
+  分层门禁对它们全部失效，而 libs 下当前没有任何运行时动态 import，确需按需加载时在评审中显式
+  豁免。类型位的 `import('x')`（`typeof import('x')`）是 TSImportType 节点、不产生运行时依赖边，
+  不在该 selector 内。
 - **`lib-registration.drift.spec.ts`**：以磁盘 `libs/<name>` 为基准，五处注册面全等 ——
   ① `tsconfig.json` paths、② 三份 `infra/nest/*.json` 的 filenames / projects、
   ③ 三份 `infra/swc/*.swcrc` paths、④ `apps/api/tsconfig.app.json` include、
-  ⑤ `eslint.config.ts` 的四个分层名单（`INFRA_LIBS` / `TECH_LIBS` / `DOMAIN_LIBS` / `TOP_LIBS`）；
+  ⑤ `eslint.config.ts` 的分层名单（`INFRA_LIBS` / `TECH_LIBS` / `DOMAIN_LIBS` / `TOP_LIBS` /
+  `EXCEPTION_LIBS`）与 `layer(name, libs, banned)` 的接线（lib 归属 + banned 集合对账，
+  防「名单对了、接线错了」）；
   application（api / cli / worker）不参与对账。
 - **`dto-entity.drift.spec.ts`** 与 **`eslint-data-scope-entities.drift.spec.ts`**：
   DTO ↔ Entity 字段形状、数据范围实体清单 ↔ ESLint 规则文本，各自单向对账。
@@ -160,11 +173,26 @@ db / cron / 各域 HTTP 组合根 / guard 与 interceptor。`apps/worker` 与 `a
   `views/` 是静态资产与模板。
 - **`common/swagger/`**：swagger 装配是 API 文档的进程级配置，随 wire DTO 一起留 app。
 
+**进程级 provider 的归属判据**：`APP_FILTER` 跟随所属域的数据面 module 进 lib 是允许的 ——
+错误过滤器（`libs/app-domain` 的 `AppErrorModule` 注册的 `APP_FILTER`）本身就是该域数据面的错误
+上报出口；而 11 个 `APP_GUARD`、2 个 `APP_INTERCEPTOR` 与 `EventEmitterModule.forRoot()` 属于
+进程级编排（guard / interceptor 的顺序即安全语义，事件订阅方是 app 级适配器），必须留在 app 组合
+根；throttler 的 options/storage 由 `libs/throttle` 的 `ThrottlerModule.forRootAsync` 提供，
+而 `WalnutAdminGuardThrottler` 的 `APP_GUARD` 注册留在 app（`modules/techniques/tech.module.ts`）。
+
+**与 [ADR 0013](./0013-barrel-exports-policy.md) 的关系**：ADR 0013 的「显式具名 re-export」约束
+的是 workspace package 的公开入口（`packages/*/src/index.ts`）；lib barrel（`libs/<name>/src/index.ts`）
+的 `export *` 是内部 Nest monorepo 的消费口径，不受该条约束。
+
 ## Consequences
 
 - app 侧剩组合根、wire DTO 与依赖 app 能力的 controller；业务数据面在 34 个 lib 内。
   lib ↔ app 边界由 ESLint + 三个 drift spec 机械守；**lib 之间的层间方向由 ESLint 分层规则
   机械守（本轮落地）**。
+- 基建层内部没有互相引用的 SCC：纯 `process.env` 判定下沉到 `libs/const/src/app/env.ts`
+  （`libs/config/src/utils/env.ts` 只做兼容转发），`config` / `utils` 对 `const` 单向依赖，
+  `config` 对 `utils` 的 `pkg` 依赖也不再回头（层间规则只看八层，同层环只能靠这种「纯判定放最低叶子」
+  的结构约束）。
 - 默认部署形态不变：未设 `WORKER_STANDALONE` 时 api 行为与解耦前一致，`openapi.json` 零 diff
   是每次改动的裁判；worker 是**可选**入口，`WORKER_STANDALONE=true` 时 api 让出 cron，
   worker 的组合根承接（见 `apps/worker/README.md`）。
@@ -177,5 +205,5 @@ db / cron / 各域 HTTP 组合根 / guard 与 interceptor。`apps/worker` 与 `a
 
 - [ADR 0007](./0007-backend-libs-not-workspace.md)：内部 lib 不提升为 workspace 包
 - [ADR 0012](./0012-toolchain-divergence.md)：server 自有 tsconfig / SWC 工具链
-- [ADR 0013](./0013-barrel-exports-policy.md)：barrel 策略（lib 入口用显式具名 re-export）
+- [ADR 0013](./0013-barrel-exports-policy.md)：barrel 策略（约束 workspace package 入口；lib barrel 的 `export *` 不受该条约束）
 - [架构待办](../monorepo/architecture-todo.md) 的 A12：内部 lib 抽取计划（批 0-10 已执行完毕）

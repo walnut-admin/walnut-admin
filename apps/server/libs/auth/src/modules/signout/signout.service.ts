@@ -57,7 +57,7 @@ export class AuthSignoutService implements IIdentitySignoutService {
   }
 
   /**
-   * 场景1: 用户主动退出登�?
+   * 场景1: 用户主动退出登录
    * - Directly revoke RT + clear cache
    */
   private async handleUserLogout(
@@ -70,7 +70,7 @@ export class AuthSignoutService implements IIdentitySignoutService {
     // 撤销 refresh token
     await this.authRefreshSharedService.revokeRTForUserDevice(userId, deviceId, em)
 
-    // 事务提交后清理缓�?
+    // 事务提交后清理缓存
     registerAfterCommitHook(async () => {
       await this.clearDeviceCache(userId, deviceId, sid, ip)
       this.logger.log(`User logout completed - user: ${userId}, device: ${deviceId}`)
@@ -188,7 +188,7 @@ export class AuthSignoutService implements IIdentitySignoutService {
   }
 
   /**
-   * 清理单个设备的缓�?
+   * 清理单个设备的缓存
    * @description 只在用户主动退出登录时调用
    */
   private async clearDeviceCache(

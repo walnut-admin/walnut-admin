@@ -36,7 +36,7 @@ function buildSignRaw(
   nonce: string,
   ua: string,
 ): string {
-  // 1. 扁平化Request体并排�?
+  // 1. 扁平化 Request 体并排序
   const flattenObj = objectToPaths(req.body ?? {})
   const sortedParams = Object.keys(flattenObj)
     .sort()
@@ -46,45 +46,45 @@ function buildSignRaw(
   // 2. 规范化路由路径（去除 API 前缀和版本）
   const routePath = req.url.replace(new RegExp(`^/${APIPrefix}/v${APIVersion}`), '') || '/'
 
-  // 3. 组装签名原文（多因子�?
+  // 3. 组装签名原文（多因子）
   return [
     req.method.toUpperCase(), // HTTP 方法
     routePath, // 路由路径
     sortedParams, // 请求参数（排序）
-    `timestamp=${timestamp}`, // 时间?
-    `nonce=${nonce}`, // 随机?
+    `timestamp=${timestamp}`, // 时间戳
+    `nonce=${nonce}`, // 随机数
     `ua=${ua}`, // User-Agent
   ].join('|')
 }
 
 /**
- * 签名验证守卫（支持单因子/双因�?HMAC�?
+ * 签名验证守卫（支持单因子/双因子 HMAC）
  *
- * 签名模式�?
+ * 签名模式：
  * 1. 【未登录】单因子模式：HMAC-SHA256(raw, aesKey)
  *    - 用于注册、握手等公开接口
- *    - 仅使用设备握手时协商�?AES Key
+ *    - 仅使用设备握手时协商的 AES Key
  *
  * 2. 【已登录】双因子模式：HMAC-SHA256(raw, sessionDerivedKey)
  *    - 用于需要身份认证的接口
  *    - sessionDerivedKey = HKDF(sessionKeyHash, aesKey, info)
- *    - 结合用户会话和设备密钥，安全性更�?
+ *    - 结合用户会话和设备密钥，安全性更高
  *
  * 安全特性：
- * 1. RSA 证书握手（防止中间人攻击�?
- * 2. 时间戳验证（防止重放攻击�? 分钟窗口�?
+ * 1. RSA 证书握手（防止中间人攻击）
+ * 2. 时间戳验证（防止重放攻击，5 分钟窗口）
  * 3. Nonce 去重（防止重放攻击）
- * 4. Sign Ticket 验证（额外的会话绑定�?
- * 5. 多因�?HMAC 签名（METHOD + PATH + BODY + timestamp + nonce + ua�?
+ * 4. Sign Ticket 验证（额外的会话绑定）
+ * 5. 多因子 HMAC 签名（METHOD + PATH + BODY + timestamp + nonce + ua）
  */
 @Injectable()
 export class WalnutAdminGuardSign implements CanActivate {
   private readonly logger = new Logger(WalnutAdminGuardSign.name)
 
-  // 时间戳容差（毫秒�?
+  // 时间戳容差（毫秒）
   private readonly TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000 // 5 分钟
 
-  // Nonce 格式正则�?2 位十六进制）
+  // Nonce 格式正则（32 位十六进制）
   private readonly NONCE_REGEX = /^[0-9a-f]{32}$/i
 
   constructor(
@@ -113,13 +113,13 @@ export class WalnutAdminGuardSign implements CanActivate {
 
     const req = context.switchToHttp().getRequest<IWalnutAdminExpressRequest>()
 
-    // 2. Postman 调试豁免（生产环境应移除�?
+    // 2. Postman 调试豁免（生产环境应移除）
     if (req.isPostman) {
       this.logger.warn('Sign guard: bypassed for Postman request')
       return true
     }
 
-    // 3. 提取并验证必需的Request头�?Cookie
+    // 3. 提取并验证必需的 Request 头（Cookie）
     const {
       sign,
       ua,
@@ -129,19 +129,19 @@ export class WalnutAdminGuardSign implements CanActivate {
       signTicket,
     } = this.extractRequestMetadata(req)
 
-    // 4. 验证 RSA 证书（确保已完成握手�?
+    // 4. 验证 RSA 证书（确保已完成握手）
     await this.cacheRsaService.getRsaPubKeyCache(deviceId)
 
-    // 5. 验证时间戳（防止重放攻击�?
+    // 5. 验证时间戳（防止重放攻击）
     this.validateTimestamp(timestamp)
 
-    // 6. 验证并记�?Nonce（防止重复Request）
+    // 6. 验证并记录 Nonce（防止重复 Request）
     await this.validateAndRecordNonce(nonce)
 
     // 7. 验证 Sign Ticket（会话绑定）
     await this.validateSignTicket(deviceId, signTicket, req)
 
-    // 8. 获取 AES Key（客户端握手时协商的密钥�?
+    // 8. 获取 AES Key（客户端握手时协商的密钥）
     const aesKey = await this.getAesKey(deviceId)
 
     // 9. 从Request中获取用户会话
@@ -159,7 +159,7 @@ export class WalnutAdminGuardSign implements CanActivate {
     let signMode: 'single-factor' | 'dual-factor'
 
     if (userSession) {
-      // 【已登录】双因子模式：使�?Session Key 派生密钥
+      // 【已登录】双因子模式：使用 Session Key 派生密钥
       serverSign = await this.computeDualFactorSignature(
         raw,
         userSession.userId,
@@ -194,7 +194,7 @@ export class WalnutAdminGuardSign implements CanActivate {
   }
 
   /**
-   * 提取Request元数�?
+   * 提取 Request 元数据
    */
   private extractRequestMetadata(req: IWalnutAdminExpressRequest) {
     const sign = req.headers[RequestHeaders.SIGN.toLowerCase()] as string
@@ -220,7 +220,7 @@ export class WalnutAdminGuardSign implements CanActivate {
   }
 
   /**
-   * 验证时间�?
+   * 验证时间戳
    */
   private validateTimestamp(timestamp: string) {
     const ts = Number(timestamp)
@@ -268,7 +268,7 @@ export class WalnutAdminGuardSign implements CanActivate {
   private async validateSignTicket(deviceId: string, signTicket: string | null, req: IWalnutAdminExpressRequest) {
     const cachedSignTicket = await this.cacheSignService.getSignTicketCache(deviceId)
 
-    // 缓存存在 - 快速路�?无锁)
+    // 缓存存在 - 快速路径(无锁)
     if (!isNil(cachedSignTicket)) {
       if (!isNil(signTicket) && signTicket !== cachedSignTicket) {
         this.logger.error(
@@ -285,7 +285,7 @@ export class WalnutAdminGuardSign implements CanActivate {
       return
     }
 
-    // 缓存不存�?- 加锁路径
+    // 缓存不存在 - 加锁路径
     await this.generateSignTicketWithLock(deviceId, req)
   }
 
@@ -302,7 +302,7 @@ export class WalnutAdminGuardSign implements CanActivate {
       lockKey,
       3000,
       async () => {
-      // 双重检�?
+      // 双重检查
         const doubleCheckTicket = await this.cacheSignService.getSignTicketCache(deviceId)
 
         if (!isNil(doubleCheckTicket)) {
@@ -311,7 +311,7 @@ export class WalnutAdminGuardSign implements CanActivate {
           return
         }
 
-        // 生成�?ticket
+        // 生成新 ticket
         this.logger.log(`Generating new sign ticket: ${deviceId}`)
         const newTicket = randomBytes(16).toString('base64url')
 
@@ -352,7 +352,7 @@ export class WalnutAdminGuardSign implements CanActivate {
    *
    * @param raw 签名原文
    * @param aesKey 设备握手时协商的 AES 密钥
-   * @returns 签名（hex 编码�?
+   * @returns 签名（hex 编码）
    */
   private computeSingleFactorSignature(raw: string, aesKey: string): string {
     return createHmac('sha256', aesKey)
@@ -367,7 +367,7 @@ export class WalnutAdminGuardSign implements CanActivate {
    * 其中：sessionDerivedKey = HKDF(sessionKeyHash, aesKey, info)
    *
    * 双因子优势：
-   * 1. 结合用户会话（session key）和设备密钥（aes key�?
+   * 1. 结合用户会话（session key）和设备密钥（aes key）
    * 2. 即使 AES Key 泄露，攻击者也无法伪造其他用户的签名
    * 3. 支持按用户粒度吊销签名能力
    *
@@ -376,7 +376,7 @@ export class WalnutAdminGuardSign implements CanActivate {
    * @param deviceId Device ID
    * @param sessionId 会话 ID
    * @param aesKey 设备握手时协商的 AES 密钥
-   * @returns 签名（hex 编码�?
+   * @returns 签名（hex 编码）
    */
   private async computeDualFactorSignature(
     raw: string,
@@ -385,7 +385,7 @@ export class WalnutAdminGuardSign implements CanActivate {
     sessionId: string,
     aesKey: string,
   ): Promise<string> {
-    // 1. 派生基于 Session Key 的签名密�?
+    // 1. 派生基于 Session Key 的签名密钥
     const derivedSignKey = await this.authSessionService.deriveApiSignKey(
       userId,
       deviceId,

@@ -10,12 +10,12 @@ const BACKUP_CODE_HASH_DOMAIN = 'walnut-admin/mfa/backup-code/v1'
 
 /**
  * MFA 辅助工具服务
- * 专门用于 MFA 模块的工具函�?
+ * 专门用于 MFA 模块的工具函数
  */
 @Injectable()
 export class SysUserMfaHelperService {
   /**
-   * 生成备用恢复�?
+   * 生成备用恢复码
    * @param count 生成数量
    * @param length 每段长度
    * @param segments 分段数量
@@ -26,7 +26,7 @@ export class SysUserMfaHelperService {
     segments = 3,
   ): string[] {
     const codes: string[] = []
-    // 排除易混淆字�? 0/O, 1/I/L
+    // 排除易混淆字符：0/O, 1/I/L
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
     for (let i = 0; i < count; i++) {
@@ -35,7 +35,7 @@ export class SysUserMfaHelperService {
       for (let s = 0; s < segments; s++) {
         let part = ''
         for (let j = 0; j < length; j++) {
-          // 使用 crypto.randomInt 提高随机�?
+          // 使用 crypto.randomInt 提高随机性
           const index = crypto.randomInt(0, chars.length)
           part += chars[index]
         }
@@ -50,13 +50,13 @@ export class SysUserMfaHelperService {
 
   /**
    * 格式化备用码（用于展示）
-   * @param code 备用�?
+   * @param code 备用码
    */
   formatBackupCode(code: string): string {
     // 移除所有非字母数字字符，转大写
     const clean = code.replace(/[^A-Z0-9]/gi, '').toUpperCase()
 
-    // �?个字符分�?
+    // 每 4 个字符分段
     const segments = clean.match(/.{1,4}/g) || []
     return segments.join('-')
   }

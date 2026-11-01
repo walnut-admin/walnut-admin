@@ -30,20 +30,20 @@ export function WalnutAdminGuardCapFree() {
 }
 
 /**
- * CAP Guard - Human verification execution�?
+ * CAP Guard —— 人机验证执行入口
  *
- * 1. Read Risk Guard output�?recommendation
- * 2. If shouldChallenge=true, execute human verification�?
- * 3. Supports three error semantics�?
- *    - 40116 Interaction Required：Requires explicit user interaction (new device, high risk)�?
- *    - 40117 Refresh Required：Silent refresh (Token expired)�?
+ * 1. 读取 Risk Guard 的输出 recommendation
+ * 2. 当 shouldChallenge=true 时，执行人机验证
+ * 3. 支持三种错误语义：
+ *    - 40116 Interaction Required：需要用户显式交互（新设备、高风险）
+ *    - 40117 Refresh Required：静默刷新（Token 过期）
  *    - 40111 Invalid：Directly judged as invalid
  * 4. After successful verification, mark critical factors as processed
  *
- * Design approach�?
- * - 同一�?CAP Guard class，在认证前后各执行一�?
- * - Pre-auth and post-auth validation logic are identical�?
- * - 不关心是否已认证，只�?recommendation 并执�?
+ * 设计思路：
+ * - 同一个 CAP Guard 类，在认证前后各执行一次
+ * - Pre-auth 与 post-auth 的校验逻辑完全一致
+ * - 不关心是否已认证，只读取 recommendation 并执行
  */
 @Injectable()
 export class WalnutAdminGuardCap implements CanActivate {
@@ -61,7 +61,7 @@ export class WalnutAdminGuardCap implements CanActivate {
     const request = ctx.getRequest<IWalnutAdminExpressRequest>()
 
     // ============================================================
-    // Step 1: 检查是否跳�?CAP 验证
+    // Step 1: 检查是否跳过 CAP 验证
     // ============================================================
 
     if (request.isPostman) {
@@ -80,7 +80,7 @@ export class WalnutAdminGuardCap implements CanActivate {
     }
 
     // ============================================================
-    // Step 2: Read Risk Guard risk decision�?
+    // Step 2: 读取 Risk Guard 的风险决策
     // ============================================================
 
     const recommendation = request.risk?.comprehensive?.recommendation
@@ -91,7 +91,7 @@ export class WalnutAdminGuardCap implements CanActivate {
     }
 
     // ============================================================
-    // Step 3: CAP token 硬校验（必须先于 shouldChallenge�?
+    // Step 3: CAP token 硬校验（必须先于 shouldChallenge）
     // ============================================================
 
     const capToken = getWalnutAdminCookie(
@@ -105,12 +105,12 @@ export class WalnutAdminGuardCap implements CanActivate {
         `CAP token missing, shouldChallenge=${recommendation.shouldChallenge}`,
       )
 
-      // 即使当前策略不要�?challenge，也不能视为已验�?
+      // 即使当前策略不要求 challenge，也不能视为已验证
       if (recommendation.shouldChallenge) {
         throw new WalnutAdminExceptionCapInteractionRequired() // 40116
       }
 
-      // 策略降级场景：允许无感刷新，但不能直接放�?
+      // 策略降级场景：允许无感刷新，但不能直接放行
       throw new WalnutAdminExceptionCapRefreshRequired() // 40117
     }
 
@@ -119,7 +119,7 @@ export class WalnutAdminGuardCap implements CanActivate {
       WalnutAdminConstCookieKeys.DEVICE_ID,
     )
 
-    // --- Token 存在，校验有效�?---
+    // --- Token 存在，校验有效性 ---
     const isValid = await this.validateCapToken(capToken, deviceId)
 
     if (!isValid) {
@@ -134,7 +134,7 @@ export class WalnutAdminGuardCap implements CanActivate {
       throw new WalnutAdminExceptionCapRefreshRequired() // 40117
     }
 
-    // --- Token 有效，标�?critical factors 为已处理 ---
+    // --- Token 有效，标记 critical factors 为已处理 ---
     await this.markCriticalFactorsAsHandled(request, deviceId)
 
     // ============================================================
@@ -154,7 +154,7 @@ export class WalnutAdminGuardCap implements CanActivate {
   // ============================================================
 
   /**
-   * 验证 CAP Token（带缓存+分布式锁+Double-check�?
+   * 验证 CAP Token（带缓存 + 分布式锁 + Double-check）
    */
   private async validateCapToken(capToken: string, deviceId: string): Promise<boolean> {
     // 1. 快速路径：检查缓存（缓存键 = deviceId + token 指纹，跨设备移植的 token 不命中）
@@ -178,7 +178,7 @@ export class WalnutAdminGuardCap implements CanActivate {
     try {
       return await this.murLockService.runWithLock(
         lockKey,
-        3000, // 3s 锁超?
+        3000, // 3s 锁超时
         async () => {
           // Double-check 缓存
           const cachedResult = await this.cacheCapService.getCapTokenCache(deviceId, capToken)
@@ -188,7 +188,7 @@ export class WalnutAdminGuardCap implements CanActivate {
             return cachedResult
           }
 
-          // 执行真正的验�?
+          // 执行真正的验证
           return this.performCapVerification(capToken, deviceId)
         },
       )
@@ -200,7 +200,7 @@ export class WalnutAdminGuardCap implements CanActivate {
   }
 
   /**
-   * 执行实际�?CAP 验证（调用第三方 API�?
+   * 执行实际的 CAP 验证（调用第三方 API）
    */
   private async performCapVerification(capToken: string, deviceId: string): Promise<boolean> {
     this.logger.log(`Starting CAP verification: ${deviceId}`)
@@ -226,13 +226,13 @@ export class WalnutAdminGuardCap implements CanActivate {
   }
 
   /**
-   * 标记当前Request中的 critical factors 已通过验证（修正版�?
+   * 标记当前 Request 中的 critical factors 已通过验证（修正版）
    *
-   * 关键修正�?
+   * 关键修正：
    * 1. 使用新的 markChallengeHandled API
-   * 2. 自动区分设备级和用户-设备级因�?
-   * 3. Pre Auth 因子只需�?deviceId
-   * 4. Post Auth 因子需�?userId + deviceId
+   * 2. 自动区分设备级和用户-设备级因子
+   * 3. Pre Auth 因子只需要 deviceId
+   * 4. Post Auth 因子需要 userId + deviceId
    */
   private async markCriticalFactorsAsHandled(
     request: IWalnutAdminExpressRequest,
@@ -246,16 +246,16 @@ export class WalnutAdminGuardCap implements CanActivate {
       return
     }
 
-    // 获取 userId（可能为 undefined�?
+    // 获取 userId（可能为 undefined）
     const userId = request.user?.userId as string
 
-    // ============ 批量标记所�?critical factors ============
+    // ============ 批量标记所有 critical factors ============
 
     // 使用新的通用 API，会自动判断因子类型
     const promises = criticalFactors.map(async factor =>
       this.challengeStateService.markChallengeHandled(
         factor,
-        { deviceId, userId, ip: request.realIp }, // Pre Auth 时为 undefined，Post Auth 时有?
+        { deviceId, userId, ip: request.realIp }, // Pre Auth 时为 undefined，Post Auth 时有值
       ),
     )
 

@@ -10,6 +10,17 @@ import localRules from './nest-local-rules'
 import { turboEnvVarsConfig } from './turbo-env-vars'
 
 /**
+ * `walnut/data-scope/direct-repository` 的 selector 与提示语。
+ *
+ * 导出而不是只内联在配置里：`apps/server/eslint.config.ts` 的 libs 配置要追加动态 import
+ * 禁令，而 flat config 里同一 rules key 后份整体覆盖前份 —— 那条配置必须把本 selector
+ * 一起带上，否则 libs 里已有的显式 disable 会变成「未使用指令」，直连保护也会静默消失。
+ */
+export const DATA_SCOPE_DIRECT_REPOSITORY_SELECTOR = 'CallExpression[callee.property.name=\'getRepository\'][arguments.0.name=/^(SysUserEntity|SysLogOperateEntity|SysLogAuthEntity|AppMonitorUserEntity|SysDeletedEntity|AppDemoEntity|SysEmployeeEntity)$/]'
+
+export const DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE = '数据权限：已注册实体必须经 WalnutAdminCommonPgBaseRepository（common/repository）访问；系统通道请加 eslint-disable-next-line no-restricted-syntax 并写明理由。'
+
+/**
  * NestJS 后端预设：apps/server。
  *
  * 生效方式：`apps/server/eslint.config.ts` → `export default nestConfig()`。
@@ -28,7 +39,9 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
         '**/node_modules/**',
         '**/dist/**',
         '**/public/js/**',
-        // ambient 声明文件（.d.ts）豁免：只有类型声明、没有可检查的语句，类型正确性由 tsc 承担。
+        // ambient 声明文件（.d.ts）豁免分层规则：它们只有类型声明、没有运行时 import，
+        // 不产生可执行的依赖边。已知盲区：.d.ts 里的 type-only 跨层依赖不在机器守卫内
+        // （tsc 只校验可解析、不校验方向），靠评审把关；当前 .d.ts 的内部 import 全部向下合法。
         '**/*.d.ts',
         // 这里曾有一条 `**/*/strategy.ts`（本意是豁免 passport 的 strategy 文件），但 passport
         // 的命名是 `*.strategy.ts`，该 pattern 实际只命中 `libs/const/src/app/strategy.ts`
@@ -94,8 +107,8 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
       ignores: ['**/common/repository/**'],
       rules: {
         'no-restricted-syntax': ['error', {
-          selector: 'CallExpression[callee.property.name=\'getRepository\'][arguments.0.name=/^(SysUserEntity|SysLogOperateEntity|SysLogAuthEntity|AppMonitorUserEntity|SysDeletedEntity|AppDemoEntity|SysEmployeeEntity)$/]',
-          message: '数据权限：已注册实体必须经 WalnutAdminCommonPgBaseRepository（common/repository）访问；系统通道请加 eslint-disable-next-line no-restricted-syntax 并写明理由。',
+          selector: DATA_SCOPE_DIRECT_REPOSITORY_SELECTOR,
+          message: DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE,
         }],
       },
     },

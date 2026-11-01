@@ -49,7 +49,7 @@
     "test:pw": "esno playwright/example.ts",
     "gen:doc": "@compodoc/compodoc -p tsconfig.json -s",
     "check:update": "npm-check-updates -i",
-    "madge": "madge --circular apps/api/src libs --extensions js,ts,tsx"
+    "madge": "madge --circular --ts-config tsconfig.json apps/api/src libs --extensions js,ts,tsx"
   },
   "dependencies": {
     "@alicloud/dypnsapi20170525": "catalog:",

@@ -108,7 +108,7 @@ export const defaultOrder: SortOrder = 'descend'
 - **`IListRequestParams` 与 `BaseListParams` 结构重复，未收敛**：ADR 0017 的「需修复的问题」表要求 server 侧改用 contract 的 `BaseListParams` / `SortParam`，至今仍在原地 —— 证据：`apps/server/libs/repository/src/pg-list.builder.ts`（原 server `libs/utils` 的 listAggregate 已随 B9 Mongo 双轨退役，接口随唯一消费方迁入）与 `apps/docs/src/zh-CN/content/adr/0017-package-reorganization.md`。
 - **CJS 产物面不是选择性 barrel**：`dist/index.cjs` 被 `packages/platform-any/contract/scripts/build-barrel.ts` 覆盖生成，对每个子模块做 `Object.keys(...).forEach(k => exports[k] = ...)` 的**通配**聚合 —— 与 ADR 0013「包入口不用 `export *`」的形态不一致（源面是选择性 barrel，产物面不是）。
 - **缺「dist 过期」检测**：改了 `src/` 忘了 `pnpm build`，后端 `require` 到的仍是旧 CJS。D3 记为「维持双模 + 补一道检测（倾向先 (a) + 检测）」，尚未裁决 —— 证据：`apps/docs/src/zh-CN/content/monorepo/architecture-todo.md` 的 D3 条目。
-- **ADR 0017 判定「进 contract」的内容未迁完**：`DeviceTypeConst` / `SharedUserAgentDTO` 的纯类型仍在 `apps/server/libs/list/src/shared.dto.ts`；`otpType` / `OtpIdentityTypeMap` 当时记为「待确认，暂不进」—— 证据：`apps/docs/src/zh-CN/content/adr/0017-package-reorganization.md`。
+- **ADR 0017 判定「进 contract」的内容未迁完**：`DeviceTypeConst` / `SharedUserAgentDTO` 的纯类型仍在 `apps/server/libs/list/src/device-geo.dto.ts`；`otpType` / `OtpIdentityTypeMap` 当时记为「待确认，暂不进」—— 证据：`apps/docs/src/zh-CN/content/adr/0017-package-reorganization.md`。
 
 ## 相关
 

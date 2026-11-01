@@ -26,7 +26,7 @@ export class SysUserIdentitySharedService {
 
   private readonly IDENTITY_ENCRYPTION_KEY = 'crypto.userIdentityKey'
   private readonly IDENTITY_HASH_SALT = 'crypto.userIdentitySalt'
-  private readonly ENC_ADD = 'sys_user_identity' // 用于加密时的附加认证数据，确保同一加密密钥在不同场景下的加密结果不同，防止跨场景重放攻?
+  private readonly ENC_ADD = 'sys_user_identity' // 用于加密时的附加认证数据，确保同一加密密钥在不同场景下的加密结果不同，防止跨场景重放攻击
 
   constructor(
     private readonly userIdentityRepoService: SysUserIdentityRepositoryService,

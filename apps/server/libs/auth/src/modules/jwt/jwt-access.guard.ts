@@ -49,7 +49,7 @@ export class JwtAccessGuard extends AuthGuard(
       WalnutAdminConstDecoratorJwtOptionalKey,
       [context.getHandler(), context.getClass()],
     )
-    // �?Optional mode: return null if no user or error
+    // Optional 模式：无用户或出错时返回 null
     if (isOptional) {
       if (!isNil(err) || isNil(user)) {
         return null
@@ -57,7 +57,7 @@ export class JwtAccessGuard extends AuthGuard(
       return user
     }
 
-    // �?Default mode: throw error if no user or error
+    // Default 模式：无用户或出错时抛异常
     if (!isNil(err) || isNil(user) || user === false) {
       throw new WalnutAdminExceptionAccessTokenExpired()
     }

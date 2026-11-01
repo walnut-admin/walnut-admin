@@ -75,7 +75,9 @@
     "inspect:node-modules": "node-modules-inspector",
     "syncpack:update": "syncpack update --dependency-types pnpmCatalog --interactive",
     "release": "walnut-release",
-    "lint:exports": "walnut-check-package-exports"
+    "lint:exports": "walnut-check-package-exports",
+    "migration:run": "pnpm -C apps/server migration:run",
+    "migration:revert": "pnpm -C apps/server migration:revert"
   },
   "devDependencies": {
     "@commitlint/cli": "catalog:",

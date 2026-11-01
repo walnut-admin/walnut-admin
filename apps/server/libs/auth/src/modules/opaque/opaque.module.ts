@@ -3,7 +3,7 @@ import { AuthOpaqueAdminModule } from './admin/opaque.admin.module'
 import { AuthOpaqueCoreModule } from './core/opaque.core.module'
 import { AuthOpaqueUserModule } from './user/opaque.user.module'
 
-// TODO 还差注册和忘记密�?
+// TODO 还差注册和忘记密码流程
 
 @Module({
   imports: [

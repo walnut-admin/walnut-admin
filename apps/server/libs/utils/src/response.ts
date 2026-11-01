@@ -2,7 +2,7 @@ import type { ValidationError } from '@nestjs/common'
 
 import type { IWalnutAdminConstAppResponseCode } from '@walnut/contract'
 import type { DeepKeyOf, Recordable } from 'easy-fns-ts'
-import { isDev } from '@walnut-server/config/utils/env'
+import { isDev } from '@walnut-server/const/app/env'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 
 export interface IWalnutAdminResponsePayload {

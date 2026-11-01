@@ -54,7 +54,7 @@ export class WalnutAdminGuardRisk implements CanActivate {
         if (!request._riskPreAuthCollected) {
           this.logger.debug('[Rate Collect] Pre-Auth - First time')
           void this.rateService.collectPreAuth(request.path, ip, deviceId)
-          request._riskPreAuthCollected = true // 标记已执?
+          request._riskPreAuthCollected = true // 标记已执行
         }
         else {
           this.logger.debug('[Rate Skip] Pre-Auth - Already collected')
@@ -65,7 +65,7 @@ export class WalnutAdminGuardRisk implements CanActivate {
           return true
         }
 
-        // 生成综合风险决策（仅 Pre Auth�?
+        // 生成综合风险决策（仅 Pre Auth）
         const comprehensive = await this.riskService.evaluateComprehensivePreAuth({
           ip,
           deviceId,
@@ -99,13 +99,13 @@ export class WalnutAdminGuardRisk implements CanActivate {
       if (!request._riskPostAuthCollected) {
         this.logger.debug('[Rate Collect] Post-Auth')
         void this.rateService.collectPostAuth(request.path, userId)
-        request._riskPostAuthCollected = true // 标记已执?
+        request._riskPostAuthCollected = true // 标记已执行
       }
       else {
         this.logger.debug('[Rate Skip] Post-Auth - Already collected')
       }
 
-      // 必须�?Pre Auth 结果
+      // 必须复用 Pre Auth 结果
       const preAuth = request.risk?.comprehensive?.preAuth
       if (isNil(preAuth)) {
         this.logger.warn('No Pre Auth result found, creating empty Pre Auth result')
@@ -118,7 +118,7 @@ export class WalnutAdminGuardRisk implements CanActivate {
         return true
       }
 
-      // 合并 Pre Auth + Post Auth，生成综合风险决�?
+      // 合并 Pre Auth + Post Auth，生成综合风险决策
       const comprehensive = await this.riskService.evaluateComprehensivePostAuth({ preAuth, userId, deviceId, ip })
 
       // 更新 request.risk（合并结果）

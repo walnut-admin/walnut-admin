@@ -292,3 +292,89 @@ jobs:
       - name: Note skipped admin build
         if: env.DOTENVX_KEYS == ''
         run: echo "::notice::未配置 ENV_KEYS secret，跳过 admin 构建（镜像构建由 tag 发布流程负责）"
+
+  # ---------- OpenAPI 一致性（export → generate → git diff）----------
+  # 之前只有 pre-push 的 openapi 段守着「路由/装饰器改动没重新 export」；CI 里没有，
+  # 绕过钩子直接推就会把漂移带进 main。这里把它变成独立 job，与 quality / build 并列：
+  #
+  # openapi:export 会以**完整 AppModule** 引导（连 PG / Redis），但 schema 来自路由与装饰器
+  # 元数据 —— 本地用「空库 + 只建运行时角色」实测可正常写出 212 个 schema，不需要 seed、也不需要
+  # 表数据。唯一的前提是运行时角色 `walnut_app`（DATABASE_PG_APP_USER，NOSUPERUSER NOBYPASSRLS）
+  # 必须存在：它由迁移 `1793360000000-DataScopePhase3Rls` 创建，而 service 容器是全新 cluster。
+  # 因此这里先跑一次迁移（顺带建表，future-proof），不跑 seed。
+  openapi:
+    name: OpenAPI drift (export + generate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # secrets 上下文不能出现在 if 里 → 先绑到 env，再用 env 判断（见文件顶部注释）
+      DOTENVX_KEYS: ${{ secrets.ENV_KEYS }}
+    services:
+      # 连接参数对齐 apps/server/env-encrypted/.env.development 解密后的值（127.0.0.1:5432 /
+      # 127.0.0.1:6379、用户名/库名），这里只是 CI 一次性实例，不承载任何真实数据。
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: walnut
+          POSTGRES_PASSWORD: '123456'
+          POSTGRES_DB: walnut_pg
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U walnut -d walnut_pg"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:8-alpine
+        # 官方 redis 镜像没有密码 env：用 service container 的 `command`（覆盖镜像 CMD）
+        # 传 --requirepass；密码对齐解密后的 APP_REDIS_PASS（CI 一次性实例，不是生产凭据）。
+        # GitHub 自 2026-04 起支持 service 的 `command` / `entrypoint`；若本地或 CI 的
+        # actionlint 版本滞后、报 `unexpected key "command"`，升级 actionlint，别改回无密码。
+        command: redis-server --requirepass 123456
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli -a 123456 ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # openapi:export 运行时 require("@walnut/contract")，dist 不进 git、install 也不生成
+      # —— 必须显式构建（build job 由 turbo 的 dependsOn ^build 顺带做了，这里单独补）。
+      - name: Build @walnut/contract
+        run: pnpm exec turbo run build --filter=@walnut/contract
+
+      # openapi:export 读 apps/server/env-local/.env.development（ConfigModule 定位），
+      # 与 ci.yml 的 build job 同一条解密通道；fork PR 没有 secrets → 跳过整段。
+      - name: Decrypt environment files
+        if: env.DOTENVX_KEYS != ''
+        uses: ./.github/actions/decrypt-env
+        with:
+          keys: ${{ env.DOTENVX_KEYS }}
+
+      - name: Apply migrations (fresh PG service)
+        if: env.DOTENVX_KEYS != ''
+        working-directory: apps/server
+        run: pnpm migration:run
+
+      - name: OpenAPI drift check
+        if: env.DOTENVX_KEYS != ''
+        working-directory: apps/server
+        run: pnpm openapi:check
+
+      - name: Note skipped OpenAPI check
+        if: env.DOTENVX_KEYS == ''
+        run: echo "::notice::未配置 ENV_KEYS secret，跳过 OpenAPI 一致性校验（fork PR）"

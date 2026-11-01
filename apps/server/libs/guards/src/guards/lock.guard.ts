@@ -35,7 +35,7 @@ export class WalnutAdminGuardLock implements CanActivate {
     const ctx = context.switchToHttp()
     const request = ctx.getRequest<IWalnutAdminExpressRequest>()
 
-    // Step 1: 检查是否为免锁定端�?
+    // Step 1: 检查是否为免锁定端点
     const lockFree = this.reflector.getAllAndOverride<boolean>(
       WalnutAdminConstDecoratorLockKey,
       [context.getHandler(), context.getClass()],
@@ -52,14 +52,14 @@ export class WalnutAdminGuardLock implements CanActivate {
       return true
     }
 
-    // Step 3: �?request 获取 deviceId（由 Device Guard 挂载�?
+    // Step 3: 从 request 获取 deviceId（由 Device Guard 挂载）
     const deviceId = getWalnutAdminCookie(request, WalnutAdminConstCookieKeys.DEVICE_ID)
     if (deviceId === null) {
       this.logger.debug('Lock check skipped: device ID not found in cookies')
       return true
     }
 
-    // Step 4: 检查缓�?
+    // Step 4: 检查缓存
     const cachedLockStatus = await this.lockCacheService.checkIsLocked(user.userId, deviceId)
 
     // 缓存命中
@@ -79,7 +79,7 @@ export class WalnutAdminGuardLock implements CanActivate {
       lockKey,
       3000, // 3秒锁超时
       async () => {
-        // Double-check: 再次检查缓存（可能其他Request已经设置�?
+        // Double-check: 再次检查缓存（可能其他 Request 已经设置）
         const doubleCheckCache = await this.lockCacheService.checkIsLocked(user.userId, deviceId)
         if (doubleCheckCache !== null) {
           if (doubleCheckCache) {
@@ -90,7 +90,7 @@ export class WalnutAdminGuardLock implements CanActivate {
           return true
         }
 
-        // 从数据库获取锁定状�?
+        // 从数据库获取锁定状态
         this.logger.debug(`Cache miss, querying DB: userId=${user.userId}, deviceId=${deviceId}`)
         const lockInfo = await this.userLockService.getLockForGuard(user.userId, deviceId)
 

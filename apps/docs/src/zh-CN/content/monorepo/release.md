@@ -168,7 +168,7 @@ pnpm release
 | `doc-budget` | `pnpm lint:doc-budget`（常驻上下文文件不许膨胀，用不到一半也算失败） |
 | `emoji` | `pnpm lint:emoji`（注释与常驻文档里不许有 emoji：跨所有被跟踪文本文件） |
 | `seed` | `pnpm lint:seed`（初始化数据形态：必需/禁入集合、体积、凭据形状、引用完整性） |
-| `openapi` | `pnpm openapi:check`（OpenAPI 一致性：重导出 `openapi.json` → 重生成 `@walnut/api-types` 的 `schema.d.ts` → `git diff --exit-code`；要连 PG/Redis，CI 无库故只挂本地 prepush 与本电池） |
+| `openapi` | `pnpm openapi:check`（OpenAPI 一致性：重导出 `openapi.json` → 重生成 `@walnut/api-types` 的 `schema.d.ts` → `git diff --exit-code`；要连 PG/Redis——CI 已有带 PG/Redis service 的 openapi job（W4 起），本地则挂 prepush 与本电池） |
 | `dts` | `pnpm lint:dts`（手写 `.d.ts` 关掉 `skipLibCheck` 查一遍，只报仓库内文件） |
 | `turbo-cache` | `pnpm lint:turbo-cache`（turbo 配置不变量：产物 / outputs / env / 依赖边 + **tags**） |
 | `lockfile` | `pnpm lint:lockfile`（`pnpm-workspace.yaml` 的 catalog ↔ `pnpm-lock.yaml` 锁步；改声明忘了 `pnpm install` 时本地全绿、CI 死在 `--frozen-lockfile`） |

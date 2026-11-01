@@ -6,7 +6,7 @@ export class SharedScopeResolverService {
   /**
    * Unified resolution method
    * @param config  Configuration for the business field (e.g., role mode, theme, etc.)
-   * @param target  Local entity (user / organization / project �?
+   * @param target  本地实体（user / organization / project 等）
    * @returns       The final effective value
    */
   resolve<T>(config: IWalnutAdminScopeResolverConfig<T>, target?: Record<string, any>): T {
