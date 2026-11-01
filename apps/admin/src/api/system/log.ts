@@ -1,4 +1,5 @@
 import type { SystemDevice, SystemLogAuth, SystemLogOperate, SystemLogOperateSnapshot } from '@walnut/api-types'
+import { SystemRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
@@ -10,7 +11,7 @@ export const logOperateAPI = new BaseAPI<SystemLogOperate>({
 export function getLogOperateSnapshotAPI(id: string) {
   return AppAxios.get<SystemLogOperateSnapshot>(
     {
-      url: `/system/log/operate/${id}/snapshot`,
+      url: `${SystemRoutes.LOG_OPERATE}/${id}/snapshot`,
     },
   )
 }
@@ -18,7 +19,7 @@ export function getLogOperateSnapshotAPI(id: string) {
 export function getLogOperateDeviceAPI(id: string) {
   return AppAxios.get<SystemDevice>(
     {
-      url: `/system/log/operate/${id}/device`,
+      url: `${SystemRoutes.LOG_OPERATE}/${id}/device`,
     },
   )
 }

@@ -1,21 +1,14 @@
 import type { AuthTokenPayload } from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
+import { AuthRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
-
-const authOpaque = {
-  LOGIN_START: '/auth/opaque/user/login/start',
-  LOGIN_FINISH: '/auth/opaque/user/login/finish',
-  CLIENT_ERROR: '/auth/opaque/user/login/client-error',
-  CHANGE_PASSWORD_START: '/auth/opaque/user/change-password/start',
-  CHANGE_PASSWORD_FINISH: '/auth/opaque/user/change-password/finish',
-} as const
 
 /**
  * @description opaque login start
  */
 export function opaqueLoginStartAPI(data: IRequestPayload.Auth.Opaque.Login.Start) {
   return AppAxios.post<string>({
-    url: authOpaque.LOGIN_START,
+    url: AuthRoutes.OPAQUE_USER_LOGIN_START,
     data,
   })
 }
@@ -25,7 +18,7 @@ export function opaqueLoginStartAPI(data: IRequestPayload.Auth.Opaque.Login.Star
  */
 export function opaqueLoginFinishAPI(data: IRequestPayload.Auth.Opaque.Login.Finish) {
   return AppAxios.post<AuthTokenPayload>({
-    url: authOpaque.LOGIN_FINISH,
+    url: AuthRoutes.OPAQUE_USER_LOGIN_FINISH,
     data,
   })
 }
@@ -35,7 +28,7 @@ export function opaqueLoginFinishAPI(data: IRequestPayload.Auth.Opaque.Login.Fin
  */
 export function opaqueLoginClientErrorAPI(data: IRequestPayload.Auth.Opaque.Login.ClientError) {
   return AppAxios.post<boolean>({
-    url: authOpaque.CLIENT_ERROR,
+    url: AuthRoutes.OPAQUE_USER_LOGIN_CLIENT_ERROR,
     data,
   })
 }
@@ -45,7 +38,7 @@ export function opaqueLoginClientErrorAPI(data: IRequestPayload.Auth.Opaque.Logi
  */
 export function opaqueChangePasswordStartAPI(data: IRequestPayload.Auth.Opaque.Register.Start) {
   return AppAxios.post<string>({
-    url: authOpaque.CHANGE_PASSWORD_START,
+    url: AuthRoutes.OPAQUE_USER_CHANGE_PASSWORD_START,
     data,
   })
 }
@@ -55,7 +48,7 @@ export function opaqueChangePasswordStartAPI(data: IRequestPayload.Auth.Opaque.R
  */
 export function opaqueChangePasswordFinishAPI(data: IRequestPayload.Auth.Opaque.Register.Finish) {
   return AppAxios.post<boolean>({
-    url: authOpaque.CHANGE_PASSWORD_FINISH,
+    url: AuthRoutes.OPAQUE_USER_CHANGE_PASSWORD_FINISH,
     data,
   })
 }

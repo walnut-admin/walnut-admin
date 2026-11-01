@@ -1,19 +1,13 @@
 import type { MeSecurityTab2Status, SystemUser } from '@walnut/api-types'
+import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
-
-const systemUserMe = {
-  SWITCH_ROLE: '/system/user/me/role/switch',
-  GET_PROFILE: '/system/user/me/profile',
-  UPDATE_PROFILE: '/system/user/me/profile',
-  GET_SECURITY_TAB_2_STATUS: '/system/user/me/security-tab2',
-} as const
 
 /**
  * @description switch role
  */
 export function switchRoleAPI(roleId: string) {
   return AppAxios.patch<boolean>({
-    url: `${systemUserMe.SWITCH_ROLE}/${roleId}`,
+    url: `${SystemEndpointRoutes.USER_ME_SWITCH_ROLE}/${roleId}`,
   })
 }
 
@@ -22,7 +16,7 @@ export function switchRoleAPI(roleId: string) {
  */
 export function getUserProfileAPI() {
   return AppAxios.get<SystemUser>({
-    url: systemUserMe.GET_PROFILE,
+    url: SystemEndpointRoutes.USER_ME_PROFILE,
   })
 }
 
@@ -32,7 +26,7 @@ export function getUserProfileAPI() {
  */
 export function updateProfileAPI(data: Partial<SystemUser>) {
   return AppAxios.put<boolean>({
-    url: systemUserMe.UPDATE_PROFILE,
+    url: SystemEndpointRoutes.USER_ME_PROFILE,
     data,
   })
 }
@@ -42,6 +36,6 @@ export function updateProfileAPI(data: Partial<SystemUser>) {
  */
 export function getSecurityTab2StatusAPI() {
   return AppAxios.get<MeSecurityTab2Status>({
-    url: systemUserMe.GET_SECURITY_TAB_2_STATUS,
+    url: SystemEndpointRoutes.USER_ME_SECURITY_TAB2,
   })
 }

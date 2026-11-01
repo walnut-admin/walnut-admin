@@ -1,29 +1,14 @@
 import type { AuthMfaAvailableMethod, AuthMfaTotpBind, AuthMfaTotpGenerate, AuthMfaWebauthnAuthenticateOptions, AuthMfaWebauthnRegisterOptions, AuthTokenPayload } from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
+import { AuthRoutes, SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
-
-const mfaAPI = {
-  status: '/auth/mfa/status',
-  verify: '/auth/mfa/verify',
-
-  totpGenerate: '/system/user/mfa/totp/generate',
-  totpVerified: '/system/user/mfa/totp/verify',
-  totpBind: '/system/user/mfa/totp/bind',
-  totpUnbind: '/system/user/mfa/totp/unbind',
-  totpStatus: '/system/user/mfa/totp/status',
-
-  webauthnRegisterOptions: '/system/user/mfa/webauthn/register/options',
-  webauthnRegisterVerify: '/system/user/mfa/webauthn/register/verify',
-  webauthnAuthenticateOptions: '/system/user/mfa/webauthn/authenticate/options',
-  webauthnAuthenticateVerify: '/system/user/mfa/webauthn/authenticate/verify',
-} as const
 
 /**
  * @description get mfa status
  */
 export function authMfaStatusAPI() {
   return AppAxios.get<AuthMfaAvailableMethod[]>({
-    url: mfaAPI.status,
+    url: AuthRoutes.MFA_STATUS,
   })
 }
 
@@ -32,7 +17,7 @@ export function authMfaStatusAPI() {
  */
 export function authMfaVerifyAPI(trusted: boolean) {
   return AppAxios.post<AuthTokenPayload>({
-    url: mfaAPI.verify,
+    url: AuthRoutes.MFA_VERIFY,
     data: {
       trusted,
     },
@@ -44,7 +29,7 @@ export function authMfaVerifyAPI(trusted: boolean) {
  */
 export function authMfaTotpGenerateAPI(data: IRequestPayload.Auth.MFA.Totp.Generate) {
   return AppAxios.post<AuthMfaTotpGenerate>({
-    url: mfaAPI.totpGenerate,
+    url: SystemEndpointRoutes.USER_MFA_TOTP_GENERATE,
     data,
   })
 }
@@ -54,7 +39,7 @@ export function authMfaTotpGenerateAPI(data: IRequestPayload.Auth.MFA.Totp.Gener
  */
 export function authMfaTotpVerifyAPI(data: IRequestPayload.Auth.MFA.Totp.Verify) {
   return AppAxios.post<AuthTokenPayload>({
-    url: mfaAPI.totpVerified,
+    url: SystemEndpointRoutes.USER_MFA_TOTP_VERIFY,
     data,
   })
 }
@@ -64,7 +49,7 @@ export function authMfaTotpVerifyAPI(data: IRequestPayload.Auth.MFA.Totp.Verify)
  */
 export function authMfaTotpBindAPI(data: IRequestPayload.Auth.MFA.Totp.Bind) {
   return AppAxios.post<AuthMfaTotpBind>({
-    url: mfaAPI.totpBind,
+    url: SystemEndpointRoutes.USER_MFA_TOTP_BIND,
     data,
   })
 }
@@ -74,7 +59,7 @@ export function authMfaTotpBindAPI(data: IRequestPayload.Auth.MFA.Totp.Bind) {
  */
 export function authMfaTotpUnbindAPI() {
   return AppAxios.delete<boolean>({
-    url: mfaAPI.totpUnbind,
+    url: SystemEndpointRoutes.USER_MFA_TOTP_UNBIND,
   })
 }
 
@@ -83,7 +68,7 @@ export function authMfaTotpUnbindAPI() {
  */
 export function authMfaTotpUpdateStatusAPI(status: boolean) {
   return AppAxios.put<boolean>({
-    url: mfaAPI.totpStatus,
+    url: SystemEndpointRoutes.USER_MFA_TOTP_STATUS,
     data: {
       status,
     },
@@ -95,7 +80,7 @@ export function authMfaTotpUpdateStatusAPI(status: boolean) {
  */
 export function authMfaWebauthnRegisterOptionsAPI(data: IRequestPayload.Auth.MFA.Webauthn.RegisterOptions) {
   return AppAxios.post<AuthMfaWebauthnRegisterOptions>({
-    url: mfaAPI.webauthnRegisterOptions,
+    url: SystemEndpointRoutes.USER_MFA_WEBAUTHN_REGISTER_OPTIONS,
     data,
   })
 }
@@ -105,7 +90,7 @@ export function authMfaWebauthnRegisterOptionsAPI(data: IRequestPayload.Auth.MFA
  */
 export function authMfaWebauthnRegisterVerifyAPI(data: IRequestPayload.Auth.MFA.Webauthn.RegisterVerify) {
   return AppAxios.post<boolean>({
-    url: mfaAPI.webauthnRegisterVerify,
+    url: SystemEndpointRoutes.USER_MFA_WEBAUTHN_REGISTER_VERIFY,
     data,
   })
 }
@@ -115,7 +100,7 @@ export function authMfaWebauthnRegisterVerifyAPI(data: IRequestPayload.Auth.MFA.
  */
 export function authMfaWebauthnAuthenticateOptionsAPI() {
   return AppAxios.post<AuthMfaWebauthnAuthenticateOptions>({
-    url: mfaAPI.webauthnAuthenticateOptions,
+    url: SystemEndpointRoutes.USER_MFA_WEBAUTHN_AUTHENTICATE_OPTIONS,
   })
 }
 
@@ -124,7 +109,7 @@ export function authMfaWebauthnAuthenticateOptionsAPI() {
  */
 export function authMfaWebauthnAuthenticateVerifyAPI(data: IRequestPayload.Auth.MFA.Webauthn.AuthenticateVerify) {
   return AppAxios.post<AuthTokenPayload>({
-    url: mfaAPI.webauthnAuthenticateVerify,
+    url: SystemEndpointRoutes.USER_MFA_WEBAUTHN_AUTHENTICATE_VERIFY,
     data,
   })
 }

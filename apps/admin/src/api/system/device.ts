@@ -1,7 +1,7 @@
 import type { SystemDevice, SystemDeviceHistoryUser, SystemDeviceInitialResponse, SystemUser } from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
 import { getCPUCoreCount, getGPUArchitecture, getIsInIncognitoMode, getMemoryGB } from '@walnut/client/browser/shared'
-import { SystemEndpointRoutes } from '@walnut/contract'
+import { SystemEndpointRoutes, SystemRoutes } from '@walnut/contract'
 import { useAppStoreFingerprint } from '@/store/modules/app/app-fingerprint'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
@@ -14,7 +14,7 @@ export const deviceAPI = new BaseAPI<SystemDevice>({
 export function getDeviceCurrentActiveUserAPI(id: string) {
   return AppAxios.get<SystemUser>(
     {
-      url: `/system/device/${id}/current-active-user`,
+      url: `${SystemRoutes.DEVICE}/${id}/current-active-user`,
     },
   )
 }
@@ -22,7 +22,7 @@ export function getDeviceCurrentActiveUserAPI(id: string) {
 export function getDeviceHistoryUsersAPI(id: string) {
   return AppAxios.get<SystemDeviceHistoryUser[]>(
     {
-      url: `/system/device/${id}/history-users`,
+      url: `${SystemRoutes.DEVICE}/${id}/history-users`,
     },
   )
 }
@@ -30,7 +30,7 @@ export function getDeviceHistoryUsersAPI(id: string) {
 export function lockDeviceAPI(id: string) {
   return AppAxios.patch<boolean>(
     {
-      url: `/system/device/${id}/lock`,
+      url: `${SystemRoutes.DEVICE}/${id}/lock`,
     },
   )
 }
@@ -38,7 +38,7 @@ export function lockDeviceAPI(id: string) {
 export function unlockDeviceAPI(id: string) {
   return AppAxios.patch<boolean>(
     {
-      url: `/system/device/${id}/unlock`,
+      url: `${SystemRoutes.DEVICE}/${id}/unlock`,
     },
   )
 }
@@ -46,7 +46,7 @@ export function unlockDeviceAPI(id: string) {
 export function banDeviceAPI(id: string) {
   return AppAxios.patch<boolean>(
     {
-      url: `/system/device/${id}/ban`,
+      url: `${SystemRoutes.DEVICE}/${id}/ban`,
     },
   )
 }
@@ -54,7 +54,7 @@ export function banDeviceAPI(id: string) {
 export function unbanDeviceAPI(id: string) {
   return AppAxios.patch<boolean>(
     {
-      url: `/system/device/${id}/unban`,
+      url: `${SystemRoutes.DEVICE}/${id}/unban`,
     },
   )
 }

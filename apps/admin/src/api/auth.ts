@@ -1,20 +1,14 @@
 import type { AuthSecretKeys, AuthTokenPayload } from '@walnut/api-types'
 import type { AuthPermissions } from './types/frontend-shapes'
+import { AuthRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
-
-const Auth = {
-  SIGNOUT: '/auth/signout',
-  REFRESH_TOKEN: '/auth/refresh',
-  PERMISSION: '/auth/permissions',
-  KEYS: '/auth/keys',
-} as const
 
 /**
  * @description Sign out
  */
 export function signoutAPI() {
   return AppAxios.post({
-    url: Auth.SIGNOUT,
+    url: AuthRoutes.SIGNOUT,
   })
 }
 
@@ -23,7 +17,7 @@ export function signoutAPI() {
  */
 export function refreshTokenAPI() {
   return AppAxios.post<AuthTokenPayload>({
-    url: Auth.REFRESH_TOKEN,
+    url: AuthRoutes.REFRESH,
   })
 }
 
@@ -32,7 +26,7 @@ export function refreshTokenAPI() {
  */
 export function getPermissionsAPI() {
   return AppAxios.get<AuthPermissions>({
-    url: Auth.PERMISSION,
+    url: AuthRoutes.PERMISSIONS,
   })
 }
 
@@ -42,7 +36,7 @@ export function getPermissionsAPI() {
 export function getBaiduKeyAPI() {
   return AppAxios.get<AuthSecretKeys>(
     {
-      url: Auth.KEYS,
+      url: AuthRoutes.KEYS,
       _autoDecryptResponseData: ['B'],
       _cache: true,
     },

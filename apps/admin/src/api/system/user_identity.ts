@@ -1,23 +1,14 @@
 import type { MeSecurityTab1Status, SystemUserIdentityPurpose, SystemUserIdentityType } from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
+import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
-
-const systemUserIdentity = {
-  CHECK: '/system/user/identity/check',
-  BIND: '/system/user/identity/bind',
-  UNBIND: '/system/user/identity/unbind',
-  SEND_CODE: '/system/user/identity/send-code',
-  STATUS: '/system/user/identity/status',
-  VERIFY: '/system/user/identity/verify',
-  GET_SECURITY_TAB_1_STATUS: '/system/user/identity/status',
-} as const
 
 /**
  * @description get user center security tab 1 status
  */
 export function getSecurityTab1StatusAPI2(purpose: SystemUserIdentityPurpose) {
   return AppAxios.get<MeSecurityTab1Status>({
-    url: `${systemUserIdentity.GET_SECURITY_TAB_1_STATUS}/${purpose}`,
+    url: `${SystemEndpointRoutes.USER_IDENTITY_STATUS}/${purpose}`,
   })
 }
 
@@ -26,7 +17,7 @@ export function getSecurityTab1StatusAPI2(purpose: SystemUserIdentityPurpose) {
  */
 export function checkUserIdentityAPI(data: IRequestPayload.System.UserIdentity.Check) {
   return AppAxios.post<boolean>({
-    url: `${systemUserIdentity.CHECK}/${data.type}/${data.purpose}`,
+    url: `${SystemEndpointRoutes.USER_IDENTITY_CHECK}/${data.type}/${data.purpose}`,
     data: {
       identifier: data.identifier,
     },
@@ -38,7 +29,7 @@ export function checkUserIdentityAPI(data: IRequestPayload.System.UserIdentity.C
  */
 export function bindUserIdentityAPI(data: IRequestPayload.System.UserIdentity.Bind) {
   return AppAxios.post<boolean>({
-    url: `${systemUserIdentity.BIND}/${data.type}/${data.purpose}`,
+    url: `${SystemEndpointRoutes.USER_IDENTITY_BIND}/${data.type}/${data.purpose}`,
     data: {
       identifier: data.identifier,
       verifyCode: data.verifyCode,
@@ -52,7 +43,7 @@ export function bindUserIdentityAPI(data: IRequestPayload.System.UserIdentity.Bi
  */
 export function unBindUserIdentityAPI(type: SystemUserIdentityType, purpose: SystemUserIdentityPurpose) {
   return AppAxios.delete<boolean>({
-    url: `${systemUserIdentity.UNBIND}/${type}/${purpose}`,
+    url: `${SystemEndpointRoutes.USER_IDENTITY_UNBIND}/${type}/${purpose}`,
   })
 }
 
@@ -61,7 +52,7 @@ export function unBindUserIdentityAPI(type: SystemUserIdentityType, purpose: Sys
  */
 export function sendCodeForVerifyAPI(type: SystemUserIdentityType, purpose: SystemUserIdentityPurpose) {
   return AppAxios.post<boolean>({
-    url: `${systemUserIdentity.SEND_CODE}/${type}/${purpose}`,
+    url: `${SystemEndpointRoutes.USER_IDENTITY_SEND_CODE}/${type}/${purpose}`,
   })
 }
 
@@ -70,7 +61,7 @@ export function sendCodeForVerifyAPI(type: SystemUserIdentityType, purpose: Syst
  */
 export function updateUserIdentityStatusAPI(data: IRequestPayload.System.UserIdentity.Status) {
   return AppAxios.put<boolean>({
-    url: `${systemUserIdentity.STATUS}/${data.type}/${data.purpose}`,
+    url: `${SystemEndpointRoutes.USER_IDENTITY_STATUS}/${data.type}/${data.purpose}`,
     data: {
       status: data.status,
     },
@@ -82,7 +73,7 @@ export function updateUserIdentityStatusAPI(data: IRequestPayload.System.UserIde
  */
 export function verifyUserIdentityAPI(data: IRequestPayload.System.UserIdentity.Verify) {
   return AppAxios.post<boolean>({
-    url: `${systemUserIdentity.VERIFY}/${data.type}/${data.purpose}`,
+    url: `${SystemEndpointRoutes.USER_IDENTITY_VERIFY}/${data.type}/${data.purpose}`,
     data: {
       verifyCode: data.verifyCode,
     },

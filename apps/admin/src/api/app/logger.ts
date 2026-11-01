@@ -1,4 +1,5 @@
 import type { AppLogger, AppLoggerReadResponse } from '@walnut/api-types'
+import { AppRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
@@ -9,6 +10,6 @@ export const appLoggerAPI = new BaseAPI<AppLogger>({
 
 export function readAppLoggerMoreAPI(id: string, page: number) {
   return AppAxios.get<AppLoggerReadResponse>({
-    url: `/app/logger/${id}?page=${page}`,
+    url: `${AppRoutes.LOGGER}/${id}?page=${page}`,
   })
 }

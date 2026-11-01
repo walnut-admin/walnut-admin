@@ -1,6 +1,7 @@
 import type { SystemLocale } from '@walnut/api-types'
 import type { Recordable } from 'easy-fns-ts'
 import type { ValueOfAppConstLocale } from '@/const/app'
+import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
@@ -16,7 +17,7 @@ export const localeAPI = new BaseAPI<SystemLocale>({
  */
 export function getI18nMsgAPI(lang: ValueOfAppConstLocale, cache = 1) {
   return AppAxios.get<Recordable>({
-    url: `/system/locale/message/${lang}`,
+    url: `${SystemEndpointRoutes.LOCALE_MESSAGE}/${lang}`,
     params: {
       cache,
     },
