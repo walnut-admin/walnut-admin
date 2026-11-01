@@ -1466,6 +1466,9 @@ importers:
       '@walnut/contract':
         specifier: workspace:*
         version: link:../../packages/platform-any/contract
+      '@walnut/utils':
+        specifier: workspace:*
+        version: link:../../packages/platform-any/utils-core
       axios:
         specifier: 'catalog:'
         version: 1.16.0(debug@4.4.3(supports-color@5.5.0))

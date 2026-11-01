@@ -1,9 +1,13 @@
-import type { Recordable } from 'easy-fns-ts'
 import type { Slots } from 'vue'
 import { detectIncognito } from 'detectincognitojs'
 import { Base64 } from 'js-base64'
-import { forEach, isArray, isPlainObject, isUndefined, set } from 'lodash-es'
+import { isUndefined } from 'lodash-es'
 import { getCurrentInstance } from 'vue'
+
+// 嵌套对象 ↔ 扁平 path 已上收 `@walnut/utils/object-paths`（双端共用），此处保留旧导入面。
+// 第二参数仍兼容历史调用 `objectToPaths(res, ['watermark'])`。
+export { objectToPaths, pathsToObject } from '@walnut/utils/object-paths'
+export type { ObjectToPathsOptions, PathRecord } from '@walnut/utils/object-paths'
 
 export function getDefaultSlotText(slots: Slots): string {
   const str = (slots.default && slots.default()[0].children) as string
@@ -98,48 +102,6 @@ export async function getGPUArchitecture() {
     console.error(error)
     return 'not supported'
   }
-}
-
-export function objectToPaths<T>(
-  obj: T,
-  ignoreKeys: string[] = [],
-) {
-  const result: Record<string, any> = {}
-
-  function process(value: any, path: string) {
-    const lastKey = path.split('.').pop() || path
-    if (ignoreKeys.includes(path) || ignoreKeys.includes(lastKey)) {
-      result[path] = value
-      return
-    }
-
-    if (isPlainObject(value)) {
-      forEach(value, (v, k) => {
-        process(v, path ? `${path}.${k}` : k)
-      })
-    }
-    else if (isArray(value)) {
-      forEach(value, (v, i) => {
-        process(v, path ? `${path}[${i}]` : `[${i}]`)
-      })
-    }
-    else {
-      result[path] = value
-    }
-  }
-
-  process(obj, '')
-  return result
-}
-
-export function pathsToObject<T extends object, R extends Recordable = T>(pathsObj: T): R {
-  const result: Recordable = {}
-
-  forEach(pathsObj, (value, path) => {
-    set(result, path, value)
-  })
-
-  return result as R
 }
 
 export function toUrlSafeBase64(b64: string): string {

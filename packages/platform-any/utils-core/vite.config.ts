@@ -6,6 +6,8 @@ const entries = {
   'index': resolve(__dirname, 'src/index.ts'),
   'regex': resolve(__dirname, 'src/regex.ts'),
   'queue': resolve(__dirname, 'src/queue.ts'),
+  'object-paths': resolve(__dirname, 'src/object-paths.ts'),
+  'sign-raw': resolve(__dirname, 'src/sign-raw.ts'),
   'crypto/const': resolve(__dirname, 'src/crypto/const.ts'),
   'crypto/transformer': resolve(__dirname, 'src/crypto/transformer.ts'),
   'persistent/enhance/async': resolve(__dirname, 'src/persistent/enhance/async.ts'),

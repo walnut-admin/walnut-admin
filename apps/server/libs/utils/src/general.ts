@@ -1,5 +1,8 @@
-import type { Recordable } from 'easy-fns-ts'
-import { forEach, isArray, isPlainObject, random } from 'lodash'
+import { random } from 'lodash'
+
+// 嵌套对象 ↔ 扁平 path 已上收 `@walnut/utils/object-paths`（双端共用），此处保留旧导入面
+export { objectToPaths } from '@walnut/utils/object-paths'
+export type { ObjectToPathsOptions, PathRecord } from '@walnut/utils/object-paths'
 
 export function generateVerifyCode(length = 6) {
   const start = Number.parseInt(
@@ -17,27 +20,4 @@ export function generateVerifyCode(length = 6) {
 
 export async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-export function objectToPaths<T>(obj: T) {
-  const result: Recordable = {}
-
-  function process(value: T, path: string) {
-    if (isPlainObject(value)) {
-      forEach(value as Recordable, (v: string, k: string) => {
-        process(v as T, path ? `${path}.${k}` : k)
-      })
-    }
-    else if (isArray(value)) {
-      forEach(value, (v, i) => {
-        process(v as T, path ? `${path}[${i}]` : `[${i}]`)
-      })
-    }
-    else {
-      result[path] = value
-    }
-  }
-
-  process(obj, '')
-  return result
 }

@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { WalnutAdminExceptionBlackListPathDetected, WalnutAdminExceptionBotDetected, WalnutAdminExceptionSuspiciousRequest, WalnutAdminExceptionUserAgentBrowserNotAcceptable, WalnutAdminExceptionUserAgentNotAcceptable, WalnutAdminExceptionUserAgentOSNotAcceptable } from '@walnut-server/exceptions/base/406'
 import { SharedIpService } from '@walnut-server/ip'
+import { stripApiPrefix } from '@walnut/utils/sign-raw'
 import { isNil } from 'lodash'
 
 // permanent blacklist paths (common malicious scan paths)
@@ -61,7 +62,7 @@ export class WalnutAdminGuardSecurity implements CanActivate {
     // 1. check permanent blacklist paths
     // P1-11 修复（2026-10-28）：req.path 带 `/{prefix}/v{version}`，旧实现拿裸常量
     // `startsWith('/admin')` 匹配永不命中。匹配前按 sign guard 同口径 strip API 前缀。
-    if (this.isBlacklistedPath(this.stripApiPrefix(req.path))) {
+    if (this.isBlacklistedPath(stripApiPrefix(req.path, this.configService.get<string>('app.api.prefix')!, this.configService.get<string>('app.api.version')!))) {
       // add to permanent blacklist
       await this.sharedIpService.addToPermanentBlackList(req.realIp)
       throw new WalnutAdminExceptionBlackListPathDetected()
@@ -100,16 +101,6 @@ export class WalnutAdminGuardSecurity implements CanActivate {
     }
 
     return true
-  }
-
-  /**
-   * @description strip `/{prefix}/v{version}` —— 与 sign guard buildSignRaw 的路径
-   * 规范化同口径（黑名单常量是裸路径）
-   */
-  private stripApiPrefix(path: string): string {
-    const APIPrefix = this.configService.get<string>('app.api.prefix')!
-    const APIVersion = this.configService.get<string>('app.api.version')!
-    return path.replace(new RegExp(`^/${APIPrefix}/v${APIVersion}`), '') || '/'
   }
 
   /**

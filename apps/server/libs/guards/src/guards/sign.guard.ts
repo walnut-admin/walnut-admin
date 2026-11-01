@@ -13,8 +13,8 @@ import {
   WalnutAdminExceptionInvalidSignature,
 } from '@walnut-server/exceptions/business/auth'
 import { AppTokenService } from '@walnut-server/token'
-import { objectToPaths } from '@walnut-server/utils/general'
 import { RequestHeaders } from '@walnut/contract/http'
+import { buildSignRaw, splitPathAndQuery, stripApiPrefix } from '@walnut/utils/sign-raw'
 import { isNil } from 'lodash'
 import { MurLockService } from 'murlock'
 
@@ -22,39 +22,6 @@ const WalnutAdminConstDecoratorSignFreeKey = Symbol('WALNUT_ADMIN_CONST_DECORATO
 
 export function WalnutAdminGuardSignFree() {
   return SetMetadata(WalnutAdminConstDecoratorSignFreeKey, true)
-}
-
-/**
- * 构建签名原文
- * 格式: METHOD|PATH|BODY_PARAMS|timestamp=xxx|nonce=xxx|ua=xxx
- */
-function buildSignRaw(
-  req: IWalnutAdminExpressRequest,
-  APIPrefix: string,
-  APIVersion: string,
-  timestamp: number,
-  nonce: string,
-  ua: string,
-): string {
-  // 1. 扁平化 Request 体并排序
-  const flattenObj = objectToPaths(req.body ?? {})
-  const sortedParams = Object.keys(flattenObj)
-    .sort()
-    .map(k => `${k}=${flattenObj[k]}`)
-    .join('&')
-
-  // 2. 规范化路由路径（去除 API 前缀和版本）
-  const routePath = req.url.replace(new RegExp(`^/${APIPrefix}/v${APIVersion}`), '') || '/'
-
-  // 3. 组装签名原文（多因子）
-  return [
-    req.method.toUpperCase(), // HTTP 方法
-    routePath, // 路由路径
-    sortedParams, // 请求参数（排序）
-    `timestamp=${timestamp}`, // 时间戳
-    `nonce=${nonce}`, // 随机数
-    `ua=${ua}`, // User-Agent
-  ].join('|')
 }
 
 /**
@@ -147,10 +114,19 @@ export class WalnutAdminGuardSign implements CanActivate {
     // 9. 从Request中获取用户会话
     const userSession = req.user
 
-    // 10. 生成签名原文
+    // 10. 生成签名原文（与客户端同一纯函数：`@walnut/utils/sign-raw`）
     const APIPrefix = this.configService.get<string>('app.api.prefix')!
     const APIVersion = this.configService.get<string>('app.api.version')!
-    const raw = buildSignRaw(req, APIPrefix, APIVersion, Number(timestamp), nonce, ua)
+    const { path, query } = splitPathAndQuery(stripApiPrefix(req.url, APIPrefix, APIVersion))
+    const raw = buildSignRaw({
+      method: req.method,
+      path,
+      query,
+      body: req.body,
+      timestamp: Number(timestamp),
+      nonce,
+      ua,
+    })
 
     this.logger.debug(`Sign guard: raw => ${raw}`)
 
