@@ -102,6 +102,25 @@ prepush 的「workflow 校验」段在本机是 SKIP（✓ 但 ≠ 通过）；�
   `WALNUT_ADMIN_PERMANENT_BLACKLIST_PATHS` 等 JWT/OAuth/strategy 组注入常量不在清单（清单本身
   19/19 全部真实存在）。
 
+## U 批（packages 上收）新增留档
+
+### 【需产品确认】敏感操作验证方式的三套词汇
+- server 授权真源：`password / sms / mfa / email`（VerifyMethod，sensitive.const）
+- MFA 登录：`totp / webauthn`（SysUserMfaType，已上收 contract/mfa）
+- OTP 发送：`email / sms`（otpType，按 ADR 决定留 server）
+- 前端 VerifyAuthMethodType：`sms / email / totp / webauthn`（缺 password，已改由 contract/mfa + 本地联合）
+- 归一方向需产品语义映射确认后再上收 `libs/security/src/sensitive/sensitive.const.ts`。
+
+### 【既有风险，未修】签名序列化的 undefined 字段边界
+admin 在 `JSON.stringify` 前签名：`{ a: undefined }` 签出 `a=undefined`，而服务端收到的
+body 已丢弃该字段 → 此类请求 401。共享函数两端一致，差异在序列化管线。现有表单多用
+`null`，无线上证据。建议后续在请求边界剔除 `undefined` 或改为「序列化后签名」。
+（同族：demo 页 `_timestamp` 参数先签名后追加会 401，仅 demo 使用。）
+
+### 【记录】文档数字口径
+packages 上收后 contract 123 常量、utils-core 7 测试文件等计数以门禁对账为准
+（`route-catalog.drift.spec` / contract 快照 / entries 门禁），不在文档维护计数。
+
 ## 已验证的基线（W4 后终点状态）
 
 - `pnpm lint`：0 error / 0 warning（含 infra/scripts，历史 2 条 warning 已根因修复）
