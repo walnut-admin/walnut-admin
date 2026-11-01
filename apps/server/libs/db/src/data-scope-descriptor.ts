@@ -2,8 +2,9 @@ import type { WalnutAdminConstDataScopeMode } from '@walnut-server/const/app/dat
 
 /**
  * 数据权限**描述符类型真源**（libs 解耦批 1 从 apps/api/src/common/repository/data-scope.ts
- * 迁入）。只搬类型，不搬计算 —— 描述符的解析仍在 app（modules/system/data-scope/），
- * 聚合注册表（common/repository/data-scope.ts）import 这里的类型。
+ * 迁入）。只搬类型，不搬计算 —— 描述符的解析已随批 7 下沉
+ * `libs/system/src/data-scope/`（resolver / service）；app 侧只保留跨域实体注册表
+ * （`common/repository/data-scope.ts`）。
  *
  * 与本目录 data-scope-rls.ts 的关系：rls 管「描述符怎么写进事务 GUC」，本文件管
  * 「描述符长什么样」—— ALS 请求上下文、基类仓库、RLS 设置三方的公共词汇。

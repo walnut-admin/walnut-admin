@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBootstrapTasksDisabled } from './task.module'
+import { isBootstrapTasksDisabled } from './bootstrap-task.module'
 
 function makeEnv(value?: string): NodeJS.ProcessEnv {
   return { WALNUT_ADMIN_BOOTSTRAP_TASKS: value } as unknown as NodeJS.ProcessEnv

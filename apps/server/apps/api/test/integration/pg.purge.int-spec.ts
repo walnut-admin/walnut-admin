@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 
 import { SchedulerRegistry } from '@nestjs/schedule'
 import { AuthRefreshTokenPgPurgeService } from '@walnut-server/auth'
+import { AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCronTaskNames } from '@walnut-server/const/app/task'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
@@ -20,8 +21,13 @@ describe('AuthRefreshTokenPgPurgeService (on real PG)', () => {
   let app: INestApplication
   let pgDataSource: DataSource
   let purgeService: AuthRefreshTokenPgPurgeService
+  let cacheService: AppTechCacheService
 
   const seed = randomUUID()
+
+  // 本 spec 直接调用 @Cron 方法（W2-A 起走 Redis try-lock）；集成测试与本地 dev 共用 Redis，
+  // 残留的 CRON_LOCK 会让 runExclusive 直接跳过、purged 变成 null。
+  const CRON_LOCK_KEY = 'CRON_LOCK:purgeExpiredRefreshTokens'
 
   let userId = ''
   // FK 挂在业务键 sys_device(device_id)（Q5 定案），不是 uuid PK
@@ -46,6 +52,11 @@ describe('AuthRefreshTokenPgPurgeService (on real PG)', () => {
     app = await createIntegrationApp()
     pgDataSource = getWalnutPgAdminDataSource(app)
     purgeService = app.get(AuthRefreshTokenPgPurgeService)
+    cacheService = app.get(AppTechCacheService)
+
+    // 起跑前清掉残留锁（共享 dev Redis 可能留着上一次运行 / 本地 dev 进程的键），
+    // 否则本 spec 的 purge 调用会被当成「另一实例在跑」而跳过
+    await cacheService.del(CRON_LOCK_KEY)
 
     // FK 依赖：auth_refresh_token.user_id → sys_user、device_id → sys_device(device_id)
     deviceBusinessKey = `purge-spec-${seed}`
@@ -62,6 +73,8 @@ describe('AuthRefreshTokenPgPurgeService (on real PG)', () => {
   })
 
   afterAll(async () => {
+    // 测试自己持过的锁由 runExclusive 释放；这里兜底清掉异常中断可能的残留
+    await cacheService?.del(CRON_LOCK_KEY)
     await app.close()
   })
 

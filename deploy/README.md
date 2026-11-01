@@ -49,6 +49,11 @@ docker compose up -d
 docker compose ps   # 全部 healthy/running
 ```
 
+后端容器的 healthcheck 探的是 `/health/ready`（W2-B 起）：PG `SELECT 1` 与 Redis `PING`
+都真实可用才判 healthy，`depends_on` 也要求 postgres / redis 先 healthy（redis 自带带密码
+PING 的 healthcheck）。探针只挂在编排网络内 —— nginx 对公网 `/health/` 返回 404，
+语义见 [`backend/modules/system-data.md`](../apps/docs/src/zh-CN/content/backend/modules/system-data.md) 的「探针端点」小节。
+
 7. **下线旧体系**（确认新栈健康后）：
 
 ```bash
@@ -125,6 +130,7 @@ curl -sk -o /dev/null -w '%{http_code}\n' https://www.walnut-admin.com/api/syste
 | 运行中的镜像 tag | `Config.Image` 必须以本次 `.env` 的 `IMG_TAG` 结尾（防"部署成功但没换镜像"） |
 | 后端日志 | 不得出现 `Nest can't resolve` / `MODULE_NOT_FOUND` / `EADDRINUSE` / `ECONNREFUSED` 等；必须出现启动标记 `APP is running in`（来自 `apps/server/apps/api/src/main.ts`） |
 | 前端 / 入口 nginx 日志 | 不得出现 5xx |
+| 健康探针挡板 | 经入口 nginx 访问 `/health/ready` 必须 404——探针只给编排层，公网可达 = PG/Redis 可用性侦察面泄露（W2-B 起） |
 | 端到端 | 经公网域名 `--resolve` 指回本机：前端 `/` = 200，API `/w/v1/static/images/demo.png` = 200 |
 | 安全响应头 | **两个域名各取一次响应头**，`Strict-Transport-Security` / `X-Content-Type-Options` / `X-Frame-Options` / `Referrer-Policy` 必须都在（只比头名、不比取值）。它们写死在 `nginx/conf.d/` 里，而本机没有 Docker ⇒ 这是唯一验得到「头真的发出去了」的地方 |
 

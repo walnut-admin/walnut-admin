@@ -242,7 +242,8 @@ jobs:
 
       # 部署后验证（post-verify）：上一步只保证"容器起来了 + healthcheck 过"，
       # 这一步持续观察 2 分钟，证明服务真的在工作：镜像 tag 正确、后端出现启动标记、
-      # 后端日志无致命错误、前端/入口 nginx 无 5xx、公网域名端到端 200。详见 deploy/post-verify.sh
+      # 后端日志无致命错误、前端/入口 nginx 无 5xx、公网域名端到端 200、探针路由
+      # /health/* 经 nginx 必须 404（挡板生效，见 W2-B）。详见 deploy/post-verify.sh
       # 按 Release 记录的 digest **核对**线上实际产物（P3-lite 的后半）。
       #
       # 为什么"核对"而不是"改成按 digest 拉取"：compose 文件在服务器上是**手工维护的一份拷贝**

@@ -40,7 +40,13 @@ const RUNTIME_INJECTED = [
  * `libs/config/src/modules` 整段豁免），声明进全局清单反而会让 shell 里偶发的同名
  * 变量压过 env 文件。`DATABASE_PG_NAME` 同理（PG 集成库，Phase 3 PG 迁移起同款用法）。
  */
-const TEST_FIXTURES = ['WALNUT_TEST_MARKER', 'DATABASE_NAME', 'DATABASE_PG_NAME']
+const TEST_FIXTURES = [
+  // worker standalone 的分支测试（schedule.composition.spec）：spec 自己 set env 验证让位/静默两分支
+  'WORKER_STANDALONE',
+  'WALNUT_TEST_MARKER',
+  'DATABASE_NAME',
+  'DATABASE_PG_NAME',
+]
 
 const TEST_FILE_GLOBS = [
   '**/__tests__/**/*.{ts,tsx}',

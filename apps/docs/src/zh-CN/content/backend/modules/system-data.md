@@ -246,12 +246,22 @@ OTP 发送侧对队列调用是 `void this.mailerService.sendVerifyCodeEmail(...
 另有 `AuthRefreshTokenPgPurgeService` 的 `@Cron(EVERY_HOUR)`：`DELETE FROM auth_refresh_token
 WHERE expired_at < now()`（物理回收，与上面「标记 revoked」的任务语义不同，走 `idx_rt_expired`）。
 
-两个运行特征：
+运行特征（W2-A 起）：
 
-- `AppTechTaskModule.onModuleInit` 会**同步执行**上述六个任务各一次（不含 purge job），
-  即每次启动都会触发全量配置/语言重算、RT 标记、key 轮换、设备清理与 MFA 重算。
-- 任务没有分布式锁或「上次执行时间」标记；多实例部署时每个实例都会各跑一遍。
-  幂等性依赖各任务自身的 upsert / 条件判断（P2-28）。
+- **bootstrap 归属**：启动期上述六个任务各执行一次（不含 purge job）的逻辑已从
+  `AppTechTaskModule` 拆到 `AppBootstrapTaskModule.onModuleInit`。默认归 api
+  （`AppModule` 加载）；`WORKER_STANDALONE=true` 时 api 让出、`WorkerModule` 恒加载 ——
+  与 `AppScheduleModule` 的 cron 归属同一判据。「`WORKER_STANDALONE=true` 但只起 api
+  不起 worker」时 bootstrap 不执行，属部署契约；bootstrap 调用不占 cron 锁。
+- **cron 单实例锁**：七个 `@Cron`（六个任务 + purge job）的入口都经
+  `AppTechCacheCronLockService` 用 Redis `SET NX EX` 抢锁（键
+  `WALNUT_CACHE_CRON_LOCK:<方法名>`，TTL 300–900s，最长的是 `deleteExpiredRefreshToken`
+  的 900s）；拿不到锁的实例记 warn 后跳过本次 tick。Redis 异常时 **fail-open** 照常执行
+  （任务自身幂等，锁只是减少重复）。`@Cron` 另配 `waitForCompletion: true` 防同实例
+  上一次未跑完时自重叠。key 轮换的过期判断在**事务内** `FOR UPDATE` 锁行后重判，
+  双进程交错时后者等锁后看到先者的新 ACTIVE 行即跳过，不会连环作废新 key。
+- **单份执行的边界**：bootstrap / cron 的「单份执行」只限于 api↔worker 的**组合根归属**；
+  多副本 api / worker 各自会跑一份（cron 由 Redis 锁互斥、bootstrap 无锁 by design）。
 - `updateDeviceActiveStatusForCronJob` 在 `isDev` 下直接返回全零，开发环境不清理设备；
   生产环境该任务会硬删「无 monitor 记录」的设备行及其缓存。
 
@@ -273,6 +283,33 @@ WHERE expired_at < now()`（物理回收，与上面「标记 revoked」的任�
 - 本仓库的 terminus 配置**不抛 503**：异常时由全局异常过滤器兜底为 HTTP 200 +
   `body.code = 50000`，健康时 `body.code = 20000`。
 - `disk` 的 `C:/` 是 Windows 路径，非 Windows 部署会失败（P3-22）。
+
+### 3.5 探针端点（W2-B 起）
+
+编排层用的两个探针**不是**上面这个控制器，而是
+`apps/server/apps/api/src/app/probes.composition.ts` 挂的 raw Express 路由
+（`main.ts` 在 `NestFactory.create` 之后、`listen()` 之前调用 `mountProbeRoutes`）：
+
+| 端点 | 语义 | 响应 |
+|---|---|---|
+| `GET /health/live` | liveness：进程存活即 200，不探依赖（依赖故障不该让编排层重启健康进程） | `{ status: 'ok' }`，同步返回 |
+| `GET /health/ready` | readiness：并发探 PG（`SELECT 1`）与 Redis（`PING`），各自 1.5s 超时 | 全过 200，任一失败/超时 503 |
+
+- readiness 响应体：`{ status: 'ok' | 'error', checks: { pg: 'up' | 'down', redis: 'up' | 'down' } }`
+  （`|` 表示二选一，不是字面量）；**不带**版本号、主机名、连接串与耗时。
+- **为什么绕过 Nest**：挂载早于 `app.init()`（由 `listen()` 触发）—— 此时 Nest router、全局中间件、
+  整条 `APP_GUARD` 链、全局响应包装与异常过滤器都还没注册，请求先被 raw route 接住。必须如此：
+  全局异常过滤器把错误兜成 HTTP 200（`body.code = 50000`），readiness 永远 200 就失去意义；
+  guard 链的设备 / JWT / 签名握手也不是容器 healthcheck 能完成的。
+- **安全边界**：响应体只有二值状态，`Cache-Control: no-store`。公网由 nginx 挡死
+  （`deploy/nginx/conf.d/api.conf` 的 `location ^~ /health/` + 大小写不敏感正则双保险，均为 404），
+  探针只挂在编排内网。
+- **draining**：`main.ts` 的 SIGTERM 监听把 readiness 置为 503 `{ status: 'draining' }`，
+  与 `enableShutdownHooks` 的优雅关闭并行 —— 先停止导流，再按 Nest 生命周期关连接。
+- **compose 用法**：`deploy/docker-compose.yml` 的 backend healthcheck 用 `node -e` fetch
+  `/health/ready` 并断言 `r.ok`；`depends_on` 要求 postgres / redis 先 `service_healthy`；
+  redis 自身也带带密码 PING 的 healthcheck。两个探针没有 Nest 装饰器，**不会进 openapi.json**
+  （`pnpm openapi:export` 零 diff 是断言项）。
 
 ## 4. 接口表
 
@@ -342,9 +379,10 @@ cache / event / queue / task 没有 HTTP 端点；cache 的只读/删除面在 `
 - **P2-27（C 段新登记）**：appSettings 的进程内 memo 失效覆盖面只到本进程：多实例部署下
   其他实例写 setting 不会失效本进程 memo；绕过服务直删 Redis 键也不会（只有监控台删缓存
   端点接了防御性失效）。
-- **P2-28（C 段新登记）**：六个 `@Cron` 任务没有分布式锁，多实例会各跑一遍；
-  `onModuleInit` 还会在每次启动时同步跑一遍（含 key 轮换与设备清理）。幂等性依赖任务自身
-  的 upsert / 条件判断，`updateDeviceActiveStatusForCronJob` 在 dev 下直接 no-op。
+- **P2-28（已修复，批 W2-A 2026-11-01）**：七个 `@Cron` 入口加 Redis 单实例 try-lock
+  （`AppTechCacheCronLockService`，`SET NX EX` + fail-open + `waitForCompletion`）；
+  bootstrap 六任务拆入 `AppBootstrapTaskModule`，按 `WORKER_STANDALONE` 归 api 或 worker
+  单份执行；key 轮换的过期判断移入事务内并 `FOR UPDATE` 重判。
 - **P2-29（已修复，2026-10-29）**：`logOperateId` 回填事件改走 `runAfterCommit`（提交后
   才发），更新条件补 `log_operate_id IS NULL` —— 不再早到丢关联、不再覆盖历史快照。
 - **P3-21（C 段新登记）—— 已修复 2026-10-28**：`system:deleted:recover:mine` 已接线，

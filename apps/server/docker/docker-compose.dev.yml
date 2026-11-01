@@ -38,6 +38,14 @@ services:
       - --rename-command
       - FLUSHALL
       - ''
+    healthcheck:
+      # 带密码 PING（dev 密码与上面 command / env-local 的 APP_REDIS_PASS 一致，硬编码 123456）；
+      # argv 直传（CMD）与生产 compose 对齐，不经 shell 解析
+      test: ['CMD', 'redis-cli', '-a', '123456', '--no-auth-warning', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     ports:
       - 6379:6379
     volumes:

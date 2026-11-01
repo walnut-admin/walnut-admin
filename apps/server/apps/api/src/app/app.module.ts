@@ -14,11 +14,12 @@ import { AuthModule } from '../modules/auth/auth.module'
 import { SecurityModule } from '../modules/security/security.module'
 import { SharedModule } from '../modules/shared/shared.module'
 import { SystemModule } from '../modules/system/system.module'
+import { AppBootstrapTaskModule } from '../modules/techniques/task/bootstrap-task.module'
 import { AppTechModule } from '../modules/techniques/tech.module'
 import { SocketModule } from '../socket/socket.module'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
-import { AppScheduleModule } from './schedule.composition'
+import { AppScheduleModule, isWorkerStandalone } from './schedule.composition'
 
 @Module({
   imports: [
@@ -53,6 +54,12 @@ import { AppScheduleModule } from './schedule.composition'
     SystemModule,
 
     SharedModule,
+
+    // bootstrap 任务归属（W2-A）：默认归 api；WORKER_STANDALONE=true 时归 worker
+    // （apps/worker/src/worker.module.ts 恒加载），与 AppScheduleModule 的 cron
+    // 条件注册同一判据。放在 imports 末尾是为了不改变既有模块/路由注册顺序
+    // （openapi.json 的 paths 顺序依赖 RouterExplorer 的模块遍历顺序）。
+    ...(isWorkerStandalone() ? [] : [AppBootstrapTaskModule]),
   ],
   controllers: [AppController],
   providers: [

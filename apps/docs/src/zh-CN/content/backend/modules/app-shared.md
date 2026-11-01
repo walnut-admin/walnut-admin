@@ -152,7 +152,7 @@ updateAppSettingByKey(key, value)
 
 AppTechTasksService.extractAppSetting
   -> 每天 02:00 定时全量重算
-  -> 启动期 onModuleInit 也会同步跑一遍（P2-28）
+  -> 启动期 bootstrap 也会跑一遍（W2-A 起在 AppBootstrapTaskModule，默认归 api）
 ```
 
 覆盖面要按「谁写库」判断：

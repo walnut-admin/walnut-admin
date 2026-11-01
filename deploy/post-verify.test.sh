@@ -71,6 +71,7 @@ if [ "$dump_headers" = "1" ]; then
   printf '%s\n' "HTTP/2 200" "$hdrs"
 else
   case "$url" in
+    *api.walnut-admin.com*/health/*) printf '%s' "${FAKE_HEALTH_CODE:-404}" ;;
     *api.walnut-admin.com*) printf '%s' "${FAKE_API_CODE:-200}" ;;
     *) printf '%s' "${FAKE_FRONT_CODE:-200}" ;;
   esac
@@ -119,6 +120,7 @@ run_case '前端 5xx → 失败'                 1 FAKE_FRONTEND_LOGS='1.2.3.4 -
 run_case '入口 nginx 5xx → 失败'           1 FAKE_NGINX_LOGS='1.2.3.4 - - [t] "GET / HTTP/1.1" 500 123'
 run_case '前端非 200 → 超时失败'           1 FAKE_FRONT_CODE=503
 run_case 'API 非 200 → 超时失败'           1 FAKE_API_CODE=502
+run_case '健康探针经 nginx 未被挡（200）→ 失败' 1 FAKE_HEALTH_CODE=200
 run_case '后端无启动标记 → 超时失败'       1 FAKE_BACKEND_LOGS='booting, please wait...'
 run_case '安全头全缺 → 超时失败'           1 FAKE_HEADERS=
 run_case '只缺 Referrer-Policy → 失败'     1 FAKE_HEADERS='strict-transport-security: max-age=1

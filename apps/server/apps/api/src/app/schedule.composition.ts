@@ -1,5 +1,5 @@
 import process from 'node:process'
-import { Module } from '@nestjs/common'
+import { Logger, Module } from '@nestjs/common'
 import { ScheduleModule } from '@nestjs/schedule'
 
 /**
@@ -23,6 +23,28 @@ import { ScheduleModule } from '@nestjs/schedule'
  */
 export function isWorkerStandalone(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.WORKER_STANDALONE === 'true'
+}
+
+/**
+ * 让位可见性（api 入口在 `NestFactory.create()` 之后调用，见 `main.ts`）。
+ *
+ * 让位本身是**静默的**（imports 为空）：漏起 worker 时 api 照常监听、健康检查照过，
+ * 只是没有 cron、settings/locale 缓存也不再由本进程预热 —— 部署事故因此很难从启动日志
+ * 看出来。这条 warn 把两个退化面在启动时讲清楚（部署契约的运行时提醒）。
+ *
+ * 为什么不在模块求值期直接打：`AppModule` 被 api / worker 共用，模块求值期的提示也会在
+ * worker 进程里出现，而 worker 正是承接方 —— 提示会误导。放在 api 自己的入口最准确，
+ * 也保证输出走 `WalnutAdminLogger`（`NestFactory.create` 之后 Logger 静态实例已接管）。
+ */
+export function warnIfWorkerStandalone(logger: Logger = new Logger('AppScheduleModule')): void {
+  if (!isWorkerStandalone()) {
+    return
+  }
+  logger.warn(
+    '[WorkerStandalone] cron and bootstrap tasks are delegated to the worker process; '
+    + 'if the worker is not running there will be no cron ticks, and settings/locale caches '
+    + '(shared Redis) will not be warmed — api falls back to default settings until the worker starts',
+  )
 }
 
 @Module({

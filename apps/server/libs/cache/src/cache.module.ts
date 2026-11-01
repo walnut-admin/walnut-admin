@@ -4,6 +4,7 @@ import { CacheConfigService } from './cache.config.service'
 import { AppTechCacheService } from './cache.service'
 import { AppTechCacheAppSettingsService } from './service/cache.appSettings'
 import { AppTechCacheCapService } from './service/cache.cap'
+import { AppTechCacheCronLockService } from './service/cache.cron-lock'
 import { AppTechCacheDeviceService } from './service/cache.device'
 import { AppTechCacheLockService } from './service/cache.lock'
 import { AppTechCacheMfaService } from './service/cache.mfa'
@@ -34,6 +35,7 @@ import { AppTechCacheVerifyCodeService } from './service/cache.verifyCode'
     AppTechCacheOpaqueService,
     AppTechCacheCapService,
     AppTechCacheDeviceService,
+    AppTechCacheCronLockService,
   ],
   exports: [
     AppTechCacheService,
@@ -47,6 +49,7 @@ import { AppTechCacheVerifyCodeService } from './service/cache.verifyCode'
     AppTechCacheOpaqueService,
     AppTechCacheCapService,
     AppTechCacheDeviceService,
+    AppTechCacheCronLockService,
   ],
 })
 export class AppTechCacheModule {}

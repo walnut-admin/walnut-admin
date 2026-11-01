@@ -137,6 +137,38 @@ export class AppTechCacheService {
   }
 
   /**
+   * Delete cache key only when its stored value equals `expectedValue` —— Redis 内原子
+   * 「读 → 比对 → 删」。
+   *
+   * W2-A 修复批（2026-11-01）：cron 锁释放原先是 `get` → 比对 token → `del` 两步，
+   * 两步之间若 TTL 到期、键被别的实例重新持有，`del` 会删掉对方的锁。这里用 EVAL 把
+   * 比对与删除压成一次原子操作；比对的是解包后的 `v`（与 `set` / `setIfAbsent` 写入的
+   * `{ v, ttl, start, t }` 包装对齐），不直接比 JSON 串，避免 `start` 时间戳干扰。
+   *
+   * 直接 EVAL 而不经 `del`：也顺带消掉 `del` 对缺失键打的
+   * `[CacheDel] | Cache Delete Target Missing` 噪声日志。
+   *
+   * @returns true = 键存在且值匹配、已删除；false = 键不存在或值不匹配（未删）
+   */
+  public async deleteIfValue(key: string, expectedValue: string): Promise<boolean> {
+    const cacheKey = getWalnutAdminCacheKey(key)
+
+    const deleted = await this.redis.eval(
+      `local raw = redis.call('GET', KEYS[1])
+if not raw then return 0 end
+local ok, decoded = pcall(cjson.decode, raw)
+if not ok or type(decoded) ~= 'table' then return 0 end
+if decoded.v ~= ARGV[1] then return 0 end
+return redis.call('DEL', KEYS[1])`,
+      { keys: [cacheKey], arguments: [expectedValue] },
+    )
+
+    this.logger.debug(`[CacheDeleteIfValue] | Key: ${cacheKey}, deleted: ${deleted === 1}`)
+
+    return deleted === 1
+  }
+
+  /**
    * Get cache value
    */
   public async get<T = any>(key: string): Promise<T | null> {

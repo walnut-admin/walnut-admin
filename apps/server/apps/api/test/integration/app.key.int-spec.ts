@@ -140,4 +140,30 @@ describe('B4 app_key (on real PG)', () => {
     const meta = await keyService.getCurrent(AppKeyTypeConst.AES_KEY_URL)
     expect(meta.keyB64).toBe(current!.meta!.keyB64)
   })
+
+  it('rotateForCronJob 并发：两路同 tick 只轮换一次（事务内 FOR UPDATE 重判过期，W2-A）', async () => {
+    const repo = pgDataSource.getRepository(AppKeyEntity)
+    const before = await keyService.getCurrentActiveKey(AppKeyTypeConst.AES_KEY_URL)
+
+    // 再把当期 key 拨到过期，模拟 api + worker 两个进程同一 tick 同时触发
+    await repo.update({ id: before!.id }, { validEnd: AppDayjs().subtract(1, 'minute').toDate() })
+
+    await Promise.all([
+      keyService.rotateForCronJob(AppKeyTypeConst.AES_KEY_URL),
+      keyService.rotateForCronJob(AppKeyTypeConst.AES_KEY_URL),
+    ])
+
+    const rows = await repo.find({ where: { type: AppKeyTypeConst.AES_KEY_URL }, order: { version: 'ASC' } })
+
+    // 只产生一个 v+1：后进者等锁后重读到先者新插入的 ACTIVE 行（未到期）→ 跳过，
+    // 不会把新 key 再 DEPRECATE 并插 v+2（旧实现的双重轮换缺陷）。
+    // 注：两路的时序交错不唯一（后进者也可能重读不到旧 ACTIVE 行而直接跳过），
+    // 但无论哪种交错都不会产生 v+2 —— 断言看结果集合，不依赖某一种交错。
+    expect(rows.filter(row => row.version > before!.version)).toHaveLength(1)
+    expect(rows.filter(row => row.version === before!.version + 1)).toHaveLength(1)
+
+    const current = await keyService.getCurrentActiveKey(AppKeyTypeConst.AES_KEY_URL)
+    expect(current!.version).toBe(before!.version + 1)
+    expect(current!.status).toBe('ACTIVE')
+  })
 })

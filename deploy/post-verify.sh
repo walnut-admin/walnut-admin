@@ -8,7 +8,8 @@
 #   2) 运行中的镜像 tag 是否就是本次要部署的 tag
 #   3) 后端日志：是否出现致命错误、是否出现启动成功标记
 #   4) 前端与入口 nginx 日志：是否出现 5xx（日志走 stdout，见 deploy/nginx/Dockerfile）
-#   5) 端到端请求：经公网域名（--resolve 指回本机）访问前端与 API 静态路由
+#   5) 端到端请求：经公网域名（--resolve 指回本机）访问前端与 API 静态路由，
+#      并确认 /health/ 探针被入口 nginx 挡成 404（挡板生效）
 #   6) 安全响应头：入口 nginx 有没有把 HSTS 等 4 个头发出来（见下方 check_security_headers）
 # 轮询期内任一硬条件不满足 → 退出码 1，CI 步骤失败（部署不判成功）。
 #
@@ -26,6 +27,8 @@ CONTAINER_NGINX="${CONTAINER_NGINX:-walnut-nginx}"
 FRONT_DOMAIN="${FRONT_DOMAIN:-www.walnut-admin.com}"
 API_DOMAIN="${API_DOMAIN:-api.walnut-admin.com}"
 API_PROBE_PATH="${API_PROBE_PATH:-/w/v1/static/images/demo.png}"
+# 探针只服务编排层：入口 nginx 应把它挡成 404（deploy/nginx/conf.d/api.conf 的 /health/ location）
+HEALTH_PROBE_PATH="${HEALTH_PROBE_PATH:-/health/ready}"
 
 # 后端起不来时的典型特征。保守取值：宁可漏报也不误报，
 # 漏报还有 healthcheck 与 --wait 兜底，误报会让部署白白失败。
@@ -36,6 +39,7 @@ READY_RE='APP is running in'
 BACKEND_READY=0
 FRONT_CODE=""
 API_CODE=""
+HEALTH_CODE=""
 HEADERS_MISSING=""
 
 say() { printf '[%s] %s\n' "$(date '+%H:%M:%S')" "$*"; }
@@ -117,7 +121,7 @@ BENIGN_RE='AppTechCacheAppSettingsService.*"undefined" is not valid JSON|SyntaxE
 
 scan_backend_logs() {
   local logs health
-  # 「后端是否就绪」优先看**容器健康状态**（compose 的 healthcheck 探的就是那个静态路由），
+  # 「后端是否就绪」优先看**容器健康状态**（compose 的 healthcheck 探的是 /health/ready，W2-B 起），
   # 而不是日志里的启动标记 —— 2026-09-30 实测出的坑：镜像没变时 compose **不会重建**后端，
   # 于是它的日志里已经积了几个小时的 cron 行，`--tail 300` 早就把启动标记挤出去 ⇒
   # `BACKEND_READY` 永远是 0 ⇒ post-verify 必然跑满 24 轮超时（部署假红）。
@@ -156,9 +160,14 @@ scan_http_logs() {
 }
 
 # ---- 端到端：公网域名指回本机，绕过 CDN/公网 DNS ----
+#
+# `/health/ready` 经入口 nginx 必须 404：探针（raw Express 路由）只服务编排内网，
+# nginx 的 `location ^~ /health/` 是挡板。若这里拿到 200，说明挡板被改坏/漏载 ——
+# PG / Redis 可用性侦察面已对公网暴露（比探针不可用更严重）。
 probe_urls() {
   FRONT_CODE="$(curl -sk -o /dev/null -w '%{http_code}' --resolve "$FRONT_DOMAIN:443:127.0.0.1" "https://$FRONT_DOMAIN/" -m 10 || true)"
   API_CODE="$(curl -sk -o /dev/null -w '%{http_code}' --resolve "$API_DOMAIN:443:127.0.0.1" "https://$API_DOMAIN$API_PROBE_PATH" -m 10 || true)"
+  HEALTH_CODE="$(curl -sk -o /dev/null -w '%{http_code}' --resolve "$API_DOMAIN:443:127.0.0.1" "https://$API_DOMAIN$HEALTH_PROBE_PATH" -m 10 || true)"
 }
 
 # ---- 安全响应头：入口 nginx 有没有把它们发出来 ----
@@ -192,7 +201,7 @@ cd "$COMPOSE_DIR" || die "找不到部署目录 $COMPOSE_DIR"
 
 IMG_TAG="$(grep -m1 '^IMG_TAG=' .env 2>/dev/null | cut -d= -f2- | tr -d '"')"
 say "post-verify 开始：IMG_TAG=${IMG_TAG:-未知}，最多 $ITER 次 × ${INTERVAL}s"
-say "检查项：容器状态/重启次数、镜像 tag、后端日志、nginx 5xx、安全响应头、前端+API 端到端"
+say "检查项：容器状态/重启次数、镜像 tag、后端日志、nginx 5xx、安全响应头、前端+API 端到端、/health 挡板"
 
 i=0
 while [ "$i" -lt "$ITER" ]; do
@@ -203,10 +212,10 @@ while [ "$i" -lt "$ITER" ]; do
   scan_http_logs
   probe_urls
   check_security_headers
-  say "#$i 就绪=$BACKEND_READY 容器='${CONTAINERS_BAD}' tag='${IMAGE_TAG_BAD}' 前端=$FRONT_CODE API=$API_CODE 缺失安全头='${HEADERS_MISSING}'"
+  say "#$i 就绪=$BACKEND_READY 容器='${CONTAINERS_BAD}' tag='${IMAGE_TAG_BAD}' 前端=$FRONT_CODE API=$API_CODE 健康探针=$HEALTH_CODE 缺失安全头='${HEADERS_MISSING}'"
   if [ "$BACKEND_READY" = "1" ] && [ -z "$CONTAINERS_BAD" ] && [ -z "$IMAGE_TAG_BAD" ] \
-    && [ "$FRONT_CODE" = "200" ] && [ "$API_CODE" = "200" ] && [ -z "$HEADERS_MISSING" ]; then
-    printf '\n✅ POST-VERIFY PASS（第 %s 次轮询：容器 running、镜像 tag 一致、后端已就绪，前端 200，API 200，安全头齐备）\n' "$i"
+    && [ "$FRONT_CODE" = "200" ] && [ "$API_CODE" = "200" ] && [ "$HEALTH_CODE" = "404" ] && [ -z "$HEADERS_MISSING" ]; then
+    printf '\n✅ POST-VERIFY PASS（第 %s 次轮询：容器 running、镜像 tag 一致、后端已就绪，前端 200，API 200，健康探针 404，安全头齐备）\n' "$i"
     exit 0
   fi
   if [ "$i" -lt "$ITER" ]; then
@@ -226,11 +235,13 @@ docker logs --tail 20 "$CONTAINER_NGINX" 2>&1 || true
 # 把排查带偏了好几轮。这里先去掉所有空白字符，再逐项判，且每项的消息只说**自己这一项**。
 FRONT_CODE="$(printf '%s' "${FRONT_CODE:-}" | tr -d '[:space:]')"
 API_CODE="$(printf '%s' "${API_CODE:-}" | tr -d '[:space:]')"
+HEALTH_CODE="$(printf '%s' "${HEALTH_CODE:-}" | tr -d '[:space:]')"
 
-say "最终各项：就绪=$BACKEND_READY 容器='${CONTAINERS_BAD}' tag='${IMAGE_TAG_BAD}' 前端='$FRONT_CODE' API='$API_CODE' 缺失安全头='${HEADERS_MISSING}'"
+say "最终各项：就绪=$BACKEND_READY 容器='${CONTAINERS_BAD}' tag='${IMAGE_TAG_BAD}' 前端='$FRONT_CODE' API='$API_CODE' 健康探针='$HEALTH_CODE' 缺失安全头='${HEADERS_MISSING}'"
 [ -z "$CONTAINERS_BAD" ] || die "超时：容器状态不对 [$CONTAINERS_BAD]（部署在重建窗口内没等到 running？）"
 [ -z "$IMAGE_TAG_BAD" ] || die "超时：运行中的镜像与 IMG_TAG 不一致 [$IMAGE_TAG_BAD]"
 [ "$BACKEND_READY" = "1" ] || die "超时：后端既不是 healthy、日志里也没有启动标记（匹配 $READY_RE）"
 [ "$FRONT_CODE" = "200" ] || die "超时：前端域名返回 '$FRONT_CODE'（期望 200）"
 [ -z "$HEADERS_MISSING" ] || die "超时：入口 nginx 仍缺安全响应头 [$HEADERS_MISSING]（改的是 deploy/nginx/conf.d/frontend.conf？重载了吗？）"
 [ "$API_CODE" = "200" ] || die "超时：API 域名返回 '$API_CODE'（期望 200）"
+[ "$HEALTH_CODE" = "404" ] || die "超时：经入口 nginx 访问 $HEALTH_PROBE_PATH 返回 '$HEALTH_CODE'（期望 404，/health 挡板未生效）"

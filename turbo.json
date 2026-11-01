@@ -70,6 +70,7 @@
   // 判据可重跑：`NODE_ENV=a pnpm exec turbo run build --dry=json` 与 `NODE_ENV=b …` 比 hash，
   // 应当一个都不变。
   "globalPassThroughEnv": [
+    "WORKER_STANDALONE",
     "CI",
     "NODE_ENV",
     // 这三个是 `eslint-plugin-turbo` 的 `no-undeclared-env-vars` 抓出来的真缺口（都在 `@walnut/scripts`）：

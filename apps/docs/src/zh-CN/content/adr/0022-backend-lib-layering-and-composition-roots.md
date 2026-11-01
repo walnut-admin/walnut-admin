@@ -141,7 +141,8 @@ db / cron / 各域 HTTP 组合根 / guard 与 interceptor。`apps/worker` 与 `a
   - `event`：`EventEmitterModule.forRoot()` 是进程级注册；订阅方是 app 级适配器 —— 它监听
     libs/crud 发出的删除事件并回写 `SysDeleted` 仓库，而 libs 只发事件常量，不反向依赖 app。
   - `health`：Terminus 探针（network / PostgreSQL / heap / disk）是运行时可观测面，
-    不是业务域能力（当前 compose 的 healthcheck 探的是静态资源路由，未接 /app/health）。
+    不是业务域能力（compose healthcheck 已探 `/health/ready`（W2-B 起），探针经 raw route
+    逃逸全局增强器）。
   - `logger`：`WalnutAdminLogger` 必须在 Nest DI 建立**之前**可用（引导期日志），
     Winston 传输 / 轮转是进程级配置。
   - `task`：`@Cron` 与 `onModuleInit` 横跨四域（app-domain / auth / identity / system），且 cron

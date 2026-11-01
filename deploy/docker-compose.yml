@@ -32,14 +32,17 @@ services:
       - ./env/.env.production:/app/env-local/.env.production:ro
       - ./logs:/app/logs
     depends_on:
-      # pg_isready 过了才起 backend：启动期就会连 PG（连接由 env 里 DATABASE_PG_HOST=postgres 指到本服务）
+      # 两个数据层依赖都 healthy 才起 backend：启动期就会连 PG / Redis
+      # （连接由 env 里 DATABASE_PG_HOST=postgres / APP_REDIS_HOST=redis 指到本服务）
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
-      # 真实存在的静态资源路由（main.ts useStaticAssets，绕过全部守卫返回 200），带 5s 超时
-      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/w/v1/static/images/demo.png', { signal: AbortSignal.timeout(5000) }).then(()=>process.exit(0)).catch(()=>process.exit(1))"]
+      # 探 raw Express 探针 /health/ready（W2-B）：PG SELECT 1 + Redis PING 都真实可用才 200，
+      # 任一依赖挂 → 503。镜像内是 Node，用 fetch 断言 r.ok —— wget/curl 只看「有响应」，
+      # 对状态码 / body 不敏感。探针在 nginx 上被挡（/health/ → 404），只走编排内网。
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/health/ready', { signal: AbortSignal.timeout(5000) }).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -86,6 +89,16 @@ services:
       - --rename-command
       - FLUSHALL
       - ''
+    healthcheck:
+      # 带密码 PING（密码由 compose 从 deploy/.env 的 REDIS_PASSWORD 插值，与本服务 command 同源）。
+      # 用 argv 直传（CMD）而不是 CMD-SHELL：密码含 shell 元字符（$ ` " \ 等）时不会被 shell
+      # 二次解析/截断；compose 的 ${REDIS_PASSWORD} 插值仍在宿主侧完成。
+      # --no-auth-warning 避免密码告警刷日志。backend 的 depends_on/healthcheck 依赖它先 healthy
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', '--no-auth-warning', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     volumes:
       - redis_prod_data:/data
 

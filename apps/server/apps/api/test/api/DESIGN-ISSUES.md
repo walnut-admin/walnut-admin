@@ -18,8 +18,9 @@
 > 每条四要素：**位置**（源码）、**现象**、**实测证据**（spec + 用例）、**建议**（一句话）。
 > 「钉现状」用例属于 characterization test：修复对应问题时必须同步改断言，不是测试坏了。
 >
-> **统计：开放 18 条（P0 × 0 / P1 × 0 / P2 × 6 / P3 × 12）**。新条目编号顺延到已用最大号之后
-> （当前最大 P3-38，下一个 P3-39），不复用归档里的编号。
+> **统计：开放 17 条（P0 × 0 / P1 × 0 / P2 × 5 / P3 × 12）**。新条目编号顺延到已用最大号之后
+> （当前最大 P3-38，下一个 P3-39），不复用归档里的编号。P2-28 已修复（批 W2-A），按本批要求
+> 就地标注、待归档批次统一迁入归档。
 
 ---
 
@@ -116,7 +117,7 @@
 - 【部署口径 2026-10-28：单实例部署，本条降级为 backlog 观察】（memo 的进程内边界注释保持，
   扩多实例前仍需按上方建议处理）
 
-### P2-28 定时任务没有分布式锁，且启动期同步跑全量任务（C 段，新登记）
+### P2-28 定时任务没有分布式锁，且启动期同步跑全量任务（C 段，新登记）—— 【已修复（批 W2-A）】
 
 - **位置**：`apps/api/src/modules/techniques/task/task.service.ts`（六个 `@Cron`）+
   `task.module.ts`（`onModuleInit` 依次调用六个任务）+
@@ -130,6 +131,16 @@
 - **建议**：引入 Redis 分布式锁（`murlock` 或 `SET NX` + 过期）或 job 注册表；启动期只保留
   settings/locale 预热，把 rotate / 清理挪出同步执行路径。
 - 【部署口径 2026-10-28：单实例部署，本条降级为 backlog 观察】
+- **修法（批 W2-A，2026-11-01）**：① 七个 `@Cron` 入口（六个任务 + PG purge）统一经
+  `AppTechCacheCronLockService`（`libs/cache/src/service/cache.cron-lock.ts`）做 Redis
+  `SET NX EX` try-lock：拿不到锁的实例 warn 后跳过本次 tick、Redis 异常 fail-open 照常执行，
+  `@Cron` 另加 `waitForCompletion: true` 防同实例自重叠；② bootstrap 六任务拆入
+  `AppBootstrapTaskModule`（`AppTechTaskModule` 回归纯 cron 宿主），默认归 api、
+  `WORKER_STANDALONE=true` 时归 worker（组合根单份，bootstrap 不占 cron 锁）；③
+  `rotateForCronJob` 的过期判断移入事务内、`FOR UPDATE` 锁行后重判 —— 双进程交错时后进者
+  等锁后看到先者的新 ACTIVE 行即跳过，不再连环作废新 key。
+  **测试**：`cache.cron-lock.spec.ts` 7 例（W2-A 6 例 + 修复批抢锁超时 1 例）+
+  `task.service.spec.ts` 8 例（单次执行守卫）+ `app.key.int-spec.ts` 并发 rotate 用例。
 
 ### P2-30 key 轮转没有重叠窗口 —— 旧公钥密文在 rotate 后不可解，且 current 不校验 validEnd（D 段，新登记）
 

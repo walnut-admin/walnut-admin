@@ -144,16 +144,30 @@ export class AppKeyService implements IWalnutAdminKeyStore {
 
   /**
    * @description rotate app key for cron job
+   *
+   * W2-A（2026-11-01）：过期判断从**事务外**移进事务内，且先 `FOR UPDATE` 锁行再重判 ——
+   * 原实现「事务外读过期 → 事务内只锁行不重判」在双进程（api + worker 各起一份 cron，
+   * 或多副本）交错时：后进者拿到锁时先者已把旧行置 DEPRECATED 并插入 v+1 的新 ACTIVE 行，
+   * 后进者的 `rotate` 会再锁到这条新行、把它也 DEPRECATE 并插 v+2 —— 先者的新 key 被
+   * 连环作废，等于一次到期触发两次轮换。
+   *
+   * 现在的形态：`transactional` → `getCurrentActiveKey(type, em, true)` 锁住当前 ACTIVE 行
+   * → 锁内重读 `validEnd`。READ COMMITTED 下被阻塞的后进者重读有两种可能，都不会二次
+   * 轮换：① 看到先者新插入的 ACTIVE 行（validEnd 未到期）→ 直接返回、跳过；② 看不到
+   * 旧行（旧行已被先者置 DEPRECATED，重读返回 null）→ 跳过（若该 null 落在 `rotate`
+   * 内部则抛 404 被本方法 catch，同样不轮换）。`rotate` 内部再次 `FOR UPDATE` 同一行
+   * （同事务内重入安全，PG 行锁可重入）。
    */
   async rotateForCronJob(type: AppKeyDTOSafe['type']) {
     try {
-      const current = await this.getCurrentActiveKey(type)
-      if (current && current.validEnd !== null && AppDayjs(current.validEnd).isBefore()) {
+      await this.appKeyBasicRepo.transactional(async (em) => {
+        const current = await this.appKeyBasicRepo.getCurrentActiveKey(type, em, true)
+        if (!current || current.validEnd === null || !AppDayjs(current.validEnd).isBefore()) {
+          return
+        }
         this.logger.log(`Rotating expired key for type: ${type}`)
-        await this.appKeyBasicRepo.transactional(async (em) => {
-          await this.rotate(type, em)
-        })
-      }
+        await this.rotate(type, em)
+      })
     }
     catch (e) {
       this.logger.error(`rotation failed`, e)
