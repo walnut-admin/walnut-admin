@@ -21,8 +21,9 @@ import {
   WalnutAdminConstSysUserIdentityType,
 } from '@walnut-server/identity'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
+import { SystemRoutes } from '@walnut/contract'
 
-@Controller('system/user/identity')
+@Controller(SystemRoutes.USER_IDENTITY)
 @ApiTags('system/user/identity')
 export class SysUserIdentityController {
   constructor(private readonly userIdentityService: SysUserIdentityService) {}

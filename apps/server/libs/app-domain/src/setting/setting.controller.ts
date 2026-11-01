@@ -9,6 +9,7 @@ import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
 import { WalnutAdminDecoratorHasPermission, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { AppRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 import {
   AppSettingDTOCreateRequest,
@@ -38,7 +39,7 @@ const { WalnutAdminDecoratorCreate, WalnutAdminDecoratorRead, WalnutAdminDecorat
     DTO: AppSettingDTOSafe,
   })
 
-@Controller('app/setting')
+@Controller(AppRoutes.SETTING)
 @ApiTags('app/setting')
 export class AppSettingController {
   constructor(

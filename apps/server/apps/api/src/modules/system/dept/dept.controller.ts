@@ -10,6 +10,7 @@ import { WalnutAdminExceptionInvalidID } from '@walnut-server/exceptions/base/40
 
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import { SysDeptDTOCreateRequest, SysDeptDTOCreateResponse, SysDeptDTODeleteResponse, SysDeptDTOListRequest, SysDeptDTOListResponse, SysDeptDTOReadResponse, SysDeptDTOSafe, SysDeptDTOTree, SysDeptDTOUpdateRequest, SysDeptDTOUpdateResponse, SysDeptService } from '@walnut-server/system'
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
 const Permissions = {
@@ -43,7 +44,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
  *
  * 路由声明顺序有要求：`tree` / `children` 必须先于 `:id`（Nest 按声明序匹配）。
  */
-@Controller('system/dept')
+@Controller(SystemRoutes.DEPT)
 @ApiTags('system/dept')
 export class SysDeptController {
   constructor(private readonly deptService: SysDeptService) {}

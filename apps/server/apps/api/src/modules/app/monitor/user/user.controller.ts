@@ -18,6 +18,7 @@ import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 
 import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorHasPermission, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { AppRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 import {
   AppMonitorUserDTO,
@@ -43,7 +44,7 @@ const { WalnutAdminDecoratorList, WalnutAdminDecoratorRead } = WalnutCrudDecorat
  * 句柄 `ctx.dbSession` → `ctx.em`；`.toObject()` 移除，出参统一 plainToInstance。
  * forceQuit 的 refresh revoke 写腿仍在 Mongo（B7），同一事务里 em + dbSession 并传。
  */
-@Controller('app/monitor/user')
+@Controller(AppRoutes.MONITOR_USER)
 @ApiTags('app/monitor/user')
 export class AppMonitorUserController {
   private readonly logger = new Logger(AppMonitorUserController.name)

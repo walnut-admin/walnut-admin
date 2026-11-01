@@ -108,7 +108,7 @@ export const defaultOrder: SortOrder = 'descend'
 
 ## 已知限制与延后工作
 
-- **路由常量在 server 侧 0 处消费**：admin 侧已大量使用，但 controller 仍写字面量路径，A5 记「剩余全在 server 侧」—— 证据：`apps/docs/src/zh-CN/content/monorepo/architecture-todo.md` 的 A5 条目。
+- **路由常量的 server 侧消费已落地（U2 批）**：47 个 controller 的类级前缀全部改用 contract 常量；方法级路径保留相对字面量（Nest 方法路径相对前缀，绝对常量会改变路由），由 `route-catalog.drift.spec` parity 门禁 + `openapi:export` 零 diff 双重兜底。admin 侧 API 调用字面量已清零（仅剩动态拼接与 demo 页面路由）。
 - **8 个错误码标着 `// TODO not used yet`**（`REQUEST_TIMEOUT`、`TOO_MANY_REQUESTS` 及 `_RATE_LIMITED`、`INTERNAL_SERVER_ERROR_CACHE`、`INTERNAL_SERVER_ERROR_MQ`、`SERVICE_UNAVAILABLE_MAINTENANCE`、`GATEWAY_TIMEOUT`、`HTTP_VERSION_NOT_SUPPORTED`）—— 定义了但从未发出：`packages/platform-any/contract/src/response-code.ts`。
 - **`IListRequestParams` 与 `BaseListParams` 结构重复，未收敛**：ADR 0017 的「需修复的问题」表要求 server 侧改用 contract 的 `BaseListParams` / `SortParam`，至今仍在原地 —— 证据：`apps/server/libs/repository/src/pg-list.builder.ts`（原 server `libs/utils` 的 listAggregate 已随 B9 Mongo 双轨退役，接口随唯一消费方迁入）与 `apps/docs/src/zh-CN/content/adr/0017-package-reorganization.md`。
 - **CJS 产物面不是选择性 barrel**：`dist/index.cjs` 被 `packages/platform-any/contract/scripts/build-barrel.ts` 覆盖生成，对每个子模块做 `Object.keys(...).forEach(k => exports[k] = ...)` 的**通配**聚合 —— 与 ADR 0013「包入口不用 `export *`」的形态不一致（源面是选择性 barrel，产物面不是）。

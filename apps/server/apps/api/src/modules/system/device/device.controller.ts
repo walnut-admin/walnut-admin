@@ -11,6 +11,7 @@ import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorThrottle, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 import { assembleSysDevice, SysDeviceDTOInitialRequest, SysDeviceDTOInitialResponse, SysDeviceDTOListRequest, SysDeviceDTOListResponse, SysDeviceDTOReadResponse, SysDeviceDTOSafe, SysDeviceService, SysDeviceSettingService } from '@walnut-server/system'
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
 import { SysUserDTOReadResponse } from '@/modules/system/user/dto/user.dto'
@@ -40,7 +41,7 @@ const {
  * 事务句柄 `ctx.dbSession` → `ctx.em`；`.toObject()` 移除，出参统一 plainToInstance，
  * 实体经 assembleSysDevice 组装回 Mongo 版嵌套形态（sr/vp/geoLocation 拍平列还原）。
  */
-@Controller('system/device')
+@Controller(SystemRoutes.DEVICE)
 @ApiTags('system/device')
 export class SysDeviceController {
   constructor(

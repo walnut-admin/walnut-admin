@@ -11,6 +11,7 @@ import { WalnutAdminDecoratorQueryArray } from '@walnut-server/decorators/query'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasPermission } from '@walnut-server/guards'
 import { WalnutAdminPipeAreaPcode } from '@walnut-server/pipes'
+import { SharedRoutes } from '@walnut/contract'
 import { SharedAreaService } from './area.service'
 import { SharedAreaDTO } from './dto/area.dto'
 
@@ -19,7 +20,7 @@ const Permissions = {
   AREA_FEEDBACK_LIST: 'app:shared:area:feedback:list',
 } as const
 
-@Controller('shared/area')
+@Controller(SharedRoutes.AREA)
 @ApiTags('shared/area')
 export class SharedAreaController {
   constructor(private readonly areaService: SharedAreaService) {}

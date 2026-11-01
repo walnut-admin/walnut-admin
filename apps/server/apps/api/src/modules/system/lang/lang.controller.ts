@@ -30,6 +30,7 @@ import {
   SysLangDTOUpdateResponse,
   SysLangService,
 } from '@walnut-server/system'
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
 const Permissions = {
@@ -50,7 +51,7 @@ const { WalnutAdminDecoratorCreate, WalnutAdminDecoratorRead, WalnutAdminDecorat
  * B2 迁移模板（controller 层）：路由参数 ParamMongoId → uuid 参数装饰器；
  * `.toObject()` 移除（PG 实体即 POJO），统一 plainToInstance(DTO, entity)。
  */
-@Controller('system/lang')
+@Controller(SystemRoutes.LANG)
 @ApiTags('system/lang')
 export class SysLangController {
   constructor(private readonly langService: SysLangService) {}

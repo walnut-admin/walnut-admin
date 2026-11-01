@@ -26,12 +26,12 @@ import { WalnutAdminDecoratorAuthLog, WalnutAdminDecoratorDataScopeSystemChannel
 import { SysUserIdentitySharedService, WalnutAdminConstSysUserIdentityType } from '@walnut-server/identity'
 import { SecurityRiskFailedLoginService } from '@walnut-server/security/risk/modules/failedLogin.service'
 import { AppTechSseService } from '@walnut-server/sse'
-import { LocaleType } from '@walnut/contract'
+import { AuthRoutes, LocaleType } from '@walnut/contract'
 import { WalnutAdminSseEvents } from '@walnut/contract/sse'
 import { I18n, I18nContext } from 'nestjs-i18n'
 import { OAuthGiteeGuard } from './gitee.guard'
 
-@Controller('auth/oauth/gitee')
+@Controller(AuthRoutes.OAUTH_GITEE)
 @ApiTags('auth/oauth/gitee')
 @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOAuthGiteeKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_GITEE, 'authEnable')
 @WalnutAdminGuardJwtFree()

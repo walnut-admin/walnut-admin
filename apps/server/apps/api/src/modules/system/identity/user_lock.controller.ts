@@ -6,8 +6,9 @@ import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.
 
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser, WalnutAdminGuardLockFree } from '@walnut-server/guards'
 import { SysUserLockDoLockDto, SysUserLockPreferenceDTO, SysUserLockPreferenceUpdateDto, SysUserLockService, SysUserLockUnLockDto } from '@walnut-server/identity'
+import { SystemEndpointRoutes } from '@walnut/contract'
 
-@Controller('system/user/lock')
+@Controller(SystemEndpointRoutes.USER_LOCK)
 @ApiTags('system/user/lock')
 export class SysUserLockController {
   constructor(

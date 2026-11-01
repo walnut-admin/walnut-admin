@@ -19,6 +19,7 @@ import {
   SysLogAuthDTOListResponse,
   SysLogAuthService,
 } from '@walnut-server/system'
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
 const Permissions = {
@@ -38,7 +39,7 @@ const { WalnutAdminDecoratorDelete, WalnutAdminDecoratorDeleteMany, WalnutAdminD
  * 事务句柄 `ctx.dbSession` → `ctx.em`（PG 单引擎，B7b 归一口径）；`.toObject()` 移除，
  * 响应组装统一 `plainToInstance(DTO, entity)`。
  */
-@Controller('system/log/auth')
+@Controller(SystemRoutes.LOG_AUTH)
 @ApiTags('system/log/auth')
 @UseGuards(JwtAccessGuard)
 export class SysLogAuthController {

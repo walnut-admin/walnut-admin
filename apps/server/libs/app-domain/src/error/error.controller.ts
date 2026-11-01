@@ -62,13 +62,13 @@ import { WalnutAdminExceptionRsaDecryptFailed, WalnutAdminExceptionRsaPubKeyNotF
 import { WalnutAdminDecoratorDevOnly, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
 
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
-import { IWalnutAdminConstAppResponseCode, Role, WalnutAdminConstAppResponseCode } from '@walnut/contract'
+import { AppRoutes, IWalnutAdminConstAppResponseCode, Role, WalnutAdminConstAppResponseCode } from '@walnut/contract'
 
 const Permissions = {
   TEST: 'app:error:test',
 } as const
 
-@Controller('app/error')
+@Controller(AppRoutes.ERROR)
 @ApiTags('app/error')
 @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 @WalnutAdminDecoratorHasPermission(Permissions.TEST)

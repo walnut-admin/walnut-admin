@@ -9,7 +9,7 @@ import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorato
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole, WalnutAdminInterceptorResponseLooseSerializer } from '@walnut-server/guards'
 
-import { Role } from '@walnut/contract'
+import { AppRoutes, Role } from '@walnut/contract'
 
 import {
   AppMonitorServerDTOBattery,
@@ -34,7 +34,7 @@ const Permissions = {
   NETWORK: 'app:monitor:server:network',
 } as const
 
-@Controller('app/monitor/server')
+@Controller(AppRoutes.MONITOR_SERVER)
 @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 @UseInterceptors(WalnutAdminInterceptorResponseLooseSerializer)
 export class AppMonitorServerController {

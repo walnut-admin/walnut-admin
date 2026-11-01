@@ -4,8 +4,9 @@ import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { WalnutAdminDecoratorFreeResponse, WalnutAdminDecoratorThrottle, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 import { SecurityCapService, SecurityCapSettingService } from '@walnut-server/security'
+import { SecurityRoutes } from '@walnut/contract'
 
-@Controller('security/cap')
+@Controller(SecurityRoutes.CAP)
 @ApiTags('security/cap')
 @WalnutAdminGuardCapFree()
 @WalnutAdminGuardJwtFree()

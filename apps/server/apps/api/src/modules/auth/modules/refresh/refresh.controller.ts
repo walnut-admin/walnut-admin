@@ -12,9 +12,10 @@ import { AuthCookieService, AuthRefreshSharedService, AuthSuccessDTO, WalnutAdmi
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { AuthRoutes } from '@walnut/contract'
 import { JwtRefreshGuard } from './refresh.guard'
 
-@Controller('auth/refresh')
+@Controller(AuthRoutes.REFRESH)
 @ApiTags('auth/refresh')
 // 数据权限三期：刷新链系统通道（无 AT，按 refresh token 读 sys_user）
 @WalnutAdminDecoratorDataScopeSystemChannel()

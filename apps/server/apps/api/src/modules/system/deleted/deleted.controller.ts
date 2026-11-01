@@ -14,7 +14,7 @@ import { WalnutAdminDecoratorParamUuid, WalnutAdminDecoratorParamUuids } from '@
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 
 import { SysDeletedService } from '@walnut-server/system'
-import { Role } from '@walnut/contract'
+import { Role, SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
 import { SysDeletedDTORecoverRequest, SysDeletedDTOSafe, SystemDeletedDTODeleteResponse, SystemDeletedDTOListRequest, SystemDeletedDTOListResponse, SystemDeletedDTOReadResponse } from './dto/deleted.dto'
@@ -39,7 +39,7 @@ const {
   },
 })
 
-@Controller('system/deleted')
+@Controller(SystemRoutes.DELETED)
 @ApiTags('system/deleted')
 export class SysDeletedController {
   constructor(private readonly deletedService: SysDeletedService) { }

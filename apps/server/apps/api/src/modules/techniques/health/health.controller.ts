@@ -13,7 +13,7 @@ import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorato
 
 import { WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
-import { Role } from '@walnut/contract'
+import { AppRoutes, Role } from '@walnut/contract'
 import { DataSource } from 'typeorm'
 
 const Permissions = {
@@ -33,7 +33,7 @@ export function getDiskHealthCheckPath(platform: NodeJS.Platform = process.platf
   return platform === 'win32' ? 'C:/' : '/'
 }
 
-@Controller('app/health')
+@Controller(AppRoutes.HEALTH)
 @ApiTags('app/health')
 @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 export class AppTechHealthController {

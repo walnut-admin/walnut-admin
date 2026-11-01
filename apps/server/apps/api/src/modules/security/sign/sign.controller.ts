@@ -4,8 +4,9 @@ import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorEncryptResponse, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardIpFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 import { SecuritySignHandShakeRequestDTO, SecuritySignService, SecuritySignSessionKeyResponseDTO } from '@walnut-server/security'
+import { SecurityRoutes } from '@walnut/contract'
 
-@Controller('security/sign')
+@Controller(SecurityRoutes.SIGN)
 @ApiTags('security/sign')
 @WalnutAdminGuardSignFree()
 @WalnutAdminGuardCapFree()

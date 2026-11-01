@@ -11,6 +11,7 @@ import { WalnutAdminDecoratorParamUuid, WalnutAdminDecoratorParamUuids } from '@
 
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import { SysDictDataDTOCreateRequest, SysDictDataDTOCreateResponse, SysDictDataDTODeleteResponse, SysDictDataDTOListRequest, SysDictDataDTOListResponse, SysDictDataDTOReadResponse, SysDictDataDTOSafe, SysDictDataDTOUpdateRequest, SysDictDataDTOUpdateResponse, SysDictDataService } from '@walnut-server/system'
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
 const Permissions = {
@@ -39,7 +40,7 @@ const {
  * `ctx.dbSession` → `ctx.em`（dict data 与级联删的 locale 都在 PG 侧，同一事务）；
  * `.toObject()` 移除，统一 plainToInstance(DTO, entity)。
  */
-@Controller('system/dict/data')
+@Controller(SystemRoutes.DICT_DATA)
 @ApiTags('system/dict/data')
 export class SysDictDataController {
   constructor(private readonly dictDataService: SysDictDataService) { }

@@ -5,7 +5,7 @@ import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
-import { Role } from '@walnut/contract'
+import { AppRoutes, Role } from '@walnut/contract'
 
 import { plainToInstance } from 'class-transformer'
 import { AppKeyCurrentResponseDTO, AppKeyDTOInit, AppKeyDTOSafe } from './dto/key.dto'
@@ -22,7 +22,7 @@ const Permissions = {
  * B4 迁移（controller 层，模板同 demo）：事务句柄 `ctx.dbSession` → `ctx.em`；
  * 响应组装 `.toObject()` 移除（PG 实体即 POJO），统一 plainToInstance(DTO, entity)。
  */
-@Controller('app/key')
+@Controller(AppRoutes.KEY)
 @ApiTags('app/key')
 export class AppKeyController {
   constructor(private readonly appKeyService: AppKeyService) {}

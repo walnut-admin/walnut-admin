@@ -16,8 +16,9 @@ import { AppTechCookieService } from '@walnut-server/cookie'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorEncryptResponse, WalnutAdminDecoratorUser, WalnutAdminGuardDeviceFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { AuthRoutes } from '@walnut/contract'
 
-@Controller('auth')
+@Controller(AuthRoutes.BASE)
 @ApiTags('auth')
 export class AuthController {
   constructor(

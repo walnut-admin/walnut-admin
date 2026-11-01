@@ -6,7 +6,7 @@ import { WalnutAdminDecoratorList } from '@walnut-server/crud'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
 import { WalnutAdminPipeLogFileName, WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
-import { Role } from '@walnut/contract'
+import { AppRoutes, Role } from '@walnut/contract'
 import { AppLoggerDTO, AppLoggerDTOListRequest, AppLoggerDTOListResponse, AppLoggerLogType, AppLoggerLogTypeType, AppLoggerReadResponseDTO } from './dto/logger.dto'
 import { AppLoggerService } from './logger.service'
 
@@ -15,7 +15,7 @@ const Permissions = {
   READ: 'app:logger:read',
 } as const
 
-@Controller('app/logger')
+@Controller(AppRoutes.LOGGER)
 @ApiTags('app/logger')
 @WalnutAdminDecoratorHasRole([Role.ADMIN, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 export class AppLoggerController {

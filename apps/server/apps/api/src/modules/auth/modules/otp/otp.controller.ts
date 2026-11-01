@@ -15,10 +15,11 @@ import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorAuthLog, WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import { SysUserIdentitySharedService } from '@walnut-server/identity'
+import { AuthRoutes } from '@walnut/contract'
 import { OtpDecoratorFunctionalGuard, OtpDecoratorSendFunctionalGuard, OtpDecoratorThrottle } from './guard/otp.decorator'
 import { OtpGuard } from './otp.guard'
 
-@Controller('auth/otp')
+@Controller(AuthRoutes.OTP)
 @ApiTags('auth/otp')
 @WalnutAdminGuardJwtFree()
 @OtpDecoratorFunctionalGuard()

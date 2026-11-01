@@ -19,6 +19,7 @@ import {
   SysPostDTOUpdateResponse,
   SysPostService,
 } from '@walnut-server/system'
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
 const Permissions = {
@@ -41,7 +42,7 @@ const {
 })
 
 /** 岗位 controller —— 平表标准 CRUD（无树端点） */
-@Controller('system/post')
+@Controller(SystemRoutes.POST)
 @ApiTags('system/post')
 export class SysPostController {
   constructor(private readonly postService: SysPostService) {}

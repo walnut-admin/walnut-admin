@@ -8,9 +8,10 @@ import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decor
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorAuthLog, WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorFunctionalGuard, WalnutAdminDecoratorUser, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { AuthRoutes } from '@walnut/contract'
 import { AuthGoogleGuard } from './google.guard'
 
-@Controller('auth/google')
+@Controller(AuthRoutes.GOOGLE)
 @ApiTags('auth/google')
 @WalnutAdminGuardJwtFree()
 @WalnutAdminGuardSignFree()

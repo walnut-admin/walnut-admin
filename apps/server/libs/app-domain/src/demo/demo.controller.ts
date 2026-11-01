@@ -9,6 +9,7 @@ import {
 } from '@walnut-server/decorators/params'
 
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
+import { AppRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 import { AppDemoService } from './demo.service'
 import {
@@ -50,7 +51,7 @@ const {
  * - 响应组装 `.toObject()` 移除（PG 实体即 POJO），统一 `plainToInstance(DTO, entity)`
  *   —— 实体字段的可空性比 DTO 宽，直配构造器过不了 TS，plainToInstance 免转型。
  */
-@Controller('app/demo')
+@Controller(AppRoutes.DEMO)
 @ApiTags('app/demo')
 export class AppDemoController {
   constructor(private readonly demoService: AppDemoService) { }

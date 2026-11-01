@@ -12,6 +12,7 @@ import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 
 import { SysDictTypeDTOCreateRequest, SysDictTypeDTOCreateResponse, SysDictTypeDTODeleteResponse, SysDictTypeDTOListRequest, SysDictTypeDTOListResponse, SysDictTypeDTOReadResponse, SysDictTypeDTOSafe, SysDictTypeDTOUpdateRequest, SysDictTypeDTOUpdateResponse, SysDictTypeDTOWithDictDataResponse, SysDictTypeService } from '@walnut-server/system'
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
 const Permissions = {
@@ -38,7 +39,7 @@ const {
  * `ctx.dbSession` → `ctx.em`；`.toObject()` 移除（PG 实体即 POJO），统一
  * plainToInstance(DTO, entity)。
  */
-@Controller('system/dict/type')
+@Controller(SystemRoutes.DICT_TYPE)
 @ApiTags('system/dict/type')
 export class SysDictTypeController {
   constructor(private readonly dictTypeService: SysDictTypeService) {}

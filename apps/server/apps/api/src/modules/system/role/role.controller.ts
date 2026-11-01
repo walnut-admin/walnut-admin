@@ -19,6 +19,7 @@ import {
   SysRoleService,
 } from '@walnut-server/system'
 
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
 const Permissions = {
@@ -40,7 +41,7 @@ const { WalnutAdminDecoratorCreate, WalnutAdminDecoratorRead, WalnutAdminDecorat
  * @WalnutTx —— menus 拆 junction 后角色行与关联行必须同事务（Mongo 版
  * 单文档原子，PG 版靠 em 贯通）。
  */
-@Controller('system/role')
+@Controller(SystemRoutes.ROLE)
 @ApiTags('system/role')
 export class SysRoleController {
   constructor(private readonly roleService: SysRoleService) {}

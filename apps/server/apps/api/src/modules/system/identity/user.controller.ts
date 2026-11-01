@@ -13,6 +13,7 @@ import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import { SysUserCrudService } from '@walnut-server/identity'
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 import {
   SysUserDTOCreateRequest,
@@ -57,7 +58,7 @@ const {
  * 两腿必须原子（此前 junction 失败会留下「主行已提交、无角色绑定」的脏用户，
  * update 同理可半成功）。对照 role.controller 的写路径形态。
  */
-@Controller('system/user')
+@Controller(SystemRoutes.USER)
 @ApiTags('system/user')
 export class SysUserController {
   constructor(

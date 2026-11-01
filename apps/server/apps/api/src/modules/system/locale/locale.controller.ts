@@ -37,7 +37,7 @@ import {
   SysLocaleService,
 } from '@walnut-server/system'
 import { getAllConstraints } from '@walnut-server/utils/response'
-import { LocaleType } from '@walnut/contract'
+import { LocaleType, SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 import { ValidationError } from 'class-validator'
 
@@ -111,7 +111,7 @@ function TransformedLocaleBody() {
  * B2 迁移模板（controller 层）：事务句柄 `ctx.dbSession` → `ctx.em`（已迁侧取 em）；
  * `.toObject()` 移除（PG 实体即 POJO），统一 plainToInstance(DTO, entity)。
  */
-@Controller('system/locale')
+@Controller(SystemRoutes.LOCALE)
 @ApiTags('system/locale')
 export class SysLocaleController {
   constructor(private readonly localeService: SysLocaleService) { }

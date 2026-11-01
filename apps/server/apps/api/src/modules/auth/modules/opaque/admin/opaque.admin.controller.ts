@@ -6,6 +6,7 @@ import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasPermission } from '@walnut-server/guards'
+import { AuthRoutes } from '@walnut/contract'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
 import { AuthOpaqueClearPasswordForAdminDTO, AuthOpaqueFinishChangePasswordForAdminDTO, AuthOpaqueStartChangePasswordForAdminDTO } from '../dto/opaque.dto'
 
@@ -14,7 +15,7 @@ const WalnutAdminConstPermissionOpaqueAdmin = {
   PASSWORD_CLEAR: 'system:user:pass:clear',
 } as const
 
-@Controller('auth/opaque/admin')
+@Controller(AuthRoutes.OPAQUE_ADMIN)
 @ApiTags('auth/opaque/admin')
 export class AuthOpaqueAdminController {
   constructor(

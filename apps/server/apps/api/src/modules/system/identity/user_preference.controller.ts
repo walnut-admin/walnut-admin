@@ -5,6 +5,7 @@ import { WalnutAdminGuardJwtOptional } from '@walnut-server/auth'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser, WalnutAdminGuardDeviceFree, WalnutAdminGuardIpFree, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 import { SysUserPreferenceDTOAccessibilityRequest, SysUserPreferenceDTOBasicRequest, SysUserPreferenceDTOLayoutRequest, SysUserPreferenceDTOThemeRequest, SysUserPreferenceResponseDTO, SysUserPreferenceService } from '@walnut-server/identity'
+import { SystemEndpointRoutes } from '@walnut/contract'
 
 const Permissions = {
   UPDATE_BASIC: 'system:user:preference:updateBasic',
@@ -13,7 +14,7 @@ const Permissions = {
   UPDATE_LAYOUT: 'system:user:preference:updateLayout',
 } as const
 
-@Controller('system/user/preference')
+@Controller(SystemEndpointRoutes.USER_PREFERENCE)
 @ApiTags('system/user/preference')
 export class SysUserPreferenceController {
   constructor(

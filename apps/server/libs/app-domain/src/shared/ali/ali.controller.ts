@@ -4,6 +4,7 @@ import { ApiTags } from '@nestjs/swagger'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
 import { WalnutAdminDecoratorEncryptResponse, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
+import { SharedRoutes } from '@walnut/contract'
 import { SharedAliOSSDTO } from './ali.dto'
 import { SharedAliService } from './ali.service'
 
@@ -11,7 +12,7 @@ const Permissions = {
   ALI_OSS_STS: 'app:shared:ali:sts',
 } as const
 
-@Controller('shared/ali')
+@Controller(SharedRoutes.ALI)
 @ApiTags('shared/ali')
 export class SharedAliController {
   constructor(private readonly sharedAliService: SharedAliService) {}

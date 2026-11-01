@@ -10,6 +10,7 @@ import {
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasPermission } from '@walnut-server/guards'
 import { assembleSysDevice, SysDeviceDTOReadResponse, SysLogOperateDTO, SysLogOperateDTOListRequest, SysLogOperateDTOListResponse, SysLogOperateDTOReadResponse, SysLogOperateDTOSnapshotResponse, SysLogOperateService } from '@walnut-server/system'
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
 const Permissions = {
@@ -34,7 +35,7 @@ const { WalnutAdminDecoratorRead, WalnutAdminDecoratorList }
  * 设备行经 assembleSysDevice 组装回 Mongo 版嵌套形态（sr/vp/geoLocation 拍平列还原，
  * B6 device read 同款）。
  */
-@Controller('system/log/operate')
+@Controller(SystemRoutes.LOG_OPERATE)
 @ApiTags('system/log/operate')
 @UseGuards(JwtAccessGuard)
 export class SysLogOperateController {

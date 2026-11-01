@@ -21,6 +21,7 @@ import {
   SysEmployeeDTOUpdateResponse,
   SysEmployeeService,
 } from '@walnut-server/system'
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
 const Permissions = {
@@ -49,7 +50,7 @@ const {
  * 写操作，拆细会逼角色配置多一个维度；如需审计可后续补自定义 operateLog 类型，
  * 但 log_operate.operation 的 CHECK 是既有枚举，新增值要走新 migration，本批不做）。
  */
-@Controller('system/employee')
+@Controller(SystemRoutes.EMPLOYEE)
 @ApiTags('system/employee')
 export class SysEmployeeController {
   constructor(private readonly employeeService: SysEmployeeService) {}

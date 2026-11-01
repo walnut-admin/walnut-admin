@@ -16,7 +16,7 @@ import { WalnutAdminDecoratorOperateLog, WalnutCrudDecorators } from '@walnut-se
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
 import { WalnutAdminPipeCacheKey } from '@walnut-server/pipes'
-import { Role } from '@walnut/contract'
+import { AppRoutes, Role } from '@walnut/contract'
 import {
   AppMonitorCacheDTO,
   AppMonitorCacheDTOListRequest,
@@ -36,7 +36,7 @@ const { WalnutAdminDecoratorList, WalnutAdminDecoratorDelete } = WalnutCrudDecor
   DTO: AppMonitorCacheDTO,
 })
 
-@Controller('app/monitor/cache')
+@Controller(AppRoutes.MONITOR_CACHE)
 @ApiTags('app/monitor/cache')
 @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 export class AppMonitorCacheController {

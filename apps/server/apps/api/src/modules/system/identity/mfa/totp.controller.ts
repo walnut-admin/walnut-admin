@@ -6,6 +6,7 @@ import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree } from '@walnut-server/guards'
 import { SysUserMfaBindTotpDTO, SysUserMfaBindTotpResponseDTO, SysUserMfaDeviceVerifyTotpDTO, SysUserMfaGenerateTotpResponseDTO, SysUserMfaTotpService, SysUserMfaUpdateStatusDTO } from '@walnut-server/identity'
+import { SystemRoutes } from '@walnut/contract'
 
 // TODO fulfill
 const PERMISSIONS_USER_MFA_TOTOP = {
@@ -15,7 +16,7 @@ const PERMISSIONS_USER_MFA_TOTOP = {
   SHOW_BACKUP_CODES: 'system:user:mfa:totp:showBackupCodes',
 } as const
 
-@Controller('system/user/mfa/totp')
+@Controller(SystemRoutes.USER_MFA_TOTP)
 @ApiTags('system/user/mfa/totp')
 @WalnutAdminGuardMFAFree()
 @WalnutAdminGuardLockFree()

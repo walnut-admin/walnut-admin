@@ -11,6 +11,7 @@ import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
 import { WalnutAdminDecoratorAuthLog, WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorFunctionalGuard, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import { SysLogAuthSharedService } from '@walnut-server/system'
+import { AuthRoutes } from '@walnut/contract'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
 import { AuthOpaqueClientErrorDTO, AuthOpaqueFinishChangePasswordDTO, AuthOpaqueFinishSignInDTO, AuthOpaqueFinishSignUpDTO, AuthOpaqueStartChangePasswordDTO, AuthOpaqueStartSignInDTO, AuthOpaqueStartSignUpDTO } from '../dto/opaque.dto'
 import { AuthOpaqueUserGuard } from './opaque.user.guard'
@@ -19,7 +20,7 @@ const WalnutAdminConstPermissionOpaque = {
   CHANGE_PASSWORD: 'me:auth:opaque:changePassword',
 } as const
 
-@Controller('auth/opaque/user')
+@Controller(AuthRoutes.OPAQUE_USER)
 @ApiTags('auth/opaque/user')
 export class AuthOpaqueUserController {
   private readonly logger = new Logger(AuthOpaqueUserController.name)

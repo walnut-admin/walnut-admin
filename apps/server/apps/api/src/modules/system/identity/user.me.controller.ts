@@ -8,6 +8,7 @@ import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@wa
 import { SysUserMeService } from '@walnut-server/identity'
 
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 import { SysUserDTOSafe } from '@/modules/system/user/dto/user.dto'
 import { SysUserMeDTOUpdateProfileRequest, SysUserMeSecurityTab2ResponseDTO } from '@/modules/system/user/dto/user.me.dto'
@@ -16,7 +17,7 @@ const Permissions = {
   UPDATE_PROFILE: 'system:user:updateProfile',
 } as const
 
-@Controller('system/user/me')
+@Controller(SystemRoutes.USER_ME)
 @ApiTags('system/user/me')
 export class SysUserMeController {
   constructor(

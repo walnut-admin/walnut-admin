@@ -5,8 +5,9 @@ import { AuthCookieService, AuthMfaService, AuthMfaStatusDTO, AuthMfaVerifyDTO, 
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree } from '@walnut-server/guards'
+import { AuthRoutes } from '@walnut/contract'
 
-@Controller('auth/mfa')
+@Controller(AuthRoutes.MFA)
 @ApiTags('auth/mfa')
 @WalnutAdminGuardMFAFree()
 @WalnutAdminGuardLockFree()

@@ -6,6 +6,7 @@ import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorHasPermission, Walnut
 
 import { SysUserDeviceListDTO, SysUserDeviceService, SysUserDeviceUpdateNameDTO, SysUserLockUnLockDto } from '@walnut-server/identity'
 import { WalnutAdminPipeDeviceId } from '@walnut-server/pipes'
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
 const Permissions = {
@@ -20,7 +21,7 @@ const Permissions = {
  * B6 迁移（controller 层）：数据面 PG 写走 `ctx.em`。B7b 归一：doSignout /
  * user_lock preference 的写腿亦迁 PG —— 双句柄收成单 `ctx.em`。
  */
-@Controller('system/user/device')
+@Controller(SystemRoutes.USER_DEVICE)
 @ApiTags('system/user/device')
 export class SysUserDeviceController {
   constructor(private readonly userDeviceService: SysUserDeviceService) {}

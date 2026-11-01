@@ -13,8 +13,9 @@ import {
   SysUserMfaWebauthnRegisterVerifyDTO,
   SysUserMfaWebauthnService,
 } from '@walnut-server/identity'
+import { SystemRoutes } from '@walnut/contract'
 
-@Controller('system/user/mfa/webauthn')
+@Controller(SystemRoutes.USER_MFA_WEBAUTHN)
 @ApiTags('system/user/mfa/webauthn')
 @WalnutAdminGuardMFAFree()
 @WalnutAdminGuardLockFree()

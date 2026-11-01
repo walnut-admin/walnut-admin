@@ -8,8 +8,9 @@ import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.
 import { WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { getOperationStrategy, IWalnutAdminConstSecurityLevel, IWalnutAdminConstSecuritySensitiveType, SecuritySensitiveCheckResponseDTO, SecuritySensitiveService, SecuritySensitiveVerifyRequestDTO, WalnutAdminConstSecurityLevel, WalnutAdminConstSecuritySensitiveType } from '@walnut-server/security'
+import { SecurityRoutes } from '@walnut/contract'
 
-@Controller('security/sensitive')
+@Controller(SecurityRoutes.SENSITIVE)
 @ApiTags('security/sensitive')
 export class SecuritySensitiveController {
   constructor(

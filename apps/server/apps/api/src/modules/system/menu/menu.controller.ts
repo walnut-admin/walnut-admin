@@ -25,6 +25,7 @@ import {
   SysMenuDTOUpdateResponse,
   SysMenuService,
 } from '@walnut-server/system'
+import { SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 
 const Permissions = {
@@ -52,7 +53,7 @@ const {
  * `assembleSysMenu`（19 拍平列 → meta 对象出参组装，DTO 层 helper）后
  * plainToInstance(DTO, entity)。
  */
-@Controller('system/menu')
+@Controller(SystemRoutes.MENU)
 @ApiTags('system/menu')
 export class SysMenuController {
   constructor(private readonly menuService: SysMenuService) { }
