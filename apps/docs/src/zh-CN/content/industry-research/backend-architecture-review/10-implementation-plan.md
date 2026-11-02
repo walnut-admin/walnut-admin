@@ -266,3 +266,40 @@
 
 批次 2 门禁可信化 → 批次 3 platform-node POC + worker 生产面 → 批次 4 契约与资产 → 批次 5 结构债与数据。
 P3 台账已按批次分摊（见 8.3 最后一列），各批 R3 收尾时一并收掉。
+---
+
+## 九、夜间执行记录（2026-11-02 23:00 — 11-03 00:0x）
+
+### 9.1 已完成并提交
+
+| 批次/模块 | 提交 | 内容 |
+|---|---|---|
+| 批次 2 R2 | `c8d72591` | frontend 边界（platform-web deny platform-node）、knip 补 project+includeEntryExports（unused 50→139，把盲区变可见）、madge 进 prepush（25 段）、`walnut-scaffold-lib` 脚手架 |
+| 密钥交换 P0 | `243847a1` + `c60545d1` | 补 `await`（40012 从死码变可达）+ 加密前判空 + 错误屏「重置本机密钥」 |
+| 设备模块 P0 | `97012f3b` + `6dd7c784` | 指纹不再下发响应面 / cookie 滑动续期 / 封禁踢下线（撤 RT + 清会话 + 断 WS）/ cron 只标 stale / 前端 40605 自愈 |
+
+### 9.2 运行期实测**发现并修复**的两个 P0（静态 review 抓不到）
+
+1. **错误掩盖**（`6b45edc8`）：bootstrap 早于 naive-ui provider 挂载，`useAppMessage()` 返回 `{}`，
+   `AppMsg` 调 `.create()` 抛 TypeError，**把真实失败原因整条盖住**。浏览器实拍错误屏显示的就是这条 TypeError。
+   → 降级为 console.warn。
+2. **公钥鸡生蛋死锁**（`ae0220b8`）：上一提交让 40012 变可达后，`/security/sign/initial` 仍走抛错版取值，
+   于是「登记公钥要求先有公钥」——首次握手必 40012，api-spec 全线红、admin bootstrap 卡在 sign 步。
+   → 新增 `findRsaPubKeyCache`（探测版，缺失返回 null），initial 改用它；需要「缺失即错误」的两处保持原样。
+   补 2 条用例钉住分界。
+3. 附带修复（`7c3570c6`）：`40608 Bot Detected` 不在前端 notAllowed 映射里 → 落到兜底分支；
+   兜底 reject 从字面量「Missing Error Code」改成 `[code] msg`，任何未登记码都能定位。
+
+### 9.3 端到端验证**通过**
+
+修复后真浏览器（headed）打开 `https://localhost:3100`：**应用成功启动并停在登录页**，
+CAP 人机验证（「诗人握持」挑战 + CaP 徽标）、账号/短信/邮箱三种登录、GitHub/Google/Gitee OAuth 全部渲染。
+—— 这条链路同时覆盖了：设备 cookie 签发与校验、RSA/AES 握手、CAP 挑战、全局守卫链。
+
+### 9.4 尚未完成（下一轮）
+
+- 批次 2 的 **R3 复查轮**；批次 3 / 4 / 5 全部
+- 设备 review 的 P1 三项：封禁改指纹绕过、心跳端点可污染他人监控行、lock 是否也踢下线（需决策）
+- CAP review 的 P1 三项：`ttl` 三种单位（种子配置下 challenge 仅 3.6 秒）、cap.js token 硬编码 20 分钟、token 存单机文件
+- 守卫 review：**顺序零门禁**（`getGlobalGuards` 0 命中）、Risk fail-open × CAP 放行、Lock `=== null` 永不命中
+- skip 矩阵：`sign/initial` 与 `aes-key` 的 deviceId 来自未校验 Cookie（6/7 skip）、signout 缺 JwtFree、3 处多余 IpFree
