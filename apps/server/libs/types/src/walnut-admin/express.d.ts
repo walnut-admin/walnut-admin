@@ -65,6 +65,22 @@ declare global {
     risk: IWalnutAdminRequestRiskContext
 
     /**
+     * @description 已验签 + 已一次性消费的 OAuth state（P2-13 的 state 通道）。
+     *
+     * 由 OAuth callback guard（`OAuthGiteeGuard` / `OAuthGitHubGuard`）在换 code 之前挂上；
+     * 回调 handler 只从这里取 `lang` / `deviceId` —— 不再二次解析 `state` query、也不回读
+     * device cookie，于是「投递频道绑定的设备」与「state 签发时绑定的设备」是同一个值。
+     * `deviceId` 已由 `OAuthStateService.consumeState` 与本请求 cookie 做过相等校验。
+     *
+     * 结构对齐 `@walnut-server/auth` 的 `IWalnutOAuthStateConsumed`：这里内联结构，
+     * 避免基建层的纯类型 lib 出现指向领域 lib 的出边。
+     */
+    oauthState?: {
+      lang?: LocaleType
+      deviceId: string
+    }
+
+    /**
      * @description risk pre auth collected
      */
     _riskPreAuthCollected?: boolean

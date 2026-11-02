@@ -8,7 +8,16 @@ import { WalnutAdminExceptionAccessTokenExpired } from '@walnut-server/exception
 import { isNil } from 'lodash'
 
 export const WalnutAdminConstDecoratorJwtFreeKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_JWT_FREE')
-const WalnutAdminConstDecoratorJwtOptionalKey = Symbol(
+
+/**
+ * 「可带 access token，也可匿名」的 handler 标记（`@WalnutAdminGuardJwtOptional()`）。
+ *
+ * 批次6-B 起**导出**：文档组装点（apps/api 的 swagger.document.ts）要按它把这类 operation
+ * 声明成 `security: [{ bearer: [] }, {}]`（OpenAPI 里数组即「或」：带 bearer 或匿名都行）。
+ * 先前它是模块私有 Symbol，读不到 ⇒ user_preference 这类端点在文档里被写成受保护。
+ * 与 `JwtFree` 的区别：Free 是「完全不做 JWT 认证」，Optional 是「做了认证但不强制」。
+ */
+export const WalnutAdminConstDecoratorJwtOptionalKey = Symbol(
   'WALNUT_ADMIN_CONST_DECORATOR_JWT_OPTIONAL',
 )
 

@@ -14,7 +14,7 @@ import { LocaleType } from '@walnut/contract'
  * 无一次性（可重放）、不绑定发起设备 —— 攻击者取自己的授权 URL 诱导受害者完成 IdP
  * 登录，令牌经 SSE 投递到攻击者订阅的频道（登录 CSRF）。
  *
- * 现在的形态：`base64url(JSON{fp,lang,nonce}) . base64url(HMAC-SHA256(payload))`。
+ * 现在的形态：`base64url(JSON{lang,nonce}) . base64url(HMAC-SHA256(payload))`。
  * - 签名密钥复用服务端既有密钥通道 `app.session.secret`（与 express-session 同源，
  *   部署形态已存在该 secret，无需新增 env）；
  * - nonce 与**发起请求的 deviceId** 一并落 Redis（`AUTH:OAUTH_STATE:<nonce>`，10 分钟
@@ -24,10 +24,36 @@ import { LocaleType } from '@walnut/contract'
  *
  * 失败由调用方（OAuth guard）转成既有受控错误壳（40000），不改 302 / Render 流程。
  */
-export interface IWalnutOAuthStatePayload {
-  fp: string
+
+/**
+ * state **明文段**的形状（base64url 编码后进 URL 的那段）。
+ *
+ * 批次6-B：这里曾经还有 `fp`（客户端指纹头的回传值）。F-04 之后投递频道改由签名
+ * device cookie 推导，回调侧改从 state 的绑定值取 deviceId（见 `consumeState` 的
+ * 返回值），fp 全仓已无任何消费方 —— 它只是把自己写进 Redis 再和自己比一次，
+ * 于是移除。
+ *
+ * deviceId **不进** state 明文段：state 随 302 交给第三方 IdP（gitee / github），
+ * 且会落进两边日志与 Referer；deviceId 是服务端对指纹做 HMAC 的稳定设备标识
+ * （客户端 cookie 里就带着），没有理由外发给 IdP。绑定值只落 Redis，由
+ * `consumeState` 与本请求 cookie 比对后随返回值交给调用方。
+ */
+interface IWalnutOAuthStatePayload {
   lang?: LocaleType
   nonce: string
+}
+
+/**
+ * `consumeState` 的返回值：**已验签 + 已一次性消费 + 已与本请求 deviceId 相等校验**
+ * 的 state 内容。
+ *
+ * `deviceId` 取自 Redis 里签发时落下的绑定值（不是从请求 cookie 回读一遍）：回调侧
+ * 据此推导投递频道，于是「state 属于哪台设备」与「令牌投到哪台设备」在**同一个值**
+ * 上成立，不再依赖「guard 已经比过、下游再读一次 cookie 也一定相等」这种跨文件约定。
+ */
+export interface IWalnutOAuthStateConsumed {
+  lang?: LocaleType
+  deviceId: string
 }
 
 const OAUTH_STATE_TTL_SECONDS = 10 * 60
@@ -69,14 +95,13 @@ export class OAuthStateService {
   /**
    * @description 签发 state（签名 + 落一次性 nonce；绑定发起请求的 deviceId）
    *
-   * F5：fp / deviceId 必须是非空字符串 —— 空值不签发（否则会出现
+   * F5：deviceId 必须是非空字符串 —— 空值不签发（否则会出现
    * `undefined === undefined` 的伪绑定，跨设备校验失效）。受控 40000 由全局过滤器输出。
    */
-  async issueState(fingerprint: string, lang: LocaleType, deviceId: string): Promise<string> {
-    if (typeof fingerprint !== 'string' || fingerprint.length === 0
-      || typeof deviceId !== 'string' || deviceId.length === 0) {
+  async issueState(lang: LocaleType, deviceId: string): Promise<string> {
+    if (typeof deviceId !== 'string' || deviceId.length === 0) {
       throw new WalnutAdminExceptionBadRequest({
-        _devMsg: 'oauth state requires non-empty fingerprint and deviceId',
+        _devMsg: 'oauth state requires non-empty deviceId',
       })
     }
 
@@ -84,22 +109,22 @@ export class OAuthStateService {
 
     await this.cacheService.set(
       this.getNonceCacheKey(nonce),
-      { fp: fingerprint, deviceId },
+      { deviceId },
       { t: WalnutAdminConstAppCacheType.AUTH, ttl: OAUTH_STATE_TTL_SECONDS },
     )
 
-    const payload: IWalnutOAuthStatePayload = { fp: fingerprint, lang, nonce }
+    const payload: IWalnutOAuthStatePayload = { lang, nonce }
     const encodedPayload = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url')
 
     return `${encodedPayload}.${this.sign(encodedPayload)}`
   }
 
   /**
-   * @description 校验并消费 state；返回解析后的 payload（含 fp / lang），失败返回 null。
+   * @description 校验并消费 state；返回已消费的内容（lang + 绑定的 deviceId），失败返回 null。
    * 校验顺序：形态 → 签名（时序安全比较）→ payload 解析 → Redis 存在性 + 设备绑定 →
    * DEL 计数（=1 才视为消费成功，并发重放只有一个赢家）。
    */
-  async consumeState(state: string | undefined, deviceId: string): Promise<IWalnutOAuthStatePayload | null> {
+  async consumeState(state: string | undefined, deviceId: string): Promise<IWalnutOAuthStateConsumed | null> {
     if (typeof state !== 'string' || state.length === 0) {
       return null
     }
@@ -127,7 +152,7 @@ export class OAuthStateService {
     let payload: IWalnutOAuthStatePayload
     try {
       const parsed = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as Partial<IWalnutOAuthStatePayload>
-      if (typeof parsed.fp !== 'string' || parsed.fp.length === 0 || typeof parsed.nonce !== 'string' || parsed.nonce.length === 0) {
+      if (typeof parsed.nonce !== 'string' || parsed.nonce.length === 0) {
         this.logger.warn('oauth state rejected: payload shape invalid')
         return null
       }
@@ -139,9 +164,9 @@ export class OAuthStateService {
     }
 
     const nonceCacheKey = this.getNonceCacheKey(payload.nonce)
-    const stored = await this.cacheService.get<{ fp: string, deviceId: string }>(nonceCacheKey)
+    const stored = await this.cacheService.get<{ deviceId: string }>(nonceCacheKey)
 
-    if (stored === null || stored.fp !== payload.fp || stored.deviceId !== deviceId) {
+    if (stored === null || typeof stored.deviceId !== 'string' || stored.deviceId.length === 0 || stored.deviceId !== deviceId) {
       this.logger.warn(`oauth state rejected: nonce missing or device mismatch (nonce=${payload.nonce})`)
       return null
     }
@@ -153,6 +178,6 @@ export class OAuthStateService {
       return null
     }
 
-    return payload
+    return { lang: payload.lang, deviceId: stored.deviceId }
   }
 }

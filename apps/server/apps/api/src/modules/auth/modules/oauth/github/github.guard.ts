@@ -46,6 +46,11 @@ export class OAuthGitHubGuard extends WalnutAdminGuardAuth(WalnutAdminConstAppAu
       })
     }
 
+    // 批次6-B：把消费结果挂到请求上 —— 回调 handler 只从 req.oauthState 取 lang / deviceId
+    // （不再二次解析 state query、也不回读 device cookie），投递频道的设备与 state 绑定的
+    // 设备同一个值。挂点必须在 handler 之前（guard 天然满足）。
+    req.oauthState = payload
+
     // passport AuthGuard 在该分支返回 Observable<boolean>；本方法按 Promise 收口
     const result = super.canActivate(context)
     return isObservable(result) ? lastValueFrom(result) : result

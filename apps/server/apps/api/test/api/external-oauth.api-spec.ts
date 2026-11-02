@@ -23,10 +23,11 @@ import { createApiApp } from './helpers/create-api-app'
  *   才进入本地 JWKS 校验腿；
  * - 开启态：gitee/github `/url` 端点 → 构造出的跳转 URL（authorize 地址 + client_id +
  *   redirect_uri + response_type + scope + 签名 state）；
- * - P2-13（2026-10-28）：state 不再是明文 JSON —— `base64url(JSON{fp,lang,nonce})` +
+ * - P2-13（2026-10-28）：state 不再是明文 JSON —— `base64url(JSON{lang,nonce})` +
  *   `.` + HMAC-SHA256 签名；callback 在换 code 前验签 + 绑 deviceId + Redis DEL 一次性
  *   消费（篡改 / 重放 / 跨设备一律受控 40000）。合法 state 的签发-消费闭环在 service
- *   层直测（真实 callback 需要外部 IdP，不进回归）；
+ *   层直测（真实 callback 需要外部 IdP，不进回归）；批次6-B 起明文段不再带客户端
+ *   指纹（fp 全仓无消费方，已移除），deviceId 只落 Redis、不进 URL；
  * - 开启态：POST /auth/google 带 garbage credential → 本地 JWKS 校验失败 → 40107
  *   （不发外网）；
  * - callback 缺 code：P3-3 修复后（2026-10-28）guard 前置校验 → 受控 40000（HTTP 200
@@ -119,19 +120,21 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
     expect(url).toContain('response_type=code')
     expect(url).toContain('scope=user_info%20emails')
 
-    // P2-13：state = base64url(JSON{fp,lang,nonce}) + '.' + HMAC 签名（不再是明文 JSON）
+    // P2-13：state = base64url(JSON{lang,nonce}) + '.' + HMAC 签名（不再是明文 JSON）
+    // 批次6-B：明文段只剩 lang / nonce —— 客户端指纹已移除，deviceId 只落 Redis 不外发
     const stateRaw = url.split('&state=')[1]
     expect(stateRaw).toBeTruthy()
     expect(stateRaw.startsWith('{')).toBe(false)
     const [encodedPayload, signature] = stateRaw.split('.')
     expect(encodedPayload).toBeTruthy()
     expect(signature).toBeTruthy()
-    const state = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as { fp?: string, lang?: string, nonce?: string }
-    expect(typeof state.fp).toBe('string')
-    expect((state.fp as string).length).toBeGreaterThan(0)
+    const state = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as { lang?: string, nonce?: string }
+    expect(Object.keys(state).sort()).toEqual(['lang', 'nonce'])
     expect(typeof state.lang).toBe('string')
     // nonce 一次性凭据：32 位 hex
     expect(state.nonce).toMatch(/^[0-9a-f]{32}$/)
+    // 设备绑定值不外发（URL 会交给第三方 IdP 与沿途日志）：state 任何一段都不含 deviceId
+    expect(stateRaw).not.toContain(anonClient.deviceId)
   })
 
   it('开启态 github /url → 同构跳转 URL（scope=read:user user:email）', async () => {
@@ -154,31 +157,32 @@ describe('D 段：外部 OAuth 错误路径专项 google/gitee/github（真实 H
     const [encodedPayload, signature] = stateRaw.split('.')
     expect(encodedPayload).toBeTruthy()
     expect(signature).toBeTruthy()
-    const state = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as { fp?: string, nonce?: string }
-    expect(typeof state.fp).toBe('string')
+    const state = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as { lang?: string, nonce?: string }
+    expect(Object.keys(state).sort()).toEqual(['lang', 'nonce'])
     expect(state.nonce).toMatch(/^[0-9a-f]{32}$/)
+    expect(stateRaw).not.toContain(anonClient.deviceId)
   })
 
   it('P2-13 合法 state 签发-消费闭环：service 层一次成功、二次重放返回 null', async () => {
     const service = app.get(OAuthStateService)
-    const state = await service.issueState('fp-valid-flow', 'zh_CN', anonClient.deviceId)
+    const state = await service.issueState('zh_CN', anonClient.deviceId)
 
     const first = await service.consumeState(state, anonClient.deviceId)
-    expect(first?.fp).toBe('fp-valid-flow')
+    // 批次6-B：消费结果带回 state 绑定的 deviceId（回调侧据此推导投递频道）
+    expect(first?.deviceId).toBe(anonClient.deviceId)
     expect(first?.lang).toBe('zh_CN')
 
     // 同一 state 第二次消费 → null（Redis DEL 计数只有一次 = 1）
     expect(await service.consumeState(state, anonClient.deviceId)).toBeNull()
   })
 
-  it('F5：oauth state 服务显式拒绝空 fp / deviceId（不依赖 null == null 的伪绑定）', async () => {
+  it('F5：oauth state 服务显式拒绝空 deviceId（不依赖 null == null 的伪绑定）', async () => {
     const service = app.get(OAuthStateService)
 
-    await expect(service.issueState('', 'zh_CN', anonClient.deviceId)).rejects.toBeTruthy()
-    await expect(service.issueState('fp-f5', 'zh_CN', '')).rejects.toBeTruthy()
+    await expect(service.issueState('zh_CN', '')).rejects.toBeTruthy()
 
     // 空 deviceId 消费一律拒绝（即使 state 本身合法）
-    const state = await service.issueState('fp-f5', 'zh_CN', anonClient.deviceId)
+    const state = await service.issueState('zh_CN', anonClient.deviceId)
     expect(await service.consumeState(state, '')).toBeNull()
   })
 
