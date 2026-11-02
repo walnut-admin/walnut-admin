@@ -132,7 +132,7 @@
 
 | 批次 | R1 | R2 | R3 | 备注 |
 |------|----|----|----|------|
-| 1 · P0 止血 | ✅ 完成 | 进行中 | | R1 见 §六 |
+| 1 · P0 止血 | ✅ | ✅ | ✅ | 已提交 `ff5ffdfe` + `23106e1c`；见 §七 |
 | 2 · 门禁可信化 | | | | 依赖批 1 的 admin runner |
 | 3 · platform-node + worker | | | | POC 不通过则中止 |
 | 4 · 契约与资产 | | | | 依赖批 2 的门禁 |
@@ -180,3 +180,49 @@
 - **Q1 → 丢弃条件 + warn**（不做 400）：P0 的唯一目标是把 500 变不见；严格 400 留给批次 4 的显式 filters 契约。
 - **Q2 → `IsIn(['ascend','descend',false])`**（保留 false，不动 contract 快照）。
 - **Q3 → JOIN 放大导致 total 不准记 P2**，本轮不做。
+---
+
+## 七、批次 1 结果（2026-11-02 收口）
+
+**状态**：R1 ✅ → R2 ✅ → R3 ✅ → 收尾 ✅ → **已提交**
+
+| 提交 | 内容 |
+|------|------|
+| `ff5ffdfe` `fix(admin)` | 表单注册表改静态映射 + 删除 `@walnut/ui`（包数 16→15）+ 新增 `lint:dynamic-imports` 门禁 + 12 篇文档改写 |
+| `23106e1c` `fix(server)` | list 入参按列类型分派算子（单一真源 `pg-column-op.ts`）+ 分页下沉 `libs/utils/src/list-page.ts` + 打开 sort/page 校验 |
+
+### 7.1 三个 P0 的最终状态
+
+| P0 | 结果 |
+|----|------|
+| 表单 3 个 `Base:` 类型运行时断裂 | **已修**。componentMap 30 条全部为字面量 import，30/30 说明符落地；R3 负对照证明改名后 `types:check` 与 `build` **双红**；产物里三个组件各自成 chunk 且含真实代码 |
+| list 3 类必现 500 | **已修**。R3 用「真 TypeORM qb → `getQueryAndParameters()` → 真 PG 执行」跑 36 格 × 2 路径，`LEAKED_TO_PG = 0` |
+| 三槽位校验从未生效 | **部分修复**：sort/page 已开且存量调用全绿；**query 槽位暂不开**（R3 独立复现：开了会让 9 条现存请求体 / 7 个端点变 400，根因是 query 基座为实体 DTO 的 partial 派生）→ 随批次 4 的显式 filters 契约收口 |
+
+### 7.2 一条需要记住的观测口径（本批最大意外）
+
+**全局异常过滤器永远回 HTTP 200**（`exception.filter.ts:93`）：崩溃 = `200 + body.code 50000`，
+校验拒绝 = `200 + code 40099`。**任何"断言 HTTP 状态码"的验收用例都会永久假绿。**
+本批所有验收因此改为断言 `body.code` 与"是否真的到达 PG"。
+
+### 7.3 收尾轮修掉的、R2 没报的问题
+
+| 来源 | 问题 |
+|------|------|
+| Lead 跑门禁 | `check-dynamic-imports` 有 **tsc 与 eslint 互斥**的类型错误（`Array.from({length}).fill(false)` 是 `unknown[]`，但 `e18e/prefer-array-fill` 又强制它）→ 已修；**R3 声称"types:check 绿"实际只跑了 admin 的** |
+| R3-FE | `^reports/` 被放进 `FROZEN`（全免）比仓里先例更宽 → 收窄为 `PATH_CHECK_EXCLUDED`（只免路径、包名仍受检），三连实验复验 |
+| R3-FE | 新门禁 3 个洞：`obj.import(x)` 误报、`import('a'+b)` 漏报、不扫未跟踪文件 → 全修 |
+| R3-BE | R2 漏报第二处默认排序变化（`monitor/user → id DESC`）；`sort[].priority` 由"被忽略"变"必填"属未登记收紧 → 已放宽并登记 |
+| R3-BE | 丢弃条件时 warn 带原值可能刷日志 → 改 debug 取样 + warn 汇总，且**不回显原值** |
+
+### 7.4 本批新增/变更的门禁
+
+- 新增 `lint:dynamic-imports`（1627 文件、0 豁免、14 条自测，已进 prepush 与 CI）
+- `check-doc-refs`：`liveDocs()` 增加 `existsSync`（修它自己会崩的 bug）；`reports/` 路径引用进排除表
+- 包数 16→15 的连锁：fixed 版本组、attribution、commitlint scope、turbo tags、ADR 0012/0014 全部同步
+
+### 7.5 遗留（不阻塞，进批次 4）
+
+- `sort[].priority` 在 OpenAPI 里仍标 required（要动 `packages` 的生成物，留批次 4）
+- `query` 槽位的字段级校验
+- 丢弃条件导致"静默过度返回"（uuid 列收不可解释值 → 返回全量）；**不跨权限边界**（数据权限不经 query）
