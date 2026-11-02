@@ -19,6 +19,16 @@ import { Something } from '../../../some/module'
 
 相对路径只在**同一模块内部**使用（比如 controller 引同目录的 service、schema）。
 跨模块的相对路径会让「这个符号属于哪一层」彻底看不出来，也会在后端内部目录调整时集体断链。
+组合根（`apps/api/src/app/`）的**跨目录** import 也走 `@/`（`socket.module.ts` 同款）；
+`apps/worker` / `apps/cli` 直接复用具名文件的相对路径是 ADR 认可的例外。
+
+## lib 的内部文件也是公共面
+
+后端的 `libs/<lib>/src/index.ts` 是**宽 barrel**（`export *`）：`@walnut-server/auth` 一个入口就把整个
+lib 的符号都导出去了。于是一条纪律：**lib 内部文件的移动 / 改名 / 改导出名，视同公共 API 变更** ——
+哪怕它看起来只是内部整理。裁判不是人眼，是两道门禁：`types:check`（消费方断链）与
+`openapi:check`（装饰器反射出的 schema 变了而生成物没重导出）。`knip` 这类死代码检测在这里是
+瞎的 —— 宽 barrel 让每个导出都「被用到」。
 
 ## 类型导入
 

@@ -25,11 +25,19 @@ libs 边界 lint，批 1-9 依次下沉基建、技术设施、共享能力、�
 | 层 | lib | 说明 |
 |----|-----|------|
 | 基建（9） | `config` `const` `context` `db` `decorators` `exceptions` `pipes` `types` `utils` | 不依赖任何领域概念 |
-| 技术（19） | `als` `blpath` `cookie` `crypto` `delay` `lock` `queue` `sse` `cache` `throttle` `mailer` `sms` `rsa` `ip` `repository` `list` `crud` `scope-resolver` `token` | 技术设施（缓存 / 队列 / 加密 / 邮件短信 / IP）+ 跨域装配内核（仓储基座、列表、CRUD、数据范围、token） |
+| 技术 · tech-base（14） | `als` `blpath` `cookie` `crypto` `delay` `lock` `queue` `sse` `cache` `throttle` `mailer` `sms` `rsa` `ip` | 纯技术设施（缓存 / 队列 / 加密 / 邮件短信 / IP），不感知域与数据面 |
+| 技术 · tech-assemble（5） | `repository` `list` `crud` `scope-resolver` `token` | 跨域装配内核（仓储基座、列表、CRUD、数据范围、token） |
 | identity 内核（1） | `identity` | 用户身份栈（用户 / 设备 / MFA / OAuth / 偏好），被 system / auth / security 共同消费 |
 | 领域域（3） | `system` `auth` `security` | 各自的 service / repository / entity 与 shared 能力 |
 | 装配（1） | `guards` | guard / decorator / interceptor 装配层 —— import identity / system / auth / security 来装配安全链；`app-domain` 再依赖 `guards` |
 | app-domain（1） | `app-domain` | app / shared 域的数据面（demo / error / key / logger / monitor / setting / area / ali / mask） |
+
+> **2026-11-02 更新**：技术层在 `eslint.config.ts` 里拆成两条 `layer` —— `TECH_LIBS` 已拆成
+> `TECH_BASE_LIBS` + `TECH_ASSEMBLE_LIBS`，允许边只有 assemble → base 单向（反向即违规）；
+> **概念分层仍是六层**。同日 `WALNUT_ADMIN_IP_LOCATION_RESOLVER` token 从 `libs/crud` 迁回
+> `libs/ip`（绑定跟随实现，`crud` 改从 `@walnut-server/ip` 消费，方向变正）。拆层动因：原 19 个
+> 技术 lib 内部有反向边 —— `ip`（设施）引 `crud`（装配内核）的 IP 定位 token，`crud` 又向下引
+> `list`；同一条 layer 的 banned 名单拦不住同层环。
 
 五条机械守卫（守的是 **lib ↔ app 边界、lib 之间的层间方向与注册完备性**；层间方向自本轮起由 ESLint 分层规则机械守，不再只是约定与评审）：
 
@@ -38,7 +46,7 @@ libs 边界 lint，批 1-9 依次下沉基建、技术设施、共享能力、�
   用注入 token 反转依赖（见 Decision 3）。因此「lib 内零 `@/` 导入」是**编译前**就被拦下的，
   不靠 review。
 - **ESLint 分层规则**（同一文件，按层逐条配置）：依赖方向固定为
-  基建 → 技术 → identity → system → auth → security → guards → app-domain（箭头指向被依赖方：**上层 import 下层**，反向即违规）。每层用 `files` glob 圈定 `libs/<name>/**/*.ts`，并以 `no-restricted-imports` patterns
+  基建 → 技术（tech-base → tech-assemble）→ identity → system → auth → security → guards → app-domain（箭头指向被依赖方：**上层 import 下层**，反向即违规）。每层用 `files` glob 圈定 `libs/<name>/**/*.ts`，并以 `no-restricted-imports` patterns
   点名禁用上层的 `@walnut-server/<lib>`（根路径与 `/*` 子路径都禁）。唯一例外是 `exceptions`
   允许 import `blpath`（skip 名单所需，blpath 零出边），由一条独立的 `infra-exceptions` 配置
   精确放行；未登记进任何分层的 lib 走 fail-closed 配置，连 `@walnut-server/*` 一律禁止。
@@ -56,8 +64,8 @@ libs 边界 lint，批 1-9 依次下沉基建、技术设施、共享能力、�
 - **`lib-registration.drift.spec.ts`**：以磁盘 `libs/<name>` 为基准，五处注册面全等 ——
   ① `tsconfig.json` paths、② 三份 `infra/nest/*.json` 的 filenames / projects、
   ③ 三份 `infra/swc/*.swcrc` paths、④ `apps/api/tsconfig.app.json` include、
-  ⑤ `eslint.config.ts` 的分层名单（`INFRA_LIBS` / `TECH_LIBS` / `DOMAIN_LIBS` / `TOP_LIBS` /
-  `EXCEPTION_LIBS`）与 `layer(name, libs, banned)` 的接线（lib 归属 + banned 集合对账，
+  ⑤ `eslint.config.ts` 的分层名单（`INFRA_LIBS` / `TECH_BASE_LIBS` / `TECH_ASSEMBLE_LIBS` /
+  `DOMAIN_LIBS` / `TOP_LIBS` / `EXCEPTION_LIBS`）与 `layer(name, libs, banned)` 的接线（lib 归属 + banned 集合对账，
   防「名单对了、接线错了」）；
   application（api / cli / worker）不参与对账。
 - **`dto-entity.drift.spec.ts`** 与 **`eslint-data-scope-entities.drift.spec.ts`**：
@@ -117,6 +125,11 @@ db / cron / 各域 HTTP 组合根 / guard 与 interceptor。`apps/worker` 与 `a
 新增一个反转点时，token 与端口接口一起放进**需要它**的 lib（而不是 app）；绑定放在**实现所在层**
 的 `@Global` 模块（多数时候就是同一 lib 或更低层 lib），app 侧只保留实现依赖 app 专属能力时的
 `{ provide: TOKEN, useClass/useExisting/useFactory }`。
+
+> **放法有两条，判据只有一条（2026-11-02 明确）**：token 与端口优先放进**需要它**的 lib；
+> 需求方在上层、实现方在下层时（`crud` 在 tech-assemble、实现在 tech-base 的 `ip`），token 跟着
+> **实现**落在下层，由需求方反向消费 —— 否则下层要反向 import 上层。可检验的内核是「token 不落
+> app、绑定跟随实现」，不是「token 必须与需求方同 lib」。
 
 ## Decision 4: 两处顺序敏感的东西留在 app
 
@@ -191,7 +204,7 @@ db / cron / 各域 HTTP 组合根 / guard 与 interceptor。`apps/worker` 与 `a
   机械守（本轮落地）**。
 - 基建层内部没有互相引用的 SCC：纯 `process.env` 判定下沉到 `libs/const/src/app/env.ts`
   （`libs/config/src/utils/env.ts` 只做兼容转发），`config` / `utils` 对 `const` 单向依赖，
-  `config` 对 `utils` 的 `pkg` 依赖也不再回头（层间规则只看八层，同层环只能靠这种「纯判定放最低叶子」
+  `config` 对 `utils` 的 `pkg` 依赖也不再回头（层间规则只拦跨层方向、同层环不在其内，只能靠这种「纯判定放最低叶子」
   的结构约束）。
 - 默认部署形态不变：未设 `WORKER_STANDALONE` 时 api 行为与解耦前一致，`openapi.json` 零 diff
   是每次改动的裁判；worker 是**可选**入口，`WORKER_STANDALONE=true` 时 api 让出 cron，

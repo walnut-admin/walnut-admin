@@ -18,13 +18,13 @@
 
 <img src="/images/cors2.png" alt="暴力解决跨域方式二" width="auto" height="100%">
 
-- 3. 后台也嵌入了 express 的[cors](https://github.com/expressjs/cors)中间件，`allowOrigin`暴力设置为`*`可解决跨域问题。
+- 3. 后台也嵌入了 express 的[cors](https://github.com/expressjs/cors)中间件。**注意 `allowOrigin` 不能再写成 `*`**：下面这张图是历史写法，在本项目里是坏的 —— 全站走 cookie（`DEVICE_ID` / `SIGN_TICKET` / `CAPJS_TOKEN`）且中间件固定 `credentials: true`，而 CORS 规范里 `Access-Control-Allow-Origin: *` 与「带凭据」**互斥**，浏览器会直接拒绝这种组合的跨源响应（开发下表现为「登录态跨源请求拿不到响应」，线上是静默失效）。
 
-<img src="/images/cors3.png" alt="暴力解决跨域方式三" width="auto" height="100%">
+<img src="/images/cors3.png" alt="暴力解决跨域方式三（历史写法，本项目不用）" width="auto" height="100%">
 
-- 4. 类似于 3，只不过可以精准配置允许的地址。
+- 4. 所以**后端侧的形态是显式白名单**：`allowOrigin` 只放具体源（协议 + 主机 + 端口齐全），由 `resolveAllowOrigin()` 决定取值 —— dev / stage 枚举 `127.0.0.1` 与 `localhost` 的常用端口（http 与 https 双写，admin 的 dev server 由 `vite-plugin-mkcert` 起 https），生产是 `https://www.` 前缀的单源；两种情况都能被环境变量 `APP_CORS_ALLOW_ORIGINS`（逗号分隔）**整体覆盖**。取值真源在 `apps/server/libs/config/src/modules/middleware.config.ts` 的 `resolveAllowOrigin()`，env 口径见[环境配置](./configuration.md)。
 
-<img src="/images/cors4.png" alt="暴力解决跨域方式四" width="auto" height="100%">
+<img src="/images/cors4.png" alt="精准配置允许的地址（本项目采用的形态）" width="auto" height="100%">
 
 - 5. 这个是前端配置请求代理，同时也是本项目采用的方法，也是推荐的方法。
 

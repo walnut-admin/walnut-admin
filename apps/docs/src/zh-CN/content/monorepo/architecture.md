@@ -149,7 +149,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 
 **外层**（Turborepo 层面）：`apps/*` + `packages/platform-any/*` + `packages/platform-web/*` + `packages/tooling/*` 的 workspace 包，通过 pnpm workspace 协议（`workspace:*`）相互引用。
 
-**内层**（Server 内部）：`apps/server/libs/*` 下的 NestJS 内部库（按「基建 → 技术 → identity 内核 → 领域域 → 装配（guards）→ app-domain」六层；完整清单以目录为准），通过 TypeScript `paths` 映射解析，不走 pnpm workspace。命名空间为 `@walnut-server/*`，与外层 `@walnut/*` 物理分离。`apps/api` 是默认部署单元（组合根），`apps/worker` / `apps/cli` 是同一 workspace 内的可选组合入口，不是新服务 —— 见 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。
+**内层**（Server 内部）：`apps/server/libs/*` 下的 NestJS 内部库（按「基建 → 技术 → identity 内核 → 领域域 → 装配（guards）→ app-domain」六层，其中技术层在 `eslint.config.ts` 里拆成 tech-base（设施）/ tech-assemble（跨域装配内核）两条 `layer`；完整清单以目录为准），通过 TypeScript `paths` 映射解析，不走 pnpm workspace。命名空间为 `@walnut-server/*`，与外层 `@walnut/*` 物理分离。`apps/api` 是默认部署单元（组合根），`apps/worker` / `apps/cli` 是同一 workspace 内的可选组合入口，不是新服务 —— 见 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。
 
 ### 关键设计决策
 
@@ -223,9 +223,10 @@ Server 内部通过 NestJS CLI + SWC 管理内部库，命名空间 `@walnut-ser
 apps/server/libs/
 ├── # 基建（9）
 │   config/  const/  context/  db/  decorators/  exceptions/  pipes/  types/  utils/
-├── # 技术（19）
+├── # 技术 · tech-base（14）
 │   als/  blpath/  cookie/  crypto/  delay/  lock/  queue/  sse/
 │   cache/  throttle/  mailer/  sms/  rsa/  ip/
+├── # 技术 · tech-assemble（5）
 │   repository/  list/  crud/  scope-resolver/  token/
 ├── # identity 内核（1）
 │   identity/

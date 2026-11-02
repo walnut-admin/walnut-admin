@@ -302,19 +302,17 @@ P2-32 修复后（2026-10-29）：`security-policy`（改密/敏感操作）在 
 
 | 端点 | 守卫 | 行为 |
 |---|---|---|
-| `GET /auth/oauth/{gitee,github}/url` | JwtFree + Functional；签名生效 | 返回 IdP 授权 URL：`state = base64url(JSON{fp,lang,nonce}) + "." + HMAC-SHA256`（P2-13，签名密钥复用 `app.session.secret`；nonce + 发起 deviceId 落 Redis `AUTH:OAUTH_STATE:<nonce>`，10 分钟 TTL） |
-| `GET /auth/oauth/{gitee,github}/callback` | JwtFree + SignFree + Functional + `OAuth{Gitee,GitHub}Guard` + `@WalnutTx()` + AuthLog + `@Render('template/oauth/done')` | guard 在换 code 前验 state：缺 `code` / 验签失败 / 重放 / 跨设备 → **40000**（受控壳，不进入外部 token 交换）；成功则签发令牌并把 `accessToken/sessionKey` 投递到 SSE |
-| `GET /auth/oauth/{gitee,github}/sse/:fp` | JwtFree + SignFree；Device 等其余全局守卫仍生效 | `@Sse` + `@Res()` 直写流，不属于统一响应壳（P3-8 豁免） |
+| `GET /auth/oauth/{gitee,github}/url` | JwtFree + Functional；签名生效 | 返回 IdP 授权 URL：`state = base64url(JSON{lang,nonce}) + "." + HMAC-SHA256`（P2-13，签名密钥复用 `app.session.secret`；nonce + **发起 deviceId（只落 Redis，不外发给 IdP）** 存 `AUTH:OAUTH_STATE:<nonce>`，10 分钟 TTL） |
+| `GET /auth/oauth/{gitee,github}/callback` | JwtFree + SignFree + Functional + `OAuth{Gitee,GitHub}Guard` + `@WalnutTx()` + AuthLog + `@Render('template/oauth/done')` | guard 在换 code 前验 state：缺 `code` / 验签失败 / 重放 / 跨设备 → **40000**（受控壳，不进入外部 token 交换）；`consumeState` 返回 Redis 里签发时落下的 deviceId（已是「验签 + 一次性 + 与请求设备相等」三合一），handler 只从 `req.oauthState` 取，成功则签发令牌并投递到 `oauth/{provider}/device/<deviceId>` 频道 |
+| `GET /auth/oauth/{gitee,github}/sse/:fp` | JwtFree + SignFree；Device 等其余全局守卫仍生效 | `@Sse` + `@Res()` 直写流，不属于统一响应壳（P3-8 豁免）；`:fp` 段**仅为前端兼容、不参与频道键**，频道键 = 服务端签名 device cookie 推导的 deviceId（F-04） |
 
 - 回调成功后先 `generateAuthTokens`（同 §2.4 的装配，事务内），再把回调用户（gitee/github
   绑定或自动注册，见 `OAuthGiteeService.validateIdentity` / `OAuthGitHubService.validateIdentity`）
   的 `emailAddress` 身份标记 `verified`，最后通过 `AppTechSseService.sendToClient` 向
-  `oauth/{provider}/{fp}` 频道发 `{ success, message, data }`：`event` 为 `token:gitee`
+  `oauth/{provider}/device/<deviceId>` 频道发 `{ success, message, data }`：`event` 为 `token:gitee`
   或 `token:github`，`data` 携带 `accessToken` 与 `sessionKey`。
 - 失败同样走 SSE：`{ success: false, message: <i18n 文案>, data: {} }`，并异步记失败登录风险。
-- P2-13 修复后（2026-10-28）：`state` 由服务端签发（HMAC 签名 + 一次性 nonce + deviceId
-  绑定），callback guard 先验签再换 code；SSE 频道按 `fp` 订阅的客户端侧信任边界不变
-  （`fp` 只从已验签的 state 取得），但跨设备/重放/篡改的登录 CSRF 形态全部被拒。
+- P2-13（2026-10-28）+ F-04（2026-11）：`state` 由服务端签发（HMAC 签名 + 一次性 nonce + deviceId 绑定），callback guard 先验签再换 code；deviceId 只落在 Redis（state 明文段只有 lang/nonce，避免把稳定设备标识经 302 外发给 IdP 并落进对方日志/Referer）；SSE 频道键 = 服务端签名 device cookie 推导的 deviceId（URL 的 :fp 不再参与），跨设备/重放/篡改的登录 CSRF 形态全部被拒。
 - 外部边界：真实 IdP 的 `code` 交换与回调需要外部网络与有效应用配置，API 回归覆盖
   「functional 关闭 50301 / 缺 code 40000 / state 篡改·重放·跨设备 40000 / `/url` 拼装形态 /
   本地校验失败」这些纯本地路径。

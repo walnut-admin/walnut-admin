@@ -353,6 +353,16 @@ const sidebar: DefaultTheme.Sidebar = {
       ],
     },
     {
+      text: '后端架构调研（归档）',
+      items: [
+        { text: '调研索引与总览', link: '/content/industry-research/backend-architecture-review/' },
+        { text: '跨批核对', link: '/content/industry-research/backend-architecture-review/06-cross-check' },
+        { text: '6 条决策记录', link: '/content/industry-research/backend-architecture-review/07-decisions' },
+        { text: '建议方案', link: '/content/industry-research/backend-architecture-review/08-recommended-plan' },
+        { text: '调研摘要', link: '/content/industry-research/backend-architecture-review/09-research-summaries' },
+      ],
+    },
+    {
       text: '归档（设计 / 计划 / 评审）',
       items: [
         { text: '归档说明与索引', link: '/content/archive/' },
@@ -371,6 +381,19 @@ const sidebar: DefaultTheme.Sidebar = {
     {
       text: '后端',
       items: backendContent,
+    },
+    {
+      // 后端评审（2026-11 自 `apps/server/review/` 迁入）：与 ADR 同一条口径 —— md 一律住文档站，
+      // 不为任何目录做门禁特例。正文是评审当时的快照，未追改；现状看 ADR 0022 与各专题文档。
+      text: '后端评审',
+      items: [
+        { text: '评审汇总（FINDINGS）', link: '/content/review/backend/' },
+        { text: '接口清单（API Catalog）', link: '/content/review/backend/api-catalog' },
+        { text: '接口文档注解审查（DOC）', link: '/content/review/backend/api-docs-findings' },
+        { text: '架构与模块构成（ARCH）', link: '/content/review/backend/architecture' },
+        { text: '代码质量（CQ）', link: '/content/review/backend/code-quality' },
+        { text: '安全审查（SEC）', link: '/content/review/backend/security' },
+      ],
     },
     {
       text: '共享',

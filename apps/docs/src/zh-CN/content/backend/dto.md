@@ -152,11 +152,17 @@ export class UserDTO {
 5. CRUD 装饰器（`@WalnutAdminDecoratorList`、`@WalnutAdminDecoratorCreate`、`@WalnutAdminDecoratorRead`、`@WalnutAdminDecoratorUpdate`、`@WalnutAdminDecoratorDelete`、`@WalnutAdminDecoratorDeleteMany`）
 6. Guard Free（`@WalnutAdminGuardJwtOptional`、`@WalnutAdminGuardLockFree`、`@WalnutAdminGuardSignFree`、`@WalnutAdminGuardMFAFree`、`@WalnutAdminGuardJwtFree`、`@WalnutAdminGuardCapFree`、`@WalnutAdminGuardDeviceFree`、`@WalnutAdminGuardIpFree`）
 7. 事务（`@WalnutTx`，见 [PostgreSQL 事务](./transactions.md)）
-8. Swagger（`@ApiExtraModels`、`@ApiParam`、`@ApiQuery`、`@ApiBody`、`@ApiWalnutOkResponse`、`@ApiOkResponse`）
+8. Swagger（`@ApiExtraModels`、`@ApiParam`、`@ApiQuery`、`@ApiBody`、`@ApiWalnutOkResponse`、`@ApiOkResponse`、`@ApiOperation`、`@ApiResponse`、`@ApiExcludeEndpoint`）
 9. 功能性（`@WalnutAdminDecoratorFreeResponse`、`@WalnutAdminDecoratorCache`、`@WalnutAdminDecoratorAuthLog`、`@WalnutAdminDecoratorOperateLog`、`@WalnutAdminDecoratorThrottle`、`@WalnutAdminDecoratorDevOnly`、`@Render`）
 10. `@UseGuards`（**在最后**，不是「Guard 那一条」的位置）
 
 > ⚠️ 最容易记错的是第 4 条与第 10 条：`@UseGuards` 排在最末，而不是紧跟权限装饰器。
+
+**不在清单里的装饰器一律排到最后**（优先级 = 表长），且彼此保持书写顺序：`@Sse`、`@HealthCheck`、
+`@UseInterceptors` 这类框架/自定义装饰器都属于这一档。所以 `@Sse` 要写在 `@ApiOperation` /
+`@ApiResponse` **之后**（这正是 4A 收录这三个文档装饰器时踩到的：收录前后它们同属「未知档」，
+收录之后 `@Sse` 必须后移）。新增一个常用的方法装饰器时，别指望未知档的默认行为 —— 把它加进
+`packages/tooling/eslint-config/nest-local-rules.ts` 的 `DEFAULT_METHOD_ORDER` 并同步本表。
 
 ### 参数装饰器顺序
 

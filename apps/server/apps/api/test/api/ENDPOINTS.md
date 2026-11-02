@@ -117,7 +117,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   **迁移回归已修**（D 段唯一一处 src 改动）：无 RT cookie 时 guard 直取 cookie 值 undefined 传入 findByJti —— Mongo 版 findOne({jti: undefined}) 查无行 → 受控 40102；PG/TypeORM 把 undefined 当绑定参数下发 → pg 驱动 "bind parameters must not contain undefined" 未受控 50000。已在 `refresh.repo.service.findByJti` 按「查无此 jti」语义收 nil → null |
 | mfa | GET `/auth/mfa/status`、POST `/auth/mfa/verify` | MFAFree+LockFree | 无 | verify `{trusted}` | 高优先（MFA 闭环：绑定 totp → verify → 新 AT）—— verify 的 RT 轮换闭环已由 C 段 user-mfa spec（system/user/mfa/totp/verify）覆盖。**P2-24 已修（2026-10-29）**：`/auth/mfa/verify` 的就绪判据改为用户维度已启用类型数（`COUNT(DISTINCT type)`，跨设备去重），与 cron 的 `updateMfaSetupStatusForCronJob` 同源；int-spec `user.mfa.pg` 覆盖「两台设备各一个 webauthn → typeCount=1」与停用后回落 |
 | google | POST `/auth/google`（勘误：callback 路由不存在——初版测绘把 strategy 层 callbackURL 误记为 HTTP 端点） | Jwt/Sign Free + Functional（P1-17 起 `defaultClosed`）+ `AuthGoogleGuard` | 无 | google id_token | **D 段已测**（external-oauth.api-spec.ts，错误路径专项）：P1-17 已修（2026-10-28）—— 端点暂时关闭，零配置（settings 缺失）即 50301；显式 authEnable=1 开启后 garbage credential 走本地 JWKS 校验失败 40107（不发外网）。真实 Google id_token 回调不测（外部依赖） |
-| oauth/gitee | GET `/auth/oauth/gitee/url`、GET `/auth/oauth/gitee/callback` | Jwt Free + Functional（callback 另 SignFree + `OAuthGiteeGuard`） | 无 | query code | **D 段已测**（external-oauth.api-spec.ts）：functional 关闭 50301；开启 `/url` 构造跳转 URL 形态（authorize + client_id + redirect_uri 原样拼接不转义 + response_type + scope + state JSON{fp,lang}）；callback 缺 code → **受控 40000**（P3-3 已修 2026-10-28：guard 前置校验，不再 302）。真实 gitee code 回调不测（外部依赖） |
+| oauth/gitee | GET `/auth/oauth/gitee/url`、GET `/auth/oauth/gitee/callback` | Jwt Free + Functional（callback 另 SignFree + `OAuthGiteeGuard`） | 无 | query code | **D 段已测**（external-oauth.api-spec.ts）：functional 关闭 50301；开启 `/url` 构造跳转 URL 形态（authorize + client_id + redirect_uri 原样拼接不转义 + response_type + scope + state 签名串（明文段 `{lang,nonce}`，批次6-B 起不再带客户端指纹））；callback 缺 code → **受控 40000**（P3-3 已修 2026-10-28：guard 前置校验，不再 302）。真实 gitee code 回调不测（外部依赖） |
 | oauth/github | 同 gitee（`/auth/oauth/github/*`） | 同上 | 无 | query code | **D 段已测**（external-oauth.api-spec.ts）：同 gitee 同构（scope=read:user user:email）；callback 缺 code 同 P3-3 → 受控 40000。真实 github code 回调不测（外部依赖） |
 
 ## 3. security 模块（`modules/security/`）
@@ -172,7 +172,8 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | user_device | GET `list`、PUT `update-name/:deviceId`、DELETE `force-quit/:deviceId`、PUT `lock/:deviceId`、`unlock/:deviceId` | Sign 链 | `system:userDevice:*` | — | **C 段已测**（user-device.api-spec.ts）：list（登录绑定行 current=true + deviceType/location 装回）+ update-name 持久化 + lock/unlock（建 sys_user_lock 偏好行、lockRoute 落 DB 默认空对象、cross_device 默认 true → 锁后 Lock guard 40118，端点间清 SECURITY_LOCK 缓存衔接）+ force-quit 撤 RT（revoked + userKickOther；updateRevokedAndReason 走 findOne 只撤第一行，钉现状）+ 无 monitor 行 40401 |
 | user_identity | POST `list`、GET `status/:purpose`、POST `check/bind`、DELETE `unbind`、PUT `update/status`、POST `send-code/verify`（均 `/:type/:purpose`） | Sign 链；`update` / `unbind` / `status` 另挂 Sensitive(`account_critical`) | （me 自维度，多数无 @HasPermission） | — | **C 段已测**（user-identity.api-spec.ts）：OTP 真实闭环（check 发码进 AUTH:VERIFY_CODE 缓存 —— 邮件走 Bull 队列测试环境不真发；用例从缓存读回真码 bind）+ status 形态/maskedValue + unbind（有 password 兜底可解）+ value 被他人占用拦截（第二 root 用户对拍）。
   **P1-5/P1-6 已修（2026-10-28）**：list 空 DTO、bind setAsSecurity 缺省、update 的 null 判据、update/status 探测腿容错（有 security email 身份即可抛 40119）均已处理。
-  **P2-25 已修（2026-10-29）**：`PUT update` 与 `DELETE unbind` 挂 `account_critical` 敏感守卫（operation `identity_manage`，支持 email/sms 验证）—— 未授权调用 → 40119；update 不再能绕过 status 的守卫直接改启停；unbind 的 keep-one 判据把 password 纳入（仅口令用户解绑 password → 40000）。spec 覆盖两路径 40119 + 授权键存在时成功 + 仅口令 keep-one |
+  **P2-25 已修（2026-10-29）**：`PUT update` 与 `DELETE unbind` 挂 `account_critical` 敏感守卫（operation `identity_manage`，支持 email/sms 验证）—— 未授权调用 → 40119；update 不再能绕过 status 的守卫直接改启停；unbind 的 keep-one 判据把 password 纳入（仅口令用户解绑 password → 40000）。spec 覆盖两路径 40119 + 授权键存在时成功 + 仅口令 keep-one
+  **F-03 已修（2026-10-30，批次1-B）**：`POST list` 直返实体数组，行实体无 @Expose 被全局 ClassSerializer（excludeExtraneousValues）剥成 `[{}]`（此前 spec 只钉可达性，行形态登记为 P3 缺口另行排期）—— controller 补 `plainToInstance(SysUserIdentityListResponseDTO, …)`（AppMonitorUserController.list 同款手法），行 DTO 为 RealPickType 安全字段子集（id/userId/type/purpose/maskedValue/verified/verifiedAt/isPrimary/status/metadata/createdAt/updatedAt），`value`（AES-256-GCM 密文）与 `valueHash`（HMAC 查找键）自 wire 剔除；响应装饰器改单对象 list DTO（isArray 语义对齐真实 wire 壳）；spec 断言行字段面齐全 + 无两密文键 + maskedValue 与 status 端点对拍 |
 | user_lock | GET `read` + PATCH（lock/unlock me）+ PATCH `preference` | read/lock/unlock：LockFree；preference：登录态（非 LockFree） | 无 | — | **C 段已测**（user-lock.api-spec.ts）：两套默认值对拍（无偏好行 service 兜底 lockIdleSec=300/crossDevice=false；首次 lock 落行后 DB 默认 lockIdleSec=600/crossDevice=true → read 走跨设备腿）+ lock/unlock 落 sys_user_device.locked + 无偏好行 unlock 40401。
   **P2-26 已修（2026-10-29）**：新增 `PATCH /system/user/lock/preference`（`lockMode` / `lockPwdHash` 明文入参走仓库 bcrypt / `lockIdleSec` / `lockSecuritySec` / `lockCrossDevice`）；`lockMode=security` 写入需密码，unlock 在 security 模式下密码必填并比对。spec 覆盖 security 设置（hash 落库）+ 跨设备解锁缺密/错密 40000、对密成功 |
 | user_mfa/totp | POST `generate/bind/verify`、DELETE `unbind`、PUT `status`（status 端点挂权限 `system:user:mfa:totp:status`） | MFAFree+LockFree | 大多无 | totp payload | **C 段已测**（user-mfa.api-spec.ts）：totp 真实闭环（generate 拿真 secret → otplib 同库客户端算码 → bind → verify RT 轮换取新 AT → status 开关 → unbind；备份码 10 枚 + secret/qrCode 形状；bind 后 generate 重入 40001）+ security-tab2 跨验。
@@ -186,7 +187,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 
 | 端点 | 方法/路径 | 守卫 | 权限点 | 请求形态 | API 级测试策略 |
 |---|---|---|---|---|---|
-| health | GET `/app/health/{network,postgres,memory-heap,memory-rss,disk}` | Sign 链 | `app:health:*` | — | **B 段已测**（health.api-spec.ts）：postgres 断言 up（迁移回归直接验证）；memory-heap/rss/disk 断言受控二值（20000 + indicator status up/down——本仓库 terminus 不抛 503；或超阈兜底 50000）。出参形状实测只有 indicator 键、无 `{status,info,details}` 外壳。network 外连 baidu.com，外部依赖不进回归（只登记不测） |
+| health | GET `/app/health/{network,postgres,memory-heap,memory-rss,disk}` | Sign 链 | `app:health:*` | — | **B 段已测**（health.api-spec.ts）：postgres 断言 up（迁移回归直接验证）；memory-heap/rss/disk 断言受控二值（20000 + indicator status up/down；或超阈兜底 50000）。出参形状实测只有 indicator 键、无 `{status,info,details}` 外壳。**批次2（F-09 / 裁决 Q5-a）已按项目壳重写这五个端点的 200 声明、503 移除**：`health.swagger.ts` 显式声明「项目壳 + data = indicator 结果」，并用 `@HealthCheck({ swaggerDocumentation: false })` 关掉 terminus 的默认声明（保留它的 Cache-Control 头）—— 旧口径「文档声明 503、实际恒 200 不抛」至此消解，探活失败走全局兜底成 HTTP 200 + body.code=50000；真正的存活/就绪探针是 raw 路由 `/health/live`、`/health/ready`。network 外连 baidu.com，外部依赖不进回归（只登记不测） |
 
 ## 7. 根 controller（`src/app/`）
 
@@ -470,6 +471,14 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   `AUTH:OAUTH_STATE:<nonce>`（10 分钟 TTL）。callback guard 在换 code 前验签 + 设备绑定 +
   DEL 一次性消费，失败一律受控 40000。external-oauth spec 覆盖 state 形态翻转、篡改 /
   重放 / 跨设备拒绝、service 层合法签发-消费闭环。
+- **批次6-B OAuth state 收口**：state 明文段去掉客户端指纹 ——
+  `base64url(JSON{lang,nonce})`（fp 自 F-04 起无任何消费方，只是「写进 Redis 再和自己比」）；
+  deviceId **不进 URL**（state 要交给第三方 IdP，还会落进沿途日志），只落 Redis。
+  `OAuthStateService.consumeState` 改为返回 `{ lang, deviceId }`，两个 callback guard 把它
+  挂到 `req.oauthState`，handler 只从那里取 lang / deviceId（不再二次解析 state query、
+  也不回读 device cookie）—— 投递频道的设备与 state 绑定的设备同一个值。external-oauth
+  spec 同步翻转：断言明文段只剩 lang / nonce、设备 id 不出现在 state 任何一段、消费结果
+  带回绑定的 deviceId；旧格式 state 在 TTL 内仍可消费由 libs/auth 的单测钉住。
 - **P2-15 永久黑名单锚点**：`app.global.ipBlackList` 显式默认行在
   `apps/server/db/seed/app_setting.json`（`"[]"`），`check-seed` 新增必需键机械核对
   （缺行 / 非法 JSON / 非数组三种反例）。集成库仍只跑 migrations，不 seed。
