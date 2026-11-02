@@ -1,22 +1,84 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { SystemDeptTree, SystemMenu, SystemRole } from '@walnut/api-types'
+import type { IActionType } from '@walnut/types/universal'
+import { DataScope } from '@walnut/contract'
 import { computed } from 'vue'
 import { roleAPI } from '@/api/system/role'
 import { useCRUD } from '@/components/Advanced/CRUD'
 import { WTablePresetCreatedAtColumn, WTablePresetOrderColumn, WTablePresetStatusColumn, WTablePresetUpdatedAtColumn } from '@/components/UI/Table/src/utils/presetColumns'
 import { AppConstRoles } from '@/const/app'
 import { AppConstMenuType } from '@/const/menu'
+import { useAppConfirm } from '@/hooks/component/useConfirm'
+import { useDeptTree } from '@/hooks/core/useDeptTree'
+import { useAppI18n } from '@/locales'
+
 import { useMenuTree } from './useMenuTree'
 
 defineOptions({
   name: 'Role',
 })
 
+const { t } = useAppI18n()
+
 // locale unique key
 const key = 'role'
-const keyField = '_id'
+const keyField = 'id'
 
 const { getLeftMenu } = useMenuTree()
+// 数据权限二期批 2：CUSTOM(2) 档位的部门勾选树
+const { getDeptTree } = useDeptTree()
+
+/**
+ * 有子部门的部门 id 集合（批 7 / L6 的叶子判定）。useDeptTree 的树数据由后端按
+ * parentId 聚合而来，children 非空即非叶子 —— 不另查 `dept/children`，避免多打请求。
+ */
+function collectNonLeafDeptIds(tree: SystemDeptTree[]): Set<string> {
+  const nonLeaf = new Set<string>()
+
+  const walk = (nodes: SystemDeptTree[]): void => {
+    for (const node of nodes) {
+      const children = node.children ?? []
+
+      if (children.length > 0 && node.id !== undefined) {
+        nonLeaf.add(node.id)
+      }
+
+      walk(children)
+    }
+  }
+
+  walk(tree)
+  return nonLeaf
+}
+
+/**
+ * CUSTOM 档位提交前的防呆确认（批 7 / L6）：勾选清单里**存在非叶子部门**时，明示
+ * 「CUSTOM 不含子部门、仅勾选的部门本身」。语义不变（不递归），只防「勾父部门以为
+ * 含子部门」的误解；取消则中止提交、表单保持打开。
+ */
+async function onBeforeFormSubmit({ formData, actionType }: { formData: SystemRole, actionType: IActionType }) {
+  if (actionType !== 'create' && actionType !== 'update') {
+    return true
+  }
+
+  if (formData.dataScope !== DataScope.CUSTOM) {
+    return true
+  }
+
+  const deptIds = formData.deptIds ?? []
+  if (deptIds.length === 0) {
+    return true
+  }
+
+  const nonLeaf = collectNonLeafDeptIds(getDeptTree.value)
+  const count = deptIds.filter(id => nonLeaf.has(id)).length
+  if (count === 0) {
+    return true
+  }
+
+  const { confirmed } = await useAppConfirm(t('table.role.deptIds.nonLeafConfirm', { count }))
+  return confirmed
+}
 
 const [
   register,
@@ -26,10 +88,13 @@ const [
     onGetActionType,
     onApiList,
   },
-] = useCRUD<IModels.SystemRole>({
+] = useCRUD<SystemRole>({
   baseAPI: roleAPI,
 
   strictFormData: true,
+
+  // 批 7 / L6：CUSTOM 勾选含非叶子部门时先确认「不含子部门，仅勾选的部门本身」
+  onBeforeFormSubmit,
 
   safeForm: true,
   safeFormFeedback: true,
@@ -112,7 +177,7 @@ const [
       },
 
       {
-        key: 'populated_usersCount',
+        key: 'usersCount',
         width: 120,
       },
 
@@ -208,6 +273,51 @@ const [
         },
       },
       {
+        // 数据权限二期六档：数值与语义真源在 @walnut/contract 的 DataScope
+        // （1=ALL 2=CUSTOM 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF）。
+        // CUSTOM 的部门清单即下方 deptIds；CUSTOM 不递归子树、DEPT_AND_CHILD 含自身。
+        type: 'Base:Select',
+        formProp: {
+          path: 'dataScope',
+          labelHelpMessage: true,
+        },
+        componentProp: {
+          defaultValue: DataScope.ALL,
+          options: [
+            { label: t('table.role.dataScope.all'), value: DataScope.ALL },
+            { label: t('table.role.dataScope.custom'), value: DataScope.CUSTOM },
+            { label: t('table.role.dataScope.dept'), value: DataScope.DEPT },
+            { label: t('table.role.dataScope.deptAndChild'), value: DataScope.DEPT_AND_CHILD },
+            { label: t('table.role.dataScope.self'), value: DataScope.SELF },
+            { label: t('table.role.dataScope.deptOrSelf'), value: DataScope.DEPT_OR_SELF },
+          ],
+        },
+      },
+      {
+        // CUSTOM 档位的部门清单：只在选中 CUSTOM 时显示（visibleProp.vIf 读 formData）。
+        // 提交到角色 create/update 的 deptIds，后端整组替换 sys_role_dept junction。
+        // 非 CUSTOM 时该 schema 仍参与 strictFormData 的字段收集，但值保持上次勾选
+        // （后端对非 CUSTOM 角色无执行语义，切回 CUSTOM 时可直接复用）。
+        type: 'Base:TreeSelect',
+        formProp: {
+          path: 'deptIds',
+          labelHelpMessage: true,
+        },
+        visibleProp: {
+          vIf: ({ formData }) => (formData as { dataScope?: number }).dataScope === DataScope.CUSTOM,
+        },
+        componentProp: {
+          multiple: true,
+          defaultValue: [],
+          treeSelectProps: {
+            options: getDeptTree as unknown as any[],
+            keyField: 'id',
+            labelField: 'deptName',
+            placeholder: t('table.role.deptIds.placeholder'),
+          },
+        },
+      },
+      {
         type: 'Business:Dict',
         formProp: {
           path: 'status',
@@ -244,7 +354,7 @@ const [
             labelField: 'title',
             renderLabel: ({ option }) =>
               option.type === AppConstMenuType.ELEMENT
-                ? ((option as unknown as IModels.SystemMenu).meta.permission as string)
+                ? ((option as unknown as SystemMenu).meta.permission as string)
                 : (option.title as string),
           },
         },
@@ -256,7 +366,7 @@ const [
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.SystemRole} -->
+    <!-- @vue-generic {SystemRole} -->
     <WCRUD @hook="register" />
   </div>
 </template>

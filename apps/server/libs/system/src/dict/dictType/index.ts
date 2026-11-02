@@ -1,0 +1,6 @@
+export * from './dictType.basic.repository'
+export * from './dictType.module'
+export * from './dictType.service'
+export * from './dto'
+export * from './entity'
+export * from './repo'

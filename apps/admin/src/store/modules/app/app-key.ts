@@ -34,7 +34,7 @@ const useAppStoreKeyInside = defineStore(StoreKeys.APP_KEY, {
 
       const res = await getBaiduKeyAPI()
 
-      this.setBaiduAK(res.B!)
+      this.setBaiduAK(res.B)
     },
 
     async initUrlMaskingAesKey() {
@@ -43,7 +43,9 @@ const useAppStoreKeyInside = defineStore(StoreKeys.APP_KEY, {
 
       const res = await urlKeyAPI()
 
-      const raw = base64ToArrayBuffer(res.keyB64)
+      // GET /app/key/current/:type 的生成类型是「RSA/AES 二选一」并集（两个字段 optional），
+      // 本调用点固定 AES_KEY_URL，wire 必含 keyB64
+      const raw = base64ToArrayBuffer(res.keyB64!)
       const aesKey = await importAesKeyFromRaw(raw)
 
       this.setUrlMaskingAesKey(aesKey)

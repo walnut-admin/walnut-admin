@@ -9,19 +9,16 @@ import {
 import {
   ApiTags,
 } from '@nestjs/swagger'
+import { AuthCorePermissionsDTO, AuthSecretKeysResponseDTO, AuthService } from '@walnut-server/auth'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
-import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
-import { ClientSession } from 'mongoose'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { WalnutAdminDecoratorEncryptResponse } from '../../decorators/walnut/crypto.decorator'
-import { AppTechCookieService } from '../techniques/cookie/cookie.service'
-import { AuthService } from './auth.service'
-import { AuthCorePermissionsDTO } from './dto/auth.dto'
 
-@Controller('auth')
+import { AppTechCookieService } from '@walnut-server/cookie'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
+import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorEncryptResponse, WalnutAdminDecoratorUser, WalnutAdminGuardDeviceFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { AuthRoutes } from '@walnut/contract'
+
+@Controller(AuthRoutes.BASE)
 @ApiTags('auth')
 export class AuthController {
   constructor(
@@ -47,7 +44,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @WalnutAdminGuardSignFree()
   @WalnutAdminGuardDeviceFree()
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Signout, remove refresh token in db',
     primitive: 'boolean',
@@ -55,19 +52,23 @@ export class AuthController {
   async signout(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
   ) {
-    await this.authService.signout(user, deviceId, req.realIp, dbSession)
+    // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em
+    await this.authService.signout(user, deviceId, req.realIp, ctx.em)
     // clear refresh token in cookie
     this.cookieService.clearCookie(req, [{ key: WalnutAdminConstCookieKeys.RT_JTI }])
     return true
   }
 
   // TODO change controller
-  // TODO dto
   @Get('keys')
   @HttpCode(HttpStatus.OK)
+  @ApiWalnutOkResponse({
+    description: 'get secret keys (B is an RSA envelope payload string)',
+    DTO: AuthSecretKeysResponseDTO,
+  })
   @WalnutAdminDecoratorEncryptResponse('B')
   async getSecretKeys() {
     return this.authService.getSecretKeys()

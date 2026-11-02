@@ -1,16 +1,22 @@
 import type { BaseListParams, BaseListResponse } from '@walnut/contract'
 import type { StringOrNumber } from 'easy-fns-ts'
-import type { IModels } from './models'
 import { omit } from 'lodash-es'
 import { AppAxios } from '@/utils/axios'
 
-export type BaseAPIType<T extends IModels.Base> = InstanceType<typeof BaseAPI<T>>
+export type BaseAPIType<T extends { id: string }> = InstanceType<typeof BaseAPI<T>>
 
-function omitUnnecessaryFields<T extends IModels.Base>(data: T) {
-  return omit(data, ['_id', 'createdAt', 'updatedAt'])
+function omitUnnecessaryFields<T extends { id?: string }>(data: T) {
+  // PG 化后主键是 id（uuid）：create 不带 id（服务端生成），update 的 id 只走 URL 参数，
+  // body 一律剔除（服务端 Safe DTO 的 RealPickType 也不收 id）
+  return omit(data, ['id', 'createdAt', 'updatedAt'])
 }
 
-export class BaseAPI<T extends IModels.Base> {
+/**
+ * 泛型约束为 `{ id: string }`：全模块（codegen 二期起）直接消费
+ * `@walnut/api-types` 的生成别名（`createdAt` 是 string、`pid` 可空 —— 与旧手写
+ * IModels.Base 的 Date/必填形态不同），手写镜像 models.d.ts 已退役。
+ */
+export class BaseAPI<T extends { id: string }> {
   private readonly baseAPI: string
 
   constructor({ model, section }: { model: string, section: string }) {
@@ -45,7 +51,7 @@ export class BaseAPI<T extends IModels.Base> {
   update(data: T) {
     return AppAxios.put<T>(
       {
-        url: `${this.baseAPI}/${data._id}`,
+        url: `${this.baseAPI}/${data.id}`,
         data: omitUnnecessaryFields<T>(data),
       },
     )

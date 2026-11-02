@@ -1,11 +1,11 @@
 import type { NextFunction } from 'express'
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common'
+import { SharedBLPathService } from '@walnut-server/blpath'
 import { isProd } from '@walnut-server/config/utils/env'
 import { LoggerContextService } from '@walnut-server/context'
 import { maskSensitiveFields } from '@walnut-server/utils/mask'
 import { RequestHeaders } from '@walnut/contract/http'
 import { Recordable } from 'easy-fns-ts'
-import { SharedBLPathService } from '@/modules/shared/BLPath/BLPath.service'
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
@@ -24,15 +24,15 @@ export class LoggerMiddleware implements NestMiddleware {
     const requestId = req.id
 
     this.loggerContextService.run({ requestId }, () => {
-      // 1. Request开�?
+      // 1. Request 开始
       this.logger.log('Request Start', {
         context: LoggerMiddleware.name,
         type: 'REQUEST_START',
         requestId,
-        // 【改动】嵌套结�?
+        // 【改动】嵌套结构
         request: {
           method: req.method,
-          // 【修复】originalUrl 通常�?baseUrl 更完整，包含 querystring 之前的路�?
+          // 【修复】originalUrl 通常比 baseUrl 更完整，包含 querystring 之前的路径
           url: req.originalUrl || req.baseUrl,
           ip: req.realIp,
           userAgent: req.userAgent?.ua,

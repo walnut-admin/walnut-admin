@@ -1,10 +1,10 @@
+import type { SystemMenu, SystemMenuTree } from '@walnut/api-types'
 import type { IActionType } from '@walnut/types/universal'
+
 import type { TreeNodeItem } from 'easy-fns-ts'
-
 import type { ComputedRef, Ref } from 'vue'
-import type { IAppSystemMenuForm } from './types'
 
-import type { IModels } from '@/api/models'
+import type { IAppSystemMenuForm } from './types'
 import type { WForm } from '@/components/UI/Form'
 import { findPath } from 'easy-fns-ts'
 import { computed } from 'vue'
@@ -18,8 +18,9 @@ import { cacheKeyStrategyOptions, getViewsOptions, menuTernalOptions, menuTypeOp
 export function useMenuFormSchema(
   actionType: Ref<IActionType>,
   formData: Ref<IAppSystemMenuForm>,
-  treeData: ComputedRef<TreeNodeItem<IModels.SystemMenu>[] | undefined>,
-  menuActiveNamesOptions: Ref<Pick<IModels.SystemMenu, 'title' | 'name'>[]>,
+  // menu 一期：tree / active-names 真源换 @walnut/api-types 生成别名（与 useMenuTree 同源）
+  treeData: ComputedRef<TreeNodeItem<SystemMenuTree>[] | undefined>,
+  menuActiveNamesOptions: Ref<Pick<SystemMenu, 'title' | 'name'>[]>,
   t: (key: string) => string,
 ) {
   // get view options and name options
@@ -31,7 +32,7 @@ export function useMenuFormSchema(
       treeData.value
       && findPath<IAppSystemMenuForm>(
         treeData.value,
-        n => n._id === formData.value.pid,
+        n => n.id === formData.value.pid,
       ),
   )
 
@@ -77,7 +78,7 @@ export function useMenuFormSchema(
       componentProp: {
         treeSelectProps: {
           options: treeData ?? [],
-          keyField: '_id',
+          keyField: 'id',
           labelField: 'title',
         },
       },

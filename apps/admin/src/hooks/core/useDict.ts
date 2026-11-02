@@ -1,12 +1,13 @@
+import type { SystemDictTypeWithDictData } from '@walnut/api-types'
 import type { BaseDataType } from 'easy-fns-ts'
 import type { ComputedRef, Ref } from 'vue'
-import type { IResponseData } from '@/api/response'
 import { computed, ref } from 'vue'
+
 import { getDictByTypeAPI } from '@/api/system/dict'
 
-const AppStoreMapDict = ref(new Map<string, IResponseData.System.Dict.MapDictValue>())
+const AppStoreMapDict = ref(new Map<string, SystemDictTypeWithDictData>())
 
-function setDictIntoMap(type: string, data: IResponseData.System.Dict.MapDictValue) {
+function setDictIntoMap(type: string, data: SystemDictTypeWithDictData) {
   return AppStoreMapDict.value.set(type, data)
 }
 
@@ -47,8 +48,8 @@ export async function initDict(types: string[]) {
 }
 
 // typescript overload
-export function useDict(types: string): { loading: Ref<boolean>, execDict: () => Promise<IResponseData.System.Dict.MapDictValue>, dictData: ComputedRef<IResponseData.System.Dict.MapDictValue> }
-export function useDict(types: string[]): { loading: Ref<boolean>, execDict: () => Promise<IResponseData.System.Dict.MapDictValue[]>, dictData: ComputedRef<IResponseData.System.Dict.MapDictValue[]> }
+export function useDict(types: string): { loading: Ref<boolean>, execDict: () => Promise<SystemDictTypeWithDictData>, dictData: ComputedRef<SystemDictTypeWithDictData> }
+export function useDict(types: string[]): { loading: Ref<boolean>, execDict: () => Promise<SystemDictTypeWithDictData[]>, dictData: ComputedRef<SystemDictTypeWithDictData[]> }
 export function useDict(types: string | string[]): void
 export function useDict(types: string | string[]) {
   if (!types || types.length === 0) {

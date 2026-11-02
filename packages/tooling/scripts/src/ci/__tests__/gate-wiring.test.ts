@@ -147,6 +147,9 @@ const CI_EXEMPT: Record<string, string> = {
   // actionlint 在 CI 侧由**专门的 workflow**直接下载并执行二进制（`workflow-lint.yml`），
   // 不经过 `pnpm lint:workflows` 这个包装脚本 —— 覆盖是有的，只是入口形态不同。
   workflows: 'CI 侧由 workflow-lint.yml 直接跑 actionlint 二进制，不经过 pnpm 包装脚本',
+  // OpenAPI 一致性要引导 AppModule 反射装饰器元数据（连接 PG/Redis），CI 没有数据库服务；
+  // 触发面由本地 prepush 与发版电池（steps.ts 的 openapi 段）承担，两边都要连库、都能连。
+  openapi: '导出 openapi.json 需 PG/Redis 在线，CI 无数据库服务；由 prepush 与发版电池承担',
 }
 
 const BATTERY_EXEMPT: Record<string, string> = {}

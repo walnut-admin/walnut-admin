@@ -1,6 +1,6 @@
 <script lang="tsx" setup>
+import type { SystemMenu } from '@walnut/api-types'
 import type { MenuOption } from 'naive-ui'
-import type { IModels } from '@/api/models'
 import type { ValueOfAppConstMenuTernal, ValueOfAppConstMenuType } from '@/const/menu'
 import { findPath, formatTree } from 'easy-fns-ts'
 import { omit } from 'lodash-es'
@@ -11,13 +11,14 @@ import { AppConstMenuTernal, AppConstMenuType } from '@/const/menu'
 import { useAppMessage } from '@/hooks/component/useMessage'
 import { useAppI18n } from '@/locales/index'
 import { useAppRouter, useAppRouterPush } from '@/router/index'
+
 import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
-
 import { useAppStoreMenu } from '@/store/modules/app/app-menu'
-import { useAppStoreTab } from '@/store/modules/app/app-tab'
 
+import { useAppStoreTab } from '@/store/modules/app/app-tab'
 import { useAppStoreSettingDev } from '@/store/modules/setting/setting-dev'
 import { useAppStoreUserPreference } from '@/store/modules/user/user-preference'
+
 import { openExternalLink } from '@/utils/window/open'
 
 interface MenuMeta {
@@ -43,7 +44,7 @@ const getCurrentMenuName = computed((): string =>
 
 // format to naive-ui menu option data structure
 const getMenuOptions = computed(() =>
-  formatTree<IModels.SystemMenu, MenuOption>(toRaw(appStoreMenu.menus), node => ({
+  formatTree<SystemMenu, MenuOption>(toRaw(appStoreMenu.menus), node => ({
     key: node.name,
     label: t(node.title!),
     icon: () => {
@@ -77,7 +78,7 @@ const getMenuOptions = computed(() =>
 watch(
   () => getCurrentMenuName.value,
   async (v, oldV) => {
-    const paths = findPath<IModels.SystemMenu>(
+    const paths = findPath<SystemMenu>(
       appStoreMenu.menus,
       n => n.name === v,
     )
@@ -86,10 +87,10 @@ watch(
       return
 
     if (appStoreSettingDev.getMenuAccordion) {
-      expandedKeys.value = (paths as IModels.SystemMenu[]).map(i => i.name!)
+      expandedKeys.value = (paths as SystemMenu[]).map(i => i.name!)
     }
     else {
-      const oldPaths = findPath<IModels.SystemMenu>(
+      const oldPaths = findPath<SystemMenu>(
         appStoreMenu.menus,
         n => n.name === oldV,
       )
@@ -97,7 +98,7 @@ watch(
       if (!oldPaths)
         return
 
-      expandedKeys.value = [...(oldPaths as IModels.SystemMenu[]).map(i => i.name!), ...(paths as IModels.SystemMenu[]).map(i => i.name!)]
+      expandedKeys.value = [...(oldPaths as SystemMenu[]).map(i => i.name!), ...(paths as SystemMenu[]).map(i => i.name!)]
     }
 
     await nextTick()

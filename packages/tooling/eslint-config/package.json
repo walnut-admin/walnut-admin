@@ -10,7 +10,7 @@
     "./nest": "./nest.ts"
   },
   "engines": {
-    "node": ">=24.13.0",
+    "node": ">=24.15.0",
     "pnpm": ">=12.0.0"
   },
   "scripts": {

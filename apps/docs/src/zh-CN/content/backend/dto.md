@@ -8,7 +8,7 @@
 CRUD 装饰器由工厂函数生成，一个模块建一次：
 
 ```typescript
-import { WalnutCrudDecorators } from '@/decorators/crud'
+import { WalnutCrudDecorators } from '@walnut-server/crud'
 
 const {
   WalnutAdminDecoratorCreate,
@@ -76,7 +76,6 @@ export class SysUserUpdateDTO extends RealPartialType(SysUserCreateDTO) {
 ```typescript
 import {
   WalnutAdminDecoratorFieldBoolean,
-  WalnutAdminDecoratorFieldMongoId,
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
@@ -96,8 +95,9 @@ export class UserRequestDTO {
 ```
 
 **好处**：一个装饰器同时承担「校验 + 转换 + Swagger 文档」三件事，三者不会再互相漂移。
-可用的装饰器还有 `WalnutAdminDecoratorFieldEnum`（枚举）、`FieldDate`、`FieldNumber`、`FieldMongoId`、
-`FieldObject`（嵌套对象）。
+可用的装饰器还有 `WalnutAdminDecoratorFieldEnum`（枚举）、`FieldDate`、`FieldNumber`、
+`FieldObject`（嵌套对象）；主键 / uuid 引用字段的校验用 validator 层的
+`WalnutAdminDecoratorValidatorUuid`（不锁 uuid 版本 —— 存量 v4 / v7 / v5 三条 ID 通道都放行）。
 
 ### 字段声明不要 `?` 与 `!`
 
@@ -151,7 +151,7 @@ export class UserDTO {
 4. 功能性 Guard（`@WalnutAdminDecoratorFunctionalGuard`）
 5. CRUD 装饰器（`@WalnutAdminDecoratorList`、`@WalnutAdminDecoratorCreate`、`@WalnutAdminDecoratorRead`、`@WalnutAdminDecoratorUpdate`、`@WalnutAdminDecoratorDelete`、`@WalnutAdminDecoratorDeleteMany`）
 6. Guard Free（`@WalnutAdminGuardJwtOptional`、`@WalnutAdminGuardLockFree`、`@WalnutAdminGuardSignFree`、`@WalnutAdminGuardMFAFree`、`@WalnutAdminGuardJwtFree`、`@WalnutAdminGuardCapFree`、`@WalnutAdminGuardDeviceFree`、`@WalnutAdminGuardIpFree`）
-7. 事务（`@WalnutDBTransaction`，见 [MongoDB 事务](./transactions.md)）
+7. 事务（`@WalnutTx`，见 [PostgreSQL 事务](./transactions.md)）
 8. Swagger（`@ApiExtraModels`、`@ApiParam`、`@ApiQuery`、`@ApiBody`、`@ApiWalnutOkResponse`、`@ApiOkResponse`）
 9. 功能性（`@WalnutAdminDecoratorFreeResponse`、`@WalnutAdminDecoratorCache`、`@WalnutAdminDecoratorAuthLog`、`@WalnutAdminDecoratorOperateLog`、`@WalnutAdminDecoratorThrottle`、`@WalnutAdminDecoratorDevOnly`、`@Render`）
 10. `@UseGuards`（**在最后**，不是「Guard 那一条」的位置）
@@ -162,9 +162,9 @@ export class UserDTO {
 
 1. 上下文（`@WalnutAdminDecoratorJti`、`@WalnutAdminDecoratorUser`）
 2. 设备（`@WalnutAdminDecoratorDeviceId`）
-3. 会话（`@WalnutDBSession`）
+3. 会话（`@WalnutTxSession`）
 4. Cookie（`@WalnutAdminDecoratorCookie`）
-5. 路径参数（`@WalnutAdminDecoratorParamMongoId`、`@WalnutAdminDecoratorParamMongoIds`）
+5. 路径参数（`@WalnutAdminDecoratorParamUuid`、`@WalnutAdminDecoratorParamUuids`）
 6. 标准（`@Req`、`@Request`、`@Res`、`@Response`、`@Param`、`@Query`、`@Body`、`@Headers`）
 7. 元信息（`@Ip`、`@I18n`）
 

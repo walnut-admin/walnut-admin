@@ -1,14 +1,15 @@
-import type { IModels } from '../models'
+import type { AppLogger, AppLoggerReadResponse } from '@walnut/api-types'
+import { AppRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
-export const appLoggerAPI = new BaseAPI<IModels.AppLogger>({
+export const appLoggerAPI = new BaseAPI<AppLogger>({
   model: 'app',
   section: 'logger',
 })
 
 export function readAppLoggerMoreAPI(id: string, page: number) {
-  return AppAxios.get<IModels.AppLogger>({
-    url: `/app/logger/${id}?page=${page}`,
+  return AppAxios.get<AppLoggerReadResponse>({
+    url: `${AppRoutes.LOGGER}/${id}?page=${page}`,
   })
 }

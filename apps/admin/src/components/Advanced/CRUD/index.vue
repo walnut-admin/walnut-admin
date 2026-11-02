@@ -1,8 +1,7 @@
-<script lang="ts" setup generic="T extends IModels.Base">
+<script lang="ts" setup generic="T extends { id: string }">
 import type { IActionType } from '@walnut/types/universal'
 import type { StringOrNumber } from 'easy-fns-ts'
 import type { WCrud } from './types'
-import type { IModels } from '@/api/models'
 import type { WForm } from '@/components/UI/Form'
 import type { WTable } from '@/components/UI/Table'
 import { useProps } from '@walnut/client/hooks/core/useProps'
@@ -52,7 +51,7 @@ const getBaseApi = computed(() => getProps.value.baseAPI!)
 
 // get create/update form data
 const getFormData = computed(() =>
-  getProps.value.strictFormData ? pick(formData.value, ([...getProps.value.formProps?.schemas?.filter(i => i.formProp?.path).map(i => i.formProp?.path) as (keyof T)[], '_id'])) : formData.value,
+  getProps.value.strictFormData ? pick(formData.value, ([...getProps.value.formProps?.schemas?.filter(i => i.formProp?.path).map(i => i.formProp?.path) as (keyof T)[], 'id'])) : formData.value,
 )
 
 // get table props
@@ -97,7 +96,29 @@ const getFormProps = computed((): WForm.Props<T> => ({
     closeConfirm: getIsFormModified.value,
 
     // create/update confirm
-    onYes: async (apiHandler) => {
+    onYes: async (apiHandler, done) => {
+      // 提交前钩子（如角色表单的 CUSTOM 非叶子部门确认）：返回 false 中止本次提交，
+      // 只复位 loading、不关抽屉 —— 用户取消确认后仍可继续修改表单。
+      const beforeSubmit = getProps.value.onBeforeFormSubmit
+      if (beforeSubmit) {
+        let canSubmit = false
+        try {
+          canSubmit = await beforeSubmit({
+            formData: getFormData.value,
+            actionType: actionType.value,
+          })
+        }
+        catch (error) {
+          done({ closeModal: false })
+          throw error
+        }
+
+        if (!canSubmit) {
+          done({ closeModal: false })
+          return
+        }
+      }
+
       await apiHandler(
         // Form API Solution 1
         getBaseApi.value[actionType.value].bind(getBaseApi.value),

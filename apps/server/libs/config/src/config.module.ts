@@ -5,10 +5,10 @@ import { ConfigModule } from '@nestjs/config'
 import AppConfig from './modules/app.config'
 import AuthConfig from './modules/auth.config'
 import CryptoConfig from './modules/crypto.config'
-import DBConfig from './modules/database.config'
 import EmailConfig from './modules/email.config'
 import JwtConfig from './modules/jwt.config'
 import MiddlewareConfig from './modules/middleware.config'
+import PgConfig from './modules/pg.config'
 import SocketConfig from './modules/socket.config'
 import VendorConfig from './modules/vendor.config'
 import { validateConfig } from './validation'
@@ -23,7 +23,7 @@ const envFilePath = join(projectRoot, 'env-local', `.env.${env}`)
     ConfigModule.forRoot({
       envFilePath,
       load: [
-        DBConfig,
+        PgConfig,
         JwtConfig,
         AppConfig,
         VendorConfig,

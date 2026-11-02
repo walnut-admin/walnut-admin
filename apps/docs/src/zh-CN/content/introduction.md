@@ -9,7 +9,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 Turborepo + pnpm w
 | 应用 | 技术栈 | 说明 |
 |------|--------|------|
 | `apps/admin` | Vue 3 + Vite 8 + Naive UI + UnoCSS | 前端 SPA，含二次封装组件、动态菜单、权限校验、按钮级权限控制 |
-| `apps/server` | NestJS 11 + MongoDB + Redis + SWC | 后端 API，含 JWT/OAuth/WebAuthn/MFA 多层认证、18 个守卫 |
+| `apps/server` | NestJS 12 + MongoDB + Redis + SWC | 后端 API，含 JWT/OAuth/WebAuthn/MFA 多层认证、18 个守卫 |
 | `apps/docs` | VitePress | 本文档站 |
 
 | 共享包 | 说明 |
@@ -44,7 +44,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 Turborepo + pnpm w
 ### 后端
 
 - [NestJS](https://nestjs.com/) — 服务端框架
-- [MongoDB](https://www.mongodb.com/) + [Mongoose](https://mongoosejs.com/) — 数据库
+- [PostgreSQL](https://www.postgresql.org/) + [TypeORM](https://typeorm.io/) — 数据库
 - [Redis](https://redis.io/) — 缓存 + 队列
 - [SWC](https://swc.rs/) — 编译器
 

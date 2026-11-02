@@ -1,0 +1,7 @@
+{
+  "$comment": "staging 画像的命令行入口构建配置。与 apps/api/tsconfig.app.stage.json 同一理由：产物目录从 dist 换成 dist-stage（outDir 的真源在 tsconfig，见 infra/README.md）。",
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "outDir": "../../dist-stage"
+  }
+}

@@ -6,7 +6,7 @@
 
   <h1 align="center">Walnut Admin</h1>
   <p align="center">
-    A full-stack back-office management system — Vue3 + NestJS + MongoDB
+    A full-stack back-office management system — Vue3 + NestJS + PostgreSQL
     <br />
     <a target="_blank" href="https://walnut-admin-doc.netlify.app/"><strong>Explore the docs »</strong></a>
     <br />
@@ -19,13 +19,13 @@
 
 ## Monorepo Structure
 
-15 个 workspace 包（3 app + 3 platform-any + 3 platform-web + 6 tooling），同属 `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组：
+16 个 workspace 包（3 app + 3 platform-any + 4 platform-web + 6 tooling），同属 `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组（包数判据以 `pnpm-workspace.yaml` 的 `packages` 字段为准）：
 
 ```
 walnut-admin/
 ├── apps/
 │   ├── admin/     @walnut/admin    — Vue3 SPA + Vite 8 + Naive UI + UnoCSS
-│   ├── server/    @walnut/server   — NestJS 11 + SWC + Mongoose + Redis（内部 Nest monorepo）
+│   ├── server/    @walnut/server   — NestJS 12 + SWC + TypeORM + PostgreSQL + Redis（内部 Nest monorepo）
 │   └── docs/      @walnut/docs     — VitePress 文档站
 ├── packages/
 │   ├── platform-any/                — 平台无关（CJS 双模构建 / 纯类型 / 纯工具）
@@ -33,6 +33,7 @@ walnut-admin/
 │   │   ├── types/       @walnut/types      — ambient 类型声明
 │   │   └── utils-core/  @walnut/utils      — 纯工具（regex、queue、crypto）
 │   ├── platform-web/                — 浏览器 / Vue（源码直消费，不构建）
+│   │   ├── api-types/   @walnut/api-types  — 由 openapi.json 生成的 API 类型
 │   │   ├── client/      @walnut/client     — 浏览器工具 + Vue composables + store 工厂
 │   │   ├── http/        @walnut/http       — HTTP 客户端框架（实例 + 适配器）
 │   │   └── ui/          @walnut/ui         — 基于 naive-ui 的组件
@@ -41,7 +42,7 @@ walnut-admin/
 │       ├── eslint-config/     @walnut/eslint-config     — 共享 ESLint 预设（base / vue / nest）
 │       ├── commitlint-config/ @walnut/commitlint-config — commitlint 规则
 │       ├── vitest-config/     @walnut/vitest-config     — 共享 Vitest 预设（发现规则 / 环境 / 覆盖率）
-│       ├── scripts/           @walnut/scripts           — 仓库级脚本：lib / ci 门禁 / env 加解密 + 5 个 bin
+│       ├── scripts/           @walnut/scripts           — 仓库级脚本：lib / ci 门禁 / env 加解密 + bin（清单见其 package.json 的 `bin` 字段）
 │       └── release/           @walnut/release           — 发版编排（bin walnut-release）
 ├── turbo.json                    — Turborepo pipeline
 └── pnpm-workspace.yaml           — pnpm workspace + 版本策略（versioning.fixed 唯一真源）
@@ -54,13 +55,13 @@ walnut-admin/
 
 ## Quick Start
 
-**Requirements:** Node.js >= 24.13.0, pnpm >= 12.0.0
+**Requirements:** Node.js >= 24.15.0, pnpm >= 12.0.0
 
 ```bash
 pnpm install
 
 # Start dev servers
-pnpm dev           # 前端 + 后端（前端 → http://127.0.0.1:3100；后端需 MongoDB replica set + Redis）
+pnpm dev           # 前端 + 后端（前端 → http://127.0.0.1:3100；后端需 PostgreSQL + Redis）
 pnpm dev:server    # 只起后端
 pnpm dev:docs      # 只起文档站 → http://localhost:8886
 
@@ -77,7 +78,7 @@ pnpm build:docs
 pnpm lint          # 各包的 lint 任务
 pnpm lint:root     # 只 lint 根级配置
 pnpm types:check   # 全仓类型检查
-pnpm test          # vitest（12 个包有 test 任务）
+pnpm test          # vitest（当前 7 个包有 test 任务，清单以各包 package.json 为准）
 pnpm prepush       # 推送前门禁表（packages/tooling/scripts/src/ci/prepush.ts，并行）
 ```
 

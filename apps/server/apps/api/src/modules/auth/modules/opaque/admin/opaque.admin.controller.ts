@@ -1,20 +1,21 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
+import { AuthOpaqueAdminService } from '@walnut-server/auth'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
+
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
+import { WalnutAdminDecoratorHasPermission } from '@walnut-server/guards'
+import { AuthRoutes } from '@walnut/contract'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
 import { AuthOpaqueClearPasswordForAdminDTO, AuthOpaqueFinishChangePasswordForAdminDTO, AuthOpaqueStartChangePasswordForAdminDTO } from '../dto/opaque.dto'
-import { AuthOpaqueAdminService } from './opaque.admin.service'
 
 const WalnutAdminConstPermissionOpaqueAdmin = {
   PASSWORD_UPDATE: 'system:user:pass:update',
   PASSWORD_CLEAR: 'system:user:pass:clear',
 } as const
 
-@Controller('auth/opaque/admin')
+@Controller(AuthRoutes.OPAQUE_ADMIN)
 @ApiTags('auth/opaque/admin')
 export class AuthOpaqueAdminController {
   constructor(
@@ -41,7 +42,7 @@ export class AuthOpaqueAdminController {
   @WalnutAdminDecoratorHasPermission(
     WalnutAdminConstPermissionOpaqueAdmin.PASSWORD_UPDATE,
   )
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Finish password change with new registration record',
     primitive: 'boolean',
@@ -52,10 +53,11 @@ export class AuthOpaqueAdminController {
     operateType: WalnutAdminConstDecoratorLogOperateType.USER_UPDATE_PASSWORD,
   })
   async changePasswordFinish(
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() dto: AuthOpaqueFinishChangePasswordForAdminDTO,
   ) {
-    return this.authOpaqueAdminService.finishChangePassword(dto, dbSession)
+    // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em
+    return this.authOpaqueAdminService.finishChangePassword(dto, ctx.em)
   }
 
   @Post('password/clear')
@@ -63,7 +65,7 @@ export class AuthOpaqueAdminController {
   @WalnutAdminDecoratorHasPermission(
     WalnutAdminConstPermissionOpaqueAdmin.PASSWORD_CLEAR,
   )
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Clear password for user',
     primitive: 'boolean',
@@ -74,9 +76,10 @@ export class AuthOpaqueAdminController {
     operateType: WalnutAdminConstDecoratorLogOperateType.USER_CLEAR_PASSWORD,
   })
   async clearPasswordFinish(
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() dto: AuthOpaqueClearPasswordForAdminDTO,
   ) {
-    return this.authOpaqueAdminService.clearPassword(dto._id.toString(), dbSession)
+    // B7a 签名适配：identity 腿迁 PG —— 传 ctx.em
+    return this.authOpaqueAdminService.clearPassword(dto.id, ctx.em)
   }
 }

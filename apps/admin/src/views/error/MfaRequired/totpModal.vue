@@ -1,6 +1,6 @@
 <script lang="ts" setup>
+import type { AuthMfaTotpGenerate } from '@walnut/api-types'
 import type { InputInst } from 'naive-ui'
-import type { IResponseData } from '@/api/response'
 import { downloadByBlob } from '@walnut/client/browser/file/download'
 import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import { authMfaTotpBindAPI, authMfaTotpGenerateAPI, authMfaTotpUnbindAPI } from '@/api/auth/mfa'
@@ -24,7 +24,7 @@ const show = ref(false)
 const currentStep = ref(1)
 const loading = ref(false)
 
-const totpData = ref<IResponseData.Auth.MFA.Totp.Generate>()
+const totpData = ref<AuthMfaTotpGenerate>()
 const verifyCode = ref('')
 const backupCodes = ref<string[]>([])
 

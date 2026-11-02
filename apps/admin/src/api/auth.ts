@@ -1,19 +1,14 @@
-import type { IResponseData } from './response'
+import type { AuthSecretKeys, AuthTokenPayload } from '@walnut/api-types'
+import type { AuthPermissions } from './types/frontend-shapes'
+import { AuthRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
-
-const Auth = {
-  SIGNOUT: '/auth/signout',
-  REFRESH_TOKEN: '/auth/refresh',
-  PERMISSION: '/auth/permissions',
-  KEYS: '/auth/keys',
-} as const
 
 /**
  * @description Sign out
  */
 export function signoutAPI() {
   return AppAxios.post({
-    url: Auth.SIGNOUT,
+    url: AuthRoutes.SIGNOUT,
   })
 }
 
@@ -21,8 +16,8 @@ export function signoutAPI() {
  * @description Refresh accessToken use refreshToken
  */
 export function refreshTokenAPI() {
-  return AppAxios.post<IResponseData.Auth.TokenPayload>({
-    url: Auth.REFRESH_TOKEN,
+  return AppAxios.post<AuthTokenPayload>({
+    url: AuthRoutes.REFRESH,
   })
 }
 
@@ -30,8 +25,8 @@ export function refreshTokenAPI() {
  * @description Signin user permissions api
  */
 export function getPermissionsAPI() {
-  return AppAxios.get<IResponseData.Auth.Permissions>({
-    url: Auth.PERMISSION,
+  return AppAxios.get<AuthPermissions>({
+    url: AuthRoutes.PERMISSIONS,
   })
 }
 
@@ -39,9 +34,9 @@ export function getPermissionsAPI() {
  * @description get baidu ak from backend
  */
 export function getBaiduKeyAPI() {
-  return AppAxios.get<IResponseData.Auth.Keys>(
+  return AppAxios.get<AuthSecretKeys>(
     {
-      url: Auth.KEYS,
+      url: AuthRoutes.KEYS,
       _autoDecryptResponseData: ['B'],
       _cache: true,
     },

@@ -1,10 +1,11 @@
-import type { IModels } from '@/api/models'
+import type { SystemMenu } from '@walnut/api-types'
 import type { IStoreApp } from '@/store/types'
 import { defineStore } from 'pinia'
 import { getCurrentInstance } from 'vue'
 import { useAppRouterPush } from '@/router/index'
 import { layoutConst } from '@/router/routes/builtin'
 import { StoreKeys } from '../../constant'
+
 import { store } from '../../pinia'
 
 const useAppStoreMenuInside = defineStore(StoreKeys.APP_MENU, {
@@ -34,7 +35,7 @@ const useAppStoreMenuInside = defineStore(StoreKeys.APP_MENU, {
       this.showAside = payload
     },
 
-    setMenus(payload: IModels.SystemMenu[]) {
+    setMenus(payload: SystemMenu[]) {
       this.menus = payload
     },
 

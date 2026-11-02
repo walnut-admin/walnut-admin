@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { IResponseData } from '@/api/response'
+import type { AppMonitorServerSystem } from '@walnut/api-types'
 import type { ICompUIDescriptionsItem } from '@/components/UI/Descriptions'
 import { computed, onBeforeMount, ref } from 'vue'
 import { getSysInfoAPI } from '@/api/app/monitor/server'
@@ -12,7 +12,7 @@ defineOptions({
 
 const { t } = useAppI18n()
 
-const info = ref<IResponseData.App.Monitor.System>()
+const info = ref<AppMonitorServerSystem>()
 const loading = ref(false)
 const empty = ref(false)
 

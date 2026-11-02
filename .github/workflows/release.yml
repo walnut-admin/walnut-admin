@@ -305,9 +305,9 @@ jobs:
           path: .
 
       # 初始化数据打成一个**带版本号**的资产随 Release 发布（`walnut-admin-seed-<version>.tar.gz`）。
-      # 这里只打**仓内那部分**（8 个集合，约 0.1MB）：行政区划（66 万条）刻意不进 git，它需要一份
-      # 有数据的库才能导出，所以那部分由发版机本地跑 `pnpm seed:pack --areas-from-db` 产出，
-      # 再用 `gh release upload <tag> <文件> --clobber` 覆盖上去（`pnpm seed:pack` 会把这条命令打出来）。
+      # 这里只打**仓内那部分**（8 个集合，约 0.1MB，与 seed-pg 通道同源）：行政区划（66 万条）
+      # 刻意不进 git；Phase 5a 起 seed:pack 脚本随 Mongo 通道退役，CI 直接 tar 仓内 seed 目录
+      # （产物与原脚本在 CI 上的输出一致 —— 原脚本的 --areas-from-db 在 CI 本就没有可用的库）。
       - uses: pnpm/action-setup@v5
 
       - uses: actions/setup-node@v4
@@ -318,7 +318,11 @@ jobs:
       - name: Pack seed asset
         run: |
           pnpm install --frozen-lockfile --ignore-scripts
-          pnpm --silent seed:pack
+          VERSION=$(node -p "require('./package.json').version")
+          mkdir -p apps/server/db/.pack/staging/seed
+          cp -r apps/server/db/seed/. apps/server/db/.pack/staging/seed/
+          tar -czf "apps/server/db/.pack/walnut-admin-seed-${VERSION}.tar.gz" -C apps/server/db/.pack/staging .
+          rm -rf apps/server/db/.pack/staging
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2

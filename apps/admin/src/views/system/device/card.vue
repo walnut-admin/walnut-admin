@@ -1,11 +1,11 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { SystemDevice } from '@walnut/api-types'
 
 defineOptions({
   name: 'DeviceCard',
 })
 
-defineProps<{ device: IModels.SystemDevice, detailButtonAuth: string }>()
+defineProps<{ device: SystemDevice, detailButtonAuth: string }>()
 
 defineEmits<{ detail: [id?: string] }>()
 </script>
@@ -148,7 +148,7 @@ defineEmits<{ detail: [id?: string] }>()
           text
           size="tiny"
           type="primary"
-          @click="$emit('detail', device._id)"
+          @click="$emit('detail', device.id)"
         >
           {{ $t('app.base.detail') }} →
         </NButton>

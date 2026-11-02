@@ -12,12 +12,40 @@
         "../../libs/types/src/**/*",
         "../../libs/decorators/src/**/*",
         "../../libs/pipes/src/**/*",
-        "../../libs/exceptions/src/**/*"
+        "../../libs/exceptions/src/**/*",
+        "../../libs/context/src/**/*",
+        "../../libs/als/src/**/*",
+        "../../libs/blpath/src/**/*",
+        "../../libs/cookie/src/**/*",
+        "../../libs/crypto/src/**/*",
+        "../../libs/delay/src/**/*",
+        "../../libs/lock/src/**/*",
+        "../../libs/queue/src/**/*",
+        "../../libs/sse/src/**/*",
+        "../../libs/cache/src/**/*",
+        "../../libs/throttle/src/**/*",
+        "../../libs/mailer/src/**/*",
+        "../../libs/sms/src/**/*",
+        "../../libs/list/src/**/*",
+        "../../libs/crud/src/**/*",
+        "../../libs/scope-resolver/src/**/*",
+        "../../libs/token/src/**/*",
+        "../../libs/repository/src/**/*",
+        "../../libs/rsa/src/**/*",
+        "../../libs/ip/src/**/*",
+        "../../libs/identity/src/**/*",
+        "../../libs/system/src/**/*",
+        "../../libs/auth/src/**/*",
+        "../../libs/security/src/**/*",
+        "../../libs/guards/src/**/*",
+        "../../libs/app-domain/src/**/*"
     ],
     "exclude": [
         "node_modules",
         "dist",
         "test",
-        "**/*spec.ts"
+        "**/*spec.ts",
+        "../../apps/cli/**/*",
+        "../../libs/**/*.spec.ts"
     ]
 }

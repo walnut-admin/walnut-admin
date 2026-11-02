@@ -1,0 +1,42 @@
+{
+  "name": "@walnut/api-types",
+  "type": "module",
+  "version": "0.1.24",
+  "private": true,
+  "description": "OpenAPI-generated API schema types for Walnut Admin — generated from apps/server/openapi.json, consumed as pure source",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
+  },
+  "scripts": {
+    "generate": "openapi-typescript ../../../apps/server/openapi.json -o ./src/schema.d.ts",
+    "build": "echo 'api-types: pure source, no build needed'",
+    "lint": "eslint . --concurrency=4",
+    "lint:fix": "eslint . --fix --concurrency=4",
+    "types:check": "tsc --noEmit",
+    "clean": "rimraf dist",
+    "clean:all": "rimraf dist node_modules"
+  },
+  "devDependencies": {
+    "@walnut/eslint-config": "workspace:*",
+    "@walnut/tsconfig": "workspace:*",
+    "openapi-typescript": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:"
+  },
+  "walnut": {
+    "platform": "web",
+    "type": "api-types",
+    "runtime": "none"
+  }
+}

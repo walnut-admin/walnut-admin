@@ -1,8 +1,8 @@
 <script lang="ts" setup>
+import type { SystemMenu } from '@walnut/api-types'
 import type { IActionType } from '@walnut/types/universal'
 import type { StringOrNumber } from 'easy-fns-ts'
 import type { IAppSystemMenuForm } from './types'
-import type { IModels } from '@/api/models'
 import type { WForm } from '@/components/UI/Form'
 import { objectToPaths, pathsToObject } from '@walnut/client/browser/shared'
 import { useState } from '@walnut/client/hooks/core/useState'
@@ -23,7 +23,7 @@ defineOptions({
   name: 'Menu',
 })
 
-const keyField = '_id'
+const keyField = 'id'
 
 const { t } = useAppI18n()
 
@@ -68,7 +68,7 @@ commit()
 const { getLeftMenu, getTreeSelect, onInit, menuActiveNamesOptions }
   = useMenuTree()
 
-const [registerTree] = useTree<IModels.SystemMenu>({
+const [registerTree] = useTree<SystemMenu>({
   presetPrefixIcon: true,
   presetContextMenu: true,
   deletable: true,
@@ -130,7 +130,7 @@ const [registerTree] = useTree<IModels.SystemMenu>({
 
     filter: (pattern, node) => {
       const text = node.type === AppConstMenuType.ELEMENT
-        ? ((node as unknown as IModels.SystemMenu).meta.permission as string)
+        ? ((node as unknown as SystemMenu).meta.permission as string)
         : (node.title as string)
 
       if (text && (text as string).toLowerCase().includes(pattern)) {
@@ -142,7 +142,7 @@ const [registerTree] = useTree<IModels.SystemMenu>({
 
     renderLabel: ({ option }) =>
       option.type === AppConstMenuType.ELEMENT
-        ? ((option as unknown as IModels.SystemMenu).meta.permission as string)
+        ? ((option as unknown as SystemMenu).meta.permission as string)
         : (option.title as string),
   },
 })
@@ -193,7 +193,8 @@ const [register, { validate, restoreValidation }] = useForm<IAppSystemMenuForm>(
               loading.value = true
 
               try {
-                await menuAPI[actionType.value](pathsToObject<typeof formData.value, IModels.SystemMenu>(formData.value))
+                // 泛型实参是 menuAPI 的生成真源 SystemMenu（@walnut/api-types），不是手写镜像
+                await menuAPI[actionType.value](pathsToObject<typeof formData.value, SystemMenu>(formData.value))
                 useAppMsgSuccess()
                 await onInit()
               }
@@ -242,7 +243,7 @@ async function onUpdateTreeValue(v?: StringOrNumber | StringOrNumber[]) {
         }"
       >
         <template #default>
-          <!-- @vue-generic {IModels.SystemMenu} -->
+          <!-- @vue-generic {SystemMenu} -->
           <WTree v-model:value="targetTreeItem" @hook="registerTree" @update:value="onUpdateTreeValue" />
         </template>
       </n-card>

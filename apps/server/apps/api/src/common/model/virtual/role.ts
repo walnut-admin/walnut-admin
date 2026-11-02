@@ -1,24 +1,10 @@
-import { WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
 import { WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field'
+import { SysRoleDTOSafe } from '@walnut-server/system'
 
-import { Schema } from 'mongoose'
-import { SysRoleDTOSafe } from '@/modules/system/role/dto/role.dto'
-import { ISysRoleDocument } from '@/modules/system/role/schema/role.schema'
-import { addVirtual } from '../virtual'
-
-export function addVirtualRolesList(schema: Schema) {
-  return addVirtual(schema, {
-    virtualPath: WalnutDBVirtualName.ROLES_LIST,
-    ref: WalnutDBModelName.SYS_ROLE,
-    localField: 'roles',
-    foreignField: '_id',
-  })
-}
-
-export interface IVirtualRolesList {
-  populated_roles_list?: ISysRoleDocument[]
-}
-
+/**
+ * populate 出参（Phase 5a 起 mongoose virtual 已摘除；role 列表/计数由 PG 通道组装，
+ * 键名沿用 `WalnutVirtualName` 的 `roles_list` / `roles_count`）。
+ */
 export class WalnutAdminVirtualRolesListDTO {
   constructor(partial: Partial<WalnutAdminVirtualRolesListDTO>) {
     Object.assign(this, partial)
@@ -30,21 +16,7 @@ export class WalnutAdminVirtualRolesListDTO {
       title: 'virtual roles list',
     },
   })
-  populated_roles_list?: ISysRoleDocument[] | null
-}
-
-export function addVirtualRolesCount(schema: Schema) {
-  return addVirtual(schema, {
-    virtualPath: WalnutDBVirtualName.ROLES_COUNT,
-    ref: WalnutDBModelName.SYS_ROLE,
-    localField: 'roles',
-    foreignField: '_id',
-    count: true,
-  })
-}
-
-export interface IVirtualRolesCount {
-  populated_roles_count?: number | null
+  roles_list?: SysRoleDTOSafe[] | null
 }
 
 export class WalnutAdminVirtualRolesCountDTO {
@@ -57,5 +29,5 @@ export class WalnutAdminVirtualRolesCountDTO {
       title: 'virtual roles count',
     },
   })
-  populated_roles_count?: number | null
+  roles_count?: number | null
 }

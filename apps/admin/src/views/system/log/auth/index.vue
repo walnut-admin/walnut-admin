@@ -1,6 +1,7 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { SystemLogAuth } from '@walnut/api-types'
 import { logAuthAPI } from '@/api/system/log'
+
 import { useCRUD } from '@/components/Advanced/CRUD'
 
 defineOptions({
@@ -11,14 +12,14 @@ defineOptions({
 const localeKey = 'log.auth'
 // auth key
 const authKey = 'log:auth'
-const keyField = '_id'
+const keyField = 'id'
 
 const [register, {
   onDeleteManyConfirm,
   onDeleteConfirm,
   onApiList,
   onGetApiListParams,
-}] = useCRUD<IModels.SystemLogAuth>({
+}] = useCRUD<SystemLogAuth>({
   baseAPI: logAuthAPI,
 
   tableProps: {
@@ -239,7 +240,7 @@ const [register, {
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.SystemLogAuth} -->
+    <!-- @vue-generic {SystemLogAuth} -->
     <WCRUD @hook="register" />
   </div>
 </template>

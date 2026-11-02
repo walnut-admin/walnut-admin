@@ -6,9 +6,24 @@
         "delete": {
             "recoverFail": "还原失败"
         },
+        "dept": {
+            "parentNotFound": "父部门不存在",
+            "parentCycle": "父部门不能是自身或自身的子部门",
+            "hasChildren": "该部门下存在子部门，不能删除",
+            "hasEmployees": "该部门下存在职工，不能删除"
+        },
+        "post": {
+            "hasEmployees": "该岗位下存在职工，不能删除"
+        },
+        "employee": {
+            "deptNotFound": "部门不存在",
+            "postNotFound": "岗位不存在",
+            "userNotFound": "账号不存在"
+        },
         "user": {
             "unLock": {
-                "pwdErr": "解锁密码错误"
+                "pwdErr": "解锁密码错误",
+                "pwdRequired": "该账户已启用安全锁屏，请输入解锁密码"
             }
         }
     },

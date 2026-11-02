@@ -1,0 +1,5 @@
+export * from './data-scope.module'
+export * from './data-scope.predicates'
+export * from './data-scope.resolver'
+export * from './data-scope.rls'
+export * from './data-scope.service'

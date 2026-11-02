@@ -1,10 +1,11 @@
 <script lang="tsx" setup>
-import type { IModels } from '@/api/models'
+import type { AppMonitorCache } from '@walnut/api-types'
 import { monitorCacheAPI } from '@/api/app/monitor/cache'
 import { useCRUD } from '@/components/Advanced/CRUD'
 // TODO 111
 import WJSON from '@/components/Extra/JSON'
 import { useAppConfirm } from '@/hooks/component/useConfirm'
+
 import { useAppMsgSuccess } from '@/hooks/component/useMessage'
 
 import { useAppI18n } from '@/locales/index'
@@ -23,7 +24,7 @@ const { t } = useAppI18n()
 const [
   register,
   { onReadAndOpenUpdateForm, onDeleteConfirm, onApiList },
-] = useCRUD<IModels.AppMonitorCache>({
+] = useCRUD<AppMonitorCache>({
   baseAPI: monitorCacheAPI,
 
   tableProps: {
@@ -207,7 +208,9 @@ const [
         },
         componentProp: {
           render({ formData }) {
-            return <WJSON height="100%" value={formData.value}></WJSON>
+            // read 端点（/app/monitor/cache/{key}）返回 { value }，与 list 行（AppMonitorCache）不同形
+            // （server 无独立 schema，见 DESIGN-ISSUES）；CRUD 把 read 响应装进 formData，按事实取 value
+            return <WJSON height="100%" value={(formData as unknown as { value: string }).value}></WJSON>
           },
         },
       },
@@ -218,7 +221,7 @@ const [
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.AppMonitorCache} -->
+    <!-- @vue-generic {AppMonitorCache} -->
     <WCRUD @hook="register" />
   </div>
 </template>

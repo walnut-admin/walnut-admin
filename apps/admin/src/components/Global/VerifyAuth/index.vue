@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { VerifyAuthMethod, VerifyAuthMethodType, VerifyAuthOptions, VerifyAuthStep } from './types'
+import { WalnutAdminConstSysUserMfaType } from '@walnut/contract/mfa'
 import { computed, provide, ref, useTemplateRef } from 'vue'
 import { authMfaTotpVerifyAPI } from '@/api/auth/mfa'
 import { bindUserIdentityAPI, checkUserIdentityAPI, verifyUserIdentityAPI } from '@/api/system/user_identity'
@@ -37,6 +38,9 @@ const { t } = useAppI18n()
 // ============================================
 const currentStep = ref<VerifyAuthStep>('select')
 const selectedMethod = ref<VerifyAuthMethod>()
+
+// MFA 方法值集的单一真源是 @walnut/contract（server 侧同一数组做 enum 校验）
+const [mfaTotp] = WalnutAdminConstSysUserMfaType
 
 /** Component refs */
 const identityInputRef = useTemplateRef('identityInputRef')
@@ -112,7 +116,7 @@ async function onVerifyCode(code: string) {
       })
       compStoreVerifyAuth.onCloseVerifyAuthModal()
     }
-    else if (method.type === 'totp') {
+    else if (method.type === mfaTotp) {
       await authMfaTotpVerifyAPI({
         code,
         trusted: false,

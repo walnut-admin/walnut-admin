@@ -1,14 +1,25 @@
+import type { IAuthMonitorService } from '@walnut-server/auth'
+import type { IIdentityUserNotifier } from '@walnut-server/identity'
 import { Injectable } from '@nestjs/common'
+import { AppMonitorUserRepositoryService } from '@walnut-server/app-domain'
+import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
-import { IAuthRefreshTokenDocument } from '@/modules/auth/modules/refresh/schema/refresh.schema'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import { WalnutAdminSocketEvents } from '@/socket/socket.const'
 // Note: IWalnutAdminSocketEvents is now a global type from @walnut-server/types
 import { SocketService } from '@/socket/socket.service'
-import { AppMonitorUserRepositoryService } from '../repo/user.repo.service'
+
+/** B7b 迁移：refresh 行从 Mongo 文档换成 PG 实体（cron 只消费 userId / deviceId 两个键） */
+interface IExpiredRefreshTokenLike {
+  userId: string
+  deviceId: string
+}
 
 @Injectable()
-export class AppMonitorUserSharedService {
+/**
+ * 批 6：implements IIdentityUserNotifier 是身份内核端口绑定的编译期守护（user_lock 只认端口）。
+ * 批 8：implements IAuthMonitorService 是 auth 登出链踢人端口的编译期守护。
+ */
+export class AppMonitorUserSharedService implements IIdentityUserNotifier, IAuthMonitorService {
   constructor(
     private readonly appMonitorUserRepo: AppMonitorUserRepositoryService,
     private readonly socketService: SocketService,
@@ -27,13 +38,23 @@ export class AppMonitorUserSharedService {
   }
 
   /**
+   * @description 批 6：身份内核的单设备 socket 通知端口实现（user_lock 的 lock/unlock）。
+   * 与 sendSocketEventToUserAllMonitors 共用同一 SocketService，行为不变。
+   */
+  sendSocketEventToUserDevice(userId: string, fingerprint: string, event: IWalnutAdminSocketEvents) {
+    this.socketService.sendToUserRoom(userId, fingerprint, event)
+  }
+
+  /**
    * @description force quit monitor by socket
    */
   async forceQuitMonitorBySocket(userId: string, visitorId: string, revokeReason?: IWalnutAdminConstRevokeRTType) {
     const forceQuitConfig = await this.cacheAppSettingsService.getForceQuitConfig()
 
     this.socketService.sendToUserRoom(userId, visitorId, WalnutAdminSocketEvents.FORCE_QUIT, {
-      strategy: forceQuitConfig[revokeReason || WalnutAdminConstRevokeRTType.forceQuitOnline],
+      // 'rotate' 是 RT 轮换行标记（revoke-and-insert，2026-10-27），不是 force-quit 触发因，
+      // 不会从踢人链路传入 —— 索引面收窄回 12 个触发因
+      strategy: forceQuitConfig[(revokeReason as Exclude<IWalnutAdminConstRevokeRTType, 'rotate'>) || WalnutAdminConstRevokeRTType.forceQuitOnline],
     })
   }
 
@@ -53,20 +74,19 @@ export class AppMonitorUserSharedService {
    * @description change the auth state based on refresh token expire time
    * used for bull task
    */
-  async updateAuthStateForCronJob(expiredTarget: IAuthRefreshTokenDocument[]) {
+  async updateAuthStateForCronJob(expiredTarget: IExpiredRefreshTokenLike[]) {
     const res = await Promise.allSettled(
       expiredTarget.map(async (i) => {
         const monitorData = await this.appMonitorUserRepo.findByUserIdAndDeviceId(
-          i.userId.toString(),
+          i.userId,
           i.deviceId,
         )
 
-        if (!monitorData)
+        if (!monitorData) {
           return false
+        }
 
-        monitorData.auth = false
-        monitorData.userId = null
-        await monitorData.save()
+        await this.appMonitorUserRepo.updateAuthState(monitorData)
 
         return true
       }),

@@ -23,7 +23,7 @@ paths:
 - [ ] 装饰器顺序正确（HTTP → HttpCode → Permission → CRUD → GuardFree → Transaction → Swagger → Functional）
 - [ ] 参数装饰器顺序正确（User → DeviceId → Session → ParamMongoId → Body → Ip）
 - [ ] 响应包装在 DTO 中，未返回原始 service 结果
-- [ ] Delete 操作标注了 `@WalnutDBTransaction()`
+- [ ] Delete 操作标注了 `@WalnutTx()`
 
 ## DTO
 
@@ -54,7 +54,7 @@ paths:
 - [ ] 跨模块引用用 `@/*` alias（无 `../../`）
 - [ ] 顶层 `import type`（非内联 `import { type X }`）
 - [ ] Model 注入用 `WalnutDBInjectModel`（非 `@InjectModel`）
-- [ ] 用 `WalnutDBModelName` 常量（非 `Model.name`）
+- [ ] 用 `WalnutModelName` 常量（非 `Model.name`）
 - [ ] **没有** `index.ts` 桶文件
 
 ## 通用

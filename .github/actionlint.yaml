@@ -1,0 +1,11 @@
+# actionlint 配置（只放必要的窄豁免，别当成全局放宽）。
+#
+# `jobs.<job_id>.services.<service_id>.command` / `entrypoint` 是 GitHub Actions
+# 2026-04 新增的 service container 键（ci.yml 的 openapi job 用它给 redis 传
+# `--requirepass` —— 官方 redis 镜像没有密码 env）。actionlint 1.7.12（2026-03-31）
+# 的内置 schema 还没跟上，会把它们报成 `unexpected key`；这里只忽略这一条误报。
+# actionlint 支持该键后可删掉本段。
+paths:
+  .github/workflows/ci.yml:
+    ignore:
+      - 'unexpected key "command" for "services" section'

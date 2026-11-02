@@ -38,7 +38,11 @@ function validCollections(): Record<string, unknown> {
   const roleId = 'role-visitor'
   const menuId = 'menu-home'
   return {
-    app_setting: [{ _id: 's1', settingKey: 'app.default.role', settingValue: roleId }],
+    app_setting: [
+      { _id: 's1', settingKey: 'app.default.role', settingValue: roleId },
+      // P2-15：永久黑名单的写回锚点，必须显式存在（check-seed 机械核对）
+      { _id: 's2', settingKey: 'app.global.ipBlackList', settingValue: '[]' },
+    ],
     sys_dict_data: [],
     sys_dict_type: [],
     sys_lang: [{ _id: 'l1', lang: 'zh_CN', status: 'true', order: '2' }],
@@ -115,6 +119,28 @@ describe('collectFindings —— 反例（每条判据都要能红）', () => {
     const collections = validCollections()
     collections.app_setting = [{ _id: 's1', settingKey: 'app.default.role', settingValue: 'role-ghost' }]
     expect(details(makeRepo(collections))).toContain('app.default.role 指向不存在的角色')
+  })
+
+  it('p2-15：缺少 app.global.ipBlackList 显式默认行（黑名单写腿静默 no-op）', () => {
+    const collections = validCollections()
+    collections.app_setting = [{ _id: 's1', settingKey: 'app.default.role', settingValue: 'role-visitor' }]
+    expect(details(makeRepo(collections))).toContain('缺少显式默认行 app.global.ipBlackList')
+  })
+
+  it('p2-15：app.global.ipBlackList 的 value 不是合法 JSON 字符串数组', () => {
+    const invalidJson = validCollections()
+    invalidJson.app_setting = [
+      { _id: 's1', settingKey: 'app.default.role', settingValue: 'role-visitor' },
+      { _id: 's2', settingKey: 'app.global.ipBlackList', settingValue: 'not-json' },
+    ]
+    expect(details(makeRepo(invalidJson))).toContain('app.global.ipBlackList 形态不对')
+
+    const notArray = validCollections()
+    notArray.app_setting = [
+      { _id: 's1', settingKey: 'app.default.role', settingValue: 'role-visitor' },
+      { _id: 's2', settingKey: 'app.global.ipBlackList', settingValue: '{"ip":"1.2.3.4"}' },
+    ]
+    expect(details(makeRepo(notArray))).toContain('value 必须是 JSON 字符串数组')
   })
 
   it('引用完整性：菜单的 pid 指向不存在的菜单', () => {

@@ -10,6 +10,17 @@ import localRules from './nest-local-rules'
 import { turboEnvVarsConfig } from './turbo-env-vars'
 
 /**
+ * `walnut/data-scope/direct-repository` 的 selector 与提示语。
+ *
+ * 导出而不是只内联在配置里：`apps/server/eslint.config.ts` 的 libs 配置要追加动态 import
+ * 禁令，而 flat config 里同一 rules key 后份整体覆盖前份 —— 那条配置必须把本 selector
+ * 一起带上，否则 libs 里已有的显式 disable 会变成「未使用指令」，直连保护也会静默消失。
+ */
+export const DATA_SCOPE_DIRECT_REPOSITORY_SELECTOR = 'CallExpression[callee.property.name=\'getRepository\'][arguments.0.name=/^(SysUserEntity|SysLogOperateEntity|SysLogAuthEntity|AppMonitorUserEntity|SysDeletedEntity|AppDemoEntity|SysEmployeeEntity)$/]'
+
+export const DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE = '数据权限：已注册实体必须经 WalnutAdminCommonPgBaseRepository（common/repository）访问；系统通道请加 eslint-disable-next-line no-restricted-syntax 并写明理由。'
+
+/**
  * NestJS 后端预设：apps/server。
  *
  * 生效方式：`apps/server/eslint.config.ts` → `export default nestConfig()`。
@@ -28,8 +39,14 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
         '**/node_modules/**',
         '**/dist/**',
         '**/public/js/**',
+        // ambient 声明文件（.d.ts）豁免分层规则：它们只有类型声明、没有运行时 import，
+        // 不产生可执行的依赖边。已知盲区：.d.ts 里的 type-only 跨层依赖不在机器守卫内
+        // （tsc 只校验可解析、不校验方向），靠评审把关；当前 .d.ts 的内部 import 全部向下合法。
         '**/*.d.ts',
-        '**/*/strategy.ts',
+        // 这里曾有一条 `**/*/strategy.ts`（本意是豁免 passport 的 strategy 文件），但 passport
+        // 的命名是 `*.strategy.ts`，该 pattern 实际只命中 `libs/const/src/app/strategy.ts`
+        // （业务常量）与两个 vendored OAuth strategy —— 等于给分层守卫切出一块盲区。
+        // 2026-10-31 移除；vendor 文件若报错，按 lint 结论最小修复，不再靠路径豁免。
         'playwright/**/*.ts',
         'scripts/**/*.ts',
       ],
@@ -78,6 +95,23 @@ export default function nestConfig(options: OptionsConfig = {}): WalnutEslintCon
     turboEnvVarsConfig(),
     // 注释里不许有 emoji（纯文字）—— 三个预设共用，理由见 comment-rules.ts 顶部
     commentPolicyConfig(),
+    {
+      // ── 数据权限：已注册实体必须经基类仓库访问（防直连绕过 scope）──────────────
+      // 一期注册清单（apps/api/src/common/repository/data-scope.ts）里的实体，
+      // 任何 `xxx.getRepository(SysUserEntity)` 形态的直连都绕过行级数据权限。
+      // 系统通道（登录链 user.repo / 日志旁写 / 恢复器 / monitor 会话记账）确实
+      // 需要直连，必须在该文件/该行显式 `eslint-disable-next-line no-restricted-syntax`
+      // 并写明理由 —— 这是「显式 bypass + 审计」的静态落点，不允许静默新增。
+      name: 'walnut/data-scope/direct-repository',
+      files: ['**/*.ts'],
+      ignores: ['**/common/repository/**'],
+      rules: {
+        'no-restricted-syntax': ['error', {
+          selector: DATA_SCOPE_DIRECT_REPOSITORY_SELECTOR,
+          message: DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE,
+        }],
+      },
+    },
     {
       // ── 运行期配置模块：豁免 Turbo 的 env 声明检查 ────────────────────────────────
       // `libs/config/src/modules/*.config.ts` 是 `@nestjs/config` 的 `registerAs` 工厂，

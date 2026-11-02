@@ -32,77 +32,78 @@ services:
       - ./env/.env.production:/app/env-local/.env.production:ro
       - ./logs:/app/logs
     depends_on:
-      - prod-mongodb-primary
-      - prod-mongodb-secondary
-      - redis
+      # 两个数据层依赖都 healthy 才起 backend：启动期就会连 PG / Redis
+      # （连接由 env 里 DATABASE_PG_HOST=postgres / APP_REDIS_HOST=redis 指到本服务）
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     healthcheck:
-      # 真实存在的静态资源路由（main.ts useStaticAssets，绕过全部守卫返回 200），带 5s 超时
-      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/w/v1/static/images/demo.png', { signal: AbortSignal.timeout(5000) }).then(()=>process.exit(0)).catch(()=>process.exit(1))"]
+      # 探 raw Express 探针 /health/ready（W2-B）：PG SELECT 1 + Redis PING 都真实可用才 200，
+      # 任一依赖挂 → 503。镜像内是 Node，用 fetch 断言 r.ok —— wget/curl 只看「有响应」，
+      # 对状态码 / body 不敏感。探针在 nginx 上被挡（/health/ → 404），只走编排内网。
+      test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:3000/health/ready', { signal: AbortSignal.timeout(5000) }).then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 30s
 
-  # ---------- 数据层（沿用现有容器名与卷名，无缝接管）----------
-  prod-mongodb-primary:
-    image: docker.io/bitnami/mongodb:latest
+  # ---------- 数据层 ----------
+  # 单节点 PostgreSQL（ADR 0021 Decision 1：单节点即完整 ACID，不再需要副本集拓扑）。
+  # 凭据从 .env 注入，由 CI 从解密后的 DATABASE_PG_* 拼装（与 backend 那份 env 同源同值）。
+  postgres:
+    image: docker.io/library/postgres:18-alpine
     restart: always
-    container_name: prod-mongodb-primary
+    container_name: prod-postgres
     environment:
-      - MONGODB_REPLICA_SET_MODE=primary
-      - MONGODB_ROOT_USER=root
-      - MONGODB_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD}
-      - MONGODB_REPLICA_SET_KEY=${MONGODB_REPLICA_SET_KEY}
-      - MONGODB_REPLICA_SET_NAME=${MONGODB_REPLICA_SET_NAME}
-      - MONGODB_ADVERTISED_HOSTNAME=prod-mongodb-primary
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
-      - 'mongodb_master_data:/bitnami/mongodb'
+      # PG 18 官方镜像的挂载点是 /var/lib/postgresql（PGDATA 在其版本子目录下），
+      # 挂上一层目录便于未来大版本升级（pg_upgrade 双版本目录并存）
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
-  prod-mongodb-secondary:
-    image: docker.io/bitnami/mongodb:latest
-    restart: always
-    container_name: prod-mongodb-secondary
-    depends_on:
-      - prod-mongodb-primary
-    environment:
-      - MONGODB_REPLICA_SET_MODE=secondary
-      - MONGODB_INITIAL_PRIMARY_HOST=prod-mongodb-primary
-      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
-      - MONGODB_INITIAL_PRIMARY_ROOT_USER=root
-      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD}
-      - MONGODB_REPLICA_SET_KEY=${MONGODB_REPLICA_SET_KEY}
-      - MONGODB_REPLICA_SET_NAME=${MONGODB_REPLICA_SET_NAME}
-      - MONGODB_ADVERTISED_HOSTNAME=prod-mongodb-secondary
-
-  prod-mongodb-arbiter:
-    image: docker.io/bitnami/mongodb:latest
-    restart: always
-    container_name: prod-mongodb-arbiter
-    depends_on:
-      - prod-mongodb-primary
-    environment:
-      - MONGODB_REPLICA_SET_MODE=arbiter
-      - MONGODB_INITIAL_PRIMARY_HOST=prod-mongodb-primary
-      - MONGODB_INITIAL_PRIMARY_PORT_NUMBER=27017
-      - MONGODB_INITIAL_PRIMARY_ROOT_USER=root
-      - MONGODB_INITIAL_PRIMARY_ROOT_PASSWORD=${MONGODB_ROOT_PASSWORD}
-      - MONGODB_REPLICA_SET_KEY=${MONGODB_REPLICA_SET_KEY}
-      - MONGODB_REPLICA_SET_NAME=${MONGODB_REPLICA_SET_NAME}
-      - MONGODB_ADVERTISED_HOSTNAME=prod-mongodb-arbiter
-
+  # bitnami/redis 免费镜像已冻结迁入 bitnamilegacy（ADR 0021 Decision 4），换 Docker 官方镜像；
+  # bitnami 卷内是 /bitnami/redis/data 目录结构，与官方镜像的 /data 不兼容，故换新卷名 ——
+  # redis 里只有缓存/会话数据，可弃
   redis:
-    image: docker.io/bitnami/redis:latest
+    image: docker.io/library/redis:8-alpine
     restart: always
     container_name: prod-single-redis
-    environment:
-      - ALLOW_EMPTY_PASSWORD=no
-      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    # 密码与禁用清库命令对齐原 bitnami 形态：requirepass 对齐 env 的 APP_REDIS_PASS，
+    # FLUSHDB/FLUSHALL 改名为空串 = 彻底禁用（防误清线上缓存/会话）
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD}
+      - --rename-command
+      - FLUSHDB
+      - ''
+      - --rename-command
+      - FLUSHALL
+      - ''
+    healthcheck:
+      # 带密码 PING（密码由 compose 从 deploy/.env 的 REDIS_PASSWORD 插值，与本服务 command 同源）。
+      # 用 argv 直传（CMD）而不是 CMD-SHELL：密码含 shell 元字符（$ ` " \ 等）时不会被 shell
+      # 二次解析/截断；compose 的 ${REDIS_PASSWORD} 插值仍在宿主侧完成。
+      # --no-auth-warning 避免密码告警刷日志。backend 的 depends_on/healthcheck 依赖它先 healthy
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', '--no-auth-warning', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     volumes:
-      - redis_data:/bitnami/redis/data
+      - redis_prod_data:/data
 
 volumes:
-  mongodb_master_data:
+  postgres_data:
     driver: local
-  redis_data:
+  redis_prod_data:
     driver: local

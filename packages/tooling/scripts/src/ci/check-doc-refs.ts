@@ -73,6 +73,8 @@ const PATH_EXT = /\.(?:ts|tsx|vue|js|mjs|cjs|json|jsonc|yaml|yml|toml|sh|hcl|css
  * 所以这份清单的**长度本身就是「扫描面有没有失控」的体温计** —— 不写条数，看清单。
  */
 export const ALLOWED_MISSING_PATHS: Record<string, string> = {
+  // 规划中（数据权限批 5 落地，见 apps/docs/src/zh-CN/content/plans/data-scope-remediation-plan.md §3.1；建出来后应从本清单删掉）
+  'packages/platform-any/contract/src/data-scope.ts': '规划中（数据权限整改批 5：六档常量进 contract）',
   '.changeset/ledger.yaml': '首次发版时才生成（pnpm 的消费台账）',
   '.changeset/.release-state.json': '发版中间状态，gitignored，只在跑发版时短暂存在',
   '.changeset/config.json': '有意删除（迁到 pnpm-workspace.yaml 的 versioning 段），引用处都在说「已删除」',

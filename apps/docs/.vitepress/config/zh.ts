@@ -67,7 +67,7 @@ const backendContent = [
   },
   {
     text: '数据库与初始化数据',
-    link: '/content/backend/mongodb',
+    link: '/content/backend/postgresql',
   },
   // 「后端规范」一簇：原 apps/server/AGENTS.md 的参考部分（2026-09-23 拆分）。
   // 每篇都在 AGENTS.md 的「先看哪份」表里有对应的 repo 相对路径。
@@ -80,7 +80,7 @@ const backendContent = [
     link: '/content/backend/dto',
   },
   {
-    text: 'MongoDB 事务',
+    text: 'PostgreSQL 事务',
     link: '/content/backend/transactions',
   },
   {
@@ -90,6 +90,36 @@ const backendContent = [
   {
     text: '代码风格',
     link: '/content/backend/code-style',
+  },
+  // 「模块设计」一簇：按域拆分的模块设计文档（2026-10-28 文档大轮次产出）。
+  // 接口表/关键流程/已知行为注记；测试规划追踪仍在 apps/server/apps/api/test/api/。
+  {
+    text: '数据模型与表设计',
+    link: '/content/backend/schema',
+  },
+  {
+    text: '认证与令牌',
+    link: '/content/backend/modules/auth',
+  },
+  {
+    text: 'Guard 链与安全',
+    link: '/content/backend/modules/security',
+  },
+  {
+    text: '用户 · 角色 · 菜单 · 字典 · 国际化',
+    link: '/content/backend/modules/system-core',
+  },
+  {
+    text: '设备 · 身份 · 锁 · MFA · 偏好',
+    link: '/content/backend/modules/system-account',
+  },
+  {
+    text: '回收站 · 日志 · 缓存 · 任务',
+    link: '/content/backend/modules/system-data',
+  },
+  {
+    text: '应用族与共享',
+    link: '/content/backend/modules/app-shared',
   },
 ]
 
@@ -283,7 +313,30 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: '0017 包重组', link: '/content/adr/0017-package-reorganization' },
         { text: '0018 Git 钩子迁 lefthook', link: '/content/adr/0018-git-hooks-lefthook' },
         { text: '0019 tsconfig 预设与无 .mjs', link: '/content/adr/0019-tsconfig-presets-and-no-mjs' },
+        { text: '0020 移除 auto-import', link: '/content/adr/0020-remove-unplugin-auto-import' },
+        { text: '0021 MongoDB 迁 PostgreSQL', link: '/content/adr/0021-postgresql-migration' },
+        { text: '0022 领域 lib 分层与组合根', link: '/content/adr/0022-backend-lib-layering-and-composition-roots' },
+        { text: '0023 契约上收与路由门禁', link: '/content/adr/0023-contract-uplift-and-route-parity-gates' },
+        { text: '0024 健康探针 liveness/readiness', link: '/content/adr/0024-health-probes-liveness-readiness-separation' },
+        { text: '0025 定时任务锁与 bootstrap 归属', link: '/content/adr/0025-cron-single-instance-lock-and-bootstrap-ownership' },
+        { text: '0026 签名原文跨端统一', link: '/content/adr/0026-shared-sign-raw-across-frontend-and-backend' },
+        { text: '0027 数据权限行级设计', link: '/content/adr/0027-data-scope-row-level-six-tier-and-rls' },
         { text: 'Zod vs class-validator 评估', link: '/content/adr/zod-evaluation' },
+      ],
+    },
+    {
+      // 计划与设计：活跃的设计真源 / 路线图与已完结的实施计划（2026-11-02 自仓库根 docs/plans/
+      // 迁入）。每篇篇头有状态与后续演进指向；已完全闭环、仅作历史留痕的过程文档归「归档」段；本段的「已完结」篇仍是当前设计真源。
+      text: '计划与设计',
+      items: [
+        { text: '数据权限行级设计', link: '/content/plans/data-scope-design' },
+        { text: '数据权限 Phase 2-3 计划', link: '/content/plans/data-scope-phase2-3-plan' },
+        { text: '数据权限整改计划', link: '/content/plans/data-scope-remediation-plan' },
+        { text: 'PostgreSQL 迁移 Phase 2', link: '/content/plans/postgres-migration-phase2' },
+        { text: 'PostgreSQL 迁移 Phase 3 计划', link: '/content/plans/postgres-migration-phase3-plan' },
+        { text: '现代化路线图', link: '/content/plans/modernization-roadmap' },
+        { text: 'libs 解耦残留与后续', link: '/content/plans/libs-decoupling-residuals' },
+        { text: 'Package 下沉提案', link: '/content/plans/package-sinking-proposal' },
       ],
     },
     {

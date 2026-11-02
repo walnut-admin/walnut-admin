@@ -8,20 +8,18 @@ import {
   Post,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
+import { AppMonitorUserService } from '@walnut-server/app-domain'
+
+import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
+import { WalnutAdminDecoratorOperateLog, WalnutCrudDecorators } from '@walnut-server/crud'
 
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
-import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
-import { ClientSession } from 'mongoose'
-import { WalnutCrudDecorators } from '@/decorators/crud'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
-import { WalnutAdminDecoratorDeviceId } from '@/decorators/walnut/user.decorator'
-import { WalnutAdminGuardCapFree } from '@/guard/cap.guard'
-import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { WalnutAdminGuardJwtFree } from '@/modules/auth/modules/jwt/jwt-access.guard'
+import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
+import { WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorHasPermission, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { AppRoutes } from '@walnut/contract'
+import { plainToInstance } from 'class-transformer'
 import {
   AppMonitorUserDTO,
   AppMonitorUserDTOListRequest,
@@ -29,7 +27,6 @@ import {
   AppMonitorUserDTOReadResponse,
   AppMonitorUserDTOUpdateState,
 } from './dto/user.dto'
-import { AppMonitorUserService } from './user.service'
 
 const Permissions = {
   LIST: 'app:monitor:user:list',
@@ -42,7 +39,12 @@ const { WalnutAdminDecoratorList, WalnutAdminDecoratorRead } = WalnutCrudDecorat
   DTO: AppMonitorUserDTO,
 })
 
-@Controller('app/monitor/user')
+/**
+ * B6 迁移（controller 层，B1 同款）：路由参数 ParamMongoId → uuid 参数装饰器；事务
+ * 句柄 `ctx.dbSession` → `ctx.em`；`.toObject()` 移除，出参统一 plainToInstance。
+ * forceQuit 的 refresh revoke 写腿仍在 Mongo（B7），同一事务里 em + dbSession 并传。
+ */
+@Controller(AppRoutes.MONITOR_USER)
 @ApiTags('app/monitor/user')
 export class AppMonitorUserController {
   private readonly logger = new Logger(AppMonitorUserController.name)
@@ -52,33 +54,30 @@ export class AppMonitorUserController {
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: AppMonitorUserDTOListRequest) {
-    return new AppMonitorUserDTOListResponse(
-      await this.monitorUserService.list(payload),
-    )
+    return plainToInstance(AppMonitorUserDTOListResponse, await this.monitorUserService.list(payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
-  async read(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new AppMonitorUserDTOReadResponse(
-      (await this.monitorUserService.read(id)).toObject(),
-    )
+  async read(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(AppMonitorUserDTOReadResponse, await this.monitorUserService.read(id))
   }
 
   @Delete('force-quit/:id')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.FORCE_QUIT)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @WalnutAdminDecoratorOperateLog({
     title: WalnutAdminConstDecoratorLogOperateTitle.APP_MONITOR_USER,
     action: WalnutAdminConstDecoratorLogOperateAction.DELETE,
     operateType: WalnutAdminConstDecoratorLogOperateType.APP_MONITOR_USER_FORCE_QUIT,
   })
   async forceQuit(
-    @WalnutDBSession() dbSession: ClientSession,
-    @WalnutAdminDecoratorParamMongoId() id: string,
+    @WalnutTxSession() ctx: WalnutTxContext,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return this.monitorUserService.forceQuitByMonitorId(id, dbSession)
+    // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em
+    return this.monitorUserService.forceQuitByMonitorId(id, ctx.em)
   }
 
   @Post('state')
@@ -87,12 +86,14 @@ export class AppMonitorUserController {
   @WalnutAdminGuardJwtFree()
   @WalnutAdminGuardCapFree()
   @WalnutAdminGuardDeviceFree()
-  @WalnutDBTransaction()
+  @WalnutTx()
+  // 数据权限三期：在线监控心跳是匿名系统通道（无 ALS 描述符也要写 app_monitor_user）
+  @WalnutAdminDecoratorDataScopeSystemChannel()
   async monitor(
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() data: AppMonitorUserDTOUpdateState,
   ) {
-    return this.monitorUserService.updateState(deviceId, data, dbSession)
+    return this.monitorUserService.updateState(deviceId, data, ctx.em)
   }
 }

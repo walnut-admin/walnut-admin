@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { IResponseData } from '@/api/response'
+import type { AppMonitorServerNetwork } from '@walnut/api-types'
 import type { ICompUIDescriptionsItem } from '@/components/UI/Descriptions'
 import { computed, onBeforeMount, ref } from 'vue'
 import { getNetworkInfoAPI } from '@/api/app/monitor/server'
@@ -12,7 +12,7 @@ defineOptions({
 
 const { t } = useAppI18n()
 
-const info = ref<IResponseData.App.Monitor.Network>()
+const info = ref<AppMonitorServerNetwork>()
 const loading = ref(false)
 const empty = ref(false)
 

@@ -120,8 +120,10 @@ describe('collectFindings（对着真实仓库跑）', () => {
     expect(collectFindings(dry, ROOT).map(f => `${f.rule} :: ${f.detail}`)).toEqual([])
   })
 
-  it('解析到 15 个 workspace 包', () => {
-    expect(packageDirs(dry, ROOT)).toHaveLength(15)
+  it('解析到全部 workspace 包（下界断言，新包加入时不必回头改这里）', () => {
+    // 这里曾写死 toHaveLength(15) —— api-types 包加入当场红。与 package-scripts 的
+    // 先例同口径：要的是「扫描面非空且随仓库增长」，不是恰好某个数。
+    expect(packageDirs(dry, ROOT).length).toBeGreaterThanOrEqual(16)
   })
 
   it.skipIf(!hasEnvLocal)('产物目录掉出 outputs 会被报出来（dist-staging 那个 bug 的守卫）', () => {

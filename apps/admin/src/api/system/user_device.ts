@@ -1,22 +1,15 @@
+import type { SystemUserDeviceListItem } from '@walnut/api-types'
 import type { BaseListResponse } from '@walnut/contract'
 import type { IRequestPayload } from '../request'
-import type { IResponseData } from '../response'
+import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
-
-const systemUserDevice = {
-  LIST: '/system/user/device/list',
-  UPDATE_NAME: '/system/user/device/update-name',
-  FORCE_QUIT: '/system/user/device/force-quit',
-  LOCK: '/system/user/device/lock',
-  UNLOCK: '/system/user/device/unlock',
-} as const
 
 /**
  * @description list user's devices
  */
 export function listUserDevicesAPI() {
-  return AppAxios.get<BaseListResponse<IResponseData.System.UserDevice.List>>({
-    url: systemUserDevice.LIST,
+  return AppAxios.get<BaseListResponse<SystemUserDeviceListItem>>({
+    url: SystemEndpointRoutes.USER_DEVICE_LIST,
   })
 }
 
@@ -25,7 +18,7 @@ export function listUserDevicesAPI() {
  */
 export function updateUserDeviceNameAPI(data: IRequestPayload.System.UserDevice.UpdateName) {
   return AppAxios.put<boolean>({
-    url: `${systemUserDevice.UPDATE_NAME}/${data.deviceId}`,
+    url: `${SystemEndpointRoutes.USER_DEVICE_UPDATE_NAME}/${data.deviceId}`,
     data: {
       deviceName: data.deviceName,
     },
@@ -37,7 +30,7 @@ export function updateUserDeviceNameAPI(data: IRequestPayload.System.UserDevice.
  */
 export function forceQuitUserDeviceAPI(data: IRequestPayload.System.UserDevice.ForceQuit) {
   return AppAxios.delete<boolean>({
-    url: `${systemUserDevice.FORCE_QUIT}/${data.deviceId}`,
+    url: `${SystemEndpointRoutes.USER_DEVICE_FORCE_QUIT}/${data.deviceId}`,
   })
 }
 
@@ -46,7 +39,7 @@ export function forceQuitUserDeviceAPI(data: IRequestPayload.System.UserDevice.F
  */
 export function lockUserDeviceAPI(data: IRequestPayload.System.UserDevice.Lock) {
   return AppAxios.put<boolean>({
-    url: `${systemUserDevice.LOCK}/${data.deviceId}`,
+    url: `${SystemEndpointRoutes.USER_DEVICE_LOCK}/${data.deviceId}`,
   })
 }
 
@@ -55,6 +48,6 @@ export function lockUserDeviceAPI(data: IRequestPayload.System.UserDevice.Lock) 
  */
 export function unlockUserDeviceAPI(data: IRequestPayload.System.UserDevice.Unlock) {
   return AppAxios.put<boolean>({
-    url: `${systemUserDevice.UNLOCK}/${data.deviceId}`,
+    url: `${SystemEndpointRoutes.USER_DEVICE_UNLOCK}/${data.deviceId}`,
   })
 }

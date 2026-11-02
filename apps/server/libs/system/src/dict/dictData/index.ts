@@ -1,0 +1,7 @@
+export * from './dict-data.const'
+export * from './dictData.basic.repository'
+export * from './dictData.module'
+export * from './dictData.service'
+export * from './dto'
+export * from './entity'
+export * from './repo'

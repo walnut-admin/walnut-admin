@@ -1,11 +1,12 @@
 <script lang="ts" setup>
-import type { IResponseData } from '@/api/response'
+import type { SystemUserDeviceListItem } from '@walnut/api-types'
 import { useState } from '@walnut/client/hooks/core/useState'
 import { computed, ref } from 'vue'
 import { forceQuitUserDeviceAPI, listUserDevicesAPI, lockUserDeviceAPI, unlockUserDeviceAPI, updateUserDeviceNameAPI } from '@/api/system/user_device'
 import { useForm } from '@/components/UI/Form'
 import { useTable } from '@/components/UI/Table'
 import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+
 import { useAppI18n } from '@/locales/index'
 
 defineOptions({
@@ -47,7 +48,7 @@ const [registerUpdatePassword, { onOpen: onOpenUpdateDeviceNameModal }] = useFor
   ],
 })
 
-const [register, { onApiList }] = useTable<IResponseData.System.UserDevice.List>({
+const [register, { onApiList }] = useTable<SystemUserDeviceListItem>({
   bordered: true,
   striped: true,
   rowKey: row => row.deviceId!,
@@ -291,7 +292,7 @@ defineExpose({
 
 <template>
   <WModal v-model:show="visible" :title="$t('sys.menu.user.device')" width="60%" height="60%" :fullscreen="false" :default-button="false">
-    <!-- @vue-generic {IResponseData.System.UserDevice.List} -->
+    <!-- @vue-generic {SystemUserDeviceListItem} -->
     <WTable @hook="register" />
 
     <WForm :model="updateDeviceNameData" @hook="registerUpdatePassword" />

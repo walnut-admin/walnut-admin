@@ -11,22 +11,22 @@ import 'winston-daily-rotate-file'
 const AppName = getPackageJsonData().name as string
 
 /**
- * 【核心修复器�?
- * 专门解决 NestJS Logger 将元数据对象塞入 context 参数导致的格式错乱问题�?
- * 它会检�?context 是否为对象，如果是，则将其内部字段提升到根层级�?
+ * 【核心修复器】
+ * 专门解决 NestJS Logger 将元数据对象塞入 context 参数导致的格式错乱问题。
+ * 它会检查 context 是否为对象，如果是，则将其内部字段提升到根层级。
  */
 const normalizeNestContextFormat = winston.format((info) => {
-  // 只有�?context 是对象（且不是字符串、null、undefined）时才处�?
+  // 只有当 context 是对象（且不是字符串、null、undefined）时才处理
   if (typeof info.context === 'object') {
     const meta = info.context as Recordable
 
-    // 1. 提取真正�?context 类名 (例如 "LoggerMiddleware")
+    // 1. 提取真正的 context 类名 (例如 "LoggerMiddleware")
     if (!isNil(meta.context)) {
       info.context = meta.context
     }
 
-    // 2. �?request, response, requestId, type 等元数据提升到根层级
-    // 遍历对象，把除了 'context' 以外的所�?key 合并�?info 根对象上
+    // 2. 把 request, response, requestId, type 等元数据提升到根层级
+    // 遍历对象，把除了 'context' 以外的所有 key 合并到 info 根对象上
     Object.keys(meta).forEach((key) => {
       if (key !== 'context') {
         info[key] = meta[key]
@@ -49,12 +49,12 @@ const consoleLogFormat = winston.format.combine(
   }),
 )
 
-// --- 2. 文件输出格式 (�?JSON，给机器�? ---
+// --- 2. 文件输出格式 (输出 JSON，给机器看) ---
 const fileJsonFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   normalizeNestContextFormat,
 
-  // 【核心】手动重排序并注�?requestId
+  // 【核心】手动重排序并注入 requestId
   winston.format.printf((info) => {
     const store = loggerContextALS.getStore()
     if (!store) {
@@ -107,7 +107,7 @@ const fileJsonFormat = winston.format.combine(
     if (response)
       orderedInfo.response = response
 
-    // Error �?Stack 放最�?
+    // Error 和 Stack 放最后
     if (!isNil(error))
       orderedInfo.error = error
     if (stack && (isNil(error) || isNil(error.stack)))
@@ -118,7 +118,7 @@ const fileJsonFormat = winston.format.combine(
     }
 
     // 【关键】手动转 JSON，不依赖 winston.format.json()
-    // 这里保证�?orderedInfo 的顺序会被原封不动地写入文件
+    // 这里保证 orderedInfo 的顺序会被原封不动地写入文件
     return JSON.stringify(orderedInfo)
   }),
 )
@@ -141,11 +141,11 @@ export const WalnutAdminLogger = WinstonModule.createLogger({
   // 默认级别
   level: isDev ? 'debug' : 'info',
   transports: [
-    // 终端：使用美化格�?
+    // 终端：使用美化格式
     new winston.transports.Console({
       format: consoleLogFormat,
     }),
-    // 文件：使�?JSON 格式
+    // 文件：使用 JSON 格式
     createDailyRotateTransport('info', 'application'),
     createDailyRotateTransport('warn', 'error'),
   ],

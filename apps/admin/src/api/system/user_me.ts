@@ -1,20 +1,13 @@
-import type { IModels } from '../models'
-import type { IResponseData } from '../response'
+import type { MeSecurityTab2Status, SystemUser } from '@walnut/api-types'
+import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
-
-const systemUserMe = {
-  SWITCH_ROLE: '/system/user/me/role/switch',
-  GET_PROFILE: '/system/user/me/profile',
-  UPDATE_PROFILE: '/system/user/me/profile',
-  GET_SECURITY_TAB_2_STATUS: '/system/user/me/security-tab2',
-} as const
 
 /**
  * @description switch role
  */
 export function switchRoleAPI(roleId: string) {
   return AppAxios.patch<boolean>({
-    url: `${systemUserMe.SWITCH_ROLE}/${roleId}`,
+    url: `${SystemEndpointRoutes.USER_ME_SWITCH_ROLE}/${roleId}`,
   })
 }
 
@@ -22,17 +15,18 @@ export function switchRoleAPI(roleId: string) {
  * @description Signin user detail info api
  */
 export function getUserProfileAPI() {
-  return AppAxios.get<IResponseData.Auth.Profile>({
-    url: systemUserMe.GET_PROFILE,
+  return AppAxios.get<SystemUser>({
+    url: SystemEndpointRoutes.USER_ME_PROFILE,
   })
 }
 
 /**
  * @description update profile
+ * 载荷不含主键（me/profile 按 token 定位当前用户），对齐 server SysUserMeDTOUpdateProfileRequest
  */
-export function updateProfileAPI(data: IModels.SystemUser) {
+export function updateProfileAPI(data: Partial<SystemUser>) {
   return AppAxios.put<boolean>({
-    url: systemUserMe.UPDATE_PROFILE,
+    url: SystemEndpointRoutes.USER_ME_PROFILE,
     data,
   })
 }
@@ -41,7 +35,7 @@ export function updateProfileAPI(data: IModels.SystemUser) {
  * @description get user center security tab 2 status
  */
 export function getSecurityTab2StatusAPI() {
-  return AppAxios.get<IResponseData.Me.Security.Tab2Status>({
-    url: systemUserMe.GET_SECURITY_TAB_2_STATUS,
+  return AppAxios.get<MeSecurityTab2Status>({
+    url: SystemEndpointRoutes.USER_ME_SECURITY_TAB2,
   })
 }

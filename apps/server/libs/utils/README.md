@@ -1,10 +1,10 @@
 # @walnut-server/utils
 
-Shared utility functions used across the application. Provides DTO manipulation helpers, MongoDB aggregation pipeline builders, standardized response formatters, data masking, HTTP header utilities, dayjs configuration, and more. No NestJS module — purely functional utilities imported as needed.
+Shared utility functions used across the application. Provides DTO manipulation helpers, standardized response formatters, data masking, HTTP header utilities, dayjs configuration, and more. No NestJS module — purely functional utilities imported as needed.
 
 ## Exports
 
-10 modules re-exported via barrel from `src/index.ts`:
+9 modules re-exported via barrel from `src/index.ts`:
 
 | Module | Export Path | Key Exports |
 |--------|-------------|-------------|
@@ -12,7 +12,6 @@ Shared utility functions used across the application. Provides DTO manipulation 
 | dto | `@walnut-server/utils/dto` | `RealPickType()`, `RealPartialType()`, `RealOmitType()` — DTO helpers that fix `@Expose()` issues with NestJS `PickType`/`PartialType` |
 | general | `@walnut-server/utils/general` | `generateVerifyCode(length)`, `sleep(ms)`, `objectToPaths(obj)` |
 | headers | `@walnut-server/utils/headers` | `setCustomHeaders(context)` — sets X-Request-ID, X-Request-IP, timezone, language, version headers on response |
-| listAggregate | `@walnut-server/utils/listAggregate` | `buildListPipelineFromRequest<T>(params, extra?, sortAfter?, extraMatch?)` — converts list request params to MongoDB `$facet` aggregation pipeline |
 | mask | `@walnut-server/utils/mask` | `maskEmail()`, `maskPhone()`, `maskSensitiveFields(obj)` — PII data masking |
 | pkg | `@walnut-server/utils/pkg` | `getPackageJsonData()` — reads and parses `package.json` from CWD |
 | regex | `@walnut-server/utils/regex` | `regexMap` — uuidv4, email, phone number regex patterns |
@@ -23,7 +22,6 @@ Shared utility functions used across the application. Provides DTO manipulation 
 | File | Purpose |
 |------|---------|
 | `src/dto.ts` | Workarounds for NestJS/Swagger `PickType`/`PartialType` issues with `ClassSerializerInterceptor` (`excludeExtraneousValues: true`). Ensures `@Expose()` and `@IsOptional()` are applied when picking/partialing DTO classes. Used by every CRUD module. |
-| `src/listAggregate.ts` | MongoDB aggregation pipeline builder. `buildListPipelineFromRequest()` parses query filters (regex for strings, boolean, ObjectId, date ranges, `$in` for arrays), sort options (with priority), and pagination into a `$facet` pipeline with `data` + `total`. Used by every basic repository. |
 | `src/response.ts` | Core API response structure: `{ data, code, msg, requestId, meta, _devMsg }`. The `_devMsg` field is only included when `isDev` is true. Used by exception filter and all controllers. |
 | `src/mask.ts` | Data masking utilities: `maskEmail()` shows first 2 chars, `maskPhone()` shows first 3 + last 4 digits. `maskSensitiveFields()` recursively walks objects masking known sensitive fields (password, token, secret, email, phone, identity, etc.) with typed handling for ObjectId, Date, Map, Set. |
 | `src/headers.ts` | Sets custom response headers (ID, IP, timezone, language, version, repo-version), skipping SSE endpoints. |
@@ -41,9 +39,6 @@ import { AppDayjs } from '@walnut-server/utils/dayjs'
 // DTO helpers — used in every CRUD module
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 
-// List aggregation — used in every basic repository
-import { buildListPipelineFromRequest } from '@walnut-server/utils/listAggregate'
-
 // Data masking
 import { maskEmail, maskSensitiveFields } from '@walnut-server/utils/mask' // 'us***@example.com'
 
@@ -51,8 +46,6 @@ import { maskEmail, maskSensitiveFields } from '@walnut-server/utils/mask' // 'u
 import { WalnutAdminResponseSuccess } from '@walnut-server/utils/response'
 
 export class SysUserCreateDTO extends RealPickType(SysUserDTO, ['username', 'email'] as const) {}
-
-const pipeline = buildListPipelineFromRequest(params, lookupStages)
 
 return WalnutAdminResponseSuccess(user, requestId)
 

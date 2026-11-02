@@ -5,7 +5,7 @@
 > 其中 **`pnpm peers check` 红 核实后判定为已回退**，重新回到待办并升级到 P1。
 > 完成项的历史留在[执行记录](/content/archive/2026-09-24-architecture-ledger-history#执行记录)，细节见对应 ADR / 专题文档。
 
-**最后核实**：2026-09-23 ｜ 15 个 workspace 包 ｜ 全门禁绿（`prepush` 门禁表 14 段 / `lint` / `types:check` / `test` / `boundaries` / `syncpack` / `build` / `build:docs` / `lint:adr`）
+**最后核实**：2026-09-23 ｜ 16 个 workspace 包 ｜ 全门禁绿（`prepush` 门禁表 14 段 / `lint` / `types:check` / `test` / `boundaries` / `syncpack` / `build` / `build:docs` / `lint:adr`）
 
 ## 优先级总览
 
@@ -14,7 +14,7 @@
 | ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 tag 发布链路端到端验证已被决定推迟，见[「搁置」](#搁置-等条件成熟) |
 | ~~P1~~ | 静态检查与门禁的缺口 | **当前为空** —— 2026-09-23 登记的三条静态检查缺口 **当天做完即移出**（见[执行记录](/content/archive/2026-09-24-architecture-ledger-history#执行记录)）；根 `tsconfig.json` 的类型检查已补上，`pnpm peers check` 与 knip 两条按决定搁置 |
 | **P2** | 维护性 / 体验改善 | TS 7 迁移准备 · API 路由迁移收尾 · `@walnut/ui` 剩余组件 · store 工厂迁移 |
-| **P3** | 远期 / 条件触发 | 后端验证策略（落地） · E2E 测试 · **组件文档补写** · **两处安全观察** · `@walnut/i18n` 新包 · `@walnut/security` 新包 · Phase 4 自动导入迁移 · server 内部 lib 抽取 · `Global/AI` 的评审缺陷 |
+| **P3** | 远期 / 条件触发 | 后端验证策略（落地） · E2E 测试 · **组件文档补写** · **两处安全观察** · `@walnut/i18n` 新包 · `@walnut/security` 新包 · Phase 4 自动导入迁移 · `Global/AI` 的评审缺陷 |
 | **搁置** | 等条件成熟（外部依赖或已决定先不动） | `pnpm peers check` 红 · knip · tag 发布链路端到端验证 · GitHub Environments · 国内 self-hosted runner · **锚点校验** |
 | **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | 下面表里那 7 条<br><sub>文档类建议 **全部裁决完毕**（2026-09-23 定：英文站不要；组件文档按 74 页那套新命名写 → 已转为上表的「组件文档补写」）；D7（TS 7 排期）已并入 TS 7 迁移准备。**下面表里那 6 条 / 后端验证策略（选型） 全部指向业务代码**，按「本轮只做基建与文档」的决定**只登记不动手**</sub> |
 
@@ -65,7 +65,7 @@ ESLint 规则、`@walnut/types` 根导出、ADR 规范化、字数上限门禁�
 | 事项 | 工作量 | 现状与判据 |
 |------|------|------|
 | **TS 7 / tsgo 迁移准备**（评审建议上调到 P2） | 中 | `@walnut/tsconfig/base.json` 的 `ignoreDeprecations: "6.0"` 一刀切静音了通往原生编译器的迁移信号。**TS 7.0 已正式发布**（2026-07-08），评审提出应先做一次**阻塞面实测**：全仓 `types:check` 用 TS 7 跑一遍摸清阻塞点，再定排期。另注意 `apps/server/tsconfig.json` 未显式声明 `moduleResolution`（`module: commonjs` 使其落到默认 `node10`）。<br>⚠️ 与「全量 deps 升级」有重叠，建议并到那一次一起做。<br>**2026-09-23 补记**：`turbo` **已单独升过**（2.9.14 → 2.11.2，为拿 `cacheMaxAge` / `cacheMaxSize` / `concurrency` 三个键；顺带记一条经验：当天的 2.11.3 被本仓自己的 `minimumReleaseAge: 1440` 拦下，最后选的是已过 24h 成熟期的 2.11.2）。**全量升级时可以把它从清单里划掉**；`pnpm peers check` 那次也重跑过，仍是同样 5 组、exit 1 —— 与 turbo 无关。 |
-| **API 路由迁移收尾**（原「剩余 11 处 + server 44 controller」） | 中 | admin 侧已大量使用 contract 路由常量（`AuthRoutes` / `AppRoutes` / `SystemRoutes` / `SecurityRoutes` / `SharedRoutes` / `SystemEndpointRoutes`，`apps/admin/src` 里 101 行涉及）。**剩余全在 server 侧**：`git grep WalnutAdminConstApiRoute apps/server` → **0 处**，controller 仍用字面量路径。<br>评审建议（路由迁移的 server 侧方式）别手工逐个改：写 `gen-route-catalog`（扫 `@Controller` + `contract/routes`）+ `verify-route-parity` 门禁，一次性发现全部差异。 |
+| **API 路由迁移收尾**（原「剩余 11 处 + server 44 controller」） | 中 | ✅ **已完成（U2 批）**：47 个 controller 前缀全部改用 contract 常量（routes.ts 70→123），admin 58 处字面量替换清零；`route-catalog.drift.spec`（扫描 @Controller ↔ contract 对账 + 反孤儿）即评审建议的 parity 门禁。<br>**保留口径**：server 方法级路径仍为相对字面量（Nest 方法路径相对前缀，绝对常量会改变路由），由 openapi 零 diff 兜底；3 个路由目录条目（KEY_CURRENT/CAP_*）由门禁锚定暂无直接消费。 |
 | **`@walnut/ui` 剩余组件** | 大 | admin 侧仍有 **22** 个 UI 组件目录，`@walnut/ui` 只有 3 个（DynamicTags / Switch / TimePicker）。需处理跨组件相对 import 与 app store 注入。<br>评审建议（`@walnut/ui` 迁移范围）先用「零 app 依赖 + 已被 ≥2 处复用」过滤，避免为迁而迁。 |
 | **store 工厂迁移** | 中 | `createWalnutStore()` 只在 `@walnut/client` 内部被引用（`src/index.ts` + `store/createWalnutStore.ts`），admin 侧 **26** 个 store 文件 **0 处**使用。 |
 
@@ -80,7 +80,7 @@ ESLint 规则、`@walnut/types` 根导出、ADR 规范化、字数上限门禁�
 | **`@walnut/i18n` 新包** | 大 | 目录**未创建**。locale bootstrap + 状态机 + naive locale 映射。评审（i18n / security 的 seam 形态）提醒 seam 形态应先决策：ADR 0017 原方案用 TS `interface`，但 `interface` 无运行时令牌，无法表达「依赖 definition 而非 provider」。 |
 | **`@walnut/security` 新包** | 大 | 目录**未创建**。URL 加密 guard + sign interceptor crypto + VerifyAuth 类型。同 `@walnut/i18n` 新包，受 i18n / security 的 seam 形态 阻塞。<br>评审（前端组合根）指出这两条的**真正前置**是前端组合根：不先做显式 `createWalnutApp(options)` 工厂，`@walnut/i18n` 新包/`@walnut/security` 新包 落不了地。 |
 | **Phase 4 自动导入迁移** | 中 | ~~迁入 package 的代码里隐式全局变量改为显式 import~~ —— **前半已由 [ADR 0020](../adr/0020-remove-unplugin-auto-import.md) 做完（2026-09-29）**：admin 全域的 `unplugin-auto-import` 已移除（369 文件 / 170 符号改显式 import），「不许隐式全局」现在是根 `AGENTS.md` 的纪律 4，由 `vue-tsc` 机械守。<br>**剩下的**：`unplugin-vue-components`（组件自动注册）还在 —— 它**没有类型安全网**（`strictTemplates` 未开，组件名写错时 vue-tsc 不报错），要摘得靠 codemod + 运行时冒烟，227 个 `.vue` / 88 个组件 / 约 485 处模板 import。component resolver 已指向 `@walnut/ui`（`component.ts` 扫 `packages/platform-web/ui/src/*/index.ts`）。 |
-| **server 内部 lib 抽取（24 个候选）** | 大 | 计划已归档：[2026-07-26 内部 lib 抽取建议](../archive/2026-07-26-lib-extraction-recommendations.md) —— 从 `apps/api/src/{modules,common,decorators}` 向 `apps/server/libs/`（**内部 lib，不是 workspace 包**）抽取 13 + 7 + 4 个候选，含耦合分析与推荐顺序。<br>**归档时的两处更正**：① 它不与 ADR 0007 冲突（落点是内部 lib）；② 原稿候选包名用了前端 scope `@walnut/*`，已全部改为 `@walnut-server/*`。<br>**未执行**，也没有排期 —— 属于"深入业务代码"的重构，按 2026-09-23 的决定先不做。要做时从这里捡起。 |
+| **server 内部 lib 抽取（A12，24 个候选）** | ✅ 已执行完毕（批 0-10） | 计划已归档：[2026-07-26 内部 lib 抽取建议](../archive/2026-07-26-lib-extraction-recommendations.md) —— 从 `apps/api/src/{modules,common,decorators}` 向 `apps/server/libs/`（**内部 lib，不是 workspace 包**）抽取 13 + 7 + 4 个候选。<br>**终态（2026-10-31）**：批 0-10 全部落地，`apps/server/libs/` 共 34 个内部 lib，app 只剩组合根、wire DTO 与 controller；分层与组合根形态见 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。<br>**归档时的两处更正**：① 它不与 ADR 0007 冲突（落点是内部 lib）；② 原稿候选包名用了前端 scope `@walnut/*`，已全部改为 `@walnut-server/*`。 |
 | **按 74 页那套新命名补写组件文档** | 大 | **2026-09-23 你定的方向**：正典是 `content/frontend/component/index.md` 规划的那套（kebab-case、`advanced/` `app/` `business/` `extra/` `ui/` `vendor/` 六个目录），**旧的那棵 `zh-CN/component/**` 写完即淘汰**。<br>**现状**：那 74 条已降级为纯文本（第 13 批，为收掉死链白名单），页面一篇未写；旧树 42 篇仍在 sidebar 里可达（第 14 批补的），**在写完之前先留着**，否则组件文档就彻底没有入口了。<br>**为什么排 P3**：逐页要读组件实现（属深入业务代码），是本表里最大的内容工程。做法建议：先写 `ui/`（25 个）与 `extra/`（23 个）这两大类，它们最常被引用。<br>**完成标志**：74 页存在 → 旧树删除 → sidebar 改指新树 → `index.md` 里那些纯文本改回链接（都要过 `build:docs` 死链校验）。 |
 | **两处业务代码的安全观察**（对比页 F 组，**只登记不动手**） | 小 | ① `apps/admin/src/utils/window/open.ts` 的 `openOAuthWindow`（第 24 行）调 `window.open` 时**没带 `noopener`**（同文件 `openExternalLink` 的两处都带了），被打开的 OAuth 页因此拿得到 `window.opener`。<br>⚠️ **但"照抄加上 `noopener`"是错的做法**，2026-09-23 核实过：① 该调用点在 `apps/admin/src/views/auth/src/shared/other.vue` 里**接住了返回值**（`childWindow = openOAuthWindow(res)!`），失败分支要 `childWindow?.close()` 关掉弹窗；而带 `noopener` 时 `window.open` **返回 `null`** ⇒ 弹窗再也关不掉（不崩，只是静默失效）。② 好在该流程的登录结果走的是 **SSE**（`EventSource` 订阅 `/auth/oauth/<type>/sse/…`），**不依赖 `window.opener` / `postMessage`** ⇒ 加 `noopener` 不会打断登录。**正确改法**要连"怎么关掉那个窗口"一起重新设计，属业务代码。<br>② 启用 `no-dangerous-html` 类规则会立刻命中 **4 个 `v-html`**（都在 `apps/admin/src/components/Global/AI/**`），另有 `apps/admin/src/views/auth/index.vue` 第 26 / 31 行的 **2 处 `innerHTML = ''`** —— 那两处是**清空**而不是注入，规则报不报得看它怎么定义 sink。**按本仓「一排开始误报的门禁等于没有门禁」的口径，现在不该开**（要开得先把那 4 个 `v-html` 的输入来源逐个核实成可信）。<br>**代码一律未改**（按「只做基建与文档」的范围铁律）。 |
 | **`Global/AI` 组件的 12 条评审缺陷**（`apps/admin/src/components/Global/AI/docs/REVIEW.md` 的 A2–A6 / B1–B7） | 中 | 2026-09-23 逐条核实过（**结论在此，别重复查**；那份 REVIEW 本身已部分过期）：<br>**仍然成立**：A2（`store/useConversationStore.ts` 读 localStorage 全是 `as` 断言，无字段级校验 —— `new Date(undefined)` 会变 `Invalid Date`）、A3（全部面向用户文案硬编码中文，无 i18n）、API 路由迁移收尾（`components/core/FloatingTrigger.vue` 的 `.pill` 写死 `background: white !important` 与 `#36b4e7`，暗色模式发白；**注意 REVIEW 给的 `--zd-*` 变量名是错的，本仓用无前缀的 `--card-color` / `--primary-color`**）、B1（`utils/parser/business.ts` 对 AI 输出的 payload 无字段守卫）、B3/B4（兜底分支缺日志）、B7（`docs/TODO.md` 剩 4 项：style 完全移除 / float dock 状态显示 / i18n / 输出语音播放）。另有**一处 REVIEW 没写、核实中发现的真 bug**：action 类型有**两个派发点**（`components/business/index.vue` 的 setup + `composables/business/index.ts` 的 `useActionWatcher`），同一 action 可能执行两次，且 renderer 对任意渲染到的消息都会执行 ⇒ 旧消息重回虚拟列表会被重放。<br>**已失效（别再修）**：A4（`useFloatingDock` 早已有 `onBeforeUnmount` 清理）、A6（`Thinking.vue` / `TextShimmer.vue` 早已是内联 `defineProps`，全树无独立 `interface Props`）、B2 / B5（引用的四个无人机业务 composable 与 `NavigateBanner.vue` **已随业务层删除**，全仓零命中）、B6（`business-design.md` 早已把注册表分发写成「最终方案」）。<br>**引用那份 REVIEW 之前先看这行**：它**自身的文件链接全部少了一段路径**（写的是 `src/components/AI/…`，实际树是 `src/components/Global/AI/…`，共 22 处），行号也全部对不上；第二章的两张表（「业务类型注册完整性」与「业务组件规范检查」）描述的是**已经不存在**的代码库；`docs/composables.md` 的状态表里也仍列着那 4 个已删除的文件。**要引用就以本条的结论为准，别直接照抄那份文档。**<br>**代码一律未改** —— 按「当前对话只做基建与文档」的决定。 |
@@ -125,7 +125,7 @@ ESLint 规则、`@walnut/types` 根导出、ADR 规范化、字数上限门禁�
 | 源码面 / 产物面分离 | (a) 维持 ADR 0002 双模 `exports` + 补一道「dist 过期」检测；(b) 让消费者显式声明所在面。**倾向先 (a) + 检测**。 |
 | admin 内部分层是否入门禁 | 建议先只加最贵的一条：**API 层不得 import store**。 |
 | `@walnut/ui` 迁移范围 | (a) 按 ADR 0017 迁 22 个；(b) 只迁「零 app 依赖 + 已被 ≥2 处复用」。**倾向 (b)**（与 `@walnut/ui` 剩余组件 合并裁决）。 |
-| API 路由迁移收尾 的 server 侧迁移方式 | (a) 手工逐个改；(b) `gen-route-catalog` + `verify-route-parity`。**倾向 (b)**（与 API 路由迁移收尾 合并裁决）。 |
+| API 路由迁移收尾 的 server 侧迁移方式 | ✅ 采用 (b)（U2 批：drift spec 即 parity 门禁）。 |
 | 后端验证策略 | (a) 维持 class-validator；(b) 新模块用 Standard Schema、存量不动；(c) 全量迁移。**倾向先 (b)**（与 后端验证策略（落地） 合并裁决）。 |
 
 ---

@@ -1,32 +1,25 @@
 import { Logger, Module } from '@nestjs/common'
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
 
+import { JwtAccessGuard } from '@walnut-server/auth'
 import { WalnutConfigModule } from '@walnut-server/config'
 import { WalnutContextModule } from '@walnut-server/context'
-import { WalnutDBModule } from '@walnut-server/db'
+import { WalnutModule } from '@walnut-server/db'
+import { ALSRequestInterceptor, WalnutAdminGuardCap, WalnutAdminGuardDevice, WalnutAdminGuardIP, WalnutAdminGuardLock, WalnutAdminGuardMFA, WalnutAdminGuardRisk, WalnutAdminGuardSecurity, WalnutAdminGuardSign, WalnutAdminInterceptorResponseSuccess } from '@walnut-server/guards'
 
-import { WalnutAdminGuardIP } from '@/guard/ip.guard'
-import { WalnutAdminGuardSecurity } from '@/guard/security.guard'
-import { WalnutAdminGuardCap } from '../guard/cap.guard'
-import { WalnutAdminGuardDevice } from '../guard/device.guard'
-import { WalnutAdminGuardLock } from '../guard/lock.guard'
-import { WalnutAdminGuardMFA } from '../guard/mfa.guard'
-import { WalnutAdminGuardRisk } from '../guard/risk.guard'
-import { WalnutAdminGuardSign } from '../guard/sign.guard'
 import { AppI18nModule } from '../i18n/i18n.module'
-import { ALSRequestInterceptor } from '../interceptors/request/als.interceptor'
-import { WalnutAdminInterceptorResponseSuccess } from '../interceptors/response/success.interceptor'
 import { AppMiddlewareModule } from '../middleware/middleware.module'
 import { AppAppModule } from '../modules/app/app.module'
 import { AuthModule } from '../modules/auth/auth.module'
-import { JwtAccessGuard } from '../modules/auth/modules/jwt/jwt-access.guard'
 import { SecurityModule } from '../modules/security/security.module'
 import { SharedModule } from '../modules/shared/shared.module'
 import { SystemModule } from '../modules/system/system.module'
+import { AppBootstrapTaskModule } from '../modules/techniques/task/bootstrap-task.module'
 import { AppTechModule } from '../modules/techniques/tech.module'
 import { SocketModule } from '../socket/socket.module'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
+import { AppScheduleModule, isWorkerStandalone } from './schedule.composition'
 
 @Module({
   imports: [
@@ -43,7 +36,10 @@ import { AppService } from './app.service'
     AppI18nModule,
 
     // Database
-    WalnutDBModule,
+    WalnutModule,
+
+    // Cron 归属：默认在此注册 ScheduleModule；WORKER_STANDALONE=true 时让位给独立 worker
+    AppScheduleModule,
 
     AppTechModule,
 
@@ -58,6 +54,12 @@ import { AppService } from './app.service'
     SystemModule,
 
     SharedModule,
+
+    // bootstrap 任务归属（W2-A）：默认归 api；WORKER_STANDALONE=true 时归 worker
+    // （apps/worker/src/worker.module.ts 恒加载），与 AppScheduleModule 的 cron
+    // 条件注册同一判据。放在 imports 末尾是为了不改变既有模块/路由注册顺序
+    // （openapi.json 的 paths 顺序依赖 RouterExplorer 的模块遍历顺序）。
+    ...(isWorkerStandalone() ? [] : [AppBootstrapTaskModule]),
   ],
   controllers: [AppController],
   providers: [

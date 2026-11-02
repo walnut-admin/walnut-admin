@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { IStoreUser } from '@/store/types'
+import { fontSizeValues } from '@walnut/contract/preference'
 import { computed, ref } from 'vue'
 import { updateAccessibilityPreferenceAPI } from '@/api/system/user_preference'
 import { useForm } from '@/components/UI/Form'
@@ -20,6 +21,12 @@ const { t } = useAppI18n()
 
 const loading = ref(false)
 
+// 字号可选值的单一真源是 @walnut/contract（server IsEnum + DB CHECK 同源），
+// 滑杆的 min / max / marks 全部由 fontSizeValues 派生，别再手写刻度。
+const fontSizeMarks = Object.fromEntries(fontSizeValues.map(value => [value, `${value}px`]))
+const fontSizeMin = Math.min(...fontSizeValues)
+const fontSizeMax = Math.max(...fontSizeValues)
+
 const [register] = useForm<IStoreUser.Preference.Accessibility>({
   inline: true,
   labelPlacement: appStoreAdapter.isMobile ? 'top' : 'left',
@@ -35,15 +42,9 @@ const [register] = useForm<IStoreUser.Preference.Accessibility>({
       },
       componentProp: {
         step: 'mark',
-        min: 12,
-        max: 20,
-        marks: {
-          12: '12px',
-          14: '14px',
-          16: '16px',
-          18: '18px',
-          20: '20px',
-        },
+        min: fontSizeMin,
+        max: fontSizeMax,
+        marks: fontSizeMarks,
       },
     },
     {

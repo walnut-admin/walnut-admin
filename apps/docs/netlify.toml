@@ -10,5 +10,5 @@ command = "pnpm run build --filter @walnut/docs"
 publish = "apps/docs/.vitepress/dist"
 
 [build.environment]
-NODE_VERSION = "24.13.0"
-PNPM_VERSION = "11"
+NODE_VERSION = "24.15.0"
+PNPM_VERSION = "12.5.1"

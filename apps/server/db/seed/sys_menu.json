@@ -4573,5 +4573,365 @@
     "updatedAt": {
       "$date": "2026-02-15T07:30:52.322Z"
     }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e01000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:dept:list",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 20
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e02000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:dept:create",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 21
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e03000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:dept:read",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 22
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e04000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:dept:update",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 23
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e05000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:dept:delete",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 24
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e06000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:post:list",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 25
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e07000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:post:create",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 26
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e08000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:post:read",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 27
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e09000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:post:update",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 28
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e10000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:post:delete",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 29
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e11000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:employee:list",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 30
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e12000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:employee:create",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 31
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e13000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:employee:read",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 32
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e14000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:employee:update",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 33
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
+  },
+  {
+    "_id": {
+      "$oid": "6f1e15000000000000000000"
+    },
+    "pid": {
+      "$oid": "6003edce03dc9237d49ff02c"
+    },
+    "type": "element",
+    "meta": {
+      "permission": "system:employee:delete",
+      "affix": false,
+      "status": true,
+      "cache": true,
+      "show": true,
+      "ternal": "none",
+      "order": 34
+    },
+    "createdAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    },
+    "updatedAt": {
+      "$date": "2026-10-30T00:00:00.000Z"
+    }
   }
 ]

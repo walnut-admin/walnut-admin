@@ -13,14 +13,14 @@
 - 确保电脑中已有[git] 版本不要太老即可
 - 确保电脑中已有[node] 版本推荐 `16.x` 及以上
 - 确保电脑中已有[pnpm] 版本推荐 `7.x`
-- 确保电脑中已有[mongodb] 版本 `6.x` windows 用户推荐直接在远端的（腾讯阿里都行）linux 服务器上安装数据库
+- 确保电脑中已有[postgresql] 版本 `16` 及以上，windows 用户推荐直接在远端的（腾讯阿里都行）linux 服务器上安装数据库，或者用仓里 `apps/server/docker/docker-compose.dev.yml` 起库
 - 确保电脑中已有[VSCode] 其他编辑器也可以，这里只是推荐
 - 确保电脑中已有[Redis] 版本 `6.x` 或者 `7.x`均可，同样windows 用户推荐直接在远端的linux服务器安装redis
 
 以下推荐软件
 
 - 推荐node版本管理工具[nvm]
-- 推荐数据库可视化软件[studio3t]
+- 推荐数据库可视化软件[pgadmin]
 - 推荐接口调试软件[postman]
 - 推荐 SSH 软件[xshell]
 
@@ -72,10 +72,10 @@ git clone https://github.com/Zhaocl1997/walnut-admin-client
 [pnpm]: https://pnpm.io/zh/
 [vscode]: https://code.visualstudio.com/
 [nvm]: https://github.com/nvm-sh/nvm
-[mongodb]: https://www.mongodb.com/
+[postgresql]: https://www.postgresql.org/
 [vscode]: https://code.visualstudio.com/
 [Redis]: https://redis.io/
-[studio3t]: https://studio3t.com/
+[pgadmin]: https://www.pgadmin.org/
 [postman]: https://www.postman.com/
 [xshell]: https://www.netsarang.com/en/xshell/
 [volar]: https://marketplace.visualstudio.com/items?itemName=johnsoncodehk.volar

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { SystemDeleted, SystemLogOperate } from '@walnut/api-types'
 import { computed, ref } from 'vue'
 import { deletedAPI, recoverAPI } from '@/api/system/deleted'
 import { logOperateAPI } from '@/api/system/log'
@@ -7,6 +7,7 @@ import { useCRUD } from '@/components/Advanced/CRUD'
 import { useForm } from '@/components/UI/Form'
 import { useAppMsgSuccess, useAppMsgWarning } from '@/hooks/component/useMessage'
 import { useAppI18n } from '@/locales/index'
+
 import { logOperateFormSchema } from '../log/operate/schema'
 
 defineOptions({
@@ -17,13 +18,14 @@ defineOptions({
 const localeKey = 'deleted'
 // auth key
 const authKey = 'deleted'
-const keyField = '_id'
+// B9 起 sys_deleted 迁 PG：主键响应契约 `_id` → `id`（uuid）
+const keyField = 'id'
 
 const { t } = useAppI18n()
 
-const logOperateFormData = ref<IModels.SystemLogOperate>({})
+const logOperateFormData = ref<SystemLogOperate>({} as SystemLogOperate)
 
-const [registerLogOperate, { onOpen }] = useForm<IModels.SystemLogOperate>({
+const [registerLogOperate, { onOpen }] = useForm<SystemLogOperate>({
   localeUniqueKey: 'log.operate',
   localeWithTable: true,
   dialogPreset: 'drawer',
@@ -44,7 +46,7 @@ const [registerLogOperate, { onOpen }] = useForm<IModels.SystemLogOperate>({
     autoFocus: false,
     actionType: 'detail',
     onNo() {
-      logOperateFormData.value = {}
+      logOperateFormData.value = {} as SystemLogOperate
     },
   },
 
@@ -59,7 +61,7 @@ const [
     onApiList,
     onGetApiListParams,
   },
-] = useCRUD<IModels.SystemDeleted>({
+] = useCRUD<SystemDeleted>({
   baseAPI: deletedAPI,
 
   tableProps: {
@@ -193,7 +195,7 @@ const [
       },
 
       {
-        key: 'populated_user.userName',
+        key: 'user.userName',
         title: 'table.deleted.deletedBy',
         locale: false,
         width: 120,
@@ -240,7 +242,7 @@ const [
               icon: 'mdi:backup-restore',
             },
             async onPresetClick(rowData) {
-              await recoverAPI({ _id: rowData._id, deletedId: rowData.deletedId })
+              await recoverAPI({ id: rowData.id!, deletedId: rowData.deletedId! })
               useAppMsgSuccess()
               await onApiList()
             },
@@ -309,7 +311,7 @@ const [
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_user.userName',
+          path: 'user.userName',
           label: computed(() => t('table.deleted.deletedBy')),
           locale: false,
         },
@@ -363,10 +365,10 @@ const [
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.SystemDeleted} -->
+    <!-- @vue-generic {SystemDeleted} -->
     <WCRUD @hook="register" />
 
-    <!-- @vue-generic {IModels.SystemLogOperate} -->
+    <!-- @vue-generic {SystemLogOperate} -->
     <WForm :model="logOperateFormData" @hook="registerLogOperate" />
   </div>
 </template>

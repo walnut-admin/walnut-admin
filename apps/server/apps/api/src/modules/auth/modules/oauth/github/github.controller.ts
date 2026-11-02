@@ -1,3 +1,5 @@
+import type { IWalnutAdminSseClientData, IWalnutAdminSseOAuthPayload } from '@walnut/contract/sse'
+import { Buffer } from 'node:buffer'
 import {
   Controller,
   Get,
@@ -12,33 +14,29 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+
 import { ApiTags } from '@nestjs/swagger'
 
+import { AuthCookieService, AuthSharedService, OAuthGitHubScope, OAuthStateService, WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstAppSettingAuthOAuthGitHubKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
-import { LocaleType } from '@walnut/contract'
-import { ClientSession } from 'mongoose'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
+import { WalnutAdminDecoratorAuthLog, WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorFunctionalGuard, WalnutAdminDecoratorUser, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { SysUserIdentitySharedService, WalnutAdminConstSysUserIdentityType } from '@walnut-server/identity'
+import { SecurityRiskFailedLoginService } from '@walnut-server/security/risk/modules/failedLogin.service'
+import { AppTechSseService } from '@walnut-server/sse'
+import { AuthRoutes, LocaleType } from '@walnut/contract'
+import { WalnutAdminSseEvents } from '@walnut/contract/sse'
 import { I18n, I18nContext } from 'nestjs-i18n'
-import { WalnutAdminDecoratorFunctionalGuard } from '@/decorators/walnut/functional.decorator'
-import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { SecurityRiskFailedLoginService } from '@/modules/security/risk/modules/failedLogin.service'
-import { WalnutAdminConstSysUserIdentityType } from '@/modules/system/user_identity/schema/user_identity.schema'
-import { SysUserIdentitySharedService } from '@/modules/system/user_identity/shared/user_identity.shared.service'
-import { AppTechSseService } from '@/modules/techniques/sse/sse.service'
-import { AuthCookieService } from '../../cookie/cookie.service'
-import { WalnutAdminGuardJwtFree } from '../../jwt/jwt-access.guard'
-import { AuthSharedService } from '../../shared/shared.service'
 import { OAuthGitHubGuard } from './github.guard'
-import { OAuthGitHubScope } from './github.strategy'
 
-@Controller('auth/oauth/github')
+@Controller(AuthRoutes.OAUTH_GITHUB)
 @ApiTags('auth/oauth/github')
 @WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOAuthGitHubKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_GITHUB, 'authEnable')
 @WalnutAdminGuardJwtFree()
+// 数据权限三期：登录链系统通道（匿名进入，按 oauth 绑定读写 sys_user）
+@WalnutAdminDecoratorDataScopeSystemChannel()
 export class OAuthGithubController {
   private readonly logger = new Logger(OAuthGithubController.name)
 
@@ -49,6 +47,7 @@ export class OAuthGithubController {
     private readonly authCookieService: AuthCookieService,
     private readonly failedLoginRiskService: SecurityRiskFailedLoginService,
     private readonly userIdentitySharedService: SysUserIdentitySharedService,
+    private readonly oauthStateService: OAuthStateService,
   ) { }
 
   private readonly oauthUrl = 'https://github.com/login/oauth/authorize'
@@ -65,20 +64,27 @@ export class OAuthGithubController {
     return `oauth/github/${fp}`
   }
 
-  private getOAuthURL(fp: string, lang: LocaleType) {
-    const payload = JSON.stringify({ fp, lang })
+  /**
+   * P2-13（2026-10-28）：state = `base64url(JSON{fp,lang,nonce}).HMAC-SHA256`，nonce
+   * 与服务端会话密钥签名一并落 Redis（10 分钟 TTL），并且绑定发起请求的 deviceId。
+   */
+  private async getOAuthURL(fp: string, lang: LocaleType, deviceId: string) {
+    const state = await this.oauthStateService.issueState(fp, lang, deviceId)
     return `${this.oauthUrl}?client_id=${this.clientId}&redirect_uri=${this.callbackURL
-    }&response_type=code&scope=${OAuthGitHubScope.join('%20')}&state=${payload}`
+    }&response_type=code&scope=${OAuthGitHubScope.join('%20')}&state=${state}`
   }
 
   @Get('url')
-  async OAuth(@Req() req: IWalnutAdminExpressRequest) {
-    return this.getOAuthURL(req.fingerprint, req.language)
+  async OAuth(
+    @WalnutAdminDecoratorDeviceId() deviceId: string,
+    @Req() req: IWalnutAdminExpressRequest,
+  ) {
+    return this.getOAuthURL(req.fingerprint, req.language, deviceId)
   }
 
   @Get('callback')
   @WalnutAdminGuardSignFree()
-  @WalnutDBTransaction()
+  @WalnutTx()
   @WalnutAdminDecoratorAuthLog(WalnutAdminConstDecoratorLogAuthType.OAUTH_GITHUB)
   @Render('template/oauth/done')
   @UseGuards(OAuthGitHubGuard)
@@ -87,7 +93,7 @@ export class OAuthGithubController {
   async callback(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
     @Query('state') payload: string,
     @I18n() i18n: I18nContext,
@@ -95,9 +101,10 @@ export class OAuthGithubController {
     let fingerprint: string
     let lang: LocaleType
 
-    // safe parse state
+    // safe parse state（guard 已验签并消费 nonce；这里只取 base64url payload 的 fp/lang）
     try {
-      const parsed = JSON.parse(payload) as { fp: string, lang: LocaleType }
+      const encodedPayload = payload.split('.')[0]
+      const parsed = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8')) as { fp: string, lang: LocaleType }
       fingerprint = parsed.fp
       lang = parsed.lang || i18n.lang
     }
@@ -111,24 +118,25 @@ export class OAuthGithubController {
     }
 
     try {
-      const { accessToken, refreshTokenJti, authSessionKey } = await this.authSharedService.generateAuthTokens(user, deviceId, dbSession)
+      // B7b 归一：refresh 写腿迁 PG —— 单 em（identity 写腿本就 ctx.em）
+      const { accessToken, refreshTokenJti, authSessionKey } = await this.authSharedService.generateAuthTokens(user, deviceId, ctx.em)
 
       // Mark email identity as verified after successful OAuth validation
       await this.userIdentitySharedService.verifyIdentity(
         user.userId,
         WalnutAdminConstSysUserIdentityType.EMAIL_ADDRESS,
         'login',
-        dbSession,
+        ctx.em,
       )
 
       // Set refresh token jti to cookie
       this.authCookieService.setRTJtiCookie(req, refreshTokenJti)
 
-      const successPayload: IWalnutAdminSseClientData = {
+      const successPayload: IWalnutAdminSseClientData<IWalnutAdminSseOAuthPayload> = {
         success: true,
         message: 'success',
         data: {
-          event: 'token:github',
+          event: WalnutAdminSseEvents.OAUTH_GITHUB,
           accessToken,
           sessionKey: authSessionKey,
         },
@@ -139,7 +147,7 @@ export class OAuthGithubController {
     catch (exception) {
       const errMsg = exception instanceof Error ? exception.message : 'business.auth.authFailed'
       const translatedMsg: string = i18n.t(errMsg, { lang })
-      const errorPayload: IWalnutAdminSseClientData = {
+      const errorPayload: IWalnutAdminSseClientData<Record<string, never>> = {
         success: false,
         message: translatedMsg,
         data: {},

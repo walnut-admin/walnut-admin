@@ -10,8 +10,6 @@
 2. 在仓库根运行 `pnpm setup-env` 解密
 3. 将 `apps/server/env-local/.env.production` 复制为 `deploy/env/.env.production`
 
-**注意：把连接串 host 从 `127.0.0.1` 改为服务名：**
+**注意：把连接 host 从 `127.0.0.1` 改为 compose 服务名：**
 - `APP_REDIS_HOST=prod-single-redis`
-- `DATABASE_PRIMARY=prod-mongodb-primary:27017`
-- `DATABASE_SECONDARY=prod-mongodb-secondary:27017`
-- `DATABASE_ARBITER=prod-mongodb-arbiter:27017`
+- `DATABASE_PG_HOST=postgres`

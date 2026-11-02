@@ -3,6 +3,7 @@
 exports[`contract snapshots > aes-gcm wire format constants never change silently 1`] = `
 {
   "IV_LENGTH": 12,
+  "KEY_LENGTH": 32,
   "MIN_PAYLOAD_LENGTH": 28,
   "TAG_LENGTH": 16,
 }
@@ -11,9 +12,16 @@ exports[`contract snapshots > aes-gcm wire format constants never change silentl
 exports[`contract snapshots > api routes never change silently 1`] = `
 {
   "AppRoutes": {
+    "DEMO": "/app/demo",
     "DEPS": "/deps",
+    "ERROR": "/app/error",
+    "HEALTH": "/app/health",
+    "KEY": "/app/key",
     "KEY_AES_URL": "/app/key/current/AES_KEY_URL",
     "KEY_CURRENT": "/app/key/current",
+    "LOGGER": "/app/logger",
+    "MONITOR_CACHE": "/app/monitor/cache",
+    "MONITOR_SERVER": "/app/monitor/server",
     "MONITOR_SERVER_BATTERY": "/app/monitor/server/battery",
     "MONITOR_SERVER_CPU": "/app/monitor/server/cpu",
     "MONITOR_SERVER_DISK": "/app/monitor/server/disk",
@@ -22,6 +30,9 @@ exports[`contract snapshots > api routes never change silently 1`] = `
     "MONITOR_SERVER_OS": "/app/monitor/server/os",
     "MONITOR_SERVER_SYS": "/app/monitor/server/sys",
     "MONITOR_SERVER_TIME": "/app/monitor/server/time",
+    "MONITOR_USER": "/app/monitor/user",
+    "ROOT": "/",
+    "SETTING": "/app/setting",
     "SETTING_CACHE_REFRESH": "/app/setting/cache/refresh",
     "SETTING_PRIVATE": "/app/setting/private",
     "SETTING_PUBLIC": "/app/setting/public",
@@ -30,10 +41,24 @@ exports[`contract snapshots > api routes never change silently 1`] = `
     "BASE": "/auth",
     "GOOGLE": "/auth/google",
     "KEYS": "/auth/keys",
+    "MFA": "/auth/mfa",
     "MFA_STATUS": "/auth/mfa/status",
     "MFA_VERIFY": "/auth/mfa/verify",
+    "OAUTH_GITEE": "/auth/oauth/gitee",
     "OAUTH_GITEE_URL": "/auth/oauth/gitee/url",
+    "OAUTH_GITHUB": "/auth/oauth/github",
     "OAUTH_GITHUB_URL": "/auth/oauth/github/url",
+    "OPAQUE_ADMIN": "/auth/opaque/admin",
+    "OPAQUE_ADMIN_PASSWORD_CLEAR": "/auth/opaque/admin/password/clear",
+    "OPAQUE_ADMIN_PASSWORD_UPDATE_FINISH": "/auth/opaque/admin/password/update/finish",
+    "OPAQUE_ADMIN_PASSWORD_UPDATE_START": "/auth/opaque/admin/password/update/start",
+    "OPAQUE_USER": "/auth/opaque/user",
+    "OPAQUE_USER_CHANGE_PASSWORD_FINISH": "/auth/opaque/user/change-password/finish",
+    "OPAQUE_USER_CHANGE_PASSWORD_START": "/auth/opaque/user/change-password/start",
+    "OPAQUE_USER_LOGIN_CLIENT_ERROR": "/auth/opaque/user/login/client-error",
+    "OPAQUE_USER_LOGIN_FINISH": "/auth/opaque/user/login/finish",
+    "OPAQUE_USER_LOGIN_START": "/auth/opaque/user/login/start",
+    "OTP": "/auth/otp",
     "OTP_SEND": "/auth/otp/send",
     "OTP_VERIFY": "/auth/otp/verify",
     "PERMISSIONS": "/auth/permissions",
@@ -41,25 +66,36 @@ exports[`contract snapshots > api routes never change silently 1`] = `
     "SIGNOUT": "/auth/signout",
   },
   "SecurityRoutes": {
+    "CAP": "/security/cap",
     "CAP_CHALLENGE": "/security/cap/challenge",
     "CAP_REDEEM": "/security/cap/redeem",
+    "RSA": "/security/rsa",
     "RSA_PUBLIC_KEY": "/security/rsa/public-key",
+    "SENSITIVE": "/security/sensitive",
+    "SIGN": "/security/sign",
     "SIGN_AES_KEY": "/security/sign/aes-key",
     "SIGN_INITIAL": "/security/sign/initial",
   },
   "SharedRoutes": {
+    "ALI": "/shared/ali",
     "ALI_STS": "/shared/ali/sts",
+    "AREA": "/shared/area",
     "AREA_CHILDREN": "/shared/area/children",
     "AREA_FEEDBACK": "/shared/area/feedback",
   },
   "SystemEndpointRoutes": {
     "DELETED_RECOVER": "/system/deleted/recover",
+    "DEPT_TREE": "/system/dept/tree",
     "DEVICE_INITIAL": "/system/device/initial",
     "DICT_TYPE_S": "/system/dict/type/s",
     "LANG_LIST_PUBLIC": "/system/lang/list/public",
     "LOCALE_MESSAGE": "/system/locale/message",
     "MENU_TREE": "/system/menu/tree",
+    "USER_DEVICE_FORCE_QUIT": "/system/user/device/force-quit",
     "USER_DEVICE_LIST": "/system/user/device/list",
+    "USER_DEVICE_LOCK": "/system/user/device/lock",
+    "USER_DEVICE_UNLOCK": "/system/user/device/unlock",
+    "USER_DEVICE_UPDATE_NAME": "/system/user/device/update-name",
     "USER_IDENTITY_BIND": "/system/user/identity/bind",
     "USER_IDENTITY_CHECK": "/system/user/identity/check",
     "USER_IDENTITY_SEND_CODE": "/system/user/identity/send-code",
@@ -70,7 +106,17 @@ exports[`contract snapshots > api routes never change silently 1`] = `
     "USER_LOCK_READ": "/system/user/lock/read",
     "USER_LOCK_UNLOCK": "/system/user/lock/unlock",
     "USER_ME_PROFILE": "/system/user/me/profile",
+    "USER_ME_SECURITY_TAB2": "/system/user/me/security-tab2",
     "USER_ME_SWITCH_ROLE": "/system/user/me/role/switch",
+    "USER_MFA_TOTP_BIND": "/system/user/mfa/totp/bind",
+    "USER_MFA_TOTP_GENERATE": "/system/user/mfa/totp/generate",
+    "USER_MFA_TOTP_STATUS": "/system/user/mfa/totp/status",
+    "USER_MFA_TOTP_UNBIND": "/system/user/mfa/totp/unbind",
+    "USER_MFA_TOTP_VERIFY": "/system/user/mfa/totp/verify",
+    "USER_MFA_WEBAUTHN_AUTHENTICATE_OPTIONS": "/system/user/mfa/webauthn/authenticate/options",
+    "USER_MFA_WEBAUTHN_AUTHENTICATE_VERIFY": "/system/user/mfa/webauthn/authenticate/verify",
+    "USER_MFA_WEBAUTHN_REGISTER_OPTIONS": "/system/user/mfa/webauthn/register/options",
+    "USER_MFA_WEBAUTHN_REGISTER_VERIFY": "/system/user/mfa/webauthn/register/verify",
     "USER_PREFERENCE": "/system/user/preference",
     "USER_PREFERENCE_ACCESSIBILITY": "/system/user/preference/accessibility",
     "USER_PREFERENCE_BASIC": "/system/user/preference/basic",
@@ -80,17 +126,35 @@ exports[`contract snapshots > api routes never change silently 1`] = `
   },
   "SystemRoutes": {
     "DELETED": "/system/deleted",
+    "DEPT": "/system/dept",
     "DEVICE": "/system/device",
     "DICT_DATA": "/system/dict/data",
     "DICT_TYPE": "/system/dict/type",
+    "EMPLOYEE": "/system/employee",
     "LANG": "/system/lang",
     "LOCALE": "/system/locale",
     "LOG_AUTH": "/system/log/auth",
     "LOG_OPERATE": "/system/log/operate",
     "MENU": "/system/menu",
+    "POST": "/system/post",
     "ROLE": "/system/role",
     "USER": "/system/user",
+    "USER_DEVICE": "/system/user/device",
+    "USER_IDENTITY": "/system/user/identity",
+    "USER_ME": "/system/user/me",
+    "USER_MFA_TOTP": "/system/user/mfa/totp",
+    "USER_MFA_WEBAUTHN": "/system/user/mfa/webauthn",
+    "USER_OAUTH": "/system/user/oauth",
   },
+}
+`;
+
+exports[`contract snapshots > app key types never change silently 1`] = `
+{
+  "AES_KEY_URL": "AES_KEY_URL",
+  "JWT_AT": "JWT_AT",
+  "JWT_RT": "JWT_RT",
+  "RSA_PAIR": "RSA_PAIR",
 }
 `;
 
@@ -100,6 +164,25 @@ exports[`contract snapshots > cookie keys never change silently 1`] = `
   "DEVICE_ID": "DEVICE_ID",
   "RT_JTI": "RT_JTI",
   "SIGN_TICKET": "SIGN_TICKET",
+}
+`;
+
+exports[`contract snapshots > data scope tiers never change silently 1`] = `
+{
+  "ALL": 1,
+  "CUSTOM": 2,
+  "DEPT": 3,
+  "DEPT_AND_CHILD": 4,
+  "DEPT_OR_SELF": 6,
+  "SELF": 5,
+}
+`;
+
+exports[`contract snapshots > force quit strategies never change silently 1`] = `
+{
+  "FORCE_COUNTDOWN_MODAL": "FORCE_COUNTDOWN_MODAL",
+  "FORCE_IMMEDIATE_SIGNOUT": "FORCE_IMMEDIATE_SIGNOUT",
+  "MANUAL_COUNTDOWN_MODAL": "MANUAL_COUNTDOWN_MODAL",
 }
 `;
 
@@ -130,27 +213,94 @@ exports[`contract snapshots > menu enums never change silently 1`] = `
 }
 `;
 
+exports[`contract snapshots > mfa methods and transports never change silently 1`] = `
+{
+  "WalnutAdminConstSysUserMfaType": [
+    "totp",
+    "webauthn",
+  ],
+  "WalnutAdminConstSysUserMfaWebauthnTransport": [
+    "usb",
+    "ble",
+    "nfc",
+    "internal",
+    "hybrid",
+  ],
+}
+`;
+
+exports[`contract snapshots > preference value sets never change silently 1`] = `
+{
+  "CVDConst": {
+    "ACHROMATOPIA": "achromatopsia",
+    "DEFAULT": "default",
+    "DEUTERANOPIA": "deuteranopia",
+    "PROTANOPIA": "protanopia",
+    "TRITANOPIA": "tritanopia",
+  },
+  "colorModeConst": {
+    "CAFE": "cafe",
+    "CONTRAST": "contrast",
+    "DEFAULT": "default",
+    "GRAYSCALE": "grayscale",
+    "GRAYSCALE_INVERTED": "grayscale-inverted",
+    "INVERTED": "inverted",
+  },
+  "fontSizeConst": {
+    "10": 10,
+    "12": 12,
+    "14": 14,
+    "16": 16,
+    "20": 20,
+  },
+  "fontSizeValues": [
+    10,
+    12,
+    14,
+    16,
+    20,
+  ],
+  "layoutModeConst": {
+    "LEFT_MENU": "left-menu",
+    "TOP_MENU": "top-menu",
+  },
+}
+`;
+
 exports[`contract snapshots > public API surface stays stable 1`] = `
 [
   "AES_GCM_WIRE",
+  "AppKeyTypeConst",
   "AppRoutes",
   "AuthRoutes",
+  "CVDConst",
   "CacheKeyStrategy",
+  "DataScope",
   "Locale",
+  "LockModeConst",
   "MenuTernal",
   "MenuType",
   "RequestHeaders",
   "Role",
+  "RoleMode",
   "SecurityRoutes",
   "SharedRoutes",
   "SortOrderValues",
   "SystemEndpointRoutes",
   "SystemRoutes",
   "WalnutAdminConstAppResponseCode",
+  "WalnutAdminConstAppSettingForceQuitStrategy",
   "WalnutAdminConstAppTokenKey",
   "WalnutAdminConstCookieKeys",
+  "WalnutAdminConstSysUserMfaType",
+  "WalnutAdminConstSysUserMfaWebauthnTransport",
   "WalnutAdminSocketEvents",
   "WalnutAdminSocketRooms",
+  "WalnutAdminSseEvents",
+  "colorModeConst",
+  "fontSizeConst",
+  "fontSizeValues",
+  "layoutModeConst",
 ]
 `;
 
@@ -234,6 +384,13 @@ exports[`contract snapshots > response codes never change silently 1`] = `
 }
 `;
 
+exports[`contract snapshots > role modes never change silently 1`] = `
+{
+  "COMBINE": "combinable",
+  "SWITCH": "switchable",
+}
+`;
+
 exports[`contract snapshots > roles never change silently 1`] = `
 {
   "ADMIN": "admin",
@@ -263,9 +420,24 @@ exports[`contract snapshots > sort order values never change silently 1`] = `
 }
 `;
 
+exports[`contract snapshots > sse event names never change silently 1`] = `
+{
+  "OAUTH_GITEE": "token:gitee",
+  "OAUTH_GITHUB": "token:github",
+}
+`;
+
 exports[`contract snapshots > token keys never change silently 1`] = `
 {
   "ACCESS": "WALNUT_ACCESS_TOKEN",
   "REFRESH": "WALNUT_REFRESH_TOKEN",
+}
+`;
+
+exports[`contract snapshots > user lock modes never change silently 1`] = `
+{
+  "DEFAULT": "default",
+  "IDLE": "idle",
+  "SECURITY": "security",
 }
 `;

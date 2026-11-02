@@ -1,11 +1,11 @@
 import { Controller, Get } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutAdminGuardCapFree } from '@/guard/cap.guard'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { WalnutAdminGuardJwtFree } from '@/modules/auth/modules/jwt/jwt-access.guard'
-import { SecurityRsaService } from './rsa.service'
+import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
+import { WalnutAdminGuardCapFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { SecurityRsaService } from '@walnut-server/rsa'
+import { SecurityRoutes } from '@walnut/contract'
 
-@Controller('security/rsa')
+@Controller(SecurityRoutes.RSA)
 @ApiTags('security/rsa')
 export class SecurityRsaController {
   constructor(private readonly securityRsaService: SecurityRsaService) {}

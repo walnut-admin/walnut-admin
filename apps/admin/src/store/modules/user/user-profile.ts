@@ -1,5 +1,6 @@
-import type { IModels } from '@/api/models'
+import type { SystemUser } from '@walnut/api-types'
 import type { IStoreUser } from '@/store/types'
+import { RoleMode } from '@walnut/contract/role'
 import { upperFirst } from 'easy-fns-ts'
 import { defineStore } from 'pinia'
 import { getCurrentInstance } from 'vue'
@@ -17,7 +18,7 @@ const useAppStoreUserProfileInside = defineStore(StoreKeys.USER_PROFILE, {
 
   getters: {
     getUserId(state) {
-      return state.profile._id
+      return state.profile.id
     },
 
     getUserName(state) {
@@ -41,7 +42,7 @@ const useAppStoreUserProfileInside = defineStore(StoreKeys.USER_PROFILE, {
     },
 
     getRoleList(state) {
-      return state.profile.populated_roles_list
+      return state.profile.roles_list
     },
 
     getCurrentRole(state) {
@@ -49,12 +50,12 @@ const useAppStoreUserProfileInside = defineStore(StoreKeys.USER_PROFILE, {
     },
 
     getCurrentRoleModeIsSwitchable(state) {
-      return state.profile.roleMode === 'switchable'
+      return state.profile.roleMode === RoleMode.SWITCH
     },
   },
 
   actions: {
-    setProfile(payload: Partial<IModels.SystemUser>) {
+    setProfile(payload: Partial<SystemUser>) {
       this.profile = payload
     },
 

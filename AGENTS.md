@@ -16,33 +16,34 @@
 | 目录 | 包 | 技术栈 |
 |------|----|--------|
 | `apps/admin/` | `@walnut/admin` | Vue 3 + Vite 8 + Naive UI + UnoCSS（前端 SPA，默认端口 3100） |
-| `apps/server/` | `@walnut/server` | NestJS 11 + SWC + Mongoose + Redis（**自有内部 Nest monorepo**） |
+| `apps/server/` | `@walnut/server` | NestJS 12 + SWC + TypeORM + PostgreSQL + Redis（**自有内部 Nest monorepo**） |
 | `apps/docs/` | `@walnut/docs` | VitePress 文档站（端口 8886） |
 
-Node >= 24.13.0 ｜ pnpm >= 12.0.0 ｜ TypeScript 6.0.3 ｜ Turbo 2.11.2
+Node >= 24.15.0 ｜ pnpm >= 12.0.0 ｜ TypeScript 6.0.3 ｜ Turbo 2.11.2
 
 ## 仓库结构
 
 ```
 apps/admin   @walnut/admin    Vue3 + Vite 8 + Naive UI + UnoCSS（前端 SPA）
-apps/server  @walnut/server   NestJS 11 + SWC + Mongoose + Redis（后端，内部 Nest monorepo）
+apps/server  @walnut/server   NestJS 12 + SWC + TypeORM + PostgreSQL + Redis（后端，内部 Nest monorepo）
 apps/docs    @walnut/docs     VitePress 文档站
 packages/platform-any/   contract · types · utils-core     ← 平台无关（CJS 双模构建 / 纯类型 / 纯工具 @walnut/utils）
-packages/platform-web/   client · http · ui               ← 浏览器/Vue（源码直消费，不构建）
+packages/platform-web/   api-types · client · http · ui   ← 浏览器/Vue（源码直消费，不构建；api-types 由 openapi.json 生成）
 packages/tooling/        tsconfig · eslint-config · commitlint-config · vitest-config · scripts · release
                          ← 工具链 6 包：@walnut/tsconfig（纯 JSON 预设 base/ts/vue）·
                            @walnut/eslint-config · @walnut/commitlint-config ·
                            @walnut/vitest-config（共享测试预设）·
-                           @walnut/scripts（lib/ci/env + 8 bin）· @walnut/release（发版编排，bin walnut-release）
+                           @walnut/scripts（lib/ci/env + bin，清单见其 package.json）· @walnut/release（发版编排，bin walnut-release）
 ```
 
 - 前端包 scope `@walnut/*`（ESM、pnpm workspace、Vite 编译）；后端内部 lib scope `@walnut-server/*`
   （CJS、tsconfig paths、SWC，见 [`apps/server/AGENTS.md`](./apps/server/AGENTS.md)）。
-- 全仓共 **15 个 workspace 包**（3 app + 3 platform-any + 3 platform-web + 6 tooling），同属
+- 全仓共 **16 个 workspace 包**（3 app + 3 platform-any + 4 platform-web + 6 tooling；包数以
+  `pnpm-workspace.yaml` 的 `packages` 字段为判据），同属
   `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组 —— 组长必须恒等于「有 version 的包数」，
   由 `versioning-config.test.ts` 机械拦。
-- `apps/server/` 内部另有 **9 个 NestJS 内部库**
-  （`libs/{config,const,context,db,decorators,exceptions,pipes,types,utils}`）—— 它们**不是**
+- `apps/server/` 内部另有**按六层组织的 NestJS 内部库**（完整清单以 `apps/server/libs/` 目录为准；
+  分层与组合根形态见 [ADR 0022](./apps/docs/src/zh-CN/content/adr/0022-backend-lib-layering-and-composition-roots.md)）—— 它们**不是**
   workspace 包，规则见包级指引。
 - `apps/admin/build/` 是前端的 Vite 构建配置（plugins / config / proxy），不是运行时源码。
 - 模块边界由 Turbo boundaries 强制（tags 声明在各包 workspace 级 `turbo.json`），
@@ -66,7 +67,7 @@ packages/tooling/        tsconfig · eslint-config · commitlint-config · vites
 
 ```bash
 pnpm install          # 安装（pnpm 专用，由 packageManager 字段 + corepack 强制）
-pnpm dev              # 前端 + 后端（前端 3100；后端需 MongoDB replica set + Redis）
+pnpm dev              # 前端 + 后端（前端 3100；后端需 PostgreSQL + Redis）
 pnpm dev:server       # 只起后端（从根经 turbo 跑，cwd 是 apps/server）
 pnpm dev:docs         # 文档站（http://localhost:8886）
 pnpm build            # 全量构建（packages → apps）
@@ -75,7 +76,7 @@ pnpm lint / lint:fix  # ESLint（stylistic 承担格式化，无 Prettier）
 pnpm lint:root        # 只 lint 根级配置（eslint *.ts *.json *.yaml；根级文件不在 `turbo lint` 范围内）
 pnpm types:check      # 全仓类型检查（admin/docs/ui 用 vue-tsc，其余 tsc，server strict）
 pnpm types:check:root # 只检查根级配置（tsc -p tsconfig.json）
-pnpm test             # vitest（server / contract / utils / client / scripts / release）
+pnpm test             # vitest（server / contract / utils / client / scripts / release / eslint-config）
 pnpm boundaries       # Turbo 架构边界检查
 pnpm lint:workflows   # actionlint 校验 .github/workflows（CI 强制）
 pnpm lint:docs-refs   # 校验活文档正文引用的包名 / 仓库路径是否真实存在
@@ -98,6 +99,9 @@ pnpm knip             # 死代码检测（**当前是红的且有意维持**，�
   上下文不允许出现在 step/job 的 `if` 里，否则整个 workflow 会被判为 `Invalid workflow file`
   （启动即失败、0 个 job）。
 - 后端必须从 `apps/server/` 目录运行（ConfigModule 用 `process.cwd()` 定位 env）。
+- 数据库连接在后端 env 的 `DATABASE_PG_*` 一组（host/port/user/pass/name，与工具链的 seed/export
+  通道同源）：`pnpm db:seed:pg` 播初始化数据、`pnpm db:export:pg` 反向导出，
+  口径见 [`apps/docs/src/zh-CN/content/backend/postgresql.md`](./apps/docs/src/zh-CN/content/backend/postgresql.md)。
 
 ## 关键纪律
 
@@ -122,4 +126,4 @@ pnpm knip             # 死代码检测（**当前是红的且有意维持**，�
 ## 资源
 
 - 演示：https://www.walnut-admin.com ｜ 文档：https://walnut-admin-doc.netlify.app
-- Vue 3 · Naive UI · UnoCSS · Vite · NestJS · Mongoose · Redis
+- Vue 3 · Naive UI · UnoCSS · Vite · NestJS · TypeORM · PostgreSQL · Redis

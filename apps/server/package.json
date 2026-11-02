@@ -21,15 +21,23 @@
     "url": "https://github.com/walnut-admin/walnut-admin-server/issues"
   },
   "scripts": {
-    "build": "cross-env NODE_ENV=production nest build api -c infra/nest/prod.json",
-    "build:libs": "concurrently \"nest build config\" \"nest build const\" \"nest build db\" \"nest build utils\" \"nest build types\" \"nest build decorators\" \"nest build pipes\" \"nest build exceptions\"",
-    "build:stage": "cross-env NODE_ENV=stage nest build api -c infra/nest/stage.json",
+    "build": "cross-env NODE_ENV=production nest build api -c infra/nest/prod.json && node infra/scripts/verify-build-assets.ts dist",
+    "build:stage": "cross-env NODE_ENV=stage nest build api -c infra/nest/stage.json && node infra/scripts/verify-build-assets.ts dist-stage",
+    "build:worker": "cross-env NODE_ENV=production nest build worker -c infra/nest/prod.json",
+    "build:worker:stage": "cross-env NODE_ENV=stage nest build worker -c infra/nest/stage.json",
     "dev": "cross-env NODE_ENV=development nest start api --watch -c infra/nest/dev.json",
-    "start:debug": "nest start --debug --watch",
+    "start:debug": "nest start --debug --watch -c infra/nest/dev.json",
     "start:prod": "cross-env NODE_ENV=production node dist/apps/api/src/main.js",
     "start:stage": "cross-env NODE_ENV=stage node dist-stage/apps/api/src/main.js",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --concurrency=4",
-    "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix --concurrency=4",
+    "start:worker": "cross-env NODE_ENV=production WORKER_STANDALONE=true node dist/apps/worker/src/main.js",
+    "start:worker:stage": "cross-env NODE_ENV=stage WORKER_STANDALONE=true node dist-stage/apps/worker/src/main.js",
+    "lint": "eslint \"{src,apps,libs,test,infra/scripts}/**/*.ts\" --concurrency=4",
+    "lint:fix": "eslint \"{src,apps,libs,test,infra/scripts}/**/*.ts\" --fix --concurrency=4",
+    "migration:run": "typeorm migration:run -d ./apps/cli/src/data-source.cli.ts",
+    "migration:revert": "typeorm migration:revert -d ./apps/cli/src/data-source.cli.ts",
+    "openapi:export": "cross-env NODE_ENV=development WALNUT_ADMIN_BOOTSTRAP_TASKS=off nest build cli -c infra/nest/dev.json && cross-env NODE_ENV=development WALNUT_ADMIN_BOOTSTRAP_TASKS=off node dist/apps/cli/src/export-openapi.js",
+    "openapi:generate": "pnpm --filter @walnut/api-types generate",
+    "openapi:check": "pnpm openapi:export && pnpm openapi:generate && git diff --exit-code -- openapi.json ../../packages/platform-web/api-types/src/schema.d.ts",
     "types:check": "tsc --noEmit --pretty",
     "typecheck:watch": "tsc --noEmit --watch",
     "test": "vitest run --config ./apps/api/vitest.config.ts",
@@ -37,10 +45,11 @@
     "test:cov": "vitest run --config ./apps/api/vitest.config.ts --coverage",
     "test:debug": "vitest --inspect-brk --inspect --logHeapUsage --threads=false --config ./apps/api/vitest.config.ts",
     "test:e2e": "vitest run --config ./apps/api/vitest.config.e2e.ts",
+    "test:integration": "vitest run --config ./apps/api/vitest.config.integration.ts",
     "test:pw": "esno playwright/example.ts",
     "gen:doc": "@compodoc/compodoc -p tsconfig.json -s",
     "check:update": "npm-check-updates -i",
-    "madge": "madge --circular apps/api/src libs --extensions js,ts,tsx"
+    "madge": "madge --circular --ts-config tsconfig.json apps/api/src libs --extensions js,ts,tsx"
   },
   "dependencies": {
     "@alicloud/dypnsapi20170525": "catalog:",
@@ -58,7 +67,6 @@
     "@nestjs/core": "catalog:",
     "@nestjs/event-emitter": "catalog:",
     "@nestjs/jwt": "catalog:",
-    "@nestjs/mongoose": "catalog:",
     "@nestjs/passport": "catalog:",
     "@nestjs/platform-express": "catalog:",
     "@nestjs/platform-socket.io": "catalog:",
@@ -66,6 +74,7 @@
     "@nestjs/swagger": "catalog:",
     "@nestjs/terminus": "catalog:",
     "@nestjs/throttler": "catalog:",
+    "@nestjs/typeorm": "catalog:",
     "@nestjs/websockets": "catalog:",
     "@scalar/nestjs-api-reference": "catalog:",
     "@serenity-kit/opaque": "catalog:",
@@ -73,6 +82,7 @@
     "@socket.io/admin-ui": "catalog:",
     "@supercharge/request-ip": "catalog:",
     "@walnut/contract": "workspace:*",
+    "@walnut/utils": "workspace:*",
     "axios": "catalog:",
     "bcryptjs": "catalog:",
     "bull": "catalog:",
@@ -94,8 +104,6 @@
     "jose": "catalog:",
     "lodash": "catalog:",
     "mathjs": "catalog:",
-    "mongoose": "catalog:",
-    "mongoose-execution-time": "catalog:",
     "murlock": "catalog:",
     "nanoid": "catalog:",
     "nest-winston": "catalog:",
@@ -106,6 +114,7 @@
     "passport-jwt": "catalog:",
     "passport-local": "catalog:",
     "passport-oauth2": "catalog:",
+    "pg": "catalog:",
     "qrcode": "catalog:",
     "raw-body": "catalog:",
     "redis": "catalog:",
@@ -117,6 +126,7 @@
     "systeminformation": "catalog:",
     "tencentcloud-sdk-nodejs": "catalog:",
     "tinyglobby": "catalog:",
+    "typeorm": "catalog:",
     "ua-parser-js": "catalog:",
     "winston": "catalog:",
     "winston-daily-rotate-file": "catalog:"
@@ -163,7 +173,7 @@
     "vitest": "catalog:"
   },
   "engines": {
-    "node": ">=24.13.0",
+    "node": ">=24.15.0",
     "pnpm": ">=12.0.0"
   }
 }

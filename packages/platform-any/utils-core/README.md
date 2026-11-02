@@ -82,18 +82,18 @@ export function encryptedStorage(base: IStorageSync, force: boolean): IStorageSy
 ## 依赖与边界
 
 - **依赖**：`@walnut/contract`、`@walnut/types`（都是 `workspace:*`）、`js-base64`（`catalog:`）。测试链：`vitest` + `@walnut/vitest-config`（`vitest.config.ts` 一行 `defineWalnutVitestConfig()`）；`tsconfig.json` 继承 `@walnut/tsconfig/ts.json` 并自持 `types: ["node"]`。
-- **消费者**：`@walnut/client`（storage 装饰器 + crypto 转换器）与 `@walnut/admin`（`./queue`、`./regex`、`./crypto/transformer`）。**`apps/server` 目前不消费本包**（见下）。
+- **消费者**：`@walnut/client`（storage 装饰器 + crypto 转换器）与 `@walnut/admin`（`./queue`、`./regex`、`./crypto/transformer`）。**`apps/server` 自 W3 批起消费本包（`@walnut/utils/object-paths` 与 `@walnut/utils/sign-raw`，经 CJS dist require）**（见下）。
 - **边界由 turbo tags 强制**：workspace 级 `turbo.json` 声明 `shared` / `pure` / `platform-any`，根 `turbo.json` 的 `boundaries.tags` 禁止 `shared` 依赖 app、禁止 `platform-any` 依赖 `platform-web` / `platform-node`（`pure` 是描述性标签，无对应规则）。由 `pnpm boundaries` 拦。
-- **测试**：5 个 `*.test.ts`（`regex` / `queue` / `crypto/transformer` / `persistent/enhance` 的 sync + async），与源文件同级。
+- **测试**：7 个 `*.test.ts`（`regex` / `queue` / `crypto/transformer` / `persistent/enhance` / `object-paths` / `sign-raw` 的 sync + async 等），与源文件同级。
 
 ## 已知限制与延后工作
 
-- **CJS 面当前没有消费者**：`require` / `main` 两个条件指向的 `dist/*.cjs` 无人 import —— `apps/server` 已不声明本依赖（A6 核实记录：`apps/server` 无 `@walnut/utils` 声明、`git grep` → 0），ADR 0017 的 Phase 2.4「确认死依赖处理（使用或移除声明）」以**移除**告终、勾选框至今未勾 —— 证据：`apps/docs/src/zh-CN/content/monorepo/architecture-todo.md` 与 `apps/docs/src/zh-CN/content/adr/0017-package-reorganization.md`。
+- **CJS 面消费者（W3 批起）：`apps/server`** —— 解耦后 server 经 CJS dist 子路径 require `@walnut/utils/object-paths` 与 `@walnut/utils/sign-raw`（审计日志扁平化 / 请求签名原文）。A6 曾记录「server 无本依赖声明」并以移除告终——该裁决已被 U3 推翻（依赖以 `workspace:*` 重新声明）。
 - **CJS 产物把 contract 的 wire 常量内联了**：`vite.config.ts` 的 `rollupOptions.external` 只列了 `js-base64`，于是 `@walnut/contract/crypto-wire` 被打进产物（构建产物里是一份字面量 `{ IV_LENGTH: 12, TAG_LENGTH: 16, MIN_PAYLOAD_LENGTH: 28 }`）—— 这个「前后端必须一致」的有线格式在产物面成了构建期快照，而不是对 contract 的引用。证据：`packages/platform-any/utils-core/vite.config.ts`。
-- **server 侧的纯函数一项都没迁进来**：ADR 0017 的迁入清单（`generateVerifyCode` / `sleep` / `objectToPaths` / `regexMap` / `maskEmail` / `maskPhone` / `maskSensitiveFields` / `getPackageJsonData` / `AppDayjs`）全部未执行 —— 决策 5 记为「2026-07-31 评估后跳过：`libs/utils` 被 73 个文件引用」，这些函数仍在 `apps/server/libs/utils/src/`。证据：`apps/docs/src/zh-CN/content/adr/0017-package-reorganization.md`。
+- **server 侧纯函数部分上收（U3 批）**：`objectToPaths` / `pathsToObject` 已迁入本包（server 与 client 双端 re-export 消费）；`generateVerifyCode` / `sleep` / `regexMap` / `maskEmail` / `maskPhone` / `maskSensitiveFields` / `getPackageJsonData` / `AppDayjs` 仍为 server 专属（无跨端消费或 Nest/Node 耦合）。
 - **同源候选未定案**：`LRUMap<K, V>` 与 `extractJSON` / `isBufferWaitingForJSON` 在 ADR 0017 里只写「**可选择性**放入 `utils-core`」，至今仍在 `apps/admin/src/components/Global/AI/utils/` 下 —— 证据：同一篇 ADR 的可选迁移候选表。
 - **构建产物包含测试文件的声明**：dts 插件配置为 `include: ['src']`，`*.test.ts` 的 `.d.ts` 会一起产出（`types` 字段指向 `src`，所以当前无害，但产物面比公开面大）—— 证据：`packages/platform-any/utils-core/vite.config.ts`。
-- **`test` 脚本带一个永不触发的开关**：`vitest run --passWithNoTests`，而包内实有 5 个测试文件 —— 证据：`packages/platform-any/utils-core/package.json`。
+- **`test` 脚本带一个永不触发的开关**：`vitest run --passWithNoTests`，而包内实有 7 个测试文件 —— 证据：`packages/platform-any/utils-core/package.json`。
 
 ## 相关
 

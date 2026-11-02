@@ -1,5 +1,5 @@
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/browser'
-import type { IModels } from './models'
+import type { SystemDeleted, SystemDevice, SystemUser, SystemUserIdentityPurpose, SystemUserIdentityType } from '@walnut/api-types'
 
 export namespace IRequestPayload {
   export namespace App {}
@@ -46,7 +46,8 @@ export namespace IRequestPayload {
     }
 
     export interface KickOutAllDevicesForAdmin extends KickOutAllDevices {
-      _id: string
+      // 目标用户主键（PG uuid，对齐 Safe DTO 的 id 契约）
+      id: string
     }
 
     export namespace OTP {
@@ -77,28 +78,29 @@ export namespace IRequestPayload {
     export namespace Opaque {
 
       export namespace Admin {
+        // 管理端按 user 主键（uuid）定位，对齐 server AuthOpaqueAdminUserIdDTO（B7a）
         export interface UpdatePasswordStart extends Opaque.Register.Start {
-          _id: string
+          id: string
         }
 
         export interface UpdatePasswordFinish extends Opaque.Register.Finish {
-          _id: string
+          id: string
         }
 
         export interface ResetPasswordStart extends Opaque.Register.Start {
-          _id: string
+          id: string
         }
 
         export interface ResetPasswordFinish extends Opaque.Register.Finish {
-          _id: string
+          id: string
         }
       }
       export namespace Login {
-        export interface Start extends Pick<IModels.SystemUser, 'userName'>, Opaque.Register.Start {}
+        export interface Start extends Pick<SystemUser, 'userName'>, Opaque.Register.Start {}
 
-        export interface Finish extends Pick<IModels.SystemUser, 'userName'>, Opaque.Register.Finish {}
+        export interface Finish extends Pick<SystemUser, 'userName'>, Opaque.Register.Finish {}
 
-        export interface ClientError extends Pick<IModels.SystemUser, 'userName'> {
+        export interface ClientError extends Pick<SystemUser, 'userName'> {
           clientError: 'passwordError' | 'serverStaticKeyMismatch'
         }
       }
@@ -123,35 +125,37 @@ export namespace IRequestPayload {
 
     export namespace UserIdentity {
       export interface Status {
-        type: IModels.ISystemUserIdentityType
-        purpose: IModels.ISystemUserIdentityPurpose
+        type: SystemUserIdentityType
+        purpose: SystemUserIdentityPurpose
         status: boolean
       }
       export interface Verify {
-        type: IModels.ISystemUserIdentityType
-        purpose: IModels.ISystemUserIdentityPurpose
+        type: SystemUserIdentityType
+        purpose: SystemUserIdentityPurpose
         verifyCode: string
       }
       export interface Check {
-        type: IModels.ISystemUserIdentityType
-        purpose: IModels.ISystemUserIdentityPurpose
+        type: SystemUserIdentityType
+        purpose: SystemUserIdentityPurpose
         identifier: string
       }
 
       export interface Bind {
-        type: IModels.ISystemUserIdentityType
-        purpose: IModels.ISystemUserIdentityPurpose
+        type: SystemUserIdentityType
+        purpose: SystemUserIdentityPurpose
         identifier: string
         verifyCode: string
         setAsSecurity: boolean
       }
     }
     export namespace Deleted {
-      export type Recover = Pick<IModels.Base, '_id'> & Pick<IModels.SystemDeleted, 'deletedId'>
+      // B9 起 sys_deleted 迁 PG：主键响应契约 `_id` → `id`（uuid）
+      export type Recover = Pick<SystemDeleted, 'id' | 'deletedId'>
     }
 
     export namespace Deivce {
-      export type Initial = IModels.SystemDevice
+      // initial 注册请求不含主键（id 由服务端生成），字段对齐 server SysDeviceDTOInitialRequest
+      export type Initial = Omit<SystemDevice, 'id'>
     }
 
     export namespace UserDevice {

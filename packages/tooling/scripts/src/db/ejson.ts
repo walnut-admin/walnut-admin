@@ -9,12 +9,10 @@
  * 2. **兼容老路子**：Compass / `mongoimport --jsonArray` 直接认这个格式 ⇒ 在这个脚本还没跑通
  *    的机器上，人肉导入照样能用（老文档描述的就是那条路）。
  *
- * 只认这四个形状，别的一律原样返回：`$oid` / `$date` / （写出时的）`$numberLong` 不处理
- * —— seed 里没有会溢出双精度的整数，处理它反而会引入"看起来像 Extended JSON 的普通对象"
- * 被误转的风险。
+ * 只认这两个形状，别的一律原样返回。Phase 5a 起 mongodb 驱动已从工具链摘除：
+ * `$oid` 解析为 **24 位 hex 字符串**（uuid5 派生与 ETL 映射都直接吃 hex，见 `seed-map.ts`
+ * 的 `refUuid`），写出侧只处理 `$date`（PG 回灌的 `_id` 是 uuid 本体，不再是 ObjectId）。
  */
-import { ObjectId } from 'mongodb'
-
 /** 形状判定：恰好只有 `$oid` / `$date` 一个键的对象才算包装 */
 function isWrapper(value: unknown, key: string): value is Record<string, string> {
   if (value === null || typeof value !== 'object' || Array.isArray(value))
@@ -23,12 +21,12 @@ function isWrapper(value: unknown, key: string): value is Record<string, string>
   return keys.length === 1 && keys[0] === key
 }
 
-/** Extended JSON → JS 值（`$oid` → `ObjectId`，`$date` → `Date`），递归 */
+/** Extended JSON → JS 值（`$oid` → 24 位 hex 字符串，`$date` → `Date`），递归 */
 export function fromExtendedJson(value: unknown): unknown {
   if (Array.isArray(value))
     return value.map(fromExtendedJson)
   if (isWrapper(value, '$oid'))
-    return new ObjectId(value.$oid)
+    return value.$oid
   if (isWrapper(value, '$date'))
     return new Date(value.$date)
   if (value !== null && typeof value === 'object') {
@@ -40,12 +38,10 @@ export function fromExtendedJson(value: unknown): unknown {
   return value
 }
 
-/** JS 值 → Extended JSON，递归（`ObjectId` → `{$oid}`，`Date` → `{$date}`） */
+/** JS 值 → Extended JSON，递归（`Date` → `{$date}`；字符串（hex/uuid）原样） */
 export function toExtendedJson(value: unknown): unknown {
   if (Array.isArray(value))
     return value.map(toExtendedJson)
-  if (value instanceof ObjectId)
-    return { $oid: value.toHexString() }
   if (value instanceof Date)
     return { $date: value.toISOString() }
   if (value !== null && typeof value === 'object') {

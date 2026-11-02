@@ -19,14 +19,6 @@ on:
         required: false
         type: string
         default: prod
-      # 参考数据注入：**默认关闭**。默认语义（mongoimport --mode=upsert）是整文档替换，会把运维在
-      # 后台改过的菜单/设置覆盖回去；所以这里走 `--mode=insert`（只插不改，等价于 `db:seed --if-missing`），
-      # 且只在**显式勾选**时跑 —— 首次部署（空库）用一次，之后不该再跑。
-      seed_reference_data:
-        description: 是否把参考数据（菜单/字典/语言包/应用设置）注入到线上库（只插不改）
-        required: false
-        type: boolean
-        default: false
   workflow_dispatch:
     inputs:
       image_tag:
@@ -39,11 +31,6 @@ on:
         type: choice
         options:
           - prod
-      seed_reference_data:
-        description: 是否注入参考数据（只插不改；首次部署/空库时勾）
-        required: false
-        type: boolean
-        default: false
 
 concurrency:
   group: deploy-${{ inputs.environment }}
@@ -96,19 +83,21 @@ jobs:
           done
           echo "三个镜像均存在：$TAG"
 
-      # 生成服务器 env 文件：连接串改服务名 + 从解密产物提取数据层密码拼装 .env
+      # 生成服务器 env 文件：连接参数改 compose 服务名 + 从解密产物提取数据层凭据拼装 .env
       - name: Generate server env files
         run: |
           set -euo pipefail
           sed -i \
             -e 's|^APP_REDIS_HOST=.*|APP_REDIS_HOST=prod-single-redis|' \
-            -e 's|^DATABASE_PRIMARY=.*|DATABASE_PRIMARY=prod-mongodb-primary:27017|' \
-            -e 's|^DATABASE_SECONDARY=.*|DATABASE_SECONDARY=prod-mongodb-secondary:27017|' \
-            -e 's|^DATABASE_ARBITER=.*|DATABASE_ARBITER=prod-mongodb-arbiter:27017|' \
+            -e 's|^DATABASE_PG_HOST=.*|DATABASE_PG_HOST=postgres|' \
             apps/server/env-local/.env.production
-          DB_PASS=$(grep '^DATABASE_PASS=' apps/server/env-local/.env.production | cut -d= -f2- | tr -d '"')
+          PG_USER=$(grep '^DATABASE_PG_USER=' apps/server/env-local/.env.production | cut -d= -f2- | tr -d '"')
+          PG_PASS=$(grep '^DATABASE_PG_PASS=' apps/server/env-local/.env.production | cut -d= -f2- | tr -d '"')
+          PG_NAME=$(grep '^DATABASE_PG_NAME=' apps/server/env-local/.env.production | cut -d= -f2- | tr -d '"')
           REDIS_PASS=$(grep '^APP_REDIS_PASS=' apps/server/env-local/.env.production | cut -d= -f2- | tr -d '"')
-          test -n "$DB_PASS" || { echo "ERROR: DATABASE_PASS not found"; exit 1; }
+          test -n "$PG_USER" || { echo "ERROR: DATABASE_PG_USER not found"; exit 1; }
+          test -n "$PG_PASS" || { echo "ERROR: DATABASE_PG_PASS not found"; exit 1; }
+          test -n "$PG_NAME" || { echo "ERROR: DATABASE_PG_NAME not found"; exit 1; }
           test -n "$REDIS_PASS" || { echo "ERROR: APP_REDIS_PASS not found"; exit 1; }
           mkdir -p deploy-files
           cp apps/server/env-local/.env.production deploy-files/.env.production
@@ -119,13 +108,26 @@ jobs:
           mkdir -p deploy-files/nginx
           cp -a deploy/nginx/conf.d deploy-files/nginx/conf.d
           cp -a deploy/nginx/frontend-server.conf deploy-files/nginx/frontend-server.conf
+          # postgres / redis 两个容器的凭据都从解密产物提取：POSTGRES_* 与 backend 那份 env 的
+          # DATABASE_PG_* 同源同值（compose 里 postgres 服务与 backend 连的是同一套账号）
           cat > deploy-files/.env <<EOF
           IMG_TAG=${TAG}
-          MONGODB_ROOT_PASSWORD=${DB_PASS}
-          MONGODB_REPLICA_SET_KEY=WalnutAdminNestjsMongoDBReplicasetProdName
-          MONGODB_REPLICA_SET_NAME=WalnutAdminNestjsMongoDBReplicasetProdName
+          POSTGRES_USER=${PG_USER}
+          POSTGRES_PASSWORD=${PG_PASS}
+          POSTGRES_DB=${PG_NAME}
           REDIS_PASSWORD=${REDIS_PASS}
           EOF
+          # PG seed 通道的运行体（@walnut/scripts 的 db-seed-pg，bin + src 整目录打进去，
+          # 不手挑依赖闭包 —— 挑漏一个 import 要到服务器上才炸）随包上传。生产服务器上没有仓库
+          # 也没有 Node 工具链，部署时 docker cp 进 backend 容器执行：容器里有 Node 24（原生类型
+          # 剥离直接跑 .ts）和 seed-pg 需要的全部运行时依赖（pg / @serenity-kit/opaque）。
+          mkdir -p deploy-files/seed-tooling
+          cp -r packages/tooling/scripts/bin packages/tooling/scripts/src deploy-files/seed-tooling/
+          # 固定 ESM 语义：backend 镜像的 /app/package.json（@walnut/server）没有 type 字段，
+          # 不补这一份的话模块语法要靠 Node 的探测兜底
+          printf '{"type":"module"}\n' > deploy-files/seed-tooling/package.json
+          tar -czf deploy-files/seed-tooling.tar.gz -C deploy-files/seed-tooling .
+          rm -rf deploy-files/seed-tooling
           echo "deploy-files 生成完成（IMG_TAG=${TAG}）"
 
       - name: Upload env files to server
@@ -151,8 +153,9 @@ jobs:
             # ---- 写入 CI 生成的环境文件 ----
             mv -f deploy-files/.env .env
             mv -f deploy-files/.env.production env/.env.production
-            # 验证脚本留在部署目录，供下一步调用（deploy-files 其余内容清掉）
+            # 验证脚本与 seed 通道运行体留在部署目录，供后续步骤调用（deploy-files 其余内容清掉）
             mv -f deploy-files/post-verify.sh post-verify.sh
+            mv -f deploy-files/seed-tooling.tar.gz seed-tooling.tar.gz
 
             # ---- 同步入口 nginx 配置（仓库是唯一真源）----
             #
@@ -239,26 +242,8 @@ jobs:
 
       # 部署后验证（post-verify）：上一步只保证"容器起来了 + healthcheck 过"，
       # 这一步持续观察 2 分钟，证明服务真的在工作：镜像 tag 正确、后端出现启动标记、
-      # 后端日志无致命错误、前端/入口 nginx 无 5xx、公网域名端到端 200。详见 deploy/post-verify.sh
-      # 参考数据注入（只有勾了 seed_reference_data 才跑）。
-      #
-      # 判据刻意**不依赖重复键语义**：`mongoimport` 的 `--stopOnError` 行为在版本间含糊（默认是继续
-      # 还是中止、重复键会不会中断整批，官方文档与历史 issue 都不一致），而这条路径在生产上没法
-      # 先试错。所以改成**按集合判**：
-      #   · 集合为空  -> `--mode=insert` 整集插入（空集合不可能撞重复键，语义确定）；
-      #   · 集合非空  -> **整集跳过**，不碰运维在后台改过的任何一条。
-      # 副作用是明说的：后续版本往已有集合里**新增**的行不会被这条路径带上去 —— 那类增量走通道 1
-      # （`pnpm db:export` 出差异 → PR 审 → 随发版走），或运维显式跑一次 `db:seed`。
-      #
-      # 为什么把文件 `docker cp` 进容器：`mongoimport` 跑在 mongo 容器里、看不到宿主路径；
-      # 凭据用**容器自己的环境变量**（Bitnami 注入的 root 账号），不落到命令行上 —— 命令行会进
-      # CI 日志与服务器进程表。
-      # **每次部署都跑**（不再挂在 `seed_reference_data` 开关上）。
-      #
-      # 为什么撤掉开关：注入的语义本来就是"**集合为空才插、非空整集跳过**"⇒ 幂等、且不动运维数据，
-      # 每次跑都安全。而挂在开关上有个结构性漏洞 —— tag 推送触发的发版走 `workflow_call`，
-      # **根本没法设置这个输入**，于是"打 tag 自动部署"这条路永远不注入数据（2026-09-30 实测：
-      # v0.1.2 / v0.1.3 两次发版的注入步骤全是 skipped，线上库一直是空的）。
+      # 后端日志无致命错误、前端/入口 nginx 无 5xx、公网域名端到端 200、探针路由
+      # /health/* 经 nginx 必须 404（挡板生效，见 W2-B）。详见 deploy/post-verify.sh
       # 按 Release 记录的 digest **核对**线上实际产物（P3-lite 的后半）。
       #
       # 为什么"核对"而不是"改成按 digest 拉取"：compose 文件在服务器上是**手工维护的一份拷贝**
@@ -335,6 +320,27 @@ jobs:
             fi
             echo "三个镜像的 digest 与发布记录一致"
 
+      # ---- 参考数据注入（PG seed 通道）----
+      #
+      # **每次部署都跑**，不再挂在输入开关上：tag 推送触发的发版走 `workflow_call`，根本没法设置
+      # 这个输入 —— 挂在开关上时"打 tag 自动部署"这条路永远不注入数据（2026-09-30 实测：
+      # v0.1.2 / v0.1.3 两次发版的注入步骤全是 skipped，线上库一直是空的）。
+      #
+      # 语义（`pnpm db:seed:pg` = walnut-db-seed-pg，与开发侧同一条命令）：按 id upsert，幂等可重放，
+      # 库**收敛到仓** —— 仓（该 tag 的 seed 资产）是参考数据的唯一真源，已存在的行整行刷新为仓内
+      # 值；junction 表 DO NOTHING（只补缺不回收）；app_key 缺 ACTIVE 才现造。运维在后台改过菜单/
+      # 设置的，必须走回灌通道（`pnpm db:export:pg` 出差异 → PR 审 → 随发版走）带回来，否则下次
+      # 部署会被冲掉 —— 这是相对 mongoimport"非空整集跳过"时代的**有意变更**：跳过语义有个结构性
+      # 副作用（后续版本新增的行永远上不了已有集合的库），收敛语义没有。
+      #
+      # 为什么跑在 **backend 容器**里：生产服务器上没有仓库与 Node 工具链，而 backend 镜像里
+      # Node 24（原生类型剥离直接执行 .ts）与 seed-pg 需要的运行时依赖（pg / @serenity-kit/opaque）
+      # 都是现成的，且它在 compose 内网里正好可达 postgres。凭据不落命令行 —— 连接参数从容器里
+      # 那份 env 文件读（`--env-file`），该文件已在 Generate server env files 一步把
+      # DATABASE_PG_HOST 改写成 compose 服务名。
+      #
+      # 复核（psql 行数）跑在 **postgres 容器**里：官方镜像自带 psql，凭据用容器自己的
+      # POSTGRES_* 环境变量，不落到命令行上。
       - name: Download seed asset from the release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -364,57 +370,40 @@ jobs:
             set -e
             cd /home/ubuntu/walnut-admin/deploy
 
-            # 目标库名取自后端自己那份 env（别写死：它由 CI 从 env-encrypted 生成）
-            DB_NAME=$(grep -E '^DATABASE_NAME=' env/.env.production | head -1 | cut -d= -f2-)
-            test -n "$DB_NAME" || { echo "ERROR: env/.env.production 里没有 DATABASE_NAME"; exit 1; }
-            echo "目标库：$DB_NAME"
-
-            rm -rf seed-staging && mkdir -p seed-staging
+            rm -rf seed-staging seed-tooling && mkdir -p seed-staging seed-tooling
             tar xzf seed-asset/walnut-admin-seed-*.tar.gz -C seed-staging
             test -d seed-staging/seed || { echo "ERROR: 资产里没有 seed/ 目录"; exit 1; }
+            tar xzf seed-tooling.tar.gz -C seed-tooling
 
-            # 参考数据都在主节点上操作（副本集会自动同步到从节点）
-            CID=$(docker compose ps -q prod-mongodb-primary)
-            test -n "$CID" || { echo "ERROR: 找不到 prod-mongodb-primary 容器"; exit 1; }
-            docker cp seed-staging/seed/. "$CID":/tmp/seed-ref
+            # 拷进 backend 容器的 /app/ 下：Node 按**导入文件的位置**向上找 node_modules 解析
+            # pg / opaque，放 /tmp 这类 /app 之外的地方会 ERR_MODULE_NOT_FOUND
+            BID=$(docker compose ps -q backend)
+            test -n "$BID" || { echo "ERROR: 找不到 backend 容器"; exit 1; }
+            docker cp seed-staging/seed "$BID":/app/seed-ref
+            docker cp seed-tooling/. "$BID":/app/seed-tooling/
 
-            # 循环体**整段推进容器里执行**：宿主侧只负责把库名当参数传进去。
-            #
-            # 为什么必须这样（2026-09-30 线上实测失败）：原来的写法是宿主 `sh` 里再套
-            # `docker compose exec … sh -c "… \"\$MONGODB_ROOT_USER\" … --eval \"$1\""` ——
-            # 三层引号（宿主 → exec → 容器 sh）叠在一起，手工在服务器上跑没事、放进脚本必炸，
-            # 而且报错文本被 `| tail -2` 吃掉，只看到"这一步红了"看不出哪一行。
-            # 现在用**带引号的 heredoc**（`<<'INNER'` 不做变量展开 ⇒ 容器里原样执行），
-            # 库名经 `sh -s "$DB_NAME"` 以 `$1` 传入；容器里直接读它自己的 env 取凭据。
-            echo "--- phase: 逐集合注入（空则插、非空则跳过）"
-            docker compose exec -T prod-mongodb-primary sh -s "$DB_NAME" <<'INNER'
-            set -e
-            DB="$1"
-            URI_ARGS="--username $MONGODB_ROOT_USER --password $MONGODB_ROOT_PASSWORD --authenticationDatabase admin"
+            echo "--- phase: db:seed:pg（按 id upsert，库收敛到仓）"
+            docker compose exec -T backend node /app/seed-tooling/bin/db-seed-pg.ts \
+              --seed-dir /app/seed-ref \
+              --env-file /app/env-local/.env.production
 
-            for f in /tmp/seed-ref/*.json; do
-              [ -e "$f" ] || continue
-              col=$(basename "$f" .json)
-              existing=$(mongosh --quiet $URI_ARGS "$DB" --eval "db.getCollection('$col').countDocuments()" | tr -d '[:space:]')
-              case "$existing" in
-                ''|*[!0-9]*) echo "  warn   $col（取条数失败，按跳过处理：宁可不导也不覆盖）"; continue ;;
+            # 复核：参考表行数（可复核的证据）。psql 在 postgres 容器里跑，
+            # 凭据用容器自己的 POSTGRES_* 环境变量（宿主 shell 里没有这些变量）
+            echo "--- phase: 注入后行数（可复核的证据）"
+            PCID=$(docker compose ps -q postgres)
+            test -n "$PCID" || { echo "ERROR: 找不到 postgres 容器"; exit 1; }
+            for t in app_setting sys_dict_data sys_dict_type sys_lang sys_locale sys_menu sys_role sys_user; do
+              n=$(docker compose exec -T postgres sh -c "psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -tA -c 'SELECT count(*) FROM $t'")
+              case "$n" in
+                ''|*[!0-9]*) echo "  $t  查询失败"; exit 1 ;;
+                *) echo "  $t  $n 行" ;;
               esac
-              if [ "$existing" != "0" ]; then
-                echo "  skip   $col（库里已有 $existing 条：不覆盖运维数据）"
-                continue
-              fi
-              echo "  import $col"
-              mongoimport $URI_ARGS --db "$DB" --collection "$col" \
-                --file "$f" --jsonArray --mode=insert
             done
 
-            echo "--- phase: 注入后条数（可复核的证据）"
-            mongosh --quiet $URI_ARGS "$DB" --eval 'db.getCollectionNames().sort().forEach(c => print("  " + c.padEnd(18) + db.getCollection(c).countDocuments()))'
-            INNER
-
             echo "--- phase: 清理"
-            rm -rf seed-staging seed-asset
-            echo "参考数据注入完成：空集合已补齐，非空集合一个文档都没动"
+            docker compose exec -T backend rm -rf /app/seed-ref /app/seed-tooling
+            rm -rf seed-staging seed-tooling seed-asset
+            echo "参考数据注入完成：参考表已对齐仓内 seed 形态"
 
       # 数据就位之后**才**等健康检查。
       #
@@ -423,7 +412,7 @@ jobs:
       # 容器起不来（2026-09-30 首次部署实测）。所以"等健康"必须排在注入之后，否则首次部署到空库
       # 一定超时失败（`up -d --wait` 会在数据注入之前就放弃）。
       #
-      # 没勾 `seed_reference_data` 时这一步仍然有意义：它是"部署完真的健康"的判据
+      # 没有可跳的情形 —— 它对**每一轮部署**都有意义：它是"部署完真的健康"的判据
       # （compose >= 2.17 支持 `--wait`；老版本退化成只确认容器在跑）。
       - name: Wait for health after seeding
         uses: appleboy/ssh-action@v0.1.10

@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { ComputedRef } from 'vue'
+import { WalnutAdminConstSysUserMfaType } from '@walnut/contract/mfa'
 import { noop } from 'lodash-es'
 import { computed, onBeforeMount, ref, useTemplateRef } from 'vue'
 import { authMfaStatusAPI, authMfaVerifyAPI } from '@/api/auth/mfa'
@@ -34,9 +35,12 @@ const webauthnModalRef = useTemplateRef('webauthnModalRef')
 const loading = ref(true)
 const trusted = ref(false)
 
+// MFA 方法值集的单一真源是 @walnut/contract（server 侧同一数组做 enum 校验）
+const [mfaTotp, mfaWebauthn] = WalnutAdminConstSysUserMfaType
+
 const mfaMethodsConfig = ref<MfaMethod[]>([
   {
-    key: 'totp',
+    key: mfaTotp,
     name: computed(() => t('mfa.totp')),
     description: computed(() => t('mfa.totp.desc')),
     icon: 'simple-icons:google',
@@ -47,7 +51,7 @@ const mfaMethodsConfig = ref<MfaMethod[]>([
     },
   },
   {
-    key: 'webauthn',
+    key: mfaWebauthn,
     name: computed(() => t('mfa.webauthn')),
     description: computed(() => t('mfa.webauthn.desc')),
     icon: 'simple-icons:webauthn',

@@ -8,6 +8,7 @@
   },
   // `scripts/` 是构建期脚本（把 dist 的多个 .cjs 合成一个 barrel），
   // 由 Node 原生执行 ⇒ 必须一起进类型检查，erasableSyntaxOnly 才对它生效。
-  "include": ["src/**/*.ts", "scripts/**/*.ts"],
+  // `__tests__/` 是包级结构门禁（读包根文件），同样纳入类型检查。
+  "include": ["src/**/*.ts", "scripts/**/*.ts", "__tests__/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

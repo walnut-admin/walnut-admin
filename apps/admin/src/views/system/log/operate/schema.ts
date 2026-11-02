@@ -1,7 +1,8 @@
-import type { IModels } from '@/api/models'
+import type { SystemLogOperate } from '@walnut/api-types'
+
 import type { WForm } from '@/components/UI/Form'
 
-export const logOperateFormSchema: WForm.Schema.Item<IModels.SystemLogOperate>[] = [
+export const logOperateFormSchema: WForm.Schema.Item<SystemLogOperate>[] = [
   {
     type: 'Base:Input',
     formProp: {
@@ -112,7 +113,7 @@ export const logOperateFormSchema: WForm.Schema.Item<IModels.SystemLogOperate>[]
   {
     type: 'Base:Input',
     formProp: {
-      path: 'correspondingMS',
+      path: 'durationMs',
     },
     descriptionProp: { formatter: ms => `${ms} ms` },
   },

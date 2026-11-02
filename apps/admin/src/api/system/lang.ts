@@ -1,10 +1,9 @@
-import type { IModels } from '../models'
-import type { IResponseData } from '../response'
+import type { SystemLang, SystemLangPublicListItem } from '@walnut/api-types'
 import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
-export const langAPI = new BaseAPI<IModels.SystemLang>({
+export const langAPI = new BaseAPI<SystemLang>({
   model: 'system',
   section: 'lang',
 })
@@ -14,7 +13,7 @@ export const langAPI = new BaseAPI<IModels.SystemLang>({
  * This should only called once in appStoreLocalePicker component
  */
 export async function getLangListPublicAPI() {
-  const lists = await AppAxios.get<IResponseData.System.Lang.Public>({
+  const lists = await AppAxios.get<SystemLangPublicListItem[]>({
     url: SystemEndpointRoutes.LANG_LIST_PUBLIC,
   })
 

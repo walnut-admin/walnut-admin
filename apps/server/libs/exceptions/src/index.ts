@@ -11,5 +11,6 @@ export * from './business/app'
 export * from './business/auth'
 
 export * from './business/rsa'
+export * from './error-reporter.port'
 export * from './exception.filter'
 export * from './handler'

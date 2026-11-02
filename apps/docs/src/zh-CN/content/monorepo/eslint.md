@@ -17,10 +17,11 @@ import baseConfig from '@walnut/eslint-config/base'
 export default baseConfig()
 ```
 
-> ⚠️ 这个文件的作用域**不止根目录**：仓内只有 5 份 `eslint.config.ts`（根 + 3 个 app + ui），
-> 其余 10 个包（`platform-any/*`、`platform-web/{client,http}`、`tooling/*`）没有自己的配置，
-> ESLint 会**向上查到本文件** —— 它们全是 TS-only（零 `.vue`），`base` 正是它们该用的预设。
-> 2026-09-23 之前根入口用的是 `vue` 预设，等于给这 10 个包白装了 vue / unocss 插件。
+> ⚠️ 这个文件的作用域**不止根目录**：大多数包没有自己的 `eslint.config.ts`，ESLint 会
+> **向上查到本文件** —— 它们全是 TS-only（零 `.vue`），`base` 正是它们该用的预设。
+> 自带配置的例外都有理由：3 个 app（server 用 nest 预设、admin/docs 用 vue 预设）、
+> ui（vue 预设）、api-types（生成物 `schema.d.ts` 豁免风格规则）。
+> 2026-09-23 之前根入口用的是 `vue` 预设，等于给无配置的包白装了 vue / unocss 插件。
 
 > 2026-09-23 起，仓库里**没有任何 `.mjs` / `.cjs` 文件**：4 个包级 ESLint 配置、`eslint-config` 的 4 个文件（3 个预设 + 本地规则插件 `nest-local-rules`）、commitlint 配置与 config 包、`@walnut/scripts` 的 `bin/` 下那批脚本（当时 5 个，此后还在加）、contract 的 `build-barrel` 脚本全部改成 `.ts`。ESLint 加载 `eslint.config.ts` 需要 **`jiti`**（ESLint 官方的 TS 配置加载器），因此根 `devDependencies` 新增了它。详见 [ADR-0019](/content/adr/0019-tsconfig-presets-and-no-mjs)。
 

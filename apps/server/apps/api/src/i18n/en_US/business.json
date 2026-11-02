@@ -6,9 +6,24 @@
         "delete": {
             "recoverFail": "Recover Delete Failed."
         },
+        "dept": {
+            "parentNotFound": "Parent dept does not exist.",
+            "parentCycle": "Parent dept cannot be itself or its descendant.",
+            "hasChildren": "Child depts exist; delete them first.",
+            "hasEmployees": "Employees exist in this dept; cannot delete."
+        },
+        "post": {
+            "hasEmployees": "Employees exist in this post; cannot delete."
+        },
+        "employee": {
+            "deptNotFound": "Dept does not exist.",
+            "postNotFound": "Post does not exist.",
+            "userNotFound": "User account does not exist."
+        },
         "user": {
             "unLock": {
-                "pwdErr": "Unlock Password Error."
+                "pwdErr": "Unlock Password Error.",
+                "pwdRequired": "Security lock mode is enabled; unlock password is required."
             }
         }
     },

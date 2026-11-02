@@ -14,3 +14,11 @@ export const Role = {
 
 /** Type for role values: 'root' | 'developer' | 'admin' | 'visitor' */
 export type RoleType = ValueOf<typeof Role>
+
+/** Role mode wire values — whether a user switches roles or combines them */
+export const RoleMode = {
+  SWITCH: 'switchable',
+  COMBINE: 'combinable',
+} as const
+
+export type RoleModeType = ValueOf<typeof RoleMode>

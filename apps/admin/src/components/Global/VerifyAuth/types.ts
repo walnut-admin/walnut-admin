@@ -1,14 +1,15 @@
+import type { SystemUserIdentityPurpose } from '@walnut/api-types'
+import type { IWalnutAdminConstSysUserMfaType } from '@walnut/contract/mfa'
 /**
  * Secondary Authentication Types
  * Unified secondary authentication for sensitive operations
  */
 
-import type { IModels } from '@/api/models'
-
 /**
  * Supported authentication method types
+ * （MFA 两档来自 @walnut/contract，前后端同一值集）
  */
-export type VerifyAuthMethodType = 'sms' | 'email' | 'totp' | 'webauthn'
+export type VerifyAuthMethodType = 'sms' | 'email' | IWalnutAdminConstSysUserMfaType
 
 /**
  * Flow mode - determines which flow to use
@@ -56,7 +57,7 @@ export interface VerifyAuthOptions {
   /** Whether to show "trust this device" checkbox - defaults to true */
   showTrusted?: boolean
   /** Purpose for the API calls ('login' | 'security') - defaults to 'security' */
-  purpose?: IModels.ISystemUserIdentityPurpose
+  purpose?: SystemUserIdentityPurpose
   /** Whether to show "set as security" option (for bind mode) - defaults to false */
   showSetAsSecurity?: boolean
 }

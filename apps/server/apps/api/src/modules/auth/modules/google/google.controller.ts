@@ -1,26 +1,30 @@
 import { Controller, HttpCode, HttpStatus, Logger, Post, Request, UseGuards } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
+import { AuthCookieService, AuthGoogleService, AuthSuccessDTO, WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
+
 import { IWalnutAdminConstAppSettingAuthOAuthGoogleKeys } from '@walnut-server/const/app/setting'
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
-import { WalnutAdminDecoratorFunctionalGuard } from '@/decorators/walnut/functional.decorator'
-import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { AuthSuccessDTO } from '../../dto/auth.dto'
-import { AuthCookieService } from '../cookie/cookie.service'
-import { WalnutAdminGuardJwtFree } from '../jwt/jwt-access.guard'
+import { WalnutAdminDecoratorAuthLog, WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorFunctionalGuard, WalnutAdminDecoratorUser, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { AuthRoutes } from '@walnut/contract'
 import { AuthGoogleGuard } from './google.guard'
-import { AuthGoogleService } from './google.service'
 
-@Controller('auth/google')
+@Controller(AuthRoutes.GOOGLE)
 @ApiTags('auth/google')
 @WalnutAdminGuardJwtFree()
 @WalnutAdminGuardSignFree()
-@WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOAuthGoogleKeys>(WalnutAdminConstAppSettingKeys.APP_AUTH_GOOGLE, 'authEnable')
+// P1-17（2026-10-28）：Google 登录暂时关闭 —— 未配置（settings 缺失）即 50301，
+// 需在 app.auth.google 显式 authEnable=1 才开放。补全（email 复用 + user_identity /
+// user_oauth 绑定）前不恢复默认放行。
+@WalnutAdminDecoratorFunctionalGuard<IWalnutAdminConstAppSettingAuthOAuthGoogleKeys>(
+  WalnutAdminConstAppSettingKeys.APP_AUTH_GOOGLE,
+  'authEnable',
+  { defaultClosed: true },
+)
+// 数据权限三期：登录链系统通道（匿名进入，按用户名/oauth 绑定读写 sys_user）
+@WalnutAdminDecoratorDataScopeSystemChannel()
 export class AuthGoogleController {
   private readonly logger = new Logger(AuthGoogleController.name)
 
@@ -31,7 +35,7 @@ export class AuthGoogleController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Auth with google fed_cm',
     DTO: AuthSuccessDTO,
@@ -41,10 +45,11 @@ export class AuthGoogleController {
   async login(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
   ) {
-    const { accessToken, refreshTokenJti, authSessionKey } = await this.authGoogleService.authWithGoogleFedCM(user, deviceId, dbSession)
+    // B7b 归一：refresh 写腿迁 PG —— 单 em
+    const { accessToken, refreshTokenJti, authSessionKey } = await this.authGoogleService.authWithGoogleFedCM(user, deviceId, ctx.em)
 
     // set refresh token jti to cookie
     this.authCookieService.setRTJtiCookie(req, refreshTokenJti)

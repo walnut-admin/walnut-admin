@@ -54,6 +54,36 @@ export const FORBIDDEN_COLLECTIONS = [
   'sys_user_oauth',
 ]
 
+/**
+ * `app_setting` 里必须存在的显式默认行（P2-15，2026-10-28）。
+ *
+ * 为什么进机械门禁：`app.global.ipBlackList` 是永久 IP 黑名单的**唯一写回锚点** ——
+ * `addToPermanentBlackList` 先 findAppSettingByKey 再 updateAppSettingByKey，后者对
+ * 不存在的 key 静默 no-op（对齐 Mongo findOneAndUpdate 语义）。零配置部署只跑
+ * migration 时，黑名单永远不会真正积累，扫描器每次只拿到 40610、IP 不被记住，
+ * 读取腿还会把缺失键兜底成 `[]` —— 问题完全静默。seed 是唯一能补上这一行的通道，
+ * 所以「这一行在 seed 里」本身必须是可机械核对的判据，不能靠人记得。
+ *
+ * 值形态对照 cache.appSettings 的读取口径：settingValue 是 JSON 字符串，读腿
+ * `JSON.parse` 后当 string[] 用 —— 因此这里也要求可解析为字符串数组。
+ */
+export const REQUIRED_APP_SETTING_KEYS: ReadonlyArray<{ key: string, validate: (value: string) => string | null }> = [
+  {
+    key: 'app.global.ipBlackList',
+    validate: (value) => {
+      try {
+        const parsed = JSON.parse(value) as unknown
+        return Array.isArray(parsed) && parsed.every(item => typeof item === 'string')
+          ? null
+          : 'value 必须是 JSON 字符串数组（如 "[]"）'
+      }
+      catch {
+        return 'value 不是合法 JSON（读腿 JSON.parse 会兜底成 []，黑名单静默失效）'
+      }
+    },
+  },
+]
+
 /** 凭据形状的键名：出现即说明有人把不该发的数据导进来了 */
 export const FORBIDDEN_KEYS = ['privateKeyPem', 'keyB64', 'totpSecretCiphertext', 'backupCodesCiphertext', 'valueHash']
 
@@ -126,6 +156,42 @@ export function collectFindings(repoRoot: string, seedDir = 'apps/server/db/seed
     add(seedDir, `数据集合计 ${(total / 1024).toFixed(0)}KB 超过预算 ${TOTAL_BUDGET_BYTES / 1024}KB`)
 
   findings.push(...referentialFindings(dir, files, seedDir))
+  findings.push(...appSettingFindings(dir, files, seedDir))
+  return findings
+}
+
+/**
+ * `app_setting` 显式默认行：键必须存在、值必须可被读腿原样解析。
+ * 缺行 / 形态不对都点名到 settingKey，避免「seed 跑完看起来成功、黑名单写腿永远 no-op」。
+ */
+function appSettingFindings(dir: string, files: string[], seedDir: string): SeedFinding[] {
+  if (!files.includes('app_setting.json'))
+    return []
+
+  const docs = parseCollectionFile(readFileSync(join(dir, 'app_setting.json'), 'utf8')) as Doc[]
+
+  const findings: SeedFinding[] = []
+  for (const requirement of REQUIRED_APP_SETTING_KEYS) {
+    const row = docs.find(doc => doc.settingKey === requirement.key)
+    if (row === undefined) {
+      findings.push({
+        file: `${seedDir}/app_setting.json`,
+        detail: `缺少显式默认行 ${requirement.key}（写腿对缺失键静默 no-op，永久黑名单永远不会积累）`,
+      })
+      continue
+    }
+
+    const value = row.settingValue
+    if (typeof value !== 'string') {
+      findings.push({ file: `${seedDir}/app_setting.json`, detail: `${requirement.key} 的 settingValue 必须是 JSON 字符串` })
+      continue
+    }
+
+    const error = requirement.validate(value)
+    if (error !== null)
+      findings.push({ file: `${seedDir}/app_setting.json`, detail: `${requirement.key} 形态不对：${error}` })
+  }
+
   return findings
 }
 

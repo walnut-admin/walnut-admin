@@ -1,24 +1,10 @@
-import { WalnutDBModelName, WalnutDBVirtualName } from '@walnut-server/db'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
-import { Schema } from 'mongoose'
-import { SysDeviceDTOSafe } from '@/modules/system/device/dto/device.dto'
-import { ISysDeviceDocument } from '@/modules/system/device/schema/device.schema'
-import { addVirtual } from '../virtual'
+import { SysDeviceDTOSafe } from '@walnut-server/system'
 
-export function addVirtualDeviceThroughDeviceId(schema: Schema) {
-  return addVirtual(schema, {
-    virtualPath: WalnutDBVirtualName.DEVICE,
-    ref: WalnutDBModelName.SYS_DEVICE,
-    localField: 'deviceId',
-    foreignField: 'deviceId',
-    justOne: true,
-  })
-}
-
-export interface IVirtualDevice {
-  populated_device?: ISysDeviceDocument | null
-}
-
+/**
+ * populate 出参（Phase 5a 起 mongoose virtual 已摘除；键名 `device` 沿用
+ * `WalnutVirtualName.DEVICE`，PG 通道组装后按此键挂载）。
+ */
 export class WalnutAdminVirtualDeviceDTO {
   constructor(partial: Partial<WalnutAdminVirtualDeviceDTO>) {
     Object.assign(this, partial)
@@ -29,5 +15,5 @@ export class WalnutAdminVirtualDeviceDTO {
       title: 'virtual device',
     },
   })
-  populated_device: ISysDeviceDocument | null
+  device: SysDeviceDTOSafe | null
 }

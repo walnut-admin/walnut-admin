@@ -3,11 +3,11 @@ import type { IStoreApp } from '@/store/types'
 import { generateRsaOaepKeyPair } from '@walnut/client/browser/crypto/asymmetric/rsa-oaep'
 import { deriveApiSignKey } from '@walnut/client/browser/crypto/derive/api-sign-key'
 import { hmacSha256 } from '@walnut/client/browser/crypto/mac/hmac-sha256'
-import { objectToPaths } from '@walnut/client/browser/shared'
 import { enhancedAesGcmLocalStorage } from '@walnut/client/persistent/enhance/index'
 import { useAppStorageAsync } from '@walnut/client/persistent/storage/async'
 import { generateNonce } from '@walnut/http/utils'
 import { SingletonPromise } from '@walnut/utils/queue'
+import { buildSignRaw, splitPathAndQuery } from '@walnut/utils/sign-raw'
 import { clone, isUndefined, omitBy } from 'lodash-es'
 import { defineStore } from 'pinia'
 import { getCurrentInstance } from 'vue'
@@ -143,6 +143,7 @@ const useAppStoreSecurityInside = defineStore(StoreKeys.APP_SECURITY, {
      * 构建签名原文
      *
      * 格式: METHOD|PATH|BODY_PARAMS|timestamp=xxx|nonce=xxx|ua=xxx
+     * 与服务端验证侧同一纯函数 `@walnut/utils/sign-raw`（逐字节同源）。
      */
     buildSignRaw(
       config: AxiosRequestConfig,
@@ -154,35 +155,26 @@ const useAppStoreSecurityInside = defineStore(StoreKeys.APP_SECURITY, {
       // fix request again would cause sign `config.data` error
       const bodyData = typeof config.data === 'string' ? JSON.parse(config.data) : config.data
 
-      // transform bodyData to flat object
-      // e.g. { a: { b: 1, c: 2 } } => { 'a.b': 1, 'a.c': 2 }
-      const flattenObj = objectToPaths(bodyData ?? {})
-
-      // sort the flatten object
-      // and join with &
-      const sorted = Object.keys(flattenObj)
-        .sort()
-        .map(k => `${k}=${flattenObj[k]}`)
-        .join('&')
-
-      // need to manually put the query string params after url
+      // need to manually put the query string params after url（与真正发出的 query 字节一致）
       const cleanParams = omitBy(config.params, isUndefined)
       const paramsStr = Object.keys(cleanParams).length
-        ? `?${AxiosQsParamsSerializer(cleanParams)}`
+        ? AxiosQsParamsSerializer(cleanParams)
         : ''
-      const urlWithParams = `${config.url}${paramsStr}`
 
-      // build the raw string for signing
-      const raw = [
-        config.method!.toUpperCase(),
-        urlWithParams,
-        sorted,
-        `timestamp=${timestamp}`,
-        `nonce=${nonce}`,
-        `ua=${ua}`,
-      ].join('|')
+      // config.url 理论上可能自带 query（如 logger 的 ?page=N）：先拆开，
+      // 与 params 序列化结果合并，避免「path 含 ? 又拼 query」的双 ? 签名错位
+      const { path: rawPath, query: urlQuery } = splitPathAndQuery(config.url!)
+      const mergedQuery = [urlQuery, paramsStr].filter(Boolean).join('&')
 
-      return raw
+      return buildSignRaw({
+        method: config.method!,
+        path: rawPath,
+        query: mergedQuery || undefined,
+        body: bodyData,
+        timestamp,
+        nonce,
+        ua,
+      })
     },
 
     /**

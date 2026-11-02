@@ -48,6 +48,10 @@ env-local/
 deploy/env/
 deploy/nginx/certs/
 
+# Cap.js 的反机器人 token 存储（@cap.js/server 的 tokens_store_path 默认 .data/tokensList.json）。
+# 进程启动时自动创建、退出/失效时写回，属于本机运行态，不进仓；停服务后可安全删除。
+apps/server/.data/
+
 # Reports (keep .md files)
 # 必须写 `**/`：带斜杠的模式是**锚定到本文件所在目录**的，`report/*` 只匹配仓库根的
 # `report/`（该目录并不存在），而实际产出在 `apps/admin/report/`（`types:check:log` 写的
@@ -85,6 +89,8 @@ config/husky/*
 apps/server/env-local/
 apps/server/logs/
 apps/server/dist/
+# 集成测试真实数据 dump（TEST_DATA=real 的 dump/restore 中间物，随跑随生成）
+apps/server/.tmp/
 
 # AI agent workspace (ZCode plans, scratch)
 .zcode/

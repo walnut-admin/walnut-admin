@@ -1,5 +1,13 @@
 import type { ValueOf } from 'easy-fns-ts'
 
+// force-quit 的 wire 值集已上收 @walnut/contract（前端 socket 同源消费）；
+// 本文件只保留 server-only 的 setting key / revoke 类型字面量。
+export {
+  type IWalnutAdminConstAppSettingForceQuit,
+  type IWalnutAdminConstAppSettingForceQuitStrategy,
+  WalnutAdminConstAppSettingForceQuitStrategy,
+} from '@walnut/contract/setting'
+
 export const WalnutAdminConstAppSettingScopeType = {
   GLOBAL: 'global',
   LOCAL: 'local',
@@ -16,15 +24,9 @@ export const WalnutAdminConstAppSettingType = {
 
 export type IWalnutAdminConstAppSettingType = ValueOf<typeof WalnutAdminConstAppSettingType>
 
-export const WalnutAdminConstAppSettingForceQuitStrategy = {
-  FORCE_COUNTDOWN_MODAL: 'FORCE_COUNTDOWN_MODAL',
-  MANUAL_COUNTDOWN_MODAL: 'MANUAL_COUNTDOWN_MODAL',
-  FORCE_IMMEDIATE_SIGNOUT: 'FORCE_IMMEDIATE_SIGNOUT',
-} as const
-
-export type IWalnutAdminConstAppSettingForceQuitStrategy = ValueOf<typeof WalnutAdminConstAppSettingForceQuitStrategy>
-
 export const WalnutAdminConstRevokeRTType = {
+  // RT 轮换（revoke-and-insert，2026-10-27）：旧 jti 行轮换即撤销的唯一非安全类原因
+  rotate: 'rotate',
   updatePass: 'updatePass',
   resetPass: 'resetPass',
   updateEmail: 'updateEmail',
@@ -40,22 +42,6 @@ export const WalnutAdminConstRevokeRTType = {
 } as const
 
 export type IWalnutAdminConstRevokeRTType = ValueOf<typeof WalnutAdminConstRevokeRTType>
-
-// force quit setting keys
-export interface IWalnutAdminConstAppSettingForceQuit {
-  updatePass: IWalnutAdminConstAppSettingForceQuitStrategy
-  resetPass: IWalnutAdminConstAppSettingForceQuitStrategy
-  updateEmail: IWalnutAdminConstAppSettingForceQuitStrategy
-  updatePhoneNumber: IWalnutAdminConstAppSettingForceQuitStrategy
-  forceQuitOnline: IWalnutAdminConstAppSettingForceQuitStrategy
-  forceQuitOffline: IWalnutAdminConstAppSettingForceQuitStrategy
-  currentRoleBanned: IWalnutAdminConstAppSettingForceQuitStrategy
-  currentUserBanned: IWalnutAdminConstAppSettingForceQuitStrategy
-  deviceBanned: IWalnutAdminConstAppSettingForceQuitStrategy
-  deviceHighRisk: IWalnutAdminConstAppSettingForceQuitStrategy
-  versionUpgrade: IWalnutAdminConstAppSettingForceQuitStrategy
-  userKickOther: IWalnutAdminConstAppSettingForceQuitStrategy
-}
 
 // crypto hkdf setting keys
 export interface IWalnutAdminConstAppSettingCryptoHKDFKeys {

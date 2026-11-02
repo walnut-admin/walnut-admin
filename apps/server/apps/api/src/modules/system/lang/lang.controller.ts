@@ -6,32 +6,32 @@ import {
   HttpStatus,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
+import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
+
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
+import { WalnutCrudDecorators } from '@walnut-server/crud'
 
-import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
+import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 
-import { WalnutCrudDecorators } from '@/decorators/crud'
-import { WalnutAdminDecoratorCache } from '@/decorators/walnut/cache.decorator'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
+import { WalnutAdminDecoratorCache, WalnutAdminDecoratorHasPermission, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 
-import { WalnutAdminGuardCapFree } from '@/guard/cap.guard'
-import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'
-import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { WalnutAdminGuardJwtFree } from '@/modules/auth/modules/jwt/jwt-access.guard'
 import {
   SysLangDTO,
   SysLangDTOCreateRequest,
   SysLangDTOCreateResponse,
+  SysLangDTOListPublicResponse,
   SysLangDTOListRequest,
   SysLangDTOListResponse,
   SysLangDTOReadResponse,
   SysLangDTOUpdateRequest,
   SysLangDTOUpdateResponse,
-} from './dto/lang.dto'
-import { SysLangService } from './lang.service'
+  SysLangService,
+} from '@walnut-server/system'
+import { SystemRoutes } from '@walnut/contract'
+import { plainToInstance } from 'class-transformer'
 
 const Permissions = {
   CREATE: 'system:lang:create',
@@ -47,7 +47,11 @@ const { WalnutAdminDecoratorCreate, WalnutAdminDecoratorRead, WalnutAdminDecorat
     DTO: SysLangDTO,
   })
 
-@Controller('system/lang')
+/**
+ * B2 迁移模板（controller 层）：路由参数 ParamMongoId → uuid 参数装饰器；
+ * `.toObject()` 移除（PG 实体即 POJO），统一 plainToInstance(DTO, entity)。
+ */
+@Controller(SystemRoutes.LANG)
 @ApiTags('system/lang')
 export class SysLangController {
   constructor(private readonly langService: SysLangService) {}
@@ -55,32 +59,28 @@ export class SysLangController {
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
   async create(@Body() payload: SysLangDTOCreateRequest) {
-    return new SysLangDTOCreateResponse(
-      (await this.langService.create(payload)).toObject(),
-    )
+    return plainToInstance(SysLangDTOCreateResponse, await this.langService.create(payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
-  async read(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new SysLangDTOReadResponse(await this.langService.read(id))
+  async read(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(SysLangDTOReadResponse, await this.langService.read(id))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.UPDATE)
   @WalnutAdminDecoratorUpdate()
   async update(
-    @WalnutAdminDecoratorParamMongoId() id: string,
     @Body() payload: SysLangDTOUpdateRequest,
+    @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return new SysLangDTOUpdateResponse(
-      (await this.langService.update(id, payload)).toObject(),
-    )
+    return plainToInstance(SysLangDTOUpdateResponse, await this.langService.update(id, payload))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: SysLangDTOListRequest) {
-    return new SysLangDTOListResponse(await this.langService.list(payload))
+    return plainToInstance(SysLangDTOListResponse, await this.langService.list(payload))
   }
 
   @Get('list/public')
@@ -90,6 +90,11 @@ export class SysLangController {
   @WalnutAdminGuardJwtFree()
   @WalnutAdminGuardCapFree()
   @WalnutAdminGuardDeviceFree()
+  @ApiWalnutOkResponse({
+    description: 'get public language list',
+    DTO: SysLangDTOListPublicResponse,
+    isArray: true,
+  })
   @WalnutAdminDecoratorCache({ key: WalnutAdminConstAppCacheKeys.SYS_LANG_LIST_PUBLIC })
   async listPublic() {
     return this.langService.listPublic()

@@ -1,5 +1,6 @@
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import type { ValidationError } from 'class-validator'
+import type { DataSource } from 'typeorm'
 import { join } from 'node:path'
 import process from 'node:process'
 import {
@@ -9,14 +10,20 @@ import {
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory, Reflector } from '@nestjs/core'
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { SwaggerModule } from '@nestjs/swagger'
+import { getDataSourceToken } from '@nestjs/typeorm'
 import { apiReference } from '@scalar/nestjs-api-reference'
+import { AppTechRedisService } from '@walnut-server/cache'
+import { WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 
 import { getAllConstraints } from '@walnut-server/utils/response'
 
 import { useContainer } from 'class-validator'
 import { AppModule } from './app/app.module'
+import { mountProbeRoutes, setDraining } from './app/probes.composition'
+import { warnIfWorkerStandalone } from './app/schedule.composition'
+import { buildSwaggerDocumentOptions } from './common/swagger/swagger.options'
 import { WalnutAdminLogger } from './modules/techniques/logger'
 import { SocketIoAdapter } from './socket/socket.adapter'
 
@@ -55,9 +62,24 @@ async function bootstrap() {
   const port = configService.get<number>('app.port')!
   const env = configService.get<string>('NODE_ENV')!
 
+  // WORKER_STANDALONE=true 时本进程已让出 cron 与 bootstrap（见 schedule.composition.ts）：
+  // 打一条启动 warn，避免「worker 没起」只表现为「缓存不更新、cron 不跑」
+  warnIfWorkerStandalone()
+
   const reflector = app.get(Reflector)
 
   app.set('trust proxy', true)
+
+  /*
+   * 探针（W2-B）：raw Express 路由，必须在 NestFactory.create 之后、listen 之前挂载
+   * （此时 Nest router / 全局中间件 / 全局过滤器都还没注册，请求先被探针接住）。
+   * 完整契约见 ./app/probes.composition.ts 头注释。
+   * 依赖用惰性 getter：挂载时不解析容器实例，请求到达时才 app.get。
+   */
+  mountProbeRoutes(app, {
+    pg: () => app.get<DataSource>(getDataSourceToken(WalnutPGConnectionName)),
+    redis: () => app.get(AppTechRedisService),
+  })
 
   /* static file */
   // test: http://127.0.0.1:3000/static/images/demo.png
@@ -92,7 +114,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       forbidUnknownValues: true,
       transformOptions: {
-        // 入参 �?填充 undefined，设置为false可以过滤�?
+        // 入参不填充 undefined，设为 false 可以过滤掉未设置字段
         exposeUnsetFields: false,
       },
       exceptionFactory: (errors: ValidationError[]) =>
@@ -115,13 +137,8 @@ async function bootstrap() {
 
   // api document
   const openapiPrefix = 'api'
-  const options = new DocumentBuilder()
-    .setTitle('NestJS Walnut Admin App')
-    .setDescription('Document of API details')
-    // https://docs.npmjs.com/cli/v10/using-npm/scripts
-    .setVersion(process.env.npm_package_version!)
-    .addBearerAuth()
-    .build()
+  // options 的唯一来源在 common/swagger/swagger.options.ts（与离线导出 openapi.json 同源）
+  const options = buildSwaggerDocumentOptions()
 
   const documentFactory = () => SwaggerModule.createDocument(app, options)
 
@@ -134,6 +151,17 @@ async function bootstrap() {
   )
 
   await app.listen(port)
+
+  // 容器/Docker stop 发 SIGTERM 时优雅关闭 PG / Redis / Bull 连接（worker/main.ts 同款）
+  app.enableShutdownHooks()
+
+  // draining 监听必须在 enableShutdownHooks() **之后**注册：注册任一信号监听器会抑制
+  // Node 的默认终止行为。若提前注册，启动窗口内（Nest 的关闭钩子还没挂上）收到的
+  // SIGTERM 会被吞掉 —— 进程继续启动，编排层等不到退出。放在这里之后，信号要么走
+  // Nest 的优雅关闭，要么由本监听置位 readiness（编排层停止导流），两者互不干扰。
+  // SIGTERM / SIGINT 同款处理（容器 stop / 本地 Ctrl-C 都能让 readiness 先 503）。
+  process.on('SIGTERM', () => setDraining(true))
+  process.on('SIGINT', () => setDraining(true))
 
   console.log(`APP is running in ${env} mode on ${await app.getUrl()}`)
   console.log(

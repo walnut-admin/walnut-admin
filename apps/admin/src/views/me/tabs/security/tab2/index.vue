@@ -1,6 +1,6 @@
 <script lang="tsx" setup>
+import type { MeSecurityTab2Status } from '@walnut/api-types'
 import type { DropdownOption } from 'naive-ui'
-import type { IResponseData } from '@/api/response'
 import { computed, onBeforeMount, ref } from 'vue'
 import { authMfaTotpUpdateStatusAPI } from '@/api/auth/mfa'
 import { getSecurityTab2StatusAPI } from '@/api/system/user_me'
@@ -18,7 +18,7 @@ defineOptions({
 const { t } = useAppI18n()
 
 const loading = ref(false)
-const status = ref<IResponseData.Me.Security.Tab2Status>({
+const status = ref<MeSecurityTab2Status>({
   totp: {
     status: false,
     verified: false,

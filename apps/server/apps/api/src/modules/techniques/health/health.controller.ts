@@ -1,3 +1,4 @@
+import process from 'node:process'
 import { Controller, Get } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import {
@@ -5,32 +6,41 @@ import {
   HealthCheck,
   HttpHealthIndicator,
   MemoryHealthIndicator,
-  MongooseHealthIndicator,
+  TypeOrmHealthIndicator,
 } from '@nestjs/terminus'
+import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 
-import { WalnutDBInjectConnection } from '@walnut-server/db'
-import { Role } from '@walnut/contract'
-import { Connection } from 'mongoose'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorHasRole } from '@/decorators/walnut/hasRole.decorator'
+import { WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
+import { AppRoutes, Role } from '@walnut/contract'
+import { DataSource } from 'typeorm'
 
 const Permissions = {
   NETWORK: 'app:health:network',
-  DB: 'app:health:database',
+  PG: 'app:health:postgres',
   MH: 'app:health:memory-heap',
   MR: 'app:health:memory-rss',
   DISK: 'app:health:disk',
 } as const
 
-@Controller('app/health')
+/**
+ * 磁盘健康检查的根路径（P3-22）：Windows 检查系统盘 `C:/`，类 Unix（容器 / Linux /
+ * macOS）检查 `/`。此前硬编码 `C:/`，非 Windows 部署上 DiskHealthIndicator 直接抛错，
+ * 经全局兜底成 50000 —— 磁盘检查恒失败。导出供单测钉住两个平台分支。
+ */
+export function getDiskHealthCheckPath(platform: NodeJS.Platform = process.platform): string {
+  return platform === 'win32' ? 'C:/' : '/'
+}
+
+@Controller(AppRoutes.HEALTH)
 @ApiTags('app/health')
 @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 export class AppTechHealthController {
   constructor(
-    @WalnutDBInjectConnection() private readonly databaseConnection: Connection,
+    @InjectDataSource(WalnutPGConnectionName) private readonly pgDataSource: DataSource,
     private readonly http: HttpHealthIndicator,
-    private readonly mongoose: MongooseHealthIndicator,
+    private readonly typeorm: TypeOrmHealthIndicator,
     private readonly memory: MemoryHealthIndicator,
     private readonly disk: DiskHealthIndicator,
   ) {}
@@ -42,12 +52,12 @@ export class AppTechHealthController {
     return this.http.pingCheck('baidu', 'https://www.baidu.com')
   }
 
-  @Get('database')
-  @WalnutAdminDecoratorHasPermission(Permissions.DB)
+  @Get('postgres')
+  @WalnutAdminDecoratorHasPermission(Permissions.PG)
   @HealthCheck()
-  async checkDatabase() {
-    return this.mongoose.pingCheck('database', {
-      connection: this.databaseConnection,
+  async checkPostgres() {
+    return this.typeorm.pingCheck('postgres', {
+      connection: this.pgDataSource,
     })
   }
 
@@ -74,7 +84,7 @@ export class AppTechHealthController {
     return this.disk.checkStorage('disk', {
       // The used disk storage should not exceed 75% of the full disk size
       thresholdPercent: 0.75,
-      path: 'C:/',
+      path: getDiskHealthCheckPath(),
     })
   }
 }

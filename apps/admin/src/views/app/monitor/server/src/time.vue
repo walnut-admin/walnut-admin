@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { IResponseData } from '@/api/response'
+import type { AppMonitorServerTime } from '@walnut/api-types'
 import type { ICompUIDescriptionsItem } from '@/components/UI/Descriptions'
 import { computed, onBeforeMount, ref } from 'vue'
 import { getTimeInfoAPI } from '@/api/app/monitor/server'
@@ -12,7 +12,7 @@ defineOptions({
 
 const { t } = useAppI18n()
 
-const info = ref<IResponseData.App.Monitor.Time>()
+const info = ref<AppMonitorServerTime>()
 const loading = ref(false)
 const empty = ref(false)
 

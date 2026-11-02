@@ -142,7 +142,8 @@ export function useTableAPI<T>(
   // set default query form data
   // this will merge the newQueryFormData to current query form data
   // and commit this change as a default version
-  const onSetDefaultQueryFormData = (newQueryFormData: NullableRecord<T>) => {
+  // merge 语义，允许只传部分字段
+  const onSetDefaultQueryFormData = (newQueryFormData: Partial<NullableRecord<T>>) => {
     // set default value to query
     apiListParams.value.query = Object.assign(apiListParams.value.query!, newQueryFormData)
 

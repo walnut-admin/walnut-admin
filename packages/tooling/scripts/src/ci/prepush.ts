@@ -54,8 +54,9 @@ export interface PrepushGate {
 /**
  * 推送前门禁表。**改动这张表就是改推送门禁**，所以每条都写清楚「凭什么」。
  *
- * 全是**只读**检查：不写工作区、不互产产物 ⇒ 因此可以并行（见文件头）。
- * 唯一有副作用的是最后那段 `change check` —— 它也只读 `pnpm-workspace.yaml` 与各 `package.json`。
+ * 绝大多数段是**只读**检查；两个例外：`openapi` 段会重写生成物（openapi.json /
+ * schema.d.ts —— 同步时逐字节不变，漂移时先写回工作区再红），`change check` 段只读
+ * `pnpm-workspace.yaml` 与各 `package.json`（无副作用）。
  */
 export const PREPUSH_GATES: readonly PrepushGate[] = [
   {
@@ -143,6 +144,14 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     label: '初始化数据形态（必需集合 / 禁入集合 / 体积 / 凭据形状 / 引用完整性）',
     argv: ['lint:seed'],
     why: '这份数据**随仓库发布、并被 `db:seed` 直接灌进库**，失效方式全是静默的：有人把 `app_key`（真私钥 PEM、AES keyB64）或凭证表手工导进来 = 私钥进公开仓；有人塞 `shared_area` = 89MB 进 git 历史；有人直接 dump 未裁剪的 `sys_user` = 开发者本人账号被发布（原始导出里就有）；引用被改坏（角色指向不存在的菜单）= 登录后侧边栏空掉且不报错。判据全落在数据本身、不需要数据库，所以能进这道闸。',
+  },
+  {
+    id: 'openapi',
+    label: 'OpenAPI 一致性（导出 → 生成 → git diff）',
+    // 经根 package.json 的 `openapi:check` 转发到 apps/server 的同名脚本
+    // （导出 openapi.json → 生成 @walnut/api-types 的 schema.d.ts → git diff --exit-code）。
+    argv: ['openapi:check'],
+    why: '前端类型真源是 server 装饰器反射出的 openapi.json（`@walnut/api-types` 的 schema.d.ts 从它生成）。server DTO 改了而生成物没跟着重导出时，前端类型就在静默说谎，且没有任何编译错误——只有这里重跑「导出+生成+diff」能看见。注意：导出要引导 AppModule，本地需要 `pnpm setup-env` 解密出的 env-local 与 WSL 容器（PG 5432 / Redis 6379）在线，环境不在时这一段必然失败——修好环境再推，不许为此摘闸。',
   },
   {
     id: 'dts',

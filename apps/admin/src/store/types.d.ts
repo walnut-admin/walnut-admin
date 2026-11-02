@@ -1,10 +1,10 @@
+import type { SystemMenu, SystemMenuMeta, SystemUser, SystemUserLockStatus } from '@walnut/api-types'
+import type { IFontSizeConst } from '@walnut/contract/preference'
 import type { Nullable, OptionDataItem, Recordable, TreeNodeItem } from 'easy-fns-ts'
 import type { MessageReactive, NotificationPlacement, NotificationReactive, WatermarkProps } from 'naive-ui'
 import type { CSSProperties, Ref } from 'vue'
 import type { RouteMeta, RouteRecordNameGeneric } from 'vue-router'
-import type { IModels } from '@/api/models'
 import type { IRequestPayload } from '@/api/request'
-import type { IResponseData } from '@/api/response'
 import type { VerifyAuthOptions } from '@/components/Global/VerifyAuth/types'
 import type { ValueOfAppConstBasicMode, ValueOfAppConstCollapseMode, ValueOfAppConstColorMode, ValueOfAppConstDevice, ValueOfAppConstLayoutMode, ValueOfAppConstLocale, ValueOfAppConstTabAffixMode, ValueOfAppConstTabCloseMode, ValueOfAppConstTabStyleMode, ValueOfAppConstTabUtilsShowMode, ValueOfAppConstTransitionName, ValueOfAppCVD } from '@/const'
 
@@ -77,8 +77,14 @@ export namespace IStoreApp {
 
   /**
    * App lock state
+   * 锁屏偏好是客户端本地状态：初始为默认值、尚未持有服务端行主键，故剔除 id
    */
-  export interface Lock extends IResponseData.System.User.LockStatus {
+  // 锁屏偏好是客户端本地状态：生成 LockStatus（服务端 SysUserLockPreferenceDTO）本身无 id，
+  // 无需再 Omit —— loading/enable 是纯前端态
+  export interface Lock extends Omit<SystemUserLockStatus, 'lockRoute'> {
+    // 生成的 SysUserLockRouteType.query 是 { [key: string]: unknown }，喂不进 router.push 的
+    // LocationQueryRaw；锁屏路由在本地态按前端 LockRoute（Recordable）契约收口
+    lockRoute: LockRoute
     loading: boolean
     enable: boolean
   }
@@ -90,7 +96,7 @@ export namespace IStoreApp {
     collapse: boolean
     showAside: boolean
 
-    menus: TreeNodeItem<IModels.SystemMenu>[]
+    menus: TreeNodeItem<SystemMenu>[]
     keepAliveRouteNames: string[]
     indexMenuName?: string
   }
@@ -149,7 +155,7 @@ export namespace IStoreApp {
    * App tab state
    */
   export namespace Tab {
-    export type Iframe = Pick<IModels.SystemMenu, 'name'> & Pick<IModels.SystemMenuMeta, 'cache' | 'url'>
+    export type Iframe = Pick<SystemMenu, 'name'> & Pick<SystemMenuMeta, 'cache' | 'url'>
 
     /**
      * @description app tab meta extend fields
@@ -287,7 +293,8 @@ export namespace IStoreUser {
       locale: ValueOfAppConstLocale
     }
     export interface Accessibility {
-      fontSize: number
+      /** 字号值集与 @walnut/contract/preference 的 fontSizeValues 同源（server IsEnum + DB CHECK） */
+      fontSize: IFontSizeConst
       reducedMotion: boolean
       colorMode: ValueOfAppConstColorMode
       CVD: ValueOfAppCVD
@@ -388,7 +395,7 @@ export namespace IStoreUser {
    * User profile state
    */
   export interface Profile {
-    profile: Partial<IModels.SystemUser>
+    profile: Partial<SystemUser>
   }
 
   /**

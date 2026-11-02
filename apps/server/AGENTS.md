@@ -15,11 +15,11 @@
 
 | 想看什么 | 去哪 |
 |----------|------|
-| **后端规范全文**（目录与模块骨架、Model 注入、DTO 全部示例、装饰器顺序、事务、环境配置、代码风格） | 文档站「后端」新增页（repo 相对路径，能直接打开）：`apps/docs/src/zh-CN/content/backend/architecture.md` · `dto.md` · `transactions.md` · `configuration.md` · `code-style.md` |
+| **后端规范全文**（目录与模块骨架、Entity 注册与仓库基类、DTO 全部示例、装饰器顺序、事务、环境配置、代码风格） | 文档站「后端」新增页（repo 相对路径，能直接打开）：`apps/docs/src/zh-CN/content/backend/architecture.md` · `dto.md` · `transactions.md` · `configuration.md` · `code-style.md` |
 | **三种 Repository 模式** —— 改后端代码前必读，最容易做错的一条 | 本文件下面「三种 Repository 模式」 |
 | **Guard 执行顺序** —— 动 controller 之前必读 | 本文件下面「Security Guard 执行顺序」 |
 | 全仓结构、命令、提交纪律 | 仓库根 [`AGENTS.md`](../../AGENTS.md) |
-| 架构决策（为什么后端 lib 不提升为 workspace 包、为什么工具链与前端分叉） | [ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md) · [ADR 0012](../docs/src/zh-CN/content/adr/0012-toolchain-divergence.md) |
+| 架构决策（为什么后端 lib 不提升为 workspace 包、lib 分层与组合根、工具链分叉） | [ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md) · [ADR 0022](../docs/src/zh-CN/content/adr/0022-backend-lib-layering-and-composition-roots.md) · [ADR 0012](../docs/src/zh-CN/content/adr/0012-toolchain-divergence.md) |
 | 可复用的后端开发技能 | [`.claude/skills/`](../../.claude/skills/) 下 `be-*` 前缀（建模块 / 加字段 / 加接口 / 自查 / 评审） |
 
 > 更早的历史：本文件曾是一份 14 行的文档索引，指向从未进过仓库的 `./.agents/docs/`（14 条链接
@@ -28,14 +28,16 @@
 
 ## 这个包是什么
 
-NestJS 11.x + TypeScript 6.0.3 + MongoDB（Mongoose）+ Redis + Bull 队列 —— 功能齐全的中后台后端模板。
+NestJS 12.x + TypeScript 6.0.3 + PostgreSQL（TypeORM）+ Redis + Bull 队列 —— 功能齐全的中后台后端模板。
 **内部 Nest CLI monorepo**，不是 pnpm workspace 包：
 
-- `apps/api/src/` —— app 的入口与源码（`modules/` `app/` `guard/` `decorators/` `common/` `i18n/` …）
-- `libs/*/src` —— 内部库 `{config,const,context,db,decorators,exceptions,pipes,types,utils}`，
+- `apps/api/src/` —— 默认部署单元（组合根）：HTTP 入口、`AppModule`、wire DTO 与 controller
+- `apps/worker/src/` · `apps/cli/src/` —— 可选组合入口（cron + Bull；migration / OpenAPI），默认部署不启动 worker
+- `libs/*/src` —— 内部库（按依赖方向分六层，完整清单以 `libs/` 目录为准），
   经 tsconfig `paths` 以 `@walnut-server/*` 解析，与 app 一起由 SWC 编译
 - 为什么这样：[ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md)
-  （CJS + NestJS 耦合 + SWC 编译，不适合当 ESM workspace 包）
+  （CJS + NestJS 耦合 + SWC 编译，不适合当 ESM workspace 包）· [ADR 0022](../docs/src/zh-CN/content/adr/0022-backend-lib-layering-and-composition-roots.md)
+  （分层、组合根、端口注入反转）
 
 **主要能力**：多认证方式（JWT、OAuth、WebAuthn、OPAQUE）、RBAC、MFA、实时通信（WebSocket/SSE）、i18n、
 完整的安全体系（IP / 设备 Guard、CAPTCHA、风险评估、XSS 防护）。
@@ -71,19 +73,20 @@ pnpm test:e2e         # E2E（vitest.config.e2e.ts）
 
 ## 跑起来需要什么
 
-- **Node.js >= 24.13.0**、**pnpm >= 12.0.0** —— 由 `packageManager` 字段 + corepack +
+- **Node.js >= 24.15.0**、**pnpm >= 12.0.0** —— 由 `packageManager` 字段 + corepack +
   `pnpm-workspace.yaml` 的 `engineStrict: true` 强制（旧的 `preinstall` 钩子在 2026-09-21 的
   pnpm 12 迁移里已移除）
-- **MongoDB 副本集**（事务必需；单节点副本集也行：`rs.initiate()`）
+- **PostgreSQL**（单节点即完整 ACID，事务不再对拓扑有要求；本地开发用
+  `apps/server/docker/docker-compose.dev.yml` 起库）
 - **Redis 7+**
 - 环境文件：`pnpm setup-env` 解密后落在 `apps/server/env-local/`（gitignored）
 
-Swagger UI：`http://localhost:3000/api`
+Scalar API Reference：`http://localhost:3000/api`
 
 ## 三种 Repository 模式
 
-| 模式 | 文件 | `@Global` | 业务逻辑 | dbSession | 用在哪 |
-|------|------|-----------|----------|-----------|--------|
+| 模式 | 文件 | `@Global` | 业务逻辑 | 事务句柄 `em` | 用在哪 |
+|------|------|-----------|----------|---------------|--------|
 | **Basic Repository** | `*.basic.repository.ts` | 否 | 无（纯 CRUD） | 经装饰器 | controller 的 CRUD |
 | **Repo Service** | `repo/*.repo.service.ts` | **是** | 无（简单 CRUD） | 最后一个可选参数 | 跨模块数据访问 |
 | **Shared Service** | `shared/*.shared.service.ts` | 否 | **有**（缓存、编排） | 最后一个可选参数 | 复杂业务逻辑 |
@@ -91,21 +94,24 @@ Swagger UI：`http://localhost:3000/api`
 ```
 Controller
     ↓
-Service（与 Controller 1:1，绝不直接使用 Model）
+Service（与 Controller 1:1，绝不直接触达数据层）
     ↓
 ├── Basic Repository（简单 CRUD）
 ├── Repo Service（跨模块数据访问）
 └── Shared Service（复杂业务逻辑）
     ↓
-Model（Mongoose）
+Entity（TypeORM）
 ```
 
-**硬规矩**：controller 级的 `*.service.ts` **不许**直接注入或使用 Model —— 所有数据访问必须穿过
-Repository / Repo Service / Shared Service 之一。
+**硬规矩**：controller 级的 `*.service.ts` **不许**直接做数据访问（自己注入 `DataSource` 拿
+Repository 也算）—— 所有数据访问必须穿过 Repository / Repo Service / Shared Service 之一。
 
-**Model 注入**用 `@WalnutDBInjectModel(WalnutDBModelName.X)`（两者都来自 `@walnut-server/db`），
-**不要**用 NestJS 原生的 `@InjectModel`；完整写法见
-`apps/docs/src/zh-CN/content/backend/architecture.md`。
+**实体注册**在模块 `imports` 里：`TypeOrmModule.forFeature([XxxEntity], WalnutPGConnectionName)`
+（`autoLoadEntities` 通道装载实体），**不另建 xxx.pg.module 文件**。仓库层注入
+`@InjectDataSource(WalnutPGConnectionName)` 的 `DataSource`，连同 `EntityTarget` 一起传给 PG 基类
+`WalnutAdminCommonPgBaseRepository`；连接名必须显式给 `WalnutPGConnectionName`，不要走 TypeORM
+的默认连接。事务内路径用 `@WalnutTxSession()` 取 `WalnutTxContext.em`（EntityManager）逐层透传。
+完整写法见 `apps/docs/src/zh-CN/content/backend/architecture.md`。
 
 ## CRUD 与 DTO：动手前必须知道的两条
 
@@ -115,7 +121,7 @@ Repository / Repo Service / Shared Service 之一。
 2. **DTO 字段不写 `?` 与 `!`**：必填性只有一个真源 —— 字段装饰器的 `default`（可选字段写 `default: null`）。
    类型标记会造出第二个真源，两者必然漂移。
 
-CRUD 装饰器由 `WalnutCrudDecorators({ title, DTO })` 工厂生成（`@/decorators/crud`）；DTO 字段用
+CRUD 装饰器由 `WalnutCrudDecorators({ title, DTO })` 工厂生成（`@walnut-server/crud`）；DTO 字段用
 `@walnut-server/decorators/field` 的装饰器，不要裸写 class-validator。全部示例、以及**会被 ESLint 强制**
 的装饰器顺序，见 `apps/docs/src/zh-CN/content/backend/dto.md`。
 
@@ -134,9 +140,10 @@ CRUD 装饰器由 `WalnutCrudDecorators({ title, DTO })` 工厂生成（`@/decor
 9. **MFA Guard** —— 多因素认证
 10. **Sign Guard** —— 请求签名校验（必须在 JWT Guard 之后：登录前后签名规则不同）
 11. **Lock Guard** —— 用户锁定状态（必须在 JWT Guard 之后）
+12. **Throttler Guard** —— 限流（来自 `tech.module.ts` 的 `APP_GUARD` 注册，排 Lock 之后）
 
-定义在 `apps/server/apps/api/src/app/app.module.ts`。注意该文件自己的注释：**controller 装饰器上的
-顺序是反的**（自下而上）。
+定义在 `apps/server/apps/api/src/app/app.module.ts`（第 12 位在 `techniques/tech.module.ts`）。
+注意该文件自己的注释：**controller 装饰器上的顺序是反的**（自下而上）。
 
 ## 环境变量：部署后不许改的 5 个
 
@@ -154,4 +161,4 @@ Vitest，配置在 `apps/server/apps/api/vitest.config.ts`（E2E 用 `vitest.con
 
 ## API 文档
 
-开发模式下 Swagger UI 在 `http://localhost:3000/api`。
+开发模式下 Scalar API Reference 在 `http://localhost:3000/api`。

@@ -1,24 +1,16 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Request } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { getWalnutAdminCookie } from '@walnut-server/cookie'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
-import { ClientSession } from 'mongoose'
-import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { getOperationStrategy } from './sensitive.config'
-import {
-  IWalnutAdminConstSecurityLevel,
-  IWalnutAdminConstSecuritySensitiveType,
-} from './sensitive.const'
-import {
-  SecuritySensitiveCheckResponseDTO,
-  SecuritySensitiveVerifyRequestDTO,
-} from './sensitive.dto'
-import { SecuritySensitiveService } from './sensitive.service'
+import { WalnutAdminDecoratorUser } from '@walnut-server/guards'
+import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
+import { getOperationStrategy, IWalnutAdminConstSecurityLevel, IWalnutAdminConstSecuritySensitiveType, SecuritySensitiveCheckResponseDTO, SecuritySensitiveService, SecuritySensitiveVerifyRequestDTO, WalnutAdminConstSecurityLevel, WalnutAdminConstSecuritySensitiveType } from '@walnut-server/security'
+import { SecurityRoutes } from '@walnut/contract'
 
-@Controller('security/sensitive')
+@Controller(SecurityRoutes.SENSITIVE)
 @ApiTags('security/sensitive')
 export class SecuritySensitiveController {
   constructor(
@@ -33,8 +25,11 @@ export class SecuritySensitiveController {
   async checkVerificationStatus(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @Request() req: IWalnutAdminExpressRequest,
-    @Query('level') level: IWalnutAdminConstSecurityLevel,
-    @Query('type') operationType?: IWalnutAdminConstSecuritySensitiveType,
+    // level/type 枚举闸：裸 query 直进 getOperationStrategy 时，枚举外 level 会在
+    // SECURITY_LEVEL_STRATEGIES[level] 上解引用 undefined → TypeError 兜底 50000；
+    // 拦成受控 40099
+    @Query('level', new WalnutAdminPipeParamEnum(WalnutAdminConstSecurityLevel)) level: IWalnutAdminConstSecurityLevel,
+    @Query('type', new WalnutAdminPipeParamEnum(WalnutAdminConstSecuritySensitiveType, { required: false })) operationType?: IWalnutAdminConstSecuritySensitiveType,
   ) {
     const deviceId = getWalnutAdminCookie(req, WalnutAdminConstCookieKeys.DEVICE_ID)
     const strategy = getOperationStrategy(level, operationType)
@@ -54,14 +49,14 @@ export class SecuritySensitiveController {
    */
   @Post('verify')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Verify identity and grant sensitive permission',
     primitive: 'boolean',
   })
   async verify(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
     @Body() dto: SecuritySensitiveVerifyRequestDTO,
   ) {
@@ -76,7 +71,9 @@ export class SecuritySensitiveController {
       dto.method,
       dto.credential,
       strategy.supportedMethods,
-      dbSession,
+      // B7c 归一：security/sensitive 收口 —— 传 ctx.em（写腿全在 Redis / 已迁 PG 的
+      // identity 读腿，事务句柄签名随批次迁 em；上游 em 形参未接线，见 service 注释）
+      ctx.em,
     )
 
     return true

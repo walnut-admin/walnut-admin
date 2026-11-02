@@ -1,15 +1,10 @@
-import type { IModels } from '../models'
-import type { IResponseData } from '../response'
+import type { AppSettings } from '@walnut/api-types'
+import type { AppSettingPrivate, AppSettingPublic } from '../types/frontend-shapes'
+import { AppRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
-const appSetting = {
-  PUBLIC: '/app/setting/public',
-  PRIVATE: '/app/setting/private',
-  REFRESH_CACHE: '/app/setting/cache/refresh',
-} as const
-
-export const appSettingAPI = new BaseAPI<IModels.AppSettings>({
+export const appSettingAPI = new BaseAPI<AppSettings>({
   model: 'app',
   section: 'setting',
 })
@@ -18,8 +13,8 @@ export const appSettingAPI = new BaseAPI<IModels.AppSettings>({
  * @description get public settings
  */
 export function getPublicSettingsAPI() {
-  return AppAxios.get<IResponseData.App.SettingPublic>({
-    url: appSetting.PUBLIC,
+  return AppAxios.get<AppSettingPublic>({
+    url: AppRoutes.SETTING_PUBLIC,
     _cancelOnRouteChange: false,
   })
 }
@@ -28,8 +23,8 @@ export function getPublicSettingsAPI() {
  * @description get private settings
  */
 export function getPrivateSettingsAPI() {
-  return AppAxios.get<IResponseData.App.SettingPrivate>({
-    url: appSetting.PRIVATE,
+  return AppAxios.get<AppSettingPrivate>({
+    url: AppRoutes.SETTING_PRIVATE,
   })
 }
 
@@ -38,6 +33,6 @@ export function getPrivateSettingsAPI() {
  */
 export function refreshAppSettingsCacheAPI() {
   return AppAxios.post<boolean>({
-    url: appSetting.REFRESH_CACHE,
+    url: AppRoutes.SETTING_CACHE_REFRESH,
   })
 }

@@ -1,6 +1,6 @@
+import type { SystemUserLockStatus } from '@walnut/api-types'
 import type { Ref } from 'vue'
 import type { RouteLocationNormalizedLoaded } from 'vue-router'
-import type { IResponseData } from '@/api/response'
 import type { ValueOfAppConstLockMode } from '@/const'
 import type { IStoreApp } from '@/store/types'
 import { defineStore } from 'pinia'
@@ -48,7 +48,7 @@ const useAppStoreLockInside = defineStore(StoreKeys.APP_LOCK, {
   },
 
   actions: {
-    setLockPreference(payload: IResponseData.System.User.LockStatus) {
+    setLockPreference(payload: SystemUserLockStatus) {
       this.setLocked(payload.locked)
       this.setLockCrossDevice(payload.lockCrossDevice)
       this.setLockRoute(payload.lockRoute)

@@ -1,27 +1,21 @@
 import type { ExecutionContext } from '@nestjs/common'
-import type { ClientSession } from 'mongoose'
+import type { WalnutTxContext } from './tx-context'
 import { applyDecorators, createParamDecorator, UseInterceptors } from '@nestjs/common'
-import { InjectConnection, InjectModel } from '@nestjs/mongoose'
-import { WalnutDBConnectionName } from '@walnut-server/db'
-import { TransactionInterceptor } from './transaction.interceptor'
+import { WalnutTxInterceptor } from './tx.interceptor'
 
-export function WalnutDBInjectModel(name: string) {
-  return InjectModel(name, WalnutDBConnectionName)
-}
-
-export function WalnutDBInjectConnection() {
-  return InjectConnection(WalnutDBConnectionName)
-}
-
-export function WalnutDBTransaction() {
+/**
+ * 事务端点标记。发起 PG 事务（QueryRunner，见 tx.interceptor.ts），
+ * `@WalnutTxSession()` 在同端点取 `WalnutTxContext`。
+ */
+export function WalnutTx() {
   return applyDecorators(
-    UseInterceptors(TransactionInterceptor),
+    UseInterceptors(WalnutTxInterceptor),
   )
 }
 
-export const WalnutDBSession = createParamDecorator(
-  (_data: unknown, ctx: ExecutionContext): ClientSession => {
+export const WalnutTxSession = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext): WalnutTxContext => {
     const request = ctx.switchToHttp().getRequest<IWalnutAdminExpressRequest>()
-    return request.mongooseSession!
+    return request.txContext!
   },
 )

@@ -1,12 +1,12 @@
 import { ExecutionContext, Injectable } from '@nestjs/common'
 import { AuthGuard } from '@nestjs/passport'
 
+import { AuthRefreshSharedService } from '@walnut-server/auth'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstAppAuthStrategy } from '@walnut-server/const/app/strategy'
+import { getWalnutAdminCookie } from '@walnut-server/cookie'
 import { WalnutAdminExceptionRefreshTokenExpired } from '@walnut-server/exceptions/business/auth'
 import { isNil } from 'lodash'
-import { getWalnutAdminCookie } from '@/decorators/walnut/cookie.decorator'
-import { AuthRefreshSharedService } from './shared/refresh.shared.service'
 
 @Injectable()
 export class JwtRefreshGuard extends AuthGuard(
@@ -23,12 +23,14 @@ export class JwtRefreshGuard extends AuthGuard(
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest<IWalnutAdminExpressRequest>()
 
-    const token = await this.authRefreshSharedService.getTokenByJti(
+    // 查无或已撤销（revoke-and-insert 轮换后的旧行）→ 40102：重放/错峰迟到请求在
+    // guard 层即死，不进轮换事务
+    const rawToken = await this.authRefreshSharedService.getTokenByJti(
       getWalnutAdminCookie(request, WalnutAdminConstCookieKeys.RT_JTI),
     )
 
-    // put the real refresh token in request
-    request.realRefreshToken = token
+    // put the real refresh token in request（passport 策略从这取值验签）
+    request.realRefreshToken = rawToken
 
     return super.canActivate(context) as Promise<boolean>
   }

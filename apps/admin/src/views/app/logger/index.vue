@@ -1,9 +1,10 @@
 <script lang="tsx" setup>
-import type { IModels } from '@/api/models'
+import type { AppLogger } from '@walnut/api-types'
 import { computed } from 'vue'
 import { appLoggerAPI } from '@/api/app/logger'
 import { useCRUD } from '@/components/Advanced/CRUD'
 import { useAppI18n } from '@/locales/index'
+
 import AppLoggerLog from './log.vue'
 
 defineOptions({
@@ -20,7 +21,7 @@ const { t } = useAppI18n()
 const [
   register,
   { onApiList, onReadAndOpenUpdateForm, onGetFormData },
-] = useCRUD<IModels.AppLogger>({
+] = useCRUD<AppLogger>({
   baseAPI: appLoggerAPI,
 
   tableProps: {
@@ -157,7 +158,7 @@ const [
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.AppLogger} -->
+    <!-- @vue-generic {AppLogger} -->
     <WCRUD @hook="register" />
   </div>
 </template>

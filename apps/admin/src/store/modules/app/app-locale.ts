@@ -73,7 +73,7 @@ const useAppStoreLocaleInside = defineStore(StoreKeys.APP_LOCALE, {
       const res = await langAPI.list()
       return res.data.map(i => ({
         label: i.description!,
-        value: i._id!,
+        value: i.id,
       }))
     },
 

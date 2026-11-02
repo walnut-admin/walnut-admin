@@ -1,10 +1,10 @@
-import type { IModels } from '../models'
+import type { SystemDeleted } from '@walnut/api-types'
 import type { IRequestPayload } from '../request'
 import { SystemEndpointRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
 import { BaseAPI } from '../base'
 
-export const deletedAPI = new BaseAPI<IModels.SystemDeleted>({
+export const deletedAPI = new BaseAPI<SystemDeleted>({
   model: 'system',
   section: 'deleted',
 })

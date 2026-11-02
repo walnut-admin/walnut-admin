@@ -1,3 +1,4 @@
+import type { IWalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import process from 'node:process'
 
 import { Logger } from '@nestjs/common'
@@ -13,9 +14,9 @@ import {
 } from '@nestjs/websockets'
 import { instrument } from '@socket.io/admin-ui'
 
+import { AppMonitorUserService } from '@walnut-server/app-domain'
+import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { Namespace } from 'socket.io'
-import { AppMonitorUserService } from '@/modules/app/monitor/user/user.service'
-import { AppTechCacheAppSettingsService } from '@/modules/techniques/cache/service/cache.appSettings'
 import {
   ISocket,
   ISocketClientToServerEvents,
@@ -92,15 +93,16 @@ implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
     await client.join(WalnutAdminSocketRooms.USER(userId, fingerprint))
 
     try {
-      // �?检查是否需要强制退�?
+      // 先检查是否需要强制退出
       const result = await this.monitorUserService.handleSocketInitForceQuit(userId, deviceId)
 
       if (result.shouldForceQuit && result.revokeReason) {
-      // 获取对应的退出策�?
+      // 获取对应的退出策略（'rotate' 是 RT 轮换行标记，非 force-quit 触发因，不可能成为
+      // 「最新撤销行」的原因 —— 新插入的现役行永远比 rotate 旧行新；类型面收窄）
         const forceQuitConfig = await this.cacheAppSettingsService.getForceQuitConfig()
-        const strategy = forceQuitConfig[result.revokeReason]
+        const strategy = forceQuitConfig[result.revokeReason as Exclude<IWalnutAdminConstRevokeRTType, 'rotate'>]
 
-        // �?只通知当前 socket，不触发新的踢人流程
+        // 只通知当前 socket，不触发新的踢人流程
         client.emit(WalnutAdminSocketEvents.FORCE_QUIT, { strategy })
 
         this.logger.log(
@@ -121,7 +123,7 @@ implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('hello')
   onHello(@MessageBody() data: string) {
     this.logger.log(data)
-    // 这个事件不在类型定义中，如果需要类型安全，应该添加�?ISocketServerToClientEvents
+    // 这个事件不在类型定义中，如果需要类型安全，应该加到 ISocketServerToClientEvents
     this.server.emit('onMessage' as any, { msg: 'Hello world', content: data })
   }
 }

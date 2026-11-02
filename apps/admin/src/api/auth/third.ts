@@ -1,16 +1,12 @@
+import { AuthRoutes } from '@walnut/contract'
 import { AppAxios } from '@/utils/axios'
-
-const oauthThird = {
-  GITHUB: '/auth/oauth/github/url',
-  GITEE: '/auth/oauth/gitee/url',
-} as const
 
 /**
  * @description get github oauth uri
  */
 export function getGitHubURIAPI() {
   return AppAxios.get<string>({
-    url: oauthThird.GITHUB,
+    url: AuthRoutes.OAUTH_GITHUB_URL,
   })
 }
 
@@ -19,6 +15,6 @@ export function getGitHubURIAPI() {
  */
 export function getGiteeURIAPI() {
   return AppAxios.get<string>({
-    url: oauthThird.GITEE,
+    url: AuthRoutes.OAUTH_GITEE_URL,
   })
 }

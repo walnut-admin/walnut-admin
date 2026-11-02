@@ -1,24 +1,21 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, Req } from '@nestjs/common'
 import { ApiParam, ApiTags } from '@nestjs/swagger'
+import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
-import { WalnutAdminDecoratorParamMongoId } from '@walnut-server/decorators/params'
+import { AppTechCookieService } from '@walnut-server/cookie'
+import { WalnutCrudDecorators } from '@walnut-server/crud'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
+
+import { WalnutAdminDecoratorParamUuid } from '@walnut-server/decorators/params'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
-import { WalnutCrudDecorators } from '@/decorators/crud'
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorThrottle, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { assembleSysDevice, SysDeviceDTOInitialRequest, SysDeviceDTOInitialResponse, SysDeviceDTOListRequest, SysDeviceDTOListResponse, SysDeviceDTOReadResponse, SysDeviceDTOSafe, SysDeviceService, SysDeviceSettingService } from '@walnut-server/system'
+import { SystemRoutes } from '@walnut/contract'
+import { plainToInstance } from 'class-transformer'
 import { WalnutAdminDecoratorOperateLog } from '@/decorators/walnut/log.operate.decorator'
-import { WalnutAdminGuardCapFree } from '@/guard/cap.guard'
-import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { WalnutAdminDecoratorThrottle } from '@/guard/throttler.guard'
-import { WalnutAdminGuardJwtFree } from '@/modules/auth/modules/jwt/jwt-access.guard'
-import { AppTechCookieService } from '@/modules/techniques/cookie/cookie.service'
-import { SysUserDTOReadResponse } from '../user/dto/user.dto'
-import { SysDeviceService } from './device.service'
-import { SysDeviceSettingService } from './device.setting.service'
-import { SysDeviceDTOHistoryUsersResponse, SysDeviceDTOInitialRequest, SysDeviceDTOInitialResponse, SysDeviceDTOListRequest, SysDeviceDTOListResponse, SysDeviceDTOReadResponse, SysDeviceDTOSafe } from './dto/device.dto'
+import { SysUserDTOReadResponse } from '@/modules/system/user/dto/user.dto'
+import { SysDeviceDTOHistoryUsersResponse } from './dto/device.history-users.dto'
 
 const Permissions = {
   READ: 'system:device:read',
@@ -39,7 +36,12 @@ const {
   DTO: SysDeviceDTOSafe,
 })
 
-@Controller('system/device')
+/**
+ * B6 迁移（controller 层，B1 同款）：路由参数 ParamMongoId → uuid 参数装饰器；
+ * 事务句柄 `ctx.dbSession` → `ctx.em`；`.toObject()` 移除，出参统一 plainToInstance，
+ * 实体经 assembleSysDevice 组装回 Mongo 版嵌套形态（sr/vp/geoLocation 拍平列还原）。
+ */
+@Controller(SystemRoutes.DEVICE)
 @ApiTags('system/device')
 export class SysDeviceController {
   constructor(
@@ -53,14 +55,18 @@ export class SysDeviceController {
   @WalnutAdminGuardJwtFree()
   @WalnutAdminGuardCapFree()
   @WalnutAdminGuardDeviceFree()
-  @WalnutDBTransaction()
+  @WalnutTx()
+  @ApiWalnutOkResponse({
+    description: 'initialize current device (echo deviceId + derived geo ip fields)',
+    DTO: SysDeviceDTOInitialResponse,
+  })
   @WalnutAdminDecoratorThrottle(SysDeviceSettingService)
   async initial(
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
     @Body() payload: SysDeviceDTOInitialRequest,
   ) {
-    const { deviceId, locationInfo } = await this.deviceService.initial(req, payload, dbSession)
+    const { deviceId, locationInfo } = await this.deviceService.initial(req, payload, ctx.em)
 
     const maxAge = 30 * 24 * 60 * 60 * 1000
     // set device id cookie
@@ -89,14 +95,14 @@ export class SysDeviceController {
     name: 'id',
     type: String,
     required: true,
-    description: 'Device MongoDB ID',
+    description: 'Device ID',
   })
   @ApiWalnutOkResponse({
     description: 'get current user of device',
     DTO: SysUserDTOReadResponse,
   })
-  async getCurrentUser(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new SysUserDTOReadResponse((await this.deviceService.getCurrentActiveUser(id))?.toObject())
+  async getCurrentUser(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(SysUserDTOReadResponse, (await this.deviceService.getCurrentActiveUser(id)) ?? {})
   }
 
   @Get(':id/history-users')
@@ -106,24 +112,28 @@ export class SysDeviceController {
     name: 'id',
     type: String,
     required: true,
-    description: 'Device MongoDB ID',
+    description: 'Device ID',
   })
   @ApiWalnutOkResponse({
     description: 'get history users of current device',
     DTO: SysDeviceDTOHistoryUsersResponse,
+    // P3-11：处理器 plainToInstance 的是数组（历史活跃用户列表），装饰漏 isArray 会把
+    // openapi data 写成单对象；wire 零变化（admin getDeviceHistoryUsersAPI 已按数组消费）
+    isArray: true,
   })
-  async getHistoryUsers(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return (await this.deviceService.getHistoryUsersByDeviceId(id)).map(i => new SysDeviceDTOHistoryUsersResponse(i))
+  async getHistoryUsers(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(SysDeviceDTOHistoryUsersResponse, await this.deviceService.getHistoryUsersByDeviceId(id))
   }
 
   @Patch(':id/lock')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission([Permissions.READ, Permissions.LOCK], 'and')
+  @WalnutTx()
   @ApiParam({
     name: 'id',
     type: String,
     required: true,
-    description: 'Device MongoDB ID',
+    description: 'Device ID',
   })
   @ApiWalnutOkResponse({
     description: 'lock current device',
@@ -134,18 +144,22 @@ export class SysDeviceController {
     action: WalnutAdminConstDecoratorLogOperateAction.UPDATE,
     operateType: WalnutAdminConstDecoratorLogOperateType.DEVICE_LOCK,
   })
-  async lock(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return this.deviceService.lock(id)
+  async lock(
+    @WalnutTxSession() ctx: WalnutTxContext,
+    @WalnutAdminDecoratorParamUuid() id: string,
+  ) {
+    return this.deviceService.lock(id, ctx.em)
   }
 
   @Patch(':id/unlock')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission([Permissions.READ, Permissions.UNLOCK], 'and')
+  @WalnutTx()
   @ApiParam({
     name: 'id',
     type: String,
     required: true,
-    description: 'Device MongoDB ID',
+    description: 'Device ID',
   })
   @ApiWalnutOkResponse({
     description: 'unlock current device',
@@ -156,18 +170,22 @@ export class SysDeviceController {
     action: WalnutAdminConstDecoratorLogOperateAction.UPDATE,
     operateType: WalnutAdminConstDecoratorLogOperateType.DEVICE_UNLOCK,
   })
-  async unlock(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return this.deviceService.unlock(id)
+  async unlock(
+    @WalnutTxSession() ctx: WalnutTxContext,
+    @WalnutAdminDecoratorParamUuid() id: string,
+  ) {
+    return this.deviceService.unlock(id, ctx.em)
   }
 
   @Patch(':id/ban')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission([Permissions.READ, Permissions.BANNED], 'and')
+  @WalnutTx()
   @ApiParam({
     name: 'id',
     type: String,
     required: true,
-    description: 'Device MongoDB ID',
+    description: 'Device ID',
   })
   @ApiWalnutOkResponse({
     description: 'ban current device',
@@ -178,18 +196,22 @@ export class SysDeviceController {
     action: WalnutAdminConstDecoratorLogOperateAction.UPDATE,
     operateType: WalnutAdminConstDecoratorLogOperateType.DEVICE_BAN,
   })
-  async ban(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return this.deviceService.ban(id)
+  async ban(
+    @WalnutTxSession() ctx: WalnutTxContext,
+    @WalnutAdminDecoratorParamUuid() id: string,
+  ) {
+    return this.deviceService.ban(id, ctx.em)
   }
 
   @Patch(':id/unban')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission([Permissions.READ, Permissions.UNBANNED], 'and')
+  @WalnutTx()
   @ApiParam({
     name: 'id',
     type: String,
     required: true,
-    description: 'Device MongoDB ID',
+    description: 'Device ID',
   })
   @ApiWalnutOkResponse({
     description: 'unban current device',
@@ -200,23 +222,30 @@ export class SysDeviceController {
     action: WalnutAdminConstDecoratorLogOperateAction.UPDATE,
     operateType: WalnutAdminConstDecoratorLogOperateType.DEVICE_UNBAN,
   })
-  async unban(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return this.deviceService.unban(id)
+  async unban(
+    @WalnutTxSession() ctx: WalnutTxContext,
+    @WalnutAdminDecoratorParamUuid() id: string,
+  ) {
+    return this.deviceService.unban(id, ctx.em)
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
   @WalnutAdminDecoratorRead()
-  async read(@WalnutAdminDecoratorParamMongoId() id: string) {
-    return new SysDeviceDTOReadResponse(
-      (await this.deviceService.read(id)).toObject(),
+  async read(@WalnutAdminDecoratorParamUuid() id: string) {
+    return plainToInstance(
+      SysDeviceDTOReadResponse,
+      assembleSysDevice(await this.deviceService.read(id)),
     )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() payload: SysDeviceDTOListRequest) {
-    return new SysDeviceDTOListResponse(
-      await this.deviceService.list(payload),
-    )
+    const result = await this.deviceService.list(payload)
+
+    return plainToInstance(SysDeviceDTOListResponse, {
+      ...result,
+      data: result.data.map(assembleSysDevice),
+    })
   }
 }

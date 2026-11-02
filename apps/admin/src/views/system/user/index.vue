@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { SystemUser } from '@walnut/api-types'
 import { useState } from '@walnut/client/hooks/core/useState'
 import { computed } from 'vue'
 import { clearPasswordAPI, userAPI } from '@/api/system/user'
@@ -9,7 +9,9 @@ import { WTablePresetCreatedAtColumn, WTablePresetStatusColumn, WTablePresetUpda
 import { AppConstRoles } from '@/const/app'
 import { useAppConfirm } from '@/hooks/component/useConfirm'
 import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+import { useDeptTree } from '@/hooks/core/useDeptTree'
 import { useAppI18n } from '@/locales/index'
+
 import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 
 defineOptions({
@@ -19,9 +21,12 @@ defineOptions({
 const { t } = useAppI18n()
 const userStoreAuth = useAppStoreUserAuth()
 
+// 数据权限二期批 2：用户所属部门（sys_user.dept_id）
+const { getDeptTree } = useDeptTree()
+
 // locale unique key
 const key = 'user'
-const keyField = '_id'
+const keyField = 'id'
 
 const { stateRef: updatePasswordFormData, resetState: resetPasswordFormData } = useState({ userId: '', userName: '', newPassword: '' })
 
@@ -76,7 +81,7 @@ const [
     onDeleteManyConfirm,
     onApiList,
   },
-] = useCRUD<IModels.SystemUser>({
+] = useCRUD<SystemUser>({
   baseAPI: userAPI,
 
   strictFormData: true,
@@ -177,7 +182,7 @@ const [
       },
 
       {
-        key: 'populated_roles_count',
+        key: 'roles_count',
         width: 80,
       },
 
@@ -214,7 +219,7 @@ const [
         columnBuiltInActions: [
           {
             _builtInType: 'read',
-            _show: row => !row.populated_roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.populated_roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
+            _show: row => !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
             async onPresetClick(rowData) {
               await onReadAndOpenUpdateForm(rowData[keyField]!)
             },
@@ -222,7 +227,7 @@ const [
           {
             _builtInType: 'delete',
             _dropdown: true,
-            _show: row => !row.populated_roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.populated_roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
+            _show: row => !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
             async onPresetClick(rowData) {
               await onDeleteConfirm(rowData[keyField]!)
             },
@@ -232,7 +237,7 @@ const [
           {
             _builtInType: 'updatePass',
             _dropdown: true,
-            _show: row => !row.populated_roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.populated_roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
+            _show: row => !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
             async onPresetClick(rowData) {
               updatePasswordFormData.value.userId = rowData[keyField]!
               updatePasswordFormData.value.userName = rowData.userName!
@@ -251,12 +256,12 @@ const [
           {
             _builtInType: 'clearPass',
             _dropdown: true,
-            _show: row => !row.populated_roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.populated_roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
+            _show: row => !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
             async onPresetClick(rowData) {
               const { confirmed } = await useAppConfirm(t('app.base.pass.clear.confirm', { userName: rowData.userName }))
 
               if (confirmed) {
-                const res = await clearPasswordAPI({ _id: rowData[keyField]! })
+                const res = await clearPasswordAPI({ id: rowData[keyField]! })
 
                 if (res) {
                   useAppMsgSuccess()
@@ -295,6 +300,26 @@ const [
         },
         componentProp: {
           clearable: true,
+        },
+      },
+
+      {
+        // 数据权限二期批 2：所属部门（DEPT / DEPT_AND_CHILD / DEPT_OR_SELF 的解析输入）。
+        // 可空（无部门 = DEPT 系档位默认拒绝，SELF 不受影响）。
+        type: 'Base:TreeSelect',
+        formProp: {
+          path: 'deptId',
+          labelHelpMessage: true,
+        },
+        componentProp: {
+          defaultValue: null,
+          treeSelectProps: {
+            options: getDeptTree as unknown as any[],
+            keyField: 'id',
+            labelField: 'deptName',
+            clearable: true,
+            placeholder: t('table.user.deptId.placeholder'),
+          },
         },
       },
 
@@ -347,7 +372,7 @@ async function onYes(_: any, done: () => void) {
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.SystemUser} -->
+    <!-- @vue-generic {SystemUser} -->
     <WCRUD @hook="register" />
 
     <WForm :model="updatePasswordFormData" @hook="registerUpdatePassword" />

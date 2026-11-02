@@ -1,9 +1,10 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { AppMonitorUser } from '@walnut/api-types'
 import { computed } from 'vue'
 import { forceQuitAPI, monitorUserAPI } from '@/api/app/monitor/user'
 import { useCRUD } from '@/components/Advanced/CRUD'
 import { useAppMsgSuccess } from '@/hooks/component/useMessage'
+
 import { useAppI18n } from '@/locales/index'
 
 defineOptions({
@@ -13,11 +14,11 @@ defineOptions({
 // locale unique key
 const localeKey = 'app.monitor.user'
 const authKey = 'user'
-const keyField = '_id'
+const keyField = 'id'
 
 const { t } = useAppI18n()
 
-const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMonitorUser>({
+const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<AppMonitorUser>({
   baseAPI: monitorUserAPI,
 
   tableProps: {
@@ -146,7 +147,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       },
 
       {
-        key: 'populated_device.ip',
+        key: 'device.ip',
         width: 160,
         title: 'ip',
         ellipsis: {
@@ -154,13 +155,13 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
         },
       },
       {
-        key: 'populated_device.locationInfo.country',
+        key: 'device.locationInfo.country',
         width: 120,
         title: 'country',
       },
 
       {
-        key: 'populated_device.deviceInfo.browser',
+        key: 'device.deviceInfo.browser',
         width: 160,
         title: 'browser',
         ellipsis: {
@@ -169,7 +170,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       },
 
       {
-        key: 'populated_device.deviceInfo.os',
+        key: 'device.deviceInfo.os',
         title: 'os',
         width: 160,
         ellipsis: {
@@ -189,7 +190,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       },
 
       {
-        key: 'populated_user.userName',
+        key: 'user.userName',
         title: 'userName',
         width: 100,
       },
@@ -357,7 +358,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_user.userName',
+          path: 'user.userName',
           label: 'userName',
         },
         descriptionProp: {
@@ -376,7 +377,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.ip',
+          path: 'device.ip',
           label: 'ip',
         },
         descriptionProp: {
@@ -386,7 +387,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceName',
+          path: 'device.deviceName',
           label: 'deviceName',
         },
         descriptionProp: {
@@ -396,7 +397,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceInfo.type',
+          path: 'device.deviceInfo.type',
           label: 'deviceType',
         },
         descriptionProp: {
@@ -406,7 +407,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceInfo.os',
+          path: 'device.deviceInfo.os',
           label: 'os',
         },
         descriptionProp: {
@@ -416,7 +417,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceInfo.browser',
+          path: 'device.deviceInfo.browser',
           label: 'browser',
         },
         descriptionProp: {
@@ -426,7 +427,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceInfo.isp',
+          path: 'device.deviceInfo.isp',
           label: 'isp',
         },
         descriptionProp: {
@@ -436,7 +437,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceInfo.platform',
+          path: 'device.deviceInfo.platform',
           label: 'platform',
         },
         descriptionProp: {
@@ -446,7 +447,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.deviceInfo.netType',
+          path: 'device.deviceInfo.netType',
           label: 'netType',
         },
         descriptionProp: {
@@ -457,7 +458,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.locationInfo.country',
+          path: 'device.locationInfo.country',
           label: 'country',
         },
         descriptionProp: {
@@ -467,7 +468,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
       {
         type: 'Base:Input',
         formProp: {
-          path: 'populated_device.locationInfo.city',
+          path: 'device.locationInfo.city',
           label: 'city',
         },
         descriptionProp: {
@@ -500,7 +501,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<IModels.AppMo
 
 <template>
   <div>
-    <!-- @vue-generic {IModels.AppMonitorUser} -->
+    <!-- @vue-generic {AppMonitorUser} -->
     <WCRUD @hook="register" />
   </div>
 </template>

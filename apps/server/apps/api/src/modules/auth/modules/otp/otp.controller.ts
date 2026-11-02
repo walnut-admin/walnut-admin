@@ -8,28 +8,23 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
+import { AuthCookieService, AuthSuccessDTO, OtpIdentityTypeMap, OtpSendDTO, OtpService, OtpSettingService, OtpVerifyDTO, WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { ClientSession } from 'mongoose'
-import { WalnutAdminDecoratorAuthLog } from '@/decorators/walnut/log.auth.decorator'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { SysUserIdentitySharedService } from '@/modules/system/user_identity/shared/user_identity.shared.service'
-import { AuthSuccessDTO } from '../../dto/auth.dto'
-import { AuthCookieService } from '../cookie/cookie.service'
-import { WalnutAdminGuardJwtFree } from '../jwt/jwt-access.guard'
-import { OtpIdentityTypeMap } from './const/otp.const'
-import { OtpSendDTO, OtpVerifyDTO } from './dto/otp.dto'
+import { WalnutAdminDecoratorAuthLog, WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorUser } from '@walnut-server/guards'
+import { SysUserIdentitySharedService } from '@walnut-server/identity'
+import { AuthRoutes } from '@walnut/contract'
 import { OtpDecoratorFunctionalGuard, OtpDecoratorSendFunctionalGuard, OtpDecoratorThrottle } from './guard/otp.decorator'
 import { OtpGuard } from './otp.guard'
-import { OtpService } from './otp.service'
-import { OtpSettingService } from './otp.setting.service'
 
-@Controller('auth/otp')
+@Controller(AuthRoutes.OTP)
 @ApiTags('auth/otp')
 @WalnutAdminGuardJwtFree()
 @OtpDecoratorFunctionalGuard()
+// 数据权限三期：登录链系统通道（匿名进入，按用户名/凭据读 sys_user）
+@WalnutAdminDecoratorDataScopeSystemChannel()
 export class OtpController {
   constructor(
     private readonly otpService: OtpService,
@@ -54,7 +49,7 @@ export class OtpController {
 
   @Post('verify')
   @HttpCode(HttpStatus.OK)
-  @WalnutDBTransaction()
+  @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Auth with OTP (email or SMS) and verify code',
     DTO: AuthSuccessDTO,
@@ -64,7 +59,7 @@ export class OtpController {
   async authWithOtp(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
-    @WalnutDBSession() dbSession: ClientSession,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Request() req: IWalnutAdminExpressRequest,
     @Body() payload: OtpVerifyDTO,
   ) {
@@ -73,7 +68,7 @@ export class OtpController {
       payload.identifier,
       user,
       deviceId,
-      dbSession,
+      ctx.em,
     )
 
     // Mark identity as verified after successful OTP validation
@@ -81,7 +76,7 @@ export class OtpController {
       user.userId,
       OtpIdentityTypeMap[payload.type],
       'login',
-      dbSession,
+      ctx.em,
     )
 
     // Set refresh token jti to cookie

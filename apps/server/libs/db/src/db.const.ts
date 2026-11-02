@@ -1,75 +1,54 @@
-export const WalnutDBConnectionName = 'WalnutPrimaryConnectionDatabase'
+/**
+ * 模型名常量 —— 迁移后仍被 PG 通道消费：
+ * - PG 版仓库骨架以它作软删快照的 `modelName` 路由键（pg-base.repository）；
+ * - 回收站恢复注册表以它把快照路由回目标实体（libs/repository 的 recoverable.registry）。
+ * （`WalnutDBConnectionName` / `WalnutDBCollectionName` 是 Mongo 连接与集合的名字，
+ * Phase 5a 随 MongoDB 基础设施一并摘除。）
+ */
+export const WalnutModelName = {
+  SYS_DELETED: 'SysDeleted',
 
-export const WalnutDBCollectionName = {
-  ROLE: 'sys_role',
-  USER: 'sys_user',
-  USER_OAUTH: 'sys_user_oauth',
-  USER_PREFERENCE: 'sys_user_preference',
-  USER_LOCK: 'sys_user_lock',
-  USER_DEVICE: 'sys_user_device',
-  USER_MFA: 'sys_user_mfa',
-  USER_IDENTITY: 'sys_user_identity',
-  MENU: 'sys_menu',
-  LANG: 'sys_lang',
-  LOCALE: 'sys_locale',
-  DELETED: 'sys_deleted',
-  DEVICE: 'sys_device',
+  SYS_ROLE: 'SysRole',
+  SYS_USER: 'SysUser',
+  SYS_USER_OAUTH: 'SysUserOAuth',
+  SYS_USER_PREFERENCE: 'SysUserPreference',
+  SYS_USER_LOCK: 'SysUserLock',
+  SYS_USER_DEVICE: 'SysUserDevice',
+  SYS_USER_MFA: 'SysUserMfa',
+  SYS_USER_IDENTITY: 'SysUserIdentity',
+  SYS_MENU: 'SysMenu',
+  SYS_LANG: 'SysLang',
+  SYS_LOCALE: 'SysLocale',
+  SYS_DEVICE: 'SysDevice',
 
-  LOG_OPERATE: 'sys_log_operate',
-  LOG_AUTH: 'sys_log_auth',
+  // 组织基础表（部门 / 岗位 / 职工）—— 数据权限二期部门维度的地基
+  SYS_DEPT: 'SysDept',
+  SYS_POST: 'SysPost',
+  SYS_EMPLOYEE: 'SysEmployee',
 
-  DICT_TYPE: 'sys_dict_type',
-  DICT_DATA: 'sys_dict_data',
+  SYS_LOG_AUTH: 'SysLogAuth',
+  SYS_LOG_OPERATE: 'SysLogOperate',
 
-  SHARED_AREA: 'shared_area',
+  SYS_DICT_DATA: 'SysDictData',
+  SYS_DICT_TYPE: 'SysDictType',
 
-  APP_SETTING: 'app_setting',
-  APP_DEMO: 'app_demo',
-  APP_MONITOR_USER: 'app_monitor_user',
-  APP_ERROR: 'app_error',
-  APP_KEY: 'app_key',
+  SHARED_AREA: 'SharedArea',
 
-  AUTH_REFRESH_TOKEN: 'auth_refresh_token',
+  APP_DEMO: 'AppDemo',
+  APP_MONITOR_USER: 'AppMonitorUser',
+  APP_SETTING: 'AppSetting',
+  APP_ERROR: 'AppError',
+  APP_KEY: 'AppKey',
+
+  AUTH_REFRESH_TOKEN: 'AuthRefreshToken',
 } as const
 
-export const WalnutDBModelName = {
-  SYS_DELETED: 'SysDeletedModel',
-
-  SYS_ROLE: 'SysRoleModel',
-  SYS_USER: 'SysUserModel',
-  SYS_USER_OAUTH: 'SysUserOAuthModel',
-  SYS_USER_PREFERENCE: 'SysUserPreferenceModel',
-  SYS_USER_LOCK: 'SysUserLockModel',
-  SYS_USER_DEVICE: 'SysUserDeviceModel',
-  SYS_USER_MFA: 'SysUserMfaModel',
-  SYS_USER_IDENTITY: 'SysUserIdentityModel',
-  SYS_MENU: 'SysMenuModel',
-  SYS_LANG: 'SysLangModel',
-  SYS_LOCALE: 'SysLocaleModel',
-  SYS_DEVICE: 'SysDeviceModel',
-
-  SYS_LOG_AUTH: 'SysLogAuthModel',
-  SYS_LOG_OPERATE: 'SysLogOperateModel',
-
-  SYS_DICT_DATA: 'SysDictDataModel',
-  SYS_DICT_TYPE: 'SysDictTypeModel',
-
-  SHARED_AREA: 'SharedAreaModel',
-
-  APP_DEMO: 'AppDemoModel',
-  APP_MONITOR_USER: 'AppMonitorUserModel',
-  APP_SETTING: 'AppSettingModel',
-  APP_ERROR: 'AppErrorModel',
-  APP_KEY: 'AppKeyModel',
-
-  AUTH_REFRESH_TOKEN: 'AuthRefreshTokenModel',
-} as const
-
-export const WalnutDBVirtualName = {
-  USER: 'populated_user',
-  ROLES_LIST: 'populated_roles_list',
-  ROLES_COUNT: 'populated_roles_count',
-  DEVICE: 'populated_device',
-  MONITOR_USER: 'populated_monitor_user',
-  LOG_OPERATE: 'populated_log_operate',
+/** populate 出参键（回收站 read 的 user 等；PG 通道沿用同一键名） */
+export const WalnutVirtualName = {
+  USER: 'user',
+  ROLES_LIST: 'roles_list',
+  ROLES_COUNT: 'roles_count',
+  DEVICE: 'device',
+  MONITOR_USER: 'monitor_user',
+  LOG_OPERATE: 'log_operate',
 } as const

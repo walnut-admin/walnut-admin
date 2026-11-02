@@ -35,8 +35,10 @@ variable "TAG" {
 }
 
 # 上下文位置由环境变量覆盖（bake 变量同名环境变量优先）。
-# CI 把 staging 落在工作区之外（release.yml 的 IMAGE_STAGE=../walnut-image-staging），
-# 免得 268MB / 4 万文件的产物进工作树；默认值即本地构建用的位置（.gitignore 已忽略）。
+# CI 的 staging 落在工作区的 build/image（release.yml 的 IMAGE_STAGE=build/image，
+# 与下方默认值一致）：曾放在工作区外的 ../walnut-image-staging，但 bake-action
+# 读不到工作区之外的本地 context，两次发版都停在 "failed to read dockerfile"。
+# 默认值即本地构建用的位置（.gitignore 已忽略）。
 variable "SERVER_CONTEXT" {
   default = "build/image/server"
 }
@@ -45,9 +47,10 @@ variable "FRONTEND_CONTEXT" {
   default = "build/image/frontend"
 }
 
-# Dockerfile 位置。默认值相对 **context 根**（staging 步骤会把 apps/*/Dockerfile 拷进去），
-# CI 里则由 release.yml 传**绝对路径**覆盖 —— bake 的 `dockerfile` 字段相对谁解析（context /
-# bake 文件 / cwd）文档没写清，绝对路径三种解释下都指向同一个文件，省掉一次试错发版。
+# Dockerfile 位置。默认值相对 **context 根**（staging 步骤会把 apps/*/Dockerfile 拷进去）；
+# CI 里 release.yml 仍传**绝对路径**覆盖 —— 官方口径是 `dockerfile` 相对 context 解析
+# （https://docs.docker.com/build/bake/targets/），绝对路径在 path / remote 两种定义下都
+# 指向同一个文件，少一次试错发版。
 variable "SERVER_DOCKERFILE" {
   default = "Dockerfile"
 }
@@ -72,7 +75,9 @@ group "all" {
 # 其 .dockerignore 排除 certs/，证书私钥永不进入构建上下文）
 target "nginx" {
   context    = "deploy/nginx"
-  dockerfile = "deploy/nginx/Dockerfile"
+  # `dockerfile` 相对 **context 根**解析（context 已是 deploy/nginx，见
+  # https://docs.docker.com/build/bake/targets/），所以这里只能是 "Dockerfile"。
+  dockerfile = "Dockerfile"
   tags = [
     "${REGISTRY}/${NS}/nginx:${TAG}",
     # 稳定别名：apps/admin/Dockerfile 的默认 NGINX_BASE 指向它

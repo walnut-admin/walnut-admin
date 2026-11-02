@@ -133,7 +133,7 @@ const useAppStoreUserAuthInside = defineStore(StoreKeys.USER_AUTH, {
       await AppCoreFn1()
 
       // send beacon
-      sendUserMonitorBeacon({ userId: userStoreProfile.profile._id, auth: true })
+      sendUserMonitorBeacon({ userId: userStoreProfile.profile.id, auth: true })
 
       // push to the index menu
       await appStoreMenu.goIndex()
@@ -308,8 +308,8 @@ const useAppStoreUserAuthInside = defineStore(StoreKeys.USER_AUTH, {
       await this.opaqueRegisterCore(
         userName,
         newPassword,
-        ({ registrationRequest }) => updatePasswordStartAPI({ _id: userId, start: registrationRequest }),
-        ({ registrationRecord }) => updatePasswordFinishAPI({ _id: userId, finish: registrationRecord }),
+        ({ registrationRequest }) => updatePasswordStartAPI({ id: userId, start: registrationRequest }),
+        ({ registrationRecord }) => updatePasswordFinishAPI({ id: userId, finish: registrationRecord }),
       )
     },
 

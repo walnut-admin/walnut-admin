@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import type { IModels } from '@/api/models'
+import type { SystemUser } from '@walnut/api-types'
 import type { WAvatarUploadInst } from '@/components/Business/AvatarUpload'
 import { omit, pick } from 'lodash-es'
 import { computed, ref, useTemplateRef } from 'vue'
@@ -9,6 +9,7 @@ import { useAppMsgSuccess } from '@/hooks/component/useMessage'
 import { useAppI18n } from '@/locales/index'
 import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
 import { useAppStoreUserProfile } from '@/store/modules/user/user-profile'
+
 import WAvatar from '../components/avatar.vue'
 
 defineOptions({
@@ -21,16 +22,16 @@ const userStoreProfile = useAppStoreUserProfile()
 const appStoreAdapter = useAppStoreAdapter()
 
 const avatarUploadRef = useTemplateRef<WAvatarUploadInst>('avatarUploadRef')
-const formData = ref<IModels.SystemUser>({
+const formData = ref<SystemUser>({
   ...pick(userStoreProfile.profile, [
-    '_id',
+    'id',
     'userName',
     'nickName',
     'description',
     'gender',
     'avatar',
   ]),
-})
+} as SystemUser)
 
 const loading = ref(false)
 const tempAvatar = ref()
@@ -113,7 +114,7 @@ const [register, { validate }] = useForm<typeof formData.value>({
             if (!isAvatarUploadSuccess)
               return
 
-            await updateProfileAPI(omit(formData.value, ['_id']))
+            await updateProfileAPI(omit(formData.value, ['id']))
             useAppMsgSuccess()
             await userStoreProfile.getProfile()
           }

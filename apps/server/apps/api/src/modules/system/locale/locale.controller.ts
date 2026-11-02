@@ -14,26 +14,18 @@ import {
   ValidationPipe,
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
+import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
-import { WalnutDBSession, WalnutDBTransaction } from '@walnut-server/db'
+import { WalnutCrudDecorators } from '@walnut-server/crud'
+
+import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamArray } from '@walnut-server/decorators/params'
-
 import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
-import { getAllConstraints } from '@walnut-server/utils/response'
-import { LocaleType } from '@walnut/contract'
-import { ValidationError } from 'class-validator'
-import { ClientSession } from 'mongoose'
-import { WalnutCrudDecorators } from '@/decorators/crud'
 
-import { WalnutAdminDecoratorHasPermission } from '@/decorators/walnut/hasPermission.decorator'
-import { WalnutAdminDecoratorUser } from '@/decorators/walnut/user.decorator'
-import { WalnutAdminGuardCapFree } from '@/guard/cap.guard'
-import { WalnutAdminGuardDeviceFree } from '@/guard/device.guard'
-import { WalnutAdminGuardIpFree } from '@/guard/ip.guard'
-import { WalnutAdminGuardLockFree } from '@/guard/lock.guard'
-import { WalnutAdminGuardSignFree } from '@/guard/sign.guard'
-import { WalnutAdminGuardJwtFree } from '@/modules/auth/modules/jwt/jwt-access.guard'
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardIpFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+
 import {
+  LocalePayloadTransformPipe,
   SysLocaleDTO,
   SysLocaleDTOCreateRequest,
   SysLocaleDTOCreateResponse,
@@ -42,9 +34,12 @@ import {
   SysLocaleDTOListResponse,
   SysLocaleDTOUpdateRequest,
   SysLocaleDTOUpdateResponse,
-} from './dto/locale.dto'
-import { LocalePayloadTransformPipe } from './locale.pipe'
-import { SysLocaleService } from './locale.service'
+  SysLocaleService,
+} from '@walnut-server/system'
+import { getAllConstraints } from '@walnut-server/utils/response'
+import { LocaleType, SystemRoutes } from '@walnut/contract'
+import { plainToInstance } from 'class-transformer'
+import { ValidationError } from 'class-validator'
 
 const Permissions = {
   CREATE: 'system:locale:create',
@@ -75,6 +70,16 @@ const RawBody = createParamDecorator(
 )
 
 // https://gist.github.com/josephdpurcell/9af97c36148673de596ecaa7e5eb6a0a
+//
+// 【有意设计，已登记 DESIGN-ISSUES.md P2-10】这里的 ValidationPipe **必须**局部放宽
+// 全局不变式（whitelist:false + skipMissingProperties:true），原因在本端点的 wire 形状：
+// create/update 的 body 是「翻译映射」而非 DTO 形状 —— `{ key, oldKey?, <langId-uuid>: 翻译值 }`，
+// 键名是运行时 lang uuid，永远不可能出现在静态 DTO 属性集里。全局 pipe 的
+// whitelist + forbidNonWhitelisted 会把这些 uuid 键剥掉/拒掉，批量翻译一个都到不了 service。
+// 校验并没有消失，而是**二段式后移**：① 本 pipe 只做 transform（保留 uuid 键、不按 DTO
+// 必填校验原始映射）；② LocalePayloadTransformPipe 把 uuid 键映射成
+// `[{ langId, key, value, oldKey }]` 数组；③ ParseArrayPipe 才对每个元素按
+// SysLocaleDTOCreateRequest 严格校验。放宽只覆盖第一段，wire 契约仍由第三段钉死。
 function TransformedLocaleBody() {
   return RawBody(
     // override global pipe
@@ -102,7 +107,11 @@ function TransformedLocaleBody() {
   )
 }
 
-@Controller('system/locale')
+/**
+ * B2 迁移模板（controller 层）：事务句柄 `ctx.dbSession` → `ctx.em`（已迁侧取 em）；
+ * `.toObject()` 移除（PG 实体即 POJO），统一 plainToInstance(DTO, entity)。
+ */
+@Controller(SystemRoutes.LOCALE)
 @ApiTags('system/locale')
 export class SysLocaleController {
   constructor(private readonly localeService: SysLocaleService) { }
@@ -125,13 +134,13 @@ export class SysLocaleController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
-  @WalnutDBTransaction()
+  @WalnutTx()
   async create(
-    @WalnutDBSession() session: ClientSession,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @TransformedLocaleBody() payload: SysLocaleDTOCreateRequest[],
   ) {
-    const res = await this.localeService.create(payload, session)
-    return res.map(i => new SysLocaleDTOCreateResponse(i.toObject()))
+    const res = await this.localeService.create(payload, ctx.em)
+    return res.map(i => plainToInstance(SysLocaleDTOCreateResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
@@ -142,42 +151,42 @@ export class SysLocaleController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.UPDATE)
   @WalnutAdminDecoratorUpdate()
-  @WalnutDBTransaction()
+  @WalnutTx()
   async update(
-    @WalnutDBSession() session: ClientSession,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @TransformedLocaleBody() payload: SysLocaleDTOUpdateRequest[],
   ) {
-    const res = await this.localeService.update(payload, session)
-    return res.map(i => new SysLocaleDTOUpdateResponse(i.toObject()))
+    const res = await this.localeService.update(payload, ctx.em)
+    return res.map(i => plainToInstance(SysLocaleDTOUpdateResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
   @WalnutAdminDecoratorDelete('key')
-  @WalnutDBTransaction()
+  @WalnutTx()
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() session: ClientSession,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Param('key') key: string,
   ) {
-    const res = await this.localeService.deleteByKey(key, user.userId, session)
-    return res.map(i => new SysLocaleDTODeleteResponse(i.toObject()))
+    const res = await this.localeService.deleteByKey(key, user.userId, ctx.em)
+    return res.map(i => plainToInstance(SysLocaleDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE_MANY)
   @WalnutAdminDecoratorDeleteMany('keys')
-  @WalnutDBTransaction()
+  @WalnutTx()
   async deleteMany(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
-    @WalnutDBSession() session: ClientSession,
+    @WalnutTxSession() ctx: WalnutTxContext,
     @WalnutAdminDecoratorParamArray({ fieldName: 'keys' }) keys: string[],
   ) {
-    const res = await this.localeService.deleteManyByKey(keys, user.userId, session)
-    return res.map(i => new SysLocaleDTODeleteResponse(i.toObject()))
+    const res = await this.localeService.deleteManyByKey(keys, user.userId, ctx.em)
+    return res.map(i => plainToInstance(SysLocaleDTODeleteResponse, i))
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @WalnutAdminDecoratorList()
   async list(@Body() params: SysLocaleDTOListRequest) {
-    return new SysLocaleDTOListResponse(await this.localeService.list(params))
+    return plainToInstance(SysLocaleDTOListResponse, await this.localeService.list(params))
   }
 }

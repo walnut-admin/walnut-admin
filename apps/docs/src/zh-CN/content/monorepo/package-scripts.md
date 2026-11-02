@@ -28,7 +28,7 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 
 **一致性 > 自由度**。不要有的包叫 `lint`，有的叫 `eslint`——Turbo 需要统一的 task 名来编排。
 
-> 注：以上是**理想约定**，实际并非每个包都齐备——目前有 `test` 脚本的是 server / contract / utils / client / scripts / release（server 的覆盖率脚本叫 `test:cov` 而非 `test:coverage`，utils / client 带 `--passWithNoTests`）；eslint-config / commitlint-config / tsconfig 只有 `lint` / `lint:fix` / `types:check`，没有 `test`（tsconfig 是纯 JSON 预设，`types:check` 只是一句 `echo`）。
+> 注：以上是**理想约定**，实际并非每个包都齐备——目前有 `test` 脚本的是 server / contract / utils / client / eslint-config / scripts / release（server 的覆盖率脚本叫 `test:cov` 而非 `test:coverage`，utils / client 带 `--passWithNoTests`）；commitlint-config / tsconfig / vitest-config 只有 `lint` / `lint:fix` / `types:check`，没有 `test`（tsconfig 是纯 JSON 预设，`types:check` 只是一句 `echo`）。
 
 ### 2. 根 scripts 只做委托
 
@@ -68,7 +68,7 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
     "hooks:check": "walnut-check-git-hooks",     // 断言 git 钩子由 lefthook 托管
 
     // 推送前门禁：lefthook 的 pre-push 只调这一条；门禁表与并行执行器见 packages/tooling/scripts/src/ci/prepush.ts
-    "prepush": "pnpm boundaries && pnpm lint:root && pnpm types:check && pnpm types:check:root && pnpm syncpack:lint && pnpm lint:workflows && pnpm lint:docs-refs && pnpm lint:adr && pnpm lint:doc-ts && pnpm lint:doc-budget && pnpm change check",
+    "prepush": "walnut-prepush",                 // 聚合门禁表（并行、每段报耗时）
 
     // 发布（@walnut/release 的 bin，实现位于 packages/tooling/release/src/release/）
     "release": "walnut-release"
@@ -117,7 +117,7 @@ pre-push   → pnpm --silent prepush（单条聚合门禁：跑一张门禁表�
 
 `pre-commit` 只跑 ESLint fix，不做类型检查（太慢，阻塞 commit 体验）；`commit-msg` 由 commitlint 校验提交信息格式；其余的静态检查全部放在 `pre-push`。pre-push 刻意只调**单条命令**，且钩子文件里没有可截断的命令链 —— 清单在跟踪面里的一张表上，改动在 diff 里看得见，完整性由 `prepush.test.ts` 机械拦（它断言表里每一段的 `argv` 都能落到真实存在的根脚本上）。
 
-> 注意 `pnpm lint:root` 是根 `package.json` 里的**普通脚本**，不是 turbo 任务（根 `turbo.json` 的 `tasks` 里没有 `lint:root`）。因此它只能经 `pnpm` 调用——`turbo run lint:root` 会直接报 `Could not find task 'lint:root' in project`。
+> 注意 `pnpm lint:root` 是根 `package.json` 里的**普通脚本**，同时根 `turbo.json` 已存在 `//#lint:root` 任务（`//#` 前缀表示根任务）。因此 `pnpm lint:root` 与 `turbo run lint:root` 都能调用，后者还会命中 turbo 缓存；`lint:root` 不会跟着任何包的 `lint` 跑。
 
 ## 没做什么 / 为什么
 

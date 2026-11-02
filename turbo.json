@@ -70,6 +70,7 @@
   // 判据可重跑：`NODE_ENV=a pnpm exec turbo run build --dry=json` 与 `NODE_ENV=b …` 比 hash，
   // 应当一个都不变。
   "globalPassThroughEnv": [
+    "WORKER_STANDALONE",
     "CI",
     "NODE_ENV",
     // 这三个是 `eslint-plugin-turbo` 的 `no-undeclared-env-vars` 抓出来的真缺口（都在 `@walnut/scripts`）：
@@ -97,6 +98,9 @@
     // `db:seed --admin` 的口令回退来源（同样由 `no-undeclared-env-vars` 抓出）：命令行参数更好，
     // 但它会进 shell 历史 —— CI / 脚本里用环境变量更合适。只需可见、不进哈希（不影响任何产物）。
     "SEED_ADMIN_PASSWORD",
+    // 集成测试的数据源开关（`TEST_DATA=real` → dev 库全量 dump/restore；缺省 seed 层）。
+    // 只决定 globalSetup 走哪条腿，不影响任何 task 的产物 → 只需可见、不进哈希。
+    "TEST_DATA",
     "VERCEL_TOKEN",
     "TURBO_TOKEN",
     "TURBO_TEAM"

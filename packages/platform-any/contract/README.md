@@ -1,6 +1,6 @@
 # `@walnut/contract`
 
-> 前后端共享的**类型与常量契约** —— 错误码、响应信封、API 路由、分页、i18n / 菜单 / 角色枚举、JWT payload、socket 事件、cookie 与 token 键名，一个事实只有一个家。
+> 前后端共享的**类型与常量契约** —— 错误码、响应信封、API 路由、分页、i18n / 菜单 / 角色枚举、数据权限档位、JWT payload、socket 事件、cookie 与 token 键名，一个事实只有一个家。
 
 | | |
 |---|---|
@@ -16,7 +16,7 @@
 
 边界：
 
-- 只放**类型与常量** —— 没有函数、没有类。`dependencies` 里仅有 `easy-fns-ts`，且三处用法都是 `import type { ValueOf }`，实际零运行时依赖。
+- 只放**类型与常量** —— 没有函数、没有类。`dependencies` 里仅有 `easy-fns-ts`，且全部用法都是 `import type`（实际零运行时依赖）。
 - 服务端专属的东西**不进这里**：角色 ID 常量（`RootId` / `SafeUserId` 等）与 Cookie 的 `__Secure-` / `__Host-` 前缀逻辑留在 server（见 `src/cookie.ts` 的文件注释）。
 - 纯函数工具去 `@walnut/utils`，环境无关的类型体操去 `@walnut/types`。
 
@@ -39,18 +39,24 @@
 |------|------|
 | `.` | 下列全部运行时值 + 类型 |
 | `./cookie` | `WalnutAdminConstCookieKeys`（`DEVICE_ID` / `CAPJS_TOKEN` / `RT_JTI` / `SIGN_TICKET`） |
-| `./crypto-wire` | `AES_GCM_WIRE`（`IV_LENGTH` / `TAG_LENGTH` / `MIN_PAYLOAD_LENGTH`） |
+| `./crypto-wire` | `AES_GCM_WIRE`（`KEY_LENGTH` / `IV_LENGTH` / `TAG_LENGTH` / `MIN_PAYLOAD_LENGTH`）/ `AppKeyTypeConst`（`RSA_PAIR` / `AES_KEY_URL` / `JWT_AT` / `JWT_RT`） |
+| `./data-scope` | `DataScope`（六档数值 `ALL` / `CUSTOM` / `DEPT` / `DEPT_AND_CHILD` / `SELF` / `DEPT_OR_SELF`）/ `DataScopeKey` / `DataScopeType` |
 | `./http` | `RequestHeaders`（`X-Request-ID` / `X-Language` / `X-Sign` / `X-Fingerprint` …） |
 | `./i18n` | `Locale` / `LocaleType` |
 | `./menu` | `MenuType` / `MenuTernal` / `CacheKeyStrategy` |
+| `./mfa` | `WalnutAdminConstSysUserMfaType` / `WalnutAdminConstSysUserMfaWebauthnTransport`（+ 派生类型） |
 | `./pagination` | `SortOrder` / `SortOrderValues` / `SortParam` / `BaseSortParams` / `BasePageParams` / `BaseListParams` / `BaseListResponse` |
+| `./preference` | `fontSizeConst` / `fontSizeValues` / `colorModeConst` / `CVDConst` / `layoutModeConst`（+ 派生类型） |
 | `./response` | `ResponseBase<T>`（`code` / `msg` / `data`，外加可选 `requestId` / `meta` / `_devMsg`） |
 | `./response-code` | `WalnutAdminConstAppResponseCode` / `IWalnutAdminConstAppResponseCode` |
-| `./role` | `Role` / `RoleType` |
+| `./role` | `Role` / `RoleType` / `RoleMode`（`switchable` / `combinable`）/ `RoleModeType` |
 | `./routes` | `AuthRoutes` / `SystemRoutes` / `SystemEndpointRoutes` / `AppRoutes` / `SecurityRoutes` / `SharedRoutes` |
-| `./socket` | `WalnutAdminSocketEvents` / `WalnutAdminSocketRooms` |
+| `./setting` | `WalnutAdminConstAppSettingForceQuitStrategy`（三档策略）/ `IWalnutAdminConstAppSettingForceQuit` |
+| `./socket` | `WalnutAdminSocketEvents` / `WalnutAdminSocketRooms` / `IWalnutAdminSocketEvents` / `IWalnutAdminSocketEventDataMap` |
+| `./sse` | `WalnutAdminSseEvents`（`token:gitee` / `token:github`）/ `IWalnutAdminSseClientData` |
 | `./token` | `IWalnutAdminAccessTokenPayload` / `IWalnutAdminRefreshTokenPayload` / `IWalnutAdminTokenUser` |
 | `./token-key` | `WalnutAdminConstAppTokenKey`（`ACCESS` / `REFRESH`） |
+| `./user-lock` | `LockModeConst`（`default` / `idle` / `security`）/ `ILockModeConst` |
 
 ## 怎么用
 
@@ -102,12 +108,12 @@ export const defaultOrder: SortOrder = 'descend'
 
 ## 已知限制与延后工作
 
-- **路由常量在 server 侧 0 处消费**：admin 侧已大量使用，但 controller 仍写字面量路径，A5 记「剩余全在 server 侧」—— 证据：`apps/docs/src/zh-CN/content/monorepo/architecture-todo.md` 的 A5 条目。
+- **路由常量的 server 侧消费已落地（U2 批）**：47 个 controller 的类级前缀全部改用 contract 常量；方法级路径保留相对字面量（Nest 方法路径相对前缀，绝对常量会改变路由），由 `route-catalog.drift.spec` parity 门禁 + `openapi:export` 零 diff 双重兜底。admin 侧 API 调用字面量已清零（仅剩动态拼接与 demo 页面路由）。
 - **8 个错误码标着 `// TODO not used yet`**（`REQUEST_TIMEOUT`、`TOO_MANY_REQUESTS` 及 `_RATE_LIMITED`、`INTERNAL_SERVER_ERROR_CACHE`、`INTERNAL_SERVER_ERROR_MQ`、`SERVICE_UNAVAILABLE_MAINTENANCE`、`GATEWAY_TIMEOUT`、`HTTP_VERSION_NOT_SUPPORTED`）—— 定义了但从未发出：`packages/platform-any/contract/src/response-code.ts`。
-- **`IListRequestParams` 与 `BaseListParams` 结构重复，未收敛**：ADR 0017 的「需修复的问题」表要求 server 侧改用 contract 的 `BaseListParams` / `SortParam`，至今仍在原地 —— 证据：`apps/server/libs/utils/src/listAggregate.ts` 与 `apps/docs/src/zh-CN/content/adr/0017-package-reorganization.md`。
+- **`IListRequestParams` 与 `BaseListParams` 结构重复，未收敛**：ADR 0017 的「需修复的问题」表要求 server 侧改用 contract 的 `BaseListParams` / `SortParam`，至今仍在原地 —— 证据：`apps/server/libs/repository/src/pg-list.builder.ts`（原 server `libs/utils` 的 listAggregate 已随 B9 Mongo 双轨退役，接口随唯一消费方迁入）与 `apps/docs/src/zh-CN/content/adr/0017-package-reorganization.md`。
 - **CJS 产物面不是选择性 barrel**：`dist/index.cjs` 被 `packages/platform-any/contract/scripts/build-barrel.ts` 覆盖生成，对每个子模块做 `Object.keys(...).forEach(k => exports[k] = ...)` 的**通配**聚合 —— 与 ADR 0013「包入口不用 `export *`」的形态不一致（源面是选择性 barrel，产物面不是）。
 - **缺「dist 过期」检测**：改了 `src/` 忘了 `pnpm build`，后端 `require` 到的仍是旧 CJS。D3 记为「维持双模 + 补一道检测（倾向先 (a) + 检测）」，尚未裁决 —— 证据：`apps/docs/src/zh-CN/content/monorepo/architecture-todo.md` 的 D3 条目。
-- **ADR 0017 判定「进 contract」的内容未迁完**：`DeviceTypeConst` / `SharedUserAgentDTO` 的纯类型仍在 `apps/server/apps/api/src/common/dto/shared.dto.ts`；`otpType` / `OtpIdentityTypeMap` 当时记为「待确认，暂不进」—— 证据：`apps/docs/src/zh-CN/content/adr/0017-package-reorganization.md`。
+- **ADR 0017 判定「进 contract」的内容未迁完**：`DeviceTypeConst` / `SharedUserAgentDTO` 的纯类型仍在 `apps/server/libs/list/src/device-geo.dto.ts`；`otpType` / `OtpIdentityTypeMap` 当时记为「待确认，暂不进」—— 证据：`apps/docs/src/zh-CN/content/adr/0017-package-reorganization.md`。
 
 ## 相关
 

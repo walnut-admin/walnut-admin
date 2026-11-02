@@ -50,6 +50,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
       ['lint:doc-budget'],
       ['lint:emoji'],
       ['lint:seed'],
+      ['openapi:check'],
       ['lint:dts'],
       ['lint:turbo-cache'],
       ['lint:lockfile'],

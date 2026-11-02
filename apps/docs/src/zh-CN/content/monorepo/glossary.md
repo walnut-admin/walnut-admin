@@ -11,11 +11,12 @@
 
 | 术语 | 在本仓指什么 |
 |------|------------|
-| **外层 / 内层** | 外层 = pnpm workspace 里的 workspace 包（`apps/*` + `packages/**`）；内层 = `apps/server/libs/*` 那 9 个 NestJS 内部库，**不是** workspace 包，走 tsconfig `paths` 解析 |
+| **外层 / 内层** | 外层 = pnpm workspace 里的 workspace 包（`apps/*` + `packages/**`）；内层 = `apps/server/libs/*` 那批 NestJS 内部库（按依赖方向分六层，层序见「内部 lib」条目），**不是** workspace 包，走 tsconfig `paths` 解析 |
 | **platform-any** | 运行时无关的共享包组：`contract` · `types` · `utils-core`。可被前端与后端同时消费 |
-| **platform-web** | 浏览器 / Vue 包组：`client` · `http` · `ui`。**源码直消费、不构建** |
+| **platform-web** | 浏览器 / Vue 包组：`api-types` · `client` · `http` · `ui`。**源码直消费、不构建** |
 | **tooling** | 工具链包组（6 个）：`tsconfig` · `eslint-config` · `commitlint-config` · `vitest-config` · `scripts` · `release` |
-| **内部 lib** | `apps/server/libs/` 下的 9 个库（`config` `const` `context` `db` `decorators` `exceptions` `pipes` `types` `utils`），namespace `@walnut-server/*`，与 workspace 包物理分离（ADR 0007） |
+| **内部 lib** | `apps/server/libs/` 下的内部库，按依赖方向分六层：**基建 → 技术 → identity 内核 → 领域域（system → auth → security）→ 装配（guards）→ app-domain**。排序靠前者被靠后者 import（下层在前，反向 import 即违规）；guards 是装配层，**在全部领域域之上**，app-domain 再依赖 guards。层序由 `apps/server/eslint.config.ts` 的分层规则机械守，完整清单以目录为准。namespace `@walnut-server/*`，与 workspace 包物理分离（ADR 0007 / 0022） |
+| **组合根（composition root）** | 装配依赖、决定进程形态的入口。`apps/api` 是默认部署单元；`apps/worker`（cron + Bull，可选）与 `apps/cli`（migration / OpenAPI，零运行时）是同一 workspace 内的可选组合入口，不是新服务（ADR 0022） |
 | **目录名 ≠ 包名** | 最典型的是 `packages/platform-any/utils-core/` —— 它的包名是 **`@walnut/utils`**，`utils-core` 只是目录名 |
 | **boundary tag** | 各包 workspace 级 `turbo.json` 里声明的标签（`app` / `platform-any` / `platform-web` / `platform-node` / `tooling` / `shared` / `backend` …），由 `turbo boundaries` 强制依赖方向；`shared` 不得依赖 `app`、`platform-any` 不得依赖 `platform-web`/`platform-node`、`backend` 不得依赖 `platform-web` |
 

@@ -3,6 +3,7 @@ import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/brow
 import type { InputInst } from 'naive-ui'
 import type { ComputedRef } from 'vue'
 import { startAuthentication } from '@simplewebauthn/browser'
+import { WalnutAdminConstSysUserMfaType } from '@walnut/contract/mfa'
 import { computed, nextTick, onBeforeMount, ref, useTemplateRef } from 'vue'
 import { authMfaStatusAPI, authMfaTotpVerifyAPI, authMfaWebauthnAuthenticateOptionsAPI, authMfaWebauthnAuthenticateVerifyAPI } from '@/api/auth/mfa'
 import { useAppI18n } from '@/locales/index'
@@ -36,16 +37,19 @@ const errorMessage = ref('')
 const authenticationOptions = ref<PublicKeyCredentialRequestOptionsJSON>()
 const trusted = ref(false)
 
+// MFA 方法值集的单一真源是 @walnut/contract（server 侧同一数组做 enum 校验）
+const [mfaTotp, mfaWebauthn] = WalnutAdminConstSysUserMfaType
+
 const mfaMethods = ref<MfaMethod[]>([
   {
-    key: 'totp',
+    key: mfaTotp,
     name: computed(() => t('mfa.totp')),
     description: computed(() => t('mfa.totp.desc')),
     icon: 'simple-icons:google',
     enabled: false,
   },
   {
-    key: 'webauthn',
+    key: mfaWebauthn,
     name: computed(() => t('mfa.webauthn')),
     description: computed(() => t('mfa.webauthn.desc')),
     icon: 'simple-icons:webauthn',
@@ -79,12 +83,12 @@ function selectMethod(methodKey: string) {
   currentStep.value = 2
   errorMessage.value = ''
 
-  if (methodKey === 'totp') {
+  if (methodKey === mfaTotp) {
     nextTick(() => {
       nInputRef.value?.focus()
     })
   }
-  else if (methodKey === 'webauthn') {
+  else if (methodKey === mfaWebauthn) {
     performWebAuthnVerification()
   }
 }
@@ -209,7 +213,7 @@ onBeforeMount(async () => {
       </n-checkbox>
     </template>
 
-    <div v-else-if="currentStep === 2 && selectedMethod === 'totp'" class="mx-auto max-w-md">
+    <div v-else-if="currentStep === 2 && selectedMethod === mfaTotp" class="mx-auto max-w-md">
       <div class="text-center">
         <h3 class="mb-4 text-lg font-semibold">
           {{ $t('app.base.verifyCode.input') }}
@@ -246,7 +250,7 @@ onBeforeMount(async () => {
       </div>
     </div>
 
-    <div v-else-if="currentStep === 2 && selectedMethod === 'webauthn'" class="mx-auto max-w-md">
+    <div v-else-if="currentStep === 2 && selectedMethod === mfaWebauthn" class="mx-auto max-w-md">
       <div class="py-8 text-center">
         <NSpin size="large" class="mb-6" />
 

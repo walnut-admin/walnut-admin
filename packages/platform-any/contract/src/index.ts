@@ -4,13 +4,23 @@
 // ADR-0017 additions — shared constants previously duplicated across frontend/backend
 export { WalnutAdminConstCookieKeys } from './cookie'
 
-export { AES_GCM_WIRE } from './crypto-wire'
+export { AES_GCM_WIRE, AppKeyTypeConst, type AppKeyTypeConstType } from './crypto-wire'
+
+export { DataScope, type DataScopeKey, type DataScopeType } from './data-scope'
 
 export { RequestHeaders } from './http'
 
 export { Locale, type LocaleType } from './i18n'
 
 export { CacheKeyStrategy, MenuTernal, MenuType } from './menu'
+export type { IWalnutAdminMenuMeta } from './menu'
+
+export {
+  type IWalnutAdminConstSysUserMfaType,
+  type IWalnutAdminConstSysUserMfaWebauthnTransport,
+  WalnutAdminConstSysUserMfaType,
+  WalnutAdminConstSysUserMfaWebauthnTransport,
+} from './mfa'
 
 export {
   type BaseListParams,
@@ -22,6 +32,18 @@ export {
   type SortParam,
 } from './pagination'
 
+export {
+  colorModeConst,
+  CVDConst,
+  fontSizeConst,
+  fontSizeValues,
+  type IColorModeConst,
+  type ICVDConst,
+  type IFontSizeConst,
+  type ILayoutModeConst,
+  layoutModeConst,
+} from './preference'
+
 export { type ResponseBase } from './response'
 
 export {
@@ -29,13 +51,33 @@ export {
   WalnutAdminConstAppResponseCode,
 } from './response-code'
 
-export { Role, type RoleType } from './role'
+export { Role, RoleMode, type RoleModeType, type RoleType } from './role'
 
 export { AppRoutes, AuthRoutes, SecurityRoutes, SharedRoutes, SystemEndpointRoutes, SystemRoutes } from './routes'
-export { WalnutAdminSocketEvents, WalnutAdminSocketRooms } from './socket'
+
+export {
+  type IWalnutAdminConstAppSettingForceQuit,
+  type IWalnutAdminConstAppSettingForceQuitStrategy,
+  WalnutAdminConstAppSettingForceQuitStrategy,
+} from './setting'
+
+export {
+  type IWalnutAdminSocketEventDataMap,
+  type IWalnutAdminSocketEvents,
+  WalnutAdminSocketEvents,
+  WalnutAdminSocketRooms,
+} from './socket'
+export {
+  type IWalnutAdminSseClientData,
+  type IWalnutAdminSseEvents,
+  type IWalnutAdminSseOAuthPayload,
+  WalnutAdminSseEvents,
+} from './sse'
 export {
   type IWalnutAdminAccessTokenPayload,
   type IWalnutAdminRefreshTokenPayload,
   type IWalnutAdminTokenUser,
 } from './token'
 export { WalnutAdminConstAppTokenKey } from './token-key'
+
+export { type ILockModeConst, LockModeConst } from './user-lock'

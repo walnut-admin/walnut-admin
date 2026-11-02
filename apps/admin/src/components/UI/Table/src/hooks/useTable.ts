@@ -23,7 +23,7 @@ export function useTable<T>(props: WTable.Hooks.UseTable.Props<T>): WTable.Hooks
     onApiDelete: async id => await wTableRef.value!.onApiDelete(id),
     onApiDeleteMany: async () => await wTableRef.value!.onApiDeleteMany(),
     onGetApiListParams: () => wTableRef.value!.onGetApiListParams(),
-    onSetDefaultQueryFormData: (newQueryFormData: NullableRecord<T>) => wTableRef.value!.onSetDefaultQueryFormData(newQueryFormData),
+    onSetDefaultQueryFormData: (newQueryFormData: Partial<NullableRecord<T>>) => wTableRef.value!.onSetDefaultQueryFormData(newQueryFormData),
   }
 
   return [register, methods]
