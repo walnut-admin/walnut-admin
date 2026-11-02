@@ -336,6 +336,7 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: 'PostgreSQL 迁移 Phase 3 计划', link: '/content/plans/postgres-migration-phase3-plan' },
         { text: '现代化路线图', link: '/content/plans/modernization-roadmap' },
         { text: 'libs 解耦残留与后续', link: '/content/plans/libs-decoupling-residuals' },
+        { text: 'Package 下沉提案', link: '/content/plans/package-sinking-proposal' },
       ],
     },
     {
