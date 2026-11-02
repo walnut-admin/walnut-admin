@@ -11,6 +11,7 @@ import { useAppStoreUserAuth } from '@/store/modules/user/user-auth'
 import { AppAxios } from '../..'
 import { SingletonPromiseCapJSInteraction, SingletonPromiseCapJSRefresh } from './capJSToken'
 import { decryptResponseValue } from './crypto'
+import { SingletonPromiseDeviceReset } from './device'
 import { SingletonPromiseRefreshToken } from './refreshToken'
 import { SingletonPromiseRsaDecryptFailed } from './rsaDecrypt'
 import { SingletonPromiseRsaPubKeyNotFound } from './rsaPubKeyNotFound'
@@ -90,6 +91,28 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
     return await AppAxios.request(res.config)
   }
 
+  // P0-1：设备 cookie 过期 / 被清 / 行没了 —— 40605 是**可自愈**的，不是永久拒绝。
+  // 学 40101 的写法：清本地 device 缓存 → 重走 /system/device/initial → 重放原请求；
+  // `_deviceResetRetried` 保证每个请求只自愈一次（自愈后仍 40605 就落到下面的
+  // notAllowed 分支，不会打转）。自愈本身失败（initial 也被拒 / 网络）同样落到下面。
+  if (code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED && !res.config._deviceResetRetried) {
+    res.config._deviceResetRetried = true
+
+    let healed = false
+
+    try {
+      await SingletonPromiseDeviceReset()
+      healed = true
+    }
+    catch (e) {
+      console.warn('[device] reset failed, falling back to not-allowed page', e)
+    }
+
+    if (healed) {
+      return await AppAxios.request(res.config)
+    }
+  }
+
   // not allowed
   const notAllowedErrorCodeMap: Record<number, string> = {
     [WalnutAdminConstAppResponseCode.UNAUTHORIZED_BOT_VERIFY_FAILED]: 'capjsTokenInvalid',
@@ -103,6 +126,11 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
     [WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED]: 'deviceBanned',
     [WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_RISK_TOO_HIGH]: 'riskTooHigh',
     [WalnutAdminConstAppResponseCode.TOO_MANY_REQUESTS]: 'tooManyRequests',
+    // 40608 Bot Detected：SecurityGuard 对可疑 UA/头在敏感路径上直接拒。
+    // 之前漏了这一条 ⇒ 落到函数末尾的兜底分支 ⇒ 启动期抛出的 Error 文案是
+    // 「Missing Error Code」，把真实原因（被判定为机器人）整条盖住。
+    // 用通用 notAllowed 作为 reason（详细文案走 sys_locale，新增 key 要动 seed，另批做）。
+    [WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_BOT_DETECTED]: 'notAllowed',
   }
   if (Object.keys(notAllowedErrorCodeMap).map(Number).includes(code)) {
     await AppRouter.replace({ name: mainoutConst.notAllowed.name, force: true, query: { type: notAllowedErrorCodeMap[code] } })
@@ -144,5 +172,8 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
   useAppMsgError(msg)
   // TODO when to 500
   // await AppRouter.replace({ name: layoutConst.serverError.name, force: true })
-  return Promise.reject(new Error('Missing Error Code'))
+  // 兜底错误必须**带码**：启动期（naive-ui provider 未挂载）toast 会降级成 console，
+  // 此时用户看到的只有这个 Error 的 message；旧实现写死「Missing Error Code」，
+  // 等于把所有未登记的码变成同一个无法定位的字符串。
+  return Promise.reject(new Error(`[${code}] ${msg || 'Unknown error'}`))
 }
