@@ -1,3 +1,4 @@
+import type { SchemaObject } from '@nestjs/swagger'
 import {
   Body,
   Controller,
@@ -13,13 +14,14 @@ import {
   Query,
   ValidationPipe,
 } from '@nestjs/common'
-import { ApiTags } from '@nestjs/swagger'
+import { ApiBody, ApiOkResponse, ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { WalnutCrudDecorators } from '@walnut-server/crud'
 
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamArray } from '@walnut-server/decorators/params'
+import { WalnutAdminSwaggerResponseSuccessSchemeData } from '@walnut-server/decorators/swagger'
 import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardIpFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
@@ -37,7 +39,7 @@ import {
   SysLocaleService,
 } from '@walnut-server/system'
 import { getAllConstraints } from '@walnut-server/utils/response'
-import { LocaleType, SystemRoutes } from '@walnut/contract'
+import { Locale, LocaleType, SystemRoutes } from '@walnut/contract'
 import { plainToInstance } from 'class-transformer'
 import { ValidationError } from 'class-validator'
 
@@ -108,6 +110,41 @@ function TransformedLocaleBody() {
 }
 
 /**
+ * F-19（DOC-11）：create / update 的 wire body 是「翻译映射」，不是 DTO 数组 ——
+ *
+ *   { key: string, oldKey?: string, [langId(uuid)]: 翻译值 }
+ *
+ * 自定义参数装饰器 TransformedLocaleBody() 反射不出类型，所以此前两个写端点在 openapi 里
+ * 连 requestBody 都没有。这里按映射形状显式声明：固定键 key / oldKey 走 properties，其余
+ * 「语言 id -> 译文」走 additionalProperties（JSON Schema 里 additionalProperties 只作用于
+ * properties 未声明的键，正好是这批 uuid 键）。服务端会把它转换成 SysLocaleDTOCreateRequest[]
+ * 再逐条严格校验 —— 见本文件 TransformedLocaleBody 的三段管道注释（DESIGN-ISSUES P2-10）。
+ */
+const LOCALE_MAPPING_BODY_SCHEMA: SchemaObject = {
+  type: 'object',
+  required: ['key'],
+  properties: {
+    key: { type: 'string', description: 'locale key (message key, e.g. menu.title)' },
+    oldKey: { type: 'string', description: 'previous key; needed only when renaming (update)' },
+  },
+  additionalProperties: {
+    type: 'string',
+    description: 'translation value, keyed by the language id (uuid) the translation belongs to',
+  },
+  example: {
+    'key': 'menu.title',
+    'oldKey': 'menu.oldTitle',
+    '3f1c9b7e-6a24-4c8e-9d1b-2a7f5e0c4d13': '标题',
+  },
+}
+
+/** F-20（DOC-05）：GET /system/locale/message/{locale} 的 data 是「消息 key -> 译文」映射 */
+const LOCALE_MESSAGE_DATA_SCHEMA: SchemaObject = {
+  type: 'object',
+  additionalProperties: { type: 'string', nullable: true },
+}
+
+/**
  * B2 迁移模板（controller 层）：事务句柄 `ctx.dbSession` → `ctx.em`（已迁侧取 em）；
  * `.toObject()` 移除（PG 实体即 POJO），统一 plainToInstance(DTO, entity)。
  */
@@ -124,6 +161,29 @@ export class SysLocaleController {
   @WalnutAdminGuardCapFree()
   @WalnutAdminGuardDeviceFree()
   @WalnutAdminGuardIpFree()
+  // F-20（DOC-05 / DOC-14）：locale 是 union 字面量（emitDecoratorMetadata 反射成 Object），
+  // swagger 只自动文档化反射型为 String/Number/Boolean 的参数 —— 路径参数因此在 openapi 里
+  // 整个缺失；cache 带 DefaultValuePipe(1)，Nest 仍一律标 required: true。两处都按实现显式声明。
+  @ApiParam({
+    name: 'locale',
+    required: true,
+    description: 'language code; a value outside the enum falls back to en_US in the service',
+    enum: Locale,
+  })
+  @ApiQuery({
+    name: 'cache',
+    required: false,
+    type: Number,
+    description: '1 = use the cached message map when present, 0 = rebuild it from the database (default 1)',
+  })
+  @ApiOkResponse({
+    description: 'locale message map of the language: message key -> translated value',
+    schema: WalnutAdminSwaggerResponseSuccessSchemeData(LOCALE_MESSAGE_DATA_SCHEMA),
+  })
+  // 4A：13 个缺 summary 的 op 之一。
+  @ApiOperation({
+    summary: 'Get the message map of a language',
+  })
   async getLocaleMessage(
     // NOTICE do not use WalnutAdminPipeParamEnum
     @Param('locale') locale: LocaleType,
@@ -135,6 +195,10 @@ export class SysLocaleController {
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
   @WalnutTx()
+  @ApiBody({
+    description: 'locale translation mapping: fixed key (+ optional oldKey) plus one property per language id (uuid) holding the translated value. The server converts it to SysLocaleDTOCreateRequest[] and validates every entry with that DTO.',
+    schema: LOCALE_MAPPING_BODY_SCHEMA,
+  })
   async create(
     @WalnutTxSession() ctx: WalnutTxContext,
     @TransformedLocaleBody() payload: SysLocaleDTOCreateRequest[],
@@ -152,6 +216,10 @@ export class SysLocaleController {
   @WalnutAdminDecoratorHasPermission(Permissions.UPDATE)
   @WalnutAdminDecoratorUpdate()
   @WalnutTx()
+  @ApiBody({
+    description: 'locale translation mapping (same wire shape as create; key = the current key, oldKey = the key before renaming). The server converts it to SysLocaleDTOCreateRequest[] and validates every entry with that DTO.',
+    schema: LOCALE_MAPPING_BODY_SCHEMA,
+  })
   async update(
     @WalnutTxSession() ctx: WalnutTxContext,
     @TransformedLocaleBody() payload: SysLocaleDTOUpdateRequest[],

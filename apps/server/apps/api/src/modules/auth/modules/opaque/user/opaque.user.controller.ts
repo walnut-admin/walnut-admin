@@ -1,5 +1,5 @@
 import { Body, Controller, HttpCode, HttpStatus, Logger, Post, Req, Request, UseGuards } from '@nestjs/common'
-import { ApiTags } from '@nestjs/swagger'
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { AuthCookieService, AuthOpaqueCoreService, AuthSignoutService, AuthSuccessDTO, WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstAppSettingAuthOpaqueKeys } from '@walnut-server/const/app/setting'
@@ -7,7 +7,7 @@ import { IWalnutAdminConstAppSettingAuthOpaqueKeys } from '@walnut-server/const/
 import { WalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
-import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { ApiWalnutOkResponse, WalnutAdminSwaggerResponseSuccessSchemeData } from '@walnut-server/decorators/swagger'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
 import { WalnutAdminDecoratorAuthLog, WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorFunctionalGuard, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import { SysLogAuthSharedService } from '@walnut-server/system'
@@ -69,9 +69,15 @@ export class AuthOpaqueUserController {
   @Post('login/client-error')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminGuardJwtFree()
-  @ApiWalnutOkResponse({
-    description: 'Report client-side OPAQUE error',
-    primitive: 'boolean',
+  // DOC-20（F-18 收尾）：handler 末行恒抛 WalnutAdminExceptionInvalidCredential —— 成功路径
+  // 根本不存在，原先声明的 primitive boolean 与真实返回（错误壳）不符。按错误语义声明。
+  @ApiOkResponse({
+    description: 'Always an error envelope: this endpoint records the client-side OPAQUE failure and always throws 40103 (HTTP 200 with body.code = 40103 and body.data = null, see WalnutAdminExceptionInvalidCredential). The response shell is declared so consumers do not decode a boolean that never arrives.',
+    schema: WalnutAdminSwaggerResponseSuccessSchemeData({ type: 'null' }),
+  })
+  // 4A：13 个缺 summary 的 op 之一。
+  @ApiOperation({
+    summary: 'Report a client-side OPAQUE failure (always answers 40103)',
   })
   async reportClientError(
     @WalnutAdminDecoratorDeviceId() deviceId: string,

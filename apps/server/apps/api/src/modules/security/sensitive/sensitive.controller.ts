@@ -1,10 +1,11 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Request } from '@nestjs/common'
-import { ApiTags } from '@nestjs/swagger'
+import { ApiQuery, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { getWalnutAdminCookie } from '@walnut-server/cookie'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 
+import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 import { WalnutAdminDecoratorUser } from '@walnut-server/guards'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { getOperationStrategy, IWalnutAdminConstSecurityLevel, IWalnutAdminConstSecuritySensitiveType, SecuritySensitiveCheckResponseDTO, SecuritySensitiveService, SecuritySensitiveVerifyRequestDTO, WalnutAdminConstSecurityLevel, WalnutAdminConstSecuritySensitiveType } from '@walnut-server/security'
@@ -22,6 +23,24 @@ export class SecuritySensitiveController {
    * Called before sensitive operation to determine if verification is needed
    */
   @Get('check')
+  // F-07：level/type 是 union 字面量，经 emitDecoratorMetadata 反射成 Object —— 不是 String/Number/
+  // Boolean 的 @Query 参数不会被 swagger 自动收编（此前该 op 的 parameters 为空）。显式声明枚举。
+  @ApiQuery({
+    name: 'level',
+    required: true,
+    enum: WalnutAdminConstSecurityLevel,
+    description: 'security level of the operation to be performed',
+  })
+  @ApiQuery({
+    name: 'type',
+    required: false,
+    enum: WalnutAdminConstSecuritySensitiveType,
+    description: 'sensitive operation type, narrows the strategy (overrides per level)',
+  })
+  @ApiWalnutOkResponse({
+    description: 'Check verification status for a security level',
+    DTO: SecuritySensitiveCheckResponseDTO,
+  })
   async checkVerificationStatus(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @Request() req: IWalnutAdminExpressRequest,
@@ -61,13 +80,25 @@ export class SecuritySensitiveController {
     @Body() dto: SecuritySensitiveVerifyRequestDTO,
   ) {
     const deviceId = getWalnutAdminCookie(req, WalnutAdminConstCookieKeys.DEVICE_ID)
-    const strategy = getOperationStrategy(dto.level, dto.operationType)
+
+    // F-28：显式校验替代 `dto.operationType!`。DTO 该字段可空（default: null，缺省 =
+    // 按 level 整档策略），枚举校验器在管道层已把「缺省 / null / 枚举外值」拦成受控
+    // 40099（WalnutAdminExceptionRequestDataError）；这里再收敛一次是为了类型收窄
+    // （权限缓存里的 operationType 不接受 null）—— 万一上游改动让 null 漏进来，也停在
+    // 同一个受控 40099，而不是把 null 写进 Redis。
+    const operationType = dto.operationType ?? null
+
+    if (operationType === null) {
+      throw new WalnutAdminExceptionRequestDataError('operationType is required for sensitive verification')
+    }
+
+    const strategy = getOperationStrategy(dto.level, operationType)
 
     await this.sensitiveService.verifyAndGrantPermission(
       user.userId,
       deviceId,
       dto.level,
-      dto.operationType!,
+      operationType,
       dto.method,
       dto.credential,
       strategy.supportedMethods,

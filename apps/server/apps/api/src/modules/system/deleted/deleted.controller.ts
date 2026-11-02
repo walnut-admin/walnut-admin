@@ -11,6 +11,7 @@ import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorato
 import { WalnutCrudDecorators } from '@walnut-server/crud'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { WalnutAdminDecoratorParamUuid, WalnutAdminDecoratorParamUuids } from '@walnut-server/decorators/params'
+import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 
 import { SysDeletedService } from '@walnut-server/system'
@@ -72,6 +73,11 @@ export class SysDeletedController {
   // element 行本就存在，按角色在管理台勾选即可授权。
   @WalnutAdminDecoratorHasPermission(Permissions.RECOVER_MINE)
   @WalnutTx()
+  // F-18（DOC-07）：recover 两个端点的 200 此前无 schema（handler 返回 boolean）。
+  @ApiWalnutOkResponse({
+    description: 'recover a deleted row deleted by the current user (owner check in service)',
+    primitive: 'boolean',
+  })
   async recoverMine(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutTxSession() ctx: WalnutTxContext,
@@ -85,6 +91,10 @@ export class SysDeletedController {
   @WalnutAdminDecoratorHasPermission(Permissions.RECOVER)
   @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER, Role.ADMIN], WalnutAdminConstDecoratorRoleMode.OR)
   @WalnutTx()
+  @ApiWalnutOkResponse({
+    description: 'recover a deleted row (management side; root / developer / admin only)',
+    primitive: 'boolean',
+  })
   @WalnutAdminDecoratorOperateLog({
     title: WalnutAdminConstDecoratorLogOperateTitle.DELETED,
     action: WalnutAdminConstDecoratorLogOperateAction.UPDATE,

@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus } from '@nestjs/common'
-import { ApiTags } from '@nestjs/swagger'
+import { ApiQuery, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorLogOperateTitle } from '@walnut-server/const/decorator/logOperate'
 import { WalnutCrudDecorators } from '@walnut-server/crud'
 
@@ -103,6 +103,16 @@ export class SysMenuController {
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)
   @WalnutAdminDecoratorDelete()
   @WalnutTx()
+  // F-50（DOC-14）：_cascade 由 WalnutAdminDecoratorQueryDeleteCascade 生成，
+  // 实现链是 DefaultValuePipe(0) + ParseIntPipe + 枚举管道 ⇒ **可选**（默认 0），
+  // 而 Nest 对 @Query('_cascade') 的反射声明恒为 required: true。这里显式改回 false。
+  @ApiQuery({
+    name: '_cascade',
+    required: false,
+    type: Number,
+    enum: [0, 1],
+    description: '0 (default) = soft-delete the menu only; 1 = also cascade soft-delete the locale rows sharing the same title',
+  })
   async delete(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutTxSession() ctx: WalnutTxContext,

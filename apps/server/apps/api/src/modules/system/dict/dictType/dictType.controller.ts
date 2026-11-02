@@ -47,11 +47,13 @@ export class SysDictTypeController {
   // need to put this in front
   @Get('s')
   @HttpCode(HttpStatus.OK)
+  // F-49（DOC-13）：入参是**数组**（WalnutAdminDecoratorQueryArray 按 ',' 切分），
+  // 原先声明 type: String 把「多个 dict type」写成了单值，客户端会照单传一个串。
   @ApiQuery({
     name: 'types',
-    type: String,
+    type: [String],
     required: true,
-    description: `dict type, no need to validate`,
+    description: 'dict types, comma separated (e.g. types=sys_user_status,sys_user_gender); no validation on the values',
   })
   @ApiWalnutOkResponse({
     description: 'get dict data by dict type, support multiple fetch',
