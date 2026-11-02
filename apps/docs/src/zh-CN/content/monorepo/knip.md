@@ -37,8 +37,8 @@ pnpm knip:fix
 
 | 命令 | 预期 | 说明 |
 |------|------|------|
-| `pnpm knip:packages` | **exit 0，零发现** | 共享包（contract / types / utils-core / client / http / ui / eslint-config）的 import 链完全显式，knip 可精确追踪（修复为 `--workspace ./packages/*/*` 后的真实结果） |
-| `pnpm knip`（全仓） | exit 1，少量发现 | 大部分是框架隐式组装的已知误报，少量可能是真实死代码（exit 1 属预期门禁，见下文 CI 建议） |
+| `pnpm knip:packages` | **exit 1，有发现**（2026-11-02 起） | 补上 `project` + `includeEntryExports` 之后，共享包**第一次真的进了分析面**，于是它的公共 API 面开始报出来（判据与数据见下一节）。它此前那句「零发现」是**假绿**：不是干净，是没被分析 |
+| `pnpm knip`（全仓） | exit 1，有发现 | 大部分是框架隐式组装的已知误报，少量可能是真实死代码（exit 1 属预期门禁，见下文 CI 建议） |
 
 ---
 
@@ -55,6 +55,49 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 ```
 
 共享包的 import 链完全显式（`import { xxx } from '@walnut/contract'`），knip 可 100% 精确追踪。
+
+### 共享包进入分析面：`project` + `includeEntryExports`（2026-11-02，批次 2 · R2）
+
+只写 `entry` 时，knip **只分析 entry 领进来的那批文件** —— 非 entry 的深层文件、以及 barrel 里
+「导出了但没人消费」的符号，都不在它的视野里。给每个共享包补两行才能补上：
+
+```jsonc
+"packages/platform-any/contract": {
+  entry: ["src/index.ts"],
+  // ① 谁算「程序的一部分」：不写就只算 entry 领进来的文件
+  project: ["src/**/*.ts"],
+  // ② 唯一能让非 entry 文件的死导出现身的开关（默认 false）
+  includeEntryExports: true,
+},
+```
+
+**实测（2026-11-02 口径，改前 / 改后各跑一次 `pnpm knip`）**：
+
+| | Unused exports | Unused exported types | 说明 |
+|---|---|---|---|
+| 改前（五个包都只有 `entry`） | 50 | 24 | 50 条**全部**落在 `apps/**`，`packages/**` 一条都没有 |
+| 只加 `project` | 50 | 24 | 0 变化 —— `project` 不是主因 |
+| 只删 `entry`（让 knip 从 `package.json` 的 `exports` 推） | 50 | 24 | 0 变化 —— 摘了也会从 `exports` 推回来，**「把 barrel 从 entry 摘出去」不是可执行的动作** |
+| `project` + `includeEntryExports` | **139** | **49** | +89 / +25，新增**全部**落在 `packages/**` |
+
+新增 89 条按文件的分布（`pnpm knip` 全表逐条解析）：`packages/platform-web/client/src/index.ts`
+53 条、`packages/platform-any/utils-core/src/index.ts` 22 条、`packages/platform-web/http/src/index.ts`
+7 条（**这三处都是 barrel 本身**），其余 7 条散在 `client` 的深层文件（`browser/cookie.ts`、
+`browser/shared.ts`、`browser/crypto/shared.ts`、`file/download.ts`、`hooks/vueuse/useDraggableElement.ts`、
+`store/createWalnutStore.ts`）。也就是说**这一轮的主要产出就是「barrel 里被 re-export、但全仓没人用」
+的符号第一次现身**。
+
+**但 barrel 的可见性并不稳定 —— 这是已知盲区，别当结论用**：
+
+| 探针（各追加一行，跑完 `git checkout --` 还原） | 结果 |
+|---|---|
+| `export const __PROBE = 1` 追加到 `packages/platform-web/http/src/index.ts` | **报出来了**（`…/src/index.ts:25:14`） |
+| 同一行追加到 `packages/platform-any/contract/src/index.ts` | **没报**（同一份配置、同一次运行） |
+| `export const __PROBE = 1` 追加到非 entry 的深层文件（`contract/src/role.ts`） | **报出来了** |
+
+结论：**barrel 级死导出目前「因包而异」，不是稳定判据**；contract 那个例外原因未查清（它是唯一
+用 `packages/platform-any/contract/scripts/build-barrel.ts` 生成 barrel 的包，怀疑与 entry 推导有关，未验证）。要真正守这一面，
+只能另立一个专用脚本（读 `src/index.ts` 的具名导出 → 全仓 grep 消费方），调 knip 配置解决不了。
 
 ### 前端应用（apps/admin）
 
@@ -130,6 +173,13 @@ knip 是**静态 import 追踪**工具。以下框架机制对 knip 不可见，
 
 ## 已知技术局限
 
+### barrel 自身的死导出（**部分盲区**，未解决）
+
+`includeEntryExports` 让一部分 barrel 的死导出现身（`platform-web/client` / `utils-core` /
+`platform-web/http` 三处 barrel 一次报出 82 条），但**不是所有包都报** —— 同样的探针在
+`packages/platform-any/contract/src/index.ts` 上不出现。判据不稳定 ⇒ 按部分盲区对待。
+探针数据见上文「共享包进入分析面」一节；要稳定守住这一面得另写脚本，不能靠 knip 配置。
+
 ### `~build/*` 路径别名（已解决）
 
 admin 中曾有文件 import `~build/package` 和 `~build/time`，旧版 knip 无法解析——`vite-tsconfig-paths` 在构建时动态解析这些别名，knip 无此上下文，输出 `Unresolved imports`。
@@ -175,8 +225,12 @@ Configuration hints (69)← knip 建议清理的冗余配置项（可忽略）
 ```jsonc
 "packages/platform-any/新包名": {
   entry: ["src/index.ts"],
+  project: ["src/**/*.ts"],      // 不写 = 只分析 entry 领进来的文件
+  includeEntryExports: true,     // 不写 = 非 entry 文件的死导出永远不报
 },
 ```
+
+两行都别省（理由与实测见上文「共享包进入分析面」一节）。
 
 ### 添加新 app
 
@@ -184,7 +238,14 @@ Configuration hints (69)← knip 建议清理的冗余配置项（可忽略）
 
 ### CI 集成建议
 
-可以将 `pnpm knip:packages` 加入 CI 门禁（packages 零误报，exit 0 即健康；若直接调 knip，务必用 `--workspace ./packages/*/*` 的两层通配写法——`packages/*` 匹配不到 `platform-any/*` 这类两层目录，会静默空操作）。全仓 `pnpm knip` 由于存在已知误报，建议作为信息性检查而非硬门禁（当前实测 exit 1，属预期）。
+**暂时不要**把 `pnpm knip:packages` 直接当硬门禁。2026-11-02 之前它以 exit 0 通过，原因是
+`packages/**` 整块不在分析面里（假绿）；补上 `project` + `includeEntryExports` 之后它开始
+报共享包的公共 API 面，而本仓对那批符号的既定判断仍是「模板留给使用者取用的能力，不等于死代码」
+（见 `knip.config.ts` 顶部注释）。要真接进门禁，先按「有意的公共面 / 真死代码」分类，只让后者亮红。
+
+若直接调 knip，务必用 `--workspace ./packages/*/*` 的两层通配写法——`packages/*` 匹配不到
+`platform-any/*` 这类两层目录，会静默空操作。全仓 `pnpm knip` 由于存在已知误报，建议作为
+信息性检查而非硬门禁（当前实测 exit 1，属预期）。
 
 ```yaml
 # .github/workflows/ci.yml 示例片段

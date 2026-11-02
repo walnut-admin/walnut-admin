@@ -64,6 +64,12 @@ jobs:
       - name: Architecture boundaries (turbo boundaries)
         run: pnpm boundaries
 
+      # 环是**没有任何其它闸看得见**的失效面：boundaries 只看包与 tag 的方向、
+      # ESLint 分层只看单条边的方向（A→B 与 B→A 各自合法，两条同时在就是环）、tsc 不报环。
+      # 成本实测 10.3s / 1050 个文件（2026-11-02），与同 job 的其它段并行不成瓶颈。
+      - name: Circular dependency check (madge)
+        run: pnpm madge:check
+
       # ── turbo 本地缓存（跨 run 持久化）──────────────────────────────────────────
       # 缓存路径是**整个 `.turbo/cache`** ⇒ 缓存的是「**这条 job 里 turbo 跑过的一切**」，
       # 而不是「哪几类任务」；范围由这条 job 跑什么决定。

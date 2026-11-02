@@ -63,6 +63,7 @@ const RELEASE_BATTERY: BatteryStep[] = [
   // 失败语义是「前置条件未满足」（exit 2）而不是「查出违规」，这正是本仓三态退出码的用法。
   { id: 'hooks', label: 'git 钩子托管校验（pnpm hooks:check）', argv: ['hooks:check'] },
   { id: 'boundaries', label: '架构边界（turbo boundaries）', argv: ['boundaries'] },
+  { id: 'circular', label: '循环依赖（madge，apps/server 的 apps + libs）', argv: ['madge:check'] },
   { id: 'lint', label: 'lint（所有包，不排任何包）', argv: ['exec', 'turbo', 'run', 'lint'] },
   // `types-root` 必须是**独立一行**、且经根脚本跑（`pnpm types:check:root`）—— 它只是根
   // `package.json` 的脚本，**没有**对应的 turbo 任务，写进 turbo 的 argv 会直接

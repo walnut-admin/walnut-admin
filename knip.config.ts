@@ -15,6 +15,29 @@ import type { KnipConfig } from 'knip'
  *
  * 如果将来要接进门禁：**先分类再开闸** —— 用 `entry` / `includeEntryExports` 之类把「有意的
  * 公共面」显式标出来，只让真正的死代码亮红。不要直接删。
+ *
+ * ## `packages/**` 直到 2026-11-02 才真正进入分析面（批次 2 · R2）
+ *
+ * 在这之前 `packages/**` **一条发现都没有** —— 不是因为它干净，而是因为它**整块不在分析面里**：
+ * workspace 只写了 `entry`，knip 于是只分析「entry 领进来的文件」，非 entry 的深层文件死了
+ * 也没人报。现在五个共享包各补了两行（`project` + `includeEntryExports`），两行的分工见下面
+ * workspace 配置里的注释。改前 / 改后的实测数据与每个探针的结果记在
+ * apps/docs/src/zh-CN/content/monorepo/knip.md 的「共享包进入分析面」一节 —— 这里不抄数字
+ * （数会变，要看就跑 `pnpm knip`）。
+ *
+ * ## 已知盲区：barrel 自身的死导出**没有稳定可见性**
+ *
+ * 2026-11-02 用同一份配置做过 A/B 探针（往包的 `src/index.ts` 各追加一行
+ * `export const __PROBE = 1`，跑 `pnpm knip`，然后 `git checkout --` 还原）：
+ *   · `packages/platform-web/http/src/index.ts` —— **报出来了**；
+ *   · `packages/platform-any/contract/src/index.ts` —— **没报**（同一个开关、同一次运行）。
+ *
+ * 所以「barrel 里的死导出能不能看见」目前**因包而异**，原因未查清（contract 是唯一带
+ * `packages/platform-any/contract/scripts/build-barrel.ts` 生成 barrel 的包，怀疑与 entry
+ * 推导有关 —— 未验证）。
+ * 结论只有一条可依赖的：**别把「barrel 已覆盖」当结论**。要守这一面只能另立一个
+ * 「barrel 符号 0 引用」的专用脚本（读 `src/index.ts` 的具名导出 → 全仓 grep 消费方），
+ * 调 knip 配置解决不了。在此之前，barrel 级死导出按**部分盲区**对待。
  */
 const config: KnipConfig = {
   // ============================================================
@@ -100,20 +123,44 @@ const config: KnipConfig = {
     },
 
     // --- 共享包（严格检查 — 这里 knip 价值最大）---
+    //
+    // 每个包都比原来多两行，缺一不可（批次 2 的 R1 复核实测，逐条数据见
+    // apps/docs/src/zh-CN/content/monorepo/knip.md）：
+    //   · `project` —— 不写时 knip 只分析「entry 领进来的文件」，非 entry 的深层文件
+    //     根本不在程序里，死了也不会有人报；
+    //   · `includeEntryExports: true` —— **唯一**能让非 entry 文件的死导出现身的开关
+    //     （实测：只加 `project` 或只删 `entry` 都是 0 变化，两行齐了才从 50 变 52）。
+    //
+    // 注意 `entry` **不要删**：knip 的 Configuration hints 里那 8 条
+    // 「Remove redundant entry pattern」说的是「入口本来能从 package.json exports 推出来」，
+    // 而实测删掉之后 knip 从 `exports` 推回来的还是同一个文件 —— 即「把 barrel 从 entry 摘出去」
+    // 在物理上无法执行，摘了等于没摘（这才是 D18② 原先处方不可用的原因）。
+    // 所以**barrel 自身的死导出依旧是盲区**：`src/index.ts` 是包入口，它的导出天然算
+    // 「公共 API」。要查它只能另立一个「barrel 符号 0 引用」的专用脚本，knip 配置解决不了。
     'packages/platform-any/contract': {
       entry: ['src/index.ts'],
+      project: ['src/**/*.ts'],
+      includeEntryExports: true,
     },
     'packages/platform-any/utils-core': {
       entry: ['src/index.ts'],
+      project: ['src/**/*.ts'],
+      includeEntryExports: true,
     },
     'packages/platform-any/types': {
       entry: ['src/universal.d.ts', 'src/storage.d.ts', 'src/deep-ref.d.ts', 'src/object-key.d.ts'],
+      project: ['src/**/*.ts'],
+      includeEntryExports: true,
     },
     'packages/platform-web/client': {
       entry: ['src/index.ts'],
+      project: ['src/**/*.ts'],
+      includeEntryExports: true,
     },
     'packages/platform-web/http': {
       entry: ['src/index.ts'],
+      project: ['src/**/*.ts'],
+      includeEntryExports: true,
     },
     // packages/tooling/* 刻意**不写 entry**：knip 能从 package.json 的 `exports`（预设/通用能力）
     // 与 `bin`（命令入口）自己推出入口文件。显式列一遍既是重复，也会随包结构变化而腐化 ——

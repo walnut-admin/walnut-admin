@@ -73,6 +73,14 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: '包之间的依赖方向由 tags 声明。违规一旦合并进去，纠正成本远高于拦在推送前。',
   },
   {
+    id: 'circular',
+    label: '循环依赖（madge，apps/server 的 apps + libs）',
+    // 经根 package.json 的 `madge:check` 转发到 apps/server 的 `madge` 脚本
+    // （= madge --circular --ts-config tsconfig.json apps/api/src libs --extensions js,ts,tsx）。
+    argv: ['madge:check'],
+    why: '**环是唯一没有任何其它闸看得见的失效面**：boundaries 只看包与 tag 的方向（同一 app 内的 lib ↔ lib 不在它视野里）、ESLint 的分层规则只看**单条边的方向**（A→B 合法、B→A 也合法，两条同时存在就成环）、tsc 对环完全不报错。2026-11-02 实测成本：**10.3s / 1050 个文件**，与本表里 knip 量级相当，与最慢的 lint / types 并行跑不会顶高总时长。此前这条命令**只存在于 apps/server 的 scripts 里、没有任何闸在跑它** —— 留着一条没人跑的命令比没有更糟：它是「0 环」这个结论的唯一来源。',
+  },
+  {
     id: 'lint',
     label: 'lint 各包（turbo run lint，不排任何包）',
     argv: ['exec', 'turbo', 'run', 'lint'],

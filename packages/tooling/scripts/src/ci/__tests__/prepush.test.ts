@@ -6,7 +6,9 @@
  * 而是「表本身站得住」：每个 `argv` 都得能落到根 `package.json` 里真实存在的脚本上。
  */
 
-import { readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { REPO_ROOT } from '../../lib/repo-root.ts'
@@ -59,6 +61,59 @@ describe('pREPUSH_GATES —— 表本身', () => {
     }
   })
 
+  it('circular 段在表里，且链路真的带 --circular（摘掉旗标 = 门禁变成只数文件）', () => {
+    const gate = PREPUSH_GATES.find(g => g.id === 'circular')
+    expect(gate, 'circular 段不见了 —— 环会重新变回「没有任何闸看得见」的失效面').toBeTruthy()
+    expect(gate!.argv[0], 'circular 段必须经根脚本转发（这样 CI 与发版电池才引用得到同一个脚本名）').toBe('madge:check')
+
+    // 根脚本 → apps/server 的同名脚本 → madge 的旗标，链条上任一环写错都让这一段变成空转：
+    // 少了 --circular 它只输出文件清单（永远 0 环）；少了 --extensions 它默认只认 .js
+    // （本仓 1050 个文件里 .ts 占绝大多数 ⇒ 静默 0 环）。
+    const rootCmd = rootManifest.scripts?.['madge:check'] ?? ''
+    expect(rootCmd, '根脚本 madge:check 没指向 apps/server').toContain('apps/server')
+
+    const serverManifest = JSON.parse(
+      readFileSync(path.join(REPO_ROOT, 'apps/server/package.json'), 'utf8'),
+    ) as { scripts?: Record<string, string> }
+    const madgeCmd = serverManifest.scripts?.madge ?? ''
+    expect(madgeCmd, 'apps/server 的 madge 脚本没有 --circular').toContain('--circular')
+    expect(madgeCmd, 'apps/server 的 madge 脚本没有 --extensions（默认只认 .js ⇒ 静默 0 环）').toMatch(/--extensions[= ]/)
+  })
+
+  it('负对照：真造一个环 madge 必须非零退出；正对照：无环必须零退出', () => {
+    // 这条是「环 = 失败」的**实测版**，不是对配置的二次解读：拿 madge 自己跑一个两文件的环。
+    // 正对照同时在，防止「永远失败」也能让上一条绿。
+    const madgeCli = path.join(REPO_ROOT, 'apps/server/node_modules/madge/bin/cli.js')
+    expect(existsSync(madgeCli), `找不到 madge 的入口：${madgeCli}（先 pnpm install）`).toBe(true)
+
+    const run = (files: Record<string, string>): { status: number | null, out: string } => {
+      const dir = mkdtempSync(path.join(os.tmpdir(), 'walnut-madge-'))
+      try {
+        for (const [name, body] of Object.entries(files))
+          writeFileSync(path.join(dir, name), body)
+        const r = spawnSync(process.execPath, [madgeCli, '--circular', '--extensions', 'ts', dir], { encoding: 'utf8' })
+        return { status: r.status, out: `${r.stdout ?? ''}${r.stderr ?? ''}` }
+      }
+      finally {
+        // 自建的临时目录（os.tmpdir 下，不是仓库内容）
+        rmSync(dir, { recursive: true, force: true })
+      }
+    }
+
+    const cyclic = run({
+      'a.ts': 'import { b } from \'./b\'\nexport const a = (): unknown => b\n',
+      'b.ts': 'import { a } from \'./a\'\nexport const b = (): unknown => a\n',
+    })
+    expect(cyclic.status, `环没被 madge 判红（exit ${cyclic.status}）：\n${cyclic.out}`).not.toBe(0)
+    expect(cyclic.out).toMatch(/circular/i)
+
+    const acyclic = run({
+      'a.ts': 'import { b } from \'./b\'\nexport const a = (): unknown => b\n',
+      'b.ts': 'export const b = (): unknown => null\n',
+    })
+    expect(acyclic.status, `无环却判红了（exit ${acyclic.status}）：\n${acyclic.out}`).toBe(0)
+  })
+
   it('每一段都写清了「凭什么」（理由不许敷衍）', () => {
     for (const gate of PREPUSH_GATES) {
       expect(gate.why.length, `${gate.id} 的理由太短`).toBeGreaterThan(25)
@@ -70,6 +125,7 @@ describe('pREPUSH_GATES —— 表本身', () => {
     // 表里的顺序是「读起来该怎么理解」，不是依赖关系（并行跑）。改动它应该是**有意的**。
     expect(PREPUSH_GATES.map(g => g.id)).toEqual([
       'boundaries',
+      'circular',
       'lint',
       'lint-root',
       'types',
