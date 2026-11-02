@@ -6,6 +6,7 @@ import readline from 'node:readline'
 import zlib from 'node:zlib'
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
+import { normalizeListPage } from '@walnut-server/utils/list-page'
 import { clamp, compact, isNil, orderBy } from 'lodash'
 import { glob } from 'tinyglobby'
 import { AppLoggerDTOListRequest, AppLoggerLogType } from './dto/logger.dto'
@@ -50,7 +51,10 @@ export class AppLoggerService {
   constructor() { }
 
   async list(params: AppLoggerDTOListRequest) {
-    const { page, pageSize } = params.page
+    // 批次 1 · P0：分页入参走共享正规化（`@walnut-server/utils/list-page`）——
+    // 本链路不走 SQL，page/pageSize 直接进内存 slice，所以必须在这里也收一遍：
+    // pageSize=0 会静默返回空页、负数会让 slice 起点算反。
+    const { page, pageSize } = normalizeListPage(params.page)
     const { fileName, logType } = params.query
 
     const cwd = process.cwd()

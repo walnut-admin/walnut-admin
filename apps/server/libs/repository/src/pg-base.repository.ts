@@ -13,7 +13,7 @@ import {
 import { IWalnutAdminRequestList } from '@walnut-server/list'
 import { cloneDeep } from 'lodash'
 import { DataSource } from 'typeorm'
-import { applyPgListQuery, buildPgListQueryOptions, executePgListQuery } from './pg-list.builder'
+import { applyPgListQuery, buildPgListQueryOptionsFromQb, executePgListQuery } from './pg-list.builder'
 import { WALNUT_ADMIN_DATA_SCOPE_POLICY } from './ports/data-scope.port'
 import { WALNUT_ADMIN_SOFT_DELETE_STRATEGY } from './ports/soft-delete.port'
 
@@ -545,7 +545,7 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
     return this.withScopedManager(em, async (manager) => {
       const qb = manager.createQueryBuilder(this.entityTarget, 'entity')
 
-      applyPgListQuery(qb, 'entity', buildPgListQueryOptions<T>(params))
+      applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, params))
 
       customize?.(qb)
 

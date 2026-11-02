@@ -9,6 +9,7 @@ import {
   IsNegative,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsPositive,
   Max,
   Min,
@@ -32,13 +33,17 @@ export function WalnutAdminDecoratorValidatorNumber(
   isArray?: boolean,
   arrayOptions?: IWalnutAdminDecoratorArrayOptions,
 ): PropertyDecorator {
-  const { positive, negative, max, min, int, onlyIn, precision }
+  const { positive, negative, max, min, int, onlyIn, precision, optional }
     = Object.assign(defaultOptions(), options)
 
-  let decorators = [
-    IsNumber({}, { each: isArray }),
-    IsNotEmpty({ each: isArray }),
-  ]
+  // optional：缺省即放行（IsOptional 会短路本字段其余校验）；
+  // 不进 swagger —— 见 number.d.ts 的注释（priority 的取舍）
+  let decorators = optional === true
+    ? [IsOptional()]
+    : [
+        IsNumber({}, { each: isArray }),
+        IsNotEmpty({ each: isArray }),
+      ]
 
   if (isArray) {
     decorators = WalnutAdminDecoratorValidatorArray(decorators, arrayOptions)

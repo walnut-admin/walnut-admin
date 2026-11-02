@@ -2,6 +2,7 @@ import type { IWalnutAdminCacheListRequest, IWalnutAdminCacheListRow } from './c
 import { Injectable, Logger } from '@nestjs/common'
 import { IWalnutAdminConstAppCacheType, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
+import { normalizeListPage } from '@walnut-server/utils/list-page'
 
 import { every, filter, get, isNil, orderBy, slice } from 'lodash'
 import sizeof from 'object-sizeof'
@@ -27,9 +28,16 @@ function getWalnutAdminCacheKey(key: string) {
   return key.startsWith(cachePrefix) ? key : `${cachePrefix}_${key}`
 }
 
+/**
+ * 内存分页 —— 入参先走共享正规化（`@walnut-server/utils/list-page`）。
+ *
+ * 本链路是 Redis key 的内存 slice，不经过 `pg-list.builder`：`pageSize = 0` 会
+ * `slice(start, start)` 静默返回空页，负数会把起点算成负值 —— 两者都只在这里收得住。
+ * 常量与 DB 列表同一个真源，分层理由见该文件头（tech-base 不能反向依赖 tech-assemble）。
+ */
 function myPaginate<T>(array: T[], pageNum: number, pageSize: number) {
-  const startIndex = (pageNum - 1) * pageSize
-  return slice(array, startIndex, startIndex + pageSize)
+  const { skip, limit } = normalizeListPage({ page: pageNum, pageSize })
+  return slice(array, skip, skip + limit)
 }
 
 function myFilter(array: IWalnutAdminCacheListRow[], conditions: Partial<IWalnutAdminCacheListRow>) {
@@ -502,7 +510,9 @@ return redis.call('DEL', KEYS[1])`,
   public async list(payload: IWalnutAdminCacheListRequest): Promise<{ data: IWalnutAdminCacheListRow[], total: number }> {
     const allCachedData = await this.getAllCacheData()
 
-    const { sort, query, page } = payload
+    const { sort, query } = payload
+
+    const page = normalizeListPage(payload.page)
 
     this.logger.debug(`[CacheList] | Listing caches - Page: ${page.page}, PageSize: ${page.pageSize}`)
 

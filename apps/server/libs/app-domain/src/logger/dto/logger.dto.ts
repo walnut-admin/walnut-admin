@@ -16,10 +16,19 @@ export type AppLoggerLogTypeType = ValueOf<typeof AppLoggerLogType>
  *
  * 批 6-A：5 个字段原先都是「`?` + `@IsOptional()`」双真源形态。它们由
  * `AppLoggerService.list` 逐条从 `fs.stat` 组装、5 个键恒有值（`compact` 只滤掉
- * stat 失败的整行），故去掉 `?` 与 `@IsOptional()`；`fileName` / `logType` 同时是
- * list 查询过滤键（`AppLoggerDTOListRequest` 的 RealPickType），而 query 信封不挂
- * ValidateNested（list.dto.ts 的 `validateOptions: { required: false }` → Allow），
- * 所以摘掉 IsOptional 对入参校验零影响。swagger 面不动 → openapi.json 零 diff。
+ * stat 失败的整行），故去掉 `?` 与 `@IsOptional()`。
+ *
+ * **批次 1 · P0 之后（R3 订正过：这段原先写反了）**：list 的三个槽位里，
+ * **只有 `sort` / `page` 开了** `nestedWhenPresent`，**`query` 刻意没开**
+ * （理由见 `libs/list/src/list.dto.ts` 的 ListDTO 注释：query 基座带着必填字段与
+ * 创建语义的值域约束，直接下钻会把 9 条现存请求打成 400）。
+ *
+ * 因此：
+ * - `fileName` / `logType` 没有 `@IsOptional()` **不影响本端点的入参校验**（query 不下钻）；
+ *   它们保持"恒有值"是因为响应面由 `AppLoggerService.list` 从 `fs.stat` 逐条组装。
+ * - 真正生效的是 **sort 槽位**：`sort[].field` 的 `onlyIn` 白名单会拦 —— 所以下面
+ *   `AppLoggerDTOListRequest` 必须显式给 `sortOnlyIn`（含 `fileMTime`）。
+ * - swagger 面未动 → openapi.json 零 diff。
  */
 export class AppLoggerDTO {
   @WalnutAdminDecoratorFieldString({
@@ -60,7 +69,14 @@ export class AppLoggerDTO {
 }
 
 // list
-export class AppLoggerDTOListRequest extends CreateWalnutAdminRequestListDTO(RealPickType(AppLoggerDTO, ['fileName', 'logType'])) { }
+// sortOnlyIn 必填：`CreateWalnutAdminRequestListDTO` 缺省会用"query 基座的全部键"当白名单，
+// 而这里基座是 `RealPickType(AppLoggerDTO, ['fileName','logType'])` —— `fileMTime` 不在里面，
+// 打开 nestedWhenPresent 后 `sort:[{field:'fileMTime'}]` 会被 onlyIn 判 400（api-spec 在用）。
+// 注意：`AppLoggerService.list` 目前**忽略** sort（恒按 fileMTime desc），白名单只是契约面。
+export class AppLoggerDTOListRequest extends CreateWalnutAdminRequestListDTO(
+  RealPickType(AppLoggerDTO, ['fileName', 'logType']),
+  { sortOnlyIn: ['fileName', 'logType', 'fileMTime'] },
+) { }
 
 export class AppLoggerDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(AppLoggerDTO),

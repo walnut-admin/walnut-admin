@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
-import { applyPgListQuery, buildPgListQueryOptions, ILIKE_ESCAPE_REGEX, SysDeletedEntity, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
+import { applyPgListQuery, buildPgListQueryOptionsFromQb, escapeLikePattern, SysDeletedEntity, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 
 /** 回收站列表行：实体列 + Mongo 版 $lookup 注入的 user（仅 userName 通道） */
 export interface ISysDeletedListRow extends SysDeletedEntity {
@@ -65,14 +65,14 @@ export class SysDeletedBasicRepository extends WalnutAdminCommonPgBaseRepository
       const contentKeyword = typeof query.content === 'string' && query.content !== '' ? query.content : undefined
       delete query.content
 
-      applyPgListQuery(qb, 'entity', buildPgListQueryOptions<T>({ ...params, query: query as never }))
+      applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, { ...params, query: query as never }))
 
       // 数据权限：sys_deleted 已注册（SELF = 本人删除的快照）
       this.applyDataScope(qb, 'entity')
 
       if (contentKeyword !== undefined) {
-        const escaped = contentKeyword.replace(ILIKE_ESCAPE_REGEX, c => `\\${c}`)
-        qb.andWhere('entity.content::text ILIKE :deleted_content_keyword', { deleted_content_keyword: `%${escaped}%` })
+        // jsonb ::text cast 之后是文本，ILIKE 在该表达式上合法；转义走共享字面量口径
+        qb.andWhere('entity.content::text ILIKE :deleted_content_keyword', { deleted_content_keyword: `%${escapeLikePattern(contentKeyword)}%` })
       }
 
       // populate 出参列（别名与实体列错开；user.id 作 JOIN 命中标记），同趟带出 total 窗口列

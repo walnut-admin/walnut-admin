@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
-import { applyPgListQuery, buildPgListQueryOptions, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
+import { applyPgListQuery, buildPgListQueryOptionsFromQb, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 import { SysUserDeviceEntity } from '../user_device/entity/user-device.entity'
 import { SysUserIdentityEntity } from '../user_identity/entity/user-identity.entity'
 import { SysUserLockEntity } from '../user_lock/entity/user-lock.entity'
@@ -103,7 +103,7 @@ export class SysUserBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
       const qb = manager
         .createQueryBuilder(SysUserEntity, 'entity')
 
-      applyPgListQuery(qb, 'entity', buildPgListQueryOptions<T>(params))
+      applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, params))
 
       // 数据权限：sys_user 已注册（SELF = 本人账号行），覆写 list 必须显式注入
       this.applyDataScope(qb, 'entity')

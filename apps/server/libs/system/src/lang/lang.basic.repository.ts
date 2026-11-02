@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
-import { applyPgListQuery, buildPgListQueryOptions, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
+import { applyPgListQuery, buildPgListQueryOptionsFromQb, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 import { SysLocaleEntity } from '../locale/entity/locale.entity'
 import { SysLangEntity } from './entity/lang.entity'
 
@@ -48,7 +48,7 @@ export class SysLangBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     const qb = this.getManager(em)
       .createQueryBuilder(SysLangEntity, 'entity')
 
-    applyPgListQuery(qb, 'entity', buildPgListQueryOptions<T>(params))
+    applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, params))
 
     qb.addSelect((sub) => {
       return sub

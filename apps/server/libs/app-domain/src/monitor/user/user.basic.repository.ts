@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
-import { applyPgListQuery, buildPgListQueryOptions, ILIKE_ESCAPE_REGEX, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
+import { applyPgListQuery, buildPgListQueryOptionsFromQb, escapeLikePattern, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 import { AppMonitorUserEntity } from './entity/monitor-user.entity'
 
 /** monitor 列表行：实体列 + Mongo 版 $lookup 注入的 device / user */
@@ -47,20 +47,19 @@ export class AppMonitorUserBasicRepository extends WalnutAdminCommonPgBaseReposi
         .leftJoin('sys_device', 'device', 'device.device_id = entity.device_id')
         .leftJoin('sys_user', 'monitor_user', 'monitor_user.id = entity.user_id')
 
-      applyPgListQuery(qb, 'entity', buildPgListQueryOptions<T>(params))
+      applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, params))
 
       // 数据权限：app_monitor_user 已注册（allowAnonymous —— 匿名访客行共享）
       this.applyDataScope(qb, 'entity')
 
       // Mongo 版 matchConditions：populate 字段上的 $regex('i') → JOIN 别名 ILIKE
-      // （字面量转义同 pg-list.builder；非实体列被 applyPgListQuery 的白名单跳过，在此接管）
+      // （字面量转义走 pg-column-op 的 escapeLikePattern；非实体列被 applyPgListQuery 的白名单跳过，在此接管）
       const query = (params.query ?? {}) as Record<string, unknown>
       const ilike = (expression: string, key: string, raw: unknown) => {
         if (raw === null || raw === undefined || raw === '') {
           return
         }
-        const escaped = String(raw).replace(ILIKE_ESCAPE_REGEX, c => `\\${c}`)
-        qb.andWhere(`${expression} ILIKE :${key}`, { [key]: `%${escaped}%` })
+        qb.andWhere(`${expression} ILIKE :${key}`, { [key]: `%${escapeLikePattern(String(raw))}%` })
       }
       ilike('device.ip', 'monitorDeviceIp', query.ip)
       ilike(`device.location_info->>'country'`, 'monitorCountry', query.country)

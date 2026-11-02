@@ -10,7 +10,7 @@ import { WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptio
 import { SysUserDeviceSharedService } from '@walnut-server/identity'
 import { SharedIpService } from '@walnut-server/ip'
 import { DeviceTypeConst, IDeviceTypeConst } from '@walnut-server/list'
-import { ILIKE_ESCAPE_REGEX } from '@walnut-server/repository'
+import { escapeLikePattern } from '@walnut-server/repository'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { omit } from 'lodash'
 import { Brackets, QueryFailedError } from 'typeorm'
@@ -171,7 +171,8 @@ export class SysDeviceService {
       return this.deviceBasicRepo.list(cleanParams)
     }
 
-    const escaped = String(location).replace(ILIKE_ESCAPE_REGEX, c => `\\${c}`)
+    // 字面量转义走 pg-column-op 的单一真源（与 list 主线、locale、deleted 同口径）
+    const escaped = escapeLikePattern(String(location))
 
     return this.deviceBasicRepo.list(cleanParams, (qb) => {
       qb.andWhere(new Brackets((b) => {

@@ -5,7 +5,7 @@ import { InjectDataSource } from '@nestjs/typeorm'
 
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 import { SysUserRoleEntity } from '@walnut-server/identity'
-import { applyPgListQuery, buildPgListQueryOptions, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
+import { applyPgListQuery, buildPgListQueryOptionsFromQb, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 import { SysRoleDeptEntity } from './entity/role-dept.entity'
 import { SysRoleMenuEntity } from './entity/role-menu.entity'
 import { SysRoleEntity } from './entity/role.entity'
@@ -87,7 +87,7 @@ export class SysRoleBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
     const qb = this.getManager(em)
       .createQueryBuilder(SysRoleEntity, 'entity')
 
-    applyPgListQuery(qb, 'entity', buildPgListQueryOptions<T>(params))
+    applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, params))
 
     // 对齐 Mongo 版 $lookup(sys_user) + $size：junction 计数子查询（B7a：P3-3 ——
     // SysUserRoleEntity 已注册，裸表名换实体引用，表名同源不变）
