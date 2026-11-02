@@ -8,7 +8,6 @@ import {
 } from '@walnut-server/list'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 import { WalnutAdminVirtualRolesCountDTO, WalnutAdminVirtualRolesListDTO } from '@/common/model/virtual/role'
 
 /**
@@ -26,12 +25,11 @@ export class SysUserDTO extends IntersectionType(SysUserDTOBase, WalnutAdminVirt
   // PG 主键 id（uuid，phase2 4.1）：PG 实体是 POJO 无元数据，在 DTO 链头部补声明 ——
   // @Expose 供响应序列化（ClassSerializerInterceptor excludeExtraneousValues 只放行
   // Expose 字段，缺了它响应不带 id）与 RealPickType/RealPartialType 的键枚举；
-  // 入参不从这里进（主键只走路由参数的 uuid pipe），IsOptional 仅为 list 查询可选过滤
+  // 入参不从这里进（主键只走路由参数的 uuid pipe），可选性由 required: false + default: null + uuid nullable 表达，字段不写 ?（F-38）
   @Expose()
-  @IsOptional()
-  @ApiProperty({ type: String, required: false })
+  @ApiProperty({ type: String, required: false, default: null })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  id?: string
+  id: string
 
   // IsMongoId → IsUUID 模板（B1 确立）：在 DTO 子类重声明同名字段，class-validator
   // 按 propertyName+type 去重、子类约束整体替换继承的 IsMongoId。roles 原 ObjectId[]

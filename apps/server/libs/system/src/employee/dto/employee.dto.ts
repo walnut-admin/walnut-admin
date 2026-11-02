@@ -12,7 +12,6 @@ import {
 } from '@walnut-server/list'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 import { ISysEmployeeStatus, SysEmployeeStatusConst } from '../employee.const'
 
 /**
@@ -96,10 +95,9 @@ export class SysEmployeeDTO extends SysEmployeeDTOBase {
   }
 
   @Expose()
-  @IsOptional()
-  @ApiProperty({ type: String, required: false })
+  @ApiProperty({ type: String, required: false, default: null })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  id?: string
+  id: string
 }
 
 export class SysEmployeeDTOSafe extends SysEmployeeDTO {

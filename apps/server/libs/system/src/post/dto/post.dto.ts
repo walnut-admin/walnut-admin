@@ -12,7 +12,6 @@ import {
 } from '@walnut-server/list'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 import { ISysPostStatus, SysPostStatusConst } from '../post.const'
 
 /** 岗位 DTO 基座 ↔ `SysPostEntity` 逐字段对应（平表，无树） */
@@ -68,10 +67,9 @@ export class SysPostDTO extends SysPostDTOBase {
   }
 
   @Expose()
-  @IsOptional()
-  @ApiProperty({ type: String, required: false })
+  @ApiProperty({ type: String, required: false, default: null })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  id?: string
+  id: string
 }
 
 export class SysPostDTOSafe extends SysPostDTO {

@@ -2,7 +2,6 @@ import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum, WalnutAdm
 import { TransformSizeToKB } from '@walnut-server/decorators/transformer'
 import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@walnut-server/list'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
-import { IsOptional } from 'class-validator'
 import { ValueOf } from 'easy-fns-ts'
 
 export const AppLoggerLogType = {
@@ -12,22 +11,30 @@ export const AppLoggerLogType = {
 
 export type AppLoggerLogTypeType = ValueOf<typeof AppLoggerLogType>
 
+/**
+ * 日志文件行（list 响应面）。
+ *
+ * 批 6-A：5 个字段原先都是「`?` + `@IsOptional()`」双真源形态。它们由
+ * `AppLoggerService.list` 逐条从 `fs.stat` 组装、5 个键恒有值（`compact` 只滤掉
+ * stat 失败的整行），故去掉 `?` 与 `@IsOptional()`；`fileName` / `logType` 同时是
+ * list 查询过滤键（`AppLoggerDTOListRequest` 的 RealPickType），而 query 信封不挂
+ * ValidateNested（list.dto.ts 的 `validateOptions: { required: false }` → Allow），
+ * 所以摘掉 IsOptional 对入参校验零影响。swagger 面不动 → openapi.json 零 diff。
+ */
 export class AppLoggerDTO {
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'log file name',
     },
   })
-  @IsOptional()
-  fileName?: string
+  fileName: string
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'log file path',
     },
   })
-  @IsOptional()
-  filePath?: string
+  filePath: string
 
   @WalnutAdminDecoratorFieldNumber({
     swaggerOptions: {
@@ -35,24 +42,21 @@ export class AppLoggerDTO {
     },
   })
   @TransformSizeToKB()
-  @IsOptional()
-  fileSize?: number
+  fileSize: number
 
   @WalnutAdminDecoratorFieldDate({
     swaggerOptions: {
       title: 'log file modify time',
     },
   })
-  @IsOptional()
-  fileMTime?: Date
+  fileMTime: Date
 
   @WalnutAdminDecoratorFieldEnum(() => AppLoggerLogType, {
     swaggerOptions: {
       title: 'log file type',
     },
   })
-  @IsOptional()
-  logType?: AppLoggerLogTypeType
+  logType: AppLoggerLogTypeType
 }
 
 // list

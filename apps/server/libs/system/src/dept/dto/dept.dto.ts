@@ -12,7 +12,7 @@ import {
 } from '@walnut-server/list'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose, Type } from 'class-transformer'
-import { IsOptional, ValidateNested } from 'class-validator'
+import { ValidateNested } from 'class-validator'
 import { ISysDeptStatus, SysDeptStatusConst } from '../dept.const'
 
 /**
@@ -102,12 +102,11 @@ export class SysDeptDTO extends SysDeptDTOBase {
   }
 
   // PG 主键 id（uuid）：B1 模板 —— @Expose 供响应序列化与 RealPickType 键枚举；
-  // 入参不从这里进（主键只走路由参数的 uuid pipe），IsOptional 仅为 list 查询可选过滤
+  // 入参不从这里进（主键只走路由参数的 uuid pipe），可选性由 required: false + default: null + uuid nullable 表达，字段不写 ?（F-38）
   @Expose()
-  @IsOptional()
-  @ApiProperty({ type: String, required: false })
+  @ApiProperty({ type: String, required: false, default: null })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  id?: string
+  id: string
 }
 
 export class SysDeptDTOSafe extends SysDeptDTO {
@@ -181,5 +180,5 @@ export class SysDeptDTOTree extends RealOmitType(SysDeptDTOSafe, [
   @Type(() => SysDeptDTOTree)
   @ValidateNested({ each: true })
   @ApiProperty({ type: () => [SysDeptDTOTree], required: false })
-  children?: SysDeptDTOTree[]
+  children: SysDeptDTOTree[]
 }

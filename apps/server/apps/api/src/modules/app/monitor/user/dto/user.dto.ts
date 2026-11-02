@@ -10,7 +10,6 @@ import {
 } from '@walnut-server/list'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 import { WalnutAdminVirtualDeviceDTO } from '@/common/model/virtual/device'
 import { WalnutAdminVirtualUserDTO } from '@/common/model/virtual/user'
 import { SysUserDTOSafe } from '@/modules/system/user/dto/user.dto'
@@ -34,12 +33,14 @@ export class AppMonitorUserDTO extends IntersectionType(AppMonitorUserDTOBase, W
 
   // PG 主键 id（uuid，phase2 4.21）：B1 模板 —— @Expose 供响应序列化与
   // RealPickType/RealPartialType 的键枚举；入参不从这里进（主键只走路由参数的
-  // uuid pipe），IsOptional 仅为 list 查询可选过滤
+  // uuid pipe）。
+  // 批 6-A（F-38 收尾）：响应面 id 是 PG 必填主键，声明去 `?` 与 `@IsOptional()` ——
+  // list 查询里的「可选过滤」由 RealPartialType 统一补的 IsOptional 承担（可选性只有
+  // 一个真源）；swagger 侧仍 required: false + default: null，文档面零变化。
   @Expose()
-  @IsOptional()
-  @ApiProperty({ type: String, required: false })
+  @ApiProperty({ type: String, required: false, default: null })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  id?: string
+  id: string
 
   // IsMongoId → IsUUID 模板（B1 确立）：PG 侧 user_id 是可空 uuid 松引用（phase2 4.21），
   // 子类重声明整体替换继承的 IsMongoId 约束。
@@ -57,6 +58,11 @@ export class AppMonitorUserDTO extends IntersectionType(AppMonitorUserDTOBase, W
 }
 
 // update state
+//
+// F-47（2026-11，安全纵深）：白名单里**保留 userId 是为了 wire 契约不变**，但它的
+// 取值不再来自请求体 —— controller（user.controller.ts 的 resolveVerifiedUserId）
+// 只采信「验签通过的 AT」里的 userId，请求体的该字段会被覆盖成 null（匿名心跳）。
+// 也就是说：本字段在入参上存在 ≠ 客户端可以指定它。不要把它当成可写字段用。
 export class AppMonitorUserDTOUpdateState extends RealPickType(RealPartialType(AppMonitorUserDTO), ['visitorId', 'deviceId', 'userId', 'auth', 'focus', 'left', 'currentRouter'] as const) { }
 
 class AppMonitorUserDTORequest extends IntersectionType(
@@ -65,12 +71,18 @@ class AppMonitorUserDTORequest extends IntersectionType(
   RealPartialType(RealPickType(SharedUserAgentDTO, ['os', 'browser'] as const)),
   RealPartialType(RealPickType(SysUserDTOSafe, ['userName'] as const)),
 ) {
+  // 批 6-A：`ip` 是 list 查询的**可选过滤**字段（不是响应字段）。原先靠
+  // `@IsOptional()` 表达可选性 —— 与「DTO 不写 ?/!、可选性归装饰器」的硬规矩相冲，
+  // 且 string 校验器没有 nullable 选项可替代。按 5B 的「query 信封不挂 ValidateNested」
+  // 先例（list.dto.ts 的 `validateOptions: { required: false }` → Allow），query 的
+  // 字段级校验器本来就不会跑，缺省由信封的 `default: {}` 承担，故直接摘掉 IsOptional。
+  // swagger 故意不动（不加 required: false）—— 文档面的可选性收敛留给统一导出那一批，
+  // 本批只清类型标记，openapi.json 保持零 diff。
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
       title: 'ip address',
     },
   })
-  @IsOptional()
   @Expose()
   ip: string
 }

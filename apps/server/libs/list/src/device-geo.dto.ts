@@ -8,7 +8,6 @@
 import { WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldEnum, WalnutAdminDecoratorFieldNumber, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 import { RealPartialType } from '@walnut-server/utils/dto'
-import { IsOptional } from 'class-validator'
 import { ValueOf } from 'easy-fns-ts'
 
 export const DeviceTypeConst = {
@@ -179,13 +178,15 @@ export class SharedLocationDTO {
 }
 
 export class SharedTimeDTO {
+  // 批 6-A：lastActiveAt 由消费方按实体 updated_at 赋值（响应面字段），去掉
+  // `@IsOptional({})` —— 「DTO 不写 ?/!、可选性归装饰器」的硬规矩原本在这里
+  // 只剩一个空壳 IsOptional（类型本来就是必填），是自相矛盾的第二个真源。
   @WalnutAdminDecoratorFieldDate({
     swaggerOptions: {
       title: 'last active time',
       required: false,
     },
   })
-  @IsOptional({})
   lastActiveAt: Date
 }
 

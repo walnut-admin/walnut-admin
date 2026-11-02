@@ -23,6 +23,16 @@ export class SysUserMfaWebauthnRegisterOptionsDTO extends RealPickType(SysUserMf
 //
 // 运行时零影响：`options` 字段刻意**不挂 @Type**，普通对象原样透传（挂 @Type 会被
 // ClassSerializer 的 excludeExtraneousValues 按 DTO 字段裁剪，改变 wire）。
+//
+// F-38 豁免（DTO 硬规矩「字段声明不许 `?`」）：本文件的 `?` 是上面这条**镜像外部协议
+// 形状**的必然结果，不是必填性的第二个真源 ——
+//   ① 这些类只承载 @ApiProperty/@Expose 文档元数据，**不挂任何校验装饰器**（既没有
+//      field 装饰器也没有裸 class-validator），所以「装饰器 default 才是必填性真源」在这里
+//      没有可挂的落点，`?` 是唯一的「可缺省」表达；
+//   ② 要按项目装饰器表达，就得给每个键编一个 default/校验规则，而那会与
+//      @simplewebauthn/server 的真实形态漂移（可选键集由浏览器/认证器决定），正是本文件
+//      存在的目的（生成类型要和 browser 包入参等价）。
+// 保留形态、只做显式登记；等 @simplewebauthn 官方导出等价 DTO 时再收编。
 
 /** 认证器 transport 联合（@simplewebauthn 的 AuthenticatorTransportFuture）。 */
 const WebauthnAuthenticatorTransports = ['ble', 'cable', 'hybrid', 'internal', 'nfc', 'smart-card', 'usb']

@@ -1,7 +1,6 @@
 import { WalnutAdminDecoratorFieldBoolean, WalnutAdminDecoratorFieldDate, WalnutAdminDecoratorFieldString } from '@walnut-server/decorators/field'
 import { WalnutAdminCommonBasicModel } from '@walnut-server/identity'
 import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 
 /**
  * app_monitor_user 的字段基座（libs 解耦批 9 随监控用户域下沉）。
@@ -67,13 +66,17 @@ export class AppMonitorUserDTOBase extends WalnutAdminCommonBasicModel {
   })
   currentRouter: string
 
+  // 批 6-A：firstVisitAt / lastActiveAt 是响应面字段，映射自实体 created_at /
+  // last_active_at（DB 必有值），故去掉 `@IsOptional({})` —— 可选性不再由
+  // 「类型」与「校验器」各说一次（原先是类型必填 + 校验器可选的自相矛盾形态）。
+  // swagger 的 required: false 保留：字段名在 wire 上与基座 createdAt/updatedAt 不同，
+  // 文档面不作为「必填时间列」承诺，openapi.json 零 diff。
   @WalnutAdminDecoratorFieldDate({
     swaggerOptions: {
       title: 'createdAt, used as `firstVisitAt`',
       required: false,
     },
   })
-  @IsOptional({})
   firstVisitAt: Date
 
   @WalnutAdminDecoratorFieldDate({
@@ -82,6 +85,5 @@ export class AppMonitorUserDTOBase extends WalnutAdminCommonBasicModel {
       required: false,
     },
   })
-  @IsOptional({})
   lastActiveAt: Date
 }

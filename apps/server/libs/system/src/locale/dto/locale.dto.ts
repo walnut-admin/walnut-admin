@@ -11,7 +11,6 @@ import {
 } from '@walnut-server/list'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 import { LocaleLangIdValidate } from '../locale.validate'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/locale.schema.ts 的 SysLocaleModel
@@ -54,12 +53,11 @@ export class SysLocaleDTO extends SysLocaleDTOBase {
   // PG 主键 id（uuid，phase2 4.5）：B1 模板 —— @Expose 供响应序列化
   // （ClassSerializerInterceptor excludeExtraneousValues 只放行 Expose 字段）与
   // RealPickType/RealPartialType 的键枚举；入参不从这里进（主键只走路由参数的
-  // uuid pipe），IsOptional 仅为 list 查询可选过滤
+  // uuid pipe），可选性由 required: false + default: null + uuid nullable 表达，字段不写 ?（F-38）
   @Expose()
-  @IsOptional()
-  @ApiProperty({ type: String, required: false })
+  @ApiProperty({ type: String, required: false, default: null })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  id?: string
+  id: string
 
   // IsMongoId → IsUUID 模板（B1 确立）：在 DTO 子类重声明同名字段整体替换继承的
   // IsMongoId 约束；langId 原有的业务校验（缓存 lang id 白名单）经 options.validate 保留
@@ -87,7 +85,7 @@ export class SysLocaleDTO extends SysLocaleDTOBase {
       },
     },
   })
-  process?: number
+  process: number
 }
 
 // Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名

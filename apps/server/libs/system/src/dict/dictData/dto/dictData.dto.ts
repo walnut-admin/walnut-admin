@@ -13,7 +13,6 @@ import {
 } from '@walnut-server/list'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 import { SysDictDataTagTypeConst, SysDictDataTagTypeConstType } from '../dict-data.const'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/dictData.schema.ts 的 SysDictDataModel
@@ -87,12 +86,11 @@ export class SysDictDataDTO extends SysDictDataDTOBase {
   // PG 主键 id（uuid，phase2 4.7）：B1 模板 —— @Expose 供响应序列化
   // （ClassSerializerInterceptor excludeExtraneousValues 只放行 Expose 字段）与
   // RealPickType/RealPartialType 的键枚举；入参不从这里进（主键只走路由参数的
-  // uuid pipe），IsOptional 仅为 list 查询可选过滤
+  // uuid pipe），可选性由 required: false + default: null + uuid nullable 表达，字段不写 ?（F-38）
   @Expose()
-  @IsOptional()
-  @ApiProperty({ type: String, required: false })
+  @ApiProperty({ type: String, required: false, default: null })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  id?: string
+  id: string
 
   // IsMongoId → IsUUID 模板（B1 确立）：在 DTO 子类重声明同名字段整体替换继承的
   // IsMongoId 约束（typeId → sys_dict_type 的 uuid FK，phase2 4.7）
@@ -114,6 +112,8 @@ export class SysDictDataDTOSafe extends SysDictDataDTO {
 }
 
 class SysDictDataDTOSafeRequest extends RealPartialType(RealOmitType(SysDictDataDTOSafe, ['tagType'] as const)) {
+  // 列表查询可选过滤：query 信封不挂 ValidateNested（见 list.dto.ts 的 required: false），
+  // enum 校验器也没有 nullable 选项 —— 此处无需 IsOptional（F-38：不裸挂 class-validator）
   @WalnutAdminDecoratorFieldEnum(() => SysDictDataTagTypeConst, {
     isArray: true,
     default: SysDictDataTagTypeConst.PRIMARY,
@@ -121,7 +121,6 @@ class SysDictDataDTOSafeRequest extends RealPartialType(RealOmitType(SysDictData
       title: 'dict data render tag type, see more in naive ui tag',
     },
   })
-  @IsOptional({ each: true })
   tagType: SysDictDataTagTypeConstType
 }
 

@@ -16,7 +16,7 @@ import {
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { CacheKeyStrategy, MenuTernal, MenuType } from '@walnut/contract/menu'
 import { Expose, Type } from 'class-transformer'
-import { IsOptional, ValidateNested } from 'class-validator'
+import { ValidateNested } from 'class-validator'
 import { Recordable } from 'easy-fns-ts'
 import { getMetadataArgsStorage } from 'typeorm'
 import { SysMenuEntity } from '../entity/menu.entity'
@@ -430,12 +430,11 @@ export class SysMenuDTO extends SysMenuDTOBase {
   // PG 主键 id（uuid，phase2 4.3）：B1 模板 —— @Expose 供响应序列化
   // （ClassSerializerInterceptor excludeExtraneousValues 只放行 Expose 字段）与
   // RealPickType/RealPartialType 的键枚举；入参不从这里进（主键只走路由参数的
-  // uuid pipe），IsOptional 仅为 list 查询可选过滤
+  // uuid pipe），可选性由 required: false + default: null + uuid nullable 表达，字段不写 ?（F-38）
   @Expose()
-  @IsOptional()
-  @ApiProperty({ type: String, required: false })
+  @ApiProperty({ type: String, required: false, default: null })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  id?: string
+  id: string
 
   // IsMongoId → IsUUID 模板（B1 确立）：pid 可空（根节点 pid=NULL，phase2 4.3）
   @Expose()
@@ -475,7 +474,7 @@ export class SysMenuDTOTree extends RealOmitType(SysMenuDTOSafe, [
   @Type(() => SysMenuDTOTree)
   @ValidateNested({ each: true })
   @ApiProperty({ type: () => [SysMenuDTOTree], required: false })
-  children?: SysMenuDTOTree[]
+  children: SysMenuDTOTree[]
 }
 
 class MenuActiveNameItem extends RealPickType(SysMenuDTOTree, ['title', 'name'] as const) {}

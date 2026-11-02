@@ -27,8 +27,16 @@ export class SysLogAuthRepoService {
 
   /**
    * @description create auth log（旁路写；调用方自行吞错）
+   *
+   * F-38：入参是「可插入字段」而不是完整 DTO —— `id`（PK，DB 侧 gen_random_uuid）与
+   * `authenticatedAt`（CreateDateColumn）由数据库填，DTO 字段去掉 `?` 之后必须在这里
+   * 显式排除，否则调用方得编造主键与时间。
+   *
+   * 批 6-A：DTO 基座 `createdAt` / `updatedAt` 随 DB 生成列语义改为必填（去掉
+   * `@IsOptional`），同样属于「DB 填」的列 —— 一并排除，纯类型收口、运行期零变化
+   * （列在实体上是 CreateDateColumn / UpdateDateColumn，插入时由 DB 赋值）。
    */
-  async create(dto: SysLogAuthDTO) {
+  async create(dto: Omit<SysLogAuthDTO, 'id' | 'authenticatedAt' | 'createdAt' | 'updatedAt'>) {
     // 数据权限三期：sys_log_auth 缺省 anonymous —— 旁路写必须显式 system 事务
     return runInWalnutSystemTransaction(this.dataSource, async (manager) => {
       const repository = manager.getRepository(SysLogAuthEntity)

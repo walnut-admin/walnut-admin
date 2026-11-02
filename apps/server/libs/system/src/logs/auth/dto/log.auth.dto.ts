@@ -14,7 +14,6 @@ import {
 } from '@walnut-server/list'
 import { RealOmitType, RealPartialType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/log.auth.schema.ts 的 SysLogAuthModel
 // 改名 SysLogAuthDTOBase），装饰器与字段本体零改动
@@ -112,7 +111,7 @@ export class SysLogAuthDTOBase extends WalnutAdminCommonBasicModel {
       required: false,
     },
   })
-  authenticatedAt?: Date
+  authenticatedAt: Date
 }
 
 export class SysLogAuthDTO extends SysLogAuthDTOBase {
@@ -124,12 +123,11 @@ export class SysLogAuthDTO extends SysLogAuthDTOBase {
   // B1 模板：PG 主键 id（uuid，phase2 4.15）—— @Expose 供响应序列化
   // （ClassSerializerInterceptor excludeExtraneousValues 只放行 Expose 字段）与
   // RealPickType/RealPartialType 的键枚举；入参不从这里进（主键只走路由参数的
-  // uuid pipe），IsOptional 仅为 list 查询可选过滤
+  // uuid pipe），可选性由 required: false + default: null + uuid nullable 表达，字段不写 ?（F-38）
   @Expose()
-  @IsOptional()
-  @ApiProperty({ type: String, required: false })
+  @ApiProperty({ type: String, required: false, default: null })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  id?: string
+  id: string
 
   // B1 模板（IsMongoId → IsUUID）：子类重声明同名字段，class-validator 按
   // propertyName+type 去重、子类约束整体替换继承的 IsMongoId；松引用列可空
@@ -152,6 +150,8 @@ export class SysLogAuthDTOSafe extends SysLogAuthDTO {
 }
 
 class SysLogAuthDTOSafeRequest extends RealPartialType(RealOmitType(SysLogAuthDTOSafe, ['type'] as const)) {
+  // 列表查询可选过滤：query 信封不挂 ValidateNested（见 list.dto.ts 的 required: false），
+  // enum 校验器也没有 nullable 选项 —— 此处无需 IsOptional（F-38：不裸挂 class-validator）
   @WalnutAdminDecoratorFieldEnum(() => WalnutAdminConstDecoratorLogAuthType, {
     isArray: true,
     swaggerOptions: {
@@ -159,7 +159,6 @@ class SysLogAuthDTOSafeRequest extends RealPartialType(RealOmitType(SysLogAuthDT
       example: WalnutAdminConstDecoratorLogAuthType.OPAQUE,
     },
   })
-  @IsOptional({ each: true })
   type: IWalnutAdminConstDecoratorLogAuthType
 
   @WalnutAdminDecoratorFieldDate({

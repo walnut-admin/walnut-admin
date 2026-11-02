@@ -5,7 +5,7 @@ import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/val
 import { WalnutAdminCommonBasicModel } from '@walnut-server/identity'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { IsEnum, IsNotEmpty, IsOptional, Validate, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator'
+import { IsEnum, IsNotEmpty, Validate, ValidatorConstraint, ValidatorConstraintInterface } from 'class-validator'
 import { AppKeyStatusConst, AppKeyStatusConstType, AppKeyTypeConst, AppKeyTypeConstType } from '../key.const'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/key.schema.ts 的 AppKeyModel 改名
@@ -20,7 +20,7 @@ class AppKeyMetaTypeRaw {
       example: '-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\n-----END PUBLIC KEY-----',
     },
   })
-  publicKeyPem?: string
+  publicKeyPem: string
 
   // P0-6（2026-10-28）：私钥永不出 HTTP —— 实体 meta 仍保留 privateKeyPem（服务端
   // 请求解密走实体通道），但 DTO 层不再声明该字段，init/rotate/current 响应统一剔除。
@@ -32,7 +32,7 @@ class AppKeyMetaTypeRaw {
       example: 'dGhpcyBpcyBhIDI1NiBiaXQga2V5IGZvciBBRVM=',
     },
   })
-  keyB64?: string
+  keyB64: string
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
@@ -41,7 +41,7 @@ class AppKeyMetaTypeRaw {
       example: 'dGhpcyBpcyBhIDEyOCBiaXQgSVY=',
     },
   })
-  ivB64?: string
+  ivB64: string
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
@@ -50,7 +50,7 @@ class AppKeyMetaTypeRaw {
       example: 'jwt_secret_32bytes_super_secure_random_string',
     },
   })
-  secret?: string
+  secret: string
 
   @WalnutAdminDecoratorFieldNumber({
     swaggerOptions: {
@@ -59,7 +59,7 @@ class AppKeyMetaTypeRaw {
       example: 256,
     },
   })
-  bits?: number
+  bits: number
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
@@ -68,9 +68,11 @@ class AppKeyMetaTypeRaw {
       example: 'AES-256-CBC',
     },
   })
-  cipher?: string
+  cipher: string
 }
 
+// meta 的每个键都可缺省（按 type 二选一）：可选性由 RealPartialType 统一表达
+// （RealPartialType 会给每个键补 @IsOptional），字段声明不写 ?（F-38）
 export class AppKeyMetaType extends RealPartialType(AppKeyMetaTypeRaw) { }
 
 export class AppKeyDTOBase extends WalnutAdminCommonBasicModel {
@@ -147,10 +149,9 @@ export class AppKeyDTO extends AppKeyDTOBase {
   // PG 主键 id（uuid，phase2 4.23）：B1 模板 —— @Expose 供响应序列化与
   // RealPickType/RealPartialType 的键枚举；本模块无 list/路由 id 入参
   @Expose()
-  @IsOptional()
-  @ApiProperty({ type: String, required: false })
+  @ApiProperty({ type: String, required: false, default: null })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  id?: string
+  id: string
 }
 
 // Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
@@ -176,7 +177,7 @@ export class AppKeyCurrentResponseDTO {
       required: false,
     },
   })
-  publicKeyPem?: string
+  publicKeyPem: string
 
   @WalnutAdminDecoratorFieldString({
     swaggerOptions: {
@@ -185,7 +186,7 @@ export class AppKeyCurrentResponseDTO {
       required: false,
     },
   })
-  keyB64?: string
+  keyB64: string
 }
 
 /**

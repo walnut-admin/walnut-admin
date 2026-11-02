@@ -13,7 +13,6 @@ import {
 } from '@walnut-server/list'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 import { SysDictDataDTOPopulatedDictData } from '../../dictData/dto/dictData.dto'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/dictType.schema.ts 的 SysDictTypeModel
@@ -63,7 +62,7 @@ export class SysDictTypeDTOBase extends WalnutAdminCommonBasicModel {
       title: 'populated dict data',
     },
   })
-  dictData?: SysDictDataDTOPopulatedDictData
+  dictData: SysDictDataDTOPopulatedDictData
 
   @WalnutAdminDecoratorFieldNumber({
     swaggerOptions: {
@@ -71,7 +70,7 @@ export class SysDictTypeDTOBase extends WalnutAdminCommonBasicModel {
       title: `populated dict data count`,
     },
   })
-  dictDataCount?: number
+  dictDataCount: number
 }
 
 export class SysDictTypeDTO extends SysDictTypeDTOBase {
@@ -83,12 +82,11 @@ export class SysDictTypeDTO extends SysDictTypeDTOBase {
   // PG 主键 id（uuid，phase2 4.6）：B1 模板 —— @Expose 供响应序列化
   // （ClassSerializerInterceptor excludeExtraneousValues 只放行 Expose 字段）与
   // RealPickType/RealPartialType 的键枚举；入参不从这里进（主键只走路由参数的
-  // uuid pipe），IsOptional 仅为 list 查询可选过滤
+  // uuid pipe），可选性由 required: false + default: null + uuid nullable 表达，字段不写 ?（F-38）
   @Expose()
-  @IsOptional()
-  @ApiProperty({ type: String, required: false })
+  @ApiProperty({ type: String, required: false, default: null })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  id?: string
+  id: string
 }
 
 // Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名

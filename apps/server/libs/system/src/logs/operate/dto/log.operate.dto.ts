@@ -17,7 +17,6 @@ import {
 } from '@walnut-server/list'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 import { Recordable } from 'easy-fns-ts'
 
 // 批 4 结构重构：schema/ 并入 dto/（原 schema/log.operate.schema.ts 的 SysLogOperateModel
@@ -169,9 +168,8 @@ export class SysLogOperateDTOBase extends WalnutAdminCommonBasicModel {
       required: false,
     },
   })
-  @IsOptional({})
   @Expose({})
-  operatedAt?: Date
+  operatedAt: Date
 
   @WalnutAdminDecoratorFieldObject(Object, {
     swaggerOptions: {
@@ -213,12 +211,11 @@ export class SysLogOperateDTO extends SysLogOperateDTOBase {
   // B1 模板：PG 主键 id（uuid，phase2 4.16）—— @Expose 供响应序列化
   // （ClassSerializerInterceptor excludeExtraneousValues 只放行 Expose 字段）与
   // RealPickType/RealPartialType 的键枚举；入参不从这里进（主键只走路由参数的
-  // uuid pipe），IsOptional 仅为 list 查询可选过滤
+  // uuid pipe），可选性由 required: false + default: null + uuid nullable 表达，字段不写 ?（F-38）
   @Expose()
-  @IsOptional()
-  @ApiProperty({ type: String, required: false })
+  @ApiProperty({ type: String, required: false, default: null })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  id?: string
+  id: string
 
   // B1 模板（IsMongoId → IsUUID）：子类重声明同名字段，class-validator 按
   // propertyName+type 去重、子类约束整体替换继承的 IsMongoId；松引用列可空
@@ -252,10 +249,10 @@ class SysLogOperateDTOSafeRequest extends RealPartialType(RealOmitType(SysLogOpe
       title: 'actionType for request query, support array',
     },
     validateOptions: {
+      nullable: true,
       onlyIn: [...Object.values(WalnutAdminConstDecoratorLogOperateAction)],
     },
   })
-  @IsOptional({ each: true })
   actionType: IWalnutAdminConstDecoratorLogOperateAction
 
   @WalnutAdminDecoratorFieldString({
@@ -264,10 +261,10 @@ class SysLogOperateDTOSafeRequest extends RealPartialType(RealOmitType(SysLogOpe
       title: 'operation for request query, support array',
     },
     validateOptions: {
+      nullable: true,
       onlyIn: [...Object.values(WalnutAdminConstDecoratorLogOperateType)],
     },
   })
-  @IsOptional({ each: true })
   operation: IWalnutAdminConstDecoratorLogOperateType
 
   @WalnutAdminDecoratorFieldDate({
@@ -277,7 +274,8 @@ class SysLogOperateDTOSafeRequest extends RealPartialType(RealOmitType(SysLogOpe
       required: false,
     },
   })
-  @IsOptional({ each: true })
+  // 列表查询可选过滤：query 信封不挂 ValidateNested（见 list.dto.ts 的 required: false），
+  // date 校验器也没有 nullable 选项 —— 此处无需 IsOptional（F-38：不裸挂 class-validator）
   operatedAt: Date
 
   @WalnutAdminDecoratorFieldString({
@@ -286,10 +284,10 @@ class SysLogOperateDTOSafeRequest extends RealPartialType(RealOmitType(SysLogOpe
       title: 'http method for request query, support array',
     },
     validateOptions: {
+      nullable: true,
       onlyIn: [...Object.values(WalnutAdminConstAppHTTPMethods)],
     },
   })
-  @IsOptional({ each: true })
   method: IWalnutAdminConstAppHTTPMethods
 }
 

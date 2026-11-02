@@ -7,9 +7,10 @@ import {
   WalnutAdminDecoratorFieldString,
 } from '@walnut-server/decorators/field'
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
+import { WalnutAdminDecoratorTransformDefault } from '@walnut-server/decorators/transformer'
+import { WalnutAdminDecoratorValidatorObject } from '@walnut-server/decorators/validator'
 import { RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { Allow, IsOptional } from 'class-validator'
 import { WalnutAdminCommonBasicModel } from '../../shared/base.model'
 import { IWalnutAdminConstSysUserIdentityPurpose, IWalnutAdminConstSysUserIdentityType, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType } from '../identity.const'
 import { IdentitySendDTO, IdentityVerifyDTO } from './identity.dto'
@@ -142,11 +143,13 @@ export class SysUserIdentityUpdateDTO extends RealPartialType(SysUserIdentityCre
 
 // DTO for list request
 // P1-6① 修复（2026-10-28）：空类在全局 forbidUnknownValues 下恒被判定为 "unknown value"
-// （40099），端点经 HTTP 不可用。@Allow 提供可判定的校验元数据（不约束任何键），
-// 列表读腿本来也不消费任何过滤字段（userId 由 token 注入）。
+// （40099），端点经 HTTP 不可用。这里用一个**不约束任何键**的校验元数据占位，列表读腿
+// 本来也不消费任何过滤字段（userId 由 token 注入）。
+// F-38：占位改用项目的 object 校验器（内部即 class-validator 的 Allow），不裸挂
+// class-validator —— 它同时只补 Allow、不产生 swagger 字段，文档面与之前完全一致。
 export class SysUserIdentityListDTO {
-  @Allow()
-  readonly _marker?: never
+  @WalnutAdminDecoratorValidatorObject({ required: false })
+  readonly _marker: never
 }
 
 // DTO for identity status item
@@ -218,8 +221,10 @@ export class SysUserIdentityBindRequestDTO extends IdentityVerifyDTO {
     Object.assign(this, partial)
   }
 
-  // P1-6② 修复：缺省视为 false（swagger default 不参与校验，未挂 IsOptional 时缺字段 40099）
-  @IsOptional()
+  // P1-6② 修复：缺省视为 false（swagger default 不参与校验，不物化时缺字段 40099）。
+  // F-38：不再裸挂 class-validator 的 IsOptional —— 用项目 transformer 把上面装饰器里声明的
+  // default 真正物化（缺省 / 显式 null → false），校验因此天然放行，且默认值只有一个真源。
+  @WalnutAdminDecoratorTransformDefault(false, false, { toClassOnly: true })
   @WalnutAdminDecoratorFieldBoolean({
     default: false,
     swaggerOptions: { description: 'whether to also set as security identity' },

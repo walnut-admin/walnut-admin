@@ -8,7 +8,6 @@ import {
 import { CreateWalnutAdminResponseListDTO } from '@walnut-server/list'
 import { RealPickType } from '@walnut-server/utils/dto'
 import { Expose } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 import { ValueOf } from 'easy-fns-ts'
 import { WalnutAdminCommonBasicModel } from '../../shared/base.model'
 
@@ -80,7 +79,6 @@ export class SysUserDeviceDTOBase extends WalnutAdminCommonBasicModel {
       required: false,
     },
   })
-  @IsOptional({})
   lastActiveAt: Date
 
   @WalnutAdminDecoratorFieldBoolean({
@@ -97,7 +95,6 @@ export class SysUserDeviceDTOBase extends WalnutAdminCommonBasicModel {
       required: false,
     },
   })
-  @IsOptional({})
   trustedExpiredAt: Date
 }
 

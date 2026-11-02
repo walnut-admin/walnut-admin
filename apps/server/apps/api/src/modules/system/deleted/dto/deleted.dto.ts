@@ -7,7 +7,6 @@ import { WalnutAdminDecoratorValidatorUuid } from '@walnut-server/decorators/val
 import { CreateWalnutAdminRequestListDTO, CreateWalnutAdminResponseListDTO } from '@walnut-server/list'
 import { RealOmitType, RealPartialType, RealPickType } from '@walnut-server/utils/dto'
 import { Expose, Transform } from 'class-transformer'
-import { IsOptional } from 'class-validator'
 import { Recordable } from 'easy-fns-ts'
 import { WalnutAdminCommonBasicModel } from '@/common/model/base.model'
 import { WalnutAdminVirtualUserDTO } from '@/common/model/virtual/user'
@@ -93,7 +92,7 @@ export class SysDeletedDTOBase extends WalnutAdminCommonBasicModel {
       description: 'which means `createdAt`',
     },
   })
-  deletedAt?: Date
+  deletedAt: Date
 
   @Expose()
   // B9 迁 PG：uuid 松引用（Q3：删除者自己也可能被删，不建 FK），注解放开为 string
@@ -101,7 +100,7 @@ export class SysDeletedDTOBase extends WalnutAdminCommonBasicModel {
 
   @Expose()
   // B9 迁 PG：uuid 松引用可空（logOperateId 回填见 SysDeletedPgRepoService）
-  logOperateId?: string | null
+  logOperateId: string | null
 }
 
 class SysDeletedDTO extends IntersectionType(SysDeletedDTOBase, WalnutAdminVirtualUserDTO) {
@@ -111,12 +110,11 @@ class SysDeletedDTO extends IntersectionType(SysDeletedDTOBase, WalnutAdminVirtu
   }
 
   // B1 模板：PG 主键 id（uuid，phase2 4.17）—— @Expose 供响应序列化与
-  // RealPickType/RealPartialType 的键枚举；IsOptional 仅为 list 查询可选过滤
+  // RealPickType/RealPartialType 的键枚举；可选性由 required: false + default: null + uuid nullable 表达，字段不写 ?（F-38）
   @Expose()
-  @IsOptional()
-  @ApiProperty({ type: String, required: false })
+  @ApiProperty({ type: String, required: false, default: null })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  id?: string
+  id: string
 
   // B1 模板（IsMongoId → IsUUID）：子类重声明同名字段，class-validator 按
   // propertyName+type 去重、子类约束整体替换继承的 IsMongoId
@@ -145,7 +143,7 @@ class SysDeletedDTO extends IntersectionType(SysDeletedDTOBase, WalnutAdminVirtu
     example: '0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c',
   })
   @WalnutAdminDecoratorValidatorUuid({ nullable: true })
-  declare logOperateId?: string | null
+  declare logOperateId: string | null
 }
 
 // Safe 层曾是「剔除 Mongo `_id`」的派生（B1 模板）；_id 已随 PG 迁移退役，现仅存名
@@ -163,7 +161,8 @@ class SysDeletedDTOSafeRequest extends RealPartialType(RealOmitType(SysDeletedDT
       required: false,
     },
   })
-  @IsOptional({ each: true })
+  // 列表查询可选过滤：query 信封不挂 ValidateNested（见 list.dto.ts 的 required: false），
+  // date 校验器也没有 nullable 选项 —— 此处无需 IsOptional（F-38：不裸挂 class-validator）
   deletedAt: Date
 }
 
@@ -193,8 +192,9 @@ export class SysDeletedDTORecoverRequest extends RealPickType(
   SysDeletedDTOSafe,
   ['id', 'deletedId'] as const,
 ) {
-  // 恢复定位键必填（子类重声明收紧 IsOptional：缺省 id 不允许落到条件为空的
-  // findOne 上）；deletedId 的必填 uuid 约束继承自 DTOSafe
+  // 恢复定位键必填（F-38 起基座 id 不再挂 IsOptional，PickType 不再继承"可选"：
+  // 缺省 id 直接 40099，不允许落到条件为空的 findOne 上）；deletedId 的必填 uuid
+  // 约束继承自 DTOSafe
   @Expose()
   @ApiProperty({ required: true })
   @WalnutAdminDecoratorValidatorUuid()

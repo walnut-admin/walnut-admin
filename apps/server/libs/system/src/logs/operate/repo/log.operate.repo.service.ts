@@ -32,7 +32,12 @@ export class SysLogOperateRepoService implements IWalnutAdminOperateLogWriter {
    * @description create operate log（旁路写；调用方自行吞错）
    */
   async create(
-    dto: SysLogOperateDTO & {
+    // F-38：`id`（PK，DB 侧 gen_random_uuid）与 `operatedAt`（CreateDateColumn）由数据库
+    // 填，DTO 字段去掉 `?` 之后在这里显式排除（端口 IWalnutAdminOperateLogRecord 本来
+    // 就不含这两个键，签名与端口同口径）。
+    // 批 6-A：DTO 基座 `createdAt` / `updatedAt` 同样由 DB 填（CreateDateColumn /
+    // UpdateDateColumn），随必填化一并排除 —— 纯类型收口、运行期零变化
+    dto: Omit<SysLogOperateDTO, 'id' | 'operatedAt' | 'createdAt' | 'updatedAt'> & {
       // Q7 定案的 ETL 原文旁路列：request/response 序列化失败时 jsonb 列置空、原文落这里
       rawRequestData?: string | null
       rawResponseData?: string | null
