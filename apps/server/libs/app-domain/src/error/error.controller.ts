@@ -1,6 +1,7 @@
 import { Controller, Get, Param } from '@nestjs/common'
-import { ApiTags } from '@nestjs/swagger'
+import { ApiOkResponse, ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
+import { WalnutAdminSwaggerResponseSuccessSchemeData } from '@walnut-server/decorators/swagger'
 import { WalnutAdminExceptionDatabaseError } from '@walnut-server/exceptions/app/database'
 import {
   WalnutAdminExceptionBadRequest,
@@ -76,6 +77,25 @@ export class AppErrorController {
   constructor() {}
 
   @Get(':code')
+  // F-18（DOC-07 / DOC-09 同族）：文档此前声明 200 空壳，而实现**恒抛**（ErrorMap 覆盖
+  // 40000 ~ 50500 全部响应码，没有成功路径）。这里按错误语义声明，而不是 @ApiExcludeEndpoint：
+  // 这个端点的唯一用途就是演练错误壳，隐藏它会让「错误响应长什么样、有哪些响应码」在文档里
+  // 彻底消失 —— 它是全站唯一能按码点播错误的入口，且 dev-only guard 已把它隔离在非生产环境外。
+  @ApiParam({
+    name: 'code',
+    required: true,
+    type: Number,
+    enum: WalnutAdminConstAppResponseCode,
+    description: 'app response code to throw; a value outside the enum is rejected by the param pipe (40099)',
+  })
+  @ApiOkResponse({
+    description: 'Always an error envelope (this handler always throws): HTTP 200 with body.data = null, body.code = the requested code (never 20000) and body.msg = the i18n message of that code. Declared as the shared { code, msg, data } shell so the whole response-code enum stays discoverable from this endpoint.',
+    schema: WalnutAdminSwaggerResponseSuccessSchemeData({ type: 'null' }),
+  })
+  // 4A：13 个缺 summary 的 op 之一（这个端点唯一用途是演练错误壳，summary 说明它「总是抛」）。
+  @ApiOperation({
+    summary: 'Throw the response code given in the path (error envelope drill, always fails)',
+  })
   @WalnutAdminDecoratorDevOnly()
   error40000(
     @Param('code', new WalnutAdminPipeParamEnum(WalnutAdminConstAppResponseCode))

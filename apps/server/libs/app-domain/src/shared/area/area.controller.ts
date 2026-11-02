@@ -42,11 +42,13 @@ export class SharedAreaController {
   @Get('feedback')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.AREA_FEEDBACK_LIST)
+  // F-49（DOC-13）：codes 是**数组**（WalnutAdminDecoratorQueryArray 按 ',' 切分），
+  // 原先声明 type: String 与实现不符。
   @ApiQuery({
     name: 'codes',
-    type: String,
+    type: [String],
     required: true,
-    description: `feedback area codes`,
+    description: 'area codes to give feedback for, comma separated (e.g. codes=110000,120000)',
   })
   @ApiWalnutOkResponse({
     description: 'feedback with whole area tree',

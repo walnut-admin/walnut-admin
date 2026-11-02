@@ -5,6 +5,7 @@ import {
   HttpStatus,
   UseInterceptors,
 } from '@nestjs/common'
+import { ApiTags } from '@nestjs/swagger'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole, WalnutAdminInterceptorResponseLooseSerializer } from '@walnut-server/guards'
@@ -35,6 +36,9 @@ const Permissions = {
 } as const
 
 @Controller(AppRoutes.MONITOR_SERVER)
+// F-48（DOC-12）：本 controller 此前**没有** @ApiTags，Scalar / openapi.json 里它的操作
+// 落在无标签组 —— 按「标签 = 路由前缀」的全站口径补上（与 app/monitor/cache 等一致）。
+@ApiTags('app/monitor/server')
 @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 @UseInterceptors(WalnutAdminInterceptorResponseLooseSerializer)
 export class AppMonitorServerController {

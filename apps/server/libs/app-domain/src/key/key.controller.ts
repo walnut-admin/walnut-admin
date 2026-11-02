@@ -46,6 +46,11 @@ export class AppKeyController {
   @Post('init')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasRole(Role.ROOT)
+  // F-18（DOC-07）：init / rotate 的 200 此前无 schema（handler 返回 plainToInstance 后的 key 行）。
+  @ApiWalnutOkResponse({
+    description: 'initialize the first app key of a type (root only; the private key never leaves the server)',
+    DTO: AppKeyDTOSafe,
+  })
   async init(@Body() dto: AppKeyDTOInit) {
     const { type } = dto
     return plainToInstance(AppKeyDTOSafe, await this.appKeyService.initFirst(type))
@@ -56,6 +61,10 @@ export class AppKeyController {
   @WalnutAdminDecoratorHasRole(Role.ROOT)
   @WalnutTx()
   @ApiParam({ name: 'type', description: 'key type enum', enum: AppKeyTypeConst })
+  @ApiWalnutOkResponse({
+    description: 'rotate the app key of a type (root only; the previous key row is kept as history)',
+    DTO: AppKeyDTOSafe,
+  })
   async rotate(
     @WalnutTxSession() ctx: WalnutTxContext,
     @Param('type', new WalnutAdminPipeParamEnum(AppKeyTypeConst))

@@ -16,6 +16,7 @@ import {
   AppSettingDTOCreateResponse,
   AppSettingDTOListRequest,
   AppSettingDTOListResponse,
+  AppSettingDTOPrivateResponse,
   AppSettingDTOPublicResponse,
   AppSettingDTOReadResponse,
   AppSettingDTOSafe,
@@ -71,6 +72,12 @@ export class AppSettingController {
   @Get('private')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminGuardLockFree()
+  // F-18（DOC-07）：登录态功能开关此前 200 无 schema（DOC-19 记录为「保留 admin store 形态」，
+  // 这里只补文档形状，handler 仍返回 service 的普通对象，wire 零变化）。
+  @ApiWalnutOkResponse({
+    description: 'Get private (authenticated) functional switches: maskUrl / hijackRefresh / watermark / transition',
+    DTO: AppSettingDTOPrivateResponse,
+  })
   async getPrivateSettings() {
     return this.settingService.getPrivateSettings()
   }
@@ -105,6 +112,10 @@ export class AppSettingController {
   @Post('cache/refresh')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.CACHE_REFRESH)
+  @ApiWalnutOkResponse({
+    description: 'refresh the app setting cache from app_setting table',
+    primitive: 'boolean',
+  })
   @WalnutAdminDecoratorOperateLog({
     title: WalnutAdminConstDecoratorLogOperateTitle.APP_SETTING,
     action: WalnutAdminConstDecoratorLogOperateAction.REFRESH,
