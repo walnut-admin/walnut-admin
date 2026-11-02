@@ -38,7 +38,7 @@ pnpm taze       # 交互式更新依赖
 ```
 src/
 ├── zh-CN/              # 中文内容（主）
-│   ├── content/        # 主文档（monorepo / frontend / backend / shared / adr / archive / industry-research）
+│   ├── content/        # 主文档（monorepo / frontend / backend / shared / adr / plans / archive / industry-research）
 │   ├── record/         # 开发记录
 │   ├── announcement/   # 版本公告
 │   ├── index.md        # 首页

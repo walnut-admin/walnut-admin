@@ -7,7 +7,7 @@ task / health）。前两者是业务表的旁路数据，后者是它们与整�
 本文写**当前实现**（PostgreSQL 迁移后）。软删与恢复的公共基类在
 `apps/server/libs/repository/src/pg-base.repository.ts`；已知缺陷的登记与裁决见
 `apps/server/apps/api/test/api/DESIGN-ISSUES.md`（下文以 `P?-?` 引用）。
-表设计依据 `docs/plans/postgres-migration-phase2.md` §4.15 ~ §4.17 与 §5.3。
+表设计依据 `apps/docs/src/zh-CN/content/plans/postgres-migration-phase2.md` §4.15 ~ §4.17 与 §5.3。
 
 源码入口：`apps/server/libs/system/src/deleted/`、`apps/server/libs/system/src/logs/`、
 `apps/server/apps/api/src/modules/techniques/`（deleted / logs 的 controller 仍留 app 的

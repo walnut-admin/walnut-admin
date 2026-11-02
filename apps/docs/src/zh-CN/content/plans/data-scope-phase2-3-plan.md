@@ -1,5 +1,7 @@
 # 数据权限二期三期实施计划
 
+> **位置变更（2026-11-02）**：本文自仓库根 docs/plans/ 迁入 docs 站。状态：【已完结】，后续演进见同目录 `data-scope-remediation-plan.md`（整改批 4-7）与 [Guard 链与安全](/content/backend/modules/security)。
+
 > 状态：**已批准；批 1/2/3 已实施**（批 1 `afc8cde`、批 2 `f90bcd5`、批 3 三期 RLS `11df28d`）。
 > 前置：一期已落地（`c9b7694`）；组织地基已落地（`349e0b9`）。
 

@@ -5,7 +5,7 @@ import type { MigrationInterface, QueryRunner } from 'typeorm'
 /**
  * 数据权限一期 —— `sys_role.data_scope` + `app_demo.created_by`。
  *
- * 结构真源：`docs/plans/data-scope-design.md` §4（一期推荐方案）与 §5（改动面）。
+ * 结构真源：`apps/docs/src/zh-CN/content/plans/data-scope-design.md` §4（一期推荐方案）与 §5（改动面）。
  * 三档枚举与 `libs/const/src/app/dataScope.ts` 的 `WalnutAdminConstDataScope` 同源：
  * 1 = ALL / 2 = SELF / 3 = CUSTOM。DDL 用 `smallint + CHECK`（不做 PG 原生 ENUM：
  * 值集变更要走 ALTER TYPE，phase2 2.2 已定）。CHECK 的文本形态与

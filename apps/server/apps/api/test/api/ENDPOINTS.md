@@ -458,7 +458,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 
 ## C+D 批复审修复补记（2026-10-28）
 
-> 决策见 `docs/plans/modernization-roadmap.md` §6；问题条目与完整修法见 `DESIGN-ISSUES.md`。
+> 决策见 `apps/docs/src/zh-CN/content/plans/modernization-roadmap.md` §6；问题条目与完整修法见 `DESIGN-ISSUES.md`。
 > 本节只记**行为修订**与对应的 spec 翻转，供后续读端点时对照。
 
 - **P2-12 踢下线清缓存**：`system/user/device` 与 `app/monitor/user` 的 force-quit

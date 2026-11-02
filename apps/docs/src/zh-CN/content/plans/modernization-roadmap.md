@@ -1,5 +1,7 @@
 # 现代化路线图（迁移后时代）
 
+> **位置变更（2026-11-02）**：本文自仓库根 docs/plans/ 迁入 docs 站（U 批文档收口）。状态：【活跃】。
+
 > 真源文档：`postgres-migration-phase2.md`（表结构）、`postgres-migration-phase3-plan.md`（迁移执行）、
 > ADR 0021（决策）。本文件收编迁移完成后的调研结论与待办排期（2026-10-27）：
 > 校验栈结论、NestJS 12 升级计划、接口类型共享（codegen）、遗留架构清单。
@@ -200,7 +202,7 @@ P2-21~29、P2-32 security-policy 不清会话、P3-17~30 等）**维持登记、
 
 ### 6.1 数据权限一期（2026-10-30 实施完成）
 
-方案与决策真源：`docs/plans/data-scope-design.md`（§4 推荐方案、§5 实施状态、§7 四机制）。
+方案与决策真源：`apps/docs/src/zh-CN/content/plans/data-scope-design.md`（§4 推荐方案、§5 实施状态、§7 四机制）。
 
 落地要点：
 

@@ -7,7 +7,7 @@
 本文写**当前实现**（PostgreSQL 迁移后）。token / 会话语义见 [认证全链](./auth.md)，
 guard 链与方法级权限守卫见 [安全与 guard 链](./security.md)；已知缺陷的登记与裁决见
 `apps/server/apps/api/test/api/DESIGN-ISSUES.md`（下文以 `P?-?` 引用）。
-表设计依据 `docs/plans/postgres-migration-phase2.md` 与 `apps/api/migrations/1792922206018-InitSchema.ts`，
+表设计依据 `apps/docs/src/zh-CN/content/plans/postgres-migration-phase2.md` 与 `apps/api/migrations/1792922206018-InitSchema.ts`，
 站内摘要见 [数据模型与表设计](../schema.md)。
 
 源码入口：`apps/server/libs/app-domain/src/`（批 9 前在 `.../modules/app/` 与 `.../modules/shared/`）与 monitor/user 的 app 侧组合根 `apps/api/src/modules/app/monitor/user/`（wire DTO + controller，swagger schema 顺序约束）、

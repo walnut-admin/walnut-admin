@@ -19,7 +19,7 @@ import { cleanupPermissionChainSeed, seedPermissionChainUser } from './helpers/s
 /**
  * 数据权限二期批 2 —— **demo 表 M1-M10 端到端矩阵**（真实 HTTP 全链）。
  *
- * 真源：`docs/plans/data-scope-phase2-3-plan.md` §0（终态用户/行分布）与 §1.2
+ * 真源：`apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md` §0（终态用户/行分布）与 §1.2
  * （M1-M10 断言矩阵）。靶表 `app_demo`：二期批 2 给它加了 `dept_id`（方案 A 冗余列），
  * create 自动回填「创建者的 sys_employee.dept_id」（无职工行 → NULL）。
  *

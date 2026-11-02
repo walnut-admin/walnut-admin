@@ -4,7 +4,7 @@
 
 ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的关键架构决策。
 
-当前共 **22** 条 ADR，涵盖包命名、TypeScript 配置、依赖治理、发布流水线、测试策略、验证策略、包重组、Git 钩子、数据库选型、后端 lib 分层等领域。
+当前共 **27** 条 ADR，涵盖包命名、TypeScript 配置、依赖治理、发布流水线、测试策略、验证策略、包重组、Git 钩子、数据库选型、后端 lib 分层、契约门禁、健康探针、定时任务、签名与数据权限等领域。
 
 ## 形态约定（2026-09-23 起，由 `pnpm lint:adr` 机械强制）
 
@@ -85,8 +85,13 @@ ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的�
 | [0020](./0020-remove-unplugin-auto-import.md) | 移除 `unplugin-auto-import`，隐式全局改显式 import | Accepted |
 | [0021](./0021-postgresql-migration.md) | 数据库从 MongoDB 整体迁移到 PostgreSQL | Accepted |
 | [0022](./0022-backend-lib-layering-and-composition-roots.md) | 后端领域 lib 分层与组合根形态 | Accepted |
+| [0023](./0023-contract-uplift-and-route-parity-gates.md) | 契约上收与路由常量 parity 门禁 | Accepted |
+| [0024](./0024-health-probes-liveness-readiness-separation.md) | 健康探针 liveness / readiness 分离 | Accepted |
+| [0025](./0025-cron-single-instance-lock-and-bootstrap-ownership.md) | 定时任务单实例锁与 bootstrap 归属 | Accepted |
+| [0026](./0026-shared-sign-raw-across-frontend-and-backend.md) | 请求签名原文跨端统一 | Accepted |
+| [0027](./0027-data-scope-row-level-six-tier-and-rls.md) | 数据权限行级设计（六档 + PG RLS 双保险） | Accepted |
 
-> 全部 22 篇目前都是 `Accepted` —— 这不是「列没意义」，而是这个仓到目前**没有被否决或取代过的决策**。
+> 全部 27 篇目前都是 `Accepted` —— 这不是「列没意义」，而是这个仓到目前**没有被否决或取代过的决策**。
 > 枚举的价值在于：真出现 `Rejected` / `Superseded by ADR-NNNN` 时，有地方放、也有门禁保证它被填对。
 
 ## 补充文档

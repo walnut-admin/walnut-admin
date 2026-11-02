@@ -17,7 +17,7 @@ import {
 } from './helpers/sign-handshake'
 
 /**
- * L4：连接占用 spike 实测（docs/plans/data-scope-remediation-plan.md §4.1/§4.2 前置项）。
+ * L4：连接占用 spike 实测（apps/docs/src/zh-CN/content/plans/data-scope-remediation-plan.md §4.1/§4.2 前置项）。
  *
  * 背景：三期 RLS 让「无 em 的注册实体 CRUD」各自开隐式事务（基类 `withScopedManager`：
  * 取连接 → `SET TRANSACTION READ ONLY` → `set_config` 写 RLS GUC → 查询 → 提交 → 释放）。

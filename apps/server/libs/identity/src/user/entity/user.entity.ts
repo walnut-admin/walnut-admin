@@ -1,7 +1,7 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm'
 
 /**
- * sys_user —— MongoDB `sys_user` 集合的 PostgreSQL 实体（docs/plans/postgres-migration-phase2.md 4.1）。
+ * sys_user —— MongoDB `sys_user` 集合的 PostgreSQL 实体（apps/docs/src/zh-CN/content/plans/postgres-migration-phase2.md 4.1）。
  *
  * - 列名全部显式 `@Column({ name })`，与 phase2 文档逐列对齐，**不注册全局 SnakeNamingStrategy**
  *   （order/show/left 这类保留字改名 `sort_order` / `is_show` / `is_left` 策略表达不了，
@@ -59,7 +59,7 @@ export class SysUserEntity {
   @Column({ type: 'boolean', name: 'mfa_setup', default: false })
   mfaSetup: boolean
 
-  // 所属部门（数据权限二期批 1，docs/plans/data-scope-phase2-3-plan.md §1.1）：
+  // 所属部门（数据权限二期批 1，apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md §1.1）：
   // 可空（用户可不属于任何部门；DEPT 档位对 NULL 默认拒绝），FK→sys_dept ON DELETE
   // RESTRICT 与 partial index idx_user_dept 的 DDL 在 migration。
   @Index('idx_user_dept', { where: '"dept_id" IS NOT NULL' })

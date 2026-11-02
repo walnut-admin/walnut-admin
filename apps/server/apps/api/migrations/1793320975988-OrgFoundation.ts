@@ -5,8 +5,8 @@ import type { MigrationInterface, QueryRunner } from 'typeorm'
 /**
  * 组织基础表 —— `sys_dept`（部门树）/ `sys_post`（岗位）/ `sys_employee`（职工）。
  *
- * 结构真源：`docs/plans/data-scope-design.md` §4（二期部门维度）与
- * `docs/plans/postgres-migration-phase2.md` §2（通用约定 / FK 政策 / 索引策略）。
+ * 结构真源：`apps/docs/src/zh-CN/content/plans/data-scope-design.md` §4（二期部门维度）与
+ * `apps/docs/src/zh-CN/content/plans/postgres-migration-phase2.md` §2（通用约定 / FK 政策 / 索引策略）。
  * 三张表都是**新增表**，既有 `InitSchema` 是历史基线，一字不动（schema.md §4 纪律）。
  *
  * 设计口径（落地时逐条推导，与数据结构一一对应）：

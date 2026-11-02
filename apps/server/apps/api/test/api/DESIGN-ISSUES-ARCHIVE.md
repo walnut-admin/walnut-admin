@@ -1397,7 +1397,7 @@
   持 `system:role:update` 的管理员可改，root 天然全量；信任语义 = 把 `role:update`
   授予谁，等于授予谁行级范围授予权。批 7 以操作日志 before→after 快照收口审计可见性
   （至少 dataScope / deptIds / menus / status）。见
-  `docs/plans/data-scope-remediation-plan.md` §5.2。
+  `apps/docs/src/zh-CN/content/plans/data-scope-remediation-plan.md` §5.2。
 - **修法（2026-10-31，批 7 / L7）**：
   ① **审计快照**：`SysRoleService.update` 在写腿之前读出 `sys_role_dept` /
   `sys_role_menu` 清单，按四个授权敏感面（dataScope / status / deptIds / menus）组装
@@ -1424,7 +1424,7 @@
 - **实测证据**：本次读码；`data-scope.service.spec.ts` 的失效用例只覆盖角色/用户路径。
 - **建议**：设置写路径识别 `app.functional.role` 变更后全量清 `AUTH:DATA_SCOPE:*`
   （或把 setting 版本号纳入缓存键）。本轮仅登记。
-- **修法（2026-10-30，批 4 / L2；计划 `docs/plans/data-scope-remediation-plan.md` §2.2）**：
+- **修法（2026-10-30，批 4 / L2；计划 `apps/docs/src/zh-CN/content/plans/data-scope-remediation-plan.md` §2.2）**：
   ① **全局 epoch 取代 SCAN 清理**：缓存键 `AUTH:DATA_SCOPE:<userId>` →
   `AUTH:DATA_SCOPE:<epoch>:<userId>`；epoch 计数器键 `AUTH:DATA_SCOPE:EPOCH`（裸整数，
   在 `WALNUT_CACHE_` 命名空间之外 —— 不被监控台 clear / 按 key 删除重置，旧世代键不会

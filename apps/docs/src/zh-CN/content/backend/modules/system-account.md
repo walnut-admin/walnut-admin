@@ -9,7 +9,7 @@ MFA 守卫、Lock 守卫、敏感操作校验都直接依赖它们。
 本文写**当前实现**（PostgreSQL 迁移后）。认证与令牌的整体链路见 [认证全链](./auth.md)，
 全局守卫的职责与顺序见 [安全与 guard 链](./security.md)；已知缺陷的登记与裁决见
 `apps/server/apps/api/test/api/DESIGN-ISSUES.md`（下文以 `P?-?` 引用）。
-表设计依据 `docs/plans/postgres-migration-phase2.md` §4.8 ~ §4.14。
+表设计依据 `apps/docs/src/zh-CN/content/plans/postgres-migration-phase2.md` §4.8 ~ §4.14。
 
 源码入口：`apps/server/libs/identity/src/`（身份内核）与 `apps/server/libs/system/src/device/`
 （设备数据面）；controller 留 app 的 `apps/server/apps/api/src/modules/system/identity/` 与

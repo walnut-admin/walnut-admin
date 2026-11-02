@@ -36,7 +36,7 @@ export class ALSRequestService {
 
   /**
    * 系统通道：显式以 ALL 范围进入 ALS，供 cron / 脚本 / 测试等非 HTTP 入口使用
-   * （docs/plans/data-scope-design.md §7「显式 bypass + 审计」）。
+   * （apps/docs/src/zh-CN/content/plans/data-scope-design.md §7「显式 bypass + 审计」）。
    *
    * 只用于**确实没有请求用户**的内部任务；请求处理路径不允许调用（那会绕过
    * fail-closed 语义）。使用点应能说清「为什么这个任务需要跨用户读」。

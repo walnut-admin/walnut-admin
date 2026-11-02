@@ -3,7 +3,7 @@
 这是站内的**持久化设计摘要**：表清单、关键约束、FK 政策与迁移纪律。逐列真源是
 `apps/server/apps/api/src/modules/**/entity/*.entity.ts` 与
 `apps/server/apps/api/migrations/1792922206018-InitSchema.ts`；迁移前的完整推演在
-`docs/plans/postgres-migration-phase2.md`。本篇不复制 phase2 的逐表字段表，只保留「改表前必须知道」
+`apps/docs/src/zh-CN/content/plans/postgres-migration-phase2.md`。本篇不复制 phase2 的逐表字段表，只保留「改表前必须知道」
 的判据。
 
 运行侧的连接、seed、导出与脱敏见 [数据库与初始化数据](./postgresql.md)；各域的行为语义见

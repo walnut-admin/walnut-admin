@@ -1,7 +1,10 @@
 # 数据权限（Data Scope）设计方案
 
+> **位置变更（2026-11-02）**：本文自仓库根 docs/plans/ 迁入 docs 站（U 批文档收口）。状态：【活跃】。
+
 > 2026-10-30 调研定稿。两路调研：RuoYi 机制拆解（源码级）+ TypeORM/PG 现代方案盘点。
-> 决策待维护者批准后进入实施（一期建议范围见 §5）。
+> 设计已经三批实施并在生产口径运行（Phase 1-3 + 整改批 1-7 全部落地）；决策记录见
+> [ADR 0027](../adr/0027-data-scope-row-level-six-tier-and-rls)。
 
 ## 1. 背景与现状
 
@@ -88,7 +91,7 @@ JWT Guard → ALS 拦截器种入 { user, dataScope } → controller → service
 > **部门维度（批 1）已实施（2026-10-30）**：`sys_user.dept_id`、`sys_role_dept`、
 > `sys_role.data_scope` 六档（1 ALL / 2 CUSTOM 部门清单 / 3 DEPT / 4 DEPT_AND_CHILD /
 > 5 SELF / 6 DEPT_OR_SELF）与解析器/谓词扩展已落地；RLS 硬上限仍属三期。
-> 详见 `docs/plans/data-scope-phase2-3-plan.md` §1.1 与
+> 详见 `apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md` §1.1 与
 > `migrations/1793340000000-DataScopePhase2Dept.ts`。
 
 - 引入 `sys_dept` / `sys_user.dept_id` / `sys_role_dept` / `sys_role.data_scope smallint`

@@ -316,7 +316,26 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: '0020 移除 auto-import', link: '/content/adr/0020-remove-unplugin-auto-import' },
         { text: '0021 MongoDB 迁 PostgreSQL', link: '/content/adr/0021-postgresql-migration' },
         { text: '0022 领域 lib 分层与组合根', link: '/content/adr/0022-backend-lib-layering-and-composition-roots' },
+        { text: '0023 契约上收与路由门禁', link: '/content/adr/0023-contract-uplift-and-route-parity-gates' },
+        { text: '0024 健康探针 liveness/readiness', link: '/content/adr/0024-health-probes-liveness-readiness-separation' },
+        { text: '0025 定时任务锁与 bootstrap 归属', link: '/content/adr/0025-cron-single-instance-lock-and-bootstrap-ownership' },
+        { text: '0026 签名原文跨端统一', link: '/content/adr/0026-shared-sign-raw-across-frontend-and-backend' },
+        { text: '0027 数据权限行级设计', link: '/content/adr/0027-data-scope-row-level-six-tier-and-rls' },
         { text: 'Zod vs class-validator 评估', link: '/content/adr/zod-evaluation' },
+      ],
+    },
+    {
+      // 计划与设计：活跃的设计真源 / 路线图与已完结的实施计划（2026-11-02 自仓库根 docs/plans/
+      // 迁入）。每篇篇头有状态与后续演进指向；已完全闭环、仅作历史留痕的过程文档归「归档」段；本段的「已完结」篇仍是当前设计真源。
+      text: '计划与设计',
+      items: [
+        { text: '数据权限行级设计', link: '/content/plans/data-scope-design' },
+        { text: '数据权限 Phase 2-3 计划', link: '/content/plans/data-scope-phase2-3-plan' },
+        { text: '数据权限整改计划', link: '/content/plans/data-scope-remediation-plan' },
+        { text: 'PostgreSQL 迁移 Phase 2', link: '/content/plans/postgres-migration-phase2' },
+        { text: 'PostgreSQL 迁移 Phase 3 计划', link: '/content/plans/postgres-migration-phase3-plan' },
+        { text: '现代化路线图', link: '/content/plans/modernization-roadmap' },
+        { text: 'libs 解耦残留与后续', link: '/content/plans/libs-decoupling-residuals' },
       ],
     },
     {

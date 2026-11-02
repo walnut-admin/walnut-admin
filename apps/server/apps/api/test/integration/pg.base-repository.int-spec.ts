@@ -26,7 +26,7 @@ import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
  *   read/update/delete 越权 = 404，无上下文 fail-closed。
  *
  * 数据权限上下文：直接调仓库的用例必须显式进入系统通道（`als.runAsSystem`）——
- * 这正是生产侧 cron/脚本的准入形态（docs/plans/data-scope-design.md §7）。
+ * 这正是生产侧 cron/脚本的准入形态（apps/docs/src/zh-CN/content/plans/data-scope-design.md §7）。
  */
 @Injectable()
 class AppDemoPgRepository extends WalnutAdminCommonPgBaseRepository<AppDemoEntity> {

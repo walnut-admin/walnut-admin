@@ -102,9 +102,9 @@ OTP 的 tracker 是 `identifier:ip`。动态覆盖只改该端点的 limit/ttl�
 ### 1.3 数据权限（行级 scope）
 
 功能权限（上一节）决定「能不能调这个接口」，**数据权限**决定「这个接口能看到/改到哪些行」。
-方案与取舍见 `docs/plans/data-scope-design.md` §4（应用层 scope + 基类收口 +
+方案与取舍见 `apps/docs/src/zh-CN/content/plans/data-scope-design.md` §4（应用层 scope + 基类收口 +
 fail-closed 注册表；PG RLS 留作三期硬上限），部门维度的实施计划见
-`docs/plans/data-scope-phase2-3-plan.md` §1。
+`apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md` §1。
 
 **执行链**：
 

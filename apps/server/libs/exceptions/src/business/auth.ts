@@ -156,7 +156,7 @@ export class WalnutAdminExceptionSensitiveVerificationFailed extends WalnutAdmin
 
 /**
  * 数据权限 fail-closed：已注册实体（含 owner 列的业务表）在没有 ALS 数据权限上下文
- * 时拒绝查询 —— 对应 docs/plans/data-scope-design.md §7 的「fail-closed 上下文」
+ * 时拒绝查询 —— 对应 apps/docs/src/zh-CN/content/plans/data-scope-design.md §7 的「fail-closed 上下文」
  * 机制（TenancyJS 同款语义：不默认 ALL，直接抛错）。
  *
  * 触发面只有两类：① 请求内但拦截器没种入描述符（装配错误）；② 非 HTTP 通道

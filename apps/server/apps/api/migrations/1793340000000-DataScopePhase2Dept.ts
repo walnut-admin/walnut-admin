@@ -6,8 +6,8 @@ import type { MigrationInterface, QueryRunner } from 'typeorm'
  * 数据权限二期批 1 —— 部门维度地基：`sys_user.dept_id` + `sys_role_dept` +
  * `sys_role.data_scope` 六档扩展。
  *
- * 结构真源：`docs/plans/data-scope-phase2-3-plan.md` §1.1 与
- * `docs/plans/data-scope-design.md` §4（二期部门维度）。InitSchema 是历史基线，一字不动。
+ * 结构真源：`apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md` §1.1 与
+ * `apps/docs/src/zh-CN/content/plans/data-scope-design.md` §4（二期部门维度）。InitSchema 是历史基线，一字不动。
  *
  * ## 六档语义与存量行的重映射（本迁移最容易做错的一步）
  *

@@ -65,7 +65,7 @@ export class AppDemoEntity {
   @Column({ type: 'jsonb', name: 'demo_object', nullable: true })
   demoObject: IDemoObject | null
 
-  // 数据权限一期（docs/plans/data-scope-design.md §4）：示范 owner 列。
+  // 数据权限一期（apps/docs/src/zh-CN/content/plans/data-scope-design.md §4）：示范 owner 列。
   // 松引用 sys_user.id（不建 FK，对齐 phase2 审计列口径）；基类 create 对注册实体
   // 自动填充（见 common/repository/data-scope.ts），SELF/CUSTOM 的过滤列即本列。
   // 与 migration 的 partial index 同形（WHERE created_by IS NOT NULL），防未来 generate 漂移。
@@ -73,7 +73,7 @@ export class AppDemoEntity {
   @Column({ type: 'uuid', name: 'created_by', nullable: true })
   createdBy: string | null
 
-  // 数据权限二期批 2（docs/plans/data-scope-phase2-3-plan.md §1.2 方案 A）：行级部门归属。
+  // 数据权限二期批 2（apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md §1.2 方案 A）：行级部门归属。
   // FK → sys_dept(id) ON DELETE RESTRICT 在 migration；基类 create 回填创建者的
   // sys_employee.dept_id（无职工行 → NULL，仅 ALL 可见）。partial index 与 migration 同形。
   @Index('idx_demo_dept', { where: '"dept_id" IS NOT NULL' })

@@ -1,5 +1,7 @@
 # Phase 2：关系模型设计（MongoDB → PostgreSQL）
 
+> **位置变更（2026-11-02）**：本文自仓库根 docs/plans/ 迁入 docs 站。状态：【已完结】，后续演进见 [ADR 0021](/content/adr/0021-postgresql-migration) 与 [数据库与初始化数据](/content/backend/postgresql)。
+
 **Status:** 已完成（2026-10-25 全部拍板并定稿；实施已随 `refactor/postgres-migration` 落地，收尾摘要见 ADR 0021 的 Implementation 小节）
 **Date:** 2026-10-25
 **上游决策:** ADR-0021（TypeORM 1.x / UUID 主键 / 事务装饰器 API 不变 / 回收站完整保留 / 本地+seed 为数据基准 / PG 18-alpine）

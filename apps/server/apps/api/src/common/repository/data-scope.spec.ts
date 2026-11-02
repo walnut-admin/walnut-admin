@@ -20,7 +20,7 @@ import {
 } from './data-scope'
 
 /**
- * 数据权限注册表守卫 + 谓词纯函数（docs/plans/data-scope-design.md §4 要点 3/4）。
+ * 数据权限注册表守卫 + 谓词纯函数（apps/docs/src/zh-CN/content/plans/data-scope-design.md §4 要点 3/4）。
  *
  * ① 注册完整性：**glob 全仓 `*.entity.ts` 动态 import**（不依赖 data-scope.ts 的显式
  *    import 清单 —— 否则新增实体只要没被 data-scope import 就天然逃过守卫），

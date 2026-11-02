@@ -138,7 +138,7 @@ class UserController {
 
 实施已完成（2026-10-25，分支 `refactor/postgres-migration`），分期概要：
 
-- **Phase 2**：逐表映射与约束清单定稿（`docs/plans/postgres-migration-phase2.md`，已全部拍板）。
+- **Phase 2**：逐表映射与约束清单定稿（`apps/docs/src/zh-CN/content/plans/postgres-migration-phase2.md`，已全部拍板）。
 - **Phase 3（B0-B9）**：TypeORM 实体与 `WalnutAdminCommonPgBaseRepository` 基类、uuid 三件套
   （pipe / validator / 参数装饰器）、回收站 PG 通道（jsonb 快照 + 恢复注册表）、事务拦截器
   收窄为 PG 单引擎（QueryRunner 语义）、lang i18n 聚合管道的 SQL 重写。

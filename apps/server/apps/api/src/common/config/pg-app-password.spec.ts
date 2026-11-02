@@ -8,7 +8,7 @@ import { validateConfig } from '@walnut-server/config/validation'
 import { describe, expect, it } from 'vitest'
 
 /**
- * L5：RLS 引导密码生产防呆（docs/plans/data-scope-remediation-plan.md §4.1 / 批 6）。
+ * L5：RLS 引导密码生产防呆（apps/docs/src/zh-CN/content/plans/data-scope-remediation-plan.md §4.1 / 批 6）。
  *
  * 两层：
  * 1. 纯函数三分支 —— development（引导密码放行）/ stage（引导密码抛）/ production

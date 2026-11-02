@@ -71,7 +71,7 @@ export class SysRoleDTOBase extends WalnutAdminCommonBasicModel {
   })
   status: boolean
 
-  // 数据权限二期六档（docs/plans/data-scope-phase2-3-plan.md §1.1）：
+  // 数据权限二期六档（apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md §1.1）：
   // 1=ALL 2=CUSTOM(部门清单) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF。
   // 值集与实体列/migration CHECK 同源（WalnutAdminConstDataScope）；默认 1（ALL）
   // 与 DDL DEFAULT 对齐 —— 未显式配置的角色保持既有可见面。

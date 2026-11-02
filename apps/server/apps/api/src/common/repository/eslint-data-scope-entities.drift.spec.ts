@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { WALNUT_DATA_SCOPE_ENTITIES } from './data-scope'
 
 /**
- * ESLint 实体清单对账守卫（docs/plans/data-scope-remediation-plan.md §3.2 / 批 5 L3b）。
+ * ESLint 实体清单对账守卫（apps/docs/src/zh-CN/content/plans/data-scope-remediation-plan.md §3.2 / 批 5 L3b）。
  *
  * 两份清单的分工：
  * - `WALNUT_DATA_SCOPE_ENTITIES`（common/repository/data-scope.ts）= 运行时注册表，**真源**；

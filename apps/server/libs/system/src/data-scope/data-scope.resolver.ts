@@ -7,10 +7,10 @@ import { toWalnutDataScopeMode } from './data-scope.predicates'
 /**
  * 数据权限**解析器**（纯函数）—— 输入 = 用户 junction 角色快照 + 各角色 dataScope +
  * 已解析的部门维度（用户 dept、dept 子树、CUSTOM 部门清单），输出 = 描述符。
- * 决策层不碰 DB/缓存，可完整单测（docs/plans/data-scope-design.md §4 设计要点 1 /
+ * 决策层不碰 DB/缓存，可完整单测（apps/docs/src/zh-CN/content/plans/data-scope-design.md §4 设计要点 1 /
  * §7「残余过滤条件接口」：未来接 OPA/策略引擎只换这一层）。
  *
- * 六档语义（docs/plans/data-scope-phase2-3-plan.md §1.1）：
+ * 六档语义（apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md §1.1）：
  * - ALL：全量；
  * - CUSTOM：`sys_role_dept` 的部门清单（不递归子树；空清单默认拒绝）；
  * - DEPT：`[user.deptId]`（dept 为 NULL → 空集默认拒绝）；

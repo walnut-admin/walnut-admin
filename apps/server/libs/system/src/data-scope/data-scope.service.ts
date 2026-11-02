@@ -24,8 +24,8 @@ export function isWalnutDataScopeSettingKey(settingKey: string | null | undefine
 }
 
 /**
- * 数据权限解析服务（docs/plans/data-scope-design.md §4 设计要点 1 / 6；
- * 部门维度见 docs/plans/data-scope-phase2-3-plan.md §1.1）。
+ * 数据权限解析服务（apps/docs/src/zh-CN/content/plans/data-scope-design.md §4 设计要点 1 / 6；
+ * 部门维度见 apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md §1.1）。
  *
  * 职责：
  * 1. **解析**：按用户 junction 角色的实时值（user.role_mode / current_role_id /

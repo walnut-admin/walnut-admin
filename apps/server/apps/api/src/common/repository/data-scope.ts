@@ -37,8 +37,8 @@ import {
  * （lib 不 import app）；策略端口实现
  * `common/repository/data-scope.policy.ts` 与本文件同层。
  *
- * 语义见 docs/plans/data-scope-design.md §4，§7「残余过滤条件接口」；
- * 部门维度见 docs/plans/data-scope-phase2-3-plan.md §1.1。
+ * 语义见 apps/docs/src/zh-CN/content/plans/data-scope-design.md §4，§7「残余过滤条件接口」；
+ * 部门维度见 apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md §1.1。
  *
  * 语义边界（重要）：
  * - **注册 = 强制过滤**：一经注册，`WalnutAdminCommonPgBaseRepository` 的

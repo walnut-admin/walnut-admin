@@ -69,7 +69,7 @@ import type { Fn, IStorageSync } from '@walnut/types'
 - **根 barrel 目前 0 处消费**：全仓对 `@walnut/types` 的导入都写成子路径（`@walnut/types/universal` 等），2026-09-23 补的 `src/index.d.ts` 只是策略一致性收口；该文件注释也明写子路径「继续可用、而且更精确」—— 证据：`packages/platform-any/types/src/index.d.ts` 与 `apps/docs/src/zh-CN/content/monorepo/architecture-todo.md` 的 R8 核实记录。
 - **「新模块忘了补 re-export」没有门禁**：`src/index.d.ts` 的文件头注释自陈 —— 反向的错（引用了已删除的模块）由 `pnpm types:check` 拦，**正向的漏只靠这段注释**。证据：`packages/platform-any/types/src/index.d.ts`。
 - **没有 `test` 脚本、没有 `vitest.config.ts`**：`package.json` 的 scripts 只有 `build` / `lint` / `types:check` / `clean`；四个类型体操模块零用例，唯一保障是 `tsc --noEmit`（`pnpm test` 的覆盖包清单里也没有本包）。
-- **跨端业务类型镜像已由 codegen 接管**：ADR 0017 记为「最大的跨端类型共享机会」的 `IModels` 镜像，已于 OpenAPI codegen 二期（2026-10-28）退役 —— 接口级类型真源是 `@walnut/api-types`（platform-web 的生成包），本包仍只放跨端纯类型体操 —— 证据：`packages/platform-web/api-types/src/index.ts` 与`docs/plans/modernization-roadmap.md` §3。
+- **跨端业务类型镜像已由 codegen 接管**：ADR 0017 记为「最大的跨端类型共享机会」的 `IModels` 镜像，已于 OpenAPI codegen 二期（2026-10-28）退役 —— 接口级类型真源是 `@walnut/api-types`（platform-web 的生成包），本包仍只放跨端纯类型体操 —— 证据：`packages/platform-web/api-types/src/index.ts` 与`apps/docs/src/zh-CN/content/plans/modernization-roadmap.md` §3。
 - **`exports` 无条件分支**：`"."` 与 `"./*"` 都直接指向 `.d.ts`，所以任何**运行时** import 都会解析到声明文件（该包零运行时导出，属于「本就不该这么用」，但错误的用法不会被 exports 拦下）。
 - **`@walnut/eslint-config` 声明了却在本地用不上**：目录里没有 `eslint.config.ts`，`pnpm lint` 实际由 ESLint 向上查找命中根配置（架构待办第 1 批 R3 记录：除包级那几份配置外，其余包都走根配置）—— 证据：`packages/platform-any/types/package.json` 与 `apps/docs/src/zh-CN/content/monorepo/architecture-todo.md`。
 

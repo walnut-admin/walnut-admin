@@ -178,7 +178,7 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
   /**
    * 取当前请求的数据权限上下文；未注册实体不受影响。
    *
-   * fail-closed 语义（docs/plans/data-scope-design.md §7）：
+   * fail-closed 语义（apps/docs/src/zh-CN/content/plans/data-scope-design.md §7）：
    * - ALS 里没有描述符 → 抛 `WalnutAdminExceptionDataScopeContextMissing`（绝不当 ALL）；
    * - 非 HTTP 通道（cron / 脚本 / 测试）必须在 ALS 里显式
    *   `ALSRequestService.runAsSystem()` 进入系统通道（描述符 ALL），否则同样抛错。

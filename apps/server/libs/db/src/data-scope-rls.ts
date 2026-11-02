@@ -5,7 +5,7 @@ import type { DataSource, EntityManager } from 'typeorm'
  * 不关心描述符怎么算（解析在 apps/api/src/modules/system/data-scope/，聚合在
  * apps/api/src/common/repository/data-scope.rls.ts）。
  *
- * 三条硬约束（docs/plans/data-scope-phase2-3-plan.md §2）：
+ * 三条硬约束（apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md §2）：
  * 1. `set_config(..., true)` 是**事务级**设置 —— 必须与查询同连接同事务；会话级
  *    或池级 manager 上写会泄漏到下一个借到该连接的请求（业界 30 并发实测）。
  * 2. 事务提交/回滚后 PG 自动清空 local 设置，连接回池时不残留。

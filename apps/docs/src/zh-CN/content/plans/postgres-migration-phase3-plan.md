@@ -1,5 +1,7 @@
 # Phase 3 逐模块迁移实施计划（B0-B10）
 
+> **位置变更（2026-11-02）**：本文自仓库根 docs/plans/ 迁入 docs 站。状态：【已完结】，后续演进见 [ADR 0021](/content/adr/0021-postgresql-migration) 与 [数据库与初始化数据](/content/backend/postgresql)。
+
 > 真源文档：`postgres-migration-phase2.md`（表结构）与 ADR 0021（决策）。
 > 本文件是 Phase 3 的执行蓝图（2026-10-25 调研定稿），供各迁移批次 Agent 引用。
 > B0 已交付（fc0d51c）；本文件随批次推进更新勾选状态。

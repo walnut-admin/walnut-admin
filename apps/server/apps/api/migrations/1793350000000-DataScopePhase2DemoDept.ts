@@ -5,7 +5,7 @@ import type { MigrationInterface, QueryRunner } from 'typeorm'
 /**
  * 数据权限二期批 2 —— `app_demo.dept_id`（示范表的行级部门归属）。
  *
- * 结构真源：`docs/plans/data-scope-phase2-3-plan.md` §1.2 方案 A（冗余列，推荐）：
+ * 结构真源：`apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md` §1.2 方案 A（冗余列，推荐）：
  * demo 是示范表，索引友好优先 —— 谓词 `dept_id = ANY(deptIds)` 单跳、可直接吃
  * `idx_demo_dept`；方案 B（EXISTS 链 `sys_employee.user_id = demo.created_by`）两跳且
  * 依赖创建者仍有职工行，只保留为「无冗余列表」的通用回退（注册表 `matchBy` 预留位）。

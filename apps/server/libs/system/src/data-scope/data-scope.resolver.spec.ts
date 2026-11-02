@@ -7,8 +7,8 @@ import { resolveSingleRoleDataScope, resolveWalnutDataScopeDescriptor } from './
 /**
  * 数据权限解析器矩阵（纯函数，不碰 DB/缓存）。
  *
- * 覆盖 docs/plans/data-scope-phase2-3-plan.md §1.1 的六档语义与
- * docs/plans/data-scope-design.md §4 设计要点 7 的 multi-role 语义：
+ * 覆盖 apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md §1.1 的六档语义与
+ * apps/docs/src/zh-CN/content/plans/data-scope-design.md §4 设计要点 7 的 multi-role 语义：
  * COMBINE 部门并集 / SWITCH 仅 currentRole / root 恒 ALL / 无角色默认拒绝 /
  * 非法档位默认拒绝 / 停用角色不参与 / dept NULL 默认拒绝 / CUSTOM 部门清单。
  */

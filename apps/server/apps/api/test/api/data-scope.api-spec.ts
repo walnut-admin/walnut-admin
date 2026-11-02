@@ -11,8 +11,8 @@ import { createApiApp } from './helpers/create-api-app'
 import { cleanupPermissionChainSeed, seedPermissionChainUser } from './helpers/seed-permissions'
 
 /**
- * 数据权限 API 级用例（docs/plans/data-scope-phase2-3-plan.md §1.1 的语义翻转面 +
- * docs/plans/data-scope-design.md §4）。
+ * 数据权限 API 级用例（apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md §1.1 的语义翻转面 +
+ * apps/docs/src/zh-CN/content/plans/data-scope-design.md §4）。
  *
  * 模板示范表 app_demo 走真实 HTTP 全链：非 root 用户的 SELF / ALL 行级可见面、
  * 越权 read/update/delete 一律 404（不泄露行存在性）、create 自动回填 owner、

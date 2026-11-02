@@ -5,7 +5,7 @@ import type { MigrationInterface, QueryRunner } from 'typeorm'
 /**
  * 初始 schema —— 26 表全量 DDL（24 主表 + sys_user_role / sys_role_menu 两张关联表）。
  *
- * 结构真源：`docs/plans/postgres-migration-phase2.md`（2026-10-25 全部拍板定稿）。
+ * 结构真源：`apps/docs/src/zh-CN/content/plans/postgres-migration-phase2.md`（2026-10-25 全部拍板定稿）。
  * 本文件是该设计的可执行形态，逐列 / 逐索引 / 逐约束对齐；列数 298、jsonb 17、
  * 索引 82（含 PK 与唯一索引）、FK 17，口径见文档第 1 节总览。
  *

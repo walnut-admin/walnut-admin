@@ -8,7 +8,7 @@ dict / lang / locale 是三组互相独立的配置数据。
 本文写**当前实现**（PostgreSQL 迁移后）。认证与令牌的细节见 [认证全链](./auth.md)，
 全局守卫链与方法级权限守卫的通用语义见 [安全与 guard 链](./security.md)；
 已知缺陷的登记与裁决见 `apps/server/apps/api/test/api/DESIGN-ISSUES.md`（下文以 `P?-?` 引用）。
-表设计依据 `docs/plans/postgres-migration-phase2.md` §4.1 ~ §4.7。
+表设计依据 `apps/docs/src/zh-CN/content/plans/postgres-migration-phase2.md` §4.1 ~ §4.7。
 
 源码入口：`apps/server/libs/system/src/`（role / menu / dict / lang / locale）与
 `apps/server/apps/api/src/modules/system/`（controller 与 user 的 wire DTO）。接口矩阵的原始测绘在

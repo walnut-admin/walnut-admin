@@ -5,7 +5,7 @@ import type { MigrationInterface, QueryRunner } from 'typeorm'
 /**
  * 数据权限三期 —— PostgreSQL RLS RESTRICTIVE 硬上限（部门 + 本人天花板）。
  *
- * 结构真源：`docs/plans/data-scope-phase2-3-plan.md` §2。三件事：
+ * 结构真源：`apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md` §2。三件事：
  *
  * ## 1. 专用角色 `walnut_app`
  * `NOSUPERUSER NOBYPASSRLS` 非表 owner —— RLS 只对「非 owner 且无 BYPASSRLS」的角色
