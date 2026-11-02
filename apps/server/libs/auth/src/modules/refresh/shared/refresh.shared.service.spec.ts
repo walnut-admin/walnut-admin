@@ -129,6 +129,10 @@ function createService() {
     {} as SysUserSharedService,
     cryptoService,
     {} as AuthSessionService,
+    // 拍板-4：refresh 的设备状态闸门（本文件的用例都走 generateRefreshToken 路径，
+    // 不触达 getNewAccessToken，故这里用最小空实现即可）
+    {} as never,
+    {} as never,
   )
 
   return { service, repo, generateJTI, generateJwtRefreshToken }

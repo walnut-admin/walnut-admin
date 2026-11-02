@@ -1,10 +1,12 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
-import { AppTechCacheMfaService } from '@walnut-server/cache'
+import { AppTechCacheDeviceService, AppTechCacheMfaService } from '@walnut-server/cache'
 import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { AppTechCryptoService } from '@walnut-server/crypto'
+import { WalnutAdminExceptionDeviceBanned, WalnutAdminExceptionDeviceLocked, WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
 import { WalnutAdminExceptionDuplicateSignIn, WalnutAdminExceptionRefreshTokenExpired } from '@walnut-server/exceptions/business/auth'
 import { SysUserDeviceSharedService, SysUserRepositoryService, SysUserSharedService } from '@walnut-server/identity'
+import { SysDeviceRepositoryService } from '@walnut-server/system'
 import { AppTokenService } from '@walnut-server/token'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { QueryFailedError } from 'typeorm'
@@ -55,6 +57,9 @@ export class AuthRefreshSharedService {
     private readonly sysUserSharedService: SysUserSharedService,
     private readonly cryptoService: AppTechCryptoService,
     private readonly authSessionService: AuthSessionService,
+    // 拍板-4：refresh 也要看设备状态（封禁 / 锁定不得续 AT）
+    private readonly cacheDeviceService: AppTechCacheDeviceService,
+    private readonly deviceRepo: SysDeviceRepositoryService,
   ) {}
 
   private readonly logger = new Logger(AuthRefreshSharedService.name)
@@ -108,6 +113,22 @@ export class AuthRefreshSharedService {
    */
   async revokeRTForUserDevice(userId: string, deviceId: string, em?: EntityManager, revokeReason?: IWalnutAdminConstRevokeRTType) {
     return this.authRefreshRepo.updateRevokedAndReason(userId, deviceId, true, em, revokeReason)
+  }
+
+  /**
+   * @description 撤销某**设备**上所有用户的 refresh token（拍板-4：设备封禁踢下线）
+   *
+   * 与 revokeRTForUserDevice 的差别只有「范围」：封禁面向设备，调用方不知道这台设备上
+   * 登录过谁 —— 按 device_id 一次撤干净。
+   *
+   * @returns 受影响的 userId 列表（供调用方清会话 / 权限 / MFA 缓存键）
+   */
+  async revokeRTForDevice(deviceId: string, em?: EntityManager, revokeReason?: IWalnutAdminConstRevokeRTType) {
+    return this.authRefreshRepo.updateRevokedByDeviceId(
+      deviceId,
+      revokeReason ?? WalnutAdminConstRevokeRTType.deviceBanned,
+      em,
+    )
   }
 
   /**
@@ -184,6 +205,45 @@ export class AuthRefreshSharedService {
       { lock: true },
     )
     return active !== null
+  }
+
+  /**
+   * @description 设备可用性闸门（拍板-4）：缓存优先、miss 回源 DB（与 DeviceGuard 同口径）
+   *
+   * 与 guard 的差别只有「谁来喊」：guard 管 HTTP 入口，这里管「服务层的续 AT 出口」。
+   * 缓存被清空 / 过期不再等价于「设备不存在」——回源 sys_device 是真值，查无才拒绝。
+   */
+  private async assertDeviceUsable(deviceId: string) {
+    const cached = await this.cacheDeviceService.getSysDeviceCache(deviceId)
+
+    if (cached) {
+      if (cached.banned) {
+        throw new WalnutAdminExceptionDeviceBanned()
+      }
+
+      if (cached.locked) {
+        throw new WalnutAdminExceptionDeviceLocked()
+      }
+
+      return
+    }
+
+    const dbDevice = await this.deviceRepo.findDeviceByDeviceId(deviceId)
+
+    if (!dbDevice) {
+      this.logger.warn(`Refresh denied: device not found (${deviceId})`)
+      throw new WalnutAdminExceptionDeviceNotAcceptable()
+    }
+
+    await this.cacheDeviceService.setSysDeviceCache(dbDevice)
+
+    if (dbDevice.banned) {
+      throw new WalnutAdminExceptionDeviceBanned()
+    }
+
+    if (dbDevice.locked) {
+      throw new WalnutAdminExceptionDeviceLocked()
+    }
   }
 
   /**
@@ -363,6 +423,12 @@ export class AuthRefreshSharedService {
       )
       throw new WalnutAdminExceptionRefreshTokenExpired()
     }
+
+    // Step 1.5 - 设备状态闸门（拍板-4，服务层纵深）
+    // controller 已不再是 DeviceFree（DeviceGuard 在前），这里再拦一次是**故意的冗余**：
+    // 该方法是所有续 AT 路径的唯一出口，即使将来有人再给 refresh 端点加回 DeviceFree、
+    // 或经 mfa / totp / webauthn 端点间接走到这里，被封禁的设备也拿不到新 AT。
+    await this.assertDeviceUsable(record.deviceId)
 
     // Step 2 - get user with user id
     const user = await this.sysUserRepoService.findUserByUserId(record.userId, em)

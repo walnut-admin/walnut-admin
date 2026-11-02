@@ -251,21 +251,33 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       expect(miss.total).toBe(0)
     })
 
-    itSystem('deleteNonMonitorUserDevice：按业务键删除并返回快照', async () => {
-      const deviceId = unique('b6-del-device')
+    // 拍板-5：残留设备行**只打 stale 标记、不再物理删除** —— 行还在（cookie 不会因
+    // 行消失而永久 40605），banned / locked 原地保留（删行不再能洗掉封禁）。
+    itSystem('markDeviceStale：标记 stale + active=false 且返回标记前快照（行仍在）', async () => {
+      const deviceId = unique('b6-stale-device')
       await deviceBasicRepo.create({
-        deviceName: unique('b6-del-device-name'),
+        deviceName: unique('b6-stale-device-name'),
         deviceId,
         deviceInfo: {},
         ipHistory: [],
+        active: true,
       })
 
-      const snapshot = await deviceRepoService.deleteNonMonitorUserDevice(deviceId) as { deviceId: string }
+      const snapshot = await deviceRepoService.markDeviceStale(deviceId) as { deviceId: string, stale: boolean }
       expect(snapshot.deviceId).toBe(deviceId)
-      expect(await countPg('sys_device', 'device_id = $1', [deviceId])).toBe(0)
+      // 快照是「标记前」的形态
+      expect(snapshot.stale).toBe(false)
 
-      // 幂等路径：不存在返回 null（对齐 findOneAndDelete）
-      expect(await deviceRepoService.deleteNonMonitorUserDevice(deviceId)).toBeNull()
+      const rows: Array<{ stale: boolean, active: boolean }> = await pgDataSource.query(
+        'SELECT stale, active FROM sys_device WHERE device_id = $1',
+        [deviceId],
+      )
+      expect(rows[0].stale).toBe(true)
+      expect(rows[0].active).toBe(false)
+      expect(await countPg('sys_device', 'device_id = $1', [deviceId])).toBe(1)
+
+      // 行不存在时返回 null（调用方据此报「无事可做」）
+      expect(await deviceRepoService.markDeviceStale(unique('b6-stale-missing'))).toBeNull()
     })
   })
 

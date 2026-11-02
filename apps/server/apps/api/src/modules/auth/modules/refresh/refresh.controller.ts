@@ -11,7 +11,7 @@ import { AuthCookieService, AuthRefreshSharedService, AuthSuccessDTO, WalnutAdmi
 
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { WalnutAdminDecoratorDataScopeSystemChannel, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 import { AuthRoutes } from '@walnut/contract'
 import { JwtRefreshGuard } from './refresh.guard'
 
@@ -31,7 +31,9 @@ export class AuthRefreshController {
   @WalnutAdminGuardSignFree()
   @WalnutAdminGuardMFAFree()
   @WalnutAdminGuardJwtFree()
-  @WalnutAdminGuardDeviceFree()
+  // 拍板-4：**不再 DeviceFree** —— 已封禁/锁定的设备不得续 AT（DeviceGuard 的 40606/40607
+  // 在这里生效；顺带也让「cookie 滑动续期」在 refresh 上照样生效）。刷新链本来就必须
+  // 带 DEVICE_ID cookie（RT 行按 deviceId 校验），拆掉 DeviceFree 不会影响可用性。
   @WalnutTx()
   @ApiWalnutOkResponse({
     description:

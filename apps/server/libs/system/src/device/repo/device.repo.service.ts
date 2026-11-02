@@ -50,19 +50,35 @@ export class SysDeviceRepositoryService {
   }
 
   /**
-   * @description delete non-monitor user device
+   * @description 标记设备行为 stale（**不再物理删行**，拍板-5）
+   *
+   * 原实现是删行（findOneAndDelete 语义）：行一没，cookie 还在的浏览器就永久 40605
+   * （DeviceGuard 回源查不到），而 banned / locked 也随行一起消失 —— 「等 cron 删行」
+   * 成了绕过封禁的免费路径。现在只写 `stale = true` + `active = false`：
+   * - 行与 cookie 生命周期解耦，guard 照常命中 ⇒ 不再造出 40605 死胡同；
+   * - banned / locked 原地保留 ⇒ 删行不再是封禁的逃生门；
+   * - `stale` 不参与鉴权，重新 initial 时由 device.service 写回 false。
+   *
+   * @returns 标记**前**的快照（调用方只关心「有没有打过标记」，无行返回 null）
    */
-  async deleteNonMonitorUserDevice(deviceId: string) {
-    await this.cacheDeviceService.delSysDeviceCache(deviceId)
+  async markDeviceStale(deviceId: string) {
+    const repository = this.getRepository()
 
-    // findOneAndDelete → 找到即删，返回删除前快照（remove() 会就地清空生成列），无则 null
-    const target = await this.getRepository().findOne({ where: { deviceId } })
+    const target = await repository.findOne({ where: { deviceId } })
     if (!target) {
       return null
     }
 
     const snapshot = { ...target }
-    await this.getRepository().remove(target)
+
+    target.stale = true
+    target.active = false
+
+    const saved = await repository.save(target)
+
+    // 行还在、只是 stale：缓存回写新状态（不再 del —— del 会让下一次请求回源，多一跳）
+    await this.cacheDeviceService.setSysDeviceCache(saved)
+
     return snapshot
   }
 

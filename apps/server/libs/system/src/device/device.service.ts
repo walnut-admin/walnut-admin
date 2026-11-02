@@ -1,7 +1,8 @@
 import type { EntityManager } from 'typeorm'
-import type { IWalnutAdminSystemMonitorActiveUserReader } from '../system.ports'
+import type { IWalnutAdminSystemDeviceKicker, IWalnutAdminSystemMonitorActiveUserReader } from '../system.ports'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheDeviceService } from '@walnut-server/cache'
+import { WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { registerAfterCommitHook, runAfterCommit } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
@@ -14,7 +15,7 @@ import { escapeLikePattern } from '@walnut-server/repository'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { omit } from 'lodash'
 import { Brackets, QueryFailedError } from 'typeorm'
-import { WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER } from '../system.ports'
+import { WALNUT_ADMIN_SYSTEM_DEVICE_KICKER, WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER } from '../system.ports'
 import { SysDeviceBasicRepository } from './device.basic.repository'
 import { SysDeviceDTOInitialRequest, SysDeviceDTOListRequest } from './dto/device.dto'
 import { SysDeviceEntity } from './entity/device.entity'
@@ -45,6 +46,9 @@ export class SysDeviceService {
     private readonly deviceBasicRepo: SysDeviceBasicRepository,
     @Inject(WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER)
     private readonly monitorActiveUserReader: IWalnutAdminSystemMonitorActiveUserReader,
+    // 拍板-4：封禁 = 踢下线（撤 RT + 清会话键 + 断 WS），实现绑定在 app 的 @Global 模块
+    @Inject(WALNUT_ADMIN_SYSTEM_DEVICE_KICKER)
+    private readonly deviceKicker: IWalnutAdminSystemDeviceKicker,
     private readonly userDeviceSharedService: SysUserDeviceSharedService,
     private readonly deviceRepoService: SysDeviceRepositoryService,
     private readonly sharedIpService: SharedIpService,
@@ -119,6 +123,9 @@ export class SysDeviceService {
         ipHistory: [req.realIp],
         ip: req.realIp,
         active: true,
+        // 拍板-5：设备重新 initial = 又有真实浏览器活动，清掉 cron 打的 stale 标记
+        // （stale 不参与鉴权，这里只维护「残留行」语义；banned / locked 不在写集，保持原值）
+        stale: false,
       }
 
       // upsert：按业务键 device_id 查到即整体覆盖（$set + returnDocument: 'after'），否则插入
@@ -127,6 +134,9 @@ export class SysDeviceService {
 
       registerAfterCommitHook(async () => {
         await this.cacheDeviceService.setSysDeviceCache(result)
+        // P0-1：initial 刚签了 cookie，顺手把滑动续期的窗口开启 —— 否则紧接着的第一个
+        // 受保护请求会立刻再重发一次（一个无意义的 Set-Cookie）
+        await this.cacheDeviceService.markDeviceCookieRenewed(deviceId)
       })
 
       return {
@@ -222,6 +232,17 @@ export class SysDeviceService {
     await runAfterCommit(async () => {
       await this.cacheDeviceService.setSysDeviceCache(updated)
     })
+
+    // 拍板-4（封禁 = 踢下线）：封禁不能只写行 —— 已封设备当时还能用 /auth/refresh 续
+    // AT、WS 连接也不断。这里在**同一事务**里撤掉该设备上所有用户的 RT，事务提交后
+    // 清会话键并断开该设备的 socket；解禁（banned=false）不触发任何踢人。
+    if (patch.banned === true) {
+      await this.deviceKicker.kickDevice(
+        target.deviceId,
+        WalnutAdminConstRevokeRTType.deviceBanned,
+        em,
+      )
+    }
 
     return true
   }

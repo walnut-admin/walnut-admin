@@ -16,7 +16,8 @@ function createHarness() {
   const authRefreshSharedService = { revokeExpiredRefreshTokenForCronJob: vi.fn(async () => [{ id: 'rt-1' }]) }
   const appKeyService = { rotateForCronJob: vi.fn(async () => undefined) }
   const sysUserDeviceSharedService = {
-    updateDeviceActiveStatusForCronJob: vi.fn(async () => ({ matchedCount: 1, modifiedCount: 1, deletedCount: 0 })),
+    // 拍板-5：残留行只标 stale（计数口径 deletedCount → staleCount）
+    updateDeviceActiveStatusForCronJob: vi.fn(async () => ({ matchedCount: 1, modifiedCount: 1, staleCount: 0 })),
   }
   const appMonitorUserSharedService = {
     updateAuthStateForCronJob: vi.fn(async (revoked: { id: string }[]) => revoked),

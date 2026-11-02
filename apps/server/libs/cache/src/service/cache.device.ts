@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import { WalnutAdminConstDeviceCookieRenewInterval } from '@walnut-server/const/app/cookie'
 import { AppTechCacheService } from '../cache.service'
 
 interface DeviceCache {
@@ -57,6 +58,34 @@ export class AppTechCacheDeviceService {
     const cacheKey = this.getSysDeviceCacheKey(devceId)
     await this.cacheService.del(cacheKey)
     this.logger.debug(`Delete system device cache: key => ${cacheKey}`)
+  }
+
+  private readonly getDeviceCookieRenewKey = (deviceId: string) =>
+    `${WalnutAdminConstAppCacheKeys.SYS_DEVICE_COOKIE_RENEW}:${deviceId}`
+
+  /**
+   * @description 设备 cookie 滑动续期的时间闸（P0-1 后端纵深）
+   *
+   * 「cookie 剩余寿命」是浏览器侧的属性，服务端读不到（cookie 只有值、没有 exp）；
+   * 因此把「上次续期时刻」记在 Redis 的单键上，TTL = 续期间隔 —— 键不存在即等价于
+   * 「距上次续期已超过间隔」，调用方据此重发 cookie。用 setIfAbsent（SET NX EX）而不是
+   * GET+SET：并发请求里只会有一次拿到 true，不会各自重发。
+   *
+   * @returns true = 本次抢到续期窗口（调用方应重发 DEVICE_ID cookie）
+   */
+  async markDeviceCookieRenewed(deviceId: string): Promise<boolean> {
+    const written = await this.cacheService.setIfAbsent(
+      this.getDeviceCookieRenewKey(deviceId),
+      Date.now(),
+      {
+        t: WalnutAdminConstAppCacheType.SYSTEM,
+        ttl: Math.max(1, Math.ceil(WalnutAdminConstDeviceCookieRenewInterval / 1000)),
+      },
+    )
+
+    this.logger.debug(`Mark device cookie renewed: device => ${deviceId}, written => ${written}`)
+
+    return written
   }
 
   /**

@@ -3,7 +3,7 @@ import type { EntityManager } from 'typeorm'
 import type { IAuthMonitorService, IAuthRiskService } from '../../auth.ports'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheMfaService } from '@walnut-server/cache'
-import { WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
+import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { registerAfterCommitHook, runAfterCommit } from '@walnut-server/db'
 import { SysMenuSharedService } from '@walnut-server/system'
 import { WALNUT_ADMIN_AUTH_MONITOR_SERVICE, WALNUT_ADMIN_AUTH_RISK_SERVICE } from '../../auth.ports'
@@ -54,6 +54,48 @@ export class AuthSignoutService implements IIdentitySignoutService {
         await this.handleSecurityPolicy(userId, payload, em)
         break
     }
+  }
+
+  /**
+   * 设备封禁踢下线（review 拍板-4）—— **按设备**而不是按用户。
+   *
+   * 封禁原先只写 sys_device.banned：
+   * - `POST /auth/refresh` 是 DeviceFree 且只校验「cookie deviceId == RT 行 deviceId」，
+   *   已封设备可以无限续 AT；
+   * - WebSocket 握手只验 JWT + 会话键，已建立的连接照收实时事件。
+   *
+   * 这里把该设备上**所有用户**的会话断干净：
+   * 1. 撤该设备的全部现役 RT（reason = deviceBanned，与封禁写**同一事务**）；
+   * 2. 事务提交后按 userId 清会话键 / 权限缓存 / MFA verified 缓存（与 clearKickedDeviceCache
+   *    同一批键）—— 坑在于不能让缓存清扫跟着回滚误清，所以走 runAfterCommit；
+   * 3. socket 侧由调用方（app 的 kicker）在提交后断开。
+   *
+   * @returns 受影响的 userId 列表
+   */
+  async kickDeviceOffline(
+    deviceId: string,
+    revokeReason: IWalnutAdminConstRevokeRTType = WalnutAdminConstRevokeRTType.deviceBanned,
+    em?: EntityManager,
+  ) {
+    // F4 同款：空 deviceId 不得升级成「全设备吊销」语义（update 的 where 会退化成宽条件）
+    if (!this.isValidDeviceId(deviceId)) {
+      this.logger.warn('Device kick skipped: empty deviceId')
+      return []
+    }
+
+    const userIds = await this.authRefreshSharedService.revokeRTForDevice(deviceId, em, revokeReason)
+
+    this.logger.log(`Device kick - revoked RT for device: ${deviceId}, affected users: ${userIds.length}`)
+
+    await runAfterCommit(async () => {
+      for (const userId of userIds) {
+        await this.clearKickedDeviceCache(userId, deviceId)
+      }
+
+      this.logger.log(`Device kick - cleared sessions for device: ${deviceId}`)
+    })
+
+    return userIds
   }
 
   /**

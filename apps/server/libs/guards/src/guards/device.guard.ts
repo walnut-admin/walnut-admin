@@ -9,8 +9,8 @@ import { Reflector } from '@nestjs/core'
 import { AppTechCacheDeviceService } from '@walnut-server/cache'
 
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
-import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { getWalnutAdminCookie } from '@walnut-server/cookie'
+import { WalnutAdminConstCookieKeys, WalnutAdminConstDeviceCookieMaxAge } from '@walnut-server/const/app/cookie'
+import { AppTechCookieService, getWalnutAdminCookie } from '@walnut-server/cookie'
 import { WalnutAdminExceptionDeviceBanned, WalnutAdminExceptionDeviceLocked, WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
 import { SysDeviceRepositoryService } from '@walnut-server/system'
 import { MurLockService } from 'murlock'
@@ -30,7 +30,43 @@ export class WalnutAdminGuardDevice implements CanActivate {
     private readonly cacheDeviceService: AppTechCacheDeviceService,
     private readonly deviceRepo: SysDeviceRepositoryService,
     private readonly murLockService: MurLockService,
+    private readonly cookieService: AppTechCookieService,
   ) { }
+
+  /**
+   * P0-1（设备 cookie 死锁）后端纵深：**DEVICE_ID cookie 滑动续期**。
+   *
+   * 背景：cookie 原先只在 `/system/device/initial` 写一次（30 天 maxAge、无续期），而前端
+   * 的 `setupDeviceId` 只看 localStorage（有值就再也不 initial）⇒ 第 31 天起 cookie 消失、
+   * 全站 40605，登录端点也在 DeviceGuard 之后 ⇒ 连重新登录都做不到（前端那一半的修复是
+   * 40605 自愈，见 admin 的 response 拦截器）。
+   *
+   * 这里做「校验命中即检查续期窗口」：续期窗口（`SYSTEM:DEVICE:COOKIE_RENEW:<deviceId>`，
+   * TTL = 有效期的 80%）已过就重发 cookie 把 maxAge 拉满，于是 cookie 的剩余寿命恒
+   * > 20%，永远不会走到 0。写 cookie 走 AppTechCookieService（与 initial 同一条腿、
+   * 同签名/同属性），不新增旁路。
+   *
+   * 只在**校验全通过**之后调用：被封禁/锁定的设备不该拿到新的 cookie。
+   */
+  private async renewDeviceCookieIfNeeded(request: IWalnutAdminExpressRequest, deviceId: string) {
+    const shouldRenew = await this.cacheDeviceService.markDeviceCookieRenewed(deviceId)
+
+    if (!shouldRenew) {
+      return
+    }
+
+    this.cookieService.setResponseCookie(request, [
+      {
+        key: WalnutAdminConstCookieKeys.DEVICE_ID,
+        value: deviceId,
+        options: {
+          maxAge: WalnutAdminConstDeviceCookieMaxAge,
+        },
+      },
+    ])
+
+    this.logger.debug(`Device cookie renewed (sliding): ${deviceId}`)
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const ctx = context.switchToHttp()
@@ -109,6 +145,9 @@ export class WalnutAdminGuardDevice implements CanActivate {
       this.logger.warn(`Device locked: ${deviceId}`)
       throw new WalnutAdminExceptionDeviceLocked()
     }
+
+    // P0-1：校验全通过后按续期窗口重发 cookie（被封禁/锁定的设备走不到这里）
+    await this.renewDeviceCookieIfNeeded(request, deviceId)
 
     this.logger.debug(`Device validated successfully: ${deviceId}`)
     return true

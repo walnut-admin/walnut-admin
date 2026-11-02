@@ -18,12 +18,14 @@ import { Expose } from 'class-transformer'
  * userId 的 uuid 校验在 DTO 子类重声明（同 B1 模板）；deviceId 保持字符串业务键。
  */
 export class AppMonitorUserDTOBase extends WalnutAdminCommonBasicModel {
-  @WalnutAdminDecoratorFieldString({
-    swaggerOptions: {
-      title: 'fingerprint for auth and no auth users',
-    },
-  })
-  visitorId: string
+  // P0-2（设备追踪 P0 批）：`visitorId`（= **原始浏览器指纹**）从本基座摘除 ——
+  // 基座是「请求 + 响应」共用的字段面，留着它等于让每个派生响应都回显指纹。
+  // 而 deviceId = HMAC(指纹, 服务端 key)，指纹一旦下发，「拿到指纹 → 铸出该设备的
+  // 合法 cookie → 订阅它的 OAuth 结果流」就是一条可复现的账号接管链（review §8.4）。
+  // 现在该字段只存在于**请求面**：`AppMonitorUserDTOUpdateState`（心跳行键，P1-3 另批
+  // 处理）与 list 的查询过滤，两者在 app 的 wire DTO 里显式声明。响应面（list / read）
+  // 不再有任何指纹字段 —— 需要定位设备时用 device.deviceId / device.deviceName。
+  // 实体列 app_monitor_user.visitor_id 不受影响（服务端内部仍按它记账）。
 
   // B6：PG 侧 user_id 是可空 uuid 松引用（phase2 4.21）；属性 TS 类型随列型放开为
   // string（uuid 校验在 DTO 子类重声明接管）

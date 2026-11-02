@@ -57,16 +57,53 @@ export class AppMonitorUserDTO extends IntersectionType(AppMonitorUserDTOBase, W
   declare userId: string | null
 }
 
+// ─── 请求面专有的指纹字段（P0-2）──────────────────────────────────────────────
+
+/**
+ * `visitorId` = 客户端自报的**原始浏览器指纹**，**只存在于请求面**。
+ *
+ * P0-2 之前它是 `AppMonitorUserDTOBase` 的字段 ⇒ 随 list / read 的出参一并回显；而
+ * `deviceId = HMAC(指纹, 服务端 key)`（实测 MATCH）⇒ 「读到别人指纹 → 匿名
+ * POST /system/device/initial 铸出该设备的合法 cookie」= 一条可复现的账号接管链
+ * （订阅对方 OAuth 结果流，review §8.4）。
+ *
+ * 现在它从基座摘出、只在两个**入参** DTO 上显式声明：
+ * - list 的查询过滤（按指纹定位在线行，值不回显）；
+ * - 心跳 `POST /app/monitor/user/state` 的 body（当前仍以 body.visitorId 作行键，
+ *   review P1-3 留后续批次处理）。
+ *
+ * 响应面（`AppMonitorUserDTOListResponse` / `AppMonitorUserDTOReadResponse`）
+ * 不含该字段 —— 定位设备请用 `device.deviceId` / `device.deviceName`。
+ */
+class AppMonitorUserDTOVisitorIdRequestPayload {
+  @WalnutAdminDecoratorFieldString({
+    // 字符串校验器恒带 IsString + IsNotEmpty（没有 required 开关）：心跳 body 里它是
+    // **行键**，带上才有意义；list 的查询过滤挂在这个类上也不受影响 —— query 信封的
+    // 字段级校验器本来就不跑（见下方 AppMonitorUserDTORequest 的 ip 注释）。
+    swaggerOptions: {
+      title: 'raw browser fingerprint (request side only — never echoed back in responses)',
+    },
+  })
+  @Expose()
+  visitorId: string
+}
+
 // update state
 //
 // F-47（2026-11，安全纵深）：白名单里**保留 userId 是为了 wire 契约不变**，但它的
 // 取值不再来自请求体 —— controller（user.controller.ts 的 resolveVerifiedUserId）
 // 只采信「验签通过的 AT」里的 userId，请求体的该字段会被覆盖成 null（匿名心跳）。
 // 也就是说：本字段在入参上存在 ≠ 客户端可以指定它。不要把它当成可写字段用。
-export class AppMonitorUserDTOUpdateState extends RealPickType(RealPartialType(AppMonitorUserDTO), ['visitorId', 'deviceId', 'userId', 'auth', 'focus', 'left', 'currentRouter'] as const) { }
+// P0-2：`visitorId` 已移出基座，这里用请求面专用的 payload 交叉并入（响应面不受影响）
+export class AppMonitorUserDTOUpdateState extends IntersectionType(
+  RealPickType(RealPartialType(AppMonitorUserDTO), ['deviceId', 'userId', 'auth', 'focus', 'left', 'currentRouter'] as const),
+  AppMonitorUserDTOVisitorIdRequestPayload,
+) { }
 
 class AppMonitorUserDTORequest extends IntersectionType(
   RealPartialType(AppMonitorUserDTO),
+  // P0-2：指纹过滤是**入参**（按指纹定位在线行），响应不回显指纹本身
+  AppMonitorUserDTOVisitorIdRequestPayload,
   RealPartialType(RealPickType(SharedLocationDTO, ['country'] as const)),
   RealPartialType(RealPickType(SharedUserAgentDTO, ['os', 'browser'] as const)),
   RealPartialType(RealPickType(SysUserDTOSafe, ['userName'] as const)),

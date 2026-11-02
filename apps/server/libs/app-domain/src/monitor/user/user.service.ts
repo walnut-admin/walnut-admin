@@ -37,7 +37,9 @@ export class AppMonitorUserService {
    */
   async updateState(
     deviceId: string,
-    dto: Partial<AppMonitorUserDTOBase>,
+    // P0-2：`visitorId`（原始指纹）已从 AppMonitorUserDTOBase 摘出（响应面不再回显），
+    // 但它仍是本方法**入参**的行键 —— 在交叉类型里显式声明，契约不藏在基座里。
+    dto: Partial<AppMonitorUserDTOBase> & { visitorId?: string },
     em: EntityManager,
   ) {
     // P2-31（2026-10-29）：auth=false 的清零必须绕开下面的 nil 过滤 —— 旧实现先把

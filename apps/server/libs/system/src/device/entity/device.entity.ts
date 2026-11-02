@@ -78,6 +78,14 @@ export class SysDeviceEntity {
   @Column({ type: 'boolean', name: 'private', default: false })
   private: boolean
 
+  // 拍板-5（设备追踪 P0 批）：cron 只打 stale 标记、**不再物理删行**。
+  // 删行会让「cookie 还在、行没了」退化成 DeviceGuard 的 40605 死胡同，也会让
+  // banned / locked 随行一起消失（= 等 cron 删行就能重置换掉封禁）。stale 只表示
+  // 「这行没有真实浏览器活动」（原 cron 的删除口径），**不参与鉴权** —— DeviceGuard
+  // 不读它；重新 initial 时写回 false。
+  @Column({ type: 'boolean', name: 'stale', default: false })
+  stale: boolean
+
   // geoLocation 拍平为经纬度两列；double precision（Q8 定案：本期不上 PostGIS）
   @Column({ type: 'double precision', name: 'geo_longitude', nullable: true })
   geoLongitude: number | null

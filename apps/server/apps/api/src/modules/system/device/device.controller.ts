@@ -1,7 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, Req } from '@nestjs/common'
 import { ApiParam, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
-import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { WalnutAdminConstCookieKeys, WalnutAdminConstDeviceCookieMaxAge } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstDecoratorLogOperateAction, WalnutAdminConstDecoratorLogOperateTitle, WalnutAdminConstDecoratorLogOperateType } from '@walnut-server/const/decorator/logOperate'
 import { AppTechCookieService } from '@walnut-server/cookie'
 import { WalnutCrudDecorators } from '@walnut-server/crud'
@@ -68,14 +68,14 @@ export class SysDeviceController {
   ) {
     const { deviceId, locationInfo } = await this.deviceService.initial(req, payload, ctx.em)
 
-    const maxAge = 30 * 24 * 60 * 60 * 1000
-    // set device id cookie
+    // P0-1：有效期与「滑动续期」的间隔同源在 @walnut-server/const/app/cookie ——
+    // DeviceGuard 按同一个 maxAge 重发，两处口径不再各写一份
     this.cookieService.setResponseCookie(req, [
       {
         key: WalnutAdminConstCookieKeys.DEVICE_ID,
         value: deviceId,
         options: {
-          maxAge,
+          maxAge: WalnutAdminConstDeviceCookieMaxAge,
         },
       },
     ])

@@ -74,15 +74,26 @@ function createSocket(options: SocketOptions = {}) {
   }
 }
 
-function createMiddleware(sessionKeyHash: Buffer | null = Buffer.alloc(32, 3)) {
+/**
+ * @param sessionKeyHash Redis 会话键命中值（null = 会话不存在）
+ * @param deviceState 设备缓存内容（拍板-4 的设备状态闸门）；null = 缓存 miss 且库里也没有
+ */
+function createMiddleware(
+  sessionKeyHash: Buffer | null = Buffer.alloc(32, 3),
+  deviceState: { banned: boolean, locked: boolean } | null = { banned: false, locked: false },
+) {
   const getSession = vi.fn(async () => sessionKeyHash)
+  const getDeviceCache = vi.fn(async () => deviceState)
+  const deviceRepo = { findDeviceByDeviceId: vi.fn(async () => null) }
   const middleware = new SocketAuthMiddleware(
     { get: (key: string) => (key === 'app.cookie.secret' ? 'spec-cookie-secret' : undefined) } as never,
     createTokenService(),
     { getAuthSessionKeyHash: getSession } as never,
+    { getSysDeviceCache: getDeviceCache, setSysDeviceCache: vi.fn() } as never,
+    deviceRepo as never,
   )
 
-  return { middleware, getSession }
+  return { middleware, getSession, getDeviceCache }
 }
 
 describe('socketAuthMiddleware：F-02 握手验签（伪造/过期/会话缺失一律拒绝）', () => {
@@ -157,6 +168,47 @@ describe('socketAuthMiddleware：F-02 握手验签（伪造/过期/会话缺失�
     expect(next.mock.calls[0]?.[0]).toBeInstanceOf(Error)
     expect(socket.data).toBeUndefined()
     expect(getSession).not.toHaveBeenCalled()
+  })
+
+  // 拍板-4（封禁 = 踢下线）：握手要多看一道设备状态 —— 之前只验 JWT + 会话键，
+  // 已封设备照样建连收实时事件。
+  it('设备被封禁（banned）→ next(Error)，不挂 socket.data', async () => {
+    const { middleware } = createMiddleware(undefined, { banned: true, locked: false })
+    const token = await createTokenService().generateJwtAccessToken(makePayload())
+    const socket = createSocket({ token })
+    const next = vi.fn()
+
+    await middleware.middleware(socket as never, next)
+
+    expect(next).toHaveBeenCalledTimes(1)
+    expect(next.mock.calls[0]?.[0]).toBeInstanceOf(Error)
+    expect((next.mock.calls[0]?.[0] as Error).message).toBe('Device banned')
+    expect(socket.data).toBeUndefined()
+  })
+
+  it('设备被锁定（locked）→ next(Error)，不挂 socket.data', async () => {
+    const { middleware } = createMiddleware(undefined, { banned: false, locked: true })
+    const token = await createTokenService().generateJwtAccessToken(makePayload())
+    const socket = createSocket({ token })
+    const next = vi.fn()
+
+    await middleware.middleware(socket as never, next)
+
+    expect(next).toHaveBeenCalledTimes(1)
+    expect((next.mock.calls[0]?.[0] as Error).message).toBe('Device locked')
+    expect(socket.data).toBeUndefined()
+  })
+
+  it('设备行不存在（缓存 miss + DB 无行）→ next(Error)', async () => {
+    const { middleware } = createMiddleware(undefined, null)
+    const token = await createTokenService().generateJwtAccessToken(makePayload())
+    const socket = createSocket({ token })
+    const next = vi.fn()
+
+    await middleware.middleware(socket as never, next)
+
+    expect(next.mock.calls[0]?.[0]).toBeInstanceOf(Error)
+    expect(socket.data).toBeUndefined()
   })
 
   it('无 Bearer token → next(Error)（既有行为保持）', async () => {

@@ -23505,10 +23505,6 @@
             "title": "default updatedAt",
             "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
           },
-          "visitorId": {
-            "type": "string",
-            "title": "fingerprint for auth and no auth users"
-          },
           "deviceId": {
             "type": "string",
             "title": "device id"
@@ -23569,7 +23565,6 @@
           }
         },
         "required": [
-          "visitorId",
           "deviceId",
           "auth",
           "focus",
@@ -23614,10 +23609,6 @@
             "title": "default updatedAt",
             "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
           },
-          "visitorId": {
-            "type": "string",
-            "title": "fingerprint for auth and no auth users"
-          },
           "deviceId": {
             "type": "string",
             "title": "device id"
@@ -23676,6 +23667,10 @@
             "nullable": true,
             "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
           },
+          "visitorId": {
+            "type": "string",
+            "title": "raw browser fingerprint (request side only — never echoed back in responses)"
+          },
           "country": {
             "type": "string",
             "title": "country"
@@ -23700,6 +23695,7 @@
           }
         },
         "required": [
+          "visitorId",
           "ip"
         ]
       },
@@ -23813,10 +23809,6 @@
       "AppMonitorUserDTOUpdateState": {
         "type": "object",
         "properties": {
-          "visitorId": {
-            "type": "string",
-            "title": "fingerprint for auth and no auth users"
-          },
           "deviceId": {
             "type": "string",
             "title": "device id"
@@ -23844,8 +23836,15 @@
             "type": "string",
             "nullable": true,
             "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
+          "visitorId": {
+            "type": "string",
+            "title": "raw browser fingerprint (request side only — never echoed back in responses)"
           }
-        }
+        },
+        "required": [
+          "visitorId"
+        ]
       },
       "SysMenuDTOTree": {
         "type": "object",

@@ -136,8 +136,9 @@ export class AppTechTasksService {
 
   private async doUpdateDeviceActiveStatus() {
     this.logger.log('[CronTaskLog] Update Device Active Status.')
-    const { matchedCount, modifiedCount, deletedCount } = await this.sysUserDeviceSharedService.updateDeviceActiveStatusForCronJob()
-    this.logger.log(`[CronTaskLog] Update Device Active Status, matched count: ${matchedCount}, modified count: ${modifiedCount}, deleted count: ${deletedCount}`)
+    const { matchedCount, modifiedCount, staleCount } = await this.sysUserDeviceSharedService.updateDeviceActiveStatusForCronJob()
+    // 拍板-5：残留行只标 stale，不再物理删（计数口径 deletedCount → staleCount）
+    this.logger.log(`[CronTaskLog] Update Device Active Status, matched count: ${matchedCount}, modified count: ${modifiedCount}, stale count: ${staleCount}`)
   }
 
   /**

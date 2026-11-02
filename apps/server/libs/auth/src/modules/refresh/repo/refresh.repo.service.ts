@@ -153,6 +153,37 @@ export class AuthRefreshRepositoryService {
   }
 
   /**
+   * @description 按**设备**撤销该设备上所有用户的现役 refresh token（拍板-4 封禁踢下线）
+   *
+   * 与 updateRevokedAndReason（(user, device) 单维度）不同：封禁的语义是「这台设备上的
+   * 所有会话都断」，而调用方并不知道都谁登录过 —— 按 device_id 一次撤干净。只动
+   * `revoked = false` 的现役行（历轮 rotate 旧行的既定语义不被覆盖）。
+   *
+   * @returns 受影响的 userId（去重）—— 调用方据此清各用户的会话 / 权限 / MFA 缓存键
+   */
+  async updateRevokedByDeviceId(
+    deviceId: string,
+    revokeReason: IWalnutAdminConstRevokeRTType,
+    em?: EntityManager,
+  ): Promise<string[]> {
+    const repository = this.getRepository(em)
+
+    // 先取 userId 集合（撤销后就分不出「谁受影响」了）：只取现役行的 owner
+    const activeRows = await repository.find({
+      where: { deviceId, revoked: false },
+      select: { userId: true },
+    })
+    const userIds = [...new Set(activeRows.map(row => row.userId))]
+
+    await repository.update(
+      { deviceId, revoked: false },
+      { revoked: true, revokeReason },
+    )
+
+    return userIds
+  }
+
+  /**
    * @description update token data (expiredAt, encryptedToken, revoked, revokeReason)
    */
   async saveRefreshTokenDoc(

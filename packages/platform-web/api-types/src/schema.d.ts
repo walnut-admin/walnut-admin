@@ -3595,8 +3595,6 @@ export interface components {
              * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
              */
             updatedAt?: string;
-            /** fingerprint for auth and no auth users */
-            visitorId: string;
             /** device id */
             deviceId: string;
             /**
@@ -3654,8 +3652,6 @@ export interface components {
              * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
              */
             updatedAt?: string;
-            /** fingerprint for auth and no auth users */
-            visitorId?: string;
             /** device id */
             deviceId?: string;
             /**
@@ -3693,6 +3689,8 @@ export interface components {
             id: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             userId?: string | null;
+            /** raw browser fingerprint (request side only — never echoed back in responses) */
+            visitorId: string;
             /** country */
             country?: string;
             /** operating system */
@@ -3775,8 +3773,6 @@ export interface components {
             page: components["schemas"]["WalnutAdminRequestListPageDTO"];
         };
         AppMonitorUserDTOUpdateState: {
-            /** fingerprint for auth and no auth users */
-            visitorId?: string;
             /** device id */
             deviceId?: string;
             /**
@@ -3798,6 +3794,8 @@ export interface components {
             currentRouter?: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             userId?: string | null;
+            /** raw browser fingerprint (request side only — never echoed back in responses) */
+            visitorId: string;
         };
         SysMenuDTOTree: {
             /**

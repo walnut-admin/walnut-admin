@@ -18,6 +18,7 @@ import { AppAppModule } from '@/modules/app/app.module'
 import { AuthModule } from '@/modules/auth/auth.module'
 import { SecurityModule } from '@/modules/security/security.module'
 import { SharedModule } from '@/modules/shared/shared.module'
+import { SysDeviceKickModule } from '@/modules/system/device/shared/device.kick.module'
 import { SystemModule } from '@/modules/system/system.module'
 import { AppBootstrapTaskModule } from '@/modules/techniques/task/bootstrap-task.module'
 import { AppTechModule } from '@/modules/techniques/tech.module'
@@ -53,6 +54,10 @@ import { AppScheduleModule, isWorkerStandalone } from './schedule.composition'
     AuthModule,
 
     SecurityModule,
+
+    // 拍板-4：封禁 = 踢下线的端口绑定（@Global；消费方是 libs/system 的 SysDeviceService）。
+    // 放在 SystemModule 之前，与 SocketModule 同款：绑定先于消费方注册。
+    SysDeviceKickModule,
 
     AppAppModule,
 

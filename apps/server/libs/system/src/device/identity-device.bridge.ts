@@ -32,8 +32,10 @@ export class IdentityDeviceBridge implements IIdentityDeviceService {
     return this.repo.getAllActiveDevices()
   }
 
-  async deleteNonMonitorUserDevice(deviceId: string): Promise<IIdentityDeviceRow | null> {
-    return this.repo.deleteNonMonitorUserDevice(deviceId)
+  // 拍板-5：端口语义从「删行」改为「打 stale 标记」—— 行与 cookie 生命周期解耦，
+  // banned / locked 不再能被「等 cron 删行」洗掉。
+  async markDeviceStale(deviceId: string): Promise<IIdentityDeviceRow | null> {
+    return this.repo.markDeviceStale(deviceId)
   }
 
   async updateDeviceActive(deviceId: string, active: boolean, em?: EntityManager): Promise<boolean> {

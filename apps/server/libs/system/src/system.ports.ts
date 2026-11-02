@@ -1,4 +1,6 @@
+import type { IWalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import type { IWalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
+import type { EntityManager } from 'typeorm'
 
 /**
  * libs/system 的依赖反转端口（libs 解耦批 7）。
@@ -41,4 +43,32 @@ export const WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER = Symbol('WALNUT_ADM
 
 export interface IWalnutAdminSystemMonitorActiveUserReader {
   findActiveUserByDeviceId: (deviceId: string) => Promise<ISystemMonitorActiveUser | null>
+}
+
+// ─── 设备封禁踢下线（拍板-4：auth 的会话/令牌腿 + app 的 socket 腿）───────────────
+
+/**
+ * 「封禁 = 踢下线」（review 拍板-4）。
+ *
+ * 封禁原先只写 sys_device.banned：已封设备仍能 POST /auth/refresh 续 AT、WebSocket 连接
+ * 也不断（socket 握手只验 JWT + 会话键），审计上表现为「封了还在动」。本端口把「撤该设备
+ * 全部 RT → 清该设备上各用户的会话/权限/MFA 缓存 → 断开该设备的 WS 连接」收成一次调用。
+ *
+ * 实现不在 system 层：它要用 libs/auth 的 refresh/session 与 app 的 SocketService
+ * （依赖方向是「上层 → system」单向，同本文件另两个端口）。绑定在实现所在层的 @Global
+ * 模块（app 的 SysDeviceKickModule）；缺绑定 = 启动期 DI 报错，不会静默跳过。
+ */
+export const WALNUT_ADMIN_SYSTEM_DEVICE_KICKER = Symbol('WALNUT_ADMIN_SYSTEM_DEVICE_KICKER')
+
+export interface IWalnutAdminSystemDeviceKicker {
+  /**
+   * @param deviceId 业务键 sys_device.device_id
+   * @param revokeReason 写进 auth_refresh_token.revoke_reason（CHECK 值集：deviceBanned）
+   * @param em 事务句柄：RT 撤销与封禁写同事务提交（回滚则谁都不生效）
+   */
+  kickDevice: (
+    deviceId: string,
+    revokeReason: IWalnutAdminConstRevokeRTType,
+    em?: EntityManager,
+  ) => Promise<unknown>
 }

@@ -29,7 +29,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 interface MonitorRow {
   id: string
-  visitorId?: string
+  // P0-2：响应面**不再有** visitorId（原始指纹只在入参：list 过滤 / state 心跳）。
+  // 这里刻意不声明该字段 —— 若哪天响应又把指纹带回来，本文件的断言会先红。
   userId?: string | null
   deviceId?: string | null
   auth?: boolean
@@ -161,7 +162,8 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     expectOk(res, 'monitor user read')
 
     const row = bodyOf<MonitorRow>(res).data
-    expect(row.visitorId).toBe(visitorA)
+    // P0-2：原始指纹绝不下发（deviceId = HMAC(指纹)，回显指纹等于下发设备身份）
+    expect(row).not.toHaveProperty('visitorId')
     expect(row.device?.deviceId).toBe(api.deviceId)
     expect(row.user?.id).toBe(fixture!.userId)
     expect(row.user?.userName).toBe(fixture!.userName)
@@ -186,7 +188,8 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
 
     const list = bodyOf<{ data: MonitorRow[], total: number }>(listRes).data
     expect(list.total).toBe(1)
-    expect(list.data[0].visitorId).toBe(visitorB)
+    // 入参可以按指纹过滤（查询命中 1 行），但出参不回显指纹本身（P0-2）
+    expect(list.data[0]).not.toHaveProperty('visitorId')
     expect(list.data[0].userId).toBeNull()
 
     const bRows: Array<{ user_id: string | null }> = await api.pgDataSource.query(

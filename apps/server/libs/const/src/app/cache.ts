@@ -32,6 +32,8 @@ export const WalnutAdminConstAppCacheKeys = {
   SYS_LANG_LIST_PUBLIC: 'SYSTEM:LANGUAGE:PUBLIC_LIST',
   SYS_LANG_ID_LIST: 'SYSTEM:LANGUAGE:ID_LIST',
   SYS_DEVICE: 'SYSTEM:DEVICE',
+  // P0-1 设备 cookie 滑动续期的时间闸（值 = 上次续期时刻，TTL = 续期间隔）
+  SYS_DEVICE_COOKIE_RENEW: 'SYSTEM:DEVICE:COOKIE_RENEW',
 } as const
 
 export type IWalnutAdminConstAppCacheKeys = ValueOf<

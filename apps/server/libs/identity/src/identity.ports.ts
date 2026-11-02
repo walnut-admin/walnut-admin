@@ -119,6 +119,11 @@ export interface IIdentityDeviceService {
   findDeviceByDeviceId: (deviceId: string, em?: EntityManager) => Promise<IIdentityDeviceRow | null>
   getDeviceNameByDeviceId: (deviceId: string, em?: EntityManager) => Promise<string>
   getAllActiveDevices: () => Promise<IIdentityDeviceRow[]>
-  deleteNonMonitorUserDevice: (deviceId: string) => Promise<IIdentityDeviceRow | null>
+  /**
+   * 把「没有真实浏览器活动」的设备行标记为 stale（拍板-5：**不再物理删行**）。
+   * 行保留 ⇒ cookie 还在的浏览器不会退化成 40605 死胡同，banned / locked 也不会被抹掉。
+   * @returns 标记前的快照，无行返回 null
+   */
+  markDeviceStale: (deviceId: string) => Promise<IIdentityDeviceRow | null>
   updateDeviceActive: (deviceId: string, active: boolean, em?: EntityManager) => Promise<boolean>
 }
