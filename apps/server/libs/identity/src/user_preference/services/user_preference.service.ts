@@ -1,83 +1,42 @@
 import type { IFontSizeConst } from '@walnut/contract/preference'
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
-import { InjectDataSource } from '@nestjs/typeorm'
-import { WalnutPGConnectionName } from '@walnut-server/db'
 import { Locale, LocaleType } from '@walnut/contract'
-import { DataSource } from 'typeorm'
 
 import { SysUserPreferenceDTOAccessibilityRequest, SysUserPreferenceDTOBasicRequest, SysUserPreferenceDTOLayoutRequest, SysUserPreferenceDTOThemeRequest, SysUserPreferenceResponseDTO } from '../dto/user_preference.dto'
 import { SysUserPreferenceEntity } from '../entity/user-preference.entity'
 import { colorModeConst, CVDConst, fontSizeConst, IColorModeConst, ICVDConst, ILayoutModeConst, layoutModeConst } from '../preference.const'
+import { SysUserPreferenceBasicRepository } from '../user_preference.basic.repository'
 
 /**
- * B7b 迁移：Mongo model 直持 → PG 命名连接 DataSource（本模块无独立仓库，
- * 服务即数据面；B1 定案「原先无 repo 的模块随迁移补数据面」——服务直持 DataSource
- * 即承接，避免为一个消费者再垫一层）。
+ * B7b 迁移 + **F-31 重构（裁决 Q6=b）：数据访问已下沉 repo** ——
+ * 原先服务直持 `DataSource` + `getRepository(SysUserPreferenceEntity)`（B1 定案「原先无
+ * repo 的模块随迁移补数据面」把这件事收口在服务里，绕过了「controller 级 service 不许触达
+ * 数据层」的硬规矩）。现在数据面在同目录的 `SysUserPreferenceBasicRepository`
+ * （三种 Repository 模式之一：同模块 CRUD = Basic Repository），本服务只做编排
+ * （默认偏好组装 + 按 userId 分发）。
  *
+ * 行为零变化（SQL 语义、em 透传、返回形状全部照旧，细节见仓库头注释）：
  * - `new Types.ObjectId(userId)` 包装全部摘除，uuid 直传（phase3-plan §4 B7 项）；
- * - 四个 `findOneAndUpdate(upsert)` → `INSERT ... ON CONFLICT (user_id) DO UPDATE`
- *   （B6 upsertDevice 同款 QueryBuilder orUpdate 手法；user_id 有 uq_user_preference_user
- *   UNIQUE，冲突目标唯一）。部分列插入未提供的列走 DB 默认值，对齐 Mongo upsert 的
- *   schema 默认值语义；冲突路径只回写本次 payload 携带的列；
- * - bindPreferenceForUser 的 exists + create 语义原样保留。
+ * - 四个 `findOneAndUpdate(upsert)` 在仓库侧仍是 `INSERT ... ON CONFLICT (user_id)
+ *   DO UPDATE`；bindPreferenceForUser 的 exists + create 语义原样保留；
+ * - 事务句柄 em 仍逐层透传给仓库（缺省 = 连接级 manager）。
  */
 @Injectable()
 export class SysUserPreferenceService {
   constructor(
-    @InjectDataSource(WalnutPGConnectionName)
-    private readonly dataSource: DataSource,
+    private readonly prefBasicRepo: SysUserPreferenceBasicRepository,
   ) {}
-
-  private getManager(em?: EntityManager) {
-    return em ?? this.dataSource.manager
-  }
-
-  private getRepository(em?: EntityManager) {
-    return this.getManager(em).getRepository(SysUserPreferenceEntity)
-  }
-
-  private getPropertyColumnName(property: string): string {
-    const metadata = this.dataSource.getMetadata(SysUserPreferenceEntity)
-    const column = metadata.findColumnWithPropertyPath(property)
-    return column?.databaseName ?? property
-  }
-
-  /**
-   * findOneAndUpdate({ userId }, payload, { upsert: true }) 的 PG 版：
-   * ON CONFLICT (user_id) DO UPDATE（只回写 payload 携带的列），未提供列两边都走默认值。
-   * payload 为空对象时 Mongo 版只做首插，PG 版对应 ON CONFLICT DO NOTHING（orIgnore）。
-   */
-  private async upsertPreferenceForUser(userId: string, payload: Partial<SysUserPreferenceEntity>, em?: EntityManager) {
-    const overwriteColumns = Object.keys(payload)
-      .filter(k => k !== 'userId' && payload[k as keyof SysUserPreferenceEntity] !== undefined)
-      .map(k => this.getPropertyColumnName(k))
-
-    const query = this.getManager(em)
-      .createQueryBuilder()
-      .insert()
-      .into(SysUserPreferenceEntity)
-      // QueryDeepPartialEntity 表达不了 jsonb 自由对象（layout 状态袋），实体直塞由
-      // 驱动参数化 —— cast 收口
-      .values({ userId, ...payload } as never)
-
-    if (overwriteColumns.length > 0) {
-      await query.orUpdate(overwriteColumns, ['user_id']).execute()
-    }
-    else {
-      await query.orIgnore().execute()
-    }
-  }
 
   /**
    * @description bind preference for user, used for system
    */
   async bindPreferenceForUser(userId: string, em?: EntityManager) {
-    if (await this.getRepository(em).exists({ where: { userId } })) {
+    if (await this.prefBasicRepo.existsByUserId(userId, em)) {
       return false
     }
 
-    return this.getRepository(em).save(this.getRepository(em).create({ userId }))
+    return this.prefBasicRepo.create({ userId }, em)
   }
 
   /**
@@ -89,9 +48,7 @@ export class SysUserPreferenceService {
     }
 
     // get preference
-    const preference = await this.getRepository(em).findOne({
-      where: { userId },
-    })
+    const preference = await this.prefBasicRepo.findByUserId(userId, em)
 
     if (!preference) {
       return this.getDefaultPreference()
@@ -119,24 +76,24 @@ export class SysUserPreferenceService {
   }
 
   async updateBasic(userId: string, payload: SysUserPreferenceDTOBasicRequest, em?: EntityManager) {
-    await this.upsertPreferenceForUser(userId, payload, em)
+    await this.prefBasicRepo.upsertByUserId(userId, payload, em)
     return true
   }
 
   async updateAccessibility(userId: string, payload: SysUserPreferenceDTOAccessibilityRequest, em?: EntityManager) {
-    await this.upsertPreferenceForUser(userId, payload, em)
+    await this.prefBasicRepo.upsertByUserId(userId, payload, em)
     return true
   }
 
   async updateTheme(userId: string, payload: SysUserPreferenceDTOThemeRequest, em?: EntityManager) {
-    await this.upsertPreferenceForUser(userId, payload, em)
+    await this.prefBasicRepo.upsertByUserId(userId, payload, em)
     return true
   }
 
   async updateLayout(userId: string, payload: SysUserPreferenceDTOLayoutRequest, em?: EntityManager) {
     // schema 侧 layout 是自由对象（object），实体侧收成 jsonb 的 Record<string, unknown>
     // —— cast 收口，运行时由驱动参数化
-    await this.upsertPreferenceForUser(userId, payload as unknown as Partial<SysUserPreferenceEntity>, em)
+    await this.prefBasicRepo.upsertByUserId(userId, payload as unknown as Partial<SysUserPreferenceEntity>, em)
     return true
   }
 

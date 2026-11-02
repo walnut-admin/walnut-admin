@@ -1,20 +1,17 @@
 import process from 'node:process'
 import { Controller, Get } from '@nestjs/common'
-import { ApiTags } from '@nestjs/swagger'
+import { ApiOperation, ApiTags } from '@nestjs/swagger'
 import {
   DiskHealthIndicator,
   HealthCheck,
   HttpHealthIndicator,
   MemoryHealthIndicator,
-  TypeOrmHealthIndicator,
 } from '@nestjs/terminus'
-import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutAdminConstDecoratorRoleMode } from '@walnut-server/const/decorator/role'
-
-import { WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
 import { AppRoutes, Role } from '@walnut/contract'
-import { DataSource } from 'typeorm'
+import { AppTechHealthProbeService } from './health.probe.service'
+import { AppTechHealthCheckOkResponse } from './health.swagger'
 
 const Permissions = {
   NETWORK: 'app:health:network',
@@ -38,32 +35,46 @@ export function getDiskHealthCheckPath(platform: NodeJS.Platform = process.platf
 @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 export class AppTechHealthController {
   constructor(
-    @InjectDataSource(WalnutPGConnectionName) private readonly pgDataSource: DataSource,
+    private readonly probe: AppTechHealthProbeService,
     private readonly http: HttpHealthIndicator,
-    private readonly typeorm: TypeOrmHealthIndicator,
     private readonly memory: MemoryHealthIndicator,
     private readonly disk: DiskHealthIndicator,
   ) {}
 
+  // 五个端点的 swagger 声明统一由 health.swagger.ts 显式重写（去 503、按项目壳写形状）；
+  // terminus 自己的默认声明（200 {status,info,details} + 503）一并关掉，保留它的 Cache-Control 头。
+  // 4A：这五个端点原先只有 200 的 response description、没有 operation summary（OpenAPI 里
+  // summary 与 description 是两个字段）—— 这里逐个补 @ApiOperation({ summary })。
   @Get('network')
   @WalnutAdminDecoratorHasPermission(Permissions.NETWORK)
-  @HealthCheck()
+  @ApiOperation({
+    summary: 'Network reachability probe',
+  })
+  @AppTechHealthCheckOkResponse('baidu', 'Network reachability: HTTP ping to https://www.baidu.com')
+  @HealthCheck({ swaggerDocumentation: false })
   async checkNetwork() {
     return this.http.pingCheck('baidu', 'https://www.baidu.com')
   }
 
   @Get('postgres')
   @WalnutAdminDecoratorHasPermission(Permissions.PG)
-  @HealthCheck()
+  @ApiOperation({
+    summary: 'PostgreSQL connectivity probe',
+  })
+  @AppTechHealthCheckOkResponse('postgres', 'PostgreSQL connectivity of the app connection')
+  @HealthCheck({ swaggerDocumentation: false })
   async checkPostgres() {
-    return this.typeorm.pingCheck('postgres', {
-      connection: this.pgDataSource,
-    })
+    // F-36（Q6=b）：DataSource 归 probe service（SELECT 1 探活），controller 只装配
+    return this.probe.checkPostgres()
   }
 
   @Get('memory-heap')
   @WalnutAdminDecoratorHasPermission(Permissions.MH)
-  @HealthCheck()
+  @ApiOperation({
+    summary: 'Process heap usage probe',
+  })
+  @AppTechHealthCheckOkResponse('memory-heap', 'Heap usage below 200 MB')
+  @HealthCheck({ swaggerDocumentation: false })
   async checkMemoryHeap() {
     // the process should not use more than 200MB memory
     return this.memory.checkHeap('memory-heap', 200 * 1024 * 1024)
@@ -71,7 +82,11 @@ export class AppTechHealthController {
 
   @Get('memory-rss')
   @WalnutAdminDecoratorHasPermission(Permissions.MR)
-  @HealthCheck()
+  @ApiOperation({
+    summary: 'Process resident set size probe',
+  })
+  @AppTechHealthCheckOkResponse('memory-rss', 'Resident set size below 200 MB')
+  @HealthCheck({ swaggerDocumentation: false })
   async checkMemoryRSS() {
     // the process should not have more than 200MB RSS memory allocated
     return this.memory.checkRSS('memory-rss', 200 * 1024 * 1024)
@@ -79,7 +94,11 @@ export class AppTechHealthController {
 
   @Get('disk')
   @WalnutAdminDecoratorHasPermission(Permissions.DISK)
-  @HealthCheck()
+  @ApiOperation({
+    summary: 'Root volume disk usage probe',
+  })
+  @AppTechHealthCheckOkResponse('disk', 'Root volume usage below 75%')
+  @HealthCheck({ swaggerDocumentation: false })
   async checkDisk() {
     return this.disk.checkStorage('disk', {
       // The used disk storage should not exceed 75% of the full disk size

@@ -28,6 +28,12 @@ const mobilePattern = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera 
  * B6 迁移：Mongo model → PG。`dbSession` → `em`（纯透传）；
  * initial 的 findOneAndUpdate(upsert) 改「按业务键 device_id 查到即整体覆盖、否则插入」，
  * 冲突路径（并发重复插入）由 uq_device_id 拒绝并进 catch，对齐 Mongo E11000 路径。
+ *
+ * F-31 重构（裁决 Q6=b）：**数据访问已下沉 repo** —— initial 原先自己
+ * `em.getRepository(SysDeviceEntity)` 做 upsert（「服务即数据面」的第 4 形态），现在走
+ * `SysDeviceBasicRepository.upsertByDeviceId`（同模块 Basic Repository），本服务只编排
+ * （拼 deviceData、after-commit 双写缓存、冲突语义转业务错误）。SQL 语义、em 透传、
+ * 返回形状均不变。
  */
 @Injectable()
 export class SysDeviceService {
@@ -115,17 +121,9 @@ export class SysDeviceService {
         active: true,
       }
 
-      const repository = em.getRepository(SysDeviceEntity)
-
       // upsert：按业务键 device_id 查到即整体覆盖（$set + returnDocument: 'after'），否则插入
-      let result = await repository.findOne({ where: { deviceId } })
-      if (result) {
-        Object.assign(result, deviceData)
-        result = await repository.save(result)
-      }
-      else {
-        result = await repository.save(repository.create(deviceData))
-      }
+      // —— F-31：数据访问已下沉 repo，事务句柄 em 原样透传（同事务）
+      const result = await this.deviceBasicRepo.upsertByDeviceId(deviceId, deviceData, em)
 
       registerAfterCommitHook(async () => {
         await this.cacheDeviceService.setSysDeviceCache(result)
