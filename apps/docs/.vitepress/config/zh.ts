@@ -360,6 +360,7 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: '6 条决策记录', link: '/content/industry-research/backend-architecture-review/07-decisions' },
         { text: '建议方案', link: '/content/industry-research/backend-architecture-review/08-recommended-plan' },
         { text: '调研摘要', link: '/content/industry-research/backend-architecture-review/09-research-summaries' },
+        { text: '实施计划（5 批 × 3 轮）', link: '/content/industry-research/backend-architecture-review/10-implementation-plan' },
       ],
     },
     {
