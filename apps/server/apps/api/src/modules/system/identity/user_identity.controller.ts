@@ -10,7 +10,6 @@ import {
   IWalnutAdminConstSysUserIdentityType,
   SysUserIdentityBindRequestDTO,
   SysUserIdentityCheckRequestDTO,
-  SysUserIdentityDTO,
   SysUserIdentityListDTO,
   SysUserIdentityService,
   SysUserIdentityStatusRequestDTO,
@@ -22,6 +21,9 @@ import {
 } from '@walnut-server/identity'
 import { WalnutAdminPipeParamEnum } from '@walnut-server/pipes'
 import { SystemRoutes } from '@walnut/contract'
+import { plainToInstance } from 'class-transformer'
+
+import { SysUserIdentityListResponseDTO } from './dto/user_identity.dto'
 
 @Controller(SystemRoutes.USER_IDENTITY)
 @ApiTags('system/user/identity')
@@ -34,14 +36,16 @@ export class SysUserIdentityController {
   @HttpCode(HttpStatus.OK)
   @ApiWalnutOkResponse({
     description: 'List user identities',
-    DTO: SysUserIdentityDTO,
-    isArray: true,
+    DTO: SysUserIdentityListResponseDTO,
   })
   async list(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @Body() dto: SysUserIdentityListDTO,
   ) {
-    return this.userIdentityService.list({ ...dto, userId: user.userId })
+    // F-03（2026-10-30）：行实体无 @Expose，直返曾被全局 ClassSerializer（excludeExtraneousValues）
+    // 在出站剥成 `[{}]`。plainToInstance 挂专用 list DTO 的 Expose 元数据（AppMonitorUserController.list
+    // 同款手法），行 = RealPickType 安全字段子集 —— value（AES 密文）/ valueHash（HMAC 查找键）不进 wire。
+    return plainToInstance(SysUserIdentityListResponseDTO, await this.userIdentityService.list({ ...dto, userId: user.userId }))
   }
 
   @Get('status/:purpose')

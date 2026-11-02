@@ -22,6 +22,13 @@ import { createApiApp } from './helpers/create-api-app'
  *   旧 `!== undefined` 判据把 null 当「给了值」→ verified 分支恒拦 useVerifyEndpoint；
  * - update-status 的守卫探测腿改容错（缺失身份跳过）：无 phone security 身份不再 40401，
  *   有 email security 身份即可正常抛 40119（SensitiveVerificationFailed）。
+ *
+ * F-03 修复面（批次1-B，2026-10-30）：
+ * - `POST list` 直返实体数组，行实体（SysUserIdentityEntity）无 @Expose，被全局
+ *   ClassSerializer（excludeExtraneousValues）剥成 `[{}]`，与 swagger 声明双重不符；
+ *   controller 补 plainToInstance(SysUserIdentityListResponseDTO, …)（AppMonitorUserController.list
+ *   同款），行 DTO = RealPickType 安全字段子集 —— `value`（AES-256-GCM 密文）与
+ *   `valueHash`（HMAC 查找键）自 wire 面剔除，spec 断言行字段面齐全且无两密文键。
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -30,6 +37,22 @@ interface IdentityStatus {
   password: { set: boolean, lastChanged: string }
   phoneNumber: { bound: boolean, maskedValue: string | null, verified: boolean, status: boolean }
   emailAddress: { bound: boolean, maskedValue: string | null, verified: boolean, status: boolean }
+}
+
+// F-03：POST list 行形态（SysUserIdentityListItemDTO 安全字段子集；密文 value/valueHash 不在面内）
+interface IdentityListRow {
+  id: string
+  userId: string
+  type: string
+  purpose: string
+  maskedValue: string | null
+  verified: boolean
+  verifiedAt: string | null
+  isPrimary: boolean
+  status: boolean
+  metadata: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
 }
 
 describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）（真实 HTTP 全链）', () => {
@@ -222,14 +245,45 @@ describe('C 段：system/user/identity 状态机（check/bind/verify/unbind）�
     expect(rows[0].id).toMatch(UUID_RE)
   })
 
-  it('POST list → 20000（P1-6①：DTO 补 @Allow 校验元数据，不再被 forbidUnknownValues 误伤）', async () => {
+  it('POST list → 20000 行形态（P1-6① @Allow 可达；F-03 已修：安全字段面齐全、无 value/valueHash 密文键）', async () => {
     const withBody = await api.root('POST', api.apiPath('/system/user/identity/list'), {})
     expectOk(withBody, 'identity list with body')
-    // 行实体无 @Expose，全局 ClassSerializerInterceptor（excludeExtraneousValues）会把行字段
-    // 剥成 {} —— 本用例只钉「端点可达且 total 计数真实」（行形态属 P3 文档层缺口，另行排期）
-    const list = bodyOf<{ data: unknown[], total: number }>(withBody).data
+
+    const list = bodyOf<{ data: IdentityListRow[], total: number }>(withBody).data
     expect(Array.isArray(list.data)).toBe(true)
+    // total 是真实行计数（service 侧 identities.length），与 data 长度一致
+    expect(list.total).toBe(list.data.length)
     expect(list.total).toBeGreaterThanOrEqual(1)
+
+    // F-03：行此前被全局 ClassSerializer（excludeExtraneousValues）剥成 {}（行实体无 @Expose）。
+    // 修复后行 = SysUserIdentityListItemDTO 安全字段子集 —— 密文面两键是本修复的验收核心：
+    // value 是 AES-256-GCM 密文、valueHash 是 HMAC 查找键，均不得出现在 wire。
+    const email = emailOf('bind')
+    const local = email.split('@')[0]
+    for (const row of list.data) {
+      expect(row).not.toHaveProperty('value')
+      expect(row).not.toHaveProperty('valueHash')
+      expect(row.id).toMatch(UUID_RE)
+      expect(row.userId).toBe(fixture!.userId)
+      expect(typeof row.type).toBe('string')
+      expect(typeof row.purpose).toBe('string')
+      expect(row.maskedValue === null || typeof row.maskedValue === 'string').toBe(true)
+      expect(typeof row.verified).toBe('boolean')
+      expect(typeof row.isPrimary).toBe('boolean')
+      expect(typeof row.status).toBe('boolean')
+      expect(typeof row.metadata).toBe('object')
+      expect(row.metadata).not.toBeNull()
+      expect(typeof row.createdAt).toBe('string')
+      expect(typeof row.updatedAt).toBe('string')
+    }
+
+    // email login 行与 status 端点对拍：maskedValue 掩码形态（首字符+星号+末字符@domain）、
+    // verified/verifiedAt 已随 bind 闭环落库
+    const emailRow = list.data.find(row => row.type === 'emailAddress' && row.purpose === 'login')
+    expect(emailRow).toBeDefined()
+    expect(emailRow!.maskedValue).toBe(`${local[0]}${'*'.repeat(local.length - 2)}${local.at(-1)}@example.com`)
+    expect(emailRow!.verified).toBe(true)
+    expect(emailRow!.verifiedAt).toEqual(expect.any(String))
 
     const noBody = await api.root('POST', api.apiPath('/system/user/identity/list'))
     expectOk(noBody, 'identity list without body')
