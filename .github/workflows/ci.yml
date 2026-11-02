@@ -352,10 +352,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # openapi:export 运行时 require("@walnut/contract")，dist 不进 git、install 也不生成
-      # —— 必须显式构建（build job 由 turbo 的 dependsOn ^build 顺带做了，这里单独补）。
-      - name: Build @walnut/contract
-        run: pnpm exec turbo run build --filter=@walnut/contract
+      # openapi:export 运行时 require("@walnut/contract") 与（U3 起）"@walnut/utils/object-paths"
+      # —— 两个 workspace 包的 dist 不进 git、install 也不生成，必须显式构建
+      # （build job 由 turbo 的 dependsOn ^build 顺带做了，这里单独点名这两个）。
+      - name: Build workspace runtime deps (contract / utils)
+        run: pnpm exec turbo run build --filter=@walnut/contract --filter=@walnut/utils
 
       # openapi:export 读 apps/server/env-local/.env.development（ConfigModule 定位），
       # 与 ci.yml 的 build job 同一条解密通道；fork PR 没有 secrets → 跳过整段。
