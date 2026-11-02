@@ -4,8 +4,9 @@ import { constants, createCipheriv, createDecipheriv, privateDecrypt, publicEncr
 
 import { Inject, Injectable } from '@nestjs/common'
 import { AppTechCacheRsaService } from '@walnut-server/cache'
-import { WalnutAdminExceptionRsaDecryptFailed } from '@walnut-server/exceptions/business/rsa'
+import { WalnutAdminExceptionRsaDecryptFailed, WalnutAdminExceptionRsaPubKeyNotFound } from '@walnut-server/exceptions/business/rsa'
 import { AES_GCM_WIRE, AppKeyTypeConst } from '@walnut/contract/crypto-wire'
+import { isNil } from 'lodash'
 import { WALNUT_ADMIN_KEY_STORE } from './rsa.ports'
 
 /**
@@ -40,6 +41,13 @@ export class SecurityRsaService {
     // 1. Get current client RSA public key from redis/db
     const clientRsaPubKey = await this.cacheRsaService.getRsaPubKeyCache(deviceId)
 
+    // P0（2026-11）：显式判空 —— publicEncrypt 拿到 null 会抛 TypeError，被全局过滤器兜底成
+    // 50000，客户端于是无法识别「该重新登记公钥」。这里先给出受控 40012（与 cache 层同码）。
+    // 注：本方法（rsa.service.ts:57）是**全仓唯一的 publicEncrypt 调用点**（git grep 复核）。
+    if (isNil(clientRsaPubKey) || clientRsaPubKey.trim() === '') {
+      throw new WalnutAdminExceptionRsaPubKeyNotFound()
+    }
+
     // 2. Generate one-time AES-256-GCM key and IV
     const aesKey = randomBytes(AES_GCM_WIRE.KEY_LENGTH)
     const iv = randomBytes(AES_GCM_WIRE.IV_LENGTH)
@@ -56,7 +64,7 @@ export class SecurityRsaService {
     const keyBlob = Buffer.concat([aesKey, iv, tag])
     const encKey = publicEncrypt(
       {
-        key: clientRsaPubKey!,
+        key: clientRsaPubKey,
         padding: constants.RSA_PKCS1_OAEP_PADDING,
         oaepHash: 'sha256',
       },
