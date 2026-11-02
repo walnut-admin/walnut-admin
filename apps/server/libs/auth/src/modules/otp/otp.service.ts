@@ -7,6 +7,7 @@ import { InjectDataSource } from '@nestjs/typeorm'
 import { applyWalnutDataScopeRlsSettings, WALNUT_DATA_SCOPE_RLS_MODE, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
 import { SysUserIdentityRepositoryService, SysUserIdentitySharedService, SysUserRepositoryService, SysUserSharedService } from '@walnut-server/identity'
+import { fireAndForget } from '@walnut-server/utils/fire-and-forget'
 import { DataSource } from 'typeorm'
 import { AuthSharedService } from '../shared/shared.service'
 import { SharedWelcomeService } from '../shared/welcome/welcome.service'
@@ -108,7 +109,11 @@ export class OtpService {
         )
 
         // Send welcome message
-        void this.welcomeService.sendWelcomeByType(type, identifier, language)
+        fireAndForget(
+          this.welcomeService.sendWelcomeByType(type, identifier, language),
+          this.logger,
+          'welcome message after otp signup',
+        )
       }
 
       // Commit transaction

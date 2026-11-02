@@ -1,5 +1,5 @@
 import { Buffer } from 'node:buffer'
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { CanActivate, ExecutionContext, Injectable, Logger, SetMetadata } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Reflector } from '@nestjs/core'
@@ -81,6 +81,8 @@ export class WalnutAdminGuardSign implements CanActivate {
     const req = context.switchToHttp().getRequest<IWalnutAdminExpressRequest>()
 
     // 2. Postman 调试豁免（生产环境应移除）
+    // F-44：这是噪声过滤，**不是安全边界** —— isPostman 已被 isDev 门住（生产恒 false），
+    // 权威说明见 apps/api/src/middleware/src/user-agent.middleware.ts 的 isPostmanRuntimeRequest。
     if (req.isPostman) {
       this.logger.warn('Sign guard: bypassed for Postman request')
       return true
@@ -155,11 +157,14 @@ export class WalnutAdminGuardSign implements CanActivate {
 
     // 12. 安全比对签名（防止时序攻击）
     if (!this.timingSafeCompare(sign, serverSign)) {
+      // F-06：原文（server 签名 + 完整 raw body）不入日志 —— raw 里是请求体（登录密码、
+      // 验证码、PII），签名本身泄漏则 attacker 可直接重放。改打摘要：同一 raw 在两侧算出的
+      // 摘要一致即可判定「原文一致但密钥不同」，排障信息不丢。
       this.logger.error(
         `Sign guard: signature mismatch (${signMode})\n`
-        + `  Client: ${sign}\n`
-        + `  Server: ${serverSign}\n`
-        + `  Raw: ${raw}`,
+        + `  Client digest: ${this.secretDigest(sign)}\n`
+        + `  Server digest: ${this.secretDigest(serverSign)}\n`
+        + `  Raw length: ${raw.length}, raw digest: ${this.secretDigest(raw)}`,
       )
       throw new WalnutAdminExceptionInvalidSignature()
     }
@@ -247,10 +252,12 @@ export class WalnutAdminGuardSign implements CanActivate {
     // 缓存存在 - 快速路径(无锁)
     if (!isNil(cachedSignTicket)) {
       if (!isNil(signTicket) && signTicket !== cachedSignTicket) {
+        // F-06：signTicket 是会话绑定的凭据（Cookie 值，可被直接回放），error 级日志会落盘
+        // —— 同样只打摘要。
         this.logger.error(
           `Sign guard: sign ticket mismatch\n`
-          + `  Cookie: ${signTicket}\n`
-          + `  Cache: ${cachedSignTicket}`,
+          + `  Cookie digest: ${this.secretDigest(signTicket)}\n`
+          + `  Cache digest: ${this.secretDigest(cachedSignTicket)}`,
         )
         throw new WalnutAdminExceptionInvalidSignature()
       }
@@ -317,7 +324,9 @@ export class WalnutAdminGuardSign implements CanActivate {
       throw new WalnutAdminExceptionExpiredSignature()
     }
 
-    this.logger.debug(`Sign guard: aesKey => ${aesKey.substring(0, 8)}...`)
+    // F-06：aesKey 是握手协商的会话密钥（HMAC 的 key），任何长度前缀都不该入日志；
+    // 打长度即可区分「拿到了空值 / 拿到了完整密钥」。
+    this.logger.debug(`Sign guard: aesKey length => ${aesKey.length}`)
     return aesKey
   }
 
@@ -384,6 +393,16 @@ export class WalnutAdminGuardSign implements CanActivate {
     return createHmac('sha256', Buffer.from(new Uint8Array(derivedSignKey)))
       .update(raw, 'utf8')
       .digest('hex')
+  }
+
+  /**
+   * 日志用摘要（sha256 前 8 个十六进制字符）
+   *
+   * F-06：签名 / 签名原文（含请求体）不得入日志。摘要足以支撑排障判断
+   * （「两侧算的是不是同一份原文」「客户端送来的签名有没有变」），但无法反推原文或密钥。
+   */
+  private secretDigest(value: string) {
+    return createHash('sha256').update(value, 'utf8').digest('hex').slice(0, 8)
   }
 
   /**

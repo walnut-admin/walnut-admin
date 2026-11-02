@@ -1,5 +1,6 @@
 export * from './dayjs'
 export * from './dto'
+export * from './fire-and-forget'
 export * from './general'
 export * from './headers'
 export * from './mask'

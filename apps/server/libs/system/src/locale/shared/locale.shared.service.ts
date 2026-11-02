@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { runAfterCommit } from '@walnut-server/db'
+import { fireAndForget } from '@walnut-server/utils'
 import { LocaleType } from '@walnut/contract'
 import { Recordable } from 'easy-fns-ts'
 import { SysLangEntity } from '../../lang/entity/lang.entity'
@@ -137,8 +138,14 @@ export class SysLocaleSharedService {
    * @description trigger cache refresh after transaction commit
    */
   triggerCacheRefresh() {
-    void runAfterCommit(async () => {
-      await this.extractLocaleMessagesIntoCacheForCronJob()
-    })
+    // F-05：runAfterCommit 内部 await hook()，hook reject 时原 void 会逃成
+    // unhandledRejection —— 经 fireAndForget 收编，失败进日志。
+    fireAndForget(
+      runAfterCommit(async () => {
+        await this.extractLocaleMessagesIntoCacheForCronJob()
+      }),
+      this.logger,
+      'locale cache refresh after commit',
+    )
   }
 }

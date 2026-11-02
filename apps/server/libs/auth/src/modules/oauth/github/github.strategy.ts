@@ -7,6 +7,7 @@ import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstAppAuthStrategy } from '@walnut-server/const/app/strategy'
 
 import { getWalnutAdminCookie } from '@walnut-server/cookie'
+import { maskEmail } from '@walnut-server/utils/mask'
 import { OAuthGitHubService } from './github.service'
 import { Strategy } from './strategy'
 // Note: IWalnutAdminIWalnutAdminOAuthGitHubUserInfo is now IWalnutAdminIWalnutAdminOAuthGitHubUserInfo global type from @walnut-server/types
@@ -41,7 +42,11 @@ export class OAuthGitHubStrategy extends PassportStrategy(
     _refreshToken: string,
     profile: IWalnutAdminOAuthGitHubUserInfo,
   ) {
-    this.logger.log(`oauth github: ${JSON.stringify(profile)}`)
+    // F-06：profile 是 PII（email / login / avatar_url / 各家私有字段），整串 JSON 入日志
+    // 等于把用户身份资料写进轮转日志。只打 provider 侧 id 与掩码邮箱（排障够用）。
+    this.logger.log(
+      `oauth github: id=${profile.id}, email=${maskEmail(profile.email)}`,
+    )
 
     const { id, login, email, avatar_url } = profile
 

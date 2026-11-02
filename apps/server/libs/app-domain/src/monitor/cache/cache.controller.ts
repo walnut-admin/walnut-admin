@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Logger,
   Param,
 } from '@nestjs/common'
 import { ApiParam, ApiTags } from '@nestjs/swagger'
@@ -16,6 +17,7 @@ import { WalnutAdminDecoratorOperateLog, WalnutCrudDecorators } from '@walnut-se
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
 import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorHasRole } from '@walnut-server/guards'
 import { WalnutAdminPipeCacheKey } from '@walnut-server/pipes'
+import { fireAndForget } from '@walnut-server/utils/fire-and-forget'
 import { AppRoutes, Role } from '@walnut/contract'
 import {
   AppMonitorCacheDTO,
@@ -40,6 +42,8 @@ const { WalnutAdminDecoratorList, WalnutAdminDecoratorDelete } = WalnutCrudDecor
 @ApiTags('app/monitor/cache')
 @WalnutAdminDecoratorHasRole([Role.ROOT, Role.DEVELOPER], WalnutAdminConstDecoratorRoleMode.OR)
 export class AppMonitorCacheController {
+  private readonly logger = new Logger(AppMonitorCacheController.name)
+
   constructor(
     private readonly cacheService: AppTechCacheService,
     private readonly cacheAppSettingsService: AppTechCacheAppSettingsService,
@@ -74,6 +78,11 @@ export class AppMonitorCacheController {
   @Delete('/clear')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.CLEAR)
+  // F-18（DOC-07）：clear 此前 200 无 schema（handler 返回 boolean）。
+  @ApiWalnutOkResponse({
+    description: 'clear the whole app cache',
+    primitive: 'boolean',
+  })
   @WalnutAdminDecoratorOperateLog({
     title: WalnutAdminConstDecoratorLogOperateTitle.APP_CACHE,
     action: WalnutAdminConstDecoratorLogOperateAction.CLEAR,
@@ -90,7 +99,9 @@ export class AppMonitorCacheController {
     // （`void` 表达式值为 undefined，序列化后无 data）。客户端不得把 20000 当作「键已
     // 消失」的同步保证；需要确认删除请随后 GET read（键缺失回 value: null）。该语义由
     // monitor.api-spec 的「响应后键消失（轮询）」用例钉住。
-    const res = void this.cacheService.del(key)
+    // 异常兜底统一走 fireAndForget：rejection 记日志不外泄（Redis 抖动不再是进程级
+    // unhandledRejection），即便如此，返回的 res 仍是 void → 响应 data 恒为空（P2-4 契约不变）。
+    const res = void fireAndForget(this.cacheService.del(key), this.logger, 'monitor cache delete')
 
     // L3 防御性失效：这里绕过 setAppSettings 直删 Redis，若删的恰是 APP:SETTING，
     // appSettings 的进程内 memo 不会自愈 —— 无条件清一次（重建只是一次 Redis GET）

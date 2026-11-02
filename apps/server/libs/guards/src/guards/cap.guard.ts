@@ -64,6 +64,7 @@ export class WalnutAdminGuardCap implements CanActivate {
     // Step 1: 检查是否跳过 CAP 验证
     // ============================================================
 
+    // F-44：噪声过滤，**不是安全边界** —— isPostman 已被 isDev 门住（生产恒 false），权威说明见 apps/api/src/middleware/src/user-agent.middleware.ts 的 isPostmanRuntimeRequest。
     if (request.isPostman) {
       this.logger.debug('Skipping CAP for Postman Runtime request')
       return true
@@ -142,9 +143,9 @@ export class WalnutAdminGuardCap implements CanActivate {
     // ============================================================
 
     // Token 有效且无需额外验证，通过
-    this.logger.debug(
-      `CAP verification passed - Token: ${capToken}`,
-    )
+    // F-06：capToken 是客户端凭据（可重放），不得入日志；deviceId 在本文其余 debug
+    // 日志里已经是定位口径，口径不变。
+    this.logger.debug(`CAP verification passed - device: ${deviceId}`)
 
     return true
   }

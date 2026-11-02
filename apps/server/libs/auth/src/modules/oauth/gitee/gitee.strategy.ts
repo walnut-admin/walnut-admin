@@ -7,6 +7,7 @@ import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstAppAuthStrategy } from '@walnut-server/const/app/strategy'
 
 import { getWalnutAdminCookie } from '@walnut-server/cookie'
+import { maskEmail } from '@walnut-server/utils/mask'
 import { OAuthGiteeService } from './gitee.service'
 import { Strategy } from './strategy'
 // Note: IWalnutAdminIWalnutAdminOAuthGiteeUserInfo is now IWalnutAdminIWalnutAdminOAuthGiteeUserInfo global type from @walnut-server/types
@@ -41,7 +42,11 @@ export class OAuthGiteeStrategy extends PassportStrategy(
     _refreshToken: string,
     profile: IWalnutAdminOAuthGiteeUserInfo,
   ) {
-    this.logger.log(`oauth gitee: ${JSON.stringify(profile)}`)
+    // F-06（与 github.strategy 同款漏点，清单外补齐）：profile 是 PII，整串 JSON 不入日志；
+    // 只打 provider 侧 id 与掩码邮箱。
+    this.logger.log(
+      `oauth gitee: id=${profile.id}, email=${maskEmail(profile.email)}`,
+    )
 
     const { id, name, email, avatar_url } = profile
 

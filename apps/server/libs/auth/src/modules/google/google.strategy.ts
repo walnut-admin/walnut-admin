@@ -31,9 +31,14 @@ export class AuthGoogleStrategy extends PassportStrategy(
     })
 
     for (const jwk of googleJwk.keys) {
-      void importJWK(jwk, 'RS256').then((key) => {
-        this.keys[jwk.kid!] = key as CryptoKey
-      })
+      // F-05：importJWK 的 reject 原本无人接管（unhandledRejection）
+      void importJWK(jwk, 'RS256')
+        .then((key) => {
+          this.keys[jwk.kid!] = key as CryptoKey
+        })
+        .catch((error) => {
+          this.logger.warn(`import google jwk failed (kid=${jwk.kid}): ${error}`)
+        })
     }
   }
 
@@ -53,9 +58,11 @@ export class AuthGoogleStrategy extends PassportStrategy(
     try {
       const header = this.decodeHeader(idToken)!
 
-      const key: CryptoKey = this.keys[header.kid as string]
+      const key: CryptoKey | undefined = this.keys[header.kid as string]
 
-      if (key === null) {
+      // F-05 顺手修：keys 未命中时是 undefined，原 `key === null` 判不到，
+      // 会走到 jwtVerify(undefined) 抛误导性错误
+      if (key === undefined) {
         throw new Error('Unknown kid, need to update JWKS')
       }
 

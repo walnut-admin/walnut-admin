@@ -11,6 +11,7 @@ import { AuthGuard } from '@nestjs/passport'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { getWalnutAdminCookie } from '@walnut-server/cookie'
 import { SysLogAuthSharedService } from '@walnut-server/system'
+import { fireAndForget } from '@walnut-server/utils/fire-and-forget'
 
 /**
  * Walnut Admin Auth Guard (Mixin Factory)
@@ -49,16 +50,18 @@ export function WalnutAdminGuardAuth(strategy: string) {
 
       const payloadAuthType = this.logAuthSharedService.getAuthLogTypeFromMetadata(context)
 
-      void this.logAuthSharedService.recordAuth({
-        request: req,
-        authType: payloadAuthType!,
-        identifier,
-        deviceId,
-        success: false,
-        errI18nMsg: originMsg,
-      }).catch((e) => {
-        this.logger.error('record auth error', e)
-      })
+      fireAndForget(
+        this.logAuthSharedService.recordAuth({
+          request: req,
+          authType: payloadAuthType!,
+          identifier,
+          deviceId,
+          success: false,
+          errI18nMsg: originMsg,
+        }),
+        this.logger,
+        'record auth log (failed login)',
+      )
 
       throw err
     }

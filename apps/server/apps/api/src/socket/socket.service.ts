@@ -26,7 +26,9 @@ export class SocketService {
       : never,
   ): void {
     this.socket?.to(room).emit(event as any, data)
-    this.logger.log(`[sendToRoom] room: ${room}, event: ${event}, data: ${JSON.stringify(data)}`)
+    // F-06：只打事件类型与定位 id（room 本身即 user:userId:visitorId），不把 payload 全量
+    // 入日志（force:quit 等事件带用户身份字段；顺带避免 JSON.stringify 遇到循环引用抛错）。
+    this.logger.log(`[sendToRoom] room: ${room}, event: ${event}`)
   }
 
   /**
@@ -42,7 +44,9 @@ export class SocketService {
   ): void {
     const room = WalnutAdminSocketRooms.USER(userId, fingerprint)
     this.sendToRoom(room, event, data as never)
-    this.logger.log(`[sendToUserRoom] userId: ${userId}, fingerprint: ${fingerprint}, event: ${event}`)
+    // F-06：user-room 的定位口径是 userId/event；fp（fingerprint）是 SSE/OAuth 投递通道键，
+    // 不单独入日志（room 字符串里已含它，见 sendToRoom 的日志）。
+    this.logger.log(`[sendToUserRoom] userId: ${userId}, event: ${event}`)
   }
 
   /**
@@ -55,7 +59,8 @@ export class SocketService {
       : never,
   ): void {
     this.socket?.emit(event as any, data)
-    this.logger.log(`[broadcast] event: ${event}, data: ${JSON.stringify(data)}`)
+    // F-06：广播只打事件类型，不打 payload。
+    this.logger.log(`[broadcast] event: ${event}`)
   }
 
   /**
@@ -69,6 +74,7 @@ export class SocketService {
       : never,
   ): void {
     this.socket?.to(rooms).emit(event as any, data)
-    this.logger.log(`[sendToRooms] rooms: ${rooms.join(', ')}, event: ${event}, data: ${JSON.stringify(data)}`)
+    // F-06：只打房间列表与事件类型，不打 payload。
+    this.logger.log(`[sendToRooms] rooms: ${rooms.join(', ')}, event: ${event}`)
   }
 }

@@ -3,6 +3,7 @@ import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { IWalnutAdminConstDecoratorLogAuthType, WalnutAdminConstDecoratorLogAuthMetadataKey } from '@walnut-server/const/decorator/logAuth'
 import { getWalnutAdminCookie } from '@walnut-server/cookie'
 import { SysLogAuthSharedService } from '@walnut-server/system'
+import { fireAndForget } from '@walnut-server/utils/fire-and-forget'
 import { Observable } from 'rxjs'
 import { tap } from 'rxjs/operators'
 
@@ -35,22 +36,30 @@ export class WalnutAdminInterceptorRequestAuthLog implements NestInterceptor {
     return next.handle().pipe(
       tap({
         next: () => {
-          void this.logAuthSharedService.recordAuth({
-            request,
-            authType: payloadAuthType,
-            identifier,
-            deviceId,
-            success: true,
-          })
+          fireAndForget(
+            this.logAuthSharedService.recordAuth({
+              request,
+              authType: payloadAuthType,
+              identifier,
+              deviceId,
+              success: true,
+            }),
+            this.logger,
+            'record auth log (success)',
+          )
         },
         error: () => {
-          void this.logAuthSharedService.recordAuth({
-            request,
-            authType: payloadAuthType,
-            identifier,
-            deviceId,
-            success: false,
-          })
+          fireAndForget(
+            this.logAuthSharedService.recordAuth({
+              request,
+              authType: payloadAuthType,
+              identifier,
+              deviceId,
+              success: false,
+            }),
+            this.logger,
+            'record auth log (failure)',
+          )
         },
       }),
     )

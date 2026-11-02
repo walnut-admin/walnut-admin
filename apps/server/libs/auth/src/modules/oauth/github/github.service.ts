@@ -7,6 +7,7 @@ import { applyWalnutDataScopeRlsSettings, WALNUT_DATA_SCOPE_RLS_MODE, WalnutPGCo
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminExceptionSignupBanned } from '@walnut-server/exceptions/business/auth'
 import { SysUserIdentityRepositoryService, SysUserIdentitySharedService, SysUserOAuthRepositoryService, SysUserRepositoryService, SysUserSharedService, WalnutAdminConstSysUserIdentityPurpose, WalnutAdminConstSysUserIdentityType } from '@walnut-server/identity'
+import { fireAndForget } from '@walnut-server/utils/fire-and-forget'
 import { LocaleType } from '@walnut/contract'
 import { DataSource } from 'typeorm'
 import { SharedWelcomeService } from '../../shared/welcome/welcome.service'
@@ -174,7 +175,11 @@ export class OAuthGitHubService {
     )
 
     // Send welcome email
-    void this.welcomeService.sendWelcomeByType('email', email, language)
+    fireAndForget(
+      this.welcomeService.sendWelcomeByType('email', email, language),
+      this.logger,
+      'welcome message after oauth signup (github)',
+    )
 
     return result
   }

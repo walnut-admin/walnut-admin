@@ -6,6 +6,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheVerifyCodeService } from '@walnut-server/cache'
 import { AppMailerService } from '@walnut-server/mailer'
 import { AliyunSmsService, AppSmsService } from '@walnut-server/sms'
+import { fireAndForget } from '@walnut-server/utils/fire-and-forget'
 import { generateVerifyCode } from '@walnut-server/utils/general'
 import { isNil } from 'lodash'
 import { OtpSettingService } from '../otp.setting.service'
@@ -44,11 +45,19 @@ export class OtpSharedService implements IIdentityOtpService {
     // Send based on type
     if (type === 'email') {
       // WARNING: DO NOT USE AWAIT HERE, IT WILL BLOCK THE RESPONSE
-      void this.mailerService.sendVerifyCodeEmail(identifier, code, codeTTL, language)
+      fireAndForget(
+        this.mailerService.sendVerifyCodeEmail(identifier, code, codeTTL, language),
+        this.logger,
+        'send verify code email',
+      )
     }
     else {
       // WARNING: DO NOT USE AWAIT HERE, IT WILL BLOCK THE RESPONSE
-      void this.smsService.sendVerifyCodeTextMessage(identifier, code, codeTTL, language)
+      fireAndForget(
+        this.smsService.sendVerifyCodeTextMessage(identifier, code, codeTTL, language),
+        this.logger,
+        'send verify code sms',
+      )
     }
 
     // Cache the verify code

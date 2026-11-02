@@ -27,7 +27,9 @@ export class AuthSharedService {
     // 1. create auth session
     const { sessionId, authSessionKey } = await this.authSessionService.createAuthSession(payload.userId, deviceId, sessionKey)
 
-    this.logger.log(`Auth Session created, sessionId: ${sessionId}, authSessionKey: ${authSessionKey.toString('base64')}`)
+    // F-06：sessionKey 是会话签名派生根密钥（Redis 只存哈希、原文只回传给客户端一次）；
+    // 打 sessionId 足以定位会话，打 key 等于把会话根密钥写进轮转日志。
+    this.logger.log(`Auth Session created, sessionId: ${sessionId}`)
 
     // 2. generate access token with sid
     const accessToken = await this.tokenService.generateJwtAccessToken({ ...payload, sid: sessionId })

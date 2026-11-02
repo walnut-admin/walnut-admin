@@ -4,6 +4,7 @@ import { getWalnutAdminCookie } from '@walnut-server/cookie'
 import { SecurityRiskRateService } from '@walnut-server/security/risk/modules/rate.service'
 import { SecurityRiskService } from '@walnut-server/security/risk/risk.service'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
+import { fireAndForget } from '@walnut-server/utils/fire-and-forget'
 import { Recordable } from 'easy-fns-ts'
 import { isNil } from 'lodash'
 
@@ -53,7 +54,7 @@ export class WalnutAdminGuardRisk implements CanActivate {
         // rate collect
         if (!request._riskPreAuthCollected) {
           this.logger.debug('[Rate Collect] Pre-Auth - First time')
-          void this.rateService.collectPreAuth(request.path, ip, deviceId)
+          fireAndForget(this.rateService.collectPreAuth(request.path, ip, deviceId), this.logger, 'risk rate collect (pre-auth)')
           request._riskPreAuthCollected = true // 标记已执行
         }
         else {
@@ -98,7 +99,7 @@ export class WalnutAdminGuardRisk implements CanActivate {
 
       if (!request._riskPostAuthCollected) {
         this.logger.debug('[Rate Collect] Post-Auth')
-        void this.rateService.collectPostAuth(request.path, userId)
+        fireAndForget(this.rateService.collectPostAuth(request.path, userId), this.logger, 'risk rate collect (post-auth)')
         request._riskPostAuthCollected = true // 标记已执行
       }
       else {

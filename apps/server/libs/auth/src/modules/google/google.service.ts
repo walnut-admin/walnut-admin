@@ -1,6 +1,7 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { SysUserRepositoryService, SysUserSharedService } from '@walnut-server/identity'
+import { fireAndForget } from '@walnut-server/utils/fire-and-forget'
 import { LocaleType } from '@walnut/contract'
 import { AuthSharedService } from '../shared/shared.service'
 import { SharedWelcomeService } from '../shared/welcome/welcome.service'
@@ -38,7 +39,11 @@ export class AuthGoogleService {
     const tokenPayload = await this.sysUserSharedService.getAccessTokenPayloadAfterAutomaticSignUpForNonExistUser({ }, deviceId)
 
     // emit send welcome email event for new user
-    void this.welcomeService.sendWelcomeByType('email', emailAddress, language)
+    fireAndForget(
+      this.welcomeService.sendWelcomeByType('email', emailAddress, language),
+      this.logger,
+      'welcome message after oauth signup (google)',
+    )
 
     return tokenPayload
     // // check user existence
