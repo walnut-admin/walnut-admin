@@ -350,7 +350,7 @@
 |---|---|
 | server types:check | 0 |
 | server lint | 0 |
-| server test（unit） | 74 files / **506 tests** 全绿 |
+| server test（unit） | 75 files / **522 tests** 全绿 |
 | server test:integration（真实 PG/Redis） | 63 files / **562 passed + 1 skipped** 全绿（含 F-26 部分唯一索引、monitor-user F-47） |
 | server test:e2e | 1 file / 1 test 全绿 |
 | 全仓 types:check | **16/16 tasks** 0 |
@@ -359,18 +359,41 @@
 | docs | lint:docs-refs **0** · lint:doc-ts 0 · lint:doc-budget 0 · build:docs 0 · lint:adr 0 |
 
 ### 改动规模
-160+ 已跟踪文件变更（+17972 / -3054）+ 新增 spec/迁移/文档；**未提交**（批次 6 完成后按 conventional commits 细粒度提交）。
+178 个已跟踪文件变更（+17972 / -3054）+ 51 个新增文件；已按 conventional commits **17 个细粒度提交**（清单见附录 E）。
 
 ### 剩余待决 / 后续项（汇总）
 | # | 事项 | 建议 |
 |---|---|---|
 | A1 | reports/ 让 lint:docs-refs 常红 | **已解决**：评审文档按「md 一律住 apps/docs」迁入 content/review/backend + sidebar；reports/ 移出仓库到 %TEMP%\\walnut-external-reports-2026-11-02；**未加任何门禁排除** |
 | A2 | apps/server/AGENTS.md 预算 100% | **已解决**：优化后 **5796/6900 = 84%**（余 1104 字符），doc-budget 绿 |
-| A3 | DTO 同类残留（base.model 公共基座、monitor/user ×2、logger、sensitive、list/device-geo） | **用户已批准扩范围，批次 6-A 实施中** |
+| A3 | DTO 同类残留（base.model 公共基座、monitor/user ×2、logger、sensitive、list/device-geo） | **已解决（6-A）**：公共基座 createdAt/updatedAt 转必填，写路径用 Omit 收口，其余 DTO 按硬规矩清理 |
 | A4 | oauth_state.fp 死字段 + consumeState 返回 deviceId | **已解决（6-B）**：fp 移除、deviceId 从 Redis 绑定随 consumeState 返回、handler 用 req.oauthState |
 | A5 | JwtOptional 文档表达 | **已解决（6-B）**：key 导出；optional op 声明 `[{bearer:[]},{}]`，spec 钉住三档 |
-| A6 | SharedLocationDTO 单真源 | **部分**：原方案被 libs/types 定位阻塞；已加 `shared-location.contract.ts` 编译期断言守卫，彻底下沉单独排期 |
-| A7 | roleArn 云侧仍是 OSS FullAccess | 运维侧收窄或加 PermissionsBoundary（代码侧已只约束本接口签发的 STS） |
-| A8 | 需真实 DB 的用例 | **已在本机 WSL 的 PG/Redis 实跑：integration 562 + e2e 1 全绿**（F-26 索引、recover、setAsSecurity、monitor-user 均覆盖） |
-| A9 | 全部改动未提交 | 待 6-A/6-B 完成 → 全量验证 → 按 conventional commits 细粒度分批提交 |
-| A10 | 探针临时文件 | `undefined/opaque-probe.cjs` 已移到 %TEMP%\\walnut-junk-20261102；其余在仓库外，不影响提交 |
+---
+
+## 附录 E：提交批次与 prepush 全量验证（2026-11-02）
+
+### 提交记录（17 个，conventional commits）
+1. feat(server): socket 握手三重校验与 admin UI fail-closed
+2. fix(server): user identity list 线协议修复与密文出参剔除
+3. feat(server): OAuth SSE 设备绑定频道与 state 收口
+4. fix(server): fire-and-forget 收编与凭据日志脱敏
+5. feat(server): swagger 全站 security 声明与响应契约修复
+6. docs(server): 补齐端点响应契约与标签一致性
+7. docs(server): 补 app-domain 端点响应契约
+8. feat(server): 安全加固（文档门禁/trust proxy/STS/4xx/CORS/密钥/JWT/OPAQUE/monitor）
+9. fix(server): 健壮性批次（i18n/functional/dept/RT 索引/cache/验证码）
+10. refactor(server): 技术层拆 tech-base/tech-assemble 与 token 迁回 ip
+11. refactor(server): 数据面下沉 Repository 与 health 探针服务
+12. refactor(server): DTO 硬规矩清理（问号字段与裸 class-validator）
+13. feat(tooling): ESLint 装饰器顺序表扩展与 openapi 门禁 --cached
+14. feat(admin): monitor 心跳改 fetch keepalive 并携带 Authorization
+15. chore(server): openapi.json 与 api-types 重导出
+16. fix(deploy): nginx 对 socket admin UI 路径返回 404
+17. docs(docs): 评审归档迁入文档站、调研归档与配置/ADR 口径更新
+
+### 提交前全量验证
+- 原生命令：unit 75 files / **522 tests**；integration 63 files / **562 passed + 1 skipped**；e2e 1/1；server + 全仓 types/lint 全绿。
+- **pnpm prepush：23 段全部通过**（总 153.1s），含架构边界、syncpack、actionlint、ADR 形态、
+  文档代码块/引用/预算、类型检查（不排包）、openapi 一致性（导出+生成+git diff 含 --cached）、
+  catalog 锁步、nginx 安全头、源码密钥形态、手写 .d.ts、全包 lint 等。
