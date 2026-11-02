@@ -53,6 +53,7 @@ export class WalnutAdminGuardDevice implements CanActivate {
       throw new WalnutAdminExceptionDeviceNotAcceptable()
     }
 
+    // F-44：噪声过滤，**不是安全边界** —— isPostman 已被 isDev 门住（生产恒 false），权威说明见 apps/api/src/middleware/src/user-agent.middleware.ts 的 isPostmanRuntimeRequest。
     if (request.isPostman) {
       this.logger.debug('Postman runtime request, bypassed device check')
       return true

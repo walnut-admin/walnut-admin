@@ -1,8 +1,9 @@
+import type { IWalnutAdminConstAppEnv } from '@walnut-server/const/app/env'
 import type { IWalnutAdminErrorReporter } from '@walnut-server/exceptions'
 import type { AppErrorEntity } from './entity/error.entity'
-import process from 'node:process'
 import { InjectQueue } from '@nestjs/bull'
 import { Injectable, Logger } from '@nestjs/common'
+import { isProd, isStage, WalnutAdminConstAppEnv } from '@walnut-server/const/app/env'
 import { IWalnutAdminConstAppHTTPMethods } from '@walnut-server/const/app/methods'
 import { WalnutAdminConstAppProcess } from '@walnut-server/const/app/process'
 
@@ -12,6 +13,22 @@ import { Queue } from 'bull'
 import { SharedMaskService } from '../shared/mask/mask.service'
 import { AppErrorBasicRepository } from './error.basic.repository'
 import { AppErrorDTOSafe } from './error.dto'
+
+/**
+ * F-30：运行环境走 const 叶子判定（`@walnut-server/const/app/env`），不再直读 `process.env.NODE_ENV`
+ * —— 直读绕过了 const 的单一入口，NODE_ENV 一旦不是三值之一（test / 未设置）就会写进
+ * `app_error.env`，而库侧 CHECK 只认 development / stage / production，INSERT 必撞约束。
+ * 归一规则与 `isDev` 同义：非 prod / 非 stage 一律 development。
+ */
+function resolveErrorEnv(): IWalnutAdminConstAppEnv {
+  if (isProd) {
+    return WalnutAdminConstAppEnv.PROD
+  }
+  if (isStage) {
+    return WalnutAdminConstAppEnv.STAGE
+  }
+  return WalnutAdminConstAppEnv.DEV
+}
 
 @Injectable()
 export class AppErrorService implements IWalnutAdminErrorReporter {
@@ -64,7 +81,7 @@ export class AppErrorService implements IWalnutAdminErrorReporter {
       responseCode: resData.code!,
       responseMsg: resData.msg,
       ip: req.realIp,
-      env: process.env.NODE_ENV,
+      env: resolveErrorEnv(),
     }
 
     await this.errorQueue.add(

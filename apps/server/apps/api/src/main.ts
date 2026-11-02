@@ -10,10 +10,10 @@ import {
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { NestFactory, Reflector } from '@nestjs/core'
-import { SwaggerModule } from '@nestjs/swagger'
 import { getDataSourceToken } from '@nestjs/typeorm'
 import { apiReference } from '@scalar/nestjs-api-reference'
 import { AppTechRedisService } from '@walnut-server/cache'
+import { WalnutAdminConstAppEnv, WalnutAdminEnv } from '@walnut-server/const/app/env'
 import { WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 
@@ -23,7 +23,7 @@ import { useContainer } from 'class-validator'
 import { AppModule } from './app/app.module'
 import { mountProbeRoutes, setDraining } from './app/probes.composition'
 import { warnIfWorkerStandalone } from './app/schedule.composition'
-import { buildSwaggerDocumentOptions } from './common/swagger/swagger.options'
+import { createSwaggerDocument } from './common/swagger/swagger.document'
 import { WalnutAdminLogger } from './modules/techniques/logger'
 import { SocketIoAdapter } from './socket/socket.adapter'
 
@@ -68,7 +68,32 @@ async function bootstrap() {
 
   const reflector = app.get(Reflector)
 
-  app.set('trust proxy', true)
+  /*
+   * F-11（trust proxy 跳数）：**不能**用 `trust proxy = true` —— 那等于信任任意长度的
+   * 代理跳，客户端自带 X-Forwarded-For 即可伪造 req.ip / req.ips。而本项目的 IP 维度
+   * 控制全都吃 `req.realIp`（IpMiddleware 用 @supercharge/request-ip，header 优先，
+   * 与 Express 的 trust proxy 是**两条并存通道**）：IP 黑名单（ip.guard）、限流 tracker
+   * （throttler.guard）、失败登录临时拉黑与扫描路径永久拉黑、设备 IP 变更跟踪
+   * （device.guard）、风控（risk.guard）。伪造 XFF 的后果不止绕过，还包括**嫁祸**
+   * 任意 IP 进永久黑名单。
+   *
+   * 所以这里收窄成**具体跳数**：APP_TRUST_PROXY_HOPS（可选，默认 1 = docker 单层
+   * nginx：deploy/docker-compose.yml 只发布 80/443，nginx 用 $remote_addr **覆写**
+   * XFF / X-Real-IP，见 deploy/nginx/conf.d/api.conf:50-57）。与边缘 nginx 的耦合口径
+   * 在 middleware/src/ip.middleware.ts 头注释里有同一段警示。
+   *
+   * 非整数/负数（含未配置）一律回落默认 1：宁可信任「恰好一跳」也不要回到 true。
+   */
+  const trustProxyHops = Number.parseInt(
+    String(configService.get('APP_TRUST_PROXY_HOPS') ?? ''),
+    10,
+  )
+  app.set(
+    'trust proxy',
+    Number.isInteger(trustProxyHops) && trustProxyHops >= 0
+      ? trustProxyHops
+      : 1,
+  )
 
   /*
    * 探针（W2-B）：raw Express 路由，必须在 NestFactory.create 之后、listen 之前挂载
@@ -135,20 +160,30 @@ async function bootstrap() {
     }),
   )
 
-  // api document
+  // api document（F-10：**仅非生产挂载**）
   const openapiPrefix = 'api'
-  // options 的唯一来源在 common/swagger/swagger.options.ts（与离线导出 openapi.json 同源）
-  const options = buildSwaggerDocumentOptions()
+  // 为什么按环境关掉：这段是 raw express 挂载（app.use），在 Nest 路由与全局 guard 链
+  // **之外**摘不到任何认证 —— 全量 Scalar 文档 = 接口清单 + wire DTO 字段 + 权限点，
+  // 是生产对外最省事的侦察面。口径与 apps/server/AGENTS.md「开发模式下 Scalar API
+  // Reference 在 http://localhost:3000/api」一致：文档本来就只承诺开发环境提供。
+  //
+  // 判据用 libs/const 的 WalnutAdminEnv（process.env.NODE_ENV 的模块求值快照），与启动
+  // 脚本的 cross-env NODE_ENV=production 同源（start:prod / 容器 env），不依赖 env 文件里
+  // 是否又写了一遍 NODE_ENV。stage 仍挂载（预发需要联调文档）。
+  if (WalnutAdminEnv !== WalnutAdminConstAppEnv.PROD) {
+    // 组装点唯一：common/swagger/swagger.document.ts（options 来源 + bearer 批量注入，
+    // 与离线导出 openapi.json 同一条路径）。工厂是惰性的（Scalar 每次取文档都会调），
+    // 注入带幂等标记，重复调用不会叠加 security 数组。
+    const documentFactory = () => createSwaggerDocument(app)
 
-  const documentFactory = () => SwaggerModule.createDocument(app, options)
-
-  app.use(
-    `/${openapiPrefix}`,
-    apiReference({
-      content: documentFactory,
-      theme: 'moon',
-    }),
-  )
+    app.use(
+      `/${openapiPrefix}`,
+      apiReference({
+        content: documentFactory,
+        theme: 'moon',
+      }),
+    )
+  }
 
   await app.listen(port)
 
@@ -164,8 +199,11 @@ async function bootstrap() {
   process.on('SIGINT', () => setDraining(true))
 
   console.log(`APP is running in ${env} mode on ${await app.getUrl()}`)
-  console.log(
-    `Swagger document is host on ${await app.getUrl()}/${openapiPrefix}`,
-  )
+  // 与挂载条件同一判据：生产没挂文档就不要打「文档在这里」的日志（否则是误导性的暴露暗示）
+  if (WalnutAdminEnv !== WalnutAdminConstAppEnv.PROD) {
+    console.log(
+      `Swagger document is host on ${await app.getUrl()}/${openapiPrefix}`,
+    )
+  }
 }
 void bootstrap()

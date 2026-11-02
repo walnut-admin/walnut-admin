@@ -29,6 +29,11 @@ export class JwtAccessTokenStrategy extends PassportStrategy(
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: configService.get('jwt.access.secret') as string,
+      // F-42：对称 secret 场景必须显式钉死验签算法 —— passport-jwt 把这里原样透传给
+      // jsonwebtoken 的 verify；不传时算法由 token header 的 alg 决定（算法降级面）。
+      // 与 libs/token 的 JwtConfigClass.createJwtOptions().verifyOptions 同口径
+      // （HTTP 侧走本 strategy，socket 握手侧走 tokenService.verifyAccessToken）。
+      algorithms: ['HS256'],
       passReqToCallback: true,
     })
   }

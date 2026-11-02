@@ -9,6 +9,13 @@ import { isNil } from 'lodash'
 import { AuthSharedService } from '../../shared/shared.service'
 
 /**
+ * F-45：不存在的用户也要走一次 identity 读腿（等时）—— 查一个恒不存在的 userId。
+ * nil uuid（全 0）在 PG 里是合法 uuid 值，且 sys_user.id 是 gen_random_uuid() 生成的，
+ * 永远不会与它相撞。
+ */
+const OPAQUE_DUMMY_USER_ID = '00000000-0000-0000-0000-000000000000'
+
+/**
  * OPAQUE (Oblivious Pseudorandom Function) authentication service
  * Implements password-authenticated key exchange protocol that never exposes passwords to the server
  */
@@ -57,49 +64,82 @@ export class AuthOpaqueCoreService {
    * Receives client's login request and generates server's login response
    *
    * B7a 签名适配：user/identity 读腿迁 PG —— 事务句柄改收 `em`（ctx.em）。
+   *
+   * F-45（2026-11，安全纵深）：用户不存在 / 无口令凭据时**不再提前返回** —— 见方法内注释。
    */
   async startLogin(userName: string, startLoginRequest: string, deviceId: string, em: EntityManager) {
     // Find user by username
     const user = await this.userRepo.findUserByUserName(userName, em)
-    if (!user) {
-      throw new WalnutAdminExceptionInvalidCredential()
-    }
 
-    // Get password identity from user_identity table
-    const passwordIdentity = await this.userIdentityRepo.getValueByUserIdTypeAndPurpose(
-      user.id,
-      'password',
-      'login',
-      em,
-    )
-    if (isNil(passwordIdentity)) {
-      throw new WalnutAdminExceptionInvalidCredential()
-    }
+    // F-45（用户枚举时序侧信道）：旧实现在 user 不存在（或无 password identity）时直接
+    // throw，两条路径的**结构**是可量化的差异 ——
+    //   存在：  1 次 user 查 + 1 次 identity 查 + 1 次 OPAQUE 计算 + 1 次 Redis 写
+    //   不存在：1 次 user 查 + 0 次 identity 查 + 0 次 OPAQUE 计算 + 0 次 Redis 写
+    // 差的是一次昂贵计算（本机实测 ~2-3ms）加一次 Redis 往返：攻击者对同一 userName
+    // 打几次取中位数就能判定账号是否存在（登录端点本就匿名可达）。
+    //
+    // 修法：不存在的用户**把整个流程完整走一遍**，只是所有产出都作废 ——
+    // 1) identity 读腿补一次等量查询（不存在的用户查 nil uuid，恒 null）⇒ 两条路径
+    //    都是 2 次 DB 读；
+    // 2) registrationRecord 传 null：@serenity-kit/opaque 的 server.startLogin 接受
+    //    null（类型即 `string | null | undefined`），会用由 (serverSetup, userIdentifier)
+    //    派生的 fake registration record 完成等量计算并返回 loginResponse /
+    //    serverLoginState —— 不需要在服务端伪造一份真 record，也没有额外启动开销；
+    // 3) 照常写一次 SERVER_STATE 缓存（同键、同 30s TTL）⇒ 两条路径都是 1 次 Redis 写；
+    // 4) 等量计算 + 等量写**之后**才判失败，统一抛 40103（错误码与文案不变，顺带也不
+    //    泄露「用户存在但没有口令凭据」这一子状态）。
+    //
+    // 代价：不存在的 userName 会多占一个 30s 的 SERVER_STATE 键（与已存在用户同量级，
+    // 且登录端点有限流）—— 换掉的是可被统计的枚举信道，值得。真正的身份验证仍在
+    // finishLogin：那里的 session key 只可能来自一次成功的 OPAQUE 交换。
+    const passwordIdentity = user === null
+      ? await this.userIdentityRepo.getValueByUserIdTypeAndPurpose(
+          OPAQUE_DUMMY_USER_ID,
+          'password',
+          'login',
+          em,
+        )
+      : await this.userIdentityRepo.getValueByUserIdTypeAndPurpose(
+          user.id,
+          'password',
+          'login',
+          em,
+        )
+
+    let loginResponse: string
 
     try {
-      // Server creates login response using stored registration record
-      const { loginResponse, serverLoginState } = opaque.server.startLogin({
+      // Server creates login response using stored registration record（null ⇒ fake record）
+      const { loginResponse: computedLoginResponse, serverLoginState } = opaque.server.startLogin({
         userIdentifier: userName,
-        registrationRecord: passwordIdentity,
+        registrationRecord: passwordIdentity ?? null,
         serverSetup: this.getServerSetup(),
         startLoginRequest,
         identifiers: {
-          client: user.userName!,
+          client: user?.userName ?? userName,
           server: this.getAppName(),
         },
       })
 
+      loginResponse = computedLoginResponse
+
       // Cache server login state temporarily (30 seconds TTL)
       // This state is needed to complete the login in the next step
+      // （F-45：假计算路径同样写这一条，保持 Redis 写次数一致）
       await this.opaqueCacheService.setOpaqueServerStateCache(userName, deviceId, serverLoginState)
-
-      // Return login response to be sent back to client
-      return loginResponse
     }
     catch (error: any) {
       this.logger.error(`OPAQUE login start failed, userName: ${userName}, error: ${error}`)
       throw new WalnutAdminExceptionInvalidCredential()
     }
+
+    // 失败判定必须留在等量计算与等量写之后（提前到这里侧信道就回来了）
+    if (user === null || isNil(passwordIdentity)) {
+      throw new WalnutAdminExceptionInvalidCredential()
+    }
+
+    // Return login response to be sent back to client
+    return loginResponse
   }
 
   /**

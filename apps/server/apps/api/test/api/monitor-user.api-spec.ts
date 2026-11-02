@@ -12,7 +12,8 @@ import { makeMonitorState, makeMonitorVisitorId, makeSeed8 } from './helpers/fac
 
 /**
  * B 段：`app/monitor/user` —— CRUD list/read + `POST state`（Sign/Jwt/Cap/Device 全
- * Free 的匿名上报，deviceId 取签名 cookie）+ `DELETE force-quit/:id`（@WalnutTx，
+ * Free 的匿名上报，deviceId 取签名 cookie；**F-47 起** body 里的 userId 不再被采信，
+ * 只有携带验签通过的 AT 才会把 user_id 落库）+ `DELETE force-quit/:id`（@WalnutTx，
  * admin-kick 撤销该用户该设备的 refresh token；socket 未装配时 sendToRoom 走 `socket?.`
  * 空安全，在线踢下线在测试环境为 no-op）。
  *
@@ -94,8 +95,14 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     await app.close()
   })
 
+  /**
+   * F-47：`userId` 只认「验签通过的 AT」（README 式的口径见 user.controller.ts 的
+   * resolveVerifiedUserId）。所以「已登录上报」用 root（带 AT + 双因子签名；state 端点
+   * Sign Free，签名头被忽略但无害）。无 AT 的匿名上报另有用例 —— 体里带 userId 也
+   * 必须落 NULL。
+   */
   async function createOnlineMonitorA(client: WalnutApiClient = api): Promise<string> {
-    const res = await client.anon('POST', client.apiPath('/app/monitor/user/state'), makeMonitorState({
+    const res = await client.root('POST', client.apiPath('/app/monitor/user/state'), makeMonitorState({
       visitorId: visitorA,
       auth: true,
       userId: fixture!.userId,
@@ -110,7 +117,7 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     return rows[0].id
   }
 
-  it('state（匿名 Sign 链）→ 20000，在线状态 upsert 落库（user/device 绑定）', async () => {
+  it('state（带 AT）→ 20000，在线状态 upsert 落库（user/device 绑定）', async () => {
     monitorIdA = await createOnlineMonitorA()
     expect(monitorIdA).toMatch(UUID_RE)
 
@@ -124,6 +131,27 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     expect(rows[0].auth).toBe(true)
     expect(rows[0].is_left).toBe(false)
     expect(rows[0].current_router).toBe('/dashboard')
+  })
+
+  it('F-47：匿名上报即使 body 里带 userId 也不落库（user_id 恒 NULL，心跳照常生效）', async () => {
+    const res = await api.anon('POST', api.apiPath('/app/monitor/user/state'), makeMonitorState({
+      visitorId: visitorB,
+      auth: true,
+      // 伪造的身份声明：没有 AT ⇒ controller 覆盖成 null ⇒ service 的 nil 过滤丢弃
+      userId: fixture!.userId,
+      focus: true,
+    }))
+    expectOk(res, 'anonymous monitor state with spoofed userId')
+
+    const rows: Array<{ user_id: string | null, auth: boolean, focus: boolean }> = await api.pgDataSource.query(
+      'SELECT user_id, auth, focus FROM app_monitor_user WHERE visitor_id = $1',
+      [visitorB],
+    )
+    expect(rows).toHaveLength(1)
+    expect(rows[0].user_id).toBeNull()
+    // 匿名心跳的其余字段不受影响（无 AT 也能更新 state，只是不关联用户）
+    expect(rows[0].auth).toBe(true)
+    expect(rows[0].focus).toBe(true)
   })
 
   it('read → 20000，device / user 按 ID 装回', async () => {

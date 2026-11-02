@@ -1,8 +1,34 @@
-import { plainToClass } from 'class-transformer'
-import { IsNumber, IsString, validateSync } from 'class-validator'
+import { plainToClass, Transform } from 'class-transformer'
+import { IsInt, IsNumber, IsOptional, IsString, Matches, MinLength, validateSync } from 'class-validator'
 import { assertWalnutPgAppBootstrapPassword } from './utils/pg-app-password'
 
-class EnvironmentVariables {
+/**
+ * F-42：密钥类 env 的**最小长度**下限（字符数）。
+ *
+ * 为什么必须有下限：这 7 个值此前只有 `@IsString()` —— 一个 `"1"` 也能启动成功。
+ * 它们全部是密码学根材料（对称签名密钥 / 数据加密根 / OPAQUE serverSetup），长度是
+ * 唯一的「常识底线」可机械校验项：太短意味着可暴力枚举、或根本不是随机生成出来的密钥
+ * （手敲的短串、占位符）。
+ *
+ * 口径（32 字符 = 32 字节在常见编码下的保守下限）：
+ * - hex 编码的 32 字节 = 64 字符；
+ * - base64 编码的 32 字节 = 44 字符（带 padding，去掉 `=` 是 43）；
+ * - 取 32 是**下限**而不是目标值 —— 它挡的是「短到不可能是随机密钥」的值，不校验编码形式
+ *   （历史值里既有 base64、也有 hex 与 dotenvx 生成的随机串，编码形式不是本仓库能统一的口径）。
+ *
+ * 不会自伤（2026-11 核对 `apps/server/env-local/`，dev / stage / production 三份）：
+ * MFA/RT/DEVICE_ID/USER_ID 四个加密根 = 44 字符（正好 base64(32B)），AUTH_OPAQUE_SECRET =
+ * 171 字符（`opaque.server.createSetup()` 的固定长度），stage/prod 的 JWT 两个 secret =
+ * 128 字符；**最短的是 dev 的 JWT_REFRESH_TOKEN_SECRET = 38 字符**，仍在 32 之上。
+ */
+const SECRET_MIN_LENGTH = 32
+
+/** 每条消息都点名变量名 —— 类校验器的通用文案只列属性名，排障时看不出该去改哪个 env */
+function SECRET_MIN_LENGTH_MESSAGE(name: string) {
+  return `${name} 长度不足：最小 ${SECRET_MIN_LENGTH} 字符（32 字节密钥的 base64/hex 保守下限，见 validation.ts 顶部注释）`
+}
+
+export class EnvironmentVariables {
   @IsString()
   APP_API_PREFIX: string
 
@@ -11,6 +37,51 @@ class EnvironmentVariables {
 
   @IsNumber()
   APP_PORT: number
+
+  /**
+   * 反向代理可信跳数（Express app.set('trust proxy', n)，F-11）。
+   *
+   * **可选，默认 1** —— 默认值对应 docker 单层 nginx：deploy/docker-compose.yml
+   * 只发布 80/443，容器内 nginx 以 $remote_addr **覆写** X-Forwarded-For / X-Real-IP
+   * （见 deploy/nginx/conf.d/api.conf:50-57），应用前面恰好一跳代理。
+   *
+   * 为什么不允许 trust proxy = true：那等于信任任意长度的代理跳，客户端自带
+   * X-Forwarded-For 即可伪造 req.ip / req.ips，而 IP 黑名单、限流 tracker、失败登录
+   * 拉黑、设备 IP 变更跟踪、风控全部按 IP 维度判定（详见 main.ts 与
+   * middleware/src/ip.middleware.ts 的同主题注释）。
+   *
+   * 多层代理（如 CDN + LB + nginx）时按**真实跳数**填；直连部署（无代理）填 0，
+   * 表示一律取 socket 对端地址。取值非整数/负数时 main.ts 回落为默认 1。
+   *
+   * 为什么显式 `@Transform` 而不是只靠 enableImplicitConversion：隐式转换依赖装饰器
+   * 元数据（design:type）—— nest build 的 SWC 配置里开了 decoratorMetadata，但
+   * vitest / 其他非 tsc 链路不一定有；缺元数据时 '2' 会停在字符串形态被 IsInt 拒掉
+   * （等于启动失败）。显式转换让两条链路行为一致：数字字符串转 number，空串视同未配置
+   * （回落上面的默认 1），非数字原样留给 IsInt 报错。
+   */
+  @IsOptional()
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === undefined || value === null || value === '')
+      return undefined
+
+    const parsed = Number(value)
+    // 非有限值原样返回：让 IsInt 把它当「不是整数」拒掉，而不是静默变成 NaN
+    return Number.isFinite(parsed) ? parsed : value
+  })
+  @IsInt()
+  APP_TRUST_PROXY_HOPS: number = 1
+
+  /**
+   * F-43：CORS 允许源覆盖（逗号分隔，**优先于**内置的 dev 白名单 / prod 单源）。
+   *
+   * 可选：不配置时按 NODE_ENV 取默认值（dev / stage = 127.0.0.1 与 localhost 的常用端口
+   * 白名单，prod = https://www.<config.domain>）—— 见 middleware.config.ts 的
+   * resolveAllowOrigin。**不要**在这里写 `*`：全站 cookie 认证 + credentials:true，
+   * 通配源会被浏览器直接拒绝。
+   */
+  @IsOptional()
+  @IsString()
+  APP_CORS_ALLOW_ORIGINS: string
 
   @IsNumber()
   APP_THROTTLE_TTL: number
@@ -106,12 +177,14 @@ class EnvironmentVariables {
 
   /* jwt secrets */
   @IsString()
+  @MinLength(SECRET_MIN_LENGTH, { message: SECRET_MIN_LENGTH_MESSAGE('JWT_ACCESS_TOKEN_SECRET') })
   JWT_ACCESS_TOKEN_SECRET: string
 
   @IsNumber()
   JWT_ACCESS_TOKEN_EXPIRE: number
 
   @IsString()
+  @MinLength(SECRET_MIN_LENGTH, { message: SECRET_MIN_LENGTH_MESSAGE('JWT_REFRESH_TOKEN_SECRET') })
   JWT_REFRESH_TOKEN_SECRET: string
 
   @IsNumber()
@@ -119,22 +192,27 @@ class EnvironmentVariables {
 
   /* auth opaque */
   @IsString()
+  @MinLength(SECRET_MIN_LENGTH, { message: SECRET_MIN_LENGTH_MESSAGE('AUTH_OPAQUE_SECRET') })
   AUTH_OPAQUE_SECRET: string
 
   /* mfa encryption key, used for encrypting mfa code, do not change easily */
   @IsString()
+  @MinLength(SECRET_MIN_LENGTH, { message: SECRET_MIN_LENGTH_MESSAGE('MFA_ENCRYPTION_KEY') })
   MFA_ENCRYPTION_KEY: string
 
   /* refresh token encryption key, used for encrypting refresh token, do not change easily */
   @IsString()
+  @MinLength(SECRET_MIN_LENGTH, { message: SECRET_MIN_LENGTH_MESSAGE('RT_ENCRYPTION_KEY') })
   RT_ENCRYPTION_KEY: string
 
   /* device id encryption key, used for encrypting device id, do not change easily */
   @IsString()
+  @MinLength(SECRET_MIN_LENGTH, { message: SECRET_MIN_LENGTH_MESSAGE('DEVICE_ID_ENCRYPTION_KEY') })
   DEVICE_ID_ENCRYPTION_KEY: string
 
   /* user identity encryption key, used for encrypting user identity, do not change easily */
   @IsString()
+  @MinLength(SECRET_MIN_LENGTH, { message: SECRET_MIN_LENGTH_MESSAGE('USER_ID_ENCRYPTION_KEY') })
   USER_ID_ENCRYPTION_KEY: string
 
   /* user identity hash salt, used for hashing user identity, do not change easily */
@@ -150,6 +228,24 @@ class EnvironmentVariables {
 
   @IsString()
   SOCKET_SERVER_ORIGIN: string
+
+  /* socket admin ui（F-01）：可选 —— 两者同时配置才挂载 @socket.io/admin-ui
+     （fail-closed：不配置 = 不挂载）。生产必配。
+     注意：@socket.io/admin-ui 0.5.1 只接受 **bcrypt hash** 作 password（明文会在
+     instrument() 时被拒、启动即崩）—— 先定强口令（>= 8 位），再用
+     bcryptjs.hash(强口令, 10) 生成 hash 填入 env。 */
+  @IsOptional()
+  @IsString()
+  SOCKET_ADMIN_UI_USER: string
+
+  @IsOptional()
+  @IsString()
+  @MinLength(8, { message: 'SOCKET_ADMIN_UI_PASSWORD 对应的强口令最少 8 位（admin UI 强口令下限）' })
+  @Matches(/^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/, {
+    message: 'SOCKET_ADMIN_UI_PASSWORD 必须是 bcrypt hash（$2a/$2b/$2y 开头、共 60 位）'
+      + '—— 用 bcryptjs.hash(强口令, 10) 生成；明文会被 @socket.io/admin-ui 启动拒绝',
+  })
+  SOCKET_ADMIN_UI_PASSWORD: string
 
   /* baidu ak */
   @IsString()
