@@ -17,10 +17,8 @@ export { WalnutAdminDecoratorDeleteMany } from './deleteMany'
 export { WalnutAdminDecoratorList } from './list'
 export { WalnutAdminDecoratorOperateLog, WalnutAdminInterceptorRequestOperateLog } from './operate-log/operate-log.decorator'
 export {
-  type IWalnutAdminIpLocationResolver,
   type IWalnutAdminOperateLogRecord,
   type IWalnutAdminOperateLogWriter,
-  WALNUT_ADMIN_IP_LOCATION_RESOLVER,
   WALNUT_ADMIN_OPERATE_LOG_WRITER,
 } from './operate-log/operate-log.ports'
 export { WalnutAdminDecoratorRead } from './read'

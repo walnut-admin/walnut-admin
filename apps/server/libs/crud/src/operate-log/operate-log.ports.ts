@@ -5,21 +5,18 @@ import type { Recordable } from 'easy-fns-ts'
 /**
  * 操作日志拦截器的依赖端口（libs 解耦批 4）。
  *
- * 拦截器随 crud 装饰器抽入 libs 后，原先直接注入的两个服务不能跨向引用，
+ * 拦截器随 crud 装饰器抽入 libs 后，原先直接注入的服务不能跨向引用，
  * 改为端口 + `useExisting` 绑定（批 1/2 的 AppErrorService / WALNUT_ADMIN_TOKEN_TTL 同款手法）：
- * - `WALNUT_ADMIN_IP_LOCATION_RESOLVER` ← `libs/ip` 的 SharedIpService（getLocationFromBaidu）
  * - `WALNUT_ADMIN_OPERATE_LOG_WRITER` ← `libs/system` 的 SysLogOperateRepoService（create）
  *
- * 绑定跟随实现所在层：`SharedIpModule`（libs/ip）与 `SysLogOperateRepoModule`（libs/system）
- * 均 @Global + useExisting。实现侧以 `implements` 做编译期守护（任一方法改名/改签名立刻红，
+ * IP 定位端口 `WALNUT_ADMIN_IP_LOCATION_RESOLVER` 已迁到实现所在的 `libs/ip`
+ * （`ip.ports.ts`，F-14 / Decision 3「token 放需要它的 lib」）：crud → ip 是
+ * assemble → base 的合法方向，ip 不再反引本 lib（原落点即 ARCH-01 的「设施依赖内核」边）。
+ *
+ * 绑定跟随实现所在层：`SysLogOperateRepoModule`（libs/system）@Global + useExisting。
+ * 实现侧以 `implements` 做编译期守护（任一方法改名/改签名立刻红，
  * 而不是等运行期 token 解析出 undefined）。
  */
-
-export const WALNUT_ADMIN_IP_LOCATION_RESOLVER = Symbol('WALNUT_ADMIN_IP_LOCATION_RESOLVER')
-
-export interface IWalnutAdminIpLocationResolver {
-  getLocationFromBaidu: (ip: string) => Promise<string | null>
-}
 
 export const WALNUT_ADMIN_OPERATE_LOG_WRITER = Symbol('WALNUT_ADMIN_OPERATE_LOG_WRITER')
 

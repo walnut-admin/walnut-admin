@@ -28,7 +28,8 @@ export class CacheConfigService implements CacheOptionsFactory {
     })
 
     keyvInst.on('error', (err) => {
-      console.error('Connection Error', err)
+      // F-16：原裸 console.error 绕过日志管道（无 requestId、不进轮转）
+      this.logger.error('Connection Error', err)
       throw new InternalServerErrorException(
         `RedisService: Failed to connect to Redis server at ${host}:${port}`,
       )

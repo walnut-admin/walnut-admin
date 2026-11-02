@@ -53,13 +53,18 @@ export class ALSRequestService {
     return this.als.getStore() !== undefined
   }
 
+  /**
+   * F-35：set / get 在**每个请求的每个字段**上都会被调用（守卫、拦截器、仓库层都读），
+   * 原先各打两行 debug（set 还有一行 `JSON.stringify(store[key])`）—— 热路径上的字符串
+   * 构造与序列化开销恒定付出，而 DEBUG 级别在生产默认关闭，等于白付。
+   * 这里直接删掉成功路径的日志，只留「ALS store 不存在」这一条 warn（那是配置错误，
+   * 必须可见）；排查个别字段的流转请临时加断点或用 logger.debug 打点后删掉。
+   */
   set<K extends keyof RequestContext>(key: K, value: RequestContext[K]) {
     const store = this.als.getStore()
-    this.logger.debug(`Setting ${key}, store exists: ${!!store}`)
 
     if (store) {
       store[key] = value
-      this.logger.debug(`${key} after set: ${JSON.stringify(store[key])}`)
     }
     else {
       this.logger.warn(`No ALS store found when setting ${key}. This means ALS scope is not active.`)
@@ -68,12 +73,9 @@ export class ALSRequestService {
 
   get<K extends keyof RequestContext>(key: K): RequestContext[K] | undefined {
     const store = this.als.getStore()
-    this.logger.debug(`Getting ${key}, store exists: ${!!store}`)
 
     if (store) {
-      const value = store[key]
-      this.logger.debug(`${key} value: ${JSON.stringify(value)}`)
-      return value
+      return store[key]
     }
 
     this.logger.warn(`No ALS store found when getting ${key}.`)

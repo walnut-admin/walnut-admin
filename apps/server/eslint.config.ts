@@ -3,7 +3,7 @@ import nestConfig, { DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE, DATA_SCOPE_DIRECT_REP
 
 // ── lib 分层门禁 ───────────────────────────────────────────────────────────────
 // 依赖方向（箭头指向被依赖方，只有上层 import 下层）：
-//   基建 < 技术 < identity < system < auth < security < guards < app-domain
+//   基建 < 技术设施 < 技术装配 < identity < system < auth < security < guards < app-domain
 // 判定式：rank(target) <= rank(source)；唯一例外 exceptions -> blpath。
 // no-restricted-imports 是 core 规则，不需要类型信息。
 const INFRA_LIBS = ['config', 'const', 'context', 'db', 'decorators', 'pipes', 'types', 'utils'] as const
@@ -12,7 +12,14 @@ const INFRA_LIBS = ['config', 'const', 'context', 'db', 'decorators', 'pipes', '
 // 不并入 INFRA_LIBS —— 接线对账要求每个 lib 恰好登记进一个 layer 的 libs 数组。
 const EXCEPTION_LIBS = ['exceptions'] as const
 
-const TECH_LIBS = ['als', 'blpath', 'cookie', 'crypto', 'delay', 'lock', 'queue', 'sse', 'cache', 'throttle', 'mailer', 'sms', 'rsa', 'ip', 'repository', 'list', 'crud', 'scope-resolver', 'token'] as const
+// 技术层拆两条（F-14 / Q8a）：tech-base 是「纯技术设施」（不感知域与数据面），
+// tech-assemble 是「跨域装配内核」（repository / list / crud / scope-resolver / token）。
+// 允许边只有 assemble → base **单向**：base 反过来引内核就是环的起点（ip 原引 crud 的
+// 端口 token 即此类，按 Decision 3 把 token 迁回 libs/ip 后方向变正），由 banned 按
+// rank 自动收紧拦住（不需要逐条边清单）。
+const TECH_BASE_LIBS = ['als', 'blpath', 'cookie', 'crypto', 'delay', 'lock', 'queue', 'sse', 'cache', 'throttle', 'mailer', 'sms', 'rsa', 'ip'] as const
+
+const TECH_ASSEMBLE_LIBS = ['repository', 'list', 'crud', 'scope-resolver', 'token'] as const
 
 const DOMAIN_LIBS = ['identity', 'system', 'auth', 'security'] as const
 const TOP_LIBS = ['guards', 'app-domain'] as const
@@ -71,7 +78,7 @@ const libsBoundaryConfig: Linter.Config = {
         ...COMMON_IMPORT_PATTERNS,
         {
           group: ['@walnut-server/*'],
-          message: '该 lib 尚未登记分层。请先在 eslint.config.ts 的 INFRA_LIBS / TECH_LIBS / 领域层列表中归类。',
+          message: '该 lib 尚未登记分层。请先在 eslint.config.ts 的 INFRA_LIBS / TECH_BASE_LIBS / TECH_ASSEMBLE_LIBS / 领域层列表中归类。',
         },
       ],
     }],
@@ -105,10 +112,13 @@ const libsGuardConfig: Linter.Config = {
 export default nestConfig().append(
   libsBoundaryConfig,
   libsGuardConfig,
-  layer('infra', INFRA_LIBS, [...TECH_LIBS, ...DOMAIN_LIBS, ...TOP_LIBS], '基建层'),
+  layer('infra', INFRA_LIBS, [...TECH_BASE_LIBS, ...TECH_ASSEMBLE_LIBS, ...DOMAIN_LIBS, ...TOP_LIBS], '基建层'),
   // 唯一例外：异常过滤器需要 blpath 的 skip 名单（blpath 零出边）。
-  layer('infra-exceptions', EXCEPTION_LIBS, [...TECH_LIBS.filter(lib => lib !== 'blpath'), ...DOMAIN_LIBS, ...TOP_LIBS], '基建层（exceptions 例外）'),
-  layer('tech', TECH_LIBS, [...DOMAIN_LIBS, ...TOP_LIBS], '技术层'),
+  layer('infra-exceptions', EXCEPTION_LIBS, [...TECH_BASE_LIBS.filter(lib => lib !== 'blpath'), ...TECH_ASSEMBLE_LIBS, ...DOMAIN_LIBS, ...TOP_LIBS], '基建层（exceptions 例外）'),
+  // 技术设施（base）不能被内核（assemble）依赖 —— banned 里含 assemble 即 mechanical 拦下；
+  // 反过来 assemble 引 base 合法（不在其 banned 内）。
+  layer('tech-base', TECH_BASE_LIBS, [...TECH_ASSEMBLE_LIBS, ...DOMAIN_LIBS, ...TOP_LIBS], '技术设施层'),
+  layer('tech-assemble', TECH_ASSEMBLE_LIBS, [...DOMAIN_LIBS, ...TOP_LIBS], '技术装配层'),
   layer('identity', ['identity'], [...DOMAIN_LIBS.filter(lib => lib !== 'identity'), ...TOP_LIBS], 'identity 内核'),
   layer('system', ['system'], ['auth', 'security', ...TOP_LIBS], 'system 域'),
   layer('auth', ['auth'], ['security', ...TOP_LIBS], 'auth 域'),

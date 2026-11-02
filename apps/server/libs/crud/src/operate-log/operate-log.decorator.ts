@@ -1,4 +1,5 @@
-import type { IWalnutAdminIpLocationResolver, IWalnutAdminOperateLogWriter } from './operate-log.ports'
+import type { IWalnutAdminIpLocationResolver } from '@walnut-server/ip'
+import type { IWalnutAdminOperateLogWriter } from './operate-log.ports'
 import { applyDecorators, CallHandler, ExecutionContext, Inject, Injectable, Logger, NestInterceptor, SetMetadata, UseInterceptors } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { EventEmitter2 } from '@nestjs/event-emitter'
@@ -14,6 +15,7 @@ import { getWalnutAdminCookie } from '@walnut-server/cookie'
 import { runAfterCommit } from '@walnut-server/db'
 import { translateResponseMessage } from '@walnut-server/exceptions/exception.filter'
 import { WalnutAdminExceptionHandler } from '@walnut-server/exceptions/handler'
+import { WALNUT_ADMIN_IP_LOCATION_RESOLVER } from '@walnut-server/ip'
 import { maskSensitiveFields } from '@walnut-server/utils/mask'
 import { toWalnutPgJsonbPayload } from '@walnut-server/utils/pg-jsonb'
 import { WalnutAdminResponseSuccess } from '@walnut-server/utils/response'
@@ -21,7 +23,7 @@ import { Recordable } from 'easy-fns-ts'
 import { I18nContext } from 'nestjs-i18n'
 import { Observable } from 'rxjs'
 import { tap } from 'rxjs/operators'
-import { WALNUT_ADMIN_IP_LOCATION_RESOLVER, WALNUT_ADMIN_OPERATE_LOG_WRITER } from './operate-log.ports'
+import { WALNUT_ADMIN_OPERATE_LOG_WRITER } from './operate-log.ports'
 
 const WalnutAdminConstDecoratorLogOperateTitleMetadataKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_METADATA_KEY_LOG_OPERATE_TITLE')
 const WalnutAdminConstDecoratorLogOperateActionMetadataKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_METADATA_KEY_LOG_OPERATE_ACTION')
@@ -35,7 +37,8 @@ export class WalnutAdminInterceptorRequestOperateLog implements NestInterceptor 
   constructor(
     private readonly reflector: Reflector,
     // 批 4：两个跨层服务改为端口注入（实现分别在 libs/ip / libs/system，
-    // 经 SharedIpModule / SysLogOperateRepoModule 的 useExisting 绑定）
+    // 经 SharedIpModule / SysLogOperateRepoModule 的 useExisting 绑定）；
+    // F-14 起 IP 定位端口随实现住在 libs/ip（crud → ip = assemble → base）
     @Inject(WALNUT_ADMIN_OPERATE_LOG_WRITER)
     private readonly logOperateWriter: IWalnutAdminOperateLogWriter,
     private readonly eventEmitter: EventEmitter2,

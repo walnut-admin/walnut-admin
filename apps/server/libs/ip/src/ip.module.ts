@@ -1,6 +1,6 @@
 import { HttpModule } from '@nestjs/axios'
 import { Global, Module } from '@nestjs/common'
-import { WALNUT_ADMIN_IP_LOCATION_RESOLVER } from '@walnut-server/crud'
+import { WALNUT_ADMIN_IP_LOCATION_RESOLVER } from './ip.ports'
 import { SharedIpService } from './ip.service'
 
 @Global()

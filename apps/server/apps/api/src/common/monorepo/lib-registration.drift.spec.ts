@@ -23,12 +23,12 @@ import { describe, expect, it } from 'vitest'
  *    `libs/<name>/src`）；
  * ④ `apps/api/tsconfig.app.json` → `include` 的 `../../libs/<name>/src` 全量 glob 条目（app
  *    构建的 TS 程序要看见每个 lib；build:libs 脚本因 no-op 已删除，不再作为注册面）；
- * ⑤ `eslint.config.ts` → `INFRA_LIBS` / `TECH_LIBS` / `DOMAIN_LIBS` / `TOP_LIBS` / `EXCEPTION_LIBS`
- *    五个分层名单（守的是入边方向：新增 lib 必须归入一个分层，否则 lint 的 fail-closed 配置会拦它的
- *    出边，但「有人把 lib 建在磁盘上却没进任何一层」这种反向遗漏只有本守卫能查）；并从
- *    `layer(name, libs, banned)` 的接线反推分层矩阵（lib 归属 + banned 集合必须与 rank 推导一致，
- *    防「名单对了、接线错了」的盲区）。解析前先剥注释；`layer(...)` 调用数固定为 9（8 层 +
- *    `infra-exceptions` 例外行）；`layer()` 函数体的 `files:` 派生式必须覆盖每个 lib 的
+ * ⑤ `eslint.config.ts` → `INFRA_LIBS` / `TECH_BASE_LIBS` / `TECH_ASSEMBLE_LIBS` / `DOMAIN_LIBS` /
+ *    `TOP_LIBS` / `EXCEPTION_LIBS` 六份分层名单（守的是入边方向：新增 lib 必须归入一个分层，否则
+ *    lint 的 fail-closed 配置会拦它的出边，但「有人把 lib 建在磁盘上却没进任何一层」这种反向遗漏
+ *    只有本守卫能查）；并从 `layer(name, libs, banned)` 的接线反推分层矩阵（lib 归属 + banned 集合
+ *    必须与 rank 推导一致，防「名单对了、接线错了」的盲区）。解析前先剥注释；`layer(...)` 调用数
+ *    固定为 10（9 层 + `infra-exceptions` 例外行）；`layer()` 函数体的 `files:` 派生式必须覆盖每个 lib 的
  *    `libs/<lib>/**` 下的全部 `.ts`（防函数体被改坏）；另有一条注入篡改自测
  *    （某层 banned 删一项必须报红，证明对账非空转）。
  *
@@ -102,7 +102,7 @@ const SWCRC_CONFIGS = ['infra/swc/dev.swcrc', 'infra/swc/prod.swcrc', 'infra/swc
 // ─── eslint.config.ts 分层接线解析（纯文本，零装载）────────────────────────────────
 
 /** 分层名单常量：exceptions 单独一条例外行，不并入 INFRA_LIBS（每个 lib 恰好登记一次） */
-const LAYER_LIST_NAMES = ['INFRA_LIBS', 'TECH_LIBS', 'DOMAIN_LIBS', 'TOP_LIBS', 'EXCEPTION_LIBS'] as const
+const LAYER_LIST_NAMES = ['INFRA_LIBS', 'TECH_BASE_LIBS', 'TECH_ASSEMBLE_LIBS', 'DOMAIN_LIBS', 'TOP_LIBS', 'EXCEPTION_LIBS'] as const
 
 /**
  * 剥离 `//` 行注释与 `/* *\/` 块注释（字符串 / 模板串内部的 `//` 与 `/*` 原样保留）。
@@ -449,7 +449,10 @@ function rewriteLayerBanned(configText: string, layerName: string, banned: reado
  */
 const LAYER_MATRIX = [
   { name: 'infra', libs: ['config', 'const', 'context', 'db', 'decorators', 'pipes', 'types', 'utils'] },
-  { name: 'tech', libs: ['als', 'blpath', 'cookie', 'crypto', 'delay', 'lock', 'queue', 'sse', 'cache', 'throttle', 'mailer', 'sms', 'rsa', 'ip', 'repository', 'list', 'crud', 'scope-resolver', 'token'] },
+  // F-14 / Q8a：技术层拆「设施 / 装配内核」两条 —— rank 上 base 低于 assemble，
+  // 允许边只有 assemble → base 单向（ip 不得引 crud/list 等内核 lib）。
+  { name: 'tech-base', libs: ['als', 'blpath', 'cookie', 'crypto', 'delay', 'lock', 'queue', 'sse', 'cache', 'throttle', 'mailer', 'sms', 'rsa', 'ip'] },
+  { name: 'tech-assemble', libs: ['repository', 'list', 'crud', 'scope-resolver', 'token'] },
   { name: 'identity', libs: ['identity'] },
   { name: 'system', libs: ['system'] },
   { name: 'auth', libs: ['auth'] },
@@ -479,9 +482,9 @@ function collectWiringProblems(configText: string): string[] {
   const calls = readLayerCalls(configText, lists)
   const problems: string[] = []
 
-  // a) layer(...) 调用数固定为 8 层 + infra-exceptions 例外行（注释里的示例文本已被剥掉）
-  if (calls.length !== 9)
-    problems.push(`layer(...) 调用数应为 9（8 层 + infra-exceptions），实际 ${calls.length}`)
+  // a) layer(...) 调用数固定为 9 层 + infra-exceptions 例外行（注释里的示例文本已被剥掉）
+  if (calls.length !== 10)
+    problems.push(`layer(...) 调用数应为 10（9 层 + infra-exceptions），实际 ${calls.length}`)
 
   // b) 每层 files ≡ 该层每个 lib 的 `libs/<lib>/**` 全部 `.ts`：layer() 函数体的派生式被改窄时这里红
   const filesTemplate = readFilesTemplate(readLayerHelperFilesExpression(configText))
@@ -688,24 +691,24 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 五处注册面，�
     expect([...new Set(collected)].sort(), 'eslint 分层名单并集').toEqual(actualLibs)
   })
 
-  it('⑤ 接线对账：layer(...) 调用数 = 9，lib 归属 / banned 集合 / files 派生式 ≡ 分层矩阵', () => {
+  it('⑤ 接线对账：layer(...) 调用数 = 10，lib 归属 / banned 集合 / files 派生式 ≡ 分层矩阵', () => {
     const configText = readServerFile('eslint.config.ts')
     const calls = readLayerCalls(configText, readLayerLists(configText))
-    expect(calls.length, 'layer(...) 调用数（8 层 + infra-exceptions 例外行；注释里的示例不算）').toBe(9)
+    expect(calls.length, 'layer(...) 调用数（9 层 + infra-exceptions 例外行；注释里的示例不算）').toBe(10)
     expect(collectWiringProblems(configText)).toEqual([])
   })
 
-  it('⑤ 接线对账自测：把 tech 层 banned 删一项后必须报红（证明对账不是空转）', () => {
+  it('⑤ 接线对账自测：把 tech-base 层 banned 删一项后必须报红（证明对账不是空转）', () => {
     const configText = readServerFile('eslint.config.ts')
     const calls = readLayerCalls(configText, readLayerLists(configText))
-    const techCall = calls.find(call => call.name === 'tech')
-    if (!techCall)
-      expect.fail('找不到 tech 层')
-    expect(techCall.banned.length).toBeGreaterThan(1)
+    const techBaseCall = calls.find(call => call.name === 'tech-base')
+    if (!techBaseCall)
+      expect.fail('找不到 tech-base 层')
+    expect(techBaseCall.banned.length).toBeGreaterThan(1)
 
     // 篡改文本：banned 从「名单 spread」变成缺一项的字面量数组 —— 判定必须发现 banned ≠ 矩阵推导
-    const tamperedText = rewriteLayerBanned(configText, 'tech', techCall.banned.slice(1))
+    const tamperedText = rewriteLayerBanned(configText, 'tech-base', techBaseCall.banned.slice(1))
     const problems = collectWiringProblems(tamperedText)
-    expect(problems.some(problem => problem.includes('tech') && problem.includes('banned'))).toBe(true)
+    expect(problems.some(problem => problem.includes('tech-base') && problem.includes('banned'))).toBe(true)
   })
 })

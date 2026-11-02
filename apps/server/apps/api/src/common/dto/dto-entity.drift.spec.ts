@@ -1,6 +1,6 @@
 import type { ClassConstructor } from 'class-transformer'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { join, relative, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { AppDemoDTOBase, AppDemoEntity, AppErrorDTOBase, AppErrorEntity, AppKeyDTOBase, AppKeyEntity, AppKeyStatusConst, AppKeyTypeConst, AppMonitorUserDTOBase, AppMonitorUserEntity, AppSettingDTOBase, AppSettingEntity, SharedAreaDTOBase, SharedAreaEntity } from '@walnut-server/app-domain'
 import { WalnutAdminConstAppEnv } from '@walnut-server/const/app/env'
@@ -293,21 +293,68 @@ function listLibSrcDirs(): string[] {
     .filter(srcDir => existsSync(srcDir))
 }
 
+/** 完备性扫描面：app 侧 modules + 全 lib 的 src（新增 lib / 新模块自动纳入） */
+function scanRoots(): string[] {
+  return [
+    resolve(process.cwd(), 'apps/api/src/modules'),
+    ...listLibSrcDirs(),
+  ]
+}
+
+/**
+ * 全仓 `.ts` 源码文件（跳过单测：spec 里可以造任意形状的临时类）。
+ *
+ * F-37：原先只认 `*.dto.ts`，于是「基座类住在别的文件名里」这件事对完备性扫描完全隐形
+ * （扫不到 ⇒ 既不进 found 也不进 stale，永远绿）。这里按**文件扩展名无关**的面取文件，
+ * 再在 ③b 里用显式约定收口。
+ */
+function listTsFiles(dir: string): string[] {
+  const found: string[] = []
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) {
+      found.push(...listTsFiles(full))
+    }
+    else if (entry.isFile() && entry.name.endsWith('.ts') && !/\.(?:spec|test)\.ts$/.test(entry.name)) {
+      found.push(full)
+    }
+  }
+  return found
+}
+
+/**
+ * 静态扫「显式声明的 `*Base` 类」—— 不看文件名，因此能抓到「压根不在 .dto.ts 里」的基座。
+ *
+ * 只认顶层 `export [abstract] class XxxBase`：非导出类不进公共面（完备性清单只对导出的基座负责）。
+ */
+function globDeclaredBaseClasses(dirs: readonly string[]): Array<{ className: string, file: string }> {
+  const declared: Array<{ className: string, file: string }> = []
+
+  for (const dir of dirs) {
+    for (const file of listTsFiles(dir)) {
+      const source = readFileSync(file, 'utf8')
+      const pattern = /^export\s+(?:abstract\s+)?class\s+(\w+Base)\b/gm
+      for (const match of source.matchAll(pattern)) {
+        declared.push({ className: match[1], file })
+      }
+    }
+  }
+
+  return declared
+}
+
 async function globFoundDtoBaseNames(): Promise<Set<string>> {
   const found = new Set<string>()
   // 批 6：身份栈 DTO 随内核下沉 libs/identity；批 7：system 域 DTO 下沉 libs/system；
   // 批 9：app / shared 域 DTO 下沉 libs/app-domain。扫描面按**全 lib**取（`libs/<lib>/src`，
   // 未来新 lib 自动纳入），再加 app 侧 modules —— 漏扫 = 已登记的 DTOBase 被误报 stale，
   // 而新增 lib 里的未登记基座则免检。
+  // 扫描面只认「.dto.ts + 类名以 DTOBase 结尾」是**安全的**：这两条不是隐含假设，而是由下面
+  // ③b 机械断言的约定（任何 *Base 类都必须住 .dto.ts 且叫 *DTOBase），违反时 ③b 先红。
   // libs/auth 的 5 个 .dto.ts 只派生自 system 的 SysMenuMetaDTOBase / SysMenuDTOSafe
   // （登录出参的投影面），不声明自己的 *DTOBase，故无需登记；若将来出现新的
   // 字段基座，本扫描面会直接把它揪出来。
-  const dtoDirs = [
-    resolve(process.cwd(), 'apps/api/src/modules'),
-    ...listLibSrcDirs(),
-  ]
-
-  for (const dtoDir of dtoDirs) {
+  for (const dtoDir of scanRoots()) {
     for (const file of listDtoFiles(dtoDir)) {
       const namespace = await import(pathToFileURL(file).href) as Record<string, unknown>
       for (const value of Object.values(namespace)) {
@@ -413,6 +460,27 @@ describe('dto ↔ entity 漂移守卫（纯 reflection，防同一形状写两�
     // 残余风险：本对账走各域聚合登记函数，module 漏挂 provider 时这里仍绿；
     // 该面由 openapi:export 全量启动的 26 条 registered 日志兜底（每批门禁必跑）。
     expect(recoverRegistry.getEntry(WalnutModelName.AUTH_REFRESH_TOKEN), 'AUTH_REFRESH_TOKEN 未注册恢复器').toBeDefined()
+  })
+
+  /**
+   * F-37：上面 ③ 的扫描面原先是「`.dto.ts` + 类名以 `DTOBase` 结尾」——两个条件都是**扫描器
+   * 自己的假设**，于是基座类一旦不住在 `.dto.ts` 里、或名字不以 `DTOBase` 结尾，就既不会被
+   * 扫进 found（不报未登记）、也不会出现在 stale 里：完备性断言静默失效。
+   *
+   * 这里把「假设」升级成**显式约定**并机械断言：任何被显式声明的 `*Base` 类都必须同时满足
+   * 「文件以 `.dto.ts` 结尾」「类名以 `DTOBase` 结尾」。非 DTO 的基类请按用途改名
+   * （`...BaseRepository` / `...BaseService` / `...Abstract`），不要占用 `*Base` 这个命名面。
+   */
+  it('③b DTO 基座必须住 *.dto.ts 且以 DTOBase 结尾（否则完备性扫描看不见它）', () => {
+    const declared = globDeclaredBaseClasses(scanRoots())
+
+    const problems = declared
+      .filter(({ className, file }) => !file.endsWith('.dto.ts') || !className.endsWith('DTOBase'))
+      .map(({ className, file }) => `${className}（${relative(process.cwd(), file).replace(/\\/g, '/')}）：DTO 基座必须同时满足「文件以 .dto.ts 结尾」「类名以 DTOBase 结尾」`)
+
+    // 防「扫描面退化后永远绿」：当前面上一共有二十多个基座类，扫不到就是扫描器坏了
+    expect(declared.length, '一个 *Base 类都没扫到 —— 扫描面退化').toBeGreaterThan(10)
+    expect(problems, 'DTO 基座的命名/落位不符合约定').toEqual([])
   })
 })
 
