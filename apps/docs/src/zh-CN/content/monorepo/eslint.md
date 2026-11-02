@@ -44,7 +44,7 @@ import nestConfig from '@walnut/eslint-config/nest'
 export default nestConfig()
 ```
 
-目前有本地 `eslint.config.ts` 的是：根、`apps/admin`、`apps/docs`、`apps/server`、`packages/platform-web/ui`（唯一一个有本地配置的包）。其余包（platform-any/*、platform-web/{client,http}、tooling/*）在 `pnpm lint` 时向上回溯到**根配置**（= `base` 预设）—— 也就是说 `base.ts` 的改动会直接改这 10 个包的 lint 行为。
+目前有本地 `eslint.config.ts` 的是：根、`apps/admin`、`apps/docs`、`apps/server`。其余包（platform-any/*、platform-web/*、tooling/*）在 `pnpm lint` 时向上回溯到**根配置**（= `base` 预设）—— 也就是说 `base.ts` 的改动会直接改这些包的 lint 行为。
 
 `types:check` 在本包是真正的 `tsc --noEmit`（此前是空跑的 `echo`）——预设本身是 TS 源码，写错类型会在 `pnpm types:check` 当场报错。
 

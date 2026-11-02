@@ -9,14 +9,6 @@ function WalnutAdminComponentResolver(): ComponentResolver {
   const allComponents = globSync('src/components/**/**/index.ts', { dot: true })
   const componentMap = Object.fromEntries(allComponents.filter(i => !i.includes('utils')).map(i => [i.split('/').slice(-2, -1)[0], i.replace('src', '@')]))
 
-  // 扫描 @walnut/ui 包组件（ADR-0017 Phase 3.1）
-  const uiComponents = globSync('../../packages/platform-web/ui/src/*/index.ts', { dot: true })
-
-  for (const p of uiComponents) {
-    const componentName = p.split('/').slice(-2, -1)[0]
-    componentMap[componentName] = `@walnut/ui/${componentName}`
-  }
-
   return {
     type: 'component',
     resolve: (name) => {

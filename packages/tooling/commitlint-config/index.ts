@@ -11,7 +11,6 @@ const SCOPES = [
   // platform-web
   'client',
   'http',
-  'ui',
   // tooling
   'eslint-config',
   'commitlint-config',

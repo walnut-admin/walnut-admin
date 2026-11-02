@@ -77,6 +77,7 @@ describe('pREPUSH_GATES —— 表本身', () => {
       'syncpack',
       'workflows',
       'workflows-shell',
+      'dynamic-imports',
       'docs-refs',
       'adr',
       'doc-ts',

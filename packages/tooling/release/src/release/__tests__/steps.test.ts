@@ -44,6 +44,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
       ['change', 'check'],
       ['lint:workflows'],
       ['lint:workflows-shell'],
+      ['lint:dynamic-imports'],
       ['lint:docs-refs'],
       ['lint:adr'],
       ['lint:doc-ts'],

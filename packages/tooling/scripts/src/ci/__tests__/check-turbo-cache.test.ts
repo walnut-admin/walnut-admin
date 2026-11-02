@@ -123,7 +123,8 @@ describe('collectFindings（对着真实仓库跑）', () => {
   it('解析到全部 workspace 包（下界断言，新包加入时不必回头改这里）', () => {
     // 这里曾写死 toHaveLength(15) —— api-types 包加入当场红。与 package-scripts 的
     // 先例同口径：要的是「扫描面非空且随仓库增长」，不是恰好某个数。
-    expect(packageDirs(dry, ROOT).length).toBeGreaterThanOrEqual(16)
+    // 2026-11 删掉 @walnut/ui 后从 16 降到 15：本条只做下界护栏，包数真源是 pnpm-workspace.yaml。
+    expect(packageDirs(dry, ROOT).length).toBeGreaterThanOrEqual(15)
   })
 
   it.skipIf(!hasEnvLocal)('产物目录掉出 outputs 会被报出来（dist-staging 那个 bug 的守卫）', () => {

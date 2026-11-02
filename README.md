@@ -19,7 +19,7 @@
 
 ## Monorepo Structure
 
-16 个 workspace 包（3 app + 3 platform-any + 4 platform-web + 6 tooling），同属 `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组（包数判据以 `pnpm-workspace.yaml` 的 `packages` 字段为准）：
+15 个 workspace 包（3 app + 3 platform-any + 3 platform-web + 6 tooling），同属 `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组（包数判据以 `pnpm-workspace.yaml` 的 `packages` 字段为准）：
 
 ```
 walnut-admin/
@@ -35,8 +35,7 @@ walnut-admin/
 │   ├── platform-web/                — 浏览器 / Vue（源码直消费，不构建）
 │   │   ├── api-types/   @walnut/api-types  — 由 openapi.json 生成的 API 类型
 │   │   ├── client/      @walnut/client     — 浏览器工具 + Vue composables + store 工厂
-│   │   ├── http/        @walnut/http       — HTTP 客户端框架（实例 + 适配器）
-│   │   └── ui/          @walnut/ui         — 基于 naive-ui 的组件
+│   │   └── http/        @walnut/http       — HTTP 客户端框架（实例 + 适配器）
 │   └── tooling/                     — 工具链 6 包
 │       ├── tsconfig/          @walnut/tsconfig          — 纯 JSON tsconfig 预设（base / ts / vue）
 │       ├── eslint-config/     @walnut/eslint-config     — 共享 ESLint 预设（base / vue / nest）

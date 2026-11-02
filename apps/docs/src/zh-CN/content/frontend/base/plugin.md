@@ -15,7 +15,7 @@
 ### 2. 组件自动注册
 组件（组件库组件及项目内 `<W…>` 组件）在模板里可直接使用，无需手动 import：
 - 涉及插件：[unplugin-vue-components]。
-- 配置细节：扫哪些目录、`W` 前缀如何解析到 `@/components/**` 与 `@walnut/ui`，见 `component.ts`。
+- 配置细节：扫哪些目录、`W` 前缀如何解析到 `@/components/**`，见 `component.ts`（2026-11 起不再扫 `@walnut/ui` —— 该包已删，三个组件已回到 admin 自己的组件树）。
 - ⚠️ 这套注册**没有类型安全网**：`vueCompilerOptions.strictTemplates` 未开，组件名写错时 `vue-tsc`
   不报错，只有运行时才会发现。
 - **方法/函数的自动引入（`unplugin-auto-import`）已于 2026-09-29 移除** —— 隐式全局在大型项目里是

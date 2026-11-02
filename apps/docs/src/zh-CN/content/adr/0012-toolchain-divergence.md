@@ -150,8 +150,8 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 | `@walnut/contract` | `shared`, `pure`, `platform-any` |
 | `@walnut/types` | `shared`, `pure`, `platform-any` |
 | `@walnut/client` | `shared`, `platform-web` |
+| `@walnut/api-types` | `shared`, `platform-web` |
 | `@walnut/http` | `shared`, `platform-web` |
-| `@walnut/ui` | `shared`, `platform-web` |
 | `@walnut/tsconfig` | `tooling`, `platform-any` |
 | `@walnut/eslint-config` | `tooling`, `platform-any` |
 | `@walnut/commitlint-config` | `tooling`, `platform-any` |
@@ -159,8 +159,11 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 | `@walnut/scripts` | `tooling`, `platform-any` |
 | `@walnut/release` | `tooling`, `platform-any` |
 
-> 本表随包增删更新：上面的 16 行与工作区里的 16 个包一一对应。6 个 tooling 包的 workspace 级
-> `turbo.json` 都声明 `"tags": ["tooling", "platform-any"]`。
+> 本表随包增删更新：上面的 15 行与工作区里的 15 个包一一对应（判据是 `pnpm-workspace.yaml` 的
+> `packages` 字段，不是本表的行数）。6 个 tooling 包的 workspace 级 `turbo.json` 都声明
+> `"tags": ["tooling", "platform-any"]`。
+> **2026-11 更新**：`@walnut/ui` 已删除（3 个 naive 透传组件回 `apps/admin`，见批次 1 决策 D1）⇒
+> 本表去掉该行；同时补上一直漏登的 `@walnut/api-types`（它一直有 tags 却不在表里，属本表自身的漂移）。
 > 历史沿革：`@walnut/commitlint-config` 与 `@walnut/release` 是 2026-08-08 之后加入的；`@walnut/release`
 > 2026-09-23 曾改名 `@walnut/tooling`（收编根 `scripts/`，见 [ADR 0018](/content/adr/0018-git-hooks-lefthook)），
 > 同日再随 tooling 拆包恢复为 `@walnut/release`，并新增 `@walnut/tsconfig` / `@walnut/scripts` /
@@ -169,7 +172,7 @@ The `env` field in turbo.json matters **only for cached build tasks** (`turbo bu
 
 **Rules:**
 1. `shared` packages cannot depend on `app` packages (libraries must not import application code)
-2. `backend` packages cannot depend on `platform-web` packages (server must not import `@walnut/client`/`@walnut/http`/`@walnut/ui`)
+2. `backend` packages cannot depend on `platform-web` packages (server must not import `@walnut/client`/`@walnut/http`；`@walnut/ui` 已于 2026-11 删除，规则覆盖 `platform-web` 整个 tag，不随具体包增减)
 3. `platform-any` packages cannot depend on `platform-web` or `platform-node` (platform-agnostic packages stay runtime-free)
 4. `platform-node` packages cannot depend on `platform-web`
 

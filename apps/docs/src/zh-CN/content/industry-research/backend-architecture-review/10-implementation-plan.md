@@ -132,8 +132,51 @@
 
 | 批次 | R1 | R2 | R3 | 备注 |
 |------|----|----|----|------|
-| 1 · P0 止血 | 进行中 | | | |
+| 1 · P0 止血 | ✅ 完成 | 进行中 | | R1 见 §六 |
 | 2 · 门禁可信化 | | | | 依赖批 1 的 admin runner |
 | 3 · platform-node + worker | | | | POC 不通过则中止 |
 | 4 · 契约与资产 | | | | 依赖批 2 的门禁 |
 | 5 · 结构债与数据 | | | | |
+---
+
+## 六、批次 1 · R1 复核结论与裁决（2026-11-02）
+
+两份 R1 报告：[r1-fe-verification](../../../../../../reports/batch-1/r1-fe-verification.md) ·
+[r1-be-verification](../../../../../../reports/batch-1/r1-be-verification.md)（均为 550 行左右，全部结论带实测输出）
+
+### 6.1 前端：确认成立，但两处口径要改
+
+| 项 | R1 结论 |
+|----|---------|
+| 断键穷举 | **3 个**（DynamicTags / Switch / TimePicker），27 通 3 断；"没有第四处"是**结构性**的 —— 全 app 52 处 import() 只有 4 处是插值，其余 48 处静态字面量，缺文件构建期就红 |
+| 数字口径 | `Base:Switch` 正确数是 **63 处 / 18 文件**（此前 73 是把裸字符串与文档引用一起数了）；用户可见面 = DevSettings 8 + 我的-偏好 3 |
+| 为什么没被发现 | 两条通路独立：模板 `<WXxx>` 走 unplugin resolver（`plugin/component.ts:13` 用 ui 包 glob **覆盖** admin 同名项 ⇒ 构建绿）；表单 `Base:Xxx` 走 componentMap 相对路径 ⇒ 悬空。`components.d.ts` 有 `WDynamicTags` 却**没有 WSwitch**，正是"模板从未用过"的铁证 |
+| 第二类更隐蔽的断 | `getTargetComponent` 查不到 key 时**静默不渲染**（不报错不占位）。对账后：实际使用但缺 key = **0**；反向冗余 15 个 key |
+| 断言方案 | 实测三档：静态路径校验 19ms/30 key/零 mock/恰好 3 断；运行时 loader 方案 16 个 broken 里 13 个是环境缺失（localStorage/JSX/虚拟模块/pinia）⇒ **噪声当信号**，不做门禁 |
+
+**裁决**
+- **Q-A → 走"消灭"路线**：4 处插值全换显式静态 import（缺文件 = 编译期红），**不给 admin 引 vitest**；
+  另在 `@walnut/scripts` 加 `check-dynamic-imports` 门禁禁新增插值 import（与 lint:docs-refs 同范式）。
+  → 这使原计划的「D18③ admin 最小 runner」**改为门禁脚本**，偏差已记录到 [07](./07-decisions.md)。
+- **Q-B → 现状类改写 + 历史类豁免**（10 改 / 4 豁免，照 `@walnut/ai` 先例）。
+- 删包有 **6 条硬红**（admin/package.json、冻结 lockfile+CI、Form/types.ts+vue-tsc、
+  versioning 测试、attribution 测试、docs-refs）与 **7 处不会红**（root turbo boundaries、knip、
+  nest.ts eslint 禁令等）——施工时不要在上面白费功夫。
+
+### 6.2 后端：P0 比原报告**更宽**，且推翻了本目录的一条旧结论
+
+| 项 | R1 结论（连真 PG 实测） |
+|----|---------|
+| 问题宽度 | 不是"字符串→ILIKE"一条路，而是**值的 JS 类型与列类型不匹配的全谱**：30 格里 **22 格**炸，四种 PG 码 42883 / 22P02 / 22007 / 22008。只有 text+varchar 列全形态安全 —— 这就是"平时没发现"的原因 |
+| 直觉修法是错的 | "非字符串改成 eq"：那 18 格 eq 里仍有 **9 格** 500（uuid 收 "123" → 22P02、timestamptz 收 true → 22007）。必须**按列类型决定算子且校验值** |
+| 观测口径（重要） | 全局过滤器永远回 **HTTP 200**（`exception.filter.ts:93`）：崩溃 = `200 + code 50000`，校验拒绝 = `200 + code 40099`。**验收断 HTTP status 会永远假绿** |
+| 推翻旧结论 | 「page 半传 ⇒ OFFSET NaN」**不成立**（嵌套 transform 逐字段补默认，实测 `skip=0 limit=20`）。真正 NaN 入口只有 `page.page` 非数字。修 page **不要动** `@Type`/`default` |
+| page 其余实测 | `pageSize=1e9` → `LIMIT 1000000000` 成功发出；`page=-1` → 2201X；`pageSize=-5` → 2201W；`pageSize=0` → `LIMIT 0` **静默空页** |
+| clamp 双落点 | `pageSize` 有 3 条消费链，只有 1 条经 builder；`logger.service.ts:53,97-100` 与 `cache.service.ts:30-32,549` 在内存 slice。上限保 9999（全仓实际最大 100，零回归） |
+| 校验回归面 | 20 处 api-spec 请求体全合法；两个雷：`sort[].order: false`（contract 允许但 IsEnum 拒）、`AppLoggerDTOListRequest` 缺 `sortOnlyIn`。反向陷阱：**别加 IsNotEmptyObject**（`query:{}`/`sort:[]` 合法） |
+| 同源缺陷（新增） | ① `sort` 未知 field ⇒ 默认排序被**整体清空** ⇒ 无 ORDER BY ⇒ 翻页重复/丢行；② `order:"ASC"` 大写被静默当 DESC；③ `locale.repo.service.ts:79,94-117` 与 `deleted.basic.repository.ts:63-75` **各自复制了一套分派**，只改 builder 会分叉 |
+
+**裁决**
+- **Q1 → 丢弃条件 + warn**（不做 400）：P0 的唯一目标是把 500 变不见；严格 400 留给批次 4 的显式 filters 契约。
+- **Q2 → `IsIn(['ascend','descend',false])`**（保留 false，不动 contract 快照）。
+- **Q3 → JOIN 放大导致 total 不准记 P2**，本轮不做。

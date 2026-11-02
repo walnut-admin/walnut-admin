@@ -84,6 +84,7 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'workflows-shell', label: 'workflow shell 语法（逐块 bash -n）', argv: ['lint:workflows-shell'] },
   // 与上面同理：它是 @walnut/scripts 的 bin（根脚本），**不是** turbo 任务。
   // 活文档正文里引用的包名/仓库路径必须真实存在 —— VitePress 内置只查 markdown 链接。
+  { id: 'dynamic-imports', label: '动态 import 说明符必须是字面量（apps/**）', argv: ['lint:dynamic-imports'] },
   { id: 'docs-refs', label: '文档引用校验（包名 / 仓库路径）', argv: ['lint:docs-refs'] },
   // 同上：@walnut/scripts 的 bin。ADR 的形态（编号连续 / Status 在枚举内 / 四个必需小节 /
   // index.md 双向对齐）没有任何现成工具管，见待办 F6。

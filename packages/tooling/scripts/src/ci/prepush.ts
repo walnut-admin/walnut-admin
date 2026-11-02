@@ -117,6 +117,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: 'actionlint 只看 YAML 与表达式，**看不见字符串里的 shell 语法**：2026-09-30 两次实测（注入步骤的三层嵌套引号、以及带引号 heredoc 的缩进）都只能靠发版撞出来。这道闸把 shell 块的语法错提前到推送前。本机没有 bash 时明确 SKIP。',
   },
   {
+    id: 'dynamic-imports',
+    label: '动态 import 说明符必须是字面量（apps/**）',
+    argv: ['lint:dynamic-imports'],
+    why: '拼出来的模块说明符（模板插值 / 非字面量）在 tsc 与 vite build 里都不报错，只在运行期抛 Unknown variable dynamic import —— 2026-11 那次 @walnut/ui 抽包留下的 Base:Switch 静默不渲染就是这么来的。静态扫描能在推送前毫秒级发现它。',
+  },
+  {
     id: 'docs-refs',
     label: '文档引用校验（包名 / 仓库路径）',
     argv: ['lint:docs-refs'],

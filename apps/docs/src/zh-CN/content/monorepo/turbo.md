@@ -149,7 +149,6 @@ Tag-Based 架构边界（Turbo 2.9 引入时是实验特性，2.11 下依然由 
 | `@walnut/types` | `shared`, `pure`, `platform-any` |
 | `@walnut/client` | `shared`, `platform-web` |
 | `@walnut/http` | `shared`, `platform-web` |
-| `@walnut/ui` | `shared`, `platform-web` |
 | `@walnut/tsconfig` | `tooling`, `platform-any` |
 | `@walnut/eslint-config` | `tooling`, `platform-any` |
 | `@walnut/commitlint-config` | `tooling`, `platform-any` |

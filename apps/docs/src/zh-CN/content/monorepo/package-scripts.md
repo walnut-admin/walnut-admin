@@ -94,7 +94,7 @@ Walnut Admin 的 `package.json` 遵循一套严格的脚本约定：**每个 wor
 | 文档站 (`@walnut/docs`) | `vitepress build` | `echo skipped` | `vitepress` |
 | NestJS (`@walnut/server`) | `nest build`（SWC，按 `infra/nest/*.json`） | `tsc --noEmit` | `nest start api --watch` |
 | 平台无关包 (`@walnut/utils`、`@walnut/contract`) | `vite build`（产出 CJS dist；contract 之后还跑 `node scripts/build-barrel.ts`） | `tsc --noEmit` | 无 `dev` 脚本 |
-| 源码直消费 (`@walnut/client`、`@walnut/http`、`@walnut/ui`、`@walnut/types`) | 不构建（`echo` 占位） | `tsc --noEmit`（`ui` 用 `vue-tsc`） | 无 `dev` 脚本 |
+| 源码直消费 (`@walnut/client`、`@walnut/http`、`@walnut/types`) | 不构建（`echo` 占位） | `tsc --noEmit` | 无 `dev` 脚本 |
 | 工具链包 (`@walnut/scripts`、`@walnut/release`、`@walnut/eslint-config`、`@walnut/commitlint-config`、`@walnut/vitest-config`) | 无 | `tsc --noEmit` | 无 `dev` 脚本 |
 | `@walnut/tsconfig` | 无（纯 JSON 预设） | `echo`（无源码可查） | 无 `dev` 脚本 |
 

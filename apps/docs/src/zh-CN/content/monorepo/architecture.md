@@ -5,7 +5,7 @@
 
 ## 概述
 
-Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm workspaces** 管理 16 个包（3 个 app + 3 个 platform-any 包 + 4 个 platform-web 包 + 6 个 tooling 包；包数以 `pnpm-workspace.yaml` 的 `packages` 字段为准）。项目从三个独立仓库合并而来，通过 pnpm catalog 统一依赖版本、Turborepo 编排任务、pnpm 原生 release management（`versioning.fixed` 单一组）管理版本号。
+Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm workspaces** 管理 15 个包（3 个 app + 3 个 platform-any 包 + 3 个 platform-web 包 + 6 个 tooling 包；包数以 `pnpm-workspace.yaml` 的 `packages` 字段为准）。项目从三个独立仓库合并而来，通过 pnpm catalog 统一依赖版本、Turborepo 编排任务、pnpm 原生 release management（`versioning.fixed` 单一组）管理版本号。
 
 - 仓库形态与包分组：[ADR 0017](../adr/0017-package-reorganization.md)
 - 版本策略：[ADR 0008](../adr/0008-unified-versioning-separate-deploy.md) / [ADR 0011](../adr/0011-dependency-governance-release.md)
@@ -41,7 +41,7 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | 纯函数工具（不碰 DOM、不碰 Vue） | `@walnut/utils` | `packages/platform-any/utils-core/src/` | 目标是**后端也能以 CJS 消费** ⇒ 引 Vue/DOM 就出界（ADR 0006）；必须补测试 |
 | 浏览器工具 / Vue composable | `@walnut/client` | `packages/platform-web/client/src/` | 仅浏览器；Vue / pinia 是 peerDependency |
 | HTTP 适配器 / 拦截器 | `@walnut/http` | `packages/platform-web/http/src/` | 包名是 `@walnut/http`（旧名 axios） |
-| 可复用 UI 组件 | `@walnut/ui` | `packages/platform-web/ui/src/<Name>/{index.ts,index.vue}` | **只有「零 app 依赖 + 已被 ≥2 处复用」才迁**（判据见[架构待办](/content/monorepo/architecture-todo)的「`@walnut/ui` 剩余组件」），否则先留在 `apps/admin/src/components` |
+| 可复用 UI 组件 | `apps/admin` | `src/components/UI/<Name>/{index.ts,index.vue}` | **暂不进 packages**：2026-11 撤掉了 `@walnut/ui`（3 个 naive 透传组件、模板复用实测 1/0/0，且抽包后 Form 的组件注册表悬空、`Base:Switch` 静默不渲染）。重建包的门槛：出现第二个前端 app，或同一组件有 ≥2 处真实复用 |
 | 只属于 admin 的组件 / store / 页面 | `apps/admin` | `src/components/**`、`src/store/modules/**`、`src/views/**` | 组件一律 `index.ts`（导出）+ `index.vue`（实现）；API 函数以 `API` 结尾 |
 | 后端接口 | `apps/server` | `apps/api/src/modules/<domain>/` | 一模块一套 module / controller / service / basic.repository，规则见 `apps/server/AGENTS.md` |
 | 后端内部共享能力 | `apps/server/libs/<x>` | 按分层新建 lib，或加进既有层 | 它们**不是** workspace 包，走 tsconfig `paths`，namespace `@walnut-server/*`（ADR 0007）；分层与依赖方向见 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md) |
@@ -130,8 +130,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 │   ├── platform-web/                ← 浏览器 / Vue（纯源码，不构建）
 │   │   ├── api-types/               ← @walnut/api-types（由 openapi.json 生成）
 │   │   ├── client/                  ← @walnut/client
-│   │   ├── http/                    ← @walnut/http（原名 axios）
-│   │   └── ui/                      ← @walnut/ui
+│   │   └── http/                    ← @walnut/http（原名 axios）
 │   └── tooling/                     ← 工具链 6 包（ADR 0019）
 │       ├── tsconfig/                ← @walnut/tsconfig（纯 JSON 预设 base / ts / vue）
 │       ├── eslint-config/           ← @walnut/eslint-config（base / vue / nest）
@@ -171,8 +170,6 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
     ↑
 @walnut/client  @walnut/http   ← 浏览器/Vue 层（依赖 utils + contract）
     ↑              ↑
-@walnut/ui                ← naive-ui 组件层（peer: naive-ui + vue）
-    ↑
 @walnut/admin             ← 消费所有共享包
 ```
 
@@ -185,7 +182,6 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 | `@walnut/types` | 环境类型声明（universal / storage / deep-ref / object-key） | 零依赖 |
 | `@walnut/client` | 浏览器工具 + Vue composables + store 工厂 | Vue 3（peer） |
 | `@walnut/http` | HTTP 客户端框架（instance + adapters） | axios + client |
-| `@walnut/ui` | naive-ui 组件 | naive-ui + vue（peer） |
 | `@walnut/eslint-config` | ESLint 共享预设（base / vue / nest） | ESLint（peer） |
 | `@walnut/commitlint-config` | commitlint 规则（scope-enum 等） | commitlint |
 | `@walnut/tsconfig` | 纯 JSON tsconfig 预设，无依赖、无源码 | 无 |
@@ -200,7 +196,6 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 > [`utils`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/platform-any/utils-core/README.md) ·
 > [`client`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/platform-web/client/README.md) ·
 > [`http`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/platform-web/http/README.md) ·
-> [`ui`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/platform-web/ui/README.md) ·
 > [`tsconfig`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/tsconfig/README.md) ·
 > [`eslint-config`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/README.md) ·
 > [`commitlint-config`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/commitlint-config/README.md) ·

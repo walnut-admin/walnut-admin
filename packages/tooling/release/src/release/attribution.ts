@@ -46,7 +46,6 @@ export const SCOPE_TO_PACKAGE: Record<string, string> = {
   // platform-web
   'client': '@walnut/client',
   'http': '@walnut/http',
-  'ui': '@walnut/ui',
   // tooling
   'eslint-config': '@walnut/eslint-config',
   'commitlint-config': '@walnut/commitlint-config',

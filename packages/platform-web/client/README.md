@@ -18,7 +18,7 @@
 - `store/` —— `createWalnutStore()`，把「setup 内 / setup 外都要能取到 store」的样板收成一处
 - `timer/`、`types/` —— 长延时定时器（绕开 `setTimeout` 上限）、Vue 专属类型声明（`.d.ts`）
 
-**边界**：纯函数（零运行时 API）进 `@walnut/utils`；跨端共享的类型与常量进 `@walnut/contract` / `@walnut/types`；HTTP 机制进 `@walnut/http`；组件进 `@walnut/ui`。本包不能被 `@walnut/server` 引用 —— turbo 边界（`backend` → deny `platform-web`）与 ESLint（`@walnut/eslint-config/nest` 的 `no-restricted-imports`）各拦一道。
+**边界**：纯函数（零运行时 API）进 `@walnut/utils`；跨端共享的类型与常量进 `@walnut/contract` / `@walnut/types`；HTTP 机制进 `@walnut/http`；UI 组件留在 `apps/admin`（2026-11 起不再有 `@walnut/ui` 包）。本包不能被 `@walnut/server` 引用 —— turbo 边界（`backend` → deny `platform-web`）与 ESLint（`@walnut/eslint-config/nest` 的 `no-restricted-imports`）各拦一道。
 
 ## 导出面
 
@@ -79,7 +79,7 @@ export const useCounterStore = createWalnutStore('counter', pinia, () => {
 
 - **运行期依赖**：`@vueuse/core`、`@walnut/types`、`@walnut/utils`、`detectincognitojs`、`easy-fns-ts`、`idb`、`js-base64`、`lodash-es`、`superjson`（版本一律经 `catalog:`）。
 - **peerDependencies**：`vue` + `pinia` —— 单例由宿主 app 提供；2026-08-08 从 `dependencies` 移入 peer。
-- **谁依赖它**：`@walnut/admin`（`workspace:*`）。它自己既不依赖 `@walnut/http`，也不依赖 `@walnut/ui`。
+- **谁依赖它**：`@walnut/admin`（`workspace:*`）。它自己既不依赖 `@walnut/http`，也不依赖 admin 的组件树。
 - **turbo 标签**：`shared` + `platform-web` —— `shared` 不得依赖任何 app 包，`platform-any` / `platform-node` 不得依赖 `platform-web`。
 
 ## 已知限制与延后工作

@@ -23,12 +23,12 @@ versioning:
   changelog:
     storage: registry        # changelog 由 git-cliff 写，pnpm 不落文件（避免同一版本两段）
   fixed:
-    -                           # 单一组：全部 16 个 workspace 包永远同版本
+    -                           # 单一组：全部 15 个 workspace 包永远同版本
       - '@walnut/admin'
-      # … 其余 15 个
+      # … 其余 14 个
 ```
 
-16 个包（`apps/*` 3 个 + `platform-any` 3 个 + `platform-web` 4 个 + `tooling` 6 个）**永远同一个版本号**，
+15 个包（`apps/*` 3 个 + `platform-any` 3 个 + `platform-web` 3 个 + `tooling` 6 个）**永远同一个版本号**，
 发布 tag `vX.Y.Z` 因此永远有唯一来源（取组内版本，基准是 `apps/admin`）。
 
 > `tooling` 那 6 个是 `@walnut/tsconfig` / `@walnut/eslint-config` / `@walnut/commitlint-config` /
@@ -162,6 +162,7 @@ pnpm release
 | `versioning` | `pnpm change check`（fixed 组锁步） |
 | `workflows` | `pnpm lint:workflows`（actionlint；本机没装则提示后跳过，CI 侧由 `workflow-lint.yml` 直接跑二进制） |
 | `workflows-shell` | `pnpm lint:workflows-shell`（把每个 `run:` / `with.script:` 抽出来逐块 `bash -n` —— actionlint **看不见**字符串里的 shell 语法；本机没有 bash 时明确 SKIP） |
+| `dynamic-imports` | `pnpm lint:dynamic-imports`（`apps/**` 里不许出现拼出来的动态 import —— 模板插值 / 非字面量说明符；tsc 与 vite build 都看不见那一类） |
 | `docs-refs` | `pnpm lint:docs-refs`（活文档正文里引用的 workspace 包名 / 仓库路径必须真实存在） |
 | `adr` | `pnpm lint:adr`（ADR 形态：编号连续 / Status 在枚举内 / 四个必需小节 / index 双向对齐） |
 | `doc-ts` | `pnpm lint:doc-ts`（标成 `ts` 的代码块必须能按 TypeScript 解析） |

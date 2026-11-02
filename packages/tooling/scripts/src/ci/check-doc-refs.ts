@@ -27,8 +27,11 @@ import { REPO_ROOT } from '../lib/repo-root.ts'
 import { workspacePackageNames } from '../lib/workspace.ts'
 
 /**
- * 冻结语料：有意保留当时路径的历史文档，不参与校验。
+ * 冻结语料：有意保留当时路径的历史文档，**全免**（包名与路径都不查）。
  * 与 VitePress 的 `ignoreDeadLinks` 白名单是**同一条口径**（见 apps/docs/.vitepress/config/index.ts）。
+ *
+ * 这里是"全免"的唯一入口，门槛因此设得很高：只有**整份文档都不再被当作现状读**时才进来。
+ * `reports/` 刻意**不**在这里 —— 见 `PATH_CHECK_EXCLUDED` 的注释。
  */
 const FROZEN = /(?:^|\/)content\/(?:archive|industry-research)\//
 
@@ -42,8 +45,15 @@ const FROZEN = /(?:^|\/)content\/(?:archive|industry-research)\//
  *
  * 为什么把待办文档排掉：`architecture-todo.md` 的职责恰恰是**记录失效的引用本身**
  * （「裸 `scripts/…` → 补全为 …」「`migration-guide/` 目录根本不存在」），它必然包含死路径。
+ *
+ * 为什么 `reports/` 只免路径、**不免包名**（2026-11 R3 裁定）：批次复核报告描述的是
+ * "改之前长什么样"，因此**必然**引用已删除的路径（R1/R2 报告要引用被删的 `ui/B` 包路径）——
+ * 路径这一半必须豁免，否则报告预言的每处改动落地后都会把门禁变红。
+ * 但**包名**这一半不需要豁免，也不该豁免：报告是**给人当结论读**的，写错包名（或写了一个从未存在的
+ * 包名）正是它最该被抓到的错；而且 `reports/` 会随批次**持续增长**，全免等于让免检面无限扩张。
+ * 这条与 ADR 同待遇（`content/adr/` 也是"只免路径、包名照查"）—— 两者都是"某一时刻的记录"。
  */
-const PATH_CHECK_EXCLUDED = /(?:^|\/)content\/adr\/|architecture-todo\.md$/
+const PATH_CHECK_EXCLUDED = /(?:^|\/)content\/adr\/|architecture-todo\.md$|^reports\//
 
 /** 后端内部 lib 的命名空间：不是 workspace 包，没有 package.json */
 const SERVER_LIB_NAMESPACE = '@walnut-server/'
@@ -99,6 +109,8 @@ export const ALLOWED_MISSING_PACKAGES: Record<string, string> = {
   '@walnut/shared': '从未存在（ADR 0001 讨论过的候选名）',
   '@walnut/core': '从未存在（ADR 0001 讨论过的候选名）',
   '@walnut/ai': '已删除的空壳包',
+  '@walnut/r3-ghost': '从未存在 —— R3 评审报告记录"包名/路径分别受检"的三连实验时用的探针包名；报告本身不改（它记录的是实验），因此按 prose 引用豁免',
+  '@walnut/ui': '已删除（2026-11，批次 1 / 决策 D1：3 个 naive 透传组件回 apps/admin/src/components/UI/）。活文档里的引用只剩 ADR 0012/0017、已完成的 proposal 与 admin CHANGELOG 等历史叙述',
   // 名称 ≠ 目录名，容易被写错；正名是 @walnut/utils
   '@walnut/utils-core': '包名是 @walnut/utils，`utils-core` 只是目录名',
   // 归档的抽取提案 / 行业调研里的示例名
@@ -116,9 +128,18 @@ export interface DocRefs {
   paths: Map<string, string[]>
 }
 
-/** 扫描面：全部跟踪（∪ 未跟踪）的 .md，排除冻结语料 */
+/**
+ * 扫描面：全部跟踪（∪ 未跟踪）的 .md，排除冻结语料。
+ *
+ * **还要按落盘存在性过滤**：`git ls-files` 读的是**索引** —— 批量改造进行中（文件已从工作区删除、
+ * 但还没 `git rm` / commit）时，索引里仍有那些路径，`readFileSync` 会 ENOENT 把门禁打成
+ * 「脚本自己出错了」。同一个坑 `check-emoji.ts` 的 `listCandidateFiles` 早就踩过并写下了理由；
+ * 2026-11 删 `@walnut/ui` 包时就撞在这里（整目录已删、索引未更新）。
+ */
 export function liveDocs(): string[] {
-  return lsFilesWithUntracked('*.md').filter(f => !FROZEN.test(f))
+  return lsFilesWithUntracked('*.md')
+    .filter(f => !FROZEN.test(f))
+    .filter(f => fs.existsSync(path.join(REPO_ROOT, f)))
 }
 
 /** 包名引用：`@walnut/<段>`（`@walnut-server/` 不查，见模块头注释 ①） */

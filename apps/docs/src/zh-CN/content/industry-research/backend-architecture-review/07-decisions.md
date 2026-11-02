@@ -131,7 +131,7 @@ D3=A 把 worker 真接起来 ⇒ 出现**第二个 Node 部署单元** ⇒ platf
 | D15 | 分页稳定性 | 默认排序追加 id 兜底；UUID v7 记 P3 | |
 | D16 | 命名遗留 | roles_list/roles_count 永久冻结；/system/locale/list 的 id → groupKey | |
 | D17 | zod | 维持现状 + 记触发条件；**订正 adr/zod-evaluation.md**（两条事实已过期） | |
-| D18 | 门禁缺口三件 | ① frontend tag 规则 ② barrel 从 knip entry 摘出 ③ admin 最小 vitest runner | |
+| D18 | 门禁缺口三件 | ① frontend tag 规则 ② barrel 从 knip entry 摘出 ③ **偏差（2026-11-02 R1 裁决）**：admin 不引 vitest，改 @walnut/scripts 的 check-dynamic-imports 门禁（禁新增插值 import）；注册表改静态 import 后缺文件本就是编译期红 | 替代方案零新依赖，覆盖更彻底（静态校验 19ms 跑完 30 个 key） |
 | D19 | dependency-cruiser | 不引；把 madge 0 环纳入 prepush | |
 | D20 | TinyMCE | 移到 admin，出 server 镜像（-4.08MB） | |
 

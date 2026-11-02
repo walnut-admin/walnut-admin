@@ -1,9 +1,0 @@
-{
-  "extends": "@walnut/tsconfig/vue.json",
-  "compilerOptions": {
-    "baseUrl": ".",
-    "types": []
-  },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue"],
-  "exclude": ["node_modules", "dist"]
-}

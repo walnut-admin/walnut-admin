@@ -14,6 +14,7 @@
     "walnut-check-dist-secrets": "./bin/check-dist-secrets.ts",
     "walnut-check-doc-budgets": "./bin/check-doc-budgets.ts",
     "walnut-check-doc-refs": "./bin/check-doc-refs.ts",
+    "walnut-check-dynamic-imports": "./bin/check-dynamic-imports.ts",
     "walnut-check-doc-ts": "./bin/check-doc-ts.ts",
     "walnut-check-dts": "./bin/check-dts.ts",
     "walnut-check-git-hooks": "./bin/check-git-hooks.ts",

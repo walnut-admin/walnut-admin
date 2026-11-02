@@ -78,7 +78,7 @@ pnpm exec turbo run build build:stage transit types:check lint test --dry=json
 | `apps/*/env-encrypted/.env.*`（密文，进仓库那份） | 只影响该 app |
 
 实测数字：改 `packages/platform-any/types/src/index.d.ts` → **21 个 task**；
-改 `packages/platform-web/ui/src/index.ts` → **11 个**；改 `apps/server/libs/db/src/index.ts` → **6 个**（只有 server）。
+改 `packages/platform-web/client/src/index.ts` → **11 个**（口径沿用 2026-11 之前用同为 `platform-web` 叶子包的 `ui` 包实测的数字；`ui` 已删，`client` 的下游同为 admin、失效面相同）；改 `apps/server/libs/db/src/index.ts` → **6 个**（只有 server）。
 
 ### 3.3 只有 docs 的 build
 

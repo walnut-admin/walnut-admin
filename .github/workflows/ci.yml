@@ -122,6 +122,12 @@ jobs:
       - name: Docs build (dead-link check)
         run: pnpm build:docs --cache-dir=.turbo/cache-docs
 
+      # 拼出来的动态 import 说明符（模板插值 / 非字面量）在 tsc 与 vite build 里都不报错，
+      # 只在运行期抛 Unknown variable dynamic import —— 2026-11 的 @walnut/ui 抽包就是这么
+      # 让 Base:Switch（63 处使用）静默不渲染的。静态扫一遍即可发现。
+      - name: Dynamic import specifier check
+        run: pnpm lint:dynamic-imports
+
       # 补 VitePress 内置查不到的那一半：活文档**正文**里引用的 workspace 包名与仓库路径。
       # （内置只认 markdown 链接语法，反引号里的 `@walnut/xxx` / `packages/a/b.ts` 它看不见。）
       - name: Doc reference check

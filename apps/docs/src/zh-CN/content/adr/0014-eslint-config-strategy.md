@@ -19,9 +19,9 @@ Three questions need explicit decisions:
 **Rationale:**
 - **Single source of truth** — upgrade an ESLint plugin once, all consumers pick it up
 - **3 presets match the 3 runtime environments**（2026-09-23 起全部为 `.ts`，见 [ADR 0019](0019-tsconfig-presets-and-no-mjs.md)）:
-  - `base.ts` — TypeScript, `no-namespace: off`, `no-console: off` (currently zero consumers — shared packages mostly have no local ESLint config; `packages/platform-web/ui` writes one and uses the `vue` preset, the rest fall back to the root `vue` preset via upward resolution)
+  - `base.ts` — TypeScript, `no-namespace: off`, `no-console: off` (currently zero consumers — no shared package has a local ESLint config; they all fall back to the root `vue` preset via upward resolution. 2026-11 起最后一个本地配置 `packages/platform-web/ui/eslint.config.ts` 随该包删除，`base` 的消费者面回到零)
   - `vue.ts` — extends base + UnoCSS + Vue + TypeScript + pnpm catalog enforcement
-  - `nest.ts` — extends base + TypeScript project mode + NestJS-specific rules (decorator ordering via the local `nest-local-rules.ts` plugin, restrict frontend imports `@walnut/client`/`@walnut/http`/`@walnut/ui`)
+  - `nest.ts` — extends base + TypeScript project mode + NestJS-specific rules (decorator ordering via the local `nest-local-rules.ts` plugin, restrict frontend imports `@walnut/client`/`@walnut/http` —— 这两条是**当前实际生效**的禁令；ADR 0017 曾提议再补 `@walnut/ui`/`@walnut/i18n`/`@walnut/security`，一直未实现且前者的包已于 2026-11 删除)
 - **ESLint plugins live in the config package's `dependencies`** — consumers only need to `extends` the preset
 - `eslint` itself is a `peerDependency` — avoids multiple ESLint versions coexisting
 - **ESLint loads `eslint.config.ts` through `jiti`** (ESLint's official TS config loader), which is why the root gained a `jiti` devDependency. The package's own `types:check` is a real `tsc --noEmit` (it used to be a no-op `echo`)
