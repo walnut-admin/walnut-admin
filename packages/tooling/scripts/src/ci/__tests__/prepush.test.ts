@@ -28,16 +28,34 @@ describe('pREPUSH_GATES —— 表本身', () => {
       expect(id, 'id 不能为空').not.toBe('')
   })
 
-  it('每一段的 argv 都能落到**真实存在**的根脚本 / pnpm 子命令上', () => {
+  it('每一段的 argv（含 followups）都能落到**真实存在**的根脚本 / pnpm 子命令上', () => {
     // 这条守卫就是「表里打错一个脚本名」的拦网：那种错会让整段门禁静默消失。
+    // followups 也一并校验 —— 它们是同一段的后续命令，写错了同样是静默少跑一道闸。
     for (const gate of PREPUSH_GATES) {
-      const head = gate.argv[0]
-      expect(head, `${gate.id}: argv 不能为空`).toBeTruthy()
-      if (PNPM_SUBCOMMANDS.has(head!)) {
-        expect(gate.argv.length, `${gate.id}: pnpm 子命令不该只有一段`).toBeGreaterThan(1)
-        continue
+      for (const [index, argv] of [gate.argv, ...(gate.followups ?? [])].entries()) {
+        const where = index === 0 ? 'argv' : `followups[${index - 1}]`
+        const head = argv[0]
+        expect(head, `${gate.id}.${where}: 不能为空`).toBeTruthy()
+        if (PNPM_SUBCOMMANDS.has(head!)) {
+          expect(argv.length, `${gate.id}.${where}: pnpm 子命令不该只有一段`).toBeGreaterThan(1)
+          continue
+        }
+        expect(rootScripts.has(head!), `${gate.id}.${where}: 根 package.json 里没有脚本 \`${head}\``).toBe(true)
       }
-      expect(rootScripts.has(head!), `${gate.id}: 根 package.json 里没有脚本 \`${head}\``).toBe(true)
+    }
+  })
+
+  it('openapi 段同时查暂存区（F-53 边界①：已 add 的生成物不许让门禁绿）', () => {
+    const openapi = PREPUSH_GATES.find(gate => gate.id === 'openapi')
+    expect(openapi, 'openapi 段不见了 —— 门禁被摘').toBeTruthy()
+
+    const followups = openapi!.followups ?? []
+    const staged = followups.find(argv => argv.includes('--cached'))
+    expect(staged, 'openapi 段缺少 `git diff --cached` 这一步：git diff 只比工作区 vs 暂存区，已 add 的生成物会让门禁假绿').toBeTruthy()
+
+    // 两个生成物都要盯：只查一个等于漏一个
+    for (const generated of ['apps/server/openapi.json', 'packages/platform-web/api-types/src/schema.d.ts']) {
+      expect(staged!.includes(generated), `${generated} 不在暂存区比对里`).toBe(true)
     }
   })
 

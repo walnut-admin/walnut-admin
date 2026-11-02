@@ -122,3 +122,89 @@ describe('resolveLibRoot —— lib 根推导锚定 <cwd>/libs', () => {
     expect(resolveLibRoot(process.cwd(), 'apps/server/libs/system/src/index.ts')).toBeNull()
   })
 })
+
+/**
+ * `sort-nestjs-decorators` 的顺序表用例（4A：新收录 ApiOperation / ApiResponse / ApiExcludeEndpoint）。
+ *
+ * 为什么不用 RuleTester：本规则的判定对象是**装饰器**，而 ESTree 里没有 `decorators`
+ * （那是 typescript-eslint 的 AST 扩展）—— RuleTester 要跑就得给它一个能解析装饰器的 parser
+ * （`@typescript-eslint/parser`），它不在本包依赖里（只在 pnpm store 里作 @antfu/eslint-config 的
+ * 传递依赖），本批不新增依赖。所以这里直接调 `create()`，把「装饰器节点 + 极小 sourceCode 桩」喂给
+ * visitor —— 规则对 AST 的依赖面就那么几个字段（decorators / range / loc，且行号 1 时连缩进都不取）。
+ */
+describe('sort-nestjs-decorators —— 方法装饰器顺序表（含 4A 新收录的三者）', () => {
+  const sortRule = localRules.rules['sort-nestjs-decorators']!
+
+  /** 造一个「方法 + 若干装饰器」的假节点（行号恒为 1：getIndent 直接返回空串，不碰 sourceCode） */
+  function methodNode(names: readonly string[]) {
+    return {
+      decorators: names.map((name, idx) => ({
+        expression: { type: 'CallExpression', callee: { type: 'Identifier', name } },
+        range: [idx * 100, idx * 100 + 90],
+        loc: { start: { line: 1 } },
+      })),
+      range: [0, names.length * 100],
+      loc: { start: { line: 1 } },
+      value: { params: [] },
+    }
+  }
+
+  function runSort(names: readonly string[]): string[] {
+    const reported: string[] = []
+    const context = {
+      options: [{}],
+      sourceCode: {
+        getIndexFromLoc: () => 0,
+        getText: () => '',
+        text: '',
+      },
+      report: (descriptor: { message?: string }) => {
+        reported.push(descriptor.message ?? '')
+      },
+    }
+
+    const listeners = sortRule.create(context as never) as unknown as {
+      MethodDefinition: (node: unknown) => void
+    }
+    listeners.MethodDefinition(methodNode(names))
+
+    return reported
+  }
+
+  it('合法顺序不报：ApiOkResponse → ApiOperation → ApiResponse → FreeResponse → UseGuards', () => {
+    expect(runSort([
+      'Get',
+      'HttpCode',
+      'WalnutAdminDecoratorHasPermission',
+      'ApiParam',
+      'ApiQuery',
+      'ApiOkResponse',
+      'ApiOperation',
+      'ApiResponse',
+      'WalnutAdminDecoratorFreeResponse',
+      'UseGuards',
+    ])).toEqual([])
+  })
+
+  it('cap 形态（FreeResponse 收尾）合法：ApiOkResponse → ApiOperation → FreeResponse', () => {
+    expect(runSort(['Post', 'HttpCode', 'WalnutAdminGuardSignFree', 'ApiOkResponse', 'ApiOperation', 'WalnutAdminDecoratorFreeResponse'])).toEqual([])
+  })
+
+  it('apiOperation 排在 @UseGuards 之后要报（这正是漏收进顺序表时的旧行为）', () => {
+    const reported = runSort(['ApiOkResponse', 'UseGuards', 'ApiOperation'])
+    expect(reported.length).toBe(1)
+    expect(reported[0]).toContain('Method decorators')
+  })
+
+  it('apiOperation 必须排在 ApiOkResponse 之后（不是之前）', () => {
+    const reported = runSort(['ApiOperation', 'ApiOkResponse'])
+    expect(reported.length).toBe(1)
+  })
+
+  it('apiResponse / ApiExcludeEndpoint 与 ApiOperation 同档但不互相打乱（保持原序）', () => {
+    expect(runSort(['ApiOperation', 'ApiResponse', 'ApiExcludeEndpoint'])).toEqual([])
+    // 未知档的装饰器（@Sse / @HealthCheck 这类）仍然排在最后 —— 新收录后 @Sse 必须在 @ApiOperation 之后
+    expect(runSort(['ApiOperation', 'ApiExcludeEndpoint', 'Sse'])).toEqual([])
+    expect(runSort(['Sse', 'ApiOperation']).length).toBe(1)
+  })
+})

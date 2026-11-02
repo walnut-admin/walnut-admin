@@ -115,6 +115,14 @@ const DEFAULT_METHOD_ORDER = [
   'ApiBody',
   'ApiWalnutOkResponse',
   'ApiOkResponse',
+  // 4A（13 个缺 summary 的 op）：ApiOperation / ApiResponse / ApiExcludeEndpoint 原先**不在表里**
+  // ⇒ 落进「未知」档（优先级 = 表长，排 @UseGuards 之后），于是补 summary 的 @ApiOperation 被
+  // lint:fix 顶到最末 —— 看起来像「文档装饰器该排最后」，实为顺序表漏收。三者按 OpenAPI 的
+  // 书写习惯落在 ApiOkResponse 之后、WalnutAdminDecoratorFreeResponse 之前。
+  // 仍不在表里的装饰器（@Sse / @HealthCheck 等）继续落最末一档，与其他自定义装饰器同档。
+  'ApiOperation',
+  'ApiResponse',
+  'ApiExcludeEndpoint',
   'WalnutAdminDecoratorFreeResponse',
   'WalnutAdminDecoratorCache',
   'WalnutAdminDecoratorAuthLog',
