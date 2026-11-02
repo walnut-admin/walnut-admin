@@ -44,6 +44,8 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<AppMonitorUse
       span: 6,
       labelWidth: 100,
       schemas: [
+        // P0-2：这里保留的是**入参**（按指纹定位在线行，服务端用它做过滤），
+        // 响应不回显指纹本身 —— 不要把它加回 columns / 详情抽屉。
         {
           type: 'Base:Input',
           formProp: {
@@ -141,9 +143,15 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<AppMonitorUse
         fixed: 'left',
       },
 
+      // P0-2：原先是 `key: 'visitorId'`（原始浏览器指纹）—— 后端已不再下发该字段（
+      // deviceId = HMAC(指纹)，回显指纹等于下发设备身份）。这里改用设备名定位同一行。
       {
-        key: 'visitorId',
-        minWidth: 350,
+        key: 'device.deviceName',
+        title: 'deviceName',
+        minWidth: 240,
+        ellipsis: {
+          tooltip: true,
+        },
       },
 
       {
@@ -337,15 +345,7 @@ const [register, { onReadAndOpenUpdateForm, onApiList }] = useCRUD<AppMonitorUse
     },
 
     schemas: [
-      {
-        type: 'Base:Input',
-        formProp: {
-          path: 'visitorId',
-        },
-        descriptionProp: {
-          span: 3,
-        },
-      },
+      // P0-2：`visitorId`（原始指纹）已从响应面移除，抽屉不再展示；设备用 deviceName 定位
       {
         type: 'Base:Input',
         formProp: {

@@ -15,5 +15,7 @@ declare module 'axios' {
     _autoEncryptRequestData?: (keyof D & string)[]
     _encrypted?: boolean
     _plainData?: any
+    /** P0-1：40605 自愈（initial + 重放）只做一次的标记，防死循环 */
+    _deviceResetRetried?: boolean
   }
 }
