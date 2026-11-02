@@ -11,6 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** hello message of the API (i18n translated plain string) */
         get: operations["AppController_getHello"];
         put?: never;
         post?: never;
@@ -27,6 +28,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** hello message for authenticated users (i18n translated plain string) */
         get: operations["AppController_getHelloWithAuth"];
         put?: never;
         post?: never;
@@ -60,6 +62,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Network reachability probe */
         get: operations["AppTechHealthController_checkNetwork"];
         put?: never;
         post?: never;
@@ -76,6 +79,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** PostgreSQL connectivity probe */
         get: operations["AppTechHealthController_checkPostgres"];
         put?: never;
         post?: never;
@@ -92,6 +96,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Process heap usage probe */
         get: operations["AppTechHealthController_checkMemoryHeap"];
         put?: never;
         post?: never;
@@ -108,6 +113,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Process resident set size probe */
         get: operations["AppTechHealthController_checkMemoryRSS"];
         put?: never;
         post?: never;
@@ -124,6 +130,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Root volume disk usage probe */
         get: operations["AppTechHealthController_checkDisk"];
         put?: never;
         post?: never;
@@ -159,6 +166,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** initialize the first app key of a type (root only; the private key never leaves the server) */
         post: operations["AppKeyController_init"];
         delete?: never;
         options?: never;
@@ -175,6 +183,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** rotate the app key of a type (root only; the previous key row is kept as history) */
         post: operations["AppKeyController_rotate"];
         delete?: never;
         options?: never;
@@ -191,6 +200,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 用户监控 列表 */
         post: operations["AppMonitorUserController_list"];
         delete?: never;
         options?: never;
@@ -225,6 +235,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /** force quit the monitored session (admin kick; revokes the device refresh token) */
         delete: operations["AppMonitorUserController_forceQuit"];
         options?: never;
         head?: never;
@@ -240,6 +251,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** report / update the online state of the current device (anonymous heartbeat) */
         post: operations["AppMonitorUserController_monitor"];
         delete?: never;
         options?: never;
@@ -392,7 +404,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Report client-side OPAQUE error */
+        /** Report a client-side OPAQUE failure (always answers 40103) */
         post: operations["AuthOpaqueUserController_reportClientError"];
         delete?: never;
         options?: never;
@@ -577,6 +589,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get the OAuth (gitee) authorize URL of this deployment (state is signed by the server and bound to the requesting device) */
         get: operations["OAuthGiteeController_OAuth"];
         put?: never;
         post?: never;
@@ -593,6 +606,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** OAuth (Gitee) callback result page */
         get: operations["OAuthGiteeController_callback"];
         put?: never;
         post?: never;
@@ -609,6 +623,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * OAuth (Gitee) login result stream
+         * @description Server-Sent Events stream that delivers the OAuth login result to the browser which started the flow. The channel is bound to the signed device cookie (DEVICE_ID) of the requesting device, so only the originating device receives the payload. Each `data:` frame is a JSON encoded `IWalnutAdminSseClientData<IWalnutAdminSseOAuthPayload>` (see @walnut/contract/sse): a success frame carries `{ event: "token:gitee", accessToken, sessionKey }`, a failure frame carries an empty `data` object plus a translated `message`.
+         */
         get: operations["OAuthGiteeController_sse"];
         put?: never;
         post?: never;
@@ -625,6 +643,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get the OAuth (github) authorize URL of this deployment (state is signed by the server and bound to the requesting device) */
         get: operations["OAuthGithubController_OAuth"];
         put?: never;
         post?: never;
@@ -641,6 +660,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** OAuth (GitHub) callback result page */
         get: operations["OAuthGithubController_callback"];
         put?: never;
         post?: never;
@@ -657,6 +677,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * OAuth (GitHub) login result stream
+         * @description Server-Sent Events stream that delivers the OAuth login result to the browser which started the flow. The channel is bound to the signed device cookie (DEVICE_ID) of the requesting device, so only the originating device receives the payload. Each `data:` frame is a JSON encoded `IWalnutAdminSseClientData<IWalnutAdminSseOAuthPayload>` (see @walnut/contract/sse): a success frame carries `{ event: "token:github", accessToken, sessionKey }`, a failure frame carries an empty `data` object plus a translated `message`.
+         */
         get: operations["OAuthGithubController_sse"];
         put?: never;
         post?: never;
@@ -673,6 +697,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** get the current RSA public key (PEM) used by clients to encrypt request payloads */
         get: operations["SecurityRsaController_getPublicKey"];
         put?: never;
         post?: never;
@@ -691,6 +716,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Register the client RSA public key for request signing */
         post: operations["SecuritySignController_initial"];
         delete?: never;
         options?: never;
@@ -724,6 +750,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Create a cap.js proof-of-work challenge */
         post: operations["SecurityCapController_getChallenge"];
         delete?: never;
         options?: never;
@@ -740,6 +767,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** Redeem a cap.js challenge solution for a token */
         post: operations["SecurityCapController_getRedeem"];
         delete?: never;
         options?: never;
@@ -754,6 +782,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Check verification status for a security level */
         get: operations["SecuritySensitiveController_checkVerificationStatus"];
         put?: never;
         post?: never;
@@ -842,6 +871,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 实例 列表 */
         post: operations["AppDemoController_list"];
         delete?: never;
         options?: never;
@@ -892,6 +922,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 软删除 列表 */
         post: operations["SysDeletedController_list"];
         delete?: never;
         options?: never;
@@ -908,6 +939,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** recover a deleted row deleted by the current user (owner check in service) */
         post: operations["SysDeletedController_recoverMine"];
         delete?: never;
         options?: never;
@@ -924,6 +956,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** recover a deleted row (management side; root / developer / admin only) */
         post: operations["SysDeletedController_recover"];
         delete?: never;
         options?: never;
@@ -938,6 +971,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Throw the response code given in the path (error envelope drill, always fails) */
         get: operations["AppErrorController_error40000"];
         put?: never;
         post?: never;
@@ -975,6 +1009,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
+        /** clear the whole app cache */
         delete: operations["AppMonitorCacheController_clearCache"];
         options?: never;
         head?: never;
@@ -990,6 +1025,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 应用缓存 列表 */
         post: operations["AppMonitorCacheController_list"];
         delete?: never;
         options?: never;
@@ -1157,6 +1193,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Get private (authenticated) functional switches: maskUrl / hijackRefresh / watermark / transition */
         get: operations["AppSettingController_getPrivateSettings"];
         put?: never;
         post?: never;
@@ -1210,6 +1247,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 应用设置 列表 */
         post: operations["AppSettingController_list"];
         delete?: never;
         options?: never;
@@ -1226,6 +1264,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** refresh the app setting cache from app_setting table */
         post: operations["AppSettingController_refreshCache"];
         delete?: never;
         options?: never;
@@ -1242,6 +1281,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 应用日志 列表 */
         post: operations["AppLoggerController_list"];
         delete?: never;
         options?: never;
@@ -1411,6 +1451,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 设备 列表 */
         post: operations["SysDeviceController_list"];
         delete?: never;
         options?: never;
@@ -1462,6 +1503,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 语言 列表 */
         post: operations["SysLangController_list"];
         delete?: never;
         options?: never;
@@ -1493,6 +1535,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** Get the message map of a language */
         get: operations["SysLocaleController_getLocaleMessage"];
         put?: never;
         post?: never;
@@ -1580,6 +1623,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 国际化 列表 */
         post: operations["SysLocaleController_list"];
         delete?: never;
         options?: never;
@@ -1649,6 +1693,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 字典类型 列表 */
         post: operations["SysDictTypeController_list"];
         delete?: never;
         options?: never;
@@ -1718,6 +1763,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 字典数据 列表 */
         post: operations["SysDictDataController_list"];
         delete?: never;
         options?: never;
@@ -1821,6 +1867,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 部门 列表 */
         post: operations["SysDeptController_list"];
         delete?: never;
         options?: never;
@@ -1873,6 +1920,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 岗位 列表 */
         post: operations["SysPostController_list"];
         delete?: never;
         options?: never;
@@ -1959,6 +2007,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 职工 列表 */
         post: operations["SysEmployeeController_list"];
         delete?: never;
         options?: never;
@@ -2009,6 +2058,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 登录/注册日志 列表 */
         post: operations["SysLogAuthController_list"];
         delete?: never;
         options?: never;
@@ -2076,6 +2126,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 操作日志 列表 */
         post: operations["SysLogOperateController_list"];
         delete?: never;
         options?: never;
@@ -2145,6 +2196,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 菜单 列表 */
         post: operations["SysMenuController_list"];
         delete?: never;
         options?: never;
@@ -2196,6 +2248,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 角色 列表 */
         post: operations["SysRoleController_list"];
         delete?: never;
         options?: never;
@@ -2248,6 +2301,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
+        /** 用户 列表 */
         post: operations["SysUserController_list"];
         delete?: never;
         options?: never;
@@ -2331,7 +2385,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** get security tab1 status */
+        /** get current user device list */
         get: operations["SysUserDeviceController_getCurrentUserDeviceList"];
         put?: never;
         post?: never;
@@ -2951,6 +3005,104 @@ export interface components {
              */
             keyB64?: string;
         };
+        AppKeyMetaType: {
+            /**
+             * RSA Public Key (PEM)
+             * @description PEM-formatted RSA public key for encryption or signature verification.
+             * @example -----BEGIN PUBLIC KEY-----
+             *     MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
+             *     -----END PUBLIC KEY-----
+             */
+            publicKeyPem?: string;
+            /**
+             * Symmetric Key (Base64)
+             * @description Base64-encoded symmetric encryption key (e.g., AES).
+             * @example dGhpcyBpcyBhIDI1NiBiaXQga2V5IGZvciBBRVM=
+             */
+            keyB64?: string;
+            /**
+             * Initialization Vector (Base64)
+             * @description Base64-encoded initialization vector (IV) for symmetric encryption.
+             * @example dGhpcyBpcyBhIDEyOCBiaXQgSVY=
+             */
+            ivB64?: string;
+            /**
+             * JWT / HMAC Secret
+             * @description Plain secret string used for signing or verifying JWT tokens, or as an HMAC key.
+             * @example jwt_secret_32bytes_super_secure_random_string
+             */
+            secret?: string;
+            /**
+             * Key Bits
+             * @description Key length in bits (e.g., 2048 for RSA, 256 for AES).
+             * @example 256
+             */
+            bits?: number;
+            /**
+             * Cipher Suite
+             * @description Algorithm / mode identifier (e.g., AES-256-CBC, RSA-OAEP-SHA256).
+             * @example AES-256-CBC
+             */
+            cipher?: string;
+        };
+        AppKeyDTOSafe: {
+            /**
+             * default createdAt
+             * Format: date-time
+             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            createdAt?: string;
+            /**
+             * default updatedAt
+             * Format: date-time
+             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            updatedAt?: string;
+            /**
+             * app key
+             * @description app key
+             * @example rsa-req-20250618-001
+             */
+            key: string;
+            /**
+             * app key type
+             * @example RSA_PAIR
+             * @enum {string}
+             */
+            type: "RSA_PAIR" | "AES_KEY_URL" | "JWT_AT" | "JWT_RT";
+            /** timestamp as version */
+            version: number;
+            /**
+             * app key status
+             * @example ACTIVE
+             * @enum {string}
+             */
+            status: "ACTIVE" | "DEPRECATED" | "DISABLED";
+            /**
+             * valid start
+             * Format: date-time
+             */
+            validStart: string;
+            /**
+             * valid end
+             * Format: date-time
+             * @default null
+             */
+            validEnd: string;
+            /**
+             * rotate after
+             * Format: date-time
+             * @default null
+             */
+            rotateAfter: string;
+            /**
+             * app key meta
+             * @default {}
+             */
+            meta: components["schemas"]["AppKeyMetaType"];
+            /** @default null */
+            id: string;
+        };
         AppKeyDTOInit: {
             /**
              * app key type
@@ -3129,7 +3281,8 @@ export interface components {
             icon: string;
             /** menu meta data, lots of fields */
             meta: components["schemas"]["SysMenuMetaDTOBasePartial"];
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
@@ -3184,7 +3337,8 @@ export interface components {
             usersCount: number;
             /** populated menus list */
             menusList: components["schemas"]["SysMenuDTOSafe"][];
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * @default []
              * @example [
@@ -3282,7 +3436,8 @@ export interface components {
             roles_count: number;
             /** virtual roles list */
             roles_list: components["schemas"]["SysRoleDTOSafe"][];
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * @default []
              * @example [
@@ -3475,7 +3630,8 @@ export interface components {
             user: components["schemas"]["SysUserDTOSafe"];
             /** virtual device */
             device: components["schemas"]["SysDeviceDTOSafe"];
-            id?: string;
+            /** @default null */
+            id: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             userId?: string | null;
         };
@@ -3533,7 +3689,8 @@ export interface components {
             user?: components["schemas"]["SysUserDTOSafe"];
             /** virtual device */
             device?: components["schemas"]["SysDeviceDTOSafe"];
-            id?: string;
+            /** @default null */
+            id: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             userId?: string | null;
             /** country */
@@ -3683,7 +3840,8 @@ export interface components {
             icon: string;
             /** menu meta data, lots of fields */
             meta: components["schemas"]["SysMenuMetaDTOBasePartial"];
-            id?: string;
+            /** @default null */
+            id: string;
             children?: components["schemas"]["SysMenuDTOTree"][];
         };
         VueRouteMetaDTO: {
@@ -4030,6 +4188,26 @@ export interface components {
             /** @description hkdf info */
             hkdfInfo: string;
         };
+        SecuritySensitiveCheckResponseDTO: {
+            /** needs verification */
+            needsVerification: boolean;
+            /**
+             * remaining seconds
+             * @default null
+             */
+            remainingSeconds: number;
+            /**
+             * available methods
+             * @default null
+             */
+            availableMethods: ("password" | "sms" | "mfa" | "email")[];
+            /**
+             * preferred method
+             * @default null
+             * @enum {string}
+             */
+            preferredMethod: "password" | "sms" | "mfa" | "email";
+        };
         SecuritySensitiveVerifyRequestDTO: {
             /**
              * security level
@@ -4045,6 +4223,8 @@ export interface components {
             credential: string;
             /**
              * operation type
+             * @description sensitive operation type; omitted => use the level strategy
+             * @default null
              * @enum {string}
              */
             operationType: "password_change" | "email_change" | "email_bind" | "email_status_toggle" | "phone_change" | "phone_bind" | "phone_status_toggle" | "identity_manage";
@@ -4201,7 +4381,8 @@ export interface components {
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
              */
             deptId: string | null;
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
@@ -4603,7 +4784,8 @@ export interface components {
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
              */
             deptId: string | null;
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
@@ -4696,7 +4878,8 @@ export interface components {
             deletedAt: string;
             /** virtual user */
             user: components["schemas"]["SysUserDTOSafe"];
-            id?: string;
+            /** @default null */
+            id: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             deletedId: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
@@ -4743,7 +4926,8 @@ export interface components {
             collectionName?: string;
             /** virtual user */
             user?: components["schemas"]["SysUserDTOSafe"];
-            id?: string;
+            /** @default null */
+            id: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             deletedId?: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
@@ -4800,6 +4984,7 @@ export interface components {
             page: components["schemas"]["WalnutAdminRequestListPageDTO"];
         };
         SysDeletedDTORecoverRequest: {
+            /** @default null */
             id: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             deletedId: string;
@@ -5014,6 +5199,51 @@ export interface components {
             auth: components["schemas"]["AppSettingDTOPublicAuth"];
             frontend: components["schemas"]["AppSettingDTOPublicFrontend"];
         };
+        AppSettingDTOPrivateFlagResponse: {
+            /** functional switch enabled */
+            status: boolean;
+            /**
+             * functional switch scope
+             * @enum {string}
+             */
+            mode: "global" | "local";
+            /** functional switch value (boolean flag) */
+            value: boolean;
+        };
+        AppSettingDTOPrivateWatermarkResponse: {
+            /** functional switch enabled */
+            status: boolean;
+            /**
+             * functional switch scope
+             * @enum {string}
+             */
+            mode: "global" | "local";
+            /** watermark config (free-form object) */
+            value: {
+                [key: string]: unknown;
+            };
+        };
+        AppSettingDTOPrivateTransitionResponse: {
+            /** functional switch enabled */
+            status: boolean;
+            /**
+             * functional switch scope
+             * @enum {string}
+             */
+            mode: "global" | "local";
+            /** page transition name */
+            value: string;
+        };
+        AppSettingDTOPrivateResponse: {
+            /** url mask switch */
+            maskUrl: components["schemas"]["AppSettingDTOPrivateFlagResponse"];
+            /** refresh hijack switch */
+            hijackRefresh: components["schemas"]["AppSettingDTOPrivateFlagResponse"];
+            /** watermark switch */
+            watermark: components["schemas"]["AppSettingDTOPrivateWatermarkResponse"];
+            /** transition switch */
+            transition: components["schemas"]["AppSettingDTOPrivateTransitionResponse"];
+        };
         AppSettingDTOSafe: {
             /**
              * default createdAt
@@ -5043,7 +5273,8 @@ export interface components {
              * @default null
              */
             remark: string;
-            id?: string;
+            /** @default null */
+            id: string;
         };
         AppSettingDTOCreateRequest: {
             /** setting name */
@@ -5111,7 +5342,8 @@ export interface components {
              * @default null
              */
             remark: string;
-            id?: string;
+            /** @default null */
+            id: string;
             /** setting type for request query, support array */
             settingType: ("auth" | "global" | "functional")[];
         };
@@ -5351,7 +5583,8 @@ export interface components {
             roles_count: number;
             /** virtual roles list */
             roles_list: components["schemas"]["SysRoleDTOSafe"][];
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * @default []
              * @example [
@@ -5378,7 +5611,8 @@ export interface components {
              * @default null
              */
             nickName: string;
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * last active time
              * Format: date-time
@@ -5530,7 +5764,8 @@ export interface components {
             localesTotalCount: number;
             /** current lang's locales finished count */
             localesFinishedCount: number;
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * translate process
              * @description percentage (0-100); null when the lang has zero locales (NaN → null)
@@ -5609,7 +5844,8 @@ export interface components {
             localesTotalCount?: number;
             /** current lang's locales finished count */
             localesFinishedCount?: number;
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * translate process
              * @description percentage (0-100); null when the lang has zero locales (NaN → null)
@@ -5688,7 +5924,8 @@ export interface components {
             key: string;
             /** i18n value */
             value: string;
-            id?: string;
+            /** @default null */
+            id: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             langId: string;
             /**
@@ -5720,7 +5957,8 @@ export interface components {
             key?: string;
             /** i18n value */
             value?: string;
-            id?: string;
+            /** @default null */
+            id: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             langId?: string;
             /**
@@ -5788,7 +6026,8 @@ export interface components {
              * @enum {string}
              */
             tagType: "primary" | "info" | "success" | "warning" | "error";
-            id?: string;
+            /** @default null */
+            id: string;
         };
         SysDictTypeDTOWithDictDataResponse: {
             /** dict name */
@@ -5823,7 +6062,8 @@ export interface components {
             dictData?: components["schemas"]["SysDictDataDTOPopulatedDictData"];
             /** populated dict data count */
             dictDataCount?: number;
-            id?: string;
+            /** @default null */
+            id: string;
         };
         SysDictTypeDTOCreateRequest: {
             /** dict name */
@@ -5876,7 +6116,8 @@ export interface components {
             dictData?: components["schemas"]["SysDictDataDTOPopulatedDictData"];
             /** populated dict data count */
             dictDataCount?: number;
-            id?: string;
+            /** @default null */
+            id: string;
         };
         SysDictTypeDTOListRequest: {
             /**
@@ -5959,7 +6200,8 @@ export interface components {
              * @default null
              */
             description: string;
-            id?: string;
+            /** @default null */
+            id: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             typeId: string;
         };
@@ -6059,7 +6301,8 @@ export interface components {
              * @default null
              */
             description: string;
-            id?: string;
+            /** @default null */
+            id: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             typeId?: string;
             /**
@@ -6148,7 +6391,8 @@ export interface components {
              * @enum {string}
              */
             status: "enabled" | "disabled";
-            id?: string;
+            /** @default null */
+            id: string;
             children?: components["schemas"]["SysDeptDTOTree"][];
         };
         SysDeptDTOSafe: {
@@ -6207,7 +6451,8 @@ export interface components {
              * @enum {string}
              */
             status: "enabled" | "disabled";
-            id?: string;
+            /** @default null */
+            id: string;
         };
         SysDeptDTOCreateRequest: {
             /**
@@ -6361,7 +6606,8 @@ export interface components {
              * @enum {string}
              */
             status: "enabled" | "disabled";
-            id?: string;
+            /** @default null */
+            id: string;
         };
         SysDeptDTOListRequest: {
             /**
@@ -6445,7 +6691,8 @@ export interface components {
              * @default null
              */
             remark: string | null;
-            id?: string;
+            /** @default null */
+            id: string;
         };
         SysPostDTOCreateRequest: {
             /**
@@ -6548,7 +6795,8 @@ export interface components {
              * @default null
              */
             remark: string | null;
-            id?: string;
+            /** @default null */
+            id: string;
         };
         SysPostDTOListRequest: {
             /**
@@ -6642,7 +6890,8 @@ export interface components {
              * @enum {string}
              */
             status: "probation" | "active" | "resigned";
-            id?: string;
+            /** @default null */
+            id: string;
         };
         SysEmployeeDTOBindUserRequest: {
             /**
@@ -6701,7 +6950,8 @@ export interface components {
              * @enum {string}
              */
             status: "probation" | "active" | "resigned";
-            id?: string;
+            /** @default null */
+            id: string;
         };
         SysEmployeeDTOCreateRequest: {
             /**
@@ -6824,7 +7074,8 @@ export interface components {
              * @enum {string}
              */
             status: "probation" | "active" | "resigned";
-            id?: string;
+            /** @default null */
+            id: string;
         };
         SysEmployeeDTOListRequest: {
             /**
@@ -6936,7 +7187,8 @@ export interface components {
              * Format: date-time
              */
             authenticatedAt?: string;
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
@@ -7006,7 +7258,8 @@ export interface components {
             deviceId?: string;
             /** authenticatedAt for request query, support array */
             authenticatedAt?: string[];
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
@@ -7203,7 +7456,8 @@ export interface components {
             snapshotAfter: {
                 [key: string]: unknown;
             };
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
@@ -7259,7 +7513,8 @@ export interface components {
             invokingMethod?: string;
             /** operate success or not */
             success?: boolean;
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
@@ -7489,7 +7744,8 @@ export interface components {
             icon: string;
             /** menu meta data, lots of fields */
             meta?: components["schemas"]["SysMenuMetaDTOBasePartial"];
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
@@ -7687,7 +7943,8 @@ export interface components {
             usersCount?: number;
             /** populated menus list */
             menusList?: components["schemas"]["SysMenuDTOSafe"][];
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * @default []
              * @example [
@@ -7890,7 +8147,8 @@ export interface components {
             roles_count?: number;
             /** virtual roles list */
             roles_list?: components["schemas"]["SysRoleDTOSafe"][];
-            id?: string;
+            /** @default null */
+            id: string;
             /**
              * @default []
              * @example [
@@ -8052,7 +8310,7 @@ export interface components {
              */
             lockPwdHash: string;
         };
-        SysUserIdentityDTO: {
+        SysUserIdentityListItemDTO: {
             /**
              * default createdAt
              * Format: date-time
@@ -8077,16 +8335,6 @@ export interface components {
              * @enum {string}
              */
             purpose: "login" | "security";
-            /**
-             * encrypted value
-             * @description AES-256-GCM encrypted value (phone/email/idCard/password)
-             */
-            value: string;
-            /**
-             * value hash
-             * @description HMAC-SHA256 hash for quick lookup without decryption
-             */
-            valueHash: string;
             /**
              * masked value
              * @description masked value for display (e.g., +86****17304)
@@ -8123,6 +8371,14 @@ export interface components {
             metadata: {
                 [key: string]: unknown;
             };
+            userId: string;
+            id: string;
+        };
+        SysUserIdentityListResponseDTO: {
+            /** list response data */
+            data: components["schemas"]["SysUserIdentityListItemDTO"][];
+            /** list total count */
+            total: number;
         };
         SysUserIdentityListDTO: Record<string, never>;
         SysUserIdentityStatusPasswordDTO: {
@@ -8615,11 +8871,27 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description hello message of the API (i18n translated plain string) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: string;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -8632,11 +8904,27 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description hello message for authenticated users (i18n translated plain string) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: string;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -8658,10 +8946,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppBackendDepsResponseDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -8681,140 +8970,36 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The Health Check is successful */
+            /** @description Network reachability: HTTP ping to https://www.baidu.com */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        /**
-                         * @example ok
-                         * @enum {string}
-                         */
-                        status?: "ok" | "degraded";
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
-                         */
-                        info?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /** @example {} */
-                        error?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
-                         */
-                        details?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
+                        data?: {
+                            /** @description terminus indicator result; besides `status` an indicator may add extra fields (e.g. `message`, or HTTP `statusCode`/`statusText` for the network probe) */
+                            baidu: {
+                                /**
+                                 * @description condition result of this indicator
+                                 * @enum {string}
+                                 */
+                                status: "up" | "down";
+                                /** @description failure reason, only present on some indicators */
+                                message?: string;
                             };
                         };
-                    };
-                };
-            };
-            /** @description The Health Check is not successful */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
                         /**
-                         * @example error
-                         * @enum {string}
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
                          */
-                        status?: "error" | "shutting_down";
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
+                         * @description response msg, `Success` or error msg
+                         * @default Success
                          */
-                        info?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "redis": {
-                         *         "status": "down",
-                         *         "message": "Could not connect",
-                         *         "responseTime": 3005
-                         *       }
-                         *     }
-                         */
-                        error?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       },
-                         *       "redis": {
-                         *         "status": "down",
-                         *         "message": "Could not connect",
-                         *         "responseTime": 3005
-                         *       }
-                         *     }
-                         */
-                        details?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        };
+                        readonly msg: string | null;
                     };
                 };
             };
@@ -8829,140 +9014,36 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The Health Check is successful */
+            /** @description PostgreSQL connectivity of the app connection */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        /**
-                         * @example ok
-                         * @enum {string}
-                         */
-                        status?: "ok" | "degraded";
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
-                         */
-                        info?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /** @example {} */
-                        error?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
-                         */
-                        details?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
+                        data?: {
+                            /** @description terminus indicator result; besides `status` an indicator may add extra fields (e.g. `message`, or HTTP `statusCode`/`statusText` for the network probe) */
+                            postgres: {
+                                /**
+                                 * @description condition result of this indicator
+                                 * @enum {string}
+                                 */
+                                status: "up" | "down";
+                                /** @description failure reason, only present on some indicators */
+                                message?: string;
                             };
                         };
-                    };
-                };
-            };
-            /** @description The Health Check is not successful */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
                         /**
-                         * @example error
-                         * @enum {string}
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
                          */
-                        status?: "error" | "shutting_down";
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
+                         * @description response msg, `Success` or error msg
+                         * @default Success
                          */
-                        info?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "redis": {
-                         *         "status": "down",
-                         *         "message": "Could not connect",
-                         *         "responseTime": 3005
-                         *       }
-                         *     }
-                         */
-                        error?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       },
-                         *       "redis": {
-                         *         "status": "down",
-                         *         "message": "Could not connect",
-                         *         "responseTime": 3005
-                         *       }
-                         *     }
-                         */
-                        details?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        };
+                        readonly msg: string | null;
                     };
                 };
             };
@@ -8977,140 +9058,36 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The Health Check is successful */
+            /** @description Heap usage below 200 MB */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        /**
-                         * @example ok
-                         * @enum {string}
-                         */
-                        status?: "ok" | "degraded";
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
-                         */
-                        info?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /** @example {} */
-                        error?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
-                         */
-                        details?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
+                        data?: {
+                            /** @description terminus indicator result; besides `status` an indicator may add extra fields (e.g. `message`, or HTTP `statusCode`/`statusText` for the network probe) */
+                            "memory-heap": {
+                                /**
+                                 * @description condition result of this indicator
+                                 * @enum {string}
+                                 */
+                                status: "up" | "down";
+                                /** @description failure reason, only present on some indicators */
+                                message?: string;
                             };
                         };
-                    };
-                };
-            };
-            /** @description The Health Check is not successful */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
                         /**
-                         * @example error
-                         * @enum {string}
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
                          */
-                        status?: "error" | "shutting_down";
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
+                         * @description response msg, `Success` or error msg
+                         * @default Success
                          */
-                        info?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "redis": {
-                         *         "status": "down",
-                         *         "message": "Could not connect",
-                         *         "responseTime": 3005
-                         *       }
-                         *     }
-                         */
-                        error?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       },
-                         *       "redis": {
-                         *         "status": "down",
-                         *         "message": "Could not connect",
-                         *         "responseTime": 3005
-                         *       }
-                         *     }
-                         */
-                        details?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        };
+                        readonly msg: string | null;
                     };
                 };
             };
@@ -9125,140 +9102,36 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The Health Check is successful */
+            /** @description Resident set size below 200 MB */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        /**
-                         * @example ok
-                         * @enum {string}
-                         */
-                        status?: "ok" | "degraded";
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
-                         */
-                        info?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /** @example {} */
-                        error?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
-                         */
-                        details?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
+                        data?: {
+                            /** @description terminus indicator result; besides `status` an indicator may add extra fields (e.g. `message`, or HTTP `statusCode`/`statusText` for the network probe) */
+                            "memory-rss": {
+                                /**
+                                 * @description condition result of this indicator
+                                 * @enum {string}
+                                 */
+                                status: "up" | "down";
+                                /** @description failure reason, only present on some indicators */
+                                message?: string;
                             };
                         };
-                    };
-                };
-            };
-            /** @description The Health Check is not successful */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
                         /**
-                         * @example error
-                         * @enum {string}
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
                          */
-                        status?: "error" | "shutting_down";
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
+                         * @description response msg, `Success` or error msg
+                         * @default Success
                          */
-                        info?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "redis": {
-                         *         "status": "down",
-                         *         "message": "Could not connect",
-                         *         "responseTime": 3005
-                         *       }
-                         *     }
-                         */
-                        error?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       },
-                         *       "redis": {
-                         *         "status": "down",
-                         *         "message": "Could not connect",
-                         *         "responseTime": 3005
-                         *       }
-                         *     }
-                         */
-                        details?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        };
+                        readonly msg: string | null;
                     };
                 };
             };
@@ -9273,140 +9146,36 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The Health Check is successful */
+            /** @description Root volume usage below 75% */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        /**
-                         * @example ok
-                         * @enum {string}
-                         */
-                        status?: "ok" | "degraded";
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
-                         */
-                        info?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /** @example {} */
-                        error?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
-                         */
-                        details?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
+                        data?: {
+                            /** @description terminus indicator result; besides `status` an indicator may add extra fields (e.g. `message`, or HTTP `statusCode`/`statusText` for the network probe) */
+                            disk: {
+                                /**
+                                 * @description condition result of this indicator
+                                 * @enum {string}
+                                 */
+                                status: "up" | "down";
+                                /** @description failure reason, only present on some indicators */
+                                message?: string;
                             };
                         };
-                    };
-                };
-            };
-            /** @description The Health Check is not successful */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
                         /**
-                         * @example error
-                         * @enum {string}
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
                          */
-                        status?: "error" | "shutting_down";
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       }
-                         *     }
+                         * @description response msg, `Success` or error msg
+                         * @default Success
                          */
-                        info?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "redis": {
-                         *         "status": "down",
-                         *         "message": "Could not connect",
-                         *         "responseTime": 3005
-                         *       }
-                         *     }
-                         */
-                        error?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        } | null;
-                        /**
-                         * @example {
-                         *       "database": {
-                         *         "status": "up",
-                         *         "responseTime": 12
-                         *       },
-                         *       "redis": {
-                         *         "status": "down",
-                         *         "message": "Could not connect",
-                         *         "responseTime": 3005
-                         *       }
-                         *     }
-                         */
-                        details?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                status: "up" | "degraded" | "down";
-                                /** @description Time the health indicator took to respond, in ms */
-                                responseTime?: number;
-                            } & {
-                                [key: string]: unknown;
-                            };
-                        };
+                        readonly msg: string | null;
                     };
                 };
             };
@@ -9433,10 +9202,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppKeyCurrentResponseDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9460,11 +9230,27 @@ export interface operations {
             };
         };
         responses: {
+            /** @description initialize the first app key of a type (root only; the private key never leaves the server) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppKeyDTOSafe"];
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -9480,11 +9266,27 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description rotate the app key of a type (root only; the previous key row is kept as history) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppKeyDTOSafe"];
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -9512,10 +9314,11 @@ export interface operations {
                             data?: components["schemas"]["AppMonitorUserDTO"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9547,10 +9350,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppMonitorUserDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9566,17 +9370,34 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description monitor row id (uuid) */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description force quit the monitored session (admin kick; revokes the device refresh token) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: boolean;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -9593,11 +9414,27 @@ export interface operations {
             };
         };
         responses: {
+            /** @description report / update the online state of the current device (anonymous heartbeat) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: boolean;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -9619,10 +9456,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AuthCorePermissionsDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9651,10 +9489,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9683,10 +9522,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AuthSecretKeysResponseDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9715,10 +9555,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AuthSuccessDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9751,10 +9592,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9787,10 +9629,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AuthSuccessDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9819,10 +9662,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AuthSuccessDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9855,10 +9699,11 @@ export interface operations {
                     "application/json": {
                         data?: string;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9882,19 +9727,20 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Report client-side OPAQUE error */
+            /** @description Always an error envelope: this endpoint records the client-side OPAQUE failure and always throws 40103 (HTTP 200 with body.code = 40103 and body.data = null, see WalnutAdminExceptionInvalidCredential). The response shell is declared so consumers do not decode a boolean that never arrives. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
                     "application/json": {
-                        data?: boolean;
+                        data?: null;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9927,10 +9773,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AuthSuccessDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9963,10 +9810,11 @@ export interface operations {
                     "application/json": {
                         data?: string;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -9999,10 +9847,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10035,10 +9884,11 @@ export interface operations {
                     "application/json": {
                         data?: string;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10071,10 +9921,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10107,10 +9958,11 @@ export interface operations {
                     "application/json": {
                         data?: string;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10143,10 +9995,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10179,10 +10032,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10211,10 +10065,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AuthMfaStatusDTO"][];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10247,10 +10102,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AuthSuccessDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10270,30 +10126,47 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get the OAuth (gitee) authorize URL of this deployment (state is signed by the server and bound to the requesting device) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: string;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
     OAuthGiteeController_callback: {
         parameters: {
-            query: {
-                state: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Browser redirect target of the OAuth provider. Renders an HTML result page (view: template/oauth/done) instead of the JSON business shell -- the login result (access token + session key, or a translated error message) is delivered out-of-band on the per-device SSE channel GET /auth/oauth/gitee/sse/{fp}. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "text/html": string;
+                };
             };
         };
     };
@@ -10302,17 +10175,21 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Legacy URL segment carrying the client fingerprint. Since F-04 it is NOT part of the SSE channel key (the key is derived from the signed device cookie) and is kept only for URL compatibility with the existing SPA. */
                 fp: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description text/event-stream: each `data:` frame is a JSON encoded `IWalnutAdminSseClientData<IWalnutAdminSseOAuthPayload>`. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "text/event-stream": string;
+                };
             };
         };
     };
@@ -10325,30 +10202,47 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get the OAuth (github) authorize URL of this deployment (state is signed by the server and bound to the requesting device) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: string;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
     OAuthGithubController_callback: {
         parameters: {
-            query: {
-                state: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Browser redirect target of the OAuth provider. Renders an HTML result page (view: template/oauth/done) instead of the JSON business shell -- the login result (access token + session key, or a translated error message) is delivered out-of-band on the per-device SSE channel GET /auth/oauth/github/sse/{fp}. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "text/html": string;
+                };
             };
         };
     };
@@ -10357,17 +10251,21 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
+                /** @description Legacy URL segment carrying the client fingerprint. Since F-04 it is NOT part of the SSE channel key (the key is derived from the signed device cookie) and is kept only for URL compatibility with the existing SPA. */
                 fp: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description text/event-stream: each `data:` frame is a JSON encoded `IWalnutAdminSseClientData<IWalnutAdminSseOAuthPayload>`. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "text/event-stream": string;
+                };
             };
         };
     };
@@ -10380,11 +10278,27 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description get the current RSA public key (PEM) used by clients to encrypt request payloads */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: string;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -10401,11 +10315,27 @@ export interface operations {
             };
         };
         responses: {
+            /** @description register the client RSA public key for request signing (idempotent unless force) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: string | boolean;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -10427,10 +10357,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SecuritySignSessionKeyResponseDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10450,11 +10381,25 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description create a cap.js proof-of-work challenge (raw cap.js body, no response shell on this endpoint) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** @description proof-of-work parameters: c = challenge count, s = challenge size (bytes), d = difficulty */
+                        challenge: {
+                            c: number;
+                            s: number;
+                            d: number;
+                        };
+                        /** @description challenge token; echo it back in the redeem body together with the solutions */
+                        token: string;
+                        /** @description challenge expiration timestamp (ms) */
+                        expires: number;
+                    };
+                };
             };
         };
     };
@@ -10467,28 +10412,61 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description redeem a cap.js challenge solution for a token (raw cap.js body, no response shell on this endpoint; the token is also set as the CAPJS_TOKEN cookie) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** @description whether the submitted solutions were accepted */
+                        success: boolean;
+                        /** @description failure reason, only present when success is false */
+                        message?: string;
+                        /** @description redeemed token; also set as the CAPJS_TOKEN cookie (maxAge = cap ttl) */
+                        token?: string;
+                        /** @description token expiration timestamp (ms) */
+                        expires?: number;
+                    };
+                };
             };
         };
     };
     SecuritySensitiveController_checkVerificationStatus: {
         parameters: {
-            query?: never;
+            query: {
+                /** @description sensitive operation type, narrows the strategy (overrides per level) */
+                type?: "password_change" | "email_change" | "email_bind" | "email_status_toggle" | "phone_change" | "phone_bind" | "phone_status_toggle" | "identity_manage";
+                /** @description security level of the operation to be performed */
+                level: "basic" | "account_critical" | "financial" | "admin_critical";
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Check verification status for a security level */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["SecuritySensitiveCheckResponseDTO"];
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -10514,10 +10492,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10550,10 +10529,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppDemoDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10585,10 +10565,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppDemoDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10624,10 +10605,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppDemoDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10659,10 +10641,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppDemoDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10694,10 +10677,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppDemoDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10732,10 +10716,11 @@ export interface operations {
                             data?: components["schemas"]["AppDemoDTOSafe"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10767,10 +10752,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDeletedDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10802,10 +10788,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDeletedDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10840,10 +10827,11 @@ export interface operations {
                             data?: components["schemas"]["SysDeletedDTOSafe"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10867,11 +10855,27 @@ export interface operations {
             };
         };
         responses: {
+            /** @description recover a deleted row deleted by the current user (owner check in service) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: boolean;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -10888,11 +10892,27 @@ export interface operations {
             };
         };
         responses: {
+            /** @description recover a deleted row (management side; root / developer / admin only) */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: boolean;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -10900,16 +10920,35 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description app response code to throw; a value outside the enum is rejected by the param pipe (40099) */
+                code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500;
+            };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description Always an error envelope (this handler always throws): HTTP 200 with body.data = null, body.code = the requested code (never 20000) and body.msg = the i18n message of that code. Declared as the shared { code, msg, data } shell so the whole response-code enum stays discoverable from this endpoint. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: null;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -10934,10 +10973,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppMonitorCacheReadResponseDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10969,10 +11009,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppMonitorCacheDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -10992,11 +11033,27 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description clear the whole app cache */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: boolean;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -11024,10 +11081,11 @@ export interface operations {
                             data?: components["schemas"]["AppMonitorCacheDTO"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11056,10 +11114,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppMonitorServerDTOCPU"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11088,10 +11147,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppMonitorServerDTOMem"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11120,10 +11180,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppMonitorServerDTOOS"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11152,10 +11213,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppMonitorServerDTOSystem"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11184,10 +11246,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppMonitorServerDTODisk"][];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11216,10 +11279,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppMonitorServerDTOBattery"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11248,10 +11312,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppMonitorServerDTOTime"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11280,10 +11345,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppMonitorServerDTONetwork"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11312,10 +11378,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppSettingDTOPublicResponse"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11335,11 +11402,27 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description Get private (authenticated) functional switches: maskUrl / hijackRefresh / watermark / transition */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: components["schemas"]["AppSettingDTOPrivateResponse"];
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -11365,10 +11448,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppSettingDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11400,10 +11484,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppSettingDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11439,10 +11524,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppSettingDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11477,10 +11563,11 @@ export interface operations {
                             data?: components["schemas"]["AppSettingDTOSafe"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11500,11 +11587,27 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
+            /** @description refresh the app setting cache from app_setting table */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: boolean;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -11532,10 +11635,11 @@ export interface operations {
                             data?: components["schemas"]["AppLoggerDTO"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11568,10 +11672,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AppLoggerReadResponseDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11604,10 +11709,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDeviceDTOInitialResponse"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11639,10 +11745,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserDTOReadResponse"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11674,10 +11781,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDeviceDTOHistoryUsersResponse"][];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11709,10 +11817,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11744,10 +11853,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11779,10 +11889,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11814,10 +11925,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11849,10 +11961,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDeviceDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11887,10 +12000,11 @@ export interface operations {
                             data?: components["schemas"]["SysDeviceDTOSafe"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11923,10 +12037,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysLangDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11958,10 +12073,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysLangDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -11997,10 +12113,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysLangDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12035,10 +12152,11 @@ export interface operations {
                             data?: components["schemas"]["SysLangDTO"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12067,10 +12185,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysLangDTOListPublicResponse"][];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12083,20 +12202,42 @@ export interface operations {
     };
     SysLocaleController_getLocaleMessage: {
         parameters: {
-            query: {
-                cache: number;
+            query?: {
+                /** @description 1 = use the cached message map when present, 0 = rebuild it from the database (default 1) */
+                cache?: number;
             };
             header?: never;
-            path?: never;
+            path: {
+                /** @description language code; a value outside the enum falls back to en_US in the service */
+                locale: "zh_CN" | "en_US";
+            };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
+            /** @description locale message map of the language: message key -> translated value */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        data?: {
+                            [key: string]: string | null;
+                        };
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg: string | null;
+                    };
+                };
             };
         };
     };
@@ -12107,7 +12248,19 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        /** @description locale translation mapping: fixed key (+ optional oldKey) plus one property per language id (uuid) holding the translated value. The server converts it to SysLocaleDTOCreateRequest[] and validates every entry with that DTO. */
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description locale key (message key, e.g. menu.title) */
+                    key: string;
+                    /** @description previous key; needed only when renaming (update) */
+                    oldKey?: string;
+                } & {
+                    [key: string]: string;
+                };
+            };
+        };
         responses: {
             /** @description 添加 国际化 */
             200: {
@@ -12118,10 +12271,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysLocaleDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12153,10 +12307,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysLocaleDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12188,10 +12343,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysLocaleDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12212,7 +12368,19 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        /** @description locale translation mapping (same wire shape as create; key = the current key, oldKey = the key before renaming). The server converts it to SysLocaleDTOCreateRequest[] and validates every entry with that DTO. */
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @description locale key (message key, e.g. menu.title) */
+                    key: string;
+                    /** @description previous key; needed only when renaming (update) */
+                    oldKey?: string;
+                } & {
+                    [key: string]: string;
+                };
+            };
+        };
         responses: {
             /** @description 修改 国际化 */
             200: {
@@ -12223,10 +12391,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysLocaleDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12258,10 +12427,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysLocaleDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12296,10 +12466,11 @@ export interface operations {
                             data?: components["schemas"]["SysLocaleDTO"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12313,8 +12484,8 @@ export interface operations {
     SysDictTypeController_getDictByType: {
         parameters: {
             query: {
-                /** @description dict type, no need to validate */
-                types: string;
+                /** @description dict types, comma separated (e.g. types=sys_user_status,sys_user_gender); no validation on the values */
+                types: string[];
             };
             header?: never;
             path?: never;
@@ -12331,10 +12502,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDictTypeDTOWithDictDataResponse"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12367,10 +12539,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDictTypeDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12402,10 +12575,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDictTypeDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12441,10 +12615,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDictTypeDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12476,10 +12651,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDictTypeDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12514,10 +12690,11 @@ export interface operations {
                             data?: components["schemas"]["SysDictTypeDTOSafe"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12550,10 +12727,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDictDataDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12585,10 +12763,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDictDataDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12624,10 +12803,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDictDataDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12659,10 +12839,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDictDataDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12694,10 +12875,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDictDataDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12732,10 +12914,11 @@ export interface operations {
                             data?: components["schemas"]["SysDictDataDTOSafe"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12764,10 +12947,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDeptDTOTree"][];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12799,10 +12983,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDeptDTOSafe"][];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12833,10 +13018,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDeptDTOTree"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12869,10 +13055,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDeptDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12904,10 +13091,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDeptDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12943,10 +13131,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDeptDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -12978,10 +13167,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDeptDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13016,10 +13206,11 @@ export interface operations {
                             data?: components["schemas"]["SysDeptDTOSafe"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13052,10 +13243,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysPostDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13087,10 +13279,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysPostDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13126,10 +13319,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysPostDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13161,10 +13355,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysPostDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13199,10 +13394,11 @@ export interface operations {
                             data?: components["schemas"]["SysPostDTOSafe"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13238,10 +13434,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysEmployeeDTOUpdateResponse"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13273,10 +13470,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysEmployeeDTOUpdateResponse"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13309,10 +13507,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysEmployeeDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13344,10 +13543,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysEmployeeDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13383,10 +13583,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysEmployeeDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13418,10 +13619,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysEmployeeDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13456,10 +13658,11 @@ export interface operations {
                             data?: components["schemas"]["SysEmployeeDTOSafe"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13491,10 +13694,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysLogAuthDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13526,10 +13730,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysLogAuthDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13564,10 +13769,11 @@ export interface operations {
                             data?: components["schemas"]["SysLogAuthDTO"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13599,10 +13805,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysDeviceDTOReadResponse"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13634,10 +13841,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysLogOperateDTOSnapshotResponse"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13669,10 +13877,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysLogOperateDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13707,10 +13916,11 @@ export interface operations {
                             data?: components["schemas"]["SysLogOperateDTO"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13739,10 +13949,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysMenuDTOTreeResponse"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13775,10 +13986,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysMenuDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13810,10 +14022,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysMenuDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13849,10 +14062,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysMenuDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13865,8 +14079,9 @@ export interface operations {
     };
     SysMenuController_delete: {
         parameters: {
-            query: {
-                _cascade: number;
+            query?: {
+                /** @description 0 (default) = soft-delete the menu only; 1 = also cascade soft-delete the locale rows sharing the same title */
+                _cascade?: 0 | 1;
             };
             header?: never;
             path: {
@@ -13886,10 +14101,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysMenuDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13924,10 +14140,11 @@ export interface operations {
                             data?: components["schemas"]["SysMenuDTOSafe"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13960,10 +14177,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysRoleDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -13995,10 +14213,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysRoleDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14034,10 +14253,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysRoleDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14072,10 +14292,11 @@ export interface operations {
                             data?: components["schemas"]["SysRoleDTOSafe"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14108,10 +14329,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14143,10 +14365,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14182,10 +14405,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14217,10 +14441,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14255,10 +14480,11 @@ export interface operations {
                             data?: components["schemas"]["SysUserDTOSafe"][];
                         })[];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14287,10 +14513,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14323,10 +14550,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserDTOSafe"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14355,10 +14583,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserMeSecurityTab2ResponseDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14389,10 +14618,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14421,10 +14651,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14444,7 +14675,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description get security tab1 status */
+            /** @description get current user device list */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -14453,10 +14684,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserDeviceListDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14491,10 +14723,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14525,10 +14758,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14559,10 +14793,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14597,10 +14832,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14631,12 +14867,13 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: components["schemas"]["SysUserIdentityDTO"][];
+                        data?: components["schemas"]["SysUserIdentityListResponseDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14665,10 +14902,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserIdentityStatusResponseDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14701,10 +14939,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14737,10 +14976,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14769,10 +15009,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14805,10 +15046,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14837,10 +15079,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14873,10 +15116,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14909,10 +15153,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14941,10 +15186,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserLockPreferenceDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -14977,10 +15223,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15013,10 +15260,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15049,10 +15297,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15081,10 +15330,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserMfaGenerateTotpResponseDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15117,10 +15367,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserMfaBindTotpResponseDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15149,10 +15400,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15185,10 +15437,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AuthSuccessDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15221,10 +15474,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15257,10 +15511,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserMfaWebauthnRegisterResponseDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15293,10 +15548,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15325,10 +15581,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserMfaWebauthnAuthenticateOptionsDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15361,10 +15618,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["AuthSuccessDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15393,10 +15651,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SysUserPreferenceResponseDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15429,10 +15688,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15465,10 +15725,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15501,10 +15762,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15537,10 +15799,11 @@ export interface operations {
                     "application/json": {
                         data?: boolean;
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15569,10 +15832,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SharedAliOSSDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15603,10 +15867,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SharedAreaDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
@@ -15620,8 +15885,8 @@ export interface operations {
     SharedAreaController_feedback: {
         parameters: {
             query: {
-                /** @description feedback area codes */
-                codes: string;
+                /** @description area codes to give feedback for, comma separated (e.g. codes=110000,120000) */
+                codes: string[];
             };
             header?: never;
             path?: never;
@@ -15638,10 +15903,11 @@ export interface operations {
                     "application/json": {
                         data?: components["schemas"]["SharedAreaDTO"];
                         /**
-                         * @description response code, see `WalnutAdminConstAppResponseCode` for more details
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
+                         * @enum {number|null}
                          */
-                        readonly code: number | null;
+                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success

@@ -76,8 +76,8 @@ export type SystemUserReadResponse = SystemUser
 export type SystemUserIdentityType = 'phoneNumber' | 'emailAddress'
 export type SystemUserIdentityPurpose = 'login' | 'security'
 
-/** user identity 实体（me/security 链路读到的解密前形态），admin 暂无直连消费，铺齐备用。 */
-export type SystemUserIdentity = components['schemas']['SysUserIdentityDTO'] & { id: string }
+/** `POST /system/user/identity/list` 行形态（wire 安全字段子集：value/valueHash 密文面永不出接口），admin 暂无直连消费，铺齐备用。 */
+export type SystemUserIdentity = components['schemas']['SysUserIdentityListItemDTO']
 
 // ------------------------------------------------------------ system user device
 
