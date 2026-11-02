@@ -4,6 +4,7 @@ import { AuthCookieService, AuthMfaService, AuthMfaStatusDTO, AuthMfaVerifyDTO, 
 
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
+import { WalnutAdminExceptionAccessTokenExpired } from '@walnut-server/exceptions/business/auth'
 import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree } from '@walnut-server/guards'
 import { AuthRoutes } from '@walnut/contract'
 
@@ -51,10 +52,20 @@ export class AuthMfaController {
     @Req() req: IWalnutAdminExpressRequest,
     @Body() dto: AuthMfaVerifyDTO,
   ) {
+    // F-28：`sid` 是共享契约里的可选字段（IWalnutAdminAccessTokenPayload.sid?），但本端点
+    // 必须换发 RT —— revoke-and-insert 轮换要把新行绑到同一个会话（sessionId 进 RT 载荷）。
+    // 缺失 sid 说明手里的 AT 不是登录链签出的（或契约被改坏），不能把 undefined 传下去：
+    // 受控 40100 让客户端走 refresh 拿一个带 sid 的新 AT，再回来验证 MFA。
+    const sessionId = user.sid
+
+    if (sessionId === undefined || sessionId === '') {
+      throw new WalnutAdminExceptionAccessTokenExpired()
+    }
+
     // B7b 归一：mfa 状态读腿 / user.mfaSetup 写腿 / post verification 全为 PG —— 单 em
     // revoke-and-insert（2026-10-27）：verify 链轮换 RT —— 新 jti 必须回种 cookie
     // （原地换锁时代旧 jti 恒有效所以本端点从不需要设 cookie，该侥幸随行级撤销终止）
-    const { accessToken, jti: newJti } = await this.authMfaService.verifyMfaStatus(jti, dto, user.userId, user.sid!, deviceId, ctx.em)
+    const { accessToken, jti: newJti } = await this.authMfaService.verifyMfaStatus(jti, dto, user.userId, sessionId, deviceId, ctx.em)
     this.authCookieService.setRTJtiCookie(req, newJti)
     return new AuthSuccessDTO({ accessToken })
   }

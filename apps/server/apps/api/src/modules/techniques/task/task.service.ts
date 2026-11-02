@@ -95,7 +95,7 @@ export class AppTechTasksService {
 
   private async doDeleteExpiredRefreshToken() {
     this.logger.log('[CronTaskLog] Revoke Expired Refresh Token.')
-    const revoked = await this.authRefreshSharedService.revokeExpiredRefreshTokenForCrobJob()
+    const revoked = await this.authRefreshSharedService.revokeExpiredRefreshTokenForCronJob()
     const expired = await this.appMonitorUserSharedService.updateAuthStateForCronJob(revoked)
     this.logger.log(`[CronTaskLog] Revoke Expired Refresh Token, expired refresh token count: ${revoked.length}`)
     this.logger.log(`[CronTaskLog] Monitor User Expired, expired monitor user count: ${expired.length}`)

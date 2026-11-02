@@ -10,6 +10,13 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn } from 'typeorm'
  * - idx_rt_expired (expired_at) 服务过期清理 purge job（Q10-b 定案纳入 Phase 3 交付物）。
  */
 @Index('idx_rt_user', ['userId'])
+// F-26：部分唯一索引（DDL 在 migration 1793370000000）—— 把「未撤销现役行恒恰一行」
+// 这条不变量从应用层约定下沉到 DB。只收 revoked = false：revoke-and-insert 轮换的
+// 历轮旧行都是 revoked = true，不参与索引；synchronize 关闭，索引真源是 migration。
+@Index('uq_rt_active_device_user', ['userId', 'deviceId'], {
+  unique: true,
+  where: '"revoked" = false',
+})
 @Entity({ name: 'auth_refresh_token' })
 export class AuthRefreshTokenEntity {
   @PrimaryColumn({ type: 'uuid', name: 'id', default: () => 'uuidv7()' })

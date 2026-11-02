@@ -63,15 +63,27 @@ export class AuthRefreshRepositoryService {
    * revoke-and-insert 后「未撤销行恒恰一行」，但必须显式筛 `revoked=false` 才保证
    * 取到它（裸 findOne 在多行下取行不确定）—— duplicate sign-in 判据与 monitor 的
    * 撤销判据都走这里。
+   *
+   * F-26：登录链的 duplicate-signin 判定是 check-then-act，读腿必须能持锁 ——
+   * `{ lock: true }` 在**活跃事务**里下悲观写锁（`SELECT ... FOR UPDATE`），把
+   * 「判现役行 → 插/复活行」这组写串行化；并发首插（该维度还没有任何行）锁不到行，
+   * 由部分唯一索引 uq_rt_active_device_user 兜底（23505 → 受控 40109）。非事务上下文
+   * 无法提供并发保护，退化为普通读（与 findByJti 的 lock 口径一致）。
    */
   async findActiveByDeviceIdAndUserId(
     deviceId: string,
     userId: string,
     em?: EntityManager,
+    options?: { lock?: boolean },
   ) {
+    const lock = options?.lock && em?.queryRunner?.isTransactionActive
+      ? { mode: 'pessimistic_write' as const }
+      : undefined
+
     return this.getRepository(em).findOne({
       where: { deviceId, userId, revoked: false },
       order: { createdAt: 'DESC' },
+      ...(lock ? { lock } : {}),
     })
   }
 

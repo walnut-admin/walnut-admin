@@ -95,10 +95,20 @@ export class SysDeptController {
     return plainToInstance(SysDeptDTOTree, await this.deptService.subtree(id))
   }
 
+  // F-25：create / update 与 delete 统一事务口径 —— service 的「查重 / 存在性 / 防环」
+  // 前置校验与随后的写腿必须在同一事务里（并把 em 逐层透传），否则校验与写入之间
+  // 存在可被并发穿过的窗口；update 的防环读腿还要在事务内加行锁（见 service）。
   @WalnutAdminDecoratorHasPermission(Permissions.CREATE)
   @WalnutAdminDecoratorCreate()
-  async create(@Body() payload: SysDeptDTOCreateRequest) {
-    return plainToInstance(SysDeptDTOCreateResponse, await this.deptService.create(payload))
+  @WalnutTx()
+  async create(
+    @WalnutTxSession() ctx: WalnutTxContext,
+    @Body() payload: SysDeptDTOCreateRequest,
+  ) {
+    return plainToInstance(
+      SysDeptDTOCreateResponse,
+      await this.deptService.create(payload, ctx.em),
+    )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.READ)
@@ -109,11 +119,16 @@ export class SysDeptController {
 
   @WalnutAdminDecoratorHasPermission(Permissions.UPDATE)
   @WalnutAdminDecoratorUpdate()
+  @WalnutTx()
   async update(
+    @WalnutTxSession() ctx: WalnutTxContext,
     @Body() payload: SysDeptDTOUpdateRequest,
     @WalnutAdminDecoratorParamUuid() id: string,
   ) {
-    return plainToInstance(SysDeptDTOUpdateResponse, await this.deptService.update(id, payload))
+    return plainToInstance(
+      SysDeptDTOUpdateResponse,
+      await this.deptService.update(id, payload, ctx.em),
+    )
   }
 
   @WalnutAdminDecoratorHasPermission(Permissions.DELETE)

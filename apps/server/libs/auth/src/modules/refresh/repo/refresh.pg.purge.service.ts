@@ -11,7 +11,7 @@ import { AuthRefreshTokenEntity } from '../entity/refresh-token.entity'
 /**
  * PG 版过期 refresh token 物理清理（phase2 第 6 节 Q10-b 定案的 Phase 3 交付物）。
  *
- * - 与 Mongo 侧的 `revokeExpiredRefreshTokenForCrobJob`（标记 revoked）并存且语义不同：
+ * - 与 `revokeExpiredRefreshTokenForCronJob`（标记 revoked）并存且语义不同：
  *   本 job 对 PG 表做 **DELETE**，回收已过期行，走 `idx_rt_expired` 索引；
  * - 判据只用过期列 `expired_at < now()`：revoked 与否不代表可删（撤销行在过期前仍是
  *   审计证据），过期后统一物理回收；

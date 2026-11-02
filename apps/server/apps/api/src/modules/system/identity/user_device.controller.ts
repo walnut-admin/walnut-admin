@@ -30,7 +30,8 @@ export class SysUserDeviceController {
   @HttpCode(HttpStatus.OK)
   @WalnutAdminDecoratorHasPermission(Permissions.LIST)
   @ApiWalnutOkResponse({
-    description: 'get security tab1 status',
+    // F-21：原描述是复制粘贴残留（'get security tab1 status'），实现是「当前用户的设备列表」
+    description: 'get current user device list',
     DTO: SysUserDeviceListDTO,
   })
   async getCurrentUserDeviceList(
@@ -108,7 +109,13 @@ export class SysUserDeviceController {
     @Param('deviceId', new WalnutAdminPipeDeviceId()) deviceId: string,
     @Body() body: SysUserLockUnLockDto,
   ) {
-    await this.userDeviceService.unlockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, body.lockPwdHash!, ctx.em)
+    // F-28：`SysUserLockUnLockDto` 是 RealPartialType ⇒ lockPwdHash 可缺省，而「非 security
+    // 锁屏模式不需要解锁密码」是现状语义（shared service 的 hasPwd 判定把 '' / null /
+    // undefined 视为同一件事：未提交密码）。这里显式归一成空串，去掉掩盖可空契约的
+    // 非空断言；security 模式下缺密码仍由 shared service 报受控 40000，行为不变。
+    const lockPwdHash = body.lockPwdHash ?? ''
+
+    await this.userDeviceService.unlockUserDeviceWithUserIdAndDeviceId(user.userId, deviceId, lockPwdHash, ctx.em)
     return true
   }
 }

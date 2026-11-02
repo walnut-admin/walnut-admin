@@ -32,15 +32,22 @@ export class SysDeptService {
 
   /**
    * @description create dept (controller: create)
+   *
+   * F-25：与 delete 对齐事务口径 —— `deptCode` 查重是 check-then-write，事务外并发两笔
+   * 同码创建会双双通过查重（uq_dept_code 是最后防线，但它只保证「不重」，落库侧会给
+   * 出受控 40001 而不是业务语义的「先查后建」）。
+   *
+   * 这里**不锁**父行：新行在 INSERT 之前不存在，任何并发移动都不可能把新行卷进环里，
+   * 加锁只会把同一父节点下的并发创建串行化（无收益）。
    */
-  async create(dto: SysDeptDTOCreateRequest) {
-    await this.ensureCodeAvailable(dto.deptCode)
+  async create(dto: SysDeptDTOCreateRequest, em?: EntityManager) {
+    await this.ensureCodeAvailable(dto.deptCode, em)
 
     if (dto.parentId !== null && dto.parentId !== undefined) {
-      await this.ensureParentExists(dto.parentId)
+      await this.ensureParentExists(dto.parentId, em)
     }
 
-    return this.deptBasicRepo.create(dto)
+    return this.deptBasicRepo.create(dto, em)
   }
 
   /**
@@ -67,6 +74,14 @@ export class SysDeptService {
       if (parentId === id) {
         throw new WalnutAdminExceptionBadRequest({ errMsg: 'business.system.dept.parentCycle' })
       }
+
+      // F-25 防环竞态：check-then-write 的读腿（存在性 + 子树判交）与写腿（update
+      // parent_id）必须在同一把锁下 —— 否则两笔反向移动（A→B、B→A）各自读到「对方
+      // 还不是我的子节点」后双双通过校验，把环写进库（查询侧 CYCLE 只能兜住读，兜不住
+      // 落库的环数据）。事务内按 id 升序锁「被移动行 + 目标父行」，两笔反向移动因此
+      // 串行：等锁者醒来读到的子树已包含胜者写下的新邻接关系 → 受控 40000。
+      // 无活跃事务（如单测直调 service）时该方法退化为普通读，行为与修复前一致。
+      await this.deptBasicRepo.lockByIdsForUpdate([id, parentId], em)
 
       await this.ensureParentExists(parentId, em)
 

@@ -4,7 +4,7 @@ import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutModelName, WalnutPGConnectionName, withWalnutSystemManager } from '@walnut-server/db'
 import { WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 
-import { IsNull } from 'typeorm'
+import { In, IsNull } from 'typeorm'
 import { SysEmployeeEntity } from '../employee/entity/employee.entity'
 import { SysDeptEntity } from './entity/dept.entity'
 
@@ -59,6 +59,36 @@ export class SysDeptBasicRepository extends WalnutAdminCommonPgBaseRepository<Sy
    */
   public async findById(id: string, em?: EntityManager): Promise<SysDeptEntity | null> {
     return this.getManager(em).getRepository(SysDeptEntity).findOne({ where: { id } })
+  }
+
+  /**
+   * @description 事务内对给定行加悲观写锁（`SELECT ... FOR UPDATE`），返回是否真的加了锁
+   *
+   * F-25：部门移动的防环是 check-then-write（读子树 → 判交 → 改 parent_id），并发两笔
+   * 互为父子的移动会在读与写之间互换状态、双双通过校验后把环写进库。调用方在事务内
+   * 锁住「被移动行 + 目标父行」即可把这两笔串行化（等锁者醒来读到的是胜者提交后的
+   * 新邻接关系，子树判定因此能看见环）。
+   *
+   * - **按 id 升序**加锁：两笔反向移动（A→B / B→A）锁的是同一对行，固定顺序才不会被
+   *   PG 判成 deadlock（无序遍历下 A→B 与 B→A 会各持一把互等）；
+   * - 只在**活跃事务**里下锁：`FOR UPDATE` 在连接级 manager 上是单语句事务，锁语句结束
+   *   即释放（同 refresh.repo.findByJti 的口径），此时退化为普通读并返回 false；
+   * - 行不存在不报错（父节点不存在由调用方的存在性校验翻译成受控 400）。
+   */
+  public async lockByIdsForUpdate(ids: Array<string | null | undefined>, em?: EntityManager): Promise<boolean> {
+    const targets = [...new Set(ids.filter((id): id is string => typeof id === 'string' && id !== ''))].sort()
+
+    if (targets.length === 0 || !em?.queryRunner?.isTransactionActive) {
+      return false
+    }
+
+    await this.getManager(em).getRepository(SysDeptEntity).find({
+      where: { id: In(targets) },
+      order: { id: 'ASC' },
+      lock: { mode: 'pessimistic_write' },
+    })
+
+    return true
   }
 
   /**

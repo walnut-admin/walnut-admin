@@ -33,10 +33,14 @@ describe('AuthRefreshTokenPgPurgeService (on real PG)', () => {
   // FK 挂在业务键 sys_device(device_id)（Q5 定案），不是 uuid PK
   let deviceBusinessKey = ''
 
-  async function insertRefreshToken(jti: string, expiredAt: string) {
+  // F-26 起「未撤销现役行恒恰一行」由部分唯一索引 uq_rt_active_device_user 兜住：同
+  // (user, device) 只能有一条 revoked=false。本 spec 要在同一台设备上播两行过期行，
+  // 按真实形态把过期行标成已撤销（轮换/清理后的历史行）—— purge 只按 expired_at 删，
+  // 与撤销状态无关，用例判据不变。
+  async function insertRefreshToken(jti: string, expiredAt: string, revoked = false) {
     await pgDataSource.query(
-      'INSERT INTO auth_refresh_token (jti, user_id, device_id, encrypted_token, expired_at) VALUES ($1, $2, $3, $4, $5)',
-      [jti, userId, deviceBusinessKey, `enc-${jti}`, expiredAt],
+      'INSERT INTO auth_refresh_token (jti, user_id, device_id, encrypted_token, expired_at, revoked) VALUES ($1, $2, $3, $4, $5, $6)',
+      [jti, userId, deviceBusinessKey, `enc-${jti}`, expiredAt, revoked],
     )
   }
 
@@ -89,8 +93,8 @@ describe('AuthRefreshTokenPgPurgeService (on real PG)', () => {
     const expiredAgo1min = `purge-expired-1m-${seed}`
     const liveIn7d = `purge-live-${seed}`
 
-    await insertRefreshToken(expiredAgo2h, new Date(Date.now() - 2 * 3600_000).toISOString())
-    await insertRefreshToken(expiredAgo1min, new Date(Date.now() - 60_000).toISOString())
+    await insertRefreshToken(expiredAgo2h, new Date(Date.now() - 2 * 3600_000).toISOString(), true)
+    await insertRefreshToken(expiredAgo1min, new Date(Date.now() - 60_000).toISOString(), true)
     await insertRefreshToken(liveIn7d, new Date(Date.now() + 7 * 24 * 3600_000).toISOString())
 
     const purged = await purgeService.purgeExpiredRefreshTokens()

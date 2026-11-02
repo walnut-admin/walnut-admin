@@ -13,7 +13,7 @@ import { AppTechTasksService } from './task.service'
 function createHarness() {
   const appSettingRepo = { extractAppSettingIntoCache: vi.fn(async () => 3) }
   const localeSharedService = { extractLocaleMessagesIntoCacheForCronJob: vi.fn(async () => 7) }
-  const authRefreshSharedService = { revokeExpiredRefreshTokenForCrobJob: vi.fn(async () => [{ id: 'rt-1' }]) }
+  const authRefreshSharedService = { revokeExpiredRefreshTokenForCronJob: vi.fn(async () => [{ id: 'rt-1' }]) }
   const appKeyService = { rotateForCronJob: vi.fn(async () => undefined) }
   const sysUserDeviceSharedService = {
     updateDeviceActiveStatusForCronJob: vi.fn(async () => ({ matchedCount: 1, modifiedCount: 1, deletedCount: 0 })),
@@ -80,7 +80,7 @@ describe('appTechTasksService：@Cron 入口单次执行', () => {
 
     expect(h.runExclusive).toHaveBeenCalledTimes(1)
     expect(h.runExclusive).toHaveBeenCalledWith('deleteExpiredRefreshToken', 900, expect.any(Function))
-    expect(h.authRefreshSharedService.revokeExpiredRefreshTokenForCrobJob).toHaveBeenCalledTimes(1)
+    expect(h.authRefreshSharedService.revokeExpiredRefreshTokenForCronJob).toHaveBeenCalledTimes(1)
     expect(h.appMonitorUserSharedService.updateAuthStateForCronJob).toHaveBeenCalledTimes(1)
   })
 
@@ -144,7 +144,7 @@ describe('appTechTasksService：bootstrap 无锁入口', () => {
 
     expect(h.appSettingRepo.extractAppSettingIntoCache).toHaveBeenCalledTimes(1)
     expect(h.localeSharedService.extractLocaleMessagesIntoCacheForCronJob).toHaveBeenCalledTimes(1)
-    expect(h.authRefreshSharedService.revokeExpiredRefreshTokenForCrobJob).toHaveBeenCalledTimes(1)
+    expect(h.authRefreshSharedService.revokeExpiredRefreshTokenForCronJob).toHaveBeenCalledTimes(1)
     expect(h.appMonitorUserSharedService.updateAuthStateForCronJob).toHaveBeenCalledTimes(1)
     expect(h.appKeyService.rotateForCronJob).toHaveBeenCalledTimes(2)
     expect(h.sysUserDeviceSharedService.updateDeviceActiveStatusForCronJob).toHaveBeenCalledTimes(1)

@@ -21,6 +21,10 @@ import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/crea
  *   1 路成功」在并发下确定性成立（并发面由 concurrency.api-spec G1 五路并发钉）；
  * - generateRefreshToken：新设备插入（PK 走 DB 端 uuidv7()）、同设备未撤销再签 →
  *   DuplicateSignIn；
+ * - **F-26 部分唯一索引** uq_rt_active_device_user：`(user_id, device_id) WHERE revoked = false`
+ *   把「未撤销现役行恒恰一行」下沉到 DB —— 第二条现役行 23505，撤销后可再插（历轮
+ *   多行历史不受影响）；应用侧把该 23505 翻译成受控 40109（单测在
+ *   libs/auth/.../refresh.shared.service.spec.ts）；
  * - device_id 业务键 FK → sys_device(device_id) CASCADE（Q5 定案：设备删则令牌清）。
  *
  * 注意：本 spec 不调用全局 purge（pg.purge.int-spec 对集成库做过期行计数断言），
@@ -70,7 +74,20 @@ describe('B7b auth_refresh_token (on real PG)', () => {
 
     // refresh.device_id 是业务键 FK → sys_device(device_id)；每台设备一行 ——
     // revoke 腿按 (user_id, device_id) findOne，同设备多行会互相污染断言
-    for (const key of ['device-key', 'device-live', 'device-rb', 'device-rb2', 'device-commit', 'device-replay']) {
+    // F-26 起同一 (user, device) 只允许一条未撤销行（uq_rt_active_device_user）——
+    // 每个用例各自占一台设备，避免跨用例的现役行互相撞索引
+    for (const key of [
+      'device-key',
+      'device-live',
+      'device-rb',
+      'device-rb2',
+      'device-commit',
+      'device-replay',
+      'device-active-uniq',
+      'device-find-expired',
+      'device-find-live',
+      'device-cascade',
+    ]) {
       await pgDataSource.query(
         'INSERT INTO sys_device (device_name, device_id, device_info, ip_history) VALUES ($1, $2, $3::jsonb, ARRAY[]::text[])',
         [unique(`b7-rt-${key}`), `b7-rt-${key}`, '{}'],
@@ -95,7 +112,7 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     await app.close()
   })
 
-  it('索引对齐：uq_jti / idx_rt_user / idx_rt_device / idx_rt_expired', async () => {
+  it('索引对齐：uq_jti / idx_rt_user / idx_rt_device / idx_rt_expired / uq_rt_active_device_user', async () => {
     const rows: Array<{ indexname: string }> = await pgDataSource.query(
       'SELECT indexname FROM pg_indexes WHERE tablename = $1',
       ['auth_refresh_token'],
@@ -106,6 +123,8 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     expect(names).toContain('idx_rt_user')
     expect(names).toContain('idx_rt_device')
     expect(names).toContain('idx_rt_expired')
+    // F-26：部分唯一索引（WHERE revoked = false）—— duplicate-signin 不变量的 DB 侧真源
+    expect(names).toContain('uq_rt_active_device_user')
   })
 
   it('getNewAccessToken 活跃行：revoke-and-insert 轮换（旧行 revoked=rotate + 新行未撤销）并签出新 AT', async () => {
@@ -250,11 +269,37 @@ describe('B7b auth_refresh_token (on real PG)', () => {
       .toThrow()
   })
 
+  it('F-26 部分唯一索引：同 (user, device) 第二条现役行 23505；撤销后可再插（多行历史不受影响）', async () => {
+    const deviceId = 'b7-rt-device-active-uniq'
+
+    await insertToken(unique('b7-rt-uniq-a'), deviceId, new Date(Date.now() + 3600_000))
+
+    // 绕过应用层直接插第二条现役行 —— DB 是最后防线
+    await expect(insertToken(unique('b7-rt-uniq-b'), deviceId, new Date(Date.now() + 3600_000)))
+      .rejects
+      .toMatchObject({ code: '23505' })
+
+    // 撤销旧行后可以再插：部分索引只收 revoked = false，历轮 revoked 行不进索引
+    await pgDataSource.query(
+      `UPDATE auth_refresh_token SET revoked = true, revoke_reason = 'rotate' WHERE device_id = $1`,
+      [deviceId],
+    )
+    await insertToken(unique('b7-rt-uniq-c'), deviceId, new Date(Date.now() + 3600_000))
+
+    const rows: Array<{ jti: string, revoked: boolean }> = await pgDataSource.query(
+      'SELECT jti, revoked FROM auth_refresh_token WHERE device_id = $1 ORDER BY created_at ASC',
+      [deviceId],
+    )
+    expect(rows).toHaveLength(2)
+    expect(rows.filter(row => !row.revoked)).toHaveLength(1)
+  })
+
   it('purge job 判据：findExpiredTokens 只取 expired_at < now 的行（idx_rt_expired 通道）', async () => {
     const expiredJti = unique('b7-rt-find-expired')
     const liveJti = unique('b7-rt-find-live')
-    await insertToken(expiredJti, 'b7-rt-device-key', new Date(Date.now() - 5000))
-    await insertToken(liveJti, 'b7-rt-device-key', new Date(Date.now() + 3600_000))
+    // 两台设备各一条现役行（F-26 部分唯一索引下同设备不能有两条未撤销行）
+    await insertToken(expiredJti, 'b7-rt-device-find-expired', new Date(Date.now() - 5000))
+    await insertToken(liveJti, 'b7-rt-device-find-live', new Date(Date.now() + 3600_000))
 
     const expired = await refreshRepo.findExpiredTokens(new Date())
     const jtis = expired.map(r => r.jti)
@@ -265,10 +310,10 @@ describe('B7b auth_refresh_token (on real PG)', () => {
 
   it('device_id 业务键 FK CASCADE：删设备连带清令牌（Q5 定案语义）', async () => {
     const jti = unique('b7-rt-cascade')
-    await insertToken(jti, 'b7-rt-device-key', new Date(Date.now() + 3600_000))
+    await insertToken(jti, 'b7-rt-device-cascade', new Date(Date.now() + 3600_000))
     expect((await readToken(jti)).encrypted_token).toBeTruthy()
 
-    await pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', ['b7-rt-device-key'])
+    await pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', ['b7-rt-device-cascade'])
     expect(await refreshRepo.findByJti(jti)).toBeNull()
   })
 })

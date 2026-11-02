@@ -1,5 +1,5 @@
 import type { EntityManager } from 'typeorm'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheMfaService } from '@walnut-server/cache'
 import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { AppTechCryptoService } from '@walnut-server/crypto'
@@ -7,9 +7,33 @@ import { WalnutAdminExceptionDuplicateSignIn, WalnutAdminExceptionRefreshTokenEx
 import { SysUserDeviceSharedService, SysUserRepositoryService, SysUserSharedService } from '@walnut-server/identity'
 import { AppTokenService } from '@walnut-server/token'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
+import { QueryFailedError } from 'typeorm'
 import { AuthSessionService } from '../../session/session.service'
 import { AuthRefreshTokenEntity } from '../entity/refresh-token.entity'
 import { AuthRefreshRepositoryService } from '../repo/refresh.repo.service'
+
+/**
+ * 「未撤销现役行恒恰一行」的部分唯一索引名（DDL：migration 1793370000000）。
+ * 应用层与迁移两侧的唯一真源是这里的常量 + 迁移里的同名常量。
+ */
+const ACTIVE_RT_UNIQUE_INDEX = 'uq_rt_active_device_user'
+
+/**
+ * 是否撞了 ACTIVE_RT_UNIQUE_INDEX。
+ *
+ * 只认该索引名：同表的 uq_jti（jti 全局唯一）冲突是**真 bug**（同一 jti 被签发两次），
+ * 翻译成「重复登录」会把故障藏起来。约束名为空（驱动版本差异）时同样不认 ——
+ * 宁可走受控 40000 兜底，也不误判语义。
+ */
+function isActiveRefreshTokenUniqueViolation(error: unknown): boolean {
+  if (!(error instanceof QueryFailedError)) {
+    return false
+  }
+
+  const driverError = error.driverError as { code?: string, constraint?: string } | undefined
+
+  return driverError?.code === '23505' && driverError?.constraint === ACTIVE_RT_UNIQUE_INDEX
+}
 
 /**
  * B7b 迁移：refresh 表写腿迁 PG —— B7a 的双句柄并传（em + dbSession）归一为单
@@ -32,6 +56,8 @@ export class AuthRefreshSharedService {
     private readonly cryptoService: AppTechCryptoService,
     private readonly authSessionService: AuthSessionService,
   ) {}
+
+  private readonly logger = new Logger(AuthRefreshSharedService.name)
 
   /**
    * @description check refresh token revoked by deviceId & userId
@@ -100,8 +126,13 @@ export class AuthRefreshSharedService {
 
   /**
    * @description revoke expired refresh token by expiredAt, used for cron task
+   *
+   * F-39（顺带修正方法名里的 Cron 拼写错误）：原先 allSettled 之后只取 fulfilled，rejected 被
+   * **静默丢弃** —— 过期 RT 每 2 小时重试一次撤销，失败既不进日志也不计入返回数，于是
+   * 「过期令牌一直没被撤销」这件事永远不可见。现在逐条打 error（带原因），再汇总一行。
+   * 返回值口径不变：仍是**已撤销**的行（调用方按它清理 monitor 在线态）。
    */
-  async revokeExpiredRefreshTokenForCrobJob() {
+  async revokeExpiredRefreshTokenForCronJob() {
     const now = AppDayjs().toDate()
     const result = await this.authRefreshRepo.findExpiredTokens(now)
 
@@ -111,7 +142,21 @@ export class AuthRefreshSharedService {
       }),
     )
 
-    return res.filter(i => i.status === 'fulfilled').map(i => i.value)
+    const revoked = res.filter(i => i.status === 'fulfilled').map(i => i.value)
+    const failed = res.filter((i): i is PromiseRejectedResult => i.status === 'rejected')
+
+    if (failed.length > 0) {
+      for (const item of failed) {
+        this.logger.error(
+          `[CronTaskLog] Failed to revoke an expired refresh token: ${item.reason instanceof Error ? item.reason.stack : String(item.reason)}`,
+        )
+      }
+      this.logger.error(
+        `[CronTaskLog] Revoke Expired Refresh Token: ${failed.length}/${res.length} failed, ${revoked.length} revoked. The failed rows stay active and will be retried on the next run.`,
+      )
+    }
+
+    return revoked
   }
 
   /**
@@ -120,6 +165,12 @@ export class AuthRefreshSharedService {
    * duplicate sign-in 判据按「未撤销现役行」存在性：revoke-and-insert 后同维度恒多行
    * （历轮 revoked 旧行），裸 findOne 取行不确定 —— 必须显式筛 revoked=false，否则
    * 命中旧行会误放行重复登录。轮换不变量「未撤销行恒恰一行」保证该判据恒自洽。
+   *
+   * F-26：判据是 check-then-act 的读腿，**事务内必须持锁**（与轮换腿的
+   * `findByJti(jti, em, { lock: true })` 同口径）—— 锁把「判现役行 → 插/复活行」
+   * 串行化，否则两路并发登录各自读到 null 后各插一行，把「恰一行」变成两行。
+   * 该维度还没有任何行时锁不到行（PG 无间隙锁），由部分唯一索引
+   * uq_rt_active_device_user 兜底（见 generateRefreshToken 的 23505 翻译）。
    */
   async isCurrentUserInThisDeviceHasSignIn(
     userId: string,
@@ -130,6 +181,7 @@ export class AuthRefreshSharedService {
       deviceId,
       userId,
       em,
+      { lock: true },
     )
     return active !== null
   }
@@ -180,6 +232,17 @@ export class AuthRefreshSharedService {
 
   /**
    * @description generate refresh token and insert into database
+   *
+   * F-26：并发安全两道闸
+   * 1. **读腿持锁**（isCurrentUserInThisDeviceHasSignIn → findActive...({ lock: true })）：
+   *    事务内把「判现役行 → 插/复活行」这组写串行化，正常并发第二路会读到胜者写下的
+   *    现役行 → 受控 40109；
+   * 2. **DB 部分唯一索引兜底**（uq_rt_active_device_user，migration 1793370000000）：
+   *    该维度此前没有任何行时读腿锁不到行（PG 无间隙锁），两路并发会同时走到 INSERT ——
+   *    索引让后到者撞 23505，这里翻译成**同一个**受控 40109，而不是裸露的驱动错误。
+   *    只认这个索引名：uq_jti 冲突是真正的 bug（jti 重复），不能被改写成「重复登录」。
+   * 读腿（findByDeviceIdAndUserId）也带上 em —— 否则它在事务外读，会看到与锁内
+   * 判定不一致的快照。
    */
   async generateRefreshToken(
     userId: string,
@@ -194,48 +257,57 @@ export class AuthRefreshSharedService {
     const oldDocument = await this.authRefreshRepo.findByDeviceIdAndUserId(
       deviceId,
       userId,
+      em,
     )
 
     const expiredAt = AppDayjs()
       .add(this.tokenService.getRefreshTokenExpireSeconds(), 'seconds')
       .toDate()
 
-    if (oldDocument) {
-      const refreshToken = await this.tokenService.generateJwtRefreshToken(
-        oldDocument.jti,
-        sessionId,
-      )
-      const encryptedToken = this.cryptoService.encrypt(refreshToken, this.RT_ENCRYPTION_KEY)
+    try {
+      if (oldDocument) {
+        const refreshToken = await this.tokenService.generateJwtRefreshToken(
+          oldDocument.jti,
+          sessionId,
+        )
+        const encryptedToken = this.cryptoService.encrypt(refreshToken, this.RT_ENCRYPTION_KEY)
 
-      await this.authRefreshRepo.saveRefreshTokenDoc(
-        oldDocument,
-        {
-          expiredAt,
-          encryptedToken,
-          revoked: false,
-        },
-        em,
-      )
+        await this.authRefreshRepo.saveRefreshTokenDoc(
+          oldDocument,
+          {
+            expiredAt,
+            encryptedToken,
+            revoked: false,
+          },
+          em,
+        )
 
-      return oldDocument.jti
+        return oldDocument.jti
+      }
+      else {
+        const jti = await this.tokenService.generateJTI()
+        const refreshToken = await this.tokenService.generateJwtRefreshToken(jti, sessionId)
+        const encryptedToken = this.cryptoService.encrypt(refreshToken, this.RT_ENCRYPTION_KEY)
+
+        await this.authRefreshRepo.create(
+          {
+            jti,
+            deviceId,
+            encryptedToken,
+            userId,
+            expiredAt,
+          },
+          em,
+        )
+
+        return jti
+      }
     }
-    else {
-      const jti = await this.tokenService.generateJTI()
-      const refreshToken = await this.tokenService.generateJwtRefreshToken(jti, sessionId)
-      const encryptedToken = this.cryptoService.encrypt(refreshToken, this.RT_ENCRYPTION_KEY)
-
-      await this.authRefreshRepo.create(
-        {
-          jti,
-          deviceId,
-          encryptedToken,
-          userId,
-          expiredAt,
-        },
-        em,
-      )
-
-      return jti
+    catch (error) {
+      if (isActiveRefreshTokenUniqueViolation(error)) {
+        throw new WalnutAdminExceptionDuplicateSignIn()
+      }
+      throw error
     }
   }
 

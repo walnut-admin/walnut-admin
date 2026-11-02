@@ -384,17 +384,16 @@ return redis.call('DEL', KEYS[1])`,
       MATCH: pattern,
       COUNT: this.BATCH_SIZE,
     })) {
-      // 1. 在获取阶段就过滤掉不需要的 Bull 队列键，减少后续 MGET 的压力
-      if (key.includes('BULL')) {
-        continue
-      }
+      // F-27：node-redis v5 的 scanIterator **按批产出 `string[]`**（含空批，见
+      // delByPattern 的同款注释）—— 旧实现在摊平**之前**对 `key` 调 `includes('BULL')`：
+      // 数组的 includes 是「整元素全等」判断，永远不会命中 ⇒ Bull 队列键混进 MGET，
+      // 缓存监控页与日志失真。这里先摊平成单个 key，再逐键过滤。
+      const keysOfBatch = Array.isArray(key) ? key : [key]
 
-      if (Array.isArray(key)) {
-        keysBatch.push(...key)
-      }
-      else {
-        keysBatch.push(key)
-      }
+      // 1. 在获取阶段就过滤掉不需要的 Bull 队列键，减少后续 MGET 的压力
+      const nonBullKeys = keysOfBatch.filter(item => typeof item === 'string' && !item.includes('BULL'))
+
+      keysBatch.push(...nonBullKeys)
 
       // 2. 凑够一批就进行 MGET
       if (keysBatch.length >= this.BATCH_SIZE) {

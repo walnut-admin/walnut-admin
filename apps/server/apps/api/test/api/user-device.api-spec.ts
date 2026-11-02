@@ -220,11 +220,13 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
       'DELETE FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
       [fixture!.userId, victim.deviceId],
     )
+    // F-26：同维度最多一条现役行（uq_rt_active_device_user 部分唯一索引），这里造
+    // 「1 条现役 + 1 条已撤销历史」两行 —— 多行维度下「全量撤销」的 P1-9 断言仍成立
     for (let i = 0; i < 2; i++) {
       await api.pgDataSource.query(
-        `INSERT INTO auth_refresh_token (jti, user_id, device_id, encrypted_token, expired_at)
-         VALUES ($1, $2, $3, 'ud-spec-rt', NOW() + INTERVAL '1 day')`,
-        [randomUUID(), fixture!.userId, victim.deviceId],
+        `INSERT INTO auth_refresh_token (jti, user_id, device_id, encrypted_token, expired_at, revoked)
+         VALUES ($1, $2, $3, 'ud-spec-rt', NOW() + INTERVAL '1 day', $4)`,
+        [randomUUID(), fixture!.userId, victim.deviceId, i > 0],
       )
     }
 
