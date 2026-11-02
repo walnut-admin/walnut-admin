@@ -1,5 +1,4 @@
 import type { IWalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
-import process from 'node:process'
 
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
@@ -16,6 +15,7 @@ import { instrument } from '@socket.io/admin-ui'
 
 import { AppMonitorUserService } from '@walnut-server/app-domain'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
+import { WalnutAdminConstAppEnv, WalnutAdminEnv } from '@walnut-server/const/app/env'
 import { Namespace } from 'socket.io'
 import {
   ISocket,
@@ -24,15 +24,12 @@ import {
   ISocketInterServerEvents,
   ISocketServerToClientEvents,
 } from './socket'
-import { WalnutAdminSocketEvents, WalnutAdminSocketRooms } from './socket.const'
+import { WalnutAdminSocketEvents, WalnutAdminSocketNamespace, WalnutAdminSocketRooms } from './socket.const'
 import { SocketAuthMiddleware } from './socket.middleware'
 import { SocketService } from './socket.service'
 
-// TODO extract to config
-const ns = 'walnut-namespace'
-
 @WebSocketGateway({
-  namespace: ns,
+  namespace: WalnutAdminSocketNamespace,
 })
 export class SocketGateway
 implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
@@ -65,12 +62,38 @@ implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
     // auth middleware to hang the necessary data to socket.data
     namespace.use((socket, next) => void this.socketAuthMiddleware.middleware(socket, next))
 
-    // instrument
-    instrument(namespace.server, {
-      auth: false,
-      mode: process.env.NODE_ENV as 'development' | 'production',
-      namespaceName: ns,
-    })
+    // F-01（P0，2026-11-02）：admin UI 仅在用户名与密码**同时**配置时挂载
+    // （fail-closed：不配置 = 不挂载 + warn）。此前 auth:false + NODE_ENV 裸 as 断言是
+    // 无鉴权裸奔（review F-01）。env 口径见 libs/config validation.ts（可选；
+    // password 必须是 bcrypt hash —— bcryptjs.hash(强口令, 10)，强口令 >= 8 位）。
+    const adminUiUser = this.configService.get<string>('SOCKET_ADMIN_UI_USER')
+    const adminUiPassword = this.configService.get<string>('SOCKET_ADMIN_UI_PASSWORD')
+
+    // 显式 nullish/empty 判定（ts/strict-boolean-expressions）：任一缺失/空串 = 未配置
+    const hasAdminUiCredentials = adminUiUser !== undefined
+      && adminUiUser !== ''
+      && adminUiPassword !== undefined
+      && adminUiPassword !== ''
+
+    if (hasAdminUiCredentials) {
+      // mode 经 WalnutAdminEnv（libs/const/app/env）判定，不用裸 as：production 之外
+      // （development / stage / 测试）一律 development 模式
+      const mode: 'development' | 'production' = WalnutAdminEnv === WalnutAdminConstAppEnv.PROD
+        ? 'production'
+        : 'development'
+
+      instrument(namespace.server, {
+        auth: { type: 'basic', username: adminUiUser, password: adminUiPassword },
+        mode,
+        namespaceName: WalnutAdminSocketNamespace,
+      })
+    }
+    else {
+      this.logger.warn(
+        'SOCKET_ADMIN_UI_USER / SOCKET_ADMIN_UI_PASSWORD 未同时配置 —— socket.io Admin UI 不挂载（fail-closed）。'
+        + '生产如需使用请补配：PASSWORD 用 bcryptjs.hash(强口令, 10) 生成（强口令 >= 8 位），不接受明文',
+      )
+    }
 
     this.logger.log(
       `Websocket Server Started, Listening on Port: ${this.configService.get<number>(

@@ -109,6 +109,27 @@ export class AppTokenService implements IWalnutAdminTokenTtl {
   }
 
   /**
+   * @description verify access token（F-02：验签名 + 过期，替代 decodeAccessToken 的
+   * 只解码不验签）。与 HTTP 侧 passport-jwt strategy 同口径：同一把 access secret、
+   * ignoreExpiration: false。任何校验失败（伪造签名 / 过期 / 格式错误）一律返回
+   * null，不抛出 —— socket 握手侧据此 next(new Error)。
+   * 会话键存在性检查**不在本 lib**（组装点在 app 的 socket.middleware，注入 auth lib
+   * 的 AuthSessionService —— libs/token 不反向 import 上层，分层红线）。
+   */
+  async verifyAccessToken(token: string): Promise<IWalnutAdminAccessTokenPayload | null> {
+    try {
+      return await this.jwtService.verifyAsync<IWalnutAdminAccessTokenPayload>(token, {
+        secret: this.getAccessTokenSecret(),
+        ignoreExpiration: false,
+      })
+    }
+    catch (error) {
+      this.logger.warn(error)
+      return null
+    }
+  }
+
+  /**
    * @description decode access token
    */
   async decodeAccessToken(token: string): Promise<IWalnutAdminAccessTokenPayload | null> {
