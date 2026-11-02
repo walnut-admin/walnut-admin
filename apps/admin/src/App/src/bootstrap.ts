@@ -1,4 +1,6 @@
 import type { App } from 'vue'
+import { removeStorageItemsContaining } from '@walnut/client/persistent/shared'
+import { AppConstPersistKey } from '@/const/persistent'
 import { installI18n, loadLocaleMessages } from '@/locales'
 import { setupRouter } from '@/router'
 import { setupStore } from '@/store/pinia'
@@ -197,6 +199,35 @@ export function renderBootstrapFailure(problem: BootstrapProblem): void {
   retry.addEventListener('click', () => location.reload())
 
   wrap.append(title, where, detail, hint, retry)
+
+  // P0（2026-11）：sign 是 blocking 步骤，但有一类失败**刷新治不好** —— 服务端丢了
+  // 「客户端 RSA 公钥」（Redis flush / 驱逐 / 无持久化重启）而本机还留着 30 天密钥对时，
+  // setupSign 只在「本地没有密钥对」时才登记（store/modules/app/app-security.ts:114-122），
+  // 于是永远不补登记：每次启动都红在这一步，点「重新加载」只是把同一幕重演一遍。
+  // 这里给一个只清本机密钥对的入口 —— 清掉后 setupSign 会重新生成并登记。
+  // （不碰 store：本函数刻意保持纯 DOM，见上方注释；这里只复用 @walnut/client 的存储工具。）
+  if (problem.step === 'sign') {
+    const resetKeys = document.createElement('button')
+    resetKeys.textContent = '重置本机密钥并重试'
+    resetKeys.setAttribute('data-walnut-error-action', 'reset-rsa-keys')
+    resetKeys.setAttribute('style', 'padding:8px 20px;border:1px solid #4a4a4a;border-radius:6px;background:transparent;color:#f0f0f0;cursor:pointer;')
+    resetKeys.addEventListener('click', () => {
+      const removed = [
+        ...removeStorageItemsContaining(localStorage, AppConstPersistKey.RSA_PUBLIC_KEY),
+        ...removeStorageItemsContaining(localStorage, AppConstPersistKey.RSA_PRIVATE_KEY),
+      ]
+      console.info('[bootstrap] 已清除本机 RSA 密钥对，下一次启动会重新生成并登记', removed)
+      location.reload()
+    })
+
+    const resetHint = document.createElement('div')
+    resetHint.setAttribute('style', 'max-width:min(760px,90vw);opacity:.6;font-size:12px;')
+    resetHint.textContent = '「重置本机密钥」只清本机保存的 RSA 密钥对（不动其它数据）。'
+      + '若服务端 Redis 被清空过（公钥登记丢了），这一步通常就能恢复。'
+
+    wrap.append(resetKeys, resetHint)
+  }
+
   host.replaceChildren(wrap)
 }
 
