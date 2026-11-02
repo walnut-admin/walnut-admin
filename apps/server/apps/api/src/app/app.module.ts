@@ -1,5 +1,5 @@
 import { Logger, Module } from '@nestjs/common'
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
+import { APP_GUARD, APP_INTERCEPTOR, DiscoveryModule } from '@nestjs/core'
 
 import { JwtAccessGuard } from '@walnut-server/auth'
 import { WalnutConfigModule } from '@walnut-server/config'
@@ -7,16 +7,21 @@ import { WalnutContextModule } from '@walnut-server/context'
 import { WalnutModule } from '@walnut-server/db'
 import { ALSRequestInterceptor, WalnutAdminGuardCap, WalnutAdminGuardDevice, WalnutAdminGuardIP, WalnutAdminGuardLock, WalnutAdminGuardMFA, WalnutAdminGuardRisk, WalnutAdminGuardSecurity, WalnutAdminGuardSign, WalnutAdminInterceptorResponseSuccess } from '@walnut-server/guards'
 
-import { AppI18nModule } from '../i18n/i18n.module'
-import { AppMiddlewareModule } from '../middleware/middleware.module'
-import { AppAppModule } from '../modules/app/app.module'
-import { AuthModule } from '../modules/auth/auth.module'
-import { SecurityModule } from '../modules/security/security.module'
-import { SharedModule } from '../modules/shared/shared.module'
-import { SystemModule } from '../modules/system/system.module'
-import { AppBootstrapTaskModule } from '../modules/techniques/task/bootstrap-task.module'
-import { AppTechModule } from '../modules/techniques/tech.module'
-import { SocketModule } from '../socket/socket.module'
+// F-33（ARCH-07）：组合根的**跨目录** import 一律走 `@/*`（= apps/api/src/*），与
+// socket.module.ts 同款 —— 相对路径在这里看不出「这个符号属于哪一层」，目录调整时集体断链。
+// 同目录的 `./app.controller` / `./app.service` / `./schedule.composition` 仍用相对路径
+// （code-style.md「相对路径只在同一模块内部使用」）。
+// worker / cli 的跨 app 相对路径是 ADR 认可的（它们直接复用具名文件，不经别名解析）。
+import { AppI18nModule } from '@/i18n/i18n.module'
+import { AppMiddlewareModule } from '@/middleware/middleware.module'
+import { AppAppModule } from '@/modules/app/app.module'
+import { AuthModule } from '@/modules/auth/auth.module'
+import { SecurityModule } from '@/modules/security/security.module'
+import { SharedModule } from '@/modules/shared/shared.module'
+import { SystemModule } from '@/modules/system/system.module'
+import { AppBootstrapTaskModule } from '@/modules/techniques/task/bootstrap-task.module'
+import { AppTechModule } from '@/modules/techniques/tech.module'
+import { SocketModule } from '@/socket/socket.module'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { AppScheduleModule, isWorkerStandalone } from './schedule.composition'
@@ -60,6 +65,11 @@ import { AppScheduleModule, isWorkerStandalone } from './schedule.composition'
     // 条件注册同一判据。放在 imports 末尾是为了不改变既有模块/路由注册顺序
     // （openapi.json 的 paths 顺序依赖 RouterExplorer 的模块遍历顺序）。
     ...(isWorkerStandalone() ? [] : [AppBootstrapTaskModule]),
+
+    // OpenAPI 组装点要按 guard 元数据批量注入 bearer 声明，用 DiscoveryService 遍历控制器
+    // （common/swagger/swagger.document.ts）。该模块只提供 DiscoveryService / MetadataScanner，
+    // 不注册任何 controller —— 放在 imports 末尾同样不改变既有路由注册顺序。
+    DiscoveryModule,
   ],
   controllers: [AppController],
   providers: [

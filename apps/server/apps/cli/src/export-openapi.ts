@@ -4,14 +4,13 @@ import * as path from 'node:path'
 
 import process from 'node:process'
 import { NestFactory } from '@nestjs/core'
-import { SwaggerModule } from '@nestjs/swagger'
 import { waitForQueueConnectionsReady } from '@walnut-server/queue'
 
 // cli 与 api 同属 `@walnut/server` workspace，且根 tsconfig 的 rootDir 覆盖整个
 // apps/server/ —— 组合根（AppModule）与 app 内部模块用相对路径直接取用（不新增
 // 别名：`@/*` 固定指向 apps/api/src，在 cli 里用会让「当前是谁的源码」失去语义）。
 import { AppModule } from '../../api/src/app/app.module'
-import { buildSwaggerDocumentOptions } from '../../api/src/common/swagger/swagger.options'
+import { createSwaggerDocument } from '../../api/src/common/swagger/swagger.document'
 import { WalnutAdminLogger } from '../../api/src/modules/techniques/logger'
 
 /**
@@ -33,7 +32,8 @@ import { WalnutAdminLogger } from '../../api/src/modules/techniques/logger'
  *
  * ## 与 main.ts 的同源保证
  *
- * - 同一个 `buildSwaggerDocumentOptions()`（DocumentBuilder 链的唯一来源，common/swagger）；
+ * - 同一个 `createSwaggerDocument()`（common/swagger/swagger.document.ts：DocumentBuilder 链的
+ *   唯一来源 + 按 guard 元数据批量注入 bearer 声明）；
  * - 同一个 `WalnutAdminLogger` 与 `NestFactory.create`（不 listen）—— 引导路径与集成测试
  *   的全量装配一致，只省掉静态资源 / 视图引擎 / websocket adapter / 全局 pipe 这几步
  *   「HTTP 服务期」的装配（它们不参与 schema 反射）。
@@ -66,7 +66,8 @@ async function exportOpenAPI(): Promise<OpenAPIObject> {
     // 默认 strict → 进程 1 退出、导出物不落盘）。先等连接就绪，关闭才走正常 quit。
     await waitForQueueConnectionsReady(app)
 
-    return SwaggerModule.createDocument(app, buildSwaggerDocumentOptions())
+    // 与 main.ts 同一个组装点（options 唯一来源 + bearer 批量注入），导出物与在线文档同源
+    return createSwaggerDocument(app)
   }
   finally {
     // 连接（PG / Redis / bull）随 app 生命周期关闭，进程才能干净退出
