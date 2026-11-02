@@ -23,12 +23,27 @@ export class AppTechCacheRsaService {
     // sign guard 的「握手已完成」守卫（guards/src/guards/sign.guard.ts:102）与
     // sign.service 的「should have rsa pubkey」（security/src/sign/sign.service.ts:36）。
     // 回归用例：cache.rsa.spec.ts「缓存缺失 ⇒ 抛 40012」—— 改回不 await 的写法该用例必红。
-    const cached = await this.cacheService.get<string>(`${WalnutAdminConstAppCacheKeys.SECURITY_RSA_PUB_KEY}:${deviceId}`)
+    const cached = await this.findRsaPubKeyCache(deviceId)
 
     if (isNil(cached)) {
       throw new WalnutAdminExceptionRsaPubKeyNotFound()
     }
 
     return cached
+  }
+
+  /**
+   * 探测式取值：**不抛** 40012，缺失返回 null。
+   *
+   * 为什么必须与 getRsaPubKeyCache 分开：握手端点 /security/sign/initial 的语义是
+   * 「尚未登记 → 登记它」，缺失是**正常分支**而不是错误。补 await 之后（40012 从死码变成可达），
+   * initial 若继续走抛错版就变成「登记公钥要求先有公钥」的鸡生蛋死锁：
+   * 首次握手必然 40012，应用起不来（本机实测：api-spec 全线 40012、admin bootstrap 卡在 sign 步）。
+   *
+   * 需要「缺失即错误」的地方（响应加密、已签名请求的守卫校验）继续用 get 版。
+   */
+  async findRsaPubKeyCache(deviceId: string): Promise<string | null> {
+    const cached = await this.cacheService.get<string>(`${WalnutAdminConstAppCacheKeys.SECURITY_RSA_PUB_KEY}:${deviceId}`)
+    return isNil(cached) ? null : cached
   }
 }

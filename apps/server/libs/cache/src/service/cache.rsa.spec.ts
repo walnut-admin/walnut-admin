@@ -84,4 +84,25 @@ describe('rsa pub key cache：P0 回归（await 与 40012）', () => {
     expect(call.options.t).toBe(WalnutAdminConstAppCacheType.AUTH)
     expect(call.options.ttl).toBe(30 * 24 * 3600)
   })
+
+  /**
+   * 鸡生蛋死锁的回归钉子：握手端点 /security/sign/initial 的语义是
+   * 「尚未登记 → 登记它」，缺失是正常分支。补 await 让 40012 从死码变成可达之后，
+   * initial 若继续走 get 版就会"登记公钥要求先有公钥" ⇒ 首次握手必 40012、应用起不来
+   * （本机实测：api-spec 全线 40012、admin bootstrap 卡在 sign 步）。
+   * 这两条钉住"探测版不抛、抛错版仍抛"的分界。
+   */
+  it('探测版：缓存缺失 ⇒ 返回 null，且不抛 40012（initial 首次登记依赖这一条）', async () => {
+    const { service } = createService(new Map())
+
+    await expect(service.findRsaPubKeyCache('device-missing')).resolves.toBeNull()
+  })
+
+  it('探测版：缓存命中 ⇒ 原样返回，与 get 版同值', async () => {
+    const pem = '-----BEGIN PUBLIC KEY-----\nMFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAK0=\n-----END PUBLIC KEY-----'
+    const { service } = createService(new Map([[cacheKeyOf('device-hit'), pem]]))
+
+    await expect(service.findRsaPubKeyCache('device-hit')).resolves.toBe(pem)
+    await expect(service.getRsaPubKeyCache('device-hit')).resolves.toBe(pem)
+  })
 })

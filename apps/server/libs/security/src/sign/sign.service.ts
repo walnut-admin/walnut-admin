@@ -20,7 +20,8 @@ export class SecuritySignService {
   async initial(deviceId: string, payload: SecuritySignHandShakeRequestDTO) {
     const { rsaPubKey, force = false } = payload
 
-    const cached = await this.cacheRsaService.getRsaPubKeyCache(deviceId)
+    // 必须用探测版：首次握手时「缓存里没有公钥」是正常分支，不能抛 40012
+    const cached = await this.cacheRsaService.findRsaPubKeyCache(deviceId)
     if (!isNil(cached) && !force)
       return cached
 
