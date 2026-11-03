@@ -3,7 +3,7 @@ import type { AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosReques
 
 // Re-export contract types for backward compatibility
 export type { ResponseBase }
-export type { BaseListParams, BaseListResponse, BasePageParams, BaseSortParams, SortOrder } from '@walnut/contract/pagination'
+export type { BaseFilterParams, BaseListParams, BaseListResponse, BasePageParams, BaseSortParams, FilterOp, FilterParam, SortOrder } from '@walnut/contract/pagination'
 
 export interface AxiosConfig {
   originalConfig: AxiosRequestConfig

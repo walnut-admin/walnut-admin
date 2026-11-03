@@ -56,7 +56,8 @@ describe('pREPUSH_GATES —— 表本身', () => {
     expect(staged, 'openapi 段缺少 `git diff --cached` 这一步：git diff 只比工作区 vs 暂存区，已 add 的生成物会让门禁假绿').toBeTruthy()
 
     // 两个生成物都要盯：只查一个等于漏一个
-    for (const generated of ['apps/server/openapi.json', 'packages/platform-web/api-types/src/schema.d.ts']) {
+    // 段② 的产物（schema.d.ts）2026-11 批次 4 · D9 起在 packages/generated/api-types 下
+    for (const generated of ['apps/server/openapi.json', 'packages/generated/api-types/src/schema.d.ts']) {
       expect(staged!.includes(generated), `${generated} 不在暂存区比对里`).toBe(true)
     }
   })
@@ -112,7 +113,9 @@ describe('pREPUSH_GATES —— 表本身', () => {
       'b.ts': 'export const b = (): unknown => null\n',
     })
     expect(acyclic.status, `无环却判红了（exit ${acyclic.status}）：\n${acyclic.out}`).toBe(0)
-  })
+    // 真起两次 madge：默认 5s 在「树很大 / turbo 同时跑别的包」时会假红（2026-11-03 实测 6.5s 超时）。
+    // 这是集成型用例，超时是环境变量而不是断言信号。
+  }, 30_000)
 
   it('每一段都写清了「凭什么」（理由不许敷衍）', () => {
     for (const gate of PREPUSH_GATES) {

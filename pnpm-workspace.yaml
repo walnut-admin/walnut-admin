@@ -73,6 +73,11 @@ packages:
   - 'apps/*'
   - 'packages/platform-any/*'
   - 'packages/platform-web/*'
+  # 生成物包（2026-11 批次 4 · D9：@walnut/api-types 从 platform-web 挪到这里）。
+  # 判据是「谁产生它」而不是「谁消费它」：它由 openapi-typescript 从 apps/server/openapi.json
+  # 机械生成、一个字都不手写，和手写的 platform-web 包放在同一组只会让「这个目录能不能手改」
+  # 这件事继续含糊。boundaries 侧对应 tag generated（见根 turbo.json）。
+  - 'packages/generated/*'
   - 'packages/tooling/*'
 
 # --- 发版（pnpm 原生 release management，v11.13+）---

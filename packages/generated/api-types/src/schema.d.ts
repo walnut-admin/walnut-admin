@@ -3639,72 +3639,25 @@ export interface components {
             /** list total count */
             total: number;
         };
-        AppMonitorUserDTORequest: {
+        FilterDTO: {
             /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             * filter field name
+             * @example userName
              */
-            createdAt?: string;
+            field: string;
             /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             * filter operator, eq / like / in / range / isNull
+             * @example like
+             * @enum {string}
              */
-            updatedAt?: string;
-            /** device id */
-            deviceId?: string;
+            op: "eq" | "like" | "in" | "range" | "isNull";
             /**
-             * auth or not
-             * @default false
+             * filter value, shape depends on op
+             * @example admin
              */
-            auth: boolean;
-            /**
-             * focus on current page or not
-             * @default true
-             */
-            focus: boolean;
-            /**
-             * left page or not
-             * @default false
-             */
-            left: boolean;
-            /** current page router */
-            currentRouter?: string;
-            /**
-             * createdAt, used as `firstVisitAt`
-             * Format: date-time
-             */
-            firstVisitAt?: string;
-            /**
-             * updatedAt, used as `lastActiveAt`
-             * Format: date-time
-             */
-            lastActiveAt?: string;
-            /** virtual user */
-            user?: components["schemas"]["SysUserDTOSafe"];
-            /** virtual device */
-            device?: components["schemas"]["SysDeviceDTOSafe"];
-            /** @default null */
-            id: string;
-            /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
-            userId?: string | null;
-            /** raw browser fingerprint (request side only — never echoed back in responses) */
-            visitorId: string;
-            /** country */
-            country?: string;
-            /** operating system */
-            os?: string;
-            /** browser */
-            browser?: string;
-            /**
-             * user name
-             * @description should be unique, used for normal password sign in
-             * @default null
-             */
-            userName: string;
-            /** ip address */
-            ip: string;
+            value: (string | number | boolean | unknown[] | {
+                [key: string]: unknown;
+            }) | null;
         };
         SortDTO: {
             /** sort field name */
@@ -3732,13 +3685,23 @@ export interface components {
         AppMonitorUserDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["AppMonitorUserDTORequest"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -4653,160 +4616,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        AppDemoDTOSafePartial: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /**
-             * this is title
-             * @description this is description
-             * @default null
-             * @example this is an example
-             */
-            demoString: string;
-            /**
-             * this is title
-             * @description this is description
-             * @default null
-             * @example this is an example
-             */
-            demoPhoneNumber: string;
-            /**
-             * this is title
-             * @description this is description
-             * @default []
-             * @example [
-             *       "this is an example",
-             *       "this is an example",
-             *       "this is an example"
-             *     ]
-             */
-            demoStringArray: string[];
-            /**
-             * this is title
-             * @description this is description
-             * @default null
-             * @example 123
-             */
-            demoNumber: number;
-            /**
-             * this is title
-             * @description this is description
-             * @default []
-             * @example [
-             *       123,
-             *       123,
-             *       123
-             *     ]
-             */
-            demoNumberArray: number[];
-            /**
-             * this is title
-             * @description this is description
-             * @default false
-             * @example true
-             */
-            demoBoolean: boolean;
-            /**
-             * this is title
-             * @description this is description
-             * @default []
-             * @example [
-             *       true,
-             *       false,
-             *       true
-             *     ]
-             */
-            demoBooleanArray: boolean[];
-            /**
-             * this is title
-             * Format: date-time
-             * @description this is description
-             * @default null
-             * @example 2023-11-11 00:00:00
-             */
-            demoDate: string;
-            /**
-             * this is title
-             * @description this is description
-             * @default []
-             * @example [
-             *       "2023-11-11 00:00:00",
-             *       "2023-11-11 00:00:00",
-             *       "2023-11-11 00:00:00"
-             *     ]
-             */
-            demoDateArray: string[];
-            /**
-             * this is title
-             * @description this is description
-             * @default 1
-             * @example 1
-             * @enum {number}
-             */
-            demoEnum: 1 | 2 | 3 | 4;
-            /**
-             * this is title
-             * @description this is description
-             * @default []
-             * @example [
-             *       1,
-             *       2
-             *     ]
-             */
-            demoEnumArray: (1 | 2 | 3 | 4)[];
-            /**
-             * this is title
-             * @description this is description
-             * @default null
-             * @example {
-             *       "o1": "this is an example",
-             *       "o2": 123,
-             *       "o3": true
-             *     }
-             */
-            demoObject: components["schemas"]["DemoObject"];
-            /**
-             * dept id
-             * @description owning dept for department-scoped data permissions; derived on create, update is stripped
-             * @default null
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            deptId: string | null;
-            /** @default null */
-            id: string;
-            /**
-             * @default null
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            demoMongoId: string;
-            /**
-             * @default []
-             * @example [
-             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-             *     ]
-             */
-            demoMongoIdArray: string[];
-        };
         AppDemoDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["AppDemoDTOSafePartial"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -4894,60 +4723,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysDeletedDTOSafeRequestPartial: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /**
-             * Deleted Stringify Content
-             * @description use `JSON.stringify` to store the deleted document
-             */
-            content?: string;
-            /**
-             * Deleted Document Model Name
-             * @description use `modelName` to ensure the right model
-             */
-            modelName?: string;
-            /**
-             * Deleted Document Collection Name
-             * @description use `modelName` to recover, this field is only a record
-             */
-            collectionName?: string;
-            /** virtual user */
-            user?: components["schemas"]["SysUserDTOSafe"];
-            /** @default null */
-            id: string;
-            /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
-            deletedId?: string;
-            /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
-            deletedBy?: string;
-            /**
-             * @default null
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            logOperateId: string | null;
-            /** deletedAt for request query, support array */
-            deletedAt?: string[];
-        };
         SystemDeletedDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysDeletedDTOSafeRequestPartial"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -5019,33 +4814,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        AppMonitorCacheDTOPartial: {
-            /** cache key */
-            key?: string;
-            /** cache value bytes */
-            valueBytes?: number;
-            /** cache expire seconds */
-            expire?: number;
-            /**
-             * cache type
-             * @enum {string}
-             */
-            type?: "built-in" | "auth" | "controller" | "shared" | "system";
-            /** Format: date-time */
-            startTime?: string;
-            /** Format: date-time */
-            expireTime?: string;
-        };
         AppMonitorCacheDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["AppMonitorCacheDTOPartial"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -5316,45 +5104,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        AppSettingDTOSafeRequest: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /** setting name */
-            settingName?: string;
-            /** setting key */
-            settingKey?: string;
-            /** setting value */
-            settingValue?: string;
-            /**
-             * setting remark
-             * @default null
-             */
-            remark: string;
-            /** @default null */
-            id: string;
-            /** setting type for request query, support array */
-            settingType: ("auth" | "global" | "functional")[];
-        };
         AppSettingDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["AppSettingDTOSafeRequest"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -5412,25 +5181,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        AppLoggerDTOPickFileNameLogType: {
-            /** log file name */
-            fileName: string;
-            /**
-             * log file type
-             * @enum {string}
-             */
-            logType: "application" | "error";
-        };
         AppLoggerDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["AppLoggerDTOPickFileNameLogType"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -5623,80 +5393,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysDeviceDTOSafePartial: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /** device name, normally cannot change */
-            deviceName?: string;
-            /** device id, also maybe known as fingerprint for client */
-            deviceId?: string;
-            /** device user agent information */
-            deviceInfo?: components["schemas"]["SharedUserAgentDTOPartial"];
-            /** hardware information */
-            hardwareInfo?: components["schemas"]["SharedHardwareDTOPartial"];
-            /** location information */
-            locationInfo?: components["schemas"]["SharedLocationDTOPartial"];
-            /**
-             * IP location history, synced with ipHistory
-             * @description Stores up to 5 recent IP-location pairs
-             */
-            locationHistory?: components["schemas"]["SharedIpLocationHistoryDTO"][];
-            /** screen resolution */
-            sr?: components["schemas"]["SharedHeightWidthDTO"];
-            /** view port */
-            vp?: components["schemas"]["SharedHeightWidthDTO"];
-            /** ip address */
-            ip?: string;
-            /** ip address, with history support */
-            ipHistory?: string[];
-            /**
-             * device active status
-             * @default false
-             */
-            active: boolean;
-            /**
-             * device lock status
-             * @default false
-             */
-            locked: boolean;
-            /**
-             * device ban status
-             * @default false
-             */
-            banned: boolean;
-            /**
-             * device private/incognito
-             * @default false
-             */
-            private: boolean;
-            /** geo location, longitude and latitude */
-            geoLocation?: components["schemas"]["SharedGeoPointDTOPartial"];
-            /** device risk score */
-            riskScore?: number;
-            id?: string;
-            /** location */
-            location?: string;
-        };
         SysDeviceDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysDeviceDTOSafePartial"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -5810,56 +5526,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysLangDTOSafePartial: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /** language short */
-            lang?: string;
-            /** language describe */
-            description?: string;
-            /**
-             * language order
-             * @description should be int
-             * @default null
-             */
-            order: number;
-            /**
-             * language is in use or not
-             * @default true
-             */
-            status: boolean;
-            /** current lang's locales total count */
-            localesTotalCount?: number;
-            /** current lang's locales finished count */
-            localesFinishedCount?: number;
-            /** @default null */
-            id: string;
-            /**
-             * translate process
-             * @description percentage (0-100); null when the lang has zero locales (NaN → null)
-             */
-            process?: number | null;
-        };
         SysLangDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysLangDTOSafePartial"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -5938,43 +5624,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysLocaleDTOSafePartial: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /** i18n key */
-            key?: string;
-            /** i18n value */
-            value?: string;
-            /** @default null */
-            id: string;
-            /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
-            langId?: string;
-            /**
-             * translate process
-             * @description fraction (0-1) of finished translations for the key (admin displays × 100)
-             */
-            process?: number;
-        };
         SysLocaleDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysLocaleDTOSafePartial"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -6089,44 +5758,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysDictTypeDTOSafePartial: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /** dict name */
-            name?: string;
-            /** dict type or can be treated as dict key */
-            type?: string;
-            /** dict status */
-            status?: boolean;
-            /** description */
-            description?: string;
-            /** populated dict data */
-            dictData?: components["schemas"]["SysDictDataDTOPopulatedDictData"];
-            /** populated dict data count */
-            dictDataCount?: number;
-            /** @default null */
-            id: string;
-        };
         SysDictTypeDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysDictTypeDTOSafePartial"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -6267,58 +5918,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysDictDataDTOSafeRequest: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /** dict data label */
-            label?: string;
-            /** dict data value */
-            value?: string;
-            /**
-             * dict data order in array
-             * @default 0
-             */
-            order: number;
-            /**
-             * dict data status, false will not be extracted
-             * @default true
-             */
-            status: boolean;
-            /**
-             * dict data description
-             * @default null
-             */
-            description: string;
-            /** @default null */
-            id: string;
-            /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
-            typeId?: string;
-            /**
-             * dict data render tag type, see more in naive ui tag
-             * @default primary
-             */
-            tagType: ("primary" | "info" | "success" | "warning" | "error")[];
-        };
         SysDictDataDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysDictDataDTOSafeRequest"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -6548,75 +6167,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysDeptDTOSafePartial: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /**
-             * parent dept id
-             * @description null => root dept
-             * @default null
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            parentId: string | null;
-            /**
-             * dept code
-             * @description unique business key
-             */
-            deptCode?: string;
-            /** dept name */
-            deptName?: string;
-            /**
-             * dept leader
-             * @default null
-             */
-            leader: string | null;
-            /**
-             * contact phone
-             * @default null
-             */
-            phone: string | null;
-            /**
-             * contact email
-             * @default null
-             */
-            email: string | null;
-            /**
-             * sort order
-             * @description sibling order inside the same parent, should be int
-             * @default 0
-             */
-            sortOrder: number;
-            /**
-             * dept status
-             * @description disabled => not selectable in new assignments, existing rows stay
-             * @default enabled
-             * @example enabled
-             * @enum {string}
-             */
-            status: "enabled" | "disabled";
-            /** @default null */
-            id: string;
-        };
         SysDeptDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysDeptDTOSafePartial"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -6754,58 +6324,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysPostDTOSafePartial: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /**
-             * post code
-             * @description unique business key
-             */
-            postCode?: string;
-            /** post name */
-            postName?: string;
-            /**
-             * sort order
-             * @description should be int
-             * @default 0
-             */
-            sortOrder: number;
-            /**
-             * post status
-             * @description disabled => not selectable in new assignments, existing rows stay
-             * @default enabled
-             * @example enabled
-             * @enum {string}
-             */
-            status: "enabled" | "disabled";
-            /**
-             * remark
-             * @default null
-             */
-            remark: string | null;
-            /** @default null */
-            id: string;
-        };
         SysPostDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysPostDTOSafePartial"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -7023,68 +6561,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysEmployeeDTOSafePartial: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /**
-             * employee no
-             * @description unique business key, the payroll number
-             */
-            employeeNo?: string;
-            /** employee name */
-            employeeName?: string;
-            /**
-             * dept id
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            deptId?: string;
-            /**
-             * post id
-             * @default null
-             */
-            postId: string | null;
-            /**
-             * bound user id
-             * @default null
-             */
-            userId: string | null;
-            /**
-             * entry date
-             * Format: date-time
-             * @example 2026-01-01 00:00:00
-             */
-            entryDate?: string;
-            /**
-             * employee status
-             * @description probation / active / resigned; resigned does NOT delete or unbind the account
-             * @default active
-             * @example active
-             * @enum {string}
-             */
-            status: "probation" | "active" | "resigned";
-            /** @default null */
-            id: string;
-        };
         SysEmployeeDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysEmployeeDTOSafePartial"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -7199,86 +6695,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysLogAuthDTOSafeRequest: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /**
-             * ip address when auth
-             * @default null
-             */
-            ip: string;
-            /**
-             * location when auth
-             * @default null
-             */
-            location: string;
-            /**
-             * operating system when auth
-             * @default null
-             */
-            os: string;
-            /**
-             * browser when auth
-             * @default null
-             */
-            browser: string;
-            /**
-             * user name when auth
-             * @default null
-             */
-            userName: string;
-            /**
-             * identifier when auth, e.g. email, phone number
-             * @default null
-             */
-            identifier: string;
-            /**
-             * auth success or not
-             * @default false
-             */
-            success: boolean;
-            /**
-             * messages returned when auth
-             * @default null
-             */
-            msg: string;
-            /** authenticate device id */
-            deviceId?: string;
-            /** authenticatedAt for request query, support array */
-            authenticatedAt?: string[];
-            /** @default null */
-            id: string;
-            /**
-             * @default null
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            userId: string;
-            /**
-             * auth type for request query, support array
-             * @example opaque
-             */
-            type: ("opaque" | "qrcode" | "otp" | "emailAddress" | "phoneNumber" | "github" | "gitee" | "googleFedCM")[];
-        };
         SysLogAuthDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysLogAuthDTOSafeRequest"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -7468,75 +6904,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysLogOperateDTOSafeRequest: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /** operate title, developer customise */
-            title?: string;
-            /** http url */
-            url?: string;
-            /** http version, like 1.1/2.0 */
-            httpVersion?: string;
-            /** operate location, address string */
-            location?: string;
-            /** operate operating system */
-            os?: string;
-            /** operate browser */
-            browser?: string;
-            /** http status code */
-            statusCode?: number;
-            /** requset data, stringified */
-            requestData?: string;
-            /** response data, stringified */
-            responseData?: string;
-            /** responsed milliseconds */
-            durationMs?: number;
-            /** operater user name */
-            userName?: string;
-            /** operate device id */
-            deviceId?: string;
-            /** operate ip */
-            ip?: string;
-            /** operate invoked service and method */
-            invokingMethod?: string;
-            /** operate success or not */
-            success?: boolean;
-            /** @default null */
-            id: string;
-            /**
-             * @default null
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            userId: string;
-            /** actionType for request query, support array */
-            actionType: string[];
-            /** operation for request query, support array */
-            operation: string[];
-            /** operatedAt for request query, support array */
-            operatedAt?: string[];
-            /** http method for request query, support array */
-            method: string[];
-        };
         SysLogOperateDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysLogOperateDTOSafeRequest"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -7689,77 +7076,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysMenuDTOSafePartial: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /**
-             * basic menu type, mostly used in front end
-             * @description catalog => like folder, can only have child nodes. menu => refer to route. element => front end element permission
-             * @default catalog
-             * @example catalog
-             * @enum {string}
-             */
-            type: "catalog" | "menu" | "element";
-            /**
-             * route path
-             * @description used for vue router path
-             * @default null
-             */
-            path: string;
-            /**
-             * route name
-             * @description used for vue router name, should be unique, also used for keep-alive flags
-             * @default null
-             */
-            name: string;
-            /**
-             * route component file path
-             * @description used for vue router to find target file path
-             * @default null
-             */
-            component: string;
-            /**
-             * route title
-             * @description used for route page title, mostly is i18n format
-             * @default null
-             */
-            title: string;
-            /**
-             * route icon
-             * @description used for route icon, shown in menus and tabs
-             * @default null
-             */
-            icon: string;
-            /** menu meta data, lots of fields */
-            meta?: components["schemas"]["SysMenuMetaDTOBasePartial"];
-            /** @default null */
-            id: string;
-            /**
-             * @default null
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            pid: string | null;
-        };
         SysMenuDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysMenuDTOSafePartial"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -7893,81 +7229,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysRoleDTOSafePartial: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /**
-             * role name
-             * @description unique string
-             * @default null
-             */
-            roleName: string;
-            /**
-             * role description
-             * @description short describe
-             * @default null
-             */
-            description: string;
-            /**
-             * role order
-             * @description should be int
-             * @default null
-             */
-            order: number;
-            /**
-             * role status
-             * @description false => users wont retrieve current role menus(permissions)
-             * @default true
-             */
-            status: boolean;
-            /**
-             * role data scope
-             * @description 1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF
-             * @default 1
-             * @enum {number}
-             */
-            dataScope: 1 | 2 | 3 | 4 | 5 | 6;
-            /** current role's user count */
-            usersCount?: number;
-            /** populated menus list */
-            menusList?: components["schemas"]["SysMenuDTOSafe"][];
-            /** @default null */
-            id: string;
-            /**
-             * @default []
-             * @example [
-             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-             *     ]
-             */
-            menus: string[];
-            /**
-             * @default []
-             * @example [
-             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-             *     ]
-             */
-            deptIds: string[];
-        };
         SysRoleDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysRoleDTOSafePartial"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [
@@ -8063,113 +7344,26 @@ export interface components {
             /** list total count */
             total: number;
         };
-        SysUserDTOSafePartial: {
-            /**
-             * default createdAt
-             * Format: date-time
-             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            createdAt?: string;
-            /**
-             * default updatedAt
-             * Format: date-time
-             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
-             */
-            updatedAt?: string;
-            /**
-             * user name
-             * @description should be unique, used for normal password sign in
-             * @default null
-             */
-            userName: string;
-            /**
-             * user nick name
-             * @description feel free to change
-             * @default null
-             */
-            nickName: string;
-            /**
-             * age
-             * @description should be int and positive
-             * @default null
-             */
-            age: number;
-            /**
-             * gender
-             * @description follow GB standard, go internet it
-             * @default 9
-             * @example 9
-             * @enum {number}
-             */
-            gender: 0 | 1 | 2 | 9;
-            /**
-             * avatar
-             * @description maybe a transform in the future
-             * @default null
-             */
-            avatar: string;
-            /**
-             * description
-             * @description feel free to change
-             * @default null
-             */
-            description: string;
-            /**
-             * user status
-             * @description false => user cannot sign in anymore, also should ban tokens as well
-             * @default true
-             */
-            status: boolean;
-            /**
-             * role mode
-             * @description switch => user can switch role freely; combine => user's role is combined by system, along with the permission, user would access all permission in the roles he has
-             * @default switchable
-             * @example switchable
-             * @enum {string}
-             */
-            roleMode: "switchable" | "combinable";
-            /**
-             * MFA setup
-             * @description true => user has setup MFA
-             * @default false
-             */
-            mfaSetup: boolean;
-            /**
-             * dept id
-             * @description owning dept for department-scoped data permissions; null => no dept
-             * @default null
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            deptId: string | null;
-            /** virtual roles count */
-            roles_count?: number;
-            /** virtual roles list */
-            roles_list?: components["schemas"]["SysRoleDTOSafe"][];
-            /** @default null */
-            id: string;
-            /**
-             * @default []
-             * @example [
-             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-             *     ]
-             */
-            roles: string[];
-            /**
-             * @default null
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            currentRole: string | null;
-        };
         SysUserDTOListRequest: {
             /**
              * @default {}
-             * @example {
-             *       "field1": "this is a string",
-             *       "field2": false,
-             *       "field3": 123
-             *     }
+             * @example [
+             *       {
+             *         "field": "userName",
+             *         "op": "like",
+             *         "value": "adm"
+             *       },
+             *       {
+             *         "field": "createdAt",
+             *         "op": "range",
+             *         "value": [
+             *           "2024-01-01",
+             *           "2024-12-31"
+             *         ]
+             *       }
+             *     ]
              */
-            query: components["schemas"]["SysUserDTOSafePartial"];
+            filters: components["schemas"]["FilterDTO"][];
             /**
              * @default {}
              * @example [

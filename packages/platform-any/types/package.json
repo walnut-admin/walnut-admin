@@ -2,7 +2,7 @@
   "name": "@walnut/types",
   "type": "module",
   "version": "0.1.24",
-  "description": "Environment-agnostic type declarations — consumed by both frontend and backend",
+  "description": "Frontend-only type declarations — 后端 0 消费（2026-11 决策 D6 实测：apps/server 的依赖与 import 都是 0）",
   "license": "MIT",
   "exports": {
     ".": "./src/index.d.ts",
@@ -27,7 +27,7 @@
     "typescript": "catalog:"
   },
   "walnut": {
-    "platform": "any",
+    "platform": "web",
     "type": "contract",
     "runtime": "none"
   }

@@ -1,6 +1,6 @@
 {
   // ── 浏览器 + Vue ──
-  // 用于：apps/admin、apps/docs、packages/platform-web/*（client / http / ui）。
+  // 用于：apps/admin、apps/docs、packages/platform-web/{client,http}、packages/generated/api-types。
   // 这些包全部由 Vite / vue-tsc 编译，**不经 Node 原生剥离类型**，因此不需要 erasableSyntaxOnly。
   "extends": "./base.json",
   "compilerOptions": {

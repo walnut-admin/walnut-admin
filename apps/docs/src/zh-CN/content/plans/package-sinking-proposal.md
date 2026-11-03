@@ -69,7 +69,7 @@
 | admin 剩余 UI 组件目录 | 22 | `find apps/admin/src/components/UI -mindepth 1 -maxdepth 1 -type d \| wc -l` |
 | `@walnut/ui` 已迁组件 | 3（.vue） | `find packages/platform-web/ui/src -name "*.vue" \| wc -l` |
 | `@walnut/ui` 真实模板使用 | 1 个组件 / 2 处（demo） | `grep -rn "<WDynamicTags\\|<WSwitch\\|<WTimePicker" apps/admin/src --include=*.vue` |
-| `@walnut/client` 导出 | 54 | `packages/platform-web/client/src/index.ts` |
+| `@walnut/client` 导出 | 54 | 该包的 barrel（`packages/platform-web/client/` 下的 `src/index.ts`，已于批次 4 按决策 D8 删除） |
 | `@walnut/client` 无外部消费的导出 | 4 | 见 §1.2 的脚本 |
 | `createWalnutStore` 消费点 | 0 | `grep -rn "createWalnutStore" apps --include=*.ts --include=*.vue \| grep -v node_modules \| grep -v platform-web/client` |
 | admin store 文件（defineStore） | 23 | `grep -rn "defineStore(" apps/admin/src/store --include=*.ts \| wc -l` |

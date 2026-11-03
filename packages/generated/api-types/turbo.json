@@ -1,6 +1,11 @@
 {
   "extends": ["//"],
-  "tags": ["shared", "platform-web"],
+  // 2026-11 批次 4 · D9：从 platform-web 挪到 packages/generated/，tag 由 platform-web 改为 generated。
+  // 判据是「谁产生它」：这个包一个字都不手写。shared 保留（它同样不许依赖 app）。
+  // 本包刻意不再声明 platform-web：check-turbo-cache 的 platform-tag-matches-dir 只约束
+  // packages/platform-any/* 与 packages/platform-web/* 两组，所以这里不冲突；反过来，
+  // generated 这条 boundaries 规则（deny app / backend）也只由本包声明。
+  "tags": ["shared", "generated"],
   // 同 @walnut/client：无产物的 build，显式声明空 outputs 以免 turbo 刷警告。
   "tasks": {
     "build": {

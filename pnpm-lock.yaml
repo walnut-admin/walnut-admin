@@ -1019,7 +1019,7 @@ importers:
         version: 14.3.0(vue-router@5.0.6(@vue/compiler-sfc@3.5.40)(esbuild@0.27.7)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.34(typescript@6.0.3)))(rollup@4.60.3)(vite@8.0.11(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))(vue@3.5.34(typescript@6.0.3))(webpack@5.105.4(@swc/core@1.15.21)(cssnano@7.1.9(postcss@8.5.23))(csso@5.0.5)(esbuild@0.27.7)(lightningcss@1.33.0)(postcss@8.5.23)(uglify-js@3.19.3)))(vue@3.5.34(typescript@6.0.3))
       '@walnut/api-types':
         specifier: workspace:*
-        version: link:../../packages/platform-web/api-types
+        version: link:../../packages/generated/api-types
       '@walnut/client':
         specifier: workspace:*
         version: link:../../packages/platform-web/client
@@ -1726,6 +1726,24 @@ importers:
         specifier: 'catalog:'
         version: 4.1.2(@types/node@25.5.0)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.0.11(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
 
+  packages/generated/api-types:
+    devDependencies:
+      '@walnut/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint-config
+      '@walnut/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/tsconfig
+      openapi-typescript:
+        specifier: 'catalog:'
+        version: 7.13.0(typescript@6.0.3)
+      rimraf:
+        specifier: 'catalog:'
+        version: 6.1.3
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+
   packages/platform-any/contract:
     dependencies:
       easy-fns-ts:
@@ -1773,16 +1791,6 @@ importers:
         version: 6.0.3
 
   packages/platform-any/utils-core:
-    dependencies:
-      '@walnut/contract':
-        specifier: workspace:*
-        version: link:../contract
-      '@walnut/types':
-        specifier: workspace:*
-        version: link:../types
-      js-base64:
-        specifier: 'catalog:'
-        version: 3.7.8
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -1812,29 +1820,14 @@ importers:
         specifier: 'catalog:'
         version: 4.1.2(@types/node@25.5.0)(jsdom@30.0.1(@noble/hashes@2.2.0))(vite@8.0.11(@types/node@25.5.0)(esbuild@0.27.7)(jiti@2.7.0)(sass@1.99.0)(terser@5.49.0)(tsx@4.21.0)(yaml@2.9.0))
 
-  packages/platform-web/api-types:
-    devDependencies:
-      '@walnut/eslint-config':
-        specifier: workspace:*
-        version: link:../../tooling/eslint-config
-      '@walnut/tsconfig':
-        specifier: workspace:*
-        version: link:../../tooling/tsconfig
-      openapi-typescript:
-        specifier: 'catalog:'
-        version: 7.13.0(typescript@6.0.3)
-      rimraf:
-        specifier: 'catalog:'
-        version: 6.1.3
-      typescript:
-        specifier: 'catalog:'
-        version: 6.0.3
-
   packages/platform-web/client:
     dependencies:
       '@vueuse/core':
         specifier: 'catalog:'
         version: 14.3.0(vue@3.5.34(typescript@6.0.3))
+      '@walnut/contract':
+        specifier: workspace:*
+        version: link:../../platform-any/contract
       '@walnut/types':
         specifier: workspace:*
         version: link:../../platform-any/types

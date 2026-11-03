@@ -75,7 +75,7 @@ ADR（Architecture Decision Record）记录 Walnut Admin monorepo 项目中的�
 | [0010](./0010-no-ts-project-references.md) | 不用 TypeScript Project References | Accepted |
 | [0011](./0011-dependency-governance-release.md) | `catalogMode: strict`、pnpm 原生发版（单一 fixed 组）+ git-cliff | Accepted |
 | [0012](./0012-toolchain-divergence.md) | 前后端工具链分歧（tsconfig 独立、env 加载、hoisting、边界） | Accepted |
-| [0013](./0013-barrel-exports-policy.md) | Barrel export 策略——选择性 barrel，不用 `export *` | Accepted |
+| [0013](./0013-barrel-exports-policy.md) | Barrel export 策略——桶由「有没有真实消费者」决定（2026-11 修订），不用 `export *` | Accepted |
 | [0014](./0014-eslint-config-strategy.md) | ESLint 配置策略——共享 config 包 + 三预设 | Accepted |
 | [0015](./0015-testing-strategy.md) | 测试策略——Vitest 统一、co-located、分层覆盖率 | Accepted |
 | [0016](./0016-validation-strategy.md) | 验证策略——保持 class-validator，暂不迁移 Zod | Accepted |

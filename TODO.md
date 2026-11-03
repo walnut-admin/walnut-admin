@@ -258,7 +258,8 @@
 2. - Q: cap token也做到axios的响应拦截器了，逻辑类似refresh token，但在access token 和 cap token都失效时，调用多个接口会导致多次触发刷新逻辑
    - A: **大部分已在代码里解决**：两条刷新链路各自包了 `SingletonPromise`
      （`interceptors/response/{capJSToken,refreshToken}.ts`，原语在
-     `packages/platform-any/utils-core/src/queue.ts` —— 共享在途 promise、settle 后清空）。
+     `packages/platform-web/client/src/queue.ts` —— 共享在途 promise、settle 后清空；
+     它 2026-11 批次 4 · D7 从 `@walnut/utils` 下沉到前端包，因为后端 0 消费）。
      **残留缺口**：cap 与 access token 的**去重器是两个独立实例**，所以在「两个 token 同时失效」
      的并发爆发下仍可能各刷一次，中间重试的请求还可能再弹一轮 —— 缺一个共享的「正在刷新」闸门。
 3. - Q: 加了json-editor后，开 OBFUSCATOR 打包后 codemirror 会报错?

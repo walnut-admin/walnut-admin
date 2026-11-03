@@ -305,9 +305,16 @@ jobs:
         if: env.DOTENVX_KEYS == ''
         run: echo "::notice::未配置 ENV_KEYS secret，跳过 admin 构建（镜像构建由 tag 发布流程负责）"
 
-  # ---------- OpenAPI 一致性（export → generate → git diff）----------
+  # ---------- OpenAPI 一致性（export → generate → git diff，**两段**）----------
   # 之前只有 pre-push 的 openapi 段守着「路由/装饰器改动没重新 export」；CI 里没有，
-  # 绕过钩子直接推就会把漂移带进 main。这里把它变成独立 job，与 quality / build 并列：
+  # 绕过钩子直接推就会把漂移带进 main。这里把它变成独立 job，与 quality / build 并列。
+  #
+  # 2026-11 批次 4 · D9 起这里跑两段，而不是一整条：
+  #   段①  导出 openapi.json —— 必须引导 AppModule（PG/Redis 在线 + env 解密）
+  #   段②  openapi.json → schema.d.ts —— 不引导 AppModule、不碰数据库，pure 文件变换
+  # 拆段的唯一理由是触发面：fork PR 拿不到 secret ENV_KEYS ⇒ 段① 跑不了，
+  # 但段② 没有这个前提，于是「没有 key」的分支改为硬跑段②（下面两步的 if 分别覆盖两侧）。
+  # 别把两步合并回一条 `pnpm openapi:check`：那等于把贡献者路径上的那道闸重新拆掉。
   #
   # openapi:export 会以**完整 AppModule** 引导（连 PG / Redis），但 schema 来自路由与装饰器
   # 元数据 —— 本地用「空库 + 只建运行时角色」实测可正常写出 212 个 schema，不需要 seed、也不需要
@@ -383,7 +390,17 @@ jobs:
         working-directory: apps/server
         run: pnpm migration:run
 
-      - name: OpenAPI drift check
+      # 段②（openapi.json → schema.d.ts）**不需要引导 AppModule、不需要数据库**，
+      # 所以它必须在**没有** ENV_KEYS 的分支里也硬跑：fork PR 拿不到仓库 secret，
+      # 而贡献者恰恰是最容易改到 server DTO（进而需要重生成 schema）的那批人。
+      # 2026-11 批次 4 · D9 之前这里是「没有 key 就整段跳过」⇒ 那道闸在贡献者路径上缺位。
+      - name: OpenAPI schema drift check (segment ② — no secrets needed)
+        if: env.DOTENVX_KEYS == ''
+        working-directory: apps/server
+        run: pnpm openapi:check:schema
+
+      # 段① + 段② 全量：段① 要引导完整 AppModule（PG / Redis service 已在本 job 起好）。
+      - name: OpenAPI drift check (segment ① + ②)
         if: env.DOTENVX_KEYS != ''
         working-directory: apps/server
         run: pnpm openapi:check
@@ -430,6 +447,8 @@ jobs:
           # 「进程起来了但一个 cron 都没挂上」正是要抓的缺陷形态，不能放过。
           grep -E 'cron jobs: [1-9][0-9]*' "$log"
 
-      - name: Note skipped OpenAPI check
+      # 这条 note 现在只说「哪一半没跑」：段② 已在上面的 `DOTENVX_KEYS == ''` 分支里真跑过，
+      # 别再写成「跳过 OpenAPI 一致性校验」—— 那会让 fork PR 的日志读起来像整段都没守。
+      - name: Note skipped OpenAPI segment ①
         if: env.DOTENVX_KEYS == ''
-        run: echo "::notice::未配置 ENV_KEYS secret，跳过 OpenAPI 一致性校验（fork PR）"
+        run: echo "::notice::未配置 ENV_KEYS secret，只跑了 OpenAPI 段②（openapi.json → schema.d.ts）；段①（重导出 openapi.json）需要有 PG/Redis 与解密后的 env，fork PR 上跳过"

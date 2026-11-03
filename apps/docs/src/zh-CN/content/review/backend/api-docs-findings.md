@@ -275,7 +275,8 @@
 - **优先级**：P3（观察记录，非缺陷）｜**置信度**：高
 - **证据**：
   - 链路：`apps/server/package.json:38-40`（openapi:export / generate / check = export → generate →
-    `git diff --exit-code -- openapi.json ../../packages/platform-web/api-types/src/schema.d.ts`）；
+    现在拆成两段：段① `openapi:check:export`（要引导 AppModule）、段② `openapi:check:schema`
+    只比对 `packages/generated/api-types/src/schema.d.ts`，见 `apps/server/package.json`）；
     prepush `openapi` 段（`packages/tooling/scripts/src/ci/prepush.ts:149-154`）+ CI
     `.github/workflows/ci.yml:305-381`「OpenAPI drift」job；
   - 同源性：main.ts 与 cli 共用 `buildSwaggerDocumentOptions()`（`swagger.options.ts:4-11`）✅；

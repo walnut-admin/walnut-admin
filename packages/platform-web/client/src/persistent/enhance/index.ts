@@ -1,9 +1,9 @@
 import { aesGcmDecrypt, aesGcmEncrypt } from '@walnut/client/browser/crypto/symmetric/aes-gcm'
 import { watob, wbtoa } from '@walnut/client/browser/window/base64'
-import { withAsyncConditionalEncryption } from '@walnut/utils/persistent/enhance/async'
-import { withSyncConditionalEncryption } from '@walnut/utils/persistent/enhance/sync'
 import { getStorageIdbKey } from '../idb'
 import { asyncLocalStorage, syncLocalStorage } from '../storage/localStorage'
+import { withAsyncConditionalEncryption } from './async'
+import { withSyncConditionalEncryption } from './sync'
 
 /**
  * @description aes gcm encrypt/decrypt for localStorage

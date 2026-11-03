@@ -5,7 +5,6 @@
   "description": "Vue 3 composables and browser utilities for Walnut Admin frontend",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.ts",
     "./*": "./src/*.ts",
     "./types/*": "./src/types/*.d.ts"
   },
@@ -29,6 +28,7 @@
   },
   "dependencies": {
     "@vueuse/core": "catalog:",
+    "@walnut/contract": "workspace:*",
     "@walnut/types": "workspace:*",
     "@walnut/utils": "workspace:*",
     "detectincognitojs": "catalog:",

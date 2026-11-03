@@ -1,4 +1,4 @@
-import { arrayBufferToHex } from '@walnut/utils/crypto/transformer'
+import { arrayBufferToHex } from '../transformer'
 
 /**
  * @description HMAC-SHA256

@@ -169,8 +169,10 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
   {
     id: 'openapi',
     label: 'OpenAPI 一致性（导出 → 生成 → git diff + git diff --cached）',
-    // 经根 package.json 的 `openapi:check` 转发到 apps/server 的同名脚本
-    // （导出 openapi.json → 生成 @walnut/api-types 的 schema.d.ts → git diff --exit-code）。
+    // 经根 package.json 的 `openapi:check` 转发到 apps/server 的同名脚本；那里是**两段**：
+    //   段① `openapi:check:export` —— 引导 AppModule 重导 openapi.json（要 PG/Redis + env）
+    //   段② `openapi:check:schema` —— openapi.json → @walnut/api-types 的 schema.d.ts（**不要 AppModule**）
+    // 两段各自 `git diff --exit-code`，所以失败时能一眼看出是「DTO 改了没重导」还是「重导了没重生成」。
     argv: ['openapi:check'],
     // F-53（DOC-18）边界①：`git diff --exit-code` 只比**工作区 vs 暂存区** —— 生成物一旦
     // 已经 `git add` 进暂存区，重导出后工作区与暂存区逐字节一致，这道闸直接绿；而真正会被
@@ -180,12 +182,13 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     // 用 --stat 只为把失败输出压成一行改动统计：openapi.json 是全量重排，整份 diff 上万行，
     // 灌进门禁失败回放里等于没人看得见结论。
     followups: [
-      ['exec', 'git', 'diff', '--cached', '--exit-code', '--stat', '--', 'apps/server/openapi.json', 'packages/platform-web/api-types/src/schema.d.ts'],
+      ['exec', 'git', 'diff', '--cached', '--exit-code', '--stat', '--', 'apps/server/openapi.json', 'packages/generated/api-types/src/schema.d.ts'],
     ],
-    // 另两条边界**不在本文件的修复面内**，登记在此免得下次重复发现（F-53）：
-    // 边界② fork PR 拿不到仓库 secret `ENV_KEYS` ⇒ CI 的 openapi job 走「没有 key 就跳过」的
-    //   分支**静默跳过**这道闸，最需要它的贡献者路径上恰好缺位。真修得把 check 拆两段：
-    //   段②「openapi.json → schema.d.ts」不需要引导 AppModule、不需要数据库，fork PR 可硬跑。
+    // 剩下的边界面（F-53）：
+    // 边界② **已修（2026-11 批次 4 · D9）**：原来 fork PR 拿不到 secret `ENV_KEYS` ⇒ CI 的
+    //   openapi job 整段跳过，最需要它的贡献者路径上恰好缺位。现在 check 拆成两段，
+    //   CI 在 `DOTENVX_KEYS == ''` 的分支里硬跑段②（`pnpm openapi:check:schema`）——
+    //   它只读 openapi.json、不需要引导 AppModule、不需要数据库，所以没有秘密也能硬失败。
     // 边界③ `openapi:check` 会**改写工作区**（openapi:export 写 openapi.json，
     //   openapi:generate 写 schema.d.ts）—— 它红的时候工作区已经被改过了：别当成「只是检查
     //   没过」，先看 git diff 判断改动是真实的新生成物还是被旧环境写脏。

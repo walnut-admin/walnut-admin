@@ -88,7 +88,7 @@ Swagger 缺口：@nestjs/swagger 仍无官方 zod→OpenAPI 一等支持——�
 ## 3. 接口类型共享：OpenAPI codegen（✅ 一期 / 二期 / 收尾批均已落地）
 
 **推荐方案（2026-10-27 调研定稿）**：server 补 swagger.json 导出（现只有 Scalar UI 无裸 JSON，
-`documentFactory` 已现成）→ 新增 `packages/platform-web/api-types` 生成包
+`documentFactory` 已现成）→ 新增 api-types 生成包（当时落在 `packages/platform-web/`，2026-11 批次 4 · D9 已迁到 `packages/generated/api-types`）
 （openapi-typescript，types-only 零运行时，生成物 check-in + CI `git diff --exit-code` 拦漏生成）
 → admin `BaseAPI` 泛型从 `IModels.Base` 松绑为 `{ id: string }`，逐模块替换 `models.d.ts`
 （304 行手工镜像已实测 3 处漂移，57 文件约 220 处引用），最后删镜像。

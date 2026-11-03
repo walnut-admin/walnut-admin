@@ -137,7 +137,7 @@ Tag-Based 架构边界（Turbo 2.9 引入时是实验特性，2.11 下依然由 
 ```
 
 各包的标签（platform 维度，2026-08-08；`packages/tooling/` 于 2026-09-23 拆成 5 个包、同日再加
-`@walnut/vitest-config`，本表同步为 **15 行**）：
+`@walnut/vitest-config`，本表的行数随包数走 —— 判据是「每个 workspace 包一行」，不写死数字）：
 
 | 包 | 标签 |
 |----|------|
@@ -146,9 +146,10 @@ Tag-Based 架构边界（Turbo 2.9 引入时是实验特性，2.11 下依然由 
 | `@walnut/docs` | `app`, `docs` |
 | `@walnut/utils` | `shared`, `pure`, `platform-any` |
 | `@walnut/contract` | `shared`, `pure`, `platform-any` |
-| `@walnut/types` | `shared`, `pure`, `platform-any` |
+| `@walnut/types` | `shared`, `pure`, `platform-any`（`walnut.platform` 标 `web`：只有前端消费，见 D6；tag 由目录派生，两者含义不同）|
 | `@walnut/client` | `shared`, `platform-web` |
 | `@walnut/http` | `shared`, `platform-web` |
+| `@walnut/api-types` | `shared`, `generated` |
 | `@walnut/tsconfig` | `tooling`, `platform-any` |
 | `@walnut/eslint-config` | `tooling`, `platform-any` |
 | `@walnut/commitlint-config` | `tooling`, `platform-any` |

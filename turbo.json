@@ -48,13 +48,25 @@
           "deny": ["platform-web"]
         }
       },
-      // 前端（含 admin 与 platform-web 三个库）**不得消费 Node 平台包**。
+      // 生成物包（`@walnut/api-types`，2026-11 批次 4 · D9 起在 `packages/generated/` 下）。
+      // 它由 openapi-typescript 从 `apps/server/openapi.json` 机械产出、**零手写**：
+      //   · 不许依赖 app —— 生成物反过来 import 应用代码，等于把生成链变成环；
+      //   · 不许被后端依赖（backend tag）—— 后端要的类型真源是 DTO 本身，拿生成物当输入会让
+      //     「DTO 改 → 重导 → 生成物变 → 后端类型变」形成自指的循环。
+      // 反向断言（每个 key 必须有包声明它）由 `pnpm lint:turbo-cache` 守。
+      "generated": {
+        "dependencies": {
+          "deny": ["app", "backend"]
+        }
+      },
+      // 前端（含 admin 与 platform-web 两个库）**不得消费 Node 平台包**。
       // 这条规则补的是一个此前**完全不存在**的方向：上面 4 条里没有任何一条约束它，
       // 实测（批次 2 的 R1 复核）给 apps/admin 加一条 @walnut/server 依赖时 boundaries
       // 一声不响 —— 前端可以合法地依赖后端包，直到运行时或打包时才炸。
       //
       // 为什么挂在已有的 `platform-web` 上、而不是新建 `frontend` 键：这条 tag 由
-      // apps/admin 与 packages/platform-web/{api-types,client,http} 共同声明，
+      // apps/admin 与 packages/platform-web/{client,http} 共同声明（api-types 于 2026-11
+      // 批次 4 挪到 packages/generated/ 并改声明 generated），
       // 一条规则同时守住「前端 app」和「前端库」两侧；而 `frontend` 只有 apps/admin
       // 声明，是个只服务单个包的键（将来真出现第二个前端 app 再议）。
       // 反向断言见 `pnpm lint:turbo-cache`：boundaries.tags 的每个 key 都必须有包声明它。

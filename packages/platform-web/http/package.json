@@ -5,7 +5,6 @@
   "description": "Axios-based HTTP client — primarily browser, core logic is dual-runtime capable",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.ts",
     "./*": "./src/*.ts"
   },
   "engines": {

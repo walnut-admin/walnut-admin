@@ -30,12 +30,13 @@ walnut-admin/
 ├── packages/
 │   ├── platform-any/                — 平台无关（CJS 双模构建 / 纯类型 / 纯工具）
 │   │   ├── contract/    @walnut/contract   — 类型与常量（响应码、枚举、分页、路由契约）
-│   │   ├── types/       @walnut/types      — ambient 类型声明
-│   │   └── utils-core/  @walnut/utils      — 纯工具（regex、queue、crypto）
+│   │   ├── types/       @walnut/types      — 纯类型声明（只有前端消费）
+│   │   └── utils-core/  @walnut/utils      — 两端同源的纯函数（签名原文、对象扁平化）
 │   ├── platform-web/                — 浏览器 / Vue（源码直消费，不构建）
-│   │   ├── api-types/   @walnut/api-types  — 由 openapi.json 生成的 API 类型
 │   │   ├── client/      @walnut/client     — 浏览器工具 + Vue composables + store 工厂
 │   │   └── http/        @walnut/http       — HTTP 客户端框架（实例 + 适配器）
+│   ├── generated/                   — 零手写的生成物包
+│   │   └── api-types/   @walnut/api-types  — 由 openapi.json 生成的 API 类型
 │   └── tooling/                     — 工具链 6 包
 │       ├── tsconfig/          @walnut/tsconfig          — 纯 JSON tsconfig 预设（base / ts / vue）
 │       ├── eslint-config/     @walnut/eslint-config     — 共享 ESLint 预设（base / vue / nest）

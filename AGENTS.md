@@ -28,7 +28,8 @@ apps/admin   @walnut/admin    Vue3 + Vite 8 + Naive UI + UnoCSS（前端 SPA）
 apps/server  @walnut/server   NestJS 12 + SWC + TypeORM + PostgreSQL + Redis（后端，内部 Nest monorepo）
 apps/docs    @walnut/docs     VitePress 文档站
 packages/platform-any/   contract · types · utils-core     ← 平台无关（CJS 双模构建 / 纯类型 / 纯工具 @walnut/utils）
-packages/platform-web/   api-types · client · http        ← 浏览器/Vue（源码直消费，不构建；api-types 由 openapi.json 生成）
+packages/platform-web/   client · http                    ← 浏览器/Vue（源码直消费，不构建）
+packages/generated/      api-types                        ← 生成物（openapi-typescript 从 server 的 openapi.json 产出，零手写）
 packages/tooling/        tsconfig · eslint-config · commitlint-config · vitest-config · scripts · release
                          ← 工具链 6 包：@walnut/tsconfig（纯 JSON 预设 base/ts/vue）·
                            @walnut/eslint-config · @walnut/commitlint-config ·
@@ -38,8 +39,8 @@ packages/tooling/        tsconfig · eslint-config · commitlint-config · vites
 
 - 前端包 scope `@walnut/*`（ESM、pnpm workspace、Vite 编译）；后端内部 lib scope `@walnut-server/*`
   （CJS、tsconfig paths、SWC，见 [`apps/server/AGENTS.md`](./apps/server/AGENTS.md)）。
-- 全仓共 **15 个 workspace 包**（3 app + 3 platform-any + 3 platform-web + 6 tooling；包数以
-  `pnpm-workspace.yaml` 的 `packages` 字段为判据），同属
+- 全仓的 workspace 包按**目录组**分成 apps / platform-any / platform-web / generated / tooling
+  五组（包数以 `pnpm-workspace.yaml` 的 `packages` 字段为判据），同属
   `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组 —— 组长必须恒等于「有 version 的包数」，
   由 `versioning-config.test.ts` 机械拦。
 - `apps/server/` 内部另有**按六层组织的 NestJS 内部库**（完整清单以 `apps/server/libs/` 目录为准；

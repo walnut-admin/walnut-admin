@@ -25,7 +25,7 @@ Walnut Admin 是一个**异构工具链**的全栈 monorepo——前端用 ESM +
 
 | 继承的预设 | 消费者 | 为什么是它 |
 |-----------|--------|-----------|
-| `vue.json` | `apps/admin`、`apps/docs`、`packages/platform-web/{client,http,ui}` | 由 Vite / vue-tsc 编译，需要 DOM + Vue JSX |
+| `vue.json` | `apps/admin`、`apps/docs`、`packages/platform-web/{client,http}`、`packages/generated/api-types` | 由 Vite / vue-tsc 编译，需要 DOM + Vue JSX（api-types 只需要与 admin 相同的 `DOM` 面，本身不写 JSX） |
 | `ts.json` | `packages/platform-any/{contract,types,utils-core}`、`@walnut/scripts`、`@walnut/release` | 「Node / 纯逻辑 / 工具链」环境；其中 `@walnut/contract` 的 `packages/platform-any/contract/scripts/build-barrel.ts` 与两个工具链包的 bin 由 Node 原生执行，必须只写「可擦除语法」 |
 | `base.json` | 仓库根 `tsconfig.json`、`@walnut/eslint-config`、`@walnut/commitlint-config`、`@walnut/vitest-config` | 这些文件由 ESLint（经 jiti）/ commitlint 的 TS loader / Vitest 的 esbuild 加载，**不是** Node 原生执行 ⇒ 不需要 `erasableSyntaxOnly` |
 | 不继承任何预设 | `apps/server` | 见第 3 节 |

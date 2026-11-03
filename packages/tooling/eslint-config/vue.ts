@@ -5,7 +5,8 @@ import { commentPolicyConfig } from './comment-rules'
 import { turboEnvVarsConfig } from './turbo-env-vars'
 
 /**
- * 浏览器 + Vue 预设：apps/admin、apps/docs、packages/platform-web/*。
+ * 浏览器 + Vue 预设：apps/admin、apps/docs、packages/platform-web/{client,http}。
+ * （`packages/generated/api-types` 用 `base` 预设 + 豁免生成物，见它自己的 `eslint.config.ts`。）
  *
  * 生效方式：包根写 `eslint.config.ts` → `export default vueConfig()`。
  */

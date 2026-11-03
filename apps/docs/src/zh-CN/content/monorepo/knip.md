@@ -80,9 +80,10 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 | 只删 `entry`（让 knip 从 `package.json` 的 `exports` 推） | 50 | 24 | 0 变化 —— 摘了也会从 `exports` 推回来，**「把 barrel 从 entry 摘出去」不是可执行的动作** |
 | `project` + `includeEntryExports` | **139** | **49** | +89 / +25，新增**全部**落在 `packages/**` |
 
-新增 89 条按文件的分布（`pnpm knip` 全表逐条解析）：`packages/platform-web/client/src/index.ts`
-53 条、`packages/platform-any/utils-core/src/index.ts` 22 条、`packages/platform-web/http/src/index.ts`
-7 条（**这三处都是 barrel 本身**），其余 7 条散在 `client` 的深层文件（`browser/cookie.ts`、
+新增 89 条按文件的分布（`pnpm knip` 全表逐条解析）：`packages/platform-web/client/` 的 barrel 53 条、
+`packages/platform-any/utils-core/` 的 barrel 22 条、`packages/platform-web/http/` 的 barrel
+7 条（**这三处都是 barrel 本身**，即各包的 `src/index.ts`；其中 client / http 两处已于
+2026-11 批次 4 按决策 D8 删除），其余 7 条散在 `client` 的深层文件（`browser/cookie.ts`、
 `browser/shared.ts`、`browser/crypto/shared.ts`、`file/download.ts`、`hooks/vueuse/useDraggableElement.ts`、
 `store/createWalnutStore.ts`）。也就是说**这一轮的主要产出就是「barrel 里被 re-export、但全仓没人用」
 的符号第一次现身**。
@@ -91,7 +92,7 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 
 | 探针（各追加一行，跑完 `git checkout --` 还原） | 结果 |
 |---|---|
-| `export const __PROBE = 1` 追加到 `packages/platform-web/http/src/index.ts` | **报出来了**（`…/src/index.ts:25:14`） |
+| `export const __PROBE = 1` 追加到 `packages/platform-web/http/` 的 barrel（当时是 `src/index.ts`，批次 4 已删） | **报出来了**（`…/src/index.ts:25:14`） |
 | 同一行追加到 `packages/platform-any/contract/src/index.ts` | **没报**（同一份配置、同一次运行） |
 | `export const __PROBE = 1` 追加到非 entry 的深层文件（`contract/src/role.ts`） | **报出来了** |
 

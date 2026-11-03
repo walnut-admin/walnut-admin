@@ -5,7 +5,7 @@
 
 ## 概述
 
-Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm workspaces** 管理 15 个包（3 个 app + 3 个 platform-any 包 + 3 个 platform-web 包 + 6 个 tooling 包；包数以 `pnpm-workspace.yaml` 的 `packages` 字段为准）。项目从三个独立仓库合并而来，通过 pnpm catalog 统一依赖版本、Turborepo 编排任务、pnpm 原生 release management（`versioning.fixed` 单一组）管理版本号。
+Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm workspaces** 管理包，按目录分五组：`apps` / `platform-any` / `platform-web` / `generated` / `tooling`（包数以 `pnpm-workspace.yaml` 的 `packages` 字段为准；`generated` 是零手写的生成物组，2026-11 批次 4 · D9 起 `@walnut/api-types` 住在那里）。项目从三个独立仓库合并而来，通过 pnpm catalog 统一依赖版本、Turborepo 编排任务、pnpm 原生 release management（`versioning.fixed` 单一组）管理版本号。
 
 - 仓库形态与包分组：[ADR 0017](../adr/0017-package-reorganization.md)
 - 版本策略：[ADR 0008](../adr/0008-unified-versioning-separate-deploy.md) / [ADR 0011](../adr/0011-dependency-governance-release.md)
@@ -128,9 +128,10 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 │   │   ├── types/                   ← @walnut/types（类型声明）
 │   │   └── utils-core/              ← @walnut/utils（纯函数工具；目录名 ≠ 包名）
 │   ├── platform-web/                ← 浏览器 / Vue（纯源码，不构建）
-│   │   ├── api-types/               ← @walnut/api-types（由 openapi.json 生成）
 │   │   ├── client/                  ← @walnut/client
 │   │   └── http/                    ← @walnut/http（原名 axios）
+│   ├── generated/                   ← 零手写的生成物
+│   │   └── api-types/               ← @walnut/api-types（openapi-typescript 从 server 的 openapi.json 产出）
 │   └── tooling/                     ← 工具链 6 包（ADR 0019）
 │       ├── tsconfig/                ← @walnut/tsconfig（纯 JSON 预设 base / ts / vue）
 │       ├── eslint-config/           ← @walnut/eslint-config（base / vue / nest）
@@ -146,7 +147,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 └── TODO.md                          ← 产品 / 功能待办（与架构待办分开的两本账）
 ```
 
-**外层**（Turborepo 层面）：`apps/*` + `packages/platform-any/*` + `packages/platform-web/*` + `packages/tooling/*` 的 workspace 包，通过 pnpm workspace 协议（`workspace:*`）相互引用。
+**外层**（Turborepo 层面）：`apps/*` + `packages/platform-any/*` + `packages/platform-web/*` + `packages/generated/*` + `packages/tooling/*` 的 workspace 包，通过 pnpm workspace 协议（`workspace:*`）相互引用。
 
 **内层**（Server 内部）：`apps/server/libs/*` 下的 NestJS 内部库（按「基建 → 技术 → identity 内核 → 领域域 → 装配（guards）→ app-domain」六层，其中技术层在 `eslint.config.ts` 里拆成 tech-base（设施）/ tech-assemble（跨域装配内核）两条 `layer`；完整清单以目录为准），通过 TypeScript `paths` 映射解析，不走 pnpm workspace。命名空间为 `@walnut-server/*`，与外层 `@walnut/*` 物理分离。`apps/api` 是默认部署单元（组合根），`apps/worker` / `apps/cli` 是同一 workspace 内的可选组合入口，不是新服务 —— 见 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。
 

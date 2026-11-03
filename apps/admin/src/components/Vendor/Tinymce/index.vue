@@ -6,7 +6,6 @@ import { genString } from 'easy-fns-ts'
 import { computed, ref, shallowRef, watch } from 'vue'
 
 import { isDark } from '@/hooks/app/useAppDark'
-import { useAppEnvProxy } from '@/hooks/app/useAppEnv'
 import { useAppStoreLocale } from '@/store/modules/app/app-locale'
 import { menubar, plugins, toolbar } from './resource'
 
@@ -85,7 +84,11 @@ watch(
   },
 )
 
-const { httpUrl } = useAppEnvProxy()
+// 自托管 tinymce 的**唯一来源**是前端自己的 public/vendor（2026-11 批次 4 · D20 从
+// apps/server/apps/api/src/public/js 搬来：那 4.08MB / 125 个文件原本随后端镜像分发，
+// 后端并不消费它）。与 public/vendor 的其它项（codeMirror 等）同约定：站点根相对路径，
+// 不走 VITE_PUBLIC_PATH（各环境都是 '/'，见 apps/admin/env-*.env）。
+const tinymceScriptSrc = '/vendor/tinymce/tinymce.min.js'
 </script>
 
 <template>
@@ -94,7 +97,7 @@ const { httpUrl } = useAppEnvProxy()
       :id="editorId"
       ref="editorRef"
       v-model="value"
-      :tinymce-script-src="`${httpUrl}/static/js/tinymce/tinymce.min.js`"
+      :tinymce-script-src="tinymceScriptSrc"
       api-key="no-api-key"
       license-key="gpl"
       :init="tinymceOptions"

@@ -519,7 +519,7 @@ IP → Security → Device → Risk(前) → CAP(前) → **JWT** → Risk(后) 
 controller 装饰器反射
   └─ openapi:export   = nest build cli + node dist export-openapi.js（WALNUT_ADMIN_BOOTSTRAP_TASKS=off；需 PG/Redis 在线）
        └─ apps/server/openapi.json（check-in，2 空格 + 尾换行，version=npm_package_version）
-            └─ openapi:generate = openapi-typescript → packages/platform-web/api-types/src/schema.d.ts
+            └─ openapi:generate = openapi-typescript → packages/generated/api-types/src/schema.d.ts
                  └─ openapi:check = export + generate + git diff --exit-code（两文件）
   门禁：prepush 'openapi' 段 + CI ci.yml:305「OpenAPI drift」job（fork PR 无 ENV_KEYS 时跳过并打 notice）
 ```

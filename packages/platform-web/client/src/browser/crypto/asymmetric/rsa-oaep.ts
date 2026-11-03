@@ -4,7 +4,7 @@
  * Algorithm: RSA-OAEP + SHA-256
  */
 
-import type { RsaKeyPairPEM } from '@walnut/utils/crypto/const'
+import type { RsaKeyPairPEM } from '../const'
 import { exportKeyToPEM, generateRsaOaepKeyPairCore } from '../shared'
 
 /**

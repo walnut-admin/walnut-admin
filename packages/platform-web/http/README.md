@@ -21,24 +21,29 @@
 
 | 入口 | 指向 | 内容 |
 |---|---|---|
-| `.` | `src/index.ts` | 桶入口，按 ADR 0013 只做显式具名重导出 |
-| `./*` | `src/*.ts` | 逐文件子路径；admin 走这里：`@walnut/http/instance`、`/types`、`/adapters/index`、`/adapters/cancel`、`/utils` |
+| `./*` | `src/*.ts` | 逐文件子路径 —— **这就是本包的公共面**；admin 走这里：`@walnut/http/instance`、`/types`、`/adapters/index`、`/adapters/cancel`、`/utils` |
 
-桶入口的全部内容：
+**没有桶入口**（`.`）：2026-11 批次 4 删掉了 `src/index.ts`（决策 D8、ADR 0013 修订）——
+那个 barrel 的 21 个导出在全仓的裸包名 import 站点是 **0**。原先只能从桶里取的东西，
+现在都在子路径上，取法不变：
 
-- `Axios`（class，`src/instance.ts`）
-- `composeAdapters`（`src/adapters/index.ts`）
-- 取消池三件套：`removeAllCancel` / `removeCurrentPageRequests` / `removeLatestRequest`
-- 类型：`AxiosConfig`、`AxiosTransformers`、`BaseResponse`、`BaseListParams`、`BaseListResponse`、`BasePageParams`、`BaseSortParams`、`SortOrder`
-- `WalnutAdminConstAppResponseCode`、`generateNonce`
+| 符号 | 子路径 |
+|---|---|
+| `Axios`（class） | `@walnut/http/instance` |
+| `composeAdapters` | `@walnut/http/adapters/index` |
+| `removeAllCancel` / `removeCurrentPageRequests` / `removeLatestRequest` | `@walnut/http/adapters/cancel` |
+| `AxiosConfig` / `AxiosTransformers` / `BaseListParams` / `BaseListResponse` / `BasePageParams` / `BaseSortParams` / `BaseResponse` / `SortOrder` | `@walnut/http/types` |
+| `WalnutAdminConstAppResponseCode` | `@walnut/http/constant` |
+| `generateNonce` | `@walnut/http/utils` |
 
-**不在**桶入口的：各 adapter 工厂（`createCacheAdapter` / `createThrottleAdapter` / `retryAdapter` / `mergeAdapter` / `idAdapter` / `cancelAdapter`）、`buildSortedURL`、以及 `ComposeAdaptersOptions` 类型 —— 它们由 `composeAdapters` 内部装配，要单独用只能走子路径。
+各 adapter 工厂（`createCacheAdapter` / `createThrottleAdapter` / `retryAdapter` / `mergeAdapter` / `idAdapter` / `cancelAdapter`）、`buildSortedURL`、`ComposeAdaptersOptions` 一直只在子路径上（由 `composeAdapters` 内部装配）。
 
 ## 怎么用
 
 ```ts
 // 1. 建实例：适配器链装在 originalConfig.adapter 上，拦截器通过 transformers 注入
-import { Axios, composeAdapters } from '@walnut/http'
+import { composeAdapters } from '@walnut/http/adapters/index'
+import { Axios } from '@walnut/http/instance'
 
 export const AppAxios = new Axios({
   originalConfig: {

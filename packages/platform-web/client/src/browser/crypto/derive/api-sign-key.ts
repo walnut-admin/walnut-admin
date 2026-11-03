@@ -1,5 +1,5 @@
-import { base64ToArrayBuffer } from '@walnut/utils/crypto/transformer'
 import { hkdfSha256 } from '../kdf/hkdf-sha256'
+import { base64ToArrayBuffer } from '../transformer'
 
 /**
  * 派生 API 签名密钥

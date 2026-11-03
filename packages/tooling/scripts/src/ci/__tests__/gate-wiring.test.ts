@@ -147,9 +147,12 @@ const CI_EXEMPT: Record<string, string> = {
   // actionlint 在 CI 侧由**专门的 workflow**直接下载并执行二进制（`workflow-lint.yml`），
   // 不经过 `pnpm lint:workflows` 这个包装脚本 —— 覆盖是有的，只是入口形态不同。
   workflows: 'CI 侧由 workflow-lint.yml 直接跑 actionlint 二进制，不经过 pnpm 包装脚本',
-  // OpenAPI 一致性要引导 AppModule 反射装饰器元数据（连接 PG/Redis），CI 没有数据库服务；
-  // 触发面由本地 prepush 与发版电池（steps.ts 的 openapi 段）承担，两边都要连库、都能连。
-  openapi: '导出 openapi.json 需 PG/Redis 在线，CI 无数据库服务；由 prepush 与发版电池承担',
+  // OpenAPI 的**段①（导出 openapi.json）**要引导 AppModule 反射装饰器元数据并连 PG/Redis，
+  // 而这里判的是「CI 有没有引用根脚本 `openapi:check`」—— CI 的 openapi job 只在有 `ENV_KEYS`
+  // 时跑全量；无 secret 的分支跑的是**段②**（`openapi:check:schema`，只读 openapi.json、
+  // 不引导 AppModule），那是另一条脚本名，所以这条豁免仍然成立：
+  // 全量段的触发面由本地 prepush 与发版电池（steps.ts 的 openapi 段）承担，两边都要连库、都能连。
+  openapi: '全量段要 PG/Redis（CI 只在有 ENV_KEYS 时跑）；无 secret 分支跑段② openapi:check:schema，不引用 openapi:check',
 }
 
 const BATTERY_EXEMPT: Record<string, string> = {}

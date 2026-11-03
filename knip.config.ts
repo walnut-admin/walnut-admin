@@ -153,13 +153,20 @@ const config: KnipConfig = {
       project: ['src/**/*.ts'],
       includeEntryExports: true,
     },
+    // client / http 的桶入口（`src/index.ts`）**已于 2026-11 批次 4 删除**（D8）：
+    // 两个 barrel 共 75 个导出、全仓裸包名 import 站点 **0** 个，等于「公共 API 面」本身
+    // 没有任何消费者 —— 之前 `entry: ['src/index.ts']` 会把这些导出全判成「公共 API」，
+    // 于是 knip 一边报它们未用、一边说不出「谁该用」。
+    //
+    // 删桶之后**刻意不写 `entry`**：两个包的 `exports` 是 `./*` 子路径通配，按 knip 的
+    // 推导规则「每个可被导入的文件都是入口」，这与事实一致（子路径就是公共面），也与
+    // 上面 packages/tooling/* 的处理同口径。写回 `entry: ['src/index.ts']` 会立刻变成
+    // 「指向不存在的文件」，那是配置错误而不是结论。
     'packages/platform-web/client': {
-      entry: ['src/index.ts'],
       project: ['src/**/*.ts'],
       includeEntryExports: true,
     },
     'packages/platform-web/http': {
-      entry: ['src/index.ts'],
       project: ['src/**/*.ts'],
       includeEntryExports: true,
     },

@@ -13,7 +13,8 @@
 |------|------------|
 | **外层 / 内层** | 外层 = pnpm workspace 里的 workspace 包（`apps/*` + `packages/**`）；内层 = `apps/server/libs/*` 那批 NestJS 内部库（按依赖方向分六层，层序见「内部 lib」条目），**不是** workspace 包，走 tsconfig `paths` 解析 |
 | **platform-any** | 运行时无关的共享包组：`contract` · `types` · `utils-core`。可被前端与后端同时消费 |
-| **platform-web** | 浏览器 / Vue 包组：`api-types` · `client` · `http` · `ui`。**源码直消费、不构建** |
+| **platform-web** | 浏览器 / Vue 包组：`client` · `http`（`ui` 已于 2026-11 批次 1 删除、`api-types` 于批次 4 迁到 `generated`）。**源码直消费、不构建** |
+| **generated** | 生成物包组：`api-types`。由 `openapi-typescript` 从 `apps/server/openapi.json` 机械产出，**一个字都不手写**；boundaries 上 `generated` 不得依赖 `app`、也不得被 `backend` 依赖 |
 | **tooling** | 工具链包组（6 个）：`tsconfig` · `eslint-config` · `commitlint-config` · `vitest-config` · `scripts` · `release` |
 | **内部 lib** | `apps/server/libs/` 下的内部库，按依赖方向分六层：**基建 → 技术 → identity 内核 → 领域域（system → auth → security）→ 装配（guards）→ app-domain**。排序靠前者被靠后者 import（下层在前，反向 import 即违规）；guards 是装配层，**在全部领域域之上**，app-domain 再依赖 guards。层序由 `apps/server/eslint.config.ts` 的分层规则机械守（技术层拆成 `TECH_BASE_LIBS` 技术设施 / `TECH_ASSEMBLE_LIBS` 跨域装配内核两条 `layer`，概念上仍是一层），完整清单以目录为准。namespace `@walnut-server/*`，与 workspace 包物理分离（ADR 0007 / 0022） |
 | **组合根（composition root）** | 装配依赖、决定进程形态的入口。`apps/api` 是默认部署单元；`apps/worker`（cron + Bull，可选）与 `apps/cli`（migration / OpenAPI，零运行时）是同一 workspace 内的可选组合入口，不是新服务（ADR 0022） |
@@ -25,8 +26,8 @@
 | 术语 | 在本仓指什么 |
 |------|------------|
 | **`@walnut/contract`** | 构成前后端 API 契约的共享类型与常量：响应码 / 响应信封、枚举、分页、菜单与角色常量、locale、HTTP headers、路由常量。**单一真源**，有快照测试守护（ADR 0004） |
-| **`@walnut/utils`** | 平台无关的纯函数：regex、queue、crypto 原语、持久化增强。前后端都消费；因为后端要 CJS 消费，**不能引 Vue/DOM**（ADR 0006） |
-| **`@walnut/types`** | 纯 ambient 类型声明（`universal` / `storage` / `deep-ref` / `object-key`），零运行时。子路径 `@walnut/types/<name>` 与根导出 `@walnut/types` 都可用 |
+| **`@walnut/utils`** | **两端同源**的纯函数，只剩 `sign-raw`（签名原文）与 `object-paths`（嵌套↔扁平）：判据是「两端是否对同一批字节 / 同一棵树负责」。2026-11 批次 4 · D7 起其余工具（regex / queue / crypto 常量与变换 / 存储增强）都在 `@walnut/client` |
+| **`@walnut/types`** | 纯 ambient 类型声明（`universal` / `storage` / `deep-ref` / `object-key`），零运行时。子路径 `@walnut/types/<name>` 与根导出 `@walnut/types` 都可用。**只有前端消费**（`walnut.platform` = `web`，2026-11 批次 4 · D6 实测后端 0 消费） |
 | **`@walnut/client`** | 仅浏览器的代码：Web Crypto 封装、文件工具、window 帮助函数、持久化存储、Vue composables、store 工厂。源码直消费，无构建 |
 | **`@walnut/http`** | 基于 Axios 的 HTTP 客户端框架：instance、拦截器、适配器（cache / retry / throttle / cancel / merge）。**原名 `@walnut/axios`**（2026-07 更名） |
 | ~~**`@walnut/ui`**~~ | **已删除**（2026-11，批次 1）：3 个 naive 透传组件（`Switch` / `DynamicTags` / `TimePicker`）回到 `apps/admin/src/components/UI/`，表单组件注册表改为显式静态 import。重建门槛见 `monorepo/architecture.md` 的「放哪」表 |

@@ -43,6 +43,8 @@
     "lint:dts": "walnut-check-dts",
     "lint:seed": "walnut-check-seed",
     "openapi:check": "pnpm -C apps/server openapi:check",
+    "openapi:check:export": "pnpm -C apps/server openapi:check:export",
+    "openapi:check:schema": "pnpm -C apps/server openapi:check:schema",
     "lint:turbo-cache": "walnut-check-turbo-cache",
     "lint:pre-hooks": "walnut-check-pre-hooks",
     "lint:lockfile": "walnut-check-catalog-lockstep",
