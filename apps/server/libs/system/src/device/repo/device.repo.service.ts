@@ -2,7 +2,6 @@ import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { AppTechCacheDeviceService } from '@walnut-server/cache'
-import { AppTechCryptoService } from '@walnut-server/crypto'
 import { runAfterCommit, WalnutPGConnectionName } from '@walnut-server/db'
 import { WalnutAdminExceptionNotFound } from '@walnut-server/exceptions'
 
@@ -27,25 +26,11 @@ export class SysDeviceRepositoryService {
     private readonly dataSource: DataSource,
 
     private readonly cacheDeviceService: AppTechCacheDeviceService,
-    private readonly cryptoService: AppTechCryptoService,
     private readonly sharedIpService: SharedIpService,
   ) { }
 
   private getRepository(em?: EntityManager) {
     return (em ?? this.dataSource.manager).getRepository(SysDeviceEntity)
-  }
-
-  /**
-   * @description get device id by fingerprint（**历史工具，身份路径 0 调用**）
-   *
-   * B5 起 device_id 由服务端随机签发（device-id.ts 的 generateDeviceId），指纹不再派生身份；
-   * 批次 11 把唯一那处调用（心跳的 `HMAC(指纹) === deviceId` 校验）改成「与已存行比」后，
-   * 本方法没有任何运行时消费者。刻意**不删**：它是 `DEVICE_ID_ENCRYPTION_KEY` 的解密/派生
-   * 入口，而那个 key 是「部署后不许改」的历史数据根（apps/server/AGENTS.md），删它等于顺手
-   * 改掉一条部署契约。真要清理，连 key 一起在单独一批里裁定。
-   */
-  getDeviceIdByFingerprint(visitorId: string) {
-    return this.cryptoService.hashDeviceFingerprint(visitorId)
   }
 
   /**

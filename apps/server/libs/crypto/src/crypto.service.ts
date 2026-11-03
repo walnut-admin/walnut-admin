@@ -87,7 +87,14 @@ export class AppTechCryptoService {
   }
 
   /**
-   * 生成 HMAC 哈希（用于不可逆数据，如 deviceId、fingerprint）
+   * 生成 HMAC 哈希 —— 用于**不可逆查找键**，不是身份根
+   *
+   * 现存唯一生产调用方是 `AppUserIdentitySharedService.generateValueHash`
+   * （`user_identity.shared.service.ts:64`，盐 = `USER_ID_HASH_SALT`，结果落
+   * `sys_user_identity.value_hash`，按身份值快查）。**别把它当设备身份的派生口**：
+   * 14-D 起 deviceId 与指纹都不走这里 —— deviceId 由服务端随机签发（B5），
+   * 指纹只作风控特征、不参与任何身份计算。
+   *
    * @param text 原始数据
    * @param salt 盐值（可选，默认生成）
    * @param encoding 输出编码格式，默认 hex
@@ -108,6 +115,10 @@ export class AppTechCryptoService {
 
   /**
    * 验证 HMAC 哈希
+   *
+   * **当前无调用方**：`value_hash` 只当等值查找键用（`findByValueHash` 走 SQL 等值），
+   * 不需要 time-safe 重算比较。与 `hash()` 成对保留 —— 将来真要按同一盐重算再比较时，
+   * 别自己拼 `timingSafeEqual`（两个 Buffer 长度不等它会抛）。
    */
   verifyHash(
     text: string,
@@ -121,20 +132,6 @@ export class AppTechCryptoService {
       Buffer.from(computed, encoding),
       Buffer.from(hash, encoding),
     )
-  }
-
-  /**
-   * 生成设备指纹哈希（专用方法，更语义化）
-   * @param fingerprint 设备指纹（如硬件序列号、MAC地址等拼接后的字符串）
-   */
-  hashDeviceFingerprint(
-    fingerprint: string,
-  ): string {
-    const salt = this.configService.get('crypto.deviceIdKey') as string
-    if (salt === null) {
-      throw new Error('Device ID key not found in environment variables')
-    }
-    return this.hash(fingerprint, salt, 'hex')
   }
 
   /**
