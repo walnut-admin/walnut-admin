@@ -14,8 +14,19 @@
  * | 有人把 Extended JSON（`$oid` / `$date`）塞回来 | 真源退回「Mongo 形态 + 运行时映射」，中间层又会长出来 |
  *
  * 判据全部落在**数据本身**（不需要数据库），所以它能进 prepush 与 CI。
- * 「与 `db:export:pg` 往返一致」那一条需要真实库，由 `pnpm db:seed:verify`（两库对拍）兜 ——
- * 不放进这里，否则门禁会依赖环境。
+ *
+ * ## 本门禁**查不到**的那一面（别把它当成已被某道闸覆盖）
+ *
+ * 「与 `db:export:pg` 往返一致」需要真实库，而**仓里没有任何自动门禁在跑它**：
+ * `pnpm db:seed:verify`（两库对拍）是**手动命令**，不进 prepush / CI / 发版电池 ——
+ * 它要真实 PG，且会 DROP `walnut_seed_a` / `walnut_seed_b` 两个**固定库名**
+ * （两个 worktree 或两条并行线会互删，理由见 `src/db/seed-verify.ts` 的文件头）。
+ * 所以那句「由它兜」是错觉：**兜这一面的是人，不是门禁**。
+ *
+ * **什么时候必须手动跑**：改动触到 seed 的**输入面** —— `apps/server/db/seed/**`、
+ * `src/db/seed-reshape.ts`、`src/db/policy.ts`、`src/db/seed-pg.ts` 任一有 diff 时。
+ * 这条判据由本文件在成功分支上打一行提示（best effort，见 `seedInputsTouched`）——
+ * **提示不是门禁**：它只提醒，永远不判红、永远不抛（一个开始误报的门禁等于没有门禁）。
  *
  * ## 数据形态（2026-11 批次 5-B 起）
  *
@@ -30,8 +41,52 @@ import { findUnmaskedPersonal } from '../db/anonymize.ts'
 import { applyPolicy, SEED_POLICY } from '../db/policy.ts'
 import { JUNCTION_TABLES, SEED_TABLES } from '../db/seed-reshape.ts'
 import { UUID_RE } from '../db/uuid5.ts'
+import { runSync } from '../lib/child-run.ts'
 import { ViolationError } from '../lib/errors.ts'
 import { err, line, lineErr, out } from '../lib/log.ts'
+import { REPO_ROOT } from '../lib/repo-root.ts'
+
+/**
+ * seed 的**输入面**：动到其中任一个，双库对拍（`pnpm db:seed:verify`）就必须手动跑一次。
+ *
+ * 这是**判据**不是清单装饰：它只被 `seedInputsTouched` 读，而后者只产出一条提示
+ * （见文件头「本门禁查不到的那一面」）。加/删这里等于改「什么时候必须手动验」的口径。
+ */
+export const SEED_INPUT_PATTERNS = [
+  'apps/server/db/seed/',
+  'packages/tooling/scripts/src/db/seed-reshape.ts',
+  'packages/tooling/scripts/src/db/policy.ts',
+  'packages/tooling/scripts/src/db/seed-pg.ts',
+] as const
+
+/**
+ * 从 `git diff --name-only` 的输出里挑出 seed 输入面（纯函数，便于用例）。
+ *
+ * git 输出的路径永远是正斜杠（Windows 上也是），所以直接前缀比对就够，不必 `path.normalize`。
+ */
+export function seedInputsTouched(changedPaths: readonly string[]): string[] {
+  return changedPaths.filter(changed => SEED_INPUT_PATTERNS.some(pattern => changed.startsWith(pattern)))
+}
+
+/**
+ * 取「本次改动路径」的 git 出口，**任何一步失败都返回 `null`**。
+ *
+ * 两个已知必然失败的场景，都不该是错误：CI 是 shallow clone（`HEAD~1` 可能不存在）、
+ * 分支没有 upstream（`@{upstream}` 解析不了）。本条判据的失败模式**必须**是「少一条提示」，
+ * 不能是「本地 / CI 假红」。
+ */
+function changedPathsBestEffort(root: string): string[] | null {
+  const attempts: string[][] = [
+    ['diff', '--name-only', '@{upstream}...HEAD'],
+    ['diff', '--name-only', 'HEAD~1', 'HEAD'],
+  ]
+  for (const args of attempts) {
+    const result = runSync('git', args, { cwd: root })
+    if (result.code === 0)
+      return result.stdout.split('\n').map(line => line.trim()).filter(Boolean)
+  }
+  return null
+}
 
 /** 数据集总预算与单文件预算（字节）。当前约 0.9MB / 最大单文件 0.6MB，留了余量。 */
 export const TOTAL_BUDGET_BYTES = 2 * 1024 * 1024
@@ -367,6 +422,14 @@ export function main(): void {
   const findings = collectFindings(repoRoot)
   if (findings.length === 0) {
     line('ok', '数据集形态正确：必需表齐全、无凭据形状、无 Extended JSON 残留、体积在预算内、引用完整、裁剪已生效')
+    // best effort：只在「seed 输入面真的变了」时提醒一句（口径见文件头）。
+    // 拿不到 diff、git 不在、路径形态变了 —— 一律安静跳过，**绝不判红**。
+    const changed = changedPathsBestEffort(REPO_ROOT)
+    const touched = changed === null ? [] : seedInputsTouched(changed)
+    if (touched.length > 0) {
+      line('warning', `seed 的输入面变了（${touched.join(', ')}）：本门禁只查形态；`
+      + '「与 db:export:pg 往返一致」需要真实库，请手动跑一次 pnpm db:seed:verify（它不进 prepush / CI）')
+    }
     return
   }
 

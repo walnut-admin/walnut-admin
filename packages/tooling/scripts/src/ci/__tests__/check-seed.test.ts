@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { collectFindings, FORBIDDEN_COLLECTIONS, REQUIRED_COLLECTIONS, REQUIRED_JUNCTION_COLLECTIONS } from '../check-seed.ts'
+import { collectFindings, FORBIDDEN_COLLECTIONS, REQUIRED_COLLECTIONS, REQUIRED_JUNCTION_COLLECTIONS, seedInputsTouched } from '../check-seed.ts'
 
 const SEED_DIR = 'apps/server/db/seed'
 const TS = '2020-11-24T13:54:44.222Z'
@@ -233,5 +233,50 @@ describe('collectFindings —— 反例（每条判据都要能红）', () => {
     const big = Array.from({ length: 4000 }, (_, i) => row(`77777777-7777-5777-8777-${String(i).padStart(12, '0')}`, { padding: 'a'.repeat(280) }))
     const root = makeRepo({ ...validCollections(), sys_locale: big })
     expect(details(root)).toContain('超过预算')
+  })
+})
+
+/**
+ * 「什么时候必须手动跑 `pnpm db:seed:verify`」的判据（`seedInputsTouched`）。
+ *
+ * 为什么这条判据值得用例：**没有任何自动门禁在跑双库对拍**，所以「该跑而没跑」这件事
+ * 只能靠这条提示。判据若漏报，提示就不响；若误报，提示会变成噪音（一个开始误报的门禁
+ * 等于没有门禁）—— 两个方向都得钉住。
+ */
+describe('seedInputsTouched —— seed 输入面的判据', () => {
+  it('seed 数据目录里的任何文件都算（含新加的表）', () => {
+    expect(seedInputsTouched([
+      'apps/server/db/seed/sys_user.json',
+      'apps/server/db/seed/sys_brand_new_table.json',
+    ])).toEqual([
+      'apps/server/db/seed/sys_user.json',
+      'apps/server/db/seed/sys_brand_new_table.json',
+    ])
+  })
+
+  it('三个 TS 输入面都算（reshape / policy / seed-pg：改它们等于改「导出的什么」）', () => {
+    const inputs = [
+      'packages/tooling/scripts/src/db/seed-reshape.ts',
+      'packages/tooling/scripts/src/db/policy.ts',
+      'packages/tooling/scripts/src/db/seed-pg.ts',
+    ]
+    expect(seedInputsTouched(inputs)).toEqual(inputs)
+  })
+
+  it('无关路径不命中（相邻文件 / 前缀相似的目录都不许误报）', () => {
+    expect(seedInputsTouched([
+      'apps/server/db/seed-pg-notes.md', // 只是前几个字符与 seed/ 相同
+      'packages/tooling/scripts/src/db/seed-verify.ts', // 对拍脚本本身：改它不改变数据集
+      'packages/tooling/scripts/src/db/policy.spec.ts',
+      'packages/tooling/scripts/src/ci/check-seed.ts',
+      'apps/admin/src/main.ts',
+    ])).toEqual([])
+  })
+
+  it('空 diff ⇒ 空结果（提示不响），且不改动入参', () => {
+    const input = ['apps/server/db/seed/sys_menu.json', 'apps/admin/src/main.ts'] as const
+    expect(seedInputsTouched([])).toEqual([])
+    expect(seedInputsTouched(input)).toEqual(['apps/server/db/seed/sys_menu.json'])
+    expect(input.length).toBe(2)
   })
 })
