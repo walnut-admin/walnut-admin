@@ -36,6 +36,11 @@
 
 **推荐 A**（单独一批做，别和认证链路混）。
 
+**结案（第 14 批）**：已按 A 执行完 —— A 的承诺就是「先不删，等下一批统一清死代码」，第 14 批正是
+那一批：`getDeviceIdByFingerprint` + `hashDeviceFingerprint` **已删除**（全仓 0 命中）。
+`crypto.deviceIdKey` 与 `DEVICE_ID_ENCRYPTION_KEY` **不动**：它们已是部署契约的一部分，退役要动
+dotenvx 密文 + 多处文档 = 改对外契约，另案裁定。删除面与理由见 `reports/batch-14/r1-residuals.md` 的 14-D。
+
 ---
 
 ### C3 · `concurrency` G6 的既有 flake
@@ -51,6 +56,31 @@ R3 的可疑方向：应用池上**会话级 RLS GUC 残留**，使造种子的�
 - C：让该 spec 自带隔离（每次用独立连接造种子）
 
 **推荐 B**，但需要真实复现窗口；C 是低风险兜底。
+
+---
+
+### C4 · `platform-node` 走 P1（自建 CJS dist）还是 P2（不搬）
+
+**背景**：D4 原定把 28 个「业务无关的后端基建」库下沉到 `packages/platform-node`，前提是
+「零 import 改写、只改 5 个配置面」。2026-11-03 的 `const` 单库 POC 实测**不通过**：`@swc/cli` 的
+`getDest` 让产物逃出 `dist`（build 仍 exit 0）、`stripLeadingPaths` 是全局布尔（开了就把
+`dist/apps/api/src/main.js` 塌成 `dist/api/src/main.js`）、跨包 `include` 连累 assets 校验且
+`types:check` 爆 TS2307。证据见 `industry-research/backend-architecture-review/` 的
+[10 号报告 §10.2](../apps/docs/src/zh-CN/content/industry-research/backend-architecture-review/10-implementation-plan.md)
+与 [ADR 0007 的 2026-11-03 追记](../apps/docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md)。
+
+**为什么没直接定**：两条路都自洽。P1 换回「包边界」这个收益，代价是新增一条构建流水线 +
+`peerDeps(@nestjs/*)` + 28 库搬迁，而且第一关必须是「`tsc` 产出的装饰器元数据与 SWC 等价」——
+错了的症状是静默的（接口 200 但字段消失）。P2 放弃搬迁，而「边界清晰」今天已由 ESLint 六层
+分层 + 3 个 drift spec 提供。
+
+**选项**：
+- A（**当前按这个做的**）：**P2 不搬**，保留 `apps/server/libs/**`；`platform-node` 的 turbo tag 规则
+  留着（没有 subject、永远空转，属已知冗余）
+- B：**P1 自建 CJS dist**（照 `@walnut/contract` 样板），`apps/server` 消费 dist，28 库分批搬
+
+**推荐 A（P2）**。触发条件已写进 ADR 0007：出现**第二个 Node 产品**（不是第二个进程 —— worker
+与 api 共用同一份 AppModule 与构建产物，不构成跨包复用），或决定把后端能力对外发布时，再评估 B。
 
 ---
 
@@ -70,3 +100,4 @@ R3 的可疑方向：应用池上**会话级 RLS GUC 残留**，使造种子的�
 | 新业务码 `40667` | 保留独立码，不复用 40666 | 「风险过高」与「风控不可用」必须可区分，否则排查时分不清 |
 | `APP:MURLOCK` 键前缀 | **不改** | 改 Redis 键空间要迁移，收益为 0 |
 | `roles_list` / `roles_count` | **永久冻结** | 改名的收益（风格纯）远小于动 openapi + 前端 6 处 + 测试 5 处 + i18n |
+| prepush 的 SKIP | **改成第四态**（退出码 3 + 汇总单列「跳过（未验证）」+ `PREPUSH_STRICT=1` 才判红） | 现状 SKIP 与 PASS 在输出与退出码上完全同形（门禁脚本探测不到工具就 `return 0`，prepush 又只在失败时回放输出）⇒ 等于把「未验证」说成「通过」；默认不判红是为了不误伤没装工具的机器 |
