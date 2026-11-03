@@ -146,7 +146,7 @@ sequenceDiagram
     Widget->>Server: POST /security/cap/challenge
     activate Server
     Server->>Server: SecurityCapService.challenge()
-    Server->>CapAPI: AppCapJS.createChallenge({<br/>  count, size, difficulty, ttl })
+    Server->>CapAPI: AppCapJS.createChallenge({<br/>  count, size, difficulty,<br/>  expiresMs = ttl(秒) × 1000 })
     CapAPI-->>Server: 返回挑战数据
     Server-->>Widget: 返回挑战
     deactivate Server
@@ -161,7 +161,7 @@ sequenceDiagram
     Server->>Server: SecurityCapService.redeem()
     Server->>CapAPI: AppCapJS.redeemChallenge(solution)
     CapAPI-->>Server: { token, success }
-    Server->>Server: 设置 capToken 到 Cookie<br/>(maxAge: ttl)
+    Server->>Server: 设置 capToken 到 Cookie<br/>(maxAge = ttl(秒) × 1000)
     Server-->>Widget: { token }
     deactivate Server
 

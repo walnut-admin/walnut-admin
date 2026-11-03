@@ -9,9 +9,10 @@ import { Reflector } from '@nestjs/core'
 import { AppTechCacheLockService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { getWalnutAdminCookie } from '@walnut-server/cookie'
+import { getWalnutAdminCookieString } from '@walnut-server/cookie'
 import { WalnutAdminExceptionUserLocked } from '@walnut-server/exceptions/business/auth'
 import { SysUserLockService } from '@walnut-server/identity'
+import { isNil } from 'lodash'
 import { MurLockService } from 'murlock'
 
 const WalnutAdminConstDecoratorLockKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_LOCK_FREE')
@@ -53,8 +54,16 @@ export class WalnutAdminGuardLock implements CanActivate {
     }
 
     // Step 3: 从 request 获取 deviceId（由 Device Guard 挂载）
-    const deviceId = getWalnutAdminCookie(request, WalnutAdminConstCookieKeys.DEVICE_ID)
-    if (deviceId === null) {
+    //
+    // review-guards P1：旧写法是 `if (deviceId === null)` —— 这个分支**永不命中**：
+    // `getWalnutAdminCookie` 缺省返回的是 **undefined**（cookie 不存在时），而
+    // cookie-parser 对「带 s: 前缀但签名错」的畸形值返回 **false**。两者都不是 null，
+    // 于是 undefined / false 会被继续拿去拼 `APP:MURLOCK:LOCK_GUARD:<userId>:<undefined>`
+    // 与锁缓存键 `...:<deviceId>` —— 所有"没有设备凭据"的请求共用同一个退化键空间查锁，
+    // 只要那个键上恰好是「已锁定」，无凭据的请求就会被误判成 40606。
+    // 现在按 isNil 语义判，并把 false / 空串一并归一成"没有"。
+    const deviceId = getWalnutAdminCookieString(request, WalnutAdminConstCookieKeys.DEVICE_ID)
+    if (isNil(deviceId)) {
       this.logger.debug('Lock check skipped: device ID not found in cookies')
       return true
     }

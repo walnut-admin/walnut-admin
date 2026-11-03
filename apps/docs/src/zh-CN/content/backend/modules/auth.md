@@ -60,9 +60,11 @@ cookie / 缓存，后一步缺前置一律受控失败，不会「自动补做�
 - 两个端点都挂 SignFree / CapFree / JwtFree / DeviceFree / LockFree，并共用
   `SecurityCapSettingService` 的动态限流（默认 4 次 / 60 秒）。
 - 挑战参数来自 `APP:SETTING` 的 `app.global.capjs.config`；缺省
-  `{ count: 10, size: 16, difficulty: 4, ttl: 3600000, throttleLimit: 4, throttleTtl: 60 }`。
-- `redeem` 成功时 `SecurityCapService.redeem` 用配置里的 `ttl`（毫秒）设置
-  `CAPJS_TOKEN` cookie（`maxAge = ttl * 1000`），body 同时回 `success: true`。
+  `{ count: 10, size: 16, difficulty: 4, ttl: 3600, throttleLimit: 4, throttleTtl: 60 }`。
+- `ttl` 的单位是**秒**（与种子 `app_setting.json` 一致）；换算只走
+  `libs/const/src/app/cap.ts` 的 `resolve*`，不要在消费方自己乘除。
+- `redeem` 成功时 `SecurityCapService.redeem` 用配置里的 `ttl`（秒）设置
+  `CAPJS_TOKEN` cookie（`maxAge = ttl * 1000`，Express 的 maxAge 是毫秒），body 同时回 `success: true`。
 - cap.js 的 token 是**一次性**的：服务端 `validateToken` 成功即从 store 删除。客户端重复兑换
   会得到 `success: false`，而不是统一响应壳里的业务码。
 

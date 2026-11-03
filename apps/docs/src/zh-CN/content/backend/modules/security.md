@@ -22,7 +22,7 @@ IP -> Security -> Device -> Risk(前) -> CAP(前) -> JWT -> Risk(后) -> CAP(后
 | 2 | `WalnutAdminGuardSecurity` | UA 存在性、恶意路径、bot、可疑请求、OS/浏览器白名单 | 40604 / 40610 / 40608 / 40609 / 40601 / 40602 | 无（仅 dev 的 `isPostman` 旁路） |
 | 3 | `WalnutAdminGuardDevice` | 校验签名 `DEVICE_ID` cookie；缓存/DB 查设备行；封禁与锁定判定；IP 漂移时更新设备 IP | 40605 / 40606 / 40607 | `@WalnutAdminGuardDeviceFree()` |
 | 4 | `WalnutAdminGuardRisk`（前） | 采集 pre-auth 频率，评估 IP/设备/失败登录/位置/频率，写 `request.risk` | 40666（当前不可达，见 P1-13） | 无 |
-| 5 | `WalnutAdminGuardCap`（前） | 读 `request.risk.comprehensive.recommendation`；强制 `CAPJS_TOKEN` cookie 与缓存校验 | 40116 / 40117 | `@WalnutAdminGuardCapFree()` |
+| 5 | `WalnutAdminGuardCap`（前） | 读 `request.risk.comprehensive.recommendation`；强制 `CAPJS_TOKEN` cookie 与缓存校验 | 40111 / 40116 / 40117 | `@WalnutAdminGuardCapFree()` |
 | 6 | `JwtAccessGuard` | `Authorization: Bearer <AT>`；`validate` 查 `AUTH:SESSIONS` | 40101 | `@WalnutAdminGuardJwtFree()`；另有 `@WalnutAdminGuardJwtOptional()` |
 | 7 | `WalnutAdminGuardRisk`（后） | 合并 post-auth 的 user/userDevice 评估，重写 `request.risk` | 40666（同前） | 无 |
 | 8 | `WalnutAdminGuardCap`（后） | 与 #5 同一实现；已有 userId 时把 critical factor 标记为用户-设备维度 | 40116 / 40117 | `@WalnutAdminGuardCapFree()` |
@@ -223,21 +223,40 @@ METHOD|PATH(去 /{prefix}/v{version})|扁平静态body排序串|timestamp=<ms>|n
 ## 3. CAP
 
 - 挑战参数来自 `app.global.capjs.config`，缺省
-  `{ count: 10, size: 16, difficulty: 4, ttl: 3600000, throttleLimit: 4, throttleTtl: 60 }`。
-- `POST /security/cap/challenge` 创建挑战；`POST /security/cap/redeem` 校验 PoW 解，
-  成功时写签名 `CAPJS_TOKEN` cookie（`maxAge = ttl * 1000`，即默认 1 小时）。
+  `{ count: 10, size: 16, difficulty: 4, ttl: 3600, throttleLimit: 4, throttleTtl: 60 }`。
+- **`ttl` 的权威单位是「秒」**（与 `apps/server/db/seed/app_setting.json` 的 `"ttl":3600` 一致）。
+  三个消费方的换算**只允许**走 `apps/server/libs/const/src/app/cap.ts` 的 `resolve*`：
+  `expiresMs = ttl * 1000`（cap.js 要毫秒）、cookie `maxAge = ttl * 1000`（Express 要毫秒）、
+  校验缓存 `ttl = min(ttl, 20min)`（Redis 要秒）。
+  历史问题是同一配置被当成**毫秒 / 秒 / 毫秒**三种解释，**不存在任何一个取值能让三处同时正确**：
+  种子部署下 challenge 只有 3.6 秒、缓存只有 4 秒；空表部署下 cookie `maxAge` 变成 41.7 天。
+- `POST /security/cap/challenge` 创建挑战（`expiresMs = ttl * 1000`，种子值下 ≈ 60 分钟）；
+  `POST /security/cap/redeem` 校验 PoW 解，成功时写签名 `CAPJS_TOKEN` cookie
+  （`maxAge = ttl * 1000`，种子值下 ≈ 60 分钟）。
   两者都是 `@WalnutAdminDecoratorFreeResponse()`：body 直接是 cap.js 协议形态，无 `{code,data}` 壳。
-- cap.js token **一次性**：服务端 `validateToken` 成功即删除；客户端再次兑换得到
+- cap.js token **本体寿命是 20 分钟**，第三方硬编码（`Date.now() + 20 * 60 * 1000`），
+  **与 `ttl` 无关** —— `ttl` 只决定 challenge 有效期与 cookie 的 `maxAge`。
+  token **一次性**：服务端 `validateToken` 成功即删除；客户端再次兑换得到
   `success: false`，必须重新 challenge。
 - 全局 CAP Guard 的触发条件：`request.risk.comprehensive.recommendation` **存在**。
   - 不存在（Risk 未运行/无 deviceId/评估异常）→ 放行；
   - 存在但 cookie 缺失或校验失败：`shouldChallenge` 为 true → **40116**，否则 → **40117**。
-- 校验缓存键是 `SECURITY:CAP_TOKEN:<deviceId>:<sha256(token) 前 16 hex>`，TTL 为
-  `ceil(config.ttl / 1000)` 秒（P0-3 修复后：与设备 + token 双重绑定，毫秒转秒）。
+- 校验缓存键是 `SECURITY:CAP_TOKEN:<deviceId>:<sha256(token) 前 16 hex>`（P0-3 起与
+  设备 + token 双重绑定），TTL = **`min(ttl, 20min)` 秒** —— 缓存**不得长于** token 本体寿命，
+  否则缓存命中等于放行一枚 cap.js 已经不认的凭据。
   缓存未命中时在 `APP:MURLOCK:CAP:<deviceId>` 锁内调 `AppCapJS.validateToken` 真验。
-- 真验失败时 `performCapVerification` 内部抛 40111 但被自身 catch 吞掉，最终返回 false，
-  客户端看到的是 40116/40117，而不是 40111（死分支现状登记为 P3-31；改 rethrow 或删除
-  属前端错误码契约决策）。
+- 三种出口**都真实可达**（P3-31 的死码已修）：
+  - **40111** Bot Verify Failed：cookie 里的值不是一枚 cap.js token（伪造/损坏/被改写）——
+    本地即可判定的客户端不可信，重放同一枚坏 cookie 不会自愈；
+  - **40116** Interaction Required：需用户显式交互，或凭据缺失且 `shouldChallenge=true`；
+  - **40117** Refresh Required：凭据缺失，或凭据已被 cap.js 判过期/已消费（一次性）——
+    客户端无感刷新后重放即可自愈。
+  `validateToken` **抛异常**（`.data/tokensList.json` 存储坏 / 只读文件系统 / 磁盘满）按
+  **40116/40117** 处理，不按 40111 —— 设施故障不能冤枉用户是机器人。
+- **CAP 只有单实例能力**：cap.js 的 token 存在**进程内本地文件** `.data/tokensList.json`，
+  副本 A 签发的 token 在副本 B 查不到 ⇒ 多副本部署下校验必失败（40116/40117 风暴）。
+  当前部署形态是**单实例**（启动日志会显式打印这条前提）；上多副本前必须先把 token 存储
+  换成 Redis（cap.js 的 `storage.tokens` 适配器）或让所有副本共享同一持久卷。
 - 校验通过后 `SecurityRiskChallengeStateService.markChallengeHandled` 把本次
   `criticalFactors` 标记为已处理：键形如
   `risk:challenge:<scope>:<值...>:<factor>`（scope 由 factor 前缀决定：device / user-device /

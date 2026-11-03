@@ -9,7 +9,7 @@ import { Reflector } from '@nestjs/core'
 import { AppTechCacheCapService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { getWalnutAdminCookie } from '@walnut-server/cookie'
+import { getWalnutAdminCookie, getWalnutAdminCookieString } from '@walnut-server/cookie'
 import {
   WalnutAdminExceptionCapInteractionRequired,
   WalnutAdminExceptionCapRefreshRequired,
@@ -23,6 +23,20 @@ import { MurLockService } from 'murlock'
 const WalnutAdminConstDecoratorCapFreeKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_CAP_FREE')
 
 /**
+ * cap.js token 的形态：`<id>:<vertoken>`，两段都是小写 hex。
+ * 出处 `@cap.js/server@4.0.5` 的 `redeemChallenge`：`id = randomHex(8)`、
+ * `vertoken = randomHex(15)`，最终 `token: \`${id}:${vertoken}\``（index.js:342-364）。
+ *
+ * 只校验**形态**，不校验内容（内容归 `validateToken`）—— 目的是把"客户端交的根本不是
+ * 一枚 cap.js 凭据"与"凭据过期/已被消费"分开，前者才配 40111。
+ */
+const WALNUT_ADMIN_CAP_JS_TOKEN_PATTERN = /^[\da-f]+:[\da-f]+$/i
+
+export function isWellFormedCapJsToken(token: unknown): token is string {
+  return typeof token === 'string' && WALNUT_ADMIN_CAP_JS_TOKEN_PATTERN.test(token)
+}
+
+/**
  * 装饰器：跳过 CAP 验证
  */
 export function WalnutAdminGuardCapFree() {
@@ -34,10 +48,12 @@ export function WalnutAdminGuardCapFree() {
  *
  * 1. 读取 Risk Guard 的输出 recommendation
  * 2. 当 shouldChallenge=true 时，执行人机验证
- * 3. 支持三种错误语义：
- *    - 40116 Interaction Required：需要用户显式交互（新设备、高风险）
- *    - 40117 Refresh Required：静默刷新（Token 过期）
- *    - 40111 Invalid：Directly judged as invalid
+ * 3. 三种错误语义（**三条都真实可达**，review CAP-6 修掉了 40111 的死码）：
+ *    - 40111 Bot Verify Failed：cookie 里的值**不是一枚 cap.js token**（伪造 / 损坏 / 被改写）。
+ *      这是本 guard 唯一能在本地证实的"客户端不可信"信号，重放同一枚坏 cookie 不会自愈。
+ *    - 40116 Interaction Required：需要用户显式交互（新设备、高风险），或凭据缺失 + 策略要求挑战
+ *    - 40117 Refresh Required：凭据缺失/已被 cap.js 判过期（一次性 token 已消费）——
+ *      交给客户端无感刷新后重放
  * 4. After successful verification, mark critical factors as processed
  *
  * 设计思路：
@@ -95,15 +111,18 @@ export class WalnutAdminGuardCap implements CanActivate {
     // Step 3: CAP token 硬校验（必须先于 shouldChallenge）
     // ============================================================
 
-    const capToken = getWalnutAdminCookie(
+    // review CAP-4：`cookie-parser` 对「带 s: 前缀但签名错」的值返回 **false**（不是 undefined），
+    // 所以「存在性」必须按**可用字符串**判，不能只判 isNil —— 否则 false 会一路走到
+    // `createHash().update(false)` 抛 ERR_INVALID_ARG_TYPE，变成 HTTP 200 + body.code 50000。
+    const capToken = getWalnutAdminCookieString(
       request,
       WalnutAdminConstCookieKeys.CAPJS_TOKEN,
     )
 
-    // --- Token 缺失 ---
+    // --- Token 缺失（含签名错 / 空串的畸形 cookie）---
     if (isNil(capToken)) {
       this.logger.warn(
-        `CAP token missing, shouldChallenge=${recommendation.shouldChallenge}`,
+        `CAP token missing or malformed, shouldChallenge=${recommendation.shouldChallenge}`,
       )
 
       // 即使当前策略不要求 challenge，也不能视为已验证
@@ -115,6 +134,8 @@ export class WalnutAdminGuardCap implements CanActivate {
       throw new WalnutAdminExceptionCapRefreshRequired() // 40117
     }
 
+    // deviceId 沿用旧读取器（返回 false 时只会退化成缓存键里的 "false"，不参与哈希）；
+    // 判空退化登记为 P3 / CAP-9，本轮 P1 不改
     const deviceId = getWalnutAdminCookie(
       request,
       WalnutAdminConstCookieKeys.DEVICE_ID,
@@ -206,24 +227,48 @@ export class WalnutAdminGuardCap implements CanActivate {
   private async performCapVerification(capToken: string, deviceId: string): Promise<boolean> {
     this.logger.log(`Starting CAP verification: ${deviceId}`)
 
+    // ---- 40111 出口（review CAP-6 / P3-31）----
+    // 旧写法把 `throw new WalnutAdminExceptionYouAreBot()` 放在 try 里，被自己的 catch
+    // 吞成 `return false` ⇒ 客户端永远只能看到 40116/40117，40111 与前端分支全是死码。
+    //
+    // 现在按「**谁能证明什么**」切开，而不是把三种语义糊成一个 false：
+    // - 值不是 cap.js token 的形态（`<id>:<vertoken>`，两段 hex）⇒ 本地即可判定客户端在
+    //   交伪造/损坏凭据 ⇒ 40111。注意这里**不是**"token 过期"：过期/已消费只表现为
+    //   `validateToken → success:false`，那属于可自愈路径，仍是 40116/40117。
+    // - validateToken **抛异常**（.data 文件存储坏 / 只读 FS / 磁盘满）⇒ 设施故障，
+    //   不能冤枉用户是机器人 ⇒ 返回 false 走 40116/40117。
+    // - success:false ⇒ 凭据已被 cap.js 消费或过期 ⇒ 返回 false 走 40116/40117 自愈。
+    //
+    // 为什么 success:false 不直接抛 40111（review CAP-6 option (a) 的做法）：cap.js 对
+    // "一次性 token 已被消费" 与 "判定为机器人" 返回的是**同一个** `{ success: false }`
+    // （@cap.js/server 4.0.5 index.js:409-437），而缓存窗口只有 20 分钟 ⇒ 每个正常用户
+    // 20 分钟后第一次请求都会命中这条分支。若抛 40111，前端会跳 /not-allowed，等于
+    // 每 20 分钟踢一次全部用户。详见 reports/review-cap/fix-p1.md「需要 Lead 拍板」。
+    if (!isWellFormedCapJsToken(capToken)) {
+      this.logger.warn(`CAP token is not a cap.js token (malformed/forged): ${deviceId}`)
+      throw new WalnutAdminExceptionYouAreBot()
+    }
+
+    let success: boolean
+
     try {
-      const { success } = await AppCapJS.validateToken(capToken)
-
-      if (!success) {
-        this.logger.warn(`CAP verification failed: ${deviceId}`)
-        throw new WalnutAdminExceptionYouAreBot()
-      }
-
-      // 缓存验证结果（键绑定本轮通过校验的 token 指纹）
-      await this.cacheCapService.setCapTokenCache(deviceId, capToken)
-
-      this.logger.log(`CAP verification successful: ${deviceId}`)
-      return true
+      ({ success } = await AppCapJS.validateToken(capToken))
     }
     catch (error: any) {
       this.logger.error(`CAP API call failed: ${error}`)
       return false
     }
+
+    if (!success) {
+      this.logger.warn(`CAP verification failed: ${deviceId}`)
+      return false
+    }
+
+    // 缓存验证结果（键绑定本轮通过校验的 token 指纹）
+    await this.cacheCapService.setCapTokenCache(deviceId, capToken)
+
+    this.logger.log(`CAP verification successful: ${deviceId}`)
+    return true
   }
 
   /**

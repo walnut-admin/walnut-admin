@@ -21,8 +21,10 @@ import * as process from 'node:process'
  * 「零配置契约」冲突，且这些契约是 spec 里写明的：
  * - `app.functional.role`（scope=global、globalValue=switchable）会把 P2-9 的
  *   零配置 COMBINE 翻成 SWITCH（permission-chain / data-scope 系列显式依赖默认值）；
- * - `app.global.capjs.config.ttl=3600` 是毫秒口径（见 `cache.cap.ts` 的单位修正），
- *   缓存被 `setting.api-spec` 的 extract 预热后，CAP token 只剩 ~4s；
+ * - `app.global.capjs.config.ttl=3600` 是**秒**（P1 单位统一后；旧代码把同一配置同时当毫秒/秒
+ *   读过，那时预热后 CAP 校验缓存只剩 ~4s）。现在缓存窗口 = `min(3600, 20min)` = 20 分钟，
+ *   与零配置默认值同口径 —— 这条历史理由已失效，排除它的真正原因是下一条：`app_setting` 是
+ *   **部署配置**不是参考数据；
  * - `app.auth.email.authEnable=1` 会让 `otp.api-spec` 的「缺省关闭」用例直接失去前提。
  *
  * 结论：默认只灌 7 个**参考数据**集合（菜单/角色/字典/语言/语言包/演示账号）。

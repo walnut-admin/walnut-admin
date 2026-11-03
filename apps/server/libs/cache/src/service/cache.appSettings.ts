@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { IWalnutAdminConstAppSettingKeys, WalnutAdminConstAppCacheKeys, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
+import { WalnutAdminConstCapTtlDefaultSeconds } from '@walnut-server/const/app/cap'
 import { IWalnutAdminConstAppSettingAuthEmailKeys, IWalnutAdminConstAppSettingAuthOAuthGiteeKeys, IWalnutAdminConstAppSettingAuthOAuthGitHubKeys, IWalnutAdminConstAppSettingAuthOAuthGoogleKeys, IWalnutAdminConstAppSettingAuthOpaqueKeys, IWalnutAdminConstAppSettingAuthSmsKeys, IWalnutAdminConstAppSettingCapJSKeys, IWalnutAdminConstAppSettingCryptoHKDFKeys, IWalnutAdminConstAppSettingForceQuit, IWalnutAdminConstAppSettingFunctionalFrontendKeys, IWalnutAdminConstAppSettingFunctionalFrontendScopeKeys, IWalnutAdminConstAppSettingFunctionalRoleKeys, IWalnutAdminConstAppSettingMfaKeys, WalnutAdminConstAppSettingForceQuitStrategy, WalnutAdminConstAppSettingScopeType } from '@walnut-server/const/app/setting'
 
 import { IWalnutAdminConstRoleMode, WalnutAdminConstRoleMode } from '@walnut-server/const/role'
@@ -129,7 +130,9 @@ export class AppTechCacheAppSettingsService {
     count: 10,
     size: 16,
     difficulty: 4,
-    ttl: 60 * 60 * 1000, // 1 hour
+    // 单位**秒**：与 db/seed/app_setting.json 的 "ttl":3600 逐字对齐（旧值 60*60*1000 是毫秒，
+    // 与种子差 1000 倍 —— review CAP-1）
+    ttl: WalnutAdminConstCapTtlDefaultSeconds,
     throttleLimit: 4,
     throttleTtl: 60, // 1 minute
   }

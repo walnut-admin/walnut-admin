@@ -6,19 +6,24 @@ import {
   WalnutAdminExceptionYouAreBot,
 } from '@walnut-server/exceptions/business/auth'
 import { AppCapJS } from '@walnut-server/security/cap/cap.service'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { WalnutAdminGuardCap } from './cap.guard'
 
 /**
- * G9（guard 分支覆盖补齐批）：CAP 真验失败（cap.js `validateToken` → success=false）
- * 在 `shouldChallenge` 两态下的出口 —— 40416 / 40117。
+ * CAP guard 的三条出口（review CAP-4 / CAP-6）：
  *
- * 为什么走单测：审计建议（HTTP 级不可达）—— 真验失败需要「cookie 有效签名但 token
- * 在 cap.js store 中已消费/不存在」的精确缓存态，而 HTTP 用例要先把一次性 token 耗掉
- * 再清 guard 缓存，时序脆弱；单测直接钉 `performCapVerification` 的 false 出口。
+ * | 输入 | 出口 | 为什么 |
+ * |------|------|--------|
+ * | cookie 缺失 / 签名错的 `false` / 空串 | 40116 / 40117 | 凭据本身不成立，客户端拿新的即可自愈 |
+ * | cookie 是字符串但**不是 cap.js token 形态** | **40111** | 本地可证的伪造/损坏凭据（P3-31 死码修复） |
+ * | 形态合法但 cap.js 判 `success:false` | 40116 / 40117 | 一次性 token 已消费 / 过期 —— 必须能自愈 |
+ * | `validateToken` 抛异常（存储坏 / 只读 FS） | 40116 / 40117 | 设施故障不能冤枉用户是机器人 |
  *
- * 同时钉 P3-31 的现状：`performCapVerification` 内部抛的 40111 YouAreBot 被自身 catch
- * 吞掉 → 外部永远只能观察到 40116/40117（40111 不可达，登记于 DESIGN-ISSUES）。
+ * 「旧写法会红」对照：
+ * - 用例 1（畸形 cookie）在旧代码里 `isNil(false) === false` ⇒ 继续往下走
+ *   ⇒ 真实链路是 `createHash().update(false)` 抛 ERR_INVALID_ARG_TYPE ⇒ body.code 50000。
+ *   本文件用「`getCapTokenCache` 是否被调用」把它钉住（旧代码会带着 `false` 调进去）。
+ * - 用例 3（不是 cap.js token）在旧代码里被 `catch` 吞成 false ⇒ 40116；现在是 40111。
  */
 
 vi.mock('@walnut-server/security/cap/cap.service', () => ({
@@ -30,6 +35,7 @@ const validateTokenMock = AppCapJS.validateToken as unknown as ReturnType<typeof
 
 interface CapGuardMocks {
   getCapTokenCache: ReturnType<typeof vi.fn>
+  setCapTokenCache: ReturnType<typeof vi.fn>
   runWithLock: ReturnType<typeof vi.fn>
   markChallengeHandled: ReturnType<typeof vi.fn>
 }
@@ -37,6 +43,7 @@ interface CapGuardMocks {
 function createGuard(): { guard: WalnutAdminGuardCap, mocks: CapGuardMocks } {
   const mocks: CapGuardMocks = {
     getCapTokenCache: vi.fn(async () => null),
+    setCapTokenCache: vi.fn(async () => undefined),
     runWithLock: vi.fn(async (_key: string, _ttl: number, fn: () => Promise<unknown>) => fn()),
     markChallengeHandled: vi.fn(async () => undefined),
   }
@@ -44,18 +51,18 @@ function createGuard(): { guard: WalnutAdminGuardCap, mocks: CapGuardMocks } {
   const guard = new WalnutAdminGuardCap(
     { getAllAndOverride: () => false } as never,
     { runWithLock: mocks.runWithLock } as never,
-    { getCapTokenCache: mocks.getCapTokenCache, setCapTokenCache: vi.fn() } as never,
+    { getCapTokenCache: mocks.getCapTokenCache, setCapTokenCache: mocks.setCapTokenCache } as never,
     { markChallengeHandled: mocks.markChallengeHandled } as never,
   )
 
   return { guard, mocks }
 }
 
-function createContext(shouldChallenge: boolean): ExecutionContext {
+function createContext(shouldChallenge: boolean, capToken: unknown): ExecutionContext {
   const request = {
     isPostman: false,
     signedCookies: {
-      [WalnutAdminConstCookieKeys.CAPJS_TOKEN]: 'g9-invalid-token',
+      [WalnutAdminConstCookieKeys.CAPJS_TOKEN]: capToken,
       [WalnutAdminConstCookieKeys.DEVICE_ID]: 'g9-device',
     },
     risk: {
@@ -74,37 +81,134 @@ function createContext(shouldChallenge: boolean): ExecutionContext {
   } as unknown as ExecutionContext
 }
 
-describe('cap guard G9：真验失败（success=false）与缓存 miss', () => {
-  it('shouldChallenge=true + 无效 token + 缓存 miss → 40116 CapInteractionRequired', async () => {
-    validateTokenMock.mockResolvedValue({ success: false })
+/** cap.js 真实 token 形态：`<id>:<vertoken>`，两段 hex */
+const WELL_FORMED_TOKEN = 'deadbeefcafe1234:cafebabedead5678'
+
+async function caught(promise: Promise<unknown>): Promise<unknown> {
+  return promise.then(() => null, (error: unknown) => error)
+}
+
+// 模块级 mock 的调用历史会跨用例累积（validateTokenMock 是单例）——
+// 每条用例都从「零调用」开始，否则 `not.toHaveBeenCalled` 这类断言会读到上一条的残留
+beforeEach(() => {
+  validateTokenMock.mockReset()
+})
+
+describe('cap guard：畸形 cookie 不再 500（review CAP-4）', () => {
+  it('签名错的 false（cookie-parser 的坏签名出口）+ shouldChallenge=true ⇒ 40116，且不进缓存/哈希', async () => {
     const { guard, mocks } = createGuard()
 
-    await expect(guard.canActivate(createContext(true)))
+    const error = await caught(guard.canActivate(createContext(true, false)))
+
+    expect(error).toBeInstanceOf(WalnutAdminExceptionCapInteractionRequired)
+    // 旧写法：isNil(false) === false ⇒ 继续 ⇒ 带着 boolean 去 createHash().update() ⇒ 50000
+    expect(mocks.getCapTokenCache).not.toHaveBeenCalled()
+    expect(validateTokenMock).not.toHaveBeenCalled()
+  })
+
+  it('签名错的 false + shouldChallenge=false ⇒ 40117（与「缺失」同一语义）', async () => {
+    const { guard, mocks } = createGuard()
+
+    const error = await caught(guard.canActivate(createContext(false, false)))
+
+    expect(error).toBeInstanceOf(WalnutAdminExceptionCapRefreshRequired)
+    expect(mocks.getCapTokenCache).not.toHaveBeenCalled()
+  })
+
+  it('cookie 缺失（undefined）⇒ 40116 / 40117（既有语义不变）', async () => {
+    const { guard } = createGuard()
+
+    await expect(guard.canActivate(createContext(true, undefined)))
       .rejects
       .toBeInstanceOf(WalnutAdminExceptionCapInteractionRequired)
 
-    // 真验腿真实走到：缓存 miss → 锁内 validateToken；失败后不写验证缓存
-    expect(mocks.getCapTokenCache).toHaveBeenCalled()
-    expect(validateTokenMock).toHaveBeenCalledWith('g9-invalid-token')
-  })
-
-  it('shouldChallenge=false + 无效 token + 缓存 miss → 40117 CapRefreshRequired（策略降级仍拒）', async () => {
-    validateTokenMock.mockResolvedValue({ success: false })
-    const { guard } = createGuard()
-
-    await expect(guard.canActivate(createContext(false)))
+    await expect(guard.canActivate(createContext(false, undefined)))
       .rejects
       .toBeInstanceOf(WalnutAdminExceptionCapRefreshRequired)
   })
 
-  it('p3-31 现状：40111 YouAreBot 在 performCapVerification 内部抛出后即被自身 catch 吞掉（外部不可达）', async () => {
+  it('空串 cookie 按缺失处理（不会拿空串去算指纹）', async () => {
+    const { guard, mocks } = createGuard()
+
+    const error = await caught(guard.canActivate(createContext(true, '')))
+
+    expect(error).toBeInstanceOf(WalnutAdminExceptionCapInteractionRequired)
+    expect(mocks.getCapTokenCache).not.toHaveBeenCalled()
+  })
+})
+
+describe('cap guard：40111 真能抛出来（review CAP-6 / P3-31 死码修复）', () => {
+  it('cookie 是字符串但不是 cap.js token 形态 ⇒ 40111 YouAreBot（旧写法给 40116）', async () => {
+    const { guard } = createGuard()
+
+    const error = await caught(guard.canActivate(createContext(true, 'not-a-capjs-token')))
+
+    expect(error).toBeInstanceOf(WalnutAdminExceptionYouAreBot)
+    // 旧代码这一条只能观察 40116（throw 被 performCapVerification 自己的 catch 吞掉）
+    expect(error).not.toBeInstanceOf(WalnutAdminExceptionCapInteractionRequired)
+    // 形态非法在本地就拒，不必打第三方
+    expect(validateTokenMock).not.toHaveBeenCalled()
+  })
+
+  it('shouldChallenge=false 时形态非法仍是 40111（不是 refresh）', async () => {
+    const { guard } = createGuard()
+
+    const error = await caught(guard.canActivate(createContext(false, 'forged:value:with:extra')))
+
+    expect(error).toBeInstanceOf(WalnutAdminExceptionYouAreBot)
+  })
+})
+
+describe('cap guard：真验失败 / 设施故障仍是可自愈的 40116 / 40117', () => {
+  it('shouldChallenge=true + success:false + 缓存 miss ⇒ 40116，且不写验证缓存', async () => {
+    validateTokenMock.mockResolvedValue({ success: false })
+    const { guard, mocks } = createGuard()
+
+    const error = await caught(guard.canActivate(createContext(true, WELL_FORMED_TOKEN)))
+
+    expect(error).toBeInstanceOf(WalnutAdminExceptionCapInteractionRequired)
+    expect(error).not.toBeInstanceOf(WalnutAdminExceptionYouAreBot)
+
+    expect(mocks.getCapTokenCache).toHaveBeenCalled()
+    expect(validateTokenMock).toHaveBeenCalledWith(WELL_FORMED_TOKEN)
+    expect(mocks.setCapTokenCache).not.toHaveBeenCalled()
+  })
+
+  it('shouldChallenge=false + success:false ⇒ 40117（策略降级仍拒，但可无感刷新自愈）', async () => {
     validateTokenMock.mockResolvedValue({ success: false })
     const { guard } = createGuard()
 
-    const error = await guard.canActivate(createContext(true)).catch((e: unknown) => e)
+    await expect(guard.canActivate(createContext(false, WELL_FORMED_TOKEN)))
+      .rejects
+      .toBeInstanceOf(WalnutAdminExceptionCapRefreshRequired)
+  })
 
-    // 观察到的只能是 40116；40111 分支被自身 catch 吞掉，永远到不了调用方
+  it('validateToken 抛异常（.data 存储坏 / 只读 FS）⇒ 40116，不是 40111（不冤枉用户）', async () => {
+    validateTokenMock.mockRejectedValue(new Error('ENOENT: .data/tokensList.json'))
+    const { guard } = createGuard()
+
+    const error = await caught(guard.canActivate(createContext(true, WELL_FORMED_TOKEN)))
+
     expect(error).toBeInstanceOf(WalnutAdminExceptionCapInteractionRequired)
     expect(error).not.toBeInstanceOf(WalnutAdminExceptionYouAreBot)
+  })
+})
+
+describe('cap guard：通过路径', () => {
+  it('缓存命中 ⇒ 直接放行，不再问 cap.js', async () => {
+    const { guard, mocks } = createGuard()
+    mocks.getCapTokenCache.mockResolvedValue(true)
+
+    await expect(guard.canActivate(createContext(true, WELL_FORMED_TOKEN))).resolves.toBe(true)
+    expect(validateTokenMock).not.toHaveBeenCalled()
+  })
+
+  it('缓存 miss + 真验通过 ⇒ 写验证缓存并放行', async () => {
+    validateTokenMock.mockResolvedValue({ success: true })
+    const { guard, mocks } = createGuard()
+
+    await expect(guard.canActivate(createContext(true, WELL_FORMED_TOKEN))).resolves.toBe(true)
+
+    expect(mocks.setCapTokenCache).toHaveBeenCalledWith('g9-device', WELL_FORMED_TOKEN)
   })
 })
