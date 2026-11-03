@@ -375,12 +375,17 @@ export class WalnutApiClient {
   }
 }
 
-/** 统一响应壳 `{ code, data, msg?, requestId? }` 的类型化取值（supertest 的 body 是 any） */
+/** 统一响应壳 `{ code, data, msg?, requestId?, meta? }` 的类型化取值（supertest 的 body 是 any） */
 export interface WalnutAdminResponseBody<T = Record<string, unknown>> {
   code: number
   data: T
   msg?: string
   requestId?: string
+  /**
+   * 批次 8 / B2：成功响应也开始可能带 `meta`（`{ riskDegraded }` —— 风控不可用但端点不敏感时
+   * 的降级留痕）。字段来自 `libs/utils/src/response.ts` 的响应壳，缺省不出现。
+   */
+  meta?: Record<string, unknown>
 }
 
 export function bodyOf<T = Record<string, unknown>>(res: SuperTestResponse): WalnutAdminResponseBody<T> {

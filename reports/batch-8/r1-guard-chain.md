@@ -198,3 +198,80 @@ findOneAndUpdate({ visitorId: dto.visitorId }, { deviceId, ...updatePayload }, {
 `monitor-user.api-spec.ts` 因此引入第二台真实客户端 `guest`（完整 device/CAP/签名握手），并把清理腿改成
 `DELETE ... WHERE device_id = ANY(...)`。api-spec 里所有 `visitorId` 现在都取 `client.fingerprint`
 （= 真实客户端 axios 头里的那个值），否则 HMAC 校验必然 40099。
+## 5. 验收读数（本机、独占跑）
+
+| 命令 | 结果 | 说明 |
+|---|---|---|
+| `pnpm --filter @walnut/server test` | **822 passed / 98 files**（exit 0） | 日志 `reports/batch-8/logs/server-test.log`。Lead 给的基线是 790 —— 差额里含我新增的 32 条单测 + 批次 9 同期新增的用例（同一工作树，见 §0） |
+| `pnpm --filter @walnut/server types:check` | **exit 0** | 期间一度红在两个 number 文件（批次 9 中间态），对方修好后复跑绿 |
+| `pnpm --filter @walnut/server lint` | **0 error**（3 个 warning 在批次 9 的 `libs/repository/src/pg-list.builder.spec.ts`） | 日志 `logs/lint-server.log`；我改的文件已 `--fix` 复跑 |
+| `pnpm --filter @walnut/docs lint` | exit 0 | 我改了两篇文档（auth.md / security.md） |
+| `pnpm boundaries` | **Checked 4681 files in 15 packages, no issues found** | |
+| `pnpm --filter @walnut/contract test` | 27 passed | 新增业务码 40667 后复跑（快照已在 `index.test.ts.snap`） |
+| `pnpm --filter @walnut/server test:integration` | 见 §5.1 | 独占：先确认本仓 0 个其它 vitest 进程，且 globalSetup 打印「已拿到排他锁」|
+
+### 5.1 集成读数
+
+INTEGRATION_PLACEHOLDER
+## 6. 已知边界 / 未做
+
+1. **`openapi.json` 需要重导出**（本批改了两处契约面：心跳 body 少了 `deviceId`、新增业务码 40667 会进
+   每个 200 响应的 `code` enum）。交付时它**已被批次 9 改脏并提交**，我不能在里面混入自己的 diff —— 谁最后收尾谁跑
+   `pnpm openapi:export && pnpm openapi:generate`（`packages/generated/api-types/src/schema.d.ts` 会跟着变）。
+2. **`_devMsg` 只在 dev 落盘**（`libs/utils/src/response.ts:18` 的 `isDev` 门）。所以生产里 40667 的**唯一**可见信号是业务码本身；
+   降级原因（`no-device-id` / `risk-evaluation-failed @ POST /auth/refresh`）只进日志与 `_devMsg`（dev）。
+   非敏感端点的留痕不受影响（`meta.riskDegraded` 恒落响应壳）。
+3. **历史脏行不会自动修复**：改造前被投毒的行（`visitor_id` 属于 A、`device_id` 属于 B）仍在表里。受害者**新**上报会撞
+   `uq_monitor_visitor`（23505 → 40000）直到那一行被清。判据（`HMAC(visitor_id) === device_id`）算不了 SQL —— key 在 env。
+   见 §7 第 4 条。
+4. **未做**：risk 服务「慢而不失败」没有超时/熔断（本批只处理「抛异常」与「无 deviceId」两种不可用形态）。
+5. **未做**：`/app/error` 的 ErrorMap 没登记 40667（与既有的 40608/40609/40610 同形：未登记就抛 50000）。
+6. **未做**：`libs/guards/src/guards/ip.guard.ts` 的 `@WalnutAdminGuardIpFree()` 现在是 0 调用导出，knip 迟早会点它（见 §7 第 5 条）。
+
+## 7. 需要 Lead 拍板
+
+1. **`POST /auth/otp/send` 要不要一起 fail-close**：我按你的列表**严格**口径记成 fail-open（理由：它不是「校验」，且有独立
+   `OtpDecoratorThrottle` 兜底）。但风控缺席时它仍是**匿名发码**入口（SMS 成本 + 账号枚举面）。改成 fail-close 是一行
+   （`risk.sensitivity.ts` 表里把 `fail-open` 改 `fail-close`）+ 改 `risk.sensitivity.spec.ts` 的 fail-close 钉。
+2. **`POST /security/sensitive/verify`（敏感操作第二因子增强）** 同理：不在你的列表里 ⇒ 我记 fail-open。要不要一起收进 fail-close？
+3. **40667 这个新码**：新加了 `NOT_ACCEPTABLE_RISK_UNAVAILABLE: 40667`（contract + i18n 双语 + 异常类）。
+   替代方案是复用 40666（但语义是「算出来太高」，会误导值班）或 50302（依赖不可用，但 ≥50000 会**每条请求都进错误库**，
+   风控挂掉时正好是登录高峰 ⇒ 噪声）。如果你不想动 contract，退回 40666 是一行改动。
+4. **历史脏行清理**：需要一条一次性 repair（人工确认后执行），建议 SQL 形态：
+   `SELECT id, device_id, visitor_id FROM app_monitor_user WHERE device_id IS NULL OR visitor_id IS NULL;`
+   再按「在线列表里 device 与 user 明显对不上」的行人工核。**不要**自动删（`force-quit` 依赖这些行做 revoke）。
+5. **`@WalnutAdminGuardIpFree()` 装饰器留不留**：现在 0 调用。留着 = 将来确有豁免需求时仍有单一开关（但也会被再次误用）；
+   删掉 = knip 清静、缺口从编译期消失。我倾向**留着但写进 AGENTS 的反面清单**（「加 IpFree 前先证明同族端点也跳 IP」）。
+6. **`openapi.json` / `api-types` 的重导出归属**：见 §6-1。它现在是批次 9 的 diff，本批的契约变更叠在同一文件上，
+   建议**两批都落地后**由你统一导一次，避免互相覆盖。
+7. **文档里的旧计数**：`apps/docs/.../industry-research/backend-architecture-review/10-implementation-plan.md:305` 写着「3 处多余 IpFree」，
+   实际是 4 处（我全撤了）。这篇属冻结语料（`ignoreDeadLinks` 白名单），我没动；要改的话得你确认是否解冻。
+
+## 8. 文件清单（本批新增/改动，均为相对仓库根）
+
+新增：
+
+- `apps/server/libs/guards/src/guards/risk.sensitivity.ts`（分级清单 + 前缀归一化 + 解析器）
+- `apps/server/libs/guards/src/guards/risk.sensitivity.spec.ts`（扫描对账 13 条）
+- `apps/server/libs/guards/src/interceptors/response/success.interceptor.spec.ts`（留痕通道 4 条）
+- `apps/server/libs/app-domain/src/monitor/user/user.service.spec.ts`（行键/校验 5 条）
+
+改动（代码）：
+
+- `apps/server/libs/guards/src/guards/risk.guard.ts` / `cap.guard.ts` / `guards/index.ts`
+- `apps/server/libs/guards/src/interceptors/response/success.interceptor.ts`
+- `apps/server/libs/utils/src/response.ts`、`apps/server/libs/types/src/walnut-admin/express.d.ts`
+- `apps/server/libs/exceptions/src/base/406.ts`、`packages/platform-any/contract/src/response-code.ts`（+ 快照）
+- `apps/server/apps/api/src/i18n/{zh_CN,en_US}/response.json`
+- `apps/server/apps/api/src/modules/security/sign/sign.controller.ts`、`.../system/locale/locale.controller.ts`、`.../system/identity/user_preference.controller.ts`（IpFree）
+- `apps/server/libs/app-domain/src/monitor/user/{user.service.ts,repo/user.repo.service.ts,dto/user.dto.ts}`、`apps/server/apps/api/src/modules/app/monitor/user/{dto/user.dto.ts,user.controller.ts}`（B6）
+
+改动（测试 / 文档）：
+
+- `apps/server/libs/guards/src/guards/risk.guard.spec.ts`、`cap.guard.spec.ts`
+- `apps/server/apps/api/test/api/monitor-user.api-spec.ts`、`guard-matrix.api-spec.ts`、`helpers/api-client.ts`
+- `apps/server/apps/api/test/integration/device.user-device.monitor.pg.int-spec.ts`、`apps/server/apps/api/test/api/ENDPOINTS.md`
+- `apps/docs/src/zh-CN/content/backend/modules/{auth,security}.md`
+
+> 提交状态：协调方已把本批代码刀在 `570b7448 feat(server): 风控按端点分级 fail-close、撤掉多余 IpFree、心跳行键改服务端 deviceId`；
+> 我在那之后又补了「B2 的 3 条真实 HTTP 钉（guard-matrix）+ 测试响应壳类型补 `meta`」与最终集成日志，这部分**未提交**。

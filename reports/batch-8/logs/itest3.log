@@ -1,0 +1,123 @@
+$ vitest run --config ./apps/api/vitest.config.integration.ts
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+`esbuild` option is set to false, but `oxc` option was not set to false. `esbuild: false` does not have effect any more. If you want to disable the default transformation, which is now handled by Oxc, please set `oxc: false` instead.
+
+ RUN  v4.1.2 D:/walnut-admin/walnut-admin/apps/server
+
+[integration globalSetup] 已拿到排他锁（key=730942001，等待 0s）
+[integration][seed] 灌入 7 个参考数据集合（app_setting 按设计排除）
+[integration][seed] 首轮完成 2547ms：sys_dict_type=14 sys_dict_data=169 sys_lang=2 sys_locale=1836 sys_menu=172 sys_role=6 sys_role_menu=15 sys_user=2 sys_user_role=2
+[integration][seed] 幂等重放通过 2122ms（逐集合 upsert 计数一致）
+ ✓ apps/api/test/api/data-scope-matrix.api-spec.ts (14 tests) 83895ms
+     ✓ M7 solo（SELF）：仅本人 1 行（无部门归属行按 owner 可见）；改他人 → 404  314ms
+     ✓ M9 无角色用户：登录即被拒（40103，空 roles_list 在 opaque 通道统一翻译），无法进入任何数据查询  669ms
+     ✓ M10 缓存失效时序：改档位 / 换清单 / 清空清单，下一请求立即生效  866ms
+     ✓ M10b app.functional.role 切换（COMBINE↔SWITCH）：下一请求按新 roleMode 合并，无需重登  383ms
+ ✓ apps/api/test/api/data-scope.dept.api-spec.ts (15 tests) 71375ms
+     ✓ DEPT_AND_CHILD 用户把可见行 dept_id 改到子树内：成功且可见性随部门迁移  354ms
+     ✓ B1：非 ALL 更新 sys_user，未提交 deptId 放行且部门不变；显式 null → 404；原值 → 200  312ms
+     ✓ 用户 dept 变更后缓存失效：下一请求按新部门过滤  545ms
+     ✓ 部门移动后缓存失效：旧/新祖先链的 DEPT_AND_CHILD 立即按新子树过滤  491ms
+ ✓ apps/api/test/api/monitor.api-spec.ts (7 tests) 28543ms
+     ✓ server 八个只读端点 → 20000，形状非空  18483ms
+ ✓ apps/api/test/api/permission-chain.api-spec.ts (15 tests) 18995ms
+     ✓ SWITCH/COMBINE 对照（LOCAL scope）：COMBINE 合并双角色、SWITCH 只看 current_role  460ms
+     ✓ P1-18：admin 移除用户 current 角色 → current_role 校正 + 权限缓存失效；重登后按新角色计算  679ms
+     ✓ F1：恢复用户（junction 未恢复）—— 旧 AT 权限为空、重新登录 40103 受控拒绝  723ms
+     ✓ G10 root SWITCH 短路：role_mode=switchable 重登 → 受控端点 20000 且仍无权限缓存键  481ms
+stdout | apps/api/test/integration/auth.refresh-token.pg.int-spec.ts > B7b auth_refresh_token (on real PG) > F-26 部分唯一索引：同 (user, device) 第二条现役行 23505；撤销后可再插（多行历史不受影响）
+query failed: INSERT INTO auth_refresh_token (jti, user_id, device_id, encrypted_token, expired_at) VALUES ($1, $2, $3, $4, $5) -- PARAMETERS: ["b7-rt-uniq-b-730ae0a7","8b2d7795-6d45-4a4b-b2cd-50a8913dd102","b7-rt-device-active-uniq","enc-b7-rt-uniq-b-730ae0a7","2026-11-03T09:00:21.352Z"]
+error: error: duplicate key value violates unique constraint "uq_rt_active_device_user"
+
+ ✓ apps/api/test/integration/auth.refresh-token.pg.int-spec.ts (9 tests) 3190ms
+ ✓ apps/api/test/api/data-scope.api-spec.ts (8 tests) 19463ms
+     ✓ 二期翻转：角色成员变化不再影响 CUSTOM 成员的可见面（成员快照语义已废除）  369ms
+ ✓ apps/api/test/api/guard-matrix.api-spec.ts (47 tests) 20738ms
+       ✓ 会话吊销（删 AUTH:SESSIONS 键）后旧 AT 双因子签名 → JWT 层 40101（P0-4；随后 SQL 撤 RT 重登恢复）  639ms
+       ✓ 缓存清空 + 已消费的原始 token → 40117（真验路径：cap.js token 单次有效，validateToken 成功即删）；重新 redeem 后恢复 20000  3395ms
+       ✓ 封禁闭环（封禁 = 踢下线）：第二设备 HTTP ban → 本设备 40607 + 该设备 RT 全撤 + 会话键清空 → unban 后旧 AT 仍 40101（处理器前）→ 重新登录才恢复放行  914ms
+       ✓ mfa_setup=true 用户 + 未种设备 verified 缓存 → 40115 MfaVerifyFailed（登录时 isTrusted=false → payload.mfaVerified=false）  978ms
+       ✓ mfa_setup=false 用户 → 40114 MfaRequired（mfa.guard P5：未启用 MFA 的用户无法使用系统）  1163ms
+       ✓ lock → 全链请求 40118 UserLocked（SECURITY_LOCK 缓存命中）→ unlock → 恢复 20000  336ms
+ ✓ apps/api/test/api/deleted.api-spec.ts (7 tests) 24719ms
+     ✓ 造数据 → 软删 → read：快照 content/modelName + user；list content 模糊过滤命中  450ms
+     ✓ recoverMine：属主恢复自己删的行 → 原行回来 + sys_deleted 行同事务消失  316ms
+     ✓ P3-21：me/recover 走 system:deleted:recover:mine —— 非 root 只有 recover:mine 可恢复自己删的行，只有管理端 recover 被拒 40105  329ms
+     ✓ recover（管理端）→ 恢复成功；deletedId 不匹配 → 40000 recoverFail  318ms
+     ✓ P2-18 / P2-22：删用户 → 外围行（identity/preference/oauth）同事务进快照；recover 用户 → 联动恢复  363ms
+ ✓ apps/api/test/api/opaque-admin.api-spec.ts (6 tests) 18302ms
+     ✓ me 通道 change-password：start → finish（真实 opaque 两步）→ identity 替换 + 全设备 RT/会话/缓存清（updatePass）  892ms
+     ✓ 改密后：旧密码登录链 finishLogin 失败（opaque 客户端拒绝），新密码登录成功  1088ms
+     ✓ admin password/update：root 给目标用户改密（按 id 定位）→ identity 再替换 + RT 再吊销  693ms
+     ✓ P1-14：register/{start,finish} 为已登录补挂口令（按 userId upsert 替换，不再恒 40001）；匿名仍 40101  1339ms
+ ✓ apps/api/test/api/demo.api-spec.ts (8 tests) 11453ms
+ ✓ apps/api/test/api/auth-session.api-spec.ts (9 tests) 19874ms
+     ✓ B7：已过期 AT + 有效 RT → 仍能登出（JwtFree 凭 RT 认人），且 RT 全部失效  4584ms
+ ✓ apps/api/test/api/cap-throttle.api-spec.ts (2 tests) 7591ms
+ ✓ apps/api/test/api/monitor-user.api-spec.ts (12 tests) 17738ms
+     ✓ force-quit → 20000，admin-kick 撤销 RT；P2-12：旧 AT 立即 40101 + 设备缓存全清  3015ms
+ ✓ apps/api/test/api/user-identity.api-spec.ts (13 tests) 21782ms
+     ✓ bind：错码 → 40000（不成行）；缺 setAsSecurity 走默认 false；解绑后带 setAsSecurity 重绑 → security 身份同落  540ms
+ ✓ apps/api/test/api/user-lock.api-spec.ts (7 tests) 14812ms
+     ✓ P2-26：偏好写入通道 —— security 模式必须带密码；bcrypt 落库且 read 回 lockMode  381ms
+     ✓ P2-26：security 模式跨设备解锁必须带密码（缺省/错密 40000，对密成功）  4811ms
+ ✓ apps/api/test/api/dept.api-spec.ts (5 tests) 18034ms
+     ✓ CRUD 闭环：create → read → update → list（业务键 + 可空联系方式往返）  393ms
+     ✓ 树能力：tree 嵌套 / children 按父查一层 / subtree 递归 CTE 子树  626ms
+     ✓ RESTRICT：有子部门 / 有职工时删除 → 40000；清空后软删进回收站  622ms
+ ✓ apps/api/test/api/throttle.api-spec.ts (2 tests) 7602ms
+ ✓ apps/api/test/api/external-oauth.api-spec.ts (13 tests) 14924ms
+ ✓ apps/api/test/api/otp.api-spec.ts (6 tests) 11404ms
+ ✓ apps/api/test/api/user.api-spec.ts (11 tests) 10572ms
+     ✓ create 带 roles → junction 落行 + currentRole 首角色；read 回 roles_list  305ms
+     ✓ update → status 翻转（启停）+ roles 整组替换持久化；roles=[] 时 currentRole 归空（P1-18）  378ms
+     ✓ me/role/switch：行值 COMBINE 拒（40000）；零配置下 switchable + junction 双角色可切（P2-19）  402ms
+ ✓ apps/api/test/api/log-auth.api-spec.ts (3 tests) 10232ms
+     ✓ delete → 软删（sys_deleted 快照）+ deleteMany → 批量消失；不存在 id → 40401  320ms
+ ✓ apps/api/test/api/key.api-spec.ts (6 tests) 9198ms
+stdout | apps/api/test/api/pool-occupancy.api-spec.ts > L4：连接占用 spike（注册实体 CRUD 的隐式事务 × 池排队实测） > spike：2 × 池上限并发下的 p95 / waiting 峰值 / 排队占比（只测不断言阈值）
+[pool-spike] {"at":"2026-11-03T08:08:29.693Z","endpoint":"POST /app/demo/list","poolMax":10,"concurrency":20,"poolTotalAfterWarmup":10,"samples":40,"baselineMedianMs":35.91,"baselineP95Ms":41.4,"controlP95Ms":100.25,"burstMedianMs":247.15,"burstP95Ms":248.21,"burstOverControlMs":147.96,"waitingPeak":10,"totalPeak":10,"inUsePeak":10,"idleMin":0,"waitingSampleRatioPercent":20,"acquireCount":20,"acquireMedianMs":0.6,"acquireP95Ms":38.1,"acquireMaxMs":40.61,"acquireWaitedRatioPercent":50,"queuedRequests":20,"queuedRatioPercent":100,"thresholds":{"p95Ms":50},"verdict":"维持现状（每 CRUD 隐式事务）","verdictE2E":"（含测试客户端开销，仅诊断，不用于阈值判定）触发预案候选"}
+
+ ✓ apps/api/test/api/pool-occupancy.api-spec.ts (1 test) 8631ms
+     ✓ spike：2 × 池上限并发下的 p95 / waiting 峰值 / 排队占比（只测不断言阈值）  1212ms
+ ✓ apps/api/test/api/dict.api-spec.ts (10 tests) 8975ms
+     ✓ GET /system/dict/type/s?types=… → 按 type 批量回启用 data（order 升序）；未知 type 跳过  363ms
+     ✓ dictType delete → 关联 dictData 逐行进回收站（P2-8）；recover type 联动恢复 data（P2-23 组合恢复器）  308ms
+ ✓ apps/api/test/api/shared-ali.api-spec.ts (2 tests) 8086ms
+     ✓ sts → 受控两态：20000（敏感字段为握手 RSA 信封，region/bucket 与 env 一致）或 50000（外部调用失败兜底）  370ms
+ ✓ apps/api/test/api/security.api-spec.ts (11 tests) 12366ms
+     ✓ cap challenge/redeem → FreeResponse 无响应壳：challenge 形状 + 本地 PoW 对解 success:true  2633ms
+ ✓ apps/api/test/api/log-operate.api-spec.ts (5 tests) 9099ms
+ ✓ apps/api/test/api/post.api-spec.ts (4 tests) 9491ms
+     ✓ CRUD 闭环：create → read → update → list（remark 可空往返）  362ms
+     ✓ RESTRICT：有职工时删除 → 40000；职工清掉后软删进回收站  558ms
+ ✓ apps/api/test/api/error.api-spec.ts (2 tests) 11748ms
+     ✓ ErrorMap 全项 → body.code 与路由 code 逐一相等（P2-7 对齐后）  1674ms
+ ✓ apps/api/test/api/menu.api-spec.ts (10 tests) 9869ms
+     ✓ pid 自引用：子菜单挂父 pid → tree 建出父子层级（fullTree 回根 children、treeWithoutTypeElement 含根）  334ms
+     ✓ P3-18：多根部署 → fullTree 拼接全部根的 children（不再只取首根）  371ms
+     ✓ update 给 meta → 19 列整体替换（缺省键回默认值）；不给 meta → meta 列原样不动；F3：仅权限相关列变化才清权限缓存  537ms
+     ✓ P2-23：_cascade=1 删除后从回收站恢复菜单 → locale 行联动恢复  307ms
+ ✓ apps/api/test/api/device.api-spec.ts (11 tests) 10627ms
+     ✓ PATCH unban → true + DB/缓存双清；解封不复活旧会话，重新登录后 read 恢复可用  681ms
+ ✓ apps/api/test/api/user-device.api-spec.ts (7 tests) 8496ms
+     ✓ force-quit → 撤该用户该设备全部 RT；P2-12：旧 AT 立即 40101 + 会话/权限/MFA 缓存全清  2048ms
+ ✓ apps/api/test/api/locale.api-spec.ts (10 tests) 10642ms
+     ✓ list → 按 key 过滤 + 分页  303ms
+     ✓ DELETE /:key → 软删该 key 全语言行；DELETE /deleteMany/:keys 批量  368ms
+ ✓ apps/api/test/api/concurrency.api-spec.ts (6 tests) 10621ms
+     ✓ G2 同一用户两路并发补挂口令（service 级 finishRegister upsert）—— 两路皆成功、identity 恰一行  746ms
+     ✓ G4 同一 user 四段并发 PATCH preference —— ON CONFLICT DO UPDATE 按列回写，四段齐落无死锁  435ms
+ ✓ apps/api/test/api/role.api-spec.ts (8 tests) 10454ms
+     ✓ create 带 menus → junction 落行；update 未给 menus → junction 不动；给了 → 整组替换  409ms
+     ✓ findRolesWithPopulatedMenus 权限链路形态：status 过滤角色 + menusList 组装 meta  421ms
+     ✓ 批 7 / L6：deptIds 上限 200 —— 200 个真实部门放行、201 → 40099（整体替换语义不破）  310ms
+ ✓ apps/api/test/api/employee.api-spec.ts (5 tests) 6803ms
+     ✓ CRUD 闭环：create（部门/岗位直挂）→ read → update → list  374ms
+     ✓ 绑定/解绑账号闭环：bind-user → 一号一职工冲突 → unbind-user 幂等  447ms
+     ✓ 离职状态语义：resigned 不删账号、不自动解绑；软删进回收站  322ms
+[ELIFECYCLE] Command failed with exit code -1.
+Error: ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL
+
+  × "pnpm recursive run" failed in D:\walnut-admin\walnut-admin\apps\server
+

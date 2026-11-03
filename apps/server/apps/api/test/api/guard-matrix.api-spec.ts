@@ -1115,4 +1115,58 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       }
     })
   })
+
+  /**
+   * 批次 8 / B2：风控降级分级的**真实 HTTP 链**钉子。
+   *
+   * 确定性手法：把 `DEVICE_ID` cookie 拿掉 —— Risk guard 的「无 deviceId 可评估」是**唯一**
+   * 不需要让风控服务真的挂掉就能复现的降级入口（未知异常那条腿由 risk.guard.spec 的单测钉）。
+   * 端点选两组：
+   * - 敏感端点 `POST /security/sign/initial`（DeviceFree + SignFree，正好能在无 cookie 下打到）
+   *   ⇒ 必须 40667（改造前是 20000：握手照做、机器人防护缺席）；
+   * - 非敏感端点 `GET /system/locale/message/zh_CN`（全 Free）⇒ 20000 + 响应壳 `meta.riskDegraded`。
+   *
+   * 负对照：把 risk.guard 的 `degradeOrReject` 换回 `return true`，第一条变 20000 ⇒ 红；
+   * 把成功拦截器的 meta 腿删掉，第二条的 `meta.riskDegraded` 变 undefined ⇒ 红。
+   */
+  describe('批次 8 / B2 风控降级分级（无 deviceId 的真实降级入口）', () => {
+    /** 拿掉 DEVICE_ID cookie 跑一次，结束后原样种回（签名 cookie 原文，供后续用例继续用） */
+    async function withoutDeviceCookie<T>(fn: () => Promise<T>): Promise<T> {
+      const snapshot = api.getCookie(WalnutAdminConstCookieKeys.DEVICE_ID)
+      api.dropCookie(WalnutAdminConstCookieKeys.DEVICE_ID)
+      try {
+        return await fn()
+      }
+      finally {
+        if (snapshot !== undefined) {
+          api.setCookie(WalnutAdminConstCookieKeys.DEVICE_ID, snapshot)
+        }
+      }
+    }
+
+    it('B2 敏感端点：无 deviceId ⇒ 40667（改造前 20000，握手照做）', async () => {
+      const res = await withoutDeviceCookie(async () =>
+        api.unsigned('POST', api.apiPath('/security/sign/initial'), { rsaPubKey: `b2-probe-${seed8}`, force: false }))
+
+      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_RISK_UNAVAILABLE)
+    })
+
+    it('B2 非敏感端点：无 deviceId ⇒ 20000 且响应壳 meta.riskDegraded = no-device-id', async () => {
+      const res = await withoutDeviceCookie(async () =>
+        api.unsigned('GET', api.apiPath('/system/locale/message/zh_CN')))
+
+      const body = bodyOf<Record<string, unknown>>(res)
+      expect(body.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
+      // 可观测通道：不是只打日志
+      expect(body.meta).toEqual({ riskDegraded: 'no-device-id' })
+    })
+
+    it('B2 对照：cookie 在时同样的非敏感端点不带降级留痕', async () => {
+      const res = await api.unsigned('GET', api.apiPath('/system/locale/message/zh_CN'))
+
+      const body = bodyOf<Record<string, unknown>>(res)
+      expect(body.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
+      expect(body.meta).toBeUndefined()
+    })
+  })
 })
