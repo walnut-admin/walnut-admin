@@ -1,7 +1,7 @@
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 import { describe, expect, it, vi } from 'vitest'
 
-import { AppTechCacheAppSettingsService } from './cache.appSettings'
+import { AppTechCacheAppSettingsService } from './appSettings.cache'
 
 // L3 配套单测：appSettings 读取 memo 化（进程内缓存）后的语义钉子 ——
 // 1. memo 命中不再打 Redis；2. setAppSettings 写后同进程读立即见新值（失效生效）；

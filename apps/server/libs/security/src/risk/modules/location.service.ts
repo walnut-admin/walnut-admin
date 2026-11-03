@@ -1,10 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common'
+import type { WalnutLockService } from '@walnut-server/lock'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { SharedIpService } from '@walnut-server/ip'
+import { WALNUT_ADMIN_LOCK } from '@walnut-server/lock'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
-import { MurLockService } from 'murlock'
 import {
   calcScoreAndLevel,
   SecurityRiskConfigService,
@@ -21,7 +22,7 @@ export class SecurityRiskLocationService {
     private readonly redisService: AppTechRedisService,
     private readonly configService: SecurityRiskConfigService,
     private readonly sharedIpService: SharedIpService,
-    private readonly murLockService: MurLockService,
+    @Inject(WALNUT_ADMIN_LOCK) private readonly lockService: WalnutLockService,
   ) {}
 
   private get redis() {
@@ -78,7 +79,7 @@ export class SecurityRiskLocationService {
     const normalizedIP = await this.sharedIpService.normalizeIp(ip)
     const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:RISK:LOCATION:${normalizedIP}`
 
-    return this.murLockService.runWithLock<IWalnutAdminLocationRiskInfo | null>(
+    return this.lockService.runWithLock<IWalnutAdminLocationRiskInfo | null>(
       lockKey,
       200,
       async () => {

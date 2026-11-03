@@ -1,12 +1,13 @@
+import type { WalnutLockService } from '@walnut-server/lock'
 import type { ISystemFailedLoginRiskPayload, IWalnutAdminSystemFailedLoginRiskCollector } from '@walnut-server/system'
-import { Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { IWalnutAdminConstDecoratorLogAuthType } from '@walnut-server/const/decorator/logAuth'
 import { SharedIpService } from '@walnut-server/ip'
+import { WALNUT_ADMIN_LOCK } from '@walnut-server/lock'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { isNil } from 'lodash'
-import { MurLockService } from 'murlock'
 import { calcScoreAndLevel, SecurityRiskConfigService, WalnutAdminConstRiskFactor, WalnutAdminConstRiskType } from '../risk.config.service'
 
 /**
@@ -21,7 +22,7 @@ export class SecurityRiskFailedLoginService implements IWalnutAdminSystemFailedL
     private readonly redisService: AppTechRedisService,
     private readonly configService: SecurityRiskConfigService,
     private readonly sharedIpService: SharedIpService,
-    private readonly murLockService: MurLockService,
+    @Inject(WALNUT_ADMIN_LOCK) private readonly lockService: WalnutLockService,
   ) {}
 
   private get redis() {
@@ -35,14 +36,15 @@ export class SecurityRiskFailedLoginService implements IWalnutAdminSystemFailedL
 
   /**
    * Collect a failed login attempt and trigger IP blacklisting if threshold exceeded.
-   * Uses MurLock to prevent race conditions when multiple failed logins occur simultaneously.
+   * Uses the distributed lock port (WALNUT_ADMIN_LOCK) to prevent race conditions when
+   * multiple failed logins occur simultaneously.
    */
   async collect(payload: ISystemFailedLoginRiskPayload): Promise<number> {
     const { identifier, loginType, deviceId, ip, reason } = payload
 
     const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:RISK:FAILED_LOGIN:${deviceId}:${identifier ?? 'unknown'}`
 
-    return this.murLockService.runWithLock<number>(
+    return this.lockService.runWithLock<number>(
       lockKey,
       200,
       async () => {

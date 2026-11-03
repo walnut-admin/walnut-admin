@@ -1,11 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common'
+import type { WalnutLockService } from '@walnut-server/lock'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheService } from '@walnut-server/cache'
 import { IWalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
+import { WALNUT_ADMIN_LOCK } from '@walnut-server/lock'
 
 import { arrToTree, formatTree, TreeNodeItem } from 'easy-fns-ts'
 import { cloneDeep, omit } from 'lodash'
 
-import { MurLockService } from 'murlock'
 import { SharedAreaBasicRepository } from './area.basic.repository'
 import { SharedAreaEntity } from './entity/area.entity'
 
@@ -25,7 +26,7 @@ export class SharedAreaService {
   constructor(
     private readonly sharedAreaBasicRepo: SharedAreaBasicRepository,
     private readonly cacheService: AppTechCacheService,
-    private readonly murLockService: MurLockService,
+    @Inject(WALNUT_ADMIN_LOCK) private readonly lockService: WalnutLockService,
   ) {}
 
   /**
@@ -106,7 +107,7 @@ export class SharedAreaService {
     // Slow path: cache miss or partial miss, acquire distributed lock to prevent race
     const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:AREA:CACHE:${CACHE_KEY}`
 
-    return this.murLockService.runWithLock(
+    return this.lockService.runWithLock(
       lockKey,
       3000,
       async () => {

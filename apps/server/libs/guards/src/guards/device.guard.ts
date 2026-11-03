@@ -1,19 +1,21 @@
+import type { WalnutLockService } from '@walnut-server/lock'
 import {
   CanActivate,
   ExecutionContext,
+  Inject,
   Injectable,
   Logger,
   SetMetadata,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { AppTechCacheDeviceService } from '@walnut-server/cache'
 
+import { AppTechCacheDeviceService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys, WalnutAdminConstDeviceCookieMaxAge } from '@walnut-server/const/app/cookie'
 import { AppTechCookieService, getWalnutAdminCookie } from '@walnut-server/cookie'
 import { WalnutAdminExceptionDeviceBanned, WalnutAdminExceptionDeviceLocked, WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
+import { WALNUT_ADMIN_LOCK } from '@walnut-server/lock'
 import { SysDeviceRepositoryService } from '@walnut-server/system'
-import { MurLockService } from 'murlock'
 
 const WalnutAdminConstDecoratorDeviceFreeKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_DEVICE_FREE')
 
@@ -29,7 +31,7 @@ export class WalnutAdminGuardDevice implements CanActivate {
     private readonly reflector: Reflector,
     private readonly cacheDeviceService: AppTechCacheDeviceService,
     private readonly deviceRepo: SysDeviceRepositoryService,
-    private readonly murLockService: MurLockService,
+    @Inject(WALNUT_ADMIN_LOCK) private readonly lockService: WalnutLockService,
     private readonly cookieService: AppTechCookieService,
   ) { }
 
@@ -123,7 +125,7 @@ export class WalnutAdminGuardDevice implements CanActivate {
     if (deviceState.currentIp && request.realIp && deviceState.currentIp !== request.realIp) {
       this.logger.warn(`Device IP changed: ${deviceId}`)
       const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:DEVICE:IP_CHANGE:${deviceId}`
-      await this.murLockService.runWithLock(
+      await this.lockService.runWithLock(
         lockKey,
         200,
         async () => {

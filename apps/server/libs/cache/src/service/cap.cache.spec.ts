@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { describe, expect, it, vi } from 'vitest'
 
-import { AppTechCacheCapService } from './cache.cap'
+import { AppTechCacheCapService } from './cap.cache'
 
 /**
  * CAP 校验缓存窗口（review CAP-1 / CAP-2）的**消费侧**钉子。

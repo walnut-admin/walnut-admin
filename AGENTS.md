@@ -120,7 +120,7 @@ pnpm knip             # 死代码检测（**当前是红的且有意维持**，�
 
 ## 各 app 专属指引
 
-- [`apps/server/AGENTS.md`](./apps/server/AGENTS.md) — 后端模块架构、Repository 三模式、DTO 装饰器规则、Guard 顺序（含全部后端规矩）
+- [`apps/server/AGENTS.md`](./apps/server/AGENTS.md) — 后端模块架构、Repository / Shared Service、DTO 装饰器规则、Guard 顺序（含全部后端规矩）
 - [`apps/admin/AGENTS.md`](./apps/admin/AGENTS.md) — 前端别名、禁止隐式全局、组件与 store 约定
 - [`apps/docs/AGENTS.md`](./apps/docs/AGENTS.md) — 文档站结构与两个构建坑
 

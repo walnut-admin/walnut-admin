@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common'
+import type { WalnutLockService } from '@walnut-server/lock'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AppTechRedisService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { SysUserDeviceRepositoryService } from '@walnut-server/identity'
+import { WALNUT_ADMIN_LOCK } from '@walnut-server/lock'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
-import { MurLockService } from 'murlock'
 import {
   calcScoreAndLevel,
   SecurityRiskConfigService,
@@ -20,7 +21,7 @@ export class SecurityRiskUserDeviceService {
     private readonly redisService: AppTechRedisService,
     private readonly configService: SecurityRiskConfigService,
     private readonly userDeviceRepo: SysUserDeviceRepositoryService,
-    private readonly murLockService: MurLockService,
+    @Inject(WALNUT_ADMIN_LOCK) private readonly lockService: WalnutLockService,
   ) {}
 
   private get redis() {
@@ -75,7 +76,7 @@ export class SecurityRiskUserDeviceService {
   private async evaluateUserDeviceWithLock(userId: string, deviceId: string) {
     const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:RISK:USER_DEVICE:${userId}:${deviceId}`
 
-    return this.murLockService.runWithLock(
+    return this.lockService.runWithLock(
       lockKey,
       200,
       async () => {

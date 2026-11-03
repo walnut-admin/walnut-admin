@@ -9,7 +9,7 @@ workspace 包，靠 `apps/server/tsconfig.json` 的 paths（`@walnut-server/*`�
 | 想看什么 | 去哪 |
 |----------|------|
 | Agent 入口 / 导航 | [`AGENTS.md`](./AGENTS.md) |
-| 后端全部规矩（模块结构、三种 Repository 模式、DTO 与装饰器、Guard 顺序） | [`AGENTS.md`](./AGENTS.md) |
+| 后端全部规矩（模块结构、Repository 与 Shared Service、DTO 与装饰器、Guard 顺序） | [`AGENTS.md`](./AGENTS.md) |
 | 未整理的草稿待办（原 server 仓遗留，**不是**当前 backlog） | [`TODO.md`](./TODO.md) |
 | 当前架构 backlog | [架构待办事项](../docs/src/zh-CN/content/monorepo/architecture-todo.md) |
 

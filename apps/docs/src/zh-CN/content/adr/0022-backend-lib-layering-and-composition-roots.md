@@ -39,7 +39,7 @@ libs 边界 lint，批 1-9 依次下沉基建、技术设施、共享能力、�
 > 技术 lib 内部有反向边 —— `ip`（设施）引 `crud`（装配内核）的 IP 定位 token，`crud` 又向下引
 > `list`；同一条 layer 的 banned 名单拦不住同层环。
 
-五条机械守卫（守的是 **lib ↔ app 边界、lib 之间的层间方向与注册完备性**；层间方向自本轮起由 ESLint 分层规则机械守，不再只是约定与评审）：
+六条机械守卫（守的是 **lib ↔ app 边界、lib 之间的层间方向与注册完备性**；层间方向自本轮起由 ESLint 分层规则机械守，不再只是约定与评审）：
 
 - **ESLint `libs-boundary`**（`apps/server/eslint.config.ts`）：`libs/**` 禁止 `@/*`
   （那是 `apps/api/src`）、禁止相对路径逃逸进 `apps/`、禁止 import 前端包；需要 app 能力时
@@ -70,6 +70,54 @@ libs 边界 lint，批 1-9 依次下沉基建、技术设施、共享能力、�
   application（api / cli / worker）不参与对账。
 - **`dto-entity.drift.spec.ts`** 与 **`eslint-data-scope-entities.drift.spec.ts`**：
   DTO ↔ Entity 字段形状、数据范围实体清单 ↔ ESLint 规则文本，各自单向对账。
+- **`repo-global.drift.spec.ts`**（2026-11-03，D10）：`*.repo.module.ts` 的 `@Global` 判据 ——
+  **消费方模块数 ≤ 1 时不许 @Global**（同时绑定 `WALNUT_ADMIN_*` 端口的模块例外，见 Decision 3），
+  且非 @Global 的每个消费方都必须能经 `imports`（含 `exports: [SomeRepoModule]` 再导出）看见它。
+  这条规矩与「Repository 三模式 → 两种形态」同时落地，口径写在 `apps/server/AGENTS.md`。
+
+## Decision 5: 技术层允许「域形状」缓存，但必须登记并满足准入判据（D12）
+
+`libs/cache` 是 tech-base，却住着 8 个**域形状**缓存服务（cap / mfa / opaque / sign / verifyCode /
+device / permissions / appSettings）—— 技术层因此知道了上层领域的词汇。彻底下沉的代价大于收益：
+消费方横跨 guards / identity / auth / security / app-domain / system / sms 七个库，把任一服务搬进
+某个域，别的库就要反向依赖那个域。折中（D12）：**零代码移动**，只做「改名显式化 + 准入判据登记」。
+
+### 准入判据（四条全满足，才允许域缓存留在 `libs/cache`）
+
+1. **零数据面依赖**：服务体只经 `AppTechCacheService` 做「键 + 值 + TTL」；不注入仓储 /
+   `DataSource`、不调外部 API、不 import 任何域的 entity / DTO（值类型用本文件内的最小 interface
+   或 `libs/const` 的类型）。
+2. **键前缀已在 `libs/const/app/cache` 登记**（`WalnutAdminConstAppCacheKeys`）：域知识以常量字面量
+   存在，不以代码结构存在。
+3. **无跨缓存编排**：一个方法只碰一个键空间；出现「读 A 写 B」的补偿 / 状态机 ⇒ 归域。
+4. **不满足就必须离开** `libs/cache`（落到 `libs/<domain>/shared/<x>.cache.service.ts`；需要跨层时
+   按 Decision 3 端口化）—— 「再登记一条例外」不是出口。
+
+### 登记表（实测口径，消费库数按构造器注入统计）
+
+| 文件 | 域 | 值形状 | 消费库数 | 命名 |
+|------|----|--------|----------|------|
+| `appSettings.cache.ts` | setting | 设置读值 + 进程内 memo | 9 | 本轮改名 |
+| `device.cache.ts` | device | 设备快照（locked/banned/active/currentIp）+ cookie 续期闸 | 4 | 本轮改名 |
+| `permissions.cache.ts` | 权限 | 权限串快照 | 4 | 本轮改名 |
+| `mfa.cache.ts` | MFA | 已验证 / webauthn 挑战状态 | 3 | 本轮改名 |
+| `sign.cache.ts` | sign | ticket / AES key / nonce | 2 | 本轮改名 |
+| `verifyCode.cache.ts` | 验证码 | 验证码串 | 2 | 本轮改名 |
+| `cap.cache.ts` | CAP | cap.js token 校验结果（键掺 token 指纹） | 1 | 本轮改名 |
+| `opaque.cache.ts` | OPAQUE | 注册会话 | 1 | 本轮改名 |
+| `cache.lock.ts` | 用户锁 | 布尔（是否锁定） | 2 | 未改名 |
+| `cache.rsa.ts` | 设备公钥 | 公钥 PEM 串 | 3 | 未改名 |
+| `cache.cron-lock.ts` | cron | 锁 token（单实例 try-lock，见 ADR 0025） | 2 | 未改名 |
+
+两条读法（写清楚，以免下次又变成 folklore）：
+
+- **命名**：`<domain>.cache.ts` = 已登记进上表的域缓存（D12 改名）；`cache.*.ts` = 技术信封
+  （通用缓存 / Redis / 配置 / 单实例锁 / 原始值缓存）。同一目录两种前缀是**有意的**：`cache.lock` /
+  `cache.rsa` 的值是原始类型（布尔 / 不透明 PEM 串），缓存层不解释它，本轮按 D12 清单不动；
+  下次动这两个文件时一并改成 `<domain>.cache.ts`。
+- **消费库数不是门槛**：`cap` / `opaque` 只有 1 个消费库，但满足判据 1-3 且键与 TTL 由域规则派生
+  （cap.js 的 20 分钟窗口、OPAQUE 会话），因此留在原地并登记为**下一轮可评估下沉的候选**；
+  多库消费只是「更该留在技术层」的排序依据。
 
 ## Alternatives considered
 
@@ -108,8 +156,8 @@ db / cron / 各域 HTTP 组合根 / guard 与 interceptor。`apps/worker` 与 `a
 
 方向固定为「实现方提供实现，需求方声明端口」。lib 内只 import 自己声明的 token 类型；**绑定位置
 跟随依赖方向**：被绑定的实现在哪个层，绑定就放在那个层的 `@Global` 模块里；仅当实现依赖 app 专属
-能力（socket、组合根装配）时，绑定才落在 app。本轮解耦引入的 19 个 `WALNUT_ADMIN_*` 注入 token
-（此前已存在的 OTP strategy 等端口不在此列）**当前 3 个绑定在 app、16 个绑定在各 lib**：
+能力（socket、组合根装配）时，绑定才落在 app。本轮解耦引入的 20 个 `WALNUT_ADMIN_*` 注入 token
+（此前已存在的 OTP strategy 等端口不在此列）**当前 3 个绑定在 app、17 个绑定在各 lib**：
 
 - identity：`WALNUT_ADMIN_IDENTITY_USER_NOTIFIER` · `WALNUT_ADMIN_IDENTITY_DEVICE_SERVICE` ·
   `WALNUT_ADMIN_IDENTITY_OTP_SERVICE` · `WALNUT_ADMIN_IDENTITY_MFA_POST_VERIFICATION` ·
@@ -120,7 +168,15 @@ db / cron / 各域 HTTP 组合根 / guard 与 interceptor。`apps/worker` 与 `a
   `WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER`
 - 共享能力：`WALNUT_ADMIN_BLACKLIST_REPOSITORY` · `WALNUT_ADMIN_DATA_SCOPE_POLICY` ·
   `WALNUT_ADMIN_ERROR_REPORTER` · `WALNUT_ADMIN_IP_LOCATION_RESOLVER` · `WALNUT_ADMIN_KEY_STORE` ·
-  `WALNUT_ADMIN_OPERATE_LOG_WRITER` · `WALNUT_ADMIN_SOFT_DELETE_STRATEGY` · `WALNUT_ADMIN_TOKEN_TTL`
+  `WALNUT_ADMIN_LOCK` · `WALNUT_ADMIN_OPERATE_LOG_WRITER` · `WALNUT_ADMIN_SOFT_DELETE_STRATEGY` ·
+  `WALNUT_ADMIN_TOKEN_TTL`
+- 分布式锁（D11 / 2026-11-03）：`WALNUT_ADMIN_LOCK` 的端口与 token 落在 `libs/lock`（tech-base），
+  绑定在同一 lib 的 `AppTechLockModule`（@Global）—— `{ provide: WALNUT_ADMIN_LOCK, useExisting: MurLockAdapter }`。
+  消费方 10 处（guards 4 / security 5 / app-domain 1）只认 `WalnutLockService` 接口，
+  `from 'murlock'` 全仓只剩 `libs/lock` 内部，由 `murlock-isolation.drift.spec.ts` 机械守。
+  **cron 单实例锁不并入本端口**：`AppTechCacheCronLockService` 是 Redis `SET NX EX` 的非阻塞
+  try-lock（拿不到就跳过本次 tick、Redis 故障 fail-open，见 ADR 0025），与「阻塞等待直到拿到锁」
+  是两种语义，合并会把 fail-open 的三条路径压成一条。
 
 新增一个反转点时，token 与端口接口一起放进**需要它**的 lib（而不是 app）；绑定放在**实现所在层**
 的 `@Global` 模块（多数时候就是同一 lib 或更低层 lib），app 侧只保留实现依赖 app 专属能力时的
@@ -213,6 +269,13 @@ db / cron / 各域 HTTP 组合根 / guard 与 interceptor。`apps/worker` 与 `a
   ESLint 分层名单）+ lint 通过」；漏任何一处 drift spec 会红（第 ⑤ 面即分层名单对账）。
 - 新增领域的能力默认拆成「lib 数据面 + app HTTP 组合根」两层；只有确认不触碰 wire DTO /
   guard 装配时才考虑把 controller 也下沉。
+- **锁只有一个端口**（D11）：`WALNUT_ADMIN_LOCK` + `WalnutLockService` 在 `libs/lock`，murlock 是
+  适配器实现，10 处消费方只注入端口；`from 'murlock'` 出界即单测红（`murlock-isolation.drift.spec.ts`）。
+  cron 的单实例锁仍是自研 `AppTechCacheCronLockService`（语义不同，见 Decision 3 末段）。
+- **域缓存的例外是登记制**（D12）：`libs/cache` 里的域形状服务必须出现在 Decision 5 的登记表里并
+  满足四条准入判据；新增一个域缓存若判据不满足，正确动作是把它放进消费方所在的域，而不是扩表。
+- **Repository 只有两种形态**（D10）：`@Global` 不是目录约定，而是「消费方模块 ≥ 2」的机械判据，
+  由 `repo-global.drift.spec.ts` 守；口径见 `apps/server/AGENTS.md`。
 
 ## Related
 

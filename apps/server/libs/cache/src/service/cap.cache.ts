@@ -3,7 +3,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { resolveCapCacheTtlSeconds } from '@walnut-server/const/app/cap'
 import { AppTechCacheService } from '../cache.service'
-import { AppTechCacheAppSettingsService } from './cache.appSettings'
+import { AppTechCacheAppSettingsService } from './appSettings.cache'
 
 /**
  * P0-3 修复（2026-10-28）：

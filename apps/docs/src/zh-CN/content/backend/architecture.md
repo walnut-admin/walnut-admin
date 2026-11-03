@@ -1,7 +1,7 @@
 # 后端架构与模块结构
 
 > 本文是后端常驻指引 `apps/server/AGENTS.md` 的**参考部分**。改后端代码前请先读那份 ——
-> Repository 三模式、DTO 的两条硬规矩、Guard 执行顺序都在那里；本文补齐它放不下的目录结构、
+> Repository 与 Shared Service 两种形态、DTO 的两条硬规矩、Guard 执行顺序都在那里；本文补齐它放不下的目录结构、
 > 模块骨架与 Entity 注册细节。
 
 ## 应用与内部库
@@ -94,7 +94,7 @@ module-name/
 ├── module-name.basic.repository.ts    # 基础 CRUD（继承基类）
 ├── dto/module-name.dto.ts             # 数据传输对象
 ├── entity/module-name.entity.ts       # TypeORM 实体
-├── repo/                              # 跨模块数据访问（可选，@Global）
+├── repo/                              # 跨模块数据访问（可选；消费方模块 ≥2 才 @Global）
 │   ├── module-name.repo.module.ts
 │   └── module-name.repo.service.ts
 └── shared/                            # 跨模块业务逻辑（可选，非 @Global）
@@ -102,8 +102,10 @@ module-name/
     └── module-name.shared.service.ts
 ```
 
-这两个可选层的取舍规则见 `apps/server/AGENTS.md` 的「三种 Repository 模式」一节 ——
+这两个可选层的取舍规则见 `apps/server/AGENTS.md` 的「Repository 与 Shared Service」一节 ——
 **controller 级的 `*.service.ts` 不许直接触达数据层**，所有数据访问都要穿过 Repository 层。
+`@Global` 不是这两个目录的同义词：判据是**消费方模块数 ≥ 2**（= 1 时必须由拥有者模块显式 import），
+由 `apps/api/src/common/monorepo/repo-global.drift.spec.ts` 机械守。
 
 ## Entity 注册与仓库注入
 
@@ -157,4 +159,4 @@ export class AppDemoModule {}
 ```
 
 **不要**省略连接名（那会落到 TypeORM 的默认连接），也不要在 controller 级 `*.service.ts` 里
-自己注入 `DataSource` 触达数据 —— 那会绕过 Repository 三模式的分层约束。
+自己注入 `DataSource` 触达数据 —— 那会绕过 Repository / Shared Service 的分层约束。

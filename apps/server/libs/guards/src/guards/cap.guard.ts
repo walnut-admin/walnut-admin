@@ -1,6 +1,8 @@
+import type { WalnutLockService } from '@walnut-server/lock'
 import {
   CanActivate,
   ExecutionContext,
+  Inject,
   Injectable,
   Logger,
   SetMetadata,
@@ -15,10 +17,10 @@ import {
   WalnutAdminExceptionCapRefreshRequired,
   WalnutAdminExceptionYouAreBot,
 } from '@walnut-server/exceptions/business/auth'
+import { WALNUT_ADMIN_LOCK } from '@walnut-server/lock'
 import { AppCapJS } from '@walnut-server/security/cap/cap.service'
 import { SecurityRiskChallengeStateService } from '@walnut-server/security/risk/modules/challenge.service'
 import { isNil } from 'lodash'
-import { MurLockService } from 'murlock'
 
 const WalnutAdminConstDecoratorCapFreeKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_CAP_FREE')
 
@@ -67,7 +69,7 @@ export class WalnutAdminGuardCap implements CanActivate {
 
   constructor(
     private readonly reflector: Reflector,
-    private readonly murLockService: MurLockService,
+    @Inject(WALNUT_ADMIN_LOCK) private readonly lockService: WalnutLockService,
     private readonly cacheCapService: AppTechCacheCapService,
     private readonly challengeStateService: SecurityRiskChallengeStateService,
   ) { }
@@ -198,7 +200,7 @@ export class WalnutAdminGuardCap implements CanActivate {
     const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:CAP:${deviceId}`
 
     try {
-      return await this.murLockService.runWithLock(
+      return await this.lockService.runWithLock(
         lockKey,
         3000, // 3s 锁超时
         async () => {

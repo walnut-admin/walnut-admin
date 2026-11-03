@@ -1,6 +1,7 @@
+import type { WalnutLockService } from '@walnut-server/lock'
 import { Buffer } from 'node:buffer'
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
-import { CanActivate, ExecutionContext, Injectable, Logger, SetMetadata } from '@nestjs/common'
+import { CanActivate, ExecutionContext, Inject, Injectable, Logger, SetMetadata } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Reflector } from '@nestjs/core'
 import { AuthSessionService } from '@walnut-server/auth'
@@ -12,11 +13,11 @@ import {
   WalnutAdminExceptionExpiredSignature,
   WalnutAdminExceptionInvalidSignature,
 } from '@walnut-server/exceptions/business/auth'
+import { WALNUT_ADMIN_LOCK } from '@walnut-server/lock'
 import { AppTokenService } from '@walnut-server/token'
 import { RequestHeaders } from '@walnut/contract/http'
 import { buildSignRaw, splitPathAndQuery, stripApiPrefix } from '@walnut/utils/sign-raw'
 import { isNil } from 'lodash'
-import { MurLockService } from 'murlock'
 
 const WalnutAdminConstDecoratorSignFreeKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_SIGN_FREE')
 
@@ -61,7 +62,7 @@ export class WalnutAdminGuardSign implements CanActivate {
     private readonly cacheRsaService: AppTechCacheRsaService,
     private readonly authSessionService: AuthSessionService,
     private readonly configService: ConfigService,
-    private readonly murLockService: MurLockService,
+    @Inject(WALNUT_ADMIN_LOCK) private readonly lockService: WalnutLockService,
     private readonly tokenService: AppTokenService,
   ) {}
 
@@ -281,7 +282,7 @@ export class WalnutAdminGuardSign implements CanActivate {
   ) {
     const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:SIGN:${deviceId}`
 
-    await this.murLockService.runWithLock(
+    await this.lockService.runWithLock(
       lockKey,
       3000,
       async () => {

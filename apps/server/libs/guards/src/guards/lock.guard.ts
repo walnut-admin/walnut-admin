@@ -1,6 +1,8 @@
+import type { WalnutLockService } from '@walnut-server/lock'
 import {
   CanActivate,
   ExecutionContext,
+  Inject,
   Injectable,
   Logger,
   SetMetadata,
@@ -12,8 +14,8 @@ import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { getWalnutAdminCookieString } from '@walnut-server/cookie'
 import { WalnutAdminExceptionUserLocked } from '@walnut-server/exceptions/business/auth'
 import { SysUserLockService } from '@walnut-server/identity'
+import { WALNUT_ADMIN_LOCK } from '@walnut-server/lock'
 import { isNil } from 'lodash'
-import { MurLockService } from 'murlock'
 
 const WalnutAdminConstDecoratorLockKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_LOCK_FREE')
 
@@ -29,7 +31,7 @@ export class WalnutAdminGuardLock implements CanActivate {
     private readonly reflector: Reflector,
     private readonly userLockService: SysUserLockService,
     private readonly lockCacheService: AppTechCacheLockService,
-    private readonly murLockService: MurLockService,
+    @Inject(WALNUT_ADMIN_LOCK) private readonly lockService: WalnutLockService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -84,7 +86,7 @@ export class WalnutAdminGuardLock implements CanActivate {
     // Step 5: 缓存未命中，使用分布式锁防止缓存击穿
     const lockKey = `${WalnutAdminConstAppCacheKeys.APP_MURLOCK}:LOCK_GUARD:${user.userId}:${deviceId}`
 
-    return this.murLockService.runWithLock(
+    return this.lockService.runWithLock(
       lockKey,
       3000, // 3秒锁超时
       async () => {

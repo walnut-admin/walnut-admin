@@ -16,7 +16,7 @@
 | 想看什么 | 去哪 |
 |----------|------|
 | **后端规范全文**（目录与模块骨架、Entity 注册与仓库基类、DTO 全部示例、装饰器顺序、事务、环境配置、代码风格） | 文档站「后端」五篇（repo 相对路径，能直接打开）：`apps/docs/src/zh-CN/content/backend/architecture.md` · `dto.md` · `transactions.md` · `configuration.md` · `code-style.md` |
-| **三种 Repository 模式** —— 改后端代码前必读，最容易做错的一条 | 本文件下面「三种 Repository 模式」 |
+| **Repository 与 Shared Service** —— 改后端代码前必读，最容易做错的一条 | 本文件下面「Repository 与 Shared Service（两种形态，一个判据）」 |
 | **Guard 执行顺序** —— 动 controller 之前必读 | 本文件下面「Security Guard 执行顺序」 |
 | 全仓结构、命令、提交纪律 | 仓库根 [`AGENTS.md`](../../AGENTS.md) |
 | 架构决策（为什么后端 lib 不提升为 workspace 包、lib 分层与组合根、工具链分叉） | [ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md) · [ADR 0022](../docs/src/zh-CN/content/adr/0022-backend-lib-layering-and-composition-roots.md) · [ADR 0012](../docs/src/zh-CN/content/adr/0012-toolchain-divergence.md) |
@@ -62,17 +62,23 @@ NestJS 12.x + TypeScript 6.0.3 + PostgreSQL（TypeORM）+ Redis + Bull 队列的
 
 开发模式下 Scalar API Reference 在 `http://localhost:3000/api`。
 
-## 三种 Repository 模式
+## Repository 与 Shared Service（两种形态，一个判据）
 
-| 模式 | 文件 | `@Global` | 业务逻辑 | 事务句柄 `em` | 用在哪 |
-|------|------|-----------|----------|---------------|--------|
-| **Basic Repository** | `*.basic.repository.ts` | 否 | 无（纯 CRUD） | 经装饰器 | controller 的 CRUD |
-| **Repo Service** | `repo/*.repo.service.ts` | **是** | 无（简单 CRUD） | 最后一个可选参数 | 跨模块数据访问 |
-| **Shared Service** | `shared/*.shared.service.ts` | 否 | **有**（缓存、编排） | 最后一个可选参数 | 复杂业务逻辑 |
+| 形态 | 文件落点 | `@Global` | 业务逻辑 | 事务句柄 `em` | 用在哪 |
+|------|----------|-----------|----------|---------------|--------|
+| **Repository** | 同模块 CRUD：`*.basic.repository.ts`；跨模块：`repo/*.repo.service.ts` + `*.repo.module.ts` | **仅当消费方模块 ≥ 2** | 无（纯 CRUD） | 经装饰器 / 最后一个可选参数 | 全部数据访问 |
+| **Shared Service** | `shared/*.shared.service.ts` | 否（模块同时承担 `WALNUT_ADMIN_*` 端口绑定时例外，ADR 0022 D3） | **有**（缓存、编排） | 最后一个可选参数 | 复杂业务逻辑 |
 
-调用链只有一条：`Controller → Service`（与 Controller 1:1）→ Basic Repository / Repo Service /
-Shared Service → Entity。**硬规矩**：controller 级的 `*.service.ts` **不许**直接做数据访问（自己
-注入 `DataSource` 拿 Repository 也算）—— 所有数据访问必须穿过三者之一。
+调用链只有一条：`Controller → Service`（与 Controller 1:1）→ Repository / Shared Service → Entity。
+**硬规矩**：controller 级的 `*.service.ts` **不许**直接做数据访问（自己注入 `DataSource` 拿
+Repository 也算）—— 所有数据访问必须穿过 Repository。
+
+**落点怎么选**：只在本模块用 → `*.basic.repository.ts`（跟着模块走，不建额外 module）；被别的
+模块用 → `repo/` 落点。**`@Global` 只有一个判据：消费方模块数 ≥ 2**（数「声明了注入该 repository
+的类」的模块，不是数文件、不是数调用点）：= 1 时**不许** @Global —— 它只会把真实依赖从 imports
+图上抹掉，由拥有者模块显式 import；≥ 2 才允许，并在模块头注释登记理由。判据 + 「非 @Global 的
+每个消费方都能经 imports 看见它」由 `apps/api/src/common/monorepo/repo-global.drift.spec.ts`
+机械守（跑单测即校验）。
 
 **实体注册**在模块 `imports` 里：`TypeOrmModule.forFeature([XxxEntity], WalnutPGConnectionName)`
 （`autoLoadEntities` 通道），**不另建 xxx.pg.module 文件**；仓库层注入

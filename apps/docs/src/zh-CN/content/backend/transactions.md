@@ -67,7 +67,7 @@ class SysUserService {
   `findOne({ where: { jti }, lock: { mode: 'pessimistic_write' } })`，并且只在活跃事务里加锁
   （非事务上下文的连接级 manager 提供不了并发保护，退化为普通读）。
 
-> 📌 示例只演示 em 的用法。按 `apps/server/AGENTS.md` 的「三种 Repository 模式」，
+> 📌 示例只演示 em 的用法。按 `apps/server/AGENTS.md` 的「Repository 与 Shared Service」口径，
 > controller 级的 `*.service.ts` 应当把 em **透传给 repository**，而不是自己拿 EntityManager 写库。
 
 ## 名字对照（旧写法已失效）
