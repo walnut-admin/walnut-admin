@@ -258,7 +258,7 @@ describe('B7c auth login chain (on real PG)', () => {
     expect(configService.get<string>('jwt.opaque.secret')).toBeTruthy()
 
     // defaultRole 兜底 fixture：集成库 settings 缓存为空 → createForAuthUser 走
-    // cache.appSettings 的 v5 兜底 uuid（visitor role）—— PG 侧必须有该行，junction /
+    // appSettings.cache 的 v5 兜底 uuid（visitor role）—— PG 侧必须有该行，junction /
     // current_role_id 写入才不炸 FK（生产库由 ETL/seed 落地，B5 订正脚本同源）
     await pgDataSource.query(
       'INSERT INTO sys_role (id, role_name) VALUES ($1, $2) ON CONFLICT (id) DO NOTHING',

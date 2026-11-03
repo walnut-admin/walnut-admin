@@ -122,7 +122,7 @@ export class DataScopeService implements IIdentityDataScopeInvalidator {
    * 最长一个 AT TTL（下一次 bump 会一并孤儿化）。
    *
    * **单实例边界**：本方案依赖进程内 APP:SETTING memo 在写时同步清理（见
-   * `cache.appSettings.ts` 的一致性说明）—— 多实例部署下其他实例的 memo 不会随
+   * `appSettings.cache.ts` 的一致性说明）—— 多实例部署下其他实例的 memo 不会随
    * epoch bump 失效，扩多实例前需另行评估（与 P2-27 同一前置条件）。
    */
   async bumpEpoch(): Promise<void> {

@@ -71,13 +71,13 @@
 ### P0-3 CAP 校验缓存与设备/token 不绑定 + TTL 单位错误（F 段发现 2）—— 【已修复 2026-10-28】
 
 - **位置**：`libs/guards/src/guards/cap.guard.ts`（`validateCapToken` 只按 deviceId 查 boolean 缓存）+
-  `apps/server/libs/cache/src/service/cache.cap.ts`（`setCapTokenCache` 把
+  `apps/server/libs/cache/src/service/cap.cache.ts`（`setCapTokenCache` 把
   `getCapJSConfig().ttl` 毫秒当秒传给缓存）。
 - **现象**：缓存窗口内把另一台设备的服务端签名 cookie 原样移植即可通过（token 值从不比对）；
   实际信任窗口 ≈ 41 天而非 1h（cookie 本体 1h 过期但服务端不信 cookie 信 TTL）。
 - **实测证据**：`guard-matrix.api-spec.ts` CAP 组用例（F 段实测钉死）。
 - **建议**：缓存键掺 token 指纹（值绑定设备）；TTL 单位除以 1000 修正。
-- **修法（2026-10-28，批 1）**：`cache.cap.ts` 的缓存键改为
+- **修法（2026-10-28，批 1）**：`cap.cache.ts` 的缓存键改为
   `SECURITY_CAP_TOKEN:<deviceId>:<sha256(token) 前 16 hex>`，读写接口都吃原始 token
   现算指纹；`delCapTokenCache(deviceId)` 按 `<deviceId>:*` pattern 全清。TTL 改为
   `Math.max(1, Math.ceil(config.ttl / 1000))`（毫秒 → 秒）。guard-matrix 的「跨设备移植
@@ -379,17 +379,17 @@
 
 ### P1-15 AUTH:PERMISSIONS 缓存 TTL 放大 1000 倍 —— 秒级 setEx 收到「秒 × 1000」（文档大轮次 A 段）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/server/libs/cache/src/service/cache.permissions.ts`
+- **位置**：`apps/server/libs/cache/src/service/permissions.cache.ts`
   （`setPermissions` 的 `ttl: atTtl * 1000`）。
 - **现象**：`AppTechCacheService.set` 的 `ttl` 单位是**秒**（`cache.service.ts` 直接
   `redis.setEx(cacheKey, ttl, ...)`，日志 `TTL: Ns`；cap 的 P0-3 修复注释也明确
   「set 收秒」）。权限缓存却把 `getAccessTokenExpireSeconds()` 再乘 1000 —— AT 若 30 分钟，
   缓存实际驻留约 20.8 天。权限撤销/角色切换后，`permission.guard` 读到的旧权限串会长期
   不失效；只有重新拉 `GET /auth/permissions` 覆盖或 signout 删除才更新。
-- **实测证据**：本次读码钉死；同族 `cache.sign.ts`、`cache.mfa.ts` 都直接传秒，唯
+- **实测证据**：本次读码钉死；同族 `sign.cache.ts`、`mfa.cache.ts` 都直接传秒，唯
   permissions 多乘 1000。
 - **建议**：去掉 `* 1000`（与 AT 同寿命或更短）；补一条 TTL 数量级断言，防回归。
-- **修法（2026-10-28，批 A，决策见 roadmap §6）**：`cache.permissions.ts` 的
+- **修法（2026-10-28，批 A，决策见 roadmap §6）**：`permissions.cache.ts` 的
   `setPermissions` 改为 `ttl: atTtl`（秒直传，与 AT 同寿命）。测试：permission-chain
   spec 的 `GET /auth/permissions` 用例读 Redis 实际 TTL，断言落在 `jwt.access.expire`
   秒数量级（> atTtl-60 且 ≤ atTtl；修复前为 atTtl×1000）。
@@ -618,7 +618,7 @@
 
 ### P2-9 零配置部署下 COMBINE 用户的「多角色合并」实际不生效（I 段实测，新收编）—— 【已修复 2026-10-28】
 
-- **位置**：`apps/server/libs/cache/src/service/cache.appSettings.ts`
+- **位置**：`apps/server/libs/cache/src/service/appSettings.cache.ts`
   （`defaultFunctionalRole`：`{ scope: GLOBAL, globalValue: 'switchable', localKey: 'roleMode' }`）
   + `apps/server/libs/scope-resolver/src/scope-resolver.service.ts`（`resolve`：scope GLOBAL
   恒返回 `globalValue`，`target[localKey]` 只在 LOCAL 分支被读）→
@@ -663,7 +663,7 @@
 ### P2-11 签名 nonce 去重非原子（GET 后 SET）（文档大轮次 A 段）—— 【已修复 2026-10-29】
 
 - **位置**：`libs/guards/src/guards/sign.guard.ts`（`validateAndRecordNonce`）+
-  `apps/server/libs/cache/src/service/cache.sign.ts`（`setNonceCache` 普通 SET）。
+  `apps/server/libs/cache/src/service/sign.cache.ts`（`setNonceCache` 普通 SET）。
 - **现象**：先 `getNonceCache` 判空、再 `setNonceCache`，不是 `SET NX EX`。两个携带相同
   `timestamp + nonce + body` 的并发请求可同时通过「未使用」检查并各自写入，nonce 的
   一次性语义只在串行到达时成立。源码注释本身已写「建议使用 Redis NX 操作保证原子性」。
@@ -798,7 +798,7 @@
 
 ### P2-19 effective roleMode 只作用于权限计算 —— 零配置下 switchRole 对所有用户恒 40000 —— 【已修复 2026-10-29】
 
-- **位置**：`apps/server/libs/cache/src/service/cache.appSettings.ts`
+- **位置**：`apps/server/libs/cache/src/service/appSettings.cache.ts`
   （P2-9 后 `defaultFunctionalRole` = GLOBAL/combinable）+
   `libs/identity/src/user/shared/user.shared.service.ts`（`switchRole` 用
   effectiveRoleMode 判 COMBINE）+ `apps/server/libs/token/src/token.service.ts`
@@ -1439,7 +1439,7 @@
   不引入 SCAN 全量删除。批量入口（invalidateForUsers / invalidateForDeptIds）epoch 只读一次。
   ④ 旧格式键（无 epoch 前缀）读必不命中，随 TTL 过期，无需迁移。
   ⑤ **单实例边界**：本方案依赖进程内 APP:SETTING memo 在写时同步清理（见
-  `cache.appSettings.ts` 的一致性说明）—— 多实例部署下其他实例的 memo 不会随 epoch
+  `appSettings.cache.ts` 的一致性说明）—— 多实例部署下其他实例的 memo 不会随 epoch
   bump 失效，扩多实例前需另行评估（与 P2-27 同一前置条件）。
   测试：`data-scope.service.spec.ts` 新增「epoch 缺省 0 / bump 后新键生效旧键不命中 /
   invalidate 只删当前世代键」；`data-scope-matrix.api-spec.ts` M10b 用 root 会话把

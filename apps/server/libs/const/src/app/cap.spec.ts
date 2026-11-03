@@ -15,11 +15,11 @@ import {
  * 修复前是**一个配置、三种解释**（没有任何取值能让三处同时正确）：
  * - `cap.service.ts:27` `expiresMs: config.ttl` → 把 ttl 当**毫秒**
  * - `cap.service.ts:36` `maxAge: config.ttl * 1000` → 把 ttl 当**秒**
- * - `cache.cap.ts:39` `Math.ceil(config.ttl / 1000)` → 把 ttl 当**毫秒**再转成秒
+ * - `cap.cache.ts:39` `Math.ceil(config.ttl / 1000)` → 把 ttl 当**毫秒**再转成秒
  *
  * 现在三处都从 {@link normalizeCapTtlSeconds} 派生；下面每组断言都写成
  * 「等于正确值」**且**「不等于修复前那行代码算出来的值」—— 把任一消费方改回旧写法，
- * 对应断言立刻红（消费侧还有 cap.service.spec.ts / cache.cap.spec.ts 两道同级钉子）。
+ * 对应断言立刻红（消费侧还有 cap.service.spec.ts / cap.cache.spec.ts 两道同级钉子）。
  */
 
 const MINUTE = 60

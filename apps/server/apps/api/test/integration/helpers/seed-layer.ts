@@ -6,14 +6,14 @@ import * as process from 'node:process'
 /**
  * 集成库种子层（`TEST_DATA` 未设为 `real` 时的默认数据源）。
  *
- * ## 为什么不直接 import tooling 的映射函数
+ * ## 为什么不直接 import tooling 的播种器
  *
  * `@walnut/scripts` 的 `exports` 只暴露 `./lib/*`（`package.json` 的 exports 字段），
- * `src/db/seed-map.ts` 不是公开入口；从 `apps/server` 用相对路径深引会绕过包边界
+ * `src/db/seed-pg.ts` 不是公开入口；从 `apps/server` 用相对路径深引会绕过包边界
  * （tooling 是独立包，app 反向依赖 tooling 属于架构倒挂）。**公开接口是 CLI**：
- * 这里 spawn `packages/tooling/scripts/bin/db-seed-pg.ts`，用的仍是同一条
- * `seed-map.ts` 映射（`$oid`→uuid v5、`$date`→timestamptz、junction 拆分、菜单按
- * 深度排序），不复制任何映射规则，也不会出现「测试种子与部署种子漂移」。
+ * 这里 spawn `packages/tooling/scripts/bin/db-seed-pg.ts`，与部署跑的是同一条通道
+ * （行形态 seed → PG，列/外键/jsonb 判据从 PG 元数据读），不复制任何规则，
+ * 也不会出现「测试种子与部署种子漂移」。
  *
  * ## 为什么 `app_setting` 不在默认清单里
  *

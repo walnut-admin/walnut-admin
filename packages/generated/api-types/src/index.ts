@@ -121,7 +121,8 @@ export type SystemDeviceInitialResponse = components['schemas']['SysDeviceDTOIni
 
 export type SystemLang = components['schemas']['SysLangDTO'] & { id: string }
 
-export type SystemLocale = components['schemas']['SysLocaleDTO'] & { id: string }
+/** 列表行是**按 key 分组**的聚合结果：`groupKey` 是分组键（= key），不是主键 id（D16②）。 */
+export type SystemLocale = components['schemas']['SysLocaleDTO'] & { groupKey: string }
 
 /** `GET /system/lang/list/public` 行形态（order / lang / description 三列 raw 投影）。 */
 export type SystemLangPublicListItem = components['schemas']['SysLangDTOListPublicResponse']

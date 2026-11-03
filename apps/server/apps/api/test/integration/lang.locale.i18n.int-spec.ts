@@ -221,8 +221,10 @@ describe('B2 lang/locale i18n aggregation rewrite (on real PG)', () => {
     expect(result.total).toBe(1)
     const row = result.data[0] as never as Record<string, unknown>
     expect(row.key).toBe(partialKey)
-    // Mongo 版 _id = 分组键；PG 响应契约（B1 模板）改为 id，语义一致
-    expect(row.id).toBe(partialKey)
+    // Mongo 版 _id = 分组键；D16② 定名 groupKey（不再是 id —— 列表行的 id 是「uuid 主键」的语义，
+    // 分组键叫 id 会让前端把它当主键）
+    expect(row.groupKey).toBe(partialKey)
+    expect(row).not.toHaveProperty('id')
     expect(row.process).toBeCloseTo(1 / langsCount)
     expect(row.createdAt).toBeInstanceOf(Date)
     expect(row.updatedAt).toBeInstanceOf(Date)
