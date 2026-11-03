@@ -75,7 +75,7 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 
 | | Unused exports | Unused exported types | 说明 |
 |---|---|---|---|
-| 改前（五个包都只有 `entry`） | 50 | 24 | 50 条**全部**落在 `apps/**`，`packages/**` 一条都没有 |
+| 改前（五个包都只有 `entry`） | 50 | 24 | 这 50 条**全部**落在 `apps/**`；`packages/**` 在改前只有 4 条（都在 `packages/tooling/eslint-config`），其余整块不在分析面里 |
 | 只加 `project` | 50 | 24 | 0 变化 —— `project` 不是主因 |
 | 只删 `entry`（让 knip 从 `package.json` 的 `exports` 推） | 50 | 24 | 0 变化 —— 摘了也会从 `exports` 推回来，**「把 barrel 从 entry 摘出去」不是可执行的动作** |
 | `project` + `includeEntryExports` | **139** | **49** | +89 / +25，新增**全部**落在 `packages/**` |

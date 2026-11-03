@@ -35,6 +35,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
     expect(releaseBatteryArgvs()).toEqual([
       ['hooks:check'],
       ['boundaries'],
+      ['madge:check'],
       ['exec', 'turbo', 'run', 'lint'],
       ['exec', 'turbo', 'run', 'lint:root'],
       ['exec', 'turbo', 'run', 'types:check'],

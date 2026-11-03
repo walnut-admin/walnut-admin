@@ -18,7 +18,8 @@ import type { KnipConfig } from 'knip'
  *
  * ## `packages/**` 直到 2026-11-02 才真正进入分析面（批次 2 · R2）
  *
- * 在这之前 `packages/**` **一条发现都没有** —— 不是因为它干净，而是因为它**整块不在分析面里**：
+ * 在这之前 `packages/**` **几乎没有发现**（2026-11-02 实测只有 `packages/tooling/eslint-config` 的 4 条）——
+ * 不是因为它干净，而是因为它**整块不在分析面里**：
  * workspace 只写了 `entry`，knip 于是只分析「entry 领进来的文件」，非 entry 的深层文件死了
  * 也没人报。现在五个共享包各补了两行（`project` + `includeEntryExports`），两行的分工见下面
  * workspace 配置里的注释。改前 / 改后的实测数据与每个探针的结果记在

@@ -153,6 +153,7 @@ pnpm release
 |----|------|
 | `hooks` | **第 0 步**：`pnpm hooks:check` —— 断言本机 git 钩子仍由 lefthook 托管。`prepush` 本身就是钩子调的（钩子没装时它根本不会跑），所以只有 `pnpm release` 这种**不经钩子**的入口才检查得到「本机门禁是否已静默失效」 |
 | `boundaries` | `turbo boundaries` |
+| `circular` | `pnpm madge:check`（`apps/server` 的 apps + libs 循环依赖；madge 跑 1053 文件约 14–20s。它此前只躺在 package.json 里、不在任何门禁中，批次 2 · R2 接入） |
 | `lint` | `turbo run lint`（所有包，不排任何包） |
 | `lint-root` | `turbo run lint:root`（**根级文件**的 lint：`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
 | `types` | `turbo run types:check` |
