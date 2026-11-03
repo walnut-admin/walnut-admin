@@ -18,9 +18,10 @@ import { WalnutAdminLogger } from '../../api/src/modules/techniques/logger'
  *
  * ## 为什么存在
  *
- * 前端类型真源：`packages/platform-web/api-types` 用 openapi-typescript 从这份 json 生成
- * `schema.d.ts`，admin 的 menu 模块（一期）直接消费生成别名。一致性由 prepush 的
- * 「openapi 一致性」段机械拦：重新导出 + 重新生成后 `git diff --exit-code`，漂移即红。
+ * 前端类型真源：`packages/generated/api-types`（2026-11 批次 4 · D9 从 platform-web 挪来）
+ * 用 openapi-typescript 从这份 json 生成 `schema.d.ts`，admin 直接消费生成别名。一致性由
+ * prepush 的「openapi 一致性」段机械拦，且**拆成两段**：段①（本文件负责的导出，要引导
+ * AppModule + PG/Redis）与段②（`openapi.json` → `schema.d.ts`，只读文件、无数据库）。
  *
  * ## 运行方式（为什么不是 `node` 直接跑 .ts）
  *

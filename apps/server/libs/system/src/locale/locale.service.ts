@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 
 import { WalnutAdminExceptionDataExists } from '@walnut-server/exceptions/base/400'
+import { getFilterValue, omitFilters } from '@walnut-server/list'
 import { Locale, LocaleType } from '@walnut/contract'
 
 import { Recordable } from 'easy-fns-ts'
@@ -114,11 +115,18 @@ export class SysLocaleService {
   async list(params: SysLocaleDTOListRequest, em?: EntityManager) {
     const langs = await this.langRepoService.findAll()
 
-    const { value, langId, ...commonQuery } = params.query
+    // 批次 4-A：value / langId 是**文档级**（sys_locale 行级）过滤，语义与实体列过滤不同，
+    // 从 filters 里摘出来单独下传；其余过滤照常进 aggregateList 的列白名单通道。
+    const value = getFilterValue(params.filters, 'value')
+    const langId = getFilterValue(params.filters, 'langId')
 
     return this.localeRepoService.aggregateList(
-      { ...params, query: commonQuery },
-      { value, langId, langsCount: langs.length },
+      { ...params, filters: omitFilters(params.filters, ['value', 'langId']) },
+      {
+        value: typeof value === 'string' ? value : undefined,
+        langId: typeof langId === 'string' ? langId : undefined,
+        langsCount: langs.length,
+      },
       em,
     )
   }

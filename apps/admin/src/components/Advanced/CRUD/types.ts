@@ -1,5 +1,4 @@
 import type { IDeepMaybeRef } from '@walnut/client/types/vue-ref'
-import type { BaseListParams } from '@walnut/contract'
 import type { IActionType } from '@walnut/types/universal'
 import type { NullableRecord, StringOrNumber } from 'easy-fns-ts'
 import type { ComputedRef, Ref } from 'vue'
@@ -77,7 +76,7 @@ export declare namespace WCrud {
       onGetFormData: () => Ref<T>
       onGetActionType: () => Ref<IActionType>
       onApiList: () => Promise<void>
-      onGetApiListParams: () => Ref<BaseListParams<T>>
+      onGetApiListParams: () => Ref<WTable.Hooks.ListState<T>>
       onSetDefaultQueryFormData: (newQueryFormData: Partial<NullableRecord<T>>) => void
     }
   }

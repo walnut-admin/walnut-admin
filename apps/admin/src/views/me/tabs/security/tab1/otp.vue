@@ -2,7 +2,7 @@
 import type { SystemUserIdentityPurpose, SystemUserIdentityType } from '@walnut/api-types'
 import type { ICompExtraPhoneNumberInputUpdateParams } from '@/components/Extra/PhoneNumberInput'
 import { useState } from '@walnut/client/hooks/core/useState'
-import { isEmailAddress, isPhoneNumber } from '@walnut/utils/regex'
+import { isEmailAddress, isPhoneNumber } from '@walnut/client/regex'
 import { computed, ref } from 'vue'
 import { bindUserIdentityAPI, checkUserIdentityAPI, verifyUserIdentityAPI } from '@/api/system/user_identity'
 import { useForm } from '@/components/UI/Form'

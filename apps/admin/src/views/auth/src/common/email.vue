@@ -1,7 +1,7 @@
 <script lang="tsx" setup>
 import type { NullableRecord } from 'easy-fns-ts'
 import type { IRequestPayload } from '@/api/request'
-import { isEmailAddress } from '@walnut/utils/regex'
+import { isEmailAddress } from '@walnut/client/regex'
 // TODO 111
 import { NRadio, NText } from 'naive-ui'
 import { computed, reactive } from 'vue'

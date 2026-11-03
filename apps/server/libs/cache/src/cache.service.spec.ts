@@ -45,7 +45,7 @@ function createRedisStub(batches: string[][], entries: ICacheEntry[]) {
 function listPayload(): IWalnutAdminCacheListRequest {
   return {
     sort: [],
-    query: {},
+    filters: [],
     page: { page: 1, pageSize: 10 },
   }
 }

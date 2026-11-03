@@ -1,4 +1,4 @@
-import type { IWalnutAdminRequestList } from '@walnut-server/list'
+import type { IListRequestParams } from '@walnut-server/repository'
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
@@ -80,7 +80,7 @@ export class SysLocaleRepoService {
    * value / data 聚合数组响应 DTO 不消费，不再物化。
    */
   async aggregateList<T>(
-    params: IWalnutAdminRequestList<T>,
+    params: Partial<IListRequestParams<T>>,
     options: ISysLocaleAggregateListOptions,
     em?: EntityManager,
   ): Promise<{ data: ISysLocaleListGroupRow[], total: number }> {

@@ -30,7 +30,9 @@ export function useTableAPI<T>(
   const userStorePermission = useAppStoreUserPermission()
   const { getProps: props, setProps } = propsCtx
 
-  const { apiListParams, resetParams, commitParams } = listParams
+  // apiListParams = 界面态（query 表单 / 排序 / 分页）；apiListFilters = 它的 wire 形态
+  // （批次 4-A：query → filters 的转换在 useTableAPIListParams 里唯一发生）
+  const { apiListParams, apiListFilters, resetParams, commitParams } = listParams
 
   const checkedRowKeys = ref<StringOrNumber[]>([])
 
@@ -57,7 +59,7 @@ export function useTableAPI<T>(
     }
 
     try {
-      const res = await props.value.apiProps!.listApi!(apiListParams.value)
+      const res = await props.value.apiProps!.listApi!(apiListFilters.value)
 
       setProps({
         // actually i'm thinking is this really a good choice? like mutate the proxyed props inside the component

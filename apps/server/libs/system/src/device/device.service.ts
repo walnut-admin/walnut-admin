@@ -10,10 +10,9 @@ import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base
 import { WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
 import { SysUserDeviceSharedService } from '@walnut-server/identity'
 import { SharedIpService } from '@walnut-server/ip'
-import { DeviceTypeConst, IDeviceTypeConst } from '@walnut-server/list'
+import { DeviceTypeConst, getFilterValue, IDeviceTypeConst, omitFilters } from '@walnut-server/list'
 import { escapeLikePattern } from '@walnut-server/repository'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
-import { omit } from 'lodash'
 import { Brackets, QueryFailedError } from 'typeorm'
 import { WALNUT_ADMIN_SYSTEM_DEVICE_KICKER, WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER } from '../system.ports'
 import { SysDeviceBasicRepository } from './device.basic.repository'
@@ -173,9 +172,14 @@ export class SysDeviceService {
    * PG 侧 jsonb 提取 + ILIKE，字面量转义同 pg-list.builder）
    */
   async list(params: SysDeviceDTOListRequest) {
-    const location = params.query.location ?? null
+    // 批次 4-A：location 是 jsonb 三字段（country/region/city）的 OR 模糊，不是实体列；
+    // 从 filters 里摘出后由下面改造过的 SQL 表达，其余过滤照常走 builder。
+    const locationValue = getFilterValue(params.filters, 'location')
+    const location = locationValue === undefined || locationValue === null || locationValue === ''
+      ? null
+      : locationValue
 
-    const cleanParams = omit(params, ['query.location']) as SysDeviceDTOListRequest
+    const cleanParams = { ...params, filters: omitFilters(params.filters, ['location']) } as SysDeviceDTOListRequest
 
     if (location === null) {
       return this.deviceBasicRepo.list(cleanParams)

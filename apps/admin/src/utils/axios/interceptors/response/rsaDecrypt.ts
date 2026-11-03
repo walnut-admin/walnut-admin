@@ -1,6 +1,6 @@
 import type { ResponseBase } from '@walnut/contract'
 import type { AxiosResponse } from 'axios'
-import { SingletonPromise } from '@walnut/utils/queue'
+import { SingletonPromise } from '@walnut/client/queue'
 import { useAppStoreSecurity } from '@/store/modules/app/app-security'
 
 const appStoreSecurity = useAppStoreSecurity()

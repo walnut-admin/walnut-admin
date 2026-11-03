@@ -1,5 +1,5 @@
 import type { IWalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
-import type { SortOrder } from '@walnut/contract'
+import type { FilterOp, SortOrder } from '@walnut/contract'
 import type { Dayjs } from 'dayjs'
 
 /**
@@ -34,9 +34,19 @@ export interface IWalnutAdminCacheListPage {
   pageSize: number
 }
 
+/**
+ * 过滤项：与 `CreateWalnutAdminRequestListDTO` 生成的 FilterDTO 兼容
+ * （批次 4-A 起 list 入参是显式 filters，不再是 `query: Partial<Row>`）。
+ */
+export interface IWalnutAdminCacheListFilter {
+  field: string
+  op: FilterOp
+  value?: unknown
+}
+
 /** `list` 的入参形状：与 `AppMonitorCacheDTOListRequest` 兼容 */
 export interface IWalnutAdminCacheListRequest {
   sort: ReadonlyArray<IWalnutAdminCacheListSort>
-  query: Partial<IWalnutAdminCacheListRow>
+  filters: ReadonlyArray<IWalnutAdminCacheListFilter>
   page: IWalnutAdminCacheListPage
 }

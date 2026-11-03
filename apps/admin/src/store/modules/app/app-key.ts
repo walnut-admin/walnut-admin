@@ -1,6 +1,6 @@
 import type { IStoreApp } from '@/store/types'
 import { importAesKeyFromRaw } from '@walnut/client/browser/crypto/shared'
-import { base64ToArrayBuffer } from '@walnut/utils/crypto/transformer'
+import { base64ToArrayBuffer } from '@walnut/client/browser/crypto/transformer'
 import { defineStore } from 'pinia'
 import { getCurrentInstance } from 'vue'
 import { urlKeyAPI } from '@/api/app/key'

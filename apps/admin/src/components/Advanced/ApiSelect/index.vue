@@ -3,12 +3,14 @@ import type { BaseListParams, BaseListResponse } from '@walnut/http/types'
 import type { OptionDataItem, Recordable, StringOrNumber } from 'easy-fns-ts'
 import type { SelectMixedOption } from 'naive-ui/lib/select/src/interface'
 import type { PropType } from 'vue'
+import type { IWalnutTableListState } from '@/components/UI/Table/src/hooks/useTableAPIListParams'
 import { useDebounceFn } from '@vueuse/core'
 import { useState } from '@walnut/client/hooks/core/useState'
 import { isFunction } from 'easy-fns-ts'
 import { computed, onMounted, ref } from 'vue'
 import { WithValueProps } from '@/components/HOC/WithValue'
 import { useAppMessage } from '@/hooks/component/useMessage'
+import { toWalnutListParams } from '@/utils/table/list-filters'
 
 // TODO rework
 defineOptions({
@@ -41,9 +43,11 @@ const total = ref(0)
 const options = ref<OptionDataItem[]>([])
 const valueOptions = ref<OptionDataItem[]>([])
 
-const { stateRef: params, resetState } = useState<BaseListParams<Recordable>>({
+// 批次 4-A：界面态（query 是搜索关键字 bag）→ wire 由 toWalnutListParams 转换
+const { stateRef: params, resetState } = useState<IWalnutTableListState<Recordable>>({
   page: { page: 1, pageSize: 10 },
   query: {},
+  sort: [],
 })
 
 const getOptions = computed(() => valueOptions.value.concat(options.value))
@@ -88,7 +92,7 @@ async function onApiSelectList(filter = false) {
   loading.value = true
 
   try {
-    const res = await props.listFn(params.value)
+    const res = await props.listFn(toWalnutListParams(params.value))
 
     total.value = res.total
 

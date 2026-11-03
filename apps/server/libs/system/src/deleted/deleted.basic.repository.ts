@@ -3,7 +3,9 @@ import type { DataSource, EntityManager, SelectQueryBuilder } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
+import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 
+import { getFilterValue, omitFilters } from '@walnut-server/list'
 import { applyPgListQuery, buildPgListQueryOptionsFromQb, escapeLikePattern, SysDeletedEntity, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 
 /** 回收站列表行：实体列 + Mongo 版 $lookup 注入的 user（仅 userName 通道） */
@@ -48,6 +50,17 @@ export class SysDeletedBasicRepository extends WalnutAdminCommonPgBaseRepository
     }, { readOnly: true })
   }
 
+  /** content 过滤值只接受字符串（jsonb 旁路的关键字，非字符串会被 String() 成怪串） */
+  private toContentKeyword(value: unknown): string | undefined {
+    if (value === undefined || value === null || value === '') {
+      return undefined
+    }
+    if (typeof value !== 'string') {
+      throw new WalnutAdminExceptionRequestDataError('filters[content] 只接受字符串')
+    }
+    return value
+  }
+
   public async list<T>(
     params: IWalnutAdminRequestList<T>,
     _customize?: (qb: SelectQueryBuilder<SysDeletedEntity>) => void,
@@ -61,11 +74,14 @@ export class SysDeletedBasicRepository extends WalnutAdminCommonPgBaseRepository
         .leftJoin('sys_user', 'deleted_by_user', 'deleted_by_user.id = entity.deleted_by')
 
       // content 的模糊搜索从白名单通道摘出，走 jsonb ::text cast（见类注释）
-      const query = { ...((params.query ?? {}) as Record<string, unknown>) }
-      const contentKeyword = typeof query.content === 'string' && query.content !== '' ? query.content : undefined
-      delete query.content
+      // 批次 4-A：content 是 jsonb 列，显式 `{ op: 'like' }` 打在上面会被列类型裁决拒成 40099；
+      // 它的模糊语义由下面对 `::text` 表达式的旁路 SQL 承担，所以先从 filters 里摘出去。
+      const contentKeyword = this.toContentKeyword(getFilterValue(params.filters, 'content'))
 
-      applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, { ...params, query: query as never }))
+      applyPgListQuery(qb, 'entity', buildPgListQueryOptionsFromQb<T>(qb, {
+        ...params,
+        filters: omitFilters(params.filters, ['content']),
+      }))
 
       // 数据权限：sys_deleted 已注册（SELF = 本人删除的快照）
       this.applyDataScope(qb, 'entity')

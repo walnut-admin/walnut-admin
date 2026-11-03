@@ -1,10 +1,10 @@
 import type { IHooksUseProps } from '@walnut/client/hooks/core/useProps'
-import type { BaseListParams } from '@walnut/http/types'
 import type { Recordable } from 'easy-fns-ts'
 import type { DropdownOption, TagProps } from 'naive-ui'
 import type { FilterOption } from 'naive-ui/es/data-table/src/interface'
 import type { Ref } from 'vue'
 import type { WTable } from '../types'
+import type { IWalnutTableListState } from './useTableAPIListParams'
 import { getBoolean, getFunctionBoolean } from '@walnut/client/browser/shared'
 import { omit } from 'lodash-es'
 import { NA, NDropdown, NTag } from 'naive-ui'
@@ -22,7 +22,7 @@ import { useAppStoreUserPermission } from '@/store/modules/user/user-permission'
 import { getTableTranslated } from '../utils'
 
 // Extend Naive UI columns
-export function useTableColumns<T>(propsCtx: IHooksUseProps<WTable.Props<T>>, apiListParams: Ref<BaseListParams<T>>) {
+export function useTableColumns<T>(propsCtx: IHooksUseProps<WTable.Props<T>>, apiListParams: Ref<IWalnutTableListState<T>>) {
   const columns = ref<WTable.Column<T>[]>([])
   const { t } = useAppI18n()
   const userStorePermission = useAppStoreUserPermission()

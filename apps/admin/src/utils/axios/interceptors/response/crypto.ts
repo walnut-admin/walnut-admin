@@ -1,6 +1,6 @@
 import { importAesKeyFromRaw, importRsaPrivateKey, rsaOaepDecrypt } from '@walnut/client/browser/crypto/shared'
 import { aesGcmDecrypt } from '@walnut/client/browser/crypto/symmetric/aes-gcm'
-import { base64ToUint8Array } from '@walnut/utils/crypto/transformer'
+import { base64ToUint8Array } from '@walnut/client/browser/crypto/transformer'
 import { useAppStoreSecurity } from '@/store/modules/app/app-security'
 
 export async function decryptResponseValue(encryptedBase64: string): Promise<string | null> {

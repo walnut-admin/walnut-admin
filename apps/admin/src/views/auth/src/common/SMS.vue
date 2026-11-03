@@ -2,7 +2,7 @@
 import type { NullableRecord } from 'easy-fns-ts'
 import type { IRequestPayload } from '@/api/request'
 import type { ICompExtraPhoneNumberInputUpdateParams } from '@/components/Extra/PhoneNumberInput'
-import { isPhoneNumber } from '@walnut/utils/regex'
+import { isPhoneNumber } from '@walnut/client/regex'
 // TODO 111
 import { NRadio, NText } from 'naive-ui'
 import { computed, reactive, ref } from 'vue'

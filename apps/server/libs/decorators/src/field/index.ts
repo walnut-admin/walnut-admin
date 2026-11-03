@@ -1,3 +1,4 @@
+export * from './any.decorator'
 export * from './boolean.decorator'
 export * from './date.decorator'
 export * from './enum.decorator'

@@ -1,3 +1,4 @@
+import type { AppLoggerLogTypeType } from './dto/logger.dto'
 import fsSync from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -6,6 +7,7 @@ import readline from 'node:readline'
 import zlib from 'node:zlib'
 import { Injectable, Logger } from '@nestjs/common'
 import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
+import { getFilterValue } from '@walnut-server/list'
 import { normalizeListPage } from '@walnut-server/utils/list-page'
 import { clamp, compact, isNil, orderBy } from 'lodash'
 import { glob } from 'tinyglobby'
@@ -55,7 +57,12 @@ export class AppLoggerService {
     // 本链路不走 SQL，page/pageSize 直接进内存 slice，所以必须在这里也收一遍：
     // pageSize=0 会静默返回空页、负数会让 slice 起点算反。
     const { page, pageSize } = normalizeListPage(params.page)
-    const { fileName, logType } = params.query
+
+    // 批次 4-A：过滤条件从 `query` 对象改成显式 filters。本链路的两个过滤字段
+    // （fileName / logType）是**文件系统元数据**，不是任何实体的列，没有列类型权威 ——
+    // 所以在这里自己裁决：形态不对直接 40099（不静默丢弃，保持与新 wire 同语义）。
+    const fileName = this.toFileNameFilter(getFilterValue(params.filters, 'fileName'))
+    const logType = this.toLogTypeFilter(getFilterValue(params.filters, 'logType'))
 
     const cwd = process.cwd()
     const logDir = path.join(cwd, logType ? this.logTypeMap[logType] : this.logFolder)
@@ -107,6 +114,28 @@ export class AppLoggerService {
       data: paginatedFiles,
       total,
     }
+  }
+
+  /** fileName 过滤值只接受字符串（缺省放行，形态不对 40099） */
+  private toFileNameFilter(value: unknown): string | undefined {
+    if (value === undefined || value === null || value === '') {
+      return undefined
+    }
+    if (typeof value !== 'string') {
+      throw new WalnutAdminExceptionRequestDataError('filters[fileName] 只接受字符串')
+    }
+    return value
+  }
+
+  /** logType 过滤值只接受枚举内的值（缺省放行，不在枚举里 40099） */
+  private toLogTypeFilter(value: unknown): AppLoggerLogTypeType | undefined {
+    if (value === undefined || value === null || value === '') {
+      return undefined
+    }
+    if (value !== AppLoggerLogType.APPLICATION && value !== AppLoggerLogType.ERROR) {
+      throw new WalnutAdminExceptionRequestDataError('filters[logType] 只能是 application / error')
+    }
+    return value
   }
 
   async read(filePath: string, page: number) {

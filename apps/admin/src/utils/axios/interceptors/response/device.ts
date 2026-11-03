@@ -1,4 +1,4 @@
-import { SingletonPromise } from '@walnut/utils/queue'
+import { SingletonPromise } from '@walnut/client/queue'
 import { useAppStoreGeoIP } from '@/store/modules/app/app-geo-ip'
 
 /**

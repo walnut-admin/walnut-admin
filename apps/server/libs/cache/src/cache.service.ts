@@ -1,10 +1,10 @@
-import type { IWalnutAdminCacheListRequest, IWalnutAdminCacheListRow } from './cache-list.types'
+import type { IWalnutAdminCacheListFilter, IWalnutAdminCacheListRequest, IWalnutAdminCacheListRow } from './cache-list.types'
 import { Injectable, Logger } from '@nestjs/common'
 import { IWalnutAdminConstAppCacheType, WalnutAdminConstAppCacheType } from '@walnut-server/const/app/cache'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { normalizeListPage } from '@walnut-server/utils/list-page'
 
-import { every, filter, get, isNil, orderBy, slice } from 'lodash'
+import { filter, get, isNil, orderBy, slice } from 'lodash'
 import sizeof from 'object-sizeof'
 import { AppTechRedisService } from './redis/redis.service'
 
@@ -40,27 +40,84 @@ function myPaginate<T>(array: T[], pageNum: number, pageSize: number) {
   return slice(array, skip, skip + limit)
 }
 
-function myFilter(array: IWalnutAdminCacheListRow[], conditions: Partial<IWalnutAdminCacheListRow>) {
+/** 单值比较：Date / Dayjs / number / boolean 走值本身，其余按小写字符串比 */
+function comparableOf(value: unknown): string | number | undefined {
+  if (value === null || value === undefined) {
+    return undefined
+  }
+  if (typeof value === 'number') {
+    return value
+  }
+  if (typeof value === 'boolean') {
+    return value ? 1 : 0
+  }
+  if (value instanceof Date) {
+    return value.getTime()
+  }
+  // Dayjs / 其它对象：能 valueOf 成数字就按时间戳比
+  const of = (value as { valueOf?: () => unknown }).valueOf?.()
+  if (typeof of === 'number' && Number.isFinite(of)) {
+    return of
+  }
+  return String(value).toLowerCase()
+}
+
+/**
+ * 内存过滤 —— 与 SQL 侧同一套**显式 op** 语义（批次 4-A）。
+ *
+ * Redis key 列表没有列类型可裁决（行是 JS 对象），所以 op 的合法性靠调用方给对；
+ * 这里只按 op 落语义：eq 等值 / like 子串 / in 命中 / range 闭开区间 / isNull 空值判定。
+ * 与旧实现的行为差：旧版按 `typeof value` 猜（数字/布尔等值、其余子串），
+ * 现在等值与子串由 op 显式区分，不再有猜测。
+ */
+function myFilter(
+  array: IWalnutAdminCacheListRow[],
+  filters: ReadonlyArray<IWalnutAdminCacheListFilter> | undefined,
+) {
+  // 先落到显式类型的局部量再遍历（不靠 Array.isArray 收窄：它会把 ReadonlyArray
+  // 收窄成 any[]，每一项都变 any，lint 的 no-unsafe-* 会全红）
+  const list: ReadonlyArray<IWalnutAdminCacheListFilter> = filters ?? []
+
+  if (list.length === 0) {
+    return array
+  }
+
   return filter(array, (item) => {
-    return every(conditions, (value, key) => {
-      if (isNil(value)) {
-        return true
+    return list.every((f) => {
+      const itemValue = get(item as unknown as Record<string, unknown>, f.field)
+
+      if (f.op === 'isNull') {
+        return (itemValue === null || itemValue === undefined) === (f.value !== false)
       }
 
-      // 处理数字类型的精确匹配
-      if (typeof value === 'number') {
-        return get(item, key) === value
+      if (f.op === 'in') {
+        const candidates: unknown[] = Array.isArray(f.value) ? f.value : []
+        const target = comparableOf(itemValue)
+        return candidates.some(candidate => comparableOf(candidate) === target)
       }
 
-      // 处理布尔类型的精确匹配
-      if (typeof value === 'boolean') {
-        return get(item, key) === value
+      if (f.op === 'range') {
+        if (!Array.isArray(f.value) || f.value.length !== 2) {
+          return true
+        }
+        const current = comparableOf(itemValue)
+        const start = comparableOf(f.value[0])
+        const end = comparableOf(f.value[1])
+        if (current === undefined || start === undefined || end === undefined) {
+          return false
+        }
+        return current >= start && current < end
       }
 
-      // 其他类型全部按字符串模糊匹配处理
-      const searchTerm = value.toString().toLowerCase()
-      const itemValue = get(item, key, '').toString().toLowerCase()
-      return itemValue.includes(searchTerm)
+      const current = comparableOf(itemValue)
+      const expected = comparableOf(f.value)
+
+      if (f.op === 'eq') {
+        return current === expected
+      }
+
+      // like：子串匹配（不区分大小写）
+      return String(current ?? '').includes(String(expected ?? ''))
     })
   })
 }
@@ -510,7 +567,7 @@ return redis.call('DEL', KEYS[1])`,
   public async list(payload: IWalnutAdminCacheListRequest): Promise<{ data: IWalnutAdminCacheListRow[], total: number }> {
     const allCachedData = await this.getAllCacheData()
 
-    const { sort, query } = payload
+    const { sort, filters } = payload
 
     const page = normalizeListPage(payload.page)
 
@@ -548,10 +605,8 @@ return redis.call('DEL', KEYS[1])`,
       )
     }
 
-    // filter
-    if (Object.keys(query).length !== 0) {
-      cachedArrayData = myFilter(cachedArrayData, query)
-    }
+    // filter（批次 4-A：显式 filters，不再是 query 对象）
+    cachedArrayData = myFilter(cachedArrayData, filters)
 
     const total = cachedArrayData.length
 

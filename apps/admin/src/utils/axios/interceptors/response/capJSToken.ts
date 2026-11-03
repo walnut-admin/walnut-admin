@@ -1,4 +1,4 @@
-import { SingletonPromise } from '@walnut/utils/queue'
+import { SingletonPromise } from '@walnut/client/queue'
 import { useStoreCompCapJS } from '@/store/modules/component/comp-capjs'
 
 const capJSRefreshQueue = new SingletonPromise<string>()

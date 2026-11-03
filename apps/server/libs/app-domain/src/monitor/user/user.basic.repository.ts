@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutModelName, WalnutPGConnectionName } from '@walnut-server/db'
 
+import { getFilterValue } from '@walnut-server/list'
 import { applyPgListQuery, buildPgListQueryOptionsFromQb, escapeLikePattern, WALNUT_PG_LIST_TOTAL_ALIAS, WalnutAdminCommonPgBaseRepository } from '@walnut-server/repository'
 import { AppMonitorUserEntity } from './entity/monitor-user.entity'
 
@@ -54,18 +55,22 @@ export class AppMonitorUserBasicRepository extends WalnutAdminCommonPgBaseReposi
 
       // Mongo 版 matchConditions：populate 字段上的 $regex('i') → JOIN 别名 ILIKE
       // （字面量转义走 pg-column-op 的 escapeLikePattern；非实体列被 applyPgListQuery 的白名单跳过，在此接管）
-      const query = (params.query ?? {}) as Record<string, unknown>
+      //
+      // 批次 4-A：这几个键（ip / country / os / browser / userName）是 JOIN 别名上的
+      // **虚拟字段**，不是本实体的列 —— 按 filters 的 field 逐条取，非实体的部分由
+      // applyPgListQuery 的列白名单跳过，在此接管。
+      const filterValue = (field: string) => getFilterValue(params.filters, field)
       const ilike = (expression: string, key: string, raw: unknown) => {
         if (raw === null || raw === undefined || raw === '') {
           return
         }
         qb.andWhere(`${expression} ILIKE :${key}`, { [key]: `%${escapeLikePattern(String(raw))}%` })
       }
-      ilike('device.ip', 'monitorDeviceIp', query.ip)
-      ilike(`device.location_info->>'country'`, 'monitorCountry', query.country)
-      ilike(`device.device_info->>'os'`, 'monitorOs', query.os)
-      ilike(`device.device_info->>'browser'`, 'monitorBrowser', query.browser)
-      ilike('monitor_user.user_name', 'monitorUserName', query.userName)
+      ilike('device.ip', 'monitorDeviceIp', filterValue('ip'))
+      ilike(`device.location_info->>'country'`, 'monitorCountry', filterValue('country'))
+      ilike(`device.device_info->>'os'`, 'monitorOs', filterValue('os'))
+      ilike(`device.device_info->>'browser'`, 'monitorBrowser', filterValue('browser'))
+      ilike('monitor_user.user_name', 'monitorUserName', filterValue('userName'))
 
       // populate 出参列（别名与实体列错开；device.id 作 JOIN 命中标记），同趟带出 total 窗口列
       qb.addSelect('device.id', 'virtual_device_id')

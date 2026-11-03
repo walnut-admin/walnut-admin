@@ -1,8 +1,8 @@
 <script lang="ts" setup>
 import type { SystemDevice, SystemDeviceHistoryUser, SystemUser } from '@walnut/api-types'
-import type { BaseListParams } from '@walnut/http/types'
 import type { DataTableColumn } from 'naive-ui'
 import type { WForm } from '@/components/UI/Form'
+import type { IWalnutTableListState } from '@/components/UI/Table/src/hooks/useTableAPIListParams'
 import { useState } from '@walnut/client/hooks/core/useState'
 import { computed, onMounted, ref } from 'vue'
 import { banDeviceAPI, deviceAPI, getDeviceCurrentActiveUserAPI, getDeviceHistoryUsersAPI, lockDeviceAPI, unbanDeviceAPI, unlockDeviceAPI } from '@/api/system/device'
@@ -12,6 +12,7 @@ import { useAppConfirm } from '@/hooks/component/useConfirm'
 import { useAppMsgSuccess } from '@/hooks/component/useMessage'
 import { useAppI18n } from '@/locales/index'
 import { useAppStoreAdapter } from '@/store/modules/app/app-adapter'
+import { toWalnutListParams } from '@/utils/table/list-filters'
 
 import DeviceCard from './card.vue'
 
@@ -39,7 +40,7 @@ const {
   stateRef: listParams,
   resetState: resetListParams,
   commit: commitParams,
-} = useState<BaseListParams<SystemDevice>>({
+} = useState<IWalnutTableListState<SystemDevice>>({
   query: {} as SystemDevice,
   sort: [{ field: 'active', order: 'descend', priority: 9 }, { field: 'locked', order: 'descend', priority: 8 }, { field: 'banned', order: 'descend', priority: 7 }],
   page: {
@@ -97,7 +98,8 @@ async function onApiList() {
   loading.value = true
 
   try {
-    const res = await deviceAPI.list(listParams.value)
+    // 批次 4-A：界面态 → wire（query → filters），转换口径见 @/utils/table/list-filters
+    const res = await deviceAPI.list(toWalnutListParams(listParams.value))
     data.value = res.data
     total.value = res.total
   }

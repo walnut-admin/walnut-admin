@@ -9,6 +9,7 @@ import type { ComputedRef, HTMLAttributes, Ref, VNodeChild } from 'vue'
 import type { ICompUIButtonProps } from '../../Button'
 import type { WForm } from '../../Form'
 import type { ICompUIIconButtonProps } from '../../IconButton'
+import type { IWalnutTableListState } from './hooks/useTableAPIListParams'
 import type { ICompUITableHooksMethods } from './hooks/useTableMethods'
 
 export declare namespace WTable {
@@ -65,8 +66,11 @@ export declare namespace WTable {
 
       /**
        * @description get list params
+       *
+       * 批次 4-A 起返回的是**界面态**（`{ query, sort, page }`）：query 是表单模型，
+       * wire 上的 `filters` 由 `useTableAPIListParams` 的 `apiListFilters` 现算。
        */
-      onGetApiListParams: () => Ref<BaseListParams<T>>
+      onGetApiListParams: () => Ref<IWalnutTableListState<T>>
 
       /**
        * @description set default query form data (partial, merge into current)
@@ -81,6 +85,15 @@ export declare namespace WTable {
    * @description Hooks
    */
   namespace Hooks {
+    /**
+     * list 请求的**界面态**（`query` 表单模型 / sort / page）。
+     *
+     * 批次 4-A：wire 上的过滤是 `filters: [{ field, op, value }]`，由
+     * `useTableAPIListParams` 的 `apiListFilters` 从本状态现算；`onGetApiListParams()`
+     * 暴露的仍是这个界面态（改了 query 之后重发请求即可）。
+     */
+    type ListState<T> = IWalnutTableListState<T>
+
     namespace UseTable {
       type Props<T> = WTable.Props<T> | ComputedRef<WTable.Props<T>> | IDeepMaybeRef<WTable.Props<T>>
 
@@ -256,7 +269,7 @@ export declare namespace WTable {
     tableEvent: ShortEmits<Emits<T>>
     tablePropsCtx: IHooksUseProps<Props<T>>
 
-    apiListParams: Ref<BaseListParams<T>>
+    apiListParams: Ref<IWalnutTableListState<T>>
     onApiList: () => Promise<void>
     onApiQuery: WForm.onFinishFormLoadingCallback
     onApiReset: WForm.onFinishFormLoadingCallback
