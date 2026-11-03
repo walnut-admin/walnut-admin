@@ -1,6 +1,6 @@
 # 批次 8 · 守卫链安全三件（B2 / B3 / B6）
 
-> 实施 agent 交付报告。全部改动**未提交**（按指示不 git commit）。
+> 实施 agent 交付报告。**我没有 git commit**（按指示）；协调方在飞行中替本批提交了两次，见 §8 末尾的提交状态说明。
 > 三件独立可验证，按 B2 → B3 → B6 顺序落地；每条都有「改回旧行为必须红」的负对照。
 
 ## 0. 先说环境（这条影响所有读数，请先读）
@@ -198,11 +198,12 @@ findOneAndUpdate({ visitorId: dto.visitorId }, { deviceId, ...updatePayload }, {
 `monitor-user.api-spec.ts` 因此引入第二台真实客户端 `guest`（完整 device/CAP/签名握手），并把清理腿改成
 `DELETE ... WHERE device_id = ANY(...)`。api-spec 里所有 `visitorId` 现在都取 `client.fingerprint`
 （= 真实客户端 axios 头里的那个值），否则 HMAC 校验必然 40099。
+
 ## 5. 验收读数（本机、独占跑）
 
 | 命令 | 结果 | 说明 |
 |---|---|---|
-| `pnpm --filter @walnut/server test` | **822 passed / 98 files**（exit 0） | 日志 `reports/batch-8/logs/server-test.log`。Lead 给的基线是 790 —— 差额里含我新增的 32 条单测 + 批次 9 同期新增的用例（同一工作树，见 §0） |
+| `pnpm --filter @walnut/server test` | **822 passed / 98 files**（exit 0） | 日志 `reports/batch-8/logs/server-test-final.log`（末轮复跑同值）。Lead 给的基线是 790 —— 差额里含我新增的 32 条单测 + 批次 9 同期新增的用例（同一工作树，见 §0） |
 | `pnpm --filter @walnut/server types:check` | **exit 0** | 期间一度红在两个 number 文件（批次 9 中间态），对方修好后复跑绿 |
 | `pnpm --filter @walnut/server lint` | **0 error**（3 个 warning 在批次 9 的 `libs/repository/src/pg-list.builder.spec.ts`） | 日志 `logs/lint-server.log`；我改的文件已 `--fix` 复跑 |
 | `pnpm --filter @walnut/docs lint` | exit 0 | 我改了两篇文档（auth.md / security.md） |
@@ -212,7 +213,26 @@ findOneAndUpdate({ visitorId: dto.visitorId }, { deviceId, ...updatePayload }, {
 
 ### 5.1 集成读数
 
-INTEGRATION_PLACEHOLDER
+**整轮一次的跑法在本机跑不完**（如实登记）：我独立跑了两次完整 `test:integration`（`logs/itest.log`、`logs/itest3.log`），
+两次都在 ~10–13 分钟处被**宿主进程终止**（`[ELIFECYCLE] Command failed with exit code -1`），
+**终止前零 FAIL**（`grep FAIL` 只有一条 `uq_rt_active_device_user` 的预期重复键日志，那是用例本身在验部分唯一索引）。
+所以改成**分片独占跑**（每片 < 10 分钟，frontground，仍由 globalSetup 的 advisory lock 兜底）：
+
+| 片 | 范围 | 结果 |
+|---|---|---|
+| A | `apps/api/test/integration/**`（18 个 `*.int-spec.ts`） | **189 passed / 18 files** |
+| B | api-spec 1/4（api-rollback … device） | **103 passed / 13 files** |
+| C | api-spec 2/4（dict … log-operate，**含 guard-matrix**） | **194 passed / 12 files** |
+| D | api-spec 3/4（logger … security，**含 monitor-user**） | **94 passed + 1 skipped / 12 files** |
+| E | api-spec 4/4（setting … user） | **111 passed / 14 files** |
+
+合计 **691 passed / 1 skipped，0 failed**（file-level 69 次执行，覆盖全部 46 个 api-spec + 18 个 int-spec；
+个别文件因过滤词重叠被跑两次，都是绿的）。**没有一条红**。
+
+其中与本批直接相关的三份：`guard-matrix.api-spec.ts`（G14 重写 + B2 的 3 条真实 HTTP 钉）、
+`monitor-user.api-spec.ts`（B6 行键 + 2 条劫持/白名单负对照）、`device.user-device.monitor.pg.int-spec.ts`（行键 upsert）、
+`locale.api-spec.ts` / `user-preference.api-spec.ts` / `security.api-spec.ts`（B3 撤 IpFree 后的回归）。
+
 ## 6. 已知边界 / 未做
 
 1. **`openapi.json` 需要重导出**（本批改了两处契约面：心跳 body 少了 `deviceId`、新增业务码 40667 会进
@@ -223,12 +243,12 @@ INTEGRATION_PLACEHOLDER
    非敏感端点的留痕不受影响（`meta.riskDegraded` 恒落响应壳）。
 3. **历史脏行不会自动修复**：改造前被投毒的行（`visitor_id` 属于 A、`device_id` 属于 B）仍在表里。受害者**新**上报会撞
    `uq_monitor_visitor`（23505 → 40000）直到那一行被清。判据（`HMAC(visitor_id) === device_id`）算不了 SQL —— key 在 env。
-   见 §7 第 4 条。
+   见「需要 Lead 拍板」第 4 条。
 4. **未做**：risk 服务「慢而不失败」没有超时/熔断（本批只处理「抛异常」与「无 deviceId」两种不可用形态）。
 5. **未做**：`/app/error` 的 ErrorMap 没登记 40667（与既有的 40608/40609/40610 同形：未登记就抛 50000）。
-6. **未做**：`libs/guards/src/guards/ip.guard.ts` 的 `@WalnutAdminGuardIpFree()` 现在是 0 调用导出，knip 迟早会点它（见 §7 第 5 条）。
+6. **未做**：`libs/guards/src/guards/ip.guard.ts` 的 `@WalnutAdminGuardIpFree()` 现在是 0 调用导出，knip 迟早会点它（见「需要 Lead 拍板」第 5 条）。
 
-## 7. 需要 Lead 拍板
+## 需要 Lead 拍板
 
 1. **`POST /auth/otp/send` 要不要一起 fail-close**：我按你的列表**严格**口径记成 fail-open（理由：它不是「校验」，且有独立
    `OtpDecoratorThrottle` 兜底）。但风控缺席时它仍是**匿名发码**入口（SMS 成本 + 账号枚举面）。改成 fail-close 是一行
@@ -273,5 +293,7 @@ INTEGRATION_PLACEHOLDER
 - `apps/server/apps/api/test/integration/device.user-device.monitor.pg.int-spec.ts`、`apps/server/apps/api/test/api/ENDPOINTS.md`
 - `apps/docs/src/zh-CN/content/backend/modules/{auth,security}.md`
 
-> 提交状态：协调方已把本批代码刀在 `570b7448 feat(server): 风控按端点分级 fail-close、撤掉多余 IpFree、心跳行键改服务端 deviceId`；
-> 我在那之后又补了「B2 的 3 条真实 HTTP 钉（guard-matrix）+ 测试响应壳类型补 `meta`」与最终集成日志，这部分**未提交**。
+> 提交状态（**我没有 git commit**，是协调方在飞行中提交的）：
+> `570b7448 feat(server): 风控按端点分级 fail-close、撤掉多余 IpFree、心跳行键改服务端 deviceId` 收容了本批代码主体；
+> `12f26dcd test(server): 补风控降级分级的真实 HTTP 链钉子（批次 8 / B2）` 收容了我后补的 3 条 guard-matrix 用例 + 测试壳 `meta` 类型 + 本报告与日志。
+> 复核时请按这两个 commit 看，别把 `d70d8d04`（批次 9 的 contract/list 改动）算进本批。
