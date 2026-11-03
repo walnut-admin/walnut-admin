@@ -63,7 +63,8 @@ export class AppMonitorUserDTO extends IntersectionType(AppMonitorUserDTOBase, W
  * `visitorId` = 客户端自报的**原始浏览器指纹**，**只存在于请求面**。
  *
  * P0-2 之前它是 `AppMonitorUserDTOBase` 的字段 ⇒ 随 list / read 的出参一并回显；而
- * `deviceId = HMAC(指纹, 服务端 key)`（实测 MATCH）⇒ 「读到别人指纹 → 匿名
+ * `deviceId = HMAC(指纹, 服务端 key)`（实测 MATCH；B5 起不成立 —— device_id 由服务端随机
+ * 签发，见 libs/app-domain 同名基座的注释）⇒ 「读到别人指纹 → 匿名
  * POST /system/device/initial 铸出该设备的合法 cookie」= 一条可复现的账号接管链
  * （订阅对方 OAuth 结果流，review §8.4）。
  *

@@ -67,7 +67,10 @@ export class AppMonitorUserRepositoryService implements IIdentityMonitorReposito
           return null
         }
 
-        // 首行登记：visitorId 由 service 校过 HMAC 后随 update 一起落库
+        // 首行登记：visitorId 由 service 校过（与**本设备已存行**的 visitor_id 比，判据见
+        // AppMonitorUserService.updateState）后随 update 一起落库。B5 起不需要 HMAC：行键是
+        // 不可伪造的 deviceId（服务端签发、随签名 cookie 携带），指纹只活在请求面、是风控
+        // 特征而非身份根 —— 判的是「同一设备不许换指纹」，不是「指纹能推出设备」。
         await repository.insert({ ...filter, ...update })
         return repository.findOne({ where: filter })
       }

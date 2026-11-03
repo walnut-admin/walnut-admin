@@ -224,7 +224,10 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     expectOk(res, 'monitor user read')
 
     const row = bodyOf<MonitorRow>(res).data
-    // P0-2：原始指纹绝不下发（deviceId = HMAC(指纹)，回显指纹等于下发设备身份）
+    // P0-2：原始指纹绝不下发。**现状**的判据不是「deviceId = HMAC(指纹)」（B5 起 device_id 由
+    // 服务端随机签发、与指纹无关，判据见 libs/const/src/app/device.ts）—— 指纹是**另一条独立的
+    // 设备侧标识**，留着它响应面没有任何用途：要定位设备用 device.deviceId / device.deviceName。
+    // 它只活在**请求面**（心跳的校验字段 + list 的查询过滤）。
     expect(row).not.toHaveProperty('visitorId')
     expect(row.device?.deviceId).toBe(api.deviceId)
     expect(row.user?.id).toBe(fixture!.userId)

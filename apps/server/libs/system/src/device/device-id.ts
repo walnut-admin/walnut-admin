@@ -17,8 +17,17 @@ export { isValidDeviceId, WALNUT_DEVICE_ID_PREFIX } from '@walnut-server/const/a
 
 /**
  * 签发一个新的设备 id。
- * **只在两处调用**：匿名 `POST /system/device/initial` 与登录成功时（见 device.service）。
- * 其余路径一律不签发 —— 签发点越少，「谁能决定身份」这件事越好审计。
+ *
+ * 生产调用点**只有 1 处**：`device.service.ts` 的 initial（匿名 `POST /system/device/initial`）。
+ * 登录**不**签发 —— 登录复用 cookie 里那枚已签发的 id（initial 里
+ * `isValidDeviceId(cookieDeviceId) ? cookieDeviceId : generateDeviceId()`）。
+ * 其余命中全是单测 / 集成夹具（`device-id.spec.ts`、`device.*.pg.int-spec.ts`），不是签发路径。
+ *
+ * 为什么只有一处更安全：签发点越少，「谁能决定一个设备身份」这个面就越小 —— 一处就等于
+ * 「请求带不带合法 cookie」，没有第二条腿要单独审计。B5 之前恰好相反：身份是客户端自报
+ * 指纹的确定性函数，签发权实际在客户端（知道指纹就能铸出同一身份）。
+ *
+ * 「1 处」这件事由 `device-issuance.drift.spec.ts` 机械守（数调用点，不靠这段注释自觉）。
  */
 export function generateDeviceId(): string {
   return `${WALNUT_DEVICE_ID_PREFIX}${randomBytes(16).toString('hex')}`

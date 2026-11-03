@@ -34,8 +34,8 @@ import { LocaleType } from '@walnut/contract'
  * 于是移除。
  *
  * deviceId **不进** state 明文段：state 随 302 交给第三方 IdP（gitee / github），
- * 且会落进两边日志与 Referer；deviceId 是服务端对指纹做 HMAC 的稳定设备标识
- * （客户端 cookie 里就带着），没有理由外发给 IdP。绑定值只落 Redis，由
+ * 且会落进两边日志与 Referer；deviceId 是服务端签发、写在**签名 cookie** 里的设备身份
+ * （B5 起 d1_ + 32 hex、随机，与指纹无关），没有理由外发给 IdP。绑定值只落 Redis，由
  * `consumeState` 与本请求 cookie 比对后随返回值交给调用方。
  */
 interface IWalnutOAuthStatePayload {

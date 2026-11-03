@@ -20,8 +20,10 @@ import { Expose } from 'class-transformer'
 export class AppMonitorUserDTOBase extends WalnutAdminCommonBasicModel {
   // P0-2（设备追踪 P0 批）：`visitorId`（= **原始浏览器指纹**）从本基座摘除 ——
   // 基座是「请求 + 响应」共用的字段面，留着它等于让每个派生响应都回显指纹。
-  // 而 deviceId = HMAC(指纹, 服务端 key)，指纹一旦下发，「拿到指纹 → 铸出该设备的
+  // 而**当时**的 deviceId = HMAC(指纹, 服务端 key)：指纹一旦下发，「拿到指纹 → 铸出该设备的
   // 合法 cookie → 订阅它的 OAuth 结果流」就是一条可复现的账号接管链（review §8.4）。
+  // （B5 起该等式已不成立 —— device_id 由服务端随机签发、指纹不再派生身份，判据见
+  //  libs/const/src/app/device.ts；但「为什么把 visitorId 从响应面摘掉」与它无关，结论仍成立。）
   // 现在该字段只存在于**请求面**：`AppMonitorUserDTOUpdateState`（心跳的**校验字段**，
   // 批次 8 / B6 起不再是行键 —— 行键是服务端从 Cookie 解析的 deviceId）与 list 的查询
   // 过滤，两者在 app 的 wire DTO 里显式声明。响应面（list / read）

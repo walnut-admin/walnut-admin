@@ -18,9 +18,10 @@ import { WALNUT_TEST_USER_AGENT } from './helpers/sign-handshake'
  * lock/unlock/ban/unban 四件。
  *
  * 关键现状（P2-2 / P2-3 / P3-2 修复后，2026-10-28）：
- * - initial 按 X-Fingerprint 派生业务键 device_id 幂等 upsert —— 同指纹重复 initial 回
- *   同一 deviceId（覆盖更新路径），新指纹产出新行；重名 device_name 撞 `uq_device_name`
- *   （23505）在 catch-all 之前单列受控 40000，其余异常仍走 40605；
+ * - initial **服务端签发**（B5）：cookie 里有合法 deviceId 就复用（这就是幂等性），否则新签
+ *   一枚；指纹只作请求头存在，不再派生业务键。同一浏览器重放回同一 deviceId 是**因为 cookie** ——
+ *   换一个没有 cookie 的客户端（哪怕指纹相同）会拿到新设备；重名 device_name 撞
+ *   `uq_device_name`（23505）在 catch-all 之前单列受控 40000，其余异常仍走 40605；
  * - lock/unlock/ban/unban **落库 + 缓存双写**（sys_device.locked / banned，同事务更新，
  *   after-commit 写 SYS_DEVICE 缓存）；Device guard 缓存 miss 时回源库 —— 清缓存后
  *   锁/封状态仍生效（40606/40607）。锁/封期间同设备请求被 guard 拦死（连 unlock/unban
@@ -106,7 +107,7 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     await app.close()
   })
 
-  it('initial 同指纹重放 → 幂等回同一 deviceId（upsert 覆盖路径）+ DEVICE_ID cookie 重签', async () => {
+  it('initial 重放（带合法 DEVICE_ID cookie）→ 幂等回同一 deviceId + cookie 重签（B5：幂等键是 cookie，不是指纹）', async () => {
     const res = await api.anon('POST', api.apiPath('/system/device/initial'), {
       deviceInfo: {},
       hardwareInfo: {},
@@ -120,7 +121,7 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     expect(data.deviceId).toBe(api.deviceId)
   })
 
-  it('initial 新指纹 → 新设备行；read 出参 sr/vp 组装回嵌套对象', async () => {
+  it('initial（无设备 cookie、自带 X-Fingerprint）→ 服务端新签一台设备；read 出参 sr/vp 组装回嵌套对象', async () => {
     // 第二指纹的 initial 用裸 supertest 发（客户端 cookie jar 不吃它的 DEVICE_ID 重签 ——
     // 否则后续请求带着第二台设备的 DEVICE_ID + 第一台设备的 CAPJS_TOKEN，CAP guard 必 40116）
     const raw = await supertest(app.getHttpServer())

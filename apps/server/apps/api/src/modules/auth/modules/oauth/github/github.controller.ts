@@ -66,8 +66,9 @@ export class OAuthGithubController {
    *
    * 修复前键是客户端指纹（`req.fingerprint` ← `X-Fingerprint` 请求头）经 state 回传的值：
    * 任何人自选 fp 抢注频道即可截胡随后投递的 accessToken + sessionKey（登录会话根密钥）。
-   * deviceId 是服务端对指纹做 HMAC 得到的 64 位 hex（`getDeviceIdByFingerprint`），
-   * 无密钥不可预测，且 cookie 带签名（cookie-parser），客户端无法自造。
+   * deviceId 来自**服务端签发的签名 cookie**：形态 d1_ + 32 位小写 hex（判据唯一真源是
+   * libs/const/src/app/device.ts 的 isValidDeviceId），B5 起由服务端 randomBytes(16) 随机签发，
+   * 与客户端指纹**无关**；cookie 另带 cookie-parser 签名，改一个字符就解签失败。
    */
   private getSseClientId(deviceId: string): string {
     if (typeof deviceId !== 'string' || deviceId.length === 0) {
