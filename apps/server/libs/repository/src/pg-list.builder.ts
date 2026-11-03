@@ -1,6 +1,7 @@
-import type { IWalnutAdminRequestList } from '@walnut-server/list'
+import type { IWalnutAdminListFilters, IWalnutAdminRequestList } from '@walnut-server/list'
 import type { EntityMetadata, ObjectLiteral, SelectQueryBuilder } from 'typeorm'
 import type { IWalnutPgListCondition, WalnutPgColumnKind } from './pg-column-op'
+import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 import { normalizeListPage } from '@walnut-server/utils/list-page'
 import { isNil, isObject } from 'lodash'
 import {
@@ -9,9 +10,13 @@ import {
   escapeLikePattern,
   isPgListOpAllowed,
   isPgSortableColumnKind,
+  isWalnutPgFilterOp,
   normalizeSortOrder,
+  resolvePgFilterCondition,
   resolvePgListCondition,
+  toPgListConditionOp,
   warnDroppedPgListCondition,
+  withPgListTiebreaker,
 } from './pg-column-op'
 
 /**
@@ -45,12 +50,22 @@ import {
 export { escapeLikePattern, ILIKE_ESCAPE_REGEX } from './pg-column-op'
 
 /**
- * Server-side list request params.
- * Shape mirrors @walnut/contract BaseListParams but uses Partial<T> for query
- * (backend accepts subset fields) and is compatible with runtime DTO factories.
- * Cannot be a direct type alias due to class-transformer DTO structural differences.
+ * 服务端范围的 list 入参。
+ *
+ * 形状对齐 `@walnut/contract` 的 BaseListParams（批次 4-A 起是 filters，不再是 query），
+ * 但这里把过滤项放宽成库内类型（`IWalnutAdminListFilters`），以便兼容
+ * class-transformer 生成的 DTO 实例（结构型，不能直接 type alias）。
  */
 export interface IListRequestParams<T> {
+  /** 显式过滤条件（批次 4-A 主路径）：算子由调用方给，非法 op/值 => 40099 */
+  filters?: IWalnutAdminListFilters
+  /**
+   * @deprecated 旧 wire（`query: Partial<Entity>`，算子按值的 typeof 猜）。
+   *
+   * **仅作兼容兜底**，批次 4-A 起 HTTP 层已不再接受该槽位（DTO 里没有 query 字段，
+   * 顶层白名单会直接 40099）。保留它是因为：库外调用方（测试 / 未迁完的旁路）仍可能
+   * 直接构造这个形状，而它的语义是「丢弃 + warn」而不是拒绝 —— 与 filters 严格模式互补。
+   */
   query?: Partial<T>
   sort?: Array<{ field: string, order: 'ascend' | 'descend' | false, priority?: number }>
   page?: { page: number, pageSize: number }
@@ -85,9 +100,9 @@ export function buildPgListQueryOptions<T>(
   resolveKind?: (property: string) => WalnutPgColumnKind | undefined,
   metadata?: EntityMetadata,
 ): IWalnutPgListQueryOptions {
-  const defaultSort = defaultPgListSort(metadata)
+  const defaultSort = withPgListTiebreaker(defaultPgListSort(metadata), metadata)
 
-  const { query, sort, page } = params as Partial<IListRequestParams<T>>
+  const { filters, query, sort, page } = params as Partial<IListRequestParams<T>>
 
   const normalized = normalizeListPage(page)
 
@@ -100,6 +115,55 @@ export function buildPgListQueryOptions<T>(
     }
   })
 
+  // ---- filters：显式 op 主路径（批次 4-A）·裁决不过就是 40099，不再丢弃 ----
+  const rejections: string[] = []
+
+  if (Array.isArray(filters) && filters.length > 0) {
+    filters.forEach((filter) => {
+      if (!isObject(filter) || typeof filter.field !== 'string' || filter.field === '') {
+        return
+      }
+
+      const key = filter.field
+      const wireOp = (filter as { op?: unknown }).op
+
+      if (!isWalnutPgFilterOp(wireOp)) {
+        rejections.push(
+          `filters[${key}]: 未知算子 ${String(wireOp)
+          }（只允许 eq / like / in / range / isNull）`,
+        )
+        return
+      }
+
+      if (resolveKind === undefined) {
+        // 没有列类型权威（库外直接调用）：原样透传，由 applyPgListQuery 用实体元数据裁决
+        match[key] = { op: toPgListConditionOp(wireOp), value: filter.value, filterOp: wireOp }
+        return
+      }
+
+      const kind = resolveKind(key)
+
+      if (kind === undefined) {
+        // 不是实体列：filters 面本来就含 JOIN 别名 / jsonb 旁路键，按既有 columns.has() 语义丢弃
+        return
+      }
+
+      const verdict = resolvePgFilterCondition(kind, wireOp, filter.value)
+
+      if (!verdict.ok) {
+        rejections.push(`filters[${key}].${wireOp}: ${verdict.reason}`)
+        return
+      }
+
+      match[key] = verdict.condition
+    })
+
+    if (rejections.length > 0) {
+      throw new WalnutAdminExceptionRequestDataError(`非法 list 过滤条件 —— ${rejections.join('; ')}`)
+    }
+  }
+
+  // ---- query：旧 wire 兼容路径（算子按 typeof 猜，猜不出来丢弃 + warn）----
   if (isObject(query) && Object.keys(query).length > 0) {
     Object.entries(query as Record<string, unknown>).forEach(([key, value]) => {
       if (isNil(value)) {
@@ -159,8 +223,9 @@ export function buildPgListQueryOptions<T>(
         .sort((a, b) => b.priority - a.priority)
     : []
 
+  // D15 稳定性兜底：任何排序都追加主键作最后一个键（否则同毫秒行在 LIMIT/OFFSET 下漏行/重行）
   const sortOptions: Record<string, 'ASC' | 'DESC'> = sortEntries.length > 0
-    ? Object.fromEntries(sortEntries.map(item => [item.field, item.direction]))
+    ? withPgListTiebreaker(Object.fromEntries(sortEntries.map(item => [item.field, item.direction])), metadata)
     : defaultSort
 
   return { match, sort: sortOptions, skip: normalized.skip, limit: normalized.limit, metadata, pageAdjusted: normalized.adjusted }
@@ -220,13 +285,41 @@ export function applyPgListQuery<T extends ObjectLiteral>(
       return
     }
 
-    // 权威路径：有 raw 就按列类型重新解释；解释不了 → 丢弃 + warn
-    const resolved = condition.raw === undefined
-      ? (isPgListOpAllowed(condition.op, kind) ? condition : undefined)
-      : resolvePgListCondition(kind, condition.raw)
+    // 三条路径，权威都在这里（列元数据）：
+    // 1. 显式 filters（condition.filterOp）：按 (op, 列类型) 重裁决，不过就 **40099**；
+    // 2. 旧 wire 兼容（condition.raw）：按值的 typeof 重解释，解释不了丢弃 + warn；
+    // 3. 手写构造（service 内部硬条件）：算子白名单兜底，不过丢弃 + warn。
+    let resolved: IWalnutPgListCondition | undefined
 
-    if (resolved === undefined || !isPgListOpAllowed(resolved.op, kind)) {
+    if (condition.filterOp !== undefined) {
+      const verdict = resolvePgFilterCondition(kind, condition.filterOp, condition.value)
+
+      if (!verdict.ok) {
+        throw new WalnutAdminExceptionRequestDataError(
+          `非法 list 过滤条件 —— filters[${key}].${condition.filterOp}: ${verdict.reason}`,
+        )
+      }
+
+      resolved = verdict.condition
+    }
+    else if (condition.raw === undefined) {
+      resolved = isPgListOpAllowed(condition.op, kind) ? condition : undefined
+    }
+    else {
+      resolved = resolvePgListCondition(kind, condition.raw)
+
+      if (resolved !== undefined && !isPgListOpAllowed(resolved.op, kind)) {
+        resolved = undefined
+      }
+    }
+
+    if (resolved === undefined) {
       warnDroppedPgListCondition(key, kind, condition.raw ?? condition.value, 'SQL 层裁决拒绝该算子/值')
+      return
+    }
+
+    if (resolved.op === 'isNull') {
+      qb.andWhere(`${alias}.${key} IS ${resolved.value === true ? 'NULL' : 'NOT NULL'}`)
       return
     }
 
@@ -257,20 +350,27 @@ export function applyPgListQuery<T extends ObjectLiteral>(
     }
   })
 
+  // 排序两步定稿（顺序即落 SQL 顺序）：
+  // 1. 先按列白名单收敛 options.sort —— 不可排序列（未知列 / 原生数组列）丢弃；
+  // 2. 再追加主键兜底（D15）—— 一个可排序列都没剩时改用实体缺省排序，同样追加主键。
+  // 这样既保住「未知 field 不清空默认排序」的既有语义，也保证任何查询都有全序。
+  const sortable: Record<string, 'ASC' | 'DESC'> = {}
+
   Object.entries(options.sort).forEach(([key, direction]) => {
+    if (isPgSortableColumnKind(resolveKind(key))) {
+      sortable[key] = direction
+    }
+  })
+
+  const finalSort = Object.keys(sortable).length > 0
+    ? withPgListTiebreaker(sortable, metadata)
+    : withPgListTiebreaker(defaultPgListSort(metadata), metadata)
+
+  Object.entries(finalSort).forEach(([key, direction]) => {
     if (isPgSortableColumnKind(resolveKind(key))) {
       qb.addOrderBy(`${alias}.${key}`, direction)
     }
   })
-
-  // 兜底：一个可排序字段都没落下 ⇒ 用实体缺省排序（否则 LIMIT/OFFSET 翻页会重复/丢行）
-  if (Object.keys(qb.expressionMap.orderBys ?? {}).length === 0) {
-    Object.entries(defaultPgListSort(metadata)).forEach(([key, direction]) => {
-      if (isPgSortableColumnKind(resolveKind(key))) {
-        qb.addOrderBy(`${alias}.${key}`, direction)
-      }
-    })
-  }
 
   qb.offset(options.skip).limit(options.limit)
 

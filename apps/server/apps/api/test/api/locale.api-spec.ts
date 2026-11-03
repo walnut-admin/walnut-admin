@@ -218,7 +218,7 @@ describe('A 段试点：system/locale 非标 CRUD + message 缓存开关（真�
 
     const listRes = await api.root('POST', api.apiPath('/system/locale/list'), {
       // 字符串过滤是 ILIKE 子串（%/_ 被字面量转义，不能自造通配符）
-      query: { key: `api.spec.${seed8}` },
+      filters: [{ field: 'key', op: 'like', value: `api.spec.${seed8}` }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 2 },
     })

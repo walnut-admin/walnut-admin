@@ -1,6 +1,7 @@
 import type { IWalnutAdminRequestList } from '@walnut-server/list'
 import type { EntityMetadata, ObjectLiteral, SelectQueryBuilder } from 'typeorm'
 import type { IWalnutPgListQueryContext } from './pg-list.builder'
+import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { describe, expect, it } from 'vitest'
 import { applyPgListQuery, buildPgListQueryOptions, buildPgListQueryOptionsFromQb } from './pg-list.builder'
 
@@ -176,45 +177,47 @@ describe('sort · 未知字段不得清空默认排序', () => {
     const fake = makeQb()
     applyTo(fake, { sort: [{ field: 'notAColumn', order: 'ascend', priority: 1 }] } as never)
 
-    expect(fake.orderBys).toEqual({ 'entity.createdAt': 'DESC' })
+    // 默认排序 + D15 主键兜底
+    expect(fake.orderBys).toEqual({ 'entity.createdAt': 'DESC', 'entity.id': 'DESC' })
   })
 
   it('数组列不可排序 ⇒ 同样回落默认', () => {
     const fake = makeQb()
     applyTo(fake, { sort: [{ field: 'ipHistory', order: 'ascend', priority: 1 }] } as never)
 
-    expect(fake.orderBys).toEqual({ 'entity.createdAt': 'DESC' })
+    expect(fake.orderBys).toEqual({ 'entity.createdAt': 'DESC', 'entity.id': 'DESC' })
   })
 
   it('合法 sort 覆盖默认排序', () => {
     const fake = makeQb()
     applyTo(fake, { sort: [{ field: 'deviceName', order: 'ascend', priority: 1 }] } as never)
 
-    expect(fake.orderBys).toEqual({ 'entity.deviceName': 'ASC' })
+    // 追加键沿用最后一个排序键的方向
+    expect(fake.orderBys).toEqual({ 'entity.deviceName': 'ASC', 'entity.id': 'ASC' })
   })
 
   it('order: false ⇒ 该列不排序（回落默认，不报错）', () => {
     const fake = makeQb()
     applyTo(fake, { sort: [{ field: 'deviceName', order: false, priority: 1 }] } as never)
 
-    expect(fake.orderBys).toEqual({ 'entity.createdAt': 'DESC' })
+    expect(fake.orderBys).toEqual({ 'entity.createdAt': 'DESC', 'entity.id': 'DESC' })
   })
 
   it('大写方向 / asc 别名都能识别（旧实现把 "ASC" 静默当 DESC）', () => {
     const upper = makeQb()
     applyTo(upper, { sort: [{ field: 'deviceName', order: 'ASC', priority: 1 }] } as never)
-    expect(upper.orderBys).toEqual({ 'entity.deviceName': 'ASC' })
+    expect(upper.orderBys).toEqual({ 'entity.deviceName': 'ASC', 'entity.id': 'ASC' })
 
     const alias = makeQb()
     applyTo(alias, { sort: [{ field: 'deviceName', order: 'desc', priority: 1 }] } as never)
-    expect(alias.orderBys).toEqual({ 'entity.deviceName': 'DESC' })
+    expect(alias.orderBys).toEqual({ 'entity.deviceName': 'DESC', 'entity.id': 'DESC' })
   })
 
   it('非法方向 ⇒ 丢弃该排序项', () => {
     const fake = makeQb()
     applyTo(fake, { sort: [{ field: 'deviceName', order: 'sideways', priority: 1 }] } as never)
 
-    expect(fake.orderBys).toEqual({ 'entity.createdAt': 'DESC' })
+    expect(fake.orderBys).toEqual({ 'entity.createdAt': 'DESC', 'entity.id': 'DESC' })
   })
 
   it('priority 降序决定先后', () => {
@@ -225,13 +228,14 @@ describe('sort · 未知字段不得清空默认排序', () => {
         { field: 'createdAt', order: 'descend', priority: 9 },
       ],
     } as never)
-    expect(Object.keys(options.sort)).toEqual(['createdAt', 'deviceName'])
+    // 主键兜底恒在最后（D15）
+    expect(Object.keys(options.sort)).toEqual(['createdAt', 'deviceName', 'id'])
   })
 
   it('空 sort 数组 ⇒ 默认排序', () => {
     const fake = makeQb()
     applyTo(fake, { sort: [] } as never)
-    expect(fake.orderBys).toEqual({ 'entity.createdAt': 'DESC' })
+    expect(fake.orderBys).toEqual({ 'entity.createdAt': 'DESC', 'entity.id': 'DESC' })
   })
 })
 
@@ -310,7 +314,7 @@ describe('applyPgListQuery · 权威裁决（外部塞进来的 match 也要过�
       { match: {}, sort: { notAColumn: 'ASC' }, skip: 0, limit: 10, metadata: METADATA },
     )
 
-    expect(fake.orderBys).toEqual({ 'entity.createdAt': 'DESC' })
+    expect(fake.orderBys).toEqual({ 'entity.createdAt': 'DESC', 'entity.id': 'DESC' })
   })
 
   it('列名含空格/分号等注入尝试 ⇒ 不生成任何 SQL（被列白名单丢弃）', () => {
@@ -329,6 +333,145 @@ describe('applyPgListQuery · 权威裁决（外部塞进来的 match 也要过�
 
     expect(fake.where).toHaveLength(0)
     // 仍然有兜底排序，但列名来自实体元数据，不含注入串
-    expect(Object.keys(fake.orderBys)).toEqual(['entity.createdAt'])
+    expect(Object.keys(fake.orderBys)).toEqual(['entity.createdAt', 'entity.id'])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// 批次 4-A · 显式 filters wire（D2 段②）
+// ---------------------------------------------------------------------------
+
+describe('filters · 显式 op × 列类型', () => {
+  it('text 列 + like ⇒ ILIKE（通配符仍转义），条件带 filterOp', () => {
+    const fake = makeQb()
+    const options = applyTo(fake, { filters: [{ field: 'deviceName', op: 'like', value: '100%' }] } as never)
+
+    expect(options.match.deviceName?.op).toBe('ilike')
+    expect(options.match.deviceName?.filterOp).toBe('like')
+    expect(fake.where[0].sql).toContain('ILIKE')
+    expect(fake.where[0].params[Object.keys(fake.where[0].params)[0]]).toBe('%100\\%%')
+  })
+
+  it('uuid 列 + eq ⇒ 值小写化后等值', () => {
+    const fake = makeQb()
+    const options = applyTo(fake, {
+      filters: [{ field: 'id', op: 'eq', value: '5FBD10A4-0000-4000-8000-000000000000' }],
+    } as never)
+
+    expect(options.match.id).toEqual({
+      op: 'eq',
+      value: '5fbd10a4-0000-4000-8000-000000000000',
+      filterOp: 'eq',
+    })
+  })
+
+  it('boolean 列 + eq ⇒ 归一为布尔', () => {
+    const fake = makeQb()
+    const options = applyTo(fake, { filters: [{ field: 'active', op: 'eq', value: 'true' }] } as never)
+
+    expect(options.match.active?.value).toBe(true)
+  })
+
+  it('数值列 + in ⇒ IN（不再按值类型猜）', () => {
+    const fake = makeQb()
+    const options = applyTo(fake, { filters: [{ field: 'riskScore', op: 'in', value: [1, 2] }] } as never)
+
+    expect(options.match.riskScore?.op).toBe('in')
+    expect(fake.where[0].sql).toContain('IN (:...')
+  })
+
+  it('时间列 + range ⇒ 两条边界', () => {
+    const fake = makeQb()
+    applyTo(fake, {
+      filters: [{ field: 'createdAt', op: 'range', value: ['2024-01-01', '2024-12-31'] }],
+    } as never)
+
+    expect(fake.where).toHaveLength(2)
+    expect(fake.where[0].sql).toContain('>=')
+    expect(fake.where[1].sql).toContain('<')
+  })
+
+  it('isNull ⇒ IS NULL / IS NOT NULL（value: false 取反）', () => {
+    const nullCase = makeQb()
+    applyTo(nullCase, { filters: [{ field: 'createdAt', op: 'isNull' }] } as never)
+    expect(nullCase.where[0].sql).toContain('IS NULL')
+
+    const notNullCase = makeQb()
+    applyTo(notNullCase, { filters: [{ field: 'createdAt', op: 'isNull', value: false }] } as never)
+    expect(notNullCase.where[0].sql).toContain('IS NOT NULL')
+  })
+
+  it('jsonb 列 + eq 对象 ⇒ 等值', () => {
+    const fake = makeQb()
+    const options = applyTo(fake, { filters: [{ field: 'deviceInfo', op: 'eq', value: { os: 'iOS' } }] } as never)
+
+    expect(options.match.deviceInfo?.op).toBe('eq')
+  })
+
+  it('非实体列 ⇒ 仍按列白名单丢弃（过滤面含 JOIN 别名键，不 400）', () => {
+    const fake = makeQb()
+    const options = applyTo(fake, { filters: [{ field: 'totallyBogus', op: 'like', value: 'x' }] } as never)
+
+    expect(options.match.totallyBogus).toBeUndefined()
+    expect(fake.where).toHaveLength(0)
+  })
+})
+
+/** R1 矩阵里会产生 PG 错误的组合 —— 全部必须在进 SQL 前被拒成 40099 */
+const REJECTED_FILTERS: Array<[string, Array<{ field: string, op: string, value?: unknown }>]> = [
+  ['like 打 uuid 列', [{ field: 'id', op: 'like', value: 'abc' }]],
+  ['like 打 boolean 列', [{ field: 'active', op: 'like', value: 'abc' }]],
+  ['like 打 jsonb 列', [{ field: 'deviceInfo', op: 'like', value: 'abc' }]],
+  ['like 打 timestamptz 列', [{ field: 'createdAt', op: 'like', value: '2024-01-01' }]],
+  ['like 打数值列', [{ field: 'riskScore', op: 'like', value: 'abc' }]],
+  ['like 的 value 不是字符串', [{ field: 'deviceName', op: 'like', value: 123 }]],
+  ['uuid 列收到非 uuid 串', [{ field: 'id', op: 'eq', value: '123' }]],
+  ['uuid 列 + range', [{ field: 'id', op: 'range', value: ['2024-01-01', '2024-12-31'] }]],
+  ['boolean 列收到 "abc"', [{ field: 'active', op: 'eq', value: 'abc' }]],
+  ['jsonb 列收到普通字符串', [{ field: 'deviceInfo', op: 'eq', value: 'abc' }]],
+  ['timestamptz 列收到数值', [{ field: 'createdAt', op: 'eq', value: 1700000000000 }]],
+  ['timestamptz 列收到布尔', [{ field: 'createdAt', op: 'eq', value: true }]],
+  ['smallint 列收到 "abc"', [{ field: 'riskScore', op: 'eq', value: 'abc' }]],
+  ['range 打 boolean 列', [{ field: 'active', op: 'range', value: ['2024-01-01', '2024-12-31'] }]],
+  ['range 打 jsonb 列', [{ field: 'deviceInfo', op: 'range', value: ['2024-01-01', '2024-12-31'] }]],
+  ['range 打数值列', [{ field: 'riskScore', op: 'range', value: ['2024-01-01', '2024-12-31'] }]],
+  ['range 端点是非时间数值', [{ field: 'createdAt', op: 'range', value: [1, 2] }]],
+  ['range 端点长度不足', [{ field: 'createdAt', op: 'range', value: ['2024-01-01'] }]],
+  ['in 的 value 不是数组', [{ field: 'riskScore', op: 'in', value: 1 }]],
+  ['in 的 value 是空数组', [{ field: 'riskScore', op: 'in', value: [] }]],
+  ['in 的取值无法按列解释', [{ field: 'riskScore', op: 'in', value: ['abc'] }]],
+  ['原生数组列不支持过滤', [{ field: 'ipHistory', op: 'eq', value: '1.2.3.4' }]],
+  ['eq 缺 value', [{ field: 'deviceName', op: 'eq' }]],
+  ['未知算子', [{ field: 'deviceName', op: 'gt', value: 'x' }]],
+]
+
+describe('filters · 非法 op/值 ⇒ 40099（永不 50000）', () => {
+  it.each(REJECTED_FILTERS)('%s', (_name, filters) => {
+    const fake = makeQb()
+
+    expect(() => applyTo(fake, { filters } as never)).toThrowError(
+      expect.objectContaining({ response: expect.objectContaining({ errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR }) }),
+    )
+    // 一条 SQL 都不该发出去
+    expect(fake.where).toHaveLength(0)
+  })
+
+  it('applyPgListQuery 是权威裁决点：外部塞进来的显式条件也会被重裁决', () => {
+    const fake = makeQb()
+
+    expect(() =>
+      applyPgListQuery(
+        fake.qb as SelectQueryBuilder<ObjectLiteral>,
+        'entity',
+        {
+          match: { id: { op: 'ilike', value: 'abc', filterOp: 'like' } },
+          sort: {},
+          skip: 0,
+          limit: 10,
+          metadata: METADATA,
+        },
+      ),
+    ).toThrowError(expect.objectContaining({ response: expect.objectContaining({ errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR }) }))
+    expect(fake.where).toHaveLength(0)
   })
 })

@@ -158,7 +158,7 @@ describe('B 段：app/setting public/private + CRUD + cache/refresh（真实 HTT
     expectOk(createRes2, 'setting create c2')
 
     const listRes = await api.root('POST', api.apiPath('/app/setting/list'), {
-      query: { settingKey: `${keyPrefix}.c1` },
+      filters: [{ field: 'settingKey', op: 'like', value: `${keyPrefix}.c1` }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })

@@ -144,7 +144,7 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
 
   async function findSnapshotByDeletedId(deletedId: string): Promise<DeletedRow> {
     const res = await api.root('POST', api.apiPath('/system/deleted/list'), {
-      query: { content: `${seed8}` },
+      filters: [{ field: 'content', op: 'like', value: `${seed8}` }],
       page: { page: 1, pageSize: 50 },
     })
     expectOk(res, 'deleted list (locate snapshot)')
@@ -178,7 +178,7 @@ describe('D 段：system/deleted 回收站 read/list/recover/recoverMine/deleteR
 
     // list：content ::text 关键字过滤（本组唯一标记）+ 分页
     const listRes = await api.root('POST', api.apiPath('/system/deleted/list'), {
-      query: { content: `${group}-R1` },
+      filters: [{ field: 'content', op: 'like', value: `${group}-R1` }],
       page: { page: 1, pageSize: 10 },
     })
     expectOk(listRes, 'deleted list filtered')

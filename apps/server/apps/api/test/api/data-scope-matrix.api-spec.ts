@@ -263,7 +263,7 @@ describe('数据权限二期批 2：app_demo M1-M10 矩阵（六档 / 越权 404
 
   async function listDemo(client: WalnutApiClient, pageSize = 50): Promise<DemoListData> {
     const res = await client.root('POST', client.apiPath('/app/demo/list'), {
-      query: { demoString: group },
+      filters: [{ field: 'demoString', op: 'like', value: group }],
       page: { page: 1, pageSize },
     })
     expectOk(res, 'demo list')

@@ -180,7 +180,7 @@ describe('B2 lang/locale i18n aggregation rewrite (on real PG)', () => {
     })
 
     const result = await langService.list({
-      query: { lang: lang.lang },
+      filters: [{ field: 'lang', op: 'like', value: lang.lang }],
       page: { page: 1, pageSize: 10 },
     } as never)
 
@@ -214,7 +214,7 @@ describe('B2 lang/locale i18n aggregation rewrite (on real PG)', () => {
     const langsCount = (await langRepoService.findAll()).length
 
     const result = await localeService.list({
-      query: { key: partialKey.slice(0, 20) },
+      filters: [{ field: 'key', op: 'like', value: partialKey.slice(0, 20) }],
       page: { page: 1, pageSize: 10 },
     } as never)
 
@@ -240,7 +240,7 @@ describe('B2 lang/locale i18n aggregation rewrite (on real PG)', () => {
     ])
 
     const result = await localeService.list({
-      query: { value: 'needle' },
+      filters: [{ field: 'value', op: 'like', value: 'needle' }],
       page: { page: 1, pageSize: 10 },
     } as never)
 
@@ -269,7 +269,7 @@ describe('B2 lang/locale i18n aggregation rewrite (on real PG)', () => {
     ])
 
     const result = await localeService.list({
-      query: { langId: otherLang.id },
+      filters: [{ field: 'langId', op: 'eq', value: otherLang.id }],
       page: { page: 1, pageSize: 10 },
     } as never)
 

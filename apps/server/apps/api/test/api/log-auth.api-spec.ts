@@ -109,7 +109,7 @@ describe('D 段：system/log/auth list/delete/deleteMany（真实登录链自然
 
   async function listByDevice(pageSize = 50): Promise<LogAuthListData> {
     const res = await api.root('POST', api.apiPath('/system/log/auth/list'), {
-      query: { deviceId: api.deviceId },
+      filters: [{ field: 'deviceId', op: 'like', value: api.deviceId }],
       sort: [{ field: 'authenticatedAt', order: 'descend', priority: 1 }],
       page: { page: 1, pageSize },
     })
@@ -156,7 +156,7 @@ describe('D 段：system/log/auth list/delete/deleteMany（真实登录链自然
     await waitForBothRows()
 
     const opaqueOnly = await api.root('POST', api.apiPath('/system/log/auth/list'), {
-      query: { deviceId: api.deviceId, type: ['opaque'] },
+      filters: [{ field: 'deviceId', op: 'like', value: api.deviceId }, { field: 'type', op: 'in', value: ['opaque'] }],
       page: { page: 1, pageSize: 50 },
     })
     expectOk(opaqueOnly, 'log auth list filter opaque')
@@ -167,7 +167,7 @@ describe('D 段：system/log/auth list/delete/deleteMany（真实登录链自然
     }
 
     const qrcodeOnly = await api.root('POST', api.apiPath('/system/log/auth/list'), {
-      query: { deviceId: api.deviceId, type: ['qrcode'] },
+      filters: [{ field: 'deviceId', op: 'like', value: api.deviceId }, { field: 'type', op: 'in', value: ['qrcode'] }],
       page: { page: 1, pageSize: 50 },
     })
     expectOk(qrcodeOnly, 'log auth list filter qrcode')

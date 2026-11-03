@@ -180,7 +180,7 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     expectOk(stateB, 'monitor user state B')
 
     const listRes = await api.root('POST', api.apiPath('/app/monitor/user/list'), {
-      query: { visitorId: visitorB },
+      filters: [{ field: 'visitorId', op: 'like', value: visitorB }],
       sort: [{ field: 'firstVisitAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })
@@ -292,7 +292,7 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
 
   it('边界：匿名 list → 40101（JWT guard 拦在 Sign 之前）', async () => {
     const anonList = await api.anon('POST', api.apiPath('/app/monitor/user/list'), {
-      query: {},
+      filters: [],
       sort: [],
       page: { page: 1, pageSize: 10 },
     })

@@ -260,7 +260,7 @@ describe('C 段：system/role CRUD 四件 + menus junction + root 守卫（真�
     )
 
     const listRes = await api.root('POST', api.apiPath('/system/role/list'), {
-      query: { roleName: `${rolePrefix}-L1` },
+      filters: [{ field: 'roleName', op: 'like', value: `${rolePrefix}-L1` }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })

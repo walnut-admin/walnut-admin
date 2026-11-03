@@ -156,7 +156,7 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
 
   it('list → deviceId 过滤命中本设备；出参字段面按 DTO 裁剪', async () => {
     const listRes = await api.root('POST', api.apiPath('/system/device/list'), {
-      query: { deviceId: api.deviceId },
+      filters: [{ field: 'deviceId', op: 'like', value: api.deviceId }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })

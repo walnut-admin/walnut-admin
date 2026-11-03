@@ -178,6 +178,16 @@ exports[`contract snapshots > data scope tiers never change silently 1`] = `
 }
 `;
 
+exports[`contract snapshots > filter op values never change silently 1`] = `
+{
+  "EQ": "eq",
+  "IN": "in",
+  "IS_NULL": "isNull",
+  "LIKE": "like",
+  "RANGE": "range",
+}
+`;
+
 exports[`contract snapshots > force quit strategies never change silently 1`] = `
 {
   "FORCE_COUNTDOWN_MODAL": "FORCE_COUNTDOWN_MODAL",
@@ -276,6 +286,7 @@ exports[`contract snapshots > public API surface stays stable 1`] = `
   "CVDConst",
   "CacheKeyStrategy",
   "DataScope",
+  "FilterOpValues",
   "Locale",
   "LockModeConst",
   "MenuTernal",

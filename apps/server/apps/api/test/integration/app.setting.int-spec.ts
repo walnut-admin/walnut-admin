@@ -72,7 +72,7 @@ describe('B4 app_setting (on real PG)', () => {
     })
     expect(updated.settingValue).toBe(JSON.stringify({ seed: 'v2' }))
 
-    const listed = await settingService.list({ query: { settingKey: payload.settingKey } } as never)
+    const listed = await settingService.list({ filters: [{ field: 'settingKey', op: 'like', value: payload.settingKey }] } as never)
     expect(listed.total).toBe(1)
     expect(listed.data[0].settingValue).toBe(JSON.stringify({ seed: 'v2' }))
   })

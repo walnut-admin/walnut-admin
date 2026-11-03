@@ -178,7 +178,7 @@ describe('数据权限二期：部门维度（DEPT / DEPT_AND_CHILD / CUSTOM / D
 
   async function listEmployees(client: WalnutApiClient, pageSize = 50): Promise<EmployeeListData> {
     const res = await client.root('POST', client.apiPath('/system/employee/list'), {
-      query: { employeeNo: employeePrefix },
+      filters: [{ field: 'employeeNo', op: 'like', value: employeePrefix }],
       page: { page: 1, pageSize },
     })
     expectOk(res, 'employee list')

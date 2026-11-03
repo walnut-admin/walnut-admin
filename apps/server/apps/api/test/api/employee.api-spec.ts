@@ -133,7 +133,7 @@ describe('组织基础表：system/employee CRUD + 绑定解绑 + 一号一职�
     expect(updated.status).toBe('probation')
 
     const listRes = await api.root('POST', api.apiPath('/system/employee/list'), {
-      query: { employeeNo: `${employeePrefix}-R1` },
+      filters: [{ field: 'employeeNo', op: 'like', value: `${employeePrefix}-R1` }],
       page: { page: 1, pageSize: 10 },
     })
     expectOk(listRes, 'employee list')

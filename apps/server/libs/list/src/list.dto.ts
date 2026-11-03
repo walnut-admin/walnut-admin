@@ -1,4 +1,7 @@
+import type { FilterOp } from '@walnut/contract'
+
 import {
+  WalnutAdminDecoratorFieldAny,
   WalnutAdminDecoratorFieldEnum,
   WalnutAdminDecoratorFieldNumber,
   WalnutAdminDecoratorFieldString,
@@ -7,7 +10,7 @@ import {
 import { WalnutAdminDecoratorFieldObject } from '@walnut-server/decorators/field/object.decorator'
 
 import { WALNUT_LIST_PAGE_SIZE_MAX } from '@walnut-server/utils/list-page'
-import { SortOrderValues } from '@walnut/contract'
+import { FilterOpValues, SortOrderValues } from '@walnut/contract'
 import {
   ClassConstructor,
   plainToInstance,
@@ -53,7 +56,15 @@ export interface IWalnutAdminRequestListDTOOptions {
    * 生效边界（批次 1 起**已变**，改动前先读）：`sort` 槽位已挂 `nestedWhenPresent`
    * （见下面的 ListDTO），`field` 的 `onlyIn` 是**真校验**了 —— 传白名单外的字段会 400。
    * 查询层还有第二道收敛：pg-list.builder 只收实体列（`isPgSortableColumnKind`）。
-   * `query` 槽位**仍未开**嵌套校验（理由见 ListDTO 里 query 那段注释）。
+   *
+   * ## filters 为什么不在这里收敛 field 白名单（批次 4-A）
+   *
+   * 过滤面**不等于**实体 DTO 的属性面：`deleted` 的 `content`（jsonb 旁路）、
+   * `monitor/user` 的 `ip/country/os/browser/userName`（JOIN 别名）、`device` 的
+   * `location`（jsonb 三字段 OR）、`locale` 的 `value/langId`（文档级过滤）都落在
+   * 实体 DTO 属性之外。用 DTO 属性当白名单会把这几条端点直接 400。
+   * 收敛交给 SQL 层（`pg-list.builder` 只认实体元数据里的列）与各旁路自己的
+   * MATCH 表（`locale.repo.service`），与批次 1 的口径一致。
    */
   sortOnlyIn?: readonly string[]
 }
@@ -95,36 +106,69 @@ export function CreateWalnutAdminRequestListDTO<T>(
     readonly priority: number
   }
 
+  /**
+   * 单条过滤条件 —— 批次 4-A 的 wire 形态（`{ field, op, value }`）。
+   *
+   * 三层校验分工（改这里之前先读）：
+   * 1. **本 DTO**：`field` 非空字符串、`op` 必须是 `FilterOpValues` 之一；
+   *    未声明键（`forbidNonWhitelisted`）与非法 op 在这里就 **400 / 40099**；
+   * 2. **列类型裁决**（`pg-column-op` 的 `resolvePgFilterCondition`）：
+   *    `like` 打非文本列、`range` 打非时间列、uuid 列收到非 uuid 串、布尔列收到
+   *    "abc"、`in` 收到非数组…… 一律 **40099**，**不再降级成丢弃**；
+   * 3. **列的可见面**（实体元数据的列白名单 / 各旁路自己的 MATCH 表）：非列字段仍然
+   *    丢弃（与批次 1 的 `columns.has()` 同语义），因为过滤面本来就有 JOIN 别名键。
+   */
+  class FilterDTO {
+    @WalnutAdminDecoratorFieldString({
+      swaggerOptions: { title: 'filter field name', example: 'userName' },
+    })
+    readonly field: string
+
+    @WalnutAdminDecoratorFieldEnum(() => FilterOpValues, {
+      swaggerOptions: {
+        title: 'filter operator, eq / like / in / range / isNull',
+        example: 'like',
+      },
+    })
+    readonly op: FilterOp
+
+    // 形态由 op 决定（eq 标量 / like 字符串 / in 数组 / range 长度 2 数组 / isNull 不带值）：
+    // 字段级校验表达不了"按另一个字段分叉"，放行后交列类型裁决（见类注释第 2 层）。
+    @WalnutAdminDecoratorFieldAny({
+      swaggerOptions: {
+        title: 'filter value, shape depends on op',
+        example: 'admin',
+      },
+    })
+    readonly value: unknown
+  }
+
   class ListDTO {
     constructor(partial?: Partial<T>) {
       Object.assign(this, partial)
     }
 
-    @WalnutAdminDecoratorFieldObject(dto, {
+    @WalnutAdminDecoratorFieldObject(FilterDTO, {
       default: {},
+      isArray: true,
       swaggerOptions: {
-        example: {
-          field1: 'this is a string',
-          field2: false,
-          field3: 123,
-        },
+        example: [
+          { field: 'userName', op: 'like', value: 'adm' },
+          { field: 'createdAt', op: 'range', value: ['2024-01-01', '2024-12-31'] },
+        ],
       },
-      // **刻意不挂 nestedWhenPresent**（批次 1 的实测结论，改前先读）：
-      // query 的基座是"实体 DTO 的 partial 派生"，它同时带着**必填**字段与**值域**约束，
-      // 而过滤条件天然是逐字段可缺省的 —— 直接开嵌套校验会把 20 个 list 端点里的 9 个
-      // 变成 400（实测：AppLogger 的 fileName/logType isNotEmpty、logAuth 的 type isEnum/each、
-      // logOperate 的 operatedAt isDateString/each、setting 的 settingType、dictData 的 tagType、
-      // deleted 的 deletedAt range… 见 apps/api/src/common/list-request-validation.spec.ts 的用例名）。
-      // query 的 P0（500）由 pg-column-op 的「列类型 → 算子」分派兜住，不需要 DTO 校验；
-      // 严格 400 随批次 4 的显式 filters 契约一起做（Lead 拍板 Q1 同此口径）。
-      validateOptions: { required: false },
+      // 与 sort 槽位同口径：**可缺省 / 空数组都合法，给了就下钻校验**。
+      // 这一格就是批次 4-A 的"非法 op 明确拒绝"入口 —— 批次 1 时 query 刻意没开
+      // 嵌套校验（因为它的基座是实体 DTO 的 partial 派生，带着必填与值域约束，
+      // 一开会把 9 个端点变 400）；filters 的基座是专用 FilterDTO，可以开。
+      validateOptions: { required: false, nestedWhenPresent: true },
       transformOptions: {
         req: {
           defaultTransform: true,
         },
       },
     })
-    readonly query: InstanceType<typeof dto>
+    readonly filters: FilterDTO[]
 
     @WalnutAdminDecoratorFieldObject(SortDTO, {
       default: {},

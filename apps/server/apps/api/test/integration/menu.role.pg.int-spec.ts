@@ -207,7 +207,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
       const name = uniqueName('b5-list')
       await menuService.create({ type: 'catalog', name, meta: { order: 5 } as IWalnutAdminMenuMeta })
 
-      const res = await menuService.list({ query: { name } } as never)
+      const res = await menuService.list({ filters: [{ field: 'name', op: 'like', value: name }] } as never)
       expect(res.total).toBe(1)
       expect(res.data[0].name).toBe(name)
       expect(res.data[0].order).toBe(5)
@@ -431,7 +431,7 @@ describe('B5 sys_menu / sys_role (on real PG)', () => {
       const roleName = uniqueName('b5-role-list')
       await roleService.create(rolePayload({ roleName }))
 
-      const res = await roleService.list({ query: { roleName } } as never)
+      const res = await roleService.list({ filters: [{ field: 'roleName', op: 'like', value: roleName }] } as never)
       expect(res.total).toBe(1)
       expect(res.data[0].usersCount).toBe(0)
     })

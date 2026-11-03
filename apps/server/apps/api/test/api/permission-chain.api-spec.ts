@@ -298,7 +298,7 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
 
   it('放行路径：授予的权限点端点 20000（list 过滤命中 + read 回读一致）', async () => {
     const listRes = await user.root('POST', user.apiPath('/app/demo/list'), {
-      query: { demoString: demoGroup },
+      filters: [{ field: 'demoString', op: 'like', value: demoGroup }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })
@@ -333,7 +333,7 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     expect(await user.hasWalnutCacheKey(cacheKey)).toBe(false)
 
     const deniedRes = await user.root('POST', user.apiPath('/app/demo/list'), {
-      query: { demoString: demoGroup },
+      filters: [{ field: 'demoString', op: 'like', value: demoGroup }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })
@@ -345,7 +345,7 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     expect(await user.hasWalnutCacheKey(cacheKey)).toBe(true)
 
     const allowedRes = await user.root('POST', user.apiPath('/app/demo/list'), {
-      query: { demoString: demoGroup },
+      filters: [{ field: 'demoString', op: 'like', value: demoGroup }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })
@@ -447,7 +447,7 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     expect(await user.hasWalnutCacheKey(permissionCacheKey(fixture, user))).toBe(false)
 
     const deniedRes = await user.root('POST', user.apiPath('/app/demo/list'), {
-      query: { demoString: demoGroup },
+      filters: [{ field: 'demoString', op: 'like', value: demoGroup }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })
@@ -487,7 +487,7 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     // 权限缓存立即失效（不再沿旧角色集放行 list）
     expect(await user2.hasWalnutCacheKey(permissionCacheKey(fixture, user2))).toBe(false)
     const deniedRes = await user2.root('POST', user2.apiPath('/app/demo/list'), {
-      query: { demoString: demoGroup },
+      filters: [{ field: 'demoString', op: 'like', value: demoGroup }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })
@@ -509,7 +509,7 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     const readRes = await user2.root('GET', user2.apiPath(`/app/demo/${demoId}`))
     expectOk(readRes, 'demo read after role replacement')
     const listAfter = await user2.root('POST', user2.apiPath('/app/demo/list'), {
-      query: { demoString: demoGroup },
+      filters: [{ field: 'demoString', op: 'like', value: demoGroup }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })
@@ -601,7 +601,7 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
 
   it('root 对照：root 用户同端点 20000 且无权限缓存键（roleNames[0] 短路，不经缓存链路）', async () => {
     const listRes = await admin.root('POST', admin.apiPath('/app/demo/list'), {
-      query: { demoString: demoGroup },
+      filters: [{ field: 'demoString', op: 'like', value: demoGroup }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })
@@ -637,7 +637,7 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     expect(payload.currentRoleName).toBe(Role.ROOT)
 
     const listRes = await admin.root('POST', admin.apiPath('/app/demo/list'), {
-      query: { demoString: demoGroup },
+      filters: [{ field: 'demoString', op: 'like', value: demoGroup }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })

@@ -111,7 +111,7 @@ describe('组织基础表：system/post CRUD + 唯一键 + RESTRICT（真实 HTT
     expect(updated.sortOrder).toBe(5)
 
     const listRes = await api.root('POST', api.apiPath('/system/post/list'), {
-      query: { postCode: `${postPrefix}-R1` },
+      filters: [{ field: 'postCode', op: 'like', value: `${postPrefix}-R1` }],
       page: { page: 1, pageSize: 10 },
     })
     expectOk(listRes, 'post list')

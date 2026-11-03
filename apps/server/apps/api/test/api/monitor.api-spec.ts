@@ -101,7 +101,7 @@ describe('B 段：app/monitor/cache + monitor/server（真实 HTTP 全链 + 真�
 
   it('cache list → 按 key 子串过滤命中本轮键，type=shared', async () => {
     const res = await api.root('POST', api.apiPath('/app/monitor/cache/list'), {
-      query: { key: `APISPEC:${seed8}` },
+      filters: [{ field: 'key', op: 'like', value: `APISPEC:${seed8}` }],
       sort: [{ field: 'key', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })

@@ -100,7 +100,7 @@ describe('D 段：system/log/operate list/read/snapshot/device（真实写操作
     let last: LogOperateRow[] = []
     while (Date.now() < deadline) {
       const res = await api.root('POST', api.apiPath('/system/log/operate/list'), {
-        query: { deviceId: api.deviceId },
+        filters: [{ field: 'deviceId', op: 'like', value: api.deviceId }],
         // L2 语义适配：实体只有 operated_at 一个时间列（无 createdAt），排序打
         // operatedAt（idx_log_operate_at DESC），与 admin 列表 defaultSortOrder 同列
         sort: [{ field: 'operatedAt', order: 'descend', priority: 1 }],
@@ -199,7 +199,7 @@ describe('D 段：system/log/operate list/read/snapshot/device（真实写操作
     expect(createRow.actionType).toBe('CREATE')
 
     const res = await api.root('POST', api.apiPath('/system/log/operate/list'), {
-      query: { deviceId: api.deviceId },
+      filters: [{ field: 'deviceId', op: 'like', value: api.deviceId }],
       // L2 语义适配：同上，实体时间列是 operatedAt
       sort: [{ field: 'operatedAt', order: 'descend', priority: 1 }],
       page: { page: 1, pageSize: 1 },

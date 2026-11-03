@@ -160,7 +160,7 @@ describe('A 段试点：system/lang CRUD + public 响应缓存（真实 HTTP 全
     }
 
     const listRes = await api.root('POST', api.apiPath('/system/lang/list'), {
-      query: { lang: langCodeA },
+      filters: [{ field: 'lang', op: 'like', value: langCodeA }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })

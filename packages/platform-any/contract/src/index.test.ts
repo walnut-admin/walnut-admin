@@ -9,7 +9,7 @@ import { Locale } from './i18n'
 import * as contract from './index'
 import { CacheKeyStrategy, MenuTernal, MenuType } from './menu'
 import { WalnutAdminConstSysUserMfaType, WalnutAdminConstSysUserMfaWebauthnTransport } from './mfa'
-import { SortOrderValues } from './pagination'
+import { FilterOpValues, SortOrderValues } from './pagination'
 import { colorModeConst, CVDConst, fontSizeConst, fontSizeValues, layoutModeConst } from './preference'
 import { WalnutAdminConstAppResponseCode } from './response-code'
 import { Role, RoleMode } from './role'
@@ -99,6 +99,12 @@ describe('contract snapshots', () => {
 
   it('sort order values never change silently', () => {
     expect(SortOrderValues).toMatchSnapshot()
+  })
+
+  // 批次 4-A：list 过滤算子白名单是**跨端 wire 词汇**（前后端同一份），
+  // 改一个字母就是破坏性变更 —— 由快照拦。
+  it('filter op values never change silently', () => {
+    expect(FilterOpValues).toMatchSnapshot()
   })
 
   it('socket events and rooms never change silently', () => {

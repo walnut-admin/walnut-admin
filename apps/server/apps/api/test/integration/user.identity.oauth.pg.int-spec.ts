@@ -218,12 +218,12 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       const userName = uniqueName('b7a-list')
       const created = await userBasicRepo.create({ userName, roles: [roleAId] })
 
-      const res = await userCrudService.list({ query: { userName }, page: { page: 1, pageSize: 10 } } as never)
+      const res = await userCrudService.list({ filters: [{ field: 'userName', op: 'like', value: userName }], page: { page: 1, pageSize: 10 } } as never)
       expect(res.total).toBe(1)
       expect(res.data[0].id).toBe(created.id)
       expect(res.data[0].roles_count).toBe(1)
 
-      const miss = await userCrudService.list({ query: { userName: 'atlantis-b7a' }, page: { page: 1, pageSize: 10 } } as never)
+      const miss = await userCrudService.list({ filters: [{ field: 'userName', op: 'like', value: 'atlantis-b7a' }], page: { page: 1, pageSize: 10 } } as never)
       expect(miss.total).toBe(0)
     })
 

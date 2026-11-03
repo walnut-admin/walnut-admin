@@ -237,7 +237,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
 
     itSystem('list：location 过滤打在 location_info 三个子字段（ILIKE 字面量）', async () => {
       const res = await deviceService.list({
-        query: { location: 'local' },
+        filters: [{ field: 'location', op: 'like', value: 'local' }],
         page: { page: 1, pageSize: 10 },
       } as never)
 
@@ -245,7 +245,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       expect(res.data.some(i => i.deviceId === deviceRepoService.getDeviceIdByFingerprint(unique('fp-initial')))).toBe(true)
 
       const miss = await deviceService.list({
-        query: { location: 'atlantis' },
+        filters: [{ field: 'location', op: 'like', value: 'atlantis' }],
         page: { page: 1, pageSize: 10 },
       } as never)
       expect(miss.total).toBe(0)
@@ -492,7 +492,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
 
       // os 命中：authedVisitor 行带上 device / user
       const res = await monitorUserService.list({
-        query: { os: 'win' },
+        filters: [{ field: 'os', op: 'like', value: 'win' }],
         page: { page: 1, pageSize: 10 },
       } as never)
 
@@ -507,7 +507,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
 
       // userName 过滤（$lookup user 上的 $regex → JOIN ILIKE）
       const byUser = await monitorUserService.list({
-        query: { userName: unique('b6-user') },
+        filters: [{ field: 'userName', op: 'like', value: unique('b6-user') }],
         page: { page: 1, pageSize: 10 },
       } as never)
       expect(byUser.total).toBe(1)
@@ -515,7 +515,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
 
       // 未命中过滤
       const miss = await monitorUserService.list({
-        query: { userName: 'atlantis' },
+        filters: [{ field: 'userName', op: 'like', value: 'atlantis' }],
         page: { page: 1, pageSize: 10 },
       } as never)
       expect(miss.total).toBe(0)

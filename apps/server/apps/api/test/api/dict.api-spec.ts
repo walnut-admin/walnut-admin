@@ -200,7 +200,7 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     await createDictData(created.id, 'U1b')
 
     const listRes = await api.root('POST', api.apiPath('/system/dict/type/list'), {
-      query: { type: `${typePrefix}-U1` },
+      filters: [{ field: 'type', op: 'like', value: `${typePrefix}-U1` }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })
@@ -272,7 +272,7 @@ describe('C 段：system/dict type+data CRUD 与 FK 级联（真实 HTTP 全链�
     expect(row.value).toBe(`dict-value-${seed8}-D1a`)
 
     const listRes = await api.root('POST', api.apiPath('/system/dict/data/list'), {
-      query: { typeId: type.id },
+      filters: [{ field: 'typeId', op: 'eq', value: type.id }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })

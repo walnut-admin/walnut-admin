@@ -23594,109 +23594,55 @@
           "total"
         ]
       },
-      "AppMonitorUserDTORequest": {
+      "FilterDTO": {
         "type": "object",
         "properties": {
-          "createdAt": {
-            "format": "date-time",
+          "field": {
             "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+            "title": "filter field name",
+            "example": "userName"
           },
-          "updatedAt": {
-            "format": "date-time",
+          "op": {
             "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+            "enum": [
+              "eq",
+              "like",
+              "in",
+              "range",
+              "isNull"
+            ],
+            "title": "filter operator, eq / like / in / range / isNull",
+            "example": "like"
           },
-          "deviceId": {
-            "type": "string",
-            "title": "device id"
-          },
-          "auth": {
-            "type": "boolean",
-            "default": false,
-            "title": "auth or not"
-          },
-          "focus": {
-            "type": "boolean",
-            "default": true,
-            "title": "focus on current page or not"
-          },
-          "left": {
-            "type": "boolean",
-            "default": false,
-            "title": "left page or not"
-          },
-          "currentRouter": {
-            "type": "string",
-            "title": "current page router"
-          },
-          "firstVisitAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "createdAt, used as `firstVisitAt`"
-          },
-          "lastActiveAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "updatedAt, used as `lastActiveAt`"
-          },
-          "user": {
-            "title": "virtual user",
-            "allOf": [
+          "value": {
+            "title": "filter value, shape depends on op",
+            "example": "admin",
+            "oneOf": [
               {
-                "$ref": "#/components/schemas/SysUserDTOSafe"
-              }
-            ]
-          },
-          "device": {
-            "title": "virtual device",
-            "allOf": [
+                "type": "string"
+              },
               {
-                "$ref": "#/components/schemas/SysDeviceDTOSafe"
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "array",
+                "items": {}
+              },
+              {
+                "type": "object",
+                "additionalProperties": true
               }
-            ]
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          },
-          "userId": {
-            "type": "string",
-            "nullable": true,
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
-          "visitorId": {
-            "type": "string",
-            "title": "raw browser fingerprint (request side only — never echoed back in responses)"
-          },
-          "country": {
-            "type": "string",
-            "title": "country"
-          },
-          "os": {
-            "type": "string",
-            "title": "operating system"
-          },
-          "browser": {
-            "type": "string",
-            "title": "browser"
-          },
-          "userName": {
-            "type": "string",
-            "default": null,
-            "title": "user name",
-            "description": "should be unique, used for normal password sign in"
-          },
-          "ip": {
-            "type": "string",
-            "title": "ip address"
+            ],
+            "nullable": true
           }
         },
         "required": [
-          "visitorId",
-          "ip"
+          "field",
+          "op",
+          "value"
         ]
       },
       "SortDTO": {
@@ -23747,18 +23693,27 @@
       "AppMonitorUserDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/AppMonitorUserDTORequest"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -23801,7 +23756,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -25295,217 +25250,30 @@
           "total"
         ]
       },
-      "AppDemoDTOSafePartial": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "demoString": {
-            "type": "string",
-            "default": null,
-            "title": "this is title",
-            "description": "this is description",
-            "example": "this is an example"
-          },
-          "demoPhoneNumber": {
-            "type": "string",
-            "default": null,
-            "title": "this is title",
-            "description": "this is description",
-            "example": "this is an example"
-          },
-          "demoStringArray": {
-            "default": [],
-            "maxItems": 3,
-            "minItems": 1,
-            "title": "this is title",
-            "description": "this is description",
-            "example": [
-              "this is an example",
-              "this is an example",
-              "this is an example"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "demoNumber": {
-            "type": "number",
-            "default": null,
-            "title": "this is title",
-            "description": "this is description",
-            "example": 123
-          },
-          "demoNumberArray": {
-            "default": [],
-            "maxItems": 3,
-            "minItems": 1,
-            "title": "this is title",
-            "description": "this is description",
-            "example": [
-              123,
-              123,
-              123
-            ],
-            "type": "array",
-            "items": {
-              "type": "number"
-            }
-          },
-          "demoBoolean": {
-            "type": "boolean",
-            "default": false,
-            "title": "this is title",
-            "description": "this is description",
-            "example": true
-          },
-          "demoBooleanArray": {
-            "default": [],
-            "maxItems": 3,
-            "minItems": 1,
-            "title": "this is title",
-            "description": "this is description",
-            "example": [
-              true,
-              false,
-              true
-            ],
-            "type": "array",
-            "items": {
-              "type": "boolean"
-            }
-          },
-          "demoDate": {
-            "format": "date-time",
-            "type": "string",
-            "default": null,
-            "title": "this is title",
-            "description": "this is description",
-            "example": "2023-11-11 00:00:00"
-          },
-          "demoDateArray": {
-            "default": [],
-            "maxItems": 3,
-            "minItems": 1,
-            "title": "this is title",
-            "description": "this is description",
-            "example": [
-              "2023-11-11 00:00:00",
-              "2023-11-11 00:00:00",
-              "2023-11-11 00:00:00"
-            ],
-            "type": "array",
-            "items": {
-              "format": "date-time",
-              "type": "string"
-            }
-          },
-          "demoEnum": {
-            "type": "number",
-            "enum": [
-              1,
-              2,
-              3,
-              4
-            ],
-            "default": 1,
-            "title": "this is title",
-            "description": "this is description",
-            "example": 1
-          },
-          "demoEnumArray": {
-            "type": "array",
-            "default": [],
-            "maxItems": 3,
-            "minItems": 1,
-            "title": "this is title",
-            "description": "this is description",
-            "example": [
-              1,
-              2
-            ],
-            "items": {
-              "type": "number",
-              "enum": [
-                1,
-                2,
-                3,
-                4
-              ]
-            }
-          },
-          "demoObject": {
-            "default": null,
-            "title": "this is title",
-            "description": "this is description",
-            "example": {
-              "o1": "this is an example",
-              "o2": 123,
-              "o3": true
-            },
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/DemoObject"
-              }
-            ]
-          },
-          "deptId": {
-            "type": "string",
-            "default": null,
-            "title": "dept id",
-            "description": "owning dept for department-scoped data permissions; derived on create, update is stripped",
-            "nullable": true,
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          },
-          "demoMongoId": {
-            "type": "string",
-            "default": null,
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
-          "demoMongoIdArray": {
-            "default": [],
-            "maxItems": 3,
-            "minItems": 1,
-            "example": [
-              "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
       "AppDemoDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/AppDemoDTOSafePartial"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -25548,7 +25316,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -25647,87 +25415,30 @@
           "total"
         ]
       },
-      "SysDeletedDTOSafeRequestPartial": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "content": {
-            "type": "string",
-            "title": "Deleted Stringify Content",
-            "description": "use `JSON.stringify` to store the deleted document"
-          },
-          "modelName": {
-            "type": "string",
-            "title": "Deleted Document Model Name",
-            "description": "use `modelName` to ensure the right model"
-          },
-          "collectionName": {
-            "type": "string",
-            "title": "Deleted Document Collection Name",
-            "description": "use `modelName` to recover, this field is only a record"
-          },
-          "user": {
-            "title": "virtual user",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SysUserDTOSafe"
-              }
-            ]
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          },
-          "deletedId": {
-            "type": "string",
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
-          "deletedBy": {
-            "type": "string",
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
-          "logOperateId": {
-            "type": "string",
-            "default": null,
-            "nullable": true,
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
-          "deletedAt": {
-            "title": "deletedAt for request query, support array",
-            "type": "array",
-            "items": {
-              "format": "date-time",
-              "type": "string"
-            }
-          }
-        }
-      },
       "SystemDeletedDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysDeletedDTOSafeRequestPartial"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -25770,7 +25481,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -25888,57 +25599,30 @@
           "total"
         ]
       },
-      "AppMonitorCacheDTOPartial": {
-        "type": "object",
-        "properties": {
-          "key": {
-            "type": "string",
-            "title": "cache key"
-          },
-          "valueBytes": {
-            "type": "number",
-            "title": "cache value bytes"
-          },
-          "expire": {
-            "type": "number",
-            "title": "cache expire seconds"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "built-in",
-              "auth",
-              "controller",
-              "shared",
-              "system"
-            ],
-            "title": "cache type"
-          },
-          "startTime": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "expireTime": {
-            "format": "date-time",
-            "type": "string"
-          }
-        }
-      },
       "AppMonitorCacheDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/AppMonitorCacheDTOPartial"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -25981,7 +25665,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -26582,74 +26266,30 @@
           "total"
         ]
       },
-      "AppSettingDTOSafeRequest": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "settingName": {
-            "type": "string",
-            "title": "setting name"
-          },
-          "settingKey": {
-            "type": "string",
-            "title": "setting key"
-          },
-          "settingValue": {
-            "type": "string",
-            "title": "setting value"
-          },
-          "remark": {
-            "type": "string",
-            "default": null,
-            "title": "setting remark"
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          },
-          "settingType": {
-            "type": "array",
-            "title": "setting type for request query, support array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "auth",
-                "global",
-                "functional"
-              ]
-            }
-          }
-        },
-        "required": [
-          "settingType"
-        ]
-      },
       "AppSettingDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/AppSettingDTOSafeRequest"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -26692,7 +26332,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -26754,42 +26394,30 @@
           "total"
         ]
       },
-      "AppLoggerDTOPickFileNameLogType": {
-        "type": "object",
-        "properties": {
-          "fileName": {
-            "type": "string",
-            "title": "log file name"
-          },
-          "logType": {
-            "type": "string",
-            "enum": [
-              "application",
-              "error"
-            ],
-            "title": "log file type"
-          }
-        },
-        "required": [
-          "fileName",
-          "logType"
-        ]
-      },
       "AppLoggerDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/AppLoggerDTOPickFileNameLogType"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -26832,7 +26460,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -27128,147 +26756,30 @@
           "total"
         ]
       },
-      "SysDeviceDTOSafePartial": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "deviceName": {
-            "type": "string",
-            "title": "device name, normally cannot change"
-          },
-          "deviceId": {
-            "type": "string",
-            "title": "device id, also maybe known as fingerprint for client"
-          },
-          "deviceInfo": {
-            "title": "device user agent information",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SharedUserAgentDTOPartial"
-              }
-            ]
-          },
-          "hardwareInfo": {
-            "title": "hardware information",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SharedHardwareDTOPartial"
-              }
-            ]
-          },
-          "locationInfo": {
-            "title": "location information",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SharedLocationDTOPartial"
-              }
-            ]
-          },
-          "locationHistory": {
-            "maxItems": 5,
-            "title": "IP location history, synced with ipHistory",
-            "description": "Stores up to 5 recent IP-location pairs",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SharedIpLocationHistoryDTO"
-            }
-          },
-          "sr": {
-            "title": "screen resolution",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SharedHeightWidthDTO"
-              }
-            ]
-          },
-          "vp": {
-            "title": "view port",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SharedHeightWidthDTO"
-              }
-            ]
-          },
-          "ip": {
-            "type": "string",
-            "title": "ip address"
-          },
-          "ipHistory": {
-            "maxItems": 5,
-            "minItems": 1,
-            "title": "ip address, with history support",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "active": {
-            "type": "boolean",
-            "default": false,
-            "title": "device active status"
-          },
-          "locked": {
-            "type": "boolean",
-            "default": false,
-            "title": "device lock status"
-          },
-          "banned": {
-            "type": "boolean",
-            "default": false,
-            "title": "device ban status"
-          },
-          "private": {
-            "type": "boolean",
-            "default": false,
-            "title": "device private/incognito"
-          },
-          "geoLocation": {
-            "title": "geo location, longitude and latitude",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SharedGeoPointDTOPartial"
-              }
-            ]
-          },
-          "riskScore": {
-            "type": "number",
-            "title": "device risk score"
-          },
-          "id": {
-            "type": "string"
-          },
-          "location": {
-            "type": "string",
-            "title": "location"
-          }
-        }
-      },
       "SysDeviceDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysDeviceDTOSafePartial"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -27311,7 +26822,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -27458,75 +26969,30 @@
           "total"
         ]
       },
-      "SysLangDTOSafePartial": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "lang": {
-            "type": "string",
-            "title": "language short"
-          },
-          "description": {
-            "type": "string",
-            "title": "language describe"
-          },
-          "order": {
-            "type": "number",
-            "default": null,
-            "title": "language order",
-            "description": "should be int"
-          },
-          "status": {
-            "type": "boolean",
-            "default": true,
-            "title": "language is in use or not"
-          },
-          "localesTotalCount": {
-            "type": "number",
-            "title": "current lang's locales total count"
-          },
-          "localesFinishedCount": {
-            "type": "number",
-            "title": "current lang's locales finished count"
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          },
-          "process": {
-            "type": "number",
-            "nullable": true,
-            "title": "translate process",
-            "description": "percentage (0-100); null when the lang has zero locales (NaN → null)"
-          }
-        }
-      },
       "SysLangDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysLangDTOSafePartial"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -27569,7 +27035,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -27661,59 +27127,30 @@
           "total"
         ]
       },
-      "SysLocaleDTOSafePartial": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "key": {
-            "type": "string",
-            "title": "i18n key"
-          },
-          "value": {
-            "type": "string",
-            "title": "i18n value"
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          },
-          "langId": {
-            "type": "string",
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
-          "process": {
-            "type": "number",
-            "title": "translate process",
-            "description": "fraction (0-1) of finished translations for the key (admin displays × 100)"
-          }
-        }
-      },
       "SysLocaleDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysLocaleDTOSafePartial"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -27756,7 +27193,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -27953,70 +27390,30 @@
           "total"
         ]
       },
-      "SysDictTypeDTOSafePartial": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "name": {
-            "type": "string",
-            "title": "dict name"
-          },
-          "type": {
-            "type": "string",
-            "title": "dict type or can be treated as dict key"
-          },
-          "status": {
-            "type": "boolean",
-            "title": "dict status"
-          },
-          "description": {
-            "type": "string",
-            "title": "description"
-          },
-          "dictData": {
-            "title": "populated dict data",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SysDictDataDTOPopulatedDictData"
-              }
-            ]
-          },
-          "dictDataCount": {
-            "type": "number",
-            "title": "populated dict data count"
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          }
-        }
-      },
       "SysDictTypeDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysDictTypeDTOSafePartial"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -28059,7 +27456,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -28257,87 +27654,30 @@
           "total"
         ]
       },
-      "SysDictDataDTOSafeRequest": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "label": {
-            "type": "string",
-            "title": "dict data label"
-          },
-          "value": {
-            "type": "string",
-            "title": "dict data value"
-          },
-          "order": {
-            "type": "number",
-            "default": 0,
-            "title": "dict data order in array"
-          },
-          "status": {
-            "type": "boolean",
-            "default": true,
-            "title": "dict data status, false will not be extracted"
-          },
-          "description": {
-            "type": "string",
-            "default": null,
-            "title": "dict data description"
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          },
-          "typeId": {
-            "type": "string",
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
-          "tagType": {
-            "type": "array",
-            "default": "primary",
-            "title": "dict data render tag type, see more in naive ui tag",
-            "items": {
-              "type": "string",
-              "enum": [
-                "primary",
-                "info",
-                "success",
-                "warning",
-                "error"
-              ]
-            }
-          }
-        },
-        "required": [
-          "tagType"
-        ]
-      },
       "SysDictDataDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysDictDataDTOSafeRequest"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -28380,7 +27720,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -28680,94 +28020,30 @@
           "total"
         ]
       },
-      "SysDeptDTOSafePartial": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "parentId": {
-            "type": "string",
-            "default": null,
-            "title": "parent dept id",
-            "description": "null => root dept",
-            "nullable": true,
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
-          "deptCode": {
-            "type": "string",
-            "title": "dept code",
-            "description": "unique business key"
-          },
-          "deptName": {
-            "type": "string",
-            "title": "dept name"
-          },
-          "leader": {
-            "type": "string",
-            "default": null,
-            "title": "dept leader",
-            "nullable": true
-          },
-          "phone": {
-            "type": "string",
-            "default": null,
-            "title": "contact phone",
-            "nullable": true
-          },
-          "email": {
-            "type": "string",
-            "default": null,
-            "title": "contact email",
-            "nullable": true
-          },
-          "sortOrder": {
-            "type": "number",
-            "default": 0,
-            "title": "sort order",
-            "description": "sibling order inside the same parent, should be int"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "enabled",
-              "disabled"
-            ],
-            "default": "enabled",
-            "title": "dept status",
-            "description": "disabled => not selectable in new assignments, existing rows stay",
-            "example": "enabled"
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          }
-        }
-      },
       "SysDeptDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysDeptDTOSafePartial"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -28810,7 +28086,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -28979,74 +28255,30 @@
           "total"
         ]
       },
-      "SysPostDTOSafePartial": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "postCode": {
-            "type": "string",
-            "title": "post code",
-            "description": "unique business key"
-          },
-          "postName": {
-            "type": "string",
-            "title": "post name"
-          },
-          "sortOrder": {
-            "type": "number",
-            "default": 0,
-            "title": "sort order",
-            "description": "should be int"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "enabled",
-              "disabled"
-            ],
-            "default": "enabled",
-            "title": "post status",
-            "description": "disabled => not selectable in new assignments, existing rows stay",
-            "example": "enabled"
-          },
-          "remark": {
-            "type": "string",
-            "default": null,
-            "title": "remark",
-            "nullable": true
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          }
-        }
-      },
       "SysPostDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysPostDTOSafePartial"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -29089,7 +28321,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -29376,86 +28608,30 @@
           "total"
         ]
       },
-      "SysEmployeeDTOSafePartial": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "employeeNo": {
-            "type": "string",
-            "title": "employee no",
-            "description": "unique business key, the payroll number"
-          },
-          "employeeName": {
-            "type": "string",
-            "title": "employee name"
-          },
-          "deptId": {
-            "type": "string",
-            "title": "dept id",
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
-          "postId": {
-            "type": "string",
-            "default": null,
-            "title": "post id",
-            "nullable": true
-          },
-          "userId": {
-            "type": "string",
-            "default": null,
-            "title": "bound user id",
-            "nullable": true
-          },
-          "entryDate": {
-            "format": "date-time",
-            "type": "string",
-            "title": "entry date",
-            "example": "2026-01-01 00:00:00"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "probation",
-              "active",
-              "resigned"
-            ],
-            "default": "active",
-            "title": "employee status",
-            "description": "probation / active / resigned; resigned does NOT delete or unbind the account",
-            "example": "active"
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          }
-        }
-      },
       "SysEmployeeDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysEmployeeDTOSafePartial"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -29498,7 +28674,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -29627,120 +28803,30 @@
           "total"
         ]
       },
-      "SysLogAuthDTOSafeRequest": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "ip": {
-            "type": "string",
-            "default": null,
-            "title": "ip address when auth"
-          },
-          "location": {
-            "type": "string",
-            "default": null,
-            "title": "location when auth"
-          },
-          "os": {
-            "type": "string",
-            "default": null,
-            "title": "operating system when auth"
-          },
-          "browser": {
-            "type": "string",
-            "default": null,
-            "title": "browser when auth"
-          },
-          "userName": {
-            "type": "string",
-            "default": null,
-            "title": "user name when auth"
-          },
-          "identifier": {
-            "type": "string",
-            "default": null,
-            "title": "identifier when auth, e.g. email, phone number"
-          },
-          "success": {
-            "type": "boolean",
-            "default": false,
-            "title": "auth success or not"
-          },
-          "msg": {
-            "type": "string",
-            "default": null,
-            "title": "messages returned when auth"
-          },
-          "deviceId": {
-            "type": "string",
-            "title": "authenticate device id"
-          },
-          "authenticatedAt": {
-            "title": "authenticatedAt for request query, support array",
-            "type": "array",
-            "items": {
-              "format": "date-time",
-              "type": "string"
-            }
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          },
-          "userId": {
-            "type": "string",
-            "default": null,
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
-          "type": {
-            "type": "array",
-            "title": "auth type for request query, support array",
-            "example": "opaque",
-            "items": {
-              "type": "string",
-              "enum": [
-                "opaque",
-                "qrcode",
-                "otp",
-                "emailAddress",
-                "phoneNumber",
-                "github",
-                "gitee",
-                "googleFedCM"
-              ]
-            }
-          }
-        },
-        "required": [
-          "type"
-        ]
-      },
       "SysLogAuthDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysLogAuthDTOSafeRequest"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -29783,7 +28869,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -30132,141 +29218,30 @@
           "total"
         ]
       },
-      "SysLogOperateDTOSafeRequest": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "title": {
-            "type": "string",
-            "title": "operate title, developer customise"
-          },
-          "url": {
-            "type": "string",
-            "title": "http url"
-          },
-          "httpVersion": {
-            "type": "string",
-            "title": "http version, like 1.1/2.0"
-          },
-          "location": {
-            "type": "string",
-            "title": "operate location, address string"
-          },
-          "os": {
-            "type": "string",
-            "title": "operate operating system"
-          },
-          "browser": {
-            "type": "string",
-            "title": "operate browser"
-          },
-          "statusCode": {
-            "type": "number",
-            "title": "http status code"
-          },
-          "requestData": {
-            "type": "string",
-            "title": "requset data, stringified"
-          },
-          "responseData": {
-            "type": "string",
-            "title": "response data, stringified"
-          },
-          "durationMs": {
-            "type": "number",
-            "title": "responsed milliseconds"
-          },
-          "userName": {
-            "type": "string",
-            "title": "operater user name"
-          },
-          "deviceId": {
-            "type": "string",
-            "title": "operate device id"
-          },
-          "ip": {
-            "type": "string",
-            "title": "operate ip"
-          },
-          "invokingMethod": {
-            "type": "string",
-            "title": "operate invoked service and method"
-          },
-          "success": {
-            "type": "boolean",
-            "title": "operate success or not"
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          },
-          "userId": {
-            "type": "string",
-            "default": null,
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
-          "actionType": {
-            "title": "actionType for request query, support array",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "operation": {
-            "title": "operation for request query, support array",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "operatedAt": {
-            "title": "operatedAt for request query, support array",
-            "type": "array",
-            "items": {
-              "format": "date-time",
-              "type": "string"
-            }
-          },
-          "method": {
-            "title": "http method for request query, support array",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "required": [
-          "actionType",
-          "operation",
-          "method"
-        ]
-      },
       "SysLogOperateDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysLogOperateDTOSafeRequest"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -30309,7 +29284,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -30508,98 +29483,30 @@
           "total"
         ]
       },
-      "SysMenuDTOSafePartial": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "catalog",
-              "menu",
-              "element"
-            ],
-            "default": "catalog",
-            "title": "basic menu type, mostly used in front end",
-            "description": "catalog => like folder, can only have child nodes. menu => refer to route. element => front end element permission",
-            "example": "catalog"
-          },
-          "path": {
-            "type": "string",
-            "default": null,
-            "title": "route path",
-            "description": "used for vue router path"
-          },
-          "name": {
-            "type": "string",
-            "default": null,
-            "title": "route name",
-            "description": "used for vue router name, should be unique, also used for keep-alive flags"
-          },
-          "component": {
-            "type": "string",
-            "default": null,
-            "title": "route component file path",
-            "description": "used for vue router to find target file path"
-          },
-          "title": {
-            "type": "string",
-            "default": null,
-            "title": "route title",
-            "description": "used for route page title, mostly is i18n format"
-          },
-          "icon": {
-            "type": "string",
-            "default": null,
-            "title": "route icon",
-            "description": "used for route icon, shown in menus and tabs"
-          },
-          "meta": {
-            "title": "menu meta data, lots of fields",
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/SysMenuMetaDTOBasePartial"
-              }
-            ]
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          },
-          "pid": {
-            "type": "string",
-            "default": null,
-            "nullable": true,
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          }
-        }
-      },
       "SysMenuDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysMenuDTOSafePartial"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -30642,7 +29549,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -30807,112 +29714,30 @@
           "total"
         ]
       },
-      "SysRoleDTOSafePartial": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "roleName": {
-            "type": "string",
-            "default": null,
-            "title": "role name",
-            "description": "unique string"
-          },
-          "description": {
-            "type": "string",
-            "default": null,
-            "title": "role description",
-            "description": "short describe"
-          },
-          "order": {
-            "type": "number",
-            "default": null,
-            "title": "role order",
-            "description": "should be int"
-          },
-          "status": {
-            "type": "boolean",
-            "default": true,
-            "title": "role status",
-            "description": "false => users wont retrieve current role menus(permissions)"
-          },
-          "dataScope": {
-            "type": "number",
-            "enum": [
-              1,
-              2,
-              3,
-              4,
-              5,
-              6
-            ],
-            "default": 1,
-            "title": "role data scope",
-            "description": "1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF"
-          },
-          "usersCount": {
-            "type": "number",
-            "title": "current role's user count"
-          },
-          "menusList": {
-            "title": "populated menus list",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SysMenuDTOSafe"
-            }
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          },
-          "menus": {
-            "default": [],
-            "example": [
-              "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "deptIds": {
-            "default": [],
-            "maxItems": 200,
-            "example": [
-              "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      },
       "SysRoleDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysRoleDTOSafePartial"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -30955,7 +29780,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]
@@ -31060,143 +29885,30 @@
           "total"
         ]
       },
-      "SysUserDTOSafePartial": {
-        "type": "object",
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default createdAt",
-            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "updatedAt": {
-            "format": "date-time",
-            "type": "string",
-            "title": "default updatedAt",
-            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
-          },
-          "userName": {
-            "type": "string",
-            "default": null,
-            "title": "user name",
-            "description": "should be unique, used for normal password sign in"
-          },
-          "nickName": {
-            "type": "string",
-            "default": null,
-            "title": "user nick name",
-            "description": "feel free to change"
-          },
-          "age": {
-            "type": "number",
-            "default": null,
-            "title": "age",
-            "description": "should be int and positive"
-          },
-          "gender": {
-            "type": "number",
-            "enum": [
-              0,
-              1,
-              2,
-              9
-            ],
-            "default": 9,
-            "title": "gender",
-            "description": "follow GB standard, go internet it",
-            "example": 9
-          },
-          "avatar": {
-            "type": "string",
-            "default": null,
-            "title": "avatar",
-            "description": "maybe a transform in the future"
-          },
-          "description": {
-            "type": "string",
-            "default": null,
-            "title": "description",
-            "description": "feel free to change"
-          },
-          "status": {
-            "type": "boolean",
-            "default": true,
-            "title": "user status",
-            "description": "false => user cannot sign in anymore, also should ban tokens as well"
-          },
-          "roleMode": {
-            "type": "string",
-            "enum": [
-              "switchable",
-              "combinable"
-            ],
-            "default": "switchable",
-            "title": "role mode",
-            "description": "switch => user can switch role freely; combine => user's role is combined by system, along with the permission, user would access all permission in the roles he has",
-            "example": "switchable"
-          },
-          "mfaSetup": {
-            "type": "boolean",
-            "default": false,
-            "title": "MFA setup",
-            "description": "true => user has setup MFA"
-          },
-          "deptId": {
-            "type": "string",
-            "default": null,
-            "title": "dept id",
-            "description": "owning dept for department-scoped data permissions; null => no dept",
-            "nullable": true,
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
-          "roles_count": {
-            "type": "number",
-            "title": "virtual roles count"
-          },
-          "roles_list": {
-            "title": "virtual roles list",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SysRoleDTOSafe"
-            }
-          },
-          "id": {
-            "type": "string",
-            "default": null
-          },
-          "roles": {
-            "default": [],
-            "example": [
-              "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "currentRole": {
-            "type": "string",
-            "nullable": true,
-            "default": null,
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          }
-        }
-      },
       "SysUserDTOListRequest": {
         "type": "object",
         "properties": {
-          "query": {
+          "filters": {
             "default": {},
-            "example": {
-              "field1": "this is a string",
-              "field2": false,
-              "field3": 123
-            },
-            "allOf": [
+            "example": [
               {
-                "$ref": "#/components/schemas/SysUserDTOSafePartial"
+                "field": "userName",
+                "op": "like",
+                "value": "adm"
+              },
+              {
+                "field": "createdAt",
+                "op": "range",
+                "value": [
+                  "2024-01-01",
+                  "2024-12-31"
+                ]
               }
-            ]
+            ],
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilterDTO"
+            }
           },
           "sort": {
             "default": {},
@@ -31239,7 +29951,7 @@
           }
         },
         "required": [
-          "query",
+          "filters",
           "sort",
           "page"
         ]

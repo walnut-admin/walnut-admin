@@ -48,11 +48,24 @@ export type WalnutPgColumnKind
 
 /** 归一化后的 match 条件：`raw` 保留原值，供 SQL 层二次裁决（见 applyPgListQuery） */
 export interface IWalnutPgListCondition {
-  op: 'ilike' | 'eq' | 'in' | 'range'
+  op: 'ilike' | 'eq' | 'in' | 'range' | 'isNull'
   value: unknown
   /** 客户端原始值（未经 typeof 推断）。SQL 层用它按列类型重新裁决，权威以此为准 */
   raw?: unknown
+  /**
+   * 显式过滤（批次 4-A）的来源算子。存在即表示"这是 `filters[].op` 给的算子"，
+   * SQL 层**不再按 raw 猜**，而是按 (filterOp, 列类型) 重新裁决；裁决不过 = 40099。
+   */
+  filterOp?: WalnutPgFilterOp
 }
+
+/**
+ * `filters[].op` 的取值（与 `@walnut/contract` 的 `FilterOp` 同集）。
+ *
+ * 注意与内部 `op` 的差别：wire 上叫 `like`（不暴露 PG 的 ILIKE 方言），
+ * 内部条件仍写 `ilike`（SQL 层直接拼字面量）。
+ */
+export type WalnutPgFilterOp = 'eq' | 'like' | 'in' | 'range' | 'isNull'
 
 const logger = new Logger('PgListQuery')
 
@@ -393,10 +406,212 @@ export function isPgListOpAllowed(op: IWalnutPgListCondition['op'], kind: Walnut
       return kind === 'text'
     case 'range':
       return kind === 'datetime'
+    // IS NULL / IS NOT NULL 对任何列类型都合法（含原生数组列）
+    case 'isNull':
+      return true
     case 'eq':
     case 'in':
       return kind !== 'array'
   }
+}
+
+// ---------------------------------------------------------------------------
+// 显式 filters（批次 4-A）—— 算子由调用方给，值按列类型解释，解释不了就 **拒绝**
+// ---------------------------------------------------------------------------
+
+/** wire 算子类型守卫：DTO 已按枚举校验过，直接调用方（测试/库外）没有，必须自己拦 */
+export function isWalnutPgFilterOp(op: unknown): op is WalnutPgFilterOp {
+  return op === 'eq' || op === 'like' || op === 'in' || op === 'range' || op === 'isNull'
+}
+
+/** wire 算子 -> 内部条件算子（两者词汇不同：wire 的 like 在 SQL 层是 ILIKE） */
+export function toPgListConditionOp(op: WalnutPgFilterOp): IWalnutPgListCondition['op'] {
+  return op === 'like' ? 'ilike' : op
+}
+
+/** 显式过滤的裁决结果：要么给出条件，要么给出拒绝理由（调用方转 40099） */
+export type WalnutPgFilterResolution
+  = | { ok: true, condition: IWalnutPgListCondition }
+    | { ok: false, reason: string }
+
+function toBooleanValue(value: unknown): boolean | undefined {
+  if (typeof value === 'boolean') {
+    return value
+  }
+  if (value === 'true' || value === 'false') {
+    return value === 'true'
+  }
+  return undefined
+}
+
+function toNumericValue(value: unknown): number | undefined {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined
+  }
+  if (typeof value === 'string' && NUMERIC_RE.test(value.trim())) {
+    return Number(value)
+  }
+  return undefined
+}
+
+/** 标量按列类型的输入语法解释；解释不了 -> undefined（调用方 40099） */
+function coerceScalarForKind(kind: WalnutPgColumnKind, value: unknown): unknown {
+  switch (kind) {
+    case 'text':
+      return isPrimitive(value) ? value : undefined
+    case 'uuid':
+      return isPgUuidString(value) ? value.toLowerCase() : undefined
+    case 'datetime':
+      return toRangeDate(value)
+    case 'boolean':
+      return toBooleanValue(value)
+    case 'number':
+      return toNumericValue(value)
+    case 'json':
+      // jsonb 只接受合法 json 字面量；普通字符串不是字面量 => PG 22P02
+      if (Array.isArray(value)) {
+        return undefined
+      }
+      if (value !== null && typeof value === 'object') {
+        return value
+      }
+      return typeof value === 'number' || typeof value === 'boolean' ? value : undefined
+    case 'array':
+      return undefined
+  }
+}
+
+/**
+ * 数组取值按列类型逐个解释。
+ *
+ * json 列刻意不支持 in 算子（jsonb 数组到底是「值」还是「候选集」有歧义，与批次 1 同口径）。
+ */
+function coerceListForKind(kind: WalnutPgColumnKind, values: readonly unknown[]): unknown[] | undefined {
+  if (kind === 'json' || kind === 'array') {
+    return undefined
+  }
+
+  const out: unknown[] = []
+  for (const value of values) {
+    const coerced = coerceScalarForKind(kind, value)
+    if (coerced === undefined) {
+      return undefined
+    }
+    out.push(coerced)
+  }
+  return out
+}
+
+/**
+ * **显式 op x 列类型 -> 条件**（批次 4-A 的唯一裁决点）。
+ *
+ * 与 `resolvePgListCondition` 的分工：
+ * - `resolvePgListCondition`：**旧 wire**（`query: Partial<Entity>`）用，算子按值的
+ *   typeof 猜，猜不出来就丢弃 + warn（兼容兜底，保留给 query 兼容路径与库外调用方）；
+ * - `resolvePgFilterCondition`（本函数）：**新 wire**（`filters: [{ field, op, value }]`）用，
+ *   算子由调用方给，这里只裁决「这个 op 对这根列可用吗 / 这个值能按这根列解释吗」，
+ *   裁决不过就**明确拒绝**（`ok: false`，调用方转 40099），不再降级成丢弃。
+ *
+ * 覆盖 R1 矩阵的全部 22 个报错格（`reports/batch-1/r1-be-verification.md` 1.2 节）：
+ * like 打非文本列 / uuid 列收非 uuid 串 / 布尔列收 "abc" / 时间列收数值 /
+ * range 打非时间列 / 数值列收日期区间 —— 全部在进 SQL 之前被拒。
+ */
+export function resolvePgFilterCondition(
+  kind: WalnutPgColumnKind | undefined,
+  op: WalnutPgFilterOp,
+  value: unknown,
+): WalnutPgFilterResolution {
+  if (kind === undefined) {
+    // 未知列由调用方先按「非实体列」丢弃（filters 面本来就含 JOIN 别名键），走不到这里
+    return { ok: false, reason: '列类型未知，无法裁决算子' }
+  }
+
+  if (op === 'isNull') {
+    if (value !== undefined && value !== null && typeof value !== 'boolean') {
+      return { ok: false, reason: 'isNull 的 value 只能是缺省 / null / boolean' }
+    }
+    // value 为 false => IS NOT NULL，其余 => IS NULL
+    return { ok: true, condition: { op: 'isNull', value: value === false, filterOp: op } }
+  }
+
+  if (kind === 'array') {
+    return { ok: false, reason: '原生数组列不支持过滤' }
+  }
+
+  if (op === 'like') {
+    if (kind !== 'text') {
+      return { ok: false, reason: `like 只对文本列可用（该列是 ${kind}）` }
+    }
+    if (typeof value !== 'string') {
+      return { ok: false, reason: 'like 的 value 必须是字符串' }
+    }
+    return { ok: true, condition: { op: 'ilike', value, filterOp: op } }
+  }
+
+  if (op === 'range') {
+    if (kind !== 'datetime') {
+      return { ok: false, reason: `range 只对时间列可用（该列是 ${kind}）` }
+    }
+    if (!Array.isArray(value) || value.length !== 2) {
+      return { ok: false, reason: 'range 的 value 必须是长度 2 的数组' }
+    }
+    const start = toRangeDate(value[0])
+    const end = toRangeDate(value[1])
+    if (start === undefined || end === undefined) {
+      return { ok: false, reason: 'range 的端点必须是 Date 或可解析的时间字符串' }
+    }
+    return { ok: true, condition: { op: 'range', value: [start, end], filterOp: op } }
+  }
+
+  if (op === 'in') {
+    if (!Array.isArray(value) || value.length === 0) {
+      return { ok: false, reason: 'in 的 value 必须是非空数组' }
+    }
+    const values = coerceListForKind(kind, value)
+    if (values === undefined) {
+      return { ok: false, reason: `in 的取值无法按 ${kind} 列解释` }
+    }
+    return { ok: true, condition: { op: 'in', value: values, filterOp: op } }
+  }
+
+  const single = coerceScalarForKind(kind, value)
+  if (single === undefined) {
+    return { ok: false, reason: `eq 的取值无法按 ${kind} 列解释` }
+  }
+  return { ok: true, condition: { op: 'eq', value: single, filterOp: op } }
+}
+
+/**
+ * 默认排序的**稳定性兜底**（D15）：把主键追加成最后一个排序键。
+ *
+ * ## 为什么必须加
+ *
+ * createdAt 只到毫秒（timestamptz 微秒，但业务写入常同毫秒），同毫秒的行在
+ * `ORDER BY created_at DESC` 下**顺序不确定** —— 配合 LIMIT/OFFSET 就是翻页漏行/重行
+ * （第 1 页尾与第 2 页头可能重叠，也可能有行永远看不到）。
+ * 追加主键后排序是全序（PK 唯一），同一查询的任意两页严格不交叠。
+ *
+ * ## 方向
+ *
+ * 追加键沿用**最后一个已有排序键的方向**（createdAt DESC => id DESC），
+ * 这样「同毫秒内继续按同一方向细分」符合直觉；没有任何排序键时用 DESC。
+ *
+ * 幂等：主键已经在排序里就原样返回（applyPgListQuery 与 buildPgListQueryOptions
+ * 两处都会调，不会重复追加）。
+ */
+export function withPgListTiebreaker(
+  sort: Record<string, 'ASC' | 'DESC'>,
+  metadata: EntityMetadata | undefined,
+): Record<string, 'ASC' | 'DESC'> {
+  const primary = metadata?.primaryColumns?.[0]?.propertyName
+  if (primary === undefined || sort[primary] !== undefined) {
+    return sort
+  }
+
+  const directions = Object.values(sort)
+  const direction = directions.length > 0 ? directions[directions.length - 1] : 'DESC'
+
+  return { ...sort, [primary]: direction }
 }
 
 /**

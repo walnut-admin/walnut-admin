@@ -91,7 +91,7 @@ describe('B 段：app/logger list + 文件读取（真实 HTTP 全链 + 真实�
     await seedLogFiles()
 
     const res = await api.root('POST', api.apiPath('/app/logger/list'), {
-      query: { fileName: seed8 },
+      filters: [{ field: 'fileName', op: 'like', value: seed8 }],
       sort: [{ field: 'fileMTime', order: 'descend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })
@@ -109,7 +109,7 @@ describe('B 段：app/logger list + 文件读取（真实 HTTP 全链 + 真实�
     await seedLogFiles()
 
     const errOnly = await api.root('POST', api.apiPath('/app/logger/list'), {
-      query: { fileName: seed8, logType: 'error' },
+      filters: [{ field: 'fileName', op: 'like', value: seed8 }, { field: 'logType', op: 'eq', value: 'error' }],
       sort: [],
       page: { page: 1, pageSize: 10 },
     })
@@ -119,7 +119,7 @@ describe('B 段：app/logger list + 文件读取（真实 HTTP 全链 + 真实�
     expect(errList.data[0].logType).toBe('error')
 
     const noMatch = await api.root('POST', api.apiPath('/app/logger/list'), {
-      query: { fileName: `no-such-log-${seed8}` },
+      filters: [{ field: 'fileName', op: 'like', value: `no-such-log-${seed8}` }],
       sort: [],
       page: { page: 1, pageSize: 10 },
     })
@@ -179,7 +179,7 @@ describe('B 段：app/logger list + 文件读取（真实 HTTP 全链 + 真实�
 
   it('未登录 list → 40101', async () => {
     const res = await api.anon('POST', api.apiPath('/app/logger/list'), {
-      query: {},
+      filters: [],
       sort: [],
       page: { page: 1, pageSize: 10 },
     })

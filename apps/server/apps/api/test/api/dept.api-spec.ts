@@ -195,7 +195,7 @@ describe('组织基础表：system/dept CRUD + 树 + RESTRICT + 权限（真实 
     expect(updated.email).toBeNull()
 
     const listRes = await api.root('POST', api.apiPath('/system/dept/list'), {
-      query: { deptCode: `${deptPrefix}-R1` },
+      filters: [{ field: 'deptCode', op: 'like', value: `${deptPrefix}-R1` }],
       page: { page: 1, pageSize: 10 },
     })
     expectOk(listRes, 'dept list')

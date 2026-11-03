@@ -102,9 +102,12 @@ const [register, {
             clearable: true,
             format: 'yyyy-MM-dd',
             valueFormat: 'yyyy-MM-dd',
-            onUpdateFormattedValue(v: string) {
+            // 批次 4-A 修正：过滤字段是**登录时间** authenticatedAt（daterange ⇒ wire 上是
+            // `{ op: 'range', value: [start, end] }`）。旧实现写的是 `authenticated` ——
+            // 那是布尔列，日期区间打上去必炸（旧路径实测 50000：boolean ~~* unknown）。
+            onUpdateFormattedValue(v: [string, string] | null) {
               const queryFormData = onGetApiListParams()
-              queryFormData.value.query = Object.assign(queryFormData.value.query!, { authenticated: v })
+              queryFormData.value.query = Object.assign(queryFormData.value.query!, { authenticatedAt: v })
             },
           },
         },

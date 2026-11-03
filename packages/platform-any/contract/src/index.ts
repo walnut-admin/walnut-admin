@@ -23,10 +23,14 @@ export {
 } from './mfa'
 
 export {
+  type BaseFilterParams,
   type BaseListParams,
   type BaseListResponse,
   type BasePageParams,
   type BaseSortParams,
+  type FilterOp,
+  FilterOpValues,
+  type FilterParam,
   type SortOrder,
   SortOrderValues,
   type SortParam,

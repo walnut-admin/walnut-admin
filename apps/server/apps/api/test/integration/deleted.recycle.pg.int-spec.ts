@@ -162,7 +162,7 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
 
     // --- 列表：user JOIN + total ---
     const list = await deletedService.list({
-      query: { deletedBy: user.id },
+      filters: [{ field: 'deletedBy', op: 'eq', value: user.id }],
     } as never)
     expect(list.total).toBe(3)
     for (const row of list.data) {
@@ -171,7 +171,7 @@ describe('sys_deleted recycle full chain (on real PG)', () => {
 
     // content 是 jsonb：模糊搜索走 ::text cast（命中 demo 快照一条）
     const byContent = await deletedService.list({
-      query: { content: (demo.demoString as string).slice(-12) },
+      filters: [{ field: 'content', op: 'like', value: (demo.demoString as string).slice(-12) }],
     } as never)
     expect(byContent.total).toBe(1)
     expect(byContent.data[0]?.deletedId).toBe(demo.id)

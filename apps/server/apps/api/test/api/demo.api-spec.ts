@@ -172,7 +172,7 @@ describe('A 段试点：app/demo 标准 CRUD（真实 HTTP 全链）', () => {
     // 过滤：字符串字段是 ILIKE 子串模糊（pg-list.builder 对 %/_ 做字面量转义，
     // 不能自造通配符 —— 用分组前缀做子串）
     const filtered = await api.root('POST', api.apiPath('/app/demo/list'), {
-      query: { demoString: group },
+      filters: [{ field: 'demoString', op: 'like', value: group }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })
@@ -185,7 +185,7 @@ describe('A 段试点：app/demo 标准 CRUD（真实 HTTP 全链）', () => {
 
     // 分页：pageSize=1 → 第一页 1 行
     const paged = await api.root('POST', api.apiPath('/app/demo/list'), {
-      query: { demoString: group },
+      filters: [{ field: 'demoString', op: 'like', value: group }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 1 },
     })

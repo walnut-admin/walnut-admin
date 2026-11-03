@@ -346,7 +346,7 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     await createMenu('L1', { meta: { order: 3 } })
 
     const listRes = await api.root('POST', api.apiPath('/system/menu/list'), {
-      query: { name: `${namePrefix}-L1` },
+      filters: [{ field: 'name', op: 'like', value: `${namePrefix}-L1` }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })

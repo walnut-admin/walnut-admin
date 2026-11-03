@@ -9,11 +9,17 @@ export {
   isPgListOpAllowed,
   isPgSortableColumnKind,
   isPgUuidString,
+  isWalnutPgFilterOp,
   type IWalnutPgListCondition,
   normalizeSortOrder,
+  resolvePgFilterCondition,
   resolvePgListCondition,
+  toPgListConditionOp,
   type WalnutPgColumnKind,
+  type WalnutPgFilterOp,
+  type WalnutPgFilterResolution,
   warnDroppedPgListCondition,
+  withPgListTiebreaker,
 } from './pg-column-op'
 export {
   applyPgListQuery,

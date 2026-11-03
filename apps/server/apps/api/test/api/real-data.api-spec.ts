@@ -248,7 +248,7 @@ describe('真实数据只读 suite：菜单 / 字典 / 国际化 / 区划 / 角�
 
   it('角色（root 视角）：list 包含 seed 角色，total 不低于 seed 角色数下界', async () => {
     const res = await api.root('POST', api.apiPath('/system/role/list'), {
-      query: {},
+      filters: [],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 100 },
     })

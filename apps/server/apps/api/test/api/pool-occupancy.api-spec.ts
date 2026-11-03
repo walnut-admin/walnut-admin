@@ -168,7 +168,7 @@ describe('L4：连接占用 spike（注册实体 CRUD 的隐式事务 × 池排�
   }
 
   const listBody = {
-    query: {},
+    filters: [],
     sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
     page: { page: 1, pageSize: 10 },
   }

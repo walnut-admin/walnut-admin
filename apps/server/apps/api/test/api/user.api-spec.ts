@@ -193,7 +193,7 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     await createUser('L1', [bizRoleId])
 
     const listRes = await api.root('POST', api.apiPath('/system/user/list'), {
-      query: { userName: `${userPrefix}-L1` },
+      filters: [{ field: 'userName', op: 'like', value: `${userPrefix}-L1` }],
       sort: [{ field: 'createdAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })

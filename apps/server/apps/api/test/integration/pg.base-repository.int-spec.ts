@@ -178,26 +178,26 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
 
     // ILIKE 模糊：命中该组全部 3 条；页大小 2 → total 3 / 第二页剩 1
     const page1 = await repo.list({
-      query: { demoString: group },
+      filters: [{ field: 'demoString', op: 'like', value: group }],
       page: { page: 1, pageSize: 2 },
     } as never)
     expect(page1.total).toBe(3)
     expect(page1.data).toHaveLength(2)
 
     const page2 = await repo.list({
-      query: { demoString: group },
+      filters: [{ field: 'demoString', op: 'like', value: group }],
       page: { page: 2, pageSize: 2 },
     } as never)
     expect(page2.total).toBe(3)
     expect(page2.data).toHaveLength(1)
 
     // 精确等值：uuid 直传
-    const byId = await repo.list({ query: { id: created[0].id } } as never)
+    const byId = await repo.list({ filters: [{ field: 'id', op: 'eq', value: created[0].id }] } as never)
     expect(byId.total).toBe(1)
     expect(byId.data[0].id).toBe(created[0].id)
 
     // 模糊转义：ILIKE 通配符按字面量处理（PG 版收紧语义，组内无 `%alpha` 后缀）
-    const literal = await repo.list({ query: { demoString: `${group}%alpha` } } as never)
+    const literal = await repo.list({ filters: [{ field: 'demoString', op: 'like', value: `${group}%alpha` }] } as never)
     expect(literal.total).toBe(0)
 
     // 排序：demoNumber desc（显式 priority 缺省时按数组顺序）
@@ -205,7 +205,7 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     await repo.update(created[1].id, { demoNumber: 3 })
     await repo.update(created[2].id, { demoNumber: 2 })
     const sorted = await repo.list({
-      query: { demoString: group },
+      filters: [{ field: 'demoString', op: 'like', value: group }],
       sort: [{ field: 'demoNumber', order: 'descend' }],
     } as never)
     expect(sorted.data.map(i => i.demoNumber)).toEqual([3, 2, 1])
@@ -224,7 +224,7 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
       const rowB = await createOwned(userB, `int-pg-scope-${group}-b`)
 
       const listA = await asUser(userA, selfScope, async () => repo.list({
-        query: { demoString: group },
+        filters: [{ field: 'demoString', op: 'like', value: group }],
       } as never))
 
       expect(listA.total).toBe(1)
@@ -303,7 +303,7 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
       await createOwned(userB, `int-pg-scope-all-${group}-b`)
 
       const listAll = await asUser(userA, allScope, async () => repo.list({
-        query: { demoString: group },
+        filters: [{ field: 'demoString', op: 'like', value: group }],
       } as never))
 
       expect(listAll.total).toBe(2)
@@ -312,7 +312,7 @@ describe('WalnutAdminCommonPgBaseRepository (on real PG)', () => {
     it('默认拒绝（无角色 / 空清单）：list 0 行，readById 404', async () => {
       const row = await createOwned(userA, `int-pg-scope-deny-${randomUUID().slice(0, 8)}`)
 
-      const list = await asUser(userA, denyScope, async () => repo.list({ query: { id: row.id } } as never))
+      const list = await asUser(userA, denyScope, async () => repo.list({ filters: [{ field: 'id', op: 'eq', value: row.id }] } as never))
       expect(list.total).toBe(0)
 
       await expect(asUser(userA, denyScope, async () => repo.readById(row.id)))
