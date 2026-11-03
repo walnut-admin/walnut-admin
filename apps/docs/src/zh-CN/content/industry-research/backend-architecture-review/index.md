@@ -17,7 +17,7 @@
 
 ---
 
-## 二、已定决策（6 条，详见 [07](./07-DECISIONS.md)）
+## 二、已定决策（6 条，详见 [07](./07-decisions.md)）
 
 | # | 结论 |
 |---|------|
@@ -76,10 +76,10 @@
 | 文件 | 内容 | 状态 |
 |------|------|------|
 | **00-INDEX.md** | 本文件 | 重建 |
-| [06-CROSS-CHECK.md](./06-CROSS-CHECK.md) | 复核记录：**我推翻的 1 条**、**被用户纠正的 1 条**、「搬完再补门禁」的排序裁决 | 重建 |
-| [07-DECISIONS.md](./07-DECISIONS.md) | **6 条已定决策 + 14 条 B 档**，含 platform-node 设计与 4 个顾虑处置 | 重建 |
-| [08-RECOMMENDED-PLAN.md](./08-RECOMMENDED-PLAN.md) | 实施排期 P0–P7，每阶段验收与回滚 | 重建 |
-| [09-RESEARCH-SUMMARIES.md](./09-RESEARCH-SUMMARIES.md) | 六份报告的**浓缩重建**（原始全文已丢失） | 重建 |
+| [06-CROSS-CHECK.md](./06-cross-check.md) | 复核记录：**我推翻的 1 条**、**被用户纠正的 1 条**、「搬完再补门禁」的排序裁决 | 重建 |
+| [07-DECISIONS.md](./07-decisions.md) | **6 条已定决策 + 14 条 B 档**，含 platform-node 设计与 4 个顾虑处置 | 重建 |
+| [08-RECOMMENDED-PLAN.md](./08-recommended-plan.md) | 实施排期 P0–P7，每阶段验收与回滚 | 重建 |
+| [09-RESEARCH-SUMMARIES.md](./09-research-summaries.md) | 六份报告的**浓缩重建**（原始全文已丢失） | 重建 |
 | `01/02/03/03b/04/05` | 六份深度报告（每份 600–816 行、带 `path:line` 证据） | **丢失，待重出** |
 
 ---

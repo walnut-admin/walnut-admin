@@ -141,8 +141,8 @@
 
 ## 六、批次 1 · R1 复核结论与裁决（2026-11-02）
 
-两份 R1 报告：[r1-fe-verification](../../../../../../reports/batch-1/r1-fe-verification.md) ·
-[r1-be-verification](../../../../../../reports/batch-1/r1-be-verification.md)（均为 550 行左右，全部结论带实测输出）
+两份 R1 报告：`reports/batch-1/r1-fe-verification.md` ·
+`reports/batch-1/r1-be-verification.md`（均为 550 行左右，全部结论带实测输出）
 
 ### 6.1 前端：确认成立，但两处口径要改
 
@@ -232,7 +232,7 @@
 
 ### 8.1 口径
 
-- **P2 已关闭**：批次 1 收尾轮修掉 **9 项**（前端 4 项 P2-a..d + 后端 5 项 P2-①..⑤），逐条见 [r3fe-fixup](../../../../../../reports/batch-1/r3fe-fixup.md) 与 [r3be-fixup](../../../../../../reports/batch-1/r3be-fixup.md)。
+- **P2 已关闭**：批次 1 收尾轮修掉 **9 项**（前端 4 项 P2-a..d + 后端 5 项 P2-①..⑤），逐条见 `reports/batch-1/r3fe-fixup.md` 与 `reports/batch-1/r3be-fixup.md`。
 - **P2 未关闭**：**3 项**，全部**有意推迟**到批次 4（都要动 `packages` 的生成物或契约），不阻塞其他批次。
 - **P3 未关闭**：**9 项**（前端 3 + 后端 6），都是"同源风险的第二现场"，按批次 2/5 分摊。
 - **P4**：目前 **0 项**（本轮调研未产生 P4 级结论）。
@@ -249,10 +249,10 @@
 
 | # | 来源 | 项 | 归入 |
 |---|------|----|------|
-| P3-F1 | [r3-fe](../../../../../../reports/batch-1/r3-fe-review.md) | `check-dynamic-imports` 漏报 `import('a' + b)`（现有立场"宁可漏报"） | 批次 2 |
+| P3-F1 | `reports/batch-1/r3-fe-review.md` | `check-dynamic-imports` 漏报 `import('a' + b)`（现有立场"宁可漏报"） | 批次 2 |
 | P3-F2 | 同上 | `router/utils/route.ts` 的 `views/**` glob 缺"路由 view 必须命中"断言（同类静默故障的最后一处） | 批次 2 |
 | P3-F3 | 同上 | 根 `AGENTS.md` 字数预算已用 94%（余量约 497 字符） | 批次 2（只许等长替换） |
-| P3-B1 | [r3-be](../../../../../../reports/batch-1/r3-be-review.md) | `ILIKE_ESCAPE_REGEX` 成死 API（仅 re-export，0 消费者） | 批次 5 |
+| P3-B1 | `reports/batch-1/r3-be-review.md` | `ILIKE_ESCAPE_REGEX` 成死 API（仅 re-export，0 消费者） | 批次 5 |
 | P3-B2 | 同上 | 无 `raw` 的手写 `match` 通道仍在（当前零生产调用点，但会绕过本轮兜底） | 批次 5 |
 | P3-B3 | 同上 | 布尔列收到 `1`/`0` 由"能过滤"退化为"静默丢弃" | 批次 5 |
 | P3-B4..B6 | 同上 §P3（另 3 条） | 见报告原文，均为 S 级 | 批次 5 |

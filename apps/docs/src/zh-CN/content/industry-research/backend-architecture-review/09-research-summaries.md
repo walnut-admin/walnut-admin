@@ -78,7 +78,7 @@ unique 索引实体 25 = migration 25（**0 处只写 entity 不写 migration**�
 - 历史提案对账（`aa5670f2`）：13 候选里 **C2/C3/C4 全未做**，C5/C8 未做，C9–C13「不做」仍成立；
   `architecture.md` 两处过期（http→client 依赖其实不存在；两个 README 链接是死的）
 
-> **本报告原推荐「不建 platform-node」已被决策推翻**（见 [07](./07-DECISIONS.md) D4）：
+> **本报告原推荐「不建 platform-node」已被决策推翻**（见 [07](./07-decisions.md) D4）：
 > 用户指出该下沉的是"业务无关的后端基建"，且 D3=A 之后出现了真实的第二消费方（worker）。
 > 保留本节是为了留下当时的证据与顾虑清单（4 个顾虑的处置见 07 的 D4）。
 
@@ -128,7 +128,7 @@ unique 索引实体 25 = migration 25（**0 处只写 entity 不写 migration**�
 4. `libs/delay` 是**死库**（唯一引用 `shared.module.ts:5`，服务零注入）
 5. **worker 无生产部署面**（Dockerfile 只 api CMD；`deploy/` 与 CI grep worker = 0 命中）；
    cli 则被 CI 真用（`ci.yml:372` migration、`:300/355` openapi）
-   > 这条被用户纠正过表述：worker **本地能跑**，缺的是生产编排。见 [06](./06-CROSS-CHECK.md) §二
+   > 这条被用户纠正过表述：worker **本地能跑**，缺的是生产编排。见 [06](./06-cross-check.md) §二
 
 其他：libs **23/34 零测试**（libs 24 spec / 2999 行 vs api/test 63 spec / 20028 行 = 6.2%）；
 8 个单文件级库共 395 行 / 25 文件（delay 死、context+als 两套 ALS、blpath 30 行 Set、scope-resolver 单消费者）；
