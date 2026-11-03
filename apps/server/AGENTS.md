@@ -126,5 +126,11 @@ dotenvx 密文、`setup-env` / `encrypt-env`、加载哪几个 env 文件、CI �
 
 ## 测试
 
-Vitest，配置在 `apps/server/apps/api/vitest.config.ts`（E2E 用 `vitest.config.e2e.ts`）。新增纯函数与
-工具必须补测试。
+Vitest，配置在 `apps/server/apps/api/vitest.config.ts`（E2E 用 `vitest.config.e2e.ts`，集成用
+`vitest.config.integration.ts`）。新增纯函数与工具必须补测试。
+
+**同一 worktree 同时只允许一个 `test:integration`**（`test:e2e` 同理）：集成库
+`walnut-admin-integration` 是共享单实例，globalSetup 一进来就 drop 重建 —— 并发跑会互删库、
+读数全不可信（2026-11 实测过一次，整轮 639 条读数作废）。这条已由 globalSetup 的 PG
+advisory lock 机械保证：抢不到就等（最长 2 分钟），超时报错退出并打印持锁者 ——
+别靠「我记得没人在跑」。

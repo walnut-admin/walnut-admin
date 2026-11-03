@@ -6,6 +6,7 @@ import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
 import { WalnutAdminConstAppCacheKeys, WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstRoleMode } from '@walnut-server/const/role'
 import { Role } from '@walnut/contract'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
@@ -56,6 +57,16 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
   let user3: WalnutApiClient
   /** root 登录令牌（visitor 复用 admin 设备登录，测试时临时切换 auth） */
   let rootTokens: WalnutAuthTokens | null = null
+  /**
+   * root 那枚 signed `RT_JTI` cookie 的快照。
+   *
+   * B7（批次 7）起 `POST /auth/signout` 是**凭 RT 认人**（JwtFree；userId/deviceId 取自 RT 行），
+   * AT 不再参与。而本 spec 的 beforeAll 为了省 device/initial 的 throttle 配额，让 visitor 复用
+   * admin 的**同一台设备**登录 —— jar 里的 `RT_JTI` 因此变成 visitor 的。要给 root 登出就必须
+   * 先把 root 那枚种回去，否则 signout 撤的是 visitor 的 RT、root 的现役 RT 还在 → 重登受控
+   * 拒绝 40109（DuplicateSignIn）。
+   */
+  let rootRtCookie = ''
   /** P2-20 visitor 的登录令牌 */
   let visitorTokens: WalnutAuthTokens | null = null
 
@@ -104,6 +115,8 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
     rootTokens = await performHttpOpaqueLogin(admin, app, rootFixture)
     admin.setAuth(rootTokens)
     await admin.seedMfaVerifiedCache(rootFixture.userId)
+    // visitor 下面会在这台设备上再登一次（覆盖 RT_JTI cookie）——先把 root 那枚留档（见 rootRtCookie）
+    rootRtCookie = admin.getCookie(WalnutAdminConstCookieKeys.RT_JTI) ?? ''
 
     // 种子非 root 用户（授予 app:demo:list / app:demo:read，未授予 app:demo:delete）
     seedFixture = await seedPermissionChainUser(app, admin.pgDataSource, {
@@ -621,8 +634,19 @@ describe('I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放�
       [rootFixture!.userId, WalnutAdminConstRoleMode.SWITCH],
     )
 
+    // B7（批次 7）：signout 凭 **RT cookie 的行**认人（AT 不参与）。visitor 在 beforeAll 里用过同一个
+    // admin 客户端，jar 里的 RT_JTI 是 visitor 那枚 —— 不种回 root 的就会撤错人（root 的现役 RT 仍在
+    // → 下面重登 40109 DuplicateSignIn）。种回后再显式断言「root 已无现役 RT」，让失败点落在原因上。
+    admin.setCookie(WalnutAdminConstCookieKeys.RT_JTI, rootRtCookie)
     const signoutRes = await admin.root('POST', admin.apiPath('/auth/signout'))
     expectOk(signoutRes, 'root signout before switch re-login')
+
+    const activeRootRt: Array<{ c: number }> = await admin.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM auth_refresh_token WHERE user_id = $1 AND revoked = false',
+      [rootFixture!.userId],
+    )
+    expect(activeRootRt[0].c).toBe(0)
+
     admin.setAuth(null)
     const switchRootTokens = await performHttpOpaqueLogin(admin, app, rootFixture!)
     admin.setAuth(switchRootTokens)

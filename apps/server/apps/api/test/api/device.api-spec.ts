@@ -25,6 +25,10 @@ import { WALNUT_TEST_USER_AGENT } from './helpers/sign-handshake'
  *   after-commit 写 SYS_DEVICE 缓存）；Device guard 缓存 miss 时回源库 —— 清缓存后
  *   锁/封状态仍生效（40606/40607）。锁/封期间同设备请求被 guard 拦死（连 unlock/unban
  *   都到不了），端点间仍以缓存复位通道衔接；
+ * - **ban 还有「踢下线」副作用**（97012f3b / 拍板-4）：同事务按**设备**撤掉全部 RT，提交后
+ *   清会话 / 权限 / MFA verified 键 —— 解封**不复活**旧会话，旧 AT 立即 40101，唯一恢复路径是
+ *   重新登录（本文件 unban 用例即「复位缓存态 → 重新登录 → unban」；AT/RT 面的正向断言在
+ *   guard-matrix.api-spec 的封禁闭环绕里）；
  * - history-users 返回 sys_user_device 的绑定用户（绑定即 upsert、无解绑删除通道，
  *   表内行即绑定历史），按 lastActiveAt 降序；
  * - Throttle 是 4 次/60s（tracker=realIp），本文件 initial 总调用数压在限额内。
@@ -306,6 +310,9 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
 
     const banRes = await api.root('PATCH', api.apiPath(`/system/device/${bootstrapDeviceRowId}/ban`))
     expectOk(banRes, 'device ban')
+    // 拍板-4：这条 ban 同时把本设备「踢下线」（同事务撤全部 RT、提交后清会话/权限/MFA 键）。
+    // 下面的 40607 由设备 guard 先拦，但本设备的登录态在此刻已经死了 —— 只能重新登录，
+    // 见下例。AT/RT 面的正向断言在 guard-matrix.api-spec 的封禁闭环绕里。
     expect((await cacheDeviceService.getSysDeviceCache(api.deviceId))?.banned).toBe(true)
 
     const dbRows: Array<{ banned: boolean }> = await api.pgDataSource.query(
@@ -320,9 +327,12 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     expect((await cacheDeviceService.getSysDeviceCache(api.deviceId))?.banned).toBe(true)
   })
 
-  it('PATCH unban → true + DB/缓存双清 + read 恢复可用', async () => {
+  it('PATCH unban → true + DB/缓存双清；解封不复活旧会话，重新登录后 read 恢复可用', async () => {
     const cacheDeviceService = app.get(AppTechCacheDeviceService)
     const cached = await cacheDeviceService.getSysDeviceCache(api.deviceId)
+    // 上例的 ban 已把本设备「踢下线」（RT 全撤 + 会话键清空），此后本设备的请求全被设备
+    // guard 拦死、连 unban 都到不了 —— 仍走真实语义的缓存复位通道（等价「另一台设备 / 管理
+    // 通道解封」后的缓存态）；unban 端点本身照旧走真实 HTTP 并把库改回 false。
     await cacheDeviceService.setSysDeviceCache({
       deviceId: api.deviceId,
       locked: cached!.locked,
@@ -330,6 +340,14 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
       active: cached!.active,
       ip: cached!.currentIp,
     })
+
+    // 封禁 = 踢下线（拍板-4）：旧 AT 的会话键与旧 RT 都已作废，解封不复活 —— 要拿回可用登录态
+    // 只能重新登录。登录链只有 JwtFree（签名按单因子算，故先清 auth），本设备此刻已回到未封禁
+    // 缓存态所以过得去设备 guard；MFA verified 缓存同样被踢下线清掉了，要重种。
+    api.setAuth(null)
+    const tokens = await performHttpOpaqueLogin(api, app, fixture!)
+    api.setAuth(tokens)
+    await api.seedMfaVerifiedCache(fixture!.userId)
 
     const unbanRes = await api.root('PATCH', api.apiPath(`/system/device/${bootstrapDeviceRowId}/unban`))
     expectOk(unbanRes, 'device unban')

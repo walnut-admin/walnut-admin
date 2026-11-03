@@ -196,6 +196,31 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
     expect((redeemRes.body as { success?: boolean }).success).toBe(true)
   }
 
+  /**
+   * 扫 Redis 里某 (user, device) 的会话键（`WALNUT_CACHE_AUTH:SESSIONS:<user>:<device>:*`）。
+   * 「封禁清会话」要断言的是**整组键消失** —— 按已知 sid 逐个断言只能覆盖那一个会话。
+   */
+  async function scanSessionKeys(userId: string, deviceId: string): Promise<string[]> {
+    const redis = app.get(AppTechRedisService).getClient()
+    const pattern = `WALNUT_CACHE_${WalnutAdminConstAppCacheKeys.AUTH_SESSIONS}:${userId}:${deviceId}:*`
+    const keys: string[] = []
+    for await (const batch of redis.scanIterator({ MATCH: pattern, COUNT: 200 })) {
+      // node-redis v5 的 scanIterator 按批产出 string[]（与 cache.service.delByPattern 同口径摊平）
+      const list: string[] = Array.isArray(batch) ? batch : [batch]
+      keys.push(...list.filter((key): key is string => typeof key === 'string'))
+    }
+    return keys
+  }
+
+  /** 该 (user, device) 的**现役** RT 行数（`revoked = false`；撤销按设备维度整片生效） */
+  async function countActiveRt(userId: string, deviceId: string): Promise<number> {
+    const rows: Array<{ c: number }> = await api.pgDataSource.query(
+      'SELECT count(*)::int AS c FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2 AND revoked = false',
+      [userId, deviceId],
+    )
+    return rows[0].c
+  }
+
   // ============================================================
   // CAP 强制态 · case A：risk 评估存在（新设备 DEVICE_NEW critical 因子未处理）
   // 且 guard 验证缓存（SECURITY_CAP_TOKEN:<deviceId>）为空 —— CAP 硬校验的拒绝面。
@@ -604,20 +629,124 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       }
     })
 
-    it('封禁闭环：第二设备 HTTP ban → 本设备 40607 → HTTP unban → 恢复放行（ban/unban 只写 SYS_DEVICE 缓存不落库）', async () => {
-      const banRes = await apiB!.root('PATCH', apiB!.apiPath(`/system/device/${deviceARowId}/ban`))
-      expectOk(banRes, 'ban device A')
-      const cachedAfterBan = await app.get(AppTechCacheDeviceService).getSysDeviceCache(api.deviceId)
-      expect(cachedAfterBan?.banned).toBe(true)
+    it('封禁闭环（封禁 = 踢下线）：第二设备 HTTP ban → 本设备 40607 + 该设备 RT 全撤 + 会话键清空 → unban 后旧 AT 仍 40101（处理器前）→ 重新登录才恢复放行', async () => {
+      const cacheDevice = app.get(AppTechCacheDeviceService)
+      const deviceId = api.deviceId
+      const oldTokens = api.getAuth()!
+      /** 封禁前那枚 signed RT_JTI cookie（下面验「RT 面也死了」用；签名绑定 jti，事后造不出来） */
+      const preBanRtCookie = api.getCookie(WalnutAdminConstCookieKeys.RT_JTI)!
 
-      const blocked = await api.root('GET', api.apiPath('/system/user/lock/read'))
-      expect(bodyOf(blocked).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED)
+      // 本用例有两次「破坏性」动作：封禁设备 + 断掉本设备会话。两者都必须能**无条件还原** ——
+      // 否则断言一失败，后面 12 条就被 40607/40101 连带打红，「1 条红」变成「整个文件红」，
+      // 变异测试也看不出到底是谁在咬。
+      let deviceUnbanned = false
+      let sessionRebuilt = false
 
-      const unbanRes = await apiB!.root('PATCH', apiB!.apiPath(`/system/device/${deviceARowId}/unban`))
-      expectOk(unbanRes, 'unban device A')
+      /** 解封：走第二设备（与本设备会话死活无关，device guard 只拦被封的那台） */
+      const unbanDevice = async () => {
+        if (deviceUnbanned) {
+          return
+        }
+        const res = await apiB!.root('PATCH', apiB!.apiPath(`/system/device/${deviceARowId}/unban`))
+        expectOk(res, 'unban device A')
+        deviceUnbanned = true
+      }
 
-      const restored = await api.root('GET', api.apiPath('/system/user/lock/read'))
-      expectOk(restored, 'device A restored after unban')
+      /**
+       * 重建登录态：ban 起本设备会话就死了，后续所有 api.root 都依赖新 tokens1。
+       * 登录链只有 JwtFree —— 带着登录态时客户端会算双因子签名反而 40112，故先回单因子；
+       * 中途失败也把 auth 还原回「当前已知的 tokens1」，别让 auth=null 成为后续用例的死因。
+       */
+      const rebuildSession = async () => {
+        if (sessionRebuilt) {
+          return
+        }
+        api.setAuth(null)
+        try {
+          tokens1 = await performHttpOpaqueLogin(api, app, fixture1!)
+        }
+        finally {
+          api.setAuth(tokens1)
+          sessionRebuilt = true
+        }
+        await api.seedMfaVerifiedCache(fixture1!.userId)
+      }
+
+      try {
+        // —— 前置自证：会话键 / MFA verified 键 / 现役 RT 都在场，否则下面的「清空」不说明任何事 ——
+        expect((await scanSessionKeys(fixture1!.userId, deviceId)).length).toBeGreaterThan(0)
+        expect(await api.hasWalnutCacheKey(`${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${fixture1!.userId}:${deviceId}`)).toBe(true)
+        expect(await countActiveRt(fixture1!.userId, deviceId)).toBe(1)
+
+        const banRes = await apiB!.root('PATCH', apiB!.apiPath(`/system/device/${deviceARowId}/ban`))
+        expectOk(banRes, 'ban device A')
+
+        // ban 落库 + 缓存双写（P2-2 起就落库；「只写 SYS_DEVICE 缓存」是更早的旧行为）
+        const bannedRows: Array<{ banned: boolean }> = await api.pgDataSource.query(
+          'SELECT banned FROM sys_device WHERE device_id = $1',
+          [deviceId],
+        )
+        expect(bannedRows[0].banned).toBe(true)
+        expect((await cacheDevice.getSysDeviceCache(deviceId))?.banned).toBe(true)
+
+        // 封禁态下最先拒绝的是设备 guard（全局 #3）：连旧 AT 都到不了 JWT
+        const blocked = await api.root('GET', api.apiPath('/system/user/lock/read'))
+        expect(bodyOf(blocked).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED)
+
+        // ① RT 全撤：同事务按**设备**撤销（reason = deviceBanned），不是只撤当前用户那一行
+        expect(await countActiveRt(fixture1!.userId, deviceId)).toBe(0)
+        const bannedRtRows: Array<{ c: number }> = await api.pgDataSource.query(
+          `SELECT count(*)::int AS c FROM auth_refresh_token WHERE device_id = $1 AND revoke_reason = 'deviceBanned'`,
+          [deviceId],
+        )
+        expect(bannedRtRows[0].c).toBeGreaterThan(0)
+
+        // ② 会话键清空（AUTH:SESSIONS:<user>:<device>:*）+ MFA verified 键清空。
+        //    这两步在 after-commit 钩子里，而事务拦截器在**返回响应前** await 它们，故无需轮询。
+        expect(await scanSessionKeys(fixture1!.userId, deviceId)).toEqual([])
+        expect(await api.hasWalnutCacheKey(`${WalnutAdminConstAppCacheKeys.AUTH_MFA_VERIFIED}:${fixture1!.userId}:${deviceId}`)).toBe(false)
+
+        // 封禁态下 /auth/refresh 也被设备 guard 拦（拍板-4 摘掉了它的 DeviceFree）→ 续不出新 AT
+        const refreshWhileBanned = await api.anon('POST', api.apiPath('/auth/refresh'))
+        expect(bodyOf(refreshWhileBanned).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED)
+
+        await unbanDevice()
+        expect((await cacheDevice.getSysDeviceCache(deviceId))?.banned).toBe(false)
+
+        // ③ 解封**不恢复会话**（封禁 = 踢下线）：旧 AT 立刻 40101。
+        //    「处理器前拒绝」的两条判别证据：
+        //    a) 同一枚旧 AT 打「处理器内会回 40401」的不存在行 uuid → 仍是 40101
+        //       ⇒ 请求根本没进处理器（死在 JWT 守卫 #6）；
+        //    b) 回的是 40101 而不是 40115：踢下线已清 MFA verified 缓存，若 JWT 放行则由
+        //       MFA guard（#9）先拒 —— 实测 40101 说明拒绝发生在 MFA 之前（守卫链内）。
+        const ghostRowId = randomUUID()
+        const staleAt = await api.root('GET', api.apiPath('/system/user/lock/read'))
+        expect(bodyOf(staleAt).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+        const staleAtOnHandler = await api.root('GET', api.apiPath(`/system/device/${ghostRowId}`))
+        expect(bodyOf(staleAtOnHandler).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+
+        // RT 面同样已死：封禁前那枚 RT 再换 AT → 40102（撤销行在 JwtRefreshGuard 层即死）
+        api.setCookie(WalnutAdminConstCookieKeys.RT_JTI, preBanRtCookie)
+        const staleRefresh = await api.anon('POST', api.apiPath('/auth/refresh'))
+        expect(bodyOf(staleRefresh).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED)
+
+        // —— 唯一恢复路径：重新登录（本轮新语义；不是「解封复活旧会话」）——
+        await rebuildSession()
+        expect(tokens1!.accessToken).not.toBe(oldTokens.accessToken)
+
+        const restored = await api.root('GET', api.apiPath('/system/user/lock/read'))
+        expectOk(restored, 'device A restored after relogin')
+
+        // 正对照：新会话下同一条路径确实会走到处理器 → 40401（证明上面那个 40101 是守卫拦的）
+        const freshOnHandler = await api.root('GET', api.apiPath(`/system/device/${ghostRowId}`))
+        expect(bodyOf(freshOnHandler).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
+      }
+      finally {
+        // 兜底还原：断言中途炸掉时也要把「设备已解封 + 会话已重建」做掉；两个动作各自吞异常，
+        // 免得兜底本身再抛一次、把原始失败盖掉。
+        await unbanDevice().catch(() => undefined)
+        await rebuildSession().catch(() => undefined)
+      }
     })
 
     it('G8 设备 IP 变化回写：XFF 换 IP → 放行且 sys_device.ip 落新值；同 IP 再请求不重复写（updated_at 不变）', async () => {
