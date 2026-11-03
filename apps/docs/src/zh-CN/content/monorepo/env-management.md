@@ -97,11 +97,12 @@ admin 的基础 `.env`（无环境后缀）存放构建必填的 `VITE_*` 变量
 ## 注意事项
 
 ::: warning 禁止修改的密钥
-以下密钥修改后会导致历史数据不可用（`libs/config/README.md` 列为 6 个关键密钥）：
+以下密钥修改后会导致历史数据不可用（「关键密钥」清单以 `libs/config/README.md` 为准）：
 - `AUTH_OPAQUE_SECRET` — OPAQUE 协议密钥
 - `MFA_ENCRYPTION_KEY` — MFA 数据加密
 - `RT_ENCRYPTION_KEY` — Refresh Token 加密
-- `DEVICE_ID_ENCRYPTION_KEY` — 设备 ID 加密
+- `DEVICE_ID_ENCRYPTION_KEY` — **历史**设备指纹盐（B5 起无消费者：设备 ID 由服务端随机签发；
+  它从没加密过数据，保留是部署契约，退役另案）
 - `USER_ID_ENCRYPTION_KEY` — 用户身份加密
 - `USER_ID_HASH_SALT` — 用户 ID 哈希盐
 :::
