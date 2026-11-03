@@ -78,8 +78,9 @@ sys_user_device 1 ── 1 当前用户的锁屏状态  (locked 列；与 sys_de
   （`SysDeviceSettingService` 硬编码 4 次 / 60 秒，tracker 为 `realIp`）。
 - `device_id` 由 `generateDeviceId()`（`libs/system/src/device/device-id.ts`）**服务端随机
   签发**：`d1_` + `randomBytes(16)` 的 hex，不碰任何密钥。**幂等键是已有的合法 `DEVICE_ID`
-  cookie** —— 形态合法就复用该 id，否则新签一个（这条取代了改造前的「指纹派生」，
-  `getDeviceIdByFingerprint` / `hashDeviceFingerprint` 已不在身份路径上）。
+  cookie** —— 形态合法就复用该 id，否则新签一个（这条取代了改造前的「指纹派生」；
+  `getDeviceIdByFingerprint` / `hashDeviceFingerprint` 已**删除**（B5 起设备身份由服务端
+  签发），别再把它们读成「还在、只是没人调」）。
 - 写库前调 `SharedIpService.getLocationInfoFromFreeAPI` 取地理位置（外网 API；本地 IP 回 `LOCAL`）。
 - 落库语义是**按业务键 upsert**：`findOne({ deviceId })` 命中即把整组字段覆盖（`Object.assign`
   + `save`），未命中则插入。覆盖集包含 `deviceInfo`（与 `req.os` / `req.browser` 合并、UA 推导

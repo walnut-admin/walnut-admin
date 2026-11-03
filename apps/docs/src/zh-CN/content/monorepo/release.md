@@ -162,8 +162,8 @@ pnpm release
 | `test` | `turbo run test` |
 | `syncpack` | `syncpack lint` |
 | `versioning` | `pnpm change check`（fixed 组锁步） |
-| `workflows` | `pnpm lint:workflows`（actionlint；本机没装则提示后跳过，CI 侧由 `workflow-lint.yml` 直接跑二进制） |
-| `workflows-shell` | `pnpm lint:workflows-shell`（把每个 `run:` / `with.script:` 抽出来逐块 `bash -n` —— actionlint **看不见**字符串里的 shell 语法；本机没有 bash 时明确 SKIP） |
+| `workflows` | `pnpm lint:workflows`（actionlint）。**探测不到 actionlint ⇒ 抛 `SkippedError` ⇒ 退出码 3** —— 本机**未验证**，既不是通过也不是违规 |
+| `workflows-shell` | `pnpm lint:workflows-shell`（把每个 `run:` / `with.script:` 抽出来逐块 `bash -n` —— actionlint **看不见**字符串里的 shell 语法）。没有 bash 时同样 **退出码 3**（设 `BASH_PATH` 可启用） |
 | `dynamic-imports` | `pnpm lint:dynamic-imports`（`apps/**` 里不许出现拼出来的动态 import —— 模板插值 / 非字面量说明符；tsc 与 vite build 都看不见那一类） |
 | `docs-refs` | `pnpm lint:docs-refs`（活文档正文里引用的 workspace 包名 / 仓库路径必须真实存在） |
 | `adr` | `pnpm lint:adr`（ADR 形态：编号连续 / Status 在枚举内 / 四个必需小节 / index 双向对齐） |
@@ -183,9 +183,20 @@ pnpm release
 | `dist-secrets` | `pnpm lint:dist`（产物去密体检：机密形态 + 后端 env 真值 + 凭据文件）⏭️ **默认暂缓，与 `build` 是一对** —— 它扫的就是 `apps/admin/dist`，本地没构建时只会报「前置条件未满足」（退出码 2）。解冻时两条一起解冻 |
 
 > **这张表与 `packages/tooling/release/src/release/steps.ts` 的 `RELEASE_BATTERY` 必须一致** ——
-> `steps.test.ts` 逐行钉住了它。加一段门禁时两边都要改（**注意：这里说的「逐行钉住」指的是
-> 那个测试文件钉 `RELEASE_BATTERY`，不是本页**；本页的表格眼下仍靠人工同步，见
-> [与参考仓 Z 的基建交叉对比](./reference-repo-comparison) 的 A1）。
+> `steps.test.ts` 逐行钉住了它。加一段门禁时**两边都要改**：`RELEASE_BATTERY` 与本页表格
+> （**注意：这里说的「逐行钉住」指的是那个测试文件钉 `RELEASE_BATTERY`，不是本页**；本页的表格
+> 眼下仍靠人工同步，见 [与参考仓 Z 的基建交叉对比](./reference-repo-comparison) 的 A1）。
+>
+> **「跳过」是第四种结论，既不是通过也不是失败**（退出码 3，来自 `SkippedError`；判据在
+> `packages/tooling/scripts/src/lib/errors.ts`）。上表这两条遇「本机缺工具」时走的就是它：
+>
+> - **prepush**：该段打 `-`、尾巴标 `[SKIP 未验证]`，汇总单列「跳过（未验证）」而不是「全部通过」；
+>   `PREPUSH_STRICT=1` 时才把「跳过」判红，默认只让它可见、不挡推送。
+> - **本页的电池**：子进程以 3 收场时该条记进 `unverifiedIds`、打一行「跳过（未验证）」，
+>   并**计入收尾汇总**（`releaseBatterySummary()`：有未验证项时分开报数并附警告，**不再说全绿**）。
+>   所以没装 actionlint / bash 的发版机既不会因「跳过」而发版失败，也不会把「没跑过」说成「验过了」。
+>
+> **权威校验仍在 CI**：`.github/workflows/workflow-lint.yml` 强制装 actionlint 并直接跑二进制。
 
 > ⚠️ `types-root` 必须是**独立一行**、且经根脚本跑（`pnpm types:check:root`）—— 它只是根
 > `package.json` 的脚本、**没有**对应的 turbo 任务，`turbo run types:check:root` 会直接以

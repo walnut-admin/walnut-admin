@@ -1,6 +1,9 @@
 # packages / server 架构调研汇总（决策已定版）
 
-> 更新：**2026-11-02** ｜ 基线 commit `3aa32f1f`，工作区有并行线在改（见 §六）
+> 更新：**2026-11-02** 初版 ｜ 基线 commit `3aa32f1f`，工作区有并行线在改（见 §六）
+> **2026-11-03 修订：D4（建 `packages/platform-node`）的「直接搬迁」分支被实测否决** ——
+> `const` 单库 POC 不通过，现状 = 不搬（P2）。详见 [10](./10-implementation-plan.md) §10.2 与
+> [07](./07-decisions.md) 的 D4 修订记。**本页与 06/07/08/09 里凡写「建 platform-node」的地方都按这条读。**
 > ⚠️ **原始 6 份调研报告被删除**（未跟踪文件，git 无法恢复）。本文件 + 06/07/08/09 为重建；
 > 六份全文（每份 600–816 行）待并行线收工、工作树稳定后按最终树重出。
 
@@ -12,7 +15,7 @@
 |---|---------|------|
 | 1 | platform-any 的导出是不是都被消费了 | **三包命运不同**：`@walnut/contract` 站得住（运行时值双端率 **78.1%**）；`@walnut/utils` **负资产**（13.6%，实质是浏览器密码学包）；`@walnut/types` **负资产**（后端 **0** 文件消费，却自称双端） |
 | 2 | 还有没有 mongo/mongoose 遗留 | Mongoose **可执行代码已清零**；但 **list 入参仍是 Mongo find(filter) 的直系后代** —— 算子由「值的 JS 类型」隐式决定 ⇒ **3 类必现 500**，三槽位校验**从未生效**，seed 真源仍是 Mongo EJSON |
-| 3 | 只抽 platform-any/web 有必要吗？后端基建能不能下沉 | 有必要，但 4 个 web 包差一个量级（client 84 / http 10 / api-types 79 / **ui 2–3**）。**后端基建可以下沉 —— 已定为建 `packages/platform-node`**（D4） |
+| 3 | 只抽 platform-any/web 有必要吗？后端基建能不能下沉 | 有必要，但 4 个 web 包差一个量级（client 84 / http 10 / api-types 79 / **ui 2–3**）。**后端基建当时定为下沉、建 `packages/platform-node`（D4，2026-11-02）；2026-11-03 的 `const` 单库 POC 实测不通过，直接搬迁被否决 —— 现状 = 不搬（P2）；要恢复包边界只能走 P1（两个包自建 CJS dist，待拍板）** |
 | 4 | server libs 与 apps 三包架构还有优化空间吗 | **分层是真的**（34 库、1481 条 import、**0 条向上层边**、madge **0 环**）；空间不在分层，在 **4 个结构债**：注册面成本、cache 住域缓存、锁两套、worker 无生产面 |
 
 ---
@@ -25,7 +28,7 @@
 | D1 | **删除 `@walnut/ui`** + 把 `componentMap` 的目录名动态 import 换成显式注册表 |
 | D2 | **两段走**：先止血（按列类型选算子 + 打开校验 + clamp），再一次性换显式 `filters` wire |
 | D3 | **worker 真接线** —— 补齐生产编排与 CI 冒烟（本地本来就能跑，是我上轮表述不准） |
-| D4 | **建 `packages/platform-node`**：2 个包、28 个基建库下沉、**零 import 改写**；前置 D14 + 1 库 POC |
+| D4 | ~~建 `packages/platform-node`~~ → **2026-11-03 实测否决「直接搬迁」**（POC 不通过）：现状 **P2 = 不搬**；P1 = 两个包自建 CJS dist（待拍板） |
 | D5 | **seed 一次性重建**为 PG 行形态，机械再生成 + 双跑 diff 验收 |
 
 ---
@@ -54,11 +57,11 @@
 
 ---
 
-## 四、目标态
+## 四、目标态（2026-11-03 修订：platform-node 未建）
 
     packages/
       platform-any/     contract · types · utils        ← 跨端（零/低运行时依赖）
-      platform-node/    base · tech                     ← 后端基建（28 库，**新建**）
+      platform-node/    base · tech                     ← 后端基建（28 库）**未建**：D4 的直接搬迁已于 2026-11-03 实测否决
       platform-web/     client · http                   ← 浏览器/Vue（删桶、删 ui）
       generated/        api-types                       ← codegen 产物（从 platform-web 挪出）
       tooling/          6 包（不动）
@@ -66,7 +69,7 @@
     apps/server/libs/   identity system auth security guards app-domain   ← 只剩 6 个业务域库
     apps/server/apps/   api（唯一 HTTP 单元）· cli（CI 真用）· worker（真接线，D3）
 
-**依赖方向**：`apps/* → platform-web → platform-any`；`apps/server → platform-node → platform-any`；
+**依赖方向**：`apps/* → platform-web → platform-any`；`apps/server/libs/* →（tsconfig paths `@walnut-server/*`）→ platform-any`（**platform-node 未建**；若走 P1，则改回 `apps/server → platform-node(dist) → platform-any`）；
 **永不允许** `apps/server → platform-web`。
 
 ---
@@ -77,7 +80,7 @@
 |------|------|------|
 | **00-INDEX.md** | 本文件 | 重建 |
 | [06-CROSS-CHECK.md](./06-cross-check.md) | 复核记录：**我推翻的 1 条**、**被用户纠正的 1 条**、「搬完再补门禁」的排序裁决 | 重建 |
-| [07-DECISIONS.md](./07-decisions.md) | **6 条已定决策 + 14 条 B 档**，含 platform-node 设计与 4 个顾虑处置 | 重建 |
+| [07-DECISIONS.md](./07-decisions.md) | **6 条已定决策 + 14 条 B 档**；D4 的 platform-node 设计与 4 个顾虑**保留为当时依据**，其中「dist 布局不变」这条已被 2026-11-03 实测证伪 | 重建 |
 | [08-RECOMMENDED-PLAN.md](./08-recommended-plan.md) | 实施排期 P0–P7，每阶段验收与回滚 | 重建 |
 | [09-RESEARCH-SUMMARIES.md](./09-research-summaries.md) | 六份报告的**浓缩重建**（原始全文已丢失） | 重建 |
 | `01/02/03/03b/04/05` | 六份深度报告（每份 600–816 行、带 `path:line` 证据） | **丢失，待重出** |

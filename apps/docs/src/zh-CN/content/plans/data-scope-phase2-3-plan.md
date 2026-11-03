@@ -105,7 +105,7 @@ solo×1、无主(NULL dept)×1
 `COUNT(*) OVER()` total 与行集一致。
 
 ### 1.3 批 2 验收
-全量集成（473 基线 → 预计 +40~50 矩阵用例）连续 2 轮稳定 + prepush 23 段 + build:stage
+全量集成（473 基线 → 预计 +40~50 矩阵用例）连续 2 轮稳定 + prepush（段数以 `packages/tooling/scripts/src/ci/prepush.ts` 的表为准） + build:stage
 + admin types:check + openapi 重新生成。
 
 ## 2. 三期：PostgreSQL RLS RESTRICTIVE 硬上限（批 3）

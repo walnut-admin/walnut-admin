@@ -12,14 +12,14 @@
 |------|------|---------|--------|
 | **P0** | 止血 + 建验证手段 | D1、D2 股①、D18③ | 2–3 人日 |
 | **P1** | 门禁可信化（**搬迁的前置**） | D14、D18①②、D19、D17 | 3–4 人日 |
-| **P2** | 建 `platform-node`（POC → 批量） | D4、D13 | 5–6 人日 |
+| **P2** | ~~建 `platform-node`（POC → 批量）~~ **已否决（2026-11-03 实测）**；现状 = 不搬 | D4（→ P2 分支）、D13 | 0（搬迁）/ P1 待拍板 |
 | **P3** | list 契约换 wire | D2 股②、D15 | 4 人日 |
 | **P4** | worker 真接线 | D3 | 2 人日 |
 | **P5** | packages 收拾 | D6、D7、D8、D9、D20 | 4 人日 |
 | **P6** | libs 结构债 | D11、D12、D10 | 4 人日 |
 | **P7** | 数据与命名 | D5、D16 | 3 人日 |
 
-**合计 ≈ 27–30 人日**。P0–P1（5–7 人日）完成之前不要动 P2。
+**合计 ≈ 27–30 人日**。P0–P1（5–7 人日）完成之前不要动 P2（而且 P2 的「建包」分支已作废，只剩 D13 的两件小事）。
 
 ---
 
@@ -88,7 +88,12 @@
 
 ---
 
-## P2 · 建 `platform-node`（D4）
+## P2 · ~~建 `platform-node`~~（2026-11-03 实测否决，保留为过程记录）
+
+> **结论先行：本节不再执行。** 2026-11-03 的 `const` 单库 POC 不通过（dist 布局不可控，见
+> [10](./10-implementation-plan.md) §10.2）；D4 的「直接搬迁」分支作废。剩余两条路：
+> P1（两个包自建 CJS dist，待拍板）或 P2（不搬 = 现状）。下面保留当时的步骤与验收判据，
+> 因为它们正是「POC 怎么算通过」的定义。
 
 ### P2-A 单库 POC（**必须先做，成败决定后面怎么走**）
 
@@ -101,9 +106,9 @@
 3. `pnpm types:check`
 4. `pnpm --filter @walnut/server openapi:export`（openapi.json 无 diff）
 
-**若第 2 条失败**（dist 布局变了）→ 停下来找我：备选是这 2 个包像 `@walnut/contract` 一样构建 CJS dist（成本 M→L）。
+**若第 2 条失败**（dist 布局变了）→ 停下来找我：备选是这 2 个包像 `@walnut/contract` 一样构建 CJS dist（成本 M→L）。**这条已经发生**（2026-11-03 实测第 2 条失败，且第 1、3 条同时失败），即上面那条「停」的处置。
 
-### P2-B 批量下沉
+### P2-B 批量下沉（**不执行** —— 前置 POC 未通过）
 
     base/  @walnut/node-base  ← config const context db decorators pipes types utils + exceptions + blpath  (10 库)
     tech/  @walnut/node-tech  ← als cookie crypto lock queue sse cache throttle mailer sms rsa ip

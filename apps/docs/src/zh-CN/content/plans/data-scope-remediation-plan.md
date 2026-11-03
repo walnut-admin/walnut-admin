@@ -217,7 +217,7 @@ repo 调用/请求」（ALL 档同样走 RLS 隐式事务路径，连接形态�
 | 1 接口测试 | `apps/server/apps/api/test/api/*.api-spec.ts`（真实 HTTP 全链） | 批 4 越权改归属 + epoch 时序；批 7 422 + 日志断言 |
 | 2 单元测试 | `apps/server/apps/api/src/**/*.spec.ts` 等 | 批 4 两策略 + epoch；批 5 快照/漂移；批 6 config；批 7 DTO/审计 |
 | 3 功能测试 | `data-scope-matrix.api-spec.ts` 的「用户×角色×可见集」场景风格，断言业务结果而非实现细节 | 批 4 M 矩阵扩列 + M10 扩 functional.role；批 7 大清单边界 |
-| 4 全量回归 | 四件套：① vitest 全量（单测+接口+集成）**连续 2 轮稳定**（基线以实施时点输出为准，勿引用本文档数字）② `pnpm prepush`（23 段门禁表）③ `pnpm types:check` ④ 批次附加：动 DTO → openapi 重新生成；动前端 → admin `types:check` + `build:stage` | 每批全跑 |
+| 4 全量回归 | 四件套：① vitest 全量（单测+接口+集成）**连续 2 轮稳定**（基线以实施时点输出为准，勿引用本文档数字）② `pnpm prepush`（段数以 `packages/tooling/scripts/src/ci/prepush.ts` 的表为准；跳过会单列成「未验证」，不当通过看）③ `pnpm types:check` ④ 批次附加：动 DTO → openapi 重新生成；动前端 → admin `types:check` + `build:stage` | 每批全跑 |
 
 ## 7. 批次与提交规划
 

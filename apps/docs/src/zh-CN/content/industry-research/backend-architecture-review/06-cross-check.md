@@ -83,7 +83,7 @@ http/client 职责切分正确、`@walnut/types` 后端 0 消费 —— 判断�
 | 项 | 状态 | 影响 |
 |----|------|------|
 | `pnpm build:admin` 全量是否通过 | 未跑（耗时 + 会写 dist） | 不影响结论：运行时字符串 import 与 build 成败无关 |
-| platform-node 的 dist 布局是否变化 | **未验证 —— 这是 D4 唯一的真风险** | 已定为「先拿 `const` 做 1 库 POC」 |
+| platform-node 的 dist 布局是否变化 | **已实测（2026-11-03）：变了，且不可控** —— 产物逃出 `dist` / `stripLeadingPaths` 全局塌陷 / assets 连累 | D4 的直接搬迁因此作废，见 [10](./10-implementation-plan.md) §10.2 与 [07](./07-decisions.md) 的 D4 修订记 |
 | seed 重建后的字节级等价 | 未验证 | D5 的验收必须含「新旧两套各灌空库、逐表 diff」 |
 | admin 无测试 runner | 已确认 | 这是 P0 能漏过去的结构性原因 → D18 第 ③ 条 |
 | 六份深度报告 | **已丢失** | 计数需按最终树重采 |

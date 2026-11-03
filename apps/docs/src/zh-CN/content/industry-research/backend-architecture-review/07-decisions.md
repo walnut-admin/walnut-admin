@@ -15,7 +15,7 @@
 | **D1** | `@walnut/ui` | **A：删除**（组件回 admin + componentMap 改显式注册表） | 已定 |
 | **D2** | list 查询契约 | **A：两段走**（先止血，再一次性换显式 filter wire） | 已定 |
 | **D3** | `apps/worker` | **A：真接线**（补齐生产面，含 CI 冒烟） | 已定 |
-| **D4** | `packages/platform-node` | **建**。两包、28 库下沉、零 import 改写；先做门禁判据生成化 + 1 库 POC | 已定（修订） |
+| **D4** | `packages/platform-node` | ~~**建**~~ → **2026-11-03 实测否决「直接搬迁」**：POC 不通过，前提（零 import 改写）不成立。现状 **P2（不搬）**；**P1（两个包自建 CJS dist）待拍板** | 已定 → 已否决（共三次修订） |
 | **D5** | `db/seed/` EJSON | **B：一次性重建**为 PG 行形态，机械再生成 + 双跑 diff 验收 | 已定 |
 
 ---
@@ -63,7 +63,23 @@ api 照常 200，监控不红。**D3=A 的含义因此是「补齐生产面」�
 4. `WORKER_STANDALONE` 语义写进文档（未设置时 api 行为逐字节等价）
 5. 「cron 只允许单实例」的约束（ADR 0025）落到编排层注释里
 
-### D4 = 建 packages/platform-node（修订：从「不建」改为「建」）
+### D4 = 建 packages/platform-node（2026-11-02 修订：从「不建」改为「建」；**2026-11-03 实测否决**）
+
+> **2026-11-03 结论（第三次修订，以此为准）：直接搬迁被实测否决。**
+> `const`（27 文件、0 处 Nest、零外部依赖）搬到 `packages/platform-node/base/src/const` 的单库 POC
+> 三条失败面都不在构建期暴露：
+> ① `@swc/cli` 的 `getDest` 让产物按「源文件相对 cwd 的逐字符镜像」落到 `<root>/apps/packages/...`
+>    —— **build 仍 exit 0**、`start:prod` MODULE_NOT_FOUND；
+> ② 唯一开关 `stripLeadingPaths` 是全局布尔：开了 `dist/packages` 对了，但
+>    `dist/apps/api/src/main.js` 塌成 `dist/api/src/main.js`（Dockerfile CMD 与 `start:prod` 全废）；
+> ③ `include` 加跨包路径会连累 assets 校验；补 `rootDir` 能救绿，但那会变成第 10 个注册面，
+>    且 `types:check` 跳出解析链爆 TS2307。
+> ⇒ **「零 import 改写、只改 5 面」这个前提不成立。**
+> **现状 = P2（不搬）**：`apps/server/libs/**` 原样保留，「边界清晰」这一收益今天由 ESLint 六层
+> 分层 + 3 个 drift spec 提供。**P1（两个包自建 CJS dist，照 `@walnut/contract` 样板）待用户拍板**。
+> 详见 [10](./10-implementation-plan.md) §10.2、[ADR 0007 的 2026-11-03 追记](../../adr/0007-backend-libs-not-workspace.md)、
+> `reports/NEEDS-CONFIRMATION.md` 的 C4。
+> 下面「目标形态 / 零 import 改写 / 四个顾虑」**保留为当时的依据**（顾虑 2 已被实证）。
 
 你的判断成立，我改结论。理由与我原顾虑的处置如下。
 
