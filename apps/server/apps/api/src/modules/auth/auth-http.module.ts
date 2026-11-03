@@ -13,6 +13,7 @@ import {
 } from '@walnut-server/auth'
 import { SysUserIdentitySharedModule } from '@walnut-server/identity'
 import { AppTechSseModule } from '@walnut-server/sse'
+import { SysLogAuthSharedModule } from '@walnut-server/system'
 import { AuthController } from './auth.controller'
 import { AuthGoogleController } from './modules/google/google.controller'
 import { AuthGoogleGuard } from './modules/google/google.guard'
@@ -60,6 +61,10 @@ import { JwtRefreshGuard } from './modules/refresh/refresh.guard'
     // gitee / github controller 直接注入（原 OAuth*Module 的 import 面）
     AppTechSseModule,
     SysUserIdentitySharedModule,
+    // 批 12：SysLogAuthSharedModule 撤 @Global（消费方模块 = 1），改为拥有者模块显式 import。
+    // 必须落在这里 —— controller / decorator 挂的 interceptor / mixin guard 注入的是**本模块**
+    // 的注入器；落到父模块 auth.module.ts 会在启动期炸 DI（imports 不向下继承）。
+    SysLogAuthSharedModule,
   ],
   controllers: [
     AuthController,

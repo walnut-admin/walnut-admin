@@ -8,6 +8,9 @@ import { SysLangRepoService } from './lang.repo.service'
 /**
  * B2 迁移：Mongo forFeature 摘除，换 PG forFeature（B1 确立的接线形态）。
  * SysLangRepoService 的两条聚合重写跨 lang/locale 两表，两个实体都在此注册。
+ *
+ * 模块保持 @Global —— lang / locale / locale.shared 等消费方 > 1，判据 ①b 登记
+ * （repo-global.drift.spec.ts）。
  */
 @Global()
 @Module({
