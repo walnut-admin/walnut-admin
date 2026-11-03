@@ -239,8 +239,11 @@ METHOD|PATH(去 /{prefix}/v{version})|扁平静态body排序串|timestamp=<ms>|n
   token **一次性**：服务端 `validateToken` 成功即删除；客户端再次兑换得到
   `success: false`，必须重新 challenge。
 - 全局 CAP Guard 的触发条件：`request.risk.comprehensive.recommendation` **存在**。
-  - 不存在（Risk 未运行/无 deviceId/评估异常）→ 放行；
   - 存在但 cookie 缺失或校验失败：`shouldChallenge` 为 true → **40116**，否则 → **40117**。
+  - **不存在**（Risk 未运行 / 无 deviceId / 评估异常）时按端点敏感度分级，与 risk.guard 同口径
+    （见 4.3 的「风控降级分级」）：**敏感端点 → 40667**（fail-close），其余端点放行并把
+    `request.riskDegraded ??= 'risk-recommendation-missing'` 留痕。这一条是守卫链的第三腿 ——
+    即使将来有人把 Risk Guard 从 `APP_GUARD` 里挪走或调换顺序，凭据面也不会裸奔。
 - 校验缓存键是 `SECURITY:CAP_TOKEN:<deviceId>:<sha256(token) 前 16 hex>`（P0-3 起与
   设备 + token 双重绑定），TTL = **`min(ttl, 20min)` 秒** —— 缓存**不得长于** token 本体寿命，
   否则缓存命中等于放行一枚 cap.js 已经不认的凭据。
@@ -265,28 +268,41 @@ METHOD|PATH(去 /{prefix}/v{version})|扁平静态body排序串|timestamp=<ms>|n
 
 ## 4. Device / Risk / IP
 
-### 4.1 设备注册与指纹
+### 4.1 设备注册与身份签发
 
 - 注册端点 `POST /system/device/initial`（系统模块）：Sign/JWT/CAP/Device Free，
   Throttle 4 次 / 60 秒，Risk 仍运行。
-- `device_id = hash(X-Fingerprint, crypto.deviceIdKey)`；指纹是**客户端自报**的请求头，
-  设备身份因此是「自证 + 服务端加盐哈希」，不是硬件证明。
-- 同 `device_id` 再注册是整体覆盖（设备名、屏幕、硬件信息、IP/位置历史等），
-  `device_name` 唯一冲突 → 40000（P3-2）。
-- 注册时调外网 IP 地理 API（本地 IP 回 `LOCAL`）；响应 `{ deviceId, locationInfo }`，
-  并下发签名 `DEVICE_ID` cookie；事务提交后写 `SYS_DEVICE:<deviceId>` 缓存。
+- `device_id` 由**服务端随机签发**：`generateDeviceId()` = `d1_` + `randomBytes(16).toString('hex')`
+  （`libs/system/src/device/device-id.ts`）。**指纹不参与身份派生** —— 客户端自报的
+  `X-Fingerprint` 影响不了自己的身份，这也是它与「自证 + 服务端加盐」那种设计的根本差别。
+- 形态判据只有一处（`libs/const/src/app/device.ts` 的 `isValidDeviceId`：`d1_` + 32 位小写
+  hex）；DB 侧另有同形态 CHECK `ck_device_device_id_form` 兜底，旧裸 64 hex 写不进去。
+- **幂等键是 cookie**：带合法 `DEVICE_ID` cookie 再来 = 复用该 id 并整体覆盖（屏幕 / 硬件 /
+  IP / 位置历史）；无 cookie 或形态非法 = 新签一个。
+- **设备名由签发方决定**：每次 initial 都重新生成 `<设备类型>_<8 位随机 hex>` 并覆盖，客户端
+  **不能传**（请求体带 `deviceName` 会被全局白名单判成 40099）。唯一性由服务端保证
+  （`uq_device_name` 全局唯一，真撞了仍收敛为受控 40000，P3-2）。
+- 注册时调外网 IP 地理 API（本地 IP 回 `LOCAL`）；响应是**拍平**形态
+  `{ deviceId, latitude?, longitude?, countryCode? }`（定位服务无结果时只有 `deviceId`），
+  并下发签名 `DEVICE_ID` cookie（30 天 maxAge）；事务提交后写 `SYSTEM:DEVICE:<deviceId>` 缓存。
 
 ### 4.2 Device Guard
 
-1. 取签名 `DEVICE_ID` cookie；缺失 → 40605。
-2. `SYS_DEVICE` 缓存未命中时回源 `sys_device`（P2-2：DB 是 `locked/banned` 真源），
-   查无 → 40605；命中则回填缓存。
+1. 取签名 `DEVICE_ID` cookie；缺失**或形态不是** `d1_` + 32 位小写 hex（旧裸 64 hex /
+   伪造 / 空）→ **40605**。判据唯一真源是 `libs/const/src/app/device.ts`，DB 侧同形态 CHECK。
+2. `SYSTEM:DEVICE:<deviceId>` 缓存未命中时回源 `sys_device`（P2-2：DB 是 `locked/banned`
+   真源），查无 → 40605；命中则回填缓存。
 3. 设备当前 IP 与 `realIp` 不同：在 `APP:MURLOCK:DEVICE:IP_CHANGE:<deviceId>` 锁内
-   double-check 后调 `updateIpAndLocation`（写 IP/位置历史，最多 5 条；提交后回填缓存）。
+   double-check 后调 `updateIpAndLocation`（写 IP / 位置历史，两段按 `arrayOptions.maxSize`
+   等长裁剪；提交后回填缓存）。
    该更新会调外网地理 API，IP 频繁变化时有外部依赖成本。
 4. `banned` → **40607**；`locked` → **40606**（先判 banned）。
 5. 设备锁定/封禁的写入口是 `PATCH /system/device/:id/{lock,unlock,ban,unban}`，
-   DB 事务 + after-commit 缓存双写。
+   DB 事务 + after-commit 缓存双写。**封禁 = 踢下线**（拍板-4）：同一事务里撤该设备上所有用户的
+   RT，提交后清会话键并断开该设备的 WS；解禁不触发任何踢人。
+6. 校验**全通过**之后按续期窗口重发 cookie（滑动续期）：窗口闸是
+   `SYSTEM:DEVICE:COOKIE_RENEW:<deviceId>`（TTL = 有效期的 80%），命中就重发并把 maxAge 拉满，
+   于是 cookie 剩余寿命恒大于 20%。被封禁 / 锁定的设备走不到这一步。
 
 ### 4.3 Risk
 
@@ -303,14 +319,36 @@ User 0.2、UserDevice 0.3。
 
 - critical factor 未处理时，推荐直接是 `shouldChallenge: true`；然后 HIGH/CRITICAL → 挑战，
   MEDIUM → 只记录，LOW → 无动作。
-- **口径（P1-13，已修复，2026-10-28）：风险只触发 CAP 升级，不做阻塞**。
-  `recommendation` 不再含 `shouldBlock`（旧实现恒 false 的幻觉字段已从类型与消费点摘除），
-  risk.guard 只写 `request.risk` 供 CAP guard 消费；其 catch 只吞未知异常，受控
-  `HttpException`（如 40666 RiskTooHigh）原样放行到全局异常过滤器。
+- **口径（P1-13，2026-10-28）：不因「风险分高」阻塞**。`recommendation` 不含
+  `shouldBlock`（旧实现恒 false 的幻觉字段已从类型与消费点摘除），risk.guard 只写
+  `request.risk` 供 CAP guard 消费；受控 `HttpException`（如 40666 RiskTooHigh）原样放行到
+  全局异常过滤器。
 - 失败登录计数：键 `risk:failed_login:<identifier>:<deviceId>`（Redis Hash，TTL 15 分钟），
   计数达到 **5** 次即调 `SharedIpService.addToTemporaryBlacklist`，临时封 IP 30 分钟。
 - 频率阈值（每分钟）：IP 120、设备 120、用户 120；另有一条 IP 5 分钟 400。超出按对数曲线
   计分；采集是 fire-and-forget，不阻塞请求。
+
+#### 风控降级分级（敏感端点 fail-close · 批次 8 / B2）
+
+「风险分」与「风控可用性」是两件事：前者从不阻塞，后者按端点分级 —— 混为一谈就会写出「风控一挂
+也能放行登录」这种错的结论。
+
+| 端点 | 风控不可用 / 拿不到 deviceId / 评估抛异常 | 留痕 |
+|---|---|---|
+| **敏感端点**（凭据面） | **fail-close**：受控 **40667**（`NOT_ACCEPTABLE_RISK_UNAVAILABLE`） | 不进响应壳（请求已被拒），`_devMsg` 带 `<reason> @ <METHOD path>` |
+| 其余端点 | fail-open：放行 | 响应壳 `meta.riskDegraded` = `no-device-id` / `risk-evaluation-failed` / `risk-recommendation-missing` |
+
+- **清单是唯一真源**：`libs/guards/src/guards/risk.sensitivity.ts`。它把 `/auth/**` 与
+  `/security/**` 的**每一个**路由显式归类（各带一句归类理由），默认值是 fail-open；新增这两个
+  家族的路由不同步这张表，`risk.sensitivity.spec.ts` 会直接红（报错里给出缺的 `METHOD path`）。
+  全量登记而非只登记 fail-close 几条的理由：漏登记是**静默**的，默认 fail-open 会替新端点兜底。
+- 不在清单里的路由 = fail-open，不需要登记。
+- 40667 与 40666 刻意分开：40666 是「算出来了、分数太高」，40667 是「压根没算出来」（风控服务
+  异常 / 没有 deviceId 可评估）。合成一个码，值班就分不清「有人在爆破」与「风控挂了」。
+- 不做全局 fail-close：本仓没有风控 SLA，全关等于把风控服务变成全站单点。
+- `meta.riskDegraded` 是**响应壳新增的可选字段**（成功拦截器只在非 `undefined` 时带它），缺省不传
+  ⇒ 既有响应零 diff。不敏感端点维持 fail-open 是既定口径，但「这条 200 是在机器人防护缺席时放行
+  的」必须能被排查到 —— 前端排障、运维看日志、自动化回归都直接读它。
 
 ### 4.4 IP 与部署前提
 

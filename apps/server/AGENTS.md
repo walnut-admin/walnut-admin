@@ -7,9 +7,6 @@
 >
 > **本文件只放每次会话都要进上下文的规矩**（官方建议单个指引 ≤200 行）；参考型细节在文档站「后端」
 > 五篇里，找不到某个旧小节就去那边按标题找 —— **别把参考内容搬回来**。
->
-> 历史一句话：本文件曾是 14 行索引（14 条链接全失效），并入的原 `CLAUDE.md`（537 行）于 2026-09-23
-> 拆成「本文件常驻规矩 + 文档站五篇」，此后再未回填。
 
 ## 先看哪份
 
@@ -31,13 +28,10 @@ NestJS 12.x + TypeScript 6.0.3 + PostgreSQL（TypeORM）+ Redis + Bull 队列的
 - `apps/worker/src/` · `apps/cli/src/` —— 可选组合入口（cron + Bull；migration / OpenAPI），默认部署不启动 worker
 - `libs/*/src` —— 内部库（按依赖方向分六层；技术层分 tech-base / tech-assemble 两条 layer，完整清单以 `libs/` 目录为准），
   经 tsconfig `paths` 以 `@walnut-server/*` 解析，与 app 一起由 SWC 编译
-- 为什么这样：[ADR 0007](../docs/src/zh-CN/content/adr/0007-backend-libs-not-workspace.md)
-  （CJS + NestJS 耦合 + SWC 编译，不适合当 ESM workspace 包）· [ADR 0022](../docs/src/zh-CN/content/adr/0022-backend-lib-layering-and-composition-roots.md)
-  （分层、组合根、端口注入反转）
 
-**主要能力**：多认证（JWT、OAuth、WebAuthn、OPAQUE）、RBAC、MFA、实时通信（WebSocket/SSE）、i18n、
-完整安全体系（IP / 设备 Guard、CAPTCHA、风险评估、XSS 防护）。**源码不在** `src/walnut/admin/com/app/`
-（三仓合并前的废弃路径）。
+**主要能力**：多认证（JWT / OAuth / WebAuthn / OPAQUE）、RBAC、MFA、实时通信、i18n、完整安全体系
+（IP / 设备 Guard、CAPTCHA、风险评估、XSS）。**源码不在** `src/walnut/admin/com/app/`（三仓合并前的
+废弃路径）。
 
 ## 命令（注意 cwd）
 
@@ -45,20 +39,14 @@ NestJS 12.x + TypeScript 6.0.3 + PostgreSQL（TypeORM）+ Redis + Bull 队列的
 定位 env）；从仓库根起后端用 `pnpm dev:server`（= `turbo dev --filter=@walnut/server`，turbo 在
 `apps/server/` 下执行，cwd 正常）。
 
-- 本目录：`pnpm dev`（nest start api --watch）· `pnpm build` / `build:stage` · `pnpm start:prod` /
-  `start:stage` · `pnpm lint`（fix: `lint:fix`）· `pnpm types:check`（strict）/ `typecheck:watch` ·
-  `pnpm test` / `test:watch` / `test:cov` / `test:e2e`
-- 仓库根：`pnpm install` · `pnpm setup-env` · `pnpm dev:server` · `pnpm test`（只跑后端
-  `pnpm --filter=@walnut/server test`）
-
-其余脚本见 `apps/server/package.json`。
+**全部脚本以 `apps/server/package.json` 为判据**（这里不抄清单）；本目录常用的是 `dev` /
+`build` / `build:stage` / `start:prod` / `start:stage` / `lint` / `types:check`（strict）/
+`test`（+`test:watch` / `test:cov` / `test:e2e`）。仓库根那几条见根指引。
 
 ## 跑起来需要什么
 
 - **PostgreSQL**（单节点即完整 ACID，事务不再对拓扑有要求；本地用
   `apps/server/docker/docker-compose.dev.yml` 起库）+ **Redis 7+**
-- 环境文件：`pnpm setup-env` 解密后落在 `apps/server/env-local/`（gitignored）
-- Node / pnpm 版本门槛与安装约束见仓库根 `AGENTS.md`
 
 开发模式下 Scalar API Reference 在 `http://localhost:3000/api`。
 

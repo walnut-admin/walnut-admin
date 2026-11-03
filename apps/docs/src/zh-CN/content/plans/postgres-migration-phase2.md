@@ -308,10 +308,14 @@ virtual 两个 locale 计数 → 子查询改写，见 5.2。
 
 ### 4.8 sys_device（22 列）
 
+> 名字归属先说清：`sys_device.device_name` 由**服务端**生成（`<设备类型>_<8 位随机 hex>`，
+> `uq_device_name` 全局唯一，客户端不可传）；`sys_user_device.device_name`（§4.9）才是
+> **用户可改**的显示名。两者不是同一个东西。
+
 | 字段 | 列 | 类型 | NULL | 默认 | 说明 |
 |------|----|------|------|------|------|
 | deviceName | device_name | text | NO | — | UNIQUE |
-| deviceId | device_id | text | NO | — | UNIQUE（客户端指纹，作为被引用业务键，见 Q5） |
+| deviceId | device_id | text | NO | — | UNIQUE（服务端随机签发的 `d1_` + 32 位小写 hex；另有 CHECK `ck_device_device_id_form`），作为被引用业务键，见 Q5 |
 | deviceInfo | device_info | jsonb | NO | — | UA 结构化对象（browser/engine/os/cpu/device 子对象），整体读写、无字段级查询 → jsonb 合理 |
 | hardwareInfo | hardware_info | jsonb | YES | NULL | 同上 |
 | locationInfo | location_info | jsonb | YES | NULL | 国家/省/市结构体，`getLocationString()` 整体取用；Q8 定案维持 jsonb 整存（无字段级查询需求） |
@@ -328,6 +332,8 @@ virtual 两个 locale 计数 → 子查询改写，见 5.2。
 | riskScore | risk_score | smallint | NO | 0 | CHECK (risk_score BETWEEN 0 AND 100)（schema min/max） |
 
 索引：PK；`uq_device_name`；`uq_device_id`；`idx_device_created_at`。
+CHECK：`ck_device_device_id_form`（`device_id` 必须是 `d1_` + 32 位小写 hex，批次 11 的
+`1793390000000-DeviceIdFormCheck` 加在旧 64 hex 数据清空之后）。
 
 ### 4.9 sys_user_device（12 列）
 

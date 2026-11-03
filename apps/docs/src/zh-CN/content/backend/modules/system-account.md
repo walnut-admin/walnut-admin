@@ -54,8 +54,9 @@ sys_user_device 1 ── 1 当前用户的锁屏状态  (locked 列；与 sys_de
 
 关键点：
 
-- `sys_device.device_id` 是客户端指纹的**服务端加盐哈希**，也是被引用的**业务键**
-  （phase2 Q5）。`sys_user_device` / `auth_refresh_token` 按它建 FK，因此该列 UNIQUE。
+- `sys_device.device_id` 是**服务端随机签发**的 `d1_` + 32 位小写 hex（`generateDeviceId`），
+  也是被引用的**业务键**（phase2 Q5）。`sys_user_device` / `auth_refresh_token` 按它建 FK，因此
+  该列 UNIQUE，另有同形态 CHECK `ck_device_device_id_form` 兜底。
 - `sys_user_mfa.device_id` 刻意**不建 FK**：MFA 凭据不应随设备行删除而级联消失。
 - `sys_user_device.locked` 是**用户-设备的锁屏状态**；`sys_device.locked` 是**设备级管理锁**，
   两者由不同守卫判定（Device guard 40606 / Lock guard 40118），互不联动。
@@ -69,42 +70,50 @@ sys_user_device 1 ── 1 当前用户的锁屏状态  (locked 列；与 sys_de
 
 ## 2. 设备体系
 
-### 2.1 initial 注册：指纹派生业务键
+### 2.1 initial 注册：服务端签发业务键（幂等键是 cookie）
 
 `POST /system/device/initial`（`device.controller.ts`）：
 
 - 守卫：Sign / JWT / CAP / Device 全 Free，Risk 仍运行；另挂 `@WalnutAdminDecoratorThrottle`
   （`SysDeviceSettingService` 硬编码 4 次 / 60 秒，tracker 为 `realIp`）。
-- `device_id = hash(X-Fingerprint, crypto.deviceIdKey)`，由
-  `SysDeviceRepositoryService.getDeviceIdByFingerprint` → `AppTechCryptoService.hashDeviceFingerprint`
-  计算（HMAC 形态的带盐哈希）。指纹是客户端自报的请求头，设备身份是「自证 + 服务端加盐」，
-  不是硬件证明。
+- `device_id` 由 `generateDeviceId()`（`libs/system/src/device/device-id.ts`）**服务端随机
+  签发**：`d1_` + `randomBytes(16)` 的 hex，不碰任何密钥。**幂等键是已有的合法 `DEVICE_ID`
+  cookie** —— 形态合法就复用该 id，否则新签一个（这条取代了改造前的「指纹派生」，
+  `getDeviceIdByFingerprint` / `hashDeviceFingerprint` 已不在身份路径上）。
 - 写库前调 `SharedIpService.getLocationInfoFromFreeAPI` 取地理位置（外网 API；本地 IP 回 `LOCAL`）。
 - 落库语义是**按业务键 upsert**：`findOne({ deviceId })` 命中即把整组字段覆盖（`Object.assign`
-  + `save`），未命中则插入。覆盖集包含 `deviceName` / `deviceInfo`（与 `req.os` / `req.browser`
-  合并、UA 推导 `deviceType`）/ `hardwareInfo` / `sr` / `vp` / `geo*` / `locationInfo` /
-  `locationHistory`（重置为单条）/ `ipHistory`（重置为单条）/ `ip` / `active=true`。
-- 并发同指纹由 `uq_device_id` 决出唯一胜者，败者受控 40605（G3 实测）。
-- `device_name` 有 UNIQUE `uq_device_name`；重名撞 23505 在 catch-all 之前单列，收敛为受控
-  40000（P3-2 已修），其余异常仍 40605。
-- 事务提交后经 `registerAfterCommitHook` 回填 `SYS_DEVICE:<deviceId>` 缓存；响应
-  `{ deviceId, ...location, latitude, longitude, countryCode }`，并下发签名 `DEVICE_ID`
-  cookie（`maxAge` 30 天）。后续所有受保护端点都靠这枚 cookie 定位设备。
+  + `save`），未命中则插入。覆盖集包含 `deviceInfo`（与 `req.os` / `req.browser` 合并、UA 推导
+  `deviceType`）/ `hardwareInfo` / `sr` / `vp` / `geo*` / `locationInfo` / `locationHistory`
+  （重置为单条）/ `ipHistory`（重置为单条）/ `ip` / `active=true`。
+- **`deviceName` 由服务端在每次 initial 里重新生成**（`<设备类型>_<8 位随机 hex>`，新建与复用
+  都走这一句），所以它虽然在覆盖集里，却不是客户端可控字段 —— 请求体带 `deviceName` 会被全局
+  白名单判成 40099。唯一性由 `uq_device_name` 保证，撞 23505 在 catch-all 之前单列、收敛为受控
+  40000（P3-2）。
+- 并发**同 cookie**（同一台已登记设备）由 `uq_device_id` 决出唯一胜者；失败侧是受控拒绝
+  （40000 冲突 / 42900 限流，均为受控拒绝），语义见 `concurrency.api-spec.ts` 的 G3。
+- 事务提交后经 `registerAfterCommitHook` 回填 `SYSTEM:DEVICE:<deviceId>` 缓存（并顺手开启滑动
+  续期窗口）；响应是**拍平**形态 `{ deviceId, latitude?, longitude?, countryCode? }`，并下发签名
+  `DEVICE_ID` cookie（`maxAge` 30 天）。后续所有受保护端点都靠这枚 cookie 定位设备。
 
 ### 2.2 Device guard：缓存读序与 P2-2 修复后的回源
 
 `apps/server/libs/guards/src/guards/device.guard.ts` 的判定顺序：
 
 1. `@WalnutAdminGuardDeviceFree()` → 放行；开发态 `req.isPostman` → 放行。
-2. 取签名 `DEVICE_ID` cookie；缺失 → **40605**。
-3. 读 `SYS_DEVICE:<deviceId>` 缓存（经 `AppTechCacheDeviceService`，实际 Redis 键带
+2. 取签名 `DEVICE_ID` cookie；缺失**或形态不是** `d1_` + 32 位小写 hex（旧裸 64 hex /
+   伪造 / 空）→ **40605**（`WalnutAdminExceptionDeviceNotAcceptable`）。判据唯一真源是
+   `apps/server/libs/const/src/app/device.ts` 的 `isValidDeviceId`。
+3. 读 `SYSTEM:DEVICE:<deviceId>` 缓存（经 `AppTechCacheDeviceService`，实际 Redis 键带
    `WALNUT_CACHE_` 前缀，无 TTL）。**缓存 miss 时回源 `sys_device`**（P2-2 修复，2026-10-28）：
    查无 → 40605；命中 → 先回填缓存，再走同一判定链。DB 是 `locked` / `banned` 的真源，
    清空 Redis 不再等价于放行。
 4. 设备当前 IP 与 `req.realIp` 不同 → 在 `APP:MURLOCK:DEVICE:IP_CHANGE:<deviceId>` 锁内
-   double-check 后调 `updateIpAndLocation`（写 IP/位置历史，最多 5 条；提交后回填缓存）。
-   该更新会调外网地理 API，IP 频繁变化时有外部依赖成本。
+   double-check 后调 `updateIpAndLocation`（写 IP / 位置历史，两段按 `arrayOptions.maxSize`
+   等长裁剪；提交后回填缓存）。该更新会调外网地理 API，IP 频繁变化时有外部依赖成本。
 5. 先判 `banned` → **40607**，再判 `locked` → **40606**。
+6. 校验**全通过**之后按续期窗口重发 cookie：`SYSTEM:DEVICE:COOKIE_RENEW:<deviceId>` 闸（TTL =
+   有效期的 80%）命中就重发并拉满 `maxAge`，于是剩余寿命恒大于 20%（P0-1 的后端那一半；
+   前端那一半是 40605 自愈）。被封禁 / 锁定的设备走不到这一步。
 
 缓存回填与双写的一致性边界见 §8 的 P2-21：guard 用「读库时的整行快照」回填缓存，
 与管理端 lock/ban 的 after-commit 双写存在覆盖竞态。
@@ -400,7 +409,7 @@ webauthn 只算一种。`getCurrentUserMfaSetupStatus` 仍是「当前设备可�
 
 | 方法 / 路径 | 守卫链 | 权限点 | 请求 → 响应 |
 |---|---|---|---|
-| POST `/system/device/initial` | Sign/JWT/CAP/Device Free + Throttle 4/60s | 无 | `{ deviceName, sr, vp, hardwareInfo, deviceInfo, private }` → `{ deviceId, latitude, longitude, countryCode }` + DEVICE_ID cookie |
+| POST `/system/device/initial` | Sign/JWT/CAP/Device Free + Throttle 4/60s | 无 | `{ private, sr, vp, hardwareInfo, deviceInfo }` → `{ deviceId, latitude?, longitude?, countryCode? }` + DEVICE_ID cookie（body 带 `deviceName` ⇒ 40099） |
 | GET `/system/device/:id` | 全链 | `system:device:read` | 行 uuid → 设备行（sr/vp/geoLocation 组装回嵌套） |
 | POST `/system/device/list` | 全链 | `system:device:list` | list DTO（`location` 走 jsonb ILIKE）→ 裁剪行 |
 | GET `/system/device/:id/current-active-user` | 全链 | `[system:device:read, system:device:getCurrentUser]` AND | 行 uuid → 当前活跃用户或 `{}` |

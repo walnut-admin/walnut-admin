@@ -197,9 +197,12 @@ knip 是**静态 import 追踪**工具。以下框架机制对 knip 不可见，
 ### barrel 自身的死导出（**部分盲区**，未解决）
 
 `includeEntryExports` 让一部分 barrel 的死导出现身（`platform-web/client` / `utils-core` /
-`platform-web/http` 三处 barrel 一次报出 82 条），但**不是所有包都报** —— 同样的探针在
-`packages/platform-any/contract/src/index.ts` 上不出现。判据不稳定 ⇒ 按部分盲区对待。
-探针数据见上文「共享包进入分析面」一节；要稳定守住这一面得另写脚本，不能靠 knip 配置。
+`platform-web/http` 三处 barrel 曾在同一次运行里一起报出一批），但**不是所有包都报** —— 同样的
+探针在 `packages/platform-any/contract/src/index.ts` 上不出现。判据不稳定 ⇒ 按部分盲区对待。
+
+**别引用那个「一次报出多少条」的数字**：它来自 2026-11-02 的快照，而其中两处 barrel
+（`platform-web/{client,http}` 的入口）**批次 4 已删**、`utils-core` 的入口也已收缩（见上节
+「删桶之后的复测」）。要看现状就跑 `pnpm knip`，要看形态就按上面「怎么判」那三步走。
 
 ### `~build/*` 路径别名（已解决）
 
@@ -224,6 +227,7 @@ admin 的 `vite.config.ts` 在 `useBuildEnv()` 函数内调用 `JSON.parse(env.V
 ## 如何解读输出
 
 ```text
+# 2026-08-08 快照，仅示输出形态：括号里是当时的读数，别当现状引用（现状跑 pnpm knip）
 Unused files (7)        ← 值得排查：可能真的有死文件
 Unused dependencies (4) ← 值得排查：可能真的有没用到的包
 Unlisted binaries (1)   ← CLI 工具在 scripts 中引用但未列在 dependencies

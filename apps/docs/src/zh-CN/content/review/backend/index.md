@@ -394,6 +394,11 @@
 
 ### 提交前全量验证
 - 原生命令：unit 75 files / **522 tests**；integration 63 files / **562 passed + 1 skipped**；e2e 1/1；server + 全仓 types/lint 全绿。
-- **pnpm prepush：23 段全部通过**（总 153.1s），含架构边界、syncpack、actionlint、ADR 形态、
-  文档代码块/引用/预算、类型检查（不排包）、openapi 一致性（导出+生成+git diff 含 --cached）、
-  catalog 锁步、nginx 安全头、源码密钥形态、手写 .d.ts、全包 lint 等。
+- **pnpm prepush：全部段未报错**（总 153.1s；段数以 `packages/tooling/scripts/src/ci/prepush.ts`
+  的表为准，别按数字读）。覆盖架构边界、syncpack、ADR 形态、文档代码块/引用/预算、类型检查
+  （不排包）、openapi 一致性（导出+生成+git diff 含 --cached）、catalog 锁步、nginx 安全头、
+  源码密钥形态、手写 .d.ts、全包 lint 等。
+- **`actionlint` 那一段不算「通过」**：`pnpm lint:workflows` 探测不到 actionlint 时是 **SKIP**
+  （退出码 0，但一行 workflow 都没校验）。本次的权威闸门是 CI 的
+  `.github/workflows/workflow-lint.yml`。口径：**本机跳过，CI 侧由 workflow-lint.yml 跑，不计入
+  全绿**；同理 `pnpm lint:workflows-shell` 在没有 bash 的机器上也是 SKIP。

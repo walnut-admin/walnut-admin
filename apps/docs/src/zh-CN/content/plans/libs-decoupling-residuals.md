@@ -68,9 +68,12 @@ monitor/user 与 deleted 两处。另外整个 `AppModule.imports` 顺序都是 
 19 个 token 当前定义/绑定/消费/implements 全对齐（人工对账表见 V5b 报告），但新增 token 漏绑定
 只会到启动期才暴露。建议补一条 spec：grep 收集 token 定义 → 断言每个都有 `provide:` 绑定点。
 
-### 9. actionlint ✅ 本机已装（W4 起 workflow-lint 真跑；service command 键的 schema 滞后已用 .github/actionlint.yaml 窄豁免，actionlint 升级后可删）
-prepush 的「workflow 校验」段在本机是 SKIP（✓ 但 ≠ 通过）；权威闸在 CI 的 workflow-lint.yml。
-本机装 actionlint（或 WSL）后该段会真跑。另：`workflow-lint.yml` 已补 setup-node@24（V5）。
+### 9. actionlint ⚠️ 本机 SKIP ≠ 通过（W4 起 CI 的 workflow-lint 真跑；service command 键的 schema 滞后已用 .github/actionlint.yaml 窄豁免，actionlint 升级后可删）
+**统一口径：本机跳过，CI 侧由 `workflow-lint.yml` 跑，不计入全绿。** 依据：
+`pnpm lint:workflows` 探测不到 actionlint 时打一行 warning 就 `return`（退出码 0，一行 workflow
+都没校验），而 prepush 的执行器只看退出码 ⇒ 输出里 SKIP 与 PASS 长得一模一样。权威闸在 CI 的
+`workflow-lint.yml`（它自己下载二进制并执行 `./actionlint -color`）。另：`workflow-lint.yml` 已补
+setup-node@24（V5）。
 
 ### 10. mailer 视图路径的字符串耦合【未修；verify-build-assets 只断言存在不断言解析，待补】
 `libs/mailer/src/mailer.config.service.ts` 用 `join(__dirname, '../../../apps/api/src/views/...')`
@@ -130,7 +133,8 @@ packages 上收后 contract 123 常量、utils-core 7 测试文件等计数以�
 - `pnpm test:e2e` 1/1；`pnpm test:integration` 63 文件 / 560 例两轮全绿；
   `TEST_DATA=real` 5 例（dump 30 表 665,121 行）
 - `pnpm build --force`：10/10 任务真跑，资产断言 4 项通过，dist 无 `*spec.js`
-- `pnpm prepush`：23 段全绿（actionlint 段本机 SKIP，见 P3）
+- `pnpm prepush`：全部段未报错（段数以 `packages/tooling/scripts/src/ci/prepush.ts` 的表为准）；
+  其中 **actionlint 段本机 SKIP —— 本机跳过，CI 侧由 `workflow-lint.yml` 跑，不计入全绿**
 - `pnpm smoke:dist`：真实 Chrome 冒烟有结论（无后端错误屏 = 设计内）
 - `pnpm lint:dist`：1473 文件零密钥命中
 - `openapi.json` / `schema.d.ts`：全程零 diff（md5 不变）

@@ -10,7 +10,7 @@
 | CHANGELOG 怎么出 | **git-cliff** 逐包渲染，由 `@walnut/release` 的 `src/release/changelog.ts` 写入（**唯一写入者**） |
 | GitHub Release 正文 | `pnpm release` 生成的根 `changelog-latest.md`（随 release commit 提交） |
 | 创建 GitHub Release | `.github/workflows/release.yml`（tag 推送触发，本地不调 API） |
-| 发了什么 | 14 个包的版本号 + 各包 `CHANGELOG.md` + `changelog-latest.md` + `.changeset/ledger.yaml` + git tag `vX.Y.Z` + push（分支 + tag） |
+| 发了什么 | 15 个包的版本号（判据：`versioning.fixed` 组成员 = 有 `version` 的 workspace 包）+ 各包 `CHANGELOG.md` + `changelog-latest.md` + `.changeset/ledger.yaml` + git tag `vX.Y.Z` + push（分支 + tag） |
 
 > ⚠️ 本仓**不用** `@changesets/cli`。意图文件仍是 changesets 格式（`pnpm change` 沿用），但版本策略的
 > 唯一真源是根 [`pnpm-workspace.yaml`](https://github.com/walnut-admin/walnut-admin/blob/main/pnpm-workspace.yaml) 的 `versioning` 段，

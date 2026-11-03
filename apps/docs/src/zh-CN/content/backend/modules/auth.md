@@ -43,12 +43,15 @@ cookie / 缓存，后一步缺前置一律受控失败，不会「自动补做�
 `POST /system/device/initial`（系统模块，不属于 auth，但整条链的起点）：
 
 - 守卫：Sign / JWT / CAP / Device 全 Free（风险守卫仍运行），另挂 Throttle（默认 4 次 / 60 秒）。
-- `device_id = hash(X-Fingerprint, crypto.deviceIdKey)`（`SysDeviceRepositoryService.getDeviceIdByFingerprint`），
-  即设备主键由客户端自报的指纹派生。按 `device_id` 查到即整体覆盖、否则插入；`device_name`
-  有唯一约束（冲突受控 40000，P3-2）。
+- `device_id` 由**服务端随机签发**（`generateDeviceId`：`d1_` + 32 位小写 hex，
+  `randomBytes(16)`），指纹**不参与身份派生**。**幂等键是已有的合法 `DEVICE_ID` cookie**
+  —— 形态合法就复用该 id，否则新签一个；按业务键查到即整体覆盖、否则插入。`device_name`
+  由服务端生成且全局唯一（冲突受控 40000，P3-2），客户端不能传。
 - 写库前调 `SharedIpService.getLocationInfoFromFreeAPI` 取地理位置（外网 API；本地 IP 直接回 `LOCAL`）。
-- 事务提交后回填 `SYS_DEVICE:<deviceId>` 缓存；响应 `{ deviceId, locationInfo }`，并下发签名
-  `DEVICE_ID` cookie。后续所有受保护端点都靠这枚 cookie 定位设备。
+- 事务提交后回填 `SYSTEM:DEVICE:<deviceId>` 缓存；响应是拍平形态
+  `{ deviceId, latitude?, longitude?, countryCode? }`，并下发签名 `DEVICE_ID` cookie
+  （30 天 maxAge，Device guard 校验命中后按 80% 窗口滑动续期）。后续所有受保护端点都靠这枚
+  cookie 定位设备；cookie 缺失或形态非法一律 **40605**，由前端自愈重建身份。
 
 ### 2.2 CAP：PoW 挑战与兑换
 

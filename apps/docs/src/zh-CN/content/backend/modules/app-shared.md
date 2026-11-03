@@ -207,11 +207,14 @@ monitor 由三个互不依赖的子 controller 组成。
 `focus`、`is_left`（保留字 `left` 的列名）、`current_router`、`first_visit_at` / `last_active_at`。
 没有 `created_at` / `updated_at`。
 
+**行键是 `device_id`**（`idx_monitor_device`）—— 服务端从签名 cookie 解析的那个值；`visitor_id` 的
+唯一约束只保证「一个指纹只落一行」，它**不是**行键（批次 8 / B6 起）。
+
 | 端点 | 守卫 / 权限 | 行为 |
 |---|---|---|
 | `POST /app/monitor/user/list` | 全链 + `app:monitor:user:list` | JOIN 版列表，支持 device/user 字段过滤；排序白名单 `firstVisitAt` / `lastActiveAt` |
 | `GET /app/monitor/user/:id` | 全链 + `app:monitor:user:read` | 行 + 按 `device_id` / `user_id` 装回 device / user 简要对象 |
-| `POST /app/monitor/user/state` | Sign / JWT / CAP / Device 全 Free；Lock 等其余守卫仍生效 | 匿名上报：按 `visitor_id` upsert，联动 `sys_user_device.last_active_at` 与设备 active 状态 |
+| `POST /app/monitor/user/state` | Sign / JWT / CAP / Device 全 Free；Lock 等其余守卫仍生效 | 匿名上报：**行键 = 服务端从签名 cookie 解析的 deviceId**；body 的 `visitorId` 只作归属校验（与本设备已存行比，不一致 40099 且**不写库**，首写登记）；联动 `sys_user_device.last_active_at` 与设备 active 状态 |
 | `DELETE /app/monitor/user/force-quit/:id` | 全链 + `app:monitor:user:forceQuit` + `@WalnutTx()` | 按 monitor 行 id 找 `(userId, deviceId)`，走 `AuthSignoutService.doSignout(trigger='admin-kick')` |
 
 `state` 的语义细节：`auth === false` 时 `updateState` 在按 nil 过滤构造 payload 之后**显式**
@@ -401,7 +404,7 @@ indicator 自身抛异常（如 `disk` 路径不存在）才走全局兜底 5000
 | GET `/app/monitor/server/network` | 同左 | `app:monitor:server:network` | — → 默认网卡指标 |
 | POST `/app/monitor/user/list` | 全链 | `app:monitor:user:list` | list DTO → 行 + total |
 | GET `/app/monitor/user/:id` | 全链 | `app:monitor:user:read` | uuid → 行 + device/user |
-| POST `/app/monitor/user/state` | Sign/JWT/CAP/Device 全 Free | 无 | `{ visitorId, deviceId, userId?, auth, focus, left, currentRouter? }` → `true/false` |
+| POST `/app/monitor/user/state` | Sign/JWT/CAP/Device 全 Free | 无 | `{ visitorId, userId?, auth, focus, left, currentRouter? }` → `true/false`；body 带 `deviceId` ⇒ 40099（行键取 cookie，`userId` 取验签 AT，body 里那两个字段不作数） |
 | DELETE `/app/monitor/user/force-quit/:id` | 全链 + `@WalnutTx()` | `app:monitor:user:forceQuit` | uuid → 撤 RT + socket 通知 |
 
 ### 5.3 shared / 根 / health

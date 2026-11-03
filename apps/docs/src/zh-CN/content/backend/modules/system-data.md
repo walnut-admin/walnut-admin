@@ -194,7 +194,8 @@ dictData 快照）；junction（`sys_user_role` / `sys_role_menu`）与设备行
 
 覆盖面要点：
 
-- 设备缓存 `SYS_DEVICE:<deviceId>` 与锁缓存 `SECURITY_LOCK:<userId>:global|deviceId` **没有 TTL**，
+- 设备缓存 `SYSTEM:DEVICE:<deviceId>`（常量 `SYS_DEVICE`）与锁缓存
+  `SECURITY:LOCK:<userId>:global|deviceId`（常量 `SECURITY_LOCK`）**没有 TTL**，
   只能被业务写路径覆盖/删除；`cache.clear()` 也不会清它们（`built-in` / `auth` / `system`
   三类受保护）。
 - 权限缓存 TTL 被写成 `AT 秒数 × 1000`（P1-15），实际驻留时间放大约 1000 倍；

@@ -19,7 +19,7 @@
 
 ## Monorepo Structure
 
-15 个 workspace 包（3 app + 3 platform-any + 3 platform-web + 6 tooling），同属 `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组（包数判据以 `pnpm-workspace.yaml` 的 `packages` 字段为准）：
+15 个 workspace 包，按**目录组**分成 apps / platform-any / platform-web / generated / tooling 五组（**包数以 `pnpm-workspace.yaml` 的 `packages` 字段为判据**，分组以目录结构为判据 —— 这里刻意不写每组的个数），同属 `pnpm-workspace.yaml` 的单一 `versioning.fixed` 组：
 
 ```
 walnut-admin/
@@ -78,7 +78,7 @@ pnpm build:docs
 pnpm lint          # 各包的 lint 任务
 pnpm lint:root     # 只 lint 根级配置
 pnpm types:check   # 全仓类型检查
-pnpm test          # vitest（当前 7 个包有 test 任务，清单以各包 package.json 为准）
+pnpm test          # vitest（哪些包有 test 任务以各包 package.json 为准）
 pnpm prepush       # 推送前门禁表（packages/tooling/scripts/src/ci/prepush.ts，并行）
 ```
 
