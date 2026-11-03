@@ -17,5 +17,7 @@ declare module 'axios' {
     _plainData?: any
     /** P0-1：40605 自愈（initial + 重放）只做一次的标记，防死循环 */
     _deviceResetRetried?: boolean
+    /** P1：40117 无感刷新（refresh + 重放）只做一次的标记，防 40117 → 空 token → 重放的死循环 */
+    _capRefreshRetried?: boolean
   }
 }

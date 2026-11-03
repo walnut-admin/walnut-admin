@@ -54,9 +54,25 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
 
   // cap js token refresh required
   // https://capjs.js.org/guide/invisible.html
-  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_REFRESH_REQUIRED) {
-    await SingletonPromiseCapJSRefresh()
-    return await AppAxios.request(res.config)
+  //
+  // P1（review CAP-5）：`comp-capjs.ts:56-59` 的 `refreshCapJSToken` 失败时 **return ''**（不抛），
+  // 旧实现无条件重放原请求 ⇒ 40117 → 空 token → 重放 → 40117 … 无限打转，直到 CAP 自己的
+  // 4 次/60 秒限流返回 42900 把用户直接踢到 /not-allowed 页。
+  // 照 40101（refreshToken.ts）与 40605（下面的 `_deviceResetRetried`）的写法：
+  // **每个请求最多自愈一次**，且**只有真拿到新 token 才重放**。
+  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_REFRESH_REQUIRED && !res.config._capRefreshRetried) {
+    res.config._capRefreshRetried = true
+
+    const capToken = await SingletonPromiseCapJSRefresh()
+
+    if (capToken) {
+      return await AppAxios.request(res.config)
+    }
+
+    // 空串 = 无感刷新失败（WASM 被 CSP 拦 / cap.js 服务不可用 / 用户环境不支持）。
+    // 不重放（重放必然再 40117），也不跳 /not-allowed（那不是用户做错了什么）——
+    // 落到函数末尾的兜底：提示 + reject，由调用方决定重试。
+    console.warn('[cap] silent refresh failed, original request is not replayed')
   }
 
   // when access token is expired, call refresh token api to get new token
