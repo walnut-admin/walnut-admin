@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
 import { ALSRequestService } from '@walnut-server/als'
 import { AppMonitorUserBasicRepository, AppMonitorUserRepositoryService, AppMonitorUserService } from '@walnut-server/app-domain'
@@ -26,6 +26,18 @@ import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
  */
 
 const LOCAL_LOCATION = { country: 'LOCAL', region: 'LOCAL', city: 'LOCAL' }
+
+/**
+ * 设备业务键：必须是服务端签发的形态（d1_ + 32 位小写 hex）—— migration 的
+ * ck_device_device_id_form 会拦旧形态（64 位 hex / 任意可读标签）。
+ *
+ * 标签到 id 的映射是确定性的：插入与断言用同一标签即得同一个 id，无需在两个地方各写一遍
+ * 字面量。
+ */
+function devId(label: string) {
+  const digest = createHash('sha256').update(label).digest('hex').slice(0, 32)
+  return `d1_${digest}`
+}
 
 describe('B6 device / user_device / monitor_user (on real PG)', () => {
   let app: INestApplication
@@ -70,6 +82,12 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
     return result
   }
 
+  /**
+   * initial 只读这几个字段的**请求替身**（不是完整 Request）。
+   * 走 `as unknown as` 是刻意的：TS 6 起这个对象字面量与 `IWalnutAdminExpressRequest`
+   * 互不 comparable（HEAD 上就已报 TS2352，与本批改动无关）—— 测试替身不该为了骗过类型
+   * 断言去补 30 个用不到的字段。
+   */
   function makeFakeReq(fingerprint: string, deviceId?: string) {
     return {
       fingerprint,
@@ -78,7 +96,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       os: 'windows',
       browser: 'chrome',
       userAgent: { ua: 'Mozilla/5.0 (Windows NT 10.0) Chrome/120.0' },
-    } as IWalnutAdminExpressRequest
+    } as unknown as IWalnutAdminExpressRequest
   }
 
   beforeAll(async () => {
@@ -197,7 +215,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
     })
 
     itSystem('uq_device_id：业务键重复插入拒绝（对齐 Mongo unique）', async () => {
-      const deviceId = unique('b6-dup-device')
+      const deviceId = devId('b6-dup-device')
       await deviceBasicRepo.create({
         deviceName: unique('b6-dup-device-name'),
         deviceId,
@@ -216,7 +234,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
 
   describe('sys_device：ipHistory/locationHistory 追加语义', () => {
     itSystem('新 IP 追加（两列同索引同步）、旧 IP 原位替换、超过 5 条 shift 截断', async () => {
-      const deviceId = unique('b6-ip-device')
+      const deviceId = devId('b6-ip-device')
       await deviceBasicRepo.create({
         deviceName: unique('b6-ip-device-name'),
         deviceId,
@@ -275,7 +293,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
     // 拍板-5：残留设备行**只打 stale 标记、不再物理删除** —— 行还在（cookie 不会因
     // 行消失而永久 40605），banned / locked 原地保留（删行不再能洗掉封禁）。
     itSystem('markDeviceStale：标记 stale + active=false 且返回标记前快照（行仍在）', async () => {
-      const deviceId = unique('b6-stale-device')
+      const deviceId = devId('b6-stale-device')
       await deviceBasicRepo.create({
         deviceName: unique('b6-stale-device-name'),
         deviceId,
@@ -307,8 +325,8 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
     let deviceBKey = ''
 
     itSystem('未知业务键插入拒绝；已知业务键插入成功；(user_id, device_id) UNIQUE', async () => {
-      deviceAKey = unique('b6-ua-device')
-      deviceBKey = unique('b6-ub-device')
+      deviceAKey = devId('b6-ua-device')
+      deviceBKey = devId('b6-ub-device')
       await deviceBasicRepo.create({ deviceName: unique('b6-ua-name'), deviceId: deviceAKey, deviceInfo: {}, ipHistory: [] })
       await deviceBasicRepo.create({ deviceName: unique('b6-ub-name'), deviceId: deviceBKey, deviceInfo: {}, ipHistory: [] })
 
@@ -316,7 +334,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       // 且必须是 PG 的 foreign_key_violation（23503）—— B7a review 挂单补错误码断言
       await expect(pgDataSource.query(
         'INSERT INTO sys_user_device (user_id, device_id) VALUES ($1, $2)',
-        [pgUserId, unique('b6-ghost-device')],
+        [pgUserId, devId('b6-ghost-device')],
       )).rejects.toMatchObject({ code: '23503' })
 
       const row = await userDeviceRepo.upsertDevice(pgUserId, deviceAKey, unique('b6-ua-name'))
@@ -380,7 +398,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
     // 设备身份）。visitorId 仍在写集里（首行登记用），但不再决定命中哪一行。
     itSystem('findOneAndUpdate：deviceId upsert（先插后改），DB 默认值落位', async () => {
       const visitorId = unique('b6-visitor-1')
-      const deviceAKey = unique('b6-m-device')
+      const deviceAKey = devId('b6-m-device')
 
       await deviceBasicRepo.create({ deviceName: unique('b6-m-name'), deviceId: deviceAKey, deviceInfo: { os: 'windows', browser: 'chrome' }, ip: '9.9.9.9', locationInfo: { country: 'China' }, ipHistory: [] })
 
@@ -411,7 +429,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
     })
 
     itSystem('findActiveByDeviceId / findFirstByDeviceId：left 过滤差异', async () => {
-      const deviceKey = unique('b6-left-device')
+      const deviceKey = devId('b6-left-device')
       await deviceBasicRepo.create({ deviceName: unique('b6-left-name'), deviceId: deviceKey, deviceInfo: {}, ipHistory: [] })
 
       await monitorBasicRepo.create({ visitorId: unique('b6-visitor-left'), deviceId: deviceKey, left: true })
@@ -426,7 +444,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
     })
 
     itSystem('findActiveUserByDeviceId：user 松引用查 sys_user 同源表（ETL 前空数据窗口）', async () => {
-      const deviceKey = unique('b6-pop-device')
+      const deviceKey = devId('b6-pop-device')
       await deviceBasicRepo.create({ deviceName: unique('b6-pop-name'), deviceId: deviceKey, deviceInfo: {}, ipHistory: [] })
 
       const withUser = await monitorBasicRepo.create({ visitorId: unique('b6-visitor-user'), deviceId: deviceKey, userId: pgUserId, auth: true })
@@ -452,7 +470,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
     })
 
     itSystem('forceQuitByMonitorId：PG 读行 + doSignout，refresh revoke 写腿同为 PG（B7b 归一）', async () => {
-      const deviceKey = unique('b6-fq-device')
+      const deviceKey = devId('b6-fq-device')
       await deviceBasicRepo.create({ deviceName: unique('b6-fq-name'), deviceId: deviceKey, deviceInfo: {}, ipHistory: [] })
 
       const jti = unique('b6-fq-jti')
@@ -497,7 +515,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
 
   describe('monitor 列表：JOIN 版 $lookup', () => {
     itSystem('device / user 形态 + populate 字段过滤（os/ip/userName）', async () => {
-      const deviceKey = unique('b6-list-device')
+      const deviceKey = devId('b6-list-device')
       await deviceBasicRepo.create({
         deviceName: unique('b6-list-name'),
         deviceId: deviceKey,

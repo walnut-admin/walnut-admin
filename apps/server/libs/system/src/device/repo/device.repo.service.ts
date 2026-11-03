@@ -36,7 +36,13 @@ export class SysDeviceRepositoryService {
   }
 
   /**
-   * @description get device id by fingerprint
+   * @description get device id by fingerprint（**历史工具，身份路径 0 调用**）
+   *
+   * B5 起 device_id 由服务端随机签发（device-id.ts 的 generateDeviceId），指纹不再派生身份；
+   * 批次 11 把唯一那处调用（心跳的 `HMAC(指纹) === deviceId` 校验）改成「与已存行比」后，
+   * 本方法没有任何运行时消费者。刻意**不删**：它是 `DEVICE_ID_ENCRYPTION_KEY` 的解密/派生
+   * 入口，而那个 key 是「部署后不许改」的历史数据根（apps/server/AGENTS.md），删它等于顺手
+   * 改掉一条部署契约。真要清理，连 key 一起在单独一批里裁定。
    */
   getDeviceIdByFingerprint(visitorId: string) {
     return this.cryptoService.hashDeviceFingerprint(visitorId)
@@ -80,6 +86,62 @@ export class SysDeviceRepositoryService {
     await this.cacheDeviceService.setSysDeviceCache(saved)
 
     return snapshot
+  }
+
+  /**
+   * @description 90 天留存清理：删掉「不在用、且 90 天没有任何写活动」的设备行
+   *
+   * 判据（批次 11 拍板，见 reports/batch-11/r1-migration.md §2）：
+   * - `active = false`：当前不在用；
+   * - `updated_at < cutoff`：锚点是 `updated_at` 而不是 `stale` —— `stale` 只覆盖
+   *   「initial 完就没心跳」那部分；「用过之后放弃」的设备 `stale` 恒 false（它只在
+   *   「active=true 但查不到 monitor 行」时才被打），只按 stale 清会漏掉主群。
+   *   `updated_at` 是 @UpdateDateColumn，initial / 心跳翻 active / IP 变更 / markDeviceStale
+   *   都会推它，是唯一在所有分支下都还在的活动痕迹；
+   * - `banned = false AND locked = false`：封禁/锁定的行是那条决定的**唯一持久记录**，
+   *   删掉等于静默解封（guard 查不到行 → 40605 → 自愈 → 换新身份）；
+   * - 没有 90 天内的在线访客行（`last_active_at` 在窗口内，或 `auth = true`）：心跳是比
+   *   `updated_at` 更细的活动证据；
+   * - 没有「未撤销且未过期」的 RT：`fk_rt_device` 是 ON DELETE CASCADE，删设备会连带删掉
+   *   活会话（= 静默踢人）。90 天没动的机器理论上没有活 RT，但别把安全建立在理论上。
+   *
+   * 为什么读别域的两张表：这两条子查询是**只读存在性旁证**（松引用，没有 FK），删除动作
+   * 仍只发生在本域拥有的 sys_device 上；把判据拆到两个事务里会重新引入「设备删了、
+   * monitor 行还在」的孤儿窗口。
+   *
+   * @param cutoff 活动窗口下界（`now - 90d`，由 cron 服务算好传入，天数不在 SQL 里写死）
+   * @param em **必须**传入调用方的 system 事务句柄 —— 返回的 device_id 列表要在同一事务里
+   *   交给 `IIdentityMonitorRepository.deleteByDeviceIds` 清 monitor 行。
+   * @returns 被删掉的 device_id（受 FK CASCADE 影响的子表行不在这里列，调用方只记日志）
+   */
+  async purgeInactiveDevicesBefore(cutoff: Date, em: EntityManager): Promise<string[]> {
+    // 泛型显式给「行数组」：驱动实际返回的是 `[rows, rowCount]`，下面按两种形状归一
+    const raw = await em.query<Array<{ device_id: string }>>(
+      `DELETE FROM sys_device d
+        WHERE d.active = false
+          AND d.updated_at < $1::timestamptz
+          AND d.banned = false
+          AND d.locked = false
+          AND NOT EXISTS (
+            SELECT 1 FROM app_monitor_user m
+             WHERE m.device_id = d.device_id
+               AND (m.last_active_at > $1::timestamptz OR m.auth = true))
+          AND NOT EXISTS (
+            SELECT 1 FROM auth_refresh_token rt
+             WHERE rt.device_id = d.device_id
+               AND rt.revoked = false
+               AND rt.expired_at > now())
+        RETURNING d.device_id`,
+      [cutoff],
+    )
+
+    // TypeORM 的 Postgres 驱动对**非 SELECT** 语句返回 `[rows, rowCount]` 二元组（实测：
+    // 0 行时是 `[[], 0]`），只有 SELECT 才直接给行数组。直接 `raw.map(...)` 会得到
+    // `[undefined, undefined]` —— 删得掉设备、却删不掉 monitor 行（本批集成用例抓到的真实
+    // 缺陷）。这里按两种形状归一，不赌驱动版本。
+    const rows = (Array.isArray(raw[0]) ? raw[0] : raw) as Array<{ device_id: string }>
+
+    return rows.map(row => row.device_id)
   }
 
   /**

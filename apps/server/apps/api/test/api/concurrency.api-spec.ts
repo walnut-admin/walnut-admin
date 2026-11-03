@@ -242,11 +242,11 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     expect([recordA, recordB]).toContain(identities[0].value_hash)
   })
 
-  it('G3 同一指纹三路并发 device/initial —— 恰一行落库，冲突侧受控 40000（P3-2：23505 单列映射，无 50000）', async () => {
+  it('G3 同一 cookie 三路并发 device/initial —— 恰一行落库、无 5xxxx（冲突 40000 / 限流 42900 均为受控拒绝）', async () => {
+    // B5：身份不再由指纹派生（同指纹并发会各自拿到新 id，不再争同一行）。
+    // 要测的「并发争同一业务键」现在由 cookie 承载 —— 先拿一个服务端签发的身份，再拿同一 cookie 三路并发。
     const fingerprint = `conc-dev-${seed8}`
-    const deviceName = `conc-dev-${seed8}`
-    const payload = {
-      deviceName,
+    const basePayload = {
       deviceInfo: {},
       hardwareInfo: {},
       sr: { height: 1080, width: 1920 },
@@ -254,35 +254,50 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
       private: false,
     }
 
-    // 裸 supertest 三路并发（同指纹 ⇒ 同 deviceId，initial 走「查到即覆盖/否则插入」——
-    // 并发首插在 uq_device_id 上决出唯一胜者，败者 23505 进 catch-all → 受控 40605）
+    const first = await supertest(app.getHttpServer())
+      .post(api.apiPath('/system/device/initial'))
+      .set('user-agent', WALNUT_TEST_USER_AGENT)
+      .set('X-Fingerprint', fingerprint)
+      .send(basePayload)
+    expect((first.body as { code: number }).code).toBe(20000)
+
+    const rawCookies = (first.headers['set-cookie'] ?? []) as unknown as string[]
+    const cookieKey = `${WalnutAdminConstCookieKeys.DEVICE_ID}=`
+    const deviceCookie = rawCookies.find(c => c.startsWith(cookieKey))
+    expect(deviceCookie, 'initial 必须下发 DEVICE_ID cookie').toBeTruthy()
+    const cookiePair = deviceCookie!.split(';')[0]
+
     const responses = await Promise.all(
       Array.from({ length: 3 }, () =>
         supertest(app.getHttpServer())
           .post(api.apiPath('/system/device/initial'))
           .set('user-agent', WALNUT_TEST_USER_AGENT)
           .set('X-Fingerprint', fingerprint)
-          .send(payload)),
+          .set('Cookie', cookiePair)
+          .send(basePayload)),
     )
     const codes = responses.map(res => (res.body as { code: number }).code)
 
     // 底线：无未受控错误；且至少一路成功
     expect(codes.filter(code => code >= 50000)).toEqual([])
     expect(codes).toContain(WalnutAdminConstAppResponseCode.SUCCESS)
-    // 失败侧全部是 23505 单列映射的 40000（P3-2 修复前是 catch-all 的 40605）
+    // initial 有 4 次/60s 的限流，本用例连打 1+3 次 ⇒ 失败侧可能是「冲突 40000」也可能是「限流 42900」，
+    // 两者都是**受控拒绝**；真正的底线是「没有 5xxxx」。
     expect(codes.every(code => code === WalnutAdminConstAppResponseCode.SUCCESS
-      || code === WalnutAdminConstAppResponseCode.BAD_REQUEST)).toBe(true)
+      || code === WalnutAdminConstAppResponseCode.BAD_REQUEST
+      || code === WalnutAdminConstAppResponseCode.TOO_MANY_REQUESTS)).toBe(true)
 
-    // 成功侧回同一 deviceId；库恰一行
+    // 成功侧回同一 deviceId；库恰一行（业务键 = cookie 里那个 d1_ id）
     const deviceIds = responses
       .filter(res => (res.body as { code: number }).code === WalnutAdminConstAppResponseCode.SUCCESS)
       .map(res => (res.body as { data: { deviceId: string } }).data.deviceId)
+    expect(deviceIds.length).toBeGreaterThanOrEqual(1)
     expect(new Set(deviceIds).size).toBe(1)
     raceDeviceId = deviceIds[0]
 
     const rows: Array<{ c: number }> = await api.pgDataSource.query(
-      'SELECT count(*)::int AS c FROM sys_device WHERE device_name = $1',
-      [deviceName],
+      'SELECT count(*)::int AS c FROM sys_device WHERE device_id = $1',
+      [raceDeviceId],
     )
     expect(rows[0].c).toBe(1)
   })

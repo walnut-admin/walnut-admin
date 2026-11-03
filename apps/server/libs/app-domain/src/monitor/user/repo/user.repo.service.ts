@@ -5,7 +5,7 @@ import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { WalnutPGConnectionName, withWalnutSystemManager } from '@walnut-server/db'
-import { DataSource } from 'typeorm'
+import { DataSource, In } from 'typeorm'
 import { AppMonitorUserEntity } from '../entity/monitor-user.entity'
 
 export interface IMonitorPopulatedUserBrief {
@@ -47,8 +47,9 @@ export class AppMonitorUserRepositoryService implements IIdentityMonitorReposito
    * `filter` 现在是**业务键 device_id**（服务端从签名 Cookie 解析），不再是请求体里的
    * visitorId —— 后者由客户端自报，拿它当行键等于把别人的行交出去。
    *
-   * 指纹校验（`HMAC(visitorId) === deviceId`）在 **service** 层做：那是「客户端自报值是否
-   * 与设备身份自洽」的策略判定，不是数据访问；repo 只认 filter。
+   * `visitorId` 的归属校验在 **service** 层做（批次 11 / B5 收尾：判据从「HMAC(指纹) ==
+   * deviceId」改成「与本设备已存行的 visitor_id 比」，见 AppMonitorUserService.updateState）：
+   * 那是策略判定，不是数据访问；repo 只认 filter。
    */
   async findOneAndUpdate(
     filter: { deviceId: string },
@@ -99,6 +100,24 @@ export class AppMonitorUserRepositoryService implements IIdentityMonitorReposito
   async findFirstByDeviceId(deviceId: string, em?: EntityManager) {
     return this.withSystemManager(em, async manager =>
       manager.getRepository(AppMonitorUserEntity).findOne({ where: { deviceId } }))
+  }
+
+  /**
+   * @description 按设备批量删 monitor 行（批次 11 · 90 天留存清理专用）
+   *
+   * 由留存清理在**同一个 system 事务**里调用（传入 `em`）—— 设备行与监控行要么一起没了、
+   * 要么都在，否则留下的孤儿 `visitor_id` 会把同指纹的下一次首行登记钉成 23505 → 40000。
+   * 空数组直接返回 0（`IN ()` 在 PG 是语法错误，别把它交给数据库判）。
+   */
+  async deleteByDeviceIds(deviceIds: string[], em?: EntityManager) {
+    if (deviceIds.length === 0) {
+      return 0
+    }
+
+    return this.withSystemManager(em, async (manager) => {
+      const result = await manager.getRepository(AppMonitorUserEntity).delete({ deviceId: In(deviceIds) })
+      return result.affected ?? 0
+    })
   }
 
   /**

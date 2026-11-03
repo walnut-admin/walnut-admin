@@ -108,7 +108,6 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
 
   it('initial 同指纹重放 → 幂等回同一 deviceId（upsert 覆盖路径）+ DEVICE_ID cookie 重签', async () => {
     const res = await api.anon('POST', api.apiPath('/system/device/initial'), {
-      deviceName: `dev-spec-replay-${seed8}`,
       deviceInfo: {},
       hardwareInfo: {},
       sr: { height: 1080, width: 1920 },
@@ -129,7 +128,6 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
       .set('user-agent', WALNUT_TEST_USER_AGENT)
       .set('X-Fingerprint', secondFingerprint)
       .send({
-        deviceName: `dev-spec-second-${seed8}`,
         deviceInfo: {},
         hardwareInfo: {},
         sr: { height: 2048, width: 1152 },
@@ -226,16 +224,17 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     expect(rows[1].userName).toBe(fixture!.userName)
   })
 
-  it('服务端生成 deviceName（B5）：载荷里的名字不再决定设备名，连续 initial 得到不同名字且都成功', async () => {
+  it('服务端生成 deviceName（B5）：落库名字与载荷无关；P4 起载荷连这个字段都不能带', async () => {
     // 改造前这里断言「重名 device_name 撞 uq_device_name → 受控 40000」。
-    // B5 之后 deviceName 由服务端生成（客户端载荷不再参与）⇒ 这条前提消失：
-    // 名字的唯一性由签发方保证，同一载荷重放不会再撞 23505。
+    // B5 之后 deviceName 由服务端生成 ⇒ 这条前提消失：名字的唯一性由签发方保证，
+    // 同一载荷重放不会再撞 23505。P4 起 DTO 里的 deviceName 也被摘除（带了即 40099，
+    // 由 libs/system/src/device/dto/device.dto.spec.ts 用同口径校验钉住 —— 这里不再
+    // 多打一次 initial，本文件的调用数压在 4 次/60s 的限流上限）。
     const mk = () => supertest(app.getHttpServer())
       .post(api.apiPath('/system/device/initial'))
       .set('user-agent', WALNUT_TEST_USER_AGENT)
       .set('X-Fingerprint', `dev-spec-dup-${seed8}`)
       .send({
-        deviceName: `dev-spec-replay-${seed8}`,
         deviceInfo: {},
         hardwareInfo: {},
         sr: { height: 1080, width: 1920 },
@@ -255,7 +254,7 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
       [idA],
     )
     expect(rows).toHaveLength(1)
-    // 载荷给的是 dev-spec-replay-<seed8>，落库的必须是服务端生成的形态
+    // 名字只由服务端生成：形态 = <设备类型>_<8 位 hex>，与载荷无关
     expect(rows[0].device_name).toMatch(/^desktop_[0-9a-f]{8}$/)
 
     // 清理：这一行属于本用例

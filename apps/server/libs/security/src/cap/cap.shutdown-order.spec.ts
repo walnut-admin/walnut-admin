@@ -58,7 +58,7 @@ describe('关闭顺序：CAP cleanup 必须在 PG / Bull 排空之前', () => {
       .spyOn(AppCapJS, 'cleanup')
       .mockImplementation(async () => {
         events.push('cap.cleanup')
-      })
+      }, 30_000) // 真起 Nest 应用跑关闭序列：默认 5s 在负载下假红
     const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => undefined) as never)
 
     const moduleRef = await Test.createTestingModule({

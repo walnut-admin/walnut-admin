@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { WalnutPGConnectionName } from '@walnut-server/db'
 import { SysDeviceEntity } from '../entity/device.entity'
+import { SysDevicePgPurgeService } from './device.pg.purge.service'
 import { SysDeviceRepositoryService } from './device.repo.service'
 
 /**
@@ -13,7 +14,9 @@ import { SysDeviceRepositoryService } from './device.repo.service'
     TypeOrmModule.forFeature([SysDeviceEntity], WalnutPGConnectionName),
   ],
   controllers: [],
-  providers: [SysDeviceRepositoryService],
-  exports: [SysDeviceRepositoryService],
+  // SYS_DEVICE_RETENTION_PURGE（批次 11）：90 天留存清理 cron —— 与本仓库同模块，
+  // 数据访问仍走 SysDeviceRepositoryService，cron 只编排 + 打日志。
+  providers: [SysDeviceRepositoryService, SysDevicePgPurgeService],
+  exports: [SysDeviceRepositoryService, SysDevicePgPurgeService],
 })
 export class SysDeviceRepositoryModule {}

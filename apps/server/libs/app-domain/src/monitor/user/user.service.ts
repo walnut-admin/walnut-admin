@@ -44,16 +44,24 @@ export class AppMonitorUserService {
    * `sys_user_device` 被写成「受害者 + 攻击者设备」、`auth=false` 心跳还能反向清掉别人的关联。
    *
    * 现在：**行键是服务端从签名 Cookie 解析的 deviceId**（调用方传入，来自
-   * `WalnutAdminDecoratorDeviceId`）。请求体的 `visitorId` 只作**校验**，且校验是
-   * **可计算的**：`HMAC(visitorId) === deviceId`（`getDeviceIdByFingerprint` 与
-   * `device/initial` 铸 deviceId 用的是同一条腿）—— 对不上即受控 40099。
+   * `WalnutAdminDecoratorDeviceId`）。请求体的 `visitorId` 只作**校验**。
    *
-   * 为什么用 HMAC 相等而不是「与库里已存行比」：前者不依赖行是否已存在。若只比已存行，
-   * 攻击者可以抢在受害者之前用自己的 deviceId 建一行、`visitor_id` 填受害者的指纹 ——
-   * 之后受害者自己的 upsert 会撞 `uq_monitor_visitor`（23505 → 40000），心跳永久坏掉。
-   * 前端两处指纹是**同一个值**（axios 的 FINGERPRINT 头与心跳 body 都取
-   * `appStoreFingerprint.getFingerprint`，见 apps/admin/src/store/modules/app/app-fingerprint.ts:138/175），
-   * 所以 HMAC 校验对真实客户端恒成立。
+   * ## visitorId 校验：与**本设备已存行**比（批次 11 / B5 收尾改写）
+   *
+   * B5 把 deviceId 改成**服务端随机签发**后，指纹与设备身份之间不再有可计算关系 ——
+   * 旧判据 `HMAC(指纹) === deviceId` 对真实客户端**恒假**，于是每次心跳被自己拒成 40099。
+   * 现在照 wire DTO 注释本来的口径（apps/api/src/modules/app/monitor/user/dto/user.dto.ts）
+   * 改成「与本设备已存行的 `visitor_id` 比」：
+   *
+   * - 行不存在（首写）⇒ 以请求里的 `visitorId` 落库（它还决定 socket 房间键）；
+   * - 行存在且 `row.visitorId !== body.visitorId` ⇒ 受控 40099，**不写库**。
+   *
+   * 为什么批次 8 担心的「抢注」在这里不成立：行键是**不可伪造的 deviceId**（服务端签发、
+   * 随签名 cookie 携带）。攻击者抢得到的只是「自己那台设备」的首行 —— 他没法把受害者那一行
+   * 的 `visitor_id` 改成别的，因为那需要受害者的 deviceId；受害者会看到的症状是「本设备
+   * 被登记成另一个指纹」（他自己下一次心跳 40099），而不是批次 8 那种「别人的行被改写」。
+   * 结构性残余：指纹与身份解耦后，「同一指纹的多台设备」不再有任何关联判据 —— 那是
+   * 产品口径问题（指纹只作风控特征），不是这条校验能补的。
    *
    * 请求体的 `deviceId` 在 wire 层已被摘除（DTO 白名单 + forbidNonWhitelisted ⇒ 40099），
    * service 侧仍然显式把它钉成入参 deviceId，避免「展开顺序决定谁赢」的运气。
@@ -82,21 +90,21 @@ export class AppMonitorUserService {
     // —— 行键与写值只有一个真源：入参 deviceId（= 签名 Cookie 解析结果）。
     delete updatePayload.deviceId
 
-    // visitorId 只作校验：`deviceId = HMAC(指纹, 服务端 key)` 是 device/initial 的铸号腿，
-    // 所以「body 的 visitorId 属于这台设备」是可计算的。对不上说明客户端在替别人声明身份
-    // （伪造指纹），或它手里的设备 cookie 已与当前指纹脱钩 ⇒ 受控 40099，不写库。
+    // visitorId 只作校验，判据落在「这台设备已经登记过哪个指纹」—— 行键是不可伪造的
+    // deviceId，而 B5 之后指纹与身份之间没有可计算关系，没有比「已存行」更硬的判据。
+    // 首写放行（登记），之后不一致即受控 40099，且**不写库**。
     if (!isNil(visitorId)) {
-      const claimedDeviceId = this.deviceRepoService.getDeviceIdByFingerprint(visitorId)
+      const boundRow = await this.appMonitorUserRepoService.findFirstByDeviceId(deviceId, em)
 
-      if (claimedDeviceId !== deviceId) {
+      if (boundRow !== null && boundRow.visitorId !== visitorId) {
         throw new WalnutAdminExceptionRequestDataError(
-          `monitor state visitorId does not belong to this device (expected ${deviceId}, got ${claimedDeviceId})`,
+          `monitor state visitorId does not belong to this device (device ${deviceId} is already bound to another visitorId)`,
         )
       }
     }
 
     // update doc（nil 值剔除；auth=false 的 userId 清零在上面显式补回）
-    // 行键 = deviceId（服务端解析）；visitorId 已过 HMAC 校验，随首行登记落库。
+    // 行键 = deviceId（服务端解析）；visitorId 已过归属校验，随首行登记落库。
     const doc = await this.appMonitorUserRepoService.findOneAndUpdate(
       { deviceId },
       { ...updatePayload, deviceId },

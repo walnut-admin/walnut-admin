@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
 import { DBTransactionHooksStore } from '@walnut-server/db'
 import { SysUserDeviceRepositoryService, SysUserLockRepositoryService, SysUserLockService, SysUserLockSharedService } from '@walnut-server/identity'
@@ -28,6 +28,18 @@ async function runInHookStore<T>(fn: () => Promise<T>): Promise<T> {
     await hook()
   }
   return result
+}
+
+/**
+ * 设备业务键：必须是服务端签发的形态（d1_ + 32 位小写 hex）—— migration 的
+ * ck_device_device_id_form 会拦旧形态（64 位 hex / 任意可读标签）。
+ *
+ * 标签到 id 的映射是确定性的：插入与断言用同一标签即得同一个 id，无需在两个地方各写一遍
+ * 字面量。
+ */
+function devId(label: string) {
+  const digest = createHash('sha256').update(label).digest('hex').slice(0, 32)
+  return `d1_${digest}`
 }
 
 describe('B7b user_lock (on real PG)', () => {
@@ -131,9 +143,9 @@ describe('B7b user_lock (on real PG)', () => {
 
     it('无记录 → 默认偏好；有记录 → 按 crossDevice 分支取 user_device 锁状态', async () => {
       const userId = await seedUser()
-      await seedDevice('device-x')
+      await seedDevice(devId('device-x'))
 
-      const empty = await lockService.getLockStatusForUser(userId, 'device-x')
+      const empty = await lockService.getLockStatusForUser(userId, devId('device-x'))
       expect(empty.locked).toBe(false)
       expect(empty.lockCrossDevice).toBe(false)
       expect(empty.lockMode).toBe('default')
@@ -141,7 +153,7 @@ describe('B7b user_lock (on real PG)', () => {
       await lockRepo.insertOrUpdateUserLockPre(userId, { lockRoute: { name: 'dashboard' } })
 
       // crossDevice=true 分支：any device locked（无设备行 → false）
-      const status = await lockService.getLockStatusForUser(userId, 'device-x')
+      const status = await lockService.getLockStatusForUser(userId, devId('device-x'))
       expect(status.lockRoute).toEqual({ name: 'dashboard' })
       expect(status.lockCrossDevice).toBe(true)
       expect(status.locked).toBe(false)
@@ -149,47 +161,47 @@ describe('B7b user_lock (on real PG)', () => {
       // 置一台设备 locked → any-locked 变 true
       await pgDataSource.query(
         'INSERT INTO sys_user_device (user_id, device_id, device_name, locked) VALUES ($1, $2, $3, true)',
-        [userId, 'device-x', 'dev'],
+        [userId, devId('device-x'), 'dev'],
       )
-      const locked = await lockService.getLockStatusForUser(userId, 'device-x')
+      const locked = await lockService.getLockStatusForUser(userId, devId('device-x'))
       expect(locked.locked).toBe(true)
     })
 
     it('shared lockUserDevice：lock preference upsert + user_device 置 locked（全 PG 单 em）', async () => {
       const userId = await seedUser()
-      await seedDevice('device-lock')
+      await seedDevice(devId('device-lock'))
 
       await pgDataSource.query(
         'INSERT INTO sys_user_device (user_id, device_id, device_name, locked) VALUES ($1, $2, $3, false)',
-        [userId, 'device-lock', 'dev'],
+        [userId, devId('device-lock'), 'dev'],
       )
 
       await runInHookStore(async () => {
-        await lockSharedService.lockUserDevice(userId, 'device-lock', 'fp-1', { name: 'dashboard' }, pgDataSource.manager)
+        await lockSharedService.lockUserDevice(userId, devId('device-lock'), 'fp-1', { name: 'dashboard' }, pgDataSource.manager)
       })
 
       const pref = await lockRepo.findUserLockPreByUserId(userId)
       expect(pref?.lockRoute).toEqual({ name: 'dashboard' })
 
-      const device = await userDeviceRepo.findByUserAndDevice(userId, 'device-lock')
+      const device = await userDeviceRepo.findByUserAndDevice(userId, devId('device-lock'))
       expect(device?.locked).toBe(true)
     })
 
     it('shared unLockUserDevice：密码错误拒绝（BadRequest），不触碰设备状态', async () => {
       const userId = await seedUser()
-      await seedDevice('device-unlock')
+      await seedDevice(devId('device-unlock'))
 
       await pgDataSource.query(
         'INSERT INTO sys_user_device (user_id, device_id, device_name, locked) VALUES ($1, $2, $3, true)',
-        [userId, 'device-unlock', 'dev'],
+        [userId, devId('device-unlock'), 'dev'],
       )
       await lockRepo.insertOrUpdateUserLockPre(userId, { lockPwdHash: 'right-pwd' })
 
       await expect(
-        lockSharedService.unLockUserDevice(userId, 'device-unlock', 'fp-2', 'wrong-pwd', pgDataSource.manager),
+        lockSharedService.unLockUserDevice(userId, devId('device-unlock'), 'fp-2', 'wrong-pwd', pgDataSource.manager),
       ).rejects.toThrow()
 
-      const device = await userDeviceRepo.findByUserAndDevice(userId, 'device-unlock')
+      const device = await userDeviceRepo.findByUserAndDevice(userId, devId('device-unlock'))
       expect(device?.locked).toBe(true)
     })
   })

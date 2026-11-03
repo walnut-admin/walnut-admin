@@ -154,8 +154,11 @@ export namespace IRequestPayload {
     }
 
     export namespace Deivce {
-      // initial 注册请求不含主键（id 由服务端生成），字段对齐 server SysDeviceDTOInitialRequest
-      export type Initial = Omit<SystemDevice, 'id'>
+      // initial 注册请求不含主键（id 由服务端生成），字段对齐 server SysDeviceDTOInitialRequest。
+      // 批次 11 / P4：`deviceName` 也从请求面摘除 —— B5 起设备名由服务端生成，DTO 里不再收它
+      // （带了会被 whitelist + forbidNonWhitelisted 判成 40099）。这里同步 omit，让 vue-tsc
+      // 成为「前端别再发这个字段」的机械守卫。
+      export type Initial = Omit<SystemDevice, 'id' | 'deviceName'>
     }
 
     export namespace UserDevice {

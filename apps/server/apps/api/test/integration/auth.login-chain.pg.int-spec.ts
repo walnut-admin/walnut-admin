@@ -1,7 +1,7 @@
 import type { INestApplication } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
 import { Buffer } from 'node:buffer'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
 
 import * as opaque from '@serenity-kit/opaque'
@@ -64,6 +64,18 @@ async function runInHookStore<T>(fn: () => Promise<T>): Promise<T> {
     await hook()
   }
   return result
+}
+
+/**
+ * 设备业务键：必须是服务端签发的形态（d1_ + 32 位小写 hex）—— migration 的
+ * ck_device_device_id_form 会拦旧形态（64 位 hex / 任意可读标签）。
+ *
+ * 标签到 id 的映射是确定性的：插入与断言用同一标签即得同一个 id，无需在两个地方各写一遍
+ * 字面量。
+ */
+function devId(label: string) {
+  const digest = createHash('sha256').update(label).digest('hex').slice(0, 32)
+  return `d1_${digest}`
 }
 
 describe('B7c auth login chain (on real PG)', () => {
@@ -353,7 +365,7 @@ describe('B7c auth login chain (on real PG)', () => {
       const userName = unique('b7c-opaque-login')
       const user = await registerOpaqueUser(userName, password)
 
-      const deviceId = unique('b7c-opaque-login-dev')
+      const deviceId = devId('b7c-opaque-login-dev')
       await seedDevice(deviceId)
 
       const finishLoginRequest = await clientLoginFinishRequest(userName, password, deviceId)
@@ -387,7 +399,7 @@ describe('B7c auth login chain (on real PG)', () => {
       const userName = unique('b7c-opaque-bad')
       await registerOpaqueUser(userName, password)
 
-      const deviceId = unique('b7c-opaque-bad-dev')
+      const deviceId = devId('b7c-opaque-bad-dev')
       await seedDevice(deviceId)
 
       await clientLoginFinishRequest(userName, password, deviceId)
@@ -412,7 +424,7 @@ describe('B7c auth login chain (on real PG)', () => {
     })
 
     it('回滚：refresh 行与 user_device 行同回滚（B7c 把 bindDeviceForUser 收进事务后不再有事务外写腿）', async () => {
-      const deviceId = unique('b7c-tokens-rb-dev')
+      const deviceId = devId('b7c-tokens-rb-dev')
       await seedDevice(deviceId)
 
       await expect(pgDataSource.transaction(async (em) => {
@@ -425,7 +437,7 @@ describe('B7c auth login chain (on real PG)', () => {
     })
 
     it('提交：refresh 行 + user_device 行两腿同落', async () => {
-      const deviceId = unique('b7c-tokens-commit-dev')
+      const deviceId = devId('b7c-tokens-commit-dev')
       await seedDevice(deviceId)
 
       const { refreshTokenJti } = await authShared.generateAuthTokens(payload, deviceId, pgDataSource.manager)
@@ -444,7 +456,7 @@ describe('B7c auth login chain (on real PG)', () => {
     it('validateIdentity 新用户：user + email identity 两腿（自管 PG runner 事务，identity 默认未验证）', async () => {
       await applyAuthSettings({ 'app.auth.email': emailEnabled })
 
-      const payload = await otpService.validateIdentity('email', emailA, 'zh_CN', unique('b7c-otp-dev'))
+      const payload = await otpService.validateIdentity('email', emailA, 'zh_CN', devId('b7c-otp-dev'))
       createdUserIds.push(payload.userId)
 
       const identity = await readIdentity(payload.userId, 'emailAddress', 'login')
@@ -454,8 +466,8 @@ describe('B7c auth login chain (on real PG)', () => {
     })
 
     it('validateIdentity 存量：同 identifier → 同一 userId（不再新建）', async () => {
-      const first = await otpService.validateIdentity('email', emailA, 'zh_CN', unique('b7c-otp-dev'))
-      const second = await otpService.validateIdentity('email', emailA, 'zh_CN', unique('b7c-otp-dev'))
+      const first = await otpService.validateIdentity('email', emailA, 'zh_CN', devId('b7c-otp-dev'))
+      const second = await otpService.validateIdentity('email', emailA, 'zh_CN', devId('b7c-otp-dev'))
       createdUserIds.push(first.userId)
       expect(second.userId).toBe(first.userId)
       expect(await countPg('sys_user_identity', 'value_hash = $1', [identityShared.generateValueHash(emailA)])).toBe(1)
@@ -464,7 +476,7 @@ describe('B7c auth login chain (on real PG)', () => {
     it('validateIdentity 注册关闭 → SignupBanned', async () => {
       await applyAuthSettings({ 'app.auth.email': emailDisabled })
 
-      await expect(otpService.validateIdentity('email', `b7c-otp-b-${seed.slice(0, 8)}@walnut.local`, 'zh_CN', unique('b7c-otp-dev')))
+      await expect(otpService.validateIdentity('email', `b7c-otp-b-${seed.slice(0, 8)}@walnut.local`, 'zh_CN', devId('b7c-otp-dev')))
         .rejects
         .toThrow(WalnutAdminExceptionSignupBanned)
     })
@@ -485,10 +497,10 @@ describe('B7c auth login chain (on real PG)', () => {
       const identifier = `b7c-otp-use-${seed.slice(0, 8)}@walnut.local`
       await verifyCodeCache.setVerifyCodeForVisitorCache(identifier, 111222, 300)
 
-      const loginPayload = await otpService.validateIdentity('email', emailA, 'zh_CN', unique('b7c-otp-dev'))
+      const loginPayload = await otpService.validateIdentity('email', emailA, 'zh_CN', devId('b7c-otp-dev'))
       createdUserIds.push(loginPayload.userId)
 
-      const deviceId = unique('b7c-otp-use-dev')
+      const deviceId = devId('b7c-otp-use-dev')
       await seedDevice(deviceId)
 
       const { accessToken, refreshTokenJti } = await otpService.authWithOtp('email', identifier, loginPayload, deviceId, pgDataSource.manager)
@@ -512,7 +524,7 @@ describe('B7c auth login chain (on real PG)', () => {
 
       const providerId = unique('b7c-gitee')
       const email = `b7c-gitee-${seed.slice(0, 8)}@walnut.local`
-      const payload = await giteeService.validateIdentity(providerId, unique('b7c-gitee-u'), email, '', 'zh_CN', unique('b7c-gitee-dev'))
+      const payload = await giteeService.validateIdentity(providerId, unique('b7c-gitee-u'), email, '', 'zh_CN', devId('b7c-gitee-dev'))
       createdUserIds.push(payload.userId)
 
       const binding = await oauthRepo.findByProviderAndProviderId('gitee', providerId)
@@ -526,10 +538,10 @@ describe('B7c auth login chain (on real PG)', () => {
       await applyAuthSettings({ 'app.auth.gitee': giteeEnabled })
 
       const email = `b7c-gitee-clash-${seed.slice(0, 8)}@walnut.local`
-      const first = await giteeService.validateIdentity(unique('b7c-gitee-c1'), unique('b7c-gitee-c1'), email, '', 'zh_CN', unique('b7c-gitee-dev'))
+      const first = await giteeService.validateIdentity(unique('b7c-gitee-c1'), unique('b7c-gitee-c1'), email, '', 'zh_CN', devId('b7c-gitee-dev'))
       createdUserIds.push(first.userId)
 
-      await expect(giteeService.validateIdentity(unique('b7c-gitee-c2'), unique('b7c-gitee-c2'), email, '', 'zh_CN', unique('b7c-gitee-dev')))
+      await expect(giteeService.validateIdentity(unique('b7c-gitee-c2'), unique('b7c-gitee-c2'), email, '', 'zh_CN', devId('b7c-gitee-dev')))
         .rejects
         .toThrow(WalnutAdminExceptionBadRequest)
     })
@@ -538,16 +550,16 @@ describe('B7c auth login chain (on real PG)', () => {
       await applyAuthSettings({ 'app.auth.gitee': giteeEnabled })
 
       const providerId = unique('b7c-gitee-again')
-      const first = await giteeService.validateIdentity(providerId, unique('b7c-gitee-a'), `b7c-gitee-a-${seed.slice(0, 8)}@walnut.local`, '', 'zh_CN', unique('b7c-gitee-dev'))
+      const first = await giteeService.validateIdentity(providerId, unique('b7c-gitee-a'), `b7c-gitee-a-${seed.slice(0, 8)}@walnut.local`, '', 'zh_CN', devId('b7c-gitee-dev'))
       createdUserIds.push(first.userId)
-      const second = await giteeService.validateIdentity(providerId, unique('b7c-gitee-a'), `b7c-gitee-a-${seed.slice(0, 8)}@walnut.local`, '', 'zh_CN', unique('b7c-gitee-dev'))
+      const second = await giteeService.validateIdentity(providerId, unique('b7c-gitee-a'), `b7c-gitee-a-${seed.slice(0, 8)}@walnut.local`, '', 'zh_CN', devId('b7c-gitee-dev'))
       expect(second.userId).toBe(first.userId)
     })
 
     it('注册关闭：未绑定的新 gitee 账号 → SignupBanned', async () => {
       await applyAuthSettings({ 'app.auth.gitee': giteeDisabled })
 
-      await expect(giteeService.validateIdentity(unique('b7c-gitee-ban'), unique('b7c-gitee-ban'), `b7c-gitee-ban-${seed.slice(0, 8)}@walnut.local`, '', 'zh_CN', unique('b7c-gitee-dev')))
+      await expect(giteeService.validateIdentity(unique('b7c-gitee-ban'), unique('b7c-gitee-ban'), `b7c-gitee-ban-${seed.slice(0, 8)}@walnut.local`, '', 'zh_CN', devId('b7c-gitee-dev')))
         .rejects
         .toThrow(WalnutAdminExceptionSignupBanned)
     })
@@ -556,7 +568,7 @@ describe('B7c auth login chain (on real PG)', () => {
       await applyAuthSettings({ 'app.auth.github': githubEnabled })
 
       const providerId = unique('b7c-github')
-      const payload = await githubService.validateIdentity(providerId, unique('b7c-github-u'), `b7c-github-${seed.slice(0, 8)}@walnut.local`, '', 'zh_CN', unique('b7c-github-dev'))
+      const payload = await githubService.validateIdentity(providerId, unique('b7c-github-u'), `b7c-github-${seed.slice(0, 8)}@walnut.local`, '', 'zh_CN', devId('b7c-github-dev'))
       createdUserIds.push(payload.userId)
 
       const binding = await oauthRepo.findByProviderAndProviderId('github', providerId)
@@ -577,7 +589,7 @@ describe('B7c auth login chain (on real PG)', () => {
     }
 
     it('user-logout：RT 撤销落库 + after-commit 缓存清理钩子执行（钉现状：钩子内 delByPattern 空 scan 页缺陷容错）', async () => {
-      const deviceId = unique('b7c-logout-dev')
+      const deviceId = devId('b7c-logout-dev')
       const jti = await seedRT(deviceId)
 
       const hooks: (() => Promise<void>)[] = []
@@ -595,7 +607,7 @@ describe('B7c auth login chain (on real PG)', () => {
     })
 
     it('user-kick-other：revokeReason=userKickOther 落库（离线设备只 revoke RT）', async () => {
-      const deviceId = unique('b7c-kick-dev')
+      const deviceId = devId('b7c-kick-dev')
       const jti = await seedRT(deviceId)
 
       await signoutService.doSignout(userId, { trigger: 'user-kick-other', deviceId, fingerprint: 'fp-1', isOnline: false }, pgDataSource.manager)
@@ -606,7 +618,7 @@ describe('B7c auth login chain (on real PG)', () => {
     })
 
     it('admin-kick：自定义 revokeReason 落库', async () => {
-      const deviceId = unique('b7c-adminkick-dev')
+      const deviceId = devId('b7c-adminkick-dev')
       const jti = await seedRT(deviceId)
 
       await signoutService.doSignout(userId, { trigger: 'admin-kick', deviceId, fingerprint: 'fp-2', revokeReason: WalnutAdminConstRevokeRTType.forceQuitOffline, isOnline: false }, pgDataSource.manager)
@@ -617,8 +629,8 @@ describe('B7c auth login chain (on real PG)', () => {
     })
 
     it('security-policy：该用户全部 RT 撤销 + reason（after-commit 通知钩子执行不抛）', async () => {
-      const jti1 = await seedRT(unique('b7c-policy-dev1'))
-      const jti2 = await seedRT(unique('b7c-policy-dev2'))
+      const jti1 = await seedRT(devId('b7c-policy-dev1'))
+      const jti2 = await seedRT(devId('b7c-policy-dev2'))
 
       await runInHookStore(async () => {
         await signoutService.doSignout(userId, { trigger: 'security-policy', revokeReason: WalnutAdminConstRevokeRTType.updatePass }, pgDataSource.manager)
@@ -642,7 +654,7 @@ describe('B7c auth login chain (on real PG)', () => {
       const userId = await seedUser(unique(`b7c-mfa-${type}-user`))
       await seedUserRole(userId)
 
-      const deviceId = unique(`b7c-mfa-${type}-dev`)
+      const deviceId = devId(`b7c-mfa-${type}-dev`)
       await seedDevice(deviceId)
       await pgDataSource.query(
         'INSERT INTO sys_user_device (user_id, device_id, device_name) VALUES ($1, $2, $3)',
@@ -707,7 +719,7 @@ describe('B7c auth login chain (on real PG)', () => {
     it('未验证（无 verified 缓存）→ verifyMfaStatus 拒绝（BadRequest）且不写 mfaSetup', async () => {
       const userId = await seedUser(unique('b7c-mfa-neg-user'))
       await seedUserRole(userId)
-      const deviceId = unique('b7c-mfa-neg-dev')
+      const deviceId = devId('b7c-mfa-neg-dev')
       await seedDevice(deviceId)
       const jti = await refreshShared.generateRefreshToken(userId, deviceId, 'sid-mfa-neg', pgDataSource.manager)
 
@@ -723,7 +735,7 @@ describe('B7c auth login chain (on real PG)', () => {
     let userId = ''
     let password = ''
     let securityEmail = ''
-    const deviceId = unique('b7c-sens-dev')
+    const deviceId = devId('b7c-sens-dev')
 
     beforeAll(async () => {
       userId = await seedUser(unique('b7c-sens-user'))
@@ -862,7 +874,7 @@ describe('B7c auth login chain (on real PG)', () => {
     })
 
     it('evaluateDevice：新设备 DEVICE_NEW；banned 设备 DEVICE_BANNED + DEVICE_PRIVATE；未知设备零分', async () => {
-      const freshId = unique('b7c-risk-fresh-dev')
+      const freshId = devId('b7c-risk-fresh-dev')
       await seedDevice(freshId)
       redisKeysToClean.push(`risk:device:${freshId}`)
 
@@ -870,7 +882,7 @@ describe('B7c auth login chain (on real PG)', () => {
       expect(fresh.factors).toContain('DEVICE_NEW')
       expect(fresh.details?.isNewDevice).toBe(true)
 
-      const bannedId = unique('b7c-risk-banned-dev')
+      const bannedId = devId('b7c-risk-banned-dev')
       await pgDataSource.query(
         'INSERT INTO sys_device (device_name, device_id, device_info, ip_history, banned, private) VALUES ($1, $2, $3::jsonb, ARRAY[]::text[], true, true)',
         [`${bannedId}-name`, bannedId, '{}'],
@@ -882,7 +894,7 @@ describe('B7c auth login chain (on real PG)', () => {
       expect(banned.factors).toContain('DEVICE_PRIVATE')
 
       // 未知设备：零分 LOW
-      const unknown = await riskDeviceService.evaluateDevice(unique('b7c-risk-none-dev'))
+      const unknown = await riskDeviceService.evaluateDevice(devId('b7c-risk-none-dev'))
       expect(unknown.score).toBe(0)
       expect(unknown.level).toBe('LOW')
     })
@@ -906,7 +918,7 @@ describe('B7c auth login chain (on real PG)', () => {
 
     it('failedLogin.collect：计数累计，达阈值 5 → IP 进临时黑名单（murlock 锁内写腿）', async () => {
       const identifier = unique('b7c-risk-failed')
-      const deviceId = unique('b7c-risk-failed-dev')
+      const deviceId = devId('b7c-risk-failed-dev')
       const ip = `192.0.2.${Number.parseInt(seed.slice(4, 6), 16) % 200 + 10}`
       redisKeysToClean.push(
         await sharedIpService.getTempBlackListRedisKey(ip),

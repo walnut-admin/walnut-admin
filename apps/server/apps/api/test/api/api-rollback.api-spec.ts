@@ -281,7 +281,7 @@ describe('H1：API 级事务回滚直测（真实 HTTP 触发中途失败 → �
       .set('user-agent', WALNUT_TEST_USER_AGENT)
       .set('X-Fingerprint', fingerprint)
       .send({
-        deviceName: `rb-hook-${seed8}`,
+        // B5 / P4：deviceName 由服务端生成，请求面不再带（带上来即 40099）
         deviceInfo: {},
         hardwareInfo: {},
         sr: { height: 1080, width: 1920 },

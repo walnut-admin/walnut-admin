@@ -89,6 +89,19 @@ export interface IIdentityMonitorRepository {
   findByUserIdAndDeviceId: (userId: string, deviceId: string, em?: EntityManager) => Promise<IIdentityMonitorUserRow | null>
   findActiveByDeviceId: (deviceId: string) => Promise<IIdentityMonitorUserRow | null>
   delMonitorByDeviceId: (deviceId: string) => Promise<IIdentityMonitorUserRow | null>
+  /**
+   * 90 天留存清理：按设备**批量**删在线监控行（批次 11）。
+   *
+   * 为什么需要批量腿：设备行删除与 monitor 行删除必须在**同一事务**里 —— monitor 行没有 FK、
+   * `visitor_id` 全局唯一，留成孤儿就会让同指纹回访撞 uq_monitor_visitor（23505 → 40000）。
+   * `delMonitorByDeviceId` 只收单键且不收 `em`（自开事务），拼不出同事务语义。
+   *
+   * @param deviceIds 要清掉的设备业务键
+   * @param em 调用方的 system 事务句柄（app_monitor_user 在 RLS 表清单里：非 system 通道
+   *   的 DELETE 会被策略过滤成 affected=0，静默不删）
+   * @returns 实际删除行数
+   */
+  deleteByDeviceIds: (deviceIds: string[], em?: EntityManager) => Promise<number>
 }
 
 // ─── 在线监控 socket 通知（app/monitor/user/shared/user.shared.service）─────────

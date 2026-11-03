@@ -1,4 +1,5 @@
 import { ArgumentMetadata, Injectable, PipeTransform } from '@nestjs/common'
+import { isValidDeviceId, WALNUT_DEVICE_ID_PREFIX } from '@walnut-server/const/app/device'
 import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 import { isNil } from 'lodash'
 
@@ -8,12 +9,19 @@ import { isNil } from 'lodash'
  * 统一抛 WalnutAdminExceptionRequestDataError（40099），与 ParamEnum 同族）。
  *
  * 每个管道绑定一条从真实数据形态推出来的正则（写明出处），改形态先改正则。
+ * 形态的判据若已有单一真源（如设备 id 的 isValidDeviceId），传**谓词**而不是再抄
+ * 一份正则 —— RegExp 自带同签名的 test，两种形态都满足这里声明的接口。
  */
+
+/** 值判据：正则与谓词式校验（如 isValidDeviceId）都实现同签名 */
+export interface IWalnutAdminPipeValueMatcher {
+  test: (value: string) => boolean
+}
 
 @Injectable()
 export class WalnutAdminPipePattern implements PipeTransform<unknown, string> {
   constructor(
-    private readonly pattern: RegExp,
+    private readonly matcher: IWalnutAdminPipeValueMatcher,
     private readonly expected: string,
     private readonly options: { required: boolean } = { required: true },
   ) {}
@@ -30,7 +38,7 @@ export class WalnutAdminPipePattern implements PipeTransform<unknown, string> {
       )
     }
 
-    if (typeof value !== 'string' || !this.pattern.test(value)) {
+    if (typeof value !== 'string' || !this.matcher.test(value)) {
       throw new WalnutAdminExceptionRequestDataError(
         `type: ${metadata.type}; field: ${metadata.data}; expected: ${this.expected}`,
       )
@@ -40,13 +48,18 @@ export class WalnutAdminPipePattern implements PipeTransform<unknown, string> {
   }
 }
 
-/** sys_device.device_id = HMAC-SHA256(fingerprint) hex（device.repo.service getDeviceIdByFingerprint）→ 固定 64 位 hex */
-const DEVICE_ID_PATTERN = /^[0-9a-f]{64}$/i
-
+/**
+ * sys_device.device_id —— **服务端签发**的 d1_ + 32 位小写 hex（B5）。
+ *
+ * 判据的唯一真源是 @walnut-server/const/app/device 的 isValidDeviceId（与 DeviceGuard、
+ * device/initial 的签发腿、migration 的 CHECK 同一形态）：这里只做转发，不再抄正则。
+ * 改造前这里按 64 位 hex 校验 —— 而 device_id 早已是随机 d1_ 值，于是四个 :deviceId
+ * 路由（改名 / 锁 / 解锁 / 强制下线）对真实设备**恒 40099**。
+ */
 @Injectable()
 export class WalnutAdminPipeDeviceId extends WalnutAdminPipePattern {
   constructor() {
-    super(DEVICE_ID_PATTERN, '64-char hex string (HMAC-SHA256 of device fingerprint)')
+    super({ test: isValidDeviceId }, `${WALNUT_DEVICE_ID_PREFIX}<32 lowercase hex> (server-issued device id)`)
   }
 }
 

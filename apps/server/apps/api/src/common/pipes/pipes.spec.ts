@@ -55,19 +55,24 @@ describe('pipes：WalnutAdminPipeParamEnum（required:false 缺省放行修复�
   })
 })
 
-describe('pipes：WalnutAdminPipeDeviceId（sys_device.device_id = HMAC-SHA256 hex 64 位）', () => {
+describe('pipes：WalnutAdminPipeDeviceId（sys_device.device_id = 服务端签发 d1_ + 32 位小写 hex）', () => {
   const pipe = new WalnutAdminPipeDeviceId()
-  const valid = 'a'.repeat(64)
+  const valid = `d1_${'a'.repeat(32)}`
 
-  it('64 位 hex 放行（大小写不敏感）', () => {
+  it('服务端签发的形态放行（大小写敏感：hex 必须小写）', () => {
     expect(pipe.transform(valid, PARAM_META)).toBe(valid)
-    expect(pipe.transform(valid.toUpperCase(), PARAM_META)).toBe(valid.toUpperCase())
+    expect(pipe.transform(`d1_${'0123456789abcdef'.repeat(2)}`, PARAM_META)).toBe(`d1_${'0123456789abcdef'.repeat(2)}`)
+    expect(errCodeOf(() => pipe.transform(`d1_${'A'.repeat(32)}`, PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
   })
 
-  it('长度/字符集/路径 payload 一律 40099', () => {
-    expect(errCodeOf(() => pipe.transform('short', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform(`${valid}0`, PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
-    expect(errCodeOf(() => pipe.transform('../../etc/passwd'.padEnd(64, 'x'), PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+  it('旧形态（64 位 hex）/ 长度 / 字符集 / 路径 payload 一律 40099', () => {
+    // 这条是批次 11 的 P0 根因：管道仍按 64 位 hex 校验，而 device_id 早已是 d1_ 值 ⇒
+    // /system/user/device 的四个 :deviceId 路由（改名 / 锁 / 解锁 / 强制下线）对真实设备恒 40099
+    expect(errCodeOf(() => pipe.transform('a'.repeat(64), PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expect(errCodeOf(() => pipe.transform(`d1_${'a'.repeat(31)}`, PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expect(errCodeOf(() => pipe.transform(`d1_${'a'.repeat(33)}`, PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expect(errCodeOf(() => pipe.transform('d1_', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    expect(errCodeOf(() => pipe.transform('../../etc/passwd', PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
     expect(errCodeOf(() => pipe.transform(undefined, PARAM_META))).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
   })
 })

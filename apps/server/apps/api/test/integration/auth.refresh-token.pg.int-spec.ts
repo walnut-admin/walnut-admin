@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
 import { AuthRefreshRepositoryService, AuthRefreshSharedService } from '@walnut-server/auth'
 import { WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
@@ -30,6 +30,18 @@ import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/crea
  * 注意：本 spec 不调用全局 purge（pg.purge.int-spec 对集成库做过期行计数断言），
  * 过期行在本文件 afterAll 随 user CASCADE 清场。
  */
+/**
+ * 设备业务键：必须是服务端签发的形态（d1_ + 32 位小写 hex）—— migration 的
+ * ck_device_device_id_form 会拦旧形态（64 位 hex / 任意可读标签）。
+ *
+ * 标签到 id 的映射是确定性的：插入与断言用同一标签即得同一个 id，无需在两个地方各写一遍
+ * 字面量。
+ */
+function devId(label: string) {
+  const digest = createHash('sha256').update(label).digest('hex').slice(0, 32)
+  return `d1_${digest}`
+}
+
 describe('B7b auth_refresh_token (on real PG)', () => {
   let app: INestApplication
   let pgDataSource: DataSource
@@ -90,7 +102,7 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     ]) {
       await pgDataSource.query(
         'INSERT INTO sys_device (device_name, device_id, device_info, ip_history) VALUES ($1, $2, $3::jsonb, ARRAY[]::text[])',
-        [unique(`b7-rt-${key}`), `b7-rt-${key}`, '{}'],
+        [unique(`b7-rt-${key}`), devId(`b7-rt-${key}`), '{}'],
       )
     }
 
@@ -130,12 +142,12 @@ describe('B7b auth_refresh_token (on real PG)', () => {
   it('getNewAccessToken 活跃行：revoke-and-insert 轮换（旧行 revoked=rotate + 新行未撤销）并签出新 AT', async () => {
     const jti = unique('b7-rt-live')
     const oldExpiredAt = new Date(Date.now() + 3600_000)
-    await insertToken(jti, 'b7-rt-device-live', oldExpiredAt)
+    await insertToken(jti, devId('b7-rt-device-live'), oldExpiredAt)
 
     // 生产路径在 @WalnutTx 内轮换——这里也用真实事务，
     // 让轮换读腿的悲观写锁（串行化「读校验+撤销+插入」）真正被走到
     const { accessToken: newAT, jti: newJti } = await pgDataSource.transaction(async em =>
-      refreshShared.getNewAccessToken(jti, 'b7-rt-device-live', 'session-1', em))
+      refreshShared.getNewAccessToken(jti, devId('b7-rt-device-live'), 'session-1', em))
 
     // 新 jti 与旧行不同（行级撤销后 cookie 必须换新）
     expect(newJti).toBeTruthy()
@@ -165,18 +177,18 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     expect(newRow.expired_at.getTime()).toBeGreaterThan(oldExpiredAt.getTime())
     // 新行同 user / device（会话延续，只有令牌换轮）
     expect(newRow.user_id).toBe(userId)
-    expect(newRow.device_id).toBe('b7-rt-device-live')
+    expect(newRow.device_id).toBe(devId('b7-rt-device-live'))
   })
 
   it('revoke-and-insert 顺序重放：轮换成功后旧行 jti 再 getNewAccessToken → 40102（行级撤销拦截）', async () => {
     // HTTP 层等价面：客户端 cookie 里的 jti 在轮换后被换新，旧 jti 重放等价于
     // 「持已撤销行再换」—— service 层直测旧行 jti 的后续轮换即死
     const jti = unique('b7-rt-replay')
-    await insertToken(jti, 'b7-rt-device-replay', new Date(Date.now() + 3600_000))
+    await insertToken(jti, devId('b7-rt-device-replay'), new Date(Date.now() + 3600_000))
 
     // 第一次轮换：旧行撤销 + 新行插入
     const { jti: newJti } = await pgDataSource.transaction(async em =>
-      refreshShared.getNewAccessToken(jti, 'b7-rt-device-replay', 'session-replay', em))
+      refreshShared.getNewAccessToken(jti, devId('b7-rt-device-replay'), 'session-replay', em))
     expect(newJti).not.toBe(jti)
 
     const oldRow = await readToken(jti)
@@ -184,36 +196,36 @@ describe('B7b auth_refresh_token (on real PG)', () => {
 
     // 旧行 jti 再轮换（顺序重放）→ 锁内读到撤销行 → 受控 40102
     await expect(pgDataSource.transaction(async em =>
-      refreshShared.getNewAccessToken(jti, 'b7-rt-device-replay', 'session-replay', em)))
+      refreshShared.getNewAccessToken(jti, devId('b7-rt-device-replay'), 'session-replay', em)))
       .rejects
       .toThrow(WalnutAdminExceptionRefreshTokenExpired)
 
     // 重放无副作用：旧行保持撤销、新行未被波及（无第三次插入）
     const rows: Array<{ c: number }> = await pgDataSource.query(
       'SELECT count(*)::int AS c FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
-      [userId, 'b7-rt-device-replay'],
+      [userId, devId('b7-rt-device-replay')],
     )
     expect(rows[0].c).toBe(2)
 
     // 现役行（新 jti）合法续期不受影响：再轮换一次成功、产生第三个 jti
     const second = await pgDataSource.transaction(async em =>
-      refreshShared.getNewAccessToken(newJti, 'b7-rt-device-replay', 'session-replay', em))
+      refreshShared.getNewAccessToken(newJti, devId('b7-rt-device-replay'), 'session-replay', em))
     expect(second.jti).not.toBe(newJti)
   })
 
   it('过期行：getNewAccessToken 的 revoke 兜底腿 + rotate 在同一事务里可整体回滚', async () => {
     const jti = unique('b7-rt-expired')
-    await insertToken(jti, 'b7-rt-device-rb', new Date(Date.now() - 3600_000))
+    await insertToken(jti, devId('b7-rt-device-rb'), new Date(Date.now() - 3600_000))
 
     // 同事务里先撤第二台设备的行（revoke 腿），再走过期行的 revoke+throw 路径 ——
     // 抛错令事务回滚，两腿都不落库（过期判定先于轮换腿，无新行插入）
     const jtiOther = unique('b7-rt-other')
-    await insertToken(jtiOther, 'b7-rt-device-rb2', new Date(Date.now() + 3600_000))
+    await insertToken(jtiOther, devId('b7-rt-device-rb2'), new Date(Date.now() + 3600_000))
 
     await expect(pgDataSource.transaction(async (em) => {
-      await refreshShared.revokeRTForUserDevice(userId, 'b7-rt-device-rb2', em)
+      await refreshShared.revokeRTForUserDevice(userId, devId('b7-rt-device-rb2'), em)
 
-      await expect(refreshShared.getNewAccessToken(jti, 'b7-rt-device-rb', 'session-2', em))
+      await expect(refreshShared.getNewAccessToken(jti, devId('b7-rt-device-rb'), 'session-2', em))
         .rejects
         .toThrow(WalnutAdminExceptionRefreshTokenExpired)
 
@@ -227,7 +239,7 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     expect(expiredRow.encrypted_token).toBe(`enc-${jti}`)
     const rows: Array<{ c: number }> = await pgDataSource.query(
       'SELECT count(*)::int AS c FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
-      [userId, 'b7-rt-device-rb'],
+      [userId, devId('b7-rt-device-rb')],
     )
     expect(rows[0].c).toBe(1)
 
@@ -238,9 +250,9 @@ describe('B7b auth_refresh_token (on real PG)', () => {
 
   it('过期行路径提交：revoke 兜底落库（revoke + throw 同事务提交后行被撤销）', async () => {
     const jti = unique('b7-rt-expired-commit')
-    await insertToken(jti, 'b7-rt-device-commit', new Date(Date.now() - 60_000))
+    await insertToken(jti, devId('b7-rt-device-commit'), new Date(Date.now() - 60_000))
 
-    await expect(refreshShared.getNewAccessToken(jti, 'b7-rt-device-commit', 'session-3', pgDataSource.manager))
+    await expect(refreshShared.getNewAccessToken(jti, devId('b7-rt-device-commit'), 'session-3', pgDataSource.manager))
       .rejects
       .toThrow(WalnutAdminExceptionRefreshTokenExpired)
 
@@ -249,7 +261,7 @@ describe('B7b auth_refresh_token (on real PG)', () => {
   })
 
   it('generateRefreshToken：新设备插入（PK uuidv7 由 DB 生成）；同设备未撤销再签 → DuplicateSignIn', async () => {
-    const deviceId = 'b7-rt-device-key'
+    const deviceId = devId('b7-rt-device-key')
     const sessionId = 'session-gen'
 
     const jti = await refreshShared.generateRefreshToken(userId, deviceId, sessionId, pgDataSource.manager)
@@ -270,7 +282,7 @@ describe('B7b auth_refresh_token (on real PG)', () => {
   })
 
   it('F-26 部分唯一索引：同 (user, device) 第二条现役行 23505；撤销后可再插（多行历史不受影响）', async () => {
-    const deviceId = 'b7-rt-device-active-uniq'
+    const deviceId = devId('b7-rt-device-active-uniq')
 
     await insertToken(unique('b7-rt-uniq-a'), deviceId, new Date(Date.now() + 3600_000))
 
@@ -298,8 +310,8 @@ describe('B7b auth_refresh_token (on real PG)', () => {
     const expiredJti = unique('b7-rt-find-expired')
     const liveJti = unique('b7-rt-find-live')
     // 两台设备各一条现役行（F-26 部分唯一索引下同设备不能有两条未撤销行）
-    await insertToken(expiredJti, 'b7-rt-device-find-expired', new Date(Date.now() - 5000))
-    await insertToken(liveJti, 'b7-rt-device-find-live', new Date(Date.now() + 3600_000))
+    await insertToken(expiredJti, devId('b7-rt-device-find-expired'), new Date(Date.now() - 5000))
+    await insertToken(liveJti, devId('b7-rt-device-find-live'), new Date(Date.now() + 3600_000))
 
     const expired = await refreshRepo.findExpiredTokens(new Date())
     const jtis = expired.map(r => r.jti)
@@ -310,10 +322,10 @@ describe('B7b auth_refresh_token (on real PG)', () => {
 
   it('device_id 业务键 FK CASCADE：删设备连带清令牌（Q5 定案语义）', async () => {
     const jti = unique('b7-rt-cascade')
-    await insertToken(jti, 'b7-rt-device-cascade', new Date(Date.now() + 3600_000))
+    await insertToken(jti, devId('b7-rt-device-cascade'), new Date(Date.now() + 3600_000))
     expect((await readToken(jti)).encrypted_token).toBeTruthy()
 
-    await pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', ['b7-rt-device-cascade'])
+    await pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [devId('b7-rt-device-cascade')])
     expect(await refreshRepo.findByJti(jti)).toBeNull()
   })
 })

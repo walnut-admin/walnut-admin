@@ -26697,10 +26697,6 @@
       "SysDeviceDTOInitialRequest": {
         "type": "object",
         "properties": {
-          "deviceName": {
-            "type": "string",
-            "title": "device name, normally cannot change"
-          },
           "deviceInfo": {
             "title": "device user agent information",
             "allOf": [
@@ -26740,7 +26736,6 @@
           }
         },
         "required": [
-          "deviceName",
           "deviceInfo",
           "hardwareInfo",
           "sr",

@@ -20,11 +20,13 @@ import { makeMonitorState, makeSeed8 } from './helpers/factories'
  * 在线状态自建自清：state 端点 upsert `app_monitor_user`；force-quit 前手插一行
  * auth_refresh_token（user+device 维度），踢完断言 revoked 落库。
  *
- * 批次 8 / B6（行键归属，安全修复）—— 本文件的三条新钉：
- * 1. **行键 = 服务端从 Cookie 解析的 deviceId**：body 的 visitorId 只作校验，
- *    且校验是可计算的（`HMAC(visitorId) === deviceId`）⇒ 真实客户端必须把**自己的
- *    指纹**（= axios FINGERPRINT 头那个值，测试里是 `client.fingerprint`）填进 body。
- * 2. **劫持无效**：拿别人的指纹上报 ⇒ 40099，且受害者那一行一个字段都不动。
+ * 批次 8 / B6（行键归属，安全修复）+ 批次 11 / B5 收尾（校验口径改写）—— 本文件的三条钉：
+ * 1. **行键 = 服务端从 Cookie 解析的 deviceId**：body 的 visitorId 只作校验。真实客户端
+ *    必须把**自己的指纹**（= axios FINGERPRINT 头那个值，测试里是 `client.fingerprint`）
+ *    填进 body —— 但那不再是「可计算等式」（B5 之后 deviceId 是服务端随机签发的，指纹与
+ *    身份之间没有可计算关系），而是「与本设备已存行比」。
+ * 2. **同一设备不能中途换指纹**：本设备首写登记了 A，第二次上报 B ⇒ 40099，且已存行
+ *    一个字段都不动（判据见 AppMonitorUserService.updateState 的注释）。
  * 3. **body 的 deviceId 不再可写**：DTO 白名单摘除 + forbidNonWhitelisted ⇒ 40099。
  *
  * 负对照：把 service 的 filter 改回 `{ visitorId }`，第 2 条会红（攻击者会把受害者的行
@@ -53,6 +55,8 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
   let guest: WalnutApiClient
 
   const seed8 = makeSeed8()
+  /** 与 api/guest 都无关的第三个指纹：验证「同设备换指纹」被拒的那条腿 */
+  const ATTACKER_FINGERPRINT = `vis-${seed8}-attacker`
   let fixture: WalnutRootUserFixture | null = null
   let monitorIdA = ''
   /** force-quit 用例的「第二设备」（同用户）—— 被 admin-kick 后断言 AT 立即失效 */
@@ -114,8 +118,9 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
    * Sign Free，签名头被忽略但无害）。无 AT 的匿名上报另有用例 —— 体里带 userId 也
    * 必须落 NULL。
    *
-   * B6：`visitorId` 必须是**该客户端自己的指纹**（`client.fingerprint`，即 axios
-   * FINGERPRINT 头携带的同一个值）—— 服务端用 `HMAC(visitorId) === deviceId` 校验。
+   * B6 / B5 收尾：`visitorId` 必须是**该客户端自己的指纹**（`client.fingerprint`，即 axios
+   * FINGERPRINT 头携带的同一个值）—— 服务端拿它与「本设备已存行的 visitor_id」比，
+   * 首写即登记，之后不一致就 40099。
    */
   async function createOnlineMonitorA(client: WalnutApiClient = api): Promise<string> {
     const res = await client.root('POST', client.apiPath('/app/monitor/user/state'), makeMonitorState({
@@ -150,13 +155,15 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     expect(rows[0].current_router).toBe('/dashboard')
   })
 
-  it('B6 负对照：拿别人的指纹上报 ⇒ 40099，受害者那一行一个字段都不动', async () => {
+  it('B5 收尾负对照：同一设备第二次上报**不同指纹** ⇒ 40099，已存行一个字段都不动', async () => {
     monitorIdA = await createOnlineMonitorA()
 
-    // 攻击者（guest，另一台设备）把受害者的指纹塞进 body —— 旧实现会按这个指纹找到
-    // 受害者那一行，并把该行的 device_id 改写成 guest 的设备
-    const hijack = await guest.anon('POST', guest.apiPath('/app/monitor/user/state'), makeMonitorState({
-      visitorId: api.fingerprint,
+    // 这台设备首写已经登记了 api.fingerprint；现在换成别人的指纹再报一次。
+    // 判据是「与本设备已存行比」——B5 把 deviceId 改成服务端随机签发后，
+    // `HMAC(指纹) === deviceId` 这类可计算等式对所有真实客户端都恒假（那正是批次 11
+    // 修掉的每次心跳 40099），所以「已存行」是唯一还站得住的判据。
+    const hijack = await api.anon('POST', api.apiPath('/app/monitor/user/state'), makeMonitorState({
+      visitorId: ATTACKER_FINGERPRINT,
       auth: true,
       focus: true,
       currentRouter: '/pwned',
@@ -171,13 +178,6 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     expect(rows[0].device_id).toBe(api.deviceId)
     expect(rows[0].visitor_id).toBe(api.fingerprint)
     expect(rows[0].current_router).toBe('/dashboard')
-
-    // 攻击者自己那一行也没被建出来（拒绝发生在写库之前）
-    const attackerRows: Array<{ id: string }> = await api.pgDataSource.query(
-      'SELECT id FROM app_monitor_user WHERE device_id = $1',
-      [guest.deviceId],
-    )
-    expect(attackerRows).toHaveLength(0)
   })
 
   it('B6：body 里的 deviceId 不再可写（wire 白名单摘除 ⇒ 40099）', async () => {

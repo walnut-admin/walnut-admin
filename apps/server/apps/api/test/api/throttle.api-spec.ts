@@ -31,7 +31,7 @@ describe('F 段：Throttle —— device/initial 4 次/60s（动态覆盖 + 内�
       {
         // device_name 有唯一约束（uq_device_name）：名字必须逐次唯一，重复名撞 23505 后被
         // service 的 catch-all 吞掉改抛 40605（本专项实测：截断指纹作名字时会踩中）
-        deviceName: `throttle-spec-${fingerprint}`,
+        // B5 / P4：deviceName 由服务端生成，请求面不再带（带上来即 40099）
         deviceInfo: {},
         hardwareInfo: {},
         sr: { height: 1080, width: 1920 },

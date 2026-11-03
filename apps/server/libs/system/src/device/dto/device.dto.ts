@@ -202,7 +202,13 @@ export function assembleSysDevice(entity: SysDeviceEntity) {
 }
 
 // initial
-export class SysDeviceDTOInitialRequest extends RealPickType(SysDeviceDTOSafe, ['deviceName', 'sr', 'vp', 'hardwareInfo', 'deviceInfo', 'private'] as const) {
+//
+// P4（批次 11 / B5 收尾）：`deviceName` 从入参**摘除** —— B5 起设备名由**服务端生成**
+// （`<设备类型>_<8 位随机 hex>`，见 SysDeviceService.buildServerDeviceName）。留一个
+// 「可传但无效」的字段等于让契约撒谎；摘除后全局 ValidationPipe（whitelist +
+// forbidNonWhitelisted）会把仍带该字段的请求判成 40099，客户端必须真的改。
+// 名字的唯一性由签发方保证（uq_device_name 全局唯一），入参永远不能决定它。
+export class SysDeviceDTOInitialRequest extends RealPickType(SysDeviceDTOSafe, ['sr', 'vp', 'hardwareInfo', 'deviceInfo', 'private'] as const) {
   constructor(partial?: Partial<SysDeviceDTOInitialRequest>) {
     super()
     Object.assign(this, partial)

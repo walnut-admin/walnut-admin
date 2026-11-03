@@ -116,8 +116,9 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
     expect(item.deviceId).toBe(api.deviceId)
     expect(item.current).toBe(true)
     expect(item.locked).toBe(false)
-    // bootstrap initial 的 deviceName 是 `api-spec-xxxxxxxx`
-    expect(item.deviceName).toContain('api-spec-')
+    // B5 起 deviceName 由**服务端生成**：`<设备类型>_<8 位小写 hex>`（不是客户端载荷里的
+    // `api-spec-xxxxxxxx`）。批次 11 修掉了这条陈旧断言（它断言客户端命名仍然生效）。
+    expect(item.deviceName).toMatch(/^desktop_[0-9a-f]{8}$/)
     // Windows Chrome UA → DESKTOP
     expect(item.deviceType?.toUpperCase()).toBe('DESKTOP')
   })
@@ -139,7 +140,7 @@ describe('C 段：system/user/device list/update-name/lock/force-quit（真实 H
     expect(bodyOf<{ data: UserDeviceListItem[] }>(listRes).data.data[0].deviceName).toBe(newName)
   })
 
-  it('update-name 非法 deviceId → 40099（device_id 形态管道：HMAC-SHA256 hex 64 位；四个 :deviceId 端点同管道，代表性钉一处）', async () => {
+  it('update-name 非法 deviceId → 40099（device_id 形态管道：服务端签发 d1_+32 hex；四个 :deviceId 端点同管道，代表性钉一处）', async () => {
     const res = await api.root('PUT', api.apiPath('/system/user/device/update-name/not-a-device-id'), {
       deviceName: 'x',
     })

@@ -1,6 +1,6 @@
 import type { INestApplication } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
 import { SchedulerRegistry } from '@nestjs/schedule'
 import { AuthRefreshTokenPgPurgeService } from '@walnut-server/auth'
@@ -17,6 +17,18 @@ import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/crea
  * 直接调 `purgeExpiredRefreshTokens()`（定时触发与手动触发走同一方法体）；
  * FK 依赖的 sys_user / sys_device 用 raw SQL 播种最小行。
  */
+/**
+ * 设备业务键：必须是服务端签发的形态（d1_ + 32 位小写 hex）—— migration 的
+ * ck_device_device_id_form 会拦旧形态（64 位 hex / 任意可读标签）。
+ *
+ * 标签到 id 的映射是确定性的：插入与断言用同一标签即得同一个 id，无需在两个地方各写一遍
+ * 字面量。
+ */
+function devId(label: string) {
+  const digest = createHash('sha256').update(label).digest('hex').slice(0, 32)
+  return `d1_${digest}`
+}
+
 describe('AuthRefreshTokenPgPurgeService (on real PG)', () => {
   let app: INestApplication
   let pgDataSource: DataSource
@@ -63,7 +75,7 @@ describe('AuthRefreshTokenPgPurgeService (on real PG)', () => {
     await cacheService.del(CRON_LOCK_KEY)
 
     // FK 依赖：auth_refresh_token.user_id → sys_user、device_id → sys_device(device_id)
-    deviceBusinessKey = `purge-spec-${seed}`
+    deviceBusinessKey = devId(`purge-spec-${seed}`)
     await pgDataSource.query(
       'INSERT INTO sys_device (device_name, device_id, device_info, ip_history) VALUES ($1, $2, $3::jsonb, ARRAY[]::text[])',
       [`purge-spec-device-${seed}`, deviceBusinessKey, '{}'],

@@ -121,7 +121,8 @@ export class WalnutApiClient {
       method: 'POST',
       url: client.apiPath('/system/device/initial'),
       body: {
-        deviceName: `api-spec-${fingerprint.slice(0, 8)}`,
+        // 批次 11 / P4：`deviceName` 已从 wire 契约摘除（服务端生成），再发会被
+        // whitelist + forbidNonWhitelisted 判成 40099。
         deviceInfo: {},
         hardwareInfo: {},
         sr: { height: 1080, width: 1920 },
