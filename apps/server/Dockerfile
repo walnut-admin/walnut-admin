@@ -37,5 +37,14 @@ RUN rm -rf /app/env-local /app/env-encrypted /app/.turbo /app/.vscode /app/docs 
 
 EXPOSE 3000
 
+# 只有**一个**入口：api。worker 不需要第二个 stage / target，镜像保持单层单 CMD ——
+# 依据（batch-3 R1 实测，reports/batch-3/r1-verification.md §2.1）：同一次 `nest build api` 已经把
+# dist/apps/worker/src/main.js 一起产出了（infra/nest/prod.json:52 的 filenames 含 apps/worker/src；
+# SWC 的落点 = 相对 apps/server 的路径镜像，与 tsconfig 的 include 无关），
+# api 用到的 i18n / views 资产也由 api 与 worker 两个 project 的 assets 拷进**同一份** dist。
+# 所以 compose 里的 worker service 只是覆盖 command（deploy/docker-compose.yml），与 api 共用本镜像；
+# worker 没有 HTTP 监听，EXPOSE 3000 对它无意义但不影响。
+#
 # prod 构建输出入口：dist/apps/api/src/main.js（源码在 apps/api/src/，见 infra/nest/prod.json）
+# worker 入口：dist/apps/worker/src/main.js（compose 的 worker service 用 command 覆盖本行）
 CMD ["node", "dist/apps/api/src/main.js"]

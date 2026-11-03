@@ -388,6 +388,48 @@ jobs:
         working-directory: apps/server
         run: pnpm openapi:check
 
+      # worker 生产面冒烟（batch-3 r2）。为什么必须在这里：worker 的失败是**静默的** ——
+      # cron 没挂上时 api 照常 200、/health/ready 照过，部署脚本与 post-verify 都看不见。
+      # 唯一现成的探针是 apps/worker/src/main.ts:34 那行 `cron jobs: N`，不用改代码。
+      #
+      # 四个坑（2026-11 实测，见 reports/batch-3/r1-verification.md §2.3）：
+      #   ① NODE_ENV 必须是 development：production 下 libs/config/src/utils/pg-app-password.ts:45 的
+      #      守卫会因「开发引导密码」直接拒绝启动（与 openapi:export 同口径，这也是本步只用 dev 的原因）；
+      #   ② 只有本 job 同时有 PG / Redis service + 已迁移的库（quality / build 都没有 services）；
+      #   ③ 进程**不会自己退出**（实测 40s 仍在跑）⇒ 断言命中后 SIGTERM + wait，
+      #      靠 apps/worker/src/main.ts:26 的 enableShutdownHooks 优雅收场；
+      #   ④ 冷 require 整张依赖图要 ~9s（实测 9.1 / 9.3s，Nest 自身只占 ~1s）⇒ 轮询 40 × 1s 兜底，
+      #      **不要**写成固定 sleep 3（那样在 ubuntu runner 上会随机红）。
+      #
+      # WALNUT_ADMIN_BOOTSTRAP_TASKS=off：否则 worker 启动即跑 6 个 bootstrap 任务（含 rotateAppKey），
+      # CI 里纯属副作用；它只隔离 bootstrap、不影响 cron 注册（ADR 0025），所以计数断言依旧有效。
+      - name: Worker smoke (cron registered)
+        if: env.DOTENVX_KEYS != ''
+        working-directory: apps/server
+        run: |
+          set -euo pipefail
+          # 用**产出镜像 dist 的同一条命令**（nest build api + verify-build-assets）：
+          # 断言的是「生产构建出的 dist 里 worker 能跑」，而不只是「某次构建曾留下过入口文件」。
+          pnpm build
+          log="$(mktemp)"
+          start=$(date +%s)
+          NODE_ENV=development WORKER_STANDALONE=true WALNUT_ADMIN_BOOTSTRAP_TASKS=off \
+            node dist/apps/worker/src/main.js >"$log" 2>&1 &
+          pid=$!
+          # 轮询而不是 sleep：命中即走；进程提前死掉（配置错误 / 连不上库）也立刻退出循环
+          for _ in $(seq 1 40); do
+            if grep -qE 'cron jobs: [1-9][0-9]*' "$log"; then break; fi
+            if ! kill -0 "$pid" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          kill -TERM "$pid" 2>/dev/null || true
+          wait "$pid" 2>/dev/null || true
+          echo "waited $(( $(date +%s) - start ))s for the worker to register cron jobs"
+          tail -n 5 "$log"
+          # 断言：grep 不到 ⇒ exit 1 ⇒ 本步红。注意 `cron jobs: 0` 也必须红 ——
+          # 「进程起来了但一个 cron 都没挂上」正是要抓的缺陷形态，不能放过。
+          grep -E 'cron jobs: [1-9][0-9]*' "$log"
+
       - name: Note skipped OpenAPI check
         if: env.DOTENVX_KEYS == ''
         run: echo "::notice::未配置 ENV_KEYS secret，跳过 OpenAPI 一致性校验（fork PR）"

@@ -26,6 +26,13 @@ services:
     image: ccr.ccs.tencentyun.com/tron1997/backend:${IMG_TAG}
     restart: always
     container_name: walnut-backend
+    environment:
+      # 让位：cron 与 bootstrap 任务改由下面的 worker service 承接。
+      # **必须写在容器 env**（不能只写进 ./env/.env.production）：apps/api/src/app/schedule.composition.ts:24-26
+      # 在**模块定义期**读 process.env，早于 ConfigModule 加载 env 文件 —— 写文件里太晚，
+      # api 照旧注册 ScheduleModule.forRoot()，与 worker 双跑同一批 @Cron（apps/worker/README.md 的「cron 让位机制」）。
+      # 反过来的代价同样是语义：设了它而 worker 没起 = **没有任何 cron tick**（不是延后，是彻底不跑）。
+      - WORKER_STANDALONE=true
     # bind mount 到 config.module.ts 读取的路径（process.cwd()/env-local/.env.production，容器内 /app/env-local/）
     # 与 env_file 注入 process.env 相比，文件缺失会在启动时立即暴露而非静默
     volumes:
@@ -47,6 +54,38 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+
+  # cron / 队列消费从 web 进程分流的第二进程（D3=A：真接线）。
+  # **同一镜像、只换 command**：入口 dist/apps/worker/src/main.js 由 api 的同一次 `nest build api`
+  # 一并产出（apps/server/infra/nest/prod.json:52 的 filenames 含 apps/worker/src），镜像不必有第二个 target。
+  # 单实例约束（ADR 0025）：1 个 api + 0 或 1 个 worker。**不要扩容本服务** ——
+  # @Cron 是进程内定时器，没有分布式锁，两个 worker 会把同一批任务各跑一遍。
+  worker:
+    image: ccr.ccs.tencentyun.com/tron1997/backend:${IMG_TAG}
+    restart: always
+    container_name: walnut-worker
+    # 覆盖镜像 CMD（apps/server/Dockerfile:41 是 api 入口）；cwd 由镜像的 WORKDIR /app 提供。
+    # 不要改成 `pnpm start:worker`：它经 cross-env 注入 env，而 cross-env 是 devDependency，
+    # `pnpm deploy --prod` 的产物里没有。
+    command: ['node', 'dist/apps/worker/src/main.js']
+    environment:
+      # 与 backend 同一条（容器 env，模块定义期求值 —— 见 backend 那段注释）
+      - WORKER_STANDALONE=true
+    volumes:
+      # 与 backend 共用同一份 env（PG / Redis 同源）；文件缺失会在启动时立刻暴露
+      - ./env/.env.production:/app/env-local/.env.production:ro
+      # 日志**单独的宿主目录**：两个进程都往 /app/logs 写 winston-daily-rotate 的按天文件，
+      # 共写同一批文件名会在轮转时互相 rename/截断（backend 挂的是 ./logs）。
+      - ./logs/worker:/app/logs
+    depends_on:
+      # worker 启动即连 PG（TypeORM）与 Redis（Bull + 缓存），与 backend 同口径
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    # **不写 healthcheck**：worker 没有 HTTP 监听（apps/worker/src/main.ts:21 用 createApplicationContext），
+    # 唯一现成的存活信号是日志里的 `cron jobs: N`。`docker compose up -d --wait` 对没有 healthcheck
+    # 的服务只要求 running，所以不写探针也能收敛。
 
   # ---------- 数据层 ----------
   # 单节点 PostgreSQL（ADR 0021 Decision 1：单节点即完整 ACID，不再需要副本集拓扑）。

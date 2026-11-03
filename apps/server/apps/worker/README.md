@@ -13,13 +13,14 @@
 - 跑 `@Cron`（task 域的定时任务、refresh token purge 等）；
 - 消费 Bull 队列（多进程竞争消费是安全的：同一 job 只会被一个 consumer 取走）。
 
-## 启用方式（单容器内）
+## 启用方式（本地 / 单容器内）
 
 前提：镜像仍按 `apps/api` 构建（`pnpm build` / `build:stage`）。api 构建会一并产出
 `dist/apps/worker`（cli 是纯工具、被 `exclude` 挡在 api 构建外；worker 是同一镜像里的可选入口），
 所以默认镜像就带着它，worker 只是可选的启动参数。
-**不做「每个 app 一个容器」**：worker 与 api 共用同一镜像、同一份 `env-local`（PG / Redis 配置
-同源），不要为它单独建 compose 服务或复制一套 env。
+**不做「每个 app 一个镜像 / 一个构建 target」**：worker 与 api 共用同一镜像、同一份 `env-local`
+（PG / Redis 配置同源），镜像只有一个入口 CMD（见 `apps/server/Dockerfile`）；生产编排里它只是
+**同镜像的第二个 service**，见下一节。
 
 在 `apps/server/` 目录下（ConfigModule 用 `process.cwd()` 定位 env）：
 
@@ -43,8 +44,56 @@ WORKER_STANDALONE=true NODE_ENV=production node dist/apps/worker/src/main.js
 ```
 
 启动日志会打印 `worker process started (no HTTP listener); cron jobs: N [...]`。
-顺手起 api 时用 `pnpm start:prod` —— 它**没有**注入让位 env，与 worker 同跑时按上一节给 api
-显式注入 `WORKER_STANDALONE`。
+顺手起 api 时用 `pnpm start:prod` —— 它**没有**注入让位 env，与 worker 同跑时必须给 api
+显式注入 `WORKER_STANDALONE`（见下一节）。
+
+## 生产如何跑（compose）
+
+生产里 worker 是 `deploy/docker-compose.yml` 的一个 service，**与 backend 同一镜像、只覆盖
+`command`**：`node dist/apps/worker/src/main.js`（cwd 由镜像的 `WORKDIR /app` 提供），
+`restart: always`，`depends_on` 的 postgres / redis 都是 `service_healthy`，日志单独挂到
+`./logs/worker`（与 backend 的 `./logs` 分开 —— 两个进程共写同一批按天文件会在
+winston-daily-rotate 轮转时互相 rename）。它**没有 healthcheck**：本入口没有 HTTP 监听，
+`docker compose up -d --wait` 对没有探针的服务只要求 running。
+
+**两处 `WORKER_STANDALONE=true` 都写在 compose 的容器 `environment` 里**（backend 与 worker
+各一条），不能只写进 compose 挂载的那份后端 env 文件：`schedule.composition.ts:24-26` 在
+**模块定义期**求值，早于 ConfigModule 加载 env 文件。backend 那条是「让位」，worker 那条是「承接」。
+
+- **单实例约束**：1 个 api + 0 或 1 个 worker（ADR 0025）。`@Cron` 是进程内定时器、没有分布式锁
+  —— `docker compose up -d --scale worker=2` 会把同一批任务各跑一遍。
+- **要关 worker，就连 backend 那条 env 一起撤**：只删 worker service、却留着 backend 的
+  `WORKER_STANDALONE=true` ⇒ api 不注册 `ScheduleModule`、worker 又不存在 = **零 `@Cron` tick**
+  （见下面「部署契约」）。
+- **上线后自查**：`docker logs walnut-worker 2>&1 | grep 'cron jobs'` 应看到 `cron jobs: N`（N > 0）；
+  api 的日志里应有 `[WorkerStandalone] … delegated to the worker process` 的让位 warn。
+
+### 冒烟（CI 与本机同一条判据）
+
+`.github/workflows/ci.yml` 的 `openapi` job 末尾有一节「Worker smoke (cron registered)」：
+`pnpm build` 产出 dist（与镜像同一条构建命令）→ 以 `NODE_ENV=development` +
+`WORKER_STANDALONE=true` + `WALNUT_ADMIN_BOOTSTRAP_TASKS=off` 启动
+`dist/apps/worker/src/main.js` → 轮询最多 40s 等日志出现 `cron jobs: <非零>` → SIGTERM 收场。
+**`cron jobs: 0` 也是红的** —— 「进程起来了但一个 cron 都没挂上」正是要抓的缺陷形态。
+
+本机等价做法（在 `apps/server/` 下，需要 PG + Redis + 解密后的 `env-local/.env.development`）：
+
+```bash
+pnpm build
+NODE_ENV=development WORKER_STANDALONE=true WALNUT_ADMIN_BOOTSTRAP_TASKS=off node dist/apps/worker/src/main.js
+# 另开一个终端：约 9s 后应看到 "cron jobs: 7 [...]"；Ctrl-C 退出
+```
+
+三个坑（都是实测）：
+
+1. **`NODE_ENV=production` 会直接拒绝启动**：`libs/config/src/utils/pg-app-password.ts:45` 的开发
+   引导密码守卫 —— 本机冒烟只能用 `development`，生产靠真实的 `DATABASE_PG_APP_PASS`；
+2. **冷 require 整张依赖图要 ~9s**（不是 3 秒）：Nest 自身只占 ~1s，别用固定 `sleep 3` 判；
+3. **进程不会自己退出**：`enableShutdownHooks` 只等 SIGTERM，所以要显式 kill（Windows 下
+   `Stop-Process` 是硬杀、走不到钩子）。
+
+`WALNUT_ADMIN_BOOTSTRAP_TASKS=off` 只隔离 bootstrap 任务、**不影响 cron 注册**，所以计数断言
+依然有效。
 
 ## cron 让位机制（为什么不会双跑）
 
