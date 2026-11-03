@@ -58,3 +58,26 @@ security / app-domain 等域），`apps/api/src` 只剩组合根、wire DTO 与 
 记录。上文「Adding a new backend lib requires updating `apps/server/tsconfig.json` paths only」
 是按当时的语义写的：现在新增 lib 还要同步三份 `infra/nest/*.json` 与三份 `infra/swc/*.swcrc`，
 漏项由 `lib-registration.drift.spec.ts` 拦下。
+
+## 2026-11-03 追记：`packages/platform-node` 的搬迁被实测否决
+
+有一轮提案主张把 `libs/` 里「业务无关的基建」（28 个库）下沉到 `packages/platform-node`，
+理由是与 `platform-any` / `platform-web` 对称。**实测否决了这个做法**，结论不写进配置、只写在这里，
+免得下一轮再从头试一遍：
+
+1. **dist 布局是源文件相对 cwd 的逐字符镜像**。`@swc/cli` 的 `getDest` 决定产物路径；
+   把 `filenames` 指向 `../../packages/...` 之后 **build 仍然 exit 0、`verify-build-assets` 仍然绿**，
+   但产物被写到 `<root>/apps/packages/...`（逃出 `dist`），`start:prod` 直接 MODULE_NOT_FOUND。
+   —— 失败**不在构建期暴露**，这是最危险的一点。
+2. **唯一的开关是全局布尔**：`stripLeadingPaths: true` 能让 `dist/packages` 正确，但
+   `dist/apps/api/src/main.js` 会塌成 `dist/api/src/main.js`，Dockerfile 的 CMD 与 `start:prod` 全废。
+3. **`include` 加跨包路径会连累 assets 校验**：strip root 被上提到工作区根 ⇒ `verify-build-assets` 红；
+   补 `rootDir` 能救绿，但那会变成第 10 个注册面，且 `types:check` 因跳出
+   `apps/server/node_modules` 解析链而爆 TS2307。
+
+**触发条件（出现再重新评估，别提前做）**：出现**第二个 Node 产品**（不是第二个进程 ——
+`apps/worker` 与 `apps/api` 共用同一份 `AppModule`，不构成跨包复用），
+或者决定把后端能力对外发布。那时要走的是「让这两个包自建 CJS dist」的路
+（照 `@walnut/contract` 的样板），而**不是**搬源码；并且第一关必须是
+「tsc 产出 dist 后装饰器元数据与 SWC 等价」的验证 —— 这批库有 25 个文件依赖 Nest 装饰器元数据，
+错了的症状是静默的（接口 200 但字段消失）。
