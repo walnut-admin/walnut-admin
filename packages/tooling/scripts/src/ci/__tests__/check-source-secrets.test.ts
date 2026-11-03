@@ -86,6 +86,11 @@ describe('collectFindings —— 对着真实仓库跑', () => {
   })
 })
 
+// 这两条各自对**真实仓库**做一次全量文本扫描（`lsFilesWithUntracked` + 逐文件读取），是本包最重的
+// 一类用例：单跑 1–2s，而在 `turbo run test` / prepush 的并行负载下实测 **5734ms** —— 默认 5s 会
+// **假红**（批次 14 R2 复现：`Test timed out in 5000ms`，不是断言失败）。同 `check-doc-refs` 的全仓
+// 扫描、`prepush` 的 madge 负对照、`check-workflow-shell` 的做法：集成型用例显式放宽。
+// 放宽的是**等待**，不是断言。
 describe('负对照：未跟踪的新文件也会被扫到（这道门禁的价值全在 push 之前）', () => {
   it('刚写下、还没 git add 的夹具文件同样会命中', () => {
     // 在**真实仓库里**造一个未跟踪文件，跑完立刻删掉（`--others --exclude-standard` 会带上它）
@@ -102,7 +107,7 @@ describe('负对照：未跟踪的新文件也会被扫到（这道门禁的价�
     }
     // 删掉之后必须回到干净 —— 否则说明上面那次探测污染了结论
     expect(collectFindings(REPO_ROOT).findings).toEqual([])
-  })
+  }, 30_000)
 
   it('夹具在别处（临时目录）时不会误报仓库', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'walnut-src-'))
@@ -113,5 +118,5 @@ describe('负对照：未跟踪的新文件也会被扫到（这道门禁的价�
     finally {
       rmSync(dir, { recursive: true, force: true })
     }
-  })
+  }, 30_000)
 })

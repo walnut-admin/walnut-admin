@@ -137,9 +137,12 @@ describe('collectFindings —— 夹具包（负对照）', () => {
 })
 
 describe('collectFindings —— 对着真实仓库跑', () => {
+  // 对真实仓库做全量遍历（每个 workspace 包的 manifest + 逐个 `exports` 目标 stat）：单跑 ~2.3s，
+  // 并行负载下会摸到默认 5s 天花板（批次 14 R2 实测本包同类的 source-secrets 用例在 5734ms 超时）。
+  // 集成型用例显式放宽；放宽的是等待，不是断言。
   it('本仓当前全绿（上了就是绿的）', () => {
     expect(collectFindings().map(f => `${f.rule} :: ${f.detail}`)).toEqual([])
-  })
+  }, 30_000)
 
   it('扫描面非空：确实有包声明了 `exports`（防解析退化后永远绿）', () => {
     const withExports = workspacePackages().filter(p => p.manifest.exports !== undefined)
