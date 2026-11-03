@@ -23,6 +23,16 @@ COMPOSE_DIR="${COMPOSE_DIR:-/home/ubuntu/walnut-admin/deploy}"
 CONTAINER_BACKEND="${CONTAINER_BACKEND:-walnut-backend}"
 CONTAINER_FRONTEND="${CONTAINER_FRONTEND:-walnut-frontend}"
 CONTAINER_NGINX="${CONTAINER_NGINX:-walnut-nginx}"
+# worker 是第二个部署单元（同一镜像、不同 CMD，见 docker-compose.yml 的 worker service）。
+# 它的失败模式是**静默**的：cron 与密钥轮换停摆，而 api 照常 200 —— 所以必须进部署验证。
+# 单机小部署可以不跑 worker，用 RUN_WORKER=0 显式关掉（默认开，宁可报错也不要不报）。
+CONTAINER_WORKER="${CONTAINER_WORKER:-walnut-worker}"
+RUN_WORKER="${RUN_WORKER:-1}"
+
+CHECKED_CONTAINERS="$CONTAINER_BACKEND $CONTAINER_FRONTEND $CONTAINER_NGINX"
+if [ "$RUN_WORKER" != "0" ]; then
+  CHECKED_CONTAINERS="$CHECKED_CONTAINERS $CONTAINER_WORKER"
+fi
 
 FRONT_DOMAIN="${FRONT_DOMAIN:-www.walnut-admin.com}"
 API_DOMAIN="${API_DOMAIN:-api.walnut-admin.com}"
@@ -59,7 +69,7 @@ die() {
 CONTAINERS_BAD=''
 check_containers() {
   local c state status restarts bad='' err
-  for c in "$CONTAINER_BACKEND" "$CONTAINER_FRONTEND" "$CONTAINER_NGINX"; do
+  for c in $CHECKED_CONTAINERS; do
     # **不要 `2>/dev/null`**（2026-09-30 实测的第三个坑）：原来把 docker 的报错丢掉、只留一个
     # 自己编的 `missing`，于是"inspector 失败"和"容器真不存在"看起来一模一样，排查被带偏两轮。
     # 现在保留 stderr 并把它写进失败原因里 —— 判据必须把**原因**带出来。
@@ -92,7 +102,7 @@ check_image_tags() {
   local expected c image bad=''
   expected="$(grep -m1 '^IMG_TAG=' .env 2>/dev/null | cut -d= -f2- | tr -d '"')"
   [ -n "$expected" ] || { IMAGE_TAG_BAD=''; return 0; }
-  for c in "$CONTAINER_BACKEND" "$CONTAINER_FRONTEND" "$CONTAINER_NGINX"; do
+  for c in $CHECKED_CONTAINERS; do
     image="$(docker inspect -f '{{.Config.Image}}' "$c" 2>/dev/null || true)"
     case "$image" in
       *":$expected") ;;
