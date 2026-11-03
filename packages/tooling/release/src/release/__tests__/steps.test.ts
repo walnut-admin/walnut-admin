@@ -17,6 +17,7 @@ import {
   releaseBatteryIds,
   releaseBatterySkippedCount,
   releaseBatterySkips,
+  releaseBatterySummary,
 } from '../steps.ts'
 
 describe('releaseBatteryArgvs —— 会跑的那几行', () => {
@@ -113,6 +114,31 @@ describe('电池计数与 id 集合', () => {
   })
 })
 
+/**
+ * 「跳过」在发版侧的口径（SKIP 四态化的第二半）。
+ *
+ * 为什么值得单独一段：`runReleaseBattery` 会真起 pnpm（分钟级），用例碰不到；而它里面
+ * **唯一**把「未验证」报出来的地方就是收尾那两行 —— 那两行的措辞是纯函数算的，可以钉死。
+ * 没有这一段的话，「有未验证项必须分开报、不许说全绿」这条口径就只写在注释里。
+ */
+describe('releaseBatterySummary —— 未验证必须单列', () => {
+  it('全部真跑通过时保持原话（读者不用重新学）', () => {
+    const summary = releaseBatterySummary(26, [])
+    expect(summary.ok).toContain('全绿')
+    expect(summary.warning).toBeNull()
+  })
+
+  it('有未验证项时：分开报数，且**不许**再说全绿', () => {
+    const summary = releaseBatterySummary(24, ['workflows', 'workflows-shell'])
+    expect(summary.ok).toContain('24 条真跑通过')
+    expect(summary.ok).toContain('2 条跳过（未验证）')
+    expect(summary.ok).not.toContain('全绿')
+    expect(summary.warning, '未验证必须有一条显眼的警告').not.toBeNull()
+    expect(summary.warning).toContain('workflows / workflows-shell')
+    expect(summary.warning).toContain('≠ 通过')
+  })
+})
+
 describe('顺序不变式：门禁必须在打 tag **之前**', () => {
   // 从**本用例自己的位置**推模块路径，而不是写死仓库相对路径：
   // 写死的那版在「release 从 packages/tooling/scripts 拆成独立包」时当场失效（ENOENT），
@@ -197,5 +223,33 @@ describe('release.md 的电池表与 RELEASE_BATTERY 对账', () => {
       else
         expect(row.text, `${row.id} 在电池里会跑，文档那行不该带 ⏭️`).not.toContain('⏭️')
     }
+  })
+})
+
+/**
+ * 推送提示的**防腐**：段数不许写死。
+ *
+ * 那句提示是打到用户屏幕上的（`git push` 之前那一步），而门禁表一直在加段 —— 「11 段并行」
+ * 与当时的实际段数已经差了不止一倍，且没有任何门禁拦得住这种腐烂。判据式措辞（「段表在 …，
+ * 并行执行、每段报耗时、跳过与通过分开报」）里没有数字，就没有东西会烂；真源永远是
+ * `packages/tooling/scripts/src/ci/prepush.ts` 的 `PREPUSH_GATES`。
+ */
+describe('推送提示 —— 段数写死会腐烂', () => {
+  const SOURCE_PATH = path.resolve(import.meta.dirname, '../steps.ts')
+  const source = readFileSync(SOURCE_PATH, 'utf8')
+
+  it('提到 prepush 的行里没有写死的段数（段数以 prepush.ts 的表为准）', () => {
+    const hintLines = source.split('\n').filter(line => line.includes('prepush'))
+    expect(hintLines.length, '负对照：一句都没提到 prepush 时，这条断言等于没写').toBeGreaterThan(0)
+    for (const line of hintLines)
+      expect(line, `这句里写死了段数：${line.trim()}`).not.toMatch(/\d+\s*段/)
+  })
+
+  it('推送提示里写明「跳过与通过分开报」（否则未验证会被读成通过）', () => {
+    const start = source.indexOf('远端 pre-receive 之前')
+    expect(start, '找不到推送提示的首句 —— 提示被重写时请同步这条用例').toBeGreaterThan(-1)
+    const hint = source.slice(start, start + 700)
+    expect(hint).toContain('跳过与通过分开报')
+    expect(hint, '提示里又出现了写死的段数').not.toMatch(/\d+\s*段/)
   })
 })

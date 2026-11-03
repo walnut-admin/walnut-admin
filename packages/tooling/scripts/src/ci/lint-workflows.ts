@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process'
-import { ViolationError } from '../lib/errors.ts'
-import { err, lineErr, out } from '../lib/log.ts'
+import { SkippedError, ViolationError } from '../lib/errors.ts'
+import { out } from '../lib/log.ts'
 
 /**
  * 校验 .github/workflows/*.yml 与本地 composite action。
@@ -10,20 +10,23 @@ import { err, lineErr, out } from '../lib/log.ts'
  * "跑失败了"的红叉。2026-08-13 到 09-21，本仓 CI 因 steps.if 里出现 secrets
  * 上下文而静默失效五周无人察觉。
  *
- * actionlint 未安装时**跳过**（不阻塞本地 push）；CI 的 workflow-lint.yml
- * 会强制安装并执行，那里才是权威闸门。
+ * actionlint 未安装 ⇒ 抛 `SkippedError`（**退出码 3，不是 0**）：本机**未验证**，不等于通过，
+ * 但也不阻塞本地 push（默认不判红）。CI 的 workflow-lint.yml 会强制安装并执行，那里才是权威闸门。
+ * 上游两个消费方（prepush 的 workflows 段、发版的发版电池）都认 3 并把「跳过」单列 —— 别把这里
+ * 改回 `return`：那会让「没验过」与「验过了」在机器眼里同形。
  * LINK https://github.com/rhysd/actionlint
  *
- * 本文件由根 `scripts/lint-workflows.ts` 收编而来（仓库级脚本的家现在是 @walnut/scripts），
- * 行为一字未改；`pnpm lint:workflows` 指向本目录 bin。
+ * 本文件由根 `scripts/lint-workflows.ts` 收编而来（仓库级脚本的家现在是 @walnut/scripts）；
+ * `pnpm lint:workflows` 指向本目录 bin。
  */
 export function main(): void {
   const probe = spawnSync('actionlint', ['--version'], { encoding: 'utf8', shell: true })
 
   if (probe.error || probe.status !== 0) {
-    lineErr('warning', '未检测到 actionlint，跳过 workflow 校验（CI 中会强制执行）')
-    err('   安装：https://github.com/rhysd/actionlint#download')
-    return
+    throw new SkippedError(
+      '未检测到 actionlint：workflow **未验证**（跳过不等于通过）。权威闸门是 CI 的 '
+      + '.github/workflows/workflow-lint.yml；安装方式见 https://github.com/rhysd/actionlint#download',
+    )
   }
 
   out(`actionlint: ${(probe.stdout || '').trim()}`)

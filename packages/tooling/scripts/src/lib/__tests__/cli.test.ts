@@ -2,7 +2,7 @@
  * `lib/cli.ts` 的用例 —— 钉住**错误 → 退出码**那张表。
  *
  * 为什么值得一条用例：这张表是"哪一类失败 → 哪个码"的**唯一映射点**，而它此前被抄在十几个 bin 里
- * （抄法还不一致）。用例的价值不在"跑通"，而在于它把三态**逐条钉死** —— 谁改映射，这里先红。
+ * （抄法还不一致）。用例的价值不在"跑通"，而在于它把四态**逐条钉死** —— 谁改映射，这里先红。
  *
  * 输出是拦 `fs.writeSync` 而不是 spy 模块内部的函数：`log.ts` 在非 TTY 下走 `fs.writeSync(fd, …)`，
  * 而 **ESM 模块内部调用拦不住**（`vi.spyOn(log, 'writeOut')` 对同模块内的调用无效 —— 实测）。
@@ -13,7 +13,7 @@ import process from 'node:process'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { runCli } from '../cli.ts'
-import { PreconditionError, ViolationError } from '../errors.ts'
+import { PreconditionError, SKIPPED_EXIT_CODE, SkippedError, ViolationError } from '../errors.ts'
 
 describe('runCli —— 错误 → 退出码', () => {
   const originalExitCode = process.exitCode
@@ -62,6 +62,19 @@ describe('runCli —— 错误 → 退出码', () => {
     })
     expect(process.exitCode).toBe(2)
     expect(stderrText()).toBe('✖ 前置条件未满足：产物目录不存在\n')
+  })
+
+  // 「未验证」是第四态：它既不是通过（0），也不是违规（1）或修环境（2）—— 环境里那个工具
+  // 压根没有，这一步**没跑**。退出码必须独立，否则上游（prepush / 发版电池）只能把「没验过」
+  // 读成「验过了」，那正是这次要修的 bug。走 **stdout**：它是正常叙述，不是出事了才看的诊断。
+  it('抛 SkippedError → 3（环境缺失、未验证），打「⏭️」且走 stdout', async () => {
+    await runCli(() => {
+      throw new SkippedError('未检测到 actionlint：workflow **未验证**')
+    })
+    expect(process.exitCode).toBe(SKIPPED_EXIT_CODE)
+    expect(process.exitCode).toBe(3)
+    expect(stdoutText()).toBe('⏭️ 未检测到 actionlint：workflow **未验证**\n')
+    expect(stderrText()).toBe('')
   })
 
   it('抛别的异常 → 1（是**脚本自己**出问题，不该让人去修前置条件），并带上 stack', async () => {

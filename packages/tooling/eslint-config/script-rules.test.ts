@@ -54,9 +54,11 @@ describe('script-exit-code', () => {
   it('正反语料', () => {
     tester.run('script-exit-code', scriptExitCode, {
       valid: [
-        // 三态退出码全用上
+        // 四态退出码全用上（3 = 未验证，SkippedError 的映射值；码本身合法）
         'function main() { return 0 }\nprocess.exit(main())\n',
         'function main() { if (a) return 1; return 2 }\nexport { main }\n',
+        'process.exit(3)\n',
+        'function main() { return 3 }\nprocess.exit(main())\n',
         // 变量形态判不出，不报（本仓 bin 都是 process.exit(main())）
         'process.exit(code)\n',
         // `main` 里嵌套箭头函数返回 -1：那不是退出码
@@ -68,12 +70,12 @@ describe('script-exit-code', () => {
       ],
       invalid: [
         {
-          code: 'process.exit(3)\n',
-          errors: [{ messageId: 'exit', data: { value: '3' } }],
+          code: 'process.exit(4)\n',
+          errors: [{ messageId: 'exit', data: { value: '4' } }],
         },
         {
-          code: 'function main() { return 3 }\nprocess.exit(main())\n',
-          errors: [{ messageId: 'mainReturn', data: { value: '3' } }],
+          code: 'function main() { return 4 }\nprocess.exit(main())\n',
+          errors: [{ messageId: 'mainReturn', data: { value: '4' } }],
         },
         {
           // -1 不是本仓的退出码
@@ -84,10 +86,10 @@ describe('script-exit-code', () => {
     })
   })
 
-  it('`allowed` 可配置（默认是 0/1/2）', () => {
+  it('`allowed` 可配置（默认是 0/1/2/3）', () => {
     tester.run('script-exit-code', scriptExitCode, {
       valid: [
-        { code: 'process.exit(3)\n', options: [{ allowed: [0, 3] }] },
+        { code: 'process.exit(4)\n', options: [{ allowed: [0, 4] }] },
       ],
       invalid: [
         {

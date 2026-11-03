@@ -31,11 +31,21 @@
  * 并行之后**完成顺序不等于表里的顺序**。表里的顺序表达的是「读起来该按什么顺序理解」，
  * 不是依赖关系 —— 表里各段之间**没有任何依赖**（都是只读检查，不产生产物给对方用）。
  * 哪天出现真有依赖的两段，就该把它们合成一段，而不是靠顺序兜。
+ *
+ * ## 三种结局，不是两种
+ *
+ * 一段门禁只有三种可能：**跑过且过了**、**跑过且没过**、**压根没跑**（本机没装 actionlint /
+ * 没有 bash ⇒ 子进程按四态退出码报 3，见 `lib/errors.ts` 的 `SkippedError`）。
+ *
+ * 第三种以前被读成第一种（子进程 exit 0 + 本文件只在失败时回放输出 ⇒ 打的是对勾、汇总说「全部通过」），
+ * 于是推送者以为验过了 —— 那是**机器在说谎**，不是文档没写清。现在：跳过行打 `-` 并注明
+ * `[SKIP 未验证]`，**成功汇总里也单列**，段名逐段列出。默认**不**判红（没装工具的机器不该被
+ * 挡在推送之外），要「未验证即失败」就 `PREPUSH_STRICT=1`。
  */
 
 import process from 'node:process'
-import { runArgs } from '../lib/child-run.ts'
-import { ViolationError } from '../lib/errors.ts'
+import { ChildRunError, runArgs } from '../lib/child-run.ts'
+import { SKIPPED_EXIT_CODE, ViolationError } from '../lib/errors.ts'
 import { err, line, out } from '../lib/log.ts'
 import { getPnpmBin } from '../lib/pnpm-launcher.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
@@ -257,12 +267,54 @@ const DEFAULT_CONCURRENCY = 4
 /** 单段预算：门禁都是分钟以内的活；真卡住要能自己收掉，而不是拖住整次 push。 */
 const GATE_BUDGET_MS = 5 * 60_000
 
+/** 一段门禁的**三种**结局：跑过且过了 / 跑过且没过 / **压根没跑**（环境缺失，未验证） */
+export type GateStatus = 'ok' | 'failed' | 'skipped'
+
 export interface GateResult {
   gate: PrepushGate
-  ok: boolean
+  /**
+   * 一字段表达三态。**刻意不再另留一个 `ok: boolean`** —— 两个字段一旦并存就是两个真源，
+   * 「跳过」迟早被写成 `ok: true`（那正是这次要修的 bug 形态）。
+   */
+  status: GateStatus
   ms: number
   /** 捕获到的完整输出（并行下不直接转播，避免多路输出交织） */
   output: string
+}
+
+/**
+ * 一段门禁的执行出口：抛异常 = 没通过（`ChildRunError.exitCode` 区分 3 = 未验证），正常返回 = 通过。
+ *
+ * 为什么可注入：三态里的「跳过」只有在**子进程真的报 3**时才出现，而现场卸载 actionlint 不现实。
+ * 注入执行器之后，那条分支才有真用例（见 `__tests__/prepush.test.ts` 的 runGates 段）。
+ */
+export type GateExecutor = (gate: PrepushGate, write: (text: string) => void) => Promise<void>
+
+/**
+ * 缺省执行出口：经 `pnpm <argv…>` 跑本段。
+ *
+ * 为什么是工厂而不是常量函数：`getPnpmBin()` 要摸盘，一次 runGates 只该摸一次。
+ * Windows 上也不能直接 `spawn('pnpm', …)`：PATH 上是 `pnpm.cmd`，而 `shell: false` 下 Node 24
+ * 不再把 `.cmd` 当可执行文件解析 ⇒ ENOENT（实测）。走 lib/pnpm-launcher.ts 找那个真 exe，
+ * 它同时保证 argv 不经 cmd.exe（`%VAR%` / `&` 不会被展开）。
+ */
+export function createPnpmGateExecutor(): GateExecutor {
+  const pnpmBin = getPnpmBin()
+  return async (gate, write) => {
+    // argv + followups 是同一段的**一条结论**：顺序执行，任一步非零就整段失败（不继续下一步）
+    for (const argv of [gate.argv, ...(gate.followups ?? [])]) {
+      await runArgs(pnpmBin, argv, {
+        // cwd 必须是**仓库根**：从子目录跑时 `pnpm <脚本>` 会解析到最近那个包的脚本
+        cwd: REPO_ROOT,
+        // 并行下不转播子进程输出（多路交织会糊成一片）；收进缓冲，失败时整段回放
+        output: { write },
+        // 探针（`$ pnpm …` 与心跳）也静音 —— 执行器自己会打印一行结果
+        note: () => {},
+        heartbeatMs: 0,
+        budgetDefaultMs: GATE_BUDGET_MS,
+      })
+    }
+  }
 }
 
 /**
@@ -273,13 +325,10 @@ export async function runGates(
   gates: readonly PrepushGate[],
   onDone: (result: GateResult) => void,
   concurrency: number = DEFAULT_CONCURRENCY,
+  execute: GateExecutor = createPnpmGateExecutor(),
 ): Promise<GateResult[]> {
   const results = new Map<string, GateResult>()
   let next = 0
-  // Windows 上不能直接 `spawn('pnpm', …)`：PATH 上是 `pnpm.cmd`，而 `shell: false` 下 Node 24
-  // 不再把 `.cmd` 当可执行文件解析 ⇒ ENOENT（实测）。走 lib/pnpm-launcher.ts 找那个真 exe，
-  // 它同时保证 argv 不经 cmd.exe（`%VAR%` / `&` 不会被展开）。
-  const pnpmBin = getPnpmBin()
 
   async function worker(): Promise<void> {
     while (next < gates.length) {
@@ -288,27 +337,19 @@ export async function runGates(
         return
       const started = Date.now()
       const chunks: string[] = []
-      let ok = true
+      let status: GateStatus = 'ok'
       try {
-        // argv + followups 是同一段的**一条结论**：顺序执行，任一步非零就整段失败（不继续下一步）
-        for (const argv of [gate.argv, ...(gate.followups ?? [])]) {
-          await runArgs(pnpmBin, argv, {
-            // cwd 必须是**仓库根**：从子目录跑时 `pnpm <脚本>` 会解析到最近那个包的脚本
-            cwd: REPO_ROOT,
-            // 并行下不转播子进程输出（多路交织会糊成一片）；收进缓冲，失败时整段回放
-            output: { write: text => chunks.push(text) },
-            // 探针（`$ pnpm …` 与心跳）也静音 —— 执行器自己会打印一行结果
-            note: () => {},
-            heartbeatMs: 0,
-            budgetDefaultMs: GATE_BUDGET_MS,
-          })
-        }
+        await execute(gate, text => chunks.push(text))
       }
       catch (error) {
-        ok = false
+        // 子进程按**四态**退出码回报（lib/errors.ts）：3 = 环境缺失、这一步没跑。不认 3 的话，
+        // 跳过与失败在汇总里同形 —— 而这正是本文件这次要修的那件事。
+        status = error instanceof ChildRunError && error.exitCode === SKIPPED_EXIT_CODE
+          ? 'skipped'
+          : 'failed'
         chunks.push(error instanceof Error ? error.message : String(error))
       }
-      const result: GateResult = { gate, ok, ms: Date.now() - started, output: chunks.join('') }
+      const result: GateResult = { gate, status, ms: Date.now() - started, output: chunks.join('') }
       results.set(gate.id, result)
       onDone(result)
     }
@@ -320,11 +361,87 @@ export async function runGates(
   return gates.map(gate => results.get(gate.id)!).filter(Boolean)
 }
 
-/** 结果表格里的一行（纯函数，便于用例断言） */
+/**
+ * 结果表格里的一行（纯函数，便于用例断言）。
+ *
+ * 三种标记**刻意用 ASCII 字形**（对勾 / 叉 / 短横）：表格靠 `padStart` 对齐，而 emoji 是**双宽**字符，
+ * 混进去整列会歪（同一条理由见 `lib/log.ts` 的 `MARK` 注释）。
+ * 跳过的行还要在尾巴上写明 `[SKIP 未验证]` —— 一个孤零零的 `-` 会被读成「无关紧要」，
+ * 而这里要表达的恰恰相反：**它没验过**。
+ */
 export function formatLine(result: GateResult): string {
-  const mark = result.ok ? '✓' : '✗'
+  const mark = result.status === 'ok' ? '✓' : result.status === 'failed' ? '✗' : '-'
   const secs = `${(result.ms / 1000).toFixed(1)}s`
-  return `  ${mark} ${secs.padStart(7)}  ${result.gate.label}`
+  const note = result.status === 'skipped' ? '  [SKIP 未验证]' : ''
+  return `  ${mark} ${secs.padStart(7)}  ${result.gate.label}${note}`
+}
+
+/**
+ * 严格开关：`PREPUSH_STRICT=1` ⇒ 有跳过就判红。
+ *
+ * 为什么用环境变量而不是 argv：pre-push 由 lefthook 起（`pnpm --silent prepush`），
+ * **传不了参数**；同族的 `PREPUSH_CONCURRENCY` 已经证明这条路通。
+ * 默认关：没装 actionlint 的机器不该被门禁挡住推送 —— 但「没验过」必须看得见。
+ */
+const STRICT_ENV = 'PREPUSH_STRICT'
+
+function isStrict(): boolean {
+  const value = (process.env[STRICT_ENV] ?? '').trim().toLowerCase()
+  return value === '1' || value === 'true'
+}
+
+/**
+ * 严格模式下「有跳过」该判红的理由；不该判红时返回 `null`。
+ *
+ * 纯函数（读入参，不读 `process.env`）：它是「未验证是否算失败」这条口径的**唯一一句**，
+ * 而口径这种东西必须有用例钉住 —— main() 会真跑整张表，用例碰不到。
+ */
+export function strictFailureMessage(strict: boolean, skippedIds: readonly string[]): string | null {
+  if (!strict || skippedIds.length === 0)
+    return null
+  return `${STRICT_ENV}=1：有 ${skippedIds.length} 段跳过（未验证）—— ${skippedIds.join(', ')}。`
+    + '装上对应的工具后重跑，或去掉这个环境变量（它默认关，只为「谁都不许把未验证当通过」的场景拧开）'
+}
+
+/** 一次 prepush 的**结论**（三态报数 + 跳过名单 + 严格开关的判决） */
+export interface RunSummary {
+  /** 三态报数行（真跑通过 / 跳过未验证）；永远存在，没有跳过时也不含跳过字样 */
+  okLine: string
+  /** 跳过单列行（没有跳过时为 `null`）：段名 + 「跳过不等于通过」+ 权威闸门指向 */
+  skippedLine: string | null
+  /** 严格模式下该判红的理由（非严格 / 无跳过 ⇒ `null`） */
+  strictMessage: string | null
+  failed: GateResult[]
+  skipped: GateResult[]
+}
+
+/**
+ * 把「跑完的那张表」变成「推给用户的那两行 + 一个判决」。
+ *
+ * 为什么抽成纯函数：**跳过必须单列**这条口径只在成功汇总里看得见，而 main() 会真跑整张表
+ * （分钟级、还依赖本机环境），用例碰不到。抽出来之后这条口径有真用例钉住，
+ * 也让「跳过在成功汇总里也可见」不是靠人读代码确认。
+ */
+export function summarizeRun(
+  results: readonly GateResult[],
+  totalSeconds: string,
+  strict: boolean,
+): RunSummary {
+  const failed = results.filter(result => result.status === 'failed')
+  const skipped = results.filter(result => result.status === 'skipped')
+  const passed = results.length - failed.length - skipped.length
+  const skippedIds = skipped.map(result => result.gate.id)
+  // 有跳过时才追加那一段 —— 没有跳过时「0 段跳过」只是噪音；但只要**有**，它就必须出现在汇总里
+  const skippedNote = skipped.length === 0 ? '' : ` / ${skipped.length} 段跳过（未验证）`
+  return {
+    okLine: `${results.length} 段：${passed} 段真跑通过${skippedNote}（总 ${totalSeconds}s）`,
+    skippedLine: skipped.length === 0
+      ? null
+      : `未验证的段：${skippedIds.join(', ')}（本机环境缺失，跳过不等于通过；权威闸门见 .github/workflows/）`,
+    strictMessage: strictFailureMessage(strict, skippedIds),
+    failed,
+    skipped,
+  }
 }
 
 export async function main(): Promise<void> {
@@ -333,21 +450,33 @@ export async function main(): Promise<void> {
   out(`推送前门禁：${PREPUSH_GATES.length} 段，最多并行 ${concurrency} 路（表在 packages/tooling/scripts/src/ci/prepush.ts）`)
 
   const results = await runGates(PREPUSH_GATES, result => out(formatLine(result)), concurrency)
-  const failed = results.filter(r => !r.ok)
   const total = ((Date.now() - started) / 1000).toFixed(1)
+  const summary = summarizeRun(results, total, isStrict())
 
-  if (failed.length === 0) {
-    line('ok', `${results.length} 段全部通过（总 ${total}s）`)
+  if (summary.failed.length === 0) {
+    // 三段式报数：真跑通过 / 跳过未验证（+ 跳过的段名）。**不再说「全部通过」** —— 那是谎。
+    line('ok', summary.okLine)
+    if (summary.skippedLine !== null) {
+      line('skipped', summary.skippedLine)
+      if (summary.strictMessage !== null)
+        throw new ViolationError(summary.strictMessage)
+    }
     return
   }
 
   // 失败才回放输出：成功时那些输出没人看，失败时它是唯一线索
-  for (const result of failed) {
+  for (const result of summary.failed) {
     err(`\n${'─'.repeat(20)} ${result.gate.label} 失败（${(result.ms / 1000).toFixed(1)}s） ${'─'.repeat(20)}`)
     err(`为什么必须有这一段：${result.gate.why}`)
     err(result.output.trimEnd() || '（这一段没有输出，只有非零退出码）')
   }
   // 这一行是**明细**（哪几段、各自耗时），不带标记 —— 唯一那句结论由 `runCli` 打
-  err(`${failed.length}/${results.length} 段失败：${failed.map(r => r.gate.id).join(', ')}（总 ${total}s）`)
-  throw new ViolationError(`${failed.length} 段推送前门禁失败（明细见上）`)
+  err(`${summary.failed.length}/${results.length} 段失败：${summary.failed.map(r => r.gate.id).join(', ')}（总 ${total}s）`)
+  // 已经有失败时结论早就红了，但「还有几段没验过」仍要说 —— 严格口径在这里也只多一行，不改退出码
+  if (summary.skippedLine !== null) {
+    err(summary.skippedLine)
+    if (summary.strictMessage !== null)
+      err(summary.strictMessage)
+  }
+  throw new ViolationError(`${summary.failed.length} 段推送前门禁失败（明细见上）`)
 }

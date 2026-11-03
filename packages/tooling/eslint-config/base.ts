@@ -62,7 +62,7 @@ export default function baseConfig(options: OptionsConfig = {}): WalnutEslintCon
   turboEnvVarsConfig(),
   // 注释里不许有 emoji（纯文字）—— 三个预设共用，理由见 comment-rules.ts 顶部
   commentPolicyConfig(),
-  // 脚本入口的两条形态约定（P1-19）：文件头必须有注释、退出码只能是 0/1/2。
+  // 脚本入口的两条形态约定（P1-19）：文件头必须有注释、退出码只能是 0/1/2/3（四态）。
   // 只作用于 `bin/*.ts` —— 那才是「脚本入口」；规则自身的取舍见 script-rules.ts 顶部。
   {
     files: ['**/bin/*.ts'],

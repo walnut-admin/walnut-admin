@@ -18,17 +18,18 @@ import { execFileSync } from 'node:child_process'
  *
  * ① **GitHub 表达式在 bash 里非法**：`${{ secrets.X }}` 会让 bash 报 `bad substitution` ⇒
  *    先把 `${{ … }}` 换成占位符再验（占位符只是个裸词，语法上合法）；
- * ② **本机可能没有 bash**（Windows 开发者）⇒ 明确打一行 SKIP 并按通过退出（与 `smoke:dist`
- *    同规矩：跳过**不等于**通过，只是不在没有条件的机器上假装红）。CI 的 ubuntu runner 自带 bash，
- *    所以这道闸在 CI 上是真跑的。
+ * ② **本机可能没有 bash**（Windows 开发者）⇒ 抛 `SkippedError`（**退出码 3，不是 0**）：
+ *    跳过**不等于**通过，但也不在没有条件的机器上假装红。上游（prepush 的 workflows-shell 段、
+ *    发版的发版电池）都认 3 并把这一行单列为「跳过（未验证）」。CI 的 ubuntu runner 自带 bash，
+ *    所以这道闸在 CI 上一定是真跑的。
  */
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import process from 'node:process'
 import { parse as parseYaml } from 'yaml'
-import { PreconditionError, ViolationError } from '../lib/errors.ts'
-import { line, out } from '../lib/log.ts'
+import { PreconditionError, SkippedError, ViolationError } from '../lib/errors.ts'
+import { out } from '../lib/log.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
 /** 工作流目录（相对仓库根） */
@@ -133,9 +134,10 @@ export function listWorkflows(root: string = REPO_ROOT): string[] {
 export async function main(): Promise<void> {
   const bash = findBash()
   if (bash === null) {
-    line('skipped', '没找到 bash，跳过 workflow shell 语法检查（设 BASH_PATH 指向 bash 即可启用）')
-    out('  提示：CI 的 ubuntu runner 自带 /bin/bash。跳过**不等于**通过。')
-    return
+    throw new SkippedError(
+      '没找到 bash：workflow 的 shell 块本机**未验证**（跳过不等于通过）。'
+      + '设 BASH_PATH 指向 bash 即可启用；CI 的 ubuntu runner 自带 /bin/bash。',
+    )
   }
 
   const files = listWorkflows()

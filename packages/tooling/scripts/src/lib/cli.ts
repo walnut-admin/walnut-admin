@@ -6,14 +6,18 @@
  * 在这之前，每个 bin 都是一行 `process.exit(main())`，而每个 `main()` 各自
  * `console.error(...)` + `return 1` / `return 2` —— 于是**「哪一类失败 → 哪个退出码」这件事
  * 被抄了十几遍**，且抄法还不一致（有的地方 catch 住自己算，有的地方直接把 2 当返回值）。
- * 现在：
+ * 现在（**四态**：通过 / 违规 / 前置未满足 / **未验证**）：
  *
  * | 抛什么 | 退出码 | 含义 |
  * |---|---|---|
  * | 什么都不抛（正常返回） | **0** | 通过 |
  * | `ViolationError` | **1** | 查出违规（改代码就能过） |
  * | `PreconditionError` | **2** | 前置条件未满足（先修环境再重跑） |
+ * | `SkippedError` | **3** | 环境缺失 ⇒ 这一步**没跑过**（既不是通过也不是违规；装好工具重跑即可） |
  * | 其它（`TypeError` / 语法错） | **1** | **脚本自己**跑出问题了 —— 不该让人去修一个不存在的前置条件 |
+ *
+ * 3 这一档是给「跳过」的：它必须是**可机检的独立码**，否则上游（prepush / 发版电池）只能把
+ * 「没验过」读成「验过了」—— 那正是这道映射存在的意义。谁认 3、谁把 3 当通过，见各消费方的注释。
  *
  * ## 两个刻意的选择
  *
@@ -32,8 +36,8 @@
 
 import process from 'node:process'
 
-import { PreconditionError, ViolationError } from './errors.ts'
-import { lineErr } from './log.ts'
+import { PreconditionError, SKIPPED_EXIT_CODE, SkippedError, ViolationError } from './errors.ts'
+import { line, lineErr } from './log.ts'
 
 /** 一个 CLI 命令的主体：正常返回即通过；失败**抛**，不要自己定退出码 */
 export type CliMain = () => number | void | Promise<number | void>
@@ -54,6 +58,13 @@ export async function runCli(main: CliMain): Promise<void> {
     if (error instanceof ViolationError) {
       lineErr('violation', error.message)
       process.exitCode = 1
+      return
+    }
+    // 「未验证」走 **stdout**：它是正常叙述（这一步按设计没跑），不是出事了的诊断。
+    // 但退出码必须区别于 0 —— 否则「跳过」在机器眼里就是「通过」。
+    if (error instanceof SkippedError) {
+      line('skipped', error.message)
+      process.exitCode = SKIPPED_EXIT_CODE
       return
     }
     // 其余一律 1：这是**脚本自己**出问题，不是让人去修前置条件

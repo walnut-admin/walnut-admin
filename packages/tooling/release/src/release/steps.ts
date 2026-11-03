@@ -12,6 +12,7 @@ import type { ReleaseArgs, SkipGates } from './args.ts'
 import type { Intent } from './intents.ts'
 import type { ReleaseUi } from './ui.ts'
 import { runArgs } from '@walnut/scripts/lib/child-run'
+import { SKIPPED_EXIT_CODE } from '@walnut/scripts/lib/errors'
 import {
   branchIsPushed,
   changedFileCount,
@@ -158,6 +159,25 @@ export function releaseBatteryIds(): string[] {
   return RELEASE_BATTERY.map(step => step.id)
 }
 
+/**
+ * 电池的**收尾结论行**（纯函数：它是「未验证」唯一被报出来的地方，所以值得一条用例钉住）。
+ *
+ * 口径：有未验证项时**必须分开报**，且不许再说「全绿」—— 只说全绿等于把「没跑过」说成「验过了」，
+ * 而那正是 SKIP 四态化要修的那件事。没有未验证项时保持原来那句（形状不变，读者不用重新学）。
+ */
+export function releaseBatterySummary(
+  ranCount: number,
+  unverifiedIds: readonly string[],
+): { ok: string, warning: string | null } {
+  if (unverifiedIds.length === 0)
+    return { ok: `✅ 发版前全量电池全绿（${ranCount} 条）`, warning: null }
+  return {
+    ok: `✅ 发版前全量电池：${ranCount} 条真跑通过 / ${unverifiedIds.length} 条跳过（未验证）`,
+    warning: `未验证的项：${unverifiedIds.join(' / ')} —— 本机缺工具，它们**没跑过**（≠ 通过）。`
+      + '要这一面被验过，装好工具后重跑；CI 侧仍有权威闸门。',
+  }
+}
+
 /** 被 `skip` 暂缓的条目（横幅与用例用） */
 export function releaseBatterySkips(): { id: string, skip: string }[] {
   return RELEASE_BATTERY
@@ -173,6 +193,8 @@ export function releaseBatterySkips(): { id: string, skip: string }[] {
  */
 async function runReleaseBattery(ui: ReleaseUi, skippedIds: Set<string>): Promise<void> {
   const failures: string[] = []
+  /** 子进程报「未验证」（退出码 3）的条目：**不是失败**，但也绝不能算绿 */
+  const unverified: string[] = []
   for (const step of RELEASE_BATTERY) {
     if (step.skip !== undefined) {
       // 暂缓的条目**响亮跳过**：打一行 + 原因，绝不静默少跑（静默弱化门禁是本仓最想避免的形态）
@@ -189,6 +211,14 @@ async function runReleaseBattery(ui: ReleaseUi, skippedIds: Set<string>): Promis
     }
     catch (error: any) {
       const exitCode = Number(error?.exitCode ?? 1)
+      // 3 = 环境缺失、这一步**没跑**（SkippedError 的映射值，真源在 @walnut/scripts/lib/errors）。
+      // 不认它，没装 actionlint / 没装 bash 的发版机就会**因为「跳过」而发版失败** —— 那是把
+      // 「未验证」当「失败」的回归：比当通过好一点，但同样是错的（它会逼人去 --skip-gates）。
+      if (exitCode === SKIPPED_EXIT_CODE) {
+        unverified.push(step.id)
+        ui.log(`⏭️ 跳过（未验证）${step.label}：本机缺工具，这一条**没跑**（不等于通过）`)
+        continue
+      }
       const why = `发版前全量电池未通过：${step.label} 失败（${error?.message ?? error}）。`
         + '在这里拦住好过推出去才发现（tag 还没打，不留需要手工清理的本地 tag）；'
         + `确实要带病发版请显式加 --skip-gates。`
@@ -198,7 +228,11 @@ async function runReleaseBattery(ui: ReleaseUi, skippedIds: Set<string>): Promis
       ui.die(1, `${why}\n   失败的项 id：${step.id}（只想跳它：--skip-gates=${step.id}）`)
     }
   }
-  ui.log(`✅ 发版前全量电池全绿（${releaseBatteryCount()} 条）`)
+  // 汇总里**必须**把「未验证」单列：只报「全绿」的话，发版者会以为这一面被验过了。
+  const summary = releaseBatterySummary(releaseBatteryCount() - unverified.length, unverified)
+  ui.log(summary.ok)
+  if (summary.warning !== null)
+    ui.warn(summary.warning)
 }
 
 /**
@@ -401,8 +435,12 @@ export async function stepCommitTagPush(ui: ReleaseUi, newVersion: string, optio
     assertSafeRef(branch, '当前分支名'),
     assertSafeRef(tag, 'tag 名'),
   ], {
+    // 段数**不写数字**：这张表一直在加段，写死的那个数没有门禁拦得住（判据式措辞才是防腐）。
+    // 真源是 packages/tooling/scripts/src/ci/prepush.ts 的 PREPUSH_GATES，本包不去 import 它
+    // 的长度 —— 一句提示不值得把两个包的构建面耦在一起。
     hint: '远端 pre-receive 之前会先跑本仓的 pre-push 门禁（`pnpm --silent prepush`：'
-      + 'src/ci/prepush.ts 那张表，11 段并行、每段报耗时），冷缓存数分钟属预期；'
+      + '段表在 packages/tooling/scripts/src/ci/prepush.ts，并行执行、每段报耗时、'
+      + '跳过与通过分开报），冷缓存数分钟属预期；'
       + '心跳会告诉你是「在跑」还是「卡住了」。',
     ...ui.childOptions(),
   })

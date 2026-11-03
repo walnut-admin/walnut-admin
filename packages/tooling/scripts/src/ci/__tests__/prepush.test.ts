@@ -11,8 +11,10 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import os from 'node:os'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { ChildRunError } from '../../lib/child-run.ts'
+import { SKIPPED_EXIT_CODE } from '../../lib/errors.ts'
 import { REPO_ROOT } from '../../lib/repo-root.ts'
-import { formatLine, PREPUSH_GATES } from '../prepush.ts'
+import { formatLine, PREPUSH_GATES, runGates, strictFailureMessage, summarizeRun } from '../prepush.ts'
 
 const rootManifest = JSON.parse(readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8')) as {
   scripts?: Record<string, string>
@@ -161,17 +163,127 @@ describe('pREPUSH_GATES —— 表本身', () => {
   })
 })
 
-describe('formatLine —— 结果行', () => {
+describe('formatLine —— 结果行（三态）', () => {
   const gate = { id: 'x', label: '某段门禁', argv: ['x'], why: 'y'.repeat(30) }
 
   it('通过打 ✓、失败打 ✗，并带上秒数', () => {
-    expect(formatLine({ gate, ok: true, ms: 1234, output: '' })).toBe('  ✓    1.2s  某段门禁')
-    expect(formatLine({ gate, ok: false, ms: 12_340, output: '' })).toBe('  ✗   12.3s  某段门禁')
+    expect(formatLine({ gate, status: 'ok', ms: 1234, output: '' })).toBe('  ✓    1.2s  某段门禁')
+    expect(formatLine({ gate, status: 'failed', ms: 12_340, output: '' })).toBe('  ✗   12.3s  某段门禁')
+  })
+
+  // 这一条是这次的**回归锚**：以前「跳过」与「通过」打的是同一个对勾（子进程 exit 0 + 只在失败时
+  // 回放输出），于是推送者以为验过了。跳过必须有自己的标记，且必须在行尾写明「未验证」。
+  it('跳过打 `-`，且行尾注明 [SKIP 未验证]（与通过、失败都不同形）', () => {
+    const line = formatLine({ gate, status: 'skipped', ms: 1234, output: '' })
+    expect(line).toBe('  -    1.2s  某段门禁  [SKIP 未验证]')
+    expect(line).not.toContain('✓')
+    expect(line).not.toContain('✗')
   })
 
   it('秒数右对齐（否则这一列参差不齐，正是要修的可读性问题）', () => {
-    const short = formatLine({ gate, ok: true, ms: 900, output: '' })
-    const long = formatLine({ gate, ok: true, ms: 12_300, output: '' })
+    const short = formatLine({ gate, status: 'ok', ms: 900, output: '' })
+    const long = formatLine({ gate, status: 'ok', ms: 12_300, output: '' })
     expect(short.indexOf('某段门禁')).toBe(long.indexOf('某段门禁'))
+  })
+})
+
+/**
+ * 三态的执行器分支。
+ *
+ * 为什么必须注入执行器：跳过只有在**子进程真的报退出码 3** 时才会出现，而现场卸载 actionlint
+ * 不现实。注入之后这条分支才有真用例 —— 否则它只是一段谁也没跑过的代码。
+ */
+describe('runGates —— 三态（跳过既不算通过、也不算失败）', () => {
+  const mkGate = (id: string) => ({ id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30) })
+
+  it('正常返回 ⇒ ok', async () => {
+    const results = await runGates([mkGate('a'), mkGate('b')], () => {}, 2, async () => {})
+    expect(results.map(r => r.status)).toEqual(['ok', 'ok'])
+  })
+
+  it('抛 ChildRunError(…, 3) ⇒ skipped（「环境缺失、未验证」的唯一入口）', async () => {
+    const results = await runGates([mkGate('a')], () => {}, 1, async (gate) => {
+      throw new ChildRunError(`${gate.id} 未验证`, SKIPPED_EXIT_CODE)
+    })
+    expect(results.map(r => r.status)).toEqual(['skipped'])
+  })
+
+  it('抛别的非零退出码 ⇒ failed（1 违规 / 2 前置未满足都算失败，只有 3 是跳过）', async () => {
+    const results = await runGates([mkGate('a'), mkGate('b'), mkGate('c')], () => {}, 3, async (gate) => {
+      throw new ChildRunError(`${gate.id} 挂了`, gate.id === 'c' ? 2 : 1)
+    })
+    expect(results.map(r => r.status)).toEqual(['failed', 'failed', 'failed'])
+  })
+
+  it('混合时逐段分类，且结果顺序仍是表里的顺序（并行不影响断言）', async () => {
+    const exitOf: Record<string, number> = { a: 0, b: SKIPPED_EXIT_CODE, c: 1 }
+    const results = await runGates([mkGate('a'), mkGate('b'), mkGate('c')], () => {}, 3, async (gate) => {
+      const code = exitOf[gate.id]!
+      if (code !== 0)
+        throw new ChildRunError(`${gate.id} 退出码 ${code}`, code)
+    })
+    expect(results.map(r => `${r.gate.id}:${r.status}`)).toEqual(['a:ok', 'b:skipped', 'c:failed'])
+  })
+})
+
+describe('strictFailureMessage —— PREPUSH_STRICT 的口径', () => {
+  it('默认（非严格）时，有跳过也不判红', () => {
+    expect(strictFailureMessage(false, ['workflows'])).toBeNull()
+  })
+
+  it('严格模式下，没有跳过就不判红', () => {
+    expect(strictFailureMessage(true, [])).toBeNull()
+  })
+
+  it('严格模式 + 有跳过 ⇒ 给出判红理由，且理由里点名了那几段', () => {
+    const message = strictFailureMessage(true, ['workflows', 'workflows-shell'])
+    expect(message).not.toBeNull()
+    expect(message).toContain('PREPUSH_STRICT=1')
+    expect(message).toContain('workflows, workflows-shell')
+    expect(message).toContain('未验证')
+  })
+})
+
+/**
+ * 汇总口径：「跳过」必须在**成功汇总里也可见**。
+ *
+ * 这是本轮修复的验收判据本身 —— 以前成功时只有一句「N 段全部通过」，跳过段连名字都不出现。
+ */
+describe('summarizeRun —— 成功汇总里也要看得见「跳过」', () => {
+  const gate = (id: string) => ({ id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30) })
+  const result = (id: string, status: 'ok' | 'failed' | 'skipped') => ({ gate: gate(id), status, ms: 1000, output: '' })
+
+  it('全都真跑通过：不出现「跳过」字样（没有跳过时那句是噪音）', () => {
+    const summary = summarizeRun([result('a', 'ok'), result('b', 'ok')], '3.0', false)
+    expect(summary.okLine).toBe('2 段：2 段真跑通过（总 3.0s）')
+    expect(summary.okLine).not.toContain('跳过')
+    expect(summary.skippedLine).toBeNull()
+    expect(summary.strictMessage).toBeNull()
+  })
+
+  it('有跳过（其余全过）：汇总里报出跳过段数，且跳过段名单独一行', () => {
+    const summary = summarizeRun([result('a', 'ok'), result('workflows', 'skipped')], '1.5', false)
+    expect(summary.okLine).toBe('2 段：1 段真跑通过 / 1 段跳过（未验证）（总 1.5s）')
+    expect(summary.okLine).not.toContain('全部通过')
+    expect(summary.skippedLine).toContain('workflows')
+    expect(summary.skippedLine).toContain('跳过不等于通过')
+    // 默认（非严格）不判红：没装工具的机器不该被门禁挡住推送
+    expect(summary.strictMessage).toBeNull()
+  })
+
+  it('严格模式 + 有跳过 ⇒ 同一份结果就要给出判红理由（口径唯一点）', () => {
+    const summary = summarizeRun([result('a', 'ok'), result('workflows', 'skipped')], '1.5', true)
+    expect(summary.strictMessage).toContain('PREPUSH_STRICT=1')
+  })
+
+  it('有失败时：failed 只含失败段，真跑通过数不把跳过算进去', () => {
+    const summary = summarizeRun([
+      result('a', 'ok'),
+      result('b', 'failed'),
+      result('workflows', 'skipped'),
+    ], '2.0', false)
+    expect(summary.failed.map(r => r.gate.id)).toEqual(['b'])
+    expect(summary.skipped.map(r => r.gate.id)).toEqual(['workflows'])
+    expect(summary.okLine).toBe('3 段：1 段真跑通过 / 1 段跳过（未验证）（总 2.0s）')
   })
 })

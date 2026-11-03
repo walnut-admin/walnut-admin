@@ -14,23 +14,27 @@ import type { Rule } from 'eslint'
  * 是逐字相同的模板，它**能过**这条规则。别把它读成文档质量门禁；它挡的是「新加一个 bin，
  * 一句注释都没有」（2026-09-23 实测：13 个 bin 里有 2 个连模板都没有）。
  *
- * ## `script-exit-code`：退出码只能 0 / 1 / 2
+ * ## `script-exit-code`：退出码只能是 0 / 1 / 2 / 3
  *
- * 本仓的三态退出码（0 通过 / 1 查出违规 / 2 前置条件未满足）写在多份文档里，
+ * 本仓的**四态**退出码（0 通过 / 1 查出违规 / 2 前置未满足 / 3 未验证）写在多份文档里，
  * 此前**没有任何东西在查**。判据落在两个**真正的退出口**上：
  *   · `process.exit(<数字字面量>)`
  *   · **名为 `main` 的函数**里的 `return <数字字面量>`（本仓的惯例是 bin 里 `process.exit(main())`）
  *
+ * 3（未验证 = 这一步压根没跑）是**合法结论**，所以它和 0/1/2 一样在允许集里。但规范的产生
+ * 方式是抛 `SkippedError`（`@walnut/scripts` 的 `lib/errors.ts` 里 `SKIPPED_EXIT_CODE` 是唯一
+ * 真源）：规则只管「码合不合法」，不管你怎么把它造出来。
+ *
  * 刻意**不查**的两处（宁可漏报不可误报）：
  *   · `process.exit(变量)` —— 判不出取值；全仓的 bin 都是 `process.exit(main())` 这一形态。
- *   · `process.exitCode = N` —— 那是个合法的「信号码」出口（SIGINT 之类会写 130），
- *     按 0/1/2 去卡它会误报。
+ *   · `process.exitCode = N` —— 那是 `runCli` 的落点（3 就是从这儿出去的），也是合法的
+ *     「信号码」出口（SIGINT 之类会写 130）；按四个码去卡它会误报。
  * 近邻函数判定用的是**最近的一层函数**：`main()` 里嵌套的箭头函数返回 `-1` 不算违规
  * （那不是退出码）。
  */
 
-/** 本仓的三态退出码。写在规则里而不是散在调用方 —— 它是「退出码」这件事的全部语义。 */
-const DEFAULT_ALLOWED = [0, 1, 2]
+/** 本仓的四态退出码。写在规则里而不是散在调用方 —— 它是「退出码」这件事的全部语义。 */
+const DEFAULT_ALLOWED = [0, 1, 2, 3]
 
 interface ExitCodeOptions {
   allowed?: number[]
@@ -97,7 +101,7 @@ const scriptExitCode: Rule.RuleModule = {
   meta: {
     type: 'problem',
     docs: {
-      description: 'Restrict script exit codes to the repo three-state convention (0/1/2)',
+      description: 'Restrict script exit codes to the repo four-state convention (0/1/2/3)',
     },
     schema: [{
       type: 'object',
@@ -105,8 +109,8 @@ const scriptExitCode: Rule.RuleModule = {
       additionalProperties: false,
     }],
     messages: {
-      exit: '退出码只能是 0（通过）/ 1（查出违规）/ 2（前置条件未满足），这里写的是 {{value}}。',
-      mainReturn: '`main()` 的返回值就是退出码，只能是 0 / 1 / 2，这里返回的是 {{value}}。',
+      exit: '退出码只能是 0（通过）/ 1（查出违规）/ 2（前置未满足）/ 3（未验证：压根没跑），这里写的是 {{value}}。',
+      mainReturn: '`main()` 的返回值就是退出码，只能是 0 / 1 / 2 / 3，这里返回的是 {{value}}。',
     },
   },
 
