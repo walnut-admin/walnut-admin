@@ -169,7 +169,8 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     expect(list.total).toBe(1)
     expect(list.data[0].deviceId).toBe(api.deviceId)
     // 同指纹重放 initial 的整体覆盖语义：deviceName 已是重放载荷的名字
-    expect(list.data[0].deviceName).toBe(`dev-spec-replay-${seed8}`)
+    // B5：deviceName 由服务端生成（客户端载荷不再参与），形态 = <设备类型>_<8 位 hex>
+    expect(list.data[0].deviceName).toMatch(/^desktop_[0-9a-f]{8}$/)
     // SysDeviceDTOListResponse pick 的字段面：无 createdAt
     expect((list.data[0] as unknown as Record<string, unknown>).createdAt).toBeUndefined()
   })
@@ -225,9 +226,11 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
     expect(rows[1].userName).toBe(fixture!.userName)
   })
 
-  it('initial 重名 device_name（23505）→ 受控 40000，不再被 catch-all 吞成 40605', async () => {
-    // 新指纹 + 已存在的 deviceName（test 1 重放后的名字）→ INSERT 撞 uq_device_name
-    const raw = await supertest(app.getHttpServer())
+  it('服务端生成 deviceName（B5）：载荷里的名字不再决定设备名，连续 initial 得到不同名字且都成功', async () => {
+    // 改造前这里断言「重名 device_name 撞 uq_device_name → 受控 40000」。
+    // B5 之后 deviceName 由服务端生成（客户端载荷不再参与）⇒ 这条前提消失：
+    // 名字的唯一性由签发方保证，同一载荷重放不会再撞 23505。
+    const mk = () => supertest(app.getHttpServer())
       .post(api.apiPath('/system/device/initial'))
       .set('user-agent', WALNUT_TEST_USER_AGENT)
       .set('X-Fingerprint', `dev-spec-dup-${seed8}`)
@@ -240,7 +243,23 @@ describe('C 段：system/device initial/read/list/lock-ban 四件（真实 HTTP 
         private: false,
       })
 
-    expect((raw.body as { code: number }).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST)
+    // 只打一次：initial 有 4 次/60s 的限流（42900），本用例不再多占额度
+    const a = await mk()
+    expect((a.body as { code: number }).code).toBe(20000)
+
+    const idA = (a.body as { data: { deviceId: string } }).data.deviceId
+    expect(idA).toMatch(/^d1_[0-9a-f]{32}$/)
+
+    const rows: Array<{ device_name: string }> = await api.pgDataSource.query(
+      'SELECT device_name FROM sys_device WHERE device_id = $1',
+      [idA],
+    )
+    expect(rows).toHaveLength(1)
+    // 载荷给的是 dev-spec-replay-<seed8>，落库的必须是服务端生成的形态
+    expect(rows[0].device_name).toMatch(/^desktop_[0-9a-f]{8}$/)
+
+    // 清理：这一行属于本用例
+    await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [idA])
 
     // 对照：非 23505 的异常仍走 catch-all → 40605（直接打到 service 层，绕过 DTO）
     const deviceService = app.get(SysDeviceService)

@@ -4,9 +4,10 @@ import { randomUUID } from 'node:crypto'
 
 import { ALSRequestService } from '@walnut-server/als'
 import { AppMonitorUserBasicRepository, AppMonitorUserRepositoryService, AppMonitorUserService } from '@walnut-server/app-domain'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { DBTransactionHooksStore } from '@walnut-server/db'
 import { SysUserDeviceRepositoryService, SysUserDeviceService } from '@walnut-server/identity'
-import { SysDeviceBasicRepository, SysDeviceRepositoryService, SysDeviceService } from '@walnut-server/system'
+import { generateDeviceId, isValidDeviceId, SysDeviceBasicRepository, SysDeviceRepositoryService, SysDeviceService } from '@walnut-server/system'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createIntegrationApp, getWalnutPgAdminDataSource } from './helpers/create-integration-app'
 import { INTEGRATION_DATABASE_NAME } from './helpers/integration.const'
@@ -69,9 +70,10 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
     return result
   }
 
-  function makeFakeReq(fingerprint: string) {
+  function makeFakeReq(fingerprint: string, deviceId?: string) {
     return {
       fingerprint,
+      signedCookies: deviceId === undefined ? {} : { [WalnutAdminConstCookieKeys.DEVICE_ID]: deviceId },
       realIp: '10.9.9.9',
       os: 'windows',
       browser: 'chrome',
@@ -117,9 +119,9 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
         deviceInfo: { platform: 'win32', netType: 'wifi', isp: 'telecom' },
       }
 
-      const deviceId = deviceRepoService.getDeviceIdByFingerprint(fingerprint)
+      const deviceId = generateDeviceId()
       const res = await runInHookStore(async () =>
-        deviceService.initial(makeFakeReq(fingerprint), payload as never, pgDataSource.manager))
+        deviceService.initial(makeFakeReq(fingerprint, deviceId), payload as never, pgDataSource.manager))
 
       expect(res.deviceId).toBe(deviceId)
       // 私网 IP → ip.service 确定性返回 LOCAL（无 countryCode/经纬度）
@@ -127,7 +129,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
 
       const device = await deviceRepoService.findDeviceByDeviceId(deviceId)
       expect(device).not.toBeNull()
-      expect(device!.deviceName).toBe(payload.deviceName)
+      expect(device!.deviceName).toMatch(/^desktop_[0-9a-f]{8}$/)
       expect(device!.srHeight).toBe(2000)
       expect(device!.srWidth).toBe(1100)
       expect(device!.vpHeight).toBe(900)
@@ -144,12 +146,13 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       expect(device!.riskScore).toBe(0)
     })
 
-    itSystem('initial：同指纹二次注册 → 同一行整体覆盖（不新增）', async () => {
+    itSystem('initial 幂等键 = cookie（B5）：同 cookie 重复 initial 覆盖同一行；无 cookie 两次 ⇒ 两个不同 id', async () => {
       const fingerprint = unique('fp-initial')
 
+      // 同一个服务端签发的 id 连发两次 ⇒ 同一行整体覆盖（幂等键是 cookie，不是指纹）
+      const sameId = generateDeviceId()
       await runInHookStore(async () =>
-        deviceService.initial(makeFakeReq(fingerprint), {
-          deviceName: unique('b6-device-initial'),
+        deviceService.initial(makeFakeReq(fingerprint, sameId), {
           private: false,
           sr: { height: 2000, width: 1100 },
           vp: { height: 900, width: 800 },
@@ -157,10 +160,8 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
           deviceInfo: {},
         } as never, pgDataSource.manager))
 
-      // 改名重注册：业务键命中 → 覆盖而非新行（对齐 $set + upsert）
       await runInHookStore(async () =>
-        deviceService.initial(makeFakeReq(fingerprint), {
-          deviceName: unique('b6-device-initial-2'),
+        deviceService.initial(makeFakeReq(fingerprint, sameId), {
           private: false,
           sr: { height: 1000, width: 500 },
           vp: { height: 400, width: 300 },
@@ -168,11 +169,31 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
           deviceInfo: {},
         } as never, pgDataSource.manager))
 
-      const deviceId = deviceRepoService.getDeviceIdByFingerprint(fingerprint)
-      expect(await countPg('sys_device', 'device_id = $1', [deviceId])).toBe(1)
-      const device = await deviceRepoService.findDeviceByDeviceId(deviceId)
-      expect(device!.deviceName).toBe(unique('b6-device-initial-2'))
+      expect(await countPg('sys_device', 'device_id = $1', [sameId])).toBe(1)
+      const device = await deviceRepoService.findDeviceByDeviceId(sameId)
       expect(device!.srHeight).toBe(1000)
+
+      // 同一个指纹、但没有 cookie ⇒ 每次都是新身份（指纹不再派生 id）
+      const a = await runInHookStore(async () =>
+        deviceService.initial(makeFakeReq(fingerprint), {
+          private: false,
+          sr: { height: 800, width: 600 },
+          vp: { height: 400, width: 300 },
+          hardwareInfo: {},
+          deviceInfo: {},
+        } as never, pgDataSource.manager))
+      const b = await runInHookStore(async () =>
+        deviceService.initial(makeFakeReq(fingerprint), {
+          private: false,
+          sr: { height: 800, width: 600 },
+          vp: { height: 400, width: 300 },
+          hardwareInfo: {},
+          deviceInfo: {},
+        } as never, pgDataSource.manager))
+
+      expect(a.deviceId).not.toBe(b.deviceId)
+      expect(isValidDeviceId(a.deviceId)).toBe(true)
+      expect(isValidDeviceId(b.deviceId)).toBe(true)
     })
 
     itSystem('uq_device_id：业务键重复插入拒绝（对齐 Mongo unique）', async () => {
@@ -242,7 +263,7 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
       } as never)
 
       expect(res.total).toBeGreaterThanOrEqual(1)
-      expect(res.data.some(i => i.deviceId === deviceRepoService.getDeviceIdByFingerprint(unique('fp-initial')))).toBe(true)
+      expect(res.data.some(i => isValidDeviceId(i.deviceId))).toBe(true)
 
       const miss = await deviceService.list({
         filters: [{ field: 'location', op: 'like', value: 'atlantis' }],

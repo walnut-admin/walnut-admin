@@ -12,10 +12,10 @@ import { Reflector } from '@nestjs/core'
 import { AppTechCacheDeviceService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys, WalnutAdminConstDeviceCookieMaxAge } from '@walnut-server/const/app/cookie'
-import { AppTechCookieService, getWalnutAdminCookie } from '@walnut-server/cookie'
+import { AppTechCookieService, getWalnutAdminCookieString } from '@walnut-server/cookie'
 import { WalnutAdminExceptionDeviceBanned, WalnutAdminExceptionDeviceLocked, WalnutAdminExceptionDeviceNotAcceptable } from '@walnut-server/exceptions/base/406'
 import { WALNUT_ADMIN_LOCK } from '@walnut-server/lock'
-import { SysDeviceRepositoryService } from '@walnut-server/system'
+import { isValidDeviceId, SysDeviceRepositoryService } from '@walnut-server/system'
 
 const WalnutAdminConstDecoratorDeviceFreeKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_DEVICE_FREE')
 
@@ -84,12 +84,21 @@ export class WalnutAdminGuardDevice implements CanActivate {
       return true
     }
 
-    const deviceId = getWalnutAdminCookie(request, WalnutAdminConstCookieKeys.DEVICE_ID)
+    // B5：设备身份只认**服务端签发的形态**（d1_ + 32 hex）。
+    // 旧形态（64 hex，= HMAC(指纹)）与任何伪造/畸形值都在这里被拒 ⇒ 客户端走 40605 自愈
+    // 重新 initial，拿到新 id。这就是「硬切」的判据所在 —— 只在这一处判，别散写第二份。
+    //
+    // 用 String 版本而不是 getWalnutAdminCookie：cookie-parser 对「带 s: 前缀但签名不对」
+    // 返回的是 false（不是 undefined），isNil 判不出来 —— CAP guard 就因此撞过
+    // createHash().update(false) 的 50000。
+    const cookieDeviceId = getWalnutAdminCookieString(request, WalnutAdminConstCookieKeys.DEVICE_ID)
 
-    if (!deviceId) {
-      this.logger.warn('Device ID not found in cookies')
+    if (!isValidDeviceId(cookieDeviceId)) {
+      this.logger.warn(`Device ID missing or malformed in cookies: ${String(cookieDeviceId).slice(0, 12)}`)
       throw new WalnutAdminExceptionDeviceNotAcceptable()
     }
+
+    const deviceId = cookieDeviceId
 
     // F-44：噪声过滤，**不是安全边界** —— isPostman 已被 isDev 门住（生产恒 false），权威说明见 apps/api/src/middleware/src/user-agent.middleware.ts 的 isPostmanRuntimeRequest。
     if (request.isPostman) {

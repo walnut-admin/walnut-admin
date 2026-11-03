@@ -1,3 +1,4 @@
+export * from './device-id'
 export * from './device.basic.repository'
 export * from './device.module'
 export * from './device.recoverer'

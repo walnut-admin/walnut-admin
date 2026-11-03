@@ -1,8 +1,11 @@
 import type { EntityManager } from 'typeorm'
 import type { IWalnutAdminSystemDeviceKicker, IWalnutAdminSystemMonitorActiveUserReader } from '../system.ports'
+import { randomBytes } from 'node:crypto'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheDeviceService } from '@walnut-server/cache'
+import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
+import { getWalnutAdminCookieString } from '@walnut-server/cookie'
 import { registerAfterCommitHook, runAfterCommit } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
@@ -15,6 +18,7 @@ import { escapeLikePattern } from '@walnut-server/repository'
 import { AppDayjs } from '@walnut-server/utils/dayjs'
 import { Brackets, QueryFailedError } from 'typeorm'
 import { WALNUT_ADMIN_SYSTEM_DEVICE_KICKER, WALNUT_ADMIN_SYSTEM_MONITOR_ACTIVE_USER_READER } from '../system.ports'
+import { generateDeviceId, isValidDeviceId } from './device-id'
 import { SysDeviceBasicRepository } from './device.basic.repository'
 import { SysDeviceDTOInitialRequest, SysDeviceDTOListRequest } from './dto/device.dto'
 import { SysDeviceEntity } from './entity/device.entity'
@@ -80,12 +84,33 @@ export class SysDeviceService {
   }
 
   /**
+   * @description 服务端生成设备名：`<设备类型>_<8 位随机 hex>`
+   *
+   * 为什么不让客户端给：`uq_device_name` 是全局唯一，而客户端的名字来自「设备类型 + 指纹前 6 位」——
+   * deviceId 随机化之后，同一浏览器第二次 initial 会带着**同一个** deviceName 撞唯一约束
+   * （23505 ⇒ 40000），那个设备就再也注册不上。名字的唯一性必须由签发方（服务端）保证。
+   * 4 字节随机后缀的碰撞概率对「设备数量」这个量级可以忽略；真撞了仍走既有的 23505 分支。
+   */
+  private buildServerDeviceName(deviceType: IDeviceTypeConst) {
+    return `${deviceType}_${randomBytes(4).toString('hex')}`
+  }
+
+  /**
    * @description initial device - optimized version
    */
   async initial(req: IWalnutAdminExpressRequest, payload: SysDeviceDTOInitialRequest, em: EntityManager) {
     try {
-      const deviceId = this.deviceRepoService.getDeviceIdByFingerprint(req.fingerprint)
+      // B5：设备身份由**服务端签发**，指纹不再参与身份派生。
+      // 幂等键从「指纹」换成「cookie」：cookie 里已经是一个合法签发的 id ⇒ 复用它（这就是
+      // initial 的幂等性）；否则签一个新的。旧形态（64 位 hex）与伪造值都会走到「签发新 id」，
+      // 配合 DeviceGuard 的形态校验形成硬切 —— 不需要 legacy 列，也不需要双读窗口。
+      const cookieDeviceId = getWalnutAdminCookieString(req, WalnutAdminConstCookieKeys.DEVICE_ID)
+      const deviceId = isValidDeviceId(cookieDeviceId) ? cookieDeviceId : generateDeviceId()
+
       const locationInfo = await this.sharedIpService.getLocationInfoFromFreeAPI(req.realIp)
+
+      // 设备类型在这里先算出来：既进 deviceInfo，也用于服务端生成 deviceName
+      const deviceType = this.getDeviceTypeByUA(req.userAgent?.ua as string, payload.sr.height)
 
       const location = {
         country: locationInfo.country,
@@ -95,7 +120,10 @@ export class SysDeviceService {
 
       // $set 语义的整体覆盖集（Mongo 版 deviceData 原样字段集，sr/vp/geo 拍平为 PG 列）
       const deviceData: Partial<SysDeviceEntity> = {
-        deviceName: payload.deviceName,
+        // B5：deviceName 改**服务端生成**。原来是前端拼「设备类型_指纹前6位」，
+        // 而 uq_device_name 唯一 —— 随机 id 化后同一浏览器第二次 initial 必然 23505 ⇒ 40000，
+        // 那个设备就永远注册不上了。服务端生成 = 唯一性由签发方保证。
+        deviceName: this.buildServerDeviceName(deviceType),
         private: payload.private,
         deviceId,
         srHeight: payload.sr?.height ?? null,
@@ -106,7 +134,7 @@ export class SysDeviceService {
           ...payload.deviceInfo,
           os: req.os,
           browser: req.browser,
-          type: this.getDeviceTypeByUA(req.userAgent?.ua as string, payload.sr.height),
+          type: deviceType,
         },
         hardwareInfo: (payload.hardwareInfo ?? null) as unknown as Record<string, unknown> | null,
         geoLongitude: locationInfo.longitude!,
