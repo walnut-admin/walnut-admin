@@ -39,6 +39,7 @@
   "40606": "Device Locked",
   "40607": "Device Banned",
   "40666": "Risk Too High",
+  "40667": "Risk control is unavailable, please try again later",
   "40800": "Request Timeout",
   "42900": "Too Many Requests",
   "42901": "Rate Limit Exceeded",

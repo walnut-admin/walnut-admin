@@ -8,7 +8,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from './helpers/api-client'
 import { performHttpOpaqueLogin, registerRootUserFixture } from './helpers/auth-login'
 import { createApiApp } from './helpers/create-api-app'
-import { makeMonitorState, makeMonitorVisitorId, makeSeed8 } from './helpers/factories'
+import { makeMonitorState, makeSeed8 } from './helpers/factories'
 
 /**
  * B 段：`app/monitor/user` —— CRUD list/read + `POST state`（Sign/Jwt/Cap/Device 全
@@ -17,12 +17,18 @@ import { makeMonitorState, makeMonitorVisitorId, makeSeed8 } from './helpers/fac
  * admin-kick 撤销该用户该设备的 refresh token；socket 未装配时 sendToRoom 走 `socket?.`
  * 空安全，在线踢下线在测试环境为 no-op）。
  *
- * 在线状态自建自清：state 端点 upsert `app_monitor_user`（visitor_id 唯一）；force-quit
- * 前手插一行 auth_refresh_token（user+device 维度），踢完断言 revoked 落库。
+ * 在线状态自建自清：state 端点 upsert `app_monitor_user`；force-quit 前手插一行
+ * auth_refresh_token（user+device 维度），踢完断言 revoked 落库。
  *
- * P2-12（2026-10-28）：force-quit（admin-kick）在撤 RT 之外，事务提交后按设备清
- * `AUTH:SESSIONS` / `AUTH:PERMISSIONS` / `AUTH:MFA:VERIFIED` —— 配合 P0-4 的 JWT
- * 会话校验，被踢设备的旧 AT 立即 40101（本文件用第二设备真实验证）。
+ * 批次 8 / B6（行键归属，安全修复）—— 本文件的三条新钉：
+ * 1. **行键 = 服务端从 Cookie 解析的 deviceId**：body 的 visitorId 只作校验，
+ *    且校验是可计算的（`HMAC(visitorId) === deviceId`）⇒ 真实客户端必须把**自己的
+ *    指纹**（= axios FINGERPRINT 头那个值，测试里是 `client.fingerprint`）填进 body。
+ * 2. **劫持无效**：拿别人的指纹上报 ⇒ 40099，且受害者那一行一个字段都不动。
+ * 3. **body 的 deviceId 不再可写**：DTO 白名单摘除 + forbidNonWhitelisted ⇒ 40099。
+ *
+ * 负对照：把 service 的 filter 改回 `{ visitorId }`，第 2 条会红（攻击者会把受害者的行
+ * 写成自己的设备）；把 DTO 的 `deviceId` 加回 pick 列表，第 3 条会红。
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -43,17 +49,22 @@ interface MonitorRow {
 describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全链）', () => {
   let app: NestExpressApplication
   let api: WalnutApiClient
+  /** 第二台设备（匿名访客）：行键是它自己的 deviceId，指纹是它自己的 fingerprint */
+  let guest: WalnutApiClient
 
   const seed8 = makeSeed8()
-  /** 本轮两个访客（uq_monitor_visitor 唯一） */
-  const visitorA = makeMonitorVisitorId(seed8, 'a')
-  const visitorB = makeMonitorVisitorId(seed8, 'b')
   let fixture: WalnutRootUserFixture | null = null
   let monitorIdA = ''
-  /** force-quit 用例的“第二设备”（同用户）—— 被 admin-kick 后断言 AT 立即失效 */
+  /** force-quit 用例的「第二设备」（同用户）—— 被 admin-kick 后断言 AT 立即失效 */
   let victim: WalnutApiClient | null = null
 
+  function knownDevices(): string[] {
+    return [api?.deviceId, guest?.deviceId, victim?.deviceId].filter((id): id is string => typeof id === 'string' && id !== '')
+  }
+
   async function deleteMonitorRows() {
+    // 行键是 device_id（B6），按设备清；指纹列一并做兜底（历史行为留下的行）
+    await api.pgDataSource.query('DELETE FROM app_monitor_user WHERE device_id = ANY($1)', [knownDevices()])
     await api.pgDataSource.query('DELETE FROM app_monitor_user WHERE visitor_id LIKE $1', [`vis-${seed8}%`])
     if (fixture !== null) {
       await api.pgDataSource.query('DELETE FROM auth_refresh_token WHERE user_id = $1', [fixture.userId])
@@ -72,6 +83,7 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
   beforeAll(async () => {
     app = await createApiApp()
     api = await WalnutApiClient.create(app)
+    guest = await WalnutApiClient.create(app)
 
     fixture = await registerRootUserFixture(app, api.pgDataSource, `mu-${seed8}`)
 
@@ -90,7 +102,7 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
       await deleteMonitorRows()
       await api.pgDataSource.query('DELETE FROM sys_user WHERE id = $1', [fixture.userId])
       await api.pgDataSource.query('DELETE FROM sys_role WHERE id = $1', [fixture.roleId])
-      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [api.deviceId])
+      await api.pgDataSource.query('DELETE FROM sys_device WHERE device_id = ANY($1)', [knownDevices()])
       await api.cleanupWalnutCacheKeys(seed8, api.deviceId, fixture.userId)
     }
     await app.close()
@@ -101,10 +113,13 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
    * resolveVerifiedUserId）。所以「已登录上报」用 root（带 AT + 双因子签名；state 端点
    * Sign Free，签名头被忽略但无害）。无 AT 的匿名上报另有用例 —— 体里带 userId 也
    * 必须落 NULL。
+   *
+   * B6：`visitorId` 必须是**该客户端自己的指纹**（`client.fingerprint`，即 axios
+   * FINGERPRINT 头携带的同一个值）—— 服务端用 `HMAC(visitorId) === deviceId` 校验。
    */
   async function createOnlineMonitorA(client: WalnutApiClient = api): Promise<string> {
     const res = await client.root('POST', client.apiPath('/app/monitor/user/state'), makeMonitorState({
-      visitorId: visitorA,
+      visitorId: client.fingerprint,
       auth: true,
       userId: fixture!.userId,
       focus: true,
@@ -112,31 +127,78 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     }))
     expectOk(res, 'monitor user state A')
     const rows: Array<{ id: string }> = await api.pgDataSource.query(
-      'SELECT id FROM app_monitor_user WHERE visitor_id = $1',
-      [visitorA],
+      'SELECT id FROM app_monitor_user WHERE device_id = $1',
+      [client.deviceId],
     )
     return rows[0].id
   }
-
-  it('state（带 AT）→ 20000，在线状态 upsert 落库（user/device 绑定）', async () => {
+  it('state（带 AT）→ 20000，在线状态 upsert 落库（行键 = cookie deviceId，指纹仅作校验）', async () => {
     monitorIdA = await createOnlineMonitorA()
     expect(monitorIdA).toMatch(UUID_RE)
 
     const rows: Array<Record<string, unknown>> = await api.pgDataSource.query(
-      'SELECT user_id, device_id, auth, is_left, current_router FROM app_monitor_user WHERE visitor_id = $1',
-      [visitorA],
+      'SELECT user_id, device_id, visitor_id, auth, is_left, current_router FROM app_monitor_user WHERE device_id = $1',
+      [api.deviceId],
     )
     expect(rows).toHaveLength(1)
     expect(rows[0].user_id).toBe(fixture!.userId)
+    // 行键 = 服务端解析的 deviceId；指纹列只是首行登记（B6）
     expect(rows[0].device_id).toBe(api.deviceId)
+    expect(rows[0].visitor_id).toBe(api.fingerprint)
     expect(rows[0].auth).toBe(true)
     expect(rows[0].is_left).toBe(false)
     expect(rows[0].current_router).toBe('/dashboard')
   })
 
+  it('B6 负对照：拿别人的指纹上报 ⇒ 40099，受害者那一行一个字段都不动', async () => {
+    monitorIdA = await createOnlineMonitorA()
+
+    // 攻击者（guest，另一台设备）把受害者的指纹塞进 body —— 旧实现会按这个指纹找到
+    // 受害者那一行，并把该行的 device_id 改写成 guest 的设备
+    const hijack = await guest.anon('POST', guest.apiPath('/app/monitor/user/state'), makeMonitorState({
+      visitorId: api.fingerprint,
+      auth: true,
+      focus: true,
+      currentRouter: '/pwned',
+    }))
+    expect(bodyOf(hijack).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+
+    const rows: Array<Record<string, unknown>> = await api.pgDataSource.query(
+      'SELECT device_id, visitor_id, current_router FROM app_monitor_user WHERE device_id = $1',
+      [api.deviceId],
+    )
+    expect(rows).toHaveLength(1)
+    expect(rows[0].device_id).toBe(api.deviceId)
+    expect(rows[0].visitor_id).toBe(api.fingerprint)
+    expect(rows[0].current_router).toBe('/dashboard')
+
+    // 攻击者自己那一行也没被建出来（拒绝发生在写库之前）
+    const attackerRows: Array<{ id: string }> = await api.pgDataSource.query(
+      'SELECT id FROM app_monitor_user WHERE device_id = $1',
+      [guest.deviceId],
+    )
+    expect(attackerRows).toHaveLength(0)
+  })
+
+  it('B6：body 里的 deviceId 不再可写（wire 白名单摘除 ⇒ 40099）', async () => {
+    // 改造前它是 pick 列表成员：写集由 `{ deviceId, ...updatePayload }` 展开顺序决定胜负
+    const res = await api.anon('POST', api.apiPath('/app/monitor/user/state'), {
+      ...makeMonitorState({ visitorId: api.fingerprint, auth: true }),
+      deviceId: 'a'.repeat(64),
+    })
+
+    expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+
+    const rows: Array<{ device_id: string }> = await api.pgDataSource.query(
+      'SELECT device_id FROM app_monitor_user WHERE device_id = $1',
+      [api.deviceId],
+    )
+    expect(rows).toHaveLength(0)
+  })
+
   it('F-47：匿名上报即使 body 里带 userId 也不落库（user_id 恒 NULL，心跳照常生效）', async () => {
-    const res = await api.anon('POST', api.apiPath('/app/monitor/user/state'), makeMonitorState({
-      visitorId: visitorB,
+    const res = await guest.anon('POST', guest.apiPath('/app/monitor/user/state'), makeMonitorState({
+      visitorId: guest.fingerprint,
       auth: true,
       // 伪造的身份声明：没有 AT ⇒ controller 覆盖成 null ⇒ service 的 nil 过滤丢弃
       userId: fixture!.userId,
@@ -145,8 +207,8 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     expectOk(res, 'anonymous monitor state with spoofed userId')
 
     const rows: Array<{ user_id: string | null, auth: boolean, focus: boolean }> = await api.pgDataSource.query(
-      'SELECT user_id, auth, focus FROM app_monitor_user WHERE visitor_id = $1',
-      [visitorB],
+      'SELECT user_id, auth, focus FROM app_monitor_user WHERE device_id = $1',
+      [guest.deviceId],
     )
     expect(rows).toHaveLength(1)
     expect(rows[0].user_id).toBeNull()
@@ -172,15 +234,15 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
   it('list → visitorId 过滤命中；匿名访客行（auth=false）userId 置空', async () => {
     monitorIdA = await createOnlineMonitorA()
 
-    // 匿名访客 B：auth=false 走 userId 置 null 语义
-    const stateB = await api.anon('POST', api.apiPath('/app/monitor/user/state'), makeMonitorState({
-      visitorId: visitorB,
+    // 匿名访客（第二台设备）：auth=false 走 userId 置 null 语义
+    const stateB = await guest.anon('POST', guest.apiPath('/app/monitor/user/state'), makeMonitorState({
+      visitorId: guest.fingerprint,
       auth: false,
     }))
     expectOk(stateB, 'monitor user state B')
 
     const listRes = await api.root('POST', api.apiPath('/app/monitor/user/list'), {
-      filters: [{ field: 'visitorId', op: 'like', value: visitorB }],
+      filters: [{ field: 'visitorId', op: 'like', value: guest.fingerprint }],
       sort: [{ field: 'firstVisitAt', order: 'ascend', priority: 1 }],
       page: { page: 1, pageSize: 10 },
     })
@@ -193,32 +255,31 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     expect(list.data[0].userId).toBeNull()
 
     const bRows: Array<{ user_id: string | null }> = await api.pgDataSource.query(
-      'SELECT user_id FROM app_monitor_user WHERE visitor_id = $1',
-      [visitorB],
+      'SELECT user_id FROM app_monitor_user WHERE device_id = $1',
+      [guest.deviceId],
     )
     expect(bRows[0].user_id).toBeNull()
   })
-
   it('P2-31：已登录访客上报 auth=false → user_id 清空（旧实现残留上次登录用户）', async () => {
     monitorIdA = await createOnlineMonitorA()
 
     // 前置：该行确实绑定了用户
     const bindRows: Array<{ user_id: string | null }> = await api.pgDataSource.query(
-      'SELECT user_id FROM app_monitor_user WHERE visitor_id = $1',
-      [visitorA],
+      'SELECT user_id FROM app_monitor_user WHERE device_id = $1',
+      [api.deviceId],
     )
     expect(bindRows[0].user_id).toBe(fixture!.userId)
 
     // 登出上报：auth=false 且不带 userId —— P2-31 前 null 被 nil 过滤丢弃，user_id 残留
     const stateOff = await api.anon('POST', api.apiPath('/app/monitor/user/state'), makeMonitorState({
-      visitorId: visitorA,
+      visitorId: api.fingerprint,
       auth: false,
     }))
     expectOk(stateOff, 'monitor user state auth=false')
 
     const rows: Array<{ user_id: string | null, auth: boolean }> = await api.pgDataSource.query(
-      'SELECT user_id, auth FROM app_monitor_user WHERE visitor_id = $1',
-      [visitorA],
+      'SELECT user_id, auth FROM app_monitor_user WHERE device_id = $1',
+      [api.deviceId],
     )
     expect(rows[0].auth).toBe(false)
     expect(rows[0].user_id).toBeNull()
@@ -235,7 +296,7 @@ describe('B 段：app/monitor/user state/list/read/force-quit（真实 HTTP 全�
     const victimTokens = await performHttpOpaqueLogin(victim, app, fixture!)
     victim.setAuth(victimTokens)
 
-    // monitor 行绑定受害者设备（state 端点的 deviceId 取调用方 cookie）
+    // monitor 行绑定受害者设备（B6：行键 = 调用方 cookie 里的 deviceId）
     monitorIdA = await createOnlineMonitorA(victim)
 
     // 造一行未撤销的 refresh token（user+device 维度），踢完必须 revoked=true

@@ -86,7 +86,7 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
     // 修法：把 location 结果预写进它的**真实缓存通道**——SecurityRiskLocationService 读
     // AppTechRedisService 的 `risk:location:<normalizedIp>`（不是 CACHE_MANAGER，内存
     // cache 替换对这条链路无效），命中缓存即不再外连。覆盖会走到 location 评估的两个
-    // 探针 IP：.77（临时黑名单移除后的放行腿 / G14 sign-free 旁路）与 .79（直通用例）。
+    // 探针 IP：.77（临时黑名单移除后的放行腿 / G14 已拉黑 IP 的 40603 探针）与 .79（直通用例）。
     await seedLocationRiskCache(BANNED_IP_TEMP)
     await seedLocationRiskCache(ALLOWED_PROBE_IP)
   })
@@ -993,27 +993,39 @@ describe('F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路�
       expectOk(res, 'spoofed ip passthrough')
     })
 
-    it('G14 IpFree 端点旁路黑名单：已拉黑 IP 打 /security/sign/initial → 20000（IP guard 跳过）；对照非 IpFree 端点 40603', async () => {
-      // 现状钉死：IpFree 是端点上显式放弃 IP 维度风控的语义（security/sign/* 整组），
-      // 黑名单 IP 仍可调用该组端点 —— 属设计内取舍，用例只锚定「跳过发生在 IP guard」。
+    it('G14 无 IpFree 旁路：曾豁免 IP 的 4 个端点对已拉黑 IP 一律 40603（批次 8 / B3）', async () => {
+      // 批次 8 / B3（2026-11）撤掉了全部 4 处 @WalnutAdminGuardIpFree()：
+      //   security/sign/initial · security/sign/aes-key · system/locale/message/:locale
+      //   · system/user/preference/read
+      // 判据：IP 黑名单**没有中间件兜底**（guard 是唯一执行点），每个 IpFree 都是端点上
+      // 显式放弃 IP 维度风控的缺口，而同族的匿名引导端点（device/initial · lang/list/public
+      // · setting/public）一直没跳 IP 且工作正常 ⇒ 这 4 处没有存在理由。
+      //
+      // 负对照：把任意一处 @WalnutAdminGuardIpFree() 加回去，对应那条会变 20000/其它码而非
+      // 40603 ⇒ 本用例红（改造前 /security/sign/initial 与 aes-key 就是 20000）。
       const ipService = app.get(SharedIpService)
       await ipService.addToTemporaryBlacklist(BANNED_IP_TEMP, 'GUARD_MATRIX_G14')
       try {
-        const contrast = await api.unsigned(
-          'GET',
-          api.apiPath('/security/rsa/public-key'),
-          undefined,
-          { 'x-forwarded-for': BANNED_IP_TEMP },
-        )
-        expect(bodyOf(contrast).code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED)
+        const probes: Array<{ name: string, method: 'GET' | 'POST', path: string, body?: unknown }> = [
+          { name: '对照（从未 IpFree）', method: 'GET', path: '/security/rsa/public-key' },
+          { name: 'sign/initial', method: 'POST', path: '/security/sign/initial', body: { rsaPubKey: `g14-probe-${seed8}`, force: false } },
+          { name: 'sign/aes-key', method: 'POST', path: '/security/sign/aes-key' },
+          { name: 'locale/message', method: 'GET', path: '/system/locale/message/zh_CN' },
+          { name: 'user/preference/read', method: 'GET', path: '/system/user/preference/read' },
+        ]
 
-        const bypass = await api.unsigned(
-          'POST',
-          api.apiPath('/security/sign/initial'),
-          { rsaPubKey: `g14-probe-${seed8}`, force: false },
-          { 'x-forwarded-for': BANNED_IP_TEMP },
-        )
-        expectOk(bypass, 'ip-free endpoint bypasses blacklist')
+        for (const probe of probes) {
+          const res = await api.unsigned(
+            probe.method,
+            api.apiPath(probe.path),
+            probe.body,
+            { 'x-forwarded-for': BANNED_IP_TEMP },
+          )
+
+          expect(bodyOf(res).code, `${probe.name} 仍能绕过 IP 黑名单`).toBe(
+            WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED,
+          )
+        }
       }
       finally {
         await ipService.removeFromTemporaryBlacklist(BANNED_IP_TEMP)

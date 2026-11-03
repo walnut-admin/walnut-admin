@@ -142,6 +142,8 @@ export class AppMonitorUserController {
   // 数据权限三期：在线监控心跳是匿名系统通道（无 ALS 描述符也要写 app_monitor_user）
   @WalnutAdminDecoratorDataScopeSystemChannel()
   async monitor(
+    // 批次 8 / B6：**行键**就是它 —— 服务端从签名 Cookie 解析出的设备身份。
+    // 请求体里的 deviceId 已被 DTO 白名单摘除（带上来即 40099），visitorId 只作校验。
     @WalnutAdminDecoratorDeviceId() deviceId: string,
     @WalnutTxSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,

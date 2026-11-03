@@ -79,9 +79,11 @@ CAP 的**强制时点**不在这里，而在全局 `cap.guard`：风险守卫给
 | 第一步 | `POST /security/sign/initial` | body `{ rsaPubKey, force? }`；把**客户端** RSA 公钥按设备缓存（`SECURITY:RSA:PUB_KEY:<deviceId>`）。缓存已存在且 `force !== true` 时原样返回缓存值，否则覆盖 |
 | 第二步 | `POST /security/sign/aes-key` | 生成/复用设备级 AES 密钥（`SECURITY:SIGN:AES_KEY:<deviceId>`，TTL = AT 有效期），响应里的 `aesKey` 经 `@EncryptResponse` 用第一步登记的客户端公钥加密；同时返回 `hkdfInfo`（默认 `walnut-admin-api-sign-v1`，取自 `app.crypto.hkdfInfo`） |
 
-- 两个端点 SignFree / CapFree / JwtFree / DeviceFree / LockFree / IpFree，但**仍读 `DEVICE_ID`
+- 两个端点 SignFree / CapFree / JwtFree / DeviceFree / LockFree，但**仍读 `DEVICE_ID`
   cookie** 取设备键；没有设备 cookie 时缓存键退化成 `undefined`，不是受控失败（实践上必须先做
-  设备登记）。
+  设备登记）。批次 8 / B3 起这两个端点**不再 IpFree**（IP 黑名单对所有端点生效），且
+  批次 8 / B2 起属于**风控 fail-close** 清单：风控不可用 / 无 deviceId 时直接 40667，
+  不再「放行但机器人防护缺席」。
 - 第二步的加密信封是「一次性 AES-256-GCM 密钥（32B）+ IV（12B）+ tag（16B）拼成 60B blob，
   RSA-OAEP-SHA256 加密该 blob」，与 `GET /auth/keys`、`GET /shared/ali/sts` 的响应加密同格式。
 - 第二步之前没有第一步登记的公钥时，`SecuritySignService.getAesKey` 的读缓存会抛受控异常；

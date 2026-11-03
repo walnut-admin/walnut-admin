@@ -69,8 +69,8 @@ export class AppMonitorUserDTO extends IntersectionType(AppMonitorUserDTOBase, W
  *
  * 现在它从基座摘出、只在两个**入参** DTO 上显式声明：
  * - list 的查询过滤（按指纹定位在线行，值不回显）；
- * - 心跳 `POST /app/monitor/user/state` 的 body（当前仍以 body.visitorId 作行键，
- *   review P1-3 留后续批次处理）。
+ * - 心跳 `POST /app/monitor/user/state` 的 body（批次 8 / B6 起**只作校验**：行键是
+ *   服务端从 Cookie 解析的 deviceId，body 的 visitorId 与已存行不一致即 40099）。
  *
  * 响应面（`AppMonitorUserDTOListResponse` / `AppMonitorUserDTOReadResponse`）
  * 不含该字段 —— 定位设备请用 `device.deviceId` / `device.deviceName`。
@@ -94,9 +94,18 @@ class AppMonitorUserDTOVisitorIdRequestPayload {
 // 取值不再来自请求体 —— controller（user.controller.ts 的 resolveVerifiedUserId）
 // 只采信「验签通过的 AT」里的 userId，请求体的该字段会被覆盖成 null（匿名心跳）。
 // 也就是说：本字段在入参上存在 ≠ 客户端可以指定它。不要把它当成可写字段用。
-// P0-2：`visitorId` 已移出基座，这里用请求面专用的 payload 交叉并入（响应面不受影响）
+//
+// 批次 8 / B6（行键归属）：`deviceId` **从入参白名单摘除** —— 行键是服务端从签名
+// Cookie（DEVICE_ID）解析出来的设备身份，客户端没有任何合法理由声明它。摘除后
+// 全局 ValidationPipe（whitelist + forbidNonWhitelisted）会把请求体里的 deviceId
+// 直接判成 40099，而不是像改造前那样「先写进 payload 再被 cookie 值覆盖」——
+// 后者在 service 里由 `{ deviceId, ...updatePayload }` 展开顺序决定胜负，纯属运气。
+//
+// P0-2：`visitorId` 已移出基座，这里用请求面专用的 payload 交叉并入（响应面不受影响）。
+// 批次 8 / B6 起它的语义收窄为**校验字段**：与「本设备那一行已存的 visitorId」不一致
+// ⇒ 40099 拒绝（见 AppMonitorUserService.updateState）。
 export class AppMonitorUserDTOUpdateState extends IntersectionType(
-  RealPickType(RealPartialType(AppMonitorUserDTO), ['deviceId', 'userId', 'auth', 'focus', 'left', 'currentRouter'] as const),
+  RealPickType(RealPartialType(AppMonitorUserDTO), ['userId', 'auth', 'focus', 'left', 'currentRouter'] as const),
   AppMonitorUserDTOVisitorIdRequestPayload,
 ) { }
 

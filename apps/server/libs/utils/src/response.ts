@@ -36,8 +36,19 @@ function WalnutAdminResponseBase<T>(data: T, code: IWalnutAdminConstAppResponseC
 }
 
 // success
-export function WalnutAdminResponseSuccess<T>(data: T, requestId: string, msg: string = `response.${WalnutAdminConstAppResponseCode.SUCCESS}`) {
-  return WalnutAdminResponseBase<T>(data, WalnutAdminConstAppResponseCode.SUCCESS, msg, requestId)
+/**
+ * 成功响应壳。
+ *
+ * `meta` 是**可选**的可观测通道（批次 8 / B2 起由成功拦截器传 `{ riskDegraded }`）：
+ * 只在有内容时传，缺省时 JSON 序列化会把 undefined 键丢掉 ⇒ 既有响应形态零变化。
+ */
+export function WalnutAdminResponseSuccess<T>(
+  data: T,
+  requestId: string,
+  msg: string = `response.${WalnutAdminConstAppResponseCode.SUCCESS}`,
+  meta?: Recordable,
+) {
+  return WalnutAdminResponseBase<T>(data, WalnutAdminConstAppResponseCode.SUCCESS, msg, requestId, undefined, meta)
 }
 
 // exception

@@ -3,7 +3,7 @@ import { ApiTags } from '@nestjs/swagger'
 
 import { WalnutAdminGuardJwtOptional } from '@walnut-server/auth'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser, WalnutAdminGuardDeviceFree, WalnutAdminGuardIpFree, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardMFAFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 import { SysUserPreferenceDTOAccessibilityRequest, SysUserPreferenceDTOBasicRequest, SysUserPreferenceDTOLayoutRequest, SysUserPreferenceDTOThemeRequest, SysUserPreferenceResponseDTO, SysUserPreferenceService } from '@walnut-server/identity'
 import { SystemEndpointRoutes } from '@walnut/contract'
 
@@ -28,7 +28,8 @@ export class SysUserPreferenceController {
   @WalnutAdminGuardSignFree()
   @WalnutAdminGuardMFAFree()
   @WalnutAdminGuardDeviceFree()
-  @WalnutAdminGuardIpFree()
+  // 批次 8 / B3（2026-11）：撤掉 @WalnutAdminGuardIpFree() —— JwtOptional 只影响
+  // 「谁的身份」，不影响「这个 IP 还能不能来」；被拉黑 IP 拿到的偏好默认值没有价值。
   @ApiWalnutOkResponse({
     description: 'Get current user preference',
     DTO: SysUserPreferenceResponseDTO,

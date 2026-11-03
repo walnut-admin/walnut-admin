@@ -9,11 +9,14 @@ declare global {
     onlyIn?: number[]
     precision?: number
     /**
-     * 可缺省（批次 1 · R3 P2-4）：缺省时跳过本字段全部校验，其余值仍按上面各项校验。
+     * 可缺省：缺省时跳过本字段全部校验，其余值仍按上面各项校验。
      *
-     * 与「字段装饰器传 `default`」的区别：`default` 会进 swagger（`schema.default` +
-     * 可能把字段移出 `required`），本项**不进 swagger** —— 用于「实现上允许缺省、
-     * 但本轮不改 openapi 契约」的场景（如 `sort[].priority`）。
+     * **同时进 swagger**：`field/number.decorator.ts` 把它翻成 `ApiProperty({ required: false })`，
+     * 该字段因此不出现在 schema 的 `required` 里 —— 可选性的真源只有这一个开关，
+     * 别在 `swaggerOptions` 里再写一遍 `required`（写了会覆盖它，两处必然漂移）。
+     *
+     * 与「字段装饰器传 `default`」的区别：`default` 进的是 `schema.default`（语义是
+     * 「不传时按这个值算」，值域会变成已知）；本项只表达「可以不传」，不给默认值。
      */
     optional?: boolean
   }

@@ -547,6 +547,9 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
   并置 mfaVerified=true、设备级 verified 缓存显式清空 → 20000（mfa.guard P6 只信 AT payload）。
 - **G13 CAP throttle 桶**（`cap-throttle.api-spec.ts`，独立文件）：challenge 桶 4/60s
   （与 device/initial 桶独立）；引导耗 1 次 → 3 次压线成功 → 第 5 次 42900 + Retry-After ≥30。
-- **G14 IpFree + 黑名单**（guard-matrix IP 组）：临时拉黑 IP 打非 IpFree 端点
-  `security/rsa/public-key` → 40603；同 IP 打 IpFree 的 `security/sign/initial` → 20000
-  （现状钉死：IpFree 显式放弃 IP 维度风控，属设计内取舍）。
+- **G14 无 IpFree 旁路 + 黑名单**（guard-matrix IP 组，批次 8 / B3）：临时拉黑 IP 依次打
+  `security/rsa/public-key`（对照，从未 IpFree）、`security/sign/initial`、`security/sign/aes-key`、
+  `system/locale/message/zh_CN`、`system/user/preference/read` —— **全部 40603**。
+  撤掉 4 处 `@WalnutAdminGuardIpFree()` 的理由：IP 黑名单**没有中间件兜底**（guard 是唯一执行点），
+  同族匿名引导端点（`device/initial` / `lang/list/public` / `setting/public`）一直没跳 IP 且工作正常；
+  负对照 = 把任意一处装饰器加回去，对应探针不再是 40603。

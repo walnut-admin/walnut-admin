@@ -90,6 +90,15 @@ declare global {
      */
     _riskPostAuthCollected?: boolean
 
+    /**
+     * @description 本次请求的**风控降级留痕**（批次 8 / B2）。
+     *
+     * 只由 `risk.guard.ts` / `cap.guard.ts` 在「风控不可用但端点不敏感」时写入：
+     * 成功拦截器把它透出成响应壳的 `meta.riskDegraded` —— 运维 / 前端不必翻日志就能
+     * 知道「这条 200 是在风控缺席的情况下放行的」。敏感端点不走这条路（40667 拒绝）。
+     */
+    riskDegraded?: string
+
     /*
      * @description identifier for auth, e.g. email address, phone number, etc.
      */

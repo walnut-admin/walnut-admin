@@ -39,12 +39,19 @@ export class AppMonitorUserRepositoryService implements IIdentityMonitorReposito
 
   /**
    * @description find monitor by filter and update
-   * （Mongo 版 findOneAndUpdate(filter, update, options) 的窄化等价：filter 只剩
-   * visitorId、options 只剩 upsert；命中即整体赋值保存，未命中且 upsert 时插入后回读
-   * （让 DB 默认值列进实体），未命中且非 upsert 返回 null）
+   * （Mongo 版 findOneAndUpdate(filter, update, options) 的窄化等价：命中即整体赋值
+   * 保存，未命中且 upsert 时插入后回读（让 DB 默认值列进实体），未命中且非 upsert 返回 null）
+   *
+   * ## 行键（批次 8 / B6）
+   *
+   * `filter` 现在是**业务键 device_id**（服务端从签名 Cookie 解析），不再是请求体里的
+   * visitorId —— 后者由客户端自报，拿它当行键等于把别人的行交出去。
+   *
+   * 指纹校验（`HMAC(visitorId) === deviceId`）在 **service** 层做：那是「客户端自报值是否
+   * 与设备身份自洽」的策略判定，不是数据访问；repo 只认 filter。
    */
   async findOneAndUpdate(
-    filter: { visitorId: string },
+    filter: { deviceId: string },
     update: Partial<AppMonitorUserEntity>,
     options: { upsert: boolean },
     em?: EntityManager,
@@ -59,6 +66,7 @@ export class AppMonitorUserRepositoryService implements IIdentityMonitorReposito
           return null
         }
 
+        // 首行登记：visitorId 由 service 校过 HMAC 后随 update 一起落库
         await repository.insert({ ...filter, ...update })
         return repository.findOne({ where: filter })
       }

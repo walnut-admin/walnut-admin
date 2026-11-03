@@ -11,6 +11,7 @@ import { AppTechCacheCapService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { getWalnutAdminCookie, getWalnutAdminCookieString } from '@walnut-server/cookie'
+import { WalnutAdminExceptionRiskUnavailable } from '@walnut-server/exceptions/base/406'
 import {
   WalnutAdminExceptionCapInteractionRequired,
   WalnutAdminExceptionCapRefreshRequired,
@@ -22,6 +23,7 @@ import { SecurityRiskChallengeStateService } from '@walnut-server/security/risk/
 import { isNil } from 'lodash'
 
 import { isWellFormedCapJsToken, WalnutAdminConstDecoratorCapFreeKey } from './cap.decorator'
+import { isWalnutAdminRiskFailClose, walnutAdminRiskRouteKey } from './risk.sensitivity'
 
 /**
  * CAP Guard —— 人机验证执行入口
@@ -35,6 +37,8 @@ import { isWellFormedCapJsToken, WalnutAdminConstDecoratorCapFreeKey } from './c
  *    - 40117 Refresh Required：凭据缺失/已被 cap.js 判过期（一次性 token 已消费）——
  *      交给客户端无感刷新后重放
  * 4. After successful verification, mark critical factors as processed
+ * 5. Risk guard 没留下 decision 时**按端点分级**（批次 8 / B2）：敏感端点 40667 fail-close，
+ *    其余 fail-open + `request.riskDegraded` 留痕（旧实现无条件放行，正是守卫链的第三个缺口）
  *
  * 设计思路：
  * - 同一个 CAP Guard 类，在认证前后各执行一次
@@ -82,8 +86,21 @@ export class WalnutAdminGuardCap implements CanActivate {
 
     const recommendation = request.risk?.comprehensive?.recommendation
 
+    // 批次 8 / B2（守卫链第三腿）：Risk guard 因故没留下 decision 时，旧实现无条件放行 ——
+    // 它与 risk.guard 的两处 `return true` 叠加成「风控一挂 ⇒ 机器人防护完全不执行」。
+    // 现在与 risk.guard 同口径分级：**敏感端点 fail-close**（40667），其余 fail-open + 留痕。
+    // 纵深意义：即使将来有人把 Risk guard 从 APP_GUARD 里挪走 / 调换顺序，凭据面仍然不会裸奔。
     if (recommendation === undefined) {
-      this.logger.warn('No risk evaluation found, allowing request')
+      if (isWalnutAdminRiskFailClose(request.method, request.path)) {
+        const routeKey = walnutAdminRiskRouteKey(request.method, request.path)
+        this.logger.error(`No risk decision on fail-close endpoint (${routeKey}), rejecting`)
+        throw new WalnutAdminExceptionRiskUnavailable(`risk-recommendation-missing @ ${routeKey}`)
+      }
+
+      // 不覆盖 risk.guard 已经写下的更具体原因（no-device-id / risk-evaluation-failed）——
+      // 这里的 'risk-recommendation-missing' 只在「risk guard 根本没跑过」时才该出现
+      request.riskDegraded ??= 'risk-recommendation-missing'
+      this.logger.warn('No risk evaluation found, allowing request (meta.riskDegraded set)')
       return true
     }
 

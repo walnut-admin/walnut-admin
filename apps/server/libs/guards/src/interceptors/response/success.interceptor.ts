@@ -44,7 +44,16 @@ export class WalnutAdminInterceptorResponseSuccess implements NestInterceptor {
           const ctx = context.switchToHttp()
           const request = ctx.getRequest<IWalnutAdminExpressRequest>()
 
-          return WalnutAdminResponseSuccess(data, request.id, successMsg)
+          // 批次 8 / B2：风控不可用但端点不敏感 ⇒ 放行 + 留痕。
+          // 留痕走**响应壳**（meta.riskDegraded）而不是只打日志：不敏感端点维持 fail-open
+          // 是既定口径，但「这条 200 是在机器人防护缺席时放行的」必须能被排查到 ——
+          // 前端排障、运维看请求日志、自动化回归都能直接读到。
+          // 敏感端点在 guard 层就已 40667 拒绝，永远走不到这条 200。
+          const meta = request.riskDegraded === undefined
+            ? undefined
+            : { riskDegraded: request.riskDegraded }
+
+          return WalnutAdminResponseSuccess(data, request.id, successMsg, meta)
         }),
       )
     }

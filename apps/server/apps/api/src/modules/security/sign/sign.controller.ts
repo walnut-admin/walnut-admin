@@ -3,7 +3,7 @@ import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common'
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { ApiWalnutOkResponse, WalnutAdminSwaggerResponseSuccessSchemeData } from '@walnut-server/decorators/swagger'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorEncryptResponse, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardIpFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorEncryptResponse, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 import { SecuritySignHandShakeRequestDTO, SecuritySignService, SecuritySignSessionKeyResponseDTO } from '@walnut-server/security'
 import { SecurityRoutes } from '@walnut/contract'
 
@@ -33,7 +33,10 @@ const SIGN_INITIAL_DATA_SCHEMA: SchemaObject = {
 @WalnutAdminGuardJwtFree()
 @WalnutAdminGuardLockFree()
 @WalnutAdminGuardDeviceFree()
-@WalnutAdminGuardIpFree()
+// 批次 8 / B3（2026-11）：**撤掉类级 @WalnutAdminGuardIpFree()** —— IP 黑名单没有
+// 中间件兜底，IpFree 就是端点上显式放弃 IP 维度风控的缺口。同族端点
+// `device/initial`（同为 DeviceFree 的引导端点）一直没跳 IP 且工作正常 ⇒ 握手端点
+// 不需要这个豁免。回归钉子见 api-spec 的 G14。
 export class SecuritySignController {
   constructor(
     private readonly securitySignService: SecuritySignService,

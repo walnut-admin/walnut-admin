@@ -355,33 +355,38 @@ describe('B6 device / user_device / monitor_user (on real PG)', () => {
   })
 
   describe('app_monitor_user：upsert、active 过滤、populated user', () => {
-    itSystem('findOneAndUpdate：visitorId upsert（先插后改），DB 默认值落位', async () => {
+    // 批次 8 / B6：findOneAndUpdate 的**行键**从 visitorId 改成 device_id（服务端解析的
+    // 设备身份）。visitorId 仍在写集里（首行登记用），但不再决定命中哪一行。
+    itSystem('findOneAndUpdate：deviceId upsert（先插后改），DB 默认值落位', async () => {
       const visitorId = unique('b6-visitor-1')
       const deviceAKey = unique('b6-m-device')
 
       await deviceBasicRepo.create({ deviceName: unique('b6-m-name'), deviceId: deviceAKey, deviceInfo: { os: 'windows', browser: 'chrome' }, ip: '9.9.9.9', locationInfo: { country: 'China' }, ipHistory: [] })
 
       const created = await monitorRepoService.findOneAndUpdate(
-        { visitorId },
-        { deviceId: deviceAKey, auth: true, currentRouter: '/home' },
+        { deviceId: deviceAKey },
+        { visitorId, deviceId: deviceAKey, auth: true, currentRouter: '/home' },
         { upsert: true },
       )
       expect(created!.visitorId).toBe(visitorId)
+      expect(created!.deviceId).toBe(deviceAKey)
       expect(created!.auth).toBe(true)
       expect(created!.focus).toBe(false)
       expect(created!.left).toBe(false)
       expect(created!.firstVisitAt).not.toBeNull()
       expect(created!.lastActiveAt).not.toBeNull()
 
-      // 二次写：同 visitorId 更新同一行（uq_monitor_visitor）
+      // 二次写：同 deviceId 命中同一行（行键是设备，不是指纹）
       const updated = await monitorRepoService.findOneAndUpdate(
-        { visitorId },
+        { deviceId: deviceAKey },
         { deviceId: deviceAKey, currentRouter: '/settings' },
         { upsert: true },
       )
       expect(updated!.id).toBe(created!.id)
       expect(updated!.currentRouter).toBe('/settings')
-      expect(await countPg('app_monitor_user', 'visitor_id = $1', [visitorId])).toBe(1)
+      // 指纹列没被二次写改写（那次 update 里没带 visitorId）
+      expect(updated!.visitorId).toBe(visitorId)
+      expect(await countPg('app_monitor_user', 'device_id = $1', [deviceAKey])).toBe(1)
     })
 
     itSystem('findActiveByDeviceId / findFirstByDeviceId：left 过滤差异', async () => {

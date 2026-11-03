@@ -22,8 +22,9 @@ export class AppMonitorUserDTOBase extends WalnutAdminCommonBasicModel {
   // 基座是「请求 + 响应」共用的字段面，留着它等于让每个派生响应都回显指纹。
   // 而 deviceId = HMAC(指纹, 服务端 key)，指纹一旦下发，「拿到指纹 → 铸出该设备的
   // 合法 cookie → 订阅它的 OAuth 结果流」就是一条可复现的账号接管链（review §8.4）。
-  // 现在该字段只存在于**请求面**：`AppMonitorUserDTOUpdateState`（心跳行键，P1-3 另批
-  // 处理）与 list 的查询过滤，两者在 app 的 wire DTO 里显式声明。响应面（list / read）
+  // 现在该字段只存在于**请求面**：`AppMonitorUserDTOUpdateState`（心跳的**校验字段**，
+  // 批次 8 / B6 起不再是行键 —— 行键是服务端从 Cookie 解析的 deviceId）与 list 的查询
+  // 过滤，两者在 app 的 wire DTO 里显式声明。响应面（list / read）
   // 不再有任何指纹字段 —— 需要定位设备时用 device.deviceId / device.deviceName。
   // 实体列 app_monitor_user.visitor_id 不受影响（服务端内部仍按它记账）。
 

@@ -3,6 +3,7 @@ import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 
 import { AuthRefreshSharedService, AuthSignoutService } from '@walnut-server/auth'
+import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 import { SysUserDeviceRepositoryService } from '@walnut-server/identity'
 import { SysDeviceRepositoryService, SysDeviceSharedService } from '@walnut-server/system'
 import { isNil } from 'lodash'
@@ -33,12 +34,34 @@ export class AppMonitorUserService {
   ) { }
 
   /**
-   * @description main service to update user state
+   * @description main service to update user state（心跳 upsert）
+   *
+   * ## 行键（批次 8 / B6，安全修复）
+   *
+   * 改造前：行键是**请求体**的 `visitorId`，而写进行里的 `deviceId` 来自 Cookie ——
+   * 任何人把别人的 visitorId 塞进 body，就能把别人那一行的 `device_id` 改成自己的设备
+   * （顺带覆盖 focus / left / currentRouter / user_id）：在线列表被投毒、
+   * `sys_user_device` 被写成「受害者 + 攻击者设备」、`auth=false` 心跳还能反向清掉别人的关联。
+   *
+   * 现在：**行键是服务端从签名 Cookie 解析的 deviceId**（调用方传入，来自
+   * `WalnutAdminDecoratorDeviceId`）。请求体的 `visitorId` 只作**校验**，且校验是
+   * **可计算的**：`HMAC(visitorId) === deviceId`（`getDeviceIdByFingerprint` 与
+   * `device/initial` 铸 deviceId 用的是同一条腿）—— 对不上即受控 40099。
+   *
+   * 为什么用 HMAC 相等而不是「与库里已存行比」：前者不依赖行是否已存在。若只比已存行，
+   * 攻击者可以抢在受害者之前用自己的 deviceId 建一行、`visitor_id` 填受害者的指纹 ——
+   * 之后受害者自己的 upsert 会撞 `uq_monitor_visitor`（23505 → 40000），心跳永久坏掉。
+   * 前端两处指纹是**同一个值**（axios 的 FINGERPRINT 头与心跳 body 都取
+   * `appStoreFingerprint.getFingerprint`，见 apps/admin/src/store/modules/app/app-fingerprint.ts:138/175），
+   * 所以 HMAC 校验对真实客户端恒成立。
+   *
+   * 请求体的 `deviceId` 在 wire 层已被摘除（DTO 白名单 + forbidNonWhitelisted ⇒ 40099），
+   * service 侧仍然显式把它钉成入参 deviceId，避免「展开顺序决定谁赢」的运气。
    */
   async updateState(
     deviceId: string,
-    // P0-2：`visitorId`（原始指纹）已从 AppMonitorUserDTOBase 摘出（响应面不再回显），
-    // 但它仍是本方法**入参**的行键 —— 在交叉类型里显式声明，契约不藏在基座里。
+    // P0-2：`visitorId`（原始指纹）已从 AppMonitorUserDTOBase 摘出（响应面不再回显）——
+    // B6 起它是**校验字段**而不是行键，在交叉类型里显式声明，契约不藏在基座里。
     dto: Partial<AppMonitorUserDTOBase> & { visitorId?: string },
     em: EntityManager,
   ) {
@@ -53,16 +76,36 @@ export class AppMonitorUserService {
       updatePayload.userId = null
     }
 
+    const visitorId = dto.visitorId
+
+    // 请求体不得携带 deviceId（wire 层已摘除；这里再挡一次，防止将来谁把字段加回 DTO）
+    // —— 行键与写值只有一个真源：入参 deviceId（= 签名 Cookie 解析结果）。
+    delete updatePayload.deviceId
+
+    // visitorId 只作校验：`deviceId = HMAC(指纹, 服务端 key)` 是 device/initial 的铸号腿，
+    // 所以「body 的 visitorId 属于这台设备」是可计算的。对不上说明客户端在替别人声明身份
+    // （伪造指纹），或它手里的设备 cookie 已与当前指纹脱钩 ⇒ 受控 40099，不写库。
+    if (!isNil(visitorId)) {
+      const claimedDeviceId = this.deviceRepoService.getDeviceIdByFingerprint(visitorId)
+
+      if (claimedDeviceId !== deviceId) {
+        throw new WalnutAdminExceptionRequestDataError(
+          `monitor state visitorId does not belong to this device (expected ${deviceId}, got ${claimedDeviceId})`,
+        )
+      }
+    }
+
     // update doc（nil 值剔除；auth=false 的 userId 清零在上面显式补回）
+    // 行键 = deviceId（服务端解析）；visitorId 已过 HMAC 校验，随首行登记落库。
     const doc = await this.appMonitorUserRepoService.findOneAndUpdate(
-      { visitorId: dto.visitorId! },
-      { deviceId, ...updatePayload },
+      { deviceId },
+      { ...updatePayload, deviceId },
       { upsert: true },
       em,
     )
 
     if (!doc) {
-      this.logger.error(`[UpdateState] | monitor user not found: ${dto.visitorId}`)
+      this.logger.error(`[UpdateState] | monitor user not found: ${deviceId}`)
       return false
     }
 

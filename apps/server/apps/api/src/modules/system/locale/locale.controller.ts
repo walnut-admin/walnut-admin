@@ -24,7 +24,7 @@ import { WalnutAdminDecoratorParamArray } from '@walnut-server/decorators/params
 import { WalnutAdminSwaggerResponseSuccessSchemeData } from '@walnut-server/decorators/swagger'
 import { WalnutAdminExceptionRequestDataError } from '@walnut-server/exceptions/base/400'
 
-import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardIpFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser, WalnutAdminGuardCapFree, WalnutAdminGuardDeviceFree, WalnutAdminGuardLockFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 
 import {
   LocalePayloadTransformPipe,
@@ -160,7 +160,11 @@ export class SysLocaleController {
   @WalnutAdminGuardJwtFree()
   @WalnutAdminGuardCapFree()
   @WalnutAdminGuardDeviceFree()
-  @WalnutAdminGuardIpFree()
+  // 批次 8 / B3（2026-11）：撤掉 @WalnutAdminGuardIpFree() —— 判据见报告：匿名语言包
+  // **不需要**在 IP 黑名单之外。① 内容全是公开静态文案（仓库里就有），拒绝不损失任何
+  // 机密性；② 同族的匿名引导端点 `lang/list/public` / `setting/public` 都是 IP 强制、
+  // 上线至今正常；③ IP 黑名单**没有中间件兜底**，每个 IpFree 都是真实缺口。唯一代价：
+  // 被拉黑 IP 的错误页失去译文（仍能拿到 40603 业务码），属既有「拉黑即全站拒绝」语义。
   // F-20（DOC-05 / DOC-14）：locale 是 union 字面量（emitDecoratorMetadata 反射成 Object），
   // swagger 只自动文档化反射型为 String/Number/Boolean 的参数 —— 路径参数因此在 openapi 里
   // 整个缺失；cache 带 DefaultValuePipe(1)，Nest 仍一律标 required: true。两处都按实现显式声明。

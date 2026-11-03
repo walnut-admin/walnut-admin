@@ -18,7 +18,7 @@ IP -> Security -> Device -> Risk(前) -> CAP(前) -> JWT -> Risk(后) -> CAP(后
 
 | # | Guard | 职责 | 主要失败码 | 跳过装饰器 |
 |---|---|---|---|---|
-| 1 | `WalnutAdminGuardIP` | 查 `realIp` 是否在永久（`APP:SETTING` 的 `app.global.ipBlackList`）或临时（Redis）黑名单 | 40603 | `@WalnutAdminGuardIpFree()` |
+| 1 | `WalnutAdminGuardIP` | 查 `realIp` 是否在永久（`APP:SETTING` 的 `app.global.ipBlackList`）或临时（Redis）黑名单 | 40603 | `@WalnutAdminGuardIpFree()`（**当前 0 处调用**：批次 8 / B3 撤掉了全部 4 处豁免 —— IP 黑名单没有中间件兜底，豁免即缺口） |
 | 2 | `WalnutAdminGuardSecurity` | UA 存在性、恶意路径、bot、可疑请求、OS/浏览器白名单 | 40604 / 40610 / 40608 / 40609 / 40601 / 40602 | 无（仅 dev 的 `isPostman` 旁路） |
 | 3 | `WalnutAdminGuardDevice` | 校验签名 `DEVICE_ID` cookie；缓存/DB 查设备行；封禁与锁定判定；IP 漂移时更新设备 IP | 40605 / 40606 / 40607 | `@WalnutAdminGuardDeviceFree()` |
 | 4 | `WalnutAdminGuardRisk`（前） | 采集 pre-auth 频率，评估 IP/设备/失败登录/位置/频率，写 `request.risk` | 40666（当前不可达，见 P1-13） | 无 |

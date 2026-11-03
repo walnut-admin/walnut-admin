@@ -1,5 +1,6 @@
 import type { ExecutionContext } from '@nestjs/common'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
+import { WalnutAdminExceptionRiskUnavailable } from '@walnut-server/exceptions/base/406'
 import {
   WalnutAdminExceptionCapInteractionRequired,
   WalnutAdminExceptionCapRefreshRequired,
@@ -210,5 +211,49 @@ describe('cap guard：通过路径', () => {
     await expect(guard.canActivate(createContext(true, WELL_FORMED_TOKEN))).resolves.toBe(true)
 
     expect(mocks.setCapTokenCache).toHaveBeenCalledWith('g9-device', WELL_FORMED_TOKEN)
+  })
+})
+
+describe('cap guard：Risk 没留下 decision 时按端点分级（批次 8 / B2，守卫链第三腿）', () => {
+  function contextWithoutRisk(method: string, path: string) {
+    const request = {
+      isPostman: false,
+      method,
+      path,
+      signedCookies: {
+        [WalnutAdminConstCookieKeys.CAPJS_TOKEN]: WELL_FORMED_TOKEN,
+        [WalnutAdminConstCookieKeys.DEVICE_ID]: 'g9-device',
+      },
+    }
+
+    return {
+      request,
+      context: {
+        switchToHttp: () => ({
+          getRequest: () => request,
+        }),
+        getHandler: () => function capGuardSpecHandler() {},
+        getClass: () => class CapGuardSpecController {},
+      } as unknown as ExecutionContext,
+    }
+  }
+
+  it('敏感端点（POST /auth/otp/verify）没有 risk decision ⇒ 40667，不再「allowing request」', async () => {
+    const { guard } = createGuard()
+    const { context } = contextWithoutRisk('POST', '/w/v1/auth/otp/verify')
+
+    await expect(guard.canActivate(context))
+      .rejects
+      .toBeInstanceOf(WalnutAdminExceptionRiskUnavailable)
+    // 旧实现 return true ⇒ 无人机验证也能过（负对照）
+    expect(validateTokenMock).not.toHaveBeenCalled()
+  })
+
+  it('非敏感端点没有 risk decision ⇒ 放行 + riskDegraded = risk-recommendation-missing', async () => {
+    const { guard } = createGuard()
+    const { context, request } = contextWithoutRisk('GET', '/w/v1/system/locale/message/zh_CN')
+
+    await expect(guard.canActivate(context)).resolves.toBe(true)
+    expect(request).toMatchObject({ riskDegraded: 'risk-recommendation-missing' })
   })
 })

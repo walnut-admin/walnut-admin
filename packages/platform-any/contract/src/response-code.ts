@@ -112,6 +112,8 @@ export const WalnutAdminConstAppResponseCode = {
   NOT_ACCEPTABLE_BLACK_LIST_PATH_DETECTED: 40610,
   /** 风险等级过高 */
   NOT_ACCEPTABLE_RISK_TOO_HIGH: 40666,
+  /** 风控不可用（无法完成风险评估，敏感端点 fail-close 拒绝） */
+  NOT_ACCEPTABLE_RISK_UNAVAILABLE: 40667,
   /** 自定义错误码预留：40691-40699 */
 
   // ----- 408 Request Timeout -----
