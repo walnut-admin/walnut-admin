@@ -5,7 +5,6 @@ import {
   Inject,
   Injectable,
   Logger,
-  SetMetadata,
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { AppTechCacheCapService } from '@walnut-server/cache'
@@ -22,28 +21,7 @@ import { AppCapJS } from '@walnut-server/security/cap/cap.service'
 import { SecurityRiskChallengeStateService } from '@walnut-server/security/risk/modules/challenge.service'
 import { isNil } from 'lodash'
 
-const WalnutAdminConstDecoratorCapFreeKey = Symbol('WALNUT_ADMIN_CONST_DECORATOR_CAP_FREE')
-
-/**
- * cap.js token 的形态：`<id>:<vertoken>`，两段都是小写 hex。
- * 出处 `@cap.js/server@4.0.5` 的 `redeemChallenge`：`id = randomHex(8)`、
- * `vertoken = randomHex(15)`，最终 `token: \`${id}:${vertoken}\``（index.js:342-364）。
- *
- * 只校验**形态**，不校验内容（内容归 `validateToken`）—— 目的是把"客户端交的根本不是
- * 一枚 cap.js 凭据"与"凭据过期/已被消费"分开，前者才配 40111。
- */
-const WALNUT_ADMIN_CAP_JS_TOKEN_PATTERN = /^[\da-f]+:[\da-f]+$/i
-
-export function isWellFormedCapJsToken(token: unknown): token is string {
-  return typeof token === 'string' && WALNUT_ADMIN_CAP_JS_TOKEN_PATTERN.test(token)
-}
-
-/**
- * 装饰器：跳过 CAP 验证
- */
-export function WalnutAdminGuardCapFree() {
-  return SetMetadata(WalnutAdminConstDecoratorCapFreeKey, true)
-}
+import { isWellFormedCapJsToken, WalnutAdminConstDecoratorCapFreeKey } from './cap.decorator'
 
 /**
  * CAP Guard —— 人机验证执行入口

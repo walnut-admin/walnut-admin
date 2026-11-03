@@ -7,8 +7,9 @@
 ## 它是什么
 
 `apps/worker/src/main.ts` 用 `NestFactory.createApplicationContext(WorkerModule)` 起一个**没有 HTTP
-监听**的应用上下文（不占端口、不接流量），`WorkerModule` 复用 `apps/api` 的 `AppModule`，并显式
-注册 `ScheduleModule`。职责（`WORKER_STANDALONE=true` 时还包括执行 bootstrap 预热与维护任务，见下文部署契约）：
+监听**的应用上下文（不占端口、不接流量），`WorkerModule` 复用 `apps/api` 的 **`AppCoreModule`**
+（不是全量 `AppModule` —— 全量图里有 Express 中间件、12 条 `APP_GUARD`、5 个 HTTP 包装模块与
+`DiscoveryModule`，见 `apps/api/src/app/core.module.ts`），并显式注册 `ScheduleModule`。职责（`WORKER_STANDALONE=true` 时还包括执行 bootstrap 预热与维护任务，见下文部署契约）：
 
 - 跑 `@Cron`（task 域的定时任务、refresh token purge 等）；
 - 消费 Bull 队列（多进程竞争消费是安全的：同一 job 只会被一个 consumer 取走）。
@@ -34,7 +35,13 @@ pnpm start:worker
 # 预发
 pnpm build:worker:stage
 pnpm start:worker:stage
+
+# 开发：watch 模式，与 pnpm dev 同画像（别再用「先 build 再跑 dist」那套）
+pnpm dev:worker
 ```
+
+`dev:worker` = `nest start worker --watch -c infra/nest/dev.json`，`WORKER_STANDALONE=true` 由
+`cross-env` 注入。双启动冒烟因此是「两个终端、各一条命令」：`pnpm dev` + `pnpm dev:worker`。
 
 `start:worker` 里的 `cross-env` 是 devDependency，**镜像内没有**（`pnpm deploy --prod` 只带生产依赖）。
 在容器里直接给 env 启动同一入口：
@@ -76,13 +83,50 @@ winston-daily-rotate 轮转时互相 rename）。它**没有 healthcheck**：本
 `dist/apps/worker/src/main.js` → 轮询最多 40s 等日志出现 `cron jobs: <非零>` → SIGTERM 收场。
 **`cron jobs: 0` 也是红的** —— 「进程起来了但一个 cron 都没挂上」正是要抓的缺陷形态。
 
+同一步里还有**第二条判据（batch-6 r2 · 拍板 D6）：CAP token 存储不得被 worker 碰到。**
+
+```text
+种 .data/tokensList.json = {"deadbeef:0123456789abcdef":1}（expires=1，早已过期）
+     + touch 到 2020-01-01          ← mtime 钉死，任何 touch 都可见
+起 worker → 等 `cron jobs: N` → SIGTERM → 等退出
+断言 stat(%Y %s) + sha256 **前后逐字节相同**，否则红
+```
+
+为什么这条判据有牙：`@cap.js/server` 的 `cleanup()` 在 SIGTERM 时把过期项删掉并**整份写回**
+（`index.js:505-506` 判过期、`:545-565` 写回）。所以「worker 加载过 cap.js」必然改这个文件。
+那条 `expires=1` 的假 token 就是为了让这一步**不能空过** —— 不需要真凭据。
+
+结构级的同一判据是零基础设施的
+`apps/api/src/common/monorepo/worker-import-closure.drift.spec.ts`（worker import 闭包不含
+`cap.service.ts`）；CI 这条是它的运行期佐证。
+
 本机等价做法（在 `apps/server/` 下，需要 PG + Redis + 解密后的 `env-local/.env.development`）：
 
 ```bash
+# 双启动：两个终端各一条（都从 apps/server/ 起）
+pnpm dev          # 终端 1：api
+pnpm dev:worker   # 终端 2：worker（watch，WORKER_STANDALONE=true 已注入）
+
+# 或者一次性 / prod 画像（跑 dist，注意 NODE_ENV 不能是 production，见下面坑 ①）
 pnpm build
 NODE_ENV=development WORKER_STANDALONE=true WALNUT_ADMIN_BOOTSTRAP_TASKS=off node dist/apps/worker/src/main.js
-# 另开一个终端：约 9s 后应看到 "cron jobs: 7 [...]"；Ctrl-C 退出
+# 约 9s 后应看到 "cron jobs: 7 [...]"；Ctrl-C 退出
 ```
+
+本机跑 D6 判据时，在起 worker **之前**种文件、退出**之后**比对（bash）：
+
+```bash
+mkdir -p .data && printf '{"deadbeef:0123456789abcdef":1}' > .data/tokensList.json
+touch -d '2020-01-01T00:00:00Z' .data/tokensList.json
+before="$(stat -c '%Y %s' .data/tokensList.json) $(sha256sum .data/tokensList.json | cut -d' ' -f1)"
+# …起 worker、等 cron、SIGTERM、等退出…
+after="$(stat -c '%Y %s' .data/tokensList.json) $(sha256sum .data/tokensList.json | cut -d' ' -f1)"
+[ "$before" = "$after" ] && echo OK || echo "RED: worker 碰了 CAP 存储"
+```
+
+> Windows 下 `stat -c` / `touch -d` 不可用：用 `Get-Item .data/tokensList.json | % LastWriteTime`
+> 取 mtime、`Get-FileHash` 取内容哈希，判据相同。**注意 `Stop-Process` 是硬杀、走不到
+> `enableShutdownHooks`** —— 那样 cap.js 的 cleanup 根本不会跑，测不出东西（见下面坑 ③）。
 
 三个坑（都是实测）：
 
@@ -128,7 +172,21 @@ Bull 不需要开关：多进程消费同一个队列是竞争消费，不会重
 ```
 apps/worker/
 ├── src/main.ts          # 应用上下文入口 + 启动日志 + enableShutdownHooks
-├── src/worker.module.ts # 组合根：AppModule + ScheduleModule（standalone 时）
+├── src/worker.module.ts # 组合根：AppCoreModule + AppBootstrapTaskModule + ScheduleModule（standalone 时）
 ├── tsconfig.app.json    # 编译范围（api + libs）
 └── tsconfig.app.stage.json
 ```
+
+worker 用的入口模块都在 `apps/api/src/` 下（同一份源码、同一份编译产物）：
+
+| 文件 | 给谁 | 说明 |
+|------|------|------|
+| `app/app.module.ts`（`AppModule`） | api + cli | **全量图**，一行不动。`apps/cli/src/export-openapi.ts` 依赖它，削薄 = openapi 丢路径 |
+| `app/core.module.ts`（`AppCoreModule`） | **worker** | 只含两进程都要的业务/基础设施；无 APP_GUARD / 中间件 / gateway |
+| `modules/techniques/tech.module.ts` | api | 技术面全集（含 health + throttler + 第 12 条 APP_GUARD） |
+| `modules/techniques/tech-core.module.ts` | **worker** | 上面的子集，恰好少 health + throttler |
+| `socket/socket.module.ts` | api | gateway + auth middleware + monitor-user 的 HTTP 组合 |
+| `socket/socket-core.module.ts` | **worker** | 只 `SocketService`（@Global；两个端口实现要注入它） |
+
+守卫：`apps/api/src/common/monorepo/` 下三个零基础设施 drift spec
+（`worker-import-closure` / `guard-order` / `core-module-scope`），跑 `pnpm test` 即校验。

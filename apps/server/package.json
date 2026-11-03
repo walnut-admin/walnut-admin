@@ -26,6 +26,7 @@
     "build:worker": "cross-env NODE_ENV=production nest build worker -c infra/nest/prod.json",
     "build:worker:stage": "cross-env NODE_ENV=stage nest build worker -c infra/nest/stage.json",
     "dev": "cross-env NODE_ENV=development nest start api --watch -c infra/nest/dev.json",
+    "dev:worker": "cross-env NODE_ENV=development WORKER_STANDALONE=true nest start worker --watch -c infra/nest/dev.json",
     "start:debug": "nest start --debug --watch -c infra/nest/dev.json",
     "start:prod": "cross-env NODE_ENV=production node dist/apps/api/src/main.js",
     "start:stage": "cross-env NODE_ENV=stage node dist-stage/apps/api/src/main.js",

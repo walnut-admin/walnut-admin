@@ -5,7 +5,10 @@ import { JwtAccessGuard } from '@walnut-server/auth'
 import { WalnutConfigModule } from '@walnut-server/config'
 import { WalnutContextModule } from '@walnut-server/context'
 import { WalnutModule } from '@walnut-server/db'
-import { ALSRequestInterceptor, WalnutAdminGuardCap, WalnutAdminGuardDevice, WalnutAdminGuardIP, WalnutAdminGuardLock, WalnutAdminGuardMFA, WalnutAdminGuardRisk, WalnutAdminGuardSecurity, WalnutAdminGuardSign, WalnutAdminInterceptorResponseSuccess } from '@walnut-server/guards'
+import { ALSRequestInterceptor, WalnutAdminGuardDevice, WalnutAdminGuardIP, WalnutAdminGuardLock, WalnutAdminGuardMFA, WalnutAdminGuardRisk, WalnutAdminGuardSecurity, WalnutAdminGuardSign, WalnutAdminInterceptorResponseSuccess } from '@walnut-server/guards'
+// CAP guard 的**类**只能从子路径取：barrel 只导出装饰器面，目的是把 cap.service（new Cap()
+// 的求值期副作用）挡在 worker 的 import 闭包之外。顺序与注册位置一字未动（拍板 D1）。
+import { WalnutAdminGuardCap } from '@walnut-server/guards/guards/cap.guard'
 
 // F-33（ARCH-07）：组合根的**跨目录** import 一律走 `@/*`（= apps/api/src/*），与
 // socket.module.ts 同款 —— 相对路径在这里看不出「这个符号属于哪一层」，目录调整时集体断链。

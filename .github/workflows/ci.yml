@@ -430,6 +430,19 @@ jobs:
           pnpm build
           log="$(mktemp)"
           start=$(date +%s)
+          # ── D6 判据（batch-6 r2）：.data 不得因 worker 启停而变化 ──────────────
+          # 种一份**含过期项**的 CAP token 表：@cap.js/server 的 cleanup() 在 SIGTERM 时
+          # 把过期项删掉并整份写回（index.js:505-506 判过期、:545-565 写回）——
+          # 所以「worker 加载过 cap.js」必然会改这个文件的**内容与 mtime**。
+          # expires=1 的假 token 足够触发，不需要真凭据；mtime 钉到 2020 让任何 touch 都可见。
+          # 反证形态：改动前（worker 走 AppModule）这一步必红；本批改成 AppCoreModule
+          # + 拆 cap.guard 之后转绿。结构级同一判据是零基础设施的 G1 spec
+          # （apps/api/src/common/monorepo/worker-import-closure.drift.spec.ts）。
+          mkdir -p .data
+          printf '{"deadbeef:0123456789abcdef":1}' > .data/tokensList.json
+          touch -d '2020-01-01T00:00:00Z' .data/tokensList.json
+          data_before="$(stat -c '%Y %s' .data/tokensList.json) $(sha256sum .data/tokensList.json | cut -d' ' -f1)"
+          echo "CAP token store before worker: $data_before"
           NODE_ENV=development WORKER_STANDALONE=true WALNUT_ADMIN_BOOTSTRAP_TASKS=off \
             node dist/apps/worker/src/main.js >"$log" 2>&1 &
           pid=$!
@@ -446,6 +459,20 @@ jobs:
           # 断言：grep 不到 ⇒ exit 1 ⇒ 本步红。注意 `cron jobs: 0` 也必须红 ——
           # 「进程起来了但一个 cron 都没挂上」正是要抓的缺陷形态，不能放过。
           grep -E 'cron jobs: [1-9][0-9]*' "$log"
+
+          # ── D6 判据收尾：worker 已 SIGTERM 并退出，CAP token 存储必须原样 ──────────
+          # 比 mtime 更硬：内容哈希一起比。worker 里只要还有 new Cap()，cleanup() 就会
+          # 把那条 expires=1 删掉并写回 ⇒ 两个值都变 ⇒ 红。
+          data_after="$(stat -c '%Y %s' .data/tokensList.json) $(sha256sum .data/tokensList.json | cut -d' ' -f1)"
+          echo "CAP token store after  worker: $data_after"
+          if [ "$data_before" != "$data_after" ]; then
+            echo "::error::worker 触碰了 CAP token 存储（.data/tokensList.json）—— CAP 隔离回归了"
+            echo "before: $data_before"
+            echo "after : $data_after"
+            cat .data/tokensList.json
+            exit 1
+          fi
+          echo "OK: worker 没有触碰 .data/tokensList.json（CAP 求值链不在 worker 闭包里）"
 
       # 这条 note 现在只说「哪一半没跑」：段② 已在上面的 `DOTENVX_KEYS == ''` 分支里真跑过，
       # 别再写成「跳过 OpenAPI 一致性校验」—— 那会让 fork PR 的日志读起来像整段都没守。

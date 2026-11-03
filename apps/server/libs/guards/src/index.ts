@@ -28,7 +28,10 @@ export * from './decorators/response.decorator'
 export * from './decorators/user.decorator'
 
 export * from './guards/auth.guard'
-export * from './guards/cap.guard'
+// cap.guard.ts 的**类**走子路径 '@walnut-server/guards/guards/cap.guard'（只有组合根引它），
+// barrel 只导出装饰器面 —— 否则每个只为拿 WalnutAdminGuardCapFree 的 controller 都会经
+// cap.guard.ts 把 @walnut-server/security/cap/cap.service 的 `new Cap()` 拖进自己的求值闭包。
+export * from './guards/cap.decorator'
 export * from './guards/device.guard'
 export * from './guards/env.guard'
 export * from './guards/functional.guard'
