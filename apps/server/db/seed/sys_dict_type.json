@@ -1,212 +1,128 @@
 [
   {
-    "_id": {
-      "$oid": "621098e6273ac97843b98dfb"
-    },
-    "description": "状态，例如用户是否启用，角色是否启用等",
-    "status": true,
-    "type": "sys_shared_status",
-    "name": "dict.name.status",
-    "createdAt": {
-      "$date": "2022-02-19T07:14:46.691Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-11T05:51:55.271Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6212457a5694253a76fddd89"
-    },
-    "description": "http://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=0FC942D542BC6EE3C707B2647EF81CD8",
-    "status": true,
-    "type": "gbt_sex",
-    "name": "dict.name.sex",
-    "createdAt": {
-      "$date": "2022-02-20T13:43:22.215Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-10T09:42:32.658Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623c3c64e8a9064c857cf754"
-    },
-    "description": "对应UI的type风格",
-    "status": true,
-    "type": "sys_type",
-    "name": "dict.name.type",
-    "createdAt": {
-      "$date": "2022-03-24T09:39:48.271Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-11T05:53:01.160Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623c53e6cc4e009b0d21ee0f"
-    },
-    "description": "细节的操作，用于各个业务模块的敏感记录",
-    "status": true,
-    "type": "sys_operate_type",
-    "name": "dict.name.sys_operate_type",
-    "createdAt": {
-      "$date": "2022-03-24T11:20:06.457Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T06:31:08.976Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6246bf79bd7d7fe6184005a6"
-    },
-    "description": "系统默认是否成功",
-    "status": true,
-    "type": "sys_shared_success",
+    "id": "20c1f7c8-ec99-550a-b495-f9b8ac887880",
     "name": "dict.name.success",
-    "createdAt": {
-      "$date": "2022-04-01T09:01:45.103Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-11T06:06:14.658Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
+    "type": "sys_shared_success",
     "status": true,
-    "type": "gbt_edu",
-    "name": "dict.name.gbt_edu",
-    "createdAt": {
-      "$date": "2022-04-05T09:18:29.881Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-11T06:10:40.640Z"
-    },
-    "description": "http://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=D88049B2BB8325F1900B7C5F7E635AE8"
+    "description": "系统默认是否成功",
+    "created_at": "2022-04-01T09:01:45.103Z",
+    "updated_at": "2022-04-11T06:06:14.658Z"
   },
   {
-    "_id": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "description": "http://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=E5C3271B62636C5DA6853A0DA23EBBA9",
+    "id": "22561dad-4a91-5b2b-b2bb-43edbf760da2",
+    "name": "dict.name.type",
+    "type": "sys_type",
     "status": true,
-    "type": "gbt_nation",
-    "name": "dict.name.gbt_nation",
-    "createdAt": {
-      "$date": "2022-04-05T11:36:06.307Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-11T06:10:45.305Z"
-    }
+    "description": "对应UI的type风格",
+    "created_at": "2022-03-24T09:39:48.271Z",
+    "updated_at": "2022-04-11T05:53:01.160Z"
   },
   {
-    "_id": {
-      "$oid": "624c2fe9b4cc94bb20c31ecc"
-    },
-    "description": "http://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=00C2855745344E94D01AB6ACE6CC62CE",
+    "id": "28479366-45c9-5798-bc22-da930a4f3a71",
+    "name": "dict.name.sys_operate_type",
+    "type": "sys_operate_type",
     "status": true,
-    "type": "gbt_marriage",
-    "name": "dict.name.gbt_marriage",
-    "createdAt": {
-      "$date": "2022-04-05T12:02:49.213Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-11T06:10:49.763Z"
-    }
+    "description": "细节的操作，用于各个业务模块的敏感记录",
+    "created_at": "2022-03-24T11:20:06.457Z",
+    "updated_at": "2025-11-07T06:31:08.976Z"
   },
   {
-    "_id": {
-      "$oid": "624c3168b4cc94bb20c31f97"
-    },
-    "description": "http://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=5D8EAFFA6F8B4AB6582FA764EF85041F",
-    "status": true,
-    "type": "gbt_health_1",
-    "name": "dict.name.gbt_health_1",
-    "createdAt": {
-      "$date": "2022-04-05T12:09:12.848Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-11T06:10:54.532Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "description": "http://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=16BCF58D77D483BA134C0938972A8B90",
-    "status": true,
-    "type": "gbt_employ",
-    "name": "dict.name.gbt_employ",
-    "createdAt": {
-      "$date": "2022-04-05T12:14:34.741Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-11T06:10:59.201Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "632134e81173a975c154529e"
-    },
-    "name": "dict.name.sys_auth_type",
-    "type": "sys_auth_type",
-    "status": true,
-    "description": "系统认证方式",
-    "createdAt": {
-      "$date": "2022-09-14T01:56:56.624Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-19T06:43:33.466Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6335556d8747bc18696e81a5"
-    },
-    "name": "dict.name.app_cache_type",
-    "type": "app_cache_type",
-    "status": true,
-    "description": "应用缓存类型",
-    "createdAt": {
-      "$date": "2022-09-29T08:21:01.106Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-29T08:21:01.106Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "63364acb20d7bce263f4566a"
-    },
+    "id": "40394742-78d3-5e04-b779-fa0c81a3100d",
     "name": "dict.name.app_setting_type",
     "type": "app_setting_type",
     "status": true,
     "description": "应用设置的类型",
-    "createdAt": {
-      "$date": "2022-09-30T01:47:55.041Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-30T01:47:55.041Z"
-    }
+    "created_at": "2022-09-30T01:47:55.041Z",
+    "updated_at": "2022-09-30T01:47:55.041Z"
   },
   {
-    "_id": {
-      "$oid": "690d921819fb85827a546aac"
-    },
+    "id": "4c894f9d-e00c-5bb5-ac56-d094351ab8b4",
     "name": "dict.name.sys_operate_action",
     "type": "sys_action_type",
     "status": true,
     "description": "大概的操作，增删改等等",
-    "createdAt": {
-      "$date": "2025-11-07T06:30:48.261Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T06:30:48.261Z"
-    }
+    "created_at": "2025-11-07T06:30:48.261Z",
+    "updated_at": "2025-11-07T06:30:48.261Z"
+  },
+  {
+    "id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "name": "dict.name.gbt_edu",
+    "type": "gbt_edu",
+    "status": true,
+    "description": "http://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=D88049B2BB8325F1900B7C5F7E635AE8",
+    "created_at": "2022-04-05T09:18:29.881Z",
+    "updated_at": "2022-04-11T06:10:40.640Z"
+  },
+  {
+    "id": "8dd55502-812f-517d-8e64-89456531a75c",
+    "name": "dict.name.gbt_health_1",
+    "type": "gbt_health_1",
+    "status": true,
+    "description": "http://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=5D8EAFFA6F8B4AB6582FA764EF85041F",
+    "created_at": "2022-04-05T12:09:12.848Z",
+    "updated_at": "2022-04-11T06:10:54.532Z"
+  },
+  {
+    "id": "91509345-eaff-5c09-be71-900bdf3d4b33",
+    "name": "dict.name.status",
+    "type": "sys_shared_status",
+    "status": true,
+    "description": "状态，例如用户是否启用，角色是否启用等",
+    "created_at": "2022-02-19T07:14:46.691Z",
+    "updated_at": "2022-04-11T05:51:55.271Z"
+  },
+  {
+    "id": "978daccd-2845-52b2-ad2f-41883e239b9d",
+    "name": "dict.name.sys_auth_type",
+    "type": "sys_auth_type",
+    "status": true,
+    "description": "系统认证方式",
+    "created_at": "2022-09-14T01:56:56.624Z",
+    "updated_at": "2022-09-19T06:43:33.466Z"
+  },
+  {
+    "id": "a0b94442-54c8-5347-a068-76155cc3a5d2",
+    "name": "dict.name.gbt_marriage",
+    "type": "gbt_marriage",
+    "status": true,
+    "description": "http://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=00C2855745344E94D01AB6ACE6CC62CE",
+    "created_at": "2022-04-05T12:02:49.213Z",
+    "updated_at": "2022-04-11T06:10:49.763Z"
+  },
+  {
+    "id": "cff333d5-4b50-5d47-a1db-e1298fa09d74",
+    "name": "dict.name.app_cache_type",
+    "type": "app_cache_type",
+    "status": true,
+    "description": "应用缓存类型",
+    "created_at": "2022-09-29T08:21:01.106Z",
+    "updated_at": "2022-09-29T08:21:01.106Z"
+  },
+  {
+    "id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "name": "dict.name.gbt_nation",
+    "type": "gbt_nation",
+    "status": true,
+    "description": "http://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=E5C3271B62636C5DA6853A0DA23EBBA9",
+    "created_at": "2022-04-05T11:36:06.307Z",
+    "updated_at": "2022-04-11T06:10:45.305Z"
+  },
+  {
+    "id": "f03de842-7763-5a3f-a6c0-bba5ff823b8c",
+    "name": "dict.name.sex",
+    "type": "gbt_sex",
+    "status": true,
+    "description": "http://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=0FC942D542BC6EE3C707B2647EF81CD8",
+    "created_at": "2022-02-20T13:43:22.215Z",
+    "updated_at": "2022-04-10T09:42:32.658Z"
+  },
+  {
+    "id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "name": "dict.name.gbt_employ",
+    "type": "gbt_employ",
+    "status": true,
+    "description": "http://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=16BCF58D77D483BA134C0938972A8B90",
+    "created_at": "2022-04-05T12:14:34.741Z",
+    "updated_at": "2022-04-11T06:10:59.201Z"
   }
 ]

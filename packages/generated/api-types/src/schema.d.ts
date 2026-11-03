@@ -5613,6 +5613,11 @@ export interface components {
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             langId: string;
             /**
+             * group key
+             * @description grouped i18n key (Mongo $group._id); NOT the row primary key
+             */
+            groupKey?: string;
+            /**
              * translate process
              * @description fraction (0-1) of finished translations for the key (admin displays × 100)
              */

@@ -13,10 +13,10 @@
 | `walnut-check-doc-refs` | `pnpm lint:docs-refs` | 校验**活文档正文**里引用的 workspace 包名与仓库路径是否真实存在 |
 | `walnut-setup-env` | `pnpm setup-env` / `pnpm encrypt-env` | dotenvx 加解密 `env-encrypted/` ↔ `env-local/` |
 | `walnut-check-git-hooks` | `pnpm hooks:check` | 断言 git 钩子由 lefthook 托管（防门禁静默消失） |
-| `walnut-db-etl` | `pnpm db:etl` | Mongo→PG 存量搬迁（Mongo 只读；`--fresh` 全量，默认增量幂等） |
-| `walnut-db-verify-etl` | `pnpm db:verify-etl` | ETL 三重对账（计数 / 抽样 / 聚合），有差异退出码非 0 |
-| `walnut-db-seed-pg` | `pnpm db:seed:pg` | 仓内 seed JSON → PG（按 id upsert，幂等可重放；CI/部署通道） |
-| `walnut-db-export-pg` | `pnpm db:export:pg` | PG → seed 形态 Extended JSON（uuid 口径，见下方「PG 导出口径」） |
+| `walnut-db-seed-pg` | `pnpm db:seed:pg` | 仓内 seed **行数组** → PG（按主键 upsert，幂等可重放；CI/部署通道） |
+| `walnut-db-export-pg` | `pnpm db:export:pg` | PG → **历史导出**形态 Extended JSON（uuid 本体；消费方是 reshape / 人工 review） |
+| `walnut-db-seed-reshape` | `pnpm db:seed:reshape` | 历史导出 → **PG 行形态** seed 目录（`{ id, … }` + junction 独立文件） |
+| `walnut-db-verify-seed` | `pnpm db:seed:verify` | 双库对拍：旧 seed + 旧管线 与 新 seed 各灌一个空库，逐表逐列 + 导出文件比 |
 
 发版编排的 bin（`walnut-release`）在 [`@walnut/release`](../release/)。
 
@@ -99,19 +99,24 @@
 
 | 模块 | 职责 |
 |------|------|
-| `seed.ts` | `db:seed`（Mongo 播种）/ `db:export`（反向导出）的参数、连接、写入计划 |
-| `export-pg.ts` / `seed-pg.ts` | PG 版同两条通道（`db:export:pg` / `db:seed:pg`）；导出口径见下 |
-| `etl-map.ts` | **唯一映射层**：Mongo 文档 → PG 行（`$date`→timestamptz、`$oid`→uuid v5、menu.meta 拍平、junction 拆分、Q7 parse、Q4 setting_value 重写）。`db:etl` / `db:seed:pg` / `db:verify-etl` 三条通道共用 —— 对账成立的前提就是「同一份映射」 |
-| `etl-mongo-to-pg.ts` | `db:etl`（Mongo→PG 存量搬迁；Mongo **只读**）：增量幂等（v5 + `ON CONFLICT DO NOTHING`）/ `--fresh` 全量；shared_area 66 万行分批多行 INSERT（每批一个事务，~1.4 万行/秒） |
-| `verify-etl.ts` | `db:verify-etl` 三重对账（计数 / 抽样逐列 / 聚合）；任何差异 → 退出码 1 |
-| `uuid5.ts` | ObjectId hex → uuid v5 派生的**唯一真源**（namespace 常量也在这里，永不可改） |
-| `mongo-conn.ts` / `pg-conn.ts` | 连接解析（`DATABASE_*` / `DATABASE_PG_*`，与后端同一组 env 变量） |
+| `seed.ts` | seed 目录 / env 文件 / 路径解析的共享纯助手 |
+| `seed-pg.ts` | `db:seed:pg`：行数组 → PG。列/主键/外键/jsonb 判据全部从 `information_schema` 读（**没有映射层**），播表顺序 = FK 拓扑序 |
+| `seed-reshape.ts` | `db:seed:reshape`：历史导出（EJSON）→ 行形态。`ROW_SPECS` 是「导出键 → 列名」的唯一映射表，未消费的键一律抛（漏一列是静默的） |
+| `export-pg.ts` | `db:export:pg`：PG → 历史导出形态（uuid 本体 + `$date` 包装）；默认 `--out` 是临时目录，写进 seed 目录会被拦截 |
+| `seed-verify.ts` | `db:seed:verify`：双库对拍（基线从 git 取：旧 seed + 旧管线代码），逐表逐列 + 导出文件比 |
+| `ejson.ts` | Extended JSON 读写**兼容器**：只服务「历史导出」通道（不再是 seed 真源格式） |
+| `policy.ts` / `anonymize.ts` | 裁剪（哪些数据进仓）与脱敏（个人数据掩码），导出与门禁共用 |
+| `uuid5.ts` | ObjectId hex → uuid v5 派生的**唯一真源**（namespace 常量也在这里，永不可改；运行时已不再派生——id 直接写在 seed 里） |
+| `pg-conn.ts` | 连接解析（`DATABASE_PG_*`，与后端同一组 env 变量） |
 
-**PG 导出口径（`db:export:pg`）**：PG 主键是 uuid v5，**反解回 24 位 ObjectId hex 不可逆**。
-导出的 `_id` / 引用字段写 PG uuid 本体，`$date` 仍是 Extended JSON 包装 —— 该格式是
-「PG 生态回灌」用的快照（可被 `db:seed:pg --seed-dir <导出目录>` 原样吃回），
-**不追求与仓内 Mongo seed 文件逐字节一致**；仓内 seed 的唯一真源仍是
-`apps/server/db/seed/` + `db:export`（Mongo 版）。
+**PG 导出口径（`db:export:pg`）**：主键是 uuid，**反解回 24 位 ObjectId hex 不可逆**。导出的
+`_id` / 引用字段写 PG uuid 本体，`$date` 仍是 Extended JSON 包装 —— 这是**历史导出形态**，
+消费方只有两个：`db:seed:reshape`（拍平成仓内真源）与人工 review。
+
+**仓内 seed 的真源形态是 PG 行数组**（`{ id, created_at, … }` + junction 独立文件），再生成是
+固定的两步（`db:export:pg --out <临时目录>` → `db:seed:reshape --from <临时目录>`）。旧那套
+「Mongo 文档 + `etl-map.ts` 运行期映射」已于 2026-11 批次 5-B 退役，映射表只剩 `seed-reshape.ts`
+的 `ROW_SPECS`（导出键 → 列名），且**未消费的键会抛**——加列必须同步它，不再有静默漏列。
 
 ## 两条硬约束
 

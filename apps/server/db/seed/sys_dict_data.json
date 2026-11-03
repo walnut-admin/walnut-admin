@@ -1,3256 +1,2030 @@
 [
   {
-    "_id": {
-      "$oid": "6211b63100ab785c169ee54b"
-    },
-    "description": "系统默认状态真值",
-    "status": true,
-    "order": 0,
-    "value": "true",
-    "label": "dict.status.true",
-    "typeId": {
-      "$oid": "621098e6273ac97843b98dfb"
-    },
-    "createdAt": {
-      "$date": "2022-02-20T03:32:01.375Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-24T09:52:20.341Z"
-    },
-    "tagType": "success"
-  },
-  {
-    "_id": {
-      "$oid": "6211b6a700ab785c169ee551"
-    },
-    "description": "系统默认状态假值",
-    "status": true,
-    "order": 1,
-    "value": "false",
-    "label": "dict.status.false",
-    "typeId": {
-      "$oid": "621098e6273ac97843b98dfb"
-    },
-    "createdAt": {
-      "$date": "2022-02-20T03:33:59.175Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-24T09:50:49.280Z"
-    },
-    "tagType": "error"
-  },
-  {
-    "_id": {
-      "$oid": "62138f0d4572d5ea0982d194"
-    },
-    "description": "male",
-    "status": true,
-    "order": 1,
-    "value": "1",
-    "label": "dict.sex.male",
-    "typeId": {
-      "$oid": "6212457a5694253a76fddd89"
-    },
-    "createdAt": {
-      "$date": "2022-02-21T13:09:33.188Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:01:06.313Z"
-    },
-    "tagType": "primary"
-  },
-  {
-    "_id": {
-      "$oid": "62138f1e4572d5ea0982d198"
-    },
-    "description": "female",
-    "status": true,
-    "order": 2,
-    "value": "2",
-    "label": "dict.sex.female",
-    "typeId": {
-      "$oid": "6212457a5694253a76fddd89"
-    },
-    "createdAt": {
-      "$date": "2022-02-21T13:09:50.407Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:01:11.026Z"
-    },
-    "tagType": "info"
-  },
-  {
-    "_id": {
-      "$oid": "623c522fcc4e009b0d21eda8"
-    },
-    "description": "primary style",
-    "tagType": "primary",
-    "status": true,
-    "order": 1,
-    "value": "primary",
-    "label": "dict.type.primary",
-    "typeId": {
-      "$oid": "623c3c64e8a9064c857cf754"
-    },
-    "createdAt": {
-      "$date": "2022-03-24T11:12:47.629Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-24T11:12:47.629Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623c5247cc4e009b0d21edb5"
-    },
-    "description": "info style",
-    "tagType": "info",
-    "status": true,
-    "order": 2,
-    "value": "info",
-    "label": "dict.type.info",
-    "typeId": {
-      "$oid": "623c3c64e8a9064c857cf754"
-    },
-    "createdAt": {
-      "$date": "2022-03-24T11:13:11.549Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-24T11:13:11.549Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623c525bcc4e009b0d21edb9"
-    },
-    "description": "success style",
-    "tagType": "success",
-    "status": true,
-    "order": 3,
-    "value": "success",
-    "label": "dict.type.success",
-    "typeId": {
-      "$oid": "623c3c64e8a9064c857cf754"
-    },
-    "createdAt": {
-      "$date": "2022-03-24T11:13:31.287Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-24T11:13:31.287Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623c5269cc4e009b0d21edbd"
-    },
-    "description": "warning style",
-    "tagType": "warning",
-    "status": true,
-    "order": 4,
-    "value": "warning",
-    "label": "dict.type.warning",
-    "typeId": {
-      "$oid": "623c3c64e8a9064c857cf754"
-    },
-    "createdAt": {
-      "$date": "2022-03-24T11:13:45.582Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-24T11:13:45.582Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "623c527acc4e009b0d21edc1"
-    },
-    "description": "error style",
-    "tagType": "error",
-    "status": true,
-    "order": 5,
-    "value": "error",
-    "label": "dict.type.error",
-    "typeId": {
-      "$oid": "623c3c64e8a9064c857cf754"
-    },
-    "createdAt": {
-      "$date": "2022-03-24T11:14:02.068Z"
-    },
-    "updatedAt": {
-      "$date": "2022-03-24T11:14:02.068Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6246c01abd7d7fe6184005f9"
-    },
-    "description": "系统默认成功",
-    "tagType": "success",
-    "status": true,
-    "order": 1,
-    "value": "true",
-    "label": "dict.success.true",
-    "typeId": {
-      "$oid": "6246bf79bd7d7fe6184005a6"
-    },
-    "createdAt": {
-      "$date": "2022-04-01T09:04:26.931Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-01T09:04:26.931Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6246c028bd7d7fe618400600"
-    },
-    "description": "系统默认失败",
-    "tagType": "error",
-    "status": true,
-    "order": 2,
-    "value": "false",
-    "label": "dict.success.false",
-    "typeId": {
-      "$oid": "6246bf79bd7d7fe6184005a6"
-    },
-    "createdAt": {
-      "$date": "2022-04-01T09:04:40.839Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-01T09:04:40.839Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c07679781ef4d9511fc82"
-    },
-    "tagType": "info",
-    "status": true,
-    "order": 0,
-    "value": "0",
-    "label": "dict.sex.unknown",
-    "typeId": {
-      "$oid": "6212457a5694253a76fddd89"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:09:59.169Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:10:06.786Z"
-    },
-    "description": "unknown"
-  },
-  {
-    "_id": {
-      "$oid": "624c077c9781ef4d9511fc8f"
-    },
-    "description": "undescribed",
-    "tagType": "warning",
-    "status": true,
-    "order": 3,
-    "value": "9",
-    "label": "dict.sex.undescribed",
-    "typeId": {
-      "$oid": "6212457a5694253a76fddd89"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:10:20.971Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:10:20.971Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0e81cd8a291d7880cb06"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 1,
-    "value": "10",
-    "label": "dict.edu.yjsjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:40:17.643Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:40:17.643Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0e9bcd8a291d7880cb0d"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 2,
-    "value": "11",
-    "label": "dict.edu.bsyjsby",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:40:43.346Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:40:43.346Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0ea6cd8a291d7880cb14"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 3,
-    "value": "12",
-    "label": "dict.edu.bsyjsjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:40:54.186Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:40:54.186Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0eb0cd8a291d7880cb1b"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 4,
-    "value": "13",
-    "label": "dict.edu.bsyjsyy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:41:04.797Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:41:04.797Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0ed8cd8a291d7880cb30"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 5,
-    "value": "14",
-    "label": "dict.edu.ssyjsby",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:41:44.301Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:41:44.301Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0eeacd8a291d7880cb37"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 6,
-    "value": "15",
-    "label": "dict.edu.ssyjsjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:42:02.930Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:42:02.930Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0efdcd8a291d7880cb3e"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 7,
-    "value": "16",
-    "label": "dict.edu.ssyjsyy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:42:21.618Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:42:21.618Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0f64cd8a291d7880cb45"
-    },
-    "description": "我国研究生教育中属于硕士生层次的一种非导师制的方式。其招生和入学条件与硕士生相似；学制两年或一年半。完成全部学习项目并考核合格者，发给研究生班毕业证书（研究生课程班不在此列）",
-    "tagType": "primary",
-    "status": true,
-    "order": 8,
-    "value": "17",
-    "label": "dict.edu.yjsbby",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:44:04.224Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:44:04.224Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0f7acd8a291d7880cb4c"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 9,
-    "value": "18",
-    "label": "dict.edu.yjsbjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:44:26.245Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:44:26.245Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0f8acd8a291d7880cb55"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 10,
-    "value": "19",
-    "label": "dict.edu.yjsbyy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:44:42.317Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:44:42.317Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0fbdcd8a291d7880cb5c"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 11,
-    "value": "20/30",
-    "label": "dict.edu.dxbkzkjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:45:33.002Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:45:33.002Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0fcccd8a291d7880cb63"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 12,
-    "value": "21",
-    "label": "dict.edu.dxbkby",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:45:48.317Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:45:48.317Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0fd8cd8a291d7880cb6a"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 13,
-    "value": "22",
-    "label": "dict.edu.dxbkjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:46:00.372Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:46:00.372Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0fe3cd8a291d7880cb71"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 14,
-    "value": "23",
-    "label": "dict.edu.dxbkyy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:46:11.193Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:46:11.193Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c0ff4cd8a291d7880cb78"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 15,
-    "value": "28",
-    "label": "dict.edu.dxptbby",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:46:28.281Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:46:28.281Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c1004cd8a291d7880cb7f"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 16,
-    "value": "31",
-    "label": "dict.edu.dxzkby",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:46:44.561Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:46:44.561Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c100fcd8a291d7880cb86"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 17,
-    "value": "32",
-    "label": "dict.edu.dxzkjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:46:55.177Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:47:26.623Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c1024cd8a291d7880cb8d"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 18,
-    "value": "33",
-    "label": "dict.edu.dxzkyy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:47:16.345Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:47:16.345Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c1076cd8a291d7880cbab"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 19,
-    "value": "40",
-    "label": "dict.edu.zdzyjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:48:38.271Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:48:38.271Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c1089cd8a291d7880cbb2"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 20,
-    "value": "41",
-    "label": "dict.edu.zdzkby",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:48:57.539Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:48:57.539Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c1097cd8a291d7880cbb9"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 21,
-    "value": "42",
-    "label": "dict.edu.zdzkjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:49:11.088Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:49:11.088Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c109fcd8a291d7880cbbf"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 22,
-    "value": "43",
-    "label": "dict.edu.zdzkyy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:49:19.351Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:49:19.351Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c10bdcd8a291d7880cbc6"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 23,
-    "value": "44",
-    "label": "dict.edu.zygzby",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:49:49.299Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:49:49.299Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c10c8cd8a291d7880cbcd"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 24,
-    "value": "45",
-    "label": "dict.edu.zygzjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:50:00.457Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:50:00.457Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c10d5cd8a291d7880cbd4"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 25,
-    "value": "46",
-    "label": "dict.edu.zygzyy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:50:13.492Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:50:13.492Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c10f4cd8a291d7880cbdb"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 26,
-    "value": "47",
-    "label": "dict.edu.jgxxby",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:50:44.368Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:50:44.368Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c1100cd8a291d7880cbe2"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 27,
-    "value": "48",
-    "label": "dict.edu.jgxxjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:50:56.812Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:50:56.812Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c110ccd8a291d7880cbe9"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 28,
-    "value": "49",
-    "label": "dict.edu.jgxxyy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:51:08.898Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:51:08.898Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c1121cd8a291d7880cbf0"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 29,
-    "value": "60",
-    "label": "dict.edu.ptgjzxjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:51:29.163Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:51:29.163Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c112dcd8a291d7880cbf7"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 30,
-    "value": "61",
-    "label": "dict.edu.ptgzby",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:51:41.168Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:51:41.168Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c1136cd8a291d7880cbfd"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 31,
-    "value": "62",
-    "label": "dict.edu.ptgzjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:51:50.684Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:51:50.684Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c1142cd8a291d7880cc04"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 32,
-    "value": "63",
-    "label": "dict.edu.ptgzyy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:52:02.981Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:52:02.981Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c1156cd8a291d7880cc0b"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 33,
-    "value": "70",
-    "label": "dict.edu.cjzxjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:52:22.168Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:52:22.168Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c1164cd8a291d7880cc12"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 35,
-    "value": "71",
-    "label": "dict.edu.czby",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:52:36.543Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:52:55.749Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c1171cd8a291d7880cc19"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 34,
-    "value": "73",
-    "label": "dict.edu.czyy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:52:49.349Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:52:49.349Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c118acd8a291d7880cc26"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 36,
-    "value": "80",
-    "label": "dict.edu.xxjy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:53:14.059Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:53:14.059Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c1194cd8a291d7880cc2d"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 37,
-    "value": "81",
-    "label": "dict.edu.xxby",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:53:24.372Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:53:24.372Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c119fcd8a291d7880cc34"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 38,
-    "value": "83",
-    "label": "dict.edu.xxyy",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:53:35.509Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:53:35.509Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c11bfcd8a291d7880cc3e"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 99,
-    "value": "90",
-    "label": "dict.edu.qt",
-    "typeId": {
-      "$oid": "624c09659781ef4d9511fcc4"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T09:54:07.386Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T09:54:07.386Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2cfcb4cc94bb20c31d22"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 1,
-    "value": "01",
-    "label": "dict.nation.ha",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:50:20.928Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:51:18.140Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d05b4cc94bb20c31d28"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 2,
-    "value": "02",
-    "label": "dict.nation.mg",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:50:29.659Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:51:21.317Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d0fb4cc94bb20c31d2f"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 3,
-    "value": "03",
-    "label": "dict.nation.hu",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:50:39.551Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:51:24.334Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d19b4cc94bb20c31d36"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 4,
-    "value": "04",
-    "label": "dict.nation.za",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:50:49.912Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:51:27.018Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d22b4cc94bb20c31d3c"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 5,
-    "value": "05",
-    "label": "dict.nation.ug",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:50:58.958Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:51:30.834Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d4bb4cc94bb20c31d64"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 6,
-    "value": "06",
-    "label": "dict.nation.mh",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:51:39.749Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:51:39.749Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d53b4cc94bb20c31d6a"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 7,
-    "value": "07",
-    "label": "dict.nation.yi",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:51:47.682Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:51:47.682Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d5eb4cc94bb20c31d71"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 8,
-    "value": "08",
-    "label": "dict.nation.zh",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:51:58.220Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:51:58.220Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d67b4cc94bb20c31d77"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 9,
-    "value": "09",
-    "label": "dict.nation.by",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:52:07.864Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:52:07.864Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d6fb4cc94bb20c31d7e"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 10,
-    "value": "10",
-    "label": "dict.nation.cs",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:52:15.470Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:52:15.470Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d81b4cc94bb20c31d87"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 11,
-    "value": "11",
-    "label": "dict.nation.mz",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:52:33.292Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:52:33.292Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d87b4cc94bb20c31d8d"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 12,
-    "value": "12",
-    "label": "dict.nation.do",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:52:39.790Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:52:39.790Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d90b4cc94bb20c31d94"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 13,
-    "value": "13",
-    "label": "dict.nation.ya",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:52:48.028Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:52:48.028Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d96b4cc94bb20c31d9a"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 14,
-    "value": "14",
-    "label": "dict.nation.ba",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:52:54.264Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:52:54.264Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2d9fb4cc94bb20c31da1"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 15,
-    "value": "15",
-    "label": "dict.nation.tj",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:53:03.300Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:53:03.300Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2dabb4cc94bb20c31da8"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 16,
-    "value": "16",
-    "label": "dict.nation.hn",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:53:15.513Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:53:15.513Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2dd7b4cc94bb20c31db6"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 17,
-    "value": "17",
-    "label": "dict.nation.kz",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:53:59.617Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:53:59.617Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2de1b4cc94bb20c31dbd"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 18,
-    "value": "18",
-    "label": "dict.nation.da",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:54:09.639Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:54:09.639Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2deab4cc94bb20c31dc3"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 19,
-    "value": "19",
-    "label": "dict.nation.li",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:54:18.746Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:54:18.746Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2df3b4cc94bb20c31dca"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 20,
-    "value": "20",
-    "label": "dict.nation.ls",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:54:27.590Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:54:27.590Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2dfeb4cc94bb20c31dd1"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 21,
-    "value": "21",
-    "label": "dict.nation.va",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:54:38.337Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:54:38.337Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e0bb4cc94bb20c31dd8"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 22,
-    "value": "22",
-    "label": "dict.nation.sh",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:54:51.681Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:54:51.681Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e1db4cc94bb20c31ddf"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 23,
-    "value": "23",
-    "label": "dict.nation.gs",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:55:09.061Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:55:09.061Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e2eb4cc94bb20c31de6"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 24,
-    "value": "24",
-    "label": "dict.nation.lh",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:55:26.626Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:55:26.626Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e37b4cc94bb20c31dec"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 25,
-    "value": "25",
-    "label": "dict.nation.su",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:55:35.254Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:55:35.254Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e41b4cc94bb20c31df3"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 26,
-    "value": "26",
-    "label": "dict.nation.dx",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:55:45.578Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:55:45.578Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e49b4cc94bb20c31df9"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 27,
-    "value": "27",
-    "label": "dict.nation.nx",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:55:53.050Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:55:53.050Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e51b4cc94bb20c31e00"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 28,
-    "value": "28",
-    "label": "dict.nation.jp",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:56:01.954Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:56:01.954Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e60b4cc94bb20c31e07"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 29,
-    "value": "29",
-    "label": "dict.nation.kg",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:56:16.024Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:56:16.024Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e6ab4cc94bb20c31e0e"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 30,
-    "value": "30",
-    "label": "dict.nation.tu",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:56:26.843Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:56:26.843Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e74b4cc94bb20c31e15"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 31,
-    "value": "31",
-    "label": "dict.nation.du",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:56:36.823Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:56:36.823Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e7fb4cc94bb20c31e1c"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 32,
-    "value": "32",
-    "label": "dict.nation.ml",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:56:47.663Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:56:47.663Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e89b4cc94bb20c31e23"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 33,
-    "value": "33",
-    "label": "dict.nation.qi",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:56:57.594Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:56:57.594Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e94b4cc94bb20c31e2a"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 34,
-    "value": "34",
-    "label": "dict.nation.bl",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:57:08.462Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:57:08.462Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2e9cb4cc94bb20c31e30"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 35,
-    "value": "35",
-    "label": "dict.nation.sl",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:57:16.848Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:57:16.848Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2ed8b4cc94bb20c31e37"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 36,
-    "value": "36",
-    "label": "dict.nation.mn",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:58:16.830Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:58:16.830Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2ee2b4cc94bb20c31e3e"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 37,
-    "value": "37",
-    "label": "dict.nation.gl",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:58:26.532Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:58:26.532Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2eeab4cc94bb20c31e44"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 38,
-    "value": "38",
-    "label": "dict.nation.xb",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:58:34.779Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:58:34.779Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2ef3b4cc94bb20c31e4b"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 39,
-    "value": "39",
-    "label": "dict.nation.ac",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:58:43.358Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:58:43.358Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2effb4cc94bb20c31e52"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 40,
-    "value": "40",
-    "label": "dict.nation.pm",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:58:55.164Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:58:55.164Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f09b4cc94bb20c31e59"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 41,
-    "value": "41",
-    "label": "dict.nation.ta",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:59:05.872Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:59:05.872Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f11b4cc94bb20c31e5f"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 42,
-    "value": "42",
-    "label": "dict.nation.nu",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:59:13.313Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:59:13.313Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f1eb4cc94bb20c31e66"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 43,
-    "value": "43",
-    "label": "dict.nation.uz",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:59:26.555Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:59:26.555Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f26b4cc94bb20c31e6c"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 44,
-    "value": "44",
-    "label": "dict.nation.rs",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:59:34.940Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:59:34.940Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f33b4cc94bb20c31e73"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 45,
-    "value": "45",
-    "label": "dict.nation.ew",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:59:47.534Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:59:47.534Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f3ab4cc94bb20c31e79"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 46,
-    "value": "46",
-    "label": "dict.nation.de",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T11:59:54.060Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T11:59:54.060Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f43b4cc94bb20c31e80"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 47,
-    "value": "47",
-    "label": "dict.nation.bn",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:00:03.458Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:00:03.458Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f4cb4cc94bb20c31e86"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 48,
-    "value": "48",
+    "id": "00946112-dff6-5c6a-a317-0220012c6adb",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
     "label": "dict.nation.yg",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:00:12.194Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:00:12.194Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f55b4cc94bb20c31e8d"
-    },
-    "tagType": "primary",
+    "value": "48",
+    "sort_order": 48,
     "status": true,
-    "order": 49,
-    "value": "49",
-    "label": "dict.nation.gi",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:00:21.188Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:00:21.188Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f66b4cc94bb20c31e98"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 50,
-    "value": "50",
-    "label": "dict.nation.tt",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:00:38.103Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:00:38.103Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f70b4cc94bb20c31e9f"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 51,
-    "value": "51",
-    "label": "dict.nation.dr",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:00:48.999Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:00:48.999Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f80b4cc94bb20c31ea6"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 52,
-    "value": "52",
-    "label": "dict.nation.or",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:01:04.375Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:01:04.375Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f8cb4cc94bb20c31eaf"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 53,
-    "value": "53",
-    "label": "dict.nation.hz",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:01:16.821Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:01:16.821Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f93b4cc94bb20c31eb5"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 54,
-    "value": "54",
-    "label": "dict.nation.mb",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:01:23.877Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:01:23.877Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2f9bb4cc94bb20c31ebc"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 55,
-    "value": "55",
-    "label": "dict.nation.lb",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:01:31.036Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:01:31.036Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c2fa1b4cc94bb20c31ec2"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 56,
-    "value": "56",
-    "label": "dict.nation.jn",
-    "typeId": {
-      "$oid": "624c29a6b4cc94bb20c31a21"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:01:37.694Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:01:37.694Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c3094b4cc94bb20c31f5b"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 1,
-    "value": "10",
-    "label": "dict.marriage.wh",
-    "typeId": {
-      "$oid": "624c2fe9b4cc94bb20c31ecc"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:05:40.061Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:05:40.061Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c30a5b4cc94bb20c31f62"
-    },
-    "tagType": "info",
-    "status": true,
-    "order": 2,
-    "value": "20",
-    "label": "dict.marriage.yh",
-    "typeId": {
-      "$oid": "624c2fe9b4cc94bb20c31ecc"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:05:57.742Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:05:57.742Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c30b1b4cc94bb20c31f69"
-    },
-    "tagType": "success",
-    "status": true,
-    "order": 3,
-    "value": "21",
-    "label": "dict.marriage.ch",
-    "typeId": {
-      "$oid": "624c2fe9b4cc94bb20c31ecc"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:06:09.630Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:06:09.630Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c30beb4cc94bb20c31f70"
-    },
-    "tagType": "warning",
-    "status": true,
-    "order": 4,
-    "value": "22",
-    "label": "dict.marriage.zh",
-    "typeId": {
-      "$oid": "624c2fe9b4cc94bb20c31ecc"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:06:22.142Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:06:22.142Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c30cab4cc94bb20c31f77"
-    },
-    "tagType": "info",
-    "status": true,
-    "order": 5,
-    "value": "23",
-    "label": "dict.marriage.fh",
-    "typeId": {
-      "$oid": "624c2fe9b4cc94bb20c31ecc"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:06:34.761Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:06:34.761Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c30dcb4cc94bb20c31f7e"
-    },
-    "tagType": "error",
-    "status": true,
-    "order": 6,
-    "value": "30",
-    "label": "dict.marriage.so",
-    "typeId": {
-      "$oid": "624c2fe9b4cc94bb20c31ecc"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:06:52.108Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:06:52.108Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c30e8b4cc94bb20c31f85"
-    },
-    "tagType": "error",
-    "status": true,
-    "order": 7,
-    "value": "40",
-    "label": "dict.marriage.lh",
-    "typeId": {
-      "$oid": "624c2fe9b4cc94bb20c31ecc"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:07:04.153Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:07:04.153Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c3102b4cc94bb20c31f8c"
-    },
-    "tagType": "warning",
-    "status": true,
-    "order": 8,
-    "value": "90",
-    "label": "dict.marriage.undescribed",
-    "typeId": {
-      "$oid": "624c2fe9b4cc94bb20c31ecc"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:07:30.060Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:07:30.060Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c31ecb4cc94bb20c31fe5"
-    },
-    "description": "人体生理机能、营养、发育状况良好",
-    "tagType": "primary",
-    "status": true,
-    "order": 1,
-    "value": "1",
-    "label": "dict.health.jk",
-    "typeId": {
-      "$oid": "624c3168b4cc94bb20c31f97"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:11:24.717Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:11:24.717Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c320ab4cc94bb20c31fec"
-    },
-    "description": "人体生理机能、营养、发育状况正常，但身体体质较弱",
-    "tagType": "info",
-    "status": true,
-    "order": 2,
-    "value": "2",
-    "label": "dict.health.yb",
-    "typeId": {
-      "$oid": "624c3168b4cc94bb20c31f97"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:11:54.100Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:11:54.100Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c3219b4cc94bb20c31ff3"
-    },
-    "description": "有慢性疾病",
-    "tagType": "warning",
-    "status": true,
-    "order": 3,
-    "value": "3",
-    "label": "dict.health.mx",
-    "typeId": {
-      "$oid": "624c3168b4cc94bb20c31f97"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:12:09.767Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:12:09.767Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c326eb4cc94bb20c31ffa"
-    },
-    "description": "心理、生理、人体结构上，某种组织、功能丧失或不正常，全部或部分丧失以正常方式从事某种活动的人",
-    "tagType": "error",
-    "status": true,
-    "order": 4,
-    "value": "6",
-    "label": "dict.health.cj",
-    "typeId": {
-      "$oid": "624c3168b4cc94bb20c31f97"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:13:34.812Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:13:34.812Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c33cbb4cc94bb20c320e7"
-    },
-    "description": "包括参照、依照公务员管理的人员",
-    "tagType": "primary",
-    "status": true,
-    "order": 1,
-    "value": "11",
-    "label": "dict.employ.gjgwy",
-    "typeId": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:19:23.838Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:19:23.838Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c34489bb578e5f327d57b"
-    },
-    "tagType": "info",
-    "status": true,
-    "order": 2,
-    "value": "13",
-    "label": "dict.employ.zyjsry",
-    "typeId": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:21:28.050Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:21:28.050Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c34539bb578e5f327d582"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 3,
-    "value": "17",
-    "label": "dict.employ.zy",
-    "typeId": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:21:39.540Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:21:39.540Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c345d9bb578e5f327d589"
-    },
-    "tagType": "info",
-    "status": true,
-    "order": 4,
-    "value": "21",
-    "label": "dict.employ.qyglry",
-    "typeId": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:21:49.550Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:21:49.550Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c346e9bb578e5f327d590"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 5,
-    "value": "24",
-    "label": "dict.employ.gr",
-    "typeId": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:22:06.956Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:22:06.956Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c347b9bb578e5f327d597"
-    },
-    "tagType": "info",
-    "status": true,
-    "order": 6,
-    "value": "27",
-    "label": "dict.employ.nm",
-    "typeId": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:22:19.227Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:22:19.227Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c34939bb578e5f327d59e"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 7,
-    "value": "31",
-    "label": "dict.employ.xs",
-    "typeId": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:22:43.485Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:22:43.485Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c34a19bb578e5f327d5a5"
-    },
-    "tagType": "info",
-    "status": true,
-    "order": 8,
-    "value": "37",
-    "label": "dict.employ.xyjr",
-    "typeId": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:22:57.896Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:22:57.896Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c34ad9bb578e5f327d5ac"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 9,
-    "value": "51",
-    "label": "dict.employ.zyzyz",
-    "typeId": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:23:09.133Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:23:09.133Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c34c79bb578e5f327d5b3"
-    },
-    "tagType": "info",
-    "status": true,
-    "order": 10,
-    "value": "54",
-    "label": "dict.employ.gtjyz",
-    "typeId": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:23:35.287Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:23:35.287Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c34d39bb578e5f327d5ba"
-    },
-    "tagType": "primary",
-    "status": true,
-    "order": 11,
-    "value": "70",
-    "label": "dict.employ.wyry",
-    "typeId": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:23:47.836Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:23:47.836Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c34e59bb578e5f327d5c8"
-    },
-    "tagType": "info",
-    "status": true,
-    "order": 12,
-    "value": "80",
-    "label": "dict.employ.txry",
-    "typeId": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:24:05.597Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:24:05.597Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "624c34f19bb578e5f327d5cf"
-    },
-    "tagType": "warning",
-    "status": true,
-    "order": 13,
-    "value": "90",
-    "label": "dict.employ.qt",
-    "typeId": {
-      "$oid": "624c32aab4cc94bb20c32004"
-    },
-    "createdAt": {
-      "$date": "2022-04-05T12:24:17.251Z"
-    },
-    "updatedAt": {
-      "$date": "2022-04-05T12:24:17.251Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "632136221173a975c154532d"
-    },
-    "typeId": {
-      "$oid": "632134e81173a975c154529e"
-    },
-    "label": "dict.sys_auth_type.opaque",
-    "value": "opaque",
-    "order": 1,
-    "status": true,
-    "tagType": "primary",
-    "createdAt": {
-      "$date": "2022-09-14T02:02:10.576Z"
-    },
-    "updatedAt": {
-      "$date": "2026-02-15T07:14:11.608Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "632136301173a975c1545333"
-    },
-    "typeId": {
-      "$oid": "632134e81173a975c154529e"
-    },
-    "label": "dict.sys_auth_type.email",
-    "value": "emailAddress",
-    "order": 2,
-    "status": true,
-    "tagType": "info",
-    "createdAt": {
-      "$date": "2022-09-14T02:02:24.816Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-14T02:51:09.275Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6321364d1173a975c1545339"
-    },
-    "typeId": {
-      "$oid": "632134e81173a975c154529e"
-    },
-    "label": "dict.sys_auth_type.phone",
-    "value": "phoneNumber",
-    "order": 3,
-    "status": true,
-    "tagType": "warning",
-    "createdAt": {
-      "$date": "2022-09-14T02:02:53.064Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-14T02:51:15.439Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "632136881173a975c1545340"
-    },
-    "typeId": {
-      "$oid": "632134e81173a975c154529e"
-    },
-    "label": "dict.sys_auth_type.qr",
-    "value": "qrcode",
-    "order": 4,
-    "status": true,
-    "tagType": "error",
-    "createdAt": {
-      "$date": "2022-09-14T02:03:52.923Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-14T02:51:21.619Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "632136931173a975c1545346"
-    },
-    "typeId": {
-      "$oid": "632134e81173a975c154529e"
-    },
-    "label": "dict.sys_auth_type.other.qq",
-    "value": "qq",
-    "order": 5,
-    "status": true,
-    "tagType": "primary",
-    "createdAt": {
-      "$date": "2022-09-14T02:04:03.117Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-14T02:51:25.306Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6335558a8747bc18696e81af"
-    },
-    "typeId": {
-      "$oid": "6335556d8747bc18696e81a5"
-    },
-    "label": "dict.app_cache_type.built_in",
-    "value": "built-in",
-    "order": 1,
-    "status": true,
-    "tagType": "primary",
-    "createdAt": {
-      "$date": "2022-09-29T08:21:30.927Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-29T08:21:30.927Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6335559e8747bc18696e81b7"
-    },
-    "typeId": {
-      "$oid": "6335556d8747bc18696e81a5"
-    },
-    "label": "dict.app_cache_type.auth_permissions",
-    "value": "auth-permissions",
-    "order": 2,
-    "status": true,
-    "tagType": "info",
-    "createdAt": {
-      "$date": "2022-09-29T08:21:50.379Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-29T08:21:50.379Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "633555e2745a38c86bd4f00e"
-    },
-    "typeId": {
-      "$oid": "6335556d8747bc18696e81a5"
-    },
-    "label": "dict.app_cache_type.verify_code",
-    "value": "verify-code",
-    "order": 4,
-    "status": true,
-    "tagType": "warning",
-    "createdAt": {
-      "$date": "2022-09-29T08:22:58.519Z"
-    },
-    "updatedAt": {
-      "$date": "2022-09-29T08:22:58.519Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "633555f4745a38c86bd4f016"
-    },
-    "typeId": {
-      "$oid": "6335556d8747bc18696e81a5"
-    },
-    "label": "dict.app_cache_type.locales",
-    "value": "sys-locale-messages",
-    "order": 6,
-    "status": true,
-    "tagType": "warning",
-    "createdAt": {
-      "$date": "2022-09-29T08:23:16.980Z"
-    },
-    "updatedAt": {
-      "$date": "2025-05-26T05:19:23.650Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "63364cbc43a02b1a3e109893"
-    },
-    "typeId": {
-      "$oid": "63364acb20d7bce263f4566a"
-    },
-    "label": "dict.app_setting_type.auth",
-    "value": "auth",
-    "order": 1,
-    "status": true,
-    "tagType": "info",
-    "createdAt": {
-      "$date": "2022-09-30T01:56:12.055Z"
-    },
-    "updatedAt": {
-      "$date": "2025-07-30T06:42:07.457Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "63428f6b83c762348e30f67a"
-    },
-    "typeId": {
-      "$oid": "632134e81173a975c154529e"
-    },
-    "label": "dict.sys_auth_type.other.gitee",
-    "value": "gitee",
-    "order": 6,
-    "status": true,
-    "tagType": "info",
-    "createdAt": {
-      "$date": "2022-10-09T09:07:55.779Z"
-    },
-    "updatedAt": {
-      "$date": "2022-10-09T09:07:55.779Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "63428f7683c762348e30f682"
-    },
-    "typeId": {
-      "$oid": "632134e81173a975c154529e"
-    },
-    "label": "dict.sys_auth_type.other.github",
-    "value": "github",
-    "order": 7,
-    "status": true,
-    "tagType": "info",
-    "createdAt": {
-      "$date": "2022-10-09T09:08:06.579Z"
-    },
-    "updatedAt": {
-      "$date": "2022-10-09T09:08:06.579Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6833f9d336f1d0707ee01ae5"
-    },
-    "typeId": {
-      "$oid": "6335556d8747bc18696e81a5"
-    },
-    "label": "dict.app_cache_type.sysDeviceIdList",
-    "value": "sys-device-id-list",
-    "order": 5,
-    "status": true,
-    "tagType": "info",
+    "tag_type": "primary",
     "description": null,
-    "createdAt": {
-      "$date": "2025-05-26T05:19:15.359Z"
-    },
-    "updatedAt": {
-      "$date": "2025-05-26T05:19:15.359Z"
-    }
+    "created_at": "2022-04-05T12:00:12.194Z",
+    "updated_at": "2022-04-05T12:00:12.194Z"
   },
   {
-    "_id": {
-      "$oid": "6833fa0136f1d0707ee01b01"
-    },
-    "typeId": {
-      "$oid": "6335556d8747bc18696e81a5"
-    },
-    "label": "dict.app_cache_type.controller",
-    "value": "controller",
-    "order": 3,
-    "status": true,
-    "tagType": "primary",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-05-26T05:20:01.128Z"
-    },
-    "updatedAt": {
-      "$date": "2025-05-26T05:20:01.128Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6833fa1c36f1d0707ee01b07"
-    },
-    "typeId": {
-      "$oid": "6335556d8747bc18696e81a5"
-    },
-    "label": "dict.app_cache_type.sysLangIdList",
-    "value": "sys-lang-id-list",
-    "order": 7,
-    "status": true,
-    "tagType": "warning",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-05-26T05:20:28.425Z"
-    },
-    "updatedAt": {
-      "$date": "2025-05-26T05:20:28.425Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6833fa2b36f1d0707ee01b0d"
-    },
-    "typeId": {
-      "$oid": "6335556d8747bc18696e81a5"
-    },
-    "label": "dict.app_cache_type.sharedArea",
-    "value": "shared-area",
-    "order": 8,
-    "status": true,
-    "tagType": "error",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-05-26T05:20:43.332Z"
-    },
-    "updatedAt": {
-      "$date": "2025-05-26T05:20:43.332Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6889ba3676e71da30b30d592"
-    },
-    "typeId": {
-      "$oid": "63364acb20d7bce263f4566a"
-    },
-    "label": "dict.app_setting_type.global",
-    "value": "global",
-    "order": 2,
-    "status": true,
-    "tagType": "success",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-07-30T06:22:46.104Z"
-    },
-    "updatedAt": {
-      "$date": "2025-07-30T06:22:46.104Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "6889ba4f76e71da30b30d598"
-    },
-    "typeId": {
-      "$oid": "63364acb20d7bce263f4566a"
-    },
-    "label": "dict.app_setting_type.functional",
-    "value": "functional",
-    "order": 3,
-    "status": true,
-    "tagType": "warning",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-07-30T06:23:11.034Z"
-    },
-    "updatedAt": {
-      "$date": "2026-02-10T08:01:24.201Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d931619fb85827a546b6f"
-    },
-    "typeId": {
-      "$oid": "690d921819fb85827a546aac"
-    },
-    "label": "dict.sys_operate_action.create",
-    "value": "CREATE",
-    "order": 1,
-    "status": true,
-    "tagType": "primary",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T06:35:02.768Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T06:35:27.343Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d931f19fb85827a546b74"
-    },
-    "typeId": {
-      "$oid": "690d921819fb85827a546aac"
-    },
-    "label": "dict.sys_operate_action.update",
-    "value": "UPDATE",
-    "order": 2,
-    "status": true,
-    "tagType": "info",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T06:35:11.308Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T06:35:31.606Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d935e19fb85827a546ba0"
-    },
-    "typeId": {
-      "$oid": "690d921819fb85827a546aac"
-    },
-    "label": "dict.sys_operate_action.delete",
-    "value": "DELETE",
-    "order": 3,
-    "status": true,
-    "tagType": "error",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T06:36:14.449Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T06:36:14.449Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d936a19fb85827a546ba5"
-    },
-    "typeId": {
-      "$oid": "690d921819fb85827a546aac"
-    },
-    "label": "dict.sys_operate_action.delete_many",
-    "value": "DELETE_MANY",
-    "order": 4,
-    "status": true,
-    "tagType": "error",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T06:36:26.228Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T06:36:26.228Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d937519fb85827a546baa"
-    },
-    "typeId": {
-      "$oid": "690d921819fb85827a546aac"
-    },
-    "label": "dict.sys_operate_action.import",
-    "value": "IMPORT",
-    "order": 5,
-    "status": true,
-    "tagType": "warning",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T06:36:37.619Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T06:36:37.619Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d937f19fb85827a546baf"
-    },
-    "typeId": {
-      "$oid": "690d921819fb85827a546aac"
-    },
-    "label": "dict.sys_operate_action.export",
-    "value": "EXPORT",
-    "order": 6,
-    "status": true,
-    "tagType": "warning",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T06:36:47.563Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T06:36:47.563Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d938d19fb85827a546bb4"
-    },
-    "typeId": {
-      "$oid": "690d921819fb85827a546aac"
-    },
-    "label": "dict.sys_operate_action.clear",
-    "value": "CLEAR",
-    "order": 7,
-    "status": true,
-    "tagType": "error",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T06:37:01.450Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T06:37:01.450Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d939519fb85827a546bb9"
-    },
-    "typeId": {
-      "$oid": "690d921819fb85827a546aac"
-    },
-    "label": "dict.sys_operate_action.refresh",
-    "value": "REFRESH",
-    "order": 8,
-    "status": true,
-    "tagType": "warning",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T06:37:09.984Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T06:37:09.984Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d93a819fb85827a546bbe"
-    },
-    "typeId": {
-      "$oid": "690d921819fb85827a546aac"
-    },
-    "label": "dict.sys_operate_action.other",
-    "value": "OTHER",
-    "order": 9,
-    "status": true,
-    "tagType": "info",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T06:37:28.760Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T06:37:28.760Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d9ba6c98f82c2a862371b"
-    },
-    "typeId": {
-      "$oid": "623c53e6cc4e009b0d21ee0f"
-    },
-    "label": "dict.sys_operate_type.deleted_recover",
-    "value": "deleted.recover",
-    "order": 1,
-    "status": true,
-    "tagType": "warning",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T07:11:34.100Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T07:11:34.100Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d9bb6c98f82c2a8623720"
-    },
-    "typeId": {
-      "$oid": "623c53e6cc4e009b0d21ee0f"
-    },
-    "label": "dict.sys_operate_type.force_quit",
-    "value": "appMonitorUser.forceQuit",
-    "order": 2,
-    "status": true,
-    "tagType": "warning",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T07:11:50.966Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T07:11:50.966Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d9bcac98f82c2a8623725"
-    },
-    "typeId": {
-      "$oid": "623c53e6cc4e009b0d21ee0f"
-    },
-    "label": "dict.sys_operate_type.update_password",
-    "value": "user.updatePassword",
-    "order": 3,
-    "status": true,
-    "tagType": "warning",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T07:12:10.495Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T07:12:10.495Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d9bd6c98f82c2a862372a"
-    },
-    "typeId": {
-      "$oid": "623c53e6cc4e009b0d21ee0f"
-    },
-    "label": "dict.sys_operate_type.clear_password",
-    "value": "user.clearPassword",
-    "order": 4,
-    "status": true,
-    "tagType": "warning",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T07:12:22.958Z"
-    },
-    "updatedAt": {
-      "$date": "2026-01-06T06:57:14.887Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d9bebc98f82c2a862372f"
-    },
-    "typeId": {
-      "$oid": "623c53e6cc4e009b0d21ee0f"
-    },
-    "label": "dict.sys_operate_type.device_lock",
-    "value": "device.lock",
-    "order": 5,
-    "status": true,
-    "tagType": "warning",
-    "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T07:12:43.265Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T07:12:43.265Z"
-    }
-  },
-  {
-    "_id": {
-      "$oid": "690d9bf8c98f82c2a8623734"
-    },
-    "typeId": {
-      "$oid": "623c53e6cc4e009b0d21ee0f"
-    },
+    "id": "00a48eed-2b0c-547a-9038-216740a84bab",
+    "type_id": "28479366-45c9-5798-bc22-da930a4f3a71",
     "label": "dict.sys_operate_type.device_unlock",
     "value": "device.unlock",
-    "order": 6,
+    "sort_order": 6,
     "status": true,
-    "tagType": "warning",
+    "tag_type": "warning",
     "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T07:12:56.311Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T07:12:56.311Z"
-    }
+    "created_at": "2025-11-07T07:12:56.311Z",
+    "updated_at": "2025-11-07T07:12:56.311Z"
   },
   {
-    "_id": {
-      "$oid": "690d9c04c98f82c2a8623739"
-    },
-    "typeId": {
-      "$oid": "623c53e6cc4e009b0d21ee0f"
-    },
-    "label": "dict.sys_operate_type.device_ban",
-    "value": "device.ban",
-    "order": 7,
+    "id": "0190fc97-880f-55fd-b740-1f0420e7b0bd",
+    "type_id": "28479366-45c9-5798-bc22-da930a4f3a71",
+    "label": "dict.sys_operate_type.clear_password",
+    "value": "user.clearPassword",
+    "sort_order": 4,
     "status": true,
-    "tagType": "warning",
+    "tag_type": "warning",
     "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T07:13:08.984Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T07:13:08.984Z"
-    }
+    "created_at": "2025-11-07T07:12:22.958Z",
+    "updated_at": "2026-01-06T06:57:14.887Z"
   },
   {
-    "_id": {
-      "$oid": "690d9c12c98f82c2a862373e"
-    },
-    "typeId": {
-      "$oid": "623c53e6cc4e009b0d21ee0f"
-    },
-    "label": "dict.sys_operate_type.device_unban",
-    "value": "device.unban",
-    "order": 8,
+    "id": "0579817f-7fc5-5ad0-86fa-aa3218419d65",
+    "type_id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "label": "dict.employ.zyjsry",
+    "value": "13",
+    "sort_order": 2,
     "status": true,
-    "tagType": "warning",
+    "tag_type": "info",
     "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T07:13:22.409Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T07:13:22.409Z"
-    }
+    "created_at": "2022-04-05T12:21:28.050Z",
+    "updated_at": "2022-04-05T12:21:28.050Z"
   },
   {
-    "_id": {
-      "$oid": "690d9c21c98f82c2a8623743"
-    },
-    "typeId": {
-      "$oid": "623c53e6cc4e009b0d21ee0f"
-    },
+    "id": "0593c1dc-f832-546c-9f3b-46681e6ed69e",
+    "type_id": "4c894f9d-e00c-5bb5-ac56-d094351ab8b4",
+    "label": "dict.sys_operate_action.update",
+    "value": "UPDATE",
+    "sort_order": 2,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2025-11-07T06:35:11.308Z",
+    "updated_at": "2025-11-07T06:35:31.606Z"
+  },
+  {
+    "id": "0b5b3bf3-296d-52a1-8a67-eaea399d6419",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.tt",
+    "value": "50",
+    "sort_order": 50,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:00:38.103Z",
+    "updated_at": "2022-04-05T12:00:38.103Z"
+  },
+  {
+    "id": "11537a1e-4b4e-5088-a9f2-5766b8dc8570",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.kz",
+    "value": "17",
+    "sort_order": 17,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:53:59.617Z",
+    "updated_at": "2022-04-05T11:53:59.617Z"
+  },
+  {
+    "id": "119b80c1-5351-5167-bc3d-3e113de49ae5",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.jgxxjy",
+    "value": "48",
+    "sort_order": 27,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:50:56.812Z",
+    "updated_at": "2022-04-05T09:50:56.812Z"
+  },
+  {
+    "id": "15712138-c1a0-57b5-a520-2d15c1283e91",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.xb",
+    "value": "38",
+    "sort_order": 38,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:58:34.779Z",
+    "updated_at": "2022-04-05T11:58:34.779Z"
+  },
+  {
+    "id": "160cc014-696a-5863-a687-ad212d51b646",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.lh",
+    "value": "24",
+    "sort_order": 24,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:55:26.626Z",
+    "updated_at": "2022-04-05T11:55:26.626Z"
+  },
+  {
+    "id": "166da611-a86e-5b76-af85-ac706baa7642",
+    "type_id": "40394742-78d3-5e04-b779-fa0c81a3100d",
+    "label": "dict.app_setting_type.auth",
+    "value": "auth",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2022-09-30T01:56:12.055Z",
+    "updated_at": "2025-07-30T06:42:07.457Z"
+  },
+  {
+    "id": "1b8c344b-e556-5d71-b8df-a1f83f1a8865",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.hz",
+    "value": "53",
+    "sort_order": 53,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:01:16.821Z",
+    "updated_at": "2022-04-05T12:01:16.821Z"
+  },
+  {
+    "id": "1dc5481b-40c5-5c5a-a28c-f5f3af7efbd5",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.dxbkzkjy",
+    "value": "20/30",
+    "sort_order": 11,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:45:33.002Z",
+    "updated_at": "2022-04-05T09:45:33.002Z"
+  },
+  {
+    "id": "1e96c277-9b16-5e07-bad6-f98081817570",
+    "type_id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "label": "dict.employ.zy",
+    "value": "17",
+    "sort_order": 3,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:21:39.540Z",
+    "updated_at": "2022-04-05T12:21:39.540Z"
+  },
+  {
+    "id": "1ebd649f-532a-584f-acab-7dc340b69c43",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.ssyjsby",
+    "value": "14",
+    "sort_order": 5,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:41:44.301Z",
+    "updated_at": "2022-04-05T09:41:44.301Z"
+  },
+  {
+    "id": "25596ce6-7992-50e1-ac5f-fa8d142ec2d9",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.nx",
+    "value": "27",
+    "sort_order": 27,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:55:53.050Z",
+    "updated_at": "2022-04-05T11:55:53.050Z"
+  },
+  {
+    "id": "2600f916-c1a0-5af2-8dd0-214d2a05f3e8",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.tj",
+    "value": "15",
+    "sort_order": 15,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:53:03.300Z",
+    "updated_at": "2022-04-05T11:53:03.300Z"
+  },
+  {
+    "id": "26f137bb-8ab3-58fa-8047-1cd128dd6f15",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.dr",
+    "value": "51",
+    "sort_order": 51,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:00:48.999Z",
+    "updated_at": "2022-04-05T12:00:48.999Z"
+  },
+  {
+    "id": "289a0678-ea54-56e3-950a-c9a218d0b8a9",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.ya",
+    "value": "13",
+    "sort_order": 13,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:52:48.028Z",
+    "updated_at": "2022-04-05T11:52:48.028Z"
+  },
+  {
+    "id": "29ad9872-96a0-575f-aa5b-9045989a77d8",
+    "type_id": "22561dad-4a91-5b2b-b2bb-43edbf760da2",
+    "label": "dict.type.info",
+    "value": "info",
+    "sort_order": 2,
+    "status": true,
+    "tag_type": "info",
+    "description": "info style",
+    "created_at": "2022-03-24T11:13:11.549Z",
+    "updated_at": "2022-03-24T11:13:11.549Z"
+  },
+  {
+    "id": "2bdeaecb-c17d-5cc0-a9b6-54bc23bb20dc",
+    "type_id": "978daccd-2845-52b2-ad2f-41883e239b9d",
+    "label": "dict.sys_auth_type.qr",
+    "value": "qrcode",
+    "sort_order": 4,
+    "status": true,
+    "tag_type": "error",
+    "description": null,
+    "created_at": "2022-09-14T02:03:52.923Z",
+    "updated_at": "2022-09-14T02:51:21.619Z"
+  },
+  {
+    "id": "2d44a184-b775-5825-be76-6b6c52a8773f",
+    "type_id": "28479366-45c9-5798-bc22-da930a4f3a71",
     "label": "dict.sys_operate_type.app_setting_cache_refresh",
     "value": "appSetting.refreshCache",
-    "order": 9,
+    "sort_order": 9,
     "status": true,
-    "tagType": "warning",
+    "tag_type": "warning",
     "description": null,
-    "createdAt": {
-      "$date": "2025-11-07T07:13:37.331Z"
-    },
-    "updatedAt": {
-      "$date": "2025-11-07T07:13:37.331Z"
-    }
+    "created_at": "2025-11-07T07:13:37.331Z",
+    "updated_at": "2025-11-07T07:13:37.331Z"
+  },
+  {
+    "id": "2e322db1-aa99-5da8-abdb-a38f1e9bd1b4",
+    "type_id": "28479366-45c9-5798-bc22-da930a4f3a71",
+    "label": "dict.sys_operate_type.update_password",
+    "value": "user.updatePassword",
+    "sort_order": 3,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2025-11-07T07:12:10.495Z",
+    "updated_at": "2025-11-07T07:12:10.495Z"
+  },
+  {
+    "id": "2e417eb6-d0c4-507b-a7f9-5453f2bcb00f",
+    "type_id": "cff333d5-4b50-5d47-a1db-e1298fa09d74",
+    "label": "dict.app_cache_type.verify_code",
+    "value": "verify-code",
+    "sort_order": 4,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2022-09-29T08:22:58.519Z",
+    "updated_at": "2022-09-29T08:22:58.519Z"
+  },
+  {
+    "id": "2e8468c3-ee3f-5827-8a24-b18433c12e5e",
+    "type_id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "label": "dict.employ.nm",
+    "value": "27",
+    "sort_order": 6,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2022-04-05T12:22:19.227Z",
+    "updated_at": "2022-04-05T12:22:19.227Z"
+  },
+  {
+    "id": "323c8f7f-9172-54ee-a880-34e2584b62bc",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.sl",
+    "value": "35",
+    "sort_order": 35,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:57:16.848Z",
+    "updated_at": "2022-04-05T11:57:16.848Z"
+  },
+  {
+    "id": "33433961-b3ab-5b42-afdc-c38b901169e6",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.jgxxyy",
+    "value": "49",
+    "sort_order": 28,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:51:08.898Z",
+    "updated_at": "2022-04-05T09:51:08.898Z"
+  },
+  {
+    "id": "33511160-4f81-5840-a88a-45bc93288476",
+    "type_id": "f03de842-7763-5a3f-a6c0-bba5ff823b8c",
+    "label": "dict.sex.unknown",
+    "value": "0",
+    "sort_order": 0,
+    "status": true,
+    "tag_type": "info",
+    "description": "unknown",
+    "created_at": "2022-04-05T09:09:59.169Z",
+    "updated_at": "2022-04-05T09:10:06.786Z"
+  },
+  {
+    "id": "356ce3d5-7f37-5339-a631-602bb21a3a94",
+    "type_id": "4c894f9d-e00c-5bb5-ac56-d094351ab8b4",
+    "label": "dict.sys_operate_action.other",
+    "value": "OTHER",
+    "sort_order": 9,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2025-11-07T06:37:28.760Z",
+    "updated_at": "2025-11-07T06:37:28.760Z"
+  },
+  {
+    "id": "37543f68-1d37-56fb-8984-4bfa5c18d28a",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.czby",
+    "value": "71",
+    "sort_order": 35,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:52:36.543Z",
+    "updated_at": "2022-04-05T09:52:55.749Z"
+  },
+  {
+    "id": "38350b7e-c9c8-5500-a5d7-e6d5f7a566c7",
+    "type_id": "4c894f9d-e00c-5bb5-ac56-d094351ab8b4",
+    "label": "dict.sys_operate_action.delete",
+    "value": "DELETE",
+    "sort_order": 3,
+    "status": true,
+    "tag_type": "error",
+    "description": null,
+    "created_at": "2025-11-07T06:36:14.449Z",
+    "updated_at": "2025-11-07T06:36:14.449Z"
+  },
+  {
+    "id": "38e00505-9af2-5914-b491-df596e867d47",
+    "type_id": "22561dad-4a91-5b2b-b2bb-43edbf760da2",
+    "label": "dict.type.warning",
+    "value": "warning",
+    "sort_order": 4,
+    "status": true,
+    "tag_type": "warning",
+    "description": "warning style",
+    "created_at": "2022-03-24T11:13:45.582Z",
+    "updated_at": "2022-03-24T11:13:45.582Z"
+  },
+  {
+    "id": "399216df-a2db-5aaf-ab8a-001189c34fbb",
+    "type_id": "a0b94442-54c8-5347-a068-76155cc3a5d2",
+    "label": "dict.marriage.undescribed",
+    "value": "90",
+    "sort_order": 8,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2022-04-05T12:07:30.060Z",
+    "updated_at": "2022-04-05T12:07:30.060Z"
+  },
+  {
+    "id": "3a88d601-2a0b-53b9-9567-bfe8f0a6c9f9",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.da",
+    "value": "18",
+    "sort_order": 18,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:54:09.639Z",
+    "updated_at": "2022-04-05T11:54:09.639Z"
+  },
+  {
+    "id": "3b214461-758a-53d8-bcbc-8b77a2104f34",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.dxzkjy",
+    "value": "32",
+    "sort_order": 17,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:46:55.177Z",
+    "updated_at": "2022-04-05T09:47:26.623Z"
+  },
+  {
+    "id": "3b6b62b4-23d3-5d81-addd-527f610f7d0c",
+    "type_id": "22561dad-4a91-5b2b-b2bb-43edbf760da2",
+    "label": "dict.type.error",
+    "value": "error",
+    "sort_order": 5,
+    "status": true,
+    "tag_type": "error",
+    "description": "error style",
+    "created_at": "2022-03-24T11:14:02.068Z",
+    "updated_at": "2022-03-24T11:14:02.068Z"
+  },
+  {
+    "id": "3b8bb21f-cf89-50e5-ae22-93f799e65895",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.su",
+    "value": "25",
+    "sort_order": 25,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:55:35.254Z",
+    "updated_at": "2022-04-05T11:55:35.254Z"
+  },
+  {
+    "id": "3f4eb97e-3eef-5f4e-a6c3-1fcd01563cd2",
+    "type_id": "a0b94442-54c8-5347-a068-76155cc3a5d2",
+    "label": "dict.marriage.ch",
+    "value": "21",
+    "sort_order": 3,
+    "status": true,
+    "tag_type": "success",
+    "description": null,
+    "created_at": "2022-04-05T12:06:09.630Z",
+    "updated_at": "2022-04-05T12:06:09.630Z"
+  },
+  {
+    "id": "3f99fbc8-b17d-53ea-b2ae-a6e128494879",
+    "type_id": "f03de842-7763-5a3f-a6c0-bba5ff823b8c",
+    "label": "dict.sex.undescribed",
+    "value": "9",
+    "sort_order": 3,
+    "status": true,
+    "tag_type": "warning",
+    "description": "undescribed",
+    "created_at": "2022-04-05T09:10:20.971Z",
+    "updated_at": "2022-04-05T09:10:20.971Z"
+  },
+  {
+    "id": "41bc41cc-1918-5cc9-9a4c-128af93e4bc8",
+    "type_id": "978daccd-2845-52b2-ad2f-41883e239b9d",
+    "label": "dict.sys_auth_type.other.github",
+    "value": "github",
+    "sort_order": 7,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2022-10-09T09:08:06.579Z",
+    "updated_at": "2022-10-09T09:08:06.579Z"
+  },
+  {
+    "id": "42cb162c-01ca-5c6a-aee4-8926f2663b49",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.zdzkby",
+    "value": "41",
+    "sort_order": 20,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:48:57.539Z",
+    "updated_at": "2022-04-05T09:48:57.539Z"
+  },
+  {
+    "id": "4389ed3d-8b6a-5c1b-9064-c713e4590931",
+    "type_id": "8dd55502-812f-517d-8e64-89456531a75c",
+    "label": "dict.health.jk",
+    "value": "1",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "primary",
+    "description": "人体生理机能、营养、发育状况良好",
+    "created_at": "2022-04-05T12:11:24.717Z",
+    "updated_at": "2022-04-05T12:11:24.717Z"
+  },
+  {
+    "id": "4419533f-8219-50dd-8a43-bb67360a7d36",
+    "type_id": "cff333d5-4b50-5d47-a1db-e1298fa09d74",
+    "label": "dict.app_cache_type.auth_permissions",
+    "value": "auth-permissions",
+    "sort_order": 2,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2022-09-29T08:21:50.379Z",
+    "updated_at": "2022-09-29T08:21:50.379Z"
+  },
+  {
+    "id": "464979d9-e563-55ae-b9bf-7ba79d17c08a",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.zdzkjy",
+    "value": "42",
+    "sort_order": 21,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:49:11.088Z",
+    "updated_at": "2022-04-05T09:49:11.088Z"
+  },
+  {
+    "id": "46ef7ed8-df0d-5fb3-b300-4cdfa8f269ff",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.rs",
+    "value": "44",
+    "sort_order": 44,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:59:34.940Z",
+    "updated_at": "2022-04-05T11:59:34.940Z"
+  },
+  {
+    "id": "49b0a550-be79-5a0a-8195-a47927c00723",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.cjzxjy",
+    "value": "70",
+    "sort_order": 33,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:52:22.168Z",
+    "updated_at": "2022-04-05T09:52:22.168Z"
+  },
+  {
+    "id": "4a29c1d6-4407-562b-a332-c3384dec3a20",
+    "type_id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "label": "dict.employ.gtjyz",
+    "value": "54",
+    "sort_order": 10,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2022-04-05T12:23:35.287Z",
+    "updated_at": "2022-04-05T12:23:35.287Z"
+  },
+  {
+    "id": "4b117185-ef4f-5e7e-8cd8-fe14bcecff8c",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.jp",
+    "value": "28",
+    "sort_order": 28,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:56:01.954Z",
+    "updated_at": "2022-04-05T11:56:01.954Z"
+  },
+  {
+    "id": "4befdefa-c86d-5b61-b16c-67fa29227532",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.dxbkby",
+    "value": "21",
+    "sort_order": 12,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:45:48.317Z",
+    "updated_at": "2022-04-05T09:45:48.317Z"
+  },
+  {
+    "id": "4d3588db-0057-5266-a1b8-709a736772a6",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.ptgzyy",
+    "value": "63",
+    "sort_order": 32,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:52:02.981Z",
+    "updated_at": "2022-04-05T09:52:02.981Z"
+  },
+  {
+    "id": "4d4f317e-1b56-522f-b93e-c301cb55d0c6",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.mb",
+    "value": "54",
+    "sort_order": 54,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:01:23.877Z",
+    "updated_at": "2022-04-05T12:01:23.877Z"
+  },
+  {
+    "id": "4e551891-7614-57d9-a250-6bd17f0d7c6d",
+    "type_id": "cff333d5-4b50-5d47-a1db-e1298fa09d74",
+    "label": "dict.app_cache_type.locales",
+    "value": "sys-locale-messages",
+    "sort_order": 6,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2022-09-29T08:23:16.980Z",
+    "updated_at": "2025-05-26T05:19:23.650Z"
+  },
+  {
+    "id": "50f3a6dd-3c26-57b4-9c34-168721aedaec",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.xxjy",
+    "value": "80",
+    "sort_order": 36,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:53:14.059Z",
+    "updated_at": "2022-04-05T09:53:14.059Z"
+  },
+  {
+    "id": "53a44730-4f07-558e-aada-9a2a01a8a6a6",
+    "type_id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "label": "dict.employ.zyzyz",
+    "value": "51",
+    "sort_order": 9,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:23:09.133Z",
+    "updated_at": "2022-04-05T12:23:09.133Z"
+  },
+  {
+    "id": "55947b48-8e05-5009-a7f5-7046ed7500d1",
+    "type_id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "label": "dict.employ.gr",
+    "value": "24",
+    "sort_order": 5,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:22:06.956Z",
+    "updated_at": "2022-04-05T12:22:06.956Z"
+  },
+  {
+    "id": "588ef4b3-bf0b-5b26-81c4-1502934d84c2",
+    "type_id": "a0b94442-54c8-5347-a068-76155cc3a5d2",
+    "label": "dict.marriage.zh",
+    "value": "22",
+    "sort_order": 4,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2022-04-05T12:06:22.142Z",
+    "updated_at": "2022-04-05T12:06:22.142Z"
+  },
+  {
+    "id": "5890e506-7aa8-5309-90f1-2f791f3c6281",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.yjsjy",
+    "value": "10",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:40:17.643Z",
+    "updated_at": "2022-04-05T09:40:17.643Z"
+  },
+  {
+    "id": "5a1516ae-8621-5d5d-bfd9-1876e6a0eec3",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.zygzjy",
+    "value": "45",
+    "sort_order": 24,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:50:00.457Z",
+    "updated_at": "2022-04-05T09:50:00.457Z"
+  },
+  {
+    "id": "5a6a7719-af62-5cc3-80a5-d94f19993c57",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.ssyjsjy",
+    "value": "15",
+    "sort_order": 6,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:42:02.930Z",
+    "updated_at": "2022-04-05T09:42:02.930Z"
+  },
+  {
+    "id": "5aeaf91e-4afe-52d3-b7b7-2ebd44caf2d9",
+    "type_id": "a0b94442-54c8-5347-a068-76155cc3a5d2",
+    "label": "dict.marriage.yh",
+    "value": "20",
+    "sort_order": 2,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2022-04-05T12:05:57.742Z",
+    "updated_at": "2022-04-05T12:05:57.742Z"
+  },
+  {
+    "id": "5be9d485-c143-5c8e-999d-e45c4f0c5c4c",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.bn",
+    "value": "47",
+    "sort_order": 47,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:00:03.458Z",
+    "updated_at": "2022-04-05T12:00:03.458Z"
+  },
+  {
+    "id": "5f15d83f-c169-52cb-bad6-a90385700982",
+    "type_id": "978daccd-2845-52b2-ad2f-41883e239b9d",
+    "label": "dict.sys_auth_type.other.gitee",
+    "value": "gitee",
+    "sort_order": 6,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2022-10-09T09:07:55.779Z",
+    "updated_at": "2022-10-09T09:07:55.779Z"
+  },
+  {
+    "id": "60b8821e-11ed-57b9-b07d-bab0bde57c49",
+    "type_id": "978daccd-2845-52b2-ad2f-41883e239b9d",
+    "label": "dict.sys_auth_type.email",
+    "value": "emailAddress",
+    "sort_order": 2,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2022-09-14T02:02:24.816Z",
+    "updated_at": "2022-09-14T02:51:09.275Z"
+  },
+  {
+    "id": "62f13a58-e894-59e7-901f-118adb9bf487",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.gi",
+    "value": "49",
+    "sort_order": 49,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:00:21.188Z",
+    "updated_at": "2022-04-05T12:00:21.188Z"
+  },
+  {
+    "id": "63ced32b-4b1d-557a-b9e9-3e98cc821e7f",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.zdzyjy",
+    "value": "40",
+    "sort_order": 19,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:48:38.271Z",
+    "updated_at": "2022-04-05T09:48:38.271Z"
+  },
+  {
+    "id": "6436c79e-8556-57dc-a9bf-723d02de93e5",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.dx",
+    "value": "26",
+    "sort_order": 26,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:55:45.578Z",
+    "updated_at": "2022-04-05T11:55:45.578Z"
+  },
+  {
+    "id": "656f7beb-5261-5e53-8a43-81c04a4c17b4",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.lb",
+    "value": "55",
+    "sort_order": 55,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:01:31.036Z",
+    "updated_at": "2022-04-05T12:01:31.036Z"
+  },
+  {
+    "id": "661c4d7e-45c8-5a22-81cd-02a842034b60",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.uz",
+    "value": "43",
+    "sort_order": 43,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:59:26.555Z",
+    "updated_at": "2022-04-05T11:59:26.555Z"
+  },
+  {
+    "id": "6757744e-f655-54d1-a5f0-1e63cb39c623",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.bsyjsjy",
+    "value": "12",
+    "sort_order": 3,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:40:54.186Z",
+    "updated_at": "2022-04-05T09:40:54.186Z"
+  },
+  {
+    "id": "6baa7e8d-b29a-5b56-8ed9-d2dd7630b7ca",
+    "type_id": "a0b94442-54c8-5347-a068-76155cc3a5d2",
+    "label": "dict.marriage.so",
+    "value": "30",
+    "sort_order": 6,
+    "status": true,
+    "tag_type": "error",
+    "description": null,
+    "created_at": "2022-04-05T12:06:52.108Z",
+    "updated_at": "2022-04-05T12:06:52.108Z"
+  },
+  {
+    "id": "6bda4fee-f1f9-5929-9915-77e2d8f8f6ce",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.gs",
+    "value": "23",
+    "sort_order": 23,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:55:09.061Z",
+    "updated_at": "2022-04-05T11:55:09.061Z"
+  },
+  {
+    "id": "6cbc602b-8cfb-5e45-bc5f-c68fea4c49f6",
+    "type_id": "a0b94442-54c8-5347-a068-76155cc3a5d2",
+    "label": "dict.marriage.lh",
+    "value": "40",
+    "sort_order": 7,
+    "status": true,
+    "tag_type": "error",
+    "description": null,
+    "created_at": "2022-04-05T12:07:04.153Z",
+    "updated_at": "2022-04-05T12:07:04.153Z"
+  },
+  {
+    "id": "6da366c0-f944-5c5a-866d-49596255ef05",
+    "type_id": "cff333d5-4b50-5d47-a1db-e1298fa09d74",
+    "label": "dict.app_cache_type.sysLangIdList",
+    "value": "sys-lang-id-list",
+    "sort_order": 7,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2025-05-26T05:20:28.425Z",
+    "updated_at": "2025-05-26T05:20:28.425Z"
+  },
+  {
+    "id": "7003e8b2-31e3-5bc2-a84c-5012ed889d73",
+    "type_id": "20c1f7c8-ec99-550a-b495-f9b8ac887880",
+    "label": "dict.success.true",
+    "value": "true",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "success",
+    "description": "系统默认成功",
+    "created_at": "2022-04-01T09:04:26.931Z",
+    "updated_at": "2022-04-01T09:04:26.931Z"
+  },
+  {
+    "id": "70915ec6-4305-54fe-bdfe-ccd7a5e4e939",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.jgxxby",
+    "value": "47",
+    "sort_order": 26,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:50:44.368Z",
+    "updated_at": "2022-04-05T09:50:44.368Z"
+  },
+  {
+    "id": "70fa9558-1674-57f3-8402-e90d6aba2a03",
+    "type_id": "8dd55502-812f-517d-8e64-89456531a75c",
+    "label": "dict.health.cj",
+    "value": "6",
+    "sort_order": 4,
+    "status": true,
+    "tag_type": "error",
+    "description": "心理、生理、人体结构上，某种组织、功能丧失或不正常，全部或部分丧失以正常方式从事某种活动的人",
+    "created_at": "2022-04-05T12:13:34.812Z",
+    "updated_at": "2022-04-05T12:13:34.812Z"
+  },
+  {
+    "id": "7285bb33-368f-5da7-a5db-773b7b88be49",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.yjsbby",
+    "value": "17",
+    "sort_order": 8,
+    "status": true,
+    "tag_type": "primary",
+    "description": "我国研究生教育中属于硕士生层次的一种非导师制的方式。其招生和入学条件与硕士生相似；学制两年或一年半。完成全部学习项目并考核合格者，发给研究生班毕业证书（研究生课程班不在此列）",
+    "created_at": "2022-04-05T09:44:04.224Z",
+    "updated_at": "2022-04-05T09:44:04.224Z"
+  },
+  {
+    "id": "72f7bb34-1f3e-54ab-8a9b-96f07e63bc8c",
+    "type_id": "22561dad-4a91-5b2b-b2bb-43edbf760da2",
+    "label": "dict.type.success",
+    "value": "success",
+    "sort_order": 3,
+    "status": true,
+    "tag_type": "success",
+    "description": "success style",
+    "created_at": "2022-03-24T11:13:31.287Z",
+    "updated_at": "2022-03-24T11:13:31.287Z"
+  },
+  {
+    "id": "73c9c510-0fab-5b7f-b9d2-4794c46923de",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.or",
+    "value": "52",
+    "sort_order": 52,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:01:04.375Z",
+    "updated_at": "2022-04-05T12:01:04.375Z"
+  },
+  {
+    "id": "741d0890-ddb7-5b64-8a44-5acf4559c6ce",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.sh",
+    "value": "22",
+    "sort_order": 22,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:54:51.681Z",
+    "updated_at": "2022-04-05T11:54:51.681Z"
+  },
+  {
+    "id": "74da457a-8ea4-5ad6-8de4-9e76bf8d80db",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.xxyy",
+    "value": "83",
+    "sort_order": 38,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:53:35.509Z",
+    "updated_at": "2022-04-05T09:53:35.509Z"
+  },
+  {
+    "id": "763a6c7a-d989-56db-aa31-2b4240f71b30",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.kg",
+    "value": "29",
+    "sort_order": 29,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:56:16.024Z",
+    "updated_at": "2022-04-05T11:56:16.024Z"
+  },
+  {
+    "id": "76d9182f-2a14-5f2d-9927-f53ad855fc79",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.qi",
+    "value": "33",
+    "sort_order": 33,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:56:57.594Z",
+    "updated_at": "2022-04-05T11:56:57.594Z"
+  },
+  {
+    "id": "7773be2a-c3eb-56b1-9816-6dc8bfede5be",
+    "type_id": "f03de842-7763-5a3f-a6c0-bba5ff823b8c",
+    "label": "dict.sex.female",
+    "value": "2",
+    "sort_order": 2,
+    "status": true,
+    "tag_type": "info",
+    "description": "female",
+    "created_at": "2022-02-21T13:09:50.407Z",
+    "updated_at": "2022-04-05T09:01:11.026Z"
+  },
+  {
+    "id": "7cac25b2-4ec9-5edd-8af1-16d3fbdd48e2",
+    "type_id": "28479366-45c9-5798-bc22-da930a4f3a71",
+    "label": "dict.sys_operate_type.force_quit",
+    "value": "appMonitorUser.forceQuit",
+    "sort_order": 2,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2025-11-07T07:11:50.966Z",
+    "updated_at": "2025-11-07T07:11:50.966Z"
+  },
+  {
+    "id": "7d7e65bc-7f2e-567e-a49b-5312369b466f",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.dxzkby",
+    "value": "31",
+    "sort_order": 16,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:46:44.561Z",
+    "updated_at": "2022-04-05T09:46:44.561Z"
+  },
+  {
+    "id": "7f95a126-2a5a-59c3-8ed9-94337bee06ef",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.mz",
+    "value": "11",
+    "sort_order": 11,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:52:33.292Z",
+    "updated_at": "2022-04-05T11:52:33.292Z"
+  },
+  {
+    "id": "8016c431-c27d-52d6-86e1-22fefa439676",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.dxbkjy",
+    "value": "22",
+    "sort_order": 13,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:46:00.372Z",
+    "updated_at": "2022-04-05T09:46:00.372Z"
+  },
+  {
+    "id": "81d19f17-3691-524d-8e6e-07861e200a91",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.za",
+    "value": "04",
+    "sort_order": 4,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:50:49.912Z",
+    "updated_at": "2022-04-05T11:51:27.018Z"
+  },
+  {
+    "id": "8256b1cf-4c10-5dbb-98e6-0fe36f99af67",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.zdzkyy",
+    "value": "43",
+    "sort_order": 22,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:49:19.351Z",
+    "updated_at": "2022-04-05T09:49:19.351Z"
+  },
+  {
+    "id": "8459cb8d-66b3-5610-ab0f-53856302c56b",
+    "type_id": "28479366-45c9-5798-bc22-da930a4f3a71",
+    "label": "dict.sys_operate_type.device_unban",
+    "value": "device.unban",
+    "sort_order": 8,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2025-11-07T07:13:22.409Z",
+    "updated_at": "2025-11-07T07:13:22.409Z"
+  },
+  {
+    "id": "85e70f35-dc92-521f-a670-37a202bb20e2",
+    "type_id": "40394742-78d3-5e04-b779-fa0c81a3100d",
+    "label": "dict.app_setting_type.functional",
+    "value": "functional",
+    "sort_order": 3,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2025-07-30T06:23:11.034Z",
+    "updated_at": "2026-02-10T08:01:24.201Z"
+  },
+  {
+    "id": "87ee3bca-3e79-5d93-9c7f-30f7b6ddbb78",
+    "type_id": "cff333d5-4b50-5d47-a1db-e1298fa09d74",
+    "label": "dict.app_cache_type.controller",
+    "value": "controller",
+    "sort_order": 3,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2025-05-26T05:20:01.128Z",
+    "updated_at": "2025-05-26T05:20:01.128Z"
+  },
+  {
+    "id": "886e1ea6-6366-504f-8420-5d96af7f9795",
+    "type_id": "4c894f9d-e00c-5bb5-ac56-d094351ab8b4",
+    "label": "dict.sys_operate_action.refresh",
+    "value": "REFRESH",
+    "sort_order": 8,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2025-11-07T06:37:09.984Z",
+    "updated_at": "2025-11-07T06:37:09.984Z"
+  },
+  {
+    "id": "89cdf51e-dc6b-5d7f-badf-437f979f034d",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.zygzyy",
+    "value": "46",
+    "sort_order": 25,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:50:13.492Z",
+    "updated_at": "2022-04-05T09:50:13.492Z"
+  },
+  {
+    "id": "8c99af0b-7665-5cfb-96c2-c5d433f9c978",
+    "type_id": "cff333d5-4b50-5d47-a1db-e1298fa09d74",
+    "label": "dict.app_cache_type.sysDeviceIdList",
+    "value": "sys-device-id-list",
+    "sort_order": 5,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2025-05-26T05:19:15.359Z",
+    "updated_at": "2025-05-26T05:19:15.359Z"
+  },
+  {
+    "id": "8d43d07e-7c9d-5f34-810d-49bfdcc1b784",
+    "type_id": "28479366-45c9-5798-bc22-da930a4f3a71",
+    "label": "dict.sys_operate_type.deleted_recover",
+    "value": "deleted.recover",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2025-11-07T07:11:34.100Z",
+    "updated_at": "2025-11-07T07:11:34.100Z"
+  },
+  {
+    "id": "92464eea-3de9-5346-a4f0-67f8696ae2c5",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.dxbkyy",
+    "value": "23",
+    "sort_order": 14,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:46:11.193Z",
+    "updated_at": "2022-04-05T09:46:11.193Z"
+  },
+  {
+    "id": "93332544-9442-5210-8176-be5ed750ae6b",
+    "type_id": "f03de842-7763-5a3f-a6c0-bba5ff823b8c",
+    "label": "dict.sex.male",
+    "value": "1",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "primary",
+    "description": "male",
+    "created_at": "2022-02-21T13:09:33.188Z",
+    "updated_at": "2022-04-05T09:01:06.313Z"
+  },
+  {
+    "id": "940c10b6-753c-5f69-95c1-ea7dad82ce5c",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.de",
+    "value": "46",
+    "sort_order": 46,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:59:54.060Z",
+    "updated_at": "2022-04-05T11:59:54.060Z"
+  },
+  {
+    "id": "974353e5-0a41-5089-8d43-4c5076fa68f0",
+    "type_id": "a0b94442-54c8-5347-a068-76155cc3a5d2",
+    "label": "dict.marriage.wh",
+    "value": "10",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:05:40.061Z",
+    "updated_at": "2022-04-05T12:05:40.061Z"
+  },
+  {
+    "id": "98cc3f0a-04e0-5547-99bf-3fd47ee9e0da",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.cs",
+    "value": "10",
+    "sort_order": 10,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:52:15.470Z",
+    "updated_at": "2022-04-05T11:52:15.470Z"
+  },
+  {
+    "id": "9a9761f5-bb09-5065-9240-5cc112a1458f",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.yjsbjy",
+    "value": "18",
+    "sort_order": 9,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:44:26.245Z",
+    "updated_at": "2022-04-05T09:44:26.245Z"
+  },
+  {
+    "id": "9b012893-e309-58a9-8efe-1b8f08ef3f39",
+    "type_id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "label": "dict.employ.xyjr",
+    "value": "37",
+    "sort_order": 8,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2022-04-05T12:22:57.896Z",
+    "updated_at": "2022-04-05T12:22:57.896Z"
+  },
+  {
+    "id": "9b35fdf6-693e-565e-8c1b-be99fb816795",
+    "type_id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "label": "dict.employ.xs",
+    "value": "31",
+    "sort_order": 7,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:22:43.485Z",
+    "updated_at": "2022-04-05T12:22:43.485Z"
+  },
+  {
+    "id": "9bf79c81-a5ee-5b0b-8048-cb77d6ec5fa6",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.ac",
+    "value": "39",
+    "sort_order": 39,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:58:43.358Z",
+    "updated_at": "2022-04-05T11:58:43.358Z"
+  },
+  {
+    "id": "9d6b06db-dde8-5d0f-a694-c081f1abde43",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.yi",
+    "value": "07",
+    "sort_order": 7,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:51:47.682Z",
+    "updated_at": "2022-04-05T11:51:47.682Z"
+  },
+  {
+    "id": "9e1d300c-deaf-5882-9b39-630aaba87174",
+    "type_id": "4c894f9d-e00c-5bb5-ac56-d094351ab8b4",
+    "label": "dict.sys_operate_action.export",
+    "value": "EXPORT",
+    "sort_order": 6,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2025-11-07T06:36:47.563Z",
+    "updated_at": "2025-11-07T06:36:47.563Z"
+  },
+  {
+    "id": "a1073918-5494-5f90-bb5a-3bd4a0ff1eea",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.va",
+    "value": "21",
+    "sort_order": 21,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:54:38.337Z",
+    "updated_at": "2022-04-05T11:54:38.337Z"
+  },
+  {
+    "id": "a2d489a6-8d10-5038-8f2e-57f3086e1288",
+    "type_id": "cff333d5-4b50-5d47-a1db-e1298fa09d74",
+    "label": "dict.app_cache_type.built_in",
+    "value": "built-in",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-09-29T08:21:30.927Z",
+    "updated_at": "2022-09-29T08:21:30.927Z"
+  },
+  {
+    "id": "a2f3c3b7-fab2-592a-b180-3b2429a6245b",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.nu",
+    "value": "42",
+    "sort_order": 42,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:59:13.313Z",
+    "updated_at": "2022-04-05T11:59:13.313Z"
+  },
+  {
+    "id": "a3f5c2b1-fdc6-5496-b02c-d368c298c712",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.bsyjsby",
+    "value": "11",
+    "sort_order": 2,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:40:43.346Z",
+    "updated_at": "2022-04-05T09:40:43.346Z"
+  },
+  {
+    "id": "a53d78f9-10d0-5788-8d02-f7b6e2372a77",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.du",
+    "value": "31",
+    "sort_order": 31,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:56:36.823Z",
+    "updated_at": "2022-04-05T11:56:36.823Z"
+  },
+  {
+    "id": "a79f105f-3136-5b38-8da7-563fcfd25f44",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.bl",
+    "value": "34",
+    "sort_order": 34,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:57:08.462Z",
+    "updated_at": "2022-04-05T11:57:08.462Z"
+  },
+  {
+    "id": "a90f90da-c546-509e-be65-769401cebf8c",
+    "type_id": "8dd55502-812f-517d-8e64-89456531a75c",
+    "label": "dict.health.yb",
+    "value": "2",
+    "sort_order": 2,
+    "status": true,
+    "tag_type": "info",
+    "description": "人体生理机能、营养、发育状况正常，但身体体质较弱",
+    "created_at": "2022-04-05T12:11:54.100Z",
+    "updated_at": "2022-04-05T12:11:54.100Z"
+  },
+  {
+    "id": "a92cb3a8-c2c3-576f-92e3-199b2639a4ca",
+    "type_id": "8dd55502-812f-517d-8e64-89456531a75c",
+    "label": "dict.health.mx",
+    "value": "3",
+    "sort_order": 3,
+    "status": true,
+    "tag_type": "warning",
+    "description": "有慢性疾病",
+    "created_at": "2022-04-05T12:12:09.767Z",
+    "updated_at": "2022-04-05T12:12:09.767Z"
+  },
+  {
+    "id": "a9924cda-2cd7-593e-89c0-0b06bc269d9f",
+    "type_id": "28479366-45c9-5798-bc22-da930a4f3a71",
+    "label": "dict.sys_operate_type.device_lock",
+    "value": "device.lock",
+    "sort_order": 5,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2025-11-07T07:12:43.265Z",
+    "updated_at": "2025-11-07T07:12:43.265Z"
+  },
+  {
+    "id": "aa279bf5-4603-5de6-a4de-0d05f2ad1a96",
+    "type_id": "91509345-eaff-5c09-be71-900bdf3d4b33",
+    "label": "dict.status.true",
+    "value": "true",
+    "sort_order": 0,
+    "status": true,
+    "tag_type": "success",
+    "description": "系统默认状态真值",
+    "created_at": "2022-02-20T03:32:01.375Z",
+    "updated_at": "2022-03-24T09:52:20.341Z"
+  },
+  {
+    "id": "ab3ef824-1e26-5546-920e-3a0f6f007074",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.ssyjsyy",
+    "value": "16",
+    "sort_order": 7,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:42:21.618Z",
+    "updated_at": "2022-04-05T09:42:21.618Z"
+  },
+  {
+    "id": "ad85ee2a-7f5b-51d3-ab9b-b9f898429d41",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.ptgjzxjy",
+    "value": "60",
+    "sort_order": 29,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:51:29.163Z",
+    "updated_at": "2022-04-05T09:51:29.163Z"
+  },
+  {
+    "id": "b06c98f9-0e11-5bf7-a793-861cfa445da1",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.hn",
+    "value": "16",
+    "sort_order": 16,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:53:15.513Z",
+    "updated_at": "2022-04-05T11:53:15.513Z"
+  },
+  {
+    "id": "b13a84e1-408e-54bd-88e2-127c76b5d1d6",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.mn",
+    "value": "36",
+    "sort_order": 36,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:58:16.830Z",
+    "updated_at": "2022-04-05T11:58:16.830Z"
+  },
+  {
+    "id": "b17c2136-2174-565e-b115-2b0b318a0999",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.tu",
+    "value": "30",
+    "sort_order": 30,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:56:26.843Z",
+    "updated_at": "2022-04-05T11:56:26.843Z"
+  },
+  {
+    "id": "b33ea165-c6ec-5093-a709-f32c36998838",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.pm",
+    "value": "40",
+    "sort_order": 40,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:58:55.164Z",
+    "updated_at": "2022-04-05T11:58:55.164Z"
+  },
+  {
+    "id": "b366ac66-5f4f-5b84-8e15-1de2e17e5430",
+    "type_id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "label": "dict.employ.txry",
+    "value": "80",
+    "sort_order": 12,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2022-04-05T12:24:05.597Z",
+    "updated_at": "2022-04-05T12:24:05.597Z"
+  },
+  {
+    "id": "b3e4f31c-f02f-5434-8c3a-50754b01c7a1",
+    "type_id": "40394742-78d3-5e04-b779-fa0c81a3100d",
+    "label": "dict.app_setting_type.global",
+    "value": "global",
+    "sort_order": 2,
+    "status": true,
+    "tag_type": "success",
+    "description": null,
+    "created_at": "2025-07-30T06:22:46.104Z",
+    "updated_at": "2025-07-30T06:22:46.104Z"
+  },
+  {
+    "id": "b76107cc-3599-5da6-bd44-38f75f9d6fa5",
+    "type_id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "label": "dict.employ.gjgwy",
+    "value": "11",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "primary",
+    "description": "包括参照、依照公务员管理的人员",
+    "created_at": "2022-04-05T12:19:23.838Z",
+    "updated_at": "2022-04-05T12:19:23.838Z"
+  },
+  {
+    "id": "bb8d7f2c-d18e-514d-8589-ad7b5bc91465",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.ha",
+    "value": "01",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:50:20.928Z",
+    "updated_at": "2022-04-05T11:51:18.140Z"
+  },
+  {
+    "id": "bcd0c3c6-0aae-563f-b571-add58f715bbc",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.ptgzby",
+    "value": "61",
+    "sort_order": 30,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:51:41.168Z",
+    "updated_at": "2022-04-05T09:51:41.168Z"
+  },
+  {
+    "id": "bcee7a1a-534d-59a3-ac71-1c491460fa0c",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.czyy",
+    "value": "73",
+    "sort_order": 34,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:52:49.349Z",
+    "updated_at": "2022-04-05T09:52:49.349Z"
+  },
+  {
+    "id": "c1f57d54-e194-5cb1-b5cb-73afa33cc7c1",
+    "type_id": "4c894f9d-e00c-5bb5-ac56-d094351ab8b4",
+    "label": "dict.sys_operate_action.delete_many",
+    "value": "DELETE_MANY",
+    "sort_order": 4,
+    "status": true,
+    "tag_type": "error",
+    "description": null,
+    "created_at": "2025-11-07T06:36:26.228Z",
+    "updated_at": "2025-11-07T06:36:26.228Z"
+  },
+  {
+    "id": "c2a8df18-f50d-5deb-b1d3-b2ce49fe9535",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.bsyjsyy",
+    "value": "13",
+    "sort_order": 4,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:41:04.797Z",
+    "updated_at": "2022-04-05T09:41:04.797Z"
+  },
+  {
+    "id": "c345a077-ad2a-56e1-a9ca-f799c1603da5",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.zygzby",
+    "value": "44",
+    "sort_order": 23,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:49:49.299Z",
+    "updated_at": "2022-04-05T09:49:49.299Z"
+  },
+  {
+    "id": "c3dfc494-c76c-5e7c-825f-32eef119a434",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.zh",
+    "value": "08",
+    "sort_order": 8,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:51:58.220Z",
+    "updated_at": "2022-04-05T11:51:58.220Z"
+  },
+  {
+    "id": "c414a30f-531b-579f-aa40-8d12cee6b04a",
+    "type_id": "22561dad-4a91-5b2b-b2bb-43edbf760da2",
+    "label": "dict.type.primary",
+    "value": "primary",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "primary",
+    "description": "primary style",
+    "created_at": "2022-03-24T11:12:47.629Z",
+    "updated_at": "2022-03-24T11:12:47.629Z"
+  },
+  {
+    "id": "c4ff775e-8c87-5b0b-9507-9ff8c51125e9",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.li",
+    "value": "19",
+    "sort_order": 19,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:54:18.746Z",
+    "updated_at": "2022-04-05T11:54:18.746Z"
+  },
+  {
+    "id": "c7237604-eb08-5db0-bf31-750b66c2aefd",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.ml",
+    "value": "32",
+    "sort_order": 32,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:56:47.663Z",
+    "updated_at": "2022-04-05T11:56:47.663Z"
+  },
+  {
+    "id": "c7565739-5964-5abe-b2fc-70adc1d5a942",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.by",
+    "value": "09",
+    "sort_order": 9,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:52:07.864Z",
+    "updated_at": "2022-04-05T11:52:07.864Z"
+  },
+  {
+    "id": "cc74d8b0-0d13-5dab-bf67-627c28a804fb",
+    "type_id": "4c894f9d-e00c-5bb5-ac56-d094351ab8b4",
+    "label": "dict.sys_operate_action.create",
+    "value": "CREATE",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2025-11-07T06:35:02.768Z",
+    "updated_at": "2025-11-07T06:35:27.343Z"
+  },
+  {
+    "id": "cd938968-e55f-5698-a220-ed0c1875f201",
+    "type_id": "20c1f7c8-ec99-550a-b495-f9b8ac887880",
+    "label": "dict.success.false",
+    "value": "false",
+    "sort_order": 2,
+    "status": true,
+    "tag_type": "error",
+    "description": "系统默认失败",
+    "created_at": "2022-04-01T09:04:40.839Z",
+    "updated_at": "2022-04-01T09:04:40.839Z"
+  },
+  {
+    "id": "cdf8ca5d-2d30-50bf-a72a-6ea054ff97e0",
+    "type_id": "978daccd-2845-52b2-ad2f-41883e239b9d",
+    "label": "dict.sys_auth_type.other.qq",
+    "value": "qq",
+    "sort_order": 5,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-09-14T02:04:03.117Z",
+    "updated_at": "2022-09-14T02:51:25.306Z"
+  },
+  {
+    "id": "cef9f2f2-7c2c-502f-8b6e-b9bd9c7c3bc2",
+    "type_id": "a0b94442-54c8-5347-a068-76155cc3a5d2",
+    "label": "dict.marriage.fh",
+    "value": "23",
+    "sort_order": 5,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2022-04-05T12:06:34.761Z",
+    "updated_at": "2022-04-05T12:06:34.761Z"
+  },
+  {
+    "id": "cefb0dbc-372a-5646-8e26-46cf45b43ae3",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.hu",
+    "value": "03",
+    "sort_order": 3,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:50:39.551Z",
+    "updated_at": "2022-04-05T11:51:24.334Z"
+  },
+  {
+    "id": "d2d8498d-2b0d-5437-be18-3b9ef4f0410d",
+    "type_id": "4c894f9d-e00c-5bb5-ac56-d094351ab8b4",
+    "label": "dict.sys_operate_action.clear",
+    "value": "CLEAR",
+    "sort_order": 7,
+    "status": true,
+    "tag_type": "error",
+    "description": null,
+    "created_at": "2025-11-07T06:37:01.450Z",
+    "updated_at": "2025-11-07T06:37:01.450Z"
+  },
+  {
+    "id": "d33e857d-a7fa-552f-9c14-f902f110204e",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.gl",
+    "value": "37",
+    "sort_order": 37,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:58:26.532Z",
+    "updated_at": "2022-04-05T11:58:26.532Z"
+  },
+  {
+    "id": "d5e47959-99fc-59c4-a254-fbb8c30c48fa",
+    "type_id": "978daccd-2845-52b2-ad2f-41883e239b9d",
+    "label": "dict.sys_auth_type.phone",
+    "value": "phoneNumber",
+    "sort_order": 3,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2022-09-14T02:02:53.064Z",
+    "updated_at": "2022-09-14T02:51:15.439Z"
+  },
+  {
+    "id": "da0fd676-8a07-5d0d-8aad-f11d3525c6a6",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.qt",
+    "value": "90",
+    "sort_order": 99,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:54:07.386Z",
+    "updated_at": "2022-04-05T09:54:07.386Z"
+  },
+  {
+    "id": "da277b2d-1dc3-5312-89c5-0eb6c0ccc222",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.dxzkyy",
+    "value": "33",
+    "sort_order": 18,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:47:16.345Z",
+    "updated_at": "2022-04-05T09:47:16.345Z"
+  },
+  {
+    "id": "da4684b1-a2aa-5360-b114-0efbdbe713a9",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.ug",
+    "value": "05",
+    "sort_order": 5,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:50:58.958Z",
+    "updated_at": "2022-04-05T11:51:30.834Z"
+  },
+  {
+    "id": "e18119bc-4585-5ee9-ae01-91f59b0ec284",
+    "type_id": "978daccd-2845-52b2-ad2f-41883e239b9d",
+    "label": "dict.sys_auth_type.opaque",
+    "value": "opaque",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-09-14T02:02:10.576Z",
+    "updated_at": "2026-02-15T07:14:11.608Z"
+  },
+  {
+    "id": "e21bffb4-4ef7-519c-9fe7-b3871415cb6e",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.dxptbby",
+    "value": "28",
+    "sort_order": 15,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:46:28.281Z",
+    "updated_at": "2022-04-05T09:46:28.281Z"
+  },
+  {
+    "id": "e229bea9-b5c7-575b-bccf-1d5aed1724f9",
+    "type_id": "28479366-45c9-5798-bc22-da930a4f3a71",
+    "label": "dict.sys_operate_type.device_ban",
+    "value": "device.ban",
+    "sort_order": 7,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2025-11-07T07:13:08.984Z",
+    "updated_at": "2025-11-07T07:13:08.984Z"
+  },
+  {
+    "id": "e572351f-dbdb-54e6-9953-f489f5ae81fd",
+    "type_id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "label": "dict.employ.qyglry",
+    "value": "21",
+    "sort_order": 4,
+    "status": true,
+    "tag_type": "info",
+    "description": null,
+    "created_at": "2022-04-05T12:21:49.550Z",
+    "updated_at": "2022-04-05T12:21:49.550Z"
+  },
+  {
+    "id": "e5a42ff5-f0d9-55ec-8e65-36f99a708f88",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.yjsbyy",
+    "value": "19",
+    "sort_order": 10,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:44:42.317Z",
+    "updated_at": "2022-04-05T09:44:42.317Z"
+  },
+  {
+    "id": "e6dde68f-8c43-5849-8962-40cbc8e15033",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.mg",
+    "value": "02",
+    "sort_order": 2,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:50:29.659Z",
+    "updated_at": "2022-04-05T11:51:21.317Z"
+  },
+  {
+    "id": "e8d91807-64a5-51f1-9e29-074fbc816b5b",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.xxby",
+    "value": "81",
+    "sort_order": 37,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:53:24.372Z",
+    "updated_at": "2022-04-05T09:53:24.372Z"
+  },
+  {
+    "id": "ef15a879-6d48-5352-84d7-bd3ffa8853ad",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.ew",
+    "value": "45",
+    "sort_order": 45,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:59:47.534Z",
+    "updated_at": "2022-04-05T11:59:47.534Z"
+  },
+  {
+    "id": "f3446198-25e2-5586-a34a-26fc24af3ad2",
+    "type_id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "label": "dict.employ.qt",
+    "value": "90",
+    "sort_order": 13,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2022-04-05T12:24:17.251Z",
+    "updated_at": "2022-04-05T12:24:17.251Z"
+  },
+  {
+    "id": "f3b6aeb7-48c2-55dd-9edb-da6974d3bb70",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.mh",
+    "value": "06",
+    "sort_order": 6,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:51:39.749Z",
+    "updated_at": "2022-04-05T11:51:39.749Z"
+  },
+  {
+    "id": "f6186177-f8f6-578d-b6a1-26d5e16f628d",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.jn",
+    "value": "56",
+    "sort_order": 56,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:01:37.694Z",
+    "updated_at": "2022-04-05T12:01:37.694Z"
+  },
+  {
+    "id": "f65c2299-1556-5971-9fdc-8f35c67f854d",
+    "type_id": "fa746ea6-9c96-54b5-a041-7a68e2c1e4f5",
+    "label": "dict.employ.wyry",
+    "value": "70",
+    "sort_order": 11,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T12:23:47.836Z",
+    "updated_at": "2022-04-05T12:23:47.836Z"
+  },
+  {
+    "id": "f6b3f70d-9e1a-5dd6-ad5b-74b166c6fb03",
+    "type_id": "4c894f9d-e00c-5bb5-ac56-d094351ab8b4",
+    "label": "dict.sys_operate_action.import",
+    "value": "IMPORT",
+    "sort_order": 5,
+    "status": true,
+    "tag_type": "warning",
+    "description": null,
+    "created_at": "2025-11-07T06:36:37.619Z",
+    "updated_at": "2025-11-07T06:36:37.619Z"
+  },
+  {
+    "id": "f85fa9ba-b822-5675-8bc3-16ccb8c741ee",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.ta",
+    "value": "41",
+    "sort_order": 41,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:59:05.872Z",
+    "updated_at": "2022-04-05T11:59:05.872Z"
+  },
+  {
+    "id": "fa792c14-4e39-5ea5-bb17-5ecc105eb42c",
+    "type_id": "59c83cda-edfd-5f0e-9a48-caada5c5c8a4",
+    "label": "dict.edu.ptgzjy",
+    "value": "62",
+    "sort_order": 31,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T09:51:50.684Z",
+    "updated_at": "2022-04-05T09:51:50.684Z"
+  },
+  {
+    "id": "faf9b4db-a103-559f-add4-645c77835104",
+    "type_id": "91509345-eaff-5c09-be71-900bdf3d4b33",
+    "label": "dict.status.false",
+    "value": "false",
+    "sort_order": 1,
+    "status": true,
+    "tag_type": "error",
+    "description": "系统默认状态假值",
+    "created_at": "2022-02-20T03:33:59.175Z",
+    "updated_at": "2022-03-24T09:50:49.280Z"
+  },
+  {
+    "id": "fd1ee856-ccd8-5455-81be-56b00732a223",
+    "type_id": "cff333d5-4b50-5d47-a1db-e1298fa09d74",
+    "label": "dict.app_cache_type.sharedArea",
+    "value": "shared-area",
+    "sort_order": 8,
+    "status": true,
+    "tag_type": "error",
+    "description": null,
+    "created_at": "2025-05-26T05:20:43.332Z",
+    "updated_at": "2025-05-26T05:20:43.332Z"
+  },
+  {
+    "id": "fea94f82-d836-52e1-bedc-47a5a0666704",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.ba",
+    "value": "14",
+    "sort_order": 14,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:52:54.264Z",
+    "updated_at": "2022-04-05T11:52:54.264Z"
+  },
+  {
+    "id": "ff45a1fd-5b3e-5757-a3f8-dff5b776658b",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.ls",
+    "value": "20",
+    "sort_order": 20,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:54:27.590Z",
+    "updated_at": "2022-04-05T11:54:27.590Z"
+  },
+  {
+    "id": "ff9cedb3-123a-5867-a128-5c37d87b5458",
+    "type_id": "d9f83031-71a5-5a61-bc5a-3fdaf82c710a",
+    "label": "dict.nation.do",
+    "value": "12",
+    "sort_order": 12,
+    "status": true,
+    "tag_type": "primary",
+    "description": null,
+    "created_at": "2022-04-05T11:52:39.790Z",
+    "updated_at": "2022-04-05T11:52:39.790Z"
   }
 ]

@@ -69,6 +69,18 @@ export class SysLocaleDTO extends SysLocaleDTOBase {
   @WalnutAdminDecoratorValidatorUuid({ validate: LocaleLangIdValidate })
   declare langId: string
 
+  // 列表分组键（D16②）：locale 的 list 是**按 key 分组**的聚合结果，`groupKey` 就是
+  // Mongo `$group._id` 的直译（= key）。它**不是主键** —— 与其余 list 行的 uuid `id` 语义冲突，
+  // 所以单独一个名字；wire 上只出现在 list 行（read/update/delete 走 key，不进这个字段）。
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      required: false,
+      title: 'group key',
+      description: 'grouped i18n key (Mongo $group._id); NOT the row primary key',
+    },
+  })
+  groupKey: string
+
   // 列表分组行加工列（P3-10）：locale.repo.service.aggregateList 注入
   // MAX(finished) / langsCount（0..1 小数，admin 列表乘 100 展示），wire 上只出现在
   // list 行。声明在基类而非 Safe 层：CRUD list 装饰器用 SysLocaleDTO 作为 data items
@@ -108,7 +120,8 @@ export class SysLocaleDTOListRequest extends CreateWalnutAdminRequestListDTO(
 export class SysLocaleDTOListResponse extends CreateWalnutAdminResponseListDTO(
   RealPartialType(
     RealPickType(SysLocaleDTOSafe, [
-      'id',
+      // D16②：分组键叫 groupKey（原 id）。列表行的 id 是分组键的误名，已退役
+      'groupKey',
       'key',
       'process',
       'createdAt',

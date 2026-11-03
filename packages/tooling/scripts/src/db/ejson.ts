@@ -1,17 +1,26 @@
 /**
- * Extended JSON 的读写 —— seed 数据的格式。
+ * Extended JSON 的**读写兼容器** —— 只服务「历史导出」这一条通道，不再是 seed 真源的格式。
  *
- * 为什么是 Extended JSON（`{"$oid": …}` / `{"$date": …}`）而不是裸 JSON：
+ * ## 现在谁在用它（唯一的两个消费点）
+ *
+ * 1. `db:export:pg` 写「PG 生态回灌快照」（`_id` 是 uuid 本体、时间是 `{$date}`）—— 给人看/跨生态搬运用；
+ * 2. `db:seed:reshape` **读**那份快照，拍平成 PG 行形态（`{ id, created_at, … }`）写进仓内 seed。
+ *
+ * 也就是说：**读能力保留**（历史导出能一直导进来），但**仓内真源不是这个格式**了 ——
+ * `apps/server/db/seed/*.json` 是纯 JSON 行数组，`lint:seed` 还会把残留的 `$oid` / `$date` 判红
+ * （见 `ci/check-seed.ts` 的 `LEGACY_EJSON_MARKERS`）。
+ *
+ * ## 为什么当初是 Extended JSON
  *
  * 1. **精度**：`ObjectId` 与 `Date` 是两类会在导出-导入之间被弄坏的值（前者可能被当字符串、
  *    后者会退化成 ISO 字符串），而它们恰好是每个集合的 `_id` 与 `createdAt`。走 Extended JSON
  *    是**无损**的。
- * 2. **兼容老路子**：Compass / `mongoimport --jsonArray` 直接认这个格式 ⇒ 在这个脚本还没跑通
- *    的机器上，人肉导入照样能用（老文档描述的就是那条路）。
+ * 2. **兼容老路子**：Compass / `mongoimport --jsonArray` 直接认这个格式。
  *
- * 只认这两个形状，别的一律原样返回。Phase 5a 起 mongodb 驱动已从工具链摘除：
- * `$oid` 解析为 **24 位 hex 字符串**（uuid5 派生与 ETL 映射都直接吃 hex，见 `seed-map.ts`
- * 的 `refUuid`），写出侧只处理 `$date`（PG 回灌的 `_id` 是 uuid 本体，不再是 ObjectId）。
+ * 精度这条理由在 PG 之后已经不成立：PG 主键本身就是 uuid 文本、timestamptz 直接吃 ISO 字符串，
+ * 没有"会被弄坏的包装类型"了 —— 这就是 D5=B 重建真源的根据。
+ *
+ * 只认 `$oid` / `$date` 两个形状，别的一律原样返回。
  */
 /** 形状判定：恰好只有 `$oid` / `$date` 一个键的对象才算包装 */
 function isWrapper(value: unknown, key: string): value is Record<string, string> {
@@ -38,7 +47,7 @@ export function fromExtendedJson(value: unknown): unknown {
   return value
 }
 
-/** JS 值 → Extended JSON，递归（`Date` → `{$date}`；字符串（hex/uuid）原样） */
+/** JS 值 → Extended JSON，递归（`Date` → `{$date}`；uuid / hex 字符串原样） */
 export function toExtendedJson(value: unknown): unknown {
   if (Array.isArray(value))
     return value.map(toExtendedJson)
@@ -53,7 +62,7 @@ export function toExtendedJson(value: unknown): unknown {
   return value
 }
 
-/** 解析一整个集合文件（必须是文档数组） */
+/** 解析一整个历史导出文件（必须是文档数组） */
 export function parseCollectionFile(text: string): Record<string, unknown>[] {
   const parsed = JSON.parse(text)
   if (!Array.isArray(parsed))

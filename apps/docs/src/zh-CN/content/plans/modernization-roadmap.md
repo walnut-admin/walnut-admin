@@ -143,8 +143,12 @@ ETL 工具链处置（2026-10-28 已落地，正名而非封存）：核实发�
 export-pg 的**活依赖**（同一映射层），「封存」不成立；已正名——`etl-map.ts → seed-map.ts`
 （导出符号 EtlMap*→SeedMap*、ETL_*→SEED_*）、`WALNUT_ADMIN_ETL_NAMESPACE →
 WALNUT_ADMIN_UUID_NAMESPACE`（值不变，v5 派生确定性不受影响）；ETL 驱动脚本与
-db:etl/db:verify-etl 通道早在 5a 已删。现状：`seed-map/ejson/uuid5/seed-pg/export-pg`
-是纯 seed 通道组件，无 ADR 真空残留。
+db:etl/db:verify-etl 通道早在 5a 已删。
+
+**2026-11 批次 5-B 再进一步**（D5=B）：seed 真源换成 **PG 行形态**，`seed-map.ts`（938 行）
+因此整文件退役 —— 现状是 `seed-reshape`（导出键 → 列名，唯一映射表）/ `seed-pg`（行数组直接
+落库，列与 FK 判据从 PG 元数据读）/ `export-pg`（历史导出）/ `ejson`（只读历史导出的兼容器）
+/ `uuid5`（运行时已不再派生，id 直接写在 seed 里）。验收靠 `pnpm db:seed:verify` 的双库对拍。
 
 ### 4.2 明确不动（含理由）
 

@@ -124,7 +124,7 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 | `local` | 读用户行 `roleMode`（`localKey`），缺失时回退 `globalValue` | SWITCH / COMBINE 由每个用户自己决定 |
 
 **零配置默认（P2-9 已修，2026-10-28）**：`app_setting` 无该行时，
-`cache.appSettings.ts` 的 `defaultFunctionalRole` 是
+`appSettings.cache.ts` 的 `defaultFunctionalRole` 是
 `{ scope: global, globalValue: combinable, localKey: 'roleMode' }` —— 即默认部署下
 **所有用户的全部角色菜单与权限串都被合并**，用户行上的 `role_mode` 被权限计算忽略。
 把 setting 改成 `scope: local` 后，用户自身 `role_mode` 才生效（`permission-chain.api-spec.ts`

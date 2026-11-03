@@ -1,20 +1,30 @@
 /**
- * `db:export:pg` —— 从 **PostgreSQL** 反向导出「与 seed 文件同构」的 Extended JSON。
+ * `db:export:pg` —— 从 **PostgreSQL** 反向导出「历史导出形态」的 Extended JSON（`_id` 是 uuid 本体）。
  *
- * ## 口径（与 Mongo 版 `db:export` 的差异，必须写清楚）
+ * ## 两条通道，别混
  *
- * PG 的主键是 uuid v5，**反解回 24 位 ObjectId hex 不可逆**（v5 是单向哈希）。所以导出的
- * `_id` / 引用字段写的是 PG 的 uuid 本体，`$date` 仍是 Extended JSON 包装 —— **本格式是
- * 「PG 生态回灌」用的快照（可被 `db:seed:pg` 原样吃回），不追求与 Mongo seed 文件逐字节
- * 一致**；仓内 seed 的唯一真源仍是 `apps/server/db/seed/` + `db:export`（Mongo 版）。
+ * | 通道 | 产物 | 谁消费 |
+ * |------|------|--------|
+ * | 本命令（`--out` 到临时目录） | Extended JSON 快照（`$date` 包装、驼峰键） | `db:seed:reshape` 拍平成仓内真源；人工 review / 跨生态搬运 |
+ * | `db:seed:reshape --to apps/server/db/seed` | **PG 行形态**（`{ id, created_at, … }` + junction 独立文件） | `db:seed:pg`；仓内真源 |
  *
- * ## 形态约束（与 Mongo 版共用）
+ * 所以本命令**不再**默认写进 `apps/server/db/seed/`：那里是真源（行形态），写快照进去会把真源
+ * 打回 Extended JSON（`lint:seed` 会判红）。命令里对「`--out` 指向 seed 目录」做了显式拦截。
  *
- * 1. 导出哪些集合 = 仓里 seed 目录有哪些文件（`--only` 可收窄）；`shared_area` 走 `--areas` 另存；
+ * 再生成真源的完整两步（不手写任何一行）：
+ *
+ * ```bash
+ * pnpm db:export:pg --out apps/server/.tmp/pg-export      # 库 → 快照
+ * pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # 快照 → 行形态（默认写仓内 seed）
+ * ```
+ *
+ * ## 形态约束（与 seed 真源共用）
+ *
+ * 1. 导出哪些表 = 仓里 seed 目录有哪些文件（`--only` 可收窄）；`shared_area` 走 `--areas` 另存；
  * 2. 文档按 `_id` 排序（uuid 字典序），diff 可审；
  * 3. 裁剪策略（`policy.ts`）照套 —— 导出形态与仓内 seed 的口径保持一族；
- * 4. `--anonymize` 脱敏导出：在**反向映射后的 Mongo 形态文档**上跑 `anonymize.ts`
- *    （按键名判定的规则与库无关，直接复用），给「线上 PG → 开发」通道用。
+ * 4. `--anonymize` 脱敏导出：在反向映射后的文档上跑 `anonymize.ts`（按键名判定，与库无关），
+ *    给「线上 PG → 开发」通道用。
  */
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -26,7 +36,11 @@ import { anonymizeDocs } from './anonymize.ts'
 import { stringifyCollectionFile } from './ejson.ts'
 import { resolvePgTarget } from './pg-conn.ts'
 import { applyPolicy } from './policy.ts'
+import { JUNCTION_TABLES } from './seed-reshape.ts'
 import { listSeedCollections, resolvePath, SEED_DIR } from './seed.ts'
+
+/** 默认输出目录：导出快照是**中间物**（消费方是 `db:seed:reshape`），不落在真源目录 */
+export const DEFAULT_EXPORT_OUT = 'apps/server/.tmp/pg-export'
 
 export interface ExportPgOptions {
   seedDir: string
@@ -39,7 +53,8 @@ export interface ExportPgOptions {
 }
 
 export function parseExportPgArgs(argv: readonly string[]): ExportPgOptions {
-  const opts: ExportPgOptions = { seedDir: SEED_DIR, envFile: '', outDir: SEED_DIR, anonymize: false }
+  // 默认**不**写进 seed 目录：那里现在是 PG 行形态真源（快照写进去会把真源打回 Extended JSON）
+  const opts: ExportPgOptions = { seedDir: SEED_DIR, envFile: '', outDir: DEFAULT_EXPORT_OUT, anonymize: false }
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
     const next = (): string => {
@@ -225,7 +240,10 @@ export async function main(): Promise<void> {
   const repoRoot = process.cwd()
   const opts = parseExportPgArgs(process.argv.slice(2))
   const sourceDir = resolvePath(repoRoot, opts.seedDir)
-  const names = listSeedCollections(sourceDir).filter(name => opts.only === undefined || opts.only.includes(name))
+  // junction 文件（sys_user_role / sys_role_menu）在导出形态里是**父文档的数组**，不单独导出
+  const names = listSeedCollections(sourceDir)
+    .filter(name => !JUNCTION_TABLES.includes(name))
+    .filter(name => opts.only === undefined || opts.only.includes(name))
   if (names.length === 0)
     throw new PreconditionError(`没有可导出的集合（${sourceDir} 里没有 .json）`)
 
@@ -233,8 +251,17 @@ export async function main(): Promise<void> {
   // 与 Mongo 版同一条红线：脱敏是有损的，永远不许写回仓内 seed
   if (opts.anonymize && resolvePath(repoRoot, opts.outDir) === resolvePath(repoRoot, opts.seedDir)) {
     throw new PreconditionError(
-      '脱敏导出必须用 --out 指定一个**别的**目录（例如 --out tmp/pg-snapshot）——'
+      '脱敏导出必须用 --out 指定一个**别的**目录（例如 --out apps/server/.tmp/pg-snapshot）——'
       + ' 脱敏是有损的，别让掩码快照覆盖仓内 seed',
+    )
+  }
+  // 真源是 PG 行形态：Extended JSON 写进 seed 目录 = 把真源打回旧格式（lint:seed 也会判红）
+  if (resolvePath(repoRoot, opts.outDir) === resolvePath(repoRoot, opts.seedDir)) {
+    throw new PreconditionError(
+      '导出结果**不能**写进 seed 目录：那里是 PG 行形态真源，本命令产出的是 Extended JSON 快照。'
+      + ' 要再生成真源请两步：\n'
+      + '    pnpm db:export:pg --out apps/server/.tmp/pg-export\n'
+      + '    pnpm db:seed:reshape --from apps/server/.tmp/pg-export',
     )
   }
 

@@ -29,24 +29,45 @@ pnpm db:seed:pg --only sys_role    # 只播某几个集合
 ```
 
 数据本身在 [`apps/server/db/seed/`](https://github.com/walnut-admin/walnut-admin/tree/main/apps/server/db/seed)，
-格式仍是**每个集合一个 JSON 数组**，保留 Extended JSON（`{"$oid": …}` / `{"$date": …}`）。
-`db:seed:pg` 经 `etl-map.ts` 这一条映射把它们落进 PG：`$oid` → uuid v5 派生（单向哈希，见
-`packages/tooling/scripts/src/db/uuid5.ts`）、`$date` → timestamptz、meta 拍平、用户-角色 / 角色-菜单
-拆进独立的 junction 表。
+格式是**每个表一个 PG 行数组**：`{ "id": "<uuid>", "created_at": "2026-…", … }`（列名就是 PG 列名，
+时间列是 ISO 字符串，jsonb 列是 JSON 值），junction 表（`sys_user_role` / `sys_role_menu`）各有独立文件。
+**没有中间映射层**：文件里是什么列就写什么列，列/主键/外键/jsonb 的判据全部从 PG 元数据读
+（播表顺序 = FK 拓扑序、自引用 FK 按深度排序、jsonb 绑参前 stringify）。
+
+> 2026-11 批次 5-B 之前这里存的是 Mongo Extended JSON（`{"$oid": …}` / `{"$date": …}`），
+> 靠 938 行 `seed-map.ts` 在运行期映射 —— 加一列要同步改映射且**没有门禁**。重建后
+> `packages/tooling/scripts/src/db/ejson.ts` 只保留「导入历史导出」的能力，不再是真源格式
+> （`pnpm lint:seed` 会把残留的 `$oid` / `$date` 判红）。
 
 **仓库是这份数据的唯一真源**，而且 seed 是幂等可重放的（已存在的行整行刷新为仓内值，junction
 只补缺不回收，密钥缺了才现造）：
 
 ```bash
-pnpm db:export:pg                                # 从当前库反向导出（uuid 形态的 Extended JSON）
-pnpm lint:seed                                   # 形态门禁：必需/禁入集合、体积、凭据形状、引用完整性
+pnpm lint:seed                                   # 形态门禁：必需/禁入表、体积、凭据形状、引用完整性、无 EJSON 残留
 pnpm db:seed:pg --admin <账号> --password <口令>   # 在**本环境**给某账号建口令凭证并当场验证登录
 ```
 
-导出的快照与仓内文件**同源不同构**：PG 主键是 uuid v5，**反解回 24 位 ObjectId hex 不可逆**，
-所以导出的 `_id` / 引用字段写 uuid 本体（`$date` 仍是 Extended JSON 包装）—— 这是「PG 生态回灌」
-用的形态（`db:seed:pg` 能原样吃回），不追求与仓内 seed 文件逐字节一致；导出仍按 id 排序、套同一份
-裁剪规则，对账走行级 diff（行数 + 关键字段），不是文件字节 diff。
+**再生成真源是两步、不手写任何一行**：
+
+```bash
+pnpm db:export:pg --out apps/server/.tmp/pg-export      # 库 → 快照（Extended JSON，uuid 本体）
+pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # 快照 → 行形态（默认写仓内 seed）
+```
+
+两步之后 `git diff` 就是「库与仓的差」，逐行可审。导出的快照**故意不落在 seed 目录**：那里是行形态
+真源，命令里对「`--out` 指向 seed 目录」做了显式拦截。`db:export:pg` 的产物仍按 `_id` 排序、套同一份
+裁剪规则（`policy.ts`），所以快照 diff 与仓内文件 diff 同形。
+
+改动 seed 形态 / 映射表 / 播种器之后，跑一次**双库对拍**（旧 seed + 旧管线 与 新 seed 各灌一个空库，
+逐表逐列比 + 导出文件比）：
+
+```bash
+pnpm db:seed:verify                       # 对着 07dacfd6（批次 5-B 基线）
+pnpm db:seed:verify --baseline-ref <sha>  # 换基线
+```
+
+它会 DROP/建 `walnut_seed_a` / `walnut_seed_b` 两个库（**不碰**现有库），基线代码与数据从 git 取
+（`apps/server/.tmp/seed-verify/`，gitignored）。它**不进** prepush/CI：需要真实 PG 实例。
 
 **口令为什么不随仓库发**：OPAQUE 的服务端 `serverSetup` 就是 `AUTH_OPAQUE_SECRET`，客户端的注册
 记录由 OPRF 输出派生的密钥加密 ⇒ 换一个 secret 必然登不进去。所以 seed 只发无凭证的账号档案，
@@ -64,11 +85,11 @@ pnpm db:seed:pg --admin <账号> --password <口令>   # 在**本环境**给某�
 
 ## 一次性历史任务：Mongo → PG 的 ETL（已归档）
 
-本地存量数据从 MongoDB 搬进 PostgreSQL 走的是 ETL 通道（读本地 Mongo、经 `etl-map.ts` 映射写入
-PG，id 由 ObjectId 经 uuid v5 派生）。它是**一次性历史任务**（ADR 0021 Decision 6：本地为准、
-线上不迁），Mongo 读取端与打包入口已随迁移退役；**映射规则本身是活代码** —— `db:seed:pg` 沿用
-同一份 `etl-map.ts`，这正是「seed 重建出的 PG」与「ETL 搬出来的 PG」id 逐行一致的原因。
-要复核迁移正确性时，判据是行级的：同 id 即同源，按表对行数与抽样字段。
+本地存量数据从 MongoDB 搬进 PostgreSQL 走的是 ETL 通道（读本地 Mongo、映射写入 PG，id 由
+ObjectId 经 uuid v5 派生，派生实现见 `packages/tooling/scripts/src/db/uuid5.ts`）。它是**一次性历史
+任务**（ADR 0021 Decision 6：本地为准、线上不迁），Mongo 读取端、打包入口与运行期映射层
+（`seed-map.ts`）已随 2026-11 批次 5-B 全部退役 —— 现在 id 只存在于数据里（seed 文件写 uuid 本体），
+运行时不再有派生步骤。要复核迁移正确性时，判据是行级的：同 id 即同源，按表对行数与抽样字段。
 
 ## 注意：这不是"清库工具"
 
@@ -106,7 +127,7 @@ PG，id 由 ObjectId 经 uuid v5 派生）。它是**一次性历史任务**（A
 
 ```bash
 # 从线上拉一份快照到本地（脱敏是有损的，所以必须换一个目录，别覆盖仓内 seed）
-pnpm db:export:pg --anonymize --out tmp/prod-snapshot
+pnpm db:export:pg --anonymize --out apps/server/.tmp/prod-snapshot
 ```
 
 - 导入前**必须过一遍脱敏**（邮箱、手机、设备指纹、IP 与地理位置历史、MFA 密文都属个人数据）。

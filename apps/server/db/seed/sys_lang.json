@@ -1,32 +1,20 @@
 [
   {
-    "_id": {
-      "$oid": "6190a3ab006f39bf8a155a3a"
-    },
+    "id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "lang": "zh_CN",
+    "description": "简体中文",
+    "sort_order": 2,
     "status": true,
-    "order": 1,
-    "description": "English",
-    "lang": "en_US",
-    "createdAt": {
-      "$date": "2021-11-14T05:50:35.845Z"
-    },
-    "updatedAt": {
-      "$date": "2021-11-17T07:01:45.621Z"
-    }
+    "created_at": "2021-11-14T05:52:16.348Z",
+    "updated_at": "2021-11-17T07:01:51.220Z"
   },
   {
-    "_id": {
-      "$oid": "6190a410006f39bf8a155a46"
-    },
+    "id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "lang": "en_US",
+    "description": "English",
+    "sort_order": 1,
     "status": true,
-    "order": 2,
-    "description": "简体中文",
-    "lang": "zh_CN",
-    "createdAt": {
-      "$date": "2021-11-14T05:52:16.348Z"
-    },
-    "updatedAt": {
-      "$date": "2021-11-17T07:01:51.220Z"
-    }
+    "created_at": "2021-11-14T05:50:35.845Z",
+    "updated_at": "2021-11-17T07:01:45.621Z"
   }
 ]

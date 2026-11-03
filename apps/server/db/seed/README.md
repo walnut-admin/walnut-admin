@@ -8,21 +8,28 @@ pnpm db:seed:pg --dry-run    # 只看会写什么，不落库
 pnpm db:seed:pg --admin <userName> --password <口令>   # 现生成 admin 口令凭证（见下）
 ```
 
-正源与再生成：**仓库为本目录的唯一真源**，`pnpm db:export:pg` 从 PG 反向导出（uuid 口径的
-回灌快照，可被 `db:seed:pg` 原样吃回）—— 也就是说数据不是"某次手工导出的快照"，而是
-**可以再生的产物**。（Phase 5a 起 MongoDB 通道 `db:seed` / `db:export` / `seed:pack` 已退役。）
+正源与再生成：**仓库为本目录的唯一真源**，且数据不是"某次手工导出的快照"，而是**可以机械再生的产物**：
+
+```bash
+pnpm db:export:pg --out apps/server/.tmp/pg-export      # ① 库 → 快照（Extended JSON，uuid 本体）
+pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # ② 快照 → 行形态（写本目录）
+```
+
+改完形状/映射后跑一次双库对拍（旧 seed + 旧管线 与 新 seed 各灌一个空库，逐表逐列比）：
+`pnpm db:seed:verify`。（Phase 5a 起 MongoDB 通道 `db:seed` / `db:export` / `seed:pack` 已退役。）
 
 ## 进了哪些集合
 
-| 集合 | 条数 | 作用 |
-|------|------|------|
+| 表 | 条数 | 作用 |
+|----|------|------|
 | `app_setting` | 21 | 应用设置（**空库时后端会 500 的就是它**：语言包/签名等链路都读它） |
 | `sys_lang` | 2 | 语言清单（en_US / zh_CN） |
-| `sys_locale` | 1806 | 前端语言包（界面上所有的字） |
-| `sys_menu` | 157 | 菜单与权限点 |
+| `sys_locale` | 1836 | 前端语言包（界面上所有的字） |
+| `sys_menu` | 172 | 菜单与权限点 |
 | `sys_role` | 6 | 角色（`visitor` / `admin` / `root` / 开发 …） |
 | `sys_user` | 2 | 演示账号档案（`visitor` / `admin`）—— **不含任何凭证**，见下 |
 | `sys_dict_type` / `sys_dict_data` | 14 / 169 | 字典 |
+| `sys_user_role` / `sys_role_menu` | 2 / 15 | 授权关系（junction 独立文件，**别删**：删了登录后权限与侧边栏是空的） |
 
 `sys_user` 是从导出里**裁剪**过的：只留演示账号，头像外链置空（原始导出里有开发者本人账号）。
 
@@ -38,7 +45,11 @@ pnpm db:seed:pg --admin <userName> --password <口令>   # 现生成 admin 口�
 
 ## 格式
 
-- 每个集合一个 `.json`，内容是**文档数组**。
-- 保留 **Extended JSON**（`{"$oid": …}` / `{"$date": …}`），时间与历史主键的精度不在导出-导入间丢失；
-  `$oid` 由 seed-pg 通道按 uuid v5 派生规则映射为 PG 主键（`$date` → timestamptz）。
-- 播种按 id upsert，junction 只补缺不回收（seed 不是"清库"）。
+- 每个表一个 `.json`，内容是 **PG 行数组**：`{ "id": "<uuid>", "created_at": "2026-…", … }`。
+- 列名就是 PG 列名（snake_case），时间列是 **ISO 字符串**（timestamptz 直接吃它），jsonb 列是 JSON 值。
+- junction 表（`sys_user_role` / `sys_role_menu`）各有独立文件：一行的两列都是 uuid 引用，**没有 `id`**。
+- **不再有 Extended JSON**（`$oid` / `$date`）：出现即被 `pnpm lint:seed` 判红（真源退回旧格式 =
+  运行期映射层又会长出来）。历史导出仍然读得进来（`db:seed:reshape` 走 `ejson.ts`）。
+- 播种按主键 upsert：业务表整行刷新为 seed 值，junction 只补缺不回收（seed 不是"清库"）。
+- 列 / 主键 / 外键 / jsonb 的判据全部来自 PG 元数据，播表顺序是 FK 拓扑序 —— **加一列不需要改映射**，
+  重新导出一次即可。

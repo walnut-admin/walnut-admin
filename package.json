@@ -68,6 +68,8 @@
     "clean:all": "rimraf node_modules apps/*/node_modules packages/*/node_modules packages/*/*/node_modules build/node_modules",
     "db:seed:pg": "walnut-db-seed-pg",
     "db:export:pg": "walnut-db-export-pg",
+    "db:seed:reshape": "walnut-db-seed-reshape",
+    "db:seed:verify": "walnut-db-verify-seed",
     "setup-env": "walnut-setup-env decrypt",
     "encrypt-env": "walnut-setup-env encrypt",
     "knip": "cross-env NODE_OPTIONS=--max-old-space-size=8192 knip",

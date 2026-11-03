@@ -51,12 +51,13 @@ describe('ejson', () => {
     expect(String(docs[0]._id)).toBe('5fc8e3cd0144eb274c1c9780')
   })
 
-  it('仓内 seed 文件（含 $oid 包装）解析出的 _id 是 hex 字符串', () => {
+  it('仓内 seed **不再是** Extended JSON：解析出来没有 _id / $date（真源已换成 PG 行形态）', () => {
     // 用例的 cwd 是包目录，所以这里从**本文件位置**推仓库根（6 层：__tests__ → db → src → scripts → tooling → packages）
     const seedDir = fileURLToPath(new URL('../../../../../../apps/server/db/seed', import.meta.url))
     const docs = parseCollectionFile(readSysRoleFile(seedDir))
     expect(docs.length).toBeGreaterThan(0)
-    expect(typeof docs[0]._id).toBe('string')
+    expect(docs[0]._id).toBeUndefined()
+    expect(docs[0].id).toEqual(expect.any(String))
   })
 
   it('集合文件不是数组时明确报错（而不是静默当成空）', () => {
@@ -117,8 +118,19 @@ describe('env 与路径解析', () => {
   })
 })
 
-describe('裁剪策略（两个方向共用一份）', () => {
-  it('sys_user 只留演示账号，且头像外链置空', () => {
+describe('裁剪策略（两个方向共用一份，两种形态都认）', () => {
+  it('行形态（现真源）：按 user_name 裁，头像外链置空', () => {
+    const rows = [
+      { user_name: 'visitor', avatar: 'https://cdn.example.com/a.png' },
+      { user_name: 'tron97', avatar: 'https://cdn.example.com/b.png' },
+      { user_name: 'admin', avatar: null },
+    ]
+    const out = applyPolicy('sys_user', rows)
+    expect(out.map(d => d.user_name)).toEqual(['visitor', 'admin'])
+    expect(out.every(d => d.avatar === null)).toBe(true)
+  })
+
+  it('文档形态（历史导出）：按 userName 裁，头像外链置空', () => {
     const docs = [
       { userName: 'visitor', avatar: 'https://cdn.example.com/a.png' },
       { userName: 'tron97', avatar: 'https://cdn.example.com/b.png' },

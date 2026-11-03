@@ -20,7 +20,9 @@ const langId = useRouterQuery('langId')
 
 // locale unique key
 const key = 'locale'
-const keyField = 'id'
+// D16②：列表行是按 i18n key 分组的聚合行，分组键叫 groupKey（不是主键 id）；
+// 行 key 与 read/delete 的路径参数都用它（locale 的 CRUD 本来就按 key 操作）
+const keyField = 'groupKey'
 
 const langList = ref<OptionDataItem[]>([])
 onBeforeMount(async () => {

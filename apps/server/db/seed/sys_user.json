@@ -1,56 +1,32 @@
 [
   {
-    "_id": {
-      "$oid": "5fbd10a430391c1438ef8aa0"
-    },
-    "status": true,
+    "id": "404d0cbd-1328-58e5-a5a7-e9f5de7c0895",
+    "user_name": "visitor",
+    "nick_name": "Shinji",
     "age": 22,
-    "createdAt": {
-      "$date": "2020-11-24T13:54:44.222Z"
-    },
-    "updatedAt": {
-      "$date": "2026-02-04T13:23:50.601Z"
-    },
-    "userName": "visitor",
-    "nickName": "Shinji",
+    "gender": 1,
     "avatar": null,
     "description": "1",
-    "gender": 1,
-    "roles": [
-      {
-        "$oid": "5fb27aee3a30b717d8078eb5"
-      }
-    ],
-    "roleMode": "switchable",
-    "currentRole": {
-      "$oid": "5fb27aee3a30b717d8078eb5"
-    }
+    "status": true,
+    "role_mode": "switchable",
+    "current_role_id": "d6e8ca57-1faf-56d7-b090-9ff0c0b78ce6",
+    "mfa_setup": false,
+    "created_at": "2020-11-24T13:54:44.222Z",
+    "updated_at": "2026-02-04T13:23:50.601Z"
   },
   {
-    "_id": {
-      "$oid": "5fc63f5640cad739606d1700"
-    },
-    "status": true,
+    "id": "aefa0706-4102-5438-99f3-85e0683335b8",
+    "user_name": "admin",
+    "nick_name": "Kaguya",
     "age": 23,
-    "createdAt": {
-      "$date": "2020-12-01T13:04:22.463Z"
-    },
-    "updatedAt": {
-      "$date": "2026-01-05T04:22:11.705Z"
-    },
-    "userName": "admin",
+    "gender": 2,
     "avatar": null,
     "description": "2",
-    "gender": 2,
-    "nickName": "Kaguya",
-    "roles": [
-      {
-        "$oid": "5fc63efbc661230af4695249"
-      }
-    ],
-    "roleMode": "switchable",
-    "currentRole": {
-      "$oid": "5fc63efbc661230af4695249"
-    }
+    "status": true,
+    "role_mode": "switchable",
+    "current_role_id": "09240451-323b-5349-9d58-7635f638a24d",
+    "mfa_setup": false,
+    "created_at": "2020-12-01T13:04:22.463Z",
+    "updated_at": "2026-01-05T04:22:11.705Z"
   }
 ]

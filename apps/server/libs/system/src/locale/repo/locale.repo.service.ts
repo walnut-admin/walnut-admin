@@ -17,14 +17,33 @@ import { isNil } from 'lodash'
 import { DataSource } from 'typeorm'
 import { SysLocaleEntity } from '../entity/locale.entity'
 
-/** locale list 分组行（Mongo 版投影出参：_id=key 分组键、key、process、createdAt、updatedAt） */
+/**
+ * locale list 分组行（Mongo 版投影出参：_id=key 分组键、key、process、createdAt、updatedAt）。
+ *
+ * D16②：分组键字段名是 `groupKey` 而不是 `id` —— 它承载的是 Mongo `$group._id` 的语义（= i18n key），
+ * 与其余 19 个 list 行里「uuid 主键」的 `id` 不是一回事；叫 `id` 会让前端把它当主键（拿去做
+ * read/delete 的路径参数就错了）。改名后 wire 上不再有歧义。
+ */
 export interface ISysLocaleListGroupRow {
-  /** Mongo 版 `_id` 的分组键语义（= key），PG 响应契约随 B1 模板改名为 id */
-  id: string
+  /** 分组键（= i18n key）。**不是**主键：locale 的 read/update/delete 本来就按 key 操作 */
+  groupKey: string
   key: string
   process: number
   createdAt: Date
   updatedAt: Date
+}
+
+/**
+ * 聚合行 → wire 行。**纯函数**（单测盯字段名：D16② 把 id 改成 groupKey 之后，wire 上不能再冒出 id）。
+ */
+export function toLocaleListGroupRow(row: Record<string, unknown>): ISysLocaleListGroupRow {
+  return {
+    groupKey: row.key as string,
+    key: row.key as string,
+    process: Number(row.process),
+    createdAt: row.created_at as Date,
+    updatedAt: row.updated_at as Date,
+  }
 }
 
 export interface ISysLocaleAggregateListOptions {
@@ -208,15 +227,7 @@ export class SysLocaleRepoService {
     const firstRaw = rows[0]
     const total = Number(firstRaw?.[WALNUT_PG_LIST_TOTAL_ALIAS] ?? 0)
 
-    const data = rows.map(row => ({
-      id: row.key as string,
-      key: row.key as string,
-      process: Number(row.process),
-      createdAt: row.created_at as Date,
-      updatedAt: row.updated_at as Date,
-    }))
-
-    return { data, total }
+    return { data: rows.map(toLocaleListGroupRow), total }
   }
 
   private getManager(em?: EntityManager): EntityManager {
