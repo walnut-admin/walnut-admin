@@ -1,3 +1,6 @@
+import { existsSync, readdirSync } from 'node:fs'
+import path from 'node:path'
+
 import { PreconditionError, ViolationError } from '../lib/errors.ts'
 /**
  * 包 `exports` 的形态体检（对比页 C2 的 `exports-shape`）。
@@ -14,7 +17,7 @@ import { PreconditionError, ViolationError } from '../lib/errors.ts'
  * | # | 判据 | 不守会怎样 |
  * |---|---|---|
  * | 1 | `exports-target-exists`：**字面量**目标必须真实存在 | 写错路径 = 静默解析失败 |
- * | 2 | `exports-glob-matches`：**通配**目标至少要命中一个文件 | `./src/*.ts` 写成 `./sr/*.ts` 一样是解析失败，而 `existsSync` 看不出来 |
+ * | 2 | `exports-glob-matches`：**通配**目标至少要命中一个文件（`*` 跨 `/`，与 Node 一致） | `./src/*.ts` 写成 `./sr/*.ts` 一样是解析失败，而 `existsSync` 看不出来 |
  * | 3 | `types-condition-order`：条件对象里 `types` 必须排在 `import` / `require` / `default` 之前 | 顺序反了 ⇒ 解析器先命中 JS，**类型静默丢失**（TS 官方明确要求 `types` 在前） |
  * | 4 | `root-conditions-match-top-level`：`exports["."]` 与顶层 `main` / `types` 不许互相矛盾 | 两种解析器看到**不同入口** —— 上一轮实测过：后端其实是靠 node10 的 `main` / `types` 顶层字段解析 contract 的，不是靠 `exports` 条件 |
  *
@@ -28,6 +31,13 @@ import { PreconditionError, ViolationError } from '../lib/errors.ts'
  *   `source` 条件写在 `types` 前面（那是给"源码直消费"用的自定义条件），要求 `types` 置顶
  *   会当场误报 5 个包 —— 而真正会吃掉类型的只有后三个解析条件。
  * - **通配目标只要求"至少命中一个"**，不要求逐个展开核对（`./*` 本来就该覆盖未来新增的文件）。
+ * - **通配的 `*` 语义单独实现（`exportsPatternMatches`），不复用 `globMatchesSomething`**：
+ *   后者是「文件 glob」语义（`*` = 单段 `[^/]*`，对 turbo 的 inputs/outputs 是对的），
+ *   而 Node 的 exports **子路径模式**里 `*` 可以跨 `/`。共用一套语义的后果是**假红**：
+ *   `@walnut/client` 的 `./*` → `./src/*.ts` 要解析 `client/browser/cookie`，删掉
+ *   `src/` 根下的那几个文件后门禁会在「解析完全正常」的情况下报 `exports-glob-matches`
+ *   （2026-11 · 批次 4 实测过一次，当时是删桶后 `src/index.ts` 没了、靠 `queue.ts`/`regex.ts`
+ *   留在根下才碰巧变绿）。
  *
  * ## 不做什么
  *
@@ -82,6 +92,47 @@ export function flattenExportTargets(pkgName: string, exportsField: unknown): Ex
   }
   walk(exportsField, null, '')
   return out
+}
+
+/**
+ * exports **子路径模式**（含 `*` 的目标）是否至少命中一个真实文件 —— 与 Node 同语义：
+ * 模式里的 `*` **可以跨 `/`**（Node 把目标里的 `*` 换成子路径匹配到的那一段，那一段
+ * 本身允许含斜杠：`@walnut/client/browser/cookie` 就是 `./*` → `./src/*.ts`）。
+ *
+ * 实现：把第一个 `*` 之前、最后一个 `/` 之前的**静态前缀**当根，递归列出该根下的全部文件，
+ * 用「其余部分转成的正则」逐个试。`*` → `.*`（含 `/`），其余字符按字面量转义。
+ * 只要求「命中 ≥1 个**文件**」（目录不算命中：exports 目标是文件）。
+ */
+export function exportsPatternMatches(pattern: string, cwd = REPO_ROOT): boolean {
+  const star = pattern.indexOf('*')
+  if (star < 0)
+    return globMatchesSomething(pattern, cwd)
+
+  const slash = pattern.lastIndexOf('/', star)
+  const base = slash < 0 ? '.' : pattern.slice(0, slash)
+  const rest = slash < 0 ? pattern : pattern.slice(slash + 1)
+  const abs = path.join(cwd, base)
+  if (!existsSync(abs))
+    return false
+
+  const re = new RegExp(`^${rest.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`)
+
+  let entries
+  try {
+    entries = readdirSync(abs, { recursive: true, withFileTypes: true })
+  }
+  catch {
+    return false
+  }
+  for (const entry of entries) {
+    if (!entry.isFile())
+      continue
+    // Dirent.parentPath 是本轮 readdir 的父目录（Node 20.12+；Node >= 24 是本仓下限）
+    const relative = path.relative(abs, path.join(entry.parentPath, entry.name)).split(path.sep).join('/')
+    if (re.test(relative))
+      return true
+  }
+  return false
 }
 
 /** 条件对象的键顺序：`types` 是否排在会吃掉它的那几个之前 */
@@ -139,7 +190,8 @@ export function collectFindings(
       if (isArtifact(repoRelative))
         continue // 产物：构建后才在，不查存在性（见文件头）
       if (target.includes('*')) {
-        if (!globMatchesSomething(repoRelative, cwd))
+        // exports 的子路径模式与「文件 glob」不是一套语义：这里的 `*` 跨 `/`（见 exportsPatternMatches）
+        if (!exportsPatternMatches(repoRelative, cwd))
           findings.push({ rule: 'exports-glob-matches', package: name, detail: `${label} → \`${target}\` 一个文件都没命中（通配写错了？）` })
       }
       else if (!globMatchesSomething(repoRelative, cwd)) {

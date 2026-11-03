@@ -4,6 +4,7 @@ import type { WalnutRootUserFixture } from './helpers/auth-login'
 import { Buffer } from 'node:buffer'
 import { randomUUID } from 'node:crypto'
 import { ConfigService } from '@nestjs/config'
+import { JwtService } from '@nestjs/jwt'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
@@ -353,6 +354,50 @@ describe('D 段：auth 会话链 permissions/refresh/signout/keys（真实 HTTP 
     // 产出 string[]，旧实现取 key[0] 且把空批变成 undefined → del 抛错被钩子吞掉），
     // AUTH:SESSIONS 键不再残留
     await expectKeyGone(api, keysToClear[2])
+  })
+
+  // ── B7（批次 7）：JwtFree + 凭 RT 认人 ─────────────────────────────────
+  // 登出的本质是撤销 RT。此前 signout 走 JwtAccessGuard ⇒ AT 一过期就 40101，
+  // 服务端 RT 仍现役、用户既登不出去也撤不掉那枚 RT（review-guard-skip H1 / 拍板 Q4-a）。
+  it('B7：已过期 AT + 有效 RT → 仍能登出（JwtFree 凭 RT 认人），且 RT 全部失效', async () => {
+    const rtOnly = await WalnutApiClient.create(app)
+    try {
+      const tokens = await performHttpOpaqueLogin(rtOnly, app, fixture!)
+      rtOnly.setAuth(tokens)
+      await rtOnly.seedMfaVerifiedCache(fixture!.userId)
+
+      // 已过期但签名合法的 AT：同 payload 用 -10s 重签（guard-matrix 的过期 AT 同款手法）
+      const jwtService = app.get(JwtService)
+      const accessSecret = app.get(ConfigService).get<string>('jwt.access.secret')!
+      const { iat: _iat, exp: _exp, ...payload } = jwtService.decode<Record<string, unknown>>(tokens.accessToken)
+      const expiredAt = await jwtService.signAsync(payload, { secret: accessSecret, expiresIn: '-10s' })
+      rtOnly.setAuth({ ...tokens, accessToken: expiredAt })
+
+      // 正对照：这枚 AT 确实过期 —— 受保护端点 40101（否则下面那句「能登出」不说明任何事）
+      const guardRes = await rtOnly.root('GET', rtOnly.apiPath('/auth/permissions'))
+      expect(bodyOf(guardRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED)
+
+      const res: SuperTestResponse = await rtOnly.root('POST', rtOnly.apiPath('/auth/signout'))
+      expectOk(res, 'signout with expired AT')
+      expect(bodyOf<boolean>(res).data).toBe(true)
+
+      // RT 行全部失效（revoke-and-insert 后同维度多行的语义不变）
+      const rows: Array<{ revoked: boolean }> = await rtOnly.pgDataSource.query(
+        'SELECT revoked FROM auth_refresh_token WHERE user_id = $1 AND device_id = $2',
+        [fixture!.userId, rtOnly.deviceId],
+      )
+      expect(rows.length).toBeGreaterThan(0)
+      expect(rows.every(row => row.revoked)).toBe(true)
+
+      // 「RT 失效」要可验：同一枚 RT 再换 AT → 40102（撤销行在 guard 层即死）
+      const refreshRes = await rtOnly.anon('POST', rtOnly.apiPath('/auth/refresh'))
+      expect(bodyOf(refreshRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED)
+    }
+    finally {
+      // 删设备行即可：fk_rt_device / fk_user_device_device 都带 ON DELETE CASCADE
+      await rtOnly.pgDataSource.query('DELETE FROM sys_device WHERE device_id = $1', [rtOnly.deviceId])
+      await rtOnly.cleanupWalnutCacheKeys(fixture!.userId, rtOnly.deviceId)
+    }
   })
 
   it('signout 后旧 AT 请求 → 40101（P0-4：JWT validate 查会话键，signout 已清 AUTH:SESSIONS）', async () => {

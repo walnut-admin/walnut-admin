@@ -111,6 +111,10 @@ CRUD 装饰器由 `WalnutCrudDecorators({ title, DTO })` 工厂生成（`@walnut
 定义在 `apps/server/apps/api/src/app/app.module.ts`（第 12 位在 `tech.module.ts`）。注意该文件自己的
 注释：**controller 装饰器上的顺序是反的**（自下而上）。
 
+**改这个顺序必须同步 `apps/server/apps/api/src/common/monorepo/guard-order.drift.spec.ts`**：
+它按「模块扫描序 × providers 数组序」把 APP_GUARD 摊平后与那份 12 元黄金序列逐位比对，
+只改装配不改它必红，只改它不改装配则是自欺（顺序的真源是装配，不是 spec）。
+
 ## 环境变量：部署后不许改的 5 个
 
 `AUTH_OPAQUE_SECRET`（OPAQUE 协议密钥）· `MFA_ENCRYPTION_KEY`（MFA 数据）· `RT_ENCRYPTION_KEY`

@@ -133,6 +133,7 @@ describe('pREPUSH_GATES —— 表本身', () => {
       'lint-root',
       'types',
       'types-root',
+      'test',
       'syncpack',
       'workflows',
       'workflows-shell',

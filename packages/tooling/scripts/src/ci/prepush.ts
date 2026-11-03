@@ -107,6 +107,13 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     why: '与 `lint:root` 同理：根 `tsconfig.json` 覆盖的那几个配置**不入 turbo 的图**，没有这一段就没人检查它们的类型。',
   },
   {
+    id: 'test',
+    label: '测试（turbo run test，不排任何包）',
+    // 位置上跟发版电池（steps.ts 的 RELEASE_BATTERY）对齐：都在 types-root 之后。
+    argv: ['exec', 'turbo', 'run', 'test'],
+    why: '**这一段的缺位被实测抓到过**（2026-11 · 批次 2 R3）：`@walnut/release` 的电池表加了 circular 行，而 fixture 与 release.md 电池表没同步 ⇒ 2 个用例红 —— 这类失败**只有 test 段看得见**，而 prepush 当时 25 段里没有它，于是红着照样推得出去（发版电池里一直有这一段，prepush 漏了）。走的也是 turbo，所以没改动的包命中缓存、冷跑才是全量。',
+  },
+  {
     id: 'syncpack',
     label: '依赖一致性（syncpack）',
     argv: ['syncpack:lint'],

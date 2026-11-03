@@ -85,6 +85,19 @@ describe('collectFindings —— 夹具包（负对照）', () => {
     expect(found.map(f => f.rule)).toEqual(['exports-glob-matches'])
   })
 
+  // B7-C2（批次 7）：Node 的 exports **子路径模式**里 `*` 可以跨 `/` —— 与「文件 glob」不是同一套语义。
+  // 真仓实例：`@walnut/client` 的 `./*` → `./src/*.ts` 要解析出 `client/browser/cookie`（= src/browser/cookie.ts）。
+  // 改动前这条必红（实现复用 globMatchesSomething，把 `*` 当 `[^/]*`）—— 留着它就是为了钉住那次修复。
+  it('通配符跨段命中（`*` 可以匹配 `/`，与 Node 的 exports 子路径模式一致）', () => {
+    const { cwd, ignore } = fixture(['pkg/src/browser/cookie.ts'])
+    expect(collectFindings([pkg('pkg', { './*': './src/*.ts' })], ignore, cwd)).toEqual([])
+  })
+
+  it('跨段通配不是「随便命中」：扩展名不符仍然红', () => {
+    const { cwd, ignore } = fixture(['pkg/src/browser/cookie.js'])
+    expect(collectFindings([pkg('pkg', { './*': './src/*.ts' })], ignore, cwd).map(f => f.rule)).toEqual(['exports-glob-matches'])
+  })
+
   it('通配目标命中 ≥1 个 → 不报', () => {
     const { cwd, ignore } = fixture(['pkg/src/a.ts', 'pkg/src/b.ts'])
     expect(collectFindings([pkg('pkg', { './*': './src/*.ts' })], ignore, cwd)).toEqual([])

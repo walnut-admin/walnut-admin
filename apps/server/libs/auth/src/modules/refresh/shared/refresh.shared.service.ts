@@ -109,6 +109,24 @@ export class AuthRefreshSharedService {
   }
 
   /**
+   * @description jti → 会话归属（`userId` / `deviceId`）—— **凭 RT 认人**的唯一入口
+   *
+   * B7（批次 7）：`POST /auth/signout` 加 `JwtFree` 后不再有 AT payload，身份只能从
+   * `RT_JTI` cookie 对应的行上取。行不存在 / 已撤销 → 40102（与入口 `JwtRefreshGuard`
+   * 同语义 —— 撤销行在 guard 层已经死，这里是纵深兜底）。
+   *
+   * 为什么不复用 `getTokenByJti`：那个返回的是解密后的**令牌串**（守卫验签用），
+   * 归属信息在行上；两件事分开，避免为了拿 userId 把令牌也解出来。
+   */
+  async getRefreshSessionOwner(jti: string): Promise<{ userId: string, deviceId: string }> {
+    const row = await this.authRefreshRepo.findByJti(jti)
+    if (!row || row.revoked) {
+      throw new WalnutAdminExceptionRefreshTokenExpired()
+    }
+    return { userId: row.userId, deviceId: row.deviceId }
+  }
+
+  /**
    * @description revoke refresh token for user device
    */
   async revokeRTForUserDevice(userId: string, deviceId: string, em?: EntityManager, revokeReason?: IWalnutAdminConstRevokeRTType) {

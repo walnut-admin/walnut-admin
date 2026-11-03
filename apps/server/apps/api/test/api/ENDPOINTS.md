@@ -95,7 +95,7 @@ IP → Security(UA/黑名单路径/bot) → Device → Risk(前) → CAP(前) �
 | 会话 | GET `/auth/permissions` | Sign 链 | 无 | — | **D 段已测**（auth-session.api-spec.ts）：root 权限树含自建 MENU 行（响应顶层是「首个根节点的 children」——单根无子级时顶层数组恒空，须造 CATALOG+MENU 两行）+ AUTH:PERMISSIONS 缓存键写入可复现 + 匿名 40101。
   **前端消费契约（P3-4 裁决 2026-10-28）**：`permissionMenuTree` 恒为「首个根节点的 children」数组（不是完整根数组）；单根无子级时为空数组，admin 菜单/首页装配按此形状消费，服务端不改形。
   **空表边界钉现状**：sys_menu 空表时 indexMenuName 组装在 `permissionMenuTree[0].children` 上 TypeError → 50000（Mongo 时代同病，spec 靠自建菜单行绕开） |
-| 会话 | POST `/auth/signout` | SignFree+DeviceFree | 无 | — | **D 段已测**：RT 行全量 revoke（revoke-and-insert 时代同维度多行，update where userId+deviceId 撤干净）+ `__Host-RT_JTI` cookie Expires 归零 + after-commit 清 permissions/MFA verified 缓存（轮询）+ 旧 AT 再请求 40115（MFA verified 缓存已清，MFA guard 在 Sign guard 之前先拦）。
+| 会话 | POST `/auth/signout` | SignFree+DeviceFree+JwtFree（凭 `JwtRefreshGuard` 验过的 RT 认人） | 无 | — | **D 段已测**：**已过期 AT + 有效 RT 仍 20000**（B7：加 JwtFree 前是 40101，服务端 RT 继续现役）+ RT 行全量 revoke（revoke-and-insert 时代同维度多行，update where userId+deviceId 撤干净）+ `__Host-RT_JTI` cookie Expires 归零 + after-commit 清 permissions/MFA verified 缓存（轮询）+ 旧 AT 再请求 40115（MFA verified 缓存已清，MFA guard 在 Sign guard 之前先拦）。
   **钉现状（非迁移回归，登记）**：AUTH:SESSIONS 键残留 —— revokeSession 走 cacheService.delByPattern，内部 redis.del(数组) 在 node-redis v5 rest-args 语义下抛错（C 段 user-device/monitor spec 同款已知问题），钩子错误被 catch 吞掉 |
 | 会话 | GET `/auth/keys` | Sign 链 | 无 | — | **D 段已测**：响应 B 字段是 EncryptResponse 设备握手 RSA 信封（与 aes-key 握手第二步同格式），客户端私钥（api-client 新增 `clientRsaPrivateKeyPem`）解密还原 vendor.baidu 明文。**swagger 收尾批**（2026-10-29）补 `AuthSecretKeysResponseDTO`（B 为信封字符串） |
 | opaque/user | POST `/auth/opaque/user/login/start` | JwtFree（Sign 生效：单因子） | 无 | `{userName,start}` | **基座核心**：真实 opaque 登录前半段。

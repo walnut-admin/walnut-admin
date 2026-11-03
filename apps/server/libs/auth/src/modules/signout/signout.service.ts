@@ -5,6 +5,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AppTechCacheMfaService } from '@walnut-server/cache'
 import { IWalnutAdminConstRevokeRTType, WalnutAdminConstRevokeRTType } from '@walnut-server/const/app/setting'
 import { registerAfterCommitHook, runAfterCommit } from '@walnut-server/db'
+import { WalnutAdminExceptionRefreshTokenExpired } from '@walnut-server/exceptions/business/auth'
 import { SysMenuSharedService } from '@walnut-server/system'
 import { WALNUT_ADMIN_AUTH_MONITOR_SERVICE, WALNUT_ADMIN_AUTH_RISK_SERVICE } from '../../auth.ports'
 import { AuthRefreshSharedService } from '../refresh/shared/refresh.shared.service'
@@ -54,6 +55,36 @@ export class AuthSignoutService implements IIdentitySignoutService {
         await this.handleSecurityPolicy(userId, payload, em)
         break
     }
+  }
+
+  /**
+   * B7（批次 7）：**凭 RT 登出** —— AT 过期也撤得掉现役 RT。
+   *
+   * 为什么身份从 RT 认：`POST /auth/signout` 的正文是「删掉 DB 里的 refresh token」，
+   * 本质上是以 RT 为凭据的操作（`reports/review-guard-skip/matrix.md` H1 / 拍板 Q4-a）。
+   * 此前它挂在 `JwtAccessGuard` 后面：AT 一过期就 40101，用户既登不出去，服务端那枚
+   * RT 还继续现役 —— 正是本方法要消灭的形态。
+   *
+   * 身份来源唯一：`RT_JTI` cookie → `auth_refresh_token` 行（`JwtRefreshGuard` 已在
+   * 入口验过「行未撤销 + RT 签名有效」）。deviceId 取**行上的值**，cookie 里的
+   * `DEVICE_ID` 只做一致性核对，不一致直接 40102 —— 与刷新链「cookie deviceId == 行
+   * deviceId」同口径，防的是「A 设备的 cookie 去撤 B 设备的 RT」。
+   */
+  async signoutByRefreshJti(
+    payload: { jti: string, sid: string, deviceId: string, ip: string },
+    em?: EntityManager,
+  ) {
+    const owner = await this.authRefreshSharedService.getRefreshSessionOwner(payload.jti)
+    if (owner.deviceId !== payload.deviceId) {
+      throw new WalnutAdminExceptionRefreshTokenExpired()
+    }
+
+    await this.doSignout(owner.userId, {
+      trigger: 'user-logout',
+      deviceId: owner.deviceId,
+      sid: payload.sid,
+      ip: payload.ip,
+    }, em)
   }
 
   /**

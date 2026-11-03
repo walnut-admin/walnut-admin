@@ -189,7 +189,7 @@ IP → Security → Device → Risk(前) → CAP(前) → **JWT** → Risk(后) 
 | 方法 路径 | handler | 认证 | 入参 | 出参 data | Swagger |
 |---|---|---|---|---|---|
 | GET /auth/permissions | getPermission | 全链（登录态） | — | `AuthCorePermissionsDTO`（菜单/路由树+权限串+affixedTabs+iframe） | ✅ |
-| POST /auth/signout | signout | SignFree + DeviceFree | — | boolean | ✅ |
+| POST /auth/signout | signout | SignFree + DeviceFree + JwtFree + `JwtRefreshGuard`（RT cookie；AT 过期也能登出） | — | boolean | ✅ |
 | GET /auth/keys | getSecretKeys | 全链（登录态） | — | `AuthSecretKeysResponseDTO`（B=RSA 信封串） | ✅ |
 
 ### AuthRefreshController（`auth/modules/refresh/refresh.controller.ts`，前缀 `/auth/refresh`）

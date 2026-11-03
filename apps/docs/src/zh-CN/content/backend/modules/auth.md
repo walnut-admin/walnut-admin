@@ -223,7 +223,9 @@ OTP 既是登录通道，也是**新用户注册的唯一 HTTP 通道**（OPAQUE
 
 ### 3.3 signout：三清
 
-`POST /auth/signout`（SignFree + DeviceFree；JWT、MFA、Lock 仍生效）：
+`POST /auth/signout`（SignFree + DeviceFree + **JwtFree**；身份由 `JwtRefreshGuard` 验过的
+`RT_JTI` cookie 对应行给出，AT 不再参与 —— 登出的本质是撤销 RT，AT 过期也必须能撤；
+MFA / Lock 两个 guard 对「无 user」自跳过）：
 
 1. **撤 RT**：`AuthRefreshSharedService.revokeRTForUserDevice` 按 `(userId, deviceId)`
    一次撤掉该维度全部行（`updateRevokedAndReason`，不传 reason 时保留各行原 reason）。
@@ -327,7 +329,7 @@ P2-32 修复后（2026-10-29）：`security-policy`（改密/敏感操作）在 
 | 方法 / 路径 | 守卫链 | 权限点 | 请求 → 响应 |
 |---|---|---|---|
 | GET `/auth/permissions` | 全链 | 无 | — → `AuthCorePermissionsDTO`（菜单树/路由树/权限串/keepAlive/indexMenuName/affixedTabs/internalIframeList；顶层是首个根节点的 children，P3-4） |
-| POST `/auth/signout` | SignFree + DeviceFree | 无 | — → `true`（清 RT 行 + `RT_JTI` cookie） |
+| POST `/auth/signout` | SignFree + DeviceFree + JwtFree + `JwtRefreshGuard`（RT cookie） | 无 | — → `true`（清 RT 行 + `RT_JTI` cookie） |
 | GET `/auth/keys` | 全链 | 无 | — → `{ B: <EncryptResponse 信封> }`（vendor.baidu） |
 | POST `/auth/opaque/user/login/start` | JwtFree + Functional(`authEnable`) | 无 | `{ userName, start }` → base64 `loginResponse` |
 | POST `/auth/opaque/user/login/finish` | JwtFree + Functional + `AuthOpaqueUserGuard` | 无 | `{ userName, finish }` → `{ accessToken, sessionKey }` + RT cookie |

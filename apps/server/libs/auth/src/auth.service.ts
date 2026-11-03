@@ -16,10 +16,17 @@ export class AuthService {
   ) { }
 
   /**
-   * @description sign out（B7b 签名适配：refresh 写腿迁 PG —— dbSession → em）
+   * @description sign out —— **凭 RT 认人**（B7 · 批次 7）
+   *
+   * 入参是「`RT_JTI` cookie + 会话 id + 设备」而不是 AT payload：`POST /auth/signout`
+   * 已加 `JwtFree`（AT 过期也要能登出），身份由 `JwtRefreshGuard` 验过的 RT 行给出。
+   * 归因/核对（jti → userId·deviceId）在 `AuthSignoutService` 里走共享服务，本层不做数据访问。
    */
-  async signout(payload: IWalnutAdminAccessTokenPayload, deviceId: string, ip: string, em?: EntityManager) {
-    return this.signoutService.doSignout(payload.userId, { trigger: 'user-logout', deviceId, ip, sid: payload.sid! }, em)
+  async signoutByRefreshToken(
+    session: { jti: string, sid: string, deviceId: string, ip: string },
+    em?: EntityManager,
+  ) {
+    return this.signoutService.signoutByRefreshJti(session, em)
   }
 
   /**

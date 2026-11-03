@@ -5,18 +5,20 @@ import {
   HttpStatus,
   Post,
   Req,
+  UseGuards,
 } from '@nestjs/common'
 import {
   ApiTags,
 } from '@nestjs/swagger'
-import { AuthCorePermissionsDTO, AuthSecretKeysResponseDTO, AuthService } from '@walnut-server/auth'
+import { AuthCorePermissionsDTO, AuthSecretKeysResponseDTO, AuthService, WalnutAdminGuardJwtFree } from '@walnut-server/auth'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 
 import { AppTechCookieService } from '@walnut-server/cookie'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorEncryptResponse, WalnutAdminDecoratorUser, WalnutAdminGuardDeviceFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
+import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorEncryptResponse, WalnutAdminDecoratorJti, WalnutAdminDecoratorUser, WalnutAdminGuardDeviceFree, WalnutAdminGuardSignFree } from '@walnut-server/guards'
 import { AuthRoutes } from '@walnut/contract'
+import { JwtRefreshGuard } from './modules/refresh/refresh.guard'
 
 @Controller(AuthRoutes.BASE)
 @ApiTags('auth')
@@ -43,20 +45,31 @@ export class AuthController {
   @Post('signout')
   @HttpCode(HttpStatus.OK)
   @WalnutAdminGuardSignFree()
+  // B7（批次 7）：**凭 RT 登出** —— AT 过期也必须能登出，否则服务端那枚 RT 继续现役
+  // （reports/review-guard-skip/matrix.md H1 / 拍板 Q4-a）。身份改由 JwtRefreshGuard 验过的
+  // RT 行给出（行上带 userId / deviceId），AT 不再参与；MFA / Lock 两个 guard 对「无 user」
+  // 自跳过，CAP / Risk / Throttler 照常生效。
+  // 顺序按 eslint `local/sort-nestjs-decorators` 的顺序表：SignFree → JwtFree → DeviceFree →
+  // WalnutTx → ApiWalnutOkResponse → UseGuards（UseGuards 恒在末位）。
+  @WalnutAdminGuardJwtFree()
   @WalnutAdminGuardDeviceFree()
   @WalnutTx()
   @ApiWalnutOkResponse({
     description: 'Signout, remove refresh token in db',
     primitive: 'boolean',
   })
+  @UseGuards(JwtRefreshGuard)
   async signout(
-    @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
+    @WalnutAdminDecoratorJti() jti: string,
     @WalnutAdminDecoratorDeviceId() deviceId: string,
     @WalnutTxSession() ctx: WalnutTxContext,
     @Req() req: IWalnutAdminExpressRequest,
   ) {
-    // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em
-    await this.authService.signout(user, deviceId, req.realIp, ctx.em)
+    // B7b 归一：signout 的 refresh 写腿迁 PG —— 单 em；B7（批次 7）身份从 RT 认
+    await this.authService.signoutByRefreshToken(
+      { jti, sid: req.RT.sid, deviceId, ip: req.realIp },
+      ctx.em,
+    )
     // clear refresh token in cookie
     this.cookieService.clearCookie(req, [{ key: WalnutAdminConstCookieKeys.RT_JTI }])
     return true
