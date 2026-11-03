@@ -1,9 +1,12 @@
+import type { BeforeApplicationShutdown } from '@nestjs/common'
 import Cap, { Solution } from '@cap.js/server'
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { AppTechCacheAppSettingsService } from '@walnut-server/cache'
 import { resolveCapChallengeExpiresMs, resolveCapCookieMaxAgeMs } from '@walnut-server/const/app/cap'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { AppTechCookieService } from '@walnut-server/cookie'
+
+import { createCapDetachedFromProcessHooks } from './cap.shutdown'
 
 /**
  * cap.js 的 token 存储路径 —— 进程内**本地文件**。
@@ -14,12 +17,26 @@ import { AppTechCookieService } from '@walnut-server/cookie'
  */
 export const WALNUT_ADMIN_CAP_TOKEN_STORE_PATH = '.data/tokensList.json'
 
-export const AppCapJS = new Cap({
-  tokens_store_path: WALNUT_ADMIN_CAP_TOKEN_STORE_PATH,
-})
+/**
+ * cap.js 实例 + 被摘下来的进程监听器。
+ *
+ * 为什么不在构造后直接用：cap.js 在**构造期**就注册 SIGTERM/SIGINT/SIGQUIT/beforeExit，
+ * 并在 cleanup 结束后自己 `process.exit(0)`（见 ./cap.shutdown.ts 头注释与实测）。
+ * 那样 Nest 的关闭序列会被腰斩 —— PG 连接池、Bull 队列都来不及排空，滚动更新时表现为
+ * 连接被重置 / 任务重复消费。摘掉之后，cleanup 由本模块的 `beforeApplicationShutdown`
+ * 在 Nest 的关闭流程里显式调用。
+ */
+const capDetached = createCapDetachedFromProcessHooks(
+  () => new Cap({ tokens_store_path: WALNUT_ADMIN_CAP_TOKEN_STORE_PATH }),
+)
+
+export const AppCapJS = capDetached.cap
+
+/** 被摘下的 cap.js 进程钩子（排查与单测用；生产路径不应再触发它们） */
+export const WALNUT_ADMIN_CAP_DETACHED_HOOKS = capDetached.hooks
 
 @Injectable()
-export class SecurityCapService implements OnModuleInit {
+export class SecurityCapService implements OnModuleInit, BeforeApplicationShutdown {
   private readonly logger = new Logger(SecurityCapService.name)
 
   constructor(
@@ -40,6 +57,33 @@ export class SecurityCapService implements OnModuleInit {
       + 'Multi-replica deployments without shared storage always fail validation (40116/40117 storm): '
       + 'see reports/review-cap/review.md CAP-3.',
     )
+  }
+
+  /**
+   * cap.js 的 token 落盘（`cleanup()`）挂在 **Nest 的关闭序列**里，而不是它自己的信号钩子上。
+   *
+   * 时机是 Nest 关闭序列的第 3 段：
+   * `prepareClose` → `onModuleDestroy`（Redis quit）→ **`beforeApplicationShutdown`**
+   * → `dispose`（停 HTTP / socket.io）→ `onApplicationShutdown`（TypeORM 关池、Bull 关队列）。
+   * 即：cap 落盘**先于** PG / Bull 的排空，且进程要等整段序列跑完才退出。
+   *
+   * 失败只记日志不抛出：cap 的本地 token 文件不属于「排空依赖」，它写不进去也不该拖住
+   * PG / Bull 的关闭（抛出去 Nest 会走 `process.exit(1)`，那正是本轮要消灭的坏行为）。
+   */
+  async beforeApplicationShutdown(signal?: string) {
+    const startedAt = Date.now()
+
+    try {
+      await AppCapJS.cleanup()
+      this.logger.log(
+        `[shutdown] CAP token store flushed in ${Date.now() - startedAt}ms (signal=${signal ?? 'app.close()'})`,
+      )
+    }
+    catch (err) {
+      this.logger.error(
+        `[shutdown] CAP cleanup failed: ${err instanceof Error ? err.message : String(err)}`,
+      )
+    }
   }
 
   async challenge() {

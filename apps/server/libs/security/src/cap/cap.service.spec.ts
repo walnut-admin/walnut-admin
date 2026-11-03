@@ -1,7 +1,8 @@
+import process from 'node:process'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
 import { describe, expect, it, vi } from 'vitest'
 
-import { AppCapJS, SecurityCapService } from './cap.service'
+import { AppCapJS, SecurityCapService, WALNUT_ADMIN_CAP_DETACHED_HOOKS } from './cap.service'
 
 /**
  * CAP `ttl` 单位统一（review CAP-1）的**消费侧**钉子。
@@ -93,6 +94,64 @@ describe('cap.service：ttl 按「秒」进、按 cap.js / Express 要的单位�
     expect(cookieCalls[0].options.maxAge).not.toBe(SEED_TTL_SECONDS * 1000 * 1000)
 
     redeemSpy.mockRestore()
+  })
+
+  it('模块加载后进程上不留 cap.js 自己的信号钩子（AppCapJS 构造期那 4 个已被摘掉）', () => {
+    expect(WALNUT_ADMIN_CAP_DETACHED_HOOKS).toHaveLength(4)
+
+    for (const hook of WALNUT_ADMIN_CAP_DETACHED_HOOKS) {
+      expect(process.listeners(hook.event)).not.toContain(hook.listener)
+    }
+  })
+
+  it('beforeApplicationShutdown：await cap.js cleanup 之后才返回（关闭序列里落盘）', async () => {
+    const { service } = createService()
+
+    let release: (() => void) | undefined
+    let settled = false
+
+    const cleanupSpy = vi.spyOn(AppCapJS, 'cleanup').mockImplementation(async () => {
+      await new Promise<void>((resolve) => {
+        release = resolve
+      })
+    })
+    const logSpy = vi.spyOn((service as unknown as { logger: { log: (msg: string) => void } }).logger, 'log')
+      .mockImplementation(() => undefined)
+
+    const hook = service.beforeApplicationShutdown('SIGTERM')
+    void hook.then(() => {
+      settled = true
+    })
+
+    await Promise.resolve()
+    expect(cleanupSpy).toHaveBeenCalledTimes(1)
+    // cleanup 还没完成 ⇒ 钩子也不能完成（证明是 await，不是「发出去就算」）
+    expect(settled).toBe(false)
+
+    release!()
+    await hook
+    expect(settled).toBe(true)
+    expect(logSpy).toHaveBeenCalledTimes(1)
+    expect(String(logSpy.mock.calls[0]?.[0])).toContain('signal=SIGTERM')
+
+    logSpy.mockRestore()
+    cleanupSpy.mockRestore()
+  })
+
+  it('beforeApplicationShutdown：cleanup 失败只记 error，不抛出（抛出去 Nest 会 process.exit(1)）', async () => {
+    const { service } = createService()
+
+    const cleanupSpy = vi.spyOn(AppCapJS, 'cleanup').mockRejectedValue(new Error('disk full'))
+    const errorSpy = vi
+      .spyOn((service as unknown as { logger: { error: (msg: string) => void } }).logger, 'error')
+      .mockImplementation(() => undefined)
+
+    await expect(service.beforeApplicationShutdown('SIGTERM')).resolves.toBeUndefined()
+    expect(errorSpy).toHaveBeenCalledTimes(1)
+    expect(String(errorSpy.mock.calls[0]?.[0])).toContain('disk full')
+
+    errorSpy.mockRestore()
+    cleanupSpy.mockRestore()
   })
 
   it('启动日志声明单实例前提（cap.js token 存本地文件，多副本必失败）', () => {

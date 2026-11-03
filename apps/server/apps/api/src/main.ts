@@ -187,8 +187,25 @@ async function bootstrap() {
 
   await app.listen(port)
 
-  // 容器/Docker stop 发 SIGTERM 时优雅关闭 PG / Redis / Bull 连接（worker/main.ts 同款）
-  app.enableShutdownHooks()
+  /*
+   * 容器/Docker stop 发 SIGTERM 时的优雅关闭。Nest 的关闭序列是：
+   * prepareClose → onModuleDestroy（Redis quit）→ beforeApplicationShutdown（CAP 落盘）
+   * → dispose（停 HTTP / socket.io）→ onApplicationShutdown（TypeORM 关池、Bull 关队列）。
+   *
+   * ① cap.js 的 `process.exit(0)` 竞争已在 @walnut-server/security/cap 里根治：它在构造期
+   *    抢注册的 SIGTERM/SIGINT/SIGQUIT/beforeExit 被摘掉，cleanup 改由
+   *    SecurityCapService.beforeApplicationShutdown 调用（见 libs/security/src/cap/cap.shutdown.ts
+   *    头注释与 reports/batch-7/r2-sigterm.md）。这里**不需要**再为 cap 做任何兜底。
+   *
+   * ② `useProcessExit: true` 是必须的：Nest 默认在关闭序列跑完后
+   *    `process.kill(process.pid, signal)` 重发信号（nest-application-context.js:245-252），
+   *    而下面给 SIGTERM/SIGINT 注册的 `setDraining` 监听器会**接住**这次重发（Node 只在
+   *    没有监听器时才走默认终止）—— 进程于是交给「事件循环自然空掉」，只要还剩一句异步
+   *    尾巴（winston 传输、socket.io 定时器）就永远不退出。改成显式 process.exit(0)：退出码
+   *    与 cap.js 自己 `exit(0)` 的旧行为一致，但**只在整个序列（含 PG / Bull 的
+   *    onApplicationShutdown）跑完之后**才发生。
+   */
+  app.enableShutdownHooks(undefined, { useProcessExit: true })
 
   // draining 监听必须在 enableShutdownHooks() **之后**注册：注册任一信号监听器会抑制
   // Node 的默认终止行为。若提前注册，启动窗口内（Nest 的关闭钩子还没挂上）收到的
