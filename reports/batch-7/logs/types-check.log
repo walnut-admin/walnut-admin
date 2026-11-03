@@ -1,0 +1,46 @@
+$ turbo types:check
+• turbo 2.11.2
+
+   • Packages in scope: @walnut/admin, @walnut/api-types, @walnut/client, @walnut/commitlint-config, @walnut/contract, @walnut/docs, @walnut/eslint-config, @walnut/http, @walnut/release, @walnut/scripts, @walnut/server, @walnut/tsconfig, @walnut/types, @walnut/utils, @walnut/vitest-config
+   • Running types:check in 15 packages
+   • Remote caching disabled
+
+@walnut/tsconfig:types:check: cache miss, executing 0725d404c9772b49
+@walnut/commitlint-config:types:check: cache miss, executing dae5c0f7b59beb54
+@walnut/vitest-config:types:check: cache miss, executing f313013ed9a7ebde
+@walnut/eslint-config:types:check: cache miss, executing cd69001586cc8e66
+@walnut/tsconfig:types:check: $ echo 'config: pure JSON presets, no type check needed'
+@walnut/tsconfig:types:check: 'config: pure JSON presets, no type check needed'
+@walnut/scripts:types:check: cache miss, executing 69e738c06816e395
+@walnut/commitlint-config:types:check: $ tsc --noEmit
+@walnut/vitest-config:types:check: $ tsc --noEmit
+@walnut/eslint-config:types:check: $ tsc --noEmit
+@walnut/scripts:types:check: $ tsc --noEmit
+@walnut/contract:types:check: cache miss, executing ca0c9c707035cb1e
+@walnut/contract:types:check: $ tsc --noEmit
+@walnut/api-types:types:check: cache miss, executing bf9dc8ec792d2a35
+@walnut/api-types:types:check: $ tsc --noEmit
+@walnut/types:types:check: cache miss, executing 14d696140b66f10f
+@walnut/utils:types:check: cache miss, executing ffee08f3bdb3a6ae
+@walnut/docs:types:check: cache miss, executing 56dbda964a580a97
+@walnut/types:types:check: $ tsc --noEmit
+@walnut/utils:types:check: $ tsc --noEmit
+@walnut/docs:types:check: $ echo skipped
+@walnut/docs:types:check: skipped
+@walnut/release:types:check: cache miss, executing d793b742f35a5b28
+@walnut/http:types:check: cache miss, executing 7e17ecd2d123b238
+@walnut/server:types:check: cache miss, executing 6390fc929c94158f
+@walnut/release:types:check: $ tsc --noEmit
+@walnut/http:types:check: $ tsc --noEmit
+@walnut/server:types:check: $ tsc --noEmit --pretty
+@walnut/client:types:check: cache miss, executing 4ae87d070593550e
+@walnut/client:types:check: $ tsc --noEmit
+@walnut/admin:types:check: cache miss, executing b24a580fce27136d
+@walnut/admin:types:check: $ node build/generate/index.ts
+@walnut/admin:types:check: [@WALNUT/ADMIN] - [2026-11-03 13:35:30] - [File]: Writing data into File: ../../.vscode/settings-dev.schema.json
+@walnut/admin:types:check: $ vue-tsc --noEmit
+
+ Tasks:    15 successful, 15 total
+Cached:    0 cached, 15 total
+  Time:    35.448s 
+

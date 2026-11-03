@@ -35,6 +35,10 @@ export default function baseConfig(options: OptionsConfig = {}): WalnutEslintCon
     ignores: [
       '**/dist/**',
       'pnpm-lock.yaml',
+      // reports/ 是调研产物（证据报告 / 一次性探针脚本 / 日志），不是源码。
+      // 里面的 .ts 探针刻意违反源码规矩（process 全局、多语句行、未声明 env），
+      // 让它们进 lint 会把「提交调研证据」变成一次红灯。忽略整目录而不是逐条豁免。
+      '**/reports/**',
     ],
     markdown: false,
     // 为什么基线预设也开 pnpm：`catalog:` 是仓库级不变量（`catalogMode: strict` + `hoist: false`），

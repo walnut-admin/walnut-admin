@@ -1,0 +1,3 @@
+$ walnut-check-adr
+ADR 形态校验：27 篇 ADR（状态枚举 Proposed / Accepted / Rejected / Superseded by ADR-NNNN）
+✅ 编号连续、状态在枚举内、四个必需小节齐备、index.md 双向对齐

@@ -1,0 +1,211 @@
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+`esbuild` option is set to false, but `oxc` option was not set to false. `esbuild: false` does not have effect any more. If you want to disable the default transformation, which is now handled by Oxc, please set `oxc: false` instead.
+
+ RUN  v4.1.2 D:/walnut-admin/walnut-admin/apps/server
+
+[integration][seed] 灌入 7 个参考数据集合（app_setting 按设计排除）
+[integration][seed] 首轮完成 3292ms：sys_dict_type=14 sys_dict_data=169 sys_lang=2 sys_locale=1836 sys_menu=172 sys_role=6 sys_role_menu=15 sys_user=2 sys_user_role=2
+[integration][seed] 幂等重放通过 3574ms（逐集合 upsert 计数一致）
+ ❯ apps/api/test/api/guard-matrix.api-spec.ts (44 tests | 8 failed) 19107ms
+       ✓ 缺 CAPJS_TOKEN cookie → 40116 CapInteractionRequired（shouldChallenge=true 硬拒） 19ms
+       ✓ CAPJS_TOKEN 种伪造值（cookie-parser 验签失败静默丢弃 → guard 视同缺失）→ 40116 14ms
+       ✓ 签名篡改：body 改一字节 → 重放原签名 → 40112 InvalidSignature（nonce 已记录、签名比对失败） 38ms
+       ✓ X-Timestamp 漂移超窗（-6min > 5min 容差）→ 40112（时间戳校验先于 nonce 记录） 24ms
+       ✓ nonce 重放：同一 nonce 第二次请求 → 40112（一次性 nonce 存储真实生效） 49ms
+       ✓ nonce 并发：同一 nonce 双请求并发 → 恰一通过（SET NX EX 原子判重，P2-11） 29ms
+       ✓ X-Nonce 格式非法（非 32hex；签名按该非法 nonce 现算仍拒）→ 40112（格式校验先于签名比对） 22ms
+       ✓ 缺 SIGN_TICKET cookie + ticket 缓存清空 → guard 分布式锁路径自动签发放行（20000 + Set-Cookie） 48ms
+       ✓ UA 缺失（裸请求无 user-agent 头）→ 40604 UserAgentNotAcceptable 74ms
+       ✓ bot UA（isbot 命中）→ 40608 BotDetected 14ms
+       ✓ suspicious UA（无 os/browser 可解析且非 bot）→ 40609 SuspiciousRequest 12ms
+       ✓ OS 白名单收紧（只留 Plan9）→ 真实浏览器 UA 40601 UserAgentOSNotAcceptable 12ms
+       ✓ 浏览器白名单收紧（只留 Lynx）→ 真实浏览器 UA 40602 UserAgentBrowserNotAcceptable 12ms
+       ✓ 放行基线：root 全链请求 20000（登录 + MFA verified 缓存 + CAP 全通过） 69ms
+       ✓ AT 过期（-10s 签发）→ 40101 AccessTokenExpired（passport-jwt ignoreExpiration=false） 32ms
+       ✓ 签名密钥篡改（同 payload 换 secret 的 HS256）→ 40101 21ms
+       ✓ alg=none 伪造 token（空签名段）→ 40101（passport-jwt 拒绝 none 算法） 19ms
+       ✓ AT payload userId 不存在（正确签名）+ 双因子签名 → 40101（P0-4：JWT validate 查会话键，ghost user 无会话被 JWT 层先拦） 21ms
+       ✓ ghost AT + 单因子签名 → 40101 拒绝（P0-2/P0-4 双保险：JWT 层会话键查无先拒，sign guard 不再降级单因子） 21ms
+       ✓ G2 跨设备 AT 重放：B 的 DEVICE_ID cookie + A 的 AT → 40101（会话键 user+deviceB 查无；JWT 先于 Sign） 20ms
+       ✓ 会话吊销（删 AUTH:SESSIONS 键）后旧 AT 双因子签名 → JWT 层 40101（P0-4；随后 SQL 撤 RT 重登恢复）  679ms
+       ✓ 缺 CAPJS_TOKEN（shouldChallenge=false 的策略降级仍拒）→ 40117 CapRefreshRequired 18ms
+       ✓ 跨设备移植另一台设备的签名 token cookie → 40117 拒绝（P0-3：缓存键掺 token 指纹，本设备缓存不命中；真验时该 token 已被 cap.js 消费） 23ms
+       ✓ 缓存清空 + 已消费的原始 token → 40117（真验路径：cap.js token 单次有效，validateToken 成功即删）；重新 redeem 后恢复 20000  2425ms
+       ✓ 缺 DEVICE_ID cookie → 40605 DeviceNotAcceptable 10ms
+       ✓ 篡改 DEVICE_ID（signed cookie 验签失败 → 视同缺失/无效）→ 40605 9ms
+       × 封禁闭环：第二设备 HTTP ban → 本设备 40607 → HTTP unban → 恢复放行（ban/unban 只写 SYS_DEVICE 缓存不落库） 213ms
+       × G8 设备 IP 变化回写：XFF 换 IP → 放行且 sys_device.ip 落新值；同 IP 再请求不重复写（updated_at 不变） 40ms
+       ✓ mfa_setup=true 用户 + 未种设备 verified 缓存 → 40115 MfaVerifyFailed（登录时 isTrusted=false → payload.mfaVerified=false）  1066ms
+       × 种 verified 缓存（真实缓存通道）后 → 20000 19ms
+       ✓ G12 payload mfaVerified=true 短路：服务端签发带该字段的 AT + 无设备缓存 → 20000 37ms
+       ✓ mfa_setup=false 用户 → 40114 MfaRequired（mfa.guard P5：未启用 MFA 的用户无法使用系统）  1032ms
+       × lock → 全链请求 40118 UserLocked（SECURITY_LOCK 缓存命中）→ unlock → 恢复 20000 42ms
+       × G5 冷缓存：lock 后显式删 SECURITY_LOCK 键 → 缓存 miss 回源 DB 仍 40118（P1-20） 32ms
+       × G5 跨设备：A 设备锁（默认 lockCrossDevice=true）→ B 设备客户端探针 40118 32ms
+       ✓ 临时黑名单 IP → 40603 IPBlocked；移除后同 IP 放行（闭环） 45ms
+       ✓ 永久黑名单（APP:SETTING 缓存注入 APP_GLOBAL_IP_BLACKLIST）→ 40603 12ms
+       ✓ 【安全矩阵发现】非黑名单伪造 IP 直通 → 20000（IP 维度风控/限流的 tracker 可被请求头改写） 33ms
+       ✓ G14 IpFree 端点旁路黑名单：已拉黑 IP 打 /security/sign/initial → 20000（IP guard 跳过）；对照非 IpFree 端点 40603 36ms
+       ✓ 黑名单路径命中：/w/v1/admin → 40610 + 自动永久拉黑（P1-11：strip API 前缀 + 中间件兜底未命中路由） 25ms
+       ✓ APP_AUTH_OPAQUE.authEnable=0 → 50301 EndPointUnavailable（guard 先于 passport 与 DTO 校验） 35ms
+       ✓ G7 defaultClosed + detailKey 缺失：google settings={} → 50301（区别于零配置缓存缺失） 27ms
+       × G7 opaque 子开关：authEnable=1 + register=0 → register/start 50301（主开关开、子开关关） 31ms
+       × G7 opaque 子开关：authEnable=1 + change=0 → change-password/start 50301 24ms
+ ❯ apps/api/test/api/permission-chain.api-spec.ts (15 tests | 1 failed) 30886ms
+     ✓ 种子自洽：用户 role_mode/current_role/mfa_setup + junction 三态 + permission 列形态 13ms
+     ✓ GET /auth/permissions（非 root）：权限串恰为授予集 + 权限缓存键写入 + element 不进菜单树 95ms
+     ✓ P2-20：menu/tree visitor 显式 40105；非 root 用户放行；dict/type/s 登录即可读  378ms
+     ✓ 放行路径：授予的权限点端点 20000（list 过滤命中 + read 回读一致） 103ms
+     ✓ 拒绝路径：未授予的权限点 40105（缓存命中但全串不匹配），行未被软删 80ms
+     ✓ 缓存读序：清 AUTH:PERMISSIONS 键后放行端点转 40105（guard 只读缓存、无懒重建），重拉恢复 143ms
+     ✓ 默认 GLOBAL/combinable：零配置下 COMBINE 用户合并双角色（P2-9） 101ms
+     ✓ SWITCH/COMBINE 对照（LOCAL scope）：COMBINE 合并双角色、SWITCH 只看 current_role  759ms
+     ✓ P0-6：key current/RSA_PAIR 需 app:key:read（未授予 → 40105）；AES_KEY_URL 登录即可读且不带私钥 89ms
+     ✓ P2-16：admin 改角色 menus → 该角色用户的 AUTH:PERMISSIONS 立即失效（守卫拒绝直到重拉） 266ms
+     ✓ P1-18：admin 移除用户 current 角色 → current_role 校正 + 权限缓存失效；重登后按新角色计算  957ms
+     ✓ F1：admin 移除角色后旧 AT 重拉权限 —— 按 junction 实际绑定计算，不再含被移除角色 231ms
+     ✓ F1：恢复用户（junction 未恢复）—— 旧 AT 权限为空、重新登录 40103 受控拒绝  895ms
+     ✓ root 对照：root 用户同端点 20000 且无权限缓存键（roleNames[0] 短路，不经缓存链路） 55ms
+     × G10 root SWITCH 短路：role_mode=switchable 重登 → 受控端点 20000 且仍无权限缓存键 544ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/test/api/guard-matrix.api-spec.ts > F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路径专项） > Device guard：cookie 缺失 / 篡改 / 封禁-解封闭环 > 封禁闭环：第二设备 HTTP ban → 本设备 40607 → HTTP unban → 恢复放行（ban/unban 只写 SYS_DEVICE 缓存不落库）
+Error: [api-client] device A restored after unban failed: HTTP 200 body={"data":null,"code":40101,"msg":"Access Token Expired","requestId":"mw08uxhz075a3aa196","_devMsg":"response.40101"}
+ ❯ expectOk apps/api/test/api/helpers/api-client.ts:394:11
+    392|   const body = bodyOf(res)
+    393|   if (body.code !== 20000) {
+    394|     throw new Error(`[api-client] ${what} failed: HTTP ${res.status} b…
+       |           ^
+    395|   }
+    396| }
+ ❯ apps/api/test/api/guard-matrix.api-spec.ts:620:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  apps/api/test/api/guard-matrix.api-spec.ts > F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路径专项） > Device guard：cookie 缺失 / 篡改 / 封禁-解封闭环 > G8 设备 IP 变化回写：XFF 换 IP → 放行且 sys_device.ip 落新值；同 IP 再请求不重复写（updated_at 不变）
+Error: [api-client] ip change request failed: HTTP 200 body={"data":null,"code":40101,"msg":"Access Token Expired","requestId":"mw08uxiv607de144c0","_devMsg":"response.40101"}
+ ❯ expectOk apps/api/test/api/helpers/api-client.ts:394:11
+    392|   const body = bodyOf(res)
+    393|   if (body.code !== 20000) {
+    394|     throw new Error(`[api-client] ${what} failed: HTTP ${res.status} b…
+       |           ^
+    395|   }
+    396| }
+ ❯ apps/api/test/api/guard-matrix.api-spec.ts:638:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  apps/api/test/api/guard-matrix.api-spec.ts > F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路径专项） > MFA guard 强制态（已登录） > 种 verified 缓存（真实缓存通道）后 → 20000
+Error: [api-client] mfa verified via device cache failed: HTTP 200 body={"data":null,"code":40101,"msg":"Access Token Expired","requestId":"mw08uydk645daba3f6","_devMsg":"response.40101"}
+ ❯ expectOk apps/api/test/api/helpers/api-client.ts:394:11
+    392|   const body = bodyOf(res)
+    393|   if (body.code !== 20000) {
+    394|     throw new Error(`[api-client] ${what} failed: HTTP ${res.status} b…
+       |           ^
+    395|   }
+    396| }
+ ❯ apps/api/test/api/guard-matrix.api-spec.ts:693:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  apps/api/test/api/guard-matrix.api-spec.ts > F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路径专项） > Lock guard：用户-设备锁定 40118 闭环（lock/unlock 端点 LockFree 可达） > lock → 全链请求 40118 UserLocked（SECURITY_LOCK 缓存命中）→ unlock → 恢复 20000
+Error: [api-client] lock me failed: HTTP 200 body={"data":null,"code":40101,"msg":"Access Token Expired","requestId":"mw08uz7ra9efa5cc29","_devMsg":"response.40101"}
+ ❯ expectOk apps/api/test/api/helpers/api-client.ts:394:11
+    392|   const body = bodyOf(res)
+    393|   if (body.code !== 20000) {
+    394|     throw new Error(`[api-client] ${what} failed: HTTP ${res.status} b…
+       |           ^
+    395|   }
+    396| }
+ ❯ apps/api/test/api/guard-matrix.api-spec.ts:749:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  apps/api/test/api/guard-matrix.api-spec.ts > F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路径专项） > Lock guard：用户-设备锁定 40118 闭环（lock/unlock 端点 LockFree 可达） > G5 冷缓存：lock 后显式删 SECURITY_LOCK 键 → 缓存 miss 回源 DB 仍 40118（P1-20）
+Error: [api-client] lock for cold cache probe failed: HTTP 200 body={"data":null,"code":40101,"msg":"Access Token Expired","requestId":"mw08uz8xd88b2af64d","_devMsg":"response.40101"}
+ ❯ expectOk apps/api/test/api/helpers/api-client.ts:394:11
+    392|   const body = bodyOf(res)
+    393|   if (body.code !== 20000) {
+    394|     throw new Error(`[api-client] ${what} failed: HTTP ${res.status} b…
+       |           ^
+    395|   }
+    396| }
+ ❯ apps/api/test/api/guard-matrix.api-spec.ts:771:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  apps/api/test/api/guard-matrix.api-spec.ts > F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路径专项） > Lock guard：用户-设备锁定 40118 闭环（lock/unlock 端点 LockFree 可达） > G5 跨设备：A 设备锁（默认 lockCrossDevice=true）→ B 设备客户端探针 40118
+Error: [api-client] lock device A failed: HTTP 200 body={"data":null,"code":40101,"msg":"Access Token Expired","requestId":"mw08uz9uc249afc9aa","_devMsg":"response.40101"}
+ ❯ expectOk apps/api/test/api/helpers/api-client.ts:394:11
+    392|   const body = bodyOf(res)
+    393|   if (body.code !== 20000) {
+    394|     throw new Error(`[api-client] ${what} failed: HTTP ${res.status} b…
+       |           ^
+    395|   }
+    396| }
+ ❯ apps/api/test/api/guard-matrix.api-spec.ts:790:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  apps/api/test/api/guard-matrix.api-spec.ts > F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路径专项） > functional guard 代表性对照（opaque login/start，与 D 段 google 不重复） > G7 opaque 子开关：authEnable=1 + register=0 → register/start 50301（主开关开、子开关关）
+AssertionError: expected 40101 to be 50301 // Object.is equality
+
+- Expected
++ Received
+
+- 50301
++ 40101
+
+ ❯ apps/api/test/api/guard-matrix.api-spec.ts:957:34
+    955|       try {
+    956|         const res = await api.root('POST', api.apiPath('/auth/opaque/u…
+    957|         expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.…
+       |                                  ^
+    958|       }
+    959|       finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  apps/api/test/api/guard-matrix.api-spec.ts > F 段：guard/安全策略拒绝矩阵（真实 guard 链，拒绝路径专项） > functional guard 代表性对照（opaque login/start，与 D 段 google 不重复） > G7 opaque 子开关：authEnable=1 + change=0 → change-password/start 50301
+AssertionError: expected 40101 to be 50301 // Object.is equality
+
+- Expected
++ Received
+
+- 50301
++ 40101
+
+ ❯ apps/api/test/api/guard-matrix.api-spec.ts:970:34
+    968|       try {
+    969|         const res = await api.root('POST', api.apiPath('/auth/opaque/u…
+    970|         expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.…
+       |                                  ^
+    971|       }
+    972|       finally {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  apps/api/test/api/permission-chain.api-spec.ts > I 段：真实权限链路（种子数据 + 非 root 用户拒绝/放行 + 缓存读序 + SWITCH 对照） > G10 root SWITCH 短路：role_mode=switchable 重登 → 受控端点 20000 且仍无权限缓存键
+Error: [auth-login] login failed: code=40103
+ ❯ performHttpOpaqueLogin apps/api/test/api/helpers/auth-login.ts:186:11
+    184|
+    185|   if (attempt.code !== 20000 || attempt.data === null) {
+    186|     throw new Error(`[auth-login] login failed: code=${attempt.code}`)
+       |           ^
+    187|   }
+    188|
+ ❯ apps/api/test/api/permission-chain.api-spec.ts:627:30
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  9 failed | 50 passed (59)
+   Start at  13:23:29
+   Duration  161.68s (transform 44.07s, setup 75ms, import 91.52s, tests 49.99s, environment 0ms)
+
+Error: ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL
+
+  × "pnpm recursive exec" failed in D:\walnut-admin\walnut-admin\apps\server
+

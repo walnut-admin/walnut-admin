@@ -1,0 +1,9 @@
+$ walnut-check-doc-budgets
+文档字数预算：6 个常驻文件
+   96%    8312 / 8700    AGENTS.md
+   89%    1250 / 1400    CLAUDE.md
+   89%    1789 / 2000    apps/docs/src/zh-CN/content/monorepo/index.md
+   88%    2189 / 2500    apps/admin/AGENTS.md
+   87%    4024 / 4600    apps/docs/AGENTS.md
+   93%    6399 / 6900    apps/server/AGENTS.md
+✅ 都在预算内，且没有哪个预算已经失效

@@ -1,0 +1,52 @@
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+`esbuild` option is set to false, but `oxc` option was not set to false. `esbuild: false` does not have effect any more. If you want to disable the default transformation, which is now handled by Oxc, please set `oxc: false` instead.
+
+ RUN  v4.1.2 D:/walnut-admin/walnut-admin/apps/server
+
+ ❯ apps/api/src/common/monorepo/guard-order.drift.spec.ts (4 tests | 1 failed) 23ms
+     ✓ 模块图走查本身是有牙的（不是空图） 3ms
+     × 12 条 APP_GUARD 的 useClass 序列逐位等于黄金表 14ms
+     ✓ 第 12 位 Throttler 来自 tech.module.ts —— 证明「顺序跨模块」这条 C1 前提仍成立 2ms
+     ✓ 顺序：CAP 的两条都在 JWT 前后各一（认证前 + 认证后） 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  apps/api/src/common/monorepo/guard-order.drift.spec.ts > g2 · APP_GUARD 黄金序列（拍板 D1） > 12 条 APP_GUARD 的 useClass 序列逐位等于黄金表
+AssertionError: expected [ 'WalnutAdminGuardIP', …(11) ] to deeply equal [ 'WalnutAdminGuardIP', …(11) ]
+
+- Expected
++ Received
+
+@@ -5,10 +5,10 @@
+    "WalnutAdminGuardRisk",
+    "WalnutAdminGuardCap",
+    "JwtAccessGuard",
+    "WalnutAdminGuardRisk",
+    "WalnutAdminGuardCap",
+-   "WalnutAdminGuardSign",
+    "WalnutAdminGuardMFA",
++   "WalnutAdminGuardSign",
+    "WalnutAdminGuardLock",
+    "WalnutAdminGuardThrottler",
+  ]
+
+ ❯ apps/api/src/common/monorepo/guard-order.drift.spec.ts:56:59
+     54|
+     55|   it('12 条 APP_GUARD 的 useClass 序列逐位等于黄金表', () => {
+     56|     expect(flattenedGuards.map(guard => guard.className)).toEqual(GOLD…
+       |                                                           ^
+     57|   })
+     58|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  13:24:05
+   Duration  1.77s (transform 544ms, setup 0ms, import 802ms, tests 23ms, environment 0ms)
+
+Error: ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL
+
+  × "pnpm recursive exec" failed in D:\walnut-admin\walnut-admin\apps\server
+

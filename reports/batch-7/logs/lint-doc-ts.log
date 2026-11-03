@@ -1,0 +1,3 @@
+$ walnut-check-doc-ts
+文档代码块校验：230 篇活文档里的 124 个 ts 块 + 3 个 json 块
+✅ ts 块都能按 TypeScript 解析、json 块都是合法 JSON（没有截断/乱码/标错语言）

@@ -1,0 +1,3 @@
+$ eslint . --concurrency=4
+(node:19360) ESLintPoorConcurrencyWarning: You may reduce or disable concurrency to improve performance.
+(Use `node --trace-warnings ...` to show where the warning was created)

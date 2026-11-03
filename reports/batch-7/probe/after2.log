@@ -1,0 +1,18 @@
+     0ms probe load pid=22124 cwd=D:\walnut-admin\walnut-admin\apps\server
+   588ms patched pg.DataSource.destroy
+  1036ms patched bull.Queue.close
+  1039ms patched cap.cleanup
+ 27581ms app is listening; emitting SIGTERM in 800ms
+ 28402ms emit SIGTERM
+ 28415ms cap.cleanup start
+ 28416ms cap.cleanup done
+ 28426ms bull.Queue.close start
+ 28953ms bull.Queue.close done
+ 28955ms bull.Queue.close start
+ 29463ms bull.Queue.close done
+ 29463ms bull.Queue.close start
+ 29974ms bull.Queue.close done
+ 29980ms pg.DataSource.destroy start
+ 29982ms pg.DataSource.destroy done
+ 29982ms process.exit(0) stack: at process.exit (C:\Users\tron\AppData\Local\Temp\sigterm-probe\probe.js:45:17) <- at process.cleanup (file:///D:/walnut-admin/walnut-admin/node_modules/.pnpm/@nestjs+core@12.3.2_@nestjs_02f924b108baf372af720b819eec57f0/node_modules/@nestjs/core/nest-application-context.js:248:29) <- at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+ 29983ms 'exit' event code=0

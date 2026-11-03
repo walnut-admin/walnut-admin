@@ -1,0 +1,3 @@
+$ openapi-typescript ../../../apps/server/openapi.json -o ./src/schema.d.ts
+✨ openapi-typescript 7.13.0
+🚀 ../../../apps/server/openapi.json → ./src/schema.d.ts [586.1ms]
