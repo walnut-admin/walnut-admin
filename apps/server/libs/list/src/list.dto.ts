@@ -99,8 +99,8 @@ export function CreateWalnutAdminRequestListDTO<T>(
       // R3 P2-4：nestedWhenPresent 打开后这里从"声明了但被忽略"变成真校验，而
       // 历史行为是允许缺省（builder 侧一直有 `priority ?? 0`）。放宽成可选：
       // 缺省 → 跳过校验，builder 按 0 处理；显式给值时仍要 int 且 ≥ 0。
-      // 注意 `optional` 不进 swagger（openapi 里 priority 仍是 required）——
-      // 把 schema 也改honest 要重导 api-types/schema.d.ts，属 packages 范围，留给批次 4。
+      // `optional` 同源进 swagger（number.decorator → `required: false`），所以
+      // openapi 的 SortDTO 里 priority 不再 required（批次 9 · C5 收掉了那处不诚实）。
       validateOptions: { int: true, min: 0, optional: true },
     })
     readonly priority: number

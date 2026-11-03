@@ -1,0 +1,46 @@
+﻿$ turbo types:check
+• turbo 2.11.2
+
+   • Packages in scope: @walnut/admin, @walnut/api-types, @walnut/client, @walnut/commitlint-config, @walnut/contract, @walnut/docs, @walnut/eslint-config, @walnut/http, @walnut/release, @walnut/scripts, @walnut/server, @walnut/tsconfig, @walnut/types, @walnut/utils, @walnut/vitest-config
+   • Running types:check in 15 packages
+   • Remote caching disabled
+
+@walnut/tsconfig:types:check: cache hit, replaying logs 3507a71032107dcf
+@walnut/tsconfig:types:check: $ echo 'config: pure JSON presets, no type check needed'
+@walnut/tsconfig:types:check: 'config: pure JSON presets, no type check needed'
+@walnut/vitest-config:types:check: cache hit, replaying logs ee9843d24c237044
+@walnut/commitlint-config:types:check: cache hit, replaying logs 43697f1ec36ba0fa
+@walnut/vitest-config:types:check: $ tsc --noEmit
+@walnut/commitlint-config:types:check: $ tsc --noEmit
+@walnut/eslint-config:types:check: cache hit, replaying logs 5a989466f13f7fe3
+@walnut/eslint-config:types:check: $ tsc --noEmit
+@walnut/scripts:types:check: cache hit, replaying logs 3969e3c9775a4fda
+@walnut/contract:types:check: cache hit, replaying logs 173f885e9063ab54
+@walnut/scripts:types:check: $ tsc --noEmit
+@walnut/contract:types:check: $ tsc --noEmit
+@walnut/utils:types:check: cache hit, replaying logs 234eafbe1f9a4b22
+@walnut/api-types:types:check: cache miss, executing db07e25b465210ca
+@walnut/utils:types:check: $ tsc --noEmit
+@walnut/types:types:check: cache hit, replaying logs 16dbddc72453b6ac
+@walnut/docs:types:check: cache hit, replaying logs 1941d54fc8273505
+@walnut/types:types:check: $ tsc --noEmit
+@walnut/docs:types:check: $ echo skipped
+@walnut/docs:types:check: skipped
+@walnut/release:types:check: cache hit, replaying logs 272e960e54e0f7a3
+@walnut/server:types:check: cache miss, executing c222546020f87797
+@walnut/http:types:check: cache hit, replaying logs b0ccde62d9f336ed
+@walnut/release:types:check: $ tsc --noEmit
+@walnut/http:types:check: $ tsc --noEmit
+@walnut/admin:types:check: cache miss, executing 402b3f53f06054e5
+@walnut/client:types:check: cache hit, replaying logs a03d6415c55f9ab5
+@walnut/client:types:check: $ tsc --noEmit
+@walnut/api-types:types:check: $ tsc --noEmit
+@walnut/server:types:check: $ tsc --noEmit --pretty
+@walnut/admin:types:check: $ node build/generate/index.ts
+@walnut/admin:types:check: [@WALNUT/ADMIN] - [2026-11-03 15:25:12] - [File]: Writing data into File: ../../.vscode/settings-dev.schema.json
+@walnut/admin:types:check: $ vue-tsc --noEmit
+
+ Tasks:    15 successful, 15 total
+Cached:    12 cached, 15 total
+  Time:    1m55.102s 
+

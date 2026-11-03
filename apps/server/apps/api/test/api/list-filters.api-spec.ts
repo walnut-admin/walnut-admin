@@ -180,4 +180,37 @@ describe('批次 4-A：list 显式 filters wire（20 个端点 × 新旧映射�
       expect(paged).toEqual(ids.slice(0, paged.length))
     })
   })
+
+  describe('G · 字典布尔值（`sys_shared_status` 的 "true"/"false"）筛选布尔列', () => {
+    // 表头的真实 wire：`status` 列的筛选项来自字典，字典值是**字符串** "true"/"false"，
+    // 而前端只有「值形态」没有「列类型」（`apps/admin/src/utils/table/list-filters.ts`），
+    // 于是它必然发 `{ op: 'like', value: 'true' }`。批次 4-A 之前这是 50000（boolean ~~* unknown），
+    // 批次 4-A 之后是 40099（like 打布尔列）—— 两种都不是可用状态。
+    // 现在由列类型裁决点把字典布尔值翻成真布尔（唯一转换点：`pg-column-op` 的 resolvePgFilterCondition）。
+    const statusFilters = (value: string) => [{ field: 'status', op: 'like', value }]
+
+    it('status like "true" ⇒ 20000，且返回行**全部**是启用状态', async () => {
+      const res = await statusOf('/system/user/list', listBody(statusFilters('true')))
+
+      expectOk(res, 'user list status like true')
+      const data = bodyOf<{ data: Array<{ status: boolean }>, total: number }>(res).data
+      expect(data.total).toBeGreaterThan(0)
+      expect(data.data.length).toBeGreaterThan(0)
+      expect(data.data.every(row => row.status === true)).toBe(true)
+    })
+
+    it('status like "false" ⇒ 20000（可能 0 行，但不许 40099/50000）', async () => {
+      const res = await statusOf('/system/user/list', listBody(statusFilters('false')))
+
+      expectOk(res, 'user list status like false')
+      const data = bodyOf<{ data: Array<{ status: boolean }>, total: number }>(res).data
+      expect(data.data.every(row => row.status === false)).toBe(true)
+    })
+
+    it('布尔列 + like 但值不是布尔字面量 ⇒ 仍然 40099（只放行字典那两颗值）', async () => {
+      const res = await statusOf('/system/user/list', listBody(statusFilters('yes')))
+
+      expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR)
+    })
+  })
 })

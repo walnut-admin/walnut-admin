@@ -24,6 +24,14 @@ import type { BaseFilterParams, BaseListParams, BasePageParams, BaseSortParams, 
  *
  * 这套映射等价于**旧后端按 `typeof value` 的推断**（R1 实测的那套），只是现在由前端
  * 显式写进 wire —— 后端不再猜，猜错的组合会变成 40099 而不是 50000。
+ *
+ * ## 前端不猜列类型（一处例外由后端补）
+ *
+ * 这里只看得见「值形态」，看不见「字段是什么列」—— 因此布尔列的字典值（`sys_shared_status`
+ * 的 `'true'` / `'false'`，见 `apps/server/db/seed/sys_dict_data.json`）下发时**必然**是
+ * `op: 'like'`。后端在列类型裁决点把这颗字典值翻成真布尔并按等值执行（`pg-column-op.ts` 的
+ * `resolvePgFilterCondition`，批次 9 · C6）—— 所以**不要**在前端加「字段 → 列类型」的镜像表，
+ * 那是第二个真源，列类型的权威在后端实体元数据里。
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

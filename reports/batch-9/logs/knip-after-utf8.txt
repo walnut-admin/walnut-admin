@@ -1,0 +1,176 @@
+﻿$ cross-env NODE_OPTIONS=--max-old-space-size=8192 knip
+Unused files (17)
+apps/admin/src/views/auth/src/hooks/useAuthContext.ts                    
+apps/admin/src/views/auth/src/types.ts                                   
+apps/server/apps/api/migrations/1792922206018-InitSchema.ts              
+apps/server/apps/api/migrations/1793320975988-OrgFoundation.ts           
+apps/server/apps/api/migrations/1793336000000-DataScopePhase1.ts         
+apps/server/apps/api/migrations/1793340000000-DataScopePhase2Dept.ts     
+apps/server/apps/api/migrations/1793350000000-DataScopePhase2DemoDept.ts 
+apps/server/apps/api/migrations/1793360000000-DataScopePhase3Rls.ts      
+apps/server/apps/api/migrations/1793370000000-RefreshTokenActiveUnique.ts
+apps/server/apps/api/migrations/1793380000000-DeviceStaleFlag.ts         
+apps/server/apps/cli/src/data-source.cli.ts                              
+apps/server/apps/cli/src/export-openapi.ts                               
+apps/server/apps/worker/src/main.ts                                      
+apps/server/libs/const/src/app/header.ts                                 
+apps/server/libs/const/src/app/lang.ts                                   
+apps/server/libs/const/src/app/responseCode.ts                           
+reports/batch-7/probe/probe.js                                           
+Unused devDependencies (1)
+ts-json-schema-generator  apps/admin/package.json:148:6
+Unlisted dependencies (1)
+rxjs  pnpm-workspace.yaml
+Unlisted binaries (1)
+madge  package.json
+Unused exports (69)
+STEP_TIMEOUT_MS                                             apps/admin/src/App/src/bootstrap.ts:46:14                   
+clearRuntimeFatal                                 function  apps/admin/src/App/src/runtime-error.ts:55:17               
+SingletonInitUrlMaskingAesKey                     function  apps/admin/src/router/utils/crypto.ts:10:17                 
+isProd                                                      apps/admin/src/utils/constant/vue.ts:3:14                   
+isSSR                                                       apps/admin/src/utils/constant/vue.ts:5:14                   
+Cookie                                                      apps/admin/src/utils/persistent/Cookie.ts:2:10              
+removeCookie                                                apps/admin/src/utils/persistent/Cookie.ts:2:29              
+buildWalnutListFilter                             function  apps/admin/src/utils/table/list-filters.ts:55:17            
+buildWalnutListFilters                            function  apps/admin/src/utils/table/list-filters.ts:82:17            
+deepKeys                                          function  apps/admin/src/views/system/menu/utils.ts:8:17              
+getViewsOptions                                   function  apps/admin/src/views/system/menu/utils.ts:25:17             
+menuTypeOptions                                             apps/admin/src/views/system/menu/utils.ts:56:14             
+menuTernalOptions                                           apps/admin/src/views/system/menu/utils.ts:71:14             
+cacheKeyStrategyOptions                                     apps/admin/src/views/system/menu/utils.ts:86:14             
+en                                                          apps/docs/.vitepress/config/en.ts:305:14                    
+resolveSpecifier                                  function  …s/server/apps/api/src/common/monorepo/module-graph.ts:84:17
+toRepoPath                                        function  …s/server/apps/api/src/common/monorepo/module-graph.ts:96:17
+isWalnutDataScopeRegisteredEntity                 function  …/server/apps/api/src/common/repository/data-scope.ts:177:17
+isWalnutDataScopeRootRole                                   …s/server/apps/api/src/common/repository/data-scope.ts:187:3
+isStage                                                     apps/server/libs/config/src/utils/env.ts:9:25               
+WalnutAdminEnv                                              apps/server/libs/config/src/utils/env.ts:9:34               
+WalnutAdminConstCapCacheTtlMinSeconds                       apps/server/libs/const/src/app/cap.ts:38:14                 
+WALNUT_DATA_SCOPE_RLS_GUC                                   apps/server/libs/db/src/data-scope-rls.ts:33:14             
+WalnutAdminDecoratorTransformNumberPrecision      function  …decorators/src/transformer/base/number.transformer.ts:58:17
+WalnutAdminDecoratorTransformNumberRound          function  …decorators/src/transformer/base/number.transformer.ts:78:17
+WalnutAdminDecoratorTransformObjectMaskSensitive  function  …decorators/src/transformer/base/object.transformer.ts:59:17
+WalnutAdminDecoratorTransformStringToTrim         function  …decorators/src/transformer/base/string.transformer.ts:95:17
+WalnutAdminDecoratorTransformStringToLowerCase    function  …ecorators/src/transformer/base/string.transformer.ts:111:17
+WalnutAdminDecoratorTransformStringToUpperCase    function  …ecorators/src/transformer/base/string.transformer.ts:127:17
+WalnutAdminDecoratorTransformStringBoolean        function  …ecorators/src/transformer/base/string.transformer.ts:147:17
+TransformSizeToMB                                 function  …rver/libs/decorators/src/transformer/common/shared.ts:24:17
+TransformToSeconds                                function  …rver/libs/decorators/src/transformer/common/shared.ts:74:17
+TransformToBytes                                  function  …ver/libs/decorators/src/transformer/common/shared.ts:104:17
+IsPrecisionRight                                  function  …ibs/decorators/src/validator/base/number.validator.ts:91:17
+defaultUuidOptions                                function  …/libs/decorators/src/validator/base/uuid.validator.ts:12:17
+WalnutAdminExceptionRouteNotFound                 class     apps/server/libs/exceptions/src/base/404.ts:13:14           
+SYS_IDENTITY_RECOVERABLE_REGISTRAR                          apps/server/libs/identity/src/recoverable.ts:66:14          
+WALNUT_USER_PERIPHERAL_RECOVERABLES                         apps/server/libs/identity/src/user/user.recoverer.ts:24:14  
+getFilter                                         function  apps/server/libs/list/src/list.filters.ts:36:17             
+pickFilters                                       function  apps/server/libs/list/src/list.filters.ts:73:17             
+ILIKE_ESCAPE_REGEX                                          apps/server/libs/repository/src/pg-column-op.ts:116:14      
+isPgUuidString                                    function  apps/server/libs/repository/src/pg-column-op.ts:124:17      
+DROP_SUMMARY_INTERVAL                                       apps/server/libs/repository/src/pg-column-op.ts:628:14      
+escapeLikePattern                                           apps/server/libs/repository/src/pg-list.builder.ts:50:10    
+ILIKE_ESCAPE_REGEX                                          apps/server/libs/repository/src/pg-list.builder.ts:50:29    
+VERIFY_METHOD_STRENGTH                                      …erver/libs/security/src/sensitive/sensitive.config.ts:13:14
+SECURITY_LEVEL_STRATEGIES                                   …erver/libs/security/src/sensitive/sensitive.config.ts:23:14
+isWalnutDataScopeRootRole                         function  …/libs/system/src/data-scope/data-scope.predicates.ts:301:17
+WALNUT_DATA_SCOPE_DENY                                      …ver/libs/system/src/data-scope/data-scope.resolver.ts:69:14
+createWalnutDictDataSnapshotRecoverer             function  …/system/src/dict/dictData/repo/dict-data.recoverer.ts:13:17
+createWalnutDictTypeSnapshotRecoverer             function  …/system/src/dict/dictType/repo/dict-type.recoverer.ts:16:17
+createWalnutMenuSnapshotRecoverer                 function  …ps/server/libs/system/src/menu/repo/menu.recoverer.ts:14:17
+sleep                                             function  apps/server/libs/utils/src/general.ts:21:23                 
+objectToPaths                                               packages/platform-any/utils-core/src/index.ts:13:10         
+pathsToObject                                               packages/platform-any/utils-core/src/index.ts:13:25         
+buildSignRaw                                                packages/platform-any/utils-core/src/index.ts:18:10         
+splitPathAndQuery                                           packages/platform-any/utils-core/src/index.ts:18:24         
+stripApiPrefix                                              packages/platform-any/utils-core/src/index.ts:18:43         
+Cookie                                            class     packages/platform-web/client/src/browser/cookie.ts:7:14     
+removeCookie                                      function  packages/platform-web/client/src/browser/cookie.ts:49:17    
+importKeyFromPEM                                  function  …ages/platform-web/client/src/browser/crypto/shared.ts:34:23
+downloadByOnlineUrl                               function  …ages/platform-web/client/src/browser/file/download.ts:55:23
+getFunctionBoolean                                          packages/platform-web/client/src/browser/shared.ts:30:14    
+useDraggableElement                               function  …orm-web/client/src/hooks/vueuse/useDraggableElement.ts:4:17
+createWalnutStore                                 function  …es/platform-web/client/src/store/createWalnutStore.ts:20:17
+default                                           variable  packages/tooling/eslint-config/comment-rules.ts:141:16      
+EMOJI                                                       packages/tooling/eslint-config/comment-rules.ts:142:10      
+EMOJI_RUN                                                   packages/tooling/eslint-config/comment-rules.ts:142:17      
+DEFAULT_ALLOWED                                             packages/tooling/eslint-config/script-rules.ts:165:10       
+Unused exported types (42)
+BootstrapStepLevel                            type       apps/admin/src/App/src/bootstrap.ts:49:13                      
+IWalnutAdminDataScopeDeptUpdateDecision       type       apps/server/apps/api/src/common/repository/data-scope.ts:63:3  
+IWalnutAdminDataScopeSqlPredicate             type       apps/server/apps/api/src/common/repository/data-scope.ts:65:3  
+WalnutDataScopeFindWhere                      type       apps/server/apps/api/src/common/repository/data-scope.ts:66:3  
+IWalnutAdminSocketEvents                      type       apps/server/apps/api/src/socket/socket.const.ts:4:47           
+IWalnutAdminCacheListSort                     interface  apps/server/libs/cache/src/cache-list.types.ts:26:18           
+IWalnutAdminCacheListPage                     interface  apps/server/libs/cache/src/cache-list.types.ts:32:18           
+IWalnutAdminConstDataScope                    type       apps/server/libs/const/src/app/dataScope.ts:20:13              
+IWalnutAdminConstDataScopeMode                type       apps/server/libs/const/src/app/dataScope.ts:39:13              
+IWalnutAdminConstAppEvent                     type       apps/server/libs/const/src/app/event.ts:11:13                  
+IWalnutAdminConstAppSettingForceQuitStrategy  type       apps/server/libs/const/src/app/setting.ts:7:8                  
+IWalnutAdminOperateLogRecord                  interface  …ps/server/libs/crud/src/operate-log/operate-log.ports.ts:27:18
+IWalnutAdminDataScopeRlsMode                  type       apps/server/libs/db/src/data-scope-rls.ts:30:13                
+IIdentityMfaPostVerificationResult            interface  apps/server/libs/identity/src/identity.ports.ts:33:18          
+IIdentitySignoutPayload                       interface  apps/server/libs/identity/src/identity.ports.ts:54:18          
+IIdentityMonitorUserRow                       interface  apps/server/libs/identity/src/identity.ports.ts:78:18          
+IIdentitySocketEvent                          type       apps/server/libs/identity/src/identity.ports.ts:97:13          
+IIdentityDeviceLocationInfo                   interface  apps/server/libs/identity/src/shared/device-location.ts:8:18   
+IWalnutAdminListFilter                        interface  apps/server/libs/list/src/list.filters.ts:27:18                
+WalnutAdminSharedLocationContract             type       apps/server/libs/list/src/shared-location.contract.ts:32:13    
+WalnutAdminCapProcessEvent                    type       apps/server/libs/security/src/cap/cap.shutdown.ts:50:13        
+WalnutAdminCapProcessListener                 type       apps/server/libs/security/src/cap/cap.shutdown.ts:52:13        
+IWalnutAdminCapDetachedHook                   interface  apps/server/libs/security/src/cap/cap.shutdown.ts:55:18        
+IOperationTypeStrategy                        interface  apps/server/libs/security/src/sensitive/sensitive.type.ts:38:18
+ISystemMonitorActiveUser                      interface  apps/server/libs/system/src/system.ports.ts:36:18              
+IWalnutAdminAccessTokenPayloadInputRole       interface  apps/server/libs/token/src/access-token-payload.types.ts:10:18 
+ObjectToPathsOptions                          type       apps/server/libs/utils/src/general.ts:5:15                     
+PathRecord                                    type       apps/server/libs/utils/src/general.ts:5:37                     
+ObjectToPathsOptions                          type       packages/platform-any/utils-core/src/index.ts:15:15            
+PathRecord                                    type       packages/platform-any/utils-core/src/index.ts:15:37            
+SignRawParts                                  type       packages/platform-any/utils-core/src/index.ts:19:15            
+CryptoResult                                  type       packages/platform-web/client/src/browser/crypto/const.ts:60:13 
+ObjectToPathsOptions                          type       packages/platform-web/client/src/browser/shared.ts:10:15       
+PathRecord                                    type       packages/platform-web/client/src/browser/shared.ts:10:37       
+ResponseBase                                  type       packages/platform-web/http/src/types.ts:5:15                   
+BaseFilterParams                              type       packages/platform-web/http/src/types.ts:6:15                   
+BasePageParams                                type       packages/platform-web/http/src/types.ts:6:67                   
+BaseSortParams                                type       packages/platform-web/http/src/types.ts:6:83                   
+FilterOp                                      type       packages/platform-web/http/src/types.ts:6:99                   
+FilterParam                                   type       packages/platform-web/http/src/types.ts:6:109                  
+SortOrder                                     type       packages/platform-web/http/src/types.ts:6:122                  
+BaseResponse                                  type       packages/platform-web/http/src/types.ts:24:13                  
+Duplicate exports (1)
+defineWalnutVitestConfig|default  packages/tooling/vitest-config/index.ts
+Configuration hints (88)
+**/dist/**                                                    knip.config.ts  Remove from ignore                        
+**/.turbo/**                                                  knip.config.ts  Remove from ignore                        
+**/node_modules/**                                            knip.config.ts  Remove from ignore                        
+**/*.test.ts                                                  knip.config.ts  Remove from ignore                        
+**/*.spec.ts                                                  knip.config.ts  Remove from ignore                        
+**/__tests__/**                                               knip.config.ts  Remove from ignore                        
+**/__mocks__/**                                               knip.config.ts  Remove from ignore                        
+**/vite.config.ts                                             knip.config.ts  Remove from ignore                        
+**/vitest.*.config.ts                                         knip.config.ts  Remove from ignore                        
+**/playwright.config.ts                                       knip.config.ts  Remove from ignore                        
+...23 more similar hints                                                                                                
+@swc/core                                                     knip.config.ts  Remove from ignoreDependencies            
+@swc/cli                                                      knip.config.ts  Remove from ignoreDependencies            
+unplugin-swc                                                  knip.config.ts  Remove from ignoreDependencies            
+reflect-metadata                                              knip.config.ts  Remove from ignoreDependencies            
+@antfu/eslint-config                                          knip.config.ts  Remove from ignoreDependencies            
+@nestjs/cli                                                   knip.config.ts  Remove from ignoreDependencies            
+@nestjs/testing                                               knip.config.ts  Remove from ignoreDependencies            
+@nestjs/swagger                                               knip.config.ts  Remove from ignoreDependencies            
+codemirror                                                    knip.config.ts  Remove from ignoreDependencies            
+@codemirror/autocomplete                                      knip.config.ts  Remove from ignoreDependencies            
+...33 more similar hints                                                                                                
+src/index.ts                packages/platform-any/utils-core  knip.config.ts  Remove redundant entry pattern            
+src/universal.d.ts          packages/platform-any/types       knip.config.ts  Remove redundant entry pattern            
+src/storage.d.ts            packages/platform-any/types       knip.config.ts  Remove redundant entry pattern            
+src/deep-ref.d.ts           packages/platform-any/types       knip.config.ts  Remove redundant entry pattern            
+src/object-key.d.ts         packages/platform-any/types       knip.config.ts  Remove redundant entry pattern            
+.vitepress/config/index.ts  apps/docs                         knip.config.ts  Remove redundant entry pattern            
+.vitepress/theme/index.ts   apps/docs                         knip.config.ts  Remove redundant entry pattern            
+src/index.ts                packages/platform-any/contract    knip.config.ts  Remove redundant entry pattern            
+.sass                       apps/admin                        knip.config.ts  Compiled extension excluded by project (i…
+.scss                       apps/admin                        knip.config.ts  Compiled extension excluded by project (i…
+.vue                        packages/platform-web/client      knip.config.ts  Compiled extension excluded by project (i…
+.vue                        apps/docs                         knip.config.ts  Compiled extension excluded by project (i…
+[ELIFECYCLE] Command failed with exit code 1.

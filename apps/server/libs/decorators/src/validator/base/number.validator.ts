@@ -37,7 +37,7 @@ export function WalnutAdminDecoratorValidatorNumber(
     = Object.assign(defaultOptions(), options)
 
   // optional：缺省即放行（IsOptional 会短路本字段其余校验）；
-  // 不进 swagger —— 见 number.d.ts 的注释（priority 的取舍）
+  // swagger 侧由 field/number.decorator.ts 同源翻成 required: false —— 见 number.d.ts 的注释
   let decorators = optional === true
     ? [IsOptional()]
     : [

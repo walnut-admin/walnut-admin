@@ -1,0 +1,77 @@
+﻿$ turbo types:check
+• turbo 2.11.2
+
+   • Packages in scope: @walnut/admin, @walnut/api-types, @walnut/client, @walnut/commitlint-config, @walnut/contract, @walnut/docs, @walnut/eslint-config, @walnut/http, @walnut/release, @walnut/scripts, @walnut/server, @walnut/tsconfig, @walnut/types, @walnut/utils, @walnut/vitest-config
+   • Running types:check in 15 packages
+   • Remote caching disabled
+
+@walnut/tsconfig:types:check: cache miss, executing 3507a71032107dcf
+@walnut/commitlint-config:types:check: cache miss, executing 43697f1ec36ba0fa
+@walnut/vitest-config:types:check: cache miss, executing ee9843d24c237044
+@walnut/contract:types:check: cache miss, executing 173f885e9063ab54
+@walnut/tsconfig:types:check: $ echo 'config: pure JSON presets, no type check needed'
+@walnut/tsconfig:types:check: 'config: pure JSON presets, no type check needed'
+@walnut/eslint-config:types:check: cache miss, executing 5a989466f13f7fe3
+@walnut/commitlint-config:types:check: $ tsc --noEmit
+@walnut/vitest-config:types:check: $ tsc --noEmit
+@walnut/contract:types:check: $ tsc --noEmit
+@walnut/eslint-config:types:check: $ tsc --noEmit
+@walnut/scripts:types:check: cache miss, executing 3969e3c9775a4fda
+@walnut/scripts:types:check: $ tsc --noEmit
+@walnut/api-types:types:check: cache miss, executing ed81a942deb2af2f
+@walnut/http:types:check: cache miss, executing b0ccde62d9f336ed
+@walnut/api-types:types:check: $ tsc --noEmit
+@walnut/http:types:check: $ tsc --noEmit
+@walnut/docs:types:check: cache miss, executing 1941d54fc8273505
+@walnut/types:types:check: cache miss, executing 16dbddc72453b6ac
+@walnut/docs:types:check: $ echo skipped
+@walnut/docs:types:check: skipped
+@walnut/utils:types:check: cache miss, executing 234eafbe1f9a4b22
+@walnut/release:types:check: cache miss, executing 272e960e54e0f7a3
+@walnut/types:types:check: $ tsc --noEmit
+@walnut/utils:types:check: $ tsc --noEmit
+@walnut/release:types:check: $ tsc --noEmit
+@walnut/server:types:check: cache miss, executing fccf0502acb5bc1e
+@walnut/client:types:check: cache miss, executing a03d6415c55f9ab5
+@walnut/server:types:check: $ tsc --noEmit --pretty
+@walnut/client:types:check: $ tsc --noEmit
+@walnut/admin:types:check: cache miss, executing 8d565b7a3ce64539
+@walnut/admin:types:check: $ node build/generate/index.ts
+@walnut/admin:types:check: [@WALNUT/ADMIN] - [2026-11-03 15:12:48] - [File]: Writing data into File: ../../.vscode/settings-dev.schema.json
+@walnut/admin:types:check: $ vue-tsc --noEmit
+@walnut/server:types:check: [96mapps/api/test/integration/device.user-device.monitor.pg.int-spec.ts[0m:[93m365[0m:[93m11[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'visitorId' does not exist in type '{ deviceId: string; }'.
+@walnut/server:types:check: 
+@walnut/server:types:check: [7m365[0m         { visitorId },
+@walnut/server:types:check: [7m   [0m [91m          ~~~~~~~~~[0m
+@walnut/server:types:check: 
+@walnut/server:types:check: [96mapps/api/test/integration/device.user-device.monitor.pg.int-spec.ts[0m:[93m378[0m:[93m11[0m - [91merror[0m[90m TS2353: [0mObject literal may only specify known properties, and 'visitorId' does not exist in type '{ deviceId: string; }'.
+@walnut/server:types:check: 
+@walnut/server:types:check: [7m378[0m         { visitorId },
+@walnut/server:types:check: [7m   [0m [91m          ~~~~~~~~~[0m
+@walnut/server:types:check: 
+@walnut/server:types:check: [96mlibs/decorators/src/field/number.decorator.ts[0m:[93m20[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'NumberConstructor' is not assignable to type '"object"'.
+@walnut/server:types:check: 
+@walnut/server:types:check: [7m20[0m       type: Number,
+@walnut/server:types:check: [7m  [0m [91m      ~~~~[0m
+@walnut/server:types:check: 
+@walnut/server:types:check: [96mlibs/decorators/src/field/number.decorator.ts[0m:[93m30[0m:[93m7[0m - [91merror[0m[90m TS2322: [0mType 'boolean' is not assignable to type 'string[]'.
+@walnut/server:types:check: 
+@walnut/server:types:check: [7m30[0m       required: options?.validateOptions?.optional !== true,
+@walnut/server:types:check: [7m  [0m [91m      ~~~~~~~~[0m
+@walnut/server:types:check: 
+@walnut/server:types:check: 
+@walnut/server:types:check: Found 4 errors in 2 files.
+@walnut/server:types:check: 
+@walnut/server:types:check: Errors  Files
+@walnut/server:types:check:      2  apps/api/test/integration/device.user-device.monitor.pg.int-spec.ts[90m:365[0m
+@walnut/server:types:check:      2  libs/decorators/src/field/number.decorator.ts[90m:20[0m
+@walnut/server:types:check: [ELIFECYCLE] Command failed with exit code 2.
+@walnut/server#types:check:  ERROR  command (D:\walnut-admin\walnut-admin\apps\server) C:\nvm4w\nodejs\pnpm.cmd run types:check exited (2)
+
+ Tasks:    13 successful, 15 total
+Cached:    0 cached, 15 total
+  Time:    32.59s 
+Failed:    @walnut/server#types:check
+
+ ERROR  run failed: command  exited (2)
+[ELIFECYCLE] Command failed with exit code 2.

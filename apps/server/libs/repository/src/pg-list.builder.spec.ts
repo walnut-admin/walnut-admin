@@ -372,6 +372,25 @@ describe('filters · 显式 op × 列类型', () => {
     expect(options.match.active?.value).toBe(true)
   })
 
+  // 批次 9 · C6：字典布尔值（`sys_shared_status` 的 "true"/"false"）走的是表头的 like 形态，
+  // 布尔列上裁决成等值 —— 这是「字典值 → 真布尔」的唯一转换点（见 pg-column-op 的同名注释）。
+  it.each([['true', true], ['false', false]])('boolean 列 + like %s ⇒ 裁决成等值 %s', (raw, expected) => {
+    const fake = makeQb()
+    const options = applyTo(fake, { filters: [{ field: 'active', op: 'like', value: raw }] } as never)
+
+    expect(options.match.active).toEqual({ op: 'eq', value: expected, filterOp: 'like' })
+    expect(fake.where[0].params[Object.keys(fake.where[0].params)[0]]).toBe(expected)
+  })
+
+  it('boolean 列 + like 的值不是布尔字面量 ⇒ 仍然 40099（只放行字典那两颗值）', () => {
+    const fake = makeQb()
+
+    expect(() => applyTo(fake, { filters: [{ field: 'active', op: 'like', value: 'yes' }] } as never)).toThrowError(
+      expect.objectContaining({ response: expect.objectContaining({ errCode: WalnutAdminConstAppResponseCode.BAD_REQUEST_DATA_ERROR }) }),
+    )
+    expect(fake.where).toHaveLength(0)
+  })
+
   it('数值列 + in ⇒ IN（不再按值类型猜）', () => {
     const fake = makeQb()
     const options = applyTo(fake, { filters: [{ field: 'riskScore', op: 'in', value: [1, 2] }] } as never)

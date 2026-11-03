@@ -1,0 +1,71 @@
+﻿$ turbo build --filter=@walnut/docs
+• turbo 2.11.2
+
+   • Packages in scope: @walnut/docs
+   • Running build in 1 package
+   • Remote caching disabled
+
+@walnut/docs:build: cache miss, executing 62e77bdc188d1a45
+@walnut/docs:build: $ vitepress build
+@walnut/docs:build: 
+@walnut/docs:build:   vitepress v1.6.3
+@walnut/docs:build: 
+@walnut/docs:build: - building client + server bundles...
+@walnut/docs:build: 
+@walnut/docs:build: The language 'gitignore' is not loaded, falling back to 'txt' for syntax highlighting.
+@walnut/docs:build: 
+@walnut/docs:build: The language 'env' is not loaded, falling back to 'txt' for syntax highlighting.
+@walnut/docs:build: 
+@walnut/docs:build: The language '`iconify`' is not loaded, falling back to 'txt' for syntax highlighting.
+@walnut/docs:build: 
+@walnut/docs:build: The language 'gitignore' is not loaded, falling back to 'txt' for syntax highlighting.
+@walnut/docs:build: 
+@walnut/docs:build: (!) Some chunks are larger than 500 kB after minification. Consider:
+@walnut/docs:build: - Using dynamic import() to code-split the application
+@walnut/docs:build: - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+@walnut/docs:build: - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+@walnut/docs:build: [32m✓[0m building client + server bundles...
+@walnut/docs:build: - rendering pages...
+@walnut/docs:build: [32m✓[0m rendering pages...
+@walnut/docs:build: - generating sitemap...
+@walnut/docs:build: [32m✓[0m generating sitemap...
+@walnut/docs:build: 
+@walnut/docs:build: === pagefind: https://pagefind.app/ ===
+@walnut/docs:build: npx pagefind --site "D:/walnut-admin/walnut-admin/apps/docs/.vitepress/dist" --exclude-selectors "div.aside, a.header-anchor"
+@walnut/docs:build: 
+@walnut/docs:build: 
+@walnut/docs:build: Running Pagefind v1.3.0 (Extended)
+@walnut/docs:build: Running from: "D:\\walnut-admin\\walnut-admin\\apps\\docs"
+@walnut/docs:build: Source:       ".vitepress/dist"
+@walnut/docs:build: Output:       ".vitepress/dist\\pagefind"
+@walnut/docs:build: 
+@walnut/docs:build: [Walking source directory]
+@walnut/docs:build: Found 254 files matching **/*.{html}
+@walnut/docs:build: 
+@walnut/docs:build: [Parsing files]
+@walnut/docs:build: Found a data-pagefind-body element on the site.
+@walnut/docs:build: ↳ Ignoring pages without this tag.
+@walnut/docs:build: 
+@walnut/docs:build: [Reading languages]
+@walnut/docs:build: Discovered 1 language: zh-hans
+@walnut/docs:build: 
+@walnut/docs:build: [Building search indexes]
+@walnut/docs:build: Total: 
+@walnut/docs:build:   Indexed 1 language
+@walnut/docs:build:   Indexed 247 pages
+@walnut/docs:build:   Indexed 14162 words
+@walnut/docs:build:   Indexed 0 filters
+@walnut/docs:build:   Indexed 0 sorts
+@walnut/docs:build: Note: Pagefind doesn't support stemming for the language zh-hans. 
+@walnut/docs:build: Search will still work, but will not match across root words.
+@walnut/docs:build: Note: Pagefind doesn't support stemming for the language zh-hans. 
+@walnut/docs:build: Search will still work, but will not match across root words.
+@walnut/docs:build: 
+@walnut/docs:build: Finished in 5.988 seconds
+@walnut/docs:build: [32m✓[0m generating pagefind Indexing...
+@walnut/docs:build: build complete in 99.05s.
+
+ Tasks:    1 successful, 1 total
+Cached:    0 cached, 1 total
+  Time:    1m48.299s 
+

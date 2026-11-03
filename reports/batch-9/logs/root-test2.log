@@ -1,0 +1,112 @@
+﻿$ turbo test
+• turbo 2.11.2
+
+   • Packages in scope: @walnut/admin, @walnut/api-types, @walnut/client, @walnut/commitlint-config, @walnut/contract, @walnut/docs, @walnut/eslint-config, @walnut/http, @walnut/release, @walnut/scripts, @walnut/server, @walnut/tsconfig, @walnut/types, @walnut/utils, @walnut/vitest-config
+   • Running test in 15 packages
+   • Remote caching disabled
+
+@walnut/contract:test: cache miss, executing b22541e3ec183af4
+@walnut/eslint-config:test: cache miss, executing 341c05689ddc179a
+@walnut/scripts:test: cache miss, executing c90f1cbebb011b0a
+@walnut/contract:build: cache miss, executing 2c69adeec233a49b
+@walnut/contract:test: $ vitest run
+@walnut/scripts:test: $ vitest run
+@walnut/contract:build: $ vite build && node scripts/build-barrel.ts
+@walnut/eslint-config:test: $ vitest run
+@walnut/scripts:test: 
+@walnut/scripts:test:  RUN  v4.1.2 D:/walnut-admin/walnut-admin/packages/tooling/scripts
+@walnut/scripts:test: 
+@walnut/contract:test: 
+@walnut/contract:test:  RUN  v4.1.2 D:/walnut-admin/walnut-admin/packages/platform-any/contract
+@walnut/contract:test: 
+@walnut/eslint-config:test: 
+@walnut/eslint-config:test:  RUN  v4.1.2 D:/walnut-admin/walnut-admin/packages/tooling/eslint-config
+@walnut/eslint-config:test: 
+@walnut/contract:test:  ✓ __tests__/entries.drift.test.ts (5 tests) 21ms
+@walnut/contract:test:  ❯ src/index.test.ts (22 tests | 1 failed) 34ms
+@walnut/contract:test: 
+@walnut/contract:test: ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+@walnut/contract:test: 
+@walnut/contract:test:      ✓ public API surface stays stable 7ms
+@walnut/contract:test:      ✓ aes-gcm wire format constants never change silently 1ms
+@walnut/contract:test:      ✓ app key types never change silently 0ms
+@walnut/contract:test:      × response codes never change silently 12ms
+@walnut/contract:test:      ✓ roles never change silently 1ms
+@walnut/contract:test:      ✓ role modes never change silently 0ms
+@walnut/contract:test:      ✓ data scope tiers never change silently 0ms
+@walnut/contract:test:      ✓ cookie keys never change silently 0ms
+@walnut/contract:test:      ✓ request header names never change silently 0ms
+@walnut/contract:test:      ✓ locale values never change silently 1ms
+@walnut/contract:test:      ✓ menu enums never change silently 1ms
+@walnut/contract:test:      ✓ mfa methods and transports never change silently 0ms
+@walnut/contract:test:      ✓ user lock modes never change silently 0ms
+@walnut/contract:test:      ✓ preference value sets never change silently 1ms
+@walnut/contract:test:      ✓ force quit strategies never change silently 0ms
+@walnut/contract:test:      ✓ sse event names never change silently 0ms
+@walnut/contract:test:      ✓ socket force quit payload carries a known strategy 0ms
+@walnut/contract:test:      ✓ sort order values never change silently 0ms
+@walnut/contract:test:      ✓ filter op values never change silently 0ms
+@walnut/contract:test:      ✓ socket events and rooms never change silently 0ms
+@walnut/contract:test:      ✓ token keys never change silently 0ms
+@walnut/contract:test:      ✓ api routes never change silently 2ms
+@walnut/contract:test: 
+@walnut/contract:test:   Snapshots  1 failed
+@walnut/contract:test:  Test Files  1 failed | 1 passed (2)
+@walnut/contract:test:       Tests  1 failed | 26 passed (27)
+@walnut/contract:test:    Start at  15:29:03
+@walnut/contract:test:    Duration  1.76s (transform 385ms, setup 0ms, import 688ms, tests 55ms, environment 1ms)
+@walnut/contract:test: 
+@walnut/contract:test:  FAIL  src/index.test.ts > contract snapshots > response codes never change silently
+@walnut/contract:test: Error: Snapshot `contract snapshots > response codes never change silently 1` mismatched
+@walnut/contract:test: 
+@walnut/contract:test: - Expected
+@walnut/contract:test: + Received
+@walnut/contract:test: 
+@walnut/contract:test: @@ -20,10 +20,11 @@
+@walnut/contract:test:     "NOT_ACCEPTABLE_DEVICE_LOCKED": 40606,
+@walnut/contract:test:     "NOT_ACCEPTABLE_DEVICE_UNSUPPORTED": 40605,
+@walnut/contract:test:     "NOT_ACCEPTABLE_IP_BLOCKED": 40603,
+@walnut/contract:test:     "NOT_ACCEPTABLE_OS_UNSUPPORTED": 40601,
+@walnut/contract:test:     "NOT_ACCEPTABLE_RISK_TOO_HIGH": 40666,
+@walnut/contract:test: +   "NOT_ACCEPTABLE_RISK_UNAVAILABLE": 40667,
+@walnut/contract:test:     "NOT_ACCEPTABLE_SUSPICIOUS_REQUEST": 40609,
+@walnut/contract:test:     "NOT_ACCEPTABLE_USER_AGENT_UNSUPPORTED": 40604,
+@walnut/contract:test:     "NOT_FOUND": 40400,
+@walnut/contract:test:     "NOT_FOUND_DATA_NOT_FOUND": 40401,
+@walnut/contract:test:     "NOT_FOUND_ROUTE_NOT_FOUND": 40402,
+@walnut/contract:test: 
+@walnut/contract:test:  ❯ src/index.test.ts:42:45
+@walnut/contract:test:      40|
+@walnut/contract:test:      41|   it('response codes never change silently', () => {
+@walnut/contract:test:      42|     expect(WalnutAdminConstAppResponseCode).toMatchSnapshot()
+@walnut/contract:test:        |                                             ^
+@walnut/contract:test:      43|   })
+@walnut/contract:test:      44|
+@walnut/contract:test: 
+@walnut/contract:test: ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+@walnut/contract:test: 
+@walnut/contract:test: [ELIFECYCLE] Test failed. See above for more details.
+@walnut/eslint-config:test:  ✓ script-rules.test.ts (3 tests) 161ms
+@walnut/eslint-config:test:  ✓ comment-rules.test.ts (1 test) 145ms
+@walnut/release:test: cache miss, executing 87c125b9b4f27aab
+@walnut/utils:build: cache miss, executing 03c75ff9c08e872d
+@walnut/utils:test: cache miss, executing 0282cf1e4b2ee1fa
+@walnut/eslint-config:test:  ✓ nest-local-rules.test.ts (10 tests) 230ms
+@walnut/types:build: cache miss, executing e8956089b89466a8
+@walnut/api-types:build: cache miss, executing bf1995cef62bb0c3
+@walnut/eslint-config:test: 
+@walnut/eslint-config:test:  Test Files  3 passed (3)
+@walnut/eslint-config:test:       Tests  14 passed (14)
+@walnut/eslint-config:test:    Start at  15:29:03
+@walnut/eslint-config:test:    Duration  2.21s (transform 482ms, setup 0ms, import 2.72s, tests 536ms, environment 1ms)
+@walnut/eslint-config:test: 
+@walnut/contract:build: vite v8.0.11 building client environment for production...
+@walnut/contract#test:  ERROR  command (D:\walnut-admin\walnut-admin\packages\platform-any\contract) C:\nvm4w\nodejs\pnpm.cmd run test exited (1)
+
+ Tasks:    0 successful, 9 total
+Cached:    0 cached, 9 total
+  Time:    6.758s 
+Failed:    @walnut/contract#test
+
+ ERROR  run failed: command  exited (1)
+[ELIFECYCLE] Test failed. See above for more details.

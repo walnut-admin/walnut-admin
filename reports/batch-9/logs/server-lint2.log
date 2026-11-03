@@ -1,0 +1,48 @@
+﻿$ eslint "{src,apps,libs,test,infra/scripts}/**/*.ts" --concurrency=4
+
+D:\walnut-admin\walnut-admin\apps\server\libs\app-domain\src\monitor\user\user.service.spec.ts
+   58:10  error  `describe`s should begin with lowercase                                                       test/prefer-lowercase-title
+   62:42  error  This assertion is unnecessary since the receiver accepts the original type of the expression  ts/no-unnecessary-type-assertion
+   73:31  error  This assertion is unnecessary since the receiver accepts the original type of the expression  ts/no-unnecessary-type-assertion
+   87:7   error  This assertion is unnecessary since the receiver accepts the original type of the expression  ts/no-unnecessary-type-assertion
+   97:42  error  This assertion is unnecessary since the receiver accepts the original type of the expression  ts/no-unnecessary-type-assertion
+  105:49  error  This assertion is unnecessary since the receiver accepts the original type of the expression  ts/no-unnecessary-type-assertion
+
+D:\walnut-admin\walnut-admin\apps\server\libs\guards\src\guards\cap.guard.spec.ts
+  8:1  error  Expected "@walnut-server/exceptions/base/406" to come before "@walnut-server/exceptions/business/auth"  perfectionist/sort-imports
+
+D:\walnut-admin\walnut-admin\apps\server\libs\guards\src\guards\cap.guard.ts
+  19:1  error  Expected "@walnut-server/exceptions/base/406" to come before "@walnut-server/exceptions/business/auth"  perfectionist/sort-imports
+
+D:\walnut-admin\walnut-admin\apps\server\libs\guards\src\guards\risk.guard.spec.ts
+    6:49  error  '@walnut-server/exceptions/base/406' imported multiple times  import/no-duplicates
+    7:53  error  '@walnut-server/exceptions/base/406' imported multiple times  import/no-duplicates
+  139:39  error  Functions that return promises must be async                  ts/promise-function-async
+  150:39  error  Functions that return promises must be async                  ts/promise-function-async
+  166:37  error  Functions that return promises must be async                  ts/promise-function-async
+  177:23  error  Functions that return promises must be async                  ts/promise-function-async
+  188:25  error  Functions that return promises must be async                  ts/promise-function-async
+  200:23  error  Functions that return promises must be async                  ts/promise-function-async
+
+D:\walnut-admin\walnut-admin\apps\server\libs\guards\src\guards\risk.guard.ts
+  11:1  error  Expected "./risk.sensitivity" (type-sibling) to come before "lodash" (value-external)  perfectionist/sort-imports
+
+D:\walnut-admin\walnut-admin\apps\server\libs\guards\src\guards\risk.sensitivity.ts
+  48:43  error  '=' should be placed at the beginning of the line  style/operator-linebreak
+
+D:\walnut-admin\walnut-admin\apps\server\libs\guards\src\interceptors\response\success.interceptor.spec.ts
+  99:6  error  `it`s should begin with lowercase  test/prefer-lowercase-title
+
+D:\walnut-admin\walnut-admin\apps\server\libs\repository\src\pg-list.builder.spec.ts
+  389:33  warning  Unsafe assignment of an `any` value  ts/no-unsafe-assignment
+  472:33  warning  Unsafe assignment of an `any` value  ts/no-unsafe-assignment
+  493:46  warning  Unsafe assignment of an `any` value  ts/no-unsafe-assignment
+
+✖ 22 problems (19 errors, 3 warnings)
+  18 errors and 0 warnings potentially fixable with the `--fix` option.
+
+[ELIFECYCLE] Command failed with exit code 1.
+Error: ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL
+
+  × "pnpm recursive run" failed in D:\walnut-admin\walnut-admin\apps\server
+

@@ -60,11 +60,28 @@ export interface IListRequestParams<T> {
   /** 显式过滤条件（批次 4-A 主路径）：算子由调用方给，非法 op/值 => 40099 */
   filters?: IWalnutAdminListFilters
   /**
-   * @deprecated 旧 wire（`query: Partial<Entity>`，算子按值的 typeof 猜）。
+   * @deprecated 旧 wire（`query: Partial<Entity>`，算子按值的 typeof 猜）——
+   * **过渡态，按下面的判据删除，不要再往里加东西**。
    *
-   * **仅作兼容兜底**，批次 4-A 起 HTTP 层已不再接受该槽位（DTO 里没有 query 字段，
-   * 顶层白名单会直接 40099）。保留它是因为：库外调用方（测试 / 未迁完的旁路）仍可能
-   * 直接构造这个形状，而它的语义是「丢弃 + warn」而不是拒绝 —— 与 filters 严格模式互补。
+   * 批次 4-A 起 HTTP 层已不接受该槽位（DTO 里没有 query 字段，顶层白名单直接 40099），
+   * 所以它今天唯一的用途是「库内/库外直接构造 `IListRequestParams` 的兜底」：
+   * 语义是**丢弃 + warn**，与 filters 的严格模式互补。
+   *
+   * ## 删除判据（批次 9 · C7；两条全满足才删，缺一条就继续留着）
+   *
+   * 1. **静态 0 调用点**：`git grep -n "query:" -- apps/server/libs apps/server/apps` 里
+   *    构造该槽位的地方为 **0**（今天只有本文件与 `*.spec.ts` 命中；spec 随删除一起删）。
+   * 2. **运行面连续 30 天无触达**（= 一个完整发版周期，与设备 cookie 的双读窗口同量级）：
+   *    生产日志里 0 条来自本路径的 `丢弃 list 过滤条件`（`warnDroppedPgListCondition` 的
+   *    debug 明细 / 每 100 次那条 warn 汇总）。**注意：这条路径解释成功时是完全静默的**，
+   *    所以「没看到 warn」不等于「没被走到」—— 真要按第 2 条判，先给它补一条触达计数
+   *    （与丢弃同一套「每 N 次落 1 条汇总」机制），否则只能按第 1 条 + 「一个发版周期」判。
+   *
+   * 删除时**四处一起**（漏一处就是半删：留着的 `raw` 分支会把条件当「手写构造」处理）：
+   * ① 本字段；② `buildPgListQueryOptions` 里那条 `// ---- query：...` 分支；
+   * ③ `legacyConditionFromValue()`；④ `applyPgListQuery` 里 `condition.raw` 的两个分支，
+   *    以及 `IWalnutPgListCondition.raw` 字段本身（`pg-column-op.ts`）。
+   * 删完 `resolvePgListCondition` 只剩「手写构造」的调用面，届时再决定它是否也退场。
    */
   query?: Partial<T>
   sort?: Array<{ field: string, order: 'ascend' | 'descend' | false, priority?: number }>
@@ -164,6 +181,7 @@ export function buildPgListQueryOptions<T>(
   }
 
   // ---- query：旧 wire 兼容路径（算子按 typeof 猜，猜不出来丢弃 + warn）----
+  // 过渡态：删除判据写在 IListRequestParams.query 的 TSDoc 里（批次 9 · C7），别在这里加新逻辑。
   if (isObject(query) && Object.keys(query).length > 0) {
     Object.entries(query as Record<string, unknown>).forEach(([key, value]) => {
       if (isNil(value)) {
@@ -288,6 +306,7 @@ export function applyPgListQuery<T extends ObjectLiteral>(
     // 三条路径，权威都在这里（列元数据）：
     // 1. 显式 filters（condition.filterOp）：按 (op, 列类型) 重裁决，不过就 **40099**；
     // 2. 旧 wire 兼容（condition.raw）：按值的 typeof 重解释，解释不了丢弃 + warn；
+    //    过渡态，删除判据见 IListRequestParams.query 的 TSDoc（批次 9 · C7）；
     // 3. 手写构造（service 内部硬条件）：算子白名单兜底，不过丢弃 + warn。
     let resolved: IWalnutPgListCondition | undefined
 

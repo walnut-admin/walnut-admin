@@ -3668,7 +3668,7 @@ export interface components {
              */
             order: "ascend" | "descend";
             /** order priority */
-            priority: number;
+            priority?: number;
         };
         WalnutAdminRequestListPageDTO: {
             /**
@@ -3736,8 +3736,6 @@ export interface components {
             page: components["schemas"]["WalnutAdminRequestListPageDTO"];
         };
         AppMonitorUserDTOUpdateState: {
-            /** device id */
-            deviceId?: string;
             /**
              * auth or not
              * @default false

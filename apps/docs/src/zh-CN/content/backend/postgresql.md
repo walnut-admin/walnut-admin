@@ -50,12 +50,26 @@ pnpm db:seed:pg --admin <账号> --password <口令>   # 在**本环境**给某�
 **再生成真源是两步、不手写任何一行**：
 
 ```bash
-pnpm db:export:pg --out apps/server/.tmp/pg-export      # 库 → 快照（Extended JSON，uuid 本体）
-pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # 快照 → 行形态（默认写仓内 seed）
+pnpm db:export:pg --out apps/server/.tmp/pg-export      # ① 库 → 快照（Extended JSON，uuid 本体）
+pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # ② 快照 → 行形态（默认写仓内 seed）
 ```
 
-两步之后 `git diff` 就是「库与仓的差」，逐行可审。导出的快照**故意不落在 seed 目录**：那里是行形态
-真源，命令里对「`--out` 指向 seed 目录」做了显式拦截。`db:export:pg` 的产物仍按 `_id` 排序、套同一份
+### `db:export:pg` 的两个行为（批次 5-B，2026-11-03 起改的，别按旧习惯写命令）
+
+1. **默认输出目录就是 `apps/server/.tmp/pg-export`**（`DEFAULT_EXPORT_OUT`）——上面第 ① 步的
+   `--out` **可以整段省略**，省了不报错、也不落进仓里；显式写出来只是让命令自解释。
+   默认值指向临时目录是**有意的**：快照是中间物（消费方是 `db:seed:reshape`），不是真源。
+2. **`--out` 指到 `apps/server/db/seed` 会直接失败**：命令在连库**之前**就抛
+   `PreconditionError` —— 终端上是「前置条件未满足：导出结果**不能**写进 seed 目录…」，
+   **退出码 2**（`0 通过 / 1 查出违规 / 2 前置条件未满足`，口径在
+   `packages/tooling/scripts/src/lib/cli.ts`），一个文件都不会写。
+   理由：那里是**行形态真源**，把 Extended JSON 快照写进去等于把真源打回旧格式（`pnpm lint:seed`
+   也会判红）。`--anonymize` 是另一条同样的红线（脱敏有损，永远不许覆盖真源）。
+
+> ⚠️ 拦截判据是「`--out` **等于** seed 目录」，**不**包括它的子目录 —— 别把快照放进
+> `apps/server/db/seed/` 下面的任何一层，那里除了行形态真源不该有别的东西。
+
+两步之后 `git diff` 就是「库与仓的差」，逐行可审。`db:export:pg` 的产物仍按 `_id` 排序、套同一份
 裁剪规则（`policy.ts`），所以快照 diff 与仓内文件 diff 同形。
 
 改动 seed 形态 / 映射表 / 播种器之后，跑一次**双库对拍**（旧 seed + 旧管线 与 新 seed 各灌一个空库，

@@ -39,6 +39,31 @@ import type { KnipConfig } from 'knip'
  * 结论只有一条可依赖的：**别把「barrel 已覆盖」当结论**。要守这一面只能另立一个
  * 「barrel 符号 0 引用」的专用脚本（读 `src/index.ts` 的具名导出 → 全仓 grep 消费方），
  * 调 knip 配置解决不了。在此之前，barrel 级死导出按**部分盲区**对待。
+ *
+ * ## 删桶之后的复测：噪音塌了，塌的是「一桶 N 行」那一类（批次 9 · C3）
+ *
+ * 批次 4 把 `packages/platform-web/{client,http}` 的 barrel 删掉、把
+ * `packages/platform-any/utils-core` 的 barrel 收缩成两个模块之后，同一个命令的读数掉了**整整一档**，
+ * 掉的那部分全是「barrel 里 re-export 了、但入口没人消费」的符号 —— **每个符号一行**。
+ * 所以这一轮噪音的主因是**桶**，不是配置：`project` + `includeEntryExports` 只是把那批东西
+ * **变可见**，删桶才是把它**变不见**。下次再看到读数暴涨，先查「是不是又多了个 barrel」。
+ *
+ * 复测之后「怎么看」按这三步（读数会变，判据不变）：
+ *
+ *   1. **先分段**：`packages/**` 与 `apps/**` 分开看 —— 前者是公共面问题，后者是模板 / 动态入口问题；
+ *   2. **`packages/**` 逐条二分**（入口有没有消费）：
+ *      `grep -rn "from '@walnut/<pkg>'" apps packages` = 0 ⇒ 它说的是「入口没人走」，**不是死代码**
+ *      （消费方走的是深路径 `@walnut/<pkg>/<file>`）；**入口与深路径都 0 消费**才是真死候选；
+ *   3. **`apps/**` 那一批是有意维持的，别删**：`libs/decorators` 的 transformer 是留给模板使用者的
+ *      API 面；`apps/{cli,worker}/src/main.ts` 与 `apps/api/migrations/**` 是**被命令行执行**的入口 ——
+ *      knip 只看 import 图，看不见「谁在命令行里跑它」。
+ *
+ * **不要**用 `ignoreIssues` 把它们抹绿：桶已经删了，剩下每一条都该能说出「它为什么还在」；
+ * 抹掉等于把这一面重新变回盲区。真要进门禁，先按上面三步分类，只给「真死」开红。
+ *
+ * 逐条读数与归因**不写在这里**（数会变）：`reports/batch-9/r2-contract.md` 有带日期的记录；
+ * 要现读就跑 `pnpm knip`（人读）/ `pnpm knip --reporter json`（要精确路径 —— 文本报告会按终端宽度
+ * 截断长路径）。
  */
 const config: KnipConfig = {
   // ============================================================

@@ -23662,8 +23662,7 @@
         },
         "required": [
           "field",
-          "order",
-          "priority"
+          "order"
         ]
       },
       "WalnutAdminRequestListPageDTO": {
@@ -23759,10 +23758,6 @@
       "AppMonitorUserDTOUpdateState": {
         "type": "object",
         "properties": {
-          "deviceId": {
-            "type": "string",
-            "title": "device id"
-          },
           "auth": {
             "type": "boolean",
             "default": false,

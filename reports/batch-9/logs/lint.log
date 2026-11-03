@@ -1,0 +1,108 @@
+﻿$ turbo lint
+• turbo 2.11.2
+
+   • Packages in scope: @walnut/admin, @walnut/api-types, @walnut/client, @walnut/commitlint-config, @walnut/contract, @walnut/docs, @walnut/eslint-config, @walnut/http, @walnut/release, @walnut/scripts, @walnut/server, @walnut/tsconfig, @walnut/types, @walnut/utils, @walnut/vitest-config
+   • Running lint in 15 packages
+   • Remote caching disabled
+
+@walnut/vitest-config:lint: cache miss, executing 7fbdb7e8072f614f
+@walnut/types:lint: cache miss, executing a0a14df6099783b0
+@walnut/client:lint: cache miss, executing c6a7f3c8e12086e8
+@walnut/api-types:lint: cache miss, executing 43ec34cb4c46b06e
+@walnut/types:lint: $ eslint . --concurrency=4
+@walnut/vitest-config:lint: $ eslint . --concurrency=4
+@walnut/api-types:lint: $ eslint . --concurrency=4
+@walnut/client:lint: $ eslint . --concurrency=4
+@walnut/api-types:lint: (node:47248) ESLintPoorConcurrencyWarning: You may reduce or disable concurrency to improve performance.
+@walnut/api-types:lint: (Use `node --trace-warnings ...` to show where the warning was created)
+@walnut/vitest-config:lint: (node:43556) ESLintPoorConcurrencyWarning: You may reduce or disable concurrency to improve performance.
+@walnut/vitest-config:lint: (Use `node --trace-warnings ...` to show where the warning was created)
+@walnut/commitlint-config:lint: cache miss, executing 8da2ec92951b9f58
+@walnut/eslint-config:lint: cache miss, executing f5270a6f40bf7ef9
+@walnut/types:lint: (node:13256) ESLintPoorConcurrencyWarning: You may reduce or disable concurrency to improve performance.
+@walnut/types:lint: (Use `node --trace-warnings ...` to show where the warning was created)
+@walnut/release:lint: cache miss, executing 486f1e586e6a5ebc
+@walnut/client:lint: (node:21832) ESLintPoorConcurrencyWarning: You may reduce or disable concurrency to improve performance.
+@walnut/client:lint: (Use `node --trace-warnings ...` to show where the warning was created)
+@walnut/commitlint-config:lint: $ eslint . --concurrency=4
+@walnut/eslint-config:lint: $ eslint . --concurrency=4
+@walnut/server:lint: cache miss, executing b64da2451197805b
+@walnut/release:lint: $ eslint . --concurrency=4
+@walnut/server:lint: $ eslint "{src,apps,libs,test,infra/scripts}/**/*.ts" --concurrency=4
+@walnut/commitlint-config:lint: (node:50988) ESLintPoorConcurrencyWarning: You may reduce or disable concurrency to improve performance.
+@walnut/commitlint-config:lint: (Use `node --trace-warnings ...` to show where the warning was created)
+@walnut/utils:lint: cache miss, executing 2d6243c042255504
+@walnut/eslint-config:lint: (node:24540) ESLintPoorConcurrencyWarning: You may reduce or disable concurrency to improve performance.
+@walnut/eslint-config:lint: (Use `node --trace-warnings ...` to show where the warning was created)
+@walnut/utils:lint: $ eslint . --concurrency=4
+@walnut/docs:lint: cache miss, executing b9d57648708a7678
+@walnut/release:lint: (node:24320) ESLintPoorConcurrencyWarning: You may reduce or disable concurrency to improve performance.
+@walnut/release:lint: (Use `node --trace-warnings ...` to show where the warning was created)
+@walnut/docs:lint: $ eslint . --concurrency=4
+@walnut/http:lint: cache miss, executing c42b287822983df3
+@walnut/http:lint: $ eslint . --concurrency=4
+@walnut/docs:lint: (node:56572) ESLintPoorConcurrencyWarning: You may reduce or disable concurrency to improve performance.
+@walnut/docs:lint: (Use `node --trace-warnings ...` to show where the warning was created)
+@walnut/admin:lint: cache miss, executing 7672283159f0272c
+@walnut/admin:lint: $ cross-env NODE_OPTIONS=--max-old-space-size=8192 eslint . --concurrency=4
+@walnut/utils:lint: (node:26884) ESLintPoorConcurrencyWarning: You may reduce or disable concurrency to improve performance.
+@walnut/utils:lint: (Use `node --trace-warnings ...` to show where the warning was created)
+@walnut/scripts:lint: cache miss, executing 13e496126fd0a1e0
+@walnut/scripts:lint: $ eslint . --concurrency=4
+@walnut/http:lint: (node:10084) ESLintPoorConcurrencyWarning: You may reduce or disable concurrency to improve performance.
+@walnut/http:lint: (Use `node --trace-warnings ...` to show where the warning was created)
+@walnut/tsconfig:lint: cache miss, executing a8434fac87eae7e5
+@walnut/tsconfig:lint: $ eslint . --concurrency=4
+@walnut/scripts:lint: (node:58004) ESLintPoorConcurrencyWarning: You may reduce or disable concurrency to improve performance.
+@walnut/scripts:lint: (Use `node --trace-warnings ...` to show where the warning was created)
+@walnut/tsconfig:lint: (node:15320) ESLintPoorConcurrencyWarning: You may reduce or disable concurrency to improve performance.
+@walnut/tsconfig:lint: (Use `node --trace-warnings ...` to show where the warning was created)
+@walnut/contract:lint: cache miss, executing 7054a16bca1309c9
+@walnut/contract:lint: $ eslint . --concurrency=4
+@walnut/server:lint: 
+@walnut/server:lint: D:\walnut-admin\walnut-admin\apps\server\libs\decorators\src\field\number.decorator.ts
+@walnut/server:lint:   20:5  warning  Unsafe assignment of an `any` value  ts/no-unsafe-assignment
+@walnut/server:lint: 
+@walnut/server:lint: D:\walnut-admin\walnut-admin\apps\server\libs\guards\src\guards\cap.guard.spec.ts
+@walnut/server:lint:   8:1  error  Expected "@walnut-server/exceptions/base/406" to come before "@walnut-server/exceptions/business/auth"  perfectionist/sort-imports
+@walnut/server:lint: 
+@walnut/server:lint: D:\walnut-admin\walnut-admin\apps\server\libs\guards\src\guards\cap.guard.ts
+@walnut/server:lint:   19:1  error  Expected "@walnut-server/exceptions/base/406" to come before "@walnut-server/exceptions/business/auth"  perfectionist/sort-imports
+@walnut/server:lint: 
+@walnut/server:lint: D:\walnut-admin\walnut-admin\apps\server\libs\guards\src\guards\risk.guard.spec.ts
+@walnut/server:lint:     6:49  error  '@walnut-server/exceptions/base/406' imported multiple times  import/no-duplicates
+@walnut/server:lint:     7:53  error  '@walnut-server/exceptions/base/406' imported multiple times  import/no-duplicates
+@walnut/server:lint:   139:39  error  Functions that return promises must be async                  ts/promise-function-async
+@walnut/server:lint:   150:39  error  Functions that return promises must be async                  ts/promise-function-async
+@walnut/server:lint:   166:37  error  Functions that return promises must be async                  ts/promise-function-async
+@walnut/server:lint:   177:23  error  Functions that return promises must be async                  ts/promise-function-async
+@walnut/server:lint:   188:25  error  Functions that return promises must be async                  ts/promise-function-async
+@walnut/server:lint:   200:23  error  Functions that return promises must be async                  ts/promise-function-async
+@walnut/server:lint: 
+@walnut/server:lint: D:\walnut-admin\walnut-admin\apps\server\libs\guards\src\guards\risk.guard.ts
+@walnut/server:lint:   11:1  error  Expected "./risk.sensitivity" (type-sibling) to come before "lodash" (value-external)  perfectionist/sort-imports
+@walnut/server:lint: 
+@walnut/server:lint: D:\walnut-admin\walnut-admin\apps\server\libs\guards\src\guards\risk.sensitivity.ts
+@walnut/server:lint:   48:43  error  '=' should be placed at the beginning of the line  style/operator-linebreak
+@walnut/server:lint: 
+@walnut/server:lint: D:\walnut-admin\walnut-admin\apps\server\libs\repository\src\pg-list.builder.spec.ts
+@walnut/server:lint:   389:33  warning  Unsafe assignment of an `any` value  ts/no-unsafe-assignment
+@walnut/server:lint:   472:33  warning  Unsafe assignment of an `any` value  ts/no-unsafe-assignment
+@walnut/server:lint:   493:46  warning  Unsafe assignment of an `any` value  ts/no-unsafe-assignment
+@walnut/server:lint: 
+@walnut/server:lint: D:\walnut-admin\walnut-admin\apps\server\libs\repository\src\pg-list.builder.ts
+@walnut/server:lint:   62:3  error  注释里不许用 emoji（纯文字）：⚠️。它们在非 UTF-8 代码页的终端里会显示成乱码，也会污染 diff 与日志；排版符号（→ ⇒ ≤）不受影响。  walnut-comment/no-emoji
+@walnut/server:lint: 
+@walnut/server:lint: ✖ 17 problems (13 errors, 4 warnings)
+@walnut/server:lint:   12 errors and 0 warnings potentially fixable with the `--fix` option.
+@walnut/server:lint: 
+@walnut/server:lint: [ELIFECYCLE] Command failed with exit code 1.
+@walnut/server#lint:  ERROR  command (D:\walnut-admin\walnut-admin\apps\server) C:\nvm4w\nodejs\pnpm.cmd run lint exited (1)
+
+ Tasks:    12 successful, 15 total
+Cached:    0 cached, 15 total
+  Time:    3m26.384s 
+Failed:    @walnut/server#lint
+
+ ERROR  run failed: command  exited (1)
+[ELIFECYCLE] Command failed with exit code 1.

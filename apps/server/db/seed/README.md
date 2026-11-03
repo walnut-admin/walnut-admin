@@ -15,6 +15,17 @@ pnpm db:export:pg --out apps/server/.tmp/pg-export      # ① 库 → 快照（E
 pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # ② 快照 → 行形态（写本目录）
 ```
 
+> ### ⚠️ 两条与「写本目录」有关的行为（批次 5-B 起，改之前先读）
+>
+> 1. **`db:export:pg` 的默认输出目录已经是 `apps/server/.tmp/pg-export`** —— 第 ① 步的 `--out`
+>    可以整段省略（写了也一样）。默认不指向本目录是**有意的**：快照是中间物，本目录是行形态真源。
+> 2. **`--out` 指到本目录会直接报错**：命令在连库之前就拒绝执行，退出码 **2**（前置条件未满足，
+>    不是「查出违规」的 1），一个文件都不会写。原因是把 Extended JSON 快照写进真源 = 把真源打回
+>    旧格式（`pnpm lint:seed` 会判红，`ejson.ts` 那一层映射也会重新长回来）。`--anonymize` 是同一
+>    条红线（脱敏有损，永不许覆盖真源）。
+>
+> 子目录不在拦截范围内 —— 别把快照放在 `apps/server/db/seed/` 下面任何一层。
+
 改完形状/映射后跑一次双库对拍（旧 seed + 旧管线 与 新 seed 各灌一个空库，逐表逐列比）：
 `pnpm db:seed:verify`。（Phase 5a 起 MongoDB 通道 `db:seed` / `db:export` / `seed:pack` 已退役。）
 

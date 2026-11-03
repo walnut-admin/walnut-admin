@@ -38,7 +38,7 @@ pnpm knip:fix
 | 命令 | 预期 | 说明 |
 |------|------|------|
 | `pnpm knip:packages` | **exit 1，有发现**（2026-11-02 起） | 补上 `project` + `includeEntryExports` 之后，共享包**第一次真的进了分析面**，于是它的公共 API 面开始报出来（判据与数据见下一节）。它此前那句「零发现」是**假绿**：不是干净，是没被分析 |
-| `pnpm knip`（全仓） | exit 1，有发现 | 大部分是框架隐式组装的已知误报，少量可能是真实死代码（exit 1 属预期门禁，见下文 CI 建议） |
+| `pnpm knip`（全仓） | exit 1，有发现 | 按「两类」读：`apps/**` 是**有意维持**的公共面与动态入口（模板装饰器 API 面、`apps/{cli,worker}/src/main.ts`、`migrations/**`），`packages/**` 是「入口没人走」与少量真死候选 —— 分法见下一节之后新增的「删桶之后的复测」 |
 
 ---
 
@@ -99,6 +99,26 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 结论：**barrel 级死导出目前「因包而异」，不是稳定判据**；contract 那个例外原因未查清（它是唯一
 用 `packages/platform-any/contract/scripts/build-barrel.ts` 生成 barrel 的包，怀疑与 entry 推导有关，未验证）。要真正守这一面，
 只能另立一个专用脚本（读 `src/index.ts` 的具名导出 → 全仓 grep 消费方），调 knip 配置解决不了。
+
+### 删桶之后的复测：噪音**确实随删桶塌掉**（批次 9 · C3）
+
+批次 4 按 D7 / D8 处理掉三个 barrel（`packages/platform-web/client` 与 `packages/platform-web/http` 的
+入口 `src/index.ts` **删除**；`packages/platform-any/utils-core` 的入口**收缩**成只剩「双端同源」的两个
+模块）之后，重跑一次 `pnpm knip`，结论只有一句话：**噪音塌了，而且塌掉的正是「一桶 N 行」那一类**。
+
+**怎么判「塌的是哪一类」**（不要背数字，照判据看）：
+
+| 看什么 | 判据 |
+|--------|------|
+| 读数有没有掉 | 拿上面那张 2026-11-02 的表当**历史快照**对比 `Unused exports` / `Unused exported types`。它记的是「进分析面」那一刻，桶一删就**必然**过期 —— 别当现状引用 |
+| 掉的是哪一类 | 看还剩几行落在**包的 `src/index.ts`**（= 桶本身）。桶越少这类行越少；`apps/**` 与深层文件那部分基本不动（它们与桶无关） |
+| 剩下的怎么看 | ① **分两段**：`packages/**` 是公共面问题，`apps/**` 是模板 / 动态入口问题。② `packages/**` 每一条**按「入口有没有消费」二分**：`grep -rn "from '@walnut/<pkg>'" apps packages` 为 0 ⇒ 它说的是「入口没人走」，**不是死代码**（消费方走深路径）；入口与深路径都 0 才是真死候选。③ `apps/**` 那一批**有意维持**：模板装饰器 API 面、`apps/{cli,worker}/src/main.ts` 与 `migrations/**` 是命令行执行的入口（knip 看不见） |
+
+为什么这一节只写判据、不写读数：**这一面的数字已经腐烂过一次** —— 上一节那张表是 2026-11-02 的快照，
+桶一删就全过期。要现状就跑 `pnpm knip`；要引用数字就引用带日期的报告（`reports/batch-9/r2-contract.md`）。
+
+**别为了变绿加 `ignoreIssues`**：桶已经删了，剩下每一条都该能说出「它为什么还在」；抹掉等于把这一面
+重新变回盲区。真要接进门禁，先按上面三步分类，只给「真死」开红。
 
 ### 前端应用（apps/admin）
 

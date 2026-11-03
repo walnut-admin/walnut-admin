@@ -515,6 +515,10 @@ function coerceListForKind(kind: WalnutPgColumnKind, values: readonly unknown[])
  * 覆盖 R1 矩阵的全部 22 个报错格（`reports/batch-1/r1-be-verification.md` 1.2 节）：
  * like 打非文本列 / uuid 列收非 uuid 串 / 布尔列收 "abc" / 时间列收数值 /
  * range 打非时间列 / 数值列收日期区间 —— 全部在进 SQL 之前被拒。
+ *
+ * **唯一一处例外（批次 9 · C6）**：`like` 打**布尔列**且值可解释成布尔（`true` / `false` /
+ * `"true"` / `"false"`）时裁决成 `eq` —— 那颗字典布尔值（`sys_shared_status`）就这样变成
+ * 真布尔，表头筛选才真的可用。值解释不了布尔时仍按「like 打非文本列」拒绝，语义没松。
  */
 export function resolvePgFilterCondition(
   kind: WalnutPgColumnKind | undefined,
@@ -539,6 +543,22 @@ export function resolvePgFilterCondition(
   }
 
   if (op === 'like') {
+    // 布尔列 + like：**字典布尔值 → 真布尔**的唯一转换点（批次 9 · C6）。
+    //
+    // 场景：`status` 这类布尔列在表头挂的是字典 `sys_shared_status`，字典值在 seed 里是
+    // 字符串 "true"/"false"，而前端只有「值形态」没有「列类型」（`list-filters.ts` 的口径：
+    // 字符串 ⇒ like），于是它必然发出 `{ op: 'like', value: 'true' }`。布尔列没有子串语义，
+    // 这里把它裁决成**等值**；解释不了布尔（"abc" / 1 / 数组）仍然 40099。
+    //
+    // 换到前端转是不行的：那需要在前端维护「字段 → 列类型」的镜像（第二个真源），
+    // 而列类型的权威就在本函数手里（EntityMetadata）。所以转换只落这一处。
+    if (kind === 'boolean') {
+      const bool = toBooleanValue(value)
+      if (bool !== undefined) {
+        return { ok: true, condition: { op: 'eq', value: bool, filterOp: op } }
+      }
+      return { ok: false, reason: 'like 打布尔列时 value 只能是布尔字面量（true / false / "true" / "false"）' }
+    }
     if (kind !== 'text') {
       return { ok: false, reason: `like 只对文本列可用（该列是 ${kind}）` }
     }
