@@ -303,3 +303,62 @@ CAP 人机验证（「诗人握持」挑战 + CaP 徽标）、账号/短信/邮�
 - CAP review 的 P1 三项：`ttl` 三种单位（种子配置下 challenge 仅 3.6 秒）、cap.js token 硬编码 20 分钟、token 存单机文件
 - 守卫 review：**顺序零门禁**（`getGlobalGuards` 0 命中）、Risk fail-open × CAP 放行、Lock `=== null` 永不命中
 - skip 矩阵：`sign/initial` 与 `aes-key` 的 deviceId 来自未校验 Cookie（6/7 skip）、signout 缺 JwtFree、3 处多余 IpFree
+---
+
+## 十、批次 2 / 3 收口与 platform-node 的结论（2026-11-03）
+
+### 10.1 批次 2（门禁可信化）—— 完成，R3 挡了一次提交
+
+| 轮 | 结果 |
+|---|---|
+| R1 | 3 个负对照实测：frontend 缺口坐实（admin 可偷 import Node 包，boundaries 绿）；knip 对 barrel **部分**盲区（http 报得出、contract 报不出）；madge 10.3s |
+| R2 | platform-web 加 `deny:[platform-node]`；knip 5 包补 `project` + `includeEntryExports`；madge 进 prepush（25 段）；`walnut-scaffold-lib` 脚手架（幂等，45 净行） |
+| R3 | **挡提交**：`steps.ts` 加了 circular 行但 fixture 与 release.md 电池表没同步 ⇒ `@walnut/release` 2 个用例红。且 `prepush` 的 25 段里**没有 test 段**，所以这类失败推送拦不住。已修（`c4291678`） |
+
+R3 同时给出 knip 的账：**+114 条里 87% 落在 3 个 barrel 上，而这 3 个包入口的全仓 import 语句数 = 0**；
+99 个符号里 89 个是经深路径被真实消费的 —— 不是死代码，是「入口没人走」被拆成 99 行。真死只有 3 条。
+最尖锐：报得出来的 3 个入口零消费，唯一有入口消费的 `contract` 恰好报不出来，两个集合无交集。
+→ 结论：knip 现在是「更吵且吵错方向」，降噪的根因解**就是 D8（删三个桶）**，已在批次 4 一起做。
+
+### 10.2 批次 3 —— worker 已真接线；**platform-node 的 POC 不通过**
+
+**worker（D3=A）已完成**（`fdf7392f`）：compose 加 worker service（同镜像 + command 覆盖 +
+`WORKER_STANDALONE=true` 写在容器 environment + depends_on healthy + 无 healthcheck + 日志分离）、
+api 侧同步该变量（否则 cron 双跑）、CI 在已有 PG/Redis 的 openapi job 里加冒烟（轮询等待，
+负对照 `cron jobs: 0` 会红）。实测冒烟 step 12s、build 后 `dist/apps/{api,worker}/src/main.js` 都在。
+
+**platform-node：`const` 单库 POC 不通过**，三条失败面都不在构建期暴露：
+
+1. `@swc/cli` 的 `getDest` 决定 dist 布局 = 源文件相对 cwd 的**逐字符镜像**。把 `filenames` 指向
+   `../../packages/...` 后 **build 仍 exit 0、verify 绿**，但产物被写到 `<root>/apps/packages/...`（逃出 dist），
+   `start:prod` MODULE_NOT_FOUND。
+2. 唯一开关 `stripLeadingPaths` 是全局布尔：开了 dist/packages 对了，但 `dist/apps/api/src/main.js`
+   塌成 `dist/api/src/main.js` —— Dockerfile CMD 与 start:prod 全废。
+3. `include` 加跨包路径会让 assets strip root 上提到工作区根 ⇒ `verify-build-assets` 红；
+   补 `rootDir` 能救绿但成为第 10 个注册面；且 `types:check` 跳出 `apps/server/node_modules` 解析链爆 12 条 TS2307。
+
+**⇒ D4「零 import 改写、只改 5 面」的前提不成立。** 剩下两条路：
+
+| 方案 | 内容 | 代价 |
+|---|---|---|
+| **P1** | platform-node 自建 CJS dist（照 `@walnut/contract` 样板），apps/server 消费 dist | 新构建流水线 + peerDeps(@nestjs/*) + 装饰器元数据验证 + 28 库搬迁；M→L |
+| **P2** | 放弃搬迁，保留 `libs/` 现状 | 收益 = 边界清晰；今天这条收益由 ESLint 六层分层 + drift spec 已经提供 |
+
+**当前状态：等用户拍板**（P1 还是 P2）。worker 已真接线，所以「第二个 Node 消费方」这个理由已经成立，
+但它和 api 共享同一份构建产物 —— 这个事实**削弱**了「必须拆包」的必要性。
+
+### 10.3 已修的 P1（来自模块 review）
+
+| 模块 | 提交 | 内容 |
+|---|---|---|
+| CAP | `31bdb8bb` | ttl 三单位归一（种子 3600 下 challenge 从 3.6 秒修正为 60 分钟）、缓存窗口 = min(ttl,20min)、畸形 cookie 500→40116、40111 唤醒、Lock `=== null` → isNil |
+| 前端 | `1a04803f` | 40117 单次重试，避免 refresh 失败无限重放 |
+
+CAP 的一处**口径收窄**（已知并记录）：40111 只在「本地可证 cookie 不是 cap.js token 形态」时抛；
+`success:false`（已消费/过期）仍走 40116/40117 自愈 —— 否则前端跳 not-allowed，等于每 20 分钟踢一次全部在线用户。
+
+### 10.4 待你拍板（3 条）
+
+1. **platform-node 走 P1 还是 P2**（见 10.2）——这条改变架构方向，我不替你定。
+2. `deploy/post-verify.sh` 只查 3 个容器 ⇒ worker 崩溃循环时部署仍判绿，要不要一起修。
+3. CAP × worker：worker 让进程数 1→2，而 CAP 自报「必须单实例」——要不要给 `.data` 挂共享卷，或让 worker 不实例化 CAP。
