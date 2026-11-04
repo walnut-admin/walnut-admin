@@ -17,10 +17,10 @@
 |------|------|------|
 | ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 tag 发布链路端到端验证已被决定推迟，见下面「搁置」一节 |
 | ~~P1~~ | **没有任何东西在看这一面**（不是「哪里写错了」） | **当前为空** —— 已知的几面都有人看着：turbo tags 反向断言、根脚本形态、脚本入口两条 ESLint、动态 import、madge 0 环、四道文档门禁。2026-11-04 复核无新增 |
-| **P2** | 维护性 / 体验改善，成本有据 | 两套 ALS 并存（`D13②`）· 兄弟段互杀让门禁伪造失败（`batch15-a`）· 门禁预算按段区分（`batch15-b`）· TS 7 迁移准备 · store 工厂迁移 |
-| **P3** | 远期 / 条件触发 | `as`→`satisfies`（`C1`）· 孤儿模块守卫（`A4`）· 剩余注册面守卫（`D14`）· G6 偶发（`C3`）· 后端验证策略落地 · E2E · 组件文档补写 · 两处安全观察 · `@walnut/i18n`/`@walnut/security` 新包 · Phase 4 组件自动注册 · `Global/AI` 评审缺陷 · 基建注释历史账 · env 模板三个 `VITE_*` · `list` 旧 `query` 兼容路径退役 |
+| **P2** | 维护性 / 体验改善，成本有据 | TS 7 迁移准备 · store 工厂迁移 |
+| **P3** | 远期 / 条件触发 | 后端验证策略落地 · E2E · 组件文档补写 · 两处安全观察 · `@walnut/i18n`/`@walnut/security` 新包 · Phase 4 组件自动注册 · `Global/AI` 评审缺陷 · 基建注释历史账 · env 模板三个 `VITE_*` · `list` 旧 `query` 兼容路径退役 |
 | **搁置** | 等条件成熟（外部依赖，或已决定先不动） | `pnpm peers check` · knip · tag 发布链路端到端验证 · GitHub Environments · 国内 self-hosted runner · 锚点校验 |
-| **未裁决** | 连「做不做」都还没定 | 本批 3 条（`C4` / `C3` / `D18②`）+ 2026-09-21 评审遗留的 4 条设计选型 |
+| **未裁决** | 连「做不做」都还没定 | 2 条（`C4` / `C5`）+ 2026-09-21 评审遗留的 4 条设计选型 |
 
 ---
 
@@ -43,10 +43,19 @@
 | **D12** 域缓存登记制 | ADR 0022 Decision 5 的四条准入判据 + 命名 `<domain>.cache.ts`（`apps/server/libs/cache/src/service/`）；新增域缓存不满足判据就不许进门 |
 | **D15** 分页稳定 | `apps/server/libs/repository/src/pg-list.builder.ts:120` 的 `withPgListTiebreaker(...)`：默认排序末尾追加 id 兜底 |
 | **D18①** frontend 侧边界规则 | 落在 `turbo.json:62-77`（`platform-web` deny `platform-node`）。刻意**不新建**只服务单包的 `frontend` 键，理由写在注释里；反向断言由 `lint:turbo-cache` 守 |
-| **D18③** admin 动态 import 门禁 | `packages/tooling/scripts/src/ci/check-dynamic-imports.ts` 已进 `prepush.ts:145`（`lint:dynamic-imports`）。**D18② 仍开着**，见「未裁决」 |
+| **D18③** admin 动态 import 门禁 | `packages/tooling/scripts/src/ci/check-dynamic-imports.ts` 已进 `prepush.ts:145`（`lint:dynamic-imports`）。**`D18②` 仍开着**（编号 `C5`），见「未裁决」 |
 | **D19** 不引 dependency-cruiser，madge 0 环进 prepush | `prepush.ts:87-90` 的 circular 段；`prepush.test.ts:67` 断言「摘掉 `--circular` 就红」（防止门禁退化成只数文件） |
 | **`.data` mtime 判据** | `apps/server/apps/worker/README.md` 的 SIGTERM 复现段：停 worker 前后比 `stat -c '%Y %s'` 与 sha256 —— `.data/tokensList.json` **不被重写**（不靠「应该不会写」的推断） |
 | **段数防腐测试** | `packages/tooling/scripts/src/ci/__tests__/prepush.test.ts`：段数非 0、id 无重复、整表顺序稳定、每段 argv 都落得到真实脚本、每段都写了「凭什么」 |
+| **D13①** 删死库 `libs/delay` | 目录已不存在，tsconfig paths / nest projects / swcrc / `tsconfig.app.json` 的 include / ESLint 分层名单等注册面一并清；留着的唯一效果是让人以为有个延迟能力可用 —— `41be94ab` |
+| **D13②** `libs/context` 并入 `libs/als` | `libs/context` 已删除，`rg '@walnut-server/context' apps/server` 只剩别名残留。**搬的是模块边界，两套 `AsyncLocalStorage` 实例刻意不合并** —— 合并实例会让 winston 读不到 `requestId` —— `add9481b` |
+| **`batch15-a`** 一段超时不再杀并发兄弟段 | 超时分支改调 `killChildTree(child)`（只收本条 gate 的子树），不再是无参的 `killActiveChild()`；兄弟段被连带判死的假红消失 —— `17450ef5` |
+| **`batch15-b`** 门禁预算按段区分 | `packages/tooling/scripts/src/ci/prepush.ts` 里 `PrepushGate.budgetMs` 优先、缺省回落 `GATE_BUDGET_MS`（600s），`SLOW_GATE_BUDGET_MS` 给 lint / test 两段；`PREPUSH_BUDGET_MS` 仍是全表一处的覆盖入口 —— `17450ef5` · `5dbdb4e8` |
+| **D14** 剩余注册面守卫 | `apps/server/apps/api/src/common/monorepo/__tests__/lib-registration.drift.spec.ts` 现在把磁盘 `libs/<name>` 与它头注释里列的全部注册面逐面对账（含三份 `tsconfig.app.json` 的 `include`、`eslint.config.ts` 的分层名单、`tsconfig.lib.json` 的内容形状）—— `add9481b` |
+| **A4** 孤儿模块守卫 | `apps/server/apps/api/src/common/monorepo/__tests__/orphan-module.drift.spec.ts`：扫 `@Module` 类再找 `imports` 命中，零引用即红 —— `add9481b` |
+| **C1** admin 请求体 `as` → `satisfies` | `apps/admin/src/api/system/device.ts` 已换成 `satisfies`；真根因不是断言而是 **`Initial` 类型取了实体面**，改取 wire 面 `components['schemas']['SysDeviceDTOInitialRequest']` 后两处松动各按真因修（`getMemoryGB(): number`、`deviceInfo.type` 可选就不发）—— `b382a580` |
+| **C3** `concurrency` G6 偶发 | 两条都关：测试侧种子改显式提交事务（`e2dc612d`），库侧是**真 bug** —— `apps/server/libs/db/src/tx.interceptor.ts` 的 catch 只 release 不 rollback，毒连接带着未提交事务回池（`c7f7e11f`）；负对照在真实 PG 上读到 `expected 'idle in transaction' to be 'idle'` |
+| **`--skip-gates` 的记账** | 发版电池的「真跑通过」改成只数传入的 Set：显式跳过与子进程退 3 都单列「跳过（未验证）」并减 `ranCount` —— `5dbdb4e8` |
 
 ## 剩余待办
 
@@ -54,9 +63,6 @@
 
 | 事项 | 成本 | 判据与证据 |
 |---|---|---|
-| **`D13②`** `libs/context` 并入 `libs/als`（今天两套 ALS 并存） | **S** | 位置：`apps/server/libs/context/src/logger-context.service.ts`（DI 包装）与 `logger-context.als.ts`（`AsyncLocalStorage` 本体）；对门是 `apps/server/libs/als/src/request.service.ts` 那套。**import 点只有 4 处**：`apps/server/apps/api/src/app/app.module.ts`、同目录 `core.module.ts`、`apps/server/apps/api/src/middleware/src/logger.middleware.ts`、`apps/server/apps/api/src/modules/techniques/logger/index.ts`。判据：搬完后 `rg '@walnut-server/context' apps/server` 只剩别名残留即完成。`D13①`（删 `libs/delay`：死库、0 import）本批已做 |
-| **`batch15-a`** 一条段超时会把**并发中的其它段**一起杀掉 | **S** | 证据：`packages/tooling/scripts/src/lib/child-tree.ts:33` 是**模块级集合**（登记所有活跃子进程），`packages/tooling/scripts/src/lib/child-run.ts:199` 在超时分支调**无参** `killActiveChild()` ⇒ 顺手收掉兄弟段。**它不是「零收益」的漂移**：这会让门禁**伪造失败** —— 本轮实测 4 条失败里 3 条是假红（被兄弟段的超时连带杀死）。修法二选一：把 kill 作用域化到本条 gate 的子树，或让「因兄弟段超时而收到 SIGTERM 的段」判为**跳过**而不是失败 |
-| **`batch15-b`** 门禁预算按段区分 | **XS** | 位置：`packages/tooling/scripts/src/ci/prepush.ts` 的 `GATE_BUDGET_MS`（本批已从 300s 提到 600s）与覆盖变量 `PREPUSH_BUDGET_MS`；仍是**全表一个默认值**，慢段（集成 / 构建类）与快段（文档门禁）共用同一个上限。判据：给 `PrepushGate` 加可选 `budgetMs` —— `runGates` 已支持逐段传入，改动只落在表里 |
 | **TS 7 / tsgo 迁移准备** | **M** | `@walnut/tsconfig/base.json` 的 `ignoreDeprecations: "6.0"` 一刀切静音了通往原生编译器的迁移信号。做法是先做一次**阻塞面实测**（全仓 `types:check` 用 TS 7 跑一遍），再定排期。⚠️ 与「全量 deps 升级」重叠，建议并到那一次。另：`apps/server/tsconfig.json` 未显式声明 `moduleResolution`（`module: commonjs` 使其落到默认 `node10`） |
 | **store 工厂迁移** | **M** | `createWalnutStore()` 只在 `@walnut/client` 内部被引用（`src/index.ts` + `store/createWalnutStore.ts`），admin 侧 26 个 store 文件 **0 处**使用（判据：`rg createWalnutStore apps/admin`）。新 store 优先用它，别再复制模式 |
 
@@ -68,10 +74,6 @@
 
 | 事项 | 成本 | 判据与证据 |
 |---|---|---|
-| **`C1`** `device.ts` 的 `as` → `satisfies` | **S** | `apps/admin/src/api/system/device.ts:97` 用 `as IRequestPayload…Initial` ⇒ `request.d.ts` 的 `Omit<…, 'deviceName'>` 守卫被吞（多带 `deviceName` 时 tsc 零报错，只能靠服务端 40099 兜）。换 `satisfies` 会立刻暴露两处**预存在**的松动：`:83` 的 `unknown→number`、`:86` 的 `deviceInfo` 缺 `type` —— 要修得先动 payload 的构造来源。**有 C 编号：`reports/NEEDS-CONFIRMATION.md` C1** |
-| **`A4`** 孤儿模块守卫（`@Module` 类零引用） | **XS** | 全仓只出现过 1 个真孤儿（已修）；`apps/server/apps/api/src/common/monorepo/repo-global.drift.spec.ts` 的 **imports 可见性**判据已覆盖主要症状（模块被人忘了 import 就不在依赖图上）。判据：真要做就是「扫 `@Module` 类 → 找 `imports` 命中」，收益边界很窄，别顺手扩大成「扫所有装饰器」 |
-| **`D14`** 注册面「生成化」（剩 5 个面） | **M** | **防漏这一半已经做完**：写入口唯一 —— `packages/tooling/scripts/src/scaffold/lib-registration.ts`（`pnpm scaffold:lib`）；漏改会红 —— `apps/server/apps/api/src/common/monorepo/lib-registration.drift.spec.ts` 以磁盘 `libs/<name>` 为基准对账五处注册面。**剩下的价值只有「从单一 manifest 生成」**：tsconfig paths / 3 份 nest projects / 3 份 swcrc / 3 份 tsconfig.app include / ESLint `files` 前缀 —— 买的是「加一个库不用碰一堆文件」而不是「防漏」，这也是它从 P1 降到 P3 的原因。判据：加一个假 lib 只需改 manifest 1 行 + 跑生成，且 drift spec 仍能拦住手工漏改 |
-| **`C3`** `concurrency.api-spec.ts` 的 G6 偶发 | **M** | `apps/server/apps/api/test/api/platform/concurrency.api-spec.ts:383-433`：`expected 3 to be 1003` —— rotate 没命中自插的高 version 种子行（种子 version 在 `:391`）。单跑 6/6 绿、全量偶发；根因未证实（可疑方向：应用池上**会话级 RLS GUC 残留**，让造种子的连接与轮换事务看到不同的 `app_key` 行）。**隔离改动 0**。选项与推荐见 `reports/NEEDS-CONFIRMATION.md` C3 |
 | **后端验证策略（落地）** | **L** | 方向不变、前提已变：NestJS 12 已官方支持 Standard Schema（`@Body({ schema })` + `StandardSchemaValidationPipe`，同一 schema 还能驱动 OpenAPI），class-validator 仍完全支持、无移除计划。真正的缺口不在「换校验器」，而在**持久化读回 / 队列 / SSE** 三处边界校验 —— 补不上这三处，这次迁移就不值得做（详见 [ADRs 0016](../adr/0016-validation-strategy.md) 与 [zod 评估](../adr/zod-evaluation.md) 末尾的 2026-11-04 订正） |
 | **E2E 测试（Playwright）** | **L** | 先覆盖单元 + 集成；E2E 等测试体系稳定后再加 |
 | **按新命名补写组件文档** | **L** | 正典是 `content/frontend/component/index.md` 规划的那套（kebab-case + 六个目录）。现状：规划里的页面一篇未写，旧树 42 篇仍在 sidebar 里可达（写完之前先留着，否则组件文档就没入口了）。完成标志：新页存在 → 旧树删除 → sidebar 改指 → `index.md` 的纯文本改回链接（要过 `build:docs` 死链校验） |
@@ -83,13 +85,31 @@
 | **env 模板里三个 `VITE_*` 是空串** | **S** | `VITE_GA_ID` / `VITE_GOOGLE_CLIENT_ID` / `VITE_SERVER_STATIC_PUBLIC_KEY` 的明文就是 `''`，`pnpm setup-env` 恢复不出真值。GA 与 Google 都有消费点自己的守卫，**`VITE_SERVER_STATIC_PUBLIC_KEY` 没人兜**（登录时与服务端下发的值比对，空串大概率判不匹配，未实测）。要决定：模板是否带一组可用 dev 值，还是把「空值 ⇒ 该功能关闭」定成所有消费点的统一约定 |
 | **`list` 的旧 `query` 兼容路径退役** | **S** | `apps/server/libs/repository/src/pg-list.builder.ts` 的 `IListRequestParams.query` / `legacyConditionFromValue()` 及其 `raw` 分支。HTTP 层早已不收这个槽位（DTO 无该字段，顶层白名单直接 40099），今天只剩「库内 / 库外直接构造入参」的兜底，语义是**丢弃 + warn**。删除判据两条全满足：① 静态 0 调用点；② 运行面连续 30 天无触达（这条路径解释成功时**完全静默**，要按它判得先补触达计数）。现在不删：删它零收益，留着有回滚价值 |
 
+## 测试目录约定（2026-11-04 起，`9238dcc8`）
+
+> 判据优先：写「什么该放哪」而不是写文件数 —— 数目会腐烂，落点规则不会。
+
+- **单测与源码同目录**：`__tests__/` 放在被测文件旁边（如 `apps/server/libs/als/src/__tests__/`），
+  不再有把单测与源码分居两棵树的集中目录。判据：找一个模块的源码就能在它旁边找到它的单测，
+  反之亦然。
+- **接口测试**：`apps/server/apps/api/test/api/<模块>/` —— 一级目录与 `apps/server/apps/api/src/modules/`
+  的一级目录一一对应；**跨切面的放 `platform/`**，`helpers/` 只放不承载用例的夹具。
+  判据：`test/api/` 的一级目录集合 = `src/modules/` 的一级目录集合 + `platform/` + `helpers/`，
+  多出一个模块目录或少一个都算漂移。
+- **集成测试**：`apps/server/apps/api/test/integration/<领域>/` —— 一级目录按**领域**（一次真实的跨模块
+  协作，如 auth / device / tx）分，不按模块分。判据：新建领域协作才新建目录，单个模块的编排进 `test/api/`。
+- **e2e**：`apps/server/apps/api/test/e2e/`。
+
+> 这次重整**只动位置、不动内容**（用例集合不变），所以「目录约定」不是新增纪律，而是把已经落地的
+> 事实写下来 —— 新增用例按**被测对象**选目录，不按「上一批放哪」。
+
 ## 待触发 / 建议不做
 
 | 项 | 为什么现在不做 | 什么情况下捞回来 |
 |---|---|---|
 | **`D4` 的 P1**（两个包自建 CJS dist，恢复包边界） | 现状走 P2「不搬」：边界清晰今天已由 ESLint 六层 + 3 个 drift spec + madge 提供；P1 的代价是新增一条构建流水线 + `peerDeps(@nestjs/*)` + 28 库搬迁 | 出现**第二个 Node 产品线**（不是第二个进程 —— worker 与 api 共用同一份 AppModule 与构建产物，不构成跨包复用），或决定把后端能力对外发布。触发条件与实测结论见 `industry-research/backend-architecture-review/07-decisions.md` 的 D4 修订记 |
 | **`turbo.json` 的 `platform-node` tag** | 留着当 P1 的落点：今天没有 subject（`packages/platform-node` 未建），那条规则永远空转 —— **属已知冗余，不是遗漏** | 走 P1 建包那天它自动生效；现在删掉反而要在同一批里加回来 |
-| **`D18②`**（3 个包的 barrel 从 knip `entry` 摘出，改「0 引用」脚本） | 处方**实测判为物理不可执行**：knip 会从 `package.json` 的 `exports` 把同一个 barrel 推回 `entry`，**摘了等于没摘** —— 判据与推理写在 `knip.config.ts:155-165` | 要查 barrel 自身的死导出只能另立「barrel 符号 0 引用」专用脚本（成本 M）。**要不要接受「改成不做」需拍板**，见「未裁决」 |
+| **`D18②`**（共享包的 barrel 从 knip `entry` 摘出，改「0 引用」脚本） | 处方**实测判为物理不可执行**：knip 会从 `package.json` 的 `exports` 把同一个 barrel 推回 `entry`，**摘了等于没摘** —— 判据与推理写在 `knip.config.ts:155-165` | 要查 barrel 自身的死导出只能另立「barrel 符号 0 引用」专用脚本（成本 M）。**要不要接受「改成不做」需拍板 —— 已编号为 `C5`**，见「未裁决」 |
 | **`D20` / `D10` 的 `build/image/**` 旧拷贝** | 是**本地构建遗留**的 deploy 产物，**已被 gitignore**（判据：`git status --ignored -- build` 只显示 `!! build/image/`）⇒ 不进仓、不影响任何门禁 | 不需要捞回来：要清就重跑一次 `pnpm deploy` 让它自净（或直接删目录），别为它写清理脚本 |
 | **UUID v7 / dependency-cruiser / 第三个 platform-node 包** | 已决定「不做 / 等触发」，留痕在 `07-decisions.md` 的「明确不做」一节 | 条件写在同一节，别在这里重抄 |
 
@@ -110,13 +130,12 @@
 
 > 每条都写了选项与倾向；裁决结果要么变成上面的 P2/P3 条目，要么写进 ADR（「已否决」也要留痕）。
 
-### 本批 3 条（带 `C` 编号，登记在 `reports/NEEDS-CONFIRMATION.md`）
+### 本批 2 条（带 `C` 编号，登记在 `reports/NEEDS-CONFIRMATION.md`）
 
 | # | 议题 | 选项与倾向 |
 |---|---|---|
 | **C4** | `platform-node` 走 **P1**（两个包自建 CJS dist）还是 **P2**（不搬 = 现状） | (a) **P2 不搬**（当前按这个做的）：边界由 ESLint 六层 + drift spec 守；(b) P1 自建 dist，第一关必须是「`tsc` 产出的装饰器元数据与 SWC 等价」—— 错了的症状是**静默的**（接口 200 但字段消失）。**推荐 (a)**，触发条件见「待触发」 |
-| **C3** | G6 偶发怎么收（`concurrency.api-spec.ts:383-433`） | (a) 记为已知 flake，全量偶发 1 failed 不结案；(b) 单开一批查 RLS GUC 与会话复用（可能牵出连接池改动）；(c) 让该 spec 自带隔离（每次用独立连接造种子）。**推荐 (b)**；C 是低风险兜底，且**隔离改动今天仍是 0** |
-| **D18②** | 原处方被判**物理不可执行**，接不接受「改成不做」 | (a) **接受**：barrel 死导出这条面**不做**，只在 `knip.config.ts` 留判据；(b) 另立「barrel 符号 0 引用」专用脚本（报告模式 → 白名单 → 进 prepush，成本 M）。⚠️ 这条**没有 C 编号**（那份清单只收 C1–C4），要进清单请给它一个号 |
+| **C5** | `D18②` 的原处方被判**物理不可执行**，接不接受「改成不做」 | (a) **接受**（当前按这个做的）：barrel 死导出这条面**不做**，只在 `knip.config.ts` 留判据与理由（成本 0）；(b) 另立「barrel 符号 0 引用」专用脚本（报告模式 → 白名单 → 进 prepush，成本 M）。**推荐 (a)**；编号来由：这条原在本表里没有 `C` 号，2026-11-04 补成 `C5` |
 
 ### 2026-09-21 评审遗留的 4 条设计选型
 
@@ -143,7 +162,7 @@
 - **另一本账（产品 / 功能待办）**：仓库根的 [`TODO.md`](https://github.com/walnut-admin/walnut-admin/blob/main/TODO.md)
   —— 记的是**功能与体验**；本表记的是**架构与工程债**，两者刻意分开。
   ⚠️ 那个文件里的编号项（`000` / `111` / `999`）**被源码里的 `// TODO NNN` 注释引用**，改编号等于改一堆注释锚点。
-- **需要拍板与已代拍的账**：`reports/NEEDS-CONFIRMATION.md`（已收口：C1 / C3 / C4 待拍板，C2 已结案留档）
+- **需要拍板与已代拍的账**：`reports/NEEDS-CONFIRMATION.md`（已收口：§1 只剩 `C4` / `C5` 两条待拍板，`C1` / `C2` / `C3` 均已结案留档）
 - **后端结构调研的决策与计划**：`industry-research/backend-architecture-review/` 的
   [06 复核](/content/industry-research/backend-architecture-review/06-cross-check) ·
   [07 决策](/content/industry-research/backend-architecture-review/07-decisions) ·

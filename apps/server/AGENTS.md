@@ -116,7 +116,7 @@ dotenvx 密文、`setup-env` / `encrypt-env`、加载哪几个 env 文件、CI �
 ## 测试
 
 Vitest，配置在 `apps/server/apps/api/vitest.config.ts`（E2E 用 `vitest.config.e2e.ts`，集成用
-`vitest.config.integration.ts`）。新增纯函数与工具必须补测试。
+`vitest.config.integration.ts`）。新增纯函数与工具必须补测试。**目录**：单测放同目录 `__tests__/`；接口测试 `test/api/<模块>/`、集成 `test/integration/<领域>/`、e2e `test/e2e/` —— 判据见 `apps/docs/src/zh-CN/content/monorepo/architecture-todo.md` 的「测试目录约定」。
 
 **同一 worktree 同时只允许一个 `test:integration`**（`test:e2e` 同理）：集成库
 `walnut-admin-integration` 是共享单实例，globalSetup 一进来就 drop 重建 —— 并发跑会互删库、
