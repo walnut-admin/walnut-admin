@@ -8,7 +8,7 @@ import { AuthSessionService } from '@walnut-server/auth'
 import { AppTechCacheRsaService, AppTechCacheSignService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { AppTechCookieService, getWalnutAdminCookie } from '@walnut-server/cookie'
+import { AppTechCookieService, getWalnutAdminCookie, getWalnutAdminCookieString } from '@walnut-server/cookie'
 import {
   WalnutAdminExceptionExpiredSignature,
   WalnutAdminExceptionInvalidSignature,
@@ -184,7 +184,15 @@ export class WalnutAdminGuardSign implements CanActivate {
     const nonce = req.headers[RequestHeaders.NONCE.toLowerCase()] as string
     const timestamp = req.headers[RequestHeaders.TIMESTAMP.toLowerCase()] as string
     const deviceId = getWalnutAdminCookie(req, WalnutAdminConstCookieKeys.DEVICE_ID)
-    const signTicket = getWalnutAdminCookie(req, WalnutAdminConstCookieKeys.SIGN_TICKET)
+    // SIGN_TICKET 用 String 版本（与 device.guard.ts 的 DEVICE_ID 同口径）：cookie-parser 对
+    // 「带 s: 前缀但签名不对」—— 即 APP_COOKIE_SECRET 轮换后的旧 cookie —— 返回 `false` 而不是
+    // undefined，`isNil(false)` 是 false ⇒ 裸取值会让它进「与缓存不符」分支：本意抛 40112，
+    // 实测连那一步都到不了 —— 该分支的日志摘要先炸（`secretDigest(false)` 的 `update(false)`
+    // 触发 ERR_INVALID_ARG_TYPE ⇒ 50000，与 CAP guard 当年同形）。两种都**没有自愈路径**：缓存里
+    // 那枚 ticket 还在 ⇒ 重签腿永远走不到 ⇒ 只能人工清 cookie。
+    // 归一成「缺失」之后走重签：服务端用缓存值重发一枚能验签的 cookie。
+    // 签名**合法**但与缓存不符仍是 40112 —— 那条语义不变（同块的正对照守着它）。
+    const signTicket = getWalnutAdminCookieString(req, WalnutAdminConstCookieKeys.SIGN_TICKET)
 
     if (!sign || !ua || !nonce || !timestamp || !deviceId) {
       this.logger.error(
@@ -247,7 +255,7 @@ export class WalnutAdminGuardSign implements CanActivate {
   /**
    * 验证 Sign Ticket
    */
-  private async validateSignTicket(deviceId: string, signTicket: string | null, req: IWalnutAdminExpressRequest) {
+  private async validateSignTicket(deviceId: string, signTicket: string | undefined, req: IWalnutAdminExpressRequest) {
     const cachedSignTicket = await this.cacheSignService.getSignTicketCache(deviceId)
 
     // 缓存存在 - 快速路径(无锁)

@@ -17,7 +17,7 @@
 
 **状态：待拍板**（推荐 A = **P2 不搬**）｜ 成本 **L**（只算 P1 那一支）｜ 记在架构待办的「未裁决」
 
-- **背景**：原计划把 28 个「业务无关的后端基建」库下沉成一个 `platform-node` 包，前提是「零 import 改写、只改几个配置面」。
+- **背景**：原计划把 28 个「业务无关的后端基建」库下沉成一个**曾计划的** `platform-node` 包（从未建过，现状见下），前提是「零 import 改写、只改几个配置面」。
   2026-11-03 的 `const` 单库 POC 把这个前提判掉了：`@swc/cli` 的 `getDest` 让产物按源文件的逐字符镜像逃出 `dist`，
   而 **build 仍然 exit 0**；唯一开关 `stripLeadingPaths` 是全局布尔，开了就把 `dist/apps/api/src/main.js` 塌成
   `dist/api/src/main.js`；跨包 `include` 连累 assets 校验，补 `rootDir` 能救绿但会让 `types:check` 爆 TS2307。

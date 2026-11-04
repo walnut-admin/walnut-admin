@@ -7,7 +7,9 @@
  * `opaque.core.service.ts` 里 `this.serverSetup = configService.get('jwt.opaque.secret')`），
  * 而客户端产出的注册记录（registration record）是用 OPRF 输出派生的密钥加密的 ⇒ **换一个 secret
  * 就必然登不进去**。发布它等于发布一份在别人机器上无效的凭证；要让它能用就得连 secret 一起发
- * （那是仓里明写的「部署后不许改的 5 个」之一，等于所有安装共用同一把根密钥）。
+ * （它属于 `apps/server/AGENTS.md` 的「环境变量」一节里那组「部署后不许改」的根密钥 ——
+ * 判据是「改一次，用旧 key 加密的历史数据就再也解不开」，不是某个固定的条数 ——
+ * 共用它就等于所有安装共用同一把根密钥）。
  *
  * 所以 seed 只发**无凭证**的账号档案，口令由这条命令在**目标环境**里现生成 —— 走的是与线上
  * 注册完全相同的协议（同一份 `@serenity-kit/opaque`，同一个 `serverSetup`），不是伪造 hash。

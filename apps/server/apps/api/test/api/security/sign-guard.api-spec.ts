@@ -21,7 +21,7 @@ import { signCookieValue, unsignCookieValue } from '../helpers/signed-cookie'
  *   nonce 重放 / 缺 ticket 自动签发；
  * - `libs/guards/src/guards/__tests__/sign.guard.spec.ts`：40113 只有 mock 缓存的单测。
  *
- * 本文件补的五条，构造它们都需要**真 cookie 签名**或**真 Redis 缓存通道**：
+ * 本文件补的六条，构造它们都需要**真 cookie 签名**或**真 Redis 缓存通道**：
  * 1. 40113：删掉 aesKey 握手态、ticket 仍合法 ⇒ ExpiredSignature（与 40012「握手根本没做过」区分）；
  * 2. SIGN_TICKET cookie ≠ 缓存（helper 签的合法签名 + 服务端没见过的值）⇒ 40112，含「不带 `s:`
  *    前缀被整条丢弃 ⇒ 走续签」的机制对照组；
@@ -30,6 +30,10 @@ import { signCookieValue, unsignCookieValue } from '../helpers/signed-cookie'
  * 5. B5 旧形态 64hex DEVICE_ID：合法签名 ⇒ Device guard 40605（形态判据），同一枚值在
  *    DeviceFree 的 `/` 上 ⇒ 40012（说明它**真的被解析成了设备 id 字符串**，而不是被 cookie 层
  *    丢弃后变成「缺失」）—— 无签名的同一枚值 ⇒ 40112，两种拒绝原因因此可分。
+ * 6. `APP_COOKIE_SECRET` 轮换后的自愈：`s:` 前缀 + 坏 HMAC 的 SIGN_TICKET 曾被 `isNil` 判不出来
+ *    ⇒ 当成「与缓存不符」（本意 40112，实测在日志摘要 `secretDigest(false)` 处先炸成 50000）——
+ *    两条都**没有自愈路径**；现在归一成「缺失」⇒ 重签 20000 + Set-Cookie。
+ *    同块内的正对照守着另一半语义：签名**合法**但值与缓存不符仍是 40112 且无 Set-Cookie。
  *
  * 全部用例走**匿名单因子**（登录态会切双因子，与本文件无关）；破坏性动作自建自还原。
  */
@@ -359,6 +363,62 @@ describe('A 路 · Sign 家族：40113 握手态 / ticket 校验 / 时间窗边�
       }
       finally {
         api.setCookie(WalnutAdminConstCookieKeys.DEVICE_ID, saved)
+      }
+    })
+  })
+
+  // ============================================================
+  // 6. APP_COOKIE_SECRET 轮换后的自愈：坏签名 = 缺失（不是失配）
+  // ============================================================
+  describe('Sign guard：SIGN_TICKET 坏签名（APP_COOKIE_SECRET 轮换）⇒ 重签自愈', () => {
+    it('s: 前缀 + 坏 HMAC（模拟轮换后的旧 cookie）⇒ 20000 + Set-Cookie 重签，不是 40112', async () => {
+      const cachedTicket = await cache.get<string>(ticketKey(api.deviceId))
+      expect(typeof cachedTicket).toBe('string')
+      expect(cachedTicket).toBeTruthy()
+
+      // 值就是缓存里那枚合法 ticket，只是用**换过的 secret** 签的 —— APP_COOKIE_SECRET 轮换后
+      // 旧客户端手里的 cookie 正是这个形态。cookie-parser 验签失败 ⇒ signedCookies 里是 false
+      // （不是 undefined）。裸 getWalnutAdminCookie 取到 false ⇒ isNil(false) === false ⇒ 进
+      // 「与缓存不符」分支（本意 40112，实际先在该分支的 secretDigest(false) 炸成 50000），而缓存里
+      // ticket 还在 ⇒ 重签腿永远走不到 ⇒ 只能人工清 cookie。这条断言的就是「现在能自愈」。
+      const rotated = signCookieValue(`${cookieSecret}-rotated`, cachedTicket!)
+      expect(unsignCookieValue(rotated)).toBe(cachedTicket)
+
+      const saved = api.getCookie(WalnutAdminConstCookieKeys.SIGN_TICKET)!
+      api.setCookie(WalnutAdminConstCookieKeys.SIGN_TICKET, rotated)
+      try {
+        const res = await api.anon('GET', api.apiPath('/'))
+        expectOk(res, 'bad-signature ticket treated as missing ⇒ re-sign')
+
+        // 自愈的判据不是「这次没报错」，而是服务端真发了一枚**能验签**的 cookie（值 = 缓存里那枚）
+        const renewed = cookieValueFromResponse(res, WalnutAdminConstCookieKeys.SIGN_TICKET)
+        expect(renewed).toBeTruthy()
+        expect(unsignCookieValue(renewed!)).toBe(cachedTicket)
+      }
+      finally {
+        api.setCookie(WalnutAdminConstCookieKeys.SIGN_TICKET, saved)
+      }
+    })
+
+    it('正对照：签名合法但值与缓存不符 ⇒ 仍 40112 且无 Set-Cookie（失配语义不被自愈削弱）', async () => {
+      const cachedTicket = await cache.get<string>(ticketKey(api.deviceId))
+      expect(cachedTicket).toBeTruthy()
+
+      // 与上一条的差别只有一处：HMAC 是**真 secret** 签的 ⇒ cookie-parser 解得出字符串 ⇒
+      // guard 拿到的不是「缺失」而是「另一个值」，必须按失配拒绝（否则坏签名自愈会顺手放行伪造值）。
+      const foreign = signCookieValue(cookieSecret, randomBytes(16).toString('base64url'))
+      expect(unsignCookieValue(foreign)).not.toBe(cachedTicket)
+
+      const saved = api.getCookie(WalnutAdminConstCookieKeys.SIGN_TICKET)!
+      api.setCookie(WalnutAdminConstCookieKeys.SIGN_TICKET, foreign)
+      try {
+        const res = await api.anon('GET', api.apiPath('/'))
+        expect(bodyOf(res).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_SIGNATURE)
+        // 失配在「缓存存在」的快速路径里直接抛 ⇒ 没有重签的 Set-Cookie
+        expect(cookieValueFromResponse(res, WalnutAdminConstCookieKeys.SIGN_TICKET)).toBeUndefined()
+      }
+      finally {
+        api.setCookie(WalnutAdminConstCookieKeys.SIGN_TICKET, saved)
       }
     })
   })
