@@ -16,7 +16,7 @@ import { AppModule } from '@/app/app.module'
 import { INTEGRATION_DATABASE_NAME } from './integration.const'
 
 /**
- * 集成测试装配辅助：与 `apps/api/test/app.e2e-spec.ts` 同款的全量装配 ——
+ * 集成测试装配辅助：与 `apps/api/test/e2e/app.e2e-spec.ts` 同款的全量装配 ——
  * 完整 AppModule（全局模块、guard 链、interceptor 链齐全）。
  *
  * 唯一的替换：CACHE_MANAGER 换成 cache-manager 的内存实现。原因：

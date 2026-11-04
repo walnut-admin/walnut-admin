@@ -38,7 +38,7 @@ export default defineWalnutVitestConfig({
     // helpers/create-api-app 装配）。两类同库共享：fileParallelism:false 串行 +
     // globalSetup 每轮 drop 重建，互相不可见脏数据。
     include: realDataOnly
-      ? ['apps/api/test/api/real-data.api-spec.ts']
+      ? ['apps/api/test/api/platform/real-data.api-spec.ts']
       : [
           'apps/api/test/integration/**/*.int-spec.ts',
           'apps/api/test/api/**/*.api-spec.ts',

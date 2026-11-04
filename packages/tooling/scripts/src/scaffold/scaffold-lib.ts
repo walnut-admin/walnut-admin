@@ -102,6 +102,6 @@ export async function main(): Promise<void> {
   out('')
   out('下一步（两条都必须绿）：')
   out('  pnpm --filter @walnut/server types:check')
-  out('  cd apps/server && node_modules\\.bin\\vitest.cmd run --config ./apps/api/vitest.config.ts apps/api/src/common/monorepo/lib-registration.drift.spec.ts')
+  out('  cd apps/server && node_modules\\.bin\\vitest.cmd run --config ./apps/api/vitest.config.ts apps/api/src/common/monorepo/__tests__/lib-registration.drift.spec.ts')
   line('ok', `已写入 ${changed.length} 个文件`)
 }

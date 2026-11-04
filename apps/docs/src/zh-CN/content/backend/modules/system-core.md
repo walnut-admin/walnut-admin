@@ -13,7 +13,7 @@ dict / lang / locale 是三组互相独立的配置数据。
 源码入口：`apps/server/libs/system/src/`（role / menu / dict / lang / locale）与
 `apps/server/apps/api/src/modules/system/`（controller 与 user 的 wire DTO）。接口矩阵的原始测绘在
 `apps/server/apps/api/test/api/ENDPOINTS.md` §5；权限链路的实测锚点在
-`apps/server/apps/api/test/api/permission-chain.api-spec.ts`。
+`apps/server/apps/api/test/api/platform/permission-chain.api-spec.ts`。
 
 ## 1. 域总览
 

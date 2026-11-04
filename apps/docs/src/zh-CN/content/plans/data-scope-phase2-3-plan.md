@@ -27,7 +27,7 @@ list 不出现。create 自动填所属部门/创建者。
 
 > **批 1 已实施**（`afc8cde`）。**批 2 已实施**（2026-10-30）：demo 部门列 +
 > create 双回填 + 角色/用户 admin 表单 + 六档 + M1-M10 矩阵
-> （`apps/server/apps/api/test/api/data-scope-matrix.api-spec.ts`）。
+> （`apps/server/apps/api/test/api/system/data-scope/data-scope-matrix.api-spec.ts`）。
 
 ### 1.1 批 1：迁移与解析器扩展（纯后端）
 

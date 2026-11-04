@@ -86,7 +86,7 @@ export const useCounterStore = createWalnutStore('counter', pinia, () => {
 ## 已知限制与延后工作
 
 - **store 工厂零消费者（A10）**：`createWalnutStore()` 目前只在包内出现（`src/store/createWalnutStore.ts`；它原来还从桶入口导出一份，桶已于 D8 删除），admin 侧的 store 文件 0 处使用 —— 待办 A10；`apps/admin/AGENTS.md` 也写着「新 store 请优先用它，别再复制模式」。
-- **用例面很窄**：`vitest.config.ts`（jsdom + `@vitejs/plugin-vue`）与 `test: vitest run --passWithNoTests` 都在，但包内只有 `src/browser/shared.test.ts` 一个用例文件（覆盖 `browser/shared.ts` 的纯函数面，D7 下沉后与 `@walnut/utils` 的同源断言仍在这里对拍）；ADR 0015 给本包定的覆盖率目标是 80%，离得更远的是用例数量而不是配置。
+- **用例面很窄**：`vitest.config.ts`（jsdom + `@vitejs/plugin-vue`）与 `test: vitest run --passWithNoTests` 都在，但包内只有 `src/browser/__tests__/shared.test.ts` 一个用例文件（覆盖 `browser/shared.ts` 的纯函数面，D7 下沉后与 `@walnut/utils` 的同源断言仍在这里对拍）；ADR 0015 给本包定的覆盖率目标是 80%，离得更远的是用例数量而不是配置。
 - **`browser/shared.ts` 混了两类东西**：`detectDeviceType` / `getCPUCoreCount` 需要浏览器，而 `getBoolean` / `getFunctionBoolean` / `objectToPaths` / `pathsToObject` 是纯函数 —— ADR 0017 §4「已知问题」记的就是这条（Phase 2 可考虑分离）。
 - **ADR 0017 §4 的「从 apps/admin 迁入」清单没走完**：`utils/persistent/migrate.ts`（`setupStorageMigrations()`）、`utils/window/open.ts`（仍直接 import `@/router/routes/mainout`）、`hooks/component/useCountdown.ts`、`hooks/component/useDriver.ts` 至今留在 admin —— 对照 ADR 0017 §4 的迁入表与实际文件位置；同表中 `Cookie` 一条已完成（admin 只剩一行重导出）。
 - **持久化载荷里的 `_v` 没有消费方**：`storage/{sync,async}.ts` 写入时都记 `_v: version`（包版本），但读回只解析 `v` 与 `e`（过期时间），全仓对 `_v` 只有这两处写入 + 类型声明 —— 也就是说跨版本迁移仍由 admin 的 `utils/persistent/migrate.ts` 承担，而它正是上面那条未迁入的清单成员。

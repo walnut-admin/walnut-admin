@@ -105,7 +105,7 @@ module-name/
 这两个可选层的取舍规则见 `apps/server/AGENTS.md` 的「Repository 与 Shared Service」一节 ——
 **controller 级的 `*.service.ts` 不许直接触达数据层**，所有数据访问都要穿过 Repository 层。
 `@Global` 不是这两个目录的同义词：判据是**消费方模块数 ≥ 2**（= 1 时必须由拥有者模块显式 import），
-由 `apps/api/src/common/monorepo/repo-global.drift.spec.ts` 机械守。
+由 `apps/api/src/common/monorepo/__tests__/repo-global.drift.spec.ts` 机械守。
 
 ## Entity 注册与仓库注入
 

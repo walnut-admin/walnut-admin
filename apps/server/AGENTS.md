@@ -65,7 +65,7 @@ Repository 也算）—— 所有数据访问必须穿过 Repository。
 模块用 → `repo/` 落点。**`@Global` 只有一个判据：消费方模块数 ≥ 2**（数「声明了注入该 repository
 的类」的模块，不是数文件、不是数调用点）：= 1 时**不许** @Global —— 它只会把真实依赖从 imports
 图上抹掉，由拥有者模块显式 import；≥ 2 才允许，并在模块头注释登记理由。判据 + 「非 @Global 的
-每个消费方都能经 imports 看见它」由 `apps/api/src/common/monorepo/repo-global.drift.spec.ts`
+每个消费方都能经 imports 看见它」由 `apps/api/src/common/monorepo/__tests__/repo-global.drift.spec.ts`
 机械守（跑单测即校验）。
 
 **实体注册**在模块 `imports` 里：`TypeOrmModule.forFeature([XxxEntity], WalnutPGConnectionName)`
@@ -99,7 +99,7 @@ CRUD 装饰器由 `WalnutCrudDecorators({ title, DTO })` 工厂生成（`@walnut
 定义在 `apps/server/apps/api/src/app/app.module.ts`（第 12 位在 `tech.module.ts`）。注意该文件自己的
 注释：**controller 装饰器上的顺序是反的**（自下而上）。
 
-**改这个顺序必须同步 `apps/server/apps/api/src/common/monorepo/guard-order.drift.spec.ts`**：
+**改这个顺序必须同步 `apps/server/apps/api/src/common/monorepo/__tests__/guard-order.drift.spec.ts`**：
 它按「模块扫描序 × providers 数组序」把 APP_GUARD 摊平后与那份 12 元黄金序列逐位比对，
 只改装配不改它必红，只改它不改装配则是自欺（顺序的真源是装配，不是 spec）。
 

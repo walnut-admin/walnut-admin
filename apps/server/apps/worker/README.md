@@ -97,7 +97,7 @@ winston-daily-rotate 轮转时互相 rename）。它**没有 healthcheck**：本
 那条 `expires=1` 的假 token 就是为了让这一步**不能空过** —— 不需要真凭据。
 
 结构级的同一判据是零基础设施的
-`apps/api/src/common/monorepo/worker-import-closure.drift.spec.ts`（worker import 闭包不含
+`apps/api/src/common/monorepo/__tests__/worker-import-closure.drift.spec.ts`（worker import 闭包不含
 `cap.service.ts`）；CI 这条是它的运行期佐证。
 
 本机等价做法（在 `apps/server/` 下，需要 PG + Redis + 解密后的 `env-local/.env.development`）：

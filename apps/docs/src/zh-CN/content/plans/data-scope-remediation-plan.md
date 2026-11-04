@@ -119,7 +119,7 @@
 ### 4.2 L4：连接占用 spike 实测（已实施，2026-10-31）
 
 > 状态：**已实测，结论=维持现状（每 CRUD 隐式事务）**。
-> 落地形态：并列新 spec `apps/server/apps/api/test/api/pool-occupancy.api-spec.ts`
+> 落地形态：并列新 spec `apps/server/apps/api/test/api/platform/pool-occupancy.api-spec.ts`
 > （计划允许「扩展 concurrency 或并列新 spec」二选一；选后者保持测量隔离）。
 > 方法：集成库 in-process app，池上限读运行期 `pool.options.max`（=10，不硬编码）；
 > 串行基线 12 发 → 2×池并发预热波（丢弃建连成本）→ 同并发对照波（`GET /`，无 PG

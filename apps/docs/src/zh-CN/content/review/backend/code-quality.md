@@ -253,7 +253,7 @@ Socket 两个 P0（CQ-001/002）+ SSE 两个问题（CQ-005/013）全部落在**
 
 ## e2e / integration 配置结论
 
-存在且指向合理：`vitest.config.ts`（unit）、`vitest.config.integration.ts`（int-spec + api-spec，真实 PG/Redis 集成库、串行 + globalSetup drop/rebuild）、`vitest.config.e2e.ts`（全量 AppModule，1 份 `test/app.e2e-spec.ts`）。集成配置注释记录的 node-redis v5 批量形态与 keyv 双包隐患处理是高质量工程记录。无 finding。
+存在且指向合理：`vitest.config.ts`（unit）、`vitest.config.integration.ts`（int-spec + api-spec，真实 PG/Redis 集成库、串行 + globalSetup drop/rebuild）、`vitest.config.e2e.ts`（全量 AppModule，1 份 `test/e2e/app.e2e-spec.ts`）。集成配置注释记录的 node-redis v5 批量形态与 keyv 双包隐患处理是高质量工程记录。无 finding。
 
 ---
 

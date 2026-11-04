@@ -320,7 +320,7 @@
 > 结果覆盖全部 TEST-NET-3 探针 IP（afterAll 清理），根因是 api.ip.sb 对保留 IP 段返回
 > HTTP 400 → 50302；键构造与服务端同走 normalizeIp。连跑两轮整轮集成均稳定。
 
-- **位置**：`apps/api/test/api/guard-matrix.api-spec.ts`（IP guard 组的
+- **位置**：`apps/api/test/api/platform/guard-matrix.api-spec.ts`（IP guard 组的
   「【安全矩阵发现】非黑名单伪造 IP 直通 → 20000」用例）→
   `libs/security/src/risk/modules/location.service.ts`
   （`evaluateLocationRisk` / `performLocationEvaluation`）→

@@ -17,9 +17,9 @@
   `migration:run → revert → run` 两轮实测（约束「在 / 不在」可区分）；integration 分片合计
   `65 文件 / 653 条 = 647 passed · 5 failed · 1 skipped`。
 - **R3 挡下的**：`8 文件 / 69 条全绿` 被当成「收尾完成」的依据 —— 其余文件里还有 5 条红：
-  `apps/server/apps/api/test/api/throttle.api-spec.ts:34` 与 `apps/server/apps/api/test/api/api-rollback.api-spec.ts:284`
+  `apps/server/apps/api/test/api/platform/throttle.api-spec.ts:34` 与 `apps/server/apps/api/test/api/platform/api-rollback.api-spec.ts:284`
   由本轮改动引入（`deviceName` 从「静默忽略」变成 40099，属**破坏性 wire 变更**）、
-  `apps/server/apps/api/test/integration/auth.login-chain.pg.int-spec.ts:632-633` 漏改 fixture 撞上新 CHECK。
+  `apps/server/apps/api/test/integration/auth/auth.login-chain.pg.int-spec.ts:632-633` 漏改 fixture 撞上新 CHECK。
   同轮还证伪了一条自述：admin 侧那不是「vue-tsc 机械守卫」—— `Omit<…>` 配 `as` 断言不做多余属性检查，多带字段时 tsc 一声不响。
 
 ## 第 12 批 · D 组结构债
@@ -34,7 +34,7 @@
   集成分片 `12 文件 / 176 条` exit 0；新判据的 6 个负对照全红，四个「会假绿」的坑逐个确认是**修对**而不是改松。
 - **R3 挡下的**：「模块扫描序零变化」不成立 —— 真实容器里那个无 guard 节点的扫描位从 156 提前到 98、其后 48 位整体后移
   （**结论对、证据错**：拿走查器的盲区当成了结论）；一处**未申报的改动**把
-  `apps/server/libs/security/src/cap/cap.shutdown-order.spec.ts` 的超时从 5s 放宽到 30s
+  `apps/server/libs/security/src/cap/__tests__/cap.shutdown-order.spec.ts` 的超时从 5s 放宽到 30s
   ——「一个本来在负载下会红的用例现在不会红了」，这属于测试严格度悄悄变松；另外「`types:check` 永久红」这条结论也已过期。
 
 ## 第 13 批 · 文档与事实对齐
@@ -57,7 +57,7 @@
   两个死函数、以及配套文档。
 - **关键发现**：`lint:workflows` 现在真的退 **3** 并写「未验证（跳过不等于通过）」，prepush 把该段打成 `-` + `[SKIP 未验证]` 单列；
   删那两个死函数**不改**部署契约 —— 变的是 `crypto.deviceIdKey` 成了悬空配置，`DEVICE_ID_ENCRYPTION_KEY` 仍是启动期必填，
-  由 `apps/server/libs/system/src/device/device-issuance.drift.spec.ts` 的三条断言机械守。
+  由 `apps/server/libs/system/src/device/__tests__/device-issuance.drift.spec.ts` 的三条断言机械守。
 - **验收读数**：`@walnut/server` 单测 `102 文件 / 839 条`、`@walnut/scripts` `545 条`、`@walnut/release` `206 条` 全绿；
   `lint:dts` exit 0；`pnpm prepush` **exit 1**（失败段：lint / test / openapi / dts —— 逐段归因后没有一条是本批引起）。
 - **R3 挡下的**：那几段红里大部分是**假红** —— 单段预算到点时调用的是「杀全部活跃子进程」的

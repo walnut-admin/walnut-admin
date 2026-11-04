@@ -162,7 +162,7 @@ COMBINE 取各角色部门集合的并集、任一 SELF 时结果保留本人腿
 - 机械守卫：注册表完整性单测（每张实体表必须注册或豁免）+ ESLint
   `no-restricted-syntax`（已注册实体的 `.getRepository()` 直连必须显式豁免并写理由）。
 
-**端到端矩阵**：`apps/server/apps/api/test/api/data-scope-matrix.api-spec.ts` 用
+**端到端矩阵**：`apps/server/apps/api/test/api/system/data-scope/data-scope-matrix.api-spec.ts` 用
 `app_demo` 作为靶表覆盖 M1-M10 —— 六档可见集合、越权 read/update 404、create 双回填、
 多角色并集、visitor 仅本人、无角色登录被拒（空 roles_list 在 opaque 通道统一翻译为
 40103）、角色改档位 / 换清单 / 清空清单后下一请求立即生效。

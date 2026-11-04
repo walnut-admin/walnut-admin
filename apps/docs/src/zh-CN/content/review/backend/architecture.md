@@ -304,7 +304,7 @@ libs 中 `process.env` 直读仅存在于：`libs/config/src/modules/*`（config
 
 ### ARCH-11（P3）dto-entity drift 的完备性扫描面有窄口：只认 `.dto.ts` 文件 + `*DTOBase` 类名
 
-- **证据**：`apps/api/src/common/dto/dto-entity.drift.spec.ts:273-285`（`listDtoFiles` 仅收 `.dto.ts`）与 `:314`（`value.name.endsWith('DTOBase')`）。已登记条目的形状对账不受影响；漏网情形是「基座类定义在非 .dto.ts 文件」或「基座命名不带 DTOBase 后缀」——这类类不进完备性差集，其 DTO↔Entity 漂移不被守。
+- **证据**：`apps/api/src/common/dto/__tests__/dto-entity.drift.spec.ts:273-285`（`listDtoFiles` 仅收 `.dto.ts`）与 `:314`（`value.name.endsWith('DTOBase')`）。已登记条目的形状对账不受影响；漏网情形是「基座类定义在非 .dto.ts 文件」或「基座命名不带 DTOBase 后缀」——这类类不进完备性差集，其 DTO↔Entity 漂移不被守。
 - **影响**：低（现有 23 个基座全部在 .dto.ts 且命名规范；风险在未来新代码照抄错形态）。
 - **修复建议**：扫描面放宽到全 lib `*Base` 类名或加一条「DTO 基座必须住 .dto.ts 且以 DTOBase 结尾」的 lint selector，把窄口变成显式约束。
 - **置信度**：高（对扫描面事实）；实际触发概率低。

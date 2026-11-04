@@ -8,7 +8,7 @@
  * 漏了 → 产物里没有这个 lib；nest-cli `projects` 漏了 → `nest build <lib>` 静默 no-op）。
  * 历史上 `@walnut-server/als`（那时还叫 `libs/context`，D13② 已并入 `libs/als`）就漏过
  * nest-cli projects。守门人是
- * `apps/server/apps/api/src/common/monorepo/lib-registration.drift.spec.ts`，
+ * `apps/server/apps/api/src/common/monorepo/__tests__/lib-registration.drift.spec.ts`，
  * 但它只**报红**、不替你改 —— 手写一遍的实测成本是 **12 个既有文件、约 45 行插入**（其中 27 行是
  * 三份 nest `projects` 的重复块，占一半以上），且缩进与插入位置全靠手抄。
  *
@@ -359,7 +359,7 @@ export function renderBarrel(name: string): string {
     ' *',
     ' * 这里只做聚合：真实现放同级目录，具名导出后从本文件转出。',
     ' * 增删注册面之后跑一遍 drift 守卫（下面这个 spec 就是它）：',
-    ' *   apps/server/apps/api/src/common/monorepo/lib-registration.drift.spec.ts',
+    ' *   apps/server/apps/api/src/common/monorepo/__tests__/lib-registration.drift.spec.ts',
     ' */',
     'export {}',
     '',
@@ -386,7 +386,7 @@ const APP_TSCONFIGS = [
 
 export const SERVER_TSCONFIG = 'apps/server/tsconfig.json'
 export const SERVER_ESLINT = 'apps/server/eslint.config.ts'
-export const DRIFT_SPEC = 'apps/server/apps/api/src/common/monorepo/lib-registration.drift.spec.ts'
+export const DRIFT_SPEC = 'apps/server/apps/api/src/common/monorepo/__tests__/lib-registration.drift.spec.ts'
 
 /** 把全部注册面算成一份「待写清单」（纯函数：不写盘，便于单测与预览） */
 export function planScaffold(root: string, name: string, layer: ScaffoldLayer): ScaffoldFile[] {
