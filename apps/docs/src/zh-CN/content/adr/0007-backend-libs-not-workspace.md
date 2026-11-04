@@ -9,9 +9,9 @@
 
 ```
 apps/server/libs/
+  als/         @walnut-server/als
   config/      @walnut-server/config
   const/       @walnut-server/const
-  context/     @walnut-server/context
   db/          @walnut-server/db
   decorators/  @walnut-server/decorators
   exceptions/  @walnut-server/exceptions
@@ -19,6 +19,9 @@ apps/server/libs/
   types/       @walnut-server/types
   utils/       @walnut-server/utils
 ```
+
+> 2026-11-04：`context` 已并入 `als`（两套 AsyncLocalStorage 模块合一、实例不合并），树按现状重排；
+> 本 ADR 的判断与下面的追记都未改。
 
 These are resolved via tsconfig `paths`, compiled by SWC, and coupled to NestJS (decorators, dependency injection, CommonJS).
 

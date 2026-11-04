@@ -139,6 +139,13 @@ const nav: DefaultTheme.NavItem[] = [
     ],
   },
   {
+    // 工程记录：本轮（2026-11）架构收尾的**结论索引**，正文只写结论与证据指针，
+    // 过程日志留在仓库的 reports/ 下（不在文档站内）。
+    text: '工程记录',
+    activeMatch: '^/content/reports/',
+    link: '/content/reports/',
+  },
+  {
     text: '记录',
     activeMatch: '/record/',
     items: [
@@ -361,6 +368,16 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: '建议方案', link: '/content/industry-research/backend-architecture-review/08-recommended-plan' },
         { text: '调研摘要', link: '/content/industry-research/backend-architecture-review/09-research-summaries' },
         { text: '实施计划（5 批 × 3 轮）', link: '/content/industry-research/backend-architecture-review/10-implementation-plan' },
+      ],
+    },
+    {
+      // 工程记录：上面那个「后端架构调研」是 2026-11-02 的调研快照，这一组是本轮收尾的
+      // 结论索引与执行摘要。原始证据在仓库 reports/ 下，不进文档站。
+      text: '工程记录',
+      items: [
+        { text: '总览（答案落在哪一篇）', link: '/content/reports/' },
+        { text: '需要拍板的', link: '/content/reports/decisions' },
+        { text: '批次执行记录', link: '/content/reports/batches' },
       ],
     },
     {

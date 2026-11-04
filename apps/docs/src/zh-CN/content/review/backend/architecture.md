@@ -16,7 +16,7 @@ imports 顺序即装配顺序（ADR 0022 Decision 4「app 保留件清单」第 
 |----|---------|------|
 | 1 | `AppMiddlewareModule` | 18 个中间件按序 forRoutes('*')（`middleware/middleware.module.ts:20-58`：Favicon→I18n→Id→Version→Timezone→Language→Ip→UserAgent→BlacklistPath→XSS→CSP→Session→CookieParser→Fingerprint→Cors→Compression→Helmet→ResponseTime→Logger） |
 | 2 | `WalnutConfigModule` | libs/config（env 唯一注册口） |
-| 3 | `WalnutContextModule` | libs/context（requestId 日志 ALS，@Global） |
+| 3 | `AppALSRequestModule` | libs/als（请求上下文 + requestId 日志 ALS，@Global）—— 2026-11 两套 ALS 已合一（D13②），现随 `SharedModule` 进图、组合根不再单装（见 `apps/server/apps/api/src/app/app.module.ts:40-41`） |
 | 4 | `AppI18nModule` | nestjs-i18n 装配（`i18n/i18n.module.ts:14-33`） |
 | 5 | `WalnutModule` | libs/db（TypeORM PG 连接 + tx 基座） |
 | 6 | `AppScheduleModule` | cron 归属条件装配：`WORKER_STANDALONE==='true'` 时不注册 `ScheduleModule.forRoot()`（`app/schedule.composition.ts:24-26,50-52`） |
@@ -268,7 +268,7 @@ libs 中 `process.env` 直读仅存在于：`libs/config/src/modules/*`（config
 
 ### ARCH-06（P3）三套 AsyncLocalStorage 分属三库，新上下文字段无唯一落点
 
-- **证据**：`libs/als/src/request.service.ts:19`（请求/数据权限/RLS 上下文）；`libs/context/src/logger-context.als.ts:17`（requestId 日志上下文）；`libs/db/src/db.hook.ts`（事务 after-commit 钩子存储）。
+- **证据**：`libs/als/src/request.service.ts:19`（请求/数据权限/RLS 上下文）；`libs/als/src/logger-context.als.ts:17`（requestId 日志上下文；原在 `libs/context`，2026-11 随 D13② 并入 `als`）；`libs/db/src/db.hook.ts`（事务 after-commit 钩子存储）。
 - **问题**：三者生命周期确不同（日志跨进程形态、请求域、事务域），但语义上有重叠带（requestId 其实也是请求上下文的一个字段），新人加字段时需要先理解三个 store 的边界；als 与 context 两个 @Global 模块能力相近。
 - **影响**：可维护性；无正确性风险。
 - **修复建议**：在两库头注释互相指路，明确分工判据（「要进日志行的放 context，进数据权限/RLS 的放 als」）。
