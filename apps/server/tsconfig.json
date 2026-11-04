@@ -103,12 +103,6 @@
       "@walnut-server/crypto/*": [
         "./libs/crypto/src/*"
       ],
-      "@walnut-server/delay": [
-        "./libs/delay/src"
-      ],
-      "@walnut-server/delay/*": [
-        "./libs/delay/src/*"
-      ],
       "@walnut-server/lock": [
         "./libs/lock/src"
       ],

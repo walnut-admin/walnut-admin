@@ -17,7 +17,7 @@ const EXCEPTION_LIBS = ['exceptions'] as const
 // 允许边只有 assemble → base **单向**：base 反过来引内核就是环的起点（ip 原引 crud 的
 // 端口 token 即此类，按 Decision 3 把 token 迁回 libs/ip 后方向变正），由 banned 按
 // rank 自动收紧拦住（不需要逐条边清单）。
-const TECH_BASE_LIBS = ['als', 'blpath', 'cookie', 'crypto', 'delay', 'lock', 'queue', 'sse', 'cache', 'throttle', 'mailer', 'sms', 'rsa', 'ip'] as const
+const TECH_BASE_LIBS = ['als', 'blpath', 'cookie', 'crypto', 'lock', 'queue', 'sse', 'cache', 'throttle', 'mailer', 'sms', 'rsa', 'ip'] as const
 
 const TECH_ASSEMBLE_LIBS = ['repository', 'list', 'crud', 'scope-resolver', 'token'] as const
 

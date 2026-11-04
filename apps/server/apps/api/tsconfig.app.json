@@ -18,7 +18,6 @@
         "../../libs/blpath/src/**/*",
         "../../libs/cookie/src/**/*",
         "../../libs/crypto/src/**/*",
-        "../../libs/delay/src/**/*",
         "../../libs/lock/src/**/*",
         "../../libs/queue/src/**/*",
         "../../libs/sse/src/**/*",

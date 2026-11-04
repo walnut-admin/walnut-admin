@@ -255,7 +255,8 @@ db / cron / 各域 HTTP 组合根 / guard 与 interceptor。`apps/worker` 与 `a
 
 ## Consequences
 
-- app 侧剩组合根、wire DTO 与依赖 app 能力的 controller；业务数据面在 34 个 lib 内。
+- app 侧剩组合根、wire DTO 与依赖 app 能力的 controller；业务数据面在 lib 内（**库数不写死**：
+  判据是 `apps/server/libs/` 目录本身，它一直在变，写一个常数只会腐烂）。
   lib ↔ app 边界由 ESLint + 三个 drift spec 机械守；**lib 之间的层间方向由 ESLint 分层规则
   机械守（本轮落地）**。
 - 基建层内部没有互相引用的 SCC：纯 `process.env` 判定下沉到 `libs/const/src/app/env.ts`

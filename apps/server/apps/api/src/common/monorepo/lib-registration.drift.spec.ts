@@ -451,7 +451,7 @@ const LAYER_MATRIX = [
   { name: 'infra', libs: ['config', 'const', 'context', 'db', 'decorators', 'pipes', 'types', 'utils'] },
   // F-14 / Q8a：技术层拆「设施 / 装配内核」两条 —— rank 上 base 低于 assemble，
   // 允许边只有 assemble → base 单向（ip 不得引 crud/list 等内核 lib）。
-  { name: 'tech-base', libs: ['als', 'blpath', 'cookie', 'crypto', 'delay', 'lock', 'queue', 'sse', 'cache', 'throttle', 'mailer', 'sms', 'rsa', 'ip'] },
+  { name: 'tech-base', libs: ['als', 'blpath', 'cookie', 'crypto', 'lock', 'queue', 'sse', 'cache', 'throttle', 'mailer', 'sms', 'rsa', 'ip'] },
   { name: 'tech-assemble', libs: ['repository', 'list', 'crud', 'scope-resolver', 'token'] },
   { name: 'identity', libs: ['identity'] },
   { name: 'system', libs: ['system'] },

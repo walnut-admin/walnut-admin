@@ -1,6 +1,6 @@
 # 代码质量 Review 报告（CQ-）
 
-> Review 范围：`apps/server`（NestJS 12 内部 monorepo：apps/api 组合根 + apps/worker/cli + 34 个 libs）
+> Review 范围：`apps/server`（NestJS 12 内部 monorepo：apps/api 组合根 + apps/worker/cli + libs 全集，数量以 `apps/server/libs/` 目录为准）
 > 方法：只读调研（read/glob/grep），未改任何源码、未跑测试/构建/连接外部服务。
 > 判据：`apps/server/AGENTS.md`（三模式 Repository、Guard 顺序、DTO 硬规矩）、`apps/docs/src/zh-CN/content/backend/{architecture,dto,transactions,configuration,code-style}.md`、ADR 0022。行号以当前工作区为准。
 

@@ -17,7 +17,7 @@
 
 ## 0. 执行摘要
 
-**总体评价（四线一致）**：工程基础扎实 —— ADR 0022 六层分层与磁盘实际完全一致（全量 import 扫描 0 条向上层间边、madge 实跑 899 文件无环、五处注册面与 34 lib 全等）；HTTP 认证链为近期加固成果（JWT 验签+过期+Redis 会话键三重校验、RT revoke-and-insert 悲观锁轮换、OAuth state HMAC+nonce+设备绑定）；仓库硬规矩（RealPickType/PartialType、装饰器顺序、em 透传、分页排序）零实质违例；openapi 生成门禁链无实质漂移漏洞。
+**总体评价（四线一致）**：工程基础扎实 —— ADR 0022 六层分层与磁盘实际完全一致（全量 import 扫描 0 条向上层间边、madge 实跑 899 文件无环、五处注册面与 lib 全集全等，库数以 `apps/server/libs/` 目录为准）；HTTP 认证链为近期加固成果（JWT 验签+过期+Redis 会话键三重校验、RT revoke-and-insert 悲观锁轮换、OAuth state HMAC+nonce+设备绑定）；仓库硬规矩（RealPickType/PartialType、装饰器顺序、em 透传、分页排序）零实质违例；openapi 生成门禁链无实质漂移漏洞。
 
 **最薄弱的一环是实时层（socket/SSE）**：3 个 P0 中的 2 个在此（admin UI 无认证 + 握手不验签），且 `apps/api/src/socket/` 与 `libs/sse/` 恰好是全仓零测试覆盖的高风险区。其次是接口文档的三个系统性缺口（security 声明、错误模型、工厂 list summary）与全库 `void` fire-and-forget 的进程稳定性隐患。
 
@@ -208,7 +208,7 @@
 
 ## 7. 已确认无问题的面（防重复劳动，各线交叉验证）
 
-- 分层与注册：ESLint 五份名单 ≡ 磁盘 34 lib ≡ 五处注册面；0 条向上层间边；madge 899 文件无环；子路径 banned 通配实测可拦（多段子路径导入受分层约束）；libs 零运行时动态 import；相对路径零跨 lib 逃逸；app↔lib 零反向依赖；两处交错点仍成立。
+- 分层与注册：ESLint 五份名单 ≡ 磁盘 lib 全集（以 `apps/server/libs/` 目录为准）≡ 五处注册面；0 条向上层间边；madge 899 文件无环；子路径 banned 通配实测可拦（多段子路径导入受分层约束）；libs 零运行时动态 import；相对路径零跨 lib 逃逸；app↔lib 零反向依赖；两处交错点仍成立。
 - 依赖注入：19 个 WALNUT_ADMIN_* token 绑定全部跟随实现所在层；forFeature 39/39 显式 WalnutPGConnectionName；InjectDataSource 47 处全带连接名。
 - HTTP 认证链：JWT 三重校验、RT 悲观锁轮换 + AES-256-GCM 落库、OAuth state HMAC+nonce+设备绑定、Google id_token jose 验签、双因子签名链认证态不降级、nonce SET NX EX。
 - 输入与传输：全局 ValidationPipe whitelist+forbidNonWhitelisted+forbidUnknownValues；helmet+CSP+nginx 安全头+HSTS；错误响应 _devMsg 仅 dev；prod 日志 body/query/params 走 maskSensitiveFields（middleware 层）；探针裸路由极简且 nginx 404；IDOR 抽查（user.me/user_device/user_oauth/logs/setting/key/demo/error）均按 userId 绑定或 Role+Permission 双闸，未发现水平越权实锤。

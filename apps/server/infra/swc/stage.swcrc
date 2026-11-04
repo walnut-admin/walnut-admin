@@ -42,8 +42,6 @@
       "@walnut-server/cookie/*": ["./libs/cookie/src/*"],
       "@walnut-server/crypto": ["./libs/crypto/src"],
       "@walnut-server/crypto/*": ["./libs/crypto/src/*"],
-      "@walnut-server/delay": ["./libs/delay/src"],
-      "@walnut-server/delay/*": ["./libs/delay/src/*"],
       "@walnut-server/lock": ["./libs/lock/src"],
       "@walnut-server/lock/*": ["./libs/lock/src/*"],
       "@walnut-server/queue": ["./libs/queue/src"],

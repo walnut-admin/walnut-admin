@@ -1,8 +1,8 @@
 # ARCH — 后端模块构成与引用关系评审报告
 
-- **评审范围**：`apps/server` 内部 Nest monorepo（apps/api + apps/worker + apps/cli + 34 libs），模块地图、分层边界、引用健康度、架构层问题。
+- **评审范围**：`apps/server` 内部 Nest monorepo（apps/api + apps/worker + apps/cli + libs 全集，数量以 `apps/server/libs/` 目录为准），模块地图、分层边界、引用健康度、架构层问题。
 - **评审方式**：只读静态调研。判据文件：`apps/server/AGENTS.md`、`apps/docs/src/zh-CN/content/backend/{architecture,dto,transactions,configuration,code-style}.md`、ADR 0022。机械验证：全量 import 扫描（libs 899 个 ts 文件）、ESLint RuleTester 在内存实证 banned 通配语义、madge --circular 实跑（只读，无环）、五处注册面对账复核。
-- **结论摘要**：ADR 0022 声明的分层与组合根形态**与磁盘实际一致**：无向上层间依赖、无循环依赖（madge 899 文件）、五处注册面与 34 个 lib 全等、两处交错点仍成立、token 绑定全部跟随实现所在层、forFeature 连接名 39/39 显式、wire DTO 零 lib 反向依赖。未发现 P0/P1。发现 3 个 P2、8 个 P3，另有 5 项待用户裁决。
+- **结论摘要**：ADR 0022 声明的分层与组合根形态**与磁盘实际一致**：无向上层间依赖、无循环依赖（madge 899 文件）、五处注册面与 lib 全集全等（数量以 `apps/server/libs/` 目录为准）、两处交错点仍成立、token 绑定全部跟随实现所在层、forFeature 连接名 39/39 显式、wire DTO 零 lib 反向依赖。未发现 P0/P1。发现 3 个 P2、8 个 P3，另有 5 项待用户裁决。
 
 ---
 
@@ -26,7 +26,7 @@ imports 顺序即装配顺序（ADR 0022 Decision 4「app 保留件清单」第 
 | 10 | `SecurityModule` | `SysSecurityModule` + 4 controller（rsa→sign→cap→sensitive） |
 | 11 | `AppAppModule` | lib `AppDemoModule` → app `SysDeletedHttpModule` → `AppErrorModule` → `AppMonitorModule` → settings/key/logger（交错点 2，`modules/app/app.module.ts:19-30`） |
 | 12 | `SystemModule` | DataScopePolicy(@Global) → `SysSystemModule` + `SysSystemHttpModule`（12 controller）→ `SysIdentityModule` + `SysIdentityHttpModule`（9 controller） |
-| 13 | `SharedModule` | 聚合根：token→ali→area→ALS→delay→BLPath→ip→mask（`shared.module.ts:18`） |
+| 13 | `SharedModule` | 聚合根：token→ali→area→ALS→BLPath→ip→mask（`shared.module.ts:18`） |
 | 14 | `AppBootstrapTaskModule` | 条件展开：`...(isWorkerStandalone() ? [] : [...])`（`app.module.ts:62`），放末尾以不扰动路由注册顺序 |
 
 全局 providers：11 个 APP_GUARD + 2 个 APP_INTERCEPTOR（`app.module.ts:65-138`），顺序 = AGENTS.md 的 1-11 位；第 12 位 Throttler 在 `tech.module.ts:34-37`。顺序成立依赖「根模块自身 providers 先于 imports 子树注册」的 Nest 初始化序（`AppTechModule` 在 imports 第 7 位但其 APP_GUARD 仍排最后）。
@@ -79,7 +79,7 @@ flowchart TB
   end
   subgraph L2[技术（19）]
     T2["装配内核：repository · list · crud · scope-resolver · token"]
-    T1["技术设施：als · blpath · cookie · crypto · delay · lock · queue · sse · cache · throttle · mailer · sms · rsa · ip"]
+    T1["技术设施：als · blpath · cookie · crypto · lock · queue · sse · cache · throttle · mailer · sms · rsa · ip"]
   end
   subgraph L1[基建（8+1）]
     B["config · const · context · db · decorators · exceptions · pipes · types · utils"]
@@ -105,13 +105,13 @@ flowchart TB
   T2 -. "同层互引（ARCH-01）" .-> T1
 ```
 
-### 1.4 分层表格（六层 ↔ 磁盘 34 lib）
+### 1.4 分层表格（六层 ↔ 磁盘 lib 全集）
 
 | 层（eslint.config.ts:9-18） | lib（磁盘核实） | 数量 | 出边约束（banned） |
 |----|----|----|----|
 | infra | config, const, context, db, decorators, pipes, types, utils | 8 | 技术+领域+顶层 |
 | infra-exceptions | exceptions | 1 | 同 infra，唯一放行 → blpath |
-| tech | als, blpath, cookie, crypto, delay, lock, queue, sse, cache, throttle, mailer, sms, rsa, ip, repository, list, crud, scope-resolver, token | 19 | 领域+顶层 |
+| tech | als, blpath, cookie, crypto, lock, queue, sse, cache, throttle, mailer, sms, rsa, ip, repository, list, crud, scope-resolver, token | 18 | 领域+顶层 |
 | identity | identity | 1 | system/auth/security + 顶层 |
 | system | system | 1 | auth/security + 顶层 |
 | auth | auth | 1 | security + 顶层 |
@@ -321,7 +321,7 @@ libs 中 `process.env` 直读仅存在于：`libs/config/src/modules/*`（config
 
 ## 附录：验证方法
 
-- 全量 import 扫描脚本：遍历 `apps/server/libs/**` + `apps/server/apps/**` 的 .ts（含 .d.ts）解析 import 规范符，构建 34×34 lib 邻接表并按 rank 判向；`provide:` 绑定清单已剔除注释中的示例文本（port 文件头注释含 `{ provide: TOKEN, useExisting: ... }` 字样，属文档不是绑定）。
+- 全量 import 扫描脚本：遍历 `apps/server/libs/**` + `apps/server/apps/**` 的 .ts（含 .d.ts）解析 import 规范符，构建 lib × lib 邻接表并按 rank 判向；`provide:` 绑定清单已剔除注释中的示例文本（port 文件头注释含 `{ provide: TOKEN, useExisting: ... }` 字样，属文档不是绑定）。
 - ESLint 通配语义实证：以 `apps/server/node_modules/eslint` 的 Linter 在内存中对 banned group 形态跑 4 组 import 样本 + COMMON_IMPORT_PATTERNS 5 组样本（无文件写入）。
 - madge：`node node_modules/madge/bin/cli.js --circular --ts-config tsconfig.json apps/api/src libs --extensions ts`（cwd=apps/server，≈7s，899 文件）。
 - 交错点、worker 条件装配、token 绑定、forFeature 连接名：逐一读源核实，行号见正文。

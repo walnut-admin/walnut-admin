@@ -11,7 +11,7 @@
 
 - **组合根「薄且守得住」**：apps/api 的 30 条运行时 `@/` 互引全部是组合/HTTP 面引用，无 lib → app；
   11 个 APP_GUARD 顺序实测一致；openapi.json 全程零 diff（md5 不变）。
-- **依赖方向干净**：34 lib / 937 条 import 边，唯一跨层例外是文档化的 `exceptions → blpath`；
+- **依赖方向干净**：lib 全集（库数以 `apps/server/libs/` 目录为准）/ 937 条 import 边，唯一跨层例外是文档化的 `exceptions → blpath`；
   madge 零循环；19 个注入端口定义/绑定/消费/implements 四方全对齐。
 - **分层门禁已机械守**：ESLint 八 rank + 五处注册面 drift（含 ESLint 名单对账）+ 资产断言，
   负向探针全部验证过。

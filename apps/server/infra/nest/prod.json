@@ -27,7 +27,6 @@
           "libs/blpath/src",
           "libs/cookie/src",
           "libs/crypto/src",
-          "libs/delay/src",
           "libs/lock/src",
           "libs/queue/src",
           "libs/sse/src",
@@ -197,15 +196,6 @@
       "sourceRoot": "libs/crypto/src",
       "compilerOptions": {
         "tsConfigPath": "libs/crypto/tsconfig.lib.json"
-      }
-    },
-    "delay": {
-      "type": "library",
-      "root": "libs/delay",
-      "entryFile": "index",
-      "sourceRoot": "libs/delay/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/delay/tsconfig.lib.json"
       }
     },
     "lock": {
