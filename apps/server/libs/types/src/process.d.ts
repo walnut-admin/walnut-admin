@@ -56,7 +56,10 @@ declare global {
       MFA_ENCRYPTION_KEY: string
       /* refresh token encryption key, used for encrypting refresh token, do not change easily */
       RT_ENCRYPTION_KEY: string
-      /* device id encryption key, used for encrypting device id, do not change easily */
+      /* 历史指纹盐（B5 起 device_id 由服务端随机签发）：指纹不落库、不参与身份派生 ⇒ 0 个消费者
+      —— 没有任何加解密 / 派生 / 身份用途。保留只为「部署后不许改的 5 个 key」这条部署契约，
+      不是用途；判据与退役口径见
+      apps/docs/src/zh-CN/content/backend/configuration.md 的「部署后绝不能改的 5 个 key」 */
       DEVICE_ID_ENCRYPTION_KEY: string
       /* user identity encryption key, used for encrypting user identity, do not change easily */
       USER_ID_ENCRYPTION_KEY: string

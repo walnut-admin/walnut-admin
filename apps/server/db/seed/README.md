@@ -21,7 +21,8 @@ pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # ② 快照 → 行形�
 >    可以整段省略（写了也一样）。默认不指向本目录是**有意的**：快照是中间物，本目录是行形态真源。
 > 2. **`--out` 指到本目录会直接报错**：命令在连库之前就拒绝执行，退出码 **2**（前置条件未满足，
 >    不是「查出违规」的 1），一个文件都不会写。原因是把 Extended JSON 快照写进真源 = 把真源打回
->    旧格式（`pnpm lint:seed` 会判红，`ejson.ts` 那一层映射也会重新长回来）。`--anonymize` 是同一
+>    旧格式（`pnpm lint:seed` 会判红，运行期的 EJSON 映射层也会重新长回来 —— 那层映射今天只剩
+>    `packages/tooling/scripts/src/db/ejson.ts` 这一个历史兼容器，见下）。`--anonymize` 是同一
 >    条红线（脱敏有损，永不许覆盖真源）。
 >
 > 子目录不在拦截范围内 —— 别把快照放在 `apps/server/db/seed/` 下面任何一层。
@@ -60,7 +61,11 @@ pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # ② 快照 → 行形�
 - 列名就是 PG 列名（snake_case），时间列是 **ISO 字符串**（timestamptz 直接吃它），jsonb 列是 JSON 值。
 - junction 表（`sys_user_role` / `sys_role_menu`）各有独立文件：一行的两列都是 uuid 引用，**没有 `id`**。
 - **不再有 Extended JSON**（`$oid` / `$date`）：出现即被 `pnpm lint:seed` 判红（真源退回旧格式 =
-  运行期映射层又会长出来）。历史导出仍然读得进来（`db:seed:reshape` 走 `ejson.ts`）。
+  运行期映射层又会长出来）。
+- **EJSON 只活在「导出 / reshape」这条中间物通道上**：解析与序列化的实现是
+  `packages/tooling/scripts/src/db/ejson.ts`，消费者只有 `export-pg.ts`（`db:export:pg` 写快照）与
+  `seed-reshape.ts`（`db:seed:reshape` 读历史导出）——**两者都是历史兼容器**，不是运行期映射层。
+  本目录的行形态真源与它们无关，播种器不经过 EJSON。
 - 播种按主键 upsert：业务表整行刷新为 seed 值，junction 只补缺不回收（seed 不是"清库"）。
 - 列 / 主键 / 外键 / jsonb 的判据全部来自 PG 元数据，播表顺序是 FK 拓扑序 —— **加一列不需要改映射**，
   重新导出一次即可。
