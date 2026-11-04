@@ -1,4 +1,6 @@
 import type { DataSource, EntityManager } from 'typeorm'
+import type { IWalnutQueryRunnerTxLogger } from './tx.runner'
+import { withQueryRunnerTransaction } from './tx.runner'
 
 /**
  * 数据权限三期（RLS）在**数据库连接上的注入面** —— 只关心「怎么把描述符写进事务」，
@@ -80,6 +82,38 @@ export async function applyWalnutDataScopeRlsSettings(
 }
 
 /**
+ * 系统通道的 RLS 设置常量：`system` + 无用户 + 无部门（登录链 / cron / 脚本共用）。
+ * **只读使用**：`withWalnutRlsTransaction` 只读它，不要就地改（共享对象）。
+ */
+export const WALNUT_DATA_SCOPE_RLS_SYSTEM_SETTINGS: IWalnutAdminDataScopeRlsSettings = {
+  mode: WALNUT_DATA_SCOPE_RLS_MODE.SYSTEM,
+  userId: '',
+  deptIds: [],
+}
+
+/**
+ * 在一条**独立事务**里先写 RLS 设置、再执行回调。
+ *
+ * 生命周期（connect / start / commit / rollback / release 与守卫）全部委托
+ * `withQueryRunnerTransaction`，这里只负责「设置写在哪」这一件事 —— 手写第二份生命周期
+ * 就是所有副本型 bug 的来源（见 `tx.runner.ts` 文件头）。
+ */
+export async function withWalnutRlsTransaction<T>(
+  dataSource: Pick<DataSource, 'createQueryRunner'>,
+  settings: IWalnutAdminDataScopeRlsSettings,
+  fn: (manager: EntityManager) => Promise<T>,
+  options: { readOnly?: boolean, logger?: IWalnutQueryRunnerTxLogger } = {},
+): Promise<T> {
+  return withQueryRunnerTransaction(dataSource, fn, {
+    readOnly: options.readOnly,
+    logger: options.logger,
+    setup: async (manager) => {
+      await applyWalnutDataScopeRlsSettings(manager, settings)
+    },
+  })
+}
+
+/**
  * 在一条**独立事务**里以 `system` 模式执行回调 —— 系统读腿的显式入口。
  *
  * 为什么需要它：`app.data_scope_mode()` 缺省是 `anonymous`（fail-closed），池级
@@ -96,30 +130,7 @@ export async function runInWalnutSystemTransaction<T>(
   dataSource: DataSource,
   fn: (manager: EntityManager) => Promise<T>,
 ): Promise<T> {
-  const queryRunner = dataSource.createQueryRunner()
-
-  try {
-    await queryRunner.connect()
-    await queryRunner.startTransaction()
-    await applyWalnutDataScopeRlsSettings(queryRunner.manager, {
-      mode: WALNUT_DATA_SCOPE_RLS_MODE.SYSTEM,
-      userId: '',
-      deptIds: [],
-    })
-
-    const result = await fn(queryRunner.manager)
-    await queryRunner.commitTransaction()
-    return result
-  }
-  catch (e) {
-    if (queryRunner.isTransactionActive) {
-      await queryRunner.rollbackTransaction().catch(() => undefined)
-    }
-    throw e
-  }
-  finally {
-    await queryRunner.release()
-  }
+  return withWalnutRlsTransaction(dataSource, WALNUT_DATA_SCOPE_RLS_SYSTEM_SETTINGS, fn)
 }
 
 /**

@@ -3,7 +3,7 @@ import type { IWalnutAdminDataScopeEntityConfig, IWalnutAdminDataScopePolicy } f
 import type { ISoftDeleteStrategy } from './ports/soft-delete.port'
 import { Inject } from '@nestjs/common'
 import { ALSRequestService } from '@walnut-server/als'
-import { applyWalnutDataScopeRlsSettings, DBTransactionHooksStore, runInWalnutSystemTransaction } from '@walnut-server/db'
+import { DBTransactionHooksStore, runInWalnutSystemTransaction, withWalnutRlsTransaction } from '@walnut-server/db'
 import { WalnutAdminExceptionDataNotFound } from '@walnut-server/exceptions/base/404'
 
 import {
@@ -96,10 +96,10 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
    * 1. 调用方带 `em`（@WalnutTx 端点 / 上层自动事务）→ 直接用。事务里的 RLS 设置
    *    已由 WalnutTxInterceptor 或本方法写入；
    * 2. 豁免实体（未注册）→ 维持原行为，池级 manager，不开事务；
-   * 3. 注册实体且无 em → **自动事务**：自建 QueryRunner，`startTransaction` 后先
-   *    `set_config` 再执行，提交/回滚后释放。读方法用 `SET TRANSACTION READ ONLY`，
-   *    写方法用普通事务。这是「单条查询本身即隐式事务」的补足 —— 单条 SELECT 虽然
-   *    原子，但 RLS 设置必须和它落在同一连接上，池级 manager 无法保证。
+   * 3. 注册实体且无 em → **自动事务**：经 libs/db 的 `withWalnutRlsTransaction`（借一条
+   *    连接、`startTransaction` 后先 `set_config` 再执行，提交/回滚后释放）。读方法用
+   *    `SET TRANSACTION READ ONLY`，写方法用普通事务。这是「单条查询本身即隐式事务」的
+   *    补足 —— 单条 SELECT 虽然原子，但 RLS 设置必须和它落在同一连接上，池级 manager 无法保证。
    *
    * 为什么不在外层事务里再开一个：外层事务已经开启时，自动事务会借到**另一条连接**，
    * 既不是同一事务（看不到未提交数据 / 锁语义错位），也失去原子性 —— 这是显式的
@@ -136,32 +136,9 @@ export abstract class WalnutAdminCommonPgBaseRepository<Entity extends ObjectLit
     const settings = this.alsRequestService.get('rlsSettings')
       ?? this.dataScopePolicy.buildRlsSettings(descriptor, userId)
 
-    const queryRunner = this.dataSource.createQueryRunner()
-    try {
-      await queryRunner.connect()
-      await queryRunner.startTransaction()
-
-      if (options.readOnly === true) {
-        // 必须是事务里的第一条语句（PG 语义）；set_config 也是只读函数调用，不破坏只读
-        await queryRunner.query('SET TRANSACTION READ ONLY')
-      }
-
-      await applyWalnutDataScopeRlsSettings(queryRunner.manager, settings)
-
-      const result = await fn(queryRunner.manager)
-      await queryRunner.commitTransaction()
-      return result
-    }
-    catch (e) {
-      // commit 已释放的 runner 不能再 rollback（同 tx.interceptor 的守卫）
-      if (queryRunner.isTransactionActive) {
-        await queryRunner.rollbackTransaction().catch(() => undefined)
-      }
-      throw e
-    }
-    finally {
-      await queryRunner.release()
-    }
+    // 生命周期（connect / start / 只读声明 / RLS 设置 / commit / rollback / release 与守卫）
+    // 一律委托 libs/db 的唯一帮手：这里只决定「这条事务是不是只读、设置是什么」。
+    return withWalnutRlsTransaction(this.dataSource, settings, fn, { readOnly: options.readOnly === true })
   }
 
   /**

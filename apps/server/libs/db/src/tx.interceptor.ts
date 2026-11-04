@@ -13,6 +13,7 @@ import { applyWalnutDataScopeRlsSettings, WALNUT_DATA_SCOPE_RLS_MODE } from './d
 import { DBTransactionHooksStore } from './db.hook'
 import { WalnutPGConnectionName } from './pg.const'
 import { WalnutTxContext } from './tx-context'
+import { createQueryRunnerTxGuard } from './tx.runner'
 
 /**
  * 事务拦截器 —— `@WalnutTx()` 的执行体（PG 单引擎，Phase 5a 起）。
@@ -22,13 +23,17 @@ import { WalnutTxContext } from './tx-context'
  * 与拦截器生命周期的 commit / release 解耦，也无法把 `em` 交出去。
  *
  * 提交路径：commit → release → after-commit 钩子（`DBTransactionHooksStore`）统一执行；
- * 错误路径：**rollback → release**，原始错误透传。守卫结构（`pgCommitted/pgReleased`）保留
- * 自双引擎时代：commit 已释放的 runner 不能再 rollback（会抛
- * QueryRunnerAlreadyReleasedError 掩盖原始错误），释放标志必须一并纳入守卫。
+ * 错误路径：**rollback → release**，原始错误透传。
+ *
+ * **本类保留自己的 runner 生命周期，是刻意的**：commit 发生在 RxJS 管道里（`concatMap`），
+ * 与 `intercept()` 的同步返回不在同一作用域，借不到 `withQueryRunnerTransaction` 的
+ * 回调式生命周期；但它与那一支共用**同一份守卫**（`createQueryRunnerTxGuard`，见
+ * `tx.runner.ts`）—— 提交/回滚/释放的顺序与幂等只有一处定义。
  *
  * 历史生产 bug（别退回）：本文件曾经「只 release 不 rollback」—— TypeORM 的 `release()` 不结束事务，
- * 连接会带着未提交事务回池、被下一个请求借走（详见 `rollbackIfActive` 的注释与单测
- * `tx.interceptor.spec.ts`）。两条失败出口（会话建立 / handler 抛错）都必须走它。
+ * 连接会带着未提交事务回池、被下一个请求借走（池污染机理与真实 PG 判据见 `tx.runner.ts` 文件头、
+ * 单测 `tx.interceptor.spec.ts` 与集成用例 `tx.pool-pollution.int-spec.ts`）。两条失败出口
+ * （会话建立 / handler 抛错）都必须走守卫的 `rollback`。
  * （历史注记：迁移期曾在此同时开启 Mongo session、固定「先 PG 后 Mongo」提交，
  * Phase 5a 随 MongoDB 摘除收窄为单引擎。）
  */
@@ -49,45 +54,14 @@ export class WalnutTxInterceptor implements NestInterceptor {
 
     const queryRunner = this.pgDataSource.createQueryRunner()
 
-    // 生命周期守卫，两个失败出口共用：
-    // - commit 已经释放过的 runner 不能再 rollback（1.1.2 的 rollbackTransaction 在
-    //   `isTransactionActive === false` 时**抛** TransactionNotStartedError，不是 no-op）；
-    // - release 只允许发生一次（重复 release 抛 QueryRunnerAlreadyReleasedError）。
-    let pgCommitted = false
-    let pgReleased = false
-
-    /**
-     * 失败路径的唯一出口，顺序不可调换：**先 rollback，再 release**。
-     *
-     * 为什么 rollback 不能省：TypeORM 1.1.2 的
-     * `PostgresQueryRunner.releasePostgresConnection()` 只把 client 还给 pg-pool、把
-     * runner 从 driver 的活跃清单里摘掉，**既不发 ROLLBACK 也不清 isTransactionActive**
-     * （// LINK apps/server/node_modules/typeorm/driver/postgres/PostgresQueryRunner.js:93-105）。
-     * 于是「带着未提交事务回池」的连接会被下一个借主拿走，而 PG 把事务块内的
-     * `START TRANSACTION` 只当 WARNING + no-op —— 借主看不出自己正站在别人的未提交事务里，
-     * 它的语句全落进那个事务：别人看不见、自己也不提交（静默丢数据 / 丢可见性）。
-     *
-     * rollback 自身失败只记日志：它的错误不能顶替原始错误，也不能阻止 release。
-     */
-    const rollbackIfActive = async (): Promise<void> => {
-      if (pgCommitted || pgReleased || !queryRunner.isTransactionActive) {
-        return
-      }
-
-      await queryRunner.rollbackTransaction().catch((e: unknown) => this.logger.error(e))
-    }
-
-    const releaseOnce = async (): Promise<void> => {
-      if (pgReleased) {
-        return
-      }
-
-      pgReleased = true
-      await queryRunner.release().catch((e: unknown) => this.logger.error(e))
-    }
+    // 生命周期守卫（commit / rollback / release 的守卫与幂等）只定义在 tx.runner.ts 一处 ——
+    // 本类是它的第二个消费者，不是第二份实现：commit 已释放过的 runner 不能再 rollback
+    // （1.1.2 的 rollbackTransaction 在 `isTransactionActive === false` 时**抛**
+    // TransactionNotStartedError，不是 no-op），release 也只允许发生一次。
+    const tx = createQueryRunnerTxGuard(queryRunner, this.logger)
 
     // 会话创建失败（connect / startTransaction / RLS 设置抛错）同样走「回滚 → 释放」：
-    // startTransaction 成功后只 release 会把活跃事务留在这条连接上（见 rollbackIfActive）。
+    // startTransaction 成功后只 release 会把活跃事务留在这条连接上。
     try {
       await queryRunner.connect()
       await queryRunner.startTransaction()
@@ -102,8 +76,8 @@ export class WalnutTxInterceptor implements NestInterceptor {
       )
     }
     catch (e) {
-      await rollbackIfActive()
-      await releaseOnce()
+      await tx.rollback()
+      await tx.release()
       throw e
     }
 
@@ -120,11 +94,10 @@ export class WalnutTxInterceptor implements NestInterceptor {
           this.logger.log(`Transaction commit: ${className}.${handlerName}`)
 
           try {
-            await queryRunner.commitTransaction()
-            pgCommitted = true
+            await tx.commit()
           }
           finally {
-            await releaseOnce()
+            await tx.release()
           }
 
           // execute post-commit hooks —— **在事务 ALS 上下文之外**执行。
@@ -149,8 +122,8 @@ export class WalnutTxInterceptor implements NestInterceptor {
         catchError(async (err) => {
           this.logger.log(`Transaction abort: ${className}.${handlerName}`)
 
-          await rollbackIfActive()
-          await releaseOnce()
+          await tx.rollback()
+          await tx.release()
 
           throw err
         }),

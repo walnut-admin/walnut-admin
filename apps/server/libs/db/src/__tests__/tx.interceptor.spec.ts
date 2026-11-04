@@ -37,6 +37,8 @@ interface IFakeRunnerScript {
   rollbackThrows?: boolean
   /** commit 抛错 */
   commitThrows?: boolean
+  /** release 自身抛错（连接已坏） */
+  releaseThrows?: boolean
 }
 
 interface IFakeRunnerHandle {
@@ -95,6 +97,9 @@ function createFakeRunner(script: IFakeRunnerScript = {}): IFakeRunnerHandle {
       calls.push('release')
       activeAtRelease.push(state.active)
       state.released = true
+      if (script.releaseThrows === true) {
+        throw new Error('pg release boom')
+      }
     },
     manager: {
       query: async () => {
@@ -231,6 +236,34 @@ describe('walnutTxInterceptor 失败路径的连接语义（先 rollback 再 rel
 
     expect(calls).toEqual(['connect', 'start', 'commit', 'release'])
     expect(calls).not.toContain('rollback')
+  })
+
+  it('release 自身抛错（commit 已成功）：结果照常返回，release 不重试、错误只记日志', async () => {
+    const { runner, calls } = createFakeRunner({ releaseThrows: true })
+    const interceptor = new WalnutTxInterceptor(fakeDataSource(runner))
+    const errorSpy = vi.spyOn(Logger.prototype, 'error')
+
+    // 守卫与 `withQueryRunnerTransaction` 共用同一份实现：归还连接失败不能让一个
+    // 已经提交成功的事务在 HTTP 层变成 500
+    const result$ = await interceptor.intercept(makeExecutionContext({}), okHandler('committed'))
+    await expect(lastValueFrom(result$)).resolves.toBe('committed')
+
+    expect(calls).toEqual(['connect', 'start', 'commit', 'release'])
+    expect(calls.filter(c => c === 'release')).toHaveLength(1)
+    expect(errorSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('rollback 与 release 双双抛错：原始错误仍透传，连接只归还一次', async () => {
+    const { runner, calls } = createFakeRunner({ setupThrows: true, rollbackThrows: true, releaseThrows: true })
+    const interceptor = new WalnutTxInterceptor(fakeDataSource(runner))
+
+    // 两条清理腿都坏掉时，暴露给调用方的必须是真正的根因（setup 的错）
+    await expect(interceptor.intercept(makeExecutionContext({}), okHandler()))
+      .rejects
+      .toThrow('pg set_config boom')
+
+    expect(calls).toEqual(['connect', 'start', 'rollback', 'release'])
+    expect(calls.filter(c => c === 'release')).toHaveLength(1)
   })
 
   it('setup 阶段同步错误（RLS 设置抛 TypeError）同样走 rollback → release', async () => {

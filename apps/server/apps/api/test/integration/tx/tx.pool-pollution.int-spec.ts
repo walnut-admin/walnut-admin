@@ -1,7 +1,7 @@
 import type { CallHandler, ExecutionContext, INestApplication } from '@nestjs/common'
 import type { WalnutTxContext } from '@walnut-server/db'
 import type { DataSource, QueryRunner } from 'typeorm'
-import { WalnutTxInterceptor } from '@walnut-server/db'
+import { WALNUT_DATA_SCOPE_RLS_SYSTEM_SETTINGS, WalnutTxInterceptor, withQueryRunnerTransaction, withWalnutRlsTransaction } from '@walnut-server/db'
 import { from, lastValueFrom, throwError } from 'rxjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createIntegrationApp, getWalnutPgAdminDataSource, getWalnutPgDataSource } from '../helpers/create-integration-app'
@@ -21,6 +21,9 @@ import { createIntegrationApp, getWalnutPgAdminDataSource, getWalnutPgDataSource
  * `pg_stat_activity.state`（管理连接读，admin 角色对同库 backend 可见）——
  * 「修好后」必须是 `idle`，「bug 态」是 `idle in transaction`。第三条用例是同一判据的
  * **负对照**（把该 runner 的 rollback 钝化，模拟修复前的代码），它证明这条判据真能看见 bug。
+ *
+ * 同一条判据也套在 `libs/db` 的唯一事务帮手上（拦截器与自管事务现在共用同一份守卫）：
+ * 帮手提交 → idle；帮手回调抛错 → idle 且事务号 `aborted`；帮手 setup 抛错 → idle。
  */
 
 describe('连接池污染：WalnutTxInterceptor 失败路径「先 rollback 再 release」（真实 PG）', () => {
@@ -83,6 +86,24 @@ describe('连接池污染：WalnutTxInterceptor 失败路径「先 rollback 再 
     return new WalnutTxInterceptor({ createQueryRunner: () => runner } as unknown as DataSource)
   }
 
+  /** 固定帮手使用的 runner（同 interceptorOn，帮手只用到 createQueryRunner） */
+  function dataSourceOn(runner: QueryRunner): Pick<DataSource, 'createQueryRunner'> {
+    return { createQueryRunner: () => runner }
+  }
+
+  /** 包一层 release 计数：帮手的保证之一是「恰好归还一次」 */
+  function countReleases(runner: QueryRunner): () => number {
+    const originalRelease = runner.release.bind(runner)
+    let count = 0
+
+    runner.release = async () => {
+      count += 1
+      await originalRelease()
+    }
+
+    return () => count
+  }
+
   it('会话建立阶段抛错（RLS 设置 TypeError）：连接还池时不在事务里（state = idle）', async () => {
     const { runner, backendPid } = borrowRunner()
     const interceptor = interceptorOn(runner)
@@ -123,6 +144,80 @@ describe('连接池污染：WalnutTxInterceptor 失败路径「先 rollback 再 
     expect(runner.isTransactionActive).toBe(false)
   })
 
+  it('withWalnutRlsTransaction 提交：RLS 设置写在事务里，归还连接时 state = idle', async () => {
+    const { runner, backendPid } = borrowRunner()
+    const releases = countReleases(runner)
+    let mode = ''
+
+    await withWalnutRlsTransaction(
+      dataSourceOn(runner),
+      WALNUT_DATA_SCOPE_RLS_SYSTEM_SETTINGS,
+      async (manager) => {
+        const rows = await manager.query<Array<{ mode: string | null }>>(
+          'SELECT current_setting($1, true) AS mode',
+          ['app.data_scope.mode'],
+        )
+        mode = rows[0]?.mode ?? ''
+      },
+    )
+
+    // 设置确实落在**这个事务**里（local = true），不是会话级残留
+    expect(mode).toBe('system')
+    expect(await backendState(backendPid())).toBe('idle')
+    expect(runner.isTransactionActive).toBe(false)
+    expect(releases()).toBe(1)
+  })
+
+  it('withWalnutRlsTransaction 回调抛错：回滚 + 归还，事务号是 aborted、连接 state = idle', async () => {
+    const { runner, backendPid } = borrowRunner()
+    const releases = countReleases(runner)
+    let xid = ''
+
+    await expect(withWalnutRlsTransaction(
+      dataSourceOn(runner),
+      WALNUT_DATA_SCOPE_RLS_SYSTEM_SETTINGS,
+      async (manager) => {
+        const rows = await manager.query<Array<{ xid: string }>>('SELECT txid_current() AS xid')
+        xid = String(rows[0].xid)
+        throw new Error('helper boom')
+      },
+    )).rejects.toThrow('helper boom')
+
+    // 零残留判据（服务端）：这个事务号在 PG 里的终态必须是 aborted，不是 committed
+    const status = await adminPgDataSource.query<Array<{ status: string }>>(
+      'SELECT txid_status($1::bigint) AS status',
+      [xid],
+    )
+    expect(status[0]?.status).toBe('aborted')
+    expect(await backendState(backendPid())).toBe('idle')
+    expect(runner.isTransactionActive).toBe(false)
+    expect(releases()).toBe(1)
+  })
+
+  it('withQueryRunnerTransaction 的 setup 抛错（事务已开启）：回滚 + 归还，state = idle', async () => {
+    const { runner, backendPid } = borrowRunner()
+    const releases = countReleases(runner)
+
+    await expect(withQueryRunnerTransaction(
+      dataSourceOn(runner),
+      async () => 'never',
+      {
+        setup: async () => {
+          throw new Error('setup boom')
+        },
+      },
+    )).rejects.toThrow('setup boom')
+
+    // 旧写法把 connect / startTransaction / 设置写在 try 之外：这里会读到 idle in transaction
+    expect(await backendState(backendPid())).toBe('idle')
+    expect(runner.isTransactionActive).toBe(false)
+    expect(releases()).toBe(1)
+  })
+
+  // 顺序是判据的一部分：本用例把一条连接弄成 idle in transaction 后 `pg_terminate_backend`
+  // 掐断它，pg-pool 要等 socket error 才会丢弃该 client —— 下一轮 borrowing 可能先摸到
+  // 这条已死的 client（表现是 `terminating connection due to administrator command`）。
+  // 所以负对照**放在最后**，不要往后追加用例。
   it('负对照：把该 runner 的 rollback 钝化（= 修复前的「只 release」）⇒ 同一条判据读到 idle in transaction', async () => {
     const { runner, backendPid } = borrowRunner()
     // 只 release 不 rollback —— 正是修复前 catch 分支的错法
