@@ -18,9 +18,9 @@
 | ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 tag 发布链路端到端验证已被决定推迟，见下面「搁置」一节 |
 | ~~P1~~ | **没有任何东西在看这一面**（不是「哪里写错了」） | **当前为空** —— 已知的几面都有人看着：turbo tags 反向断言、根脚本形态、脚本入口两条 ESLint、动态 import、madge 0 环、四道文档门禁。2026-11-04 复核无新增 |
 | **P2** | 维护性 / 体验改善，成本有据 | TS 7 迁移准备 · store 工厂迁移 |
-| **P3** | 远期 / 条件触发 | 后端验证策略落地 · E2E · 组件文档补写 · 两处安全观察 · `@walnut/i18n`/`@walnut/security` 新包 · Phase 4 组件自动注册 · `Global/AI` 评审缺陷 · 基建注释历史账 · env 模板三个 `VITE_*` · `list` 旧 `query` 兼容路径退役 |
+| **P3** | 远期 / 条件触发 | 后端验证策略落地 · E2E · 组件文档补写 · 两处安全观察 · `@walnut/i18n`/`@walnut/security` 新包 · Phase 4 组件自动注册 · `Global/AI` 评审缺陷 · 基建注释历史账 · env 模板三个 `VITE_*` · `list` 旧 `query` 兼容路径退役 · 设备缓存 TTL 兜底自愈 |
 | **搁置** | 等条件成熟（外部依赖，或已决定先不动） | `pnpm peers check` · knip · tag 发布链路端到端验证 · GitHub Environments · 国内 self-hosted runner · 锚点校验 |
-| **未裁决** | 连「做不做」都还没定 | 2 条（`C4` / `C5`）+ 2026-09-21 评审遗留的 4 条设计选型 |
+| **未裁决** | 连「做不做」都还没定 | `C4` / `C5` / `C6` + 2026-09-21 评审遗留的 4 条设计选型 |
 
 ---
 
@@ -56,6 +56,90 @@
 | **C1** admin 请求体 `as` → `satisfies` | `apps/admin/src/api/system/device.ts` 已换成 `satisfies`；真根因不是断言而是 **`Initial` 类型取了实体面**，改取 wire 面 `components['schemas']['SysDeviceDTOInitialRequest']` 后两处松动各按真因修（`getMemoryGB(): number`、`deviceInfo.type` 可选就不发）—— `b382a580` |
 | **C3** `concurrency` G6 偶发 | 两条都关：测试侧种子改显式提交事务（`e2dc612d`），库侧是**真 bug** —— `apps/server/libs/db/src/tx.interceptor.ts` 的 catch 只 release 不 rollback，毒连接带着未提交事务回池（`c7f7e11f`）；负对照在真实 PG 上读到 `expected 'idle in transaction' to be 'idle'` |
 | **`--skip-gates` 的记账** | 发版电池的「真跑通过」改成只数传入的 Set：显式跳过与子进程退 3 都单列「跳过（未验证）」并减 `ranCount` —— `5dbdb4e8` |
+| **`T2`** 契约可选性（生成器开关） | 判据落在**生成器**、不在前端类型：`packages/generated/api-types/package.json` 的 `generate` 带 `--default-non-nullable=false`，生成物的可选性才与 `apps/server/openapi.json` 的 `required` 一一对应（478 个属性从必填回到可选）；`SystemLocale` 补 `& { id: string, groupKey: string }`，C1 的 `Omit` shim 删除、`Initial` 直接取生成面 —— `ed69cb95` |
+| **`T3`** 事务惯用法收敛 | DB 配对角逐收敛到 `withQueryRunnerTransaction`（`apps/server/libs/db/src/tx.runner.ts`）；收敛途中修掉 `otp` / `gitee` / `github` 三处既有缺陷：RLS 设置在 `try` 之外 ⇒ 设置本身抛错时既不 rollback 也不 release —— `1d484487` |
+| **`T4`** `verifyHash` 删除 + `libs/crypto` 首份单测 | 死方法删除；`apps/server/libs/crypto/src/__tests__/crypto.service.spec.ts` 是这一面的第一份单测 —— `8f409b13` |
+| **`Q3`** `DEVICE_ID_ENCRYPTION_KEY` 退役 | 判据是**全仓 0 消费者**（`rg DEVICE_ID_ENCRYPTION_KEY` 只剩文档）；env 模板 / dotenvx 密文 / 配置骨架 / 类型声明一并清 ⇒「部署后不许改的密钥」清单少一条（清单本身以 `apps/server/AGENTS.md` 那一节为判据，别在这里抄数）—— `d3cd2b5c` |
+| **根目录 `reports/` 删除** | 结论并入文档站后整目录删除（`21c3b098`），指向它的死引用同批清掉（workflow / Dockerfile / 迁移注释 / drift spec 注释等，`52602682`）。判据：`git ls-files` 里已无根级 `reports` 下的任何文件 |
+| **guard 测试覆盖** | 单测补齐 device / mfa / ip / security / throttler，接口补齐 sign / jwt / device / cap / 全局限流桶 / user-mfa / user-lock。真正的产物只有一条判据：**下列语义在补测之前没有任何用例** —— `40111`、滑动续期、Sign `40113`、B5 旧 64hex 形态、全局限流桶、Optional + 坏 AT 降级 —— `4e54806e` · `f28fe062` · `68d18f45` · `582f32e9` |
+| **设备缓存的 purge 分叉（真 bug）** | 90 天留存只删行、不失效 `SYSTEM:DEVICE:<deviceId>`，而该缓存**没有 TTL** ⇒ 被删的设备仍被放行，留存形同虚设。修法是提交后逐键失效 + 失败逐键记 error（`apps/server/libs/system/src/device/repo/device.pg.purge.service.ts:99-107`），负对照 `apps/server/apps/api/test/integration/device/device.purge.cache.int-spec.ts` —— `37d162db` |
+| **Sign 坏签名崩成 `50000`（真 bug）** | cookie-parser 对坏签名返回 `false`（不是 `null`），旧代码把它当有值 ⇒ `createHash('sha256').update(false)` 抛 `ERR_INVALID_ARG_TYPE` ⇒ `HTTP 200 + code 50000`。现在视同缺失走重签自愈，「签名合法但值不符」仍是 `40112` —— `582f32e9` |
+
+## 已知实现契约与风险面
+
+> 这一节**不是待办**。它写的是「已经这么实现了 / 改它之前先读完这一条」。每条形制统一：
+> **现在是什么样**（判据落到路径）、**别乱动什么**、**要动先定什么**。
+> 留下的理由：这一节里每一条都被人当成过「显然安全的小改动」，而它们的错法都是**静默**的。
+
+### 设备 `active` 没有消费者（也暂时不该有）
+
+- **现状**：`sys_device.active` 只出现在两处 —— 写缓存时带进 `SYSTEM:DEVICE:<deviceId>`
+  （`apps/server/libs/cache/src/service/device.cache.ts`），以及留存清理按 `active=false AND updated_at<90d` 选行。
+  **拒绝链里没有它**：`DeviceGuard` 只在 `banned` / `locked` 时抛（`apps/server/libs/guards/src/guards/device.guard.ts:150-158`），
+  所以 `markDeviceStale` 置 `false` 挡不住任何请求。
+- **别直接改成拒绝**：那会把设备推进 `40605` 自愈链（`apps/admin/src/utils/axios/interceptors/response/device.ts`
+  → 重走 `POST /system/device/initial`），而 `initial` 带 `@WalnutAdminGuardDeviceFree()`、upsert 写集里**无条件**
+  带 `active: true`（`apps/server/libs/system/src/device/device.service.ts:152`）⇒ 刚标记的退役会被下一次请求**静默复活**，
+  `$set` 语义还会顺带覆盖 `deviceName` / `ipHistory` / `locationHistory`。
+  两层风险都要写清：①对设备是**假退役** —— 标记被下一跳自愈抹掉；②对留存策略是**锚点自毁** ——
+  `active` 永远回不到 `false` ⇒ purge 的 `active=false AND updated_at<90d` 永远选不中它。
+  坏法不是死循环（客户端有 `_deviceResetRetried`、每个请求只自愈一次），而是「**每台被退役的设备都被复活**」—— 比报错更难发现。
+- **要动先定**：`active=false` 是**退役**（那就该删行或改标 `banned`，留存判据跟着换成「行不存在」），
+  还是**临时挂起**（那要另立列 + 明确的解冻入口）。语义未定之前，`active` 保持「只被写、不被读」。已编号 `C6`，见「未裁决」。
+
+### `X-Forwarded-For` 能换限流桶（部署契约，不是代码缺陷）
+
+- **现状**：限流 tracker 是 `req.realIp`（`apps/server/libs/guards/src/guards/throttler.guard.ts:34-36`），
+  而 `realIp` 来自 `@supercharge/request-ip` —— **header 优先、不校验跳数、不看 `trust proxy`**
+  （`apps/server/apps/api/src/middleware/src/ip.middleware.ts`）。客户端自带一个 `X-Forwarded-For` 就能换一个桶。
+- **封死在部署侧**：`deploy/nginx/conf.d/api.conf` 与 `deploy/nginx/conf.d/frontend.conf` 都用 **`$remote_addr` 覆写**
+  这两个头（不是 `$proxy_add_x_forwarded_for`）。改成追加式、或让 API 端口直连暴露，
+  **限流 / IP 黑名单 / 风控会被一个请求头整体绕过** —— 这是部署契约，不是可以在应用层补的洞。
+- **现状已被用例钉住**：换 `X-Forwarded-For` 得新桶、同 IP 递减
+  （`apps/server/apps/api/test/api/platform/throttle-global.api-spec.ts`）。改这条契约要先改那份用例，别让它悄悄失效。
+
+### `lock_cross_device` 的默认值是 `true`
+
+- **现状**：列默认值写在迁移里（`apps/server/apps/api/migrations/1792922206018-InitSchema.ts:441`）。
+  为 `true` 时，锁一台设备 = **锁该用户所有设备**：共享层刷全部设备行
+  （`apps/server/libs/identity/src/user_lock/shared/user_lock.shared.service.ts`），守卫写的是全局键
+  `SECURITY:LOCK:<userId>:global`，且 `checkIsLocked` 先读它、优先级高于单设备键
+  （`apps/server/libs/cache/src/service/cache.lock.ts`）。
+- **判据**：想要「锁一台设备只锁那一台」，必须显式把该用户的 `lock_cross_device` 关掉 —— **默认值不是按设备锁**。
+
+### RT 轮换不使旧 AT 失效
+
+- **现状**：refresh 复用同一个 `sessionId`，只作废旧 **RT 行**（旧 jti 再用即 `40102`），
+  会话键不动 ⇒ 旧 AT 在过期前仍然可用（`apps/server/libs/auth/src/modules/refresh/shared/refresh.shared.service.ts:276-303`，
+  新 AT 的 `sid` 仍是同一个 `sessionId`，见同文件 :488）。
+- **判据**：如果哪天改成「轮换即作废旧 AT」，`apps/server/apps/api/test/api/auth/jwt-guard.api-spec.ts` 会先红 ——
+  那份用例是这条语义的机械守卫，别只改实现。
+
+### device 缓存没有 TTL
+
+- **现状**：`setSysDeviceCache` 只传缓存类型、不传 `ttl`（`apps/server/libs/cache/src/service/device.cache.ts`），
+  而 `AppTechCacheService.set` 的 `ttl` 缺省 0 = 不过期（`apps/server/libs/cache/src/cache.service.ts:150-166`，
+  日志里就是 `No Expiration`）⇒ `SYSTEM:DEVICE:<deviceId>` 的失效**完全依赖写路径主动删**。
+- **本轮补了一半**：purge 现在在**提交后**逐键失效（见上面「设备缓存的 purge 分叉」）；为什么不在事务内删，
+  理由写在 `apps/server/libs/system/src/device/repo/device.pg.purge.service.ts:99-107` —— 提交前删会被并发的 guard 请求回源灌回「放行」。
+- **建议补 TTL 兜底**：TTL 由「可容忍的缓存↔DB 分叉时长」决定（起手 30–60min + ±10% 抖动，判据不写死数字），
+  但**写路径失效必须保留** —— 只要还有一条绕过应用的写路径，no-TTL 就等于把「漏失效」升级成「永久放行」。已登记进 P3。
+
+### Sign 的坏签名不再崩成 `50000`
+
+- **现状**：`SIGN_TICKET` 签名不合法时 cookie-parser 返回 `false`（不是 `null`），旧代码把它当有值送去
+  `createHash('sha256').update(false)` ⇒ `ERR_INVALID_ARG_TYPE` ⇒ `HTTP 200 + code 50000`。
+  现在**视同缺失**、重签自愈（`apps/server/libs/guards/src/guards/sign.guard.ts`）—— `582f32e9`。
+- **判据**：**「签名合法但值不符」仍然是 `40112`**，两者不能混。改 Sign 之前先看
+  `apps/server/apps/api/test/api/security/sign-guard.api-spec.ts` 里那组正反对偶用例。
+
+### 契约生成：`defaultNonNullable` 是关掉的
+
+- **现状**：`packages/generated/api-types/package.json` 的 `generate` 带 `--default-non-nullable=false`。
+  开着它时，openapi-typescript 会把**带 `default` 的字段抬成必填**（哪怕后端 DTO 上是可选的），
+  前端于是被迫传后端没要求的字段，再靠 `Omit` / `as` 把它「修」回去 —— 失真两头都看不清。
+- **判据（照它查）**：以后凡是遇到「**前端被迫传一个后端可选字段**」，先查这个开关、再看生成物的可选性是否与
+  `apps/server/openapi.json` 的 `required` 一一对应，**别先动前端类型**。`ed69cb95` 那次纠正了 478 个属性的偏差。
 
 ## 剩余待办
 
@@ -84,6 +168,7 @@
 | **基建注释里的历史账** | **S**（增量做） | 判据（照它做，别自由发挥）：① 注释里写**规则**、不写叙事；② 判据细节指向文档站；③ **不写会腐烂的计数**；④ 每批自证「`git diff` 里非注释改动为 0」。不单开批次，顺手做 |
 | **env 模板里三个 `VITE_*` 是空串** | **S** | `VITE_GA_ID` / `VITE_GOOGLE_CLIENT_ID` / `VITE_SERVER_STATIC_PUBLIC_KEY` 的明文就是 `''`，`pnpm setup-env` 恢复不出真值。GA 与 Google 都有消费点自己的守卫，**`VITE_SERVER_STATIC_PUBLIC_KEY` 没人兜**（登录时与服务端下发的值比对，空串大概率判不匹配，未实测）。要决定：模板是否带一组可用 dev 值，还是把「空值 ⇒ 该功能关闭」定成所有消费点的统一约定 |
 | **`list` 的旧 `query` 兼容路径退役** | **S** | `apps/server/libs/repository/src/pg-list.builder.ts` 的 `IListRequestParams.query` / `legacyConditionFromValue()` 及其 `raw` 分支。HTTP 层早已不收这个槽位（DTO 无该字段，顶层白名单直接 40099），今天只剩「库内 / 库外直接构造入参」的兜底，语义是**丢弃 + warn**。删除判据两条全满足：① 静态 0 调用点；② 运行面连续 30 天无触达（这条路径解释成功时**完全静默**，要按它判得先补触达计数）。现在不删：删它零收益，留着有回滚价值 |
+| **设备缓存的 TTL 兜底自愈** | **S** | `SYSTEM:DEVICE:<deviceId>` 现在**无 TTL**（`setSysDeviceCache` 不传 `ttl` ⇒ `No Expiration`），写路径漏一次失效就等于永久放行（本轮 purge 那条真 bug 就是这么来的）。TTL 由「可容忍的缓存↔DB 分叉时长」决定（起手 30–60min + ±10% 抖动），**必须与写路径失效并存** —— 只要还有一条绕过应用的写路径，no-TTL 会把「漏失效」升级成「永久放行」。背景见「已知实现契约与风险面」的 device 缓存一条 |
 
 ## 测试目录约定（2026-11-04 起，`9238dcc8`）
 
@@ -130,12 +215,13 @@
 
 > 每条都写了选项与倾向；裁决结果要么变成上面的 P2/P3 条目，要么写进 ADR（「已否决」也要留痕）。
 
-### 本批 2 条（带 `C` 编号，登记在[需要拍板的](/content/reports/decisions)）
+### 本批 3 条（带 `C` 编号，登记在[需要拍板的](/content/reports/decisions)）
 
 | # | 议题 | 选项与倾向 |
 |---|---|---|
 | **C4** | `platform-node` 走 **P1**（两个包自建 CJS dist）还是 **P2**（不搬 = 现状） | (a) **P2 不搬**（当前按这个做的）：边界由 ESLint 六层 + drift spec 守；(b) P1 自建 dist，第一关必须是「`tsc` 产出的装饰器元数据与 SWC 等价」—— 错了的症状是**静默的**（接口 200 但字段消失）。**推荐 (a)**，触发条件见「待触发」 |
 | **C5** | `D18②` 的原处方被判**物理不可执行**，接不接受「改成不做」 | (a) **接受**（当前按这个做的）：barrel 死导出这条面**不做**，只在 `knip.config.ts` 留判据与理由（成本 0）；(b) 另立「barrel 符号 0 引用」专用脚本（报告模式 → 白名单 → 进 prepush，成本 M）。**推荐 (a)**；编号来由：这条原在本表里没有 `C` 号，2026-11-04 补成 `C5` |
+| **C6** | 设备 `active=false` 的语义：**退役**还是**临时挂起** | (a) **退役**：删行或改标 `banned`，留存判据跟着换成「行不存在」；(b) **临时挂起**：另立一列 + 明确的解冻入口，`active` 只作历史位。**倾向 (a)** —— 今天没有任何「挂起」的消费方，多一列就是多一条没人读的状态；但这条**改变产品行为**（退役的设备是不是该能自己回来），所以摆在这里。背景与「为什么不能直接改成拒绝」见「已知实现契约与风险面」的 `active` 一条 |
 
 ### 2026-09-21 评审遗留的 4 条设计选型
 
@@ -162,7 +248,7 @@
 - **另一本账（产品 / 功能待办）**：仓库根的 [`TODO.md`](https://github.com/walnut-admin/walnut-admin/blob/main/TODO.md)
   —— 记的是**功能与体验**；本表记的是**架构与工程债**，两者刻意分开。
   ⚠️ 那个文件里的编号项（`000` / `111` / `999`）**被源码里的 `// TODO NNN` 注释引用**，改编号等于改一堆注释锚点。
-- **需要拍板与已代拍的账**：[需要拍板的](/content/reports/decisions)（已收口：§1 只剩 `C4` / `C5` 两条待拍板，`C1` / `C2` / `C3` 均已结案留档）
+- **需要拍板与已代拍的账**：[需要拍板的](/content/reports/decisions)（已收口：§1 只剩 `C4` / `C5` / `C6` 待拍板，`C1` / `C2` / `C3` 均已结案留档）
 - **后端结构调研的决策与计划**：`industry-research/backend-architecture-review/` 的
   [06 复核](/content/industry-research/backend-architecture-review/06-cross-check) ·
   [07 决策](/content/industry-research/backend-architecture-review/07-decisions) ·

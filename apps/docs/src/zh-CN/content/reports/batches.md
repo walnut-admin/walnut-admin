@@ -3,7 +3,7 @@
 > 这是第 11 批起的**执行记录摘要**：每批写清楚目标 / 关键发现 / 验收读数 / **复查轮挡下了什么** —— 最后一项最有价值。
 > 原始证据（每批的 R1 调研、R2 实施、R3 复查原文，含逐条 `path:line` 与命令输出）已随 2026-11-04 收尾
 > **归档至 git 历史** —— 每批的结论与验收读数已在本页，本页不抄日志。
-> **第 15 / 16 批连原文都没有** —— 它们的证据是提交号与门禁读数，各节开头已声明。
+> **第 15 / 16 / 17 批连原文都没有** —— 它们的证据是提交号与门禁读数，各节开头已声明。
 >
 > 两条口径：① 下文的门禁读数与用例条数都是**各批当时的快照**，不是现状 —— 数字会变，判据不会；
 > ② 门禁一律 `cmd /c "pnpm …"` 跑、退出码立刻取 `$LASTEXITCODE`（把管道后的退出码当读数会造出假红）。
@@ -57,8 +57,9 @@
 - **目标**：注释与私有 JSDoc 里的过时断言、`db:seed:verify` 的「到底有没有门禁在跑它」、门禁第四态（跳过）、
   两个死函数、以及配套文档。
 - **关键发现**：`lint:workflows` 现在真的退 **3** 并写「未验证（跳过不等于通过）」，prepush 把该段打成 `-` + `[SKIP 未验证]` 单列；
-  删那两个死函数**不改**部署契约 —— 变的是 `crypto.deviceIdKey` 成了悬空配置，`DEVICE_ID_ENCRYPTION_KEY` 仍是启动期必填，
-  由 `apps/server/libs/system/src/device/__tests__/device-issuance.drift.spec.ts` 的三条断言机械守。
+  删那两个死函数**不改**部署契约 —— 变的是 `crypto.deviceIdKey` 成了悬空配置，`DEVICE_ID_ENCRYPTION_KEY` 当时仍是启动期必填，
+  由 `apps/server/libs/system/src/device/__tests__/device-issuance.drift.spec.ts` 的三条断言机械守
+  （两者 2026-11-04 都已消失：`DEVICE_ID_ENCRYPTION_KEY` 退役、`crypto.deviceIdKey` 随配置骨架删除，见第 17 批）。
 - **验收读数**：`@walnut/server` 单测 `102 文件 / 839 条`、`@walnut/scripts` `545 条`、`@walnut/release` `206 条` 全绿；
   `lint:dts` exit 0；`pnpm prepush` **exit 1**（失败段：lint / test / openapi / dts —— 逐段归因后没有一条是本批引起）。
 - **R3 挡下的**：那几段红里大部分是**假红** —— 单段预算到点时调用的是「杀全部活跃子进程」的
@@ -107,10 +108,33 @@
   改成「库侧真 bug」、`C1` 从「断言问题」改成「类型来源问题」。这两条如果按最初的判断收尾巴，
   就会各留一个「已验证」的假结论在账上。
 
+## 第 17 批 · guard 覆盖与契约诚实化
+
+**无批次报告：证据是提交号。** 这一批没有原文目录，所以下文每一条都落到提交号上。
+
+- **目标**：把「守卫没人测」和「契约在撒谎」分成两件事修 —— 前者补覆盖，后者关掉那个**生产谎言的开关**。
+- **契约诚实化**：`defaultNonNullable` 不是后端的可选性，是生成器的默认值；开着它，openapi-typescript 会把带 `default` 的
+  字段一律抬成必填，前端于是被迫传后端可选项、再用 `Omit` 遮住（`478` 个属性回到可选，`ed69cb95`）。同批还做了三件
+  「先把死代码清掉、再让语义显形」的事：删 `verifyHash` 并给 `libs/crypto` 补首份单测（`8f409b13`）、事务配对收敛到
+  `withQueryRunnerTransaction`（`1d484487`）、`DEVICE_ID_ENCRYPTION_KEY` 退役（`d3cd2b5c`）；最后删掉根目录 `reports/`
+  并清死引用（`21c3b098` / `52602682`）。
+- **guard 覆盖**：单测新增 device 15 / mfa 13 / ip 11 / security 22 / throttler 7 条；接口新增 sign 12 / jwt 12 /
+  device 5 / cap 9 / throttle-global 5 / user-mfa 6 / user-lock 8 条（快照读数，数字会随用例增删变化）。
+- **真正的产物是「首次被覆盖的语义」**（判据不是条数）：`40111`、滑动续期、Sign `40113`、B5 旧 64hex 形态、
+  全局限流桶、Optional + 坏 AT 降级 —— 这些语义在补测之前**没有任何用例**能证明它们存在，补上之后才敢动它们。
+- **两个真 bug**：① `37d162db` —— 90 天留存只删行、不失效 `SYSTEM:DEVICE:<deviceId>`，而该缓存**无 TTL** ⇒
+  被删的设备仍被放行，留存功能形同虚设（负对照 `apps/server/apps/api/test/integration/device/device.purge.cache.int-spec.ts`）；
+  ② `582f32e9` —— Sign 的坏签名（cookie-parser 返回 `false`）被当有值送去 `createHash().update(false)`，
+  崩成 `HTTP 200 + 50000`；现在视同缺失走重签自愈，而「签名合法但值不符」仍是 `40112`。
+- **验收读数**：`lint:docs-refs` / `lint:doc-ts` / `lint:doc-budget` / `lint:adr` / `lint:emoji` 与
+  `pnpm --filter @walnut/docs build` 全 exit 0（构建同时是死链门禁）。
+- **这一批的教训**：两处「已知风险」都是**契约与实现不同形** —— 一处是生成器默认值在制造假必填，
+  一处是缓存没有自愈窗口、失效只依赖一条写路径。补测把语义钉住，下一轮才敢动它们。
+
 ## 没有原文目录的批次怎么记
 
 本页的门槛原本是「有一份带 `path:line` 与命令输出的过程原文」：读不到原文的批次这里就不写，**不凭计划书编执行记录**。
-第 15 / 16 批是唯一的例外 —— 这两批的产物就是**门禁与提交本身**，证据是提交号加门禁读数；
+第 15 / 16 / 17 批是同一类例外 —— 这几批的产物就是**门禁与提交本身**，证据是提交号加门禁读数；
 再补一份「过程原文」只会是同一批数字的第二份抄写。所以规则收紧成：
 **没有原文目录的批次必须在节首声明证据是什么，否则不写。**
 
