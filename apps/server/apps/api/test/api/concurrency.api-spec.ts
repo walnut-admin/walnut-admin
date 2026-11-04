@@ -383,24 +383,77 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
   it('G6 同 type 两路并发 rotate —— 恰一条 ACTIVE、败者受控 40401（P1-1：读腿事务内 FOR UPDATE）', async () => {
     // 自插高 version 目标行（key.api-spec 同款自洽法）：rotate 命中 version 最大 ACTIVE 行。
     // app_key 是 RLS 豁免表 → 用应用连接造种子（与应用事务同一角色/可见性；管理连接是
-    // 独立池，并发轮换用例里曾观察到种子行来不及被事务看到）
+    // 独立池，并发轮换用例里曾观察到种子行来不及被事务看到）。
+    // // LINK apps/server/apps/api/migrations/1793360000000-DataScopePhase3Rls.ts —— RLS_TABLES
+    // 只有七张注册表、app_key 不在其中：这一段的可见性问题与 RLS GUC 无关，别往那边查。
+    //
+    // 偶发（`expected 3 to be 1003`）的隔离判据 —— 种子的「语句写完」≠「已提交」：
+    // // LINK apps/server/libs/db/src/tx.interceptor.ts —— 两腿都由 START TRANSACTION 起事务、
+    // 无隔离级别覆写（READ COMMITTED），所以「同一张表两个连接看到不同行」只可能是**种子
+    // 还没提交**：一条带着未提交事务回池的连接被下个请求借走时，它的 INSERT 会落进那个
+    // 未提交事务里（TypeORM 的 QueryRunner.release 只把 client 还池、不回滚活跃事务；
+    // PG 又只把事务块内的 START TRANSACTION 当 WARNING + no-op，借到它的请求看不出自己
+    // 其实在别人未结束的事务里）。读数特征：成功腿的 version = seed 之前那条 ACTIVE 行的
+    // +1，而断言期望的是种子 version + 1。
+    // 下面三步把这件事钉成硬前提（任一不成立当场给出诊断，不再退化成版本号打哑谜）：
+    // ① 种子在**独立 QueryRunner 的显式事务**里 INSERT + commit（提交点可观测）；
+    // ② 提交后必须被池里**另一条**连接看到；③ 种子必须是 version 最大的 ACTIVE 行。
+    // 偶发真出现时，诊断会落在「commit 失败 / 跨连接不可见 / 命中行不是种子」三者之一，
+    // 不再退化成 `expected N to be M` 这种指不出根因的读数。
     const repo = api.appDataSource.getRepository(AppKeyEntity)
     const maxRows: Array<{ max_version: string }> = await api.appDataSource.query(
       `SELECT COALESCE(MAX(version), 0) AS max_version FROM app_key WHERE type = 'RSA_PAIR'`,
     )
     seededKeyVersion = Number(maxRows[0].max_version) + 1000
-    const seeded = await repo.save({
-      key: `rsa-conc-${seed8}`,
-      type: 'RSA_PAIR',
-      version: seededKeyVersion,
-      status: 'ACTIVE',
-      validStart: new Date(),
-      validEnd: new Date(Date.now() + 30 * 24 * 3600 * 1000),
-      meta: { bits: 2048, cipher: 'AES-256-GCM' },
-    })
+
+    const seedRunner = api.appDataSource.createQueryRunner()
+    await seedRunner.connect()
+    let seededKeyId = ''
+    try {
+      await seedRunner.startTransaction()
+      const inserted = await seedRunner.manager.getRepository(AppKeyEntity).save({
+        key: `rsa-conc-${seed8}`,
+        type: 'RSA_PAIR',
+        version: seededKeyVersion,
+        status: 'ACTIVE',
+        validStart: new Date(),
+        validEnd: new Date(Date.now() + 30 * 24 * 3600 * 1000),
+        meta: { bits: 2048, cipher: 'AES-256-GCM' },
+      })
+      seededKeyId = inserted.id
+      await seedRunner.commitTransaction()
+    }
+    catch (e) {
+      // 提交失败必须显式回滚再还池 —— release 不回滚活跃事务（会把未提交事务留给下个借主）
+      if (seedRunner.isTransactionActive) {
+        await seedRunner.rollbackTransaction().catch(() => undefined)
+      }
+      throw e
+    }
+    finally {
+      await seedRunner.release()
+    }
     // 种子行一并进清场名单 —— initFirst 的 existsByType 不筛 status，残留行（哪怕已
     // DEPRECATED）会让后续 app.key.int-spec 的 initFirst 撞 DataExists（跨文件实测抓过）
-    createdKeyIds.push(seeded.id)
+    createdKeyIds.push(seededKeyId)
+
+    // ② 换一条连接复核已提交（借连接本身就是复核的意义）
+    const visibleRows: Array<{ version: number, status: string }> = await api.appDataSource.query(
+      'SELECT version, status FROM app_key WHERE id = $1',
+      [seededKeyId],
+    )
+    expect(
+      visibleRows,
+      '种子行提交后在应用池的另一条连接上看不到 —— 池里有带着未提交事务回池的连接（release 不回滚 + 事务块内 START TRANSACTION 是 no-op），先修连接语义再看并发判据',
+    ).toHaveLength(1)
+    expect(visibleRows[0].version).toBe(seededKeyVersion)
+    expect(visibleRows[0].status).toBe('ACTIVE')
+
+    // ③ 种子必须是 rotate 的命中行（否则后面的 version 断言失去意义）
+    const targetRows: Array<{ id: string }> = await api.appDataSource.query(
+      `SELECT id FROM app_key WHERE type = 'RSA_PAIR' AND status = 'ACTIVE' ORDER BY version DESC LIMIT 1`,
+    )
+    expect(targetRows[0]?.id, 'rotate 的命中行必须是种子行（该 type 下 version 最大的 ACTIVE 行）').toBe(seededKeyId)
 
     // 两路并发 rotate（@WalnutTx 各自事务）：P1-1 修复后 getCurrentActiveKey 在事务内
     // FOR UPDATE。两种合法时序：
@@ -441,7 +494,7 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
     expect(actives.map(row => row.id).sort()).toEqual(successResults.map(row => row.id).sort())
     expect(new Set(actives.map(row => row.version)).size).toBe(actives.length)
 
-    const seededRow = await repo.findOne({ where: { id: seeded.id } })
+    const seededRow = await repo.findOne({ where: { id: seededKeyId } })
     expect(seededRow?.status).toBe('DEPRECATED')
   })
 })
