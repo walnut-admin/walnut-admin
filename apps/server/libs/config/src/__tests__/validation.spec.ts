@@ -112,7 +112,7 @@ describe('env schema：APP_TRUST_PROXY_HOPS（F-11 trust proxy 跳数）', () =>
 /**
  * F-42：密钥类 env 的最小长度（@MinLength(32)）。
  *
- * 这 7 个值此前只有 @IsString() —— "1" 也能启动。下限口径与「为什么不会自伤」写在
+ * 这 6 个值此前只有 @IsString() —— "1" 也能启动。下限口径与「为什么不会自伤」写在
  * validation.ts 顶部的 SECRET_MIN_LENGTH 注释里；本文件守三件事：
  * 1) 过短值必须被拒，且报错文案点名变量名（排障要知道改哪个 env）；
  * 2) 恰好 32 字符（下限）通过 —— 边界值是约定的一部分；
@@ -122,7 +122,6 @@ const SECRET_FIELDS = [
   'AUTH_OPAQUE_SECRET',
   'MFA_ENCRYPTION_KEY',
   'RT_ENCRYPTION_KEY',
-  'DEVICE_ID_ENCRYPTION_KEY',
   'USER_ID_ENCRYPTION_KEY',
   'JWT_ACCESS_TOKEN_SECRET',
   'JWT_REFRESH_TOKEN_SECRET',
@@ -155,7 +154,7 @@ describe('env schema：密钥类 env 最小长度（F-42）', () => {
     }
   })
 
-  it('七个字段同时缺失 → 每个字段一个 ValidationError，isString 必在其中（缺值仍然先被 IsString 判死）', () => {
+  it('六个字段同时缺失 → 每个字段一个 ValidationError，isString 必在其中（缺值仍然先被 IsString 判死）', () => {
     const errors = validateSync(
       plainToClass(EnvironmentVariables, {}, { enableImplicitConversion: true }),
       { skipMissingProperties: false },

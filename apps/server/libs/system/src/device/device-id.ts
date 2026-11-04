@@ -8,9 +8,10 @@ import { WALNUT_DEVICE_ID_PREFIX } from '@walnut-server/const/app/device'
  * “一处判据”的中立落点（pipes 也要用，而 pipes 不能反过来依赖 libs/system）。本文件
  * 只留**签发**与再导出，保持 `@walnut-server/system` 的既有 import 面不变。
  *
- * 为什么不再由指纹派生：改造前 `device_id = HMAC_SHA256(浏览器指纹, DEVICE_ID_ENCRYPTION_KEY)`，
+ * 为什么不再由指纹派生：改造前 `device_id = HMAC_SHA256(浏览器指纹, 服务端的一把历史盐)`，
  * 即「客户端自报值的确定性函数」—— 谁拿到别人的指纹，就能铸出别人的设备身份。
- * 现在改成**服务端随机签发**，指纹降级为风控特征（不参与身份派生）。
+ * 现在改成**服务端随机签发**，指纹降级为风控特征（不参与身份派生）。那把盐只被当单向
+ * HMAC 盐用过（从没加密过任何数据），它的 env 也已在 2026-11-04 退役。
  */
 
 export { isValidDeviceId, WALNUT_DEVICE_ID_PREFIX } from '@walnut-server/const/app/device'

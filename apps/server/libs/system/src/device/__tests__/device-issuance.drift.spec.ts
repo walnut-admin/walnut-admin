@@ -17,10 +17,11 @@ import { describe, expect, it } from 'vitest'
  *    生产源码里**连提都不许提** —— 它们已在 14-D 整段删除；「恢复」它们等于把
  *    「身份 = f(客户端自报值)」这条已废弃的等式请回来（连注释都不留，免得下一个读的人
  *    以为它还在）；
- * 3. `DEVICE_ID_ENCRYPTION_KEY` 的**代码读者**只允许 config 的三处骨架（启动校验 /
- *    config 注册 / 类型声明）。它今天没有任何加解密或派生消费者（从没加密过数据，只做过
- *    单向 HMAC 盐），保留是**部署契约**的选择、不是代码依赖（理由见
- *    libs/config/src/modules/crypto.config.ts 的注释）—— 谁再把它当身份根读，这里红。
+ * 3. `DEVICE_ID_ENCRYPTION_KEY` 已于 2026-11-04 **退役**（env / 密文 / 必填校验 / 类型声明 /
+ *    命名空间注册同一批删干净），所以它的**代码读者集合必须为空**。它的历史用途只是单向
+ *    HMAC 盐（从没加密过任何数据），B5 起 device_id 由服务端随机签发 ⇒ 0 个消费者；
+ *    改造前后的来龙去脉留在 device-id.ts 的注释里，不留在配置骨架里。谁再把这个 env
+ *    读回来（哪怕是「兼容」），这里红。
  *
  * 扫描口径同 `libs/lock/src/murlock-isolation.drift.spec.ts` / `lib-registration.drift.spec.ts`：
  * `pnpm --filter @walnut/server test` 的 cwd 是 `apps/server`，所以以 process.cwd() 为根。
@@ -177,16 +178,12 @@ describe('设备身份签发：调用点唯一、指纹派生不复存在（B5 /
     expect(leftovers).toEqual([])
   })
 
-  it('环境变量 DEVICE_ID_ENCRYPTION_KEY 的代码读者只有 config 骨架三处（它不是身份根，是部署契约）', () => {
+  it('环境变量 DEVICE_ID_ENCRYPTION_KEY 已于 2026-11-04 退役：生产源码里零代码读者', () => {
     const readers = productionFiles
       .filter(file => codeOf(file).includes('DEVICE_ID_ENCRYPTION_KEY'))
       .map(rel)
       .sort()
 
-    expect(readers).toEqual([
-      'libs/config/src/modules/crypto.config.ts',
-      'libs/config/src/validation.ts',
-      'libs/types/src/process.d.ts',
-    ])
+    expect(readers).toEqual([])
   })
 })

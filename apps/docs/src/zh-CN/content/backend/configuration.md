@@ -27,7 +27,7 @@ CI 里通过 GitHub Secret `ENV_KEYS`（内容就是 `.env.keys` 全文）自动
 | `.env.production` | 生产配置 |
 | `.env.stage` | 预发（stage）配置 |
 
-## 部署后绝不能改的 5 个 key
+## 部署后绝不能改的 4 个 key
 
 下面这几个 key 只在首次部署时确定一次；改动之后，用旧 key 加密过的历史数据
 （OPAQUE 凭据、MFA 密钥、refresh token、用户身份标识）**再也解不开** ——
@@ -38,15 +38,13 @@ CI 里通过 GitHub Secret `ENV_KEYS`（内容就是 `.env.keys` 全文）自动
 | `AUTH_OPAQUE_SECRET` | OPAQUE 协议密钥 |
 | `MFA_ENCRYPTION_KEY` | MFA 数据 |
 | `RT_ENCRYPTION_KEY` | refresh token |
-| `DEVICE_ID_ENCRYPTION_KEY` | 历史指纹盐（**没有加密过任何数据**，见下） |
 | `USER_ID_ENCRYPTION_KEY` | 用户身份标识 |
 
-> `DEVICE_ID_ENCRYPTION_KEY` 是这张表里的例外：它只在 B5 之前当过「指纹 → device_id」的
-> **单向 HMAC 盐**，从来没有加密过数据，今天**0 个消费者** —— 没有任何加解密 / 派生 / 身份用途
-> （设备 ID 已改为服务端随机签发，判据见 `apps/server/libs/const/src/app/device.ts`）。
-> 它在代码里还有 3 处读者，但全是**配置骨架**、不是使用：命名空间注册（`crypto.config.ts`）、
-> 启动必填校验（`validation.ts`）、类型声明（`process.d.ts`）。留在「不许改」清单里是**部署契约**
-> 的选择 —— 退役要连同 env 模板、dotenvx 密文与部署说明一起另案裁定；在那之前一律按「不许改」对待。
+> 这张表里原本还有一个 `DEVICE_ID_ENCRYPTION_KEY`，2026-11-04 **已删除**：env 模板、dotenvx 密文、
+> 启动必填校验、类型声明与命名空间注册同一批删干净。它只在 B5 之前当过「指纹 → device_id」的
+> **单向 HMAC 盐**，从来没有加密过数据；设备 ID 改为服务端随机签发后它就是 0 个消费者，所以直接
+> 退役，而不是留在清单里当部署契约。改造前后的来龙去脉见
+> `apps/server/libs/system/src/device/device-id.ts` 的注释。
 
 这几个 key 的名字也抄在常驻指引 `apps/server/AGENTS.md` 里 —— 它们属于「改之前必须想起来」的那一类，
 不该只躺在参考文档里。

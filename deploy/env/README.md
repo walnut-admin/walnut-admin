@@ -2,7 +2,7 @@
 
 `env/.env.production` 由 CI 每次部署自动生成（连接串 host 已替换为容器服务名），**服务器上无需手动创建**。
 
-禁止改动：AUTH_OPAQUE_SECRET / MFA_ENCRYPTION_KEY / RT_ENCRYPTION_KEY / DEVICE_ID_ENCRYPTION_KEY / USER_ID_ENCRYPTION_KEY / USER_ID_HASH_SALT（改后历史数据无法解密）。
+禁止改动：AUTH_OPAQUE_SECRET / MFA_ENCRYPTION_KEY / RT_ENCRYPTION_KEY / USER_ID_ENCRYPTION_KEY / USER_ID_HASH_SALT（改后历史数据无法解密）。
 
 ## 本地验证时手动生成（参考）
 

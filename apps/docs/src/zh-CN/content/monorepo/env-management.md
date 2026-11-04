@@ -101,10 +101,15 @@ admin 的基础 `.env`（无环境后缀）存放构建必填的 `VITE_*` 变量
 - `AUTH_OPAQUE_SECRET` — OPAQUE 协议密钥
 - `MFA_ENCRYPTION_KEY` — MFA 数据加密
 - `RT_ENCRYPTION_KEY` — Refresh Token 加密
-- `DEVICE_ID_ENCRYPTION_KEY` — **历史**设备指纹盐（B5 起无消费者：设备 ID 由服务端随机签发；
-  它从没加密过数据，保留是部署契约，退役另案）
 - `USER_ID_ENCRYPTION_KEY` — 用户身份加密
 - `USER_ID_HASH_SALT` — 用户 ID 哈希盐
+:::
+
+::: info 2026-11-04 退役
+`DEVICE_ID_ENCRYPTION_KEY` **已删除**：env 模板、dotenvx 密文、启动必填校验与类型声明同一批删干净。
+它只当过「指纹 → device_id」的单向 HMAC 盐、从没加密过数据，B5 起设备 ID 由服务端随机签发后就是
+0 个消费者 —— 所以不再属于「禁止修改的密钥」，而是根本不存在了。改造前后的来龙去脉见
+`apps/server/libs/system/src/device/device-id.ts` 的注释。
 :::
 
 ::: info 2026-08-08 修复

@@ -103,12 +103,11 @@ CRUD 装饰器由 `WalnutCrudDecorators({ title, DTO })` 工厂生成（`@walnut
 它按「模块扫描序 × providers 数组序」把 APP_GUARD 摊平后与那份 12 元黄金序列逐位比对，
 只改装配不改它必红，只改它不改装配则是自欺（顺序的真源是装配，不是 spec）。
 
-## 环境变量：部署后不许改的 5 个
+## 环境变量：部署后不许改的 4 个
 
 `AUTH_OPAQUE_SECRET`（OPAQUE 协议密钥）· `MFA_ENCRYPTION_KEY`（MFA 数据）· `RT_ENCRYPTION_KEY`
-（refresh token）· `DEVICE_ID_ENCRYPTION_KEY`（历史指纹盐）· `USER_ID_ENCRYPTION_KEY`（用户身份标识）
-—— 除 `DEVICE_ID_ENCRYPTION_KEY` 外都是数据加密的根：改一次，用旧 key 加密的历史数据就**再也解不开**。
-`DEVICE_ID_ENCRYPTION_KEY` 是例外：不是数据根、**0 个消费者**（只当过单向 HMAC 盐；3 处代码读者全是配置骨架 —— 必填校验 / 注册 / 类型声明，不是使用），留在清单属**部署契约**，退役另案 —— 见 `libs/config/src/modules/crypto.config.ts`。
+（refresh token）· `USER_ID_ENCRYPTION_KEY`（用户身份标识）—— 都是数据加密的根：
+改一次，用旧 key 加密的历史数据就**再也解不开**。
 
 dotenvx 密文、`setup-env` / `encrypt-env`、加载哪几个 env 文件、CI 的 `ENV_KEYS` secret 见
 `apps/docs/src/zh-CN/content/backend/configuration.md`。
