@@ -87,13 +87,13 @@ export async function initialDeviceAPI() {
         // @ts-expect-error https://developer.mozilla.org/zh-CN/docs/Web/API/NetworkInformation/effectiveType
         netType: navigator.connection?.effectiveType,
         platform: navigator.platform,
+        // 不发 `type`：服务端一定用 UA 算出的类型覆盖客户端传的值（device.service.ts:112-113、133-138），
+        // 值域与「为什么在类型上是可选」的依据写在 request.d.ts 的 Deivce.InitialDeviceInfo。
       },
-    // B5 / P4：deviceName 已由服务端生成，请求面不再带。
-    //
-    // 这里仍然是 `as` 而不是 `satisfies`：实测 `satisfies` 会立刻暴露两处**预存在**的类型松动
-    // （device.ts:83 的 unknown→number、:86 的 deviceInfo 缺 type），它们是本次改造之前就有的，
-    // 要修得先动 payload 的构造来源，属另一批。已知代价：`as` 会吞掉 Omit 守卫，
-    // 多带 deviceName 时 tsc 不报错（实测），只能靠服务端 40099 兜住 —— 记为 P3 待修。
-    } as IRequestPayload.System.Deivce.Initial,
+      // 这里必须是 `satisfies` 而不是 `as`：`as` 会短路整份请求面契约
+      // （request.d.ts 的 Deivce.Initial，对齐 server 的 SysDeviceDTOInitialRequest），多带一个
+      // `deviceName` 时 tsc 也照样零报错；`satisfies` 保留字段级 excess property 检查，
+      // 前端再发 deviceName 立刻红，不必等服务端 whitelist 判 40099。
+    } satisfies IRequestPayload.System.Deivce.Initial,
   })
 }

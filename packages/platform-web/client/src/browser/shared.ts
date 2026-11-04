@@ -68,9 +68,15 @@ export function getCPUCoreCount() {
 }
 
 // get memory in gb
-export function getMemoryGB() {
+// LINK https://developer.mozilla.org/en-US/docs/Web/API/Navigator/deviceMemory
+// `deviceMemory` 至今没进 lib.dom，只能靠 `'deviceMemory' in navigator` 收窄 —— 而 `in` 收窄
+// 按定义把新补出来的属性标成 `unknown`（这就是 admin 侧 initial payload 里 `unknown → number`
+// 那个报错的真源头）。Device Memory API 的规范类型就是 number（单位 GB），所以这里只做 typeof
+// 收窄、不做断言：返回类型钉成 number，下游不必各自再猜一次。
+export function getMemoryGB(): number {
   if ('deviceMemory' in navigator) {
-    return navigator.deviceMemory
+    const memory = navigator.deviceMemory
+    return typeof memory === 'number' ? memory : 0
   }
   else {
     console.warn('navigator.deviceMemory is not supported')
