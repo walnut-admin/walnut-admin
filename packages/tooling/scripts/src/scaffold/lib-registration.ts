@@ -1,17 +1,19 @@
 /**
- * 「新增一个后端内部 lib」的**注册面**：一条命令改完 10 个既有文件 + 建 2 个新文件。
+ * 「新增一个后端内部 lib」的**注册面**：一条命令改完 12 个既有文件 + 建 2 个新文件。
  *
  * ## 为什么需要它
  *
  * `apps/server` 是 Nest CLI 内部 monorepo（ADR 0007）：一个 lib 要在**多处配置里各登记一次**，
  * 而这些注册点**互不联动** —— 漏一处不会让 `tsc` 报错，只在构建或运行期炸（SWC `filenames`
  * 漏了 → 产物里没有这个 lib；nest-cli `projects` 漏了 → `nest build <lib>` 静默 no-op）。
- * 历史上 `@walnut-server/context` 就漏过 nest-cli projects。守门人是
- * `apps/server/apps/api/src/common/monorepo/lib-registration.drift.spec.ts`（9 个用例），
- * 但它只**报红**、不替你改 —— 手写一遍的实测成本是 **10 个文件、约 44 行插入**（其中 24 行是
+ * 历史上 `@walnut-server/als`（那时还叫 `libs/context`，D13② 已并入 `libs/als`）就漏过
+ * nest-cli projects。守门人是
+ * `apps/server/apps/api/src/common/monorepo/lib-registration.drift.spec.ts`，
+ * 但它只**报红**、不替你改 —— 手写一遍的实测成本是 **12 个既有文件、约 45 行插入**（其中 27 行是
  * 三份 nest `projects` 的重复块，占一半以上），且缩进与插入位置全靠手抄。
  *
- * ## 它改哪几个面（每一面都有对应的 drift 用例）
+ * ## 它改哪几个面（除 ⑧ 的 barrel **内容**外，每一面都有对应的 drift 用例 ——
+ * barrel 没有唯一真源，不设守卫，理由写在那个 spec 的头注释里）
  *
  * | 面 | 文件 | 增量 |
  * |----|------|------|
@@ -356,7 +358,7 @@ export function renderBarrel(name: string): string {
     ` * ${name} —— 新建 lib 的 barrel（由 pnpm scaffold:lib 生成）。`,
     ' *',
     ' * 这里只做聚合：真实现放同级目录，具名导出后从本文件转出。',
-    ' * 增删注册面之后跑一遍 drift 守卫（9 个用例，本目录的命令就是它）：',
+    ' * 增删注册面之后跑一遍 drift 守卫（下面这个 spec 就是它）：',
     ' *   apps/server/apps/api/src/common/monorepo/lib-registration.drift.spec.ts',
     ' */',
     'export {}',

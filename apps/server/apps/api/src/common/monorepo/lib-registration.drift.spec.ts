@@ -10,8 +10,8 @@ import { describe, expect, it } from 'vitest'
  * （SWC 的 `filenames` 漏了 → 产物里没有这个 lib，`@walnut-server/*` 运行时解析失败；
  * nest-cli `projects` 漏了 → `nest build <lib>` 无 project 可用（本仓无根 nest-cli.json，
  * 实测是静默 no-op）。历史上
- * `@walnut-server/context` 就漏了 nest-cli projects 注册（归档的 lib-extraction 计划交叉
- * 记录第 3 条），靠人肉记忆补不全，所以机械拦：
+ * `libs/context`（D13② 已并入 `libs/als`）就漏过 nest-cli projects 注册（归档的
+ * lib-extraction 计划交叉记录第 3 条），靠人肉记忆补不全，所以机械拦：
  *
  * 磁盘真源：`libs/<name>`（必须含 `src/index.ts` + `tsconfig.lib.json`）。
  * 注册面（全部必须与磁盘集合相等）：
@@ -21,8 +21,10 @@ import { describe, expect, it } from 'vitest'
  *    cli / worker 这些组合入口 —— 不参与本守卫）；
  * ③ `infra/swc/{dev,prod,stage}.swcrc` → `jsc.paths` 的 `@walnut-server/<name>`（值指向
  *    `libs/<name>/src`）；
- * ④ `apps/api/tsconfig.app.json` → `include` 的 `../../libs/<name>/src` 全量 glob 条目（app
- *    构建的 TS 程序要看见每个 lib；build:libs 脚本因 no-op 已删除，不再作为注册面）；
+ * ④ 三份 `apps/{api,cli,worker}/tsconfig.app.json` → `include` 的 `../../libs/<name>/src` 全量
+ *    glob 条目（每个入口的 TS 程序都要看见每个 lib；build:libs 脚本因 no-op 已删除，不再作为注册面）。
+ *    **D14：过去只守了 api 那一份** —— 漏登记的后果不是报错，而是该入口的类型检查面**静默缩小**
+ *    （只有被 import 到的文件才进程序），所以三份必须一起对账；
  * ⑤ `eslint.config.ts` → `INFRA_LIBS` / `TECH_BASE_LIBS` / `TECH_ASSEMBLE_LIBS` / `DOMAIN_LIBS` /
  *    `TOP_LIBS` / `EXCEPTION_LIBS` 六份分层名单（守的是入边方向：新增 lib 必须归入一个分层，否则
  *    lint 的 fail-closed 配置会拦它的出边，但「有人把 lib 建在磁盘上却没进任何一层」这种反向遗漏
@@ -32,7 +34,21 @@ import { describe, expect, it } from 'vitest'
  *    `libs/<lib>/**` 下的全部 `.ts`（防函数体被改坏）；另有一条注入篡改自测
  *    （某层 banned 删一项必须报红，证明对账非空转）。
  *
- * 纯 fs + 静态文本，零依赖装载。新增 lib 的动作就是「建目录 + 五处登记」，漏任何一处本文件红。
+ * ⑥ `libs/<name>/tsconfig.lib.json` 的**内容**：`extends` 指向 `../../tsconfig.lib.base.json`、
+ *    `compilerOptions.outDir` 指向 `../../dist/libs/<name>`，且没有第三个键。只守「文件存在」不够 ——
+ *    抄错一行的 `outDir` 会让两个 lib 的产物互相覆盖，`tsc` / lint / 单测全都不报；
+ * ⑦ 三份 `infra/nest/{dev,prod,stage}.json` 的 `filenames` 里的 **application 输入目录**
+ *    （`apps/{api,cli,worker}/src`）—— 与 libs 条目同在一个数组里，删掉某个入口的条目，
+ *    `pnpm build` 就不产出它（worker 镜像起不来只在运行期暴露）。
+ *
+ * **不设守卫的面（写明理由，别再有人来「补」）**：`libs/<name>/src/index.ts`（barrel）的**内容**。
+ * 理由：它没有唯一真源 —— 每个 lib 导什么由它的实现决定，而且两种形态都合法（新脚手架的占位
+ * `export {}`；`libs/const` 与 `libs/types` 的 barrel 正文就是 `export {}` 加 `/// <reference types>`）。
+ * 它不会静默腐烂：barrel 里每条 `export { X } from './x'` 都由 `tsc` 全量检查（三份
+ * `tsconfig.app.json` 的 include 覆盖全部 libs，见面 ④），导错 / 导漏在编译期就红；而「注册齐全但
+ * 零导出的空壳 lib」没有运行期代价，不该由注册面对账来管（死代码是 knip 的职责，见 knip.config.ts 顶部政策）。
+ *
+ * 纯 fs + 静态文本，零依赖装载。新增 lib 的动作就是「建目录 + 逐个注册面登记」，漏任何一处本文件红。
  */
 
 // ─── 配置形状（只声明本文件真正读到的字段）────────────────────────────────────────
@@ -98,6 +114,101 @@ function aliasLibNames(paths: Record<string, string[]>): string[] {
 
 const NEST_CLI_CONFIGS = ['infra/nest/dev.json', 'infra/nest/prod.json', 'infra/nest/stage.json'] as const
 const SWCRC_CONFIGS = ['infra/swc/dev.swcrc', 'infra/swc/prod.swcrc', 'infra/swc/stage.swcrc'] as const
+
+/** ④ 三份 app 构建配置：面 ④ 的全部落点（D14 之前只有第一份在对账） */
+const APP_TSCONFIGS = ['apps/api/tsconfig.app.json', 'apps/cli/tsconfig.app.json', 'apps/worker/tsconfig.app.json'] as const
+
+/** ⑦ nest filenames 里除 `libs/<name>/src` 之外的条目：三个组合入口的源码目录 */
+const APP_ENTRY_DIRS = ['apps/api/src', 'apps/cli/src', 'apps/worker/src'] as const
+
+/** ⑥ 每个 lib 的 tsconfig.lib.json 必须 extends 的基底（与 scaffold 的 renderTsconfigLib 同源） */
+const LIB_TSCONFIG_EXTENDS = '../../tsconfig.lib.base.json'
+
+/**
+ * ④ 一个 app 的 tsconfig.app.json 的 include 问题集（空数组 = 通过）：
+ * 自身 src 通配条目必须在；libs glob 集合 ≡ 磁盘且无未知形状 / 无重复。
+ */
+function collectAppIncludeProblems(configPath: string, include: readonly string[], actualLibs: readonly string[]): string[] {
+  const problems: string[] = []
+
+  if (!include.includes('src/**/*'))
+    problems.push(`${configPath} 的 include 缺本入口自己的 src 通配条目`)
+
+  const libEntryRe = /^\.\.\/\.\.\/libs\/([\w-]+)\/src\/\*\*\/\*$/
+  const unknown = include.filter(entry => entry.startsWith('../../libs/') && !libEntryRe.test(entry))
+  if (unknown.length > 0)
+    problems.push(`${configPath} 的 include 里有形状不标准的 libs 条目：[${unknown.join(', ')}]`)
+
+  const names = include
+    .filter(entry => !unknown.includes(entry))
+    .map(entry => libEntryRe.exec(entry)?.[1])
+    .filter((name): name is string => name !== undefined)
+    .sort()
+  const duplicates = names.filter((name, index) => names.indexOf(name) !== index)
+  if (duplicates.length > 0)
+    problems.push(`${configPath} 的 include 里同一 lib 出现多次：[${[...new Set(duplicates)].join(', ')}]`)
+  if (JSON.stringify(names) !== JSON.stringify([...actualLibs]))
+    problems.push(`${configPath} 的 libs 条目 [${names.join(', ')}] ≠ 磁盘 [${[...actualLibs].join(', ')}]`)
+
+  return problems
+}
+
+/**
+ * ⑥ libs/<name>/tsconfig.lib.json 的内容问题集（空数组 = 通过）。
+ * 抽成「读取函数入参」的纯函数，是为了篡改自测能跑同一套判定（证明它不是空转）。
+ */
+function collectLibTsconfigProblems(
+  actualLibs: readonly string[],
+  readConfig: (name: string) => Record<string, unknown> | null,
+): string[] {
+  const problems: string[] = []
+
+  for (const name of actualLibs) {
+    const configPath = `libs/${name}/tsconfig.lib.json`
+    const config = readConfig(name)
+    if (config === null) {
+      problems.push(`${configPath} 不存在或不是 JSON 对象`)
+      continue
+    }
+
+    const keys = Object.keys(config).sort()
+    if (JSON.stringify(keys) !== JSON.stringify(['compilerOptions', 'extends']))
+      problems.push(`${configPath} 的顶层键 [${keys.join(', ')}] 应恰好是 [compilerOptions, extends]（新增键要连同本守卫一起改）`)
+    if (config.extends !== LIB_TSCONFIG_EXTENDS)
+      problems.push(`${configPath} 的 extends 应为 ${LIB_TSCONFIG_EXTENDS}，实际 ${JSON.stringify(config.extends)}`)
+
+    const compilerOptions = config.compilerOptions
+    if (typeof compilerOptions !== 'object' || compilerOptions === null) {
+      problems.push(`${configPath} 缺 compilerOptions 对象`)
+      continue
+    }
+    const options = compilerOptions as Record<string, unknown>
+    const optionKeys = Object.keys(options)
+    if (JSON.stringify(optionKeys) !== JSON.stringify(['outDir']))
+      problems.push(`${configPath} 的 compilerOptions 键 [${optionKeys.join(', ')}] 应恰好是 [outDir]`)
+    if (options.outDir !== `../../dist/libs/${name}`)
+      problems.push(`${configPath} 的 outDir 应指向自己的 ../../dist/libs/${name}，实际 ${JSON.stringify(options.outDir)}`)
+  }
+
+  return problems
+}
+
+/** ⑦ 一份 nest json 的 filenames 里 application 条目的问题集（libs 条目由面 ② 守） */
+function collectAppEntryProblems(configPath: string, filenames: readonly string[]): string[] {
+  const problems: string[] = []
+  const entries = filenames.filter(entry => !entry.startsWith('libs/'))
+
+  const duplicates = entries.filter((entry, index) => entries.indexOf(entry) !== index)
+  if (duplicates.length > 0)
+    problems.push(`${configPath} 的 filenames 里 application 目录重复：[${[...new Set(duplicates)].join(', ')}]`)
+
+  const actual = [...new Set(entries)].sort()
+  const expected = [...APP_ENTRY_DIRS].sort()
+  if (JSON.stringify(actual) !== JSON.stringify(expected))
+    problems.push(`${configPath} 的 filenames 里 application 目录 [${actual.join(', ')}] ≠ [${expected.join(', ')}]（少一个 = 该入口的产物静默消失）`)
+
+  return problems
+}
 
 // ─── eslint.config.ts 分层接线解析（纯文本，零装载）────────────────────────────────
 
@@ -448,7 +559,7 @@ function rewriteLayerBanned(configText: string, layerName: string, banned: reado
  * 的独立表述。新增 lib 时两边都要改，忘了改哪边本守卫都会红。
  */
 const LAYER_MATRIX = [
-  { name: 'infra', libs: ['config', 'const', 'context', 'db', 'decorators', 'pipes', 'types', 'utils'] },
+  { name: 'infra', libs: ['config', 'const', 'db', 'decorators', 'pipes', 'types', 'utils'] },
   // F-14 / Q8a：技术层拆「设施 / 装配内核」两条 —— rank 上 base 低于 assemble，
   // 允许边只有 assemble → base 单向（ip 不得引 crud/list 等内核 lib）。
   { name: 'tech-base', libs: ['als', 'blpath', 'cookie', 'crypto', 'lock', 'queue', 'sse', 'cache', 'throttle', 'mailer', 'sms', 'rsa', 'ip'] },
@@ -562,7 +673,7 @@ function collectWiringProblems(configText: string): string[] {
 
 // ─── 用例 ────────────────────────────────────────────────────────────────────────
 
-describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 五处注册面，纯 fs，零装载）', () => {
+describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 各注册面，纯 fs，零装载）', () => {
   const actualLibs = readActualLibNames()
 
   it('磁盘真源非空（libs/ 目录没了或全部漏建 index.ts 时，本守卫必须失效报警而不是静默通过）', () => {
@@ -672,13 +783,23 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 五处注册面，�
     expect(problems).toEqual([])
   })
 
-  it('④ apps/api/tsconfig.app.json include ≡ 磁盘 libs（app 构建的 TS 程序要看见每个 lib）', () => {
-    const appTsconfig = readJson<{ include: string[] }>('apps/api/tsconfig.app.json')
-    const libIncludes = appTsconfig.include
-      .map(entry => /^\.\.\/\.\.\/libs\/([\w-]+)\/src\/\*\*\/\*$/.exec(entry)?.[1])
-      .filter((name): name is string => name !== undefined)
-      .sort()
-    expect(libIncludes).toEqual(actualLibs)
+  it('④ 三份 apps/{api,cli,worker}/tsconfig.app.json 的 include ≡ 磁盘 libs（D14 之前只有 api 那份在对账）', () => {
+    const problems: string[] = []
+    for (const configPath of APP_TSCONFIGS) {
+      const config = readJson<{ include: string[] }>(configPath)
+      problems.push(...collectAppIncludeProblems(configPath, config.include, actualLibs))
+    }
+    expect(problems).toEqual([])
+  })
+
+  it('④ 自测：cli 的 include 少一个 lib / 多一个未知 libs 条目后必须报红（证明该面对账非空转）', () => {
+    const config = readJson<{ include: string[] }>('apps/cli/tsconfig.app.json')
+    const dropped = config.include.filter(entry => entry !== '../../libs/als/src/**/*')
+    expect(dropped.length).toBe(config.include.length - 1)
+    expect(collectAppIncludeProblems('apps/cli/tsconfig.app.json', dropped, actualLibs)).not.toEqual([])
+
+    const extra = [...config.include, '../../libs/zzz-probe/src/**/*']
+    expect(collectAppIncludeProblems('apps/cli/tsconfig.app.json', extra, actualLibs)).not.toEqual([])
   })
 
   it('⑤ eslint.config.ts 的分层名单（含 exceptions 例外行）并集 ≡ 磁盘 libs，且无重复', () => {
@@ -710,5 +831,56 @@ describe('lib 注册一致性 drift 守卫（libs 目录 ↔ 五处注册面，�
     const tamperedText = rewriteLayerBanned(configText, 'tech-base', techBaseCall.banned.slice(1))
     const problems = collectWiringProblems(tamperedText)
     expect(problems.some(problem => problem.includes('tech-base') && problem.includes('banned'))).toBe(true)
+  })
+
+  it('⑥ libs/<name>/tsconfig.lib.json 内容 ≡ 脚手架模板（extends / outDir / 键集合）', () => {
+    const problems = collectLibTsconfigProblems(actualLibs, (name) => {
+      const configPath = resolve(process.cwd(), 'libs', name, 'tsconfig.lib.json')
+      return existsSync(configPath)
+        ? JSON.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown>
+        : null
+    })
+    expect(problems).toEqual([])
+  })
+
+  it('⑥ 自测：outDir 指到别的 lib / 多一个顶层键都必须报红，模板形状本身必须绿', () => {
+    // 取磁盘上的前两个 lib：漂移目标跟着磁盘走，某个 lib 改名不会让这条自测退化成空转
+    const [firstLib, secondLib] = actualLibs
+    const driftedOutDir = (name: string): Record<string, unknown> => ({
+      extends: LIB_TSCONFIG_EXTENDS,
+      // 抄错一行的典型形态：复制某个 lib 的配置后忘了改 outDir
+      compilerOptions: { outDir: `../../dist/libs/${name === firstLib ? secondLib : name}` },
+    })
+    expect(collectLibTsconfigProblems(actualLibs, driftedOutDir)).not.toEqual([])
+
+    const extraKey = (name: string): Record<string, unknown> => ({
+      extends: LIB_TSCONFIG_EXTENDS,
+      compilerOptions: { outDir: `../../dist/libs/${name}` },
+      include: ['src/**/*'],
+    })
+    expect(collectLibTsconfigProblems(actualLibs, extraKey)).not.toEqual([])
+
+    // 正例：模板形状不能被判红（否则「全红」同样能骗过上面两条负对照）
+    const template = (name: string): Record<string, unknown> => ({
+      extends: LIB_TSCONFIG_EXTENDS,
+      compilerOptions: { outDir: `../../dist/libs/${name}` },
+    })
+    expect(collectLibTsconfigProblems(actualLibs, template)).toEqual([])
+  })
+
+  it('⑦ 三份 nest json 的 filenames 里 application 输入目录 ≡ apps/{api,cli,worker}/src', () => {
+    const problems: string[] = []
+    for (const configPath of NEST_CLI_CONFIGS) {
+      const config = readJson<INestCliJson>(configPath)
+      problems.push(...collectAppEntryProblems(configPath, config.compilerOptions.builder.options.filenames))
+    }
+    expect(problems).toEqual([])
+  })
+
+  it('⑦ 自测：删掉 filenames 里的 apps/worker/src 后必须报红（该入口产物不再生成）', () => {
+    const filenames = readJson<INestCliJson>('infra/nest/dev.json').compilerOptions.builder.options.filenames
+    const withoutWorker = filenames.filter(entry => entry !== 'apps/worker/src')
+    expect(withoutWorker.length).toBe(filenames.length - 1)
+    expect(collectAppEntryProblems('infra/nest/dev.json', withoutWorker)).not.toEqual([])
   })
 })

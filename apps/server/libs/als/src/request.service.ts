@@ -26,6 +26,11 @@ interface RequestContext {
 
 @Injectable()
 export class ALSRequestService {
+  /**
+   * 请求态 store。与 logger 上下文（`logger-context.als.ts` 的 `loggerContextALS`）是**两个**
+   * `AsyncLocalStorage` 实例、同属 `AppALSRequestModule`：两者都用 `run()` 整段替换 store，
+   * 合成一个实例会让后跑的 `run()` 顶掉先前那份（判据写在该文件顶部）。
+   */
   private readonly als = new AsyncLocalStorage<RequestContext>()
   private readonly logger = new Logger(ALSRequestService.name)
 

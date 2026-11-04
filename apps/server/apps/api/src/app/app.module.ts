@@ -3,7 +3,6 @@ import { APP_GUARD, APP_INTERCEPTOR, DiscoveryModule } from '@nestjs/core'
 
 import { JwtAccessGuard } from '@walnut-server/auth'
 import { WalnutConfigModule } from '@walnut-server/config'
-import { WalnutContextModule } from '@walnut-server/context'
 import { WalnutModule } from '@walnut-server/db'
 import { ALSRequestInterceptor, WalnutAdminGuardDevice, WalnutAdminGuardIP, WalnutAdminGuardLock, WalnutAdminGuardMFA, WalnutAdminGuardRisk, WalnutAdminGuardSecurity, WalnutAdminGuardSign, WalnutAdminInterceptorResponseSuccess } from '@walnut-server/guards'
 // CAP guard 的**类**只能从子路径取：barrel 只导出装饰器面，目的是把 cap.service（new Cap()
@@ -38,8 +37,8 @@ import { AppScheduleModule, isWorkerStandalone } from './schedule.composition'
     // Config
     WalnutConfigModule,
 
-    // Context (Global ALS context)
-    WalnutContextModule,
+    // ALS（请求上下文 + logger 上下文，@Global）不在这里单装：两套 ALS 已合一到
+    // `AppALSRequestModule`（D13②），随下面的 SharedModule 进图 —— 同一个模块只该有一个家。
 
     // I18n
     AppI18nModule,

@@ -22,7 +22,6 @@
           "libs/decorators/src",
           "libs/pipes/src",
           "libs/exceptions/src",
-          "libs/context/src",
           "libs/als/src",
           "libs/blpath/src",
           "libs/cookie/src",
@@ -152,15 +151,6 @@
       "sourceRoot": "libs/exceptions/src",
       "compilerOptions": {
         "tsConfigPath": "libs/exceptions/tsconfig.lib.json"
-      }
-    },
-    "context": {
-      "type": "library",
-      "root": "libs/context",
-      "entryFile": "index",
-      "sourceRoot": "libs/context/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/context/tsconfig.lib.json"
       }
     },
     "als": {

@@ -6,7 +6,7 @@ import nestConfig, { DATA_SCOPE_DIRECT_REPOSITORY_MESSAGE, DATA_SCOPE_DIRECT_REP
 //   基建 < 技术设施 < 技术装配 < identity < system < auth < security < guards < app-domain
 // 判定式：rank(target) <= rank(source)；唯一例外 exceptions -> blpath。
 // no-restricted-imports 是 core 规则，不需要类型信息。
-const INFRA_LIBS = ['config', 'const', 'context', 'db', 'decorators', 'pipes', 'types', 'utils'] as const
+const INFRA_LIBS = ['config', 'const', 'db', 'decorators', 'pipes', 'types', 'utils'] as const
 
 // exceptions 是基建层里唯一有外向例外（-> blpath）的 lib：单独一条精确 layer，
 // 不并入 INFRA_LIBS —— 接线对账要求每个 lib 恰好登记进一个 layer 的 libs 数组。

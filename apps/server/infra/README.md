@@ -105,7 +105,6 @@ SWC 配置中的 `jsc.paths` 与 tsconfig.json 保持一致：
 - `@walnut-server/decorators` → `./libs/decorators/src`
 - `@walnut-server/pipes` → `./libs/pipes/src`
 - `@walnut-server/exceptions` → `./libs/exceptions/src`
-- `@walnut-server/context` → `./libs/context/src`
 
 ## 性能对比
 

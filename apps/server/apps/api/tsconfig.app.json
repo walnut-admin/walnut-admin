@@ -13,7 +13,6 @@
         "../../libs/decorators/src/**/*",
         "../../libs/pipes/src/**/*",
         "../../libs/exceptions/src/**/*",
-        "../../libs/context/src/**/*",
         "../../libs/als/src/**/*",
         "../../libs/blpath/src/**/*",
         "../../libs/cookie/src/**/*",

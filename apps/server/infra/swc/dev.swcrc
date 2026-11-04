@@ -32,8 +32,6 @@
       "@walnut-server/pipes/*": ["libs/pipes/src/*"],
       "@walnut-server/exceptions": ["libs/exceptions/src"],
       "@walnut-server/exceptions/*": ["libs/exceptions/src/*"],
-      "@walnut-server/context": ["libs/context/src"],
-      "@walnut-server/context/*": ["libs/context/src/*"],
       "@walnut-server/als": ["libs/als/src"],
       "@walnut-server/als/*": ["libs/als/src/*"],
       "@walnut-server/blpath": ["libs/blpath/src"],

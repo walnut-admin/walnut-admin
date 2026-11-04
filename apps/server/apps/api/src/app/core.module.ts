@@ -3,7 +3,6 @@ import { Module } from '@nestjs/common'
 import { AppErrorModule, AppKeyModule, AppLoggerModule, AppMonitorUserModule, AppSettingsModule } from '@walnut-server/app-domain'
 import { SysAuthModule } from '@walnut-server/auth'
 import { WalnutConfigModule } from '@walnut-server/config'
-import { WalnutContextModule } from '@walnut-server/context'
 import { WalnutModule } from '@walnut-server/db'
 import { SysIdentityModule } from '@walnut-server/identity'
 // 注意是**子路径**，不是 '@walnut-server/security' barrel —— barrel 里同时导出 cap.service，
@@ -51,7 +50,6 @@ import { AppScheduleModule } from './schedule.composition'
 @Module({
   imports: [
     WalnutConfigModule,
-    WalnutContextModule,
     AppI18nModule,
     WalnutModule,
 
@@ -96,6 +94,8 @@ import { AppScheduleModule } from './schedule.composition'
     // 漏了 = 任何用了 @WalnutAdminDecoratorCrypto 的 controller 解析失败（实测：SharedAliModule）。
     SecurityRsaModule,
 
+    // ALS（请求上下文 + logger 上下文，@Global）由 SharedModule 带进图 —— D13② 两套 ALS
+    // 合一到 `AppALSRequestModule` 后，这里原先单独装的 WalnutContextModule 已无必要。
     SharedModule,
   ],
 })
