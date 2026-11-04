@@ -78,7 +78,7 @@ api 照常 200，监控不红。**D3=A 的含义因此是「补齐生产面」�
 > **现状 = P2（不搬）**：`apps/server/libs/**` 原样保留，「边界清晰」这一收益今天由 ESLint 六层
 > 分层 + 3 个 drift spec 提供。**P1（两个包自建 CJS dist，照 `@walnut/contract` 样板）待用户拍板**。
 > 详见 [10](./10-implementation-plan.md) §10.2、[ADR 0007 的 2026-11-03 追记](../../adr/0007-backend-libs-not-workspace.md)、
-> `reports/NEEDS-CONFIRMATION.md` 的 C4。
+> [需要拍板的 § 一 · `C4`](../../reports/decisions.md)（2026-11-04 起该清单已并入文档站）。
 > 下面「目标形态 / 零 import 改写 / 四个顾虑」**保留为当时的依据**（顾虑 2 已被实证）。
 
 你的判断成立，我改结论。理由与我原顾虑的处置如下。

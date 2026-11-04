@@ -140,7 +140,7 @@ const nav: DefaultTheme.NavItem[] = [
   },
   {
     // 工程记录：本轮（2026-11）架构收尾的**结论索引**，正文只写结论与证据指针，
-    // 过程日志留在仓库的 reports/ 下（不在文档站内）。
+    // 过程日志不进文档站；逐批原文与逐条证据已随 2026-11-04 收尾归档至 git 历史。
     text: '工程记录',
     activeMatch: '^/content/reports/',
     link: '/content/reports/',
@@ -372,7 +372,7 @@ const sidebar: DefaultTheme.Sidebar = {
     },
     {
       // 工程记录：上面那个「后端架构调研」是 2026-11-02 的调研快照，这一组是本轮收尾的
-      // 结论索引与执行摘要。原始证据在仓库 reports/ 下，不进文档站。
+      // 结论索引与执行摘要。原始证据不进文档站（已随 2026-11-04 收尾归档至 git 历史）。
       text: '工程记录',
       items: [
         { text: '总览（答案落在哪一篇）', link: '/content/reports/' },

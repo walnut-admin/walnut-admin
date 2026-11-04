@@ -1,8 +1,0 @@
-$ eslint "{src,apps,libs,test,infra/scripts}/**/*.ts" --concurrency=4
-
-D:\walnut-admin\walnut-admin\apps\server\libs\repository\src\pg-list.builder.spec.ts
-  453:33  warning  Unsafe assignment of an `any` value  ts/no-unsafe-assignment
-  474:46  warning  Unsafe assignment of an `any` value  ts/no-unsafe-assignment
-
-✖ 2 problems (0 errors, 2 warnings)
-

@@ -130,7 +130,7 @@
 
 > 每条都写了选项与倾向；裁决结果要么变成上面的 P2/P3 条目，要么写进 ADR（「已否决」也要留痕）。
 
-### 本批 2 条（带 `C` 编号，登记在 `reports/NEEDS-CONFIRMATION.md`）
+### 本批 2 条（带 `C` 编号，登记在[需要拍板的](/content/reports/decisions)）
 
 | # | 议题 | 选项与倾向 |
 |---|---|---|
@@ -162,7 +162,7 @@
 - **另一本账（产品 / 功能待办）**：仓库根的 [`TODO.md`](https://github.com/walnut-admin/walnut-admin/blob/main/TODO.md)
   —— 记的是**功能与体验**；本表记的是**架构与工程债**，两者刻意分开。
   ⚠️ 那个文件里的编号项（`000` / `111` / `999`）**被源码里的 `// TODO NNN` 注释引用**，改编号等于改一堆注释锚点。
-- **需要拍板与已代拍的账**：`reports/NEEDS-CONFIRMATION.md`（已收口：§1 只剩 `C4` / `C5` 两条待拍板，`C1` / `C2` / `C3` 均已结案留档）
+- **需要拍板与已代拍的账**：[需要拍板的](/content/reports/decisions)（已收口：§1 只剩 `C4` / `C5` 两条待拍板，`C1` / `C2` / `C3` 均已结案留档）
 - **后端结构调研的决策与计划**：`industry-research/backend-architecture-review/` 的
   [06 复核](/content/industry-research/backend-architecture-review/06-cross-check) ·
   [07 决策](/content/industry-research/backend-architecture-review/07-decisions) ·

@@ -1,4 +1,0 @@
-$ walnut-check-package-exports
-包 exports 形态体检：15 个 workspace 包，其中 11 个声明了 `exports`
-✅ 目标都存在 / 通配都有命中 / `types` 条件在前 / 与顶层 main·types 不矛盾。
-   提示：**产物（gitignore 的路径，如 ./dist/*.cjs）不查存在性** —— 判据是"仓库里该有的文件在不在"。
