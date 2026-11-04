@@ -114,27 +114,6 @@ export class AppTechCryptoService {
   }
 
   /**
-   * 验证 HMAC 哈希
-   *
-   * **当前无调用方**：`value_hash` 只当等值查找键用（`findByValueHash` 走 SQL 等值），
-   * 不需要 time-safe 重算比较。与 `hash()` 成对保留 —— 将来真要按同一盐重算再比较时，
-   * 别自己拼 `timingSafeEqual`（两个 Buffer 长度不等它会抛）。
-   */
-  verifyHash(
-    text: string,
-    hash: string,
-    saltKey: string,
-    encoding: 'hex' | 'base64' = 'hex',
-  ): boolean {
-    const computed = this.hash(text, saltKey, encoding)
-    // 使用时间安全的比较，防止时序攻击
-    return crypto.timingSafeEqual(
-      Buffer.from(computed, encoding),
-      Buffer.from(hash, encoding),
-    )
-  }
-
-  /**
    * 生成密钥（用于初始化环境变量）
    * 示例：生成 AES-256 密钥（32 字节）
    */
