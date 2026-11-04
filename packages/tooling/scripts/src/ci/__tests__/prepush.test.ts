@@ -253,10 +253,11 @@ describe('runGates —— 三态（跳过既不算通过、也不算失败）', 
  * 预算那条用例红（那一段会跑满 6s 并通过）。
  */
 describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真接线）', () => {
+  /** 把多行脚本拼成一条 `node -e` 的 argv（读起来是脚本，不是一坨转义） */
+  const script = (lines: string[]): string[] => ['-e', lines.join('\n')]
+
   /** 门禁段的 argv 会被**原样**交给注入的 bin ⇒ 一段 `node -e` 就是一段假门禁 */
   const fakeGate = {
-    /** 占住不退出：模拟「这一段卡住了」（封顶 20s：真回归时别留一条 2 分钟的孤儿进程） */
-    hang: ['-e', 'setTimeout(() => {}, 20_000)'],
     /** 跑满 `ms` 之后把 `marker` 写出来再退出 —— 文件存在 = 它真的自己跑完了（被杀不会有） */
     work: (ms: number, marker?: string): string[] => [
       '-e',
@@ -264,6 +265,46 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
         ? `setTimeout(() => {}, ${ms})`
         : `setTimeout(() => { process.getBuiltinModule('node:fs').writeFileSync(${JSON.stringify(marker)}, 'done') }, ${ms})`,
     ],
+    /**
+     * 等 `until` 出现之后再卡住不退出：模拟「这一段卡住了」。
+     *
+     * 为什么握手而不是直接卡住：兄弟段「在超时之后还活着」这件事必须由**构造**保证，不能靠
+     * 「400ms 预算 vs 3s 工作」的余量去赌 —— win32 上 `taskkill` 走同步 `execFileSync`，
+     * 实测能阻塞事件循环 1s+；一次 1500ms 预算的用例在 `pnpm prepush` 四路并发下外壳墙钟被推到
+     * 4.3s，正是余量型判据抖动的来源。封顶 15s：真回归时别留一条分钟级的孤儿进程。
+     */
+    hangAfter: (until: string): string[] => script([
+      `const fs = process.getBuiltinModule('node:fs')`,
+      `const stop = Date.now() + 15_000`,
+      `const poll = setInterval(() => {`,
+      `  if (!fs.existsSync(${JSON.stringify(until)})) {`,
+      `    if (Date.now() > stop) { clearInterval(poll); process.exit(0) }`,
+      `    return`,
+      `  }`,
+      `  clearInterval(poll)`,
+      `  setInterval(() => {}, 1_000)`,
+      `}, 25)`,
+    ]),
+    /**
+     * 一上来就写 `started`（证明它真的起来了），然后一直等到 `trigger` 出现才写 `marker` 退出。
+     *
+     * `started` + `trigger` 两个握手文件把「它活到了兄弟段超时之后」变成**布尔事实**：
+     * 测试在卡住那段报出来的那一刻读它们，读到的分别是「还没起来」还是「已经跑完」——
+     * 两者都不是时钟读数，所以四路并发下不会漂。
+     */
+    markStartedThenWait: (started: string, trigger: string, marker: string): string[] => script([
+      `const fs = process.getBuiltinModule('node:fs')`,
+      `fs.writeFileSync(${JSON.stringify(started)}, 'up')`,
+      `const stop = Date.now() + 15_000`,
+      `const poll = setInterval(() => {`,
+      `  if (fs.existsSync(${JSON.stringify(trigger)})) {`,
+      `    fs.writeFileSync(${JSON.stringify(marker)}, 'done')`,
+      `    clearInterval(poll)`,
+      `    process.exit(0)`,
+      `  }`,
+      `  if (Date.now() > stop) { clearInterval(poll); process.exit(0) }`,
+      `}, 25)`,
+    ]),
   }
 
   const mkGate = (id: string, argv: string[], budgetMs?: number) => ({
@@ -293,21 +334,39 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
   it('一段超时只收它自己的树：兄弟段继续跑完，并给出自己的真实结论', async () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'walnut-prepush-sibling-'))
     try {
+      const started = path.join(dir, 'survivor.started')
+      const trigger = path.join(dir, 'stuck-done.trigger')
       const marker = path.join(dir, 'survivor.txt')
-      // 两段并发（concurrency = 2）：卡住那段 400ms 就超时，兄弟段要 3s —— 后者的**绝大部分**
-      // 寿命都落在前者的「超时之后」。余量刻意留到 7 倍以上：win32 的 `taskkill` 走同步
-      // `execFileSync`，实测能阻塞事件循环 1s+，余量小的话兄弟段可能在「全杀」落地前就自己跑完了
-      // （假绿：那正是本用例要防的形态）。
+      // 两段并发（concurrency = 2），但**先后关系由握手确定，不由余量猜**：
+      // · 兄弟段一上来写 `started`，然后一直等到 `trigger` 才收工 ⇒ 它必然活过了卡住那段的超时；
+      // · 卡住那段先等到 `started`（兄弟段真的起来了）才卡住 ⇒ 「全杀」落地时它跑不掉。
+      // 旧写法靠「400ms 预算 vs 3s 工作」的 7 倍余量去赌 win32 `taskkill` 的同步阻塞有多久
+      // （实测能阻塞事件循环 1s+），余量一旦被负载吃掉，判据就从「兄弟段没被杀」退化成
+      // 「谁先跑完」—— 那正是要在本用例里去掉的东西。
+      let startedAtStuckFailure: boolean | undefined
+      let finishedAtStuckFailure: boolean | undefined
       const results = await withoutBudgetEnv(() => runGates(
         [
-          mkGate('stuck', fakeGate.hang, 400),
-          mkGate('survivor', fakeGate.work(3_000, marker)),
+          mkGate('stuck', fakeGate.hangAfter(started), 3_000),
+          mkGate('survivor', fakeGate.markStartedThenWait(started, trigger, marker)),
         ],
-        () => {},
+        (done) => {
+          if (done.gate.id !== 'stuck')
+            return
+          // 前提读数（布尔，不是时钟）：这一刻兄弟段起来了没有、收工了没有
+          startedAtStuckFailure = existsSync(started)
+          finishedAtStuckFailure = existsSync(marker)
+          writeFileSync(trigger, 'go')
+        },
         2,
         createPnpmGateExecutor({ bin: process.execPath }),
       ))
       const [stuck, survivor] = results
+
+      // ⓪ 前提：卡住那段超时的那一刻，兄弟段**已经起来了**（否则「全杀」根本碰不到它 ——
+      // 那是本用例的假绿）而且**还没收工**（它的后半辈子都落在超时之后）。
+      expect(startedAtStuckFailure, '兄弟段在卡住那段超时之前还没起来 ⇒ 本用例没覆盖到「超时之后」那段寿命').toBe(true)
+      expect(finishedAtStuckFailure, '兄弟段在卡住那段超时之前就收工了 ⇒ 同上').toBe(false)
 
       // ① 卡住那段：它自己的失败，理由是**它自己**超时（不是「被信号结束」）
       expect(stuck!.status).toBe('failed')
@@ -316,9 +375,6 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
       // ② 兄弟段：跑完、绿，而且真的干完了活（marker 是它自己写的）
       expect(survivor!.status, `兄弟段被连带杀掉了：\n${survivor!.output}`).toBe('ok')
       expect(existsSync(marker), '兄弟段没跑完（marker 没写出来）—— 它的子进程被提前收掉了').toBe(true)
-
-      // ③ 两段不该同时结束：真实现场是「四条结束时间精确到 0.1s 相同」，那正是被一起杀的指纹
-      expect(survivor!.ms).toBeGreaterThan(stuck!.ms)
     }
     finally {
       // 自建的临时目录（os.tmpdir 下，不是仓库内容）
@@ -327,38 +383,69 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
   }, 30_000)
 
   it('段表里的 budgetMs 真的收窄该段的预算（改回全局一刀切 ⇒ 这一段会跑满 6s 并通过）', async () => {
-    const started = Date.now()
-    const [result] = await withoutBudgetEnv(() => runGates(
-      [mkGate('tight', fakeGate.work(6_000), 1_500)],
-      () => {},
-      1,
-      createPnpmGateExecutor({ bin: process.execPath }),
-    ))
-    const elapsed = Date.now() - started
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'walnut-prepush-budget-'))
+    try {
+      const marker = path.join(dir, 'finished-6s.txt')
+      const [result] = await withoutBudgetEnv(() => runGates(
+        // 这条假命令要跑满 6s 才写 marker 再退出：**6s 是它自己的耗时**，也就是下面的语义分界
+        [mkGate('tight', fakeGate.work(6_000, marker), 1_500)],
+        () => {},
+        1,
+        createPnpmGateExecutor({ bin: process.execPath }),
+      ))
 
-    expect(result!.status).toBe('failed')
-    // 超时文案念的是**这一段**的预算（>2s = 1500ms 取整），不是全表的 600s
-    expect(result!.output).toContain('超时（>2s）')
-    // 判据是**时刻**：一刀切 600s 时这一段会跑满 6s 并通过（上一条先红），预算生效时 ~1.5s
-    expect(elapsed).toBeLessThan(4_000)
+      expect(result!.status).toBe('failed')
+      // 超时文案念的是**这一段**的预算（>2s = 1500ms 取整），不是全表的 600s
+      expect(result!.output).toContain('超时（>2s）')
+
+      // 结构判据（与机器快慢无关）：这条命令只有**跑满 6s** 才会写 marker。
+      // marker 不在 ⇒ 它从来没跑完，是被 1.5s 预算截断的；一刀切 600s 时它会写完 marker 再 exit 0。
+      expect(existsSync(marker), '6s 的命令居然跑完了 —— 预算没生效（它本该在 1.5s 被截断）').toBe(false)
+
+      // 分界用**那条命令自己的 6s**（语义边界），不是外壳墙钟里随手挑的 4s：
+      // · 预算生效 ⇒ 约 1.5s 就被收掉，剩下的只有 spawn + win32 `taskkill`（同步 /T）的开销；
+      // · 预算没生效 ⇒ 光是它自己的活就要 6s，它不可能在 6s 之前结束。
+      // 读的是 `GateResult.ms`（prepush 自己记、结果行里打给用户的那个数），不是测试外壳的
+      // `Date.now()` 差 —— 外壳的调度与回收延迟不进这个数。负载余量：要把这条判据压红，
+      // spawn + taskkill 得花掉 4.5s（= 预算的 3 倍）；而 2026-11 那次误报的外壳墙钟是 4.3s
+      // （预算 1.5s ⇒ 开销 ≈ 2.8s），所以 6s 这条线不是「随便放大的上限」，是命令自身的耗时。
+      expect(result!.ms).toBeLessThan(6_000)
+    }
+    finally {
+      // 自建的临时目录（os.tmpdir 下，不是仓库内容）
+      rmSync(dir, { recursive: true, force: true })
+    }
   }, 30_000)
 
   it('环境变量 PREPUSH_BUDGET_MS 仍然覆盖全表：优先级高于段表 budgetMs（一处放宽/收紧的入口不许失效）', async () => {
     const saved = process.env[PREPUSH_BUDGET_ENV]
     process.env[PREPUSH_BUDGET_ENV] = '400'
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'walnut-prepush-env-budget-'))
     try {
-      const started = Date.now()
+      const marker = path.join(dir, 'finished-6s.txt')
       const [result] = await runGates(
-        // 段表说 60s（宽松），环境变量说 400ms ⇒ 必须按环境变量收
-        [mkGate('env-wins', fakeGate.work(3_000), 60_000)],
+        // 段表说 60s（宽松），环境变量说 400ms ⇒ 必须按环境变量收。
+        // 假命令要跑满 6s 才算完，于是三种结局可分辨：按 60s 走 ⇒ ok + marker 写出来；
+        // 按 400ms 走 ⇒ failed + 没有 marker + 归因文案念的号是 0s。
+        [mkGate('env-wins', fakeGate.work(6_000, marker), 60_000)],
         () => {},
         1,
         createPnpmGateExecutor({ bin: process.execPath }),
       )
+
+      // ① 三态本身就是胜负：按段表的 60s 走，这条 6s 的命令会**跑完并通过**（status ok）
       expect(result!.status).toBe('failed')
-      expect(Date.now() - started).toBeLessThan(2_500)
+      // ② 归因文案念的是**生效的那个号**：400ms 取整 = 0s（按段表的 60s 走会念 >60s）
+      expect(result!.output).toContain('超时（>0s）')
+      // ③ 与机器快慢无关的那条：6s 的命令没跑完 ⇒ 它确实被提前截断了
+      expect(existsSync(marker)).toBe(false)
+      // ④ 记录值（`GateResult.ms`）对**它自己的 6s**：没生效时它不可能在 6s 之前结束；
+      //    生效时 ≈ 0.4s + spawn/taskkill 开销（2026-11 实测那笔开销 ≈2.8s，仍远低于 6s）
+      expect(result!.ms).toBeLessThan(6_000)
     }
     finally {
+      // 自建的临时目录（os.tmpdir 下，不是仓库内容）
+      rmSync(dir, { recursive: true, force: true })
       if (saved === undefined)
         delete process.env[PREPUSH_BUDGET_ENV]
       else
