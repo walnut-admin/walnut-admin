@@ -46,7 +46,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @WalnutAdminGuardSignFree()
   // B7（批次 7）：**凭 RT 登出** —— AT 过期也必须能登出，否则服务端那枚 RT 继续现役
-  // （reports/review-guard-skip/matrix.md H1 / 拍板 Q4-a）。身份改由 JwtRefreshGuard 验过的
+  // （拍板 Q4-a）—— 正文理由：AT 一过期就 40101，用户既登不出去、RT 还继续现役。
   // RT 行给出（行上带 userId / deviceId），AT 不再参与；MFA / Lock 两个 guard 对「无 user」
   // 自跳过，CAP / Risk / Throttler 照常生效。
   // 顺序按 eslint `local/sort-nestjs-decorators` 的顺序表：SignFree → JwtFree → DeviceFree →

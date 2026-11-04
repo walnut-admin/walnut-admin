@@ -195,7 +195,7 @@ async function bootstrap() {
    * ① cap.js 的 `process.exit(0)` 竞争已在 @walnut-server/security/cap 里根治：它在构造期
    *    抢注册的 SIGTERM/SIGINT/SIGQUIT/beforeExit 被摘掉，cleanup 改由
    *    SecurityCapService.beforeApplicationShutdown 调用（见 libs/security/src/cap/cap.shutdown.ts
-   *    头注释与 reports/batch-7/r2-sigterm.md）。这里**不需要**再为 cap 做任何兜底。
+   *    头注释）。这里**不需要**再为 cap 做任何兜底。
    *
    * ② `useProcessExit: true` 是必须的：Nest 默认在关闭序列跑完后
    *    `process.kill(process.pid, signal)` 重发信号（nest-application-context.js:245-252），

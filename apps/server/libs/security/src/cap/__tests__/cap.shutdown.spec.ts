@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { createCapDetachedFromProcessHooks, WALNUT_ADMIN_CAP_PROCESS_EVENTS } from '../cap.shutdown'
 
 /**
- * cap.js SIGTERM 竞争的**根因钉子**（reports/batch-7/r2-sigterm.md §2）。
+ * cap.js SIGTERM 竞争的**根因钉子**。
  *
  * cap.js 4.0.5 在构造期无条件注册 SIGTERM/SIGINT/SIGQUIT/beforeExit，并在 cleanup 后
  * `process.exit(0)`（node_modules/@cap.js/server/index.js:205-213）。它比 main.ts 的

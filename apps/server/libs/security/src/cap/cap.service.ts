@@ -54,8 +54,8 @@ export class SecurityCapService implements OnModuleInit, BeforeApplicationShutdo
     this.logger.warn(
       `CAP token store = local file (${WALNUT_ADMIN_CAP_TOKEN_STORE_PATH}) — `
       + 'CAP MUST run as a SINGLE instance (or all replicas must share this file via a persistent volume). '
-      + 'Multi-replica deployments without shared storage always fail validation (40116/40117 storm): '
-      + 'see reports/review-cap/review.md CAP-3.',
+      + 'Multi-replica deployments without shared storage always fail validation (40116/40117 storm); '
+      + 'diagnosis and reasoning live in the CAP section of the backend docs.',
     )
   }
 

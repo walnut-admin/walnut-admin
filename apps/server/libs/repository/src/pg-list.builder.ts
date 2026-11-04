@@ -43,7 +43,7 @@ import {
  * - `extraPipeline`（$lookup 注入）没有管道等价物：需要 populate 的列表通过
  *   `customize` 钩子改写 QueryBuilder（加 JOIN / 子查询）。注意一旦发生 JOIN 放大，
  *   `COUNT(*) OVER()` 统计的是 join 后行数，与 Mongo $facet 的「文档数」语义可能分歧 ——
- *   已知风险，见 reports/batch-1/r1-be-verification.md §9 坑 5（P2，本批不做）。
+ *   已知风险（P2，本批不做）。
  */
 
 /** 兼容旧 import 面：转义口径已迁 `pg-column-op`，此处 re-export */

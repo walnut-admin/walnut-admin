@@ -267,7 +267,7 @@
 - **建议（裁决项，需契约确认）**：二选一 —— ① `catch` 对自身业务异常 rethrow（40111 真正
   可达，前端已有 40111 文案）；② 删除 40111 分支与 `error.controller` 映射，把「验证失败
   统一走刷新/交互」写进契约。**本轮不修**：改错误面属于客户端契约变更，须与前端共同拍板。
-- **修复（2026-11-03，reports/review-cap/fix-p1.md）**：取 ① 的**窄口径** —— `performCapVerification`
+- **修复（2026-11-03）**：取 ① 的**窄口径** —— `performCapVerification`
   先按形态判「这根本不是我方签发的 cap.js token」（失败在**本地**即可证），该分支的 40111 挪到
   `try` 之外抛出（不再被自己的 `catch` 吞掉）；而 `validateToken` 抛异常与 `success:false`
   （一次性 token 已消费/过期）仍返回 false 走 40116/40117 —— 后者是**唯一**能被正常用户命中的

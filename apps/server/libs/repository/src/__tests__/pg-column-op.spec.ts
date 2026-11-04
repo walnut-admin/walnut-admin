@@ -16,7 +16,7 @@ import {
 } from '../pg-column-op'
 
 /**
- * 列类型 × 入参形态矩阵 —— 固化 R1 实测（`reports/batch-1/r1-be-verification.md` §1.2）。
+ * 列类型 × 入参形态矩阵 —— 固化 R1 实测（6 列类型 × 5 入参形态 = 30 格，其中 22 格报错）。
  *
  * 断言的不是"某格产出什么算子"，而是**不变式**：
  * 1. 要么返回与列类型兼容的条件（`isPgListOpAllowed` 为 true）；

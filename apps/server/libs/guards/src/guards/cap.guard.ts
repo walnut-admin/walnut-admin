@@ -240,7 +240,7 @@ export class WalnutAdminGuardCap implements CanActivate {
     // "一次性 token 已被消费" 与 "判定为机器人" 返回的是**同一个** `{ success: false }`
     // （@cap.js/server 4.0.5 index.js:409-437），而缓存窗口只有 20 分钟 ⇒ 每个正常用户
     // 20 分钟后第一次请求都会命中这条分支。若抛 40111，前端会跳 /not-allowed，等于
-    // 每 20 分钟踢一次全部用户。详见 reports/review-cap/fix-p1.md「需要 Lead 拍板」。
+    // 每 20 分钟踢一次全部用户。
     if (!isWellFormedCapJsToken(capToken)) {
       this.logger.warn(`CAP token is not a cap.js token (malformed/forged): ${deviceId}`)
       throw new WalnutAdminExceptionYouAreBot()

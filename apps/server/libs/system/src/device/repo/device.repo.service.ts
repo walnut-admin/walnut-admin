@@ -76,7 +76,7 @@ export class SysDeviceRepositoryService {
   /**
    * @description 90 天留存清理：删掉「不在用、且 90 天没有任何写活动」的设备行
    *
-   * 判据（批次 11 拍板，见 reports/batch-11/r1-migration.md §2）：
+   * 判据（批次 11 拍板）：
    * - `active = false`：当前不在用；
    * - `updated_at < cutoff`：锚点是 `updated_at` 而不是 `stale` —— `stale` 只覆盖
    *   「initial 完就没心跳」那部分；「用过之后放弃」的设备 `stale` 恒 false（它只在

@@ -7,7 +7,9 @@ import {
 } from '../list-page'
 
 /**
- * 分页正规化 —— 固化 R1 实测的四个故障形态（`reports/batch-1/r1-be-verification.md` §2）。
+ * 分页正规化 —— 固化 R1 实测的四个故障形态：page 非数字（TypeORM 抛 offset 非数字）、
+ * page < 1（2201X OFFSET must not be negative）、pageSize < 1（2201W / LIMIT 0 静默空页）、
+ * pageSize 超上限（1e9 真发给数据库）。四种都先崩在 PG 或静默返回错数据。
  */
 describe('normalizeListPage', () => {
   it('缺省：page=1 / pageSize=10，且不算 adjusted', () => {

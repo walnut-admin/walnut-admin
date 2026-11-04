@@ -409,7 +409,7 @@ jobs:
       # cron 没挂上时 api 照常 200、/health/ready 照过，部署脚本与 post-verify 都看不见。
       # 唯一现成的探针是 apps/worker/src/main.ts:34 那行 `cron jobs: N`，不用改代码。
       #
-      # 四个坑（2026-11 实测，见 reports/batch-3/r1-verification.md §2.3）：
+      # 四个坑（2026-11 实测，依据是 batch-3 R1 的探针读数）：
       #   ① NODE_ENV 必须是 development：production 下 libs/config/src/utils/pg-app-password.ts:45 的
       #      守卫会因「开发引导密码」直接拒绝启动（与 openapi:export 同口径，这也是本步只用 dev 的原因）；
       #   ② 只有本 job 同时有 PG / Redis service + 已迁移的库（quality / build 都没有 services）；

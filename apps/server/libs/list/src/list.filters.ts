@@ -6,8 +6,8 @@ import type { FilterOp } from '@walnut/contract'
  * ## 为什么从 `query: Partial<Entity>` 挪到这里
  *
  * 旧形态把「后端实体的形状」抬进了前后端共享契约，算子则按 `typeof value` 猜 ——
- * PG 有列类型，猜错的组合会在数据库侧炸（R1 实测 30 格 22 格报错，
- * `reports/batch-1/r1-be-verification.md`）。
+ * PG 有列类型，猜错的组合会在数据库侧炸（R1 实测：6 列类型 × 5 入参形态共 30 格，
+ * 其中 **22 格**产生 PG 错误）。
  *
  * 现在 `op` 由调用方显式给出，`field` 只是普通字符串：
  *

@@ -12,7 +12,7 @@ import { AppCapJS, SecurityCapService, WALNUT_ADMIN_CAP_DETACHED_HOOKS } from '.
  * 只要有人「统一」成另一侧就一起崩。
  *
  * 下面每条都断言「等于正确值」并显式 `not.toBe(旧写法算出来的值)` —— 把
- * `cap.service.ts` 任一行改回旧写法，对应用例立刻红（实测见 reports/review-cap/fix-p1.md）。
+ * `cap.service.ts` 任一行改回旧写法，对应用例立刻红。
  */
 
 /** `apps/server/db/seed/app_setting.json:46` 的 cap ttl（秒） */

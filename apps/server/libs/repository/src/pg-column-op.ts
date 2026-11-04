@@ -10,8 +10,8 @@ import { isNil } from 'lodash'
  * B9 迁移把 Mongo 的 `find(filter)` 直译成 `query: Partial<Entity>`，算子按
  * **JS 值的 typeof** 挑（字符串 → ILIKE、布尔/数值/uuid 串 → 等值、数组 → IN/区间）。
  * Mongo 无 schema，这个推断成立；PG 有列类型，于是「值的类型 ≠ 列的类型」就会在
- * 数据库侧炸。R1 实测（`reports/batch-1/r1-be-verification.md`）：6 列类型 × 5 入参形态
- * 的 30 格里 **22 格**产生 PG 错误 —— 不是一条路径，是全谱：
+ * 数据库侧炸。R1 实测：6 列类型 × 5 入参形态的 30 格里 **22 格**产生 PG 错误
+ * —— 不是一条路径，是全谱：
  *
  * | 路径 | 形态 | PG 码 |
  * |------|------|-------|
@@ -512,7 +512,7 @@ function coerceListForKind(kind: WalnutPgColumnKind, values: readonly unknown[])
  *   算子由调用方给，这里只裁决「这个 op 对这根列可用吗 / 这个值能按这根列解释吗」，
  *   裁决不过就**明确拒绝**（`ok: false`，调用方转 40099），不再降级成丢弃。
  *
- * 覆盖 R1 矩阵的全部 22 个报错格（`reports/batch-1/r1-be-verification.md` 1.2 节）：
+ * 覆盖 R1 矩阵的全部 22 个报错格（6 列类型 × 5 入参形态）：
  * like 打非文本列 / uuid 列收非 uuid 串 / 布尔列收 "abc" / 时间列收数值 /
  * range 打非时间列 / 数值列收日期区间 —— 全部在进 SQL 之前被拒。
  *

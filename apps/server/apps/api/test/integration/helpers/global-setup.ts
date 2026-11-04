@@ -82,7 +82,7 @@ async function createPgIntegrationDatabase(admin: DataSource): Promise<void> {
  * 为什么需要：集成库是**共享单实例**（`walnut-admin-integration`），globalSetup 一进来就
  * `DROP DATABASE ... WITH (FORCE)`。两个 `test:integration` 同时跑会互相删库 —— 2026-11 实测
  * 另一个进程把库从脚下 drop 掉，日志里 285 处 `database "walnut-admin-integration" does not exist`，
- * 整轮读数因此不可信（reports/batch-7/r1-integration-triage.md）。
+ * 整轮读数因此不可信。
  *
  * 与 drop/create 流程**不冲突**：锁连接连的是维护库 `postgres`（与 drop/create 的管理通道同库），
  * 而 `WITH (FORCE)` 只杀**目标库**上的连接；advisory lock 本身按库分区，所以两个进程必须在同

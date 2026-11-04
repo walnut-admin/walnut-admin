@@ -9,8 +9,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { AppCapJS, SecurityCapService } from '../cap.service'
 
 /**
- * 「收到 SIGTERM 后，PG 连接池与 Bull 队列都已关闭，进程才退出」的**机械断言**
- * （reports/batch-7/r2-sigterm.md §4）。
+ * 「收到 SIGTERM 后，PG 连接池与 Bull 队列都已关闭，进程才退出」的**机械断言**。
  *
  * 这里不 mock Nest —— 跑的是真 `@nestjs/core` 的关闭序列（12.3.2，
  * nest-application-context.js:152-164）：

@@ -31,7 +31,6 @@ import { workspacePackageNames } from '../lib/workspace.ts'
  * 与 VitePress 的 `ignoreDeadLinks` 白名单是**同一条口径**（见 apps/docs/.vitepress/config/index.ts）。
  *
  * 这里是"全免"的唯一入口，门槛因此设得很高：只有**整份文档都不再被当作现状读**时才进来。
- * `reports/` 刻意**不**在这里 —— 见 `PATH_CHECK_EXCLUDED` 的注释。
  */
 const FROZEN = /(?:^|\/)content\/(?:archive|industry-research)\//
 
@@ -46,14 +45,10 @@ const FROZEN = /(?:^|\/)content\/(?:archive|industry-research)\//
  * 为什么把待办文档排掉：`architecture-todo.md` 的职责恰恰是**记录失效的引用本身**
  * （「裸 `scripts/…` → 补全为 …」「`migration-guide/` 目录根本不存在」），它必然包含死路径。
  *
- * 为什么 `reports/` 只免路径、**不免包名**（2026-11 R3 裁定）：批次复核报告描述的是
- * "改之前长什么样"，因此**必然**引用已删除的路径（R1/R2 报告要引用被删的 `ui/B` 包路径）——
- * 路径这一半必须豁免，否则报告预言的每处改动落地后都会把门禁变红。
- * 但**包名**这一半不需要豁免，也不该豁免：报告是**给人当结论读**的，写错包名（或写了一个从未存在的
- * 包名）正是它最该被抓到的错；而且 `reports/` 会随批次**持续增长**，全免等于让免检面无限扩张。
- * 这条与 ADR 同待遇（`content/adr/` 也是"只免路径、包名照查"）—— 两者都是"某一时刻的记录"。
+ * 只收这两类：**某一时刻的记录**都住 `content/archive/` 与 `content/industry-research/`（见上面的
+ * `FROZEN`，那是全免），所以这里不需要再为"历史文档"开新口子 —— 豁免面能短就短。
  */
-const PATH_CHECK_EXCLUDED = /(?:^|\/)content\/adr\/|architecture-todo\.md$|^reports\//
+const PATH_CHECK_EXCLUDED = /(?:^|\/)content\/adr\/|architecture-todo\.md$/
 
 /** 后端内部 lib 的命名空间：不是 workspace 包，没有 package.json */
 const SERVER_LIB_NAMESPACE = '@walnut-server/'

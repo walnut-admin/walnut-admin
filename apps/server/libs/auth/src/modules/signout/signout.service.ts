@@ -61,7 +61,7 @@ export class AuthSignoutService implements IIdentitySignoutService {
    * B7（批次 7）：**凭 RT 登出** —— AT 过期也撤得掉现役 RT。
    *
    * 为什么身份从 RT 认：`POST /auth/signout` 的正文是「删掉 DB 里的 refresh token」，
-   * 本质上是以 RT 为凭据的操作（`reports/review-guard-skip/matrix.md` H1 / 拍板 Q4-a）。
+   * 本质上是以 RT 为凭据的操作（拍板 Q4-a）。
    * 此前它挂在 `JwtAccessGuard` 后面：AT 一过期就 40101，用户既登不出去，服务端那枚
    * RT 还继续现役 —— 正是本方法要消灭的形态。
    *

@@ -27,7 +27,7 @@ import { describe, expect, it } from 'vitest'
  * 批 12（A1/A2/A3/A5）—— 本文件过去的四个盲区，全部已补：
  *
  * - **A1**：扫描面过去只认 `*.repo.module.ts`，`*.shared.module.ts` 结构性逃逸
- *   （`SysLogAuthSharedModule` 的 @Global 违规就是这么逃掉的，见 reports/batch-12）。
+ *   （`SysLogAuthSharedModule` 的 @Global 违规就是这么逃掉的）。
  * - **A2**：消费方计数过去只从 `providers[]` 建「类 → 宿主模块」映射、且只认构造器注入 ——
  *   `controllers[]` 里的宿主被算成 0，mixin 里的**属性级** `@Inject` 完全看不见；
  *   `{ provide: APP_GUARD, useClass: X }` 这种增强器登记形态同样没被算进来（现在就都算了）。

@@ -34,7 +34,7 @@ import type { MigrationInterface, QueryRunner } from 'typeorm'
  * 与 sys_device 之间**没有 FK**（松引用）。只删设备行会留下孤儿指纹 —— 同一浏览器回来是
  * 「新 deviceId + 老 visitor_id」⇒ 首行 insert 撞 23505 ⇒ 40000，那台设备心跳永久坏。
  *
- * 刻意**不做**的两件事（见 reports/batch-11/r1-migration.md）：
+ * 刻意**不做**的两件事（各条的理由就地写清）：
  * - 不加 `fingerprint_hash` 列：全仓 0 消费者，而「指纹必须等于首见值」的硬校验会把
  *   指纹的**合法漂移**（换 GPU 驱动 / 字体 / 窗口尺寸）变成没有自愈路径的永久 40099；
  * - 不加 `ON UPDATE CASCADE`：全仓没有「把 device_id 改成另一个值」的路径，现状 FK 的

@@ -23,7 +23,7 @@ import process from 'node:process'
  * 因为 `AppCapJS` 在**模块求值期**就 new 出来（cap.service.ts），这组监听器比
  * `app.enableShutdownHooks()`（main.ts）注册得**更早**。SIGTERM 一到，cap 先跑完
  * cleanup 就 `process.exit(0)` —— Nest 的关闭序列（Redis quit → cap 落盘 → 停监听
- * → PG / Bull 排空）被从中间截断。实测见 reports/batch-7/r2-sigterm.md §3：
+ * → PG / Bull 排空）被从中间截断。实测的进程时间线是这样：
  *
  * ```text
  *  17825ms emit SIGTERM

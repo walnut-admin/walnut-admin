@@ -7,7 +7,7 @@ import { importClosure, SERVER_ROOT, shortestChain, specifiersOf } from '../modu
 /**
  * G1 —— worker 进程的**静态 import 闭包**不得含 CAP 求值链 / Throttler 注册 / Socket gateway。
  *
- * 背景（reports/batch-6/r1-http-split.md §2.3 / H2）：模块图切分**不够**。CAP 的真实入口不是
+ * 背景（批次 6 · H2）：模块图切分**不够**。CAP 的真实入口不是
  * DI 链，而是**模块求值链**
  *
  *   worker/main.ts -> worker.module.ts -> app.module.ts -> @walnut-server/guards(barrel)

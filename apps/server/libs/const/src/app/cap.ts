@@ -4,8 +4,8 @@
  * 为什么必须收在一处：`app.global.capjs.config` 的 `ttl` 被三个消费方按**三种单位**
  * 读过 —— cap.js `createChallenge({ expiresMs })` 要毫秒、Express `cookie.options.maxAge`
  * 要毫秒、Redis 缓存 `set({ ttl })` 要**秒**。历史上三处各写各的换算
- * （`ttl` / `ttl * 1000` / `Math.ceil(ttl / 1000)`），**不存在任何一个取值能让三处同时正确**
- * （详见 reports/review-cap/review.md CAP-1）。现在的口径：
+ * （`ttl` / `ttl * 1000` / `Math.ceil(ttl / 1000)`），**不存在任何一个取值能让三处同时正确**。
+ * 现在的口径：
  *
  * - **配置单位 = 秒**：后台设置表单、`db/seed/app_setting.json` 的 `"ttl": 3600` 都是秒，
  *   人写的那一侧就是权威单位；代码里出现 `3600000` 一律是错的。
