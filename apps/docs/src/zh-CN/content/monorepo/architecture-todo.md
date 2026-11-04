@@ -1,159 +1,157 @@
 # 架构待办事项
 
-> **本表只列未完成的项。** 2026-09-23 逐条核实了原表里所有 ✅ / ❌ 标记：确认完成的已从表中移除
-> （核实方式见文末[「核实记录」](/content/archive/2026-09-24-architecture-ledger-history#核实记录-已移出待办)，避免再次出现「标了完成其实没做」）；
-> 其中 **`pnpm peers check` 红 核实后判定为已回退**，重新回到待办并升级到 P1。
-> 完成项的历史留在[执行记录](/content/archive/2026-09-24-architecture-ledger-history#执行记录)，细节见对应 ADR / 专题文档。
+> **本页是本仓架构债的唯一真源。** 每条都写「**判据** + 证据到 `path:line` + 成本级别」，
+> 不写「谁在哪天怎么做的」—— 逐批执行记录、已移出项的核实记录在
+> [架构待办的历史](/content/archive/2026-09-24-architecture-ledger-history)（冻结语料，不必逐次通读）。
+>
+> 判据优先于清单：**「表里还剩什么」比「一共做完多少」有用**。所以做过的条目只留一行证据
+> （见「已彻底关闭」），防止将来有人把做完的事再捞回来；仍然开着的条目必须写清「它现在为什么不能做 / 卡在谁那里」。
 
-**最后核实**：2026-11-02 ｜ 包数以 `pnpm-workspace.yaml` 的 `packages` 字段为准 ｜ 全门禁绿（`prepush` 段数以 `PREPUSH_GATES` 为准 / `lint` / `types:check` / `test` / `boundaries` / `syncpack` / `build` / `build:docs` / `lint:adr`）
+**最后核实**：2026-11-04 ｜ 工作树 0 dirty ｜ 包数以 `pnpm-workspace.yaml` 的 `packages` 字段为准
+｜ 门禁全绿（`prepush` 段数以 `PREPUSH_GATES` 为准 / `lint` / `types:check` / `test` /
+`boundaries` / `syncpack` / `build` / `build:docs` / `lint:adr`）
 
 ## 优先级总览
 
 | 级别 | 判据 | 条目 |
 |------|------|------|
-| ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 tag 发布链路端到端验证已被决定推迟，见[「搁置」](#搁置-等条件成熟) |
-| ~~P1~~ | 静态检查与门禁的缺口 | **当前为空** —— 2026-09-23 登记的三条静态检查缺口 **当天做完即移出**（见[执行记录](/content/archive/2026-09-24-architecture-ledger-history#执行记录)）；根 `tsconfig.json` 的类型检查已补上，`pnpm peers check` 与 knip 两条按决定搁置 |
-| **P2** | 维护性 / 体验改善 | TS 7 迁移准备 · API 路由迁移收尾 · store 工厂迁移 |
-| **P3** | 远期 / 条件触发 | 后端验证策略（落地） · E2E 测试 · **组件文档补写** · **两处安全观察** · `@walnut/i18n` 新包 · `@walnut/security` 新包 · Phase 4 自动导入迁移 · `Global/AI` 的评审缺陷 |
-| **搁置** | 等条件成熟（外部依赖或已决定先不动） | `pnpm peers check` 红 · knip · tag 发布链路端到端验证 · GitHub Environments · 国内 self-hosted runner · **锚点校验** |
-| **未裁决** | 2026-09-21 评审提出，**尚未决定做不做** | 下面表里那 7 条<br><sub>文档类建议 **全部裁决完毕**（2026-09-23 定：英文站不要；组件文档按 74 页那套新命名写 → 已转为上表的「组件文档补写」）；D7（TS 7 排期）已并入 TS 7 迁移准备。**下面表里那 6 条 / 后端验证策略（选型） 全部指向业务代码**，按「本轮只做基建与文档」的决定**只登记不动手**</sub> |
-
-**已清掉的旧账**（2026-09-23 起逐条做掉即从本表移除，验收口径见[核实记录](/content/archive/2026-09-24-architecture-ledger-history#核实记录-已移出待办)与[执行记录](/content/archive/2026-09-24-architecture-ledger-history#执行记录)）：
-`pnpm peers check` 与 knip 两条按决定搁置；其余旧账（4 个文档门禁、tags 三条不变量、根脚本形态门禁、两条本地
-ESLint 规则、`@walnut/types` 根导出、ADR 规范化、字数上限门禁、文档架构方案、组件文档占位页降级、
-`apps/server` 的 README / TODO 处置、`@walnut/vitest-config` 拆包、TCR 版本上限策略、server 两条构建流程抢 `dist`…）全部做完
-**最后一次反回归复验**：2026-09-23，把移出的 20 项逐条重跑 → **20/20 通过、0 回退**（判据见[执行记录](/content/archive/2026-09-24-architecture-ledger-history#执行记录)里那一批）
-
-> ### 为什么表里还有条目（读之前先看这段）
->
-> **先说清一件事**：本轮的**旧账清单**确实已经清空（见上面那行「已清掉的旧账」）。
-> 但 2026-09-23 做的[与参考仓 Z 的基建交叉对比](./reference-repo-comparison) **又登记了 5 条新的基建缺口**
-> （当天登记的五条基建缺口）—— 它们不是"欠的债"，而是**"没有任何东西在看这一面"**，
-> 是那次横向对比才看见的。**这 5 条当天全部做完并已移出本表**（见[执行记录](/content/archive/2026-09-24-architecture-ledger-history#执行记录)），
-> 于是对比页里**只剩 两处安全观察 一条**（业务代码类）。
-> 所以「表是空的」从来不是目标，**目标是表里每一项都能说清它现在为什么不能做**。
->
-> 剩下的每一项都属于下面四类之一：
->
-> | 类别 | 含义 | 谁能让它动 |
-> |------|------|-----------|
-> | **阻塞** | 等外部条件（全量 deps 升级、首次发版、stage 服务器…），每条都写了「解冻」条件 | 时间 / 外部环境 |
-> | **业务代码类** | 要改 `apps/admin/src` 或 `apps/server/{apps,libs}` 的**实现**（含 两处安全观察 那两条安全观察）。这类按「本轮只做基建与文档」的决定**只登记不动手** —— 条目里那些**核实结论**就是留给将来那次改动的 | 先解除那条范围铁律 |
-> | **未裁决** | 需要人拍板（下表的 7 条 架构选型 —— 它们全部指向业务代码） | 你 |
->
-> **怎么捞回来**（2026-09-23 收尾时加的）：**阻塞**类的解冻条件都在[「搁置」](#搁置-等条件成熟)那张表里，每条都写了「条件到了怎么办」；**业务代码**类在各段自己的表里（P2 / P3），条目里的核实结论就是留给那次改动的；**需要你拍板**的在[「未裁决」](#未裁决-2026-09-21-评审提出-尚未决定做不做)。
-> **本轮到此收尾**：从 2026-09-23 起逐批清理旧账 —— **旧账清空，横向对比新登记 5 条基建缺口**（上面第三类）。
+| ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 tag 发布链路端到端验证已被决定推迟，见下面「搁置」一节 |
+| ~~P1~~ | **没有任何东西在看这一面**（不是「哪里写错了」） | **当前为空** —— 已知的几面都有人看着：turbo tags 反向断言、根脚本形态、脚本入口两条 ESLint、动态 import、madge 0 环、四道文档门禁。2026-11-04 复核无新增 |
+| **P2** | 维护性 / 体验改善，成本有据 | 两套 ALS 并存（`D13②`）· 兄弟段互杀让门禁伪造失败（`batch15-a`）· 门禁预算按段区分（`batch15-b`）· TS 7 迁移准备 · store 工厂迁移 |
+| **P3** | 远期 / 条件触发 | `as`→`satisfies`（`C1`）· 孤儿模块守卫（`A4`）· 剩余注册面守卫（`D14`）· G6 偶发（`C3`）· 后端验证策略落地 · E2E · 组件文档补写 · 两处安全观察 · `@walnut/i18n`/`@walnut/security` 新包 · Phase 4 组件自动注册 · `Global/AI` 评审缺陷 · 基建注释历史账 · env 模板三个 `VITE_*` · `list` 旧 `query` 兼容路径退役 |
+| **搁置** | 等条件成熟（外部依赖，或已决定先不动） | `pnpm peers check` · knip · tag 发布链路端到端验证 · GitHub Environments · 国内 self-hosted runner · 锚点校验 |
+| **未裁决** | 连「做不做」都还没定 | 本批 3 条（`C4` / `C3` / `D18②`）+ 2026-09-21 评审遗留的 4 条设计选型 |
 
 ---
 
-## P1 — 静态检查与门禁的缺口
+## 已彻底关闭（2026-11-04 核实：DONE 且无尾巴）
 
-**当前为空。** 这个段位进进出出过两轮，每一轮的结论都留在[执行记录](/content/archive/2026-09-24-architecture-ledger-history#执行记录)里：
+> 一行一条，只留**证据**。做过的细节在[执行记录](/content/archive/2026-09-24-architecture-ledger-history)，
+> 决策理由在 `industry-research/backend-architecture-review/07-decisions.md`。
 
-- 根 `tsconfig.json` 此前无人执行→ 2026-09-23 补上 `pnpm types:check:root`，接入 prepush / ci.yml / 发版电池；
-- **`pnpm peers check` 红**（`pnpm peers check` 回退）→ 按决定搁置（见下）；
-- **knip**（knip）→ 按决定**不修、写明现状**（见「搁置」）；
-- 交叉对比登记的三条（turbo tags 不变量 / 根脚本形态门禁 / 两条本地 ESLint 规则）→ 2026-09-23 当天登记、当天做完：`turbo.json` 的 tags 三条不变量（并入 `lint:turbo-cache`）、根脚本形态门禁（`gate-wiring.test.ts`）、两条脚本入口 ESLint 规则（`script-rules.ts`）。**这三条都属"没有任何东西在看这一面"**，做完即移出本表。
+| 项 | 证据（判据落到路径） |
+|---|---|
+| **D0** 单体内后台（不拆产品线） | 判据「抽包正当性 = 本仓自己的复用」：没有第二个产品线，`packages/platform-node` 至今未建（延后见「待触发」） |
+| **D1** 删 `@walnut/ui` + 注册表改显式 | `packages/platform-web/ui` 已不存在；3 个 naive 透传组件回到 `apps/admin/src/components/UI/`；`Base:Switch` 的「按目录名动态 import」换成静态注册表 |
+| **D2** list 三槽位止血 + 显式 `filters` wire | 入参契约在 `apps/server/libs/list/src/list.dto.ts`（`filters: FilterDTO[]`），算子按**列类型**选在 `apps/server/libs/repository/src/pg-list.builder.ts`；回归面是 `apps/server/apps/api/test/integration/` 各 `*.int-spec.ts` 的 `filters` 断言 |
+| **D3** worker 真接线 | `apps/server/apps/worker/src/main.ts`（组合根）+ `deploy/docker-compose.yml` 的 worker service（同一镜像、只换 command）+ `deploy/post-verify.sh` 的 `RUN_WORKER` 校验 |
+| **D6** `@walnut/types` 保留、platform 改 web | `packages/platform-any/types/package.json` 的 `"platform": "web"`；后端对它的消费为 0（判据：`rg '@walnut/types' apps/server`） |
+| **D7** `@walnut/utils` 收缩 | `packages/platform-any/utils-core/src/` 只剩 `sign-raw.ts` / `object-paths.ts`（各带 spec），浏览器专用的值已下沉 `packages/platform-web/client` |
+| **D8** platform-web 删桶入口 | `packages/platform-web/{client,http}/src/index.ts` 都不存在，只留子路径导出；ADR 0013 的口径改为「桶取决于有没有仓外消费者」 |
+| **D9** `api-types` 归类 + `openapi:check` 两段 | 生成物在 `packages/generated/api-types/`；第二段查**暂存区**（`packages/tooling/scripts/src/ci/__tests__/prepush.test.ts` 的「已 add 的生成物不许让门禁绿」） |
+| **D11** 分布式锁端口化 | `apps/server/libs/lock/src/lock.port.ts` + `murlock.adapter.ts`（各带 spec），消费方按端口注入而不是直取 murlock |
+| **D12** 域缓存登记制 | ADR 0022 Decision 5 的四条准入判据 + 命名 `<domain>.cache.ts`（`apps/server/libs/cache/src/service/`）；新增域缓存不满足判据就不许进门 |
+| **D15** 分页稳定 | `apps/server/libs/repository/src/pg-list.builder.ts:120` 的 `withPgListTiebreaker(...)`：默认排序末尾追加 id 兜底 |
+| **D18①** frontend 侧边界规则 | 落在 `turbo.json:62-77`（`platform-web` deny `platform-node`）。刻意**不新建**只服务单包的 `frontend` 键，理由写在注释里；反向断言由 `lint:turbo-cache` 守 |
+| **D18③** admin 动态 import 门禁 | `packages/tooling/scripts/src/ci/check-dynamic-imports.ts` 已进 `prepush.ts:145`（`lint:dynamic-imports`）。**D18② 仍开着**，见「未裁决」 |
+| **D19** 不引 dependency-cruiser，madge 0 环进 prepush | `prepush.ts:87-90` 的 circular 段；`prepush.test.ts:67` 断言「摘掉 `--circular` 就红」（防止门禁退化成只数文件） |
+| **`.data` mtime 判据** | `apps/server/apps/worker/README.md` 的 SIGTERM 复现段：停 worker 前后比 `stat -c '%Y %s'` 与 sha256 —— `.data/tokensList.json` **不被重写**（不靠「应该不会写」的推断） |
+| **段数防腐测试** | `packages/tooling/scripts/src/ci/__tests__/prepush.test.ts`：段数非 0、id 无重复、整表顺序稳定、每段 argv 都落得到真实脚本、每段都写了「凭什么」 |
 
-> 判据（值得记住，下次登记新条目时照着用）：**P1 收的是"没有人看这一面"，而不是"哪里写错了"**。
-> 所以它天然会被清空 —— 清空不代表没有风险，只代表已知的那些面都有人看着了。
+## 剩余待办
 
----
+### P2 — 维护性 / 体验改善
 
-## P2 — 维护性 / 体验改善
+| 事项 | 成本 | 判据与证据 |
+|---|---|---|
+| **`D13②`** `libs/context` 并入 `libs/als`（今天两套 ALS 并存） | **S** | 位置：`apps/server/libs/context/src/logger-context.service.ts`（DI 包装）与 `logger-context.als.ts`（`AsyncLocalStorage` 本体）；对门是 `apps/server/libs/als/src/request.service.ts` 那套。**import 点只有 4 处**：`apps/server/apps/api/src/app/app.module.ts`、同目录 `core.module.ts`、`apps/server/apps/api/src/middleware/src/logger.middleware.ts`、`apps/server/apps/api/src/modules/techniques/logger/index.ts`。判据：搬完后 `rg '@walnut-server/context' apps/server` 只剩别名残留即完成。`D13①`（删 `libs/delay`：死库、0 import）本批已做 |
+| **`batch15-a`** 一条段超时会把**并发中的其它段**一起杀掉 | **S** | 证据：`packages/tooling/scripts/src/lib/child-tree.ts:33` 是**模块级集合**（登记所有活跃子进程），`packages/tooling/scripts/src/lib/child-run.ts:199` 在超时分支调**无参** `killActiveChild()` ⇒ 顺手收掉兄弟段。**它不是「零收益」的漂移**：这会让门禁**伪造失败** —— 本轮实测 4 条失败里 3 条是假红（被兄弟段的超时连带杀死）。修法二选一：把 kill 作用域化到本条 gate 的子树，或让「因兄弟段超时而收到 SIGTERM 的段」判为**跳过**而不是失败 |
+| **`batch15-b`** 门禁预算按段区分 | **XS** | 位置：`packages/tooling/scripts/src/ci/prepush.ts` 的 `GATE_BUDGET_MS`（本批已从 300s 提到 600s）与覆盖变量 `PREPUSH_BUDGET_MS`；仍是**全表一个默认值**，慢段（集成 / 构建类）与快段（文档门禁）共用同一个上限。判据：给 `PrepushGate` 加可选 `budgetMs` —— `runGates` 已支持逐段传入，改动只落在表里 |
+| **TS 7 / tsgo 迁移准备** | **M** | `@walnut/tsconfig/base.json` 的 `ignoreDeprecations: "6.0"` 一刀切静音了通往原生编译器的迁移信号。做法是先做一次**阻塞面实测**（全仓 `types:check` 用 TS 7 跑一遍），再定排期。⚠️ 与「全量 deps 升级」重叠，建议并到那一次。另：`apps/server/tsconfig.json` 未显式声明 `moduleResolution`（`module: commonjs` 使其落到默认 `node10`） |
+| **store 工厂迁移** | **M** | `createWalnutStore()` 只在 `@walnut/client` 内部被引用（`src/index.ts` + `store/createWalnutStore.ts`），admin 侧 26 个 store 文件 **0 处**使用（判据：`rg createWalnutStore apps/admin`）。新 store 优先用它，别再复制模式 |
 
-| 事项 | 工作量 | 现状与判据 |
-|------|------|------|
-| **TS 7 / tsgo 迁移准备**（评审建议上调到 P2） | 中 | `@walnut/tsconfig/base.json` 的 `ignoreDeprecations: "6.0"` 一刀切静音了通往原生编译器的迁移信号。**TS 7.0 已正式发布**（2026-07-08），评审提出应先做一次**阻塞面实测**：全仓 `types:check` 用 TS 7 跑一遍摸清阻塞点，再定排期。另注意 `apps/server/tsconfig.json` 未显式声明 `moduleResolution`（`module: commonjs` 使其落到默认 `node10`）。<br>⚠️ 与「全量 deps 升级」有重叠，建议并到那一次一起做。<br>**2026-09-23 补记**：`turbo` **已单独升过**（2.9.14 → 2.11.2，为拿 `cacheMaxAge` / `cacheMaxSize` / `concurrency` 三个键；顺带记一条经验：当天的 2.11.3 被本仓自己的 `minimumReleaseAge: 1440` 拦下，最后选的是已过 24h 成熟期的 2.11.2）。**全量升级时可以把它从清单里划掉**；`pnpm peers check` 那次也重跑过，仍是同样 5 组、exit 1 —— 与 turbo 无关。 |
-| **API 路由迁移收尾**（原「剩余 11 处 + server 44 controller」） | 中 | ✅ **已完成（U2 批）**：47 个 controller 前缀全部改用 contract 常量（routes.ts 70→123），admin 58 处字面量替换清零；`route-catalog.drift.spec`（扫描 @Controller ↔ contract 对账 + 反孤儿）即评审建议的 parity 门禁。<br>**保留口径**：server 方法级路径仍为相对字面量（Nest 方法路径相对前缀，绝对常量会改变路由），由 openapi 零 diff 兜底；3 个路由目录条目（KEY_CURRENT/CAP_*）由门禁锚定暂无直接消费。 |
-| ~~**`@walnut/ui` 剩余组件**~~ | — | ✅ **2026-11 撤销**（批次 1）：整包删除 —— 3 个 naive 透传组件回 `apps/admin/src/components/UI/`，表单组件注册表改为**显式静态 import**。判据「零 app 依赖 + ≥2 处复用」实测 1/0/0，抽包本身被证明是负收益（抽完 4 个月里 Form 的注册表一直悬空、`Base:Switch` 静默不渲染）。 |
-| **store 工厂迁移** | 中 | `createWalnutStore()` 只在 `@walnut/client` 内部被引用（`src/index.ts` + `store/createWalnutStore.ts`），admin 侧 **26** 个 store 文件 **0 处**使用。 |
+> 已完成但仍需记住口径的两条：**API 路由迁移收尾**（U2 批）47 个 controller 前缀全部改用 contract 常量，
+> `route-catalog.drift.spec` 即 parity 门禁；**server 方法级路径仍是相对字面量**（Nest 的方法路径相对前缀，
+> 换成绝对常量会改变路由），由 openapi 零 diff 兜底。
 
----
+### P3 — 远期 / 条件触发
 
-## P3 — 远期 / 条件触发
+| 事项 | 成本 | 判据与证据 |
+|---|---|---|
+| **`C1`** `device.ts` 的 `as` → `satisfies` | **S** | `apps/admin/src/api/system/device.ts:97` 用 `as IRequestPayload…Initial` ⇒ `request.d.ts` 的 `Omit<…, 'deviceName'>` 守卫被吞（多带 `deviceName` 时 tsc 零报错，只能靠服务端 40099 兜）。换 `satisfies` 会立刻暴露两处**预存在**的松动：`:83` 的 `unknown→number`、`:86` 的 `deviceInfo` 缺 `type` —— 要修得先动 payload 的构造来源。**有 C 编号：`reports/NEEDS-CONFIRMATION.md` C1** |
+| **`A4`** 孤儿模块守卫（`@Module` 类零引用） | **XS** | 全仓只出现过 1 个真孤儿（已修）；`apps/server/apps/api/src/common/monorepo/repo-global.drift.spec.ts` 的 **imports 可见性**判据已覆盖主要症状（模块被人忘了 import 就不在依赖图上）。判据：真要做就是「扫 `@Module` 类 → 找 `imports` 命中」，收益边界很窄，别顺手扩大成「扫所有装饰器」 |
+| **`D14`** 注册面「生成化」（剩 5 个面） | **M** | **防漏这一半已经做完**：写入口唯一 —— `packages/tooling/scripts/src/scaffold/lib-registration.ts`（`pnpm scaffold:lib`）；漏改会红 —— `apps/server/apps/api/src/common/monorepo/lib-registration.drift.spec.ts` 以磁盘 `libs/<name>` 为基准对账五处注册面。**剩下的价值只有「从单一 manifest 生成」**：tsconfig paths / 3 份 nest projects / 3 份 swcrc / 3 份 tsconfig.app include / ESLint `files` 前缀 —— 买的是「加一个库不用碰一堆文件」而不是「防漏」，这也是它从 P1 降到 P3 的原因。判据：加一个假 lib 只需改 manifest 1 行 + 跑生成，且 drift spec 仍能拦住手工漏改 |
+| **`C3`** `concurrency.api-spec.ts` 的 G6 偶发 | **M** | `apps/server/apps/api/test/api/concurrency.api-spec.ts:383-433`：`expected 3 to be 1003` —— rotate 没命中自插的高 version 种子行（种子 version 在 `:391`）。单跑 6/6 绿、全量偶发；根因未证实（可疑方向：应用池上**会话级 RLS GUC 残留**，让造种子的连接与轮换事务看到不同的 `app_key` 行）。**隔离改动 0**。选项与推荐见 `reports/NEEDS-CONFIRMATION.md` C3 |
+| **后端验证策略（落地）** | **L** | 方向不变、前提已变：NestJS 12 已官方支持 Standard Schema（`@Body({ schema })` + `StandardSchemaValidationPipe`，同一 schema 还能驱动 OpenAPI），class-validator 仍完全支持、无移除计划。真正的缺口不在「换校验器」，而在**持久化读回 / 队列 / SSE** 三处边界校验 —— 补不上这三处，这次迁移就不值得做（详见 [ADRs 0016](../adr/0016-validation-strategy.md) 与 [zod 评估](../adr/zod-evaluation.md) 末尾的 2026-11-04 订正） |
+| **E2E 测试（Playwright）** | **L** | 先覆盖单元 + 集成；E2E 等测试体系稳定后再加 |
+| **按新命名补写组件文档** | **L** | 正典是 `content/frontend/component/index.md` 规划的那套（kebab-case + 六个目录）。现状：规划里的页面一篇未写，旧树 42 篇仍在 sidebar 里可达（写完之前先留着，否则组件文档就没入口了）。完成标志：新页存在 → 旧树删除 → sidebar 改指 → `index.md` 的纯文本改回链接（要过 `build:docs` 死链校验） |
+| **两处业务代码的安全观察**（只登记不动手） | **S** | ① `apps/admin/src/utils/window/open.ts` 的 `openOAuthWindow` 调 `window.open` 没带 `noopener`；**但「照抄加上」是错的** —— 调用点在 `views/auth/src/shared/other.vue` 接住了返回值并靠它 `close()` 关窗，而带 `noopener` 时 `window.open` 返回 `null`（静默失效）。好在该流程的结果走 SSE，不依赖 `window.opener`。② 开 `no-dangerous-html` 类规则会立刻命中 4 个 `v-html`（`components/Global/AI/**`）与 2 处 `innerHTML = ''`（清空、非注入）—— 按「一排开始误报的门禁等于没有门禁」，现在不该开 |
+| **`@walnut/i18n` / `@walnut/security` 新包** | **L** | 目录都未创建。**真正的前置是前端组合根**：不先做显式 `createWalnutApp(options)`，这两个包落不了地（seam 形态也未定，见「未裁决」） |
+| **Phase 4 组件自动注册迁移** | **M** | `unplugin-auto-import` 已移除（[ADR 0020](../adr/0020-remove-unplugin-auto-import.md)），但 `unplugin-vue-components` 还在 —— 它**没有类型安全网**（`strictTemplates` 未开，组件名写错 `vue-tsc` 不报）。要摘得靠 codemod + 运行时冒烟；component resolver 只扫 admin 自己的组件树 |
+| **`Global/AI` 的评审缺陷** | **M** | 仍然成立的：读 localStorage 全是 `as` 无字段级校验、面向用户文案硬编码中文无 i18n、`.pill` 写死浅色导致暗色发白、parser 对 AI 输出无字段守卫、兜底分支缺日志。已失效的**别再修**（`useFloatingDock` 已有卸载清理、`Thinking/TextShimmer` 早已内联 props、B2/B5 引用的 composable 已随业务层删除）。引用那份 REVIEW 前先看条目里的更正 |
+| **基建注释里的历史账** | **S**（增量做） | 判据（照它做，别自由发挥）：① 注释里写**规则**、不写叙事；② 判据细节指向文档站；③ **不写会腐烂的计数**；④ 每批自证「`git diff` 里非注释改动为 0」。不单开批次，顺手做 |
+| **env 模板里三个 `VITE_*` 是空串** | **S** | `VITE_GA_ID` / `VITE_GOOGLE_CLIENT_ID` / `VITE_SERVER_STATIC_PUBLIC_KEY` 的明文就是 `''`，`pnpm setup-env` 恢复不出真值。GA 与 Google 都有消费点自己的守卫，**`VITE_SERVER_STATIC_PUBLIC_KEY` 没人兜**（登录时与服务端下发的值比对，空串大概率判不匹配，未实测）。要决定：模板是否带一组可用 dev 值，还是把「空值 ⇒ 该功能关闭」定成所有消费点的统一约定 |
+| **`list` 的旧 `query` 兼容路径退役** | **S** | `apps/server/libs/repository/src/pg-list.builder.ts` 的 `IListRequestParams.query` / `legacyConditionFromValue()` 及其 `raw` 分支。HTTP 层早已不收这个槽位（DTO 无该字段，顶层白名单直接 40099），今天只剩「库内 / 库外直接构造入参」的兜底，语义是**丢弃 + warn**。删除判据两条全满足：① 静态 0 调用点；② 运行面连续 30 天无触达（这条路径解释成功时**完全静默**，要按它判得先补触达计数）。现在不删：删它零收益，留着有回滚价值 |
 
-| 事项 | 工作量 | 现状与判据 |
-|------|------|------|
-| **后端验证策略**（原「Zod 替换 class-validator」，评审建议重述） | 大 | 方向不变但**前提已变**：NestJS 12 已官方支持 Standard Schema（`@Body({ schema })` + `StandardSchemaValidationPipe`，同一 schema 还能驱动 OpenAPI），`industry-research/07` 里「手写 `ZodValidationPipe`」的示例已过时；class-validator 仍完全支持、无移除计划。<br>评审建议把本条**从「换校验器」重述为「补齐边界校验清单」**：真正的缺口在**持久化读回 / 队列 / SSE** 三处，工程量从「100+ DTO 迁移」降到「补 3 处边界校验」；如果补不上这三处，这次迁移就不值得做。 |
-| **E2E 测试（Playwright）** | 大 | 优先覆盖单元 + 集成测试；E2E 等测试体系稳定后再加。 |
-| **`@walnut/i18n` 新包** | 大 | 目录**未创建**。locale bootstrap + 状态机 + naive locale 映射。评审（i18n / security 的 seam 形态）提醒 seam 形态应先决策：ADR 0017 原方案用 TS `interface`，但 `interface` 无运行时令牌，无法表达「依赖 definition 而非 provider」。 |
-| **`@walnut/security` 新包** | 大 | 目录**未创建**。URL 加密 guard + sign interceptor crypto + VerifyAuth 类型。同 `@walnut/i18n` 新包，受 i18n / security 的 seam 形态 阻塞。<br>评审（前端组合根）指出这两条的**真正前置**是前端组合根：不先做显式 `createWalnutApp(options)` 工厂，`@walnut/i18n` 新包/`@walnut/security` 新包 落不了地。 |
-| **Phase 4 自动导入迁移** | 中 | ~~迁入 package 的代码里隐式全局变量改为显式 import~~ —— **前半已由 [ADR 0020](../adr/0020-remove-unplugin-auto-import.md) 做完（2026-09-29）**：admin 全域的 `unplugin-auto-import` 已移除（369 文件 / 170 符号改显式 import），「不许隐式全局」现在是根 `AGENTS.md` 的纪律 4，由 `vue-tsc` 机械守。<br>**剩下的**：`unplugin-vue-components`（组件自动注册）还在 —— 它**没有类型安全网**（`strictTemplates` 未开，组件名写错时 vue-tsc 不报错），要摘得靠 codemod + 运行时冒烟，227 个 `.vue` / 88 个组件 / 约 485 处模板 import。component resolver 只扫 admin 自己的组件树（`component.ts` 的 `src/components/**/**/index.ts`）；2026-11 起 `@walnut/ui` 已删，那条跨包 glob 一并移除。 |
-| **server 内部 lib 抽取（A12，24 个候选）** | ✅ 已执行完毕（批 0-10） | 计划已归档：[2026-07-26 内部 lib 抽取建议](../archive/2026-07-26-lib-extraction-recommendations.md) —— 从 `apps/api/src/{modules,common,decorators}` 向 `apps/server/libs/`（**内部 lib，不是 workspace 包**）抽取 13 + 7 + 4 个候选。<br>**终态（2026-10-31）**：批 0-10 全部落地，`apps/server/libs/` 共 34 个内部 lib，app 只剩组合根、wire DTO 与 controller；分层与组合根形态见 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。<br>**归档时的两处更正**：① 它不与 ADR 0007 冲突（落点是内部 lib）；② 原稿候选包名用了前端 scope `@walnut/*`，已全部改为 `@walnut-server/*`。 |
-| **按 74 页那套新命名补写组件文档** | 大 | **2026-09-23 你定的方向**：正典是 `content/frontend/component/index.md` 规划的那套（kebab-case、`advanced/` `app/` `business/` `extra/` `ui/` `vendor/` 六个目录），**旧的那棵 `zh-CN/component/**` 写完即淘汰**。<br>**现状**：那 74 条已降级为纯文本（第 13 批，为收掉死链白名单），页面一篇未写；旧树 42 篇仍在 sidebar 里可达（第 14 批补的），**在写完之前先留着**，否则组件文档就彻底没有入口了。<br>**为什么排 P3**：逐页要读组件实现（属深入业务代码），是本表里最大的内容工程。做法建议：先写 `ui/`（25 个）与 `extra/`（23 个）这两大类，它们最常被引用。<br>**完成标志**：74 页存在 → 旧树删除 → sidebar 改指新树 → `index.md` 里那些纯文本改回链接（都要过 `build:docs` 死链校验）。 |
-| **两处业务代码的安全观察**（对比页 F 组，**只登记不动手**） | 小 | ① `apps/admin/src/utils/window/open.ts` 的 `openOAuthWindow`（第 24 行）调 `window.open` 时**没带 `noopener`**（同文件 `openExternalLink` 的两处都带了），被打开的 OAuth 页因此拿得到 `window.opener`。<br>⚠️ **但"照抄加上 `noopener`"是错的做法**，2026-09-23 核实过：① 该调用点在 `apps/admin/src/views/auth/src/shared/other.vue` 里**接住了返回值**（`childWindow = openOAuthWindow(res)!`），失败分支要 `childWindow?.close()` 关掉弹窗；而带 `noopener` 时 `window.open` **返回 `null`** ⇒ 弹窗再也关不掉（不崩，只是静默失效）。② 好在该流程的登录结果走的是 **SSE**（`EventSource` 订阅 `/auth/oauth/<type>/sse/…`），**不依赖 `window.opener` / `postMessage`** ⇒ 加 `noopener` 不会打断登录。**正确改法**要连"怎么关掉那个窗口"一起重新设计，属业务代码。<br>② 启用 `no-dangerous-html` 类规则会立刻命中 **4 个 `v-html`**（都在 `apps/admin/src/components/Global/AI/**`），另有 `apps/admin/src/views/auth/index.vue` 第 26 / 31 行的 **2 处 `innerHTML = ''`** —— 那两处是**清空**而不是注入，规则报不报得看它怎么定义 sink。**按本仓「一排开始误报的门禁等于没有门禁」的口径，现在不该开**（要开得先把那 4 个 `v-html` 的输入来源逐个核实成可信）。<br>**代码一律未改**（按「只做基建与文档」的范围铁律）。 |
-| **`Global/AI` 组件的 12 条评审缺陷**（`apps/admin/src/components/Global/AI/docs/REVIEW.md` 的 A2–A6 / B1–B7） | 中 | 2026-09-23 逐条核实过（**结论在此，别重复查**；那份 REVIEW 本身已部分过期）：<br>**仍然成立**：A2（`store/useConversationStore.ts` 读 localStorage 全是 `as` 断言，无字段级校验 —— `new Date(undefined)` 会变 `Invalid Date`）、A3（全部面向用户文案硬编码中文，无 i18n）、API 路由迁移收尾（`components/core/FloatingTrigger.vue` 的 `.pill` 写死 `background: white !important` 与 `#36b4e7`，暗色模式发白；**注意 REVIEW 给的 `--zd-*` 变量名是错的，本仓用无前缀的 `--card-color` / `--primary-color`**）、B1（`utils/parser/business.ts` 对 AI 输出的 payload 无字段守卫）、B3/B4（兜底分支缺日志）、B7（`docs/TODO.md` 剩 4 项：style 完全移除 / float dock 状态显示 / i18n / 输出语音播放）。另有**一处 REVIEW 没写、核实中发现的真 bug**：action 类型有**两个派发点**（`components/business/index.vue` 的 setup + `composables/business/index.ts` 的 `useActionWatcher`），同一 action 可能执行两次，且 renderer 对任意渲染到的消息都会执行 ⇒ 旧消息重回虚拟列表会被重放。<br>**已失效（别再修）**：A4（`useFloatingDock` 早已有 `onBeforeUnmount` 清理）、A6（`Thinking.vue` / `TextShimmer.vue` 早已是内联 `defineProps`，全树无独立 `interface Props`）、B2 / B5（引用的四个无人机业务 composable 与 `NavigateBanner.vue` **已随业务层删除**，全仓零命中）、B6（`business-design.md` 早已把注册表分发写成「最终方案」）。<br>**引用那份 REVIEW 之前先看这行**：它**自身的文件链接全部少了一段路径**（写的是 `src/components/AI/…`，实际树是 `src/components/Global/AI/…`，共 22 处），行号也全部对不上；第二章的两张表（「业务类型注册完整性」与「业务组件规范检查」）描述的是**已经不存在**的代码库；`docs/composables.md` 的状态表里也仍列着那 4 个已删除的文件。**要引用就以本条的结论为准，别直接照抄那份文档。**<br>**代码一律未改** —— 按「当前对话只做基建与文档」的决定。 |
-| **基建注释里的历史账** | 小（增量做） | 基建层注释总量约 3400 行，其中不少是「某天实测… / 这里曾经是…」的叙事。**已压**：`turbo.json`、`check-turbo-cache`、`check-doc-refs`、`ci.yml`、`knip.config`，并**实测抓到 5 处已经不准的断言**（3 处计数 + 1 处「只有 3 条」+ 1 处条数）。<br>**判据**（照它做，别自由发挥）：① 注释里写**规则**、不写叙事；② 判据细节指向文档站（`turbo-cache-boundary` / `architecture` / 各专题页）；③ **不写会腐烂的计数** —— 那类数字没有门禁拦得住；④ 每批自证「`git diff` 里非注释改动为 0」。**不单开批次，顺手做**。 |
-| ~~**前端启动序列没有容错**（症状是「白屏 / 一直转圈」）~~ | — | **已修（2026-09-29）**。做法：组合根从 `App/src/App.ts` 挪进 [`App/src/bootstrap.ts`](https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/src/App/src/bootstrap.ts)，启动序列拆成**带名字、带关键性**的步骤 —— 关键步（store / i18n 壳 / router）失败**不 mount**、把 splash 换成一屏能读懂的错误（`renderBootstrapFailure`，纯 DOM、不用 `innerHTML`）；可降级步（GA / 指纹 / 设备 / 签名 / 语言包 / sentry）失败记下来照常进页面，mount 之后逐条报 + 一条汇总提示；网络类步骤另加 **20s 超时兜底**（请求挂死是「无限 splash」的另一种成因，try/catch 拦不住）。<br>顺带把那两条实测过的复现路径都覆盖了：空 `VITE_GOOGLE_CLIENT_ID` 与后端起不来（`/system/device/initial` 502）。<br>**另一半（空库没数据）也已解决**：初始化数据现在随仓库发布，且能现场生成密钥与口令 —— 见文档站「数据库与初始化数据」。 |
-| **env 模板里三个 `VITE_*` 是空串**（加密模板也是空的） | 小 | 2026-09-24 解开 `apps/admin/env-encrypted/.env`（只比对长度、不打印值）确认：`VITE_GA_ID` / `VITE_GOOGLE_CLIENT_ID` / `VITE_SERVER_STATIC_PUBLIC_KEY` 的**明文就是 `''`** ⇒ `pnpm setup-env` 恢复不出真值，本地要 Google 登录必须自己填。<br>**现状**：GA 由 `apps/admin/src/App/src/scripts/analytics.ts` 自己的 `if (!…VITE_GA_ID) return` 兜住；Google 已由上面那条守卫兜住；**`VITE_SERVER_STATIC_PUBLIC_KEY` 目前没人兜** —— `apps/admin/src/store/modules/user/user-auth.ts` 登录时拿它跟服务端下发的值比，空串大概率直接判不匹配（**未实测**，验证需要活的后端）。<br>**要决定**：模板是否该带一组可用的 dev 值（Google client id 属个人凭据、不该进仓），还是把「空值 ⇒ 该功能关闭」定成所有消费点统一的约定。 |
-| **`list` 的旧 `query` 兼容路径退役**（批次 4-A 留下的过渡态，批次 9 · C7 登记） | 小 | 位置：`apps/server/libs/repository/src/pg-list.builder.ts` 的 `IListRequestParams.query`、同一文件的 `legacyConditionFromValue()`、`applyPgListQuery` 里 `condition.raw` 的两个分支，以及 `pg-column-op.ts` 的 `IWalnutPgListCondition.raw`。HTTP 层从批次 4-A 起就不接受这个槽位（DTO 里没有 `query` 字段，顶层白名单直接 40099），所以它今天只剩「库内 / 库外直接构造入参」的兜底，语义是**丢弃 + warn**（与 `filters` 的严格模式互补）。<br>**删除判据（两条全满足才删，缺一条继续留着）**：① **静态 0 调用点** —— `git grep -n "query:" -- apps/server/libs apps/server/apps` 里构造该槽位的只剩 spec；② **运行面连续 30 天无触达**（= 一个发版周期，与设备 cookie 的双读窗口同量级）。⚠️ ② 的坑：这条路径**解释成功时是完全静默的**，「没看到 warn」≠「没被走到」—— 真要按 ② 判，得先给它补一条触达计数（与丢弃同一套「每 N 次落 1 条汇总」机制），否则只能按 ① + 一个发版周期判。<br>**为什么现在不删**：删它零收益（没有调用点要清理），留着有回滚价值 —— 旧客户端 / 未迁完的旁路构造这个形状时，最坏是「条件不生效 + 一条 warn」，而不是 40099。删除时四处一起删，漏一处会把条件当「手写构造」处理。 |
+## 待触发 / 建议不做
 
----
+| 项 | 为什么现在不做 | 什么情况下捞回来 |
+|---|---|---|
+| **`D4` 的 P1**（两个包自建 CJS dist，恢复包边界） | 现状走 P2「不搬」：边界清晰今天已由 ESLint 六层 + 3 个 drift spec + madge 提供；P1 的代价是新增一条构建流水线 + `peerDeps(@nestjs/*)` + 28 库搬迁 | 出现**第二个 Node 产品线**（不是第二个进程 —— worker 与 api 共用同一份 AppModule 与构建产物，不构成跨包复用），或决定把后端能力对外发布。触发条件与实测结论见 `industry-research/backend-architecture-review/07-decisions.md` 的 D4 修订记 |
+| **`turbo.json` 的 `platform-node` tag** | 留着当 P1 的落点：今天没有 subject（`packages/platform-node` 未建），那条规则永远空转 —— **属已知冗余，不是遗漏** | 走 P1 建包那天它自动生效；现在删掉反而要在同一批里加回来 |
+| **`D18②`**（3 个包的 barrel 从 knip `entry` 摘出，改「0 引用」脚本） | 处方**实测判为物理不可执行**：knip 会从 `package.json` 的 `exports` 把同一个 barrel 推回 `entry`，**摘了等于没摘** —— 判据与推理写在 `knip.config.ts:155-165` | 要查 barrel 自身的死导出只能另立「barrel 符号 0 引用」专用脚本（成本 M）。**要不要接受「改成不做」需拍板**，见「未裁决」 |
+| **`D20` / `D10` 的 `build/image/**` 旧拷贝** | 是**本地构建遗留**的 deploy 产物，**已被 gitignore**（判据：`git status --ignored -- build` 只显示 `!! build/image/`）⇒ 不进仓、不影响任何门禁 | 不需要捞回来：要清就重跑一次 `pnpm deploy` 让它自净（或直接删目录），别为它写清理脚本 |
+| **UUID v7 / dependency-cruiser / 第三个 platform-node 包** | 已决定「不做 / 等触发」，留痕在 `07-decisions.md` 的「明确不做」一节 | 条件写在同一节，别在这里重抄 |
 
 ## 搁置（等条件成熟）
 
-> 🅿️ **这一节是「未落地的设计」（提案性质）**：它们说的是「**打算改成什么**」，而不是「哪里欠了债」。
-> 与 P2/P3 的区别就在这儿 —— 那些是「该做但还没做」，这些是「**已经决定先不做**，在等一个外部条件」。
-> 所以本节的每一行都必须写出**解冻条件**（条件到了怎么办），否则它就该回 P2/P3。
-> 侧边栏有一条直接链到这里，不必从表头翻下来。
+> 🅿️ 这一节是「**已经决定先不做**，在等一个外部条件」—— 每行必须写清解冻条件，否则它就该回 P2/P3。
 
 | 事项 | 搁置原因与解冻条件 |
 |------|------|
-| `pnpm peers check` 红 + `peerDependencyRules` 豁免机制随 pnpm 12 迁移消失 | **2026-09-23 你的决定：先不动。** 理由是**马上要做全量 deps 升级**，5 组 unmet peer 的结论可能变；现在不接门禁、也不恢复白名单。<br>现状记录（免得以后重新查）：`pnpm peers check` **exit 1**，5 组 —— `vite` 8.0.11（插件要 ≤7）、`@swc/cli` 0.8.1（@nestjs/cli 要 ≤0.7）、`chokidar` 4.0.3（要 ^3/^5）、`class-validator` 0.15.1（@nestjs/mapped-types 要 ^0.13/0.14）、`typescript` 6.0.3（i18next / tsconfck / madge 要 ^5）。它**不在任何门禁里**，不影响 CI 与钩子。<br>**解冻**：全量 deps 升级跑完后重跑一次 `pnpm peers check`，看还剩几组再决定 (a) 恢复等价白名单并接门禁 还是 (b) 正式记录「红是预期」。<br>**2026-09-23 中途核对**：那天只升了一个包（turbo 2.9.14 → 2.11.2，turbo 无 peer 依赖），重跑 `pnpm peers check` **仍是同样 5 组、exit 1** —— 说明这几组来自别的依赖，别指望靠升 turbo 顺手清掉。 |
-| tag 发布链路端到端验证 | **2026-09-23 你的决定：首次发版不着急。** 未验证的部分：镜像构建 → 推 TCR → 自动部署 → post-verify（本机无 Docker，只能等真跑一次 tag）。<br>**解冻**：真正准备发第一个版本时。到时清单 —— ① CI 的 affected 表 + `lint:root` / `types:check:root` 两步为绿；② run summary 的 staging 体积与三镜像 digest；③ `docker run --rm --entrypoint ls <backend> /app/env-local` 应报不存在；④ 部署日志出现「三个镜像均存在」、`--wait`、健康检查 200；⑤ 二次发布明显更快且出现 `scope=backend`；⑥ post-verify 绿。详见 [CI/CD 与容器构建](./ci-cd) |
-| GitHub Environments | 已核实 deploy 作业**未**使用原生 `environment:`（只有作业级 `env:` + `workflow_call`/`workflow_dispatch` 的 `environment` 输入 + `concurrency: deploy-${env}`）。**解冻**：stage 服务器（火山引擎）到位后再评估。 |
-| 锚点（`#fragment`）校验 | **2026-09-23 实测后搁置**：VitePress 内置只查「目标页是否存在」，**不查 `#fragment`**；能补这一块的现成工具只有 `lychee`（配方见下方 [锚点校验 调研结论](/content/archive/2026-09-24-architecture-ledger-history#锚点校验-调研结论-文档链接校验用什么-2026-09-23)）。<br>**为什么现在不做**：全站带锚点的站内链接**实测 8 条**（2026-09-23 手工对着构建产物逐条核过）—— 为一个二进制 + 一个 CI 步骤换 8 条链接的校验，ROI 说不通。<br>**解冻条件**（满足任一条就捞回来）：① 带锚点的站内链接涨到**几十条**；② 出现一次**锚点静默失效**的真实事故（读者点了跳不到位置，而构建照样绿）。<br>📌 **2026-09-23 补记（这条决定已经付过一次代价了）**：那次手工核对**当场查到 1 条坏的** —— 就是本行这个指向 锚点校验 小节的自指链接（`## 锚点校验 调研结论：…` 的真实 `id` 里，**全角冒号也转成 `-`**，而链接里漏了那个横杠）；更值得记的是，第 4 批的执行记录当时写的是「页内锚点全部可解析」，**那句话从写下那天起就是错的**。也就是说这一面**没有任何东西在替我们看着**，只能靠哪次人工想起去核一遍。<br>⚠️ 另半条（prose 里几百处反引号仓库路径）**已经不做**了 —— 由 `pnpm lint:docs-refs` 覆盖，且它刻意只认「以顶层目录开头」的路径（收窄判据见该模块顶部注释）。 |
-| **knip（`pnpm knip` exit 1 + `ignoreDependencies` 95 条）** | **2026-09-23 你的决定：先不动，只写明现状。** 不删代码、不接门禁。<br>**理由**：本仓是**模板项目，「未用导出」不等于死代码** —— 最典型的是 `apps/server/libs/decorators/src/transformer/**` 那 13 个 `WalnutAdminDecoratorTransform*`，它们正是留给模板使用者按需取用的 API 面；按「有没有人 import」删，等于把模板能力删掉。<br>现状**不写计数**（那些数已经腐烂过一次）：`knip.config.ts` 顶部注释写的是**判据与怎么看**（先分 `packages/**` 与 `apps/**`，`packages/**` 再按「入口有没有消费」二分），要当下的读数就跑 `pnpm knip`。它不在任何门禁里。<br>**解冻/若将来要接门禁**：先分类再开闸 —— 用 `entry` / `includeEntryExports` 把「有意的公共面」显式标出来，只让真死代码亮红。 |
-| 国内 self-hosted runner（决策门） | **解冻**：仅当 tag 发布链路端到端验证 的实测显示「tag 发布总时长 > 20 min 且跨境推送占大头」。runner 在美国、镜像仓库在腾讯云上海，跨境上传是旧流水线 78 分钟的主要嫌疑之一；腾讯云轻量服务器约 ¥30–60/月。**先看数据再决定。** |
+| `pnpm peers check` 红（+ `peerDependencyRules` 豁免机制随 pnpm 12 迁移消失） | **2026-09-23 的决定：先不动**，因为马上要做全量 deps 升级，5 组 unmet peer 的结论可能变。它**不在任何门禁里**，不影响 CI 与钩子。**解冻**：全量升级后重跑，看还剩几组再决定 (a) 恢复等价白名单并接门禁 还是 (b) 正式记录「红是预期」。⚠️ 单独升 turbo 那次重跑**仍是同样 5 组**，别指望顺手清掉 |
+| tag 发布链路端到端验证 | **2026-09-23 的决定：首次发版不着急**。未验证的是镜像构建 → 推 TCR → 自动部署 → post-verify（本机无 Docker，只能等真跑一次 tag）。**解冻**：准备发第一个版本时；清单见 [CI/CD 与容器构建](./ci-cd) |
+| GitHub Environments | 已核实 deploy 作业**未**使用原生 `environment:`（只有作业级 `env:` + `workflow_call`/`workflow_dispatch` 的 `environment` 输入 + `concurrency`）。**解冻**：stage 服务器到位后再评估 |
+| 锚点（`#fragment`）校验 | **2026-09-23 实测后搁置**：VitePress 只查「目标页存在」，**不查 fragment**；能补的现成工具只有 `lychee`。当时全站带锚点的站内链接**实测 8 条**，为一个二进制 + 一个 CI 步骤换 8 条链接的校验，ROI 说不通。**解冻**：① 带锚点的站内链接涨到几十条；② 出现一次锚点静默失效的真实事故（读者点不到，构建照样绿）。📌 已经付过一次代价：那次手工核对当场查到 1 条坏的，且执行记录里「页内锚点全部可解析」那句从写下那天起就是错的 —— 这一面没有任何东西在替我们看着。另半条（prose 里几百处反引号仓库路径）**已经不做**，由 `pnpm lint:docs-refs` 覆盖 |
+| knip（`pnpm knip` exit 1） | **2026-09-23 的决定：先不动，只写明现状**。理由：本仓是模板项目，「未用导出」不等于死代码（`libs/decorators/src/transformer/**` 那批就是给使用者按需取用的 API 面）。**现状不写计数** —— 要读数就跑 `pnpm knip`；判据与怎么看写在 `knip.config.ts` 顶部注释。**若将来要接门禁**：先用 `entry` / `includeEntryExports` 把「有意的公共面」显式标出来，只让真死代码亮红 |
+| 国内 self-hosted runner（决策门） | **解冻**：仅当 tag 链路实测显示「tag 发布总时长 > 20 min 且跨境推送占大头」。runner 在美国、镜像仓库在腾讯云上海，跨境上传是旧流水线 78 分钟的主要嫌疑之一。**先看数据再决定** |
 
----
+## 未裁决（等你一句话）
 
-## 未裁决（2026-09-21 评审提出，尚未决定做不做）
+> 每条都写了选项与倾向；裁决结果要么变成上面的 P2/P3 条目，要么写进 ADR（「已否决」也要留痕）。
 
-> 🅿️ **这一节同样是「未落地的设计」**，且比「搁置」更早一步：那节是**已经拍板先不做**，
-> 这节是**连做不做都还没定**。每一行都写了选项与倾向，等你一句话就能落进 P2/P3 或搁置。
+### 本批 3 条（带 `C` 编号，登记在 `reports/NEEDS-CONFIRMATION.md`）
 
-> 来自[归档：架构 Review 与调研审计](../archive/2026-09-21-architecture-review.md)。原文说这些是**新增项**，
-> 但一直没进过本表。**先别急着做** —— 建议在 P0/P1 清完之后再逐条裁决。
-> 裁决结果要么变成上面的 P0–P3 条目，要么写进 ADR（「已否决」也要留痕）。
+| # | 议题 | 选项与倾向 |
+|---|---|---|
+| **C4** | `platform-node` 走 **P1**（两个包自建 CJS dist）还是 **P2**（不搬 = 现状） | (a) **P2 不搬**（当前按这个做的）：边界由 ESLint 六层 + drift spec 守；(b) P1 自建 dist，第一关必须是「`tsc` 产出的装饰器元数据与 SWC 等价」—— 错了的症状是**静默的**（接口 200 但字段消失）。**推荐 (a)**，触发条件见「待触发」 |
+| **C3** | G6 偶发怎么收（`concurrency.api-spec.ts:383-433`） | (a) 记为已知 flake，全量偶发 1 failed 不结案；(b) 单开一批查 RLS GUC 与会话复用（可能牵出连接池改动）；(c) 让该 spec 自带隔离（每次用独立连接造种子）。**推荐 (b)**；C 是低风险兜底，且**隔离改动今天仍是 0** |
+| **D18②** | 原处方被判**物理不可执行**，接不接受「改成不做」 | (a) **接受**：barrel 死导出这条面**不做**，只在 `knip.config.ts` 留判据；(b) 另立「barrel 符号 0 引用」专用脚本（报告模式 → 白名单 → 进 prepush，成本 M）。⚠️ 这条**没有 C 编号**（那份清单只收 C1–C4），要进清单请给它一个号 |
+
+### 2026-09-21 评审遗留的 4 条设计选型
 
 | 议题 | 选项与倾向 |
 |------|------|
-| 文档类建议（F 组） | 2026-09-21 评审提的那批文档治理建议**已全部落地**（死链白名单收窄、引用/代码块/字数/ADR 四道门禁、文档架构、术语表…），逐条见[执行记录](/content/archive/2026-09-24-architecture-ledger-history#执行记录) |
-| `@walnut/i18n` / `@walnut/security` 的 seam 形态 | (a) TS `interface`；(b) abstract class + 独立 provider 包。**倾向 (b)**（`interface` 无运行时令牌）。 |
-| 前端组合根 | (a) 维持隐式全局；(b) 显式 `createWalnutApp(options)`；(c) 轻量 DI 容器。**倾向 (b)**；(a) 会让 `@walnut/i18n` 新包/`@walnut/security` 新包 无法落地。 |
-| 源码面 / 产物面分离 | (a) 维持 ADR 0002 双模 `exports` + 补一道「dist 过期」检测；(b) 让消费者显式声明所在面。**倾向先 (a) + 检测**。 |
-| admin 内部分层是否入门禁 | 建议先只加最贵的一条：**API 层不得 import store**。 |
-| `@walnut/ui` 迁移范围 | ✅ **已裁决（2026-11，批次 1）**：沿 (b) 的方向走到底 —— 实测「零 app 依赖 + ≥2 处复用」为 1/0/0，于是整包撤销、3 个组件回 admin。ADR 0017 的 Phase 3.1 批量迁移不再执行。 |
-| API 路由迁移收尾 的 server 侧迁移方式 | ✅ 采用 (b)（U2 批：drift spec 即 parity 门禁）。 |
-| 后端验证策略 | (a) 维持 class-validator；(b) 新模块用 Standard Schema、存量不动；(c) 全量迁移。**倾向先 (b)**（与 后端验证策略（落地） 合并裁决）。 |
+| `@walnut/i18n` / `@walnut/security` 的 seam 形态 | (a) TS `interface`；(b) abstract class + 独立 provider 包。**倾向 (b)**（`interface` 无运行时令牌，表达不了「依赖 definition 而非 provider」） |
+| 前端组合根 | (a) 维持隐式全局；(b) 显式 `createWalnutApp(options)`；(c) 轻量 DI 容器。**倾向 (b)**；(a) 会让上面那两个新包无法落地 |
+| 源码面 / 产物面分离 | (a) 维持 ADR 0002 的双模 `exports` + 补一道「dist 过期」检测；(b) 让消费者显式声明所在面。**倾向先 (a) + 检测** |
+| admin 内部分层是否入门禁 | 建议先只加最贵的一条：**API 层不得 import store** |
 
----
+> 已裁决的留痕（不再列进本表）：文档类建议全部落地；`@walnut/ui` 迁移**撤销**（实测「零 app 依赖 + ≥2 处复用」为 1/0/0）；
+> API 路由迁移的 server 侧采用「drift spec 即 parity 门禁」；后端验证策略的选型并入上面的 P3 条目。
 
 ## 做过什么（历史）
 
-> 逐批执行记录、已移出待办项的核实记录、以及一份已决的调研结论，**已搬去归档页**：
+> 逐批执行记录、已移出待办项的核实记录、以及一份已决的调研结论，都在
 > [架构待办的历史：执行记录 · 核实记录 · 已决调研](/content/archive/2026-09-24-architecture-ledger-history)。
 >
-> 搬走的理由：这个页面要回答的是「**还剩什么**」，而它此前 116 KB 里约九成是历史 ——
+> 搬走的理由：这个页面要回答的是「**还剩什么**」，而历史占过九成篇幅 ——
 > 每次都要翻过几万字才找得到剩下的活。历史进冻结语料（`archive/`），不再逐次通读。
 
 ## 相关文档
 
 - **另一本账（产品 / 功能待办）**：仓库根的 [`TODO.md`](https://github.com/walnut-admin/walnut-admin/blob/main/TODO.md)
-  —— 按「重要紧急 ×4 档」手写，记的是**功能与体验**（个人设置、CASL、org 模块、组件扩展…）；
-  本表记的是**架构与工程债**。两者**刻意分开**：本表的每一项都能写出一条机械判据，根 `TODO.md`
-  的多是产品取舍。⚠️ 那个文件里的编号项（`000` / `111` / `999`）**被源码里的 `// TODO NNN` 注释引用**，
-  改那个文件的编号等于改 **40 处注释 / 38 个文件**的锚点（`000` 19 处、`111` 17 处、`999` 2 处×2 行；
-  `888` 与 `99` **不是**锚点）。**2026-09-23 已把那份 TODO 逐条对照代码核实过一遍**：勾选状态原本停在
-  2026-07-26（比代码旧两个多月），现已勾掉确证做完的、并在每条下写明核实结论与证据位置。
-- [CI/CD 与容器构建](./ci-cd)（触发矩阵 / 薄镜像 / 两条硬约束）
-- [发布 & 发版指南](./release.md)
-- [ADR 索引](../adr/index.md) ｜ [ADR 0009 CI 质量门禁](../adr/0009-ci-quality-gates.md) ｜ [ADR 0017 包重组](../adr/0017-package-reorganization.md) ｜ [ADR 0018 Git 钩子迁 lefthook](../adr/0018-git-hooks-lefthook.md) ｜ [ADR 0019 tsconfig 预设与无 `.mjs`](../adr/0019-tsconfig-presets-and-no-mjs.md)
+  —— 记的是**功能与体验**；本表记的是**架构与工程债**，两者刻意分开。
+  ⚠️ 那个文件里的编号项（`000` / `111` / `999`）**被源码里的 `// TODO NNN` 注释引用**，改编号等于改一堆注释锚点。
+- **需要拍板与已代拍的账**：`reports/NEEDS-CONFIRMATION.md`（已收口：C1 / C3 / C4 待拍板，C2 已结案留档）
+- **后端结构调研的决策与计划**：`industry-research/backend-architecture-review/` 的
+  [06 复核](/content/industry-research/backend-architecture-review/06-cross-check) ·
+  [07 决策](/content/industry-research/backend-architecture-review/07-decisions) ·
+  [08 排期](/content/industry-research/backend-architecture-review/08-recommended-plan) ·
+  [10 实施计划](/content/industry-research/backend-architecture-review/10-implementation-plan)
+- [CI/CD 与容器构建](./ci-cd) ｜ [发布 & 发版指南](./release.md)
+- [ADR 索引](../adr/index.md) ｜ [ADR 0009 CI 质量门禁](../adr/0009-ci-quality-gates.md) ｜ [ADR 0017 包重组](../adr/0017-package-reorganization.md) ｜ [ADR 0018 Git 钩子迁 lefthook](../adr/0018-git-hooks-lefthook.md) ｜ [ADR 0019 tsconfig 预设与无 `.mjs`](../adr/0019-tsconfig-presets-and-no-mjs.md) ｜ [ADR 0022 后端 lib 分层与组合根](../adr/0022-backend-lib-layering-and-composition-roots.md)
 - [归档：架构 Review 与调研审计](../archive/2026-09-21-architecture-review.md)（F / D 项的完整论证）
-  —— 其中 **第三档「明确不建议照搬」的 10 条**（oxlint 全量替代 ESLint、移除 catalog、自研 release
-  families、per-file 100% coverage、门禁图写 TS、自研 vendor 框架层…）是**已否决的决策**，
-  按「否决也要留痕」留在那里；它们**不**在本表里重复。
+  —— 其中**第三档「明确不建议照搬」的 10 条**是**已否决的决策**，按「否决也要留痕」留在那里，本表不重复。
 - [归档：CI/CD 重构实施记录](../archive/2026-09-21-ci-cd-pipeline-plan.md)
 - [行业调研 - CI/CD](../industry-research/03-ci-cd-pipeline.md) ｜ [行业调研 - 测试](../industry-research/04-testing-strategy.md)

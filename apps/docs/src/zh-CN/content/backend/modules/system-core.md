@@ -202,6 +202,15 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
   `roles_count` 是 junction 计数子查询。
 - `GET /system/user/me/profile` 同样组装 `roles_list`。
 
+> **命名遗留：`roles_list` / `roles_count` 永久冻结（D16，只写文档）。** 这两个键名是 mongoose
+> `virtual` 时代的产物（Phase 5a 起 virtual 已摘除，出参改由 PG 通道组装，键名原样沿用 ——
+> 出参 DTO 就落在 `apps/server/apps/api/src/common/model/virtual/role.ts`，文件名保留了那段历史）。
+> **决策是不改名、也不新增同义名**：改名的收益只是「风格纯」，成本却是同一批要动 ——
+> `openapi.json`、admin 侧 6 处消费（`views/system/user/index.vue` 与
+> `store/modules/user/user-profile.ts`）、5 个 spec 的断言、以及 i18n 词条；而 `roles_list` 本身就是
+> wire 契约的一部分（前端类型、i18n 的 virtual 标题都按它取）。判据（2026-11-04 口径）：
+> `rg 'roles_list|roles_count' apps/admin/src apps/server`。新代码沿用这两个名字，别再造第三个。
+
 ### 3.3 更新与状态管理
 
 `PUT /system/user/:id` 的白名单仍是 `userName` / `status` / `roles`：

@@ -222,6 +222,9 @@ METHOD|PATH(去 /{prefix}/v{version})|扁平静态body排序串|timestamp=<ms>|n
 
 ## 3. CAP
 
+cap.js 本身的接入方式、前端 widget 的挑战/兑换两段、以及 40116（要交互）/ 40117（无感刷新）两条
+重试路的完整时序见 [cap.js 人机校验](../../shared/capjs.md)；本节只写**守卫侧**的口径。
+
 - 挑战参数来自 `app.global.capjs.config`，缺省
   `{ count: 10, size: 16, difficulty: 4, ttl: 3600, throttleLimit: 4, throttleTtl: 60 }`。
 - **`ttl` 的权威单位是「秒」**（与 `apps/server/db/seed/app_setting.json` 的 `"ttl":3600` 一致）。

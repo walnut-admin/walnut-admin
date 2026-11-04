@@ -94,7 +94,7 @@ pnpm db:seed:verify --baseline-ref <sha>  # 换基线
 | 密钥表（`app_key`） | 里面是**真实密钥材料**（RSA 私钥 PEM、AES key）。提交进公开仓既是泄密，也会被本仓的凭据门禁判红 | `db:seed:pg` 现生成一套 ACTIVE 的 AES + RSA —— 每个安装各自一套，本来也更对 |
 | 口令凭证（`sys_user_identity`） | OPAQUE 的注册记录**绑定服务端的 `AUTH_OPAQUE_SECRET`**（该 secret 就是 OPAQUE 的 `serverSetup`）⇒ 换环境必然登不进去，发布它等于发布一份在别人机器上无效的凭证 | 装好后**走应用的注册流程**建立第一个管理员；演示账号用 `--admin` 现建 |
 | MFA 密文 / OAuth 绑定 | 密文用 env 密钥加密（跨环境解不开），且属用户隐私；OAuth 是运行时状态 | 各自在使用中产生 |
-| 设备指纹 / 用户设备 | 设备信息、IP 与地理位置历史 —— 运行时状态 + 个人数据 | 各自在使用中产生 |
+| 用户设备（`sys_device` / `sys_user_device`） | 设备信息、IP 与地理位置历史 —— 运行时状态 + 个人数据。**设备指纹不落库、不参与身份派生**：B5 起 `device_id` 由服务端随机签发，客户端自报的指纹只在请求面当风控特征 | 各自在使用中产生 |
 | 行政区划（`shared_area`） | 数量巨大的参考数据，不是配置，刻意不进 git 也不进发版资产 | 本仓的历史数据由 ETL 一次性搬入（见下节归档说明）；跨环境搬运走 `pnpm db:export:pg --areas <文件>` 另存的资产 |
 
 ## 一次性历史任务：Mongo → PG 的 ETL（已归档）
