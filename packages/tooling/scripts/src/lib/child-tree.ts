@@ -7,6 +7,11 @@
  * 发版脚本打出「本次已中止」之后，`pnpm version -r` 若还在改 manifest，用户看到的是干净的终端、
  * 实际拿到的是半升级的工作区。平台机制还不同（win32 只有 `taskkill /T /F` 管用：实测
  * `process.kill(-pid)` 抛 ESRCH），故单列一层。
+ * **两个作用域，不许混用**：单条命令超时只收**它自己那棵树**（`killChildTree`），整次中止
+ * 才收全部（`killActiveChild`）。混用的后果是并发编排**互相伪造失败**：2026-11 实测 prepush
+ * 四路并发时 `lint` 段超时走了「杀全部」，`test` / `openapi` / `dts` **三条无关段**一起被
+ * `taskkill /T` 收掉 —— 四条结束时间精确到 0.1s 相同、被杀的三条没有任何自己的错误输出，
+ * 于是**一次超时伪造出 3 条假红**，而假红是门禁失效最常见的起点（人开始习惯性绕过）。
  * 失败口径：`killActiveChild` 返回「是否**确认**走了树杀」—— false 表示只杀到直接子进程
  * （孙进程可能还活着），调用方必须据此**拒绝重试**（两条命令同时写盘是最不该出现的形态）。
  * 不做什么：不解释失败含义、不打印、不决定退出码。
@@ -69,14 +74,15 @@ function isAlive(child: ChildProcess): boolean {
 }
 
 /**
- * 收掉一个子进程（树）。返回是否**确认**走了树杀：
+ * 收掉**一个**子进程的树（单条命令超时的唯一出口）。返回是否**确认**走了树杀：
  * `false` 表示只杀到了直接子进程（`sh -c` / cmd.exe 的孙进程可能还活着）⇒ 调用方必须拒绝重试。
  *
+ * 这必须是**单条**的：并发编排里一段超时只说明它自己该收，兄弟段还在跑并且各有自己的结论。
  * 平台机制：
  * - win32：`taskkill /PID <pid> /T /F`（argv 直传、`stdio: 'ignore'`；`process.kill(-pid)` 在 Windows 上抛 ESRCH）
  * - 其它：负 pid 杀**进程组**（由 spawn 的 `detached: true` 建立），宽限期后升级 SIGKILL
  */
-function terminateTree(child: ChildProcess, platform: NodeJS.Platform): boolean {
+export function killChildTree(child: ChildProcess, platform: NodeJS.Platform = process.platform): boolean {
   if (child.pid === undefined || !isAlive(child))
     return true
   const pid = child.pid
@@ -116,15 +122,18 @@ function terminateTree(child: ChildProcess, platform: NodeJS.Platform): boolean 
 }
 
 /**
- * 中止路径用：收掉**全部**活跃子进程，返回「是否每一个都确认走了树杀」。
+ * **整次中止**路径用（进程退出 / Ctrl+C / 发版中途放弃）：收掉全部活跃子进程，
+ * 返回「是否每一个都确认走了树杀」。
  *
+ * 它是**安全网，不是单段超时的实现**：单段超时只该收它自己那棵树（`killChildTree`），
+ * 否则并发中的兄弟段会被一次超时连带打红（见本文件头部那段实测）。
  * 返回 `false` 的语义：至少有一个只杀到直接子进程（孙进程可能还活着）⇒ 调用方拒绝重试。
  * 没有任何活跃子进程时返回 `true`（收干净了）。
  */
 export function killActiveChild(platform: NodeJS.Platform = process.platform): boolean {
   let allConfirmed = true
   for (const child of [...active.keys()]) {
-    if (!terminateTree(child, platform))
+    if (!killChildTree(child, platform))
       allConfirmed = false
   }
   return allConfirmed

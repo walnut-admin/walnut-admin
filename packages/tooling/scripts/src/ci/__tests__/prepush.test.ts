@@ -10,13 +10,16 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import process from 'node:process'
 import { describe, expect, it } from 'vitest'
 import { ChildRunError } from '../../lib/child-run.ts'
 import { SKIPPED_EXIT_CODE } from '../../lib/errors.ts'
 import { REPO_ROOT } from '../../lib/repo-root.ts'
 import {
+  createPnpmGateExecutor,
   formatLine,
   GATE_BUDGET_MS,
+  gateBudgetMs,
   PREPUSH_BUDGET_ENV,
   PREPUSH_GATES,
   runGates,
@@ -234,6 +237,136 @@ describe('runGates —— 三态（跳过既不算通过、也不算失败）', 
   })
 })
 
+/**
+ * 并行编排的两条**接线**判据 —— 它们都只存在于真执行路径上，纯函数测不到：
+ * ① 一段超时只收**它自己**的进程树（兄弟段继续跑完并各自给出真实结论）；
+ * ② 段表里的 `budgetMs` 真的变成该段的执行预算。
+ *
+ * 为什么不用假执行器：① 的现场在 `lib/child-run.ts` 的超时分支（它一度调用**无参**
+ * `killActiveChild()` = 杀全部），② 的现场在 `createPnpmGateExecutor` 传不传
+ * `budgetDefaultMs`。注入一个假执行器就把这两处全绕开了 —— 测到的只是「runGates 会不会调我」。
+ * 所以这里注入 `bin: process.execPath`，把门禁段换成毫秒级的 `node -e` 命令：生产路径
+ * （cwd / 预算 / 超时杀树 / 三态归类）一行不改，`turbo run lint` 一次都不跑。
+ *
+ * 负对照（各做过一次，见批次记录）：把 `killChildTree(child)` 改回 `killActiveChild()` ⇒
+ * 「兄弟段被连带杀掉：…」红；把 `budgetDefaultMs: gateBudgetMs(gate)` 改回 `GATE_BUDGET_MS` ⇒
+ * 预算那条用例红（那一段会跑满 6s 并通过）。
+ */
+describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真接线）', () => {
+  /** 门禁段的 argv 会被**原样**交给注入的 bin ⇒ 一段 `node -e` 就是一段假门禁 */
+  const fakeGate = {
+    /** 占住不退出：模拟「这一段卡住了」（封顶 20s：真回归时别留一条 2 分钟的孤儿进程） */
+    hang: ['-e', 'setTimeout(() => {}, 20_000)'],
+    /** 跑满 `ms` 之后把 `marker` 写出来再退出 —— 文件存在 = 它真的自己跑完了（被杀不会有） */
+    work: (ms: number, marker?: string): string[] => [
+      '-e',
+      marker === undefined
+        ? `setTimeout(() => {}, ${ms})`
+        : `setTimeout(() => { process.getBuiltinModule('node:fs').writeFileSync(${JSON.stringify(marker)}, 'done') }, ${ms})`,
+    ],
+  }
+
+  const mkGate = (id: string, argv: string[], budgetMs?: number) => ({
+    id,
+    label: `段 ${id}`,
+    argv,
+    why: 'y'.repeat(30),
+    ...(budgetMs === undefined ? {} : { budgetMs }),
+  })
+
+  /**
+   * 跑一段用例前先把 `PREPUSH_BUDGET_MS` 摘掉：它的优先级**高于**段表 budgetMs（整台机器一起
+   * 放宽的入口），留着会让「这一段自己的预算」这类断言随机器环境漂移。退出时原样放回。
+   */
+  async function withoutBudgetEnv<T>(run: () => Promise<T>): Promise<T> {
+    const saved = process.env[PREPUSH_BUDGET_ENV]
+    delete process.env[PREPUSH_BUDGET_ENV]
+    try {
+      return await run()
+    }
+    finally {
+      if (saved !== undefined)
+        process.env[PREPUSH_BUDGET_ENV] = saved
+    }
+  }
+
+  it('一段超时只收它自己的树：兄弟段继续跑完，并给出自己的真实结论', async () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'walnut-prepush-sibling-'))
+    try {
+      const marker = path.join(dir, 'survivor.txt')
+      // 两段并发（concurrency = 2）：卡住那段 400ms 就超时，兄弟段要 3s —— 后者的**绝大部分**
+      // 寿命都落在前者的「超时之后」。余量刻意留到 7 倍以上：win32 的 `taskkill` 走同步
+      // `execFileSync`，实测能阻塞事件循环 1s+，余量小的话兄弟段可能在「全杀」落地前就自己跑完了
+      // （假绿：那正是本用例要防的形态）。
+      const results = await withoutBudgetEnv(() => runGates(
+        [
+          mkGate('stuck', fakeGate.hang, 400),
+          mkGate('survivor', fakeGate.work(3_000, marker)),
+        ],
+        () => {},
+        2,
+        createPnpmGateExecutor({ bin: process.execPath }),
+      ))
+      const [stuck, survivor] = results
+
+      // ① 卡住那段：它自己的失败，理由是**它自己**超时（不是「被信号结束」）
+      expect(stuck!.status).toBe('failed')
+      expect(stuck!.output).toContain('超时')
+
+      // ② 兄弟段：跑完、绿，而且真的干完了活（marker 是它自己写的）
+      expect(survivor!.status, `兄弟段被连带杀掉了：\n${survivor!.output}`).toBe('ok')
+      expect(existsSync(marker), '兄弟段没跑完（marker 没写出来）—— 它的子进程被提前收掉了').toBe(true)
+
+      // ③ 两段不该同时结束：真实现场是「四条结束时间精确到 0.1s 相同」，那正是被一起杀的指纹
+      expect(survivor!.ms).toBeGreaterThan(stuck!.ms)
+    }
+    finally {
+      // 自建的临时目录（os.tmpdir 下，不是仓库内容）
+      rmSync(dir, { recursive: true, force: true })
+    }
+  }, 30_000)
+
+  it('段表里的 budgetMs 真的收窄该段的预算（改回全局一刀切 ⇒ 这一段会跑满 6s 并通过）', async () => {
+    const started = Date.now()
+    const [result] = await withoutBudgetEnv(() => runGates(
+      [mkGate('tight', fakeGate.work(6_000), 1_500)],
+      () => {},
+      1,
+      createPnpmGateExecutor({ bin: process.execPath }),
+    ))
+    const elapsed = Date.now() - started
+
+    expect(result!.status).toBe('failed')
+    // 超时文案念的是**这一段**的预算（>2s = 1500ms 取整），不是全表的 600s
+    expect(result!.output).toContain('超时（>2s）')
+    // 判据是**时刻**：一刀切 600s 时这一段会跑满 6s 并通过（上一条先红），预算生效时 ~1.5s
+    expect(elapsed).toBeLessThan(4_000)
+  }, 30_000)
+
+  it('环境变量 PREPUSH_BUDGET_MS 仍然覆盖全表：优先级高于段表 budgetMs（一处放宽/收紧的入口不许失效）', async () => {
+    const saved = process.env[PREPUSH_BUDGET_ENV]
+    process.env[PREPUSH_BUDGET_ENV] = '400'
+    try {
+      const started = Date.now()
+      const [result] = await runGates(
+        // 段表说 60s（宽松），环境变量说 400ms ⇒ 必须按环境变量收
+        [mkGate('env-wins', fakeGate.work(3_000), 60_000)],
+        () => {},
+        1,
+        createPnpmGateExecutor({ bin: process.execPath }),
+      )
+      expect(result!.status).toBe('failed')
+      expect(Date.now() - started).toBeLessThan(2_500)
+    }
+    finally {
+      if (saved === undefined)
+        delete process.env[PREPUSH_BUDGET_ENV]
+      else
+        process.env[PREPUSH_BUDGET_ENV] = saved
+    }
+  }, 30_000)
+})
+
 describe('strictFailureMessage —— PREPUSH_STRICT 的口径', () => {
   it('默认（非严格）时，有跳过也不判红', () => {
     expect(strictFailureMessage(false, ['workflows'])).toBeNull()
@@ -314,5 +447,33 @@ describe('单段预算 —— 冷缓存下不许把还在跑的段判死', () =>
 
   it('覆盖入口是 PREPUSH_BUDGET_MS（超时提示行会把这个名字念给用户，改名等于让人无从调）', () => {
     expect(PREPUSH_BUDGET_ENV).toBe('PREPUSH_BUDGET_MS')
+  })
+
+  it('gateBudgetMs：段表 budgetMs 优先，缺省回落到 GATE_BUDGET_MS（方向写反 = 全表静默退回一刀切）', () => {
+    const base = { id: 'x', label: 'x', argv: ['x'], why: 'y'.repeat(30) }
+    expect(gateBudgetMs({ ...base, budgetMs: 1234 })).toBe(1234)
+    expect(gateBudgetMs(base)).toBe(GATE_BUDGET_MS)
+  })
+
+  it('只有冷跑最慢的 lint / test 段有自己的预算，且 ≥ 2× 各自实测下界', () => {
+    // 下界来自 batch-14 的 r3-review 逐段计时（冷缓存 + 四路并发抢 CPU），两段都是**被截断**的
+    // 下界（理由见 prepush.ts 的 SLOW_GATE_BUDGET_MS 注释）。判据写成「≥ 2× 下界」而不是写死
+    // 900000：往上调不会假红，往下调回接近实测值会当场红。
+    const measuredFloor: Record<string, number> = { lint: 309_500, test: 241_500 }
+    for (const [id, floor] of Object.entries(measuredFloor)) {
+      const gate = PREPUSH_GATES.find(g => g.id === id)
+      expect(gate, `${id} 段不见了 —— 门禁被摘`).toBeTruthy()
+      expect(
+        gate!.budgetMs,
+        `${id} 段没有自己的预算 ⇒ 冷跑会被全局 ${GATE_BUDGET_MS / 1000}s 判死（实测下界 ${floor / 1000}s）`,
+      ).toBeTypeOf('number')
+      expect(gateBudgetMs(gate!), `${id} 段的预算不到实测下界的 2 倍`).toBeGreaterThanOrEqual(floor * 2)
+    }
+    // 其余段**不许**顺手放大：按段给预算的用途是「把慢段放开」，不是「全表偷偷放宽」
+    for (const gate of PREPUSH_GATES) {
+      if (gate.id === 'lint' || gate.id === 'test')
+        continue
+      expect(gate.budgetMs, `${gate.id} 段不该有自己的预算（它没有越过全局值的实测证据）`).toBeUndefined()
+    }
   })
 })

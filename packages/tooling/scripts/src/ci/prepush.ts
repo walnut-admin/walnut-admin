@@ -64,9 +64,36 @@ export interface PrepushGate {
    * 重新导出（argv），再断言暂存区与 HEAD 一致（followups，见那段注释里的 F-53）。
    */
   followups?: readonly string[][]
+  /**
+   * 这一段**自己**的预算（毫秒；缺省 = `GATE_BUDGET_MS`，`<= 0` = 不设上限）。
+   *
+   * 为什么按段给：一度全表共用一个上限，于是「最慢那段需要的号」被迫成为**所有**段的上限 ——
+   * 冷缓存下 `lint` 实测 309.5s，为了它把全局抬到 600s，等于让秒级的文档门禁也享受十倍的
+   * 误判窗口（真卡住时要干等十分钟才收）；反过来按快段收紧，慢段就被判死并连带伪造失败。
+   * `PREPUSH_BUDGET_MS` 仍然**一处**覆盖全表（整台机器都慢的场合），且优先级高于这里的值。
+   */
+  budgetMs?: number
   /** 为什么它在**推送前**必须跑 —— 这一列是给人看的，也是「凭什么」 */
   why: string
 }
+
+/**
+ * 冷跑最慢那两段（`lint` / `test`）的预算：15 分钟。
+ *
+ * 为什么单独给它们，而不是继续全表一刀切：两个号回答的是两个不同问题 —— `GATE_BUDGET_MS` 是
+ * 「一段门禁**该**多久跑完」，本常量是「这两段**实测**要多久」。共用一个上限的代价已经实测到了：
+ * 300s 把还在跑的 `lint` 判超时，超时又连带杀掉三条兄弟段 ⇒ **一次误判伪造出四条假红**。
+ *
+ * 取值口径（实测，不是经验值）—— batch-14 的 r3-review 逐段计时（冷缓存 + 四路并发抢 CPU）：
+ * · `lint` 309.5s，而且这个数是**被 300s 预算截断的下界**（15 个包全部 cache miss，真实尾巴未知）；
+ * · `test` 241.5s，同样是下界（它是被上一段的「杀全部」连带收掉的，不是自己跑完的）；
+ * 同一次实测里其余段都在 160s 以内（最接近的是 `types` 的 154.7s），所以只有这两段需要放开。
+ * 以最大下界 309.5s 为基线留 ≥2 倍余量 = 619s，取 15 分钟 —— 同时覆盖「被截断的尾巴比截断点
+ * 还长」这个未知量。判据由用例钉住（≥2× 实测下界），别写死「900000 是经验值」。
+ *
+ * 要整台机器一起放宽 / 收紧仍用 {@link PREPUSH_BUDGET_ENV}：它的优先级**高于**本常量。
+ */
+const SLOW_GATE_BUDGET_MS = 15 * 60_000
 
 /**
  * 推送前门禁表。**改动这张表就是改推送门禁**，所以每条都写清楚「凭什么」。
@@ -94,6 +121,8 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     id: 'lint',
     label: 'lint 各包（turbo run lint，不排任何包）',
     argv: ['exec', 'turbo', 'run', 'lint'],
+    // 冷缓存实测 309.5s（15 包全 cache miss），**且是被 300s 预算截断的下界** ⇒ 15 分钟，实测表见 SLOW_GATE_BUDGET_MS
+    budgetMs: SLOW_GATE_BUDGET_MS,
     why: '**这一段的缺位被实测抓到过**（留档 V14）：`prepush` 原先只有 `lint:root`，而 `lint-staged` 的 glob 是 `*.{ts,vue,js}` ⇒ **纯 JSON / 非 TS 文件**的 lint 问题在推送前**没有任何一段看得见**，只在 CI 的 `Lint (affected)` 现形（当时改的是 `tsconfig.dts.json`，本地 18 段全绿、CI 会红）。发版电池里一直有这一段，prepush 漏了；走的也是 turbo，所以没改动的包命中缓存、冷跑才是全量。',
   },
   {
@@ -121,6 +150,8 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     label: '测试（turbo run test，不排任何包）',
     // 位置上跟发版电池（steps.ts 的 RELEASE_BATTERY）对齐：都在 types-root 之后。
     argv: ['exec', 'turbo', 'run', 'test'],
+    // 冷缓存实测 241.5s 也是**下界**（那次是被 lint 段的「杀全部」连带收掉的）⇒ 同一档 15 分钟，实测表见 SLOW_GATE_BUDGET_MS
+    budgetMs: SLOW_GATE_BUDGET_MS,
     why: '**这一段的缺位被实测抓到过**（2026-11 · 批次 2 R3）：`@walnut/release` 的电池表加了 circular 行，而 fixture 与 release.md 电池表没同步 ⇒ 2 个用例红 —— 这类失败**只有 test 段看得见**，而 prepush 当时 25 段里没有它，于是红着照样推得出去（发版电池里一直有这一段，prepush 漏了）。走的也是 turbo，所以没改动的包命中缓存、冷跑才是全量。',
   },
   {
@@ -278,7 +309,9 @@ const DEFAULT_CONCURRENCY = 4
  *
  * 取值口径（不是「经验值」）：冷缓存实测已经越过 300s ⇒ 以它为基线留 2 倍余量 = 600s；
  * 同时它仍小于「一个人愿意干等」的尺度，真卡死时人工 Ctrl-C 不会被拖到失控。
- * 机器更慢 / 想更紧的场景用 {@link PREPUSH_BUDGET_ENV} 覆盖，不必改代码。
+ * 它是**缺省值**：冷跑实测需要更多时间的段在表里用 `budgetMs` 覆盖它（现在只有 `lint` / `test`，
+ * 见 `SLOW_GATE_BUDGET_MS` 的实测表）。机器更慢 / 想更紧的场景用 {@link PREPUSH_BUDGET_ENV}
+ * 覆盖**全表**（优先级最高），不必改代码。
  */
 export const GATE_BUDGET_MS = 10 * 60_000
 
@@ -290,6 +323,19 @@ export const GATE_BUDGET_MS = 10 * 60_000
  * 顺带改掉别的命令的超时。本文件是它唯一的读者，也由本文件在超时提示行里念给用户。
  */
 export const PREPUSH_BUDGET_ENV = 'PREPUSH_BUDGET_MS'
+
+/**
+ * 这一段该用多大预算：段表里的 `budgetMs` 优先，缺省回落到全局 {@link GATE_BUDGET_MS}。
+ *
+ * 纯函数（只读入参、不读 `process.env`）：`PREPUSH_BUDGET_MS` 的覆盖发生在
+ * `lib/child-run.ts` 的 `budgetMsOf`，且**高于**这里的返回值 —— 那是「整台机器都慢」的
+ * 一处放宽，不按段走（口径见 {@link PREPUSH_BUDGET_ENV}）。
+ * 抽出来是因为「段表 → 执行预算」这条接线写错方向（把 `budgetMs` 当兜底、或干脆不传）之后，
+ * 症状是**整张表静默退回一刀切**，在耗时上几乎看不出来 —— 必须有用例钉住它。
+ */
+export function gateBudgetMs(gate: PrepushGate): number {
+  return gate.budgetMs ?? GATE_BUDGET_MS
+}
 
 /** 一段门禁的**三种**结局：跑过且过了 / 跑过且没过 / **压根没跑**（环境缺失，未验证） */
 export type GateStatus = 'ok' | 'failed' | 'skipped'
@@ -314,20 +360,37 @@ export interface GateResult {
  */
 export type GateExecutor = (gate: PrepushGate, write: (text: string) => void) => Promise<void>
 
+export interface GateExecutorOptions {
+  /**
+   * 覆盖可执行文件（缺省 {@link getPnpmBin} 找到的那个 pnpm）。
+   *
+   * 为什么留这个缝：用例要跑**真的** `runArgs` —— 超时杀树、逐段预算、兄弟段隔离三条都在
+   * `runArgs` 与 `lib/child-tree.ts` 里；注入一个假执行器就把它们全绕开了（测到的只是
+   * 「runGates 会不会调我」）。可真跑一遍全仓 `turbo run lint` 是分钟级、还要和别人抢 CPU。
+   * 注入 `process.execPath` 之后，一段门禁就是一条毫秒级的 `node -e` 命令，生产路径一行不改。
+   * CLI 不传它：缺省永远是本机 pnpm。
+   */
+  bin?: string
+}
+
 /**
- * 缺省执行出口：经 `pnpm <argv…>` 跑本段。
+ * 缺省执行出口：经 `pnpm <argv…>` 跑本段，每段一条**自己的**进程树。
  *
  * 为什么是工厂而不是常量函数：`getPnpmBin()` 要摸盘，一次 runGates 只该摸一次。
  * Windows 上也不能直接 `spawn('pnpm', …)`：PATH 上是 `pnpm.cmd`，而 `shell: false` 下 Node 24
  * 不再把 `.cmd` 当可执行文件解析 ⇒ ENOENT（实测）。走 lib/pnpm-launcher.ts 找那个真 exe，
  * 它同时保证 argv 不经 cmd.exe（`%VAR%` / `&` 不会被展开）。
+ *
+ * 隔离：本段超时只收**本段**的子进程树（`lib/child-tree.ts` 的 `killChildTree`）⇒ 兄弟段继续
+ * 跑完并各自给出真实结论。早先走的是「杀全部」，四路并发下一次超时伪造出三条假红。
  */
-export function createPnpmGateExecutor(): GateExecutor {
-  const pnpmBin = getPnpmBin()
+export function createPnpmGateExecutor(options: GateExecutorOptions = {}): GateExecutor {
+  // 注入方多半用 node 跑假命令 —— 别让「本机没装 pnpm」把用例挡在门外，故只在缺省时摸盘
+  const bin = options.bin ?? getPnpmBin()
   return async (gate, write) => {
     // argv + followups 是同一段的**一条结论**：顺序执行，任一步非零就整段失败（不继续下一步）
     for (const argv of [gate.argv, ...(gate.followups ?? [])]) {
-      await runArgs(pnpmBin, argv, {
+      await runArgs(bin, argv, {
         // cwd 必须是**仓库根**：从子目录跑时 `pnpm <脚本>` 会解析到最近那个包的脚本
         cwd: REPO_ROOT,
         // 并行下不转播子进程输出（多路交织会糊成一片）；收进缓冲，失败时整段回放
@@ -335,8 +398,9 @@ export function createPnpmGateExecutor(): GateExecutor {
         // 探针（`$ pnpm …` 与心跳）也静音 —— 执行器自己会打印一行结果
         note: () => {},
         heartbeatMs: 0,
-        budgetDefaultMs: GATE_BUDGET_MS,
-        // 机器差异走环境变量，别改号：覆盖的是**这一段**的预算（prepush 专属名，见常量注释）
+        // 逐段预算：段表里的 budgetMs 优先，缺省 GATE_BUDGET_MS（映射只有 gateBudgetMs 一处）
+        budgetDefaultMs: gateBudgetMs(gate),
+        // 机器差异走环境变量，别改号：它覆盖**全表**的预算（prepush 专属名，见常量注释）
         budgetEnv: PREPUSH_BUDGET_ENV,
       })
     }
@@ -346,6 +410,10 @@ export function createPnpmGateExecutor(): GateExecutor {
 /**
  * 有解并发地跑门禁表，**按完成顺序**回调（并行下没有「表里的顺序」可言）。
  * 返回全部结果（仍然按表里的顺序排列，便于断言与汇总）。
+ *
+ * 并发的前提是**互不牵连**：一段超时只该收它自己的进程树（隔离落在 `runArgs` /
+ * `lib/child-tree.ts`，见 {@link createPnpmGateExecutor}），兄弟段继续跑完并各自给出真实结论。
+ * 否则「并行」会把一次超时放大成好几条假红 —— 那比不并行更糟（不并行至少只红一条）。
  */
 export async function runGates(
   gates: readonly PrepushGate[],

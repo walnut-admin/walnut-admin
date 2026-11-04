@@ -19,7 +19,7 @@ import type { Readable } from 'node:stream'
 import { spawn, spawnSync } from 'node:child_process'
 import process from 'node:process'
 import { renderFailureTail, TailBuffer } from './child-output.ts'
-import { killActiveChild, registerChild, unregisterChild } from './child-tree.ts'
+import { killChildTree, registerChild, unregisterChild } from './child-tree.ts'
 import { writeOut } from './log.ts'
 
 /** 长命令的兜底预算：15 分钟（git push 的预推送门禁 + 网络；宁可给宽，不可不设） */
@@ -192,11 +192,17 @@ export async function runArgs(cmd: string, args: string[], opts: RunVisibleOptio
         }, heartbeatMs)
       }
       if (budgetMs > 0) {
-        // 超时：收掉进程树（先 TERM，宽限期后由 child-tree 升级 KILL）
+        // 超时：**只收这一条命令的进程树**（先 TERM，宽限期后由 child-tree 升级 KILL）。
+        //
+        // 为什么不能是 killActiveChild()（杀全部）：本函数会被**并发**调用（prepush 四路、
+        // 发版电池同理），而「A 段超时」只说明 A 段该收 —— 杀全部会把还在正常跑的兄弟段
+        // 一起收掉，它们随后以「exitCode null ⇒ 被信号结束」被记成失败：一次超时伪造出
+        // 好几条假红（2026-11 prepush 实测 3 条）。整次中止（Ctrl+C / 进程退出）的全杀
+        // 由调用方走 child-tree 的 killActiveChild()，那是安全网，不是超时的实现。
         deadline = setTimeout(() => {
           timedOut = true
           note(`❌ 超过 ${Math.round(budgetMs / 1000)}s 上限，结束它（可用 ${opts.budgetEnv ?? DEFAULT_BUDGET_ENV} 调整）`)
-          killActiveChild()
+          killChildTree(child)
         }, budgetMs)
       }
       child.once('error', (error: Error) => {
