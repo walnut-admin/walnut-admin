@@ -121,8 +121,12 @@ export type SystemDeviceInitialResponse = components['schemas']['SysDeviceDTOIni
 
 export type SystemLang = components['schemas']['SysLangDTO'] & { id: string }
 
-/** 列表行是**按 key 分组**的聚合结果：`groupKey` 是分组键（= key），不是主键 id（D16②）。 */
-export type SystemLocale = components['schemas']['SysLocaleDTO'] & { groupKey: string }
+/**
+ * 列表行是**按 key 分组**的聚合结果：`groupKey` 是分组键（= key），不是主键 id（D16②）。
+ * `id` 仍按上面的 Safe 响应约定显式补上 —— swagger 的 `SysLocaleDTO.id` 是 `default: null`
+ * 且不在 required 里（同一个 DTO 兼任 list 过滤面），但响应行经 ClassSerializer 必含 uuid。
+ */
+export type SystemLocale = components['schemas']['SysLocaleDTO'] & { id: string, groupKey: string }
 
 /** `GET /system/lang/list/public` 行形态（order / lang / description 三列 raw 投影）。 */
 export type SystemLangPublicListItem = components['schemas']['SysLangDTOListPublicResponse']

@@ -167,31 +167,15 @@ export namespace IRequestPayload {
        * `deviceName` 不在这份契约里（B5 起服务端生成，device.service.ts:94-96）：多带一个就是
        * excess property，调用点写 `satisfies` 会直接红 —— 这就是 P4 要的机械守卫
        * （此前 `as` 会吞掉它：多带 deviceName 时 tsc 零报错，只能靠服务端 40099 兜住）。
-       */
-      export type Initial = Omit<InitialWire, 'deviceInfo'> & { deviceInfo: InitialDeviceInfo }
-
-      /** server `SysDeviceDTOInitialRequest` 的生成形态（openapi.json → schema.d.ts:5253）。 */
-      type InitialWire = components['schemas']['SysDeviceDTOInitialRequest']
-
-      /**
-       * `deviceInfo` 的请求面形态：值域不动（就是服务端 `IDeviceTypeConst`，见
-       * apps/server/libs/list/src/device-geo.dto.ts:13-20 → 生成物 schema.d.ts:3465：
-       * desktop / mobile / tablet / bot），只把 `type` 标成可选。
        *
-       * 生成物把它当必填属于 codegen 失真：openapi.json 的 `SharedUserAgentDTOPartial` 没有
-       * required 数组，是 openapi-typescript 的 defaultNonNullable 把带 `default: 'bot'` 的字段
-       * 抬成了非可选；class-validator 侧 `RealPartialType` 给每个字段挂的是 `IsOptional`
-       * （apps/server/libs/utils/src/dto.ts:67-85），server 自己的 DTO spec 就用 `deviceInfo: {}`
-       * 断言零错误（device.dto.spec.ts:34-45）。
-       *
-       * 为什么不干脆发一个值：服务端一定用 UA 算出的类型覆盖客户端传的值
-       * （device.service.ts:112-113、133-138），而 admin 自己的设备分类
-       * （src/const/app.ts:8-13 的 AppConstDevice）多一个 `laptop` —— 不在该枚举里，
-       * 发过去只会是一份被丢弃的猜测值。
+       * 请求面就是生成物本身，不再有 shim：这里曾额外摊平 `deviceInfo` 只为把 `type` 掰回可选 ——
+       * openapi.json 的 `SharedUserAgentDTOPartial` 没有 required 数组（class-validator 侧
+       * `RealPartialType` 给每个字段挂的是 `IsOptional`），是 openapi-typescript 的
+       * defaultNonNullable 把带 `default: 'bot'` 的字段抬成了必填。`pnpm generate` 已加
+       * `--default-non-nullable=false`，失真消失，shim 删除；现在生成物的可选性与
+       * openapi.json 一一对应，调用点不必再靠断言遮掩。
        */
-      type InitialDeviceInfo = Omit<components['schemas']['SharedUserAgentDTOPartial'], 'type'> & {
-        type?: components['schemas']['SharedUserAgentDTOPartial']['type']
-      }
+      export type Initial = components['schemas']['SysDeviceDTOInitialRequest']
     }
 
     export namespace UserDevice {

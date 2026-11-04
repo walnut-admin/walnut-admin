@@ -88,7 +88,8 @@ export async function initialDeviceAPI() {
         netType: navigator.connection?.effectiveType,
         platform: navigator.platform,
         // 不发 `type`：服务端一定用 UA 算出的类型覆盖客户端传的值（device.service.ts:112-113、133-138），
-        // 值域与「为什么在类型上是可选」的依据写在 request.d.ts 的 Deivce.InitialDeviceInfo。
+        // 值域与「为什么在类型上是可选」的依据是 openapi.json 的 SharedUserAgentDTOPartial
+        // （没有 required 数组，生成物按 --default-non-nullable=false 如实给出可选）。
       },
       // 这里必须是 `satisfies` 而不是 `as`：`as` 会短路整份请求面契约
       // （request.d.ts 的 Deivce.Initial，对齐 server 的 SysDeviceDTOInitialRequest），多带一个

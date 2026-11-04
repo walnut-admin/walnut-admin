@@ -3101,7 +3101,7 @@ export interface components {
              */
             meta: components["schemas"]["AppKeyMetaType"];
             /** @default null */
-            id: string;
+            id?: string;
         };
         AppKeyDTOInit: {
             /**
@@ -3117,7 +3117,7 @@ export interface components {
              * @description should be int
              * @default null
              */
-            order: number;
+            order?: number;
             /**
              * menu ternal type
              * @description internal => no jump, iframe inside page. external => jump url, need to confirm
@@ -3125,92 +3125,92 @@ export interface components {
              * @example none
              * @enum {string}
              */
-            ternal: "external" | "internal" | "none";
+            ternal?: "external" | "internal" | "none";
             /**
              * ternal url
              * @description should be a full and real url
              * @default null
              */
-            url: string;
+            url?: string;
             /**
              * menu show status
              * @description false => will be filtered in front end. set this false when need to hide a page like detail which not necessary in menu and tabs
              * @default true
              */
-            show: boolean;
+            show?: boolean;
             /**
              * menu cache status
              * @description true => will be cached in keep-alive
              * @default false
              */
-            cache: boolean;
+            cache?: boolean;
             /**
              * menu status
              * @description false => will not be retrieved from database
              * @default true
              */
-            status: boolean;
+            status?: boolean;
             /**
              * tab status
              * @description true => tab will be affixed in left/right
              * @default false
              */
-            affix: boolean;
+            affix?: boolean;
             /**
              * permission string
              * @description permission string, mostly like *:*:*
              * @default null
              */
-            permission: string;
+            permission?: string;
             /**
              * menu active name
              * @description used for show=false page, tell front end to active which menu when show=false page is opened
              * @default null
              */
-            menuActiveName: string;
+            menuActiveName?: string;
             /**
              * menu active same tab
              * @description mostly used with `menuActiveName`, true => no new tab for show=false page
              * @default false
              */
-            menuActiveSameTab: boolean;
+            menuActiveSameTab?: boolean;
             /**
              * menu badge
              * @description menu badge, normally red dot or a number or a ???character
              * @default null
              */
-            badge: string;
+            badge?: string;
             /**
              * menu active icon
              * @description show different icon when menu is activited, icon show follow iconify and unocss rules
              * @default null
              */
-            activeIcon: string;
+            activeIcon?: string;
             /**
              * page scroll position status
              * @description true => remember scroll postion for the user
              * @default false
              */
-            position: boolean;
+            position?: boolean;
             /**
              * page leave tip
              * @description true => will show a leave confirm message modal to make sure ready to leave current page
              * @default false
              */
-            leaveTip: boolean;
+            leaveTip?: boolean;
             /**
              * browser url masking, including path/params/query
              * @default false
              */
-            maskUrl: boolean;
+            maskUrl?: boolean;
             /**
              * hijack refresh token
              * @description true => will hijack refresh token in front end
              * @default false
              */
-            hijackRefresh: boolean;
+            hijackRefresh?: boolean;
             /** @default null */
-            watermark: {
+            watermark?: {
                 [key: string]: unknown;
             };
             /**
@@ -3218,7 +3218,7 @@ export interface components {
              * @description used for vue transition name
              * @default fade
              */
-            transition: string;
+            transition?: string;
             /**
              * cache key strategy
              * @description name => use menu name as cache key. path => use menu path as cache key
@@ -3226,7 +3226,7 @@ export interface components {
              * @example name
              * @enum {string}
              */
-            cacheKeyStrategy: "name" | "path" | "custom";
+            cacheKeyStrategy?: "name" | "path" | "custom";
         };
         SysMenuDTOSafe: {
             /**
@@ -3282,7 +3282,7 @@ export interface components {
             /** menu meta data, lots of fields */
             meta: components["schemas"]["SysMenuMetaDTOBasePartial"];
             /** @default null */
-            id: string;
+            id?: string;
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
@@ -3338,7 +3338,7 @@ export interface components {
             /** populated menus list */
             menusList: components["schemas"]["SysMenuDTOSafe"][];
             /** @default null */
-            id: string;
+            id?: string;
             /**
              * @default []
              * @example [
@@ -3437,7 +3437,7 @@ export interface components {
             /** virtual roles list */
             roles_list: components["schemas"]["SysRoleDTOSafe"][];
             /** @default null */
-            id: string;
+            id?: string;
             /**
              * @default []
              * @example [
@@ -3462,7 +3462,7 @@ export interface components {
              * @example bot
              * @enum {string}
              */
-            type: "desktop" | "mobile" | "tablet" | "bot";
+            type?: "desktop" | "mobile" | "tablet" | "bot";
             /** net work type, get from `navigator.connection.effectiveType` */
             netType?: string;
             /** platform, get from `navigator.platform` */
@@ -3629,7 +3629,7 @@ export interface components {
             /** virtual device */
             device: components["schemas"]["SysDeviceDTOSafe"];
             /** @default null */
-            id: string;
+            id?: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             userId?: string | null;
         };
@@ -3740,17 +3740,17 @@ export interface components {
              * auth or not
              * @default false
              */
-            auth: boolean;
+            auth?: boolean;
             /**
              * focus on current page or not
              * @default true
              */
-            focus: boolean;
+            focus?: boolean;
             /**
              * left page or not
              * @default false
              */
-            left: boolean;
+            left?: boolean;
             /** current page router */
             currentRouter?: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
@@ -3800,7 +3800,7 @@ export interface components {
             /** menu meta data, lots of fields */
             meta: components["schemas"]["SysMenuMetaDTOBasePartial"];
             /** @default null */
-            id: string;
+            id?: string;
             children?: components["schemas"]["SysMenuDTOTree"][];
         };
         VueRouteMetaDTO: {
@@ -4341,7 +4341,7 @@ export interface components {
              */
             deptId: string | null;
             /** @default null */
-            id: string;
+            id?: string;
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
@@ -4606,7 +4606,7 @@ export interface components {
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
              */
-            deptId: string | null;
+            deptId?: string | null;
         };
         AppDemoDTOSafeListResponse: {
             /** list response data */
@@ -4704,7 +4704,7 @@ export interface components {
             /** virtual user */
             user: components["schemas"]["SysUserDTOSafe"];
             /** @default null */
-            id: string;
+            id?: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             deletedId: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
@@ -5058,7 +5058,7 @@ export interface components {
              */
             remark: string;
             /** @default null */
-            id: string;
+            id?: string;
         };
         AppSettingDTOCreateRequest: {
             /** setting name */
@@ -5076,7 +5076,7 @@ export interface components {
              * setting remark
              * @default null
              */
-            remark: string;
+            remark?: string;
         };
         AppSettingDTOUpdateRequest: {
             /** setting name */
@@ -5094,7 +5094,7 @@ export interface components {
              * setting remark
              * @default null
              */
-            remark: string;
+            remark?: string;
         };
         AppSettingDTOSafeListResponse: {
             /** list response data */
@@ -5348,7 +5348,7 @@ export interface components {
             /** virtual roles list */
             roles_list: components["schemas"]["SysRoleDTOSafe"][];
             /** @default null */
-            id: string;
+            id?: string;
             /**
              * @default []
              * @example [
@@ -5376,7 +5376,7 @@ export interface components {
              */
             nickName: string;
             /** @default null */
-            id: string;
+            id?: string;
             /**
              * last active time
              * Format: date-time
@@ -5475,7 +5475,7 @@ export interface components {
             /** current lang's locales finished count */
             localesFinishedCount: number;
             /** @default null */
-            id: string;
+            id?: string;
             /**
              * translate process
              * @description percentage (0-100); null when the lang has zero locales (NaN → null)
@@ -5605,7 +5605,7 @@ export interface components {
             /** i18n value */
             value: string;
             /** @default null */
-            id: string;
+            id?: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             langId: string;
             /**
@@ -5695,7 +5695,7 @@ export interface components {
              */
             tagType: "primary" | "info" | "success" | "warning" | "error";
             /** @default null */
-            id: string;
+            id?: string;
         };
         SysDictTypeDTOWithDictDataResponse: {
             /** dict name */
@@ -5731,7 +5731,7 @@ export interface components {
             /** populated dict data count */
             dictDataCount?: number;
             /** @default null */
-            id: string;
+            id?: string;
         };
         SysDictTypeDTOCreateRequest: {
             /** dict name */
@@ -5851,7 +5851,7 @@ export interface components {
              */
             description: string;
             /** @default null */
-            id: string;
+            id?: string;
             /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
             typeId: string;
         };
@@ -5882,7 +5882,7 @@ export interface components {
              * dict data description
              * @default null
              */
-            description: string;
+            description?: string;
         };
         SysDictDataDTOUpdateRequest: {
             /** dict data label */
@@ -5911,7 +5911,7 @@ export interface components {
              * dict data description
              * @default null
              */
-            description: string;
+            description?: string;
         };
         SysDictDataDTOSafeListResponse: {
             /** list response data */
@@ -6010,7 +6010,7 @@ export interface components {
              */
             status: "enabled" | "disabled";
             /** @default null */
-            id: string;
+            id?: string;
             children?: components["schemas"]["SysDeptDTOTree"][];
         };
         SysDeptDTOSafe: {
@@ -6070,7 +6070,7 @@ export interface components {
              */
             status: "enabled" | "disabled";
             /** @default null */
-            id: string;
+            id?: string;
         };
         SysDeptDTOCreateRequest: {
             /**
@@ -6094,28 +6094,28 @@ export interface components {
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
              */
-            parentId: string | null;
+            parentId?: string | null;
             /**
              * dept leader
              * @default null
              */
-            leader: string | null;
+            leader?: string | null;
             /**
              * contact phone
              * @default null
              */
-            phone: string | null;
+            phone?: string | null;
             /**
              * contact email
              * @default null
              */
-            email: string | null;
+            email?: string | null;
             /**
              * sort order
              * @description sibling order inside the same parent, should be int
              * @default 0
              */
-            sortOrder: number;
+            sortOrder?: number;
         };
         SysDeptDTOUpdateRequest: {
             /**
@@ -6139,28 +6139,28 @@ export interface components {
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
              */
-            parentId: string | null;
+            parentId?: string | null;
             /**
              * dept leader
              * @default null
              */
-            leader: string | null;
+            leader?: string | null;
             /**
              * contact phone
              * @default null
              */
-            phone: string | null;
+            phone?: string | null;
             /**
              * contact email
              * @default null
              */
-            email: string | null;
+            email?: string | null;
             /**
              * sort order
              * @description sibling order inside the same parent, should be int
              * @default 0
              */
-            sortOrder: number;
+            sortOrder?: number;
         };
         SysDeptDTOSafeListResponse: {
             /** list response data */
@@ -6261,7 +6261,7 @@ export interface components {
              */
             remark: string | null;
             /** @default null */
-            id: string;
+            id?: string;
         };
         SysPostDTOCreateRequest: {
             /**
@@ -6284,12 +6284,12 @@ export interface components {
              * @description should be int
              * @default 0
              */
-            sortOrder: number;
+            sortOrder?: number;
             /**
              * remark
              * @default null
              */
-            remark: string | null;
+            remark?: string | null;
         };
         SysPostDTOUpdateRequest: {
             /**
@@ -6312,12 +6312,12 @@ export interface components {
              * @description should be int
              * @default 0
              */
-            sortOrder: number;
+            sortOrder?: number;
             /**
              * remark
              * @default null
              */
-            remark: string | null;
+            remark?: string | null;
         };
         SysPostDTOSafeListResponse: {
             /** list response data */
@@ -6428,7 +6428,7 @@ export interface components {
              */
             status: "probation" | "active" | "resigned";
             /** @default null */
-            id: string;
+            id?: string;
         };
         SysEmployeeDTOBindUserRequest: {
             /**
@@ -6488,7 +6488,7 @@ export interface components {
              */
             status: "probation" | "active" | "resigned";
             /** @default null */
-            id: string;
+            id?: string;
         };
         SysEmployeeDTOCreateRequest: {
             /**
@@ -6521,7 +6521,7 @@ export interface components {
              * post id
              * @default null
              */
-            postId: string | null;
+            postId?: string | null;
         };
         SysEmployeeDTOUpdateRequest: {
             /**
@@ -6554,7 +6554,7 @@ export interface components {
              * post id
              * @default null
              */
-            postId: string | null;
+            postId?: string | null;
         };
         SysEmployeeDTOSafeListResponse: {
             /** list response data */
@@ -6683,7 +6683,7 @@ export interface components {
              */
             authenticatedAt?: string;
             /** @default null */
-            id: string;
+            id?: string;
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
@@ -6892,7 +6892,7 @@ export interface components {
                 [key: string]: unknown;
             };
             /** @default null */
-            id: string;
+            id?: string;
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
@@ -6991,38 +6991,38 @@ export interface components {
              * @description used for vue router path
              * @default null
              */
-            path: string;
+            path?: string;
             /**
              * route name
              * @description used for vue router name, should be unique, also used for keep-alive flags
              * @default null
              */
-            name: string;
+            name?: string;
             /**
              * route component file path
              * @description used for vue router to find target file path
              * @default null
              */
-            component: string;
+            component?: string;
             /**
              * route title
              * @description used for route page title, mostly is i18n format
              * @default null
              */
-            title: string;
+            title?: string;
             /**
              * route icon
              * @description used for route icon, shown in menus and tabs
              * @default null
              */
-            icon: string;
+            icon?: string;
             /** menu meta data, lots of fields */
             meta?: components["schemas"]["SysMenuMetaDTOBasePartial"];
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
              */
-            pid: string | null;
+            pid?: string | null;
         };
         SysMenuDTOUpdateRequest: {
             /**
@@ -7032,44 +7032,44 @@ export interface components {
              * @example catalog
              * @enum {string}
              */
-            type: "catalog" | "menu" | "element";
+            type?: "catalog" | "menu" | "element";
             /**
              * route path
              * @description used for vue router path
              * @default null
              */
-            path: string;
+            path?: string;
             /**
              * route name
              * @description used for vue router name, should be unique, also used for keep-alive flags
              * @default null
              */
-            name: string;
+            name?: string;
             /**
              * route component file path
              * @description used for vue router to find target file path
              * @default null
              */
-            component: string;
+            component?: string;
             /**
              * route title
              * @description used for route page title, mostly is i18n format
              * @default null
              */
-            title: string;
+            title?: string;
             /**
              * route icon
              * @description used for route icon, shown in menus and tabs
              * @default null
              */
-            icon: string;
+            icon?: string;
             /** menu meta data, lots of fields */
             meta?: components["schemas"]["SysMenuMetaDTOBasePartial"];
             /**
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
              */
-            pid: string | null;
+            pid?: string | null;
         };
         SysMenuDTOSafeListResponse: {
             /** list response data */
@@ -7161,21 +7161,21 @@ export interface components {
              *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
              *     ]
              */
-            menus: string[];
+            menus?: string[];
             /**
              * role data scope
              * @description 1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF
              * @default 1
              * @enum {number}
              */
-            dataScope: 1 | 2 | 3 | 4 | 5 | 6;
+            dataScope?: 1 | 2 | 3 | 4 | 5 | 6;
             /**
              * @default []
              * @example [
              *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
              *     ]
              */
-            deptIds: string[];
+            deptIds?: string[];
         };
         SysRoleDTOUpdateRequest: {
             /**
@@ -7208,21 +7208,21 @@ export interface components {
              *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
              *     ]
              */
-            menus: string[];
+            menus?: string[];
             /**
              * role data scope
              * @description 1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF
              * @default 1
              * @enum {number}
              */
-            dataScope: 1 | 2 | 3 | 4 | 5 | 6;
+            dataScope?: 1 | 2 | 3 | 4 | 5 | 6;
             /**
              * @default []
              * @example [
              *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
              *     ]
              */
-            deptIds: string[];
+            deptIds?: string[];
         };
         SysRoleDTOSafeListResponse: {
             /** list response data */
@@ -7309,7 +7309,7 @@ export interface components {
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
              */
-            deptId: string | null;
+            deptId?: string | null;
         };
         SysUserDTOUpdateRequest: {
             /**
@@ -7337,7 +7337,7 @@ export interface components {
              * @default null
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
              */
-            deptId: string | null;
+            deptId?: string | null;
         };
         SysUserDTOSafeListResponse: {
             /** list response data */
@@ -7418,19 +7418,19 @@ export interface components {
              * @example 9
              * @enum {number}
              */
-            gender: 0 | 1 | 2 | 9;
+            gender?: 0 | 1 | 2 | 9;
             /**
              * avatar
              * @description maybe a transform in the future
              * @default null
              */
-            avatar: string;
+            avatar?: string;
             /**
              * description
              * @description feel free to change
              * @default null
              */
-            description: string;
+            description?: string;
         };
         SysUserMeSecurityTab2MethodDTO: {
             /** whether the mfa method is enabled */
@@ -7501,7 +7501,7 @@ export interface components {
              * lock password hash
              * @default null
              */
-            lockPwdHash: string;
+            lockPwdHash?: string;
         };
         SysUserIdentityListItemDTO: {
             /**
@@ -7660,19 +7660,19 @@ export interface components {
              * @description whether the identity has been verified
              * @default false
              */
-            verified: boolean;
+            verified?: boolean;
             /**
              * is primary
              * @description whether this is the primary identity of this type
              * @default true
              */
-            isPrimary: boolean;
+            isPrimary?: boolean;
             /**
              * status
              * @description enable/disable status
              * @default true
              */
-            status: boolean;
+            status?: boolean;
             /**
              * metadata
              * @description extended metadata JSON string for future use (e.g., real-name auth info)
@@ -7739,29 +7739,29 @@ export interface components {
              * lock password hash
              * @default null
              */
-            lockPwdHash: string;
+            lockPwdHash?: string;
             /**
              * lock mode, default, idle, security
              * @default default
              * @example default
              * @enum {string}
              */
-            lockMode: "default" | "idle" | "security";
+            lockMode?: "default" | "idle" | "security";
             /**
              * lock idle seconds
              * @default 600
              */
-            lockIdleSec: number;
+            lockIdleSec?: number;
             /**
              * lock security seconds
              * @default 60
              */
-            lockSecuritySec: number;
+            lockSecuritySec?: number;
             /**
              * lock cross device?
              * @default true
              */
-            lockCrossDevice: boolean;
+            lockCrossDevice?: boolean;
         };
         SysUserLockDoLockDto: {
             /** user lock route */
@@ -8077,12 +8077,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8110,12 +8110,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8143,12 +8143,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8187,12 +8187,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8231,12 +8231,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8275,12 +8275,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8319,12 +8319,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8363,12 +8363,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8399,12 +8399,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8436,12 +8436,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8472,12 +8472,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8511,12 +8511,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8547,12 +8547,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8583,12 +8583,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8620,12 +8620,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8653,12 +8653,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8686,12 +8686,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8719,12 +8719,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8752,12 +8752,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8789,12 +8789,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8826,12 +8826,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8859,12 +8859,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8896,12 +8896,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8933,12 +8933,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -8970,12 +8970,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9007,12 +9007,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9044,12 +9044,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9081,12 +9081,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9118,12 +9118,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9155,12 +9155,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9192,12 +9192,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9229,12 +9229,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9262,12 +9262,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9299,12 +9299,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9332,12 +9332,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9408,12 +9408,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9484,12 +9484,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9521,12 +9521,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9554,12 +9554,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9652,12 +9652,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9689,12 +9689,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9726,12 +9726,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9762,12 +9762,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9802,12 +9802,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9838,12 +9838,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9874,12 +9874,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9913,12 +9913,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9949,12 +9949,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -9985,12 +9985,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10024,12 +10024,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10061,12 +10061,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10098,12 +10098,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10134,12 +10134,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10170,12 +10170,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10206,12 +10206,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10239,12 +10239,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10278,12 +10278,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10311,12 +10311,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10344,12 +10344,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10377,12 +10377,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10410,12 +10410,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10443,12 +10443,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10476,12 +10476,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10509,12 +10509,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10542,12 +10542,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10575,12 +10575,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10608,12 +10608,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10645,12 +10645,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10681,12 +10681,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10721,12 +10721,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10760,12 +10760,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10793,12 +10793,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10832,12 +10832,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10869,12 +10869,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10906,12 +10906,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10942,12 +10942,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -10978,12 +10978,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11014,12 +11014,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11050,12 +11050,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11086,12 +11086,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11122,12 +11122,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11158,12 +11158,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11197,12 +11197,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11234,12 +11234,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11270,12 +11270,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11310,12 +11310,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11349,12 +11349,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11382,12 +11382,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11423,12 +11423,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11468,12 +11468,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11504,12 +11504,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11540,12 +11540,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11588,12 +11588,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11624,12 +11624,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11663,12 +11663,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11699,12 +11699,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11736,12 +11736,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11772,12 +11772,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11812,12 +11812,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11848,12 +11848,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11887,12 +11887,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11924,12 +11924,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -11960,12 +11960,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12000,12 +12000,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12036,12 +12036,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12072,12 +12072,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12111,12 +12111,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12144,12 +12144,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12180,12 +12180,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12215,12 +12215,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12252,12 +12252,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12288,12 +12288,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12328,12 +12328,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12364,12 +12364,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12403,12 +12403,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12440,12 +12440,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12476,12 +12476,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12516,12 +12516,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12552,12 +12552,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12591,12 +12591,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12631,12 +12631,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12667,12 +12667,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12704,12 +12704,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12740,12 +12740,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12780,12 +12780,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12816,12 +12816,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12855,12 +12855,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12891,12 +12891,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12927,12 +12927,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -12966,12 +12966,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13002,12 +13002,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13038,12 +13038,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13074,12 +13074,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13113,12 +13113,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13146,12 +13146,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13183,12 +13183,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13219,12 +13219,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13259,12 +13259,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13298,12 +13298,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13337,12 +13337,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13374,12 +13374,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13410,12 +13410,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13450,12 +13450,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13489,12 +13489,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13526,12 +13526,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13562,12 +13562,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13602,12 +13602,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13638,12 +13638,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13677,12 +13677,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13710,12 +13710,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13747,12 +13747,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13780,12 +13780,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13815,12 +13815,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13848,12 +13848,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13881,12 +13881,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13920,12 +13920,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13955,12 +13955,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -13990,12 +13990,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14029,12 +14029,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14066,12 +14066,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14099,12 +14099,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14136,12 +14136,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14173,12 +14173,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14206,12 +14206,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14243,12 +14243,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14276,12 +14276,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14313,12 +14313,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14350,12 +14350,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14383,12 +14383,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14420,12 +14420,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14457,12 +14457,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14494,12 +14494,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14527,12 +14527,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14564,12 +14564,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14597,12 +14597,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14634,12 +14634,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14671,12 +14671,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14708,12 +14708,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14745,12 +14745,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14778,12 +14778,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14815,12 +14815,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14848,12 +14848,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14885,12 +14885,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14922,12 +14922,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14959,12 +14959,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -14996,12 +14996,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -15029,12 +15029,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -15064,12 +15064,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
@@ -15100,12 +15100,12 @@ export interface operations {
                          * @default 20000
                          * @enum {number|null}
                          */
-                        readonly code: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
                         /**
                          * @description response msg, `Success` or error msg
                          * @default Success
                          */
-                        readonly msg: string | null;
+                        readonly msg?: string | null;
                     };
                 };
             };
