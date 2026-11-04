@@ -264,8 +264,32 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
 /** 有界并发：门禁多是秒级的读盘活，但 `types:check` 会吃满 CPU，开太多只会互相拖。 */
 const DEFAULT_CONCURRENCY = 4
 
-/** 单段预算：门禁都是分钟以内的活；真卡住要能自己收掉，而不是拖住整次 push。 */
-const GATE_BUDGET_MS = 5 * 60_000
+/**
+ * 单段预算的默认值（毫秒）。
+ *
+ * **为什么是 600 而不是 300**：300s 是按「门禁多是分钟以内的活」定的，而那个判断的前提是
+ * **热缓存**。实测（冷缓存 + `PREPUSH_CONCURRENCY=4` 四路并发）：`lint` 段
+ * （`pnpm lint` → turbo 逐包 ESLint）超过 300s 就被判超时 —— 而它**并没有卡住，只是还在跑**。
+ * 冷缓存下 turbo 缓存全 miss、每个包都要重新解析一遍类型信息，再与另外三路抢 CPU，
+ * 同一段的耗时从「分钟以内」涨到「五分钟以上」。
+ *
+ * 预算的用途是收掉**真卡住**的段，不是把慢段判死：误判一次的代价是整轮假红 + 人开始
+ * 习惯性绕过门禁 —— 那才是门禁真正失效的方式。
+ *
+ * 取值口径（不是「经验值」）：冷缓存实测已经越过 300s ⇒ 以它为基线留 2 倍余量 = 600s；
+ * 同时它仍小于「一个人愿意干等」的尺度，真卡死时人工 Ctrl-C 不会被拖到失控。
+ * 机器更慢 / 想更紧的场景用 {@link PREPUSH_BUDGET_ENV} 覆盖，不必改代码。
+ */
+export const GATE_BUDGET_MS = 10 * 60_000
+
+/**
+ * 覆盖单段预算的环境变量（毫秒；`<= 0` = 不设上限）。
+ *
+ * 为什么不沿用 `lib/child-run.ts` 的缺省名 `CMD_TIMEOUT_MS`：那个名字是全仓通用的子进程兜底，
+ * 而这里的号是按**门禁段的实测耗时**定的 —— 两个口径混用，会让「我在 CI 上放宽一次」
+ * 顺带改掉别的命令的超时。本文件是它唯一的读者，也由本文件在超时提示行里念给用户。
+ */
+export const PREPUSH_BUDGET_ENV = 'PREPUSH_BUDGET_MS'
 
 /** 一段门禁的**三种**结局：跑过且过了 / 跑过且没过 / **压根没跑**（环境缺失，未验证） */
 export type GateStatus = 'ok' | 'failed' | 'skipped'
@@ -312,6 +336,8 @@ export function createPnpmGateExecutor(): GateExecutor {
         note: () => {},
         heartbeatMs: 0,
         budgetDefaultMs: GATE_BUDGET_MS,
+        // 机器差异走环境变量，别改号：覆盖的是**这一段**的预算（prepush 专属名，见常量注释）
+        budgetEnv: PREPUSH_BUDGET_ENV,
       })
     }
   }

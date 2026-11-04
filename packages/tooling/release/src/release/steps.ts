@@ -173,8 +173,9 @@ export function releaseBatterySummary(
     return { ok: `✅ 发版前全量电池全绿（${ranCount} 条）`, warning: null }
   return {
     ok: `✅ 发版前全量电池：${ranCount} 条真跑通过 / ${unverifiedIds.length} 条跳过（未验证）`,
-    warning: `未验证的项：${unverifiedIds.join(' / ')} —— 本机缺工具，它们**没跑过**（≠ 通过）。`
-      + '要这一面被验过，装好工具后重跑；CI 侧仍有权威闸门。',
+    warning: `未验证的项：${unverifiedIds.join(' / ')} —— 它们**没跑过**（≠ 通过）：`
+      + '可能是本机缺工具（子进程退 3），也可能被 --skip-gates 显式跳过。'
+      + '要这一面被验过，补齐工具 / 去掉对应的 --skip-gates 后重跑；CI 侧仍有权威闸门。',
   }
 }
 
@@ -186,15 +187,52 @@ export function releaseBatterySkips(): { id: string, skip: string }[] {
 }
 
 /**
+ * 电池的**记账口径**（纯函数）：谁没跑、真跑了几条。
+ *
+ * 为什么单独拎出来：跑电池的那段会真起 pnpm（分钟级），用例碰不到；而这条口径一旦错，
+ * 错的是**发版结论本身**。实际发生过：`--skip-gates=<id>` 跳过的段只 `continue`、
+ * 不记进未验证，于是 `ranCount`（= 电池总数 − 未验证数）把跳过项算成「真跑通过」——
+ * 收尾行替人担保了一件根本没发生的事，事后看日志才发现。
+ *
+ * 判据只有一条：**没跑的段不许出现在「真跑通过」里**。两种没跑同权 ——
+ * `--skip-gates` 显式跳过、子进程退 3（本机缺工具）；差别只在日志里那一行的措辞。
+ * 表内 `skip` 暂缓项本来就**不在** `releaseBatteryCount()` 里，故不参与扣减（否则重复扣）。
+ */
+export function releaseBatteryTally(
+  skippedByFlag: Iterable<string>,
+  toolMissing: Iterable<string>,
+): { ranCount: number, unverifiedIds: string[] } {
+  const unverified = new Set<string>([...skippedByFlag, ...toolMissing])
+  // 按电池表序输出（与执行顺序一致，便于人对着日志逐行核），只认表里**会跑**的那些
+  const unverifiedIds = RELEASE_BATTERY
+    .filter(step => step.skip === undefined && unverified.has(step.id))
+    .map(step => step.id)
+  return { ranCount: releaseBatteryCount() - unverifiedIds.length, unverifiedIds }
+}
+
+/**
+ * 一段电池的执行出口（缺省经 `ui.runPnpmStep`）。
+ *
+ * 为什么抽成参数：记账口径的 bug（`--skip-gates` 跳过的段被算进「真跑通过」）出在**循环里**，
+ * 纯函数测试碰不到它 —— 把执行器换掉，用例就能跑真循环、不真起子进程。同 `ci/prepush.ts` 的
+ * `GateExecutor`。
+ */
+export type BatteryExecutor = (argv: string[], hint: string) => Promise<void>
+
+/**
  * 跑全量电池，**逐条**报进度并在任一条失败时收场（`ui.die` ⇒ 此时 tag 还没打，不留本地 tag）。
  *
  * 走 `ui.runPnpmStep`（实况转播）而不是同步执行：分钟级命令会把事件循环钉住（心跳与 SIGINT
  * 回调都轮不到），失败输出超过缓冲上限时还会被误报成「启动失败」。
  */
-async function runReleaseBattery(ui: ReleaseUi, skippedIds: Set<string>): Promise<void> {
+export async function runReleaseBattery(
+  ui: ReleaseUi,
+  skippedIds: Set<string>,
+  execute: BatteryExecutor = (argv, hint) => ui.runPnpmStep(argv, hint),
+): Promise<void> {
   const failures: string[] = []
   /** 子进程报「未验证」（退出码 3）的条目：**不是失败**，但也绝不能算绿 */
-  const unverified: string[] = []
+  const toolMissing: string[] = []
   for (const step of RELEASE_BATTERY) {
     if (step.skip !== undefined) {
       // 暂缓的条目**响亮跳过**：打一行 + 原因，绝不静默少跑（静默弱化门禁是本仓最想避免的形态）
@@ -202,12 +240,14 @@ async function runReleaseBattery(ui: ReleaseUi, skippedIds: Set<string>): Promis
       continue
     }
     if (skippedIds.has(step.id)) {
-      ui.log(`⏭️ 跳过 ${step.label}：--skip-gates=${step.id}`)
+      // 不在这里记账 —— 记账的真源是传进来的 `skippedIds` 本身（见下面的 tally 调用）。
+      // 「谁知道跳了哪些」只能有一个答案，否则漏记一次就又是一次「跳过算通过」。
+      ui.log(`⏭️ 跳过 ${step.label}：--skip-gates=${step.id}（没跑过，不计入真跑通过）`)
       continue
     }
     ui.log(`▶️ ${step.label}`)
     try {
-      await ui.runPnpmStep(step.argv, `pnpm ${step.argv.join(' ')}`)
+      await execute(step.argv, `pnpm ${step.argv.join(' ')}`)
     }
     catch (error: any) {
       const exitCode = Number(error?.exitCode ?? 1)
@@ -215,7 +255,7 @@ async function runReleaseBattery(ui: ReleaseUi, skippedIds: Set<string>): Promis
       // 不认它，没装 actionlint / 没装 bash 的发版机就会**因为「跳过」而发版失败** —— 那是把
       // 「未验证」当「失败」的回归：比当通过好一点，但同样是错的（它会逼人去 --skip-gates）。
       if (exitCode === SKIPPED_EXIT_CODE) {
-        unverified.push(step.id)
+        toolMissing.push(step.id)
         ui.log(`⏭️ 跳过（未验证）${step.label}：本机缺工具，这一条**没跑**（不等于通过）`)
         continue
       }
@@ -229,7 +269,8 @@ async function runReleaseBattery(ui: ReleaseUi, skippedIds: Set<string>): Promis
     }
   }
   // 汇总里**必须**把「未验证」单列：只报「全绿」的话，发版者会以为这一面被验过了。
-  const summary = releaseBatterySummary(releaseBatteryCount() - unverified.length, unverified)
+  const tally = releaseBatteryTally(skippedIds, toolMissing)
+  const summary = releaseBatterySummary(tally.ranCount, tally.unverifiedIds)
   ui.log(summary.ok)
   if (summary.warning !== null)
     ui.warn(summary.warning)

@@ -14,7 +14,15 @@ import { describe, expect, it } from 'vitest'
 import { ChildRunError } from '../../lib/child-run.ts'
 import { SKIPPED_EXIT_CODE } from '../../lib/errors.ts'
 import { REPO_ROOT } from '../../lib/repo-root.ts'
-import { formatLine, PREPUSH_GATES, runGates, strictFailureMessage, summarizeRun } from '../prepush.ts'
+import {
+  formatLine,
+  GATE_BUDGET_MS,
+  PREPUSH_BUDGET_ENV,
+  PREPUSH_GATES,
+  runGates,
+  strictFailureMessage,
+  summarizeRun,
+} from '../prepush.ts'
 
 const rootManifest = JSON.parse(readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8')) as {
   scripts?: Record<string, string>
@@ -285,5 +293,26 @@ describe('summarizeRun —— 成功汇总里也要看得见「跳过」', () =>
     expect(summary.failed.map(r => r.gate.id)).toEqual(['b'])
     expect(summary.skipped.map(r => r.gate.id)).toEqual(['workflows'])
     expect(summary.okLine).toBe('3 段：1 段真跑通过 / 1 段跳过（未验证）（总 2.0s）')
+  })
+})
+
+/**
+ * 单段预算：冷缓存实测之后调过的那一笔。
+ *
+ * 为什么值得钉：预算是**把在跑的段判死**的唯一入口。300s 在冷缓存 + 四路并发下会把
+ * `lint` 段判超时（实测），而误判一次的代价是整轮假红、人开始绕过门禁 —— 那种失效不会报错。
+ * 断言写成**判据**（相对实测值留 ≥2 倍余量）而不是写死 600000：以后往上调不会假红，
+ * 往回调到 300s 会当场红。
+ */
+describe('单段预算 —— 冷缓存下不许把还在跑的段判死', () => {
+  /** 冷缓存 + `PREPUSH_CONCURRENCY=4` 下实测越过的那条线（见 prepush.ts 的 GATE_BUDGET_MS 注释） */
+  const COLD_CACHE_MEASURED_MS = 300_000
+
+  it('默认预算至少是冷缓存实测值的 2 倍', () => {
+    expect(GATE_BUDGET_MS).toBeGreaterThanOrEqual(COLD_CACHE_MEASURED_MS * 2)
+  })
+
+  it('覆盖入口是 PREPUSH_BUDGET_MS（超时提示行会把这个名字念给用户，改名等于让人无从调）', () => {
+    expect(PREPUSH_BUDGET_ENV).toBe('PREPUSH_BUDGET_MS')
   })
 })

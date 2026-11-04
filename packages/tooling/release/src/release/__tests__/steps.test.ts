@@ -1,12 +1,15 @@
 /**
  * 第 4–5 步（steps.ts）：全量电池表的机械审计 + 顺序不变式的源码断言。
  *
- * 本套用例**刻意不调** `runReleaseGates` / `runReleaseBattery`：它们会真的起子进程
- * （pnpm / turbo），既需要仓库状态，也远超单测该碰的边界。要钉的性质用两种方式拿：
+ * `runReleaseGates` 仍然**刻意不调**：它会真的起子进程（pnpm / turbo），既需要仓库状态，
+ * 也远超单测该碰的边界。要钉的性质用三种方式拿：
  *   ① 表本身通过导出的纯函数读（`releaseBatteryArgvs` / `releaseBatteryIds` …）；
- *   ② 顺序不变式（门禁在打 tag **之前**）用源码文本的索引断言。
+ *   ② 顺序不变式（门禁在打 tag **之前**）用源码文本的索引断言；
+ *   ③ `runReleaseBattery` 可以调 —— 它接受可注入执行器（`BatteryExecutor`），用例传假执行器，
+ *      于是**记账接线**（跳过段有没有进未验证）能被真循环验到，而不真起子进程。
  */
 
+import type { ReleaseUi } from '../ui.ts'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { REPO_ROOT } from '@walnut/scripts/lib/repo-root'
@@ -18,6 +21,8 @@ import {
   releaseBatterySkippedCount,
   releaseBatterySkips,
   releaseBatterySummary,
+  releaseBatteryTally,
+  runReleaseBattery,
 } from '../steps.ts'
 
 describe('releaseBatteryArgvs —— 会跑的那几行', () => {
@@ -136,6 +141,100 @@ describe('releaseBatterySummary —— 未验证必须单列', () => {
     expect(summary.warning, '未验证必须有一条显眼的警告').not.toBeNull()
     expect(summary.warning).toContain('workflows / workflows-shell')
     expect(summary.warning).toContain('≠ 通过')
+  })
+})
+
+/**
+ * `--skip-gates=<id>` 的记账口径（2026-11 修的那一笔）。
+ *
+ * 为什么值得单独一段：这条口径错的时候**没有任何一条别的用例会红** —— 表象是收尾行
+ * 替人担保了一件根本没发生的事（把「跳过」算进「真跑通过」），而发版者只读那一行。
+ * 断言走纯函数 `releaseBatteryTally`：它不碰子进程，却能证明「谁进了未验证、ranCount 扣了谁」。
+ */
+describe('releaseBatteryTally —— 没跑的段不许进「真跑通过」', () => {
+  it('--skip-gates=lint ⇒ lint 进未验证、ranCount 减它（旧口径会把它算成通过）', () => {
+    const total = releaseBatteryCount()
+    const tally = releaseBatteryTally(['lint'], [])
+
+    expect(tally.unverifiedIds).toEqual(['lint'])
+    expect(tally.ranCount, '跳过项不许被算进「真跑通过」').toBe(total - 1)
+
+    const summary = releaseBatterySummary(tally.ranCount, tally.unverifiedIds)
+    expect(summary.ok).toContain(`${total - 1} 条真跑通过`)
+    expect(summary.ok).toContain('1 条跳过（未验证）')
+    expect(summary.ok, '有跳过项时不许说全绿').not.toContain('全绿')
+    // 汇总必须**点名**它 —— 只说「1 条跳过」读者无从知道是哪一段没跑
+    expect(summary.warning).toContain('lint')
+  })
+
+  it('显式跳过 + 本机缺工具（退 3）同口径：并集去重、回到电池表序、两个都扣', () => {
+    const total = releaseBatteryCount()
+    // 故意反序且**故意重复**传入：输出必须回到电池表序并去重
+    const tally = releaseBatteryTally(['test', 'lint'], ['workflows', 'lint'])
+
+    expect(tally.unverifiedIds).toEqual(['lint', 'test', 'workflows'])
+    expect(tally.ranCount).toBe(total - 3)
+  })
+
+  it('表内 skip 暂缓项不参与扣减（它本来就不在 releaseBatteryCount 里，扣两次会把账算负）', () => {
+    const total = releaseBatteryCount()
+    const deferredIds = releaseBatterySkips().map(item => item.id)
+    expect(deferredIds.length).toBeGreaterThan(0)
+
+    const tally = releaseBatteryTally(deferredIds, [])
+    expect(tally.unverifiedIds).toEqual([])
+    expect(tally.ranCount).toBe(total)
+  })
+})
+
+/**
+ * 记账**接线**（不是记账公式）：真循环 + 假执行器。
+ *
+ * 为什么必须有这一段：上面那组纯函数用例只证明「给对参数时算得对」，而原来的 bug 是
+ * **循环里没把跳过的段喂进去** —— 公式对、接线错，收尾行照样撒谎。这一段让
+ * `--skip-gates=lint` 走完整条循环，断言两件事：lint 的 argv 真的没被执行 + 汇总把它列进未验证。
+ */
+describe('runReleaseBattery —— 跳过段的记账接线', () => {
+  function fakeUi(): { ui: ReleaseUi, logs: string[], warns: string[] } {
+    const logs: string[] = []
+    const warns: string[] = []
+    const ui = {
+      log: (msg: string) => logs.push(msg),
+      warn: (msg: string) => warns.push(msg),
+      banner: () => {},
+      emitJson: () => {},
+      die: (code: 1 | 2, msg: string): never => {
+        throw new Error(`die(${code}): ${msg}`)
+      },
+      childOptions: () => ({}),
+      // 真起子进程 = 用例越界；走到这里说明执行器没被注入
+      runPnpmStep: async () => {
+        throw new Error('用例不许真起子进程：请注入 BatteryExecutor')
+      },
+      execPnpmSync: () => ({ code: 0, stdout: '', stderr: '' }),
+      isInteractive: () => false,
+      ask: async () => '',
+      askSecret: async () => '',
+    }
+    return { ui: ui as unknown as ReleaseUi, logs, warns }
+  }
+
+  it('--skip-gates=lint：lint 不执行，且汇总把它列进「跳过（未验证）」、ranCount 减它', async () => {
+    const { ui, logs, warns } = fakeUi()
+    const ran: string[][] = []
+    await runReleaseBattery(ui, new Set(['lint']), async (argv) => {
+      ran.push(argv)
+    })
+
+    const total = releaseBatteryCount()
+    // ① 被跳过的段**没有真的跑**（argv 里那个裸 'lint' 令牌只属于 lint 这一行）
+    expect(ran.some(argv => argv.includes('lint'))).toBe(false)
+    expect(ran).toHaveLength(total - 1)
+    // ② 汇总按「真跑通过 / 跳过（未验证）」分开报，且**点名** lint
+    expect(logs.join('\n')).toContain(`${total - 1} 条真跑通过`)
+    expect(logs.join('\n')).toContain('1 条跳过（未验证）')
+    expect(logs.join('\n')).not.toContain('全绿')
+    expect(warns.join('\n')).toContain('lint')
   })
 })
 
