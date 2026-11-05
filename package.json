@@ -63,6 +63,7 @@
     "test": "turbo test",
     "hooks:check": "walnut-check-git-hooks",
     "prepush": "walnut-prepush",
+    "ci:local": "walnut-ci-local",
     "scaffold:lib": "walnut-scaffold-lib",
     "clean": "turbo clean",
     "clean:all": "rimraf node_modules apps/*/node_modules packages/*/node_modules packages/*/*/node_modules build/node_modules",

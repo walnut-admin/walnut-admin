@@ -190,6 +190,40 @@ pnpm images:build      # 本地构建 backend + frontend（先按 deploy/README.
 
 > ⚠️ **本地跑 actionlint 时务必装 shellcheck**。actionlint 只有在 PATH 上存在 `shellcheck` 时才做 SC* 检查：本机没装 → 本地 exit 0，而 ubuntu-latest runner 预装 → 同一个文件在 CI 上退出码 1（本仓首跑就是这么红了一次：`docker login $REGISTRY` 少引号，SC2086）。
 
+## 本地复刻 CI（`pnpm ci:local`）
+
+`pnpm prepush` 与 `pnpm ci:local` 是**两件事，谁也替代不了谁**：
+
+| 命令 | 覆盖什么 | 什么时候跑 |
+|------|----------|------------|
+| `pnpm prepush` | CI `quality` job 的**全部静态门禁**（lint / 类型 / 测试 / boundaries / 文档与密钥形态……），并行、吃 turbo 缓存 | **每次 push 都跑**（pre-push 钩子已经这么做了） |
+| `pnpm ci:local` | CI 的**构建类**步骤：server 构建 → admin 构建（`--force`，不吃缓存）→ 产物冒烟 → 产物去密 → 文档构建（死链）→ 迁移 → worker 冒烟 → actionlint。**顺序执行**（后一步读前一步的产物） | **推之前跑一次**（分钟级；改动波及构建时尤其要跑） |
+
+两者**没有重叠**：prepush 一条构建都不跑，ci:local 一条静态门禁都不跑。只跑前者的后果是实打实的 —— 见 `ci.yml` 里 `Build admin` 那段 `--force` 注释：v0.1.4 的发版死在 admin 构建上，而**同一个提交的 CI 是绿的**（CI 命中了 turbo 缓存、压根没真构建）。
+
+步骤表是**唯一真源**：`packages/tooling/scripts/src/ci/local-ci.ts` 的 `LOCAL_CI_STEPS`（增删步骤改那一处，命令行只有 `pnpm ci:local` 一个词）。调试单步用 `--only=<id,...>` / `--skip=<id,...>`（如 `pnpm ci:local --only=worker-smoke`）；**未知 id 直接报错**，不会静默忽略。
+
+### 四态：跳过不等于通过
+
+`ci:local` 与其它门禁共用一套退出码：**0 通过 / 1 查出违规 / 2 前置条件未满足 / 3 环境缺失、这一步没跑**。
+
+最常撞到的是 **3**：`actionlint` 没装时那一步**压根没跑**，脚本会打出「跳过（未验证）」并在汇总里单列步骤名，退出码是 3 而不是 0。**装了才是真验证** —— CI 的 `workflow-lint.yml` 会下载二进制强制执行，本地那一份只是提前量；把 actionlint 装上（<https://github.com/rhysd/actionlint#download>）再跑一次，这一步才算数。同理，`pnpm smoke:dist` 在没有浏览器的机器上会自己 SKIP（`CHROME_PATH` 可指定浏览器）。
+
+两件环境前提：`migration:run` 与 worker 冒烟都要 **PG / Redis 在线**；worker 冒烟那一步还会临时接管 `apps/server/.data`（先整目录备份、种一份含过期项的 CAP token 表、跑完原样恢复），所以本地库里的真实 token 不会被弄丢。
+
+### 装 actionlint（一条命令，按平台选）
+
+```bash
+# Windows（scoop；也可从 release 页下 windows_x86_64.zip 解压后放进 PATH）
+scoop install actionlint
+# macOS
+brew install actionlint
+# Linux（官方下载脚本，产物落在当前目录，挪进 PATH 即可）
+bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+```
+
+装完 `pnpm ci:local --only=actionlint` 应变成 exit 0，完整跑也就跟着从 3 变 0。各平台的二进制包都在 <https://github.com/rhysd/actionlint/releases>。
+
 ## 相关
 
 - [发布 & 发版指南](./release.md) — tag 是怎么打出来的

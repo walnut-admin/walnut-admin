@@ -25,6 +25,7 @@
     "walnut-check-source-secrets": "./bin/check-source-secrets.ts",
     "walnut-check-turbo-cache": "./bin/check-turbo-cache.ts",
     "walnut-check-workflow-shell": "./bin/check-workflow-shell.ts",
+    "walnut-ci-local": "./bin/local-ci.ts",
     "walnut-db-export-pg": "./bin/db-export-pg.ts",
     "walnut-db-seed-reshape": "./bin/db-seed-reshape.ts",
     "walnut-db-verify-seed": "./bin/db-verify-seed.ts",
