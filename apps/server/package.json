@@ -50,7 +50,8 @@
     "test:e2e": "vitest run --config ./apps/api/vitest.config.e2e.ts",
     "test:integration": "vitest run --config ./apps/api/vitest.config.integration.ts",
     "test:pw": "esno playwright/example.ts",
-    "gen:doc": "@compodoc/compodoc -p tsconfig.json -s",
+    "gen:doc": "compodoc -p tsconfig.json -d .tmp/compodoc --hideGenerator",
+    "gen:doc:serve": "compodoc -p tsconfig.json -d .tmp/compodoc -s",
     "madge": "madge --circular --ts-config tsconfig.json apps/api/src libs --extensions js,ts,tsx"
   },
   "dependencies": {
