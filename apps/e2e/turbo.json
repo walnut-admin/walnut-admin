@@ -1,0 +1,8 @@
+{
+  "extends": ["//"],
+  // 形态照 apps/admin/turbo.json（extends + tags）：本包是**跑在 Node 里的测试宿主**，
+  // 不是前端也不是后端。`platform-node` 那条 boundaries 只禁止它依赖 platform-web，
+  // 与事实一致（它只消费 platform-any 的 contract / utils 与浏览器黑盒）。
+  // 刻意**不声明** `backend`：它不是可部署单元，后端的是 `apps/server`。
+  "tags": ["app", "e2e", "platform-node"]
+}

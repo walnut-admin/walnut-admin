@@ -17,7 +17,7 @@
 
 真源是 `index.ts` 的 `SCOPES` 数组。判据：
 
-- **app 与业务 / 共享包**用包名（`admin` / `server` / `docs` / `contract` / `client` / `http` …）；
+- **app 与业务 / 共享包**用包名（`admin` / `server` / `docs` / `e2e` / `contract` / `client` / `http` …）；
 - **工具链包**里只有 `eslint-config` / `commitlint-config` 单列了 scope，其余（`tsconfig` /
   `vitest-config` / `scripts` / 发版编排本身）统一走 **`tooling`** —— 与根 `AGENTS.md` 关键纪律 2
   的「工具链包的改动走 `tooling`」是同一条口径；

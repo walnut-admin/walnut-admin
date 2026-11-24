@@ -4,6 +4,8 @@ const SCOPES = [
   'admin',
   'server',
   'docs',
+  // 全链路沙盒测试包（apps/e2e：真实浏览器 × 真实后端 × 独立库）
+  'e2e',
   // platform-any
   'utils',
   'contract',

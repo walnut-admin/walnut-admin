@@ -77,6 +77,14 @@ apps/server/dist/
 # 集成测试真实数据 dump（TEST_DATA=real 的 dump/restore 中间物，随跑随生成）
 apps/server/.tmp/
 
+# 全链路 E2E（apps/e2e）的本机运行态：
+# .auth = 准备阶段生成的口令与 storageState（只存本机，绝不进仓）；.e2e = 本轮栈信息；
+# 后两项是 Playwright 自己的产物目录。
+apps/e2e/.auth/
+apps/e2e/.e2e/
+apps/e2e/test-results/
+apps/e2e/playwright-report/
+
 # AI agent workspace (ZCode plans, scratch)
 .zcode/
 

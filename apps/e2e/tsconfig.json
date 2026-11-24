@@ -1,0 +1,18 @@
+{
+  "extends": "@walnut/tsconfig/ts.json",
+  "compilerOptions": {
+    // DOM 只用于 `page.evaluate(...)` 回调的**类型**（回调在浏览器里执行，window/localStorage
+    // 是它的运行环境）；本包自身仍跑在 Node（无 document 访问）。
+    "lib": ["ESNext", "DOM"],
+    "baseUrl": ".",
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"],
+  "exclude": [
+    "node_modules",
+    ".auth",
+    ".e2e",
+    "test-results",
+    "playwright-report"
+  ]
+}

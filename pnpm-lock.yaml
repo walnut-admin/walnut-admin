@@ -314,6 +314,9 @@ catalogs:
     '@nestjs/websockets':
       specifier: 12.3.2
       version: 12.3.2
+    '@playwright/test':
+      specifier: 1.59.0
+      version: 1.59.0
     '@scalar/nestjs-api-reference':
       specifier: 1.1.5
       version: 1.1.5
@@ -1289,6 +1292,48 @@ importers:
       vitepress-plugin-tabs:
         specifier: 'catalog:'
         version: 0.7.3(vitepress@1.6.3(@algolia/client-search@5.56.0)(@types/node@25.5.0)(async-validator@4.2.5)(axios@1.16.0(debug@4.4.3(supports-color@10.2.2)))(change-case@5.4.4)(fuse.js@7.3.0)(lightningcss@1.33.0)(postcss@8.5.23)(qrcode@1.5.4)(sass@1.99.0)(search-insights@2.17.3)(sortablejs@1.15.7)(terser@5.49.0)(typescript@6.0.3))(vue@3.5.34(typescript@6.0.3))
+
+  apps/e2e:
+    devDependencies:
+      '@playwright/test':
+        specifier: 'catalog:'
+        version: 1.59.0
+      '@serenity-kit/opaque':
+        specifier: 'catalog:'
+        version: 1.1.0
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.5.0
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.23.1
+      '@walnut/contract':
+        specifier: workspace:*
+        version: link:../../packages/platform-any/contract
+      '@walnut/eslint-config':
+        specifier: workspace:*
+        version: link:../../tooling/eslint-config
+      '@walnut/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/tsconfig
+      '@walnut/utils':
+        specifier: workspace:*
+        version: link:../../packages/platform-any/utils-core
+      eslint:
+        specifier: 'catalog:'
+        version: 10.3.0(jiti@2.7.0)(supports-color@10.2.2)
+      otplib:
+        specifier: 'catalog:'
+        version: 13.4.0
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.1
+      redis:
+        specifier: 'catalog:'
+        version: 5.11.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
 
   apps/server:
     dependencies:
@@ -5405,6 +5450,11 @@ packages:
   '@pkgr/core@0.3.6':
     resolution: {integrity: sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA==}
     engines: {node: ^14.18.0 || >=16.0.0}
+
+  '@playwright/test@1.59.0':
+    resolution: {integrity: sha512-TOA5sTLd49rTDaZpYpvCQ9hGefHQq/OYOyCVnGqS2mjMfX+lGZv2iddIJd0I48cfxqSPttS9S3OuLKyylHcO1w==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   '@polka/send-type@0.5.2':
     resolution: {integrity: sha512-jGXalKihnhGQmMQ+xxfxrRfI2cWs38TIZuwgYpnbQDD4r9TkOiU3ocjAS+6CqqMNQNAu9Ul2iHU5YFRDODak2w==}
@@ -18931,6 +18981,10 @@ snapshots:
     optional: true
 
   '@pkgr/core@0.3.6': {}
+
+  '@playwright/test@1.59.0':
+    dependencies:
+      playwright: 1.59.0
 
   '@polka/send-type@0.5.2': {}
 

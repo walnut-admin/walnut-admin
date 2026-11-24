@@ -1,0 +1,71 @@
+# 全链路 E2E（apps/e2e）的**独立**本地栈：PostgreSQL + Redis，端口与 dev 栈完全分开。
+#
+#   docker compose -f apps/e2e/docker-compose.yml up -d
+#   pnpm --filter @walnut/e2e e2e          # prepare-db 会 DROP/CREATE walnut_e2e 并跑迁移 + seed
+#   docker compose -f apps/e2e/docker-compose.yml down -v   # 收工（-v 连卷一起删）
+#
+# 为什么必须是独立栈（不是复用 dev 的 5432/6379）：
+#   prepare-db 会 `DROP DATABASE ... WITH (FORCE)`；与 dev 共用一个实例时，任何一次
+#   端口/库名配错都会清掉开发数据。端口分开 + scripts/env.ts 的安全闸（库名必须逐字
+#   walnut_e2e、端口必须 5433/6380）两道保险。
+#
+# 凭据是**固定明文**：这是本机测试栈，不是部署物；compose 是它的真源，scripts/env.ts 与之
+# 逐字对齐（改一处必须改另一处 —— 两边都写死是为了「不依赖某个被 gitignore 的 env 文件」）。
+# 卷名刻意带 e2e_ 前缀，与 dev 的同名卷（postgres_data / redis_official_data）互不影响。
+
+name: walnut-e2e
+
+services:
+  postgres:
+    image: docker.io/library/postgres:18-alpine
+    container_name: e2e-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=walnut
+      - POSTGRES_PASSWORD=e2e_dev_only
+      - POSTGRES_DB=walnut_e2e
+    ports:
+      # 宿主 5433 → 容器 5432（dev 栈占 5432，绝不能撞）
+      - 5433:5432
+    volumes:
+      # postgres 18+ 官方镜像的挂载点是 /var/lib/postgresql（不再是 .../data）
+      - e2e_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U walnut -d walnut_e2e]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: docker.io/library/redis:8-alpine
+    container_name: e2e-redis
+    restart: unless-stopped
+    # 带密码；FLUSHDB/FLUSHALL 重命名为空串即禁用 —— E2E 的清理只按 deviceId / 唯一前缀
+    # 删自己造的键，**从不** FLUSH（与 dev compose 的防护同一口径）。
+    command:
+      - redis-server
+      - --requirepass
+      - e2e_redis_only
+      - --rename-command
+      - FLUSHDB
+      - ''
+      - --rename-command
+      - FLUSHALL
+      - ''
+    ports:
+      # 宿主 6380 → 容器 6379（dev 栈占 6379）
+      - 6380:6379
+    volumes:
+      - e2e_redis_data:/data
+    healthcheck:
+      test: [CMD, redis-cli, -a, e2e_redis_only, --no-auth-warning, ping]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  e2e_postgres_data:
+    driver: local
+  e2e_redis_data:
+    driver: local
