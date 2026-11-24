@@ -668,6 +668,15 @@ export const COMMANDS: readonly Command[] = [
     why: '文档站导航栏显示的版本号来自 apps/docs/version.json，它是手工刷新的；旧的 apps/docs/scripts/fetch-version.js 已删除，改由本命令查**本仓**的 releases/latest（没有 Release 时回退本机最新 tag）。',
     argv: ['exec', 'walnut-docs-version'],
   },
+  {
+    id: 'gen:doc',
+    group: '工具',
+    label: '生成后端代码文档（compodoc，产物在 apps/server/.tmp/compodoc）',
+    why: 'compodoc 提供代码结构视图（模块图 / 注入关系 / 每方法装饰器清单），与 Swagger 的 HTTP 面互补；'
+      + '产物落 apps/server/.tmp/compodoc（已被 gitignore），全量生成以分钟计，所以只做本地产物、不进 CI。',
+    argv: ['-C', 'apps/server', 'gen:doc'],
+    budgetMs: 4 * MINUTE, // 全量生成实测两次为 116s / 187s（机器负载不同），留余量
+  },
 ]
 
 /**
