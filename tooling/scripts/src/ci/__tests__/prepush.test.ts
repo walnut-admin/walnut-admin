@@ -1,11 +1,13 @@
 /**
  * 推送前门禁表（`src/ci/prepush.ts`）的机械审计。
  *
- * 集中到一张表之后，**新的失败模式是表里写错**（脚本名打错、`why` 敷衍、id 重名）—— 而这些
+ * 集中到一张表之后，**新的失败模式是表里写错**（名字打错、`why` 敷衍、id 重名）—— 而这些
  * 一旦错就会**静默地少跑一道闸**，正是本仓最忌讳的形态。所以这里的用例重点不是「跑得对」，
- * 而是「表本身站得住」：每个 `argv` 都得能落到根 `package.json` 里真实存在的脚本上。
+ * 而是「表本身站得住」：每个 `argv` 的首词都得是一个**真实存在的可执行名字**
+ * （保留的根脚本或命令表 id），或 pnpm 自己的子命令。
  */
 
+import type { GateExecutor, PrepushGate } from '../prepush.ts'
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import os from 'node:os'
@@ -13,26 +15,32 @@ import path from 'node:path'
 import process from 'node:process'
 import { describe, expect, it } from 'vitest'
 import { ChildRunError } from '../../lib/child-run.ts'
+import { COMMANDS, KEPT_ROOT_SCRIPTS, resolveCommandArgv } from '../../lib/commands.ts'
 import { SKIPPED_EXIT_CODE } from '../../lib/errors.ts'
 import { REPO_ROOT } from '../../lib/repo-root.ts'
+import { workspacePackages } from '../../lib/workspace.ts'
 import {
   createPnpmGateExecutor,
   formatLine,
   GATE_BUDGET_MS,
   gateBudgetMs,
+  nativeCrashNote,
   PREPUSH_BUDGET_ENV,
   PREPUSH_GATES,
   runGates,
   strictFailureMessage,
   summarizeRun,
+  TURBO_LANE,
 } from '../prepush.ts'
 
-const rootManifest = JSON.parse(readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8')) as {
-  scripts?: Record<string, string>
-}
-const rootScripts = new Set(Object.keys(rootManifest.scripts ?? {}))
+/**
+ * 表里 argv 首词的合法集合 = **可执行的名字**：保留的根脚本、命令表 id、pnpm 子命令。
+ * 根脚本瘦身后 `package.json` 里只剩保留的那几条，拿它当全集会把所有被移走的门禁判成「不存在」。
+ */
+const commandIds = new Set(COMMANDS.map(command => command.id))
+const legalNames = new Set<string>([...KEPT_ROOT_SCRIPTS, ...commandIds])
 
-/** `argv[0]` 是 pnpm 自己的子命令（不是根脚本名）时，这几个是合法的例外 */
+/** `argv[0]` 是 pnpm 自己的子命令（不是可执行名字）时，这几个是合法的例外 */
 const PNPM_SUBCOMMANDS = new Set(['exec', 'change'])
 
 describe('pREPUSH_GATES —— 表本身', () => {
@@ -43,8 +51,8 @@ describe('pREPUSH_GATES —— 表本身', () => {
       expect(id, 'id 不能为空').not.toBe('')
   })
 
-  it('每一段的 argv（含 followups）都能落到**真实存在**的根脚本 / pnpm 子命令上', () => {
-    // 这条守卫就是「表里打错一个脚本名」的拦网：那种错会让整段门禁静默消失。
+  it('每一段的 argv（含 followups）的首词都能落到**真实存在**的可执行名字 / pnpm 子命令上', () => {
+    // 这条守卫就是「表里打错一个名字」的拦网：那种错会让整段门禁静默消失。
     // followups 也一并校验 —— 它们是同一段的后续命令，写错了同样是静默少跑一道闸。
     for (const gate of PREPUSH_GATES) {
       for (const [index, argv] of [gate.argv, ...(gate.followups ?? [])].entries()) {
@@ -55,7 +63,7 @@ describe('pREPUSH_GATES —— 表本身', () => {
           expect(argv.length, `${gate.id}.${where}: pnpm 子命令不该只有一段`).toBeGreaterThan(1)
           continue
         }
-        expect(rootScripts.has(head!), `${gate.id}.${where}: 根 package.json 里没有脚本 \`${head}\``).toBe(true)
+        expect(legalNames.has(head!), `${gate.id}.${where}: 根脚本与命令表里都没有 \`${head}\``).toBe(true)
       }
     }
   })
@@ -78,13 +86,13 @@ describe('pREPUSH_GATES —— 表本身', () => {
   it('circular 段在表里，且链路真的带 --circular（摘掉旗标 = 门禁变成只数文件）', () => {
     const gate = PREPUSH_GATES.find(g => g.id === 'circular')
     expect(gate, 'circular 段不见了 —— 环会重新变回「没有任何闸看得见」的失效面').toBeTruthy()
-    expect(gate!.argv[0], 'circular 段必须经根脚本转发（这样 CI 与发版电池才引用得到同一个脚本名）').toBe('madge:check')
+    expect(gate!.argv[0], 'circular 段必须写命令表里的那个名字（这样 CI 与发版电池才引用得到同一项）').toBe('madge:check')
 
-    // 根脚本 → apps/server 的同名脚本 → madge 的旗标，链条上任一环写错都让这一段变成空转：
+    // 命令表 → apps/server 的同名脚本 → madge 的旗标，链条上任一环写错都让这一段变成空转：
     // 少了 --circular 它只输出文件清单（永远 0 环）；少了 --extensions 它默认只认 .js
     // （本仓 1050 个文件里 .ts 占绝大多数 ⇒ 静默 0 环）。
-    const rootCmd = rootManifest.scripts?.['madge:check'] ?? ''
-    expect(rootCmd, '根脚本 madge:check 没指向 apps/server').toContain('apps/server')
+    const resolved = resolveCommandArgv(['madge:check']).join(' ')
+    expect(resolved, '命令表的 madge:check 没指向 apps/server').toContain('apps/server')
 
     const serverManifest = JSON.parse(
       readFileSync(path.join(REPO_ROOT, 'apps/server/package.json'), 'utf8'),
@@ -162,6 +170,7 @@ describe('pREPUSH_GATES —— 表本身', () => {
       'turbo-cache',
       'lockfile',
       'nginx-headers',
+      'post-verify',
       'exports',
       'secrets',
       'pre-hooks',
@@ -171,6 +180,24 @@ describe('pREPUSH_GATES —— 表本身', () => {
 
   it('段数不是 0（空表 = 推送前什么都不跑，且不会有任何提示）', () => {
     expect(PREPUSH_GATES.length).toBeGreaterThan(5)
+  })
+
+  it('经 turbo 扇出的段都在同一条重道里（漏一段 = 几路扇出又挤回同一台机器，见 PrepushGate.lane）', () => {
+    // 判据是「有 workspace 包声明了这个脚本」，不是名单：新加一段 `exec turbo run <包级任务>`
+    // 而忘了填 lane，这里就红。只有根任务的不算扇出（`turbo run lint:root` 只跑 `//#lint:root`，一路、秒级）
+    const packageScripts = new Set(
+      workspacePackages().flatMap(pkg => Object.keys(pkg.manifest.scripts ?? {})),
+    )
+    const fansOut = (gate: PrepushGate): boolean => {
+      const task = gate.argv[3]
+      return gate.argv.slice(0, 3).join(' ') === 'exec turbo run'
+        && task !== undefined && !task.startsWith('//#') && packageScripts.has(task)
+    }
+    const heavy = PREPUSH_GATES.filter(fansOut)
+    // 判据本身失效（比如表里的 argv 不再这么写）时也要红，否则这条守卫会静默变成空转
+    expect(heavy.map(gate => gate.id)).toEqual(expect.arrayContaining(['lint', 'types', 'test']))
+    for (const gate of heavy)
+      expect(gate.lane, `${gate.id} 经 turbo 扇出，却不在重道 ${TURBO_LANE} 里`).toBe(TURBO_LANE)
   })
 })
 
@@ -234,6 +261,104 @@ describe('runGates —— 三态（跳过既不算通过、也不算失败）', 
         throw new ChildRunError(`${gate.id} 退出码 ${code}`, code)
     })
     expect(results.map(r => `${r.gate.id}:${r.status}`)).toEqual(['a:ok', 'b:skipped', 'c:failed'])
+  })
+})
+
+/**
+ * 重道互斥（`PrepushGate.lane`）。
+ *
+ * 现场是「三段 turbo 门禁同时跑把机器抢满 ⇒ vitest 工作进程 60s 内启动不完 ⇒ `test` 段假红」。
+ * 那个现场在单测里造不出来（也不该造）。能钉住的是**调度规则本身**：同道的段不同时在跑、
+ * 不占道的段不被捎带着串行、道一定会腾出来、被挡住的段最终一定有人跑。
+ *
+ * 用可以手动放行的假执行器，不靠计时：「谁已经开始、谁还没开始」在读 `started` 的那一刻是确定的。
+ */
+describe('runGates —— 重道互斥', () => {
+  function manual() {
+    const started: string[] = []
+    const held = new Map<string, { resolve: () => void, reject: (error: Error) => void }>()
+    const execute: GateExecutor = async (gate) => {
+      started.push(gate.id)
+      await new Promise<void>((resolve, reject) => held.set(gate.id, { resolve, reject }))
+    }
+    /** 放行某一段；带 error = 让它以失败告终 */
+    const end = (id: string, error?: Error): void => {
+      const release = held.get(id)
+      if (error === undefined)
+        release?.resolve()
+      else
+        release?.reject(error)
+    }
+    /** 让已经排队的微任务跑完（放行之后，「下一段开始」发生在几步微任务里） */
+    const settle = (): Promise<void> => new Promise(resolve => setTimeout(resolve, 0))
+    return { execute, started, end, settle }
+  }
+
+  const mkGate = (id: string, lane?: string): PrepushGate => (lane === undefined
+    ? { id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30) }
+    : { id, label: `段 ${id}`, argv: ['x'], why: 'y'.repeat(30), lane })
+
+  it('同一条重道的两段不同时跑；不占道的段照常与它们并行', async () => {
+    const m = manual()
+    const run = runGates([mkGate('a', 'x'), mkGate('b'), mkGate('c', 'x')], () => {}, 3, m.execute)
+
+    // 三个 worker 同时领：a 与 b 立刻开始，c 被 a 占着的道挡住
+    expect(m.started).toEqual(['a', 'b'])
+
+    // 先结束的是不占道的 b：等着的 worker 被叫醒，但道还占着 ⇒ 白醒一次，继续等（c 仍然没开始）
+    m.end('b')
+    await m.settle()
+    expect(m.started).toEqual(['a', 'b'])
+
+    m.end('a')
+    await m.settle()
+    expect(m.started).toEqual(['a', 'b', 'c'])
+
+    m.end('c')
+    const results = await run
+    expect(results.map(r => `${r.gate.id}:${r.status}`)).toEqual(['a:ok', 'b:ok', 'c:ok'])
+  })
+
+  it('被挡住的段最终一定有人跑（提前收工 = 那一段永远不跑、结果表里还缺一行）', async () => {
+    // 只开两路：worker 1 跑 a，worker 2 领不到 c 只能等 —— 全部结果都必须在
+    const m = manual()
+    const run = runGates([mkGate('a', 'x'), mkGate('c', 'x')], () => {}, 2, m.execute)
+    expect(m.started).toEqual(['a'])
+
+    m.end('a')
+    await m.settle()
+    expect(m.started).toEqual(['a', 'c'])
+
+    m.end('c')
+    expect((await run).map(r => r.gate.id)).toEqual(['a', 'c'])
+  })
+
+  it('重道里的段以失败 / 跳过告终也腾道（漏腾一次 = 同道的后一段永远不跑 = 静默少跑一道闸）', async () => {
+    const m = manual()
+    const run = runGates([mkGate('a', 'x'), mkGate('b', 'x')], () => {}, 2, m.execute)
+    expect(m.started).toEqual(['a'])
+
+    m.end('a', new ChildRunError('a 未验证', SKIPPED_EXIT_CODE))
+    await m.settle()
+    expect(m.started, 'a 以跳过告终之后，b 必须开始').toEqual(['a', 'b'])
+
+    m.end('b', new ChildRunError('b 违规', 1))
+    const results = await run
+    expect(results.map(r => `${r.gate.id}:${r.status}`)).toEqual(['a:skipped', 'b:failed'])
+  })
+
+  it('不同重道互不阻挡（道是「谁和谁抢」的最小范围，不是一把全局大锁）', async () => {
+    const m = manual()
+    const run = runGates([mkGate('a', 'x'), mkGate('b', 'y'), mkGate('c', 'x')], () => {}, 3, m.execute)
+    expect(m.started).toEqual(['a', 'b'])
+
+    m.end('a')
+    await m.settle()
+    expect(m.started).toEqual(['a', 'b', 'c'])
+
+    m.end('b')
+    m.end('c')
+    expect((await run).every(r => r.status === 'ok')).toBe(true)
   })
 })
 
@@ -382,13 +507,13 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
     }
   }, 30_000)
 
-  it('段表里的 budgetMs 真的收窄该段的预算（改回全局一刀切 ⇒ 这一段会跑满 6s 并通过）', async () => {
+  it('段表里的 budgetMs 真的收窄该段的预算（改回全局一刀切 ⇒ 这一段会跑满 20s 并通过）', async () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'walnut-prepush-budget-'))
     try {
-      const marker = path.join(dir, 'finished-6s.txt')
+      const marker = path.join(dir, 'finished-20s.txt')
       const [result] = await withoutBudgetEnv(() => runGates(
-        // 这条假命令要跑满 6s 才写 marker 再退出：**6s 是它自己的耗时**，也就是下面的语义分界
-        [mkGate('tight', fakeGate.work(6_000, marker), 1_500)],
+        // 这条假命令要跑满 20s 才写 marker 再退出：**20s 是它自己的耗时**，也就是下面的语义分界
+        [mkGate('tight', fakeGate.work(20_000, marker), 1_500)],
         () => {},
         1,
         createPnpmGateExecutor({ bin: process.execPath }),
@@ -398,24 +523,25 @@ describe('runGates + createPnpmGateExecutor —— 兄弟段互不牵连（真�
       // 超时文案念的是**这一段**的预算（>2s = 1500ms 取整），不是全表的 600s
       expect(result!.output).toContain('超时（>2s）')
 
-      // 结构判据（与机器快慢无关）：这条命令只有**跑满 6s** 才会写 marker。
+      // 结构判据（与机器快慢无关）：这条命令只有**跑满 20s** 才会写 marker。
       // marker 不在 ⇒ 它从来没跑完，是被 1.5s 预算截断的；一刀切 600s 时它会写完 marker 再 exit 0。
-      expect(existsSync(marker), '6s 的命令居然跑完了 —— 预算没生效（它本该在 1.5s 被截断）').toBe(false)
+      expect(existsSync(marker), '20s 的命令居然跑完了 —— 预算没生效（它本该在 1.5s 被截断）').toBe(false)
 
-      // 分界用**那条命令自己的 6s**（语义边界），不是外壳墙钟里随手挑的 4s：
+      // 分界用**那条命令自己的 20s**（语义边界），不是外壳墙钟里随手挑的一个数：
       // · 预算生效 ⇒ 约 1.5s 就被收掉，剩下的只有 spawn + win32 `taskkill`（同步 /T）的开销；
-      // · 预算没生效 ⇒ 光是它自己的活就要 6s，它不可能在 6s 之前结束。
+      // · 预算没生效 ⇒ 光是它自己的活就要 20s，它不可能在 20s 之前结束。
       // 读的是 `GateResult.ms`（prepush 自己记、结果行里打给用户的那个数），不是测试外壳的
-      // `Date.now()` 差 —— 外壳的调度与回收延迟不进这个数。负载余量：要把这条判据压红，
-      // spawn + taskkill 得花掉 4.5s（= 预算的 3 倍）；而 2026-11 那次误报的外壳墙钟是 4.3s
-      // （预算 1.5s ⇒ 开销 ≈ 2.8s），所以 6s 这条线不是「随便放大的上限」，是命令自身的耗时。
-      expect(result!.ms).toBeLessThan(6_000)
+      // `Date.now()` 差 —— 外壳的调度与回收延迟不进这个数。
+      // 负载余量：这条线原来是 6s（余量 4.5s，自以为够）。2026-11-23 在 prepush 冷跑（lint 与
+      // 类型检查并行抢 CPU）时实测 spawn + taskkill 花了 4.8s，当场假红 —— 于是把命令自己的耗时
+      // 拉到 20s：余量 18.5s，而预算生效时的测试耗时一点没变（仍是约 1.5s 加回收开销）。
+      expect(result!.ms).toBeLessThan(20_000)
     }
     finally {
       // 自建的临时目录（os.tmpdir 下，不是仓库内容）
       rmSync(dir, { recursive: true, force: true })
     }
-  }, 30_000)
+  }, 60_000)
 
   it('环境变量 PREPUSH_BUDGET_MS 仍然覆盖全表：优先级高于段表 budgetMs（一处放宽/收紧的入口不许失效）', async () => {
     const saved = process.env[PREPUSH_BUDGET_ENV]
@@ -561,6 +687,50 @@ describe('单段预算 —— 冷缓存下不许把还在跑的段判死', () =>
       if (gate.id === 'lint' || gate.id === 'test')
         continue
       expect(gate.budgetMs, `${gate.id} 段不该有自己的预算（它没有越过全局值的实测证据）`).toBeUndefined()
+    }
+  })
+})
+
+/**
+ * 原生崩溃的提示（`nativeCrashNote`）。
+ *
+ * 判据有两条，缺一条这条提示就是有害的：**认得出**真实工具转述退出码的写法（认不出 = 提示永远不出现，
+ * 等于没写）；**不误认**裸数字与普通的非零退出（误认 = 把一条真的门禁失败说成「重跑就好」）。
+ * 正反两面的样本都取自真实输出（2026-11-24 的 turbo / pnpm 日志）。
+ */
+describe('nativeCrashNote —— 认得出原生崩溃，也不把它误判到别的失败上', () => {
+  it('turbo 与 pnpm 转述的访问冲突退出码 ⇒ 给出提示，且说明「不是查出了问题」与下一步', () => {
+    const turbo = '@walnut/admin#lint:  ERROR  command (D:\\walnut-admin\\walnut-admin\\apps\\admin) C:\\nvm4w\\nodejs\\pnpm.cmd run lint exited (-1073741819)'
+    const pnpmSigned = '[ELIFECYCLE] Command failed with exit code -1073741819.'
+    const pnpmUnsigned = 'npm ERR! Exit code 3221225477'
+    for (const sample of [turbo, pnpmSigned, pnpmUnsigned]) {
+      const note = nativeCrashNote(`…噪音…\n${sample}\n…噪音…`)
+      expect(note, `没认出：${sample}`).not.toBeNull()
+      expect(note).toContain('0xC0000005')
+      expect(note).toContain('不是这条命令查出了问题')
+      expect(note).toContain('重跑')
+    }
+  })
+
+  it('普通失败 ⇒ null（不许把真违规说成「重跑就好」）', () => {
+    for (const sample of [
+      '',
+      '@walnut/admin#lint:   28:3  error  Prefer using a top-level type-only import',
+      '@walnut/admin#lint: [ELIFECYCLE] Command failed with exit code 1.',
+      '@walnut/admin#lint:  ERROR  command exited (1)',
+      '[ELIFECYCLE] Command failed with exit code 134.', // V8 的 OOM 是 abort，有报错原文，不走这条提示
+    ]) {
+      expect(nativeCrashNote(sample), `误认了：${JSON.stringify(sample)}`).toBeNull()
+    }
+  })
+
+  it('裸数字不算（日志里碰巧出现这个数不该触发提示，只认带上下文的写法）', () => {
+    for (const sample of [
+      '耗时 3221225477 纳秒',
+      'hash: -1073741819',
+      'exit code 32212254771', // 前缀相同、但不是这个退出码
+    ]) {
+      expect(nativeCrashNote(sample), `误认了：${sample}`).toBeNull()
     }
   })
 })

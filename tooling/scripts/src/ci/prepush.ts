@@ -11,16 +11,17 @@
  * 现在：**门禁表就是这个数组**，增删改都只看这一处；命令行只剩一个词 `pnpm prepush`
  * （= `walnut-prepush`）；文档只指向本文件。顺带拿到的两件事：
  *
- * - **并行**：表里绝大多数段是秒级的纯读盘检查，唯一的重活（`types:check`）以前只能排在
+ * - **并行**：表里绝大多数段是秒级的纯读盘检查，重活（`lint` / `types:check` / `test`）以前只能排在
  *   它们后面干等。现在按有界并发跑，重活与轻活重叠。
  * - **每段耗时**：以前哪一段慢完全看不出来（`&&` 串只给一个总时间）。
  *
  * ## 为什么不搬进 `lefthook.yml`
  *
  * 曾经认真考虑过「pre-push 下写十几个 job」。**没搬的两个理由**：
- * ① `pnpm prepush` 这个名字被发版工具链引用着（`release/src/release/env.ts` 与
- *    `lib/child-run.ts` 都要在发版流程里剥掉 `LEFTHOOK*` 环境变量，否则发版时的 `git push`
- *    会递归触发它自己）—— 搬走等于让发版代码去认识一个钩子配置。
+ * ① pre-push 钩子跑的就是这一条命令（`lefthook.yml` 里是 `pnpm --silent prepush`），发版工具链的
+ *    环境策略也是围着它定的：发版时的 `git push` 会触发钩子，所以发版子进程的环境里必须先剥掉
+ *    凭据（`release/src/release/env.ts` 的 `GITHUB_TOKEN` / `GH_TOKEN`），钩子里跑的脚本不许看到
+ *    发版机的 token。把门禁搬进 `lefthook.yml`，这条关系就散到两个地方了。
  * ② ADR 0018 给「收敛成单条命令」的理由（「被截断只会退化成命令不存在」）**是冲着旧
  *    simple-git-hooks 说的** —— 那时命令链真的被 postinstall 写进 `.git/hooks/*`。迁到 lefthook
  *    之后，生成的钩子文件里**一条门禁命令都没有**（它只是 `lefthook run "pre-push"` 的启动器），
@@ -31,6 +32,8 @@
  * 并行之后**完成顺序不等于表里的顺序**。表里的顺序表达的是「读起来该按什么顺序理解」，
  * 不是依赖关系 —— 表里各段之间**没有任何依赖**（都是只读检查，不产生产物给对方用）。
  * 哪天出现真有依赖的两段，就该把它们合成一段，而不是靠顺序兜。
+ * 唯一的例外是**资源**而不是依赖：经 turbo 扇出的三段进同一条重道互斥（见 {@link PrepushGate.lane}），
+ * 那决定的是「谁和谁同时跑」。
  *
  * ## 三种结局，不是两种
  *
@@ -45,8 +48,9 @@
 
 import process from 'node:process'
 import { ChildRunError, runArgs } from '../lib/child-run.ts'
+import { resolveCommandArgv } from '../lib/commands.ts'
 import { SKIPPED_EXIT_CODE, ViolationError } from '../lib/errors.ts'
-import { err, line, out } from '../lib/log.ts'
+import { err, line, lineErr, out } from '../lib/log.ts'
 import { getPnpmBin } from '../lib/pnpm-launcher.ts'
 import { REPO_ROOT } from '../lib/repo-root.ts'
 
@@ -73,9 +77,47 @@ export interface PrepushGate {
    * `PREPUSH_BUDGET_MS` 仍然**一处**覆盖全表（整台机器都慢的场合），且优先级高于这里的值。
    */
   budgetMs?: number
+  /**
+   * 重道：**同名**的段互斥（同一时刻只跑一条），不挡别的段。
+   *
+   * 为什么需要：并发上限数的是「段」，数不到段里面的扇出。`lint` / `types` / `test` 三段都经 turbo
+   * 展开成最多 4 路包级任务（`turbo.json` 的 `concurrency`），每路再起自己的子进程（vitest 的
+   * forks 工作进程按**整台机器**的核数开，它不知道外面还有几段在跑）。三段同时跑 = 12 路包级任务
+   * 加各自的子进程挤在同一台机器上，12 核被抢满 —— 而扇出去的子进程里有**写死的超时**，配置调不到：
+   * vitest 等 forks 工作进程启动的 `START_TIMEOUT` 是常量 60s，不读任何配置。
+   *
+   * 实测（2026-11-24，冷缓存 + 三段并行）：`@walnut/client` 的 6 个工作进程 60s 内一个都没启动完
+   * ⇒ 6 条 unhandled error ⇒ `test` 段假红；同一批用例单独跑 6 个文件全过。根因相同的另一次假红
+   * 在前一天：`@walnut/scripts` 里「读一个 tsconfig」的断言在 5s 处超时（见 `vitest.config.ts`）。
+   *
+   * 为什么不去调低 turbo 的 `--concurrency` 或 vitest 的 worker 数：那是改「门禁跑的命令」，
+   * 门禁应当与 `pnpm walnut lint` / `pnpm walnut test` 各自单跑时是**同一条命令**；而且无论调到
+   * 多低，换一台核数不同的机器就又不对了。互斥只改「谁和谁同时跑」，与核数无关。
+   *
+   * 代价与实测（2026-11-24，turbo 缓存目录指向空目录 = 全冷；本机 12 逻辑核）：
+   *   · 互斥之后三段依次跑：`lint` 169s、`types` 36s、`test` 96s，整表 301s，全表通过；
+   *   · 互斥之前三段并行：单段各自要 230s / 90～200s / 150～210s，整表 264～450s —— 而且那几次
+   *     全冷里有两次 `test` 段被抢红。并行并没有让谁更早结束，只是把同样的活拖长再叠在一起。
+   * 也就是全冷时整表多花不到一分钟，换来结论可复现。热缓存下三段都是缓存命中，互斥不产生
+   * 可感知的等待。
+   *
+   * 顺带量到的一件事（同一轮实测）：`lint` 一段自己就要十几 GB 提交内存 —— admin 的 eslint 开
+   * 4 个 worker、各带一份完整的 TS 程序；`types` / `test` / `dts` / `openapi` 各自只有 2～4GB。
+   * 内存紧的机器上第一个出问题的就是它，调 admin 的 lint 并发数之前先看这里。
+   */
+  lane?: string
   /** 为什么它在**推送前**必须跑 —— 这一列是给人看的，也是「凭什么」 */
   why: string
 }
+
+/**
+ * 经 turbo 扇出的重段所在的重道（见 {@link PrepushGate.lane}）。
+ *
+ * 判据而不是名单：`argv` 是 `exec turbo run <包级任务>` 的段都在这条道里 —— 包级任务指**有
+ * workspace 包声明了这个脚本**（会展开成多路）；只有根任务的 `lint-root`（`turbo run lint:root`
+ * 只跑 `//#lint:root`，一路、秒级）不进。由用例机械核对，新加一段 turbo 门禁时漏填会红。
+ */
+export const TURBO_LANE = 'turbo'
 
 /**
  * 冷跑最慢那两段（`lint` / `test`）的预算：15 分钟。
@@ -123,13 +165,15 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     argv: ['exec', 'turbo', 'run', 'lint'],
     // 冷缓存实测 309.5s（15 包全 cache miss），**且是被 300s 预算截断的下界** ⇒ 15 分钟，实测表见 SLOW_GATE_BUDGET_MS
     budgetMs: SLOW_GATE_BUDGET_MS,
+    lane: TURBO_LANE,
     why: '**这一段的缺位被实测抓到过**（留档 V14）：`prepush` 原先只有 `lint:root`，而 `lint-staged` 的 glob 是 `*.{ts,vue,js}` ⇒ **纯 JSON / 非 TS 文件**的 lint 问题在推送前**没有任何一段看得见**，只在 CI 的 `Lint (affected)` 现形（当时改的是 `tsconfig.dts.json`，本地 18 段全绿、CI 会红）。发版电池里一直有这一段，prepush 漏了；走的也是 turbo，所以没改动的包命中缓存、冷跑才是全量。',
   },
   {
     id: 'lint-root',
     label: 'lint 根级配置（turbo run //#lint:root）',
-    // 走 turbo 而不是直接 `pnpm lint:root`：根任务有精确的 inputs（就是脚本里那三个 glob），
+    // 走 turbo 而不是直接 `pnpm walnut lint:root`：根任务有精确的 inputs（就是命令表里那三个 glob），
     // 没改根级文件时命中缓存 —— 实测冷跑 3.8s / 热跑 0.1s（以前每次 push 都真跑 12s 上下）。
+    // 前提是根 `package.json` 里有 `lint:root` 脚本（`//#lint:root` 要跑根上同名脚本，缺了它就是空转）。
     argv: ['exec', 'turbo', 'run', 'lint:root'],
     why: '根级文件（`eslint.config.ts` / `knip.config.ts` / `package.json` / `pnpm-workspace.yaml`）**不在任何包的 lint 范围里**（它们不进 turbo 的包图），所以必须单独一段。',
   },
@@ -137,11 +181,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     id: 'types',
     label: '类型检查（不排任何包）',
     argv: ['exec', 'turbo', 'run', 'types:check'],
-    why: '唯一的重活。它必须**不排包**地跑 —— 排包会让「被改动的包依赖的包」漏检。',
+    lane: TURBO_LANE,
+    why: '最重的一段。它必须**不排包**地跑 —— 排包会让「被改动的包依赖的包」漏检。',
   },
   {
     id: 'types-root',
-    label: '根级配置类型检查（pnpm types:check:root）',
+    label: '根级配置类型检查（pnpm walnut types:check:root）',
     argv: ['types:check:root'],
     why: '与 `lint:root` 同理：根 `tsconfig.json` 覆盖的那几个配置**不入 turbo 的图**，没有这一段就没人检查它们的类型。',
   },
@@ -152,6 +197,7 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     argv: ['exec', 'turbo', 'run', 'test'],
     // 冷缓存实测 241.5s 也是**下界**（那次是被 lint 段的「杀全部」连带收掉的）⇒ 同一档 15 分钟，实测表见 SLOW_GATE_BUDGET_MS
     budgetMs: SLOW_GATE_BUDGET_MS,
+    lane: TURBO_LANE,
     why: '**这一段的缺位被实测抓到过**（2026-11 · 批次 2 R3）：`@walnut/release` 的电池表加了 circular 行，而 fixture 与 release.md 电池表没同步 ⇒ 2 个用例红 —— 这类失败**只有 test 段看得见**，而 prepush 当时 25 段里没有它，于是红着照样推得出去（发版电池里一直有这一段，prepush 漏了）。走的也是 turbo，所以没改动的包命中缓存、冷跑才是全量。',
   },
   {
@@ -265,6 +311,12 @@ export const PREPUSH_GATES: readonly PrepushGate[] = [
     label: '入口 nginx 安全响应头（conf.d）',
     argv: ['lint:nginx-headers'],
     why: 'nginx 的 `add_header` 是**整段替换**不是合并：某个 location 自己写了一条，就把 server 级的 4 个安全头全吃掉；两个并列的 `server` 块之间也不互相继承（2026-09-23 实测 `api.conf` 一个头都没有）。本机没有 Docker ⇒ `nginx -t` 都跑不了，这是唯一在推送前能看见它的地方。',
+  },
+  {
+    id: 'post-verify',
+    label: '部署后验证脚本的行为测试（deploy/post-verify.test.sh）',
+    argv: ['lint:post-verify'],
+    why: '`deploy/post-verify.sh` 是部署之后唯一证明「服务真的在工作」的一步（容器/重启次数、镜像 tag、后端日志、5xx、端到端、安全头、/health 挡板），而它的各条失败分支只有这个行为测试能证明还会红（假 docker / curl，不需要 Docker）。改判据时写错一行的症状不是报错，而是**该失败的分支静默通过** —— 那时镜像已经上线。这一段有适用范围：只有改了部署脚本、它的行为测试或入口 nginx 配置时才真跑（Windows 上约 3 分钟），与之无关的推送不付这笔时间；CI 上每次都跑。',
   },
   {
     id: 'exports',
@@ -390,7 +442,9 @@ export function createPnpmGateExecutor(options: GateExecutorOptions = {}): GateE
   return async (gate, write) => {
     // argv + followups 是同一段的**一条结论**：顺序执行，任一步非零就整段失败（不继续下一步）
     for (const argv of [gate.argv, ...(gate.followups ?? [])]) {
-      await runArgs(bin, argv, {
+      // 表里的 argv 写在**可执行的名字**上（`lint:adr` / `madge:check` / 保留的根脚本名）：
+      // 由命令表解析成真正要跑的 argv，表与逐字钉着它的用例都不必跟着根脚本瘦身改一遍。
+      await runArgs(bin, resolveCommandArgv(argv), {
         // cwd 必须是**仓库根**：从子目录跑时 `pnpm <脚本>` 会解析到最近那个包的脚本
         cwd: REPO_ROOT,
         // 并行下不转播子进程输出（多路交织会糊成一片）；收进缓冲，失败时整段回放
@@ -414,6 +468,10 @@ export function createPnpmGateExecutor(options: GateExecutorOptions = {}): GateE
  * 并发的前提是**互不牵连**：一段超时只该收它自己的进程树（隔离落在 `runArgs` /
  * `lib/child-tree.ts`，见 {@link createPnpmGateExecutor}），兄弟段继续跑完并各自给出真实结论。
  * 否则「并行」会把一次超时放大成好几条假红 —— 那比不并行更糟（不并行至少只红一条）。
+ *
+ * 领段的规则：worker 按**表里的顺序**领下一段**可领的**段。重道被占着的段先跳过（不占位、
+ * 不改它在表里的顺序），等重道腾出来再领；所有没跑的段都被重道挡着时，空闲的 worker 等在
+ * 那里 —— 任意一段结束都会把它们全部叫醒，醒来各自重新领（白醒一次无害）。
  */
 export async function runGates(
   gates: readonly PrepushGate[],
@@ -422,13 +480,34 @@ export async function runGates(
   execute: GateExecutor = createPnpmGateExecutor(),
 ): Promise<GateResult[]> {
   const results = new Map<string, GateResult>()
-  let next = 0
+  /** 还没被领走的段（保持表序；领走即移除） */
+  const pending = [...gates]
+  /** 正在跑的重道（见 {@link PrepushGate.lane}） */
+  const busyLanes = new Set<string>()
+  /** 等重道腾出来的 worker；任意一段结束就全部叫醒 */
+  const waiting = new Set<() => void>()
+
+  /** 领下一段可领的段；没有可领的返回 `null`（表空了，或都被重道挡着） */
+  function take(): PrepushGate | null {
+    const index = pending.findIndex(gate => gate.lane === undefined || !busyLanes.has(gate.lane))
+    const gate = index === -1 ? undefined : pending[index]
+    if (gate === undefined)
+      return null
+    pending.splice(index, 1)
+    if (gate.lane !== undefined)
+      busyLanes.add(gate.lane)
+    return gate
+  }
 
   async function worker(): Promise<void> {
-    while (next < gates.length) {
-      const gate = gates[next++]
-      if (!gate)
-        return
+    for (;;) {
+      const gate = take()
+      if (gate === null) {
+        if (pending.length === 0)
+          return
+        await new Promise<void>(resolve => waiting.add(resolve))
+        continue
+      }
       const started = Date.now()
       const chunks: string[] = []
       let status: GateStatus = 'ok'
@@ -442,6 +521,15 @@ export async function runGates(
           ? 'skipped'
           : 'failed'
         chunks.push(error instanceof Error ? error.message : String(error))
+      }
+      finally {
+        // 无论这一段怎么结束（通过 / 失败 / 跳过）重道都要腾出来：漏腾一次，同道的后一段永远不跑
+        // = 静默少跑一道闸。先腾道、后报结果 —— 叫醒的 worker 要等本轮同步代码跑完才会动，抢不到前面
+        if (gate.lane !== undefined)
+          busyLanes.delete(gate.lane)
+        for (const wake of waiting)
+          wake()
+        waiting.clear()
       }
       const result: GateResult = { gate, status, ms: Date.now() - started, output: chunks.join('') }
       results.set(gate.id, result)
@@ -538,10 +626,39 @@ export function summarizeRun(
   }
 }
 
+/**
+ * 退出码 `0xC0000005`（访问冲突；十进制 3221225477，有符号 -1073741819）在工具输出里的两种写法。
+ *
+ * 只认**带上下文**的写法，不认裸数字：日志里碰巧出现这个数的概率不为零，认错了提示就是一条误导。
+ * turbo 打的是 `… exited (-1073741819)`，pnpm 打的是 `exit code -1073741819`，npm 打的是 `Exit code 3221225477`。
+ */
+const NATIVE_CRASH_EXIT = /exited \((?:-1073741819|3221225477)\)|[eE]xit code (?:-1073741819|3221225477)\b/
+
+/**
+ * 一段的输出里认得出「Node 进程的原生崩溃」时给出一句提示；否则 `null`。
+ *
+ * 为什么需要：这样退出的子进程**不留任何报错** —— 没有 JS 栈、没有 stderr，只剩上游工具转述的退出码。
+ * 把它当一条普通的门禁失败去读，读到的是一屏 turbo 日志，看不出「重跑一次」是有依据的下一步。
+ *
+ * 实测背景（2026-11-24，本机 Windows + Node 24）：`@walnut/admin` 的 eslint 在机器安静时连跑十次
+ * 零复现，别的重任务并行时约三次里有一次这样退出。逐一量过并排除了的成因：提交内存水位（崩溃时很低）、
+ * worker 线程并发（关掉并发照崩）、堆上限配置（8GB 确实生效）、turbo 包装（不经 turbo 照崩）。
+ * 成因**没有查明** —— 要看出错模块得有崩溃转储。所以这句提示只说事实、不猜成因，也不改判决：
+ * 该红照样红。
+ *
+ * 靠输出文本认而不是读 `exitCode`：走到这里时退出码早被 turbo / pnpm 收敛成 1 了，原文只存在于输出里。
+ */
+export function nativeCrashNote(output: string): string | null {
+  if (!NATIVE_CRASH_EXIT.test(output))
+    return null
+  return '这一段里有进程以访问冲突退出（0xC0000005）：Node 进程的原生崩溃，不是这条命令查出了问题，输出里不会有成因。'
+    + '本机实测它与机器负载相关，重跑一次通常就过；反复出现时再抓崩溃转储排查。'
+}
+
 export async function main(): Promise<void> {
   const concurrency = Math.max(1, Number(process.env.PREPUSH_CONCURRENCY) || DEFAULT_CONCURRENCY)
   const started = Date.now()
-  out(`推送前门禁：${PREPUSH_GATES.length} 段，最多并行 ${concurrency} 路（表在 packages/tooling/scripts/src/ci/prepush.ts）`)
+  out(`推送前门禁：${PREPUSH_GATES.length} 段，最多并行 ${concurrency} 路（表在 tooling/scripts/src/ci/prepush.ts）`)
 
   const results = await runGates(PREPUSH_GATES, result => out(formatLine(result)), concurrency)
   const total = ((Date.now() - started) / 1000).toFixed(1)
@@ -563,6 +680,10 @@ export async function main(): Promise<void> {
     err(`\n${'─'.repeat(20)} ${result.gate.label} 失败（${(result.ms / 1000).toFixed(1)}s） ${'─'.repeat(20)}`)
     err(`为什么必须有这一段：${result.gate.why}`)
     err(result.output.trimEnd() || '（这一段没有输出，只有非零退出码）')
+    // 原生崩溃与「查出了问题」同形（都是非零退出码），但下一步完全不同：先说清是哪一种
+    const crashNote = nativeCrashNote(result.output)
+    if (crashNote !== null)
+      lineErr('warning', crashNote)
   }
   // 这一行是**明细**（哪几段、各自耗时），不带标记 —— 唯一那句结论由 `runCli` 打
   err(`${summary.failed.length}/${results.length} 段失败：${summary.failed.map(r => r.gate.id).join(', ')}（总 ${total}s）`)
