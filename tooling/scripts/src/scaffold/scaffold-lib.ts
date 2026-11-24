@@ -19,7 +19,7 @@ import {
 } from './lib-registration.ts'
 
 const USAGE = [
-  '用法：pnpm scaffold:lib <name> --layer=<层> [--dry-run]',
+  '用法：pnpm walnut scaffold:lib <name> --layer=<层> [--dry-run]',
   '',
   '  <name>   小写 kebab-case（例：scope-resolver）',
   `  --layer  必填。可自动登记：${LAYER_CHOICES}`,
@@ -102,6 +102,6 @@ export async function main(): Promise<void> {
   out('')
   out('下一步（两条都必须绿）：')
   out('  pnpm --filter @walnut/server types:check')
-  out('  cd apps/server && node_modules\\.bin\\vitest.cmd run --config ./apps/api/vitest.config.ts apps/api/src/common/monorepo/__tests__/lib-registration.drift.spec.ts')
+  out('  cd apps/server && node_modules\\.bin\\vitest.cmd run --config ./apps/api/vitest.config.ts apps/api/test/architecture/lib-registration.drift.spec.ts')
   line('ok', `已写入 ${changed.length} 个文件`)
 }

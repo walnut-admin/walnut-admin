@@ -9,8 +9,8 @@
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { REPO_ROOT } from '../../lib/repo-root.ts'
 import { JUNCTION_SPECS, JUNCTION_TABLES, reshapeCollection, ROW_SPECS, SEED_TABLES, stringifySeedRows, toSeedValue } from '../seed-reshape.ts'
 
 const TS = '2020-11-24T13:54:44.222Z'
@@ -224,7 +224,7 @@ describe('注册表形态', () => {
 })
 
 describe('仓内 seed 文件（真源形态）', () => {
-  const seedDir = fileURLToPath(new URL('../../../../../../apps/server/db/seed', import.meta.url))
+  const seedDir = join(REPO_ROOT, 'apps/server/db/seed')
 
   it('每个文件都是**行数组**：有 id、没有 $oid / $date 包装', () => {
     for (const collection of SEED_TABLES) {

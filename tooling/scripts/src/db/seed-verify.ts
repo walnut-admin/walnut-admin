@@ -106,12 +106,19 @@ export function extractBaseline(repoRoot: string, ref: string): { dir: string, s
   rmSync(dir, { recursive: true, force: true })
   mkdirSync(dir, { recursive: true })
   const tarPath = join(dir, 'baseline.tar')
+  // 下面的路径是**基线提交**（默认 DEFAULT_BASELINE_REF）那棵树里的路径，不是当前工作区的路径。
+  // 路径跟着 ref 走：基线若挪到 2026-11 的 tooling 迁移之后，这两行必须一并改成 `tooling/scripts/…`。
   runShell(`git archive --format=tar -o "${tarPath}" ${ref} packages/tooling/scripts/src packages/tooling/scripts/bin ${SEED_DIR}`, { cwd: repoRoot })
-  runShell(`tar -xf "${tarPath}" -C "${dir}"`, { cwd: repoRoot })
+  // 解包用**相对路径**、cwd 切到目标目录：不把带盘符的绝对路径交给 tar。
+  // 从 Git Bash 起的进程里，`tar` 先解析到 Git 自带的 GNU tar，它把 `D:\…` 的盘符当成远程主机名
+  // （`tar: Cannot connect to D: resolve failed`，2026-11-23 实测），对拍在第一步就停；
+  // Windows 自带的 bsdtar 没有这个问题，但同一份脚本不该因终端不同而一个能跑一个不能跑。
+  runShell('tar -xf baseline.tar', { cwd: dir })
 
   return {
     dir,
     seedDir: join(dir, SEED_DIR),
+    // 同上：基线树里的 bin 路径，随 ref 走，不随当前目录结构走。
     bin: join(dir, 'packages/tooling/scripts/bin/db-seed-pg.ts'),
   }
 }
@@ -161,7 +168,7 @@ export function seedDatabase(repoRoot: string, bin: string, seedDir: string, dat
 export function exportSnapshot(repoRoot: string, database: string, outDir: string): void {
   rmSync(outDir, { recursive: true, force: true })
   runShell(
-    `node "${join(repoRoot, 'packages/tooling/scripts/bin/db-export-pg.ts')}" --pg-db ${database} --out "${outDir}"`,
+    `node "${join(repoRoot, 'tooling/scripts/bin/db-export-pg.ts')}" --pg-db ${database} --out "${outDir}"`,
     { cwd: repoRoot },
   )
 }
@@ -218,52 +225,62 @@ export async function main(): Promise<void> {
   out(`  库：${opts.dbA} / ${opts.dbB}（都会先 DROP，**不碰**现有库）`)
   out(`  比对面：${tables.length} 个表（全部列）+ 各导出一次 db:export:pg 的文件内容`)
 
-  out(`[1/5] 从 git 取基线到 ${WORK_DIR}/${opts.baselineRef}`)
-  const baseline = extractBaseline(repoRoot, opts.baselineRef)
+  // 工作目录落在 `apps/server/.tmp/` 下是有意的（见 extractBaseline 的注释：基线 CLI 要解析到
+  // `apps/server/node_modules` 里的 pg 等依赖），所以它必须**跑完就收走**：留着的话，
+  // `turbo boundaries` 会把基线树里的旧代码当成 `@walnut/server` 的源码扫进去 —— 那些旧文件
+  // import 了本包没声明的依赖，架构边界门禁随即假红（2026-11-23 实测：本命令第一次在 Windows 上
+  // 跑通之后，下一段 `boundaries` 就报了 2 条违规）。目录是从 git 现取的，收走不丢任何信息。
+  const workDir = join(repoRoot, WORK_DIR, opts.baselineRef)
+  try {
+    out(`[1/5] 从 git 取基线到 ${WORK_DIR}/${opts.baselineRef}`)
+    const baseline = extractBaseline(repoRoot, opts.baselineRef)
 
-  out(`[2/5] 建两个空库并跑 migration`)
-  for (const database of [opts.dbA, opts.dbB]) {
-    await recreateDatabase(target, database)
-    runMigrations(repoRoot, database)
+    out(`[2/5] 建两个空库并跑 migration`)
+    for (const database of [opts.dbA, opts.dbB]) {
+      await recreateDatabase(target, database)
+      runMigrations(repoRoot, database)
+    }
+
+    out(`[3/5] 播种：A = 基线管线 + 基线 seed；B = 现管线 + 仓内 seed`)
+    const seededA = seedDatabase(repoRoot, baseline.bin, baseline.seedDir, opts.dbA)
+    const seededB = seedDatabase(repoRoot, join(repoRoot, 'tooling/scripts/bin/db-seed-pg.ts'), join(repoRoot, SEED_DIR), opts.dbB)
+    out(`  A: ${seededA.trim().split('\n').filter(Boolean).length} 行输出；B: ${seededB.trim().split('\n').filter(Boolean).length} 行输出`)
+
+    out(`[4/5] 逐表比全部列`)
+    const rowsA = await dumpTables(target, opts.dbA, tables)
+    const rowsB = await dumpTables(target, opts.dbB, tables)
+    const diffs = tables.map(table => diffTableRows(table, rowsA.get(table) ?? [], rowsB.get(table) ?? []))
+    for (const diff of diffs) {
+      const mark = diff.firstDifference === null ? '✅' : '✖'
+      out(`  ${mark} ${diff.table.padEnd(16)} A=${String(diff.rowsA).padStart(6)} B=${String(diff.rowsB).padStart(6)}`)
+      if (diff.firstDifference !== null)
+        out(`     ${diff.firstDifference.replaceAll('\n', '\n     ')}`)
+    }
+
+    out(`[5/5] 各导出一次 db:export:pg 并比文件内容`)
+    exportSnapshot(repoRoot, opts.dbA, join(workDir, 'export-a'))
+    exportSnapshot(repoRoot, opts.dbB, join(workDir, 'export-b'))
+    const exportFiles = readdirSync(join(workDir, 'export-a')).filter(file => file.endsWith('.json')).sort()
+    const exportDiffs: string[] = []
+    for (const file of exportFiles) {
+      const a = readFileSync(join(workDir, 'export-a', file), 'utf8')
+      const b = readFileSync(join(workDir, 'export-b', file), 'utf8')
+      const same = a === b
+      if (!same)
+        exportDiffs.push(file)
+      out(`  ${same ? '✅' : '✖'} ${file.padEnd(22)} ${same ? `${a.length} 字符` : `A=${a.length} / B=${b.length} 字符`}`)
+    }
+
+    const tableDiffs = diffs.filter(diff => diff.firstDifference !== null)
+    if (tableDiffs.length > 0 || exportDiffs.length > 0) {
+      throw new ViolationError(
+        `对拍不一致：表 ${tableDiffs.map(d => d.table).join(', ') || '（无）'}；导出文件 ${exportDiffs.join(', ') || '（无）'}`,
+      )
+    }
+
+    line('ok', `对拍全等：${tables.length} 个表（全部列）+ ${exportFiles.length} 个导出文件，两库逐行逐字节相同`)
   }
-
-  out(`[3/5] 播种：A = 基线管线 + 基线 seed；B = 现管线 + 仓内 seed`)
-  const seededA = seedDatabase(repoRoot, baseline.bin, baseline.seedDir, opts.dbA)
-  const seededB = seedDatabase(repoRoot, join(repoRoot, 'packages/tooling/scripts/bin/db-seed-pg.ts'), join(repoRoot, SEED_DIR), opts.dbB)
-  out(`  A: ${seededA.trim().split('\n').filter(Boolean).length} 行输出；B: ${seededB.trim().split('\n').filter(Boolean).length} 行输出`)
-
-  out(`[4/5] 逐表比全部列`)
-  const rowsA = await dumpTables(target, opts.dbA, tables)
-  const rowsB = await dumpTables(target, opts.dbB, tables)
-  const diffs = tables.map(table => diffTableRows(table, rowsA.get(table) ?? [], rowsB.get(table) ?? []))
-  for (const diff of diffs) {
-    const mark = diff.firstDifference === null ? '✅' : '✖'
-    out(`  ${mark} ${diff.table.padEnd(16)} A=${String(diff.rowsA).padStart(6)} B=${String(diff.rowsB).padStart(6)}`)
-    if (diff.firstDifference !== null)
-      out(`     ${diff.firstDifference.replaceAll('\n', '\n     ')}`)
+  finally {
+    rmSync(workDir, { recursive: true, force: true })
   }
-
-  out(`[5/5] 各导出一次 db:export:pg 并比文件内容`)
-  const outDir = join(repoRoot, WORK_DIR, opts.baselineRef)
-  exportSnapshot(repoRoot, opts.dbA, join(outDir, 'export-a'))
-  exportSnapshot(repoRoot, opts.dbB, join(outDir, 'export-b'))
-  const exportFiles = readdirSync(join(outDir, 'export-a')).filter(file => file.endsWith('.json')).sort()
-  const exportDiffs: string[] = []
-  for (const file of exportFiles) {
-    const a = readFileSync(join(outDir, 'export-a', file), 'utf8')
-    const b = readFileSync(join(outDir, 'export-b', file), 'utf8')
-    const same = a === b
-    if (!same)
-      exportDiffs.push(file)
-    out(`  ${same ? '✅' : '✖'} ${file.padEnd(22)} ${same ? `${a.length} 字符` : `A=${a.length} / B=${b.length} 字符`}`)
-  }
-
-  const tableDiffs = diffs.filter(diff => diff.firstDifference !== null)
-  if (tableDiffs.length > 0 || exportDiffs.length > 0) {
-    throw new ViolationError(
-      `对拍不一致：表 ${tableDiffs.map(d => d.table).join(', ') || '（无）'}；导出文件 ${exportDiffs.join(', ') || '（无）'}`,
-    )
-  }
-
-  line('ok', `对拍全等：${tables.length} 个表（全部列）+ ${exportFiles.length} 个导出文件，两库逐行逐字节相同`)
 }

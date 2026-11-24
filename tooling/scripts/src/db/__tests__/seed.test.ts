@@ -11,9 +11,9 @@
 import { Buffer } from 'node:buffer'
 import { readFileSync } from 'node:fs'
 import path, { join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { server } from '@serenity-kit/opaque'
 import { describe, expect, it } from 'vitest'
+import { REPO_ROOT } from '../../lib/repo-root.ts'
 import { buildPasswordIdentity, verifyPasswordIdentity } from '../admin-credential.ts'
 import { generateAesKey, generateAppKeys, generateRsaKey, KEY_VALID_DAYS } from '../app-keys.ts'
 import { fromExtendedJson, parseCollectionFile, stringifyCollectionFile, toExtendedJson } from '../ejson.ts'
@@ -52,8 +52,7 @@ describe('ejson', () => {
   })
 
   it('仓内 seed **不再是** Extended JSON：解析出来没有 _id / $date（真源已换成 PG 行形态）', () => {
-    // 用例的 cwd 是包目录，所以这里从**本文件位置**推仓库根（6 层：__tests__ → db → src → scripts → tooling → packages）
-    const seedDir = fileURLToPath(new URL('../../../../../../apps/server/db/seed', import.meta.url))
+    const seedDir = join(REPO_ROOT, 'apps/server/db/seed')
     const docs = parseCollectionFile(readSysRoleFile(seedDir))
     expect(docs.length).toBeGreaterThan(0)
     expect(docs[0]._id).toBeUndefined()
@@ -196,7 +195,7 @@ describe('口令凭证（OPAQUE 注册 + 登录验证）', () => {
 
 describe('seed 目录', () => {
   it('列集合时按文件名排序、忽略非 json', () => {
-    const dir = fileURLToPath(new URL('../../../../../../apps/server/db/seed', import.meta.url))
+    const dir = join(REPO_ROOT, 'apps/server/db/seed')
     const names = listSeedCollections(dir)
     expect(names).toContain('app_setting')
     expect(names).toContain('sys_locale')

@@ -300,7 +300,7 @@ export async function main(): Promise<void> {
 
   const files = readdirSync(fromDir).filter(file => file.endsWith('.json')).sort()
   if (files.length === 0)
-    throw new PreconditionError(`${opts.from} 里没有 .json —— 先跑 \`pnpm db:export:pg --out ${opts.from}\``)
+    throw new PreconditionError(`${opts.from} 里没有 .json —— 先跑 \`pnpm walnut db:export:pg --out ${opts.from}\``)
 
   const collections = files.map(file => file.replace(/\.json$/, ''))
   const unknown = collections.filter(name => !SEED_TABLES.includes(name))

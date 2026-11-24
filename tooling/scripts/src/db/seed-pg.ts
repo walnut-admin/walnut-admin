@@ -90,7 +90,7 @@ export async function readTableMeta(pg: Client, tables: readonly string[]): Prom
   for (const table of tables) {
     const cols = columns.filter(row => row.table_name === table)
     if (cols.length === 0)
-      throw new PreconditionError(`PG 里没有表 ${table} —— 先跑 \`pnpm migration:run\`（seed 目录里有它的文件）`)
+      throw new PreconditionError(`PG 里没有表 ${table} —— 先跑 \`pnpm walnut migration:run\`（seed 目录里有它的文件）`)
     const fkRefs = new Map<string, string>()
     let selfRef: string | null = null
     for (const fk of foreignKeys.filter(row => row.table_name === table)) {
@@ -472,7 +472,7 @@ export async function seedPgAdminCredential(pg: Client, admin: string, password:
   const found = await pg.query<{ id: string }>('SELECT id FROM sys_user WHERE user_name = $1', [admin])
   const user = found.rows[0]
   if (user === undefined)
-    throw new PreconditionError(`PG 里没有账号 ${admin} —— 先跑 \`pnpm db:seed:pg\`（它会播演示账号档案），或换一个已存在的 userName`)
+    throw new PreconditionError(`PG 里没有账号 ${admin} —— 先跑 \`pnpm walnut db:seed:pg\`（它会播演示账号档案），或换一个已存在的 userName`)
 
   let identity
   try {

@@ -365,7 +365,7 @@ export async function main(): Promise<void> {
   // （与"没装浏览器"同档）。判据变红只有一种情形：连上了但应用没 mount。
   if (result === null) {
     line('skipped', '浏览器连不上调试目标（CDP），跳过产物冒烟')
-    out('  排查：手动跑一次 `pnpm smoke:dist`；或设 CHROME_PATH 换一个浏览器。跳过**不等于**通过。')
+    out('  排查：手动跑一次 `pnpm walnut smoke:dist`；或设 CHROME_PATH 换一个浏览器。跳过**不等于**通过。')
     return
   }
 

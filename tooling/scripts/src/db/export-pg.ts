@@ -260,8 +260,8 @@ export async function main(): Promise<void> {
     throw new PreconditionError(
       '导出结果**不能**写进 seed 目录：那里是 PG 行形态真源，本命令产出的是 Extended JSON 快照。'
       + ' 要再生成真源请两步：\n'
-      + '    pnpm db:export:pg --out apps/server/.tmp/pg-export\n'
-      + '    pnpm db:seed:reshape --from apps/server/.tmp/pg-export',
+      + '    pnpm walnut db:export:pg --out apps/server/.tmp/pg-export\n'
+      + '    pnpm walnut db:seed:reshape --from apps/server/.tmp/pg-export',
     )
   }
 
