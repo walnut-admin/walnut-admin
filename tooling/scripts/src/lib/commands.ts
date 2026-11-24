@@ -281,6 +281,42 @@ export const COMMANDS: readonly Command[] = [
     argv: ['run', 'test'],
   },
   {
+    id: 'e2e',
+    group: '门禁',
+    label: '全链路 E2E（独立 PG/Redis 栈 + dist-stage 后端 + dist-staging 前端）',
+    why: '跨端链路（设备身份、CAP、签名握手、风控）只有真实浏览器 + 真实后端能验；这条命令先重建独立库'
+      + '（walnut_e2e / 5433 / 6380，绝不碰 dev 库）再跑 setup + smoke + risk 全部 spec。'
+      + '刻意不进 prepush 与 ci:local：要 Docker 栈、已构建的 dist-stage/dist-staging 与浏览器，'
+      + '重活不属于推送前门禁。',
+    // 先 prepare-db（drop/建库/迁移/seed/root 提升）再 playwright test；顺序写在包脚本里
+    argv: ['-C', 'apps/e2e', 'run', 'e2e'],
+    budgetMs: 0, // 整套分钟级，且含 webServer 启停（不给入口层套上限）
+  },
+  {
+    id: 'e2e:smoke',
+    group: '门禁',
+    label: 'E2E 冒烟子集（setup + UI 登录/首页/用户 CRUD）',
+    why: '改前端或后端引导链后先跑这一组：它含 UI 登录与 MFA，能最快回答「栈还活着吗」。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:smoke'],
+    budgetMs: 0, // 同 e2e：分钟级 + webServer 启停
+  },
+  {
+    id: 'e2e:risk',
+    group: '门禁',
+    label: 'E2E 风险子集（设备 ID 全生命周期）',
+    why: '设备签发 / 40605 自愈 / 滑动续期 / 封禁锁定 / 新设备 CAP 这些链路只有这一组 spec 守着。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:risk'],
+    budgetMs: 0, // 同 e2e
+  },
+  {
+    id: 'e2e:report',
+    group: '门禁',
+    label: '打开上一轮 E2E 的 HTML 报告',
+    why: '失败回放（trace / 截图 / 网络）在 Playwright 报告里；产物落在 gitignored 的 playwright-report/。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:report'],
+    budgetMs: 0, // 起本地报告服务，常驻
+  },
+  {
     id: 'boundaries',
     group: '门禁',
     label: '架构边界（turbo boundaries）',
