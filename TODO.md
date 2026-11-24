@@ -264,7 +264,7 @@
      的并发爆发下仍可能各刷一次，中间重试的请求还可能再弹一轮 —— 缺一个共享的「正在刷新」闸门。
 3. - Q: 加了json-editor后，开 OBFUSCATOR 打包后 codemirror 会报错?
    - A: **只有类级别的解释，没有 codemirror 专属的**；缓解已落在配置里
-     （`build/vite/plugin/obfuscator.ts` 用 `low-obfuscation` +
+     （`tooling/vite-config/src/plugins/obfuscator.ts` 用 `low-obfuscation` +
      `autoExcludeNodeModules.manualChunks`，且由 `VITE_BUILD_OBFUSCATOR` 控制）。
      `plugin.md` 写的是「medium/high 可能导致打包错误，最容易和懒加载或 CDN 插件冲突」。
      json-editor 一侧（`components/Vendor/JSONEditor` 包 `json-editor-vue`，拉进 codemirror 6）

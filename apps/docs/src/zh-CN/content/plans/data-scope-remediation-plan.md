@@ -34,7 +34,7 @@
 |---|---|---|---|---|
 | L1 | P0 | `deptColumn` 更新无应用层防护：基类 `getProtectedOwnerColumn` 只剔 owner 列；DEPT 档管理员可把可见行的 `dept_id` 改到自己天花板外（目前仅三期 RLS WITH CHECK 兜底，应用层自身不设防） | `apps/server/libs/repository/src/pg-base.repository.ts`（getProtectedOwnerColumn 与 update/updateByField 两处调用点） | 批 4 |
 | L2 | P0 | P3-36 缓存残留：`app.functional.role` 设置变更不失效 `AUTH:DATA_SCOPE`，旧描述符最长残留一个 AT TTL（service 自登记「已知残余面」） | `apps/server/libs/system/src/data-scope/data-scope.service.ts` 头注释；`apps/server/apps/api/test/api/DESIGN-ISSUES.md` P3-36 | 批 4 |
-| L3 | P1 | 六档常量三处硬编码：`@walnut/contract` 无 data-scope 常量（违反「跨端常量只改 contract」纪律）；admin 表单 options 是 1-6 字面量；ESLint 实体正则与注册表是两份人肉同步的清单 | `packages/platform-any/contract/src/`（无 data-scope）、`apps/admin/src/views/system/role/index.vue`、`packages/tooling/eslint-config/nest.ts` | 批 5 |
+| L3 | P1 | 六档常量三处硬编码：`@walnut/contract` 无 data-scope 常量（违反「跨端常量只改 contract」纪律）；admin 表单 options 是 1-6 字面量；ESLint 实体正则与注册表是两份人肉同步的清单 | `packages/platform-any/contract/src/`（无 data-scope）、`apps/admin/src/views/system/role/index.vue`、`tooling/eslint-config/nest.ts` | 批 5 |
 | L4 | P1 | 文档口径未收敛：phase2-3-plan 顶部仍「待维护者批准」、批 3 未标已实施；连接占用 spike 是计划自列的前置项，无实测记录 | `apps/docs/src/zh-CN/content/plans/data-scope-phase2-3-plan.md` 头部与 §2.1/§5 | 批 6 |
 | L5 | P1 | RLS 引导密码无生产防呆：迁移内嵌 dev 引导密码（已存在则跳过是唯一防线）；F2 已让 `DATABASE_PG_APP_*` 启动必填，但未拦「dev 密码上生产」 | `apps/server/apps/api/migrations/1793360000000-DataScopePhase3Rls.ts` | 批 6 |
 | L6 | P2 | CUSTOM 档防呆弱：`deptIds` 无数量上限（仅 uuid 校验）；「勾父部门 ≠ 含子部门（CUSTOM 不递归是刻意语义）」仅靠 helpMsg 文案 | `apps/server/libs/system/src/role/dto/role.dto.ts`；`apps/admin/src/views/system/role/index.vue` | 批 7 |
@@ -217,7 +217,7 @@ repo 调用/请求」（ALL 档同样走 RLS 隐式事务路径，连接形态�
 | 1 接口测试 | `apps/server/apps/api/test/api/*.api-spec.ts`（真实 HTTP 全链） | 批 4 越权改归属 + epoch 时序；批 7 422 + 日志断言 |
 | 2 单元测试 | `apps/server/apps/api/src/**/*.spec.ts` 等 | 批 4 两策略 + epoch；批 5 快照/漂移；批 6 config；批 7 DTO/审计 |
 | 3 功能测试 | `data-scope-matrix.api-spec.ts` 的「用户×角色×可见集」场景风格，断言业务结果而非实现细节 | 批 4 M 矩阵扩列 + M10 扩 functional.role；批 7 大清单边界 |
-| 4 全量回归 | 四件套：① vitest 全量（单测+接口+集成）**连续 2 轮稳定**（基线以实施时点输出为准，勿引用本文档数字）② `pnpm prepush`（段数以 `packages/tooling/scripts/src/ci/prepush.ts` 的表为准；跳过会单列成「未验证」，不当通过看）③ `pnpm types:check` ④ 批次附加：动 DTO → openapi 重新生成；动前端 → admin `types:check` + `build:stage` | 每批全跑 |
+| 4 全量回归 | 四件套：① vitest 全量（单测+接口+集成）**连续 2 轮稳定**（基线以实施时点输出为准，勿引用本文档数字）② `pnpm prepush`（段数以 `tooling/scripts/src/ci/prepush.ts` 的表为准；跳过会单列成「未验证」，不当通过看）③ `pnpm types:check` ④ 批次附加：动 DTO → openapi 重新生成；动前端 → admin `types:check` + `build:stage` | 每批全跑 |
 
 ## 7. 批次与提交规划
 

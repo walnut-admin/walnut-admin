@@ -131,7 +131,7 @@
    B5 产出的订正脚本（bin `walnut-fix-setting-default-role`，根目录 `pnpm db:fix-default-role`；
    `--dry-run` 只看不写，`--env-file / --pg-db / --db / --uri / --key` 可覆盖默认连接口径）
    幂等：值已是 uuid → no-op；hex → 校验其在 Mongo `sys_role` 存量 `_id` 中存在后重写为
-   v5（namespace 见 `packages/tooling/scripts/src/db/uuid5.ts`，phase2 §3.3 回写引用）；
+   v5（namespace 见 `tooling/scripts/src/db/uuid5.ts`，phase2 §3.3 回写引用）；
    脏值拒绝改写。**运行时机：B7 开工前对目标库跑一次并核对。**
    B7a 后消费侧已全量 uuid 语义（crud/shared 直用 + cache.appSettings 兜底常量改 v5 uuid，
    见 §6）—— 对目标库跑订正脚本是**运行时前置**，代码侧不再有 hex 分支。

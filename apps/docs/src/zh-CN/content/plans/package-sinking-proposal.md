@@ -480,7 +480,7 @@ ADR、不碰 wire（C4 的 requestBody 新增是文档面，wire 零变化）。
 - 本页已在 `apps/docs/.vitepress/config/zh.ts` 的「计划与设计」段追加，`build:docs`
   死链校验覆盖本页。
 - 本提案若拍板，需要连带更新的登记面（不在本批执行）：
-  1. `packages/tooling/scripts/src/ci/check-doc-refs.ts` 的 `ALLOWED_MISSING_PACKAGES`
+  1. `tooling/scripts/src/ci/check-doc-refs.ts` 的 `ALLOWED_MISSING_PACKAGES`
      摘掉 `@walnut/i18n` / `@walnut/security`（它们现在的理由是「规划中」）；
      同一张表里 `packages/platform-any/contract/src/data-scope.ts` 已建成，属陈旧豁免，
      可顺手清（该文件已存在，留着会掩盖真正的缺失）。

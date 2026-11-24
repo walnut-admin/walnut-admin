@@ -63,8 +63,8 @@
 - **验收读数**：`@walnut/server` 单测 `102 文件 / 839 条`、`@walnut/scripts` `545 条`、`@walnut/release` `206 条` 全绿；
   `lint:dts` exit 0；`pnpm prepush` **exit 1**（失败段：lint / test / openapi / dts —— 逐段归因后没有一条是本批引起）。
 - **R3 挡下的**：那几段红里大部分是**假红** —— 单段预算到点时调用的是「杀全部活跃子进程」的
-  `killActiveChild()`（`packages/tooling/scripts/src/lib/child-run.ts:196-205` →
-  `packages/tooling/scripts/src/lib/child-tree.ts:124-137`），把并发的兄弟段一起 taskkill，
+  `killActiveChild()`（`tooling/scripts/src/lib/child-run.ts:196-205` →
+  `tooling/scripts/src/lib/child-tree.ts:124-137`），把并发的兄弟段一起 taskkill，
   四条失败段的结束时间精确到 0.1s 相同；另有「零代码读者」四处措辞与本批自家 drift spec（配置骨架里的读者）互相打脸。
 
 ## 第 15 批 · 门禁可信度
@@ -73,12 +73,12 @@
 
 - **目标**：让门禁的读数与事实同形。第 14 批暴露的三条全都属于「门禁在伪造证据」—— 一段超时会把并发中的
   兄弟段一起收掉、「超时被杀」与「真失败」同形、发版电池把显式跳过的条目算进「真跑通过」。
-- **关键发现**：`packages/tooling/scripts/src/lib/child-tree.ts` 登记的是**模块级**活跃子进程集合，超时分支
+- **关键发现**：`tooling/scripts/src/lib/child-tree.ts` 登记的是**模块级**活跃子进程集合，超时分支
   再调无参的 `killActiveChild()` 就顺手收掉兄弟段 —— 上一轮 4 条失败里 3 条是这么来的假红。修法不是
   「把超时放宽」，而是把 kill 作用域化到本条 gate 的子树（`17450ef5`）。
-- **验收读数**：`packages/tooling/scripts` 的回归用例把两件事钉住 —— 预算的优先级（段表 `budgetMs` >
+- **验收读数**：`tooling/scripts` 的回归用例把两件事钉住 —— 预算的优先级（段表 `budgetMs` >
   全局 `GATE_BUDGET_MS` > `PREPUSH_BUDGET_MS` 覆盖）与「兄弟段不再被连带杀掉」；断言写在
-  `packages/tooling/scripts/src/ci/__tests__/prepush.test.ts`。
+  `tooling/scripts/src/ci/__tests__/prepush.test.ts`。
 - **记账口径**：预算是**冷跑实测的下界**推出来的，不是拍的 —— `GATE_BUDGET_MS` = 600s（`5dbdb4e8`），
   lint / test 两段单独用 `SLOW_GATE_BUDGET_MS`（`17450ef5`）。同批 `--skip-gates` 不再算「真跑通过」：
   发版电池只数传入的 Set，显式跳过与子进程退 3 都单列「跳过（未验证）」并减 `ranCount`（`5dbdb4e8`）。
@@ -98,7 +98,7 @@
     真因可修（`b382a580`）。
 - **其余落地**：`libs/delay` 整库删除（死库，`41be94ab`）；`libs/context` 并入 `libs/als`，但**两套 ALS
   实例不合并** —— 合并实例会让 winston 读不到 `requestId`（`add9481b`）；同提交把注册面守卫补到能机械拦，
-  并新增孤儿模块守卫 `apps/server/apps/api/src/common/monorepo/__tests__/orphan-module.drift.spec.ts`。
+  并新增孤儿模块守卫 `apps/server/apps/api/test/architecture/orphan-module.drift.spec.ts`。
 - **测试目录重整**（`9238dcc8`）：单测进同目录 `__tests__/`、接口测试 `test/api/<模块>/`、集成
   `test/integration/<领域>/`、e2e `test/e2e/`。**只动位置不动内容**（用例集合不变）—— 判据写在
   [架构待办事项](/content/monorepo/architecture-todo) 的「测试目录约定」，本页不复制。
@@ -158,9 +158,9 @@
 
 - `README.md` 的分组计数里，错误分组 3+3+3+6 与真实分组 3+3+2+1+6 **都等于 15** —— 加法是验不出来的，
   只能按组枚举（枚举出来才发现有一整组漏登）。
-- `packages/tooling/release/src/release/steps.ts` 里那句写死的「11 段并行」，在段数变了之后一直在说谎：
+- `tooling/release/src/release/steps.ts` 里那句写死的「11 段并行」，在段数变了之后一直在说谎：
   第 13 批只能先登记，第 14 批才改成判据式措辞并加防服用例（现在的写法是「段数以表为准」，表在
-  `packages/tooling/scripts/src/ci/prepush.ts`）。
+  `tooling/scripts/src/ci/prepush.ts`）。
 - 判据：写「以某处为判据」而不是写那个数；确实要写数字时，写明它是哪一天 / 哪个 commit 的口径 —— 本页就是这么写的。
 
 > 三条的共同点：**门禁和文档都在回答「谁验过什么」**。一旦它们的输出与实际不同形（跳过像通过、超时像失败、

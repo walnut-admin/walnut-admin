@@ -35,15 +35,16 @@ walnut-admin/
 │   ├── platform-web/                — 浏览器 / Vue（源码直消费，不构建）
 │   │   ├── client/      @walnut/client     — 浏览器工具 + Vue composables + store 工厂
 │   │   └── http/        @walnut/http       — HTTP 客户端框架（实例 + 适配器）
-│   ├── generated/                   — 零手写的生成物包
-│   │   └── api-types/   @walnut/api-types  — 由 openapi.json 生成的 API 类型
-│   └── tooling/                     — 工具链 6 包
-│       ├── tsconfig/          @walnut/tsconfig          — 纯 JSON tsconfig 预设（base / ts / vue）
-│       ├── eslint-config/     @walnut/eslint-config     — 共享 ESLint 预设（base / vue / nest）
-│       ├── commitlint-config/ @walnut/commitlint-config — commitlint 规则
-│       ├── vitest-config/     @walnut/vitest-config     — 共享 Vitest 预设（发现规则 / 环境 / 覆盖率）
-│       ├── scripts/           @walnut/scripts           — 仓库级脚本：lib / ci 门禁 / env 加解密 + bin（清单见其 package.json 的 `bin` 字段）
-│       └── release/           @walnut/release           — 发版编排（bin walnut-release）
+│   └── generated/                   — 零手写的生成物包
+│       └── api-types/   @walnut/api-types  — 由 openapi.json 生成的 API 类型
+├── tooling/                         — 工具链包（与 apps、packages 同级，见 ADR 0028）
+│   ├── tsconfig/          @walnut/tsconfig          — 纯 JSON tsconfig 预设（base / ts / vue）
+│   ├── eslint-config/     @walnut/eslint-config     — 共享 ESLint 预设（base / vue / nest）
+│   ├── commitlint-config/ @walnut/commitlint-config — commitlint 规则
+│   ├── vitest-config/     @walnut/vitest-config     — 共享 Vitest 预设（发现规则 / 环境 / 覆盖率）
+│   ├── vite-config/       @walnut/vite-config       — Vite 插件表 / 开发代理 / env schema / 构建期读写
+│   ├── scripts/           @walnut/scripts           — 仓库级脚本：lib / ci 门禁 / env 加解密 + bin（清单见其 package.json 的 `bin` 字段）
+│   └── release/           @walnut/release           — 发版编排（bin walnut-release）
 ├── turbo.json                    — Turborepo pipeline
 └── pnpm-workspace.yaml           — pnpm workspace + 版本策略（versioning.fixed 唯一真源）
 ```
@@ -60,26 +61,29 @@ walnut-admin/
 ```bash
 pnpm install
 
+# 仓库级命令入口：命令表在 tooling/scripts/src/lib/commands.ts
+pnpm walnut              # 不带参数进多选；--list 列全部；pnpm walnut <id> 直接执行
+
 # Start dev servers
-pnpm dev           # 前端 + 后端（前端 → http://127.0.0.1:3100；后端需 PostgreSQL + Redis）
-pnpm dev:server    # 只起后端
-pnpm dev:docs      # 只起文档站 → http://localhost:8886
+pnpm dev                 # 前端 + 后端（前端 → http://127.0.0.1:3100；后端需 PostgreSQL + Redis）
+pnpm walnut dev:server   # 只起后端
+pnpm walnut dev:docs     # 只起文档站 → http://localhost:8886
 
 # 只起前端（不需要 Mongo + Redis，也没有后端那一路的日志）
 pnpm exec turbo dev --filter=@walnut/admin
 
 # Build
-pnpm build         # 全量（packages → apps）
-pnpm build:admin
-pnpm build:server
-pnpm build:docs
+pnpm build               # 全量（packages → apps）
+pnpm walnut build:admin
+pnpm walnut build:server
+pnpm walnut build:docs
 
 # Lint & type check & test
-pnpm lint          # 各包的 lint 任务
-pnpm lint:root     # 只 lint 根级配置
-pnpm types:check   # 全仓类型检查
-pnpm test          # vitest（哪些包有 test 任务以各包 package.json 为准）
-pnpm prepush       # 推送前门禁表（packages/tooling/scripts/src/ci/prepush.ts，并行）
+pnpm lint                # 各包的 lint 任务
+pnpm walnut lint:root    # 只 lint 根级配置
+pnpm types:check         # 全仓类型检查
+pnpm test                # vitest（哪些包有 test 任务以各包 package.json 为准）
+pnpm prepush             # 推送前门禁表（tooling/scripts/src/ci/prepush.ts，并行）
 ```
 
 ## History

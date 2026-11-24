@@ -25,8 +25,9 @@
 - zod 重审触发条件：① 升 NestJS 12 后 @nestjs/swagger 出一等 zod→OpenAPI 支持；
   ② admin 决定引入前端运行时校验并要求前后端 schema 同源。
   （勘误 2026-10-28：早前「admin 的 zod 依赖零引用属闲置」记载有误——zod 在
-  `apps/admin/build/vite/config/shared.ts` 用于 VITE_PROXY 环境变量校验，已在
-  devDependencies，非闲置、不处置。initial 调研只扫了 src/ 漏了 build/。）
+  `tooling/vite-config/src/env/shared.ts` 用于 VITE_PROXY 环境变量校验（2026-11 前在
+  admin 的 `build/vite/config/shared.ts`），已在 devDependencies，非闲置、不处置。
+  initial 调研只扫了 src/ 漏了 build/。）
 
 ## 2. NestJS 12：✅ 已升级（2026-10-29，12.3.2）
 

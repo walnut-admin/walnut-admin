@@ -19,7 +19,7 @@
 ## P1（✅ 已全部关闭，见各节 W 批标注）
 
 ### 1. 分层门禁的四个已知盲区 ✅ 已修（W3）
-- `packages/tooling/eslint-config/nest.ts` 的全局 ignores 仍豁免 `**/*.d.ts`（25 个 ambient
+- `tooling/eslint-config/nest.ts` 的全局 ignores 仍豁免 `**/*.d.ts`（25 个 ambient
   文件不在分层覆盖内）——需明确 .d.ts 的类型依赖是否也守；
 - `no-restricted-imports` 不覆盖**相对路径跨 lib** 与**动态 `import()`** 两条路径（实测均不报错）；
 - drift ⑤ 面只对账「名单」，不对账 `layer()` 的 files/禁用集合**接线**——删一条禁用项是静默削弱；
@@ -133,7 +133,7 @@ packages 上收后 contract 123 常量、utils-core 7 测试文件等计数以�
 - `pnpm test:e2e` 1/1；`pnpm test:integration` 63 文件 / 560 例两轮全绿；
   `TEST_DATA=real` 5 例（dump 30 表 665,121 行）
 - `pnpm build --force`：10/10 任务真跑，资产断言 4 项通过，dist 无 `*spec.js`
-- `pnpm prepush`：全部段未报错（段数以 `packages/tooling/scripts/src/ci/prepush.ts` 的表为准）；
+- `pnpm prepush`：全部段未报错（段数以 `tooling/scripts/src/ci/prepush.ts` 的表为准）；
   其中 **actionlint 段本机 SKIP —— 本机跳过，CI 侧由 `workflow-lint.yml` 跑，不计入全绿**
 - `pnpm smoke:dist`：真实 Chrome 冒烟有结论（无后端错误屏 = 设计内）
 - `pnpm lint:dist`：1473 文件零密钥命中

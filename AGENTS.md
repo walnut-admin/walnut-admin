@@ -23,11 +23,11 @@ Node >= 24.15.0 ｜ pnpm >= 12.0.0 ｜ TypeScript 6.0.3 ｜ Turbo 2.11.2
 packages/platform-any/   contract · types · utils-core     ← 平台无关（CJS 双模构建 / 纯类型 / 纯工具 @walnut/utils）
 packages/platform-web/   client · http                    ← 浏览器/Vue（源码直消费，不构建）
 packages/generated/      api-types                        ← 生成物（openapi-typescript 从 server 的 openapi.json 产出，零手写）
-packages/tooling/        tsconfig · eslint-config · commitlint-config · vitest-config · scripts · release
-                         ← 工具链 6 包：@walnut/tsconfig（纯 JSON 预设 base/ts/vue）·
-                           @walnut/eslint-config · @walnut/commitlint-config ·
-                           @walnut/vitest-config（共享测试预设）·
-                           @walnut/scripts（lib/ci/env + bin，清单见其 package.json）· @walnut/release（发版编排，bin walnut-release）
+tooling/                 ← 工具链（判据「给仓库自己用、不随业务发布」，见 pnpm-workspace.yaml）
+                           tsconfig（纯 JSON 预设 base/ts/vue）· eslint-config · commitlint-config ·
+                           vitest-config（共享测试预设）· vite-config（Vite 插件表 / 代理 / env schema）·
+                           scripts（lib/ci/env + bin，清单见其 package.json）·
+                           release（发版编排，bin walnut-release）
 ```
 
 - 前端包 scope `@walnut/*`（ESM、pnpm workspace、Vite 编译）；后端内部 lib 的 scope 与构建形态见
@@ -40,7 +40,7 @@ packages/tooling/        tsconfig · eslint-config · commitlint-config · vites
   分层与组合根形态见 [ADR 0022](./apps/docs/src/zh-CN/content/adr/0022-backend-lib-layering-and-composition-roots.md)）—— 它们**不是**
   workspace 包，规则见包级指引。
 - 模块边界由 Turbo boundaries 强制（tags 声明在各包 workspace 级 `turbo.json`），
-  `pnpm boundaries` / pre-push / CI 三道闸。
+  `pnpm walnut boundaries` / pre-push / CI 三道闸。
 - tsconfig 走 `@walnut/tsconfig/*.json` 预设（`vue.json` 浏览器/Vue、`ts.json` Node 原生执行的代码、
   `base.json` 由 jiti / commitlint loader 加载的根配置）；**`apps/server/tsconfig.json` 不 extends 任何预设**（ADR 0012）。
 
@@ -61,28 +61,21 @@ packages/tooling/        tsconfig · eslint-config · commitlint-config · vites
 
 ```bash
 pnpm install          # 安装（pnpm 专用，由 packageManager 字段 + corepack 强制）
+pnpm walnut           # 仓库级命令入口：不带参数进多选，带 id 直接执行，--list 查全部
 pnpm dev              # 前端 + 后端（前端 3100；后端需 PostgreSQL + Redis）
-pnpm dev:server       # 只起后端（从根经 turbo 跑，cwd 是 apps/server）
-pnpm dev:docs         # 文档站（http://localhost:8886）
 pnpm build            # 全量构建（packages → apps）
-pnpm build:stage      # admin stage 构建（turbo build:stage 任务）
 pnpm lint / lint:fix  # ESLint（stylistic 承担格式化，无 Prettier）
-pnpm lint:root        # 只 lint 根级配置（eslint *.ts *.json *.yaml；根级文件不在 `turbo lint` 范围内）
-pnpm types:check      # 全仓类型检查（admin/docs 用 vue-tsc，其余 tsc，server strict）
-pnpm types:check:root # 只检查根级配置（tsc -p tsconfig.json）
+pnpm lint:root        # 只 lint 根级配置（`turbo run lint:root` 的根任务要跑根上这个脚本）
+pnpm types:check      # 全仓类型检查（admin 用 vue-tsc、server 用 tsc strict、其余 tsc；docs 目前是跳过的）
 pnpm test             # vitest（哪些包有 test 任务以各包 package.json 为准）
-pnpm boundaries       # Turbo 架构边界检查
-pnpm lint:workflows   # actionlint 校验 .github/workflows（CI 强制）
-pnpm lint:docs-refs   # 校验活文档正文引用的包名 / 仓库路径是否真实存在
-pnpm lint:adr         # 校验 ADR 形态（编号连续 / Status 在枚举内 / 四个必需小节 / index 双向对齐）
-pnpm lint:doc-ts      # 校验文档里标注 ts 的代码块能按 TypeScript 解析（JSON 不许标成 ts）
-pnpm lint:doc-budget  # 校验常驻上下文的几个文档没膨胀（预算用不到一半也算失败）
-pnpm prepush          # 推送前门禁表（packages/tooling/scripts/src/ci/prepush.ts，并行跑、每段报耗时）
-pnpm hooks:check      # 断言 git 钩子由 lefthook 托管（防门禁静默消失）
+pnpm prepush          # 推送前门禁表（tooling/scripts/src/ci/prepush.ts，并行跑、每段报耗时）
 pnpm release          # 发版（pnpm 原生 release management + git-cliff，详见 docs 的 release.md）
 pnpm setup-env        # 解密 env-encrypted/ → env-local/（需根 .env.keys）
-pnpm knip             # 死代码检测（**当前是红的且有意维持**，理由见 knip.config.ts 顶部注释）
 ```
+
+其余仓库级命令（`lint:adr` / `boundaries` / `db:seed:pg` / `ci:local` …）都住在命令表
+（`tooling/scripts/src/lib/commands.ts`）：`pnpm walnut <id>` 直接执行，`pnpm walnut --list` 列全部，
+`pnpm walnut --json` 给 agent 读。
 
 ## 环境配置
 
@@ -93,13 +86,13 @@ pnpm knip             # 死代码检测（**当前是红的且有意维持**，�
   失败 0 个 job）—— 写法与理由见 [`apps/docs/src/zh-CN/content/monorepo/env-management.md`](./apps/docs/src/zh-CN/content/monorepo/env-management.md)。
 - 后端必须从 `apps/server/` 目录运行（ConfigModule 用 `process.cwd()` 定位 env）。
 - 数据库连接在后端 env 的 `DATABASE_PG_*` 一组（host/port/user/pass/name，与工具链的 seed/export
-  通道同源）：`pnpm db:seed:pg` 播初始化数据、`pnpm db:export:pg` 反向导出，
+  通道同源）：`pnpm walnut db:seed:pg` 播初始化数据、`pnpm walnut db:export:pg` 反向导出，
   口径见 [`apps/docs/src/zh-CN/content/backend/postgresql.md`](./apps/docs/src/zh-CN/content/backend/postgresql.md)。
 
 ## 关键纪律
 
 1. **依赖**：只用 pnpm；新依赖一律走 `catalog:`（`pnpm-workspace.yaml`，strict 模式强制）；workspace 内部引用用 `workspace:*`（syncpack 强制）。
-2. **提交**：conventional commits，scope 必填，且必须是 workspace 包名（如 `feat(admin): …`、`fix(contract): …`）或基础设施 scope（`docker` / `deploy` / `pnpm` / `release` —— `release` 只给发版记账提交 `chore(release): vX.Y.Z` 用，工具链包的改动走 `tooling`）。发版归属**路径优先、scope 兜底、否则挂到载体包 `@walnut/scripts`**（只动仓库级/基建文件的提交按 type 正常参与版本升级，见 release.md —— 2026-09-30 改的口径，别再退回"基建不产生意图"；载体必须是**真实包名**，自造名字会被 `pnpm change` 拒）。pre-push = `pnpm prepush`（**门禁表只有一处**：`packages/tooling/scripts/src/ci/prepush.ts`，含 fixed 组锁步段）；钩子由 lefthook 托管（根 `lefthook.yml`，ADR 0018），装没装上用 `pnpm hooks:check` 机械核对。
+2. **提交**：conventional commits，scope 必填，且必须是 workspace 包名（如 `feat(admin): …`、`fix(contract): …`）或基础设施 scope（`docker` / `deploy` / `pnpm` / `release` —— `release` 只给发版记账提交 `chore(release): vX.Y.Z` 用，工具链包的改动走 `tooling`）。发版归属**路径优先、scope 兜底、否则挂到载体包 `@walnut/scripts`**（只动仓库级/基建文件的提交按 type 正常参与版本升级，见 release.md —— 2026-09-30 改的口径，别再退回"基建不产生意图"；载体必须是**真实包名**，自造名字会被 `pnpm change` 拒）。pre-push = `pnpm prepush`（**门禁表只有一处**：`tooling/scripts/src/ci/prepush.ts`，含 fixed 组锁步段）；钩子由 lefthook 托管（根 `lefthook.yml`，ADR 0018），装没装上用 `pnpm walnut hooks:check` 机械核对。
 3. **导入**：admin 用 `@/*` → `apps/admin/src/*`、`~/*` → `apps/admin/types/*`；server 用 `@/*` → `apps/api/src/*`、`@walnut-server/*` → `libs/*/src`。跨模块禁止相对路径。
 4. **显式导入（不许隐式全局）**：admin 的 `unplugin-auto-import` 已于 2026-09-29 **移除**（ADR 0020）—— vue / vue-router / `@vueuse/core` / `src/{const,locales,router,store/modules,hooks,socket}` 以及 `useForm`/`useTable`/`useCRUD` 这些全部要显式 import。**别把它加回来**：隐式全局在大型项目里是灾难（读代码时看不出依赖、删文件不报错、`tsc` 之外的工具看不见）。`vue-tsc` 是这条纪律的机械守卫 —— 漏了 import 会直接红。`packages/**` 同理（那两处从来不在扫描范围内）。
 5. **共享契约**：跨端常量只改 `@walnut/contract`（前后端直接消费，无包装层，ADR 0004）；contract 有快照测试守护，改动会触发快照 diff。
@@ -107,8 +100,8 @@ pnpm knip             # 死代码检测（**当前是红的且有意维持**，�
 7. **注释**：`// LINK` 引用资料、`// TODO`/`// FIXME` 待办；中英混用可接受，文档以中文为主。
 8. **组件**：`ComponentName/index.ts`（导出）+ `ComponentName/index.vue`（实现）；API 函数以 `API` 结尾。
 9. **存储迁移**：改动持久化结构时同步 `src/utils/persistent/migrate.ts`（admin 侧）。
-10. **不许新建 `.mjs` / `.cjs`**：配置、ESLint 预设、bin、构建脚本一律 `.ts`；所有 `.ts` 入口都由 Node 24 原生类型剥离执行（**仓库内已无任何 `tsx` 依赖** —— 连 `apps/admin` 的 `predev` / `types:check:log` 也改走 `node`），该约束由 `ts.json` 的 `erasableSyntaxOnly` 在编译期保证（ADR 0019）。
-11. **改文档要过门禁**：`pnpm lint:docs-refs` 校验正文里引用的包名与仓库路径；`pnpm lint:adr` 校验 ADR 形态（形状约定见 [`adr/index.md`](./apps/docs/src/zh-CN/content/adr/index.md)）；`pnpm lint:doc-ts` 校验标成 `ts` 的代码块能按 TypeScript 解析（**JSON 别标成 `ts`**，有意伪代码写 `// @pseudo`）；`pnpm lint:doc-budget` 校验常驻文件没膨胀；`pnpm build:docs` 会因死链失败。**别在正文里写原始 `${{ }}`**（VitePress 当 Vue 插值，构建直接炸 —— 见 [`apps/docs/AGENTS.md`](./apps/docs/AGENTS.md)）。**也别写会腐烂的计数**（包数 / bin 数 / 依赖条目数）—— 那类数字没有门禁拦得住；优先写判据。细节见同一个文件的重要约定 8 / 9。
+10. **不许新建 `.mjs` / `.cjs`**：配置、ESLint 预设、bin、构建脚本一律 `.ts`；所有 `.ts` 入口都由 Node 24 原生类型剥离执行（**仓库内已无任何 `tsx` 依赖** —— 连 `apps/admin` 的 `predev` 也改走 `node`），该约束由 `ts.json` 的 `erasableSyntaxOnly` 在编译期保证（ADR 0019）。
+11. **改文档要过门禁**：`pnpm walnut lint:docs-refs` 校验正文里引用的包名与仓库路径；`pnpm walnut lint:adr` 校验 ADR 形态（形状约定见 [`adr/index.md`](./apps/docs/src/zh-CN/content/adr/index.md)）；`pnpm walnut lint:doc-ts` 校验标成 `ts` 的代码块能按 TypeScript 解析（**JSON 别标成 `ts`**，有意伪代码写 `// @pseudo`）；`pnpm walnut lint:doc-budget` 校验常驻文件没膨胀；`pnpm walnut build:docs` 会因死链失败。**别在正文里写原始 `${{ }}`**（VitePress 当 Vue 插值，构建直接炸 —— 见 [`apps/docs/AGENTS.md`](./apps/docs/AGENTS.md)）。**也别写会腐烂的计数**（包数 / bin 数 / 依赖条目数）—— 那类数字没有门禁拦得住；优先写判据。细节见同一个文件的重要约定 8 / 9。
 
 ## 资源
 
