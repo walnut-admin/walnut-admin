@@ -328,6 +328,9 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: '0025 定时任务锁与 bootstrap 归属', link: '/content/adr/0025-cron-single-instance-lock-and-bootstrap-ownership' },
         { text: '0026 签名原文跨端统一', link: '/content/adr/0026-shared-sign-raw-across-frontend-and-backend' },
         { text: '0027 数据权限行级设计', link: '/content/adr/0027-data-scope-row-level-six-tier-and-rls' },
+        { text: '0028 tooling 提升为顶层目录组', link: '/content/adr/0028-top-level-tooling-directory' },
+        { text: '0029 命令表与统一入口', link: '/content/adr/0029-command-table-and-entry' },
+        { text: '0030 admin 构建配置抽出为 tooling 包', link: '/content/adr/0030-admin-build-config-as-tooling-package' },
         { text: 'Zod vs class-validator 评估', link: '/content/adr/zod-evaluation' },
       ],
     },
@@ -344,6 +347,7 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: '现代化路线图', link: '/content/plans/modernization-roadmap' },
         { text: 'libs 解耦残留与后续', link: '/content/plans/libs-decoupling-residuals' },
         { text: 'Package 下沉提案', link: '/content/plans/package-sinking-proposal' },
+        { text: 'tooling 收束与根脚本改造计划', link: '/content/plans/tooling-restructure-plan' },
       ],
     },
     {
