@@ -3,7 +3,7 @@
  *
  * ## 与 ESLint 那条规则的关系（刻意的重复，说明白免得下次有人来"合并"）
  *
- * `packages/tooling/eslint-config/comment-rules.ts` 里有一条本地规则 `walnut-comment/no-emoji`，
+ * `tooling/eslint-config/comment-rules.ts` 里有一条本地规则 `walnut-comment/no-emoji`，
  * 它管的是 **ESLint 能 lint 的文件**（各包的 ts/vue/json/yaml…）。但 `.github/workflows/*.yml`、
  * `.gitignore`、`cliff.toml`、`deploy/nginx/*.conf`、`lefthook.yml` 这些**不在 ESLint 覆盖面里**
  * —— 实测就是这么漏掉 20 处的。

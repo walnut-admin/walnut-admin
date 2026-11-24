@@ -33,20 +33,34 @@ export interface PackageManifest {
 }
 
 export interface WorkspacePackage {
-  /** 仓库相对、正斜杠的包目录（如 `packages/tooling/scripts`） */
+  /** 仓库相对、正斜杠的包目录（如 `tooling/scripts`） */
   dir: string
   manifest: PackageManifest
 }
 
-/** 包目录的形态：`apps/<app>` 或 `packages/<组>/<包>`（根的 `package.json` 不算包） */
-const PACKAGE_DIR = /^(?:apps\/[^/]+|packages\/[^/]+\/[^/]+)$/
+/**
+ * 包目录的形态：`apps/<x>`、`tooling/<x>` 或 `packages/<组>/<x>`（根的 `package.json` 不算包）。
+ *
+ * 与 `pnpm-workspace.yaml` 的 `packages` 字段**逐条对应**（`apps/*`、`tooling/*`、
+ * `packages/<组>/*`）；改目录组时两处必须一起改。`workspace.test.ts` 把这条对应关系钉住：
+ * 它读 workspace glob、把每个 `*` 换成占位段，要求全部被本谓词认下。
+ *
+ * 为什么不直接读 `pnpm-workspace.yaml` 用 glob 匹配：本模块与 release 包的归属逻辑都只要
+ * 「这个目录是不是包」，而 glob 库在这里是多余依赖；谓词保持纯函数，测试也简单。
+ */
+const PACKAGE_DIR = /^(?:apps\/[^/]+|tooling\/[^/]+|packages\/[^/]+\/[^/]+)$/
+
+/** 该仓库相对目录是否是 workspace 包目录（`apps/<x>` / `tooling/<x>` / `packages/<组>/<x>`） */
+export function isWorkspacePackageDir(dir: string): boolean {
+  return PACKAGE_DIR.test(dir)
+}
 
 /** 每个 workspace 包的目录与 manifest（按目录排序，输出稳定） */
 export function workspacePackages(): WorkspacePackage[] {
   const out: WorkspacePackage[] = []
   for (const file of lsFilesWithUntracked('*package.json')) {
     const dir = path.posix.dirname(file)
-    if (dir === '.' || !PACKAGE_DIR.test(dir))
+    if (!isWorkspacePackageDir(dir))
       continue
     try {
       const manifest = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, file), 'utf8')) as PackageManifest

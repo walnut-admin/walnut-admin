@@ -105,6 +105,19 @@ export function lastTag(): string | null {
   return tryGit(['describe', '--tags', '--abbrev=0'])
 }
 
+/**
+ * 全部 tag，按 `-v:refname`（语义版本序）降序；一个都没有时返回空数组。
+ *
+ * 为什么不用 GitHub 的 tags 接口：那个接口按提交时间倒序，不是版本序 —— 「最新 tag」会取错。
+ * 本机 tag 顺序由 git 的版本排序给出，判据稳定且不依赖网络。
+ */
+export function tagsByVersion(): string[] {
+  return (tryGit(['tag', '--sort=-v:refname']) ?? '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+}
+
 export function tagExistsLocally(tag: string): boolean {
   return tryGit(['rev-parse', '-q', '--verify', `refs/tags/${assertSafeRef(tag, 'tag 名')}`]) !== null
 }
@@ -184,6 +197,31 @@ export function branchBehind(branch: string): number {
   const upstream = tryGit(['rev-parse', '--abbrev-ref', `${safe}@{upstream}`]) ?? `origin/${safe}`
   const behind = tryGit(['rev-list', '--count', `${safe}..${assertSafeRef(upstream, '上游分支名')}`])
   return behind === null ? 0 : Number(behind)
+}
+
+/**
+ * 当前分支的上游名（如 `origin/main`）。没有上游（新分支还没 `-u`、游离 HEAD）或 git 读不到时返回 null。
+ *
+ * 与上面两条不同，这里**不**回退到 `origin/<分支>`：调用方要的是「拿得到一个真实存在的上游」
+ * 这个事实本身 —— 回退出来的名字可能根本不是这个分支的上游，拿它算改动面会算出一批假改动。
+ */
+export function upstreamRef(): string | null {
+  return tryGit(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'])
+}
+
+/**
+ * 工作区相对上游改动过的文件（仓库相对、正斜杠）：已提交的、已暂存的、未暂存的**都算** ——
+ * 推送前门禁守的是「推上去会变成什么样」，而不是「已经提交了什么」。
+ *
+ * 返回 null 表示**判不出改动面**（没有上游，或那个上游的提交本地还没有）。调用方应当把 null
+ * 当成「适用」：不知道有没有改，就按改了处理，宁可多跑一次也不能漏。
+ */
+export function changedFilesSinceUpstream(): string[] | null {
+  const upstream = upstreamRef()
+  if (upstream === null)
+    return null
+  const out = tryGit(['-c', 'core.quotePath=false', 'diff', '--name-only', assertSafeRef(upstream, '上游名')])
+  return out === null ? null : out.split('\n').filter(Boolean)
 }
 
 // ── 文件与工作区 ──────────────────────────────────────────────────────────
