@@ -1,7 +1,8 @@
-type ImportMetaEnvAugmented = import('@julr/vite-plugin-validate-env').ImportMetaEnvAugmented<
-  typeof import('../build/vite/config/env.development').default
-  & typeof import('../build/vite/config/env.stage').default
->
+/**
+ * 环境变量的类型来自 `@walnut/vite-config`：schema 与 `useBuildEnv` 的映射都在那里，
+ * 这里只把增强结果接到全局的 `ImportMetaEnv` 上。
+ */
+type WalnutImportMetaEnv = import('@walnut/vite-config').ViteImportMetaEnv
 
 interface ViteTypeOptions {
   // Avoid adding an index type to `ImportMetaDev` so
@@ -10,41 +11,10 @@ interface ViteTypeOptions {
   strictImportMetaEnv: unknown
 }
 
-interface ImportMetaEnv extends ImportMetaEnvAugmented {}
+interface ImportMetaEnv extends WalnutImportMetaEnv {}
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
-}
-
-interface IViteEnv {
-  port: number
-  host: string
-  title: string
-  publicPath: string
-  proxy: [[number, string, string], [number, string, string, string, string]]
-  gaId: string
-
-  dev: {
-    csp: boolean
-  }
-
-  build: {
-    outDir: string
-    obfuscator: boolean
-    dropConsole: boolean
-    compression: boolean
-    analyzer: boolean
-    banner: boolean
-    cdn: boolean
-    disableBrowserDevtool: boolean
-    sentry: {
-      enabled: boolean
-      dsn: string
-      org: string
-      project: string
-      authToken: string
-    }
-  }
 }
 
 /// <reference types="vite/client" />

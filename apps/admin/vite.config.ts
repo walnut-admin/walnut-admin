@@ -1,55 +1,88 @@
+import type { ViteConfigPackageInfo, ViteConfigPluginsOptions } from '@walnut/vite-config'
+import type { ComponentResolver } from 'unplugin-vue-components/types'
 import type { ConfigEnv, UserConfig } from 'vite'
 import { resolve } from 'node:path'
 import { cwd } from 'node:process'
+import { createVitePlugins, createViteProxy, useBuildEnv } from '@walnut/vite-config'
+import { globSync } from 'tinyglobby'
+import { NaiveUiResolver } from 'unplugin-vue-components/resolvers'
 import { loadEnv } from 'vite'
-
 import { envDir, publicDir } from './build/constant'
-import { createVitePlugins } from './build/vite/plugin'
-import { createViteProxy } from './build/vite/proxy'
-import { dependencies } from './package.json'
+import { componentsDtsPath } from './build/utils/paths.ts'
+import pkg, { dependencies } from './package.json'
 
 function pathResolve(dir: string) {
   return resolve(__dirname, '.', dir)
 }
 
-function useBuildEnv(env: Record<keyof ImportMetaEnv, string>): IViteEnv {
+/**
+ * admin 的组件命名约定：`src/components/<分类>/<组件>/index.ts` 注册为 `W<组件>`。
+ * 这是 app 自己的约定（不是 Vite 配置层的通用能力），所以 resolver 留在这里、经 options 传进去。
+ */
+function WalnutAdminComponentResolver(): ComponentResolver {
+  // 扫描 admin 内部组件
+  const allComponents = globSync('src/components/**/**/index.ts', { dot: true })
+  const componentMap = Object.fromEntries(allComponents.filter(i => !i.includes('utils')).map(i => [i.split('/').slice(-2, -1)[0], i.replace('src', '@')]))
+
   return {
-    port: +env.VITE_PORT,
-    host: env.VITE_HOST,
-    title: env.VITE_APP_TITLE,
-    publicPath: env.VITE_PUBLIC_PATH,
-    proxy: JSON.parse(env.VITE_PROXY as string),
-    gaId: env.VITE_GA_ID,
+    type: 'component',
+    resolve: (name) => {
+      if (name.startsWith('W')) {
+        const componentName = name.slice(1)
 
-    dev: {
-      csp: env.VITE_DEV_CSP === 'true',
-    },
-
-    build: {
-      outDir: env.VITE_BUILD_OUT_DIR,
-      obfuscator: env.VITE_BUILD_OBFUSCATOR === 'true',
-      dropConsole: env.VITE_BUILD_DROP_CONSOLE === 'true',
-      compression: env.VITE_BUILD_COMPRESSION === 'true',
-      analyzer: env.VITE_BUILD_ANALYZER === 'true',
-      banner: env.VITE_BUILD_BANNER === 'true',
-      cdn: env.VITE_BUILD_CDN === 'true',
-      disableBrowserDevtool: env.VITE_BUILD_DISABLE_BROWSER_DEVTOOL === 'true',
-      sentry: {
-        enabled: env.VITE_BUILD_SENTRY === 'true',
-        dsn: env.VITE_BUILD_SENTRY_DSN,
-        org: env.VITE_BUILD_SENTRY_ORG,
-        project: env.VITE_BUILD_SENTRY_PROJECT,
-        authToken: env.VITE_BUILD_SENTRY_AUTH_TOKEN,
-      },
+        if (componentMap[componentName]) {
+          return componentMap[componentName]
+        }
+      }
     },
   }
+}
+
+/** 只把构建产物真正用到的字段交给 @walnut/vite-config（banner / 日志前缀 / 分包名） */
+const packageInfo: ViteConfigPackageInfo = {
+  name: pkg.name,
+  version: pkg.version,
+  description: pkg.description,
+  author: { name: pkg.author.name },
+  homepage: pkg.homepage,
+  dependencies: pkg.dependencies,
+}
+
+const pluginOptions: ViteConfigPluginsOptions = {
+  pkg: packageInfo,
+
+  // cropperjs 与 cap.js 的组件是浏览器里的原生自定义元素，Vue 模板编译器不该把它们当组件解析
+  isCustomElement: tag => tag.startsWith('cropper-') || tag === 'cap-widget',
+
+  // 组件自动注册（unplugin-vue-components）：目录、dts 路径与 resolver 都是 app 的约定
+  componentsDirs: ['@/components'],
+  componentsDtsPath,
+  componentsResolvers: [
+    // Naive
+    NaiveUiResolver(),
+
+    // Custom
+    WalnutAdminComponentResolver(),
+  ],
+
+  iconify: {
+    online: true,
+    treeshake: false,
+    customPrefix: 'w-svg',
+    sets: ['ant-design', 'mdi', 'simple-icons', 'carbon', 'emojione-v1'],
+    scanPaths: ['src/**/*.{vue,ts,tsx}'],
+    svgDir: '.svg',
+  },
+
+  // `watchPath` 相对 vite root 解析；默认的 root 会把 node_modules 一起看
+  checkerWatchPath: 'src',
 }
 
 // https://vitejs.dev/config/
 export default ({ mode }: ConfigEnv): UserConfig => {
   const root = cwd()
 
-  const env = loadEnv(mode, envDir) as Record<keyof ImportMetaEnv, string>
+  const env = loadEnv(mode, envDir)
 
   const processedEnv = useBuildEnv(env)
 
@@ -70,7 +103,7 @@ export default ({ mode }: ConfigEnv): UserConfig => {
       'process.env.NODE_ENV': JSON.stringify('production'),
     },
 
-    plugins: [...createVitePlugins(mode, processedEnv)],
+    plugins: [...createVitePlugins(mode, processedEnv, pluginOptions)],
 
     resolve: {
       // `resolve.conditions` 是**替换**而不是追加（V13 的根因，2026-09-29）：
