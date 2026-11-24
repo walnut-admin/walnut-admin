@@ -18,7 +18,7 @@ dev-dist/
 # Auto-generated
 # seed 的发版资产（`pnpm seed:pack` 产出，挂到 GitHub Release 上；tarball 不进仓）
 apps/server/db/.pack/
-# 与下面 `report/` 那条同一个坑：带斜杠的模式**锚定到本文件所在目录**。原来这里写的是
+# 带斜杠的模式**锚定到本文件所在目录**。原来这里写的是
 # `types/auto-import.d.ts` —— 锚定的是**仓库根**（那里没有 types/），而文件其实在
 # `apps/admin/types/` 下 ⇒ 两条规则**一条都没生效**（`git check-ignore` 无输出），
 # 于是它们既没被忽略、又被 git 跟踪，每次 `pnpm dev` 重写都把工作区弄脏。
@@ -33,11 +33,6 @@ apps/server/db/.pack/
 apps/admin/types/generated/*
 !apps/admin/types/generated/components.d.ts
 
-# Build generated
-build/_generated/*.ts
-build/_generated/*.json
-build/_generated/*.log
-
 # 镜像构建的 staging 目录（pnpm deploy --prod 产物 / 前端 dist 拷贝）
 # CI 里改为落在工作区之外（见 release.yml），这里是本地构建用的默认位置
 build/image/
@@ -51,13 +46,6 @@ deploy/nginx/certs/
 # Cap.js 的反机器人 token 存储（@cap.js/server 的 tokens_store_path 默认 .data/tokensList.json）。
 # 进程启动时自动创建、退出/失效时写回，属于本机运行态，不进仓；停服务后可安全删除。
 apps/server/.data/
-
-# Reports (keep .md files)
-# 必须写 `**/`：带斜杠的模式是**锚定到本文件所在目录**的，`report/*` 只匹配仓库根的
-# `report/`（该目录并不存在），而实际产出在 `apps/admin/report/`（`types:check:log` 写的
-# tsc.log）—— 那只会在每个跑过该脚本的机器上留下一个未跟踪文件。
-**/report/*
-!**/report/*.md
 
 # Git hooks（lefthook 运行期缓存与本地覆写；钩子内容本身在 lefthook.yml，进仓库）
 .lefthook/
@@ -82,9 +70,6 @@ apps/docs/.vitepress/.temp/
 apps/docs/.vitepress/dist/
 apps/docs/.vitepress/cache/
 
-# Legacy
-config/husky/*
-
 # Server
 apps/server/env-local/
 apps/server/logs/
@@ -97,4 +82,3 @@ apps/server/.tmp/
 
 # VitePress (docs) — .vitepress/dist already covered by dist/ above
 **/.vitepress/cache
-apps/docs/nginx/*

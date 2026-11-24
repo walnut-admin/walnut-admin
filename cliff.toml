@@ -1,4 +1,4 @@
-# CHANGELOG 的渲染规则（唯一写入者是 packages/tooling/scripts/src/release/changelog.ts）。
+# CHANGELOG 的渲染规则（唯一写入者是 @walnut/release 的 src/release/changelog.ts，即 tooling/release/src/release/changelog.ts）。
 #
 # 为什么 `header` / `footer` 留空：文件的一级标题 `# @walnut/<包名>` 是**每个包各不相同**的，
 # 而 git-cliff 的配置只有一份。渲染只负责「这一版的段落」，标题与落盘（prepend / 幂等）由调用方做：

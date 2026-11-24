@@ -18,7 +18,7 @@ import type { KnipConfig } from 'knip'
  *
  * ## `packages/**` 直到 2026-11-02 才真正进入分析面（批次 2 · R2）
  *
- * 在这之前 `packages/**` **几乎没有发现**（2026-11-02 实测只有 `packages/tooling/eslint-config` 的 4 条）——
+ * 在这之前 `packages/**` **几乎没有发现**（2026-11-02 实测只有 `tooling/eslint-config` 的 4 条）——
  * 不是因为它干净，而是因为它**整块不在分析面里**：
  * workspace 只写了 `entry`，knip 于是只分析「entry 领进来的文件」，非 entry 的深层文件死了
  * 也没人报。现在五个共享包各补了两行（`project` + `includeEntryExports`），两行的分工见下面
@@ -186,7 +186,7 @@ const config: KnipConfig = {
     //
     // 删桶之后**刻意不写 `entry`**：两个包的 `exports` 是 `./*` 子路径通配，按 knip 的
     // 推导规则「每个可被导入的文件都是入口」，这与事实一致（子路径就是公共面），也与
-    // 上面 packages/tooling/* 的处理同口径。写回 `entry: ['src/index.ts']` 会立刻变成
+    // 上面 tooling/* 的处理同口径。写回 `entry: ['src/index.ts']` 会立刻变成
     // 「指向不存在的文件」，那是配置错误而不是结论。
     'packages/platform-web/client': {
       project: ['src/**/*.ts'],
@@ -196,7 +196,7 @@ const config: KnipConfig = {
       project: ['src/**/*.ts'],
       includeEntryExports: true,
     },
-    // packages/tooling/* 刻意**不写 entry**：knip 能从 package.json 的 `exports`（预设/通用能力）
+    // tooling/* 刻意**不写 entry**：knip 能从 package.json 的 `exports`（预设/通用能力）
     // 与 `bin`（命令入口）自己推出入口文件。显式列一遍既是重复，也会随包结构变化而腐化 ——
     // knip 的 Configuration hints 一直在提示这一点，本轮按其建议删掉。
   },
@@ -212,7 +212,7 @@ const config: KnipConfig = {
     // 纯 JSON 的 tsconfig 预设包：没有源码、没有导入。knip 会把预设里的
     // `jsxImportSource: "vue"` 读成「未声明的依赖 vue」、把 `importHelpers: true` 读成
     // 「未解析的导入 tslib」—— 两者都是 tsconfig 选项，不是模块引用，属确定性误报。
-    'packages/tooling/tsconfig/**',
+    'tooling/tsconfig/**',
 
     // 测试
     '**/*.test.ts',
@@ -369,9 +369,7 @@ const config: KnipConfig = {
     'rimraf',
     'turbo',
     'madge',
-    'concurrently',
     'cross-env',
-    'nodemon',
     'vite-tsconfig-paths',
 
     // --- 工具链包在根 devDependencies 里的引用（都通过 bin 或 tsconfig extends 使用） ---

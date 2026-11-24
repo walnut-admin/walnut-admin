@@ -6,7 +6,7 @@
   // 判据的唯一真源是**跑出来的**，不是我们对配置的二次解读：
   //   pnpm exec turbo run <task> --dry=json → 比对各 task 的 hash；它同时给出每个 task 的
   //   `inputs`（文件 → 内容哈希）与 `globalCacheInputs`（全局哈希的构成）。
-  // 机械门禁：`pnpm lint:turbo-cache`（walnut-check-turbo-cache），push 前 / CI / 发版三处都跑。
+  // 机械门禁：`pnpm walnut lint:turbo-cache`（walnut-check-turbo-cache），push 前 / CI / 发版三处都跑。
   //
   // 三条最容易踩的：
   //   ① 共享包是**源码直消费**（`exports` 指 `./src/**`）⇒「依赖包源码变了」必须让下游的
@@ -53,7 +53,7 @@
       //   · 不许依赖 app —— 生成物反过来 import 应用代码，等于把生成链变成环；
       //   · 不许被后端依赖（backend tag）—— 后端要的类型真源是 DTO 本身，拿生成物当输入会让
       //     「DTO 改 → 重导 → 生成物变 → 后端类型变」形成自指的循环。
-      // 反向断言（每个 key 必须有包声明它）由 `pnpm lint:turbo-cache` 守。
+      // 反向断言（每个 key 必须有包声明它）由 `pnpm walnut lint:turbo-cache` 守。
       "generated": {
         "dependencies": {
           "deny": ["app", "backend"]
@@ -69,7 +69,7 @@
       // 批次 4 挪到 packages/generated/ 并改声明 generated），
       // 一条规则同时守住「前端 app」和「前端库」两侧；而 `frontend` 只有 apps/admin
       // 声明，是个只服务单个包的键（将来真出现第二个前端 app 再议）。
-      // 反向断言见 `pnpm lint:turbo-cache`：boundaries.tags 的每个 key 都必须有包声明它。
+      // 反向断言见 `pnpm walnut lint:turbo-cache`：boundaries.tags 的每个 key 都必须有包声明它。
       "platform-web": {
         "dependencies": {
           "deny": ["platform-node"]
@@ -87,8 +87,8 @@
     "commitlint.config.ts",
     "knip.config.ts",
     "pnpm-workspace.yaml",
-    "packages/tooling/tsconfig/*.json",
-    "packages/tooling/vitest-config/*.ts"
+    "tooling/tsconfig/*.json",
+    "tooling/vitest-config/*.ts"
   ],
   // `NODE_ENV` **刻意不放在 `globalEnv`**：它必须**可见**（Turbo 的严格模式会剥离未声明的
   // 变量，而它不在内置放行名单里），但**不该进哈希** —— 没有任何 task 的**产物**取决于外部传进来
@@ -110,7 +110,7 @@
     "npm_execpath",
     "PATH",
     "PREPUSH_CONCURRENCY",
-    // `SMOKE_FAIL_API` —— `pnpm smoke:dist` 的**负对照开关**（2026-10-08）：置 `1` 时静态服务把所有
+    // `SMOKE_FAIL_API` —— `pnpm walnut smoke:dist` 的**负对照开关**（2026-10-08）：置 `1` 时静态服务把所有
     // `/api/**` 按后端真实错误信封应答（500 + `code: 50000`），用来确定性地复现
     // 「空库 ⇒ 签名握手失败 ⇒ 应用必须显示错误屏、而不是白屏」这条链路。
     // 同样「只需可见、不进哈希」：它不改变任何产物，只决定这次冒烟**期望**看到哪种结果。
@@ -136,14 +136,14 @@
     // 根级文件的 lint。**没有对应的 workspace 包**（`//#` = 根任务），所以它是一个独立任务，
     // 不会跟着任何包的 `lint` 跑；用 `turbo run lint:root` 调它才会命中缓存。
     //
-    // `inputs` 与根脚本里那三个 glob **逐字一致**（`eslint *.ts *.json *.yaml`）——
+    // `inputs` 与命令表里 `lint:root` 那三个 glob **逐字一致**（`eslint *.ts *.json *.yaml`）——
     // 这是本任务唯一需要记住的规矩，也是两个坑的分界线：
     //   · 写成 `$TURBO_ROOT$/**` 再逐条排除 ⇒ 那些「随运行变化」的目录（`.turbo`、各包的
     //     `dist`、`node_modules`）漏排一个，缓存就**永不命中**（每次 push 都真跑）；
     //   · 排过头（比如顺手排掉 `packages/**`）⇒ 根 eslint 配置 import 的东西不进缓存键，
     //     改完规则却回放旧结论 —— **门禁假绿**（参考仓实测踩过这个方向）。
     // 实测（2026-09-23）：这三个 glob 在根目录命中 9 个文件，`eslint` 实际检查的正是这 9 个。
-    // 门禁 `walnut-check-turbo-cache` 的第 8 条不变量会把「脚本 glob」与「task inputs」对起来。
+    // 门禁 `walnut-check-turbo-cache` 的第 8 条不变量会把「命令表的 glob」与「task inputs」对起来。
     "//#lint:root": {
       "outputs": [],
       "inputs": [

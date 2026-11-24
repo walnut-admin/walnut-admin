@@ -16,7 +16,7 @@
 # Windows：`run` 值里**禁止双引号**。lefthook 在 Windows 上用
 # `cmdLine = "\"" + sh + "\" -c \"" + cmdstr + "\""` 拼命令行，内层引号未转义 ⇒
 # 带引号的命令会**静默丢参、还照样报**（上游 PR #1464 未合并，已实测复现）。
-# `ci/__tests__/lefthook-config.test.ts` 机械拦这条。
+# `tooling/scripts/src/ci/__tests__/lefthook-config.test.ts` 机械拦这条。
 min_version: 2.1.14
 # 找不到 lefthook 时生成的 shim 默认只 echo 一行再 exit 0（= 全部门禁静默消失）；
 # 这一行把它变成响亮失败。
@@ -43,7 +43,7 @@ commit-msg:
     - name: commitlint
       run: pnpm exec commitlint --edit {1}
 
-# 推送前：**单条**聚合门禁（`pnpm prepush`，门禁表在 packages/tooling/scripts/src/ci/prepush.ts）。
+# 推送前：**单条**聚合门禁（`pnpm prepush`，门禁表在 tooling/scripts/src/ci/prepush.ts）。
 # 收敛成单条的性质要保住：被截断只会退化成「命令不存在」，响亮报错。
 pre-push:
   jobs:
