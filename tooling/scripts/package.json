@@ -20,6 +20,7 @@
     "walnut-check-git-hooks": "./bin/check-git-hooks.ts",
     "walnut-check-nginx-headers": "./bin/check-nginx-headers.ts",
     "walnut-check-package-exports": "./bin/check-package-exports.ts",
+    "walnut-check-post-verify": "./bin/check-post-verify.ts",
     "walnut-check-pre-hooks": "./bin/check-pre-hooks.ts",
     "walnut-check-seed": "./bin/check-seed.ts",
     "walnut-check-source-secrets": "./bin/check-source-secrets.ts",
@@ -30,6 +31,7 @@
     "walnut-db-seed-reshape": "./bin/db-seed-reshape.ts",
     "walnut-db-verify-seed": "./bin/db-verify-seed.ts",
     "walnut-db-seed-pg": "./bin/db-seed-pg.ts",
+    "walnut-docs-version": "./bin/docs-version.ts",
     "walnut-lint-emoji": "./bin/check-emoji.ts",
     "walnut-lint-workflows": "./bin/lint-workflows.ts",
     "walnut-prepush": "./bin/prepush.ts",
@@ -49,6 +51,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@clack/prompts": "catalog:",
     "@dotenvx/dotenvx": "catalog:",
     "@serenity-kit/opaque": "catalog:",
     "pg": "catalog:",
