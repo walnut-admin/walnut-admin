@@ -1,0 +1,14 @@
+{
+  "extends": "@walnut/tsconfig/ts.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "types": ["node"]
+  },
+  // 本包源码由 **Node 原生类型剥离**执行：`exports` 指向 `./src/**`，pnpm 把它链接到
+  // node_modules 之外的真实路径，Vite 的配置加载链路最终就是 `import()` 这些 `.ts`。
+  // 因此走 ts.json（与 scripts / release 同一档），`erasableSyntaxOnly` 在编译期拦住
+  // Node 剥不掉的语法（enum / namespace / 参数属性）。`vitest.config.ts` 由 Vitest 自己的
+  // 加载器处理，不在本 include 内（与 scripts 包一致）。
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules"]
+}

@@ -1,0 +1,76 @@
+{
+  "name": "@walnut/vite-config",
+  "type": "module",
+  "version": "0.1.24",
+  "private": true,
+  "description": "Vite 配置层：插件表、开发代理、环境变量 schema 与构建期读写工具。调用方的 package.json 信息与 app 专属约定经 options 传入，包内不 import 任何 app 文件。",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.ts",
+    "./utils": "./src/utils/index.ts"
+  },
+  "engines": {
+    "node": ">=24.15.0",
+    "pnpm": ">=12.0.0"
+  },
+  "scripts": {
+    "lint": "eslint . --concurrency=4",
+    "lint:fix": "eslint . --fix --concurrency=4",
+    "types:check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "peerDependencies": {
+    "vite": "catalog:",
+    "vue": "catalog:"
+  },
+  "dependencies": {
+    "@iconify/json": "catalog:",
+    "@iconify/tools": "catalog:",
+    "@iconify/types": "catalog:",
+    "@iconify/utils": "catalog:",
+    "@julr/vite-plugin-validate-env": "catalog:",
+    "@sentry/vite-plugin": "catalog:",
+    "@standard-schema/spec": "catalog:",
+    "@vitejs/plugin-legacy": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
+    "@vitejs/plugin-vue-jsx": "catalog:",
+    "chalk": "catalog:",
+    "easy-fns-ts": "catalog:",
+    "sharp": "catalog:",
+    "tinyglobby": "catalog:",
+    "unocss": "catalog:",
+    "unplugin-info": "catalog:",
+    "unplugin-turbo-console": "catalog:",
+    "unplugin-vue-components": "catalog:",
+    "vite-bundle-analyzer": "catalog:",
+    "vite-plugin-banner": "catalog:",
+    "vite-plugin-bundle-obfuscator": "catalog:",
+    "vite-plugin-cdn2": "catalog:",
+    "vite-plugin-checker": "catalog:",
+    "vite-plugin-compression2": "catalog:",
+    "vite-plugin-csp-guard": "catalog:",
+    "vite-plugin-devtools-json": "catalog:",
+    "vite-plugin-image-optimizer": "catalog:",
+    "vite-plugin-mkcert": "catalog:",
+    "vite-plugin-restart": "catalog:",
+    "vite-plugin-vue-devtools": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@walnut/tsconfig": "workspace:*",
+    "@walnut/vitest-config": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vue": "catalog:",
+    "vue-tsc": "catalog:"
+  },
+  "walnut": {
+    "platform": "any",
+    "type": "tooling",
+    "runtime": "none"
+  }
+}
