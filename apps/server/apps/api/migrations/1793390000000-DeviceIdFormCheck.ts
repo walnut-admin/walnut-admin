@@ -13,7 +13,7 @@ import type { MigrationInterface, QueryRunner } from 'typeorm'
  *
  * ## 为什么正则在这里复制一份
  * migration 经 Node 类型剥离加载（见 data-source.cli.ts），拿不到 `@walnut-server/*` 别名；
- * 复制是必然的。两边同形由 `apps/api/src/common/monorepo/device-id-form.drift.spec.ts`
+ * 复制是必然的。两边同形由 `apps/api/test/architecture/device-id-form.drift.spec.ts`
  * 机械钉住（读本文件源码比对 `WALNUT_DEVICE_ID_PREFIX` + 32 位 hex）。
  *
  * ## 跑之前必须先清旧行（**故意不在本 migration 里删数据**）

@@ -44,7 +44,7 @@ import { AppScheduleModule } from './schedule.composition'
  * - SysDeviceKickModule：@Global 端口绑定，实现注入 SocketService；
  * - AppMonitorUserSharedModule：@Global 端口绑定（IDENTITY_USER_NOTIFIER / AUTH_MONITOR_SERVICE）。
  *
- * 反向的守卫在 apps/api/src/common/monorepo/core-module-scope.drift.spec.ts：
+ * 反向的守卫在 apps/api/test/architecture/core-module-scope.drift.spec.ts：
  * 传递闭包与 HTTP-only 集合零交集、且本模块里 APP_GUARD 计数必须为 0。
  */
 @Module({

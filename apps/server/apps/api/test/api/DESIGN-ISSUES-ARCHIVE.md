@@ -740,7 +740,7 @@
   `apps/server/db/seed/app_setting.json` 已含 `app.global.ipBlackList`（`settingValue: "[]"`，
   `$oid`/`$date` Extended JSON 形态，与既有条目同款），`db:seed:pg` 的映射会将其写入
   `setting_value` text 列 —— 写腿锚点在 seed 通道已落实，`addToPermanentBlackList` 不改。
-  为防止未来再导出/裁剪时该行被静默丢掉，`packages/tooling/scripts/src/ci/check-seed.ts`
+  为防止未来再导出/裁剪时该行被静默丢掉，`tooling/scripts/src/ci/check-seed.ts`
   新增机械判据 `REQUIRED_APP_SETTING_KEYS`（key 必须存在 + settingValue 可解析为 JSON
   字符串数组），反例用例覆盖缺行 / 非法 JSON / 非数组三种形态。集成库 globalSetup 仍只跑
   migrations、不 seed —— guard-matrix 的永久黑名单用例继续用 settings 缓存注入，不需要改。

@@ -16,8 +16,15 @@ export default defineWalnutVitestConfig({
   test: {
     root: './',
     globals: true,
-    // libs/** 也收：lib 解耦后 co-located 单测随源码进 libs（如 libs/cache 的 appSettings spec）
-    include: ['apps/api/src/**/*.spec.ts', 'libs/*/src/**/*.spec.ts'],
+    // libs/** 也收：lib 解耦后 co-located 单测随源码进 libs（如 libs/cache 的 appSettings spec）。
+    // test/architecture 收的是架构 drift spec —— 它们的被测对象是**整个 server 的结构**，
+    // 不是某个模块的行为，因此不住在产品源码里（判据见 architecture-todo 的「测试目录约定」）。
+    // 只点这个子目录：同级的 api / integration / e2e 各有自己的配置与后缀口径，不许顺手收进来。
+    include: [
+      'apps/api/src/**/*.spec.ts',
+      'libs/*/src/**/*.spec.ts',
+      'apps/api/test/architecture/**/*.spec.ts',
+    ],
     exclude: ['**/node_modules/**', '**/dist/**'],
   },
 })

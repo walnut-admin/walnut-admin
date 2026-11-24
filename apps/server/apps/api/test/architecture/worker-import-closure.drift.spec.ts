@@ -2,7 +2,7 @@ import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { importClosure, SERVER_ROOT, shortestChain, specifiersOf } from '../module-graph'
+import { importClosure, SERVER_ROOT, shortestChain, specifiersOf } from './module-graph'
 
 /**
  * G1 —— worker 进程的**静态 import 闭包**不得含 CAP 求值链 / Throttler 注册 / Socket gateway。

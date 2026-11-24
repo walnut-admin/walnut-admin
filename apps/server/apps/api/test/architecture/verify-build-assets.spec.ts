@@ -3,7 +3,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { checkAssets, REQUIRED_ASSETS } from '../../../../../../infra/scripts/verify-build-assets'
+// 四层 `../` 回到 apps/server/：apps/api/test/architecture → test → api → apps → server。
+import { checkAssets, REQUIRED_ASSETS } from '../../../../infra/scripts/verify-build-assets'
 
 // 构建后资产断言的逻辑单测（脚本本体在 infra/scripts/，cli 入口 main() 不在此测）。
 // 钉三条：全就位 → 空数组；缺一个 → 只报缺的那个；REQUIRED_ASSETS 必须含 favicon 与

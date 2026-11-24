@@ -9,7 +9,7 @@ import { WALNUT_DATA_SCOPE_ENTITIES } from '../data-scope'
  *
  * 两份清单的分工：
  * - `WALNUT_DATA_SCOPE_ENTITIES`（common/repository/data-scope.ts）= 运行时注册表，**真源**；
- * - `packages/tooling/eslint-config/nest.ts` 的 `walnut/data-scope/direct-repository` 规则
+ * - `tooling/eslint-config/nest.ts` 的 `walnut/data-scope/direct-repository` 规则
  *   = 静态拦截面（`getRepository(已注册实体)` 必须经基类），实体名正则是注册表的**文本拷贝**。
  *
  * 本 spec 读 nest.ts 文本、解析正则里的实体名集合，断言它与注册表的实体类名集合恒等。
@@ -88,7 +88,7 @@ function findRepoRoot(start: string): string {
   }
 }
 
-const NEST_TS_PATH = join(findRepoRoot(__dirname), 'packages/tooling/eslint-config/nest.ts')
+const NEST_TS_PATH = join(findRepoRoot(__dirname), 'tooling/eslint-config/nest.ts')
 
 const ACTION_HINT = '加实体要同步 nest.ts 的 walnut/data-scope/direct-repository 正则，或从 WALNUT_DATA_SCOPE_ENTITIES 删'
 

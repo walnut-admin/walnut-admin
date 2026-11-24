@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { importClosure, readModuleDeclarations, SERVER_ROOT, shortestChain, walkModuleGraph } from '../module-graph'
+import { importClosure, readModuleDeclarations, SERVER_ROOT, shortestChain, walkModuleGraph } from './module-graph'
 
 /**
  * G3 —— AppCoreModule 的**作用域**（R1 §4.2 草案 A，拍板 D1/D2 的直接推论）。

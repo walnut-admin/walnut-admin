@@ -11,7 +11,7 @@ import * as process from 'node:process'
  * `@walnut/scripts` 的 `exports` 只暴露 `./lib/*`（`package.json` 的 exports 字段），
  * `src/db/seed-pg.ts` 不是公开入口；从 `apps/server` 用相对路径深引会绕过包边界
  * （tooling 是独立包，app 反向依赖 tooling 属于架构倒挂）。**公开接口是 CLI**：
- * 这里 spawn `packages/tooling/scripts/bin/db-seed-pg.ts`，与部署跑的是同一条通道
+ * 这里 spawn `tooling/scripts/bin/db-seed-pg.ts`，与部署跑的是同一条通道
  * （行形态 seed → PG，列/外键/jsonb 判据从 PG 元数据读），不复制任何规则，
  * 也不会出现「测试种子与部署种子漂移」。
  *
@@ -93,7 +93,7 @@ function stripAnsi(text: string): string {
 }
 
 function runSeedPass(options: SeedLayerOptions): SeedPass {
-  const bin = path.join(options.repoRoot, 'packages/tooling/scripts/bin/db-seed-pg.ts')
+  const bin = path.join(options.repoRoot, 'tooling/scripts/bin/db-seed-pg.ts')
   if (!fs.existsSync(bin)) {
     throw new Error(`[integration][seed] 找不到 seed CLI：${bin}`)
   }

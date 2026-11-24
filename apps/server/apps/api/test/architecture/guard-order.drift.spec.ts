@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { walkModuleGraph } from '../module-graph'
+import { walkModuleGraph } from './module-graph'
 
 /**
  * G2 —— APP_GUARD 的 **12 元黄金序列**（拍板 D1：一条都不动）。

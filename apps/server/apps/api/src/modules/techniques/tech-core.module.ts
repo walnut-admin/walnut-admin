@@ -14,7 +14,7 @@ import { AppTechTaskModule } from './task/task.module'
  * 技术面的**非 HTTP 子集**（worker 用；api 仍走 AppTechModule，一行不动 —— 拍板 D1）。
  *
  * 与 AppTechModule 的差异**恰好两项**，都由 drift 守卫钉住
- * （apps/api/src/common/monorepo/core-module-scope.drift.spec.ts）：
+ * （apps/api/test/architecture/core-module-scope.drift.spec.ts）：
  *
  * - 不含 AppTechHealthModule —— 一个 /health controller，只在有监听时才有意义；
  * - 不含 AppTechThrottlerModule —— ThrottlerModule.forRootAsync + 进程内计数器，

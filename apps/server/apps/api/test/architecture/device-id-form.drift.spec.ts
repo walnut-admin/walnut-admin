@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { isValidDeviceId, WALNUT_DEVICE_ID_PREFIX } from '@walnut-server/const/app/device'
 import { describe, expect, it } from 'vitest'
-import { SERVER_ROOT } from '../module-graph'
+import { SERVER_ROOT } from './module-graph'
 
 /**
  * `sys_device.device_id` 的形态判据有两份**必然**存在的副本：
