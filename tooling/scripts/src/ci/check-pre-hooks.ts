@@ -134,7 +134,7 @@ export function main(): void {
 
   lineErr('violation', `脚本前置钩子有 ${findings.length} 处问题：\n`)
   for (const f of findings) err(`  [${f.rule}] ${f.detail}`)
-  err('\n判据见 packages/tooling/scripts/src/ci/check-pre-hooks.ts；')
+  err('\n判据见 tooling/scripts/src/ci/check-pre-hooks.ts；')
   err('这次事故的来龙去脉见 apps/docs/src/zh-CN/content/monorepo/architecture-todo.md 的 2026-09-24 执行记录')
   throw new ViolationError(`脚本前置钩子有 ${findings.length} 处问题（明细见上）`)
 }

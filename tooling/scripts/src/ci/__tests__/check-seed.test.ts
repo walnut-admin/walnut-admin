@@ -10,8 +10,8 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
+import { REPO_ROOT } from '../../lib/repo-root.ts'
 import { collectFindings, FORBIDDEN_COLLECTIONS, REQUIRED_COLLECTIONS, REQUIRED_JUNCTION_COLLECTIONS, seedInputsTouched } from '../check-seed.ts'
 
 const SEED_DIR = 'apps/server/db/seed'
@@ -76,7 +76,7 @@ describe('collectFindings —— 正对照与真实仓库', () => {
   })
 
   it('本仓当前干净（这条会在数据漂移时先红）', () => {
-    const root = fileURLToPath(new URL('../../../../../../', import.meta.url))
+    const root = REPO_ROOT
     expect(collectFindings(root).map(f => `${f.file} ${f.detail}`)).toEqual([])
   })
 })
@@ -256,9 +256,9 @@ describe('seedInputsTouched —— seed 输入面的判据', () => {
 
   it('三个 TS 输入面都算（reshape / policy / seed-pg：改它们等于改「导出的什么」）', () => {
     const inputs = [
-      'packages/tooling/scripts/src/db/seed-reshape.ts',
-      'packages/tooling/scripts/src/db/policy.ts',
-      'packages/tooling/scripts/src/db/seed-pg.ts',
+      'tooling/scripts/src/db/seed-reshape.ts',
+      'tooling/scripts/src/db/policy.ts',
+      'tooling/scripts/src/db/seed-pg.ts',
     ]
     expect(seedInputsTouched(inputs)).toEqual(inputs)
   })
@@ -266,9 +266,9 @@ describe('seedInputsTouched —— seed 输入面的判据', () => {
   it('无关路径不命中（相邻文件 / 前缀相似的目录都不许误报）', () => {
     expect(seedInputsTouched([
       'apps/server/db/seed-pg-notes.md', // 只是前几个字符与 seed/ 相同
-      'packages/tooling/scripts/src/db/seed-verify.ts', // 对拍脚本本身：改它不改变数据集
-      'packages/tooling/scripts/src/db/policy.spec.ts',
-      'packages/tooling/scripts/src/ci/check-seed.ts',
+      'tooling/scripts/src/db/seed-verify.ts', // 对拍脚本本身：改它不改变数据集
+      'tooling/scripts/src/db/policy.spec.ts',
+      'tooling/scripts/src/ci/check-seed.ts',
       'apps/admin/src/main.ts',
     ])).toEqual([])
   })

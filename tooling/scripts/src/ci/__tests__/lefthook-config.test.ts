@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
+import { resolveCommandArgv } from '../../lib/commands.ts'
 import { REPO_ROOT } from '../../lib/repo-root.ts'
 
 interface LefthookJob {
@@ -97,7 +98,7 @@ describe('lefthook.yml —— pre-push 是单条聚合门禁', () => {
   })
 })
 
-describe('根 package.json —— 钩子与门禁脚本', () => {
+describe('根 package.json 与命令表 —— 钩子与门禁脚本', () => {
   it('没有 simple-git-hooks 键（已迁到 lefthook）', () => {
     expect(Object.keys(rootManifest)).not.toContain('simple-git-hooks')
     expect(JSON.stringify(rootManifest)).not.toContain('simple-git-hooks')
@@ -109,8 +110,10 @@ describe('根 package.json —— 钩子与门禁脚本', () => {
     expect(rootManifest.scripts?.prepush).toBe('walnut-prepush')
   })
 
-  it('hooks:check 就是 walnut-check-git-hooks（装没装上要能机械核对）', () => {
-    expect(rootManifest.scripts?.['hooks:check']).toBe('walnut-check-git-hooks')
+  it('hooks:check 经命令表解析后就是 walnut-check-git-hooks（装没装上要能机械核对）', () => {
+    // 它已不住在根 package.json 里（根只留保留的那几条），由命令表 id 解析到 bin。
+    expect(resolveCommandArgv(['hooks:check'])).toEqual(['exec', 'walnut-check-git-hooks'])
+    expect(rootManifest.scripts?.['hooks:check']).toBeUndefined()
   })
 
   it('lefthook 是根 devDependency（钩子由它的 postinstall 安装）', () => {

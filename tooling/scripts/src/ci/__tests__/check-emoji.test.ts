@@ -10,9 +10,9 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import { EMOJI_CHAR, findEmoji, stripEmoji } from '../../lib/emoji.ts'
+import { REPO_ROOT } from '../../lib/repo-root.ts'
 import { checkFile, collectFindings, isComment, isStrictDoc, listCandidateFiles, syntaxOf } from '../check-emoji.ts'
 
 const roots: string[] = []
@@ -20,8 +20,6 @@ afterEach(() => {
   for (const root of roots.splice(0))
     rmSync(root, { recursive: true, force: true })
 })
-
-const REPO_ROOT = fileURLToPath(new URL('../../../../../../', import.meta.url))
 
 /** 造一个临时"仓库根"并写入指定文件 */
 function makeRepo(files: Record<string, string>): string {

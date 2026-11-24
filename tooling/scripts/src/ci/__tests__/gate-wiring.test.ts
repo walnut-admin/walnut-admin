@@ -5,15 +5,19 @@
  * 发版电池（`@walnut/release` 的 `RELEASE_BATTERY`）、CI 的 workflow 步骤。它们是同一批命令的
  * 三种排列，却**没有任何东西保证三者一致**：
  *
- *   · 删掉/改名一个根脚本 ⇒ workflow 里那句 `pnpm xxx` 会当场失败（还算响亮），
+ *   · 删掉/改名一个可执行的名字 ⇒ workflow 里那句 `pnpm xxx` 会当场失败（还算响亮），
  *     但**发版电池里那句**要等到打 tag 前才炸；
  *   · 新增一段门禁却忘了接进 CI ⇒ **只有本地守**，而没有任何提示。
  *
  * 这类「静默少跑一项」正是本仓反复强调的失败形态（见 `prepush.ts` 顶部与
  * `AGENTS.md` 关键纪律 2）。参考仓把同类断言做成了双向核对；本文件是它的最小等价物。
  *
+ * **枢纽是「可执行的名字」，不是「根脚本」**（根脚本瘦身后只剩保留的那几条）：
+ * 一个名字合法 = 它是保留的根脚本、命令表 id、或 pnpm 子命令。workflow 里的入口形态
+ * `pnpm walnut <id>` 按命令表 id 校验；别的形态按根脚本 / pnpm 子命令校验。
+ *
  * **判据刻意宽松**（宁可漏报不可误报）：
- *   · 只断言「引用的脚本**存在**」与「门禁至少出现在 CI 或电池之一」，
+ *   · 只断言「引用的名字**存在**」与「门禁至少出现在 CI 或电池之一」，
  *     **不比对顺序、不比对参数** —— CI 用的是 `pnpm exec turbo run lint --affected`
  *     这类带旗标的形态，逐字钉会频繁误红；
  *   · 发版电池与 prepush 表按**文本**读取（而非 import）：两者分属不同包，
@@ -23,6 +27,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
+import { COMMANDS, KEPT_ROOT_SCRIPTS, resolveCommandArgv } from '../../lib/commands.ts'
 import { PREPUSH_GATES } from '../prepush.ts'
 
 /** 测试自己解析仓库根（vitest 下 `import.meta.dirname` 不可靠，不依赖被测模块的常量） */
@@ -42,7 +47,13 @@ const read = (rel: string) => readFileSync(path.join(ROOT, rel), 'utf8')
 
 const rootScripts = new Set(Object.keys((JSON.parse(read('package.json')) as { scripts: Record<string, string> }).scripts))
 
-/** pnpm 自己的子命令（它们不是根脚本，见 `prepush.test.ts` 的同一份白名单口径） */
+/** 命令表 id（入口形态里 `pnpm walnut <id>` 的 id 就在这一集里） */
+const commandIds = new Set(COMMANDS.map(command => command.id))
+
+/** 合法的**可执行名字**：保留的根脚本、命令表 id、pnpm 子命令（后者单独判定） */
+const legalNames = new Set<string>([...rootScripts, ...commandIds])
+
+/** pnpm 自己的子命令（它们不是可执行名字，见 `prepush.test.ts` 的同一份白名单口径） */
 const PNPM_SUBCOMMANDS = new Set([
   'exec',
   'install',
@@ -99,43 +110,81 @@ function runCommands(): { file: string, line: number, cmd: string }[] {
   return out
 }
 
-/** 从一条 shell 命令里挑出 `pnpm <脚本名>` 形态的引用 */
-function pnpmScriptRefs(cmd: string): string[] {
-  const found: string[] = []
+/**
+ * 从一条 shell 命令里挑出「引用了某个可执行名字」的地方。
+ *
+ * 两种形态分开记：
+ * - `entry`：`pnpm walnut <id>` —— 捕获到的首词是入口脚本名，要接着校验它后面的那个 token 是命令表 id；
+ * - `script`：`pnpm <name>` —— 校验 name 是合法名字或 pnpm 子命令。
+ */
+interface PnpmRef {
+  kind: 'entry' | 'script'
+  /** entry 形态下是命令表 id；script 形态下是 `pnpm` 后面的那个名字 */
+  name: string
+  /** 入口形态但后面没跟 id（`pnpm walnut` 光杆）—— 单独判红 */
+  missingId?: boolean
+}
+
+function pnpmRefs(cmd: string): PnpmRef[] {
+  const found: PnpmRef[] = []
   for (const m of cmd.matchAll(/\bpnpm(?:\.cmd)?\s+(?:-[\w-]+\s+)*([\w:.-]+)/g)) {
     const name = m[1]
-    if (name && !name.startsWith('-') && !PNPM_SUBCOMMANDS.has(name))
-      found.push(name)
+    if (name === undefined || name.startsWith('-'))
+      continue
+    if (name === 'walnut') {
+      const rest = cmd.slice((m.index ?? 0) + m[0].length)
+      const id = /^\s+([\w:.-]+)/.exec(rest)?.[1]
+      found.push(id === undefined ? { kind: 'entry', name, missingId: true } : { kind: 'entry', name: id })
+      continue
+    }
+    if (PNPM_SUBCOMMANDS.has(name))
+      continue
+    found.push({ kind: 'script', name })
   }
   return found
 }
 
 /** 发版电池里的 argv 首项（`RELEASE_BATTERY` 是 release 包内的常量，按文本读） */
 function batteryArgvHeads(): string[] {
-  const src = read(path.join('packages/tooling/release/src/release/steps.ts'))
+  const src = read(path.join('tooling/release/src/release/steps.ts'))
   return [...src.matchAll(/argv: \[([^\]]+)\]/g)].map(m => m[1].replace(/['\s]/g, '').split(',')[0]!)
 }
 
 const ciText = workflows.map(f => read(path.join(WORKFLOW_DIR, f))).join('\n')
-const batteryText = read(path.join('packages/tooling/release/src/release/steps.ts'))
+const batteryText = read(path.join('tooling/release/src/release/steps.ts'))
 
-describe('workflow 的 run: 不得引用不存在的根脚本', () => {
-  it('全部能落到真实根脚本上', () => {
+describe('workflow 的 run: 不得引用不存在的可执行名字', () => {
+  it('`pnpm <name>` 落到根脚本 / 命令表 id，`pnpm walnut <id>` 的 id 落在命令表里', () => {
     const bad: string[] = []
     for (const { file, line, cmd } of runCommands()) {
-      for (const name of pnpmScriptRefs(cmd)) {
-        if (!rootScripts.has(name))
-          bad.push(`${file}:${line} 引用了不存在的根脚本 \`${name}\``)
+      for (const ref of pnpmRefs(cmd)) {
+        if (ref.missingId) {
+          bad.push(`${file}:${line} 的 \`pnpm walnut\` 后面没跟命令表 id`)
+          continue
+        }
+        const ok = ref.kind === 'entry'
+          ? commandIds.has(ref.name)
+          : legalNames.has(ref.name)
+        if (!ok)
+          bad.push(`${file}:${line} 引用了不存在的${ref.kind === 'entry' ? '命令表 id' : '根脚本 / 命令表 id'} \`${ref.name}\``)
       }
     }
     expect(bad).toEqual([])
   })
 
   it('确实扫到了东西（空扫描面 = 断言失效，不是「全都对」）', () => {
-    const refs = runCommands().flatMap(c => pnpmScriptRefs(c.cmd))
+    const refs = runCommands().flatMap(c => pnpmRefs(c.cmd))
     // 这条防的是「正则写错 ⇒ 一个都没匹配到 ⇒ 上一条永远绿」
     expect(refs.length).toBeGreaterThan(8)
+    expect(refs.filter(ref => ref.kind === 'entry').length).toBeGreaterThan(5)
     expect(workflows.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('负对照：拼错的名字不会被判成合法', () => {
+    const refs = pnpmRefs('run: pnpm definite:nope && pnpm walnut definite-nope')
+    expect(refs.map(ref => ref.kind)).toEqual(['script', 'entry'])
+    expect(refs.every(ref => !legalNames.has(ref.name))).toBe(true)
+    expect(pnpmRefs('run: pnpm walnut')[0]?.missingId).toBe(true)
   })
 })
 
@@ -145,31 +194,39 @@ describe('workflow 的 run: 不得引用不存在的根脚本', () => {
  */
 const CI_EXEMPT: Record<string, string> = {
   // actionlint 在 CI 侧由**专门的 workflow**直接下载并执行二进制（`workflow-lint.yml`），
-  // 不经过 `pnpm lint:workflows` 这个包装脚本 —— 覆盖是有的，只是入口形态不同。
+  // 不经过 `pnpm walnut lint:workflows` 这个包装 —— 覆盖是有的，只是入口形态不同。
   workflows: 'CI 侧由 workflow-lint.yml 直接跑 actionlint 二进制，不经过 pnpm 包装脚本',
   // OpenAPI 的**段①（导出 openapi.json）**要引导 AppModule 反射装饰器元数据并连 PG/Redis，
-  // 而这里判的是「CI 有没有引用根脚本 `openapi:check`」—— CI 的 openapi job 只在有 `ENV_KEYS`
+  // 而这里判的是「CI 有没有引用 `openapi:check`」—— CI 的 openapi job 只在有 `ENV_KEYS`
   // 时跑全量；无 secret 的分支跑的是**段②**（`openapi:check:schema`，只读 openapi.json、
-  // 不引导 AppModule），那是另一条脚本名，所以这条豁免仍然成立：
+  // 不引导 AppModule），那是另一条命令，所以这条豁免仍然成立：
   // 全量段的触发面由本地 prepush 与发版电池（steps.ts 的 openapi 段）承担，两边都要连库、都能连。
   openapi: '全量段要 PG/Redis（CI 只在有 ENV_KEYS 时跑）；无 secret 分支跑段② openapi:check:schema，不引用 openapi:check',
 }
 
 const BATTERY_EXEMPT: Record<string, string> = {}
 
+/** 某段门禁在 CI 文本里有没有触发面：`pnpm <name>`、`pnpm run <name>` 或 `pnpm walnut <name>` */
+function coveredInCi(name: string): boolean {
+  return ciText.includes(`pnpm ${name}`) || ciText.includes(`pnpm run ${name}`) || ciText.includes(`pnpm walnut ${name}`)
+}
+
 describe('每一段 prepush 门禁都必须有 CI 与发版电池的触发面', () => {
   it('没有「只有本地守」的门禁（CI 侧）', () => {
     const missing: string[] = []
     for (const g of PREPUSH_GATES) {
-      // argv 形如 ['exec','turbo','run','lint:root'] 或 ['lint:adr']
+      // argv 形如 ['exec','turbo','run','lint:root']、['lint:adr'] 或保留的根脚本名
       const script = g.argv[0] === 'exec' ? g.argv[3] : g.argv[0]
       if (script === undefined || g.id in CI_EXEMPT)
         continue
-      const inCi = ciText.includes(`pnpm ${script}`) || ciText.includes(`pnpm run ${script}`)
-      if (!inCi)
-        missing.push(`${g.id}（根脚本 \`${script}\`）不在任何 workflow 里 —— 它现在只有本地守`)
+      if (!coveredInCi(script))
+        missing.push(`${g.id}（可执行名字 \`${script}\`）不在任何 workflow 里 —— 它现在只有本地守`)
     }
     expect(missing).toEqual([])
+  })
+
+  it('负对照：一个不存在的名字不会被判成「CI 里有覆盖」', () => {
+    expect(coveredInCi('definitely-not-a-gate')).toBe(false)
   })
 
   it('发版电池是 prepush 的超集（发版面比 CI 面更宽是本仓刻意的口径）', () => {
@@ -179,7 +236,7 @@ describe('每一段 prepush 门禁都必须有 CI 与发版电池的触发面', 
       if (script === undefined || g.id in BATTERY_EXEMPT)
         continue
       if (!batteryText.includes(`'${script}'`))
-        missing.push(`${g.id}（根脚本 \`${script}\`）不在发版电池里`)
+        missing.push(`${g.id}（可执行名字 \`${script}\`）不在发版电池里`)
     }
     expect(missing).toEqual([])
   })
@@ -192,18 +249,18 @@ describe('每一段 prepush 门禁都必须有 CI 与发版电池的触发面', 
     }
   })
 
-  it('段数与根脚本名解析正常（防止解析退化后永远绿）', () => {
+  it('段数与名字解析正常（防止解析退化后永远绿）', () => {
     expect(PREPUSH_GATES.length).toBeGreaterThan(8)
     for (const g of PREPUSH_GATES) {
       const script = g.argv[0] === 'exec' ? g.argv[3] : g.argv[0]
-      expect(script, `${g.id} 的 argv 解析不出根脚本名：${g.argv.join(' ')}`).toBeTruthy()
+      expect(script, `${g.id} 的 argv 解析不出可执行名字：${g.argv.join(' ')}`).toBeTruthy()
     }
   })
 })
 
-describe('发版电池的引用也必须是真脚本', () => {
-  it('每条 argv 的首项能落到根脚本或 pnpm 子命令', () => {
-    const bad = batteryArgvHeads().filter(h => !rootScripts.has(h) && !PNPM_SUBCOMMANDS.has(h))
+describe('发版电池的引用也必须是真名字', () => {
+  it('每条 argv 的首项能落到保留的根脚本 / 命令表 id / pnpm 子命令', () => {
+    const bad = batteryArgvHeads().filter(h => !legalNames.has(h) && !PNPM_SUBCOMMANDS.has(h))
     expect(bad).toEqual([])
   })
 
@@ -217,17 +274,19 @@ describe('发版电池的引用也必须是真脚本', () => {
 })
 
 /**
- * `walnut-*` bin 根脚本 的二段跳。
+ * `walnut-*` bin 的引用面。
  *
  * **为什么这是一条测试而不是一段 prepush 门禁**（2026-09-23 分析后下调的定位）：
- * 这个二段跳的失效模式**不是静默的** —— 根脚本指向不存在的 bin 时，`pnpm <script>` 会当场
- * `command not found` 非 0 退出；而「prepush 表里的 `argv[0]` 能不能落到真实根脚本」由
- * `prepush.test.ts` 已经在守。真正剩下的只有「孤儿 bin（声明了没有任何地方用）」这一项，
- * 为它新开一段门禁（外加四处接线）不划算。
- * 放在测试里则**零接线成本**就拿到了 CI 与发版电池两个触发面（两者都跑 `pnpm test`）。
+ * 这个二段跳的失效模式**不是静默的** —— 引用的名字指向不存在的 bin 时，`pnpm <name>` 会当场
+ * `command not found` 非 0 退出；而「表里的名字能不能落地」由 `prepush.test.ts` 已经在守。
+ * 真正剩下的只有「孤儿 bin（声明了没有任何地方用）」这一项，为它新开一段门禁（外加四处接线）
+ * 不划算。放在测试里则**零接线成本**就拿到了 CI 与发版电池两个触发面（两者都跑 `pnpm test`）。
+ *
+ * 引用面是两处：根 `package.json` 的脚本值 + **命令表的 argv**。根脚本瘦身之后，
+ * 绝大多数 bin 只剩后者 —— 只扫根脚本会把它们全判成孤儿。
  */
-describe('bin ↔ 根脚本的二段跳', () => {
-  const BIN_PACKAGES = ['packages/tooling/scripts', 'packages/tooling/release']
+describe('bin ↔ 引用面的二段跳', () => {
+  const BIN_PACKAGES = ['tooling/scripts', 'tooling/release']
 
   const declaredBins = new Map<string, { dir: string, target: string }>()
   for (const dir of BIN_PACKAGES) {
@@ -236,10 +295,18 @@ describe('bin ↔ 根脚本的二段跳', () => {
       declaredBins.set(name, { dir, target: target.replace(/^\.\//, '') })
   }
 
-  /** 根脚本正文里引用的 `walnut-*` */
+  /** 引用面里的 `walnut-*`：根脚本值 + 命令表 argv 元素 */
   const referenced = new Set<string>()
   for (const cmd of Object.values(JSON.parse(read('package.json')).scripts as Record<string, string>)) {
     for (const m of cmd.matchAll(/\b(walnut-[\w-]+)/g)) referenced.add(m[1]!)
+  }
+  for (const command of COMMANDS) {
+    if (!('argv' in command))
+      continue
+    for (const token of command.argv) {
+      if (token.startsWith('walnut-'))
+        referenced.add(token)
+    }
   }
 
   it('每个声明的 bin，其目标文件真实存在', () => {
@@ -249,12 +316,12 @@ describe('bin ↔ 根脚本的二段跳', () => {
     expect(missing).toEqual([])
   })
 
-  it('根脚本引用的每个 bin 都已声明（否则是拼错的 bin 名）', () => {
+  it('引用面里的每个 bin 都已声明（否则是拼错的 bin 名）', () => {
     const dangling = [...referenced].filter(r => !declaredBins.has(r))
     expect(dangling).toEqual([])
   })
 
-  it('没有孤儿 bin（声明了但没有任何根脚本引用 = 死代码）', () => {
+  it('没有孤儿 bin（声明了但根脚本与命令表都没引用 = 死代码）', () => {
     const orphans = [...declaredBins.keys()].filter(b => !referenced.has(b))
     expect(orphans).toEqual([])
   })
@@ -263,10 +330,14 @@ describe('bin ↔ 根脚本的二段跳', () => {
     expect(declaredBins.size).toBeGreaterThan(5)
     expect(referenced.size).toBeGreaterThan(5)
   })
+
+  it('`walnut-run` 不是 bin（入口由 node 直接启动，见 ADR 0029）', () => {
+    expect(declaredBins.has('walnut-run')).toBe(false)
+  })
 })
 
 /**
- * 根脚本的**形态**（待办 P1-18，来自交叉对比的 C3）。
+ * 可执行名字的**形态**（待办 P1-18，来自交叉对比的 C3）。
  *
  * 参考仓用「白名单 + 形态正则 + 理由」三件套管它的脚本面；本仓**只搬前两段**：
  * ① 名字形态；② 值里不许出现 shell 连接子。它那三条 forbidden 与本仓语境无关，不搬。
@@ -276,12 +347,12 @@ describe('bin ↔ 根脚本的二段跳', () => {
  * 「11 段门禁写成一条 300+ 字符 `a && b && …`」的历史（第 16 批拆掉的），
  * 那正是这条要防的形态。判据是机械的：出现 `&&` / `||` / `;` / `|` 就红。
  *
- * 这里**不查**「每个值必须指向 bin / turbo / eslint」那种白名单 —— 本仓根脚本合法地
- * 直接调 `eslint` / `tsc` / `rimraf` / `syncpack` / `docker` / `cross-env` 等一大票工具，
- * 白名单会变成一份**要不停维护的名单**（参考仓自己也只对 `lint:*` 那一段收紧了）。
- * 只对 `lint:*` 收了紧：那一段是本仓的门禁面，形态必须收敛。
+ * 覆盖面是**保留的根脚本 + 命令表 id**（根脚本瘦身后，命令表才是仓库级命令的主面）。
+ * 这里**不查**「每个值必须指向 bin / turbo / eslint」那种白名单 —— 命令表合法地直接调
+ * `eslint` / `tsc` / `syncpack` / `docker` / `cross-env` 等一大票工具，白名单会变成一份
+ * **要不停维护的名单**。只对 `lint*` 收了紧：那一段是本仓的门禁面，形态必须收敛。
  */
-describe('根脚本的形态（P1-18）', () => {
+describe('可执行名字的形态（P1-18）', () => {
   const scripts = JSON.parse(read('package.json')).scripts as Record<string, string>
 
   /** 小写 kebab，`:` 分段，无空段（`build:stage` / `lint:root:fix` / `check:deps:update` 都合法） */
@@ -295,12 +366,20 @@ describe('根脚本的形态（P1-18）', () => {
     { token: '|', why: '管道' },
   ]
 
-  it('名字形态：小写 kebab + `:` 分段', () => {
-    const bad = Object.keys(scripts).filter(n => !NAME_SHAPE.test(n))
-    expect(bad, `这些根脚本名不符合形态：${bad.join(', ')}`).toEqual([])
+  /** `lint*` 门禁的合法形态：`exec walnut-*`、`exec eslint` / `exec turbo`、或直接 eslint / turbo */
+  function lintShapeOk(argv: readonly string[]): boolean {
+    if (argv[0] === 'exec')
+      return argv[1]?.startsWith('walnut-') === true || argv[1] === 'eslint' || argv[1] === 'turbo'
+    // `lint` / `lint:fix` 自己就是保留的根脚本：它们由根脚本执行，不走命令表展开
+    return argv[0] === 'eslint' || argv[0] === 'turbo' || KEPT_ROOT_SCRIPTS.has(argv[0] ?? '')
+  }
+
+  it('名字形态：小写 kebab + `:` 分段（保留的根脚本与命令表 id 都查）', () => {
+    const bad = [...new Set([...rootScripts, ...commandIds])].filter(n => !NAME_SHAPE.test(n))
+    expect(bad, `这些名字不符合形态：${bad.join(', ')}`).toEqual([])
   })
 
-  it('值里不许出现 shell 连接子（`&&` / `||` / `;` / `|`）—— 这就是「一句话委托」的机械版本', () => {
+  it('根脚本的值里不许出现 shell 连接子（`&&` / `||` / `;` / `|`）—— 这就是「一句话委托」的机械版本', () => {
     const bad: string[] = []
     for (const [name, cmd] of Object.entries(scripts)) {
       for (const { token, why } of CONNECTORS) {
@@ -311,28 +390,42 @@ describe('根脚本的形态（P1-18）', () => {
     expect(bad).toEqual([])
   })
 
-  it('`lint:*` 必须落到 eslint / turbo / `walnut-*` bin 三种形态之一（门禁面不许自由发挥）', () => {
+  it('命令表的 argv 元素里也不许出现连接子（runArgs 是 shell: false，连接子会被原样交给工具）', () => {
     const bad: string[] = []
-    for (const [name, cmd] of Object.entries(scripts)) {
-      if (!name.startsWith('lint'))
+    for (const command of COMMANDS) {
+      if (!('argv' in command))
         continue
-      const head = cmd.split(/\s+/)[0]!
-      const ok = head === 'eslint' || head === 'turbo' || head.startsWith('walnut-')
-      if (!ok)
-        bad.push(`\`${name}\` 的值是 \`${cmd}\` —— 首词既不是 eslint / turbo，也不是 walnut-* bin`)
+      for (const token of command.argv) {
+        for (const { token: connector, why } of CONNECTORS) {
+          if (token.includes(connector))
+            bad.push(`${command.id}: \`${token}\` 含 ${connector}（${why}）`)
+        }
+      }
     }
     expect(bad).toEqual([])
   })
 
-  it('形态断言确实覆盖到了东西（防止 package.json 读错后变成空转）', () => {
-    expect(Object.keys(scripts).length).toBeGreaterThan(30)
-    // 这里原本写的是 `toHaveLength(13)` —— 加一条 `lint:*`（`lint:secrets`）就当场红。
-    // 正是本仓那条纪律说的「别写会腐烂的计数」：这条断言要的是**扫描面非空**，
-    // 不是"恰好 13 条"，所以改用下界表达。
-    expect(Object.keys(scripts).filter(n => n.startsWith('lint')).length).toBeGreaterThan(5)
+  it('`lint*` 命令必须落到 eslint / turbo / `walnut-*` bin 三种形态之一（门禁面不许自由发挥）', () => {
+    const bad: string[] = []
+    for (const id of commandIds) {
+      if (!id.startsWith('lint'))
+        continue
+      const resolved = resolveCommandArgv([id])
+      if (!lintShapeOk(resolved))
+        bad.push(`\`${id}\` 解析为 \`${resolved.join(' ')}\` —— 既不是 exec walnut-* / eslint / turbo`)
+    }
+    expect(bad).toEqual([])
   })
 
-  it('负对照：形态正则与连接子判定本身是有效的', () => {
+  it('形态断言确实覆盖到了东西（防止读错后变成空转）', () => {
+    // 命令表是仓库级命令的主面：它的下限由 `commands.test.ts` 与这里各守一次
+    expect(COMMANDS.length).toBeGreaterThan(30)
+    // 根脚本只剩保留的那几条 —— 下限要跟着结构走，别写「恰好 N 条」（那是会腐烂的计数）
+    expect(Object.keys(scripts).length).toBeGreaterThan(5)
+    expect([...commandIds].filter(n => n.startsWith('lint')).length).toBeGreaterThan(5)
+  })
+
+  it('负对照：形态正则、连接子与 lint 形态判定本身是有效的', () => {
     // 正则不靠"当前恰好没有坏名字"来成立 —— 拿几个**故意坏**的名字验一遍
     for (const bad of ['Lint', 'lint::root', 'lint:Root', '-lint', 'lint:', 'lint_thing'])
       expect(NAME_SHAPE.test(bad), `\`${bad}\` 不该通过形态检查`).toBe(false)
@@ -340,5 +433,10 @@ describe('根脚本的形态（P1-18）', () => {
       expect(NAME_SHAPE.test(good), `\`${good}\` 应该通过形态检查`).toBe(true)
     // 连接子判定：拿本仓历史上那个真实的坏形态验
     expect('a && b'.includes('&&')).toBe(true)
+    // lint 形态：坏例子必须判红，好例子必须放行
+    expect(lintShapeOk(['exec', 'tsc', '-p', 'tsconfig.json'])).toBe(false)
+    expect(lintShapeOk(['exec', 'walnut-check-adr'])).toBe(true)
+    expect(lintShapeOk(['exec', 'eslint', '*.ts'])).toBe(true)
+    expect(lintShapeOk(['exec', 'turbo', 'run', 'lint'])).toBe(true)
   })
 })

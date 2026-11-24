@@ -54,9 +54,9 @@ import { REPO_ROOT } from '../lib/repo-root.ts'
  */
 export const SEED_INPUT_PATTERNS = [
   'apps/server/db/seed/',
-  'packages/tooling/scripts/src/db/seed-reshape.ts',
-  'packages/tooling/scripts/src/db/policy.ts',
-  'packages/tooling/scripts/src/db/seed-pg.ts',
+  'tooling/scripts/src/db/seed-reshape.ts',
+  'tooling/scripts/src/db/policy.ts',
+  'tooling/scripts/src/db/seed-pg.ts',
 ] as const
 
 /**
@@ -428,7 +428,7 @@ export function main(): void {
     const touched = changed === null ? [] : seedInputsTouched(changed)
     if (touched.length > 0) {
       line('warning', `seed 的输入面变了（${touched.join(', ')}）：本门禁只查形态；`
-      + '「与 db:export:pg 往返一致」需要真实库，请手动跑一次 pnpm db:seed:verify（它不进 prepush / CI）')
+      + '「与 db:export:pg 往返一致」需要真实库，请手动跑一次 pnpm walnut db:seed:verify（它不进 prepush / CI）')
     }
     return
   }

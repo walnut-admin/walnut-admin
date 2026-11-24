@@ -38,9 +38,15 @@ describe('extractPackageRefs —— 只认 @walnut/<段>', () => {
 
 describe('extractPathRefs —— 只认 markdown 里以顶层目录开头的路径', () => {
   it('抽出带扩展名的与目录形态的', () => {
-    const got = extractPathRefs('见 `packages/tooling/release/src/release/steps.ts` 与 `apps/server/env-local/`')
-    expect(got).toContain('packages/tooling/release/src/release/steps.ts')
+    const got = extractPathRefs('见 `packages/platform-any/contract/src/index.ts` 与 `apps/server/env-local/`')
+    expect(got).toContain('packages/platform-any/contract/src/index.ts')
     expect(got).toContain('apps/server/env-local/')
+  })
+
+  it('`tooling/` 也是顶层目录（2026-11 阶段 1：tooling 提到仓库根）', () => {
+    const got = extractPathRefs('见 `tooling/scripts/src/ci/prepush.ts` 与 `tooling/release/`')
+    expect(got).toContain('tooling/scripts/src/ci/prepush.ts')
+    expect(got).toContain('tooling/release/')
   })
 
   it('跳过通配 / 占位 / 省略号 / URL / 家目录', () => {

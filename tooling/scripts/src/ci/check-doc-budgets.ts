@@ -166,6 +166,6 @@ export function main(): void {
 
   for (const f of findings)
     lineErr('violation', `${f.file}  [${f.kind === 'over' ? '超上限' : '预算过期'}]\n    ${f.message}`)
-  err(`\n共 ${findings.length} 处。预算表在 packages/tooling/scripts/src/ci/check-doc-budgets.ts。`)
+  err(`\n共 ${findings.length} 处。预算表在 tooling/scripts/src/ci/check-doc-budgets.ts。`)
   throw new ViolationError(`文档字数预算有 ${findings.length} 处问题（明细见上）`)
 }

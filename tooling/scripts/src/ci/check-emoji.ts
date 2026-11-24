@@ -175,6 +175,6 @@ export function main(): void {
     return
   }
   err('\n它们在非 UTF-8 代码页的终端里会显示成乱码（中文有稳定双字节表示、emoji 没有），也会污染 diff 与日志。')
-  err('修法：`pnpm lint:emoji --fix`（排版符号 → ⇒ ≤ 与 © ® ™ 不受影响）。')
+  err('修法：`pnpm walnut lint:emoji --fix`（排版符号 → ⇒ ≤ 与 © ® ™ 不受影响）。')
   throw new ViolationError(`注释/常驻文档里有 ${findings.length} 处 emoji（明细见上）`)
 }

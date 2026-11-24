@@ -1,7 +1,7 @@
 {
   // 这份配置**只服务于 `pnpm lint:dts`**（门禁 `walnut-check-dts`）：把手写的 `.d.ts` 单独拉出来、
   // **关掉 `skipLibCheck`** 查一遍。判据、理由与首跑抓到的 16 处问题见
-  // `packages/tooling/scripts/src/ci/check-handwritten-dts.ts` 的文件头。
+  // `tooling/scripts/src/ci/check-handwritten-dts.ts` 的文件头。
   //
   // 为什么不直接改主 `tsconfig.json`：`skipLibCheck` 是**全局**开关 —— 主工程关掉它，会把
   // `node_modules` 里所有 `.d.ts` 一起拖进来查（实测 15 条错误全来自依赖：`@vueuse/core` /

@@ -10,7 +10,7 @@
  *
  * ```text
  * remote:  Push cannot contain secrets
- * remote:    - commit: …  path: packages/tooling/scripts/src/ci/__tests__/check-dist-secrets.test.ts
+ * remote:    - commit: …  path: tooling/scripts/src/ci/__tests__/check-dist-secrets.test.ts
  * remote:       —— Tencent Cloud Secret ID ——
  * ```
  *

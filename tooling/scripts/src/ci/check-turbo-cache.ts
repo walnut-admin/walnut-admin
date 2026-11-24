@@ -14,6 +14,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { parseConfigFileTextToJson, parseJsonConfigFileContent, readConfigFile, sys } from 'typescript'
 
+import { COMMANDS, resolveCommandArgv } from '../lib/commands.ts'
 import { PreconditionError, ViolationError } from '../lib/errors.ts'
 import { err, line, lineErr, out } from '../lib/log.ts'
 import { getPnpmBin } from '../lib/pnpm-launcher.ts'
@@ -34,6 +35,11 @@ interface TurboTask {
   package: string
   directory: string
   hash: string
+  /**
+   * 这条 task 实际要跑的命令。脚本缺失时 turbo 给的是 `<NONEXISTENT>`（任务被静默跳过、退出码仍 0）。
+   * 用例靠它钉住「根 turbo 的 `//#lint:root` 真的有人跑」。
+   */
+  command?: string
   inputs?: Record<string, string>
   outputs?: string[] | null
   /** 这张图里本 task 直接依赖的上游 task（`^build` / `transit` 展开后的结果） */
@@ -67,7 +73,7 @@ export function loadTurboDry(cwd = REPO_ROOT): TurboDry {
   const dry = JSON.parse(out) as TurboDry
   // 两个都必须处理，否则门禁会**静默变绿**：
   // ① turbo 把**自己的 cwd** 当成仓库根（它向上找 `turbo.json`，而在子目录里就能找到那个包自己的
-  //    一份）—— 在 `packages/tooling/scripts` 下跑，`--dry=json` 只会报 1 个包 12 个 task，
+  //    一份）—— 在 `tooling/scripts` 下跑，`--dry=json` 只会报 1 个包 12 个 task，
   //    所有断言照样「全部成立」。这是本仓反复强调的「扫描面为空 ⇒ 假绿」的又一例。
   // ② 这种情形下它报的 `directory` 是**相对路径**，得按 cwd 还原成绝对路径再比。
   for (const t of dry.tasks) t.directory = path.resolve(cwd, t.directory)
@@ -284,11 +290,29 @@ export function ciStepsWritingBuildProducts(
   return out
 }
 
-/** 这条命令是不是在跑 `build` / `build:stage` / `build:docs` 这类**有产物**的 turbo 任务 */
+/**
+ * 这条命令是不是在跑 `build` / `build:stage` / `build:docs` 这类**有产物**的 turbo 任务。
+ *
+ * 两种形态都认：
+ * - `pnpm walnut <id> …`（CI 现在的写法）：id 经命令表解析成真正要跑的 argv；
+ * - `pnpm <根脚本>` / `pnpm exec turbo …`：按根脚本的**值**判断（不按名字猜）。
+ */
 function runsBuildProductTask(command: string, scripts: Record<string, string>): boolean {
   const tokens = command.split(/\s+/)
   if (tokens[0] !== 'pnpm')
     return false
+  // `pnpm walnut <id> …`：id 必须是命令表里真实存在的项，解析后按 turbo 任务形态判定。
+  // 保留的根脚本（如 build）解析后仍是它自己 —— 那种情况继续走下面「按值判定」那条路。
+  if (tokens[1] === 'walnut') {
+    const id = tokens[2]
+    if (id === undefined || !COMMANDS.some(item => item.id === id))
+      return false
+    const resolved = resolveCommandArgv([id])
+    if (isTurboBuildArgv(resolved))
+      return true
+    const value = resolved.length === 1 ? scripts[resolved[0]!] : undefined
+    return value !== undefined && /turbo\s+(?:run\s+)?build(?:\s|$)/.test(value)
+  }
   const i = tokens[1] === 'run' || tokens[1] === 'exec' ? 2 : 1
   const target = tokens[i]
   if (target === undefined)
@@ -299,6 +323,15 @@ function runsBuildProductTask(command: string, scripts: Record<string, string>):
   }
   const value = scripts[target]
   return value !== undefined && /turbo\s+(?:run\s+)?build(?:\s|$)/.test(value)
+}
+
+/** 一段 argv 里 turbo 后面的任务名是不是 `build*`（`exec` / `cross-env` 之类的前缀跳过） */
+function isTurboBuildArgv(argv: readonly string[]): boolean {
+  const at = argv.indexOf('turbo')
+  if (at === -1)
+    return false
+  const task = argv[at + 1] === 'run' ? argv[at + 2] : argv[at + 1]
+  return /^build(?::|$)/.test(task ?? '')
 }
 
 export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
@@ -465,35 +498,42 @@ export function collectFindings(dry: TurboDry, cwd = REPO_ROOT): Finding[] {
       findings.push({ rule: 'docs-build-sees-markdown', detail: '@walnut/docs#build 的输入里一个 .md 都没有 —— 改文档不会重建，死链校验被跳过' })
   }
 
-  // ⑧ `//#lint:root` 的 `inputs` 必须与根脚本里那几个 glob **双向一致**。
+  // ⑧ `//#lint:root` 的 `inputs` 必须与**命令表**里 `lint:root` 的那几个 glob **双向一致**。
   //    这条是「根级文件也要能被缓存」的守卫，两个方向都会出事：
   //      · 写成 `$TURBO_ROOT$/**` 再逐条排除 ⇒ 运行期目录（`.turbo` / 各包 `dist` /
   //        `node_modules`）漏排一个，缓存就**永不命中**（每次 push 都真跑）；
   //      · 排过头（例如顺手排掉 `packages/**`）⇒ 根 eslint 配置 import 的东西不进缓存键，
   //        改完规则却回放旧结论 —— **门禁假绿**（参考仓实测踩过这个方向）。
-  //    最稳的写法就是让 inputs 逐字等于脚本的 glob，这条断言把「最稳」变成强制的。
+  //    最稳的写法就是让 inputs 逐字等于命令表里那几个 glob，这条断言把「最稳」变成强制的。
+  //    `lint:root` 在表里是 **run 形态**（根 `turbo.json` 的根任务要跑根上同名脚本），
+  //    所以解析结果可能仍是那个名字本身 —— 那时再按根 `package.json` 里的值取 glob。
   {
-    const rootPkgJson = readTurboJson(path.join(cwd, 'package.json')) as { scripts?: Record<string, string> }
-    const script = rootPkgJson.scripts?.['lint:root']
+    const command = COMMANDS.find(item => item.id === 'lint:root')
     const task = (rootPkg.tasks ?? {})['//#lint:root'] as { inputs?: string[] } | undefined
-    if (script === undefined || task === undefined) {
-      findings.push({ rule: 'lint-root-inputs', detail: `根 \`lint:root\` 脚本或 \`//#lint:root\` 任务缺失（脚本：${script === undefined ? '无' : '有'}，任务：${task === undefined ? '无' : '有'}）` })
+    if (command === undefined || !('argv' in command) || task === undefined) {
+      findings.push({ rule: 'lint-root-inputs', detail: `命令表的 \`lint:root\` 项或 \`//#lint:root\` 任务缺失（命令项：${command === undefined ? '无' : '有'}，任务：${task === undefined ? '无' : '有'}）` })
     }
     else {
-      // 从脚本里挑出「看起来是 glob 的位置参数」：含 `*` 且不以 `-` 开头
-      const globs = script.split(/\s+/).filter(t => t.includes('*') && !t.startsWith('-'))
+      const resolved = resolveCommandArgv(['lint:root'])
+      // run 形态解析后只剩脚本名：glob 在根 package.json 的值里（缺了它就是空集合 ⇒ 下面两个方向都会报）
+      const rootScripts = (readTurboJson(path.join(cwd, 'package.json')) as { scripts?: Record<string, string> }).scripts ?? {}
+      const tokens = resolved.length === 1
+        ? (rootScripts[resolved[0]!] ?? '').split(/\s+/)
+        : resolved
+      // 从 tokens 里挑出「看起来是 glob 的位置参数」：含 `*` 且不以 `-` 开头
+      const globs = tokens.filter(t => t.includes('*') && !t.startsWith('-'))
       const inputs = new Set(task.inputs ?? [])
       for (const g of globs) {
         const want = `$TURBO_ROOT$/${g}`
         if (!inputs.has(want))
-          findings.push({ rule: 'lint-root-inputs', detail: `根脚本 lint:root 里的 \`${g}\` 不在 //#lint:root 的 inputs 里（缺 \`${want}\`）—— 改这类文件不会重新 lint` })
+          findings.push({ rule: 'lint-root-inputs', detail: `lint:root 里的 \`${g}\` 不在 //#lint:root 的 inputs 里（缺 \`${want}\`）—— 改这类文件不会重新 lint` })
       }
       for (const i of inputs) {
         if (!i.startsWith('$TURBO_ROOT$/'))
           continue
         const g = i.slice('$TURBO_ROOT$/'.length)
         if (!globs.includes(g))
-          findings.push({ rule: 'lint-root-inputs', detail: `//#lint:root 的 inputs 里有 \`${i}\`，但根脚本并不检查它 —— 白担了「随运行变化 ⇒ 缓存永不命中」的风险` })
+          findings.push({ rule: 'lint-root-inputs', detail: `//#lint:root 的 inputs 里有 \`${i}\`，但 lint:root 并不检查它 —— 白担了「随运行变化 ⇒ 缓存永不命中」的风险` })
       }
     }
   }

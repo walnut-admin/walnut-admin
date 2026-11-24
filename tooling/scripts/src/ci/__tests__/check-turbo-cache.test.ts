@@ -42,7 +42,7 @@ const dry = loadTurboDry(ROOT)
  *
  * 2026-09-23 实测到代价：这些用例只在有 env-local 的机器上通过，**CI 上一条不变量都不跑**
  * 于是三条断言全红（而它的发现是：这段测试此前从没在 CI 上跑过 —— `turbo run test --affected`
- * 只在改了 `packages/tooling/scripts` 的推送里才选中它）。
+ * 只在改了 `tooling/scripts` 的推送里才选中它）。
  * 处理方式是**把前提写出来**：有 env-local 时查正面，没有时另有一条用例查"它确实安静地跳过了"——
  * 两种情形都有断言，而不是让它静默 skip。
  *
@@ -66,12 +66,12 @@ describe('readTurboJson', () => {
 describe('globMatchesSomething', () => {
   it('命中真实文件', () => {
     expect(globMatchesSomething('package.json', ROOT)).toBe(true)
-    expect(globMatchesSomething('packages/tooling/tsconfig/*.json', ROOT)).toBe(true)
-    expect(globMatchesSomething('packages/tooling/vitest-config/*.ts', ROOT)).toBe(true)
+    expect(globMatchesSomething('tooling/tsconfig/*.json', ROOT)).toBe(true)
+    expect(globMatchesSomething('tooling/vitest-config/*.ts', ROOT)).toBe(true)
   })
 
   it('匹配不到就返回 false —— 这是「globalDependencies 写错一个字」的判据', () => {
-    expect(globMatchesSomething('packages/tooling/tsconfig/NOPE-*.json', ROOT)).toBe(false)
+    expect(globMatchesSomething('tooling/tsconfig/NOPE-*.json', ROOT)).toBe(false)
     expect(globMatchesSomething('apps/docs/does-not-exist.ts', ROOT)).toBe(false)
     expect(globMatchesSomething('packages/*/*/nowhere.ts', ROOT)).toBe(false)
   })
@@ -175,6 +175,15 @@ describe('//#lint:root —— 根级文件也要能被缓存', () => {
     expect(dry.tasks.some(t => t.taskId === '//#lint:root')).toBe(true)
   })
 
+  it('根 package.json 里真的有 lint:root 脚本 —— 否则 turbo 把任务标成 <NONEXISTENT>、跑 0 个任务仍退 0', () => {
+    // 2026-11-23 实测：根脚本瘦身时删掉 lint:root，`turbo run lint:root` 变成
+    // 「Tasks: 0 successful, 0 total」并退出 0 —— prepush 与发版电池的 lint-root 段静默空转。
+    const scripts = (read('package.json') as { scripts: Record<string, string> }).scripts
+    expect(scripts['lint:root'], '根 turbo 的 //#lint:root 任务要跑根上同名脚本').toBeTruthy()
+    const task = dry.tasks.find(t => t.taskId === '//#lint:root')
+    expect(task?.command, 'turbo 认不出 //#lint:root 的命令（脚本缺失？）').not.toBe('<NONEXISTENT>')
+  })
+
   it('inputs 与脚本不一致时会被报出来（两个方向）', () => {
     // 直接打桩：把 package.json 的脚本读成多一个 glob 的样子做不到（断言读的是真文件），
     // 所以这条靠**负向注入实验**覆盖（见 turbo-cache-boundary.md 第六节）。
@@ -220,7 +229,7 @@ describe('边界本身（哈希层的不变量回归）', () => {
     const files = Object.keys(dry.globalCacheInputs.files)
     expect(files).toContain('pnpm-workspace.yaml')
     expect(files).toContain('eslint.config.ts')
-    expect(files).toContain('packages/tooling/tsconfig/base.json')
+    expect(files).toContain('tooling/tsconfig/base.json')
   })
 })
 
@@ -238,7 +247,8 @@ describe('tags —— 形态 / 平台一致 / 反向断言', () => {
     tasks: {
       'transit': { dependsOn: ['^transit'] },
       'types:check': { dependsOn: ['transit'] },
-      '//#lint:root': { inputs: ['$TURBO_ROOT$/*.ts'] },
+      // 与命令表里 lint:root 的三个 glob 逐字一致（不变量 ⑧ 现在读命令表，不再读根 package.json）
+      '//#lint:root': { inputs: ['$TURBO_ROOT$/*.ts', '$TURBO_ROOT$/*.json', '$TURBO_ROOT$/*.yaml'] },
     },
   }
 
@@ -248,7 +258,7 @@ describe('tags —— 形态 / 平台一致 / 反向断言', () => {
     const pkgRoot = path.join(cwd, dir)
     mkdirSync(pkgRoot, { recursive: true })
     writeFileSync(path.join(cwd, 'turbo.json'), JSON.stringify(ROOT_TURBO, null, 2))
-    writeFileSync(path.join(cwd, 'package.json'), JSON.stringify({ scripts: { 'lint:root': 'eslint *.ts' } }))
+    writeFileSync(path.join(cwd, 'package.json'), JSON.stringify({ scripts: { 'lint:root': 'eslint *.ts *.json *.yaml' } }))
     writeFileSync(path.join(pkgRoot, 'turbo.json'), JSON.stringify({ extends: ['//'], tags }, null, 2))
     return { cwd, dry: fakeDry(cwd, dir) }
   }
@@ -312,7 +322,7 @@ describe('跨平台：这一段门禁必须能在 CI 的 Linux runner 上跑', (
       .replace(/\/\*[\s\S]*?\*\//g, '') // 块注释
       .replace(/(^|\s)\/\/.*$/gm, '$1') // 行注释（`://` 不会被吃掉）
   }
-  const code = stripComments(readFileSync(path.join(ROOT, 'packages/tooling/scripts/src/ci/check-turbo-cache.ts'), 'utf8'))
+  const code = stripComments(readFileSync(path.join(ROOT, 'tooling/scripts/src/ci/check-turbo-cache.ts'), 'utf8'))
 
   // 2026-09-23 读出来的真 bug：loadTurboDry 原本是 `execFileSync('cmd', ['/c', '… 2>nul'])`，
   // 那是**只在 Windows 上成立**的写法 —— CI 的 runner 是 ubuntu-latest，那里没有 `cmd`，
@@ -327,7 +337,7 @@ describe('跨平台：这一段门禁必须能在 CI 的 Linux runner 上跑', (
   })
 
   it('剥注释这一步本身是对的（否则上面两条可能是空转）', () => {
-    const raw = readFileSync(path.join(ROOT, 'packages/tooling/scripts/src/ci/check-turbo-cache.ts'), 'utf8')
+    const raw = readFileSync(path.join(ROOT, 'tooling/scripts/src/ci/check-turbo-cache.ts'), 'utf8')
     expect(raw, '说明注释里应当提到那个旧写法').toContain('2>nul')
     expect(code, '剥完就该没有了').not.toContain('2>nul')
   })
@@ -368,8 +378,15 @@ ${steps}
     expect(ciStepsWritingBuildProducts(ci, real)).toEqual([])
   })
 
-  it('官方写法（--cache-dir 直接跟在脚本名后）放行', () => {
-    const yaml = workflow('      - name: Docs build\n        run: pnpm build:docs --cache-dir=.turbo/cache-docs')
+  it('入口形态（pnpm walnut build:docs）也认得出是构建任务（没教它认之前这条会假绿）', () => {
+    const yaml = workflow('      - name: Docs build\n        run: pnpm walnut build:docs')
+    const found = ciStepsWritingBuildProducts(yaml, scripts)
+    expect(found).toHaveLength(1)
+    expect(found[0]?.kind).toBe('missing')
+  })
+
+  it('官方写法（--cache-dir 直接跟在 id 后、不写 --）放行', () => {
+    const yaml = workflow('      - name: Docs build\n        run: pnpm walnut build:docs --cache-dir=.turbo/cache-docs')
     expect(ciStepsWritingBuildProducts(yaml, scripts)).toEqual([])
   })
 
@@ -381,8 +398,8 @@ ${steps}
     expect(found[0]?.step).toBe('Docs build')
   })
 
-  it('--cache-dir 写在 `--` 之后 ⇒ 报 passthrough（那个参数到不了 turbo）', () => {
-    const yaml = workflow('      - name: Docs build\n        run: pnpm run build:docs -- --cache-dir=.turbo/cache-docs')
+  it('--cache-dir 写在 `--` 之后 ⇒ 报 passthrough（缓存污染守卫按旗标是否在 -- 之前判定）', () => {
+    const yaml = workflow('      - name: Docs build\n        run: pnpm walnut build:docs -- --cache-dir=.turbo/cache-docs')
     const found = ciStepsWritingBuildProducts(yaml, scripts)
     expect(found).toHaveLength(1)
     expect(found[0]?.kind).toBe('passthrough')
@@ -393,7 +410,7 @@ ${steps}
   quality:
     steps:
       - name: Docs build
-        run: pnpm build:docs
+        run: pnpm walnut build:docs
       - name: Restore turbo cache (quality gates)
         uses: actions/cache@v5
         with:
@@ -403,11 +420,16 @@ ${steps}
   })
 
   it('在**另一个 job** 里跑 ⇒ 不管（缓存步骤是 job 级的）', () => {
-    expect(ciStepsWritingBuildProducts(workflow('      - name: Lint\n        run: pnpm lint'), scripts)).toEqual([])
+    expect(ciStepsWritingBuildProducts(workflow('      - name: Lint\n        run: pnpm walnut lint'), scripts)).toEqual([])
   })
 
   it('没有产物的任务（lint）不受影响', () => {
-    const yaml = workflow('      - name: Lint (affected)\n        run: pnpm lint')
+    const yaml = workflow('      - name: Lint (affected)\n        run: pnpm walnut lint')
+    expect(ciStepsWritingBuildProducts(yaml, scripts)).toEqual([])
+  })
+
+  it('入口形态里拼错的 id ⇒ 不当成构建任务（解析器不是校验器，门禁不替它背锅）', () => {
+    const yaml = workflow('      - name: Docs build\n        run: pnpm walnut build:doc')
     expect(ciStepsWritingBuildProducts(yaml, scripts)).toEqual([])
   })
 

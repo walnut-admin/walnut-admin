@@ -57,6 +57,7 @@ const SERVER_LIB_NAMESPACE = '@walnut-server/'
 const TOP_LEVEL_DIRS = [
   'apps',
   'packages',
+  'tooling',
   'deploy',
   'scripts',
   'docs',
@@ -88,7 +89,7 @@ export const ALLOWED_MISSING_PATHS: Record<string, string> = {
   'deploy/nginx/certs/': '证书目录，只在服务器上存在（gitignored）',
   // 「提及某路径**正是因为**它不存在」是合法写法，机械检查分辨不了，只能豁免：
   // 两处原文分别是「根 `scripts/` 目录已不存在」与「根 `scripts/` 目录不存在，根 scripts 只经 bin 调用」。
-  'scripts/': '根 scripts/ 目录已取消（拆进 packages/tooling/）；引用处在说它不存在',
+  'scripts/': '根 scripts/ 目录已取消（拆进 tooling/ 的 scripts 包）；引用处在说它不存在',
 }
 
 /**

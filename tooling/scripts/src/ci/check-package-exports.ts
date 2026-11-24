@@ -257,6 +257,6 @@ export function main(): void {
   lineErr('violation', `有 ${findings.length} 处 exports 形态问题：\n`)
   for (const f of findings)
     err(`  [${f.rule}] ${f.detail}`)
-  err('\n改完请跑 `pnpm lint:exports` 复验；这类错的症状通常出现在很远的下游（解析到别的入口 / 类型丢失）。')
+  err('\n改完请跑 `pnpm walnut lint:exports` 复验；这类错的症状通常出现在很远的下游（解析到别的入口 / 类型丢失）。')
   throw new ViolationError(`包 exports 有 ${findings.length} 处形态问题（明细见上）`)
 }
