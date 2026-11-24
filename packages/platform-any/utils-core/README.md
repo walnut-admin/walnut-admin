@@ -11,7 +11,7 @@
 | 平台 / 运行时 | `platform: any` ｜ `type: utils` ｜ `runtime: none`（`package.json` 的 `walnut` 块） |
 | 消费方式 | **双模**：前端 Vite 经 `source` / `import` 条件直读 `src/*.ts`；后端经 `require` 条件拿 `dist/*.cjs`（`vite build` 产出）。见 [ADR 0002](../../../apps/docs/src/zh-CN/content/adr/0002-dual-mode-consumption.md) |
 
-> ⚠️ **目录名 ≠ 包名，这是有意的**：目录叫 `utils-core/`（ADR 0017 把当时的 `utils` 包拆成 `utils-core` + `types` 时留下的名字），包名从那时起一直是 **`@walnut/utils`**。写 `@walnut/utils-core` 会被 `pnpm lint:docs-refs` 判为「不存在的包名」拦下 —— 证据：`packages/tooling/scripts/src/ci/check-doc-refs.ts` 的豁免清单里专门写了这一条。
+> ⚠️ **目录名 ≠ 包名，这是有意的**：目录叫 `utils-core/`（ADR 0017 把当时的 `utils` 包拆成 `utils-core` + `types` 时留下的名字），包名从那时起一直是 **`@walnut/utils`**。写 `@walnut/utils-core` 会被 `pnpm walnut lint:docs-refs` 判为「不存在的包名」拦下 —— 证据：`tooling/scripts/src/ci/check-doc-refs.ts` 的豁免清单里专门写了这一条。
 
 ## 双端消费面（一句话）
 
@@ -77,7 +77,7 @@ export function flattenedKeys(payload: Record<string, unknown>): string[] {
 
 - **依赖**：**没有 `dependencies`**（D7 之后；原三个都随下沉搬走）。devDependencies：`@walnut/tsconfig`（`ts.json` 预设）、`@walnut/vitest-config`、`@walnut/eslint-config`、`typescript`、`vite`、`vite-plugin-dts`、`vitest`、`rimraf`、`@types/node`。测试链：`vitest` + `@walnut/vitest-config`（`vitest.config.ts` 一行 `defineWalnutVitestConfig()`）；`tsconfig.json` 继承 `@walnut/tsconfig/ts.json` 并自持 `types: ["node"]`。
 - **消费者**：只有上表那四个入口名 —— `apps/server`（两个 guard + `libs/utils`）与前端两侧（`@walnut/admin` 的 `sign-raw`、`@walnut/client` 的 `object-paths` re-export）。crypto / regex / queue / enhance 的消费方**已随实现搬到 `@walnut/client`**。
-- **边界由 turbo tags 强制**：workspace 级 `turbo.json` 声明 `shared` / `pure` / `platform-any`，根 `turbo.json` 的 `boundaries.tags` 禁止 `shared` 依赖 app、禁止 `platform-any` 依赖 `platform-web` / `platform-node`（`pure` 是描述性标签，无对应规则）。由 `pnpm boundaries` 拦。
+- **边界由 turbo tags 强制**：workspace 级 `turbo.json` 声明 `shared` / `pure` / `platform-any`，根 `turbo.json` 的 `boundaries.tags` 禁止 `shared` 依赖 app、禁止 `platform-any` 依赖 `platform-web` / `platform-node`（`pure` 是描述性标签，无对应规则）。由 `pnpm walnut boundaries` 拦。
 - **测试**：4 个 `*.test.ts`（`object-paths` / `sign-raw` 各自的对拍用例），与源文件同级；原来的 regex / queue / transformer / enhance 用例随实现一起搬进了 `@walnut/client`（`pnpm --filter @walnut/client test` 跑）。
 
 ## 已知限制与延后工作
@@ -94,5 +94,5 @@ export function flattenedKeys(payload: Record<string, unknown>): string[] {
 - [架构地图 · 共享包体系](../../../apps/docs/src/zh-CN/content/monorepo/architecture.md)（依赖图 / 各包职责 / 消费方式）
 - [架构待办事项](../../../apps/docs/src/zh-CN/content/monorepo/architecture-todo.md)（A6 server 死依赖决策）
 - ADR：[0002 双模式消费](../../../apps/docs/src/zh-CN/content/adr/0002-dual-mode-consumption.md) ｜ [0005 JIT vs 构建](../../../apps/docs/src/zh-CN/content/adr/0005-jit-vs-build.md) ｜ [0013 Barrel 策略](../../../apps/docs/src/zh-CN/content/adr/0013-barrel-exports-policy.md) ｜ [0017 包重组](../../../apps/docs/src/zh-CN/content/adr/0017-package-reorganization.md)
-- 相关包：[`@walnut/client`](../../platform-web/client/README.md) ｜ [`@walnut/types`](../types/README.md) ｜ [`@walnut/contract`](../contract/README.md) ｜ [`@walnut/vitest-config`](../../tooling/vitest-config/README.md)
+- 相关包：[`@walnut/client`](../../platform-web/client/README.md) ｜ [`@walnut/types`](../types/README.md) ｜ [`@walnut/contract`](../contract/README.md) ｜ [`@walnut/vitest-config`](../../../tooling/vitest-config/README.md)
 - 决策记录：批次 4 · D7（`@walnut/utils` 收缩到两件事）+ D6（`@walnut/types` 归前端）
