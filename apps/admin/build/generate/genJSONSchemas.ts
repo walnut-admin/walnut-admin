@@ -1,6 +1,5 @@
+import { BuildUtilsWriteFile } from '@walnut/vite-config/utils'
 import * as TJS from 'ts-json-schema-generator'
-
-import { BuildUtilsWriteFile } from '../utils/index.ts'
 import {
   AppSettingsDevInterfaceFilePath,
   AppSettingsDevJSONSchemaFilePath,

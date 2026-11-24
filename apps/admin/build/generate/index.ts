@@ -19,7 +19,8 @@
 import { rmSync } from 'node:fs'
 import { resolve } from 'node:path'
 import process from 'node:process'
-
+import { configureBuildLogger } from '@walnut/vite-config/utils'
+import pkg from '../../package.json' with { type: 'json' }
 import { legacyAutoImportDtsPath } from '../utils/paths.ts'
 import { generateJSONSchemas } from './genJSONSchemas.ts'
 
@@ -37,6 +38,8 @@ function removeLegacyGeneratedFiles() {
 }
 
 async function main() {
+  // 日志前缀取本 app 的包名（codegen 由 `node` 直接跑，另起进程）
+  configureBuildLogger(pkg.name)
   removeLegacyGeneratedFiles()
   await generateJSONSchemas()
 }
