@@ -23,6 +23,7 @@ import {
   selectSteps,
   skippedHint,
   snapshotFile,
+  stepEnv,
   stepStatusOf,
   WORKER_POLL_TIMEOUT_ENV,
   WORKER_POLL_TIMEOUT_MS,
@@ -83,6 +84,11 @@ describe('本地 CI 步骤表（LOCAL_CI_STEPS）—— 表本身', () => {
     expect(step && 'argv' in step ? step.argv : []).toContain('--force')
   })
 
+  it('build-admin 注入 VITE_BUILD_SENTRY=false：本地不向 Sentry 上传 sourcemap', () => {
+    const step = LOCAL_CI_STEPS.find(item => item.id === 'build-admin')
+    expect(step?.env?.VITE_BUILD_SENTRY).toBe('false')
+  })
+
   it('worker-smoke 是**自定义**步骤（它不是任何 pnpm 脚本，别改成 argv 蒙过去）', () => {
     const step = LOCAL_CI_STEPS.find(item => item.id === 'worker-smoke')
     expect(step, 'worker-smoke 这一步不见了').toBeTruthy()
@@ -103,6 +109,20 @@ describe('本地 CI 步骤表（LOCAL_CI_STEPS）—— 表本身', () => {
     // 表里存在这几步（防止 at() 全返回 -1 时上面的断言变成空转）
     for (const id of ['build-server', 'build-admin', 'smoke-dist', 'lint-dist', 'worker-smoke'])
       expect(at(id), `${id} 不在表里`).toBeGreaterThanOrEqual(0)
+  })
+})
+
+describe('步骤环境变量：叠加在 process.env 上，不是替换（替换会丢 PATH）', () => {
+  it('没声明 env 时原样返回 base（与改动前的行为一致）', () => {
+    const base: NodeJS.ProcessEnv = { PATH: '/usr/bin' }
+    expect(stepEnv(undefined, base)).toBe(base)
+  })
+
+  it('声明了 env 时保留 base 的键，且 extra 覆盖同名键', () => {
+    expect(stepEnv({ VITE_BUILD_SENTRY: 'false' }, { PATH: '/usr/bin', VITE_BUILD_SENTRY: 'true' })).toEqual({
+      PATH: '/usr/bin',
+      VITE_BUILD_SENTRY: 'false',
+    })
   })
 })
 

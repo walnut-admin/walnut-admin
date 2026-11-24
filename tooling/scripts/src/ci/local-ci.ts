@@ -79,6 +79,11 @@ interface StepBase {
   label: string
   /** 为什么它必须在这一步跑 —— 失败时跟着明细一起回放，也是「凭什么」 */
   why: string
+  /**
+   * 追加给子进程的环境变量（**与 `process.env` 合并**，不是替换 —— 替换会连 `PATH` 一起丢掉，
+   * 子进程就找不到 pnpm 了）。只放「本地这一步刻意与 CI 不同」的开关，别拿它当通用配置通道。
+   */
+  env?: Record<string, string>
 }
 
 /** 经 `pnpm <argv...>` 执行的步骤（与 prepush 的门禁走**同一条**子进程通道） */
@@ -119,12 +124,19 @@ export const LOCAL_CI_STEPS: readonly LocalCiStep[] = [
     id: 'build-admin',
     label: '构建 admin（turbo build --filter=@walnut/admin --force，不吃缓存）',
     argv: ['exec', 'turbo', 'run', 'build', '--filter=@walnut/admin', '--force'],
+    // 本地路径刻意关 Sentry 上传（2026-11-24 实测会传 ~720 个文件）；CI 路径不受影响。
+    // 链条：build.sourcemap = env.build.sentry.enabled ⇒ 关掉它就不生成 sourcemap，
+    // Sentry 插件（同样读 enabled）也不会挂上，上传自然消失。Vite 的 loadEnv 里进程 env
+    // 优先于 env 文件，所以这一个变量就够了。
+    env: { VITE_BUILD_SENTRY: 'false' },
     budgetMs: 20 * MINUTE,
     why: '**--force 是刻意的，别去掉**：忽略 turbo 缓存、真的跑一次构建。因为「CI 的绿有可能是缓存给的」，'
       + '而发版是 cache miss ⇒ 真构建 ⇒ 才暴露（2026-09-30 实测：v0.1.4 的发版死在 Build admin，'
       + '同一个提交的 CI 却是绿的）。代价是这一步 2~5 分钟，换来的是本地与 CI / 发版在「构建」这件事上同源。'
       + '注意这里**不**像根脚本 build:admin 那样设 NODE_OPTIONS=--max-old-space-size：'
-      + 'CI 用的是裸 pnpm exec turbo，要与它同源就不能在这里偷偷加环境。'
+      + 'CI 用的是裸 pnpm exec turbo，要与它同源就不能在这里偷偷加内存上限。'
+      + '**VITE_BUILD_SENTRY=false 是本地路径唯一刻意的差异**：关掉 sourcemap 与 Sentry 插件挂载，'
+      + '本地构建不再向 Sentry 上传 sourcemap（2026-11-24 实测约 720 个文件）；CI 的 Build admin 仍按 env 上传。'
       + ' // LINK .github/workflows/ci.yml 的「Build admin」一步',
   },
   {
@@ -373,6 +385,20 @@ export function selectSteps(
 }
 
 /**
+ * 子进程的完整环境：步骤声明的变量**叠加**在调用方环境上。
+ *
+ * 为什么必须合并而不是直接传 `step.env`：`runArgs` 的 `env` 是**完整**环境，替换掉就丢了
+ * `PATH` / `PATHEXT`，连 pnpm 都启动不了（Windows 上尤其明显）。没有额外变量时原样返回
+ * `process.env`，与改动前的行为逐字相同。
+ */
+export function stepEnv(
+  extra: Record<string, string> | undefined,
+  base: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  return extra === undefined ? base : { ...base, ...extra }
+}
+
+/**
  * 跑一步 pnpm 命令。
  *
  * - **cwd 恒为仓库根**：从子目录跑时 pnpm <脚本> 会解析到**最近那个包**的脚本
@@ -384,6 +410,7 @@ export function selectSteps(
 async function runPnpmStep(step: PnpmStep, bin: string, index: number, total: number): Promise<void> {
   await runArgs(bin, resolveCommandArgv(step.argv), {
     cwd: REPO_ROOT,
+    env: stepEnv(step.env),
     hint: `第 ${index}/${total} 步：${step.label}`,
     budgetDefaultMs: step.budgetMs,
     budgetEnv: LOCAL_CI_BUDGET_ENV,
