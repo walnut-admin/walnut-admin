@@ -183,7 +183,7 @@ probe_urls() {
 # ---- 安全响应头：入口 nginx 有没有把它们发出来 ----
 #
 # 为什么在这里验：本机没有 Docker，`deploy/nginx/conf.d/*.conf` 的改动
-# **没有任何本地手段能验证**（`pnpm lint:workflows` 那个 actionlint 管不到 nginx）。
+# **没有任何本地手段能验证**（`pnpm walnut lint:workflows` 那个 actionlint 管不到 nginx）。
 # 部署后这一次是唯一验得到的地方，所以它是**硬条件**而不是提示。
 #
 # 判据是「响应头里出现了这几个名字」，**不比对取值** —— 取值会随运维调整（如 HSTS max-age），

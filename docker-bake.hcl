@@ -13,10 +13,10 @@
 # pnpm deploy --prod）都在 runner（或本机）上完成。
 # 见 release.yml 的 Stage 步骤与 apps/*/Dockerfile 顶部注释。
 #
-# 用法：
-#   pnpm images:build                                   # 本地构建 backend + frontend
-#   REGISTRY=... NS=... TAG=v1.2.3 pnpm images:push      # 构建并推送（CI 用法）
-#   pnpm images:print                                    # 只打印解析结果，不构建
+# 用法（经仓库的命令入口，命令表 id 见 tooling/scripts/src/lib/commands.ts）：
+#   pnpm walnut images:build                              # 本地构建 backend + frontend
+#   REGISTRY=... NS=... TAG=v1.2.3 pnpm walnut images:push # 构建并推送（CI 用法）
+#   pnpm walnut images:print                              # 只打印解析结果，不构建
 #
 # nginx 单独用 docker build 处理（见 release.yml）：frontend 的 FROM 依赖 nginx:${TAG}
 # 已存在于 registry（或本地镜像），所以先构建/推送 nginx，再用 bake 构建 backend+frontend ——

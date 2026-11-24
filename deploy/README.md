@@ -100,7 +100,7 @@ cd /home/ubuntu/walnut-admin/deploy && docker compose pull && docker compose up 
 
 **语义变更（相对 mongoimport 时代，明说）**：旧通道"集合非空就整集跳过"，代价是后续版本新增的行
 永远到不了已有数据的库；现在收敛到仓，仓是唯一真源。**运维在后台改过的菜单名 / 设置，必须走回灌
-通道带进仓库**（`pnpm db:export:pg` 出差异 → PR 审 → 随发版走），否则下次部署会被冲掉。
+通道带进仓库**（`pnpm walnut db:export:pg` 出差异 → PR 审 → 随发版走），否则下次部署会被冲掉。
 
 **在服务器上自己复核**（不用等 CI）：
 
@@ -133,6 +133,7 @@ curl -sk -o /dev/null -w '%{http_code}\n' https://www.walnut-admin.com/api/syste
 | 健康探针挡板 | 经入口 nginx 访问 `/health/ready` 必须 404——探针只给编排层，公网可达 = PG/Redis 可用性侦察面泄露（W2-B 起） |
 | 端到端 | 经公网域名 `--resolve` 指回本机：前端 `/` = 200，API `/w/v1/static/images/demo.png` = 200 |
 | 安全响应头 | **两个域名各取一次响应头**，`Strict-Transport-Security` / `X-Content-Type-Options` / `X-Frame-Options` / `Referrer-Policy` 必须都在（只比头名、不比取值）。它们写死在 `nginx/conf.d/` 里，而本机没有 Docker ⇒ 这是唯一验得到「头真的发出去了」的地方 |
+| 行为测试本身（推送前 / CI） | `post-verify.test.sh` 用假 `docker` / `curl` 覆盖上表每条失败分支（含「只有 API 域名缺头」与安全头取值不同仍通过）；由 `pnpm walnut lint:post-verify` 在 prepush 与 CI 的 quality job 跑。本机没有 bash 时报「跳过、未验证」（退出码 3），以 ubuntu runner 为权威。本地只在相对上游改了 `post-verify.sh`、它的行为测试或入口 nginx 配置时才真跑，否则打一行「不适用」直接过；CI 上每次都真跑 |
 
 任一硬条件在超时前不满足 → 该步骤失败（**部署不判成功**），并打印后端 / nginx 日志尾部便于定位。
 在 Actions 里看 `deploy` job 的 **Post-deploy verification** 步骤。
@@ -145,14 +146,16 @@ bash post-verify.sh          # 默认 24 次 × 5s
 bash post-verify.sh 6 5      # 只想快速看一眼：30 秒
 ```
 
-改了脚本之后先在本地跑行为测试（用假 docker/curl，不需要 Docker）：
+改了脚本之后跑行为测试（用假 docker/curl，不需要 Docker）。它已接成自动门禁：**推送前（prepush）
+与 CI 的 quality job 都会跑** `pnpm walnut lint:post-verify`；本机没有 bash 时报「跳过、未验证」
+（退出码 3），以 ubuntu runner 为权威。手工跑：
 
 ```bash
 bash deploy/post-verify.test.sh   # 覆盖各条失败分支：容器/tag/后端日志/5xx/端到端/安全头/超时
 ```
 
 > 安全响应头那一段有**两个面**，别只记住一个：
-> 推送前由 `pnpm lint:nginx-headers` 静态查「`conf.d/` 里的配置写全了没有」（毫秒级、不需要 Docker），
+> 推送前由 `pnpm walnut lint:nginx-headers` 静态查「`conf.d/` 里的配置写全了没有」（毫秒级、不需要 Docker），
 > 部署后由 `post-verify.sh` 查「头真的发出去了没有」（环境/drift 那一面）。
 > 两边的头名清单必须一致，由 `nginx-headers.test.ts` 机械核对。
 
