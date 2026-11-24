@@ -34,8 +34,8 @@
 | 报告的说法 | 复核结果 |
 |-----------|---------|
 | 「catalog 三处写 242，**实测只有 147 条，已经烂掉 95 条**」 | ❌ **假阳性，它自己数错**。`pnpm-workspace.yaml` 的 `catalog:` 段是 **99–351 行**（下一个顶层键在 352 行），实际 **243 条**；它取的 `197–343` 只是这段的中段。差的那 1 条是本次新增的 `eslint-plugin-turbo` |
-| 「`release` scope 不在 commitlint 白名单 ⇒ 发版记账提交会被 hook 拒」 | ❌ **假阳性**。`packages/tooling/commitlint-config/index.ts` 的 `SCOPES` 里 `'release'` 就在第 27 行，上面还专门有一段注释解释它「不是包 scope、是发版记账提交专用」。它引用的行号范围 `:2-28` 恰好包含第 27 行，是被上方注释带偏的 |
-| 「`lint:workflows` 在 actionlint 缺失时静默 `return 0`，是门禁缺口」 | ⚠️ **要打折**。`.github/workflows/workflow-lint.yml` **确实存在**且会下载并执行 actionlint，实现里那句「CI 里才是权威闸门」是准确的、有兜底的**有意设计**。**但它指出的次生问题成立**：`packages/tooling/scripts/src/ci/prepush.ts` 只在**失败**时回放子进程输出，所以本地看到的是绿灯而那一段其实什么都没跑 |
+| 「`release` scope 不在 commitlint 白名单 ⇒ 发版记账提交会被 hook 拒」 | ❌ **假阳性**。`tooling/commitlint-config/index.ts` 的 `SCOPES` 里 `'release'` 就在第 27 行，上面还专门有一段注释解释它「不是包 scope、是发版记账提交专用」。它引用的行号范围 `:2-28` 恰好包含第 27 行，是被上方注释带偏的 |
+| 「`lint:workflows` 在 actionlint 缺失时静默 `return 0`，是门禁缺口」 | ⚠️ **要打折**。`.github/workflows/workflow-lint.yml` **确实存在**且会下载并执行 actionlint，实现里那句「CI 里才是权威闸门」是准确的、有兜底的**有意设计**。**但它指出的次生问题成立**：`tooling/scripts/src/ci/prepush.ts` 只在**失败**时回放子进程输出，所以本地看到的是绿灯而那一段其实什么都没跑 |
 | 「本仓归档评审否决过『门禁图写在 TS』，所以别做 profile 台账」 | ⚠️ **需澄清**。被否的是**带 `needs`/`after`/`allowFailure` 的依赖图**形态；Z 的实际实现只有 186 行，是**按触发面取用的名册**，两者不是一回事，引用那条否决来反对它是误读 |
 | `apps/docs/src/zh-CN/content/monorepo/release.md` 里电池表只列 11 条、且有一段「`lint-root` 绝不能交给 turbo」的论证 | ✅ **真，而且是我上一轮留下的债**：`//#lint:root` 定义出来之后那段论证的前提就没了，我改了代码与测试却漏改这份文档 |
 
@@ -67,7 +67,7 @@
 | # | 事项 | 证据 | 代价 |
 |---|------|------|------|
 | A1 | **CI ↔ 门禁名册的对账断言** ✅ **已做** | 全仓**没有任何测试读 `.github/workflows/ci.yml`**（唯二提到它的地方是把它当示例路径字符串用）；`prepush.test.ts` 的 7 条断言**全是单向**的 ⇒ **删掉一整段门禁没有任何测试会红**。这是唯一 0 覆盖率的接线面 | 半天 |
-| A2 | **`hooks:check` 那句假陈述** ✅ **已做**（真补进发版电池第 0 步） | `lefthook.yml` 顶部注释写「装没装上用 `pnpm hooks:check` 机械核对（**发版第 0 步也会调它**）」，但 `packages/tooling/release/` 里**零引用**、`.github/` 零引用、`prepush.ts` 零引用 —— 全仓只有那句注释与它的脚本定义 | 5 分钟（改注释）／半小时（真加进发版电池） |
+| A2 | **`hooks:check` 那句假陈述** ✅ **已做**（真补进发版电池第 0 步） | `lefthook.yml` 顶部注释写「装没装上用 `pnpm walnut hooks:check` 机械核对（**发版第 0 步也会调它**）」，但 `tooling/release/` 里**零引用**、`.github/` 零引用、`prepush.ts` 零引用 —— 全仓只有那句注释与它的脚本定义 | 5 分钟（改注释）／半小时（真加进发版电池） |
 | A3 | **`release.md` 的电池表与过期论证** ✅ **已做** | 见第二节最后一行 | 20 分钟 |
 | A4 | **`subject-case` 关掉** ✅ **已做** | **唯一已确认在伤害日常提交的**：该规则把「大写拉丁字母开头的 subject」判成 sentence-case 一律拒绝。实测：一次会话内被拒 4 次（都是大写拉丁字母开头的 subject），每次都只能改成中文开头 | 5 分钟 |
 
@@ -76,10 +76,10 @@
 | # | 事项 | 为什么 |
 |---|------|--------|
 | B1 | **bin ↔ 根脚本 ↔ 门禁表 的接线门禁** ✅ **已做**（`gate-wiring.test.ts` 的「二段跳」一段） | 根脚本经 `walnut-*` bin 二段跳，全靠人工对齐；重命名一个 bin 会让整段门禁**静默消失**。已核对：今天 0 漂移，所以**上了就是绿的** |
-| B2 | **`check-lockfile` 的版本锁步（L5）** ✅ **已做**（`pnpm lint:lockfile`）| 「`catalog:` 的解析版本 == catalog 声明值」。本仓风险比 Z 大：catalog **243 条** + `catalogMode: strict`。**但落地时发现原设计会「恒关」**，见下方 §4.6 的踩坑记录 —— 最终改成比对 **HEAD 里那一对** |
+| B2 | **`check-lockfile` 的版本锁步（L5）** ✅ **已做**（`pnpm walnut lint:lockfile`）| 「`catalog:` 的解析版本 == catalog 声明值」。本仓风险比 Z 大：catalog **243 条** + `catalogMode: strict`。**但落地时发现原设计会「恒关」**，见下方 §4.6 的踩坑记录 —— 最终改成比对 **HEAD 里那一对** |
 | B3 | **文档三件套**（归档归宿列 / 占位页处置 / 文档规范页） ✅ **已做** | `archive/index.md` 里「未执行」与「已执行」两篇长得一样；`frontend/features/` 下有 **7 个 1 行的占位页**；「文档该长什么样」散在四处 |
-| B4 | **nginx 安全响应头** ✅ **已做**（`pnpm lint:nginx-headers` + post-verify 硬条件）| 实测 `deploy/nginx/` 下 `add_header` 只有 2 条且**都不是安全头**（HSTS / X-Frame-Options / X-Content-Type-Options / Referrer-Policy 全缺），而 CSP 插件在构建配置里是**注释掉的** ⇒ 这一面目前无人兜。**动手时又实测出一条更重的**：`api.conf`（API 域名的入口）**一个安全头都没有** —— 它和 `frontend.conf` 是两个并列 `server` 块，nginx 的 `add_header` 不跨块继承。于是这条按「配置面（推送前静态查）+ 运行面（部署后真发头）」两端落地 |
-| B5 | **产物去密体检** ✅ **已做**（`pnpm lint:dist`，CI 紧跟 admin 构建；**源码侧**另有 `pnpm lint:secrets`，见 §4.5）| 产物侧门禁为 **0**（`apps/admin/package.json` 的 build 只有 `vite build`）。Z 把它列为性价比最高的一条，且规则表与它 CI 的密钥扫描**同源**。**落地时最花功夫的不是写规则，是删规则**：3 条看起来天经地义的规则在真产物上分别是 1 / 8 / 5 次误报（详见 §4.5） |
+| B4 | **nginx 安全响应头** ✅ **已做**（`pnpm walnut lint:nginx-headers` + post-verify 硬条件）| 实测 `deploy/nginx/` 下 `add_header` 只有 2 条且**都不是安全头**（HSTS / X-Frame-Options / X-Content-Type-Options / Referrer-Policy 全缺），而 CSP 插件在构建配置里是**注释掉的** ⇒ 这一面目前无人兜。**动手时又实测出一条更重的**：`api.conf`（API 域名的入口）**一个安全头都没有** —— 它和 `frontend.conf` 是两个并列 `server` 块，nginx 的 `add_header` 不跨块继承。于是这条按「配置面（推送前静态查）+ 运行面（部署后真发头）」两端落地 |
+| B5 | **产物去密体检** ✅ **已做**（`pnpm walnut lint:dist`，CI 紧跟 admin 构建；**源码侧**另有 `pnpm walnut lint:secrets`，见 §4.5）| 产物侧门禁为 **0**（`apps/admin/package.json` 的 build 只有 `vite build`）。Z 把它列为性价比最高的一条，且规则表与它 CI 的密钥扫描**同源**。**落地时最花功夫的不是写规则，是删规则**：3 条看起来天经地义的规则在真产物上分别是 1 / 8 / 5 次误报（详见 §4.5） |
 | B6 | **后端 i18n key 集合门禁** | `apps/server/apps/api/src/i18n/` 下两组语言包是纯文件真源，缺 key 只表现为线上回退成 key 串（当前实测两侧完全对齐） |
 
 ### C. 结构性但更大
@@ -91,7 +91,7 @@
 | # | 事项 | 说明 |
 |---|------|------|
 | C1 | **命令行公共层** ✅ **已做**（`lib/cli.ts` 的 `runCli` + 门禁全部改走 `lib/log.ts`） | Z 有 `verdict`（三态退出码归一）／`gate-ui`（`unmet()` 抛前置条件错）／`argv`（统一参数解析）／`errors` 基类 + 唯一映射。**⚠️ 初稿的描述要更正**：本仓**那一层大半本来就有** —— `lib/log.ts`（TTY/管道两条正确路径）与 `lib/errors.ts`（`PreconditionError` 广泛使用），真正的缺口是「**门禁没在用它**」：12 个文件 77 处裸 `console.*`，失败还是 `return 1/2` + 自己打印，而 **`ViolationError` 定义了却全仓零使用（死类）**。落地：`runCli` 成为**错误→退出码的唯一映射点**（0/1/2 + 其它异常→1），15 个 bin 从 `process.exit(main())` 改为 `await runCli(main)`，门禁改成**抛错 + 打明细**、结语由 `runCli` 统一。⚠️ **初稿说的绑定项（改输出层就必须同时换掉 `process.exit`）已一并处理** —— 而且方向正好相反：`log.ts` 在管道下走**同步**写，所以真正要消除的是 `console.*` 的异步路径 |
-| C2 | **包标准的机械门禁（最小骨架）** ✅ **tags 与 `exports-shape` 已做** | Z 有 **22 条**机械规则（`turbo-tags` / `exports-shape` / `script-matrix` / `package-json-fields` / 目录索引双向对账 …）。本仓不是 0 条（见上方更正）：`lint:turbo-cache` 已有 8 条不变量，其中第 1 条就是「每个包 `turbo.json` 的 `extends` + tags」；2026-09-23 又补了 `exports-shape`（`pnpm lint:exports`，四条不变量：目标存在 / 通配命中 / `types` 条件在前 / 与顶层 `main`·`types` 不矛盾）—— 本仓共享包**不构建就被消费**，`exports` 写错 = 解析到别的入口或类型静默丢失，而这一面此前零判据。**剩下的候选**：`script-matrix`、`package-json-fields`、目录索引双向对账 |
+| C2 | **包标准的机械门禁（最小骨架）** ✅ **tags 与 `exports-shape` 已做** | Z 有 **22 条**机械规则（`turbo-tags` / `exports-shape` / `script-matrix` / `package-json-fields` / 目录索引双向对账 …）。本仓不是 0 条（见上方更正）：`lint:turbo-cache` 已有 8 条不变量，其中第 1 条就是「每个包 `turbo.json` 的 `extends` + tags」；2026-09-23 又补了 `exports-shape`（`pnpm walnut lint:exports`，四条不变量：目标存在 / 通配命中 / `types` 条件在前 / 与顶层 `main`·`types` 不矛盾）—— 本仓共享包**不构建就被消费**，`exports` 写错 = 解析到别的入口或类型静默丢失，而这一面此前零判据。**剩下的候选**：`script-matrix`、`package-json-fields`、目录索引双向对账 |
 | C3 | **根脚本白名单** ✅ **已做（只搬前两段）** | 根脚本（调研时 43 条，现已 46 条）零约束。Z 用「白名单 + 形态正则 + 理由」三件套。落地时**只搬「名字形态 + 值里不许有 shell 连接子」**，并只对 `lint:*` 收了紧 —— 全量白名单会变成一份要不停维护的名单（本仓根脚本合法地直接调 `tsc` / `rimraf` / `syncpack` / `docker` / `cross-env`） |
 | C4 | **turbo 缓存跨 CI run** ✅ **已做**（`ci.yml` 的 quality job） | 实测全仓无 `actions/cache`。**落地时把方案换了一个范围，ROI 完全不同**：整份 `.turbo/cache` 是 **385 MB**（build 产物占绝大部分，搬运费吃掉收益），而 quality job 里那份只有几 MB —— 质量门三类任务（lint / types:check / test）的 `outputs` 是空的，条目只是元数据；实测冷跑 **144s → 命中 0.13s**（43/43 `FULL TURBO`，本地口径）。⚠️ **CI 实测又补了两条**：① **命中已实测** —— run #17 三个质量门步骤全 **0s**（无缓存基线 69 / 41 / 10s），另有 `actions/caches` API 上 `last_accessed_at` 被刷新的独立证据；② 「只缓存质量门」第一版**并不成立** —— `Docs build (dead-link check)` 也是 turbo 任务，4.6 MB 的 VitePress 产物跟着上了缓存（归档 4.7 MB → 9.8 MB），现已用 `--cache-dir` 把它挡在外面并把缓存 key 升到 v2。⚠️ 初稿那条风险**比想的低**：turbo 的条目**按 task hash 校验**，恢复到不匹配的只会 miss、不会误用；而且本仓**每次 push 都在用同一套**（prepush 的 `turbo run lint:root` / `types:check` 本来就命中本地缓存）。真正决定"会不会误用"的是 **hash 覆盖面** —— 那正是 `lint:turbo-cache` 那组不变量的职责（docs 构建那一面本仓早已覆盖，见 `apps/docs/turbo.json` 的 inputs 注释；run #16 还顺带证明了「改了就真跑、没改就命中」）。**前提实测**：CI 注入的 `CI` / `TURBO_SCM_BASE` / `TURBO_SCM_HEAD` / `GITHUB_ACTIONS` 都不改变 task hash。详见 [Turbo 缓存边界](./turbo-cache-boundary) 第七节 |
 | C5 | **本地 ESLint 规则** ✅ **已做（两条）** | Z 有 13 条 + 每条配 RuleTester 正反语料。落地取「本仓有成文约定却零判据」的两条：`script-header` 与 `script-exit-code`（0/1/2 三态）。⚠️ **初稿那句「存量已满足、上线即绿」对 `script-header` 是错的** —— 登记时逐个数过：`bin/*.ts` **一个 JSDoc 文件头都没有**；落地实测 13 个 bin 里 2 个连注释都没有，已补。退出码那条实测 1515 个文件零违规，确实上线即绿 |
@@ -119,7 +119,7 @@
 - **多 app 产物合并 / 地图运行时扫描 / 浏览器性能指标**：无对应业务面。
 - **权限标识的前端 AST 扫描**：本仓前端**不持有**权限字面量（从后端接口拿字符串数组），照搬扫不到东西。
 - **`no-hardcoded-chinese` 棘轮**：本仓中文是产品默认语言，且文案真源在后端数据库，硬开会被无视。
-- **厚层 README（39 KB 级）**：本仓等价内容已在 `packages/tooling/scripts/README.md` + 文档站两页 + 门禁表里，再加一份会形成**第三个家**。
+- **厚层 README（39 KB 级）**：本仓等价内容已在 `tooling/scripts/README.md` + 文档站两页 + 门禁表里，再加一份会形成**第三个家**。
 
 ### F. 只登记不动手（业务代码，本轮范围外）
 
@@ -135,7 +135,7 @@
 ### 4.1 门禁编排与反向断言
 
 - **Z 的模式**：`Z · packages/tooling/gates.json` 把「门禁名册」与「触发面 profile」分开，每个面显式声明自己的成员与 `external`（不在名册里但属于该面的检查）。断言群做的是**双向**：名册 → 真实接线，以及 CI 侧脚本 → 名册（否则必须写明 `runner-exempt: <原因>`）。
-- **本仓**：`packages/tooling/scripts/src/ci/prepush.ts` 是一张扁平的表 + 并行 runner，**没有触发面维度**；`prepush.test.ts` 只做单向（`argv[0]` 能落到真实根脚本）。
+- **本仓**：`tooling/scripts/src/ci/prepush.ts` 是一张扁平的表 + 并行 runner，**没有触发面维度**；`prepush.test.ts` 只做单向（`argv[0]` 能落到真实根脚本）。
 - **差距的两个方向**：
   1. **漏失效**（A1）：CI 与发版电池对这张表没有任何约束；
   2. **误报风险**：Z 自己也踩过 —— 它的 `external` 字段一度变成「可以往里塞东西」的口袋，后来补了形状断言才收住。**照搬时必须同时补断言**。
@@ -160,7 +160,7 @@
 
 ### 4.4 ESLint / tsconfig / vitest / AST
 
-- Z 的 43.6 KB「本地规则」实为 **13 条**，每条都有 RuleTester 正反语料 + 两条「结构锁」（名册只增不减、模板分支必须注册）。本仓 `packages/tooling/eslint-config/nest-local-rules.ts` 只有 1 条规则，**全仓 0 个 RuleTester**。
+- Z 的 43.6 KB「本地规则」实为 **13 条**，每条都有 RuleTester 正反语料 + 两条「结构锁」（名册只增不减、模板分支必须注册）。本仓 `tooling/eslint-config/nest-local-rules.ts` 只有 1 条规则，**全仓 0 个 RuleTester**。
 - 13 条里**本仓适用且零误报**的只有两条（= C5）；其余要么被现有机制覆盖（精确版本靠 `saveExact` + syncpack）、要么无命中点、要么前提不同（中文棘轮）。
 - tsconfig：我们把 Z 的 `ts + scripts` 两档合成了一档（`erasableSyntaxOnly` 在 `ts.json`），**属合理取舍**；可选补一条 `types: ['node']` 显式声明。
 - vitest 预设：本仓 `include` **不含 `.tsx`**（当前全仓 0 个 `.test.tsx`，属**潜在**而非现存问题）；Z 还有「include 面偏离 src 时必须写明静默 0 用例风险」这条判据值得借。
@@ -178,7 +178,7 @@
   - 另外它第 2 条的教训在这里**反向用了一次**：正因为"子串匹配容易被满足"，本仓的规则表**只收在真产物上零误报的规则** —— 被删掉的 3 条候选规则（裸 PEM 头 / 键名=值 / 超长 base64）各自有 1 / 8 / 5 次实测误报。
 - **⚠️ 2026-09-23 补记：产物侧做完当天就漏了一次，而漏在"源码侧根本没人看"**。
   我在一个测试夹具里写了腾讯云文档的样本 SecretId（`AKID` + 32 位），**14 段 prepush 门禁 + 300 多个用例全绿**，
-  然后 `git push` 被 **GitHub 服务端的 push protection** 拒掉。三条教训已落成新门禁 `pnpm lint:secrets`：
+  然后 `git push` 被 **GitHub 服务端的 push protection** 拒掉。三条教训已落成新门禁 `pnpm walnut lint:secrets`：
   ① **服务端那道闸在 CI 之前** ⇒ 必须在 `prepush` 拦；② 它**只认形状、分不出样本与真货** ⇒
   本仓规矩是「**假样本也不许长成真凭据的形状**」（夹具运行时拼装，**不加白名单** —— 服务端不读我们的白名单）；
   ③ 规则表与产物侧**同源**（共用 `scanText`），源码侧另立一套必然漂移。
@@ -202,7 +202,7 @@
 - **本仓的 catalog 护栏其实比 Z 多**（`hoist: false` / `minimumReleaseAge` / `trustPolicy` / `blockExoticSubdeps` 它都没有）；它唯一比我们强的是 L5。
 - **B2 落地时踩到的坑（值得单记）**：Z 的 L5 是「比工作区的 catalog 与锁文件」，照搬过来**永远绿**。原因是实测发现
   **pnpm 12 默认会在跑任何脚本之前自动 install**（`verifyDepsBeforeRun` 未设置时的默认行为）——
-  `pnpm lint:lockfile` 会先把锁文件改对，门禁看到的已是同步状态。判据：注入一个「存在但不同」的 catalog
+  `pnpm walnut lint:lockfile` 会先把锁文件改对，门禁看到的已是同步状态。判据：注入一个「存在但不同」的 catalog
   版本，`pnpm <script>` 路径 exit 0（且锁文件被 pnpm 改了），而 `node <bin>` 直跑 exit 1 并报出是哪一条。
   **改法**：比对对象从工作区换成 **`git show HEAD:` 那两个文件** —— CI 检出的正是这一对，与 pnpm 的
   自动 install 无关。这也是本项目里「一个门禁要能被问『它这次到底看了什么』」的又一个实例。

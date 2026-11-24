@@ -31,10 +31,11 @@ versioning:
 全部有 version 的 workspace 包（apps + platform-any + platform-web + generated + tooling）**永远同一个版本号**，
 发布 tag `vX.Y.Z` 因此永远有唯一来源（取组内版本，基准是 `apps/admin`）。
 
-> `tooling` 那 6 个是 `@walnut/tsconfig` / `@walnut/eslint-config` / `@walnut/commitlint-config` /
-> `@walnut/vitest-config` / `@walnut/scripts` / `@walnut/release`（前五个 2026-09-23 由
-> `@walnut/tooling` 单包拆分而来、见 [ADR 0019](/content/adr/0019-tsconfig-presets-and-no-mjs)，
-> `vitest-config` 同日新增）。
+> `tooling/` 下的各包全部在这个组里（判据是「给仓库自己用、不随业务发布」，完整名单以
+> `pnpm-workspace.yaml` 的 `versioning.fixed` 为准）：`@walnut/tsconfig` 等预设包与
+> `@walnut/scripts` / `@walnut/release` 的历史由来见
+> [ADR 0019](/content/adr/0019-tsconfig-presets-and-no-mjs)，2026-11 新增的
+> `@walnut/vite-config` 见 [ADR 0030](/content/adr/0030-admin-build-config-as-tooling-package)。
 
 ### 为什么是「一组」而不是历史上的「Apps 组 + Packages 组」
 
@@ -51,7 +52,7 @@ pnpm 的 fixed 组**各自独立**。两个组的写法会留下一条结构性�
 
 ## 提交纪律（发版的前提）
 
-commitlint 强制（见 [`@walnut/commitlint-config`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/commitlint-config/index.ts)）：
+commitlint 强制（见 [`@walnut/commitlint-config`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/commitlint-config/index.ts)）：
 
 **`type(包名): message`** —— scope 必填，且必须是包名或基础设施 scope：
 
@@ -72,8 +73,8 @@ feat(deploy): 部署后验证           ← 基础设施 scope
 | tooling | `eslint-config` `commitlint-config` `tooling` |
 | 基础设施 | `docker` `deploy` `pnpm` `release` |
 
-> 白名单真源是 `packages/tooling/commitlint-config/index.ts` 的 `SCOPES`。`tooling` 这个 scope 保留给
-> 工具链包的改动（`@walnut/scripts` / `@walnut/release` / `@walnut/tsconfig` 都在 `packages/tooling/` 下，
+> 白名单真源是 `tooling/commitlint-config/index.ts` 的 `SCOPES`。`tooling` 这个 scope 保留给
+> 工具链包的改动（`@walnut/scripts` / `@walnut/release` / `@walnut/tsconfig` 都在 `tooling/` 下，
 > 归属规则按**路径**命中这些包）；`release` 是**发版记账提交专用**的 infra scope（`chore(release): vX.Y.Z`），
 > 不产生变更意图。
 
@@ -125,7 +126,7 @@ pnpm release
 六步（分节顺序即执行顺序）：
 
 ```
-0   前置      分支=main / 未落后上游 / fixed 组已对齐 / 钩子已装 / GITHUB_TOKEN（可选）
+0   前置      分支=main / 未落后上游 / fixed 组已对齐 / 钩子已装 / GITHUB_TOKEN 或 GH_TOKEN（可选）
 1   生成意图  扫上次 tag 以来的 commit → 归属到包 → pnpm change --bump --summary <pkg…>
 2   确认 bump 列出意图摘要 + 预期版本 → 交互确认，或 --bump 覆盖
 3   消费意图  pnpm version -r --no-git-checks（版本 + ledger）
@@ -152,43 +153,44 @@ pnpm release
 
 | id | 内容 |
 |----|------|
-| `hooks` | **第 0 步**：`pnpm hooks:check` —— 断言本机 git 钩子仍由 lefthook 托管。`prepush` 本身就是钩子调的（钩子没装时它根本不会跑），所以只有 `pnpm release` 这种**不经钩子**的入口才检查得到「本机门禁是否已静默失效」 |
+| `hooks` | **第 0 步**：`pnpm walnut hooks:check` —— 断言本机 git 钩子仍由 lefthook 托管。`prepush` 本身就是钩子调的（钩子没装时它根本不会跑），所以只有 `pnpm release` 这种**不经钩子**的入口才检查得到「本机门禁是否已静默失效」 |
 | `boundaries` | `turbo boundaries` |
-| `circular` | `pnpm madge:check`（`apps/server` 的 apps + libs 循环依赖；madge 跑 1053 文件约 14–20s。它此前只躺在 package.json 里、不在任何门禁中，批次 2 · R2 接入） |
+| `circular` | `pnpm walnut madge:check`（`apps/server` 的 apps + libs 循环依赖；madge 跑 1053 文件约 14–20s。它此前只躺在 package.json 里、不在任何门禁中，批次 2 · R2 接入） |
 | `lint` | `turbo run lint`（所有包，不排任何包） |
 | `lint-root` | `turbo run lint:root`（**根级文件**的 lint：`eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
 | `types` | `turbo run types:check` |
-| `types-root` | `pnpm types:check:root`（根 tsconfig 覆盖的 `eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
+| `types-root` | `pnpm walnut types:check:root`（根 tsconfig 覆盖的 `eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts`） |
 | `test` | `turbo run test` |
 | `syncpack` | `syncpack lint` |
 | `versioning` | `pnpm change check`（fixed 组锁步） |
-| `workflows` | `pnpm lint:workflows`（actionlint）。**探测不到 actionlint ⇒ 抛 `SkippedError` ⇒ 退出码 3** —— 本机**未验证**，既不是通过也不是违规 |
-| `workflows-shell` | `pnpm lint:workflows-shell`（把每个 `run:` / `with.script:` 抽出来逐块 `bash -n` —— actionlint **看不见**字符串里的 shell 语法）。没有 bash 时同样 **退出码 3**（设 `BASH_PATH` 可启用） |
-| `dynamic-imports` | `pnpm lint:dynamic-imports`（`apps/**` 里不许出现拼出来的动态 import —— 模板插值 / 非字面量说明符；tsc 与 vite build 都看不见那一类） |
-| `docs-refs` | `pnpm lint:docs-refs`（活文档正文里引用的 workspace 包名 / 仓库路径必须真实存在） |
-| `adr` | `pnpm lint:adr`（ADR 形态：编号连续 / Status 在枚举内 / 四个必需小节 / index 双向对齐） |
-| `doc-ts` | `pnpm lint:doc-ts`（标成 `ts` 的代码块必须能按 TypeScript 解析） |
-| `doc-budget` | `pnpm lint:doc-budget`（常驻上下文文件不许膨胀，用不到一半也算失败） |
-| `emoji` | `pnpm lint:emoji`（注释与常驻文档里不许有 emoji：跨所有被跟踪文本文件） |
-| `seed` | `pnpm lint:seed`（初始化数据形态：必需/禁入集合、体积、凭据形状、引用完整性） |
-| `openapi` | `pnpm openapi:check`（= **两段**：段① `openapi:check:export` 重导出 `openapi.json`（要引导 AppModule，连 PG/Redis）→ 段② `openapi:check:schema` 重生成 `@walnut/api-types` 的 `schema.d.ts`（只读文件、不要数据库），各自 `git diff --exit-code`。CI 的 openapi job 在**没有** `ENV_KEYS` 的分支里只跑段② —— fork PR 也能硬失败；有 secret 时跑全量） |
-| `dts` | `pnpm lint:dts`（手写 `.d.ts` 关掉 `skipLibCheck` 查一遍，只报仓库内文件） |
-| `turbo-cache` | `pnpm lint:turbo-cache`（turbo 配置不变量：产物 / outputs / env / 依赖边 + **tags**） |
-| `lockfile` | `pnpm lint:lockfile`（`pnpm-workspace.yaml` 的 catalog ↔ `pnpm-lock.yaml` 锁步；改声明忘了 `pnpm install` 时本地全绿、CI 死在 `--frozen-lockfile`） |
-| `nginx-headers` | `pnpm lint:nginx-headers`（`deploy/nginx/conf.d/` 各 `server`/`location` 块上的 4 个安全响应头；`add_header` 是整段替换而不是合并） |
-| `secrets` | `pnpm lint:secrets`（**源码**密钥形态：PEM 私钥 / 带真口令的连接串 / JWT / 云厂商 AK）。⚠️ 发版面**必须**有它 —— GitHub 的 push protection 在服务端且先于 CI，被它拒掉时 tag 就推不上去 |
-| `exports` | `pnpm lint:exports`（包 `exports` 形态：目标存在 / 通配命中 / `types` 条件在前 / 与顶层 `main`·`types` 不矛盾） |
-| `pre-hooks` | `pnpm lint:pre-hooks`（有生成物的包，其跑 `vite` / `vue-tsc` 的脚本必须接 `pre<script>` 生成步骤；`vite preview` 除外）。⚠️ 发版面**必须**有它 —— 发版要构建，而这条守的正是「脚本没接生成 ⇒ 构建期报一串找不到全局名」 |
+| `workflows` | `pnpm walnut lint:workflows`（actionlint）。**探测不到 actionlint ⇒ 抛 `SkippedError` ⇒ 退出码 3** —— 本机**未验证**，既不是通过也不是违规 |
+| `workflows-shell` | `pnpm walnut lint:workflows-shell`（把每个 `run:` / `with.script:` 抽出来逐块 `bash -n` —— actionlint **看不见**字符串里的 shell 语法）。没有 bash 时同样 **退出码 3**（设 `BASH_PATH` 可启用） |
+| `dynamic-imports` | `pnpm walnut lint:dynamic-imports`（`apps/**` 里不许出现拼出来的动态 import —— 模板插值 / 非字面量说明符；tsc 与 vite build 都看不见那一类） |
+| `docs-refs` | `pnpm walnut lint:docs-refs`（活文档正文里引用的 workspace 包名 / 仓库路径必须真实存在） |
+| `adr` | `pnpm walnut lint:adr`（ADR 形态：编号连续 / Status 在枚举内 / 四个必需小节 / index 双向对齐） |
+| `doc-ts` | `pnpm walnut lint:doc-ts`（标成 `ts` 的代码块必须能按 TypeScript 解析） |
+| `doc-budget` | `pnpm walnut lint:doc-budget`（常驻上下文文件不许膨胀，用不到一半也算失败） |
+| `emoji` | `pnpm walnut lint:emoji`（注释与常驻文档里不许有 emoji：跨所有被跟踪文本文件） |
+| `seed` | `pnpm walnut lint:seed`（初始化数据形态：必需/禁入集合、体积、凭据形状、引用完整性） |
+| `openapi` | `pnpm walnut openapi:check`（= **两段**：段① `openapi:check:export` 重导出 `openapi.json`（要引导 AppModule，连 PG/Redis）→ 段② `openapi:check:schema` 重生成 `@walnut/api-types` 的 `schema.d.ts`（只读文件、不要数据库），各自 `git diff --exit-code`。CI 的 openapi job 在**没有** `ENV_KEYS` 的分支里只跑段② —— fork PR 也能硬失败；有 secret 时跑全量） |
+| `dts` | `pnpm walnut lint:dts`（手写 `.d.ts` 关掉 `skipLibCheck` 查一遍，只报仓库内文件） |
+| `turbo-cache` | `pnpm walnut lint:turbo-cache`（turbo 配置不变量：产物 / outputs / env / 依赖边 + **tags**） |
+| `lockfile` | `pnpm walnut lint:lockfile`（`pnpm-workspace.yaml` 的 catalog ↔ `pnpm-lock.yaml` 锁步；改声明忘了 `pnpm install` 时本地全绿、CI 死在 `--frozen-lockfile`） |
+| `nginx-headers` | `pnpm walnut lint:nginx-headers`（`deploy/nginx/conf.d/` 各 `server`/`location` 块上的 4 个安全响应头；`add_header` 是整段替换而不是合并） |
+| `post-verify` | `pnpm walnut lint:post-verify`（`deploy/post-verify.test.sh`：用假 `docker` / `curl` 覆盖部署后验证脚本的各条失败分支，不需要 Docker；本机没有 bash 时报「跳过、未验证」（退出码 3）） |
+| `secrets` | `pnpm walnut lint:secrets`（**源码**密钥形态：PEM 私钥 / 带真口令的连接串 / JWT / 云厂商 AK）。⚠️ 发版面**必须**有它 —— GitHub 的 push protection 在服务端且先于 CI，被它拒掉时 tag 就推不上去 |
+| `exports` | `pnpm walnut lint:exports`（包 `exports` 形态：目标存在 / 通配命中 / `types` 条件在前 / 与顶层 `main`·`types` 不矛盾） |
+| `pre-hooks` | `pnpm walnut lint:pre-hooks`（有生成物的包，其跑 `vite` / `vue-tsc` 的脚本必须接 `pre<script>` 生成步骤；`vite preview` 除外）。⚠️ 发版面**必须**有它 —— 发版要构建，而这条守的正是「脚本没接生成 ⇒ 构建期报一串找不到全局名」 |
 | `build` | ⏭️ **默认暂缓**：镜像由 `release.yml` 的 images job 真正构建；要跑就删掉表里那行的 `skip` |
-| `dist-secrets` | `pnpm lint:dist`（产物去密体检：机密形态 + 后端 env 真值 + 凭据文件）⏭️ **默认暂缓，与 `build` 是一对** —— 它扫的就是 `apps/admin/dist`，本地没构建时只会报「前置条件未满足」（退出码 2）。解冻时两条一起解冻 |
+| `dist-secrets` | `pnpm walnut lint:dist`（产物去密体检：机密形态 + 后端 env 真值 + 凭据文件）⏭️ **默认暂缓，与 `build` 是一对** —— 它扫的就是 `apps/admin/dist`，本地没构建时只会报「前置条件未满足」（退出码 2）。解冻时两条一起解冻 |
 
-> **这张表与 `packages/tooling/release/src/release/steps.ts` 的 `RELEASE_BATTERY` 必须一致** ——
+> **这张表与 `tooling/release/src/release/steps.ts` 的 `RELEASE_BATTERY` 必须一致** ——
 > `steps.test.ts` 逐行钉住了它。加一段门禁时**两边都要改**：`RELEASE_BATTERY` 与本页表格
 > （**注意：这里说的「逐行钉住」指的是那个测试文件钉 `RELEASE_BATTERY`，不是本页**；本页的表格
 > 眼下仍靠人工同步，见 [与参考仓 Z 的基建交叉对比](./reference-repo-comparison) 的 A1）。
 >
 > **「跳过」是第四种结论，既不是通过也不是失败**（退出码 3，来自 `SkippedError`；判据在
-> `packages/tooling/scripts/src/lib/errors.ts`）。上表这两条遇「本机缺工具」时走的就是它：
+> `tooling/scripts/src/lib/errors.ts`）。上表这两条遇「本机缺工具」时走的就是它：
 >
 > - **prepush**：该段打 `-`、尾巴标 `[SKIP 未验证]`，汇总单列「跳过（未验证）」而不是「全部通过」；
 >   `PREPUSH_STRICT=1` 时才把「跳过」判红，默认只让它可见、不挡推送。
@@ -198,13 +200,14 @@ pnpm release
 >
 > **权威校验仍在 CI**：`.github/workflows/workflow-lint.yml` 强制装 actionlint 并直接跑二进制。
 
-> ⚠️ `types-root` 必须是**独立一行**、且经根脚本跑（`pnpm types:check:root`）—— 它只是根
-> `package.json` 的脚本、**没有**对应的 turbo 任务，`turbo run types:check:root` 会直接以
+> ⚠️ `types-root` 必须是**独立一行**、且经入口跑（`pnpm walnut types:check:root`）—— 它只是命令表
+> 里的一项、**没有**对应的 turbo 任务，`turbo run types:check:root` 会直接以
 > `Could not find task 'types:check:root' in project` 非 0 退出。
 >
 > **`lint-root` 曾经也是这个形态，2026-09-23 起不是了**：根 `turbo.json` 新增了 `//#lint:root`
-> 根任务（带精确 inputs —— 就是根脚本那三个 glob），于是它改成走 `turbo run lint:root` 从而
-> 可缓存（实测冷跑 3.8s → 热跑 0.11s）。**别按旧结论把它改回 `pnpm lint:root`** —— 那样会丢掉
+> 根任务（带精确 inputs —— 就是命令表里那三个 glob），于是它改成走 `turbo run lint:root` 从而
+> 可缓存（实测冷跑 3.8s → 热跑 0.11s）。**别按旧结论把它改回直接调 `eslint`
+> （`pnpm walnut lint:root` 就是那个形态）** —— 那样会丢掉
 > 缓存；也**别**把 `types-root` 改成 turbo，它到今天仍没有任务定义。判据：`turbo run lint:root`
 > 与 `turbo run types:check:root` 各跑一次，前者 1 个任务、后者报 `Could not find task`。
 
@@ -296,9 +299,11 @@ git-cliff 走 GitHub 原生 provider 补 **PR 号与作者**：
 
 ```bash
 export GITHUB_TOKEN=<token>    # 可选；公开仓匿名也能查，但限流 60 次/小时
+# 也认 GH_TOKEN（gh CLI 的惯用名）；两个都设了时 GITHUB_TOKEN 优先
 pnpm release
 ```
 
+「从环境变量读 GitHub token」只有一处口径：`tooling/scripts/src/lib/github.ts` 的 `tokenFromEnv`，发版编排与 `pnpm walnut docs:version` 共用。
 - 有 token：条目形如 `- [#12](…/pull/12) [`1a82770`](…/commit/1a82770…) by @user **admin** 支持记住登录状态`
 - 无 token：Step 0 打一次明确警告，条目降级为 commit 链接 + 主题
 - 要「缺 token 就硬失败」：`--require-github-meta`
@@ -318,7 +323,7 @@ pnpm release --status      # 公开仓无需 token 即可查询远端 Release
 | [`.changeset/`](https://github.com/walnut-admin/walnut-admin/tree/main/.changeset) | 意图（`*.md`）、消费台账（`ledger.yaml`）、写前日志（gitignored） |
 | [`cliff.toml`](https://github.com/walnut-admin/walnut-admin/blob/main/cliff.toml) | changelog 渲染规则 |
 | [`lefthook.yml`](https://github.com/walnut-admin/walnut-admin/blob/main/lefthook.yml) | git 钩子唯一真源 |
-| `packages/tooling/release/src/release/` | 发版编排（模块地图见该包的 README） |
+| `tooling/release/src/release/` | 发版编排（模块地图见该包的 README） |
 | [`.github/workflows/release.yml`](https://github.com/walnut-admin/walnut-admin/blob/main/.github/workflows/release.yml) | tag 推送 → 镜像 → GitHub Release → 部署 |
 
 > ⚠️ 这一表原本写的是相对路径（`../../../../../cliff.toml` 之类）——**层级数错了**，而且这些是

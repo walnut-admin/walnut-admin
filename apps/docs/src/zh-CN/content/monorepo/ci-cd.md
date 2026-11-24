@@ -8,7 +8,7 @@
 
 | Workflow | 触发 | 内容 | 是否会构建容器 |
 |----------|------|------|----------------|
-| `ci.yml` | push `main`、PR | boundaries → affected lint/types:check/test → 根级配置 lint（`pnpm lint:root`，不进 affected 图）→ affected 自检 → syncpack → `pnpm change check` → server 构建（+ 有 secret 时 admin 构建） | ❌ |
+| `ci.yml` | push `main`、PR | 门禁步骤一律调入口（`pnpm walnut <id>`）：boundaries → affected lint/types:check/test → 根级配置 lint（`pnpm walnut lint:root`，不进 affected 图）→ affected 自检 → syncpack → `pnpm change check` → server 构建（+ 有 secret 时 admin 构建） | ❌ |
 | `workflow-lint.yml` | `.github/**` 变更 | actionlint 校验所有 workflow 与本地 composite action | ❌ |
 | `release.yml` | tag `v*.*.*`，或 `workflow_dispatch`（**ref 选那个 tag**） | verify ∥ images → GitHub Release → 自动部署；手动补跑时可勾 `skip_deploy` —— **只验证镜像构建、不碰生产** | ✅ 仅此一处 |
 | `deploy.yml` | `workflow_call`（被 release 复用）/ `workflow_dispatch`（回滚重发） | 纯部署：校验镜像存在 → 生成 env → scp → `compose pull && up -d --wait` → 健康检查 → **部署后验证（post-verify）**。入参 `image_tag`（必填）+ `environment`（默认 `prod`，目前只有 `prod`） | ❌ |
@@ -133,16 +133,17 @@ compose 以 bind mount 注入 `./env/.env.production`，镜像里不需要也不
 | 前端 / 入口 nginx 日志 | 无 5xx |
 | 端到端 | 经公网域名（`--resolve` 指回本机）前端 `/` = 200、API 静态路由 = 200 |
 | 安全响应头 | **两个域名各取一次响应头**：`Strict-Transport-Security` / `X-Content-Type-Options` / `X-Frame-Options` / `Referrer-Policy` 必须都在（只比头名、不比取值 —— 取值会随运维调整，逐字比对是误报源） |
+| 行为测试本身（推送前 / CI） | `deploy/post-verify.test.sh` 用假 `docker` / `curl` 覆盖上面每条失败分支（含「只有 API 域名缺头」）；由 `pnpm walnut lint:post-verify` 在 prepush 与 CI 的 quality job 跑。本机没有 bash 时报「跳过、未验证」（退出码 3），以 ubuntu runner 为权威。**它有适用范围**：本地只在相对上游改了 `post-verify.sh`、它的行为测试或入口 nginx 配置时才真跑（Windows 上一次约一到三分钟），否则打一行「不适用」直接过；CI 上每次都真跑 |
 
 任一硬条件在超时前不满足 → 该步骤失败，**部署不判成功**，并打印后端 / nginx 日志尾部。在 Actions 里看 `deploy` job 的 **Post-deploy verification** 步骤。
 
 三个实现细节值得记住：
 
 1. **nginx 日志能进 `docker logs` 是特意做的**：alpine 的 nginx 包默认把 access/error log 写进 `/var/log/nginx/*.log`，容器里 `docker logs` 是空的。`deploy/nginx/Dockerfile` 用两个软链接到 stdout/stderr（官方 nginx 镜像的做法），入口 nginx 与 frontend 共用同一基础镜像，因此都生效。
-2. **失败模式写成了可执行测试**：`deploy/post-verify.test.sh` 用假的 `docker`/`curl` 逐条覆盖上面每一个失败分支（含「只有 API 域名缺头」这一种），本地 `bash deploy/post-verify.test.sh` 即可跑，不需要 Docker。
-3. **安全头这条判据有两个面，缺一不可**：推送前 `pnpm lint:nginx-headers` 静态查 `deploy/nginx/conf.d/` 里的配置有没有写全（毫秒级），部署后这一段查「头真的发出去了没有」。**为什么两边都要**：nginx 的 `add_header` 是**整段替换而不是合并** —— 某个 `location` 自己写一条就把 server 级的全吃掉；两个并列的 `server` 块之间也不互相继承（2026-09-23 交叉对比时实测：`api.conf` 当时一个安全头都没有）。配置写错要在推送上就拦住，环境/drift（比如 conf 改了没 `nginx -s reload`）只能部署后看得见。
+2. **失败模式写成了可执行测试，并已接成自动门禁**：`deploy/post-verify.test.sh` 用假的 `docker`/`curl` 逐条覆盖上面每一个失败分支（含「只有 API 域名缺头」这一种），不需要 Docker。入口是 `pnpm walnut lint:post-verify`：**CI 的 quality job 每次都跑；推送前（prepush）只在改了相关文件时才真跑**（这一段有适用范围，与之无关的推送不付那一两分钟），本机没有 bash 时报「跳过、未验证」（退出码 3）；也可以手工 `bash deploy/post-verify.test.sh`。
+3. **安全头这条判据有两个面，缺一不可**：推送前 `pnpm walnut lint:nginx-headers` 静态查 `deploy/nginx/conf.d/` 里的配置有没有写全（毫秒级），部署后这一段查「头真的发出去了没有」。**为什么两边都要**：nginx 的 `add_header` 是**整段替换而不是合并** —— 某个 `location` 自己写一条就把 server 级的全吃掉；两个并列的 `server` 块之间也不互相继承（2026-09-23 交叉对比时实测：`api.conf` 当时一个安全头都没有）。配置写错要在推送上就拦住，环境/drift（比如 conf 改了没 `nginx -s reload`）只能部署后看得见。
 
-## 源码密钥形态（`pnpm lint:secrets`）
+## 源码密钥形态（`pnpm walnut lint:secrets`）
 
 产物侧那道门禁（下一节）看的是**发出去的东西**；这一道看的是**仓库里的文本文件**。它存在的直接原因是 2026-09-23 的一次真实事故：
 
@@ -150,7 +151,7 @@ compose 以 bind mount 注入 `./env/.env.production`，镜像里不需要也不
 
 ```text
 remote:  Push cannot contain secrets
-remote:    - commit: …  path: packages/tooling/scripts/src/ci/__tests__/check-dist-secrets.test.ts
+remote:    - commit: …  path: tooling/scripts/src/ci/__tests__/check-dist-secrets.test.ts
 remote:       —— Tencent Cloud Secret ID ——
 ```
 
@@ -164,7 +165,7 @@ remote:       —— Tencent Cloud Secret ID ——
 
 判据按实测收窄过一处：连接串的**口令必须"像真口令"（长度 ≥ 8 且含非数字）**。拿同一份规则表扫全仓 2064 个文本文件时，5 处命中里有 4 处是格式说明与本地容器默认口令（`mongodb://u:p@`、bitnami 的 `root:123456@127.0.0.1`）—— 这正是「宁可漏报不可误报」的取舍。
 
-## 产物去密体检（`pnpm lint:dist`）
+## 产物去密体检（`pnpm walnut lint:dist`）
 
 前端产物是**公开文件**（DevTools 里能看到全部字节），而"把后端 env 泄进前端"在本仓有一条现成的、静默的路径：`apps/server/env-local/` 与 `apps/admin/env-local/` 是**两套** env（都由 `pnpm setup-env` 解密），搬错一行、或被某个 import 间接读到，值就会被打包进去 —— 而构建、类型检查、lint、测试**全都不会响**。之前产物侧是**零门禁**。
 
@@ -181,33 +182,35 @@ remote:       —— Tencent Cloud Secret ID ——
 ## 本地验证 CI 改动
 
 ```bash
-pnpm lint:workflows    # actionlint（未安装则跳过并提示；CI 中强制执行）
-pnpm lint:secrets      # 源码密钥形态（**推送前就该跑** —— 服务端的 push protection 比 CI 更早）
-pnpm lint:dist         # 产物去密体检（先构建出 apps/admin/dist；没有产物会以「前置条件未满足」退出 2）
-pnpm images:print      # 只解析 docker-bake.hcl，不构建
-pnpm images:build      # 本地构建 backend + frontend（先按 deploy/README.md 准备 staging）
+pnpm walnut lint:workflows    # actionlint（未安装则跳过并提示；CI 中强制执行）
+pnpm walnut lint:secrets      # 源码密钥形态（**推送前就该跑** —— 服务端的 push protection 比 CI 更早）
+pnpm walnut lint:dist         # 产物去密体检（先构建出 apps/admin/dist；没有产物会以「前置条件未满足」退出 2）
+pnpm walnut images:print      # 只解析 docker-bake.hcl，不构建
+pnpm walnut images:build      # 本地构建 backend + frontend（先按 deploy/README.md 准备 staging）
 ```
 
 > ⚠️ **本地跑 actionlint 时务必装 shellcheck**。actionlint 只有在 PATH 上存在 `shellcheck` 时才做 SC* 检查：本机没装 → 本地 exit 0，而 ubuntu-latest runner 预装 → 同一个文件在 CI 上退出码 1（本仓首跑就是这么红了一次：`docker login $REGISTRY` 少引号，SC2086）。
 
-## 本地复刻 CI（`pnpm ci:local`）
+## 本地复刻 CI（`pnpm walnut ci:local`）
 
-`pnpm prepush` 与 `pnpm ci:local` 是**两件事，谁也替代不了谁**：
+`pnpm prepush` 与 `pnpm walnut ci:local` 是**两件事，谁也替代不了谁**：
 
 | 命令 | 覆盖什么 | 什么时候跑 |
 |------|----------|------------|
 | `pnpm prepush` | CI `quality` job 的**全部静态门禁**（lint / 类型 / 测试 / boundaries / 文档与密钥形态……），并行、吃 turbo 缓存 | **每次 push 都跑**（pre-push 钩子已经这么做了） |
-| `pnpm ci:local` | CI 的**构建类**步骤：server 构建 → admin 构建（`--force`，不吃缓存）→ 产物冒烟 → 产物去密 → 文档构建（死链）→ 迁移 → worker 冒烟 → actionlint。**顺序执行**（后一步读前一步的产物） | **推之前跑一次**（分钟级；改动波及构建时尤其要跑） |
+| `pnpm walnut ci:local` | CI 的**构建类**步骤：server 构建 → admin 构建（`--force`，不吃缓存）→ 产物冒烟 → 产物去密 → 文档构建（死链）→ 迁移 → worker 冒烟 → actionlint。**顺序执行**（后一步读前一步的产物） | **推之前跑一次**（分钟级；改动波及构建时尤其要跑） |
 
 两者**没有重叠**：prepush 一条构建都不跑，ci:local 一条静态门禁都不跑。只跑前者的后果是实打实的 —— 见 `ci.yml` 里 `Build admin` 那段 `--force` 注释：v0.1.4 的发版死在 admin 构建上，而**同一个提交的 CI 是绿的**（CI 命中了 turbo 缓存、压根没真构建）。
 
-步骤表是**唯一真源**：`packages/tooling/scripts/src/ci/local-ci.ts` 的 `LOCAL_CI_STEPS`（增删步骤改那一处，命令行只有 `pnpm ci:local` 一个词）。调试单步用 `--only=<id,...>` / `--skip=<id,...>`（如 `pnpm ci:local --only=worker-smoke`）；**未知 id 直接报错**，不会静默忽略。
+步骤表是**唯一真源**：`tooling/scripts/src/ci/local-ci.ts` 的 `LOCAL_CI_STEPS`（增删步骤改那一处，入口侧只有命令表的 `ci:local` 一项）。调试单步用 `--only=<id,...>` / `--skip=<id,...>`（如 `pnpm walnut ci:local --only=worker-smoke`）；**未知 id 直接报错**，不会静默忽略。
+
+构建类步骤的**逻辑也只在这一份里**（2026-11-24 起）：CI 的 `openapi` job 里 worker 冒烟那一步调用的就是它（`pnpm walnut ci:local --only=worker-smoke`，不再在 workflow 里内联 bash）；其余构建类步骤在 `ci.yml` 里是同一条命令的镜像，由 `ci-workflow.test.ts` 逐条核对，只改一边会红。
 
 ### 四态：跳过不等于通过
 
 `ci:local` 与其它门禁共用一套退出码：**0 通过 / 1 查出违规 / 2 前置条件未满足 / 3 环境缺失、这一步没跑**。
 
-最常撞到的是 **3**：`actionlint` 没装时那一步**压根没跑**，脚本会打出「跳过（未验证）」并在汇总里单列步骤名，退出码是 3 而不是 0。**装了才是真验证** —— CI 的 `workflow-lint.yml` 会下载二进制强制执行，本地那一份只是提前量；把 actionlint 装上（<https://github.com/rhysd/actionlint#download>）再跑一次，这一步才算数。同理，`pnpm smoke:dist` 在没有浏览器的机器上会自己 SKIP（`CHROME_PATH` 可指定浏览器）。
+最常撞到的是 **3**：`actionlint` 没装时那一步**压根没跑**，脚本会打出「跳过（未验证）」并在汇总里单列步骤名，退出码是 3 而不是 0。**装了才是真验证** —— CI 的 `workflow-lint.yml` 会下载二进制强制执行，本地那一份只是提前量；把 actionlint 装上（<https://github.com/rhysd/actionlint#download>）再跑一次，这一步才算数。同理，`pnpm walnut smoke:dist` 在没有浏览器的机器上会自己 SKIP（`CHROME_PATH` 可指定浏览器）。
 
 两件环境前提：`migration:run` 与 worker 冒烟都要 **PG / Redis 在线**；worker 冒烟那一步还会临时接管 `apps/server/.data`（先整目录备份、种一份含过期项的 CAP token 表、跑完原样恢复），所以本地库里的真实 token 不会被弄丢。
 
@@ -222,7 +225,7 @@ brew install actionlint
 bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
 ```
 
-装完 `pnpm ci:local --only=actionlint` 应变成 exit 0，完整跑也就跟着从 3 变 0。各平台的二进制包都在 <https://github.com/rhysd/actionlint/releases>。
+装完 `pnpm walnut ci:local --only=actionlint` 应变成 exit 0，完整跑也就跟着从 3 变 0。各平台的二进制包都在 <https://github.com/rhysd/actionlint/releases>。
 
 ## 相关
 

@@ -41,10 +41,10 @@
 | 规定 | 唯一真源 |
 |------|----------|
 | 写 md 时别写原始 `${{ }}`、围栏语言要标对、新增页面要登记 sidebar | [`apps/docs/AGENTS.md`](https://github.com/walnut-admin/walnut-admin/blob/main/apps/docs/AGENTS.md) 的重要约定 |
-| ADR 的形态（编号 / Status 枚举 / 必需小节 / index 双向对齐） | [`adr/index.md`](../adr/index.md)，由 `pnpm lint:adr` 机械校验 |
+| ADR 的形态（编号 / Status 枚举 / 必需小节 / index 双向对齐） | [`adr/index.md`](../adr/index.md)，由 `pnpm walnut lint:adr` 机械校验 |
 | 归档的收录判据与「归宿」列 | [`archive/index.md`](../archive/index.md) |
-| 门禁有几段、各段凭什么 | `packages/tooling/scripts/src/ci/prepush.ts` 的表（正文里只许写判据） |
-| 文档引用的包名 / 仓库路径要真实存在 | `pnpm lint:docs-refs` 的实现注释 |
+| 门禁有几段、各段凭什么 | `tooling/scripts/src/ci/prepush.ts` 的表（正文里只许写判据） |
+| 文档引用的包名 / 仓库路径要真实存在 | `pnpm walnut lint:docs-refs` 的实现注释 |
 | 别写会腐烂的计数 | [`apps/docs/AGENTS.md`](https://github.com/walnut-admin/walnut-admin/blob/main/apps/docs/AGENTS.md) 重要约定 8（根 `AGENTS.md` 只做指路） |
 
 ## 四、两条书写约定（本仓此前没有明文，借自外部实践）
@@ -75,14 +75,14 @@
 
 | 门禁 | 管什么 |
 |------|--------|
-| `pnpm build:docs` | 死链**就是构建失败**；新增页面没登记 sidebar 也会在评审里被指出来 |
-| `pnpm lint:docs-refs` | 正文反引号里引用的包名 / 仓库路径必须真实存在 |
-| `pnpm lint:doc-ts` | 标成 `ts` 的围栏块必须能按 TypeScript 解析 |
-| `pnpm lint:adr` | ADR 的形态 |
-| `pnpm lint:doc-budget` | 常驻上下文文件不许膨胀（**用不到一半也算失败**） |
-| `pnpm lint:turbo-cache` | 文档改动有没有进 docs 构建的缓存键（改文档不重建 = 死链校验被跳过） |
+| `pnpm walnut build:docs` | 死链**就是构建失败**；新增页面没登记 sidebar 也会在评审里被指出来 |
+| `pnpm walnut lint:docs-refs` | 正文反引号里引用的包名 / 仓库路径必须真实存在 |
+| `pnpm walnut lint:doc-ts` | 标成 `ts` 的围栏块必须能按 TypeScript 解析 |
+| `pnpm walnut lint:adr` | ADR 的形态 |
+| `pnpm walnut lint:doc-budget` | 常驻上下文文件不许膨胀（**用不到一半也算失败**） |
+| `pnpm walnut lint:turbo-cache` | 文档改动有没有进 docs 构建的缓存键（改文档不重建 = 死链校验被跳过） |
 
-> 加一条门禁要接进哪几处，见 [架构地图](./architecture) 的「新增一条门禁的五步接线清单」。
+> 加一条门禁要接进哪几处，见 [架构地图](./architecture) 的「新增一条门禁的六步接线清单」。
 
 ## 相关文档
 

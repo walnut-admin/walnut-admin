@@ -13,7 +13,7 @@ Walnut Admin 是公开的 GitHub 仓库，但项目实际在运营——数据�
 ```
 walnut-admin/
 ├── .env.keys                                  ← gitignored（私钥，1Password 分发）
-├── packages/tooling/scripts/src/env/setup-env.ts   ← 加解密脚本（bin：walnut-setup-env，@walnut/scripts）
+├── tooling/scripts/src/env/setup-env.ts       ← 加解密脚本（bin：walnut-setup-env，@walnut/scripts）
 │
 ├── apps/admin/
 │   ├── env-encrypted/     ← 加密后的真实值，文件内注释即模板（安全提交 Git）
@@ -61,7 +61,7 @@ pnpm encrypt-env   # 修改 env-local/ 后重新加密（每次全量重建 .env
 > devDependencies 上）。`setup-env.ts` 从它的 `package.json#bin` 解析出 CLI 入口，用 `process.execPath`
 > 以 argv 拉起——**不走 `npx`，也不经 shell**。原来的 `npx dotenvx` 形态依赖「cwd 的 node_modules 里恰好
 > 能找到 dotenvx」，依赖一下沉就会**静默退化成联网下载**，而且在 Windows 上还要额外处理 `.cmd`。
-> 排查见 `packages/tooling/scripts/README.md`。
+> 排查见 `tooling/scripts/README.md`。
 
 ### 4. 前后端差异化
 
@@ -69,7 +69,7 @@ pnpm encrypt-env   # 修改 env-local/ 后重新加密（每次全量重建 .env
 |----------------|-------------|---------------|
 | 时机 | 构建时静态替换（`import.meta.env.VITE_*`） | 运行时加载（`@nestjs/config` + `ConfigModule.forRoot()`） |
 | 影响缓存 | 是——`turbo.json` 声明了 `"env": ["VITE_*", "MODE"]` | 否——构建产物不包含 env 值 |
-| 新增变量后 | 更新 `build/vite/config/` 中的 Zod schema | 更新 `libs/config/src/validation.ts` |
+| 新增变量后 | 更新 `tooling/vite-config/src/env/` 中的 Zod schema | 更新 `libs/config/src/validation.ts` |
 
 ### 5. CI 用法（2026-08-08 起，2026-09-21 更新 secret 名）
 
@@ -126,7 +126,7 @@ production / stage 此前缺失 `USER_ID_ENCRYPTION_KEY` 与 `USER_ID_HASH_SALT`
 
 | 文件 | 作用 |
 |------|------|
-| [packages/tooling/scripts/src/env/setup-env.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/scripts/src/env/setup-env.ts) | 加解密脚本（`decrypt` / `encrypt` 子命令，经 `walnut-setup-env` bin 调用；归属于 `@walnut/scripts`，根 `scripts/` 目录已不存在） |
+| [tooling/scripts/src/env/setup-env.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/scripts/src/env/setup-env.ts) | 加解密脚本（`decrypt` / `encrypt` 子命令，经 `walnut-setup-env` bin 调用；归属于 `@walnut/scripts`，根 `scripts/` 目录已不存在） |
 | [apps/admin/env-encrypted/](https://github.com/walnut-admin/walnut-admin/tree/main/apps/admin/env-encrypted) | admin 加密环境变量（注释即模板） |
 | [apps/server/env-encrypted/](https://github.com/walnut-admin/walnut-admin/tree/main/apps/server/env-encrypted) | server 加密环境变量（注释即模板） |
 | [.env.keys](https://github.com/walnut-admin/walnut-admin/blob/main/.env.keys)（gitignored） | 私钥，通过 1Password 分发 |

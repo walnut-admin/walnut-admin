@@ -24,7 +24,7 @@ packages:
   - 'packages/platform-any/*'
   - 'packages/platform-web/*'
   - 'packages/generated/*'   # 生成物包（api-types），2026-11 批次 4 · D9 起
-  - 'packages/tooling/*'
+  - 'tooling/*'
 ```
 
 声明哪些目录是 pnpm workspace 成员。`apps/` 下 3 个应用 + `packages/` 下按**平台 / 来源**分组的包（`platform-any` 纯逻辑、`platform-web` 浏览器、`generated` 生成物、`tooling` 工具链）。名单与包数一律以 `pnpm-workspace.yaml` 的 `packages` 字段为准 —— 本页不写计数（会腐烂，且没有门禁拦得住）。
@@ -41,7 +41,7 @@ versioning:
       # … 其余全部（apps + platform-any + platform-web + generated + tooling）
 ```
 
-**本段是版本策略的唯一真源**——取代原来的 `.changeset/config.json`（已删除）。意图文件仍是 changesets 格式（`.changeset/*.md`）：由 `pnpm change` 写、`pnpm version -r` 消费、消费结果记进 `.changeset/ledger.yaml`；发版编排在 `packages/tooling/release/src/release/`。详见 [发布 & 发版指南](./release.md)。
+**本段是版本策略的唯一真源**——取代原来的 `.changeset/config.json`（已删除）。意图文件仍是 changesets 格式（`.changeset/*.md`）：由 `pnpm change` 写、`pnpm version -r` 消费、消费结果记进 `.changeset/ledger.yaml`；发版编排在 `tooling/release/src/release/`。详见 [发布 & 发版指南](./release.md)。
 
 为什么是**一个** fixed 组（而不是历史上的 Apps 3 + Packages 9 两组）：pnpm 的 fixed 组各自独立，只动共享包的发版会只 bump Packages 组、`apps/admin` 版本不变 ⇒ 编排命中"版本号未变更，跳过发版"而退出 0，留下"已被 bump 却永远不会打 tag"的脏工作区。单组从结构上消灭这条路径，发布 tag `vX.Y.Z` 因此永远只有唯一来源。
 
@@ -154,7 +154,7 @@ allowBuilds:
 
 **`@sentry/cli` 为何保留**：其二进制实际由 `@sentry/cli-<platform>` 提供，实测同样不需要 postinstall；但 Sentry 上传路径本地无法验证（缺真实 DSN / org / project / token），保留其构建脚本作为低成本保险。
 
-**`lefthook` 为何必须放行**：它的 postinstall **就是装 git 钩子那一步**（`lefthook install`）。不放行时本仓 `strictDepBuilds: false` 只会**告警**、不阻断安装 ⇒ pre-commit / commit-msg / pre-push 门禁全部静默消失。装没装上用 `pnpm hooks:check` 机械核对（见 [ADR 0018](/content/adr/0018-git-hooks-lefthook)）。
+**`lefthook` 为何必须放行**：它的 postinstall **就是装 git 钩子那一步**（`lefthook install`）。不放行时本仓 `strictDepBuilds: false` 只会**告警**、不阻断安装 ⇒ pre-commit / commit-msg / pre-push 门禁全部静默消失。装没装上用 `pnpm walnut hooks:check` 机械核对（见 [ADR 0018](/content/adr/0018-git-hooks-lefthook)）。
 
 **`strictDepBuilds: false` 的作用**：pnpm 12 默认在存在被忽略的构建脚本时以 `ERR_PNPM_IGNORED_BUILDS` **阻断安装**。设为 `false` 后只告警，便于逐步确认。新增依赖若确实需要构建脚本，pnpm 会列出包名，照此加入 `allowBuilds` 并置 `true`。
 

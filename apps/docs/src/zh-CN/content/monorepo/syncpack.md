@@ -66,25 +66,25 @@ syncpack 填补了这些 gap。它和 pnpm catalog 是**互补关系**：
 
 ```bash
 # 检查依赖版本一致性（CI 用）
-pnpm syncpack:lint
+pnpm walnut syncpack:lint
 
 # 自动修复版本不一致
-pnpm syncpack:fix
+pnpm walnut syncpack:fix
 
 # 交互式更新 catalog 版本（上下键选包，空格选中，回车确认）
-pnpm syncpack:update
+pnpm walnut syncpack:update
 ```
 
 ## 与 taze 的关系
 
-项目中同时保留了 [taze](https://github.com/antfu/taze)（`pnpm check:deps:update`）。
+项目中同时保留了 [taze](https://github.com/antfu/taze)（`pnpm walnut check:deps:update`）。
 
 | | taze | syncpack |
 |---|------|------|
 | 核心功能 | 发现过期依赖、可视化 diff | 强制版本一致性、同步 catalog |
 | 更新方式 | 交互式 visual diff，按包浏览 | 交互式/批量，按 catalog 分组 |
 | pnpm catalog | 不支持 | v15 原生支持 |
-| 当前用法 | `taze major -l` 快速扫描（根脚本 `pnpm check:deps:update`；`taze` 是根 devDependency，走本地 bin，不经 `npx`） | `syncpack lint` CI 门禁 + `syncpack update` 精确更新 |
+| 当前用法 | `taze major -l` 快速扫描（根脚本 `pnpm walnut check:deps:update`；`taze` 是根 devDependency，走本地 bin，不经 `npx`）；`apps/server` 的 `check:update` 走 `taze -I`，在本包目录下交互式检查 | `syncpack lint` CI 门禁 + `syncpack update` 精确更新 |
 
 两者互补：taze 是"浏览器"，快速扫描整个仓库；syncpack 是"执行器"，精确管理 catalog 并确保一致。
 

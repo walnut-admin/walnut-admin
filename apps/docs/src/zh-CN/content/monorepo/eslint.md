@@ -27,7 +27,7 @@ export default baseConfig()
 
 ### 2. 共享 ESLint Config 包
 
-[`@walnut/eslint-config`](https://github.com/walnut-admin/walnut-admin/tree/main/packages/tooling/eslint-config) 提供三种预设：
+[`@walnut/eslint-config`](https://github.com/walnut-admin/walnut-admin/tree/main/tooling/eslint-config) 提供三种预设：
 
 | 预设 | 文件 | 适用场景 |
 |------|------|---------|
@@ -101,8 +101,8 @@ staged 文件的匹配规则仍在根 `package.json` 的 `lint-staged` 块：
 ```
 
 > 2026-08-08 起：pre-push 增加了 `turbo boundaries`（tag 架构边界检查）；lint-staged 移除了无效的 `*.md` 条目（ESLint preset 关闭 markdown 处理器后该条目静默无效）。
-> 2026-09-23 起：钩子改由 lefthook 托管，pre-push 收敛为单条 `pnpm --silent prepush`，并新增 `pnpm hooks:check` 机械核对钩子是否真的装上。
-> 2026-09-23 起：仓库级文件全部 `.mjs` → `.ts`，`prepush` 增加 `pnpm lint:root`（glob 从 `*.mjs *.json *.yaml` 改为 `*.ts *.json *.yaml`）——根级配置此前不被任何门禁覆盖；lint-staged 的模式同步改为 `*.{ts,vue,js}`。
+> 2026-09-23 起：钩子改由 lefthook 托管，pre-push 收敛为单条 `pnpm --silent prepush`，并新增 `pnpm walnut hooks:check` 机械核对钩子是否真的装上。
+> 2026-09-23 起：仓库级文件全部 `.mjs` → `.ts`，`prepush` 增加 `pnpm walnut lint:root`（glob 从 `*.mjs *.json *.yaml` 改为 `*.ts *.json *.yaml`）——根级配置此前不被任何门禁覆盖；lint-staged 的模式同步改为 `*.{ts,vue,js}`。
 
 分层策略：
 
@@ -110,7 +110,7 @@ staged 文件的匹配规则仍在根 `package.json` 的 `lint-staged` 块：
 |------|--------|------|
 | pre-commit | ESLint fix on staged files | 秒级 |
 | commit-msg | commitlint 提交信息规范检查 | 秒级 |
-| pre-push | 架构边界 + 根级文件 lint（`pnpm lint:root`）+ 全仓库类型检查 + syncpack 依赖一致性 + actionlint + `pnpm change check`（fixed 组锁步） | 十秒级 |
+| pre-push | 架构边界 + 根级文件 lint（`pnpm walnut lint:root`）+ 全仓库类型检查 + syncpack 依赖一致性 + actionlint + `pnpm change check`（fixed 组锁步） | 十秒级 |
 | CI | boundaries + affected lint/typecheck/test + affected 自检 + syncpack + `pnpm change check` + build | 分钟级 |
 
 ## 没做什么 / 为什么
@@ -130,9 +130,9 @@ oxlint 和 biome（Rust 写的极速 linter）都不支持 Vue SFC（`.vue` 文�
 | 文件 | 作用 |
 |------|------|
 | [eslint.config.ts](https://github.com/walnut-admin/walnut-admin/blob/main/eslint.config.ts) | 根入口，委托给 `@walnut/eslint-config/base`；**同时是 10 个没有自己配置的包的生效配置**（ESLint 向上查找） |
-| [packages/tooling/eslint-config/vue.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/vue.ts) | 浏览器 + Vue 预设（admin / docs / ui） |
-| [packages/tooling/eslint-config/nest.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/nest.ts) | 后端 NestJS 预设 |
-| [packages/tooling/eslint-config/nest-local-rules.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/nest-local-rules.ts) | NestJS 装饰器排序等本地规则插件 |
-| [packages/tooling/eslint-config/script-rules.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/script-rules.ts) | 脚本入口的两条本地规则（文件头 / 退出码四态），只作用于 `**/bin/*.ts` |
-| [packages/tooling/eslint-config/base.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/base.ts) | 平台无关基线预设（根入口 + 10 个 TS-only 包）；显式开 `pnpm: true` 以保住 catalog 规则 |
+| [tooling/eslint-config/vue.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/eslint-config/vue.ts) | 浏览器 + Vue 预设（admin / docs / ui） |
+| [tooling/eslint-config/nest.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/eslint-config/nest.ts) | 后端 NestJS 预设 |
+| [tooling/eslint-config/nest-local-rules.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/eslint-config/nest-local-rules.ts) | NestJS 装饰器排序等本地规则插件 |
+| [tooling/eslint-config/script-rules.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/eslint-config/script-rules.ts) | 脚本入口的两条本地规则（文件头 / 退出码四态），只作用于 `**/bin/*.ts` |
+| [tooling/eslint-config/base.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/eslint-config/base.ts) | 平台无关基线预设（根入口 + 10 个 TS-only 包）；显式开 `pnpm: true` 以保住 catalog 规则 |
 | [lefthook.yml](https://github.com/walnut-admin/walnut-admin/blob/main/lefthook.yml) | git 钩子唯一真源（pre-commit / commit-msg / pre-push） |

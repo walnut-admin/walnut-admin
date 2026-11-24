@@ -17,16 +17,16 @@
 
 ```bash
 # 全仓扫描（含 apps + packages）
-pnpm knip
+pnpm walnut knip
 
 # 只扫共享包（跨平台 + tooling）
-pnpm knip:packages
+pnpm walnut knip:packages
 
 # 只扫应用
-pnpm knip:apps
+pnpm walnut knip:apps
 
 # 自动清理 unused exports
-pnpm knip:fix
+pnpm walnut knip:fix
 ```
 
 > 实际命令为 `cross-env NODE_OPTIONS=--max-old-space-size=8192 knip ...`（防 OOM + Windows 兼容）。`knip:packages` 使用 `--workspace ./packages/*/*`——此前写的 `packages/*` 匹配不到 `platform-any/*` 这类**两层**目录，knip 静默空操作，当时声称的"零发现"是假象；2026-08-08 修复为两层通配后才是真实结果。
@@ -37,8 +37,8 @@ pnpm knip:fix
 
 | 命令 | 预期 | 说明 |
 |------|------|------|
-| `pnpm knip:packages` | **exit 1，有发现**（2026-11-02 起） | 补上 `project` + `includeEntryExports` 之后，共享包**第一次真的进了分析面**，于是它的公共 API 面开始报出来（判据与数据见下一节）。它此前那句「零发现」是**假绿**：不是干净，是没被分析 |
-| `pnpm knip`（全仓） | exit 1，有发现 | 按「两类」读：`apps/**` 是**有意维持**的公共面与动态入口（模板装饰器 API 面、`apps/{cli,worker}/src/main.ts`、`migrations/**`），`packages/**` 是「入口没人走」与少量真死候选 —— 分法见下一节之后新增的「删桶之后的复测」 |
+| `pnpm walnut knip:packages` | **exit 1，有发现**（2026-11-02 起） | 补上 `project` + `includeEntryExports` 之后，共享包**第一次真的进了分析面**，于是它的公共 API 面开始报出来（判据与数据见下一节）。它此前那句「零发现」是**假绿**：不是干净，是没被分析 |
+| `pnpm walnut knip`（全仓） | exit 1，有发现 | 按「两类」读：`apps/**` 是**有意维持**的公共面与动态入口（模板装饰器 API 面、`apps/{cli,worker}/src/main.ts`、`migrations/**`），`packages/**` 是「入口没人走」与少量真死候选 —— 分法见下一节之后新增的「删桶之后的复测」 |
 
 ---
 
@@ -71,16 +71,16 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 },
 ```
 
-**实测（2026-11-02 口径，改前 / 改后各跑一次 `pnpm knip`）**：
+**实测（2026-11-02 口径，改前 / 改后各跑一次 `pnpm walnut knip`）**：
 
 | | Unused exports | Unused exported types | 说明 |
 |---|---|---|---|
-| 改前（五个包都只有 `entry`） | 50 | 24 | 这 50 条**全部**落在 `apps/**`；`packages/**` 在改前只有 4 条（都在 `packages/tooling/eslint-config`），其余整块不在分析面里 |
+| 改前（五个包都只有 `entry`） | 50 | 24 | 这 50 条**全部**落在 `apps/**`；`packages/**` 在改前只有 4 条（都在 `tooling/eslint-config`），其余整块不在分析面里 |
 | 只加 `project` | 50 | 24 | 0 变化 —— `project` 不是主因 |
 | 只删 `entry`（让 knip 从 `package.json` 的 `exports` 推） | 50 | 24 | 0 变化 —— 摘了也会从 `exports` 推回来，**「把 barrel 从 entry 摘出去」不是可执行的动作** |
 | `project` + `includeEntryExports` | **139** | **49** | +89 / +25，新增**全部**落在 `packages/**` |
 
-新增 89 条按文件的分布（`pnpm knip` 全表逐条解析）：`packages/platform-web/client/` 的 barrel 53 条、
+新增 89 条按文件的分布（`pnpm walnut knip` 全表逐条解析）：`packages/platform-web/client/` 的 barrel 53 条、
 `packages/platform-any/utils-core/` 的 barrel 22 条、`packages/platform-web/http/` 的 barrel
 7 条（**这三处都是 barrel 本身**，即各包的 `src/index.ts`；其中 client / http 两处已于
 2026-11 批次 4 按决策 D8 删除），其余 7 条散在 `client` 的深层文件（`browser/cookie.ts`、
@@ -104,7 +104,7 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 
 批次 4 按 D7 / D8 处理掉三个 barrel（`packages/platform-web/client` 与 `packages/platform-web/http` 的
 入口 `src/index.ts` **删除**；`packages/platform-any/utils-core` 的入口**收缩**成只剩「双端同源」的两个
-模块）之后，重跑一次 `pnpm knip`，结论只有一句话：**噪音塌了，而且塌掉的正是「一桶 N 行」那一类**。
+模块）之后，重跑一次 `pnpm walnut knip`，结论只有一句话：**噪音塌了，而且塌掉的正是「一桶 N 行」那一类**。
 
 **怎么判「塌的是哪一类」**（不要背数字，照判据看）：
 
@@ -115,7 +115,7 @@ knip 的核心原理是**从入口文件出发，沿 import 链追踪**。因此
 | 剩下的怎么看 | ① **分两段**：`packages/**` 是公共面问题，`apps/**` 是模板 / 动态入口问题。② `packages/**` 每一条**按「入口有没有消费」二分**：`grep -rn "from '@walnut/<pkg>'" apps packages` 为 0 ⇒ 它说的是「入口没人走」，**不是死代码**（消费方走深路径）；入口与深路径都 0 才是真死候选。③ `apps/**` 那一批**有意维持**：模板装饰器 API 面、`apps/{cli,worker}/src/main.ts` 与 `migrations/**` 是命令行执行的入口（knip 看不见） |
 
 为什么这一节只写判据、不写读数：**这一面的数字已经腐烂过一次** —— 上一节那张表是 2026-11-02 的快照，
-桶一删就全过期。要现状就跑 `pnpm knip`；要引用数字就得写明是哪天的 `pnpm knip`（历史那份带日期的记录已随 2026-11-04 收尾归档至 git 历史）。
+桶一删就全过期。要现状就跑 `pnpm walnut knip`；要引用数字就得写明是哪天的 `pnpm walnut knip`（历史那份带日期的记录已随 2026-11-04 收尾归档至 git 历史）。
 
 **别为了变绿加 `ignoreIssues`**：桶已经删了，剩下每一条都该能说出「它为什么还在」；抹掉等于把这一面
 重新变回盲区。真要接进门禁，先按上面三步分类，只给「真死」开红。
@@ -186,7 +186,7 @@ knip 是**静态 import 追踪**工具。以下框架机制对 knip 不可见，
 | NestJS | `@Module()` 装饰器隐式组装 | ❌ |
 | NestJS | `@Controller()` / `@Injectable()` 依赖注入 | ❌ |
 | NestJS | Mongoose schema 动态加载 | ❌ |
-| Admin | vite.config.ts 依赖 `loadEnv` / 回调执行（`useBuildEnv()` 内 `JSON.parse(env.VITE_PROXY)`），knip 的 jiti 无法安全加载 | ❌ |
+| Admin | vite.config.ts 依赖 `loadEnv` / 回调执行（`@walnut/vite-config` 的 `useBuildEnv()` 内 `JSON.parse(env.VITE_PROXY)`），knip 的 jiti 无法安全加载 | ❌ |
 
 **对策**：这些文件类型在 `knip.config.ts` 中通过 `ignore` 排除在 unused files 检测之外。knip 仍会对它们做 export 级别的检测。
 
@@ -202,7 +202,7 @@ knip 是**静态 import 追踪**工具。以下框架机制对 knip 不可见，
 
 **别引用那个「一次报出多少条」的数字**：它来自 2026-11-02 的快照，而其中两处 barrel
 （`platform-web/{client,http}` 的入口）**批次 4 已删**、`utils-core` 的入口也已收缩（见上节
-「删桶之后的复测」）。要看现状就跑 `pnpm knip`，要看形态就按上面「怎么判」那三步走。
+「删桶之后的复测」）。要看现状就跑 `pnpm walnut knip`，要看形态就按上面「怎么判」那三步走。
 
 ### `~build/*` 路径别名（已解决）
 
@@ -212,22 +212,22 @@ admin 中曾有文件 import `~build/package` 和 `~build/time`，旧版 knip �
 
 ### vite.config.ts 加载失败
 
-admin 的 `vite.config.ts` 在 `useBuildEnv()` 函数内调用 `JSON.parse(env.VITE_PROXY)`（由 `loadEnv` 提供 env），knip 的 jiti 加载器无法安全执行 → 加载抛异常。
+admin 的 `vite.config.ts` 在 `useBuildEnv()` 函数内调用 `JSON.parse(env.VITE_PROXY)`（`useBuildEnv` 与 `loadEnv` 提供的 env 分别来自 `@walnut/vite-config` 与 vite），knip 的 jiti 加载器无法安全执行 → 加载抛异常。
 
 **对策**：在 `apps/admin` workspace 配置中设置 `vite: false`，改为手动指定 entry files。
 
 ### Vite 插件 devDependencies
 
-30+ 个 Vite 插件（如 `@vitejs/plugin-vue`、`vite-plugin-checker`）在 `devDependencies` 中声明但不会在源码中 import——它们只在 `vite.config.ts` 中引用。knip 无法解析 `vite.config.ts`，所以报告为 "unused devDependencies"。
+2026-11 起，Vite 插件依赖已从 app 的 `devDependencies` 迁到 `@walnut/vite-config` 的 `dependencies`，由该包源码显式 import，knip 能正常追踪 —— 这一条盲区对**搬走的那批**不再成立。仍留在 app 侧、knip 追踪不到的只剩少数：`@iconify/json` / `@iconify/vue`（由 iconify 的虚拟模块 import）、`unplugin-info` / `unplugin-turbo-console`（由 `/// <reference types>` 引用 client 类型）、`unplugin-vue-components`（被插件表引用，而插件表在配置文件里）。
 
-**对策**：已加入 `ignoreDependencies` 列表。
+**对策**：`knip.config.ts` 的 `ignoreDependencies` 保留那批条目（含为历史盲区加的），别当成死条目删。
 
 ---
 
 ## 如何解读输出
 
 ```text
-# 2026-08-08 快照，仅示输出形态：括号里是当时的读数，别当现状引用（现状跑 pnpm knip）
+# 2026-08-08 快照，仅示输出形态：括号里是当时的读数，别当现状引用（现状跑 pnpm walnut knip）
 Unused files (7)        ← 值得排查：可能真的有死文件
 Unused dependencies (4) ← 值得排查：可能真的有没用到的包
 Unlisted binaries (1)   ← CLI 工具在 scripts 中引用但未列在 dependencies
@@ -237,7 +237,7 @@ Unused catalog entries  ← pnpm-workspace.yaml 中的孤立条目
 Configuration hints (69)← knip 建议清理的冗余配置项（可忽略）
 ```
 
-以上为全仓实测数字（2026-08-08），`pnpm knip` 当前退出码为 1——作为门禁属预期行为（见下文 CI 建议）。
+以上为全仓实测数字（2026-08-08），`pnpm walnut knip` 当前退出码为 1——作为门禁属预期行为（见下文 CI 建议）。
 
 ---
 
@@ -263,19 +263,19 @@ Configuration hints (69)← knip 建议清理的冗余配置项（可忽略）
 
 ### CI 集成建议
 
-**暂时不要**把 `pnpm knip:packages` 直接当硬门禁。2026-11-02 之前它以 exit 0 通过，原因是
+**暂时不要**把 `pnpm walnut knip:packages` 直接当硬门禁。2026-11-02 之前它以 exit 0 通过，原因是
 `packages/**` 整块不在分析面里（假绿）；补上 `project` + `includeEntryExports` 之后它开始
 报共享包的公共 API 面，而本仓对那批符号的既定判断仍是「模板留给使用者取用的能力，不等于死代码」
 （见 `knip.config.ts` 顶部注释）。要真接进门禁，先按「有意的公共面 / 真死代码」分类，只让后者亮红。
 
 若直接调 knip，务必用 `--workspace ./packages/*/*` 的两层通配写法——`packages/*` 匹配不到
-`platform-any/*` 这类两层目录，会静默空操作。全仓 `pnpm knip` 由于存在已知误报，建议作为
+`platform-any/*` 这类两层目录，会静默空操作。全仓 `pnpm walnut knip` 由于存在已知误报，建议作为
 信息性检查而非硬门禁（当前实测 exit 1，属预期）。
 
 ```yaml
 # .github/workflows/ci.yml 示例片段
 - name: Dead code check (packages)
-  run: pnpm knip:packages
+  run: pnpm walnut knip:packages
 ```
 
 ---
