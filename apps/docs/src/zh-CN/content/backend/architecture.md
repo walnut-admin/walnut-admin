@@ -44,10 +44,10 @@ apps/cli/src/                          # 纯工具入口（零运行时影响）
 └── export-openapi.ts                  # 离线导出 openapi.json（openapi:export）
 
 libs/*/src/                            # 内部库，分六层，经 tsconfig paths 以 @walnut-server/* 解析
-├── # 基建（9）
-│   config/  const/  context/  db/  decorators/  exceptions/  pipes/  types/  utils/
-├── # 技术 · tech-base（14）
-│   als/  blpath/  cookie/  crypto/  delay/  lock/  queue/  sse/
+├── # 基建（8）
+│   config/  const/  db/  decorators/  exceptions/  pipes/  types/  utils/
+├── # 技术 · tech-base（13）
+│   als/  blpath/  cookie/  crypto/  lock/  queue/  sse/
 │   cache/  throttle/  mailer/  sms/  rsa/  ip/
 ├── # 技术 · tech-assemble（5）
 │   repository/  list/  crud/  scope-resolver/  token/

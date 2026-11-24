@@ -91,6 +91,11 @@ const backendContent = [
     text: '代码风格',
     link: '/content/backend/code-style',
   },
+  // 代码结构视图：本地用 compodoc 生成，不是规范篇 —— 也不在 AGENTS.md 的「先看哪份」表里。
+  {
+    text: '代码文档（compodoc）',
+    link: '/content/backend/code-doc',
+  },
   // 「模块设计」一簇：按域拆分的模块设计文档（2026-10-28 文档大轮次产出）。
   // 接口表/关键流程/已知行为注记；测试规划追踪仍在 apps/server/apps/api/test/api/。
   {

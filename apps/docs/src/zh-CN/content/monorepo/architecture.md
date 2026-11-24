@@ -217,7 +217,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 > [`vite-config`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/vite-config/README.md) ·
 > [`scripts`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/scripts/README.md) ·
 > [`release`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/release/README.md)；
-> 后端内部 lib 的逐库说明：9 个基建 lib 各有 `apps/server/libs/<x>/README.md`；其余领域 / 技术 lib 的说明在 `libs/<x>/src` 的文件头注释与 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。
+> 后端内部 lib 的逐库说明：基建 lib 各有 `apps/server/libs/<x>/README.md`；其余领域 / 技术 lib 的说明在 `libs/<x>/src` 的文件头注释与 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。
 
 ### 消费方式
 
@@ -231,10 +231,10 @@ Server 内部通过 NestJS CLI + SWC 管理内部库，命名空间 `@walnut-ser
 
 ```
 apps/server/libs/
-├── # 基建（9）
-│   config/  const/  context/  db/  decorators/  exceptions/  pipes/  types/  utils/
-├── # 技术 · tech-base（14）
-│   als/  blpath/  cookie/  crypto/  delay/  lock/  queue/  sse/
+├── # 基建（8）
+│   config/  const/  db/  decorators/  exceptions/  pipes/  types/  utils/
+├── # 技术 · tech-base（13）
+│   als/  blpath/  cookie/  crypto/  lock/  queue/  sse/
 │   cache/  throttle/  mailer/  sms/  rsa/  ip/
 ├── # 技术 · tech-assemble（5）
 │   repository/  list/  crud/  scope-resolver/  token/
