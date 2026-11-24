@@ -1,7 +1,7 @@
 # <WPageTitle></WPageTitle>
 
 ## 一、插件概述
-项目基于<WBaseLink preset="vite">Vite</WBaseLink>生态，使用了近20种插件以实现功能开发、性能优化及开发体验提升。插件配置入口位于项目根目录下的 <WFrontLink path="/build/vite/plugin/index.ts">`build/vite/plugin/index.ts`</WFrontLink>。
+项目基于<WBaseLink preset="vite">Vite</WBaseLink>生态，使用了近20种插件以实现功能开发、性能优化及开发体验提升。插件配置入口已抽成共享包，位于 <WFrontLink path="/tooling/vite-config/src/plugins/index.ts">`tooling/vite-config/src/plugins/index.ts`</WFrontLink>（2026-11 从 admin 的 `build/vite/` 抽出，说明见 <WFrontLink path="/tooling/vite-config/README.md">`tooling/vite-config/README.md`</WFrontLink>）。
 
 ## 二、基础插件
 为开发/生产环境必备插件，确保项目基础运行及核心功能实现：

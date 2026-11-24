@@ -30,7 +30,8 @@ Tailwind v3 兼容）· Pinia · Vue Router（web history）· Vue I18n
 
 - 组件一律 `ComponentName/index.ts`（导出）+ `ComponentName/index.vue`（实现）。
 - API 函数以 `API` 结尾。
-- **`apps/admin/build/` 是 Vite 构建配置**（plugins / config / proxy），**不是运行时源码** ——
+- **`apps/admin/build/` 只剩 app 专属的构建脚本与常量**（codegen、路径）——
+  Vite 插件表 / 开发代理 / env schema 已抽到 [`@walnut/vite-config`](../../tooling/vite-config/)；
   改它等于改构建，别在里面写业务逻辑。
 - store 工厂 `createWalnutStore()` 在 [`@walnut/client`](../../packages/platform-web/client/)，
   但 **admin 侧 26 个 store 文件目前 0 处使用**（待办 A10）—— 新 store 请优先用它，别再复制模式。
@@ -38,13 +39,12 @@ Tailwind v3 兼容）· Pinia · Vue Router（web history）· Vue I18n
 
 ## 三个容易踩的生成物
 
-- **`unplugin-vue-components` 的 dts（`types/generated/components.d.ts`，已 gitignore，别提交）**：由
-  `pre*` 钩子跑 `build/generate/index.ts` 生成；跑 `vite`/`vue-tsc` 的脚本必须有 `pre` 钩子
-  （门禁 `pnpm lint:pre-hooks` 守，事故经过见 09-24 执行记录）。
+- **`unplugin-vue-components` 的 dts（`types/generated/components.d.ts`）**：**提交进仓**，由插件在真实
+  dev / build 期间写出，组件集合变了就跟代码一起提交；跑 `vite`/`vue-tsc` 的脚本必须有 `pre` 钩子
+  （`pnpm walnut lint:pre-hooks` 守）。
 - **`genJSONSchemas` 会从 `src/store/types.d.ts` 的 `IStoreSetting.Dev` 生成
   `.vscode/settings-dev.schema.json`**（它在仓库里、生成结果确定）；改了 store 的 setting 类型
   要跟着重新生成 —— 它也在上面那个统一入口里跑。
-- **`types:check:log` 会写 `report/tsc.log`**（该目录被 gitignore，跑完不会脏工作区）。
 
 ## 持久化结构改动
 

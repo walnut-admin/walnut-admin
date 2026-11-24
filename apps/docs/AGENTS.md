@@ -68,7 +68,7 @@ src/
 
 ### 版本管理
 
-`scripts/fetch-version.js` 从 GitHub 拉最新发版号写入 `version.json`，导航栏读它显示版本。
+`version.json` 是导航栏显示的版本号；`pnpm walnut docs:version` 查**本仓**最新 GitHub 发版后写回它。
 
 ## Code Style
 
@@ -86,7 +86,7 @@ src/
    **只剩「冻结语料」一条**（`archive/` + `industry-research/`），全站其余链接一律受查；
    `vitepress build` 遇到真死链直接失败；CI 里有 `Docs build (dead-link check)` 一步。
    **VitePress 只查 `.md` 链接** —— 非 `.md` 的相对链接、以及 `apps/docs/src/` 之外的 markdown，
-   由 `pnpm lint:docs-refs`（`@walnut/scripts` 的 `check-doc-refs`）负责。
+   由 `pnpm walnut lint:docs-refs`（`@walnut/scripts` 的 `check-doc-refs`）负责。
 6. **正文里绝不写原始 `${{ … }}`**：VitePress 把 markdown 当 Vue 模板编译，段落或表格里的
    `${{ x }}` 会被当**插值**求值，构建直接以 `Cannot read properties of undefined` 失败
    （2026-09-23 实测踩到）。**围栏代码块里是安全的**（VitePress 用 `v-pre` 渲染）。要行内展示，
@@ -101,14 +101,14 @@ src/
    `versioning-config.test.ts` 机械拦」）比一个会腐烂的常数有用得多；确实要写数字时，
    写明它是**哪个 commit / 哪一天**的口径。**加新包 / 新 bin 时**主动 grep 一遍
    `` 个包 ``、`` 个 bin ``、`条目` 这类词。
-9. **围栏语言要标对**：标成 `ts` / `tsx` 的块**必须能按 TypeScript 解析** —— `pnpm lint:doc-ts`
+9. **围栏语言要标对**：标成 `ts` / `tsx` 的块**必须能按 TypeScript 解析** —— `pnpm walnut lint:doc-ts`
    会逐个用 TypeScript 的解析器验。**最容易犯的是把 JSON 标成 `ts`**（2026-09-23 实测抓到 4 处，
    都在 `monorepo/knip.md`：内容其实是「键带引号、子键裸写」的 JSON5 片段，语法高亮全错）——
    请改成 ```` ```jsonc ````。真的有意写**不合法**的伪代码时，块的第一行写 `// @pseudo` 显式豁免，
    不要让门禁去猜。
    > 这道门禁**刻意只做语法解析，不要求文档块能编译**：实测 131 个 ts 块里零个存在真正的语法
    > 错误、而「必须编译」会 100% 误报（文档块绝大多数是片段）。一个开始误报的门禁等于没有门禁。
-10. **常驻文档有字数预算**：`pnpm lint:doc-budget` 盯着根 `AGENTS.md` / `CLAUDE.md` / 各 app 的
+10. **常驻文档有字数预算**：`pnpm walnut lint:doc-budget` 盯着根 `AGENTS.md` / `CLAUDE.md` / 各 app 的
     `AGENTS.md` / 本页。**超上限红，用不到一半也红**（那种预算已经约束不到任何东西了）。
     所以往这几份里加内容前先问一句：这是**每次会话都要进上下文**的常驻规则，还是应该放文档站的
     参考资料？后者不该写在这里。

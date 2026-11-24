@@ -23,9 +23,9 @@ pnpm migration:run     # 结构演进只经显式命令；回滚对应 migration
 装好库、跑完 migration、再播一条命令，应用就能起来：界面有字、权限树完整、请求签名可用的密钥也就位了。
 
 ```bash
-pnpm db:seed:pg                    # 幂等：按 id upsert，重复跑安全
-pnpm db:seed:pg --dry-run          # 只看会写什么，不落库
-pnpm db:seed:pg --only sys_role    # 只播某几个集合
+pnpm walnut db:seed:pg                    # 幂等：按 id upsert，重复跑安全
+pnpm walnut db:seed:pg --dry-run          # 只看会写什么，不落库
+pnpm walnut db:seed:pg --only sys_role    # 只播某几个集合
 ```
 
 数据本身在 [`apps/server/db/seed/`](https://github.com/walnut-admin/walnut-admin/tree/main/apps/server/db/seed)，
@@ -36,22 +36,22 @@ pnpm db:seed:pg --only sys_role    # 只播某几个集合
 
 > 2026-11 批次 5-B 之前这里存的是 Mongo Extended JSON（`{"$oid": …}` / `{"$date": …}`），
 > 靠 938 行 `seed-map.ts` 在运行期映射 —— 加一列要同步改映射且**没有门禁**。重建后
-> `packages/tooling/scripts/src/db/ejson.ts` 只保留「导入历史导出」的能力，不再是真源格式
-> （`pnpm lint:seed` 会把残留的 `$oid` / `$date` 判红）。
+> `tooling/scripts/src/db/ejson.ts` 只保留「导入历史导出」的能力，不再是真源格式
+> （`pnpm walnut lint:seed` 会把残留的 `$oid` / `$date` 判红）。
 
 **仓库是这份数据的唯一真源**，而且 seed 是幂等可重放的（已存在的行整行刷新为仓内值，junction
 只补缺不回收，密钥缺了才现造）：
 
 ```bash
-pnpm lint:seed                                   # 形态门禁：必需/禁入表、体积、凭据形状、引用完整性、无 EJSON 残留
-pnpm db:seed:pg --admin <账号> --password <口令>   # 在**本环境**给某账号建口令凭证并当场验证登录
+pnpm walnut lint:seed                                   # 形态门禁：必需/禁入表、体积、凭据形状、引用完整性、无 EJSON 残留
+pnpm walnut db:seed:pg --admin <账号> --password <口令>   # 在**本环境**给某账号建口令凭证并当场验证登录
 ```
 
 **再生成真源是两步、不手写任何一行**：
 
 ```bash
-pnpm db:export:pg --out apps/server/.tmp/pg-export      # ① 库 → 快照（Extended JSON，uuid 本体）
-pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # ② 快照 → 行形态（默认写仓内 seed）
+pnpm walnut db:export:pg --out apps/server/.tmp/pg-export      # ① 库 → 快照（Extended JSON，uuid 本体）
+pnpm walnut db:seed:reshape --from apps/server/.tmp/pg-export  # ② 快照 → 行形态（默认写仓内 seed）
 ```
 
 ### `db:export:pg` 的两个行为（批次 5-B，2026-11-03 起改的，别按旧习惯写命令）
@@ -62,8 +62,8 @@ pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # ② 快照 → 行形�
 2. **`--out` 指到 `apps/server/db/seed` 会直接失败**：命令在连库**之前**就抛
    `PreconditionError` —— 终端上是「前置条件未满足：导出结果**不能**写进 seed 目录…」，
    **退出码 2**（`0 通过 / 1 查出违规 / 2 前置条件未满足`，口径在
-   `packages/tooling/scripts/src/lib/cli.ts`），一个文件都不会写。
-   理由：那里是**行形态真源**，把 Extended JSON 快照写进去等于把真源打回旧格式（`pnpm lint:seed`
+   `tooling/scripts/src/lib/cli.ts`），一个文件都不会写。
+   理由：那里是**行形态真源**，把 Extended JSON 快照写进去等于把真源打回旧格式（`pnpm walnut lint:seed`
    也会判红）。`--anonymize` 是另一条同样的红线（脱敏有损，永远不许覆盖真源）。
 
 > ⚠️ 拦截判据是「`--out` **等于** seed 目录」，**不**包括它的子目录 —— 别把快照放进
@@ -76,8 +76,8 @@ pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # ② 快照 → 行形�
 逐表逐列比 + 导出文件比）：
 
 ```bash
-pnpm db:seed:verify                       # 对着 07dacfd6（批次 5-B 基线）
-pnpm db:seed:verify --baseline-ref <sha>  # 换基线
+pnpm walnut db:seed:verify                       # 对着 07dacfd6（批次 5-B 基线）
+pnpm walnut db:seed:verify --baseline-ref <sha>  # 换基线
 ```
 
 它会 DROP/建 `walnut_seed_a` / `walnut_seed_b` 两个库（**不碰**现有库），基线代码与数据从 git 取
@@ -95,12 +95,12 @@ pnpm db:seed:verify --baseline-ref <sha>  # 换基线
 | 口令凭证（`sys_user_identity`） | OPAQUE 的注册记录**绑定服务端的 `AUTH_OPAQUE_SECRET`**（该 secret 就是 OPAQUE 的 `serverSetup`）⇒ 换环境必然登不进去，发布它等于发布一份在别人机器上无效的凭证 | 装好后**走应用的注册流程**建立第一个管理员；演示账号用 `--admin` 现建 |
 | MFA 密文 / OAuth 绑定 | 密文用 env 密钥加密（跨环境解不开），且属用户隐私；OAuth 是运行时状态 | 各自在使用中产生 |
 | 用户设备（`sys_device` / `sys_user_device`） | 设备信息、IP 与地理位置历史 —— 运行时状态 + 个人数据。**设备指纹不落库、不参与身份派生**：B5 起 `device_id` 由服务端随机签发，客户端自报的指纹只在请求面当风控特征 | 各自在使用中产生 |
-| 行政区划（`shared_area`） | 数量巨大的参考数据，不是配置，刻意不进 git 也不进发版资产 | 本仓的历史数据由 ETL 一次性搬入（见下节归档说明）；跨环境搬运走 `pnpm db:export:pg --areas <文件>` 另存的资产 |
+| 行政区划（`shared_area`） | 数量巨大的参考数据，不是配置，刻意不进 git 也不进发版资产 | 本仓的历史数据由 ETL 一次性搬入（见下节归档说明）；跨环境搬运走 `pnpm walnut db:export:pg --areas <文件>` 另存的资产 |
 
 ## 一次性历史任务：Mongo → PG 的 ETL（已归档）
 
 本地存量数据从 MongoDB 搬进 PostgreSQL 走的是 ETL 通道（读本地 Mongo、映射写入 PG，id 由
-ObjectId 经 uuid v5 派生，派生实现见 `packages/tooling/scripts/src/db/uuid5.ts`）。它是**一次性历史
+ObjectId 经 uuid v5 派生，派生实现见 `tooling/scripts/src/db/uuid5.ts`）。它是**一次性历史
 任务**（ADR 0021 Decision 6：本地为准、线上不迁），Mongo 读取端、打包入口与运行期映射层
 （`seed-map.ts`）已随 2026-11 批次 5-B 全部退役 —— 现在 id 只存在于数据里（seed 文件写 uuid 本体），
 运行时不再有派生步骤。要复核迁移正确性时，判据是行级的：同 id 即同源，按表对行数与抽样字段。
@@ -108,7 +108,7 @@ ObjectId 经 uuid v5 派生，派生实现见 `packages/tooling/scripts/src/db/u
 ## 注意：这不是"清库工具"
 
 `db:seed:pg` 只做 upsert，**不删**库里多出来的行 —— 别指望它把开发数据扫干净。
-要重建一个干净环境：清掉 schema（或换一个库名）→ `pnpm migration:run` → `pnpm db:seed:pg`。
+要重建一个干净环境：清掉 schema（或换一个库名）→ `pnpm migration:run` → `pnpm walnut db:seed:pg`。
 
 ## 环境之间的数据流动：三个通道（不做库对库的双向同步）
 
@@ -120,7 +120,7 @@ ObjectId 经 uuid v5 派生，派生实现见 `packages/tooling/scripts/src/db/u
 这是"双向需求"的真实来源：你在开发库调菜单，线上运营也在后台改菜单。正确做法是给这条链加一段**回灌**，
 而不是加一个同步：
 
-1. 线上被人改过 → `pnpm db:export:pg` 拉回仓库形态 → 与仓内 seed 做行级对账（导出按 id 排序、
+1. 线上被人改过 → `pnpm walnut db:export:pg` 拉回仓库形态 → 与仓内 seed 做行级对账（导出按 id 排序、
    套同一份裁剪规则，diff 可审）；
 2. 差异进 **PR 审** —— 这一步才是关键：它把"谁改的、改了什么、要不要带走"变成可追溯的决策；
 3. 合并后再随发版推到各个环境。
@@ -129,7 +129,7 @@ ObjectId 经 uuid v5 派生，派生实现见 `packages/tooling/scripts/src/db/u
 见 [`deploy/README.md`](https://github.com/walnut-admin/walnut-admin/blob/main/deploy/README.md)）——
 所以运维在后台改过的行**必须**走上面的回灌进仓，否则下次部署会被冲掉。这是相对 mongoimport 时代
 "非空整集跳过"的**有意变更**：跳过语义有个结构性副作用（后续版本新增的行永远到不了已有数据的库），
-收敛语义没有。手工侧就是同一条 `pnpm db:seed:pg`（幂等，重放收敛到仓）。
+收敛语义没有。手工侧就是同一条 `pnpm walnut db:seed:pg`（幂等，重放收敛到仓）。
 
 部署侧的操作步骤与复核命令见 [`deploy/README.md`](https://github.com/walnut-admin/walnut-admin/blob/main/deploy/README.md)
 的「首次部署后注入参考数据」。
@@ -141,15 +141,15 @@ ObjectId 经 uuid v5 派生，派生实现见 `packages/tooling/scripts/src/db/u
 
 ```bash
 # 从线上拉一份快照到本地（脱敏是有损的，所以必须换一个目录，别覆盖仓内 seed）
-pnpm db:export:pg --anonymize --out apps/server/.tmp/prod-snapshot
+pnpm walnut db:export:pg --anonymize --out apps/server/.tmp/prod-snapshot
 ```
 
 - 导入前**必须过一遍脱敏**（邮箱、手机、设备指纹、IP 与地理位置历史、MFA 密文都属个人数据）。
-- 脱敏规则在 `packages/tooling/scripts/src/db/anonymize.ts`：按**键名**判定（不按表路径 ——
+- 脱敏规则在 `tooling/scripts/src/db/anonymize.ts`：按**键名**判定（不按表路径 ——
   路径写法等于把 schema 抄一遍，字段一改规则就静默失效），掩码保留形状（邮箱 `a***@example.com`、
   手机 `138****1111`、IP `203.0.*.*`、密文 `<redacted:32>`、坐标降到城市级）。规则库无关，
   直接作用在反向映射后的文档上。
-- 同一套规则也挂在 `pnpm lint:seed` 上：仓内 seed 里出现未脱敏的个人数据会被点名到字段路径。
+- 同一套规则也挂在 `pnpm walnut lint:seed` 上：仓内 seed 里出现未脱敏的个人数据会被点名到字段路径。
 - 反向（开发 → 线上）**不做**：把开发库的数据直接写进线上，主键冲突事小，同文档互相覆盖与
   "删除算谁的"事大。
 

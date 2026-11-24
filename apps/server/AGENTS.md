@@ -36,7 +36,7 @@ NestJS 12.x + TypeScript 6.0.3 + PostgreSQL（TypeORM）+ Redis + Bull 队列的
 ## 命令（注意 cwd）
 
 后端的**裸** `pnpm dev` / `pnpm test` 只能在 `apps/server/` 下跑（ConfigModule 用 `process.cwd()`
-定位 env）；从仓库根起后端用 `pnpm dev:server`（= `turbo dev --filter=@walnut/server`，turbo 在
+定位 env）；从仓库根起后端用 `pnpm walnut dev:server`（= `turbo dev --filter=@walnut/server`，turbo 在
 `apps/server/` 下执行，cwd 正常）。
 
 **全部脚本以 `apps/server/package.json` 为判据**（这里不抄清单）；本目录常用的是 `dev` /
@@ -65,7 +65,7 @@ Repository 也算）—— 所有数据访问必须穿过 Repository。
 模块用 → `repo/` 落点。**`@Global` 只有一个判据：消费方模块数 ≥ 2**（数「声明了注入该 repository
 的类」的模块，不是数文件、不是数调用点）：= 1 时**不许** @Global —— 它只会把真实依赖从 imports
 图上抹掉，由拥有者模块显式 import；≥ 2 才允许，并在模块头注释登记理由。判据 + 「非 @Global 的
-每个消费方都能经 imports 看见它」由 `apps/api/src/common/monorepo/__tests__/repo-global.drift.spec.ts`
+每个消费方都能经 imports 看见它」由 `apps/api/test/architecture/repo-global.drift.spec.ts`
 机械守（跑单测即校验）。
 
 **实体注册**在模块 `imports` 里：`TypeOrmModule.forFeature([XxxEntity], WalnutPGConnectionName)`
@@ -99,7 +99,7 @@ CRUD 装饰器由 `WalnutCrudDecorators({ title, DTO })` 工厂生成（`@walnut
 定义在 `apps/server/apps/api/src/app/app.module.ts`（第 12 位在 `tech.module.ts`）。注意该文件自己的
 注释：**controller 装饰器上的顺序是反的**（自下而上）。
 
-**改这个顺序必须同步 `apps/server/apps/api/src/common/monorepo/__tests__/guard-order.drift.spec.ts`**：
+**改这个顺序必须同步 `apps/server/apps/api/test/architecture/guard-order.drift.spec.ts`**：
 它按「模块扫描序 × providers 数组序」把 APP_GUARD 摊平后与那份 12 元黄金序列逐位比对，
 只改装配不改它必红，只改它不改装配则是自欺（顺序的真源是装配，不是 spec）。
 
@@ -115,7 +115,7 @@ dotenvx 密文、`setup-env` / `encrypt-env`、加载哪几个 env 文件、CI �
 ## 测试
 
 Vitest，配置在 `apps/server/apps/api/vitest.config.ts`（E2E 用 `vitest.config.e2e.ts`，集成用
-`vitest.config.integration.ts`）。新增纯函数与工具必须补测试。**目录**：单测放同目录 `__tests__/`；接口测试 `test/api/<模块>/`、集成 `test/integration/<领域>/`、e2e `test/e2e/` —— 判据见 `apps/docs/src/zh-CN/content/monorepo/architecture-todo.md` 的「测试目录约定」。
+`vitest.config.integration.ts`）。新增纯函数与工具必须补测试。**目录**：单测放同目录 `__tests__/`；架构 drift spec 放 `test/architecture/`（被测对象是**整个 server 的结构**，不是某个模块的行为）；接口测试 `test/api/<模块>/`、集成 `test/integration/<领域>/`、e2e `test/e2e/` —— 判据见 `apps/docs/src/zh-CN/content/monorepo/architecture-todo.md` 的「测试目录约定」。
 
 **同一 worktree 同时只允许一个 `test:integration`**（`test:e2e` 同理）：集成库
 `walnut-admin-integration` 是共享单实例，globalSetup 一进来就 drop 重建 —— 并发跑会互删库、

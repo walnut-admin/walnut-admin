@@ -394,7 +394,7 @@
 
 ### 提交前全量验证
 - 原生命令：unit 75 files / **522 tests**；integration 63 files / **562 passed + 1 skipped**；e2e 1/1；server + 全仓 types/lint 全绿。
-- **pnpm prepush：全部段未报错**（总 153.1s；段数以 `packages/tooling/scripts/src/ci/prepush.ts`
+- **pnpm prepush：全部段未报错**（总 153.1s；段数以 `tooling/scripts/src/ci/prepush.ts`
   的表为准，别按数字读）。覆盖架构边界、syncpack、ADR 形态、文档代码块/引用/预算、类型检查
   （不排包）、openapi 一致性（导出+生成+git diff 含 --cached）、catalog 锁步、nginx 安全头、
   源码密钥形态、手写 .d.ts、全包 lint 等。

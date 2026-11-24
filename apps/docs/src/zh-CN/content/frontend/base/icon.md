@@ -2,6 +2,9 @@
 
 ## 老文档
 
+> 这一节描述的是**插件化之前**的实现（独立的生成脚本），保留下来作对照。其中出现的脚本、命令与文件
+> （例如 `build/_generated/svg.json`）现在都不存在；现行实现是 Vite 插件，见本页的「新文档」一节。
+
 ### 介绍
 
 项目没有采用 naive-ui 的图标，而是采用了[iconify](https://iconify.design/)的 [vue3](https://docs.iconify.design/icon-components/vue/) 的组件方案。（在采用 `unocss` 的时候试过更换为 uno 的纯 class 图标，但是效果并不理想。所以还是坚持用了 `iconify`）
@@ -242,7 +245,7 @@ import { IconBundleConfig } from './config';
 
 ## 新文档
 
-- 整体流程没打太大变化，只不过把上面逻辑通过vite插件的支持抽离成了一个自定义的插件（后续可能单独做成一个包）
+- 整体流程没打太大变化，只不过把上面逻辑通过vite插件的支持抽离成了一个自定义的插件。这个插件现在住在 `@walnut/vite-config`（`tooling/vite-config/src/plugins/custom/iconify/`），在内存里经虚拟模块完成，不落任何生成文件
 - 下面是mermaid图，都是我通过ai生成然后优化的
 - 主要分成开发和打包两个阶段
 

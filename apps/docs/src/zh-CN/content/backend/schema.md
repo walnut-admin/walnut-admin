@@ -31,7 +31,7 @@ MongoDB 侧的 24 个集合 1:1 映射为表，数组字段 `sys_user.roles` / `
 | v7 新增 | `sys_log_auth` / `sys_log_operate` / `sys_deleted` / `auth_refresh_token` | 列默认 `uuidv7()`（时间有序，追加型大表写放大低） |
 | v4 新增 | 其余业务表 | 列默认 `gen_random_uuid()`（PG 13+ 内置） |
 
-- v5 的 namespace 常量与派生函数唯一真源在 `packages/tooling/scripts/src/db/uuid5.ts`，
+- v5 的 namespace 常量与派生函数唯一真源在 `tooling/scripts/src/db/uuid5.ts`，
   **永不可改**：改了等于全部存量 id 换世界。
 - 应用层不强制生成 id：插入不传 id 时由 DB 默认生成。v5 只出现在 seed / ETL 两条显式通道，
   正常业务路径永远拿 v4。

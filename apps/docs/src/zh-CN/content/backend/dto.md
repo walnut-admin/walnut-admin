@@ -162,7 +162,7 @@ export class UserDTO {
 `@UseInterceptors` 这类框架/自定义装饰器都属于这一档。所以 `@Sse` 要写在 `@ApiOperation` /
 `@ApiResponse` **之后**（这正是 4A 收录这三个文档装饰器时踩到的：收录前后它们同属「未知档」，
 收录之后 `@Sse` 必须后移）。新增一个常用的方法装饰器时，别指望未知档的默认行为 —— 把它加进
-`packages/tooling/eslint-config/nest-local-rules.ts` 的 `DEFAULT_METHOD_ORDER` 并同步本表。
+`tooling/eslint-config/nest-local-rules.ts` 的 `DEFAULT_METHOD_ORDER` 并同步本表。
 
 ### 参数装饰器顺序
 

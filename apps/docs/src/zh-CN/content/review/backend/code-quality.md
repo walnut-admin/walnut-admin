@@ -209,7 +209,7 @@
 | 2a | 必须用 RealPickType/RealPartialType | **合规**。原生 PickType/PartialType 仅出现在包装器 `libs/utils/src/dto.ts:3`；全仓 DTO 无直接使用 |
 | 2b | 字段不写 ?/! | **系统性偏离**。约 15-20 处 `id?: string` 模式（多带注释意图）→ CQ-015；3 处 controller `!` 断言 → CQ-012；`sensitive.dto.ts:70` 是无 default 的真违例 |
 | 2c | 用 field 装饰器不裸 class-validator | **基本合规**。个别处（user.dto.ts:31 IsOptional）配合项目 validator 装饰器使用 |
-| 3 | 装饰器顺序 | **合规**。ESLint `local/sort-nestjs-decorators` 实装为 error（`packages/tooling/eslint-config/nest.ts:90`）；抽样 github/sensitive/mfa/user_device/dept controller 均符合 dto.md 顺序表 |
+| 3 | 装饰器顺序 | **合规**。ESLint `local/sort-nestjs-decorators` 实装为 error（`tooling/eslint-config/nest.ts:90`）；抽样 github/sensitive/mfa/user_device/dept controller 均符合 dto.md 顺序表 |
 | 4 | 事务 em 逐层透传 | **总体健康**。github/gitee/otp 自管 QueryRunner 是有书面理由的 guard 阶段特例（release 均在 finally）；dept create/update 漏 → CQ-009；登录链 check-then-act 无锁 → CQ-010。抽查 user_lock/mfa/user_device/role 链路 em 传递完整，`registerAfterCommitHook`/`runAfterCommit` 使用正确 |
 
 ## 分页/排序一致性
