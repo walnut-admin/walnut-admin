@@ -62,13 +62,13 @@ jobs:
           echo "TURBO_SCM_HEAD=${{ github.sha }}" >> "$GITHUB_ENV"
 
       - name: Architecture boundaries (turbo boundaries)
-        run: pnpm boundaries
+        run: pnpm walnut boundaries
 
       # 环是**没有任何其它闸看得见**的失效面：boundaries 只看包与 tag 的方向、
       # ESLint 分层只看单条边的方向（A→B 与 B→A 各自合法，两条同时在就是环）、tsc 不报环。
       # 成本实测 10.3s / 1050 个文件（2026-11-02），与同 job 的其它段并行不成瓶颈。
       - name: Circular dependency check (madge)
-        run: pnpm madge:check
+        run: pnpm walnut madge:check
 
       # ── turbo 本地缓存（跨 run 持久化）──────────────────────────────────────────
       # 缓存路径是**整个 `.turbo/cache`** ⇒ 缓存的是「**这条 job 里 turbo 跑过的一切**」，
@@ -83,7 +83,7 @@ jobs:
       # 换 key 时 `restore-keys` 的前缀要**一起换** —— 它是前缀匹配，只换 key 照样会拉回旧的。
       #
       # 安全性：turbo 缓存**按 task hash 校验** ⇒ 恢复到不匹配的条目只会 miss、不会误用；
-      # 真正的守卫是 **hash 覆盖面**，由 `pnpm lint:turbo-cache` 的不变量盯着。
+      # 真正的守卫是 **hash 覆盖面**，由 `pnpm walnut lint:turbo-cache` 的不变量盯着。
       - name: Restore turbo cache (quality gates)
         # v5 而不是 v4：v4 跑在 node20 上，而本仓已经在为 `actions/setup-node@v4` 收
         # 「Node.js 20 is deprecated」的告警 —— 别再添一个。
@@ -100,12 +100,12 @@ jobs:
       # 根级配置（eslint.config.ts / commitlint.config.ts / knip.config.ts）既不在任何包的
       # lint 范围里，也不进 turbo 的 affected 图 —— 必须显式跑，否则只有本地 pre-push 拦得住。
       - name: Lint root configs
-        run: pnpm lint:root
+        run: pnpm walnut lint:root
 
       # 根 tsconfig（include: ["*.ts"]）覆盖 eslint.config.ts / commitlint.config.ts / knip.config.ts。
       # 它们同样不入 turbo 的图，且 lint 不做类型检查 —— 必须显式跑这条。
       - name: Type check root configs
-        run: pnpm types:check:root
+        run: pnpm walnut types:check:root
 
       - name: Type check (affected)
         run: pnpm exec turbo run types:check --affected
@@ -121,89 +121,95 @@ jobs:
       # 上面那步整份上传（实测把归档从几十 KB 顶到 4.7 MB 起）。换目录后它**每次都真跑、
       # 不回放** —— 对一条「死链校验就是构建本身」的门禁来说，这正是想要的态度。
       #
-      # 参数写法**实测过**，两种只差一个 `--`，行为完全不同：
-      #   `pnpm run build:docs -- --cache-dir=x`  → 参数被 turbo 当**透传参数**给了任务本身
-      #                                            （VitePress 收到 `--cache-dir=x`，缓存照旧写默认目录）
-      #   `pnpm build:docs --cache-dir=x`         → 到 turbo（实测条目落进 `x`，默认目录未被写入）
+      # 参数写法**实测过**：旗标必须紧跟在 id 后面、且不许写 `--`。
+      # 2026-09 实测了 pnpm 的两种转发形态（`pnpm run build:docs -- --cache-dir=x` 让参数
+      # 到不了 turbo）；入口形态沿用同一条规矩：`--cache-dir=…` 写在 `--` 之前到 turbo，
+      # 写成 `--` 之后的透传参数则被缓存污染守卫（walnut-check-turbo-cache）判红。
       - name: Docs build (dead-link check)
-        run: pnpm build:docs --cache-dir=.turbo/cache-docs
+        run: pnpm walnut build:docs --cache-dir=.turbo/cache-docs
 
       # 拼出来的动态 import 说明符（模板插值 / 非字面量）在 tsc 与 vite build 里都不报错，
       # 只在运行期抛 Unknown variable dynamic import —— 2026-11 的 @walnut/ui 抽包就是这么
       # 让 Base:Switch（63 处使用）静默不渲染的。静态扫一遍即可发现。
       - name: Dynamic import specifier check
-        run: pnpm lint:dynamic-imports
+        run: pnpm walnut lint:dynamic-imports
 
       # 补 VitePress 内置查不到的那一半：活文档**正文**里引用的 workspace 包名与仓库路径。
       # （内置只认 markdown 链接语法，反引号里的 `@walnut/xxx` / `packages/a/b.ts` 它看不见。）
       - name: Doc reference check
-        run: pnpm lint:docs-refs
+        run: pnpm walnut lint:docs-refs
 
       # ADR 的形态（编号连续 / Status 在枚举内 / 四个必需小节 / index.md 双向对齐）没有任何
       # 现成工具管 —— 19 篇 ADR 曾有三种互不兼容的 Status 取值。见待办 F6。
       - name: ADR shape check
-        run: pnpm lint:adr
+        run: pnpm walnut lint:adr
 
       # 文档里标成 `ts` 的围栏块必须能按 TypeScript 解析：JSON 块不许标成 ts、不许截断/乱码。
       # 只做「零误报」的那一半（不要求文档块能编译 —— 实测那样会 100% 误报）。
       - name: Doc code-block check
-        run: pnpm lint:doc-ts
+        run: pnpm walnut lint:doc-ts
 
       # 常驻上下文的几个文件（根 AGENTS.md / CLAUDE.md / 包级指引）不许无限膨胀；
       # 预算**用不到一半**同样失败（那种预算已经约束不到任何东西）。
       - name: Doc budget check
-        run: pnpm lint:doc-budget
+        run: pnpm walnut lint:doc-budget
 
       # 注释里的 emoji 在非 UTF-8 代码页下必然乱码，也会污染 diff 与日志。ESLint 那条规则够不着
       # workflow / .gitignore / .toml / nginx .conf 这些文件，所以另有一条跨文件类型的门禁；
       # 常驻上下文文档走更严的一档（任意位置，不只注释）。
       - name: Emoji-in-comments check
-        run: pnpm lint:emoji
+        run: pnpm walnut lint:emoji
 
       # 初始化数据（apps/server/db/seed）的形态。这份数据**随仓库发布、并被 `db:seed` 直接灌进库**，
       # 而它的失效方式全是静默的：真私钥/凭证被手工导进来、89MB 的行政区划进了 git 历史、
       # 未裁剪的账号被发布、引用坏了让侧边栏空掉且不报错。判据只看数据本身，不需要数据库。
       - name: Seed data shape check
-        run: pnpm lint:seed
+        run: pnpm walnut lint:seed
 
       # 手写的 `.d.ts` 关掉 `skipLibCheck` 查一遍（只报仓库内文件）。
       # `skipLibCheck: true` 跳过的是**全部** `.d.ts`，含我们自己写的那十几份 ⇒ 里面的错会静默
       # 退化成 any、症状跑到消费方去（2026-09-29 实测：16 处诊断 / 6 个文件，含两处 PWA 残留）。
       - name: Hand-written .d.ts check
-        run: pnpm lint:dts
+        run: pnpm walnut lint:dts
 
       # turbo 缓存边界：产物目录有没有进 outputs、依赖包源码有没有串进 types:check 的哈希……
       # 这类错误**不会报错**，只会让 turbo 报 FULL TURBO + exit 0 却少跑/少产出。
       - name: Turbo cache boundary check
-        run: pnpm lint:turbo-cache
+        run: pnpm walnut lint:turbo-cache
 
       # 「改 catalog 一行忘了 pnpm install」= 本地必然全绿、CI 必然死在 install
       # （`--frozen-lockfile`）。这是唯一看得见它的地方。
       - name: Catalog / lockfile lockstep check
-        run: pnpm lint:lockfile
+        run: pnpm walnut lint:lockfile
 
       # nginx 的 add_header 是「整段替换」：location 自己写一条就吃掉 server 级的 4 个安全头，
       # 并列的 server 块之间也不互相继承。本机没 Docker ⇒ 推送前只有这一段能看见它
       # （「头真的发出去了」由 deploy/post-verify.sh 在部署后核实）。
       - name: Entry nginx security headers check
-        run: pnpm lint:nginx-headers
+        run: pnpm walnut lint:nginx-headers
+
+      # deploy/post-verify.test.sh 用假 docker / curl 覆盖部署后验证脚本的各条失败分支
+      # （不需要 Docker / 数据库 / 网络）。本机没有 bash 时这一步报「跳过、未验证」
+      # （退出码 3）而不是通过；ubuntu runner 自带 bash，所以这里一定是真跑。
+      - name: Deploy post-verify behavioral tests
+        run: pnpm walnut lint:post-verify
 
       # 源码里的凭据形状（PEM 私钥 / 带真口令的连接串 / JWT / 云厂商 AK）。
       # **它真正的位置是 prepush**：GitHub 的 push protection 在服务端、且先于 CI，
       # 被它拒掉时本地这段门禁是绿的（2026-09-23 实测）。CI 这一份是补第二道，
       # 覆盖"绕过钩子直接推"的情形。
       - name: Source secret-shape check
-        run: pnpm lint:secrets
+        run: pnpm walnut lint:secrets
 
       # 共享包不构建就被消费（exports 指 ./src/**）⇒ exports 写错 = 解析到别的入口 / 类型静默丢失。
       - name: Package exports shape check
-        run: pnpm lint:exports
+        run: pnpm walnut lint:exports
 
       # 有生成物的包（admin 的两个 unplugin dts），它跑 vite / vue-tsc 的脚本必须都接了生成步骤。
       # 这条是 2026-09-24 那次事故的守卫：生成物移出跟踪面后漏了 `prebuild`，
       # 于是 `Build admin` 里 vite 的检查器在生成之前就读它 ⇒ 一串 `Cannot find name …`。
       - name: Script pre-hook check
-        run: pnpm lint:pre-hooks
+        run: pnpm walnut lint:pre-hooks
 
       # 防"affected 空集静默通过"：有文件变更却算出 0 个受影响包时必须失败
       - name: Affected set sanity check
@@ -229,7 +235,7 @@ jobs:
           fi
 
       - name: Dependency consistency (syncpack)
-        run: pnpm syncpack:lint
+        run: pnpm walnut syncpack:lint
 
       # 拦住「某个包的版本漂出 versioning.fixed 组」——在本 PR 上拦，而不是等到发版那天
       # 才发现 fixed 组锁步失败（那时 tag 与镜像已经在路上）。
@@ -280,7 +286,7 @@ jobs:
       # 否则这类 bug 永远只能在发版时付代价（一次发版 + 一轮排查）。
       #
       # 代价：这一步不再吃缓存（约 1~2 分钟）；换来的是 CI 与发版在"构建"这件事上**同源**。
-      # 这条约束由 `src/ci/__tests__/ci-workflow.test.ts` 机械钉住 —— 别把它改回去。
+      # 这条约束由 `tooling/scripts/src/ci/__tests__/ci-workflow.test.ts` 机械钉住 —— 别把它改回去。
       - name: Build admin
         if: env.DOTENVX_KEYS != ''
         run: pnpm exec turbo run build --filter=@walnut/admin --force
@@ -291,7 +297,7 @@ jobs:
       # （= mount 真的执行了）。runner 自带 google-chrome；没浏览器时脚本会明确 SKIP 而不是假绿。
       - name: Smoke test the built admin bundle
         if: env.DOTENVX_KEYS != ''
-        run: pnpm smoke:dist
+        run: pnpm walnut smoke:dist
 
       # 前端产物是**公开文件**，而"把后端 env 泄进前端"在本仓有现成的静默路径：
       # apps/server/env-local 与 apps/admin/env-local 是两套 env，搬错一行就会被打包进去，
@@ -299,7 +305,7 @@ jobs:
       # 规则表与「为什么只有这几条」写在 check-dist-secrets.ts 顶部（都是在真产物上试出来的）。
       - name: Dist secret scan
         if: env.DOTENVX_KEYS != ''
-        run: pnpm lint:dist
+        run: pnpm walnut lint:dist
 
       - name: Note skipped admin build
         if: env.DOTENVX_KEYS == ''
@@ -407,72 +413,25 @@ jobs:
 
       # worker 生产面冒烟（batch-3 r2）。为什么必须在这里：worker 的失败是**静默的** ——
       # cron 没挂上时 api 照常 200、/health/ready 照过，部署脚本与 post-verify 都看不见。
-      # 唯一现成的探针是 apps/worker/src/main.ts:34 那行 `cron jobs: N`，不用改代码。
       #
-      # 四个坑（2026-11 实测，依据是 batch-3 R1 的探针读数）：
-      #   ① NODE_ENV 必须是 development：production 下 libs/config/src/utils/pg-app-password.ts:45 的
-      #      守卫会因「开发引导密码」直接拒绝启动（与 openapi:export 同口径，这也是本步只用 dev 的原因）；
-      #   ② 只有本 job 同时有 PG / Redis service + 已迁移的库（quality / build 都没有 services）；
-      #   ③ 进程**不会自己退出**（实测 40s 仍在跑）⇒ 断言命中后 SIGTERM + wait，
-      #      靠 apps/worker/src/main.ts:26 的 enableShutdownHooks 优雅收场；
-      #   ④ 冷 require 整张依赖图要 ~9s（实测 9.1 / 9.3s，Nest 自身只占 ~1s）⇒ 轮询 40 × 1s 兜底，
-      #      **不要**写成固定 sleep 3（那样在 ubuntu runner 上会随机红）。
+      # 2026-11-24 起这里不再内联 bash。冒烟的**唯一实现**在 tooling/scripts/src/ci/local-ci.ts 的
+      # worker-smoke 步骤里，经入口调用；此前 workflow 里是一段几十行的内联脚本，与那份 TS 实现
+      # 是两套逻辑（轮询上限一处 40s、一处 180s，只有 TS 版带本机 .data 的备份恢复）。
+      # 两条判据都在 TS 版里：日志里出现 `cron jobs: N` 且 N >= 1（`cron jobs: 0` 也判红 ——
+      # 进程起来了但一个 cron 都没挂上，正是要抓的缺陷形态）；worker 启停前后
+      # .data/tokensList.json 逐字节不变（CAP 求值链不在 worker 闭包里）。
+      # ci-workflow.test.ts 把下面两步的命令与步骤表钉在一起。
       #
-      # WALNUT_ADMIN_BOOTSTRAP_TASKS=off：否则 worker 启动即跑 6 个 bootstrap 任务（含 rotateAppKey），
-      # CI 里纯属副作用；它只隔离 bootstrap、不影响 cron 注册（ADR 0025），所以计数断言依旧有效。
-      - name: Worker smoke (cron registered)
+      # 前置只有本 job 满足：PG / Redis service + 已迁移的库（quality / build 都没有 services）。
+      - name: Build server for worker smoke
         if: env.DOTENVX_KEYS != ''
         working-directory: apps/server
-        run: |
-          set -euo pipefail
-          # 用**产出镜像 dist 的同一条命令**（nest build api + verify-build-assets）：
-          # 断言的是「生产构建出的 dist 里 worker 能跑」，而不只是「某次构建曾留下过入口文件」。
-          pnpm build
-          log="$(mktemp)"
-          start=$(date +%s)
-          # ── D6 判据（batch-6 r2）：.data 不得因 worker 启停而变化 ──────────────
-          # 种一份**含过期项**的 CAP token 表：@cap.js/server 的 cleanup() 在 SIGTERM 时
-          # 把过期项删掉并整份写回（index.js:505-506 判过期、:545-565 写回）——
-          # 所以「worker 加载过 cap.js」必然会改这个文件的**内容与 mtime**。
-          # expires=1 的假 token 足够触发，不需要真凭据；mtime 钉到 2020 让任何 touch 都可见。
-          # 反证形态：改动前（worker 走 AppModule）这一步必红；本批改成 AppCoreModule
-          # + 拆 cap.guard 之后转绿。结构级同一判据是零基础设施的 G1 spec
-          # （apps/api/src/common/monorepo/worker-import-closure.drift.spec.ts）。
-          mkdir -p .data
-          printf '{"deadbeef:0123456789abcdef":1}' > .data/tokensList.json
-          touch -d '2020-01-01T00:00:00Z' .data/tokensList.json
-          data_before="$(stat -c '%Y %s' .data/tokensList.json) $(sha256sum .data/tokensList.json | cut -d' ' -f1)"
-          echo "CAP token store before worker: $data_before"
-          NODE_ENV=development WORKER_STANDALONE=true WALNUT_ADMIN_BOOTSTRAP_TASKS=off \
-            node dist/apps/worker/src/main.js >"$log" 2>&1 &
-          pid=$!
-          # 轮询而不是 sleep：命中即走；进程提前死掉（配置错误 / 连不上库）也立刻退出循环
-          for _ in $(seq 1 40); do
-            if grep -qE 'cron jobs: [1-9][0-9]*' "$log"; then break; fi
-            if ! kill -0 "$pid" 2>/dev/null; then break; fi
-            sleep 1
-          done
-          kill -TERM "$pid" 2>/dev/null || true
-          wait "$pid" 2>/dev/null || true
-          echo "waited $(( $(date +%s) - start ))s for the worker to register cron jobs"
-          tail -n 5 "$log"
-          # 断言：grep 不到 ⇒ exit 1 ⇒ 本步红。注意 `cron jobs: 0` 也必须红 ——
-          # 「进程起来了但一个 cron 都没挂上」正是要抓的缺陷形态，不能放过。
-          grep -E 'cron jobs: [1-9][0-9]*' "$log"
-
-          # ── D6 判据收尾：worker 已 SIGTERM 并退出，CAP token 存储必须原样 ──────────
-          # 比 mtime 更硬：内容哈希一起比。worker 里只要还有 new Cap()，cleanup() 就会
-          # 把那条 expires=1 删掉并写回 ⇒ 两个值都变 ⇒ 红。
-          data_after="$(stat -c '%Y %s' .data/tokensList.json) $(sha256sum .data/tokensList.json | cut -d' ' -f1)"
-          echo "CAP token store after  worker: $data_after"
-          if [ "$data_before" != "$data_after" ]; then
-            echo "::error::worker 触碰了 CAP token 存储（.data/tokensList.json）—— CAP 隔离回归了"
-            echo "before: $data_before"
-            echo "after : $data_after"
-            cat .data/tokensList.json
-            exit 1
-          fi
-          echo "OK: worker 没有触碰 .data/tokensList.json（CAP 求值链不在 worker 闭包里）"
+        # 用**产出镜像 dist 的同一条命令**（nest build api + verify-build-assets）：断言的是
+        # 「生产构建出的 dist 里 worker 能跑」，而不只是「某次构建曾留下过入口文件」。
+        run: pnpm build
+      - name: Worker smoke (cron registered)
+        if: env.DOTENVX_KEYS != ''
+        run: pnpm walnut ci:local --only=worker-smoke
 
       # 这条 note 现在只说「哪一半没跑」：段② 已在上面的 `DOTENVX_KEYS == ''` 分支里真跑过，
       # 别再写成「跳过 OpenAPI 一致性校验」—— 那会让 fork PR 的日志读起来像整段都没守。

@@ -122,7 +122,7 @@ jobs:
           # 也没有 Node 工具链，部署时 docker cp 进 backend 容器执行：容器里有 Node 24（原生类型
           # 剥离直接跑 .ts）和 seed-pg 需要的全部运行时依赖（pg / @serenity-kit/opaque）。
           mkdir -p deploy-files/seed-tooling
-          cp -r packages/tooling/scripts/bin packages/tooling/scripts/src deploy-files/seed-tooling/
+          cp -r tooling/scripts/bin tooling/scripts/src deploy-files/seed-tooling/
           # 固定 ESM 语义：backend 镜像的 /app/package.json（@walnut/server）没有 type 字段，
           # 不补这一份的话模块语法要靠 Node 的探测兜底
           printf '{"type":"module"}\n' > deploy-files/seed-tooling/package.json

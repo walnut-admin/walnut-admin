@@ -54,7 +54,7 @@ jobs:
       - name: Workflow shell syntax (bash -n per block)
         run: |
           pnpm install --frozen-lockfile
-          pnpm lint:workflows-shell
+          pnpm walnut lint:workflows-shell
 
       - name: Note
         run: echo "::notice::workflow 的 YAML 由 actionlint 校验，shell 块语法由 lint:workflows-shell 校验"

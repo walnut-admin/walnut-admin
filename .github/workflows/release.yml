@@ -73,7 +73,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Architecture boundaries
-        run: pnpm boundaries
+        run: pnpm walnut boundaries
 
       - name: Lint
         run: pnpm lint
@@ -85,7 +85,7 @@ jobs:
         run: pnpm test
 
       - name: Dependency consistency (syncpack)
-        run: pnpm syncpack:lint
+        run: pnpm walnut syncpack:lint
 
   # ---------- 2. 构建并推送镜像（与 verify 并行；部署必须等两者都成功）----------
   images:
