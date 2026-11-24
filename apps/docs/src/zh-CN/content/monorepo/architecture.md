@@ -45,14 +45,15 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 | 只属于 admin 的组件 / store / 页面 | `apps/admin` | `src/components/**`、`src/store/modules/**`、`src/views/**` | 组件一律 `index.ts`（导出）+ `index.vue`（实现）；API 函数以 `API` 结尾 |
 | 后端接口 | `apps/server` | `apps/api/src/modules/<domain>/` | 一模块一套 module / controller / service / basic.repository，规则见 `apps/server/AGENTS.md` |
 | 后端内部共享能力 | `apps/server/libs/<x>` | 按分层新建 lib，或加进既有层 | 它们**不是** workspace 包，走 tsconfig `paths`，namespace `@walnut-server/*`（ADR 0007）；分层与依赖方向见 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md) |
-| 一条仓库门禁 / 脚本 | `@walnut/scripts` | `src/ci/<name>.ts` + `bin/<name>.ts` | 新增门禁有**五步接线清单**，少一步就等于没接上 —— 见下 |
-| 共享配置预设（ESLint / tsconfig / Vitest / commitlint） | 对应的 `packages/tooling/<x>` | 已在册的 6 个包之一 | 新增第 7 个 tooling 包要同步单一 fixed 组、`versioning-config.test.ts`、以及一堆文档里的包清单 |
-| 一篇架构决策记录 | 文档站 `content/adr/` | `NNNN-<slug>.md` | 形态由 `pnpm lint:adr` 机械强制，形状约定见 [ADR 索引](../adr/index.md) |
+| 一条仓库门禁 / 脚本 | `@walnut/scripts` | `src/ci/<name>.ts` + `bin/<name>.ts` | 新增门禁有**六步接线清单**（含命令表登记与入口形态的 CI 步骤），少一步就等于没接上 —— 见下 |
+| 共享配置预设（ESLint / tsconfig / Vitest / commitlint） | 对应的 `tooling/<x>` | 工具链包里与配置预设同族的那几个（见上面的结构树） | 新增 tooling 包要同步 `pnpm-workspace.yaml` 的单一 fixed 组、`versioning-config.test.ts`、以及文档里的包清单 |
+| Vite 插件封装 / 开发代理 / 构建期 env schema | `@walnut/vite-config` | `tooling/vite-config/src/` | 包内不 import 任何 app 文件：包信息、自定义元素、组件目录与 resolver 经 `options` 传入（[ADR 0030](../adr/0030-admin-build-config-as-tooling-package.md)） |
+| 一篇架构决策记录 | 文档站 `content/adr/` | `NNNN-<slug>.md` | 形态由 `pnpm walnut lint:adr` 机械强制，形状约定见 [ADR 索引](../adr/index.md) |
 | 一篇架构 / 工程文档 | 文档站 `content/monorepo/` | 新页 **+ 在 `.vitepress/config/zh.ts` 的 sidebar 里登记** | 不登记 = 页面不可达（见 `apps/docs/AGENTS.md` 约定 3） |
 | 一条**产品 / 功能**待办 | 仓库根 `TODO.md` | 按「重要紧急」四档 | 与下面的架构待办**刻意分开**：产品取舍没有机械判据 |
 | 一条**架构 / 工程债** | [架构待办](./architecture-todo.md) | P2 / P3 / 搁置 / 未裁决 | 每条都要能写出**一条机械判据**，否则它属于根 `TODO.md` |
 
-### 新增一条门禁的接线清单（五步，缺一不可）
+### 新增一条门禁的接线清单（六步，缺一不可）
 
 以 `@walnut/scripts` 的某个 bin 为例 —— 本仓已有多条门禁，历史上漏接过步骤：
 
@@ -63,13 +64,23 @@ Walnut Admin 是一个**全栈 TypeScript monorepo**，采用 **Turborepo + pnpm
 
    await runCli(main)
    ```
-2. `packages/tooling/scripts/package.json` 的 `bin` 里登记；
-3. 根 `package.json` 加一条 `lint:<name>` 脚本；
-4. **接进推送前门禁表**：`packages/tooling/scripts/src/ci/prepush.ts` 的 `PREPUSH_GATES` 里加一项
+2. `tooling/scripts/package.json` 的 `bin` 里登记；
+3. **登记进命令表**：`tooling/scripts/src/lib/commands.ts` 加一项（`id` 沿用 `<name>` 的脚本名、
+   分组、`label`、`why`，argv 写成 `['exec', 'walnut-<name>']`）。根 `package.json` **不再加脚本**
+   —— 它只留外部契约与日常主干的那几条；`commands.test.ts` 会机械校验根脚本集合与命令表的一致性。
+   入口对每条命令有缺省的时长上限（15 分钟）；**自己给各部分定了预算的编排型命令**（prepush、
+   ci:local）与耗时没有上界的命令（images:*）要显式写 `budgetMs: 0`，否则入口层会把「几段合法耗时
+   加起来」判成卡死；
+4. **接进推送前门禁表**：`tooling/scripts/src/ci/prepush.ts` 的 `PREPUSH_GATES` 里加一项
    （`{ id, label, argv, why }` —— **`why` 要写清「凭什么它在推送前必须跑」**）。执行器并行跑、
-   每段报耗时；`prepush.test.ts` 会机械校验**每一项的 `argv[0]` 都落到真实存在的根脚本上**
-   （打错一个名字 = 一整段门禁静默消失）；
-5. **接进 `ci.yml` 的 quality job**；若它也属于发版前必须过的，再加进 `packages/tooling/release/src/release/steps.ts` 的电池（`steps.test.ts` 会校验整表）。
+   每段报耗时，`argv` 的首词是命令表 id；`prepush.test.ts` 会机械校验**每一段的首词都落到真实
+   存在的可执行名字上**（打错一个名字 = 一整段门禁静默消失）。**经 turbo 扇出的段**
+   （`exec turbo run <包级任务>`）要进同一条重道（`lane: TURBO_LANE`）互斥：并发上限数的是「段」，
+   数不到段里面的扇出，几路扇出同时跑会把机器抢满、让带写死超时的子进程假红（用例按这条判据机械核对，
+   漏填会红；依据见 `PrepushGate.lane` 的注释）；
+5. **接进 `ci.yml` 的 quality job**，步骤写成入口形态：`run: pnpm walnut <name>`；
+6. 若它也属于发版前必须过的，再加进 `tooling/release/src/release/steps.ts` 的电池
+   （`steps.test.ts` 会校验整表；电池与门禁表里的 argv 字面量保原样，由执行器按名解析）。
 
 #### 门禁的**输出与退出码**口径（2026-09-23 统一，别各写各的）
 
@@ -130,15 +141,16 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 │   ├── platform-web/                ← 浏览器 / Vue（纯源码，不构建）
 │   │   ├── client/                  ← @walnut/client
 │   │   └── http/                    ← @walnut/http（原名 axios）
-│   ├── generated/                   ← 零手写的生成物
-│   │   └── api-types/               ← @walnut/api-types（openapi-typescript 从 server 的 openapi.json 产出）
-│   └── tooling/                     ← 工具链 6 包（ADR 0019）
-│       ├── tsconfig/                ← @walnut/tsconfig（纯 JSON 预设 base / ts / vue）
-│       ├── eslint-config/           ← @walnut/eslint-config（base / vue / nest）
-│       ├── commitlint-config/       ← @walnut/commitlint-config
-│       ├── vitest-config/           ← @walnut/vitest-config（共享 Vitest 预设）
-│       ├── scripts/                 ← @walnut/scripts（仓库级脚本：lib / ci / env + bin）
-│       └── release/                 ← @walnut/release（发版编排，bin walnut-release）
+│   └── generated/                   ← 零手写的生成物
+│       └── api-types/               ← @walnut/api-types（openapi-typescript 从 server 的 openapi.json 产出）
+├── tooling/                         ← 工具链包（与 apps、packages 同级，ADR 0028）
+│   ├── tsconfig/                    ← @walnut/tsconfig（纯 JSON 预设 base / ts / vue）
+│   ├── eslint-config/               ← @walnut/eslint-config（base / vue / nest）
+│   ├── commitlint-config/           ← @walnut/commitlint-config
+│   ├── vitest-config/               ← @walnut/vitest-config（共享 Vitest 预设）
+│   ├── vite-config/                 ← @walnut/vite-config（Vite 插件表 / 开发代理 / env schema / 构建期读写）
+│   ├── scripts/                     ← @walnut/scripts（仓库级脚本：lib / ci / env / docs + bin）
+│   └── release/                     ← @walnut/release（发版编排，bin walnut-release）
 ├── turbo.json                       ← 任务定义 + 缓存 + 架构边界
 ├── pnpm-workspace.yaml              ← workspace 声明 + catalog + versioning
 ├── tsconfig.json                    ← 仓库根 TS 配置（extends @walnut/tsconfig/base.json）
@@ -147,7 +159,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 └── TODO.md                          ← 产品 / 功能待办（与架构待办分开的两本账）
 ```
 
-**外层**（Turborepo 层面）：`apps/*` + `packages/platform-any/*` + `packages/platform-web/*` + `packages/generated/*` + `packages/tooling/*` 的 workspace 包，通过 pnpm workspace 协议（`workspace:*`）相互引用。
+**外层**（Turborepo 层面）：`apps/*` + `packages/platform-any/*` + `packages/platform-web/*` + `packages/generated/*` + `tooling/*` 的 workspace 包，通过 pnpm workspace 协议（`workspace:*`）相互引用。
 
 **内层**（Server 内部）：`apps/server/libs/*` 下的 NestJS 内部库（按「基建 → 技术 → identity 内核 → 领域域 → 装配（guards）→ app-domain」六层，其中技术层在 `eslint.config.ts` 里拆成 tech-base（设施）/ tech-assemble（跨域装配内核）两条 `layer`；完整清单以目录为准），通过 TypeScript `paths` 映射解析，不走 pnpm workspace。命名空间为 `@walnut-server/*`，与外层 `@walnut/*` 物理分离。`apps/api` 是默认部署单元（组合根），`apps/worker` / `apps/cli` 是同一 workspace 内的可选组合入口，不是新服务 —— 见 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。
 
@@ -187,6 +199,7 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 | `@walnut/commitlint-config` | commitlint 规则（scope-enum 等） | commitlint |
 | `@walnut/tsconfig` | 纯 JSON tsconfig 预设，无依赖、无源码 | 无 |
 | `@walnut/vitest-config` | 共享 Vitest 预设（发现规则 / 环境 / 覆盖率） | vitest（peer） |
+| `@walnut/vite-config` | Vite 插件表 / 开发代理 / 环境变量 schema / 构建期读写工具 | vite、vue（peer） |
 | `@walnut/scripts` | 仓库级脚本通用层：`lib/` 纯逻辑、`ci/` 门禁、`env/` 加解密，经 bin 被根 scripts 调用 | `@dotenvx/dotenvx`、`typescript` |
 | `@walnut/release` | 发版编排（`src/release/`），bin `walnut-release` | `@walnut/scripts`、git-cliff、yaml |
 
@@ -197,12 +210,13 @@ walnut-admin/                        ← Turborepo + pnpm workspace（外层）
 > [`utils`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/platform-any/utils-core/README.md) ·
 > [`client`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/platform-web/client/README.md) ·
 > [`http`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/platform-web/http/README.md) ·
-> [`tsconfig`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/tsconfig/README.md) ·
-> [`eslint-config`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/README.md) ·
-> [`commitlint-config`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/commitlint-config/README.md) ·
-> [`vitest-config`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/vitest-config/README.md) ·
-> [`scripts`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/scripts/README.md) ·
-> [`release`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/release/README.md)；
+> [`tsconfig`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/tsconfig/README.md) ·
+> [`eslint-config`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/eslint-config/README.md) ·
+> [`commitlint-config`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/commitlint-config/README.md) ·
+> [`vitest-config`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/vitest-config/README.md) ·
+> [`vite-config`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/vite-config/README.md) ·
+> [`scripts`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/scripts/README.md) ·
+> [`release`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/release/README.md)；
 > 后端内部 lib 的逐库说明：9 个基建 lib 各有 `apps/server/libs/<x>/README.md`；其余领域 / 技术 lib 的说明在 `libs/<x>/src` 的文件头注释与 [ADR 0022](../adr/0022-backend-lib-layering-and-composition-roots.md)。
 
 ### 消费方式

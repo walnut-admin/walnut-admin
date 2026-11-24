@@ -11,11 +11,11 @@
 
 | 术语 | 在本仓指什么 |
 |------|------------|
-| **外层 / 内层** | 外层 = pnpm workspace 里的 workspace 包（`apps/*` + `packages/**`）；内层 = `apps/server/libs/*` 那批 NestJS 内部库（按依赖方向分六层，层序见「内部 lib」条目），**不是** workspace 包，走 tsconfig `paths` 解析 |
+| **外层 / 内层** | 外层 = pnpm workspace 里的 workspace 包（`apps/*` + `packages/**` + `tooling/*`）；内层 = `apps/server/libs/*` 那批 NestJS 内部库（按依赖方向分六层，层序见「内部 lib」条目），**不是** workspace 包，走 tsconfig `paths` 解析 |
 | **platform-any** | 运行时无关的共享包组：`contract` · `types` · `utils-core`。可被前端与后端同时消费 |
 | **platform-web** | 浏览器 / Vue 包组：`client` · `http`（`ui` 已于 2026-11 批次 1 删除、`api-types` 于批次 4 迁到 `generated`）。**源码直消费、不构建** |
 | **generated** | 生成物包组：`api-types`。由 `openapi-typescript` 从 `apps/server/openapi.json` 机械产出，**一个字都不手写**；boundaries 上 `generated` 不得依赖 `app`、也不得被 `backend` 依赖 |
-| **tooling** | 工具链包组（6 个）：`tsconfig` · `eslint-config` · `commitlint-config` · `vitest-config` · `scripts` · `release` |
+| **tooling** | 工具链包组，判据是「给仓库自己用、不随业务发布」（ADR 0028）；完整名单以 `tooling/` 目录为准，各包的规则写在包内 `README.md` |
 | **内部 lib** | `apps/server/libs/` 下的内部库，按依赖方向分六层：**基建 → 技术 → identity 内核 → 领域域（system → auth → security）→ 装配（guards）→ app-domain**。排序靠前者被靠后者 import（下层在前，反向 import 即违规）；guards 是装配层，**在全部领域域之上**，app-domain 再依赖 guards。层序由 `apps/server/eslint.config.ts` 的分层规则机械守（技术层拆成 `TECH_BASE_LIBS` 技术设施 / `TECH_ASSEMBLE_LIBS` 跨域装配内核两条 `layer`，概念上仍是一层），完整清单以目录为准。namespace `@walnut-server/*`，与 workspace 包物理分离（ADR 0007 / 0022） |
 | **组合根（composition root）** | 装配依赖、决定进程形态的入口。`apps/api` 是默认部署单元；`apps/worker`（cron + Bull，可选）与 `apps/cli`（migration / OpenAPI，零运行时）是同一 workspace 内的可选组合入口，不是新服务（ADR 0022） |
 | **目录名 ≠ 包名** | 最典型的是 `packages/platform-any/utils-core/` —— 它的包名是 **`@walnut/utils`**，`utils-core` 只是目录名 |
@@ -48,9 +48,9 @@
 | **意图（intent）** | 一次发版的版本变更声明。`pnpm change` 写、`pnpm version -r` 消费；文件仍是 changesets 格式（`.changeset/*.md`） |
 | **ledger** | `.changeset/ledger.yaml` —— 意图的**消费台账**。「哪些意图已经被消费」的判据始终是它，不是文件在不在 |
 | **fixed 组** | `versioning.fixed` 里的单一组：**全部** workspace 包永远同版本，因此 tag `vX.Y.Z` 永远有唯一来源（ADR 0008 / 0011） |
-| **电池（release battery）** | 发版前必跑的聚合门禁表，定义在 `packages/tooling/release/src/release/steps.ts` |
+| **电池（release battery）** | 发版前必跑的聚合门禁表，定义在 `tooling/release/src/release/steps.ts` |
 | **可擦除语法** | Node 24 原生剥离类型只支持的写法：没有 `enum`、没有非 ambient `namespace`、没有构造函数参数属性、没有 `import =`。由 `@walnut/tsconfig/ts.json` 的 `erasableSyntaxOnly` 在编译期保证（ADR 0019） |
-| **`@pseudo`** | 文档里**有意写不合法**的伪代码块，把 `// @pseudo` 放在块的第一行即可豁免 `pnpm lint:doc-ts` |
+| **`@pseudo`** | 文档里**有意写不合法**的伪代码块，把 `// @pseudo` 放在块的第一行即可豁免 `pnpm walnut lint:doc-ts` |
 | **冻结语料** | `content/archive/` 与 `content/industry-research/`：有意保留当时样子的历史文档，**不参与**死链、路径引用、代码块校验 |
 
 ## 纪律（原根 `CONTEXT.md` 的 Rules）

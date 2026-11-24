@@ -8,13 +8,13 @@ Walnut Admin 是一个**异构工具链**的全栈 monorepo——前端用 ESM +
 
 ### 1. 共享预设包 `@walnut/tsconfig`（2026-09-23 提取）
 
-共享 tsconfig 从「根目录一份 `tsconfig.base.json`」改为**独立的预设包** [`packages/tooling/tsconfig/`](https://github.com/walnut-admin/walnut-admin/tree/main/packages/tooling/tsconfig)（包名 `@walnut/tsconfig`，纯 JSON、无源码）。三个预设**按运行环境**分，不按「项目 / 库」分：
+共享 tsconfig 从「根目录一份 `tsconfig.base.json`」改为**独立的预设包** [`tooling/tsconfig/`](https://github.com/walnut-admin/walnut-admin/tree/main/tooling/tsconfig)（包名 `@walnut/tsconfig`，纯 JSON、无源码）。三个预设**按运行环境**分，不按「项目 / 库」分：
 
 | 预设 | 面向环境 | 内容 |
 |------|---------|------|
-| [`base.json`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/tsconfig/base.json) | 环境无关基线 | `target: ESNext`、`module/moduleResolution: ESNext/bundler`、`strict`、`isolatedModules`、`verbatimModuleSyntax`、`noEmit`、`allowImportingTsExtensions`、`skipLibCheck`……`lib` 只有 `ESNext`（**不含 DOM**），且不含 `jsx` / `jsxImportSource` / `types` / `erasableSyntaxOnly` |
-| [`ts.json`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/tsconfig/ts.json) | Node / 纯逻辑 / 工具链 | `extends base` + **`erasableSyntaxOnly: true`**（源码由 Node 原生剥离类型执行，不许 `enum` / 非 ambient `namespace` / 构造函数参数属性） |
-| [`vue.json`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/tsconfig/vue.json) | 浏览器 + Vue | `extends base` + `lib: ["DOM", "ESNext", "DOM.Iterable"]` + `jsx: "preserve"` + `jsxImportSource: "vue"` |
+| [`base.json`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/tsconfig/base.json) | 环境无关基线 | `target: ESNext`、`module/moduleResolution: ESNext/bundler`、`strict`、`isolatedModules`、`verbatimModuleSyntax`、`noEmit`、`allowImportingTsExtensions`、`skipLibCheck`……`lib` 只有 `ESNext`（**不含 DOM**），且不含 `jsx` / `jsxImportSource` / `types` / `erasableSyntaxOnly` |
+| [`ts.json`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/tsconfig/ts.json) | Node / 纯逻辑 / 工具链 | `extends base` + **`erasableSyntaxOnly: true`**（源码由 Node 原生剥离类型执行，不许 `enum` / 非 ambient `namespace` / 构造函数参数属性） |
+| [`vue.json`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/tsconfig/vue.json) | 浏览器 + Vue | `extends base` + `lib: ["DOM", "ESNext", "DOM.Iterable"]` + `jsx: "preserve"` + `jsxImportSource: "vue"` |
 
 消费者不再写不同深度的 `../../../tsconfig.base.json`，而是**按包名继承**，并在 `devDependencies` 里声明 `@walnut/tsconfig: workspace:*`：
 
@@ -26,11 +26,11 @@ Walnut Admin 是一个**异构工具链**的全栈 monorepo——前端用 ESM +
 | 继承的预设 | 消费者 | 为什么是它 |
 |-----------|--------|-----------|
 | `vue.json` | `apps/admin`、`apps/docs`、`packages/platform-web/{client,http}`、`packages/generated/api-types` | 由 Vite / vue-tsc 编译，需要 DOM + Vue JSX（api-types 只需要与 admin 相同的 `DOM` 面，本身不写 JSX） |
-| `ts.json` | `packages/platform-any/{contract,types,utils-core}`、`@walnut/scripts`、`@walnut/release` | 「Node / 纯逻辑 / 工具链」环境；其中 `@walnut/contract` 的 `packages/platform-any/contract/scripts/build-barrel.ts` 与两个工具链包的 bin 由 Node 原生执行，必须只写「可擦除语法」 |
+| `ts.json` | `packages/platform-any/{contract,types,utils-core}`、`@walnut/scripts`、`@walnut/release`、`@walnut/vite-config` | 「Node / 纯逻辑 / 工具链」环境；其中 `@walnut/contract` 的 `packages/platform-any/contract/scripts/build-barrel.ts`、两个工具链包的 bin 与 `@walnut/vite-config` 被 Vite 配置加载链路 import 的源码都由 Node 原生执行，必须只写「可擦除语法」 |
 | `base.json` | 仓库根 `tsconfig.json`、`@walnut/eslint-config`、`@walnut/commitlint-config`、`@walnut/vitest-config` | 这些文件由 ESLint（经 jiti）/ commitlint 的 TS loader / Vitest 的 esbuild 加载，**不是** Node 原生执行 ⇒ 不需要 `erasableSyntaxOnly` |
 | 不继承任何预设 | `apps/server` | 见第 3 节 |
 
-预设包本身没有可检查的 TS 源码，所以它的 `types:check` 只是一句 `echo`（`packages/tooling/tsconfig/package.json`）；而 `@walnut/eslint-config` 的预设是**真 TS 源码**，`types:check` 是真正的 `tsc --noEmit`。
+预设包本身没有可检查的 TS 源码，所以它的 `types:check` 只是一句 `echo`（`tooling/tsconfig/package.json`）；而 `@walnut/eslint-config` 的预设是**真 TS 源码**，`types:check` 是真正的 `tsc --noEmit`。
 
 ### 2. 前端包 extends `vue.json`
 

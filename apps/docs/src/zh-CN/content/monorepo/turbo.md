@@ -63,7 +63,7 @@ Walnut Admin 使用 **Turborepo 2.11** 作为任务编排引擎。它负责解�
 
 **`dev` / `test` 也依赖 `^build`**：后端运行时 `require('@walnut/contract')` 走 `exports.require` → `dist/index.cjs`（见 ADR 0002），而 `dist/` 是 gitignore 的构建产物。fresh clone 后直接 `pnpm dev:server` 若缺这一步会 MODULE_NOT_FOUND——因此 `dev` 与 `test` 都先跑一次 `^build`（Turbo 缓存，通常 <1s）。
 
-**`build:stage` 是独立任务**：`pnpm build:stage` = `turbo build:stage --filter=@walnut/admin`，由 admin 的 `build:stage`（`vite build --mode stage`）脚本承载，替代早期 `turbo build -- -- --mode stage` 的三重 `--` 透传（透传参数会泄漏给图中所有任务，且链路脆弱）。
+**`build:stage` 是独立任务**：`pnpm walnut build:stage` = `turbo build:stage --filter=@walnut/admin`，由 admin 的 `build:stage`（`vite build --mode stage`）脚本承载，替代早期 `turbo build -- -- --mode stage` 的三重 `--` 透传（透传参数会泄漏给图中所有任务，且链路脆弱）。
 
 ### 2. 构建缓存
 
@@ -88,7 +88,7 @@ Turbo 对每个 task 做 **content-aware hashing**：hash 源码 + 依赖 + 环�
 > [Turbo 缓存边界](./turbo-cache-boundary)** —— 包括四条已经修掉的缝
 > （`build:stage` 漏产物目录导致**缓存命中却一个文件都不产出**、`types:check` 看不到依赖包源码、
 > 解密后的 `env-local` 不进哈希、`@walnut/server` 两条构建流程共用一个 `dist`），
-> 以及守这些不变量的门禁 `pnpm lint:turbo-cache`（push 前 + CI + 发版电池三处都跑）。
+> 以及守这些不变量的门禁 `pnpm walnut lint:turbo-cache`（push 前 + CI + 发版电池三处都跑）。
 
 ### 3. 环境变量感知
 
@@ -136,8 +136,9 @@ Tag-Based 架构边界（Turbo 2.9 引入时是实验特性，2.11 下依然由 
 }
 ```
 
-各包的标签（platform 维度，2026-08-08；`packages/tooling/` 于 2026-09-23 拆成 5 个包、同日再加
-`@walnut/vitest-config`，本表的行数随包数走 —— 判据是「每个 workspace 包一行」，不写死数字）：
+各包的标签（platform 维度，2026-08-08；`tooling/` 于 2026-09-23 拆成 5 个包、同日再加
+`@walnut/vitest-config`，2026-11 再加 `@walnut/vite-config`。本表的行数随包数走 —— 判据是「每个
+workspace 包一行」，不写死数字）：
 
 | 包 | 标签 |
 |----|------|
@@ -154,10 +155,11 @@ Tag-Based 架构边界（Turbo 2.9 引入时是实验特性，2.11 下依然由 
 | `@walnut/eslint-config` | `tooling`, `platform-any` |
 | `@walnut/commitlint-config` | `tooling`, `platform-any` |
 | `@walnut/vitest-config` | `tooling`, `platform-any` |
+| `@walnut/vite-config` | `tooling`, `platform-any` |
 | `@walnut/scripts` | `tooling`, `platform-any` |
 | `@walnut/release` | `tooling`, `platform-any` |
 
-> 6 个 tooling 包的 workspace 级 `turbo.json` 内容相同（`{"extends": ["//"], "tags": ["tooling", "platform-any"]}`）——
+> `tooling/` 下各包的 workspace 级 `turbo.json` 内容相同（`{"extends": ["//"], "tags": ["tooling", "platform-any"]}`）——
 > 预设包是纯 JSON、脚本包由 Node 原生执行，**没有一个**依赖 `platform-web` 或某个 app。
 > 原先那一行 `@walnut/tooling` 已随拆包消失。
 

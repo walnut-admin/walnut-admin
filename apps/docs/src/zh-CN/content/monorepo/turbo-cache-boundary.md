@@ -2,7 +2,7 @@
 
 > **一句话**：本页回答「**改哪个文件，会让哪个 task 的缓存失效**」。
 > 所有结论都是**实测**出来的，不是从配置推的；每条都给了可重跑的命令。
-> 机械守卫：`pnpm lint:turbo-cache`（push 前、CI、发版电池三处都跑）。
+> 机械守卫：`pnpm walnut lint:turbo-cache`（push 前、CI、发版电池三处都跑）。
 
 本仓几乎所有常用命令都走 turbo 缓存（`pnpm build` / `test` / `lint` / `types:check`），
 所以「边界错了」的代价不是慢，而是**静默**：`FULL TURBO` + exit 0，
@@ -56,13 +56,13 @@ pnpm exec turbo run build build:stage transit types:check lint test --dry=json
 | `pnpm-workspace.yaml` | `globalDependencies`（catalog 在这里，合理） |
 | `eslint.config.ts` · `commitlint.config.ts` · `knip.config.ts` | `globalDependencies` |
 | 根 `package.json` · `tsconfig.json` · `.gitattributes` | `globalDependencies` |
-| `packages/tooling/tsconfig/*.json` | `globalDependencies`（这个 glob 顺手把该包自己的 `turbo.json` 也纳入了） |
-| `packages/tooling/vitest-config/*.ts` | `globalDependencies` |
-| **`packages/tooling/{eslint-config,release,scripts}` 下的 `.ts` 源文件** | **内部依赖哈希** —— 见下 |
+| `tooling/tsconfig/*.json` | `globalDependencies`（这个 glob 顺手把该包自己的 `turbo.json` 也纳入了） |
+| `tooling/vitest-config/*.ts` | `globalDependencies` |
+| **`tooling/{eslint-config,release,scripts}` 下的 `.ts` 源文件** | **内部依赖哈希** —— 见下 |
 | `pnpm-lock.yaml` 的**语义**变化（依赖版本真变了） | 全局外部依赖哈希 |
 
 > **内部依赖哈希是什么**：根 `package.json` 依赖到的那几个 workspace 包，
-> 它们的**源码内容**也算全局输入。实测：改 `packages/tooling/eslint-config/base.ts`
+> 它们的**源码内容**也算全局输入。实测：改 `tooling/eslint-config/base.ts`
 > 一行注释 → 90 个 task 全失效（`hashOfInternalDependencies` 变了）。
 > 但它们的 `package.json` / `tsconfig.json` / `turbo.json` / `README.md` **不在**这一块里
 > （只影响自己那几段）。**这不是直觉能推出来的**，所以它被写进了门禁与本文。
@@ -116,7 +116,7 @@ pnpm exec turbo run build build:stage transit types:check lint test --dry=json
 **实测后果**（这是本文最有价值的一条）：
 
 ```
-删掉 apps/admin/dist-staging → pnpm build:stage
+删掉 apps/admin/dist-staging → pnpm walnut build:stage
   Tasks:    1 successful, 1 total
   Cached:   1 cached, 1 total
   Time:     327ms >>> FULL TURBO
@@ -124,7 +124,7 @@ pnpm exec turbo run build build:stage transit types:check lint test --dry=json
 ```
 
 即：**缓存命中只回放日志，不落产物，而退出码是 0**。
-任何依赖 `pnpm build:stage` 产物的流程（或人）拿到的是一句「成功」。
+任何依赖 `pnpm walnut build:stage` 产物的流程（或人）拿到的是一句「成功」。
 
 **改法**：`build:stage.outputs` 补上 `dist-staging/**`。
 **守卫**：门禁按 `env-local/.env.stage` 里 `VITE_BUILD_OUT_DIR` 的**真实取值**去核对 outputs ——
@@ -315,13 +315,13 @@ Turbo 的严格 env 模式会把「没在 `env` / `globalEnv` / `passThroughEnv`
 
 ## 六、这道门禁守什么（每条都有 rule id，报错时按它定位）
 
-`pnpm lint:turbo-cache` **不改任何文件**，只拿 `--dry=json` 的解析结果 + 配置文件里的真实取值核对一组不变量
+`pnpm walnut lint:turbo-cache` **不改任何文件**，只拿 `--dry=json` 的解析结果 + 配置文件里的真实取值核对一组不变量
 （**表里不写条数** —— 它随门禁增删而变；真源是 `check-turbo-cache.ts` 里的 rule id）：
 
 | # | 不变量（rule id） | 不守会怎样 |
 |---|------------------|-----------|
 | 1 | 每个 workspace 包都有 `turbo.json`，且 `extends: ["//"]` + 非空 `tags`（`package-turbo-json`） | 那个包**静默不受** `turbo boundaries` 约束 |
-| 2 | `globalDependencies` 每条都命中真实文件（`global-dependency-exists`） | 写错一个字符 = 少一个全局失效源（本轮实测出 `packages/tooling/tsconfig/*.json` 顺带纳入了 `turbo.json`，说明这类 glob 值得核） |
+| 2 | `globalDependencies` 每条都命中真实文件（`global-dependency-exists`） | 写错一个字符 = 少一个全局失效源（本轮实测出 `tooling/tsconfig/*.json` 顺带纳入了 `turbo.json`，说明这类 glob 值得核） |
 | 3 | 有 `env-local/` 的 app，其 `build` / `build:stage` 的 inputs 必须含 `env-local/**`（`env-local-in-inputs`） | 改 .env 不重建（4.3） |
 | 4 | 从 `env-local/.env.*` 读出的 `VITE_BUILD_OUT_DIR` 必须出现在对应任务的 `outputs` 里（`outputs-cover-artifacts`） | 缓存命中静默不产出（4.1） |
 | 5 | `transit` 存在、带 `^transit`，且 `types:check` 挂它（`transit-exists` / `transit-chains`） | 依赖包源码变更 ⇒ 类型门禁回放假绿（4.2） |
@@ -423,7 +423,7 @@ Turbo 的严格 env 模式会把「没在 `env` / `globalEnv` / `passThroughEnv`
 run #15 保存下来的归档实测 **4,912,216 字节（4.7 MB）**，而按「质量门三类任务的 `outputs` 都是 `[]`
 ⇒ 条目只有元数据」推出来的是 0.1 MB。差 47 倍，原因不在 key、也不在 `actions/cache`：
 
-- `Docs build (dead-link check)` 那一步是 `pnpm build:docs`，而它就是
+- `Docs build (dead-link check)` 那一步是 `pnpm walnut build:docs`，而它就是
   `turbo build --filter=@walnut/docs` —— **是 turbo 任务**，位置又在恢复之后、保存（job 末尾）之前
   ⇒ VitePress 的构建产物一起进了缓存。本地同一个任务的条目 **4.84 MB**（`tar.zst` 4.63 MB +
   manifest 215 KB），与 CI 那 4.7 MB 吻合；质量门那部分只有几十 KB。
@@ -432,7 +432,7 @@ run #15 保存下来的归档实测 **4,912,216 字节（4.7 MB）**，而按「
 
 **处置**（两条必须一起做）：
 
-1. 那一步改用**自己的缓存目录**：`pnpm build:docs --cache-dir=.turbo/cache-docs`。于是它
+1. 那一步改用**自己的缓存目录**：`pnpm walnut build:docs --cache-dir=.turbo/cache-docs`。于是它
    **每次都真跑、不回放** —— 对一条「死链校验就是构建本身」的门禁，这正是想要的态度；
    而那 4.6 MB 从此不进这份跨 run 的归档。代价：docs 输入没变时省不下那 20s。
 2. 缓存 key 从 `…-turbo-quality-` 换成 `…-turbo-quality-v2-`，**`restore-keys` 一起换**：
@@ -443,6 +443,7 @@ run #15 保存下来的归档实测 **4,912,216 字节（4.7 MB）**，而按「
 **只差一个 `--`，行为完全不同** —— 前者被 turbo 当成**透传给任务本身**的参数（VitePress 收到
 `--cache-dir=x`，缓存照旧写进默认目录），后者才到 turbo。判别法很简单：参数真到了 turbo ⇒ 新目录
 是空的 ⇒ 这次必定 miss 并重建；被吞掉 ⇒ 直接命中、新目录不会出现。
+（现在命令走入口：`pnpm walnut build:docs --cache-dir=x`；规矩不变 —— 旗标写在 `--` 之前才到 turbo。）
 
 **收口实测（run #18，v2 的第一次跑）**：`Restore` 0s（v2 还没有归档可命中）、`Docs build` **20s
 真跑**（没有回放）、job 末尾保存出的 v2 归档 **32,194 字节（32 KB）** —— 对照 v1 最后那份 9.8 MB
@@ -454,7 +455,7 @@ run #15 保存下来的归档实测 **4,912,216 字节（4.7 MB）**，而按「
 ### 7.3 当时为什么不算正确性问题（留档）
 
 万一把它留在缓存里也不会"误用"：`apps/docs/turbo.json` 特意覆盖了 `build.inputs` 把 `.md` 纳回哈希
-—— 根 `build` 的 inputs 是 `!**/*.md`，沿用会让「改文档不触发重建」⇒ 本地 `pnpm build:docs` 直接
+—— 根 `build` 的 inputs 是 `!**/*.md`，沿用会让「改文档不触发重建」⇒ 本地 `pnpm walnut build:docs` 直接
 重放旧 `dist`、**静默跳过 VitePress 的死链校验**（那段注释写的就是这句话）。hash 覆盖了 docs 的
 全部输入 ⇒ 只有输入完全相同时才可能回放。**把它挡在外面是为了体积口径，不是因为回放会出错**
 —— 这与下面「为什么这条的风险比看上去低」是同一条推理。
@@ -477,7 +478,7 @@ run #15 保存下来的归档实测 **4,912,216 字节（4.7 MB）**，而按「
 - 本仓**每次 push 都在用同一套机制**（prepush 里 `turbo run lint:root` 与 `turbo run types:check`
   本来就命中本地缓存），CI 只是把同一份缓存**持久化到下一次 run**；
 - 真正决定"会不会误用"的是 **hash 覆盖面**（env 有没有声明、inputs 全不全），
-  而那正是 `pnpm lint:turbo-cache` 那一组不变量的职责（见 §六）。
+  而那正是 `pnpm walnut lint:turbo-cache` 那一组不变量的职责（见 §六）。
 
 **实测确认了前提**：CI 注入的 `CI` / `TURBO_SCM_BASE` / `TURBO_SCM_HEAD` / `GITHUB_ACTIONS`
 **都不改变 task hash**（比对同一个 task 的 hash，完全一致）⇒ 粗 key 不会"永远 miss"。

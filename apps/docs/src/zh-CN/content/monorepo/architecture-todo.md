@@ -38,21 +38,21 @@
 | **D6** `@walnut/types` 保留、platform 改 web | `packages/platform-any/types/package.json` 的 `"platform": "web"`；后端对它的消费为 0（判据：`rg '@walnut/types' apps/server`） |
 | **D7** `@walnut/utils` 收缩 | `packages/platform-any/utils-core/src/` 只剩 `sign-raw.ts` / `object-paths.ts`（各带 spec），浏览器专用的值已下沉 `packages/platform-web/client` |
 | **D8** platform-web 删桶入口 | `packages/platform-web/{client,http}/src/index.ts` 都不存在，只留子路径导出；ADR 0013 的口径改为「桶取决于有没有仓外消费者」 |
-| **D9** `api-types` 归类 + `openapi:check` 两段 | 生成物在 `packages/generated/api-types/`；第二段查**暂存区**（`packages/tooling/scripts/src/ci/__tests__/prepush.test.ts` 的「已 add 的生成物不许让门禁绿」） |
+| **D9** `api-types` 归类 + `openapi:check` 两段 | 生成物在 `packages/generated/api-types/`；第二段查**暂存区**（`tooling/scripts/src/ci/__tests__/prepush.test.ts` 的「已 add 的生成物不许让门禁绿」） |
 | **D11** 分布式锁端口化 | `apps/server/libs/lock/src/lock.port.ts` + `murlock.adapter.ts`（各带 spec），消费方按端口注入而不是直取 murlock |
 | **D12** 域缓存登记制 | ADR 0022 Decision 5 的四条准入判据 + 命名 `<domain>.cache.ts`（`apps/server/libs/cache/src/service/`）；新增域缓存不满足判据就不许进门 |
 | **D15** 分页稳定 | `apps/server/libs/repository/src/pg-list.builder.ts:120` 的 `withPgListTiebreaker(...)`：默认排序末尾追加 id 兜底 |
 | **D18①** frontend 侧边界规则 | 落在 `turbo.json:62-77`（`platform-web` deny `platform-node`）。刻意**不新建**只服务单包的 `frontend` 键，理由写在注释里；反向断言由 `lint:turbo-cache` 守 |
-| **D18③** admin 动态 import 门禁 | `packages/tooling/scripts/src/ci/check-dynamic-imports.ts` 已进 `prepush.ts:145`（`lint:dynamic-imports`）。**`D18②` 仍开着**（编号 `C5`），见「未裁决」 |
+| **D18③** admin 动态 import 门禁 | `tooling/scripts/src/ci/check-dynamic-imports.ts` 已进 `prepush.ts:145`（`lint:dynamic-imports`）。**`D18②` 仍开着**（编号 `C5`），见「未裁决」 |
 | **D19** 不引 dependency-cruiser，madge 0 环进 prepush | `prepush.ts:87-90` 的 circular 段；`prepush.test.ts:67` 断言「摘掉 `--circular` 就红」（防止门禁退化成只数文件） |
 | **`.data` mtime 判据** | `apps/server/apps/worker/README.md` 的 SIGTERM 复现段：停 worker 前后比 `stat -c '%Y %s'` 与 sha256 —— `.data/tokensList.json` **不被重写**（不靠「应该不会写」的推断） |
-| **段数防腐测试** | `packages/tooling/scripts/src/ci/__tests__/prepush.test.ts`：段数非 0、id 无重复、整表顺序稳定、每段 argv 都落得到真实脚本、每段都写了「凭什么」 |
+| **段数防腐测试** | `tooling/scripts/src/ci/__tests__/prepush.test.ts`：段数非 0、id 无重复、整表顺序稳定、每段 argv 都落得到真实脚本、每段都写了「凭什么」 |
 | **D13①** 删死库 `libs/delay` | 目录已不存在，tsconfig paths / nest projects / swcrc / `tsconfig.app.json` 的 include / ESLint 分层名单等注册面一并清；留着的唯一效果是让人以为有个延迟能力可用 —— `41be94ab` |
 | **D13②** `libs/context` 并入 `libs/als` | `libs/context` 已删除，`rg '@walnut-server/context' apps/server` 只剩别名残留。**搬的是模块边界，两套 `AsyncLocalStorage` 实例刻意不合并** —— 合并实例会让 winston 读不到 `requestId` —— `add9481b` |
 | **`batch15-a`** 一段超时不再杀并发兄弟段 | 超时分支改调 `killChildTree(child)`（只收本条 gate 的子树），不再是无参的 `killActiveChild()`；兄弟段被连带判死的假红消失 —— `17450ef5` |
-| **`batch15-b`** 门禁预算按段区分 | `packages/tooling/scripts/src/ci/prepush.ts` 里 `PrepushGate.budgetMs` 优先、缺省回落 `GATE_BUDGET_MS`（600s），`SLOW_GATE_BUDGET_MS` 给 lint / test 两段；`PREPUSH_BUDGET_MS` 仍是全表一处的覆盖入口 —— `17450ef5` · `5dbdb4e8` |
-| **D14** 剩余注册面守卫 | `apps/server/apps/api/src/common/monorepo/__tests__/lib-registration.drift.spec.ts` 现在把磁盘 `libs/<name>` 与它头注释里列的全部注册面逐面对账（含三份 `tsconfig.app.json` 的 `include`、`eslint.config.ts` 的分层名单、`tsconfig.lib.json` 的内容形状）—— `add9481b` |
-| **A4** 孤儿模块守卫 | `apps/server/apps/api/src/common/monorepo/__tests__/orphan-module.drift.spec.ts`：扫 `@Module` 类再找 `imports` 命中，零引用即红 —— `add9481b` |
+| **`batch15-b`** 门禁预算按段区分 | `tooling/scripts/src/ci/prepush.ts` 里 `PrepushGate.budgetMs` 优先、缺省回落 `GATE_BUDGET_MS`（600s），`SLOW_GATE_BUDGET_MS` 给 lint / test 两段；`PREPUSH_BUDGET_MS` 仍是全表一处的覆盖入口 —— `17450ef5` · `5dbdb4e8` |
+| **D14** 剩余注册面守卫 | `apps/server/apps/api/test/architecture/lib-registration.drift.spec.ts` 现在把磁盘 `libs/<name>` 与它头注释里列的全部注册面逐面对账（含三份 `tsconfig.app.json` 的 `include`、`eslint.config.ts` 的分层名单、`tsconfig.lib.json` 的内容形状）—— `add9481b` |
+| **A4** 孤儿模块守卫 | `apps/server/apps/api/test/architecture/orphan-module.drift.spec.ts`：扫 `@Module` 类再找 `imports` 命中，零引用即红 —— `add9481b` |
 | **C1** admin 请求体 `as` → `satisfies` | `apps/admin/src/api/system/device.ts` 已换成 `satisfies`；真根因不是断言而是 **`Initial` 类型取了实体面**，改取 wire 面 `components['schemas']['SysDeviceDTOInitialRequest']` 后两处松动各按真因修（`getMemoryGB(): number`、`deviceInfo.type` 可选就不发）—— `b382a580` |
 | **C3** `concurrency` G6 偶发 | 两条都关：测试侧种子改显式提交事务（`e2dc612d`），库侧是**真 bug** —— `apps/server/libs/db/src/tx.interceptor.ts` 的 catch 只 release 不 rollback，毒连接带着未提交事务回池（`c7f7e11f`）；负对照在真实 PG 上读到 `expected 'idle in transaction' to be 'idle'` |
 | **`--skip-gates` 的记账** | 发版电池的「真跑通过」改成只数传入的 Set：显式跳过与子进程退 3 都单列「跳过（未验证）」并减 `ranCount` —— `5dbdb4e8` |
@@ -183,6 +183,12 @@
   多出一个模块目录或少一个都算漂移。
 - **集成测试**：`apps/server/apps/api/test/integration/<领域>/` —— 一级目录按**领域**（一次真实的跨模块
   协作，如 auth / device / tx）分，不按模块分。判据：新建领域协作才新建目录，单个模块的编排进 `test/api/`。
+- **架构 drift spec**：`apps/server/apps/api/test/architecture/`（2026-11-24 起）。判据是**被测对象**：
+  断言的是**整个 server 的结构** —— 模块装配图与扫描序、注册面完备性、路由目录、产物形状 ——
+  而不是某个模块的行为；后者仍回它旁边的 `__tests__/`。它们读源码做静态对账（零装载），
+  因此也不该进产品源码与生产产物：连工具一起住这里（`module-graph.ts` 只解析 import 图，
+  没有 `@Module` 也不是运行期代码）。这批 spec 不在 `src/` 下，由 `vitest.config.ts` 的
+  `include` 单独点名，漏收就会静默不跑。
 - **e2e**：`apps/server/apps/api/test/e2e/`。
 
 > 这次重整**只动位置、不动内容**（用例集合不变），所以「目录约定」不是新增纪律，而是把已经落地的
@@ -207,8 +213,8 @@
 | `pnpm peers check` 红（+ `peerDependencyRules` 豁免机制随 pnpm 12 迁移消失） | **2026-09-23 的决定：先不动**，因为马上要做全量 deps 升级，5 组 unmet peer 的结论可能变。它**不在任何门禁里**，不影响 CI 与钩子。**解冻**：全量升级后重跑，看还剩几组再决定 (a) 恢复等价白名单并接门禁 还是 (b) 正式记录「红是预期」。⚠️ 单独升 turbo 那次重跑**仍是同样 5 组**，别指望顺手清掉 |
 | tag 发布链路端到端验证 | **2026-09-23 的决定：首次发版不着急**。未验证的是镜像构建 → 推 TCR → 自动部署 → post-verify（本机无 Docker，只能等真跑一次 tag）。**解冻**：准备发第一个版本时；清单见 [CI/CD 与容器构建](./ci-cd) |
 | GitHub Environments | 已核实 deploy 作业**未**使用原生 `environment:`（只有作业级 `env:` + `workflow_call`/`workflow_dispatch` 的 `environment` 输入 + `concurrency`）。**解冻**：stage 服务器到位后再评估 |
-| 锚点（`#fragment`）校验 | **2026-09-23 实测后搁置**：VitePress 只查「目标页存在」，**不查 fragment**；能补的现成工具只有 `lychee`。当时全站带锚点的站内链接**实测 8 条**，为一个二进制 + 一个 CI 步骤换 8 条链接的校验，ROI 说不通。**解冻**：① 带锚点的站内链接涨到几十条；② 出现一次锚点静默失效的真实事故（读者点不到，构建照样绿）。📌 已经付过一次代价：那次手工核对当场查到 1 条坏的，且执行记录里「页内锚点全部可解析」那句从写下那天起就是错的 —— 这一面没有任何东西在替我们看着。另半条（prose 里几百处反引号仓库路径）**已经不做**，由 `pnpm lint:docs-refs` 覆盖 |
-| knip（`pnpm knip` exit 1） | **2026-09-23 的决定：先不动，只写明现状**。理由：本仓是模板项目，「未用导出」不等于死代码（`libs/decorators/src/transformer/**` 那批就是给使用者按需取用的 API 面）。**现状不写计数** —— 要读数就跑 `pnpm knip`；判据与怎么看写在 `knip.config.ts` 顶部注释。**若将来要接门禁**：先用 `entry` / `includeEntryExports` 把「有意的公共面」显式标出来，只让真死代码亮红 |
+| 锚点（`#fragment`）校验 | **2026-09-23 实测后搁置**：VitePress 只查「目标页存在」，**不查 fragment**；能补的现成工具只有 `lychee`。当时全站带锚点的站内链接**实测 8 条**，为一个二进制 + 一个 CI 步骤换 8 条链接的校验，ROI 说不通。**解冻**：① 带锚点的站内链接涨到几十条；② 出现一次锚点静默失效的真实事故（读者点不到，构建照样绿）。📌 已经付过一次代价：那次手工核对当场查到 1 条坏的，且执行记录里「页内锚点全部可解析」那句从写下那天起就是错的 —— 这一面没有任何东西在替我们看着。另半条（prose 里几百处反引号仓库路径）**已经不做**，由 `pnpm walnut lint:docs-refs` 覆盖 |
+| knip（`pnpm walnut knip` exit 1） | **2026-09-23 的决定：先不动，只写明现状**。理由：本仓是模板项目，「未用导出」不等于死代码（`libs/decorators/src/transformer/**` 那批就是给使用者按需取用的 API 面）。**现状不写计数** —— 要读数就跑 `pnpm walnut knip`；判据与怎么看写在 `knip.config.ts` 顶部注释。**若将来要接门禁**：先用 `entry` / `includeEntryExports` 把「有意的公共面」显式标出来，只让真死代码亮红 |
 | 国内 self-hosted runner（决策门） | **解冻**：仅当 tag 链路实测显示「tag 发布总时长 > 20 min 且跨境推送占大头」。runner 在美国、镜像仓库在腾讯云上海，跨境上传是旧流水线 78 分钟的主要嫌疑之一。**先看数据再决定** |
 
 ## 未裁决（等你一句话）
