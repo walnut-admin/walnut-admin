@@ -103,7 +103,7 @@ export const defaultOrder: SortOrder = 'descend'
 
 - **依赖**：`easy-fns-ts`（仅 `import type`）。devDependencies 是构建 / 测试链：`vite` + `vite-plugin-dts` + `vitest` + `@walnut/vitest-config` + `@walnut/tsconfig`（`ts.json` 预设）。
 - **消费者**：`@walnut/admin`、`@walnut/server`、`@walnut/http`（业务码 passthrough）、`@walnut/utils`（`src/crypto/const.ts` 引 `AES_GCM_WIRE`）。
-- **边界由 turbo tags 强制**：workspace 级 `turbo.json` 声明 `shared` / `pure` / `platform-any`，根 `turbo.json` 的 `boundaries.tags` 给出两条规则 —— `shared` 不许依赖 `app`，`platform-any` 不许依赖 `platform-web` / `platform-node`（`pure` 是描述性标签，无对应规则）。由 `pnpm boundaries` 拦。
+- **边界由 turbo tags 强制**：workspace 级 `turbo.json` 声明 `shared` / `pure` / `platform-any`，根 `turbo.json` 的 `boundaries.tags` 给出两条规则 —— `shared` 不许依赖 `app`，`platform-any` 不许依赖 `platform-web` / `platform-node`（`pure` 是描述性标签，无对应规则）。由 `pnpm walnut boundaries` 拦。
 - **变更由快照守护**：`src/index.test.ts` 对公开 API 面、错误码、路由、wire format 等逐项 `toMatchSnapshot()`，静默改动会在 diff 里暴露。
 
 ## 已知限制与延后工作
