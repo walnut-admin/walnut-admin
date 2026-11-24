@@ -144,7 +144,10 @@ dev 与 build 两侧**各看各的开关**：开 `VITE_DEV_CSP` 不会让生产�
 - **日志前缀是模块级状态**（`configureBuildLogger`）：`createVitePlugins` 会按调用方的包名设一次；
   一个进程里同时给两个 app 建配置会互相覆盖。取这个折中是刻意的 —— 调用点分散在插件深处
   （iconify、`fs` 工具），逐个传包名只会给纯工具函数加一个与它职责无关的参数。
-- **`VITE_BUILD_LEGACY` 目前打不开生产构建**（2026-11-24 实测）：`plugin-legacy` 把目标环境解析成
-  含 `es2020` 的一组浏览器，而 admin 的 `src/store` 里有顶层 `await`（`useAppStorageAsync`），
-  esbuild 的 legacy 转换因此报 `Top-level await is not available in the configured target environment`。
-  开关本身接通了，只是这条链路要等 app 侧去掉顶层 await 或调整 legacy 目标后才可用。
+- **`VITE_BUILD_LEGACY` 的现代目标必须显式写 `modernTargets`**：插件默认的现代目标含 esbuild 的
+  `es2020` 聚合目标，低于顶层 await 所需的 ES2022，而 admin 的 `src/store` 里有顶层
+  `await`（`useAppStorageAsync`）⇒ 构建会报 `Top-level await is not available in the configured
+  target environment`。`src/plugins/legacy.ts` 给出的 `modernTargets` 与插件默认的浏览器版本集合相同，
+  只是不再落到 `es2020`。2026-11-24 实测：打开 `VITE_BUILD_LEGACY=true` 的 admin 生产构建成功，
+  产物含 `polyfills-legacy-*` / `vendor-legacy-*` 与 `<script nomodule>`。legacy 产物仍由 `targets`
+  覆盖老浏览器；若将来调高 `modernTargets`，要同步说明「支持 ESM 但不满足新目标」那一档的空档。

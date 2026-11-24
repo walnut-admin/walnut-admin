@@ -110,9 +110,9 @@ export function createVitePlugins(mode: string, env: IViteEnv, options: ViteConf
     // https://github.com/vitejs/vite/tree/main/packages/plugin-legacy
     // 旧浏览器兼容（VITE_BUILD_LEGACY，可选键、默认关）：会多产出一份 legacy 包和 SystemJS 加载器，
     // 体积明显变大，所以按需开。
-    // 2026-11-24 实测：打开后 admin 的生产构建会失败 —— plugin-legacy 解析出的目标环境（含 es2020）
-    // 与 `src/store` 里的顶层 await 不兼容，esbuild 报 `Top-level await is not available in the
-    // configured target environment`。只记录现象，没有改插件内部逻辑。
+    // 2026-11-24 实测：打开后 admin 的生产构建**成功**，产物里有 `polyfills-legacy-*.js`、
+    // `vendor-legacy-*.js` 与 `<script nomodule>`。此前会因插件默认现代目标含 es2020 而拒绝顶层
+    // await；修法（显式 modernTargets）与取舍见 ./legacy.ts 的注释。
     env.build.legacy && vitePlugins.push(createLegacyPlugin())
 
     // https://github.com/nonzzz/vite-plugin-cdn

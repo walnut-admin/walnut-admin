@@ -2,6 +2,7 @@ import type { ViteConfigPluginsOptions } from '../types.ts'
 import { describe, expect, it } from 'vitest'
 import { useBuildEnv } from '../env/use-build-env.ts'
 import { createVitePlugins } from '../plugins/index.ts'
+import { createLegacyPlugin } from '../plugins/legacy.ts'
 
 const CSP_PLUGIN = 'vite-plugin-csp-guard'
 const SENTRY_PLUGIN = 'sentry-vite-plugin'
@@ -130,5 +131,22 @@ describe('createVitePlugins 的开关型插件', () => {
     const names = namesFor('production', { VITE_BUILD_LEGACY: 'true' })
 
     expect(legacyNames(names)).toEqual(LEGACY_PLUGINS)
+  })
+})
+
+describe('legacy 的现代目标（顶层 await 的回归锚）', () => {
+  it('build.target 不含 es2020：它低于 ES2022，会让顶层 await 直接构建失败', async () => {
+    const configPlugin = createLegacyPlugin().find(plugin => plugin.name === 'vite:legacy-config')
+    expect(configPlugin, 'legacy 的 config 插件不见了').toBeTruthy()
+
+    // 插件的 config 钩子会**原地改写**传进去的 config.build.target（返回值里只有 define）
+    interface LegacyConfig { build: { target?: unknown } }
+    const config: LegacyConfig = { build: {} }
+    const hook = configPlugin?.config as ((config: LegacyConfig, env: unknown) => unknown) | undefined
+    await hook?.(config, { command: 'build', mode: 'production' })
+
+    expect(Array.isArray(config.build.target)).toBe(true)
+    expect(config.build.target).toContain('chrome105')
+    expect(config.build.target).not.toContain('es2020')
   })
 })

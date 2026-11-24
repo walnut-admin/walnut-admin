@@ -97,8 +97,10 @@ import app 文件还会让依赖图成环（app 依赖本包，本包又依赖 a
   随之变化 ⇒ 不需要往根 `turbo.json` 的 `globalDependencies` 加条目。
 - **插件开关（2026-11-24 落实）**：`VITE_DEV_CSP` 只管 dev，`VITE_BUILD_CSP` 与 `VITE_BUILD_LEGACY`
   是构建期的可选键（不配即关）；Sentry 的判据改成 `env.build.sentry.enabled`，不再对对象求真。
-  实测结论：dev 与生产构建的 CSP 都能把 meta 注入 HTML；legacy 打开后 admin 的生产构建会因顶层
-  `await` 与 legacy 目标环境不兼容而失败（现象记在包 README 的「已知限制」）。
+  实测结论：dev 与生产构建的 CSP 都能把 meta 注入 HTML；legacy 打开后 admin 的生产构建成功
+  （产物含 `polyfills-legacy-*` / `vendor-legacy-*` 与 `<script nomodule>`），前提是显式给出
+  `modernTargets` 去掉插件默认目标里的 es2020 聚合目标 —— 顶层 `await` 需要 ES2022，
+  取舍记在包 README 的「已知限制」与 `src/plugins/legacy.ts` 的注释里。
 
 ## Related
 
