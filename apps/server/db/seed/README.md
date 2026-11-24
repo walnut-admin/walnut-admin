@@ -3,16 +3,16 @@
 本目录是**随仓库发布的初始化数据集**：装好库、跑一条命令，应用就能起来、界面有字、权限树完整。
 
 ```bash
-pnpm db:seed:pg              # 按 id 幂等 upsert 进 PostgreSQL（重复跑安全）
-pnpm db:seed:pg --dry-run    # 只看会写什么，不落库
-pnpm db:seed:pg --admin <userName> --password <口令>   # 现生成 admin 口令凭证（见下）
+pnpm walnut db:seed:pg              # 按 id 幂等 upsert 进 PostgreSQL（重复跑安全）
+pnpm walnut db:seed:pg --dry-run    # 只看会写什么，不落库
+pnpm walnut db:seed:pg --admin <userName> --password <口令>   # 现生成 admin 口令凭证（见下）
 ```
 
 正源与再生成：**仓库为本目录的唯一真源**，且数据不是"某次手工导出的快照"，而是**可以机械再生的产物**：
 
 ```bash
-pnpm db:export:pg --out apps/server/.tmp/pg-export      # ① 库 → 快照（Extended JSON，uuid 本体）
-pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # ② 快照 → 行形态（写本目录）
+pnpm walnut db:export:pg --out apps/server/.tmp/pg-export      # ① 库 → 快照（Extended JSON，uuid 本体）
+pnpm walnut db:seed:reshape --from apps/server/.tmp/pg-export  # ② 快照 → 行形态（写本目录）
 ```
 
 > ### ⚠️ 两条与「写本目录」有关的行为（批次 5-B 起，改之前先读）
@@ -21,14 +21,14 @@ pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # ② 快照 → 行形�
 >    可以整段省略（写了也一样）。默认不指向本目录是**有意的**：快照是中间物，本目录是行形态真源。
 > 2. **`--out` 指到本目录会直接报错**：命令在连库之前就拒绝执行，退出码 **2**（前置条件未满足，
 >    不是「查出违规」的 1），一个文件都不会写。原因是把 Extended JSON 快照写进真源 = 把真源打回
->    旧格式（`pnpm lint:seed` 会判红，运行期的 EJSON 映射层也会重新长回来 —— 那层映射今天只剩
->    `packages/tooling/scripts/src/db/ejson.ts` 这一个历史兼容器，见下）。`--anonymize` 是同一
+>    旧格式（`pnpm walnut lint:seed` 会判红，运行期的 EJSON 映射层也会重新长回来 —— 那层映射今天只剩
+>    `tooling/scripts/src/db/ejson.ts` 这一个历史兼容器，见下）。`--anonymize` 是同一
 >    条红线（脱敏有损，永不许覆盖真源）。
 >
 > 子目录不在拦截范围内 —— 别把快照放在 `apps/server/db/seed/` 下面任何一层。
 
 改完形状/映射后跑一次双库对拍（旧 seed + 旧管线 与 新 seed 各灌一个空库，逐表逐列比）：
-`pnpm db:seed:verify`。（Phase 5a 起 MongoDB 通道 `db:seed` / `db:export` / `seed:pack` 已退役。）
+`pnpm walnut db:seed:verify`。（Phase 5a 起 MongoDB 通道 `db:seed` / `db:export` / `seed:pack` 已退役。）
 
 ## 进了哪些集合
 
@@ -60,10 +60,10 @@ pnpm db:seed:reshape --from apps/server/.tmp/pg-export  # ② 快照 → 行形�
 - 每个表一个 `.json`，内容是 **PG 行数组**：`{ "id": "<uuid>", "created_at": "2026-…", … }`。
 - 列名就是 PG 列名（snake_case），时间列是 **ISO 字符串**（timestamptz 直接吃它），jsonb 列是 JSON 值。
 - junction 表（`sys_user_role` / `sys_role_menu`）各有独立文件：一行的两列都是 uuid 引用，**没有 `id`**。
-- **不再有 Extended JSON**（`$oid` / `$date`）：出现即被 `pnpm lint:seed` 判红（真源退回旧格式 =
+- **不再有 Extended JSON**（`$oid` / `$date`）：出现即被 `pnpm walnut lint:seed` 判红（真源退回旧格式 =
   运行期映射层又会长出来）。
 - **EJSON 只活在「导出 / reshape」这条中间物通道上**：解析与序列化的实现是
-  `packages/tooling/scripts/src/db/ejson.ts`，消费者只有 `export-pg.ts`（`db:export:pg` 写快照）与
+  `tooling/scripts/src/db/ejson.ts`，消费者只有 `export-pg.ts`（`db:export:pg` 写快照）与
   `seed-reshape.ts`（`db:seed:reshape` 读历史导出）——**两者都是历史兼容器**，不是运行期映射层。
   本目录的行形态真源与它们无关，播种器不经过 EJSON。
 - 播种按主键 upsert：业务表整行刷新为 seed 值，junction 只补缺不回收（seed 不是"清库"）。

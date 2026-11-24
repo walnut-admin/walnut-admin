@@ -18,7 +18,7 @@ const pkg = getPackageJsonData()
  * 改成显式白名单后，Origin 会被原样回写、凭据才真正可用。
  *
  * 端口取本仓库实际会起的那几个（host 双写 127.0.0.1 与 localhost，协议双写 http/https ——
- * admin 的 dev server 由 vite-plugin-mkcert 起 **https**，见 apps/admin/build/vite/plugin/https.ts）：
+ * admin 的 dev server 由 vite-plugin-mkcert 起 **https**，见 tooling/vite-config/src/plugins/https.ts）：
  * - 3100  admin dev server（Vite）
  * - 3000  后端自身（APP_PORT；Scalar API Reference 与直连调试）
  * - 8886  docs dev server（VitePress）

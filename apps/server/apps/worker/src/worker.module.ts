@@ -20,7 +20,7 @@ import { AppBootstrapTaskModule } from '../../api/src/modules/techniques/task/bo
  * CAP 的隔离**不在本文件里完成** —— 它的入口是 libs/guards 的 barrel，只要还有 controller
  * 从 barrel 取装饰器，cap.service.ts 的 new Cap() 就仍会被求值。切断那条边的是
  * cap.guard.ts 的拆分（barrel 只导出 cap.decorator），证据在
- * apps/api/src/common/monorepo/worker-import-closure.drift.spec.ts。
+ * apps/api/test/architecture/worker-import-closure.drift.spec.ts。
  *
  * worker 唯一的额外职责是**承接调度**：WORKER_STANDALONE=true 时 api 组合根不注册
  * ScheduleModule（见 schedule.composition.ts），这里补上；未设时 AppCoreModule 里的

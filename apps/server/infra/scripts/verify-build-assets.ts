@@ -13,7 +13,7 @@
  *   pnpm build:stage -> ... && node infra/scripts/verify-build-assets.ts dist-stage
  *
  * Node 24 原生类型剥离执行（仓库禁 .mjs / .cjs）。检查逻辑抽成 checkAssets 便于单测
- * （apps/api/src/common/monorepo/verify-build-assets.spec.ts）。
+ * （apps/api/test/architecture/verify-build-assets.spec.ts）。
  */
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'

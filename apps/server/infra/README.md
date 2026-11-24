@@ -37,7 +37,7 @@ infra/
 > ② `nest/stage.json` 的 `tsConfigPath`（顶层与 `projects.api` **两处都要改**）与三条 `assets[].outDir`；
 > ③ `package.json` 的 `start:stage`；
 > ④ 根 `turbo.json` 的 `build:stage.outputs`。
-> 门禁 `pnpm lint:turbo-cache` 会顺着 `tsConfigPath → extends` 链把 `outDir` 解出来核对这些。
+> 门禁 `pnpm walnut lint:turbo-cache` 会顺着 `tsConfigPath → extends` 链把 `outDir` 解出来核对这些。
 >
 > ⚠️ 另：`nest/*.json` 由 **Nest CLI 按严格 JSON 解析**（不是 JSONC）—— **别在里面写注释**，
 > 否则构建直接报 `Expected property name or '}' in JSON`。所以本节的说明放在这里而不是配置里。

@@ -77,10 +77,11 @@ winston-daily-rotate 轮转时互相 rename）。它**没有 healthcheck**：本
 
 ### 冒烟（CI 与本机同一条判据）
 
-`.github/workflows/ci.yml` 的 `openapi` job 末尾有一节「Worker smoke (cron registered)」：
-`pnpm build` 产出 dist（与镜像同一条构建命令）→ 以 `NODE_ENV=development` +
+`.github/workflows/ci.yml` 的 `openapi` job 末尾有两步：先 `pnpm build` 产出 dist（与镜像同一条构建命令），
+再 `pnpm walnut ci:local --only=worker-smoke`。冒烟的**唯一实现**在 `tooling/scripts/src/ci/local-ci.ts`
+（本机跑同一条命令，走的就是同一份判据）：以 `NODE_ENV=development` +
 `WORKER_STANDALONE=true` + `WALNUT_ADMIN_BOOTSTRAP_TASKS=off` 启动
-`dist/apps/worker/src/main.js` → 轮询最多 40s 等日志出现 `cron jobs: <非零>` → SIGTERM 收场。
+`dist/apps/worker/src/main.js` → 轮询等日志出现 `cron jobs: <非零>`（上限见该文件里的 `WORKER_POLL_TIMEOUT_MS`）→ SIGTERM 收场。
 **`cron jobs: 0` 也是红的** —— 「进程起来了但一个 cron 都没挂上」正是要抓的缺陷形态。
 
 同一步里还有**第二条判据（batch-6 r2 · 拍板 D6）：CAP token 存储不得被 worker 碰到。**
@@ -97,7 +98,7 @@ winston-daily-rotate 轮转时互相 rename）。它**没有 healthcheck**：本
 那条 `expires=1` 的假 token 就是为了让这一步**不能空过** —— 不需要真凭据。
 
 结构级的同一判据是零基础设施的
-`apps/api/src/common/monorepo/__tests__/worker-import-closure.drift.spec.ts`（worker import 闭包不含
+`apps/api/test/architecture/worker-import-closure.drift.spec.ts`（worker import 闭包不含
 `cap.service.ts`）；CI 这条是它的运行期佐证。
 
 本机等价做法（在 `apps/server/` 下，需要 PG + Redis + 解密后的 `env-local/.env.development`）：
@@ -188,5 +189,5 @@ worker 用的入口模块都在 `apps/api/src/` 下（同一份源码、同一�
 | `socket/socket.module.ts` | api | gateway + auth middleware + monitor-user 的 HTTP 组合 |
 | `socket/socket-core.module.ts` | **worker** | 只 `SocketService`（@Global；两个端口实现要注入它） |
 
-守卫：`apps/api/src/common/monorepo/` 下三个零基础设施 drift spec
+守卫：`apps/api/test/architecture/` 下三个零基础设施 drift spec
 （`worker-import-closure` / `guard-order` / `core-module-scope`），跑 `pnpm test` 即校验。

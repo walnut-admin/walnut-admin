@@ -51,7 +51,7 @@ docker compose -f docker/docker-compose.dev.yml up -d
 pnpm migration:run
 
 # 4) 仓库根：播初始化数据（幂等，重复跑安全）
-pnpm db:seed:pg
+pnpm walnut db:seed:pg
 
 # 5) apps/server：起服务（必须从该目录运行，ConfigModule 用 process.cwd() 定位 env）
 pnpm dev            # nest start api --watch -c infra/nest/dev.json

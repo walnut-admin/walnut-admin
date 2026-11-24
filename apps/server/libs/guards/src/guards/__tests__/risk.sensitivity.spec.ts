@@ -18,7 +18,7 @@ import {
  *
  * 清单的唯一价值是「新增敏感端点必须**显式**归类」。如果只靠人读，新增一条
  * `/auth/xxx/login` 会被默认 fail-open 静默吞掉 —— 那正是本批要修的 bug 的形态。
- * 这里用纯 fs + 正则（零装载，与 `common/monorepo/route-catalog.drift.spec.ts` 同款手法）
+ * 这里用纯 fs + 正则（零装载，与 `apps/api/test/architecture/route-catalog.drift.spec.ts` 同款手法）
  * 扫出 `/auth/**` 与 `/security/**` 的**全部**路由，与清单逐条对账：
  *
  * a) 扫到的每条路由都必须在清单里（缺失即 red，报错直接给出 `METHOD path`）；
