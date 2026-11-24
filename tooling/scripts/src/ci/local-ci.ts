@@ -1,13 +1,22 @@
 /**
- * `pnpm ci:local` —— 把 CI 的**构建类**步骤复刻成一条能在本机跑的命令。
+ * `pnpm walnut ci:local` —— 把 CI 的**构建类**步骤复刻成一条能在本机跑的命令。
  *
  * ## 它补的是哪条缝
  *
  * `pnpm prepush`（表在 `ci/prepush.ts`）覆盖 CI `quality` job 的**全部静态门禁**，
  * 但它**一条构建都不跑**：server / admin 的产物、产物冒烟、产物去密、文档死链、迁移、worker 冒烟、
  * actionlint —— 这些散在 `ci.yml` 的 build job 与 openapi job 里，本地**没有任何入口**。
- * 于是「构建类的错」只有推上去才发现。真实的代价记在 `ci.yml:274-283`：v0.1.4 的发版死在
- * `Build admin`，而**同一个提交的 CI 是绿的** —— 因为 CI 命中了 turbo 缓存、压根没真构建。
+ * 于是「构建类的错」只有推上去才发现。真实的代价记在 `.github/workflows/ci.yml` 的
+ * 「Build admin」一步的注释里：v0.1.4 的发版死在 `Build admin`，而**同一个提交的 CI 是绿的**
+ * —— 因为 CI 命中了 turbo 缓存、压根没真构建。
+ *
+ * ## 与 CI 的关系（2026-11-24 起）
+ *
+ * 构建类步骤的**逻辑只在这里写一份**。CI 的 openapi job 里 worker 冒烟那一步，调用的就是本表的实现
+ * （`pnpm walnut ci:local --only=worker-smoke`）；其余步骤在 `ci.yml` 里是同一条命令的镜像，
+ * 由 `__tests__/ci-workflow.test.ts` 逐条核对 —— 两处**有意不同**的写法也断言在那儿
+ * （docs 构建多一个 `--cache-dir`；迁移那一步在 `apps/server` 目录下直接跑包脚本）。
+ * 所以改某一步的行为只需改这里；只改 `ci.yml` 里的命令行会让那条用例红。
  *
  * ## 顺序即依赖（与 prepush 的并行表相反）
  *
@@ -53,6 +62,7 @@ import process from 'node:process'
 
 import { ChildRunError, runArgs } from '../lib/child-run.ts'
 import { killChildTree, registerChild, unregisterChild } from '../lib/child-tree.ts'
+import { resolveCommandArgv } from '../lib/commands.ts'
 import { PreconditionError, SKIPPED_EXIT_CODE, SkippedError, ViolationError } from '../lib/errors.ts'
 import { err, line, out } from '../lib/log.ts'
 import { getPnpmBin } from '../lib/pnpm-launcher.ts'
@@ -90,7 +100,7 @@ export interface CustomStep extends StepBase {
 export type LocalCiStep = PnpmStep | CustomStep
 
 /**
- * 本地 CI 的**步骤表**（唯一真源：增删步骤只改这一处，命令行只有 `pnpm ci:local` 一个词）。
+ * 本地 CI 的**步骤表**（唯一真源：增删步骤只改这一处，入口侧只有命令表的 `ci:local` 一项）。
  *
  * 顺序 = 依赖顺序，不是「读起来顺」。每一步的 `why` 里写着它对应 `ci.yml` 的哪一段。
  */
@@ -103,7 +113,7 @@ export const LOCAL_CI_STEPS: readonly LocalCiStep[] = [
     why: '第 1 步是后面所有 server 侧步骤的前提：worker 冒烟读的就是它产出的 '
       + 'apps/server/dist/apps/worker/src/main.js。用 @walnut/server... 形态（含依赖包）而不是只构建 server：'
       + 'contract / utils 的 dist 不进 git、install 也不生成，而 worker / openapi 的运行时都要 require 它们。'
-      + ' // LINK .github/workflows/ci.yml:263-264',
+      + ' // LINK .github/workflows/ci.yml 的「Build server + shared packages」一步',
   },
   {
     id: 'build-admin',
@@ -115,7 +125,7 @@ export const LOCAL_CI_STEPS: readonly LocalCiStep[] = [
       + '同一个提交的 CI 却是绿的）。代价是这一步 2~5 分钟，换来的是本地与 CI / 发版在「构建」这件事上同源。'
       + '注意这里**不**像根脚本 build:admin 那样设 NODE_OPTIONS=--max-old-space-size：'
       + 'CI 用的是裸 pnpm exec turbo，要与它同源就不能在这里偷偷加环境。'
-      + ' // LINK .github/workflows/ci.yml:274-286',
+      + ' // LINK .github/workflows/ci.yml 的「Build admin」一步',
   },
   {
     id: 'smoke-dist',
@@ -125,7 +135,7 @@ export const LOCAL_CI_STEPS: readonly LocalCiStep[] = [
     why: '构建成功不等于跑得起来（留档 V13）：resolve.conditions 少了默认条件 ⇒ 产物一执行就抛 '
       + 'Cannot destructure property __extends、页面停在 splash —— 而 tsc / lint / build / dist 密钥扫描**全绿**。'
       + '这一步是唯一在运行期看得见它的地方。**没有浏览器时脚本自己 SKIP**（CHROME_PATH 可指定）。'
-      + ' // LINK .github/workflows/ci.yml:288-294',
+      + ' // LINK .github/workflows/ci.yml 的「Smoke test the built admin bundle」一步',
   },
   {
     id: 'lint-dist',
@@ -135,7 +145,7 @@ export const LOCAL_CI_STEPS: readonly LocalCiStep[] = [
     why: '前端产物是**公开文件**，而「把后端 env 泄进前端」在本仓有现成的静默路径：'
       + 'apps/server/env-local 与 apps/admin/env-local 是两套 env，搬错一行就会被打包进去，'
       + '而构建 / 类型 / lint / 测试全都不会响。它扫的就是 dist，所以**必须紧跟构建**'
-      + '（没有产物时会以 2 退出）。 // LINK .github/workflows/ci.yml:296-302',
+      + '（没有产物时会以 2 退出）。 // LINK .github/workflows/ci.yml 的「Dist secret scan」一步',
   },
   {
     id: 'build-docs',
@@ -144,7 +154,7 @@ export const LOCAL_CI_STEPS: readonly LocalCiStep[] = [
     budgetMs: 10 * MINUTE,
     why: 'VitePress 构建本身就是死链校验（ignoreDeadLinks 已从 true 收窄成白名单，只剩冻结语料）。'
       + '改文档、改包名、改仓库路径都可能把链接改死，而只有构建会报；本地没有这一步时就只能等 CI 的 '
-      + 'Docs build。 // LINK .github/workflows/ci.yml:116-129',
+      + 'Docs build。 // LINK .github/workflows/ci.yml 的「Docs build (dead-link check)」一步',
   },
   {
     id: 'migration-run',
@@ -153,7 +163,7 @@ export const LOCAL_CI_STEPS: readonly LocalCiStep[] = [
     budgetMs: 10 * MINUTE,
     why: 'worker 冒烟要连一个**已迁移**的库（CI 那边是 openapi job 的 service 容器 + 同名命令）。'
       + '迁移是幂等的，重复跑只会报「No migrations are pending」，所以每次推之前跑一遍是安全的。'
-      + ' // LINK .github/workflows/ci.yml:388-391',
+      + ' // LINK .github/workflows/ci.yml 的「Apply migrations (fresh PG service)」一步',
   },
   {
     id: 'worker-smoke',
@@ -163,11 +173,11 @@ export const LOCAL_CI_STEPS: readonly LocalCiStep[] = [
       + '部署脚本与 post-verify 都看不见。唯一现成的探针是 apps/server/apps/worker/src/main.ts 里那行 '
       + 'cron jobs: N，不用改代码。它同时守住第二条不变量：.data/tokensList.json（CAP token 存储）'
       + '在 worker 启停前后必须**逐字节不变** —— 变了就说明 CAP 求值链回到了 worker 闭包里。'
-      + ' // LINK .github/workflows/ci.yml:408-475',
+      + 'CI 的 openapi job 经 `pnpm walnut ci:local --only=worker-smoke` 调的就是这一份（前面还有一步「Build server for worker smoke」先产出 dist）',
   },
   {
     id: 'actionlint',
-    label: 'workflow 校验（actionlint，经 pnpm lint:workflows）',
+    label: 'workflow 校验（actionlint，经 pnpm walnut lint:workflows）',
     argv: ['lint:workflows'],
     budgetMs: 5 * MINUTE,
     why: '非法的 workflow 文件**自己不会运行**：GitHub 判 Invalid workflow file 后启动即失败、0 个 job，'
@@ -190,13 +200,12 @@ const CAP_TOKEN_FILE = 'tokensList.json'
 /**
  * 种进去的那份**含过期项**的 token 表：expires=1 是 1970 年，必然被判过期。
  *
- * 为什么必须有过期项：@cap.js/server 的 cleanup() 在进程收尾时把**过期项**删掉再整份写回
- * （ci.yml:433-440 的注释）。表里没有过期项时它可能一字不写 —— 那样这道判据就是空转。
+ * 为什么必须有过期项：@cap.js/server 的 cleanup() 在进程收尾时把**过期项**删掉再整份写回。表里没有过期项时它可能一字不写 —— 那样这道判据就是空转。
  * deadbeef:0123456789abcdef 是形如真实 token 的假值，不需要任何凭据。
  */
 const CAP_TOKEN_SEED = '{"deadbeef:0123456789abcdef":1}'
 
-/** mtime 钉到 2020：任何一次 touch / 写回都看得见（对齐 ci.yml:443 的 touch -d 2020-01-01） */
+/** mtime 钉到 2020：任何一次 touch / 写回都看得见 */
 const CAP_TOKEN_MTIME = new Date('2020-01-01T00:00:00Z')
 
 /**
@@ -298,7 +307,7 @@ export interface SelectionArgs {
   skip: string[]
 }
 
-const USAGE = '用法：pnpm ci:local [--only=<id,...>] [--skip=<id,...>]'
+const USAGE = '用法：pnpm walnut ci:local [--only=<id,...>] [--skip=<id,...>]'
 
 /**
  * 只解析 argv，**不认 id 是否真实**（那是 {@link selectSteps} 的事：只有它知道表里有谁）。
@@ -349,7 +358,7 @@ export function selectSteps(
   const unknown = ids.filter(id => !known.has(id))
   if (unknown.length > 0) {
     throw new PreconditionError(
-      `未知步骤 id：${unknown.join(', ')}。表里的是：${steps.map(step => step.id).join(', ')}（表在 packages/tooling/scripts/src/ci/local-ci.ts）`,
+      `未知步骤 id：${unknown.join(', ')}。表里的是：${steps.map(step => step.id).join(', ')}（表在 tooling/scripts/src/ci/local-ci.ts）`,
     )
   }
 
@@ -369,10 +378,11 @@ export function selectSteps(
  * - **cwd 恒为仓库根**：从子目录跑时 pnpm <脚本> 会解析到**最近那个包**的脚本
  *   （于是「根 test」静默缩成单包 test）—— 与 prepush 的同一条理由。
  * - **不缓冲输出**：这里是顺序执行，8~12 分钟的命令必须能看见它在动（prepush 并行才需要缓冲）。
+ * - 表里的 argv 写在**可执行的名字**上，先经命令表解析成真正要跑的 argv（与 prepush 同一个函数）。
  * - 预算按步给（budgetMs），整台机器都慢时用 {@link LOCAL_CI_BUDGET_ENV} 一处放宽。
  */
 async function runPnpmStep(step: PnpmStep, bin: string, index: number, total: number): Promise<void> {
-  await runArgs(bin, [...step.argv], {
+  await runArgs(bin, resolveCommandArgv(step.argv), {
     cwd: REPO_ROOT,
     hint: `第 ${index}/${total} 步：${step.label}`,
     budgetDefaultMs: step.budgetMs,
@@ -410,7 +420,7 @@ function moveDir(from: string, to: string): void {
 }
 
 /**
- * worker 冒烟（复刻 ci.yml:408-475，跨平台）。
+ * worker 冒烟（**唯一实现**：CI 的 openapi job 经入口调的就是这一份，见 worker-smoke 那一项的 why；跨平台）。
  *
  * 三条判据（顺序就是 CI 里的顺序）：
  * 1. 日志里出现 cron jobs: N 且 **N >= 1** —— cron jobs: 0 必须判红：
@@ -434,7 +444,7 @@ async function workerSmoke(): Promise<void> {
   // 前置条件：这一步**没跑**（产物不存在）与「跑了但 worker 起不来」是两回事，前者归 2
   if (!existsSync(entry)) {
     throw new PreconditionError(
-      `找不到 worker 产物 apps/server/${WORKER_ENTRY} —— 先跑 pnpm ci:local --only=build-server（或 pnpm build:server）`,
+      `找不到 worker 产物 apps/server/${WORKER_ENTRY} —— 先跑 pnpm walnut ci:local --only=build-server（或 pnpm walnut build:server）`,
     )
   }
 
@@ -548,7 +558,7 @@ async function workerSmoke(): Promise<void> {
       }
       if (cronJobs < 1) {
         throw new ViolationError([
-          'cron jobs: 0 —— 进程起来了，但一个 cron 都没挂上（ci.yml:459-461 明令这一步必须判红）。',
+          'cron jobs: 0 —— 进程起来了，但一个 cron 都没挂上（CI 的 worker 冒烟一直把它判红）。',
           'WorkerModule 必须保证注册过 ScheduleModule，且 cron 装饰器所在的模块进了 imports。',
           tail,
         ].join('\n'))
@@ -641,10 +651,14 @@ function pnpmBin(): string {
   return pnpmBinOnce
 }
 
-export async function main(): Promise<void> {
-  const plan = selectSteps(LOCAL_CI_STEPS, process.argv.slice(2))
+/**
+ * 本地 CI 的主体。`argv` 由调用方给（缺省仍是本进程的）：bin 把 `pnpm walnut ci:local --only=…`
+ * 后面的参数原样转进来，单测也可以直接喂一份解析用。
+ */
+export async function main(argv: readonly string[] = process.argv.slice(2)): Promise<void> {
+  const plan = selectSteps(LOCAL_CI_STEPS, argv)
   const startedAt = Date.now()
-  out(`本地复刻 CI：${plan.length} 步，**顺序**执行（表在 packages/tooling/scripts/src/ci/local-ci.ts）`)
+  out(`本地复刻 CI：${plan.length} 步，**顺序**执行（表在 tooling/scripts/src/ci/local-ci.ts）`)
   out('  与 prepush 的分工：那边跑静态门禁（必跑、快），这边跑构建类（推之前跑一次）；两边没有重叠。')
 
   const results: GateResult[] = []

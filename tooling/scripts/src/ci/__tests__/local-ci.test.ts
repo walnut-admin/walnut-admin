@@ -6,13 +6,13 @@
  * 所以这里重点不是「跑得对」（那要 8~12 分钟、还得有库和浏览器，属于验收步骤），
  * 而是：**表本身站得住**、**参数解析不吞错**、**跳过与失败分得开**、**`.data` 的指纹判据真的有效**。
  */
-import { mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ChildRunError } from '../../lib/child-run.ts'
+import { COMMANDS, KEPT_ROOT_SCRIPTS } from '../../lib/commands.ts'
 import { PreconditionError, SKIPPED_EXIT_CODE, SkippedError, ViolationError } from '../../lib/errors.ts'
-import { REPO_ROOT } from '../../lib/repo-root.ts'
 import {
   failureToError,
   formatSnapshot,
@@ -29,12 +29,13 @@ import {
   workerPollTimeoutMs,
 } from '../local-ci.ts'
 
-const rootManifest = JSON.parse(readFileSync(join(REPO_ROOT, 'package.json'), 'utf8')) as {
-  scripts?: Record<string, string>
-}
-const rootScripts = new Set(Object.keys(rootManifest.scripts ?? {}))
+/**
+ * 表里 argv 首词的合法集合 = **可执行的名字**：保留的根脚本、命令表 id、pnpm 子命令。
+ * 根脚本瘦身后 `package.json` 里只剩保留的那几条，拿它当全集会把被移走的步骤判成「不存在」。
+ */
+const legalNames = new Set<string>([...KEPT_ROOT_SCRIPTS, ...COMMANDS.map(command => command.id)])
 
-/** `argv[0]` 是 pnpm 自己的子命令（不是根脚本名）时的合法例外 —— 口径同 prepush.test.ts */
+/** `argv[0]` 是 pnpm 自己的子命令（不是可执行名字）时的合法例外 —— 口径同 prepush.test.ts */
 const PNPM_SUBCOMMANDS = new Set(['exec', 'change'])
 
 describe('本地 CI 步骤表（LOCAL_CI_STEPS）—— 表本身', () => {
@@ -47,8 +48,8 @@ describe('本地 CI 步骤表（LOCAL_CI_STEPS）—— 表本身', () => {
     }
   })
 
-  it('每个 pnpm 步骤的 argv 都能落到**真实存在**的根脚本 / pnpm 子命令上', () => {
-    // 这条守卫就是「表里打错一个脚本名」的拦网：那种错会让整步静默消失
+  it('每个 pnpm 步骤的 argv 首词都能落到**真实存在**的可执行名字 / pnpm 子命令上', () => {
+    // 这条守卫就是「表里打错一个名字」的拦网：那种错会让整步静默消失
     const bad: string[] = []
     for (const step of LOCAL_CI_STEPS) {
       if (!('argv' in step))
@@ -63,8 +64,8 @@ describe('本地 CI 步骤表（LOCAL_CI_STEPS）—— 表本身', () => {
           bad.push(`${step.id}: pnpm 子命令不该只有一段`)
         continue
       }
-      if (!rootScripts.has(head))
-        bad.push(`${step.id}: 根 package.json 里没有脚本 ${head}`)
+      if (!legalNames.has(head))
+        bad.push(`${step.id}: 根脚本与命令表里都没有 ${head}`)
     }
     expect(bad).toEqual([])
   })
@@ -78,7 +79,7 @@ describe('本地 CI 步骤表（LOCAL_CI_STEPS）—— 表本身', () => {
 
   it('build-admin 必须带 --force（摘掉它 = 这一步退化成缓存回放，整个 ci:local 的理由就没了）', () => {
     const step = LOCAL_CI_STEPS.find(item => item.id === 'build-admin')
-    expect(step, 'build-admin 这一步不见了 —— 那是 ci.yml:274-283 记着的真实事故').toBeTruthy()
+    expect(step, 'build-admin 这一步不见了 —— 那是 ci.yml 的 Build admin 一步记着的真实事故').toBeTruthy()
     expect(step && 'argv' in step ? step.argv : []).toContain('--force')
   })
 
