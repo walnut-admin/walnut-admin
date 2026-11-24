@@ -8,7 +8,7 @@
 | 预设 | 用于 | 相对 base 多了什么 |
 |------|------|--------------------|
 | `base.json` | 不放直接消费者（裸配置） | —— |
-| `ts.json` | `packages/platform-any/*`、`packages/tooling/*`、仓库根 `tsconfig.json` | `erasableSyntaxOnly: true` |
+| `ts.json` | `packages/platform-any/*`、`tooling/*`、仓库根 `tsconfig.json` | `erasableSyntaxOnly: true` |
 | `vue.json` | `apps/admin`、`apps/docs`、`packages/platform-web/*` | DOM lib + `jsx: preserve` + `jsxImportSource: vue` |
 
 `base.json` 只放**与环境无关**的编译语义：严格性、模块系统、互操作、发射开关。刻意**不含**
@@ -45,11 +45,12 @@
 | `packages/platform-any/types` | `ts.json` | 纯 `.d.ts` |
 | `packages/platform-any/utils-core` | `ts.json` | 纯逻辑（自持 `types: ["node"]`） |
 | `packages/platform-web/*` | `vue.json` | 浏览器 + Vue |
-| `packages/tooling/scripts` | `ts.json` | 八个 bin 由 Node 原生执行 |
-| `packages/tooling/release` | `ts.json` | bin 由 Node 原生执行 |
-| `packages/tooling/eslint-config` | `base.json` | 由 ESLint 经 jiti 加载，不经 Node 剥离 |
-| `packages/tooling/commitlint-config` | `base.json` | 由 commitlint 的 TS loader 加载 |
-| `packages/tooling/vitest-config` | `base.json` | 由 Vitest 的 esbuild 加载，不经 Node 剥离 |
+| `tooling/scripts` | `ts.json` | 八个 bin 由 Node 原生执行 |
+| `tooling/release` | `ts.json` | bin 由 Node 原生执行 |
+| `tooling/eslint-config` | `base.json` | 由 ESLint 经 jiti 加载，不经 Node 剥离 |
+| `tooling/commitlint-config` | `base.json` | 由 commitlint 的 TS loader 加载 |
+| `tooling/vitest-config` | `base.json` | 由 Vitest 的 esbuild 加载，不经 Node 剥离 |
+| `tooling/vite-config` | `ts.json` | 由 Vite 的配置加载链路经 Node 原生剥离 import |
 | 仓库根 `tsconfig.json` | `base.json` | 只覆盖 `eslint.config.ts` / `commitlint.config.ts` / `knip.config.ts` |
 
 **判据一句话**：这个包里有**被 `node` 直接跑**的 `.ts` 吗？有 → `ts.json`；只有被工具加载的配置 →

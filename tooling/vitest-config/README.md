@@ -53,7 +53,7 @@ export default defineWalnutVitestConfig({
 ## 消费者
 
 `apps/server`（单元 + e2e 两份）、`packages/platform-any/{contract,utils-core}`、
-`packages/platform-web/client`、`packages/tooling/{scripts,release}`。
+`packages/platform-web/client`、`tooling/{scripts,release,vite-config}`。
 
 ## 为什么是独立包而不是塞进 `@walnut/scripts`
 

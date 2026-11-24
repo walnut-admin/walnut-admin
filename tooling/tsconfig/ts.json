@@ -1,6 +1,6 @@
 {
   // ── Node / 纯逻辑 / 工具链 ──
-  // 用于：packages/platform-any/*（平台无关纯逻辑）与 packages/tooling/{scripts,release}。
+  // 用于：packages/platform-any/*（平台无关纯逻辑）与 tooling/{scripts,release}。
   // 仓库根 tsconfig.json 走的是 base.json —— 根级配置由 jiti / commitlint 的 TS loader 加载，
   // 不经 Node 原生类型剥离，故不需要 erasableSyntaxOnly。
   //

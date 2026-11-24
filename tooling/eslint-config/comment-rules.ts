@@ -14,7 +14,7 @@
  *
  * ## 判据：只查注释，不查字符串
  *
- * 这是刻意的收窄：CLI 的输出图标（`packages/tooling/scripts/src/lib/log.ts` 的 `ok: ''`）、
+ * 这是刻意的收窄：CLI 的输出图标（`tooling/scripts/src/lib/log.ts` 的 `ok: ''`）、
  * 用例里对文档的逐字断言（发版电池表的 ``）、以及文档站正文里的标记，都**不在本规则范围内**
  * （它们不是注释；文档站那份是 markdown，本仓 eslint 也刻意不 lint markdown）。
  *
@@ -38,7 +38,7 @@ import type { Rule } from 'eslint'
  * 判定面是**手写的 Unicode 区块**（见下面 `EMOJI`），刻意**不用** `\p{Extended_Pictographic}` ——
  * 后者宽得多：它把 `↔` 这类排版箭头也算 emoji（本仓注释在用），误报会让规则变成噪声源。
  * 同一份区块也用在 `pnpm lint:emoji` 那条跨文件类型的门禁里
- * （`packages/tooling/scripts/src/lib/emoji-ranges.ts`，那份文件顶部写了为什么是两份实现）。
+ * （`tooling/scripts/src/lib/emoji-ranges.ts`，那份文件顶部写了为什么是两份实现）。
  * **改一边要改另一边**，两边各有一条用例钉住同一份"该报/不该报"的语料。
  *
  * 这里也刻意**不把示例字符写进注释**：写了会被本规则自己命中（第一次跑 `lint:fix` 时正是这样，
