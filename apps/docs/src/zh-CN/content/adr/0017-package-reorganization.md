@@ -50,6 +50,10 @@ packages/
 > `commitlint-config/`、`scripts/`（`@walnut/scripts`）、`release/`（`@walnut/release`）。
 > 拆包理由与边界见 [ADR 0019](0019-tsconfig-presets-and-no-mjs.md)。
 
+> 2026-11-23 更新：`tooling/` 整组已从 `packages/` 下提到仓库根，与 `apps/`、`packages/` 同级；
+> 包名与各包目录名都不变。理由与备选方案见 [ADR 0028](0028-top-level-tooling-directory.md)，本 ADR 的
+> 分组决策（工具链与业务包分开）不受影响。
+
 **标签体系**（每个包的 `package.json` 中声明）：
 
 | 维度 | 标签 | 说明 |

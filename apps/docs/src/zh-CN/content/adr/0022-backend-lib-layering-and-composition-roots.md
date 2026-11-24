@@ -75,6 +75,12 @@ libs 边界 lint，批 1-9 依次下沉基建、技术设施、共享能力、�
   且非 @Global 的每个消费方都必须能经 `imports`（含 `exports: [SomeRepoModule]` 再导出）看见它。
   这条规矩与「Repository 三模式 → 两种形态」同时落地，口径写在 `apps/server/AGENTS.md`。
 
+> **2026-11-24 更新**：本节这批 drift spec（以及它们共用的只读源码工具 `module-graph.ts`）已搬出
+> 产品源码，统一住 `apps/server/apps/api/test/architecture/`。理由一句话：它们断言的是**整个
+> server 的结构**（装配图 / 注册面 / 路由目录 / 产物形状），不是某个模块的行为；而 `module-graph.ts`
+> 不是 spec，却被产品构建的 `include` 收进编译（`dist` 里确实出现过它的 `.js`）。落在哪个目录的
+> 判据见 [架构待办](../monorepo/architecture-todo.md) 的「测试目录约定」。
+
 ## Decision 5: 技术层允许「域形状」缓存，但必须登记并满足准入判据（D12）
 
 `libs/cache` 是 tech-base，却住着 8 个**域形状**缓存服务（cap / mfa / opaque / sign / verifyCode /

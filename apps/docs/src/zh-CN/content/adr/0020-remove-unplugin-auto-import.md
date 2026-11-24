@@ -121,7 +121,7 @@
   列的，要收紧得先跑 `pnpm knip` 看真实命中（knip 本仓有意维持红色，没有门禁看着它）。
 - **验证**：`vue-tsc` 0 错误（**隐藏那份 dts 之后也是 0** —— 这是本次唯一的硬判据）、`eslint` 0 错误
   （它本身在那台机器上偶发崩溃，与本次改动无关：`--concurrency=auto` 的判据与修法写在
-  `@walnut/eslint-config` 的 [`base.ts`](https://github.com/walnut-admin/walnut-admin/blob/main/packages/tooling/eslint-config/base.ts) 顶部注释里）、
+  `@walnut/eslint-config` 的 [`base.ts`](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/eslint-config/base.ts) 顶部注释里）、
   `vite build` exit 0、`build:docs` 0 死链、`prepush` 17/17 段全绿、`test` 13/13。
   **运行时冒烟只做到「模块图干净」这一层**：headless Chrome 渲染后控制台**无** `ReferenceError` /
   `is not defined` / `Uncaught`（`vue-devtools` 已注入 ⇒ JS 确实跑了）。**端到端没跑通**：本地 Mongo 是

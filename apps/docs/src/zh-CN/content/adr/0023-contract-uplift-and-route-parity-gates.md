@@ -38,6 +38,10 @@ sse 五个模块，并扩展 socket（payload map），补齐 RoleMode 与 AppKe
 异常形态 fail-loudly，不静默跳过；另有篡改注入自测证明对账不是空转。收口后 `routes.ts`
 从 70 个常量增至 123 个（新增 controller 前缀与方法级命名端点）。
 
+> 2026-11-24 更新：这批架构 drift spec 已从产品源码搬到测试目录，现址是
+> `apps/server/apps/api/test/architecture/route-catalog.drift.spec.ts`。判据是「被测对象是整个 server
+> 的结构，而不是某个模块的行为」；同批搬走的 `module-graph.ts` 此前会被编进生产产物。
+
 ## Decision 4: server 方法级路径保留相对字面量
 
 controller 类级前缀全部改引用 contract 常量（47/47）；方法级路径仍写相对字面量（除根

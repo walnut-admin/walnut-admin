@@ -2,10 +2,16 @@
 
 **Date:** 2026-07-28
 **Status:** Accepted
-**Last revised:** 2026-09-23 — 门禁表按现状更新：git 钩子改由 lefthook 托管（ADR 0018），pre-push 是一张门禁表（并行）
-聚合命令 `pnpm --silent prepush`（含 `lint:root` / `types:check:root` / `lint:docs-refs` / `lint:adr` / `lint:doc-ts` / `lint:doc-budget`）；CI 步骤补 boundaries / affected 自检 /
-syncpack / `pnpm change check` / `lint:root` / `types:check:root` / `lint:adr` / `lint:doc-ts` / `lint:doc-budget`；
-`test` 任务的依赖是 `["^build"]`；`@walnut/axios` 已更名 `@walnut/http`。
+**Last revised:** 2026-11-24 — 推送前门禁是一张**可增删的表**（`tooling/scripts/src/ci/prepush.ts` 的 `PREPUSH_GATES`），
+本 ADR 不再逐段列出（写死的段数已经错过一次）；经 turbo 扇出的几段在同一时刻只跑一段（并发上限数得到
+「段」、数不到段里面的扇出）。CI 的每个门禁步骤经统一入口 `pnpm walnut <id>` 调用（ADR 0029）。发版前另有一张
+**发版电池**（`tooling/release/src/release/steps.ts`），它是推送前门禁表的超集，由用例核对 —— 此前的修订没有提到它。
+CI 的 worker 冒烟改调本地 CI 的同一条实现（`pnpm walnut ci:local --only=worker-smoke`），不再在 workflow 里内联脚本。
+
+> 2026-09-23 的修订（原文保留）：门禁表按现状更新：git 钩子改由 lefthook 托管（ADR 0018），pre-push 是一张门禁表（并行）
+> 聚合命令 `pnpm --silent prepush`（含 `lint:root` / `types:check:root` / `lint:docs-refs` / `lint:adr` / `lint:doc-ts` / `lint:doc-budget`）；CI 步骤补 boundaries / affected 自检 /
+> syncpack / `pnpm change check` / `lint:root` / `types:check:root` / `lint:adr` / `lint:doc-ts` / `lint:doc-budget`；
+> `test` 任务的依赖是 `["^build"]`；`@walnut/axios` 已更名 `@walnut/http`。
 
 ## Context
 
@@ -24,8 +30,9 @@ Current state:
 | Gate | When | What | Blocks |
 |------|------|------|--------|
 | Pre-commit | `git commit` | `lint-staged` (ESLint auto-fix on staged files) | Commit |
-| Pre-push | `git push` | `pnpm --silent prepush` — five sections: `boundaries` → `types:check` → `syncpack:lint` → `lint:workflows` (actionlint) → `pnpm change check` (fixed-group lockstep). Hook definition lives in [`lefthook.yml`](/lefthook.yml), see [ADR 0018](/content/adr/0018-git-hooks-lefthook) | Push |
-| CI | Push to main / PR | `pnpm boundaries` → affected `lint` / `types:check` / `test` → affected-set sanity check → `pnpm syncpack:lint` → `pnpm change check` → builds | Merge |
+| Pre-push | `git push` | `pnpm --silent prepush` — 一张门禁表（并行执行、每段各有预算），内容以 `tooling/scripts/src/ci/prepush.ts` 的 `PREPUSH_GATES` 为准，本 ADR 不列清单。Hook definition lives in [`lefthook.yml`](/lefthook.yml), see [ADR 0018](/content/adr/0018-git-hooks-lefthook) | Push |
+| CI | Push to main / PR | `pnpm boundaries` → affected `lint` / `types:check` / `test` → affected-set sanity check → `pnpm syncpack:lint` → `pnpm change check` → builds（其中 worker 冒烟经 `pnpm walnut ci:local --only=worker-smoke` 调本地 CI 的实现） | Merge |
+| Release | `pnpm release` | 发版电池：推送前门禁表的超集，表在 `tooling/release/src/release/steps.ts`，与门禁表的一致性由用例核对 | Tag / push |
 
 **Test requirements by package:**
 
