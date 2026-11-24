@@ -839,6 +839,17 @@ lint / types:check / test，admin 与 server 的 lint，`syncpack:lint`、文档
 legacy 构建失败、admin 原生崩溃的原样重跑）写在当轮汇报里，没有回填到这份计划。旧文档树 `guide/`
 仍按上一节的口径保留为后续事项。
 
+### 2026-11-24 推送门禁：drift spec 的超时
+
+推送这批提交时，pre-push 的 test 段连续两次被架构 drift spec 的 5 秒缺省超时打断
+（`core-module-scope.drift.spec.ts` 一次、`murlock-isolation.drift.spec.ts` 一次）：两次都只红这一条、
+其余 952 条全过，单独复跑都在 2 秒内通过。原因是这类 spec 要全仓扫描几千个文件，本机同时跑着别的
+会话的重任务时会被 CPU 争抢推过 5 秒。处置：沿用 `tooling/scripts/vitest.config.ts` 的同一先例，把
+`apps/server/apps/api/vitest.config.ts` 的 `testTimeout` 放宽到 60 秒（超时只决定「卡死的用例多久被判死」，
+真卡住的用例 60 秒后照样红）。验证由实施 agent 执行：server 全量测试（111 文件 / 953 用例）、
+scripts 全量测试（753 用例，确认先例包不受影响）、以及 `lint:doc-budget` / `lint:doc-ts` / `lint:docs-refs`
+三道文档门禁，全过。
+
 ## 相关文档
 
 - [架构地图](../monorepo/architecture.md) —— 「我要加 X，该放哪」
