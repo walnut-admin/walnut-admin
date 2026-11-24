@@ -51,7 +51,6 @@
     "test:integration": "vitest run --config ./apps/api/vitest.config.integration.ts",
     "test:pw": "esno playwright/example.ts",
     "gen:doc": "@compodoc/compodoc -p tsconfig.json -s",
-    "check:update": "taze -I",
     "madge": "madge --circular --ts-config tsconfig.json apps/api/src libs --extensions js,ts,tsx"
   },
   "dependencies": {
@@ -167,7 +166,6 @@
     "madge": "catalog:",
     "playwright": "catalog:",
     "supertest": "catalog:",
-    "taze": "catalog:",
     "typescript": "catalog:",
     "unplugin-swc": "catalog:",
     "vite-tsconfig-paths": "catalog:",

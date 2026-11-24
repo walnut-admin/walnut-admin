@@ -1623,9 +1623,6 @@ importers:
       supertest:
         specifier: 'catalog:'
         version: 7.2.2(supports-color@5.5.0)
-      taze:
-        specifier: 'catalog:'
-        version: 19.11.0
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
