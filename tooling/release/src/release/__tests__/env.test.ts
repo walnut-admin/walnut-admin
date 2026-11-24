@@ -70,18 +70,27 @@ describe('子进程环境 RELEASE_CHILD_ENV —— 每个子进程统一从这�
   })
 })
 
-describe('resolveToken —— 来源顺序 `--token` > `GITHUB_TOKEN` > 无', () => {
+describe('resolveToken —— 来源顺序 `--token` > `GITHUB_TOKEN` > `GH_TOKEN` > 无', () => {
   it('--token 赢过环境变量，source 记作 --token', () => {
     process.env.GITHUB_TOKEN = 'ghp_from_environment'
+    process.env.GH_TOKEN = 'ghp_from_gh_env'
     expect(resolveToken(argsWith({ token: 'ghp_from_flag' }))).toEqual({ token: 'ghp_from_flag', source: '--token' })
   })
 
   it('没有 --token 时用 GITHUB_TOKEN，source 记作 GITHUB_TOKEN', () => {
     process.env.GITHUB_TOKEN = 'ghp_from_environment'
+    process.env.GH_TOKEN = 'ghp_from_gh_env'
     expect(resolveToken(argsWith())).toEqual({ token: 'ghp_from_environment', source: 'GITHUB_TOKEN' })
   })
 
+  it('没有 GITHUB_TOKEN 时回退到 GH_TOKEN，source 记作 GH_TOKEN', () => {
+    delete process.env.GITHUB_TOKEN
+    process.env.GH_TOKEN = 'ghp_from_gh_env'
+    expect(resolveToken(argsWith())).toEqual({ token: 'ghp_from_gh_env', source: 'GH_TOKEN' })
+  })
+
   it('环境变量首尾空白被 trim；只有空白等于没给', () => {
+    delete process.env.GH_TOKEN
     process.env.GITHUB_TOKEN = '  ghp_padded  '
     expect(resolveToken(argsWith())).toEqual({ token: 'ghp_padded', source: 'GITHUB_TOKEN' })
 
@@ -89,8 +98,9 @@ describe('resolveToken —— 来源顺序 `--token` > `GITHUB_TOKEN` > 无', ()
     expect(resolveToken(argsWith())).toEqual({ token: null, source: null })
   })
 
-  it('两者都没有 ⇒ { token: null, source: null }（不是错误，公开仓匿名可用）', () => {
+  it('两个环境变量都没有 ⇒ { token: null, source: null }（不是错误，公开仓匿名可用）', () => {
     delete process.env.GITHUB_TOKEN
+    delete process.env.GH_TOKEN
     expect(resolveToken(argsWith())).toEqual({ token: null, source: null })
   })
 })

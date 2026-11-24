@@ -65,7 +65,7 @@ describe('attributeCommit —— 路径优先、scope 兜底、否则不发版',
   const context = buildAttributionContext()
 
   it('路径命中时按最长前缀归属，忽略 scope', () => {
-    expect(attributeCommit(commit('docs'), ['packages/tooling/release/src/release/steps.ts'], context))
+    expect(attributeCommit(commit('docs'), ['tooling/release/src/release/steps.ts'], context))
       .toEqual(['@walnut/release'])
   })
 
@@ -88,7 +88,7 @@ describe('attributeCommit —— 路径优先、scope 兜底、否则不发版',
   })
 
   it('scope=tooling 但改了工具链包时，仍然按**路径**归属', () => {
-    expect(attributeCommit(commit('tooling'), ['packages/tooling/scripts/src/lib/git.ts'], context))
+    expect(attributeCommit(commit('tooling'), ['tooling/scripts/src/lib/git.ts'], context))
       .toEqual(['@walnut/scripts'])
   })
 

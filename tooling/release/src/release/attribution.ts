@@ -21,6 +21,7 @@ import path from 'node:path'
 import { PreconditionError } from '@walnut/scripts/lib/errors'
 import { lsFilesWithUntracked } from '@walnut/scripts/lib/git'
 import { REPO_ROOT } from '@walnut/scripts/lib/repo-root'
+import { isWorkspacePackageDir } from '@walnut/scripts/lib/workspace'
 import { parse as parseYaml } from 'yaml'
 import { BUMP_MAP } from './commit-intent.ts'
 
@@ -66,14 +67,11 @@ const INFRA_SCOPES: readonly string[] = ['docker', 'deploy', 'pnpm', 'release']
 /**
  * 「在册但不是包」的 scope：commitlint 白名单允许，但仓库里没有同名包 ⇒ 同样不产生意图。
  *
- * `tooling` 是工具链改动的兜底 scope。真正改了 `packages/tooling/**` 的提交由**路径**归属到具体包，
+ * `tooling` 是工具链改动的兜底 scope。真正改了工具链包目录的提交由**路径**归属到具体包，
  * 根本走不到 scope 兜底；只有「scope 写 tooling、却没动任何包目录」（例如只改根 `turbo.json`）才会
  * 落到这里 —— 那种提交不该带动产品版本号，与基础设施 scope 同理。
  */
 const NON_PACKAGE_SCOPES: readonly string[] = [...INFRA_SCOPES, 'tooling']
-
-/** workspace 包目录的形状：`apps/<x>` 或 `packages/<group>/<x>` */
-const WORKSPACE_DIR_SHAPE = /^(?:apps\/[^/]+|packages\/[^/]+\/[^/]+)$/
 
 export interface WorkspacePackage {
   /** 仓库相对目录，例如 `apps/admin` */
@@ -98,9 +96,7 @@ export function workspacePackages(): WorkspacePackage[] {
   const packages: WorkspacePackage[] = []
   for (const file of lsFilesWithUntracked('*package.json')) {
     const dir = path.posix.dirname(file)
-    if (dir === '.')
-      continue
-    if (!WORKSPACE_DIR_SHAPE.test(dir))
+    if (!isWorkspacePackageDir(dir))
       continue
     const absolute = path.join(REPO_ROOT, file)
     // 被跟踪但盘上已不存在 = 删除还没进提交（`git ls-files` 只看索引）。
@@ -248,7 +244,7 @@ export function buildAttributionContext(packages: WorkspacePackage[] = workspace
 /**
  * 归属一条提交。返回要写进意图的包名清单（去重、稳定序）；返回 `null` = **不产生意图**。
  *
- * 路径优先用的是「最长前缀」：`packages/tooling/scripts` 会比 `packages/tooling` 先命中
+ * 路径优先用的是「最长前缀」：`tooling/scripts` 会比 `tooling` 先命中
  * （后者不是包目录，所以这条现在只是防御性写法）。
  */
 export function attributeCommit(

@@ -11,20 +11,23 @@
  * 失败口径：5xx 与超时按 `RETRY_DELAYS_MS` 退避重试，4xx 立即交给调用方（确定性失败，重试无意义）。
  * 「没有 Release」与「查不到」必须分开：前者是 404 / 空响应体，后者是抛异常 ——
  * 把查询失败当成「没有」会让续跑阶梯误判。
+ *
+ * remote 解析 / token 掩码 / API 地址 / 网页 Release 链接这四件事已下沉到
+ * `@walnut/scripts/lib/github`（文档站的 `docs:version` 也要用同一份口径）。
+ * 这里只重新导出**本包调用点真正会 import 的两个名字**（`facts.ts` / `changelog.ts` 用
+ * `parseGithubRemote`，`release.ts` 用 `maskToken`）：`apiBase` 只在本文件内部用，
+ * `webReleaseUrl` 在本包没有消费者 —— 都再导出会被 knip 报成死导出。
  */
 
-import process from 'node:process'
+import type { GithubRepo } from '@walnut/scripts/lib/github'
+import { apiBase } from '@walnut/scripts/lib/github'
+
+export type { GithubRepo } from '@walnut/scripts/lib/github'
+export { maskToken, parseGithubRemote } from '@walnut/scripts/lib/github'
 
 const TIMEOUT_MS = 15_000
 /** GitHub 官方的 API 版本头；不变更它就永远走稳定的响应形状 */
 const API_VERSION = '2022-11-28'
-
-export interface GithubRepo {
-  owner: string
-  repo: string
-  /** 默认 github.com；GitHub Enterprise 可换域名 */
-  host: string
-}
 
 export interface GithubRelease {
   id: number
@@ -40,43 +43,6 @@ export interface GithubClient {
   /** null = 未提供 token（公开仓可匿名查询，限流 60 次/小时） */
   token: string | null
   repo: GithubRepo
-}
-
-/**
- * 从 git remote 解析出 GitHub 仓库坐标。
- * 支持 `https://github.com/o/r.git`、`git@github.com:o/r.git`、企业域名、结尾无 `.git`。
- */
-export function parseGithubRemote(url: string): GithubRepo | null {
-  const trimmed = url.trim()
-  const ssh = /^(?:ssh:\/\/)?git@([^:/]+)[:/]([^/]+)\/(.+?)(?:\.git)?\/?$/.exec(trimmed)
-  if (ssh)
-    return { host: ssh[1]!, owner: ssh[2]!, repo: ssh[3]! }
-  const http = /^https?:\/\/([^/]+)\/([^/]+)\/(.+?)(?:\.git)?\/?$/.exec(trimmed)
-  if (http)
-    return { host: http[1]!, owner: http[2]!, repo: http[3]! }
-  return null
-}
-
-/** 日志里只出现 token 的头尾，避免整串进 CI 日志 / 截图 */
-export function maskToken(token: string): string {
-  if (token.length <= 8)
-    return '****'
-  return `${token.slice(0, 4)}****${token.slice(-4)}`
-}
-
-/** github.com → api.github.com；企业域名 → `<host>/api/v3` */
-export function apiBase(repo: GithubRepo): string {
-  const override = process.env.GITHUB_API_URL?.trim()
-  if (override)
-    return override.replace(/\/+$/, '')
-  if (repo.host === 'github.com' || repo.host === 'www.github.com')
-    return 'https://api.github.com'
-  return `https://${repo.host}/api/v3`
-}
-
-/** 网页地址（拼给人点的 Release 链接；API 不保证返回 html_url 的可用性） */
-export function webReleaseUrl(repo: GithubRepo, tag: string): string {
-  return `https://${repo.host}/${repo.owner}/${repo.repo}/releases/tag/${encodeURIComponent(tag)}`
 }
 
 function headers(client: GithubClient): Record<string, string> {

@@ -60,7 +60,7 @@ function changelogPackages(): ChangelogPackage[] {
  *
  * 两种粒度，别退化成「一律 `<顶层段>/**`」：
  *   - 顶层段里**没有**包目录（`deploy` / `.github` / `cliff.toml` …）⇒ 整段纳入 `<顶层段>/**`；
- *   - 顶层段里**住着**包目录（`apps` → `apps/admin`、`packages` → `packages/tooling/scripts`）
+ *   - 顶层段里**住着**包目录（`apps` → `apps/admin`、`tooling` → `tooling/scripts`）
  *     ⇒ 只能精确到**文件本身**（如 `apps/README.md`）。写成 `apps/**` 会把 `apps/server/**`
  *     也扫进来，于是 server 的提交同时出现在 admin 的 changelog 里（跨包重复）。
  */
@@ -87,8 +87,8 @@ export function includePathsFor(dir: string, outsidePatterns: string[], mainDir:
 /**
  * 该包要**排除**的路径：住得更深的嵌套包。
  *
- * 为什么必须排：`--include-path` 之间是**或**关系，而 `**` 跨目录段 ⇒ `packages/tooling/**`
- * 会把 `packages/tooling/scripts/**` 一起匹配进来，于是子包的提交同时出现在父包与它自己的
+ * 为什么必须排：`--include-path` 之间是**或**关系，而 `**` 跨目录段 ⇒ 父包的 `<dir>/**`
+ * 会把 `<dir>/<子包>/**` 一起匹配进来，于是子包的提交同时出现在父包与它自己的
  * changelog 里 —— 与意图归属（最长前缀）不一致，是**跨包重复**。
  * `exclude-path` 优先于 `include-path`（git-cliff 文档明写），故这一对参数就是精确的「只认自己」。
  */

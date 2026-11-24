@@ -62,7 +62,7 @@ const RELEASE_BATTERY: BatteryStep[] = [
   // 已经静默失效」的位置。`lefthook.yml` 顶部那句「发版第 0 步也会调它」描述的就是这里
   // （补上这里之前，那句话是全仓零自动调用点的**空头承诺**）。
   // 失败语义是「前置条件未满足」（exit 2）而不是「查出违规」，这正是本仓三态退出码的用法。
-  { id: 'hooks', label: 'git 钩子托管校验（pnpm hooks:check）', argv: ['hooks:check'] },
+  { id: 'hooks', label: 'git 钩子托管校验（pnpm walnut hooks:check）', argv: ['hooks:check'] },
   { id: 'boundaries', label: '架构边界（turbo boundaries）', argv: ['boundaries'] },
   { id: 'circular', label: '循环依赖（madge，apps/server 的 apps + libs）', argv: ['madge:check'] },
   { id: 'lint', label: 'lint（所有包，不排任何包）', argv: ['exec', 'turbo', 'run', 'lint'] },
@@ -75,7 +75,7 @@ const RELEASE_BATTERY: BatteryStep[] = [
   { id: 'types', label: '类型检查（不排任何包）', argv: ['exec', 'turbo', 'run', 'types:check'] },
   // 根 tsconfig.json（include: ["*.ts"]）覆盖 eslint.config.ts / commitlint.config.ts / knip.config.ts，
   // 这三者不入 turbo 的图。与 lint-root 同理：**独立一行**、经根脚本跑，不能写进上面的 turbo argv。
-  { id: 'types-root', label: '根级配置类型检查（pnpm types:check:root）', argv: ['types:check:root'] },
+  { id: 'types-root', label: '根级配置类型检查（pnpm walnut types:check:root）', argv: ['types:check:root'] },
   { id: 'test', label: '测试（不排任何包）', argv: ['exec', 'turbo', 'run', 'test'] },
   { id: 'syncpack', label: '依赖一致性（syncpack）', argv: ['syncpack:lint'] },
   { id: 'versioning', label: 'workspace 版本锁步（pnpm change check）', argv: ['change', 'check'] },
@@ -115,6 +115,9 @@ const RELEASE_BATTERY: BatteryStep[] = [
   // 同上。入口 nginx 的 4 个安全头：`add_header` 是整段替换而不是合并，写漏一条就静默裸奔。
   // 发版面能看见它还有一层意义 —— 部署用的就是这份 `deploy/nginx/conf.d/`。
   { id: 'nginx-headers', label: '入口 nginx 安全响应头（conf.d）', argv: ['lint:nginx-headers'] },
+  // 同上。`deploy/post-verify.sh` 的失败分支只有它的行为测试守着（假 docker / curl，不需要
+  // Docker）；发版面能看见它还有一层意义 —— 部署之后跑的正是 `post-verify.sh` 本体。
+  { id: 'post-verify', label: '部署后验证脚本的行为测试（deploy/post-verify.test.sh）', argv: ['lint:post-verify'] },
   // 同上。**必须在这里**：GitHub 的 push protection 在服务端、且先于 CI —— 发版要 push tag，
   // 被它拒掉的话 tag 就推不上去（而那是整条流程里最不该失败的一步）。
   { id: 'secrets', label: '源码密钥形态（凭据形状不许进仓库）', argv: ['lint:secrets'] },
@@ -477,10 +480,10 @@ export async function stepCommitTagPush(ui: ReleaseUi, newVersion: string, optio
     assertSafeRef(tag, 'tag 名'),
   ], {
     // 段数**不写数字**：这张表一直在加段，写死的那个数没有门禁拦得住（判据式措辞才是防腐）。
-    // 真源是 packages/tooling/scripts/src/ci/prepush.ts 的 PREPUSH_GATES，本包不去 import 它
+    // 真源是 tooling/scripts/src/ci/prepush.ts 的 PREPUSH_GATES，本包不去 import 它
     // 的长度 —— 一句提示不值得把两个包的构建面耦在一起。
     hint: '远端 pre-receive 之前会先跑本仓的 pre-push 门禁（`pnpm --silent prepush`：'
-      + '段表在 packages/tooling/scripts/src/ci/prepush.ts，并行执行、每段报耗时、'
+      + '段表在 tooling/scripts/src/ci/prepush.ts，并行执行、每段报耗时、'
       + '跳过与通过分开报），冷缓存数分钟属预期；'
       + '心跳会告诉你是「在跑」还是「卡住了」。',
     ...ui.childOptions(),

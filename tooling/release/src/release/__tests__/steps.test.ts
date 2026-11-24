@@ -63,6 +63,7 @@ describe('releaseBatteryArgvs —— 会跑的那几行', () => {
       ['lint:turbo-cache'],
       ['lint:lockfile'],
       ['lint:nginx-headers'],
+      ['lint:post-verify'],
       ['lint:secrets'],
       ['lint:exports'],
       ['lint:pre-hooks'],
@@ -240,7 +241,7 @@ describe('runReleaseBattery —— 跳过段的记账接线', () => {
 
 describe('顺序不变式：门禁必须在打 tag **之前**', () => {
   // 从**本用例自己的位置**推模块路径，而不是写死仓库相对路径：
-  // 写死的那版在「release 从 packages/tooling/scripts 拆成独立包」时当场失效（ENOENT），
+  // 写死的那版在「release 从 scripts 包里拆成独立包」时当场失效（ENOENT），
   // 而它要断言的其实是「同一目录下的 steps.ts」——这个关系不随包搬家改变。
   const SOURCE_PATH = path.resolve(import.meta.dirname, '../steps.ts')
 
@@ -331,7 +332,7 @@ describe('release.md 的电池表与 RELEASE_BATTERY 对账', () => {
  * 那句提示是打到用户屏幕上的（`git push` 之前那一步），而门禁表一直在加段 —— 「11 段并行」
  * 与当时的实际段数已经差了不止一倍，且没有任何门禁拦得住这种腐烂。判据式措辞（「段表在 …，
  * 并行执行、每段报耗时、跳过与通过分开报」）里没有数字，就没有东西会烂；真源永远是
- * `packages/tooling/scripts/src/ci/prepush.ts` 的 `PREPUSH_GATES`。
+ * `tooling/scripts/src/ci/prepush.ts` 的 `PREPUSH_GATES`。
  */
 describe('推送提示 —— 段数写死会腐烂', () => {
   const SOURCE_PATH = path.resolve(import.meta.dirname, '../steps.ts')

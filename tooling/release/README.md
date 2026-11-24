@@ -44,8 +44,8 @@
 | `consume.ts` | 第 3 步：`pnpm version -r` 的**有界预算 + 重试 + 半写入守卫** |
 | `changelog.ts` | 第 3.5 步：逐包 git-cliff 渲染并写 `CHANGELOG.md`（**唯一写入者**）+ remote 一致性断言 |
 | `notes.ts` | 第 3.6 步：写根 `changelog-latest.md`（**CI 的 Release 正文源**） |
-| `github.ts` | GitHub REST **只读**：查某个 tag 有没有 Release + remote 解析 + token 掩码 |
-| `credentials.ts` | `GITHUB_TOKEN` 解析（`--token` > 环境变量 > 无）。**不落盘** |
+| `github.ts` | GitHub REST **只读**：查某个 tag 有没有 Release（remote 解析 / token 掩码 / API 地址已下沉到 `@walnut/scripts`，本文件重新导出） |
+| `credentials.ts` | token 解析（`--token` > `GITHUB_TOKEN` > `GH_TOKEN` > 无；后两档的口径在 `@walnut/scripts/lib/github`）。**不落盘** |
 | `steps.ts` | 第 4–5 步：总览确认 → 提交 / 门禁电池 / 打标 / `--atomic` 推送 |
 | `state.ts` | 续跑**写前日志**（`.changeset/.release-state.json`，gitignored） |
 | `env.ts` | 发版子进程环境策略：哪些变量**不许**进子进程（凭据剥离） |
@@ -54,7 +54,8 @@
 ## 复用 `@walnut/scripts` 的哪些能力
 
 `REPO_ROOT` · git 只读查询 · 子进程执行与进程树收尾 · 输出缓冲 · pnpm 启动器 · 终端交互 ·
-日志写入（TTY/管道）· 前置条件错误 · ref 白名单 · JSON 读写。共 10 个 `lib` 模块。
+日志写入（TTY/管道）· 前置条件错误 · ref 白名单 · JSON 读写 · GitHub remote / API 地址 / token 口径
+（清单以 `@walnut/scripts` 的 `src/lib/` 为准）。
 
 **边界为什么这么切**：`lib` 里没有任何「发版 / 包 / 意图」的概念 —— 一旦出现，说明它该搬回本包的
 `release/` 里；反过来，本包需要通用能力时**上提**到 `lib`，而不是让 `lib` 长出流程的私有实现。

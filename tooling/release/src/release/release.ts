@@ -21,6 +21,7 @@ import type { ReleaseUi } from './ui.ts'
 import process from 'node:process'
 import { ChildRunError, runArgs, runSync, streamOutput } from '@walnut/scripts/lib/child-run'
 import { KILL_GRACE_MS, killActiveChild, waitForActiveChildExit } from '@walnut/scripts/lib/child-tree'
+import { resolveCommandArgv } from '@walnut/scripts/lib/commands'
 import { PreconditionError } from '@walnut/scripts/lib/errors'
 import { branchBehind, currentBranch, gitRemoteUrl, trackedDirtyFiles } from '@walnut/scripts/lib/git'
 import { frame, writeOut } from '@walnut/scripts/lib/log'
@@ -128,11 +129,13 @@ const ui: ReleaseUi = {
   die,
   childOptions,
   runPnpmStep: async (args, hint) => {
-    await runArgs(getPnpmBin(), args, childOptions({ hint: heartbeatLabel(hint) }))
+    // 电池里的 argv 写在**可执行的名字**上（`hooks:check` / `madge:check` / 保留的根脚本名），
+    // 交给 pnpm 之前先经命令表解析 —— 表与逐字钉着它的用例都不必跟着根脚本瘦身改。
+    await runArgs(getPnpmBin(), resolveCommandArgv(args), childOptions({ hint: heartbeatLabel(hint) }))
   },
   execPnpmSync: (args) => {
     // 同步执行秒级命令（`pnpm change` 每个 commit 一次）：走同一个出口 ⇒ 同样剥凭据、同样 argv 直传
-    const result = runSync(getPnpmBin(), args, { cwd: REPO_ROOT, env: RELEASE_CHILD_ENV })
+    const result = runSync(getPnpmBin(), resolveCommandArgv(args), { cwd: REPO_ROOT, env: RELEASE_CHILD_ENV })
     return { code: result.code, stdout: result.stdout, stderr: result.stderr }
   },
   isInteractive,
@@ -252,11 +255,11 @@ async function mainRelease(args: ReleaseArgs): Promise<void> {
       log(`GitHub token: ${maskToken(token)}（来自 ${source}）—— 仅用于 git-cliff 补 PR 号与作者`)
     }
     else if (args.requireGithubMeta) {
-      die(2, '给了 --require-github-meta 但没有 GITHUB_TOKEN：无法补 PR 号/作者，按你的要求中止。'
-      + '给法：① 环境变量 GITHUB_TOKEN=<token> ② --token <值>。去掉该 flag 就用降级渲染（只有 commit 链接）。')
+      die(2, '给了 --require-github-meta 但没有 GITHUB_TOKEN / GH_TOKEN：无法补 PR 号/作者，按你的要求中止。'
+      + '给法：① 环境变量 GITHUB_TOKEN=<token>（或 GH_TOKEN）② --token <值>。去掉该 flag 就用降级渲染（只有 commit 链接）。')
     }
     else {
-      warn('未提供 GITHUB_TOKEN：changelog 里只有 commit 链接，没有 PR 号/作者。'
+      warn('未提供 GITHUB_TOKEN / GH_TOKEN：changelog 里只有 commit 链接，没有 PR 号/作者。'
         + 'export GITHUB_TOKEN=<token> 可补齐（公开仓匿名也能查，但限流 60 次/小时）。')
     }
   }

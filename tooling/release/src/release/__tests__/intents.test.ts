@@ -61,8 +61,8 @@ describe('parseIntent —— 格式容忍', () => {
   })
 
   it('./packages/x 目录引用（包名有歧义时 pnpm 会这么写）', () => {
-    const intent = parseIntent('manual.md', '---\n"./packages/tooling/scripts": minor\n---\n\nbody\n')
-    expect(intent?.packages).toEqual(['./packages/tooling/scripts'])
+    const intent = parseIntent('manual.md', '---\n"./tooling/scripts": minor\n---\n\nbody\n')
+    expect(intent?.packages).toEqual(['./tooling/scripts'])
     expect(intent?.bump).toBe('minor')
   })
 
@@ -135,9 +135,9 @@ describe('parseFrontmatterLine —— name 与 prefix 的分工（改写的正�
   })
 
   it('目录引用（"./packages/x"）同样只剥 name、不动 prefix', () => {
-    expect(parseFrontmatterLine('"./packages/tooling/scripts": minor')).toEqual({
-      name: './packages/tooling/scripts',
-      prefix: '"./packages/tooling/scripts": ',
+    expect(parseFrontmatterLine('"./tooling/scripts": minor')).toEqual({
+      name: './tooling/scripts',
+      prefix: '"./tooling/scripts": ',
       bump: 'minor',
       suffix: '',
     })

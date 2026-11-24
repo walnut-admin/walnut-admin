@@ -1,14 +1,17 @@
 /**
- * GitHub REST 只读面：远端解析、token 掩码、API base、Release 查询。
+ * GitHub REST 只读面的 **Release 查询**：`findRelease`。
  *
  * 「没有 Release」与「查不到」必须分开（404 / 空响应体 = null；网络故障 = 抛），
  * 把查询失败当成「没有」会让续跑阶梯误判。凭据一律走 Authorization 头，**不进 URL**。
+ *
+ * remote 解析 / token 掩码 / API base / 网页链接的用例已随那四个函数下沉到
+ * `@walnut/scripts` 的 `lib/__tests__/github.test.ts`。
  */
 
 import type { GithubRepo } from '../github.ts'
 import process from 'node:process'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { apiBase, findRelease, maskToken, parseGithubRemote, webReleaseUrl } from '../github.ts'
+import { findRelease } from '../github.ts'
 
 const originalApiUrl = process.env.GITHUB_API_URL
 
@@ -42,68 +45,6 @@ afterEach(() => {
     process.env.GITHUB_API_URL = originalApiUrl
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
-})
-
-describe('parseGithubRemote', () => {
-  it('https 形态（带 / 不带 .git、带结尾斜杠）', () => {
-    expect(parseGithubRemote('https://github.com/o/r.git')).toEqual({ host: 'github.com', owner: 'o', repo: 'r' })
-    expect(parseGithubRemote('https://github.com/o/r')).toEqual({ host: 'github.com', owner: 'o', repo: 'r' })
-    expect(parseGithubRemote('https://github.com/o/r/')).toEqual({ host: 'github.com', owner: 'o', repo: 'r' })
-  })
-
-  it('scp 形态（git@host:owner/repo.git）', () => {
-    expect(parseGithubRemote('git@github.com:o/r.git')).toEqual({ host: 'github.com', owner: 'o', repo: 'r' })
-    expect(parseGithubRemote('git@github.com:o/r')).toEqual({ host: 'github.com', owner: 'o', repo: 'r' })
-    expect(parseGithubRemote('ssh://git@github.com/o/r.git')).toEqual({ host: 'github.com', owner: 'o', repo: 'r' })
-  })
-
-  it('企业域名（host 原样保留，apiBase 据此换路径）', () => {
-    expect(parseGithubRemote('https://git.corp.example.com/team/repo.git')).toEqual({ host: 'git.corp.example.com', owner: 'team', repo: 'repo' })
-    expect(parseGithubRemote('git@git.corp.example.com:team/repo.git')).toEqual({ host: 'git.corp.example.com', owner: 'team', repo: 'repo' })
-  })
-
-  it('非 git / 不完整字符串 ⇒ null', () => {
-    for (const value of ['', 'not-a-remote', 'https://github.com/o', '/local/path/repo.git', 'file:///d/repo.git']) {
-      expect(parseGithubRemote(value), `${JSON.stringify(value)} 不应被认成 GitHub remote`).toBeNull()
-    }
-  })
-})
-
-describe('maskToken —— 日志里只出现头尾', () => {
-  it('短 token 全遮', () => {
-    expect(maskToken('short')).toBe('****')
-    expect(maskToken('12345678')).toBe('****')
-  })
-
-  it('长 token 保留头 4 尾 4', () => {
-    expect(maskToken('ghp_abcdefghijklmnop')).toBe('ghp_****mnop')
-    expect(maskToken('123456789')).toBe('1234****6789')
-  })
-})
-
-describe('apiBase / webReleaseUrl', () => {
-  it('github.com → api.github.com（www 也算）', () => {
-    expect(apiBase(REPO)).toBe('https://api.github.com')
-    expect(apiBase({ ...REPO, host: 'www.github.com' })).toBe('https://api.github.com')
-  })
-
-  it('企业域名 → <host>/api/v3', () => {
-    expect(apiBase({ ...REPO, host: 'git.corp.example.com' })).toBe('https://git.corp.example.com/api/v3')
-  })
-
-  it('环境变量 GITHUB_API_URL 覆盖一切（去掉结尾斜杠；空白值不算覆盖）', () => {
-    process.env.GITHUB_API_URL = 'https://ghe.internal/api/v3/'
-    expect(apiBase(REPO)).toBe('https://ghe.internal/api/v3')
-    expect(apiBase({ ...REPO, host: 'git.corp.example.com' })).toBe('https://ghe.internal/api/v3')
-
-    process.env.GITHUB_API_URL = '   '
-    expect(apiBase(REPO)).toBe('https://api.github.com')
-  })
-
-  it('网页链接编码 tag', () => {
-    expect(webReleaseUrl(REPO, 'v1.2.3')).toBe('https://github.com/o/r/releases/tag/v1.2.3')
-    expect(webReleaseUrl(REPO, 'v1.2.3/weird')).toBe('https://github.com/o/r/releases/tag/v1.2.3%2Fweird')
-  })
 })
 
 describe('findRelease —— 「没有 Release」与「查不到」分开', () => {

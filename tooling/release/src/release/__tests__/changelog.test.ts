@@ -22,14 +22,14 @@ import {
   outsidePackagePatterns,
 } from '../changelog.ts'
 
-/** 真实仓库里的包目录形状：`apps/<x>` + 更深一层的 `packages/<group>/<x>` */
-const PACKAGE_DIRS = ['apps/admin', 'apps/server', 'packages/tooling/scripts', 'packages/platform-any/utils-core']
+/** 真实仓库里的包目录形状：`apps/<x>` + 单层的 `tooling/<x>` + 更深一层的 `packages/<group>/<x>` */
+const PACKAGE_DIRS = ['apps/admin', 'apps/server', 'tooling/scripts', 'packages/platform-any/utils-core']
 
 const TRACKED_FILES = [
   'apps/README.md',
   'apps/server/src/main.ts',
   'packages/README.md',
-  'packages/tooling/scripts/src/release/plan.ts',
+  'tooling/scripts/src/release/plan.ts',
   '.github/workflows/ci.yml',
   'deploy/docker/backend.Dockerfile',
   'cliff.toml',
@@ -77,16 +77,16 @@ describe('includePathsFor / excludePathsFor', () => {
   it('只有主应用额外带上「包外路径」', () => {
     expect(includePathsFor('apps/admin', ['turbo.json', 'deploy/**'], 'apps/admin')).toEqual(['apps/admin/**', 'turbo.json', 'deploy/**'])
     expect(includePathsFor('apps/server', ['turbo.json'], 'apps/admin')).toEqual(['apps/server/**'])
-    expect(includePathsFor('packages/tooling/scripts', [], 'apps/admin')).toEqual(['packages/tooling/scripts/**'])
+    expect(includePathsFor('tooling/scripts', [], 'apps/admin')).toEqual(['tooling/scripts/**'])
   })
 
   it('排除住得更深的嵌套包（否则父子包的 changelog 会跨包重复）', () => {
-    const allDirs = ['apps/admin', 'packages/tooling/scripts', 'packages/tooling/scripts/nested', 'packages/tooling/scripts/nested/deeper']
-    expect(excludePathsFor('packages/tooling/scripts', allDirs)).toEqual(['packages/tooling/scripts/nested/**', 'packages/tooling/scripts/nested/deeper/**'])
+    const allDirs = ['apps/admin', 'tooling/scripts', 'tooling/scripts/nested', 'tooling/scripts/nested/deeper']
+    expect(excludePathsFor('tooling/scripts', allDirs)).toEqual(['tooling/scripts/nested/**', 'tooling/scripts/nested/deeper/**'])
     expect(excludePathsFor('apps/admin', allDirs)).toEqual([])
     // 自己不是自己的嵌套包；同级的兄弟目录也不算
-    expect(excludePathsFor('packages/tooling/scripts/nested', allDirs)).toEqual(['packages/tooling/scripts/nested/deeper/**'])
-    expect(excludePathsFor('packages/tooling/scripts', ['packages/tooling/scripts', 'apps/admin'])).toEqual([])
+    expect(excludePathsFor('tooling/scripts/nested', allDirs)).toEqual(['tooling/scripts/nested/deeper/**'])
+    expect(excludePathsFor('tooling/scripts', ['tooling/scripts', 'apps/admin'])).toEqual([])
   })
 })
 
