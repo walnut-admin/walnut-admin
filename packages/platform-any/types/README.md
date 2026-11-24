@@ -9,7 +9,7 @@
 |---|---|
 | 目录 | `packages/platform-any/types` |
 | 平台 / 运行时 | `platform: web` ｜ `type: contract` ｜ `runtime: none`（`package.json` 的 `walnut` 块；D6 改，理由见上）|
-| turbo 边界 tag | `platform-any`（**目录派生的**边界角色：它在 `packages/platform-any/` 下，所以 `pnpm lint:turbo-cache` 要求这个 tag；`walnut.platform` 只是说明性元数据。两者含义不同 —— 前者是「谁的依赖方向受哪条规则约束」，后者是「谁在消费它」）|
+| turbo 边界 tag | `platform-any`（**目录派生的**边界角色：它在 `packages/platform-any/` 下，所以 `pnpm walnut lint:turbo-cache` 要求这个 tag；`walnut.platform` 只是说明性元数据。两者含义不同 —— 前者是「谁的依赖方向受哪条规则约束」，后者是「谁在消费它」）|
 | 消费方式 | **纯类型**：`exports` 直接指向 `src/*.d.ts`，无构建产物、无 `require` / `import` 条件 |
 
 ## 它是什么
@@ -65,7 +65,7 @@ import type { Fn, IStorageSync } from '@walnut/types'
 
 - **依赖**：无（零 `dependencies`）。`tsconfig.json` 继承 `@walnut/tsconfig/ts.json`，`include` 只覆盖 `src/**/*.d.ts`。
 - **消费者**：`@walnut/admin`、`@walnut/client`、`@walnut/utils`（各自 `package.json` 里声明 `"@walnut/types": "workspace:*"`）。
-- **边界由 turbo tags 强制**：workspace 级 `turbo.json` 声明 `shared` / `pure` / `platform-any`，根 `turbo.json` 的 `boundaries.tags` 禁止 `shared` 依赖 app、禁止 `platform-any` 依赖 `platform-web` / `platform-node`（`pure` 是描述性标签，无对应规则）。由 `pnpm boundaries` 拦。
+- **边界由 turbo tags 强制**：workspace 级 `turbo.json` 声明 `shared` / `pure` / `platform-any`，根 `turbo.json` 的 `boundaries.tags` 禁止 `shared` 依赖 app、禁止 `platform-any` 依赖 `platform-web` / `platform-node`（`pure` 是描述性标签，无对应规则）。由 `pnpm walnut boundaries` 拦。
 - **无构建步骤**：`build` 是 `echo 'types: pure source, no build needed'`，配套 `turbo.json` 声明 `build.outputs: []`，以免 turbo 刷「no output files found」警告。
 
 ## 已知限制与延后工作
@@ -82,4 +82,4 @@ import type { Fn, IStorageSync } from '@walnut/types'
 - [架构地图 · 共享包体系](../../../apps/docs/src/zh-CN/content/monorepo/architecture.md)（依赖图 / 各包职责）
 - [架构待办事项](../../../apps/docs/src/zh-CN/content/monorepo/architecture-todo.md)（R8 根导出收口）
 - ADR：[0006 运行时 API 分层](../../../apps/docs/src/zh-CN/content/adr/0006-runtime-api-separation.md) ｜ [0013 Barrel 策略](../../../apps/docs/src/zh-CN/content/adr/0013-barrel-exports-policy.md) ｜ [0017 包重组](../../../apps/docs/src/zh-CN/content/adr/0017-package-reorganization.md)
-- 相关包：[`@walnut/utils`](../utils-core/README.md) ｜ [`@walnut/contract`](../contract/README.md) ｜ [`@walnut/tsconfig` 预设判据](../../tooling/tsconfig/README.md)
+- 相关包：[`@walnut/utils`](../utils-core/README.md) ｜ [`@walnut/contract`](../contract/README.md) ｜ [`@walnut/tsconfig` 预设判据](../../../tooling/tsconfig/README.md)
