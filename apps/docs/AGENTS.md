@@ -16,7 +16,7 @@ pnpm dev        # dev server，端口 8886，自动开浏览器
 pnpm build      # 生产构建（**同时是死链门禁**，见下）
 pnpm preview    # 预览构建产物
 pnpm lint       # ESLint（fix: pnpm lint:fix）
-pnpm taze       # 交互式更新依赖
+pnpm taze       # 更新依赖（-i 是 --install；交互式选择用 taze -I）
 ```
 
 ## 架构
