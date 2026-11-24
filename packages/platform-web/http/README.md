@@ -95,7 +95,7 @@ export function createAfterEachGuard(router: Router) {
 - **响应信封类型的导出错位**：`src/types.ts` 把 `BaseResponse` 标为 `@deprecated` 并建议改用 `@walnut/contract/response` 的 `ResponseBase`，但桶入口导出的仍是 `BaseResponse`，**没有**导出 `ResponseBase`（后者只在 `src/types.ts:5` 为重导出）。
 - **axios 模块增强有两份**：`src/types.ts` 里那份已收进包，`apps/admin/src/utils/axios/types.d.ts` 里还有一份逐字重复的 `declare module 'axios'` —— 迁移没删干净。
 - **merge adapter 的响应分发是占位逻辑**：`adapters/merge.ts` 自己的注释写着 `Assume API returns data in format { [paramValue]: responseData }`、`should be adjusted according to actual API response format`；且 `_mergeRequest` 全仓只在 `apps/admin/src/views/demo/Extra/Axios.vue` 命中，业务 API 零使用。
-- **旧名的残留面**：`@walnut/axios` 在 `packages/tooling/scripts/src/ci/check-doc-refs.ts` 的 `ALLOWED_MISSING_PACKAGES` 豁免表内，所以门禁不会拦它。2026-09-23 之前这掩盖了一处**真漂移** —— 活文档 `apps/docs/src/zh-CN/content/introduction.md` 的包清单仍把它当现存包（已改正为 `@walnut/http`）。现在提它的只剩**改名决策的历史记录**（ADR 0001/0005/0010/0013/0017）与冻结语料（`industry-research/07`），那两类引用是合理的。
+- **旧名的残留面**：`@walnut/axios` 在 `tooling/scripts/src/ci/check-doc-refs.ts` 的 `ALLOWED_MISSING_PACKAGES` 豁免表内，所以门禁不会拦它。2026-09-23 之前这掩盖了一处**真漂移** —— 活文档 `apps/docs/src/zh-CN/content/introduction.md` 的包清单仍把它当现存包（已改正为 `@walnut/http`）。现在提它的只剩**改名决策的历史记录**（ADR 0001/0005/0010/0013/0017）与冻结语料（`industry-research/07`），那两类引用是合理的。
 
 ## 相关
 
