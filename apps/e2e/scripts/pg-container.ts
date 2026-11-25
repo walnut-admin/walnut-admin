@@ -245,11 +245,11 @@ export interface PgContainerInspection {
 }
 
 /**
- * `docker inspect` 可读性检查（preflight 用）：容器存在且 **running** 才通过。
+ * `docker inspect` 可读性检查（preflight / stack status 用）：容器存在且 **running** 才通过。
  *
- * 失败时不抛 —— preflight 要把所有检查汇总成一份「处置清单」一次打印。
+ * 失败时不抛 —— 调用方要把所有检查汇总成一份「处置清单」一次打印。
  */
-export function inspectPgContainer(container = resolvePgContainer()): PgContainerInspection {
+export function inspectContainer(container: string): PgContainerInspection {
   assertContainerName(container)
   const mode = currentExecMode()
   const result = mode === 'wsl-bash'
@@ -279,4 +279,9 @@ export function inspectPgContainer(container = resolvePgContainer()): PgContaine
     return { ok: false, detail: `容器 ${container} 存在但状态是 ${status === '' ? '未知' : status}（期望 running）` }
   }
   return { ok: true, detail: `容器 ${container} running` }
+}
+
+/** PG 容器的可读性检查（缺省 = 本次解析出的容器名，`E2E_PG_CONTAINER` 优先） */
+export function inspectPgContainer(container = resolvePgContainer()): PgContainerInspection {
+  return inspectContainer(container)
 }

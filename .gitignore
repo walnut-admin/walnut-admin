@@ -78,8 +78,10 @@ apps/server/dist/
 apps/server/.tmp/
 
 # 全链路 E2E（apps/e2e）的本机运行态：
-# .auth = 准备阶段生成的口令与 storageState（只存本机，绝不进仓）；.e2e = 本轮栈信息；
-# 后两项是 Playwright 自己的产物目录。
+# .auth = 准备阶段生成的登录凭据（credentials.json / gate-report.json，只存本机，绝不进仓）；
+# .e2e = 本轮栈信息与封板基线；后两项是 Playwright 自己的产物目录。
+# **不产出 storageState**（不变量 7：IndexedDB 里的 AES CryptoKey 恢复不了，auth.setup 不写盘）；
+# 这里的 `.auth/` 只是凭据目录，别把它当成 storageState 的复用点。
 apps/e2e/.auth/
 apps/e2e/.e2e/
 apps/e2e/test-results/

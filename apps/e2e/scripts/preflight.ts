@@ -76,7 +76,13 @@ const PG_CONTAINER_FIX = [
   'Windows + Docker Desktop 用 E2E_PG_EXEC_MODE=docker 改走原生 docker CLI',
 ].join('\n')
 
-function checkTcp(host: string, port: number): Promise<{ ok: boolean, detail: string }> {
+/**
+ * TCP 可达探测（preflight 与 `scripts/stack.ts` 的 status 共用）。
+ *
+ * 导出它的理由：数据栈状态命令要说的是同一句话「PG / Redis 现在连不连得上」，
+ * 另写一份 setTimeout / connect 的探针只会让两处的超时口径慢慢漂开。
+ */
+export function checkTcp(host: string, port: number): Promise<{ ok: boolean, detail: string }> {
   return new Promise((resolve) => {
     let settled = false
     const socket = connect({ host, port })
@@ -96,7 +102,8 @@ function checkTcp(host: string, port: number): Promise<{ ok: boolean, detail: st
   })
 }
 
-function checkPortFree(port: number): Promise<{ ok: boolean, detail: string }> {
+/** 端口占用探测（preflight 与 `scripts/stack.ts` 的 status 共用；口径同 {@link checkTcp}） */
+export function checkPortFree(port: number): Promise<{ ok: boolean, detail: string }> {
   return new Promise((resolve) => {
     let settled = false
     const finish = (ok: boolean, detail: string): void => {
