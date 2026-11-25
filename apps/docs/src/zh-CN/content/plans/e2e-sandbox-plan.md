@@ -1,6 +1,7 @@
 # E2E 沙盒测试工程：分阶段实施计划
 
 > 状态：【进行中——Phase 1 已完成并通过 review 修复，Phase 2/3 未开始】2026-11-24 立项。前期设计与可行性结论记录在本文；**前期设计稿本身未入库**（对话产物），本文是它入库后的唯一真源。
+> **2026-11-25 追记**：U8 / U9 flake 的核心修复已在提交 `b21ac118` 落地（删 `networkidle` 无超时等待、新增 `waitForDeviceHealSettled`、自愈后识别并关闭 CAP、点击补 30s 上限），即 §8.3 的 P2-7 核心项；其后 `5067b4aa`（契约 bridge、常量收口、knip 清理＝P2-9 / P2-10 / P2-11）、`18dcc9c6`（CAP PoW 上界与静态代理加固＝P2-16 / P2-17）、`d720c0d3`（慢用例 `test.slow()`＝P2-15）也已落地。Phase 2 的 CI 接线、risk 矩阵 U11–U16 与其余项仍未开始，因此状态行不改为「已完成」。工程细化与优先级见 [apps/e2e 改造优化方案](./e2e-optimization-plan.md)。
 > **定位**：把全链路 E2E 从一次性可行性验证推进成一个长期能跑的测试工程 —— 独立 workspace 包、独立数据栈、可复现的测试数据版本，以及后续的 CI 接线与用例矩阵。本篇是执行蓝图，也是 Phase 1 的实施记录。
 > **读者**：执行 Phase 2/3 的人与 agent；评审 E2E 设计的人。
 > **权威边界**：**为什么这么定**在第 2 节的决策记录与 [ADR 0009](../adr/0009-ci-quality-gates.md) 的 playwright 退役追记；**现在是什么样、怎么跑**在 [`apps/e2e/AGENTS.md`](https://github.com/walnut-admin/walnut-admin/blob/main/apps/e2e/AGENTS.md) 与 [`apps/e2e/README.md`](https://github.com/walnut-admin/walnut-admin/blob/main/apps/e2e/README.md) —— 本篇**不重复**它们的操作细节与不变量；**怎么验**在本篇。与代码冲突时以代码为准。
@@ -86,7 +87,7 @@ PR 的 quality 已经约 30 分钟，且 fork PR 没有 secrets。做法：**nig
 | 阶段 | 内容 | 依赖 | 本地能否完整验证 | 状态 |
 |------|------|------|------------------|------|
 | 1 | 包与数据栈、设备生命周期用例、封板、命令表入口 | 无 | 能（WSL 常驻栈） | 已完成（2026-11-25） |
-| 2 | CI 接线、risk 矩阵补全、review 暂缓项 | 1 | **部分**：nightly 与 artifact 的行为要等 GitHub runner 首跑 | 未开始 |
+| 2 | CI 接线、risk 矩阵补全、review 暂缓项 | 1 | **部分**：nightly 与 artifact 的行为要等 GitHub runner 首跑 | 未开始（P2-9 / P2-10 / P2-11 / P2-15 / P2-16 / P2-17 已落地；P2-7 核心修复已落地、缺 20 次循环证据；CI 与 risk 矩阵未开始） |
 | 3 | 其余模块 spec、设备 profile 矩阵、部署后 smoke | 2 | **部分**：独立 sandbox 部署要主机 / 域名 / 证书 | 未开始 |
 
 ## 4. 通用纪律（每个实施 agent 必读）
@@ -169,7 +170,7 @@ pnpm --filter @walnut/e2e types:check
 
 ## 7. 已知问题与观察项（Phase 2 输入）
 
-1. **U8 / U9 偶发 flake**：自愈后弹出 CAP 对话框（`DEVICE_NEW` / `DEVICE_PRIVATE` 是 critical 因子、CAP token 一次性）撞上 `waitForLoadState('networkidle')` 的**无超时等待** ⇒ 用例在 120s 处超时。修复方向：`networkidle` 加超时 + 自愈后识别 / 关闭 CAP 对话框（review P2-7 一类）。
+1. **U8 / U9 偶发 flake**：自愈后弹出 CAP 对话框（`DEVICE_NEW` / `DEVICE_PRIVATE` 是 critical 因子、CAP token 一次性）撞上 `waitForLoadState('networkidle')` 的**无超时等待** ⇒ 用例在 120s 处超时。修复方向：`networkidle` 加超时 + 自愈后识别 / 关闭 CAP 对话框（review P2-7 一类）。**2026-11-25 已修**（`b21ac118`：`waitForDeviceHealSettled`、删 `networkidle`、CAP 识别 / 关闭、`:visible` 选择器、点击 30s 上限）；仍需按 Phase 2 的完成判据补「20 次循环无复现」证据。
 2. **admin 的 eslint / vite 偶发原生崩溃 `0xC0000005`**：Windows 本机、与负载相关、成因未明（[tooling 计划](./tooling-restructure-plan.md) 第 14 节有排查记录）。处置：重跑；E2E 相关任务一律禁可见窗口。
 3. **knip 已让 `apps/e2e` 可见**：`@walnut/contract` 作为 devDep 未被使用（当前 `apps/e2e` 的源码没有 import 它），另有 16 个未使用导出。清理待做（Phase 2 的 P2-10 / P2-11）。
 4. **`VITE_SERVER_STATIC_PUBLIC_KEY` 修复后 stage / prod 需要重新构建 / 部署**才生效 —— 环境侧的跟进项，不在代码仓内。

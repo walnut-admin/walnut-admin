@@ -395,26 +395,9 @@ pnpm vitest run --coverage --workspace
 
 ### 6.2 放在 monorepo 的哪里
 
-```
-apps/admin/
-├── e2e/                     ← 前端 E2E
-│   ├── login.spec.ts
-│   ├── dashboard.spec.ts
-│   └── playwright.config.ts
-└── src/
-```
-
-```jsonc
-// apps/admin/package.json
-{
-  "scripts": {
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
-  }
-}
-```
-
-**关键决策**：E2E 测试放在 `apps/admin/e2e/`（唯一依赖前端 app），**不建议**放在 monorepo 根目录——因为 E2E 只关心 admin 的行为，与 `packages/` 和 `apps/server` 无关。
+> **2026-11 更新（口径已变）**：本仓的全链路 E2E 现在落在独立 workspace 包 `@walnut/e2e`（`apps/e2e/`），不再是 `apps/admin/e2e/`，也不再是「只关心 admin」。它用 Playwright 跑真实浏览器 × dist-stage 后端进程 × 独立 PG / Redis 栈（5433 / 6380，库 `walnut_e2e`），覆盖设备身份签发与续期、CAP、签名握手、风控拦截、登录 / 首页 / 用户 CRUD。判据是：用例需要浏览器、或需要「库被重建过」时才来这一层；`apps/server/apps/api/test/e2e/` 的 vitest 是服务端 HTTP 栈，不是全链路。
+>
+> 现状与后续演进见 [E2E 沙盒测试计划](../plans/e2e-sandbox-plan.md)、[apps/e2e 改造优化方案](../plans/e2e-optimization-plan.md)；行业依据见 [E2E 测试与沙盒环境设计](./08-e2e-and-sandbox-testing.md)。本节原先「把 E2E 放在 `apps/admin/e2e/`、与 server 无关」的建议只适用于早期纯前端阶段，**不再是本仓现状**，故不再保留具体目录示意，避免两处真源。
 
 ---
 
