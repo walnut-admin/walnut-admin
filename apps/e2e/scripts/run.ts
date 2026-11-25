@@ -7,8 +7,8 @@
  *    正在用的库删掉（见 scripts/pg-lock.ts 头注释）；
  * 2. preflight（环境没准备好 ⇒ 退出码 2，此时库还没被碰过）；
  * 3. **基线决策**（scripts/baseline.ts 的 `ensureTestDatabase`）：
- *    清单有效且 HEAD 一致 ⇒ 从基线 restore；没有基线 ⇒ 全量 prepare 后自动封板；
- *    漂移 / 基线文件对不上 ⇒ 退出码 2 并提示重新封板；
+ *    清单有效、dataKey 一致且数据路径干净 ⇒ 从基线 restore；没有基线 ⇒ 全量 prepare 后自动封板；
+ *    dataKey 漂移 / 数据路径脏 / 基线文件对不上 ⇒ 退出码 2 并提示重新封板；
  *    `--rebuild-baseline`（或 `E2E_REBUILD_BASELINE=1`）⇒ 强制全量 prepare + seal；
  *    `E2E_SKIP_BASELINE=1` ⇒ 忽略基线、全量 prepare（不封板）。整段在锁内；
  * 4. stack-info（本轮栈信息 + 产物真实 mtime）；

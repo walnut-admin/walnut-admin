@@ -20,13 +20,15 @@ name: E2E (nightly)
 # 基线清单五样。trace、截图、HTML 报告含请求头与响应体（token、cookie）——**一律不上传**，
 # 这是 `apps/e2e/AGENTS.md` 不变量 8 的直接落地，不改口径。
 #
-# **基线（baseline）在 CI 上走 `E2E_SKIP_BASELINE=1`**，理由（实施时读代码确认，2026-11-25）：
-# 封板 / 恢复用的 `pg_dump` / `pg_restore` 是 `wsl -e bash -c "docker exec e2e-wsl-postgres …"`
-# （apps/e2e/scripts/baseline.ts 的 PG_CONTAINER），而 GitHub runner 上没有 WSL、也没有名为
-# `e2e-wsl-postgres` 的容器（services 容器的名字由 runner 生成）。没有基线时 `run.ts` 会自动
-# 走「全量 prepare + seal」，而 seal 那一步就是上面那条 docker exec —— 在 runner 上必然失败。
-# 所以这里显式跳过基线：全量 prepare（迁移 + seed + 提升 root + CAP 放宽）在测试栈是秒级，
-# 换来一条不依赖容器名的稳定路径。把 PG_CONTAINER 参数化是 P1-1 的范围，本工作流不越界。
+# **基线（baseline）在 CI 上仍走 `E2E_SKIP_BASELINE=1`**（首跑优先绿；所有者 2026-11-25 拍板）。
+# P1-1 已把基线执行层做成可移植（apps/e2e/scripts/pg-container.ts），所以在 runner 上切回基线
+# 路径**只需要删掉下面一步里的 `E2E_SKIP_BASELINE: '1'` 那一行**：
+# - 容器名：`E2E_PG_CONTAINER` 未设时，`CI=true` 且非 WSL 投递会按镜像 `postgres:18-alpine`
+#   解析 service 容器（与下面给 Redis 设口令那一步同一手法 —— runner 生成的容器名不可预知）；
+# - 平台：Linux runner 直接 `docker exec`（不经 WSL）；`pg_dump` / `pg_restore` 在 postgres
+#   官方镜像里自带，端口 / 库名 / 凭据与 `apps/e2e/scripts/env.ts` 同源。
+# 注意 `.e2e/`（基线文件）不跨 run 缓存，所以切回后每轮都是「无基线 → 全量 prepare + seal」；
+# 想验证 restore 路径要另加 cache / artifact 步骤（属后续工作，不在本工作流范围内）。
 
 on:
   schedule:

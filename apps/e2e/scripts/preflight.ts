@@ -11,13 +11,15 @@
  * - 两处 stage 产物（admin `dist-staging/index.html`、server `dist-stage/apps/api/src/main.js`）
  *   → `pnpm walnut build:stage` / `pnpm --filter @walnut/server build:stage`；
  * - PG 5433 / Redis 6380 TCP 可达 → 起数据栈（apps/e2e/README.md 的「数据栈的两种形态」）；
+ * - **PG 容器可读**（P1-1）：基线 dump / restore 要 `docker exec` 进容器；`E2E_SKIP_BASELINE=1`
+ *   时跳过。失败信息给出两种 compose 的启动命令与 `E2E_PG_CONTAINER` 覆盖方式；
  * - 3001 / 3002 / 4173 空闲 → 停掉残留进程（README「排障」的最后一条）；
  * - Playwright 的 chromium 已安装 → `pnpm --filter @walnut/e2e exec playwright install chromium`；
  * - **产物新鲜度**（`scripts/freshness.ts`）：两处 stage 产物是否旧于最近一次源码提交 ——
  *   这一类**只警告不退出**（存在「故意验证旧产物」的合法用法），读数另由 stack.json 记录。
  *
  * 刻意**不查**的东西：库里的表 / seed 状态（prepare-db 会重建，不需要「已经准备好」）、
- * 外网连通性（只有 @network 用例依赖它）。
+ * 外网连通性（只有 @network 用例依赖它）、数据路径脏状态（那是基线决策的事，见 baseline.ts）。
  */
 import { existsSync, readFileSync } from 'node:fs'
 import { connect, createServer } from 'node:net'
@@ -33,6 +35,7 @@ import {
   E2E_REDIS_HOST,
   E2E_REDIS_PORT,
   parseEnvFile,
+  REPO_ROOT,
   SERVER_MAIN_FILE,
   SERVER_STAGE_ENV_FILE,
   SOCKET_PORT,
@@ -40,6 +43,7 @@ import {
 } from './env.ts'
 import { E2ePreconditionError } from './failure.ts'
 import { computeArtifactFreshness, staleArtifacts } from './freshness.ts'
+import { inspectPgContainer, resolvePgContainer, toWslPath } from './pg-container.ts'
 
 interface CheckResult {
   name: string
@@ -51,6 +55,13 @@ interface CheckResult {
 
 const DATA_STACK_FIX = '起数据栈：apps/e2e/README.md「数据栈的两种形态」（WSL 形态还要保持一个隐藏会话，见「WSL 的生命周期」）'
 const PORTS_FIX = '先停掉占用它的残留进程（apps/e2e/README.md「排障」最后一条：netstat -ano | findstr :<端口>）'
+const PG_CONTAINER_FIX = [
+  '起数据栈（两种 compose 任一）：',
+  `  通用形态（Docker Desktop / 原生 Linux）：docker compose -f apps/e2e/docker-compose.yml up -d`,
+  `  WSL 形态（本机）：wsl -e bash -c "docker compose -f ${toWslPath(path.join(REPO_ROOT, 'apps/e2e/docker-compose.wsl.yml'))} up -d"`,
+  '容器名不是默认值时用 E2E_PG_CONTAINER=<容器名>（默认 e2e-wsl-postgres；通用 compose 是 e2e-postgres）',
+  'Windows + Docker Desktop 用 E2E_PG_EXEC_MODE=docker 改走原生 docker CLI',
+].join('\n')
 
 function checkTcp(host: string, port: number): Promise<{ ok: boolean, detail: string }> {
   return new Promise((resolve) => {
@@ -120,6 +131,19 @@ function checkArtifact(name: string, file: string, fix: string): CheckResult {
     : { name, ok: false, detail: `缺 ${file}`, fix }
 }
 
+/** 基线 dump / restore 的容器可读性（P1-1）；跳过基线的运行（CI / 逃生口）不查 */
+function checkPgContainer(): CheckResult {
+  const name = 'PG 容器（基线 dump / restore）'
+  if (process.env.E2E_SKIP_BASELINE === '1') {
+    return { name, ok: true, detail: 'E2E_SKIP_BASELINE=1：本轮不封板 / 不恢复，跳过' }
+  }
+  const container = resolvePgContainer()
+  const inspection = inspectPgContainer(container)
+  return inspection.ok
+    ? { name, ok: true, detail: inspection.detail }
+    : { name, ok: false, detail: inspection.detail, fix: PG_CONTAINER_FIX }
+}
+
 function checkChromium(): CheckResult {
   try {
     const executable = chromium.executablePath()
@@ -181,6 +205,7 @@ export async function runPreflight(): Promise<void> {
     checkArtifact('admin 产物', ADMIN_INDEX_FILE, 'pnpm walnut build:stage'),
     checkArtifact('server 产物', SERVER_MAIN_FILE, 'pnpm --filter @walnut/server build:stage'),
     checkChromium(),
+    checkPgContainer(),
   ]
 
   for (const service of [

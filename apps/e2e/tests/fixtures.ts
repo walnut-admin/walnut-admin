@@ -56,14 +56,18 @@ const STACK_ATTACH_FIELDS = [
   'credentialsFile',
 ] as const
 
-/** 封板清单的字段（全是元数据：sha / 迁移头 / 菜单行数 / HEAD，没有口令） */
+/** 封板清单的字段（全是元数据：dataKey / sha / 迁移头 / 菜单行数 / HEAD，没有口令） */
 const MANIFEST_ATTACH_FIELDS = [
   'manifestVersion',
   'sealedAt',
   'gitCommit',
+  'dataKey',
+  'dataDirty',
   'migrationsHead',
   'dumpSha256',
   'dumpBytes',
+  'credentialsSha256',
+  'credentialsBytes',
   'menuRows',
 ] as const
 
