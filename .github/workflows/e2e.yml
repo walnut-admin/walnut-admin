@@ -7,6 +7,17 @@ name: E2E (nightly)
 # - fork PR 拿不到 ENV_KEYS secret（没有解密后的 stage env 就构建不出 admin 产物）；
 # - 全量 E2E 的职责是「长尾 + 真实链路」的周期性证据，不是合并阻塞项。
 #
+# **矩阵：stack-per-profile（P1-6 Phase A，2026-11-26）**
+# - 三个 job 并行，每个 job 一个 profile（`smoke` / `risk` / `network`），`fail-fast: false`：
+#   一个 profile 红，其余 job 照跑（失败隔离）。三个 job 的并集就是改造前 `pnpm walnut e2e` 的覆盖面
+#   （`@network` 只由 network job 跑；risk 的 grepInvert 不变）。
+# - 每个 job 独立 checkout + 独立 services（PG / Redis），天然隔离；`E2E_STACK_PROFILE` 决定库名、
+#   后端 / socket / 静态代理端口与基线目录（见 apps/e2e/scripts/stack-profiles.ts，单一真源）。
+# - `--project=${{ matrix.profile }}` 与 profile 同名 1:1；`scripts/run.ts` 还会机械校验
+#   （命名 profile 跑别的 project 直接按退出码 2 拒绝），所以一个 job 不可能跑别的 profile 的用例。
+# - **代价**：三个 job 各跑一遍 install / `pnpm build` / 两处 stage / playwright install，总机器时间
+#   约 3×；墙钟从「串行全量」降到「最慢的 profile + 固定开销」。nightly 场景用时长换反馈速度。
+#
 # 三条**硬约束**（踩过或差点踩过的坑）：
 # 1. **secrets 不写进 step/job 的 `if`**：该位置不暴露 secrets 上下文，整个文件会被判
 #    "Invalid workflow file" —— 启动即失败、0 个 job（2026-08-13 到 09-21 本仓 CI 就这样静默失效过五周）。
@@ -14,26 +25,29 @@ name: E2E (nightly)
 # 2. **浏览器不缓存**：`playwright install --with-deps chromium` 每次装。缓存坏了导致假红的排查成本
 #    高于下载时间（计划页 P0-1 改法第 6 条）。
 # 3. **concurrency 固定 group、不取消在途**：同一时间只允许一份 e2e（与本地「一台机器一个全量 run」
-#    同一语义）；nightly 与手动 dispatch 撞车时排队，不互相杀。
+#    同一语义）；nightly 与手动 dispatch 撞车时排队，不互相杀。matrix 的并发在同一个 group 里。
 #
-# **artifact 严格口径**（所有者 2026-11-25 拍板）：只上传 junit / json / 脱敏后端日志 / stack.json /
-# 基线清单五样。trace、截图、HTML 报告含请求头与响应体（token、cookie）——**一律不上传**，
-# 这是 `apps/e2e/AGENTS.md` 不变量 8 的直接落地，不改口径。
+# **artifact 严格口径**（所有者 2026-11-25 拍板）：只上传 junit / results.json / 脱敏后端日志 /
+# stack.json / 基线清单五样，每个 job 的 artifact 名带 profile。trace、截图、HTML 报告含请求头与
+# 响应体（token、cookie）——**一律不上传**，这是 `apps/e2e/AGENTS.md` 不变量 8 的直接落地。
 #
-# **基线（baseline）跨 run 缓存，CI 走基线路径**（所有者 2026-11-26 批准切回；seal 一次、restore 每轮）：
-# - 封板三件套（baseline.dump / baseline.manifest.json / baseline.credentials.json）由 `actions/cache`
-#   跨 run 缓存。key = `e2e-baseline-v<清单格式版本>-<dataKey>`：dataKey 变（seed / 迁移 / 数据工具改）
-#   必然 miss，旧基线也不该被恢复（restore 会因 dataKey 不符拒收）。**只做精确 key，不做
-#   `dataKey-` 前缀兜底**：不匹配的基线只会白占配额。
+# **基线（baseline）跨 run 缓存，按 profile 分开**（所有者 2026-11-26 批准切回；seal 一次、restore 每轮）：
+# - 每个 profile 的封板三件套在 `apps/e2e/.e2e/<profile>/`，cache key =
+#   `e2e-baseline-<profile>-v<清单格式版本>-<dataKey>`：profile 维度防止 risk 的基线被 smoke job
+#   拿走（清单 v3 会因 database / profile 不符拒收，缓存键先分离）；dataKey 变（seed / 迁移 / 数据工具改）
+#   必然 miss。**只做精确 key，不做前缀兜底**。
 # - 缓存未命中（首跑必为 miss）⇒ `ensureTestDatabase` 的全量 prepare + seal 兜底路径自动工作；
 #   job 成功后 `actions/cache` 的 post 步骤自动保存这一份，下一轮起走 restore。
 # - 执行层是可移植的（P1-1，apps/e2e/scripts/pg-container.ts）：`E2E_PG_CONTAINER` 未设时，
-#   `CI=true` 且非 WSL 投递会按镜像 `postgres:18-alpine` 解析 service 容器（与下面给 Redis 设口令
-#   那一步同一手法 —— runner 生成的容器名不可预知）；Linux runner 直接 `docker exec`（不经 WSL）；
-#   `pg_dump` / `pg_restore` 在 postgres 官方镜像里自带，端口 / 库名 / 凭据与 `apps/e2e/scripts/env.ts` 同源。
-# - **回退**：若 restore 路径在 GitHub 上首跑意外红，在 `Run full e2e` 一步加回
-#   `E2E_SKIP_BASELINE: '1'`（退回每轮全量 prepare、不封板），按红日志修完再删掉这一行。
-#   同一个回退动作也写在 apps/e2e/README.md 的「CI 形态（nightly）」一节。
+#   `CI=true` 且非 WSL 投递会按镜像 `postgres:18-alpine` 解析 service 容器；Linux runner 直接
+#   `docker exec`（不经 WSL）；`pg_dump` / `pg_restore` 在 postgres 官方镜像里自带。
+#
+# **`.env.e2e` 的固定路径约束**：prepare-db 写给 typeorm CLI 的 `apps/server/env-local/.env.e2e` 是
+# 固定通道（CLI 用 process.cwd() 定位，没有 --env-file 参数）。CI 每个 job 是**独立 checkout**，
+# 三个 job 并行不会互相覆盖；本地同 checkout 同时起两个 profile 的 run 是**不允许**的（由 run.ts
+# 的全局 advisory lock 串行化，第二个 run 在第一步等锁）。
+#
+# `E2E_SKIP_BASELINE` 已删：CI 走基线路径（缓存 + 全量 prepare 兜底）。不要再把它加回来。
 
 on:
   schedule:
@@ -51,17 +65,25 @@ permissions:
 
 jobs:
   e2e:
-    name: Full e2e (protocol + UI)
+    name: e2e (${{ matrix.profile }})
     runs-on: ubuntu-latest
-    # 全量实测 3–4 分钟；留足 install / 两次 stage 构建 / webServer 180s 与浏览器安装的余量。
+    # 单个 profile 的实测是分钟级；留足 install / 两次 stage 构建 / webServer 180s 与浏览器安装的余量。
     # 必须明显大于 Playwright 的 globalTimeout 与 webServer timeout。
     timeout-minutes: 60
+    strategy:
+      # 失败隔离：一个 profile 红，其余 job 照跑（设计稿 P1-6 的验收）
+      fail-fast: false
+      matrix:
+        profile: [smoke, risk, network]
     env:
       # secrets 上下文不能出现在 `if` 里 → 绑到 job 级 env，在 step 的 shell 里判断（见文件头硬约束 1）
       ENV_KEYS: ${{ secrets.ENV_KEYS }}
+      # profile 决定库名 / 端口 / 基线目录 / IP 段（apps/e2e/scripts/stack-profiles.ts）
+      E2E_STACK_PROFILE: ${{ matrix.profile }}
     services:
-      # 独立数据栈：端口 / 库名 / 凭据必须与 `apps/e2e/scripts/env.ts` **逐字一致**（那是唯一真源，
+      # 独立数据栈：端口 / 凭据必须与 `apps/e2e/scripts/env.ts` **逐字一致**（那是唯一真源，
       # 两份 compose 也照它对齐）。这些是本机测试栈的固定明文，不是 secret。
+      # `POSTGRES_DB` 只是 service 的初始库；prepare-db 会按 profile 建 `walnut_e2e_<profile>`。
       postgres:
         image: postgres:18-alpine
         env:
@@ -151,31 +173,30 @@ jobs:
       # dataKey 是 HEAD 上「决定测试库内容」的路径组合树哈希 —— 同一提交在 CI 与本地算出的值
       # 一致（checkout 是 fetch-depth: 0，无浅克隆）；清单格式版本并进键里，升级即自然失效。
       # 必须放在 `pnpm build` 之后：data-key.ts 经 env.ts 依赖 `@walnut/contract` 的 CJS 产物。
+      # 这里显式带 E2E_STACK_PROFILE（job env 已经设置），确保与 run 的 profile 一致。
       - name: Compute baseline cache key
         id: baseline-key
-        run: echo "key=$(node apps/e2e/scripts/data-key.ts --cache-key)" >> "$GITHUB_OUTPUT"
+        run: echo "key=$(E2E_STACK_PROFILE=${{ matrix.profile }} node apps/e2e/scripts/data-key.ts --cache-key)" >> "$GITHUB_OUTPUT"
 
-      # 只缓存封板三件套，不缓存 `.e2e/` 整目录（里面还有排障残渣）。命中 ⇒ 下一轮 run 走
-      # restore；未命中 ⇒ 全量 prepare + seal，job 成功后本 action 的 post 步骤自动保存。
-      # 注意：恢复出来的清单仍会被 baseline.ts 逐项校验（dataKey / dump 与 credentials 的 sha），
-      # 缓存只是加速，不是信任来源。v5 而不是 v4：与 ci.yml 同口径（v4 跑在 node20 上）。
-      # 这里**不用** rolling key / restore-keys：缓存内容由 `dataKey` 唯一决定，同一 key 下的
-      # 基线是内容不变的，没有「冻在第一次写入」的问题。
+      # 只缓存本 profile 的封板三件套，不缓存 `.e2e/` 整目录（里面还有排障残渣）。命中 ⇒ 下一轮
+      # run 走 restore；未命中 ⇒ 全量 prepare + seal，job 成功后本 action 的 post 步骤自动保存。
+      # 缓存键带 profile：risk 的基线不会流进 smoke job（即使流进去，清单 v3 的 database / profile
+      # 校验也会拒收 —— 缓存只是加速，不是信任来源）。
+      # 这里**不用** rolling key / restore-keys：缓存内容由 (profile, dataKey) 唯一决定。
       - name: Restore baseline cache
         id: baseline-cache
         uses: actions/cache@v5
         with:
           path: |
-            apps/e2e/.e2e/baseline.dump
-            apps/e2e/.e2e/baseline.manifest.json
-            apps/e2e/.e2e/baseline.credentials.json
-          key: e2e-baseline-${{ steps.baseline-key.outputs.key }}
+            apps/e2e/.e2e/${{ matrix.profile }}/baseline.dump
+            apps/e2e/.e2e/${{ matrix.profile }}/baseline.manifest.json
+            apps/e2e/.e2e/${{ matrix.profile }}/baseline.credentials.json
+          key: e2e-baseline-${{ matrix.profile }}-${{ steps.baseline-key.outputs.key }}
 
-      # 全量（含 @network：真实外网定位）。有缓存 ⇒ restore；没有（首跑 / dataKey 变）⇒
-      # 全量 prepare + seal 兜底。**回退口径见文件头**：restore 首跑意外红时加回
-      # `E2E_SKIP_BASELINE: '1'`。
-      - name: Run full e2e
-        run: pnpm walnut e2e
+      # 每个 job 只跑与自己同名的 project（profile 与 project 1:1；scripts/run.ts 仍会机械校验）。
+      # 有缓存 ⇒ restore；没有（首跑 / dataKey 变）⇒ 全量 prepare + seal 兜底。
+      - name: Run e2e (${{ matrix.profile }})
+        run: pnpm walnut e2e --project=${{ matrix.profile }}
 
       # 兜底脱敏：主路径已在 scripts/start-backend.ts 的写入处脱敏；这里防「包装脚本没跑成 /
       # 文件被别的路径写脏」。artifact 一旦上传就不可收回，多跑一遍是毫秒级成本。
@@ -183,13 +204,13 @@ jobs:
         if: always()
         run: node apps/e2e/scripts/redact-log.ts apps/e2e/test-results/backend.log
 
-      # **严格口径**：只这五样。trace / 截图 / HTML 报告一律不上传（不变量 8）。
+      # **严格口径**：只这五样，文件名带 profile（每个 job 独立 checkout，路径不冲突）。
       # `include-hidden-files` 是为 `.e2e/`（点目录）里的 stack.json 与基线清单 —— 默认会跳过。
       - name: Upload diagnostics (strict allow-list)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-diagnostics
+          name: e2e-diagnostics-${{ matrix.profile }}
           retention-days: 7
           if-no-files-found: warn
           include-hidden-files: true
@@ -197,5 +218,5 @@ jobs:
             apps/e2e/test-results/junit.xml
             apps/e2e/test-results/results.json
             apps/e2e/test-results/backend.log
-            apps/e2e/.e2e/stack.json
-            apps/e2e/.e2e/baseline.manifest.json
+            apps/e2e/.e2e/${{ matrix.profile }}/stack.json
+            apps/e2e/.e2e/${{ matrix.profile }}/baseline.manifest.json
