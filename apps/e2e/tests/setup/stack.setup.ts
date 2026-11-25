@@ -78,8 +78,8 @@ test('stack：后端就绪 + admin 真实绑定 TOTP + root 权限可用', async
 
   // root 可用性：`${SystemRoutes.USER}/list` 是 permission.guard 的短路通路（roleNames[0]==='root'）
   // `/list` 后缀不在 contract 的命名端点里（e2e 侧组合，别为它改契约）。
-  // 显式泛型取生成物的分页壳组件：路径级响应被 server swagger 多包了一层数组（见
-  // lib/protocol/api-types.ts 的 SystemUserListPage），这里对着真实 wire 形状断言。
+  // P2-6 修复后生成物的路径级响应就是真实 wire（data 是单个分页壳对象），SystemUserListPage
+  // 直接从路径推导（见 lib/protocol/api-types.ts）；下面的断言仍对着真实形状。
   const list = await client.root<SystemUserListPage>('POST', `${SystemRoutes.USER}/list`, { page: { page: 1, pageSize: 10 } })
   expect(typeof list.total).toBe('number')
   expect(Array.isArray(list.data), 'user/list 缺 data 数组').toBe(true)
@@ -90,7 +90,13 @@ test('stack：后端就绪 + admin 真实绑定 TOTP + root 权限可用', async
   }
   expect(typeof firstUser.id).toBe('string')
   expect(typeof firstUser.userName).toBe('string')
-  expect(typeof firstUser.nickName).toBe('string')
+  // nickName 是 nullable 列（新建用户不传即 null）：只断言「字段存在 + string | null」，
+  // 避免将来 list 首行恰是 null-nickName 用户时假红（P2-6 偏差 3 的断言小项）。
+  expect(firstUser.nickName, 'user/list 行缺 nickName 字段').not.toBeUndefined()
+  expect(
+    firstUser.nickName === null || typeof firstUser.nickName === 'string',
+    'user/list 行的 nickName 应为 string | null',
+  ).toBe(true)
   expect(typeof firstUser.status).toBe('boolean')
   expect(typeof firstUser.roles_count, 'user/list 行缺 roles_count').toBe('number')
 

@@ -38,9 +38,13 @@ export class SysUserDTOBase extends WalnutAdminCommonBasicModel {
     swaggerOptions: {
       title: 'user nick name',
       description: 'feel free to change',
+      // sys_user.nick_name 可空（新建用户不传 nickName 即为 null），响应面必须标 nullable，
+      // 否则生成类型是 string、运行时却是 null（P2-6 偏差 3）。`default: null` 保留 ——
+      // 它是本仓「可选 / 可空字段」的标记（dto.md「字段声明不要 ? 与 !」），与 deptId 同款。
+      nullable: true,
     },
   })
-  nickName: string
+  nickName: string | null
 
   @WalnutAdminDecoratorFieldNumber({
     default: null,

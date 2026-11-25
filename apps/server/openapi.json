@@ -1380,24 +1380,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/AppMonitorUserDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/AppMonitorUserDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/AppMonitorUserDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -5614,24 +5597,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/AppDemoDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/AppDemoDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/AppDemoDTOSafeListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -5985,24 +5951,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysDeletedDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysDeletedDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysDeletedDTOSafeListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -6875,24 +6824,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/AppMonitorCacheDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/AppMonitorCacheDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/AppMonitorCacheDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -8450,24 +8382,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/AppSettingDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/AppSettingDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/AppSettingDTOSafeListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -8693,24 +8608,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/AppLoggerDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/AppLoggerDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/AppLoggerDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -9895,24 +9793,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysDeviceDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysDeviceDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysDeviceDTOSafeListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -10392,24 +10273,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysLangDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysLangDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysLangDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -11407,24 +11271,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysLocaleDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysLocaleDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysLocaleDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -12141,24 +11988,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysDictTypeDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysDictTypeDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysDictTypeDTOSafeListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -12872,24 +12702,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysDictDataDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysDictDataDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysDictDataDTOSafeListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -13834,24 +13647,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysDeptDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysDeptDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysDeptDTOSafeListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -14447,24 +14243,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysPostDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysPostDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysPostDTOSafeListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -15306,24 +15085,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysEmployeeDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysEmployeeDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysEmployeeDTOSafeListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -15677,24 +15439,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysLogAuthDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysLogAuthDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysLogAuthDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -16166,24 +15911,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysLogOperateDTOListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysLogOperateDTO"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysLogOperateDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -16900,24 +16628,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysMenuDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysMenuDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysMenuDTOSafeListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -17397,24 +17108,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysRoleDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysRoleDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysRoleDTOSafeListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -18010,24 +17704,7 @@
                     {
                       "properties": {
                         "data": {
-                          "type": "array",
-                          "items": {
-                            "allOf": [
-                              {
-                                "$ref": "#/components/schemas/SysUserDTOSafeListResponse"
-                              },
-                              {
-                                "properties": {
-                                  "data": {
-                                    "type": "array",
-                                    "items": {
-                                      "$ref": "#/components/schemas/SysUserDTOSafe"
-                                    }
-                                  }
-                                }
-                              }
-                            ]
-                          }
+                          "$ref": "#/components/schemas/SysUserDTOListResponse"
                         },
                         "code": {
                           "type": "number",
@@ -23281,7 +22958,8 @@
             "type": "string",
             "default": null,
             "title": "user nick name",
-            "description": "feel free to change"
+            "description": "feel free to change",
+            "nullable": true
           },
           "age": {
             "type": "number",
@@ -26768,7 +26446,8 @@
             "type": "string",
             "default": null,
             "title": "user nick name",
-            "description": "feel free to change"
+            "description": "feel free to change",
+            "nullable": true
           },
           "age": {
             "type": "number",
@@ -26894,7 +26573,8 @@
             "type": "string",
             "default": null,
             "title": "user nick name",
-            "description": "feel free to change"
+            "description": "feel free to change",
+            "nullable": true
           },
           "id": {
             "type": "string",
@@ -30045,14 +29725,58 @@
           "roles"
         ]
       },
-      "SysUserDTOSafeListResponse": {
+      "SysUserDTOSafePartialPickIdUserNameNickNameStatusCreatedAtUpdatedAtRoles_count": {
+        "type": "object",
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default createdAt",
+            "description": "If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "title": "default updatedAt",
+            "description": "If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying"
+          },
+          "userName": {
+            "type": "string",
+            "default": null,
+            "title": "user name",
+            "description": "should be unique, used for normal password sign in"
+          },
+          "nickName": {
+            "type": "string",
+            "default": null,
+            "title": "user nick name",
+            "description": "feel free to change",
+            "nullable": true
+          },
+          "status": {
+            "type": "boolean",
+            "default": true,
+            "title": "user status",
+            "description": "false => user cannot sign in anymore, also should ban tokens as well"
+          },
+          "roles_count": {
+            "type": "number",
+            "title": "virtual roles count"
+          },
+          "id": {
+            "type": "string",
+            "default": null
+          }
+        }
+      },
+      "SysUserDTOListResponse": {
         "type": "object",
         "properties": {
           "data": {
             "title": "list response data",
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/SysUserDTOSafe"
+              "$ref": "#/components/schemas/SysUserDTOSafePartialPickIdUserNameNickNameStatusCreatedAtUpdatedAtRoles_count"
             }
           },
           "total": {
@@ -30149,7 +29873,8 @@
             "type": "string",
             "default": null,
             "title": "user nick name",
-            "description": "feel free to change"
+            "description": "feel free to change",
+            "nullable": true
           },
           "gender": {
             "type": "number",

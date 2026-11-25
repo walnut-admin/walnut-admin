@@ -3378,7 +3378,7 @@ export interface components {
              * @description feel free to change
              * @default null
              */
-            nickName: string;
+            nickName: string | null;
             /**
              * age
              * @description should be int and positive
@@ -5289,7 +5289,7 @@ export interface components {
              * @description feel free to change
              * @default null
              */
-            nickName: string;
+            nickName: string | null;
             /**
              * age
              * @description should be int and positive
@@ -5374,7 +5374,7 @@ export interface components {
              * @description feel free to change
              * @default null
              */
-            nickName: string;
+            nickName: string | null;
             /** @default null */
             id?: string;
             /**
@@ -7339,9 +7339,45 @@ export interface components {
              */
             deptId?: string | null;
         };
-        SysUserDTOSafeListResponse: {
+        SysUserDTOSafePartialPickIdUserNameNickNameStatusCreatedAtUpdatedAtRoles_count: {
+            /**
+             * default createdAt
+             * Format: date-time
+             * @description If you change the field name of createdAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            createdAt?: string;
+            /**
+             * default updatedAt
+             * Format: date-time
+             * @description If you change the field name of updatedAt through the schema configuration, omit the prop and declare your own time field. It is optional and eliminated when entering the parameter to prevent this field from being changed by mistake when modifying
+             */
+            updatedAt?: string;
+            /**
+             * user name
+             * @description should be unique, used for normal password sign in
+             * @default null
+             */
+            userName?: string;
+            /**
+             * user nick name
+             * @description feel free to change
+             * @default null
+             */
+            nickName?: string | null;
+            /**
+             * user status
+             * @description false => user cannot sign in anymore, also should ban tokens as well
+             * @default true
+             */
+            status?: boolean;
+            /** virtual roles count */
+            roles_count?: number;
+            /** @default null */
+            id?: string;
+        };
+        SysUserDTOListResponse: {
             /** list response data */
-            data: components["schemas"]["SysUserDTOSafe"][];
+            data: components["schemas"]["SysUserDTOSafePartialPickIdUserNameNickNameStatusCreatedAtUpdatedAtRoles_count"][];
             /** list total count */
             total: number;
         };
@@ -7410,7 +7446,7 @@ export interface components {
              * @description feel free to change
              * @default null
              */
-            nickName: string;
+            nickName: string | null;
             /**
              * gender
              * @description follow GB standard, go internet it
@@ -8503,9 +8539,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["AppMonitorUserDTOListResponse"] & {
-                            data?: components["schemas"]["AppMonitorUserDTO"][];
-                        })[];
+                        data?: components["schemas"]["AppMonitorUserDTOListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -9905,9 +9939,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["AppDemoDTOSafeListResponse"] & {
-                            data?: components["schemas"]["AppDemoDTOSafe"][];
-                        })[];
+                        data?: components["schemas"]["AppDemoDTOSafeListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -10016,9 +10048,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysDeletedDTOSafeListResponse"] & {
-                            data?: components["schemas"]["SysDeletedDTOSafe"][];
-                        })[];
+                        data?: components["schemas"]["SysDeletedDTOSafeListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -10270,9 +10300,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["AppMonitorCacheDTOListResponse"] & {
-                            data?: components["schemas"]["AppMonitorCacheDTO"][];
-                        })[];
+                        data?: components["schemas"]["AppMonitorCacheDTOListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -10752,9 +10780,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["AppSettingDTOSafeListResponse"] & {
-                            data?: components["schemas"]["AppSettingDTOSafe"][];
-                        })[];
+                        data?: components["schemas"]["AppSettingDTOSafeListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -10824,9 +10850,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["AppLoggerDTOListResponse"] & {
-                            data?: components["schemas"]["AppLoggerDTO"][];
-                        })[];
+                        data?: components["schemas"]["AppLoggerDTOListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -11189,9 +11213,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysDeviceDTOSafeListResponse"] & {
-                            data?: components["schemas"]["SysDeviceDTOSafe"][];
-                        })[];
+                        data?: components["schemas"]["SysDeviceDTOSafeListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -11341,9 +11363,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysLangDTOListResponse"] & {
-                            data?: components["schemas"]["SysLangDTO"][];
-                        })[];
+                        data?: components["schemas"]["SysLangDTOListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -11655,9 +11675,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysLocaleDTOListResponse"] & {
-                            data?: components["schemas"]["SysLocaleDTO"][];
-                        })[];
+                        data?: components["schemas"]["SysLocaleDTOListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -11879,9 +11897,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysDictTypeDTOSafeListResponse"] & {
-                            data?: components["schemas"]["SysDictTypeDTOSafe"][];
-                        })[];
+                        data?: components["schemas"]["SysDictTypeDTOSafeListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -12103,9 +12119,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysDictDataDTOSafeListResponse"] & {
-                            data?: components["schemas"]["SysDictDataDTOSafe"][];
-                        })[];
+                        data?: components["schemas"]["SysDictDataDTOSafeListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -12395,9 +12409,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysDeptDTOSafeListResponse"] & {
-                            data?: components["schemas"]["SysDeptDTOSafe"][];
-                        })[];
+                        data?: components["schemas"]["SysDeptDTOSafeListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -12583,9 +12595,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysPostDTOSafeListResponse"] & {
-                            data?: components["schemas"]["SysPostDTOSafe"][];
-                        })[];
+                        data?: components["schemas"]["SysPostDTOSafeListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -12847,9 +12857,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysEmployeeDTOSafeListResponse"] & {
-                            data?: components["schemas"]["SysEmployeeDTOSafe"][];
-                        })[];
+                        data?: components["schemas"]["SysEmployeeDTOSafeListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -12958,9 +12966,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysLogAuthDTOListResponse"] & {
-                            data?: components["schemas"]["SysLogAuthDTO"][];
-                        })[];
+                        data?: components["schemas"]["SysLogAuthDTOListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -13105,9 +13111,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysLogOperateDTOListResponse"] & {
-                            data?: components["schemas"]["SysLogOperateDTO"][];
-                        })[];
+                        data?: components["schemas"]["SysLogOperateDTOListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -13329,9 +13333,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysMenuDTOSafeListResponse"] & {
-                            data?: components["schemas"]["SysMenuDTOSafe"][];
-                        })[];
+                        data?: components["schemas"]["SysMenuDTOSafeListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -13481,9 +13483,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysRoleDTOSafeListResponse"] & {
-                            data?: components["schemas"]["SysRoleDTOSafe"][];
-                        })[];
+                        data?: components["schemas"]["SysRoleDTOSafeListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000
@@ -13669,9 +13669,7 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        data?: (components["schemas"]["SysUserDTOSafeListResponse"] & {
-                            data?: components["schemas"]["SysUserDTOSafe"][];
-                        })[];
+                        data?: components["schemas"]["SysUserDTOListResponse"];
                         /**
                          * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
                          * @default 20000

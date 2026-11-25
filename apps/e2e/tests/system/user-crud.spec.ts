@@ -67,7 +67,7 @@ test('用户 CRUD：root 造 → 改 → 查列表 → 删', { tag: '@smoke' }, 
     expect(updated.status).toBe(false)
 
     // 3. 查列表：唯一前缀 + like，只应命中这一条。
-    //    显式泛型取生成物的分页壳组件（路径级响应被 server swagger 多包了一层数组，
+    //    显式泛型 SystemUserListPage 已从路径级响应推导（P2-6 修复后 data 是单个分页壳对象，
     //    见 lib/protocol/api-types.ts）；下面的 typeof / 枚举断言仍是「字段缺失」的可读判据。
     const list = await client.root<SystemUserListPage>('POST', `${SystemRoutes.USER}/list`, {
       filters: [{ field: 'userName', op: 'like', value: userName }],
@@ -84,6 +84,8 @@ test('用户 CRUD：root 造 → 改 → 查列表 → 删', { tag: '@smoke' }, 
     expect(typeof row.id).toBe('string')
     expect(typeof row.userName).toBe('string')
     expect(row.userName).toBe(userName)
+    // nickName 是 nullable 列：本用例创建时没传，list 行必须是 null（P2-6 偏差 3 的 wire 事实）
+    expect(row.nickName).toBeNull()
     expect(typeof row.status).toBe('boolean')
     expect(row.status).toBe(false)
     expect(typeof row.roles_count, 'user/list 行缺 roles_count').toBe('number')

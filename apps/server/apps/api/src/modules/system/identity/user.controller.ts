@@ -47,6 +47,10 @@ const {
 } = WalnutCrudDecorators({
   title: WalnutAdminConstDecoratorLogOperateTitle.USER,
   DTO: SysUserDTOSafe,
+  // list 行不是完整 SysUserDTOSafe：controller 返回的 SysUserDTOListResponse 只 pick
+  // id/userName/nickName/status/createdAt/updatedAt/roles_count（P2-6 偏差 2）。
+  // 把真实响应类交给 list 装饰器，swagger 行 schema 才与 wire 一致。
+  listResponseDTO: SysUserDTOListResponse,
 })
 
 /**
