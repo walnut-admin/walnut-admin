@@ -41,6 +41,10 @@ pnpm walnut e2e:smoke     # 冒烟：setup + UI 登录 / 首页 / 用户 CRUD
 pnpm walnut e2e:risk      # 设备生命周期（不含 @network）
 pnpm walnut e2e:network   # 只跑 @network（依赖真实外网）
 pnpm walnut e2e:report    # 打开上一轮 HTML 报告（常驻本地服务）
+pnpm walnut e2e:stack:status   # 数据栈状态（容器 / PG·Redis / 端口 / 基线；只读）
+pnpm walnut e2e:stack:up       # 起数据栈（自动选 WSL / 通用 compose；不碰 Playwright）
+pnpm walnut e2e:stack:down     # 停数据栈（默认保留数据卷；--volumes 连卷删）
+pnpm walnut e2e:clean          # 清 .e2e 调试残渣（dry-run 默认；保留基线三件套与 stack.json）
 pnpm --filter @walnut/e2e e2e -- --rebuild-baseline  # 强制全量 prepare + 重新封板 + 跑用例
 node apps/e2e/scripts/preflight.ts   # 只查前置，不动库
 node apps/e2e/scripts/prepare-db.ts  # 只重建库（自己抢锁、只罩这一段；不封板）
@@ -96,9 +100,9 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
    globalSetup 启动，而 webServer 里的后端一连库就要有库。别把建库 / 恢复挪进 globalSetup。
 4. **`POST /system/device/initial` 是 4 次 / 60 秒 per realIp**：每条用例、每个协议客户端都要一个
    独立的 127/8 地址（`uniqueLocalIp()`）。共用 127.0.0.1 会让第 5 台设备登记撞 42900。
-5. **Redis 只按 deviceId 精确删**（`deleteDeviceScopedKeys`），**绝不 FLUSHDB / FLUSHALL**
-   （compose 里这两个命令已被重命名禁用）。键形对齐 `apps/server/libs/const/src/app/cache.ts`，
-   服务端改键形时这里要同步。
+5. **Redis 只按 deviceId 精确删**（`deleteDeviceScopedKeys`；`scripts/redis-gc.ts` 的跨轮对账
+   同样只 SCAN + 精确 DEL），**绝不 FLUSHDB / FLUSHALL**（compose 里这两个命令已被重命名禁用）。
+   键形对齐 `apps/server/libs/const/src/app/cache.ts`，服务端改键形时这里要同步。
 6. **一台机器同一时间一个全量 run**：锁在 `scripts/pg-lock.ts`，由 `run.ts` 整轮持有。两个
    worktree 并发时第二个等锁，120s 内抢不到就报持锁者并退出（不排队、不静默）。
 7. **storageState 不可复用**（IndexedDB 里的 AES `CryptoKey` 恢复不了，Phase 0 gate 已判死）：

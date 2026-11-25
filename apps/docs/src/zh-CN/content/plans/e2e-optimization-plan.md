@@ -670,7 +670,7 @@ jobs:
   3. 每个 profile 的 fixture 只删**本进程登记**的 deviceId（PG 行 + Redis 键），登记集合在进程内存里，天然不含别的 profile；
   4. 收尾探针（建议随实施加进 `run.ts`）：把本 profile 的设备 id 列表拿到**其它 profile 的库**上 `SELECT count(*) FROM sys_device WHERE device_id = ANY(...)`，必须为 0 —— 这就是「串写 ⇒ 红」的机械判据。
 - **清理责任**：设备 / Redis 清理仍归 `tests/fixtures.ts` 的两个 auto fixture（不变量 10）；profile 只影响连接目标，不改变归属。运行时重置按 profile 作用：credentials 路径 per profile；`walnut_app` 口令是**集群级角色**，所有 profile 写同一个固定值，不冲突。
-- **崩溃残留的 GC**：归 **P2-2 redis-gc**（尚未实施）。profile 化之后它的口径是「按当前 profile 的库查 `sys_device`，清该库对应设备的孤儿键」，仍是精确删、不 FLUSH；各 profile 的孤儿由各自 restore 后的 GC 负责。本设计不重做 P2-2。
+- **崩溃残留的 GC**：归 **P2-2 redis-gc**（已实施，见 §3.3 的落地记录）。profile 化之后它的口径是「按当前 profile 的库查 `sys_device`，清该库对应设备的孤儿键」，仍是精确删、不 FLUSH；各 profile 的孤儿由各自 restore 后的 GC 负责。本设计不重做 P2-2。
 
 ###### 5. 落地顺序与验收（每步独立可回滚）
 
@@ -724,6 +724,20 @@ jobs:
 **不变量**：5（精确删，不 FLUSH）是这条的核心；不碰其他。
 **工作量**：S–M。
 
+**落地记录（2026-11-25）**：`apps/e2e/scripts/redis-gc.ts` 落地。键形表 `DEVICE_KEY_FAMILIES`
+逐条对齐服务端的 `WalnutAdminConstAppCacheKeys` 与 risk / murlock 的拼法（设备缓存、续期时间闸、
+`AUTH:SESSIONS` / `PERMISSIONS` / `MFA:*` / `OPAQUE_STATE`、`SECURITY:SIGN:*` / `CAP_TOKEN` / `RSA:PUB_KEY` /
+`LOCK`、`risk:device` / `user_device` / `failed_login` / `rate:device` / `challenge:*`、`APP:MURLOCK:*`）；deviceId 必须落在
+**该键形的已知槽位**且通过 `d1_` + 32 hex 判据，再查 `sys_device` —— 设备存在就一个键都不动，不存在才
+`DEL` 精确键名（分批）。SCAN 只走白名单前缀，永不扫 `*`、永不 FLUSH。
+接入 `apps/e2e/scripts/run.ts` 第 4 步（锁内、`ensureTestDatabase` 之后；restore / 全量 prepare 都跑）：
+默认**开**（库刚重建，「不在库里的 deviceId」就是确定孤儿），`E2E_REDIS_GC=0` 关，失败只 WARN 不拦测试；
+独立入口 `node apps/e2e/scripts/redis-gc.ts [--dry-run]`。纯函数（键形解析 → 对账判定 → 分批）由
+`apps/e2e/scripts/redis-gc.test.ts` 覆盖。负对照：`sys_device` 建 1 行 + 4 个键（3 个孤儿：`risk:device`、
+`risk:challenge:device`、`AUTH:SESSIONS`；1 个有效：`SYSTEM:DEVICE`），GC 后孤儿全删、有效键保留、
+`APP:SETTING` / LOCALE / `risk:location:*` 等非设备键不动；同时清掉了栈里积压的历史孤儿键。
+compose 的 `FLUSHDB` / `FLUSHALL` 实测返回 `ERR unknown command`。
+
 #### P2-3 局部健壮性（`18dcc9c6` 已落地，保留回归验证）
 
 **动机**：`apps/e2e/scripts/static-server.ts` 曾对 URL 直接 `decodeURIComponent`，畸形 `%` 会抛异常；`apps/e2e/lib/protocol/sign.ts` 的 PoW 求解曾是 `for (;;)`，难例可能长时间占用单 worker；`uniqueLocalIp()` 在 240 个地址后回绕，且两处用例硬编码 `1.1.1.1`。
@@ -755,7 +769,17 @@ jobs:
 **不变量**：7（storageState 判死）——删除遗留文件正是强化它。
 **工作量**：S–M。
 
-#### P2-6 OpenAPI 三处 schema 偏差（`c5b8ecc5` 已落地）
+**落地记录（2026-11-25）**：命令表新增 `e2e:stack:up` / `e2e:stack:down` / `e2e:stack:status` 与
+`e2e:clean`，实现分别在 `apps/e2e/scripts/stack.ts` 与 `apps/e2e/scripts/clean.ts`。`stack.ts` 复用
+`resolvePgExecMode` / `E2E_PG_CONTAINER` 的容器参数化自动选 WSL 常驻栈或通用 compose（`down` 默认保留
+数据卷，`--volumes` 才连卷删），status 复用 preflight 的 TCP / 端口探针与 baseline 的 `baselineUsable`
+判定，只读、退出码恒 0；up / down 不抢锁、不动库、不碰 Playwright。`clean.ts` 以白名单保留封板三件套与
+`stack.json`，默认 dry-run 列出条目与体积，`--force` 才删且再次校验「只删该目录的直接子项」。
+删除遗留 `.auth/admin.json`（`rg` 复核无代码引用），`.gitignore` 的 `.auth/` 注释改为「不产出
+storageState（不变量 7）」。README 把退出码表前置到顶部，补 `--ui` / `--debug` / 单用例 `-g` 的用法与
+风险（仍整轮持锁、有头窗口、setup 不省），以及 `E2E_*` 开关表（复用 / 跳过基线 / 重新封板 / 关 GC）。
+
+#### P2-6 OpenAPI 三处 schema 偏差（`c5b8ecc5` 主体已落地）
 
 **动机（现象，2026-11-25 核实）**：server 生成的 `apps/server/openapi.json` 有三处与真实 wire 不一致，全部来自 `apps/server/libs/crud/src/list.ts` 的列表装饰器与 user 的 DTO：
 
@@ -775,7 +799,14 @@ jobs:
 2. `WalnutCrudDecorators` 新增可选 `listResponseDTO`：user 传 `SysUserDTOListResponse`，行 schema 变成 `RealPickType(..., [id, userName, nickName, status, createdAt, updatedAt, roles_count])` 子集；未传时仍退回完整 DTO（其余端点行为不变）。
 3. `SysUserDTOBase.nickName` 补 `swaggerOptions.nullable: true`，生成类型变 `string | null`；`default: null` 保留 —— 它是本仓「可选 / 可空字段」的标记（`backend/dto.md`），与 `deptId` 同款。
 
-E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`stack.setup` 的 nickName 断言降为「字段存在 + `string | null`」，user-crud 额外断言新建用户行 `nickName === null`；wire 级断言未放宽。验证：`openapi:check` 零 diff、全仓 `types:check` 17/17、server 单测 960/960、contract 快照无 diff、E2E 全量 13/13（305.6s，restore 路径、dataKey 4aa02695 未漂移）。**同款遗留**：role（行是 `SysRoleDTOSafeWithoutMenus`）/ device / locale 的 list 行也是 pick/omit 子集，本轮未接 `listResponseDTO`，可按同一钩子逐个补。
+E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`stack.setup` 的 nickName 断言降为「字段存在 + `string | null`」，user-crud 额外断言新建用户行 `nickName === null`；wire 级断言未放宽。验证：`openapi:check` 零 diff、全仓 `types:check` 17/17、server 单测 960/960、contract 快照无 diff、E2E 全量 13/13（305.6s，restore 路径、dataKey 4aa02695 未漂移）。
+
+**存量收尾（2026-11-25）**：上一条里「同款遗留」的 role / device / locale 与其余 `RealPartialType(Safe)`
+行端点全部接上 `listResponseDTO` —— 19 个 `WalnutAdminDecoratorList` 端点的 200 行 schema 与 controller
+实际 `plainToInstance` 的分页壳类一一对应（identity 的 `/system/user/identity/list` 本就有专用响应 DTO）。
+生成物 diff 的要点：各端点的行 `required` 全部消失；role 不再声明 `menus` / `deptIds`；device / locale 只列
+`RealPickType` 挑出的字段；deleted 去掉 `content`；旧的 `*DTOSafeListResponse` 组件被真实响应类替换。
+运行时序列化不变（`ApiOkResponse` 只进文档面，响应壳仍由拦截器组装）。
 
 #### 文档同步
 

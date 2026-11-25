@@ -8,6 +8,21 @@
 （`walnut_e2e`）。`scripts/env.ts` 的安全闸在任何破坏性操作之前核对库名与端口 ——
 配错或 env 读串都在 `DROP DATABASE` 之前当场抛错，而不是在之后。
 
+## 退出码（先记住这三档）
+
+| 码 | 含义 | 什么时候出现 |
+|----|------|--------------|
+| 0 | 成功 | 全部用例通过 |
+| 1 | 跑起来了但结果不对 | 用例失败、脚本自身报错、子进程（migration / seed / pg_dump / pg_restore）以其它非零码退出 |
+| 2 | **环境没准备好** | 缺 `.env.stage`、缺 workspace CJS dist 或 stage 产物、PG / Redis 连不上、PG 容器不可读、端口被占、没装 chromium、**基线漂移 / 数据路径脏 / 基线文件不可用**；seed 以 2 退出也原样透传 |
+
+看到 2 就不必怀疑用例：按报错里的「处置」把前置补齐再跑。Playwright 自己的退出码原样透传
+（它用 1 表示有用例失败）。
+
+**退出码的观测口径**：`pnpm walnut e2e` 与 `pnpm -C apps/e2e run e2e` 会原样传出 2；经
+`pnpm --filter @walnut/e2e e2e` 的**递归**形式时，pnpm 会把任何失败统一折成 1 —— 那是 pnpm
+外层的行为，不是脚本的行为（要看 2 就用前两种，或直接 `node apps/e2e/scripts/run.ts`）。
+
 ## 数据栈的两种形态
 
 两份 compose 的**内容同源**（镜像 `postgres:18-alpine` + `redis:8-alpine`、凭据、健康检查、
@@ -19,6 +34,22 @@
 | 通用栈 | `apps/e2e/docker-compose.yml` | Docker 跑在 Windows（Docker Desktop）或原生 Linux | `5433` / `6380` | `walnut-e2e` |
 
 为什么本机放 WSL：Windows 侧直接跑便携二进制会在桌面弹可见终端窗口；WSL 里的进程没有窗口。
+
+### 一条命令（推荐）
+
+`scripts/stack.ts` 按 `E2E_PG_EXEC_MODE` / 平台自动选上面两份 compose（容器名可用
+`E2E_PG_CONTAINER` 覆盖），**只管理数据栈**：不抢 run 级锁、不重建库、不启后端 / 静态代理 /
+Playwright。
+
+```bash
+pnpm walnut e2e:stack:status   # 容器状态 + PG/Redis 可达性 + 3001/3002/4173 占用 + 当前基线状态（只读，退出码恒 0）
+pnpm walnut e2e:stack:up       # docker compose up -d（等 healthy 再用 status 复查）
+pnpm walnut e2e:stack:down     # docker compose down（**保留数据卷**，基线仍可用）
+pnpm walnut e2e:stack:down --volumes   # 连数据卷一起删：下次 up 是空实例，旧基线随之失效
+```
+
+`status` 复用 preflight 的 TCP / 端口探针与 baseline 的判定，不另写一套口径。它**不是门禁**：
+数据栈没起时它只打印 FAIL 行，仍以 0 收场。下面的原始 compose 命令保留给排障与自定义场景。
 
 ### WSL 常驻栈
 
@@ -105,6 +136,8 @@ pnpm walnut e2e:risk    # 设备 ID 全生命周期（不含 @network）
 pnpm walnut e2e:network # 只跑依赖真实外网的用例（当前是 U1b：api.ip.sb 的定位）
 pnpm walnut e2e:affected # 按 git 改动范围选择子集（默认 base=origin/main，见下）
 pnpm walnut e2e:report  # 打开上一轮 HTML 报告
+pnpm walnut e2e:stack:status # 数据栈状态（容器 / PG·Redis 可达 / 端口 / 基线；只读）
+pnpm walnut e2e:clean   # 清理 .e2e 调试文件（dry-run 默认，--force 真删）
 ```
 
 包脚本只是把参数交给 `scripts/run.ts`（`e2e:smoke` = `node scripts/run.ts --project=smoke`），
@@ -129,11 +162,50 @@ WASM 都已自托管（同源加载）；`e2e:network`（当前是 U1b：api.ip.
    prepare 后自动封板；`dataKey` 变了 / 数据路径脏 / 清单对不上 ⇒ **退出码 2** 并提示重新封板；
    `--rebuild-baseline` ⇒ 强制全量 prepare + 重新封板；`E2E_SKIP_BASELINE=1` ⇒ 忽略基线、全量
    prepare（见下面「测试库封板」）；
-4. `stack-info` 写本轮栈信息（含两处产物的**真实 mtime**，用来判断跑的是不是旧产物）；
-5. `playwright test`（webServer 由它起；默认**不复用**已在监听的进程 —— 见下面「退出码」）。
+4. **Redis 设备键对账**（`scripts/redis-gc.ts`，P2-2）：库刚重建完，「不在 `sys_device` 里的
+   deviceId」就是确定的孤儿 —— 按 SCAN 到的**精确键名**删掉（绝不 FLUSH）；默认开，
+   `E2E_REDIS_GC=0` 关，失败只警告不拦测试（见下面「Redis 设备键对账」）；
+5. `stack-info` 写本轮栈信息（含两处产物的**真实 mtime**，用来判断跑的是不是旧产物）；
+6. `playwright test`（webServer 由它起；默认**不复用**已在监听的进程 —— 见上面「退出码（先记住这三档）」）。
 
 设备与 Redis 键的清理由 `tests/fixtures.ts` 的 auto fixture 统一做：断言失败时也会执行，
-不会因为用例末尾的手写清理被跳过而留下残渣。
+不会因为用例末尾的手写清理被跳过而留下残渣。跨轮残留（崩溃 / 中断的 run 留下的设备键）
+由 `scripts/redis-gc.ts` 在每轮库准备之后对账（见下面「Redis 设备键对账」）。
+
+## 调试：`--ui` / `--debug` / 单用例
+
+`run.ts` 只拦截 `--rebuild-baseline`（那是它自己的参数），其余参数**原样透传**给
+`playwright test`。所以 Playwright 的调试开关直接用：
+
+```bash
+pnpm walnut e2e --ui                       # 交互式 UI：时间线 / 每次动作的 DOM 快照 / 重跑单条
+pnpm walnut e2e --debug                    # PWDEBUG：有头浏览器 + Inspector，逐步执行
+pnpm walnut e2e:smoke --debug -g "登录"    # 只调一条；-g 是 Playwright 的标题 / tag 匹配
+pnpm --filter @walnut/e2e e2e -- --ui      # 等价的包内写法（经 pnpm 递归时退出码会被折成 1）
+```
+
+**风险与前提**（三条都不是「别用」，是「知道自己在用」）：
+
+- **它们仍然整轮持有 run 级锁**。UI / Inspector 会一直开着直到你关闭，期间另一台 worktree /
+  另一个终端跑全量只会等锁 120s 后失败（不变量 6）。调完先关 UI 再跑别的。
+- **`--ui` / `--debug` 是有头模式**：会弹浏览器窗口（这是用户主动要的界面，不是脚本偷起的
+  子进程）；`--ui` 还起一个本地 Web 服务（端口随机），不要把它的网络面板外传。
+- **单用例 `-g` 不省前置**：setup project 是 `dependencies`，照样先跑 stack-setup / auth-setup；
+  基线决策、preflight、锁、webServer 启停一分不少。它省的是业务用例的等待，不是环境成本。
+- `-g` 匹配的是「标题路径 + tag」，中文标题在 Git Bash 里加引号；只写 tag 时用 `--grep @smoke`
+  （见下面「标签与选择性执行」）。
+
+## `E2E_*` 开关
+
+`scripts/run.ts` 与 `playwright.config.ts` 实际消费的就是下面这些（数据栈相关的
+`E2E_PG_CONTAINER` / `E2E_PG_EXEC_MODE` 见「测试库封板」的容器一段）：
+
+| 开关 | 用途 | 风险 / 什么时候别用 |
+|------|------|---------------------|
+| `E2E_REUSE_SERVER=1` | 复用 3001 / 3002 / 4173 上已在监听的服务；preflight 改成「可达 + 身份」检查（后端 `/health/ready`、4173 的 index.html） | 后端缓存着**上一个库**的应用设置 memo、静态服务可能伺服旧产物 —— 只有确认「跑的就是本轮产物」时才用；仅本地调试。它不会替你启动服务（见「复用已在监听的进程」） |
+| `E2E_SKIP_BASELINE=1` | 忽略基线、全量 prepare（不封板） | 逃生口：失去了「迁移 / seed 变了」的漂移判定，每轮退回全量重建；只用于排查基线本身的问题，不是日常入口 |
+| `E2E_REBUILD_BASELINE=1` | 等价于 `--rebuild-baseline`：强制全量 prepare + 重新封板 | 会用当前数据替换旧快照；确认迁移 / seed 已提交、数据路径干净再跑。与 `E2E_SKIP_BASELINE=1` 互斥（同时给按退出码 2 拒绝） |
+| `E2E_REDIS_GC=0` | 关掉 run 流程里的 Redis 设备键对账（默认开） | 关掉后崩溃 run 的设备键会跨轮存活（RSA 公钥 30 天、challenge 24h）；只在排查 GC 本身时短暂使用 |
 
 ## 标签与选择性执行
 
@@ -263,22 +335,48 @@ E2E_SKIP_BASELINE=1 pnpm walnut e2e                   # 逃生口：忽略基线
 **本机 prepare 本身已经很快**（本地 PG + 小数据量），所以封板的主要价值是「测试数据版本显式
 可控 + 迁移 / seed 变化可被判漂移」，而不是把分钟级压成秒级 —— 冷启动或大数据量下差距才会明显。
 
-## 退出码
+## 运行时目录与清理（`.e2e`）
 
-| 码 | 含义 | 什么时候出现 |
-|----|------|--------------|
-| 0 | 成功 | 全部用例通过 |
-| 1 | 跑起来了但结果不对 | 用例失败、脚本自身报错、子进程（migration / seed / pg_dump / pg_restore）以其它非零码退出 |
-| 2 | **环境没准备好** | 缺 `.env.stage`、缺 workspace CJS dist 或 stage 产物、PG / Redis 连不上、PG 容器不可读、端口被占、没装 chromium、**基线漂移 / 数据路径脏 / 基线文件不可用**；seed 以 2 退出也原样透传 |
+`apps/e2e/.e2e/` 里同时住着**活文件**和**排障残渣**：
 
-看到 2 就不必怀疑用例：按报错里的「处置」把前置补齐再跑。Playwright 自己的退出码原样透传
-（它用 1 表示有用例失败）。
+- **活的（别删）**：`baseline.dump` / `baseline.manifest.json` / `baseline.credentials.json`
+  （封板三件套）与 `stack.json`（上一轮栈信息）；
+- 其余（`*.log`、临时 `*.json` / `*.ts` / `*.mjs`、截图、trace 目录……）都可以清。
 
-**退出码的观测口径**：`pnpm walnut e2e` 与 `pnpm -C apps/e2e run e2e` 会原样传出 2；经
-`pnpm --filter @walnut/e2e e2e` 的**递归**形式时，pnpm 会把任何失败统一折成 1 —— 那是 pnpm
-外层的行为，不是脚本的行为（要看 2 就用前两种，或直接 `node apps/e2e/scripts/run.ts`）。
+```bash
+pnpm walnut e2e:clean            # dry-run：列出将删条目与总大小（默认，不删）
+pnpm walnut e2e:clean --force    # 真删；只允许删 .e2e 的直接子项，保留名单硬编码在 scripts/clean.ts
+```
 
-### 复用已在监听的进程（`E2E_REUSE_SERVER=1`）
+清理脚本**不碰** `.auth/`（登录凭据与 auth.setup 的 gate-report）、`test-results/` 与
+`playwright-report/`（Playwright 自己的产物）。跑用例期间别清 —— 正在写的日志会被删掉。
+
+## Redis 设备键对账（redis-gc）
+
+设备作用域键（设备缓存、滑动续期时间闸、登录会话 / 权限 / MFA / 签名 / CAP、风控缓存与
+challenge 标记、murlock 锁）都有 TTL，但不短（RSA 公钥 30 天、challenge 24 小时）——
+崩溃 / 中断的 run 会把它们留到下一轮。`scripts/redis-gc.ts` 在**锁内、库准备之后**做一次对账：
+
+1. 只 SCAN 白名单前缀（`WALNUT_CACHE_SYSTEM:DEVICE:*`、`WALNUT_CACHE_AUTH:*`、
+   `WALNUT_CACHE_SECURITY:*`、`risk:device:*`、`risk:rate:device:*`、`risk:challenge:*`、
+   `APP:MURLOCK:*` …，完整表见 `scripts/redis-gc.ts` 的 `DEVICE_KEY_SCAN_PATTERNS`）；
+2. 从键形的**已知槽位**取 deviceId，并要求形态是 `d1_` + 32 位小写 hex（服务端判据同形）；
+3. 查 `sys_device`：设备**不存在**才是孤儿；存在则一个键都不动；
+4. 对孤儿执行 `DEL <精确键名>`（分批）。**绝不 FLUSHDB / FLUSHALL** —— compose 里那两个命令
+   已被重命名为空串禁用，本脚本也不会调用。
+
+```bash
+pnpm walnut e2e:redis-gc            # 独立入口（跑一轮真实对账）
+node apps/e2e/scripts/redis-gc.ts --dry-run   # 只列计划，不删
+E2E_REDIS_GC=0 pnpm walnut e2e      # 关掉 run 流程里的自动对账
+```
+
+默认**开**：run 的第三步刚重建过库，「不在 `sys_device` 里的 deviceId」就是确定的孤儿，留着只会
+跨轮堆积。失败只打印 WARN、不拦测试（cleanup 不该把一轮用例判红）；排障时可以用
+`--dry-run` 先看删除面。负对照（验收证据）：人为造 3 个孤儿键 + 1 个有效设备键，GC 后孤儿全删、
+有效键保留（见优化文档 P2-2 的落地记录）。
+
+## 复用已在监听的进程（`E2E_REUSE_SERVER=1`）
 
 默认**不复用**：3001 上残留的后端进程里缓存了一份应用设置 memo，而库每轮都会重建（全量 prepare
 或从基线 restore，含放宽后的 CAP 节流读），复用它会读到上一个库的状态；4173 上残留的静态服务也
