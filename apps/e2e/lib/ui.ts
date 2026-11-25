@@ -4,14 +4,45 @@
  *
  * 选择器尽量用**结构 / 语义**（autocomplete、form、w-menu、cap-widget）而不是中文文案 ——
  * 文案来自 DB 语言包（sys_locale），换语言就断；结构是组件的契约。
+ *
+ * P2-4 起登录表单 / 侧边栏 / MFA 卡片三处改用 admin 源码里的 `data-testid`：
+ * **testid 优先、旧结构选择器兜底**（逗号选择器在同一个元素上会去重，不是二选一）；
+ * 兜底是为了兼容「admin 已改、stage 产物还没重建」的过渡态，不是长期契约。
+ * 新增依赖页面的选择器时先回 admin 源码加 testid，别把 `:has-text()` 当主选择器。
  */
 import type { BrowserContext, Page, Response } from '@playwright/test'
+import type { WaitBudget } from './wait-budget.ts'
 import process from 'node:process'
 import { expect } from '@playwright/test'
 import { generateSync } from 'otplib'
 import { DEVICE_COOKIE_NAME, readCredentials, WEB_ORIGIN } from '../scripts/env.ts'
 import { WalnutAdminConstAppResponseCode } from './protocol/contract.ts'
 import { redactText } from './redact.ts'
+import { budgetStep, startWaitBudget } from './wait-budget.ts'
+
+/**
+ * 登录链路（打开页面 → 填表 → CAP → MFA → 落地）的**总等待预算**，从链路起点计时。
+ *
+ * 单步 timeout 只作子预算：CAP 求解（60s 消失）与 MFA（20s 落地）都可能在慢环境里各吃一半，
+ * 叠起来就撞全局 120s —— 那里的报错没有现场。90s 留 30s 给失败上下文采集（5s）、
+ * fixture 收尾与导航本身。U8 / U9 的慢用例另按需 `test.slow()`，不靠这里加宽。
+ */
+export const LOGIN_TOTAL_BUDGET_MS = 90_000
+
+/** 该步的 Playwright 超时：`min(步骤上限, 链路剩余预算)`，耗尽时抛出点名步骤的错误 */
+function stepTimeout(budget: WaitBudget, step: string, capMs: number): number {
+  return budgetStep(budget, step, capMs)
+}
+
+/** 登录表单：用户名 / 密码 / 提交（testid 见 admin 的 opaque.vue 与 Extra/Password） */
+const LOGIN_USERNAME_SELECTOR = '[data-testid="login-username"], input[autocomplete="username"]'
+const LOGIN_PASSWORD_SELECTOR = '[data-testid="login-password"], input[autocomplete="current-password"]'
+/** 应用外壳：侧边栏容器与菜单项（testid 见 TheAside/src/menu.vue；导出给用例做计数断言） */
+export const SIDEBAR_MENU_SELECTOR = '[data-testid="sidebar-menu"], .w-menu'
+export const SIDEBAR_MENU_ITEM_SELECTOR = '[data-testid="sidebar-menu-item"], .w-menu .w-menu-item-content'
+/** MFA 验证页：方法卡 / 6 位码输入（testid 见 views/error/MfaVerified/index.vue） */
+const MFA_METHOD_CARD_SELECTOR = '[data-testid="mfa-method-card"]:visible, .w-card:visible'
+const MFA_CODE_INPUT_SELECTOR = '[data-testid="mfa-code-input"]:visible, input[placeholder="000000"]:visible'
 
 /** `useAppStorageSync` 的键 = `WA__<KEY>`（getStorageKey 的默认前缀）+ superjson 包一层 `{v,e,_v}` */
 export const DEVICE_LOCAL_STORAGE_KEY = 'WA__GEO_IP_DEVICE_ID'
@@ -301,7 +332,7 @@ export async function waitForDeviceHealSettled(
       )
     }
 
-    const solved = await solveCapIfPresent(page, 60_000, 15_000)
+    const solved = await solveCapIfPresent(page, { timeoutMs: 60_000, appearTimeoutMs: 15_000 })
     if (!solved) {
       throw new Error(
         '[e2e/ui] 重放吃到 40116（CAP 交互要求），但 15s 内没出现可点的 cap-widget'
@@ -371,6 +402,19 @@ function currentTotp(secret: string): string {
 }
 
 /**
+ * `solveCapIfPresent` 的选项。`budget` 存在时，三步（出现 / 点击 / 消失）都取
+ * `min(本步上限, 链路剩余)` —— CAP 是登录链路里最不可控的一段（WASM 拉取 + PoW），
+ * 不给它单独拖到全局超时的机会。`budgetLabel` 只进报错文案（点名是哪次 CAP）。
+ */
+interface CapSolveOptions {
+  timeoutMs?: number
+  appearTimeoutMs?: number
+  clickTimeoutMs?: number
+  budget?: WaitBudget
+  budgetLabel?: string
+}
+
+/**
  * 若 cap-widget 出现则点它并等它消失。
  *
  * cap.js 的 standalone widget 是一个需要在 shadow DOM 里点一下的复选框；点完它自己做 PoW
@@ -379,11 +423,19 @@ function currentTotp(secret: string): string {
  * **不导出**：解 CAP 的消费方是 {@link waitForDeviceHealSettled}（以及本文件的登录动作），
  * 外部直接点 widget 容易在「40116 属于 CAP 交互要求」这条判据上分叉。
  */
-async function solveCapIfPresent(page: Page, timeoutMs = 60_000, appearTimeoutMs = 6_000): Promise<boolean> {
+async function solveCapIfPresent(page: Page, options: CapSolveOptions = {}): Promise<boolean> {
+  const label = options.budgetLabel ?? 'CAP'
+  // 每一步都**重新**取剩余预算：一次性算三步会把「出现 + 点击 + 消失」各按剩余额度下发，
+  // 合计最多能超出链路预算一倍（例如剩 10s 时三步各给 10s）。CAP 是链路里最不可控的一段，
+  // 必须在每个子步骤前再判一次耗尽。
+  const limit = (step: string, capMs: number): number => options.budget === undefined
+    ? capMs
+    : stepTimeout(options.budget, step, capMs)
+
   const widget = page.locator('cap-widget').first()
 
   try {
-    await widget.waitFor({ state: 'visible', timeout: appearTimeoutMs })
+    await widget.waitFor({ state: 'visible', timeout: limit(`${label}出现`, options.appearTimeoutMs ?? 6_000) })
   }
   catch {
     return false
@@ -391,18 +443,22 @@ async function solveCapIfPresent(page: Page, timeoutMs = 60_000, appearTimeoutMs
 
   // Playwright 的默认 action 超时是 0（跟随用例超时）：被任何 overlay 挡住都会挂到 120s。
   // 这里给点击单独设上限 —— 挡住的现场应以「intercepts pointer events」快速报错，而不是挂死。
-  await widget.click({ timeout: 30_000 })
-  await widget.waitFor({ state: 'hidden', timeout: timeoutMs })
+  await widget.click({ timeout: limit(`${label}点击`, options.clickTimeoutMs ?? 30_000) })
+  await widget.waitFor({ state: 'hidden', timeout: limit(`${label}消失`, options.timeoutMs ?? 60_000) })
   return true
 }
 
 /**
  * 过 MFA 验证页（`/mfa-verified`）：点唯一启用中的方法卡 → 输入 TOTP → 回车。
  * 页面没出现则直接返回 false（未绑定 / 设备已 trusted 的路径）。
+ *
+ * `budget` 只用来收窄本段每一步的超时；MFA 不在登录链路上（例如单独验证页）时可不传。
  */
-async function verifyMfaIfPresent(page: Page, totpSecret: string, timeoutMs = 20_000): Promise<boolean> {
+async function verifyMfaIfPresent(page: Page, totpSecret: string, budget?: WaitBudget): Promise<boolean> {
+  const limit = (step: string, capMs: number): number => budget === undefined ? capMs : stepTimeout(budget, step, capMs)
+
   try {
-    await page.waitForURL(url => url.pathname === '/mfa-verified', { timeout: 8_000 })
+    await page.waitForURL(url => url.pathname === '/mfa-verified', { timeout: limit('MFA 页面出现', 8_000) })
   }
   catch {
     return false
@@ -410,14 +466,14 @@ async function verifyMfaIfPresent(page: Page, totpSecret: string, timeoutMs = 20
 
   // 只有 TOTP 一个方法启用（WebAuthn 未绑定）⇒ 可见卡片唯一。
   // 必须加 :visible —— 登录页的卡片仍挂在 DOM 里（懒卸载），裸 .first() 会点到隐藏的那个。
-  await page.locator('.w-card:visible').first().click()
-  const input = page.locator('input[placeholder="000000"]:visible')
-  await input.waitFor({ state: 'visible', timeout: 10_000 })
-  await input.fill(currentTotp(totpSecret))
-  await input.press('Enter')
+  await page.locator(MFA_METHOD_CARD_SELECTOR).first().click({ timeout: limit('MFA 方法卡点击', 10_000) })
+  const input = page.locator(MFA_CODE_INPUT_SELECTOR).first()
+  await input.waitFor({ state: 'visible', timeout: limit('MFA 输入框出现', 10_000) })
+  await input.fill(currentTotp(totpSecret), { timeout: limit('MFA 输入', 10_000) })
+  await input.press('Enter', { timeout: limit('MFA 提交', 10_000) })
 
   // 验证通过后 ExecuteCoreFnAfterAuth 会 goIndex → 离开 /mfa-verified
-  await page.waitForURL(url => url.pathname !== '/mfa-verified', { timeout: timeoutMs })
+  await page.waitForURL(url => url.pathname !== '/mfa-verified', { timeout: limit('MFA 验证落地', 20_000) })
   return true
 }
 
@@ -437,19 +493,44 @@ export interface LoginResult {
  * 与最近 12 条业务响应拼进错误消息（原始错误挂在 `cause` 上，栈不变）。这些信息同时进
  * junit 的 failure message —— 裸 runner / CI 上排障不必再登录机器复现。
  */
+/**
+ * 登录链路失败时的统一包装：把 P1-3 的失败现场（URL / 标题 / CAP widget / 设备 id /
+ * 最近 12 条 envelope）拼进错误消息，原始错误挂 `cause`（栈不变）。`stage` 只用于标注
+ * 是哪一段（loginViaUI / ensureLoggedIn）。
+ */
+async function withLoginFailureContext(page: Page, error: unknown, stage: string): Promise<Error> {
+  const message = error instanceof Error ? error.message : String(error)
+  const context = await describeFailureContext(page, snapshotRecentEnvelopes(ENVELOPE_CONTEXT_LIMIT))
+    .catch(() => '（失败现场不可读：页面已在关闭过程中）')
+  return new Error(`${message}\n[e2e/ui] 登录失败现场（${stage}）：\n${context}`, { cause: error })
+}
+
 export async function loginViaUI(page: Page, options: { userName?: string, password?: string, totpSecret?: string } = {}): Promise<LoginResult> {
+  return runLoginChain(page, options, startWaitBudget(LOGIN_TOTAL_BUDGET_MS))
+}
+
+/**
+ * 登录链路的统一收口：`budget` 从**链路起点**开始计时（`ensureLoggedIn` 会把它从打开站点
+ * 就传进来，这样「打开 → CAP → 竞速 → 登录」共用一份 90s，而不是每段各给一份）。
+ */
+async function runLoginChain(
+  page: Page,
+  options: { userName?: string, password?: string, totpSecret?: string },
+  budget: WaitBudget,
+): Promise<LoginResult> {
   try {
-    return await performLogin(page, options)
+    return await performLogin(page, options, budget)
   }
   catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    const context = await describeFailureContext(page, snapshotRecentEnvelopes(ENVELOPE_CONTEXT_LIMIT))
-      .catch(() => '（失败现场不可读：页面已在关闭过程中）')
-    throw new Error(`${message}\n[e2e/ui] 登录失败现场（loginViaUI）：\n${context}`, { cause: error })
+    throw await withLoginFailureContext(page, error, 'loginViaUI')
   }
 }
 
-async function performLogin(page: Page, options: { userName?: string, password?: string, totpSecret?: string }): Promise<LoginResult> {
+async function performLogin(
+  page: Page,
+  options: { userName?: string, password?: string, totpSecret?: string },
+  budget: WaitBudget,
+): Promise<LoginResult> {
   const credentials = options.userName !== undefined
     ? { userName: options.userName, password: options.password ?? '', totpSecret: options.totpSecret ?? '' }
     : readCredentials()
@@ -459,28 +540,36 @@ async function performLogin(page: Page, options: { userName?: string, password?:
   // 「已看过」最稳 —— 别等 overlay 出现后再关，`allowClose: false` 根本没有关闭入口。
   await page.context().addCookies([{ name: APP_INTRO_COOKIE_NAME, value: 'true', url: WEB_ORIGIN }])
 
-  await page.goto('/auth')
+  await page.goto('/auth', { timeout: stepTimeout(budget, '打开登录页', 30_000) })
 
   // 启动序列里就有请求可能被判「需要人机交互」（新设备的 DEVICE_NEW critical 因子）——
   // CAP 是 **WModal + 全屏 mask**，不先解掉它，登录表单点不动（fill 也会被焦点陷阱吞掉）。
-  const capAfterBoot = await solveCapIfPresent(page)
+  const capAfterBoot = await solveCapIfPresent(page, { budget, budgetLabel: '启动 CAP' })
 
-  const userNameInput = page.locator('input[autocomplete="username"]')
-  await userNameInput.waitFor({ state: 'visible', timeout: 30_000 })
-  await userNameInput.fill(credentials.userName)
+  const userNameInput = page.locator(LOGIN_USERNAME_SELECTOR).first()
+  await userNameInput.waitFor({ state: 'visible', timeout: stepTimeout(budget, '登录表单出现', 30_000) })
+  await userNameInput.fill(credentials.userName, { timeout: stepTimeout(budget, '填用户名', 15_000) })
 
-  const passwordInput = page.locator('input[autocomplete="current-password"]')
-  await passwordInput.fill(credentials.password)
+  const passwordInput = page.locator(LOGIN_PASSWORD_SELECTOR).first()
+  await passwordInput.fill(credentials.password, { timeout: stepTimeout(budget, '填密码', 15_000) })
   // Extra:Password 在 Enter 上触发 submit（比找按钮稳：按钮文案来自 DB 语言包）
-  await passwordInput.press('Enter')
+  await passwordInput.press('Enter', { timeout: stepTimeout(budget, '提交登录', 15_000) })
 
-  const capAfterLogin = await solveCapIfPresent(page, 60_000, 10_000)
+  const capAfterLogin = await solveCapIfPresent(page, {
+    timeoutMs: 60_000,
+    appearTimeoutMs: 10_000,
+    budget,
+    budgetLabel: '登录后 CAP',
+  })
   const capSolved = capAfterBoot || capAfterLogin
-  const mfaVerified = await verifyMfaIfPresent(page, credentials.totpSecret)
+  const mfaVerified = await verifyMfaIfPresent(page, credentials.totpSecret, budget)
 
   // 登录成功的判据：离开 /auth 与 /mfa-verified，并出现应用外壳（侧边栏菜单）
-  await page.waitForURL(url => url.pathname !== '/auth' && url.pathname !== '/mfa-verified', { timeout: 40_000 })
-  await page.locator('.w-menu').first().waitFor({ state: 'visible', timeout: 30_000 })
+  await page.waitForURL(
+    url => url.pathname !== '/auth' && url.pathname !== '/mfa-verified',
+    { timeout: stepTimeout(budget, '登录落地', 40_000) },
+  )
+  await page.locator(SIDEBAR_MENU_SELECTOR).first().waitFor({ state: 'visible', timeout: stepTimeout(budget, '应用外壳出现', 30_000) })
 
   return { capSolved, mfaVerified, url: page.url() }
 }
@@ -493,34 +582,42 @@ async function performLogin(page: Page, options: { userName?: string, password?:
  * 这里不需要改。
  */
 export async function ensureLoggedIn(page: Page): Promise<LoginResult | null> {
-  await page.goto('/')
-  // 登录页上可能先弹 CAP（bootstrap 请求触发）；它带全屏 mask，会挡住后续交互
-  await solveCapIfPresent(page)
+  // 预算从**打开站点**就起算：启动 CAP、登录表单竞速、随后的 UI 登录共用一份 90s，
+  // 而不是每段各 40–60s（那会叠过全局 120s）。登录态已在的短路径几乎不消耗预算。
+  const budget = startWaitBudget(LOGIN_TOTAL_BUDGET_MS)
 
-  const shell = page.locator('.w-menu').first()
-  const loginForm = page.locator('input[autocomplete="username"]')
+  try {
+    await page.goto('/', { timeout: stepTimeout(budget, '打开站点', 30_000) })
+    // 登录页上可能先弹 CAP（bootstrap 请求触发）；它带全屏 mask，会挡住后续交互
+    await solveCapIfPresent(page, { budget, budgetLabel: '打开站点后的 CAP' })
 
-  const outcome = await Promise.race([
-    shell.waitFor({ state: 'visible', timeout: 40_000 }).then(() => 'shell' as const),
-    loginForm.waitFor({ state: 'visible', timeout: 40_000 }).then(() => 'login' as const),
-  ]).catch(() => 'timeout' as const)
+    const shell = page.locator(SIDEBAR_MENU_SELECTOR).first()
+    const loginForm = page.locator(LOGIN_USERNAME_SELECTOR).first()
 
-  if (outcome === 'shell') {
-    return null
+    // `.catch` 只把「等不到」折成 timeout；预算耗尽（stepTimeout 同步抛）由外层 try 收口，
+    // 两条路都带同一份失败现场。
+    const outcome = await Promise.race([
+      shell.waitFor({ state: 'visible', timeout: stepTimeout(budget, '等待应用外壳', 40_000) }).then(() => 'shell' as const),
+      loginForm.waitFor({ state: 'visible', timeout: stepTimeout(budget, '等待登录表单', 40_000) }).then(() => 'login' as const),
+    ]).catch(() => 'timeout' as const)
+
+    if (outcome === 'shell') {
+      return null
+    }
+    if (outcome === 'timeout') {
+      throw new Error(`[e2e/ui] 打开站点后既没出现登录表单也没出现应用外壳（链路总预算 ${LOGIN_TOTAL_BUDGET_MS / 1000}s）`)
+    }
   }
-  if (outcome === 'timeout') {
-    throw new Error(
-      '[e2e/ui] 打开站点后 40s 内既没出现登录表单也没出现应用外壳；'
-      + `\n${await describeFailureContext(page)}`,
-    )
+  catch (error) {
+    throw await withLoginFailureContext(page, error, 'ensureLoggedIn')
   }
 
-  return loginViaUI(page)
+  return runLoginChain(page, {}, budget)
 }
 
 /** 断言侧边栏至少渲染出一个菜单项（menus 来自 /auth/permissions 的真实数据） */
 export async function expectSidebarRendered(page: Page): Promise<void> {
-  const items = page.locator('.w-menu .w-menu-item-content').first()
+  const items = page.locator(SIDEBAR_MENU_ITEM_SELECTOR).first()
   await expect(items).toBeVisible({ timeout: 30_000 })
 }
 

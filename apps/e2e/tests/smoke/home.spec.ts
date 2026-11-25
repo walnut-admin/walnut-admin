@@ -10,6 +10,7 @@ import {
   captureEnvelopes,
   expectSidebarRendered,
   readDeviceCookie,
+  SIDEBAR_MENU_ITEM_SELECTOR,
   waitForEnvelope,
 } from '../../lib/ui.ts'
 import { expect, test } from '../fixtures.ts'
@@ -20,7 +21,7 @@ test('首页：侧边栏 / 标题 / 已登录请求 20000', { tag: '@smoke' }, a
   await authedPage.goto('/')
   await expectSidebarRendered(authedPage)
 
-  const menuItems = authedPage.locator('.w-menu .w-menu-item-content')
+  const menuItems = authedPage.locator(SIDEBAR_MENU_ITEM_SELECTOR)
   expect(await menuItems.count(), '侧边栏一个菜单项都没有（menus 来自 /auth/permissions）').toBeGreaterThan(0)
 
   // 标题由 useAppTitle 拼：`<当前路由 title> - <VITE_APP_TITLE>`
