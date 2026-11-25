@@ -89,7 +89,7 @@ PR 的 quality 已经约 30 分钟，且 fork PR 没有 secrets。做法：**nig
 | 阶段 | 内容 | 依赖 | 本地能否完整验证 | 状态 |
 |------|------|------|------------------|------|
 | 1 | 包与数据栈、设备生命周期用例、封板、命令表入口 | 无 | 能（WSL 常驻栈） | 已完成（2026-11-25） |
-| 2 | CI 接线、risk 矩阵补全、review 暂缓项 | 1 | **部分**：nightly 与 artifact 的行为要等 GitHub runner 首跑 | 未开始（P2-9 / P2-10 / P2-11 / P2-15 / P2-16 / P2-17 已落地；P2-7 核心修复已落地、缺 20 次循环证据；CI 与 risk 矩阵未开始） |
+| 2 | CI 接线、risk 矩阵补全、review 暂缓项 | 1 | **部分**：nightly 与 artifact 的行为要等 GitHub runner 首跑 | 未开始（P2-9 / P2-10 / P2-11 / P2-15 / P2-16 / P2-17 已落地；P2-7 核心修复已落地、**20 次循环证据已补（20/20 绿）**；CI 与 risk 矩阵未开始） |
 | 3 | 其余模块 spec、设备 profile 矩阵、部署后 smoke | 2 | **部分**：独立 sandbox 部署要主机 / 域名 / 证书 | 未开始 |
 
 ## 4. 通用纪律（每个实施 agent 必读）
@@ -172,7 +172,7 @@ pnpm --filter @walnut/e2e types:check
 
 ## 7. 已知问题与观察项（Phase 2 输入）
 
-1. **U8 / U9 偶发 flake**：自愈后弹出 CAP 对话框（`DEVICE_NEW` / `DEVICE_PRIVATE` 是 critical 因子、CAP token 一次性）撞上 `waitForLoadState('networkidle')` 的**无超时等待** ⇒ 用例在 120s 处超时。修复方向：`networkidle` 加超时 + 自愈后识别 / 关闭 CAP 对话框（review P2-7 一类）。**2026-11-25 已修**（`b21ac118`：`waitForDeviceHealSettled`、删 `networkidle`、CAP 识别 / 关闭、`:visible` 选择器、点击 30s 上限）；仍需按 Phase 2 的完成判据补「20 次循环无复现」证据。
+1. **U8 / U9 偶发 flake**：自愈后弹出 CAP 对话框（`DEVICE_NEW` / `DEVICE_PRIVATE` 是 critical 因子、CAP token 一次性）撞上 `waitForLoadState('networkidle')` 的**无超时等待** ⇒ 用例在 120s 处超时。修复方向：`networkidle` 加超时 + 自愈后识别 / 关闭 CAP 对话框（review P2-7 一类）。**2026-11-25 已修**（`b21ac118`：`waitForDeviceHealSettled`、删 `networkidle`、CAP 识别 / 关闭、`:visible` 选择器、点击 30s 上限）；**2026-11-25 已补 20 次循环证据**：全量 20/20 绿（每轮 restore 口径，U8 23.5–31.2s / U9 23.2–28.9s，无一次逼近 120s），逐轮时长与汇总见 [E2E 改造优化方案](./e2e-optimization-plan.md) 的 P2-1 落地记录。
 2. **admin 的 eslint / vite 偶发原生崩溃 `0xC0000005`**：Windows 本机、与负载相关、成因未明（[tooling 计划](./tooling-restructure-plan.md) 第 14 节有排查记录）。处置：重跑；E2E 相关任务一律禁可见窗口。
 3. **knip 已让 `apps/e2e` 可见**：`@walnut/contract` 作为 devDep 未被使用（当前 `apps/e2e` 的源码没有 import 它），另有 16 个未使用导出。清理待做（Phase 2 的 P2-10 / P2-11）。
 4. **`VITE_SERVER_STATIC_PUBLIC_KEY` 修复后 stage / prod 需要重新构建 / 部署**才生效 —— 环境侧的跟进项，不在代码仓内。

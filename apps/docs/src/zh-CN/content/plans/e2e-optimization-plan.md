@@ -715,6 +715,62 @@ jobs:
 **不变量**：不碰；尤其不用 retries 掩盖问题。
 **工作量**：M（`test.slow()` 已落地，剩余部分是预算 + 列表 + 流程）。
 
+**落地记录（2026-11-25，P2 收尾批）**：
+
+- **等待总预算**：新增 `apps/e2e/lib/wait-budget.ts`（纯函数：起点、剩余、`min(单步上限, 剩余)`，
+  耗尽时点名**即将开始的步骤**；单测覆盖算术与耗尽判据）。`loginViaUI` 与 `ensureLoggedIn`
+  从**链路起点**起算 90s（`LOGIN_TOTAL_BUDGET_MS`）：打开页面 / 表单 / 两次 CAP / MFA / 落地 /
+  外壳每一步都取子预算；`ensureLoggedIn` 的「打开站点 → 启动 CAP → 表单外壳竞速 → UI 登录」
+  共用同一份预算，不再每段各给 40–60s。超时报错由 `runLoginChain` 补 P1-3 的失败现场
+  （URL / 标题 / cap-widget / localStorage 设备 id / 最近 12 条 envelope，采集另有 5s 墙钟上限）。
+  全局 120s 未改，U8 / U9 未加宽（`test.slow()` 保持原样）。
+- **quarantine**：新增 `apps/e2e/quarantine.json`（空列表起步；条目为
+  `testName` / `issue` / `owner` / `addedAt` / `reviewAt`）。`apps/e2e/scripts/quarantine.ts`
+  在 config 加载期校验名单（顶层数组、五字段非空、日期形态、重复 testName），并把标题按字面
+  转义后编译成 `grepInvert`；`playwright.config.ts` 给 smoke / risk / network 三个业务 project
+  挂上，risk 的 `/@network/` 以数组形式与名单并存。`E2E_INCLUDE_QUARANTINE=1` 时名单整体忽略
+  （空名单时 `grepInvert` 为 `undefined`，零影响）；`reviewAt` 到期在 config 加载时告警。
+- **写法的取舍**：没有用 `run.ts --grep-invert` —— CLI 参数会**覆盖** config 里 risk 的
+  `/@network/`（CLI 优先），等于把外网用例带进离线 run；也没有用用例级 `test.skip()` ——
+  名单是运行前决策，不该写进 spec 把「为什么跳过」藏起来。config 级 `grepInvert` 是唯一
+  既不破坏 risk 排除、又能被 `playwright test` 直接消费的挂点。
+- **「nightly 跑但不作为门禁」在本仓的落法**：当前只有 nightly、没有 PR 门禁，nightly 就是
+  唯一的门禁；「跑但不门禁」需要独立 job 或结果后处理（且要另起一套库 / 产物，或把主 run 的
+  junit 冲掉），成本与误报噪音都不划算。因此默认（含 nightly）**不跑**名单条目，
+  人工复查 / 复核用 `E2E_INCLUDE_QUARANTINE=1 pnpm --filter @walnut/e2e e2e -- --grep @quarantine`；
+  `owner` + `reviewAt`（到期告警）是防止条目被遗忘的机制。将来真有 PR 门禁时，这条口径不变
+  —— 门禁和 nightly 都走默认排除。
+- **负对照（两向）**：临时给「首页」用例挂 `@quarantine` 并在名单登记 —— 默认 `playwright test --list`
+  **不含**该用例，`E2E_INCLUDE_QUARANTINE=1 --list` **包含**（其余用例一个不少）；`--grep @quarantine`
+  默认选不中、包含时只选中它（setup project 作为依赖项照常列出）；risk project 在名单生效时仍排除
+  U1b（`/@network/` 与名单数组并存）。验完 tag 与名单都已还原。
+- **20 次循环证据**（全量、每轮 restore 口径；第一轮前重新封板一次）：
+
+- **20 次循环证据**（全量、每轮 restore 口径；第一轮前重新封板一次）：
+
+| 轮次 | 结果 | 时长 | 轮次 | 结果 | 时长 |
+|------|------|------|------|------|------|
+| 1 | PASS | 236s | 11 | PASS | 236s |
+| 2 | PASS | 229s | 12 | PASS | 212s |
+| 3 | PASS | 220s | 13 | PASS | 228s |
+| 4 | PASS | 221s | 14 | PASS | 230s |
+| 5 | PASS | 212s | 15 | PASS | 242s |
+| 6 | PASS | 218s | 16 | PASS | 237s |
+| 7 | PASS | 228s | 17 | PASS | 233s |
+| 8 | PASS | 240s | 18 | PASS | 246s |
+| 9 | PASS | 245s | 19 | PASS | 219s |
+| 10 | PASS | 235s | 20 | PASS | 240s |
+
+汇总：**20/20 绿**（`retries: 0`，没有任何一轮靠重试过关）；p50 = 231.5s，p95 = 245s，
+min / max = 212s / 246s。U8 单轮 23.5–31.2s、U9 23.2–28.9s，没有一次逼近全局 120s；封板轮
+（round-00，含全量 prepare + seal）222s。每轮 `pnpm walnut e2e` 的第 4 步 Redis 对账都在锁内
+执行，但残留只由 fixture 收尾决定 —— 第 20 轮结束后立刻用 GC 的扫描逻辑 dry-run：
+**扫描 103 键 → 设备键 0（孤儿 0），非设备键 103**，即设备键零残留。全部检查 / 文档改完后再跑
+最终全量一轮：**PASS 239s（13 passed，3.8m）**，随后同样的扫描仍是设备键 0。
+**未达标的读数如实记下**：计划页 P0 的「全量 p95 ≤ 3 分钟」在本批机器上是 4.1 分钟
+（P0-3 当时的单次读数 2.9 分钟没有复现）—— 这是遗留的时长差距，不由本批引入，也没有用放宽超时掩盖。
+
+
 #### P2-2 Redis 对账与残留清理
 
 **动机**：restore 只清两个 app setting 键；崩溃 / 中断的 run 留下的设备作用域键会跨轮存活（Phase 1 首跑清掉过一批遗留键）。没有 FLUSH 的前提下，需要一个「按 deviceId 精确删」的对账机制。
@@ -738,6 +794,14 @@ jobs:
 `APP:SETTING` / LOCALE / `risk:location:*` 等非设备键不动；同时清掉了栈里积压的历史孤儿键。
 compose 的 `FLUSHDB` / `FLUSHALL` 实测返回 `ERR unknown command`。
 
+**fixture 清理补全（2026-11-25，P2 收尾批）**：P2-B 实测一次绿的全量跑后仍残留
+`risk:challenge:user-device:*` 与 `risk:rate:device:*` 两族设备键 —— fixture 的清理表漏了它们。
+`lib/redis.ts` 现在把 `deviceScopedKeyPatterns` / `riskDeviceStatePatterns` 拆成可测的纯函数，
+覆盖 GC 键形表的**每一个键族**（含新增的 `risk:user_device` / `risk:failed_login`、RSA 公钥、
+WebAuthn、分布式锁键）；`lib/redis.test.ts` 用构造键名与 `DEVICE_KEY_FAMILIES` 逐族交叉校验
+（漏一族即红），同时断言每条模式都钉住本设备 id（不会误删另一台设备）。全量一轮后用 GC 的
+扫描逻辑复核设备键 0 残留（结果见 P2-1 的 20 次循环记录）。
+
 #### P2-3 局部健壮性（`18dcc9c6` 已落地，保留回归验证）
 
 **动机**：`apps/e2e/scripts/static-server.ts` 曾对 URL 直接 `decodeURIComponent`，畸形 `%` 会抛异常；`apps/e2e/lib/protocol/sign.ts` 的 PoW 求解曾是 `for (;;)`，难例可能长时间占用单 worker；`uniqueLocalIp()` 在 240 个地址后回绕，且两处用例硬编码 `1.1.1.1`。
@@ -759,6 +823,23 @@ compose 的 `FLUSHDB` / `FLUSHALL` 实测返回 `ERR unknown command`。
 **验收**：改 CSS 类名 / 文案不导致 E2E 红；三处 testid 有注释说明用途。
 **不变量**：不碰。
 **工作量**：S（三处）–M（POM）。
+
+**落地记录（2026-11-25，P2 收尾批）**：三处 testid 都用 kebab-case 语义名，源码各有一行注释说明用途：
+
+- **登录表单**：`login-username`（`inputProps` → 真实 `<input>`）/ `login-password`
+  （`Extra:Password` 新增可选 `inputProps` 透传 —— 组件根是包裹层，写 `data-*` 只会落到 `<div>`）/
+  `login-submit`（`WCompUIButton` 新增 `testId` prop —— schema 的 `componentProp` 是固定接口，
+  直接写 `data-testid` 过不了类型检查）。
+- **侧边栏**：`sidebar-menu`（`n-menu` 容器，登录成功判据）/ `sidebar-menu-item`
+  （`node-props` 给每个节点，选第一条即「菜单已渲染」）。
+- **MFA 卡片**：`mfa-method-card`（方法卡）/ `mfa-code-input`（真实 `<input>`，走 `input-props`）/
+  `mfa-verify-submit`（当前仍按 Enter 提交，按钮选择器留给后续用例）。
+
+`lib/ui.ts` 的选择器全部改为 **testid 优先、旧结构兜底**（逗号选择器在同一元素上去重）：
+用户名 / 密码 / 侧边栏容器与菜单项 / MFA 方法卡与输入框；home 用例的菜单计数也改用导出的
+`SIDEBAR_MENU_ITEM_SELECTOR`。**负对照**：临时把登录提交按钮的 `w-full` 类名改成
+`w-full-negctl` 并重建 admin stage —— smoke 4/4 仍绿（证明选择器不再依赖样式）；还原后重建。
+admin `lint` / `types:check` 绿。
 
 #### P2-5 本地 DX 与卫生
 
@@ -929,6 +1010,8 @@ E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`
 ### 7.1 本次已做的事实修正（最小 diff）
 
 - [E2E 沙盒测试计划](./e2e-sandbox-plan.md) 篇头与阶段总览：补「2026-11-25 追记」——`b21ac118` 落地 U8 / U9 flake 核心修复（P2-7），`5067b4aa` 落地契约 bridge 与常量收口（P2-9 / P2-10 / P2-11），`18dcc9c6` 落地 CAP PoW 上界与静态代理加固（P2-16 / P2-17），`d720c0d3` 落地慢用例 `test.slow()`（P2-15）；Phase 2 的 CI 与 risk 矩阵仍未开始，状态不改成「已完成」。第 7 节的对应观察项加一句「已修，待 20 次循环复核」。不重排分期。
+  **2026-11-25 追记（P2 收尾批）**：20 次循环复核已完成（20/20 绿，U8 / U9 无一次逼近 120s），
+  第 7 节的「待 20 次循环复核」改为「已补 20 次循环证据」，阶段总览同步；逐轮读数见下一条 P2-1 落地记录。
 - [行业调研：测试体系](../industry-research/04-testing-strategy.md) 的 §6.2：原文建议 E2E 放 apps/admin/e2e、并称「与 server 无关」，与现状冲突；改成指向本篇与 [E2E 与沙盒调研](../industry-research/08-e2e-and-sandbox-testing.md) 的更新说明，保留 §6.1 的工具选型表。
 
 ### 7.2 仍需同步的文档（按优先级）
@@ -948,7 +1031,7 @@ E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`
 | Phase 2 §8.1 CI 接线 | P0-1 |
 | Phase 2 §8.2 risk 矩阵 U11–U16 | 不在本篇展开（用例表已在计划页定稿）；P1-5 提供标签与选择机制 |
 | Phase 2 §8.3 P2-5 永真 / 时序断言 | P1-4（生成类型）+ P0-2 / P0-3 的负对照 |
-| Phase 2 §8.3 P2-7 CAP / MFA 等待与 U8 / U9 flake | 核心修复已随 `b21ac118` 落地；P2-1 补 quarantine、等待总预算与 20 次循环证据 |
+| Phase 2 §8.3 P2-7 CAP / MFA 等待与 U8 / U9 flake | 核心修复已随 `b21ac118` 落地；P2-1 补齐 quarantine、等待总预算与 20 次循环证据（20/20 绿） |
 | Phase 2 §8.3 P2-8 `data-testid` | P2-4 |
 | Phase 2 §8.3 P2-9 裸常量收口 | 已落地（`5067b4aa`） |
 | Phase 2 §8.3 P2-10 契约 bridge 二选一 | 已落地（`5067b4aa`）；剩余为 P1-4 的 `@walnut/api-types` 部分 |
