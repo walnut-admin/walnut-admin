@@ -179,6 +179,26 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'], userAgent: SIGN_USER_AGENT },
     },
     {
+      /**
+       * 设备 profile 矩阵的起步规模（计划页 Phase 3 第 3 项）：**一个 mobile（Pixel 7）布局用例**。
+       *
+       * 这里用的是 **Playwright device profile**，不是 stack profile（R3 的「库 / 端口 / 基线」
+       * 维度）：它共用 default 栈，只换浏览器描述符。理由：唯一需要 mobile 的断言是响应式几何量，
+       * 不是业务链路 —— 为一条秒级布局用例复制一整套库 / 端口 / 基线不划算；设备身份是服务端
+       * cookie，business spec 在 mobile 上重跑只会多跑几遍同一条逻辑（见 `tests/mobile/layout.spec.ts`）。
+       *
+       * `devices['Pixel 7']` 自带移动 UA —— 必须放在 SIGN_USER_AGENT 之后（project use 覆盖
+       * 顶层 use）：签名原文取 `navigator.userAgent`，Playwright 会把该 UA 同时写进 navigator
+       * 与请求头；security.guard 的白名单含 Mobile Chrome / Android。
+       */
+      name: 'mobile',
+      testMatch: /mobile\/.*\.spec\.ts/,
+      // 只依赖 stack-setup（后端就绪 + TOTP 绑定）；用例不登录，auth-setup 用不上
+      dependencies: ['stack-setup'],
+      grepInvert: quarantineGrepInvert,
+      use: { ...devices['Pixel 7'] },
+    },
+    {
       name: 'network',
       // 只跑带 `@network` tag 的用例（当前是设备用例里的 U1b：非 local IP 走 api.ip.sb 的真实定位）。
       // 依赖链与 risk 相同：只需要 stack-setup（它负责 MFA 绑定与凭据文件）。
