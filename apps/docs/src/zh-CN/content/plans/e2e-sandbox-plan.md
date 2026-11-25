@@ -97,7 +97,7 @@ PR 的 quality 已经约 30 分钟，且 fork PR 没有 secrets。做法：**nig
 
 1. **不提交、不推送由仓库所有者掌控。** 实施 agent 只改工作区；提交与推送按所有者的指示执行。
 2. **禁止可见窗口。** WSL 里的进程天然无窗口；Windows 侧的子进程一律 `windowsHide`（`apps/e2e/scripts/pnpm.ts` 已统一设置）。不许 `start` 终端、不许 `cmd start`。
-3. **数据栈只动 `walnut_e2e` / 5433 / 6380。** dev 库（5432 / 6379）与生产**绝不触碰**；破坏性操作之前过 `apps/e2e/scripts/env.ts` 的 `assertE2e*` 安全闸，别绕开它。
+3. **数据栈只动 `walnut_e2e`（及 `E2E_STACK_PROFILE` 派生的 `walnut_e2e_<profile>`）/ 5433 / 6380。** dev 库（5432 / 6379）与生产**绝不触碰**；破坏性操作之前过 `apps/e2e/scripts/env.ts` 的 `assertE2e*` 安全闸（库名必须等于当前 profile 的库），别绕开它。
 4. **E2E 的密钥级文件不上传任何公开位置**：`credentials.json`、`storageState`、trace、截图、HTML 报告里含 token 与 cookie。
 5. **改 server / admin 源码的用例必须能过退出码口径**：0 成功、1 跑起来了但结果不对、2 环境没准备好（详见 README）。「2」不该被写成用例失败。
 6. **Redis 只按 deviceId 精确删**，绝不 FLUSHDB / FLUSHALL；键形对齐 `apps/server/libs/const/src/app/cache.ts`。
@@ -302,6 +302,13 @@ pnpm walnut build:docs
 6. **可选**：生产部署后的 runner 侧匿名只读浏览器 smoke（**不做认证写入**）。
 
 > **2026-11-25 追记**：并行 / 账号池的工程前置设计（Phase A「stack-per-project」：profile、端口、锁、CI matrix 与失败隔离）已完成，见 [apps/e2e 改造优化方案](./e2e-optimization-plan.md) 的 P1-6；Phase B（per-worker）仍暂缓、不排期。
+>
+> **2026-11-26 追记（Phase A 已实施）**：P1-6 Phase A 的「stack-per-profile」已落地 ——
+> `E2E_STACK_PROFILE=smoke|risk|network` 各用独立库（`walnut_e2e_<p>`）、偏移端口（3101–3103 /
+> 3011–3013 / 4181–4183）、`.e2e/<p>/` 基线与不相交的 IP 段；nightly 演进为三 job 并行 matrix
+> （`fail-fast: false`）。这是 Phase 3 新增模块用例的**承载方式**：新用例只要落在某个 project，
+> 就自动获得独立的库与端口；但单 project 内的 worker 并发（Phase B / worker 账号池）仍显式暂缓。
+> 状态口径：Phase 2 收尾证据不变，Phase 3 仍「未开始」。
 
 ### 验证
 

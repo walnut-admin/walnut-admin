@@ -600,9 +600,9 @@ jobs:
 
 **工作量级**：Phase A 设计 M，实施 L；Phase B 暂不排期。
 
-**落地记录（2026-11-25，设计阶段）**：本条本批只交付下面的 Phase A 设计稿，**未实施**（没有改 `apps/e2e` 代码）；Phase B 显式暂缓、不排期。设计稿的验收物就是本文档本身。
+**落地记录（2026-11-25，设计阶段）**：本条先交付下面的 Phase A 设计稿；**2026-11-26 已按该设计实施完成**（实施细节、实测与负对照见本文末的「P1-6 Phase A 落地记录」）。Phase B 显式暂缓、不排期。设计稿的验收物是本文档本身。
 
-##### 附录：Phase A「stack-per-project」设计稿（2026-11-25 定稿，未实施）
+##### 附录：Phase A「stack-per-project」设计稿（2026-11-25 定稿；2026-11-26 已实施）
 
 **边界先钉死**：并行单元是 **stack profile**（本地一次一个 profile；CI 一个 job 一个 profile），**不是 worker**。本设计不放松不变量 6 —— 本地默认仍是**一条串行全量**（`pnpm walnut e2e` 行为不变），`workers: 1` / `fullyParallel: false` 也不动。Phase B（per-worker）见本节末尾。
 
@@ -625,7 +625,7 @@ jobs:
 
 **库（安全闸）**：`assertE2eDatabase` 从「逐字等于 `walnut_e2e`」扩成两条 —— 形状正则 `^walnut_e2e(?:_[a-z]+)?$`（挡住 dev 库与注入形态）**且**必须等于当前 profile 的库名（挡住 `walnut_e2e_foo` 这类拼错）。所有动库路径（prepare / dump / restore / `runtime-reset` / `lib/pg.ts`）保留连上之后的 `SELECT current_database()` **真断言**，期望值改成当前 profile 的库名；`assertE2ePgPort` / `assertE2eRedisPort` 不变（所有 profile 共用同一个 5433 / 6380 实例 —— 隔离靠库名与 IP 段，不靠端口）。
 
-**基线**：每个 profile 一套三件套（`.e2e/<profile>/baseline.dump` / `baseline.manifest.json` / `baseline.credentials.json`），credentials 每轮写到 `.auth/<profile>/credentials.json`。清单升到 **v3**，新增 `database` 与 `profile` 两个字段 —— restore 前断言「清单里的 `database` 等于当前 profile 的库名」，所以即使把 smoke 的 dump 拷进 risk 目录也恢复不了（先 sha 校验、再库名字段）。**v2 → v3 不迁移**（与 v1 → v2 同口径：缺字段就无法安全证明配对），升级后首次运行会自动全量 prepare + seal 一次；默认 profile 的文件位置不变，但这一次重封是预期成本。
+**基线**：每个 profile 一套三件套（`.e2e/<profile>/baseline.dump` / `baseline.manifest.json` / `baseline.credentials.json`），credentials 每轮写到 `.auth/<profile>/credentials.json`。清单升到 **v3**，新增 `database` 与 `profile` 两个字段 —— restore 前断言「清单里的 `database` 等于当前 profile 的库名」，所以即使把 smoke 的 dump 拷进 risk 目录也恢复不了（先 sha 校验、再库名字段）。**v2 → v3 不迁移**（与 v1 → v2 同口径：缺字段就无法安全证明配对）；升级后首次运行会按退出码 2 提示重封板（显式 `--rebuild-baseline`，与 v1 → v2 一致）；默认 profile 的文件位置不变，但这一次重封是预期成本。
 
 **锁（两把，都是 PG advisory lock，作用域 = 同一个 PG 实例）**：
 
@@ -658,18 +658,18 @@ jobs:
     env:
       ENV_KEYS: ${{ secrets.ENV_KEYS }}
       E2E_STACK_PROFILE: ${{ matrix.profile }}
-      E2E_SKIP_BASELINE: '1'      # 与现状一致：.e2e/ 不跨 run 缓存
     services: <与现单 job 相同：postgres:18-alpine / redis:8-alpine，5433 / 6380>
-    steps: <与现单 job 相同；最后一步跑用例换成下面这条>
-    # 跑用例：pnpm --filter @walnut/e2e e2e -- --project=${{ matrix.profile }}
+    steps: <与现单 job 相同；基线缓存 key 带 profile，跑用例换成下面这条>
+    # 基线缓存：key = e2e-baseline-<profile>-v<清单格式版本>-<dataKey>，path = .e2e/<profile>/ 的三件套
+    # 跑用例：pnpm walnut e2e --project=${{ matrix.profile }}（run.ts 仍会机械校验 project 与 profile 同名）
 ```
 
 - **跑什么**：`--project` 与 profile 同名，且会带自己的 setup dependencies（`stack-setup`，smoke 还带 `auth-setup`）。三个 job 的并集就是现有 `pnpm walnut e2e` 的覆盖面（`@network` 的 grep / risk 的 grepInvert 都不变，U1b 只由 network job 跑）。
 - **演进，不并存**：保留同一工作流、同一 `concurrency`（固定 group、不取消在途）、同一严格 artifact allow-list、同一 `fetch-depth: 0` 与 env 解密步骤；**不再保留单栈全量 job** —— CI 的价值是墙钟，单栈全量在 CI 上没有额外覆盖；需要单栈全量时本地 `pnpm walnut e2e` 仍是入口（将来若要 dispatch-only 的 `full` job 再单独立项）。
-- **setup 复用口径**：Linux runner 上 `E2E_PG_EXEC_MODE` 默认 `docker-cli`；`E2E_PG_CONTAINER` 不设时，`CI=true` 按镜像 `postgres:18-alpine` 解析 service 容器（P1-1 已落地，每个 runner 只有一个该镜像的容器）。`E2E_SKIP_BASELINE=1` 保持现状；切回基线路径的前置条件与 P1-1 那条相同，只是**每个 profile 有自己的一套三件套**，将来加 cache 时 cache key 必须带 profile。
+- **setup 复用口径**：Linux runner 上 `E2E_PG_EXEC_MODE` 默认 `docker-cli`；`E2E_PG_CONTAINER` 不设时，`CI=true` 按镜像 `postgres:18-alpine` 解析 service 容器（P1-1 已落地，每个 runner 只有一个该镜像的容器）。**CI 走基线路径**（R1 的基线缓存已落地，`E2E_SKIP_BASELINE` 已删）：每个 profile 的 cache key 必须带 profile 维度，`.e2e/<profile>/` 的三件套各自 restore。
 - **artifact**：名字带 profile（如 `e2e-diagnostics-<profile>`）；`stack.json` 与基线清单的路径进 `.e2e/<profile>/`；junit / json / 脱敏 backend.log 各 job 独立 checkout，天然隔离。trace / 截图 / HTML 仍不上传。
 - **代价（写进 job 注释）**：三个 job 各跑一遍 install / `pnpm build` / 两处 stage / playwright install，**总机器时间约 3×**，墙钟从「串行全量」降到「最慢的 profile + 固定开销」。这是用 CI 时长换反馈速度，nightly 场景可接受。
-- **与 `e2e:affected` 的映射（P1-5 现状）**：`mode=projects` 的 `projects` 直接作为 matrix 列表（当前只有 `smoke` / `risk`）；`mode=all` ⇒ `[smoke, risk, network]`；`mode=skip` ⇒ 不跑。`affected.ts` 目前只有人读输出，实现时需要加一个 `--json` 输出模式（只多一个输出口，不改映射规则）。`rebuild=true` 与 CI 的 `E2E_SKIP_BASELINE=1` **互斥**（`ensureTestDatabase` 会拒），所以 prepare job 不要转发 `--rebuild-baseline`。
+- **与 `e2e:affected` 的映射（P1-5 现状）**：`mode=projects` 的 `projects` 直接作为 matrix 列表（当前只有 `smoke` / `risk`）；`mode=all` ⇒ `[smoke, risk, network]`；`mode=skip` ⇒ 不跑。`affected.ts` 已补 `--json` 输出（`targetProfiles` 字段；只多一个输出口，不改映射规则）。`rebuild=true` 只对本地全量有意义；CI 的 prepare 兜底不转发 `--rebuild-baseline`。
 
 ###### 4. 失败隔离与清理责任
 
@@ -703,6 +703,23 @@ jobs:
   3. 账号池（计划页 Phase 3 的 worker 账号池）与每 worker 的 MFA trusted 状态；
   4. `uniqueLocalIp` 按 worker 再分段，fixture 清理与 GC 按 worker 归属。
 - **不排期**：Phase A 落地并有真实时长数据之前，不开 Phase B 的工单。**当前 `workers > 1` 仍是禁止项**（见 §4「不建议做」最后一行）。
+
+###### 7. Phase A 落地记录（2026-11-26 已实施）
+
+**提交**：`feat(e2e): stack-per-profile——profile 真源、IP 段偏移、锁嵌套与栈命令感知`（`6dc1cd8a`）、`ci(tooling): nightly CI matrix 三 job 并行（per-profile 基线缓存与 artifact）`（`a6b22a28`）、`fix(e2e): profile/project 错配在动锁前 fail-fast`（`50f70310`）、`test(e2e): U11 恢复断言改用同 context 新页面…`（`b0057418`）。
+
+- **单一真源**：`apps/e2e/scripts/stack-profiles.ts` 持有 profile 表（库 / 三端口 / IP 槽位 / 基线目录 / 锁 key）、`E2E_STACK_PROFILE` 解析、`localIpFor` 与 `resolveProfileTestArgs`；`env.ts` 的全部派生常量从它读取。未知 profile 名 fail-fast（退出码 2）；命名 profile 跑别的 project 在**动锁 / 动库之前**退出 2。
+- **库与基线**：`assertE2eDatabase` = 形态正则 `^walnut_e2e(?:_[a-z]+)?$` **且**逐字等于当前 profile 的库名；所有动库连接保留 `SELECT current_database()` 真断言。清单升 **v3**，新增 `profile` / `database`，restore 前断言与当前 profile 一致；v2 不迁移 —— **默认 profile 首次运行需一次 `--rebuild-baseline`**（显式动作，与 v1→v2 同口径），之后 restore 正常。
+- **锁**：全局 `2026112401` → profile `2026112402/03/04`（default 与全局同 key，不重复抢）。本地第二个 profile 在全局锁上等待，profile 锁只提供日志归属与同 profile 重入保护。
+- **IP 段**：`localIpFor(slot, seq)` 按 `slot × 10 + 1 + floor(seq / 200)` 偏移；default 槽位与旧公式逐字一致，单测同时钉住「跨 profile 地址集合不重叠」。
+- **Redis**：**不加前缀、不换逻辑库**（结论与理由在 `stack-profiles.ts` 头注释）。同机共享 Redis 时，`risk:rate:ip:*` 的串桶防护靠 IP 段不相交；将来本地并发 profile 先加每 profile 一个 Redis 实例。
+- **CI**：`e2e.yml` 演进为 3 job matrix（`smoke` / `risk` / `network`，`fail-fast: false`），每个 job 独立 checkout + services；基线 cache key = `e2e-baseline-<profile>-v<清单版本>-<dataKey>`，artifact 名 `e2e-diagnostics-<profile>`；`E2E_SKIP_BASELINE` 已删、不再作为回退口径。
+- **栈命令 / affected**：`e2e:stack:status` 打印当前 profile（库 / 端口 / 基线目录）与其它 profile 基线存在性；`e2e:clean` 递归保留各 profile 的基线三件套与 stack.json；`e2e:affected --json` 输出机器可读计划（含 `targetProfiles`），映射规则不变，nightly 仍静态三 job。
+- **实测（2026-11-26 本机 WSL 栈，单次读数）**：default `--rebuild-baseline` **20/20、231.9s**，restore 两轮 **20/20、229.8s / 231.2s**；smoke 首轮 **4/4、51.6s**（自动封板）、restore **4/4、50.6s**；risk 修复后 restore **16/16、193.9s**、`--rebuild-baseline` **16/16、191.8s**；network 首轮 **2/2、20.8s**。
+- **过程中发现并修掉一个既有竞态**：risk 全量跑（profile 化之后的首次 prepare+seal 与一次并发锁验证轮）出现过 U11「名单移除后仍 40603」的假红（2/3 次；单跑 U11 不复现）。根因是 `captureEnvelopes` 只监听 response：被拒页面在 `restore()` 之前发出的请求可能在 `restore()` 之后才返回，被记进「恢复后」的采集数组。修法（`b0057418`）是不复用被拒页面，改为在**同一 context** 开新页面做恢复断言（同设备 / 同登录态，断言不弱化），两轮全量随即全绿。
+- **CI 墙钟估算**：测试阶段从单 job 全量 **231.2s** 降到最慢 profile（risk）**191.8s**，约省 **39s（≈17%）**；install / build / 两处 stage / playwright install 这些固定开销三个 job 并行执行，墙钟约等于「最慢 job + 固定开销」，机器时间约 **3×**（每个 job 各付一遍）。
+- **负对照**：(a) `E2E_STACK_PROFILE=typo` ⇒ 打印可选项并退出 2；(b) risk profile 下 `assertE2eDatabase('walnut_e2e_smoke')`（profile 不匹配）与 `'walnut_pg'`（形态不合法）均拒绝；(c) smoke 协议客户端创建设备后，risk / network 库查该 deviceId 均 **0 行**；反向 risk → smoke / network 同样 0 行；(d) 把 smoke 的三件套拷进 `.e2e/risk/` ⇒ `baselineUsable` 判 `invalid`（manifest 的 profile/database 不符）；(e) 同机先起 smoke run、再起 risk run ⇒ risk 在全局锁上持续等待，smoke 结束后才串行执行。
+- **未做**：设计 §4 的「收尾探针进 `run.ts`」是建议项，本批用外部探针脚本完成负对照（fixture 按内存登记精确删，run 结束时设备列表通常为空）；没有为它新增运行时机制。Phase B（per-worker）仍不做。
 
 ---
 
