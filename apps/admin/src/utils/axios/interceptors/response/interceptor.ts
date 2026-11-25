@@ -125,6 +125,20 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
     }
 
     if (healed) {
+      // P0-1：自愈后的重放必须是一次**真实的新请求**。cache/throttle/merge 三层适配器都按
+      // URL 复用在途 promise：自愈前发出的同 URL 请求 B 可能早于 initial 的 Set-Cookie 落盘
+      // 而拿到 40605，且 B 的拦截器已把**共享的同一个 config** 的 `_deviceResetRetried` 置
+      // true；重放若复用 B 的在途 promise，就会带着这个 flag 再吃一次 40605 ⇒ 被踢到
+      // /not-allowed?type=device（自然复现率 12.5%）。三个开关各拦一层：
+      // - `_cache_force_update`：cache 适配器的 `if (!responsePromise || _cache_force_update)`
+      //   分支丢弃在途 promise、新建真实请求（并覆写缓存占位）；
+      // - `_throttle = 0`：throttle 适配器的 `if (_throttle)` 是真值判断 ⇒ 0 让整段跳过；
+      // - `_mergeRequest = false`：merge 适配器 `if (!_mergeRequest || ...)` 直接放行。
+      // 只对这次重放关闭去重——非 GET / 没有 `_cache`/`_throttle` 的请求上这些开关是无操作。
+      // E2E U8 用例守此行为（apps/e2e/tests/risk/device.spec.ts）。
+      res.config._cache_force_update = true
+      res.config._throttle = 0
+      res.config._mergeRequest = false
       return await AppAxios.request(res.config)
     }
   }
