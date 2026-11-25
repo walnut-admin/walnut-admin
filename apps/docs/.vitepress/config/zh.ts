@@ -353,6 +353,7 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: 'libs 解耦残留与后续', link: '/content/plans/libs-decoupling-residuals' },
         { text: 'Package 下沉提案', link: '/content/plans/package-sinking-proposal' },
         { text: 'tooling 收束与根脚本改造计划', link: '/content/plans/tooling-restructure-plan' },
+        { text: 'E2E 沙盒测试计划', link: '/content/plans/e2e-sandbox-plan' },
       ],
     },
     {
