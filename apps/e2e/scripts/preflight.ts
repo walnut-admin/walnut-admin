@@ -8,18 +8,25 @@
  *
  * 检查面与处置：
  * - stage env（`apps/server/env-local/.env.stage`，含 `AUTH_OPAQUE_SECRET` 一项）→ `pnpm setup-env`；
+ * - **workspace 包的 CJS 产物**（P1-2）：`@walnut/utils` 的 `dist/sign-raw.cjs` 与
+ *   `@walnut/contract` 的 `dist/index.cjs` —— `lib/protocol/*` 经 require 消费它们，缺了会在
+ *   webServer 启动时炸成 180s 超时 → `pnpm build`；
  * - 两处 stage 产物（admin `dist-staging/index.html`、server `dist-stage/apps/api/src/main.js`）
  *   → `pnpm walnut build:stage` / `pnpm --filter @walnut/server build:stage`；
  * - PG 5433 / Redis 6380 TCP 可达 → 起数据栈（apps/e2e/README.md 的「数据栈的两种形态」）；
  * - **PG 容器可读**（P1-1）：基线 dump / restore 要 `docker exec` 进容器；`E2E_SKIP_BASELINE=1`
  *   时跳过。失败信息给出两种 compose 的启动命令与 `E2E_PG_CONTAINER` 覆盖方式；
  * - 3001 / 3002 / 4173 空闲 → 停掉残留进程（README「排障」的最后一条）；
+ *   **`E2E_REUSE_SERVER=1` 时改为「可达 + 身份」检查**（P1-2）：后端 `/health/ready` 200、
+ *   4173 返回 dist-staging 的 index.html、3002 可达，并打印复用警告；
  * - Playwright 的 chromium 已安装 → `pnpm --filter @walnut/e2e exec playwright install chromium`；
  * - **产物新鲜度**（`scripts/freshness.ts`）：两处 stage 产物是否旧于最近一次源码提交 ——
  *   这一类**只警告不退出**（存在「故意验证旧产物」的合法用法），读数另由 stack.json 记录。
  *
  * 刻意**不查**的东西：库里的表 / seed 状态（prepare-db 会重建，不需要「已经准备好」）、
  * 外网连通性（只有 @network 用例依赖它）、数据路径脏状态（那是基线决策的事，见 baseline.ts）。
+ *
+ * 单独运行（不抢锁、不动库）：`node apps/e2e/scripts/preflight.ts`（或 `--doctor`，多打一行标题）。
  */
 import { existsSync, readFileSync } from 'node:fs'
 import { connect, createServer } from 'node:net'
@@ -29,7 +36,9 @@ import { fileURLToPath } from 'node:url'
 import { chromium } from '@playwright/test'
 import {
   ADMIN_INDEX_FILE,
+  BACKEND_ORIGIN,
   BACKEND_PORT,
+  CONTRACT_DIST_FILE,
   E2E_PG_HOST,
   E2E_PG_PORT,
   E2E_REDIS_HOST,
@@ -39,6 +48,8 @@ import {
   SERVER_MAIN_FILE,
   SERVER_STAGE_ENV_FILE,
   SOCKET_PORT,
+  UTILS_SIGN_RAW_DIST_FILE,
+  WEB_ORIGIN,
   WEB_PORT,
 } from './env.ts'
 import { E2ePreconditionError } from './failure.ts'
@@ -55,6 +66,8 @@ interface CheckResult {
 
 const DATA_STACK_FIX = '起数据栈：apps/e2e/README.md「数据栈的两种形态」（WSL 形态还要保持一个隐藏会话，见「WSL 的生命周期」）'
 const PORTS_FIX = '先停掉占用它的残留进程（apps/e2e/README.md「排障」最后一条：netstat -ano | findstr :<端口>）'
+const REUSE_FIX = 'E2E_REUSE_SERVER=1 只做检查、不替你启动服务：先手动起后端（node scripts/start-backend.ts）与静态代理'
+  + '（node scripts/static-server.ts），或去掉复用开关让 Playwright 自己起'
 const PG_CONTAINER_FIX = [
   '起数据栈（两种 compose 任一）：',
   `  通用形态（Docker Desktop / 原生 Linux）：docker compose -f apps/e2e/docker-compose.yml up -d`,
@@ -100,6 +113,30 @@ function checkPortFree(port: number): Promise<{ ok: boolean, detail: string }> {
       server.close(() => finish(true, '空闲'))
     })
   })
+}
+
+interface HttpResponse {
+  ok: boolean
+  status: number | null
+  body: string
+  detail: string
+}
+
+/** 发一个 GET（3s 超时）；失败不抛，交给调用方折成检查结果 */
+async function fetchText(url: string): Promise<HttpResponse> {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(3_000) })
+    const body = await response.text()
+    return { ok: response.ok, status: response.status, body, detail: `HTTP ${response.status}` }
+  }
+  catch (error) {
+    return {
+      ok: false,
+      status: null,
+      body: '',
+      detail: `请求失败：${error instanceof Error ? error.message : String(error)}`,
+    }
+  }
 }
 
 function checkStageEnv(): CheckResult {
@@ -194,14 +231,71 @@ function warnStaleArtifacts(): void {
 }
 
 /**
+ * `E2E_REUSE_SERVER=1`：Playwright 不会起服务，所以这里必须确认 3001 / 3002 / 4173 上
+ * **已经跑着这一轮要复用的东西** —— 端口空闲反而是失败（说明没人可复用）。
+ */
+async function reuseServerChecks(): Promise<CheckResult[]> {
+  console.log(
+    '[e2e/preflight] WARN E2E_REUSE_SERVER=1：复用 3001 / 3002 / 4173 上已在监听的服务 —— '
+    + '本轮可能连到旧产物 / 旧库，仅本地调试用',
+  )
+
+  const health = await fetchText(`${BACKEND_ORIGIN}/health/ready`)
+  const backendOk = health.ok
+  const index = await fetchText(WEB_ORIGIN)
+  const indexOk = index.ok && index.body.includes('<div id="app">')
+  const socket = await checkTcp('127.0.0.1', SOCKET_PORT)
+
+  return [
+    {
+      name: `后端 ${BACKEND_PORT} 可达且就绪（复用）`,
+      ok: backendOk,
+      detail: `${BACKEND_ORIGIN}/health/ready ${health.detail}`,
+      fix: backendOk ? undefined : REUSE_FIX,
+    },
+    {
+      name: `静态代理 ${WEB_PORT} 返回 index.html（复用）`,
+      ok: indexOk,
+      detail: indexOk
+        ? `${WEB_ORIGIN} ${index.detail}，响应含 <div id="app">`
+        : `${WEB_ORIGIN} ${index.detail}${index.ok ? '，但响应不是 dist-staging 的 index.html' : ''}`,
+      fix: indexOk ? undefined : REUSE_FIX,
+    },
+    {
+      name: `后端 socket.io ${SOCKET_PORT} 可达（复用）`,
+      ok: socket.ok,
+      detail: socket.detail,
+      fix: socket.ok ? undefined : REUSE_FIX,
+    },
+  ]
+}
+
+/**
  * 跑全部前置检查；任一失败就抛 {@link E2ePreconditionError}（进程退 2），
  * 消息里带上**所有**失败的检查 —— 一次改完，不用来回试。
+ *
+ * `doctor`：给 `pnpm walnut e2e:doctor` 用，只多打印一行标题 + 把每条失败检查的处置在结果列表里
+ * 就地打出来（不抢锁、不动库；退出码口径与平时一致）。
  */
-export async function runPreflight(): Promise<void> {
+export async function runPreflight(options: { doctor?: boolean } = {}): Promise<void> {
+  if (options.doctor === true) {
+    console.log('[e2e/preflight] e2e:doctor —— 只做前置自检：不抢锁、不动库、不启动服务')
+  }
+
   warnStaleArtifacts()
 
   const results: CheckResult[] = [
     checkStageEnv(),
+    checkArtifact(
+      '@walnut/utils CJS 产物',
+      UTILS_SIGN_RAW_DIST_FILE,
+      'pnpm build（或 pnpm --filter @walnut/utils build）',
+    ),
+    checkArtifact(
+      '@walnut/contract CJS 产物',
+      CONTRACT_DIST_FILE,
+      'pnpm build（或 pnpm --filter @walnut/contract build）',
+    ),
     checkArtifact('admin 产物', ADMIN_INDEX_FILE, 'pnpm walnut build:stage'),
     checkArtifact('server 产物', SERVER_MAIN_FILE, 'pnpm --filter @walnut/server build:stage'),
     checkChromium(),
@@ -216,13 +310,21 @@ export async function runPreflight(): Promise<void> {
     results.push({ name: service.name, ok: tcp.ok, detail: tcp.detail, fix: tcp.ok ? undefined : DATA_STACK_FIX })
   }
 
-  for (const port of [BACKEND_PORT, SOCKET_PORT, WEB_PORT]) {
-    const free = await checkPortFree(port)
-    results.push({ name: `端口 ${port} 空闲`, ok: free.ok, detail: free.detail, fix: free.ok ? undefined : PORTS_FIX })
+  if (process.env.E2E_REUSE_SERVER === '1') {
+    results.push(...await reuseServerChecks())
+  }
+  else {
+    for (const port of [BACKEND_PORT, SOCKET_PORT, WEB_PORT]) {
+      const free = await checkPortFree(port)
+      results.push({ name: `端口 ${port} 空闲`, ok: free.ok, detail: free.detail, fix: free.ok ? undefined : PORTS_FIX })
+    }
   }
 
   for (const result of results) {
-    console.log(`[e2e/preflight] ${result.ok ? 'ok  ' : 'FAIL'} ${result.name}：${result.detail}`)
+    const fix = result.ok || result.fix === undefined || options.doctor !== true
+      ? ''
+      : `\n    处置：${result.fix}`
+    console.log(`[e2e/preflight] ${result.ok ? 'ok  ' : 'FAIL'} ${result.name}：${result.detail}${fix}`)
   }
 
   const failed = results.filter(result => !result.ok)
@@ -240,7 +342,7 @@ const invokedDirectly = process.argv[1] !== undefined
   && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 
 if (invokedDirectly) {
-  runPreflight().catch((error) => {
+  runPreflight({ doctor: process.argv.includes('--doctor') }).catch((error) => {
     console.error(`[e2e/preflight] 失败：${error instanceof Error ? error.message : String(error)}`)
     process.exitCode = 2
   })

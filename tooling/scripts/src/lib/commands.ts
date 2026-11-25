@@ -286,8 +286,9 @@ export const COMMANDS: readonly Command[] = [
     label: '全链路 E2E（独立 PG/Redis 栈 + dist-stage 后端 + dist-staging 前端）',
     why: '跨端链路（设备身份、CAP、签名握手、风控）只有真实浏览器 + 真实后端能验；这条命令先查前置、'
       + '抢 run 级锁、重建独立库（walnut_e2e / 5433 / 6380，绝不碰 dev 库）再跑全部 spec。'
-      + '**前置**：`pnpm setup-env`（apps/server/env-local/.env.stage）、`pnpm walnut build:stage` 与'
-      + '`pnpm --filter @walnut/server build:stage`、`pnpm --filter @walnut/e2e exec playwright install chromium`、'
+      + '**前置**：`pnpm setup-env`（apps/server/env-local/.env.stage）、`pnpm build`（workspace 包的 CJS dist）、'
+      + '`pnpm walnut build:stage` 与 `pnpm --filter @walnut/server build:stage`、'
+      + '`pnpm --filter @walnut/e2e exec playwright install chromium`、'
       + '数据栈在 5433 / 6380 可达（WSL 形态还要一个隐藏会话）。全量含 @network 用例（依赖真实外网，'
       + '离线时改用 e2e:risk）。刻意不进 prepush 与 ci:local：重活不属于推送前门禁。',
     // 顺序写在 apps/e2e/scripts/run.ts：锁 → preflight → prepare-db → stack-info → playwright test
@@ -299,7 +300,7 @@ export const COMMANDS: readonly Command[] = [
     group: '门禁',
     label: 'E2E 冒烟子集（setup + UI 登录/首页/用户 CRUD）',
     why: '改前端或后端引导链后先跑这一组：它含 UI 登录与 MFA，能最快回答「栈还活着吗」。'
-      + '前置与 e2e 相同（setup-env / 两处 build:stage / playwright install / 数据栈），'
+      + '前置与 e2e 相同（setup-env / pnpm build / 两处 build:stage / playwright install / 数据栈），'
       + '但它不碰 @network，离线也能跑。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:smoke'],
     budgetMs: 0, // 同 e2e：分钟级 + webServer 启停
@@ -696,6 +697,15 @@ export const COMMANDS: readonly Command[] = [
   },
 
   // ── 工具 ──
+  {
+    id: 'e2e:doctor',
+    group: '工具',
+    label: 'E2E 前置自检（打印全部检查与修复命令，不抢锁、不动库）',
+    why: '跑 e2e 前的失败先说清「缺什么、怎么补」：它只跑 preflight（env / workspace CJS dist / '
+      + '两处 stage 产物 / chromium / PG·Redis 可达 / PG 容器可读 / 端口），**不**抢 run 级锁、'
+      + '不重建库、不起服务。环境有问题时仍按退出码 2 收场（与 e2e 的前置口径一致），适合排障时反复跑。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:doctor'],
+  },
   {
     id: 'e2e:report',
     group: '工具',

@@ -38,6 +38,17 @@ export const ADMIN_INDEX_FILE = path.join(ADMIN_DIST_DIR, 'index.html')
 export const SERVER_DIST_DIR = path.join(SERVER_ROOT, 'dist-stage')
 /** 后端 stage 入口文件（同上；路径形态由 apps/server 的 build:stage 产出决定） */
 export const SERVER_MAIN_FILE = path.join(SERVER_DIST_DIR, 'apps/api/src/main.js')
+/**
+ * `@walnut/utils` 的 CJS 产物（`pnpm build` 产出）。
+ *
+ * 判据来自 `lib/protocol/sign-raw.ts` 的 `require('@walnut/utils/sign-raw')`：该包
+ * `exports.require` 指向 `dist/*.cjs`。E2E 的 Node 原生执行腿消费的是它与后端**同一份**产物，
+ * 缺了它 webServer 启动时才会报模块找不到（Playwright 表现为 180s 超时）—— preflight 要把
+ * 这类失败提前成退出码 2。
+ */
+export const UTILS_SIGN_RAW_DIST_FILE = path.join(REPO_ROOT, 'packages/platform-any/utils-core/dist/sign-raw.cjs')
+/** `@walnut/contract` 的 CJS 产物（`lib/protocol/contract.ts` 的 require 消费；同上） */
+export const CONTRACT_DIST_FILE = path.join(REPO_ROOT, 'packages/platform-any/contract/dist/index.cjs')
 
 /** 运行态目录：凭据（gitignored）与栈信息 */
 export const AUTH_DIR = path.join(E2E_ROOT, '.auth')

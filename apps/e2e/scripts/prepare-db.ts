@@ -69,10 +69,15 @@ function log(message: string): void {
  * 生成传给 typeorm CLI 的 env 文件：只放 DATABASE_PG_*（data-source.cli 只读这 5 个键）。
  * 写到 apps/server/env-local/.env.e2e 是**唯一可行**的通道 —— CLI 用 `process.cwd()/env-local`
  * 定位文件，没有 `--env-file` 参数。
+ *
+ * 这个文件**含数据库口令**：0600 权限（POSIX 上生效；Windows 的 Node 会忽略 mode，见 README），
+ * 文件头写「勿提交」，且迁移一结束就删（{@link prepareDatabase} 的 finally）——
+ * 不让它比必要的生命周期多留在盘上。
  */
 function writeServerMigrationEnv(): void {
   const lines = [
     '# 由 apps/e2e/scripts/prepare-db.ts 生成（gitignored）：E2E 独立库的迁移通道。',
+    '# 含数据库口令，勿提交、勿复制分享；迁移跑完即删（见 prepare-db.ts）。',
     `DATABASE_PG_HOST=${E2E_PG_HOST}`,
     `DATABASE_PG_PORT=${E2E_PG_PORT}`,
     `DATABASE_PG_USER=${E2E_PG_USER}`,
@@ -81,8 +86,8 @@ function writeServerMigrationEnv(): void {
     '',
   ]
   mkdirSync(`${SERVER_ROOT}/env-local`, { recursive: true })
-  writeFileSync(SERVER_E2E_ENV_FILE, lines.join('\n'), 'utf8')
-  log(`已写 ${SERVER_E2E_ENV_FILE}`)
+  writeFileSync(SERVER_E2E_ENV_FILE, lines.join('\n'), { encoding: 'utf8', mode: 0o600 })
+  log(`已写 ${SERVER_E2E_ENV_FILE}（含 DB 口令，0600；迁移结束即删）`)
 }
 
 /**
@@ -248,7 +253,13 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
 
     // 迁移：typeorm CLI 只读 env-local/.env.e2e（见 writeServerMigrationEnv）
     log('跑迁移（NODE_ENV=e2e → apps/server/env-local/.env.e2e）')
-    runPnpm(['run', 'migration:run'], SERVER_ROOT, { ...process.env, NODE_ENV: 'e2e' }, 'migration:run')
+    try {
+      runPnpm(['run', 'migration:run'], SERVER_ROOT, { ...process.env, NODE_ENV: 'e2e' }, 'migration:run')
+    }
+    finally {
+      // 迁移通道文件含 DB 口令：一跑完（无论成败）就删，与 .e2e/e2e.env 同处置
+      rmSync(SERVER_E2E_ENV_FILE, { force: true })
+    }
 
     // seed：--env-file 指向整份拷贝（AUTH_OPAQUE_SECRET 必须与后端同源）。
     // 跑完立刻删掉这份含密钥的副本 —— 它唯一的消费者是 seed 自己。
@@ -293,9 +304,10 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
     log(`完成：库已重建、seed 已播、admin 已提升为 root、CAP 节流已放宽（全量 prepare 耗时 ${((Date.now() - started) / 1000).toFixed(1)}s）`)
   }
   finally {
-    // seed env 含 AUTH_OPAQUE_SECRET：正常路径下 seed 一结束就删了，这里是异常路径
-    // （迁移失败、提前抛错）的兜底 —— 不让这份副本在盘上多留一轮。
+    // seed env 含 AUTH_OPAQUE_SECRET、迁移 env 含 DB 口令：正常路径下各自一结束就删了，
+    // 这里是异常路径（提前抛错）的兜底 —— 不让这两份副本在盘上多留一轮。
     rmSync(E2E_ENV_FILE, { force: true })
+    rmSync(SERVER_E2E_ENV_FILE, { force: true })
     if (ownsLock) {
       await releasePgLock(maintenance)
     }
