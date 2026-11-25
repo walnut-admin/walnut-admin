@@ -62,3 +62,6 @@ is the correct chain per industry standard (see [行业调研：测试体系](..
 - Shared packages (`utils`, `contract`) get test coverage first — highest blast radius
 - Version drift inside `versioning.fixed` is caught on the PR that introduces it (`pnpm change check`), not at release time
 - `turbo test` runs affected packages only (via `--affected` with an explicit `TURBO_SCM_BASE`/`TURBO_SCM_HEAD` base)
+- **2026-11-25 追记**：`apps/server/playwright` 那套手写沙盒 demo 已退役（零消费方、CSV 资产不在仓、
+  脚本跑不完整；手写数据不迁移，需要时可从合并提交 `b63ec42a` 取回）。将来 risk / 浏览器侧测试统一走
+  `apps/e2e`（`@playwright/test`），`@walnut/server` 不再自带 playwright 依赖。
