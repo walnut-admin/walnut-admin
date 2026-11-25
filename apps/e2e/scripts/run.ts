@@ -11,8 +11,11 @@
  *    dataKey 漂移 / 数据路径脏 / 基线文件对不上 ⇒ 退出码 2 并提示重新封板；
  *    `--rebuild-baseline`（或 `E2E_REBUILD_BASELINE=1`）⇒ 强制全量 prepare + seal；
  *    `E2E_SKIP_BASELINE=1` ⇒ 忽略基线、全量 prepare（不封板）。整段在锁内；
- * 4. stack-info（本轮栈信息 + 产物真实 mtime）；
- * 5. `pnpm exec playwright test <剩余参数>` —— 参数原样透传（`e2e:smoke` 就是
+ * 4. **Redis 设备键对账**（P2-2，`scripts/redis-gc.ts`）：库刚重建完，「不在 `sys_device`
+ *    里的 deviceId」就是确定的孤儿 —— 按精确键名删掉它们（绝不 FLUSH）。
+ *    默认开（`E2E_REDIS_GC=0` 关）；失败只报警，cleanup 不该把一轮测试拦下来；
+ * 5. stack-info（本轮栈信息 + 产物真实 mtime）；
+ * 6. `pnpm exec playwright test <剩余参数>` —— 参数原样透传（`e2e:smoke` 就是
  *    `--project=smoke`），退出码也原样返回（Playwright 的契约不在这一层改写）。
  *
  * 并发行为：第二个 run 在**第一步**就等锁；120s 内抢不到就报「谁在持锁」并以退出码 2 收场
@@ -25,6 +28,7 @@ import { reportFailure } from './failure.ts'
 import { acquirePgLock, connectMaintenance, releasePgLock } from './pg-lock.ts'
 import { spawnPnpm } from './pnpm.ts'
 import { runPreflight } from './preflight.ts'
+import { runRedisGc } from './redis-gc.ts'
 import { writeStackInfo } from './stack-info.ts'
 
 async function main(): Promise<void> {
@@ -51,6 +55,19 @@ async function main(): Promise<void> {
       rebuild,
       skipBaseline: process.env.E2E_SKIP_BASELINE === '1',
     })
+
+    // P2-2：库刚重建完（restore 或全量 prepare），`sys_device` 里没有的 deviceId 的键就是
+    // 上一轮 / 崩溃 run 的残留。默认开：不跑它，RSA 公钥（30 天）与 challenge 标记（24h）
+    // 会跨轮堆积；`E2E_REDIS_GC=0` 可关。失败只警告 —— 这是 cleanup，不是前置条件。
+    if (process.env.E2E_REDIS_GC !== '0') {
+      try {
+        await runRedisGc()
+      }
+      catch (error) {
+        console.warn(`[e2e/run] WARN Redis 设备键对账失败（不影响本轮用例）：${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+
     writeStackInfo()
     console.log(`[e2e/run] pnpm exec playwright test ${testArgs.join(' ')}`.trimEnd())
     process.exitCode = spawnPnpm(['exec', 'playwright', 'test', ...testArgs], E2E_ROOT, { ...process.env })
