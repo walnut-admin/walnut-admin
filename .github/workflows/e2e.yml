@@ -150,6 +150,7 @@ jobs:
       # 基线缓存的键：stdout 只有 `v<MANIFEST_VERSION>-<dataKey>`（见 apps/e2e/scripts/data-key.ts）。
       # dataKey 是 HEAD 上「决定测试库内容」的路径组合树哈希 —— 同一提交在 CI 与本地算出的值
       # 一致（checkout 是 fetch-depth: 0，无浅克隆）；清单格式版本并进键里，升级即自然失效。
+      # 必须放在 `pnpm build` 之后：data-key.ts 经 env.ts 依赖 `@walnut/contract` 的 CJS 产物。
       - name: Compute baseline cache key
         id: baseline-key
         run: echo "key=$(node apps/e2e/scripts/data-key.ts --cache-key)" >> "$GITHUB_OUTPUT"
@@ -157,10 +158,12 @@ jobs:
       # 只缓存封板三件套，不缓存 `.e2e/` 整目录（里面还有排障残渣）。命中 ⇒ 下一轮 run 走
       # restore；未命中 ⇒ 全量 prepare + seal，job 成功后本 action 的 post 步骤自动保存。
       # 注意：恢复出来的清单仍会被 baseline.ts 逐项校验（dataKey / dump 与 credentials 的 sha），
-      # 缓存只是加速，不是信任来源。
+      # 缓存只是加速，不是信任来源。v5 而不是 v4：与 ci.yml 同口径（v4 跑在 node20 上）。
+      # 这里**不用** rolling key / restore-keys：缓存内容由 `dataKey` 唯一决定，同一 key 下的
+      # 基线是内容不变的，没有「冻在第一次写入」的问题。
       - name: Restore baseline cache
         id: baseline-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             apps/e2e/.e2e/baseline.dump
