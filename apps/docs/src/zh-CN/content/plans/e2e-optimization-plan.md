@@ -929,6 +929,39 @@ E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`
 
 ---
 
+### 3.4 P3：模块扩面与 auth 矩阵（R4 落地记录，2026-11-26）
+
+**需求真源**：[E2E 沙盒测试计划](./e2e-sandbox-plan.md) 的 Phase 3（§9）与 §9.1 的结果记录；
+本节只记与优化文档相关的工程结论，不重复用例表。
+
+- **模块 spec（落 `smoke` project）**：`tests/system/{menu,role,setting}.spec.ts`。菜单覆盖树形 /
+  权限串生效 / F3 缓存失效 / 软删快照；角色覆盖 list 行不带关联、详情端点带 `menus`/`deptIds`、
+  授权整组替换与 `usersCount`；角色权限链用**真实 OPAQUE 登录的非 root 用户**验证角色改授 →
+  `/auth/permissions` 重算；设置覆盖 CRUD + **写路径自带缓存刷新**（不重复 U11 的「裸 SQL + 手动
+  refresh」通道）。
+- **auth 面矩阵（`tests/risk/auth-matrix.spec.ts`，`@risk`）**：补 U14/U15 未覆盖的格 ——
+  MFA 未绑定（40114）、MFA 已绑定未验证（40115）、备用码（恢复码）一次性、TOTP 解绑后重绑、
+  多设备在线 + 踢下线、主动登出。判据统一为「业务码 + Redis 落点 + DB 行」三件套。
+- **device profile**：新增 1 个 `mobile` Playwright project（Pixel 7），只跑登录页布局断言；
+  共用 default 栈、不进 `E2E_STACK_PROFILE` / CI matrix。**这不是 R3 的 stack profile 维度**，
+  规模判据写在计划页 §9.1（业务链路换浏览器不产生新信息；为秒级用例复制数据栈不划算）。
+- **非 root 可登录账号 fixture**：`lib/account-fixtures.ts` 复刻服务端 OPAQUE 注册链
+  （`AUTH_OPAQUE_SECRET` / `userIdentifier=userName`），按 `finishRegister` 口径写
+  `sys_user_identity`；之后全走真实协议登录。**不要**用伪造 AT 绕过。
+- **修掉一个既有 IP 分配缺陷**：Playwright 每个 spec 文件是独立 worker，模块级 `localIpSeq`
+  会重置 —— 多个文件从同一 IP 起步，叠加后撞 `device/initial` 的 4 次/60s 桶（新增模块 spec 后
+  首次复现 42900）。修法：`uniqueLocalIp` 从 **pid 偏移**起步 + `bootstrap` 42900 **换地址重放**
+  （≤8 次，不 sleep）；跨 profile 的 IP 段不相交性质不变。
+- **实测**（本机 WSL 栈，单次）：default 全量 **31 例 / 266.5s**（R3 基线 20 例 / 229.4s；
+  新增 11 例自身约 25s，其余是 risk 项目 UI 用例的波动）；`E2E_STACK_PROFILE=smoke` **8/8 56.3s**、
+  `risk` **22/22 212.2s**、`network` **2/2 13.2s**；e2e 单测 **240/240**。11 条新用例的核心断言
+  全部做过「改坏 → 红 → 还原」的负对照。
+- **转报服务端的观察**（不在 e2e 改）：password identity 明文落库；`treeWithoutTypeElement`
+  非递归 element-free；menu update 的「可选字段」会被 Transform 写成 null；TOTP unbind 不回落
+  `mfa_setup`；`GET /system/user/:id` 不回填 roles。逐条见计划页 §9.1 第 2–7 条。
+
+---
+
 ## 4. 不建议做（以及为什么在本仓库收益低）
 
 这一节和改造项同等重要：**不做什么，决定了复杂度不会提前引入**。
@@ -940,7 +973,7 @@ E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`
 | **每个 PR 跑全量 E2E** | 与上一条同因：全量 4–7 分钟只是测试本身，前面还有 install / 两处 stage 构建 / 数据栈 / 浏览器安装。fork PR 没有 secrets，也拿不到 stage env。计划页 §2.8 已拍板「不进 PR 门禁」，本篇不翻案。 |
 | **全量复制生产库** | 本仓没有合规 / 性能场景需要生产数据形态；E2E 的数据需求是「覆盖边界状态的少量 seed」，不是「生产规模」。复制生产库只会引入 PII 风险与脱敏成本（Salesforce Full Copy 是给上线前性能验证用的，不是日常测试）。 |
 | **数据库分支 / Neon / ZFS 快照** | 本仓已有 PG `pg_dump -Fc` + restore，实测 1.5–3.5 秒；prepare 2–7 秒。分支 / COW 能把重置降到毫秒级，但相对 4–7 分钟的总时长是 <1% 的优化，收益被噪声淹没。现有基线机制的真正价值是「数据版本可控」，不是速度。 |
-| **多浏览器 / 多设备 profile 矩阵** | 设备身份是服务端签发的 `DEVICE_ID` signed cookie，不消费浏览器指纹；同一套逻辑换浏览器只会多跑几遍，抓不到新缺陷。视觉回归是另一层的事，不放在这里。 |
+| **多浏览器 / 多设备 profile 矩阵** | 设备身份是服务端签发的 `DEVICE_ID` signed cookie，不消费浏览器指纹；同一套逻辑换浏览器只会多跑几遍，抓不到新缺陷。视觉回归是另一层的事，不放在这里。**R4 的例外**：1 个 mobile 布局用例测的是响应式几何量，不是把业务链路换浏览器重跑（规模判据见计划页 §9.1）。 |
 | **storageState 复用登录态** | 已判死：`storageState({ indexedDB: true })` 恢复不了 IndexedDB 里的 AES `CryptoKey`，坏状态会让应用卡在 splash。这是不变量 7，不因「省几秒」而绕过。 |
 | **把 E2E 放回 apps/admin/e2e** | 旧建议（行业调研 04 的早期版本）假定「E2E 只关心 admin」。现在这一层明确测跨端：设备身份、CAP、签名握手、风控，必须同时有前端与后端。放回 admin 会让「库被重建过」这个判据失效。 |
 | **用 mock 替代真实后端** | E2E 的价值就是验证真实后端 + 真实 PG / Redis + 真实浏览器。要 mock 的是第三方（支付、邮件、地图、OAuth），不是自己的服务。 |

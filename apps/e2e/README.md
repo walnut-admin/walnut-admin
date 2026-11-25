@@ -2,7 +2,8 @@
 
 真实浏览器 × 真实后端进程（stage 产物）× **独立** PostgreSQL / Redis 栈的跨端测试。
 这一层不测单元逻辑（那是各包 vitest 的事），只测跨端链路：设备身份签发与续期、CAP 挑战、
-签名握手、风控拦截，以及登录 / 首页 / 用户 CRUD。
+签名握手、风控拦截、登录 / 首页 / 用户 CRUD，以及 Phase 3 起的模块链路（菜单 / 角色 / 设置与
+权限生效）、auth 面矩阵（MFA 绑定态 / 会话 / 登出）和 mobile（Pixel 7）布局。
 
 数据栈与 dev **物理隔离**：独立端口（5433 / 6380，dev 是 5432 / 6379）+ 独立库（默认
 `walnut_e2e`；`smoke` / `risk` / `network` profile 各用 `walnut_e2e_<profile>`）。
@@ -33,6 +34,9 @@ fail-fast（退出码 2）。`default` 的值与改造前逐字相同。
   实例**，不是键前缀。
 - `.env.e2e` 固定路径约束：`apps/server/env-local/.env.e2e` 是 typeorm CLI 的固定通道，同一个
   checkout 上不能并发两个 profile 的 prepare —— 本地靠全局锁串行，CI 每个 job 独立 checkout。
+- **`mobile` 不是 stack profile**：它是 Playwright 的 device profile（Pixel 7 视口 / UA），
+  共用 default 栈，**不**接受 `E2E_STACK_PROFILE=mobile`、也不在 nightly CI matrix 里；默认全量
+  会跑到它（`tests/mobile/`）。业务链路换浏览器不产生新信息，只为响应式几何量留了 1 条用例。
 
 ## 退出码（先记住这三档）
 
@@ -251,8 +255,9 @@ pnpm --filter @walnut/e2e e2e -- --ui      # 等价的包内写法（经 pnpm �
 
 | tag | 含义 | 当前落点 |
 |-----|------|----------|
-| `@smoke` | 冒烟 | 首页只读、用户 CRUD |
-| `@risk` | 设备 / 风控 | 设备 ID 生命周期整组（`test.describe` 上） |
+| `@smoke` | 冒烟 | 首页只读、用户 CRUD、菜单 / 角色 / 设置模块 spec |
+| `@risk` | 设备 / 风控 / auth 面 | 设备 ID 生命周期整组、risk 矩阵 U11–U16、auth 面矩阵（MFA / 会话 / 登出） |
+| `@mobile` | mobile 设备 profile | Pixel 7 登录页布局（`tests/mobile/`，默认全量跑） |
 | `@slow` | 慢用例（同时有 `test.slow()`） | 两条「回填 created_at」 |
 | `@network` | 依赖真实外网 | U1b（api.ip.sb 定位） |
 | `@quarantine` | 隔离（默认不执行，见下） | `quarantine.json` 里登记的用例 |

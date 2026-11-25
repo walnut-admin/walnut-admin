@@ -6,7 +6,8 @@
 ## 这一层是什么
 
 真实浏览器 × 真实后端进程（stage 产物）× **独立** PostgreSQL / Redis 栈（5433 / 6380）。不测单元逻辑（各包 vitest 的事），只测跨端链路：设备身份签发与续期、CAP、
-签名握手、风控拦截、登录 / 首页 / 用户 CRUD。
+签名握手、风控拦截、登录 / 首页 / 用户 CRUD，以及 Phase 3 起的模块链路（菜单 / 角色 / 设置与
+权限生效）、auth 面矩阵（MFA 绑定态 / 会话 / 登出）与 mobile（Pixel 7）布局。
 
 **stack profile（P1-6 Phase A）**：库名 / 后端·socket·静态代理端口 / 基线目录 / IP 段由
 `scripts/stack-profiles.ts` 的 profile 表决定（单一真源，`default` 与改造前逐字相同）：
@@ -17,8 +18,10 @@
 | `smoke` / `risk` / `network` | `walnut_e2e_<p>` | 3101–3103 / 3011–3013 / 4181–4183 | `127.0.{11,21,31}.*` 与 `{12,22,32}` | `.e2e/<p>/` |
 
 `E2E_STACK_PROFILE` **只选 profile 名**，不开放端口 / 库名覆盖（任意覆盖会让安全闸失去意义）；
-未知值 fail-fast（退出码 2）。profile 与 Playwright project 同名 1:1：命名 profile 跑别的
-project 会被 `run.ts` 拒绝。本地多 profile 仍串行（全局锁），CI 每个 job 独立 runner / checkout。
+未知值 fail-fast（退出码 2）。**stack profile** 与同名 Playwright project 1:1：命名 profile 跑别的
+project 会被 `run.ts` 拒绝。注意 `mobile` 是 **device profile**（Pixel 7 视口 / UA，`tests/mobile/`），
+不是 stack profile —— 它共用 default 栈、不参与 `E2E_STACK_PROFILE` 与 nightly matrix。本地多
+profile 仍串行（全局锁），CI 每个 job 独立 runner / checkout。
 
 编排入口只有一个：`scripts/run.ts`（包脚本 `e2e` / `e2e:smoke` / `e2e:risk` / `e2e:network`
 都走它）。顺序是**硬约束**：抢 run 级锁 → `scripts/preflight.ts` → 基线决策（`ensureTestDatabase`，
@@ -122,6 +125,9 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
    **每个 profile 用独立的第三段**（`stack-profiles.ts` 的 `localIpFor`：default 1–2、smoke 11–12、
    risk 21–22、network 31–32）—— 风控的 `risk:rate:ip:*` 是 Redis 键，同机共享 Redis 时只有
    IP 段不相交才不会串桶。改公式要同时改单测的「跨 profile 不重叠」断言。
+   **同一 profile 内也别假设序号跨文件连续**：Playwright 每个 spec 文件是独立 worker，模块级
+   序号会重置。`uniqueLocalIp()` 从 **pid 偏移**起步，`bootstrap()` 命中 42900 会**换地址重放**
+   （≤8 次，不 sleep）—— 新增 spec 一律走它，别在用例里手写 IP。
 5. **Redis 只按 deviceId 精确删**（`deleteDeviceScopedKeys`；`scripts/redis-gc.ts` 的跨轮对账
    同样只 SCAN + 精确 DEL），**绝不 FLUSHDB / FLUSHALL**（compose 里这两个命令已被重命名禁用）。
    键形对齐 `apps/server/libs/const/src/app/cache.ts`，服务端改键形时**两张表都要同步**：
@@ -143,6 +149,11 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
    （仅本栈库的设置行），restore 继承快照里的这个值。别把测试专用的放宽写进源码。
 10. **设备清理归 fixture**（`tests/fixtures.ts` 的两个 auto fixture）：新造的设备要 `trackDevice`，
     别在用例末尾手写 `cleanupDevices(...)` —— 断言失败时那几行根本不会执行。
+11. **非 root 可登录账号只经 `lib/account-fixtures.ts` 造**：管理端没有「建号带口令」的 API
+    （`POST /system/user` 不带口令；`/auth/opaque/user/register/*` 要求已登录）。fixture 复刻
+    服务端 OPAQUE 注册链并按 `finishRegister` 的口径把 registrationRecord 明文写进
+    `sys_user_identity`，之后**必须走真实协议登录**。不要伪造 AT / 会话去换权限断言 —— 那会把
+    JWT / 会话 / MFA 三条守卫一起绕掉，测出来的「权限生效」没有意义。
 
 ## 排障
 

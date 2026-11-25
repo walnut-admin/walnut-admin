@@ -1,6 +1,6 @@
 # E2E 沙盒测试工程：分阶段实施计划
 
-> 状态：【进行中——Phase 1 已完成并通过 review 修复；Phase 2 收尾（CI 接线 / risk 矩阵 U11–U16 / review 暂缓项已落地，nightly 首跑待 GitHub runner）；Phase 3 未开始】2026-11-24 立项。前期设计与可行性结论记录在本文；**前期设计稿本身未入库**（对话产物），本文是它入库后的唯一真源。
+> 状态：【进行中——Phase 1 已完成并通过 review 修复；Phase 2 收尾（CI 接线 / risk 矩阵 U11–U16 / review 暂缓项已落地，nightly 首跑待 GitHub runner）；Phase 3 进行中（R4 落地菜单 / 角色 / 设置模块 spec、auth 面矩阵与 1 个 mobile 设备 profile；i18n / 回收站 / 操作日志与 worker 账号池未做；部署后 smoke 按所有者决定挂起）】2026-11-24 立项。前期设计与可行性结论记录在本文；**前期设计稿本身未入库**（对话产物），本文是它入库后的唯一真源。
 > **2026-11-25 追记**：U8 / U9 flake 的核心修复已在提交 `b21ac118` 落地（删 `networkidle` 无超时等待、新增 `waitForDeviceHealSettled`、自愈后识别并关闭 CAP、点击补 30s 上限），即 §8.3 的 P2-7 核心项；其后 `5067b4aa`（契约 bridge、常量收口、knip 清理＝P2-9 / P2-10 / P2-11）、`18dcc9c6`（CAP PoW 上界与静态代理加固＝P2-16 / P2-17）、`d720c0d3`（慢用例 `test.slow()`＝P2-15）也已落地。Phase 2 的 CI 接线、risk 矩阵 U11–U16 与其余项仍未开始，因此状态行不改为「已完成」。工程细化与优先级见 [apps/e2e 改造优化方案](./e2e-optimization-plan.md)。
 > **2026-11-26 追记（Phase 2 收尾）**：§8.2 的 risk 矩阵 U11–U16 已按用例表落地（7 条用例：U11 / U12 / U13 / U13b / U14 / U15 / U16），全量 20 例 229.4s、风险子集 16 例 192.4s、`e2e:network` 2/2 19.1s（均为本机 WSL 栈单次读数）；每条核心断言都有「改坏 → 红 → 还原」的负对照记录。U13 用例表与守卫链有一处口径分歧（40111 与 CAP 对话框分属两条路径），逐条写在 §8.5。Phase 2 仍差 nightly 工作流首跑（需 GitHub runner）。
 > **定位**：把全链路 E2E 从一次性可行性验证推进成一个长期能跑的测试工程 —— 独立 workspace 包、独立数据栈、可复现的测试数据版本，以及后续的 CI 接线与用例矩阵。本篇是执行蓝图，也是 Phase 1 的实施记录。
@@ -286,7 +286,7 @@ pnpm walnut build:docs
 
 **完成判据状态**：全量含 U11–U16 ✅、`e2e:network` 2/2 ✅、20 次循环证据 ✅（见 P2-1 落地记录）、review P2 暂缓项全部关闭 ✅（P2-5 遗留的两处 `toBeTruthy` 已改为具体判据，`waitForTimeout` 已清零）。**未完成**：nightly 工作流首跑（GitHub runner，本机无法验证）。
 
-## 9. Phase 3：其余模块与更远（未开始）
+## 9. Phase 3：其余模块与更远（进行中）
 
 ### 目标
 
@@ -295,11 +295,15 @@ pnpm walnut build:docs
 ### 改动清单
 
 1. **其余模块 spec**：菜单 / 角色 / 设置 / i18n / 回收站 / 操作日志 —— 每条先问「它能不能在这一层被测」，能就别只补接口测试。
+   **R4 已落地**菜单 / 角色 / 设置（见 §9.1）；i18n / 回收站 / 操作日志未做。
 2. **auth 面**：MFA（绑定 / 解绑 / 恢复码）、会话（多设备在线 / 踢下线）、登出。
+   **R4 已落地**：MFA 未绑定 / 已绑定未验证 / 备用码（恢复码）/ 解绑后重绑、多设备在线 + 踢下线、主动登出（见 §9.1）。
 3. **设备 profile 矩阵**：**1 个 mobile profile 起步**。本仓的 risk 不消费浏览器指纹（设备身份是服务端 cookie，见 1.2），所以**不铺全矩阵** —— 铺了只是给同一条逻辑多跑几遍。
-4. **worker 账号池**：并发用例的账号分配与回收（Phase 2 的最小形态在 Phase 3 收敛成池）。
+   **R4 已落地**：1 个 Playwright **device profile**（Pixel 7）的响应式布局用例；它与 R3 的 **stack profile** 是不同维度（共用 default 栈、不进 `E2E_STACK_PROFILE` / CI matrix，判据见 §9.1）。
+4. **worker 账号池**：并发用例的账号分配与回收（Phase 2 的最小形态在 Phase 3 收敛成池）。**未做**（Phase B 仍显式暂缓）。
 5. **可选**：L4 独立 sandbox 部署（要主机 / 域名 / 证书）—— 不为它先做任何设计。
-6. **可选**：生产部署后的 runner 侧匿名只读浏览器 smoke（**不做认证写入**）。
+   **挂起**：所有者已拍板（当前无主机 / 域名 / 证书资源），不作为 R4 的阻塞项。
+6. **可选**：生产部署后的 runner 侧匿名只读浏览器 smoke（**不做认证写入**）。**挂起**：依赖第 5 项的资源，同批不做。
 
 > **2026-11-25 追记**：并行 / 账号池的工程前置设计（Phase A「stack-per-project」：profile、端口、锁、CI matrix 与失败隔离）已完成，见 [apps/e2e 改造优化方案](./e2e-optimization-plan.md) 的 P1-6；Phase B（per-worker）仍暂缓、不排期。
 >
@@ -308,7 +312,6 @@ pnpm walnut build:docs
 > 3011–3013 / 4181–4183）、`.e2e/<p>/` 基线与不相交的 IP 段；nightly 演进为三 job 并行 matrix
 > （`fail-fast: false`）。这是 Phase 3 新增模块用例的**承载方式**：新用例只要落在某个 project，
 > 就自动获得独立的库与端口；但单 project 内的 worker 并发（Phase B / worker 账号池）仍显式暂缓。
-> 状态口径：Phase 2 收尾证据不变，Phase 3 仍「未开始」。
 
 ### 验证
 
@@ -326,6 +329,84 @@ pnpm walnut build:docs
 - 新增模块 spec 全绿，且每条都有明确的失败判据（故意破坏被测行为必须红）。
 - 文档同步：`apps/e2e/AGENTS.md` 的不变量、`apps/e2e/README.md` 的操作面、根 `AGENTS.md` 的常用命令（若命令面变化）、`architecture-todo.md` 的 P3 E2E 行。
 - 若做了 profile 矩阵或账号池：写下「为什么是这个规模」的判据，不写用例数。
+
+### 9.1 结果记录（2026-11-26，R4：模块 spec + 设备/auth 矩阵）
+
+**先钉一个用词**：本节的「设备 profile 矩阵」是 **Playwright device profile**（浏览器视口 / UA
+描述符），不是 R3 的 **stack profile**（库 / 端口 / 基线隔离）。两者维度不同：R3 的 profile 隔
+数据栈；device profile 隔浏览器。R4 只做 1 个 mobile（Pixel 7）布局用例，并**共用 default 栈**
+（不进 `E2E_STACK_PROFILE` / CI matrix）—— 判据：唯一需要 mobile 的断言是响应式几何量；业务链路
+的设备身份是服务端签发的 cookie，换浏览器重跑同一条逻辑不产生新信息，为一条秒级用例复制库 /
+端口 / 基线不划算。
+
+**提交**：`test(e2e): 菜单/角色/设置模块 spec——协议优先 CRUD 与权限生效路径`（`756db54f`）、
+`test(e2e): 设备/auth profile 矩阵补格`（`d6b67755`）、`docs(docs): R4 落地记录与 Phase 3 口径同步`
+（docs 这笔在代码两笔之后）。
+
+**模块 spec（`apps/e2e/tests/system/`，落 `smoke` project）**：
+
+| 模块 | 用例 | 核心判据落点 |
+|------|------|--------------|
+| 菜单 | 树形 / seed 权限串只读 → 新建 catalog+element → 改 permission → 列表 / 软删 | `menu/tree` 的 fullTree / treeWithoutTypeElement / menuActiveNamesOptions 形态；`/auth/permissions` 的 permissionStrings 随 permission 列变化；`AUTH:PERMISSIONS:*` 只在 permission 变化时清（F3 收窄，title-only 不清）；软删写 `sys_deleted` 快照 |
+| 角色 | list 行不带 menus/deptIds；详情端点带 `menus` / `deptIds` / `usersCount`；授权 A→B 整组替换；建号挂角色后 usersCount 同步 | 详情端点与 list 行的字段差；junction 整组替换；`usersCount` 的 junction 计数子查询 |
+| 角色（权限生效） | 非 root 用户真实 OPAQUE 登录 → 绑定 TOTP → `/auth/permissions` 初始 A → 角色改授 B → 缓存清空 + 权限串换成 B → 用户换角色 → 权限串换成 C | `AUTH:PERMISSIONS:<userId>:*` 被 `delPermissionsForUser` 清；`/auth/permissions` 按实时 `sys_user_role` 重算（P1-18 / P2-16） |
+| 设置 | public / list 过滤 / create / read / update；已知 key 的 private 自动刷新；`cache/refresh` 仍可用 | 写路径自带 `extractAppSettingIntoCache`（不调手动 refresh，`/app/setting/private` 立即读到新值）；显式 refresh 端点返回 true |
+
+**auth 面矩阵（`apps/e2e/tests/risk/auth-matrix.spec.ts`，`@risk`）**：
+
+| 格 | 覆盖来源 |
+|----|----------|
+| 新设备 + MFA 未绑定（`mfa_setup=false`） | R4 M1：登录成功但受保护端点 40114；无 totp 行、设备行 trusted=false |
+| 新设备 + MFA 已绑定 + 本设备未验证 | R4 M2：40115 → TOTP verify(trusted=false) → 20000 + DB 行 trusted=false |
+| 新设备 + TOTP trusted=true | R2 U14 |
+| trusted 但过期 | R2 U15 |
+| 未 trusted（trusted=false 对照） | R2 U14 的对照臂 |
+| 备用码（恢复码） | R4 M3：bind 返回 10 枚 → 新设备用备用码 verify → 20000；消费后密文数组 10→9；重放 40000 且不再消费 |
+| TOTP 解绑 / 重绑 | R4 M4：unbind 删 `sys_user_mfa` 行；同设备重绑拿到新的一批 10 枚备用码 |
+| 多设备在线 / 踢下线 | R4 M5：device/list 同时可见两台；force-quit B → B 的旧 AT 40101、A 仍 20000；B 的 RT 现役行 0、会话键空 |
+| 主动登出 | R4 M6：signout → 旧 AT 40101；RT 现役行 0、会话键空 |
+| mobile（Pixel 7）响应式 | R4 `tests/mobile/layout.spec.ts`：设备描述符生效（navigator UA 含 Mobile/Android）、登录页无横向溢出、设备真实登记 |
+
+**非 root 用户怎么来的**：`POST /system/user` 不带口令，`/auth/opaque/user/register/*` 又要求
+已登录（鸡生蛋）。`apps/e2e/lib/account-fixtures.ts` 复刻服务端 `AuthOpaqueCoreService` 的注册链
+（`AUTH_OPAQUE_SECRET` = serverSetup、`userIdentifier = userName`），把 registrationRecord 按
+`finishRegister` 的口径**明文**写入 `sys_user_identity`；之后全部走真实协议登录，不伪造 AT / 会话。
+
+**实测（本机 WSL 栈，单次读数）**：default 全量 **31 例 / 266.5s**（改造前基线 20 例 / 229.4s；
+新增 11 例自身约 25s，其余为 risk 项目 UI 用例波动）；`E2E_STACK_PROFILE=smoke` **8/8 56.3s**、
+`risk` **22/22 212.2s**、`network` **2/2 13.2s**；`@walnut/e2e` 单测 **240/240**。
+
+**负对照（11/11 红，全部「改坏 → 红 → 还原」后复跑绿）**：菜单缓存清空、角色 list 行字段差、
+角色改授权限串、设置写路径自动刷新、M1 40114、M2 40115、M3 备用码消费、M4 解绑行删除、
+M5 踢下线 40101、M6 登出 40101、mobile 视口宽度。
+
+**与服务端实现 / 任务口径的出入（按代码写，不悄悄改口径）**：
+
+1. **矩阵口径**：任务书把 Phase 3 矩阵猜成「trusted / 过期 / 因子」组合；原文第 3 项是 mobile
+   device profile。R4 两条都落：auth 状态格补在「auth 面」（§9 第 2 项），mobile 按第 3 项落
+   1 个 project。已覆盖 / 新增的对照见上表。
+2. **role / setting 都没有 delete 端点**：角色只有 create/read/update/list（无删除），设置只有
+   create/read/update/list + `cache/refresh`。用例的「删除 / 回收」语义因此落在**撤销授权**
+   （role update menus 整组替换）与 PG 收尾，不假装存在删除 API。
+3. **`treeWithoutTypeElement` 不是递归 element-free**：服务端用 easy-fns-ts `filterTree`，语义是
+   「节点命中 predicate 就整棵返回」—— 命中的 catalog/menu 的后代（含 element）原样保留。用例
+   只断言顶层无 element；若消费方需要递归过滤，得改服务端实现。
+4. **menu update 的「全字段可选」不是真正的 partial**：ValidationPipe 的 `@Transform` 会把未给
+   字符串字段写成显式 null，update 随后覆盖库里的 name/title 等标量列。admin 表单一直回传整行，
+   E2E 也按整行回传（`menuUpdatePayload`）。这是服务端既有语义，新客户端不要依赖「只发改动字段」。
+5. **password identity 存明文**：`AuthOpaqueCoreService.finishRegister` 直接把 registrationRecord
+   写进 `sys_user_identity.value` / `value_hash`（未走 `createIdentity` 的 AES 加密；email/phone
+   那几条才加密），`select: false` 只遮蔽查询。安全观察，转报所有者。
+6. **TOTP unbind 不回落 `sys_user.mfa_setup`**：unbind 只删 `sys_user_mfa` 行，账号级标志要等
+   cron 同步；同设备重绑后仍为 true。矩阵因此只断言「行删除 + 重绑成功 + 新备用码」，不断言
+   unbind 后的瞬时 `mfa_setup`。
+7. **`GET /system/user/:id` 不回填 `roles`**：`attachPopulatedRoles` 写的是内部 `roles_list` /
+   `roles_count`，DTO 不暴露；用户与角色的关联证据取角色详情 `usersCount` 与权限生效链。
+8. **IP 分配的既有缺陷（R4 修掉）**：Playwright 每个 spec 文件是独立 worker，模块级
+   `localIpSeq` 在文件之间重置 —— 多文件都从同一 IP 起步，第 5 台 `device/initial` 撞
+   42900（新增模块 spec 后首次复现）。修法：`uniqueLocalIp` 从 **pid 偏移**起步 +
+   `bootstrap` 命中 42900 时**换地址重放**（≤8 次，不 sleep）。见 `apps/e2e/AGENTS.md` 不变量 4。
+9. **部署后 smoke 挂起**：无主机 / 域名 / 证书资源，所有者已拍板不做；本批不产生任何相关设计。
 
 ## 10. 相关文档
 
