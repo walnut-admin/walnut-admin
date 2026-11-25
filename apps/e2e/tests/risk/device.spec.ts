@@ -24,7 +24,9 @@
  * （**不 FLUSHDB**）。
  *
  * 标记：依赖真实外网的用例在标题里带 `@network`，由独立的 network project 跑（risk 用
- * `grepInvert` 排除它们）—— 离线环境里 risk 仍应全绿。
+ * `grepInvert` 排除它们）—— 离线环境里 risk 仍应全绿。两条「回填 created_at」用例的 UI 重登
+ * 实测 40–60s，标了 `test.slow()`；U8/U9 **刻意不标** —— 修好后的 flake 应在 120s 内红，
+ * 拖到 360s 只会掩盖问题。
  */
 import type { Page } from '@playwright/test'
 import {
@@ -382,6 +384,8 @@ test.describe('设备 ID 生命周期', () => {
   })
 
   test('回填 created_at=1h → 重登触发 DEVICE_NEW critical 因子的 CAP', async ({ browser }) => {
+    // UI 重登 + CAP PoW（jsDelivr WASM）+ TOTP：封板验证轮多次实测 40–60s，距 120s 默认上限余量太小
+    test.slow()
     const session = await loginDevice(browser)
     const deviceId = session.deviceId
 
@@ -407,6 +411,8 @@ test.describe('设备 ID 生命周期', () => {
   })
 
   test('回填 created_at=3d → 重登触发 DEVICE_RECENT critical 因子的 CAP', async ({ browser }) => {
+    // UI 重登 + CAP PoW（jsDelivr WASM）+ TOTP：封板验证轮多次实测 40–60s，距 120s 默认上限余量太小
+    test.slow()
     const session = await loginDevice(browser)
     const deviceId = session.deviceId
 
