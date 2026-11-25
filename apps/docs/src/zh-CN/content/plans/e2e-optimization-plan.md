@@ -267,7 +267,7 @@ jobs:
 **动机**
 
 - 调查时点全量约十一次 UI 登录（auth-setup 一次、home 一次、login 一次、U8 一次、U9 一次、ban 一次、lock 一次、DEVICE_NEW 两次、DEVICE_RECENT 两次），每次 15–25 秒。UI 登录（CAP + MFA）是第一大瓶颈；数据库准备只占 1.5–3.5 秒，**优化 DB 重置对总时长几乎没有帮助**。
-- `apps/e2e/tests/setup/auth.setup.ts` 与 `apps/e2e/tests/smoke/login.spec.ts` 的断言高度重叠：都验证离开登录页、sidebar、CAP 解出、MFA 通过、cookie 形态、localStorage 一致；login.spec 额外验证 `device/initial` 20000、`/auth/permissions` 20000、PG 行。
+- `apps/e2e/tests/setup/auth.setup.ts` 与原 smoke 的 login.spec（P0-3 已合并删除）的断言高度重叠：都验证离开登录页、sidebar、CAP 解出、MFA 通过、cookie 形态、localStorage 一致；login.spec 额外验证 `device/initial` 20000、`/auth/permissions` 20000、PG 行。
 - `apps/e2e/tests/smoke/home.spec.ts` 用 `ensureLoggedIn` 再登录一次，只为做只读断言（菜单项、标题、权限请求、cookie 存在）。
 
 **改法（按收益排序，逐条可独立落地）**
@@ -295,6 +295,8 @@ jobs:
 - 1 / 2 / 3 / 5 / 6 / 8 / 9 不动。
 
 **工作量级**：M（合并 + worker fixture + 两条 DEVICE 用例的改造；每步都可单独验证）。
+
+**落地记录（2026-11-25）**：四步全部落地（`login.spec` 并入 `auth.setup` 并删除；worker 级共享只读 `authedPage`；DEVICE_NEW / DEVICE_RECENT 改为协议客户端预置设备 + 注入 `DEVICE_ID` cookie + 一次 UI 登录；ban / lock 合并为同一台 victim 的串行用例）。提交为本页所在提交（`test(e2e): P0-3 …`；hash 见 `git log` —— 本行随该提交入库，无法自引用自身的提交 hash）。实测单次读数：全量 **2.9 分钟**（13 例；改造基线 4.3–6.8 分钟）、smoke **54.5 秒**（4 例；基线约 1.3 分钟）、risk **2.1 分钟**；UI 登录约 **11 次 → 7 次**。与验收标准的差距：单次读数已达到「全量 ≤ 3 分钟、smoke ≤ 60 秒」，但 **p95 需要 20 次循环**，本轮未做；DEVICE_NEW / DEVICE_RECENT 的 cookie 注入实测沿用预置设备（UI 登录后 `resolveDeviceId` 与预置 id 一致），未退回两次登录。
 
 ---
 

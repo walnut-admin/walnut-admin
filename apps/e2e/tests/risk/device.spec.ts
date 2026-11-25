@@ -24,11 +24,10 @@
  * （**不 FLUSHDB**）。
  *
  * 标记：依赖真实外网的用例在标题里带 `@network`，由独立的 network project 跑（risk 用
- * `grepInvert` 排除它们）—— 离线环境里 risk 仍应全绿。两条「回填 created_at」用例的 UI 重登
- * 实测 40–60s，标了 `test.slow()`；U8/U9 **刻意不标** —— 修好后的 flake 应在 120s 内红，
- * 拖到 360s 只会掩盖问题。
+ * `grepInvert` 排除它们）—— 离线环境里 risk 仍应全绿。两条「回填 created_at」用例现在是
+ * **协议预置设备 + 一次 UI 登录**（P0-3），标了 `test.slow()`；U8/U9 **刻意不标** —— 修好后的
+ * flake 应在 120s 内红，拖到 360s 只会掩盖问题。
  */
-import type { Page } from '@playwright/test'
 import {
   loginDevice,
   newBrowserContext,
@@ -51,8 +50,6 @@ import {
   withRedis,
 } from '../../lib/redis.ts'
 import {
-  ACCESS_TOKEN_LOCAL_STORAGE_KEY,
-  AUTH_SESSION_LOCAL_STORAGE_KEY,
   captureEnvelopes,
   loginViaUI,
   navigateInApp,
@@ -62,10 +59,8 @@ import {
   waitForEnvelope,
 } from '../../lib/ui.ts'
 import {
-  CAPJS_COOKIE_NAME,
   DEVICE_COOKIE_NAME,
   readCredentials,
-  RT_JTI_COOKIE_NAME,
   WEB_ORIGIN,
 } from '../../scripts/env.ts'
 import { expect, test } from '../fixtures.ts'
@@ -92,6 +87,86 @@ async function deviceRowUuid(deviceId: string): Promise<string> {
     }
     return row.id
   })
+}
+
+interface SeededDevice {
+  deviceId: string
+  realIp: string
+  /** 服务端签发的 DEVICE_ID cookie 值（Set-Cookie 原样，含 `s%3A` 编码） */
+  cookie: string
+}
+
+/**
+ * 用协议客户端预置一台**已登录过**的设备，并把 `created_at` 回填到 N 毫秒前。
+ *
+ * 目的是把 DEVICE_NEW / DEVICE_RECENT 用例从「两次 UI 登录」降到「一次 UI 登录」：
+ * 第一次登录走协议（设备登记 → CAP → 签名握手 → OPAQUE → TOTP），拿到服务端签发的
+ * `DEVICE_ID` cookie；回填与风控缓存清理之后，浏览器只需要注入该 cookie 再走一次 UI 登录
+ * 就能触发目标状态（DEVICE_NEW / DEVICE_RECENT 的 CAP）。
+ *
+ * 几个必须做对的点：
+ * - **清 RT / 会话**：协议登录会留下 active RT 与 `AUTH:SESSIONS` 键，同设备同用户的 UI 登录
+ *   会在 login/finish 撞 40109「重复认证」。清理口径与原 `reloginOnSameDevice` 的「登出」一半
+ *   相同（P0-3 后那个 helper 已随「两次 UI 登录」一起删除）；
+ * - **回填放在协议登录之后**：登录时设备仍是刚创建的真实顺序，回填只服务于下一次登录的风险判定；
+ * - **清风控缓存与挑战标记**：协议登录已经评估过 DEVICE_NEW 并把它标成 handled；不清掉，
+ *   UI 登录不会重新弹 CAP（这正是要验的东西）。
+ */
+async function seedLoggedInDevice(msAgo: number): Promise<SeededDevice> {
+  const credentials = readCredentials()
+  const realIp = uniqueLocalIp()
+  const client = new WalnutProtocolClient({ realIp })
+  await client.bootstrap()
+  // 立刻登记：后面的断言失败时，清理 fixture 仍要能找到这台设备
+  trackDevice(client.deviceId)
+  const deviceId = client.deviceId
+
+  await client.login(credentials.userName, credentials.password)
+  await client.verifyTotpForDevice(credentials.totpSecret)
+
+  // 协议登录的「登出」：删 active RT 与会话键，避免 UI 登录撞 40109
+  await withPg(async (pg) => {
+    await clearRefreshTokensForDevice(pg, deviceId)
+  })
+  await withRedis(async (redis) => {
+    await deleteAuthSessionsForDevice(redis, deviceId)
+  })
+
+  await withPg(async (pg) => {
+    await backdateDeviceCreatedAt(pg, deviceId, msAgo)
+  })
+  await withRedis(async (redis) => {
+    await redis.del(riskDeviceKey(deviceId))
+    const keys = await scanKeys(redis, riskChallengeKeyPattern(deviceId))
+    if (keys.length > 0) {
+      await redis.del(keys)
+    }
+  })
+
+  const cookie = client.getCookie(DEVICE_COOKIE_NAME)
+  if (cookie === undefined) {
+    throw new Error('[e2e] 协议客户端没有拿到服务端签发的 DEVICE_ID cookie')
+  }
+  return { deviceId, realIp, cookie }
+}
+
+/**
+ * 打开一台「沿用预置设备身份」的浏览器 context：把协议客户端拿到的 DEVICE_ID 注入进去。
+ *
+ * stage 形态的 cookie 无前缀；`Secure` 在 http://127.0.0.1 上可用是本仓已实测的结论
+ * （auth.setup 的 gate 3 每轮守它）。localStorage 故意不预置：应用启动时会用 cookie 里的 id
+ * 重打 `device/initial`（服务端按 cookie 幂等复用同一台设备），行为与「全新 context」一致。
+ */
+async function contextOnSeededDevice(browser: import('@playwright/test').Browser, seeded: SeededDevice): Promise<import('@playwright/test').BrowserContext> {
+  const context = await newBrowserContext(browser, { realIp: seeded.realIp })
+  await context.addCookies([{
+    name: DEVICE_COOKIE_NAME,
+    value: seeded.cookie,
+    url: WEB_ORIGIN,
+    secure: true,
+    httpOnly: true,
+  }])
+  return context
 }
 
 test.describe('设备 ID 生命周期', () => {
@@ -333,138 +408,95 @@ test.describe('设备 ID 生命周期', () => {
     await session.context.close()
   })
 
-  test('封禁跳转：root ban 设备 → 40607 → /not-allowed?type=deviceBanned', async ({ browser }) => {
+  test('封禁 / 锁定跳转：同一台 victim 先 ban 再 lock，分别 40607 / 40606', async ({ browser }) => {
     const victim = await loginDevice(browser)
     const victimId = victim.deviceId
     const uuid = await deviceRowUuid(victimId)
-
     const root = await rootClient()
-    await root.client.root('PATCH', `${SystemRoutes.DEVICE}/${uuid}/ban`)
-
     const captured = captureEnvelopes(victim.page)
-    await victim.page.reload()
 
-    const banned = await waitForEnvelope(captured.entries, entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED, 40_000)
-    expect(banned.code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED)
-    await victim.page.waitForURL(url => url.pathname === '/not-allowed' && url.search.includes('type=deviceBanned'), { timeout: 30_000 })
-    expect(victim.page.url()).toContain('type=deviceBanned')
+    try {
+      // 两个阶段用 test.step 分段：合并的是登录（同一条 victim 设备），失败定位仍在具体阶段。
+      await test.step('ban：40607 → /not-allowed?type=deviceBanned', async () => {
+        await root.client.root('PATCH', `${SystemRoutes.DEVICE}/${uuid}/ban`)
+        await victim.page.reload()
 
-    await withPg(async (pg) => {
-      const row = await findDeviceRow(pg, victimId)
-      expect(row?.banned).toBe(true)
-    })
+        const banned = await waitForEnvelope(captured.entries, entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED, 40_000)
+        expect(banned.code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED)
+        await victim.page.waitForURL(url => url.pathname === '/not-allowed' && url.search.includes('type=deviceBanned'), { timeout: 30_000 })
+        expect(victim.page.url()).toContain('type=deviceBanned')
 
-    captured.stop()
-    await victim.context.close()
-  })
+        await withPg(async (pg) => {
+          const row = await findDeviceRow(pg, victimId)
+          expect(row?.banned).toBe(true)
+        })
+      })
 
-  test('锁定跳转：root lock 设备 → 40606 → /not-allowed?type=deviceLocked', async ({ browser }) => {
-    const victim = await loginDevice(browser)
-    const victimId = victim.deviceId
-    const uuid = await deviceRowUuid(victimId)
+      await test.step('lock：解封后锁定，40606 → /not-allowed?type=deviceLocked', async () => {
+        // DeviceGuard 的判定顺序是 banned 先于 locked：不先解封，锁定状态永远看不到 40606。
+        await root.client.root('PATCH', `${SystemRoutes.DEVICE}/${uuid}/unban`)
+        await root.client.root('PATCH', `${SystemRoutes.DEVICE}/${uuid}/lock`)
+        // 不能 reload /not-allowed：那页只是按 query 渲染错误文案，不会发受设备守卫保护的请求，
+        // 也就不会有新的 40606。回首页重新走一次应用引导，让受保护请求去撞 DeviceGuard。
+        await victim.page.goto('/')
 
-    const root = await rootClient()
-    await root.client.root('PATCH', `${SystemRoutes.DEVICE}/${uuid}/lock`)
+        const locked = await waitForEnvelope(captured.entries, entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED, 40_000)
+        expect(locked.code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED)
+        await victim.page.waitForURL(url => url.pathname === '/not-allowed' && url.search.includes('type=deviceLocked'), { timeout: 30_000 })
+        expect(victim.page.url()).toContain('type=deviceLocked')
 
-    const captured = captureEnvelopes(victim.page)
-    await victim.page.reload()
-
-    const locked = await waitForEnvelope(captured.entries, entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED, 40_000)
-    expect(locked.code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED)
-    await victim.page.waitForURL(url => url.pathname === '/not-allowed' && url.search.includes('type=deviceLocked'), { timeout: 30_000 })
-    expect(victim.page.url()).toContain('type=deviceLocked')
-
-    await withPg(async (pg) => {
-      const row = await findDeviceRow(pg, victimId)
-      expect(row?.locked).toBe(true)
-    })
-
-    captured.stop()
-    await victim.context.close()
+        await withPg(async (pg) => {
+          const row = await findDeviceRow(pg, victimId)
+          expect(row?.locked).toBe(true)
+          expect(row?.banned).toBe(false)
+        })
+      })
+    }
+    finally {
+      captured.stop()
+      await victim.context.close()
+    }
   })
 
   test('回填 created_at=1h → 重登触发 DEVICE_NEW critical 因子的 CAP', async ({ browser }) => {
-    // UI 重登 + CAP PoW（jsDelivr WASM）+ TOTP：封板验证轮多次实测 40–60s，距 120s 默认上限余量太小
+    // 一次协议登录 + 一次 UI 登录（CAP PoW + TOTP），距 120s 默认上限的余量仍然不大
     test.slow()
-    const session = await loginDevice(browser)
-    const deviceId = session.deviceId
+    const seeded = await seedLoggedInDevice(HOUR_MS)
+    const context = await contextOnSeededDevice(browser, seeded)
 
-    await withPg(async (pg) => {
-      await backdateDeviceCreatedAt(pg, deviceId, HOUR_MS)
-    })
-    await withRedis(async (redis) => {
-      // 清风控评估缓存 + 已处理的 DEVICE_NEW 标记（否则第二次登录不会挑战）
-      await redis.del(riskDeviceKey(deviceId))
-      const keys = await scanKeys(redis, riskChallengeKeyPattern(deviceId))
-      if (keys.length > 0) {
-        await redis.del(keys)
-      }
-    })
+    try {
+      const page = await context.newPage()
+      const result = await loginViaUI(page)
+      expect(result.capSolved, 'DEVICE_NEW（1 小时内新设备）应触发 cap-widget').toBe(true)
+      // 注入失败时 UI 登录会自愈成另一台新设备 —— 那时的 CAP 证明不了「预置设备」这条路径
+      expect(await resolveDeviceId(page), 'cookie 注入后 UI 登录应沿用预置设备').toBe(seeded.deviceId)
 
-    const result = await reloginOnSameDevice(session.page, session.context, deviceId)
-    expect(result.capSolved, 'DEVICE_NEW（1 小时内新设备）应触发 cap-widget').toBe(true)
-
-    const risk = await withRedis(async redis => readRiskDevice(redis, deviceId))
-    expect(risk?.factors ?? [], `风险因子应含 DEVICE_NEW，实际 ${JSON.stringify(risk?.factors)}`).toContain('DEVICE_NEW')
-
-    await session.context.close()
+      const risk = await withRedis(async redis => readRiskDevice(redis, seeded.deviceId))
+      expect(risk?.factors ?? [], `风险因子应含 DEVICE_NEW，实际 ${JSON.stringify(risk?.factors)}`).toContain('DEVICE_NEW')
+    }
+    finally {
+      await context.close()
+    }
   })
 
   test('回填 created_at=3d → 重登触发 DEVICE_RECENT critical 因子的 CAP', async ({ browser }) => {
-    // UI 重登 + CAP PoW（jsDelivr WASM）+ TOTP：封板验证轮多次实测 40–60s，距 120s 默认上限余量太小
+    // 一次协议登录 + 一次 UI 登录（CAP PoW + TOTP），距 120s 默认上限的余量仍然不大
     test.slow()
-    const session = await loginDevice(browser)
-    const deviceId = session.deviceId
+    const seeded = await seedLoggedInDevice(3 * DAY_MS)
+    const context = await contextOnSeededDevice(browser, seeded)
 
-    await withPg(async (pg) => {
-      await backdateDeviceCreatedAt(pg, deviceId, 3 * DAY_MS)
-    })
-    await withRedis(async (redis) => {
-      await redis.del(riskDeviceKey(deviceId))
-      const keys = await scanKeys(redis, riskChallengeKeyPattern(deviceId))
-      if (keys.length > 0) {
-        await redis.del(keys)
-      }
-    })
+    try {
+      const page = await context.newPage()
+      const result = await loginViaUI(page)
+      expect(result.capSolved, 'DEVICE_RECENT（3 天前设备）应触发 cap-widget').toBe(true)
+      // 注入失败时 UI 登录会自愈成另一台新设备 —— 那台设备会带 DEVICE_NEW，测不到 RECENT
+      expect(await resolveDeviceId(page), 'cookie 注入后 UI 登录应沿用预置设备').toBe(seeded.deviceId)
 
-    const result = await reloginOnSameDevice(session.page, session.context, deviceId)
-    expect(result.capSolved, 'DEVICE_RECENT（3 天前设备）应触发 cap-widget').toBe(true)
-
-    const risk = await withRedis(async redis => readRiskDevice(redis, deviceId))
-    expect(risk?.factors ?? [], `风险因子应含 DEVICE_RECENT，实际 ${JSON.stringify(risk?.factors)}`).toContain('DEVICE_RECENT')
-
-    await session.context.close()
+      const risk = await withRedis(async redis => readRiskDevice(redis, seeded.deviceId))
+      expect(risk?.factors ?? [], `风险因子应含 DEVICE_RECENT，实际 ${JSON.stringify(risk?.factors)}`).toContain('DEVICE_RECENT')
+    }
+    finally {
+      await context.close()
+    }
   })
 })
-
-/**
- * 「该设备登出再登录」：清掉浏览器侧登录态（AT + RT + CAP token），回登录页重走完整 UI 登录。
- *
- * 为什么清 CAP token：上一次登录解出的 token 仍在 cookie 里，CAP guard 会先校验它并通过
- * （并把 critical factor 标成已处理）——那验证的就不是「新设备要挑战」了。清掉才是
- * 「这台设备又要过一次人机验证」的真实起点。
- */
-async function reloginOnSameDevice(page: Page, context: import('@playwright/test').BrowserContext, deviceId: string): Promise<{ capSolved: boolean, mfaVerified: boolean }> {
-  // 浏览器侧：模拟真实登出（Signout 会清这两个键 + 删 RT cookie）
-  await page.evaluate(([accessTokenKey, sessionKey]) => {
-    window.localStorage.removeItem(accessTokenKey)
-    // AUTH_SESSION_KEY 必须一起清：请求拦截器按「sessionKey 是否存在」选单/双因子签名，
-    // 残留会让登录端点（服务端此时还没有 req.user）用双因子签名 ⇒ 40112「签名无效」。
-    window.localStorage.removeItem(sessionKey)
-  }, [ACCESS_TOKEN_LOCAL_STORAGE_KEY, AUTH_SESSION_LOCAL_STORAGE_KEY])
-  await context.clearCookies({ name: RT_JTI_COOKIE_NAME })
-  // CAP token 也清：上一次解出的 token 仍有效时 CAP guard 会直接放行并把 critical factor
-  // 标成「已处理」——那验证的就不是「这台设备要再过一次人机验证」了。
-  await context.clearCookies({ name: CAPJS_COOKIE_NAME })
-  // 服务端侧：撤销活跃 RT（否则 login/finish 撞部分唯一索引 ⇒ 40109「重复认证」）+ 删会话键
-  await withPg(async (pg) => {
-    await clearRefreshTokensForDevice(pg, deviceId)
-  })
-  await withRedis(async (redis) => {
-    await deleteAuthSessionsForDevice(redis, deviceId)
-  })
-  await page.goto('/auth')
-
-  const result = await loginViaUI(page)
-  return { capSolved: result.capSolved, mfaVerified: result.mfaVerified }
-}

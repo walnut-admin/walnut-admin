@@ -130,8 +130,17 @@ export async function loginDevice(browser: Browser, options: { realIp?: string }
   return session
 }
 
-/** 本 worker 里已登记、还没清理的设备（Set 天然去重） */
+/** 本用例里已登记、还没清理的设备（Set 天然去重） */
 const trackedDeviceIds = new Set<string>()
+/**
+ * 本 worker 生命周期内复用的设备（当前只有 `tests/fixtures.ts` 的共享只读 context）。
+ *
+ * 与上面分开的理由：test 作用域的 auto fixture 每条用例结束都会清一次 `trackedDeviceIds`，
+ * 把 worker 级共享设备混进去会在第一条用例结束时就被删掉 —— 共享 context 随后的请求会
+ * 40605 自愈成一台新设备，后续只读用例就测不到原来的登录态了。两个集合都由 fixture 清理
+ * （test 作用域清前者，worker 作用域清后者），仍然不违反「设备清理归 fixture」。
+ */
+const workerTrackedDeviceIds = new Set<string>()
 
 /**
  * 登记一台**本用例造出来**的设备，交给 `tests/fixtures.ts` 的 auto fixture 收尾。
@@ -147,14 +156,35 @@ export function trackDevice(deviceId: string | null | undefined): void {
 }
 
 /**
+ * 登记一台**跨用例复用**的设备（worker 作用域），由 worker 级 auto fixture 在进程退出时清理。
+ *
+ * 只给共享只读 context 用：它的登录态要在同一 worker 的多条用例间存活，不能被某条用例的
+ * test 作用域清理顺手删掉（见 {@link workerTrackedDeviceIds} 的注释）。
+ */
+export function trackWorkerDevice(deviceId: string | null | undefined): void {
+  if (typeof deviceId === 'string' && deviceId !== '') {
+    workerTrackedDeviceIds.add(deviceId)
+  }
+}
+
+/**
  * 清掉目前已登记的设备（PG 行 + 该设备的全部 Redis 键）。
  *
  * **不抛错**：清理失败只 `console.warn`，并把 id 重新登记（worker 级兜底会再试一次）——
  * 清理是收尾动作，绝不能让它的失败掩盖真正的断言失败。
  */
 export async function flushTrackedDevices(options: { testInfo?: TestInfo } = {}): Promise<void> {
-  const ids = [...trackedDeviceIds]
-  trackedDeviceIds.clear()
+  await flushDeviceSet(trackedDeviceIds, options)
+}
+
+/** worker 作用域设备的清理（与 {@link flushTrackedDevices} 同口径，失败不抛错） */
+export async function flushWorkerTrackedDevices(options: { testInfo?: TestInfo } = {}): Promise<void> {
+  await flushDeviceSet(workerTrackedDeviceIds, options)
+}
+
+async function flushDeviceSet(idsSet: Set<string>, options: { testInfo?: TestInfo }): Promise<void> {
+  const ids = [...idsSet]
+  idsSet.clear()
   if (ids.length === 0) {
     return
   }
@@ -166,7 +196,7 @@ export async function flushTrackedDevices(options: { testInfo?: TestInfo } = {})
     const message = error instanceof Error ? error.message : String(error)
     console.warn(`[e2e/fixtures] 设备清理失败（不影响断言结果；worker 退出时再试一次）：${ids.join(', ')} —— ${message}`)
     for (const id of ids) {
-      trackedDeviceIds.add(id)
+      idsSet.add(id)
     }
     if (options.testInfo !== undefined) {
       await options.testInfo.attach('device-cleanup-failure', {
