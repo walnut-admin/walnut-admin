@@ -9,6 +9,8 @@
  * 自清理：用户行由本用例的 finally 删；自己那台设备交给 tests/fixtures.ts 的 auto fixture
  * （CASCADE 会带走 user_device / refresh_token）。
  */
+import type { SystemUser } from '@walnut/api-types'
+import type { SystemUserListPage } from '../../lib/protocol/api-types.ts'
 import { randomBytes } from 'node:crypto'
 import { trackDevice, uniqueLocalIp } from '../../lib/device-fixtures.ts'
 import { withPg } from '../../lib/pg.ts'
@@ -16,12 +18,6 @@ import { WalnutProtocolClient } from '../../lib/protocol/client.ts'
 import { SystemRoutes } from '../../lib/protocol/contract.ts'
 import { readCredentials } from '../../scripts/env.ts'
 import { expect, test } from '../fixtures.ts'
-
-interface UserRow {
-  id: string
-  userName: string
-  status: boolean
-}
 
 async function visitorRoleId(): Promise<string> {
   return withPg(async (pg) => {
@@ -34,7 +30,7 @@ async function visitorRoleId(): Promise<string> {
   })
 }
 
-test('用户 CRUD：root 造 → 改 → 查列表 → 删', async () => {
+test('用户 CRUD：root 造 → 改 → 查列表 → 删', { tag: '@smoke' }, async () => {
   const credentials = readCredentials()
   const client = new WalnutProtocolClient({ realIp: uniqueLocalIp() })
   const userName = `e2e-${Date.now()}-${randomBytes(3).toString('hex')}`
@@ -50,8 +46,9 @@ test('用户 CRUD：root 造 → 改 → 查列表 → 删', async () => {
 
     const roles = [await visitorRoleId()]
 
-    // 1. 造
-    const created = await client.root<UserRow>('POST', SystemRoutes.USER, {
+    // 1. 造。显式泛型用 `@walnut/api-types` 的 Safe 别名（生成侧 id 可选，别名补成必填）：
+    //    「调用点可覆盖默认推导」的范本。
+    const created = await client.root<SystemUser>('POST', SystemRoutes.USER, {
       userName,
       status: true,
       roles,
@@ -61,7 +58,7 @@ test('用户 CRUD：root 造 → 改 → 查列表 → 删', async () => {
     expect(created.id).toMatch(/^[0-9a-f-]{36}$/)
 
     // 2. 改（改 status，其它字段原样回传 —— Update DTO 是 userName/status/roles 必填）
-    const updated = await client.root<UserRow>('PUT', `${SystemRoutes.USER}/${createdId}`, {
+    const updated = await client.root<SystemUser>('PUT', `${SystemRoutes.USER}/${createdId}`, {
       userName,
       status: false,
       roles,
@@ -69,26 +66,41 @@ test('用户 CRUD：root 造 → 改 → 查列表 → 删', async () => {
     expect(updated.id).toBe(createdId)
     expect(updated.status).toBe(false)
 
-    // 3. 查列表：唯一前缀 + like，只应命中这一条
-    const list = await client.root<{ total: number, data: UserRow[] }>('POST', `${SystemRoutes.USER}/list`, {
+    // 3. 查列表：唯一前缀 + like，只应命中这一条。
+    //    显式泛型取生成物的分页壳组件（路径级响应被 server swagger 多包了一层数组，
+    //    见 lib/protocol/api-types.ts）；下面的 typeof / 枚举断言仍是「字段缺失」的可读判据。
+    const list = await client.root<SystemUserListPage>('POST', `${SystemRoutes.USER}/list`, {
       filters: [{ field: 'userName', op: 'like', value: userName }],
       page: { page: 1, pageSize: 20 },
     })
+    expect(typeof list.total).toBe('number')
     expect(list.total).toBe(1)
-    expect(list.data[0]?.userName).toBe(userName)
-    expect(list.data[0]?.status).toBe(false)
+    expect(Array.isArray(list.data), 'user/list 缺 data 数组').toBe(true)
+    expect(list.data).toHaveLength(1)
+    const row = list.data[0]
+    if (row === undefined) {
+      throw new Error('[e2e/user-crud] user/list 命中 1 条但 data[0] 为空 —— 生成类型与运行时不一致')
+    }
+    expect(typeof row.id).toBe('string')
+    expect(typeof row.userName).toBe('string')
+    expect(row.userName).toBe(userName)
+    expect(typeof row.status).toBe('boolean')
+    expect(row.status).toBe(false)
+    expect(typeof row.roles_count, 'user/list 行缺 roles_count').toBe('number')
 
     // 4. 删
-    const deleted = await client.root<UserRow>('DELETE', `${SystemRoutes.USER}/${createdId}`)
+    const deleted = await client.root<SystemUser>('DELETE', `${SystemRoutes.USER}/${createdId}`)
     expect(deleted.id).toBe(createdId)
     createdId = ''
 
     // 删后列表必须为空（软删/硬删都符合：列表只返回「活着」的行）
-    const after = await client.root<{ total: number }>('POST', `${SystemRoutes.USER}/list`, {
+    const after = await client.root<SystemUserListPage>('POST', `${SystemRoutes.USER}/list`, {
       filters: [{ field: 'userName', op: 'like', value: userName }],
       page: { page: 1, pageSize: 20 },
     })
     expect(after.total).toBe(0)
+    expect(Array.isArray(after.data)).toBe(true)
+    expect(after.data).toHaveLength(0)
   }
   finally {
     // 失败路径也要把半造的用户清掉（按用户名删除，避免留脏数据）；设备由清理 fixture 负责

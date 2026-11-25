@@ -1298,6 +1298,9 @@ importers:
       '@types/pg':
         specifier: 'catalog:'
         version: 8.23.1
+      '@walnut/api-types':
+        specifier: workspace:*
+        version: link:../../packages/generated/api-types
       '@walnut/contract':
         specifier: workspace:*
         version: link:../../packages/platform-any/contract

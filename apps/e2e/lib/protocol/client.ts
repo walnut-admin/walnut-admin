@@ -12,6 +12,7 @@
  * 里现算；页面上下文里拿不到 AppAxios 实例，而重放在页面里签又会绕过「协议客户端」这层
  * 可断言的真源。Node 侧走同一份 sign-raw 纯函数（@walnut/utils/sign-raw）才有意义。
  */
+import type { EndpointData, HttpMethod } from './api-types.ts'
 import { randomUUID } from 'node:crypto'
 import * as opaque from '@serenity-kit/opaque'
 import { generateSync } from 'otplib'
@@ -117,7 +118,7 @@ export class WalnutProtocolClient {
   }
 
   /** 裸 fetch（不带签名头）。XFF / UA 等完全由调用方决定 */
-  async rawFetch(method: string, path: string, options: { body?: unknown, headers?: Record<string, string> } = {}): Promise<Response> {
+  async rawFetch(method: HttpMethod, path: string, options: { body?: unknown, headers?: Record<string, string> } = {}): Promise<Response> {
     const response = await fetch(`${this.apiBase}${path}`, {
       method,
       headers: {
@@ -133,9 +134,26 @@ export class WalnutProtocolClient {
     return response
   }
 
-  /** 统一请求：签名头按登录状态现算；Set-Cookie 回写 jar；返回业务壳 */
+  /**
+   * 统一请求：签名头按登录状态现算；Set-Cookie 回写 jar；返回业务壳。
+   *
+   * 泛型默认值来自 `@walnut/api-types` 的生成物（`paths[路径][方法]` 的 200 响应 `data`）：
+   * 路径是契约里的字面量常量时，响应字段改名 / 改嵌套会让 `types:check` 直接指出调用点。
+   * 调用点仍可显式覆盖（`request<string>` / `request<{ ... }>`）—— 动态拼接的路径（含运行时 id）
+   * 在类型层对不上生成物，本来就只能靠调用方声明。
+   */
+  request<P extends string, M extends HttpMethod>(
+    method: M,
+    path: P,
+    options?: RequestOptions,
+  ): Promise<WalnutEnvelope<EndpointData<P, M>>>
+  request<T>(
+    method: HttpMethod,
+    path: string,
+    options?: RequestOptions,
+  ): Promise<WalnutEnvelope<T>>
   async request<T = Record<string, unknown>>(
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    method: HttpMethod,
     path: string,
     options: RequestOptions = {},
   ): Promise<WalnutEnvelope<T>> {
@@ -161,7 +179,7 @@ export class WalnutProtocolClient {
    * `@WalnutAdminDecoratorFreeResponse`）—— 仍走签名规则与 cookie jar。
    */
   async requestFree<T>(
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    method: HttpMethod,
     path: string,
     options: RequestOptions = {},
   ): Promise<T> {
@@ -177,7 +195,7 @@ export class WalnutProtocolClient {
 
   /** 真正发请求：签名头 / cookie / UA 都在这里装配 */
   private async signedFetch(
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    method: HttpMethod,
     path: string,
     options: RequestOptions,
   ): Promise<Response> {
@@ -244,9 +262,26 @@ export class WalnutProtocolClient {
     }
   }
 
-  /** 便捷：已登录请求（Authorization + 双因子签名） */
+  /**
+   * 便捷：已登录请求（Authorization + 双因子签名）。
+   *
+   * 与 {@link request} 同一套泛型规则：默认返回 200 响应壳里的 `data`（生成物推导），
+   * 调用点可用显式泛型覆盖（手写形状或 `@walnut/api-types` 的别名）。
+   */
+  root<P extends string, M extends HttpMethod>(
+    method: M,
+    path: P,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<EndpointData<P, M>>
+  root<T>(
+    method: HttpMethod,
+    path: string,
+    body?: unknown,
+    headers?: Record<string, string>,
+  ): Promise<T>
   async root<T = Record<string, unknown>>(
-    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+    method: HttpMethod,
     path: string,
     body?: unknown,
     headers: Record<string, string> = {},
@@ -269,11 +304,16 @@ export class WalnutProtocolClient {
    */
   async bootstrap(options: { headers?: Record<string, string> } = {}): Promise<void> {
     // 1. 设备登记（sign-free / cap-free / device-free）：服务端签发 DEVICE_ID cookie
-    const device = await this.request<{ deviceId: string }>('POST', SystemEndpointRoutes.DEVICE_INITIAL, {
+    const device = await this.request('POST', SystemEndpointRoutes.DEVICE_INITIAL, {
       sign: false,
       headers: options.headers,
       body: { deviceInfo: {}, hardwareInfo: {}, sr: { height: 1080, width: 1920 }, vp: { height: 900, width: 1600 }, private: false },
     })
+    // 字段级判据（P1-4）：生成类型已把这里的 `deviceId` 钉成 string；运行时再确认一次，
+    // 缺字段 / 改名时错误消息直接说明是响应形态漂移，而不是后面某个用例拿到 undefined 才炸。
+    if (typeof device.data.deviceId !== 'string' || device.data.deviceId === '') {
+      throw new Error(`[e2e/protocol] device/initial 响应缺 deviceId（生成类型与运行时不一致？）：${JSON.stringify(device.data)}`)
+    }
     this._deviceId = device.data.deviceId
 
     // 2. CAP：challenge → 本地 PoW 求解 → redeem（服务端种 CAPJS_TOKEN cookie）
@@ -296,7 +336,7 @@ export class WalnutProtocolClient {
       sign: false,
       body: { rsaPubKey: this.rsa.publicKeyPem, force: false },
     })
-    const aesKeyBody = await this.request<{ aesKey: string, hkdfInfo: string }>('POST', SecurityRoutes.SIGN_AES_KEY, { sign: false })
+    const aesKeyBody = await this.request('POST', SecurityRoutes.SIGN_AES_KEY, { sign: false })
     this.aesKey = decryptAesKeyEnvelope(this.rsa.privateKeyPem, aesKeyBody.data.aesKey)
     this.hkdfInfo = aesKeyBody.data.hkdfInfo
   }

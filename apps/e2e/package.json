@@ -24,6 +24,7 @@
     "@serenity-kit/opaque": "catalog:",
     "@types/node": "catalog:",
     "@types/pg": "catalog:",
+    "@walnut/api-types": "workspace:*",
     "@walnut/contract": "workspace:*",
     "@walnut/eslint-config": "workspace:*",
     "@walnut/tsconfig": "workspace:*",
