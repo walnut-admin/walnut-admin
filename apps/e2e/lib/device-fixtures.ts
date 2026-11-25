@@ -15,7 +15,7 @@ import { DEVICE_COOKIE_NAME, WEB_ORIGIN } from '../scripts/env.ts'
 import { deleteDeviceRow, withPg } from './pg.ts'
 import { SIGN_USER_AGENT } from './protocol/sign.ts'
 import { deleteDeviceScopedKeys, deleteRiskDeviceState, withRedis } from './redis.ts'
-import { loginViaUI, readDeviceCookie, readLocalDeviceId } from './ui.ts'
+import { DEVICE_LOCAL_STORAGE_KEY, loginViaUI, readDeviceCookie, readLocalDeviceId } from './ui.ts'
 
 export interface DeviceSession {
   context: BrowserContext
@@ -113,7 +113,7 @@ export async function openDevice(browser: Browser, startAt = '/auth', options: {
         return false
       }
     },
-    'WA__GEO_IP_DEVICE_ID',
+    DEVICE_LOCAL_STORAGE_KEY,
     { timeout: 30_000 },
   )
   const deviceId = await resolveDeviceId(page)
@@ -182,7 +182,7 @@ export async function flushTrackedDevices(options: { testInfo?: TestInfo } = {})
  * **全部** Redis 键（设备缓存 / 续期闸 / 登录会话 / 权限 / MFA / 签名 / CAP / 风控评估与挑战标记）。
  * **不 FLUSHDB**。
  */
-export async function cleanupDevices(deviceIds: (string | null | undefined)[]): Promise<void> {
+async function cleanupDevices(deviceIds: (string | null | undefined)[]): Promise<void> {
   const ids = [...new Set(deviceIds.filter((id): id is string => typeof id === 'string' && id !== ''))]
   if (ids.length === 0) {
     return
@@ -200,11 +200,3 @@ export async function cleanupDevices(deviceIds: (string | null | undefined)[]): 
     }
   })
 }
-
-/** 关 context（清理失败不掩盖断言失败） */
-export async function closeSession(session: DeviceSession): Promise<void> {
-  await session.context.close().catch(() => {})
-}
-
-/** 站点根 URL（少数场景需要绝对地址） */
-export const siteRoot = WEB_ORIGIN

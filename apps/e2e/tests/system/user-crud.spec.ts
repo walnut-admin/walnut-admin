@@ -13,6 +13,7 @@ import { randomBytes } from 'node:crypto'
 import { trackDevice, uniqueLocalIp } from '../../lib/device-fixtures.ts'
 import { withPg } from '../../lib/pg.ts'
 import { WalnutProtocolClient } from '../../lib/protocol/client.ts'
+import { SystemRoutes } from '../../lib/protocol/contract.ts'
 import { readCredentials } from '../../scripts/env.ts'
 import { expect, test } from '../fixtures.ts'
 
@@ -50,7 +51,7 @@ test('用户 CRUD：root 造 → 改 → 查列表 → 删', async () => {
     const roles = [await visitorRoleId()]
 
     // 1. 造
-    const created = await client.root<UserRow>('POST', '/system/user', {
+    const created = await client.root<UserRow>('POST', SystemRoutes.USER, {
       userName,
       status: true,
       roles,
@@ -60,7 +61,7 @@ test('用户 CRUD：root 造 → 改 → 查列表 → 删', async () => {
     expect(created.id).toMatch(/^[0-9a-f-]{36}$/)
 
     // 2. 改（改 status，其它字段原样回传 —— Update DTO 是 userName/status/roles 必填）
-    const updated = await client.root<UserRow>('PUT', `/system/user/${createdId}`, {
+    const updated = await client.root<UserRow>('PUT', `${SystemRoutes.USER}/${createdId}`, {
       userName,
       status: false,
       roles,
@@ -69,7 +70,7 @@ test('用户 CRUD：root 造 → 改 → 查列表 → 删', async () => {
     expect(updated.status).toBe(false)
 
     // 3. 查列表：唯一前缀 + like，只应命中这一条
-    const list = await client.root<{ total: number, data: UserRow[] }>('POST', '/system/user/list', {
+    const list = await client.root<{ total: number, data: UserRow[] }>('POST', `${SystemRoutes.USER}/list`, {
       filters: [{ field: 'userName', op: 'like', value: userName }],
       page: { page: 1, pageSize: 20 },
     })
@@ -78,12 +79,12 @@ test('用户 CRUD：root 造 → 改 → 查列表 → 删', async () => {
     expect(list.data[0]?.status).toBe(false)
 
     // 4. 删
-    const deleted = await client.root<UserRow>('DELETE', `/system/user/${createdId}`)
+    const deleted = await client.root<UserRow>('DELETE', `${SystemRoutes.USER}/${createdId}`)
     expect(deleted.id).toBe(createdId)
     createdId = ''
 
     // 删后列表必须为空（软删/硬删都符合：列表只返回「活着」的行）
-    const after = await client.root<{ total: number }>('POST', '/system/user/list', {
+    const after = await client.root<{ total: number }>('POST', `${SystemRoutes.USER}/list`, {
       filters: [{ field: 'userName', op: 'like', value: userName }],
       page: { page: 1, pageSize: 20 },
     })

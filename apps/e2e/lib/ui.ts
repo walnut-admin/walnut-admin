@@ -10,6 +10,7 @@ import process from 'node:process'
 import { expect } from '@playwright/test'
 import { generateSync } from 'otplib'
 import { DEVICE_COOKIE_NAME, readCredentials, WEB_ORIGIN } from '../scripts/env.ts'
+import { WalnutAdminConstAppResponseCode } from './protocol/contract.ts'
 
 /** `useAppStorageSync` 的键 = `WA__<KEY>`（getStorageKey 的默认前缀）+ superjson 包一层 `{v,e,_v}` */
 export const DEVICE_LOCAL_STORAGE_KEY = 'WA__GEO_IP_DEVICE_ID'
@@ -137,11 +138,13 @@ export async function waitForDeviceHealSettled(
     const entry = await waitForEnvelope(
       entries,
       candidate => candidate.url === replayUrl
-        && (candidate.code === 20000 || candidate.code === 40116 || candidate.code === 40101),
+        && (candidate.code === WalnutAdminConstAppResponseCode.SUCCESS
+          || candidate.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED
+          || candidate.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED),
       timeoutMs,
       cursor,
     )
-    if (entry.code !== 40116) {
+    if (entry.code !== WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED) {
       // 20000 = 会话仍有效（严格契约下不应出现，续期/URL 判据会红）；
       // 40101 = 换设备后旧会话按设计失效。没弹过 CAP 时 capSolved=false，
       // 由用例的硬断言给出「风险配置被改坏」的明确失败，而不是干等 40s。
@@ -169,7 +172,7 @@ export async function waitForDeviceHealSettled(
     // 游标推到**最后一条已记录的 40116 之后**（而不是本次命中的那条之后）：既不会被旧 40116
     // 再骗一轮，也不会跳过解 CAP 期间已经到达的后续响应。
     cursor = entries.reduce((last, candidate, index) => (
-      candidate.url === replayUrl && candidate.code === 40116 ? index + 1 : last
+      candidate.url === replayUrl && candidate.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_CAPTCHA_INTERACTION_REQUIRED ? index + 1 : last
     ), cursor)
   }
 
@@ -177,7 +180,7 @@ export async function waitForDeviceHealSettled(
   // 等不到就让 waitForEnvelope 自然抛错（带末 12 条上下文）。
   await waitForEnvelope(
     entries,
-    candidate => candidate.url === replayUrl && candidate.code === 40101,
+    candidate => candidate.url === replayUrl && candidate.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_ACCESS_TOKEN_EXPIRED,
     timeoutMs,
     cursor,
   )
@@ -221,7 +224,7 @@ export async function readDeviceCookie(context: BrowserContext): Promise<{ value
 }
 
 /** 生成当前 TOTP 六位码（与后端 otplib 的默认 TOTP 参数一致：30s / sha1 / 6 位） */
-export function currentTotp(secret: string): string {
+function currentTotp(secret: string): string {
   return generateSync({ secret })
 }
 
@@ -255,7 +258,7 @@ async function solveCapIfPresent(page: Page, timeoutMs = 60_000, appearTimeoutMs
  * 过 MFA 验证页（`/mfa-verified`）：点唯一启用中的方法卡 → 输入 TOTP → 回车。
  * 页面没出现则直接返回 false（未绑定 / 设备已 trusted 的路径）。
  */
-export async function verifyMfaIfPresent(page: Page, totpSecret: string, timeoutMs = 20_000): Promise<boolean> {
+async function verifyMfaIfPresent(page: Page, totpSecret: string, timeoutMs = 20_000): Promise<boolean> {
   try {
     await page.waitForURL(url => url.pathname === '/mfa-verified', { timeout: 8_000 })
   }

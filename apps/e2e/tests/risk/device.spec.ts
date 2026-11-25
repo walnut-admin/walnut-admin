@@ -37,18 +37,33 @@ import {
 } from '../../lib/device-fixtures.ts'
 import { backdateDeviceCreatedAt, clearRefreshTokensForDevice, findDeviceLocation, findDeviceRow, LOOPBACK_IP_PATTERN, withPg } from '../../lib/pg.ts'
 import { WalnutProtocolClient } from '../../lib/protocol/client.ts'
+import { AuthRoutes, SystemEndpointRoutes, SystemRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
 import {
   deleteAuthSessionsForDevice,
   deleteDeviceKeys,
   deviceCookieRenewKey,
   readRiskDevice,
+  riskChallengeKeyPattern,
+  riskDeviceKey,
   scanKeys,
   withRedis,
 } from '../../lib/redis.ts'
-import { captureEnvelopes, loginViaUI, navigateInApp, readDeviceCookie, readLocalDeviceId, waitForDeviceHealSettled, waitForEnvelope } from '../../lib/ui.ts'
 import {
+  ACCESS_TOKEN_LOCAL_STORAGE_KEY,
+  AUTH_SESSION_LOCAL_STORAGE_KEY,
+  captureEnvelopes,
+  loginViaUI,
+  navigateInApp,
+  readDeviceCookie,
+  readLocalDeviceId,
+  waitForDeviceHealSettled,
+  waitForEnvelope,
+} from '../../lib/ui.ts'
+import {
+  CAPJS_COOKIE_NAME,
   DEVICE_COOKIE_NAME,
   readCredentials,
+  RT_JTI_COOKIE_NAME,
   WEB_ORIGIN,
 } from '../../scripts/env.ts'
 import { expect, test } from '../fixtures.ts'
@@ -82,7 +97,7 @@ test.describe('设备 ID 生命周期', () => {
     const context = await newBrowserContext(browser)
     const page = await context.newPage()
     const pending = page.waitForResponse(
-      response => response.url().includes('/system/device/initial') && response.request().method() === 'POST',
+      response => response.url().includes(SystemEndpointRoutes.DEVICE_INITIAL) && response.request().method() === 'POST',
       { timeout: 30_000 },
     )
 
@@ -91,7 +106,7 @@ test.describe('设备 ID 生命周期', () => {
     const body = await initialResponse.json() as { code: number, data: { deviceId: string } }
     trackDevice(body.data.deviceId)
 
-    expect(body.code).toBe(20000)
+    expect(body.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
     expect(body.data.deviceId).toMatch(/^d1_[0-9a-f]{32}$/)
 
     // cookie：stage 形态无前缀（不是 __Host-/__Secure-），值带 `s:` 签名
@@ -137,13 +152,13 @@ test.describe('设备 ID 生命周期', () => {
     // 1.1.1.1 是公网可路由地址（Cloudflare DNS）。这条**不断言定位结果**：外网 geoip 的连通性
     // 由 @network 的 U1b 负责，本机离线时这条仍应成立（只查库与缓存）。
     const context = await browser.newContext()
-    const response = await context.request.post(`${WEB_ORIGIN}/api/system/device/initial`, {
+    const response = await context.request.post(`${WEB_ORIGIN}/api${SystemEndpointRoutes.DEVICE_INITIAL}`, {
       headers: { 'x-forwarded-for': '1.1.1.1' },
       data: { deviceInfo: {}, hardwareInfo: {}, sr: { height: 800, width: 1280 }, vp: { height: 800, width: 1280 }, private: false },
     })
     expect(response.ok()).toBeTruthy()
     const body = await response.json() as { code: number, data: { deviceId: string } }
-    expect(body.code).toBe(20000)
+    expect(body.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
     trackDevice(body.data.deviceId)
 
     // 证据 1：设备行 ip = XFF 指定的地址（代理没有把它改写成 127.0.0.1）
@@ -171,16 +186,16 @@ test.describe('设备 ID 生命周期', () => {
     const captured = captureEnvelopes(session.page)
     // 不 reload：丢 cookie 后整页重载会先卡在 blocking 的 sign 步骤（security/sign/* 是
     // 风控 fail-close，缺 deviceId 直接 40667，应用进错误屏）——自愈跑在**已挂载**的请求上。
-    await navigateInApp(session.page, '/system/user')
+    await navigateInApp(session.page, SystemRoutes.USER)
 
     // 先出现 40605（DeviceGuard 拒绝）
-    const rejected = await waitForEnvelope(captured.entries, entry => entry.code === 40605, 40_000)
+    const rejected = await waitForEnvelope(captured.entries, entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED, 40_000)
 
     // 自动重打 initial（出现 40605 之后）
     const initialIndex = captured.entries.findIndex(entry => entry === rejected)
     const healed = await waitForEnvelope(
       captured.entries,
-      entry => entry.url.includes('/system/device/initial') && entry.code === 20000,
+      entry => entry.url.includes(SystemEndpointRoutes.DEVICE_INITIAL) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
       30_000,
     )
     expect(captured.entries.indexOf(healed)).toBeGreaterThan(initialIndex)
@@ -192,7 +207,7 @@ test.describe('设备 ID 生命周期', () => {
     expect(capSolved, '自愈产生的新设备应触发 CAP（DEVICE_NEW critical）——若未弹 cap-widget，检查 risk 配置是否被改').toBe(true)
 
     // 新设备没有旧设备的 AUTH:SESSIONS / RT：续期必然 40102，应用按设计回登录页
-    await waitForEnvelope(captured.entries, entry => entry.url.includes('/api/auth/refresh') && entry.code === 40102, 30_000)
+    await waitForEnvelope(captured.entries, entry => entry.url.includes(`/api${AuthRoutes.REFRESH}`) && entry.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED, 30_000)
     await session.page.waitForURL(url => url.pathname === '/auth', { timeout: 30_000 })
 
     const pathname = new URL(session.page.url()).pathname
@@ -227,16 +242,16 @@ test.describe('设备 ID 生命周期', () => {
 
     const captured = captureEnvelopes(session.page)
     // 同 U8：不 reload（blocking sign 会先 40667），在已挂载的应用里触发业务请求
-    await navigateInApp(session.page, '/system/user')
+    await navigateInApp(session.page, SystemRoutes.USER)
 
-    const rejected = await waitForEnvelope(captured.entries, entry => entry.code === 40605, 40_000)
-    await waitForEnvelope(captured.entries, entry => entry.url.includes('/system/device/initial') && entry.code === 20000, 30_000)
+    const rejected = await waitForEnvelope(captured.entries, entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_UNSUPPORTED, 40_000)
+    await waitForEnvelope(captured.entries, entry => entry.url.includes(SystemEndpointRoutes.DEVICE_INITIAL) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS, 30_000)
 
     // 同 U8：新设备触发 CAP，解掉之后旧会话按设备绑定失效（40101 → 续期 40102）并回 /auth
     const { capSolved } = await waitForDeviceHealSettled(session.page, captured.entries, rejected.url)
     expect(capSolved, '自愈产生的新设备应触发 CAP（DEVICE_NEW critical）——若未弹 cap-widget，检查 risk 配置是否被改').toBe(true)
 
-    await waitForEnvelope(captured.entries, entry => entry.url.includes('/api/auth/refresh') && entry.code === 40102, 30_000)
+    await waitForEnvelope(captured.entries, entry => entry.url.includes(`/api${AuthRoutes.REFRESH}`) && entry.code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_REFRESH_TOKEN_EXPIRED, 30_000)
     await session.page.waitForURL(url => url.pathname === '/auth', { timeout: 30_000 })
 
     const pathname = new URL(session.page.url()).pathname
@@ -274,7 +289,7 @@ test.describe('设备 ID 生命周期', () => {
     client.setCookie(DEVICE_COOKIE_NAME, before!.value)
 
     // 预热：device-guarded 请求写入续期闸（首次通过即 setIfAbsent）
-    await client.rawFetch('GET', '/system/user/me/profile')
+    await client.rawFetch('GET', SystemEndpointRoutes.USER_ME_PROFILE)
 
     // 删掉闸 = 距上次续期已超过窗口（有效期 30 天的 80%）
     const gateExisted = await withRedis(async (redis) => {
@@ -287,7 +302,7 @@ test.describe('设备 ID 生命周期', () => {
     // 删闸之后的下一次 device-guarded 响应必须重发 DEVICE_ID，且 maxAge 拉满 30 天。
     // /system/user/me/profile 的 DeviceGuard 在 Sign/JWT 之前，所以即使随后被 40112 拒绝，
     // Set-Cookie 也已经写在响应上。
-    const renewed = await client.rawFetch('GET', '/system/user/me/profile')
+    const renewed = await client.rawFetch('GET', SystemEndpointRoutes.USER_ME_PROFILE)
     const renewedCookies = renewed.headers.getSetCookie().filter(value => value.startsWith(`${DEVICE_COOKIE_NAME}=`))
     expect(renewedCookies.length, '删掉续期闸后，下一次 device-guarded 响应没有重发 DEVICE_ID').toBeGreaterThan(0)
 
@@ -309,7 +324,7 @@ test.describe('设备 ID 生命周期', () => {
     })
 
     // 负对照：闸已存在时再打一次，不应重发 DEVICE_ID（证明「重发」确实由这个键控制）
-    const control = await client.rawFetch('GET', '/system/user/me/profile')
+    const control = await client.rawFetch('GET', SystemEndpointRoutes.USER_ME_PROFILE)
     const controlCookies = control.headers.getSetCookie().filter(value => value.startsWith(`${DEVICE_COOKIE_NAME}=`))
     expect(controlCookies, '续期闸存在时仍重发了 DEVICE_ID —— 滑动续期的判据失效').toHaveLength(0)
 
@@ -322,13 +337,13 @@ test.describe('设备 ID 生命周期', () => {
     const uuid = await deviceRowUuid(victimId)
 
     const root = await rootClient()
-    await root.client.root('PATCH', `/system/device/${uuid}/ban`)
+    await root.client.root('PATCH', `${SystemRoutes.DEVICE}/${uuid}/ban`)
 
     const captured = captureEnvelopes(victim.page)
     await victim.page.reload()
 
-    const banned = await waitForEnvelope(captured.entries, entry => entry.code === 40607, 40_000)
-    expect(banned.code).toBe(40607)
+    const banned = await waitForEnvelope(captured.entries, entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED, 40_000)
+    expect(banned.code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_BANNED)
     await victim.page.waitForURL(url => url.pathname === '/not-allowed' && url.search.includes('type=deviceBanned'), { timeout: 30_000 })
     expect(victim.page.url()).toContain('type=deviceBanned')
 
@@ -347,13 +362,13 @@ test.describe('设备 ID 生命周期', () => {
     const uuid = await deviceRowUuid(victimId)
 
     const root = await rootClient()
-    await root.client.root('PATCH', `/system/device/${uuid}/lock`)
+    await root.client.root('PATCH', `${SystemRoutes.DEVICE}/${uuid}/lock`)
 
     const captured = captureEnvelopes(victim.page)
     await victim.page.reload()
 
-    const locked = await waitForEnvelope(captured.entries, entry => entry.code === 40606, 40_000)
-    expect(locked.code).toBe(40606)
+    const locked = await waitForEnvelope(captured.entries, entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED, 40_000)
+    expect(locked.code).toBe(WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_DEVICE_LOCKED)
     await victim.page.waitForURL(url => url.pathname === '/not-allowed' && url.search.includes('type=deviceLocked'), { timeout: 30_000 })
     expect(victim.page.url()).toContain('type=deviceLocked')
 
@@ -375,8 +390,8 @@ test.describe('设备 ID 生命周期', () => {
     })
     await withRedis(async (redis) => {
       // 清风控评估缓存 + 已处理的 DEVICE_NEW 标记（否则第二次登录不会挑战）
-      await redis.del(`risk:device:${deviceId}`)
-      const keys = await scanKeys(redis, `risk:challenge:device:${deviceId}:*`)
+      await redis.del(riskDeviceKey(deviceId))
+      const keys = await scanKeys(redis, riskChallengeKeyPattern(deviceId))
       if (keys.length > 0) {
         await redis.del(keys)
       }
@@ -399,8 +414,8 @@ test.describe('设备 ID 生命周期', () => {
       await backdateDeviceCreatedAt(pg, deviceId, 3 * DAY_MS)
     })
     await withRedis(async (redis) => {
-      await redis.del(`risk:device:${deviceId}`)
-      const keys = await scanKeys(redis, `risk:challenge:device:${deviceId}:*`)
+      await redis.del(riskDeviceKey(deviceId))
+      const keys = await scanKeys(redis, riskChallengeKeyPattern(deviceId))
       if (keys.length > 0) {
         await redis.del(keys)
       }
@@ -425,16 +440,16 @@ test.describe('设备 ID 生命周期', () => {
  */
 async function reloginOnSameDevice(page: Page, context: import('@playwright/test').BrowserContext, deviceId: string): Promise<{ capSolved: boolean, mfaVerified: boolean }> {
   // 浏览器侧：模拟真实登出（Signout 会清这两个键 + 删 RT cookie）
-  await page.evaluate(() => {
-    window.localStorage.removeItem('WA__ACCESS_TOKEN')
+  await page.evaluate(([accessTokenKey, sessionKey]) => {
+    window.localStorage.removeItem(accessTokenKey)
     // AUTH_SESSION_KEY 必须一起清：请求拦截器按「sessionKey 是否存在」选单/双因子签名，
     // 残留会让登录端点（服务端此时还没有 req.user）用双因子签名 ⇒ 40112「签名无效」。
-    window.localStorage.removeItem('WA__AUTH_SESSION_KEY')
-  })
-  await context.clearCookies({ name: 'RT_JTI' })
+    window.localStorage.removeItem(sessionKey)
+  }, [ACCESS_TOKEN_LOCAL_STORAGE_KEY, AUTH_SESSION_LOCAL_STORAGE_KEY])
+  await context.clearCookies({ name: RT_JTI_COOKIE_NAME })
   // CAP token 也清：上一次解出的 token 仍有效时 CAP guard 会直接放行并把 critical factor
   // 标成「已处理」——那验证的就不是「这台设备要再过一次人机验证」了。
-  await context.clearCookies({ name: 'CAPJS_TOKEN' })
+  await context.clearCookies({ name: CAPJS_COOKIE_NAME })
   // 服务端侧：撤销活跃 RT（否则 login/finish 撞部分唯一索引 ⇒ 40109「重复认证」）+ 删会话键
   await withPg(async (pg) => {
     await clearRefreshTokensForDevice(pg, deviceId)

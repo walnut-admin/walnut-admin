@@ -63,7 +63,7 @@ export async function findDeviceLocation(client: Client, deviceId: string): Prom
   }
 }
 
-export const pgConfig: ClientConfig = {
+const pgConfig: ClientConfig = {
   host: E2E_PG_HOST,
   port: E2E_PG_PORT,
   user: E2E_PG_USER,
@@ -78,7 +78,7 @@ export const pgConfig: ClientConfig = {
  * 字面量）；连上之后的 `SELECT current_database()` 才是对**运行态**的断言 —— 端口 / 库名
  * 如果被 env 或代理改到别处，这里当场发现（这些 helper 会 DELETE / UPDATE，指错库就是事故）。
  */
-export async function connectPg(): Promise<Client> {
+async function connectPg(): Promise<Client> {
   assertE2eDatabase(pgConfig.database as string)
   assertE2ePgPort(pgConfig.port as number)
   const client = new Client(pgConfig)
@@ -131,15 +131,6 @@ export async function backdateDeviceCreatedAt(client: Client, deviceId: string, 
     `UPDATE sys_device SET created_at = now() - ($2::bigint * interval '1 millisecond') WHERE device_id = $1`,
     [deviceId, msAgo],
   )
-}
-
-/** 某设备是否在当前用户（admin）名下绑过：用于断言登录后 user_device 关系 */
-export async function countUserDeviceRows(client: Client, deviceId: string): Promise<number> {
-  const { rows } = await client.query<{ count: string }>(
-    'SELECT count(*)::text AS count FROM sys_user_device WHERE device_id = $1',
-    [deviceId],
-  )
-  return Number.parseInt(rows[0]?.count ?? '0')
 }
 
 /**

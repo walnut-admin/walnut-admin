@@ -10,6 +10,7 @@ import {
   trackDevice,
   uniqueLocalIp,
 } from '../../lib/device-fixtures.ts'
+import { AuthRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
 import {
   captureEnvelopes,
   ensureLoggedIn,
@@ -38,10 +39,10 @@ test('首页：侧边栏 / 标题 / 已登录请求 20000', async ({ page }) => 
   // 已登录请求的硬证据：permissions 返回 20000（不是 HTTP 200 —— 业务错误也是 200）
   const permissions = await waitForEnvelope(
     captured.entries,
-    entry => entry.url.includes('/auth/permissions') && entry.code === 20000,
+    entry => entry.url.includes(AuthRoutes.PERMISSIONS) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
     40_000,
   )
-  expect(permissions.code).toBe(20000)
+  expect(permissions.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
 
   // 登录态下 DEVICE_ID 必须在（设备身份是每个受保护请求的前置）
   const cookie = await readDeviceCookie(page.context())

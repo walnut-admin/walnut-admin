@@ -15,6 +15,7 @@ import { expect } from '@playwright/test'
 import { trackDevice, uniqueLocalIp } from '../../lib/device-fixtures.ts'
 import { findDeviceLocation, LOOPBACK_IP_PATTERN, withPg } from '../../lib/pg.ts'
 import { WalnutProtocolClient } from '../../lib/protocol/client.ts'
+import { SystemRoutes } from '../../lib/protocol/contract.ts'
 import { CREDENTIALS_FILE, readCredentials } from '../../scripts/env.ts'
 import { test } from '../fixtures.ts'
 
@@ -56,8 +57,9 @@ test('stack：后端就绪 + admin 真实绑定 TOTP + root 权限可用', async
   const totpSecret = await client.bindTotp()
   expect(totpSecret.length).toBeGreaterThanOrEqual(16)
 
-  // root 可用性：/system/user/list 是 permission.guard 的短路通路（roleNames[0]==='root'）
-  const list = await client.root<{ total: number }>('POST', '/system/user/list', { page: { page: 1, pageSize: 10 } })
+  // root 可用性：`${SystemRoutes.USER}/list` 是 permission.guard 的短路通路（roleNames[0]==='root'）
+  // `/list` 后缀不在 contract 的命名端点里（e2e 侧组合，别为它改契约）
+  const list = await client.root<{ total: number }>('POST', `${SystemRoutes.USER}/list`, { page: { page: 1, pageSize: 10 } })
   expect(typeof list.total).toBe('number')
 
   // mfa_setup 已落库（后续新设备的 mfa.guard 会要求验证，而不是 40114）

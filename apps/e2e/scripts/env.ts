@@ -13,6 +13,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { WalnutAdminConstCookieKeys } from '../lib/protocol/contract.ts'
 import { E2ePreconditionError } from './failure.ts'
 
 /** `apps/e2e` 的绝对路径（本文件在 scripts/ 下） */
@@ -80,11 +81,12 @@ export const BACKEND_API_BASE = `${BACKEND_ORIGIN}/${API_PREFIX}/v${API_VERSION}
 /**
  * stage 形态的 cookie 名（`libs/const/src/app/cookie.ts` 的 getSafeCookieKey：dev 有 __Host-、
  * prod 有 __Secure-，**stage 无前缀**）。E2E 后端固定 NODE_ENV=stage ⇒ 就是基名。
+ * 基名与后端同源：`@walnut/contract` 的 `WalnutAdminConstCookieKeys`（见 lib/protocol/contract.ts）。
  */
-export const DEVICE_COOKIE_NAME = 'DEVICE_ID'
-export const CAPJS_COOKIE_NAME = 'CAPJS_TOKEN'
-export const SIGN_TICKET_COOKIE_NAME = 'SIGN_TICKET'
-export const RT_JTI_COOKIE_NAME = 'RT_JTI'
+export const DEVICE_COOKIE_NAME = WalnutAdminConstCookieKeys.DEVICE_ID
+export const CAPJS_COOKIE_NAME = WalnutAdminConstCookieKeys.CAPJS_TOKEN
+export const SIGN_TICKET_COOKIE_NAME = WalnutAdminConstCookieKeys.SIGN_TICKET
+export const RT_JTI_COOKIE_NAME = WalnutAdminConstCookieKeys.RT_JTI
 
 /**
  * 真实 Chrome UA 的**唯一真源**在 lib/protocol/sign.ts（`SIGN_USER_AGENT`）——

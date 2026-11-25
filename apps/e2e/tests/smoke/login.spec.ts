@@ -11,6 +11,7 @@ import {
   uniqueLocalIp,
 } from '../../lib/device-fixtures.ts'
 import { findDeviceRow, LOOPBACK_IP_PATTERN, withPg } from '../../lib/pg.ts'
+import { AuthRoutes, SystemEndpointRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
 import {
   captureEnvelopes,
   expectSidebarRendered,
@@ -35,8 +36,8 @@ test('登录：CAP + TOTP MFA 全过，落 DEVICE_ID cookie 并进首页', async
   expect(login.mfaVerified, '新设备登录应经过 /mfa-verified').toBe(true)
 
   // 业务码证据：设备登记 20000 + 登录成功（login/finish 之后会有 profile/permissions 20000）
-  await waitForEnvelope(captured.entries, entry => entry.url.includes('/system/device/initial') && entry.code === 20000)
-  await waitForEnvelope(captured.entries, entry => entry.url.includes('/auth/permissions') && entry.code === 20000, 40_000)
+  await waitForEnvelope(captured.entries, entry => entry.url.includes(SystemEndpointRoutes.DEVICE_INITIAL) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS)
+  await waitForEnvelope(captured.entries, entry => entry.url.includes(AuthRoutes.PERMISSIONS) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS, 40_000)
   captured.stop()
 
   // DEVICE_ID cookie：stage 形态无前缀；值带 `s:` 签名；形态 d1_ + 32 hex

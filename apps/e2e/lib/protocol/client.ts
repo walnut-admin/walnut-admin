@@ -19,6 +19,12 @@ import {
   BACKEND_API_BASE,
   BACKEND_ORIGIN,
 } from '../../scripts/env.ts'
+import {
+  AuthRoutes,
+  SecurityRoutes,
+  SystemEndpointRoutes,
+  WalnutAdminConstAppResponseCode,
+} from './contract.ts'
 import { buildSignRaw, splitPathAndQuery } from './sign-raw.ts'
 import {
   computeDualFactorSign,
@@ -143,7 +149,7 @@ export class WalnutProtocolClient {
       throw new Error(`[e2e/protocol] ${method} ${path} 返回非 JSON（HTTP ${response.status}）：${text.slice(0, 300)}`)
     }
 
-    if (body.code !== 20000) {
+    if (body.code !== WalnutAdminConstAppResponseCode.SUCCESS) {
       throw new Error(`[e2e/protocol] ${method} ${path} 失败：HTTP ${response.status} code=${body.code} msg=${body.msg ?? ''}`)
     }
 
@@ -263,7 +269,7 @@ export class WalnutProtocolClient {
    */
   async bootstrap(options: { headers?: Record<string, string> } = {}): Promise<void> {
     // 1. 设备登记（sign-free / cap-free / device-free）：服务端签发 DEVICE_ID cookie
-    const device = await this.request<{ deviceId: string }>('POST', '/system/device/initial', {
+    const device = await this.request<{ deviceId: string }>('POST', SystemEndpointRoutes.DEVICE_INITIAL, {
       sign: false,
       headers: options.headers,
       body: { deviceInfo: {}, hardwareInfo: {}, sr: { height: 1080, width: 1920 }, vp: { height: 900, width: 1600 }, private: false },
@@ -273,11 +279,11 @@ export class WalnutProtocolClient {
     // 2. CAP：challenge → 本地 PoW 求解 → redeem（服务端种 CAPJS_TOKEN cookie）
     const challenge = await this.requestFree<{ challenge: { c: number, s: number, d: number }, token: string }>(
       'POST',
-      '/security/cap/challenge',
+      SecurityRoutes.CAP_CHALLENGE,
       { sign: false },
     )
     const solutions = solveCapChallenge(challenge.challenge, challenge.token)
-    const redeem = await this.requestFree<{ success?: boolean, message?: string }>('POST', '/security/cap/redeem', {
+    const redeem = await this.requestFree<{ success?: boolean, message?: string }>('POST', SecurityRoutes.CAP_REDEEM, {
       sign: false,
       body: { token: challenge.token, solutions },
     })
@@ -286,11 +292,11 @@ export class WalnutProtocolClient {
     }
 
     // 3. 签名握手：提交客户端 RSA 公钥 → 拿被加密的 aesKey → 本地私钥解密
-    await this.request('POST', '/security/sign/initial', {
+    await this.request('POST', SecurityRoutes.SIGN_INITIAL, {
       sign: false,
       body: { rsaPubKey: this.rsa.publicKeyPem, force: false },
     })
-    const aesKeyBody = await this.request<{ aesKey: string, hkdfInfo: string }>('POST', '/security/sign/aes-key', { sign: false })
+    const aesKeyBody = await this.request<{ aesKey: string, hkdfInfo: string }>('POST', SecurityRoutes.SIGN_AES_KEY, { sign: false })
     this.aesKey = decryptAesKeyEnvelope(this.rsa.privateKeyPem, aesKeyBody.data.aesKey)
     this.hkdfInfo = aesKeyBody.data.hkdfInfo
   }
@@ -304,7 +310,7 @@ export class WalnutProtocolClient {
     await ensureOpaqueReady()
 
     const { clientLoginState, startLoginRequest } = opaque.client.startLogin({ password })
-    const start = await this.request<string>('POST', '/auth/opaque/user/login/start', {
+    const start = await this.request<string>('POST', AuthRoutes.OPAQUE_USER_LOGIN_START, {
       body: { userName, start: startLoginRequest },
     })
 
@@ -321,7 +327,7 @@ export class WalnutProtocolClient {
 
     const finish = await this.request<{ accessToken: string, sessionKey: string }>(
       'POST',
-      '/auth/opaque/user/login/finish',
+      AuthRoutes.OPAQUE_USER_LOGIN_FINISH,
       { body: { userName, finish: loginResult.finishLoginRequest } },
     )
 
@@ -338,16 +344,16 @@ export class WalnutProtocolClient {
    * 幂等：库里已有该用户的 totp 行时 generate 会 40001（DataExists）——stack.setup 会先清行。
    */
   async bindTotp(): Promise<string> {
-    const generated = await this.root<{ totpId: string, secret: string }>('POST', '/system/user/mfa/totp/generate')
+    const generated = await this.root<{ totpId: string, secret: string }>('POST', SystemEndpointRoutes.USER_MFA_TOTP_GENERATE)
     const code = generateSync({ secret: generated.secret })
 
-    await this.root('POST', '/system/user/mfa/totp/bind', {
+    await this.root('POST', SystemEndpointRoutes.USER_MFA_TOTP_BIND, {
       name: 'e2e-totp',
       code,
       tempTotpId: generated.totpId,
     })
 
-    const verified = await this.root<{ accessToken: string }>('POST', '/auth/mfa/verify', { trusted: true })
+    const verified = await this.root<{ accessToken: string }>('POST', AuthRoutes.MFA_VERIFY, { trusted: true })
     if (this.auth !== null && verified.accessToken !== undefined) {
       // verify 轮换 AT（revoke-and-insert 的 RT 轮换由 Set-Cookie 回写 jar 负责）
       this.auth = { ...this.auth, accessToken: verified.accessToken }
@@ -364,7 +370,7 @@ export class WalnutProtocolClient {
    * 这条是日常登录链上的 `/system/user/mfa/totp/verify`（revoke-and-insert 轮换 RT）。
    */
   async verifyTotpForDevice(totpSecret: string): Promise<void> {
-    const verified = await this.root<{ accessToken: string }>('POST', '/system/user/mfa/totp/verify', {
+    const verified = await this.root<{ accessToken: string }>('POST', SystemEndpointRoutes.USER_MFA_TOTP_VERIFY, {
       code: generateSync({ secret: totpSecret }),
       trusted: true,
     })

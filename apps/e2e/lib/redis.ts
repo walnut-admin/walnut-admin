@@ -20,7 +20,7 @@ const CACHE_PREFIX = 'WALNUT_CACHE'
 const SYS_DEVICE = 'SYSTEM:DEVICE'
 const SYS_DEVICE_COOKIE_RENEW = 'SYSTEM:DEVICE:COOKIE_RENEW'
 
-export function deviceCacheKey(deviceId: string): string {
+function deviceCacheKey(deviceId: string): string {
   return `${CACHE_PREFIX}_${SYS_DEVICE}:${deviceId}`
 }
 
@@ -30,7 +30,7 @@ export function deviceCookieRenewKey(deviceId: string): string {
 
 export type E2eRedisClient = RedisClientType
 
-export async function connectRedis(): Promise<E2eRedisClient> {
+async function connectRedis(): Promise<E2eRedisClient> {
   assertE2eRedisPort(E2E_REDIS_PORT)
   const client = createClient({
     socket: { host: E2E_REDIS_HOST, port: E2E_REDIS_PORT },
@@ -52,12 +52,6 @@ export async function withRedis<T>(run: (client: E2eRedisClient) => Promise<T>):
   }
 }
 
-/** 读设备缓存（不存在返回 null）；值由 cache.service 包成 `{ v, t, ttl? }` JSON */
-export async function getDeviceCache(client: E2eRedisClient, deviceId: string): Promise<Record<string, unknown> | null> {
-  const raw = await client.get(deviceCacheKey(deviceId))
-  return raw === null ? null : JSON.parse(raw) as Record<string, unknown>
-}
-
 /** 删除该设备的两个键（U9 / 续期 / 自清理用；不触碰其它键） */
 export async function deleteDeviceKeys(client: E2eRedisClient, deviceId: string): Promise<number> {
   return client.del([deviceCacheKey(deviceId), deviceCookieRenewKey(deviceId)])
@@ -66,6 +60,14 @@ export async function deleteDeviceKeys(client: E2eRedisClient, deviceId: string)
 /** 风险模块的设备缓存（键形如 `risk:device:<deviceId>`；TTL 10 分钟） */
 export function riskDeviceKey(deviceId: string): string {
   return `risk:device:${deviceId}`
+}
+
+/**
+ * 已处理的 critical factor 标记键的 SCAN 模式（`risk:challenge:device:<deviceId>:<FACTOR>`）。
+ * 与 {@link deleteRiskDeviceState} 同一键形：清理与用例断言共用一处，别在 spec 里手拼。
+ */
+export function riskChallengeKeyPattern(deviceId: string): string {
+  return `risk:challenge:device:${deviceId}:*`
 }
 
 /** 读风险评估结果（factors / level / score），没评估过返回 null */
@@ -83,7 +85,7 @@ export async function readRiskDevice(client: E2eRedisClient, deviceId: string): 
  */
 export async function deleteRiskDeviceState(client: E2eRedisClient, deviceId: string): Promise<number> {
   const keys: string[] = [riskDeviceKey(deviceId)]
-  for await (const key of client.scanIterator({ MATCH: `risk:challenge:device:${deviceId}:*`, COUNT: 100 })) {
+  for await (const key of client.scanIterator({ MATCH: riskChallengeKeyPattern(deviceId), COUNT: 100 })) {
     keys.push(...(Array.isArray(key) ? key : [key]))
   }
   return client.del(keys)

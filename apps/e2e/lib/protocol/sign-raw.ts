@@ -30,7 +30,6 @@ interface SignRawModule {
     ua: string
   }) => string
   splitPathAndQuery: (url: string) => { path: string, query?: string }
-  stripApiPrefix: (path: string, apiPrefix: string, apiVersion: string | number) => string
 }
 
 function load(): SignRawModule {
@@ -50,4 +49,3 @@ const mod = load()
 
 export const buildSignRaw = mod.buildSignRaw
 export const splitPathAndQuery = mod.splitPathAndQuery
-export const stripApiPrefix = mod.stripApiPrefix
