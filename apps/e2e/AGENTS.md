@@ -10,8 +10,8 @@
 签名握手、风控拦截、登录 / 首页 / 用户 CRUD。
 
 编排入口只有一个：`scripts/run.ts`（包脚本 `e2e` / `e2e:smoke` / `e2e:risk` / `e2e:network`
-都走它）。顺序是**硬约束**：抢 run 级锁 → `scripts/preflight.ts` → `prepareDatabase()`（在
-`scripts/prepare-db.ts`）→ `stack-info` → `playwright test`。
+都走它）。顺序是**硬约束**：抢 run 级锁 → `scripts/preflight.ts` → 基线决策（`ensureTestDatabase`，
+在 `scripts/baseline.ts`：restore 或全量 prepare + seal）→ `stack-info` → `playwright test`。
 
 ## 前置命令（缺一项就按退出码 2 失败）
 
@@ -35,15 +35,33 @@ powershell -NoProfile -Command "Start-Process wsl.exe -ArgumentList @('-d','Ubun
 ## 命令
 
 ```bash
-pnpm walnut e2e           # 全量（含 @network）
+pnpm walnut e2e           # 全量（含 @network）；默认从基线 restore，没有基线时全量 prepare 并封板
 pnpm walnut e2e:smoke     # 冒烟：setup + UI 登录 / 首页 / 用户 CRUD
 pnpm walnut e2e:risk      # 设备生命周期（不含 @network）
 pnpm walnut e2e:network   # 只跑 @network（依赖真实外网）
 pnpm walnut e2e:report    # 打开上一轮 HTML 报告（常驻本地服务）
+pnpm --filter @walnut/e2e e2e -- --rebuild-baseline  # 强制全量 prepare + 重新封板 + 跑用例
 node apps/e2e/scripts/preflight.ts   # 只查前置，不动库
-node apps/e2e/scripts/prepare-db.ts  # 只重建库（自己抢锁、只罩这一段）
+node apps/e2e/scripts/prepare-db.ts  # 只重建库（自己抢锁、只罩这一段；不封板）
 pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
 ```
+
+## 封板（baseline）
+
+`scripts/baseline.ts`：**seal 一次、restore 每轮**。封板清单记 `gitCommit`，restore 前与当前
+HEAD 比对；不一致即拒绝（退出码 2，提示 `--rebuild-baseline`）。改这一块代码时必须守住：
+
+- **快照划界**：快照 = 迁移 + seed + 提升 root + CAP 放宽完成后的**库内数据**。**不在**快照里、
+  每轮重做的运行时状态（`walnut_app` 口令 / Redis 设置缓存 / `.auth/credentials.json`）只住在
+  `scripts/runtime-reset.ts`。给 prepare 加后置步骤时先判断它属于哪一边 —— 别两边都写，也别漏；
+- **dump/restore 只碰 `walnut_e2e`**：沿用 `scripts/env.ts` 的 `assertE2e*`，与 prepare-db 同一口径；
+  命令经 `wsl -e bash -c "docker exec …"`（天然无窗口），Windows 侧一律 `windowsHide: true`；
+- **基线文件 gitignored**（`apps/e2e/.e2e/`），不入库；换机器 / 清目录后首次运行自动全量 prepare
+  并重新封板；
+- **漂移只比 HEAD**：未提交的迁移 / seed 改动不会触发拒绝 —— 改完要么提交，要么手动
+  `--rebuild-baseline`。别把「基线有效」读成「数据一定是最新的」；
+- **`E2E_SKIP_BASELINE=1` 是逃生口**（排查基线本身的问题用）：忽略基线、全量 prepare、不封板。
+  别把它当日常入口 —— 那样又回到每轮全量重建，并失去「迁移 / seed 变了」的漂移判定。
 
 ## 端口与安全闸
 
@@ -65,8 +83,8 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
    与请求头必须逐字一致；另抄一份迟早漂移，症状是 40112「签名无效」。
 2. **XFF 只加在同源 `/api/` 请求上**（`installRealIpRoute`）。整包 `extraHTTPHeaders` 会让
    cap.js 从 jsDelivr 拉 WASM 的请求也带上自定义头 → CORS 预检失败 → cap-widget 进错误态。
-3. **prepare-db 必须在 `playwright test` 之前**：Playwright 的 webServer 先于 globalSetup 启动，
-   而 webServer 里的后端一连库就要有库。别把建库挪进 globalSetup。
+3. **库准备（restore / prepare-db）必须在 `playwright test` 之前**：Playwright 的 webServer 先于
+   globalSetup 启动，而 webServer 里的后端一连库就要有库。别把建库 / 恢复挪进 globalSetup。
 4. **`POST /system/device/initial` 是 4 次 / 60 秒 per realIp**：每条用例、每个协议客户端都要一个
    独立的 127/8 地址（`uniqueLocalIp()`）。共用 127.0.0.1 会让第 5 台设备登记撞 42900。
 5. **Redis 只按 deviceId 精确删**（`deleteDeviceScopedKeys`），**绝不 FLUSHDB / FLUSHALL**
@@ -78,8 +96,8 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
    别再加 `auth.setup` 的写盘、别在 project 上挂 `storageState` —— 坏状态会把应用卡在 splash。
 8. **trace / 截图 / HTML 报告含请求头与响应体**（token、cookie）：只留本机，**不许上传任何
    公开位置**。
-9. **CAP 节流与设备目录的「放宽」只改库**：prepare-db 每轮重建库并把 `capjs.config.throttleLimit`
-   调大（仅本栈库的设置行）。别把测试专用的放宽写进源码。
+9. **CAP 节流与设备目录的「放宽」只改库**：全量 prepare 时把 `capjs.config.throttleLimit` 调大
+   （仅本栈库的设置行），restore 继承快照里的这个值。别把测试专用的放宽写进源码。
 10. **设备清理归 fixture**（`tests/fixtures.ts` 的两个 auto fixture）：新造的设备要 `trackDevice`，
     别在用例末尾手写 `cleanupDevices(...)` —— 断言失败时那几行根本不会执行。
 

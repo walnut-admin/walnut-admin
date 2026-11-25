@@ -120,6 +120,12 @@
     // 3001 / 4173 上已在监听的进程（默认关闭，理由见该文件注释）。同样只需可见、不进哈希 ——
     // 它只决定这次跑用不用残留进程，不改变任何产物。
     "E2E_REUSE_SERVER",
+    // 全链路 E2E 的测试库封板开关（`apps/e2e/scripts/{run,baseline}.ts`）：
+    //   · `E2E_SKIP_BASELINE=1` —— 忽略基线快照、退回全量 prepare（排查基线本身的问题用）；
+    //   · `E2E_REBUILD_BASELINE=1` —— 强制全量 prepare + 重新封板（与 `--rebuild-baseline` 等价）。
+    // 两者只决定这一轮怎么准备库，不改变任何 task 产物 —— 只需可见、不进哈希。
+    "E2E_SKIP_BASELINE",
+    "E2E_REBUILD_BASELINE",
     // 发版工具链真正依赖的两个（同样由上面那条规则抓出，2026-09-23）：
     //   · `GITHUB_API_URL` —— `release/src/release/github.ts` 的 GitHub Enterprise 覆盖点；
     //   · `GH_TOKEN` —— `release/src/release/credentials.ts` 的 token 回退来源（gh CLI 的惯例名）。

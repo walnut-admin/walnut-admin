@@ -34,12 +34,10 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { Client } from 'pg'
-import { createClient } from 'redis'
 import {
   ARTIFACT_DIR,
   assertE2eDatabase,
   assertE2ePgPort,
-  assertE2eRedisPort,
   AUTH_DIR,
   CREDENTIALS_FILE,
   E2E_ENV_FILE,
@@ -51,7 +49,6 @@ import {
   E2E_PG_PORT,
   E2E_PG_USER,
   E2E_REDIS_HOST,
-  E2E_REDIS_PASS,
   E2E_REDIS_PORT,
   parseEnvFile,
   REPO_ROOT,
@@ -62,6 +59,7 @@ import {
 import { E2ePreconditionError, reportFailure } from './failure.ts'
 import { acquirePgLock, connectMaintenance, releasePgLock } from './pg-lock.ts'
 import { runPnpm } from './pnpm.ts'
+import { clearAppSettingCache, resetRuntimeRolePassword } from './runtime-reset.ts'
 
 function log(message: string): void {
   console.log(`[e2e/prepare-db] ${message}`)
@@ -215,31 +213,19 @@ async function relaxCapThrottleForTests(client: Client): Promise<void> {
   log(`已放宽 ${key}.throttleLimit → 10000（仅本栈库；PoW 难度不变）`)
 }
 
-/** 清掉应用设置的 Redis 缓存（不重建库的重跑会读到旧的 4/60；只删这两个键，不 FLUSHDB） */
-async function clearAppSettingCache(): Promise<void> {
-  assertE2eRedisPort(E2E_REDIS_PORT)
-  const redis = createClient({
-    socket: { host: E2E_REDIS_HOST, port: E2E_REDIS_PORT },
-    password: E2E_REDIS_PASS,
-  })
-  redis.on('error', () => {})
-  try {
-    await redis.connect()
-    await redis.del(['WALNUT_CACHE_APP:SETTING', 'APP:SETTING'])
-  }
-  finally {
-    await redis.quit().catch(() => {})
-  }
-}
-
 /**
  * 重建 E2E 库并播好数据。**可复用**：`scripts/run.ts` 在持有 run 级锁时调它
  * （`lockHeld: true`），独立入口在文件末尾。
+ *
+ * 它产出的库是**封板快照的内容真源**（scripts/baseline.ts 的 seal 紧接着把它导出成基线）：
+ * 迁移、seed、admin 提升为 root、CAP 放宽都在这里完成；每轮仍需重做的运行时状态
+ * （`walnut_app` 口令 / Redis 设置缓存）走 scripts/runtime-reset.ts，restore 路径也调它。
  */
 export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Promise<void> {
   assertE2eDatabase(E2E_PG_DB)
   assertE2ePgPort(E2E_PG_PORT)
 
+  const started = Date.now()
   const password = `E2e-${randomBytes(12).toString('hex')}`
   writeServerMigrationEnv()
   writeSeedEnv()
@@ -290,11 +276,8 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
     try {
       await promoteAdminToRoot(db, 'admin')
       await relaxCapThrottleForTests(db)
-      // 运行时角色 walnut_app 的密码：迁移的 CREATE ROLE 带「开发引导密码」，而 stage
-      // 启动会拒绝那个字面量（libs/config 的 L5 防呆）—— 在本库把它换成本栈固定值。
-      // 角色是集群级的，但本栈的 PG 实例只服务 E2E，所以这里改的就是「本栈自己的角色」。
-      await db.query(`ALTER ROLE ${E2E_PG_APP_USER} WITH LOGIN PASSWORD '${E2E_PG_APP_PASS}'`)
-      log(`已重置 ${E2E_PG_APP_USER} 口令（stage 启动不接受迁移里的开发引导密码）`)
+      // 运行时角色口令不在快照里（角色是集群级的），每轮由这里/restore 重置
+      await resetRuntimeRolePassword(db)
     }
     finally {
       await db.end()
@@ -307,7 +290,7 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
     )
     log(`已写 ${CREDENTIALS_FILE}（口令随机生成、0600；TOTP secret 由 stack.setup 绑定后补上）`)
     await clearAppSettingCache()
-    log('完成：库已重建、seed 已播、admin 已提升为 root、CAP 节流已放宽')
+    log(`完成：库已重建、seed 已播、admin 已提升为 root、CAP 节流已放宽（全量 prepare 耗时 ${((Date.now() - started) / 1000).toFixed(1)}s）`)
   }
   finally {
     // seed env 含 AUTH_OPAQUE_SECRET：正常路径下 seed 一结束就删了，这里是异常路径
