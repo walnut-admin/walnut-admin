@@ -80,11 +80,21 @@ prepare-db 在每次重建库之后把它改成上面这个固定值（stage 启
 2. 后端 stage env 已解密：`apps/server/env-local/.env.stage` 存在（`pnpm setup-env`，需要根
    `.env.keys`）。prepare-db 把它整份复制成 seed 的 env（0600、seed 一结束就删）—— OPAQUE 口令
    必须与后端同一把密钥，只给数据库几项不够。
-3. stage 产物已构建：`apps/server/dist-stage`（`pnpm --filter @walnut/server build:stage`）与
+3. **workspace 包的 CJS 产物已构建**：`pnpm build`（`@walnut/utils` 的 `dist/sign-raw.cjs` 与
+   `@walnut/contract` 的 `dist/index.cjs`）。`lib/protocol/sign-raw.ts` / `contract.ts` 经
+   `require` 消费它们 —— 缺了会在 webServer 启动时炸成 180s 超时；preflight 现在会提前以
+   退出码 2 报出并给修复命令。
+4. stage 产物已构建：`apps/server/dist-stage`（`pnpm --filter @walnut/server build:stage`）与
    `apps/admin/dist-staging`（`pnpm walnut build:stage`）。
-4. Playwright 浏览器已安装：`pnpm --filter @walnut/e2e exec playwright install chromium`。
-5. Windows 侧 3001 / 3002 / 4173 空闲（后端、socket.io、静态代理）。
-6. Node >= 24.15.0、pnpm >= 12（根 `package.json` 的 engines）。
+5. Playwright 浏览器已安装：`pnpm --filter @walnut/e2e exec playwright install chromium`。
+6. Windows 侧 3001 / 3002 / 4173 空闲（后端、socket.io、静态代理）。复用已在监听的进程时见
+   下面「复用已在监听的进程」（`E2E_REUSE_SERVER=1`，preflight 会改查「可达 + 身份」）。
+7. Node >= 24.15.0、pnpm >= 12（根 `package.json` 的 engines）。
+
+> `apps/server/env-local/.env.e2e`（prepare-db 的迁移通道文件）含数据库口令：写入时是 `0600`，
+> 文件头也写了「勿提交」，且迁移一结束就删。**Windows 上 Node 的 `mode` 基本不生效**（NTFS
+> 不以 POSIX mode 表示权限），所以那份 0600 只对 POSIX 平台是真保护；Windows 上靠
+> 「gitignored + 生命周期极短」兜底。POSIX 上可用 `stat -c %a <file>`（macOS：`stat -f %Lp`）核对。
 
 ## 运行
 
@@ -109,12 +119,14 @@ project 只收它们。**离线口径（2026-11-25 起成立）**：`e2e:risk` �
 1. **抢 run 级 advisory lock 并整轮持有** —— 两个 worktree 同时跑全量时，第二个在等锁；
    120s 内抢不到就报「谁在持锁」并退出（一轮全量远超这个时长，所以实际表现是第二个直接失败）。
    锁不在 prepare 结束就放：否则后一个 run 的 `DROP DATABASE` 会删掉前一个正在用的库；
-2. `scripts/preflight.ts` 查前置（env / 两处 stage 产物 / chromium / PG·Redis 可达 / 3001·3002·4173
-   空闲）——**在动库之前**，失败按退出码 2 收场；
-3. **基线决策**（`scripts/baseline.ts` 的 `ensureTestDatabase`，整段在同一把锁内）：清单有效且
-   HEAD 一致 ⇒ 从基线 `pg_restore` 恢复（不跑迁移 / seed）；没有基线 ⇒ 全量 prepare 后自动封板；
-   HEAD 相对封板时变化 ⇒ **退出码 2** 并提示重新封板；`--rebuild-baseline` ⇒ 强制全量 prepare +
-   重新封板；`E2E_SKIP_BASELINE=1` ⇒ 忽略基线、全量 prepare（见下面「测试库封板」）；
+2. `scripts/preflight.ts` 查前置（env / **workspace CJS dist** / 两处 stage 产物 / chromium /
+   PG·Redis 可达 / **PG 容器可读** / 3001·3002·4173 空闲）——**在动库之前**，失败按退出码 2 收场
+   （`E2E_REUSE_SERVER=1` 时端口改成「可达 + 身份」检查，见下）；
+3. **基线决策**（`scripts/baseline.ts` 的 `ensureTestDatabase`，整段在同一把锁内）：清单有效、
+   `dataKey` 一致且数据路径干净 ⇒ 从基线 `pg_restore` 恢复（不跑迁移 / seed）；没有基线 ⇒ 全量
+   prepare 后自动封板；`dataKey` 变了 / 数据路径脏 / 清单对不上 ⇒ **退出码 2** 并提示重新封板；
+   `--rebuild-baseline` ⇒ 强制全量 prepare + 重新封板；`E2E_SKIP_BASELINE=1` ⇒ 忽略基线、全量
+   prepare（见下面「测试库封板」）；
 4. `stack-info` 写本轮栈信息（含两处产物的**真实 mtime**，用来判断跑的是不是旧产物）；
 5. `playwright test`（webServer 由它起；默认**不复用**已在监听的进程 —— 见下面「退出码」）。
 
@@ -128,36 +140,57 @@ project 只收它们。**离线口径（2026-11-25 起成立）**：`e2e:risk` �
 实现全在 `apps/e2e/scripts/baseline.ts`：
 
 - **seal（封板）**：全量准备（迁移 + seed + 把 admin 提升为 root + 放宽 CAP 节流）跑完后，
-  用数据栈容器里的 `pg_dump -Fc` 把 `walnut_e2e` 导出成基线文件，随后写封板清单与口令文件；
-- **restore（恢复）**：每轮默认动作 —— `DROP/CREATE DATABASE` 后 `pg_restore` 回来，然后只重做
-  **不在快照里**的运行时状态：`walnut_app` 口令（角色是集群级的，pg_dump 不导角色）、Redis 的
-  应用设置缓存、`.auth/credentials.json`（口令取封板时那一份 —— 快照里的 OPAQUE 口令身份只认它）。
-  之后做 sanity 断言：库名、admin 账号存在、`sys_menu` 行数 ≥ 清单记录、迁移头与清单一致。
+  用数据栈容器里的 `pg_dump -Fc` 把 `walnut_e2e` 导出成基线文件，随后写封板清单与口令文件。
+  三个文件**先各写临时文件，再原子 rename**（提交时先撤旧清单）—— 中途失败 / 被 kill 不会留下
+  「新 dump + 旧清单」；留下的「没有清单」状态会被下一轮识别成半成品并拒绝使用；
+- **restore（恢复）**：每轮默认动作 —— 先逐个校验清单里记录的 dump / credentials 的 sha256 与
+  字节数，`DROP/CREATE DATABASE` 后 `pg_restore` 回来，然后只重做**不在快照里**的运行时状态：
+  `walnut_app` 口令（角色是集群级的，pg_dump 不导角色）、Redis 的应用设置缓存、
+  `.auth/credentials.json`（口令取封板时那一份 —— 快照里的 OPAQUE 口令身份只认它）。
+  之后做 sanity 断言：库名、admin 账号存在、`sys_menu` 行数 ≥ 清单记录、迁移头与清单一致；
+- **漂移判据（P1-1）**：清单记 **`dataKey`** = `apps/server/db/seed`、迁移目录、`prepare-db.ts`
+  与 seed 工具（完整清单见 `apps/e2e/scripts/data-key.ts` 的 `DATA_PATHS`）在 HEAD 上的组合树哈希。
+  `dataKey` 与当前不一致、或这些路径有**未提交改动**（`git status --porcelain`）⇒ 退出码 2 并
+  提示 `--rebuild-baseline`；只改文档 / 前端 / 后端源码**不**触发。`gitCommit` 只用于展示
+  「封板于哪个提交」。
 
 产物都在 gitignored 的 `apps/e2e/.e2e/`，**不入库**：
 
 | 文件 | 内容 |
 |------|------|
 | `apps/e2e/.e2e/baseline.dump` | `pg_dump -Fc` 的自定义格式快照 |
-| `apps/e2e/.e2e/baseline.manifest.json` | 封板清单（字段见下） |
+| `apps/e2e/.e2e/baseline.manifest.json` | 封板清单 / meta（版本 2，字段见下；dump 与 credentials 的 sha 都在这里） |
 | `apps/e2e/.e2e/baseline.credentials.json` | 封板时的 admin 口令（0600） |
 
-封板清单的字段：
+封板清单（`manifestVersion: 2`）的字段：
 
 | 字段 | 含义 |
 |------|------|
-| `manifestVersion` | 清单格式版本；形态变化时 +1，旧清单会被判为不可用 |
+| `manifestVersion` | 清单格式版本；形态变化时 +1。**版本 1 不做迁移**：读到旧清单直接判不可用并提示重封板 |
 | `sealedAt` | 封板时刻（ISO 8601） |
-| `gitCommit` | 封板时的仓库 HEAD（40 位）；restore 前与当前 HEAD 比对，不一致即拒绝 |
+| `gitCommit` | 封板时的仓库 HEAD（40 位）——**只展示**，漂移判据已换成 `dataKey` |
+| `dataKey` | 数据路径的组合树哈希；restore 前与当前快照比对，不一致即拒绝 |
+| `dataDirty` | 封板时数据路径是否有未提交改动；`true` 的清单**永不可用**（数据无法证明与仓库一致） |
 | `migrationsHead` | 库内 `migrations` 表的最大 id 与迁移名（快照的迁移头） |
 | `dumpSha256` / `dumpBytes` | dump 的 sha256 与字节数（防替换 / 半写） |
+| `credentialsSha256` / `credentialsBytes` | 封板口令文件的 sha256 与字节数（防「新 dump 配旧口令」） |
 | `menuRows` | 封板时 `sys_menu` 的行数；restore 后断言 ≥ 它 |
+
+**容器与平台（P1-1）**：dump / restore 要 `docker exec` 进数据栈容器。容器名默认
+`e2e-wsl-postgres`，用 `E2E_PG_CONTAINER` 覆盖（通用 compose 的容器名是 `e2e-postgres`）。
+win32 默认经 `wsl -e bash -c "docker exec …"`，其它平台直接 `docker exec`；
+Windows + Docker Desktop（docker CLI 在 Windows 侧）用 `E2E_PG_EXEC_MODE=docker` 显式改走原生
+docker。preflight 会用 `docker inspect` 提前确认容器可读。
 
 ### 什么时候必须重新封板
 
-- 改了迁移或 seed 且**已提交**：清单的 `gitCommit` 与当前 HEAD 不一致 ⇒ 退出码 2，提示重新封板
-  —— 不会静默重建，「数据版本变了」必须是显式动作；
-- 改了迁移或 seed 但**没提交**：HEAD 不变，判不出来 —— 改完顺手加 `--rebuild-baseline`；
+- 改了迁移或 seed（**已提交**）：`dataKey` 与清单不一致 ⇒ 退出码 2，提示重新封板 —— 不会静默
+  重建，「数据版本变了」必须是显式动作；
+- 改了迁移或 seed 但**没提交**：`git status` 显示数据路径脏 ⇒ 同样退出码 2（用旧数据跑新 schema
+  比多跑一次 prepare 更危险）；
+- 封板时数据路径就是脏的：清单记 `dataDirty=true`，该基线之后永远判不可用（提交 / 还原后重封板）；
+- 清单是**旧格式（版本 1）**或封板中途中断（有 dump / credentials 但没有清单）：判「不可用」，
+  不做迁移、不静默自举 —— 按提示重新封板；
 - 换机器 / 清过 `apps/e2e/.e2e/`：没有基线，首次运行会**自动**全量 prepare 并封板；
 - 换过数据卷 / 重建过容器：旧基线引用的角色与对象可能已不在，按报错提示重新封板。
 
@@ -180,7 +213,7 @@ E2E_SKIP_BASELINE=1 pnpm walnut e2e                   # 逃生口：忽略基线
 |----|------|--------------|
 | 0 | 成功 | 全部用例通过 |
 | 1 | 跑起来了但结果不对 | 用例失败、脚本自身报错、子进程（migration / seed / pg_dump / pg_restore）以其它非零码退出 |
-| 2 | **环境没准备好** | 缺 `.env.stage`、缺 stage 产物、PG / Redis 连不上、端口被占、没装 chromium、**基线漂移或基线文件不可用**；seed 以 2 退出也原样透传 |
+| 2 | **环境没准备好** | 缺 `.env.stage`、缺 workspace CJS dist 或 stage 产物、PG / Redis 连不上、PG 容器不可读、端口被占、没装 chromium、**基线漂移 / 数据路径脏 / 基线文件不可用**；seed 以 2 退出也原样透传 |
 
 看到 2 就不必怀疑用例：按报错里的「处置」把前置补齐再跑。Playwright 自己的退出码原样透传
 （它用 1 表示有用例失败）。
@@ -196,21 +229,41 @@ E2E_SKIP_BASELINE=1 pnpm walnut e2e                   # 逃生口：忽略基线
 可能伺服旧产物。只有明确知道「3001 / 4173 上跑的就是本轮产物」时才用 `E2E_REUSE_SERVER=1`
 打开复用。
 
+打开后 **preflight 也换口径**（P1-2）：不再要求三个端口空闲，而是检查「可达 + 身份」——
+后端 `/health/ready` 返回 200、4173 返回含 `<div id="app">` 的 index.html、3002 可达 ——
+并打印复用警告（本轮可能连到旧产物 / 旧库，仅本地调试用）。它**不会**替你启动服务：
+
+```bash
+# 在 apps/e2e 下分别起两个进程（或用你自己的方式起同一份产物）
+node scripts/start-backend.ts     # 后端 dist-stage（含日志 tee / 脱敏）
+node scripts/static-server.ts     # 4173 静态代理（dist-staging + /api /socket 反代）
+E2E_REUSE_SERVER=1 pnpm walnut e2e:smoke
+```
+
 ## CI 形态（nightly）
 
 `.github/workflows/e2e.yml`：每天 UTC 19:00（北京 03:00）+ 手动 dispatch 跑全量，**不进 PR**。
-数据栈由 job 级 services 起（PG 18 / Redis 8，端口与凭据同 `scripts/env.ts`）；CI 上固定
-`E2E_SKIP_BASELINE=1`（封板 / 恢复依赖本机 WSL 容器，见上面「测试库封板」）。artifact 只保留
-junit / `results.json` / 脱敏后的 `backend.log` / `stack.json` / 基线清单 —— trace、截图、HTML
-报告不上传（不变量 8）。细节看 workflow 文件头与优化文档 P1-3 / P0-1。
+数据栈由 job 级 services 起（PG 18 / Redis 8，端口与凭据同 `scripts/env.ts`）；CI 上目前仍固定
+`E2E_SKIP_BASELINE=1`（首跑优先绿）。基线执行层已参数化（`E2E_PG_CONTAINER` + Linux 直接
+`docker exec`），所以 runner 上切回基线路径只是「解析 service 容器名并 export」这一步 —— 具体
+的前置条件与一行切法写在 workflow 文件头的基线注释里。artifact 只保留 junit / `results.json` /
+脱敏后的 `backend.log` / `stack.json` / 基线清单 —— trace、截图、HTML 报告不上传（不变量 8）。
+细节看 workflow 文件头与优化文档 P1-3 / P0-1。
 
 ## 排障
 
 - 本轮连的是哪个库 / 哪份产物（含产物 mtime）：`apps/e2e/.e2e/stack.json`。
-- **退出码 2 提示「迁移/seed 相对封板时已变化」**：说明清单里的 HEAD 与当前不一致 ——
-  `pnpm --filter @walnut/e2e e2e -- --rebuild-baseline` 重新封板。`E2E_SKIP_BASELINE=1`
-  只用于排查基线本身的问题，不是日常入口。
-- 单独查前置：`node apps/e2e/scripts/preflight.ts`（不重建库、不起服务）。
+- **退出码 2 提示「数据路径相对封板时已变化」**：`dataKey` 或工作区脏状态与封板时不符 ——
+  改了迁移 / seed 就 `pnpm --filter @walnut/e2e e2e -- --rebuild-baseline` 重新封板；
+  只是有未提交改动的话，先提交 / 还原（`git status --porcelain -- apps/server/db/seed …`）。
+  `E2E_SKIP_BASELINE=1` 只用于排查基线本身的问题，不是日常入口。
+- **退出码 2 提示「旧格式」/「封板清单缺失但残留 …」**：旧版清单（v1）不做迁移；后者是上一次
+  封板中断的半成品 —— 都按提示 `--rebuild-baseline`。
+- **`docker inspect` 失败 / 容器不可读**：确认容器名（默认 `e2e-wsl-postgres`，通用 compose 是
+  `e2e-postgres`，用 `E2E_PG_CONTAINER` 覆盖）与 Docker 所在侧（win32 默认走 WSL；
+  Windows + Docker Desktop 用 `E2E_PG_EXEC_MODE=docker`）。
+- 单独查前置：`pnpm walnut e2e:doctor`（= `node apps/e2e/scripts/preflight.ts --doctor`，
+  只自检、不抢锁、不动库、不起服务）。
 - 安全闸报错（库名或端口不对）：说明环境串到了 dev 口径。**别绕开它**，回
   `apps/e2e/scripts/env.ts` 核对常量。
 - 5433 连不上：先 `docker compose ps`，再 `wsl -l -v` 看发行版 STATE 是不是 Running。

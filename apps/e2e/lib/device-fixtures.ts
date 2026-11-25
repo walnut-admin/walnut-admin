@@ -43,9 +43,9 @@ export function uniqueLocalIp(): string {
 
 /**
  * 只给**同源 /api 请求**加 `X-Forwarded-For`（= 后端 req.realIp），不能整包 extraHTTPHeaders：
- * 那个选项对**所有**请求生效，包括 cap.js 从 jsDelivr 拉的 WASM —— 自定义头会触发 CORS
- * 预检，jsDelivr 的 ACAO 不放行 `x-forwarded-for`，WASM 加载失败 ⇒ cap-widget 直接进错误态
- * （截图里的「你是人类吗？」）并把用例卡在 60s。静态资源与第三方请求不需要这个头。
+ * 那个选项对**所有**请求生效，包括第三方跨域资源（例如 CDN 上的 WASM）—— 自定义头会触发
+ * CORS 预检，对方通常不放行 `x-forwarded-for`，资源加载失败 ⇒ 依赖它的组件直接进错误态
+ * （CAP 场景的截图是「你是人类吗？」）并把用例卡住。静态资源与第三方请求不需要这个头。
  */
 export async function installRealIpRoute(context: BrowserContext, realIp: string): Promise<void> {
   await context.route(

@@ -50,7 +50,7 @@ test('auth：UI 登录（CAP + MFA）并核对设备登记 / cookie / 库行', a
   await expectSidebarRendered(page)
 
   // Phase 0 gate 6：新设备必然触发 CAP（DEVICE_NEW critical）——没解出就登不进来
-  expect(login.capSolved, '全新设备登录应出现并解出 cap-widget（jsDelivr WASM）').toBe(true)
+  expect(login.capSolved, '全新设备登录应出现并解出 cap-widget（WASM 自托管、同源加载）').toBe(true)
   // 新浏览器设备没有 MFA 的 trusted 缓存 ⇒ 必须过验证页
   expect(login.mfaVerified, '新设备登录应经过 /mfa-verified（TOTP）').toBe(true)
 

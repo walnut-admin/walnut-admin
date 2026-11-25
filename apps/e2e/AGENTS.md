@@ -17,6 +17,7 @@
 
 ```bash
 pnpm setup-env                                   # apps/server/env-local/.env.stage（seed 要 AUTH_OPAQUE_SECRET）
+pnpm build                                        # @walnut/utils / @walnut/contract 的 CJS dist（lib/protocol 经 require 消费）
 pnpm walnut build:stage                          # admin → apps/admin/dist-staging
 pnpm --filter @walnut/server build:stage          # 后端 → apps/server/dist-stage
 pnpm --filter @walnut/e2e exec playwright install chromium
@@ -48,18 +49,25 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
 
 ## 封板（baseline）
 
-`scripts/baseline.ts`：**seal 一次、restore 每轮**。封板清单记 `gitCommit`，restore 前与当前
-HEAD 比对；不一致即拒绝（退出码 2，提示 `--rebuild-baseline`）。改这一块代码时必须守住：
+`scripts/baseline.ts`：**seal 一次、restore 每轮**。封板清单（版本 2）记 `dataKey`（数据树哈希，
+路径清单在 `scripts/data-key.ts` 的 `DATA_PATHS`）与 dump / credentials 两者的 sha；restore 前
+逐个校验，dataKey 变了或数据路径有未提交改动即拒绝（退出码 2，提示 `--rebuild-baseline`）。
+改这一块代码时必须守住：
 
 - **快照划界**：快照 = 迁移 + seed + 提升 root + CAP 放宽完成后的**库内数据**。**不在**快照里、
   每轮重做的运行时状态（`walnut_app` 口令 / Redis 设置缓存 / `.auth/credentials.json`）只住在
   `scripts/runtime-reset.ts`。给 prepare 加后置步骤时先判断它属于哪一边 —— 别两边都写，也别漏；
 - **dump/restore 只碰 `walnut_e2e`**：沿用 `scripts/env.ts` 的 `assertE2e*`，与 prepare-db 同一口径；
-  命令经 `wsl -e bash -c "docker exec …"`（天然无窗口），Windows 侧一律 `windowsHide: true`；
+  容器名默认 `e2e-wsl-postgres`（`E2E_PG_CONTAINER` 覆盖），win32 经
+  `wsl -e bash -c "docker exec …"`、其它平台直接 `docker exec`（`scripts/pg-container.ts`）；
+  Windows 侧一律 `windowsHide: true`；
+- **封板原子化**：dump / credentials / 清单先各写临时文件，提交时**先撤旧清单再 rename** ——
+  任何时刻都不会出现「新 dump + 旧清单」；中断留下的「没有清单」状态会被下一轮判成半成品并拒绝；
 - **基线文件 gitignored**（`apps/e2e/.e2e/`），不入库；换机器 / 清目录后首次运行自动全量 prepare
   并重新封板；
-- **漂移只比 HEAD**：未提交的迁移 / seed 改动不会触发拒绝 —— 改完要么提交，要么手动
-  `--rebuild-baseline`。别把「基线有效」读成「数据一定是最新的」；
+- **漂移判据是 dataKey + 工作区脏**：只改文档 / 前端 / 后端源码**不**触发；改了迁移 / seed
+  （无论提交与否）都会退出 2。提交后仍需 `--rebuild-baseline`（旧快照的数据不等于新源码的数据）。
+  别把「基线有效」读成「数据一定是最新的」；
 - **`E2E_SKIP_BASELINE=1` 是逃生口**（排查基线本身的问题用）：忽略基线、全量 prepare、不封板。
   别把它当日常入口 —— 那样又回到每轮全量重建，并失去「迁移 / seed 变了」的漂移判定。
 
@@ -82,7 +90,8 @@ HEAD 比对；不一致即拒绝（退出码 2，提示 `--rebuild-baseline`）�
    `use.userAgent` 与 `newBrowserContext` 都必须 import 它 —— 签名原文取 `navigator.userAgent`，
    与请求头必须逐字一致；另抄一份迟早漂移，症状是 40112「签名无效」。
 2. **XFF 只加在同源 `/api/` 请求上**（`installRealIpRoute`）。整包 `extraHTTPHeaders` 会让
-   cap.js 从 jsDelivr 拉 WASM 的请求也带上自定义头 → CORS 预检失败 → cap-widget 进错误态。
+   第三方跨域资源（如 CDN 上的 WASM）的请求也带上自定义头 → CORS 预检失败 → 依赖它的组件
+   进错误态。
 3. **库准备（restore / prepare-db）必须在 `playwright test` 之前**：Playwright 的 webServer 先于
    globalSetup 启动，而 webServer 里的后端一连库就要有库。别把建库 / 恢复挪进 globalSetup。
 4. **`POST /system/device/initial` 是 4 次 / 60 秒 per realIp**：每条用例、每个协议客户端都要一个
@@ -105,8 +114,9 @@ HEAD 比对；不一致即拒绝（退出码 2，提示 `--rebuild-baseline`）�
 
 - **4173 被残留进程占用（实测案例）**：默认**不复用**已监听的进程（`E2E_REUSE_SERVER=1` 才
   opt-in，理由见 `playwright.config.ts`），端口被占时 preflight 直接按退出码 2 失败。
-  `netstat -ano | findstr :4173` 找到残留的 node 停掉再跑。别用「打开复用」绕过去 ——
-  那会连到旧产物 / 旧库的后端。
+  `netstat -ano | findstr :4173` 找到残留的 node 停掉再跑。确认「3001 / 4173 上跑的就是本轮
+  产物」时可用 `E2E_REUSE_SERVER=1` —— preflight 会改查「可达 + 身份」（后端 `/health/ready`、
+  4173 的 index.html）并打印复用警告；否则别用复用绕过去：那会连到旧产物 / 旧库的后端。
 - **5433 / 6380 连不上**：`docker compose ps` 看两个容器是否 healthy；再 `wsl -l -v` 看发行版
   STATE（会被空闲关机），必要时重起隐藏会话。
 - **登录框等不出来 / 页面停在 `forbidden`**：先看 `.e2e/stack.json` 的 `artifacts.*.mtime`
