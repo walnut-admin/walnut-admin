@@ -102,7 +102,9 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
    独立的 127/8 地址（`uniqueLocalIp()`）。共用 127.0.0.1 会让第 5 台设备登记撞 42900。
 5. **Redis 只按 deviceId 精确删**（`deleteDeviceScopedKeys`；`scripts/redis-gc.ts` 的跨轮对账
    同样只 SCAN + 精确 DEL），**绝不 FLUSHDB / FLUSHALL**（compose 里这两个命令已被重命名禁用）。
-   键形对齐 `apps/server/libs/const/src/app/cache.ts`，服务端改键形时这里要同步。
+   键形对齐 `apps/server/libs/const/src/app/cache.ts`，服务端改键形时**两张表都要同步**：
+   fixture 的 `lib/redis.ts`（`deviceScopedKeyPatterns` / `riskDeviceStatePatterns`）与 GC 的
+   `DEVICE_KEY_FAMILIES`；`lib/redis.test.ts` 会拿 GC 表逐族交叉校验，漏一族即红。
 6. **一台机器同一时间一个全量 run**：锁在 `scripts/pg-lock.ts`，由 `run.ts` 整轮持有。两个
    worktree 并发时第二个等锁，120s 内抢不到就报持锁者并退出（不排队、不静默）。
 7. **storageState 不可复用**（IndexedDB 里的 AES `CryptoKey` 恢复不了，Phase 0 gate 已判死）：
