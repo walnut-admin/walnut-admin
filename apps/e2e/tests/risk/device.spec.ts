@@ -23,10 +23,11 @@
  * `tests/fixtures.ts` 的 auto fixture，由它在用例结束时按 deviceId 删 PG 行与 Redis 键
  * （**不 FLUSHDB**）。
  *
- * 标记：依赖真实外网的用例在标题里带 `@network`，由独立的 network project 跑（risk 用
- * `grepInvert` 排除它们）—— 离线环境里 risk 仍应全绿。两条「回填 created_at」用例现在是
- * **协议预置设备 + 一次 UI 登录**（P0-3），标了 `test.slow()`；U8/U9 **刻意不标** —— 修好后的
- * flake 应在 120s 内红，拖到 360s 只会掩盖问题。
+ * 标记（Playwright 原生 tag，见 README「标签与选择性执行」）：整组挂 `@risk`；依赖真实外网的
+ * 用例挂 `@network`，由独立的 network project 跑（risk 用 `grepInvert` 排除它们）—— 离线环境里
+ * risk 仍应全绿。两条「回填 created_at」用例现在是 **协议预置设备 + 一次 UI 登录**（P0-3），
+ * 同时挂 `test.slow()` 与 `@slow`；U8/U9 **刻意不标** —— 修好后的 flake 应在 120s 内红，
+ * 拖到 360s 只会掩盖问题。
  */
 import {
   loginDevice,
@@ -169,7 +170,7 @@ async function contextOnSeededDevice(browser: import('@playwright/test').Browser
   return context
 }
 
-test.describe('设备 ID 生命周期', () => {
+test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
   test('U1 新设备签发：initial → d1_+32hex、DEVICE_ID cookie、sys_device 行', async ({ browser }) => {
     const context = await newBrowserContext(browser)
     const page = await context.newPage()
@@ -208,7 +209,7 @@ test.describe('设备 ID 生命周期', () => {
     await context.close()
   })
 
-  test('U1b Phase0-5 @network：非 local IP 的 initial 走真实定位（api.ip.sb）', async () => {
+  test('U1b Phase0-5：非 local IP 的 initial 走真实定位（api.ip.sb）', { tag: '@network' }, async () => {
     const client = new WalnutProtocolClient({ realIp: '1.1.1.1' })
     await client.bootstrap()
     trackDevice(client.deviceId)
@@ -469,7 +470,7 @@ test.describe('设备 ID 生命周期', () => {
     }
   })
 
-  test('回填 created_at=1h → 重登触发 DEVICE_NEW critical 因子的 CAP', async ({ browser }) => {
+  test('回填 created_at=1h → 重登触发 DEVICE_NEW critical 因子的 CAP', { tag: '@slow' }, async ({ browser }) => {
     // 一次协议登录 + 一次 UI 登录（CAP PoW + TOTP），距 120s 默认上限的余量仍然不大
     test.slow()
     const seeded = await seedLoggedInDevice(HOUR_MS)
@@ -490,7 +491,7 @@ test.describe('设备 ID 生命周期', () => {
     }
   })
 
-  test('回填 created_at=3d → 重登触发 DEVICE_RECENT critical 因子的 CAP', async ({ browser }) => {
+  test('回填 created_at=3d → 重登触发 DEVICE_RECENT critical 因子的 CAP', { tag: '@slow' }, async ({ browser }) => {
     // 一次协议登录 + 一次 UI 登录（CAP PoW + TOTP），距 120s 默认上限的余量仍然不大
     test.slow()
     const seeded = await seedLoggedInDevice(3 * DAY_MS)

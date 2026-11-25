@@ -698,6 +698,19 @@ export const COMMANDS: readonly Command[] = [
 
   // ── 工具 ──
   {
+    id: 'e2e:affected',
+    group: '工具',
+    label: '按改动范围选择 E2E 子集（默认 base=origin/main）',
+    why: '本地与 nightly 的轻量入口：读 `git diff --name-only <base>...HEAD`，admin 登录 → smoke、'
+      + 'server guards/system/ip/middleware → risk、seed / 迁移 / prepare-db → 重新封板 + 全量、'
+      + '只改文档 → 跳过、**其它任何路径 → 全量**（安全网）。**刻意不进 prepush / PR 门禁**；'
+      + '执行仍经 apps/e2e/scripts/run.ts（抢 run 级锁、基线决策与单 run 不变量不变）。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:affected'],
+    // base 可位置参数给（`pnpm walnut e2e:affected origin/main`），也可 `--base=<ref>`
+    positionalArgs: '[base]',
+    budgetMs: 0, // 可能走到全量，分钟级 + webServer 启停
+  },
+  {
     id: 'e2e:doctor',
     group: '工具',
     label: 'E2E 前置自检（打印全部检查与修复命令，不抢锁、不动库）',

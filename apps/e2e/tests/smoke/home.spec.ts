@@ -14,7 +14,7 @@ import {
 } from '../../lib/ui.ts'
 import { expect, test } from '../fixtures.ts'
 
-test('首页：侧边栏 / 标题 / 已登录请求 20000', async ({ authedPage }) => {
+test('首页：侧边栏 / 标题 / 已登录请求 20000', { tag: '@smoke' }, async ({ authedPage }) => {
   const captured = captureEnvelopes(authedPage)
   // 新页面从共享 context 的登录态启动：重新进首页会重放登录后的 permissions 请求
   await authedPage.goto('/')

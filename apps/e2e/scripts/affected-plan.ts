@@ -1,0 +1,199 @@
+/**
+ * `e2e:affected` 的**纯映射规则**：把 `git diff --name-only <base>...HEAD` 的改动路径
+ * 分类成「跳过 / 只跑某个 project / 全量（可含重新封板）」。
+ *
+ * 判据（与优化文档 P1-5 一致，安全网优先）：
+ * 1. **数据路径**（seed / 迁移 / prepare-db / seed 工具）→ **重新封板 + 全量**：基线里的数据
+ *    不等于新源码的数据，先重建再跑；
+ * 2. `apps/e2e/**` → 全量：测试宿主自身改了，选择逻辑本身也不可信；
+ * 3. 全是文档（`apps/docs/**` 或任意 `*.md`）→ 跳过（打印理由、退出 0）；
+ * 4. admin 登录 / auth 相关 → smoke；
+ * 5. server guards / system / ip / middleware → risk；
+ * 6. **其它任何路径 → 全量**。未知改动宁可多跑，不能漏测 —— 这是整条映射的安全网。
+ *
+ * 只做纯字符串判断（不做 I/O），单测直接钉住上面每一条；git 调用在 `scripts/affected.ts`。
+ */
+
+/** 本脚本能直接选择的 project（network 不单独选：它依赖真实外网，属于全量的一部分）。 */
+export type AffectedProject = 'smoke' | 'risk'
+
+export interface AffectedPlan {
+  /** skip = 不需要跑；projects = 只跑列出的 project；all = 全量 */
+  mode: 'skip' | 'projects' | 'all'
+  /** mode=projects 时按表顺序去重后的 project 列表 */
+  projects: AffectedProject[]
+  /** 是否要求先 `--rebuild-baseline`（数据路径变化时为 true；只对 mode=all 有意义） */
+  rebuild: boolean
+  /** 人读的判定理由（打印在计划里；含触发判定的路径） */
+  reason: string
+  /** 归一化后的改动路径（原样保留给调用方打印） */
+  changedPaths: string[]
+}
+
+/**
+ * 数据路径（与 `scripts/data-key.ts` 的 `DATA_PATHS` 同一判据：改动会改变 prepare 之后的库内容）。
+ * 两处清单都要维护：`data-key` 管基线漂移，这里管「要不要重新封板 + 全量」。
+ */
+const DATA_PREFIXES = [
+  'apps/server/db/seed',
+  'apps/server/apps/api/migrations',
+] as const
+const DATA_FILES = [
+  'apps/e2e/scripts/prepare-db.ts',
+  'tooling/scripts/src/db/seed-pg.ts',
+  'tooling/scripts/src/db/seed.ts',
+  'tooling/scripts/src/db/seed-reshape.ts',
+  'tooling/scripts/src/db/admin-credential.ts',
+  'tooling/scripts/src/db/app-keys.ts',
+] as const
+
+/** admin 侧登录 / auth 相关（改这些先跑 smoke）。 */
+const ADMIN_AUTH_PREFIXES = [
+  'apps/admin/src/views/auth',
+  'apps/admin/src/api/auth',
+] as const
+const ADMIN_AUTH_FILES = ['apps/admin/src/api/auth.ts'] as const
+
+/** server 侧设备 / 风控 / 中间件（改这些先跑 risk）。 */
+const RISK_PREFIXES = [
+  'apps/server/libs/guards',
+  'apps/server/libs/system',
+  'apps/server/libs/ip',
+  'apps/server/apps/api/src/middleware',
+] as const
+
+/** 路径归一化：Windows 反斜杠、前导 `./`、多余空白。 */
+function normalizePath(path: string): string {
+  return path.trim().replace(/\\/g, '/').replace(/^\.\//, '')
+}
+
+/** 目录匹配：路径等于目录本身，或在目录之下（按 `/` 边界，避免 `auth` 命中 `auth0`）。 */
+function matchesDir(path: string, dir: string): boolean {
+  return path === dir || path.startsWith(`${dir}/`)
+}
+
+function isDataPath(path: string): boolean {
+  return DATA_FILES.includes(path as (typeof DATA_FILES)[number])
+    || DATA_PREFIXES.some(dir => matchesDir(path, dir))
+}
+
+function isE2ePath(path: string): boolean {
+  return matchesDir(path, 'apps/e2e')
+}
+
+function isDocsPath(path: string): boolean {
+  return matchesDir(path, 'apps/docs') || path.endsWith('.md')
+}
+
+function isAdminAuthPath(path: string): boolean {
+  if (ADMIN_AUTH_FILES.includes(path as (typeof ADMIN_AUTH_FILES)[number])) {
+    return true
+  }
+  if (ADMIN_AUTH_PREFIXES.some(dir => matchesDir(path, dir))) {
+    return true
+  }
+  // store/modules 下的 auth 模块（如 user/user-auth.ts）：目录名带 auth 也算
+  return matchesDir(path, 'apps/admin/src/store/modules')
+    && path.slice('apps/admin/src/store/modules/'.length).toLowerCase().includes('auth')
+}
+
+function isRiskPath(path: string): boolean {
+  return RISK_PREFIXES.some(dir => matchesDir(path, dir))
+}
+
+/**
+ * 分类一组改动路径（**纯函数**，不做任何 git / fs 调用）。
+ *
+ * 判定顺序即优先级：数据 > e2e 自身 > 文档-only > 精确映射 > 未知全量。
+ */
+export function classifyAffectedPaths(paths: readonly string[]): AffectedPlan {
+  const changedPaths = [...new Set(paths.map(normalizePath).filter(path => path !== ''))]
+
+  if (changedPaths.length === 0) {
+    return {
+      mode: 'skip',
+      projects: [],
+      rebuild: false,
+      reason: 'base...HEAD 没有改动文件',
+      changedPaths,
+    }
+  }
+
+  const dataPath = changedPaths.find(isDataPath)
+  if (dataPath !== undefined) {
+    return {
+      mode: 'all',
+      projects: [],
+      rebuild: true,
+      reason: `数据路径变化（${dataPath}）：必须重新封板并跑全量`,
+      changedPaths,
+    }
+  }
+
+  const e2ePath = changedPaths.find(isE2ePath)
+  if (e2ePath !== undefined) {
+    return {
+      mode: 'all',
+      projects: [],
+      rebuild: false,
+      reason: `E2E 自身变化（${e2ePath}）：跑全量`,
+      changedPaths,
+    }
+  }
+
+  const nonDocs = changedPaths.filter(path => !isDocsPath(path))
+  if (nonDocs.length === 0) {
+    return {
+      mode: 'skip',
+      projects: [],
+      rebuild: false,
+      reason: `只改了文档（${changedPaths.join(', ')}），不跑 E2E`,
+      changedPaths,
+    }
+  }
+
+  const unknown = nonDocs.find(path => !isAdminAuthPath(path) && !isRiskPath(path))
+  if (unknown !== undefined) {
+    return {
+      mode: 'all',
+      projects: [],
+      rebuild: false,
+      reason: `有未映射的改动（${unknown}）：按安全网跑全量`,
+      changedPaths,
+    }
+  }
+
+  const projects: AffectedProject[] = []
+  const smokeTrigger = nonDocs.find(isAdminAuthPath)
+  if (smokeTrigger !== undefined) {
+    projects.push('smoke')
+  }
+  const riskTrigger = nonDocs.find(isRiskPath)
+  if (riskTrigger !== undefined) {
+    projects.push('risk')
+  }
+
+  const triggers = [
+    smokeTrigger === undefined ? null : `smoke ← ${smokeTrigger}`,
+    riskTrigger === undefined ? null : `risk ← ${riskTrigger}`,
+  ].filter((trigger): trigger is string => trigger !== null)
+
+  return {
+    mode: 'projects',
+    projects,
+    rebuild: false,
+    reason: `按目录映射：${triggers.join('；')}`,
+    changedPaths,
+  }
+}
+
+/** 人读的计划摘要（CLI 与报告共用；纯函数）。 */
+export function describeAffectedPlan(plan: AffectedPlan): string {
+  if (plan.mode === 'skip') {
+    return `跳过 E2E（${plan.reason}）`
+  }
+  if (plan.mode === 'all') {
+    return `全量${plan.rebuild ? ' + 重新封板' : ''}（${plan.reason}）`
+  }
+  return `${plan.projects.map(project => `--project=${project}`).join(' ')}（${plan.reason}）`
+}

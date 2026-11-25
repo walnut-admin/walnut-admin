@@ -103,16 +103,18 @@ pnpm walnut e2e         # 全量：preflight → 基线决策（restore / prepar
 pnpm walnut e2e:smoke   # 冒烟子集（setup + 首页 / 登录 / 用户 CRUD）
 pnpm walnut e2e:risk    # 设备 ID 全生命周期（不含 @network）
 pnpm walnut e2e:network # 只跑依赖真实外网的用例（当前是 U1b：api.ip.sb 的定位）
+pnpm walnut e2e:affected # 按 git 改动范围选择子集（默认 base=origin/main，见下）
 pnpm walnut e2e:report  # 打开上一轮 HTML 报告
 ```
 
 包脚本只是把参数交给 `scripts/run.ts`（`e2e:smoke` = `node scripts/run.ts --project=smoke`），
 额外参数原样透传给 Playwright，例如 `pnpm --filter @walnut/e2e e2e -g "登录"`。
 
-依赖外网的用例在标题里带 `@network`：`risk` project 用 `grepInvert` 排除它们，`network`
-project 只收它们。**离线口径（2026-11-25 起成立）**：`e2e:risk` 不需要外网 —— Phase0-4 用
-127/8 的 local IP（后端跳过 geo 查询），CAP 的 widget 与 WASM 都已自托管（同源加载）；
-`e2e:network`（当前是 U1b：api.ip.sb 真实定位）需要外网，离线时必红是**预期**。
+依赖外网的用例带 `@network` **tag**（写法见下面「标签与选择性执行」）：`risk` project 用
+`grepInvert` 排除它们，`network` project 只收它们。**离线口径（2026-11-25 起成立）**：
+`e2e:risk` 不需要外网 —— Phase0-4 用 127/8 的 local IP（后端跳过 geo 查询），CAP 的 widget 与
+WASM 都已自托管（同源加载）；`e2e:network`（当前是 U1b：api.ip.sb 真实定位）需要外网，
+离线时必红是**预期**。
 
 `run.ts` 的顺序是硬约束：
 
@@ -132,6 +134,60 @@ project 只收它们。**离线口径（2026-11-25 起成立）**：`e2e:risk` �
 
 设备与 Redis 键的清理由 `tests/fixtures.ts` 的 auto fixture 统一做：断言失败时也会执行，
 不会因为用例末尾的手写清理被跳过而留下残渣。
+
+## 标签与选择性执行
+
+标签**统一用 Playwright 原生 tag**（`test(...)` / `test.describe(...)` 的第二个参数
+`{ tag: '@smoke' }`），不往标题文字里写。理由：tag 是框架的一等公民（junit / JSON report 里
+是独立的 `tags` 字段），`--grep` 也按 tag 匹配（Playwright 把 tag 并入 grep 的标题路径）；
+标题只留人读的用例名，改文案不会顺手弄坏选择规则。
+
+| tag | 含义 | 当前落点 |
+|-----|------|----------|
+| `@smoke` | 冒烟 | 首页只读、用户 CRUD |
+| `@risk` | 设备 / 风控 | 设备 ID 生命周期整组（`test.describe` 上） |
+| `@slow` | 慢用例（同时有 `test.slow()`） | 两条「回填 created_at」 |
+| `@network` | 依赖真实外网 | U1b（api.ip.sb 定位） |
+| `@quarantine` | 隔离（本批只建机制） | 暂无 |
+
+`@quarantine` **只建立标签机制**：给用例挂上 `{ tag: '@quarantine' }` 后即可用
+`--grep @quarantine` 单独选中；本批不建 quarantine.json 列表（P2-1），也不自动从全量里剔除 ——
+标记它的人要自己决定是否同时调整 project 的 `testMatch` / `grep`。`@network` 由 network
+project 的 `grep` 选中、risk 的 `grepInvert` 排除。
+
+```bash
+pnpm --filter @walnut/e2e e2e -- --grep @smoke          # 只跑冒烟 tag
+pnpm --filter @walnut/e2e e2e -- --project=risk --grep @slow
+pnpm --filter @walnut/e2e e2e -- --grep @quarantine     # 机制验证：有隔离用例时只选它们
+```
+
+setup project 是 `dependencies`：即使 `--grep` 不匹配它们，Playwright 也会先跑
+stack-setup / auth-setup —— 不需要给 setup 用例贴业务 tag。
+
+## 按改动范围选择（e2e:affected）
+
+```bash
+pnpm walnut e2e:affected                 # base 默认 origin/main
+pnpm walnut e2e:affected origin/main     # 位置参数
+pnpm walnut e2e:affected --base=<ref>    # 分支 / tag / 提交 sha
+```
+
+它读 `git diff --name-only <base>...HEAD`（三点 diff = 与 merge-base 比）的**已提交**改动，
+打印计划后按判定执行。执行仍交给 `scripts/run.ts`，所以抢 run 级锁、preflight、基线决策与
+`playwright test` 的硬顺序不变。**它不是 PR 门禁**（不进 prepush / ci:local）。
+
+| 改动 | 判定 |
+|------|------|
+| `apps/admin/src/views/auth/**`、`apps/admin/src/api/auth*`、`apps/admin/src/store/modules/**` 下带 `auth` 的模块 | `--project=smoke` |
+| `apps/server/libs/{guards,system,ip}/**`、`apps/server/apps/api/src/middleware/**` | `--project=risk` |
+| `apps/server/db/seed/**`、`apps/server/apps/api/migrations/**`、`apps/e2e/scripts/prepare-db.ts`、seed 工具（`tooling/scripts/src/db/{seed*,admin-credential,app-keys}.ts`） | `--rebuild-baseline` + 全量 |
+| `apps/e2e/**` | 全量 |
+| 只改 `apps/docs/**` 或任意 `*.md`（且不在 `apps/e2e/**`） | 跳过（退出 0，打印理由） |
+| **其它任何路径**（根 `package.json`、server 其它模块……） | **全量（安全网）** |
+
+base 不存在 / 读不到 diff 时按前置条件失败（退出码 2），提示 `git fetch origin main` 或改用
+`--base <ref>`。映射规则在 `scripts/affected-plan.ts`（纯函数，单测 `affected-plan.test.ts`）；
+git 读取与执行在 `scripts/affected.ts`。
 
 ## 测试库封板（baseline）
 

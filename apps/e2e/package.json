@@ -13,6 +13,7 @@
     "e2e:smoke": "node scripts/run.ts --project=smoke",
     "e2e:risk": "node scripts/run.ts --project=risk",
     "e2e:network": "node scripts/run.ts --project=network",
+    "e2e:affected": "node scripts/affected.ts",
     "e2e:doctor": "node scripts/preflight.ts --doctor",
     "e2e:report": "playwright show-report",
     "lint": "eslint . --concurrency=4",
