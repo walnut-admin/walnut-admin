@@ -25,9 +25,6 @@ import { defineConfig, devices } from '@playwright/test'
 import { SIGN_USER_AGENT } from './lib/protocol/sign.ts'
 import { BACKEND_ORIGIN, backendEnvOverrides, E2E_ROOT, TEST_RESULTS_DIR, WEB_ORIGIN } from './scripts/env.ts'
 import { buildQuarantineGrepInvert, loadQuarantine, overdueEntries } from './scripts/quarantine.ts'
-import { STACK_PROFILE } from './scripts/stack-profiles.ts'
-
-console.log(`[e2e/config] profile=${STACK_PROFILE.name}  web=${WEB_ORIGIN}  backend=${BACKEND_ORIGIN}  db=${STACK_PROFILE.database}`)
 
 /**
  * webServer 是否复用已在监听的进程。**默认关**：

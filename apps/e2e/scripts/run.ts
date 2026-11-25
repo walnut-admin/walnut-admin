@@ -57,6 +57,8 @@ async function main(): Promise<void> {
   // `--rebuild-baseline` 是**本脚本自己的**参数，不能进 Playwright 的命令行
   const rebuild = passthrough.includes('--rebuild-baseline') || process.env.E2E_REBUILD_BASELINE === '1'
   const testArgs = passthrough.filter(arg => arg !== '--rebuild-baseline')
+  // profile 与 project 的 1:1 约束在**动锁 / 动库之前**校验：配错直接退 2，不白重建一次库
+  const finalTestArgs = resolveProfileTestArgs(STACK_PROFILE, testArgs)
 
   const lock = await connectMaintenance()
   try {
@@ -88,7 +90,6 @@ async function main(): Promise<void> {
       }
 
       writeStackInfo()
-      const finalTestArgs = resolveProfileTestArgs(STACK_PROFILE, testArgs)
       console.log(`[e2e/run] pnpm exec playwright test ${finalTestArgs.join(' ')}`.trimEnd())
       process.exitCode = spawnPnpm(['exec', 'playwright', 'test', ...finalTestArgs], E2E_ROOT, { ...process.env })
     }
