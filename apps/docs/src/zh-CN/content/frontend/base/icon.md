@@ -150,7 +150,7 @@ import { IconBundleConfig } from './config';
 
 在开发环境下会整体安装[@iconify/json](https://icon-sets.iconify.design/)，大约有 `100` 多 M。图标集数量将近 `100` 个。
 
-如果想要添加新的图标集，则在[config.ts](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/build/icon/src/config.ts)文件中的`list`属性添加想要的`图标集字符串`，然后执行重新执行`npm run dev`即可。
+如果想要添加新的图标集，则在 `build/icon/src/config.ts` 文件中的`list`属性添加想要的`图标集字符串`，然后执行重新执行`npm run dev`即可（该文件已不存在，现行做法见本页「新文档」一节）。
 
 :::warning
 `list`数组的第一项即自定义图标的前缀，不要轻易删除

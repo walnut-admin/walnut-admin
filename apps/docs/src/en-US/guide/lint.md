@@ -1,5 +1,10 @@
 # 项目规范
 
+> 本页是**多仓合并与工具链收拢之前**的旧文档，保留作对照。文中 `config/*` 下的路径、husky、
+> stylelint、prettier、cz-customizable 都已不在本仓：现行的 lint 预设与门禁口径见
+> [ESLint 配置](/content/monorepo/eslint.md)，git 钩子由 lefthook 托管（见
+> [ADR 0018](/content/adr/0018-git-hooks-lefthook.md)）。
+
 ## 介绍
 
 ::: tip 使用 lint 的好处
@@ -18,22 +23,22 @@
 
 1. [eslint] 用于校验代码格式规范
 2. [commitlint] 用于校验 git 提交信息规范
-3. [stylelint] 用于校验 css/less 规范
-4. [prettier] 代码格式化
+3. ~~[stylelint] 用于校验 css/less 规范~~（已移除）
+4. ~~[prettier] 代码格式化~~（已移除，格式化由 [eslint] 的 stylistic 规则承担）
 
 ::: warning
 lint 不是必须的，但是很有必要，一个项目做大了以后或者参与人员过多后，就会出现各种风格迥异的代码，对后续的维护造成了一定的麻烦
 :::
 
 :::info
-[eslint] 功能很强大，完全可以替代 [prettier]。但项目既然已经集成了 [prettier]，就不再剔除了。如果要开新项目的同学可以直接用 [eslint]。
+[eslint] 功能很强大，完全可以替代 [prettier]。本项目现在确实只保留 [eslint]：格式化规则由 `@antfu/eslint-config` 内置的 stylistic 规则承担。如果要开新项目的同学可以直接用 [eslint]。
 :::
 
 ## ESLint
 
 ### 配置项
 
-项目的 eslint 配置位于 config 文件夹下的 [eslint](https://github.com/Zhaocl1997/walnut-admin-client/tree/naive-ui/config/eslint) 内，其中包括配置和忽略文件。可以根据团队自行修改代码规范。
+项目的 eslint 配置已抽成共享包 [tooling/eslint-config](https://github.com/walnut-admin/walnut-admin/tree/main/tooling/eslint-config)，各包的 `eslint.config.ts` 从它 extends（flat config）。可以根据团队自行修改代码规范。
 
 ### vscode 配合
 
@@ -47,7 +52,7 @@ lint 不是必须的，但是很有必要，一个项目做大了以后或者参
 
 ### 手动校验
 
-执行`npm run lint:eslint`，然后查看控制台即可。
+执行`pnpm lint`（或 `pnpm --filter @walnut/admin lint`），然后查看控制台即可。
 
 ### 规则
 
@@ -72,7 +77,7 @@ lint 不是必须的，但是很有必要，一个项目做大了以后或者参
 }
 ```
 
-项目配置了多条规则，都是和 ts 相关的。具体查看[.eslintrc.js]。
+项目配置了多条规则，都是和 ts 相关的。具体查看共享预设[tooling/eslint-config](https://github.com/walnut-admin/walnut-admin/tree/main/tooling/eslint-config)。
 
 :::tip
 
@@ -88,7 +93,7 @@ lint 不是必须的，但是很有必要，一个项目做大了以后或者参
 强烈不推荐关闭 eslint 的校验
 :::
 
-在[config/lintstaged/.lintstagedrc.js][.lintstagedrc.js]中删除所有`npm run lint:eslint`即可。
+在根 `package.json` 的 [`lint-staged`](https://github.com/walnut-admin/walnut-admin/blob/main/package.json) 块里删掉 eslint 那条即可。
 
 ## CommitLint
 
@@ -96,7 +101,7 @@ lint 不是必须的，但是很有必要，一个项目做大了以后或者参
 
 ### 配置项
 
-项目的 commitlint 配置位于 config 文件夹下的 [commitlint](https://github.com/Zhaocl1997/walnut-admin-client/tree/naive-ui/config/commitlint) 内，其中只包括了配置文件。
+项目的 commitlint 配置收口在 [tooling/commitlint-config](https://github.com/walnut-admin/walnut-admin/tree/main/tooling/commitlint-config)（共享预设），根 `commitlint.config.ts` 只负责 extends 它。
 
 ### 提交信息规范
 
@@ -110,9 +115,9 @@ lint 不是必须的，但是很有必要，一个项目做大了以后或者参
   - `perf` 性能优化
   - `chore` 依赖更新/脚手架配置修改等
   - `revert` 撤销修改
-  - `wip` 开发中
+  - `test` 测试
+  - `ci` CI/CD
   - `build` 构建相关
-  - `types` 类型修改
 
 ### 示例
 
@@ -122,7 +127,7 @@ git commit -m 'feat(home): add home page'
 
 ### 规则
 
-项目配置了一些 commitlint 的规则，具体查看[.commitlintrc.js]。
+项目配置了一些 commitlint 的规则，具体查看[tooling/commitlint-config/index.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/commitlint-config/index.ts)。
 
 :::tip
 所有的 commitlint 规则请查看[rules](https://commitlint.js.org/#/reference-rules)。
@@ -130,17 +135,17 @@ git commit -m 'feat(home): add home page'
 
 ### 如何关闭
 
-在[config/husky/commit-msg](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/config/husky/commit-msg)中注释掉下面一行即可
+在根 `lefthook.yml` 的 `commit-msg` job 中注释掉下面一行即可
 
 ```bash
-# npx --no-install commitlint --config config/commitlint/.commitlintrc.js --verbose --edit $1
+# pnpm exec commitlint --edit {1}
 ```
 
 ### 自定义 commit 格式
 
-为了高度自定义 commit 的格式，项目采用了[cz-customizable]来实现。[cz-customizable]的配置文件请查看[.cz-config.js]。
+commit 的 type / scope 选项收口在 [tooling/commitlint-config/index.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/commitlint-config/index.ts) 的 `type-enum` 与 `scope-enum`。
 
-- 示例
+- 旧配置示例（cz-customizable，已移除）
 
 ```jsonc
 {
@@ -158,34 +163,28 @@ git commit -m 'feat(home): add home page'
 ```
 
 :::warning
-因为采用了高度自定义的 commit 校验，所以如果想要新添加或删除 commit 的 header 信息的话，需要同时修改两个文件已保证不会出错：
-
-- 一是先修改[.cz-config.js]中的 types，添加或删除对应的信息；
-
-- 二是修改[.commitlintrc.js]中的 rules 的`type-enum`中的第三个参数，添加或删除对应的 header。
-
-此举是为了保障 commitlint 和 cz-customizable 的配置相同。当然后续我可以把这块的配置提到同一个文件中，以便修改。可以算是个 TODO 吧。
+如果要新添加或删除 commit 的 header 信息，只改一处即可：[tooling/commitlint-config/index.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/commitlint-config/index.ts) 里 rules 的 `type-enum`。cz-customizable 已随工具链收拢移除，不再需要同时维护两份配置。
 :::
 
 ## StyleLint
 
-StyleLint 用于校验项目内部 css 的风格，加上编辑器的自动修复，可以很好的统一项目内部 css 风格。虽然但是，项目集中使用了 windicss，真正需要做样式校验的地方已经不多了。但用的少不代表就不用校验了，这是前端项目工程化很关键的一步。
+StyleLint 曾用于校验项目内部 css 的风格，加上编辑器的自动修复，可以很好的统一项目内部 css 风格。虽然但是，项目集中使用了 UnoCSS，真正需要做样式校验的地方已经不多了。本项目现在**已不再使用 stylelint**（见下「配置项」），这一节保留作对照。
 
 ### 配置项
 
-项目的 stylelint 配置位于 config 文件夹下的 [stylelint](https://github.com/Zhaocl1997/walnut-admin-client/tree/naive-ui/config/stylelint) 内，其中只包括了配置文件。
+项目已不再使用 stylelint（css 风格由 ESLint 的 stylistic 规则承担），原有的 `config/stylelint` 配置已随工具链收拢移除。
 
 ### vscode 配合
 
-推荐安装 vscode 的 stylelint 插件，因为在`.vscode/settings.json`中默认配置了自定义好的 stylelint 相关配置文件。开发体验会更加舒适。
+不再需要安装 stylelint 插件（已移除）。
 
 ### 手动校验
 
-执行`npm run lint:stylelint`，然后查看控制台即可。
+已移除，没有对应的校验命令。
 
 ### 规则
 
-项目配置了一些 stylelint 的规则，具体查看[.stylelintrc.js]。
+原有的 stylelint 规则文件已随工具链收拢移除。
 
 :::tip
 所有的 stylelint 规则请查看[rules](https://stylelint.io/user-guide/rules/list)。
@@ -193,25 +192,25 @@ StyleLint 用于校验项目内部 css 的风格，加上编辑器的自动修�
 
 ### 如何关闭
 
-在[config/lintstaged/.lintstagedrc.js][.lintstagedrc.js]中删除所有`npm run lint:stylelint`即可。
+stylelint 已移除，无需关闭。
 
 ## Prettier
 
 ### 配置项
 
-项目的 prettier 配置位于 config 文件夹下的 [prettier](https://github.com/Zhaocl1997/walnut-admin-client/tree/naive-ui/config/prettier) 内，其中包括配置和忽略文件。
+项目不使用 Prettier：格式化规则由 ESLint（`@antfu/eslint-config` 内置的 stylistic 规则）统一承担，详见[ESLint 配置](/content/monorepo/eslint.md)。
 
 ### vscode 配合
 
-推荐安装 vscode 的 prettier 插件，因为在`.vscode/settings.json`中默认配置了自定义好的 prettier 相关配置文件。开发体验会更加舒适。
+不再需要安装 prettier 插件（格式化由 ESLint 插件承担）。
 
 ### 手动校验
 
-执行`npm run lint:prettier`，然后查看控制台即可。
+执行`pnpm lint:fix`，然后查看控制台即可。
 
 ### 规则
 
-项目配置了一些 prettier 的规则，具体查看[.prettierrc.js]。
+没有独立的 prettier 规则文件（已随工具链收拢移除）。
 
 :::tip
 所有的 prettier 规则请查看[rules](https://prettier.io/docs/en/options.html)。
@@ -219,25 +218,25 @@ StyleLint 用于校验项目内部 css 的风格，加上编辑器的自动修�
 
 ### 如何关闭
 
-在[config/lintstaged/.lintstagedrc.js][.lintstagedrc.js]中删除所有`npm run lint:prettier`即可。
+Prettier 已移除，无需关闭。
 
 ## Git Hook
 
 git hook 一般结合各种 lint，在 git 提交代码的时候进行代码风格校验，如果校验没通过，则不会进行提交。需要开发者自行修改后再次进行提交。
 
-### husky
+### lefthook
 
-有一个问题就是校验会校验全部代码，但是我们只想校验我们自己提交的代码，这个时候就可以使用 husky。
+有一个问题就是校验会校验全部代码，但是我们只想校验我们自己提交的代码，这个时候就需要一个钩子管理器。
 
-最有效的解决方案就是将 Lint 校验放到本地，常见做法是使用 husky 或者 pre-commit 在本地提交之前先做一次 Lint 校验。
+最有效的解决方案就是将 Lint 校验放到本地，常见做法是使用 lefthook（或 pre-commit）在本地提交之前先做一次 Lint 校验。
 
-项目在 `config/husky` 内部定义了相应的 hooks。
+项目自 2026-09-23 起改由 lefthook 托管钩子（替代 husky / simple-git-hooks），钩子内容的唯一真源是根 `lefthook.yml`，理由见 [ADR 0018](/content/adr/0018-git-hooks-lefthook.md)。钩子有没有真的装上，用 `pnpm walnut hooks:check` 机械核对。
 
 ### 如何关闭
 
 ```bash
-# 删除husky依赖即可
-npm uninstall huksy
+# 从根 lefthook.yml 中删掉对应 job，或在本地卸载钩子
+pnpm exec lefthook uninstall
 ```
 
 ### 如何跳过检查
@@ -249,14 +248,13 @@ git commit -m "xxx" --no-verify
 
 ### lint-staged
 
-项目的 lint-staged 配置文件位于[config/lintstaged/.lintstagedrc.js][.lintstagedrc.js]
+项目的 lint-staged 配置位于根 `package.json` 的 `lint-staged` 块
 
-```js
-module.exports = {
-  // 对指定格式文件 在提交的时候执行相应的修复命令
-  '*.{js,jsx,ts,tsx}': ['npm run lint:eslint', 'npm run lint:prettier'],
-  '*.vue': ['npm run lint:prettier'],
-  '*.{css,scss,less,styl}': ['npm run lint:prettier', 'npm run lint:stylelint'],
+```json
+{
+  "lint-staged": {
+    "*.{ts,vue,js}": "eslint --fix --concurrency=4"
+  }
 }
 ```
 
@@ -270,9 +268,3 @@ module.exports = {
 [lint-staged]: https://github.com/okonet/lint-staged
 [cz-customizable]: https://github.com/leoforfree/cz-customizable
 [eslint-plugin-vue]: https://eslint.vuejs.org/
-[.cz-config.js]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/config/czcustomizable/.cz-config.js
-[.eslintrc.js]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/config/eslint/.eslintrc.js
-[.commitlintrc.js]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/config/commitlint/.commitlintrc.js
-[.lintstagedrc.js]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/config/lintstaged/.lintstagedrc.js
-[.stylelintrc.js]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/config/stylelint/.stylelintrc.js
-[.prettierrc.js]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/config/prettier/.prettierrc.js

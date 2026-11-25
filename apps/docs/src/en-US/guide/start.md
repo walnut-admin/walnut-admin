@@ -49,8 +49,8 @@
 :::
 
 ```bash
-# clone 前端代码
-git clone https://github.com/Zhaocl1997/walnut-admin-client
+# clone 仓库（前后端与文档是同一个 monorepo）
+git clone https://github.com/walnut-admin/walnut-admin
 
 ```
 

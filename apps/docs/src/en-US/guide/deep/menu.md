@@ -21,7 +21,7 @@
 
 ## ts 类型
 
-具体查看[types/app.d.ts](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/types/app.d.ts)。
+具体查看[views/system/menu/types.ts](https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/src/views/system/menu/types.ts)（业务字段来自 `@walnut/api-types` 生成的 `SystemMenu`）。
 
 ```ts
 interface AppSystemMenu extends BaseAppModel {

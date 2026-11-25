@@ -5,9 +5,9 @@
 :::
 
 - 应用的配置项，可以通过页面右下角的 [AppSettings] 组件实时改变查看效果。
-- 同时提供了复制当前配置项的功能，只需要复制到[src/settings.json]中刷新页面即会生效。
+- 同时提供了复制当前配置项的功能，只需要复制到[src/settings-dev.json]中刷新页面即会生效。
 - 目前这些配置项都是没有做持久化支持的，即修改完后刷新就会回到初始状态。
-- 同时为了在[src/settings.json]中做更好的智能提示支持，项目采用了[typescript-json-schema]来通过定义好的 interface 生成`json.schema`到[.vscode/settings.json]中。这样可以直接在[src/settings.json]中获得很好的智能提示（在 IDE 是 VSCode 的情况下）。具体生成的相关逻辑可以查看[这里](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/build/generate/genJSONSchemas.ts)。
+- 同时为了在[src/settings-dev.json]中做更好的智能提示支持，项目采用了[typescript-json-schema]来通过定义好的 interface 生成`json.schema`到[.vscode/settings-dev.schema.json]中。这样可以直接在[src/settings-dev.json]中获得很好的智能提示（在 IDE 是 VSCode 的情况下）。具体生成的相关逻辑可以查看[这里](https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/build/generate/genJSONSchemas.ts)。
 
 ## 持久化
 
@@ -34,13 +34,13 @@ const appStateStorage = {
 
 ### 存储
 
-在[useStorage][vueuse-usestorage]的基础上做了加密和超时的二次封装，在具体查看[src/utils/persistent/src/Storage](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/src/utils/persistent/src/Storage.ts)即可
+在[useStorage][vueuse-usestorage]的基础上做了加密和超时的二次封装，具体实现已下沉到 `@walnut/client`，查看[persistent/storage/sync.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/platform-web/client/src/persistent/storage/sync.ts)即可
 
 ### 加密
 
-在 [crypto-js] 的基础上做了一下简单的二次封装，具体查看[src/utils/crypto](https://github.com/zhaocl1997/walnut-admin-client/blob/naive-ui/src/utils/crypto/crypto.ts)即可。
+加解密实现在 `@walnut/client` 的 Web Crypto 封装里（`crypto-js` 依赖已移除），具体查看[aes-gcm.ts](https://github.com/walnut-admin/walnut-admin/blob/main/packages/platform-web/client/src/browser/crypto/symmetric/aes-gcm.ts)即可。
 
-默认采用 aes 加密，mode 是 CBC，padding 是 Pkcs7（mode 和 padding 是什么，我也不清楚...，详细看 [crypto-js]的文档吧）。
+默认采用 AES-GCM 加密（Web Crypto 原生实现，不再有 CBC / Pkcs7 的 padding 配置）。
 
 ## 国际化
 
@@ -48,7 +48,7 @@ const appStateStorage = {
 
 - naive-ui 的国际化详细查看[这里](https://www.naiveui.com/zh-CN/os-theme/docs/i18n)
 
-- 项目一开始采用的是在前台 locale 文件夹中写死国际化信息，但后续发现随着项目文件变多，需要国际化的地方也越来越多，locale 下的信息越来越多。索性直接把国际化的部分移到了后台管理。具体查看[src/locales/backend](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/src/locales/backend.ts)即可。
+- 项目一开始采用的是在前台 locale 文件夹中写死国际化信息，但后续发现随着项目文件变多，需要国际化的地方也越来越多，locale 下的信息越来越多。索性直接把国际化的部分移到了后台管理。具体查看[locales/index.ts](https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/src/locales/index.ts)即可。
 
 - 坏处
 
@@ -147,11 +147,11 @@ interface AppThemeColors {
 
 ### 基本介绍
 
-- 项目的暗色模式主要是两部分组成，一是 naiveui 自带的暗色模式，再一个是通过 [tailwindcss] 的 `darkMode: 'class'`实现的。
+- 项目的暗色模式主要是两部分组成，一是 naiveui 自带的暗色模式，再一个是通过 UnoCSS 的 `dark` 变体（class 模式）实现的。
 
 - naive-ui 具体查看[这里](https://www.naiveui.com/zh-CN/os-theme/docs/customize-theme)。
 
-- tailwindcss 主要是配合 naive-ui 的风格，在[tailwind.config.ts](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/tailwind.config.ts)里，是通过 extend 的方式添加自定义的 tailwind 的 class，值就是 naive-ui 在全局定义的 css 变量，例如`--primary-color`等。另外一种不采用 tailwind 的 extend 的方式，就是在 css 文件里写一些内置好的 class，然后在 main 挂载 css 即可（不推荐）。
+- 颜色相关的自定义 class 主要在 [uno.config.ts](https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/uno.config.ts) 里（原 `tailwind.config.ts`，样式方案已迁移到 UnoCSS），通过扩展主题的方式添加自定义的 class，值就是 naive-ui 在全局定义的 css 变量，例如`--primary-color`等。另外一种不走主题扩展的方式，就是在 css 文件里写一些内置好的 class，然后在 main 挂载 css 即可（不推荐）。
 
 - 默认跟随系统配色，提供暗色/亮色/跟随系统三种选项。
 
@@ -217,10 +217,8 @@ function useAppDarkMode() {
 
 <!-- link -->
 
-[crypto-js]: https://cryptojs.gitbook.io/docs/
 [vueuse-usestorage]: https://vueuse.org/core/usestorage/
-[src/settings.json]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/src/settings.json
+[src/settings-dev.json]: https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/src/settings-dev.json
 [typescript-json-schema]: https://github.com/YousefED/typescript-json-schema
-[.vscode/settings.json]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/.vscode/settings.json
-[appsettings]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/src/components/App/AppSettings/index.vue
-[tailwindcss]: https://tailwindcss.com/docs
+[.vscode/settings-dev.schema.json]: https://github.com/walnut-admin/walnut-admin/blob/main/.vscode/settings-dev.schema.json
+[appsettings]: https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/src/components/App/AppSettings/index.vue

@@ -208,7 +208,7 @@
 多种类型的布局设计还没做，这里后续还会有变动
 :::
 
-针对开发者而设计的应用配置，默认是从 [src/settings.json] 中读取的配置。绝大多数配置项目通过 [AppSettings](/component/App/settings) 组件实现了响应式的改变，方便开发者看到预期效果。
+针对开发者而设计的应用配置，默认是从 [src/settings-dev.json] 中读取的配置。绝大多数配置项目通过 [AppSettings](/component/App/settings) 组件实现了响应式的改变，方便开发者看到预期效果。
 
 <details>
 <summary>state</summary>
@@ -347,4 +347,4 @@
 [pinia]: https://pinia.vuejs.org/
 [vueuse]: https://vueuse.org/
 [createglobalstate]: https://vueuse.org/shared/createglobalstate/
-[src/settings.json]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/src/settings.json
+[src/settings-dev.json]: https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/src/settings-dev.json

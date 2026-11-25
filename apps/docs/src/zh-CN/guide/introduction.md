@@ -52,7 +52,7 @@
 <!-- links -->
 
 [walnut-admin]: https://github.com/walnut-admin
-[walnut-admin-client]: https://github.com/walnut-admin/walnut-admin-client
+[walnut-admin-client]: https://github.com/walnut-admin/walnut-admin
 [walnut-admin-server]: https://github.com/walnut-admin/walnut-admin-server
 [postgresql]: https://www.postgresql.org/
 [Redis]: https://redis.io/

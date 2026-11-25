@@ -12,7 +12,7 @@ tab 在中后台的模板，算是一个比较重要的模块了。最初我使�
 
 ## ts 类型
 
-具体查看[types/app.d.ts](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/types/app.d.ts)。
+具体查看[types/router.d.ts](https://github.com/walnut-admin/walnut-admin/blob/main/apps/admin/types/router.d.ts)。
 
 ```ts
 // 对应路由对象的meta字段

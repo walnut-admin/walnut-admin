@@ -4,7 +4,7 @@
 
 ### snippets
 
-在 [.vscode](https://github.com/Zhaocl1997/walnut-admin-client/tree/naive-ui/.vscode) 的文件夹下的 [vue.code-snippets](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/.vscode/vue.code-snippets) 中，我写好了几个常用的代码片段。在工作区内可直接使用。
+在 [.vscode](https://github.com/walnut-admin/walnut-admin/tree/main/.vscode) 的文件夹下的 [vue.code-snippets](https://github.com/walnut-admin/walnut-admin/blob/main/.vscode/vue.code-snippets) 中，我写好了几个常用的代码片段。在工作区内可直接使用。
 
 - `vue3-comp`
   适用于传统组件开发，默认 inheritAttrs 为 false，同时带有 props 和 emits
@@ -356,7 +356,7 @@ const appStateMemory = {
 
   - 按需自动引入 vue 组件，很好的 vite/ts 支持
 
-  - 具体查看[component.ts](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/build/vite/plugin/component.ts)
+  - 具体查看[component.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/vite-config/src/plugins/component.ts)
 
 - 详细介绍
 
@@ -489,7 +489,7 @@ const appStateMemory = {
 
   - ejs 支持
 
-  - 具体查看[html.ts](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/build/vite/plugin/html.ts)
+  - 该插件已随构建配置收拢移除（现行插件清单见[插件说明](/content/frontend/base/plugin)）
 
 - 详细介绍
 
@@ -501,7 +501,7 @@ const appStateMemory = {
 
   - rollup 的打包可视化插件
 
-  - 具体查看[visualizer.ts](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/build/vite/plugin/visualizer.ts)
+  - 具体查看[visualizer.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/vite-config/src/plugins/visualizer.ts)
 
 - 详细介绍
 
@@ -532,7 +532,7 @@ const appStateMemory = {
 
   - 压缩插件，打包时可以生成 `gzip` 或 `brotli` 的压缩文件
 
-  - 具体查看[compression.ts](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/build/vite/plugin/compression.ts)
+  - 具体查看[compression.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/vite-config/src/plugins/compression.ts)
 
 - 详细介绍
 
@@ -557,5 +557,3 @@ const appStateMemory = {
 [pinia]: https://pinia.vuejs.org/
 [vueuse-createglobalstate]: https://vueuse.org/shared/createglobalstate/
 [vueuse-usestorage]: https://vueuse.org/core/usestorage/
-[useappstatestorage]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/src/store/index.ts
-[useappstatememory]: https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/src/store/index.ts

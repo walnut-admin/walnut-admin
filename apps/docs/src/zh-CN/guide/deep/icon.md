@@ -59,15 +59,18 @@ npm run icon:prod
 
   - `false` 即不按需打包，不建议设置。如果在同时设置了`online`为 `false` 和`treeshake`为 `false` 会把图标集全量打包进产物中，打包体积会剧增（一般都是会增加 5~15M 左右，且会打进一个文件中，首屏加载速度会急剧变慢）。
 
-- `list` 字符串数组 默认配置了 `6` 个图标集（`5` 个 `iconify` 的 + `1` 个自定义`svg`图标集）
+- `sets` 字符串数组 默认配置了 `5` 个 `iconify` 图标集；自定义 `svg` 图标集的前缀由 `customPrefix` 单独指定（默认 `w-svg`）
 
-  - 第一项常量是默认的自定义图标集`w-svg`
-
-  - 后面的就是`iconify`提供好的`json`图标集，默认做了 5 个。如果想要添加新的内置图标集，去[这个文件夹](https://github.com/iconify/icon-sets/tree/master/json)里找想要的图标，赋值`json`的文件名然后添加到数组中，接着重新执行`npm run dev`即可。
+  - `iconify` 提供好的`json`图标集，默认做了 5 个。如果想要添加新的内置图标集，去[这个文件夹](https://github.com/iconify/icon-sets/tree/master/json)里找想要的图标，赋值`json`的文件名然后添加到数组中，接着重新执行`pnpm dev`即可。
 
   - 这个数组也是`图标选择器`的过滤分类数组
 
 ### 具体流程
+
+> 这一节描述的是**插件化之前**的实现（独立的生成脚本），保留下来作对照：`build/generate/icon-*.ts`、
+> `build/icon/src/config.ts` 与 `build/_generated/svg.json` 现在都不存在，`npm run icon:dev` /
+> `npm run icon:prod` 这两个命令也已移除。现行实现是 `@walnut/vite-config` 里的 iconify 插件
+> （内存虚拟模块，不落盘），见[图标](../../content/frontend/base/icon.md)一页的「新文档」一节。
 
 图标打包入口文件
 
@@ -144,10 +147,10 @@ import { IconBundleConfig } from './config';
 
 在开发环境下会整体安装[@iconify/json](https://icon-sets.iconify.design/)，大约有 `100` 多 M。图标集数量将近 `100` 个。
 
-如果想要添加新的图标集，则在[config.ts](https://github.com/Zhaocl1997/walnut-admin-client/blob/naive-ui/build/icon/src/config.ts)文件中的`list`属性添加想要的`图标集字符串`，然后执行重新执行`npm run dev`即可。
+如果想要添加新的图标集，则在[const.ts](https://github.com/walnut-admin/walnut-admin/blob/main/tooling/vite-config/src/plugins/custom/iconify/const.ts)文件中的`sets`属性添加想要的`图标集字符串`，然后重新执行`pnpm dev`即可。
 
 :::warning
-`list`数组的第一项即自定义图标的前缀，不要轻易删除
+自定义 `svg` 图标集的前缀由 `customPrefix` 单独指定（默认 `w-svg`），不要轻易删除
 :::
 
 :::info

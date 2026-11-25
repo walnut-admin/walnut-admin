@@ -79,8 +79,8 @@
 <!-- links -->
 
 [author]: https://github.com/Zhaocl1997
-[walnut-admin-client]: https://github.com/Zhaocl1997/walnut-admin-client
-[walnut-admin-server]: https://github.com/Zhaocl1997/walnut-admin-server
+[walnut-admin-client]: https://github.com/walnut-admin/walnut-admin
+[walnut-admin-server]: https://github.com/walnut-admin/walnut-admin-server
 [doc]: https://www.baidu.com
 [antfu]: https://github.com/antfu
 [vue3]: https://v3.cn.vuejs.org/
