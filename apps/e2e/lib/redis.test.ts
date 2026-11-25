@@ -49,6 +49,8 @@ const FAMILY_SAMPLES: Array<{ family: DeviceKeyFamily, key: string }> = [
   { family: 'murlock:lock-guard', key: `APP:MURLOCK:LOCK_GUARD:${USER}:${DID}` },
   { family: 'murlock:sign', key: `APP:MURLOCK:SIGN:${DID}` },
   { family: 'murlock:risk-failed-login', key: `APP:MURLOCK:RISK:FAILED_LOGIN:${DID}:admin@example.com` },
+  { family: 'murlock:risk-device', key: `APP:MURLOCK:RISK:DEVICE:${DID}` },
+  { family: 'murlock:risk-user-device', key: `APP:MURLOCK:RISK:USER_DEVICE:${USER}:${DID}` },
 ]
 
 /** Redis 的 SCAN MATCH 语义子集：`*` 是唯一的通配符，其余字符按字面匹配 */

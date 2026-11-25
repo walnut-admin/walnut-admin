@@ -60,6 +60,8 @@ describe('parseDeviceKey', () => {
     ['murlock 锁守卫', `APP:MURLOCK:LOCK_GUARD:${USER}:${did(1)}`, 'murlock:lock-guard'],
     ['murlock 签名', `APP:MURLOCK:SIGN:${did(1)}`, 'murlock:sign'],
     ['murlock 失败登录', `APP:MURLOCK:RISK:FAILED_LOGIN:${did(1)}:admin@example.com`, 'murlock:risk-failed-login'],
+    ['murlock 风控设备锁', `APP:MURLOCK:RISK:DEVICE:${did(1)}`, 'murlock:risk-device'],
+    ['murlock 风控用户-设备锁', `APP:MURLOCK:RISK:USER_DEVICE:${USER}:${did(1)}`, 'murlock:risk-user-device'],
   ]
 
   for (const [name, key, family] of cases) {
@@ -91,6 +93,8 @@ describe('parseDeviceKey', () => {
     expect(parseDeviceKey(`WALNUT_CACHE_SECURITY:LOCK:${USER}:global`)?.deviceId).toBeNull()
     expect(parseDeviceKey(`WALNUT_CACHE_SYSTEM:DEVICE:${'a'.repeat(64)}`)?.deviceId).toBeNull()
     expect(parseDeviceKey('WALNUT_CACHE_SYSTEM:DEVICE:not-a-device')?.deviceId).toBeNull()
+    expect(parseDeviceKey(`APP:MURLOCK:RISK:DEVICE:${'a'.repeat(64)}`)?.deviceId).toBeNull()
+    expect(parseDeviceKey(`APP:MURLOCK:RISK:USER_DEVICE:${USER}:not-a-device`)?.deviceId).toBeNull()
   })
 
   it('每个键族前缀都被至少一个 SCAN 模式覆盖（漏一条就漏清一类键）', () => {

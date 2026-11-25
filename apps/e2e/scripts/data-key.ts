@@ -6,7 +6,7 @@
  * seed / 迁移改动又判不出来。dataKey 把判据收紧到**只对「决定测试库内容」的路径**：
  *
  * - 目录按 **git 树哈希**（`git rev-parse HEAD:<path>`）参与 —— 内容、文件名、子目录一起变；
- * - 组合方式是「按路径排序后逐行 `<path>\t<treeHash>` 再 sha256」：与 {@link DATA_PATHS} 的
+ * - 组合方式是「按路径排序后逐行 `<path>\t<treeHash>` 再 sha256」：与数据路径清单的
  *   书写顺序无关，但**增删路径**或**任何一棵树变化**都会改变结果；
  * - 工作区**未提交**的改动由 {@link currentDataSnapshot} 的 `dirtyPaths` 单独判定（`git status
  *   --porcelain -- <paths>`）：脏 ⇒ 本轮拒绝 restore（退出码 2），提示 `--rebuild-baseline`。
@@ -15,8 +15,9 @@
  * 判据是显式的：dataKey 只反映**已提交**的数据源；未提交改动永远走「脏 ⇒ 退出 2」那条路，
  * 不会出现「封板时脏、之后干净，于是把脏数据当 HEAD 数据」的静默组合。
  *
- * 维护：新增 / 重命名数据真源（seed 目录、迁移目录、prepare 逻辑、seed 工具）时改这里，
- * 并记得 `pnpm --filter @walnut/e2e test` 会重算 —— dataKey 变了，旧基线自然失效（预期行为）。
+ * 维护：数据路径清单的唯一真源是 `scripts/e2e-data-paths.ts` 的 `E2E_DATA_PATHS`（含路径类型；
+ * `scripts/affected-plan.ts` 消费同一份）。新增 / 重命名数据真源时改那里 —— dataKey 随之变化，
+ * 旧基线自然失效（预期行为）。
  */
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -24,31 +25,15 @@ import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 import { MANIFEST_VERSION } from './baseline-manifest.ts'
+import { DATA_PATHS } from './e2e-data-paths.ts'
 import { REPO_ROOT } from './env.ts'
 import { E2ePreconditionError } from './failure.ts'
 
 /**
- * 参与 dataKey 的路径（仓库相对路径）。判据：**改动会改变「prepare 之后库里的数据」**。
- *
- * - `apps/server/db/seed`：seed 数据本体（JSON 行）；
- * - `apps/server/apps/api/migrations`：schema + 数据迁移；
- * - `apps/e2e/scripts/prepare-db.ts`：迁移 / seed 之后的提升 root、CAP 放宽；
- * - `tooling/scripts/src/db/{seed-pg,seed,seed-reshape,admin-credential,app-keys}.ts`：
- *   seed 的装载器与口令 / app_key 生成逻辑（改它同样改变库内容）。
- *
- * 刻意**不在**这里：文档 / 前端 / 后端源码（与测试库内容无关）、`runtime-reset.ts`
- * （restore 与 prepare 都重做的运行时状态，不进快照）。
+ * 参与 dataKey 的路径（仓库相对路径）来自 {@link import('./e2e-data-paths.ts').E2E_DATA_PATHS}：
+ * 判据是**改动会改变「prepare 之后库里的数据」**，清单与路径类型（目录 / 文件）的唯一真源在那里；
+ * 本文件只负责把它们折算成树哈希。
  */
-export const DATA_PATHS = [
-  'apps/server/db/seed',
-  'apps/server/apps/api/migrations',
-  'apps/e2e/scripts/prepare-db.ts',
-  'tooling/scripts/src/db/seed-pg.ts',
-  'tooling/scripts/src/db/seed.ts',
-  'tooling/scripts/src/db/seed-reshape.ts',
-  'tooling/scripts/src/db/admin-credential.ts',
-  'tooling/scripts/src/db/app-keys.ts',
-] as const
 
 export interface DataTreeEntry {
   /** 仓库相对路径（与 {@link DATA_PATHS} 的写法一致） */
@@ -126,7 +111,7 @@ function gitTreeHash(relPath: string, repoRoot: string): string {
       `读不到数据路径 \`${relPath}\` 的 HEAD 树哈希（git rev-parse HEAD:${relPath} 失败）：`
       + `${error instanceof Error ? error.message : String(error)}\n`
       + '  基线漂移判定依赖它。确认：(1) 在仓库内运行；(2) 浅克隆用 `git fetch --unshallow`（CI 是 fetch-depth: 0）；'
-      + '(3) 数据路径改名后同步 apps/e2e/scripts/data-key.ts 的 DATA_PATHS。',
+      + '(3) 数据路径改名后同步 apps/e2e/scripts/e2e-data-paths.ts 的 E2E_DATA_PATHS。',
     )
   }
 }

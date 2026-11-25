@@ -6,6 +6,8 @@ import type { PgExecMode } from './pg-container.ts'
  * 那些是 `scripts/run.ts` 的编排（见该文件头的硬顺序）。存在意义是 P2-5 的「一条命令看
  * 数据栈状态」：先确认 5433 / 6380 与两个容器就绪，再决定要不要跑 e2e；down / up 也不必
  * 每次手抄两条 compose 命令（WSL 形态的路径还要换成 `/mnt/<盘符>/…`）。
+ * status 默认只读报告（退出码恒 0）；`--strict` 是给自动化的门禁判据 —— 容器 / PG·Redis
+ * 任一 FAIL ⇒ 退出码 1（端口占用与基线状态是信息项，不参与判定）。
  *
  * 形态选择（与 `scripts/pg-container.ts` 同一口径，不另立判断）：
  * - `E2E_PG_EXEC_MODE=wsl`（win32 缺省）⇒ WSL 常驻栈 `docker-compose.wsl.yml`；
@@ -156,6 +158,17 @@ function describeTarget(target: StackTarget): void {
   )
 }
 
+/**
+ * `status` 的退出码（**纯函数**，单测直击）：默认恒 0（只读报告）；`--strict` 时任一健康项
+ * FAIL ⇒ 1。
+ *
+ * 用 1 而不是 2：2 的语义是「环境没准备好、重跑没意义」（见 failure.ts 的退出码三档），而
+ * `--strict` 是**门禁判据不成立** —— 与「跑起来了但结果不对」同一档，调用方按 FAIL 明细排障。
+ */
+export function statusExitCode(strict: boolean, failures: readonly string[]): number {
+  return strict && failures.length > 0 ? 1 : 0
+}
+
 /** 基线状态一句话（复用 `baselineUsable` 的判定，不在这里重算 dataKey） */
 export function baselineStatusLine(): string {
   try {
@@ -178,13 +191,29 @@ export function baselineStatusLine(): string {
   }
 }
 
-async function status(): Promise<void> {
+async function status(args: readonly string[]): Promise<number> {
+  const unknown = args.filter(arg => arg !== '--strict')
+  if (unknown.length > 0) {
+    throw new E2ePreconditionError(
+      `e2e:stack:status 不认识的参数：${unknown.join(' ')}（只接受 --strict）`,
+    )
+  }
+  const strict = args.includes('--strict')
+
   const target = detectStackTarget()
   describeTarget(target)
+
+  // 健康判据 = 报告里带 ok / FAIL 前缀的那些项（容器 + PG / Redis 可达性）。
+  // 端口占用与基线状态是**信息项**：数据栈本身可能完全健康（dev 服务占着 3001 也能跑别的），
+  // 基线缺失只是「首轮会全量 prepare」，都不该让 --strict 红。
+  const failures: string[] = []
 
   for (const container of [target.pgContainer, target.redisContainer]) {
     const inspection = inspectContainer(container)
     log(`${inspection.ok ? 'ok  ' : 'FAIL'} ${inspection.detail}`)
+    if (!inspection.ok) {
+      failures.push(inspection.detail)
+    }
   }
 
   for (const service of [
@@ -193,6 +222,9 @@ async function status(): Promise<void> {
   ]) {
     const tcp = await checkTcp(service.host, service.port)
     log(`${tcp.ok ? 'ok  ' : 'FAIL'} ${service.name}：${tcp.detail}`)
+    if (!tcp.ok) {
+      failures.push(`${service.name}：${tcp.detail}`)
+    }
   }
 
   for (const port of [BACKEND_PORT, SOCKET_PORT, WEB_PORT]) {
@@ -203,7 +235,15 @@ async function status(): Promise<void> {
   }
 
   log(`基线：${baselineStatusLine()}`)
-  log('status 只读：不抢锁、不动库、不启停任何服务（退出码恒 0）')
+
+  if (!strict) {
+    log('status 只读：不抢锁、不动库、不启停任何服务（退出码恒 0；要门禁判据加 --strict）')
+    return statusExitCode(false, failures)
+  }
+  log(failures.length === 0
+    ? '--strict：容器 / PG·Redis 全部健康（退出码 0）'
+    : `--strict：${failures.length} 项不健康 → 退出码 1（明细见上面的 FAIL 行）`)
+  return statusExitCode(true, failures)
 }
 
 async function up(): Promise<void> {
@@ -242,12 +282,13 @@ async function main(): Promise<void> {
       await down(rest)
       return
     case 'status':
-      await status()
+      process.exitCode = await status(rest)
       return
     default:
       throw new E2ePreconditionError(
-        `用法：node scripts/stack.ts up|down|status [--volumes]\n`
-        + '  对应 `pnpm walnut e2e:stack:up` / `e2e:stack:down` / `e2e:stack:status`（-- 之后可传 --volumes）',
+        `用法：node scripts/stack.ts up|down|status [--volumes] [--strict]\n`
+        + '  对应 `pnpm walnut e2e:stack:up` / `e2e:stack:down` / `e2e:stack:status`（-- 之后可传 --volumes / --strict）\n'
+        + '  status 默认只读报告、退出码恒 0；--strict 时容器 / PG·Redis 任一 FAIL ⇒ 退出码 1',
       )
   }
 }

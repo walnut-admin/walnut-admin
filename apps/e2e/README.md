@@ -42,14 +42,17 @@
 Playwright。
 
 ```bash
-pnpm walnut e2e:stack:status   # 容器状态 + PG/Redis 可达性 + 3001/3002/4173 占用 + 当前基线状态（只读，退出码恒 0）
+pnpm walnut e2e:stack:status   # 容器状态 + PG/Redis 可达性 + 3001/3002/4173 占用 + 当前基线状态（只读；-- --strict 供门禁）
+pnpm walnut e2e:stack:status -- --strict   # 容器 / PG·Redis 任一 FAIL ⇒ 退出码 1（默认恒 0）
 pnpm walnut e2e:stack:up       # docker compose up -d（等 healthy 再用 status 复查）
 pnpm walnut e2e:stack:down     # docker compose down（**保留数据卷**，基线仍可用）
 pnpm walnut e2e:stack:down --volumes   # 连数据卷一起删：下次 up 是空实例，旧基线随之失效
 ```
 
-`status` 复用 preflight 的 TCP / 端口探针与 baseline 的判定，不另写一套口径。它**不是门禁**：
-数据栈没起时它只打印 FAIL 行，仍以 0 收场。下面的原始 compose 命令保留给排障与自定义场景。
+`status` 复用 preflight 的 TCP / 端口探针与 baseline 的判定，不另写一套口径。默认**不是门禁**：
+数据栈没起时它只打印 FAIL 行，仍以 0 收场；要交给自动化当判据时加 `-- --strict` —— 容器 /
+PG·Redis 任一 FAIL ⇒ 退出码 1（端口占用与基线状态仍是信息项，不参与判定）。下面的原始 compose
+命令保留给排障与自定义场景。
 
 ### WSL 常驻栈
 
@@ -136,7 +139,7 @@ pnpm walnut e2e:risk    # 设备 ID 全生命周期（不含 @network）
 pnpm walnut e2e:network # 只跑依赖真实外网的用例（当前是 U1b：api.ip.sb 的定位）
 pnpm walnut e2e:affected # 按 git 改动范围选择子集（默认 base=origin/main，见下）
 pnpm walnut e2e:report  # 打开上一轮 HTML 报告
-pnpm walnut e2e:stack:status # 数据栈状态（容器 / PG·Redis 可达 / 端口 / 基线；只读）
+pnpm walnut e2e:stack:status # 数据栈状态（容器 / PG·Redis 可达 / 端口 / 基线；只读，--strict 供门禁）
 pnpm walnut e2e:clean   # 清理 .e2e 调试文件（dry-run 默认，--force 真删）
 ```
 
@@ -286,7 +289,7 @@ git 读取与执行在 `scripts/affected.ts`。
   `.auth/credentials.json`（口令取封板时那一份 —— 快照里的 OPAQUE 口令身份只认它）。
   之后做 sanity 断言：库名、admin 账号存在、`sys_menu` 行数 ≥ 清单记录、迁移头与清单一致；
 - **漂移判据（P1-1）**：清单记 **`dataKey`** = `apps/server/db/seed`、迁移目录、`prepare-db.ts`
-  与 seed 工具（完整清单见 `apps/e2e/scripts/data-key.ts` 的 `DATA_PATHS`）在 HEAD 上的组合树哈希。
+  与 seed 工具（完整清单见 `apps/e2e/scripts/e2e-data-paths.ts` 的 `E2E_DATA_PATHS`）在 HEAD 上的组合树哈希。
   `dataKey` 与当前不一致、或这些路径有**未提交改动**（`git status --porcelain`）⇒ 退出码 2 并
   提示 `--rebuild-baseline`；只改文档 / 前端 / 后端源码**不**触发。`gitCommit` 只用于展示
   「封板于哪个提交」。

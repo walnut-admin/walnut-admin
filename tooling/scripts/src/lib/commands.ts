@@ -753,7 +753,7 @@ export const COMMANDS: readonly Command[] = [
     label: 'E2E 数据栈状态（容器 / PG·Redis 可达性 / 端口 / 基线）',
     why: '一条只读命令回答「现在能不能跑 e2e」：容器是否 running、5433 / 6380 是否可达、'
       + '3001 / 3002 / 4173 是否空闲、当前基线可用 / 缺失 / 漂移。复用 preflight 的探针与 baseline 的判定，'
-      + '不抢锁、不动库、不启停服务；只报告，退出码恒 0。',
+      + '不抢锁、不动库、不启停服务；默认只报告、退出码恒 0，`-- --strict` 时容器 / PG·Redis 任一 FAIL ⇒ 1。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:stack', 'status'],
   },
   {

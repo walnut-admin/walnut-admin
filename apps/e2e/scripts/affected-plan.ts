@@ -14,6 +14,8 @@
  * 只做纯字符串判断（不做 I/O），单测直接钉住上面每一条；git 调用在 `scripts/affected.ts`。
  */
 
+import { isE2eDataPath } from './e2e-data-paths.ts'
+
 /** 本脚本能直接选择的 project（network 不单独选：它依赖真实外网，属于全量的一部分）。 */
 export type AffectedProject = 'smoke' | 'risk'
 
@@ -30,22 +32,8 @@ export interface AffectedPlan {
   changedPaths: string[]
 }
 
-/**
- * 数据路径（与 `scripts/data-key.ts` 的 `DATA_PATHS` 同一判据：改动会改变 prepare 之后的库内容）。
- * 两处清单都要维护：`data-key` 管基线漂移，这里管「要不要重新封板 + 全量」。
- */
-const DATA_PREFIXES = [
-  'apps/server/db/seed',
-  'apps/server/apps/api/migrations',
-] as const
-const DATA_FILES = [
-  'apps/e2e/scripts/prepare-db.ts',
-  'tooling/scripts/src/db/seed-pg.ts',
-  'tooling/scripts/src/db/seed.ts',
-  'tooling/scripts/src/db/seed-reshape.ts',
-  'tooling/scripts/src/db/admin-credential.ts',
-  'tooling/scripts/src/db/app-keys.ts',
-] as const
+// 数据路径清单的唯一真源是 `scripts/e2e-data-paths.ts`（与 `data-key` 的基线漂移判据同一组
+// 路径）：这里只用它回答「要不要重新封板 + 全量」，`data-key` 用它算树哈希。
 
 /** admin 侧登录 / auth 相关（改这些先跑 smoke）。 */
 const ADMIN_AUTH_PREFIXES = [
@@ -73,8 +61,7 @@ function matchesDir(path: string, dir: string): boolean {
 }
 
 function isDataPath(path: string): boolean {
-  return DATA_FILES.includes(path as (typeof DATA_FILES)[number])
-    || DATA_PREFIXES.some(dir => matchesDir(path, dir))
+  return isE2eDataPath(path)
 }
 
 function isE2ePath(path: string): boolean {

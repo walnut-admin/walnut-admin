@@ -144,7 +144,9 @@ export async function deleteAuthSessionsForDevice(client: E2eRedisClient, device
  * - `SECURITY:LOCK:<userId>:<deviceId>`（lock cache）
  * - `APP:MURLOCK:CAP:<deviceId>` / `APP:MURLOCK:SIGN:<deviceId>` /
  *   `APP:MURLOCK:DEVICE:IP_CHANGE:<deviceId>` / `APP:MURLOCK:LOCK_GUARD:<userId>:<deviceId>` /
- *   `APP:MURLOCK:RISK:FAILED_LOGIN:<deviceId>:<identifier>`（各 guard 的分布式锁）
+ *   `APP:MURLOCK:RISK:FAILED_LOGIN:<deviceId>:<identifier>` /
+ *   `APP:MURLOCK:RISK:DEVICE:<deviceId>` / `APP:MURLOCK:RISK:USER_DEVICE:<userId>:<deviceId>`
+ *   （各 guard 与 risk 评估的分布式锁；请求级、正常即释，崩溃才残留）
  *
  * 存在的意义：断言失败时用例末尾的手写清理会被跳过，这些键会跨轮存活（例如 TOTP 的 30s 窗口
  * 键、CAP token 的指纹键），下一轮同 deviceId 不会复现（deviceId 随机），但它们会一直占着栈的
@@ -170,6 +172,8 @@ export function deviceScopedKeyPatterns(deviceId: string): string[] {
     `APP:MURLOCK:LOCK_GUARD:*:${deviceId}`,
     `APP:MURLOCK:SIGN:${deviceId}`,
     `APP:MURLOCK:RISK:FAILED_LOGIN:${deviceId}:*`,
+    `APP:MURLOCK:RISK:DEVICE:${deviceId}`,
+    `APP:MURLOCK:RISK:USER_DEVICE:*:${deviceId}`,
   ]
 }
 

@@ -41,7 +41,7 @@ pnpm walnut e2e:smoke     # 冒烟：setup + UI 登录 / 首页 / 用户 CRUD
 pnpm walnut e2e:risk      # 设备生命周期（不含 @network）
 pnpm walnut e2e:network   # 只跑 @network（依赖真实外网）
 pnpm walnut e2e:report    # 打开上一轮 HTML 报告（常驻本地服务）
-pnpm walnut e2e:stack:status   # 数据栈状态（容器 / PG·Redis / 端口 / 基线；只读）
+pnpm walnut e2e:stack:status   # 数据栈状态（容器 / PG·Redis / 端口 / 基线；只读，--strict 供门禁）
 pnpm walnut e2e:stack:up       # 起数据栈（自动选 WSL / 通用 compose；不碰 Playwright）
 pnpm walnut e2e:stack:down     # 停数据栈（默认保留数据卷；--volumes 连卷删）
 pnpm walnut e2e:clean          # 清 .e2e 调试残渣（dry-run 默认；保留基线三件套与 stack.json）
@@ -54,7 +54,7 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
 ## 封板（baseline）
 
 `scripts/baseline.ts`：**seal 一次、restore 每轮**。封板清单（版本 2）记 `dataKey`（数据树哈希，
-路径清单在 `scripts/data-key.ts` 的 `DATA_PATHS`）与 dump / credentials 两者的 sha；restore 前
+路径清单在 `scripts/e2e-data-paths.ts` 的 `E2E_DATA_PATHS`）与 dump / credentials 两者的 sha；restore 前
 逐个校验，dataKey 变了或数据路径有未提交改动即拒绝（退出码 2，提示 `--rebuild-baseline`）。
 改这一块代码时必须守住：
 

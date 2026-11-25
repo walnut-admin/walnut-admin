@@ -358,7 +358,7 @@ jobs:
 
 **落地记录（2026-11-25）**：四条改法全部落地（提交 `test(e2e): P1-1 基线 dataKey 漂移判据、封板原子化与 PG 容器参数化`，hash 见 `git log`）。口径与关键读数：
 
-1. **漂移判据 = dataKey + 数据路径脏**：`apps/e2e/scripts/data-key.ts` 对 `DATA_PATHS`（seed 目录、迁移目录、`apps/e2e/scripts/prepare-db.ts`、`tooling/scripts/src/db` 下的 seed / 口令 / app_key 工具）按路径排序后逐行 `<path>\t<treeHash>` 求 sha256；`gitCommit` 降级为展示字段。只改文档 / 前端 / 后端源码不再触发；数据路径有未提交改动（含未跟踪文件）⇒ 退出 2 并提示 `--rebuild-baseline`。封板时脏 ⇒ 清单记 `dataDirty=true`，之后永远判不可用（那份数据无法证明与仓库一致）。
+1. **漂移判据 = dataKey + 数据路径脏**：`apps/e2e/scripts/data-key.ts` 对 `DATA_PATHS`（seed 目录、迁移目录、`apps/e2e/scripts/prepare-db.ts`、`tooling/scripts/src/db` 下的 seed / 口令 / app_key 工具）按路径排序后逐行 `<path>\t<treeHash>` 求 sha256；`gitCommit` 降级为展示字段。只改文档 / 前端 / 后端源码不再触发；数据路径有未提交改动（含未跟踪文件）⇒ 退出 2 并提示 `--rebuild-baseline`。封板时脏 ⇒ 清单记 `dataDirty=true`，之后永远判不可用（那份数据无法证明与仓库一致）。**R1 卫生批**：路径清单已抽到 `apps/e2e/scripts/e2e-data-paths.ts` 的 `E2E_DATA_PATHS`（单一真源），`data-key` 与 `affected-plan` 同源消费 —— 语义差异（树哈希 / 脏检查 vs 重新封板 + 全量）只在消费端表达。
 2. **封板原子化（manifest v2）**：`baseline.manifest.json` 收进 `dataKey` / `dataDirty` / `dumpSha256` / `dumpBytes` / `credentialsSha256` / `credentialsBytes` / `migrationsHead` / `menuRows`；dump / credentials / 清单先各写 `.tmp`，提交时**先撤旧清单、再逐个 rename**。**v1 清单不迁移**：版本不符直接判不可用并提示重封板（旧清单没有 dataKey 与 credentials 的 sha，无法安全恢复）；「有 dump 没清单」的半成品同样拒绝。
 3. **容器参数化**：执行层抽到 `apps/e2e/scripts/pg-container.ts` —— `E2E_PG_CONTAINER`（默认 `e2e-wsl-postgres`）、`E2E_PG_EXEC_MODE=wsl|docker|auto`（win32 默认经 `wsl -e bash -c "docker exec …"`，其它平台直接 `docker exec`）；preflight 增加 `docker inspect` running 检查，失败给两种 compose 的启动命令。CI 在 `CI=true` 且非 WSL 投递时按镜像 `postgres:18-alpine` 解析 service 容器。
 4. **单测**：`data-key.test.ts` / `baseline-manifest.test.ts` / `pg-container.test.ts` 覆盖树哈希组合、清单形态、平台判断、WSL 路径换算与容器名校验。
@@ -803,6 +803,12 @@ min / max = 212s / 246s。U8 单轮 23.5–31.2s、U9 23.2–28.9s，没有一�
 `APP:SETTING` / LOCALE / `risk:location:*` 等非设备键不动；同时清掉了栈里积压的历史孤儿键。
 compose 的 `FLUSHDB` / `FLUSHALL` 实测返回 `ERR unknown command`。
 
+**键形补全（2026-11-26，R1 卫生批）**：键形表补上风控评估的两族请求级锁
+`APP:MURLOCK:RISK:DEVICE:<deviceId>`（`risk/modules/device.service.ts` 的 `evaluateDeviceWithLock`）与
+`APP:MURLOCK:RISK:USER_DEVICE:<userId>:<deviceId>`（`user_device.service.ts`）。它们由 `runWithLock` 的
+finally 正常释放，只有崩溃 / 强杀才残留；设备行不在 ⇒ 精确删。fixture 的清理表（`lib/redis.ts`）与
+`lib/redis.test.ts` 的逐族交叉校验同步补齐，含「换成另一台设备不命中」断言。
+
 **fixture 清理补全（2026-11-25，P2 收尾批）**：P2-B 实测一次绿的全量跑后仍残留
 `risk:challenge:user-device:*` 与 `risk:rate:device:*` 两族设备键 —— fixture 的清理表漏了它们。
 `lib/redis.ts` 现在把 `deviceScopedKeyPatterns` / `riskDeviceStatePatterns` 拆成可测的纯函数，
@@ -865,6 +871,8 @@ admin `lint` / `types:check` 绿。
 数据卷，`--volumes` 才连卷删），status 复用 preflight 的 TCP / 端口探针与 baseline 的 `baselineUsable`
 判定，只读、退出码恒 0；up / down 不抢锁、不动库、不碰 Playwright。`clean.ts` 以白名单保留封板三件套与
 `stack.json`，默认 dry-run 列出条目与体积，`--force` 才删且再次校验「只删该目录的直接子项」。
+**R1 卫生批补充**：`status` 加 `--strict` —— 容器 / PG·Redis 任一 FAIL ⇒ 退出码 1（默认仍恒 0；
+端口占用与基线状态是信息项，不参与判定），供自动化当门禁判据。
 删除遗留 `.auth/admin.json`（`rg` 复核无代码引用），`.gitignore` 的 `.auth/` 注释改为「不产出
 storageState（不变量 7）」。README 把退出码表前置到顶部，补 `--ui` / `--debug` / 单用例 `-g` 的用法与
 风险（仍整轮持锁、有头窗口、setup 不省），以及 `E2E_*` 开关表（复用 / 跳过基线 / 重新封板 / 关 GC）。

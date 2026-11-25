@@ -77,6 +77,8 @@ export type DeviceKeyFamily
     | 'murlock:lock-guard'
     | 'murlock:sign'
     | 'murlock:risk-failed-login'
+    | 'murlock:risk-device'
+    | 'murlock:risk-user-device'
 
 /**
  * 键形表：`prefix` 逐字对齐服务端拼法，`deviceIndex` 是 split(':') 之后 deviceId 的下标。
@@ -115,6 +117,10 @@ export const DEVICE_KEY_FAMILIES: readonly { family: DeviceKeyFamily, prefix: st
   { family: 'murlock:lock-guard', prefix: 'APP:MURLOCK:LOCK_GUARD:', deviceIndex: 4 },
   { family: 'murlock:sign', prefix: 'APP:MURLOCK:SIGN:', deviceIndex: 3 },
   { family: 'murlock:risk-failed-login', prefix: 'APP:MURLOCK:RISK:FAILED_LOGIN:', deviceIndex: 4 },
+  // 风控评估的请求级锁（security/risk/modules/{device,user_device}.service.ts）：正常路径
+  // `runWithLock` 的 finally 会释放，只有崩溃 / 强杀才残留；设备行不在了 ⇒ 精确删。
+  { family: 'murlock:risk-device', prefix: 'APP:MURLOCK:RISK:DEVICE:', deviceIndex: 4 },
+  { family: 'murlock:risk-user-device', prefix: 'APP:MURLOCK:RISK:USER_DEVICE:', deviceIndex: 5 },
 ]
 
 /**

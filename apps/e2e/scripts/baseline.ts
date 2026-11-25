@@ -38,7 +38,8 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writ
 import path from 'node:path'
 import { Client } from 'pg'
 import { isBaselineManifest, MANIFEST_VERSION, manifestVersionOf } from './baseline-manifest.ts'
-import { currentDataSnapshot, DATA_PATHS } from './data-key.ts'
+import { currentDataSnapshot } from './data-key.ts'
+import { DATA_PATHS } from './e2e-data-paths.ts'
 import {
   ARTIFACT_DIR,
   assertE2eDatabase,
@@ -625,7 +626,7 @@ export async function ensureTestDatabase(options: EnsureTestDatabaseOptions): Pr
     `迁移 / seed 等数据路径相对封板时已变化（封板 HEAD ${shortSha(usage.manifest.gitCommit)} / dataKey ${shortSha(usage.manifest.dataKey)}，`
     + `当前 dataKey ${shortSha(usage.dataKey)}）。${dirty}\n`
     + '  一条命令重建基线并继续：`pnpm --filter @walnut/e2e e2e -- --rebuild-baseline`（或 `node apps/e2e/scripts/run.ts --rebuild-baseline`）\n'
-    + `  数据路径清单见 apps/e2e/scripts/data-key.ts 的 DATA_PATHS（${DATA_PATHS.length} 项）；`
+    + `  数据路径清单见 apps/e2e/scripts/e2e-data-paths.ts 的 E2E_DATA_PATHS（${DATA_PATHS.length} 项）；`
     + '`E2E_SKIP_BASELINE=1` 可临时跳过基线、退回全量 prepare（不封板）',
   )
 }

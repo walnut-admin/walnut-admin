@@ -30,7 +30,7 @@ export interface BaselineManifest {
    */
   gitCommit: string
   /**
-   * 数据树哈希：HEAD 上 {@link import('./data-key.ts').DATA_PATHS} 的组合树哈希。
+   * 数据树哈希：HEAD 上 {@link import('./e2e-data-paths.ts').E2E_DATA_PATHS} 的组合树哈希。
    * restore 前与当前快照比对，不一致说明「迁移 / seed 相对封板时已变化」→ 退出码 2。
    */
   dataKey: string

@@ -11,6 +11,7 @@ import {
   GENERIC_REDIS_CONTAINER,
   resolveStackShape,
   stackTargetOf,
+  statusExitCode,
   WSL_PG_CONTAINER,
   WSL_REDIS_CONTAINER,
 } from './stack.ts'
@@ -64,6 +65,18 @@ describe('stackTargetOf', () => {
     const target = stackTargetOf('wsl', 'wsl-bash', 'my-postgres')
     expect(target.pgContainer).toBe('my-postgres')
     expect(target.redisContainer).toBe(WSL_REDIS_CONTAINER)
+  })
+})
+
+describe('statusExitCode', () => {
+  it('默认恒 0（只读报告：有 FAIL 也不拦）', () => {
+    expect(statusExitCode(false, [])).toBe(0)
+    expect(statusExitCode(false, ['PG 连不上'])).toBe(0)
+  })
+
+  it('--strict：任一健康项 FAIL ⇒ 1；全绿 ⇒ 0', () => {
+    expect(statusExitCode(true, [])).toBe(0)
+    expect(statusExitCode(true, ['PG 连不上'])).toBe(1)
   })
 })
 
