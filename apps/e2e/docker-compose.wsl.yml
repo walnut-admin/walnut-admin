@@ -1,0 +1,78 @@
+# 全链路 E2E（apps/e2e）数据栈的 **WSL 常驻**形态：PostgreSQL + Redis，跑在 WSL 的 Docker 里。
+#
+#   wsl -e bash -c "docker compose -f /mnt/d/walnut-admin/walnut-admin/apps/e2e/docker-compose.wsl.yml up -d"
+#   wsl -e bash -c "docker compose -f /mnt/d/walnut-admin/walnut-admin/apps/e2e/docker-compose.wsl.yml ps"
+#   wsl -e bash -c "docker compose -f /mnt/d/walnut-admin/walnut-admin/apps/e2e/docker-compose.wsl.yml down"
+#   wsl -e bash -c "docker compose -f /mnt/d/walnut-admin/walnut-admin/apps/e2e/docker-compose.wsl.yml down -v"
+#
+# 与同目录 docker-compose.yml 的关系：那份是「Docker 跑在 Windows（Docker Desktop）或原生 Linux」
+# 的通用形态；本文件是同一套栈的 WSL 变体，**差别只有三处**：
+#   1. 端口只发布到 127.0.0.1（Windows 侧经 WSL 的 localhost 共享直接可达，且不暴露到局域网）；
+#   2. 项目名 / 容器名带 wsl 标记 —— 与通用形态互不覆盖（`down` 只停在跑的这一份）；
+#   3. 无其他差异：镜像、凭据、健康检查、卷挂载点与 docker-compose.yml 逐字一致。
+#
+# 为什么栈必须在 WSL 里：Windows 侧跑便携二进制会在桌面弹可见终端窗口；WSL 里的进程没有窗口。
+#
+# 凭据是**固定明文**（本机测试栈，不是部署物），真源仍是 scripts/env.ts：改一处必须同时改
+# 本文件、docker-compose.yml 与 scripts/env.ts 的对应常量。
+#
+# 端口刻意与 dev 栈（5432/6379）分开：prepare-db 会 `DROP DATABASE ... WITH (FORCE)`，
+# 共用实例时任何一次端口/库名配错都会清掉开发数据；scripts/env.ts 的安全闸（库名必须逐字
+# walnut_e2e、端口必须 5433/6380）是第二道保险。
+
+name: walnut-e2e-wsl
+
+services:
+  postgres:
+    image: docker.io/library/postgres:18-alpine
+    container_name: e2e-wsl-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=walnut
+      - POSTGRES_PASSWORD=e2e_dev_only
+      - POSTGRES_DB=walnut_e2e
+    ports:
+      # Windows 127.0.0.1:5433 → 容器 5432（dev 栈占 5432，绝不能撞）
+      - 127.0.0.1:5433:5432
+    volumes:
+      # postgres 18+ 官方镜像的挂载点是 /var/lib/postgresql（不再是 .../data）
+      - e2e_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U walnut -d walnut_e2e]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: docker.io/library/redis:8-alpine
+    container_name: e2e-wsl-redis
+    restart: unless-stopped
+    # 带密码；FLUSHDB/FLUSHALL 重命名为空串即禁用 —— E2E 的清理只按 deviceId / 唯一前缀
+    # 删自己造的键，**从不** FLUSH（与 dev compose 的防护同一口径）。
+    command:
+      - redis-server
+      - --requirepass
+      - e2e_redis_only
+      - --rename-command
+      - FLUSHDB
+      - ''
+      - --rename-command
+      - FLUSHALL
+      - ''
+    ports:
+      # Windows 127.0.0.1:6380 → 容器 6379（dev 栈占 6379）
+      - 127.0.0.1:6380:6379
+    volumes:
+      - e2e_redis_data:/data
+    healthcheck:
+      test: [CMD, redis-cli, -a, e2e_redis_only, --no-auth-warning, ping]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  e2e_postgres_data:
+    driver: local
+  e2e_redis_data:
+    driver: local
