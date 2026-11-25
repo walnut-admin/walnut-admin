@@ -406,12 +406,14 @@ E2E_REUSE_SERVER=1 pnpm walnut e2e:smoke
 ## CI 形态（nightly）
 
 `.github/workflows/e2e.yml`：每天 UTC 19:00（北京 03:00）+ 手动 dispatch 跑全量，**不进 PR**。
-数据栈由 job 级 services 起（PG 18 / Redis 8，端口与凭据同 `scripts/env.ts`）；CI 上目前仍固定
-`E2E_SKIP_BASELINE=1`（首跑优先绿）。基线执行层已参数化（`E2E_PG_CONTAINER` + Linux 直接
-`docker exec`），所以 runner 上切回基线路径只是「解析 service 容器名并 export」这一步 —— 具体
-的前置条件与一行切法写在 workflow 文件头的基线注释里。artifact 只保留 junit / `results.json` /
-脱敏后的 `backend.log` / `stack.json` / 基线清单 —— trace、截图、HTML 报告不上传（不变量 8）。
-细节看 workflow 文件头与优化文档 P1-3 / P0-1。
+数据栈由 job 级 services 起（PG 18 / Redis 8，端口与凭据同 `scripts/env.ts`）。CI 走**基线路径**：
+封板三件套由 `actions/cache` 跨 run 缓存，key = `e2e-baseline-v<清单格式版本>-<dataKey>`
+（`node apps/e2e/scripts/data-key.ts --cache-key` 的输出）—— 数据路径变了 key 必变，旧基线不会被
+恢复。缓存命中 ⇒ restore；未命中（含首跑）⇒ 全量 prepare + seal，job 成功后缓存自动保存。
+**回退**：若 restore 路径在 GitHub 上首跑意外红，在 `Run full e2e` 一步加回一行
+`E2E_SKIP_BASELINE: '1'`（退回每轮全量 prepare、不封板），按红日志修完再删掉。
+artifact 只保留 junit / `results.json` / 脱敏后的 `backend.log` / `stack.json` / 基线清单 ——
+trace、截图、HTML 报告不上传（不变量 8）。细节看 workflow 文件头与优化文档 P0-1 / P1-1。
 
 ## 排障
 

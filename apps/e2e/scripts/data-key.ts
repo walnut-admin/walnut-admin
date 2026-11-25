@@ -20,6 +20,10 @@
  */
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
+import path from 'node:path'
+import process from 'node:process'
+import { fileURLToPath } from 'node:url'
+import { MANIFEST_VERSION } from './baseline-manifest.ts'
 import { REPO_ROOT } from './env.ts'
 import { E2ePreconditionError } from './failure.ts'
 
@@ -74,6 +78,18 @@ export function combineDataKey(entries: readonly DataTreeEntry[]): string {
 }
 
 /**
+ * 基线缓存的键（**纯函数**，单测直击）：`v<清单格式版本>-<dataKey>`。
+ *
+ * 为什么带清单格式版本：CI 的基线三件套跨 run 缓存，键只认 dataKey 时，一次
+ * `MANIFEST_VERSION` 升级（旧格式清单 restore 会拒收）会让缓存**每晚都命中同一份旧格式基线**、
+ * 每晚红。把格式版本并进键里，升级即自然失效（miss ⇒ 全量 prepare + seal ⇒ 新格式入缓存）。
+ * `dataKey` 仍然是「数据是否一致」的判据：格式版本相同而数据路径变了，键同样变。
+ */
+export function baselineCacheKey(dataKey: string, manifestVersion = MANIFEST_VERSION): string {
+  return `v${manifestVersion}-${dataKey}`
+}
+
+/**
  * 解析 `git status --porcelain` 的输出为路径列表（**纯函数**，单测直击）。
  *
  * porcelain v1 每行形如 `XY path`（重命名是 `R  old -> new`）；这里只取人读的路径部分，
@@ -119,7 +135,7 @@ function gitTreeHash(relPath: string, repoRoot: string): string {
  * 当前数据快照（HEAD 的 dataKey + 工作区脏路径）。读 git 失败按前置条件抛出（退出码 2）。
  */
 export function currentDataSnapshot(repoRoot = REPO_ROOT): DataSnapshot {
-  const entries = DATA_PATHS.map(path => ({ path, treeHash: gitTreeHash(path, repoRoot) }))
+  const entries = DATA_PATHS.map(dataPath => ({ path: dataPath, treeHash: gitTreeHash(dataPath, repoRoot) }))
   let status = ''
   try {
     status = gitOutput(['status', '--porcelain', '--', ...DATA_PATHS], repoRoot)
@@ -130,4 +146,44 @@ export function currentDataSnapshot(repoRoot = REPO_ROOT): DataSnapshot {
     )
   }
   return { dataKey: combineDataKey(entries), dirtyPaths: parseDirtyPaths(status) }
+}
+
+/**
+ * 入口：`node scripts/data-key.ts [--cache-key]`。
+ *
+ * - 默认：stdout **只打印** 64 位 dataKey —— CI 的 `actions/cache` 直接拿它当键的一部分，
+ *   任何日志前缀都会让键不可复现；
+ * - `--cache-key`：打印 `v<MANIFEST_VERSION>-<dataKey>`（基线缓存键的完整形态，见
+ *   {@link baselineCacheKey}）；
+ * - 数据路径有未提交改动时只往 **stderr** 警告，stdout 仍是纯 key、退出码不变：
+ *   「算键」与「这份基线能不能用」是两件事，后者由 `baseline.ts` 的 `baselineUsable` 判。
+ */
+function main(): void {
+  const argv = process.argv.slice(2)
+  const unknown = argv.filter(arg => arg !== '--cache-key')
+  if (unknown.length > 0) {
+    throw new E2ePreconditionError(`不认识的参数：${unknown.join(' ')}（只接受 --cache-key）`)
+  }
+
+  const snapshot = currentDataSnapshot()
+  if (snapshot.dirtyPaths.length > 0) {
+    console.error(
+      `[e2e/data-key] 警告：${snapshot.dirtyPaths.length} 条数据路径有未提交改动，`
+      + `这份 dataKey 对应的基线会被 restore 拒收（先提交 / 还原）：\n  ${snapshot.dirtyPaths.join('\n  ')}`,
+    )
+  }
+  console.log(argv.includes('--cache-key') ? baselineCacheKey(snapshot.dataKey) : snapshot.dataKey)
+}
+
+const invokedDirectly = process.argv[1] !== undefined
+  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+
+if (invokedDirectly) {
+  try {
+    main()
+  }
+  catch (error) {
+    console.error(`[e2e/data-key] 失败：${error instanceof Error ? error.message : String(error)}`)
+    process.exitCode = error instanceof E2ePreconditionError ? 2 : 1
+  }
 }

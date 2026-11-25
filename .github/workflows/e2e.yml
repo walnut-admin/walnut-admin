@@ -20,15 +20,20 @@ name: E2E (nightly)
 # 基线清单五样。trace、截图、HTML 报告含请求头与响应体（token、cookie）——**一律不上传**，
 # 这是 `apps/e2e/AGENTS.md` 不变量 8 的直接落地，不改口径。
 #
-# **基线（baseline）在 CI 上仍走 `E2E_SKIP_BASELINE=1`**（首跑优先绿；所有者 2026-11-25 拍板）。
-# P1-1 已把基线执行层做成可移植（apps/e2e/scripts/pg-container.ts），所以在 runner 上切回基线
-# 路径**只需要删掉下面一步里的 `E2E_SKIP_BASELINE: '1'` 那一行**：
-# - 容器名：`E2E_PG_CONTAINER` 未设时，`CI=true` 且非 WSL 投递会按镜像 `postgres:18-alpine`
-#   解析 service 容器（与下面给 Redis 设口令那一步同一手法 —— runner 生成的容器名不可预知）；
-# - 平台：Linux runner 直接 `docker exec`（不经 WSL）；`pg_dump` / `pg_restore` 在 postgres
-#   官方镜像里自带，端口 / 库名 / 凭据与 `apps/e2e/scripts/env.ts` 同源。
-# 注意 `.e2e/`（基线文件）不跨 run 缓存，所以切回后每轮都是「无基线 → 全量 prepare + seal」；
-# 想验证 restore 路径要另加 cache / artifact 步骤（属后续工作，不在本工作流范围内）。
+# **基线（baseline）跨 run 缓存，CI 走基线路径**（所有者 2026-11-26 批准切回；seal 一次、restore 每轮）：
+# - 封板三件套（baseline.dump / baseline.manifest.json / baseline.credentials.json）由 `actions/cache`
+#   跨 run 缓存。key = `e2e-baseline-v<清单格式版本>-<dataKey>`：dataKey 变（seed / 迁移 / 数据工具改）
+#   必然 miss，旧基线也不该被恢复（restore 会因 dataKey 不符拒收）。**只做精确 key，不做
+#   `dataKey-` 前缀兜底**：不匹配的基线只会白占配额。
+# - 缓存未命中（首跑必为 miss）⇒ `ensureTestDatabase` 的全量 prepare + seal 兜底路径自动工作；
+#   job 成功后 `actions/cache` 的 post 步骤自动保存这一份，下一轮起走 restore。
+# - 执行层是可移植的（P1-1，apps/e2e/scripts/pg-container.ts）：`E2E_PG_CONTAINER` 未设时，
+#   `CI=true` 且非 WSL 投递会按镜像 `postgres:18-alpine` 解析 service 容器（与下面给 Redis 设口令
+#   那一步同一手法 —— runner 生成的容器名不可预知）；Linux runner 直接 `docker exec`（不经 WSL）；
+#   `pg_dump` / `pg_restore` 在 postgres 官方镜像里自带，端口 / 库名 / 凭据与 `apps/e2e/scripts/env.ts` 同源。
+# - **回退**：若 restore 路径在 GitHub 上首跑意外红，在 `Run full e2e` 一步加回
+#   `E2E_SKIP_BASELINE: '1'`（退回每轮全量 prepare、不封板），按红日志修完再删掉这一行。
+#   同一个回退动作也写在 apps/e2e/README.md 的「CI 形态（nightly）」一节。
 
 on:
   schedule:
@@ -142,10 +147,31 @@ jobs:
           fi
           docker exec "$container" redis-cli CONFIG SET requirepass e2e_redis_only
 
-      # 全量（含 @network：真实外网定位）。基线跳过口径见文件头。
+      # 基线缓存的键：stdout 只有 `v<MANIFEST_VERSION>-<dataKey>`（见 apps/e2e/scripts/data-key.ts）。
+      # dataKey 是 HEAD 上「决定测试库内容」的路径组合树哈希 —— 同一提交在 CI 与本地算出的值
+      # 一致（checkout 是 fetch-depth: 0，无浅克隆）；清单格式版本并进键里，升级即自然失效。
+      - name: Compute baseline cache key
+        id: baseline-key
+        run: echo "key=$(node apps/e2e/scripts/data-key.ts --cache-key)" >> "$GITHUB_OUTPUT"
+
+      # 只缓存封板三件套，不缓存 `.e2e/` 整目录（里面还有排障残渣）。命中 ⇒ 下一轮 run 走
+      # restore；未命中 ⇒ 全量 prepare + seal，job 成功后本 action 的 post 步骤自动保存。
+      # 注意：恢复出来的清单仍会被 baseline.ts 逐项校验（dataKey / dump 与 credentials 的 sha），
+      # 缓存只是加速，不是信任来源。
+      - name: Restore baseline cache
+        id: baseline-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/e2e/.e2e/baseline.dump
+            apps/e2e/.e2e/baseline.manifest.json
+            apps/e2e/.e2e/baseline.credentials.json
+          key: e2e-baseline-${{ steps.baseline-key.outputs.key }}
+
+      # 全量（含 @network：真实外网定位）。有缓存 ⇒ restore；没有（首跑 / dataKey 变）⇒
+      # 全量 prepare + seal 兜底。**回退口径见文件头**：restore 首跑意外红时加回
+      # `E2E_SKIP_BASELINE: '1'`。
       - name: Run full e2e
-        env:
-          E2E_SKIP_BASELINE: '1'
         run: pnpm walnut e2e
 
       # 兜底脱敏：主路径已在 scripts/start-backend.ts 的写入处脱敏；这里防「包装脚本没跑成 /

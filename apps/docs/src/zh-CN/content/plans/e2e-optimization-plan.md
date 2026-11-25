@@ -367,6 +367,15 @@ jobs:
 
 **CI 切回基线路径的前置条件**（`.github/workflows/e2e.yml` 文件头已写）：删掉 `Run full e2e` 一步的 `E2E_SKIP_BASELINE: '1'` 即可 —— 执行层可移植（容器解析 / 平台判断 / postgres 官方镜像自带 `pg_dump` 与 `pg_restore`）已由本条落地。**注意 `.e2e/` 不跨 run 缓存**：切回后每轮都是「无基线 → 全量 prepare + seal」，想验证 restore 路径要另加 cache / artifact 步骤。本条只把「能切」变成事实；切不切是单独的决策。
 
+**基线跨 run 缓存与切回（2026-11-26，R1 卫生批）**：切回已落地，并补上了当时缺的那一半 —— 缓存。`.github/workflows/e2e.yml` 用 `actions/cache@v4` 缓存封板三件套（`baseline.dump` / `baseline.manifest.json` / `baseline.credentials.json`），key = `e2e-baseline-v<MANIFEST_VERSION>-<dataKey>`：
+
+- 键由 `node apps/e2e/scripts/data-key.ts --cache-key` 一步算出（默认模式只打印纯 dataKey，供别的自动化消费）；`MANIFEST_VERSION` 并进键里是机械保护 —— 清单格式升级时旧缓存自然失效，不会出现「每晚命中旧格式基线、每晚 restore 拒收」的僵局；
+- **只做精确 key，不做 `dataKey-` 前缀兜底**：dataKey 不匹配的基线 restore 必拒收（P1-1 的 dataKey 校验），前缀兜底只会白占缓存配额；
+- 缓存未命中（首跑必 miss）⇒ `ensureTestDatabase` 的全量 prepare + seal 兜底路径自动工作；`actions/cache` 的 post 保存只在 job 成功后执行，所以入缓存的一定是一轮绿跑出来的基线；
+- 恢复出来的清单仍会被 `baselineUsable` 逐项校验（dataKey + dump / credentials 的 sha），缓存只是加速，不是信任来源；
+- **回退**：restore 路径在 GitHub 上首跑意外红时，在 `Run full e2e` 一步加回 `E2E_SKIP_BASELINE: '1'`（退回每轮全量 prepare、不封板），修完再删。回退动作同时写在 workflow 文件头与 `apps/e2e/README.md` 的「CI 形态（nightly）」。
+- 本地演练（2026-11-26）：删基线 → 全量跑（自动 prepare + seal）→ `--cache-key` 得键 → 三件套复制到临时目录 → 删本地基线 → 从临时目录放回 → 再跑一轮 restore 成功，证明「缓存命中 → restore」这条链路在 CI 之外可复现。
+
 ---
 
 #### P1-2 前置一致性：`E2E_REUSE_SERVER`、隐藏的 `pnpm build`、文件权限

@@ -4,7 +4,7 @@
  * git 调用本身是可重跑的环境读数，不在这里测；这里钉住「组合方式」与「porcelain 解析」。
  */
 import { describe, expect, it } from 'vitest'
-import { combineDataKey, parseDirtyPaths } from './data-key.ts'
+import { baselineCacheKey, combineDataKey, parseDirtyPaths } from './data-key.ts'
 
 const SEED = { path: 'apps/server/db/seed', treeHash: 'a'.repeat(40) }
 const MIGRATIONS = { path: 'apps/server/apps/api/migrations', treeHash: 'b'.repeat(40) }
@@ -30,6 +30,20 @@ describe('combineDataKey', () => {
 
   it('增删路径改变 key（判据是显式的路径清单）', () => {
     expect(combineDataKey([SEED])).not.toBe(combineDataKey([SEED, MIGRATIONS]))
+  })
+})
+
+describe('baselineCacheKey', () => {
+  it('形态是 v<清单版本>-<dataKey>（CI 的 actions/cache 直接消费）', () => {
+    expect(baselineCacheKey('a'.repeat(64), 2)).toBe(`v2-${'a'.repeat(64)}`)
+  })
+
+  it('清单格式版本变化 ⇒ 键变化（旧格式基线不会被缓存一直命中）', () => {
+    expect(baselineCacheKey('a'.repeat(64), 3)).not.toBe(baselineCacheKey('a'.repeat(64), 2))
+  })
+
+  it('dataKey 变化 ⇒ 键变化', () => {
+    expect(baselineCacheKey('a'.repeat(64), 2)).not.toBe(baselineCacheKey('b'.repeat(64), 2))
   })
 })
 
