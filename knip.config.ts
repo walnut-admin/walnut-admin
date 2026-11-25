@@ -149,6 +149,23 @@ const config: KnipConfig = {
       ignore: ['.vitepress/cache/**'],
     },
 
+    // --- 全链路 E2E（Playwright，2026-11-25 进分析面）---
+    //
+    // `entry` 必须手写：这个包没有 bin / exports，而它的入口不是「谁 import 它」——
+    //   · `scripts/**` 由包脚本（`node scripts/run.ts` 等）与 playwright 的 webServer 命令执行；
+    //   · `tests/**` 由 Playwright 按 project 的 testMatch 加载 —— setup 项目的文件名是
+    //     `*.setup.ts` 而不是 `*.spec.ts`，靠「测试文件」的约定推不出来（Playwright 插件只认
+    //     spec 与 `playwright.config.ts`，后者因此**不写进 entry**：写了会变成冗余条目）。
+    // 不点名就等于不分析（knip 只从 entry 往里走）。
+    //
+    // 运行态目录（`.auth/` `.e2e/` `test-results/` `playwright-report/`）**不用写 ignore**：
+    // knip 的 glob 默认跳过点目录，而另外两个里面没有 `.ts`（只有 JSON / trace 压缩包）。
+    // 真正在盘上的 `.e2e/debug-*.ts` 属于点目录，刚好被默认规则挡在外面。
+    'apps/e2e': {
+      entry: ['scripts/**/*.ts', 'tests/**/*.ts'],
+      project: ['**/*.ts'],
+    },
+
     // --- 共享包（严格检查 — 这里 knip 价值最大）---
     //
     // 每个包都比原来多两行，缺一不可（批次 2 的 R1 复核实测，逐条数据见
