@@ -20,6 +20,7 @@ import {
   BACKEND_API_BASE,
   BACKEND_ORIGIN,
 } from '../../scripts/env.ts'
+import { uniqueLocalIp } from '../device-fixtures.ts'
 import {
   AuthRoutes,
   SecurityRoutes,
@@ -60,6 +61,22 @@ interface RequestOptions {
 
 const OPAQUE_SERVER_IDENTIFIER = 'walnut-admin'
 
+/** device/initial 撞 42900 时最多换几个地址重放（见 bootstrap 注释；每个地址一个 /60s 桶） */
+const BOOTSTRAP_REAL_IP_RETRY_LIMIT = 8
+
+/** 协议请求的业务错误（带 code，供重试 / 分支断言；`request()` 只对非 20000 抛它） */
+export class WalnutProtocolRequestError extends Error {
+  readonly code: number
+  readonly status: number
+
+  constructor(method: string, path: string, status: number, code: number, msg?: string) {
+    super(`[e2e/protocol] ${method} ${path} 失败：HTTP ${status} code=${code} msg=${msg ?? ''}`)
+    this.name = 'WalnutProtocolRequestError'
+    this.code = code
+    this.status = status
+  }
+}
+
 /** 等 OPAQUE 的 wasm 模块就绪（Node 侧第一次调用前必须 await；否则 server.getPublicKey 之类会炸） */
 async function ensureOpaqueReady(): Promise<void> {
   await opaque.ready
@@ -83,8 +100,13 @@ export class WalnutProtocolClient {
    * （SysDeviceSettingService），而协议客户端每次 bootstrap 都要登记一台设备；
    * 全套用例共用 127.0.0.1 会在第 5 台设备登记时 42900。给每个客户端一个 127/8 的
    * local IP，既保持「本地定位、零外网」，又各自独立计数。
+   *
+   * 可变：`bootstrap()` 命中 42900 时会换下一个地址重试（见该方法注释）—— R4 实测
+   * Playwright 每个 spec 文件是独立 worker 进程，`uniqueLocalIp` 的模块级序号会在文件
+   * 之间重置；只靠序号会从同一地址起步、多文件叠加后撞桶。`device-fixtures.ts` 用
+   * pid 偏移起步，这里再做一次「换地址重放」兜底。
    */
-  private readonly realIp: string | null
+  private realIp: string | null
 
   constructor(options: { apiBase?: string, realIp?: string } = {}) {
     this.apiBase = options.apiBase ?? BACKEND_API_BASE
@@ -180,7 +202,7 @@ export class WalnutProtocolClient {
     }
 
     if (body.code !== WalnutAdminConstAppResponseCode.SUCCESS) {
-      throw new Error(`[e2e/protocol] ${method} ${path} 失败：HTTP ${response.status} code=${body.code} msg=${body.msg ?? ''}`)
+      throw new WalnutProtocolRequestError(method, path, response.status, body.code, body.msg)
     }
 
     return body
@@ -316,17 +338,37 @@ export class WalnutProtocolClient {
    */
   async bootstrap(options: { headers?: Record<string, string> } = {}): Promise<void> {
     // 1. 设备登记（sign-free / cap-free / device-free）：服务端签发 DEVICE_ID cookie
-    const device = await this.request('POST', SystemEndpointRoutes.DEVICE_INITIAL, {
-      sign: false,
-      headers: options.headers,
-      body: { deviceInfo: {}, hardwareInfo: {}, sr: { height: 1080, width: 1920 }, vp: { height: 900, width: 1600 }, private: false },
-    })
-    // 字段级判据（P1-4）：生成类型已把这里的 `deviceId` 钉成 string；运行时再确认一次，
-    // 缺字段 / 改名时错误消息直接说明是响应形态漂移，而不是后面某个用例拿到 undefined 才炸。
-    if (typeof device.data.deviceId !== 'string' || device.data.deviceId === '') {
-      throw new Error(`[e2e/protocol] device/initial 响应缺 deviceId（生成类型与运行时不一致？）：${JSON.stringify(device.data)}`)
+    //
+    // 42900 = device/initial 的 4 次 / 60 秒 per realIp 桶命中。正常路径每个客户端一个
+    // 独立地址（pid 偏移起步），这里是**兜底**：撞桶时换下一个地址立即重放，不做 sleep。
+    // 其他错误（40099 / 50000 / 网络）不重试 —— 换地址也救不了。
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const device = await this.request('POST', SystemEndpointRoutes.DEVICE_INITIAL, {
+          sign: false,
+          headers: options.headers,
+          body: { deviceInfo: {}, hardwareInfo: {}, sr: { height: 1080, width: 1920 }, vp: { height: 900, width: 1600 }, private: false },
+        })
+        // 字段级判据（P1-4）：生成类型已把这里的 `deviceId` 钉成 string；运行时再确认一次，
+        // 缺字段 / 改名时错误消息直接说明是响应形态漂移，而不是后面某个用例拿到 undefined 才炸。
+        if (typeof device.data.deviceId !== 'string' || device.data.deviceId === '') {
+          throw new Error(`[e2e/protocol] device/initial 响应缺 deviceId（生成类型与运行时不一致？）：${JSON.stringify(device.data)}`)
+        }
+        this._deviceId = device.data.deviceId
+        break
+      }
+      catch (error) {
+        if (
+          attempt < BOOTSTRAP_REAL_IP_RETRY_LIMIT
+          && error instanceof WalnutProtocolRequestError
+          && error.code === WalnutAdminConstAppResponseCode.TOO_MANY_REQUESTS
+        ) {
+          this.realIp = uniqueLocalIp()
+          continue
+        }
+        throw error
+      }
     }
-    this._deviceId = device.data.deviceId
 
     // 2. CAP：challenge → 本地 PoW 求解 → redeem（服务端种 CAPJS_TOKEN cookie）
     await this.refreshCapToken()
@@ -407,14 +449,29 @@ export class WalnutProtocolClient {
    * 幂等：库里已有该用户的 totp 行时 generate 会 40001（DataExists）——stack.setup 会先清行。
    */
   async bindTotp(): Promise<string> {
+    const { secret } = await this.bindTotpWithBackupCodes()
+    return secret
+  }
+
+  /**
+   * 同 {@link bindTotp}，但把 bind 响应里的**备用码**一并返回（恢复码矩阵用例需要）。
+   *
+   * 备用码只在 bind 响应里出现一次（服务端只存哈希后的密文，没有回读通道）——
+   * 需要一次性验证的用例必须在这里接住，不能事后再取。
+   */
+  async bindTotpWithBackupCodes(): Promise<{ secret: string, backupCodes: string[] }> {
     const generated = await this.root<{ totpId: string, secret: string }>('POST', SystemEndpointRoutes.USER_MFA_TOTP_GENERATE)
     const code = generateSync({ secret: generated.secret })
 
-    await this.root('POST', SystemEndpointRoutes.USER_MFA_TOTP_BIND, {
+    const bound = await this.root<{ backupCodes: string[] }>('POST', SystemEndpointRoutes.USER_MFA_TOTP_BIND, {
       name: 'e2e-totp',
       code,
       tempTotpId: generated.totpId,
     })
+
+    if (!Array.isArray(bound.backupCodes) || bound.backupCodes.length === 0) {
+      throw new Error(`[e2e/protocol] totp/bind 响应缺 backupCodes（生成类型与运行时不一致？）：${JSON.stringify(bound)}`)
+    }
 
     const verified = await this.root<{ accessToken: string }>('POST', AuthRoutes.MFA_VERIFY, { trusted: true })
     if (this.auth !== null && verified.accessToken !== undefined) {
@@ -422,7 +479,7 @@ export class WalnutProtocolClient {
       this.auth = { ...this.auth, accessToken: verified.accessToken }
     }
 
-    return generated.secret
+    return { secret: generated.secret, backupCodes: bound.backupCodes }
   }
 
   /**
@@ -437,8 +494,19 @@ export class WalnutProtocolClient {
    * 这条是日常登录链上的 `/system/user/mfa/totp/verify`（revoke-and-insert 轮换 RT）。
    */
   async verifyTotpForDevice(totpSecret: string, options: { trusted?: boolean } = {}): Promise<void> {
+    return this.verifyMfaCode(generateSync({ secret: totpSecret }), options)
+  }
+
+  /**
+   * 用**任意** MFA 码完成设备级验证：TOTP 六位码或备用码（恢复码）都走同一端点
+   * （服务端先 TOTP、失败回落备用码，见 P3-23）。
+   *
+   * 与 {@link verifyTotpForDevice} 分开的原因：备用码不是由 secret 现算的，只能从 bind
+   * 响应里拿到（一次性，见 {@link bindTotpWithBackupCodes}）。
+   */
+  async verifyMfaCode(code: string, options: { trusted?: boolean } = {}): Promise<void> {
     const verified = await this.root<{ accessToken: string }>('POST', SystemEndpointRoutes.USER_MFA_TOTP_VERIFY, {
-      code: generateSync({ secret: totpSecret }),
+      code,
       trusted: options.trusted ?? true,
     })
     if (this.auth !== null && verified.accessToken !== undefined) {

@@ -11,6 +11,7 @@
  * 会被跳过，而 fixture 的 teardown 照样执行。
  */
 import type { Browser, BrowserContext, Page, TestInfo } from '@playwright/test'
+import process from 'node:process'
 import { DEVICE_COOKIE_NAME, WEB_ORIGIN } from '../scripts/env.ts'
 import { localIpFor, STACK_PROFILE } from '../scripts/stack-profiles.ts'
 import { deleteDeviceRow, withPg } from './pg.ts'
@@ -41,13 +42,20 @@ export interface DeviceSession {
  * Redis：`risk:rate:ip:<ip>:<分钟>` 是服务端键（同机共享 Redis），只有跨 profile 的 IP 段
  * 不相交，才不会互相吃 4 次/60s 的额度。
  */
-let localIpSeq = 0
+/**
+ * 每进程从 **pid 偏移**开始分配，而不是固定从 0 开始。
+ *
+ * R4 实测：Playwright 每个 spec 文件是独立的 worker 进程，模块级序号在文件之间重置 ——
+ * 固定从 seq=0 起步会让每个文件的第一个客户端都拿 `127.0.<slot>.11`，叠加起来撞上
+ * `device/initial` 的 4 次 / 60 秒 per realIp 桶（新增模块 spec 后 smoke 全跑首次复现）。
+ * pid 偏移让同一轮的多个 worker 各自落在不同的地址窗口；仍限制在 profile 的两个 /24 内
+ * （`localIpFor` 不变，跨 profile 不重叠的性质不变）。`bootstrap()` 另有 42900 换地址重放兜底。
+ */
+let localIpSeq = process.pid % 240
 export function uniqueLocalIp(): string {
   localIpSeq = (localIpSeq + 1) % 240
-  // seq 当前是 1..239,0（取模后），与改造前的推进顺序一致；default profile 产出逐字相同
   return localIpFor(STACK_PROFILE.ipSlot, localIpSeq)
 }
-
 /**
  * 只给**同源 /api 请求**加 `X-Forwarded-For`（= 后端 req.realIp），不能整包 extraHTTPHeaders：
  * 那个选项对**所有**请求生效，包括第三方跨域资源（例如 CDN 上的 WASM）—— 自定义头会触发
@@ -102,9 +110,21 @@ export async function openDevice(browser: Browser, startAt = '/auth', options: {
   const context = await newBrowserContext(browser, { realIp })
   const page = await context.newPage()
   await page.goto(startAt)
-  // bootstrap 的 device-id 步骤是 degraded（失败也会进页面）——判据必须是「localStorage 里
-  // 已经是服务端签发的 d1_ id」，不是「键存在」：store 初始化时会先写一份 {v:null} 占位，
-  // 只等键会让后面读 id 的断言撞 null。
+  const deviceId = await waitForRegisteredDevice(page)
+  trackDevice(deviceId)
+  return { context, page, deviceId, realIp }
+}
+
+/**
+ * 等页面完成设备登记，返回服务端签发的 deviceId（**不**登记给清理 fixture —— 调用方决定）。
+ *
+ * 拆出来给两个消费方：{@link openDevice}（自建 context）与 mobile 布局用例（用 project 的
+ * `page` 以便继承设备描述符，不能走 `newBrowserContext` 的 1600×900 覆盖）。
+ *
+ * 判据是「localStorage 里已经是服务端签发的 d1_ id」，不是「键存在」：store 初始化会先写
+ * 一份 `{v:null}` 占位，只等键会让后面读 id 的断言撞 null。
+ */
+export async function waitForRegisteredDevice(page: Page): Promise<string> {
   await page.waitForFunction(
     (localKey) => {
       const raw = window.localStorage.getItem(localKey)
@@ -123,9 +143,7 @@ export async function openDevice(browser: Browser, startAt = '/auth', options: {
     DEVICE_LOCAL_STORAGE_KEY,
     { timeout: 30_000 },
   )
-  const deviceId = await resolveDeviceId(page)
-  trackDevice(deviceId)
-  return { context, page, deviceId, realIp }
+  return resolveDeviceId(page)
 }
 
 /** 开一台设备并完成 UI 登录（CAP + MFA），返回已登录会话 */

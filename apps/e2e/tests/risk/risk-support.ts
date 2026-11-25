@@ -5,10 +5,7 @@
  * 权限与设备行，复制三份 rootClient 会让「每台设备一个 uniqueLocalIp + trackDevice」这条
  * 不变量在某个副本里悄悄漏掉。文件名不匹配 `risk/*.spec.ts`，Playwright 不会把它当用例收走。
  */
-import { trackDevice, uniqueLocalIp } from '../../lib/device-fixtures.ts'
 import { findDeviceRow, withPg } from '../../lib/pg.ts'
-import { WalnutProtocolClient } from '../../lib/protocol/client.ts'
-import { readCredentials } from '../../scripts/env.ts'
 
 /**
  * 风控因子字面量（服务端 `apps/server/libs/security/src/risk/risk.config.service.ts` 的
@@ -21,16 +18,9 @@ export const RISK_FACTOR = {
   USER_DEVICE_TRUST_EXPIRED: 'USER_DEVICE_TRUST_EXPIRED',
 } as const
 
-/** 建一个已登录的 root 协议客户端（自带设备 + TOTP 设备验证）；设备随即登记给清理 fixture */
-export async function rootClient(): Promise<WalnutProtocolClient> {
-  const credentials = readCredentials()
-  const client = new WalnutProtocolClient({ realIp: uniqueLocalIp() })
-  await client.bootstrap()
-  trackDevice(client.deviceId)
-  await client.login(credentials.userName, credentials.password)
-  await client.verifyTotpForDevice(credentials.totpSecret)
-  return client
-}
+// rootClient 已上移到 lib/protocol/root-client.ts（模块 spec / auth 矩阵也用它）；
+// 这里保留 re-export，既有 `./risk-support.ts` 的调用点零改动。
+export { rootClient } from '../../lib/protocol/root-client.ts'
 
 /** `sys_device.id`（uuid）—— admin 的 ban/lock 端点按 uuid 定位 */
 export async function deviceRowUuid(deviceId: string): Promise<string> {

@@ -29,6 +29,15 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
  */
 export type SystemUserListPage = EndpointData<'/system/user/list', 'POST'>
 
+/** `POST /system/role/list` 成功响应的 `data`（分页壳；行**不含** menus / deptIds —— 见 R2 发现） */
+export type SystemRoleListPage = EndpointData<'/system/role/list', 'POST'>
+
+/** `POST /system/menu/list` 成功响应的 `data`（分页壳；行带 meta 对象） */
+export type SystemMenuListPage = EndpointData<'/system/menu/list', 'POST'>
+
+/** `POST /app/setting/list` 成功响应的 `data`（分页壳） */
+export type AppSettingListPage = EndpointData<'/app/setting/list', 'POST'>
+
 /** 生成物的路径表用小写方法名（`paths['/system/user/list']['post']`） */
 type MethodKey<M extends HttpMethod> = Lowercase<M>
 

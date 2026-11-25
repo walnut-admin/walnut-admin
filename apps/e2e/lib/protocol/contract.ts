@@ -40,6 +40,8 @@ const mod = load()
 
 // 来源：packages/platform-any/contract/src/cookie.ts —— cookie 基名（stage 形态无前缀）
 export const WalnutAdminConstCookieKeys = mod.WalnutAdminConstCookieKeys
+// 来源：packages/platform-any/contract/src/menu.ts —— 菜单类型（catalog / menu / element）
+export const MenuType = mod.MenuType
 // 来源：packages/platform-any/contract/src/response-code.ts —— 业务响应码
 export const WalnutAdminConstAppResponseCode = mod.WalnutAdminConstAppResponseCode
 // 来源：packages/platform-any/contract/src/routes.ts —— 认证 / 安全 / 系统 / 应用路由

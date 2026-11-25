@@ -250,3 +250,148 @@ export async function readPermanentIpBlacklist(client: Client): Promise<string[]
 export async function writePermanentIpBlacklist(client: Client, ips: string[]): Promise<number> {
   return updateAppSettingValue(client, APP_SETTING_KEY_IP_BLACKLIST, JSON.stringify(ips))
 }
+
+// ─── 模块 spec（菜单 / 角色 / 设置）与 auth 矩阵的断言 / fixture 通道 ────────────────
+
+/** 按 `role_name` 取角色 id（列有 uq_role_name；seed 的 visitor / test-home 用它定位） */
+export async function findRoleIdByName(client: Client, roleName: string): Promise<string> {
+  const { rows } = await client.query<{ id: string }>('SELECT id FROM sys_role WHERE role_name = $1', [roleName])
+  const id = rows[0]?.id
+  if (id === undefined) {
+    throw new Error(`[e2e/pg] sys_role 没有 role_name = ${roleName} 的行`)
+  }
+  return id
+}
+
+/**
+ * 按 `permission` 取某条 element 菜单的 id。
+ *
+ * 用途：角色授权用例要拿**真实菜单行**去挂 junction（权限串由菜单的 permission 列派生），
+ * 用 seed 里的稳定权限串比新造菜单更干净 —— 新造行属于菜单 spec 的写路径。
+ */
+export async function findElementMenuIdByPermission(client: Client, permission: string): Promise<string> {
+  const { rows } = await client.query<{ id: string }>(
+    'SELECT id FROM sys_menu WHERE permission = $1 AND type = \'element\' AND status = true ORDER BY sort_order LIMIT 1',
+    [permission],
+  )
+  const id = rows[0]?.id
+  if (id === undefined) {
+    throw new Error(`[e2e/pg] sys_menu 没有 permission = ${permission} 的启用 element 行`)
+  }
+  return id
+}
+
+/**
+ * 取 seed 的根菜单 id（`pid IS NULL` 的第一行）。
+ *
+ * 菜单树端点按「**单一合成根**」实现：`fullTree.flatMap(root => root.children ?? [])` ——
+ * 新造一个 `pid=NULL` 的根节点时，它自身不在返回的 fullTree 里（只有它的 children 会以顶层
+ * 节点出现）。用例把新 catalog 挂到 seed 根下，既符合 admin 的真实数据形态，也让树的
+ * 父子断言可观测。
+ */
+export async function findRootMenuId(client: Client): Promise<string> {
+  const { rows } = await client.query<{ id: string }>(
+    'SELECT id FROM sys_menu WHERE pid IS NULL ORDER BY sort_order LIMIT 1',
+  )
+  const id = rows[0]?.id
+  if (id === undefined) {
+    throw new Error('[e2e/pg] sys_menu 没有根菜单（pid IS NULL）')
+  }
+  return id
+}
+
+/** 读 `sys_user.mfa_setup`（auth 矩阵的账号级判据） */
+export async function readUserMfaSetup(client: Client, userId: string): Promise<boolean> {
+  const { rows } = await client.query<{ mfa_setup: boolean }>('SELECT mfa_setup FROM sys_user WHERE id = $1', [userId])
+  const row = rows[0]
+  if (row === undefined) {
+    throw new Error(`[e2e/pg] sys_user 没有 id = ${userId} 的行`)
+  }
+  return row.mfa_setup
+}
+
+/**
+ * 读某用户的 totp MFA 行（`backup_codes_ciphertext` 是 select:false 列，这里显式取长度）。
+ *
+ * 备用码是 10 枚一次性码：验证消费一枚后数组长度必须减一 —— 这是「一次性」唯一可回读的
+ * 落点（服务端只存哈希后的密文，无法比对具体码值）。
+ */
+export async function findTotpMfaRow(client: Client, userId: string): Promise<{ id: string, deviceId: string, status: boolean, backupCodesLeft: number } | null> {
+  const { rows } = await client.query<{
+    id: string
+    device_id: string
+    status: boolean
+    backup_codes_left: number
+  }>(
+    `SELECT id, device_id, status, coalesce(array_length(backup_codes_ciphertext, 1), 0)::int AS backup_codes_left
+       FROM sys_user_mfa WHERE user_id = $1 AND type = 'totp'`,
+    [userId],
+  )
+  const row = rows[0]
+  if (row === undefined) {
+    return null
+  }
+  return {
+    id: row.id,
+    deviceId: row.device_id,
+    status: row.status,
+    backupCodesLeft: row.backup_codes_left,
+  }
+}
+
+/** 数某设备上**仍现役**的 refresh token 行（踢下线 / 登出后必须为 0） */
+export async function countActiveRefreshTokensForDevice(client: Client, deviceId: string): Promise<number> {
+  const { rows } = await client.query<{ count: number }>(
+    'SELECT count(*)::int AS count FROM auth_refresh_token WHERE device_id = $1 AND revoked = false',
+    [deviceId],
+  )
+  return rows[0]?.count ?? 0
+}
+
+/**
+ * 插入一条 `app_monitor_user`（`DELETE /system/user/device/force-quit/:deviceId` 的前置）。
+ *
+ * 为什么需要：协议客户端不连 socket，而 monitor 行由 socket 的 auth-state 上报创建 ——
+ * force-quit 服务按 `(userId, deviceId)` 查 monitor 行，缺行直接 40401。这里补的是
+ * **真实运行态里 UI 设备会有的那条行**，不是伪造会话；踢下线链路的服务端行为全部真跑。
+ */
+export async function insertMonitorUserRow(client: Client, userId: string, deviceId: string): Promise<void> {
+  await client.query(
+    `INSERT INTO app_monitor_user (visitor_id, user_id, device_id, auth, focus, is_left)
+     VALUES ($1, $2, $3, true, true, false)`,
+    [`e2e-${deviceId}-${Date.now()}`, userId, deviceId],
+  )
+}
+
+/** 删某设备的 monitor 行（`app_monitor_user` 松引用、无 FK，fixture 必须自己收尾） */
+export async function deleteMonitorUserByDeviceId(client: Client, deviceId: string): Promise<number> {
+  const result = await client.query('DELETE FROM app_monitor_user WHERE device_id = $1', [deviceId])
+  return result.rowCount ?? 0
+}
+
+/** 硬删用户（按 userName；user_role / identity / user_device / RT 都是 CASCADE） */
+export async function deleteUserByUserName(client: Client, userName: string): Promise<number> {
+  const result = await client.query('DELETE FROM sys_user WHERE user_name = $1', [userName])
+  return result.rowCount ?? 0
+}
+
+/** 硬删角色（sys_role_menu / sys_role_dept / sys_user_role 都是 CASCADE） */
+export async function deleteRoleById(client: Client, roleId: string): Promise<number> {
+  const result = await client.query('DELETE FROM sys_role WHERE id = $1', [roleId])
+  return result.rowCount ?? 0
+}
+
+/** 硬删 app_setting 行（setting 模块**没有** delete 端点，用例收尾只能走这里） */
+export async function deleteAppSettingByKey(client: Client, key: string): Promise<number> {
+  const result = await client.query('DELETE FROM app_setting WHERE setting_key = $1', [key])
+  return result.rowCount ?? 0
+}
+
+/** 数 `sys_deleted` 里某个被删主键的快照行（软删的审计落点） */
+export async function countDeletedRows(client: Client, deletedId: string): Promise<number> {
+  const { rows } = await client.query<{ count: number }>(
+    'SELECT count(*)::int AS count FROM sys_deleted WHERE deleted_id = $1',
+    [deletedId],
+  )
+  return rows[0]?.count ?? 0
+}

@@ -185,6 +185,25 @@ export async function deleteAuthSessionsForDevice(client: E2eRedisClient, device
 }
 
 /**
+ * 该设备的**会话键** SCAN 模式（`AUTH:SESSIONS:<userId>:<deviceId>:<sid>`）。
+ * 踢下线 / 登出后应为空 —— 与 {@link deleteAuthSessionsForDevice} 同一键形。
+ */
+export function authSessionKeyPattern(deviceId: string): string {
+  return `${CACHE_PREFIX}_AUTH:SESSIONS:*:${deviceId}:*`
+}
+
+/**
+ * 某用户**全部设备**的权限缓存 SCAN 模式（`AUTH:PERMISSIONS:<userId>:<deviceId>`）。
+ *
+ * 角色授权/停用、用户角色整组替换都会经 `delPermissionsForUser` 按这个前缀清；菜单的
+ * permission/status 变更与删除走全量前缀清。用例用它做「缓存失效」的直接判据 ——
+ * 该键由 `/auth/permissions` 调用时服务端写入，不需要 fixture 伪造。
+ */
+export function permissionsCachePattern(userId: string): string {
+  return `${CACHE_PREFIX}_AUTH:PERMISSIONS:${userId}:*`
+}
+
+/**
  * 该设备的**应用缓存**键模式（全族，逐条对齐 `scripts/redis-gc.ts` 的 `DEVICE_KEY_FAMILIES`
  * 里 `cache:*` / `murlock:*` 那几条，以及服务端的 `WalnutAdminConstAppCacheKeys` 拼法）：
  *
