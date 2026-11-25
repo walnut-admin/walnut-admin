@@ -755,7 +755,7 @@ jobs:
 **不变量**：7（storageState 判死）——删除遗留文件正是强化它。
 **工作量**：S–M。
 
-#### P2-6 OpenAPI 三处 schema 偏差（候选）
+#### P2-6 OpenAPI 三处 schema 偏差（`c5b8ecc5` 已落地）
 
 **动机（现象，2026-11-25 核实）**：server 生成的 `apps/server/openapi.json` 有三处与真实 wire 不一致，全部来自 `apps/server/libs/crud/src/list.ts` 的列表装饰器与 user 的 DTO：
 
@@ -768,6 +768,14 @@ jobs:
 **与 E2E 的关系**：`apps/e2e/lib/protocol/api-types.ts` 的 `SystemUserListPage` 已把两处 list 偏差显式记成注释（桥接层对着真实 wire，字段改名照样会让 `types:check` 红）；修完后这里应回到路径级默认推导并删掉补偿注释。**不建议**把 E2E 的字段级断言改成迁就错误 schema —— 那会把「server 与真实响应漂移」这个信号藏起来，正好与本条的目的相反。
 
 **验收**：`pnpm --filter @walnut/e2e types:check` 与全量套件保持全绿；生成物里不再出现「分页壳数组」与缺失的 nullable；`openapi:check` 零 diff。**工作量**：S–M（改装饰器 + DTO + 重新生成；跨端点影响面要逐个看生成物 diff）。
+
+**落地记录（2026-11-25，已实施 `c5b8ecc5`）**：三处都在 server 侧修掉，**运行时序列化不变**（`ApiOkResponse` / DTO 装饰只进文档面，响应壳由 `WalnutAdminInterceptorResponseSuccess` 组装；list 的 `{ data, total }` 由 service 原样返回）：
+
+1. `apps/server/libs/crud/src/list.ts` 的 200 `data` 改成**单个分页壳的 `$ref`**（不再 `type: 'array'`），19 个 `POST */list` 端点一并修正；crud 单测新增「data 不是数组」与 `listResponseDTO` 两条断言。
+2. `WalnutCrudDecorators` 新增可选 `listResponseDTO`：user 传 `SysUserDTOListResponse`，行 schema 变成 `RealPickType(..., [id, userName, nickName, status, createdAt, updatedAt, roles_count])` 子集；未传时仍退回完整 DTO（其余端点行为不变）。
+3. `SysUserDTOBase.nickName` 补 `swaggerOptions.nullable: true`，生成类型变 `string | null`；`default: null` 保留 —— 它是本仓「可选 / 可空字段」的标记（`backend/dto.md`），与 `deptId` 同款。
+
+E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`stack.setup` 的 nickName 断言降为「字段存在 + `string | null`」，user-crud 额外断言新建用户行 `nickName === null`；wire 级断言未放宽。验证：`openapi:check` 零 diff、全仓 `types:check` 17/17、server 单测 960/960、contract 快照无 diff、E2E 全量 13/13（305.6s，restore 路径、dataKey 4aa02695 未漂移）。**同款遗留**：role（行是 `SysRoleDTOSafeWithoutMenus`）/ device / locale 的 list 行也是 pick/omit 子集，本轮未接 `listResponseDTO`，可按同一钩子逐个补。
 
 #### 文档同步
 
