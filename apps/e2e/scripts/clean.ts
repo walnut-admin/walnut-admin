@@ -7,6 +7,10 @@
  * 全量 prepare。所以这里用白名单反过来做：只保留已知的四个「活文件」，其余全部列出 /
  * 清理；默认只打印计划，让人先看一眼。
  *
+ * **profile 目录（P1-6）**：命名 profile 的活文件在 `.e2e/<profile>/` 里。清理会**递归**进
+ * `smoke` / `risk` / `network` 三个目录，同样保留它们的基线三件套与 stack.json —— 一次
+ * `e2e:clean` 不会毁掉别的 profile 的封板成果。
+ *
  * 保留项（缺一不可，见 README「测试库封板」与「排障」）：
  * - `baseline.dump` / `baseline.manifest.json` / `baseline.credentials.json` —— 封板三件套；
  * - `stack.json` —— 上一轮 run 的栈信息（排障先看的那一份）。
@@ -27,14 +31,18 @@ import {
   BASELINE_MANIFEST_FILE,
   STACK_INFO_FILE,
 } from './env.ts'
+import { NAMED_STACK_PROFILES, STACK_PROFILES } from './stack-profiles.ts'
 
-/** 保留项（逐字与 env.ts 的常量对齐；这里存 basename，判据是「直接子项的 basename」） */
+/** 保留项（逐字与 env.ts 的常量对齐；这里存 basename，判据是「条目的 basename」） */
 export const KEPT_ARTIFACTS: readonly string[] = [
   path.basename(BASELINE_DUMP_FILE),
   path.basename(BASELINE_MANIFEST_FILE),
   path.basename(BASELINE_CREDENTIALS_FILE),
   path.basename(STACK_INFO_FILE),
 ]
+
+/** 命名 profile 的基线子目录名（`.e2e/smoke` 等；清理会递归进去但保留活文件） */
+export const PROFILE_ARTIFACT_DIRS: readonly string[] = NAMED_STACK_PROFILES.map(name => path.basename(STACK_PROFILES[name].artifactDir))
 
 export interface CleanEntry {
   /** 绝对路径 */
@@ -72,7 +80,7 @@ function measure(target: string): { bytes: number, files: number } {
   return { bytes, files }
 }
 
-/** 生成清理计划（纯读取；不删任何东西） */
+/** 生成清理计划（纯读取；不删任何东西；命名 profile 子目录递归、保留活文件） */
 export function buildCleanPlan(dir = ARTIFACT_DIR): CleanPlan {
   if (!existsSync(dir)) {
     return { dir, removable: [], kept: [], removableBytes: 0, removableFiles: 0 }
@@ -85,7 +93,28 @@ export function buildCleanPlan(dir = ARTIFACT_DIR): CleanPlan {
       kept.push(entry.name)
       continue
     }
+
     const target = path.join(dir, entry.name)
+    // 命名 profile 目录：递归一层，同样只保留基线三件套与 stack.json（名称带 profile 前缀）
+    if (entry.isDirectory() && PROFILE_ARTIFACT_DIRS.includes(entry.name)) {
+      for (const child of readdirSync(target, { withFileTypes: true })) {
+        if (KEPT_ARTIFACTS.includes(child.name)) {
+          kept.push(`${entry.name}/${child.name}`)
+          continue
+        }
+        const childPath = path.join(target, child.name)
+        const measured = measure(childPath)
+        removable.push({
+          path: childPath,
+          name: `${entry.name}/${child.name}`,
+          kind: child.isDirectory() ? 'dir' : 'file',
+          bytes: measured.bytes,
+          files: measured.files,
+        })
+      }
+      continue
+    }
+
     const measured = measure(target)
     removable.push({
       path: target,
@@ -119,15 +148,19 @@ export function formatBytes(bytes: number): string {
 }
 
 /**
- * 删除计划里的条目。**再次做路径闸**：只允许删 `dir` 的直接子项、且 basename 不在保留名单 ——
- * `rmSync(recursive)` 的破坏面太大，不能只依赖调用方「没传错参数」。
+ * 删除计划里的条目。**再次做路径闸**：只允许删 `dir` 的直接子项、或命名 profile 子目录的
+ * 直接子项，且 basename 不在保留名单 —— `rmSync(recursive)` 的破坏面太大，不能只依赖调用方
+ * 「没传错参数」。
  */
 export function applyCleanPlan(plan: CleanPlan): void {
   const root = path.resolve(plan.dir)
   for (const entry of plan.removable) {
     const resolved = path.resolve(entry.path)
-    if (path.dirname(resolved) !== root || KEPT_ARTIFACTS.includes(path.basename(resolved))) {
-      throw new Error(`拒绝清理 ${resolved}：它不在 ${root} 的直接子项里，或命中了保留名单`)
+    const parent = path.dirname(resolved)
+    const directChild = parent === root
+    const profileChild = path.dirname(parent) === root && PROFILE_ARTIFACT_DIRS.includes(path.basename(parent))
+    if ((!directChild && !profileChild) || KEPT_ARTIFACTS.includes(path.basename(resolved))) {
+      throw new Error(`拒绝清理 ${resolved}：它不在 ${root}（或其 profile 子目录）的直接子项里，或命中了保留名单`)
     }
     rmSync(resolved, { recursive: true, force: true })
   }

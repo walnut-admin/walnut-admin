@@ -285,7 +285,9 @@ export const COMMANDS: readonly Command[] = [
     group: '门禁',
     label: '全链路 E2E（独立 PG/Redis 栈 + dist-stage 后端 + dist-staging 前端）',
     why: '跨端链路（设备身份、CAP、签名握手、风控）只有真实浏览器 + 真实后端能验；这条命令先查前置、'
-      + '抢 run 级锁、重建独立库（walnut_e2e / 5433 / 6380，绝不碰 dev 库）再跑全部 spec。'
+      + '抢 run 级锁、重建独立库（默认 walnut_e2e / 5433 / 6380，绝不碰 dev 库）再跑 spec。'
+      + '`E2E_STACK_PROFILE=smoke|risk|network` 切到该 profile 的独立库 / 偏移端口 / `.e2e/<p>/` 基线'
+      + '（不设 = default，本地全量行为不变；profile 与 project 同名 1:1）。'
       + '**前置**：`pnpm setup-env`（apps/server/env-local/.env.stage）、`pnpm build`（workspace 包的 CJS dist）、'
       + '`pnpm walnut build:stage` 与 `pnpm --filter @walnut/server build:stage`、'
       + '`pnpm --filter @walnut/e2e exec playwright install chromium`、'

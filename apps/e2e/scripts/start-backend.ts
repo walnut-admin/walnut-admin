@@ -29,6 +29,7 @@ import process from 'node:process'
 import { redactText } from '../lib/redact.ts'
 import { SERVER_ROOT, TEST_RESULTS_DIR } from './env.ts'
 import { resolvePnpm } from './pnpm.ts'
+import { STACK_PROFILE } from './stack-profiles.ts'
 
 const BACKEND_LOG_FILE = path.join(TEST_RESULTS_DIR, 'backend.log')
 /** 落盘上限：正常一轮几 MB；真到 64 MB 说明日志已经失控，继续写只会占满 runner 磁盘 */
@@ -108,7 +109,7 @@ function main(): void {
   process.stderr.on('error', () => {})
 
   mkdirSync(TEST_RESULTS_DIR, { recursive: true })
-  appendToLog(`[e2e/backend] ${new Date().toISOString()} start: pnpm run start:stage（cwd=${SERVER_ROOT}）\n`)
+  appendToLog(`[e2e/backend] ${new Date().toISOString()} start: pnpm run start:stage（profile=${STACK_PROFILE.name}，库=${STACK_PROFILE.database}，cwd=${SERVER_ROOT}）\n`)
 
   const { command, prefixArgs, shell } = resolvePnpm()
   // `--silent` 只压 pnpm 自己的横幅（`> @walnut/server start:stage`）与收尾时的

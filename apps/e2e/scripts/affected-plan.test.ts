@@ -5,7 +5,7 @@
  * smoke）或反复全量（把文档改动当代码）。安全网（未知 → 全量）优先级最高，单独钉住。
  */
 import { describe, expect, it } from 'vitest'
-import { classifyAffectedPaths, describeAffectedPlan } from './affected-plan.ts'
+import { affectedTargetProfiles, classifyAffectedPaths, describeAffectedPlan } from './affected-plan.ts'
 
 describe('classifyAffectedPaths —— 精确映射', () => {
   it('admin 登录页 / auth 视图 → smoke', () => {
@@ -136,5 +136,13 @@ describe('describeAffectedPlan', () => {
     expect(describeAffectedPlan(classifyAffectedPaths(['package.json']))).toContain('全量')
     expect(describeAffectedPlan(classifyAffectedPaths(['apps/server/db/seed/a.json']))).toContain('重新封板')
     expect(describeAffectedPlan(classifyAffectedPaths(['apps/admin/src/views/auth/index.vue']))).toContain('--project=smoke')
+  })
+})
+
+describe('affectedTargetProfiles', () => {
+  it('skip ⇒ []；projects ⇒ 同列表；all ⇒ 三个命名 profile', () => {
+    expect(affectedTargetProfiles(classifyAffectedPaths(['README.md']))).toEqual([])
+    expect(affectedTargetProfiles(classifyAffectedPaths(['apps/server/libs/guards/src/a.ts']))).toEqual(['risk'])
+    expect(affectedTargetProfiles(classifyAffectedPaths(['apps/e2e/tests/x.spec.ts']))).toEqual(['smoke', 'risk', 'network'])
   })
 })

@@ -27,6 +27,11 @@
  * 6. 写 `.auth/credentials.json`（口令；TOTP secret 由 stack.setup 绑定后补上）。
  *
  * 不提交、不推送：所有产物都落在 gitignored 的 .e2e/ 与 .auth/（以及 apps/server/env-local）。
+ *
+ * **profile（P1-6 Phase A）**：库名 / 端口 / 凭据 / 基线目录都来自 `scripts/stack-profiles.ts`
+ * （`E2E_STACK_PROFILE` 选择）。`apps/server/env-local/.env.e2e` 是 typeorm CLI 的**固定路径**，
+ * 所以同一个 checkout 上不能并发两个 profile 的 prepare —— 本地由全局锁串行保证，CI 每个 job
+ * 独立 checkout。别为了「并行」去猜 CLI 的其它路径。
  */
 import { randomBytes } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -57,9 +62,10 @@ import {
   SERVER_STAGE_ENV_FILE,
 } from './env.ts'
 import { E2ePreconditionError, reportFailure } from './failure.ts'
-import { acquirePgLock, connectMaintenance, releasePgLock } from './pg-lock.ts'
+import { acquirePgLock, connectMaintenance, E2E_PG_LOCK_KEY, E2E_PROFILE_LOCK_KEY, releasePgLock } from './pg-lock.ts'
 import { runPnpm } from './pnpm.ts'
 import { clearAppSettingCache, resetRuntimeRolePassword } from './runtime-reset.ts'
+import { STACK_PROFILE } from './stack-profiles.ts'
 
 function log(message: string): void {
   console.log(`[e2e/prepare-db] ${message}`)
@@ -243,7 +249,11 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
 
   try {
     if (ownsLock) {
-      await acquirePgLock(maintenance)
+      // 独立入口：与 run.ts 同一嵌套口径 —— 先全局锁（不变量 6），再 profile 锁
+      await acquirePgLock(maintenance, E2E_PG_LOCK_KEY, 'global')
+      if (E2E_PROFILE_LOCK_KEY !== E2E_PG_LOCK_KEY) {
+        await acquirePgLock(maintenance, E2E_PROFILE_LOCK_KEY, `profile=${STACK_PROFILE.name}`)
+      }
     }
 
     log(`DROP DATABASE IF EXISTS ${E2E_PG_DB} WITH (FORCE)`)
@@ -309,7 +319,10 @@ export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Pro
     rmSync(E2E_ENV_FILE, { force: true })
     rmSync(SERVER_E2E_ENV_FILE, { force: true })
     if (ownsLock) {
-      await releasePgLock(maintenance)
+      if (E2E_PROFILE_LOCK_KEY !== E2E_PG_LOCK_KEY) {
+        await releasePgLock(maintenance, E2E_PROFILE_LOCK_KEY)
+      }
+      await releasePgLock(maintenance, E2E_PG_LOCK_KEY)
     }
     await maintenance.end().catch(() => {})
   }

@@ -6,15 +6,22 @@
  * 任何一处手抄都会漂移，而漂移的症状是「连到了 dev 库」或「代理指到了 dev 后端」——
  * 两种都是**不可接受**的事故（本机同时跑着 dev 栈）。
  *
+ * **profile 化（P1-6 Phase A）**：库名 / 三个端口 / 基线目录 / 锁 key / IP 段全部从
+ * `scripts/stack-profiles.ts` 的 {@link STACK_PROFILE} 派生 —— 本文件不自己拼 profile。
+ * `default` profile 的值与改造前逐字相同（零行为变化）；`E2E_STACK_PROFILE=smoke|risk|network`
+ * 才切到偏移端口与 `.e2e/<profile>/`。profile 名是唯一选择方式，端口 / 库名不可单独覆盖。
+ *
  * 安全闸（{@link assertE2eDatabase} 一族）：任何脚本在 DROP / CREATE / 清 Redis 之前都必须先过
- * 这道闸；库名不是 walnut_e2e 或端口不是 5433 / 6380 一律拒跑。**实参是常量时它是恒真的机械
- * 标记**（防将来把常量换成字面量），对运行态真正的断言在 `lib/pg.ts` 的 `SELECT current_database()`。
+ * 这道闸；库名必须是 `walnut_e2e` 或 `walnut_e2e_<小写>` **且等于当前 profile 的库名**，
+ * 端口不是 5433 / 6380 一律拒跑。**实参是常量时它是恒真的机械标记**（防将来把常量换成字面量），
+ * 对运行态真正的断言在 `lib/pg.ts` 的 `SELECT current_database()`。
  */
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WalnutAdminConstCookieKeys } from '../lib/protocol/contract.ts'
 import { E2ePreconditionError } from './failure.ts'
+import { E2E_DATABASE_PATTERN, STACK_PROFILE } from './stack-profiles.ts'
 
 /** `apps/e2e` 的绝对路径（本文件在 scripts/ 下） */
 export const E2E_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -50,12 +57,19 @@ export const UTILS_SIGN_RAW_DIST_FILE = path.join(REPO_ROOT, 'packages/platform-
 /** `@walnut/contract` 的 CJS 产物（`lib/protocol/contract.ts` 的 require 消费；同上） */
 export const CONTRACT_DIST_FILE = path.join(REPO_ROOT, 'packages/platform-any/contract/dist/index.cjs')
 
-/** 运行态目录：凭据（gitignored）与栈信息 */
-export const AUTH_DIR = path.join(E2E_ROOT, '.auth')
-export const ARTIFACT_DIR = path.join(E2E_ROOT, '.e2e')
+/** 运行态目录：凭据（gitignored）与栈信息；命名 profile 各用子目录（default 保持 `.e2e` / `.auth`） */
+export const AUTH_DIR = path.join(E2E_ROOT, STACK_PROFILE.authDir)
+export const ARTIFACT_DIR = path.join(E2E_ROOT, STACK_PROFILE.artifactDir)
 /** prepare-db 写给 seed 的 env 文件（= .env.stage 的副本 + 独立库覆盖；seed 之后即删） */
 export const E2E_ENV_FILE = path.join(ARTIFACT_DIR, 'e2e.env')
-/** prepare-db 写给 typeorm CLI 的 env 文件（apps/server/env-local/.env.e2e，gitignored） */
+/**
+ * prepare-db 写给 typeorm CLI 的 env 文件（apps/server/env-local/.env.e2e，gitignored）。
+ *
+ * **固定路径**：CLI 用 `process.cwd()/env-local` 定位、没有 `--env-file` 参数，文件里也没有
+ * profile 名的位置 —— 所以同一个 checkout 上不能并发两个 profile 的 prepare。本地由
+ * `run.ts` 的全局锁串行；CI 每个 job 独立 checkout，没有冲突。别在 profile 化的名义下
+ * 猜 CLI 的其它路径。
+ */
 export const SERVER_E2E_ENV_FILE = path.join(SERVER_ROOT, 'env-local/.env.e2e')
 /** 账号凭据 + TOTP secret（stack.setup 写入；所有 spec 只读；0600） */
 export const CREDENTIALS_FILE = path.join(AUTH_DIR, 'credentials.json')
@@ -77,29 +91,29 @@ export const BASELINE_CREDENTIALS_FILE = path.join(ARTIFACT_DIR, 'baseline.crede
 
 // ─── 独立栈（绝不指向 dev 的 5432 / 6379 / 3000 / 3100）──────────────────────────
 export const E2E_PG_HOST = '127.0.0.1'
-/** 独立 PG 端口（compose 里 5433:5432） */
+/** 独立 PG 端口（compose 里 5433:5432）；**所有 profile 共用同一个实例**，隔离靠库名与 IP 段 */
 export const E2E_PG_PORT = 5433
 /** 管理通道角色（迁移 / seed / 断言；superuser 语义） */
 export const E2E_PG_USER = 'walnut'
 export const E2E_PG_PASS = 'e2e_dev_only'
-/** 独立库名 —— 安全闸的唯一判据 */
-export const E2E_PG_DB = 'walnut_e2e'
+/** 当前 profile 的独立库名 —— 安全闸的判据之一（形态正则 + 逐字相等） */
+export const E2E_PG_DB = STACK_PROFILE.database
 /** 运行时角色（RLS：迁移会 CREATE ROLE ... PASSWORD；prepare-db 之后改成下面这个值） */
 export const E2E_PG_APP_USER = 'walnut_app'
 export const E2E_PG_APP_PASS = 'walnut_app_e2e_only'
 
 export const E2E_REDIS_HOST = '127.0.0.1'
-/** 独立 Redis 端口（compose 里 6380:6379） */
+/** 独立 Redis 端口（compose 里 6380:6379）；所有 profile 共用（不加前缀 / 不换逻辑库，见 stack-profiles.ts） */
 export const E2E_REDIS_PORT = 6380
 export const E2E_REDIS_PASS = 'e2e_redis_only'
 
-/** 后端（dist-stage + NODE_ENV=stage）；刻意避开 dev 的 3000 */
-export const BACKEND_PORT = 3001
+/** 后端（dist-stage + NODE_ENV=stage）；profile 决定端口（default 3001，smoke/risk/network 3101–3103） */
+export const BACKEND_PORT = STACK_PROFILE.backendPort
 export const BACKEND_ORIGIN = `http://127.0.0.1:${BACKEND_PORT}`
 /** 后端自己的 socket.io 监听端口（见 .env.stage 的 SOCKET_SERVER_PORT；E2E 也换一个） */
-export const SOCKET_PORT = 3002
+export const SOCKET_PORT = STACK_PROFILE.socketPort
 /** 测试静态代理（伺服 dist-staging + /api /socket 反代） */
-export const WEB_PORT = 4173
+export const WEB_PORT = STACK_PROFILE.webPort
 export const WEB_ORIGIN = `http://127.0.0.1:${WEB_PORT}`
 
 /** 与后端 .env.stage 同源的 API 前缀 / 版本（`/w/v1`） */
@@ -127,7 +141,10 @@ export const RT_JTI_COOKIE_NAME = WalnutAdminConstCookieKeys.RT_JTI
  */
 
 /**
- * 安全闸：目标库必须**逐字**是 walnut_e2e。
+ * 安全闸：目标库必须**同时**满足两条 ——
+ * 1. 形态是 `walnut_e2e` 或 `walnut_e2e_<小写字母>`（挡住 dev 库 `walnut_pg` 与注入形态）；
+ * 2. 逐字等于**当前 profile** 的库名（挡住 `walnut_e2e_foo` 这类拼错、以及把 risk 的库名塞给
+ *    smoke 的误配）。
  *
  * 它什么时候是真判据：参数来自**解析结果**时 —— `writeSeedEnv` 把 .env.stage 副本解析后的
  * `DATABASE_PG_NAME` 传进来，那条路径真的可能读到 dev 的库名。
@@ -136,10 +153,16 @@ export const RT_JTI_COOKIE_NAME = WalnutAdminConstCookieKeys.RT_JTI
  * `lib/pg.ts` 的 `connectPg`（连上之后 `SELECT current_database()`）。
  */
 export function assertE2eDatabase(database: string): void {
-  if (database !== E2E_PG_DB) {
-    throw new Error(
-      `[e2e/safety] 拒绝对库 \`${database}\` 执行破坏性操作：E2E 只允许 \`${E2E_PG_DB}\`。`
+  if (!E2E_DATABASE_PATTERN.test(database)) {
+    throw new E2ePreconditionError(
+      `[e2e/safety] 拒绝对库 \`${database}\` 执行破坏性操作：库名形态必须是 \`walnut_e2e\` 或 \`walnut_e2e_<小写>\`。`
       + '（dev 的 walnut_pg 与本栈共用一套脚本的话，任何一次误跑都会清掉开发数据）',
+    )
+  }
+  if (database !== E2E_PG_DB) {
+    throw new E2ePreconditionError(
+      `[e2e/safety] 拒绝对库 \`${database}\` 执行破坏性操作：当前 profile \`${STACK_PROFILE.name}\` 只允许 \`${E2E_PG_DB}\`。`
+      + `\n  换 profile 用 E2E_STACK_PROFILE=${STACK_PROFILE.name}（或不设 = default）；不要手工改库名。`,
     )
   }
 }

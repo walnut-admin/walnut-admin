@@ -1,8 +1,9 @@
 /**
- * 写本轮 E2E 栈信息到 `.e2e/stack.json`（gitignored）。
+ * 写本轮 E2E 栈信息到 `.e2e/[<profile>/]stack.json`（gitignored）。
  *
- * 用途：排障时先看这一份 —— 本轮用的是哪个库 / 哪个端口 / 哪份产物 / 哪一轮 run id。
+ * 用途：排障时先看这一份 —— 本轮用的是哪个 profile / 哪个库 / 哪个端口 / 哪份产物 / 哪一轮 run id。
  * 全部来自 scripts/env.ts 的同一份常量，不手抄；凭据也在里面（本机测试栈），但目录 gitignored。
+ * 命名 profile 的 stack.json 落在 `.e2e/<profile>/`，CI 的 artifact 也按 profile 命名。
  *
  * **产物新鲜度**：`mtime` 读的是文件系统的真实修改时间（`statSync`），不是「写这份 JSON 的时刻」。
  * 它回答的是「这轮跑的是几分钟前刚构建的产物，还是上周的」。目录与两个入口文件各记一条 ——
@@ -38,6 +39,7 @@ import {
   WEB_ORIGIN,
 } from './env.ts'
 import { computeArtifactFreshness } from './freshness.ts'
+import { E2E_PG_GLOBAL_LOCK_KEY, STACK_PROFILE } from './stack-profiles.ts'
 
 interface ArtifactInfo {
   path: string
@@ -71,6 +73,16 @@ export function writeStackInfo(): void {
     runId,
     startedAt: new Date().toISOString(),
     commit: gitCommit(),
+    profile: {
+      name: STACK_PROFILE.name,
+      database: STACK_PROFILE.database,
+      artifactDir: STACK_PROFILE.artifactDir,
+      authDir: STACK_PROFILE.authDir,
+      lockKeys: {
+        global: E2E_PG_GLOBAL_LOCK_KEY,
+        profile: STACK_PROFILE.lockKey,
+      },
+    },
     urls: {
       web: WEB_ORIGIN,
       api: `${WEB_ORIGIN}/api`,
@@ -110,6 +122,7 @@ export function writeStackInfo(): void {
   writeFileSync(STACK_INFO_FILE, `${JSON.stringify(stack, null, 2)}\n`, 'utf8')
 
   console.log(`[e2e/stack-info] runId=${runId}`)
+  console.log(`[e2e/stack-info] profile=${STACK_PROFILE.name}（库 ${STACK_PROFILE.database}，基线目录 ${STACK_PROFILE.artifactDir}）`)
   console.log(`[e2e/stack-info] web=${WEB_ORIGIN}  api=${WEB_ORIGIN}/api  backend=${BACKEND_ORIGIN}`)
   console.log(`[e2e/stack-info] pg=${E2E_PG_HOST}:${E2E_PG_PORT}/${E2E_PG_DB}  redis=${E2E_REDIS_HOST}:${E2E_REDIS_PORT}`)
   console.log(`[e2e/stack-info] 产物 mtime：admin/index.html=${stack.artifacts.adminIndex.mtime ?? '缺失'}  server/main.js=${stack.artifacts.serverMain.mtime ?? '缺失'}`)

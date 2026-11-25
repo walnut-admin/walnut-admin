@@ -55,6 +55,7 @@ import {
 import { E2ePreconditionError } from './failure.ts'
 import { computeArtifactFreshness, staleArtifacts } from './freshness.ts'
 import { inspectPgContainer, resolvePgContainer, toWslPath } from './pg-container.ts'
+import { STACK_PROFILE } from './stack-profiles.ts'
 
 interface CheckResult {
   name: string
@@ -238,12 +239,12 @@ function warnStaleArtifacts(): void {
 }
 
 /**
- * `E2E_REUSE_SERVER=1`：Playwright 不会起服务，所以这里必须确认 3001 / 3002 / 4173 上
+ * `E2E_REUSE_SERVER=1`：Playwright 不会起服务，所以这里必须确认后端 / socket / 静态代理端口上
  * **已经跑着这一轮要复用的东西** —— 端口空闲反而是失败（说明没人可复用）。
  */
 async function reuseServerChecks(): Promise<CheckResult[]> {
   console.log(
-    '[e2e/preflight] WARN E2E_REUSE_SERVER=1：复用 3001 / 3002 / 4173 上已在监听的服务 —— '
+    `[e2e/preflight] WARN E2E_REUSE_SERVER=1：复用 ${BACKEND_PORT} / ${SOCKET_PORT} / ${WEB_PORT} 上已在监听的服务 —— `
     + '本轮可能连到旧产物 / 旧库，仅本地调试用',
   )
 
@@ -288,6 +289,12 @@ export async function runPreflight(options: { doctor?: boolean } = {}): Promise<
   if (options.doctor === true) {
     console.log('[e2e/preflight] e2e:doctor —— 只做前置自检：不抢锁、不动库、不启动服务')
   }
+
+  // profile 是这一轮所有端口 / 库名 / 基线路径的来源：先把它打印出来，排障时不必反推
+  console.log(
+    `[e2e/preflight] profile=${STACK_PROFILE.name}（库 ${STACK_PROFILE.database}，`
+    + `端口 ${BACKEND_PORT}/${SOCKET_PORT}/${WEB_PORT}，基线 ${STACK_PROFILE.artifactDir}）`,
+  )
 
   warnStaleArtifacts()
 

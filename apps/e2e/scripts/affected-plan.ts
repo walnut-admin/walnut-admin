@@ -184,3 +184,20 @@ export function describeAffectedPlan(plan: AffectedPlan): string {
   }
   return `${plan.projects.map(project => `--project=${project}`).join(' ')}（${plan.reason}）`
 }
+
+/**
+ * 机器可读计划的目标 profile 列表（`--json` 输出用；纯函数）。
+ *
+ * 为将来「按 affected 动态生成 CI matrix」留口：本批 nightly 仍是静态三 job，这个字段只是
+ * 把「计划覆盖哪些 profile」说清楚，消费方不必自己推断 `mode` 与 `projects` 的组合。
+ * `all` 的覆盖面就是三个命名 profile；`skip` 是空列表。
+ */
+export function affectedTargetProfiles(plan: AffectedPlan): string[] {
+  if (plan.mode === 'skip') {
+    return []
+  }
+  if (plan.mode === 'all') {
+    return ['smoke', 'risk', 'network']
+  }
+  return [...plan.projects]
+}

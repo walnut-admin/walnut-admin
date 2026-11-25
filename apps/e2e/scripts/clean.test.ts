@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:
 import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { applyCleanPlan, buildCleanPlan, KEPT_ARTIFACTS } from './clean.ts'
+import { applyCleanPlan, buildCleanPlan, KEPT_ARTIFACTS, PROFILE_ARTIFACT_DIRS } from './clean.ts'
 
 const temps: string[] = []
 
@@ -63,6 +63,28 @@ describe('buildCleanPlan', () => {
     expect(plan.removable).toEqual([])
     expect(plan.kept).toEqual([])
   })
+
+  it('命名 profile 子目录递归：保留各自的基线三件套与 stack.json，其余照删', () => {
+    const dir = tempDir()
+    for (const profile of PROFILE_ARTIFACT_DIRS) {
+      const profileDir = path.join(dir, profile)
+      mkdirSync(profileDir)
+      for (const name of KEPT_ARTIFACTS) {
+        writeFileSync(path.join(profileDir, name), 'x')
+      }
+      writeFileSync(path.join(profileDir, 'debug.log'), 'abc')
+    }
+
+    const plan = buildCleanPlan(dir)
+
+    expect(plan.kept).toEqual(
+      PROFILE_ARTIFACT_DIRS.flatMap(profile => KEPT_ARTIFACTS.map(name => `${profile}/${name}`)).sort(),
+    )
+    expect(plan.removable.map(entry => entry.name)).toEqual(
+      PROFILE_ARTIFACT_DIRS.map(profile => `${profile}/debug.log`).sort(),
+    )
+    expect(plan.removableBytes).toBe(PROFILE_ARTIFACT_DIRS.length * 3)
+  })
 })
 
 describe('applyCleanPlan', () => {
@@ -99,5 +121,36 @@ describe('applyCleanPlan', () => {
 
     expect(() => applyCleanPlan(plan)).toThrow(/拒绝清理/)
     expect(existsSync(path.join(outside, 'keep.txt'))).toBe(true)
+  })
+
+  it('允许删 profile 子目录的直接子项（plan 由 buildCleanPlan 生成）', () => {
+    const dir = tempDir()
+    const profileDir = path.join(dir, PROFILE_ARTIFACT_DIRS[0]!)
+    mkdirSync(profileDir)
+    writeFileSync(path.join(profileDir, 'baseline.dump'), 'x')
+    writeFileSync(path.join(profileDir, 'debug.log'), 'x')
+
+    applyCleanPlan(buildCleanPlan(dir))
+
+    expect(existsSync(path.join(profileDir, 'debug.log'))).toBe(false)
+    expect(existsSync(path.join(profileDir, 'baseline.dump'))).toBe(true)
+  })
+
+  it('拒绝删 profile 子目录里的保留文件（即使计划被手工构造）', () => {
+    const dir = tempDir()
+    const profileDir = path.join(dir, PROFILE_ARTIFACT_DIRS[0]!)
+    mkdirSync(profileDir)
+    writeFileSync(path.join(profileDir, 'baseline.dump'), 'x')
+    const plan = buildCleanPlan(dir)
+    plan.removable = [{
+      path: path.join(profileDir, 'baseline.dump'),
+      name: `${PROFILE_ARTIFACT_DIRS[0]}/baseline.dump`,
+      kind: 'file',
+      bytes: 1,
+      files: 1,
+    }]
+
+    expect(() => applyCleanPlan(plan)).toThrow(/拒绝清理/)
+    expect(existsSync(path.join(profileDir, 'baseline.dump'))).toBe(true)
   })
 })

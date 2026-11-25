@@ -11,6 +11,8 @@ function validManifest(): BaselineManifest {
     manifestVersion: MANIFEST_VERSION,
     sealedAt: '2026-11-25T00:00:00.000Z',
     gitCommit: 'a'.repeat(40),
+    profile: 'default',
+    database: 'walnut_e2e',
     dataKey: 'b'.repeat(64),
     dataDirty: false,
     migrationsHead: { id: 9, name: '1792922206018-InitSchema' },
@@ -23,19 +25,28 @@ function validManifest(): BaselineManifest {
 }
 
 describe('isBaselineManifest', () => {
-  it('版本 2 的完整清单通过', () => {
+  it('版本 3 的完整清单通过', () => {
     expect(isBaselineManifest(validManifest())).toBe(true)
   })
 
-  it('版本 1（旧格式）不通过 —— 旧清单不做迁移', () => {
-    const legacy = { ...validManifest(), manifestVersion: 1 }
+  it('版本 2（旧格式，缺 profile / database）不通过 —— 旧清单不做迁移', () => {
+    const legacy = { ...validManifest(), manifestVersion: 2 }
     expect(isBaselineManifest(legacy)).toBe(false)
+  })
+
+  it('命名 profile 的库名通过（形状正则与 env.ts 同口径）', () => {
+    expect(isBaselineManifest({ ...validManifest(), profile: 'risk', database: 'walnut_e2e_risk' })).toBe(true)
   })
 
   it.each([
     ['dataKey 缺失', { dataKey: undefined }],
     ['dataKey 不是 64 位 hex', { dataKey: 'xyz' }],
     ['dataDirty 不是布尔', { dataDirty: 'false' }],
+    ['profile 缺失', { profile: undefined }],
+    ['profile 含大写 / 非法字符', { profile: 'Smoke_1' }],
+    ['database 缺失', { database: undefined }],
+    ['database 不是 E2E 库名形态', { database: 'walnut_pg' }],
+    ['database 用了非法后缀', { database: 'walnut_e2e_fooBar' }],
     ['dumpSha256 不是 64 位 hex', { dumpSha256: 'c'.repeat(63) }],
     ['dumpBytes 为 0', { dumpBytes: 0 }],
     ['credentialsSha256 缺失', { credentialsSha256: undefined }],

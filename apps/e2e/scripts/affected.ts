@@ -5,24 +5,27 @@
  * - 映射规则在 `scripts/affected-plan.ts`（纯函数、有单测）；
  * - 这里只做 git 读取、打印计划、**经 `scripts/run.ts` 执行** —— 抢 run 级锁、preflight、
  *   基线决策与 `playwright test` 的硬顺序全部保持不变（不变量 6）；
- * - `--base` 参数化，默认 `origin/main`；引用不存在时按前置条件失败（退出码 2）并给出修复建议。
+ * - `--base` 参数化，默认 `origin/main`；引用不存在时按前置条件失败（退出码 2）并给出修复建议；
+ * - `--json` 输出机器可读的计划（含 `targetProfiles`），**不执行** —— 给将来的动态 matrix 留口；
+ *   本批 nightly 仍是静态三 job（设计稿 P1-6 的口径：只多一个输出口，不改映射规则）。
  *
  * 安全网：任何未映射的路径 → 全量。`affected` **不进任何 PR 门禁**，是本地 / nightly 的辅助入口。
  */
 import { execFileSync, spawnSync } from 'node:child_process'
 import path from 'node:path'
 import process from 'node:process'
-import { classifyAffectedPaths, describeAffectedPlan } from './affected-plan.ts'
+import { affectedTargetProfiles, classifyAffectedPaths, describeAffectedPlan } from './affected-plan.ts'
 import { E2E_ROOT, REPO_ROOT } from './env.ts'
 import { E2ePreconditionError, reportFailure } from './failure.ts'
 
 const DEFAULT_BASE = 'origin/main'
 
 const USAGE = [
-  '用法：node scripts/affected.ts [base] [--base <ref>]',
+  '用法：node scripts/affected.ts [base] [--base <ref>] [--json]',
   '',
   `  base 默认 ${DEFAULT_BASE}；也可用 --base=<ref> 或位置参数。`,
-  '  只打印计划；有需要跑的用例时经 scripts/run.ts 执行（抢锁 / 基线 / webServer 不变）。',
+  '  默认打印计划；有需要跑的用例时经 scripts/run.ts 执行（抢锁 / 基线 / webServer 不变）。',
+  '  --json 只打印机器可读计划（含 targetProfiles）并退出 0，不执行用例。',
   '  未映射的改动一律回退全量（安全网）。',
 ].join('\n')
 
@@ -35,15 +38,20 @@ function gitOutput(args: readonly string[]): string {
   })
 }
 
-/** 解析 base（`--base <ref>` / `--base=<ref>` / 第一个位置参数；`--help` 单独返回） */
-function parseBase(argv: readonly string[]): { base: string, help: boolean } {
+/** 解析 base（`--base <ref>` / `--base=<ref>` / 第一个位置参数；`--help` / `--json` 单独返回） */
+function parseArgs(argv: readonly string[]): { base: string, help: boolean, json: boolean } {
   let base = DEFAULT_BASE
   let help = false
+  let json = false
 
   for (let index = 0; index < argv.length; index++) {
     const arg = argv[index]!
     if (arg === '--help' || arg === '-h') {
       help = true
+      continue
+    }
+    if (arg === '--json') {
+      json = true
       continue
     }
     if (arg === '--base') {
@@ -70,7 +78,7 @@ function parseBase(argv: readonly string[]): { base: string, help: boolean } {
     throw new E2ePreconditionError(`不认识的参数「${arg}」\n${USAGE}`)
   }
 
-  return { base, help }
+  return { base, help, json }
 }
 
 /** base 必须是可解析的 commit-ish；缺失时给出与默认值相关的明确处置。 */
@@ -101,7 +109,7 @@ function readChangedPaths(base: string): string[] {
 }
 
 function main(): void {
-  const { base, help } = parseBase(process.argv.slice(2))
+  const { base, help, json } = parseArgs(process.argv.slice(2))
   if (help) {
     console.log(USAGE)
     return
@@ -110,6 +118,20 @@ function main(): void {
   assertBaseExists(base)
   const changedPaths = readChangedPaths(base)
   const plan = classifyAffectedPaths(changedPaths)
+
+  if (json) {
+    // stdout 只有这一份 JSON（与 data-key.ts 的 --cache-key 同口径：机器消费者不解析日志）
+    console.log(JSON.stringify({
+      base,
+      mode: plan.mode,
+      projects: plan.projects,
+      targetProfiles: affectedTargetProfiles(plan),
+      rebuild: plan.rebuild,
+      reason: plan.reason,
+      changedPaths: plan.changedPaths,
+    }, null, 2))
+    return
+  }
 
   console.log(`[e2e/affected] base=${base}，改动 ${changedPaths.length} 个文件`)
   for (const changedPath of changedPaths) {

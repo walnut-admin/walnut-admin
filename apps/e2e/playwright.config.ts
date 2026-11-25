@@ -14,6 +14,10 @@
  * 4. **webServer 不复用已有进程**（`E2E_REUSE_SERVER=1` 才显式打开）：后端在进程里缓存了一份
  *    应用设置 memo，而 prepare-db 每次都 DROP DATABASE 重建 —— 复用一个「上一个库」启动的进程
  *    会读到错状态。3001 上有没有残留进程不该由测试去猜。
+ *
+ * 5. **profile（P1-6 Phase A）**：baseURL / 两个 webServer 的端口都来自 `scripts/env.ts`，
+ *    后者从 `scripts/stack-profiles.ts` 派生（`E2E_STACK_PROFILE` 选择）。这层不自己拼端口；
+ *    profile 与 project 的 1:1 约束由 `scripts/run.ts` 的 `resolveProfileTestArgs` 机械保证。
  */
 import path from 'node:path'
 import process from 'node:process'
@@ -21,6 +25,9 @@ import { defineConfig, devices } from '@playwright/test'
 import { SIGN_USER_AGENT } from './lib/protocol/sign.ts'
 import { BACKEND_ORIGIN, backendEnvOverrides, E2E_ROOT, TEST_RESULTS_DIR, WEB_ORIGIN } from './scripts/env.ts'
 import { buildQuarantineGrepInvert, loadQuarantine, overdueEntries } from './scripts/quarantine.ts'
+import { STACK_PROFILE } from './scripts/stack-profiles.ts'
+
+console.log(`[e2e/config] profile=${STACK_PROFILE.name}  web=${WEB_ORIGIN}  backend=${BACKEND_ORIGIN}  db=${STACK_PROFILE.database}`)
 
 /**
  * webServer 是否复用已在监听的进程。**默认关**：

@@ -20,21 +20,33 @@
  *
  * 并发行为：第二个 run 在**第一步**就等锁；120s 内抢不到就报「谁在持锁」并以退出码 2 收场
  * （一轮全量远超 2 分钟，所以实际表现是「第二个 run 报错退出」而不是排队跑完）。
+ *
+ * **profile（P1-6 Phase A）**：`E2E_STACK_PROFILE=smoke|risk|network` 时库 / 端口 / 基线目录
+ * 都来自 `scripts/stack-profiles.ts`；锁是**两把** —— 先全局（`2026112401`，一台机器一个 run），
+ * 再 profile（key + 序号，日志归属与同 profile 重入保护）。本地多 profile 仍串行：第二个
+ * profile 会在全局锁上等待。命名 profile 只能跑同名 project（`resolveProfileTestArgs`），
+ * 没给 `--project` 时补上 —— 别让一个 profile 的用例跑在另一个 profile 的库上。
  */
 import process from 'node:process'
 import { ensureTestDatabase } from './baseline.ts'
 import { assertE2eDatabase, assertE2ePgPort, E2E_PG_DB, E2E_PG_PORT, E2E_ROOT } from './env.ts'
 import { reportFailure } from './failure.ts'
-import { acquirePgLock, connectMaintenance, releasePgLock } from './pg-lock.ts'
+import { acquirePgLock, connectMaintenance, E2E_PG_LOCK_KEY, E2E_PROFILE_LOCK_KEY, releasePgLock } from './pg-lock.ts'
 import { spawnPnpm } from './pnpm.ts'
 import { runPreflight } from './preflight.ts'
 import { runRedisGc } from './redis-gc.ts'
 import { writeStackInfo } from './stack-info.ts'
+import { resolveProfileTestArgs, STACK_PROFILE } from './stack-profiles.ts'
 
 async function main(): Promise<void> {
   // 常量实参时的机械标记（真正对运行态的断言见 lib/pg.ts、prepare-db 与 baseline）
   assertE2eDatabase(E2E_PG_DB)
   assertE2ePgPort(E2E_PG_PORT)
+  console.log(
+    `[e2e/run] profile=${STACK_PROFILE.name}  db=${E2E_PG_DB}  `
+    + `backend=${STACK_PROFILE.backendPort} socket=${STACK_PROFILE.socketPort} web=${STACK_PROFILE.webPort}  `
+    + `baseline=${STACK_PROFILE.artifactDir}`,
+  )
 
   // 允许 `pnpm … e2e -- -g "登录"` 这种写法：包管理器会把分隔符一起传进来
   const passthrough = process.argv.slice(2)
@@ -48,32 +60,47 @@ async function main(): Promise<void> {
 
   const lock = await connectMaintenance()
   try {
-    await acquirePgLock(lock)
-    await runPreflight()
-    await ensureTestDatabase({
-      maintenance: lock,
-      rebuild,
-      skipBaseline: process.env.E2E_SKIP_BASELINE === '1',
-    })
-
-    // P2-2：库刚重建完（restore 或全量 prepare），`sys_device` 里没有的 deviceId 的键就是
-    // 上一轮 / 崩溃 run 的残留。默认开：不跑它，RSA 公钥（30 天）与 challenge 标记（24h）
-    // 会跨轮堆积；`E2E_REDIS_GC=0` 可关。失败只警告 —— 这是 cleanup，不是前置条件。
-    if (process.env.E2E_REDIS_GC !== '0') {
-      try {
-        await runRedisGc()
-      }
-      catch (error) {
-        console.warn(`[e2e/run] WARN Redis 设备键对账失败（不影响本轮用例）：${error instanceof Error ? error.message : String(error)}`)
-      }
+    // 全局锁：不变量 6（一台机器同一时间一个 E2E run）；profile 锁必须嵌套在它之后
+    await acquirePgLock(lock, E2E_PG_LOCK_KEY, 'global')
+    const profileLocked = E2E_PROFILE_LOCK_KEY !== E2E_PG_LOCK_KEY
+    if (profileLocked) {
+      await acquirePgLock(lock, E2E_PROFILE_LOCK_KEY, `profile=${STACK_PROFILE.name}`)
     }
 
-    writeStackInfo()
-    console.log(`[e2e/run] pnpm exec playwright test ${testArgs.join(' ')}`.trimEnd())
-    process.exitCode = spawnPnpm(['exec', 'playwright', 'test', ...testArgs], E2E_ROOT, { ...process.env })
+    try {
+      await runPreflight()
+      await ensureTestDatabase({
+        maintenance: lock,
+        rebuild,
+        skipBaseline: process.env.E2E_SKIP_BASELINE === '1',
+      })
+
+      // P2-2：库刚重建完（restore 或全量 prepare），`sys_device` 里没有的 deviceId 的键就是
+      // 上一轮 / 崩溃 run 的残留。默认开：不跑它，RSA 公钥（30 天）与 challenge 标记（24h）
+      // 会跨轮堆积；`E2E_REDIS_GC=0` 可关。失败只警告 —— 这是 cleanup，不是前置条件。
+      if (process.env.E2E_REDIS_GC !== '0') {
+        try {
+          await runRedisGc()
+        }
+        catch (error) {
+          console.warn(`[e2e/run] WARN Redis 设备键对账失败（不影响本轮用例）：${error instanceof Error ? error.message : String(error)}`)
+        }
+      }
+
+      writeStackInfo()
+      const finalTestArgs = resolveProfileTestArgs(STACK_PROFILE, testArgs)
+      console.log(`[e2e/run] pnpm exec playwright test ${finalTestArgs.join(' ')}`.trimEnd())
+      process.exitCode = spawnPnpm(['exec', 'playwright', 'test', ...finalTestArgs], E2E_ROOT, { ...process.env })
+    }
+    finally {
+      // 释放顺序与获取相反；同一把 key 时它已经在全局锁那一步释放
+      if (profileLocked) {
+        await releasePgLock(lock, E2E_PROFILE_LOCK_KEY)
+      }
+    }
   }
   finally {
-    await releasePgLock(lock)
+    await releasePgLock(lock, E2E_PG_LOCK_KEY)
     await lock.end().catch(() => {})
   }
 }

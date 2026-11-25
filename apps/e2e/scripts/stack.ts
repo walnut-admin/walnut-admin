@@ -19,6 +19,7 @@ import type { PgExecMode } from './pg-container.ts'
  * 所有子进程都 `windowsHide: true`（本机禁止弹可见窗口；WSL 投递天然无窗口）。
  */
 import { spawnSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import path from 'node:path'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
@@ -36,6 +37,7 @@ import {
 import { E2ePreconditionError } from './failure.ts'
 import { inspectContainer, resolvePgExecMode, toWslPath } from './pg-container.ts'
 import { checkPortFree, checkTcp } from './preflight.ts'
+import { NAMED_STACK_PROFILES, STACK_PROFILE, STACK_PROFILES } from './stack-profiles.ts'
 
 export type StackShape = 'wsl' | 'generic'
 
@@ -125,6 +127,24 @@ function log(message: string): void {
   console.log(`[e2e/stack] ${message}`)
 }
 
+/**
+ * 当前 profile 与「其它 profile 的基线是否存在」一句话。
+ *
+ * 数据栈（5433 / 6380）是**所有 profile 共享**的，只有库 / 端口 / 基线目录按 profile 分开；
+ * status 把两者都摆出来，避免「栈健康就以为某个 profile 的基线也在」的误读。
+ */
+export function profileStatusLine(): string {
+  const others = NAMED_STACK_PROFILES
+    .filter(name => name !== STACK_PROFILE.name)
+    .map((name) => {
+      const manifestFile = path.join(E2E_ROOT, STACK_PROFILES[name].artifactDir, 'baseline.manifest.json')
+      return `${name}=${existsSync(manifestFile) ? '有基线' : '无基线'}`
+    })
+  return `profile=${STACK_PROFILE.name}（库 ${STACK_PROFILE.database}，端口 ${BACKEND_PORT}/${SOCKET_PORT}/${WEB_PORT}，`
+    + `基线目录 ${STACK_PROFILE.artifactDir}；E2E_STACK_PROFILE 选择，不设 = default）`
+    + `\n  profile 基线：${others.join('，')}（当前 profile 的基线判定见下一行）`
+}
+
 function runCompose(target: StackTarget, args: readonly string[]): void {
   const argv = composeArgv(target, args)
   const result = spawnSync(argv[0]!, argv.slice(1), { stdio: 'inherit', windowsHide: true })
@@ -202,6 +222,7 @@ async function status(args: readonly string[]): Promise<number> {
 
   const target = detectStackTarget()
   describeTarget(target)
+  log(profileStatusLine())
 
   // 健康判据 = 报告里带 ok / FAIL 前缀的那些项（容器 + PG / Redis 可达性）。
   // 端口占用与基线状态是**信息项**：数据栈本身可能完全健康（dev 服务占着 3001 也能跑别的），
@@ -249,6 +270,7 @@ async function status(args: readonly string[]): Promise<number> {
 async function up(): Promise<void> {
   const target = detectStackTarget()
   describeTarget(target)
+  log(profileStatusLine())
   log(`启动：docker compose -f ${target.composeFile} up -d`)
   runCompose(target, ['up', '-d'])
   log('已发出启动命令；等两个容器 healthy 用 `pnpm walnut e2e:stack:status` 复查')
@@ -264,6 +286,7 @@ async function down(args: readonly string[]): Promise<void> {
   const volumes = args.includes('--volumes') || args.includes('-v')
   const target = detectStackTarget()
   describeTarget(target)
+  log(profileStatusLine())
   log(`停止：docker compose -f ${target.composeFile} down${volumes ? ' -v（连数据卷一起删）' : '（保留数据卷）'}`)
   runCompose(target, volumes ? ['down', '-v'] : ['down'])
   log(volumes

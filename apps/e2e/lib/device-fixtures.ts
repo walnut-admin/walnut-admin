@@ -12,6 +12,7 @@
  */
 import type { Browser, BrowserContext, Page, TestInfo } from '@playwright/test'
 import { DEVICE_COOKIE_NAME, WEB_ORIGIN } from '../scripts/env.ts'
+import { localIpFor, STACK_PROFILE } from '../scripts/stack-profiles.ts'
 import { deleteDeviceRow, withPg } from './pg.ts'
 import { SIGN_USER_AGENT } from './protocol/sign.ts'
 import { deleteDeviceScopedKeys, deleteRiskDeviceState, withRedis } from './redis.ts'
@@ -34,11 +35,17 @@ export interface DeviceSession {
  * 都经静态代理过来，若 XFF 一律是 127.0.0.1，同一分钟内第 5 台设备登记就会 42900
  * （前端跳 /not-allowed?type=tooManyRequests，后续用例全挂）。
  * 127/8 既是 local（`is-localhost-ip` 判 true ⇒ getLocalLocation、零外网），又各自独立计数。
+ *
+ * **profile 偏移（P1-6）**：第三段按 profile 的 `ipSlot` 偏移（default 1–2、smoke 11–12、
+ * risk 21–22、network 31–32），公式在 `scripts/stack-profiles.ts` 的 `localIpFor`。必要性在
+ * Redis：`risk:rate:ip:<ip>:<分钟>` 是服务端键（同机共享 Redis），只有跨 profile 的 IP 段
+ * 不相交，才不会互相吃 4 次/60s 的额度。
  */
 let localIpSeq = 0
 export function uniqueLocalIp(): string {
   localIpSeq = (localIpSeq + 1) % 240
-  return `127.0.${1 + Math.floor(localIpSeq / 200)}.${10 + localIpSeq}`
+  // seq 当前是 1..239,0（取模后），与改造前的推进顺序一致；default profile 产出逐字相同
+  return localIpFor(STACK_PROFILE.ipSlot, localIpSeq)
 }
 
 /**

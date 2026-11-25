@@ -28,8 +28,10 @@
  * 容器与平台（P1-1）：容器名默认 `e2e-wsl-postgres`，用 `E2E_PG_CONTAINER` 覆盖；win32 经
  * `wsl -e bash -c "docker exec …"`（天然无窗口），其它平台直接 `docker exec`（见 scripts/pg-container.ts）。
  *
- * 安全闸：所有 dump/restore 只作用于 `walnut_e2e`（{@link assertE2eDatabase} 一族），
- * 与 prepare-db / lib/pg.ts 同一口径 —— 库名或端口不对就在动库之前抛错。
+ * 安全闸：所有 dump/restore 只作用于**当前 profile 的库**（{@link assertE2eDatabase} 一族），
+ * 与 prepare-db / lib/pg.ts 同一口径 —— 库名或端口不对就在动库之前抛错。清单里还有
+ * `profile` / `database` 两个字段（v3）：restore 前断言它们与当前 profile 一致，所以把 smoke 的
+ * dump 拷进 risk 目录也恢复不了（先 sha 校验、再库名字段）。
  */
 import type { BaselineManifest } from './baseline-manifest.ts'
 import { execSync } from 'node:child_process'
@@ -61,6 +63,7 @@ import { E2ePreconditionError } from './failure.ts'
 import { resolvePgContainer, runPgDumpToFile, runPgRestoreFromFile } from './pg-container.ts'
 import { prepareDatabase } from './prepare-db.ts'
 import { clearAppSettingCache, resetRuntimeRolePassword } from './runtime-reset.ts'
+import { STACK_PROFILE } from './stack-profiles.ts'
 
 export { MANIFEST_VERSION } from './baseline-manifest.ts'
 /**
@@ -192,7 +195,7 @@ function readManifestState(): ManifestState {
       reason: version === null
         ? `封板清单没有可识别的 manifestVersion（文件损坏？）：${BASELINE_MANIFEST_FILE}`
         : `封板清单是旧格式（manifestVersion=${version}，当前 ${MANIFEST_VERSION}）。`
-          + 'v1 → v2 不做迁移（旧清单没有 dataKey / credentials 的 sha，无法安全恢复）',
+          + '旧版本不做迁移（v1 缺 dataKey / credentials 的 sha；v2 缺 profile / database，无法证明跨 profile 配对）',
     }
   }
   if (!isBaselineManifest(parsed)) {
@@ -274,6 +277,17 @@ export function baselineUsable(): BaselineUsage {
     return {
       kind: 'invalid',
       reason: '封板清单记录了 dataDirty=true（封板时数据路径有未提交改动）—— 这份基线的数据无法证明与仓库一致',
+    }
+  }
+
+  // 跨 profile 配对（v3）：清单里的库名 / profile 必须与当前 profile 一致。放在 sha 之前 ——
+  // 「把 smoke 的 dump 拷进 risk 目录」是最容易发生的一种误配，报错要直接说清。
+  if (manifest.profile !== STACK_PROFILE.name || manifest.database !== E2E_PG_DB) {
+    return {
+      kind: 'invalid',
+      reason: `封板清单属于 profile=${manifest.profile} / 库=${manifest.database}，`
+        + `而当前是 profile=${STACK_PROFILE.name} / 库=${E2E_PG_DB} —— 跨 profile 的基线不能恢复`
+        + '（设计稿 P1-6：每个 profile 一套基线三件套）',
     }
   }
 
@@ -477,6 +491,8 @@ export async function sealBaseline(): Promise<void> {
     manifestVersion: MANIFEST_VERSION,
     sealedAt: new Date().toISOString(),
     gitCommit: gitHead(),
+    profile: STACK_PROFILE.name,
+    database: E2E_PG_DB,
     dataKey: snapshot.dataKey,
     dataDirty: snapshot.dirtyPaths.length > 0,
     migrationsHead: facts.migrationsHead,
@@ -504,8 +520,8 @@ export async function sealBaseline(): Promise<void> {
   }
 
   log(`seal 完成：${path.basename(BASELINE_DUMP_FILE)} ${dumpBytes} B（pg_dump ${formatSeconds(dumpMs)}，容器 ${container}，总 ${formatSeconds(Date.now() - started)}）`)
-  log(`清单 v${MANIFEST_VERSION}：HEAD ${shortSha(manifest.gitCommit)}、dataKey ${shortSha(manifest.dataKey)}${manifest.dataDirty ? '（脏）' : ''}、迁移头 ${facts.migrationsHead.id}（${facts.migrationsHead.name}）、菜单 ${facts.menuRows} 行、dump sha ${dumpSha256.slice(0, 12)}…、credentials sha ${credentialsSha256.slice(0, 12)}…`)
-  log(`基线文件与清单都在 gitignored 的 .e2e/（不入库）：${BASELINE_DUMP_FILE}`)
+  log(`清单 v${MANIFEST_VERSION}：profile=${manifest.profile}、库=${manifest.database}、HEAD ${shortSha(manifest.gitCommit)}、dataKey ${shortSha(manifest.dataKey)}${manifest.dataDirty ? '（脏）' : ''}、迁移头 ${facts.migrationsHead.id}（${facts.migrationsHead.name}）、菜单 ${facts.menuRows} 行、dump sha ${dumpSha256.slice(0, 12)}…、credentials sha ${credentialsSha256.slice(0, 12)}…`)
+  log(`基线文件与清单都在 gitignored 的 ${ARTIFACT_DIR}/（不入库）：${BASELINE_DUMP_FILE}`)
 }
 
 /**
@@ -527,6 +543,14 @@ export async function restoreBaseline(options: { maintenance: Client }): Promise
     throw new E2ePreconditionError(`${detail} —— 用 \`node scripts/run.ts --rebuild-baseline\` 重新封板`)
   }
   const manifest = state.manifest
+  // 直接调用 restoreBaseline 的路径（不带 baselineUsable）也要过 profile 配对：跨 profile 的 dump
+  // 即使 sha 全对，也不能恢复进当前库。
+  if (manifest.profile !== STACK_PROFILE.name || manifest.database !== E2E_PG_DB) {
+    throw new E2ePreconditionError(
+      `拒绝恢复：封板清单属于 profile=${manifest.profile} / 库=${manifest.database}，`
+      + `当前是 profile=${STACK_PROFILE.name} / 库=${E2E_PG_DB}`,
+    )
+  }
   const credentials = readBaselineCredentials(manifest)
 
   const container = resolvePgContainer()
@@ -597,7 +621,7 @@ export async function ensureTestDatabase(options: EnsureTestDatabaseOptions): Pr
 
   if (usage.kind === 'usable') {
     log(
-      `基线有效（封板于 ${usage.manifest.sealedAt}，HEAD ${shortSha(usage.manifest.gitCommit)}，`
+      `基线有效（封板于 ${usage.manifest.sealedAt}，profile ${usage.manifest.profile}，HEAD ${shortSha(usage.manifest.gitCommit)}，`
       + `dataKey ${shortSha(usage.manifest.dataKey)}，迁移头 ${usage.manifest.migrationsHead.id}，菜单 ${usage.manifest.menuRows} 行）`
       + '→ 从基线恢复（不跑迁移 / seed）',
     )

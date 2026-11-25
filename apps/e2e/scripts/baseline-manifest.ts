@@ -5,19 +5,25 @@
  * sha），但校验逻辑本身是纯函数 —— 与 git、pg、文件系统解耦后，vitest 可以直接钉住每一条
  * 「不可用」的形态，而不必真起一套数据栈。
  *
+ * **版本 3（P1-6 Phase A）**：新增 `profile` 与 `database` —— restore 前断言清单里的库名等于
+ * 当前 profile 的库名，所以即使把 smoke 的 dump 拷进 risk 目录也恢复不了（先 sha 校验、再库名）。
  * **版本 2（P1-1）**：清单同时充当「封板 meta」—— dump 与 credentials 的 sha / 字节数都在这里，
  * 三者是一对。版本 1（只有 dump 的 sha、没有 dataKey / credentials 的 sha）**不做迁移**：
- * 读到旧版本一律判「不可用」，提示重新封板。判据见 {@link manifestVersionOf}。
+ * 读到旧版本一律判「不可用」，提示重新封板。
+ *
+ * v2 → v3 与 v1 → v2 同口径：**缺字段就无法安全证明配对**，不迁移。升级后默认 profile 首次
+ * 运行会提示重封板（显式 `--rebuild-baseline`，一次性成本）。
  */
 
 /** 当前清单格式版本（形态变化时 +1；旧版本由 baseline.ts 判「不可用」并提示重封板） */
-export const MANIFEST_VERSION = 2
+export const MANIFEST_VERSION = 3
 
 /**
- * 封板清单（版本 2）= 「这份快照是什么」的全部可核对信息。
+ * 封板清单（版本 3）= 「这份快照是什么」的全部可核对信息。
  *
- * 它不是单纯记账：restore 逐个校验 —— dump 的 sha / 字节数、credentials 的 sha / 字节数、
- * dataKey（HEAD 数据树）、迁移头与菜单行数（恢复后的 sanity 断言）。任何一项对不上都拒绝恢复。
+ * 它不是单纯记账：restore 逐个校验 —— manifest 的 `profile` / `database` 与当前 profile 一致、
+ * dump 的 sha / 字节数、credentials 的 sha / 字节数、dataKey（HEAD 数据树）、迁移头与菜单行数
+ * （恢复后的 sanity 断言）。任何一项对不上都拒绝恢复。
  */
 export interface BaselineManifest {
   /** 清单格式版本（{@link MANIFEST_VERSION}） */
@@ -29,6 +35,10 @@ export interface BaselineManifest {
    * 漂移判定已换成 `dataKey`：只改文档的提交不再让基线失效。
    */
   gitCommit: string
+  /** 封板时的 stack profile（`default` / `smoke` / `risk` / `network`）；restore 前断言一致 */
+  profile: string
+  /** 封板时的库名（`walnut_e2e` / `walnut_e2e_<profile>`）；restore 前断言等于当前 profile 的库名 */
+  database: string
   /**
    * 数据树哈希：HEAD 上 {@link import('./e2e-data-paths.ts').E2E_DATA_PATHS} 的组合树哈希。
    * restore 前与当前快照比对，不一致说明「迁移 / seed 相对封板时已变化」→ 退出码 2。
@@ -76,6 +86,10 @@ export function isBaselineManifest(value: unknown): value is BaselineManifest {
   return value.manifestVersion === MANIFEST_VERSION
     && typeof value.sealedAt === 'string' && value.sealedAt !== ''
     && typeof value.gitCommit === 'string' && /^[0-9a-f]{40}$/.test(value.gitCommit)
+    // profile 名只做形态校验；「是否等于当前 profile」由 baseline.ts 断言（本模块保持无环境依赖）
+    && typeof value.profile === 'string' && /^[a-z]+$/.test(value.profile)
+    // 库名形态与 env.ts 的 E2E_DATABASE_PATTERN 同一口径（纯模块不 import env，避免拖进进程级副作用）
+    && typeof value.database === 'string' && /^walnut_e2e(?:_[a-z]+)?$/.test(value.database)
     && isSha256Hex(value.dataKey)
     && typeof value.dataDirty === 'boolean'
     && isRecord(head)
