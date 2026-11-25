@@ -253,7 +253,6 @@ catalog:
   cors: 2.8.6
   cropperjs: 2.1.1
   cross-env: 7.0.3
-  csv-parse: 6.2.1
   dayjs: 1.11.20
   detectincognitojs: 1.6.2
   driver.js: 1.4.0
@@ -261,7 +260,6 @@ catalog:
   echarts: 6.0.0
   eslint: 10.3.0
   eslint-plugin-turbo: 2.11.2
-  esno: 4.8.0
   express-csp-header: 6.3.1
   express-xss-sanitizer: 2.0.2
   fflate: 0.8.2
@@ -312,7 +310,6 @@ catalog:
   passport-oauth2: 1.8.0
   pg: 8.23.1
   pinia: 3.0.4
-  playwright: 1.59.0
   qrcode: 1.5.4
   qs: 6.15.1
   raw-body: 3.0.2

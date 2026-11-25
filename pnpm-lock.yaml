@@ -518,9 +518,6 @@ catalogs:
     cross-env:
       specifier: 7.0.3
       version: 7.0.3
-    csv-parse:
-      specifier: 6.2.1
-      version: 6.2.1
     dayjs:
       specifier: 1.11.20
       version: 1.11.20
@@ -542,9 +539,6 @@ catalogs:
     eslint-plugin-turbo:
       specifier: 2.11.2
       version: 2.11.2
-    esno:
-      specifier: 4.8.0
-      version: 4.8.0
     express-csp-header:
       specifier: 6.3.1
       version: 6.3.1
@@ -686,9 +680,6 @@ catalogs:
     pinia:
       specifier: 3.0.4
       version: 3.0.4
-    playwright:
-      specifier: 1.59.0
-      version: 1.59.0
     qrcode:
       specifier: 1.5.4
       version: 1.5.4
@@ -1650,21 +1641,12 @@ importers:
       cross-env:
         specifier: 'catalog:'
         version: 7.0.3
-      csv-parse:
-        specifier: 'catalog:'
-        version: 6.2.1
       eslint:
         specifier: 'catalog:'
         version: 10.3.0(jiti@2.7.0)(supports-color@5.5.0)
-      esno:
-        specifier: 'catalog:'
-        version: 4.8.0
       madge:
         specifier: 'catalog:'
         version: 8.0.0(supports-color@5.5.0)(typescript@6.0.3)
-      playwright:
-        specifier: 'catalog:'
-        version: 1.59.0
       supertest:
         specifier: 'catalog:'
         version: 7.2.2(supports-color@5.5.0)
@@ -8361,9 +8343,6 @@ packages:
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
-  csv-parse@6.2.1:
-    resolution: {integrity: sha512-LRLMV+UCyfMokp8Wb411duBf1gaBKJfOfBWU9eHMJ+b+cJYZsNu3AFmjJf3+yPGd59Exz1TsMjaSFyxnYB9+IQ==}
-
   cytoscape-cose-bilkent@4.1.0:
     resolution: {integrity: sha512-wgQlVIUJF13Quxiv5e1gstZ08rnZj2XaLHGoFMYXz7SkNfCDOOteKBE6SYRfA9WxxI/iBc3ajfDoc6hb/MRAHQ==}
     peerDependencies:
@@ -9270,10 +9249,6 @@ packages:
 
   esm-env@1.2.2:
     resolution: {integrity: sha512-Epxrv+Nr/CaL4ZcFGPJIYLWFom+YeV1DqMLHJoEd9SYRxNbaFruBwfEX/kkHUJf55j2+TUbmDcmuilbP1TmXHA==}
-
-  esno@4.8.0:
-    resolution: {integrity: sha512-acMtooReAQGzLU0zcuEDHa8S62meh5aIyi8jboYxyvAePdmuWx2Mpwmt0xjwO0bs9/SXf+dvXJ0QJoDWw814Iw==}
-    hasBin: true
 
   espree@10.4.0:
     resolution: {integrity: sha512-j6PAQ2uUr79PZhBjP5C5fhl8e39FmRnOjsD5lGnWrFU8i2G776tBK7+nP8KuQUTTyAZUwfQqXAgrVH5MbH9CYQ==}
@@ -22240,8 +22215,6 @@ snapshots:
 
   csstype@3.2.3: {}
 
-  csv-parse@6.2.1: {}
-
   cytoscape-cose-bilkent@4.1.0(cytoscape@3.34.0):
     dependencies:
       cose-base: 1.0.3
@@ -22983,6 +22956,7 @@ snapshots:
       '@esbuild/win32-arm64': 0.27.7
       '@esbuild/win32-ia32': 0.27.7
       '@esbuild/win32-x64': 0.27.7
+    optional: true
 
   escalade@3.2.0: {}
 
@@ -23319,10 +23293,6 @@ snapshots:
       - supports-color
 
   esm-env@1.2.2: {}
-
-  esno@4.8.0:
-    dependencies:
-      tsx: 4.21.0
 
   espree@10.4.0:
     dependencies:
@@ -29016,6 +28986,7 @@ snapshots:
       get-tsconfig: 4.14.0
     optionalDependencies:
       fsevents: 2.3.3
+    optional: true
 
   tsyringe@4.10.0:
     dependencies:
