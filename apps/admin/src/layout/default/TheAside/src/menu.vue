@@ -136,7 +136,9 @@ async function onUpdateValue(key: string, item: MenuOption & { meta?: MenuMeta }
 
 function onNodeProps(option: MenuOption) {
   return {
-    id: `${option.key}-menu-item`,
+    'id': `${option.key}-menu-item`,
+    // E2E 稳定选择器：侧边栏菜单项（每个节点都带，选第一条即「菜单已渲染」）
+    'data-testid': 'sidebar-menu-item',
   }
 }
 </script>
@@ -158,6 +160,7 @@ function onNodeProps(option: MenuOption) {
             : 0}rem`,
       }"
     >
+      <!-- data-testid：E2E 的应用外壳判据（登录成功后必须出现侧边栏菜单容器） -->
       <n-menu
         :id="appStoreSettingDev.getMenuId"
         v-model:expanded-keys="expandedKeys"
@@ -171,6 +174,7 @@ function onNodeProps(option: MenuOption) {
         :collapsed="appStoreMenu.getCollapse"
         :value="getCurrentMenuName"
         :node-props="onNodeProps"
+        data-testid="sidebar-menu"
         @update:value="onUpdateValue"
       />
     </WScrollbar>

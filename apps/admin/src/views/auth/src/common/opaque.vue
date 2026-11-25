@@ -65,7 +65,9 @@ const [register, { validate }] = useForm<typeof accountFormData.value>({
       componentProp: {
         clearable: true,
         inputProps: {
-          autocomplete: 'username',
+          'autocomplete': 'username',
+          // E2E 稳定选择器：登录用户名输入框（真实 <input> 上；文案与 CSS 类都可能变）
+          'data-testid': 'login-username',
         },
       },
       transitionProp: {
@@ -81,6 +83,10 @@ const [register, { validate }] = useForm<typeof accountFormData.value>({
       },
       componentProp: {
         onSubmit,
+        inputProps: {
+          // E2E 稳定选择器：登录密码输入框（Extra:Password 的根是包裹层，testid 必须进 input-props）
+          'data-testid': 'login-password',
+        },
       },
       transitionProp: {
         transitionName: 'fade-left-big',
@@ -134,6 +140,8 @@ const [register, { validate }] = useForm<typeof accountFormData.value>({
         class:
           'w-full rounded-full !bg-gradient-to-r !from-cyan-500 !to-blue-500',
         onClick: onSubmit,
+        // E2E 稳定选择器：登录提交按钮（按钮文案来自 DB 语言包，不能当选择器）
+        testId: 'login-submit',
       },
       transitionProp: {
         transitionName: 'fade-left-big',

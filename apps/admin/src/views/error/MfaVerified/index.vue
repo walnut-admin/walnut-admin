@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser'
 import type { InputInst } from 'naive-ui'
-import type { ComputedRef } from 'vue'
+import type { ComputedRef, InputHTMLAttributes } from 'vue'
 import { startAuthentication } from '@simplewebauthn/browser'
 import { WalnutAdminConstSysUserMfaType } from '@walnut/contract/mfa'
 import { computed, nextTick, onBeforeMount, ref, useTemplateRef } from 'vue'
@@ -36,6 +36,13 @@ const verifyCode = ref('')
 const errorMessage = ref('')
 const authenticationOptions = ref<PublicKeyCredentialRequestOptionsJSON>()
 const trusted = ref(false)
+
+/**
+ * E2E 稳定选择器要落在**真实 `<input>`** 上（`input-props` 才是它的落点）。
+ * `InputHTMLAttributes` 类型没有 `data-*` 索引签名，所以这里做一次窄 cast，
+ * 而不是把 testid 写在 `NInput` 组件上（那会落到包裹层 `<div>`，`fill()` 点不到）。
+ */
+const mfaCodeInputProps = { 'data-testid': 'mfa-code-input' } as unknown as InputHTMLAttributes
 
 // MFA 方法值集的单一真源是 @walnut/contract（server 侧同一数组做 enum 校验）
 const [mfaTotp, mfaWebauthn] = WalnutAdminConstSysUserMfaType
@@ -183,8 +190,10 @@ onBeforeMount(async () => {
 
     <template v-else-if="currentStep === 1">
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <!-- data-testid：E2E 点击 MFA 方法卡（第一个启用的方法）来进入 TOTP 步骤 -->
         <NCard
           v-for="method in mfaMethods.filter(m => m.enabled)" :key="method.key" :bordered="true"
+          data-testid="mfa-method-card"
           class="cursor-pointer transition-all duration-300 hover:shadow-lg" @click="selectMethod(method.key)"
         >
           <div class="flex items-start gap-4">
@@ -224,8 +233,10 @@ onBeforeMount(async () => {
         </p>
 
         <div class="mb-6">
+          <!-- data-testid：E2E 填写 6 位 TOTP 的输入框（placeholder 文案不是稳定契约） -->
           <NInput
             ref="nInputRef" v-model:value="verifyCode" placeholder="000000" size="large" maxlength="6"
+            :input-props="mfaCodeInputProps"
             :allow-input="(value: string) => /^\d*$/.test(value)" class="text-center text-2xl tracking-widest font-mono"
             @keyup.enter="verifyTotp"
           >
@@ -243,7 +254,8 @@ onBeforeMount(async () => {
           <NButton :disabled="loading" @click="goBackToMethodSelection">
             {{ $t('app.base.back') }}
           </NButton>
-          <NButton type="primary" :disabled="!canVerify" :loading="loading" @click="verifyTotp">
+          <!-- data-testid：E2E 的 MFA 提交按钮（当前走 Enter，保留按钮选择器供后续用例使用） -->
+          <NButton type="primary" data-testid="mfa-verify-submit" :disabled="!canVerify" :loading="loading" @click="verifyTotp">
             {{ $t('app.base.verify') }}
           </NButton>
         </NSpace>
