@@ -1,0 +1,99 @@
+# apps/e2e — 全链路 E2E 的包级指引
+
+> 先读根 `AGENTS.md`。**人看的操作手册是 [`README.md`](./README.md)（怎么跑）**，
+> 本文件只写「改这里的代码时必须守住什么」——按 agents.md 的「最近的赢」约定，不重复根文件。
+
+## 这一层是什么
+
+真实浏览器 × 真实后端进程（stage 产物）× **独立** PostgreSQL / Redis 栈（5433 / 6380，库
+`walnut_e2e`）。不测单元逻辑（各包 vitest 的事），只测跨端链路：设备身份签发与续期、CAP、
+签名握手、风控拦截、登录 / 首页 / 用户 CRUD。
+
+编排入口只有一个：`scripts/run.ts`（包脚本 `e2e` / `e2e:smoke` / `e2e:risk` / `e2e:network`
+都走它）。顺序是**硬约束**：抢 run 级锁 → `scripts/preflight.ts` → `prepareDatabase()`（在
+`scripts/prepare-db.ts`）→ `stack-info` → `playwright test`。
+
+## 前置命令（缺一项就按退出码 2 失败）
+
+```bash
+pnpm setup-env                                   # apps/server/env-local/.env.stage（seed 要 AUTH_OPAQUE_SECRET）
+pnpm walnut build:stage                          # admin → apps/admin/dist-staging
+pnpm --filter @walnut/server build:stage          # 后端 → apps/server/dist-stage
+pnpm --filter @walnut/e2e exec playwright install chromium
+```
+
+数据栈（本机是 WSL 常驻栈，四条 compose 命令见 README「WSL 常驻栈」）。**跑之前必须维持一个
+隐藏的 WSL 会话**，否则发行版会被空闲关机、容器随之中断：
+
+```bash
+powershell -NoProfile -Command "Start-Process wsl.exe -ArgumentList @('-d','Ubuntu-24.04','--','sleep','infinity') -WindowStyle Hidden"
+```
+
+**本机禁止弹任何可见窗口**：WSL 里的进程天然无窗口；Windows 侧的子进程一律 `windowsHide`
+（`scripts/pnpm.ts` 已统一设置），别再 `start` 一个终端。
+
+## 命令
+
+```bash
+pnpm walnut e2e           # 全量（含 @network）
+pnpm walnut e2e:smoke     # 冒烟：setup + UI 登录 / 首页 / 用户 CRUD
+pnpm walnut e2e:risk      # 设备生命周期（不含 @network）
+pnpm walnut e2e:network   # 只跑 @network（依赖真实外网）
+pnpm walnut e2e:report    # 打开上一轮 HTML 报告（常驻本地服务）
+node apps/e2e/scripts/preflight.ts   # 只查前置，不动库
+node apps/e2e/scripts/prepare-db.ts  # 只重建库（自己抢锁、只罩这一段）
+pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
+```
+
+## 端口与安全闸
+
+| 用途 | 端口 | 备注 |
+|------|------|------|
+| 后端（dist-stage） | 3001 | `webServer.command = pnpm run start:stage`，cwd 是 `apps/server` |
+| 后端 socket.io | 3002 | 与 3001 分开，避免与 dev 的 3000 混 |
+| 静态代理（伺服 dist-staging + `/api` `/socket` 反代） | 4173 | `scripts/static-server.ts` |
+| PostgreSQL / Redis | 5433 / 6380 | 库名必须逐字 `walnut_e2e` |
+
+安全闸分两层：`scripts/env.ts` 的 `assertE2e*`（实参是常量时是**恒真的机械标记**，防将来把
+常量换成字面量），以及 `lib/pg.ts` 连上之后 `SELECT current_database()` 的**真断言**。要动
+「连哪个库 / 哪个端口」的代码，先读这两处的注释。
+
+## 必须保持的不变量
+
+1. **`SIGN_USER_AGENT` 只有一份**（`lib/protocol/sign.ts`）。`playwright.config.ts` 的
+   `use.userAgent` 与 `newBrowserContext` 都必须 import 它 —— 签名原文取 `navigator.userAgent`，
+   与请求头必须逐字一致；另抄一份迟早漂移，症状是 40112「签名无效」。
+2. **XFF 只加在同源 `/api/` 请求上**（`installRealIpRoute`）。整包 `extraHTTPHeaders` 会让
+   cap.js 从 jsDelivr 拉 WASM 的请求也带上自定义头 → CORS 预检失败 → cap-widget 进错误态。
+3. **prepare-db 必须在 `playwright test` 之前**：Playwright 的 webServer 先于 globalSetup 启动，
+   而 webServer 里的后端一连库就要有库。别把建库挪进 globalSetup。
+4. **`POST /system/device/initial` 是 4 次 / 60 秒 per realIp**：每条用例、每个协议客户端都要一个
+   独立的 127/8 地址（`uniqueLocalIp()`）。共用 127.0.0.1 会让第 5 台设备登记撞 42900。
+5. **Redis 只按 deviceId 精确删**（`deleteDeviceScopedKeys`），**绝不 FLUSHDB / FLUSHALL**
+   （compose 里这两个命令已被重命名禁用）。键形对齐 `apps/server/libs/const/src/app/cache.ts`，
+   服务端改键形时这里要同步。
+6. **一台机器同一时间一个全量 run**：锁在 `scripts/pg-lock.ts`，由 `run.ts` 整轮持有。两个
+   worktree 并发时第二个等锁，120s 内抢不到就报持锁者并退出（不排队、不静默）。
+7. **storageState 不可复用**（IndexedDB 里的 AES `CryptoKey` 恢复不了，Phase 0 gate 已判死）：
+   别再加 `auth.setup` 的写盘、别在 project 上挂 `storageState` —— 坏状态会把应用卡在 splash。
+8. **trace / 截图 / HTML 报告含请求头与响应体**（token、cookie）：只留本机，**不许上传任何
+   公开位置**。
+9. **CAP 节流与设备目录的「放宽」只改库**：prepare-db 每轮重建库并把 `capjs.config.throttleLimit`
+   调大（仅本栈库的设置行）。别把测试专用的放宽写进源码。
+10. **设备清理归 fixture**（`tests/fixtures.ts` 的两个 auto fixture）：新造的设备要 `trackDevice`，
+    别在用例末尾手写 `cleanupDevices(...)` —— 断言失败时那几行根本不会执行。
+
+## 排障
+
+- **4173 被残留进程占用（实测案例）**：默认**不复用**已监听的进程（`E2E_REUSE_SERVER=1` 才
+  opt-in，理由见 `playwright.config.ts`），端口被占时 preflight 直接按退出码 2 失败。
+  `netstat -ano | findstr :4173` 找到残留的 node 停掉再跑。别用「打开复用」绕过去 ——
+  那会连到旧产物 / 旧库的后端。
+- **5433 / 6380 连不上**：`docker compose ps` 看两个容器是否 healthy；再 `wsl -l -v` 看发行版
+  STATE（会被空闲关机），必要时重起隐藏会话。
+- **登录框等不出来 / 页面停在 `forbidden`**：先看 `.e2e/stack.json` 的 `artifacts.*.mtime`
+  （是不是旧产物），再看 4173 是不是被别的静态服务占着。
+- **40109「重复认证」**：同设备同用户残留了 active refresh token。重登链路要
+  `clearRefreshTokensForDevice` + `deleteAuthSessionsForDevice`（`reloginOnSameDevice` 是范本）。
+- **改了服务端缓存键 / 节流参数**：先回 `apps/e2e/lib/redis.ts` 与 prepare-db 的放宽逻辑对一遍，
+  两边按键名逐字对应。

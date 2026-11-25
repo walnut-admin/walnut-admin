@@ -284,11 +284,13 @@ export const COMMANDS: readonly Command[] = [
     id: 'e2e',
     group: '门禁',
     label: '全链路 E2E（独立 PG/Redis 栈 + dist-stage 后端 + dist-staging 前端）',
-    why: '跨端链路（设备身份、CAP、签名握手、风控）只有真实浏览器 + 真实后端能验；这条命令先重建独立库'
-      + '（walnut_e2e / 5433 / 6380，绝不碰 dev 库）再跑 setup + smoke + risk 全部 spec。'
-      + '刻意不进 prepush 与 ci:local：要 Docker 栈、已构建的 dist-stage/dist-staging 与浏览器，'
-      + '重活不属于推送前门禁。',
-    // 先 prepare-db（drop/建库/迁移/seed/root 提升）再 playwright test；顺序写在包脚本里
+    why: '跨端链路（设备身份、CAP、签名握手、风控）只有真实浏览器 + 真实后端能验；这条命令先查前置、'
+      + '抢 run 级锁、重建独立库（walnut_e2e / 5433 / 6380，绝不碰 dev 库）再跑全部 spec。'
+      + '**前置**：`pnpm setup-env`（apps/server/env-local/.env.stage）、`pnpm walnut build:stage` 与'
+      + '`pnpm --filter @walnut/server build:stage`、`pnpm --filter @walnut/e2e exec playwright install chromium`、'
+      + '数据栈在 5433 / 6380 可达（WSL 形态还要一个隐藏会话）。全量含 @network 用例（依赖真实外网，'
+      + '离线时改用 e2e:risk）。刻意不进 prepush 与 ci:local：重活不属于推送前门禁。',
+    // 顺序写在 apps/e2e/scripts/run.ts：锁 → preflight → prepare-db → stack-info → playwright test
     argv: ['-C', 'apps/e2e', 'run', 'e2e'],
     budgetMs: 0, // 整套分钟级，且含 webServer 启停（不给入口层套上限）
   },
@@ -296,7 +298,9 @@ export const COMMANDS: readonly Command[] = [
     id: 'e2e:smoke',
     group: '门禁',
     label: 'E2E 冒烟子集（setup + UI 登录/首页/用户 CRUD）',
-    why: '改前端或后端引导链后先跑这一组：它含 UI 登录与 MFA，能最快回答「栈还活着吗」。',
+    why: '改前端或后端引导链后先跑这一组：它含 UI 登录与 MFA，能最快回答「栈还活着吗」。'
+      + '前置与 e2e 相同（setup-env / 两处 build:stage / playwright install / 数据栈），'
+      + '但它不碰 @network，离线也能跑。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:smoke'],
     budgetMs: 0, // 同 e2e：分钟级 + webServer 启停
   },
@@ -304,17 +308,20 @@ export const COMMANDS: readonly Command[] = [
     id: 'e2e:risk',
     group: '门禁',
     label: 'E2E 风险子集（设备 ID 全生命周期）',
-    why: '设备签发 / 40605 自愈 / 滑动续期 / 封禁锁定 / 新设备 CAP 这些链路只有这一组 spec 守着。',
+    why: '设备签发 / 40605 自愈 / 滑动续期 / 封禁锁定 / 新设备 CAP 这些链路只有这一组 spec 守着。'
+      + '依赖真实外网的用例带 @network 标记、由 e2e:network 单独跑，所以这一组离线应全绿；'
+      + '前置同 e2e。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:risk'],
     budgetMs: 0, // 同 e2e
   },
   {
-    id: 'e2e:report',
+    id: 'e2e:network',
     group: '门禁',
-    label: '打开上一轮 E2E 的 HTML 报告',
-    why: '失败回放（trace / 截图 / 网络）在 Playwright 报告里；产物落在 gitignored 的 playwright-report/。',
-    argv: ['-C', 'apps/e2e', 'run', 'e2e:report'],
-    budgetMs: 0, // 起本地报告服务，常驻
+    label: 'E2E 外网子集（@network：真实 geoip 定位）',
+    why: '这条只跑标了 @network 的用例（当前是非 local IP 走 api.ip.sb 的真实定位）：**它依赖真实外网**，'
+      + '断网 / 代理拦截时必红，所以从 risk 子集里隔离出来。前置同 e2e（只多一个外网可达）。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:network'],
+    budgetMs: 0, // 同 e2e
   },
   {
     id: 'boundaries',
@@ -689,6 +696,15 @@ export const COMMANDS: readonly Command[] = [
   },
 
   // ── 工具 ──
+  {
+    id: 'e2e:report',
+    group: '工具',
+    label: '打开上一轮 E2E 的 HTML 报告',
+    why: '它**不是门禁**：起一个常驻的本地报告服务，看完手动关。失败回放（trace / 截图 / 网络）在'
+      + 'Playwright 报告里；产物落在 gitignored 的 playwright-report/（含 token，别上传）。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:report'],
+    budgetMs: 0, // 起本地报告服务，常驻
+  },
   {
     id: 'scaffold:lib',
     group: '工具',

@@ -53,6 +53,7 @@ tooling/                 ← 工具链（判据「给仓库自己用、不随业
 | `apps/server/` | [`apps/server/AGENTS.md`](./apps/server/AGENTS.md) | 内部 Nest monorepo 的形态、`@walnut-server/*` 命名空间策略、必须从本目录运行的命令、Repository / Shared Service 与 DTO 规则、**Guard 顺序**（全部后端规矩） |
 | `apps/admin/` | [`apps/admin/AGENTS.md`](./apps/admin/AGENTS.md) | `@/*` `~/*` 别名、**禁止隐式全局**、组件与 store 的约定 |
 | `apps/docs/` | [`apps/docs/AGENTS.md`](./apps/docs/AGENTS.md) | VitePress 结构、**死链校验与 `${{ }}` 两个坑**、新增页面要改侧边栏 |
+| `apps/e2e/` | [`apps/e2e/AGENTS.md`](./apps/e2e/AGENTS.md) | 全链路 E2E 的编排顺序（锁 → preflight → 重建库 → playwright）、端口与安全闸、**必须保持的不变量**（UA 只一份、XFF 只加 `/api/`、不 FLUSH Redis、一台机器一个全量 run）与排障 |
 
 `packages/**` 目前没有包级指引 —— 有非显然规则时再加，**不要为凑数而写**。各 app 的具体规则只在
 对应那份文件里，本文件**不重复**。

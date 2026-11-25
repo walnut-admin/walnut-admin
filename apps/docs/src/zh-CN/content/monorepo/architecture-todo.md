@@ -18,7 +18,7 @@
 | ~~P0~~ | 阻塞首次发版 | **当前为空** —— 唯一的 tag 发布链路端到端验证已被决定推迟，见下面「搁置」一节 |
 | ~~P1~~ | **没有任何东西在看这一面**（不是「哪里写错了」） | **当前为空** —— 已知的几面都有人看着：turbo tags 反向断言、根脚本形态、脚本入口两条 ESLint、动态 import、madge 0 环、四道文档门禁。2026-11-04 复核无新增 |
 | **P2** | 维护性 / 体验改善，成本有据 | TS 7 迁移准备 · store 工厂迁移 |
-| **P3** | 远期 / 条件触发 | 后端验证策略落地 · E2E · 组件文档补写 · 两处安全观察 · `@walnut/i18n`/`@walnut/security` 新包 · Phase 4 组件自动注册 · `Global/AI` 评审缺陷 · 基建注释历史账 · env 模板三个 `VITE_*` · `list` 旧 `query` 兼容路径退役 · 设备缓存 TTL 兜底自愈 |
+| **P3** | 远期 / 条件触发 | 后端验证策略落地 · E2E 收尾（Phase 2/3） · 组件文档补写 · 两处安全观察 · `@walnut/i18n`/`@walnut/security` 新包 · Phase 4 组件自动注册 · `Global/AI` 评审缺陷 · 基建注释历史账 · env 模板三个 `VITE_*` · `list` 旧 `query` 兼容路径退役 · 设备缓存 TTL 兜底自愈 |
 | **搁置** | 等条件成熟（外部依赖，或已决定先不动） | `pnpm peers check` · knip · tag 发布链路端到端验证 · GitHub Environments · 国内 self-hosted runner · 锚点校验 |
 | **未裁决** | 连「做不做」都还没定 | `C4` / `C5` / `C6` + 2026-09-21 评审遗留的 4 条设计选型 |
 
@@ -159,7 +159,7 @@
 | 事项 | 成本 | 判据与证据 |
 |---|---|---|
 | **后端验证策略（落地）** | **L** | 方向不变、前提已变：NestJS 12 已官方支持 Standard Schema（`@Body({ schema })` + `StandardSchemaValidationPipe`，同一 schema 还能驱动 OpenAPI），class-validator 仍完全支持、无移除计划。真正的缺口不在「换校验器」，而在**持久化读回 / 队列 / SSE** 三处边界校验 —— 补不上这三处，这次迁移就不值得做（详见 [ADRs 0016](../adr/0016-validation-strategy.md) 与 [zod 评估](../adr/zod-evaluation.md) 末尾的 2026-11-04 订正） |
-| **E2E 测试（Playwright）** | **L** | 先覆盖单元 + 集成；E2E 等测试体系稳定后再加 |
+| **E2E 收尾（Phase 2/3）** | **L** | **第一阶段已落地**（2026-11-25）：`apps/e2e` 是独立 workspace 包，Playwright 跑真实浏览器 × dist-stage 后端进程 × 独立 PG/Redis 栈（5433 / 6380，库 `walnut_e2e`），已有冒烟（UI 登录 / 首页 / 用户 CRUD）与设备 ID 全生命周期（签发 / 40605 自愈 / 滑动续期 / 封禁锁定 / 新设备 CAP）。**剩余**：Phase 2 的页面对象与断言改造（永真与时序断言、CAP/MFA 等待窗口、testid）、Phase 3 的更多业务链路。判据：新增跨端链路时先问「它能不能在这一层被测」，能就别只补接口测试 |
 | **按新命名补写组件文档** | **L** | 正典是 `content/frontend/component/index.md` 规划的那套（kebab-case + 六个目录）。现状：规划里的页面一篇未写，旧树 42 篇仍在 sidebar 里可达（写完之前先留着，否则组件文档就没入口了）。完成标志：新页存在 → 旧树删除 → sidebar 改指 → `index.md` 的纯文本改回链接（要过 `build:docs` 死链校验） |
 | **两处业务代码的安全观察**（只登记不动手） | **S** | ① `apps/admin/src/utils/window/open.ts` 的 `openOAuthWindow` 调 `window.open` 没带 `noopener`；**但「照抄加上」是错的** —— 调用点在 `views/auth/src/shared/other.vue` 接住了返回值并靠它 `close()` 关窗，而带 `noopener` 时 `window.open` 返回 `null`（静默失效）。好在该流程的结果走 SSE，不依赖 `window.opener`。② 开 `no-dangerous-html` 类规则会立刻命中 4 个 `v-html`（`components/Global/AI/**`）与 2 处 `innerHTML = ''`（清空、非注入）—— 按「一排开始误报的门禁等于没有门禁」，现在不该开 |
 | **`@walnut/i18n` / `@walnut/security` 新包** | **L** | 目录都未创建。**真正的前置是前端组合根**：不先做显式 `createWalnutApp(options)`，这两个包落不了地（seam 形态也未定，见「未裁决」） |
@@ -189,7 +189,11 @@
   因此也不该进产品源码与生产产物：连工具一起住这里（`module-graph.ts` 只解析 import 图，
   没有 `@Module` 也不是运行期代码）。这批 spec 不在 `src/` 下，由 `vitest.config.ts` 的
   `include` 单独点名，漏收就会静默不跑。
-- **e2e**：`apps/server/apps/api/test/e2e/`。
+- **e2e**：`apps/server/apps/api/test/e2e/`（vitest，`test:e2e` 脚本；装配真实 AppModule 直打
+  Nest 实例，验的是服务端 HTTP 栈）。**全链路 E2E 不是这一层**：它在 `apps/e2e/tests/`
+  （Playwright，`pnpm walnut e2e`）—— 真实浏览器 × 真实后端进程 × 独立 PG/Redis 栈，
+  验跨端链路（设备身份、CAP、签名握手、风控）。判据：用例需要浏览器或需要「库被重建过」时才去
+  `apps/e2e`，否则留在 server 的 vitest 里。
 
 > 这次重整**只动位置、不动内容**（用例集合不变），所以「目录约定」不是新增纪律，而是把已经落地的
 > 事实写下来 —— 新增用例按**被测对象**选目录，不按「上一批放哪」。
