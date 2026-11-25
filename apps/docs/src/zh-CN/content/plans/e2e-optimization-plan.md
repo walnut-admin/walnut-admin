@@ -222,6 +222,21 @@ jobs:
 
 **工作量级**：M（工作流 + 首次跑通 + artifact 验证）。
 
+**落地记录（2026-11-25）**：工作流落地为 `.github/workflows/e2e.yml`（`schedule` 每日 UTC 19:00 ≈ 北京 03:00 + `workflow_dispatch`，`concurrency` 固定 group、不取消在途，`ubuntu-latest`、`timeout-minutes: 60`；job 级 `services` 起 `postgres:18-alpine` / `redis:8-alpine`，端口 5433 / 6380、凭据与 `apps/e2e/scripts/env.ts` 逐字一致）。与草案的三处**事实修正**（实施时读代码 / 过 actionlint 才发现，均已写进 workflow 文件头注释）：
+
+1. **services 不支持 `command:`**（GitHub 的 services 只认 image / env / ports / volumes / options，actionlint 判非法）—— 草案里的 `command: ['redis-server', '--requirepass', …]` 用不了，官方 redis 镜像也没有「env 设密码」的入口。做法：多一步 `docker exec <service 容器> redis-cli CONFIG SET requirepass e2e_redis_only`（容器名由 runner 生成，按镜像名定位）；health check 写成 `redis-cli -a … ping || redis-cli ping`，设密码前后都成立。
+2. **CI 上必须 `E2E_SKIP_BASELINE=1`**：封板 / 恢复的 `pg_dump` / `pg_restore` 在本机是 `wsl -e bash -c "docker exec e2e-wsl-postgres …"`（`apps/e2e/scripts/baseline.ts` 的 `PG_CONTAINER`），而 runner 上既没有 WSL、也没有这个容器名。所以「无基线 → 自动全量 prepare + seal」这条路径**在 GitHub 上不成立**：seal 那一步必然失败。工作流显式跳过基线、每轮全量 prepare（测试栈秒级）；把容器名参数化是 P1-1 的范围，本工作流不越界。
+3. **artifact 严格口径**（所有者 2026-11-25 拍板）：只上传 junit / results.json / 脱敏 backend.log / stack.json / 基线清单五样，一个 `upload-artifact@v4` 步骤、`retention-days: 7`、`include-hidden-files: true`（`stack.json` 与基线清单在 `.e2e/` 点目录里，默认会被跳过）；trace / 截图 / HTML 报告**一律不上传**。上传前另有 `apps/e2e/scripts/redact-log.ts` 兜底脱敏（`if: always()`）。
+
+步骤顺序按草案：checkout（fetch-depth 0）→ pnpm/action-setup + setup-node 24（cache pnpm）→ `pnpm install --frozen-lockfile` → env 解密（secret 绑 **job 级 env**，step 里 `printf` 写 `.env.keys` → `pnpm setup-env` → 立即 `rm`）→ `pnpm build`（utils / contract 的 CJS dist 是硬前置）→ 两处 stage 构建 → `playwright install --with-deps chromium`（**不缓存**）→ `CONFIG SET` 设 redis 口令 → `pnpm walnut e2e`。`pnpm walnut lint:workflows`（actionlint）与 `lint:workflows-shell`（逐块 `bash -n`）在本地跑绿。**本机没有 GitHub runner，工作流尚未做过真实首跑**；首跑前按可能性排序的已知风险：
+
+1. **`pnpm build` 的时长**：它会连文档站一起构建（VitePress 死链门禁），install + build 可能占掉预算的一大半；若 job 接近上限，先把 docs 排除出这条路径，而不是抬 `timeout-minutes`。
+2. **services 镜像 tag**：`postgres:18-alpine` / `redis:8-alpine` 必须仍可拉取；镜像大版本更新后健康检查命令与初始化行为可能变。
+3. **`CONFIG SET requirepass` 那一步**：依赖 runner 上 `docker ps` / `docker exec` 可用，且本 job 只有一个 `redis:8-alpine` 容器；它排在 e2e 之前，坏了会先红、定位直接。
+4. **`setup-env` 对 secret 的依赖**：`ENV_KEYS` 必须与本地 `.env.keys` **全文一致**（多行、含各环境密钥行）；轮换密钥后忘记同步 secret 会在这里失败（`::error::` 文案已指向它）。
+5. **首轮必然全量 prepare**（没有基线）：`E2E_SKIP_BASELINE=1` 与 `--rebuild-baseline` / `E2E_REBUILD_BASELINE=1` 互斥，别在 workflow 里同时给。
+6. **`@network` 用例依赖 api.ip.sb**：runner 出网策略变化会让 U1b 红 —— 那是这条用例的设计意图（证明真实定位），不是 flake；离线 / 内网 runner 上才考虑只跑 `--project=risk`。
+
 ---
 
 #### P0-2 修正离线口径：把外部依赖从默认路径里拿掉
@@ -422,6 +437,18 @@ jobs:
 - 其余不碰。
 
 **工作量级**：M。
+
+**落地记录（2026-11-25）**：五项全部落地（提交 `test(e2e): 可诊断性——…`，hash 见 git log）。逐项口径：
+
+1. **reporter**：`playwright.config.ts` 的 reporter 现在是 `list` + `html`（`open: 'never'`，只留本机）+ `junit`（`test-results/junit.xml`）+ `json`（`test-results/results.json`）；三处路径都从 `apps/e2e/scripts/env.ts` 的 `TEST_RESULTS_DIR` 派生（`outputDir` 同源），不再各写一遍。
+2. **后端日志落盘**：新增 `apps/e2e/scripts/start-backend.ts` 作为后端 `webServer.command`（`cwd` 用 `apps/e2e`，脚本自己把子进程 cwd 设成 `apps/server`）。它 spawn `pnpm --silent run start:stage`，把 stdout/stderr **按整行** tee 到控制台与 `test-results/backend.log`，写入前过 `lib/redact.ts` 的 `redactText`（Authorization / Cookie / Set-Cookie / x-sign / 密码 / token / session / `d1_` 设备 id / JWT / `s:` 签名 cookie）。按整行处理是关键：值不跨换行，半个 token 落在两次 chunk 里就匹配不到。**静态代理不套包装**：它只打印一行启动日志、不含请求头与响应体，失败走 stderr（本来就 `stderr: 'pipe'` 转给 reporter）；给它单开日志只会多一个「要不要上传」的口子。
+3. **失败现场 attach**：`tests/fixtures.ts` 的 test 作用域 auto fixture 在 `testInfo.status` 不是 `passed` / `skipped` 时 attach 三份：`stack.json`（字段白名单 + `credentialsFile` 只留路径）、`baseline-manifest.json`（sha / 迁移头 / 菜单行数）、`recent-envelopes.json`（最近 20 条，只取 url/status/code/msg，无响应体）。**按 `path` attach**（先写进用例 output 目录）而不是 `body`：body 只活在 reporter 内存里，junit 不列、盘上没有文件，取证与负对照都无从谈起。内容统一过 `redactDeep`（字符串值走文本规则、敏感 key 的值整段丢弃，输出仍是合法 JSON）。
+4. **产物新鲜度**：新增 `apps/e2e/scripts/freshness.ts`（`git log -1 --format=%ct -- apps/admin/src apps/server/apps apps/server/libs packages` vs 两处产物 mtime）。preflight 只**警告**（存在「故意验证旧产物」的合法用法），`stack.json` 增加 `freshness`：`sourceCommitAt` / `artifactAgeMinutes`（now − mtime）/ `artifactLagMinutes`（落后源码多少分钟，> 0 才告警）。实测本机旧产物场景（server `main.js` 比 admin 产物旧一天）现在会打 WARN。
+5. **失败上下文**：`waitForEnvelope` 超时、`loginViaUI` 失败、`ensureLoggedIn` 的等待超时、`waitForDeviceHealSettled` 的两处硬失败都带：当前 URL、页面标题、cap-widget 状态（不在 DOM / 可见未解出 / 不可见）、localStorage 设备 id、最近 12 条业务响应（method/url/status/code/msg，URL 与 msg 过脱敏）。取值全部尽力而为：page 已关闭只让对应行退化成「不可读」，绝不让取证本身抛错。顺带修正 `captureEnvelopes` 的采集面：**只收同源 `/api/` 的 JSON**（Sentry / iconify 这类第三方 JSON 会把「最近 12 条」挤成它们的请求序列）。
+
+**新增单测**（仓库纪律：新增纯函数必须补测试）：`lib/redact.test.ts`（11 条：各类敏感值 / 不误杀 / 幂等 / `redactDeep` 不改入参）与 `apps/e2e/scripts/freshness.test.ts`（4 条）。e2e 包因此新增了**最小 vitest 配置**（`vitest.config.ts`，共享预设 + `coverageInclude: false`，只收 `*.test.ts`）与 `test` 脚本 —— Playwright 的 `*.spec.ts` 仍只经 `run.ts` 跑，两者发现规则物理分开；§2.1 说的「e2e 刻意没有 `test` 脚本」现在精确化为「**没有会跑 Playwright 的 test 脚本**」。
+
+**实测（2026-11-25，本机 WSL 栈）**：负对照 —— 把 `tests/smoke/home.spec.ts` 的 `waitForEnvelope` 判据临时改成不存在的业务码 + 1s 超时 → `junit.xml`（4 用例、1 error）与 `results.json`（`stats.unexpected = 1`）生成且可解析；junit 的 `<error>` 里是完整失败上下文（URL / 标题 / cap-widget / 设备 id / 11 条业务响应）；用例 output 目录下 `stack.json` / `baseline-manifest.json` / `recent-envelopes.json` 三个附件与 `attachments/` 副本都在，junit 的 `[[ATTACHMENT|…]]` 也列全；`backend.log` 41 处 `<redacted>`，用失败消息里的**真实设备 id** grep 该日志 **0 次**，JWT / `d1_` 形态各 0 次。还原后 `e2e:smoke` 4/4 绿（52s）。全量 `--rebuild-baseline` **13/13 绿、3.5 分钟**（wall 221s，Playwright 自报 209.7s）；紧接着的 restore 轮 **13/13、202s**。最终提交后又复跑两轮：restore 轮 **13/13、237s**、`--rebuild-baseline` 轮 **13/13、305s**（后者是当天连续第三轮全量、机器负载偏高）。读数区间 **202–305s**；单条 UI 登录（CAP + MFA）仍是绝对大头（21–57s）。与 P0-3 那次 2.9 分钟读数的差异落在真实外网（`@network` / Sentry / iconify）与 UI 登录耗时上，**不是** reporter 或日志 tee：reporter 只多出 junit 3.6KB + results.json 22KB 的收尾序列化，backend.log 是 700KB 量级、按行同步写入。
 
 ---
 

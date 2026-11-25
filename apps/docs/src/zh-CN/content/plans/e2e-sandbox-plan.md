@@ -195,6 +195,7 @@ pnpm --filter @walnut/e2e types:check
   - **浏览器不缓存**：`playwright install chromium` 每次装。缓存它的收益不值得多一条「缓存坏了导致假红」的路径。
   - **`concurrency` 防并行**：同一时间只允许一份 e2e 工作流在跑（group 固定、不取消在途）。
   - 跑全量（`pnpm walnut e2e`，含 `@network`）；失败时上传 `playwright-report/` 与 `test-results/` artifact，**私有仓库保留 7 天**。
+- **2026-11-25 追记（所有者拍板）**：artifact 按**严格模式**执行 —— 只上传 junit / json / **脱敏后的**后端日志 / `stack.json` / 基线清单五样。本段草案里「上传 `playwright-report/` 与 `test-results/`」**作废**：trace / 截图 / HTML 报告含请求头与响应体（token、cookie），只留本机。[`apps/e2e/AGENTS.md`](https://github.com/walnut-admin/walnut-admin/blob/main/apps/e2e/AGENTS.md) 的**不变量 8 维持原文，不改**。实施细节与实测见 [E2E 改造优化方案](./e2e-optimization-plan.md) 的 P0-1 落地记录。
 - **前置**：runner 上怎么起数据栈在实施时定，结论记进结果记录。两种形态都可用：用 job service 容器起 PG / Redis（同版本镜像），或直接在 runner 上跑 compose。**不得**把部署 compose 拿来改。
 - **文档**：`apps/e2e/README.md` 加「CI 上的形态」一节（前置、命令、artifact、怎么复现失败）；ADR 0009 的 CI 表补一行 e2e 工作流（带日期追记，不改原文）。注意 `apps/e2e/README.md` 没有字数预算，但仍守住「一条规则只写一次」。
 

@@ -10,6 +10,7 @@
 |----------|------|------|----------------|
 | `ci.yml` | push `main`、PR | 门禁步骤一律调入口（`pnpm walnut <id>`）：boundaries → affected lint/types:check/test → 根级配置 lint（`pnpm walnut lint:root`，不进 affected 图）→ affected 自检 → syncpack → `pnpm change check` → server 构建（+ 有 secret 时 admin 构建） | ❌ |
 | `workflow-lint.yml` | `.github/**` 变更 | actionlint 校验所有 workflow 与本地 composite action | ❌ |
+| `e2e.yml` | `schedule`（每日 UTC 19:00 ≈ 北京 03:00）、`workflow_dispatch` | 全链路 E2E：services 起 PostgreSQL / Redis → 解密 env → 全量构建 + 两处 stage 产物 → `pnpm walnut e2e`（含 `@network`）。**不进 PR** | ❌ |
 | `release.yml` | tag `v*.*.*`，或 `workflow_dispatch`（**ref 选那个 tag**） | verify ∥ images → GitHub Release → 自动部署；手动补跑时可勾 `skip_deploy` —— **只验证镜像构建、不碰生产** | ✅ 仅此一处 |
 | `deploy.yml` | `workflow_call`（被 release 复用）/ `workflow_dispatch`（回滚重发） | 纯部署：校验镜像存在 → 生成 env → scp → `compose pull && up -d --wait` → 健康检查 → **部署后验证（post-verify）**。入参 `image_tag`（必填）+ `environment`（默认 `prod`，目前只有 `prod`） | ❌ |
 
@@ -28,6 +29,12 @@
 > 完整取舍与实测数字见 [Turbo 缓存边界](./turbo-cache-boundary) 第七节。
 
 GitHub Release 的**正文不是 CI 生成的**：`pnpm release` 在打 tag 前把本次发版的整仓段落写进根 `changelog-latest.md`，并**随 release commit 一起提交**；`release.yml` 的 release job checkout 到该 tag 后直接 `body_path: changelog-latest.md`（所以发版机不需要任何能改远端内容的凭据，旧 tag 重跑也能复现同一份正文）。
+
+### E2E 不进 PR：nightly + 手动 dispatch
+
+全链路 E2E（`apps/e2e`）**刻意不进 PR 门禁**：PR 的 quality 已约半小时，再叠 install / 两次 stage 构建 / 浏览器安装会把反馈时间推得不可接受；fork PR 没有 `ENV_KEYS` secret，也构建不出 admin 产物。它承担的是「周期性证据 + 真实链路」：`.github/workflows/e2e.yml` 每天 UTC 19:00（北京 03:00）跑一次全量（含 `@network`），也可以在 Actions 页手动 dispatch；`concurrency` 固定 group、不取消在途（与本地「一台机器一个全量 run」同义）。
+
+两个实施口径值得记住：**CI 上 `E2E_SKIP_BASELINE=1`** —— 封板 / 恢复用的是本机 WSL 容器里的 `pg_dump` / `pg_restore`，runner 上没有那个容器，所以每轮走全量 prepare（测试栈秒级）；**artifact 严格模式** —— 只上传 junit / results.json / 脱敏后的后端日志 / `stack.json` / 基线清单，trace、截图、HTML 报告含 token 与 cookie，一律不上传（`apps/e2e/AGENTS.md` 不变量 8）。细节与首跑前的已知风险见 [E2E 改造优化方案](../plans/e2e-optimization-plan.md) 的 P0-1 落地记录。
 
 ### 为什么拆成两个 workflow 文件
 

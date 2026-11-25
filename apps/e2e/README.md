@@ -196,6 +196,14 @@ E2E_SKIP_BASELINE=1 pnpm walnut e2e                   # 逃生口：忽略基线
 可能伺服旧产物。只有明确知道「3001 / 4173 上跑的就是本轮产物」时才用 `E2E_REUSE_SERVER=1`
 打开复用。
 
+## CI 形态（nightly）
+
+`.github/workflows/e2e.yml`：每天 UTC 19:00（北京 03:00）+ 手动 dispatch 跑全量，**不进 PR**。
+数据栈由 job 级 services 起（PG 18 / Redis 8，端口与凭据同 `scripts/env.ts`）；CI 上固定
+`E2E_SKIP_BASELINE=1`（封板 / 恢复依赖本机 WSL 容器，见上面「测试库封板」）。artifact 只保留
+junit / `results.json` / 脱敏后的 `backend.log` / `stack.json` / 基线清单 —— trace、截图、HTML
+报告不上传（不变量 8）。细节看 workflow 文件头与优化文档 P1-3 / P0-1。
+
 ## 排障
 
 - 本轮连的是哪个库 / 哪份产物（含产物 mtime）：`apps/e2e/.e2e/stack.json`。

@@ -1,0 +1,170 @@
+name: E2E (nightly)
+
+# 全链路 E2E 的定时工作流（`apps/e2e`）：**只在 nightly 与手动 dispatch 跑，不进 PR**。
+#
+# 为什么不进 PR（计划页 §2.8 的口径，ADR 0009 的分层）：
+# - PR 的 quality 门禁已经约半小时，再叠 install / 两次 stage 构建 / 浏览器安装会把反馈时间推得不可接受；
+# - fork PR 拿不到 ENV_KEYS secret（没有解密后的 stage env 就构建不出 admin 产物）；
+# - 全量 E2E 的职责是「长尾 + 真实链路」的周期性证据，不是合并阻塞项。
+#
+# 三条**硬约束**（踩过或差点踩过的坑）：
+# 1. **secrets 不写进 step/job 的 `if`**：该位置不暴露 secrets 上下文，整个文件会被判
+#    "Invalid workflow file" —— 启动即失败、0 个 job（2026-08-13 到 09-21 本仓 CI 就这样静默失效过五周）。
+#    这里绑到 job 级 `env`，step 里用 `env` 的 shell 变量判断（见 Decrypt environment 一步）。
+# 2. **浏览器不缓存**：`playwright install --with-deps chromium` 每次装。缓存坏了导致假红的排查成本
+#    高于下载时间（计划页 P0-1 改法第 6 条）。
+# 3. **concurrency 固定 group、不取消在途**：同一时间只允许一份 e2e（与本地「一台机器一个全量 run」
+#    同一语义）；nightly 与手动 dispatch 撞车时排队，不互相杀。
+#
+# **artifact 严格口径**（所有者 2026-11-25 拍板）：只上传 junit / json / 脱敏后端日志 / stack.json /
+# 基线清单五样。trace、截图、HTML 报告含请求头与响应体（token、cookie）——**一律不上传**，
+# 这是 `apps/e2e/AGENTS.md` 不变量 8 的直接落地，不改口径。
+#
+# **基线（baseline）在 CI 上走 `E2E_SKIP_BASELINE=1`**，理由（实施时读代码确认，2026-11-25）：
+# 封板 / 恢复用的 `pg_dump` / `pg_restore` 是 `wsl -e bash -c "docker exec e2e-wsl-postgres …"`
+# （apps/e2e/scripts/baseline.ts 的 PG_CONTAINER），而 GitHub runner 上没有 WSL、也没有名为
+# `e2e-wsl-postgres` 的容器（services 容器的名字由 runner 生成）。没有基线时 `run.ts` 会自动
+# 走「全量 prepare + seal」，而 seal 那一步就是上面那条 docker exec —— 在 runner 上必然失败。
+# 所以这里显式跳过基线：全量 prepare（迁移 + seed + 提升 root + CAP 放宽）在测试栈是秒级，
+# 换来一条不依赖容器名的稳定路径。把 PG_CONTAINER 参数化是 P1-1 的范围，本工作流不越界。
+
+on:
+  schedule:
+    # UTC 19:00 ≈ 北京时间 03:00（避开北京白天的高峰与发版窗口）
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-nightly
+  # 排队而不是取消在途：一轮全量跑了一半被取消，留下的设备行 / Redis 键会污染下一次读数
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Full e2e (protocol + UI)
+    runs-on: ubuntu-latest
+    # 全量实测 3–4 分钟；留足 install / 两次 stage 构建 / webServer 180s 与浏览器安装的余量。
+    # 必须明显大于 Playwright 的 globalTimeout 与 webServer timeout。
+    timeout-minutes: 60
+    env:
+      # secrets 上下文不能出现在 `if` 里 → 绑到 job 级 env，在 step 的 shell 里判断（见文件头硬约束 1）
+      ENV_KEYS: ${{ secrets.ENV_KEYS }}
+    services:
+      # 独立数据栈：端口 / 库名 / 凭据必须与 `apps/e2e/scripts/env.ts` **逐字一致**（那是唯一真源，
+      # 两份 compose 也照它对齐）。这些是本机测试栈的固定明文，不是 secret。
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: walnut
+          POSTGRES_PASSWORD: e2e_dev_only
+          POSTGRES_DB: walnut_e2e
+        ports:
+          - '5433:5432'
+        options: >-
+          --health-cmd "pg_isready -U walnut -d walnut_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports:
+          - '6380:6379'
+        # 口令由下面的 "Set redis password" 一步经 `CONFIG SET` 设上：**services 不支持
+        # `command:`**（GitHub 只认 image / env / ports / volumes / options，actionlint 会直接判
+        # 非法），而官方 redis 镜像没有「用环境变量设密码」的入口。健康检查写成 `|| redis-cli ping`
+        # 兜底：设密码之前第一条因 AUTH 报错、第二条证明可达；设完之后第一条（带正确口令）通过。
+        options: >-
+          --health-cmd "redis-cli -a e2e_redis_only ping || redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # 产物新鲜度（scripts/freshness.ts）读 `git log -1`，基线漂移判定读 HEAD —— 都要完整历史
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v5
+        # 版本取自根 package.json 的 packageManager 字段
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 解密 env-encrypted/ → env-local/：admin 构建的 VITE_*（zod 校验 fail-fast）与后端 stage
+      # 的根密钥（OPAQUE / cookie / JWT）都只能来自这里。密钥用完立即删除（与 composite action
+      # `.github/actions/decrypt-env` 同口径，只是本 workflow 不需要跳过分支）。
+      - name: Decrypt environment files
+        run: |
+          set -euo pipefail
+          if [ -z "${ENV_KEYS}" ]; then
+            echo "::error::缺少 ENV_KEYS secret —— E2E 需要 apps/server/env-local/.env.stage 与 admin 构建的 VITE_*"
+            exit 1
+          fi
+          printf '%s\n' "$ENV_KEYS" > .env.keys
+          pnpm setup-env
+          rm -f .env.keys
+          echo "env-local 解密完成：admin $(ls apps/admin/env-local | wc -l) 项、server $(ls apps/server/env-local | wc -l) 项"
+
+      # `@walnut/utils` / `@walnut/contract` 的 CJS dist 是 E2E 的硬前置（sign-raw / contract bridge
+      # 走 require）。先全量构建，再产出两处 stage 产物 —— 顺序即依赖。
+      - name: Build workspace packages and apps
+        run: pnpm build
+
+      - name: Build admin stage bundle
+        run: pnpm walnut build:stage
+
+      - name: Build server stage bundle
+        run: pnpm --filter @walnut/server build:stage
+
+      - name: Install Playwright chromium
+        run: pnpm --filter @walnut/e2e exec playwright install --with-deps chromium
+
+      # services 不支持 `command:`（见上面 redis 服务里的注释），所以口令在容器起来之后用
+      # `CONFIG SET` 设上 —— 值必须与 `apps/e2e/scripts/env.ts` 的 `E2E_REDIS_PASS` 逐字一致。
+      # 容器名由 runner 生成、不可预知：按镜像名找它（本 job 里只有这一个 redis:8-alpine）。
+      - name: Set redis password
+        run: |
+          set -euo pipefail
+          container="$(docker ps -q --filter ancestor=redis:8-alpine | head -n1)"
+          if [ -z "$container" ]; then
+            echo "::error::找不到 Redis service 容器（redis:8-alpine）"
+            exit 1
+          fi
+          docker exec "$container" redis-cli CONFIG SET requirepass e2e_redis_only
+
+      # 全量（含 @network：真实外网定位）。基线跳过口径见文件头。
+      - name: Run full e2e
+        env:
+          E2E_SKIP_BASELINE: '1'
+        run: pnpm walnut e2e
+
+      # 兜底脱敏：主路径已在 scripts/start-backend.ts 的写入处脱敏；这里防「包装脚本没跑成 /
+      # 文件被别的路径写脏」。artifact 一旦上传就不可收回，多跑一遍是毫秒级成本。
+      - name: Redact backend log (defense in depth)
+        if: always()
+        run: node apps/e2e/scripts/redact-log.ts apps/e2e/test-results/backend.log
+
+      # **严格口径**：只这五样。trace / 截图 / HTML 报告一律不上传（不变量 8）。
+      # `include-hidden-files` 是为 `.e2e/`（点目录）里的 stack.json 与基线清单 —— 默认会跳过。
+      - name: Upload diagnostics (strict allow-list)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-diagnostics
+          retention-days: 7
+          if-no-files-found: warn
+          include-hidden-files: true
+          path: |
+            apps/e2e/test-results/junit.xml
+            apps/e2e/test-results/results.json
+            apps/e2e/test-results/backend.log
+            apps/e2e/.e2e/stack.json
+            apps/e2e/.e2e/baseline.manifest.json
