@@ -729,6 +729,53 @@ export const COMMANDS: readonly Command[] = [
     budgetMs: 0, // 起本地报告服务，常驻
   },
   {
+    id: 'e2e:stack:up',
+    group: '工具',
+    label: '起 E2E 数据栈（独立 PG 5433 / Redis 6380）',
+    why: '按 E2E_PG_EXEC_MODE / 平台自动选 WSL 常驻栈或通用 compose（容器名可用 E2E_PG_CONTAINER 覆盖），'
+      + '然后 `docker compose up -d`。**只起数据栈**：不抢 run 级锁、不重建库、不碰 Playwright 的 webServer —— '
+      + '那些仍由 e2e 自己编排。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:stack', 'up'],
+    budgetMs: 5 * MINUTE, // compose up 通常秒级；拉镜像时才会慢，5 分钟收掉卡死
+  },
+  {
+    id: 'e2e:stack:down',
+    group: '工具',
+    label: '停 E2E 数据栈（默认保留数据卷）',
+    why: '与 up 同一个形态探测；默认 `down` 保留数据卷（基线仍可用）。要重置成空实例就在命令后加 '
+      + '`--volumes`（或 `-- -v`）：连卷删掉后旧基线失效，下一次 run 会全量 prepare 并重新封板。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:stack', 'down'],
+    budgetMs: 5 * MINUTE,
+  },
+  {
+    id: 'e2e:stack:status',
+    group: '工具',
+    label: 'E2E 数据栈状态（容器 / PG·Redis 可达性 / 端口 / 基线）',
+    why: '一条只读命令回答「现在能不能跑 e2e」：容器是否 running、5433 / 6380 是否可达、'
+      + '3001 / 3002 / 4173 是否空闲、当前基线可用 / 缺失 / 漂移。复用 preflight 的探针与 baseline 的判定，'
+      + '不抢锁、不动库、不启停服务；只报告，退出码恒 0。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:stack', 'status'],
+  },
+  {
+    id: 'e2e:clean',
+    group: '工具',
+    label: '清理 apps/e2e/.e2e 的调试文件（dry-run 默认）',
+    why: '`.e2e/` 是排障现场：log / 临时 json / 截图 / trace 会越堆越多，而基线三件套与 stack.json '
+      + '是下一轮 run 直接消费的。默认只列出将删条目；`--force` 才真删，且路径闸只允许删该目录的直接子项。'
+      + '跑用例期间别清（正在写的日志会被删）。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:clean'],
+  },
+  {
+    id: 'e2e:redis-gc',
+    group: '工具',
+    label: 'Redis 设备键对账（按 deviceId 清孤儿，不 FLUSH）',
+    why: '扫描白名单前缀里的设备键，查 `sys_device` 判存在性，只对「设备不存在」的键执行精确 `DEL`。'
+      + 'run 流程默认在库准备之后自动跑（`E2E_REDIS_GC=0` 关）；这条是排障 / 负对照的独立入口，'
+      + '`--dry-run` 只看计划不删。**绝不 FLUSHDB / FLUSHALL**（compose 里已禁用那两个命令）。',
+    argv: ['-C', 'apps/e2e', 'run', 'e2e:redis-gc'],
+    budgetMs: 5 * MINUTE,
+  },
+  {
     id: 'scaffold:lib',
     group: '工具',
     label: '按模板新建一个后端 lib',
