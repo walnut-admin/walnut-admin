@@ -33,6 +33,7 @@
     "build": "vite build",
     "prebuild:stage": "node build/generate/index.ts",
     "build:stage": "vite build --mode stage",
+    "clean:stage": "rimraf dist-staging",
     "preview": "vite preview --mode production",
     "preview:stage": "vite preview --mode stage",
     "lint": "cross-env NODE_OPTIONS=--max-old-space-size=8192 eslint . --concurrency=4",

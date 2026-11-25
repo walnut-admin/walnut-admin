@@ -106,7 +106,7 @@ pnpm exec turbo run build build:stage transit types:check lint test --dry=json
 
 ---
 
-## 四、四条已经修掉的缝（都是实测出来的）
+## 四、已经修掉的缝（都是实测出来的）
 
 ### 4.1 `build:stage` 报成功却一个文件都没产出 ✅ 已修
 
@@ -277,6 +277,27 @@ Turbo 的严格 env 模式会把「没在 `env` / `globalEnv` / `passThroughEnv`
    会报 TS2345。
 
 ---
+
+### 4.8 `build:stage` 缓存命中不清空产物目录（旧 hash chunk 累积）✅ 已修
+
+**现象**（P2-C，2026-11-25）：负对照（改 admin 样式 → 构建 → 还原 → 再构建）之后，
+`apps/admin/dist-staging/static/js/` 里同一路由名有多套 hash（实测同一个名字最多 24 个 hash，
+906 个 JS 里大半是无引用的旧分块）。
+
+**根因**：Vite 的 `emptyOutDir` 本身没问题（默认 outDir 在 root 内即清空；实测直接
+`pnpm --filter @walnut/admin build:stage` 会删掉放进目录的探针文件）。问题在**缓存恢复**：
+turbo 只把缓存里的文件写回去，**不删目录里多出来的文件**（additive restore）。负对照还原后
+第二次构建是 `FULL TURBO` 命中 —— 构建脚本（含 Vite）根本没跑，旧分块原样留着；每还原一次
+就多一套。
+
+**改法**：把「清空」放到缓存边界**之外**，作为 `build:stage` 的同包依赖 `clean:stage`
+（`cache: false`，每次都跑；admin 的实现是 `rimraf dist-staging`）。缓存命中 ⇒ clean 清目录、
+turbo 再恢复 = 精确产物；未命中 ⇒ clean 先清、Vite 再在空目录构建。`apps/admin/vite.config.ts`
+同时显式写 `emptyOutDir: true`，不再依赖 Vite 的启发式。
+
+**实测**（2026-11-26）：往 `dist-staging` 放探针文件 → `pnpm walnut build:stage` 冷跑（2 task，
+1m40s）⇒ 探针消失、1743 个文件 / 448 个 chunk；再放探针 → 热跑（`FULL TURBO`，5.5s）⇒ 探针消失、
+文件清单 sha256 与冷跑**逐字相同**（`f6b7603f…`），没有旧分块。
 
 ## 五、交叉对比：调研文档 / 参考仓 Z / 本仓
 
