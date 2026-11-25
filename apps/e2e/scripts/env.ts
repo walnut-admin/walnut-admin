@@ -18,6 +18,14 @@ import { E2ePreconditionError } from './failure.ts'
 
 /** `apps/e2e` 的绝对路径（本文件在 scripts/ 下） */
 export const E2E_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+/**
+ * Playwright 的产物目录（`playwright.config.ts` 的 `outputDir`）。
+ *
+ * 放这里而不是只写在 config 里：backend 日志包装脚本（`scripts/start-backend.ts`）、
+ * CI 的 artifact 上传路径与 `redact-log.ts` 的兜底脱敏都指同一处 —— 三处各写一遍迟早漂移。
+ * 目录 gitignored；其中只有 junit / json / 脱敏后的 backend.log 允许上传（见 apps/e2e/AGENTS.md 不变量 8）。
+ */
+export const TEST_RESULTS_DIR = path.join(E2E_ROOT, 'test-results')
 /** 仓库根（D:/walnut-admin/walnut-admin） */
 export const REPO_ROOT = path.resolve(E2E_ROOT, '../..')
 /** 后端包根 —— 后端的 env 与 dist-stage 都以它为 cwd */
@@ -42,6 +50,19 @@ export const SERVER_E2E_ENV_FILE = path.join(SERVER_ROOT, 'env-local/.env.e2e')
 export const CREDENTIALS_FILE = path.join(AUTH_DIR, 'credentials.json')
 /** 本轮栈信息 */
 export const STACK_INFO_FILE = path.join(ARTIFACT_DIR, 'stack.json')
+/**
+ * 基线的三个文件。
+ *
+ * 定义在 env.ts（而不是 scripts/baseline.ts）的原因：**测试进程也要读封板清单**——
+ * `tests/fixtures.ts` 在失败现场 attach 它的一份只读投影，而让 fixture import baseline.ts
+ * 会把 pg / redis / prepare-db 整条依赖链拖进每个 worker。路径是「环境事实」，与
+ * 「怎么 dump / restore」分开放更干净。
+ */
+export const BASELINE_DUMP_FILE = path.join(ARTIFACT_DIR, 'baseline.dump')
+/** 封板清单（字段含义见 scripts/baseline.ts 的 BaselineManifest） */
+export const BASELINE_MANIFEST_FILE = path.join(ARTIFACT_DIR, 'baseline.manifest.json')
+/** 封板时的 admin 口令（0600） */
+export const BASELINE_CREDENTIALS_FILE = path.join(ARTIFACT_DIR, 'baseline.credentials.json')
 
 // ─── 独立栈（绝不指向 dev 的 5432 / 6379 / 3000 / 3100）──────────────────────────
 export const E2E_PG_HOST = '127.0.0.1'

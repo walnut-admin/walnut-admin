@@ -12,7 +12,9 @@
  *   → `pnpm walnut build:stage` / `pnpm --filter @walnut/server build:stage`；
  * - PG 5433 / Redis 6380 TCP 可达 → 起数据栈（apps/e2e/README.md 的「数据栈的两种形态」）；
  * - 3001 / 3002 / 4173 空闲 → 停掉残留进程（README「排障」的最后一条）；
- * - Playwright 的 chromium 已安装 → `pnpm --filter @walnut/e2e exec playwright install chromium`。
+ * - Playwright 的 chromium 已安装 → `pnpm --filter @walnut/e2e exec playwright install chromium`；
+ * - **产物新鲜度**（`scripts/freshness.ts`）：两处 stage 产物是否旧于最近一次源码提交 ——
+ *   这一类**只警告不退出**（存在「故意验证旧产物」的合法用法），读数另由 stack.json 记录。
  *
  * 刻意**不查**的东西：库里的表 / seed 状态（prepare-db 会重建，不需要「已经准备好」）、
  * 外网连通性（只有 @network 用例依赖它）。
@@ -37,6 +39,7 @@ import {
   WEB_PORT,
 } from './env.ts'
 import { E2ePreconditionError } from './failure.ts'
+import { computeArtifactFreshness, staleArtifacts } from './freshness.ts'
 
 interface CheckResult {
   name: string
@@ -140,10 +143,39 @@ function checkChromium(): CheckResult {
 }
 
 /**
+ * 产物新鲜度：**只警告、不退出**（口径与「为什么」见 scripts/freshness.ts 的文件头）。
+ *
+ * 打印在其它检查之前：如果后面报「登录框等不出来」这类失败，先看到这一行就知道该先重建产物，
+ * 而不是去查产品逻辑。
+ */
+function warnStaleArtifacts(): void {
+  const freshness = computeArtifactFreshness()
+  if (freshness.sourceCommitSeconds === null) {
+    console.log('[e2e/preflight] WARN 产物新鲜度：读不到 git 提交时刻（浅克隆 / 非 git 环境），跳过比较')
+    return
+  }
+
+  const notes = staleArtifacts(freshness)
+  if (notes.length === 0) {
+    console.log(`[e2e/preflight] ok   产物新鲜度：不旧于最近一次源码提交（${freshness.sourceCommitAt ?? '未知'}）`)
+    return
+  }
+
+  for (const note of notes) {
+    console.log(
+      `[e2e/preflight] WARN 产物落后源码：${note.name} 落后 ${note.lagMinutes} 分钟`
+      + `（处置：${note.fix}；只警告，本轮可能跑的是旧产物）`,
+    )
+  }
+}
+
+/**
  * 跑全部前置检查；任一失败就抛 {@link E2ePreconditionError}（进程退 2），
  * 消息里带上**所有**失败的检查 —— 一次改完，不用来回试。
  */
 export async function runPreflight(): Promise<void> {
+  warnStaleArtifacts()
+
   const results: CheckResult[] = [
     checkStageEnv(),
     checkArtifact('admin 产物', ADMIN_INDEX_FILE, 'pnpm walnut build:stage'),

@@ -7,6 +7,8 @@
  * **产物新鲜度**：`mtime` 读的是文件系统的真实修改时间（`statSync`），不是「写这份 JSON 的时刻」。
  * 它回答的是「这轮跑的是几分钟前刚构建的产物，还是上周的」。目录与两个入口文件各记一条 ——
  * 只记目录 mtime 时，`index.html` 被单独覆盖不留痕迹。
+ * 另有 `freshness` 一段：产物相对**最近一次源码提交**的年龄 / 落后分钟数（判据见
+ * scripts/freshness.ts）。preflight 用它打警告，这里把它固化成可带走的证据。
  *
  * 它刻意**不启动**任何东西：`scripts/run.ts` 在 prepare-db 之后调它，webServer 由 Playwright 起。
  */
@@ -35,6 +37,7 @@ import {
   STACK_INFO_FILE,
   WEB_ORIGIN,
 } from './env.ts'
+import { computeArtifactFreshness } from './freshness.ts'
 
 interface ArtifactInfo {
   path: string
@@ -62,6 +65,7 @@ function gitCommit(): string {
 /** 写 `.e2e/stack.json`（run.ts 调；也可 `node scripts/stack-info.ts` 单独跑） */
 export function writeStackInfo(): void {
   const runId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${process.pid}`
+  const freshness = computeArtifactFreshness()
 
   const stack = {
     runId,
@@ -88,6 +92,17 @@ export function writeStackInfo(): void {
       serverDist: artifactInfo(SERVER_DIST_DIR),
       serverMain: artifactInfo(SERVER_MAIN_FILE),
     },
+    /**
+     * 产物新鲜度（`scripts/freshness.ts` 的同一份口径）：
+     * - `sourceCommitAt`：最近一次源码提交（相关路径见该文件的 SOURCE_PATHS）；
+     * - `artifactAgeMinutes`：now − 产物 mtime；
+     * - `artifactLagMinutes`：产物落后源码多少分钟（> 0 说明产物可能不含最新提交）。
+     */
+    freshness: {
+      sourceCommitAt: freshness.sourceCommitAt,
+      artifactAgeMinutes: freshness.artifactAgeMinutes,
+      artifactLagMinutes: freshness.artifactLagMinutes,
+    },
     credentialsFile: existsSync(CREDENTIALS_FILE) ? CREDENTIALS_FILE : null,
   }
 
@@ -98,6 +113,7 @@ export function writeStackInfo(): void {
   console.log(`[e2e/stack-info] web=${WEB_ORIGIN}  api=${WEB_ORIGIN}/api  backend=${BACKEND_ORIGIN}`)
   console.log(`[e2e/stack-info] pg=${E2E_PG_HOST}:${E2E_PG_PORT}/${E2E_PG_DB}  redis=${E2E_REDIS_HOST}:${E2E_REDIS_PORT}`)
   console.log(`[e2e/stack-info] 产物 mtime：admin/index.html=${stack.artifacts.adminIndex.mtime ?? '缺失'}  server/main.js=${stack.artifacts.serverMain.mtime ?? '缺失'}`)
+  console.log(`[e2e/stack-info] 产物落后源码：admin=${freshness.artifactLagMinutes.adminIndex ?? 'n/a'} 分钟  server=${freshness.artifactLagMinutes.serverMain ?? 'n/a'} 分钟（源码提交 ${freshness.sourceCommitAt ?? '未知'}）`)
   console.log(`[e2e/stack-info] 已写 ${STACK_INFO_FILE}`)
 }
 

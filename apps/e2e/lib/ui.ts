@@ -11,6 +11,7 @@ import { expect } from '@playwright/test'
 import { generateSync } from 'otplib'
 import { DEVICE_COOKIE_NAME, readCredentials, WEB_ORIGIN } from '../scripts/env.ts'
 import { WalnutAdminConstAppResponseCode } from './protocol/contract.ts'
+import { redactText } from './redact.ts'
 
 /** `useAppStorageSync` 的键 = `WA__<KEY>`（getStorageKey 的默认前缀）+ superjson 包一层 `{v,e,_v}` */
 export const DEVICE_LOCAL_STORAGE_KEY = 'WA__GEO_IP_DEVICE_ID'
@@ -34,13 +35,62 @@ export interface CapturedEnvelope {
   msg?: string
 }
 
-/** 采集当前 page 的所有 JSON 响应（业务码 + URL），返回一个可读数组与停止函数 */
+/** 采集条目 + 全局到达序号（`snapshotRecentEnvelopes` 跨 capture 合并排序用，不对外暴露） */
+interface SequencedEnvelope extends CapturedEnvelope {
+  __seq: number
+}
+
+/**
+ * 所有 `captureEnvelopes` 实例的**模块级登记**：失败现场要能拿到「最近 N 条业务响应」。
+ *
+ * 为什么用登记而不是让每个 spec 自己 attach：失败可能发生在任何一条断言 / 等待里，
+ * 让用例负责采集就把「失败时的取证」交给最容易在失败时被跳过的那段代码；而 capture 的
+ * 创建点在 spec 里、消费点（fixture attach）在测试框架里 —— 一个只读快照是唯一的汇合点。
+ *
+ * 生命周期 = 一个 worker 进程（playwright 每个 project 一个）。条目只增不减，但一轮的总请求数
+ * 是几百条量级，保留全部不会成为内存问题；`stop()` 之后旧条目仍是有效证据。
+ */
+const captureRegistry: SequencedEnvelope[][] = []
+/** entries 数组 → 它监听的 page（waitForEnvelope 的超时上下文要读 URL / 标题 / CAP 状态） */
+const capturePage = new WeakMap<CapturedEnvelope[], Page>()
+let envelopeSequence = 0
+
+/**
+ * 最近 N 条业务响应的**只读快照**（跨本 worker 内所有 capture，按到达顺序取尾部）。
+ * 只返回 `url / method / status / code / msg` —— 响应体（`data`）从不采集，自然也不会流出。
+ */
+export function snapshotRecentEnvelopes(limit = 20): CapturedEnvelope[] {
+  return captureRegistry
+    .flat()
+    .sort((left, right) => left.__seq - right.__seq)
+    .slice(-limit)
+    .map(entry => ({
+      url: entry.url,
+      method: entry.method,
+      status: entry.status,
+      code: entry.code,
+      msg: entry.msg,
+    }))
+}
+
+/**
+ * 采集当前 page 的**业务响应**（同源 `/api/` 的 JSON 响应），返回一个可读数组与停止函数。
+ *
+ * 只收同源 `/api/`：Sentry / iconify / 字体这类第三方 JSON 也是 `application/json`，
+ * 混进来会把「最近 12 条」挤成它们的请求序列 —— 失败上下文对排查毫无用处。判据与
+ * `installRealIpRoute` 的同源口径一致（`WEB_ORIGIN + /api/`）。
+ */
 export function captureEnvelopes(page: Page): { entries: CapturedEnvelope[], stop: () => void } {
-  const entries: CapturedEnvelope[] = []
+  const entries: SequencedEnvelope[] = []
+  captureRegistry.push(entries)
+  capturePage.set(entries, page)
 
   const handler = (response: Response): void => {
     void (async () => {
       try {
+        if (!response.url().startsWith(`${WEB_ORIGIN}/api/`)) {
+          return
+        }
         const contentType = response.headers()['content-type'] ?? ''
         if (!contentType.includes('application/json')) {
           return
@@ -52,6 +102,7 @@ export function captureEnvelopes(page: Page): { entries: CapturedEnvelope[], sto
           status: response.status(),
           code: typeof body.code === 'number' ? body.code : undefined,
           msg: body.msg,
+          __seq: envelopeSequence++,
         })
       }
       catch {
@@ -64,13 +115,98 @@ export function captureEnvelopes(page: Page): { entries: CapturedEnvelope[], sto
   return { entries, stop: () => page.off('response', handler) }
 }
 
-/** 把采集数组的尾部格式化成可读上下文（超时报错与负对照共用，避免两处文案漂移） */
-function formatRecentEnvelopes(entries: CapturedEnvelope[], limit = 12): string {
-  const recent = entries.slice(-limit).map((entry) => {
-    const code = entry.code === undefined ? '' : ` ${entry.code}`
-    return `${entry.method} ${entry.url}${code}`
+/** 错误上下文里最多列多少条 envelope / 由谁决定（超时报错与负对照共用，避免两处文案漂移） */
+const ENVELOPE_CONTEXT_LIMIT = 12
+
+/** 把采集数组的尾部格式化成可读上下文（URL / msg 走脱敏：它们可能带 token 查询参数） */
+function formatEnvelopes(entries: CapturedEnvelope[], limit = ENVELOPE_CONTEXT_LIMIT): string {
+  const recent = entries.slice(-limit)
+  if (recent.length === 0) {
+    return '最近业务响应：<一条都没有采集到 —— captureEnvelopes 是否挂在当前 page 上？>'
+  }
+  const lines = recent.map((entry) => {
+    const code = entry.code === undefined ? '' : ` code=${entry.code}`
+    const msg = entry.msg === undefined ? '' : ` msg=${redactText(entry.msg)}`
+    return `${entry.method} ${redactText(entry.url)} status=${entry.status}${code}${msg}`
   })
-  return `已采集（末 ${recent.length} 条）：\n${recent.join('\n')}`
+  return `最近 ${lines.length} 条业务响应：\n${lines.join('\n')}`
+}
+
+/**
+ * 失败现场的页面状态：URL、标题、CAP widget 状态、localStorage 设备 id。
+ *
+ * 全部**尽力而为**：page 已关闭 / 导航中 / 选择器超时都只让对应那一行退化成「不可读」，
+ * 绝不让「收集上下文」本身抛错盖掉真正的失败。
+ */
+async function describePageState(page: Page): Promise<string[]> {
+  const lines = [`当前 URL=${redactText(page.url())}`]
+
+  try {
+    lines.push(`页面标题=${JSON.stringify(redactText(await page.title()))}`)
+  }
+  catch {
+    lines.push('页面标题=<不可读（页面已关闭 / 上下文被销毁）>')
+  }
+
+  try {
+    const widget = page.locator('cap-widget').first()
+    const count = await widget.count()
+    let state = '不在 DOM'
+    if (count > 0) {
+      state = await widget.isVisible() ? '可见（尚未解出）' : '在 DOM 但不可见'
+    }
+    lines.push(`cap-widget=${state}`)
+  }
+  catch {
+    lines.push('cap-widget=<状态不可读（页面已关闭 / 上下文被销毁）>')
+  }
+
+  try {
+    const deviceId = await readLocalDeviceId(page)
+    lines.push(`localStorage 设备 id=${deviceId ?? '<无>'}`)
+  }
+  catch {
+    lines.push('localStorage 设备 id=<不可读（页面已关闭 / 上下文被销毁）>')
+  }
+
+  return lines
+}
+
+/** 失败上下文的采集预算：page 卡死 / 上下文销毁时别让「取证」本身把用例挂到全局超时 */
+const CONTEXT_COLLECT_BUDGET_MS = 5_000
+
+/**
+ * 带预算的页面状态采集。`page.title()` / `locator.count()` 在渲染进程卡死时没有自己的超时
+ * （Playwright 的 action 超时对 evaluate 类调用是 0），所以整段套一层墙钟上限。
+ */
+async function describePageStateWithinBudget(page: Page): Promise<string[]> {
+  let timer: NodeJS.Timeout | undefined
+  try {
+    return await Promise.race([
+      describePageState(page),
+      new Promise<string[]>((resolve) => {
+        timer = setTimeout(
+          resolve,
+          CONTEXT_COLLECT_BUDGET_MS,
+          [`页面状态=<采集超时（${CONTEXT_COLLECT_BUDGET_MS / 1000}s），已跳过>`],
+        )
+      }),
+    ])
+  }
+  finally {
+    if (timer !== undefined) {
+      clearTimeout(timer)
+    }
+  }
+}
+
+/** 失败上下文（页面状态 + 可选的一组 envelope）；导出以便其它等待点复用同一份文案 */
+export async function describeFailureContext(page: Page, entries?: CapturedEnvelope[]): Promise<string> {
+  const lines = await describePageStateWithinBudget(page)
+  if (entries !== undefined) {
+    lines.push(formatEnvelopes(entries))
+  }
+  return lines.join('\n')
 }
 
 /**
@@ -92,9 +228,15 @@ export async function waitForEnvelope(
       return hit
     }
     if (Date.now() - started > timeoutMs) {
-      // 文案用**实际**传入的超时（曾经硬编码 30s，改成 40s 的调用点报错里还在说 30s）
+      // 文案用**实际**传入的超时（曾经硬编码 30s，改成 40s 的调用点报错里还在说 30s）。
+      // 带上页面状态：超时最常见的原因是「URL / 设备 / CAP 状态与预期不同」，只看 envelope
+      // 列表看不出这几件事。
+      const page = capturePage.get(entries)
+      const context = page === undefined
+        ? formatEnvelopes(entries)
+        : await describeFailureContext(page, entries)
       throw new Error(
-        `[e2e/ui] ${Math.round(timeoutMs / 1000)}s 内没等到目标响应；${formatRecentEnvelopes(entries)}`,
+        `[e2e/ui] ${Math.round(timeoutMs / 1000)}s 内没等到目标响应；\n${context}`,
       )
     }
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -155,15 +297,15 @@ export async function waitForDeviceHealSettled(
     if (skipCapSolve) {
       throw new Error(
         `[e2e/ui] 重放 ${replayUrl} 只等到 40116（CAP 交互要求），且 E2E_SKIP_CAP_SOLVE=1 已跳过求解`
-        + `（负对照开关，生产用例不得设置）；${formatRecentEnvelopes(entries)}`,
+        + `（负对照开关，生产用例不得设置）。\n${await describeFailureContext(page, entries)}`,
       )
     }
 
     const solved = await solveCapIfPresent(page, 60_000, 15_000)
     if (!solved) {
       throw new Error(
-        `[e2e/ui] 重放 ${replayUrl} 吃到 40116（CAP 交互要求），但 15s 内没出现可点的 cap-widget`
-        + `（URL=${page.url()}）—— 风险配置或 CAP 组件被改坏了；${formatRecentEnvelopes(entries)}`,
+        '[e2e/ui] 重放吃到 40116（CAP 交互要求），但 15s 内没出现可点的 cap-widget'
+        + ` —— 风险配置或 CAP 组件被改坏了。\n${await describeFailureContext(page, entries)}`,
       )
     }
     capSolved = true
@@ -290,9 +432,24 @@ export interface LoginResult {
 
 /**
  * 完整 UI 登录：填表 → 提交 → （CAP）→（MFA）→ 落到首页/内页。
- * 失败时抛出并附上当前 URL 与标题，便于定位卡在哪一步。
+ *
+ * 失败时**不只抛「等不到」**：包装层把当前 URL、标题、CAP widget 状态、localStorage 设备 id
+ * 与最近 12 条业务响应拼进错误消息（原始错误挂在 `cause` 上，栈不变）。这些信息同时进
+ * junit 的 failure message —— 裸 runner / CI 上排障不必再登录机器复现。
  */
 export async function loginViaUI(page: Page, options: { userName?: string, password?: string, totpSecret?: string } = {}): Promise<LoginResult> {
+  try {
+    return await performLogin(page, options)
+  }
+  catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    const context = await describeFailureContext(page, snapshotRecentEnvelopes(ENVELOPE_CONTEXT_LIMIT))
+      .catch(() => '（失败现场不可读：页面已在关闭过程中）')
+    throw new Error(`${message}\n[e2e/ui] 登录失败现场（loginViaUI）：\n${context}`, { cause: error })
+  }
+}
+
+async function performLogin(page: Page, options: { userName?: string, password?: string, totpSecret?: string }): Promise<LoginResult> {
   const credentials = options.userName !== undefined
     ? { userName: options.userName, password: options.password ?? '', totpSecret: options.totpSecret ?? '' }
     : readCredentials()
@@ -352,7 +509,10 @@ export async function ensureLoggedIn(page: Page): Promise<LoginResult | null> {
     return null
   }
   if (outcome === 'timeout') {
-    throw new Error(`[e2e/ui] 打开站点后 40s 内既没出现登录表单也没出现应用外壳（URL=${page.url()}）`)
+    throw new Error(
+      '[e2e/ui] 打开站点后 40s 内既没出现登录表单也没出现应用外壳；'
+      + `\n${await describeFailureContext(page)}`,
+    )
   }
 
   return loginViaUI(page)

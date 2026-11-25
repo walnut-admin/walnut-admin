@@ -36,6 +36,9 @@ import {
   assertE2eDatabase,
   assertE2ePgPort,
   AUTH_DIR,
+  BASELINE_CREDENTIALS_FILE,
+  BASELINE_DUMP_FILE,
+  BASELINE_MANIFEST_FILE,
   CREDENTIALS_FILE,
   E2E_PG_APP_USER,
   E2E_PG_DB,
@@ -49,16 +52,16 @@ import { E2ePreconditionError } from './failure.ts'
 import { prepareDatabase } from './prepare-db.ts'
 import { clearAppSettingCache, resetRuntimeRolePassword } from './runtime-reset.ts'
 
-/** 基线快照（pg_dump **自定义格式**，restore 用 pg_restore 读） */
-export const BASELINE_DUMP_FILE = path.join(ARTIFACT_DIR, 'baseline.dump')
-/** 封板清单（字段含义见 {@link BaselineManifest}） */
-export const BASELINE_MANIFEST_FILE = path.join(ARTIFACT_DIR, 'baseline.manifest.json')
 /**
- * 封板时的 admin 口令（0600，与 `.auth/credentials.json` 同目录级别）。
- * 快照里的 OPAQUE 口令身份只认封装时那一份口令 —— restore 之后必须把它写回 `.auth/`，
- * 否则 stack.setup 会用上一轮全量 prepare 的随机口令登录不上。
+ * 基线三个文件的路径定义在 `scripts/env.ts`（`BASELINE_DUMP_FILE` / `BASELINE_MANIFEST_FILE` /
+ * `BASELINE_CREDENTIALS_FILE`）：测试进程（失败现场 attach）也要读封板清单，不该为一条路径
+ * 把本文件的 pg / redis / prepare-db 依赖链拖进每个 worker。
  */
-export const BASELINE_CREDENTIALS_FILE = path.join(ARTIFACT_DIR, 'baseline.credentials.json')
+export {
+  BASELINE_CREDENTIALS_FILE,
+  BASELINE_DUMP_FILE,
+  BASELINE_MANIFEST_FILE,
+} from './env.ts'
 
 /** 数据栈容器名（见 apps/e2e/README.md 的「WSL 常驻栈」）：dump/restore 在容器里执行 */
 const PG_CONTAINER = 'e2e-wsl-postgres'

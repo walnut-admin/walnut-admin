@@ -15,6 +15,7 @@
  *    应用设置 memo，而 prepare-db 每次都 DROP DATABASE 重建 —— 复用一个「上一个库」启动的进程
  *    会读到错状态。3001 上有没有残留进程不该由测试去猜。
  */
+import path from 'node:path'
 import process from 'node:process'
 import { defineConfig, devices } from '@playwright/test'
 import { SIGN_USER_AGENT } from './lib/protocol/sign.ts'
@@ -22,7 +23,7 @@ import {
   BACKEND_ORIGIN,
   backendEnvOverrides,
   E2E_ROOT,
-  SERVER_ROOT,
+  TEST_RESULTS_DIR,
   WEB_ORIGIN,
 } from './scripts/env.ts'
 
@@ -48,16 +49,25 @@ function serverEnv(): Record<string, string> {
 
 export default defineConfig({
   testDir: './tests',
-  outputDir: './test-results',
+  outputDir: TEST_RESULTS_DIR,
   timeout: 120_000,
   expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 1,
   retries: 0,
   forbidOnly: !!process.env.CI,
+  /**
+   * 四个 reporter 的分工（新增 junit / json 的判据见优化文档 P1-3）：
+   * - `list`：本机人读；
+   * - `html`：本机看失败现场（含请求头与响应体 ⇒ **只留本机，不上传**，见 AGENTS.md 不变量 8）；
+   * - `junit` / `json`：机器可读（CI 的测试结果面板 / 统计）。**不含**请求头与响应体，
+   *   是严格 artifact 口径里允许上传的两份（另一份是脱敏后的 backend.log）。
+   */
   reporter: [
     ['list'],
     ['html', { outputFolder: 'playwright-report', open: 'never' }],
+    ['junit', { outputFile: path.join(TEST_RESULTS_DIR, 'junit.xml') }],
+    ['json', { outputFile: path.join(TEST_RESULTS_DIR, 'results.json') }],
   ],
 
   use: {
@@ -76,17 +86,28 @@ export default defineConfig({
     {
       // 后端：dist-stage 产物 + NODE_ENV=stage（cookie 无前缀形态）；连接目标由 env 覆盖，
       // OPAQUE/cookie/JWT 等根密钥仍取 .env.stage（与前端构建内嵌的公钥同源）。
-      command: 'pnpm run start:stage',
-      cwd: SERVER_ROOT,
+      //
+      // command 指向**包装脚本**而不是 `pnpm run start:stage`：脚本负责 spawn 后端、把
+      // stdout/stderr tee 到 `test-results/backend.log` 并在写入前脱敏（scripts/start-backend.ts）。
+      // 后端进程的 cwd 由脚本自己设为 apps/server（ConfigModule 用 process.cwd() 定位 env），
+      // 所以这里 cwd 用 E2E_ROOT（与静态代理同口径，便于 `node scripts/…` 的相对路径）。
+      // stdout 从 'ignore' 改成 'pipe'：包装脚本的输出（已脱敏）要进控制台 / CI job 日志。
+      command: 'node scripts/start-backend.ts',
+      cwd: E2E_ROOT,
       url: `${BACKEND_ORIGIN}/health/ready`,
       timeout: 180_000,
       reuseExistingServer,
       env: serverEnv(),
-      stdout: 'ignore',
+      stdout: 'pipe',
       stderr: 'pipe',
     },
     {
-      // 前端：dist-staging + /api、/socket 反代（保留 XFF 等头）
+      // 前端：dist-staging + /api、/socket 反代（保留 XFF 等头）。
+      //
+      // **不套包装脚本**（与后端不同）：它的输出只有一行启动日志（伺服目录 / 端口 / 反代目标），
+      // 不含请求头与响应体，没有可脱敏的内容；失败时（端口占用 / 缺产物）走 stderr，本来就被
+      // Playwright 转给 reporter（下面的 stderr: 'pipe'），CI 的 job 日志里能直接看到。
+      // 给它单独落一份日志只会多一个「要不要上传」的口子 —— 严格 artifact 口径只允许五样文件。
       command: 'node scripts/static-server.ts',
       cwd: E2E_ROOT,
       url: WEB_ORIGIN,
