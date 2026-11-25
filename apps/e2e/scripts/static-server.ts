@@ -115,6 +115,10 @@ function proxyHttp(req: IncomingMessage, res: ServerResponse): void {
     (upstreamRes) => {
       // rawHeaders 数组保留重复头（反代多枚 Set-Cookie 的唯一正确姿势）
       res.writeHead(upstreamRes.statusCode ?? 502, upstreamRes.rawHeaders)
+      // 上游在中途断（后端被杀 / 连接重置）：客户端不能收到「看起来完整」的半截响应
+      upstreamRes.on('error', () => res.destroy())
+      // 客户端提前断开（浏览器取消 / 用例超时）：别让上游继续写进死 socket
+      res.once('close', () => upstreamRes.destroy())
       upstreamRes.pipe(res)
     },
   )
@@ -125,6 +129,9 @@ function proxyHttp(req: IncomingMessage, res: ServerResponse): void {
     }
     res.end(`[e2e/static-server] upstream error: ${error.message}`)
   })
+
+  // 请求体读取失败（客户端中途断）：上游请求跟着收掉，避免悬挂
+  req.on('error', () => upstream.destroy())
 
   req.pipe(upstream)
 }
@@ -161,9 +168,61 @@ function proxyUpgrade(req: IncomingMessage, socket: Duplex, head: Buffer): void 
   socket.on('error', () => upstream.destroy())
 }
 
+/** 存在的普通文件？statSync 与 existsSync 之间有 TOCTOU 窗口（EACCES / ENOENT 也走这里） */
+function isRegularFile(file: string): boolean {
+  try {
+    return existsSync(file) && statSync(file).isFile()
+  }
+  catch {
+    return false
+  }
+}
+
+/**
+ * 把一个文件流式回给客户端。
+ *
+ * 为什么不能 `createReadStream(file).pipe(res)` 了事：没有 `error` handler 时，读失败会变成
+ * 未捕获异常、把 static-server 整个进程带走（E2E 的 webServer 一死，后面所有用例都变成连接失败）。
+ * 头未发 ⇒ 500；已发 ⇒ 中断连接（别把半截响应当完整响应）。
+ */
+function sendFile(res: ServerResponse, file: string, headers: Record<string, string>): void {
+  const stream = createReadStream(file)
+
+  stream.once('error', () => {
+    if (res.headersSent) {
+      res.destroy()
+      return
+    }
+    res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' })
+    res.end('internal error')
+  })
+
+  // 客户端提前断开（curl --limit-rate 中途 kill）：别让文件句柄与流继续跑
+  res.once('close', () => stream.destroy())
+
+  // 头等到 open 再写：open 失败才能在 headersSent=false 时给 500
+  stream.once('open', () => {
+    if (res.destroyed) {
+      stream.destroy()
+      return
+    }
+    res.writeHead(200, headers)
+    stream.pipe(res)
+  })
+}
+
 function serveStatic(req: IncomingMessage, res: ServerResponse): void {
   const url = req.url ?? '/'
-  const pathname = decodeURIComponent(url.split('?')[0] ?? '/')
+  let pathname: string
+  try {
+    pathname = decodeURIComponent(url.split('?')[0] ?? '/')
+  }
+  catch {
+    // 非法百分号编码（如 /%E0%A4%A）：400 而不是让 URIError 变成未捕获异常
+    res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' })
+    res.end('bad request')
+    return
+  }
 
   const resolved = path.resolve(ADMIN_DIST_DIR, `.${pathname}`)
   // 目录穿越防线：解析结果必须仍在 dist 目录内
@@ -175,23 +234,21 @@ function serveStatic(req: IncomingMessage, res: ServerResponse): void {
     return
   }
 
-  if (existsSync(resolved) && statSync(resolved).isFile()) {
+  if (isRegularFile(resolved)) {
     const isHtml = pathname === '/' || pathname.endsWith('.html')
-    res.writeHead(200, {
+    sendFile(res, resolved, {
       'content-type': contentTypeOf(resolved),
       // index.html 不快缓存：否则改了产物/加了新 hash 的 chunk 仍拿旧入口（E2E 反复重建产物）
       'cache-control': isHtml ? 'no-store' : 'public, max-age=3600',
     })
-    createReadStream(resolved).pipe(res)
     return
   }
 
   // SPA 回落：无扩展名的路径（/auth、/home、/not-allowed…）一律给 index.html
   if (path.extname(pathname) === '') {
     const indexFile = path.join(ADMIN_DIST_DIR, 'index.html')
-    if (existsSync(indexFile)) {
-      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' })
-      createReadStream(indexFile).pipe(res)
+    if (isRegularFile(indexFile)) {
+      sendFile(res, indexFile, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' })
       return
     }
   }

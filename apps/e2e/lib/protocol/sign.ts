@@ -125,15 +125,52 @@ function capPrng(seed: string, length: number): string {
 }
 
 /**
+ * CAP 求解的熔断上界（**异常配置的保险丝，不是正常路径**）。
+ *
+ * - 每问次数上界 = `max(1_000_000, 16^d * 32)`：difficulty=d 时期望尝试 16^d 次，留 32 倍余量
+ *   （d=4 ⇒ 2_097_152）；小 difficulty 用 1_000_000 兜底，避免上界比期望还小。
+ * - 总墙钟上界 30s：起点在问题循环之外，覆盖全部 count 问。
+ * - 问题数 / difficulty 的形态在进循环前校验（count 1..50、difficulty 1..8）。
+ */
+const CAP_SOLVE_WALL_CLOCK_MS = 30_000
+const MAX_CAP_QUESTIONS = 50
+const MIN_CAP_DIFFICULTY = 1
+const MAX_CAP_DIFFICULTY = 8
+
+function maxAttemptsPerQuestion(difficulty: number): number {
+  return Math.max(1_000_000, 16 ** difficulty * 32)
+}
+
+/** 求解前的形态校验：配置被改坏时立刻失败，而不是在死循环里等墙钟 */
+function assertCapChallenge(challenge: { c: number, s: number, d: number }): void {
+  if (!Number.isInteger(challenge.c) || challenge.c < 1 || challenge.c > MAX_CAP_QUESTIONS) {
+    throw new Error(`[e2e/cap] challenge.c=${challenge.c} 不合法（期望 1..${MAX_CAP_QUESTIONS} 的整数）——CAP 配置异常`)
+  }
+  if (!Number.isInteger(challenge.d) || challenge.d < MIN_CAP_DIFFICULTY || challenge.d > MAX_CAP_DIFFICULTY) {
+    throw new Error(`[e2e/cap] challenge.d=${challenge.d} 不合法（期望 ${MIN_CAP_DIFFICULTY}..${MAX_CAP_DIFFICULTY} 的整数）——CAP 配置异常`)
+  }
+}
+
+/**
  * CAP challenge PoW 求解（对照 @cap.js/server redeemChallenge 的校验式）：
  * 第 i 问 salt = prng(token+i, s)、target = prng(token+i+'d', d)，
  * 求最小 n 使 sha256(salt + n) 的 hex 以 target 开头。
+ *
+ * 上界是**异常配置的熔断**，不是正常路径：challenge 的 `c` / `d` / `s` 来自 seed 的
+ * `app.global.capjs.config`（当前 count 10 / difficulty 4 ⇒ 每问期望 16^4 ≈ 6.5 万次哈希，
+ * 10 问合计约 65 万次，实测在秒级解完）。若配置被改坏（count / difficulty 被放大），没有上界
+ * 就会在用例的 120s 超时里挂死、还说不清卡在哪一问 —— 这里主动熔断并报告
+ * index / c / s / d / attempts，让失败可读。
  */
 export function solveCapChallenge(
   challenge: { c: number, s: number, d: number },
   token: string,
 ): number[] {
+  assertCapChallenge(challenge)
+
   const solutions: number[] = []
+  const startedAt = Date.now()
+  const attemptLimit = maxAttemptsPerQuestion(challenge.d)
 
   for (let i = 1; i <= challenge.c; i++) {
     const salt = capPrng(`${token}${i}`, challenge.s)
@@ -147,6 +184,18 @@ export function solveCapChallenge(
         break
       }
       n++
+      if (n > attemptLimit) {
+        throw new Error(
+          `[e2e/cap] 第 ${i} 问超过尝试上界（index=${i} c=${challenge.c} s=${challenge.s} d=${challenge.d} attempts=${n}）`
+          + ` —— 每问上界 ${attemptLimit}，通常意味着 CAP 配置异常，不是正常求解路径`,
+        )
+      }
+      if (Date.now() - startedAt > CAP_SOLVE_WALL_CLOCK_MS) {
+        throw new Error(
+          `[e2e/cap] 求解超过墙钟上界（index=${i} c=${challenge.c} s=${challenge.s} d=${challenge.d} attempts=${n}`
+          + ` elapsedMs=${Date.now() - startedAt}）—— 上界 ${CAP_SOLVE_WALL_CLOCK_MS}ms，通常意味着 CAP 配置异常`,
+        )
+      }
     }
   }
 
