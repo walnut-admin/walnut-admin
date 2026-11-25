@@ -275,6 +275,8 @@ pnpm walnut build:docs
 5. **可选**：L4 独立 sandbox 部署（要主机 / 域名 / 证书）—— 不为它先做任何设计。
 6. **可选**：生产部署后的 runner 侧匿名只读浏览器 smoke（**不做认证写入**）。
 
+> **2026-11-25 追记**：并行 / 账号池的工程前置设计（Phase A「stack-per-project」：profile、端口、锁、CI matrix 与失败隔离）已完成，见 [apps/e2e 改造优化方案](./e2e-optimization-plan.md) 的 P1-6；Phase B（per-worker）仍暂缓、不排期。
+
 ### 验证
 
 ```bash

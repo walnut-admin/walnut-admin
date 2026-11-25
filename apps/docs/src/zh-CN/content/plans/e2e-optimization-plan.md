@@ -356,6 +356,17 @@ jobs:
 
 **工作量级**：M。
 
+**落地记录（2026-11-25）**：四条改法全部落地（提交 `test(e2e): P1-1 基线 dataKey 漂移判据、封板原子化与 PG 容器参数化`，hash 见 `git log`）。口径与关键读数：
+
+1. **漂移判据 = dataKey + 数据路径脏**：`apps/e2e/scripts/data-key.ts` 对 `DATA_PATHS`（seed 目录、迁移目录、`apps/e2e/scripts/prepare-db.ts`、`tooling/scripts/src/db` 下的 seed / 口令 / app_key 工具）按路径排序后逐行 `<path>\t<treeHash>` 求 sha256；`gitCommit` 降级为展示字段。只改文档 / 前端 / 后端源码不再触发；数据路径有未提交改动（含未跟踪文件）⇒ 退出 2 并提示 `--rebuild-baseline`。封板时脏 ⇒ 清单记 `dataDirty=true`，之后永远判不可用（那份数据无法证明与仓库一致）。
+2. **封板原子化（manifest v2）**：`baseline.manifest.json` 收进 `dataKey` / `dataDirty` / `dumpSha256` / `dumpBytes` / `credentialsSha256` / `credentialsBytes` / `migrationsHead` / `menuRows`；dump / credentials / 清单先各写 `.tmp`，提交时**先撤旧清单、再逐个 rename**。**v1 清单不迁移**：版本不符直接判不可用并提示重封板（旧清单没有 dataKey 与 credentials 的 sha，无法安全恢复）；「有 dump 没清单」的半成品同样拒绝。
+3. **容器参数化**：执行层抽到 `apps/e2e/scripts/pg-container.ts` —— `E2E_PG_CONTAINER`（默认 `e2e-wsl-postgres`）、`E2E_PG_EXEC_MODE=wsl|docker|auto`（win32 默认经 `wsl -e bash -c "docker exec …"`，其它平台直接 `docker exec`）；preflight 增加 `docker inspect` running 检查，失败给两种 compose 的启动命令。CI 在 `CI=true` 且非 WSL 投递时按镜像 `postgres:18-alpine` 解析 service 容器。
+4. **单测**：`data-key.test.ts` / `baseline-manifest.test.ts` / `pg-container.test.ts` 覆盖树哈希组合、清单形态、平台判断、WSL 路径换算与容器名校验。
+
+**实测（2026-11-25 本机 WSL 栈）**：全量两轮 **244s / 227s**；restore **1.5–2.3s**（相对 4 分钟量级的总时长仍是噪声，§1.3 的优先级判断不变）。只改文档后直接 restore、不退出 2；改一条 seed 行（不提交）⇒ 退出 2 并明确提示 `--rebuild-baseline`。
+
+**CI 切回基线路径的前置条件**（`.github/workflows/e2e.yml` 文件头已写）：删掉 `Run full e2e` 一步的 `E2E_SKIP_BASELINE: '1'` 即可 —— 执行层可移植（容器解析 / 平台判断 / postgres 官方镜像自带 `pg_dump` 与 `pg_restore`）已由本条落地。**注意 `.e2e/` 不跨 run 缓存**：切回后每轮都是「无基线 → 全量 prepare + seal」，想验证 restore 路径要另加 cache / artifact 步骤。本条只把「能切」变成事实；切不切是单独的决策。
+
 ---
 
 #### P1-2 前置一致性：`E2E_REUSE_SERVER`、隐藏的 `pnpm build`、文件权限
@@ -391,6 +402,13 @@ jobs:
 - 其余不碰。
 
 **工作量级**：S。
+
+**落地记录（2026-11-25）**：1–4 全部落地（提交 `test(e2e): P1-2 preflight 尊重复用开关、build 产物前置与 .env.e2e 权限`，hash 见 `git log`）。
+
+- **`E2E_REUSE_SERVER` 可用**：`apps/e2e/scripts/preflight.ts` 读同一个开关 —— 打开时跳过三个端口的「空闲」检查，改为「可达 + 身份」（后端 `/health/ready` 200、4173 返回含 `<div id="app">` 的 index.html、3002 可达）并打印复用警告。经 `apps/e2e/scripts/run.ts` 的路径与直接 `playwright test` 的路径口径一致；缺任一服务时 preflight 按退出码 2 失败并给出手动启动命令。
+- **`pnpm build` 从隐式前置变成显式检查**：preflight 检查 `@walnut/utils` 的 `dist/sign-raw.cjs` 与 `@walnut/contract` 的 `dist/index.cjs`，缺任一 ⇒ 退出码 2 并给出 `pnpm build` 修复命令（之前缺了只在 webServer 启动时报 180s 超时）。README 的四步前置同步补上 `pnpm build`。
+- **`.env.e2e` 权限**：prepare-db 写 `apps/server/env-local/.env.e2e` 用 `{ mode: 0o600 }`，文件头写「勿提交」，迁移一结束（含失败路径）即删。**Windows 上 Node 的 `mode` 基本不生效**（NTFS 不以 POSIX mode 表示权限），所以 Windows 上靠「gitignored + 生命周期极短」兜底，POSIX 上用 `stat` 核对（README 已写）。
+- **`pnpm walnut e2e:doctor` 已建**：命令表条目 + `preflight.ts --doctor`；只做前置自检（不抢锁、不动库、不起服务），失败仍按退出码 2，并在结果列表里就地打印每条失败的处置 —— 适合排障时反复跑。
 
 ---
 
@@ -482,6 +500,14 @@ jobs:
 
 **工作量级**：S。
 
+**落地记录（2026-11-25）**：改法 1–5 落地（提交 `test(e2e): P1-4 协议客户端接入 @walnut/api-types 生成类型与关键端点字段断言`，hash 见 `git log`）。
+
+- **接入**：`apps/e2e` 增加 `@walnut/api-types` devDependency（纯类型、零运行时、不新增构建步骤）；`rg "@walnut/api-types" apps/e2e` 命中 `package.json`、`lib/protocol/api-types.ts` 与 `tests/system/user-crud.spec.ts`。
+- **默认泛型来自生成物**：新增 `lib/protocol/api-types.ts` 的 `EndpointData<P, M>`（取 `paths[路径][方法]` 的 200 响应壳里的 `data`，去掉生成侧的可选）；`request` / `root` 改为重载 —— 路径是契约里的字面量常量时默认推导，动态拼接（含运行时 id）或需要覆盖时仍由调用方手写泛型。
+- **三端点字段断言**：`device/initial`（`bootstrap()` 校验 `deviceId` 是非空 string）、`auth/permissions`（`permissionMenuTree` / `permissionRouteTree` / `permissionStrings` 为非空数组、`indexMenuName` 为 string、首条路由的 `path/name/component` 为 string）、`user/list`（`total` number、`data` 数组、行内 `id/userName/nickName/status/roles_count` 的存在与类型）。
+- **负对照**：把生成物里的一个响应字段临时改名后跑 `pnpm --filter @walnut/e2e types:check` —— **三处报错**（`lib/protocol/client.ts` 的推导消费点、`tests/setup/stack.setup.ts`、`tests/system/user-crud.spec.ts`）；还原后全绿。这证明「字段改名」在类型层就能被指出来，不必等某条断言碰巧失败。
+- **bridge 的两处显式补偿**（写进 `lib/protocol/api-types.ts` 注释，**不在 E2E 侧放宽断言**）：list 的路径级响应被 server swagger 多包了一层数组，所以 `SystemUserListPage` 显式取组件 `SysUserDTOSafeListResponse`；生成物把 list 行标成完整 `SysUserDTOSafe` 而真实行是字段子集，断言只碰实际下发的字段。偏差本身见 §3.3 的 P2 候选。
+
 ---
 
 #### P1-5 选择性执行与标签：`@smoke` / `@risk` / `@slow` / `@quarantine`
@@ -519,6 +545,12 @@ jobs:
 - 其余不碰。
 
 **工作量级**：S–M。
+
+**落地记录（2026-11-25）**：1–4 落地（提交 `test(e2e): P1-5 用例标签体系与 e2e:affected 选择性执行`，hash 见 `git log`）。
+
+- **原生 tag 体系**：统一用 Playwright 原生 tag（`test(...)` / `test.describe(...)` 的 `{ tag: '@…' }`），不写标题文字 —— tag 在 junit / JSON report 里是独立字段，`--grep` 也按它匹配。落点：`@smoke`（首页只读、用户 CRUD）、`@risk`（设备生命周期整组，挂在 `test.describe` 上）、`@slow`（两条回填 `created_at`，同时有 `test.slow()`）、`@network`（U1b，仍由 network project 的 `grep` 选中、risk 的 `grepInvert` 排除）、`@quarantine`（**只建机制**：挂上即可用 `--grep @quarantine` 单独选中；不建列表、不自动从全量剔除 —— 列表与流程属 P2-1）。
+- **`e2e:affected` 映射与安全网**：`apps/e2e/scripts/affected.ts`（git 读取 + 打印计划 + 经 `apps/e2e/scripts/run.ts` 执行）与 `apps/e2e/scripts/affected-plan.ts`（纯映射，单测 `affected-plan.test.ts` 钉住每条判定与路径归一）。判定顺序：数据路径 ⇒ `--rebuild-baseline` + 全量；`apps/e2e/**` ⇒ 全量；只改文档 ⇒ 跳过（退出 0）；admin 登录 / auth ⇒ smoke；server guards / system / ip / middleware ⇒ risk；**其它任何路径 ⇒ 全量**。base 默认 `origin/main`，可 `--base` / 位置参数；base 不存在按退出码 2 并给修复建议。执行仍经 `apps/e2e/scripts/run.ts`，抢锁 / 基线决策 / 单 run 不变量不变，**不进 prepush 与 PR 门禁**。
+- **实测（2026-11-25 本机）**：`--grep @smoke` 命中 **4 例**（含 `stack-setup` / `auth-setup` 两个 dependency）、**49.2s**；`--project=risk --grep @slow` 可单独选中两条慢用例（`@risk` 挂在 `describe` 上、`@slow` 挂在用例上，两者叠加不影响 `--grep` 命中）。
 
 ---
 
@@ -558,6 +590,110 @@ jobs:
 - 其余不碰。
 
 **工作量级**：Phase A 设计 M，实施 L；Phase B 暂不排期。
+
+**落地记录（2026-11-25，设计阶段）**：本条本批只交付下面的 Phase A 设计稿，**未实施**（没有改 `apps/e2e` 代码）；Phase B 显式暂缓、不排期。设计稿的验收物就是本文档本身。
+
+##### 附录：Phase A「stack-per-project」设计稿（2026-11-25 定稿，未实施）
+
+**边界先钉死**：并行单元是 **stack profile**（本地一次一个 profile；CI 一个 job 一个 profile），**不是 worker**。本设计不放松不变量 6 —— 本地默认仍是**一条串行全量**（`pnpm walnut e2e` 行为不变），`workers: 1` / `fullyParallel: false` 也不动。Phase B（per-worker）见本节末尾。
+
+###### 1. profile 定义与配置载体
+
+| profile | 库名 | 后端 / socket / 静态代理 | IP 段（`uniqueLocalIp`） | 基线三件套目录 | 锁 key |
+|---|---|---|---|---|---|
+| `default`（现状，本地全量） | `walnut_e2e` | 3001 / 3002 / 4173 | `127.0.{1,2}.*` | `.e2e/` | 2026112401 |
+| `smoke` | `walnut_e2e_smoke` | 3101 / 3011 / 4181 | `127.0.{11,12}.*` | `.e2e/smoke/` | 2026112402 |
+| `risk` | `walnut_e2e_risk` | 3102 / 3012 / 4182 | `127.0.{21,22}.*` | `.e2e/risk/` | 2026112403 |
+| `network` | `walnut_e2e_network` | 3103 / 3013 / 4183 | `127.0.{31,32}.*` | `.e2e/network/` | 2026112404 |
+
+- **载体**：新增 apps/e2e/scripts/stack-profiles.ts（目标路径尚不存在，正文不加反引号）作为单一真源；`apps/e2e/scripts/env.ts` 的全部派生常量（库名 / 三个端口 / 两个 origin / 基线三件套路径 / `.auth/<profile>/credentials.json` / `.e2e/<profile>/e2e.env`）从它读取，`backendEnvOverrides()`、`pg-lock.ts`、`baseline.ts`、`prepare-db.ts`、`runtime-reset.ts`、`preflight.ts`、`static-server.ts`、`stack-info.ts`、`playwright.config.ts` 一律不各自拼。
+- **选择方式**：环境变量 `E2E_STACK_PROFILE`（不设 = `default`）。**只选 profile，不开放端口 / 库名的独立覆盖** —— 任意覆盖会让 `assertE2eDatabase` 那层安全闸失去意义；已有的 `E2E_PG_CONTAINER` / `E2E_PG_EXEC_MODE` 保持（它们说的是「怎么连数据栈」，不是「连哪个库」）。
+- **默认 profile 的值与今天逐字相同**：这是第一步「抽表」零行为变化的判据。命名 profile 才用子目录与偏移端口。
+- **profile 与 Playwright project 同名 1:1**（`smoke` / `risk` / `network`），不维护第二张映射表；`default` 没有同名 project（它就是本地全量）。
+- `test-results/` 可按 profile 分目录（避免 CI artifact 同名覆盖）；各 job 是独立 checkout，所以这是可选项，不是隔离的必要条件。
+
+###### 2. 隔离边界逐项
+
+**库（安全闸）**：`assertE2eDatabase` 从「逐字等于 `walnut_e2e`」扩成两条 —— 形状正则 `^walnut_e2e(?:_[a-z]+)?$`（挡住 dev 库与注入形态）**且**必须等于当前 profile 的库名（挡住 `walnut_e2e_foo` 这类拼错）。所有动库路径（prepare / dump / restore / `runtime-reset` / `lib/pg.ts`）保留连上之后的 `SELECT current_database()` **真断言**，期望值改成当前 profile 的库名；`assertE2ePgPort` / `assertE2eRedisPort` 不变（所有 profile 共用同一个 5433 / 6380 实例 —— 隔离靠库名与 IP 段，不靠端口）。
+
+**基线**：每个 profile 一套三件套（`.e2e/<profile>/baseline.dump` / `baseline.manifest.json` / `baseline.credentials.json`），credentials 每轮写到 `.auth/<profile>/credentials.json`。清单升到 **v3**，新增 `database` 与 `profile` 两个字段 —— restore 前断言「清单里的 `database` 等于当前 profile 的库名」，所以即使把 smoke 的 dump 拷进 risk 目录也恢复不了（先 sha 校验、再库名字段）。**v2 → v3 不迁移**（与 v1 → v2 同口径：缺字段就无法安全证明配对），升级后首次运行会自动全量 prepare + seal 一次；默认 profile 的文件位置不变，但这一次重封是预期成本。
+
+**锁（两把，都是 PG advisory lock，作用域 = 同一个 PG 实例）**：
+
+- **全局 run 锁**（现有 key `2026112401`）：每条 run 先抢，语义是「这台机器的这个数据栈上同时只有一个 E2E run」——**不变量 6 原样保留**；
+- **profile 锁**（`2026112401 + profile 序号`）：拿到全局锁之后再抢，语义是「这个库此刻只有一个 owner」。CI 每个 job 是独立 PG 实例，全局锁天然无竞争，profile 锁的价值是日志归属（报持锁者时能看出是哪个 profile）与同 profile 重入保护。
+- 本地多 profile 仍**串行**：第二个 profile 会在第一步等全局锁，120s 内抢不到就报持锁者退出。profile 锁不是并发通行证；放开本地并行需要所有者拍板改写不变量 6，并且先解决下面 Redis 的全局键共享面。
+
+**IP 段（127/8）**：`uniqueLocalIp()` 的第三段按 profile 偏移 —— 公式 `127.0.<slot × 10 + 1 + floor(seq / 200)>.<10 + seq>`，`seq` 仍在 0..239 回绕，即每个 profile 两个 /24、240 个地址；`default` 的 slot = 0，产出 `127.0.1.10..209` 与 `127.0.2.210..249`，与现状逐字一致。必要性在 **Redis**：`device/initial` 的 4 次 / 60 秒是 `@nestjs/throttler` 的**进程内**桶（每个 profile 一个后端进程，本来就不共享），但风控的 `risk:rate:ip:<ip>:<分钟>` 是 Redis 键（`rate.service` 的 `buildKey`）—— 同机共享 Redis 时，只有 IP 段不相交才不会串桶。per-profile 240 个地址按当前每轮设备量级足够；超出回绕是 P2-3 已记录的既有行为。
+
+**Redis**：结论是**不加 profile 前缀，也不换逻辑库**。理由：
+
+1. 键形由 server 拥有（`apps/server/libs/const/src/app/cache.ts` 与各 `*.cache.ts`），E2E 只是逐条对齐的消费者（不变量 5）；加前缀要么改 server，要么让 E2E 的删除 / 断言键形与服务端漂移 —— 后者正是「精确删」最怕的；
+2. 现有清理是 **deviceId 精确删**（`deleteDeviceScopedKeys` / `deleteRiskDeviceState`），deviceId 每轮随机（`d1_` + 32 hex），跨 profile 撞不上；fixture 只删**本进程登记过**的 id，物理上删不到别的 profile；
+3. 会跨 profile 共享的只有全局键（`WALNUT_CACHE_APP:SETTING` / `APP:SETTING`）。它们的值由**同一份基线数据**派生（各 profile 的库都来自同一 dataKey 的 prepare），本地又串行，CI 每个 job 一个独立 Redis service —— 当前不存在「两个 profile 同时写一个 Redis」的场景；
+4. 若将来要本地并发 profile，先加**每 profile 一个 Redis 实例**（端口再分配），而不是键前缀 —— 服务端没有逻辑库配置项（`APP_REDIS_*` 只到 host / port / pass），改键形或加配置都是 server 侧改动，比多起一个 Redis 贵得多。
+
+**`.env.e2e` 的已知约束**：`apps/server/env-local/.env.e2e` 是 typeorm CLI 的**固定通道**（CLI 用 `process.cwd()/env-local` 定位，没有 `--env-file` 参数，文件里也没有 profile 名的位置）——因此**同一个 checkout 上不能并发两个 profile 的 prepare**。本设计的本地串行与 CI 独立 checkout 都满足这一点；不要为了「并行」去猜 CLI 的其它路径。
+
+###### 3. CI matrix 草案（演进现有 e2e.yml，不另起工作流）
+
+`jobs.e2e` 从单 job 改成 matrix：
+
+```yaml
+jobs:
+  e2e:
+    strategy:
+      fail-fast: false            # 一个 profile 红，其余 job 照跑（失败隔离）
+      matrix:
+        profile: [smoke, risk, network]
+    env:
+      ENV_KEYS: ${{ secrets.ENV_KEYS }}
+      E2E_STACK_PROFILE: ${{ matrix.profile }}
+      E2E_SKIP_BASELINE: '1'      # 与现状一致：.e2e/ 不跨 run 缓存
+    services: <与现单 job 相同：postgres:18-alpine / redis:8-alpine，5433 / 6380>
+    steps: <与现单 job 相同；最后一步跑用例换成下面这条>
+    # 跑用例：pnpm --filter @walnut/e2e e2e -- --project=${{ matrix.profile }}
+```
+
+- **跑什么**：`--project` 与 profile 同名，且会带自己的 setup dependencies（`stack-setup`，smoke 还带 `auth-setup`）。三个 job 的并集就是现有 `pnpm walnut e2e` 的覆盖面（`@network` 的 grep / risk 的 grepInvert 都不变，U1b 只由 network job 跑）。
+- **演进，不并存**：保留同一工作流、同一 `concurrency`（固定 group、不取消在途）、同一严格 artifact allow-list、同一 `fetch-depth: 0` 与 env 解密步骤；**不再保留单栈全量 job** —— CI 的价值是墙钟，单栈全量在 CI 上没有额外覆盖；需要单栈全量时本地 `pnpm walnut e2e` 仍是入口（将来若要 dispatch-only 的 `full` job 再单独立项）。
+- **setup 复用口径**：Linux runner 上 `E2E_PG_EXEC_MODE` 默认 `docker-cli`；`E2E_PG_CONTAINER` 不设时，`CI=true` 按镜像 `postgres:18-alpine` 解析 service 容器（P1-1 已落地，每个 runner 只有一个该镜像的容器）。`E2E_SKIP_BASELINE=1` 保持现状；切回基线路径的前置条件与 P1-1 那条相同，只是**每个 profile 有自己的一套三件套**，将来加 cache 时 cache key 必须带 profile。
+- **artifact**：名字带 profile（如 `e2e-diagnostics-<profile>`）；`stack.json` 与基线清单的路径进 `.e2e/<profile>/`；junit / json / 脱敏 backend.log 各 job 独立 checkout，天然隔离。trace / 截图 / HTML 仍不上传。
+- **代价（写进 job 注释）**：三个 job 各跑一遍 install / `pnpm build` / 两处 stage / playwright install，**总机器时间约 3×**，墙钟从「串行全量」降到「最慢的 profile + 固定开销」。这是用 CI 时长换反馈速度，nightly 场景可接受。
+- **与 `e2e:affected` 的映射（P1-5 现状）**：`mode=projects` 的 `projects` 直接作为 matrix 列表（当前只有 `smoke` / `risk`）；`mode=all` ⇒ `[smoke, risk, network]`；`mode=skip` ⇒ 不跑。`affected.ts` 目前只有人读输出，实现时需要加一个 `--json` 输出模式（只多一个输出口，不改映射规则）。`rebuild=true` 与 CI 的 `E2E_SKIP_BASELINE=1` **互斥**（`ensureTestDatabase` 会拒），所以 prepare job 不要转发 `--rebuild-baseline`。
+
+###### 4. 失败隔离与清理责任
+
+- **跨 profile 不串写的真断言**（不是口头约定）：
+  1. 每个动库连接在 connect 后 `SELECT current_database()`，期望值 = 当前 profile 的库名（现有机制，只改期望值）；
+  2. 基线清单的 `database` / `profile` 字段必须与 restore 目标一致（跨 profile 的 dump 恢复不了）；
+  3. 每个 profile 的 fixture 只删**本进程登记**的 deviceId（PG 行 + Redis 键），登记集合在进程内存里，天然不含别的 profile；
+  4. 收尾探针（建议随实施加进 `run.ts`）：把本 profile 的设备 id 列表拿到**其它 profile 的库**上 `SELECT count(*) FROM sys_device WHERE device_id = ANY(...)`，必须为 0 —— 这就是「串写 ⇒ 红」的机械判据。
+- **清理责任**：设备 / Redis 清理仍归 `tests/fixtures.ts` 的两个 auto fixture（不变量 10）；profile 只影响连接目标，不改变归属。运行时重置按 profile 作用：credentials 路径 per profile；`walnut_app` 口令是**集群级角色**，所有 profile 写同一个固定值，不冲突。
+- **崩溃残留的 GC**：归 **P2-2 redis-gc**（尚未实施）。profile 化之后它的口径是「按当前 profile 的库查 `sys_device`，清该库对应设备的孤儿键」，仍是精确删、不 FLUSH；各 profile 的孤儿由各自 restore 后的 GC 负责。本设计不重做 P2-2。
+
+###### 5. 落地顺序与验收（每步独立可回滚）
+
+1. **抽出 profile 表，默认 profile 零行为变化**：新增 scripts/stack-profiles.ts（同前，未存在的目标路径不加反引号），env.ts 从它派生；不设 `E2E_STACK_PROFILE` 时库名 / 端口 / 路径 / 锁 key / IP 段与今天逐字相同。
+   - 验收：`pnpm walnut e2e` 全绿；日志里的库名 / 端口 / 基线路径与改前一致；已有基线直接 restore（不触发重封）；`e2e:doctor` 除多一行 profile 外输出不变。
+   - 负对照：把默认 profile 的库名临时改成别的 → `assertE2eDatabase` 在动库之前退 2。
+2. **加命名 profile 与隔离件**：`E2E_STACK_PROFILE=smoke|risk|network`；per-profile 基线目录与 credentials；清单 v3（`database` / `profile`）；严格正则；IP 段偏移；profile 锁。
+   - 验收：本地依次跑 `E2E_STACK_PROFILE=smoke pnpm walnut e2e:smoke` 与 `E2E_STACK_PROFILE=risk pnpm walnut e2e:risk`，各自封板、第二轮各自 restore，两套基线互不影响。
+   - 负对照（必须红）：(a) `E2E_STACK_PROFILE=risk` 但库名指到 smoke → 动库前退 2；(b) 把 smoke 的 `baseline.dump` 拷进 risk 目录 → sha / `database` 字段不匹配，restore 拒绝；(c) 跑完 smoke 后拿它的 deviceId 去 risk 库查 → 0 行，反向同理；(d) 同一 profile 两个进程并发 → 全局锁 120s 内报持锁者退出。
+   - 一次性成本：清单升 v3 后默认 profile 首次运行会提示重封板（与 v1 → v2 同口径，显式动作）。
+3. **CI 切 matrix**：按上面的草案改 `.github/workflows/e2e.yml`（`fail-fast: false`、artifact 名带 profile、`.e2e/<profile>/` 路径）。
+   - 验收：dispatch 一次三 job 全绿；人为让一个 job 红，其余 job 仍跑完；artifact 三份按 profile 命名；墙钟 ≤ 最慢 profile + 固定开销；`pnpm walnut lint:workflows` / `lint:workflows-shell` 通过。
+   - 回滚：matrix 去掉、`E2E_STACK_PROFILE` 不设即回到单栈全量；profile 抽象本身不需要回滚。
+
+###### 6. Phase B（per-worker）显式暂缓
+
+- **触发条件**：单个 project 的用时稳定超过 **~10 分钟**（nightly 预算内仍可接受的上限）；或 PR / merge queue 需要 < 5 分钟的子集证据而 Phase A 已经到墙。
+- **前置（缺一不可，且全部在 Playwright 之外）**：
+  1. worker 级生命周期管理 —— Playwright 的 `webServer` 是 **per-run** 的，不能 per-worker 起后端；需要外部编排（预起 N 套后端 + 库 + 端口，再把 `baseURL` 分给 worker）；
+  2. 每 worker 一个库 / schema、一个后端进程、一套端口；Redis 每 worker 一个命名空间 —— 现有键形由 server 拥有，且 server 没有逻辑库配置项，所以现实路径是**每 worker 一个 Redis 实例**，不是键前缀；
+  3. 账号池（计划页 Phase 3 的 worker 账号池）与每 worker 的 MFA trusted 状态；
+  4. `uniqueLocalIp` 按 worker 再分段，fixture 清理与 GC 按 worker 归属。
+- **不排期**：Phase A 落地并有真实时长数据之前，不开 Phase B 的工单。**当前 `workers > 1` 仍是禁止项**（见 §4「不建议做」最后一行）。
 
 ---
 
@@ -618,6 +754,20 @@ jobs:
 **验收**：一条命令看数据栈状态；清理脚本 dry-run 列出将删文件；仓库内无遗留 storageState。
 **不变量**：7（storageState 判死）——删除遗留文件正是强化它。
 **工作量**：S–M。
+
+#### P2-6 OpenAPI 三处 schema 偏差（候选）
+
+**动机（现象，2026-11-25 核实）**：server 生成的 `apps/server/openapi.json` 有三处与真实 wire 不一致，全部来自 `apps/server/libs/crud/src/list.ts` 的列表装饰器与 user 的 DTO：
+
+1. **分页壳被标成数组**：`WalnutAdminDecoratorList` 的 `ApiOkResponse` 写成 `data: { type: 'array', items: { allOf: [分页壳, …] } }` —— 生成物里 `/system/user/list` 的 `data` 是「分页壳的数组」（`data: [ { data: [...], total } ]`），真实响应 `data` 是**单个**分页壳对象。所有走 `WalnutAdminDecoratorList` 的 `POST */list` 端点都受影响。
+2. **list 行标成完整 DTO**：user controller 用 `WalnutCrudDecorators({ DTO: SysUserDTOSafe })`，于是分页壳里的行 schema 是完整 `SysUserDTOSafe`；实际响应是 `SysUserDTOListResponse`（`RealPickType(RealPartialType(SysUserDTOSafe), ['id', 'userName', 'nickName', 'status', 'createdAt', 'updatedAt', 'roles_count'])` 的**字段子集**）。
+3. **`nickName` 可为 null 却标 string**：`SysUserDTOBase.nickName` 声明为 `string`、swagger `default: null` 但**没有 `nullable`**；`sys_user.nick_name` 与实体都是 nullable ⇒ 生成类型是 `string`，运行时可以是 `null`（新建用户不传 nickName 的 list 行就是 null）。
+
+**建议**：修 **server 的 swagger / DTO**，不要放宽 E2E 断言。具体方向（实施时按 openapi 生成物核对）：列表 `ApiOkResponse` 的 `data` 改成单个分页壳对象（不要 `type: 'array'`），行 schema 用 controller 实际响应的 DTO（或给装饰器加一个「行 DTO」参数，user 传 `SysUserDTOListResponse`）；`nickName` 补 `nullable: true` / 类型改成 `string | null`（同时确认 `WalnutAdminDecoratorFieldString` 对 `default: null` 的 swagger 表达）。改完重新生成 `openapi.json` 并过 `openapi:check` 零 diff 门禁。
+
+**与 E2E 的关系**：`apps/e2e/lib/protocol/api-types.ts` 的 `SystemUserListPage` 已把两处 list 偏差显式记成注释（桥接层对着真实 wire，字段改名照样会让 `types:check` 红）；修完后这里应回到路径级默认推导并删掉补偿注释。**不建议**把 E2E 的字段级断言改成迁就错误 schema —— 那会把「server 与真实响应漂移」这个信号藏起来，正好与本条的目的相反。
+
+**验收**：`pnpm --filter @walnut/e2e types:check` 与全量套件保持全绿；生成物里不再出现「分页壳数组」与缺失的 nullable；`openapi:check` 零 diff。**工作量**：S–M（改装饰器 + DTO + 重新生成；跨端点影响面要逐个看生成物 diff）。
 
 #### 文档同步
 
