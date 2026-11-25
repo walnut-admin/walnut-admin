@@ -147,3 +147,106 @@ export async function clearRefreshTokensForDevice(client: Client, deviceId: stri
   const result = await client.query('DELETE FROM auth_refresh_token WHERE device_id = $1', [deviceId])
   return result.rowCount ?? 0
 }
+
+/** 按 userName 取 userId（U14 / U15 的 `sys_user_device` 行按 (user_id, device_id) 定位） */
+export async function findUserIdByUserName(client: Client, userName: string): Promise<string> {
+  const { rows } = await client.query<{ id: string }>('SELECT id FROM sys_user WHERE user_name = $1', [userName])
+  const id = rows[0]?.id
+  if (id === undefined) {
+    throw new Error(`[e2e/pg] sys_user 没有 user_name = ${userName} 的行`)
+  }
+  return id
+}
+
+export interface SysUserDeviceRow {
+  userId: string
+  deviceId: string
+  trusted: boolean
+  trustedExpiredAt: Date | null
+  locked: boolean
+  lastActiveAt: Date | null
+}
+
+/** 读 `sys_user_device` 行（U14 / U15 的 DB 唯一判据：trusted + trusted_expired_at） */
+export async function findUserDeviceRow(client: Client, userId: string, deviceId: string): Promise<SysUserDeviceRow | null> {
+  const { rows } = await client.query<{
+    user_id: string
+    device_id: string
+    trusted: boolean
+    trusted_expired_at: Date | null
+    locked: boolean
+    last_active_at: Date | null
+  }>(
+    `SELECT user_id, device_id, trusted, trusted_expired_at, locked, last_active_at
+       FROM sys_user_device WHERE user_id = $1 AND device_id = $2`,
+    [userId, deviceId],
+  )
+  const row = rows[0]
+  if (row === undefined) {
+    return null
+  }
+  return {
+    userId: row.user_id,
+    deviceId: row.device_id,
+    trusted: row.trusted,
+    trustedExpiredAt: row.trusted_expired_at,
+    locked: row.locked,
+    lastActiveAt: row.last_active_at,
+  }
+}
+
+/**
+ * U15：把 `sys_user_device.trusted_expired_at` 回填到 N 毫秒前。
+ *
+ * 只改这一列：`trusted` 保持 true —— 这样风险判定走的是「已信任但过期」
+ * （USER_DEVICE_TRUST_EXPIRED），而不是「未信任」（USER_DEVICE_UNTRUSTED）。
+ */
+export async function backdateUserDeviceTrustExpiredAt(client: Client, userId: string, deviceId: string, msAgo: number): Promise<number> {
+  const result = await client.query(
+    `UPDATE sys_user_device SET trusted_expired_at = now() - ($3::bigint * interval '1 millisecond')
+      WHERE user_id = $1 AND device_id = $2`,
+    [userId, deviceId, msAgo],
+  )
+  return result.rowCount ?? 0
+}
+
+/** U15 的负对照：把 `trusted_expired_at` 拨回将来（同一列、同一行，只翻转过期方向） */
+export async function setUserDeviceTrustExpiredAt(client: Client, userId: string, deviceId: string, at: Date): Promise<number> {
+  const result = await client.query(
+    'UPDATE sys_user_device SET trusted_expired_at = $3 WHERE user_id = $1 AND device_id = $2',
+    [userId, deviceId, at],
+  )
+  return result.rowCount ?? 0
+}
+
+/** `app_setting` 的永久 IP 黑名单键（服务端 `WalnutAdminConstAppSettingKeys.APP_GLOBAL_IP_BLACKLIST`，键名逐字） */
+export const APP_SETTING_KEY_IP_BLACKLIST = 'app.global.ipBlackList'
+
+/** 读某条 app_setting 的原始 `setting_value`（不存在返回 null） */
+export async function readAppSettingValue(client: Client, key: string): Promise<string | null> {
+  const { rows } = await client.query<{ setting_value: string }>(
+    'SELECT setting_value FROM app_setting WHERE setting_key = $1',
+    [key],
+  )
+  return rows[0]?.setting_value ?? null
+}
+
+/** 写某条 app_setting 的 `setting_value`（U11 造永久黑名单；改完必须经 `POST /app/setting/cache/refresh` 让服务端读到） */
+export async function updateAppSettingValue(client: Client, key: string, value: string): Promise<number> {
+  const result = await client.query(
+    'UPDATE app_setting SET setting_value = $2 WHERE setting_key = $1',
+    [key, value],
+  )
+  return result.rowCount ?? 0
+}
+
+/** 读永久 IP 黑名单（JSON 数组） */
+export async function readPermanentIpBlacklist(client: Client): Promise<string[]> {
+  const raw = await readAppSettingValue(client, APP_SETTING_KEY_IP_BLACKLIST)
+  return raw === null ? [] : JSON.parse(raw) as string[]
+}
+
+/** 写永久 IP 黑名单（JSON 数组原样序列化，与服务端 `addToPermanentBlackList` 的落盘形态一致） */
+export async function writePermanentIpBlacklist(client: Client, ips: string[]): Promise<number> {
+  return updateAppSettingValue(client, APP_SETTING_KEY_IP_BLACKLIST, JSON.stringify(ips))
+}

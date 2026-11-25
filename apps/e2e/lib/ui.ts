@@ -35,14 +35,19 @@ function stepTimeout(budget: WaitBudget, step: string, capMs: number): number {
 }
 
 /** 登录表单：用户名 / 密码 / 提交（testid 见 admin 的 opaque.vue 与 Extra/Password） */
-const LOGIN_USERNAME_SELECTOR = '[data-testid="login-username"], input[autocomplete="username"]'
-const LOGIN_PASSWORD_SELECTOR = '[data-testid="login-password"], input[autocomplete="current-password"]'
+export const LOGIN_USERNAME_SELECTOR = '[data-testid="login-username"], input[autocomplete="username"]'
+export const LOGIN_PASSWORD_SELECTOR = '[data-testid="login-password"], input[autocomplete="current-password"]'
 /** 应用外壳：侧边栏容器与菜单项（testid 见 TheAside/src/menu.vue；导出给用例做计数断言） */
 export const SIDEBAR_MENU_SELECTOR = '[data-testid="sidebar-menu"], .w-menu'
 export const SIDEBAR_MENU_ITEM_SELECTOR = '[data-testid="sidebar-menu-item"], .w-menu .w-menu-item-content'
 /** MFA 验证页：方法卡 / 6 位码输入（testid 见 views/error/MfaVerified/index.vue） */
 const MFA_METHOD_CARD_SELECTOR = '[data-testid="mfa-method-card"]:visible, .w-card:visible'
 const MFA_CODE_INPUT_SELECTOR = '[data-testid="mfa-code-input"]:visible, input[placeholder="000000"]:visible'
+/**
+ * cap.js 交互 widget（standalone，需要点一下的复选框）。U13 的 post-auth CAP 重武装
+ * 要在「对话框可见」这一步断言它，所以选择器从实现细节提升为导出常量。
+ */
+export const CAP_WIDGET_SELECTOR = 'cap-widget'
 
 /** `useAppStorageSync` 的键 = `WA__<KEY>`（getStorageKey 的默认前缀）+ superjson 包一层 `{v,e,_v}` */
 export const DEVICE_LOCAL_STORAGE_KEY = 'WA__GEO_IP_DEVICE_ID'
@@ -180,7 +185,7 @@ async function describePageState(page: Page): Promise<string[]> {
   }
 
   try {
-    const widget = page.locator('cap-widget').first()
+    const widget = page.locator(CAP_WIDGET_SELECTOR).first()
     const count = await widget.count()
     let state = '不在 DOM'
     if (count > 0) {
@@ -406,7 +411,7 @@ function currentTotp(secret: string): string {
  * `min(本步上限, 链路剩余)` —— CAP 是登录链路里最不可控的一段（WASM 拉取 + PoW），
  * 不给它单独拖到全局超时的机会。`budgetLabel` 只进报错文案（点名是哪次 CAP）。
  */
-interface CapSolveOptions {
+export interface CapSolveOptions {
   timeoutMs?: number
   appearTimeoutMs?: number
   clickTimeoutMs?: number
@@ -415,13 +420,33 @@ interface CapSolveOptions {
 }
 
 /**
+ * 断言 cap-widget 出现（U13 的 post-auth CAP 重武装：「CAP 对话框可见」）。
+ * 只等可见、不点击 —— 求解由 {@link solveCapWidget} 单独做，两步分开后失败定位更清楚。
+ */
+export async function waitForCapWidget(page: Page, timeoutMs = 15_000): Promise<void> {
+  await expect(page.locator(CAP_WIDGET_SELECTOR).first()).toBeVisible({ timeout: timeoutMs })
+}
+
+/**
+ * 若 cap-widget 出现则点它并等它消失；返回是否真的解过。
+ *
+ * 导出给 U13 的「断言可见 → 求解 → 等重放成功」三段式用；登录链路内部仍直接调
+ * {@link solveCapIfPresent}，不经过这层包装（那一步允许 widget 不出现）。
+ */
+export async function solveCapWidget(page: Page, options: CapSolveOptions = {}): Promise<boolean> {
+  return solveCapIfPresent(page, options)
+}
+
+/**
  * 若 cap-widget 出现则点它并等它消失。
  *
  * cap.js 的 standalone widget 是一个需要在 shadow DOM 里点一下的复选框；点完它自己做 PoW
- * （WASM 从 jsDelivr 拉）并发出 `solve` 事件，拦截器随后重放原请求、组件 1s 后关闭 modal。
+ * （WASM 由 admin 同源自托管在 `public/vendor/cap/`）并发出 `solve` 事件，拦截器随后重放原请求、
+ * 组件 1s 后关闭 modal。
  *
- * **不导出**：解 CAP 的消费方是 {@link waitForDeviceHealSettled}（以及本文件的登录动作），
- * 外部直接点 widget 容易在「40116 属于 CAP 交互要求」这条判据上分叉。
+ * **不直接导出**：解 CAP 的消费方是 {@link waitForDeviceHealSettled}（以及本文件的登录动作），
+ * 外部只能经 {@link solveCapWidget} 调用 —— 直接内联点击容易在「40116 属于 CAP 交互要求」
+ * 这条判据上分叉。
  */
 async function solveCapIfPresent(page: Page, options: CapSolveOptions = {}): Promise<boolean> {
   const label = options.budgetLabel ?? 'CAP'
@@ -432,7 +457,7 @@ async function solveCapIfPresent(page: Page, options: CapSolveOptions = {}): Pro
     ? capMs
     : stepTimeout(options.budget, step, capMs)
 
-  const widget = page.locator('cap-widget').first()
+  const widget = page.locator(CAP_WIDGET_SELECTOR).first()
 
   try {
     await widget.waitFor({ state: 'visible', timeout: limit(`${label}出现`, options.appearTimeoutMs ?? 6_000) })

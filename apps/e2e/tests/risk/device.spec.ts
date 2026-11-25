@@ -241,7 +241,7 @@ test.describe('设备 ID 生命周期', { tag: '@risk' }, () => {
       headers: { 'x-forwarded-for': xff },
       data: { deviceInfo: {}, hardwareInfo: {}, sr: { height: 800, width: 1280 }, vp: { height: 800, width: 1280 }, private: false },
     })
-    expect(response.ok()).toBeTruthy()
+    expect(response.ok()).toBe(true)
     const body = await response.json() as { code: number, data: { deviceId: string } }
     expect(body.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
     trackDevice(body.data.deviceId)

@@ -117,6 +117,18 @@ export class WalnutProtocolClient {
     return [...this.cookies.entries()].map(([key, value]) => `${key}=${value}`).join('; ')
   }
 
+  /**
+   * 清掉客户端侧的登录态（模拟「服务端已登出 / RT 已删」后的第一次请求）。
+   *
+   * 为什么需要：签名模式由 `this.auth` 决定 —— 有 auth 时发**双因子**签名；而 `login/start`
+   * 是 JWT-free 端点，服务端按**单因子**校验。旧 AT 留着再登录会 40112（Invalid Signature）。
+   * 服务端的 RT / 会话残留由调用方用 `clearRefreshTokensForDevice` +
+   * `deleteAuthSessionsForDevice` 清（与 `seedLoggedInDevice` 的「登出」口径一致）。
+   */
+  clearAuth(): void {
+    this.auth = null
+  }
+
   /** 裸 fetch（不带签名头）。XFF / UA 等完全由调用方决定 */
   async rawFetch(method: HttpMethod, path: string, options: { body?: unknown, headers?: Record<string, string> } = {}): Promise<Response> {
     const response = await fetch(`${this.apiBase}${path}`, {
@@ -317,6 +329,26 @@ export class WalnutProtocolClient {
     this._deviceId = device.data.deviceId
 
     // 2. CAP：challenge → 本地 PoW 求解 → redeem（服务端种 CAPJS_TOKEN cookie）
+    await this.refreshCapToken()
+
+    // 3. 签名握手：提交客户端 RSA 公钥 → 拿被加密的 aesKey → 本地私钥解密
+    await this.request('POST', SecurityRoutes.SIGN_INITIAL, {
+      sign: false,
+      body: { rsaPubKey: this.rsa.publicKeyPem, force: false },
+    })
+    const aesKeyBody = await this.request('POST', SecurityRoutes.SIGN_AES_KEY, { sign: false })
+    this.aesKey = decryptAesKeyEnvelope(this.rsa.privateKeyPem, aesKeyBody.data.aesKey)
+    this.hkdfInfo = aesKeyBody.data.hkdfInfo
+  }
+
+  /**
+   * 重新领一枚 CAP token：challenge → 本地 PoW 求解 → redeem。
+   *
+   * 从 {@link bootstrap} 拆出来的原因：U13 的 40111 分支要证明「伪造凭据被拒之后，
+   * 换一枚真凭据重放同一请求能成功」—— 那一步需要单独刷新 CAP 而不重走设备登记 / 握手。
+   * 服务端在 redeem 里用 Set-Cookie 种新的 `CAPJS_TOKEN`（signed），本方法靠 cookie jar 自动接住。
+   */
+  async refreshCapToken(): Promise<void> {
     const challenge = await this.requestFree<{ challenge: { c: number, s: number, d: number }, token: string }>(
       'POST',
       SecurityRoutes.CAP_CHALLENGE,
@@ -330,15 +362,6 @@ export class WalnutProtocolClient {
     if (redeem.success !== true) {
       throw new Error(`[e2e/protocol] CAP redeem 失败：${JSON.stringify(redeem)}`)
     }
-
-    // 3. 签名握手：提交客户端 RSA 公钥 → 拿被加密的 aesKey → 本地私钥解密
-    await this.request('POST', SecurityRoutes.SIGN_INITIAL, {
-      sign: false,
-      body: { rsaPubKey: this.rsa.publicKeyPem, force: false },
-    })
-    const aesKeyBody = await this.request('POST', SecurityRoutes.SIGN_AES_KEY, { sign: false })
-    this.aesKey = decryptAesKeyEnvelope(this.rsa.privateKeyPem, aesKeyBody.data.aesKey)
-    this.hkdfInfo = aesKeyBody.data.hkdfInfo
   }
 
   /**
@@ -406,13 +429,17 @@ export class WalnutProtocolClient {
    * 已绑定 MFA 的**新设备**登录后的第二步：用 TOTP 完成设备级验证（trusted=true ⇒ 写
    * 设备级 verified 缓存，后续请求不再被 mfa.guard 拦）。
    *
+   * `options.trusted` 默认 true（既有调用方口径不变）；U14 的「未 trusted 设备」对照
+   * 显式传 false —— 那正是 `sys_user_device.trusted=false` 的产生路径（admin 的 MFA 页面
+   * 复选框默认也是未勾选）。
+   *
    * 与 {@link bindTotp} 的 `/auth/mfa/verify` 不是同一条：那是「刚绑完、确认状态」；
    * 这条是日常登录链上的 `/system/user/mfa/totp/verify`（revoke-and-insert 轮换 RT）。
    */
-  async verifyTotpForDevice(totpSecret: string): Promise<void> {
+  async verifyTotpForDevice(totpSecret: string, options: { trusted?: boolean } = {}): Promise<void> {
     const verified = await this.root<{ accessToken: string }>('POST', SystemEndpointRoutes.USER_MFA_TOTP_VERIFY, {
       code: generateSync({ secret: totpSecret }),
-      trusted: true,
+      trusted: options.trusted ?? true,
     })
     if (this.auth !== null && verified.accessToken !== undefined) {
       this.auth = { ...this.auth, accessToken: verified.accessToken }

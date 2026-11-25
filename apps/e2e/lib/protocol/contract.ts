@@ -42,7 +42,8 @@ const mod = load()
 export const WalnutAdminConstCookieKeys = mod.WalnutAdminConstCookieKeys
 // 来源：packages/platform-any/contract/src/response-code.ts —— 业务响应码
 export const WalnutAdminConstAppResponseCode = mod.WalnutAdminConstAppResponseCode
-// 来源：packages/platform-any/contract/src/routes.ts —— 认证 / 安全 / 系统路由
+// 来源：packages/platform-any/contract/src/routes.ts —— 认证 / 安全 / 系统 / 应用路由
+export const AppRoutes = mod.AppRoutes
 export const AuthRoutes = mod.AuthRoutes
 export const SecurityRoutes = mod.SecurityRoutes
 export const SystemRoutes = mod.SystemRoutes

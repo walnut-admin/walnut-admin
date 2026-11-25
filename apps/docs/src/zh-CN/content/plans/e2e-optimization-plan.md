@@ -1059,6 +1059,8 @@ E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`
 | Phase 2 §8.4 封板配套 | P1-1 |
 | Phase 3 其余模块 / auth 面 / profile / 账号池 | 本篇不展开；P1-6 为「账号池 / 并行」提供前置设计 |
 
+**R2 用例批落地记录（2026-11-26）**：计划页 §8.2 的 U11–U16 已按用例表落地（7 条用例：`apps/e2e/tests/risk/` 下 `ip.spec.ts` / `cap.spec.ts` / `trust.spec.ts` / `device-admin.spec.ts`，逐条判据见计划页 §8.5）。本机 WSL 栈单次读数：全量 20 例 / 229.4s、风险子集 16 例 / 192.4s、network 2/2 / 19.1s；每条用例最核心的断言都做过「改坏 → 红 → 还原」的负对照。U13 的 40111 与 CAP 对话框在当前守卫链下分属两条路径（40111 映射 `/not-allowed?type=capjsTokenInvalid`；对话框只能由 pre-auth 腿的 critical 因子触发），实现按真实链路拆成 U13 / U13b，未改用例表口径；完整分歧与 `.env.stage` 的 `APP_COOKIE_SECRET` 截断发现记在计划页 §8.5。
+
 ---
 
 ## 8. 相关文档

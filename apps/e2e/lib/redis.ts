@@ -76,6 +76,62 @@ export async function readRiskDevice(client: E2eRedisClient, deviceId: string): 
   return raw === null ? null : JSON.parse(raw) as { factors?: string[], score?: number, level?: string }
 }
 
+/** user-device 作用域的评估缓存（键形 `risk:user_device:<userId>:<deviceId>`；TTL 10 分钟） */
+export function riskUserDeviceKey(userId: string, deviceId: string): string {
+  return `risk:user_device:${userId}:${deviceId}`
+}
+
+/** 读 user-device 风险评估结果（U14 / U15 的 Redis 判据：factors 里有没有 USER_DEVICE_*） */
+export async function readRiskUserDevice(client: E2eRedisClient, userId: string, deviceId: string): Promise<{ factors?: string[], score?: number, level?: string } | null> {
+  const raw = await client.get(riskUserDeviceKey(userId, deviceId))
+  return raw === null ? null : JSON.parse(raw) as { factors?: string[], score?: number, level?: string }
+}
+
+/**
+ * USER_DEVICE_* critical factor 的处理标记键（`challenge.service` 的 user-device scope）。
+ * 与 {@link riskChallengeKeyPattern} 的 device scope 区分开：U13–U15 只清这一族，
+ * 保住 DEVICE_NEW 等 pre-auth 因子的已处理标记（否则 40116 可能由 pre-auth 触发，
+ * 证明不了 post-auth CAP 重武装）。
+ */
+export function riskChallengeUserDeviceKey(userId: string, deviceId: string, factor: string): string {
+  return `risk:challenge:user-device:${userId}:${deviceId}:${factor}`
+}
+
+/** 失败登录计数键（`failedLogin.service` 的 getInfoKey：`risk:failed_login:<identifier>:<deviceId>`） */
+export function riskFailedLoginKey(identifier: string, deviceId: string): string {
+  return `risk:failed_login:${identifier}:${deviceId}`
+}
+
+/**
+ * 临时 IP 黑名单键（`SharedIpService.getTempBlackListRedisKey`）。
+ *
+ * **入参是归一化后的 IP**：服务端 `normalizeIp` 把所有 localhost（127/8、::1）统一成
+ * `127.0.0.1`，所以 E2E 的每个 127/8 客户端在临时名单上共享同一个键 —— 这正是 U12
+ * 必须「用完立刻精确删」的原因（workers=1 时窗口内没有并发用例）。
+ */
+export function ipTempBlacklistKey(normalizedIp: string): string {
+  return `risk:ip_blacklist:${normalizedIp}`
+}
+
+/** 精确删该设备的 CAP token 校验缓存（`SECURITY:CAP_TOKEN:<deviceId>:*`；不 FLUSH） */
+export async function deleteCapTokenCache(client: E2eRedisClient, deviceId: string): Promise<number> {
+  return deleteByPatterns(client, [`${CACHE_PREFIX}_SECURITY:CAP_TOKEN:${deviceId}:*`])
+}
+
+/**
+ * 只清 **user-device 作用域**的风控状态：评估缓存 + `USER_DEVICE_*` 挑战标记。
+ *
+ * 与 {@link deleteRiskDeviceState} 的区别见 {@link riskChallengeUserDeviceKey}：U13–U15
+ * 要证明的是 post-auth CAP（USER_DEVICE_UNTRUSTED / TRUST_EXPIRED），不能被 pre-auth 的
+ * DEVICE_NEW 重新武装干扰；设备级标记与 `risk:device` 缓存保持登录链路里的原状。
+ */
+export async function deleteUserDeviceRiskState(client: E2eRedisClient, userId: string, deviceId: string): Promise<number> {
+  return deleteByPatterns(client, [
+    riskUserDeviceKey(userId, deviceId),
+    `risk:challenge:user-device:${userId}:${deviceId}:*`,
+  ])
+}
+
 /**
  * 该设备的**风控状态**键模式（全族，逐条对齐 `scripts/redis-gc.ts` 的 `DEVICE_KEY_FAMILIES`
  * 里 `risk:*` 那几条，以及各服务的键拼法）：

@@ -29,7 +29,7 @@ test('stack：后端就绪 + admin 真实绑定 TOTP + root 权限可用', async
   await withPg(async (pg) => {
     const user = await pg.query<{ id: string }>('SELECT id FROM sys_user WHERE user_name = $1', [credentials.userName])
     const userId = user.rows[0]?.id
-    expect(userId, `库里没有账号 ${credentials.userName}`).toBeTruthy()
+    expect(typeof userId, `库里没有账号 ${credentials.userName}`).toBe('string')
     await pg.query('DELETE FROM sys_user_mfa WHERE user_id = $1', [userId])
     await pg.query('UPDATE sys_user SET mfa_setup = false WHERE id = $1', [userId])
   })

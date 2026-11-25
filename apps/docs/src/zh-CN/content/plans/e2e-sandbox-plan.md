@@ -1,7 +1,8 @@
 # E2E 沙盒测试工程：分阶段实施计划
 
-> 状态：【进行中——Phase 1 已完成并通过 review 修复，Phase 2/3 未开始】2026-11-24 立项。前期设计与可行性结论记录在本文；**前期设计稿本身未入库**（对话产物），本文是它入库后的唯一真源。
+> 状态：【进行中——Phase 1 已完成并通过 review 修复；Phase 2 收尾（CI 接线 / risk 矩阵 U11–U16 / review 暂缓项已落地，nightly 首跑待 GitHub runner）；Phase 3 未开始】2026-11-24 立项。前期设计与可行性结论记录在本文；**前期设计稿本身未入库**（对话产物），本文是它入库后的唯一真源。
 > **2026-11-25 追记**：U8 / U9 flake 的核心修复已在提交 `b21ac118` 落地（删 `networkidle` 无超时等待、新增 `waitForDeviceHealSettled`、自愈后识别并关闭 CAP、点击补 30s 上限），即 §8.3 的 P2-7 核心项；其后 `5067b4aa`（契约 bridge、常量收口、knip 清理＝P2-9 / P2-10 / P2-11）、`18dcc9c6`（CAP PoW 上界与静态代理加固＝P2-16 / P2-17）、`d720c0d3`（慢用例 `test.slow()`＝P2-15）也已落地。Phase 2 的 CI 接线、risk 矩阵 U11–U16 与其余项仍未开始，因此状态行不改为「已完成」。工程细化与优先级见 [apps/e2e 改造优化方案](./e2e-optimization-plan.md)。
+> **2026-11-26 追记（Phase 2 收尾）**：§8.2 的 risk 矩阵 U11–U16 已按用例表落地（7 条用例：U11 / U12 / U13 / U13b / U14 / U15 / U16），全量 20 例 229.4s、风险子集 16 例 192.4s、`e2e:network` 2/2 19.1s（均为本机 WSL 栈单次读数）；每条核心断言都有「改坏 → 红 → 还原」的负对照记录。U13 用例表与守卫链有一处口径分歧（40111 与 CAP 对话框分属两条路径），逐条写在 §8.5。Phase 2 仍差 nightly 工作流首跑（需 GitHub runner）。
 > **定位**：把全链路 E2E 从一次性可行性验证推进成一个长期能跑的测试工程 —— 独立 workspace 包、独立数据栈、可复现的测试数据版本，以及后续的 CI 接线与用例矩阵。本篇是执行蓝图，也是 Phase 1 的实施记录。
 > **读者**：执行 Phase 2/3 的人与 agent；评审 E2E 设计的人。
 > **权威边界**：**为什么这么定**在第 2 节的决策记录与 [ADR 0009](../adr/0009-ci-quality-gates.md) 的 playwright 退役追记；**现在是什么样、怎么跑**在 [`apps/e2e/AGENTS.md`](https://github.com/walnut-admin/walnut-admin/blob/main/apps/e2e/AGENTS.md) 与 [`apps/e2e/README.md`](https://github.com/walnut-admin/walnut-admin/blob/main/apps/e2e/README.md) —— 本篇**不重复**它们的操作细节与不变量；**怎么验**在本篇。与代码冲突时以代码为准。
@@ -89,7 +90,7 @@ PR 的 quality 已经约 30 分钟，且 fork PR 没有 secrets。做法：**nig
 | 阶段 | 内容 | 依赖 | 本地能否完整验证 | 状态 |
 |------|------|------|------------------|------|
 | 1 | 包与数据栈、设备生命周期用例、封板、命令表入口 | 无 | 能（WSL 常驻栈） | 已完成（2026-11-25） |
-| 2 | CI 接线、risk 矩阵补全、review 暂缓项 | 1 | **部分**：nightly 与 artifact 的行为要等 GitHub runner 首跑 | 未开始（P2-9 / P2-10 / P2-11 / P2-15 / P2-16 / P2-17 已落地；P2-7 核心修复已落地、**20 次循环证据已补（20/20 绿）**；CI 与 risk 矩阵未开始） |
+| 2 | CI 接线、risk 矩阵补全、review 暂缓项 | 1 | **部分**：nightly 与 artifact 的行为要等 GitHub runner 首跑 | Phase 2 收尾（2026-11-26）：CI 工作流与 nightly artifact 口径已落地、risk 矩阵 U11–U16 已落地、review 的 P2 暂缓项全部关闭（P2-5 的永真断言与 `waitForTimeout` 已清零）；**未完成**：nightly 工作流首跑（需 GitHub runner，本地无法验证） |
 | 3 | 其余模块 spec、设备 profile 矩阵、部署后 smoke | 2 | **部分**：独立 sandbox 部署要主机 / 域名 / 证书 | 未开始 |
 
 ## 4. 通用纪律（每个实施 agent 必读）
@@ -174,10 +175,10 @@ pnpm --filter @walnut/e2e types:check
 
 1. **U8 / U9 偶发 flake**：自愈后弹出 CAP 对话框（`DEVICE_NEW` / `DEVICE_PRIVATE` 是 critical 因子、CAP token 一次性）撞上 `waitForLoadState('networkidle')` 的**无超时等待** ⇒ 用例在 120s 处超时。修复方向：`networkidle` 加超时 + 自愈后识别 / 关闭 CAP 对话框（review P2-7 一类）。**2026-11-25 已修**（`b21ac118`：`waitForDeviceHealSettled`、删 `networkidle`、CAP 识别 / 关闭、`:visible` 选择器、点击 30s 上限）；**2026-11-25 已补 20 次循环证据**：全量 20/20 绿（每轮 restore 口径，U8 23.5–31.2s / U9 23.2–28.9s，无一次逼近 120s），逐轮时长与汇总见 [E2E 改造优化方案](./e2e-optimization-plan.md) 的 P2-1 落地记录。
 2. **admin 的 eslint / vite 偶发原生崩溃 `0xC0000005`**：Windows 本机、与负载相关、成因未明（[tooling 计划](./tooling-restructure-plan.md) 第 14 节有排查记录）。处置：重跑；E2E 相关任务一律禁可见窗口。
-3. **knip 已让 `apps/e2e` 可见**：`@walnut/contract` 作为 devDep 未被使用（当前 `apps/e2e` 的源码没有 import 它），另有 16 个未使用导出。清理待做（Phase 2 的 P2-10 / P2-11）。
+3. **knip 已让 `apps/e2e` 可见**：`@walnut/contract` 作为 devDep 未被使用（当前 `apps/e2e` 的源码没有 import 它），另有 16 个未使用导出。清理待做（Phase 2 的 P2-10 / P2-11）。**2026-11-25 已消化**：`5067b4aa` 落地契约 bridge（`apps/e2e/lib/protocol/contract.ts` 经该包的 CJS 产物消费），R2 用例批还复用了 `AppRoutes`；knip 的未使用导出清理同批完成。
 4. **`VITE_SERVER_STATIC_PUBLIC_KEY` 修复后 stage / prod 需要重新构建 / 部署**才生效 —— 环境侧的跟进项，不在代码仓内。
 
-## 8. Phase 2：CI 接线、risk 矩阵与 review 暂缓项（未开始）
+## 8. Phase 2：CI 接线、risk 矩阵与 review 暂缓项（收尾；nightly 首跑待 runner）
 
 ### 目标
 
@@ -259,6 +260,31 @@ pnpm walnut build:docs
 - `pnpm walnut e2e:network` 单独可跑、2/2。
 - flake 修复后有 **20 次循环无复现**的证据。
 - review 的 P2 暂缓项全部关闭：要么改掉、要么在本文写下「不改」的理由（不接受悄悄消失）。
+
+### 8.5 结果记录（2026-11-26，Phase 2 收尾 / R2 用例批）
+
+**risk 矩阵 U11–U16**：7 条用例落地，全部协议优先（U13 / U16 因「对话框可见」「页面操作」必须走 UI）：
+
+| 用例 | 文件 | 判据落点 |
+|------|------|----------|
+| U11 永久黑名单 | `apps/e2e/tests/risk/ip.spec.ts` | app_setting 行 + 40603 + `/not-allowed?type=ip`；移除后恢复 |
+| U12 失败登录临时拉黑 | 同上 | `risk:ip_blacklist:<归一 IP>` 存在 + TTL + 计数 = 5 + 第 6 次 40603 |
+| U13 CAP 重新武装（UI） | `apps/e2e/tests/risk/cap.spec.ts` | 40116 → cap-widget 可见 → 求解 → 重放 20000；post-auth 腿写 USER_DEVICE_UNTRUSTED handled 标记 |
+| U13b 40111（协议） | 同上 | 签名合法但非 cap.js 形态 → 40111；换真凭据后同一请求 20000 |
+| U14 MFA trusted | `apps/e2e/tests/risk/trust.spec.ts` | DB trusted + 未来过期；trusted 无因子/无标记，untrusted 有因子/有标记 |
+| U15 trust 过期 | 同上 | DB 行（trusted=true + 过期在过去）+ TRUST_EXPIRED 因子 + handled 标记；拨回将来后消失 |
+| U16 设备管理页 | `apps/e2e/tests/risk/device-admin.spec.ts` | 页面可达 + 搜索命中 + UI lock 后 `sys_device.locked=true` |
+
+**实测读数（本机 WSL 栈单次）**：全量 `pnpm walnut e2e` **20 例 / 229.4s**（改造前 13 例 / p50 ≈ 230s，无回退）；`pnpm walnut e2e:risk` **16 例 / 192.4s**（含 stack-setup）；`pnpm walnut e2e:network` **2/2 / 19.1s**。每条用例最核心的那一个断言都做过负对照（临时改坏 → 红 → 还原），逐条记录随 R2 提交的汇报给出。
+
+**用例表与实现的一处分歧（按代码写，不悄悄改口径）**：§8.2 的 U13 把「40111 + CAP 对话框可见 + 重放成功」写成一条，但当前守卫链下这三件事分属两条路径：
+
+- **40111** 只在「CAP cookie **签名合法**、值不是 cap.js token 形态」时抛出（cap.guard 的 `performCapVerification`）。用户端改写 cookie 只会得到未签名值 ⇒ 被当成缺失（40116）；伪造签名需要 `APP_COOKIE_SECRET`（只有服务端持有）。前端把 40111 映射到 `/not-allowed?type=capjsTokenInvalid`，**不弹** CAP 对话框。
+- **CAP 对话框 + 重放成功** 属于 40116。且对话框只能由 **pre-auth 腿**的 critical 因子触发：pre-auth CAP guard 在 shouldChallenge=false 且凭据不可用时回 40117（静默刷新）；凭据有效时 post-auth 腿命中同一份缓存直接放行。因此「只有 USER_DEVICE_* 因子、单靠它在当前请求弹出对话框」不可达。
+- 实现拆成 U13（UI：40116 → 对话框 → 求解 → 重放 20000，并断言重放请求的 **post-auth 腿**写出 USER_DEVICE_UNTRUSTED 标记 —— 该键只有 post-auth 腿写得出来）与 U13b（协议：畸形签名 cookie → 40111 → 换真凭据重放成功）。U14 / U15 同理改用「风险因子 + post-auth handled 标记 + DB 行」作判据，而不是不可达的 post-auth 40116。
+- 顺带发现：`.env.stage` 的 `APP_COOKIE_SECRET` 是含 `#` 的未加引号随机串，服务端用的 dotenv 会在 `#` 处截断，而 `apps/e2e/scripts/env.ts` 的 `parseEnvFile` 不截断 —— U13b 的签名必须按 dotenv 口径取前缀（`readServerCookieSecret`）。这也意味着任何按「原样值」使用该 secret 的外部工具都会对不上；服务端自身签/验一致，故不影响运行。
+
+**完成判据状态**：全量含 U11–U16 ✅、`e2e:network` 2/2 ✅、20 次循环证据 ✅（见 P2-1 落地记录）、review P2 暂缓项全部关闭 ✅（P2-5 遗留的两处 `toBeTruthy` 已改为具体判据，`waitForTimeout` 已清零）。**未完成**：nightly 工作流首跑（GitHub runner，本机无法验证）。
 
 ## 9. Phase 3：其余模块与更远（未开始）
 
