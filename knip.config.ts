@@ -224,7 +224,6 @@ const config: KnipConfig = {
     '**/vite.config.ts',
     '**/vitest.config.ts',
     '**/vitest.*.config.ts',
-    '**/playwright.config.ts',
     '**/eslint.config.*',
     '**/tsconfig*.json',
 
@@ -300,7 +299,6 @@ const config: KnipConfig = {
     'hbs',
     'raw-body',
     'tencentcloud-sdk-nodejs',
-    'csv-parse',
 
     // --- Vite 插件（在 vite.config.ts 中配置，knip 无法解析） ---
     '@vitejs/plugin-legacy',
@@ -350,7 +348,6 @@ const config: KnipConfig = {
 
     // --- 测试工具 ---
     'supertest',
-    'playwright',
 
     // --- Git hooks & 代码质量 ---
     // lefthook 只在 `pnpm install` 的 postinstall 与 .git/hooks 里被调用，源码不 import 它
