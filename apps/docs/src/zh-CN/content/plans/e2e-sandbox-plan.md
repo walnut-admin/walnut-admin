@@ -70,6 +70,8 @@
 
 api.ip.sb（定位）与 jsDelivr（CAP 的 WASM）都需要真实外网。用例标题带 `@network` 标记：默认套件不含，`pnpm walnut e2e:network` 单独跑。离线环境里 `e2e:risk` 仍应全绿。
 
+**2026-11-25 追记**：离线口径从「声明」变为事实 —— CAP 的 WASM 改为 admin 自托管（`apps/admin/public/vendor/cap/`，`CAP_CUSTOM_WASM_URL` 指向同源绝对 URL），widget 本体早已由后端自托管；Phase0-4 改用 127/8 的 local IP，后端 `getLocationInfoFromFreeAPI` 对 local IP 直接返回本地定位、不发外网请求。实测断网负对照（浏览器侧 abort `*.jsdelivr.net` / `api.ip.sb`，服务端 `HTTP(S)_PROXY` 指向死端口）下 `e2e:risk` 9/9 全绿，同条件 `e2e:network` 红。现在外网依赖只剩 `@network` 一条（U1b 的真实 geoip 定位）。
+
 ### 2.6 storageState：判死
 
 **不再尝试**保存 / 复用浏览器登录态（证据见 1.3）。不在 project 上挂 `storageState`，不加 `auth.setup` 写盘 —— 坏状态会把应用卡在 splash。代价是每条冒烟用例自己走 UI 登录，慢但确定。

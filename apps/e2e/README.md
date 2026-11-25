@@ -100,7 +100,9 @@ pnpm walnut e2e:report  # 打开上一轮 HTML 报告
 额外参数原样透传给 Playwright，例如 `pnpm --filter @walnut/e2e e2e -g "登录"`。
 
 依赖外网的用例在标题里带 `@network`：`risk` project 用 `grepInvert` 排除它们，`network`
-project 只收它们 —— 离线环境里 `e2e:risk` 仍应全绿，只有 `e2e:network` 与全量会要求外网。
+project 只收它们。**离线口径（2026-11-25 起成立）**：`e2e:risk` 不需要外网 —— Phase0-4 用
+127/8 的 local IP（后端跳过 geo 查询），CAP 的 widget 与 WASM 都已自托管（同源加载）；
+`e2e:network`（当前是 U1b：api.ip.sb 真实定位）需要外网，离线时必红是**预期**。
 
 `run.ts` 的顺序是硬约束：
 

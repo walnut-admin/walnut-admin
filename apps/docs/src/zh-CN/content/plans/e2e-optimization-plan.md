@@ -258,6 +258,8 @@ jobs:
 
 **工作量级**：S–M（Phase0-4 改动小；WASM 本地化需要加依赖 + 路由 + 验证）。
 
+**落地记录（2026-11-25）**：改法的第 2 条按**所有者决策**替换 —— 不用 e2e 侧 `page.route` 拦截 jsDelivr，改为 **admin 自托管 WASM**（生产行为变更，所有者已批准；自托管后登录链路根本不请求外网，测试侧无需任何拦截）。落地：`@cap.js/wasm@0.0.6` 的 `browser/cap_wasm.js` + `cap_wasm_bg.wasm` 逐字节 vendor 到 `apps/admin/public/vendor/cap/`（同目录 README 记版本 / 上游 / 日期 / sha256，并写明升级时两个文件必须一起换）；`CAP_CUSTOM_WASM_URL` 改为 `${location.origin}/vendor/cap/cap_wasm.js`（blob worker 要求绝对 URL，同源即可）。第 1 条 Phase0-4 改用 `uniqueLocalIp()`，断言不弱化：`sys_device.ip` 逐字等于注入的 127.0.0.x（代理丢头会退化成 127.0.0.1 ⇒ 必红）、定位走 LOCAL 分支、rate 按归一后的 127.0.0.1 记账。实测：断网负对照（浏览器侧 abort `*.jsdelivr.net` / `api.ip.sb`，服务端 `HTTP(S)_PROXY` 指向死端口）下 `e2e:risk` **9/9 全绿、2.1 分钟**，浏览器侧命中拦截的请求 **0 次**；同条件 `e2e:network` 红（U1b 的 `device/initial` 因定位不可达返回 40605），证明外网依赖只剩 `@network`。恢复网络后全量（`--rebuild-baseline`，13 例）**2.8 分钟全绿**。提交 hash 见 `git log`（本行随该提交入库，无法自引用自身的提交 hash）。
+
 ---
 
 #### P0-3 UI 登录瘦身：把重复登录压掉

@@ -224,13 +224,20 @@ test.describe('设备 ID 生命周期', () => {
   })
 
   test('Phase0-4 静态代理保留 XFF：经 /api 带 XFF 的设备登记，realIp 被后端采用', async ({ browser }) => {
-    // 用**公网** XFF 而不是 127.0.0.5：风控的 rate 键会把 local IP 归一成 127.0.0.1
-    // （sharedIpService.normalizeIp），本机 IP 无法区分「代理保留了头」与「没保留」。
-    // 1.1.1.1 是公网可路由地址（Cloudflare DNS）。这条**不断言定位结果**：外网 geoip 的连通性
-    // 由 @network 的 U1b 负责，本机离线时这条仍应成立（只查库与缓存）。
+    // 用 127/8 的 local IP（与其它用例同一套 uniqueLocalIp，每台设备一个）⇒ 后端
+    // `getLocationInfoFromFreeAPI` 先判 `isLocalhostIp`、直接返回 `getLocalLocation`，
+    // **不发任何外网请求** —— 这条用例在离线环境里成立（2026-11-25 起）。
+    //
+    // 能证明「静态代理保留了 XFF」的关键证据是**设备行的原值**：`sys_device.ip` 直接取
+    // `req.realIp`（不经过 `normalizeIp`），逐字等于注入的 127.0.x.y；代理若丢头，后端看到的
+    // 就是代理自己的回环地址 127.0.0.1，断言必红。
+    // 注意风控 rate 键会把 local IP 归一成 127.0.0.1（`sharedIpService.normalizeIp`）⇒
+    // 键名不能区分「保留 / 没保留」，这里只断言按归一后的 IP 记账仍然发生。
+    // 公网 IP + 真实定位由 U1b（@network）覆盖，不在 risk 里重复。
+    const xff = uniqueLocalIp()
     const context = await browser.newContext()
     const response = await context.request.post(`${WEB_ORIGIN}/api${SystemEndpointRoutes.DEVICE_INITIAL}`, {
-      headers: { 'x-forwarded-for': '1.1.1.1' },
+      headers: { 'x-forwarded-for': xff },
       data: { deviceInfo: {}, hardwareInfo: {}, sr: { height: 800, width: 1280 }, vp: { height: 800, width: 1280 }, private: false },
     })
     expect(response.ok()).toBeTruthy()
@@ -241,13 +248,17 @@ test.describe('设备 ID 生命周期', () => {
     // 证据 1：设备行 ip = XFF 指定的地址（代理没有把它改写成 127.0.0.1）
     await withPg(async (pg) => {
       const row = await findDeviceRow(pg, body.data.deviceId)
-      expect(row?.ip, 'XFF 在静态代理处丢了（后端的 realIp 退化成 127.0.0.1）').toBe('1.1.1.1')
+      expect(row?.ip, `XFF 在静态代理处丢了（后端 realIp 退化成 127.0.0.1，期望 ${xff}）`).toBe(xff)
     })
 
-    // 证据 2：风控的 rate 记账也按真实 IP（Redis 键 risk:rate:ip:<ip>:<分钟>）
+    // 证据 2：local IP 走的是本地定位分支（country = LOCAL），geo 查询没有被触发
+    const location = await withPg(async pg => findDeviceLocation(pg, body.data.deviceId))
+    expect(location?.country, 'local IP 没走 getLocalLocation（定位链路被触发了外网查询）').toBe('LOCAL')
+
+    // 证据 3：风控的 rate 记账仍然发生（键按 normalizeIp 归一后的 127.0.0.1 记）
     await withRedis(async (redis) => {
-      const keys = await scanKeys(redis, 'risk:rate:ip:1.1.1.1:*')
-      expect(keys.length, '风控 rate 没有按 XFF 的 IP 记账（键 risk:rate:ip:1.1.1.1:*）').toBeGreaterThan(0)
+      const keys = await scanKeys(redis, 'risk:rate:ip:127.0.0.1:*')
+      expect(keys.length, '风控 rate 没有记账（键 risk:rate:ip:127.0.0.1:*）').toBeGreaterThan(0)
     })
 
     await context.close()
