@@ -206,6 +206,7 @@ pnpm --filter @walnut/e2e e2e -- --ui      # 等价的包内写法（经 pnpm �
 | `E2E_SKIP_BASELINE=1` | 忽略基线、全量 prepare（不封板） | 逃生口：失去了「迁移 / seed 变了」的漂移判定，每轮退回全量重建；只用于排查基线本身的问题，不是日常入口 |
 | `E2E_REBUILD_BASELINE=1` | 等价于 `--rebuild-baseline`：强制全量 prepare + 重新封板 | 会用当前数据替换旧快照；确认迁移 / seed 已提交、数据路径干净再跑。与 `E2E_SKIP_BASELINE=1` 互斥（同时给按退出码 2 拒绝） |
 | `E2E_REDIS_GC=0` | 关掉 run 流程里的 Redis 设备键对账（默认开） | 关掉后崩溃 run 的设备键会跨轮存活（RSA 公钥 30 天、challenge 24h）；只在排查 GC 本身时短暂使用 |
+| `E2E_INCLUDE_QUARANTINE=1` | 忽略 `quarantine.json`：名单里的隔离用例也纳入执行（`playwright.config.ts` 的 `grepInvert` 不再挂名单） | 隔离用例本来就可能是红的；只在人工复查 / 验证名单条目时用，不要放进 nightly 主路径（理由见「标签与选择性执行」） |
 
 ## 标签与选择性执行
 
@@ -220,17 +221,25 @@ pnpm --filter @walnut/e2e e2e -- --ui      # 等价的包内写法（经 pnpm �
 | `@risk` | 设备 / 风控 | 设备 ID 生命周期整组（`test.describe` 上） |
 | `@slow` | 慢用例（同时有 `test.slow()`） | 两条「回填 created_at」 |
 | `@network` | 依赖真实外网 | U1b（api.ip.sb 定位） |
-| `@quarantine` | 隔离（本批只建机制） | 暂无 |
+| `@quarantine` | 隔离（默认不执行，见下） | `quarantine.json` 里登记的用例 |
 
-`@quarantine` **只建立标签机制**：给用例挂上 `{ tag: '@quarantine' }` 后即可用
-`--grep @quarantine` 单独选中；本批不建 quarantine.json 列表（P2-1），也不自动从全量里剔除 ——
-标记它的人要自己决定是否同时调整 project 的 `testMatch` / `grep`。`@network` 由 network
+`@quarantine` 是**两层机制**：用例挂 `{ tag: '@quarantine' }` 便于人工 `--grep @quarantine`
+单独选中；同时必须登记到 `apps/e2e/quarantine.json`（`testName` / `issue` / `owner` /
+`addedAt` / `reviewAt`）。`playwright.config.ts` 加载时把名单条目的标题编译成 `grepInvert`，
+默认从所有业务 project 中排除它们；`E2E_INCLUDE_QUARANTINE=1` 显式包含。空名单（`[]`）
+不挂任何排除，零影响；`reviewAt` 到期会在 config 加载时告警。
+
+为什么不写成 `run.ts` 的 `--grep-invert`：CLI 参数会覆盖 config 里 risk project 的
+`/@network/` 排除（CLI 优先），等于把外网用例带进离线 run；config 级 `grepInvert` 可以是
+数组，两条排除并存。本仓只有 nightly、没有 PR 门禁，所以「nightly 跑但不作为门禁」没有
+第二道可挂 —— 取舍是**默认（含 nightly）不跑名单条目**，`E2E_INCLUDE_QUARANTINE=1` 是
+人工复查入口；`owner` + `reviewAt` 是防止条目被遗忘的唯一机制。`@network` 由 network
 project 的 `grep` 选中、risk 的 `grepInvert` 排除。
 
 ```bash
 pnpm --filter @walnut/e2e e2e -- --grep @smoke          # 只跑冒烟 tag
 pnpm --filter @walnut/e2e e2e -- --project=risk --grep @slow
-pnpm --filter @walnut/e2e e2e -- --grep @quarantine     # 机制验证：有隔离用例时只选它们
+E2E_INCLUDE_QUARANTINE=1 pnpm --filter @walnut/e2e e2e -- --grep @quarantine  # 人工复查隔离用例
 ```
 
 setup project 是 `dependencies`：即使 `--grep` 不匹配它们，Playwright 也会先跑

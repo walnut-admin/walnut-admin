@@ -19,13 +19,8 @@ import path from 'node:path'
 import process from 'node:process'
 import { defineConfig, devices } from '@playwright/test'
 import { SIGN_USER_AGENT } from './lib/protocol/sign.ts'
-import {
-  BACKEND_ORIGIN,
-  backendEnvOverrides,
-  E2E_ROOT,
-  TEST_RESULTS_DIR,
-  WEB_ORIGIN,
-} from './scripts/env.ts'
+import { BACKEND_ORIGIN, backendEnvOverrides, E2E_ROOT, TEST_RESULTS_DIR, WEB_ORIGIN } from './scripts/env.ts'
+import { buildQuarantineGrepInvert, loadQuarantine, overdueEntries } from './scripts/quarantine.ts'
 
 /**
  * webServer 是否复用已在监听的进程。**默认关**：
@@ -35,6 +30,24 @@ import {
  * `E2E_REUSE_SERVER=1` 只给「明确知道 3001/4173 上跑的就是本轮产物」的本地调试用。
  */
 const reuseExistingServer = process.env.E2E_REUSE_SERVER === '1'
+
+/**
+ * Flaky 隔离名单（P2-1）：`quarantine.json` 的条目按用例标题生成 `grepInvert`，默认从
+ * **所有业务 project** 中排除；`E2E_INCLUDE_QUARANTINE=1` 时整份忽略（人工复查 / nightly
+ * 之外的单跑）。空名单 ⇒ `undefined`，不挂任何排除（零影响）。
+ *
+ * 为什么挂在 config 而不是 run.ts 的 CLI 参数：CLI 的 `--grep-invert` 会覆盖 risk project
+ * 的 `/@network/`（CLI 优先），等于把外网用例带进离线 run；config 里用数组可以和它并存。
+ * 机制与取舍的完整说明见 `scripts/quarantine.ts` 头注释。
+ */
+const quarantineEntries = process.env.E2E_INCLUDE_QUARANTINE === '1' ? [] : loadQuarantine()
+const quarantineGrepInvert = buildQuarantineGrepInvert(quarantineEntries)
+if (quarantineGrepInvert !== undefined) {
+  console.log(`[e2e/quarantine] 默认排除 ${quarantineEntries.length} 条隔离用例（E2E_INCLUDE_QUARANTINE=1 显式包含）`)
+  for (const overdue of overdueEntries(quarantineEntries)) {
+    console.warn(`[e2e/quarantine] 已过复查日期 ${overdue.reviewAt}：${overdue.testName}（owner=${overdue.owner}，issue=${overdue.issue}）`)
+  }
+}
 
 /** webServer 的 env 必须是纯 string 映射（process.env 里有 undefined，不能直接展开） */
 function serverEnv(): Record<string, string> {
@@ -134,6 +147,8 @@ export default defineConfig({
       // 两条用例都带 `@smoke`（Playwright 原生 tag，不是标题文字）—— `--grep @smoke` 能选它们。
       testMatch: [/smoke\/.*\.spec\.ts/, /system\/.*\.spec\.ts/],
       dependencies: ['auth-setup'],
+      // P2-1：名单里的用例默认不跑（见上方 quarantineGrepInvert；空名单是 undefined）
+      grepInvert: quarantineGrepInvert,
       use: {
         ...devices['Desktop Chrome'],
         // `devices['Desktop Chrome']` 会写自己的 userAgent —— 必须盖回真实 Chrome 串
@@ -152,7 +167,10 @@ export default defineConfig({
       dependencies: ['stack-setup'],
       // 整组挂 `@risk`；依赖真实外网的用例带 `@network` tag，由独立的 network project 跑
       // （离线环境里 risk 应为绿）。tag 与标题文字都能被 `--grep` 匹配，但本仓统一只用 tag。
-      grepInvert: /@network/,
+      // P2-1 的隔离名单与 @network 排除**并存**：两条 grepInvert 都要生效。
+      grepInvert: quarantineGrepInvert === undefined
+        ? /@network/
+        : [/@network/, quarantineGrepInvert],
       // 设备用例全部自建 context（每台设备一个），不继承 storageState
       use: { ...devices['Desktop Chrome'], userAgent: SIGN_USER_AGENT },
     },
@@ -162,6 +180,8 @@ export default defineConfig({
       // 依赖链与 risk 相同：只需要 stack-setup（它负责 MFA 绑定与凭据文件）。
       testMatch: /risk\/.*\.spec\.ts/,
       grep: /@network/,
+      // P2-1：隔离名单同样作用于 network project（@network 用例也可能被隔离）
+      grepInvert: quarantineGrepInvert,
       dependencies: ['stack-setup'],
       use: { ...devices['Desktop Chrome'], userAgent: SIGN_USER_AGENT },
     },
