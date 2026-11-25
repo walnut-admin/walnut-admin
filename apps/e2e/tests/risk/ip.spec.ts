@@ -85,11 +85,15 @@ test.describe('IP 黑名单', { tag: '@risk' }, () => {
       )
       captured.stop()
 
-      // 负对照（闭环）：移除 IP + 刷新缓存后，同一 context 重新加载不再被拒。
-      // 登录态还在，`/auth/permissions` 是应用启动时必发的真实业务请求。
+      // 负对照（闭环）：移除 IP + 刷新缓存后，同一 **context**（同设备 / 同登录态）重新加载不再被拒。
+      // 用新页面而不是复用被拒的页面：`captureEnvelopes` 只监听 response，被拒页面在 restore 之前
+      // 发出的请求可能到 restore 之后才返回 —— 那会把「旧请求的 40603」记进新采集数组，造成假红
+      // （全量跑时出现过 2/3 次；单跑 U11 不复现）。关掉旧页面也顺带取消它的在途请求。
       await restore()
-      const after = captureEnvelopes(session.page)
-      await session.page.goto('/')
+      await session.page.close()
+      const recovered = await session.context.newPage()
+      const after = captureEnvelopes(recovered)
+      await recovered.goto('/')
       await waitForEnvelope(
         after.entries,
         entry => entry.url.includes(AuthRoutes.PERMISSIONS) && entry.code === WalnutAdminConstAppResponseCode.SUCCESS,
@@ -99,7 +103,7 @@ test.describe('IP 黑名单', { tag: '@risk' }, () => {
         after.entries.some(entry => entry.code === WalnutAdminConstAppResponseCode.NOT_ACCEPTABLE_IP_BLOCKED),
         '名单已移除，重新加载仍收到 40603',
       ).toBe(false)
-      expect(new URL(session.page.url()).pathname).not.toBe('/not-allowed')
+      expect(new URL(recovered.url()).pathname).not.toBe('/not-allowed')
       after.stop()
     }
     finally {
