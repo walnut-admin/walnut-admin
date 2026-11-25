@@ -89,14 +89,18 @@ prepare-db 在每次重建库之后把它改成上面这个固定值（stage 启
 ## 运行
 
 ```bash
-pnpm walnut e2e        # 全量：preflight → prepare-db → stack-info → 全部 spec
-pnpm walnut e2e:smoke  # 冒烟子集（setup + 首页 / 登录 / 用户 CRUD）
-pnpm walnut e2e:risk   # 设备 ID 全生命周期
-pnpm walnut e2e:report # 打开上一轮 HTML 报告
+pnpm walnut e2e         # 全量：preflight → prepare-db → stack-info → 全部 spec（含 @network）
+pnpm walnut e2e:smoke   # 冒烟子集（setup + 首页 / 登录 / 用户 CRUD）
+pnpm walnut e2e:risk    # 设备 ID 全生命周期（不含 @network）
+pnpm walnut e2e:network # 只跑依赖真实外网的用例（当前是 U1b：api.ip.sb 的定位）
+pnpm walnut e2e:report  # 打开上一轮 HTML 报告
 ```
 
 包脚本只是把参数交给 `scripts/run.ts`（`e2e:smoke` = `node scripts/run.ts --project=smoke`），
 额外参数原样透传给 Playwright，例如 `pnpm --filter @walnut/e2e e2e -g "登录"`。
+
+依赖外网的用例在标题里带 `@network`：`risk` project 用 `grepInvert` 排除它们，`network`
+project 只收它们 —— 离线环境里 `e2e:risk` 仍应全绿，只有 `e2e:network` 与全量会要求外网。
 
 `run.ts` 的顺序是硬约束：
 

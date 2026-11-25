@@ -17,6 +17,9 @@
  * 每条用例自造设备；清理**不写在用例末尾**（断言失败就跳过）—— 设备在签发时登记给
  * `tests/fixtures.ts` 的 auto fixture，由它在用例结束时按 deviceId 删 PG 行与 Redis 键
  * （**不 FLUSHDB**）。
+ *
+ * 标记：依赖真实外网的用例在标题里带 `@network`，由独立的 network project 跑（risk 用
+ * `grepInvert` 排除它们）—— 离线环境里 risk 仍应全绿。
  */
 import type { Page } from '@playwright/test'
 import {
@@ -105,7 +108,7 @@ test.describe('设备 ID 生命周期', () => {
     await context.close()
   })
 
-  test('U1b Phase0-5：非 local IP 的 initial 走真实定位（api.ip.sb）', async () => {
+  test('U1b Phase0-5 @network：非 local IP 的 initial 走真实定位（api.ip.sb）', async () => {
     const client = new WalnutProtocolClient({ realIp: '1.1.1.1' })
     await client.bootstrap()
     trackDevice(client.deviceId)

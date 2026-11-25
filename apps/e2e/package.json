@@ -12,6 +12,7 @@
     "e2e": "node scripts/run.ts",
     "e2e:smoke": "node scripts/run.ts --project=smoke",
     "e2e:risk": "node scripts/run.ts --project=risk",
+    "e2e:network": "node scripts/run.ts --project=network",
     "e2e:report": "playwright show-report",
     "lint": "eslint . --concurrency=4",
     "types:check": "tsc --noEmit"

@@ -125,8 +125,21 @@ export default defineConfig({
     {
       name: 'risk',
       testMatch: /risk\/.*\.spec\.ts/,
-      dependencies: ['auth-setup'],
+      // risk 不消费 storageState（每条用例自建 context），只需要 stack-setup 写好的 TOTP secret ——
+      // 刻意不挂 auth-setup：那 41s 的 UI 登录对设备用例没有铺垫作用。
+      dependencies: ['stack-setup'],
+      // 依赖真实外网的用例用 @network 标记，由独立的 network project 跑（离线环境里 risk 应为绿）
+      grepInvert: /@network/,
       // 设备用例全部自建 context（每台设备一个），不继承 storageState
+      use: { ...devices['Desktop Chrome'], userAgent: SIGN_USER_AGENT },
+    },
+    {
+      name: 'network',
+      // 只跑带 @network 标记的用例（当前是设备用例里的 U1b：非 local IP 走 api.ip.sb 的真实定位）。
+      // 依赖链与 risk 相同：只需要 stack-setup（它负责 MFA 绑定与凭据文件）。
+      testMatch: /risk\/.*\.spec\.ts/,
+      grep: /@network/,
+      dependencies: ['stack-setup'],
       use: { ...devices['Desktop Chrome'], userAgent: SIGN_USER_AGENT },
     },
   ],
