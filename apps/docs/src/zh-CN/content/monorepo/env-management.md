@@ -82,6 +82,17 @@ CI（`.github/workflows/ci.yml`）复用同一套加解密流程：
 
 `.env.keys` 本身仍 gitignore、经 1Password 团队共享——secret 与本地文件是同一份内容，轮换密钥后需同步更新。
 
+### 6. E2E（nightly）的 env 绑定
+
+`.github/workflows/e2e.yml` 不进 PR，但同样要 `ENV_KEYS`：admin 的 stage 构建要 `VITE_*`（zod
+fail-fast），后端 stage 要根密钥（OPAQUE / cookie / JWT）。写法与 ci.yml 同源 —— secret 绑到
+**job 级 `env`**，step 里 `printf` 写 `.env.keys` → `pnpm setup-env` → 立即 `rm`（见工作流的
+`Decrypt environment files` 一步，理由与硬约束见上面 §5.2）。
+
+它另有一套**不是 secret** 的固定明文：独立数据栈的端口 / 库名 / 凭据（5433 / 6380、`walnut_e2e`），
+真源是 `apps/e2e/scripts/env.ts`，workflow 的 `services` 与两份 compose 都照它对齐。基线缓存 /
+切回口径见 [E2E 优化计划](../plans/e2e-optimization-plan.md) 的 P0-1 / P1-1。
+
 ## 没做什么 / 为什么
 
 ### admin 基础 `.env` 已纳入加密管理（2026-08-09 起）
