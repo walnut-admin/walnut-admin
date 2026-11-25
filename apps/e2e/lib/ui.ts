@@ -67,7 +67,14 @@ export async function waitForEnvelope(
       return hit
     }
     if (Date.now() - started > timeoutMs) {
-      throw new Error(`[e2e/ui] 30s 内没等到目标响应；已采集：${JSON.stringify(entries.slice(-12))}`)
+      // 文案用**实际**传入的超时（曾经硬编码 30s，改成 40s 的调用点报错里还在说 30s）
+      const recent = entries.slice(-12).map((entry) => {
+        const code = entry.code === undefined ? '' : ` ${entry.code}`
+        return `${entry.method} ${entry.url}${code}`
+      })
+      throw new Error(
+        `[e2e/ui] ${Math.round(timeoutMs / 1000)}s 内没等到目标响应；已采集（末 ${recent.length} 条）：\n${recent.join('\n')}`,
+      )
     }
     await new Promise(resolve => setTimeout(resolve, 100))
   }
@@ -206,7 +213,10 @@ export async function loginViaUI(page: Page, options: { userName?: string, passw
 
 /**
  * 保证当前 page 处于登录态：先打开站点；若落到登录页则走 UI 登录。
- * 供 smoke 用例复用（storageState 能复用时这里直接命中侧边栏）。
+ *
+ * storageState 复用已判死（IndexedDB 里的 AES `CryptoKey` 恢复不了，见 playwright.config.ts），
+ * 所以每次都是「打开站点 → 走登录」。保留 shell 分支是防御性的：将来若真有了可复用的登录态，
+ * 这里不需要改。
  */
 export async function ensureLoggedIn(page: Page): Promise<LoginResult | null> {
   await page.goto('/')

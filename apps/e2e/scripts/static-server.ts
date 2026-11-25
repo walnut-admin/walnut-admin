@@ -24,6 +24,7 @@ import path from 'node:path'
 import process from 'node:process'
 import {
   ADMIN_DIST_DIR,
+  ADMIN_INDEX_FILE,
   API_PREFIX,
   API_VERSION,
   BACKEND_PORT,
@@ -32,6 +33,7 @@ import {
   SOCKET_PORT,
   WEB_PORT,
 } from './env.ts'
+import { E2ePreconditionError, EXIT_FAILURE, EXIT_PRECONDITION, reportFailure } from './failure.ts'
 
 const API_UPSTREAM_PREFIX = `/${API_PREFIX}/v${API_VERSION}`
 const SOCKET_PATH = (() => {
@@ -199,10 +201,10 @@ function serveStatic(req: IncomingMessage, res: ServerResponse): void {
 }
 
 function main(): void {
-  if (!existsSync(path.join(ADMIN_DIST_DIR, 'index.html'))) {
-    console.error(`[e2e/static-server] 找不到 ${ADMIN_DIST_DIR}/index.html —— 先跑 \`pnpm --filter @walnut/admin build:stage\``)
-    process.exitCode = 1
-    return
+  if (!existsSync(ADMIN_INDEX_FILE)) {
+    throw new E2ePreconditionError(
+      `找不到 ${ADMIN_INDEX_FILE} —— 先跑 \`pnpm --filter @walnut/admin build:stage\`（或根上 \`pnpm walnut build:stage\`）`,
+    )
   }
 
   const server = createServer((req, res) => {
@@ -228,9 +230,25 @@ function main(): void {
     socket.destroy()
   })
 
+  // 监听失败基本都是环境问题（端口被占 / 无权限）：按「环境没准备好」（2）收场，
+  // 与「反代逻辑坏了」（1）区分开。
+  server.on('error', (error: NodeJS.ErrnoException) => {
+    const precondition = error.code === 'EADDRINUSE' || error.code === 'EACCES'
+    const hint = error.code === 'EADDRINUSE'
+      ? ' —— 4173 被残留进程占着？见 apps/e2e/README.md 的「排障」'
+      : ''
+    console.error(`[e2e/static-server] 监听 ${WEB_PORT} 失败（${error.code ?? error.message}）${hint}`)
+    process.exitCode = precondition ? EXIT_PRECONDITION : EXIT_FAILURE
+  })
+
   server.listen(WEB_PORT, '127.0.0.1', () => {
     console.log(`[e2e/static-server] ${ADMIN_DIST_DIR} @ http://127.0.0.1:${WEB_PORT} → api :${BACKEND_PORT}${API_UPSTREAM_PREFIX}, socket :${SOCKET_PORT}${SOCKET_PATH}`)
   })
 }
 
-main()
+try {
+  main()
+}
+catch (error) {
+  process.exitCode = reportFailure('e2e/static-server', error)
+}

@@ -6,12 +6,14 @@
  * 任何一处手抄都会漂移，而漂移的症状是「连到了 dev 库」或「代理指到了 dev 后端」——
  * 两种都是**不可接受**的事故（本机同时跑着 dev 栈）。
  *
- * 安全闸（{@link assertE2eDatabase}）把这件事变成机械判据：任何脚本在 DROP / CREATE /
- * 清 Redis 之前都必须先过这道闸；库名不是 walnut_e2e 或端口不是 5433 一律拒跑。
+ * 安全闸（{@link assertE2eDatabase} 一族）：任何脚本在 DROP / CREATE / 清 Redis 之前都必须先过
+ * 这道闸；库名不是 walnut_e2e 或端口不是 5433 / 6380 一律拒跑。**实参是常量时它是恒真的机械
+ * 标记**（防将来把常量换成字面量），对运行态真正的断言在 `lib/pg.ts` 的 `SELECT current_database()`。
  */
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { E2ePreconditionError } from './failure.ts'
 
 /** `apps/e2e` 的绝对路径（本文件在 scripts/ 下） */
 export const E2E_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -21,18 +23,22 @@ export const REPO_ROOT = path.resolve(E2E_ROOT, '../..')
 export const SERVER_ROOT = path.join(REPO_ROOT, 'apps/server')
 /** 前端 stage 产物目录（static-server 伺服的根） */
 export const ADMIN_DIST_DIR = path.join(REPO_ROOT, 'apps/admin/dist-staging')
+/** 前端 stage 入口文件（preflight 的存在性判据 / stack-info 的新鲜度读数） */
+export const ADMIN_INDEX_FILE = path.join(ADMIN_DIST_DIR, 'index.html')
+/** 后端 stage 产物目录（webServer 用 `pnpm run start:stage` 跑它） */
+export const SERVER_DIST_DIR = path.join(SERVER_ROOT, 'dist-stage')
+/** 后端 stage 入口文件（同上；路径形态由 apps/server 的 build:stage 产出决定） */
+export const SERVER_MAIN_FILE = path.join(SERVER_DIST_DIR, 'apps/api/src/main.js')
 
 /** 运行态目录：凭据（gitignored）与栈信息 */
 export const AUTH_DIR = path.join(E2E_ROOT, '.auth')
 export const ARTIFACT_DIR = path.join(E2E_ROOT, '.e2e')
-/** prepare-db 写给 seed 的 env 文件（= .env.stage 的副本 + 独立库覆盖） */
+/** prepare-db 写给 seed 的 env 文件（= .env.stage 的副本 + 独立库覆盖；seed 之后即删） */
 export const E2E_ENV_FILE = path.join(ARTIFACT_DIR, 'e2e.env')
 /** prepare-db 写给 typeorm CLI 的 env 文件（apps/server/env-local/.env.e2e，gitignored） */
 export const SERVER_E2E_ENV_FILE = path.join(SERVER_ROOT, 'env-local/.env.e2e')
-/** 账号凭据 + TOTP secret（stack.setup 写入；所有 spec 只读） */
+/** 账号凭据 + TOTP secret（stack.setup 写入；所有 spec 只读；0600） */
 export const CREDENTIALS_FILE = path.join(AUTH_DIR, 'credentials.json')
-/** auth.setup 落盘的登录态（storageState；indexedDB 能不能带过来由 Phase 0 gate 2 实测决定） */
-export const STORAGE_STATE_FILE = path.join(AUTH_DIR, 'admin.json')
 /** 本轮栈信息 */
 export const STACK_INFO_FILE = path.join(ARTIFACT_DIR, 'stack.json')
 
@@ -89,8 +95,11 @@ export const RT_JTI_COOKIE_NAME = 'RT_JTI'
 /**
  * 安全闸：目标库必须**逐字**是 walnut_e2e。
  *
- * 凡是要 DROP / CREATE / DELETE / Redis 清键的脚本，第一步都调它 —— 名字写错、env 读串、
- * 有人把 DATABASE_PG_NAME 复制成 walnut_pg，都在这里当场抛，而不是在 drop 之后。
+ * 它什么时候是真判据：参数来自**解析结果**时 —— `writeSeedEnv` 把 .env.stage 副本解析后的
+ * `DATABASE_PG_NAME` 传进来，那条路径真的可能读到 dev 的库名。
+ * 参数直接是常量（`E2E_PG_DB`）时它是**恒真的机械标记**，保留它的目的只有一个：将来有人把
+ * 常量换成字面量 / 从 env 读回来时，闸还在原地。对运行态真正的断言在
+ * `lib/pg.ts` 的 `connectPg`（连上之后 `SELECT current_database()`）。
  */
 export function assertE2eDatabase(database: string): void {
   if (database !== E2E_PG_DB) {
@@ -101,14 +110,14 @@ export function assertE2eDatabase(database: string): void {
   }
 }
 
-/** 安全闸：PG 端口必须是独立栈的 5433（防「连到 dev 的 5432 再 drop」） */
+/** 安全闸：PG 端口必须是独立栈的 5433（同 {@link assertE2eDatabase} 的口径：常量实参时是机械标记） */
 export function assertE2ePgPort(port: number): void {
   if (port !== E2E_PG_PORT) {
     throw new Error(`[e2e/safety] 拒绝在 PG 端口 ${port} 上跑 E2E：只允许 ${E2E_PG_PORT}（dev 是 5432）`)
   }
 }
 
-/** 安全闸：Redis 端口必须是 6380（E2E 会删自己设备缓存键；连错库会清掉 dev 缓存） */
+/** 安全闸：Redis 端口必须是独立栈的 6380（同 {@link assertE2eDatabase} 的口径：常量实参时是机械标记） */
 export function assertE2eRedisPort(port: number): void {
   if (port !== E2E_REDIS_PORT) {
     throw new Error(`[e2e/safety] 拒绝在 Redis 端口 ${port} 上跑 E2E：只允许 ${E2E_REDIS_PORT}（dev 是 6379）`)
@@ -137,10 +146,12 @@ export function parseEnvFile(text: string): Record<string, string> {
 /** 后端 stage env 文件（`apps/server/env-local/.env.stage`）—— OPAQUE / cookie 密钥的唯一来源 */
 export const SERVER_STAGE_ENV_FILE = path.join(SERVER_ROOT, 'env-local/.env.stage')
 
-/** 读后端 stage env（缺文件时给出可操作的报错：先跑 `pnpm setup-env`） */
+/**
+ * 读后端 stage env（缺文件时按**前置条件**报错：先跑 `pnpm setup-env`，进程退 2）。
+ */
 export function readServerStageEnv(): Record<string, string> {
   if (!existsSync(SERVER_STAGE_ENV_FILE)) {
-    throw new Error(
+    throw new E2ePreconditionError(
       `[e2e] 找不到 ${SERVER_STAGE_ENV_FILE} —— 先跑 \`pnpm setup-env\` 解密 env-local/（需要根 .env.keys）`,
     )
   }

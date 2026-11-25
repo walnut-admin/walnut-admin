@@ -1,6 +1,3 @@
-import { execFileSync } from 'node:child_process'
-import { randomBytes } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 /**
  * E2E 库准备：**advisory lock → DROP/CREATE walnut_e2e → 迁移 → seed → 提升 admin 为 root**。
  *
@@ -9,29 +6,40 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
  * （TypeORM 实体 / RLS 连接）。库还不存在时它直接失败，Playwright 会当成「webServer 起不来」
  * 超时。所以建库 / 迁移 / seed 只能放在 `e2e` 脚本的第一段。
  *
+ * 两套入口，同一段逻辑（{@link prepareDatabase}）：
+ * - `pnpm --filter @walnut/e2e e2e` 走 `scripts/run.ts`：它**先抢锁并整轮持有**，再把这件
+ *   事原样传进来（`lockHeld: true`）—— 锁要罩住 playwright test，否则两个 worktree 并发时
+ *   后一个准备进程会把前一个正在用的库删掉；
+ * - 单独 `node scripts/prepare-db.ts`：自己抢锁、自己在结束时放（只罩住重建那一段）。
+ *
  * 顺序与判据：
- * 1. 安全闸：库名必须逐字 walnut_e2e、端口必须 5433（见 scripts/env.ts 的 assert*）；
- * 2. PG advisory lock（与集成测试同一手法）：同一 worktree 并发跑两个 prepare 会互删库；
- * 3. `DROP DATABASE IF EXISTS walnut_e2e WITH (FORCE)` + `CREATE DATABASE`（全新状态）；
- * 4. `migration:run`：typeorm CLI 只认 `apps/server/env-local/.env.${NODE_ENV}`，所以本脚本
- *    生成 `apps/server/env-local/.env.e2e`（gitignored）并让子进程 NODE_ENV=e2e；
- * 5. `db:seed:pg --admin admin --password <随机>`：`--env-file` 指向本脚本生成的
- *    `.e2e/e2e.env`（= .env.stage 副本 + 独立库覆盖）。**OPAQUE 口令必须用后端实际使用的
- *    AUTH_OPAQUE_SECRET 生成**，所以不能只给 DATABASE_PG_*，必须整份拷贝；
- * 6. 提升 root：删其它角色 junction、插 root junction、role_mode='combinable'、
+ * 1. 写迁移通道 env（`apps/server/env-local/.env.e2e`）与 seed env（`.e2e/e2e.env`，= .env.stage
+ *    副本 + 独立库覆盖）；两者都是前置条件产物，缺 .env.stage 直接按「环境没准备好」退出；
+ * 2. `DROP DATABASE IF EXISTS walnut_e2e WITH (FORCE)` + `CREATE DATABASE`（全新状态）；
+ * 3. `migration:run`：typeorm CLI 只认 `apps/server/env-local/.env.${NODE_ENV}`，所以让子进程
+ *    NODE_ENV=e2e；
+ * 4. `db:seed:pg --admin admin --password <随机>`：`--env-file` 指向 `.e2e/e2e.env`。
+ *    **OPAQUE 口令必须用后端实际使用的 AUTH_OPAQUE_SECRET 生成**，所以不能只给
+ *    DATABASE_PG_*，必须整份拷贝；seed 成功（或失败）之后立刻删掉这份含密钥的副本；
+ * 5. 提升 root：删其它角色 junction、插 root junction、role_mode='combinable'、
  *    current_role_id=root、补齐 sys_role_menu（角色真源在 seed 的 sys_role.json；
  *    root 走 permission guard 短路，但菜单/侧边栏仍按 junction 算，补齐才不留空壳）；
- * 7. 写 `.auth/credentials.json`（口令；TOTP secret 由 stack.setup 绑定后补上）。
+ * 6. 写 `.auth/credentials.json`（口令；TOTP secret 由 stack.setup 绑定后补上）。
  *
  * 不提交、不推送：所有产物都落在 gitignored 的 .e2e/ 与 .auth/（以及 apps/server/env-local）。
  */
+import { randomBytes } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
 import process from 'node:process'
+import { fileURLToPath } from 'node:url'
 import { Client } from 'pg'
 import { createClient } from 'redis'
 import {
   ARTIFACT_DIR,
   assertE2eDatabase,
   assertE2ePgPort,
+  assertE2eRedisPort,
   AUTH_DIR,
   CREDENTIALS_FILE,
   E2E_ENV_FILE,
@@ -51,46 +59,12 @@ import {
   SERVER_ROOT,
   SERVER_STAGE_ENV_FILE,
 } from './env.ts'
-
-/** advisory lock 的 key（任意固定大整数；只在 E2E 内使用，别与集成测试的 key 撞） */
-const E2E_PG_LOCK_KEY = 2026112401
-/** 抢锁等待上限：超过就报「谁在持锁」而不是无限等 */
-const LOCK_WAIT_MS = 120_000
-const LOCK_POLL_MS = 2_000
-/** 管理通道连到维护库（DROP/CREATE DATABASE 不能连目标库本身） */
-const MAINTENANCE_DB = 'postgres'
+import { E2ePreconditionError, reportFailure } from './failure.ts'
+import { acquirePgLock, connectMaintenance, releasePgLock } from './pg-lock.ts'
+import { runPnpm } from './pnpm.ts'
 
 function log(message: string): void {
   console.log(`[e2e/prepare-db] ${message}`)
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-/**
- * 经 pnpm 跑子进程。
- *
- * `npm_execpath` 的形态**因安装方式而异**：pnpm 自己的 bin 可能是**可执行文件**
- * （本机 corepack/nvm 布局里是 `pnpm.exe`），也可能是 `.cjs`。把 `.exe` 交给 `node` 去跑
- * 会得到「Command failed」而没有任何有用信息（实测：`node pnpm.exe run migration:run`
- * 直接非零退出），所以按扩展名分三路：js 用 node、exe 直接执行、其余（.cmd/.bat/无扩展名）
- * 交给 shell。手工 `node scripts/prepare-db.ts` 时没有 npm_execpath，走最后的 shell 路。
- */
-function runPnpm(args: readonly string[], cwd: string, env: NodeJS.ProcessEnv): void {
-  const execpath = process.env.npm_execpath
-
-  if (execpath !== undefined && /\.[cm]?js$/i.test(execpath)) {
-    execFileSync(process.execPath, [execpath, ...args], { cwd, env, stdio: 'inherit' })
-    return
-  }
-
-  if (execpath !== undefined && /\.exe$/i.test(execpath)) {
-    execFileSync(execpath, [...args], { cwd, env, stdio: 'inherit' })
-    return
-  }
-
-  execFileSync('pnpm', args, { cwd, env, stdio: 'inherit', shell: true })
 }
 
 /**
@@ -119,13 +93,18 @@ function writeServerMigrationEnv(): void {
  * 为什么整份拷贝而不是只写 DATABASE_PG_*：`db:seed:pg --admin` 还要从同一个文件读
  * AUTH_OPAQUE_SECRET —— 口令身份必须用后端实际使用的 OPAQUE 密钥生成，否则登录握手
  * 在客户端就返回 undefined（「口令错」的假象）。
+ *
+ * 这份文件含密钥，所以：0600 权限（只有本用户可读）、且只在 prepare 期间存在
+ * （见 {@link prepareDatabase} 里 seed 之后的删除）。
  */
 function writeSeedEnv(): void {
   assertE2eDatabase(E2E_PG_DB)
   assertE2ePgPort(E2E_PG_PORT)
 
   if (!existsSync(SERVER_STAGE_ENV_FILE)) {
-    throw new Error(`[e2e] 找不到 ${SERVER_STAGE_ENV_FILE} —— 先跑 \`pnpm setup-env\``)
+    throw new E2ePreconditionError(
+      `找不到 ${SERVER_STAGE_ENV_FILE} —— 先跑 \`pnpm setup-env\` 解密 apps/server/env-local/（需要根 .env.keys）`,
+    )
   }
 
   const overrides: Record<string, string> = {
@@ -160,42 +139,15 @@ function writeSeedEnv(): void {
   }
 
   mkdirSync(ARTIFACT_DIR, { recursive: true })
-  writeFileSync(E2E_ENV_FILE, `${kept.join('\n')}\n`, 'utf8')
-  log(`已写 ${E2E_ENV_FILE}（.env.stage 副本 + 独立库覆盖；含 AUTH_OPAQUE_SECRET，gitignored）`)
+  writeFileSync(E2E_ENV_FILE, `${kept.join('\n')}\n`, { encoding: 'utf8', mode: 0o600 })
+  log(`已写 ${E2E_ENV_FILE}（.env.stage 副本 + 独立库覆盖；含 AUTH_OPAQUE_SECRET，gitignored，0600）`)
 
   // 自检：覆盖真的写进去了（免得 seed 静默连到 dev）
   const parsed = parseEnvFile(readFileSync(E2E_ENV_FILE, 'utf8'))
   if (parsed.DATABASE_PG_NAME !== E2E_PG_DB || Number.parseInt(parsed.DATABASE_PG_PORT) !== E2E_PG_PORT) {
-    throw new Error('[e2e] 生成的 seed env 指向了非 E2E 库 —— 覆盖失败，拒绝继续')
+    throw new Error('生成的 seed env 指向了非 E2E 库 —— 覆盖失败，拒绝继续')
   }
   assertE2eDatabase(parsed.DATABASE_PG_NAME)
-}
-
-/** PG advisory lock（try 轮询；抢不到时打印持锁者，而不是静默等待） */
-async function acquireLock(client: Client): Promise<void> {
-  const started = Date.now()
-
-  for (;;) {
-    const { rows } = await client.query<{ locked: boolean }>('SELECT pg_try_advisory_lock($1) AS locked', [E2E_PG_LOCK_KEY])
-    if (rows[0]?.locked === true) {
-      log(`已拿到 PG advisory lock（key=${E2E_PG_LOCK_KEY}）`)
-      return
-    }
-
-    if (Date.now() - started > LOCK_WAIT_MS) {
-      const holders = await client.query<{ pid: number, state: string, query: string }>(
-        `SELECT a.pid, a.state, a.query
-           FROM pg_locks l JOIN pg_stat_activity a ON a.pid = l.pid
-          WHERE l.locktype = 'advisory' AND l.objid = $1`,
-        [E2E_PG_LOCK_KEY],
-      )
-      const detail = holders.rows.map(row => `pid=${row.pid} state=${row.state} query=${row.query.slice(0, 120)}`).join('; ')
-      throw new Error(`[e2e] ${LOCK_WAIT_MS / 1000}s 内没抢到 PG advisory lock —— 另一个 E2E 准备进程正在跑？${detail}`)
-    }
-
-    log('另一个 E2E 准备进程持锁中，2s 后重试……')
-    await sleep(LOCK_POLL_MS)
-  }
 }
 
 /**
@@ -211,13 +163,13 @@ async function promoteAdminToRoot(client: Client, userName: string): Promise<{ u
   const userRows = await client.query<{ id: string }>('SELECT id FROM sys_user WHERE user_name = $1', [userName])
   const userId = userRows.rows[0]?.id
   if (userId === undefined) {
-    throw new Error(`[e2e] seed 之后库里没有账号 ${userName}（seed 的 sys_user.json 应含 admin）`)
+    throw new Error(`seed 之后库里没有账号 ${userName}（seed 的 sys_user.json 应含 admin）`)
   }
 
   const roleRows = await client.query<{ id: string }>('SELECT id FROM sys_role WHERE role_name = $1', ['root'])
   const roleId = roleRows.rows[0]?.id
   if (roleId === undefined) {
-    throw new Error('[e2e] seed 之后库里没有 root 角色（sys_role.json 应有 role_name=root）')
+    throw new Error('seed 之后库里没有 root 角色（sys_role.json 应有 role_name=root）')
   }
 
   await client.query('DELETE FROM sys_user_role WHERE user_id = $1', [userId])
@@ -254,7 +206,7 @@ async function relaxCapThrottleForTests(client: Client): Promise<void> {
   )
   const raw = rows[0]?.setting_value
   if (raw === undefined) {
-    throw new Error(`[e2e] seed 里没有 ${key} 设置行（app_setting.json）`)
+    throw new Error(`seed 里没有 ${key} 设置行（app_setting.json）`)
   }
 
   const config = JSON.parse(raw) as Record<string, unknown>
@@ -263,8 +215,9 @@ async function relaxCapThrottleForTests(client: Client): Promise<void> {
   log(`已放宽 ${key}.throttleLimit → 10000（仅本栈库；PoW 难度不变）`)
 }
 
-/** 清掉应用设置的 Redis 缓存（不重建库的重跑会读到旧的 4/60；只删这一个键，不 FLUSHDB） */
+/** 清掉应用设置的 Redis 缓存（不重建库的重跑会读到旧的 4/60；只删这两个键，不 FLUSHDB） */
 async function clearAppSettingCache(): Promise<void> {
+  assertE2eRedisPort(E2E_REDIS_PORT)
   const redis = createClient({
     socket: { host: E2E_REDIS_HOST, port: E2E_REDIS_PORT },
     password: E2E_REDIS_PASS,
@@ -279,7 +232,11 @@ async function clearAppSettingCache(): Promise<void> {
   }
 }
 
-async function main(): Promise<void> {
+/**
+ * 重建 E2E 库并播好数据。**可复用**：`scripts/run.ts` 在持有 run 级锁时调它
+ * （`lockHeld: true`），独立入口在文件末尾。
+ */
+export async function prepareDatabase(options: { lockHeld?: boolean } = {}): Promise<void> {
   assertE2eDatabase(E2E_PG_DB)
   assertE2ePgPort(E2E_PG_PORT)
 
@@ -290,17 +247,13 @@ async function main(): Promise<void> {
   mkdirSync(AUTH_DIR, { recursive: true })
   mkdirSync(ARTIFACT_DIR, { recursive: true })
 
-  const maintenance = new Client({
-    host: E2E_PG_HOST,
-    port: E2E_PG_PORT,
-    user: E2E_PG_USER,
-    password: E2E_PG_PASS,
-    database: MAINTENANCE_DB,
-  })
-  await maintenance.connect()
+  const maintenance = await connectMaintenance()
+  const ownsLock = options.lockHeld !== true
 
   try {
-    await acquireLock(maintenance)
+    if (ownsLock) {
+      await acquirePgLock(maintenance)
+    }
 
     log(`DROP DATABASE IF EXISTS ${E2E_PG_DB} WITH (FORCE)`)
     await maintenance.query(`DROP DATABASE IF EXISTS "${E2E_PG_DB}" WITH (FORCE)`)
@@ -309,15 +262,22 @@ async function main(): Promise<void> {
 
     // 迁移：typeorm CLI 只读 env-local/.env.e2e（见 writeServerMigrationEnv）
     log('跑迁移（NODE_ENV=e2e → apps/server/env-local/.env.e2e）')
-    runPnpm(['run', 'migration:run'], SERVER_ROOT, { ...process.env, NODE_ENV: 'e2e' })
+    runPnpm(['run', 'migration:run'], SERVER_ROOT, { ...process.env, NODE_ENV: 'e2e' }, 'migration:run')
 
-    // seed：--env-file 指向整份拷贝（AUTH_OPAQUE_SECRET 必须与后端同源）
+    // seed：--env-file 指向整份拷贝（AUTH_OPAQUE_SECRET 必须与后端同源）。
+    // 跑完立刻删掉这份含密钥的副本 —— 它唯一的消费者是 seed 自己。
     log('播 seed + 建 admin 口令身份（db:seed:pg --admin admin）')
-    runPnpm(
-      ['exec', 'walnut-db-seed-pg', '--env-file', E2E_ENV_FILE, '--admin', 'admin', '--password', password],
-      REPO_ROOT,
-      { ...process.env },
-    )
+    try {
+      runPnpm(
+        ['exec', 'walnut-db-seed-pg', '--env-file', E2E_ENV_FILE, '--admin', 'admin', '--password', password],
+        REPO_ROOT,
+        { ...process.env },
+        'db:seed:pg --admin',
+      )
+    }
+    finally {
+      rmSync(E2E_ENV_FILE, { force: true })
+    }
 
     const db = new Client({
       host: E2E_PG_HOST,
@@ -343,20 +303,29 @@ async function main(): Promise<void> {
     writeFileSync(
       CREDENTIALS_FILE,
       `${JSON.stringify({ userName: 'admin', password, totpSecret: '' }, null, 2)}\n`,
-      'utf8',
+      { encoding: 'utf8', mode: 0o600 },
     )
-    log(`已写 ${CREDENTIALS_FILE}（口令随机生成；TOTP secret 由 stack.setup 绑定后补上）`)
+    log(`已写 ${CREDENTIALS_FILE}（口令随机生成、0600；TOTP secret 由 stack.setup 绑定后补上）`)
     await clearAppSettingCache()
     log('完成：库已重建、seed 已播、admin 已提升为 root、CAP 节流已放宽')
   }
   finally {
-    // 释放锁 + 关连接（drop 之后重连的新库连接在下面单独建，与本连接无关）
-    await maintenance.query('SELECT pg_advisory_unlock($1)', [E2E_PG_LOCK_KEY]).catch(() => {})
-    await maintenance.end()
+    // seed env 含 AUTH_OPAQUE_SECRET：正常路径下 seed 一结束就删了，这里是异常路径
+    // （迁移失败、提前抛错）的兜底 —— 不让这份副本在盘上多留一轮。
+    rmSync(E2E_ENV_FILE, { force: true })
+    if (ownsLock) {
+      await releasePgLock(maintenance)
+    }
+    await maintenance.end().catch(() => {})
   }
 }
 
-main().catch((error) => {
-  console.error('[e2e/prepare-db] 失败：', error instanceof Error ? error.message : error)
-  process.exitCode = 1
-})
+/** 独立入口才跑（`scripts/run.ts` 会 import 本文件的 prepareDatabase，不能连带着执行一次） */
+const invokedDirectly = process.argv[1] !== undefined
+  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+
+if (invokedDirectly) {
+  prepareDatabase().catch((error) => {
+    process.exitCode = reportFailure('e2e/prepare-db', error)
+  })
+}

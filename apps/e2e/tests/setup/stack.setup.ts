@@ -11,12 +11,12 @@
  * （DataExists）。
  */
 import { readFileSync, writeFileSync } from 'node:fs'
-import { expect, test } from '@playwright/test'
-import { uniqueLocalIp } from '../../lib/device-fixtures.ts'
-import { deleteDeviceRow, findDeviceLocation, LOOPBACK_IP_PATTERN, withPg } from '../../lib/pg.ts'
+import { expect } from '@playwright/test'
+import { trackDevice, uniqueLocalIp } from '../../lib/device-fixtures.ts'
+import { findDeviceLocation, LOOPBACK_IP_PATTERN, withPg } from '../../lib/pg.ts'
 import { WalnutProtocolClient } from '../../lib/protocol/client.ts'
-import { deleteDeviceKeys, withRedis } from '../../lib/redis.ts'
 import { CREDENTIALS_FILE, readCredentials } from '../../scripts/env.ts'
+import { test } from '../fixtures.ts'
 
 test('stack：后端就绪 + admin 真实绑定 TOTP + root 权限可用', async () => {
   await WalnutProtocolClient.waitForHealth(60_000)
@@ -35,6 +35,8 @@ test('stack：后端就绪 + admin 真实绑定 TOTP + root 权限可用', async
   // 每台协议客户端一个 local IP：device/initial 的 throttle 是 4 次/60s per realIp
   const client = new WalnutProtocolClient({ realIp: uniqueLocalIp() })
   await client.bootstrap()
+  // 本用例签发的设备交给清理 fixture（断言失败时也要清掉）
+  trackDevice(client.deviceId)
 
   // 设备登记的真实性：库里有行、形态合法（d1_ + 32 hex）
   expect(client.deviceId).toMatch(/^d1_[0-9a-f]{32}$/)
@@ -71,13 +73,7 @@ test('stack：后端就绪 + admin 真实绑定 TOTP + root 权限可用', async
     'utf8',
   )
 
-  // 自清理：这个协议客户端自己的设备行与缓存（用例只留下 admin 账号与 TOTP）
-  await withPg(async (pg) => {
-    await deleteDeviceRow(pg, client.deviceId)
-  })
-  await withRedis(async (redis) => {
-    await deleteDeviceKeys(redis, client.deviceId)
-  })
+  // 自清理由 tests/fixtures.ts 的 auto fixture 负责（设备行 + 全部设备作用域 Redis 键）
 
   // 文件可读回（后续 spec 的唯一凭据真源）
   const saved = JSON.parse(readFileSync(CREDENTIALS_FILE, 'utf8')) as { totpSecret: string }

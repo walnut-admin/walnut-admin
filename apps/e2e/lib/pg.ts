@@ -71,12 +71,26 @@ export const pgConfig: ClientConfig = {
   database: E2E_PG_DB,
 }
 
-/** 建一个到 walnut_e2e 的连接（调用方负责 end()；setup/spec 里用 withPg 更省事） */
+/**
+ * 建一个到 walnut_e2e 的连接（调用方负责 end()；setup/spec 里用 withPg 更省事）。
+ *
+ * 安全闸分两层：连之前的 `assert*` 在实参来自常量时是**恒真的机械标记**（防将来把常量换成
+ * 字面量）；连上之后的 `SELECT current_database()` 才是对**运行态**的断言 —— 端口 / 库名
+ * 如果被 env 或代理改到别处，这里当场发现（这些 helper 会 DELETE / UPDATE，指错库就是事故）。
+ */
 export async function connectPg(): Promise<Client> {
   assertE2eDatabase(pgConfig.database as string)
   assertE2ePgPort(pgConfig.port as number)
   const client = new Client(pgConfig)
   await client.connect()
+
+  const { rows } = await client.query<{ database: string }>('SELECT current_database() AS database')
+  const actual = rows[0]?.database
+  if (actual !== E2E_PG_DB) {
+    await client.end().catch(() => {})
+    throw new Error(`[e2e/safety] 连接落在库 \`${actual}\` 上（期望 \`${E2E_PG_DB}\`）—— 拒绝执行：本连接会 DELETE / UPDATE`)
+  }
+
   return client
 }
 

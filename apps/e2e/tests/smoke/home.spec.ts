@@ -1,20 +1,32 @@
 /**
  * 冒烟 ②：登录态下的首页 —— 侧边栏渲染、页面标题、一条真实的已登录请求（业务码 20000）。
  *
- * 登录态来自 auth-setup 的 storageState；**复用失败时 `ensureLoggedIn` 会自动走 UI 登录**
- * （Phase 0 gate 2 的两种结论下这条用例都成立，区别只在耗时）。
+ * 登录态**每条用例自己造**：storageState 复用已判死（IndexedDB 里的 AES CryptoKey 恢复不了，
+ * 见 playwright.config.ts），所以这里从干净 context 走完整 UI 登录。
  */
-import { expect, test } from '@playwright/test'
-import { cleanupDevices, installRealIpRoute, resolveDeviceId, uniqueLocalIp } from '../../lib/device-fixtures.ts'
-import { captureEnvelopes, ensureLoggedIn, expectSidebarRendered, readDeviceCookie, waitForEnvelope } from '../../lib/ui.ts'
+import {
+  installRealIpRoute,
+  resolveDeviceId,
+  trackDevice,
+  uniqueLocalIp,
+} from '../../lib/device-fixtures.ts'
+import {
+  captureEnvelopes,
+  ensureLoggedIn,
+  expectSidebarRendered,
+  readDeviceCookie,
+  waitForEnvelope,
+} from '../../lib/ui.ts'
+import { expect, test } from '../fixtures.ts'
 
 test('首页：侧边栏 / 标题 / 已登录请求 20000', async ({ page }) => {
   // device/initial 的 throttle 是 4 次/60s per realIp：每条用例一份独立 local IP
   await installRealIpRoute(page.context(), uniqueLocalIp())
   const captured = captureEnvelopes(page)
 
-  // 返回 null = 复用了 auth-setup 的设备；非 null = 本用例自己 UI 登录出来的新设备
-  const ownLogin = await ensureLoggedIn(page)
+  await ensureLoggedIn(page)
+  // 立刻登记：后面的断言失败时，清理 fixture 仍要能找到这台设备
+  trackDevice(await resolveDeviceId(page))
   await expectSidebarRendered(page)
 
   const menuItems = page.locator('.w-menu .w-menu-item-content')
@@ -36,9 +48,5 @@ test('首页：侧边栏 / 标题 / 已登录请求 20000', async ({ page }) => 
   expect(cookie, '首页加载后应持有 DEVICE_ID cookie').not.toBeNull()
 
   captured.stop()
-
-  // 自清理：只删本用例自己造的设备（复用 auth-setup 的设备时不删）
-  if (ownLogin !== null) {
-    await cleanupDevices([await resolveDeviceId(page)])
-  }
+  // 设备清理由 tests/fixtures.ts 的 auto fixture 负责（断言失败时也执行）
 })

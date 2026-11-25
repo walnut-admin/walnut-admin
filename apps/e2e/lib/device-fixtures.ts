@@ -1,15 +1,20 @@
 /**
- * 设备用例的 fixture 层：开一台「全新浏览器设备」、读它的 deviceId、用完按 deviceId 自清理。
+ * 设备用例的 fixture 层：开一台「全新浏览器设备」、读它的 deviceId、按 deviceId 自清理。
  *
  * 为什么每个用例自己开 context：**全新 context（无 cookie）天然就是一台新设备** ——
  * 这正是设备生命周期的起点（`/system/device/initial` 是唯一签发点）。共用 project 的
- * storageState 会把「新设备」变成「复用别人设备」，U1 那类断言就失去意义。
+ * storageState 会把「新设备」变成「复用别人设备」，U1 那类断言就失去意义
+ * （storageState 能否复用也已实测判死，见 playwright.config.ts 的注释）。
+ *
+ * 清理分两步（P1-2）：这里的 {@link trackDevice} 只**登记**，真正的清理由
+ * `tests/fixtures.ts` 的 auto fixture 在用例结束时统一做 —— 断言失败时用例末尾的手写清理
+ * 会被跳过，而 fixture 的 teardown 照样执行。
  */
-import type { Browser, BrowserContext, Page } from '@playwright/test'
+import type { Browser, BrowserContext, Page, TestInfo } from '@playwright/test'
 import { DEVICE_COOKIE_NAME, WEB_ORIGIN } from '../scripts/env.ts'
 import { deleteDeviceRow, withPg } from './pg.ts'
 import { SIGN_USER_AGENT } from './protocol/sign.ts'
-import { deleteDeviceKeys, deleteRiskDeviceState, withRedis } from './redis.ts'
+import { deleteDeviceScopedKeys, deleteRiskDeviceState, withRedis } from './redis.ts'
 import { loginViaUI, readDeviceCookie, readLocalDeviceId } from './ui.ts'
 
 export interface DeviceSession {
@@ -112,6 +117,7 @@ export async function openDevice(browser: Browser, startAt = '/auth', options: {
     { timeout: 30_000 },
   )
   const deviceId = await resolveDeviceId(page)
+  trackDevice(deviceId)
   return { context, page, deviceId, realIp }
 }
 
@@ -120,12 +126,61 @@ export async function loginDevice(browser: Browser, options: { realIp?: string }
   const session = await openDevice(browser, '/auth', options)
   await loginViaUI(session.page)
   session.deviceId = await resolveDeviceId(session.page)
+  trackDevice(session.deviceId)
   return session
 }
 
+/** 本 worker 里已登记、还没清理的设备（Set 天然去重） */
+const trackedDeviceIds = new Set<string>()
+
 /**
- * 按 deviceId 自清理：PG 行（user_device / refresh_token 的 FK 是 CASCADE）+ 该设备的所有
- * Redis 键（设备缓存 / 续期闸 / 风控评估 / 挑战标记）。**不 FLUSHDB**。
+ * 登记一台**本用例造出来**的设备，交给 `tests/fixtures.ts` 的 auto fixture 收尾。
+ *
+ * 工厂函数（{@link openDevice} / {@link loginDevice}）已经自动登记；这里给两类手写场景：
+ * 直接打 `POST /system/device/initial` 拿到 id 的用例（U1 / Phase0-4），以及自愈后换了身份的
+ * 用例（U8 / U9 的 `resolveDeviceId` 结果）。
+ */
+export function trackDevice(deviceId: string | null | undefined): void {
+  if (typeof deviceId === 'string' && deviceId !== '') {
+    trackedDeviceIds.add(deviceId)
+  }
+}
+
+/**
+ * 清掉目前已登记的设备（PG 行 + 该设备的全部 Redis 键）。
+ *
+ * **不抛错**：清理失败只 `console.warn`，并把 id 重新登记（worker 级兜底会再试一次）——
+ * 清理是收尾动作，绝不能让它的失败掩盖真正的断言失败。
+ */
+export async function flushTrackedDevices(options: { testInfo?: TestInfo } = {}): Promise<void> {
+  const ids = [...trackedDeviceIds]
+  trackedDeviceIds.clear()
+  if (ids.length === 0) {
+    return
+  }
+
+  try {
+    await cleanupDevices(ids)
+  }
+  catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn(`[e2e/fixtures] 设备清理失败（不影响断言结果；worker 退出时再试一次）：${ids.join(', ')} —— ${message}`)
+    for (const id of ids) {
+      trackedDeviceIds.add(id)
+    }
+    if (options.testInfo !== undefined) {
+      await options.testInfo.attach('device-cleanup-failure', {
+        body: JSON.stringify({ deviceIds: ids, error: message }, null, 2),
+        contentType: 'application/json',
+      }).catch(() => {})
+    }
+  }
+}
+
+/**
+ * 按 deviceId 自清理：PG 行（sys_user_device / auth_refresh_token 的 FK 是 CASCADE）+ 该设备的
+ * **全部** Redis 键（设备缓存 / 续期闸 / 登录会话 / 权限 / MFA / 签名 / CAP / 风控评估与挑战标记）。
+ * **不 FLUSHDB**。
  */
 export async function cleanupDevices(deviceIds: (string | null | undefined)[]): Promise<void> {
   const ids = [...new Set(deviceIds.filter((id): id is string => typeof id === 'string' && id !== ''))]
@@ -140,7 +195,7 @@ export async function cleanupDevices(deviceIds: (string | null | undefined)[]): 
   })
   await withRedis(async (redis) => {
     for (const id of ids) {
-      await deleteDeviceKeys(redis, id)
+      await deleteDeviceScopedKeys(redis, id)
       await deleteRiskDeviceState(redis, id)
     }
   })

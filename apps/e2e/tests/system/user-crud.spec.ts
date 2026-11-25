@@ -6,14 +6,15 @@
  * 点选的稳定性远低于协议；本批要验的是「全链路能用」，不是表单交互。
  *
  * 唯一前缀：`e2e-<时间戳>-<随机>`，断言列表 filters(like) 只命中这一条，最后删除并复核。
- * 自清理：用户行 + 本用例的设备行与 Redis 键（CASCADE 会带走 user_device / refresh_token）。
+ * 自清理：用户行由本用例的 finally 删；自己那台设备交给 tests/fixtures.ts 的 auto fixture
+ * （CASCADE 会带走 user_device / refresh_token）。
  */
 import { randomBytes } from 'node:crypto'
-import { expect, test } from '@playwright/test'
-import { cleanupDevices, uniqueLocalIp } from '../../lib/device-fixtures.ts'
+import { trackDevice, uniqueLocalIp } from '../../lib/device-fixtures.ts'
 import { withPg } from '../../lib/pg.ts'
 import { WalnutProtocolClient } from '../../lib/protocol/client.ts'
 import { readCredentials } from '../../scripts/env.ts'
+import { expect, test } from '../fixtures.ts'
 
 interface UserRow {
   id: string
@@ -37,11 +38,11 @@ test('用户 CRUD：root 造 → 改 → 查列表 → 删', async () => {
   const client = new WalnutProtocolClient({ realIp: uniqueLocalIp() })
   const userName = `e2e-${Date.now()}-${randomBytes(3).toString('hex')}`
   let createdId = ''
-  let deviceId = ''
 
   try {
     await client.bootstrap()
-    deviceId = client.deviceId
+    // 立刻登记：后面的断言失败时，清理 fixture 仍要能找到这台设备
+    trackDevice(client.deviceId)
     await client.login(credentials.userName, credentials.password)
     // MFA 是新设备必需的（stack.setup 已把 admin 的 mfa_setup 置 true）
     await client.verifyTotpForDevice(credentials.totpSecret)
@@ -89,12 +90,11 @@ test('用户 CRUD：root 造 → 改 → 查列表 → 删', async () => {
     expect(after.total).toBe(0)
   }
   finally {
-    // 失败路径也要把半造的用户清掉（按用户名删除，避免留脏数据）
+    // 失败路径也要把半造的用户清掉（按用户名删除，避免留脏数据）；设备由清理 fixture 负责
     if (createdId !== '') {
       await withPg(async (pg) => {
         await pg.query('DELETE FROM sys_user WHERE user_name = $1', [userName])
       }).catch(() => {})
     }
-    await cleanupDevices([deviceId])
   }
 })

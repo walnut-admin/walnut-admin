@@ -1,26 +1,24 @@
 /**
- * auth-setup：**UI 登录**（填表 → CAP → MFA）→ 落 storageState，并顺手把 Phase 0 的
- * 「登录态能不能复用」「Secure cookie 在 http://127.0.0.1 是否被接受」两项量出来。
+ * auth-setup：**UI 登录**（填表 → CAP → MFA）的门禁断言，并把两件事的实测结论写进
+ * `.auth/gate-report.json`：
+ * - `--admin` 的凭据能过完整 UI 登录（identifiers 对齐）；
+ * - stage 形态的无前缀 `DEVICE_ID` + Secure cookie 能落在 `http://127.0.0.1` 上。
  *
- * 为什么复用要在这里测：Playwright 的 `storageState({ indexedDB: true })` 能否把
- * AES CryptoKey（IndexedDB 里的结构化克隆对象）搬进新 context，只有新 context 打开站点
- * **试一次**才知道。结论写进 `.auth/gate-report.json`；smoke 用例本身不依赖它
- * （`ensureLoggedIn` 兜底：复用成功就直接进内页，失败就走完整 UI 登录）。
+ * 它**不产出可复用的登录态**：`storageState({indexedDB:true})` 恢复不了 IndexedDB 里的 AES
+ * `CryptoKey`，Phase 0 的 gate 2 已判死（P2-14）—— 探针与写盘都删了，结论以固定的
+ * `not-reusable` 记在报告里，不再每轮实测。smoke 用例因此每条自己走 UI 登录。
  */
 import { writeFileSync } from 'node:fs'
 import path from 'node:path'
-import { expect, test } from '@playwright/test'
+import { expect } from '@playwright/test'
+import { trackDevice } from '../../lib/device-fixtures.ts'
 import { expectSidebarRendered, loginViaUI, readDeviceCookie, readLocalDeviceId } from '../../lib/ui.ts'
-import {
-  AUTH_DIR,
-  DEVICE_COOKIE_NAME,
-  STORAGE_STATE_FILE,
-  WEB_ORIGIN,
-} from '../../scripts/env.ts'
+import { AUTH_DIR, DEVICE_COOKIE_NAME } from '../../scripts/env.ts'
+import { test } from '../fixtures.ts'
 
 const GATE_REPORT_FILE = path.join(AUTH_DIR, 'gate-report.json')
 
-test('auth：UI 登录（CAP + MFA）并落 storageState', async ({ page }) => {
+test('auth：UI 登录（CAP + MFA）并核对设备 cookie', async ({ page }) => {
   const login = await loginViaUI(page)
 
   // Phase 0 gate 1：--admin 的凭据能过 UI 登录（identifiers 对齐）
@@ -46,25 +44,8 @@ test('auth：UI 登录（CAP + MFA）并落 storageState', async ({ page }) => {
   expect(cookieDeviceId, 'cookie 与 localStorage 的设备 id 不一致').toBe(localDeviceId)
   expect(localDeviceId).toMatch(/^d1_[0-9a-f]{32}$/)
 
-  await page.context().storageState({ path: STORAGE_STATE_FILE, indexedDB: true })
-
-  // Phase 0 gate 2：新 context 复用 storageState（IndexedDB 里的 CryptoKey 是否活着）
-  const probe = await page.context().browser()!.newContext({ storageState: STORAGE_STATE_FILE })
-  const probePage = await probe.newPage()
-  let reuse = 'failed'
-  let landing = ''
-  try {
-    await probePage.goto(WEB_ORIGIN)
-    const outcome = await Promise.race([
-      probePage.locator('.w-menu').first().waitFor({ state: 'visible', timeout: 20_000 }).then(() => 'reused' as const),
-      probePage.locator('input[autocomplete="username"]').waitFor({ state: 'visible', timeout: 20_000 }).then(() => 'needs-login' as const),
-    ]).catch(() => 'timeout' as const)
-    reuse = outcome === 'reused' ? 'reused' : 'failed'
-    landing = probePage.url()
-  }
-  finally {
-    await probe.close()
-  }
+  // 本用例签发的设备交给清理 fixture（断言失败时也要清掉）
+  trackDevice(localDeviceId)
 
   writeFileSync(
     GATE_REPORT_FILE,
@@ -72,12 +53,13 @@ test('auth：UI 登录（CAP + MFA）并落 storageState', async ({ page }) => {
       measuredAt: new Date().toISOString(),
       uiLogin: { capSolved: login.capSolved, mfaVerified: login.mfaVerified, landing: login.url },
       deviceCookie: { name: DEVICE_COOKIE_NAME, secure: cookie!.secure, httpOnly: cookie!.httpOnly, path: cookie!.path },
-      storageStateReuse: { result: reuse, probeLanding: landing },
+      storageStateReuse: {
+        decision: 'not-reusable',
+        reason: 'storageState({indexedDB:true}) 不能恢复 IndexedDB 里的 AES CryptoKey（Phase 0 gate 2 判死）',
+      },
     }, null, 2)}\n`,
     'utf8',
   )
 
-  // 复用失败**不算** setup 失败（用例有 ensureLoggedIn 兜底；gate 的结论在报告里）。
-  // 但这里必须留痕：报告是 Phase 0 的唯一实测证据。
-  console.log(`[e2e/auth-setup] storageState(indexedDB) 复用结果=${reuse}，落点=${landing}`)
+  console.log('[e2e/auth-setup] UI 登录门禁通过；storageState 复用已判死（不产出可复用登录态）')
 })

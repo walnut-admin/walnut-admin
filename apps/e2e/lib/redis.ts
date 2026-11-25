@@ -1,7 +1,7 @@
 /**
- * E2E 的 Redis 直连（独立实例 6380）。只在「精确删自己造的那几个键」时使用：
- * - 设备缓存：`WALNUT_CACHE_SYSTEM:DEVICE:<deviceId>`（AppTechCacheService 统一前缀）；
- * - 滑动续期时间闸：`WALNUT_CACHE_SYSTEM:DEVICE:COOKIE_RENEW:<deviceId>`。
+ * E2E 的 Redis 直连（独立实例 6380）。只在「精确删自己造的那几个键」时使用：设备缓存、
+ * 滑动续期时间闸、该设备的登录会话 / 权限 / MFA / 签名 / CAP 键（清单见
+ * {@link deleteDeviceScopedKeys}）、以及风控状态。
  *
  * **不做 FLUSHDB / FLUSHALL**（compose 里这两个命令已被重命名禁用）：E2E 与 dev 虽在同一台
  * 机器，清理必须按 deviceId 精确命中；顺手清库会把同机其它会话的数据一起带走。
@@ -100,6 +100,47 @@ export async function scanKeys(client: E2eRedisClient, match: string): Promise<s
 
 /** 「登出」的会话一半：删掉该设备上的登录会话键（`AUTH:SESSIONS:<userId>:<deviceId>:<sid>`） */
 export async function deleteAuthSessionsForDevice(client: E2eRedisClient, deviceId: string): Promise<number> {
-  const keys = await scanKeys(client, `${CACHE_PREFIX}_AUTH:SESSIONS:*:${deviceId}:*`)
+  return deleteByPatterns(client, [`${CACHE_PREFIX}_AUTH:SESSIONS:*:${deviceId}:*`])
+}
+
+/**
+ * 删掉该设备上的**全部** Redis 键（用例收尾的自清理用）。**不 FLUSHDB**。
+ *
+ * 键形逐条对齐服务端的 `WalnutAdminConstAppCacheKeys`（apps/server/libs/const/src/app/cache.ts）
+ * 与各 `*.cache.ts` 的拼法 —— 服务端改键形时这里要同步：
+ *
+ * - `SYSTEM:DEVICE:<deviceId>` / `SYSTEM:DEVICE:COOKIE_RENEW:<deviceId>`（device.cache）
+ * - `AUTH:SESSIONS:<userId>:<deviceId>:<sid>`（session.service）
+ * - `AUTH:PERMISSIONS:<userId>:<deviceId>`（permissions.cache）
+ * - `AUTH:MFA:VERIFIED:<userId>:<deviceId>` / `AUTH:MFA:TOTP:<userId>:<deviceId>`（mfa.cache）
+ * - `AUTH:OPAQUE_STATE:<userName>:<deviceId>:SERVER_STATE|SESSION_KEY`（opaque.cache）
+ * - `SECURITY:SIGN:TICKET:<deviceId>` / `SECURITY:SIGN:AES_KEY:<deviceId>`（sign.cache）
+ * - `SECURITY:CAP_TOKEN:<deviceId>:<tokenFingerprint>`（cap.cache）
+ *
+ * 存在的意义：断言失败时用例末尾的手写清理会被跳过，这些键会跨轮存活（例如 TOTP 的 30s 窗口
+ * 键、CAP token 的指纹键），下一轮同 deviceId 不会复现（deviceId 随机），但它们会一直占着栈的
+ * 内存与「这个设备到底清干净没有」的判断面。fixture 统一调这里兜底。
+ */
+export async function deleteDeviceScopedKeys(client: E2eRedisClient, deviceId: string): Promise<number> {
+  return deleteByPatterns(client, [
+    deviceCacheKey(deviceId),
+    deviceCookieRenewKey(deviceId),
+    `${CACHE_PREFIX}_AUTH:SESSIONS:*:${deviceId}:*`,
+    `${CACHE_PREFIX}_AUTH:PERMISSIONS:*:${deviceId}`,
+    `${CACHE_PREFIX}_AUTH:MFA:VERIFIED:*:${deviceId}`,
+    `${CACHE_PREFIX}_AUTH:MFA:TOTP:*:${deviceId}`,
+    `${CACHE_PREFIX}_AUTH:OPAQUE_STATE:*:${deviceId}:*`,
+    `${CACHE_PREFIX}_SECURITY:SIGN:TICKET:${deviceId}`,
+    `${CACHE_PREFIX}_SECURITY:SIGN:AES_KEY:${deviceId}`,
+    `${CACHE_PREFIX}_SECURITY:CAP_TOKEN:${deviceId}:*`,
+  ])
+}
+
+/** 按一组精确键 / 模式扫键并删掉命中项（SCAN 不阻塞，命中为 0 时不发 DEL） */
+async function deleteByPatterns(client: E2eRedisClient, patterns: readonly string[]): Promise<number> {
+  const keys: string[] = []
+  for (const pattern of patterns) {
+    keys.push(...await scanKeys(client, pattern))
+  }
   return keys.length === 0 ? 0 : client.del(keys)
 }

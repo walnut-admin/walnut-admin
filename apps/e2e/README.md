@@ -78,8 +78,8 @@ prepare-db 在每次重建库之后把它改成上面这个固定值（stage 启
 1. 数据栈在 `127.0.0.1:5433` / `127.0.0.1:6380` 可达（`docker compose ps` 两个容器都 healthy，
    且跑测试期间 WSL 发行版别被关掉 —— 见「WSL 的生命周期」）。
 2. 后端 stage env 已解密：`apps/server/env-local/.env.stage` 存在（`pnpm setup-env`，需要根
-   `.env.keys`）。prepare-db 把它整份复制成 seed 的 env —— OPAQUE 口令必须与后端同一把密钥，
-   只给数据库几项不够。
+   `.env.keys`）。prepare-db 把它整份复制成 seed 的 env（0600、seed 一结束就删）—— OPAQUE 口令
+   必须与后端同一把密钥，只给数据库几项不够。
 3. stage 产物已构建：`apps/server/dist-stage`（`pnpm --filter @walnut/server build:stage`）与
    `apps/admin/dist-staging`（`pnpm walnut build:stage`）。
 4. Playwright 浏览器已安装：`pnpm --filter @walnut/e2e exec playwright install chromium`。
@@ -89,22 +89,57 @@ prepare-db 在每次重建库之后把它改成上面这个固定值（stage 启
 ## 运行
 
 ```bash
-pnpm walnut e2e        # 全量：prepare-db → stack-info → 全部 spec
+pnpm walnut e2e        # 全量：preflight → prepare-db → stack-info → 全部 spec
 pnpm walnut e2e:smoke  # 冒烟子集（setup + 首页 / 登录 / 用户 CRUD）
 pnpm walnut e2e:risk   # 设备 ID 全生命周期
 pnpm walnut e2e:report # 打开上一轮 HTML 报告
 ```
 
-`prepare-db` 每次**重建**库：advisory lock → `DROP DATABASE … WITH (FORCE)` → `CREATE` →
-迁移 → seed → 把 `admin` 提升为 root → 放宽 CAP 节流 → 重置 `walnut_app` 口令 →
-写 `.auth/credentials.json`。所以 README 里的「数据还在不在」不用操心，跑一次就是干净库。
+包脚本只是把参数交给 `scripts/run.ts`（`e2e:smoke` = `node scripts/run.ts --project=smoke`），
+额外参数原样透传给 Playwright，例如 `pnpm --filter @walnut/e2e e2e -g "登录"`。
+
+`run.ts` 的顺序是硬约束：
+
+1. **抢 run 级 advisory lock 并整轮持有** —— 两个 worktree 同时跑全量时，第二个在等锁；
+   120s 内抢不到就报「谁在持锁」并退出（一轮全量远超这个时长，所以实际表现是第二个直接失败）。
+   锁不在 prepare 结束就放：否则后一个 run 的 `DROP DATABASE` 会删掉前一个正在用的库；
+2. `scripts/preflight.ts` 查前置（env / 两处 stage 产物 / chromium / PG·Redis 可达 / 3001·3002·4173
+   空闲）——**在动库之前**，失败按退出码 2 收场；
+3. `prepare-db` 每次**重建**库：`DROP DATABASE … WITH (FORCE)` → `CREATE` → 迁移 → seed →
+   把 `admin` 提升为 root → 放宽 CAP 节流 → 重置 `walnut_app` 口令 → 写 `.auth/credentials.json`。
+   所以「数据还在不在」不用操心，跑一次就是干净库；
+4. `stack-info` 写本轮栈信息（含两处产物的**真实 mtime**，用来判断跑的是不是旧产物）；
+5. `playwright test`（webServer 由它起；默认**不复用**已在监听的进程 —— 见下面「退出码」）。
+
+设备与 Redis 键的清理由 `tests/fixtures.ts` 的 auto fixture 统一做：断言失败时也会执行，
+不会因为用例末尾的手写清理被跳过而留下残渣。
+
+## 退出码
+
+| 码 | 含义 | 什么时候出现 |
+|----|------|--------------|
+| 0 | 成功 | 全部用例通过 |
+| 1 | 跑起来了但结果不对 | 用例失败、脚本自身报错、子进程（migration / seed）以其它非零码退出 |
+| 2 | **环境没准备好** | 缺 `.env.stage`、缺 stage 产物、PG / Redis 连不上、端口被占、没装 chromium；seed 以 2 退出也原样透传 |
+
+看到 2 就不必怀疑用例：按报错里的「处置」把前置补齐再跑。Playwright 自己的退出码原样透传
+（它用 1 表示有用例失败）。
+
+### 复用已在监听的进程（`E2E_REUSE_SERVER=1`）
+
+默认**不复用**：3001 上残留的后端进程里缓存了一份应用设置 memo，而 prepare-db 每轮都重建库
+（含放宽后的 CAP 节流读），复用它会读到上一个库的状态；4173 上残留的静态服务也可能伺服旧产物。
+只有明确知道「3001 / 4173 上跑的就是本轮产物」时才用 `E2E_REUSE_SERVER=1` 打开复用。
 
 ## 排障
 
-- 本轮连的是哪个库 / 哪份产物：`apps/e2e/.e2e/stack.json`。
+- 本轮连的是哪个库 / 哪份产物（含产物 mtime）：`apps/e2e/.e2e/stack.json`。
+- 单独查前置：`node apps/e2e/scripts/preflight.ts`（不重建库、不起服务）。
 - 安全闸报错（库名或端口不对）：说明环境串到了 dev 口径。**别绕开它**，回
   `apps/e2e/scripts/env.ts` 核对常量。
 - 5433 连不上：先 `docker compose ps`，再 `wsl -l -v` 看发行版 STATE 是不是 Running。
-- 页面停在一行 `forbidden` 或登录框等不出来：多半是 4173 被**别的**静态服务占着 ——
-  Playwright 的 `reuseExistingServer` 会直接复用已在监听的进程，连到旧的产物目录。
-  跑之前确认 4173 上没有遗留进程（`netstat -ano | findstr :4173`）。
+- 页面停在一行 `forbidden` 或登录框等不出来：多半是 4173 被**别的**静态服务占着。默认配置下
+  Playwright 会因端口被占直接失败（static-server 以 2 退出）；跑之前确认 4173 上没有遗留进程
+  （`netstat -ano | findstr :4173`）。
+- trace / 截图里的请求头与响应体**含 token 与 cookie**：`test-results/` 与 `playwright-report/`
+  只留在本机，**不许上传到任何公开位置**。

@@ -1,11 +1,15 @@
 /**
  * 冒烟 ①：**干净 context 的 UI 登录**（Phase 0 gate 1 / 3 / 6 的那条路径）。
  *
- * 刻意覆盖 project 的 storageState 为空：这条用例要证明「从零开始」也能登进来 ——
- * 包括新设备必过的 CAP（cap-widget + jsDelivr WASM）与 MFA 验证页。
+ * 刻意覆盖 project 的 storageState 为空（storageState 也不参与：复用已判死）：这条用例要证明
+ * 「从零开始」也能登进来 —— 包括新设备必过的 CAP（cap-widget + jsDelivr WASM）与 MFA 验证页。
  */
-import { expect, test } from '@playwright/test'
-import { cleanupDevices, installRealIpRoute, resolveDeviceId, uniqueLocalIp } from '../../lib/device-fixtures.ts'
+import {
+  installRealIpRoute,
+  resolveDeviceId,
+  trackDevice,
+  uniqueLocalIp,
+} from '../../lib/device-fixtures.ts'
 import { findDeviceRow, LOOPBACK_IP_PATTERN, withPg } from '../../lib/pg.ts'
 import {
   captureEnvelopes,
@@ -15,6 +19,7 @@ import {
   readLocalDeviceId,
   waitForEnvelope,
 } from '../../lib/ui.ts'
+import { expect, test } from '../fixtures.ts'
 
 test.use({ storageState: { cookies: [], origins: [] } })
 
@@ -23,6 +28,8 @@ test('登录：CAP + TOTP MFA 全过，落 DEVICE_ID cookie 并进首页', async
   await installRealIpRoute(page.context(), uniqueLocalIp())
   const captured = captureEnvelopes(page)
   const login = await loginViaUI(page)
+  // 立刻登记：后面的断言失败时，清理 fixture 仍要能找到这台设备
+  trackDevice(await resolveDeviceId(page))
 
   expect(login.capSolved, '新设备登录应出现 cap-widget 并解出').toBe(true)
   expect(login.mfaVerified, '新设备登录应经过 /mfa-verified').toBe(true)
@@ -57,7 +64,5 @@ test('登录：CAP + TOTP MFA 全过，落 DEVICE_ID cookie 并进首页', async
   expect(page.url()).not.toContain('/auth')
   await expectSidebarRendered(page)
 
-  // 自清理：本用例造的设备（auth-setup 的设备是另一台，不动）
-  const deviceId = await resolveDeviceId(page)
-  await cleanupDevices([deviceId])
+  // 设备清理由 tests/fixtures.ts 的 auto fixture 负责（断言失败时也执行）
 })

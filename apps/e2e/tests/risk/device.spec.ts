@@ -14,16 +14,17 @@
  * - 新设备 / 最近设备：`sys_device.created_at` 回填后重登，DEVICE_NEW（<1 天）/
  *   DEVICE_RECENT（<7 天）作为 critical 因子触发 CAP 交互。
  *
- * 每条用例自造设备、自清理（按 deviceId 删 PG 行与 Redis 键；**不 FLUSHDB**）。
+ * 每条用例自造设备；清理**不写在用例末尾**（断言失败就跳过）—— 设备在签发时登记给
+ * `tests/fixtures.ts` 的 auto fixture，由它在用例结束时按 deviceId 删 PG 行与 Redis 键
+ * （**不 FLUSHDB**）。
  */
 import type { Page } from '@playwright/test'
-import { expect, test } from '@playwright/test'
 import {
-  cleanupDevices,
   loginDevice,
   newBrowserContext,
   openDevice,
   resolveDeviceId,
+  trackDevice,
   uniqueLocalIp,
 } from '../../lib/device-fixtures.ts'
 import { backdateDeviceCreatedAt, clearRefreshTokensForDevice, findDeviceLocation, findDeviceRow, LOOPBACK_IP_PATTERN, withPg } from '../../lib/pg.ts'
@@ -42,15 +43,17 @@ import {
   readCredentials,
   WEB_ORIGIN,
 } from '../../scripts/env.ts'
+import { expect, test } from '../fixtures.ts'
 
 const HOUR_MS = 60 * 60 * 1000
 const DAY_MS = 24 * HOUR_MS
 
-/** 建一个已登录的 root 协议客户端（自带设备 + TOTP 设备验证），调用方用返回的 deviceId 自清理 */
+/** 建一个已登录的 root 协议客户端（自带设备 + TOTP 设备验证）；设备随即登记给清理 fixture */
 async function rootClient(): Promise<{ client: WalnutProtocolClient, deviceId: string }> {
   const credentials = readCredentials()
   const client = new WalnutProtocolClient({ realIp: uniqueLocalIp() })
   await client.bootstrap()
+  trackDevice(client.deviceId)
   await client.login(credentials.userName, credentials.password)
   await client.verifyTotpForDevice(credentials.totpSecret)
   return { client, deviceId: client.deviceId }
@@ -75,6 +78,7 @@ test.describe('设备 ID 生命周期', () => {
     await page.goto('/auth')
     const initialResponse = await pending
     const body = await initialResponse.json() as { code: number, data: { deviceId: string } }
+    trackDevice(body.data.deviceId)
 
     expect(body.code).toBe(20000)
     expect(body.data.deviceId).toMatch(/^d1_[0-9a-f]{32}$/)
@@ -98,13 +102,13 @@ test.describe('设备 ID 生命周期', () => {
       expect(row!.active).toBe(true)
     })
 
-    await cleanupDevices([body.data.deviceId])
     await context.close()
   })
 
   test('U1b Phase0-5：非 local IP 的 initial 走真实定位（api.ip.sb）', async () => {
     const client = new WalnutProtocolClient({ realIp: '1.1.1.1' })
     await client.bootstrap()
+    trackDevice(client.deviceId)
 
     const details = await withPg(async pg => findDeviceLocation(pg, client.deviceId))
 
@@ -114,15 +118,13 @@ test.describe('设备 ID 生命周期', () => {
     expect(typeof details?.country).toBe('string')
     expect(typeof details?.latitude).toBe('number')
     expect(typeof details?.longitude).toBe('number')
-
-    await cleanupDevices([client.deviceId])
   })
 
   test('Phase0-4 静态代理保留 XFF：经 /api 带 XFF 的设备登记，realIp 被后端采用', async ({ browser }) => {
     // 用**公网** XFF 而不是 127.0.0.5：风控的 rate 键会把 local IP 归一成 127.0.0.1
     // （sharedIpService.normalizeIp），本机 IP 无法区分「代理保留了头」与「没保留」。
-    // 1.1.1.1 是公网可路由地址（Cloudflare DNS），api.ip.sb 能解析 —— 这条因此还顺带
-    // 证明「经代理的真实外网定位」也通（与 U1b 的直连版互为对照）。
+    // 1.1.1.1 是公网可路由地址（Cloudflare DNS）。这条**不断言定位结果**：外网 geoip 的连通性
+    // 由 @network 的 U1b 负责，本机离线时这条仍应成立（只查库与缓存）。
     const context = await browser.newContext()
     const response = await context.request.post(`${WEB_ORIGIN}/api/system/device/initial`, {
       headers: { 'x-forwarded-for': '1.1.1.1' },
@@ -131,6 +133,7 @@ test.describe('设备 ID 生命周期', () => {
     expect(response.ok()).toBeTruthy()
     const body = await response.json() as { code: number, data: { deviceId: string } }
     expect(body.code).toBe(20000)
+    trackDevice(body.data.deviceId)
 
     // 证据 1：设备行 ip = XFF 指定的地址（代理没有把它改写成 127.0.0.1）
     await withPg(async (pg) => {
@@ -144,7 +147,6 @@ test.describe('设备 ID 生命周期', () => {
       expect(keys.length, '风控 rate 没有按 XFF 的 IP 记账（键 risk:rate:ip:1.1.1.1:*）').toBeGreaterThan(0)
     })
 
-    await cleanupDevices([body.data.deviceId])
     await context.close()
   })
 
@@ -187,6 +189,7 @@ test.describe('设备 ID 生命周期', () => {
 
     // 新设备身份合法（cookie 被删 ⇒ initial 签发了新 id），库里也有行
     const newDeviceId = await resolveDeviceId(session.page)
+    trackDevice(newDeviceId)
     expect(newDeviceId).toMatch(/^d1_[0-9a-f]{32}$/)
     expect(newDeviceId).not.toBe(oldDeviceId)
     await withPg(async (pg) => {
@@ -194,7 +197,6 @@ test.describe('设备 ID 生命周期', () => {
     })
 
     captured.stop()
-    await cleanupDevices([oldDeviceId, newDeviceId])
     await session.context.close()
   })
 
@@ -227,6 +229,7 @@ test.describe('设备 ID 生命周期', () => {
     expect(new URL(session.page.url()).pathname).not.toBe('/not-allowed')
 
     const newDeviceId = await resolveDeviceId(session.page)
+    trackDevice(newDeviceId)
     expect(newDeviceId).toMatch(/^d1_[0-9a-f]{32}$/)
     await withPg(async (pg) => {
       const row = await findDeviceRow(pg, newDeviceId)
@@ -235,7 +238,6 @@ test.describe('设备 ID 生命周期', () => {
     })
 
     captured.stop()
-    await cleanupDevices([oldDeviceId, newDeviceId])
     await session.context.close()
   })
 
@@ -296,7 +298,6 @@ test.describe('设备 ID 生命周期', () => {
     const controlCookies = control.headers.getSetCookie().filter(value => value.startsWith(`${DEVICE_COOKIE_NAME}=`))
     expect(controlCookies, '续期闸存在时仍重发了 DEVICE_ID —— 滑动续期的判据失效').toHaveLength(0)
 
-    await cleanupDevices([deviceId])
     await session.context.close()
   })
 
@@ -322,7 +323,6 @@ test.describe('设备 ID 生命周期', () => {
     })
 
     captured.stop()
-    await cleanupDevices([victimId, root.deviceId])
     await victim.context.close()
   })
 
@@ -348,7 +348,6 @@ test.describe('设备 ID 生命周期', () => {
     })
 
     captured.stop()
-    await cleanupDevices([victimId, root.deviceId])
     await victim.context.close()
   })
 
@@ -374,7 +373,6 @@ test.describe('设备 ID 生命周期', () => {
     const risk = await withRedis(async redis => readRiskDevice(redis, deviceId))
     expect(risk?.factors ?? [], `风险因子应含 DEVICE_NEW，实际 ${JSON.stringify(risk?.factors)}`).toContain('DEVICE_NEW')
 
-    await cleanupDevices([deviceId])
     await session.context.close()
   })
 
@@ -399,7 +397,6 @@ test.describe('设备 ID 生命周期', () => {
     const risk = await withRedis(async redis => readRiskDevice(redis, deviceId))
     expect(risk?.factors ?? [], `风险因子应含 DEVICE_RECENT，实际 ${JSON.stringify(risk?.factors)}`).toContain('DEVICE_RECENT')
 
-    await cleanupDevices([deviceId])
     await session.context.close()
   })
 })
