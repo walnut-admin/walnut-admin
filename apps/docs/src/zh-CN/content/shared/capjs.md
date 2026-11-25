@@ -20,6 +20,24 @@ cap.js 是一款开源的、十分简单的人机校验方案，同时功能也�
 - [cap.js 官网](https://capjs.js.org)
 - [cap.js 仓库](https://github.com/tiagozip/cap)
 
+## 静态资源：widget 与 WASM 都是自托管
+
+登录链路的两个外部资源都**不依赖 CDN**，离线环境也能完成 CAP：
+
+- **widget 本体**：后端自托管，前端按 `${httpUrl}/static/js/cap/widget@0.1.25.js` 加载
+  （`apps/server/apps/api/src/public/js/cap/`）。
+- **WASM 求解器**：admin 自托管在 `apps/admin/public/vendor/cap/`（`@cap.js/wasm@0.0.6`，
+  与 tinymce 的 vendor 约定一致：随前端产物发布、站点根路径）。文件说明与 sha256 见该目录的
+  `README.md`。
+
+`CAP_CUSTOM_WASM_URL`（`apps/admin/src/store/modules/component/comp-capjs.ts`）指向
+`${location.origin}/vendor/cap/cap_wasm.js`。必须是**绝对 URL**：widget 在 `blob:` worker 里
+`import()` 它，相对路径在 blob 基址下解析不了；同源即可，跨域才需要 CORS。
+
+**升级约束**：`cap_wasm.js` 是 wasm-bindgen 的 glue，内部按
+`new URL('cap_wasm_bg.wasm', import.meta.url)` 取**同目录兄弟文件** —— 换版本时两个文件必须
+一起替换，且 `CAP_CUSTOM_WASM_URL` 指向 glue（`cap_wasm.js`），不是 `.wasm`。
+
 ## 流程图
 
 :::tabs
