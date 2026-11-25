@@ -6,13 +6,22 @@
  * 文案来自 DB 语言包（sys_locale），换语言就断；结构是组件的契约。
  */
 import type { BrowserContext, Page, Response } from '@playwright/test'
+import process from 'node:process'
 import { expect } from '@playwright/test'
 import { generateSync } from 'otplib'
-import { DEVICE_COOKIE_NAME, readCredentials } from '../scripts/env.ts'
+import { DEVICE_COOKIE_NAME, readCredentials, WEB_ORIGIN } from '../scripts/env.ts'
 
 /** `useAppStorageSync` 的键 = `WA__<KEY>`（getStorageKey 的默认前缀）+ superjson 包一层 `{v,e,_v}` */
 export const DEVICE_LOCAL_STORAGE_KEY = 'WA__GEO_IP_DEVICE_ID'
 export const ACCESS_TOKEN_LOCAL_STORAGE_KEY = 'WA__ACCESS_TOKEN'
+/** 登录会话键：请求拦截器按它是否存在选单/双因子签名，清登录态时必须和 AT 一起清 */
+export const AUTH_SESSION_LOCAL_STORAGE_KEY = 'WA__AUTH_SESSION_KEY'
+/**
+ * 应用引导（driver.js）的「已看过」cookie，真源是 admin 的 `useDriver('app-intro')`
+ * （`driver-${key}`）。引导是全屏 SVG overlay 且 `allowClose: false`（关不掉），会拦截
+ * cap-widget 的点击 —— 它只与首次使用的 UI 引导有关，与设备 / CAP 断言无关，测试里预置成已看过。
+ */
+const APP_INTRO_COOKIE_NAME = 'driver-app-intro'
 
 export interface CapturedEnvelope {
   url: string
@@ -54,30 +63,125 @@ export function captureEnvelopes(page: Page): { entries: CapturedEnvelope[], sto
   return { entries, stop: () => page.off('response', handler) }
 }
 
-/** 等某个条件在采集数组里出现（轮询，避免依赖响应到达顺序） */
+/** 把采集数组的尾部格式化成可读上下文（超时报错与负对照共用，避免两处文案漂移） */
+function formatRecentEnvelopes(entries: CapturedEnvelope[], limit = 12): string {
+  const recent = entries.slice(-limit).map((entry) => {
+    const code = entry.code === undefined ? '' : ` ${entry.code}`
+    return `${entry.method} ${entry.url}${code}`
+  })
+  return `已采集（末 ${recent.length} 条）：\n${recent.join('\n')}`
+}
+
+/**
+ * 等某个条件在采集数组里出现（轮询，避免依赖响应到达顺序）。
+ *
+ * `fromIndex` 是游标：只匹配 `index >= fromIndex` 的条目，供调用方跳过已经消费过的响应
+ * （典型场景：同一被拒 URL 先吃 40116、解完 CAP 再等 40101，不能又匹配到同一批里的旧 40116）。
+ */
 export async function waitForEnvelope(
   entries: CapturedEnvelope[],
   predicate: (entry: CapturedEnvelope) => boolean,
   timeoutMs = 30_000,
+  fromIndex = 0,
 ): Promise<CapturedEnvelope> {
   const started = Date.now()
   for (;;) {
-    const hit = entries.find(predicate)
+    const hit = entries.find((entry, index) => index >= fromIndex && predicate(entry))
     if (hit !== undefined) {
       return hit
     }
     if (Date.now() - started > timeoutMs) {
       // 文案用**实际**传入的超时（曾经硬编码 30s，改成 40s 的调用点报错里还在说 30s）
-      const recent = entries.slice(-12).map((entry) => {
-        const code = entry.code === undefined ? '' : ` ${entry.code}`
-        return `${entry.method} ${entry.url}${code}`
-      })
       throw new Error(
-        `[e2e/ui] ${Math.round(timeoutMs / 1000)}s 内没等到目标响应；已采集（末 ${recent.length} 条）：\n${recent.join('\n')}`,
+        `[e2e/ui] ${Math.round(timeoutMs / 1000)}s 内没等到目标响应；${formatRecentEnvelopes(entries)}`,
       )
     }
     await new Promise(resolve => setTimeout(resolve, 100))
   }
+}
+
+/**
+ * 等 40605 自愈的**最终**结果：被拒 URL 先穿过 CAP（40116），解掉之后落到 40101（访问令牌已过期）。
+ *
+ * 为什么最终是 40101 而不是 20000：自愈会签发**全新设备**，而登录会话按设备绑定 ——
+ * AT 的会话键是 `AUTH:SESSIONS:<userId>:<deviceId>:<sid>`（`jwt-access.strategy.ts`），
+ * RT 行也按 `deviceId` 校验（`refresh.shared.service.ts` 的 `getNewAccessToken`）。换设备后
+ * 旧 AT 必然 40101、旧 RT 续期必然 40102，应用按设计 `Signout` 回 `/auth`。硬等 40101 把
+ * 「重放穿过 CAP」与「旧会话按设计失效」分成两条判据：任何 40605 复发、CAP 残留或 20000
+ * 的假成功都会红，而不是被 `code !== 40605` 这类宽判据吃掉。
+ *
+ * 为什么禁止再用 `waitForLoadState('networkidle')`：它没传超时，而 `@playwright/test` 运行器把
+ * 导航超时强制成 0（`navigationTimeout || 0`）⇒ 只能挂到用例 120s 超时；networkidle 本身也被
+ * 官方标注 DISCOURAGED —— stage 构建开着 Sentry tracesSampleRate 1.0 + replay、socket.io 长连接、
+ * CAP 弹窗懒加载的 widget 脚本，任何在途请求都会让它永不触发。
+ *
+ * 为什么必须硬等 40116 并解 CAP、不能把它当成功：自愈产生的新设备带 `DEVICE_NEW`（未处理的
+ * critical 风险因子）⇒ 重放的业务请求先吃 40116（要求 CAP 交互）。40116 不是自愈失败，而是
+ * 「还需要把 CAP 解掉」；服务端按 `deviceId + token 指纹` 缓存 20 分钟，解一次后同批重放全部放行。
+ *
+ * `E2E_SKIP_CAP_SOLVE=1` 仅供**负对照**（验证失败是否快速、可读），生产用例不得设置。
+ */
+export async function waitForDeviceHealSettled(
+  page: Page,
+  entries: CapturedEnvelope[],
+  replayUrl: string,
+  options: { timeoutMs?: number, maxCapRounds?: number, skipCapSolve?: boolean } = {},
+): Promise<{ capSolved: boolean }> {
+  const timeoutMs = options.timeoutMs ?? 40_000
+  const maxCapRounds = options.maxCapRounds ?? 2
+  const skipCapSolve = options.skipCapSolve ?? process.env.E2E_SKIP_CAP_SOLVE === '1'
+  let capSolved = false
+  let cursor = 0
+
+  for (let round = 0; round < maxCapRounds; round += 1) {
+    const entry = await waitForEnvelope(
+      entries,
+      candidate => candidate.url === replayUrl
+        && (candidate.code === 20000 || candidate.code === 40116 || candidate.code === 40101),
+      timeoutMs,
+      cursor,
+    )
+    if (entry.code !== 40116) {
+      // 20000 = 会话仍有效（严格契约下不应出现，续期/URL 判据会红）；
+      // 40101 = 换设备后旧会话按设计失效。没弹过 CAP 时 capSolved=false，
+      // 由用例的硬断言给出「风险配置被改坏」的明确失败，而不是干等 40s。
+      return { capSolved }
+    }
+
+    // 走到这里只可能是 40116：这是 CAP 交互要求，不是自愈失败
+    if (skipCapSolve) {
+      throw new Error(
+        `[e2e/ui] 重放 ${replayUrl} 只等到 40116（CAP 交互要求），且 E2E_SKIP_CAP_SOLVE=1 已跳过求解`
+        + `（负对照开关，生产用例不得设置）；${formatRecentEnvelopes(entries)}`,
+      )
+    }
+
+    const solved = await solveCapIfPresent(page, 60_000, 15_000)
+    if (!solved) {
+      throw new Error(
+        `[e2e/ui] 重放 ${replayUrl} 吃到 40116（CAP 交互要求），但 15s 内没出现可点的 cap-widget`
+        + `（URL=${page.url()}）—— 风险配置或 CAP 组件被改坏了；${formatRecentEnvelopes(entries)}`,
+      )
+    }
+    capSolved = true
+
+    // 同一批兄弟请求共用一枚 CAP token：解一次后，已记录的 40116 全部视为已消费。
+    // 游标推到**最后一条已记录的 40116 之后**（而不是本次命中的那条之后）：既不会被旧 40116
+    // 再骗一轮，也不会跳过解 CAP 期间已经到达的后续响应。
+    cursor = entries.reduce((last, candidate, index) => (
+      candidate.url === replayUrl && candidate.code === 40116 ? index + 1 : last
+    ), cursor)
+  }
+
+  // 解完 CAP 后，被拒 URL 的最终业务码必须是 40101（新设备没有旧设备的会话键）。
+  // 等不到就让 waitForEnvelope 自然抛错（带末 12 条上下文）。
+  await waitForEnvelope(
+    entries,
+    candidate => candidate.url === replayUrl && candidate.code === 40101,
+    timeoutMs,
+    cursor,
+  )
+  return { capSolved }
 }
 
 /** 读浏览器 localStorage 里的设备 id（`WA__GEO_IP_DEVICE_ID` 的 superjson 包装体） */
@@ -126,8 +230,11 @@ export function currentTotp(secret: string): string {
  *
  * cap.js 的 standalone widget 是一个需要在 shadow DOM 里点一下的复选框；点完它自己做 PoW
  * （WASM 从 jsDelivr 拉）并发出 `solve` 事件，拦截器随后重放原请求、组件 1s 后关闭 modal。
+ *
+ * **不导出**：解 CAP 的消费方是 {@link waitForDeviceHealSettled}（以及本文件的登录动作），
+ * 外部直接点 widget 容易在「40116 属于 CAP 交互要求」这条判据上分叉。
  */
-export async function solveCapIfPresent(page: Page, timeoutMs = 60_000, appearTimeoutMs = 6_000): Promise<boolean> {
+async function solveCapIfPresent(page: Page, timeoutMs = 60_000, appearTimeoutMs = 6_000): Promise<boolean> {
   const widget = page.locator('cap-widget').first()
 
   try {
@@ -137,7 +244,9 @@ export async function solveCapIfPresent(page: Page, timeoutMs = 60_000, appearTi
     return false
   }
 
-  await widget.click()
+  // Playwright 的默认 action 超时是 0（跟随用例超时）：被任何 overlay 挡住都会挂到 120s。
+  // 这里给点击单独设上限 —— 挡住的现场应以「intercepts pointer events」快速报错，而不是挂死。
+  await widget.click({ timeout: 30_000 })
   await widget.waitFor({ state: 'hidden', timeout: timeoutMs })
   return true
 }
@@ -184,6 +293,11 @@ export async function loginViaUI(page: Page, options: { userName?: string, passw
   const credentials = options.userName !== undefined
     ? { userName: options.userName, password: options.password ?? '', totpSecret: options.totpSecret ?? '' }
     : readCredentials()
+
+  // 登录后 default layout 会延迟 1.5s 启动 driver.js 引导；它的全屏 overlay 会拦截 cap-widget
+  // 的点击（自愈后的 40116 就发生在 layout 里）。登录页还没有 default layout，在这里预置
+  // 「已看过」最稳 —— 别等 overlay 出现后再关，`allowClose: false` 根本没有关闭入口。
+  await page.context().addCookies([{ name: APP_INTRO_COOKIE_NAME, value: 'true', url: WEB_ORIGIN }])
 
   await page.goto('/auth')
 

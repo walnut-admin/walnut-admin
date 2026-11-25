@@ -14,6 +14,11 @@
  * - 新设备 / 最近设备：`sys_device.created_at` 回填后重登，DEVICE_NEW（<1 天）/
  *   DEVICE_RECENT（<7 天）作为 critical 因子触发 CAP 交互。
  *
+ * 注意：自愈（cookie 丢失）本身会签发**全新设备**，新设备的 DEVICE_NEW 也是 critical 因子 ——
+ * 所以 U8/U9 在自愈后必须先解掉 CAP（重放先吃 40116）。旧会话按设备绑定（`AUTH:SESSIONS`
+ * 会话键与 RT 行都带 deviceId），换设备后重放最终 40101、续期 40102，应用 Signout 回 /auth；
+ * 把 40116 当成「重放成功」会掩盖真实结果（旧判据 `code !== 40605` 就栽在这里）。
+ *
  * 每条用例自造设备；清理**不写在用例末尾**（断言失败就跳过）—— 设备在签发时登记给
  * `tests/fixtures.ts` 的 auto fixture，由它在用例结束时按 deviceId 删 PG 行与 Redis 键
  * （**不 FLUSHDB**）。
@@ -40,7 +45,7 @@ import {
   scanKeys,
   withRedis,
 } from '../../lib/redis.ts'
-import { captureEnvelopes, loginViaUI, navigateInApp, readDeviceCookie, readLocalDeviceId, waitForEnvelope } from '../../lib/ui.ts'
+import { captureEnvelopes, loginViaUI, navigateInApp, readDeviceCookie, readLocalDeviceId, waitForDeviceHealSettled, waitForEnvelope } from '../../lib/ui.ts'
 import {
   DEVICE_COOKIE_NAME,
   readCredentials,
@@ -76,7 +81,10 @@ test.describe('设备 ID 生命周期', () => {
   test('U1 新设备签发：initial → d1_+32hex、DEVICE_ID cookie、sys_device 行', async ({ browser }) => {
     const context = await newBrowserContext(browser)
     const page = await context.newPage()
-    const pending = page.waitForResponse(response => response.url().includes('/system/device/initial') && response.request().method() === 'POST')
+    const pending = page.waitForResponse(
+      response => response.url().includes('/system/device/initial') && response.request().method() === 'POST',
+      { timeout: 30_000 },
+    )
 
     await page.goto('/auth')
     const initialResponse = await pending
@@ -177,18 +185,19 @@ test.describe('设备 ID 生命周期', () => {
     )
     expect(captured.entries.indexOf(healed)).toBeGreaterThan(initialIndex)
 
-    // 原请求被重放：同一个 URL 再次出现，且不再 40605
-    const replay = await waitForEnvelope(
-      captured.entries,
-      entry => entry.url === rejected.url && entry.code !== undefined && entry.code !== 40605,
-      30_000,
-    )
-    expect(replay.url).toBe(rejected.url)
+    // 原请求被重放：新设备先吃 40116（DEVICE_NEW critical）⇒ 必须解 CAP；解掉后旧会话按
+    // 设备绑定失效（重放最终 40101、续期 40102），应用 Signout 回 /auth。旧判据
+    // `code !== 40605` 会把 40116 误判成成功。
+    const { capSolved } = await waitForDeviceHealSettled(session.page, captured.entries, rejected.url)
+    expect(capSolved, '自愈产生的新设备应触发 CAP（DEVICE_NEW critical）——若未弹 cap-widget，检查 risk 配置是否被改').toBe(true)
 
-    // 不跳 /not-allowed（自愈失败才会去那里）
-    await session.page.waitForLoadState('networkidle').catch(() => {})
+    // 新设备没有旧设备的 AUTH:SESSIONS / RT：续期必然 40102，应用按设计回登录页
+    await waitForEnvelope(captured.entries, entry => entry.url.includes('/api/auth/refresh') && entry.code === 40102, 30_000)
+    await session.page.waitForURL(url => url.pathname === '/auth', { timeout: 30_000 })
+
     const pathname = new URL(session.page.url()).pathname
-    expect(pathname, `自愈后落到了 ${session.page.url()}`).not.toBe('/not-allowed')
+    expect(pathname, `自愈后落到了 ${session.page.url()}`).toBe('/auth')
+    expect(pathname, '自愈失败才会被踢到 /not-allowed').not.toBe('/not-allowed')
 
     // 新设备身份合法（cookie 被删 ⇒ initial 签发了新 id），库里也有行
     const newDeviceId = await resolveDeviceId(session.page)
@@ -222,14 +231,17 @@ test.describe('设备 ID 生命周期', () => {
 
     const rejected = await waitForEnvelope(captured.entries, entry => entry.code === 40605, 40_000)
     await waitForEnvelope(captured.entries, entry => entry.url.includes('/system/device/initial') && entry.code === 20000, 30_000)
-    await waitForEnvelope(
-      captured.entries,
-      entry => entry.url === rejected.url && entry.code !== undefined && entry.code !== 40605,
-      30_000,
-    )
 
-    await session.page.waitForLoadState('networkidle').catch(() => {})
-    expect(new URL(session.page.url()).pathname).not.toBe('/not-allowed')
+    // 同 U8：新设备触发 CAP，解掉之后旧会话按设备绑定失效（40101 → 续期 40102）并回 /auth
+    const { capSolved } = await waitForDeviceHealSettled(session.page, captured.entries, rejected.url)
+    expect(capSolved, '自愈产生的新设备应触发 CAP（DEVICE_NEW critical）——若未弹 cap-widget，检查 risk 配置是否被改').toBe(true)
+
+    await waitForEnvelope(captured.entries, entry => entry.url.includes('/api/auth/refresh') && entry.code === 40102, 30_000)
+    await session.page.waitForURL(url => url.pathname === '/auth', { timeout: 30_000 })
+
+    const pathname = new URL(session.page.url()).pathname
+    expect(pathname, `自愈后落到了 ${session.page.url()}`).toBe('/auth')
+    expect(pathname, '自愈失败才会被踢到 /not-allowed').not.toBe('/not-allowed')
 
     const newDeviceId = await resolveDeviceId(session.page)
     trackDevice(newDeviceId)
