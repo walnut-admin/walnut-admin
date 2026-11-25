@@ -36,6 +36,8 @@ const Permissions = {
 const { WalnutAdminDecoratorList, WalnutAdminDecoratorDelete } = WalnutCrudDecorators({
   title: WalnutAdminConstDecoratorLogOperateTitle.APP_CACHE,
   DTO: AppMonitorCacheDTO,
+  // list 行是 RealPartialType(AppMonitorCacheDTO)：字段集一致、全部可选（P2-6 收尾）。
+  listResponseDTO: AppMonitorCacheDTOListResponse,
 })
 
 @Controller(AppRoutes.MONITOR_CACHE)

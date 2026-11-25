@@ -39,6 +39,8 @@ const {
 } = WalnutCrudDecorators({
   title: WalnutAdminConstDecoratorLogOperateTitle.POST,
   DTO: SysPostDTOSafe,
+  // list 行是 RealPartialType(SysPostDTOSafe)：字段集一致、全部可选（P2-6 收尾）。
+  listResponseDTO: SysPostDTOListResponse,
 })
 
 /** 岗位 controller —— 平表标准 CRUD（无树端点） */

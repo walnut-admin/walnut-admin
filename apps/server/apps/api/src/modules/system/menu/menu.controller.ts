@@ -45,6 +45,8 @@ const {
 } = WalnutCrudDecorators({
   title: WalnutAdminConstDecoratorLogOperateTitle.MENU,
   DTO: SysMenuDTOSafe,
+  // list 行是 RealPartialType(SysMenuDTOSafe)：字段集一致、全部可选（P2-6 收尾）。
+  listResponseDTO: SysMenuDTOListResponse,
 })
 
 /**

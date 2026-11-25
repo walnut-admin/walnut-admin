@@ -45,6 +45,9 @@ const { WalnutAdminDecoratorCreate, WalnutAdminDecoratorRead, WalnutAdminDecorat
   = WalnutCrudDecorators({
     title: WalnutAdminConstDecoratorLogOperateTitle.LANG,
     DTO: SysLangDTO,
+    // list 行是 RealPartialType(SysLangDTOSafe)：字段集与 SysLangDTO 一致，但全部可选
+    // （P2-6 收尾）。把真实响应类交给 list 装饰器，行 schema 不再把字段标成 required。
+    listResponseDTO: SysLangDTOListResponse,
   })
 
 /**

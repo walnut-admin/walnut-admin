@@ -32,6 +32,8 @@ const { WalnutAdminDecoratorDelete, WalnutAdminDecoratorDeleteMany, WalnutAdminD
   = WalnutCrudDecorators({
     title: WalnutAdminConstDecoratorLogOperateTitle.LOG_AUTH,
     DTO: SysLogAuthDTO,
+    // list 行是 RealPartialType(SysLogAuthDTOSafe)：字段集一致、全部可选（P2-6 收尾）。
+    listResponseDTO: SysLogAuthDTOListResponse,
   })
 
 /**

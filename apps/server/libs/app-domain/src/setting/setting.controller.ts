@@ -38,6 +38,8 @@ const { WalnutAdminDecoratorCreate, WalnutAdminDecoratorRead, WalnutAdminDecorat
   = WalnutCrudDecorators({
     title: WalnutAdminConstDecoratorLogOperateTitle.APP_SETTING,
     DTO: AppSettingDTOSafe,
+    // list 行是 RealPartialType(AppSettingDTOSafe)：字段集一致、全部可选（P2-6 收尾）。
+    listResponseDTO: AppSettingDTOListResponse,
   })
 
 @Controller(AppRoutes.SETTING)

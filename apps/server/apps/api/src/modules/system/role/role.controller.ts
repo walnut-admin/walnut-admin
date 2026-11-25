@@ -33,6 +33,10 @@ const { WalnutAdminDecoratorCreate, WalnutAdminDecoratorRead, WalnutAdminDecorat
   = WalnutCrudDecorators({
     title: WalnutAdminConstDecoratorLogOperateTitle.ROLE,
     DTO: SysRoleDTOSafe,
+    // list 行不是完整 SysRoleDTOSafe：controller 返回的 SysRoleDTOListResponse 只含
+    // RealPartialType(SysRoleDTOSafeWithoutMenus)（menus / deptIds 不在行里）。
+    // 把真实响应类交给 list 装饰器，swagger 行 schema 才与 wire 一致（P2-6 收尾）。
+    listResponseDTO: SysRoleDTOListResponse,
   })
 
 /**

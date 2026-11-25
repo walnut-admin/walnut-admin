@@ -24,6 +24,8 @@ const { WalnutAdminDecoratorRead, WalnutAdminDecoratorList }
   = WalnutCrudDecorators({
     title: WalnutAdminConstDecoratorLogOperateTitle.LOG_OPERATE,
     DTO: SysLogOperateDTO,
+    // list 行是 RealPartialType(SysLogOperateDTOSafe)：字段集一致、全部可选（P2-6 收尾）。
+    listResponseDTO: SysLogOperateDTOListResponse,
     extra: {
       needOperateLog: false,
     },

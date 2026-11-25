@@ -35,6 +35,9 @@ const {
 } = WalnutCrudDecorators({
   title: WalnutAdminConstDecoratorLogOperateTitle.DELETED,
   DTO: SysDeletedDTOSafe,
+  // list 行是 RealOmitType(RealPartialType(SysDeletedDTOSafe), ['content'])：
+  // content 是 jsonb 旁路，列表行不带（P2-6 收尾）。
+  listResponseDTO: SystemDeletedDTOListResponse,
   extra: {
     needOperateLog: false,
   },
