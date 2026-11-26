@@ -180,6 +180,13 @@ export declare namespace WTable {
 
     /**
      * @extends
+     * E2E 的稳定选择器，落在 `n-data-table` 根节点（表格容器）。
+     * 新增依赖列表页的用例时先在这里给页面配 id，别用 `.n-data-table` 这类结构选择器。
+     */
+    testId?: string
+
+    /**
+     * @extends
      * @description locale unique key, for this table fields
      * @example 'locale' / 'lang'
      */
@@ -238,6 +245,11 @@ export declare namespace WTable {
        * @description click event, do not use buttonProps.onClick
        */
       onPresetClick?: () => void
+
+      /**
+       * E2E 稳定选择器，落在表头内置操作按钮上（如权限可见性用例的新增/批量删除）。
+       */
+      testId?: string
     }[]
 
     /**
@@ -316,6 +328,12 @@ export declare namespace WTable {
        * @description button show in dropdown or outside
        */
       _dropdown?: boolean
+
+      /**
+       * E2E 稳定选择器，落在操作列的按钮上（同页多行会重复，用例按行作用域取）。
+       * 放在顶层而不是 `buttonProps.testId`：内置按钮的 `buttonProps` 是整对象覆盖，会丢样式。
+       */
+      testId?: string
     }
 
     /**

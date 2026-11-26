@@ -80,6 +80,9 @@ defineExpose({ onOpen })
 </script>
 
 <template>
-  <!-- @vue-generic {typeof formData.value} -->
-  <WForm :model="formData" @hook="register" />
+  <!-- data-testid：角色切换弹窗容器（页头下拉 → 选角色 → 确认后菜单/权限串重算的判据） -->
+  <div data-testid="role-switch-modal">
+    <!-- @vue-generic {typeof formData.value} -->
+    <WForm :model="formData" @hook="register" />
+  </div>
 </template>

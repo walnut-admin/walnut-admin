@@ -36,7 +36,8 @@ const dropdownOptions = computed<DropdownMixedOption[]>(() => [
 
   {
     key: '3',
-    label: t('app.base.switchRole'),
+    // data-testid：角色切换旅程从页头菜单点开切换弹窗（文案来自语言包，testid 落在 label 内）
+    label: () => <span data-testid="header-switch-role-item">{t('app.base.switchRole')}</span>,
     icon: () => <WIcon icon="ant-design:user-switch-outlined"></WIcon>,
     show: userStoreProfile.getCurrentRoleModeIsSwitchable,
   },
@@ -86,7 +87,7 @@ async function onSelect(val: string) {
     :options="dropdownOptions"
     @select="onSelect"
   >
-    <div class="hstack items-center justify-center">
+    <div class="hstack items-center justify-center" data-testid="header-user-dropdown">
       <WAvatar
         v-if="$route.name !== 'Me'"
         :size="2"

@@ -71,7 +71,8 @@ async function onVerify() {
 </script>
 
 <template>
-  <div>
+  <!-- data-testid：二次验证弹窗的验证码步骤（40119 旅程填完 6 位码即由 onFinish 自动提交） -->
+  <div data-testid="verify-auth-code">
     <!-- @vue-generic {typeof formData.value} -->
     <WForm :model="formData" @hook="register">
       <template #description>

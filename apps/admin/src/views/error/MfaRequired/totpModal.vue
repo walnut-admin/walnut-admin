@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type { AuthMfaTotpGenerate } from '@walnut/api-types'
 import type { InputInst } from 'naive-ui'
+import type { InputHTMLAttributes } from 'vue'
 import { downloadByBlob } from '@walnut/client/browser/file/download'
 import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import { authMfaTotpBindAPI, authMfaTotpGenerateAPI, authMfaTotpUnbindAPI } from '@/api/auth/mfa'
@@ -17,6 +18,12 @@ const emits = defineEmits<{ success: [] }>()
 
 const { t } = useAppI18n()
 const appStoreFingerprint = useAppStoreFingerprint()
+
+/**
+ * E2E 稳定选择器要落在**真实 `<input>`** 上（`input-props` 才是它的落点），
+ * 与 `MfaVerified/index.vue` 的 `mfa-code-input` 同一写法和原因。
+ */
+const totpCodeInputProps = { 'data-testid': 'mfa-required-totp-code-input' } as unknown as InputHTMLAttributes
 
 const nInputRef = useTemplateRef<InputInst>('nInputRef')
 
@@ -172,7 +179,8 @@ defineExpose({
         <NButton @click="onCloseBindModal">
           {{ $t('app.base.no') }}
         </NButton>
-        <NButton type="primary" @click="onGoStep2">
+        <!-- data-testid：MFA 强制绑定旅程从扫码步进入验证码步 -->
+        <NButton type="primary" data-testid="mfa-required-totp-next-btn" @click="onGoStep2">
           {{ $t('app.base.next') }}
         </NButton>
       </NSpace>
@@ -196,6 +204,7 @@ defineExpose({
           size="large"
           maxlength="6"
           :allow-input="(value: string) => /^\d*$/.test(value)"
+          :input-props="totpCodeInputProps"
           class="text-center text-2xl tracking-widest font-mono"
           @keyup.enter="bindTotp"
         >
@@ -209,8 +218,10 @@ defineExpose({
         <NButton @click="currentStep = 1">
           {{ $t('app.base.prev') }}
         </NButton>
+        <!-- data-testid：MFA 强制绑定旅程提交 6 位码完成绑定 -->
         <NButton
           type="primary"
+          data-testid="mfa-required-totp-verify-btn"
           :disabled="!canVerify"
           :loading="loading"
           @click="bindTotp"

@@ -92,6 +92,8 @@ const [
   safeFormUnwantedFields: ['status'],
 
   tableProps: {
+    // E2E：`user-list-table` 供权限可见性用例判「列表已挂载 / 门禁后为空」；`user-create-btn` 判无 create 权限时隐藏
+    testId: 'user-list-table',
     localeUniqueKey: key,
     rowKey: row => row[keyField]!,
     striped: true,
@@ -101,12 +103,14 @@ const [
     headerLeftBuiltInActions: [
       {
         _builtInType: 'create',
+        testId: 'user-create-btn',
         onPresetClick() {
           onOpenCreateForm()
         },
       },
       {
         _builtInType: 'delete',
+        testId: 'user-delete-many-btn',
         onPresetClick() {
           onDeleteManyConfirm()
         },
@@ -219,6 +223,8 @@ const [
         columnBuiltInActions: [
           {
             _builtInType: 'read',
+            // E2E：编辑抽屉触发器（权限可见性用例同时验证行内按钮随 read 权限显隐）
+            testId: 'user-edit-btn',
             _show: row => !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.ROOT) && !row.roles_list?.map(i => i.roleName).includes(AppConstRoles.DEVELOPER),
             async onPresetClick(rowData) {
               await onReadAndOpenUpdateForm(rowData[keyField]!)
