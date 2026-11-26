@@ -70,6 +70,13 @@ export const SystemEndpointRoutes = {
   USER_ME_SECURITY_TAB2: '/system/user/me/security-tab2',
   USER_LOCK: '/system/user/lock',
   USER_LOCK_UNLOCK: '/system/user/lock/unlock',
+  // 偏好写入通道（controller 里曾是相对字面量 'preference'，前端只能硬编码）
+  USER_LOCK_PREFERENCE: '/system/user/lock/preference',
+  // 忘记锁屏密码兜底：复用 OPAQUE 登录交换、不签发正式 token（Q8 端点归属定案）
+  USER_LOCK_VERIFY_START: '/system/user/lock/verify/start',
+  USER_LOCK_VERIFY_FINISH: '/system/user/lock/verify/finish',
+  // 管理员重置某用户的锁屏（Q6；真实路径带 /:userId，这里给前缀）
+  USER_LOCK_RESET: '/system/user/lock/reset',
   USER_PREFERENCE: '/system/user/preference',
   USER_IDENTITY_STATUS: '/system/user/identity/status',
   USER_IDENTITY_CHECK: '/system/user/identity/check',

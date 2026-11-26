@@ -81,6 +81,13 @@ export class SecurityRsaService {
 
   /**
    * @description decrypt request value through RSA private key in app key
+   *
+   * Q10（L1，2026-11-27）：wire 契约 = admin `encryptRequestValue` 的逆：
+   * `base64(JSON{ enc:'AES_256_GCM', key, iv, ct, tag })`，`key = RSA-OAEP-SHA256(aesKey)`。
+   *
+   * **所有**失败（非 base64 / 非 JSON / 字段缺失 / 长度不对 / RSA 私钥缺失 / GCM tag 不符）
+   * 统一收敛为 40011 `WalnutAdminExceptionRsaDecryptFailed` —— 旧实现只包住 RSA+AES 两段，
+   * JSON.parse / Buffer 解码的异常会冒成 50000，客户端拿不到「清公钥重试」的自愈信号。
    */
   async decryptRequestValueWIthServerRsaPrivKey(value: string) {
     interface CipherEnvelope {
@@ -91,24 +98,53 @@ export class SecurityRsaService {
       tag: string
     }
 
-    const payload = JSON.parse(Buffer.from(value, 'base64').toString('utf8')) as CipherEnvelope
-
-    const iv = Buffer.from(payload.iv, 'base64')
-    const ciphertext = Buffer.from(payload.ct, 'base64')
-    const tag = Buffer.from(payload.tag, 'base64')
-
-    const buffer = Buffer.from(payload.key, 'base64')
-    const rsaPrivateKey = await this.getCurrentRsaPrivateKey()
-
     try {
+      if (typeof value !== 'string' || value.length === 0) {
+        throw new WalnutAdminExceptionRsaDecryptFailed()
+      }
+
+      const payload = JSON.parse(Buffer.from(value, 'base64').toString('utf8')) as CipherEnvelope | null
+
+      if (
+        payload === null
+        || typeof payload !== 'object'
+        || payload.enc !== 'AES_256_GCM'
+        || typeof payload.key !== 'string' || payload.key.length === 0
+        || typeof payload.iv !== 'string' || payload.iv.length === 0
+        || typeof payload.ct !== 'string'
+        || typeof payload.tag !== 'string' || payload.tag.length === 0
+      ) {
+        throw new WalnutAdminExceptionRsaDecryptFailed()
+      }
+
+      const iv = Buffer.from(payload.iv, 'base64')
+      const ciphertext = Buffer.from(payload.ct, 'base64')
+      const tag = Buffer.from(payload.tag, 'base64')
+
+      // 长度是 wire 契约的一部分（AES_GCM_WIRE 双端同源）：不对就说明不是本机制的信封
+      if (iv.length !== AES_GCM_WIRE.IV_LENGTH || tag.length !== AES_GCM_WIRE.TAG_LENGTH) {
+        throw new WalnutAdminExceptionRsaDecryptFailed()
+      }
+
+      const buffer = Buffer.from(payload.key, 'base64')
+      const rsaPrivateKey = await this.getCurrentRsaPrivateKey()
+
+      if (isNil(rsaPrivateKey) || rsaPrivateKey === '') {
+        throw new WalnutAdminExceptionRsaDecryptFailed()
+      }
+
       const aesKey = privateDecrypt(
         {
-          key: rsaPrivateKey!,
+          key: rsaPrivateKey,
           padding: constants.RSA_PKCS1_OAEP_PADDING,
           oaepHash: 'sha256',
         },
         buffer,
       )
+
+      if (aesKey.length !== AES_GCM_WIRE.KEY_LENGTH) {
+        throw new WalnutAdminExceptionRsaDecryptFailed()
+      }
 
       const decipher = createDecipheriv('aes-256-gcm', aesKey, iv)
       decipher.setAuthTag(tag)
@@ -120,7 +156,11 @@ export class SecurityRsaService {
 
       return plaintext.toString('utf8')
     }
-    catch {
+    catch (error) {
+      if (error instanceof WalnutAdminExceptionRsaDecryptFailed) {
+        throw error
+      }
+
       throw new WalnutAdminExceptionRsaDecryptFailed()
     }
   }
