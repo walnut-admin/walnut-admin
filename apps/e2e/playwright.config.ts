@@ -216,15 +216,15 @@ export default defineConfig({
        * 由 `E2E_STACK_PROFILE=pages` 选中；profile 与 project 同名 1:1，跑别的 project 会被
        * `scripts/run.ts` 的 `resolveProfileTestArgs` 在动锁 / 动库之前拒绝。
        *
-       * `tests/pages/` 本批只落 README：spec 由 E4 补齐。空目录下 `--project=pages` 会以
-       * 「No tests found」退出非零 —— 这是本阶段的**诚实状态**（CI 的 pages job 在 E4 落地前
-       * 预期红），别用 skip 占位把它洗成绿。
+       * E4（2026-11-27）起 `tests/pages/reachability.spec.ts` 落地：全站页面可达链用
+       * worker 级 `authedPage`（一条 spec 文件 = 一个 worker = 一次 UI 登录），因此这里
+       * 补回 `auth-setup` 依赖 —— 它负责「admin 凭据能过完整 UI 登录」的门禁与 TOTP secret
+       * 写入（依赖链 auth-setup → stack-setup）。不变量 7 不变：auth-setup 不产出
+       * storageState，页面用例仍复用 worker 内存里的登录 context。
        */
       name: 'pages',
       testMatch: /pages\/.*\.spec\.ts/,
-      // **刻意先不挂 `auth-setup`**：只在 `--project=pages` 下、依赖 project 有用例时，Playwright
-      // 会「跑完依赖并返回 0」—— 空 project 因此假绿。E4 落地 spec 时再按需补
-      // `dependencies: ['auth-setup']`（页面渲染断言需要已登录会话）。
+      dependencies: ['auth-setup'],
       grepInvert: quarantineGrepInvert,
       use: { ...devices['Desktop Chrome'], userAgent: SIGN_USER_AGENT },
     },

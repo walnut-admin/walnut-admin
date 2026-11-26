@@ -38,6 +38,14 @@ export type SystemMenuListPage = EndpointData<'/system/menu/list', 'POST'>
 /** `POST /app/setting/list` 成功响应的 `data`（分页壳） */
 export type AppSettingListPage = EndpointData<'/app/setting/list', 'POST'>
 
+/**
+ * `POST /app/monitor/cache/list` 成功响应的 `data`（分页壳）。
+ *
+ * 行里的 `key` 是**去掉 `WALNUT_CACHE_` 前缀后的展示键**（`SYSTEM:LANGUAGE:PUBLIC_LIST`、
+ * `APP:SETTING` …），不是 Redis 原始键 —— 缓存清空用例按它做等值过滤。
+ */
+export type AppMonitorCacheListPage = EndpointData<'/app/monitor/cache/list', 'POST'>
+
 /** 生成物的路径表用小写方法名（`paths['/system/user/list']['post']`） */
 type MethodKey<M extends HttpMethod> = Lowercase<M>
 

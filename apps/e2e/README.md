@@ -29,9 +29,10 @@ fail-fast（退出码 2）。`default` 的值与改造前逐字相同。
 - profile 与 Playwright project 同名 1:1（`default` 没有同名 project，它就是本地全量）；
   命名 profile 只允许跑同名 project —— `run.ts` 会机械拒绝 `E2E_STACK_PROFILE=smoke --project=risk`。
 - `pages` / `journey` 是扩面批次（E4 / E5）的 profile：目录 `tests/pages/`、`tests/journey/` 已建。
-  `journey` 已由 L2 落地 `tests/journey/lock.spec.ts`（J1–J4 锁屏闭环，project 依赖
-  `auth-setup → stack-setup`）；`pages` 仍只落 README，**空 project 下 `--project=pages` 会以
-  「No tests found」退出非零**（CI 的 pages job 在 E4 落地前预期红，不用 skip 占位洗绿）。
+  `journey` 已由 L2 落地 `tests/journey/lock.spec.ts`（J1–J4 锁屏闭环）；`pages` 已由 E4 落地
+  `tests/pages/reachability.spec.ts`（18 个侧边栏业务页的可达链，6 条用例；project 依赖
+  `auth-setup → stack-setup`，复用 worker 级 `authedPage`，不产出 storageState）。
+  `pages` 里 `/demo/table/base` 的已知 seed 漂移用 `test.fixme` 留复现，见该目录 README。
 - **本地多 profile 仍串行**（不变量 6）：`run.ts` 先抢全局锁、再抢 profile 锁；第二个 profile
   在第一步等全局锁，120s 抢不到就报持锁者退出。profile 锁不是并发通行证。
 - **Redis 不加前缀、也不换逻辑库**（设计结论）：键形由 server 拥有；设备清理按 deviceId 精确删；
@@ -261,8 +262,9 @@ pnpm --filter @walnut/e2e e2e -- --ui      # 等价的包内写法（经 pnpm �
 
 | tag | 含义 | 当前落点 |
 |-----|------|----------|
-| `@smoke` | 冒烟 | 首页只读、用户 CRUD、菜单 / 角色 / 设置模块 spec |
+| `@smoke` | 冒烟 | 首页只读、缓存清空、用户 CRUD、菜单 / 角色 / 设置模块 spec |
 | `@risk` | 设备 / 风控 / auth 面 | 设备 ID 生命周期整组、risk 矩阵 U11–U16、auth 面矩阵（MFA / 会话 / 登出） |
+| `@pages` | 页面扩面（pages profile） | 18 个侧边栏业务页的可达链（`tests/pages/`） |
 | `@mobile` | mobile 设备 profile | Pixel 7 登录页布局（`tests/mobile/`，默认全量跑） |
 | `@slow` | 慢用例（同时有 `test.slow()`） | 两条「回填 created_at」 |
 | `@network` | 依赖真实外网 | U1b（api.ip.sb 定位） |
@@ -465,10 +467,9 @@ E2E_REUSE_SERVER=1 pnpm walnut e2e:smoke
 **matrix 五 job 并行**（`smoke` / `risk` / `network` / `pages` / `journey`，`fail-fast: false`）：
 每个 job 独立 checkout + 独立 services（PG 18 / Redis 8，端口与凭据同 `scripts/stack-profiles.ts`），
 `E2E_STACK_PROFILE` 决定库 / 端口 / 基线目录，`--project=<profile>` 与 profile 同名 1:1。
-一个 job 红不影响其余 job。**`journey` 的 spec 已落地（L2：`tests/journey/lock.spec.ts`）**；
-`pages` 仍是空 project，会因「No tests found」预期红（不是回归，也别用 `if: false` / 空 spec
-洗绿）。前三个 job 的并集仍是本地全量 `pnpm walnut e2e` 的覆盖面；机器时间约 1× 构建 + 5× 测试，
-墙钟取最慢 profile + 固定开销。
+一个 job 红不影响其余 job。**`journey` 与 `pages` 的 spec 都已落地**（L2 锁屏闭环、E4 全站
+页面可达链）；`pages` 的空 project 不再是预期红项。前三个 job 的并集仍是本地全量
+`pnpm walnut e2e` 的覆盖面之一；机器时间约 1× 构建 + 5× 测试，墙钟取最慢 profile + 固定开销。
 
 CI 走**基线路径**：每个 profile 的封板三件套由 `actions/cache` 跨 run 缓存，key =
 `e2e-baseline-<profile>-v<清单格式版本>-<dataKey>`（`node apps/e2e/scripts/data-key.ts --cache-key`

@@ -741,6 +741,41 @@ journey 纳入无 `--project` 的全量会变成 39 例（35 + 4），别把数�
 数据永远空）与锁定态 `ExecuteCoreFnAfterAuth` 未接住 40118 的 `User Locked`（MFA 完成后被错误
 边界遮罩挡住）。
 
+**E4 全站页面可达链落地记录（2026-11-27）**：`tests/pages/reachability.spec.ts` 落地，pages
+project 补回 `auth-setup → stack-setup` 依赖（不再空 project）。覆盖调研报告 §1.1 的 **18 个
+侧边栏业务页**，按路由结构分成 6 条页面链：静态入口（home / dashboard / about）、system 用户域
+（user / role / menu）、system 字典与国际化（dict / lang / locale）、system 设备与审计
+（device / deleted / log-auth / log-operate）、app 域（setting / logger / monitor-cache /
+monitor-user / monitor-server）与 demo 抽样（table-hook / form / echarts）。每页三层断言：
+URL 未被权限守卫重定向、组件挂载（`#<route.name>-content` 有元素子节点）、首屏主数据
+`20000`；user / role / deleted 三张表顺带消费 E1 的表格 testid。登录只做一次（worker 级
+`authedPage`，`navigateInApp` 页间跳转，不整页 reload）。
+
+- **实测（本机 WSL 栈，单次读数）**：`E2E_STACK_PROFILE=pages --project=pages` 首跑
+  `--rebuild-baseline` 时 `/system/locale` 红（见下面产品缺陷），修掉后同一基线 restore 复跑
+  **8 passed + 1 skipped、78.2s**；修正挂载判据后的最终复跑 **8 passed + 1 skipped、81.7s**，
+  逐例 3.1 / 4.9 / 4.4 / 5.1 / 9.8 / 3.8s（6 例合计 31.1s，含 stack-setup 2.3s /
+  auth-setup 14.6s）—— 远低于报告估的 195s，单例最长 9.8s（app 域的 8 个监控面板）。
+  `smoke` profile 首跑 `--rebuild-baseline` **11/11、72.8s**；最终复跑 **11/11、67.6s**
+  （新增缓存清空用例 1.9s）；default 面 `--project=smoke --project=risk --project=network
+  --project=mobile` **36/36、343.6s**（含新缓存用例；E3 的 35 例基线 + 1）。
+- **E4 抓到的真实产品缺陷（单独修复）**：`/system/locale` 页在 `schemas: computed<…>(…)` 里
+  使用了 `computed` 但没有从 `vue` 显式导入 —— 运行时报 `ReferenceError: computed is not
+  defined`，整页进错误边界。上一行的 `// @ts-expect-error` 恰好把「Cannot find name」一起
+  吞掉，所以 `vue-tsc` 两轮都是绿的（ADR 0020 移除 auto-import 后的漏网之鱼）。修法是把
+  `computed` 加回 vue 的显式 import（一行），pages 页面链随即转绿。
+- **已知 seed 漂移的处置**：`/demo/table/base` 的 `component = demo/table/baseTable` 没有对应
+  文件（`views/demo/table/` 只有 `index.vue` / `useTable.vue`；`git log --all -S baseTable`
+  只命中 seed 提交，从未有过该文件）。语义不明（该指向 `useTable` 还是 `index` 无法从仓库内
+  确定），**不改 seed**，用 `test.fixme` 留下可执行的复现（含通用挂载判据）；修正 seed / 补上
+  组件后删掉 `.fixme` 即转绿。
+- **负对照**：(a) 把 `demo/table/base` 的 `.fixme` 临时去掉 ⇒ `element(s) not found` 15s 红
+  （证明挂载判据能抓「菜单指向不存在的组件」；也暴露了 `out-in` 过渡期间旧 DOM 残留的假阴性，
+  修法是先标记旧根、等它离场再判新页）；(b) 把缓存用例的 `APP:SETTING` 断言从 1 改成 0 ⇒
+  `Expected length: 0 / Received length: 1` 红（证明 BUILT_IN 受保护类型的语义被真实断言）。
+- **注意**：`--project` 不设的全量现在会带上 pages（6 + 1 fixme）与 journey（4），总例数
+  不再是 35/36；default 面的读数口径以上面的显式 project 列表为准。
+
 ---
 
 ### 3.3 P2：健壮性、治理与体验
