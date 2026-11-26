@@ -125,6 +125,13 @@ admin 的基础 `.env`（无环境后缀）存放构建必填的 `VITE_*` 变量
 `apps/server/libs/system/src/device/device-id.ts` 的注释。
 :::
 
+::: tip 2026-11-26：单文件重加密必须带着 `DOTENV_PUBLIC_KEY_*` 头
+`dotenvx encrypt -f <file> -fk .env.keys` 对**没有** `DOTENV_PUBLIC_KEY_*` 头的明文会生成
+**新的密钥对并追加进 `.env.keys`**（等于悄悄轮换环境主密钥）。只想轮换单个值时，要把原
+密文解出的明文连同 `DOTENV_PUBLIC_KEY_*` 头一起喂回 encrypt（F2 轮换 `APP_COOKIE_SECRET`
+的做法，见 2026-11-26 提交说明）；全量轮换走 `pnpm encrypt-env`。
+:::
+
 ::: tip 2026-11-26：值里不要有未加引号的 `#`
 dotenv（`@nestjs/config`）对**未加引号**的值在第一个 `#` 处截断，而仓库里其它自写 env
 解析器（E2E 的 `parseEnvFile`、seed / db 通道）是原样读取 —— 同一个 key 会被两边读成
