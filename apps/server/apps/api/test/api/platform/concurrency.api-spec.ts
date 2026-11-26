@@ -7,7 +7,7 @@ import { AppKeyEntity } from '@walnut-server/app-domain'
 import { AuthOpaqueCoreService } from '@walnut-server/auth'
 import { AppTechCacheDeviceService } from '@walnut-server/cache'
 import { WalnutAdminConstCookieKeys } from '@walnut-server/const/app/cookie'
-import { SysUserSharedService } from '@walnut-server/identity'
+import { SysUserIdentitySharedService, SysUserSharedService } from '@walnut-server/identity'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import supertest from 'supertest'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
@@ -239,7 +239,14 @@ describe('G 段：并发/锁专项（真实 HTTP 并行 + service 级注册竞�
       [raceUserId, 'password', 'login'],
     )
     expect(identities[0].c).toBe(1)
-    expect([recordA, recordB]).toContain(identities[0].value_hash)
+    // f6c4678f（①：password 身份落库改走 AES + 盐化哈希）之后 value_hash 是
+    // HMAC(record, USER_ID_HASH_SALT)，不再是 record 原文 —— 本断言是当时的遗留
+    // （拿 raw record 去比哈希值，恒 false）。用同一条 generateValueHash 复算两份候选。
+    const identityShared = app.get(SysUserIdentitySharedService)
+    expect([
+      identityShared.generateValueHash(recordA),
+      identityShared.generateValueHash(recordB),
+    ]).toContain(identities[0].value_hash)
   })
 
   it('G3 同一 cookie 三路并发 device/initial —— 恰一行落库、无 5xxxx（冲突 40000 / 限流 42900 均为受控拒绝）', async () => {
