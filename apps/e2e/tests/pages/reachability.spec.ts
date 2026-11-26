@@ -27,7 +27,7 @@
  */
 import type { Page } from '@playwright/test'
 import { AppRoutes, SystemEndpointRoutes, SystemRoutes, WalnutAdminConstAppResponseCode } from '../../lib/protocol/contract.ts'
-import { captureEnvelopes, expectSidebarRendered, navigateInApp, waitForEnvelope } from '../../lib/ui.ts'
+import { captureEnvelopes, expectSidebarRendered, navigateToRoute, waitForEnvelope } from '../../lib/ui.ts'
 import { expect, test } from '../fixtures.ts'
 
 const SUCCESS = WalnutAdminConstAppResponseCode.SUCCESS
@@ -50,41 +50,6 @@ interface PageDefinition {
 
 /** 一条用例共用的响应采集（`captureEnvelopes` 的可读数组 + 停止函数） */
 type PageCapture = ReturnType<typeof captureEnvelopes>
-
-/**
- * 应用内导航到目标路由，并等**上一页真正离场**。
- *
- * 为什么需要这一步：布局的 `WTransition` 是 `mode="out-in"`，导航后旧页面会先播 ~300ms
- * 离场动画（`v-leave-to`），**这段时间旧 DOM 仍挂在内容容器里**。实测 `/demo/table/base`
- * （菜单 component 解析成 undefined）会被上一页 `/home` 的残留卡片骗过 —— 「内容有元素子节点」
- * 看起来成立。这里给旧根打一个临时标记，等它从 DOM 消失后再判新页；空组件路由此时容器为空，
- * 挂载断言才会红。
- *
- * 同路径不触发过渡（首次进入 `/home` 就已在 `/home`），直接复用当前已挂载的页面。
- */
-async function navigateToRoute(page: Page, path: string, routeName: string): Promise<void> {
-  if (new URL(page.url()).pathname !== path) {
-    await page.evaluate(() => {
-      document.querySelectorAll('[data-e2e-stale-root]').forEach(el => el.removeAttribute('data-e2e-stale-root'))
-      const content = document.querySelector('[id$="-content"]')
-      content?.firstElementChild?.setAttribute('data-e2e-stale-root', '')
-    })
-
-    await navigateInApp(page, path)
-    await page.waitForURL(url => url.pathname === path, { timeout: ROUTE_TIMEOUT_MS })
-
-    await expect(
-      page.locator('[data-e2e-stale-root]'),
-      `${path} 导航后上一页组件没有离场（transition 未完成）`,
-    ).toHaveCount(0, { timeout: ROUTE_TIMEOUT_MS })
-  }
-
-  await page.waitForURL(url => url.pathname === path, { timeout: ROUTE_TIMEOUT_MS })
-  await expect(
-    page.locator(`#${routeName}-content`),
-    `${path} 没有内容容器 #${routeName}-content（路由 name 与菜单 name 不一致？）`,
-  ).toBeVisible({ timeout: ROUTE_TIMEOUT_MS })
-}
 
 /**
  * 访问一页并逐层断言。

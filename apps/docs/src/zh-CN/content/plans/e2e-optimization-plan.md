@@ -776,6 +776,63 @@ URL 未被权限守卫重定向、组件挂载（`#<route.name>-content` 有元�
 - **注意**：`--project` 不设的全量现在会带上 pages（6 + 1 fixme）与 journey（4），总例数
   不再是 35/36；default 面的读数口径以上面的显式 project 列表为准。
 
+**E5' journey 收尾批落地记录（2026-11-27）**：调研报告 Top 10 里剩余的五条高价值旅程落地，
+`tests/journey/` 从 1 个 spec 扩到 6 个（J1–J9，一条旅程一个文件，`journey-support.ts` 抽共享
+fixture）。五个文件与断言落点：
+
+- `force-quit.spec.ts`（J5）：管理员改密（真实 `admin/password/update/{start,finish}`）→ 目标浏览器
+  收到 socket `force:quit`（帧里策略 = seed 的 `FORCE_IMMEDIATE_SIGNOUT`）→ 自动登出回 `/auth`；
+  旧 AT 重放 40101、协议 + 浏览器两台设备的 RT / `AUTH:SESSIONS` 归零、新口令能重新登录。
+- `webauthn.spec.ts`（J6）：CDP 虚拟认证器（ctap2 / internal / resident + userVerification）正向注册
+  → 登出 → 密码登录落 `/mfa-verified` → 同一凭据断言（`allowCredentials` 只含那一枚）→ PG 行
+  （credentialId = base64url、公钥密文非空、counter 递增、`last_used_at` 落库）。
+- `permission-visibility.spec.ts`（J7）：菜单给、element 不给 → 表格挂载但 list 门禁**不发请求**并
+  提示无权限、表头 create 按钮不渲染；协议侧权限串无 `system:user:*`、路由树有 `User`；对照 root
+  全量可见。J7b 用 `test.fixme` 钉住本轮发现的缺陷（见下）。
+- `role-switch.spec.ts`（J8）：页头下拉切 currentRole → `/auth/permissions` 重算（权限串 A→B）、
+  本设备权限缓存被覆盖、菜单/表格随角色变化、`role-create-btn` 隐藏、旧路由落 404；协议侧重签 AT
+  后同样翻转。
+- `deleted-recover.spec.ts`（J9）：软删进 `sys_deleted`（快照 content 与 modelName 直断言）→ 回收站按
+  jsonb content 搜到（唯一 userName，`total=1` 且 `deletedId` 命中）→ 行内恢复 → 业务行回来 →
+  再删后 `deleteMany` 真删 → 原表 40401、用旧双键 recover 也 40401。
+
+- **实测（本机 WSL 栈）**：`E2E_STACK_PROFILE=journey pnpm walnut e2e --project=journey`
+  **11 passed + 1 skipped、4.5m**（2 setup + J1–J4 + J5–J9；J7b 是 fixme 跳过）。逐例：
+  J1 56.5s / J2 23.7s / J3 19.6s / J4 6.5s / J5 20.9s / J6 38.9s / J7 29.3s / J8 21.1s / J9 5.5s
+  （setup 2.8 + 14.5s）。default 面（`--project=smoke --project=risk --project=network
+  --project=mobile`）**36/36、5.2m**（用例时间和 282.9s；E4 记的 343.6s 含编排开销，
+  同量级、无回退）。报告对 journey 的
+  「9 例 / 225s」估算偏乐观：单例 UI 登录 15–20s 是主要成本，J1 的 30s 退避是设计内等待。
+- **服务端现状与用例假设的出入（如实记录）**：
+  - WebAuthn 的 RP 口径在 `.env.stage` 里是部署机公网 origin（`http://47.94.19.5:2025`），与本机
+    E2E origin 必然不匹配。E2E 在 `apps/e2e/scripts/env.ts` 的 `backendEnvOverrides` 里注入
+    `AUTH_WEBAUTHN_RPID=localhost` + `AUTH_WEBAUTHN_ORIGIN=http://localhost:<webPort>`，用例的 context
+    跑在 `localhost` 上 —— **Chrome 拒绝 `127.0.0.1` 作 RP ID**（`SecurityError: 127.0.0.1 is an
+    invalid domain`，实测），这是环境口径而非产品缺陷。
+  - `/mfa-required` 的绑定弹窗是 teleported NModal，`role-switch-modal` 的 testid 容器只包住
+    WForm 挂载点；单选/按钮在全局 DOM 里按 `w-radio` / `w-button` 前缀取（本仓 naive-ui 的类前缀是
+    `w-`，不是 `n-`）。确认按钮文案：表单弹窗与 `useAppConfirm` 都是 `app.base.yes`（「确定」），
+    行内 popconfirm 是「确认」。
+- **本轮发现的两个既有前端缺陷（未修，超出 E5' 授权）**：
+  1. **用户/角色页在缺 `system:dept:list` 时整页致命遮罩**：`useDeptTree` 在 `onMounted` 无条件拉
+     `/system/dept/tree`，40105 没有 catch ⇒ unhandled rejection ⇒「页面遇到无法恢复的错误」。
+     这正是「菜单给、element 不给」形态，J7 主用例因此额外授予 `dept:list` 隔离 user 模块，
+     J7b 留 `test.fixme` 可执行复现。
+  2. **`app_monitor_user.visitor_id` 的唯一约束与「同浏览器多设备」冲突**：真机指纹是浏览器安装级
+     稳定值，E2E 多 context 共用同一指纹 ⇒ 第二个 context 的心跳 upsert 走 INSERT 撞 `uq_monitor_visitor`
+     （心跳 40000、monitor 行缺失，在线监控/强踢/锁屏广播都找不到那台设备）。实测单独跑 J5 绿、
+     整批跑（前面的 context 已写过同一指纹）必挂。E2E 的修法是**每 context 预置唯一指纹**
+     （`device-fixtures.ts` 的 `seedFingerprint`，`WA__FINGERPRINT` 的 superjson 外壳）；产品侧是否
+     该把「同一指纹多设备」定为可接受语义，留给所有者裁决。
+- **负对照（改坏 → 红 → 还原，五条各一处）**：(a) 去掉管理员重置调用 ⇒ J5 在 socket 等待处红
+  （「20s 内没等到 force:quit」）；(b) RP ID 期望改成 `127.0.0.1` ⇒ J6 红（「RP ID 必须等于页面
+  host」）；(c) 给非 root 角色额外授予 `system:user:list` ⇒ J7 红（权限串非空）；(d) 把切换后的
+  「不含 A」期望翻成「含 A」⇒ J8 红；(e) 跳过软删 ⇒ J9 在 `countDeletedRows` 处红。五处均已还原
+  （文件 md5 与备份一致），复跑全绿。
+- **共享基建小改**：`lib/ui.ts` 的 `navigateToRoute`（从 E4 的 reachability.spec 抽出，页面旅程
+  一律复用）、`loginViaUI` 的 driver cookie 改按当前页面 origin 写（WebAuthn 的 localhost context）、
+  `captureEnvelopes(page, { origin })`、`newBrowserContext/openDevice` 的 origin 选项与唯一指纹。
+
 ---
 
 ### 3.3 P2：健壮性、治理与体验
