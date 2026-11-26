@@ -262,6 +262,13 @@ describe('C 段：system/user/mfa totp 闭环 + webauthn 形状（真实 HTTP �
     )
     expect(rows[0].c).toBe(0)
 
+    // ②：账号级 mfa_setup 在同一事务里回落（不再等 cron）
+    const userRows: Array<{ mfa_setup: boolean }> = await api.pgDataSource.query(
+      'SELECT mfa_setup FROM sys_user WHERE id = $1',
+      [fixture!.userId],
+    )
+    expect(userRows[0].mfa_setup).toBe(false)
+
     const reunbind = await api.root('DELETE', api.apiPath('/system/user/mfa/totp/unbind'))
     expect(bodyOf(reunbind).code).toBe(WalnutAdminConstAppResponseCode.NOT_FOUND_DATA_NOT_FOUND)
 

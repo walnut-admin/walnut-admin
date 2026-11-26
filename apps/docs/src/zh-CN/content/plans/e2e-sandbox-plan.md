@@ -402,9 +402,10 @@ M5 踢下线 40101、M6 登出 40101、mobile 视口宽度。
    **不做存量迁移**（生产未上线）：本地库里 ① 之前的明文行会在下次登录解密失败 ⇒ 40103，
    重置数据栈（`pnpm walnut db:seed:pg` / E2E 全量 prepare 会重建）或重新补挂口令即可。
    E2E 的建号 fixture 同步改成加密写入（密钥/盐与后端同取 `.env.stage`）。
-6. **TOTP unbind 不回落 `sys_user.mfa_setup`**：unbind 只删 `sys_user_mfa` 行，账号级标志要等
-   cron 同步；同设备重绑后仍为 true。矩阵因此只断言「行删除 + 重绑成功 + 新备用码」，不断言
-   unbind 后的瞬时 `mfa_setup`。
+6. ~~**TOTP unbind 不回落 `sys_user.mfa_setup`**~~（2026-11-26 F2 已修）：unbind 在删
+   `sys_user_mfa` 行的同一事务里把账号级 `mfa_setup` 置 false（与 `/auth/mfa/verify` 置 true
+   同一条写腿）；cron 仍按 `methodsRequiredCount` 做最终收敛。E2E M4 同步断言 unbind 后
+   标志立即回落、重绑 + verify 后回到 true。
 7. **`GET /system/user/:id` 不回填 `roles`**：`attachPopulatedRoles` 写的是内部 `roles_list` /
    `roles_count`，DTO 不暴露；用户与角色的关联证据取角色详情 `usersCount` 与权限生效链。
 8. **IP 分配的既有缺陷（R4 修掉）**：Playwright 每个 spec 文件是独立 worker，模块级

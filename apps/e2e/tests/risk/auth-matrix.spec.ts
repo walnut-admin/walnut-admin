@@ -10,10 +10,10 @@
  * 服务端真源（写断言前已对照）：
  * - MFA guard（`libs/guards/src/guards/mfa.guard.ts`）：`user.mfaSetup === false` ⇒ **40114**
  *   （要求先绑定）；`mfaSetup=true` 且本设备未验证 ⇒ **40115**；visitor 角色跳过；
- * - `sys_user.mfa_setup` 只由 `/auth/mfa/verify` 写 true（`AuthMfaService.verifyMfaStatus`），
- *   bind 本身不置位；`/system/user/mfa/totp/unbind` 只删 `sys_user_mfa` 行，**不**回落
- *   `mfa_setup`（cron 后续同步）—— 本用例因此断言「行删除 + 重绑成功」，不断言 unbind 后的
- *   `mfa_setup` 瞬时值（那是服务端既有语义，见报告）；
+ * - `sys_user.mfa_setup` 由 `/auth/mfa/verify` 写 true（`AuthMfaService.verifyMfaStatus`），
+ *   bind 本身不置位；②（2026-11）起 `/system/user/mfa/totp/unbind` 在删行的同一事务里把
+ *   `mfa_setup` 回落 false（此前要等 cron）—— M4 同时断言行删除与账号级标志的即时回落，
+ *   重绑并 verify 后再回到 true；
  * - 备用码：bind 响应返回 10 枚明文，服务端只存哈希后的密文数组（`sys_user_mfa.backup_codes_ciphertext`）；
  *   verify 端点先 TOTP 后备用码回落，命中即消费（P3-23），复用同一枚 ⇒ 40000；
  * - 会话：JWT validate 按 `AUTH:SESSIONS:<userId>:<deviceId>:<sid>` 判存在（P0-4）；
@@ -201,12 +201,15 @@ test.describe('auth 面矩阵（MFA / 会话 / 登出）', { tag: '@risk' }, () 
       const first = await device.bindTotpWithBackupCodes()
       await withPg(async (pg) => {
         expect(await findTotpMfaRow(pg, user.userId), 'bind 后应有 totp 行').not.toBeNull()
+        expect(await readUserMfaSetup(pg, user.userId), 'bind + verify 后 mfa_setup 应为 true').toBe(true)
       })
 
       await expect(device.root<boolean>('DELETE', SystemEndpointRoutes.USER_MFA_TOTP_UNBIND)).resolves.toBe(true)
 
       await withPg(async (pg) => {
         expect(await findTotpMfaRow(pg, user.userId), 'unbind 后 sys_user_mfa 行应被删除').toBeNull()
+        // ②（2026-11）：账号级标志在同一事务里立即回落，不再等 cron
+        expect(await readUserMfaSetup(pg, user.userId), 'unbind 后 mfa_setup 应立即为 false').toBe(false)
       })
 
       // 「只存在禁用和重新绑定」：同设备重新 generate → bind → verify，拿到新的一批备用码
@@ -218,6 +221,7 @@ test.describe('auth 面矩阵（MFA / 会话 / 登出）', { tag: '@risk' }, () 
         const row = await findTotpMfaRow(pg, user.userId)
         expect(row, '重绑后没有 totp 行').not.toBeNull()
         expect(row!.backupCodesLeft).toBe(10)
+        expect(await readUserMfaSetup(pg, user.userId), '重绑 + verify 后 mfa_setup 应回到 true').toBe(true)
       })
       await expect(profileEnvelope(device)).resolves.toMatchObject({
         code: WalnutAdminConstAppResponseCode.SUCCESS,

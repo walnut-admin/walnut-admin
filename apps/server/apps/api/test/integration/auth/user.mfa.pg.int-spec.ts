@@ -206,8 +206,10 @@ describe('B7b user_mfa (on real PG)', () => {
     expect(disabled!.status).toBe(false)
   })
 
-  it('unbindTotp / updateStatus：totp 行级语义（备用码同行同生灭）', async () => {
+  it('unbindTotp / updateStatus：totp 行级语义（备用码同行同生灭）+ ② 同步 mfa_setup', async () => {
     const userId = await seedUser()
+    // ②：先把账号级标志置 true，验证 unbind 会立即回落（不等 cron）
+    await pgDataSource.query('UPDATE sys_user SET mfa_setup = true WHERE id = $1', [userId])
 
     await mfaRepo.createMfa({ userId, type: 'totp', deviceId: 'd-status', name: 'totp', status: true })
 
@@ -217,6 +219,8 @@ describe('B7b user_mfa (on real PG)', () => {
 
     expect(await totpService.unbindTotp(userId)).toBe(true)
     expect(await countMfa(userId)).toBe(0)
+    const rows: Array<{ mfa_setup: boolean }> = await pgDataSource.query('SELECT mfa_setup FROM sys_user WHERE id = $1', [userId])
+    expect(rows[0].mfa_setup, '②：unbind 后账号级 mfa_setup 必须立即为 false').toBe(false)
     await expect(totpService.unbindTotp(userId)).rejects.toThrow()
   })
 

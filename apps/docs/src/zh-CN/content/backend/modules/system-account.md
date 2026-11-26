@@ -339,7 +339,7 @@ unlock 语义随之收紧：`lockMode=security` 时 `lockPwdHash` 必填，缺�
 | 绑定 | `POST /system/user/mfa/totp/bind` | body `{ name, code, tempTotpId }`；`tempTotpId` 必须与 token 的 `userId,deviceId` 一致；查重按 `(userId, deviceId, type=totp)`（**不看 status**）；从缓存取加密 secret，`otplib.verify`（`epochTolerance: 30`，即 ±30 秒）；成功后生成 10 枚备用码（明文返回一次，`SHA-256(固定域:userId:code)` 确定性哈希再逐项 AES-GCM 加密，写入同一 totp 行的 `backup_codes_ciphertext`）；事务提交后删缓存 |
 | 验证 | `POST /system/user/mfa/totp/verify` | body `{ trusted, code }`：6 位数字先走 TOTP；失败（或非 6 位数字）回落备用码（逐项解密哈希 + 常量时间比对，命中即移除；列表空置 `status=false`）。两条成功路径同形态：更新 `lastUsedAt` → `AuthMfaPostVerificationService.handlePostVerification`（写 `sys_user_device.trusted`、事务后写 `AUTH:MFA:VERIFIED`、轮换 RT 并回种新 `RT_JTI` cookie）。全失败统一 40000 `business.auth.verifyCodeError` |
 | 启停 | `PUT /system/user/mfa/totp/status` | 权限点 `system:user:mfa:totp:updateStatus`；按 `(userId, type=totp)` 改 `status`，无行 40401 |
-| 解绑 | `DELETE /system/user/mfa/totp/unbind` | 按 `(userId, type=totp)` 物理删除整行；备用码随行同删（没有独立 backup_codes 行）；删除 0 行 40401 |
+| 解绑 | `DELETE /system/user/mfa/totp/unbind` | 按 `(userId, type=totp)` 物理删除整行；备用码随行同删（没有独立 backup_codes 行）；删除 0 行 40401；**同一事务**把 `sys_user.mfa_setup` 置 false（2026-11 F2 起，此前等 cron 收敛） |
 
 备用码并入 totp 行是 phase2 §4.12 的定案：PG 的 `type` CHECK 只放行 totp/webauthn，
 `varchar(8)` 也容不下 `backup_codes`。P3-23 修复后（2026-10-29）备用码校验**复用**

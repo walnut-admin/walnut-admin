@@ -285,6 +285,12 @@ export class SysUserMfaTotpService {
   /**
    * TODO 伪需求 不存在解绑 只存在禁用和重新绑定
    *  unbind TOTP device（备用码随 totp 行同删，无第二行）
+   *
+   * ②（2026-11）：同一事务里回落账号级 `sys_user.mfa_setup`。此前 unbind 只删
+   * `sys_user_mfa` 行，标志等 cron（`updateMfaSetupStatusForCronJob`）收敛 —— 中间窗口
+   * 里 mfa.guard 的 P5 闸门仍读登录时固化的 payload / 库里的 true，与「已解绑」的事实
+   * 不一致。写腿与 `/auth/mfa/verify` 置 true 的那条同源（`findUserByIdAndUpdate`，
+   * 即 `SysUserSharedService.updateMfaStatus` 的实现）。
    */
   async unbindTotp(userId: string, em?: EntityManager) {
     const deletedCount = await this.sysUserMfaRepo.deleteByUserIdAndType(userId, 'totp', em)
@@ -292,6 +298,9 @@ export class SysUserMfaTotpService {
     if (deletedCount === 0) {
       throw new WalnutAdminExceptionDataNotFound()
     }
+
+    // 账号级标志跟随显式解绑立即回落；cron 仍按 methodsRequiredCount 做最终收敛
+    await this.userRepo.findUserByIdAndUpdate(userId, { mfaSetup: false }, em)
 
     return true
   }
