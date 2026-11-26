@@ -292,11 +292,17 @@ populate 的过滤条件、`meta.order` 是排序键，拍平才能进约束与�
 DTO 装饰器的 `default` 只服务 Swagger 展示。`meta` 的部分给 出按「整体替换 + 默认值回填」处理，
 与迁移前子文档语义一致。
 
+**update 的顶层字段是真 PATCH**（2026-11-26 F1）：`SysMenuDTOUpdateRequest` 由
+`RealPartialType(..., { preserveAbsent: true })` 生成 —— 请求里没出现的键保持 undefined，
+不会被 string/boolean 字段装饰器的 nil→null 转换伪造成显式 null（旧实现会把未给的 name/title
+等列整行覆盖成 NULL）；service 再滤掉 undefined，未给列不进 UPDATE。显式传 null 仍表示清空。
+`meta` 是例外（见上段）：给了仍整体替换，不给则 19 列不动。
+
 ### 4.2 树
 
 | 端点 / 消费方 | 形态 |
 |---|---|
-| `GET /system/menu/tree` | `{ fullTree, treeWithoutTypeElement, menuActiveNamesOptions }`：`fullTree` = 全部菜单建树后**全部根节点的 children 按根序拼接**（根自身不返回；单根部署即首根 children，P3-18）；`treeWithoutTypeElement` 是同一棵全根树过滤掉 `type=element`；`menuActiveNamesOptions` 是 `type=menu` 行的 `{ name, title }` |
+| `GET /system/menu/tree` | `{ fullTree, treeWithoutTypeElement, menuActiveNamesOptions }`：`fullTree` = 全部菜单建树后**全部根节点的 children 按根序拼接**（根自身不返回；单根部署即首根 children，P3-18）；`treeWithoutTypeElement` 是同一棵全根树**递归**过滤掉 `type=element`（2026-11-26 F1：命中的 catalog/menu 不豁免子孙；未命中但有命中后代的节点保留为祖先路径；实现是 `@walnut-server/utils` 的递归 `filterTree`）；`menuActiveNamesOptions` 是 `type=menu` 行的 `{ name, title }` |
 | `GET /auth/permissions` 的 `permissionMenuTree` | 当前用户可见菜单建树后**全部根节点的 children 拼接**（单根部署 = 首根 children；P3-18）；`formatTree` 给非 CATALOG 节点补空 `children` |
 | `permissionRouteTree` | 同上但输出 Vue 路由结构（`children` 为空时 omit）；`meta` 合并 `title/type/icon` 到顶层字段 |
 
@@ -499,7 +505,7 @@ P2-23 起 dictData 的恢复器按 `label` 重放被级联软删的 locale 快�
 | GET `/system/menu/tree` | 全链 + **VisitorDeny**（P2-20） | **无权限点**；visitor → 40105 | — → `{ fullTree, treeWithoutTypeElement, menuActiveNamesOptions }` |
 | POST `/system/menu` | 全链 | `system:menu:create` | `{ type, pid?, path?, name?, component?, title?, icon?, meta? }` → 菜单行（meta 组装） |
 | GET `/system/menu/:id` | 全链 | `system:menu:read` | — → 菜单行（meta 组装） |
-| PUT `/system/menu/:id` | 全链 | `system:menu:update` | 同 create 全可选 → 菜单行 |
+| PUT `/system/menu/:id` | 全链 | `system:menu:update` | 同 create 全可选 + **真 PATCH**（未给顶层列不写 NULL；显式 null = 清空；meta 给了整体替换）→ 菜单行 |
 | DELETE `/system/menu/:id?_cascade=` | 全链 + `@WalnutTx()` | `system:menu:delete` | query 0/1 → 快照行 |
 | POST `/system/menu/list` | 全链 | `system:menu:list` | list DTO → 菜单行 + meta |
 

@@ -388,12 +388,13 @@ M5 踢下线 40101、M6 登出 40101、mobile 视口宽度。
 2. **role / setting 都没有 delete 端点**：角色只有 create/read/update/list（无删除），设置只有
    create/read/update/list + `cache/refresh`。用例的「删除 / 回收」语义因此落在**撤销授权**
    （role update menus 整组替换）与 PG 收尾，不假装存在删除 API。
-3. **`treeWithoutTypeElement` 不是递归 element-free**：服务端用 easy-fns-ts `filterTree`，语义是
-   「节点命中 predicate 就整棵返回」—— 命中的 catalog/menu 的后代（含 element）原样保留。用例
-   只断言顶层无 element；若消费方需要递归过滤，得改服务端实现。
-4. **menu update 的「全字段可选」不是真正的 partial**：ValidationPipe 的 `@Transform` 会把未给
-   字符串字段写成显式 null，update 随后覆盖库里的 name/title 等标量列。admin 表单一直回传整行，
-   E2E 也按整行回传（`menuUpdatePayload`）。这是服务端既有语义，新客户端不要依赖「只发改动字段」。
+3. ~~**`treeWithoutTypeElement` 不是递归 element-free**~~（2026-11-26 F1 已修）：服务端改用
+   `@walnut-server/utils` 的递归 `filterTree` —— 命中的 catalog/menu 不豁免子孙，element 在
+   任何层级都被剪；未命中但有命中后代的节点保留为祖先路径。E2E 断言同步升级为全树 element-free。
+4. ~~**menu update 的「全字段可选」不是真正的 partial**~~（2026-11-26 F1 已修）：`SysMenuDTOUpdateRequest`
+   改用 `RealPartialType(..., { preserveAbsent: true })`，未提供的顶层列不写 NULL，显式 null 才是
+   清空（meta 给了仍整体替换，Mongo 子文档语义不变）。E2E 新增「只发 meta.permission，name/title
+   保持原值」用例；整行回传（`menuUpdatePayload`）仍是 admin 表单的真实口径。
 5. **password identity 存明文**：`AuthOpaqueCoreService.finishRegister` 直接把 registrationRecord
    写进 `sys_user_identity.value` / `value_hash`（未走 `createIdentity` 的 AES 加密；email/phone
    那几条才加密），`select: false` 只遮蔽查询。安全观察，转报所有者。
