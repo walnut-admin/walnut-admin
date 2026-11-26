@@ -64,10 +64,15 @@ export class SysMenuService {
   }
 
   async update(id: string, dto: SysMenuDTOUpdateRequest) {
-    // meta 给 出时 19 列全量产出（未给键回填 schema 默认值），对齐 Mongo 版整体替换
-    // meta 子文档的语义；meta 未给 时 meta 列原样不动
+    // 真 PATCH（2026-11 F1）：DTO 的 preserveAbsent 已让未提供的顶层键保持 undefined，
+    // 这里再显式滤掉 undefined —— 未提供的列**不进 UPDATE 语句**，不再被整行覆盖成
+    // NULL（历史 bug：只给 title 的 update 会清掉 name/title 等未给列）。
+    // meta 给了则 19 列全量产出（未给键回填 schema 默认值），对齐 Mongo 版整体替换
+    // meta 子文档的语义；meta 未给 时 meta 列原样不动。
     const current = await this.menuBasicRepo.readById(id)
-    const flattened = flattenSysMenuMeta(dto)
+    const flattened = Object.fromEntries(
+      Object.entries(flattenSysMenuMeta(dto)).filter(([, value]) => value !== undefined),
+    ) as Partial<SysMenuEntity>
     const updated = await this.menuBasicRepo.update(id, flattened)
 
     // F3：只有 permission / status 真变化才清全量（改标题/图标/排序不碰权限串）

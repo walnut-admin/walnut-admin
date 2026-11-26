@@ -79,9 +79,11 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
   let fixture: WalnutRootUserFixture | null = null
 
   /**
-   * 本轮经 createMenu 建过的行 id：update 腿只传 meta 时顶层 name/title 会被清空，
-   * 按 LIKE 的清理会漏掉（残留根节点 → 后续 spec 的取根结果多一根，P3-18 的顺序敏感面）。
-   * 按 id 兜底删除，不依赖字段还带着前缀。
+   * 本轮经 createMenu 建过的行 id：按 id 兜底删除，不依赖字段还带着前缀。
+   *
+   * 2026-11 F1 之前 update 腿只传 meta 时顶层 name/title 会被 null 覆盖，按 LIKE 的清理
+   * 会漏掉（残留根节点 → 后续 spec 的取根结果多一根，P3-18 的顺序敏感面）；真 PATCH 之后
+   * 不会再有字段被意外清空，但按 id 清理仍是更稳的兜底。
    */
   const createdMenuIds: string[] = []
 
@@ -163,7 +165,8 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
 
   /** pid 自引用 FK 是 ON DELETE RESTRICT：先删子行（pid 非空）再删根行 */
   async function cleanupMenuRows() {
-    // 按 id 兜底（update 只传 meta 时 name/title 被清空，LIKE 匹配不到）
+    // 按 id 兜底（F1 之前 update 只传 meta 会清空 name/title，LIKE 匹配不到；现在不会了，
+    // 但 id 兜底与字段内容无关，仍是最稳的清理方式）
     if (createdMenuIds.length > 0) {
       await api.pgDataSource.query('DELETE FROM sys_menu WHERE pid = ANY($1::uuid[])', [createdMenuIds])
       await api.pgDataSource.query('DELETE FROM sys_menu WHERE id = ANY($1::uuid[])', [createdMenuIds])
@@ -288,7 +291,7 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     expect(findNode(tree.treeWithoutTypeElement, `${namePrefix}-RB`)?.id).toBe(rootB.id)
   })
 
-  it('update 给 meta → 19 列整体替换（缺省键回默认值）；不给 meta → meta 列原样不动；F3：仅权限相关列变化才清权限缓存', async () => {
+  it('update 真 PATCH（未给顶层列不写 NULL）；meta 给了整体替换、不给原样不动；F3：仅权限相关列变化才清权限缓存', async () => {
     const created = await createMenu('U1', { meta: { order: 5, show: false, cache: true } })
 
     // F3（2026-10-28）：菜单写路径不再无条件全清 AUTH:PERMISSIONS:* —— create 不清，
@@ -307,8 +310,9 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     // 重建哨兵后跑 update 三态
     await cacheService.set(sentinelKey, ['system:menu:list'], { t: WalnutAdminConstAppCacheType.AUTH, ttl: 600 })
 
-    // 只给 order：show/cache 被整体替换回默认值（对齐 Mongo meta 子文档整体替换）；
-    // permission/status 未变 → 权限缓存保留
+    // 只给 title + meta.order：未给的顶层列（name/path/icon/pid/type）保持原值（真 PATCH，
+    // 旧实现会把它们写成 NULL）；meta 给了则 show/cache 被整体替换回默认值（Mongo 子文档
+    // 语义）；permission/status 未变 → 权限缓存保留
     const updateRes = await api.root('PUT', api.apiPath(`/system/menu/${created.id}`), {
       title: `menu.title.${seed8}.U1-b`,
       meta: { order: 6 },
@@ -316,6 +320,11 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     expectOk(updateRes, 'menu update with meta')
     let row = bodyOf<MenuRow>(updateRes).data
     expect(row.title).toBe(`menu.title.${seed8}.U1-b`)
+    expect(row.name).toBe(`${namePrefix}-U1`)
+    expect(row.path).toBe(`/${namePrefix}-U1`)
+    expect(row.icon).toBe('mdi:test-tube')
+    expect(row.pid).toBeNull()
+    expect(row.type).toBe('menu')
     expect(row.meta?.order).toBe(6)
     expect(row.meta?.show).toBe(true)
     expect(row.meta?.cache).toBe(false)
@@ -329,17 +338,33 @@ describe('C 段：system/menu tree + CRUD（meta 往返 / _cascade 两态）（�
     expectOk(update2, 'menu update without meta')
     row = bodyOf<MenuRow>(update2).data
     expect(row.icon).toBe('mdi:updated')
+    expect(row.name).toBe(`${namePrefix}-U1`)
+    expect(row.title).toBe(`menu.title.${seed8}.U1-c`)
     expect(row.meta?.order).toBe(6)
     expect(row.meta?.show).toBe(true)
     expect(await api.hasWalnutCacheKey(sentinelKey)).toBe(true)
 
-    // permission 真变化 → 全量清（哨兵消失）
+    // 只给 meta.permission：顶层 name/title 一个都不被清空（旧实现此处 name/title → null）
     const update3 = await api.root('PUT', api.apiPath(`/system/menu/${created.id}`), {
       meta: { order: 6, permission: `system:menu:probe-${seed8}` },
     })
     expectOk(update3, 'menu update with permission change')
-    expect(bodyOf<MenuRow>(update3).data.meta?.permission).toBe(`system:menu:probe-${seed8}`)
+    const row3 = bodyOf<MenuRow>(update3).data
+    expect(row3.meta?.permission).toBe(`system:menu:probe-${seed8}`)
+    expect(row3.name).toBe(`${namePrefix}-U1`)
+    expect(row3.title).toBe(`menu.title.${seed8}.U1-c`)
+    expect(row3.icon).toBe('mdi:updated')
     expect(await api.hasWalnutCacheKey(sentinelKey)).toBe(false)
+
+    // 显式 null 是「清空」：必须保留（不被当成未提供而跳过写入）
+    const update4 = await api.root('PUT', api.apiPath(`/system/menu/${created.id}`), {
+      title: null,
+    })
+    expectOk(update4, 'menu update with explicit null')
+    const row4 = bodyOf<MenuRow>(update4).data
+    expect(row4.title).toBeNull()
+    expect(row4.name).toBe(`${namePrefix}-U1`)
+    expect(row4.icon).toBe('mdi:updated')
   })
 
   it('list → 按 name 过滤 + 出参组装 meta', async () => {

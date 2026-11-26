@@ -306,6 +306,13 @@ export interface ISysMenuAssembled extends SysMenuEntity {
  * - 出参：`assembleSysMenuMeta` / `assembleSysMenu` 把 19 列组装回 `meta` 对象，admin 侧
  *   菜单管理与路由生成消费的 meta 结构不变；controller 在原 `.toObject()` 的位置调用
  *   `assembleSysMenu` 后再 plainToInstance。
+ *
+ * update 的**顶层字段**是真 PATCH：`SysMenuDTOUpdateRequest` 用
+ * `RealPartialType(..., { preserveAbsent: true })` 生成 —— 请求里没给的键保持 undefined，
+ * 不会被字段装饰器的 nil→null 转换伪造成显式 null（历史 bug：只改 title 的 update 会把
+ * name/title 等未给列整行覆盖成 NULL）。service 再把 undefined 键滤掉，未给列不进 UPDATE。
+ * meta 是例外：给了 meta 即按「整体替换 + 缺省键回默认值」处理（Mongo 子文档语义，
+ * api-spec 钉住），不给 meta 则 19 列原样不动。
  */
 
 /**
@@ -548,10 +555,13 @@ export class SysMenuDTOCreateResponse extends SysMenuDTOSafe {}
 // read
 export class SysMenuDTOReadResponse extends SysMenuDTOSafe {}
 
-// update —— Create 的整体可选形态（RealPartialType(Create)）：白名单同 Create
-// （id / createdAt / updatedAt 不进写路径，主键只走路由参数），全字段可选 ——
-// menu.api-spec 钉住的「只给 title/meta 部分更新」语义不变。
-export class SysMenuDTOUpdateRequest extends RealPartialType(SysMenuDTOCreateRequest) {}
+// update —— Create 的整体可选形态 + 真 PATCH 语义（preserveAbsent）：
+// - 白名单同 Create（id / createdAt / updatedAt 不进写路径，主键只走路由参数），全字段可选；
+// - preserveAbsent：请求里没出现的顶层键保持 undefined（不被 string/boolean 字段装饰器的
+//   nil→null 伪造），service 只把提供的列写进 UPDATE（menu.api-spec 钉住「只给 title 不再
+//   清掉 name/title 等未给列」）；
+// - meta 仍是「给了即整体替换 + 缺省键回默认值」（Mongo 子文档语义，见 flattenSysMenuMeta）。
+export class SysMenuDTOUpdateRequest extends RealPartialType(SysMenuDTOCreateRequest, { preserveAbsent: true }) {}
 export class SysMenuDTOUpdateResponse extends SysMenuDTOSafe {}
 
 // delete

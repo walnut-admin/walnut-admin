@@ -2,9 +2,10 @@ import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { AppTechCachePermissionsService } from '@walnut-server/cache'
 import { IWalnutAdminConstAppPermissionType, WalnutAdminConstAppPermissionType } from '@walnut-server/const/app/permission'
+import { filterTree } from '@walnut-server/utils'
 import { Role, RoleType } from '@walnut/contract'
 import { MenuTernal, MenuType } from '@walnut/contract/menu'
-import { arrToTree, filterTree, formatTree, orderTree, TreeNodeItem } from 'easy-fns-ts'
+import { arrToTree, formatTree, orderTree, TreeNodeItem } from 'easy-fns-ts'
 import { isNil, omit, pick } from 'lodash'
 import { SysRoleSharedService } from '../../role/shared/role.shared.service'
 import { assembleSysMenu, ISysMenuAssembled } from '../dto/menu.dto'
@@ -316,6 +317,9 @@ export class SysMenuSharedService {
     )
 
     // used for parent node select
+    // 递归过滤（2026-11 F1）：命中的 catalog/menu **不豁免**其后代 —— element 在任何层级
+    // 都被剪掉。旧实现用 easy-fns-ts 的 filterTree（命中即整棵返回），element 会作为
+    // catalog/menu 的后代保留下来，与端点语义（父节点选择不该出现 element）不符。
     const treeWithoutTypeElement = filterTree(fullTree, node => node.type !== MenuType.ELEMENT)
 
     // menu active name select options
