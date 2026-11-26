@@ -195,6 +195,87 @@ export async function findUserDeviceRow(client: Client, userId: string, deviceId
   }
 }
 
+export interface SysUserLockRow {
+  lockMode: string
+  lockIdleSec: number
+  lockSecuritySec: number
+  lockCrossDevice: boolean
+  lockPwdHash: string | null
+  lockPwdFailCount: number
+  lockPwdLockedUntil: Date | null
+}
+
+/**
+ * 读 `sys_user_lock` 偏好行（L2 锁屏闭环用例的唯一真源）。
+ *
+ * `lockPwdHash` 只在测试侧读取（断言它是 bcrypt 哈希而非明文）；生产响应永远不回列
+ * （`GET lock/read` 只回 `lockPwdSet`）。
+ */
+export async function findUserLockRow(client: Client, userId: string): Promise<SysUserLockRow | null> {
+  const { rows } = await client.query<{
+    lock_mode: string
+    lock_idle_sec: number
+    lock_security_sec: number
+    lock_cross_device: boolean
+    lock_pwd_hash: string | null
+    lock_pwd_fail_count: number
+    lock_pwd_locked_until: Date | null
+  }>(
+    `SELECT lock_mode, lock_idle_sec, lock_security_sec, lock_cross_device,
+            lock_pwd_hash, lock_pwd_fail_count, lock_pwd_locked_until
+       FROM sys_user_lock WHERE user_id = $1`,
+    [userId],
+  )
+  const row = rows[0]
+  if (row === undefined) {
+    return null
+  }
+  return {
+    lockMode: row.lock_mode,
+    lockIdleSec: row.lock_idle_sec,
+    lockSecuritySec: row.lock_security_sec,
+    lockCrossDevice: row.lock_cross_device,
+    lockPwdHash: row.lock_pwd_hash,
+    lockPwdFailCount: row.lock_pwd_fail_count,
+    lockPwdLockedUntil: row.lock_pwd_locked_until,
+  }
+}
+
+/**
+ * 等退避截止（用**数据库时钟**判断，不用 Node 墙钟）。
+ *
+ * 锁屏用例要等 30s 档退避；按 `meta.retryAfterSec` 直接 `waitForTimeout` 会被
+ * 「响应到达 / 服务端写库 / 客户端计时」三段误差叠出假红。这里轮询 DB 的
+ * `now() >= lock_pwd_locked_until`，最多等到 `timeoutMs`（默认超出最大档 30s 一截）。
+ */
+export async function waitForLockBackoffExpired(client: Client, userId: string, timeoutMs = 45_000): Promise<void> {
+  const started = Date.now()
+  for (;;) {
+    const { rows } = await client.query<{ expired: boolean }>(
+      `SELECT (lock_pwd_locked_until IS NULL OR lock_pwd_locked_until <= now()) AS expired
+         FROM sys_user_lock WHERE user_id = $1`,
+      [userId],
+    )
+    if (rows[0] === undefined || rows[0].expired) {
+      return
+    }
+    if (Date.now() - started > timeoutMs) {
+      throw new Error(`[e2e/pg] ${timeoutMs}ms 内锁屏退避没有到期（userId=${userId}）`)
+    }
+    await new Promise(resolve => setTimeout(resolve, 250))
+  }
+}
+
+/** 管理员重置锁屏的审计行数（operation=`user.lock.reset`；url 里带被重置的 userId） */
+export async function countLockResetAuditRows(client: Client, userId: string): Promise<number> {
+  const { rows } = await client.query<{ c: number }>(
+    `SELECT count(*)::int AS c FROM sys_log_operate
+      WHERE operation = 'user.lock.reset' AND success = true AND url LIKE '%' || $1 || '%'`,
+    [userId],
+  )
+  return rows[0]?.c ?? 0
+}
+
 /**
  * U15：把 `sys_user_device.trusted_expired_at` 回填到 N 毫秒前。
  *

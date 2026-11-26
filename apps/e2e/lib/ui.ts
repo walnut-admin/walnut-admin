@@ -479,7 +479,7 @@ async function solveCapIfPresent(page: Page, options: CapSolveOptions = {}): Pro
  *
  * `budget` 只用来收窄本段每一步的超时；MFA 不在登录链路上（例如单独验证页）时可不传。
  */
-async function verifyMfaIfPresent(page: Page, totpSecret: string, budget?: WaitBudget): Promise<boolean> {
+export async function verifyMfaIfPresent(page: Page, totpSecret: string, budget?: WaitBudget): Promise<boolean> {
   const limit = (step: string, capMs: number): number => budget === undefined ? capMs : stepTimeout(budget, step, capMs)
 
   try {

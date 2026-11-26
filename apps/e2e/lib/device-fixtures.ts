@@ -84,6 +84,12 @@ export async function newBrowserContext(browser: Browser, options: { realIp?: st
     viewport: { width: 1600, height: 900 },
   })
   await installRealIpRoute(context, realIp)
+
+  // 首访的「Star on GitHub」通知（duration 60s，右上角）会盖住 header 右侧控件 / 弹层，
+  // Playwright 的 click/fill 会因此等到它自动消失（60s），把用例拖到超时。
+  // 这是产品提示，不是被测行为 —— 与 driver intro 同口径预置成「不再显示」。
+  await context.addCookies([{ name: 'dont-show-star', value: 'true', url: WEB_ORIGIN }])
+
   return context
 }
 

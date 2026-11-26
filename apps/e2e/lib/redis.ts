@@ -28,6 +28,52 @@ export function deviceCookieRenewKey(deviceId: string): string {
   return `${CACHE_PREFIX}_${SYS_DEVICE_COOKIE_RENEW}:${deviceId}`
 }
 
+/**
+ * 锁屏缓存键（`AppTechCacheLockService` 的唯一拼法）：
+ * `lockCrossDevice=true` 写 `<uid>:global`，false 写 `<uid>:<deviceId>`。
+ */
+export function lockCacheKey(userId: string, deviceId = 'global'): string {
+  return `${CACHE_PREFIX}_SECURITY:LOCK:${userId}:${deviceId}`
+}
+
+/**
+ * 读锁屏缓存值（`AppTechCacheService` 落的是 `{"v":true,...}` JSON；键不存在返回 null）。
+ * 只用于「锁定 / 解锁后缓存是否跟随」的断言；安全判定仍以 PG 为准。
+ */
+export async function readLockCache(client: E2eRedisClient, userId: string, deviceId = 'global'): Promise<boolean | null> {
+  const raw = await client.get(lockCacheKey(userId, deviceId))
+  if (raw === null) {
+    return null
+  }
+  try {
+    const parsed = JSON.parse(raw) as { v?: unknown }
+    return typeof parsed.v === 'boolean' ? parsed.v : null
+  }
+  catch {
+    return null
+  }
+}
+
+/** 设备级 MFA 已验证缓存键（`mfa.cache`；D3 的 40115 回归要把它删掉） */
+export function mfaVerifiedKey(userId: string, deviceId: string): string {
+  return `${CACHE_PREFIX}_AUTH:MFA:VERIFIED:${userId}:${deviceId}`
+}
+
+/** 删设备级 MFA 已验证缓存（模拟「本设备尚未完成 MFA」；不碰其它键） */
+export async function deleteMfaVerifiedCache(client: E2eRedisClient, userId: string, deviceId: string): Promise<number> {
+  return client.del(mfaVerifiedKey(userId, deviceId))
+}
+
+/**
+ * 清掉某用户全部锁屏缓存（`SECURITY:LOCK:<uid>:*`）。
+ *
+ * 仅用于用例收尾：锁屏用例造的测试用户会被硬删，但 `<uid>:global` 键不带 deviceId，
+ * 设备清理不会命中它 —— 留着就是跨轮孤儿。按 userId 精确扫，不碰其它键。
+ */
+export async function deleteUserLockCache(client: E2eRedisClient, userId: string): Promise<number> {
+  return deleteByPatterns(client, [`${lockCacheKey(userId, '*')}`])
+}
+
 export type E2eRedisClient = RedisClientType
 
 async function connectRedis(): Promise<E2eRedisClient> {

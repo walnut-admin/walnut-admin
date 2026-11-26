@@ -729,6 +729,18 @@ jobs:
   - **负对照**：`E2E_STACK_PROFILE=pages pnpm walnut e2e --project=smoke` 在动锁 / 动库之前退 2；空 `--project=pages` / `--project=journey` 以「No tests found」退 1。
   - **default profile 全量**：**35/35 全绿、495.5s**（`--project` 不设，pages / journey 空 project 不产生用例）；E2 记录的 459.4s 是同一台机器的上一轮读数，差值落在测试执行波动内（S1 / S2 各约 90s，与 E2 的 86.9 / 88.6s 同量级）—— E3 没有改 run 路径。首轮 516.3s 曾出现 S2 在 120s 上限超时（当时并发跑了文档门禁），机器闲置单跑 S2 1.5m 通过，判定为接近全局 timeout 的时间边界，非 E3 回归。
 
+**L2 锁屏闭环落地记录（2026-11-27）**：`tests/journey/lock.spec.ts` J1–J4 落地，journey
+project 补回 `auth-setup → stack-setup` 依赖（不再空 project）。本机 WSL 栈 `E2E_STACK_PROFILE=journey
+--project=journey --rebuild-baseline`：**6/6 全绿、3.1m**，逐例 J1 1.2m / J2 33.0s / J3 28.4s /
+J4 11.9s（J1 的 30s 退避按 PG `lock_pwd_locked_until` 到期轮询，不是固定 sleep）；default 面
+`--project=smoke --project=risk --project=network --project=mobile` **35/35 全绿、6.9m**。首次把
+journey 纳入无 `--project` 的全量会变成 39 例（35 + 4），别把数字当常量。J1 的网络层断言同时
+固定了两件事：`lockPwdHash` 请求体是 AES-GCM 信封（`enc/key/iv/ct/tag`，不含明文），以及
+`/lock` 的错密码 40000 就地红字不跳首页；J2 的 40115 经 `/mfa-verified` 回 `/lock` 是 D3 回归。
+本轮还修了两个被锁屏用例暴露的既有前端缺陷：`useTableAPI` 漏显式 `import { computed }`（表格
+数据永远空）与锁定态 `ExecuteCoreFnAfterAuth` 未接住 40118 的 `User Locked`（MFA 完成后被错误
+边界遮罩挡住）。
+
 ---
 
 ### 3.3 P2：健壮性、治理与体验

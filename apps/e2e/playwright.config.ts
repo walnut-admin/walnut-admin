@@ -233,12 +233,14 @@ export default defineConfig({
        * 扩面批次（E5）：socket / auth / 锁屏的跨端旅程。profile 名 = project 名 = `journey`
        * （库 `walnut_e2e_journey`、端口 3105 / 3015 / 4185、基线 `.e2e/journey/`）。
        *
-       * `tests/journey/` 本批只落 README：spec 由 E5 补齐；空目录下 `--project=journey` 同样
-       * 「No tests found」退出非零（CI 的 journey job 在 E5 落地前预期红）。
+       * 锁屏闭环（L2，2026-11-27）：`tests/journey/lock.spec.ts` 已落地，本 project 补回
+       * `auth-setup` 依赖 —— 它负责「admin 凭据能过完整 UI 登录」的门禁与 TOTP secret
+       * 写入（依赖链 auth-setup → stack-setup）。不变量 7 不变：auth-setup 不产出
+       * storageState，journey 用例仍各自走 UI / 协议登录。
        */
       name: 'journey',
       testMatch: /journey\/.*\.spec\.ts/,
-      // 同 pages：先不挂 auth-setup，否则空 project 会因依赖用例假绿；E5 落地时再加。
+      dependencies: ['auth-setup'],
       grepInvert: quarantineGrepInvert,
       use: { ...devices['Desktop Chrome'], userAgent: SIGN_USER_AGENT },
     },

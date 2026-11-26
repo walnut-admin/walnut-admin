@@ -12,7 +12,7 @@
 import type { DeviceKeyFamily } from '../scripts/redis-gc.ts'
 import { describe, expect, it } from 'vitest'
 import { DEVICE_KEY_FAMILIES, parseDeviceKey } from '../scripts/redis-gc.ts'
-import { deviceScopedKeyPatterns, riskDeviceStatePatterns } from './redis.ts'
+import { deviceScopedKeyPatterns, lockCacheKey, riskDeviceStatePatterns } from './redis.ts'
 
 /** 构造一个形态合法的设备 id（d1_ + 32 hex） */
 function did(n: number): string {
@@ -91,6 +91,15 @@ describe('fixture 清理键模式表', () => {
       }
     })
   }
+
+  it('锁屏缓存键：global / 设备两种形态与 redis-gc 键族同形', () => {
+    expect(lockCacheKey(USER)).toBe(`WALNUT_CACHE_SECURITY:LOCK:${USER}:global`)
+    expect(lockCacheKey(USER, DID)).toBe(`WALNUT_CACHE_SECURITY:LOCK:${USER}:${DID}`)
+    // 设备形态必须被 fixture 的清理模式命中（global 键按 userId 精确清，见 deleteUserLockCache）
+    expect(
+      deviceScopedKeyPatterns(DID).some(pattern => matchesPattern(lockCacheKey(USER, DID), pattern)),
+    ).toBe(true)
+  })
 
   it('两条新增键族：user-device challenge 与 rate:device 都被覆盖', () => {
     expect(riskDeviceStatePatterns(DID)).toContain(`risk:challenge:user-device:*:${DID}:*`)
