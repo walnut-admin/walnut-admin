@@ -196,11 +196,12 @@ CASCADE 一并消失（这个边界的影响见 §9 的 P2-18）。
 
 ### 3.2 读与列表
 
-- `read` 返回用户行 + `roles_list` / `roles_count`（`attachPopulatedRoles`，junction 直读，
-  不筛角色状态）。
+- `read` 返回用户行 + `roles` / `roles_list` / `roles_count`（`attachPopulatedRoles` 出前两者，
+  `roles` 是同一 junction 读腿派生的 uuid 数组 —— 2026-11 F2 补，admin 编辑表单的
+  `Extend:RoleSelect` 直绑 `roles`；`roles_list` 不筛角色状态）。
 - `list` 的响应行只裁到 `id / userName / nickName / status / createdAt / updatedAt / roles_count`；
   `roles_count` 是 junction 计数子查询。
-- `GET /system/user/me/profile` 同样组装 `roles_list`。
+- `GET /system/user/me/profile` 同样组装 `roles_list`（不带 `roles`：详情端点专用字段）。
 
 > **命名遗留：`roles_list` / `roles_count` 永久冻结（D16，只写文档）。** 这两个键名是 mongoose
 > `virtual` 时代的产物（Phase 5a 起 virtual 已摘除，出参改由 PG 通道组装，键名原样沿用 ——
@@ -479,7 +480,7 @@ P2-23 起 dictData 的恢复器按 `label` 重放被级联软删的 locale 快�
 | 方法 / 路径 | 守卫链 | 权限点 | 请求 → 响应 |
 |---|---|---|---|
 | POST `/system/user` | 全链 | `system:user:create` | `{ userName, status, roles }` → 用户行 + `roles` |
-| GET `/system/user/:id` | 全链 | `system:user:read` | — → 用户行 + `roles_list` / `roles_count` |
+| GET `/system/user/:id` | 全链 | `system:user:read` | — → 用户行 + `roles` / `roles_list` / `roles_count` |
 | PUT `/system/user/:id` | 全链 | `system:user:update` | `{ userName, status, roles }` → 用户行 |
 | DELETE `/system/user/:id` | 全链 + `@WalnutTx()` | `system:user:delete` | — → 快照行；拒自己 / safe user |
 | POST `/system/user/list` | 全链 | `system:user:list` | list DTO → 裁剪行 + `roles_count` |

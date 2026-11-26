@@ -961,7 +961,8 @@ E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`
   非递归 element-free~~（2026-11-26 F1 已改成递归过滤，E2E 断言同步升级）；~~menu update 的
   「可选字段」会被 Transform 写成 null~~（2026-11-26 F1 已改成真 partial，新增用例钉住）；
   ~~TOTP unbind 不回落 `mfa_setup`~~（2026-11-26 F2 已改成同事务回落，M4 补断言）；
-  `GET /system/user/:id` 不回填 roles。逐条见计划页 §9.1 第 2–7 条。
+  ~~`GET /system/user/:id` 不回填 roles~~（2026-11-26 F2 已补 `roles` 直出，E2E 改直断言）。
+  逐条见计划页 §9.1 第 2–7 条。
 
 ---
 

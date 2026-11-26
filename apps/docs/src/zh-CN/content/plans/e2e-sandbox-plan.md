@@ -406,8 +406,10 @@ M5 踢下线 40101、M6 登出 40101、mobile 视口宽度。
    `sys_user_mfa` 行的同一事务里把账号级 `mfa_setup` 置 false（与 `/auth/mfa/verify` 置 true
    同一条写腿）；cron 仍按 `methodsRequiredCount` 做最终收敛。E2E M4 同步断言 unbind 后
    标志立即回落、重绑 + verify 后回到 true。
-7. **`GET /system/user/:id` 不回填 `roles`**：`attachPopulatedRoles` 写的是内部 `roles_list` /
-   `roles_count`，DTO 不暴露；用户与角色的关联证据取角色详情 `usersCount` 与权限生效链。
+7. ~~**`GET /system/user/:id` 不回填 `roles`**~~（2026-11-26 F2 已修）：detail 响应现在直出
+   `roles`（uuid 数组，与 `roles_list` 同一 junction 读腿派生）；admin 编辑表单的
+   `Extend:RoleSelect` 直绑该 path。E2E 角色用例不再绕道角色详情 `usersCount`，改为
+   用户详情 `roles` 直断言（`usersCount` 断言保留，各有各的语义）。
 8. **IP 分配的既有缺陷（R4 修掉）**：Playwright 每个 spec 文件是独立 worker，模块级
    `localIpSeq` 在文件之间重置 —— 多文件都从同一 IP 起步，第 5 台 `device/initial` 撞
    42900（新增模块 spec 后首次复现）。修法：`uniqueLocalIp` 从 **pid 偏移**起步 +

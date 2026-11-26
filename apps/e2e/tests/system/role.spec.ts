@@ -112,7 +112,7 @@ test('角色：list 行不带关联、详情端点带 menus/deptIds；授权回�
     expect(detailAfterUpdate.description).toBe(`${roleName} updated`)
     expect(detailAfterUpdate.order).toBe(101)
 
-    // 5. 与用户关联：建号挂角色 → 角色详情的 usersCount 同步
+    // 5. 与用户关联：建号挂角色 → 角色详情 usersCount 同步 + 用户详情 roles 直断言
     userName = uniqueUserName('e2e-role-user')
     const user = await root.root<SystemUser>('POST', SystemRoutes.USER, {
       userName,
@@ -124,10 +124,12 @@ test('角色：list 行不带关联、详情端点带 menus/deptIds；授权回�
     const detailWithUser = await root.root<SystemRole>('GET', `${SystemRoutes.ROLE}/${roleId}`)
     expect(detailWithUser.usersCount, '角色挂上用户后 usersCount 仍为 0').toBe(1)
 
-    // 用户详情的不变量是「roles 不回填（read 只并回 roles_list / roles_count，DTO 不暴露）」——
-    // 关联证据取角色 usersCount（上面）与 test B 的权限生效链；这里只钉 userName 的可读回显。
+    // ③（2026-11）：用户详情响应直出 roles（uuid 数组，与 roles_list 同源）——
+    // 关联证据不再需要绕道角色详情的 usersCount（两条断言都留：各有各的语义）。
     const userDetail = await root.root<SystemUser>('GET', `${SystemRoutes.USER}/${user.id}`)
     expect(userDetail.userName).toBe(userName)
+    expect(userDetail.roles, '用户详情缺 roles（角色关联直断言）').toEqual([roleId])
+    expect(userDetail.roles_list?.map(row => row.id), '用户详情 roles_list 与 roles 不同源').toEqual([roleId])
   }
   finally {
     if (userName !== '') {

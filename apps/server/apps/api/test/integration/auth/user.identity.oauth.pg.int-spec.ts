@@ -181,7 +181,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       await insertPgUser()
     })
 
-    itSystem('read：roles_list / roles_count junction 组装', async () => {
+    itSystem('read：roles / roles_list / roles_count junction 组装', async () => {
       const created = await userCrudService.create({
         userName: uniqueName('b7a-read'),
         status: true,
@@ -189,6 +189,8 @@ describe('B7a user / identity / oauth (on real PG)', () => {
       })
 
       const read = await userCrudService.read(created.id)
+      // ③（2026-11）：detail 响应补 roles（uuid 数组，与 roles_list 同一 junction 读腿）
+      expect(read.roles.sort()).toEqual([roleAId, roleBId].sort())
       expect(read.roles_list).toHaveLength(2)
       expect(read.roles_list.map(i => i.id).sort()).toEqual([roleAId, roleBId].sort())
       expect(read.roles_list[0].roleName).toBeTruthy()
@@ -196,7 +198,7 @@ describe('B7a user / identity / oauth (on real PG)', () => {
 
       await expect(userCrudService.read(randomUUID())).rejects.toThrow()
 
-      // me.profile 同一条组装链路
+      // me.profile 同一条组装链路（getUserProfile 不加 roles —— ③ 只收窄到 detail）
       const profile = await userMeService.getUserProfile(created.id)
       expect(profile!.roles_list.map(i => i.id).sort()).toEqual([roleAId, roleBId].sort())
     })

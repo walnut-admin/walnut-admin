@@ -46,7 +46,13 @@ export class SysUserCrudService {
 
   async read(id: string, em?: EntityManager) {
     const user = await this.sysUserBasicRepo.readById(id, em)
-    return this.sysUserRepoService.attachPopulatedRoles(user, em)
+    const populated = await this.sysUserRepoService.attachPopulatedRoles(user, em)
+
+    // ③（2026-11）：detail 响应补 `roles`（uuid 数组，与 create/update 回显同型）。
+    // `attachPopulatedRoles` 只给 roles_list / roles_count；admin 用户编辑表单的
+    // `Extend:RoleSelect` 直接绑 path `roles`，此前编辑时角色回显为空。
+    // 同一 junction 读腿派生，不额外查库。
+    return Object.assign(populated, { roles: populated.roles_list.map(role => role.id) })
   }
 
   /**
