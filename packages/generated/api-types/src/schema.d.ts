@@ -4536,14 +4536,14 @@ export interface components {
              * @default null
              * @example this is an example
              */
-            demoString: string;
+            demoString?: string;
             /**
              * this is title
              * @description this is description
              * @default null
              * @example this is an example
              */
-            demoPhoneNumber: string;
+            demoPhoneNumber?: string;
             /**
              * this is title
              * @description this is description
@@ -4554,14 +4554,14 @@ export interface components {
              *       "this is an example"
              *     ]
              */
-            demoStringArray: string[];
+            demoStringArray?: string[];
             /**
              * this is title
              * @description this is description
              * @default null
              * @example 123
              */
-            demoNumber: number;
+            demoNumber?: number;
             /**
              * this is title
              * @description this is description
@@ -4572,14 +4572,14 @@ export interface components {
              *       123
              *     ]
              */
-            demoNumberArray: number[];
+            demoNumberArray?: number[];
             /**
              * this is title
              * @description this is description
              * @default false
              * @example true
              */
-            demoBoolean: boolean;
+            demoBoolean?: boolean;
             /**
              * this is title
              * @description this is description
@@ -4590,7 +4590,7 @@ export interface components {
              *       true
              *     ]
              */
-            demoBooleanArray: boolean[];
+            demoBooleanArray?: boolean[];
             /**
              * this is title
              * Format: date-time
@@ -4598,7 +4598,7 @@ export interface components {
              * @default null
              * @example 2023-11-11 00:00:00
              */
-            demoDate: string;
+            demoDate?: string;
             /**
              * this is title
              * @description this is description
@@ -4609,7 +4609,7 @@ export interface components {
              *       "2023-11-11 00:00:00"
              *     ]
              */
-            demoDateArray: string[];
+            demoDateArray?: string[];
             /**
              * this is title
              * @description this is description
@@ -4617,7 +4617,7 @@ export interface components {
              * @example 1
              * @enum {number}
              */
-            demoEnum: 1 | 2 | 3 | 4;
+            demoEnum?: 1 | 2 | 3 | 4;
             /**
              * this is title
              * @description this is description
@@ -4627,7 +4627,7 @@ export interface components {
              *       2
              *     ]
              */
-            demoEnumArray: (1 | 2 | 3 | 4)[];
+            demoEnumArray?: (1 | 2 | 3 | 4)[];
             /**
              * this is title
              * @description this is description
@@ -4638,19 +4638,7 @@ export interface components {
              *       "o3": true
              *     }
              */
-            demoObject: components["schemas"]["DemoObject"];
-            /**
-             * @default null
-             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
-             */
-            demoMongoId: string;
-            /**
-             * @default []
-             * @example [
-             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-             *     ]
-             */
-            demoMongoIdArray: string[];
+            demoObject?: components["schemas"]["DemoObject"];
             /**
              * dept id
              * @description owning dept for department-scoped data permissions; derived on create, update is stripped
@@ -4658,6 +4646,18 @@ export interface components {
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
              */
             deptId?: string | null;
+            /**
+             * @default null
+             * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
+             */
+            demoMongoId?: string;
+            /**
+             * @default []
+             * @example [
+             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+             *     ]
+             */
+            demoMongoIdArray?: string[];
         };
         AppDemoDTOSafePartial: {
             /**
@@ -5335,16 +5335,16 @@ export interface components {
         };
         AppSettingDTOUpdateRequest: {
             /** setting name */
-            settingName: string;
+            settingName?: string;
             /** setting key */
-            settingKey: string;
+            settingKey?: string;
             /** setting value */
-            settingValue: string;
+            settingValue?: string;
             /**
              * setting type
              * @enum {string}
              */
-            settingType: "auth" | "global" | "functional";
+            settingType?: "auth" | "global" | "functional";
             /**
              * setting remark
              * @default null
@@ -5838,20 +5838,20 @@ export interface components {
         };
         SysLangDTOUpdateRequest: {
             /** language short */
-            lang: string;
+            lang?: string;
             /** language describe */
-            description: string;
+            description?: string;
             /**
              * language order
              * @description should be int
              * @default null
              */
-            order: number;
+            order?: number;
             /**
              * language is in use or not
              * @default true
              */
-            status: boolean;
+            status?: boolean;
         };
         SysLangDTOSafePartial: {
             /**
@@ -6148,11 +6148,11 @@ export interface components {
         };
         SysDictTypeDTOUpdateRequest: {
             /** dict name */
-            name: string;
+            name?: string;
             /** dict type or can be treated as dict key */
-            type: string;
+            type?: string;
             /** dict status */
-            status: boolean;
+            status?: boolean;
             /** description */
             description?: string;
         };
@@ -6317,32 +6317,32 @@ export interface components {
         };
         SysDictDataDTOUpdateRequest: {
             /** dict data label */
-            label: string;
+            label?: string;
             /** dict data value */
-            value: string;
+            value?: string;
             /**
              * dict data order in array
              * @default 0
              */
-            order: number;
+            order?: number;
             /**
              * dict data status, false will not be extracted
              * @default true
              */
-            status: boolean;
+            status?: boolean;
             /**
              * dict data render tag type, see more in naive ui tag
              * @default primary
              * @enum {string}
              */
-            tagType: "primary" | "info" | "success" | "warning" | "error";
-            /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
-            typeId: string;
+            tagType?: "primary" | "info" | "success" | "warning" | "error";
             /**
              * dict data description
              * @default null
              */
             description?: string;
+            /** @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c */
+            typeId?: string;
         };
         SysDictDataDTOSafePartial: {
             /**
@@ -8014,32 +8014,25 @@ export interface components {
              * @description unique string
              * @default null
              */
-            roleName: string;
+            roleName?: string;
             /**
              * role description
              * @description short describe
              * @default null
              */
-            description: string;
+            description?: string;
             /**
              * role order
              * @description should be int
              * @default null
              */
-            order: number;
+            order?: number;
             /**
              * role status
              * @description false => users wont retrieve current role menus(permissions)
              * @default true
              */
-            status: boolean;
-            /**
-             * @default []
-             * @example [
-             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-             *     ]
-             */
-            menus?: string[];
+            status?: boolean;
             /**
              * role data scope
              * @description 1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF
@@ -8047,6 +8040,13 @@ export interface components {
              * @enum {number}
              */
             dataScope?: 1 | 2 | 3 | 4 | 5 | 6;
+            /**
+             * @default []
+             * @example [
+             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+             *     ]
+             */
+            menus?: string[];
             /**
              * @default []
              * @example [
@@ -8199,20 +8199,13 @@ export interface components {
              * @description should be unique, used for normal password sign in
              * @default null
              */
-            userName: string;
+            userName?: string;
             /**
              * user status
              * @description false => user cannot sign in anymore, also should ban tokens as well
              * @default true
              */
-            status: boolean;
-            /**
-             * @default []
-             * @example [
-             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-             *     ]
-             */
-            roles: string[];
+            status?: boolean;
             /**
              * dept id
              * @description owning dept for department-scoped data permissions; null => no dept
@@ -8220,6 +8213,13 @@ export interface components {
              * @example 0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c
              */
             deptId?: string | null;
+            /**
+             * @default []
+             * @example [
+             *       "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+             *     ]
+             */
+            roles?: string[];
         };
         SysUserDTOSafePartialPickIdUserNameNickNameStatusCreatedAtUpdatedAtRoles_count: {
             /**

@@ -1,4 +1,4 @@
-import { ApiProperty, IntersectionType } from '@nestjs/swagger'
+import { ApiProperty } from '@nestjs/swagger'
 import {
   WalnutAdminDecoratorFieldBoolean,
   WalnutAdminDecoratorFieldDate,
@@ -385,10 +385,11 @@ export class AppDemoDTOCreateResponse extends AppDemoDTOSafe {}
 // read
 export class AppDemoDTOReadResponse extends AppDemoDTOSafe {}
 
-// update
+// update —— 全字段可选 + 真 PATCH 语义（preserveAbsent，2026-11 F2）：
+// 未提供的键保持 undefined，service 滤掉后未给列不进 UPDATE。
 // deptId 在写白名单里刻意保留：基类的 `deptUpdatePolicy: 'strip'`（app_demo）负责
 // 把它从更新面剔除 —— 这条通道是「归属创建后不可改」的机械靶点，不是可写字段。
-export class AppDemoDTOUpdateRequest extends IntersectionType(
+export class AppDemoDTOUpdateRequest extends RealPartialType(
   RealPickType(AppDemoDTOSafe, [
     'demoString',
     'demoPhoneNumber',
@@ -404,8 +405,9 @@ export class AppDemoDTOUpdateRequest extends IntersectionType(
     'demoDateArray',
     'demoEnumArray',
     'demoMongoIdArray',
+    'deptId',
   ] as const),
-  RealPartialType(RealPickType(AppDemoDTOSafe, ['deptId'] as const)),
+  { preserveAbsent: true },
 ) {}
 export class AppDemoDTOUpdateResponse extends AppDemoDTOSafe {}
 

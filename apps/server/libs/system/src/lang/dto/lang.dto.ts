@@ -168,13 +168,11 @@ export class SysLangDTOCreateResponse extends SysLangDTOSafe { }
 // read
 export class SysLangDTOReadResponse extends SysLangDTOSafe { }
 
-// update
-export class SysLangDTOUpdateRequest extends RealPickType(SysLangDTOSafe, [
-  'lang',
-  'description',
-  'order',
-  'status',
-] as const) { }
+// update —— 真 PATCH 语义（preserveAbsent，2026-11 F2）：未提供的键保持 undefined
+export class SysLangDTOUpdateRequest extends RealPartialType(
+  RealPickType(SysLangDTOSafe, ['lang', 'description', 'order', 'status'] as const),
+  { preserveAbsent: true },
+) { }
 export class SysLangDTOUpdateResponse extends SysLangDTOSafe { }
 
 // delete

@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { AppTechCacheService } from '@walnut-server/cache'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
 import { runAfterCommit } from '@walnut-server/db'
+import { omitUndefined } from '@walnut-server/utils'
 import { SysLocaleSharedService } from '../locale/shared/locale.shared.service'
 import {
   SysLangDTOCreateRequest,
@@ -74,7 +75,8 @@ export class SysLangService {
   async update(id: string, dto: SysLangDTOUpdateRequest) {
     // 先读旧行：lang 代号可改，旧代号的 SYS_LOCALE_MESSAGES 缓存需要显式失效
     const current = await this.langBasicRepo.readById(id)
-    const updated = await this.langBasicRepo.update(id, dto)
+    // 真 PATCH（2026-11 F2）：未提供的键保持 undefined 且不进 UPDATE
+    const updated = await this.langBasicRepo.update(id, omitUndefined(dto))
     await this.triggerCacheRefresh(
       current.lang !== updated.lang ? current.lang : undefined,
     )

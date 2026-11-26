@@ -1,5 +1,6 @@
 import type { EntityManager } from 'typeorm'
 import { Injectable } from '@nestjs/common'
+import { omitUndefined } from '@walnut-server/utils'
 
 import { SysLocaleSharedService } from '../../locale/shared/locale.shared.service'
 import { SysDictDataBasicRepository } from './dictData.basic.repository'
@@ -27,7 +28,8 @@ export class SysDictDataService {
   }
 
   async update(id: string, dto: SysDictDataDTOUpdateRequest) {
-    return this.dictDataBasicRepo.update(id, dto)
+    // 真 PATCH（2026-11 F2）：未提供的键保持 undefined 且不进 UPDATE
+    return this.dictDataBasicRepo.update(id, omitUndefined(dto))
   }
 
   async delete(id: string, userId: string, em: EntityManager) {

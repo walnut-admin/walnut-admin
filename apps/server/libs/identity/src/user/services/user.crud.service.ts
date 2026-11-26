@@ -5,6 +5,7 @@ import { AppTechCacheAppSettingsService, AppTechCachePermissionsService } from '
 import { WalnutAdminConstSafeRoleId, WalnutAdminConstSafeUserId } from '@walnut-server/const/role'
 import { runAfterCommit } from '@walnut-server/db'
 import { WalnutAdminExceptionBadRequest } from '@walnut-server/exceptions/base.exception'
+import { omitUndefined } from '@walnut-server/utils'
 import { IIdentityDataScopeInvalidator, WALNUT_ADMIN_IDENTITY_DATA_SCOPE_INVALIDATOR } from '../../identity.ports'
 import { SysUserEntity } from '../entity/user.entity'
 import { SysUserRepositoryService } from '../repo/user.repo.service'
@@ -66,7 +67,9 @@ export class SysUserCrudService {
    * 用户部门（deptId）变更同理只影响本人。
    */
   async update(id: string, dto: Partial<SysUserEntity> & { roles?: string[] }, em?: EntityManager) {
-    const updated = await this.sysUserBasicRepo.update(id, dto, em)
+    // 真 PATCH（2026-11 F2）：preserveAbsent 让未提供的键保持 undefined，这里再滤掉
+    // —— 未给列不进 UPDATE；`dto.roles !== undefined` 的判据仍按原 dto 走（滤掉不影响）。
+    const updated = await this.sysUserBasicRepo.update(id, omitUndefined(dto), em)
 
     if (dto.roles !== undefined || dto.deptId !== undefined) {
       await runAfterCommit(async () => {

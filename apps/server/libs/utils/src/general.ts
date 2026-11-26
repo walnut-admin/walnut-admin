@@ -21,3 +21,17 @@ export function generateVerifyCode(length = 6) {
 export async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
+
+/**
+ * 去掉值为 `undefined` 的自有键（浅层）。
+ *
+ * 真 PATCH 的 service 侧收尾：update DTO 用 `RealPartialType(..., { preserveAbsent: true })`
+ * 后，请求里没给的键保持 undefined；service 再把它们滤掉，让「未给列不进 UPDATE」成为
+ * 结构性事实（不依赖 TypeORM 对 undefined 列的跳过行为）。
+ * 显式 `null`（有意的清空）**保留** —— 只删 undefined。
+ */
+export function omitUndefined<T extends object>(source: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(source).filter(([, value]) => value !== undefined),
+  ) as Partial<T>
+}

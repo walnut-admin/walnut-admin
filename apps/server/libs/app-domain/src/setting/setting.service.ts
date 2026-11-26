@@ -4,6 +4,7 @@ import { WalnutAdminConstAppSettingKeys } from '@walnut-server/const/app/cache'
 
 import { runAfterCommit } from '@walnut-server/db'
 import { DataScopeService, isWalnutDataScopeSettingKey } from '@walnut-server/system'
+import { omitUndefined } from '@walnut-server/utils'
 
 import {
   AppSettingDTOCreateRequest,
@@ -66,7 +67,8 @@ export class AppSettingService {
     // 改名离开 app.functional.role 也要 bump —— 更新前读旧 key（app_setting 是低写小表，
     // 多一次点查可接受；repo 的 update 内部读不回传 before）
     const before = await this.settingBasicRepo.readById(id)
-    const updated = await this.settingBasicRepo.update(id, dto)
+    // 真 PATCH（2026-11 F2）：未提供的键保持 undefined 且不进 UPDATE
+    const updated = await this.settingBasicRepo.update(id, omitUndefined(dto))
 
     await this.refreshSettingsAndBumpEpochIfNeeded(before.settingKey, dto.settingKey)
 

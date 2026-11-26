@@ -111,14 +111,11 @@ export class AppSettingDTOCreateResponse extends AppSettingDTOSafe {}
 // read
 export class AppSettingDTOReadResponse extends AppSettingDTOSafe {}
 
-// update
-export class AppSettingDTOUpdateRequest extends IntersectionType(RealPickType(
-  AppSettingDTOSafe,
-  ['settingKey', 'settingName', 'settingValue', 'settingType'] as const,
-), RealPartialType(RealPickType(
-  AppSettingDTOSafe,
-  ['remark'] as const,
-))) {}
+// update —— 真 PATCH 语义（preserveAbsent，2026-11 F2）：未提供的键保持 undefined
+export class AppSettingDTOUpdateRequest extends RealPartialType(
+  RealPickType(AppSettingDTOSafe, ['settingKey', 'settingName', 'settingValue', 'settingType', 'remark'] as const),
+  { preserveAbsent: true },
+) {}
 export class AppSettingDTOUpdateResponse extends AppSettingDTOSafe {}
 
 class AppSettingDTOPublicAuthOpaque {

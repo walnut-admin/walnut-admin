@@ -1,7 +1,7 @@
 import { objectToPaths } from '@walnut/utils/object-paths'
 import { describe, expect, it } from 'vitest'
 
-import { objectToPaths as objectToPathsFromGeneral } from '../general'
+import { objectToPaths as objectToPathsFromGeneral, omitUndefined } from '../general'
 
 /**
  * 上收回归：`@walnut-server/utils/general` 的旧导入面必须仍指向同一实现，
@@ -26,5 +26,25 @@ describe('objectToPaths re-export（general.ts）', () => {
       'e': null,
       'f': false,
     })
+  })
+})
+
+describe('omitUndefined（真 PATCH 的 service 侧收尾）', () => {
+  it('只删 undefined：显式 null / false / 空串 / 空数组都保留', () => {
+    expect(omitUndefined({
+      a: undefined,
+      b: null,
+      c: false,
+      d: '',
+      e: [],
+      f: 0,
+    })).toEqual({ b: null, c: false, d: '', e: [], f: 0 })
+  })
+
+  it('不改入参（返回新对象）', () => {
+    const source = { a: undefined, b: 1 }
+    const result = omitUndefined(source)
+    expect(result).not.toBe(source)
+    expect(Object.hasOwn(source, 'a')).toBe(true)
   })
 })

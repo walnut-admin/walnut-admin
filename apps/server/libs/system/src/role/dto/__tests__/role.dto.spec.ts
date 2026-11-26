@@ -12,9 +12,9 @@ import { SysRoleDTOCreateRequest, SysRoleDTOUpdateRequest } from '../role.dto'
  * 漏掉另一路。199/200 放行、201 拒绝（`arrayMaxSize` 约束），走全局 ValidationPipe
  * 的既有 40099 通道（class-validator 默认消息，不 i18n）。
  *
- * 注意 update 的必填核（roleName/description/order/status 不在 RealPartialType 里）
- * 必须一并回填 —— 与 HTTP 层「PUT 整体替换」口径一致，否则 error 列表里混进 4 条
- * 与上限无关的必填错误。
+ * 注意 create 的必填核（roleName/description/order/status）必须一并回填；
+ * update 自 2026-11 F2 起是全字段可选的 preserveAbsent DTO（见文件末尾的语义用例），
+ * 这里仍回填同一组字段 —— 只为让两类 DTO 共用同一份构造器，边界值不受影响。
  */
 const REQUIRED_FIELDS = {
   roleName: 'role-name',
@@ -68,5 +68,46 @@ describe('批 7 / L6：role deptIds 清单上限（200）', () => {
     )
 
     expect(await validate(dto)).toHaveLength(0)
+  })
+})
+
+/**
+ * ④（2026-11 F2）：真 PATCH 语义（`RealPartialType(..., { preserveAbsent: true })`）。
+ * 口径与 F1 的 menu.dto.spec 一致：未提供的键保持 undefined，显式 null 保留。
+ */
+function parseUpdate(body: Record<string, unknown>) {
+  return plainToInstance(SysRoleDTOUpdateRequest, body, { exposeUnsetFields: false }) as Record<string, unknown>
+}
+
+describe('update DTO / role：真 partial（preserveAbsent）', () => {
+  it('只给 roleName ⇒ 其余键不落键（menus/dataScope/deptIds 不提供 = 不动），校验放行', async () => {
+    const instance = parseUpdate({ roleName: 'only-name' })
+
+    expect(Object.keys(instance)).toEqual(['roleName'])
+    expect(instance.description).toBeUndefined()
+    expect(instance.order).toBeUndefined()
+    expect(instance.status).toBeUndefined()
+    expect(instance.menus).toBeUndefined()
+    expect(instance.dataScope).toBeUndefined()
+    expect(instance.deptIds).toBeUndefined()
+    expect(await validate(instance)).toHaveLength(0)
+  })
+
+  it('只给 menus ⇒ 角色行标量列不落键（授权整组替换不影响其它字段）', () => {
+    const menuId = randomUUID()
+    const instance = parseUpdate({ menus: [menuId] })
+
+    expect(Object.keys(instance)).toEqual(['menus'])
+    expect(instance.menus).toEqual([menuId])
+    expect(instance.roleName).toBeUndefined()
+    expect(instance.status).toBeUndefined()
+  })
+
+  it('显式 null（有意的清空）必须保留', () => {
+    const instance = parseUpdate({ description: null })
+
+    expect(Object.hasOwn(instance, 'description')).toBe(true)
+    expect(instance.description).toBeNull()
+    expect(instance.roleName).toBeUndefined()
   })
 })

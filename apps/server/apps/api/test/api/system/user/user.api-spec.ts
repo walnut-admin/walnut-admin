@@ -170,6 +170,21 @@ describe('C 段：system/user CRUD + me/role 切换 + opaque admin clearPassword
     expect(bodyOf<UserRow>(enableRes).data.currentRole).toBe(bizRoleId)
   })
 
+  it('④：只发 status（真 PATCH）→ userName / roles junction 原样不动', async () => {
+    const created = await createUser('PT', [bizRoleId])
+
+    const updateRes = await api.root('PUT', api.apiPath(`/system/user/${created.id}`), { status: false })
+    expectOk(updateRes, 'user partial update')
+
+    const readRes = await api.root('GET', api.apiPath(`/system/user/${created.id}`))
+    const row = bodyOf<UserRow>(readRes).data
+    expect(row.status).toBe(false)
+    expect(row.userName).toBe(`${userPrefix}-PT`)
+    expect(row.roles).toEqual([bizRoleId])
+    expect(row.roles_count).toBe(1)
+    expect(row.currentRole).toBe(bizRoleId)
+  })
+
   it('P1-18：移除 current 角色后 currentRole 重置为新集合首角色（不再沿用已移出角色）', async () => {
     const created = await createUser('CUR', [bizRoleId])
     expect(created.currentRole).toBe(bizRoleId)

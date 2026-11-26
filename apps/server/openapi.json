@@ -25120,6 +25120,14 @@
               }
             ]
           },
+          "deptId": {
+            "type": "string",
+            "default": null,
+            "title": "dept id",
+            "description": "owning dept for department-scoped data permissions; derived on create, update is stripped",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
           "demoMongoId": {
             "type": "string",
             "default": null,
@@ -25136,32 +25144,8 @@
             "items": {
               "type": "string"
             }
-          },
-          "deptId": {
-            "type": "string",
-            "default": null,
-            "title": "dept id",
-            "description": "owning dept for department-scoped data permissions; derived on create, update is stripped",
-            "nullable": true,
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
           }
-        },
-        "required": [
-          "demoString",
-          "demoPhoneNumber",
-          "demoStringArray",
-          "demoNumber",
-          "demoNumberArray",
-          "demoBoolean",
-          "demoBooleanArray",
-          "demoDate",
-          "demoDateArray",
-          "demoEnum",
-          "demoEnumArray",
-          "demoObject",
-          "demoMongoId",
-          "demoMongoIdArray"
-        ]
+        }
       },
       "AppDemoDTOSafePartial": {
         "type": "object",
@@ -26462,13 +26446,7 @@
             "default": null,
             "title": "setting remark"
           }
-        },
-        "required": [
-          "settingName",
-          "settingKey",
-          "settingValue",
-          "settingType"
-        ]
+        }
       },
       "AppSettingDTOSafePartial": {
         "type": "object",
@@ -27306,13 +27284,7 @@
             "default": true,
             "title": "language is in use or not"
           }
-        },
-        "required": [
-          "lang",
-          "description",
-          "order",
-          "status"
-        ]
+        }
       },
       "SysLangDTOSafePartial": {
         "type": "object",
@@ -27818,12 +27790,7 @@
             "type": "string",
             "title": "description"
           }
-        },
-        "required": [
-          "name",
-          "type",
-          "status"
-        ]
+        }
       },
       "SysDictTypeDTOSafePartial": {
         "type": "object",
@@ -28119,24 +28086,16 @@
             "default": "primary",
             "title": "dict data render tag type, see more in naive ui tag"
           },
-          "typeId": {
-            "type": "string",
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-          },
           "description": {
             "type": "string",
             "default": null,
             "title": "dict data description"
+          },
+          "typeId": {
+            "type": "string",
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
           }
-        },
-        "required": [
-          "label",
-          "value",
-          "order",
-          "status",
-          "tagType",
-          "typeId"
-        ]
+        }
       },
       "SysDictDataDTOSafePartial": {
         "type": "object",
@@ -30701,16 +30660,6 @@
             "title": "role status",
             "description": "false => users wont retrieve current role menus(permissions)"
           },
-          "menus": {
-            "default": [],
-            "example": [
-              "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
-            ],
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
           "dataScope": {
             "type": "number",
             "enum": [
@@ -30725,6 +30674,16 @@
             "title": "role data scope",
             "description": "1=ALL 2=CUSTOM(dept list via sys_role_dept) 3=DEPT 4=DEPT_AND_CHILD 5=SELF 6=DEPT_OR_SELF"
           },
+          "menus": {
+            "default": [],
+            "example": [
+              "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "deptIds": {
             "default": [],
             "maxItems": 200,
@@ -30736,13 +30695,7 @@
               "type": "string"
             }
           }
-        },
-        "required": [
-          "roleName",
-          "description",
-          "order",
-          "status"
-        ]
+        }
       },
       "SysRoleDTOSafeWithoutMenusPartial": {
         "type": "object",
@@ -30960,6 +30913,14 @@
             "title": "user status",
             "description": "false => user cannot sign in anymore, also should ban tokens as well"
           },
+          "deptId": {
+            "type": "string",
+            "default": null,
+            "title": "dept id",
+            "description": "owning dept for department-scoped data permissions; null => no dept",
+            "nullable": true,
+            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
+          },
           "roles": {
             "default": [],
             "example": [
@@ -30969,21 +30930,8 @@
             "items": {
               "type": "string"
             }
-          },
-          "deptId": {
-            "type": "string",
-            "default": null,
-            "title": "dept id",
-            "description": "owning dept for department-scoped data permissions; null => no dept",
-            "nullable": true,
-            "example": "0e5a2b4c-9d8e-4f3a-b2c1-6d5e4f3a2b1c"
           }
-        },
-        "required": [
-          "userName",
-          "status",
-          "roles"
-        ]
+        }
       },
       "SysUserDTOSafePartialPickIdUserNameNickNameStatusCreatedAtUpdatedAtRoles_count": {
         "type": "object",
