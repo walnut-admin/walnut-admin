@@ -206,7 +206,10 @@
       "cache": true
     },
     "build": {
-      "dependsOn": ["^build"],
+      // `clean:build` 的同包依赖：缓存命中时也先清产物目录（additive 恢复的补丁，见下方 clean:* 注释）。
+      // 只有 admin 定义这个脚本；其余包缺脚本时 turbo 报 `<NONEXISTENT>` 并跳过（与 build:stage 的
+      // clean:stage 同形态，不是错误）。
+      "dependsOn": ["^build", "clean:build"],
       "outputs": ["dist/**", ".vitepress/dist/**"],
       // `env-local/**` 必须显式写：Vite 的 `envDir` 就是它（apps/admin/build/constant.ts），
       // 但它**被 gitignore**，所以 `$TURBO_DEFAULT$` 看不见它 —— 也就不进哈希。
@@ -226,11 +229,22 @@
     },
     // 产物目录的「清空」必须发生在缓存边界**之外**：turbo 的缓存恢复是 additive 的 ——
     // 只把缓存里的文件写回去，**不删**目录里多出来的旧文件；而 Vite 的 emptyOutDir 只在真跑
-    // 构建时生效。于是「改样式 → 构建 → 还原 → 再构建（缓存命中）」会在 dist-staging 里留下
-    // 两套 hash chunk（P2-C 的「旧分块累积」就是这个）。clean:stage 设 cache:false（每次都跑），
-    // 并作为本包 build:stage 的同包依赖先执行：缓存命中时它清目录、turbo 再恢复 = 精确产物；
-    // 未命中时它先清、Vite 再空目录构建。clean:stage 只有真需要清产物的包才定义（目前 admin）。
+    // 构建时生效。于是「改样式 → 构建 → 还原 → 再构建（缓存命中）」会在产物目录里留下
+    // 两套 hash chunk（P2-C 的「旧分块累积」就是这个）。
+    //
+    // 两条 clean 都设 cache:false（每次都跑）、并作为**同包构建任务的依赖**先执行：缓存命中时它
+    // 清目录、turbo 再恢复 = 精确产物；未命中时它先清、Vite 再空目录构建。
+    //   · clean:stage —— build:stage 的依赖，清 `dist-staging`（2026-11-25，见 turbo-cache-boundary §4.8）；
+    //   · clean:build —— build 的依赖，清 prod 的 `dist`（2026-11-26 收尾）。
+    // **范围只收窄到 admin**：hash chunk 是 **Vite** 独有的风险；其余包的 build 产物是固定名文件
+    // （`dist/*.cjs`、`dist-stage/**` 的编译结果），增量恢复不会多出一套，反而白付一次 rimraf。
+    // 判据是「产物里有没有随内容变化的文件名」，不是「这个包也构建」。clean:* 只有真需要清产物的
+    // 包才定义（目前只有 admin）。
     "clean:stage": {
+      "dependsOn": [],
+      "cache": false
+    },
+    "clean:build": {
       "dependsOn": [],
       "cache": false
     },

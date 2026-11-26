@@ -3,7 +3,7 @@ name: E2E (nightly)
 # 全链路 E2E 的定时工作流（`apps/e2e`）：**只在 nightly 与手动 dispatch 跑，不进 PR**。
 #
 # 为什么不进 PR（计划页 §2.8 的口径，ADR 0009 的分层）：
-# - PR 的 quality 门禁已经约半小时，再叠 install / 两次 stage 构建 / 浏览器安装会把反馈时间推得不可接受；
+# - PR 的 quality 门禁已经约半小时，再叠 install / 构建 / 浏览器安装会把反馈时间推得不可接受；
 # - fork PR 拿不到 ENV_KEYS secret（没有解密后的 stage env 就构建不出 admin 产物）；
 # - 全量 E2E 的职责是「长尾 + 真实链路」的周期性证据，不是合并阻塞项。
 #
@@ -15,21 +15,47 @@ name: E2E (nightly)
 #   后端 / socket / 静态代理端口与基线目录（见 apps/e2e/scripts/stack-profiles.ts，单一真源）。
 # - `--project=${{ matrix.profile }}` 与 profile 同名 1:1；`scripts/run.ts` 还会机械校验
 #   （命名 profile 跑别的 project 直接按退出码 2 拒绝），所以一个 job 不可能跑别的 profile 的用例。
-# - **代价**：三个 job 各跑一遍 install / `pnpm build` / 两处 stage / playwright install，总机器时间
-#   约 3×；墙钟从「串行全量」降到「最慢的 profile + 固定开销」。nightly 场景用时长换反馈速度。
+#
+# **产物共享：prepare job（F3，2026-11-26）**
+# - 改造前（R3）三个 matrix job 各自 install / `pnpm build` / 两处 stage 构建 —— 同一 commit、
+#   同一份 env 下产出的是**同一份**产物，等于付三遍机器时间（R3 实测：总机器时间约 3×）。
+# - 现在只有 **prepare** 一个 job 构建，产物经 artifact（`e2e-stage-bundle`，保留 1 天）广播给矩阵；
+#   matrix job 只做 install → download → playwright install → 测试。墙钟 ≈ prepare + 最慢 profile
+#   的用例时间 + 每个 job 的 install / download 固定开销；机器时间 ≈ 1× 构建 + 3× 测试。
+# - bundle 清单（四个目录，缺任何一个是**运行时必炸**的硬前置，不是「顺手带上」）：
+#   · `apps/admin/dist-staging/` —— 静态代理伺服的根（apps/e2e/scripts/env.ts 的 ADMIN_DIST_DIR）；
+#   · `apps/server/dist-stage/` —— webServer 的 `start:stage` 入口（SERVER_DIST_DIR / SERVER_MAIN_FILE）；
+#   · `packages/platform-any/utils-core/dist/` —— lib/protocol/sign-raw.ts 的
+#     `require('@walnut/utils/sign-raw')` 消费它（exports.require → dist/*.cjs）；
+#   · `packages/platform-any/contract/dist/` —— lib/protocol/contract.ts 的
+#     `require('@walnut/contract')` 消费它；data-key.ts 也经 env.ts 依赖它。
+#   matrix 里有一道「Verify stage bundle layout」把这四个路径的存在性提前成明确失败 ——
+#   否则症状是 webServer 起不来、Playwright 报 180s 超时（看不出根因）。
+# - **secret 不进 artifact**：`ENV_KEYS` 只在本 job 内解出 `env-local/`；`env-local/` 不在 bundle
+#   清单里。matrix job 必须**自己解密**（运行时后端要 `apps/server/env-local/.env.stage` 的
+#   OPAQUE / cookie / JWT 根密钥）—— 这是 artifact 与 secret 的边界，别为了省一步把 env 打进产物。
+# - **dataKey 在 prepare 算并作为 job output 下发**：`data-key.ts` 经 env.ts 依赖 contract 的 CJS
+#   dist，prepare 里 `pnpm build` 之后才有 —— 放这里算，矩阵 job 就不必「先有产物才能算 key」。
+#   dataKey 只由已提交的数据路径树哈希决定，与 profile 无关（profile 是缓存 key 的另一个维度）。
+# - **失败语义**：prepare 红 ⇒ matrix 全体 skip（`needs`）。改造前是三个 job 各自红一次、每份
+#   日志都重复一遍同样的构建失败；现在构建只有一处、日志只有一份。
+# - artifact 保留 1 天：它是**构建产物中转**，不是诊断材料（诊断仍走下面那套严格 allow-list）。
 #
 # 三条**硬约束**（踩过或差点踩过的坑）：
 # 1. **secrets 不写进 step/job 的 `if`**：该位置不暴露 secrets 上下文，整个文件会被判
 #    "Invalid workflow file" —— 启动即失败、0 个 job（2026-08-13 到 09-21 本仓 CI 就这样静默失效过五周）。
 #    这里绑到 job 级 `env`，step 里用 `env` 的 shell 变量判断（见 Decrypt environment 一步）。
-# 2. **浏览器不缓存**：`playwright install --with-deps chromium` 每次装。缓存坏了导致假红的排查成本
+# 2. **浏览器不缓存**：`playwright install --with-deps chromium` 每次装（每个 runner 各自装一次，
+#    浏览器不进 bundle —— 它由 runner 的系统依赖决定）。缓存坏了导致假红的排查成本
 #    高于下载时间（计划页 P0-1 改法第 6 条）。
 # 3. **concurrency 固定 group、不取消在途**：同一时间只允许一份 e2e（与本地「一台机器一个全量 run」
 #    同一语义）；nightly 与手动 dispatch 撞车时排队，不互相杀。matrix 的并发在同一个 group 里。
 #
-# **artifact 严格口径**（所有者 2026-11-25 拍板）：只上传 junit / results.json / 脱敏后端日志 /
-# stack.json / 基线清单五样，每个 job 的 artifact 名带 profile。trace、截图、HTML 报告含请求头与
-# 响应体（token、cookie）——**一律不上传**，这是 `apps/e2e/AGENTS.md` 不变量 8 的直接落地。
+# **artifact 严格口径**（所有者 2026-11-25 拍板）：诊断 artifact 只上传 junit / results.json /
+# 脱敏后端日志 / stack.json / 基线清单五样，每个 job 的 artifact 名带 profile。trace、截图、HTML
+# 报告含请求头与响应体（token、cookie）——**一律不上传**，这是 `apps/e2e/AGENTS.md` 不变量 8 的直接落地。
+# （`e2e-stage-bundle` 是另一类：它只含公开前端包与后端编译产物 —— 前端包本来就要发给浏览器、
+# 后端源码本来就在仓库里；不含 env-local、不含任何密钥，所以允许跨 job 中转。）
 #
 # **基线（baseline）跨 run 缓存，按 profile 分开**（所有者 2026-11-26 批准切回；seal 一次、restore 每轮）：
 # - 每个 profile 的封板三件套在 `apps/e2e/.e2e/<profile>/`，cache key =
@@ -64,10 +90,106 @@ permissions:
   contents: read
 
 jobs:
+  # 唯一做构建的 job。不发 services、不跑用例 —— 只负责「install + 解密 + 全量构建 + 两处 stage +
+  # 算 dataKey + 打包 artifact」。矩阵的 `needs` 指着它。
+  prepare:
+    name: prepare (build + stage bundle)
+    runs-on: ubuntu-latest
+    # 冷缓存下的全量构建（packages + admin prod / stage + server prod / stage + docs）留足余量；
+    # 正常是 10 分钟级。
+    timeout-minutes: 40
+    outputs:
+      # `v<清单格式版本>-<dataKey>`（data-key.ts --cache-key 的 stdout 只有这一个词）
+      cache-key: ${{ steps.baseline-key.outputs.key }}
+    env:
+      # secrets 上下文不能出现在 `if` 里 → 绑到 job 级 env，在 step 的 shell 里判断（见文件头硬约束 1）
+      ENV_KEYS: ${{ secrets.ENV_KEYS }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # dataKey 读 `git rev-parse HEAD:<path>` 与 `git status --porcelain`；fetch-depth: 0 与
+          # matrix job 保持同一口径（浅克隆在这里不影响判据，但不给「换个 job 就换答案」留缝）
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v5
+        # 版本取自根 package.json 的 packageManager 字段
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 解密必须在构建之前：admin 构建的 VITE_*（zod 校验 fail-fast）与后端 stage 的根密钥
+      # （OPAQUE / cookie / JWT）都只能来自 env-local/。**解密产物不进 artifact。**
+      # 密钥用完立即删除（与 composite action `.github/actions/decrypt-env` 同口径）。
+      - name: Decrypt environment files
+        run: |
+          set -euo pipefail
+          if [ -z "${ENV_KEYS}" ]; then
+            echo "::error::缺少 ENV_KEYS secret —— E2E 需要 apps/server/env-local/.env.stage 与 admin 构建的 VITE_*"
+            exit 1
+          fi
+          printf '%s\n' "$ENV_KEYS" > .env.keys
+          pnpm setup-env
+          rm -f .env.keys
+          echo "env-local 解密完成：admin $(ls apps/admin/env-local | wc -l) 项、server $(ls apps/server/env-local | wc -l) 项"
+
+      # `@walnut/utils` / `@walnut/contract` 的 CJS dist 是 E2E 的硬前置（sign-raw / contract bridge
+      # 走 require），也是 dataKey 计算的隐式前置。先全量构建，再产出两处 stage 产物 —— 顺序即依赖。
+      - name: Build workspace packages and apps
+        run: pnpm build
+
+      - name: Build admin stage bundle
+        run: pnpm walnut build:stage
+
+      - name: Build server stage bundle
+        run: pnpm --filter @walnut/server build:stage
+
+      # 基线缓存的键：stdout 只有 `v<MANIFEST_VERSION>-<dataKey>`（见 apps/e2e/scripts/data-key.ts）。
+      # 必须放在 `pnpm build` 之后：data-key.ts 经 env.ts 依赖 `@walnut/contract` 的 CJS 产物。
+      # 这里不设 E2E_STACK_PROFILE —— dataKey 只由已提交的数据路径树哈希决定，与 profile 无关；
+      # profile 是 matrix 里缓存 key 的另一个维度（见 Restore baseline cache）。
+      # 空输出 = 契约被破坏（有人改了 data-key 的 stdout 形态），必须红：空 key 会让 matrix 的
+      # `e2e-baseline-<profile>-` 变成一个**不看数据**的缓存键。
+      - name: Compute baseline cache key
+        id: baseline-key
+        run: |
+          set -euo pipefail
+          key="$(node apps/e2e/scripts/data-key.ts --cache-key)"
+          if [ -z "$key" ]; then
+            echo "::error::data-key.ts --cache-key 没有输出（stdout 必须只有 v<清单版本>-<dataKey>）"
+            exit 1
+          fi
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+
+      # 四个目录都要在（理由与消费方见文件头「产物共享」一节）。多路径上传时 artifact 内的路径
+      # 是相对**这些路径的最近公共祖先**（= 仓库根）保留的 —— 所以 matrix 侧直接解到 workspace
+      # 根就能落回原位；`Verify stage bundle layout` 会机械核对这件事，别只靠这段注释。
+      - name: Upload stage bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-stage-bundle
+          # 构建产物中转：一晚的产物，不跨 run 使用
+          retention-days: 1
+          # 一个都没匹配到 = 上面的构建没产出预期目录，必须红，不能静默传个空包
+          if-no-files-found: error
+          # dist 里目前没有点文件，但构建插件（iconify / banner 之类）将来可能写：漏了就是运行时 404
+          include-hidden-files: true
+          path: |
+            apps/admin/dist-staging/**
+            apps/server/dist-stage/**
+            packages/platform-any/utils-core/dist/**
+            packages/platform-any/contract/dist/**
+
   e2e:
     name: e2e (${{ matrix.profile }})
+    # prepare 没成 ⇒ 没有产物可测，matrix 全体 skip（失败语义见文件头「产物共享」）
+    needs: prepare
     runs-on: ubuntu-latest
-    # 单个 profile 的实测是分钟级；留足 install / 两次 stage 构建 / webServer 180s 与浏览器安装的余量。
+    # 用例是分钟级；本 job 不再构建，留足 install / download / webServer 180s 与浏览器安装的余量。
     # 必须明显大于 Playwright 的 globalTimeout 与 webServer timeout。
     timeout-minutes: 60
     strategy:
@@ -124,12 +246,15 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      # install 不是可省项：e2e 自己的依赖（playwright / pg / redis / otplib）+ 后端运行时的
+      # node_modules 都在这；workspace 包的 `require` 解析（@walnut/contract → dist/*.cjs）
+      # 也靠 pnpm 建出的 node_modules 链接。**但这里不再 `pnpm build`** —— 产物来自 prepare。
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # 解密 env-encrypted/ → env-local/：admin 构建的 VITE_*（zod 校验 fail-fast）与后端 stage
-      # 的根密钥（OPAQUE / cookie / JWT）都只能来自这里。密钥用完立即删除（与 composite action
-      # `.github/actions/decrypt-env` 同口径，只是本 workflow 不需要跳过分支）。
+      # 解密仍在每个 job 内做：`apps/server/env-local/.env.stage` 是运行时（webServer 的后端进程）
+      # 的根密钥来源，而 secret 不进 artifact（见文件头「产物共享」的边界）。
+      # 密钥用完立即删除（与 composite action `.github/actions/decrypt-env` 同口径）。
       - name: Decrypt environment files
         run: |
           set -euo pipefail
@@ -142,16 +267,37 @@ jobs:
           rm -f .env.keys
           echo "env-local 解密完成：admin $(ls apps/admin/env-local | wc -l) 项、server $(ls apps/server/env-local | wc -l) 项"
 
-      # `@walnut/utils` / `@walnut/contract` 的 CJS dist 是 E2E 的硬前置（sign-raw / contract bridge
-      # 走 require）。先全量构建，再产出两处 stage 产物 —— 顺序即依赖。
-      - name: Build workspace packages and apps
-        run: pnpm build
+      # 下载 prepare 打好的产物，解到 workspace 根：bundle 内的路径与仓库相对路径一致
+      # （upload 侧多路径取最近公共祖先后保留结构，见 prepare 的 Upload stage bundle）。
+      - name: Download stage bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: e2e-stage-bundle
+          path: .
 
-      - name: Build admin stage bundle
-        run: pnpm walnut build:stage
-
-      - name: Build server stage bundle
-        run: pnpm --filter @walnut/server build:stage
+      # 四个路径就是 `apps/e2e/scripts/env.ts` 的 ADMIN_INDEX_FILE / SERVER_MAIN_FILE /
+      # UTILS_SIGN_RAW_DIST_FILE / CONTRACT_DIST_FILE（preflight 也用同一组常量做更深的检查）。
+      # 这一步只负责把「bundle 解错位置 / 上传漏目录」和「构建本身坏了」区分开：前者报路径，
+      # 后者早在 prepare 就红了。
+      - name: Verify stage bundle layout
+        run: |
+          set -euo pipefail
+          missing=0
+          for f in \
+            apps/admin/dist-staging/index.html \
+            apps/server/dist-stage/apps/api/src/main.js \
+            packages/platform-any/utils-core/dist/sign-raw.cjs \
+            packages/platform-any/contract/dist/index.cjs
+          do
+            if [ ! -f "$f" ]; then
+              echo "::error::stage bundle 缺 $f —— 检查 prepare 的 upload path 与这里的 download path 是否错位"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+          echo "stage bundle 就位：admin $(find apps/admin/dist-staging -type f | wc -l) 个文件、server $(find apps/server/dist-stage -type f | wc -l) 个文件"
 
       - name: Install Playwright chromium
         run: pnpm --filter @walnut/e2e exec playwright install --with-deps chromium
@@ -169,19 +315,11 @@ jobs:
           fi
           docker exec "$container" redis-cli CONFIG SET requirepass e2e_redis_only
 
-      # 基线缓存的键：stdout 只有 `v<MANIFEST_VERSION>-<dataKey>`（见 apps/e2e/scripts/data-key.ts）。
-      # dataKey 是 HEAD 上「决定测试库内容」的路径组合树哈希 —— 同一提交在 CI 与本地算出的值
-      # 一致（checkout 是 fetch-depth: 0，无浅克隆）；清单格式版本并进键里，升级即自然失效。
-      # 必须放在 `pnpm build` 之后：data-key.ts 经 env.ts 依赖 `@walnut/contract` 的 CJS 产物。
-      # 这里显式带 E2E_STACK_PROFILE（job env 已经设置），确保与 run 的 profile 一致。
-      - name: Compute baseline cache key
-        id: baseline-key
-        run: echo "key=$(E2E_STACK_PROFILE=${{ matrix.profile }} node apps/e2e/scripts/data-key.ts --cache-key)" >> "$GITHUB_OUTPUT"
-
       # 只缓存本 profile 的封板三件套，不缓存 `.e2e/` 整目录（里面还有排障残渣）。命中 ⇒ 下一轮
       # run 走 restore；未命中 ⇒ 全量 prepare + seal，job 成功后本 action 的 post 步骤自动保存。
       # 缓存键带 profile：risk 的基线不会流进 smoke job（即使流进去，清单 v3 的 database / profile
       # 校验也会拒收 —— 缓存只是加速，不是信任来源）。
+      # key 的 `v<清单格式版本>-<dataKey>` 部分来自 prepare 的 job output（见那里的注释）。
       # 这里**不用** rolling key / restore-keys：缓存内容由 (profile, dataKey) 唯一决定。
       - name: Restore baseline cache
         id: baseline-cache
@@ -191,7 +329,7 @@ jobs:
             apps/e2e/.e2e/${{ matrix.profile }}/baseline.dump
             apps/e2e/.e2e/${{ matrix.profile }}/baseline.manifest.json
             apps/e2e/.e2e/${{ matrix.profile }}/baseline.credentials.json
-          key: e2e-baseline-${{ matrix.profile }}-${{ steps.baseline-key.outputs.key }}
+          key: e2e-baseline-${{ matrix.profile }}-${{ needs.prepare.outputs.cache-key }}
 
       # 每个 job 只跑与自己同名的 project（profile 与 project 1:1；scripts/run.ts 仍会机械校验）。
       # 有缓存 ⇒ restore；没有（首跑 / dataKey 变）⇒ 全量 prepare + seal 兜底。

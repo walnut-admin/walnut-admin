@@ -152,7 +152,8 @@ export default ({ mode }: ConfigEnv): UserConfig => {
       outDir: processedEnv.build.outDir,
       // 显式声明而不是依赖 Vite 的启发式（outDir 在 root 内才默认清空）：产物目录必须每次
       // 构建都是「本次输出」，不能混入上一版残留的 hash chunk。注意它只罩**真跑构建**这一半；
-      // turbo 缓存命中不走 Vite，由 turbo.json 的 clean:stage（cache:false）先清目录。
+      // turbo 缓存命中不走 Vite，由 turbo.json 的 clean:build（prod 的 dist）/ clean:stage
+      // （dist-staging）两条 cache:false 任务先清目录。
       emptyOutDir: true,
       reportCompressedSize: false,
       // code split would caused build css not work

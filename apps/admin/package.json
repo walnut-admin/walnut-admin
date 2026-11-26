@@ -33,6 +33,7 @@
     "build": "vite build",
     "prebuild:stage": "node build/generate/index.ts",
     "build:stage": "vite build --mode stage",
+    "clean:build": "rimraf dist",
     "clean:stage": "rimraf dist-staging",
     "preview": "vite preview --mode production",
     "preview:stage": "vite preview --mode stage",
