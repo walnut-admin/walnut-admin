@@ -468,8 +468,8 @@ export const COMMANDS: readonly Command[] = [
   {
     id: 'lint:dist',
     group: '门禁',
-    label: '产物去密体检（扫 dist 有没有把后端 env 打包进去）',
-    why: '前端产物是公开文件；把后端 env 搬错一行就会被打包进去，而构建 / 类型 / lint / 测试全都不响。它扫的是 dist，所以要在构建之后跑。',
+    label: '产物去密体检（扫 dist / dist-staging 有没有把后端 env 打包进去）',
+    why: '前端产物是公开文件；把后端 env 搬错一行就会被打包进去，而构建 / 类型 / lint / 测试全都不响。两份产物（build 的 dist 与 build:stage 的 dist-staging）都是公开面，缺一不可 —— 缺哪份会显式打印「没验过」，两份都缺才退 2。所以要在构建之后跑。',
     argv: ['exec', 'walnut-check-dist-secrets'],
     budgetMs: 5 * MINUTE,
   },

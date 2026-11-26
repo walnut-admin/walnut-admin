@@ -178,6 +178,8 @@ remote:       —— Tencent Cloud Secret ID ——
 
 `ci.yml` 的 build job 里它紧跟 `Build admin`（扫的就是 `dist`，没有构建就没有体检对象），CI 之外也可以在本地对着已有的 `dist` 直接跑。
 
+体检对象是**两份产物**：`apps/admin/dist`（`build`）与 `apps/admin/dist-staging`（`build:stage`，E2E static-server 伺服的目录）。两者都是交付给浏览器的公开文件 —— 2026-11 F2 起 `dist-staging` 也纳入（F3 的 bundle 正是它）。缺哪份会显式打印「该形态没验过」（不是通过），**两份都缺**才报「前置条件未满足」（退出码 2）。也可以显式传目录：`walnut-check-dist-secrets <dir>...`（bin 已转发 argv）。
+
 **机密源只有 `apps/server/env-local/`**：`apps/admin/env-local/` 里全是 `VITE_*`，它们**本来就该进产物**（Vite 在构建时把这些键替换成字面量 —— 实测产物里连 `VITE_` 这个词都搜不到，0 个）。拿前端 env 当机密源等于 100% 误报。
 
 判据与**被否掉的规则**都写在 `check-dist-secrets.ts` 顶部那张表里，这里只留结论 —— 因为"为什么不要某条规则"比规则本身更容易被后人改回去：
@@ -191,7 +193,7 @@ remote:       —— Tencent Cloud Secret ID ——
 ```bash
 pnpm walnut lint:workflows    # actionlint（未安装则跳过并提示；CI 中强制执行）
 pnpm walnut lint:secrets      # 源码密钥形态（**推送前就该跑** —— 服务端的 push protection 比 CI 更早）
-pnpm walnut lint:dist         # 产物去密体检（先构建出 apps/admin/dist；没有产物会以「前置条件未满足」退出 2）
+pnpm walnut lint:dist         # 产物去密体检（先构建出 apps/admin/dist 与 dist-staging；两份都不存在才以「前置条件未满足」退出 2）
 pnpm walnut images:print      # 只解析 docker-bake.hcl，不构建
 pnpm walnut images:build      # 本地构建 backend + frontend（先按 deploy/README.md 准备 staging）
 ```
