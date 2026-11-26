@@ -68,6 +68,12 @@ async function onVerify() {
   const code = formData.value.verifyCode.join('')
   emit('verify', code)
 }
+
+/**
+ * 给弹窗底部「验证」按钮的显式提交入口（E1 发现该按钮此前没有 click handler，
+ * 只能靠 6 位输满的 onFinish 提交）。未输满时 no-op —— 与 onFinish 同一判据。
+ */
+defineExpose({ submit: onVerify })
 </script>
 
 <template>

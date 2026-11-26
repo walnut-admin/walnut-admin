@@ -15,6 +15,7 @@ import { SingletonPromiseDeviceReset } from './device'
 import { SingletonPromiseRefreshToken } from './refreshToken'
 import { SingletonPromiseRsaDecryptFailed } from './rsaDecrypt'
 import { SingletonPromiseRsaPubKeyNotFound } from './rsaPubKeyNotFound'
+import { SingletonPromiseSensitiveVerify } from './sensitiveVerify'
 import { SingletonPromiseSign } from './sign'
 
 const userStoreAuth = useAppStoreUserAuth()
@@ -192,11 +193,32 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
     return Promise.reject(new Error('User Locked'))
   }
 
-  // sensitive verification required
-  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED) {
-    // TODO call up global modal to verify, then retry request after verified
-    console.log(123, meta)
-    return Promise.reject(new Error('Sensitive Verification Required'))
+  // sensitive verification required (40119)
+  //
+  // 服务端契约（详见 `./sensitiveVerify.ts` 头注释）：守卫发现本设备在
+  // `sensitive_op:<userId>:<deviceId>:<level>` 没有授权 ⇒ 40119 + meta 挑战描述符；
+  // 客户端弹全局 VerifyAuth，用户完成验证后服务端把授权写进 Redis（15 分钟），
+  // **原请求重放一次即可放行**（没有 ticket / 一次性凭证机制）。
+  //
+  // 与 40117 / 40605 同一套自愈纪律：
+  // - `_sensitiveVerifyRetried`：每个请求最多自愈一次 —— 验证通过后重放仍 40119（level 不匹配 /
+  //   授权过期边界）就落到下面的统一提示，绝不再弹第二次窗（否则是无限弹窗）；
+  // - 重放前关掉 cache / throttle / merge 三层按 URL 复用在途 promise 的去重（同 40605 的理由：
+  //   自愈前发出的同 URL 请求可能带着旧结果回来，复用它的在途 promise 等于没重放）；
+  // - 并发 40119 由 `SingletonPromiseSensitiveVerify` 并成一次弹窗，各自拿到结果再重放。
+  if (code === WalnutAdminConstAppResponseCode.UNAUTHORIZED_SENSITIVE_VERIFICATION_REQUIRED && !res.config._sensitiveVerifyRetried) {
+    res.config._sensitiveVerifyRetried = true
+
+    const verified = await SingletonPromiseSensitiveVerify(meta)
+
+    if (verified) {
+      res.config._cache_force_update = true
+      res.config._throttle = 0
+      res.config._mergeRequest = false
+      return await AppAxios.request(res.config)
+    }
+
+    // 用户取消 / 描述符不可用：交给函数末尾的统一错误路径（提示 + reject），不回滚业务状态。
   }
 
   useAppMsgError(msg)

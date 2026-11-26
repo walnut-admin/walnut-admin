@@ -19,5 +19,7 @@ declare module 'axios' {
     _deviceResetRetried?: boolean
     /** P1：40117 无感刷新（refresh + 重放）只做一次的标记，防 40117 → 空 token → 重放的死循环 */
     _capRefreshRetried?: boolean
+    /** E2：40119 二次验证（弹窗 + 重放）只做一次的标记，防「验证过了但仍 40119」无限弹窗 */
+    _sensitiveVerifyRetried?: boolean
   }
 }

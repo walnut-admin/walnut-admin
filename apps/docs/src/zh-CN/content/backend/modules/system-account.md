@@ -222,14 +222,16 @@ sys_user_device 1 ── 1 当前用户的锁屏状态  (locked 列；与 sys_de
 1. 已登录校验（无 `req.user` → 40101 族）。
 2. 读 Redis `sensitive_op:<userId>:<deviceId>:<level>`，存在即放行。
 3. 不存在 → 40119，`meta` 带 `checkVerificationStatus` 的结果（是否需要验证、剩余秒数、
-   可用方式、首选方式）。
+   可用方式、首选方式）**外加 `level` / `operationType`**（verify 端点的两个必填入参，
+   客户端推导不出来 —— 见下面 `security/sensitive/verify` 一行）。验证通过后**没有
+   ticket**：授权是设备级的，客户端重放原请求即可放行。
 
 两步端点（`modules/security/sensitive/`）：
 
 | 端点 | 行为 |
 |---|---|
 | `GET /security/sensitive/check?level=&type=` | 有授权 → `{ needsVerification: false, remainingSeconds }`；无授权 → 按 `SECURITY_LEVEL_STRATEGIES[level].supportedMethods` 求 `availableMethods`（security purpose 的已验证手机/邮箱对应的 `sms` / `email`）；完全无可用方式 → **40000** `noVerifyMethodAvailable`（不是 40119） |
-| `POST /security/sensitive/verify` | body `{ level, operationType?, method, credential }`；method 必须在 `availableMethods` 内，credential 走 OTP 校验；成功后写 `sensitive_op:<userId>:<deviceId>:<level>`，TTL **900 秒**，值为 `{ operationType, verifyMethod, grantedAt, expiresAt }` |
+| `POST /security/sensitive/verify` | body `{ level, operationType, method, credential }`（四项全必填 —— `operationType` 缺省被 controller 拦成 40099，取值来自 40119 的 `meta`）；method 必须在 `availableMethods` 内，credential 走 OTP 校验；成功后写 `sensitive_op:<userId>:<deviceId>:<level>`，TTL **900 秒**，值为 `{ operationType, verifyMethod, grantedAt, expiresAt }` |
 
 授权的生命周期与覆盖面：
 

@@ -79,8 +79,14 @@ export class WalnutAdminGuardSensitive implements CanActivate {
       )
 
       // Throw error to trigger frontend verification flow
+      //
+      // `level` / `operationType` 必须随 meta 一起下发：`POST /security/sensitive/verify`
+      // 两者都是**必填**（operationType 缺省时 controller 直接 40099），而客户端无法从
+      // 40119 响应或自己的请求里推导它们 —— 守卫挂在任意端点，level/type 只存在于服务端
+      // 装饰器元数据里。缺了这两个键，前端只能猜（例如把 account_critical 写死），
+      // 一遇到别的 level 就会静默失败。这是 40119 挑战描述符的一部分，不是新机制。
       throw new WalnutAdminExceptionSensitiveVerificationFailed({
-        meta,
+        meta: { ...meta, level: options.level, operationType: options.type },
       })
     }
 

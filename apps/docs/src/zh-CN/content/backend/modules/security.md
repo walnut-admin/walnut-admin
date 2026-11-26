@@ -81,9 +81,12 @@ COMBINE 下真正判定；`switchable + and` 是误配组合 —— P3-32（2026
 **敏感操作守卫** `WalnutAdminGuardSensitive`（`@WalnutAdminGuardRequireSensitive({ level,
 type })`）：要求已登录；Redis 键 `sensitive_op:<userId>:<deviceId>:<level>` 存在即放行
 （TTL 15 分钟），否则 40119 并在 `meta` 里带 `checkVerificationStatus` 的结果
-（是否需要验证、剩余秒数、可用方式、首选方式）。敏感级别的验证方式策略在
+（是否需要验证、剩余秒数、可用方式、首选方式）**外加 `level` 与 `operationType`** ——
+后两个是 `POST /security/sensitive/verify` 的必填入参，客户端从请求自身推导不出来，必须随
+挑战描述符下发。敏感级别的验证方式策略在
 `sensitive.config.ts` 的 `SECURITY_LEVEL_STRATEGIES`；`POST /security/sensitive/verify`
-成功后才写授权键。
+成功后才写授权键（没有 ticket / 一次性凭证：授权是设备级的，客户端验证通过后**重放原请求**
+即可放行）。
 
 **functional 守卫**（`WalnutAdminGuardFunctional`，经
 `@WalnutAdminDecoratorFunctionalGuard(KEY, detailKey?, options?)`）：读 `APP:SETTING`，
