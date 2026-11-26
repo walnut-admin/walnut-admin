@@ -20445,6 +20445,359 @@
         ]
       }
     },
+    "/system/user/lock/verify/start": {
+      "post": {
+        "operationId": "SysUserLockController_verifyStart",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysUserLockVerifyStartDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Start login-password verification for unlocking (OPAQUE step 1/2, no token issued)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "string"
+                        },
+                        "code": {
+                          "type": "number",
+                          "enum": [
+                            20000,
+                            40000,
+                            40001,
+                            40002,
+                            40011,
+                            40012,
+                            40099,
+                            40100,
+                            40101,
+                            40102,
+                            40103,
+                            40104,
+                            40105,
+                            40106,
+                            40107,
+                            40108,
+                            40109,
+                            40110,
+                            40111,
+                            40112,
+                            40113,
+                            40114,
+                            40115,
+                            40116,
+                            40117,
+                            40118,
+                            40119,
+                            40300,
+                            40400,
+                            40401,
+                            40402,
+                            40600,
+                            40601,
+                            40602,
+                            40603,
+                            40604,
+                            40605,
+                            40606,
+                            40607,
+                            40608,
+                            40609,
+                            40610,
+                            40666,
+                            40667,
+                            40800,
+                            42900,
+                            42901,
+                            50000,
+                            50001,
+                            50002,
+                            50003,
+                            50300,
+                            50301,
+                            50302,
+                            50303,
+                            50400,
+                            50500
+                          ],
+                          "default": 20000,
+                          "description": "response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Start login-password verification for unlocking (OPAQUE step 1/2, no token issued)",
+        "tags": [
+          "system/user/lock"
+        ]
+      }
+    },
+    "/system/user/lock/verify/finish": {
+      "post": {
+        "operationId": "SysUserLockController_verifyFinish",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SysUserLockVerifyFinishDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Finish login-password verification and unlock in place (no token issued)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "boolean"
+                        },
+                        "code": {
+                          "type": "number",
+                          "enum": [
+                            20000,
+                            40000,
+                            40001,
+                            40002,
+                            40011,
+                            40012,
+                            40099,
+                            40100,
+                            40101,
+                            40102,
+                            40103,
+                            40104,
+                            40105,
+                            40106,
+                            40107,
+                            40108,
+                            40109,
+                            40110,
+                            40111,
+                            40112,
+                            40113,
+                            40114,
+                            40115,
+                            40116,
+                            40117,
+                            40118,
+                            40119,
+                            40300,
+                            40400,
+                            40401,
+                            40402,
+                            40600,
+                            40601,
+                            40602,
+                            40603,
+                            40604,
+                            40605,
+                            40606,
+                            40607,
+                            40608,
+                            40609,
+                            40610,
+                            40666,
+                            40667,
+                            40800,
+                            42900,
+                            42901,
+                            50000,
+                            50001,
+                            50002,
+                            50003,
+                            50300,
+                            50301,
+                            50302,
+                            50303,
+                            50400,
+                            50500
+                          ],
+                          "default": 20000,
+                          "description": "response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Finish login-password verification and unlock in place (no token issued)",
+        "tags": [
+          "system/user/lock"
+        ]
+      }
+    },
+    "/system/user/lock/reset/{userId}": {
+      "put": {
+        "operationId": "SysUserLockController_resetUserLock",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reset (unlock) the lock screen state of a user, without reading or changing the lock password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "boolean"
+                        },
+                        "code": {
+                          "type": "number",
+                          "enum": [
+                            20000,
+                            40000,
+                            40001,
+                            40002,
+                            40011,
+                            40012,
+                            40099,
+                            40100,
+                            40101,
+                            40102,
+                            40103,
+                            40104,
+                            40105,
+                            40106,
+                            40107,
+                            40108,
+                            40109,
+                            40110,
+                            40111,
+                            40112,
+                            40113,
+                            40114,
+                            40115,
+                            40116,
+                            40117,
+                            40118,
+                            40119,
+                            40300,
+                            40400,
+                            40401,
+                            40402,
+                            40600,
+                            40601,
+                            40602,
+                            40603,
+                            40604,
+                            40605,
+                            40606,
+                            40607,
+                            40608,
+                            40609,
+                            40610,
+                            40666,
+                            40667,
+                            40800,
+                            42900,
+                            42901,
+                            50000,
+                            50001,
+                            50002,
+                            50003,
+                            50300,
+                            50301,
+                            50302,
+                            50303,
+                            50400,
+                            50500
+                          ],
+                          "default": 20000,
+                          "description": "response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details",
+                          "nullable": true,
+                          "readOnly": true
+                        },
+                        "msg": {
+                          "type": "string",
+                          "default": "Success",
+                          "description": "response msg, `Success` or error msg",
+                          "nullable": true,
+                          "readOnly": true
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reset (unlock) the lock screen state of a user, without reading or changing the lock password",
+        "tags": [
+          "system/user/lock"
+        ]
+      }
+    },
     "/system/user/mfa/totp/generate": {
       "post": {
         "operationId": "SysUserMfaTotpController_generateTotp",
@@ -29890,7 +30243,8 @@
               "device.ban",
               "device.unban",
               "appSetting.refreshCache",
-              "auth.opaque.changePassword"
+              "auth.opaque.changePassword",
+              "user.lock.reset"
             ],
             "title": "operate type"
           },
@@ -30050,7 +30404,8 @@
               "device.ban",
               "device.unban",
               "appSetting.refreshCache",
-              "auth.opaque.changePassword"
+              "auth.opaque.changePassword",
+              "user.lock.reset"
             ],
             "title": "operate type"
           },
@@ -31634,6 +31989,11 @@
             "type": "boolean",
             "default": true,
             "title": "lock cross device?"
+          },
+          "lockPwdSet": {
+            "type": "boolean",
+            "default": false,
+            "title": "whether a lock password has been set"
           }
         },
         "required": [
@@ -31642,7 +32002,8 @@
           "lockMode",
           "lockIdleSec",
           "lockSecuritySec",
-          "lockCrossDevice"
+          "lockCrossDevice",
+          "lockPwdSet"
         ]
       },
       "SysUserLockPreferenceUpdateDto": {
@@ -31693,6 +32054,30 @@
             ]
           }
         }
+      },
+      "SysUserLockVerifyStartDto": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "title": "opaque start login request"
+          }
+        },
+        "required": [
+          "start"
+        ]
+      },
+      "SysUserLockVerifyFinishDto": {
+        "type": "object",
+        "properties": {
+          "finish": {
+            "type": "string",
+            "title": "opaque finish login request"
+          }
+        },
+        "required": [
+          "finish"
+        ]
       },
       "SysUserMfaGenerateTotpResponseDTO": {
         "type": "object",

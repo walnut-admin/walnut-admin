@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common'
-import { AuthCookieModule } from '@walnut-server/auth'
+import { AuthCookieModule, AuthOpaqueCoreModule } from '@walnut-server/auth'
 import { SysIdentityModule } from '@walnut-server/identity'
 import { SysUserMfaTotpController } from './mfa/totp.controller'
 import { SysUserMfaWebauthnController } from './mfa/webauthn.controller'
@@ -26,6 +26,8 @@ import { SysUserPreferenceController } from './user_preference.controller'
 @Module({
   imports: [
     SysIdentityModule,
+    // L1：锁屏兜底 verify 的验证核（AuthOpaqueCoreService.startLogin/verifyLoginForUnlock）
+    AuthOpaqueCoreModule,
     // totp / webauthn verify 轮换 RT 后回种 RT_JTI cookie（revoke-and-insert，
     // 2026-10-27 —— 旧 jti 行已撤销，不回种新 jti 会话即断）。controller 的注入面。
     AuthCookieModule,

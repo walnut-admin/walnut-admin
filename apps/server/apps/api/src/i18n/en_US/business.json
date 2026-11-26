@@ -23,7 +23,9 @@
         "user": {
             "unLock": {
                 "pwdErr": "Unlock Password Error.",
-                "pwdRequired": "Security lock mode is enabled; unlock password is required."
+                "pwdRequired": "Security lock mode is enabled; unlock password is required.",
+                "pwdLocked": "Too many unlock attempts. Please try again later.",
+                "pwdLength": "Lock password must be 6-64 characters."
             }
         }
     },

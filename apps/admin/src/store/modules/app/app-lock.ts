@@ -27,6 +27,8 @@ const useAppStoreLockInside = defineStore(StoreKeys.APP_LOCK, {
     lockMode: 'default',
     lockIdleSec: 0,
     lockSecuritySec: 0,
+    // L1（2026-11-27）：服务端 read 新增的布尔位（G4）—— 前端据此区分「未设密码 / 已设密码」
+    lockPwdSet: false,
   }),
 
   getters: {
@@ -45,6 +47,7 @@ const useAppStoreLockInside = defineStore(StoreKeys.APP_LOCK, {
     getLockMode: state => state.lockMode,
     getLockIdleSec: state => state.lockIdleSec,
     getLockSecuritySec: state => state.lockSecuritySec,
+    getLockPwdSet: state => state.lockPwdSet,
   },
 
   actions: {
@@ -55,6 +58,11 @@ const useAppStoreLockInside = defineStore(StoreKeys.APP_LOCK, {
       this.setLockMode(payload.lockMode)
       this.setLockIdleSec(payload.lockIdleSec)
       this.setLockSecuritySec(payload.lockSecuritySec)
+      this.setLockPwdSet(payload.lockPwdSet)
+    },
+
+    setLockPwdSet(payload: boolean) {
+      this.lockPwdSet = payload
     },
 
     setLocked(payload: boolean) {

@@ -2,7 +2,7 @@ import type { EntityManager } from 'typeorm'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import * as opaque from '@serenity-kit/opaque'
-import { AppTechCacheOpaqueService } from '@walnut-server/cache'
+import { AppTechCacheOpaqueService, IOpaqueCacheScope } from '@walnut-server/cache'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
 import { SysUserIdentityRepositoryService, SysUserIdentitySharedService, SysUserRepositoryService } from '@walnut-server/identity'
 import { isNil } from 'lodash'
@@ -67,8 +67,12 @@ export class AuthOpaqueCoreService {
    * B7a 签名适配：user/identity 读腿迁 PG —— 事务句柄改收 `em`（ctx.em）。
    *
    * F-45（2026-11，安全纵深）：用户不存在 / 无口令凭据时**不再提前返回** —— 见方法内注释。
+   *
+   * L1（2026-11-27）`scope`：锁屏兜底验证（`/system/user/lock/verify/start`）复用本方法，
+   * 但 `SERVER_STATE` 必须与登录流分命名空间（见 `AppTechCacheOpaqueService` 文件头），
+   * 否则同 `(userName, deviceId)` 的两条流互相覆盖。
    */
-  async startLogin(userName: string, startLoginRequest: string, deviceId: string, em: EntityManager) {
+  async startLogin(userName: string, startLoginRequest: string, deviceId: string, em: EntityManager, scope: IOpaqueCacheScope = 'login') {
     // Find user by username
     const user = await this.userRepo.findUserByUserName(userName, em)
 
@@ -135,7 +139,7 @@ export class AuthOpaqueCoreService {
       // Cache server login state temporarily (30 seconds TTL)
       // This state is needed to complete the login in the next step
       // （F-45：假计算路径同样写这一条，保持 Redis 写次数一致）
-      await this.opaqueCacheService.setOpaqueServerStateCache(userName, deviceId, serverLoginState)
+      await this.opaqueCacheService.setOpaqueServerStateCache(userName, deviceId, serverLoginState, scope)
     }
     catch (error: any) {
       this.logger.error(`OPAQUE login start failed, userName: ${userName}, error: ${error}`)
@@ -176,6 +180,55 @@ export class AuthOpaqueCoreService {
     finally {
       // Clean up cached session key after token generation
       await this.opaqueCacheService.delOpaqueSessionKeyCache(payload.userName, deviceId)
+    }
+  }
+
+  /**
+   * L1（2026-11-27）：锁屏兜底验证的**验证核**（不签发 token）。
+   *
+   * 与 `AuthOpaqueUserService.validateOpaqueUser` 走同一套 `opaque.server.finishLogin`
+   * （密码学部分零新代码），区别只有三点：
+   * 1. `scope='unlock'` —— 读锁屏兜底流的 `SERVER_STATE` 命名空间；
+   * 2. **不**缓存 session key、**不**生成 AT/RT、**不**建会话（规避 DuplicateSignIn，
+   *    见设计稿 §4.2）；调用方拿到 `userId` 后直接走解锁执行腿；
+   * 3. 返回值只有身份，供 controller 做 `verified.userId === token.userId` 断言
+   *    （防止「用 A 的登录口令解 B 的锁」）。
+   *
+   * 失败一律 40103（与登录同码，不区分「用户不存在 / 无口令凭据 / 口令错」）。
+   */
+  async verifyLoginForUnlock(userName: string, finishLoginRequest: string, deviceId: string, em: EntityManager, scope: IOpaqueCacheScope = 'unlock'): Promise<{ userId: string }> {
+    // 1. Retrieve cached server login state（缺失 = start 未执行 / 已过期 / 已被消费）
+    const serverLoginState = await this.opaqueCacheService.getOpaqueServerStateCache(userName, deviceId, scope)
+    if (isNil(serverLoginState)) {
+      throw new WalnutAdminExceptionInvalidCredential()
+    }
+
+    // 2. 用户必须在（登录口令挂在这张用户上）
+    const user = await this.userRepo.findUserByUserName(userName, em)
+    if (!user) {
+      throw new WalnutAdminExceptionInvalidCredential()
+    }
+
+    try {
+      // 3. Server completes login verification（口令错误 / 畸形 finish 都抛）
+      opaque.server.finishLogin({
+        finishLoginRequest,
+        serverLoginState,
+        identifiers: {
+          client: user.userName!,
+          server: this.getAppName(),
+        },
+      })
+
+      return { userId: user.id }
+    }
+    catch (error: any) {
+      this.logger.error(`OPAQUE unlock verify failed, userName: ${userName}, error: ${error}`)
+      throw new WalnutAdminExceptionInvalidCredential()
+    }
+    finally {
+      // 4. 单次消费：成功失败都清（与登录 finish 的 finally 同口径）
+      await this.opaqueCacheService.delOpaqueServerStateCache(userName, deviceId, scope)
     }
   }
 

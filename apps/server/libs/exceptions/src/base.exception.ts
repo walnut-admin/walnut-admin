@@ -15,9 +15,11 @@ export class WalnutAdminExceptionBadRequest extends BadRequestException {
     const {
       errCode = WalnutAdminConstAppResponseCode.BAD_REQUEST,
       errMsg = `response.${errCode}`,
+      // L1（2026-11-27）：承载业务附加信息（如锁屏退避的 retryAfterSec），与 Unauthorized 同口径
+      meta,
       _devMsg,
     } = payload || {}
-    super({ errType: BadRequestException.name, errCode, errMsg, _devMsg })
+    super({ errType: BadRequestException.name, errCode, errMsg, meta, _devMsg })
   }
 }
 

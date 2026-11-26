@@ -18,9 +18,14 @@ export class WalnutAdminExceptionRefreshTokenExpired extends WalnutAdminExceptio
 }
 
 export class WalnutAdminExceptionInvalidCredential extends WalnutAdminExceptionUnauthorized {
-  constructor() {
+  /**
+   * L1（2026-11-27）：可选 `meta` —— 锁屏兜底验证失败时携带
+   * `{ failCount, retryAfterSec? }`（Q7 的倒计时要能显示）。不传时与原实现逐字节一致。
+   */
+  constructor(payload?: Pick<IWalnutAdminExceptionConstructor, 'meta'>) {
     super({
       errCode: WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_CREDENTIALS,
+      meta: payload?.meta,
     })
   }
 }

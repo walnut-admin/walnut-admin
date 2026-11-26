@@ -2684,6 +2684,57 @@ export interface paths {
         patch: operations["SysUserLockController_unlock"];
         trace?: never;
     };
+    "/system/user/lock/verify/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start login-password verification for unlocking (OPAQUE step 1/2, no token issued) */
+        post: operations["SysUserLockController_verifyStart"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/user/lock/verify/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish login-password verification and unlock in place (no token issued) */
+        post: operations["SysUserLockController_verifyFinish"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/system/user/lock/reset/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Reset (unlock) the lock screen state of a user, without reading or changing the lock password */
+        put: operations["SysUserLockController_resetUserLock"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/system/user/mfa/totp/generate": {
         parameters: {
             query?: never;
@@ -7549,7 +7600,7 @@ export interface components {
              * operate type
              * @enum {string}
              */
-            operation: "deleted.recover" | "appMonitorUser.forceQuit" | "user.updatePassword" | "user.clearPassword" | "device.lock" | "device.unlock" | "device.ban" | "device.unban" | "appSetting.refreshCache" | "auth.opaque.changePassword";
+            operation: "deleted.recover" | "appMonitorUser.forceQuit" | "user.updatePassword" | "user.clearPassword" | "device.lock" | "device.unlock" | "device.ban" | "device.unban" | "appSetting.refreshCache" | "auth.opaque.changePassword" | "user.lock.reset";
             /** http method, like get/post */
             method: string;
             /** http url */
@@ -7625,7 +7676,7 @@ export interface components {
              * operate type
              * @enum {string}
              */
-            operation?: "deleted.recover" | "appMonitorUser.forceQuit" | "user.updatePassword" | "user.clearPassword" | "device.lock" | "device.unlock" | "device.ban" | "device.unban" | "appSetting.refreshCache" | "auth.opaque.changePassword";
+            operation?: "deleted.recover" | "appMonitorUser.forceQuit" | "user.updatePassword" | "user.clearPassword" | "device.lock" | "device.unlock" | "device.ban" | "device.unban" | "appSetting.refreshCache" | "auth.opaque.changePassword" | "user.lock.reset";
             /** http method, like get/post */
             method?: string;
             /** http url */
@@ -8651,6 +8702,11 @@ export interface components {
              * @default true
              */
             lockCrossDevice: boolean;
+            /**
+             * whether a lock password has been set
+             * @default false
+             */
+            lockPwdSet: boolean;
         };
         SysUserLockPreferenceUpdateDto: {
             /**
@@ -8684,6 +8740,14 @@ export interface components {
         SysUserLockDoLockDto: {
             /** user lock route */
             lockRoute?: components["schemas"]["SysUserLockRouteType"];
+        };
+        SysUserLockVerifyStartDto: {
+            /** opaque start login request */
+            start: string;
+        };
+        SysUserLockVerifyFinishDto: {
+            /** opaque finish login request */
+            finish: string;
         };
         SysUserMfaGenerateTotpResponseDTO: {
             /** totp id */
@@ -15362,6 +15426,115 @@ export interface operations {
         };
         responses: {
             /** @description Unlock current user account */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: boolean;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg?: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysUserLockController_verifyStart: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SysUserLockVerifyStartDto"];
+            };
+        };
+        responses: {
+            /** @description Start login-password verification for unlocking (OPAQUE step 1/2, no token issued) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: string;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg?: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysUserLockController_verifyFinish: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SysUserLockVerifyFinishDto"];
+            };
+        };
+        responses: {
+            /** @description Finish login-password verification and unlock in place (no token issued) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        data?: boolean;
+                        /**
+                         * @description response code (20000 = success; other values follow HTTP-status semantics), see `WalnutAdminConstAppResponseCode` for more details
+                         * @default 20000
+                         * @enum {number|null}
+                         */
+                        readonly code?: 20000 | 40000 | 40001 | 40002 | 40011 | 40012 | 40099 | 40100 | 40101 | 40102 | 40103 | 40104 | 40105 | 40106 | 40107 | 40108 | 40109 | 40110 | 40111 | 40112 | 40113 | 40114 | 40115 | 40116 | 40117 | 40118 | 40119 | 40300 | 40400 | 40401 | 40402 | 40600 | 40601 | 40602 | 40603 | 40604 | 40605 | 40606 | 40607 | 40608 | 40609 | 40610 | 40666 | 40667 | 40800 | 42900 | 42901 | 50000 | 50001 | 50002 | 50003 | 50300 | 50301 | 50302 | 50303 | 50400 | 50500 | null;
+                        /**
+                         * @description response msg, `Success` or error msg
+                         * @default Success
+                         */
+                        readonly msg?: string | null;
+                    };
+                };
+            };
+        };
+    };
+    SysUserLockController_resetUserLock: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Reset (unlock) the lock screen state of a user, without reading or changing the lock password */
             200: {
                 headers: {
                     [name: string]: unknown;
