@@ -205,4 +205,68 @@ describe('B7b user_lock (on real PG)', () => {
       expect(device?.locked).toBe(true)
     })
   })
+
+  /**
+   * L1（2026-11-27）：计次 / 退避 / 空串语义的 repo 级回归。
+   *
+   * 计次必须**独立提交**（调用方随后抛 40000、请求事务回滚）：这里直接调
+   * `recordUnlockFailure`（自己开事务），再读回行验证落库 —— 与 api-spec 的
+   * 「失败后 fail_count 留下」互为两层保护。
+   */
+  describe('L1 计次 / 退避 / 空串语义（repo 层）', () => {
+    it('recordUnlockFailure：1–4 只计次；第 5 次封 30s；第 6 次起 1m（曲线真源 lock-pwd-backoff）', async () => {
+      const userId = await seedUser()
+      await lockRepo.insertOrUpdateUserLockPre(userId, { lockMode: 'security', lockPwdHash: 'right-pwd' })
+
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        const result = await lockRepo.recordUnlockFailure(userId)
+        expect(result?.failCount).toBe(attempt)
+        expect(result?.lockedUntil).toBeNull()
+      }
+
+      const fifth = await lockRepo.recordUnlockFailure(userId)
+      expect(fifth?.failCount).toBe(5)
+      expect(fifth?.lockedUntil).not.toBeNull()
+      const fifthDelta = fifth!.lockedUntil!.getTime() - Date.now()
+      expect(fifthDelta).toBeGreaterThan(25_000)
+      expect(fifthDelta).toBeLessThanOrEqual(30_000)
+
+      const sixth = await lockRepo.recordUnlockFailure(userId)
+      expect(sixth?.failCount).toBe(6)
+      const sixthDelta = sixth!.lockedUntil!.getTime() - Date.now()
+      expect(sixthDelta).toBeGreaterThan(55_000)
+      expect(sixthDelta).toBeLessThanOrEqual(60_000)
+
+      // 落库可读（不是只回给调用方的临时值）
+      const pref = await lockRepo.findUserLockPreByUserId(userId)
+      expect(pref?.lockPwdFailCount).toBe(6)
+      expect(pref?.lockPwdLockedUntil).not.toBeNull()
+
+      // clearUnlockFailure：成功解锁 / 管理员重置的清零通道
+      await lockRepo.clearUnlockFailure(userId)
+      const cleared = await lockRepo.findUserLockPreByUserId(userId)
+      expect(cleared?.lockPwdFailCount).toBe(0)
+      expect(cleared?.lockPwdLockedUntil).toBeNull()
+    })
+
+    it('recordUnlockFailure：无偏好行的用户返回 null（不新造行）', async () => {
+      const userId = await seedUser()
+      expect(await lockRepo.recordUnlockFailure(userId)).toBeNull()
+      expect(await countLocks(userId)).toBe(0)
+    })
+
+    it('D2：lockPwdHash 空串不覆盖既有 hash，也不刷新 lockPwdUpdatedAt', async () => {
+      const userId = await seedUser()
+
+      const first = await lockRepo.insertOrUpdateUserLockPre(userId, { lockPwdHash: 'keep-me' })
+      expect(first.lockPwdHash).toMatch(/^\$2[aby]\$/)
+      expect(first.lockPwdUpdatedAt).not.toBeNull()
+
+      const second = await lockRepo.insertOrUpdateUserLockPre(userId, { lockPwdHash: '', lockMode: 'security' })
+      expect(second.lockPwdHash).toBe(first.lockPwdHash)
+      expect(second.lockMode).toBe('security')
+      // 没写新密码 ⇒ 最近变更时间不动（它跟「真的换密码」绑定）
+      expect(second.lockPwdUpdatedAt!.getTime()).toBe(first.lockPwdUpdatedAt!.getTime())
+    })
+  })
 })

@@ -55,6 +55,13 @@ export class SysUserLockDTOBase extends WalnutAdminCommonBasicModel {
 
   @WalnutAdminDecoratorFieldString({
     default: null,
+    // Q4（2026-11-27）：锁屏密码长度 6–64 —— 约束落在基座字段上，偏好写入（security 模式）
+    // 与解锁（unlock / 设备解锁）共用同一口径；不含「禁止与登录口令相同」（服务端没有可
+    // 比对的登录明文，见设计稿 §8 Q4）
+    validateOptions: {
+      minLen: 6,
+      maxLen: 64,
+    },
     swaggerOptions: {
       title: 'lock password hash',
     },
@@ -121,8 +128,50 @@ export class SysUserLockUnLockDto extends RealPartialType(RealPickType(SysUserLo
 export class SysUserLockPreferenceUpdateDto extends RealPartialType(RealPickType(SysUserLockDto, ['lockPwdHash', 'lockMode', 'lockIdleSec', 'lockSecuritySec', 'lockCrossDevice'] as const)) {}
 
 export class SysUserLockPreferenceDTO extends IntersectionType(RealPickType(SysUserDeviceDTO, ['locked'] as const), RealPickType(SysUserLockDto, ['lockRoute', 'lockCrossDevice', 'lockMode', 'lockIdleSec', 'lockSecuritySec'] as const)) {
+  /**
+   * G4（2026-11-27）：前端无法从 read 响应区分「未设密码」与「已设密码」——
+   * `lockPwdHash` 永不出响应（R1），这里只回一个布尔。
+   */
+  @WalnutAdminDecoratorFieldBoolean({
+    default: false,
+    swaggerOptions: {
+      title: 'whether a lock password has been set',
+    },
+  })
+  lockPwdSet: boolean
+
   constructor(partial?: Partial<SysUserLockPreferenceDTO>) {
     super()
     Object.assign(this, partial)
   }
+}
+
+/**
+ * 忘记锁屏密码兜底（Q8）：`POST /system/user/lock/verify/start`。
+ *
+ * `start` 是 `@serenity-kit/opaque` 客户端的 `startLoginRequest` —— 与登录端点同形，
+ * 密码永不离开客户端。
+ */
+export class SysUserLockVerifyStartDto {
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'opaque start login request',
+    },
+  })
+  start: string
+}
+
+/**
+ * 忘记锁屏密码兜底：`POST /system/user/lock/verify/finish`。
+ *
+ * `finish` 是 OPAQUE 客户端的 `finishLoginRequest`；服务端验证通过即就地解锁，
+ * **不签发 token、不新建会话**（规避 DuplicateSignIn，见设计稿 §4.2）。
+ */
+export class SysUserLockVerifyFinishDto {
+  @WalnutAdminDecoratorFieldString({
+    swaggerOptions: {
+      title: 'opaque finish login request',
+    },
+  })
+  finish: string
 }

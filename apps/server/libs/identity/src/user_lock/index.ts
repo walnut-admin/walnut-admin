@@ -1,5 +1,6 @@
 export * from './dto/user_lock.dto'
 export * from './entity/user-lock.entity'
+export * from './lock-pwd-backoff'
 export * from './lock.const'
 export * from './repo/user_lock.repo.module'
 export * from './repo/user_lock.repo.service'
