@@ -125,6 +125,14 @@ admin 的基础 `.env`（无环境后缀）存放构建必填的 `VITE_*` 变量
 `apps/server/libs/system/src/device/device-id.ts` 的注释。
 :::
 
+::: tip 2026-11-26：值里不要有未加引号的 `#`
+dotenv（`@nestjs/config`）对**未加引号**的值在第一个 `#` 处截断，而仓库里其它自写 env
+解析器（E2E 的 `parseEnvFile`、seed / db 通道）是原样读取 —— 同一个 key 会被两边读成
+不同的值。`APP_COOKIE_SECRET` 曾是一条含 `#` 的随机串（服务端一直用截断后的前缀签名，
+E2E 为复现 40111 还专门复刻了那套截断解析），F2 已换成 64 位十六进制高熵串并删掉
+E2E 的特殊分支。新增 / 轮换的值沿用「无 `#`」的口径，或用引号显式包住。
+:::
+
 ::: info 2026-08-08 修复
 production / stage 此前缺失 `USER_ID_ENCRYPTION_KEY` 与 `USER_ID_HASH_SALT`，已与 development 对齐补上并重新加密。
 :::

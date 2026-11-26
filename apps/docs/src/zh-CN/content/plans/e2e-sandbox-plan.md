@@ -282,7 +282,11 @@ pnpm walnut build:docs
 - **40111** 只在「CAP cookie **签名合法**、值不是 cap.js token 形态」时抛出（cap.guard 的 `performCapVerification`）。用户端改写 cookie 只会得到未签名值 ⇒ 被当成缺失（40116）；伪造签名需要 `APP_COOKIE_SECRET`（只有服务端持有）。前端把 40111 映射到 `/not-allowed?type=capjsTokenInvalid`，**不弹** CAP 对话框。
 - **CAP 对话框 + 重放成功** 属于 40116。且对话框只能由 **pre-auth 腿**的 critical 因子触发：pre-auth CAP guard 在 shouldChallenge=false 且凭据不可用时回 40117（静默刷新）；凭据有效时 post-auth 腿命中同一份缓存直接放行。因此「只有 USER_DEVICE_* 因子、单靠它在当前请求弹出对话框」不可达。
 - 实现拆成 U13（UI：40116 → 对话框 → 求解 → 重放 20000，并断言重放请求的 **post-auth 腿**写出 USER_DEVICE_UNTRUSTED 标记 —— 该键只有 post-auth 腿写得出来）与 U13b（协议：畸形签名 cookie → 40111 → 换真凭据重放成功）。U14 / U15 同理改用「风险因子 + post-auth handled 标记 + DB 行」作判据，而不是不可达的 post-auth 40116。
-- 顺带发现：`.env.stage` 的 `APP_COOKIE_SECRET` 是含 `#` 的未加引号随机串，服务端用的 dotenv 会在 `#` 处截断，而 `apps/e2e/scripts/env.ts` 的 `parseEnvFile` 不截断 —— U13b 的签名必须按 dotenv 口径取前缀（`readServerCookieSecret`）。这也意味着任何按「原样值」使用该 secret 的外部工具都会对不上；服务端自身签/验一致，故不影响运行。
+- ~~顺带发现：`.env.stage` 的 `APP_COOKIE_SECRET` 是含 `#` 的未加引号随机串，服务端用的
+  dotenv 会在 `#` 处截断，而 `apps/e2e/scripts/env.ts` 的 `parseEnvFile` 不截断 —— U13b 的
+  签名必须按 dotenv 口径取前缀（`readServerCookieSecret`）。~~（2026-11-26 F2 已修：secret
+  换成不含 `#` 的 64 位十六进制高熵串，两套解析器读到的值一致；`readServerCookieSecret`
+  退化为直读，U13b 照旧可用。旧值作废 ⇒ 本地 dev 已登录会话失效，E2E 栈每轮重建无影响。）
 
 **完成判据状态**：全量含 U11–U16 ✅、`e2e:network` 2/2 ✅、20 次循环证据 ✅（见 P2-1 落地记录）、review P2 暂缓项全部关闭 ✅（P2-5 遗留的两处 `toBeTruthy` 已改为具体判据，`waitForTimeout` 已清零）。**未完成**：nightly 工作流首跑（GitHub runner，本机无法验证）。
 

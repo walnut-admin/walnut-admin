@@ -138,8 +138,8 @@ test.describe('post-auth CAP 重武装', { tag: '@risk' }, () => {
     const authHeader = { Authorization: `Bearer ${tokens.accessToken}` }
 
     // 签名合法（持有 APP_COOKIE_SECRET）+ 值不是 `<hex>:<hex>` ⇒ 40111 的唯一入口。
-    // secret 按 **服务端 dotenv 的口径**读取（`.env.stage` 里的值含未加引号的 `#`，
-    // dotenv 在 `#` 处截断 —— 用 parseEnvFile 的原值签名会被判坏签名 ⇒ 40117，实测踩过）。
+    // ⑤（2026-11）：secret 已换成不含 `#` 的十六进制串，E2E 直读与 dotenv 解析同值
+    // （此前的「按 # 截断」分支在 readServerCookieSecret 里，已随换值删掉）。
     const cookieSecret = readServerCookieSecret()
     const forged = signCookieValue('not-a-cap-token', cookieSecret)
     client.setCookie(CAPJS_COOKIE_NAME, encodeURIComponent(forged))

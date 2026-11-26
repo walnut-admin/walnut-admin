@@ -216,50 +216,22 @@ export function readServerStageEnv(): Record<string, string> {
 }
 
 /**
- * 服务端 **cookie 签名密钥**（`APP_COOKIE_SECRET`），按 **dotenv 的口径**解析。
+ * 服务端 **cookie 签名密钥**（`APP_COOKIE_SECRET`）。
  *
- * 为什么不能直接用 {@link readServerStageEnv}：`parseEnvFile` 只做「引号剥离 + 原样取值」，
- * 而服务端用的 dotenv（@nestjs/config 18.0.3）对**未加引号**的值在第一个 `#` 处截断
- * （值模式是 `[^#\r\n]+`，后面的 `# ...` 视为注释）。当前 `.env.stage` 的
- * `APP_COOKIE_SECRET` 恰是含 `#` 的未加引号随机串 —— 两个解析器读到的值不同，
- * 服务端实际使用的是 dotenv 截断后的那一份。
+ * ⑤（2026-11）：该值已换成**不含 `#`** 的高熵十六进制串，`parseEnvFile` 与 dotenv
+ * （@nestjs/config，未加引号时在第一个 `#` 处截断）读到的是**同一个值** —— 这条
+ * 函数因此简化为直读，不再为这一条 key 维护第二套「按 # 截断」的解析。
  *
  * 只有 U13b 需要它：要造「签名合法、值不是 cap.js token」的 cookie，必须与服务端
- * 用**同一个 secret** 算 HMAC。这里只处理这一条 key 的两种形态（带引号 / 不带引号），
- * 不去改通用 `parseEnvFile`（那会改变 seed 等其他消费方对含 `#` 值的解析口径）。
+ * 用**同一个 secret** 算 HMAC。将来若再有含 `#` 的值，应当改写 env 值而不是复活
+ * 两套解析（那正是 ⑤ 拔掉的坑）。
  */
 export function readServerCookieSecret(): string {
-  if (!existsSync(SERVER_STAGE_ENV_FILE)) {
-    throw new E2ePreconditionError(
-      `[e2e] 找不到 ${SERVER_STAGE_ENV_FILE} —— 先跑 \`pnpm setup-env\` 解密 env-local/（需要根 .env.keys）`,
-    )
+  const value = readServerStageEnv().APP_COOKIE_SECRET
+  if (value === undefined || value === '') {
+    throw new E2ePreconditionError('[e2e] .env.stage 缺 APP_COOKIE_SECRET（cookie 签名密钥）')
   }
-
-  const prefix = 'APP_COOKIE_SECRET='
-  for (const raw of readFileSync(SERVER_STAGE_ENV_FILE, 'utf8').split(/\r?\n/)) {
-    const line = raw.trim()
-    if (!line.startsWith(prefix)) {
-      continue
-    }
-
-    let value = line.slice(prefix.length).trim()
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith('\'') && value.endsWith('\''))) {
-      value = value.slice(1, -1)
-    }
-    else {
-      const comment = value.indexOf('#')
-      if (comment >= 0) {
-        value = value.slice(0, comment).trim()
-      }
-    }
-
-    if (value === '') {
-      throw new E2ePreconditionError('[e2e] .env.stage 的 APP_COOKIE_SECRET 解析为空 —— 检查 env 文件的引号 / 注释')
-    }
-    return value
-  }
-
-  throw new E2ePreconditionError('[e2e] .env.stage 缺 APP_COOKIE_SECRET（cookie 签名密钥）')
+  return value
 }
 
 /**
