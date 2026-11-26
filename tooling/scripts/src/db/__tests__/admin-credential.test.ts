@@ -10,6 +10,8 @@
  * identifiers，而 UI 登录带 —— 注册与登录不一致时 `@serenity-kit/opaque` 的行为未定义，
  * 实测就是 `db:seed:pg --admin` 造出来的口令登不进 UI。
  */
+import { Buffer } from 'node:buffer'
+import { createDecipheriv } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -20,6 +22,10 @@ import {
   OPAQUE_SERVER_IDENTIFIER,
   verifyPasswordIdentity,
 } from '../admin-credential.ts'
+
+/** ① 的加密/哈希入参（形状与后端一致：32 字节 base64 密钥 + 任意盐） */
+const ENC_KEY = Buffer.alloc(32, 7).toString('base64')
+const HASH_SALT = 'spec-identity-salt'
 
 const opaque = vi.hoisted(() => ({
   startRegistration: vi.fn(() => ({ clientRegistrationState: 'reg-state', registrationRequest: 'reg-request' })),
@@ -63,7 +69,7 @@ describe('buildOpaqueIdentifiers（注册与登录共用的唯一出口）', () 
 
 describe('buildPasswordIdentity（--admin 注册侧）', () => {
   it('finishRegistration 带上与 UI 登录一致的 identifiers', () => {
-    buildPasswordIdentity('u1', 'visitor', 'pw-123456', 'server-setup')
+    buildPasswordIdentity('u1', 'visitor', 'pw-123456', 'server-setup', ENC_KEY, HASH_SALT)
 
     expect(opaque.finishRegistration).toHaveBeenCalledTimes(1)
     expect(opaque.finishRegistration).toHaveBeenCalledWith({
@@ -75,8 +81,8 @@ describe('buildPasswordIdentity（--admin 注册侧）', () => {
   })
 
   it('用户名进入 client identifier（换账号就换 client，server 恒定）', () => {
-    buildPasswordIdentity('u1', 'admin', 'pw-123456', 'server-setup')
-    buildPasswordIdentity('u2', 'tron97', 'pw-123456', 'server-setup')
+    buildPasswordIdentity('u1', 'admin', 'pw-123456', 'server-setup', ENC_KEY, HASH_SALT)
+    buildPasswordIdentity('u2', 'tron97', 'pw-123456', 'server-setup', ENC_KEY, HASH_SALT)
 
     expect(opaque.finishRegistration).toHaveBeenNthCalledWith(1, expect.objectContaining({
       identifiers: { client: 'admin', server: 'walnut-admin' },
@@ -87,13 +93,36 @@ describe('buildPasswordIdentity（--admin 注册侧）', () => {
   })
 
   it('服务端注册响应仍按 userName 做 userIdentifier（identifiers 不替代它）', () => {
-    buildPasswordIdentity('u1', 'visitor', 'pw-123456', 'server-setup')
+    buildPasswordIdentity('u1', 'visitor', 'pw-123456', 'server-setup', ENC_KEY, HASH_SALT)
 
     expect(opaque.createRegistrationResponse).toHaveBeenCalledWith({
       serverSetup: 'server-setup',
       userIdentifier: 'visitor',
       registrationRequest: 'reg-request',
     })
+  })
+
+  it('①：value 是 AES-GCM 密文（可解密回 registrationRecord），valueHash 是盐化 HMAC（不是 record 本身）', () => {
+    const identity = buildPasswordIdentity('u1', 'visitor', 'pw-123456', 'server-setup', ENC_KEY, HASH_SALT)
+
+    // 落库列 ≠ 明文记录（① 之前两者都是 'registration-record'）
+    expect(identity.value).not.toBe('registration-record')
+    expect(identity.valueHash).not.toBe('registration-record')
+    expect(identity.valueHash).toMatch(/^[0-9a-f]{64}$/)
+
+    // 密文按服务端的 iv || ciphertext || authTag 顺序能还原（AAD = sys_user_identity）
+    const data = Buffer.from(identity.value, 'base64')
+    const iv = data.subarray(0, 12)
+    const tag = data.subarray(data.length - 16)
+    const ciphertext = data.subarray(12, data.length - 16)
+    const decipher = createDecipheriv('aes-256-gcm', Buffer.from(ENC_KEY, 'base64'), iv)
+    decipher.setAAD(Buffer.from('sys_user_identity', 'utf8'))
+    decipher.setAuthTag(tag)
+    const plain = Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8')
+    expect(plain).toBe('registration-record')
+
+    // 明文仍单独留一份给登录自验（不入库）
+    expect(identity.registrationRecord).toBe('registration-record')
   })
 })
 

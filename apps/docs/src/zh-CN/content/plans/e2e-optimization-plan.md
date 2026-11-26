@@ -956,7 +956,8 @@ E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`
   新增 11 例自身约 25s，其余是 risk 项目 UI 用例的波动）；`E2E_STACK_PROFILE=smoke` **8/8 56.3s**、
   `risk` **22/22 212.2s**、`network` **2/2 13.2s**；e2e 单测 **240/240**。11 条新用例的核心断言
   全部做过「改坏 → 红 → 还原」的负对照。
-- **转报服务端的观察**（不在 e2e 改）：password identity 明文落库；~~`treeWithoutTypeElement`
+- **转报服务端的观察**（不在 e2e 改）：~~password identity 明文落库~~（2026-11-26 F2 已改成
+  AES-GCM 密文 + 盐化哈希，读腿解密）；~~`treeWithoutTypeElement`
   非递归 element-free~~（2026-11-26 F1 已改成递归过滤，E2E 断言同步升级）；~~menu update 的
   「可选字段」会被 Transform 写成 null~~（2026-11-26 F1 已改成真 partial，新增用例钉住）；
   TOTP unbind 不回落 `mfa_setup`；`GET /system/user/:id` 不回填 roles。逐条见计划页 §9.1 第 2–7 条。

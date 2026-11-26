@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config'
 import * as opaque from '@serenity-kit/opaque'
 import { AppTechCacheOpaqueService } from '@walnut-server/cache'
 import { WalnutAdminExceptionInvalidCredential } from '@walnut-server/exceptions/business/auth'
-import { SysUserIdentityRepositoryService, SysUserRepositoryService } from '@walnut-server/identity'
+import { SysUserIdentityRepositoryService, SysUserIdentitySharedService, SysUserRepositoryService } from '@walnut-server/identity'
 import { isNil } from 'lodash'
 import { AuthSharedService } from '../../shared/shared.service'
 
@@ -50,6 +50,7 @@ export class AuthOpaqueCoreService {
     private readonly authSharedService: AuthSharedService,
     private readonly userRepo: SysUserRepositoryService,
     private readonly userIdentityRepo: SysUserIdentityRepositoryService,
+    private readonly userIdentitySharedService: SysUserIdentitySharedService,
   ) {
     // Initialize server setup with a fixed value
     // this.serverSetup = opaque.server.createSetup()
@@ -92,7 +93,7 @@ export class AuthOpaqueCoreService {
     // 代价：不存在的 userName 会多占一个 30s 的 SERVER_STATE 键（与已存在用户同量级，
     // 且登录端点有限流）—— 换掉的是可被统计的枚举信道，值得。真正的身份验证仍在
     // finishLogin：那里的 session key 只可能来自一次成功的 OPAQUE 交换。
-    const passwordIdentity = user === null
+    const encryptedPasswordIdentity = user === null
       ? await this.userIdentityRepo.getValueByUserIdTypeAndPurpose(
           OPAQUE_DUMMY_USER_ID,
           'password',
@@ -106,13 +107,21 @@ export class AuthOpaqueCoreService {
           em,
         )
 
+    let passwordIdentity: string | null = null
     let loginResponse: string
 
     try {
+      // ①（2026-11）：password 身份的 value 是 AES-GCM 密文（与 email/phone 同口径），
+      // 交给 opaque 前必须解密。解密失败（本地库里 ① 之前的明文行 / 密钥不匹配）
+      // 与「凭据无效」同义，统一收敛到 40103 —— 下面是同一个 catch。
+      passwordIdentity = isNil(encryptedPasswordIdentity)
+        ? null
+        : this.userIdentitySharedService.decryptValue(encryptedPasswordIdentity)
+
       // Server creates login response using stored registration record（null ⇒ fake record）
       const { loginResponse: computedLoginResponse, serverLoginState } = opaque.server.startLogin({
         userIdentifier: userName,
-        registrationRecord: passwordIdentity ?? null,
+        registrationRecord: passwordIdentity,
         serverSetup: this.getServerSetup(),
         startLoginRequest,
         identifiers: {
@@ -205,12 +214,16 @@ export class AuthOpaqueCoreService {
     em?: EntityManager,
   ) {
     try {
+      // ①（2026-11）：password 身份不再裸存 registrationRecord —— value 走 AES-GCM
+      // （AAD `sys_user_identity`）、valueHash 走盐化 HMAC，与 email/phone 身份同口径；
+      // 读腿在 startLogin 解密。生产未上线，不做存量迁移（本地旧明文行需重跑
+      // seed / 重新补挂口令，见提交说明与计划页追记）。
       await this.userIdentityRepo.upsertIdentity({
         userId,
         type: 'password',
         purpose: 'login',
-        value: newPassword,
-        valueHash: newPassword, // Use registration record itself as hash since it's unique
+        value: this.userIdentitySharedService.encryptValue(newPassword),
+        valueHash: this.userIdentitySharedService.generateValueHash(newPassword),
         maskedValue: '********',
         verified: true,
         verifiedAt: new Date(),
@@ -277,14 +290,14 @@ export class AuthOpaqueCoreService {
     }
 
     try {
-      // Update password identity in user_identity table
+      // Update password identity in user_identity table（①：密文 + 盐化哈希，同 finishRegister）
       await this.userIdentityRepo.updateByUserIdTypeAndPurpose(
         user.id,
         'password',
         'login',
         {
-          value: newPassword,
-          valueHash: newPassword,
+          value: this.userIdentitySharedService.encryptValue(newPassword),
+          valueHash: this.userIdentitySharedService.generateValueHash(newPassword),
         },
         em,
       )

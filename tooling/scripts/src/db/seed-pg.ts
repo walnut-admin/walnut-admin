@@ -467,8 +467,16 @@ export async function seedPgAppKeys(pg: Client, dryRun: boolean): Promise<{ inse
 /**
  * admin 口令凭证（PG 版）：凭给定的 userName 找 PG 用户，OPAQUE 注册后按
  * `uq_identity (user_id, type, purpose)` upsert，并用同一套协议验证登录握手。
+ *
+ * `keys` 三件必须与后端同源：`AUTH_OPAQUE_SECRET`（OPAQUE serverSetup）、
+ * `USER_ID_ENCRYPTION_KEY` / `USER_ID_HASH_SALT`（① 之后的落库加密与哈希）。
  */
-export async function seedPgAdminCredential(pg: Client, admin: string, password: string, serverSetup: string): Promise<void> {
+export async function seedPgAdminCredential(
+  pg: Client,
+  admin: string,
+  password: string,
+  keys: { serverSetup: string, identityEncryptionKey: string, identityHashSalt: string },
+): Promise<void> {
   const found = await pg.query<{ id: string }>('SELECT id FROM sys_user WHERE user_name = $1', [admin])
   const user = found.rows[0]
   if (user === undefined)
@@ -476,12 +484,19 @@ export async function seedPgAdminCredential(pg: Client, admin: string, password:
 
   let identity
   try {
-    identity = buildPasswordIdentity(user.id, admin, password, serverSetup)
+    identity = buildPasswordIdentity(
+      user.id,
+      admin,
+      password,
+      keys.serverSetup,
+      keys.identityEncryptionKey,
+      keys.identityHashSalt,
+    )
   }
   catch (error) {
     throw new PreconditionError(
-      `拿本环境的 AUTH_OPAQUE_SECRET 跑 OPAQUE 注册失败（${error instanceof Error ? error.message : String(error)}）`
-      + '\n  · 它必须是后端实际使用的那一份（--env-file 指向的 env 文件里的 AUTH_OPAQUE_SECRET）',
+      `拿本环境的 AUTH_OPAQUE_SECRET / USER_ID_* 跑 OPAQUE 注册与加密失败（${error instanceof Error ? error.message : String(error)}）`
+      + '\n  · 它们必须是后端实际使用的那一份（--env-file 指向的 env 文件里的 AUTH_OPAQUE_SECRET / USER_ID_ENCRYPTION_KEY / USER_ID_HASH_SALT）',
     )
   }
 
@@ -509,7 +524,8 @@ export async function seedPgAdminCredential(pg: Client, admin: string, password:
   )
   out(`  sys_user_identity  覆盖 1（账号 ${admin} 的口令凭证）`)
 
-  const proof = verifyPasswordIdentity(admin, password, identity.value, serverSetup)
+  // ①：自验必须用**明文** record（库里那份是密文）
+  const proof = verifyPasswordIdentity(admin, password, identity.registrationRecord, keys.serverSetup)
   if (!proof.ok) {
     throw new ViolationError(`凭证写进去了，但登录握手没通过：${proof.reason} —— 通常说明 AUTH_OPAQUE_SECRET 与后端实际使用的不一致`)
   }
@@ -551,14 +567,14 @@ export async function main(): Promise<void> {
     }
 
     if (opts.admin !== undefined) {
-      const serverSetup = readOpaqueSecret(repoRoot, opts.envFile)
+      const keys = readAdminCredentialKeys(repoRoot, opts.envFile)
       const password = opts.password ?? process.env.SEED_ADMIN_PASSWORD
       if (password === undefined || password === '')
         throw new PreconditionError('--admin 需要配 --password（或环境变量 SEED_ADMIN_PASSWORD）')
       if (opts.dryRun)
         out(`  sys_user_identity  待写入（账号 ${opts.admin} 的口令凭证；dry-run 不生成也不验证）`)
       else
-        await seedPgAdminCredential(pg, opts.admin, password, serverSetup)
+        await seedPgAdminCredential(pg, opts.admin, password, keys)
     }
 
     line('ok', opts.dryRun ? 'dry-run 完成（未写入）' : `PG 播种完成：${results.length} 个表`)
@@ -568,13 +584,29 @@ export async function main(): Promise<void> {
   }
 }
 
-/** 取本环境的 AUTH_OPAQUE_SECRET（口令凭证必须用后端实际使用的那一份生成） */
-function readOpaqueSecret(repoRoot: string, envFileOverride: string): string {
+/**
+ * 取本环境的口令凭证三件套（必须与后端实际使用的同源）：
+ * `AUTH_OPAQUE_SECRET`（OPAQUE serverSetup）+ `USER_ID_ENCRYPTION_KEY` / `USER_ID_HASH_SALT`
+ * （① 之后 value / valueHash 的加密与盐化哈希）。
+ */
+function readAdminCredentialKeys(
+  repoRoot: string,
+  envFileOverride: string,
+): { serverSetup: string, identityEncryptionKey: string, identityHashSalt: string } {
   const { envFile } = resolvePgTarget(repoRoot, envFileOverride === '' ? undefined : envFileOverride)
   const text = readFileSync(envFile, 'utf8')
-  const match = /^AUTH_OPAQUE_SECRET=(.+)$/m.exec(text)
-  const secret = match?.[1]?.trim()
-  if (secret === undefined || secret === '')
-    throw new PreconditionError(`env 里没有 AUTH_OPAQUE_SECRET（${envFile}）—— 口令凭证必须用**本环境**的 OPAQUE 密钥生成`)
-  return secret
+
+  const readKey = (key: string, hint: string): string => {
+    const match = new RegExp(`^${key}=(.+)$`, 'm').exec(text)
+    const value = match?.[1]?.trim()
+    if (value === undefined || value === '')
+      throw new PreconditionError(`env 里没有 ${key}（${envFile}）—— ${hint}`)
+    return value
+  }
+
+  return {
+    serverSetup: readKey('AUTH_OPAQUE_SECRET', '口令凭证必须用**本环境**的 OPAQUE 密钥生成'),
+    identityEncryptionKey: readKey('USER_ID_ENCRYPTION_KEY', 'password 身份落库必须与后端使用同一把身份加密密钥'),
+    identityHashSalt: readKey('USER_ID_HASH_SALT', 'password 身份 valueHash 必须与后端使用同一份盐'),
+  }
 }

@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config'
 import { JwtService } from '@nestjs/jwt'
 import * as opaque from '@serenity-kit/opaque'
 import { WalnutAdminConstAppCacheKeys } from '@walnut-server/const/app/cache'
+import { SysUserIdentitySharedService } from '@walnut-server/identity'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from '../../helpers/api-client'
@@ -365,18 +366,21 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
       return registrationRecord
     }
 
-    // 首次补挂：identity 从 fixture 口令替换为本次 record（value/valueHash 逐字节换新）
+    // 首次补挂：identity 换成本次 record（①：value 是密文、valueHash 是盐化哈希）
     const firstRecord = await registerPassword(`Reg-${randomUUID().slice(0, 12)}#55`)
+    const identityShared = app.get(SysUserIdentitySharedService)
     const identityAfterFirst = await readPasswordIdentity(fixture!.userId)
-    expect(identityAfterFirst!.value).toBe(firstRecord)
-    expect(identityAfterFirst!.value_hash).toBe(firstRecord)
+    expect(identityAfterFirst!.value).not.toBe(firstRecord)
+    expect(identityShared.decryptValue(identityAfterFirst!.value)).toBe(firstRecord)
+    expect(identityAfterFirst!.value_hash).toBe(identityShared.generateValueHash(firstRecord))
     expect(identityAfterFirst!.value_hash).not.toBe(identityBefore!.value_hash)
 
     // 再次补挂：幂等路径 —— 仍 20000 true 且再替换（修复前恒 40001 DataExists）
     const secondRecord = await registerPassword(`Reg2-${randomUUID().slice(0, 12)}#66`)
     const identityAfterSecond = await readPasswordIdentity(fixture!.userId)
-    expect(identityAfterSecond!.value).toBe(secondRecord)
-    expect(identityAfterSecond!.value_hash).toBe(secondRecord)
+    expect(identityAfterSecond!.value).not.toBe(secondRecord)
+    expect(identityShared.decryptValue(identityAfterSecond!.value)).toBe(secondRecord)
+    expect(identityAfterSecond!.value_hash).toBe(identityShared.generateValueHash(secondRecord))
     expect(
       await api.pgDataSource.query(
         'SELECT count(*)::int AS c FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',

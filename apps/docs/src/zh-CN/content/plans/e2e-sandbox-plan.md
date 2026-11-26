@@ -370,7 +370,8 @@ pnpm walnut build:docs
 **非 root 用户怎么来的**：`POST /system/user` 不带口令，`/auth/opaque/user/register/*` 又要求
 已登录（鸡生蛋）。`apps/e2e/lib/account-fixtures.ts` 复刻服务端 `AuthOpaqueCoreService` 的注册链
 （`AUTH_OPAQUE_SECRET` = serverSetup、`userIdentifier = userName`），把 registrationRecord 按
-`finishRegister` 的口径**明文**写入 `sys_user_identity`；之后全部走真实协议登录，不伪造 AT / 会话。
+`finishRegister` 的口径**加密**（AES-GCM + 盐化 HMAC，密钥/盐与后端同取 `.env.stage`）写入
+`sys_user_identity`；之后全部走真实协议登录，不伪造 AT / 会话。
 
 **实测（本机 WSL 栈，单次读数）**：default 全量 **31 例 / 266.5s**（改造前基线 20 例 / 229.4s；
 新增 11 例自身约 25s，其余为 risk 项目 UI 用例波动）；`E2E_STACK_PROFILE=smoke` **8/8 56.3s**、
@@ -395,9 +396,12 @@ M5 踢下线 40101、M6 登出 40101、mobile 视口宽度。
    改用 `RealPartialType(..., { preserveAbsent: true })`，未提供的顶层列不写 NULL，显式 null 才是
    清空（meta 给了仍整体替换，Mongo 子文档语义不变）。E2E 新增「只发 meta.permission，name/title
    保持原值」用例；整行回传（`menuUpdatePayload`）仍是 admin 表单的真实口径。
-5. **password identity 存明文**：`AuthOpaqueCoreService.finishRegister` 直接把 registrationRecord
-   写进 `sys_user_identity.value` / `value_hash`（未走 `createIdentity` 的 AES 加密；email/phone
-   那几条才加密），`select: false` 只遮蔽查询。安全观察，转报所有者。
+5. ~~**password identity 存明文**~~（2026-11-26 F2 已修）：`AuthOpaqueCoreService` 的
+   `finishRegister` / `finishChangePassword` 改走 `SysUserIdentitySharedService` —— `value` 是
+   AES-GCM 密文（AAD `sys_user_identity`）、`valueHash` 是盐化 HMAC，`startLogin` 读回后解密。
+   **不做存量迁移**（生产未上线）：本地库里 ① 之前的明文行会在下次登录解密失败 ⇒ 40103，
+   重置数据栈（`pnpm walnut db:seed:pg` / E2E 全量 prepare 会重建）或重新补挂口令即可。
+   E2E 的建号 fixture 同步改成加密写入（密钥/盐与后端同取 `.env.stage`）。
 6. **TOTP unbind 不回落 `sys_user.mfa_setup`**：unbind 只删 `sys_user_mfa` 行，账号级标志要等
    cron 同步；同设备重绑后仍为 true。矩阵因此只断言「行删除 + 重绑成功 + 新备用码」，不断言
    unbind 后的瞬时 `mfa_setup`。
