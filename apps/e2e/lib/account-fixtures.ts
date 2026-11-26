@@ -77,6 +77,24 @@ export async function deleteLoginableUser(user: Pick<LoginableUser, 'userName'>)
 }
 
 /**
+ * 管理员**重置**某用户口令（真实走 `POST /auth/opaque/admin/password/update/{start,finish}`）。
+ *
+ * 与建号时设初始口令是同一条端点（无口令用户是 upsert），区别只在**时序**：这条用在
+ * 「用户已有口令且在线」的场景 —— 服务端 finish 之后会按 `security-policy` 触发
+ * 全设备 RT 吊销 / 会话与权限缓存清扫 / socket FORCE_QUIT（updatePass 策略）。
+ * force-quit 旅程（J5）靠的就是这个副作用；返回 `true` 即服务端已完成整条链。
+ *
+ * 调用方必须是持有 `system:user:pass:update` 的管理端身份（root 短路）。
+ */
+export async function setUserPasswordViaAdmin(
+  root: WalnutProtocolClient,
+  user: Pick<LoginableUser, 'userId' | 'userName'>,
+  newPassword: string,
+): Promise<void> {
+  await installInitialPassword(root, user.userId, user.userName, newPassword)
+}
+
+/**
  * 给无口令用户设初始口令：**真实调用**管理端 OPAQUE 改密端点。
  *
  * 客户端只跑 OPAQUE 那半（startRegistration / finishRegistration）；服务端半

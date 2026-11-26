@@ -11,13 +11,14 @@
  * 会被跳过，而 fixture 的 teardown 照样执行。
  */
 import type { Browser, BrowserContext, Page, TestInfo } from '@playwright/test'
+import { randomBytes } from 'node:crypto'
 import process from 'node:process'
 import { DEVICE_COOKIE_NAME, WEB_ORIGIN } from '../scripts/env.ts'
 import { localIpFor, STACK_PROFILE } from '../scripts/stack-profiles.ts'
 import { deleteDeviceRow, withPg } from './pg.ts'
 import { SIGN_USER_AGENT } from './protocol/sign.ts'
 import { deleteDeviceScopedKeys, deleteRiskDeviceState, withRedis } from './redis.ts'
-import { DEVICE_LOCAL_STORAGE_KEY, loginViaUI, readDeviceCookie, readLocalDeviceId } from './ui.ts'
+import { DEVICE_LOCAL_STORAGE_KEY, FINGERPRINT_LOCAL_STORAGE_KEY, loginViaUI, readDeviceCookie, readLocalDeviceId } from './ui.ts'
 
 export interface DeviceSession {
   context: BrowserContext
@@ -62,35 +63,78 @@ export function uniqueLocalIp(): string {
  * 那个选项对**所有**请求生效，包括第三方跨域资源（例如 CDN 上的 WASM）—— 自定义头会触发
  * CORS 预检，对方通常不放行 `x-forwarded-for`，资源加载失败 ⇒ 依赖它的组件直接进错误态
  * （CAP 场景的截图是「你是人类吗？」）并把用例卡住。静态资源与第三方请求不需要这个头。
+ *
+ * `origin` 默认 {@link WEB_ORIGIN}；WebAuthn 用例用 `localhost` 变体（见 env.ts 的
+ * WEBAUTHN_WEB_ORIGIN —— Chrome 拒绝 IP 作 RP ID），判据必须跟着 context 的 origin 走，
+ * 否则该用例的 /api 请求不带 XFF（共用 127.0.0.1 的 device/initial 计数桶）。
  */
-export async function installRealIpRoute(context: BrowserContext, realIp: string): Promise<void> {
+export async function installRealIpRoute(context: BrowserContext, realIp: string, origin: string = WEB_ORIGIN): Promise<void> {
   await context.route(
-    url => url.origin === WEB_ORIGIN && url.pathname.startsWith('/api/'),
+    url => url.origin === origin && url.pathname.startsWith('/api/'),
     route => route.continue({
       headers: { ...route.request().headers(), 'x-forwarded-for': realIp },
     }),
   )
 }
 
-export async function newBrowserContext(browser: Browser, options: { realIp?: string } = {}): Promise<BrowserContext> {
+export async function newBrowserContext(
+  browser: Browser,
+  options: { realIp?: string, origin?: string } = {},
+): Promise<BrowserContext> {
   const realIp = options.realIp ?? uniqueLocalIp()
+  const origin = options.origin ?? WEB_ORIGIN
   const context = await browser.newContext({
     // 显式给 baseURL：测试里 `browser.newContext()` 会继承 test 的 use，但独立脚本
     // （排障用）不会 —— 让 context 自包含，两条腿都用相对路径。
-    baseURL: WEB_ORIGIN,
+    baseURL: origin,
     userAgent: SIGN_USER_AGENT,
     locale: 'zh-CN',
     timezoneId: 'Asia/Shanghai',
     viewport: { width: 1600, height: 900 },
   })
-  await installRealIpRoute(context, realIp)
+  await installRealIpRoute(context, realIp, origin)
+  await seedFingerprint(context)
 
   // 首访的「Star on GitHub」通知（duration 60s，右上角）会盖住 header 右侧控件 / 弹层，
   // Playwright 的 click/fill 会因此等到它自动消失（60s），把用例拖到超时。
   // 这是产品提示，不是被测行为 —— 与 driver intro 同口径预置成「不再显示」。
-  await context.addCookies([{ name: 'dont-show-star', value: 'true', url: WEB_ORIGIN }])
+  await context.addCookies([{ name: 'dont-show-star', value: 'true', url: origin }])
 
   return context
+}
+
+/**
+ * 给 context 预置一枚**唯一**的浏览器指纹（`WA__FINGERPRINT`，superjson + base64 外壳）。
+ *
+ * 为什么必须唯一：产品用 FingerprintJS 现算指纹（真机上是「浏览器安装级」的稳定值），
+ * 而 `app_monitor_user.visitor_id` 有 **UNIQUE** 约束、行键却是服务端签发的 deviceId ——
+ * E2E 每个 context 都是新设备但同机同浏览器，真实指纹**完全相同**，第二个 context 的心跳
+ * upsert（按 deviceId 找不到行 → INSERT）必然撞唯一约束（表现为心跳 40000、monitor 行缺失
+ * ⇒ 在线监控 / socket 强踢 / 锁屏广播都送不到那台设备）。实测：单独跑 J5（本 context 第一个
+ * 写指纹）能过，整批跑（前面的 context 已写过同一指纹）必挂。
+ *
+ * 预置成随机 32 hex 与 FingerprintJS 的输出同形；`setupFingerprint` 见值非空即短路，
+ * 不会覆写。`addInitScript` 在页面脚本之前跑，但 about:blank 下 localStorage 不可访问 ——
+ * 包 try/catch 只影响空白页。
+ */
+async function seedFingerprint(context: BrowserContext): Promise<void> {
+  const fingerprint = randomBytes(16).toString('hex')
+  // 落盘形态 = `superjson.stringify({ v, e: null, _v })`：superjson 2.x 会包一层
+  // `{"json":{...}}`（**不是**裸对象）。写裸对象时 `superjson.parse` 返回 undefined，
+  // `useAppStorageSync.read()` 把它当坏值 remove 掉并现算真机指纹（实测）。
+  // `enhancedBase64LocalStorage()` 未开 forceEncrypt ⇒ 无 base64 外壳，直接写这段 JSON。
+  const encoded = JSON.stringify({ json: { v: fingerprint, e: null, _v: 'e2e' } })
+
+  await context.addInitScript(({ key, value }) => {
+    try {
+      if (window.localStorage.getItem(key) === null) {
+        window.localStorage.setItem(key, value)
+      }
+    }
+    catch {
+      // about:blank / 沙箱页面没有 localStorage —— 真正的 origin 页面上再写
+    }
+  }, { key: FINGERPRINT_LOCAL_STORAGE_KEY, value: encoded })
 }
 
 /** 从 Cookie（stage 无前缀）解出设备 id；cookie 没有时回落 localStorage */
@@ -112,9 +156,9 @@ export async function resolveDeviceId(page: Page): Promise<string> {
 }
 
 /** 打开站点（默认落在登录页）→ 等 bootstrap 完成设备登记 → 返回 deviceId */
-export async function openDevice(browser: Browser, startAt = '/auth', options: { realIp?: string } = {}): Promise<DeviceSession> {
+export async function openDevice(browser: Browser, startAt = '/auth', options: { realIp?: string, origin?: string } = {}): Promise<DeviceSession> {
   const realIp = options.realIp ?? uniqueLocalIp()
-  const context = await newBrowserContext(browser, { realIp })
+  const context = await newBrowserContext(browser, { realIp, origin: options.origin })
   const page = await context.newPage()
   await page.goto(startAt)
   const deviceId = await waitForRegisteredDevice(page)
@@ -154,7 +198,7 @@ export async function waitForRegisteredDevice(page: Page): Promise<string> {
 }
 
 /** 开一台设备并完成 UI 登录（CAP + MFA），返回已登录会话 */
-export async function loginDevice(browser: Browser, options: { realIp?: string } = {}): Promise<DeviceSession> {
+export async function loginDevice(browser: Browser, options: { realIp?: string, origin?: string } = {}): Promise<DeviceSession> {
   const session = await openDevice(browser, '/auth', options)
   await loginViaUI(session.page)
   session.deviceId = await resolveDeviceId(session.page)

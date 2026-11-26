@@ -115,6 +115,18 @@ export const SOCKET_PORT = STACK_PROFILE.socketPort
 /** 测试静态代理（伺服 dist-staging + /api /socket 反代） */
 export const WEB_PORT = STACK_PROFILE.webPort
 export const WEB_ORIGIN = `http://127.0.0.1:${WEB_PORT}`
+/**
+ * WebAuthn 用例专用的浏览器 origin —— 主机名必须是 **hostname**，不能是 IP。
+ *
+ * Chrome 的 RP ID 校验比 WebAuthn 规范的「等于 effective domain」更严：`127.0.0.1` 会被
+ * 判成 `SecurityError: 127.0.0.1 is an invalid domain`（实测，2026-11-27），浏览器在
+ * 调 authenticator 之前就拒了。`localhost` 是唯一既能被 RP ID 接受、又在 http 下算
+ * secure context 的名字（WebAuthn 要求安全上下文）。
+ *
+ * 静态代理监听 127.0.0.1，Windows / Linux 的 `localhost` 会先试 ::1 再回落 IPv4，
+ * 实测可达；只影响 WebAuthn 用例自己的 context，其余用例仍用 {@link WEB_ORIGIN}。
+ */
+export const WEBAUTHN_WEB_ORIGIN = `http://localhost:${WEB_PORT}`
 
 /** 与后端 .env.stage 同源的 API 前缀 / 版本（`/w/v1`） */
 export const API_PREFIX = 'w'
@@ -261,6 +273,15 @@ export function backendEnvOverrides(): Record<string, string> {
     // 不是产品口径 —— 风控的 RATE 因子另有自己的阈值（risk.config 的 rate.ip1m 等），不受这里影响。
     APP_THROTTLE_TTL: '60',
     APP_THROTTLE_LIMIT: '100000',
+    // WebAuthn 的 RP 口径必须与**浏览器实际 origin** 逐字一致：
+    // - `AUTH_WEBAUTHN_ORIGIN` 是服务端 verify 时比对的 expectedOrigin；
+    // - `AUTH_WEBAUTHN_RPID` 还必须等于页面 host（浏览器在 credentials.create/get 前自己先校验）。
+    // `.env.stage` 里是部署机的公网地址（http://47.94.19.5:2025），浏览器在 127.0.0.1 上会直接
+    // 抛 SecurityError（RP ID 不是当前域的后缀）。这里改用 `localhost`（见
+    // {@link WEBAUTHN_WEB_ORIGIN}）：它是 RP ID 能接受的 hostname，且在 http 下仍是
+    // potentially trustworthy 的安全上下文。测试栈配置，不改产品口径。
+    AUTH_WEBAUTHN_RPID: 'localhost',
+    AUTH_WEBAUTHN_ORIGIN: WEBAUTHN_WEB_ORIGIN,
   }
 }
 

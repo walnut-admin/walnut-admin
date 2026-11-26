@@ -250,6 +250,32 @@ export function permissionsCachePattern(userId: string): string {
 }
 
 /**
+ * 读某设备的权限缓存值（`AUTH:PERMISSIONS:<userId>:<deviceId>`，缓存服务包了一层 `{v}`）。
+ *
+ * 角色切换旅程的判据：切换后应用会重拉 `/auth/permissions`，服务端按新 currentRole 重算并
+ * **覆盖**该设备的缓存 —— 旧角色的权限串必须消失（permission.guard 只认这份缓存，留着旧值
+ * 就等于授权没变）。
+ */
+export async function readPermissionsCache(client: E2eRedisClient, userId: string, deviceId: string): Promise<string[] | null> {
+  const keys = await scanKeys(client, permissionsCachePattern(userId))
+  const key = keys.find(candidate => candidate.endsWith(`:${deviceId}`))
+  if (key === undefined) {
+    return null
+  }
+  const raw = await client.get(key)
+  if (raw === null) {
+    return null
+  }
+  try {
+    const parsed = JSON.parse(raw) as { v?: unknown }
+    return Array.isArray(parsed.v) ? parsed.v.filter((item): item is string => typeof item === 'string') : null
+  }
+  catch {
+    return null
+  }
+}
+
+/**
  * 该设备的**应用缓存**键模式（全族，逐条对齐 `scripts/redis-gc.ts` 的 `DEVICE_KEY_FAMILIES`
  * 里 `cache:*` / `murlock:*` 那几条，以及服务端的 `WalnutAdminConstAppCacheKeys` 拼法）：
  *

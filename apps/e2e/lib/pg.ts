@@ -363,6 +363,38 @@ export async function findElementMenuIdByPermission(client: Client, permission: 
 }
 
 /**
+ * 按 `name + type` 取菜单行 id（路由真源 = 库里的菜单）。
+ *
+ * 「菜单给、element 不给」的权限可见性用例要的正是**菜单行本身**（`type='menu'`，它没有
+ * permission）与它的父 catalog：挂上这两行，`/auth/permissions` 就会把路由注册出来，而
+ * 任何 element 权限串都不出现。
+ */
+export async function findMenuIdByName(client: Client, name: string, type: 'menu' | 'catalog' = 'menu'): Promise<string> {
+  const { rows } = await client.query<{ id: string }>(
+    'SELECT id FROM sys_menu WHERE name = $1 AND type = $2 ORDER BY sort_order LIMIT 1',
+    [name, type],
+  )
+  const id = rows[0]?.id
+  if (id === undefined) {
+    throw new Error(`[e2e/pg] sys_menu 没有 name = ${name} / type = ${type} 的行`)
+  }
+  return id
+}
+
+/** 按 `path + type` 取菜单行 id（catalog 的 path 是相对段，例如 `system`） */
+export async function findMenuIdByPath(client: Client, path: string, type: 'menu' | 'catalog' = 'catalog'): Promise<string> {
+  const { rows } = await client.query<{ id: string }>(
+    'SELECT id FROM sys_menu WHERE path = $1 AND type = $2 ORDER BY sort_order LIMIT 1',
+    [path, type],
+  )
+  const id = rows[0]?.id
+  if (id === undefined) {
+    throw new Error(`[e2e/pg] sys_menu 没有 path = ${path} / type = ${type} 的行`)
+  }
+  return id
+}
+
+/**
  * 取 seed 的根菜单 id（`pid IS NULL` 的第一行）。
  *
  * 菜单树端点按「**单一合成根**」实现：`fullTree.flatMap(root => root.children ?? [])` ——
@@ -450,6 +482,72 @@ export async function deleteMonitorUserByDeviceId(client: Client, deviceId: stri
   return result.rowCount ?? 0
 }
 
+/**
+ * 读某设备的心跳行（`app_monitor_user`）。
+ *
+ * force-quit 的 socket 投递面按 `(userId, deviceId)` 查这行、再以行上的 `visitorId`
+ * 定位房间（`forceQuitMonitorBySocket`）—— 浏览器设备只有在真实心跳上报之后才会收到
+ * FORCE_QUIT。用例把它当**前置断言**：行不在 / auth=false / left=true 时，socket 段
+ * 本来就不可能成立，失败原因要在前置处说清，而不是在等帧的地方超时。
+ */
+export async function findMonitorUserRow(client: Client, userId: string, deviceId: string): Promise<{ auth: boolean, left: boolean, visitorId: string } | null> {
+  const { rows } = await client.query<{ auth: boolean, is_left: boolean, visitor_id: string }>(
+    'SELECT auth, is_left, visitor_id FROM app_monitor_user WHERE user_id = $1 AND device_id = $2 ORDER BY last_active_at DESC LIMIT 1',
+    [userId, deviceId],
+  )
+  const row = rows[0]
+  if (row === undefined) {
+    return null
+  }
+  return { auth: row.auth, left: row.is_left, visitorId: row.visitor_id }
+}
+
+/**
+ * 读某用户的 WebAuthn 凭据行（`sys_user_mfa.type = 'webauthn'`）。
+ *
+ * `webauthn_public_key` 是 select:false 列（AES 密文），这里显式取长度：注册成功后
+ * 密文必须非空；`webauthn_credential_id` 与浏览器虚拟认证器里的 credentialId 同源
+ * （simplewebauthn 的 base64url），`webauthn_counter` 在每次断言后递增（防重放）。
+ */
+export async function findWebauthnMfaRow(client: Client, userId: string): Promise<{
+  id: string
+  deviceId: string
+  credentialId: string | null
+  counter: number
+  status: boolean
+  publicKeyCiphertextLength: number
+  lastUsedAt: Date | null
+} | null> {
+  const { rows } = await client.query<{
+    id: string
+    device_id: string
+    webauthn_credential_id: string | null
+    webauthn_counter: string | number
+    status: boolean
+    pk_len: number
+    last_used_at: Date | null
+  }>(
+    `SELECT id, device_id, webauthn_credential_id, webauthn_counter, status,
+            coalesce(length(webauthn_public_key), 0)::int AS pk_len, last_used_at
+       FROM sys_user_mfa WHERE user_id = $1 AND type = 'webauthn'`,
+    [userId],
+  )
+  const row = rows[0]
+  if (row === undefined) {
+    return null
+  }
+  return {
+    id: row.id,
+    deviceId: row.device_id,
+    credentialId: row.webauthn_credential_id,
+    // bigint 列经 pg 驱动默认是 string（实体侧有 transformer，直连 SQL 没有）
+    counter: Number(row.webauthn_counter),
+    status: row.status,
+    publicKeyCiphertextLength: row.pk_len,
+    lastUsedAt: row.last_used_at,
+  }
+}
+
 /** 硬删用户（按 userName；user_role / identity / user_device / RT 都是 CASCADE） */
 export async function deleteUserByUserName(client: Client, userName: string): Promise<number> {
   const result = await client.query('DELETE FROM sys_user WHERE user_name = $1', [userName])
@@ -475,4 +573,47 @@ export async function countDeletedRows(client: Client, deletedId: string): Promi
     [deletedId],
   )
   return rows[0]?.count ?? 0
+}
+
+/**
+ * 读 `sys_deleted` 里某个被删主键的快照行（恢复要 `id + deletedId` 双键；真删按 `id`）。
+ *
+ * `content` 是 jsonb 快照对象（恢复时原样插回原表），`model_name` 是恢复路由键
+ * （`WalnutAdminRecoverableRegistry`）—— 回收站闭环断言「快照里存的是被删行本身」用它。
+ */
+export async function findDeletedRowByDeletedId(client: Client, deletedId: string): Promise<{
+  id: string
+  deletedId: string
+  modelName: string
+  collectionName: string
+  deletedBy: string
+  content: Record<string, unknown>
+  deletedAt: Date | null
+} | null> {
+  const { rows } = await client.query<{
+    id: string
+    deleted_id: string
+    model_name: string
+    collection_name: string
+    deleted_by: string
+    content: Record<string, unknown>
+    deleted_at: Date | null
+  }>(
+    `SELECT id, deleted_id, model_name, collection_name, deleted_by, content, deleted_at
+       FROM sys_deleted WHERE deleted_id = $1 ORDER BY deleted_at DESC LIMIT 1`,
+    [deletedId],
+  )
+  const row = rows[0]
+  if (row === undefined) {
+    return null
+  }
+  return {
+    id: row.id,
+    deletedId: row.deleted_id,
+    modelName: row.model_name,
+    collectionName: row.collection_name,
+    deletedBy: row.deleted_by,
+    content: row.content,
+    deletedAt: row.deleted_at,
+  }
 }

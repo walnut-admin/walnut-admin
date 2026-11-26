@@ -55,11 +55,31 @@ export const ACCESS_TOKEN_LOCAL_STORAGE_KEY = 'WA__ACCESS_TOKEN'
 /** 登录会话键：请求拦截器按它是否存在选单/双因子签名，清登录态时必须和 AT 一起清 */
 export const AUTH_SESSION_LOCAL_STORAGE_KEY = 'WA__AUTH_SESSION_KEY'
 /**
+ * 浏览器指纹（`useAppStorageSync(FINGERPRINT)`，当前用它的只有 socket 房间键、
+ * monitor 心跳的 `visitorId` 与 WebAuthn 的设备名建议值）。**每个 E2E context 预置一个唯一值**，
+ * 理由见 `device-fixtures.ts` 的 seedFingerprint：真机指纹是「浏览器安装级」的，
+ * 同一台机器上所有 context 会算出同一个值，而 `app_monitor_user.visitor_id` 有唯一约束 ——
+ * 第二个 context 的心跳必然冲突（行键 deviceId 不同 ⇒ upsert 走 INSERT ⇒ 23505）。
+ */
+export const FINGERPRINT_LOCAL_STORAGE_KEY = 'WA__FINGERPRINT'
+/**
  * 应用引导（driver.js）的「已看过」cookie，真源是 admin 的 `useDriver('app-intro')`
  * （`driver-${key}`）。引导是全屏 SVG overlay 且 `allowClose: false`（关不掉），会拦截
- * cap-widget 的点击 —— 它只与首次使用的 UI 引导有关，与设备 / CAP 断言无关，测试里预置成已看过。
+ * cap-widget / 页头下拉的点击 —— 它只与首次使用的 UI 引导有关，与设备 / CAP / 权限断言无关，
+ * 测试里预置成已看过。
  */
 const APP_INTRO_COOKIE_NAME = 'driver-app-intro'
+
+/**
+ * 把 driver.js 引导标成「已看过」（当前 page 的 origin）。
+ *
+ * 要在**首次进入 default layout 之前**调用：overlay 一旦出来就没有关闭入口。`loginViaUI`
+ * 已经内置；自己写登录链路（例如 WebAuthn 的 `/mfa-required` → `/mfa-verified`）时必须显式调，
+ * 否则进系统后整个页面被引导遮罩盖住，页头下拉 / 卡片点击全部被拦截。
+ */
+export async function markAppIntroSeen(page: Page): Promise<void> {
+  await page.context().addCookies([{ name: APP_INTRO_COOKIE_NAME, value: 'true', url: new URL(page.url()).origin }])
+}
 
 export interface CapturedEnvelope {
   url: string
@@ -114,9 +134,11 @@ export function snapshotRecentEnvelopes(limit = 20): CapturedEnvelope[] {
  *
  * 只收同源 `/api/`：Sentry / iconify / 字体这类第三方 JSON 也是 `application/json`，
  * 混进来会把「最近 12 条」挤成它们的请求序列 —— 失败上下文对排查毫无用处。判据与
- * `installRealIpRoute` 的同源口径一致（`WEB_ORIGIN + /api/`）。
+ * `installRealIpRoute` 的同源口径一致（默认 `WEB_ORIGIN + /api/`；WebAuthn 用例的
+ * `localhost` origin 通过 `options.origin` 传入）。
  */
-export function captureEnvelopes(page: Page): { entries: CapturedEnvelope[], stop: () => void } {
+export function captureEnvelopes(page: Page, options: { origin?: string } = {}): { entries: CapturedEnvelope[], stop: () => void } {
+  const origin = options.origin ?? WEB_ORIGIN
   const entries: SequencedEnvelope[] = []
   captureRegistry.push(entries)
   capturePage.set(entries, page)
@@ -124,7 +146,7 @@ export function captureEnvelopes(page: Page): { entries: CapturedEnvelope[], sto
   const handler = (response: Response): void => {
     void (async () => {
       try {
-        if (!response.url().startsWith(`${WEB_ORIGIN}/api/`)) {
+        if (!response.url().startsWith(`${origin}/api/`)) {
           return
         }
         const contentType = response.headers()['content-type'] ?? ''
@@ -560,12 +582,16 @@ async function performLogin(
     ? { userName: options.userName, password: options.password ?? '', totpSecret: options.totpSecret ?? '' }
     : readCredentials()
 
-  // 登录后 default layout 会延迟 1.5s 启动 driver.js 引导；它的全屏 overlay 会拦截 cap-widget
-  // 的点击（自愈后的 40116 就发生在 layout 里）。登录页还没有 default layout，在这里预置
-  // 「已看过」最稳 —— 别等 overlay 出现后再关，`allowClose: false` 根本没有关闭入口。
-  await page.context().addCookies([{ name: APP_INTRO_COOKIE_NAME, value: 'true', url: WEB_ORIGIN }])
-
   await page.goto('/auth', { timeout: stepTimeout(budget, '打开登录页', 30_000) })
+
+  // 登录后 default layout 会延迟 1.5s 启动 driver.js 引导；它的全屏 overlay 会拦截 cap-widget
+  // 的点击（自愈后的 40116 就发生在 layout 里）。登录页还没有 default layout，在导航之后、
+  // layout 挂载之前预置最稳 —— 别等 overlay 出现后再关，`allowClose: false` 根本没有关闭入口。
+  //
+  // cookie 的 url 取**当前页面 origin**（而不是固定 WEB_ORIGIN）：WebAuthn 用例跑在
+  // `http://localhost:<port>`（Chrome 不接受 IP 作 RP ID，见 env.ts 的 WEBAUTHN_WEB_ORIGIN），
+  // 固定 127.0.0.1 会让那枚 cookie 落不到该 context 的域上。
+  await markAppIntroSeen(page)
 
   // 启动序列里就有请求可能被判「需要人机交互」（新设备的 DEVICE_NEW critical 因子）——
   // CAP 是 **WModal + 全屏 mask**，不先解掉它，登录表单点不动（fill 也会被焦点陷阱吞掉）。
@@ -659,4 +685,43 @@ export async function navigateInApp(page: Page, pathname: string): Promise<void>
     window.history.pushState({}, '', path)
     window.dispatchEvent(new PopStateEvent('popstate'))
   }, pathname)
+}
+
+/** 路由解析 / 组件挂载的等待上限：菜单路由都是本地异步 chunk，15s 足够慢环境加载 */
+const NAVIGATE_ROUTE_TIMEOUT_MS = 15_000
+
+/**
+ * 应用内导航到目标路由，并等**上一页真正离场**（E4 的 `reachability.spec.ts` 起于此，
+ * E5' 的其他旅程复用 —— 新页面导航一律走它，别手写 `navigateInApp` + `waitForURL`）。
+ *
+ * 为什么需要等离场：布局的 `WTransition` 是 `mode="out-in"`，导航后旧页面会先播 ~300ms
+ * 离场动画（`v-leave-to`），**这段时间旧 DOM 仍挂在内容容器里**。实测 `/demo/table/base`
+ * （菜单 component 解析成 undefined）会被上一页 `/home` 的残留卡片骗过 —— 「内容有元素子节点」
+ * 看起来成立。这里给旧根打一个临时标记，等它从 DOM 消失后再判新页；空组件路由此时容器为空，
+ * 挂载断言才会红。
+ *
+ * 同路径不触发过渡（首次进入 `/home` 就已在 `/home`），直接复用当前已挂载的页面。
+ */
+export async function navigateToRoute(page: Page, path: string, routeName: string, timeoutMs = NAVIGATE_ROUTE_TIMEOUT_MS): Promise<void> {
+  if (new URL(page.url()).pathname !== path) {
+    await page.evaluate(() => {
+      document.querySelectorAll('[data-e2e-stale-root]').forEach(el => el.removeAttribute('data-e2e-stale-root'))
+      const content = document.querySelector('[id$="-content"]')
+      content?.firstElementChild?.setAttribute('data-e2e-stale-root', '')
+    })
+
+    await navigateInApp(page, path)
+    await page.waitForURL(url => url.pathname === path, { timeout: timeoutMs })
+
+    await expect(
+      page.locator('[data-e2e-stale-root]'),
+      `${path} 导航后上一页组件没有离场（transition 未完成）`,
+    ).toHaveCount(0, { timeout: timeoutMs })
+  }
+
+  await page.waitForURL(url => url.pathname === path, { timeout: timeoutMs })
+  await expect(
+    page.locator(`#${routeName}-content`),
+    `${path} 没有内容容器 #${routeName}-content（路由 name 与菜单 name 不一致？）`,
+  ).toBeVisible({ timeout: timeoutMs })
 }
