@@ -10,7 +10,7 @@ import { SysUserIdentitySharedService } from '@walnut-server/identity'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract/response-code'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { bodyOf, expectOk, WalnutApiClient } from '../../helpers/api-client'
-import { performHttpOpaqueLogin, registerRootUserFixture } from '../../helpers/auth-login'
+import { attemptHttpOpaqueLogin, performHttpOpaqueLogin, registerRootUserFixture } from '../../helpers/auth-login'
 import { createApiApp } from '../../helpers/create-api-app'
 
 /**
@@ -318,6 +318,62 @@ describe('D 段：opaque me 通道改密 + admin 管理端 password update/clear
       start: startLoginRequest,
     })
     expect(bodyOf(startRes).code).toBe(WalnutAdminConstAppResponseCode.UNAUTHORIZED_INVALID_CREDENTIALS)
+  })
+
+  it('admin password/update：无口令用户（clear 后）可设初始口令 —— upsert 建行（修复静默 no-op）', async () => {
+    // 前序 clear 用例末尾 setAuth(null)；恢复主 fixture 的登录态
+    api.setAuth(mainTokens)
+    expect(await readPasswordIdentity(fixtureTarget!.userId)).toBeNull()
+
+    const initialPassword = `Init-${randomUUID().slice(0, 12)}#97`
+    const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password: initialPassword })
+    const startRes = await api.root('POST', api.apiPath('/auth/opaque/admin/password/update/start'), {
+      id: fixtureTarget!.userId,
+      start: registrationRequest,
+    })
+    expectOk(startRes, 'admin password update start (no identity)')
+    const registrationResponse = bodyOf<string>(startRes).data
+
+    const appName = app.get(ConfigService).get<string>('app.name')!
+    const { registrationRecord } = opaque.client.finishRegistration({
+      clientRegistrationState,
+      registrationResponse,
+      password: initialPassword,
+      identifiers: { client: fixtureTarget!.userName, server: appName },
+    })
+    const finishRes = await api.root('POST', api.apiPath('/auth/opaque/admin/password/update/finish'), {
+      id: fixtureTarget!.userId,
+      finish: registrationRecord,
+    })
+    expectOk(finishRes, 'admin password update finish (no identity)')
+    expect(bodyOf<boolean>(finishRes).data).toBe(true)
+
+    // 建行（不是无行可更的静默 no-op）：value 解密回本次 record、valueHash 是同口径盐化哈希
+    const identity = await readPasswordIdentity(fixtureTarget!.userId)
+    expect(identity).not.toBeNull()
+    const identityShared = app.get(SysUserIdentitySharedService)
+    expect(identityShared.decryptValue(identity!.value)).toBe(registrationRecord)
+    expect(identity!.value_hash).toBe(identityShared.generateValueHash(registrationRecord))
+    expect(
+      await api.pgDataSource.query(
+        'SELECT count(*)::int AS c FROM sys_user_identity WHERE user_id = $1 AND type = $2 AND purpose = $3',
+        [fixtureTarget!.userId, 'password', 'login'],
+      ),
+    ).toEqual([{ c: 1 }])
+
+    // 初始口令立即可用：真实 opaque 登录链跑通
+    apiTarget.setAuth(null)
+    const loginAttempt = await attemptHttpOpaqueLogin(apiTarget, app, {
+      userName: fixtureTarget!.userName,
+      password: initialPassword,
+      userId: fixtureTarget!.userId,
+    })
+    expect(loginAttempt.code).toBe(WalnutAdminConstAppResponseCode.SUCCESS)
+    expect(typeof loginAttempt.data?.accessToken).toBe('string')
+
+    targetPassword = initialPassword
+    // 恢复匿名态：后续 client-error 用例用 anon() 单因子签名，挂着 AT 会撞 40112
+    api.setAuth(null)
   })
 
   it('login/client-error：上报恒 40103 InvalidCredential（E 段终审补漏）', async () => {

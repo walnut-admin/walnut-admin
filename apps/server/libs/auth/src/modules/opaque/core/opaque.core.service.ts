@@ -271,8 +271,12 @@ export class AuthOpaqueCoreService {
   }
 
   /**
-   * Finish password change process
-   * Updates user's registration record in user_identity table
+   * Finish password change process（P1-14 口径：upsert，2026-11-26）
+   *
+   * 按 `userId` **upsert** password identity：已有口令 ⇒ 替换 value/valueHash；无口令
+   * （管理端「设置初始口令」/ clear 后重置）⇒ 建行。修复前走 `updateByUserIdTypeAndPurpose`，
+   * 未命中返回 null 但服务仍返回 true —— 无口令用户改密是**静默 no-op**。
+   * 并发收敛与 `finishRegister` 同一条：`(user_id, type, purpose)` 唯一索引 + ON CONFLICT。
    *
    * @param userName - Username from authenticated user token
    * @param newPassword - New base64-encoded registration record from client
@@ -290,17 +294,18 @@ export class AuthOpaqueCoreService {
     }
 
     try {
-      // Update password identity in user_identity table（①：密文 + 盐化哈希，同 finishRegister）
-      await this.userIdentityRepo.updateByUserIdTypeAndPurpose(
-        user.id,
-        'password',
-        'login',
-        {
-          value: this.userIdentitySharedService.encryptValue(newPassword),
-          valueHash: this.userIdentitySharedService.generateValueHash(newPassword),
-        },
-        em,
-      )
+      // Upsert password identity（①：密文 + 盐化哈希，写集与 finishRegister 逐字一致）
+      await this.userIdentityRepo.upsertIdentity({
+        userId: user.id,
+        type: 'password',
+        purpose: 'login',
+        value: this.userIdentitySharedService.encryptValue(newPassword),
+        valueHash: this.userIdentitySharedService.generateValueHash(newPassword),
+        maskedValue: '********',
+        verified: true,
+        verifiedAt: new Date(),
+        metadata: {},
+      }, em)
 
       this.logger.log(`Password changed successfully for user: ${userName}`)
 

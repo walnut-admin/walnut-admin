@@ -372,10 +372,10 @@ pnpm walnut build:docs
 | mobile（Pixel 7）响应式 | R4 `tests/mobile/layout.spec.ts`：设备描述符生效（navigator UA 含 Mobile/Android）、登录页无横向溢出、设备真实登记 |
 
 **非 root 用户怎么来的**：`POST /system/user` 不带口令，`/auth/opaque/user/register/*` 又要求
-已登录（鸡生蛋）。`apps/e2e/lib/account-fixtures.ts` 复刻服务端 `AuthOpaqueCoreService` 的注册链
-（`AUTH_OPAQUE_SECRET` = serverSetup、`userIdentifier = userName`），把 registrationRecord 按
-`finishRegister` 的口径**加密**（AES-GCM + 盐化 HMAC，密钥/盐与后端同取 `.env.stage`）写入
-`sys_user_identity`；之后全部走真实协议登录，不伪造 AT / 会话。
+已登录（鸡生蛋）。`apps/e2e/lib/account-fixtures.ts` 先建号，再用 root 调**真实管理端端点**
+`POST /auth/opaque/admin/password/update/{start,finish}` 设初始口令（2026-11-26 起
+`finishChangePassword` 对无口令用户 upsert 建行；此前 update 未命中静默 no-op，fixture 只能按
+`finishRegister` 口径加密后直写 `sys_user_identity`）。之后全部走真实协议登录，不伪造 AT / 会话。
 
 **实测（本机 WSL 栈，单次读数）**：default 全量 **31 例 / 266.5s**（改造前基线 20 例 / 229.4s；
 新增 11 例自身约 25s，其余为 risk 项目 UI 用例波动）；`E2E_STACK_PROFILE=smoke` **8/8 56.3s**、
@@ -406,6 +406,10 @@ M5 踢下线 40101、M6 登出 40101、mobile 视口宽度。
    **不做存量迁移**（生产未上线）：本地库里 ① 之前的明文行会在下次登录解密失败 ⇒ 40103，
    重置数据栈（`pnpm walnut db:seed:pg` / E2E 全量 prepare 会重建）或重新补挂口令即可。
    E2E 的建号 fixture 同步改成加密写入（密钥/盐与后端同取 `.env.stage`）。
+   **另（2026-11-26）**：`finishChangePassword` 此前对**无口令用户**是静默 no-op（update 未
+   命中返回 null、服务仍返回 true）—— 管理端「设初始口令」不生效；已改为与 `finishRegister`
+   同口径的 `upsertIdentity`（无行建行 / 有行替换），E2E 建号 fixture 随之改走真实管理端
+   `admin/password/update/{start,finish}` 端点，不再自行加密直写库。
 6. ~~**TOTP unbind 不回落 `sys_user.mfa_setup`**~~（2026-11-26 F2 已修）：unbind 在删
    `sys_user_mfa` 行的同一事务里把账号级 `mfa_setup` 置 false（与 `/auth/mfa/verify` 置 true
    同一条写腿）；cron 仍按 `methodsRequiredCount` 做最终收敛。E2E M4 同步断言 unbind 后

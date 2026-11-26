@@ -342,9 +342,9 @@ P2-32 修复后（2026-10-29）：`security-policy`（改密/敏感操作）在 
 | POST `/auth/opaque/user/register/start` | JWT 生效（无 Free） | 无 | `{ start }` → string；已登录补挂口令（P1-14：不再按 userName 查重） |
 | POST `/auth/opaque/user/register/finish` | JWT 生效 + `@WalnutTx()` | 无 | `{ finish }` → boolean；按 `userId` upsert password identity（存在替换 / 不存在建） |
 | POST `/auth/opaque/user/change-password/start` | Functional(`change`) | `me:auth:opaque:changePassword` | `{ start }` → string |
-| POST `/auth/opaque/user/change-password/finish` | Functional(`change`) + `@WalnutTx()` + 操作日志 | `me:auth:opaque:changePassword` | `{ finish }` → boolean；全设备撤 RT（reason=`updatePass`） |
+| POST `/auth/opaque/user/change-password/finish` | Functional(`change`) + `@WalnutTx()` + 操作日志 | `me:auth:opaque:changePassword` | `{ finish }` → boolean；password identity 按 `userId` **upsert**（与 register 同口径）；全设备撤 RT（reason=`updatePass`） |
 | POST `/auth/opaque/admin/password/update/start` | 全链 | `system:user:pass:update` | `{ id, start }` → string |
-| POST `/auth/opaque/admin/password/update/finish` | `@WalnutTx()` + 操作日志 | `system:user:pass:update` | `{ id, finish }` → boolean；目标用户全设备撤 RT |
+| POST `/auth/opaque/admin/password/update/finish` | `@WalnutTx()` + 操作日志 | `system:user:pass:update` | `{ id, finish }` → boolean；目标用户 password identity **upsert**（无口令用户建行 ⇒ 管理端设初始口令）；目标用户全设备撤 RT |
 | POST `/auth/opaque/admin/password/clear` | `@WalnutTx()` + 操作日志 | `system:user:pass:clear` | `{ id }` → boolean（幂等；删 password identity） |
 | POST `/auth/otp/send` | JwtFree + Sign + Functional(`authEnable`) + Functional(`sendEnable`) + OTP 限流（P1-16 起动态 `sendLimit`/`sendTtl` 生效且同步 blockDuration） | 无 | `{ type, identifier }` → boolean；关闭 50301 |
 | POST `/auth/otp/verify` | JwtFree + Sign + Functional(`authEnable`) + `OtpGuard` + AuthLog + `@WalnutTx()` | 无 | `{ type, identifier, verifyCode }` → `{ accessToken, sessionKey }` + RT cookie |

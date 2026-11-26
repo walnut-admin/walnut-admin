@@ -29,24 +29,27 @@ const DEVICE_ID = 'spec-device'
 let serverSetup = ''
 let registrationRecord = ''
 
-beforeAll(async () => {
-  await opaque.ready
-
-  serverSetup = opaque.server.createSetup()
-
-  // 造一份**真实**的 registration record（等价于用户当年注册时落库的那一条）
-  const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password: PASSWORD })
+/** 造一份**真实**的 registration record（等价于用户注册时落库的那一条） */
+function createRegistrationRecord(password: string) {
+  const { clientRegistrationState, registrationRequest } = opaque.client.startRegistration({ password })
   const { registrationResponse } = opaque.server.createRegistrationResponse({
     serverSetup,
     userIdentifier: USER_NAME,
     registrationRequest,
   })
-  registrationRecord = opaque.client.finishRegistration({
+  return opaque.client.finishRegistration({
     clientRegistrationState,
     registrationResponse,
-    password: PASSWORD,
+    password,
     identifiers: { client: USER_NAME, server: APP_NAME },
   }).registrationRecord
+}
+
+beforeAll(async () => {
+  await opaque.ready
+
+  serverSetup = opaque.server.createSetup()
+  registrationRecord = createRegistrationRecord(PASSWORD)
 })
 
 const EM = { marker: 'entity-manager' } as unknown as EntityManager
@@ -62,33 +65,73 @@ interface IServiceOptions {
  * 用可逆标记而不是真 AES：本文件测的是 auth 侧的**调用口径**（落库前加密 / 读回必解密），
  * AES-GCM 本身由 `crypto.service.spec.ts` 与 identity 侧负责。`decryptValue` 对非密文
  * （= ① 之前的旧明文行）直接抛 —— 与真实实现一致，用来钉「旧明文行 ⇒ 40103」。
+ *
+ * 三个函数同时给「vi 断言用的 spy」与「直接算值用的纯函数」两副面孔：seed 假库时用纯函数，
+ * 免得把 spy 的调用次数提前打脏（断言 `toHaveBeenCalledExactlyOnceWith` 会假红）。
  */
+function encryptStub(value: string) {
+  return `enc:${Buffer.from(value, 'utf8').toString('base64')}`
+}
+
+function hashStub(value: string) {
+  return `hash:${value}`
+}
+
 function identityCryptoStub() {
   return {
-    encryptValue: vi.fn((value: string) => `enc:${Buffer.from(value, 'utf8').toString('base64')}`),
+    encryptValue: vi.fn(encryptStub),
     decryptValue: vi.fn((value: string) => {
       if (!value.startsWith('enc:')) {
         throw new Error('Invalid encrypted data: missing ① envelope')
       }
       return Buffer.from(value.slice(4), 'base64').toString('utf8')
     }),
-    generateValueHash: vi.fn((value: string) => `hash:${value}`),
+    generateValueHash: vi.fn(hashStub),
   }
 }
+
+interface IIdentityRow {
+  userId: string
+  type: string
+  purpose: string
+  value: string
+  valueHash: string
+  maskedValue: string
+  verified: boolean
+  verifiedAt: Date
+  metadata: Record<string, unknown>
+}
+
+const rowKey = (userId: string, type: string, purpose: string) => `${userId}:${type}:${purpose}`
 
 function createService(options: IServiceOptions) {
   const identityCrypto = identityCryptoStub()
   const findUserByUserName = vi.fn(async () => options.user)
+  // 假库：(user_id, type, purpose) 唯一 —— upsert 命中即覆盖、未命中建行，读腿等价
+  const rows = new Map<string, IIdentityRow>()
+  if (options.user !== null && options.identity !== null) {
+    rows.set(rowKey(options.user.id, 'password', 'login'), {
+      userId: options.user.id,
+      type: 'password',
+      purpose: 'login',
+      value: encryptStub(options.identity),
+      valueHash: hashStub(options.identity),
+      maskedValue: '********',
+      verified: true,
+      verifiedAt: new Date(),
+      metadata: {},
+    })
+  }
   // 读腿返回**密文**（① 之后库里的真实形态）
-  const getValueByUserIdTypeAndPurpose = vi.fn(async (userId: string) => {
-    if (options.user !== null && userId === options.user.id && options.identity !== null) {
-      return identityCrypto.encryptValue(options.identity)
-    }
-
-    return null
+  const getValueByUserIdTypeAndPurpose = vi.fn(async (userId: string, type: string, purpose: string) => {
+    return rows.get(rowKey(userId, type, purpose))?.value ?? null
   })
-  const upsertIdentity = vi.fn(async () => null)
-  const updateByUserIdTypeAndPurpose = vi.fn(async () => null)
+  const upsertIdentity = vi.fn(async (payload: IIdentityRow) => {
+    const key = rowKey(payload.userId, payload.type, payload.purpose)
+    const next = { ...rows.get(key), ...payload }
+    rows.set(key, next)
+    return next
+  })
   const setOpaqueServerStateCache = vi.fn(async () => undefined)
 
   const configService = {
@@ -101,7 +144,7 @@ function createService(options: IServiceOptions) {
     configService as never,
     {} as never,
     { findUserByUserName } as never,
-    { getValueByUserIdTypeAndPurpose, upsertIdentity, updateByUserIdTypeAndPurpose } as never,
+    { getValueByUserIdTypeAndPurpose, upsertIdentity } as never,
     identityCrypto as never,
   )
 
@@ -110,9 +153,10 @@ function createService(options: IServiceOptions) {
     findUserByUserName,
     getValueByUserIdTypeAndPurpose,
     upsertIdentity,
-    updateByUserIdTypeAndPurpose,
     setOpaqueServerStateCache,
     identityCrypto,
+    /** 假库直读（断言「建行 / 替换」用；userId 固定 password/login 行） */
+    getIdentityRow: (userId = USER_ID) => rows.get(rowKey(userId, 'password', 'login')) ?? null,
   }
 }
 
@@ -244,26 +288,74 @@ describe('opaque.core：password 身份加密落库与读回（①）', () => {
     expect(payload.value).not.toBe(registrationRecord)
   })
 
-  it('finishChangePassword：同样加密 + 盐化哈希后更新', async () => {
-    const { service, updateByUserIdTypeAndPurpose, identityCrypto } = createService({
+  it('finishChangePassword：已有口令用户 ⇒ upsert 替换原行（不新增第二行），加密 + 盐化哈希同 finishRegister', async () => {
+    const oldRecord = createRegistrationRecord('spec-old-password')
+    const newRecord = createRegistrationRecord('spec-new-password')
+    const { service, upsertIdentity, identityCrypto, getIdentityRow } = createService({
+      user: { id: USER_ID, userName: USER_NAME },
+      identity: oldRecord,
+    })
+
+    await expect(service.finishChangePassword(USER_NAME, newRecord, EM)).resolves.toBe(true)
+
+    expect(identityCrypto.encryptValue).toHaveBeenCalledExactlyOnceWith(newRecord)
+    expect(identityCrypto.generateValueHash).toHaveBeenCalledExactlyOnceWith(newRecord)
+    expect(upsertIdentity).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        userId: USER_ID,
+        type: 'password',
+        purpose: 'login',
+        value: encryptStub(newRecord),
+        valueHash: hashStub(newRecord),
+        maskedValue: '********',
+        verified: true,
+        metadata: {},
+      }),
+      EM,
+    )
+
+    // 假库判据：仍是同一行（替换，不是又建一行），且值换成新 record 的密文/哈希
+    const row = getIdentityRow()
+    expect(row).not.toBeNull()
+    expect(row!.value).toBe(encryptStub(newRecord))
+    expect(row!.valueHash).toBe(hashStub(newRecord))
+    expect(row!.value).not.toBe(encryptStub(oldRecord))
+    expect(identityCrypto.decryptValue(row!.value)).toBe(newRecord)
+  })
+
+  it('finishChangePassword：无口令用户（管理端设初始口令）⇒ upsert 建 identity 行并返回 true（修复静默 no-op）', async () => {
+    const record = createRegistrationRecord('spec-initial-password')
+    const { service, upsertIdentity, identityCrypto, getIdentityRow } = createService({
       user: { id: USER_ID, userName: USER_NAME },
       identity: null,
     })
 
-    await expect(service.finishChangePassword(USER_NAME, registrationRecord, EM)).resolves.toBe(true)
+    // 前置：该用户没有 password identity 行（旧实现 update 未命中仍返回 true = 静默 no-op）
+    expect(getIdentityRow()).toBeNull()
 
-    expect(identityCrypto.encryptValue).toHaveBeenCalledExactlyOnceWith(registrationRecord)
-    expect(identityCrypto.generateValueHash).toHaveBeenCalledExactlyOnceWith(registrationRecord)
-    expect(updateByUserIdTypeAndPurpose).toHaveBeenCalledExactlyOnceWith(
-      USER_ID,
-      'password',
-      'login',
-      {
-        value: `enc:${Buffer.from(registrationRecord, 'utf8').toString('base64')}`,
-        valueHash: `hash:${registrationRecord}`,
-      },
+    await expect(service.finishChangePassword(USER_NAME, record, EM)).resolves.toBe(true)
+
+    expect(upsertIdentity).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        userId: USER_ID,
+        type: 'password',
+        purpose: 'login',
+        value: encryptStub(record),
+        valueHash: hashStub(record),
+        maskedValue: '********',
+        verified: true,
+        metadata: {},
+      }),
       EM,
     )
+
+    const row = getIdentityRow()
+    expect(row).not.toBeNull()
+    expect(row!.value).toBe(encryptStub(record))
+    expect(row!.valueHash).toBe(hashStub(record))
+    expect(identityCrypto.decryptValue(row!.value)).toBe(record)
+    expect(row!.verified).toBe(true)
+    expect(row!.verifiedAt).toBeInstanceOf(Date)
   })
 
   it('startLogin 读回密文并解密：OPAQUE 握手能跑通（喂进 opaque 的必须是原文）', async () => {

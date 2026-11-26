@@ -945,9 +945,10 @@ E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`
 - **device profile**：新增 1 个 `mobile` Playwright project（Pixel 7），只跑登录页布局断言；
   共用 default 栈、不进 `E2E_STACK_PROFILE` / CI matrix。**这不是 R3 的 stack profile 维度**，
   规模判据写在计划页 §9.1（业务链路换浏览器不产生新信息；为秒级用例复制数据栈不划算）。
-- **非 root 可登录账号 fixture**：`lib/account-fixtures.ts` 复刻服务端 OPAQUE 注册链
-  （`AUTH_OPAQUE_SECRET` / `userIdentifier=userName`），按 `finishRegister` 口径写
-  `sys_user_identity`；之后全走真实协议登录。**不要**用伪造 AT 绕过。
+- **非 root 可登录账号 fixture**：`lib/account-fixtures.ts` 先 `POST /system/user` 建号，再用
+  root 调真实管理端 `admin/password/update/{start,finish}` 设初始口令（`finishChangePassword`
+  对无口令用户是 upsert 建行，2026-11-26 修掉静默 no-op）；之后全走真实协议登录。**不要**用
+  伪造 AT 绕过。
 - **修掉一个既有 IP 分配缺陷**：Playwright 每个 spec 文件是独立 worker，模块级 `localIpSeq`
   会重置 —— 多个文件从同一 IP 起步，叠加后撞 `device/initial` 的 4 次/60s 桶（新增模块 spec 后
   首次复现 42900）。修法：`uniqueLocalIp` 从 **pid 偏移**起步 + `bootstrap` 42900 **换地址重放**
@@ -957,7 +958,8 @@ E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`
   `risk` **22/22 212.2s**、`network` **2/2 13.2s**；e2e 单测 **240/240**。11 条新用例的核心断言
   全部做过「改坏 → 红 → 还原」的负对照。
 - **转报服务端的观察**（不在 e2e 改）：~~password identity 明文落库~~（2026-11-26 F2 已改成
-  AES-GCM 密文 + 盐化哈希，读腿解密）；~~`treeWithoutTypeElement`
+  AES-GCM 密文 + 盐化哈希，读腿解密；其 `finishChangePassword` 对无口令用户曾静默 no-op，
+  同日已改 upsert 建行）；~~`treeWithoutTypeElement`
   非递归 element-free~~（2026-11-26 F1 已改成递归过滤，E2E 断言同步升级）；~~menu update 的
   「可选字段」会被 Transform 写成 null~~（2026-11-26 F1 已改成真 partial，新增用例钉住）；
   ~~TOTP unbind 不回落 `mfa_setup`~~（2026-11-26 F2 已改成同事务回落，M4 补断言）；

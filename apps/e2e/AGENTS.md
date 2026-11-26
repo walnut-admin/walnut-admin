@@ -149,11 +149,12 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
    （仅本栈库的设置行），restore 继承快照里的这个值。别把测试专用的放宽写进源码。
 10. **设备清理归 fixture**（`tests/fixtures.ts` 的两个 auto fixture）：新造的设备要 `trackDevice`，
     别在用例末尾手写 `cleanupDevices(...)` —— 断言失败时那几行根本不会执行。
-11. **非 root 可登录账号只经 `lib/account-fixtures.ts` 造**：管理端没有「建号带口令」的 API
-    （`POST /system/user` 不带口令；`/auth/opaque/user/register/*` 要求已登录）。fixture 复刻
-    服务端 OPAQUE 注册链并按 `finishRegister` 的口径把 registrationRecord 明文写进
-    `sys_user_identity`，之后**必须走真实协议登录**。不要伪造 AT / 会话去换权限断言 —— 那会把
-    JWT / 会话 / MFA 三条守卫一起绕掉，测出来的「权限生效」没有意义。
+11. **非 root 可登录账号只经 `lib/account-fixtures.ts` 造**：管理端没有「建号 + 口令」的单端点
+    （`POST /system/user` 不带口令；`/auth/opaque/user/register/*` 要求已登录）。fixture 先建号，
+    再用 root 调**真实管理端端点** `POST /auth/opaque/admin/password/update/{start,finish}` 设初始
+    口令（`finishChangePassword` 对无口令用户是 upsert 建行 —— 2026-11-26 前的 update 实现会静默
+    no-op，当时只能按 `finishRegister` 口径直写库）。之后**必须走真实协议登录**。不要伪造 AT / 会话
+    去换权限断言 —— 那会把 JWT / 会话 / MFA 三条守卫一起绕掉，测出来的「权限生效」没有意义。
 
 ## 排障
 
