@@ -311,6 +311,83 @@ unlock 语义随之收紧：`lockMode=security` 时 `lockPwdHash` 必填，缺�
 > 面（password/sms/mfa）在仅密码用户上不可用（P1-5 已摘除 password 通道），会让端点对
 > 零配置用户恒 40000；锁屏密码本身就是解锁验证的凭据。
 
+### 4.4 计次与退避（L1，2026-11-27）
+
+`sys_user_lock` 新增三列（migration `1793400000000-UserLockPwdAttempts`）：
+`lock_pwd_fail_count`（连续失败次数）、`lock_pwd_locked_until`（退避截止）、
+`lock_pwd_updated_at`（最近设置/变更时间，**不是** bcrypt cost 版本号）。
+
+- **共用预算**：security 模式的锁屏密码解锁与 fallback（登录口令）验证共用同一套计数 ——
+  防止挑弱通道打；`default`/`idle` 的免密解锁不计数（没有可猜的凭据）。
+- **曲线**：前 4 次失败只计次；第 5 次起 30s → 1m → 2m → 5m → 15m → 30m 封顶。
+  唯一真源是 `apps/server/libs/identity/src/user_lock/lock-pwd-backoff.ts`（DB 只落计数与截止时间）。
+- **退避期一律拒绝**（与密码对错无关）：40000 + `meta.retryAfterSec`，避免「对密码也要等」
+  退化成计时侧信道；退避期被拒不计次（否则轮询会把用户永久锁死）。
+- **计次写独立事务**：`recordUnlockFailure` 自开一条事务 —— 调用方随后抛 40000，请求事务
+  回滚，失败次数必须留下（同一事务里写等于永远落不了库）。
+- 成功解锁、fallback 成功、管理员重置三者都清零计数与退避。
+- `lockPwdHash: ''` 视为**不修改**（D2）：仓库写入路径摘除空串，DTO 的 `IsNotEmpty` 也会
+  拒绝；`security` 模式且既无新密码也无旧 hash → 40000。密码长度 6–64（Q4）。
+
+### 4.5 解锁凭据分级与兜底（L1）
+
+`locked` 只有一条写入腿（`lockUserDeviceMainLogic`），解锁凭据有三种，语义同构：
+
+| 入口 | 端点 | 说明 |
+|---|---|---|
+| 锁屏密码 | `PATCH /system/user/lock/unlock` | security 模式必填；bcrypt 比对 + 计次 |
+| 登录口令（fallback） | `POST /system/user/lock/verify/{start,finish}` | 复用 OPAQUE 登录交换（`scope='unlock'` 独立缓存命名空间）；LockFree、**不** MFAFree；**不签发 token**，验证通过就地解锁 |
+| 一次完整登录 | 登录漏斗（`AuthSharedService.generateAuthTokens`） | 按 `lockCrossDevice` 自动解锁（跨设备=全解，单设备=只解本台）；无锁态时不广播 |
+
+fallback 细节：`verify/finish` 成功后写一枚「解锁授权」缓存
+（`SECURITY:LOCK:<uid>:<did>:UNLOCK_AUTH`，60s、单次消费、设备作用域）—— 只给「响应在
+网络上丢了」的客户端留一次免密重试；它与登录共用 `startLogin/finishLogin` 内核，密码永不
+离开客户端。失败一律 40103（与登录同码）+ `meta.failCount/retryAfterSec`。
+
+**与 DuplicateSignIn 的组合**：同一 `(userId, deviceId)` 已有现役 RT 时
+`generateRefreshToken` 会先抛 40109，所以「同设备重新登录」不可达；方案②可达的只有
+「换设备登录」或「先 signout 再登录」，两者都是真实的新凭据证明。
+
+管理员重置（Q6）：`PUT /system/user/lock/reset/:userId`，权限 `system:user:lock:reset`
+（root 短路），**非** LockFree（管理员自己被锁时不能用它给自己开后门）。只清全部
+`user_device.locked` + 计次 + 锁缓存并广播 UNLOCK，**不读不碰 `lock_pwd_hash`**；
+审计落 `sys_log_operate`（`user.lock.reset`）。
+
+不变量：**I1** `locked` 只有一条写入腿；**I2** 持有有效 AT 不是解锁凭据；**I3** 登录成功
+即按偏好解锁（与①同构）。
+
+### 4.6 请求体加密信封（Q10，锁屏密码是第一个消费端点）
+
+`PATCH lock/preference` 与 `PATCH lock/unlock` 的 `lockPwdHash` 支持请求信封：
+`base64(JSON{ enc:'AES_256_GCM', key, iv, ct, tag })`，
+`key = RSA-OAEP-SHA256(服务端 RSA 公钥, aesKey)`。服务端
+`@WalnutAdminDecoratorDecryptRequest` 用 app key 私钥解出 AES key，再 AES-GCM 还原，
+**把明文真的写回 `request.body`**（`@Body()` + ValidationPipe 因此拿到明文）。
+
+- 未启用信封的客户端（明文）**原样透传** —— 灰度兼容；字段级强制留作后续硬化。
+- 信封可识别但解不开 ⇒ 40011（客户端清公钥缓存 → 重拉 → 重放，自愈协议不变）。
+- **签名覆盖密文**：admin 拦截器先加密再算 Sign（服务端 sign.guard 签的是网络形态的
+  `req.body`）；旧顺序「先签名后加密」会让两侧原文错位、恒 40112。
+- `lock_pwd_hash` 永不出现在任何响应里；`GET lock/read` 只回布尔 `lockPwdSet`（G4）。
+
+### 4.7 idle 服务端兜底：本期不做（Q9 = B）
+
+现状：`lockIdleSec` 只被客户端 `useIdle` 消费，服务端没有定时器、没有 `last_active_at`，
+「空闲锁」不是安全边界（挡的是人离开工位后的顺手翻看）。
+
+若将来要做（独立议题），设计思路：
+
+1. `sys_user_device` 增 `last_active_at timestamptz`，由 DeviceGuard 在**受控频率**下更新
+   （不是每请求一写：按 `now() - last_active_at > 1min` 才写，避免写放大）；
+2. 判定放在 `getLockForGuard`：`lockMode ∈ {idle, security}` 且
+   `now() - last_active_at >= lock_idle_sec` ⇒ 视同锁定，与 `user_device.locked` 做**或**
+   运算，仍然走 40118 与同一条解锁执行腿（不新增「锁定真源」列）；
+3. 必须先解决三个坑：后台标签页 / 媒体播放会被误判空闲（需要可见性与心跳语义参与）；
+   socket 断开后 `last_active_at` 停更会让所有设备被判锁（需要心跳兜底与 grace）；
+   多实例时钟偏差要求判定只用 DB `now()`。
+
+结论：**接受现状**（客户端为主），把上面这段作为立项时的前置约束，不放进本期。
+
 ## 5. MFA（user_mfa）
 
 ### 5.1 表形态与密文列
