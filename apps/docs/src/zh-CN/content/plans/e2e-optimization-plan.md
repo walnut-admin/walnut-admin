@@ -720,6 +720,14 @@ jobs:
 - **CI 墙钟估算**：测试阶段从单 job 全量 **231.2s** 降到最慢 profile（risk）**191.8s**，约省 **39s（≈17%）**；install / build / 两处 stage / playwright install 这些固定开销三个 job 并行执行，墙钟约等于「最慢 job + 固定开销」，机器时间约 **3×**（每个 job 各付一遍）。
 - **负对照**：(a) `E2E_STACK_PROFILE=typo` ⇒ 打印可选项并退出 2；(b) risk profile 下 `assertE2eDatabase('walnut_e2e_smoke')`（profile 不匹配）与 `'walnut_pg'`（形态不合法）均拒绝；(c) smoke 协议客户端创建设备后，risk / network 库查该 deviceId 均 **0 行**；反向 risk → smoke / network 同样 0 行；(d) 把 smoke 的三件套拷进 `.e2e/risk/` ⇒ `baselineUsable` 判 `invalid`（manifest 的 profile/database 不符）；(e) 同机先起 smoke run、再起 risk run ⇒ risk 在全局锁上持续等待，smoke 结束后才串行执行。
 - **未做**：设计 §4 的「收尾探针进 `run.ts`」是建议项，本批用外部探针脚本完成负对照（fixture 按内存登记精确删，run 结束时设备列表通常为空）；没有为它新增运行时机制。Phase B（per-worker）仍不做。
+- **E3 追记（2026-11-26，扩面 profile 预留）**：profile 表从 3 个命名 profile 扩到 **5 个**，沿用槽位公式、不发明新格式 —— `pages`（库 `walnut_e2e_pages`、3104 / 3014 / 4184、IP 槽位 4 → `127.0.{41,42}.*`、锁 `2026112405`）与 `journey`（`walnut_e2e_journey`、3105 / 3015 / 4185、槽位 5 → `127.0.{51,52}.*`、锁 `2026112406`）；E4 / E5 的扩面用例分别落 `tests/pages/`、`tests/journey/`。
+  - **零改动即生效的派生面**（数据驱动而非新分支）：`env.ts` 的库 / 端口 / 基线 / 凭据路径、preflight 的端口检查、`e2e:stack:status` 的 profile 行、`e2e:clean` 的 profile 子目录递归、清单 v3 的 `profile` / `database`、`assertE2eDatabase`（既有正则 `^walnut_e2e(?:_[a-z]+)?$` 已覆盖）全部从 profile 表 / `NAMED_STACK_PROFILES` 读取；实测 status 打印五个 profile 的基线存在性、clean 保留 pages / journey 的三件套。
+  - **Playwright**：两个 project 注册（profile 与 project 同名 1:1，`resolveProfileTestArgs` 的错配 fail-fast 对它们同样生效）；本批目录只有 README，**空 project 刻意不挂 setup 依赖** —— 挂了 `auth-setup` 时 `--project=pages` 会跑完依赖用例并返回 0（假绿），不挂时才是「No tests found」退 1 的诚实状态。
+  - **CI**：matrix 扩到 5 job（`smoke` / `risk` / `network` / `pages` / `journey`，`fail-fast: false`），基线缓存 key / artifact 名自动带 profile；前三个 job 的并集仍是本地全量覆盖面，pages / journey 在 E4 / E5 落地前预期红。
+  - **affected**：`apps/admin/src/views/**`、`router/**` → `pages`；admin `socket/**`、`App/AppLock`、锁屏 store（`app-lock.ts`）、`api/system/user_lock.ts` 与 admin auth 面 → `journey`（auth 面同时触发 smoke，映射是加法）；server 的 auth / identity / socket 仍走全量安全网（E5 落地前不提前收窄，避免丢掉 risk 的 auth-matrix 覆盖）；`targetProfiles` 的 `all` 变为五个命名 profile。
+  - **基建实测（本机 WSL 栈，不跑 playwright）**：`E2E_STACK_PROFILE=pages` prepare 2.6s + seal 2.4s（dump 238139 B）、restore 1.3s；`journey` prepare 2.6s + seal 0.9s（dump 238157 B）、restore 2.0s；两轮锁日志均为全局 `2026112401` + profile `2026112405` / `2026112406`；manifest v3 的 `profile` / `database` 与当前 profile 一致，`walnut_e2e_pages` / `walnut_e2e_journey` 建库成功；IP 段 `127.0.41.10`–`127.0.42.249` / `127.0.51.10`–`127.0.52.249`。
+  - **负对照**：`E2E_STACK_PROFILE=pages pnpm walnut e2e --project=smoke` 在动锁 / 动库之前退 2；空 `--project=pages` / `--project=journey` 以「No tests found」退 1。
+  - **default profile 全量**：**35/35 全绿、495.5s**（`--project` 不设，pages / journey 空 project 不产生用例）；E2 记录的 459.4s 是同一台机器的上一轮读数，差值落在测试执行波动内（S1 / S2 各约 90s，与 E2 的 86.9 / 88.6s 同量级）—— E3 没有改 run 路径。首轮 516.3s 曾出现 S2 在 120s 上限超时（当时并发跑了文档门禁），机器闲置单跑 S2 1.5m 通过，判定为接近全局 timeout 的时间边界，非 E3 回归。
 
 ---
 

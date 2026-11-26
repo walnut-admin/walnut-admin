@@ -6,7 +6,7 @@
 权限生效）、auth 面矩阵（MFA 绑定态 / 会话 / 登出）和 mobile（Pixel 7）布局。
 
 数据栈与 dev **物理隔离**：独立端口（5433 / 6380，dev 是 5432 / 6379）+ 独立库（默认
-`walnut_e2e`；`smoke` / `risk` / `network` profile 各用 `walnut_e2e_<profile>`）。
+`walnut_e2e`；`smoke` / `risk` / `network` / `pages` / `journey` profile 各用 `walnut_e2e_<profile>`）。
 `scripts/env.ts` 的安全闸在任何破坏性操作之前核对库名与端口 —— 配错或 env 读串都在
 `DROP DATABASE` 之前当场抛错，而不是在之后。
 
@@ -23,9 +23,14 @@ fail-fast（退出码 2）。`default` 的值与改造前逐字相同。
 | `smoke` | `walnut_e2e_smoke` | 3101 / 3011 / 4181 | `127.0.{11,12}.*` | `.e2e/smoke/` | 2026112402 |
 | `risk` | `walnut_e2e_risk` | 3102 / 3012 / 4182 | `127.0.{21,22}.*` | `.e2e/risk/` | 2026112403 |
 | `network` | `walnut_e2e_network` | 3103 / 3013 / 4183 | `127.0.{31,32}.*` | `.e2e/network/` | 2026112404 |
+| `pages`（E4 扩面） | `walnut_e2e_pages` | 3104 / 3014 / 4184 | `127.0.{41,42}.*` | `.e2e/pages/` | 2026112405 |
+| `journey`（E5 扩面） | `walnut_e2e_journey` | 3105 / 3015 / 4185 | `127.0.{51,52}.*` | `.e2e/journey/` | 2026112406 |
 
 - profile 与 Playwright project 同名 1:1（`default` 没有同名 project，它就是本地全量）；
   命名 profile 只允许跑同名 project —— `run.ts` 会机械拒绝 `E2E_STACK_PROFILE=smoke --project=risk`。
+- `pages` / `journey` 是扩面批次（E4 / E5）的 profile：目录 `tests/pages/`、`tests/journey/` 已建，
+  spec 由 E4 / E5 落；**空 project 下 `--project=pages|journey` 会以「No tests found」退出非零**，
+  CI 的这两个 job 在 E4 / E5 落地前预期红（诚实状态，不用 skip 占位洗绿）。
 - **本地多 profile 仍串行**（不变量 6）：`run.ts` 先抢全局锁、再抢 profile 锁；第二个 profile
   在第一步等全局锁，120s 抢不到就报持锁者退出。profile 锁不是并发通行证。
 - **Redis 不加前缀、也不换逻辑库**（设计结论）：键形由 server 拥有；设备清理按 deviceId 精确删；
@@ -152,8 +157,8 @@ docker compose -f apps/e2e/docker-compose.yml down -v
 4. stage 产物已构建：`apps/server/dist-stage`（`pnpm --filter @walnut/server build:stage`）与
    `apps/admin/dist-staging`（`pnpm walnut build:stage`）。
 5. Playwright 浏览器已安装：`pnpm --filter @walnut/e2e exec playwright install chromium`。
-6. **当前 profile 的三个端口空闲**（default 是 3001 / 3002 / 4173；命名 profile 是 3101–3103 /
-   3011–3013 / 4181–4183 —— 后端、socket.io、静态代理）。复用已在监听的进程时见下面
+6. **当前 profile 的三个端口空闲**（default 是 3001 / 3002 / 4173；命名 profile 是 3101–3105 /
+   3011–3015 / 4181–4185 —— 后端、socket.io、静态代理）。复用已在监听的进程时见下面
    「复用已在监听的进程」（`E2E_REUSE_SERVER=1`，preflight 会改查「可达 + 身份」）。
 7. Node >= 24.15.0、pnpm >= 12（根 `package.json` 的 engines）。
 
@@ -239,7 +244,7 @@ pnpm --filter @walnut/e2e e2e -- --ui      # 等价的包内写法（经 pnpm �
 
 | 开关 | 用途 | 风险 / 什么时候别用 |
 |------|------|---------------------|
-| `E2E_STACK_PROFILE=<p>` | 选择 stack profile：`default`（不设）/ `smoke` / `risk` / `network`；决定库名、三个端口、基线目录、IP 段 | **只接受 profile 名**，不开放端口 / 库名覆盖；命名 profile 只能跑同名 project（`run.ts` 拒绝别的）。本地多 profile 仍串行（全局锁） |
+| `E2E_STACK_PROFILE=<p>` | 选择 stack profile：`default`（不设）/ `smoke` / `risk` / `network` / `pages` / `journey`；决定库名、三个端口、基线目录、IP 段 | **只接受 profile 名**，不开放端口 / 库名覆盖；命名 profile 只能跑同名 project（`run.ts` 拒绝别的）。本地多 profile 仍串行（全局锁） |
 | `E2E_REUSE_SERVER=1` | 复用当前 profile 的后端 / socket / 静态代理端口上已在监听的服务；preflight 改成「可达 + 身份」检查（后端 `/health/ready`、静态代理的 index.html） | 后端缓存着**上一个库**的应用设置 memo、静态服务可能伺服旧产物 —— 只有确认「跑的就是本轮产物」时才用；仅本地调试。它不会替你启动服务（见「复用已在监听的进程」） |
 | `E2E_SKIP_BASELINE=1` | 忽略基线、全量 prepare（不封板） | 逃生口：失去了「迁移 / seed 变了」的漂移判定，每轮退回全量重建；只用于排查基线本身的问题，不是日常入口 |
 | `E2E_REBUILD_BASELINE=1` | 等价于 `--rebuild-baseline`：强制全量 prepare + 重新封板 | 会用当前数据替换旧快照；确认迁移 / seed 已提交、数据路径干净再跑。与 `E2E_SKIP_BASELINE=1` 互斥（同时给按退出码 2 拒绝） |
@@ -298,12 +303,18 @@ pnpm walnut e2e:affected --base=<ref>    # 分支 / tag / 提交 sha
 
 | 改动 | 判定 |
 |------|------|
-| `apps/admin/src/views/auth/**`、`apps/admin/src/api/auth*`、`apps/admin/src/store/modules/**` 下带 `auth` 的模块 | `--project=smoke` |
+| `apps/admin/src/views/auth/**`、`apps/admin/src/api/auth*`、`apps/admin/src/store/modules/**` 下带 `auth` 的模块 | `--project=smoke` + `--project=journey`（auth 面同时是登录冒烟与登录旅程的触发源） |
 | `apps/server/libs/{guards,system,ip}/**`、`apps/server/apps/api/src/middleware/**` | `--project=risk` |
+| `apps/admin/src/views/**`、`apps/admin/src/router/**` | `--project=pages`（页面扩面；auth 视图同时命中 smoke / journey） |
+| `apps/admin/src/socket/**`、`App/AppLock` 组件、锁屏 store（`app-lock.ts`）、`api/system/user_lock.ts` | `--project=journey` |
 | `apps/server/db/seed/**`、`apps/server/apps/api/migrations/**`、`apps/e2e/scripts/prepare-db.ts`、seed 工具（`tooling/scripts/src/db/{seed*,admin-credential,app-keys}.ts`） | `--rebuild-baseline` + 全量 |
 | `apps/e2e/**` | 全量 |
 | 只改 `apps/docs/**` 或任意 `*.md`（且不在 `apps/e2e/**`） | 跳过（退出 0，打印理由） |
-| **其它任何路径**（根 `package.json`、server 其它模块……） | **全量（安全网）** |
+| **其它任何路径**（根 `package.json`、server 的 auth / identity / socket 等） | **全量（安全网）** |
+
+一条改动可以命中多个 project（如 `views/auth/**` → smoke + pages + journey）；映射是加法。
+server 侧 auth / identity / socket 在 E5 落地前**不**单独映射（走全量安全网）—— 过早收窄会丢掉
+risk 的 auth-matrix 覆盖。
 
 base 不存在 / 读不到 diff 时按前置条件失败（退出码 2），提示 `git fetch origin main` 或改用
 `--base <ref>`。映射规则在 `scripts/affected-plan.ts`（纯函数，单测 `affected-plan.test.ts`）；
@@ -437,7 +448,7 @@ E2E_REDIS_GC=0 pnpm walnut e2e      # 关掉 run 流程里的自动对账
 
 打开后 **preflight 也换口径**（P1-2）：不再要求三个端口空闲，而是检查「可达 + 身份」——
 后端 `/health/ready` 返回 200、静态代理返回含 `<div id="app">` 的 index.html、socket 端口可达
-（default 是 3001 / 4173 / 3002；命名 profile 换成 3101–3103 / 4181–4183 / 3011–3013）——
+（default 是 3001 / 4173 / 3002；命名 profile 换成 3101–3105 / 4181–4185 / 3011–3015）——
 并打印复用警告（本轮可能连到旧产物 / 旧库，仅本地调试用）。它**不会**替你启动服务：
 
 ```bash
@@ -450,10 +461,13 @@ E2E_REUSE_SERVER=1 pnpm walnut e2e:smoke
 ## CI 形态（nightly）
 
 `.github/workflows/e2e.yml`：每天 UTC 19:00（北京 03:00）+ 手动 dispatch，**不进 PR**。
-**matrix 三 job 并行**（`smoke` / `risk` / `network`，`fail-fast: false`）：每个 job 独立
-checkout + 独立 services（PG 18 / Redis 8，端口与凭据同 `scripts/stack-profiles.ts`），
+**matrix 五 job 并行**（`smoke` / `risk` / `network` / `pages` / `journey`，`fail-fast: false`）：
+每个 job 独立 checkout + 独立 services（PG 18 / Redis 8，端口与凭据同 `scripts/stack-profiles.ts`），
 `E2E_STACK_PROFILE` 决定库 / 端口 / 基线目录，`--project=<profile>` 与 profile 同名 1:1。
-一个 job 红不影响其余 job；总机器时间约 3×，墙钟取最慢的 profile + 固定开销。
+一个 job 红不影响其余 job。**`pages` / `journey` 的 spec 由 E4 / E5 落地**：空 project 下这两个 job
+会因「No tests found」预期红（不是回归，也别用 `if: false` / 空 spec 洗绿）。前三个 job 的并集
+仍是本地全量 `pnpm walnut e2e` 的覆盖面；机器时间约 1× 构建 + 5× 测试，墙钟取最慢 profile +
+固定开销。
 
 CI 走**基线路径**：每个 profile 的封板三件套由 `actions/cache` 跨 run 缓存，key =
 `e2e-baseline-<profile>-v<清单格式版本>-<dataKey>`（`node apps/e2e/scripts/data-key.ts --cache-key`
@@ -483,7 +497,7 @@ workflow 文件头与优化文档 P1-6 的落地记录。
   `apps/e2e/scripts/env.ts` 核对常量。
 - 5433 连不上：先 `docker compose ps`，再 `wsl -l -v` 看发行版 STATE 是不是 Running。
 - 页面停在一行 `forbidden` 或登录框等不出来：多半是静态代理端口被**别的**静态服务占着（default
-  4173；命名 profile 4181–4183）。默认配置下 Playwright 会因端口被占直接失败（static-server 以 2
+  4173；命名 profile 4181–4185）。默认配置下 Playwright 会因端口被占直接失败（static-server 以 2
   退出）；跑之前确认该端口上没有遗留进程（`netstat -ano | findstr :4173`）。
 - trace / 截图里的请求头与响应体**含 token 与 cookie**：`test-results/` 与 `playwright-report/`
   只留在本机，**不许上传到任何公开位置**。

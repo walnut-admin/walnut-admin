@@ -38,7 +38,8 @@ export interface DeviceSession {
  * 127/8 既是 local（`is-localhost-ip` 判 true ⇒ getLocalLocation、零外网），又各自独立计数。
  *
  * **profile 偏移（P1-6）**：第三段按 profile 的 `ipSlot` 偏移（default 1–2、smoke 11–12、
- * risk 21–22、network 31–32），公式在 `scripts/stack-profiles.ts` 的 `localIpFor`。必要性在
+ * risk 21–22、network 31–32、pages 41–42、journey 51–52），公式在 `scripts/stack-profiles.ts`
+ * 的 `localIpFor`。必要性在
  * Redis：`risk:rate:ip:<ip>:<分钟>` 是服务端键（同机共享 Redis），只有跨 profile 的 IP 段
  * 不相交，才不会互相吃 4 次/60s 的额度。
  */

@@ -286,7 +286,7 @@ export const COMMANDS: readonly Command[] = [
     label: '全链路 E2E（独立 PG/Redis 栈 + dist-stage 后端 + dist-staging 前端）',
     why: '跨端链路（设备身份、CAP、签名握手、风控）只有真实浏览器 + 真实后端能验；这条命令先查前置、'
       + '抢 run 级锁、重建独立库（默认 walnut_e2e / 5433 / 6380，绝不碰 dev 库）再跑 spec。'
-      + '`E2E_STACK_PROFILE=smoke|risk|network` 切到该 profile 的独立库 / 偏移端口 / `.e2e/<p>/` 基线'
+      + '`E2E_STACK_PROFILE=smoke|risk|network|pages|journey` 切到该 profile 的独立库 / 偏移端口 / `.e2e/<p>/` 基线'
       + '（不设 = default，本地全量行为不变；profile 与 project 同名 1:1）。'
       + '**前置**：`pnpm setup-env`（apps/server/env-local/.env.stage）、`pnpm build`（workspace 包的 CJS dist）、'
       + '`pnpm walnut build:stage` 与 `pnpm --filter @walnut/server build:stage`、'
@@ -704,7 +704,8 @@ export const COMMANDS: readonly Command[] = [
     group: '工具',
     label: '按改动范围选择 E2E 子集（默认 base=origin/main）',
     why: '本地与 nightly 的轻量入口：读 `git diff --name-only <base>...HEAD`，admin 登录 → smoke、'
-      + 'server guards/system/ip/middleware → risk、seed / 迁移 / prepare-db → 重新封板 + 全量、'
+      + 'server guards/system/ip/middleware → risk、admin views/router → pages、socket/锁屏 → journey、'
+      + 'seed / 迁移 / prepare-db → 重新封板 + 全量、'
       + '只改文档 → 跳过、**其它任何路径 → 全量**（安全网）。**刻意不进 prepush / PR 门禁**；'
       + '执行仍经 apps/e2e/scripts/run.ts（抢 run 级锁、基线决策与单 run 不变量不变）。',
     argv: ['-C', 'apps/e2e', 'run', 'e2e:affected'],

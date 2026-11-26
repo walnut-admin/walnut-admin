@@ -4,7 +4,8 @@
  * 并行单元是 **stack profile**，不是 Playwright worker：每份 profile 有独立的库、后端 / socket /
  * 静态代理端口、IP 段与基线目录。`default` 保持今天的行为逐字不变（库 `walnut_e2e`、
  * 3001 / 3002 / 4173、基线在 `.e2e/` 根）；`smoke` / `risk` / `network` 各用一套偏移端口与
- * `.e2e/<profile>/` 基线目录。
+ * `.e2e/<profile>/` 基线目录；`pages` / `journey` 是扩面批次（E4 / E5）的 profile，继承同一套
+ * 槽位公式（端口 3104 / 3105 起，IP 槽位 4 / 5），spec 落地前同名 project 为空跑。
  *
  * 选择方式只有环境变量 `E2E_STACK_PROFILE`（不设 = `default`），**只选 profile，不开放端口 /
  * 库名的独立覆盖** —— 任意覆盖会让 `assertE2eDatabase` 那层安全闸失去意义。未知值 **fail-fast**
@@ -38,11 +39,11 @@ import process from 'node:process'
 import { E2ePreconditionError } from './failure.ts'
 
 /** 可选的 profile 名（`default` = 本地全量；其余与 Playwright project 同名 1:1） */
-export const STACK_PROFILE_NAMES = ['default', 'smoke', 'risk', 'network'] as const
+export const STACK_PROFILE_NAMES = ['default', 'smoke', 'risk', 'network', 'pages', 'journey'] as const
 export type StackProfileName = (typeof STACK_PROFILE_NAMES)[number]
 
 /** 命名 profile（有独立 `.e2e/<profile>/` 基线目录的那些） */
-export const NAMED_STACK_PROFILES = ['smoke', 'risk', 'network'] as const satisfies readonly StackProfileName[]
+export const NAMED_STACK_PROFILES = ['smoke', 'risk', 'network', 'pages', 'journey'] as const satisfies readonly StackProfileName[]
 export type NamedStackProfileName = (typeof NAMED_STACK_PROFILES)[number]
 
 export interface StackProfile {
@@ -117,6 +118,30 @@ export const STACK_PROFILES: Readonly<Record<StackProfileName, StackProfile>> = 
     artifactDir: '.e2e/network',
     authDir: '.auth/network',
     lockKey: E2E_PG_GLOBAL_LOCK_KEY + 3,
+  },
+  // 扩面批次（E4）：admin 逐页渲染与导航的用例落 `tests/pages/`，profile 与 project 同名。
+  pages: {
+    name: 'pages',
+    database: 'walnut_e2e_pages',
+    backendPort: 3104,
+    socketPort: 3014,
+    webPort: 4184,
+    ipSlot: 4,
+    artifactDir: '.e2e/pages',
+    authDir: '.auth/pages',
+    lockKey: E2E_PG_GLOBAL_LOCK_KEY + 4,
+  },
+  // 扩面批次（E5）：socket / auth / 锁屏的旅程用例落 `tests/journey/`，profile 与 project 同名。
+  journey: {
+    name: 'journey',
+    database: 'walnut_e2e_journey',
+    backendPort: 3105,
+    socketPort: 3015,
+    webPort: 4185,
+    ipSlot: 5,
+    artifactDir: '.e2e/journey',
+    authDir: '.auth/journey',
+    lockKey: E2E_PG_GLOBAL_LOCK_KEY + 5,
   },
 }
 

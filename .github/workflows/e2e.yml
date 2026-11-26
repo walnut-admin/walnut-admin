@@ -8,11 +8,15 @@ name: E2E (nightly)
 # - 全量 E2E 的职责是「长尾 + 真实链路」的周期性证据，不是合并阻塞项。
 #
 # **矩阵：stack-per-profile（P1-6 Phase A，2026-11-26）**
-# - 三个 job 并行，每个 job 一个 profile（`smoke` / `risk` / `network`），`fail-fast: false`：
-#   一个 profile 红，其余 job 照跑（失败隔离）。三个 job 的并集就是改造前 `pnpm walnut e2e` 的覆盖面
-#   （`@network` 只由 network job 跑；risk 的 grepInvert 不变）。
+# - 五个 job 并行，每个 job 一个 profile（`smoke` / `risk` / `network` / `pages` / `journey`），
+#   `fail-fast: false`：一个 profile 红，其余 job 照跑（失败隔离）。前三个 job 的并集是改造前
+#   `pnpm walnut e2e` 的覆盖面（`@network` 只由 network job 跑；risk 的 grepInvert 不变）；
+#   `pages` / `journey` 是扩面批次（E4 / E5）的 profile —— **spec 落地前这两个 job 预期红**
+#   （Playwright 对空 project 报 "No tests found" 并退出非零）。这是诚实状态：不要用
+#   `if: false` / 空 spec 把它洗成绿，E4 / E5 会分别把 `tests/pages/`、`tests/journey/` 填上。
 # - 每个 job 独立 checkout + 独立 services（PG / Redis），天然隔离；`E2E_STACK_PROFILE` 决定库名、
 #   后端 / socket / 静态代理端口与基线目录（见 apps/e2e/scripts/stack-profiles.ts，单一真源）。
+#   五套 profile 的端口 / 库名 / IP 段 / 锁 key 互不重叠（单测钉住）。
 # - `--project=${{ matrix.profile }}` 与 profile 同名 1:1；`scripts/run.ts` 还会机械校验
 #   （命名 profile 跑别的 project 直接按退出码 2 拒绝），所以一个 job 不可能跑别的 profile 的用例。
 #
@@ -21,7 +25,7 @@ name: E2E (nightly)
 #   同一份 env 下产出的是**同一份**产物，等于付三遍机器时间（R3 实测：总机器时间约 3×）。
 # - 现在只有 **prepare** 一个 job 构建，产物经 artifact（`e2e-stage-bundle`，保留 1 天）广播给矩阵；
 #   matrix job 只做 install → download → playwright install → 测试。墙钟 ≈ prepare + 最慢 profile
-#   的用例时间 + 每个 job 的 install / download 固定开销；机器时间 ≈ 1× 构建 + 3× 测试。
+#   的用例时间 + 每个 job 的 install / download 固定开销；机器时间 ≈ 1× 构建 + 5× 测试。
 # - bundle 清单（四个目录，缺任何一个是**运行时必炸**的硬前置，不是「顺手带上」）：
 #   · `apps/admin/dist-staging/` —— 静态代理伺服的根（apps/e2e/scripts/env.ts 的 ADMIN_DIST_DIR）；
 #   · `apps/server/dist-stage/` —— webServer 的 `start:stage` 入口（SERVER_DIST_DIR / SERVER_MAIN_FILE）；
@@ -70,7 +74,7 @@ name: E2E (nightly)
 #
 # **`.env.e2e` 的固定路径约束**：prepare-db 写给 typeorm CLI 的 `apps/server/env-local/.env.e2e` 是
 # 固定通道（CLI 用 process.cwd() 定位，没有 --env-file 参数）。CI 每个 job 是**独立 checkout**，
-# 三个 job 并行不会互相覆盖；本地同 checkout 同时起两个 profile 的 run 是**不允许**的（由 run.ts
+# 并行 job 不会互相覆盖；本地同 checkout 同时起两个 profile 的 run 是**不允许**的（由 run.ts
 # 的全局 advisory lock 串行化，第二个 run 在第一步等锁）。
 #
 # `E2E_SKIP_BASELINE` 已删：CI 走基线路径（缓存 + 全量 prepare 兜底）。不要再把它加回来。
@@ -196,7 +200,9 @@ jobs:
       # 失败隔离：一个 profile 红，其余 job 照跑（设计稿 P1-6 的验收）
       fail-fast: false
       matrix:
-        profile: [smoke, risk, network]
+        # pages / journey 是扩面批次（E4 / E5）的 profile：spec 落地前这两个 job 预期红
+        # （见文件头「矩阵」一节）。五个 job 的基线缓存首轮均 miss → 各自全量 prepare + seal。
+        profile: [smoke, risk, network, pages, journey]
     env:
       # secrets 上下文不能出现在 `if` 里 → 绑到 job 级 env，在 step 的 shell 里判断（见文件头硬约束 1）
       ENV_KEYS: ${{ secrets.ENV_KEYS }}

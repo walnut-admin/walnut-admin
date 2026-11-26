@@ -209,5 +209,38 @@ export default defineConfig({
       dependencies: ['stack-setup'],
       use: { ...devices['Desktop Chrome'], userAgent: SIGN_USER_AGENT },
     },
+    {
+      /**
+       * 扩面批次（E4）：admin 页面渲染 / 导航。**这不是新栈** —— 它和其它命名 profile 一样
+       * （库 `walnut_e2e_pages`、端口 3104 / 3014 / 4184、基线 `.e2e/pages/`），
+       * 由 `E2E_STACK_PROFILE=pages` 选中；profile 与 project 同名 1:1，跑别的 project 会被
+       * `scripts/run.ts` 的 `resolveProfileTestArgs` 在动锁 / 动库之前拒绝。
+       *
+       * `tests/pages/` 本批只落 README：spec 由 E4 补齐。空目录下 `--project=pages` 会以
+       * 「No tests found」退出非零 —— 这是本阶段的**诚实状态**（CI 的 pages job 在 E4 落地前
+       * 预期红），别用 skip 占位把它洗成绿。
+       */
+      name: 'pages',
+      testMatch: /pages\/.*\.spec\.ts/,
+      // **刻意先不挂 `auth-setup`**：只在 `--project=pages` 下、依赖 project 有用例时，Playwright
+      // 会「跑完依赖并返回 0」—— 空 project 因此假绿。E4 落地 spec 时再按需补
+      // `dependencies: ['auth-setup']`（页面渲染断言需要已登录会话）。
+      grepInvert: quarantineGrepInvert,
+      use: { ...devices['Desktop Chrome'], userAgent: SIGN_USER_AGENT },
+    },
+    {
+      /**
+       * 扩面批次（E5）：socket / auth / 锁屏的跨端旅程。profile 名 = project 名 = `journey`
+       * （库 `walnut_e2e_journey`、端口 3105 / 3015 / 4185、基线 `.e2e/journey/`）。
+       *
+       * `tests/journey/` 本批只落 README：spec 由 E5 补齐；空目录下 `--project=journey` 同样
+       * 「No tests found」退出非零（CI 的 journey job 在 E5 落地前预期红）。
+       */
+      name: 'journey',
+      testMatch: /journey\/.*\.spec\.ts/,
+      // 同 pages：先不挂 auth-setup，否则空 project 会因依赖用例假绿；E5 落地时再加。
+      grepInvert: quarantineGrepInvert,
+      use: { ...devices['Desktop Chrome'], userAgent: SIGN_USER_AGENT },
+    },
   ],
 })

@@ -90,7 +90,8 @@ fail-fast），后端 stage 要根密钥（OPAQUE / cookie / JWT）。写法与 
 `Decrypt environment files` 一步，理由与硬约束见上面 §5.2）。
 
 它另有一套**不是 secret** 的固定明文：独立数据栈的端口 / 库名 / 凭据（5433 / 6380；库名默认
-`walnut_e2e`，`E2E_STACK_PROFILE=smoke|risk|network` 时为 `walnut_e2e_<profile>`），真源是
+`walnut_e2e`，`E2E_STACK_PROFILE=<profile>`（`smoke` / `risk` / `network` / `pages` / `journey`）
+时为 `walnut_e2e_<profile>`），真源是
 `apps/e2e/scripts/stack-profiles.ts`（profile 表）与 `apps/e2e/scripts/env.ts`（派生常量），
 workflow 的 `services` 与两份 compose 都照它对齐。基线缓存（key 带 profile）/ 切回口径见
 [E2E 优化计划](../plans/e2e-optimization-plan.md) 的 P1-1 / P1-6。

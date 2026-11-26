@@ -39,6 +39,8 @@ describe('profile 表（设计稿 P1-6 的表格逐项对照）', () => {
     ['smoke', 'walnut_e2e_smoke', 3101, 3011, 4181, 1, 2026112402],
     ['risk', 'walnut_e2e_risk', 3102, 3012, 4182, 2, 2026112403],
     ['network', 'walnut_e2e_network', 3103, 3013, 4183, 3, 2026112404],
+    ['pages', 'walnut_e2e_pages', 3104, 3014, 4184, 4, 2026112405],
+    ['journey', 'walnut_e2e_journey', 3105, 3015, 4185, 5, 2026112406],
   ] as const)('%s 的库 / 端口 / 槽位 / 锁 key', (name, database, backendPort, socketPort, webPort, ipSlot, lockKey) => {
     expect(STACK_PROFILES[name]).toMatchObject({
       name,
@@ -68,8 +70,8 @@ describe('profile 表（设计稿 P1-6 的表格逐项对照）', () => {
     }
   })
 
-  it('命名 profile 的基线目录就是 clean.ts 要递归保留的那三个', () => {
-    expect(namedProfileArtifactDirs()).toEqual(['.e2e/smoke', '.e2e/risk', '.e2e/network'])
+  it('命名 profile 的基线目录就是 clean.ts 要递归保留的那五个', () => {
+    expect(namedProfileArtifactDirs()).toEqual(['.e2e/smoke', '.e2e/risk', '.e2e/network', '.e2e/pages', '.e2e/journey'])
   })
 })
 
@@ -85,6 +87,8 @@ describe('resolveStackProfile', () => {
     expect(resolveStackProfile('smoke').name).toBe('smoke')
     expect(resolveStackProfile('risk').name).toBe('risk')
     expect(resolveStackProfile('network').name).toBe('network')
+    expect(resolveStackProfile('pages').name).toBe('pages')
+    expect(resolveStackProfile('journey').name).toBe('journey')
     expect(() => resolveStackProfile('Smoke')).toThrow(/E2E_STACK_PROFILE/)
     expect(() => resolveStackProfile('network ')).not.toThrow()
   })
@@ -96,7 +100,7 @@ describe('resolveStackProfile', () => {
 })
 
 describe('库名形态 E2E_DATABASE_PATTERN', () => {
-  it('接受 default 与三个命名 profile 的库名', () => {
+  it('接收 default 与全部命名 profile 的库名（含扩面的 pages / journey）', () => {
     for (const name of STACK_PROFILE_NAMES) {
       expect(E2E_DATABASE_PATTERN.test(STACK_PROFILES[name].database), name).toBe(true)
     }
@@ -122,6 +126,13 @@ describe('localIpFor', () => {
     expect(localIpFor(1, 199)).toBe('127.0.11.209')
     expect(localIpFor(1, 200)).toBe('127.0.12.210')
     expect(localIpFor(1, 239)).toBe('127.0.12.249')
+  })
+
+  it('扩面 profile 的槽位沿用同一公式（pages 41–42、journey 51–52）', () => {
+    expect(localIpFor(4, 0)).toBe('127.0.41.10')
+    expect(localIpFor(4, 239)).toBe('127.0.42.249')
+    expect(localIpFor(5, 0)).toBe('127.0.51.10')
+    expect(localIpFor(5, 239)).toBe('127.0.52.249')
   })
 
   it('跨 profile 的地址集合不重叠（Redis rate 桶不相交的前提）', () => {
@@ -163,5 +174,12 @@ describe('resolveProfileTestArgs', () => {
   it('命名 profile 跑了别的 project ⇒ 前置错误（不让用例跑在别的库上）', () => {
     expect(() => resolveProfileTestArgs(STACK_PROFILES.smoke, ['--project=risk'])).toThrow(/只能跑 --project=smoke/)
     expect(() => resolveProfileTestArgs(STACK_PROFILES.network, ['--project=network', '--project=risk'])).toThrow(/--project=risk/)
+    expect(() => resolveProfileTestArgs(STACK_PROFILES.pages, ['--project=journey'])).toThrow(/只能跑 --project=pages/)
+    expect(() => resolveProfileTestArgs(STACK_PROFILES.journey, ['--project=pages'])).toThrow(/只能跑 --project=journey/)
+  })
+
+  it('扩面 profile 默认补自己的同名 project（CI 的 --project=<p> 与 profile 1:1）', () => {
+    expect(resolveProfileTestArgs(STACK_PROFILES.pages, [])).toEqual(['--project=pages'])
+    expect(resolveProfileTestArgs(STACK_PROFILES.journey, ['--grep', '@journey'])).toEqual(['--grep', '@journey', '--project=journey'])
   })
 })

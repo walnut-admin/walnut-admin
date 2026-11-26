@@ -16,6 +16,7 @@
 |---|---|---|---|---|
 | `default`（不设 `E2E_STACK_PROFILE`） | `walnut_e2e` | 3001 / 3002 / 4173 | `127.0.{1,2}.*` | `.e2e/` |
 | `smoke` / `risk` / `network` | `walnut_e2e_<p>` | 3101–3103 / 3011–3013 / 4181–4183 | `127.0.{11,21,31}.*` 与 `{12,22,32}` | `.e2e/<p>/` |
+| `pages` / `journey`（E4 / E5 扩面） | `walnut_e2e_<p>` | 3104–3105 / 3014–3015 / 4184–4185 | `127.0.{41,51}.*` 与 `{42,52}` | `.e2e/<p>/` |
 
 `E2E_STACK_PROFILE` **只选 profile 名**，不开放端口 / 库名覆盖（任意覆盖会让安全闸失去意义）；
 未知值 fail-fast（退出码 2）。**stack profile** 与同名 Playwright project 1:1：命名 profile 跑别的
@@ -101,8 +102,8 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
 | 静态代理（伺服 dist-staging + `/api` `/socket` 反代） | 4173（default） | `scripts/static-server.ts` |
 | PostgreSQL / Redis | 5433 / 6380 | 所有 profile 共用；库名按 profile（`walnut_e2e` / `walnut_e2e_<p>`） |
 
-命名 profile 的端口见文件开头的 profile 表（后端 3101–3103、socket 3011–3013、静态代理
-4181–4183）；preflight 的「端口空闲」检查按当前 profile 的三个端口做。
+命名 profile 的端口见文件开头的 profile 表（后端 3101–3105、socket 3011–3015、静态代理
+4181–4185）；preflight 的「端口空闲」检查按当前 profile 的三个端口做。
 
 端口 / 库名都来自 `scripts/stack-profiles.ts`（profile 表），别在别的文件里拼。安全闸分两层：
 `scripts/env.ts` 的 `assertE2e*`（库名必须同时满足形态正则 `^walnut_e2e(?:_[a-z]+)?$` **且**
@@ -123,8 +124,8 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
 4. **`POST /system/device/initial` 是 4 次 / 60 秒 per realIp**：每条用例、每个协议客户端都要一个
    独立的 127/8 地址（`uniqueLocalIp()`）。共用 127.0.0.1 会让第 5 台设备登记撞 42900。
    **每个 profile 用独立的第三段**（`stack-profiles.ts` 的 `localIpFor`：default 1–2、smoke 11–12、
-   risk 21–22、network 31–32）—— 风控的 `risk:rate:ip:*` 是 Redis 键，同机共享 Redis 时只有
-   IP 段不相交才不会串桶。改公式要同时改单测的「跨 profile 不重叠」断言。
+   risk 21–22、network 31–32、pages 41–42、journey 51–52）—— 风控的 `risk:rate:ip:*` 是 Redis 键，
+   同机共享 Redis 时只有 IP 段不相交才不会串桶。改公式要同时改单测的「跨 profile 不重叠」断言。
    **同一 profile 内也别假设序号跨文件连续**：Playwright 每个 spec 文件是独立 worker，模块级
    序号会重置。`uniqueLocalIp()` 从 **pid 偏移**起步，`bootstrap()` 命中 42900 会**换地址重放**
    （≤8 次，不 sleep）—— 新增 spec 一律走它，别在用例里手写 IP。
@@ -160,7 +161,7 @@ pnpm --filter @walnut/e2e lint && pnpm --filter @walnut/e2e types:check
 
 - **静态代理端口被残留进程占用（实测案例，default 是 4173）**：默认**不复用**已监听的进程
   （`E2E_REUSE_SERVER=1` 才 opt-in，理由见 `playwright.config.ts`），端口被占时 preflight 直接按
-  退出码 2 失败。`netstat -ano | findstr :4173`（命名 profile 换成 4181–4183）找到残留的 node
+  退出码 2 失败。`netstat -ano | findstr :4173`（命名 profile 换成 4181–4185）找到残留的 node
   停掉再跑。确认「后端 / 静态代理上跑的就是本轮产物」时可用 `E2E_REUSE_SERVER=1` —— preflight
   会改查「可达 + 身份」（后端 `/health/ready`、静态代理的 index.html）并打印复用警告；否则别用
   复用绕过去：那会连到旧产物 / 旧库的后端。
