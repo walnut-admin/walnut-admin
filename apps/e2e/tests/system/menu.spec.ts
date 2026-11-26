@@ -59,16 +59,13 @@ function findNode(nodes: SystemMenuTree[], id: string): SystemMenuTree | null {
 }
 
 /**
- * treeWithoutTypeElement 的**真实 wire 语义**：只有顶层节点按 type 过滤。
- *
- * 服务端用 easy-fns-ts 的 `filterTree(fullTree, node => node.type !== element)`；该实现的
- * 语义是「节点命中 predicate 就整棵返回」—— 命中的 catalog/menu 的**后代**（含 element）
- * 原样保留。所以不能递归断言 element-free；这个端点服务于「父节点选择」（只需要顶层可选），
- * 递归过滤不是它的契约。R4 实测记录，见报告「新发现」。
+ * treeWithoutTypeElement 的 wire 语义（2026-11 F1 起）：**递归**过滤 `type === element` ——
+ * 命中的 catalog/menu 不豁免其后代，element 在任何层级都不出现。服务端实现是
+ * `@walnut-server/utils` 的递归 `filterTree`（未命中但有命中后代的节点保留为祖先路径）。
  */
-function expectNoTopLevelElement(nodes: SystemMenuTree[]): void {
-  for (const node of nodes) {
-    expect(node.type, `treeWithoutTypeElement 顶层出现了 element 行（${node.id}）`).not.toBe(MenuType.ELEMENT)
+function expectNoElementDeep(nodes: SystemMenuTree[]): void {
+  for (const node of flattenTree(nodes)) {
+    expect(node.type, `treeWithoutTypeElement 出现了 element 行（${node.id}）`).not.toBe(MenuType.ELEMENT)
   }
 }
 
@@ -78,12 +75,11 @@ async function permissionStrings(client: Awaited<ReturnType<typeof rootClient>>)
 }
 
 /**
- * update 载荷必须带**整行**（type / pid / path / name / component / title / icon / meta）。
+ * update 载荷（admin 表单口径：读回整行后整行回传）。
  *
- * 为什么不能只发要改的字段：ValidationPipe 的 `plainToInstance` 会为未给键的字符串字段
- * 跑 `@Transform`（nil → null），menu 的 Update DTO 虽然全字段可选，但省略的 name/title/…
- * 会以显式 null 覆盖库里的值（这是服务端既有语义，admin 表单也总是回传整行）。
- * 用例按真实客户端的口径发整行，并在报告里记录这个「partial update 实际会清空标量字段」的发现。
+ * 服务端 update 自 2026-11 F1 起是真 PATCH：未提供的顶层列不写 NULL；显式 null 才是清空。
+ * 这里的整行载荷仍代表真实客户端（admin 的编辑表单总是回传整行），
+ * partial 语义由下面两条独立用例钉住。
  */
 function menuUpdatePayload(menu: SystemMenu, patch: { title?: string, meta?: SystemMenuMeta }): Record<string, unknown> {
   return {
@@ -117,7 +113,7 @@ test('菜单：树形 + seed 权限串只读断言 → 新建 / 改权限生效 
     // 树形结构硬证据：至少一个节点有子节点；treeWithoutTypeElement 任何层级都没有 element
     const seedNodes = flattenTree(tree.fullTree)
     expect(seedNodes.some(node => node.children !== undefined && node.children.length > 0), 'fullTree 没有任何父子关系').toBe(true)
-    expectNoTopLevelElement(tree.treeWithoutTypeElement)
+    expectNoElementDeep(tree.treeWithoutTypeElement)
 
     const seedElement = seedNodes.find(node => node.type === MenuType.ELEMENT && node.meta.permission === SEED_MENU_PERMISSION)
     expect(seedElement, `fullTree 里找不到 seed 权限串 ${SEED_MENU_PERMISSION}`).not.toBeUndefined()
@@ -245,6 +241,120 @@ test('菜单：树形 + seed 权限串只读断言 → 新建 / 改权限生效 
   finally {
     // 失败路径也把半造的行清掉（软删端点幂等；删不存在的 id 会 40401，吞掉即可）
     for (const id of [elementId, catalogId]) {
+      if (id !== '') {
+        await root.root('DELETE', `${SystemRoutes.MENU}/${id}`).catch(() => {})
+      }
+    }
+  }
+})
+
+/**
+ * F1 用例①：partial update 保字段（真 PATCH）。
+ *
+ * 只发 `meta.permission`（permission 是 meta 子键；wire 上没有顶层 permission）：
+ * - 顶层未给列（name/title/path/pid/type）必须保持原值 —— **旧实现这条必红**：
+ *   ValidationPipe 的 nil→null Transform 会把未给的字符串字段写成显式 null，
+ *   update 整行覆盖后 name/title 变成 null；
+ * - meta 给了仍按「整体替换 + 缺省键回默认值」：order 回到 NULL、show 回到 true
+ *   （这是既有 Mongo 子文档语义，不是本批改动点，此处一并钉住边界）。
+ */
+test('菜单：partial update 只改提供的字段（name/title 不被 null 覆盖）', async () => {
+  const root = await rootClient()
+  const prefix = `e2e-menu-patch-${Date.now()}-${randomBytes(2).toString('hex')}`
+  let catalogId = ''
+
+  try {
+    const seedRootId = await withPg(pg => findRootMenuId(pg))
+    const created = await root.root<SystemMenu>('POST', SystemRoutes.MENU, {
+      type: MenuType.CATALOG,
+      pid: seedRootId,
+      name: `${prefix}-cat`,
+      title: `${prefix}-cat-title`,
+      meta: { order: 7, status: true, show: true },
+    })
+    catalogId = created.id
+
+    const updated = await root.root<SystemMenu>('PUT', `${SystemRoutes.MENU}/${catalogId}`, {
+      meta: { permission: `${prefix}:partial` },
+    })
+
+    // 未提供的顶层列原样保留（旧实现：name/title → null）
+    expect(updated.name, 'partial update 把未提供的 name 覆盖成了 null').toBe(`${prefix}-cat`)
+    expect(updated.title, 'partial update 把未提供的 title 覆盖成了 null').toBe(`${prefix}-cat-title`)
+    expect(updated.pid).toBe(seedRootId)
+    expect(updated.type).toBe(MenuType.CATALOG)
+
+    // 提供的 meta 子键生效；meta 整体替换语义不变（order 回默认 NULL、show 回默认 true）
+    expect(updated.meta.permission).toBe(`${prefix}:partial`)
+    expect(updated.meta.order).toBeNull()
+    expect(updated.meta.show).toBe(true)
+  }
+  finally {
+    if (catalogId !== '') {
+      await root.root('DELETE', `${SystemRoutes.MENU}/${catalogId}`).catch(() => {})
+    }
+  }
+})
+
+/**
+ * F1 用例②：递归树过滤。
+ *
+ * 构造 catalog → menu → element 三级：`treeWithoutTypeElement` 必须**递归**剪掉 element，
+ * 同时保留有命中后代的祖先路径；`fullTree` 里 element 仍在（证明过滤真的做了事）。
+ * **旧实现这条必红**：easy-fns filterTree 命中父节点即整棵返回，element 作为后代幸存。
+ */
+test('菜单：treeWithoutTypeElement 递归剪掉 element（父命中不豁免子孙）', async () => {
+  const root = await rootClient()
+  const prefix = `e2e-menu-tree-${Date.now()}-${randomBytes(2).toString('hex')}`
+  let catalogId = ''
+  let menuId = ''
+  let elementId = ''
+
+  try {
+    const seedRootId = await withPg(pg => findRootMenuId(pg))
+    const catalog = await root.root<SystemMenu>('POST', SystemRoutes.MENU, {
+      type: MenuType.CATALOG,
+      pid: seedRootId,
+      name: `${prefix}-cat`,
+      title: `${prefix}-cat-title`,
+      meta: { order: 5 },
+    })
+    catalogId = catalog.id
+
+    const menu = await root.root<SystemMenu>('POST', SystemRoutes.MENU, {
+      type: MenuType.MENU,
+      pid: catalogId,
+      name: `${prefix}-menu`,
+      title: `${prefix}-menu-title`,
+      path: `/${prefix}-menu`,
+      meta: { order: 6 },
+    })
+    menuId = menu.id
+
+    const element = await root.root<SystemMenu>('POST', SystemRoutes.MENU, {
+      type: MenuType.ELEMENT,
+      pid: menuId,
+      name: `${prefix}-el`,
+      meta: { permission: `${prefix}:recursive`, order: 1 },
+    })
+    elementId = element.id
+
+    const tree = await root.root<SystemMenuTreeResponse>('GET', SystemEndpointRoutes.MENU_TREE)
+
+    // 对照：fullTree 里 element 确实存在（挂在 menu 下）
+    expect(flattenTree(tree.fullTree).some(node => node.id === elementId), 'fullTree 里找不到刚建的 element').toBe(true)
+
+    const filtered = flattenTree(tree.treeWithoutTypeElement)
+    // 命中的祖先路径保留：catalog 与 menu 都在
+    expect(filtered.some(node => node.id === catalogId), 'treeWithoutTypeElement 丢了 catalog 祖先').toBe(true)
+    expect(filtered.some(node => node.id === menuId), 'treeWithoutTypeElement 丢了 menu 节点').toBe(true)
+    // element 在任何层级都不出现（旧实现：作为 menu 的后代幸存）
+    expect(filtered.some(node => node.id === elementId), 'treeWithoutTypeElement 里仍残留 element 后代').toBe(false)
+    expectNoElementDeep(tree.treeWithoutTypeElement)
+  }
+  finally {
+    // 子行先删（pid FK RESTRICT）
+    for (const id of [elementId, menuId, catalogId]) {
       if (id !== '') {
         await root.root('DELETE', `${SystemRoutes.MENU}/${id}`).catch(() => {})
       }
