@@ -66,6 +66,7 @@ export type DeviceKeyFamily
     | 'cache:security:cap-token'
     | 'cache:security:rsa-pub-key'
     | 'cache:security:lock'
+    | 'cache:sensitive-op'
     | 'risk:device'
     | 'risk:user-device'
     | 'risk:failed-login'
@@ -102,6 +103,10 @@ export const DEVICE_KEY_FAMILIES: readonly { family: DeviceKeyFamily, prefix: st
   { family: 'cache:security:cap-token', prefix: 'WALNUT_CACHE_SECURITY:CAP_TOKEN:', deviceIndex: 2 },
   { family: 'cache:security:rsa-pub-key', prefix: 'WALNUT_CACHE_SECURITY:RSA:PUB_KEY:', deviceIndex: 3 },
   { family: 'cache:security:lock', prefix: 'WALNUT_CACHE_SECURITY:LOCK:', deviceIndex: 3 },
+  // 敏感操作二次验证的授权键（`SecuritySensitiveService.getRedisKey`：直连 Redis，无前缀；
+  // TTL 15 分钟）。键形 `sensitive_op:<userId>:<deviceId>:<level>` —— 设备在倒数第二槽位。
+  // E2 的 40119 用例会写它；不纳入清理就是每轮一条 15 分钟的残留。
+  { family: 'cache:sensitive-op', prefix: 'sensitive_op:', deviceIndex: 2 },
   // ── 风控（risk 模块直连 Redis，无 WALNUT_CACHE 前缀）──
   { family: 'risk:device', prefix: 'risk:device:', deviceIndex: 2 },
   { family: 'risk:user-device', prefix: 'risk:user_device:', deviceIndex: 3 },
@@ -140,6 +145,7 @@ export const DEVICE_KEY_SCAN_PATTERNS: readonly string[] = [
   'WALNUT_CACHE_SECURITY:CAP_TOKEN:*',
   'WALNUT_CACHE_SECURITY:RSA:*',
   'WALNUT_CACHE_SECURITY:LOCK:*',
+  'sensitive_op:*',
   'risk:device:*',
   'risk:user_device:*',
   'risk:failed_login:*',

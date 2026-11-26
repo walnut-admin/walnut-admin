@@ -953,10 +953,25 @@ E2E 侧：`SystemUserListPage` 回到路径级推导（补偿注释删除），`
   会重置 —— 多个文件从同一 IP 起步，叠加后撞 `device/initial` 的 4 次/60s 桶（新增模块 spec 后
   首次复现 42900）。修法：`uniqueLocalIp` 从 **pid 偏移**起步 + `bootstrap` 42900 **换地址重放**
   （≤8 次，不 sleep）；跨 profile 的 IP 段不相交性质不变。
+- **40119 二次验证断层修复（E2，2026-11-26）**：`response/interceptor.ts` 的 40119 分支从
+  `TODO + console.log` 改成「弹全局 `VerifyAuth` → 验证 → **重放原请求一次**」。前提是服务端把
+  `level` / `operationType` 补进 40119 的 `meta`（`POST /security/sensitive/verify` 两个都必填，
+  客户端从请求自身推导不出来）；**放行没有 ticket** —— 授权是设备级 Redis 键
+  `sensitive_op:<userId>:<deviceId>:<level>`，验证成功后重打一次原请求即可（与 40101 / 40117 /
+  40605 的自愈重放同一形态）。并发 40119 由 `SingletonPromiseSensitiveVerify` 并成一次弹窗，
+  每个请求的 `_sensitiveVerifyRetried` 保证最多弹一次窗。回归用例
+  `tests/risk/sensitive-verify.spec.ts`（S1 正向 + S2 错码负对照）钉住三件套：**恰好两次
+  unbind 响应 `[40119, 20000]`** / `sensitive_op` 授权键 / PG 身份行变化；验证码从
+  `AUTH:VERIFY_CODE` 缓存读（不 FLUSH），并新增 `sensitive_op:*` 键族到 fixture 清理与
+  `redis-gc` 的族表（`lib/redis.test.ts` 交叉校验）。两条新用例自身约 87–89s（UI 登录占大头），
+  未标 `test.slow()`；已做过「把期望改坏」的负对照（两条都红在目标断言上）。
 - **实测**（本机 WSL 栈，单次）：default 全量 **31 例 / 266.5s**（R3 基线 20 例 / 229.4s；
   新增 11 例自身约 25s，其余是 risk 项目 UI 用例的波动）；`E2E_STACK_PROFILE=smoke` **8/8 56.3s**、
   `risk` **22/22 212.2s**、`network` **2/2 13.2s**；e2e 单测 **240/240**。11 条新用例的核心断言
-  全部做过「改坏 → 红 → 还原」的负对照。
+  全部做过「改坏 → 红 → 还原」的负对照。**E2 落地后补测一轮**（同日）：default 全量
+  **35 例 / 459.4s**（expected 35 / unexpected 0 / flaky 0），其中 S1 86.9s、S2 88.6s；
+  `security.api-spec.ts` 11/11 与 `user-identity.api-spec.ts` 13/13 同轮通过（40119 的 meta
+  契约断言在 security spec 里）。
 - **转报服务端的观察**（不在 e2e 改）：~~password identity 明文落库~~（2026-11-26 F2 已改成
   AES-GCM 密文 + 盐化哈希，读腿解密；其 `finishChangePassword` 对无口令用户曾静默 no-op，
   同日已改 upsert 建行）；~~`treeWithoutTypeElement`

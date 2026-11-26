@@ -216,6 +216,8 @@ export function permissionsCachePattern(userId: string): string {
  * - `SECURITY:SIGN:TICKET:<deviceId>` / `SECURITY:SIGN:AES_KEY:<deviceId>`（sign.cache）
  * - `SECURITY:CAP_TOKEN:<deviceId>:<tokenFingerprint>`（cap.cache）
  * - `SECURITY:RSA:PUB_KEY:<deviceId>`（cache.rsa）
+ * - `sensitive_op:<userId>:<deviceId>:<level>`（SecuritySensitiveService 的敏感操作授权键；
+ *   裸 Redis 键，无 `WALNUT_CACHE_` 前缀，TTL 15 分钟）
  * - `SECURITY:LOCK:<userId>:<deviceId>`（lock cache）
  * - `APP:MURLOCK:CAP:<deviceId>` / `APP:MURLOCK:SIGN:<deviceId>` /
  *   `APP:MURLOCK:DEVICE:IP_CHANGE:<deviceId>` / `APP:MURLOCK:LOCK_GUARD:<userId>:<deviceId>` /
@@ -242,6 +244,8 @@ export function deviceScopedKeyPatterns(deviceId: string): string[] {
     `${CACHE_PREFIX}_SECURITY:CAP_TOKEN:${deviceId}:*`,
     `${CACHE_PREFIX}_SECURITY:RSA:PUB_KEY:${deviceId}`,
     `${CACHE_PREFIX}_SECURITY:LOCK:*:${deviceId}`,
+    // 敏感操作二次验证授权键（SecuritySensitiveService，裸 Redis 键，TTL 15 分钟）
+    `sensitive_op:*:${deviceId}:*`,
     `APP:MURLOCK:CAP:${deviceId}`,
     `APP:MURLOCK:DEVICE:IP_CHANGE:${deviceId}`,
     `APP:MURLOCK:LOCK_GUARD:*:${deviceId}`,

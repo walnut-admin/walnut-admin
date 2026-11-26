@@ -38,6 +38,7 @@ const FAMILY_SAMPLES: Array<{ family: DeviceKeyFamily, key: string }> = [
   { family: 'cache:security:cap-token', key: `WALNUT_CACHE_SECURITY:CAP_TOKEN:${DID}:fingerprint` },
   { family: 'cache:security:rsa-pub-key', key: `WALNUT_CACHE_SECURITY:RSA:PUB_KEY:${DID}` },
   { family: 'cache:security:lock', key: `WALNUT_CACHE_SECURITY:LOCK:${USER}:${DID}` },
+  { family: 'cache:sensitive-op', key: `sensitive_op:${USER}:${DID}:account_critical` },
   { family: 'risk:device', key: `risk:device:${DID}` },
   { family: 'risk:user-device', key: `risk:user_device:${USER}:${DID}` },
   { family: 'risk:failed-login', key: `risk:failed_login:admin@example.com:${DID}` },
