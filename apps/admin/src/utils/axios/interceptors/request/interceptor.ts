@@ -48,7 +48,10 @@ export async function requestInterceptors(config: InternalAxiosRequestConfig) {
 
         for (const key of keyList) {
           const plain = get(config.data, key)
-          if (plain !== null) {
+          // 缺键 / null / 空串都不加密：锁屏偏好在 default 模式下可以不带新密码，
+          // 旧条件只挡 null，undefined 会被 encryptRequestValue 变成「空串信封」，
+          // 服务端解出 '' 后撞 DTO 的 minLen（40099）。
+          if (plain !== null && plain !== undefined && plain !== '') {
             const cipher = await encryptRequestValue(plain)
             set(config.data, key, cipher)
           }

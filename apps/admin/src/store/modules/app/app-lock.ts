@@ -175,8 +175,13 @@ const useAppStoreLockInside = defineStore(StoreKeys.APP_LOCK, {
 
     /**
      * @description unlock
+     *
+     * D4（2026-11-27）：失败时**留在锁屏页**并把错误原样抛给调用方（密码框据此显示
+     * 就地红字 / 退避倒计时）。旧实现在任何错误上都 `goIndex()` —— 40000（密码错 /
+     * 退避中）会把用户从 `/lock` 打回首页，看起来像「解锁成功了但又什么都没有」。
+     * default / idle 的免密按钮也走这里，失败仍由调用方决定提示方式。
      */
-    async unLock() {
+    async unLock(lockPwdHash?: string) {
       if (!this.getEnable) {
         return
       }
@@ -184,13 +189,8 @@ const useAppStoreLockInside = defineStore(StoreKeys.APP_LOCK, {
       this.loading = true
 
       try {
-        await unlockAPI()
+        await unlockAPI(lockPwdHash)
         await this.logicAfterUnlock()
-      }
-      catch (error) {
-        console.error('unLock error', error)
-        const appStoreMenu = useAppStoreMenu()
-        await appStoreMenu.goIndex()
       }
       finally {
         this.loading = false

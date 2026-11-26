@@ -14686,5 +14686,341 @@
     "value": "未说明的性别",
     "created_at": "2022-04-05T09:02:58.604Z",
     "updated_at": "2022-04-05T12:05:15.435Z"
+  },
+  {
+    "id": "6ebc5d3c-56d2-4469-a113-2fa6753d9030",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.desc",
+    "value": "Lock screen preferences and lock password.",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "7a4aa20a-26c8-4b48-87be-10aa8bb1075a",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.desc",
+    "value": "锁屏偏好与锁屏密码。",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "bf85149c-cfad-4b97-b5c0-c8b64ce6445c",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.securitySeconds",
+    "value": "Lock after idle in security mode (seconds)",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "3fa07b26-b539-48be-aec3-177f5d3cfe29",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.securitySeconds",
+    "value": "安全模式空闲锁屏秒数",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "3d4e0d1e-85a5-4b05-bcc5-22196984321b",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.crossDevice",
+    "value": "Lock across devices",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "e57f29ea-f342-453c-8dce-ce04e163f001",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.crossDevice",
+    "value": "跨设备锁屏",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "569a3aa7-2f20-45c2-94ca-4d69012962d1",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.crossDevice.desc",
+    "value": "When enabled, locking one device locks all your signed-in devices.",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "4558153b-ec4f-450d-95fb-a23b0d7c2356",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.crossDevice.desc",
+    "value": "开启后，任一台设备锁屏会同步锁定所有已登录设备。",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "70c81601-79f5-4439-9317-5020044da419",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.pwd",
+    "value": "Lock screen password",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "0ba067b6-af5c-4e58-a8ee-71ffd7ca3412",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.pwd",
+    "value": "锁屏密码",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "966b024f-2b86-4d3c-bd21-dc88b5efffc4",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.pwd.keep",
+    "value": "Leave blank to keep the current password",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "7d5bee4b-ccf2-4dc9-b8c1-a7befadff633",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.pwd.keep",
+    "value": "留空表示不修改当前密码",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "798f55b5-7d4d-43ff-8044-55485255690c",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.mode.default",
+    "value": "Default (manual)",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "f81b7a3b-f31a-4a60-9b70-1a3b22fa4810",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.mode.default",
+    "value": "默认（手动）",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "1bb7ff11-acff-409f-a657-10abf9d8f4c3",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.mode.idle",
+    "value": "Idle",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "315b7e9e-9191-4e86-bfdf-c70c63af1595",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.mode.idle",
+    "value": "空闲",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "b785093d-c74a-4a81-ad8d-e75f7a171fe1",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.mode.security",
+    "value": "Security (password)",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "5e8cdb60-11e2-4a55-8321-b1a3af0be1f9",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.mode.security",
+    "value": "安全（密码）",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "8b3770dc-5331-4c46-abb0-a156dac6e359",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.invalidPwd",
+    "value": "Lock password must be 6-64 characters.",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "952b733f-6c67-4469-be96-9b417b085757",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.invalidPwd",
+    "value": "锁屏密码长度需为 6-64 位",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "d3aab928-7837-44c0-9749-7db1dee5e448",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.pwdNotMatch",
+    "value": "The two passwords do not match.",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "09a80054-6b7d-4ed8-a351-b858bd4c4030",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.pwdNotMatch",
+    "value": "两次输入的密码不一致",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "d4d31e79-300b-403c-9fc3-0da5ead2ca08",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.idleRange",
+    "value": "Idle seconds must be between 60 and 7200.",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "c057b26c-a942-45ff-b8ef-273ede622dad",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.idleRange",
+    "value": "空闲秒数需在 60-7200 之间",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "ad93b1c3-9975-4397-977b-d6f70e4ab06f",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.securityRange",
+    "value": "Security seconds must be between 15 and 600.",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "1f41e719-82a3-46aa-a9e6-9f32b384775f",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.securityRange",
+    "value": "安全秒数需在 15-600 之间",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "8d8208b6-3401-49c2-8faa-f552307f2574",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.unlock",
+    "value": "Unlock",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "0a9f5e5c-b410-41b7-80ae-26c2b79874a6",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.unlock",
+    "value": "解锁",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "1eb500da-4f77-417a-bd8a-96f09b639116",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.forgot",
+    "value": "Forgot lock password?",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "116451ee-c757-448d-bff5-6ba44a01aeab",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.forgot",
+    "value": "忘记锁屏密码？",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "89c4e90e-dc99-4661-8086-287c7837177c",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.fallback",
+    "value": "Unlock with login password",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "ede42bb6-31df-410b-a74d-7ad79bb4b999",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.fallback",
+    "value": "使用登录口令解锁",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "3e1d08a2-79d9-4845-9f99-8fe8dcbdcc49",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.fallback.hint",
+    "value": "You can also sign in on another device to unlock (when cross-device lock is enabled).",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "a70ec0b8-6238-4ed9-b560-1544797dc752",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.fallback.hint",
+    "value": "也可在其它设备登录以解锁（开启跨设备锁屏时）。",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "0844fb76-c07f-48c5-ba1d-bc498eb77c17",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.fallback.pwdErr",
+    "value": "Login password error.",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "428151e6-a50f-4e9a-a50f-db51d7d21d59",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.fallback.pwdErr",
+    "value": "登录口令错误",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "e40e4e6a-8940-40b5-af32-5109dc4ba515",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.fallback.back",
+    "value": "Back to lock password",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "864b10cd-e1b4-409d-872d-641b4a9d1cb9",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.fallback.back",
+    "value": "返回锁屏密码",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "79295323-90a2-421f-adfa-ff25ea54f0b7",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.reset",
+    "value": "Reset lock screen",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "8dce5d2f-4671-410c-bdd0-60e9c350c4ac",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.reset",
+    "value": "重置锁屏",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "6458911e-3c38-4ffd-899d-ddbeabf4ee69",
+    "lang_id": "caf7d119-be81-5a8c-bd5c-fa8a832dbd85",
+    "key": "app.security.lock.unlockDevice",
+    "value": "Unlock device",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
+  },
+  {
+    "id": "58622a42-f08d-46f0-bcd2-736d7d779440",
+    "lang_id": "a31ee391-d5dc-58e5-9318-decda4f7e62a",
+    "key": "app.security.lock.unlockDevice",
+    "value": "解锁该设备",
+    "created_at": "2026-11-27T00:00:00.000Z",
+    "updated_at": "2026-11-27T00:00:00.000Z"
   }
 ]

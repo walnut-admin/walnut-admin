@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Put } from 
 import { ApiTags } from '@nestjs/swagger'
 import { WalnutTx, WalnutTxContext, WalnutTxSession } from '@walnut-server/db'
 import { ApiWalnutOkResponse } from '@walnut-server/decorators/swagger/response.decorator'
-import { WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
+import { WalnutAdminDecoratorDecryptRequest, WalnutAdminDecoratorDeviceId, WalnutAdminDecoratorHasPermission, WalnutAdminDecoratorUser } from '@walnut-server/guards'
 
 import { SysUserDeviceListDTO, SysUserDeviceService, SysUserDeviceUpdateNameDTO, SysUserLockUnLockDto } from '@walnut-server/identity'
 import { WalnutAdminPipeDeviceId } from '@walnut-server/pipes'
@@ -103,6 +103,11 @@ export class SysUserDeviceController {
     description: 'unlock user device',
     primitive: 'boolean',
   })
+  // L2（2026-11-27）：设备列表的「解锁该设备」与 `lock/unlock` 是同一个
+  // `SysUserLockUnLockDto`，security 模式同样要提交锁屏密码。L1 只把信封接到
+  // lock/preference 与 lock/unlock；这里补齐设备维度的同一字段，避免锁屏密码以明文
+  // 进签名原文 / 网络抓包（未启用信封的客户端仍原样透传，灰度兼容）。
+  @WalnutAdminDecoratorDecryptRequest(['lockPwdHash'] as const)
   async unlockUserDevice(
     @WalnutAdminDecoratorUser() user: IWalnutAdminAccessTokenPayload,
     @WalnutTxSession() ctx: WalnutTxContext,

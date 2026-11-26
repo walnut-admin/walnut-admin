@@ -18,6 +18,21 @@ import 'animate.css'
 // custom scss
 import './assets/styles/main.scss'
 
+/**
+ * 请求被路由切换取消（`_cancelOnRouteChange`）不是运行时致命错误。
+ *
+ * 锁屏 `logicAfterLock` 会 push `/lock`，取消当前页在途请求；axios 的 CanceledError
+ * 从 adapter promise 冒到 `unhandledrejection`，旧实现直接弹「页面遇到无法恢复的错误」
+ * 全屏遮罩 —— 锁屏/切页越快越容易命中（E2E J1 的 default 免密腿实测复现）。
+ */
+function isRequestCanceled(reason: unknown): boolean {
+  if (typeof reason !== 'object' || reason === null) {
+    return false
+  }
+  const value = reason as { name?: unknown, code?: unknown }
+  return value.name === 'CanceledError' || value.code === 'ERR_CANCELED'
+}
+
 (async () => {
   const app = createApp(App)
 
@@ -37,6 +52,10 @@ import './assets/styles/main.scss'
   app.config.errorHandler = (err, _instance, info) => reportRuntimeFatal(err, `vue:${info}`)
 
   window.addEventListener('unhandledrejection', (event) => {
+    if (isRequestCanceled(event.reason)) {
+      event.preventDefault()
+      return
+    }
     reportRuntimeFatal(event.reason, 'unhandledrejection')
   })
 

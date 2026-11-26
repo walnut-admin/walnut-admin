@@ -1,5 +1,6 @@
 import type { ResponseBase } from '@walnut/contract'
 import type { AxiosResponse } from 'axios'
+import type { IAppResponseError } from '@/utils/axios/types'
 import { WalnutAdminConstAppResponseCode } from '@walnut/contract'
 import { removeCurrentPageRequests } from '@walnut/http/adapters/cancel'
 import { get, isArray, set } from 'lodash-es'
@@ -227,5 +228,12 @@ export async function responseInterceptors(res: AxiosResponse<ResponseBase<{ id:
   // 兜底错误必须**带码**：启动期（naive-ui provider 未挂载）toast 会降级成 console，
   // 此时用户看到的只有这个 Error 的 message；旧实现写死「Missing Error Code」，
   // 等于把所有未登记的码变成同一个无法定位的字符串。
-  return Promise.reject(new Error(`[${code}] ${msg || 'Unknown error'}`))
+  //
+  // 同时把 `code / msg / meta` 挂回 Error：锁屏解锁（40000）需要 `meta.retryAfterSec`
+  // 做就地倒计时，旧实现只留 message，调用方无法拿到退避秒数。
+  const error: IAppResponseError = Object.assign(
+    new Error(`[${code}] ${msg || 'Unknown error'}`),
+    { code, msg, meta },
+  )
+  return Promise.reject(error)
 }

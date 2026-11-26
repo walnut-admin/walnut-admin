@@ -3,13 +3,13 @@ import { useNow } from '@vueuse/core'
 import Battery from './components/Battery.vue'
 import FPS from './components/FPS.vue'
 import Network from './components/Network.vue'
-import UnlockButton from './components/UnlockButton.vue'
+import UnlockPanel from './components/UnlockPanel.vue'
 
 const now = useNow()
 </script>
 
 <template>
-  <UnlockButton />
+  <UnlockPanel />
 
   <div class="absolute bottom-8 left-1/2 -translate-x-1/2">
     <n-time :time="now" format="yyyy/MM/dd" class="text-2xl tracking-wide" />
