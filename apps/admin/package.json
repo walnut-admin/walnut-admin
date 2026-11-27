@@ -28,7 +28,7 @@
   },
   "scripts": {
     "predev": "node build/generate/index.ts",
-    "dev": "vite",
+    "dev": "node scripts/wait-backend-ready.ts && vite",
     "prebuild": "node build/generate/index.ts",
     "build": "vite build",
     "prebuild:stage": "node build/generate/index.ts",
