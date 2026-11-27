@@ -18,6 +18,7 @@
 | [版本管理与发布日志](./06-versioning-and-changelog.md) | Changesets 工作流、fixed vs independent、CI 自动化 |
 | [Vue3 + NestJS 全栈架构](./07-fullstack-architecture.md) | 共享类型、Zod 验证、API 通信、安全 |
 | [E2E 测试与沙盒环境设计](./08-e2e-and-sandbox-testing.md) | 测试配比、六种沙盒粒度、数据隔离、执行架构、CI 分层、契约与度量 |
+| [Rust 化工具链迁移评估](./rust-toolchain-migration-assessment.md) | oxlint / oxfmt / TS7 / tsrs / tsdown 的成熟度判定、差距分析与分轨道风险评估 |
 
 ## 主要参考来源
 

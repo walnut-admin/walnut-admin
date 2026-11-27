@@ -355,6 +355,7 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: 'tooling 收束与根脚本改造计划', link: '/content/plans/tooling-restructure-plan' },
         { text: 'E2E 沙盒测试计划', link: '/content/plans/e2e-sandbox-plan' },
         { text: 'apps/e2e 改造优化方案', link: '/content/plans/e2e-optimization-plan' },
+        { text: 'Rust 化工具链迁移计划', link: '/content/plans/rust-toolchain-migration-plan' },
       ],
     },
     {
@@ -369,6 +370,7 @@ const sidebar: DefaultTheme.Sidebar = {
         { text: '版本管理与发布日志', link: '/content/industry-research/06-versioning-and-changelog' },
         { text: 'Vue3 + NestJS 全栈架构', link: '/content/industry-research/07-fullstack-architecture' },
         { text: 'E2E 与沙盒测试', link: '/content/industry-research/08-e2e-and-sandbox-testing' },
+        { text: 'Rust 化工具链迁移评估', link: '/content/industry-research/rust-toolchain-migration-assessment' },
       ],
     },
     {
